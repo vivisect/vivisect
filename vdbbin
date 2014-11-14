@@ -1,0 +1,155 @@
+#!/usr/bin/python
+
+import sys
+import optparse
+import traceback
+
+import vdb
+import vtrace
+import vtrace.snapshot as vt_snap
+
+def targetusage():
+    print('''
+    Alternate vdb "targets" include various embedded/hardware/etc debugging
+    capabilities which are not related to your runtime platform....  Some
+    targets may require additional foo=bar style options added to the end
+    of your vdb command.  See details per-target below.
+
+    ======================================================================
+
+    "vmware32" host=<host> port=<port>
+        ( of listening vmware gdb server for 32 bit VM )
+
+        The "vmware32" target enables debugging with a 32bit VMWare Hypervisor
+        using their gdb-server stub.  This allows "hardware debugger" like
+        kernel debugging.
+
+        Add the following lines to your VMX file to enable debugging:
+
+        debugStub.listen.guest32 = "TRUE"
+        debugStub.hideBreakpoints = "FALSE"
+
+        VMWare will be listening on 127.0.0.1 on port 8832 (for the first one...
+        8833 for the second... etc... )
+
+        NOTE: Only Windows XP currently supported.
+        TODO: Windows 7 / Linux / Windows 8
+
+    ======================================================================
+
+    In development:
+
+    "vmware64"  - Kernel debug 64 bit VMWare Hypervisors
+    "openocd"   - Debug embedded targets
+
+    ''')
+    sys.exit(0)
+
+def main():
+    parser = optparse.OptionParser(prog='vdbbin', usage='vdbbin [options] [platformopt=foo, ...]')
+    parser.add_option('-c', '--cmd', dest='command', default=None, help='Debug a fired command')
+    parser.add_option('-p', '--process', dest='process', default=None, help='Attach to process by name or pid')
+    parser.add_option('-Q', '--qt', dest='doqt', default=False, action='store_true', help='Run the QT gui')
+    parser.add_option('-R', '--remote', dest='remotehost', default=None, help='Attach to remote VDB server')
+    parser.add_option('-r', '--run', dest='dorunagain', default=False, action='store_true', help='Do not stop on attach')
+    parser.add_option('-s', '--snapshot', dest='snapshot', default=None, help='Load a vtrace snapshot file')
+    parser.add_option('-S', '--server', dest='doserver', default=False, action='store_true')
+    parser.add_option('-v', '--verbose', dest='doverbose', default=False, action='store_true')
+    parser.add_option('-t', '--target', dest='target', default=None, help='Activate special vdb target ( -t ? for list )')
+    parser.add_option('--android', dest='doandroid', default=False, action='store_true', help='Debug Android with ADB!')
+    parser.add_option('-e', '--eventid', dest='eventid', default=None, type='int', help='Used for Windows JIT')
+    parser.add_option('-w', '--waitfor', dest='waitfor', default=None, help='Wait for process with name')
+
+
+    options, argv = parser.parse_args(sys.argv[1:])
+
+    # Handle some options before we even create a trace.
+    vtrace.remote = options.remotehost # None by default
+
+    platargs = {}
+
+    for arg in argv:
+
+        if arg.find('=') == -1:
+            continue
+
+        k, v = arg.split('=', 1)
+        if v.isdigit():
+            v = int(v)
+
+        platargs[k.lower()] = v
+
+    if options.doandroid:
+        import vdb.tools.android as v_utils_android
+        v_utils_android.runVdbOnDroid()
+        return
+
+    if options.target == '?':
+        targetusage()
+
+    trace = None
+    if options.snapshot:
+        print('Loading process snapshot...')
+        trace = vt_snap.loadSnapshot(options.snapshot)
+
+    if trace == None:
+        trace = vtrace.getTrace(target=options.target, **platargs)
+
+    db = vdb.Vdb(trace)
+    db.runagain = options.dorunagain
+    db.windows_jit_event = options.eventid
+
+    if options.waitfor:
+        while True:
+            newest_pid = 0
+            for pid, pname in trace.ps():
+                pname = pname.split(' ')[0]
+                if pname.find(options.waitfor) != -1:
+                    newest_pid = pid
+
+            if newest_pid != 0:
+                trace.attach(newest_pid)
+                break
+
+    if options.doqt:
+        import vqt.main as vq_main
+        import vdb.qt.main as vdb_q_main
+        import vqt.colors as vq_colors
+        vq_main.startup(css=vq_colors.qt_matrix)
+        qgui = vdb_q_main.VdbWindow(db)
+        qgui.show()
+
+    if options.doserver:
+        db.do_server('')
+
+    if options.process:
+        db.do_attach(options.process)
+
+    elif options.command:
+        trace.execute(options.command)
+
+    if options.eventid:
+        db.trace.setMeta('WindowsJitEvent', options.eventid)
+
+    if options.doqt:
+        vq_main.main()
+
+    else:
+
+        while not db.shutdown.isSet():
+            try:
+
+                db.cmdloop()
+
+            except KeyboardInterrupt:
+                if db.trace.isRunning():
+                    db.trace.sendBreak()
+
+            except SystemExit:
+                break
+
+            except:
+                traceback.print_exc()
+
+if __name__ == '__main__':
+    sys.exit(main())

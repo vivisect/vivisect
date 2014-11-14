@@ -1,0 +1,142 @@
+#!/usr/bin/python
+
+import os
+import imp
+import sys
+import time
+import getopt
+import inspect
+import cProfile
+import threading
+import traceback
+
+
+import vivisect
+import vivisect.cli as viv_cli
+import envi.threads as e_threads
+import vivisect.parsers as viv_parsers
+
+def usage():
+    print "Usage: vivbin [options] <workspace|binaries...>"
+    print "\t-M <bulkmod>  Run the file listed as an analysis module in non-gui mode and exit"
+    print "\t-A Do *not* do an initial auto-analysis pass"
+    print "\t-B Bulk mode. Do *not* start the gui, just load, analyze and save"
+    print "\t-C Output vivisect performace profiling (cProfile) info."
+    print "\t-O <secname>.<optname>=<optval> (optval must be json syntax)"
+    print "\t-p <parser> Manually specify the parser module (pe/elf/blob/...)"
+    print "\t-s <storage_name> Specify a storage module by name."
+    print "\t-v verbose mode"
+    print "\t-V Add file version (if available) to save file name"
+    sys.exit(0)
+
+def main():
+
+    vw = viv_cli.VivCli()
+
+    modname = None
+    bulk = False
+    doanalyze = True
+    vwname = None
+    verbose = False
+    parsemod = None
+    cprof = False
+
+    try:
+        # FIXME optparse!
+        opts,args = getopt.getopt(sys.argv[1:], "ABCM:vO:Pp:SwV")
+    except:
+        usage()
+
+    for opt,optarg in opts:
+
+        if opt == "-A":
+            doanalyze = False
+
+        elif opt == "-B":
+            bulk = True
+
+        elif opt == "-M":
+            bulk = True
+            modname = optarg
+
+        elif opt == "-v":
+            verbose = True
+
+        elif opt == "-O":
+            vw.config.parseConfigOption( optarg )
+
+        elif opt == "-p":
+            parsemod = optarg
+
+        elif opt == "-s":
+            vw.setMeta("StorageModule", optarg)
+
+        elif opt == "-w":
+            parsemod = 'viv'
+            print('-w is obsoleted, loading workspaces anyway (for now)')
+
+        elif opt == "-C":
+            cprof = True
+
+    vw.verbose = verbose
+
+    # If we're not gonna load files, no analyze
+    if len(args) == 0:
+        doanalyze = False
+
+    # Load in any additional files...
+    needanalyze = False
+    for fname in args:
+        if parsemod == None:
+            parsemod = viv_parsers.guessFormatFilename(fname)
+
+        start = time.time()
+        if parsemod == 'viv':
+            vw.loadWorkspace(fname)
+        else:
+            needanalyze = True
+            vw.loadFromFile(fname, fmtname=parsemod)
+
+        end = time.time()
+        print('Loaded (%.4f sec) %s' % (end-start, fname))
+
+    if bulk:
+        if doanalyze:
+            if cprof:
+                cProfile.run("vw.analyze()")
+            else:
+                start = time.time()
+                vw.analyze()
+                end = time.time()
+                print "ANALYSIS TIME: %s" % (end-start)
+
+        if modname != None:
+            module = imp.load_module("custom_analysis", file(modname, "rb"), modname, ('.py', 'U', 1))
+            module.analyze(vw)
+
+        print("Saving workspace: %s" % (vw.getMeta('StorageName')))
+
+        vw.saveWorkspace()
+
+    else:
+
+        import vivisect.qt.main as viv_qt_main
+
+        # If we are interactive, lets turn on extended output...
+        vw.verbose = True
+        if doanalyze and needanalyze:
+            e_threads.firethread(vw.analyze)()
+
+        viv_qt_main.main(vw)
+
+if __name__ == "__main__":
+    try:
+        # psyco makes disasm much faster (2-3X)
+        import psyco
+        #psyco.log()
+        psyco.full()
+    except ImportError:
+        pass
+
+    main()
+
