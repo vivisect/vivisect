@@ -127,7 +127,6 @@ class CodeBlockGraph(v_graphcore.HierGraph):
         NOTE: If the given va is already present within another
         node, this API will *split* the other node.
         '''
-        print 'GETCB',hex(va)
         # is it already a cb node?
         node = self.getNode(va)
         if node != None:
@@ -171,7 +170,6 @@ class CodeBlockGraph(v_graphcore.HierGraph):
 
         edges = self.getEdgesByProp('codeflow',vatup)
         if len(edges):
-            print 'FOUND'
             return edges[0]
 
         node2 = self.getCodeBlockNode(va2)
