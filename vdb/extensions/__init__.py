@@ -5,7 +5,7 @@ import traceback
 
 import vdb.ext
 
-__all__ = ['loadExtensions','windows','i386','darwin','amd64','gdbstub','arm','android','winkern']
+__all__ = ['loadExtensions','windows','i386','darwin','amd64','gdbstub','arm','android','winkern',]
 
 '''
 A package to contain all the extended functionality for platform specific
@@ -29,7 +29,7 @@ def loadExtensions(vdb, trace):
 
     extdir = os.getenv('VDB_EXT_PATH')
     if extdir == None:
-        return
+        extdir = os.path.abspath(os.path.join('vdb', 'ext'))
 
     for dirname in extdir.split(';'):
 
@@ -42,16 +42,16 @@ def loadExtensions(vdb, trace):
             sys.path.append(dirname)
 
         for fname in os.listdir(dirname):
-            if not fname.endswith('.py'):
+            if not fname.endswith('.py') or fname == '__init__.py':
                 continue
 
-            modname = os.path.splitext( fname )[0]
+            modname = os.path.splitext(fname)[0]
 
             # Build code objects from the module files
             mod = imp.new_module('vdb.ext.%s' % modname)
             sys.modules['vdb.ext.%s' % modname] = mod
             filepath = os.path.join(dirname, fname)
-            filebytes = file( filepath, 'r' ).read()
+            filebytes = file(filepath, 'r').read()
             mod.__file__ = filepath
             try:
                 exec filebytes in mod.__dict__
@@ -59,4 +59,3 @@ def loadExtensions(vdb, trace):
             except Exception, e:
                 vdb.vprint( traceback.format_exc() )
                 vdb.vprint('Extension Error: %s' % filepath)
-
