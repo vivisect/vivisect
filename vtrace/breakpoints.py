@@ -389,6 +389,10 @@ class PostHookBreakpoint(NiceBreakpoint):
                 print('Post hook callback "%s" exception: %s' % (hook_cb, str(e)))
 
     def notify(self, event, trace):
-        ret_addr, args = self.parent.callinfo[trace.getCurrentThread()]
+        tup = self.parent.callinfo.get(trace.getCurrentThread(), None)
+        if tup == None:
+            return
+
+        ret_addr, args = tup
 
         self.runPostHookCallbacks(event, trace, ret_addr, args)
