@@ -12,6 +12,7 @@ the server rather than the local python current working directory.
 '''
 import os
 import sys
+import optparse
 import importlib
 import subprocess
 import multiprocessing
@@ -20,8 +21,7 @@ import cobra
 import cobra.dcode
 
 class RemoteAppServer:
-    def __init__(self):
-        pass
+    pass
 
 def shareRemoteApp(name, appsrv=None, daemon=None, port=443):
     '''
@@ -73,7 +73,15 @@ def execRemoteApp(uri):
     subprocess.Popen([sys.executable, '-m', 'cobra.remoteapp', uri])
 
 def main():
+    parser = optparse.OptionParser()
+    #parser.add_option('--cacert', dest='cacert', default=None )
+    #parser.add_option('--sslkey', dest='sslkey', default=None )
+    #parser.add_option('--sslcert', dest='sslcert', default=None )
+
+    opts,argv = parser.parse_args()
+    # FIXME make a socket builder...
     runRemoteApp(argv[0])
 
 if __name__ == '__main__':
     sys.exit(main())
+

@@ -3,7 +3,10 @@ Cobra Distributed Event subsystem.
 '''
 import json
 import time
-import Queue
+try:
+    import Queue as queue
+except ImportError:
+    import queue
 import socket
 import struct
 import itertools
@@ -11,6 +14,8 @@ import threading
 import collections
 
 import envi.threads as e_threads
+
+# FIXME add chan timeout teardown
 
 class CobraEventCore:
 
@@ -31,10 +36,9 @@ class CobraEventCore:
 
     def initEventChannel(self, qmax=0):
         '''
-        Create a new channel id and allocate an
-        event Queue.
+        Create a new channel id and allocate an event Queue.
         '''
-        chanid = self._ce_chanids.next()
+        chanid = next(self._ce_chanids)
         q = e_threads.ChunkQueue()
         q.chanid = chanid # monkey patch the chanid to the q
         self._ce_chans.append( q )
@@ -48,7 +52,7 @@ class CobraEventCore:
         Queue object.
         '''
         q = self._ce_chanlookup.pop( chanid )
-        q.put((None,None))
+        q.put((None, None))
         self._ce_chans.remove( q )
 
     def finiEventChannels(self):
@@ -56,12 +60,12 @@ class CobraEventCore:
         Close down all event channels by adding a (None,None)
         event and removing the event Q from the datastructs.
         '''
-        for upstream,upchan in self._ce_upstreams:
+        for upstream, upchan in self._ce_upstreams:
             try:
                 upstream.finiEventChannel(upchan)
-            except Exception, e:
-                print('upstream error: %r %s' % (upstream,e))
-        [ self.finiEventChannel( chanid ) for chanid in self._ce_chanlookup.keys() ]
+            except Exception as e:
+                print('upstream error: %r %s' % (upstream, e))
+        [ self.finiEventChannel( chanid ) for chanid in list(self._ce_chanlookup.keys()) ]
 
     def getNextEventsForChan(self, chanid, timeout=None):
         '''
@@ -75,9 +79,10 @@ class CobraEventCore:
         q = self._ce_chanlookup.get( chanid )
         if q == None:
             return None
+
         return q.get(timeout=timeout)
 
-    def fireEvent(self, event, einfo, upstream=True, skip=None, chans=None):
+    def fireEvent(self, event, einfo, upstream=True, skip=None):
         '''
         Fire an even into the event distribution system.
 
@@ -86,10 +91,7 @@ class CobraEventCore:
         '''
         etup = (event,einfo)
         # Speed hack
-        if chans != None:
-            [ q.put( etup ) for q in self._ce_chans if q.chanid in chans ]
-        else:
-            [ q.put( etup ) for q in self._ce_chans if q.chanid != skip ]
+        [ q.put( etup ) for q in self._ce_chans if q.chanid != skip ]
 
         if self._ce_ecastsock:
             self._ce_ecastsock.sendto( json.dumps( etup ), (self._ce_mcasthost, self._ce_mcastport))
@@ -97,14 +99,14 @@ class CobraEventCore:
         for handler in self._ce_handlers[event]:
             try:
                 handler(event,einfo)
-            except Exception, e:
-                print('handler error(%r): %s' % (event,e))
+            except Exception as e:
+                print('handler error(%r): %s' % (event, e))
 
         if upstream:
             for upstream,upchan in self._ce_upstreams:
                 try:
                     upstream.fireEvent(event, einfo, skip=upchan)
-                except Exception, e:
+                except Exception as e:
                     print('upstream error: %r %s' % (upstream,e))
 
     def addEventHandler(self, event, callback):
@@ -136,21 +138,21 @@ class CobraEventCore:
         while True:
             try:
                 events = evtcore.getNextEventsForChan( chan, timeout=5 )
-            except Exception, e:
+            except Exception as e:
                 print('addEventUpstream Error: %s' % e)
                 time.sleep(1)
                 # grab a new channel...
                 chan = evtcore.initEventChannel(qmax=qmax)
                 corechan[1] = chan
                 continue
-            # channel closed..
+
+            # channel closed
             if events == None:
                 return
 
-
             try:
                 [ self.fireEvent(event,einfo,upstream=False) for (event,einfo) in events ]
-            except Exception, e:
+            except Exception as e:
                 print('addEventUpstream fireEvent Error: %s' % e)
                 time.sleep(1)
 
@@ -185,7 +187,7 @@ class CobraEventCore:
 
                 try:
                     callback(event,einfo)
-                except Exception, e:
+                except Exception as e:
                     print('Event Callback Exception (chan: %d): %s' % (chanid,e))
 
     def setEventCast(self, mcast='224.56.56.56', port=45654, bind='0.0.0.0'):
