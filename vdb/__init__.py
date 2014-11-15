@@ -1360,60 +1360,51 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
             self.vprint('%6d %.8s - %s' % (pid, runmsg, name))
 
     def do_syms(self, line):
-        """
-        List symbols and by file.
+        '''
+        List symbols for loaded libraries. Use 'lm' to see loaded libraries.
+        -s <regex> a regular expression (case insensitive search)
+        <libname> the library name
 
-        Usage: syms [-s <pattern>] [filename]
+        Usage: syms [-s <regex>] [<libname> ...]
 
-        With no arguments, syms will self.vprint(the possible
-        libraries with symbol resolvers.  Specify a library
-        to see all the symbols for it.
-        """
+        Usage: show all symbols for library foobar
+                syms foobar
 
-        argv = e_cli.splitargs(line)
-        try:
-            opts,args = getopt(argv, "s:")
-        except:
-            return self.do_help("syms")
+        Usage: show specific symbols for library foobar and bazfaz
+                syms -s .*?barfoo.* foobar bazfaz
 
-        pattern = None
-        for opt,optarg in opts:
-            if opt == "-s":
-                pattern = optarg.lower()
+        Usage: shows specific symbols in any library
+                syms -s .*?barfoo.*
+        '''
+        argv = shlex.split(line)
+        if len(argv) < 1:
+            return self.do_help('syms')
 
+        rgx = None
+        if '-s' in argv:
+            idx = argv.index('-s')
+            argv.pop(idx)
+            rgx = argv.pop(idx)
+
+        s = set(argv)
         libs = self.trace.getNormalizedLibNames()
-        libs.sort()
-        if len(args) == 0:
-            self.vprint("Current Library Symbol Resolvers:")
+        if len(s) > 0:
+            libs = [lib for lib in libs if lib in s]
 
-            if pattern == None:
-                for libname in libs:
-                    self.vprint("  %s" % libname)
-            else:
-                for libname in libs:
-                    for sym in self.trace.getSymsForFile(libname):
-                        r = repr(sym)
-                        if pattern != None:
-                            if r.lower().find(pattern) == -1:
-                                continue
-                        self.vprint("0x%.8x %s" % (sym.value, r))
+        if len(libs) == 0 and rgx == None:
+            self.vprint('invalid library names: %s' % argv)
+            return self.do_help('syms')
 
-        else:
-            libname = args[0]
-            if libname not in libs:
-                self.vprint("Unknown libname: %s" % libname)
-                return
-            if pattern:
-                self.vprint("Matching Symbols From %s:" % libname)
-            else:
-                self.vprint("Symbols From %s:" % libname)
-
-            for sym in self.trace.getSymsForFile(libname):
+        for lib in sorted(libs):
+            for sym in self.trace.getSymsForFile(lib):
                 r = repr(sym)
-                if pattern != None:
-                    if r.lower().find(pattern) == -1:
+
+                if rgx != None:
+                    match = re.search(rgx, r, re.IGNORECASE)
+                    if match == None:
                         continue
-                self.vprint("0x%.8x %s" % (sym.value, r))
+
+                self.vprint('0x%.8x %s' % (sym.value, r))
 
     def do_call(self, line):
         """
