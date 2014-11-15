@@ -750,8 +750,8 @@ class CallingConvention(object):
         '''
         Returns the number of stack arguments.
         '''
-        rargs = [ v for (t,v) in self.arg_def if t == CC_REG ]
-        return argc - len(rargs)
+        rargs = [ v for (t, v) in self.arg_def if t == CC_REG ]
+        return max(argc - len(rargs), 0)
 
     def getPreCallArgs(self, emu, argc):
         '''
@@ -928,7 +928,7 @@ class CallingConvention(object):
         return address space ( ie, the "call" was not executed ).
         '''
         delta = self.delta
-        
+
         rtype, rvalue = self.retaddr_def
         if rtype == CC_STACK and not precall:
             delta += self.align
