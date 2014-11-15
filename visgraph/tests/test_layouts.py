@@ -1,5 +1,3 @@
-
-import test
 import unittest
 
 import visgraph.graphcore as v_graphcore

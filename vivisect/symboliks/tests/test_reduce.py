@@ -1,7 +1,5 @@
 import unittest
 
-import test
-
 from vivisect.symboliks.common import *
 from vivisect.symboliks.expression import symexp
 

@@ -1,4 +1,3 @@
-import test
 import unittest
 
 import vivisect

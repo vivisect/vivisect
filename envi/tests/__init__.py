@@ -1,4 +1,3 @@
-import test
 import envi
 import platform
 import unittest
