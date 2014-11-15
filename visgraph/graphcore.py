@@ -40,7 +40,6 @@ class Graph:
     '''
     def __init__(self):
         self.wipeGraph()
-        self.metadata = {}
         self.formlock = threading.Lock()
 
     def setMeta(self, mprop, mval):
@@ -102,6 +101,7 @@ class Graph:
         '''
         self.edges          = {}
         self.nodes          = {}
+        self.metadata       = {}
         self.formnodes      = {}
         self.nodeprops      = pdict() # nodeprops[key][value] = list of nodes
         self.edgeprops      = pdict() # edgeprops[key][value] = list of edges
