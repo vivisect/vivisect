@@ -474,7 +474,7 @@ class x64MSx64CallCallingConventionTest(i386MsFastCallCallingConventionTest):
         if len(self.args) < 4:
             num_on_stack = 4
         assert(num_on_stack >= 0)
-        assert(sp + (self.psize*num_on_stack+self.psize) == self.trace.getStackCounter())
+        assert(sp + self.psize == self.trace.getStackCounter())
 
         eax = self.trace.getRegister(REG_RAX)
         ip = self.trace.getProgramCounter()
