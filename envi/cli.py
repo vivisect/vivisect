@@ -448,6 +448,10 @@ class EnviCli(Cmd):
         scriptpath = None
         if os.path.exists(argv[0]):
             scriptpath = argv[0]
+            # allow scripts to import things from the script dir
+            dname = os.path.abspath(os.path.dirname(scriptpath))
+            if dname not in sys.path:
+                sys.path.append(dname)
         else:
             for scriptdir in self.scriptpaths:
                 # allow scripts to import things from the script dir
