@@ -198,3 +198,23 @@ class GraphCoreTest(unittest.TestCase):
                 raise Exception('Invalid SubCluster!')
 
 
+    def test_visgraph_formnode(self):
+        g = v_graphcore.Graph()
+
+        def wootctor(n):
+            g.setNodeProp(n,'lul',1)
+
+        n1 = g.formNode('woot', 10, ctor=wootctor)
+        self.assertEqual( n1[1].get('lul'), 1 )
+
+        g.setNodeProp(n1, 'lul', 2)
+        g.setNodeProp(n1, 'foo', 'bar')
+
+        n2 = g.formNode('woot', 20, ctor=wootctor)
+        n3 = g.formNode('woot', 10, ctor=wootctor)
+
+        self.assertEqual( n1[0], n3[0] )
+        self.assertEqual( n1[1].get('lul'), 2)
+        self.assertEqual( n3[1].get('foo'), 'bar')
+        self.assertNotEqual( n1[0], n2[0])
+

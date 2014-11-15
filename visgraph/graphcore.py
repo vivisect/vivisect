@@ -1,9 +1,13 @@
 '''
 Graphcore contains all the base graph manipulation objects.
 '''
+import os
 import json
 import itertools
+import threading
 import collections
+
+from binascii import hexlify
 
 from exc import *
 import visgraph.pathcore as vg_pathcore
@@ -16,6 +20,9 @@ def ldict():
 
 def pdict():
     return collections.defaultdict(ldict)
+
+def guid():
+    return hexlify(os.urandom(16))
 
 class Graph:
 
@@ -33,14 +40,19 @@ class Graph:
     '''
     def __init__(self):
         self.wipeGraph()
-        self.nidgen = itertools.count()
-        self.eidgen = itertools.count()
         self.metadata = {}
+        self.formlock = threading.Lock()
 
     def setMeta(self, mprop, mval):
         self.metadata[mprop] = mval
 
     def getMeta(self, mprop, default=None):
+        '''
+        Retrieve a value from the dictionary of metadata about this graph.
+
+        Example:
+            m = g.getMeta('made-up-property')
+        '''
         return self.metadata.get(mprop, default)
 
     def toJson(self):
@@ -90,6 +102,7 @@ class Graph:
         '''
         self.edges          = {}
         self.nodes          = {}
+        self.formnodes      = {}
         self.nodeprops      = pdict() # nodeprops[key][value] = list of nodes
         self.edgeprops      = pdict() # edgeprops[key][value] = list of edges
         self.edge_by_to     = ldict()
@@ -114,12 +127,23 @@ class Graph:
         return self.edges.get(eid)
 
     def getEdgeProps(self, eid):
+        '''
+        Retrieve the properties dictionary for the given edge id.
+        '''
         edge = self.edges.get(eid)
         if not edge:
             raise Exception('Invalid edge id')
         return edge[3]
 
     def getEdgesByProp(self, prop, val=None):
+        '''
+        Retrieve all the edges with the specified prop (optionally value).
+
+        Example:
+            # my made up "score" property on edges...
+            for edge in g.getEdgesByProp("score",300):
+                print(edge)
+        '''
         if val != None:
             return self.edgeprops.get(prop,{}).get(val,[])
 
@@ -155,7 +179,8 @@ class Graph:
         Store a piece of information (by prop:value) about a given node.
         ( value must *not* be None )
 
-        Example g.setNodeProp(node, 'Description', 'My Node Is Awesome!')
+        Example:
+            g.setNodeProp(node, 'Description', 'My Node Is Awesome!')
         '''
         if value == None:
             raise Exception('graph prop values may not be None! %r' % (node,))
@@ -178,6 +203,13 @@ class Graph:
         return True
 
     def getNodesByProp(self, prop, val=None):
+        '''
+        Retrieve a list of nodes with the given property (optionally value).
+
+        Example:
+            for node in g.getNodesByProp("awesome",1):
+                print(node)
+        '''
         if val != None:
             return self.nodeprops.get(prop,{}).get(val,[])
 
@@ -197,7 +229,7 @@ class Graph:
               node and will have an ID automagically assigned.
         '''
         if nid == None:
-            nid = self.nidgen.next()
+            nid = guid()
 
         p = self.nodes.get(nid)
         if p != None:
@@ -219,7 +251,50 @@ class Graph:
 
         return node
 
+    def formNode(self, prop, value, ctor=None):
+        '''
+        Retrieve or create a node with the given prop=value.
+
+        If no node with the given property exists, create a new
+        one and trigger the optional ctor function.  This allows
+        uniq'd "primary property" nodes in the graph.
+
+        NOTE: this will *only* be deconflicted with other formNode
+              calls.
+
+        Example:
+            def fooctor(node):
+                g.setNodeProp(node,"thing",0)
+
+            node1 = g.formNode("foo","bar",ctor=fooctor)
+            ...
+            node2 = g.formNode("foo","bar",ctor=fooctor)
+            # node2 is a ref to node1 and fooctor was called once.
+        '''
+        with self.formlock:
+            node = self.formnodes.get( (prop,value) )
+            if node != None:
+                return node
+
+            nid = guid()
+            node = (nid,{prop:value})
+
+            self.nodes[nid] = node
+            self.formnodes[ (prop,value) ] = node
+            self.nodeprops[prop][value].append(node)
+
+            # fire ctor with lock to prevent an un-initialized retrieve.
+            if ctor != None:
+                ctor(node)
+            return node
+
     def delNodeProp(self, node, prop):
+        '''
+        Delete a property from a node.
+
+        Example:
+            g.delNodeProp(node,"foo")
+        '''
         pval = node[1].pop(prop,None)
         if pval != None:
             vlist = self.nodeprops[prop][pval]
@@ -229,6 +304,12 @@ class Graph:
         return pval
 
     def delNode(self, node):
+        '''
+        Delete a node from the graph.
+
+        Example:
+            g.delNode(node)
+        '''
         for eid,nfrom,nto,eprops in self.getRefsFrom(nid):
             self.delEdge(eid)
         for eid,nfrom,nto,eprops in self.getRefsTo(nid):
@@ -293,7 +374,7 @@ class Graph:
 
         eprops.update(kwargs)
         if eid == None:
-            eid = self.eidgen.next()
+            eid = guid()
 
         n1 = node1[0]
         n2 = node2[0]
