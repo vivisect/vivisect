@@ -7,7 +7,7 @@ import vtrace.tests as vt_tests
 
 class VtraceWritememTest(vt_tests.VtraceProcessTest):
 
-    pypath = os.path.join('test_vtrace','mains','mainwritemem.py')
+    pypath = os.path.join('vtrace','tests','mains','mainwritemem.py')
 
     def test_vtrace_writemem(self):
 

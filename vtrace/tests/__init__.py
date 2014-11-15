@@ -10,7 +10,7 @@ import envi.tests as e_test
 
 class VtraceProcessTest(unittest.TestCase):
 
-    pypath = os.path.join('test_vtrace','mains','main.py')
+    pypath = os.path.join('vtrace','tests','mains','main.py')
 
     @e_test.skip('darwin')
     def setUp(self):
@@ -45,7 +45,7 @@ class VtraceProcessTest(unittest.TestCase):
 
 class VtraceExecTest(VtraceProcessTest):
 
-    pypath = os.path.join('test_vtrace','mains','mainexec.py')
+    pypath = os.path.join('vtrace','tests','mains','mainexec.py')
 
     @e_test.skip('darwin')
     def setUp(self):

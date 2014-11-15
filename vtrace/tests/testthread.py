@@ -23,7 +23,7 @@ class ThreadNotifier(vtrace.Notifier):
 
 class VtraceThreadTest(vt_tests.VtraceProcessTest):
 
-    pypath = os.path.join('test_vtrace','mains','mainthreads.py')
+    pypath = os.path.join('vtrace','tests','mains','mainthreads.py')
 
     def test_vtrace_threads(self):
         #if self.trace.getMeta('Platform') not in ('windows',):
