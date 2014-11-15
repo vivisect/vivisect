@@ -1,42 +1,40 @@
-
-
-=== Vivisect / Vdb / Vtrace
+# Vivisect / Vdb / Vtrace
 
 Now all as one project! ( made sense once vivisect went public )
 For more in-depth docs on various topics, see the wiki at
-http://visi.kenshoto.com/
+[http://visi.kenshoto.com/](http://visi.kenshoto.com/)
 
-=== Vdb
+## Vdb
 
-As in previous vdb releases, the command "python vdbbin" from the
+As in previous vdb releases, the command ```python vdbbin``` from the
 checkout directory will drop you into a debugger prompt on supported
 platforms. ( Windows / Linux / FreeBSD / OSX... kinda? )
 
 Commands in vdb grow/refine quickly, so use in-line help such as:
 
-vdb> help
+> vdb> help
 
 or...
 
-vdb> help writemem
+> vdb> help writemem
 
 to show available commands and options.  Additionally, for basic vdb
-use, the wiki at http://visi.kenshoto.com/
+use, the wiki at [http://visi.kenshoto.com/](http://visi.kenshoto.com/)
 
-=== Vivisect
+## Vivisect
 
 Fairly un-documented static analysis / emulation / symbolik analysis
 framework for PE/Elf/Mach-O/Blob binary formats on various architectures.
 To start with, you probably want to run a "bulk analysis" pass on a binary
 using:
 
-python vivbin -B <binaryfile>
+> python vivbin -B <binaryfile>
 
 which will leave you with <binaryfile>.viv
 
 Then run:
 
-python vivbin <binaryfile>.viv
+> python vivbin <binaryfile>.viv
 
 to open the GUI and begin reverse engineering.  As with most vtoys, the ui
 relies fairly heavily on right-click context menus and various memory
