@@ -83,5 +83,5 @@ class MemoryExpressionLocals(ExpressionLocals):
         When expression contains "poi(addr)" this will return
         the address pointed to by addr.
         """
-        return self.memobj.readMemoryFormat(address, "P")[0]
+        return self.memobj.readMemoryPtr(address)
 

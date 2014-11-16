@@ -174,6 +174,15 @@ class IMemory:
         elif size == 8:
             return struct.unpack("<Q", bytes)[0]
 
+    def readMemoryPtr(self, va):
+        '''
+        Read a pointer from memory at the specified address.
+
+        Example:
+            ptr = t.readMemoryPtr(addr)
+        '''
+        return self.readMemValue(va, self.imem_psize)
+
     def writeMemoryFormat(self, va, fmt, *args):
         '''
         Write a python format sequence of variables out to memory after
