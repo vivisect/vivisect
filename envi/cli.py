@@ -79,6 +79,7 @@ class EnviCli(Cmd):
 
         self.extcmds = {}
         self.basecmds = []
+        self.emptymeth = None
         self.extsubsys = collections.defaultdict(list)
         self.scriptpaths = []
         self.addScriptPathEnvVar('ENVI_SCRIPT_PATH')
@@ -206,7 +207,39 @@ class EnviCli(Cmd):
             except:
                 traceback.print_exc()
 
+    def emptyline(self):
+        return self.do_help('')
+
+    def setEmptyMethod(self, callback):
+        '''
+        Set a method to be called back in the event of emptyline().
+        NOTE: this method is cleared on every onecmd() call.
+
+        ( the method is called with no args )
+
+        Example:
+
+            def do_foo(self, line):
+
+                x = 10
+                def showx():
+                    print 'X: %d' % x
+                    x += 10
+
+                showx()
+                cli.setcrmeth(showx)
+
+        '''
+        self.emptymeth = callback
+
     def onecmd(self, line):
+
+        # check for empty line and emptymeth
+        if not line.strip() and self.emptymeth:
+            self.emptymeth()
+            return
+
+        self.emptymeth = None
         lines = line.split("&&")
         try:
             for line in lines:
@@ -702,8 +735,10 @@ class EnviCli(Cmd):
         Show some memory (with optional formatting and size)
 
         Usage: mem [-F <format>] <addr expression> [size]
+        Usage: <enter> ( show next memory chunk after previous mem cmd )
 
         NOTE: use -F ? for a list of the formats
+
         """
         fmtname = "bytes"
 
@@ -739,8 +774,14 @@ class EnviCli(Cmd):
         if len(args) == 2:
             size = self.parseExpression(args[1])
 
-        self.canvas.setRenderer(fmtname)
-        self.canvas.renderMemory(addr, size)
+        scope = {'addr':addr}
+        def showmem():
+            self.canvas.setRenderer(fmtname)
+            self.canvas.renderMemory(scope['addr'], size)
+            scope['addr'] += size
+
+        showmem()
+        self.setEmptyMethod(showmem)
 
 class EnviMutableCli(EnviCli):
     """

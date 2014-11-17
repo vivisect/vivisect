@@ -1587,9 +1587,6 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
 
         self.vdbUIEvent('vdb:setautocont')
 
-    def emptyline(self):
-        self.do_help("")
-
     def do_bt(self, line):
         """
         Show a stack backtrace for the currently selected thread.
