@@ -184,6 +184,9 @@ class EnviQueue:
         except QueueShutdown,e:
             pass
 
+    def put(self, x):
+        self.append(x)
+
     def get(self, timeout=None):
         start = time.time()
         self.last = start

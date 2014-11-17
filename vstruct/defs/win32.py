@@ -658,6 +658,7 @@ VIRTUAL_KEY_CODE.VK_OEM_CLEAR   = 0xfe
 #printable keys for US keyboard 
 # tuples of (base, shift-modified)
 VIRTUAL_KEY_CODE_US_MAPPING = {
+    VIRTUAL_KEY_CODE.VK_RETURN  : ('\n', '\n'),
     VIRTUAL_KEY_CODE.VK_SPACE   : (' ', ' '),
     VIRTUAL_KEY_CODE.VK_0       : ('0', ')'),
     VIRTUAL_KEY_CODE.VK_1       : ('1', '!'),

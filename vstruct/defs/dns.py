@@ -11,6 +11,19 @@ DNS_TYPE_CNAME = 5
 DNS_TYPE_SOA   = 6
 DNS_TYPE_PTR   = 12
 DNS_TYPE_MX    = 15
+DNS_TYPE_TXT   = 16
+
+dns_type_names = {
+    DNS_TYPE_A:     'A',
+    DNS_TYPE_NS:    'NS',
+    DNS_TYPE_CNAME: 'CNAME',
+    DNS_TYPE_SOA:   'SOA',
+    DNS_TYPE_PTR:   'PTR',
+    DNS_TYPE_MX:    'MX',
+    DNS_TYPE_TXT:   'TXT',
+}
+
+DNS_CLASS_IN   = 0x0001
 
 DNS_NAMETYPE_LABEL        = 0
 DNS_NAMETYPE_RESERVED     = 1
@@ -18,19 +31,32 @@ DNS_NAMETYPE_EXTENDED     = 2
 DNS_NAMETYPE_POINTER      = 3
 DNS_NAMETYPE_LABELPOINTER = 4
 
+DNS_FLAG_RESP   = 1 << 15
+DNS_FLAG_TRUNC  = 1 << 9
+DNS_FLAG_RECUR  = 1 << 8
+#DNS_FLAG_AA = 1 << 5    # authoritative answer
+#DNS_FLAG_TC = 1 << 6    # truncated response
+#DNS_FLAG_RD = 1 << 7    # recursion desired
+#DNS_FLAG_RA = 1 << 8    # recursion allowed
+#DNS_FLAG_AD = 1 << 10   # authentic data
+#DNS_FLAG_CD = 1 << 11   # checking disabled
+
 class DnsParseError(Exception):
     pass
+
+def dnsFlagsOp(val):
+    return (val >> 11) & 0xf
 
 class DnsNameLabel(vstruct.VStruct):
     '''
     A DNS Name component.
     '''
-    def __init__(self):
+    def __init__(self, label=''):
         vstruct.VStruct.__init__(self)
-        self._nametype = None
-        self._pointer  = None
-        self.length = v_uint8()
-        self.label  = v_str()
+        self._nametype = 0
+        self._pointer  = 0
+        self.length = v_uint8( len(label) )
+        self.label  = v_bytes( vbytes=label )
 
     def pcb_length(self):
         size = self.length
@@ -79,8 +105,12 @@ class DnsName(vstruct.VArray):
     The contiguous labels (DnsNameLabel()) in a DNS Name field.  Note that the
     last label may simply be a pointer to an offset earlier in the DNS message.
     '''
-    def __init__(self):
-        vstruct.VStruct.__init__(self)
+    def __init__(self, name=None):
+        vstruct.VArray.__init__(self)
+        if name != None:
+            for part in name.split('.'):
+                self.vsAddElement( DnsNameLabel( part ) )
+            self.vsAddElement( DnsNameLabel('') )
 
     def getTypeVal(self):
         '''
@@ -129,11 +159,11 @@ class DnsQuestion(vstruct.VStruct):
     '''
     A DNS Question Record (the query).
     '''
-    def __init__(self):
+    def __init__(self, name=None, qtype=0, qclass=0):
         vstruct.VStruct.__init__(self)
-        self.qname  = DnsName()
-        self.qtype  = v_uint16(bigend=True)
-        self.qclass = v_uint16(bigend=True)
+        self.qname  = DnsName(name=name)
+        self.qtype  = v_uint16(qtype, bigend=True)
+        self.qclass = v_uint16(qclass, bigend=True)
 
 class DnsQuestionArray(vstruct.VArray):
     '''
@@ -178,6 +208,8 @@ class DnsResourceRecord(vstruct.VStruct):
         elif self.rrtype == DNS_TYPE_MX:
             self.rdata.preference = v_uint16(bigend=True)
             self.rdata.exchange   = DnsName()
+        elif self.rrtype == DNS_TYPE_TXT:
+            self.rdata.txtdata = v_str()
         else:
             self.rdata.bytez = v_bytes()
 
@@ -317,6 +349,8 @@ class DnsMessage(vstruct.VStruct):
             elif rr.rrtype == DNS_TYPE_MX:
                 rdata = (rr.rdata.preference,
                          self.getDnsName(*rr.rdata.exchange.getTypeVal()))
+            elif rr.rrtype == DNS_TYPE_TXT:
+                rdata = rr.rdata.txtdata
             else:
                 rdata = rr.rdata.bytez
 

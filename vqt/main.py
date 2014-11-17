@@ -95,6 +95,7 @@ def fireqtthread(func):
     def doqtthread(*args, **kwargs):
         func._qt_thread = QFireThread(func, args, kwargs)
         func._qt_thread.start()
+        return func._qt_thread
 
     functools.update_wrapper(doqtthread,func)
     return doqtthread

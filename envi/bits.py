@@ -222,10 +222,7 @@ def binary(binstr):
     '''
     Decode a binary string of 1/0's into a python number
     '''
-    x = 0
-    for c in binstr:
-        x = (x << 1) + int(c)
-    return x
+    return int(binstr,2)
 
 def binbytes(binstr):
     '''

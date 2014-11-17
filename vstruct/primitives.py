@@ -674,10 +674,6 @@ class v_zwstr(v_str):
     def vsSetLength(self, size):
         raise Exception('Cannot vsSetLength on v_zwstr! (its dynamic)')
 
-
-
-
-
 class GUID(v_prim):
 
     _vs_builder = True

@@ -16,6 +16,7 @@ class CobraEventCore:
 
     def __init__(self):
         self._ce_chanids = itertools.count()
+        self._ce_fireq = e_threads.ChunkQueue()
 
         self._ce_chans = []
         self._ce_handlers = collections.defaultdict(list)
@@ -24,6 +25,20 @@ class CobraEventCore:
         self._ce_mcasthost = None
         self._ce_ecastsock = None
         self._ce_chanlookup = {}
+
+        self._ce_firethr = self._fireFireThread()
+
+    def finiEventCore(self):
+        self._ce_fireq.shutdown()
+        self._ce_firethr.join()
+
+    @e_threads.firethread
+    def _fireFireThread(self):
+        for args,kwargs in self._ce_fireq:
+            try:
+                self._fireEvent(*args, **kwargs)
+            except Exception, e:
+                print('fireFireThread _fireEventError: %s' % e)
 
     @e_threads.maintthread(3)
     def cullAbandonedChannels(self, abtime):
@@ -77,13 +92,17 @@ class CobraEventCore:
             return None
         return q.get(timeout=timeout)
 
-    def fireEvent(self, event, einfo, upstream=True, skip=None, chans=None):
+    def fireEvent(self, *args, **kwargs):
         '''
-        Fire an even into the event distribution system.
+        Fire an event into the event distribution system.
+        ( see _fireEvent for arg defs, we proxy all fire events through 1 thread )
 
         NOTE: an event coming down from an upstream will *not*
               be propigated upward to *any* upstreams.
         '''
+        self._ce_fireq.put( (args,kwargs) )
+
+    def _fireEvent(self, event, einfo, upstream=True, skip=None, chans=None):
         etup = (event,einfo)
         # Speed hack
         if chans != None:

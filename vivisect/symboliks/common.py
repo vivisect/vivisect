@@ -736,8 +736,10 @@ class Operator(SymbolikBase):
                 return Var("NaN", width=self.width).solve(emu=emu)
         if self.mod == 0:
             return Var("NaN", width=self.width).solve(emu=emu)
-
-        return self.oper(v1, v2) % self.mod
+        try:
+            return self.oper(v1, v2) % self.mod
+        except OverflowError:
+            return Var("NaN", width=self.width).solve(emu=emu)
 
     @symcache
     def __repr__(self):

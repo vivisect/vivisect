@@ -311,17 +311,18 @@ class ResourceDirectory:
     "type" and then "name/id" which still points to another
     directory entry which has 1 child (id 1033) with data.
     '''
-    def __init__(self):
-        self._rsrc_subdirs = {}
+    def __init__(self, nameid=None):
         self._rsrc_data = []
+        self._rsrc_nameid = nameid
+        self._rsrc_subdirs = {}
 
-    def addRsrcDirectory(self, name_id):
-        r = ResourceDirectory()
-        self._rsrc_subdirs[name_id] = r
+    def addRsrcDirectory(self, nameid):
+        r = ResourceDirectory(nameid=nameid)
+        self._rsrc_subdirs[nameid] = r
         return r
 
-    def addRsrcData(self, rva, size, codepage):
-        self._rsrc_data.append( (rva, size, codepage) )
+    def addRsrcData(self, rva, size, langinfo):
+        self._rsrc_data.append( (rva, size, langinfo) )
 
     def getDirById(self, name_id):
         return self._rsrc_subdirs.get(name_id)
@@ -488,14 +489,14 @@ class PE(object):
 
     def getResourceDef(self, rtype, name_id):
         '''
-        Get the (rva, size, codepage) tuple for the specified
+        Get the (rva, size, (codepage,langid,sublangid)) tuple for the specified
         resource type/id combination.  Returns None if not found.
         '''
         return self.ResourceRoot.getResourceDef(rtype, name_id)
 
     def getResources(self):
         '''
-        Get the (rtype, nameid, (rva, size, codepage)) tuples for each
+        Get the (rtype, nameid, (rva, size, (codepage,langid,sublangid))) tuples for each
         resource in the PE.
         '''
         ret = []
@@ -614,7 +615,10 @@ class PE(object):
                     subdata = self.readStructAtRva( dresc.VirtualAddress + dirent.OffsetToData, 'pe.IMAGE_RESOURCE_DATA_ENTRY')
                     # RP BUG FIX - sanity check the subdata
                     if subdata and self.checkRva(subdata.OffsetToData, size=subdata.Size):
-                        rsdirobj.addRsrcData(subdata.OffsetToData, subdata.Size, subdata.CodePage)
+                        langid = name_id & 0x3ff
+                        sublangid = name_id >> 10
+                        langinfo = (subdata.CodePage, langid, sublangid )
+                        rsdirobj.addRsrcData(subdata.OffsetToData, subdata.Size, langinfo )
 
                     #print 'Data %s : 0x%.8x (%d)' % (name_id, sec.VirtualAddress + subdata.OffsetToData, subdata.Size)
                     #print repr(self.readAtRva(subdata.OffsetToData, min(subdata.Size, 40) ))
