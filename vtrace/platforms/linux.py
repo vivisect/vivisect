@@ -333,11 +333,11 @@ class LinuxMixin(v_posix.PtraceMixin, v_posix.PosixMixin):
 
     def platformPs(self):
         pslist = []
-        for dname in os.listdir("/proc/"):
+        for dname in self.platformListDir('/proc'):
             try:
                 if not dname.isdigit():
                     continue
-                cmdline = file("/proc/%s/cmdline" % dname).read()
+                cmdline = self.platformReadFile('/proc/%s/cmdline' % dname)
                 cmdline = cmdline.replace("\x00"," ")
                 if len(cmdline) > 0:
                     pslist.append((int(dname),cmdline))
@@ -805,7 +805,6 @@ class LinuxArmTrace(
 
     def archGetBreakInstr(self):
         return arm_break_le
-        #return 'FIXME'
 
     @v_base.threadwrap
     def platformStepi(self):

@@ -846,6 +846,15 @@ class TracerBase(vtrace.Notifier):
         # Open a file for reading
         return file(filename, 'rb')
 
+    def platformReadFile(self, path):
+        '''
+        Abstract away reading file bytes to allow wire/remote cases.
+        '''
+        return file(path,'rb').read()
+
+    def platformListDir(self, path):
+        return os.listdir(path)
+
     def platformParseBinary(self, filename, baseaddr, normname):
         """
         Platforms must parse the given binary file and load any symbols
