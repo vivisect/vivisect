@@ -1,4 +1,3 @@
-
 import struct
 
 from inspect import isclass
@@ -157,7 +156,7 @@ class VStruct(vs_prims.v_base):
         for fname, fobj in self.vsGetFields():
             ret += fobj.vsEmit()
         return ret
-        
+
     def vsCalculate(self):
         '''
         Calculate fields which need correction before emitting bytes etc...
@@ -177,7 +176,7 @@ class VStruct(vs_prims.v_base):
 
         Example:
                 for kidname, kidobj in x.vsGetFields():
-                    print kidname
+                    print(kidname)
         '''
         # This yield generator allows field list changes
         # during iteration...
@@ -319,6 +318,34 @@ class VStruct(vs_prims.v_base):
                 return field.vsGetOffset('.'.join(nameparts[depth:]), offset=offset)
             offset += len(field)
         raise Exception("Invalid Field Specified!")
+
+    def vsGetFieldByOffset(self, offset, names=None, coffset=0):
+        '''
+        Return the name of the field that is at the specified offset.
+        '''
+        nparts = names
+        if nparts == None:
+            nparts = []
+
+        off = coffset
+        for fname, field in self.vsGetFields():
+            flen = len(field)
+
+            if offset < off or offset >= off + flen:
+                off += flen
+                continue
+
+            nparts.append(fname)
+
+            if isinstance(field, VStruct):
+                return field.vsGetFieldByOffset(offset, names=nparts, coffset=off)
+
+            break
+
+        if len(nparts) == 0:
+            raise Exception('Invalid Offset Specified!')
+
+        return '.'.join(nparts)
 
     def vsGetPrintInfo(self, offset=0, indent=0, top=True):
         ret = []
