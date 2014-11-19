@@ -321,7 +321,7 @@ class VStruct(vs_prims.v_base):
 
     def vsGetFieldByOffset(self, offset, names=None, coffset=0):
         '''
-        Return the name of the field that is at the specified offset.
+        Return a tuple of (name, field) for the field at the specified offset.
         '''
         nparts = names
         if nparts == None:
@@ -345,7 +345,7 @@ class VStruct(vs_prims.v_base):
         if len(nparts) == 0:
             raise Exception('Invalid Offset Specified!')
 
-        return '.'.join(nparts)
+        return '.'.join(nparts), field
 
     def vsGetPrintInfo(self, offset=0, indent=0, top=True):
         ret = []

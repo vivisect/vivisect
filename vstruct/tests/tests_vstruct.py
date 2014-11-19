@@ -33,37 +33,43 @@ class VStructTests(unittest.TestCase):
         self.s = TestStruct()
 
     def test_vsGetFieldByOffset_start(self):
-        fname = self.s.vsGetFieldByOffset(0)
+        fname, fobj = self.s.vsGetFieldByOffset(0)
         self.assertEqual(fname, 'one')
+        self.assertIs(fobj, self.s.vsGetField('one'))
 
     def test_vsGetFieldByOffset_end(self):
-        fname = self.s.vsGetFieldByOffset(len(self.s) - 1)
+        fname, fobj = self.s.vsGetFieldByOffset(len(self.s) - 1)
         self.assertEqual(fname, 'four')
+        self.assertIs(fobj, self.s.vsGetField('four'))
 
     def test_vsGetFieldByOffset_invalid1(self):
         with self.assertRaisesRegexp(Exception, 'Invalid Offset Specified'):
-            fname = self.s.vsGetFieldByOffset(-1)
+            tup = self.s.vsGetFieldByOffset(-1)
 
     def test_vsGetFieldByOffset_invalid2(self):
         with self.assertRaisesRegexp(Exception, 'Invalid Offset Specified'):
-            fname = self.s.vsGetFieldByOffset(0xffffffff)
+            tup = self.s.vsGetFieldByOffset(0xffffffff)
 
     def test_vsGetFieldByOffset_invalid3(self):
         with self.assertRaisesRegexp(Exception, 'Invalid Offset Specified'):
-            fname = self.s.vsGetFieldByOffset(len(self.s))
+            tup = self.s.vsGetFieldByOffset(len(self.s))
 
     def test_vsGetFieldByOffset_nested1(self):
-        fname = self.s.vsGetFieldByOffset(5)
+        fname, fobj = self.s.vsGetFieldByOffset(5)
         self.assertEqual(fname, 'two.foo')
+        self.assertIs(fobj, self.s.two.vsGetField('foo'))
 
     def test_vsGetFieldByOffset_nested2(self):
-        fname = self.s.vsGetFieldByOffset(8)
+        fname, fobj = self.s.vsGetFieldByOffset(8)
         self.assertEqual(fname, 'two.bar')
+        self.assertIs(fobj, self.s.two.vsGetField('bar'))
 
     def test_vsGetFieldByOffset_nested3(self):
-        fname = self.s.vsGetFieldByOffset(12)
+        fname, fobj = self.s.vsGetFieldByOffset(12)
         self.assertEqual(fname, 'two.baz')
+        self.assertIs(fobj, self.s.two.vsGetField('baz'))
 
     def test_vsGetFieldByOffset_nested4(self):
-        fname = self.s.vsGetFieldByOffset(267)
+        fname, fobj = self.s.vsGetFieldByOffset(267)
         self.assertEqual(fname, 'two.faz.alpha')
+        self.assertIs(fobj, self.s.two.faz.vsGetField('alpha'))
