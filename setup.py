@@ -9,6 +9,10 @@ setup(
     url='https://github.com/vivisect/vivisect',
     py_modules=[''],
     packages=find_packages(),
+    package_data={
+        '': ['*.dll', '*.dylib', '*.yes', '*.cfg', '*.lyt',
+             '*.c', '*.h', 'Makefile',],
+        },
     scripts=['vdbbin', 'vivbin',],
     description='',
     zip_safe=False,
