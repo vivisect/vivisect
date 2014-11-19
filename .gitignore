@@ -2,3 +2,6 @@
 *.swp
 *.py~
 .hg*
+build
+dist
+*.egg-info
