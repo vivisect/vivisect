@@ -10,13 +10,11 @@ from envi.registers import RMETA_NMASK
 
 from vivisect.const import *
 
-import vivisect.analysis.generic.switchcase as vag_switch
-
 regops = set(['cmp','sub'])
 
 BRANCH_FLAGS = envi.IF_BRANCH | envi.IF_CALL
 class AnalysisMonitor(viv_monitor.AnalysisMonitor):
-    _cb_indirect_branch = [ vag_switch.analyzeJmp ]
+    _cb_indirect_branch = []
 
     def __init__(self, vw, fva):
         viv_monitor.AnalysisMonitor.__init__(self, vw, fva)
