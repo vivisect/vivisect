@@ -372,8 +372,8 @@ def makeSwitch(vw, jmpva, count, offset, funcva=None):
             if vw.verbose: print "found terminator_addr.  quitting."
             break
         
-        if len(vw.getXrefsTo(memtgt)):
-            if vw.verbose: print "target location has xrefs."
+        if len(cases) and len(vw.getXrefsTo(memtgt)):
+            if vw.verbose: print "target location (0x%x) has xrefs." % memtgt
             break
         
         # this is a valid thing, we have locations...  match them up
@@ -381,15 +381,17 @@ def makeSwitch(vw, jmpva, count, offset, funcva=None):
         l = cases.get(addr, [])
         l.append(vals[rname])
         cases[addr] = l
+        # FIXME: make the target locations numbers?  pointers? based on size of read.
         
     # should we analyze for derefs here too?  should that be part of the SysEmu?
     if vw.verbose:
         print "cases:       ", repr(cases)
         print "deref ops:   ", repr(deref_ops)
-        print "reads:       ", repr(symemu._trackReads)
+        #print "reads:       ", repr(symemu._trackReads)
 
     # the difference between success and failure...
     if not len(cases):
+        if vw.verbose: print "no cases found... doesn't look like a switch case."
         return
     
     # creating names for each case
@@ -509,6 +511,8 @@ def determineCountOffset(vw, jmpva):
     delta = None
     
     for cons in fullcons[::-1]:
+        if not hasattr(cons.cons, 'operstr'): continue
+        if vw.verbose > 2: print repr(cons)
         comparator = cons.cons.operstr
         symvar = cons.cons._v1
         symcmp = cons.cons._v2
