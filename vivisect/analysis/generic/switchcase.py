@@ -461,12 +461,13 @@ def determineCountOffset(vw, jmpva):
     xlate = sctx.getTranslator()
     graph = viv_graph.buildFunctionGraph(vw, funcva)
     jmpcb = vw.getCodeBlock(jmpva)
+    sctx.getSymbolikGraph(funcva, graph)
 
     pathGenFactory = viv_graph.PathGenerator(graph)
     pathGen=pathGenFactory.getFuncCbRoutedPaths(funcva, jmpcb[0], 1, maxsec=20)
 
     # get symbolik paths
-    spaths = sctx.getSymbolikPaths(funcva, pathGen)
+    spaths = sctx.getSymbolikPaths(funcva, pathGen, graph=graph)
     semu, aeffs = spaths.next()
 
     # hack... give the jmp reg someplace to go so symboliks can help us
