@@ -600,3 +600,51 @@ class VivCli(e_cli.EnviCli, vivisect.VivWorkspace):
 
         import vivisect.vdbext as viv_vdbext
         viv_vdbext.runVdb(self._viv_gui)
+
+    def do_switch(self, line):
+        '''
+        Wire up a switch case.  
+
+        Usage: switch <jmp_va> <count> [offset]
+            where:
+                jmp_va  - the va of the  "jmp reg" instruction
+                count   - number of switch case indices are covered by this switch case jmp
+                offset  - first switch case index.
+            
+            eg: switch case handles i == 32 thru 47, count = 16, offset = 32
+        '''
+        if not line:
+            return self.do_help("switch")
+
+        argv = e_cli.splitargs(line)
+        if len(argv) < 2:
+            return self.do_help("switch")
+
+        offset = 0
+        try:
+            if argv[0].startswith("0x"):
+                jmpva = int(argv[0], 16)
+            else:
+                jmpva = int(argv[0])
+
+            if argv[1].startswith("0x"):
+                count = int(argv[1], 16)
+            else:
+                count = int(argv[1])
+
+            if len(argv) == 3:
+                if argv[2].startswith("0x"):
+                    offset = int(argv[2], 16)
+                else:
+                    offset = int(argv[2])
+
+            import vivisect.analysis.generic.switchcase as vags; reload(vags)
+            import vivisect.analysis.generic.codeblocks as vagc; reload(vagc)
+            vags.makeSwitch(self, jmpva, count, offset)
+            funcva = self.getFunction(jmpva)
+            vagc.analyzeFunction(self, funcva)
+        except ValueError, e:
+            print e
+            return self.do_help("switch")
+
+
