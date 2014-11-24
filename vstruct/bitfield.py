@@ -1,5 +1,7 @@
+import envi.bits as ebits
 from vstruct import VStruct
 from vstruct.primitives import *
+from binascii import unhexlify
 
 class v_bits(v_number):
 
@@ -100,19 +102,18 @@ class VBitField(VStruct):
         return offset
 
     def vsEmit(self):
-        raise Exception('VBitField vsEmit: FIXME')
+        valu = 0
+        width = 0
 
-if __name__ == '__main__':
+        for name,field in self.vsGetFields():
+                width += field._vs_bitwidth
+                valu = ( valu << field._vs_bitwidth ) | field._vs_value
+        bytelen,bitrem = divmod(width,8)
+        if bitrem:
+            bytelen += 1
+            valu <<= ( 8 - bitrem )
 
+        # python turbo speed hackz
+        return unhexlify(('%.' + str(bytelen*2) + 'x') % valu)
 
-    b = e_bits.binbytes('1110001111100000')
-
-    v = VBitField()
-    v.foo = v_bits(3)
-    v.bar = v_bits(3)
-    v.baz = v_bits(5)
-    v.faz = v_bits(5)
-
-    v.vsParse(b)
-    print v.tree()
 

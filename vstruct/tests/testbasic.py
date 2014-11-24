@@ -150,3 +150,78 @@ class VStructTest(unittest.TestCase):
         v.vsParse('A' * 20)
         self.assertEqual( v[2], 0x41 )
 
+    def test_bitfield(self):
+        from vstruct.bitfield import *
+        v = VBitField()
+        v.vsAddField('w', v_bits(2))
+        v.vsAddField('x', v_bits(3))
+        v.vsAddField('y', v_bits(3))
+        v.vsAddField('z', v_bits(11))
+        v.vsAddField('a', v_bits(3))
+
+        v.vsAddField('stuff', v_bits(23))
+        v.vsAddField('pad', v_bits(3))
+        v.vsAddField('pad2', v_bits(6))
+        v.vsAddField('pad3', v_bits(2))
+
+
+        v.vsParse('AAAAAAA')
+        #print v.tree()
+        self.assertEqual(1, v.w)
+        self.assertEqual(0, v.x)
+        self.assertEqual(1, v.y)
+        self.assertEqual(0x20a, v.z)
+        self.assertEqual(0, v.a)
+        self.assertEqual(0x282828, v.stuff)
+        self.assertEqual(1, v.pad)
+        self.assertEqual(16, v.pad2)
+        self.assertEqual(1, v.pad3)
+
+        self.assertEqual('AAAAAAA', v.vsEmit())
+
+        v.vsParse('ABCDEFG')
+        #print v.tree()
+        self.assertEqual(1, v.w)
+        self.assertEqual(0, v.x)
+        self.assertEqual(1, v.y)
+        self.assertEqual(0x212, v.z)
+        self.assertEqual(0, v.a)
+        self.assertEqual(0x6888a8, v.stuff)
+        self.assertEqual(6, v.pad)
+        self.assertEqual(17, v.pad2)
+        self.assertEqual(3, v.pad3)
+
+        self.assertEqual('ABCDEFG', v.vsEmit())
+
+
+        v.vsParse('zxcvbnm')
+        #print v.tree()
+        self.assertEqual(1, v.w)
+        self.assertEqual(7, v.x)
+        self.assertEqual(2, v.y)
+        self.assertEqual(0x3c3, v.z)
+        self.assertEqual(0, v.a)
+        self.assertEqual(0x6ecc4d, v.stuff)
+        self.assertEqual(6, v.pad)
+        self.assertEqual(0x1b, v.pad2)
+        self.assertEqual(1, v.pad3)
+
+        self.assertEqual('zxcvbnm', v.vsEmit())
+
+        
+        v.vsParse('asdfghj')
+        #print v.tree()
+        self.assertEqual(1, v.w)
+        self.assertEqual(4, v.x)
+        self.assertEqual(1, v.y)
+        self.assertEqual(0x39b, v.z)
+        self.assertEqual(1, v.a)
+        self.assertEqual(0xccced, v.stuff)
+        self.assertEqual(0, v.pad)
+        self.assertEqual(0x1a, v.pad2)
+        self.assertEqual(2, v.pad3)
+
+        self.assertEqual('asdfghj', v.vsEmit())
+
+        
+
