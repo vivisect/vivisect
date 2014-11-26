@@ -93,14 +93,14 @@ class SymbolikEmulator:
     def getRandomSeed(self):
         return self._sym_rseed
 
-    def readSymMemory(self, symaddr, symsize):
+    def readSymMemory(self, symaddr, symsize, vals=None):
         '''
         The readSymMemory API is designed to read from the given
         symbolik address for the specified symbolik length.  If the
         current symbolik emulator has no knowledge of the state of
         the given memory symbol, None is returned.
         '''
-        addrval = symaddr.solve(emu=self)
+        addrval = symaddr.solve(emu=self, vals=vals)
 
         # check for a previous write first...
         symmem = self._sym_mem.get(addrval)
@@ -121,10 +121,10 @@ class SymbolikEmulator:
 
         return None
 
-    def writeSymMemory(self, symaddr, symval):
+    def writeSymMemory(self, symaddr, symval, vals=None):
         # FIXME handle memory offsets etc...
         # FIXME handle write size.. (using isDiscrete?)
-        addrval = symaddr.solve(emu=self)
+        addrval = symaddr.solve(emu=self, vals=vals)
         #sizeval = symsize.solve(slvctx=self)
         self._sym_mem[addrval] = (symaddr, symval)
 

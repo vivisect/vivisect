@@ -459,6 +459,11 @@ class Mem(SymbolikBase):
         return False
 
     def _solve(self, emu=None, vals=None):
+        if emu != None:
+            val = emu.readSymMemory(self.kids[0], self.kids[1], vals=vals)
+            if val and val.isDiscrete():
+                return val.solve()
+        
         addrval = self.kids[0].solve(emu=emu, vals=vals)
         sizeval = self.kids[1].solve(emu=emu, vals=vals)
         # FIXME higher entropy!
