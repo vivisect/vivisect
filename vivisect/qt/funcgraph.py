@@ -373,7 +373,7 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QtGui.
             points = einfo.get('edge_points')
             pointstr = ' '.join(['%d,%d' % (x,y) for (x,y) in points ])
 
-            frame.evaluateJavaScript('drawSvgLine("%s", "edge_%.8x", "%s");' % (svgid, eid, pointstr))
+            frame.evaluateJavaScript('drawSvgLine("%s", "edge_%.8s", "%s");' % (svgid, eid, pointstr))
 
         self.updateWindowTitle()
 
