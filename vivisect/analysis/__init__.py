@@ -44,6 +44,7 @@ def addAnalysisModules(vw):
             vw.addAnalysisModule("vivisect.analysis.i386.importcalls")
 
         vw.addFuncAnalysisModule("vivisect.analysis.generic.codeblocks")
+        vw.addFuncAnalysisModule("vivisect.analysis.generic.switchcase")
         vw.addFuncAnalysisModule("vivisect.analysis.generic.impapi")
         vw.addFuncAnalysisModule("vivisect.analysis.ms.hotpatch")
         vw.addFuncAnalysisModule("vivisect.analysis.ms.msvc")
@@ -70,6 +71,7 @@ def addAnalysisModules(vw):
         if arch == 'i386':
             viv_analysis_i386.addEntrySigs(vw)
             vw.addAnalysisModule("vivisect.analysis.i386.importcalls")
+            vw.addFuncAnalysisModule("vivisect.analysis.i386.thunk_bx")
 
         vw.addAnalysisModule("vivisect.analysis.generic.funcentries")
         vw.addAnalysisModule("vivisect.analysis.generic.relocations")
@@ -80,6 +82,7 @@ def addAnalysisModules(vw):
         vw.addFuncAnalysisModule("vivisect.analysis.elf.elfplt")
         # Generic code block analysis
         vw.addFuncAnalysisModule("vivisect.analysis.generic.codeblocks")
+        vw.addFuncAnalysisModule("vivisect.analysis.generic.switchcase")
         vw.addFuncAnalysisModule("vivisect.analysis.generic.impapi")
 
         # Add our emulation modules
@@ -105,6 +108,7 @@ def addAnalysisModules(vw):
         vw.addAnalysisModule("vivisect.analysis.generic.emucode")
 
         vw.addFuncAnalysisModule("vivisect.analysis.generic.codeblocks")
+        vw.addFuncAnalysisModule("vivisect.analysis.generic.switchcase")
         vw.addFuncAnalysisModule("vivisect.analysis.generic.impapi")
 
         if arch == 'i386':
@@ -124,6 +128,7 @@ def addAnalysisModules(vw):
         vw.addAnalysisModule("vivisect.analysis.generic.emucode")
 
         vw.addFuncAnalysisModule("vivisect.analysis.generic.codeblocks")
+        vw.addFuncAnalysisModule("vivisect.analysis.generic.switchcase")
         vw.addFuncAnalysisModule("vivisect.analysis.generic.impapi")
         vw.addFuncAnalysisModule("vivisect.analysis.generic.thunks")
 
@@ -135,6 +140,7 @@ def addAnalysisModules(vw):
         vw.addAnalysisModule("vivisect.analysis.generic.emucode")
 
         vw.addFuncAnalysisModule("vivisect.analysis.generic.codeblocks")
+        vw.addFuncAnalysisModule("vivisect.analysis.generic.switchcase")
         vw.addFuncAnalysisModule("vivisect.analysis.generic.impapi")
         vw.addFuncAnalysisModule("vivisect.analysis.generic.thunks")
 

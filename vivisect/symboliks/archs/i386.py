@@ -467,8 +467,11 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
     i_jnc = i_jae
 
     def i_jmp(self, op):
-        pass # Nothing to do symbolically, codeflow must 
-        #return ((self.getOperObj(op, 0), None), )
+        tgt = self.getOperObj(op, 0)
+        if not tgt.isDiscrete():
+            # indirect jmp... table!
+
+            return [( Const(tva, self._psize), eq(tgt, Const(tva, self._psize)) ) for fr,tva,tp,flag in self.vw.getXrefsFrom(op.va) if tp == REF_CODE]
 
     def i_jne(self, op):
         return self._cond_jmp(op, cnot(Var('eflags_eq', self._psize)))
