@@ -44,12 +44,12 @@ class Notifier(object):
 
 class VerboseNotifier(Notifier):
     def notify(self, event, trace):
-        print "PID %d thread(%d) got" % (trace.getPid(), trace.getMeta("ThreadId")),
+        print "PID %08d thread (%08d) got" % (trace.getPid(), trace.getMeta("ThreadId")),
         if event == vtrace.NOTIFY_ALL:
             print "WTF, how did we get a vtrace.NOTIFY_ALL event?!?!"
         elif event == vtrace.NOTIFY_SIGNAL:
             signo = trace.getCurrentSignal()
-            print "vtrace.NOTIFY_SIGNAL %d (0x%.8x)" % (signo, signo)
+            print "vtrace.NOTIFY_SIGNAL %d (0x%08x)" % (signo, signo)
             if trace.getMeta("Platform") == "windows":
                 print repr(trace.getMeta("Win32Event"))
         elif event == vtrace.NOTIFY_BREAK:
@@ -60,20 +60,22 @@ class VerboseNotifier(Notifier):
             print "vtrace.NOTIFY_CONTINUE"
         elif event == vtrace.NOTIFY_EXIT:
             print "vtrace.NOTIFY_EXIT"
-            print "ExitCode",trace.getMeta("ExitCode")
+            print "ExitCode: %08d" % trace.getMeta("ExitCode")
         elif event == vtrace.NOTIFY_ATTACH:
             print "vtrace.NOTIFY_ATTACH"
         elif event == vtrace.NOTIFY_DETACH:
             print "vtrace.NOTIFY_DETACH"
         elif event == vtrace.NOTIFY_LOAD_LIBRARY:
-            print "vtrace.NOTIFY_LOAD_LIBRARY"
+			print "vtrace.NOTIFY_LOAD_LIBRARY"
+			print "Library name: %s" % trace.getMeta('LatestLibrary')
         elif event == vtrace.NOTIFY_UNLOAD_LIBRARY:
             print "vtrace.NOTIFY_UNLOAD_LIBRARY"
         elif event == vtrace.NOTIFY_CREATE_THREAD:
-            print "vtrace.NOTIFY_CREATE_THREAD"
+            print "vtrace.NOTIFY_CREATE_THREAD" 
+			print "ThreadID: %08d" % trace.getMeta("ThreadId")
         elif event == vtrace.NOTIFY_EXIT_THREAD:
             print "vtrace.NOTIFY_EXIT_THREAD"
-            print "ExitThread",trace.getMeta("ExitThread", -1)
+            print "ThreadID: %08d" % trace.getMeta("ExitThread", -1)
         elif event == vtrace.NOTIFY_STEP:
             print "vtrace.NOTIFY_STEP"
         else:
