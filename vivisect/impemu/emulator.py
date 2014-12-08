@@ -43,6 +43,7 @@ class WorkspaceEmulator:
         self.logread = logread
         self.path = self.newCodePathNode()
         self.curpath = self.path
+        self.op = None
         self.opcache = {}
         self.emumon = None
         self.psize = self.getPointerSize()
