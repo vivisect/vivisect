@@ -540,13 +540,14 @@ class SymbolikAnalysisContext:
             patheffs = vg_pathcore.getNodeProp(pathnode, 'patheffs')
             yield emu, patheffs
 
-    def getSymbolikPaths(self, fva, paths=None, args=None, maxpath=1000):
+    def getSymbolikPaths(self, fva, graph=None, paths=None, args=None, maxpath=1000):
         '''
         For each path through the function, run all symbolik
         effects in an emulator instance and yield
         emu, effects tuples...
         '''
-        graph = self.getSymbolikGraph(fva)
+        if not graph:
+            graph = self.getSymbolikGraph(fva)
 
         if args == None:
             argdef = self.vw.getFunctionArgs( fva )
