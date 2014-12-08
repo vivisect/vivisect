@@ -546,6 +546,9 @@ class SymbolikAnalysisContext:
         effects in an emulator instance and yield
         emu, effects tuples...
         '''
+        if paths and not graph:
+            raise Exception('Must provide a graph when providing pre computed paths!')
+
         if not graph:
             graph = self.getSymbolikGraph(fva)
 
