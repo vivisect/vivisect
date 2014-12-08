@@ -30,10 +30,10 @@ regidx_sets = {
 }
     
 class SymEmu(vs_emu.SymbolikEmulator):
-    _trackReads = []
     def __init__(self, vw):
         vs_emu.SymbolikEmulator.__init__(self, vw)
         self.__width__ = vw.psize
+        self.clear()
     
     def clear(self):
         self._trackReads = []
@@ -598,24 +598,24 @@ def analyzeFunction(vw, fva):
     '''
     This is inserted as a function analysis module, right after codeblock analysis
     '''
-    jmp_indir = vw.getMeta('jmp_indir')
-    if not jmp_indir:
+    dynbranches = vw.getVaSet('DynamicBranches')    # created by default at Workspace creation
+    if not dynbranches:
         return
 
-    for jmpva in jmp_indir:
-        funcva = vw.getFunction(jmpva)
+    for dynbranch, dynop in dynbranches.items():
+        funcva = vw.getFunction(dynbranch)
         if funcva != fva:
-            # jmp_indir is for the entire VivWorkspace.  
+            # dynbranches is for the entire VivWorkspace.  
             # we're just filtering to this function here.
             continue
 
-        lower, upper, baseoff = determineCountOffset(vw, jmpva)
+        lower, upper, baseoff = determineCountOffset(vw, dynbranch)
         if None in (lower, upper): 
-            if vw.verbose: print "something odd in count/offset calculation... skipping 0x%x..." % jmpva
+            if vw.verbose: print "something odd in count/offset calculation... skipping 0x%x..." % dynbranch
             continue
 
         count = (upper - lower) + 1
-        makeSwitch(vw, jmpva, count, baseoff, funcva=fva)    
+        makeSwitch(vw, dynbranch, count, baseoff, funcva=fva)    
 
 
 # for use as vivisect script

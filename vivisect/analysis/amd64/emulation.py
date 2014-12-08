@@ -14,10 +14,10 @@ regops = set(['cmp','sub'])
 
 BRANCH_FLAGS = envi.IF_BRANCH | envi.IF_CALL
 class AnalysisMonitor(viv_monitor.AnalysisMonitor):
-    _cb_indirect_branch = []
 
     def __init__(self, vw, fva):
         viv_monitor.AnalysisMonitor.__init__(self, vw, fva)
+        self._cb_indirect_branch = []
         self.retbytes = None
         self.badop = vw.arch.archParseOpcode("\x00\x00\x00\x00\x00")
 
