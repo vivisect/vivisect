@@ -30,6 +30,9 @@ class Amd64WorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_amd64.Amd64Emulat
         """
         value = e_amd64.Amd64Emulator.getRegister(self, index)
 
+        if self.op == None:
+            return value
+
         # this is broken, but works enough to keep for now.  if we 
         # run into new 64-bit calling conventions, we may need to fix
         # this.

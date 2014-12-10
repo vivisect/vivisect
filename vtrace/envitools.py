@@ -1,8 +1,3 @@
-
-"""
-Some tools that require the envi framework to be installed
-"""
-
 import sys
 import traceback
 
@@ -20,40 +15,29 @@ def cmpRegs(emu, trace):
             raise RegisterException("REGISTER MISMATCH: %s 0x%.8x 0x%.8x" % (name, tr, er))
     return True
 
-reg_map = [
-    (e_i386.REG_EAX, "eax"),
-    (e_i386.REG_ECX, "ecx"),
-    (e_i386.REG_EDX, "edx"),
-    (e_i386.REG_EBX, "ebx"),
-    (e_i386.REG_ESP, "esp"),
-    (e_i386.REG_EBP, "ebp"),
-    (e_i386.REG_ESI, "esi"),
-    (e_i386.REG_EDI, "edi"),
-    (e_i386.REG_EIP, "eip"),
-    (e_i386.REG_EFLAGS, "eflags")
-    ]
-
-#FIXME intel specific
-def setRegs(emu, trace):
-    for idx,name in reg_map:
-        tr = trace.getRegisterByName(name)
-        emu.setRegister(idx, tr)
-
-def emulatorFromTrace(trace):
-    """
-    Produce an envi emulator for this tracer object.  Use the trace's arch
-    info to get the emulator so this can be done on the client side of a remote
-    vtrace session.
-    """
-    arch = trace.getMeta("Architecture")
+def emuFromTrace(trace):
+    '''
+    Produce an envi emulator for this tracer object.
+    '''
+    arch = trace.getMeta('Architecture')
     amod = envi.getArchModule(arch)
     emu = amod.getEmulator()
 
-    if trace.getMeta("Platform") == "windows":
-        emu.setSegmentInfo(e_i386.SEG_FS, trace.getThreads()[trace.getMeta("ThreadId")], 0xffffffff)
+    # could use {get,set}MemorySnap if trace inherited from MemoryObject
+    for va, size, perms, fname in trace.getMemoryMaps():
+        try:
+            bytez = trace.readMemory(va, size)
+            emu.addMemoryMap(va, perms, fname, bytez)
+        except vtrace.PlatformException:
+            print('failed to map: 0x{:x} into emu'.format(va, size))
+            continue
 
-    emu.setMemoryObject(trace)
-    setRegs(emu, trace)
+    rsnap = trace.getRegisterContext().getRegisterSnap()
+    emu.setRegisterSnap(rsnap)
+
+    if trace.getMeta('Platform') == 'windows':
+        emu.setSegmentInfo(e_i386.SEG_FS, trace.getThreads()[trace.getMeta('ThreadId')], 0xffffffff)
+
     return emu
 
 def lockStepEmulator(emu, trace):

@@ -1,6 +1,7 @@
 import envi.bits as ebits
 from vstruct import VStruct
 from vstruct.primitives import *
+from binascii import unhexlify
 
 class v_bits(v_number):
 
@@ -101,101 +102,18 @@ class VBitField(VStruct):
         return offset
 
     def vsEmit(self):
-        out = [ 0 for x in range(len(self)) ]
-        offset = 0
-        bitoff = 0
-        curbyte = 0
+        valu = 0
+        width = 0
 
-        for fname,field in self.vsGetFields():
+        for name,field in self.vsGetFields():
+                width += field._vs_bitwidth
+                valu = ( valu << field._vs_bitwidth ) | field._vs_value
+        bytelen,bitrem = divmod(width,8)
+        if bitrem:
+            bytelen += 1
+            valu <<= ( 8 - bitrem )
 
-            # use vsSetBitWidth(0) to disable fields
-            if field._vs_bitwidth == 0:
-                continue
+        # python turbo speed hackz
+        return unhexlify(('%.' + str(bytelen*2) + 'x') % valu)
 
-            # adjust forward from last fields bits % 8
-            startbyte,startbit = divmod(bitoff,8)
-            endbyte,endbit = divmod(bitoff + field._vs_bitwidth,8)
-            
-            # if we have an endbit remainder, we need to grab
-            # an additional byte...
-            endround = 0
-            endshift = 0
-            if endbit:
-                endshift = (8-endbit)
-                endround = 1
-
-            nibbitoff = 0
-            if endbyte != startbyte:
-                bitlen = 8 - startbit
-                # split the operation
-                for b in range(startbyte, endbyte):
-                    nibbly = (field._vs_value >> (field._vs_bitwidth - nibbitoff - bitlen)) & 0xff
-                    out[b] |= nibbly
-
-                    nibbitoff += bitlen
-                    bitlen = 8
-                bitlen = endbit
-            else:
-                bitlen = endbit - startbit
-
-            if endbit:
-                mask = (1<<(bitlen)) - 1
-                nibbly = (field._vs_value & mask) << (endshift)
-                out[endbyte] |= nibbly
-
-            bitoff += field._vs_bitwidth
-
-        offbytes,offbits = divmod(bitoff,8)
-        offset += offbytes
-
-        # mop up any remaining bits int a byte boundary
-        if offbits:
-            offset += 1
-
-        return ''.join([chr(x) for x in out])
-
-if __name__ == '__main__':
-
-
-    b = ebits.binbytes('1110001111100000')
-
-    v = VBitField()
-    v.foo = v_bits(3)
-    v.bar = v_bits(3)
-    v.baz = v_bits(5)
-    v.faz = v_bits(5)
-
-    v.vsParse(b)
-    print v.tree()
-    print v.vsEmit().encode('hex')
-
-
-    v = VBitField()
-    v.vsAddField('w', v_bits(2))
-    v.vsAddField('x', v_bits(3))
-    v.vsAddField('y', v_bits(3))
-    v.vsAddField('z', v_bits(11))
-    v.vsAddField('a', v_bits(3))
-
-    v.vsAddField('stuff', v_bits(23))
-    v.vsAddField('pad', v_bits(3))
-    v.vsAddField('pad2', v_bits(6))
-    v.vsAddField('pad3', v_bits(2))
-
-
-    v.vsParse('AAAAAA@')
-    print v.tree()
-    print repr(v.vsEmit())
-
-    v.vsParse('ABCDEFG')
-    print v.tree()
-    print repr(v.vsEmit())
-
-    v.vsParse('zxcvbnm')
-    print v.tree()
-    print repr(v.vsEmit())
-
-    v.vsParse('asdfghj')
-    print v.tree()
-    print repr(v.vsEmit())
 
