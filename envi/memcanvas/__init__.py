@@ -196,6 +196,12 @@ class MemoryCanvas(object):
 
         return True
 
+    def _loc_helper(self, va):
+        '''
+        allows subclassess to make the starting VA make more contextual sense.
+        '''
+        return (va, 0)
+
     def renderMemoryUpdate(self, va, size):
 
         maxva = va + size
@@ -255,7 +261,8 @@ class MemoryCanvas(object):
     def renderMemoryPrepend(self, size):
         firstva, firstsize = self._canv_rendvas[0]
 
-        va = firstva - size
+        va, szdiff = self._loc_helper(firstva - size)
+        size += szdiff
 
         self._beginRenderPrepend()
 

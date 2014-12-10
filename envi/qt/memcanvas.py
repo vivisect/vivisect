@@ -55,8 +55,8 @@ class VQMemoryCanvas(QtWebKit.QWebView, e_memcanvas.MemoryCanvas):
                 raise Exception('Invalid Address:%s' % hex(va))
 
             origva = va
-            va = max(va - size, vmap[0])
-            size += size
+            va, szdiff = self._loc_helper(max(va - size, vmap[0]))
+            size += size + szdiff
 
         ret = e_memcanvas.MemoryCanvas.renderMemory(self, va, size, rend=rend)
 
