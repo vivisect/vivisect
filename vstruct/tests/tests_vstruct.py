@@ -73,3 +73,66 @@ class VStructTests(unittest.TestCase):
         fname, fobj = self.s.vsGetFieldByOffset(267)
         self.assertEqual(fname, 'two.faz.alpha')
         self.assertIs(fobj, self.s.two.faz.vsGetField('alpha'))
+
+# TODO: could use envi.bits, but do we really want envi dep by default?
+blkup = {}
+bwidths = (8, 16, 24, 32, 64, )
+for bwidth in bwidths:
+    umax = (2**bwidth) - 1
+    umin = 0
+
+    smax = (2**(bwidth-1)) - 1
+    smin = -(2**(bwidth-1))
+
+    blkup[bwidth] = (umin, umax, smin, smax)
+
+class IntegerStruct(vstruct.VStruct):
+    def __init__(self):
+        vstruct.VStruct.__init__(self)
+
+class VStructTypeTests(unittest.TestCase):
+    def setUp(self):
+        self.s = IntegerStruct()
+
+def getTestFunc(name, vsval, val, shouldExc):
+
+    def func(self):
+        self.s.vsAddField(name, vsval)
+
+        if shouldExc:
+            with self.assertRaisesRegexp(Exception, 'type cannot hold value'):
+                setattr(self.s, name, val)
+        else:
+            setattr(self.s, name, val)
+
+    return func
+
+tdefs = []
+
+# dynamically generate the test definitions
+# width, pname, vtype, shouldException, test value
+for bwidth in bwidths:
+    umin, umax, smin, smax = blkup[bwidth]
+
+    for ttype, mmin, mmax in ( ('u', umin, umax), ('', smin, smax), ):
+        pname = '{}int{}'.format(ttype, bwidth)
+        vtype = 'v_{}int{}'.format(ttype, bwidth)
+        vtype = getattr(p, vtype)
+
+        tup = (bwidth, pname, vtype, False, mmin)
+        tdefs.append(tup)
+
+        tup = (bwidth, pname, vtype, False, mmax)
+        tdefs.append(tup)
+
+        tup = (bwidth, pname, vtype, True, mmin-1)
+        tdefs.append(tup)
+
+        tup = (bwidth, pname, vtype, True, mmax+1)
+        tdefs.append(tup)
+
+# generate unittest functions based on the test definitions
+for width, pname, vtype, shouldExc, val in tdefs:
+    tfunc = getTestFunc(pname, vtype(), val, shouldExc)
+    tname = 'test_{}_{}_{}'.format(pname, shouldExc, val)
+    setattr(VStructTypeTests, tname, tfunc)
