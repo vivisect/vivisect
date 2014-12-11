@@ -3,6 +3,7 @@ import envi.bits as e_bits
 
 from vivisect.const import *
 
+BRANCH_FLAGS = envi.IF_BRANCH | envi.IF_CALL
 class EmulationMonitor:
     """
     Emulation monitors may be passed into functions like
