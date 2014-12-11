@@ -40,6 +40,6 @@ def analyzeFunction(vw, fva):
         if vw.verbose: print "__x86.get_pc_thunk.bx:  ", hex(ebx)
         curname = vw.getName(fva)
         if curname == None or curname == "sub_%.8x"%fva:
-            vw.setName(fva, "thunk_bx_%.8x"%fva)
+            vw.makeName(fva, "thunk_bx_%.8x"%fva)
 
         vw.setMeta('PIE_ebx', ebx)
