@@ -5,6 +5,8 @@ def analyzeFunction(vw, fva):
     '''
     '''
     if vw.readMemory(fva, 4) == thunk_bx_sig:
+
+        # store in VaSet in case we identify multiples (not likely) or misidentify something.
         if not 'thunk_bx' in vw.getVaSetNames():
             vw.addVaSet('thunk_bx', ( ('fva', vivisect.VASET_ADDRESS), ) )
             
@@ -15,6 +17,7 @@ def analyzeFunction(vw, fva):
                 return
         
         vw.setVaSetRow('thunk_bx', (fva,))
+
 
         # determine where ebx ends up pointing to
         # this requires checking the calling function's next instruction
@@ -35,4 +38,8 @@ def analyzeFunction(vw, fva):
             return
 
         if vw.verbose: print "__x86.get_pc_thunk.bx:  ", hex(ebx)
+        curname = vw.getName(fva)
+        if curname == None or curname == "sub_%8x"%fva:
+            vw.setName(fva, "thunk_bx_%8x"%fva)
+
         vw.setMeta('PIE_ebx', ebx)
