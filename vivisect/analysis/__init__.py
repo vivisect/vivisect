@@ -70,6 +70,7 @@ def addAnalysisModules(vw):
         if arch == 'i386':
             viv_analysis_i386.addEntrySigs(vw)
             vw.addAnalysisModule("vivisect.analysis.i386.importcalls")
+            vw.addFuncAnalysisModule("vivisect.analysis.i386.thunk_bx")
 
         vw.addAnalysisModule("vivisect.analysis.generic.funcentries")
         vw.addAnalysisModule("vivisect.analysis.generic.relocations")
