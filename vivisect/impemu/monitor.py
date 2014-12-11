@@ -59,6 +59,7 @@ class AnalysisMonitor(EmulationMonitor):
         self.stackmax = 0
         self.operrefs = []
         self.callcomments = []
+        self._dynamic_branch_handlers = []
 
     def addAnalysisResults(self, vw, emu):
         '''
@@ -106,6 +107,17 @@ class AnalysisMonitor(EmulationMonitor):
             reprargs = [ emu.reprVivValue(val) for val in argv ]
             self.vw.setComment(va, '%s(%s)' % (callname, ','.join(reprargs)))
 
+    def addDynamicBranchHandler(self, cb):
+        '''
+        Add a callback handler for dynamic branches the code-flow resolver 
+        doesn't know what to do with
+        '''
+        if cb in self._dynamic_branch_handlers:
+            raise Exception("Already have this handler (%s) for dynamic branches" % repr(cb))
+
+        self._dynamic_branch_handlers.append(cb)
+
+
     def logAnomaly(self, emu, eip, msg):
         self.vw.verbprint("EmuAnom: 0x%.8x (f:0x%.8x) %s" % (eip, self.fva, msg))
         return EmulationMonitor.logAnomaly(self, self, eip, msg)
@@ -124,6 +136,16 @@ class AnalysisMonitor(EmulationMonitor):
                         self.stackmax = max( self.stackmax, stackoff )
 
                     self.operrefs.append((starteip,i,operva,o.tsize,stackoff,discrete))
+
+        if op.iflags & BRANCH_FLAGS:
+            oper = op.opers[0]
+            if oper.isDeref() or oper.isReg():
+                for cb in self._dynamic_branch_handlers:
+                    try:
+                        cb(self, emu, op, starteip)
+                    except:
+                        sys.excepthook(*sys.exc_info())
+
 
     def apicall(self, emu, op, pc, api, argv):
 

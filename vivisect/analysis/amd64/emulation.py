@@ -16,10 +16,10 @@ regops = set(['cmp','sub'])
 
 BRANCH_FLAGS = envi.IF_BRANCH | envi.IF_CALL
 class AnalysisMonitor(viv_monitor.AnalysisMonitor):
-    _cb_indirect_branch = [ vag_switch.analyzeJmp ]
 
     def __init__(self, vw, fva):
         viv_monitor.AnalysisMonitor.__init__(self, vw, fva)
+        self.addDynamicBranchHandler(vag_switch.analyzeJmp)
         self.retbytes = None
         self.badop = vw.arch.archParseOpcode("\x00\x00\x00\x00\x00")
 
@@ -34,20 +34,6 @@ class AnalysisMonitor(viv_monitor.AnalysisMonitor):
             if len(op.opers):
                 self.retbytes = op.opers[0].imm
         
-        elif op.iflags & BRANCH_FLAGS:
-            oper = op.opers[0]
-            if oper.isDeref() or oper.isReg():
-                # do we want to check for the current pc being invalid?
-                # no, what if we magically end up in real space?
-                for cb in self._cb_indirect_branch:
-                    try:
-                        cb(self, emu, op, starteip)
-                    except:
-                        sys.excepthook(*sys.exc_info())
-
-    def registerIndirectBranchCallback(self, cb):
-        self._cb_indirect_branch.append(cb)
-
 sysvamd64argnames = {
     0: ('rdi', e_amd64.REG_RDI),
     1: ('rsi', e_amd64.REG_RSI),
