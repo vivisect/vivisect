@@ -138,6 +138,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         self.addVaSet('NoReturnCalls', (('va',VASET_ADDRESS),))
         self.addVaSet("Emulation Anomalies", (("va",VASET_ADDRESS),("Message",VASET_STRING)))
         self.addVaSet("Bookmarks", (("va",VASET_ADDRESS),("Bookmark Name", VASET_STRING)))
+        self.addVaSet('DynamicBranches', (('va',VASET_ADDRESS),('opcode', VASET_STRING)))
 
     def verbprint(self, msg):
         if self.verbose:
@@ -868,7 +869,11 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         for tova,bflags in brlist:
 
             # If there were unresolved dynamic branches, oh well...
-            if tova == None: continue
+            if tova == None: 
+                # Allow the architecture take a crack at this.
+                # All info can be found from the opcode
+                self.imem_archs[ (arch & envi.ARCH_MASK) >> 16 ].archHandleDynamicBranch(op, self) 
+
             if not self.isValidPointer(tova): continue
 
             brdone[tova] = True

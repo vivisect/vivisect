@@ -63,6 +63,23 @@ import envi.memory as e_mem
 import envi.registers as e_reg
 import envi.memcanvas as e_canvas
 
+def trackDynBranches(arch, op, vw):
+    '''
+    track dynamic branches
+    '''
+    # FIXME: do we want to filter anything out?  
+    #  jmp edx
+    #  jmp dword [ebx + 68]
+    #  call eax
+    #  call dword [ebx + eax * 4 - 228]
+
+    # if we have any xrefs from here, we have already been analyzed.  nevermind.
+    if len(vw.getXrefsFrom(op.va)):
+        return
+
+    if vw.verbose: print "Dynamic Branch found at 0x%x    %s" % (op.va, op)
+    vw.setVaSetRow('DynamicBranches', (op.va, repr(op)))
+
 class ArchitectureModule:
     """
     An architecture module implementes methods to deal
@@ -75,6 +92,9 @@ class ArchitectureModule:
         self._arch_id = getArchByName(archname)
         self._arch_name = archname
         self._arch_maxinst = maxinst
+        self._dynamic_branch_handlers = []
+
+        self.addDynamicBranchHandler(trackDynBranches)
 
     def getArchId(self):
         '''
@@ -88,6 +108,16 @@ class ArchitectureModule:
         in this module.
         '''
         return self._arch_name
+
+    def addDynamicBranchHandler(self, cb):
+        '''
+        Add a callback handler for dynamic branches the code-flow resolver 
+        doesn't know what to do with
+        '''
+        if cb in self._dynamic_branch_handlers:
+            raise Exception("Already have this handler (%s) for dynamic branches" % repr(cb))
+
+        self._dynamic_branch_handlers.append(cb)
 
     def archGetBreakInstr(self):
         """
@@ -122,6 +152,14 @@ class ArchitectureModule:
             a.archParseOpcode('\xeb\xfe', va=0x41414141)
         '''
         raise ArchNotImplemented('archParseOpcode')
+
+    def archHandleDynamicBranch(self, op, vw):
+        '''
+        When code-flow analysis runs into an indirect branch it doesn't know 
+        what to do with, the architecture can take a crack at it.
+        '''
+        for cb in self._dynamic_branch_handlers:
+            cb(self, op, vw)
 
     def archGetRegisterGroups(self):
         '''
