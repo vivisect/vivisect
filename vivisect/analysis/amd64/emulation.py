@@ -14,7 +14,6 @@ import vivisect.analysis.generic.switchcase as vag_switch
 
 regops = set(['cmp','sub'])
 
-BRANCH_FLAGS = envi.IF_BRANCH | envi.IF_CALL
 class AnalysisMonitor(viv_monitor.AnalysisMonitor):
 
     def __init__(self, vw, fva):
