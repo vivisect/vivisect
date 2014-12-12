@@ -91,7 +91,11 @@ class VQVivMainWindow(vq_app.VQMainCmdWindow, viv_base.VivEventDist):
         if parent == None:
             parent = self
 
-        name, ok = QtGui.QInputDialog.getText(parent, 'Enter...', 'Name')
+        curname = self.vw.getName(va)
+        if curname == None:
+            curname = ''
+
+        name, ok = QtGui.QInputDialog.getText(parent, 'Enter...', 'Name', text=curname)
         if ok:
             name = str(name)
             if self.vw.vaByName(name):
@@ -102,7 +106,12 @@ class VQVivMainWindow(vq_app.VQMainCmdWindow, viv_base.VivEventDist):
     def setVaComment(self, va, parent=None):
         if parent == None:
             parent = self
-        comment, ok = QtGui.QInputDialog.getText(parent, 'Enter...', 'Comment')
+
+        curcomment = self.vw.getComment(va)
+        if curcomment == None:
+            curcomment = ''
+
+        comment, ok = QtGui.QInputDialog.getText(parent, 'Enter...', 'Comment', text=curcomment)
         if ok:
             self.vw.setComment(va, str(comment))
 
