@@ -869,9 +869,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         for tova,bflags in brlist:
 
             # If there were unresolved dynamic branches, oh well...
-            if tova == None: 
-                continue
-
+            if tova == None: continue
             if not self.isValidPointer(tova): continue
 
             brdone[tova] = True

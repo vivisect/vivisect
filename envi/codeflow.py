@@ -161,7 +161,6 @@ class CodeFlowContext(object):
                 continue
 
             branches = op.getBranches()
-
             # The opcode callback may filter branches...
             branches = self._cb_opcode(va, op, branches)
 

@@ -63,23 +63,6 @@ import envi.memory as e_mem
 import envi.registers as e_reg
 import envi.memcanvas as e_canvas
 
-def trackDynBranches(arch, op, vw):
-    '''
-    track dynamic branches
-    '''
-    # FIXME: do we want to filter anything out?  
-    #  jmp edx
-    #  jmp dword [ebx + 68]
-    #  call eax
-    #  call dword [ebx + eax * 4 - 228]
-
-    # if we have any xrefs from here, we have already been analyzed.  nevermind.
-    if len(vw.getXrefsFrom(op.va)):
-        return
-
-    if vw.verbose: print "Dynamic Branch found at 0x%x    %s" % (op.va, op)
-    vw.setVaSetRow('DynamicBranches', (op.va, repr(op), op.iflags))
-
 class ArchitectureModule:
     """
     An architecture module implementes methods to deal
