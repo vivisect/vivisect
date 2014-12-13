@@ -43,6 +43,8 @@ class CodeFlowContext(object):
         self._cf_recurse = recurse
         self._cf_exptable = exptable
         self._cf_blocks = [] 
+        self._dynamic_branch_handlers = []
+
 
     def _cb_opcode(self, va, op, branches):
         '''
@@ -79,6 +81,20 @@ class CodeFlowContext(object):
         Return False to stop table iteration.
         '''
         pass
+
+    def _cb_dynamic_branch(self, va, op, bflags, branches):
+        '''
+        if codeflow finds a branch to a non-discrete value (eg. to a register)
+        we handle it here.  by default, we simply track the dynamic branch in a global
+        VaSet which is added to every workspace. 
+        '''
+        '''
+        When code-flow analysis runs into an indirect branch it doesn't know 
+        what to do with, the architecture can take a crack at it.
+        '''
+        for cb in self._dynamic_branch_handlers:
+            cb(self, op, self._mem, bflags, branches)
+
 
     def addNoReturnAddr(self, va):
         '''
@@ -145,6 +161,7 @@ class CodeFlowContext(object):
                 continue
 
             branches = op.getBranches()
+
             # The opcode callback may filter branches...
             branches = self._cb_opcode(va, op, branches)
 
@@ -152,9 +169,10 @@ class CodeFlowContext(object):
 
                 bva, bflags = branches.pop()
                                 
-                # Don't worry about unresolved branches now...
+                # look for dynamic branches (ie. branches which don't have a known target).  assume at least one branch
                 if bva == None:
-                    continue
+                    self._cb_dynamic_branch(va, op, bflags, branches)
+
                 # add block as part of our call stack
                 self._cf_blocks.append( bva )
 
@@ -254,3 +272,14 @@ class CodeFlowContext(object):
         
         # Finally, notify the callback of a new function
         self._cb_function(va, {'CallsFrom':calls_from})
+    def addDynamicBranchHandler(self, cb):
+        '''
+        Add a callback handler for dynamic branches the code-flow resolver 
+        doesn't know what to do with
+        '''
+        if cb in self._dynamic_branch_handlers:
+            raise Exception("Already have this handler (%s) for dynamic branches" % repr(cb))
+
+        self._dynamic_branch_handlers.append(cb)
+
+

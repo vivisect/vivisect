@@ -78,7 +78,7 @@ def trackDynBranches(arch, op, vw):
         return
 
     if vw.verbose: print "Dynamic Branch found at 0x%x    %s" % (op.va, op)
-    vw.setVaSetRow('DynamicBranches', (op.va, repr(op)))
+    vw.setVaSetRow('DynamicBranches', (op.va, repr(op), op.iflags))
 
 class ArchitectureModule:
     """
@@ -94,7 +94,7 @@ class ArchitectureModule:
         self._arch_maxinst = maxinst
         self._dynamic_branch_handlers = []
 
-        self.addDynamicBranchHandler(trackDynBranches)
+        #self.addDynamicBranchHandler(trackDynBranches)
 
     def getArchId(self):
         '''
