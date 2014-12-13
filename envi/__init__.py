@@ -92,9 +92,6 @@ class ArchitectureModule:
         self._arch_id = getArchByName(archname)
         self._arch_name = archname
         self._arch_maxinst = maxinst
-        self._dynamic_branch_handlers = []
-
-        #self.addDynamicBranchHandler(trackDynBranches)
 
     def getArchId(self):
         '''
@@ -108,16 +105,6 @@ class ArchitectureModule:
         in this module.
         '''
         return self._arch_name
-
-    def addDynamicBranchHandler(self, cb):
-        '''
-        Add a callback handler for dynamic branches the code-flow resolver 
-        doesn't know what to do with
-        '''
-        if cb in self._dynamic_branch_handlers:
-            raise Exception("Already have this handler (%s) for dynamic branches" % repr(cb))
-
-        self._dynamic_branch_handlers.append(cb)
 
     def archGetBreakInstr(self):
         """
@@ -152,14 +139,6 @@ class ArchitectureModule:
             a.archParseOpcode('\xeb\xfe', va=0x41414141)
         '''
         raise ArchNotImplemented('archParseOpcode')
-
-    def archHandleDynamicBranch(self, op, vw):
-        '''
-        When code-flow analysis runs into an indirect branch it doesn't know 
-        what to do with, the architecture can take a crack at it.
-        '''
-        for cb in self._dynamic_branch_handlers:
-            cb(self, op, vw)
 
     def archGetRegisterGroups(self):
         '''

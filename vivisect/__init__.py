@@ -870,9 +870,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
             # If there were unresolved dynamic branches, oh well...
             if tova == None: 
-                # Allow the architecture take a crack at this.
-                # All info can be found from the opcode
-                self.imem_archs[ (arch & envi.ARCH_MASK) >> 16 ].archHandleDynamicBranch(op, self) 
+                continue
 
             if not self.isValidPointer(tova): continue
 
