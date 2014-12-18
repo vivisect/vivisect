@@ -289,7 +289,9 @@ class i386RegMemOper(envi.DerefOper):
     def render(self, mcanv, op, idx):
         mcanv.addNameText(sizenames[self.tsize])
         mcanv.addText(" [")
-        mcanv.addNameText(self._dis_regctx.getRegisterName(self.reg), typename="registers")
+        name = self._dis_regctx.getRegisterName(self.reg)
+        rname = self._dis_regctx.getRegisterName(self.reg&RMETA_NMASK)
+        mcanv.addNameText(name, name=rname, typename="registers")
         hint = mcanv.syms.getSymHint(op.va, idx)
         if hint != None:
             mcanv.addText(" + ")
