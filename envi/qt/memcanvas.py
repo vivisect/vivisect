@@ -189,15 +189,25 @@ class VQMemoryCanvas(QtWebKit.QWebView, e_memcanvas.MemoryCanvas):
     def contextMenuEvent(self, event):
 
         va = self._canv_curva
-        if va == None:
-            return
-
         menu = QtGui.QMenu()
-        self.initMemWindowMenu(va, menu)
+        if self._canv_curva:
+            self.initMemWindowMenu(va, menu)
+
+        position = event.pos()
+        if position.x() < 50 and position.y() < 50:
+            menu.addAction("Save frame to HTML", ACT(self._menuSaveToHtml))
+
         menu.exec_(event.globalPos())
 
     def initMemWindowMenu(self, va, menu):
         initMemSendtoMenu('0x%.8x' % va, menu)
+
+    def _menuSaveToHtml(self):
+        fname = QtGui.QFileDialog.getSaveFileName(self, 'Save As HTML...')
+        if fname != None:
+            html = self.page().mainFrame().toHtml()
+            file(fname, 'w').write(html)
+
 
 def getNavTargetNames():
     '''
