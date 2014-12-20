@@ -83,9 +83,9 @@ class VQVivFuncgraphCanvas(vq_memory.VivCanvasBase):
         else:
             menu = QtGui.QMenu(parent=self)
 
-        position = event.pos()
-        if position.x() < 50 and position.y() < 50:
-            menu.addAction("Save frame to HTML", ACT(self._menuSaveToHtml))
+        viewmenu = menu.addMenu('view   ')
+        viewmenu.addAction("Save frame to HTML", ACT(self._menuSaveToHtml))
+        #TODO: Refresh menu item :)
 
         menu.exec_(event.globalPos())
 

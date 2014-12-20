@@ -193,9 +193,8 @@ class VQMemoryCanvas(QtWebKit.QWebView, e_memcanvas.MemoryCanvas):
         if self._canv_curva:
             self.initMemWindowMenu(va, menu)
 
-        position = event.pos()
-        if position.x() < 50 and position.y() < 50:
-            menu.addAction("Save frame to HTML", ACT(self._menuSaveToHtml))
+        viewmenu = menu.addMenu('view   ')
+        viewmenu.addAction("Save frame to HTML", ACT(self._menuSaveToHtml))
 
         menu.exec_(event.globalPos())
 
