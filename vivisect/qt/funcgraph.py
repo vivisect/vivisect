@@ -80,7 +80,14 @@ class VQVivFuncgraphCanvas(vq_memory.VivCanvasBase):
     def contextMenuEvent(self, event):
         if self._canv_curva:
             menu = vq_ctxmenu.buildContextMenu(self.vw, va=self._canv_curva, parent=self)
-            menu.exec_(event.globalPos())
+        else:
+            menu = QtGui.QMenu(parent=self)
+
+        viewmenu = menu.addMenu('view   ')
+        viewmenu.addAction("Save frame to HTML", ACT(self._menuSaveToHtml))
+        #TODO: Refresh menu item :)
+
+        menu.exec_(event.globalPos())
 
     def _navExpression(self, expr):
         if self._canv_navcallback:
