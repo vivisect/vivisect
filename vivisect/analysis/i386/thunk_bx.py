@@ -3,13 +3,19 @@ import vivisect
 thunk_bx_sig = '8b1c24c3'.decode('hex')
 def analyzeFunction(vw, fva):
     '''
+    this analysis module will identify thunk_bx functions, which take the return value and place 
+    it into EBX.  this is done for position-independent code in i386 elf binaries.  a call to this
+    function will be followed by an immediate add to find the start of the module.  that value is
+    then used with fixed offsets to access resources within the binary.  it's a bit like the old
+    shellcode trick.
+
+    store funcva in "thunk_bx" VaSet in case we identify multiples (not likely) or misidentify 
+    something.
+
+    then store the module base in metadata as "PIE_ebx", accessible by other analysis modules.
     '''
     if vw.readMemory(fva, 4) == thunk_bx_sig:
 
-        # store in VaSet in case we identify multiples (not likely) or misidentify something.
-        if not 'thunk_bx' in vw.getVaSetNames():
-            vw.addVaSet('thunk_bx', ( ('fva', vivisect.VASET_ADDRESS), ) )
-            
         # have we already recorded this thunk_bx?
         for afva, in vw.getVaSetRows('thunk_bx'):
             if fva == afva:
