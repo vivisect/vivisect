@@ -26,8 +26,6 @@ class Amd64Module(e_i386.i386Module):
     def __init__(self):
         envi.ArchitectureModule.__init__(self, "amd64")
         self._arch_dis = Amd64Disasm()
-        from envi.archs.i386 import x86_switch
-        self.addIndirectBranchHandler(x86_switch.simpleIndirHook)
         
     def archGetRegCtx(self):
         return Amd64RegisterContext()

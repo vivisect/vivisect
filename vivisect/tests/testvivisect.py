@@ -59,6 +59,9 @@ class VivisectTest(unittest.TestCase):
             vwnodes = vwfgraph.nodes.keys()
             ansnodes = ansfgraph.nodes.keys()
             self.assertEqual( sorted( vwnodes ), sorted( ansnodes ) )
+            vwedges = [(x, y) for w, x, y, z in vwfgraph.getEdges()]
+            ansedges = [(x, y) for w, x, y, z in ansfgraph.getEdges()]
+            self.assertEqual( sorted( vwedges ), sorted( ansedges ) )
 
 
     def getAndTestWorkspace(self, fname):

@@ -22,8 +22,6 @@ class i386Module(envi.ArchitectureModule):
     def __init__(self):
         envi.ArchitectureModule.__init__(self, 'i386')
         self._arch_dis = i386Disasm()
-        import x86_switch
-        self.addIndirectBranchHandler(x86_switch.simpleIndirHook)
 
     def archGetRegCtx(self):
         return i386RegisterContext()
