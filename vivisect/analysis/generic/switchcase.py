@@ -39,7 +39,6 @@ necessary, new codeblocks, and xrefs from the dynamic branch to the case handlin
 end, names are applied as appropriate.
 '''
 
-# TODO: v3-ify print statements
 # TODO: break up makeSwitch into smaller components
 # TODO: try codeblock-granularity and see if that's good enough, rather than backing up by instruction
 # TODO: fix broken xref event munging (try to just solve the symbolik state as it would be.
@@ -189,7 +188,7 @@ def makeSwitch(vw, jmpva, count, offset, funcva=None):
         funcva = vw.getFunction(jmpva)
 
     if funcva == None:
-        print "ERROR getting function for jmpva 0x%x" % jmpva
+        print("ERROR getting function for jmpva 0x%x" % jmpva)
         return
 
     # build opcode and check initial requirements
@@ -220,7 +219,7 @@ def makeSwitch(vw, jmpva, count, offset, funcva=None):
     ebx = vw.getMeta("PIE_ebx")
     if ebx and archname == 'i386':
         if regname == 'ebx':
-            if vw.verbose: print "PIE_ebx but jmp ebx.  bailing!"
+            if vw.verbose: print("PIE_ebx but jmp ebx.  bailing!")
             # is this even valid?  are we caring if they ditch ebx?  could be wrong.
             return
         
@@ -265,7 +264,7 @@ def makeSwitch(vw, jmpva, count, offset, funcva=None):
         # get effects for the "current suspect" opcodes
         xlate.clearEffects()
         for xop in oplist:
-            if vw.verbose: print "%x %s"% (xop.va, xop)
+            if vw.verbose: print("%x %s"% (xop.va, xop))
             xlate.translateOpcode(xop)
             
         semu = SymEmu(vw)
@@ -279,7 +278,7 @@ def makeSwitch(vw, jmpva, count, offset, funcva=None):
         # determine unknown registers
         unks = []
         jmpreg.walkTree(_cb_grab_vars, unks)
-        if vw.verbose: print "unknown regs: %s" % unks
+        if vw.verbose: print("unknown regs: %s" % unks)
         
         # our models only account for two regs being fabricated
         if len(unks) > 2:
@@ -299,7 +298,7 @@ def makeSwitch(vw, jmpva, count, offset, funcva=None):
                 if rname == 'ebx': continue
                 vals['ebx'] = ebx
                 
-            if vw.verbose: print "vals: ", repr(vals)
+            if vw.verbose: print("vals: ", repr(vals))
 
             # fix up for windows base
             if vw.getMeta('Format') == 'pe':
@@ -318,14 +317,14 @@ def makeSwitch(vw, jmpva, count, offset, funcva=None):
                     vals[kvar] = imagebase
                 
             # magic happens
-            if vw.verbose: print repr(jmpreg)
+            if vw.verbose: print(repr(jmpreg))
             val = jmpreg.solve(emu=semu, vals=vals)
             
             if vw.isValidPointer(val):
-                if vw.verbose: print hex(val), vals, deref_ops
+                if vw.verbose: print(hex(val), vals, deref_ops)
                 found = True
                 satvals = vals
-                if vw.verbose: print "\n".join([str(op) for op in oplist])
+                if vw.verbose: print("\n".join([str(op) for op in oplist]))
                 break
             debug.append((semu.getSymSnapshot(), jmpreg))
     
@@ -349,7 +348,7 @@ def makeSwitch(vw, jmpva, count, offset, funcva=None):
     #   * va effect comparison?
 
     if not found:
-        if vw.verbose: print "Switch Analysis FAILURE"
+        if vw.verbose: print("Switch Analysis FAILURE")
         return debug
     
 
@@ -358,7 +357,7 @@ def makeSwitch(vw, jmpva, count, offset, funcva=None):
     terminator_addr = []
     
     if count > MAX_CASES:
-        print "too many switch cases during analysis: %d   limiting to %d" % (count, MAX_CASES)
+        print("too many switch cases during analysis: %d   limiting to %d" % (count, MAX_CASES))
         count = MAX_CASES
 
     regrange = vs_sub.srange(rname, int(count))
@@ -384,24 +383,24 @@ def makeSwitch(vw, jmpva, count, offset, funcva=None):
         memsymobj = symemu._trackReads[-1][1]
         memtgt = memsymobj.solve(emu=symemu, vals=vals)
         
-        if vw.verbose: print hex(va), "analyzeSwitch: vals: ", vals, "\taddr: ", hex(addr), "\t tgt address: 0x%x" % (memtgt)
+        if vw.verbose: print(hex(va), "analyzeSwitch: vals: ", vals, "\taddr: ", hex(addr), "\t tgt address: 0x%x" % (memtgt))
         
         if not vw.isValidPointer(addr):
-            if vw.verbose: print "found invalid pointer.  quitting."
+            if vw.verbose: print("found invalid pointer.  quitting.")
             break
         
         tloc = vw.getLocation(addr)
         if tloc != None and tloc[0] != addr:
             # pointing at something not right.  must be done.
-            if vw.verbose: print "found overlapping location.  quitting."
+            if vw.verbose: print("found overlapping location.  quitting.")
             break
      
         if addr in terminator_addr:
-            if vw.verbose: print "found terminator_addr.  quitting."
+            if vw.verbose: print("found terminator_addr.  quitting.")
             break
         
         if len(cases) and len(vw.getXrefsTo(memtgt)):
-            if vw.verbose: print "target location (0x%x) has xrefs." % memtgt
+            if vw.verbose: print("target location (0x%x) has xrefs." % memtgt)
             break
         
         # this is a valid thing, we have locations...  match them up
@@ -413,13 +412,13 @@ def makeSwitch(vw, jmpva, count, offset, funcva=None):
         
     # should we analyze for derefs here too?  should that be part of the SysEmu?
     if vw.verbose:
-        print "cases:       ", repr(cases)
-        print "deref ops:   ", repr(deref_ops)
-        #print "reads:       ", repr(symemu._trackReads)
+        print("cases:       ", repr(cases))
+        print("deref ops:   ", repr(deref_ops))
+        #print("reads:       ", repr(symemu._trackReads))
 
     # the difference between success and failure...
     if not len(cases):
-        if vw.verbose: print "no cases found... doesn't look like a switch case."
+        if vw.verbose: print("no cases found... doesn't look like a switch case.")
         return
     
     # creating names for each case
@@ -456,11 +455,11 @@ def makeSwitch(vw, jmpva, count, offset, funcva=None):
         else:
             outstrings.append("%X" % case)
 
-        if vw.verbose: print "OUTSTRINGS: ", repr(outstrings)
+        if vw.verbose: print("OUTSTRINGS: ", repr(outstrings))
 
         idxs = '_'.join(outstrings)
         vw.makeName(addr, "case_%s_%x" % (idxs, addr))
-        if vw.verbose:  print (addr, "case_%s_%x" % (idxs, addr))
+        if vw.verbose:  print((addr, "case_%s_%x" % (idxs, addr)))
    
     # link the dereferncing opcode to the base of deref points.
     if len(deref_ops):
@@ -507,19 +506,19 @@ def determineCountOffset(vw, jmpva):
     choppt = len(vw._event_list)
     vw.addXref(jmpva, jmpcb[0], REF_CODE, rflags=op.iflags)
 
-    if vw.verbose > 1: print op
+    if vw.verbose > 1: print(op)
 
     seffs = xlate.translateOpcode(op)
-    if vw.verbose > 1: print seffs
+    if vw.verbose > 1: print(seffs)
 
     cons = xlate.getConstraints()
-    if vw.verbose > 1: print "cons: ", repr(cons)
+    if vw.verbose > 1: print("cons: ", repr(cons))
     if not len(cons):
-        if vw.verbose: print "skipping dynamic branch, no constraints discovered to analyze (not switch-case)" 
+        if vw.verbose: print("skipping dynamic branch, no constraints discovered to analyze (not switch-case)" )
         return (0,0,0)
 
     ajmp = semu.applyEffects([cons[0]])
-    if vw.verbose > 1: print ajmp
+    if vw.verbose > 1: print(ajmp)
 
     vw.delXref((jmpva, jmpcb[0], REF_CODE, op.iflags))
     vw._event_list = vw._event_list[:choppt]                # FIXME: THIS IS JUST WRONG.  some better way?
@@ -528,11 +527,11 @@ def determineCountOffset(vw, jmpva):
 
     acon = ajmp[0].cons._v1
     fullcons = [eff for eff in aeffs if eff.efftype==EFFTYPE_CONSTRAIN]
-    if vw.verbose > 1: print '\nFULLCONS: \n','\n\t'.join([repr(con) for con in fullcons])
+    if vw.verbose > 1: print('\nFULLCONS: \n','\n\t'.join([repr(con) for con in fullcons]))
 
     muls = []
     acon.walkTree(_cb_grab_muls, muls)
-    if vw.verbose > 1: print '\nMULS: \n',repr(muls)
+    if vw.verbose > 1: print('\nMULS: \n',repr(muls))
 
     # this algorithm depends on the index variable being in the last Const comparison.  
     # these options may be best used with a heuristic (if one doesn't make us happy, 
@@ -546,7 +545,7 @@ def determineCountOffset(vw, jmpva):
     
     for cons in fullcons[::-1]:
         if not hasattr(cons.cons, 'operstr'): continue
-        if vw.verbose > 2: print repr(cons)
+        if vw.verbose > 2: print(repr(cons))
         comparator = cons.cons.operstr
         symvar = cons.cons._v1
         symcmp = cons.cons._v2
@@ -567,42 +566,42 @@ def determineCountOffset(vw, jmpva):
         
 
         delta = baseoff + d
-        if vw.verbose: print "* ", repr(cons.cons._v2), "\t",repr(cons.cons._v1),"\t", repr(cons), "\tdelta: ",delta
+        if vw.verbose: print("* ", repr(cons.cons._v2), "\t",repr(cons.cons._v1),"\t", repr(cons), "\tdelta: ",delta)
 
 
         # FIXME: probably don't want to reset things once they're set.  this could be some other indicator for a nested switchcase...  need to get one of those for testing.
         if comparator == ">":
             # this is setting the lower bound
             if lower != 0:
-                if vw.verbose: print "==we're resetting a lower bound:  %s -> %s" % (lower, symcmp)
+                if vw.verbose: print("==we're resetting a lower bound:  %s -> %s" % (lower, symcmp))
             lower = symcmp.solve() + 1# + delta
             
         elif comparator == ">=":
             # this is setting the lower bound
             if lower != 0:
-                if vw.verbose: print "==we're resetting a lower bound:  %s -> %s" % (lower, symcmp)
+                if vw.verbose: print("==we're resetting a lower bound:  %s -> %s" % (lower, symcmp))
             lower = symcmp.solve()# + delta
             
         elif comparator == "<":
             # this is setting the upper bound
             if upper != None:
-                if vw.verbose: print "==we're resetting a upper bound:  %s -> %s" % (upper, symcmp)
+                if vw.verbose: print("==we're resetting a upper bound:  %s -> %s" % (upper, symcmp))
             upper = symcmp.solve() - 1# + delta
             
         elif comparator == "<=":
             # this is setting the upper bound
             if upper != None:
-                if vw.verbose: print "==we're resetting a upper bound:  %s -> %s" % (upper, symcmp)
+                if vw.verbose: print("==we're resetting a upper bound:  %s -> %s" % (upper, symcmp))
             upper = symcmp.solve()# + delta
 
         else:
-            if vw.verbose: print "Unhandled comparator:  %s\n" % repr(comparator)
+            if vw.verbose: print("Unhandled comparator:  %s\n" % repr(comparator))
 
     if None in (idx, upper, delta):
-        if vw.verbose: print "NON-SWITCH analysis terminated: 0x%x" % jmpva
+        if vw.verbose: print("NON-SWITCH analysis terminated: 0x%x" % jmpva)
         return (None, None, None)
 
-    if vw.verbose: print "Lower: %d\tUpper: %d\tOffset: %d\tIndex: %s" % (lower, upper, baseoff, idx)
+    if vw.verbose: print("Lower: %d\tUpper: %d\tOffset: %d\tIndex: %s" % (lower, upper, baseoff, idx))
 
     return lower, upper, baseoff
 
@@ -649,7 +648,7 @@ def analyzeFunction(vw, fva):
 
             lower, upper, baseoff = determineCountOffset(vw, jmpva)
             if None in (lower, upper): 
-                if vw.verbose: print "something odd in count/offset calculation... skipping 0x%x..." % jmpva
+                if vw.verbose: print("something odd in count/offset calculation... skipping 0x%x..." % jmpva)
                 continue
 
             count = (upper - lower) + 1
