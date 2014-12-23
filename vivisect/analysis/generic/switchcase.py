@@ -1,6 +1,9 @@
 '''
 Analysis plugin for supporting WorkspaceEmulators during analysis pass.
-Finds and connects Switch Cases, most specifically from Microsoft.
+Finds and connects Switch Cases from Microsoft and GCC, and theoretically others,
+which use pointer arithetic to determine code path for each case.
+
+This will not connect switch cases which are actually explicit cmp/jz in the code.
 '''
 import envi
 import envi.archs.i386 as e_i386
@@ -21,8 +24,23 @@ from vivisect.symboliks.common import *
 
 
 
+'''
+this analysis module takes a two stage approach to identifying and wiring up switch cases.
+
+the first phase is to identify the index range for the switch-case.  many switch cases are
+split into logically grouped cases, such as if the case statements are "1,2,3,4,5,6,7,10,1000,
+1001,1002,1005,2000,...." the compiler might break this up into three distinct dynamic branches,
+one to handle the cases 1-10, another for the 1001-1005, and another to handle the 2000's.  this
+first "discovery" phase identifies how many cases are handled in a given dynamic branch, as well
+as the offset.  thus, for the 1000's, there may be 5 cases, and their offset would be 1001.
+
+the second phase actually wires up the switch case instance, providing new codeflow analysis where
+necessary, new codeblocks, and xrefs from the dynamic branch to the case handling code.  at the
+end, names are applied as appropriate.
+'''
+
 MAX_ICOUNT  = 10
-MAX_CASES   = 1200
+MAX_CASES   = 3600
 
 regidx_sets = {
     'amd64': range(16),
@@ -30,6 +48,10 @@ regidx_sets = {
 }
     
 class SymEmu(vs_emu.SymbolikEmulator):
+    '''
+    TrackingSymbolikEmulator tracks reads.  where they occur, where they read from, and
+    returns as much info as possible if not discrete data.
+    '''
     _trackReads = []
     def __init__(self, vw):
         vs_emu.SymbolikEmulator.__init__(self, vw)
@@ -454,7 +476,10 @@ def makeSwitch(vw, jmpva, count, offset, funcva=None):
 
 def determineCountOffset(vw, jmpva):
     '''
-    Analyze instructions (symboliks) leading up to a "jmp reg" to determine which switch cases are handled here
+    Analyze instructions (symboliks) leading up to a "jmp reg" to determine which switch cases are 
+    handled here.
+
+    we start out with 
     '''
     sctx = vs_anal.getSymbolikAnalysisContext(vw)
     funcva = vw.getFunction(jmpva)
