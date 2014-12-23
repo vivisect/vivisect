@@ -52,7 +52,7 @@ regidx_sets = {
     'i386':  range(8),
 }
     
-class SymEmu(vs_emu.SymbolikEmulator):
+class TrackingSymbolikEmulator(vs_emu.SymbolikEmulator):
     '''
     TrackingSymbolikEmulator tracks reads.  where they occur, where they read from, and
     returns as much info as possible if not discrete data.
@@ -170,59 +170,24 @@ def contains(symobj, subobj):
     return ctx.get('contains'), ctx
 
 
-    
-# Command Line Analysis and Linkage of Switch Cases - Microsoft and Posix - taking arguments "count" and "offset"
-def makeSwitch(vw, jmpva, count, offset, funcva=None):
+def zero_in(vw, jmpva, oplist, special_vals={}):
     '''
-    Determine jmp's and wire codeblocks together at a switch case based on 
-    provided count and offset data.
-
-        count   - number of sequential switch cases this jmp handles (iterates)
-        offset  - offset from the start of the function 
-                    (eg. sometimes "index -= 25" on the way to jmpva)
+    track the ideal instructions to symbolikally analyze for the switch case.
     '''
-    icount = 0
-    xreflen = 0
-    nva = va = jmpva
-    if funcva == None:
-        funcva = vw.getFunction(jmpva)
-
-    if funcva == None:
-        print("ERROR getting function for jmpva 0x%x" % jmpva)
-        return
-
-    # build opcode and check initial requirements
-    op = vw.parseOpcode(jmpva)
-    if not (op.iflags & envi.IF_BRANCH):
-        return
-    if len(op.opers) != 1:
-        return
-    oper = op.opers[0]
-    if not isinstance(oper, e_i386.i386RegOper):   # i386/amd64
-        return
-    
-    oplist = [op]
-    
     # setup symboliks/register context objects
     import vivisect.symboliks.analysis as vs_anal
     rctx = vw.arch.archGetRegCtx()
+    op = vw.parseOpcode(jmpva)
+    oper = op.opers[0]
+    reg = oper.reg
+    regname = rctx.getRegisterName(reg)
     sctx = vs_anal.getSymbolikAnalysisContext(vw)
     xlate = sctx.getTranslator()
     archname = vw.getMeta("Architecture")
     
-    # get jmp reg
-    reg = oper.reg
-    regname = rctx.getRegisterName(reg)
-
-    # this requires that PIE_ebx be set up from previous analysis 
-    #   (see vivisect.analysis.i386.thunk_bx)
-    ebx = vw.getMeta("PIE_ebx")
-    if ebx and archname == 'i386':
-        if regname == 'ebx':
-            if vw.verbose: print("PIE_ebx but jmp ebx.  bailing!")
-            # is this even valid?  are we caring if they ditch ebx?  could be wrong.
-            return
-        
+    icount = 0
+    xreflen = 0
+    nva = jmpva
     # first loop...  back up the truck  until we hit some change in basic block
     ###  NOTE: we are backing up past significant enough complexity to get the jmp data, 
     ###     next we'll zero in on the "right" ish starting point
@@ -267,7 +232,7 @@ def makeSwitch(vw, jmpva, count, offset, funcva=None):
             if vw.verbose: print("%x %s"% (xop.va, xop))
             xlate.translateOpcode(xop)
             
-        semu = SymEmu(vw)
+        semu = TrackingSymbolikEmulator(vw)
         effs = xlate.getEffects()
         aeffs = semu.applyEffects(effs)
    
@@ -293,10 +258,10 @@ def makeSwitch(vw, jmpva, count, offset, funcva=None):
             # check for case 0 (should always work)
             vals = { rname:0 }
             
-            # fix up for PIE_ebx (POSIX Position Independent Exe)
-            if ebx != None:
-                if rname == 'ebx': continue
-                vals['ebx'] = ebx
+            if rname in special_vals:
+                continue
+
+            vals.update(special_vals)
                 
             if vw.verbose: print("vals: ", repr(vals))
 
@@ -332,6 +297,70 @@ def makeSwitch(vw, jmpva, count, offset, funcva=None):
     # However, to get to that ideal (if possible), let's break down what we need from a C perspective
     # as well as what types we currently need to deal with to get there...
 
+    return found, satvals, rname, jmpreg, deref_ops, debug
+
+    
+# Command Line Analysis and Linkage of Switch Cases - Microsoft and Posix - taking arguments "count" and "offset"
+def makeSwitch(vw, jmpva, count, offset, funcva=None):
+    '''
+    Determine jmp targets's and wire codeblocks together at a switch case based on 
+    provided count and offset data.
+
+        count   - number of sequential switch cases this jmp handles (iterates)
+        offset  - offset from the start of the function 
+                    (eg. sometimes "index -= 25" on the way to jmpva)
+
+    algorithm goes a little like this:
+    * start at the dynamic branch (jmp reg)
+    * back up instruction at a time until we hit a CODE xref to or from that instruction, 
+            or we run out of instructions, or we cross a max-instruction threshold.
+    * walk forward, evaluating the dynamic branch symbolikally, until we have only the 
+            switch/case index
+    * iterate "count" times through the switch case indexes starting from 0
+    * wire dynamic branch to next code snippits
+    * make sure codeblocks exist for any new code / trigger codeflow analysis
+    * name switches and cases
+    '''
+    va = jmpva
+    special_vals = {}
+
+    if funcva == None:
+        funcva = vw.getFunction(jmpva)
+
+    if funcva == None:
+        print("ERROR getting function for jmpva 0x%x" % jmpva)
+        return
+
+    # build opcode and check initial requirements
+    op = vw.parseOpcode(jmpva)
+    if not (op.iflags & envi.IF_BRANCH):
+        return
+    if len(op.opers) != 1:
+        return
+    oper = op.opers[0]
+    if not isinstance(oper, e_i386.i386RegOper):   # i386/amd64 # FIXME: how can we un-intel this?
+        return
+    
+    # get jmp reg
+    rctx = vw.arch.archGetRegCtx()
+    reg = oper.reg
+    regname = rctx.getRegisterName(reg)
+
+    # fix up for PIE_ebx (POSIX Position Independent Exe)
+    # this requires that PIE_ebx be set up from previous analysis 
+    #   (see vivisect.analysis.i386.thunk_bx)
+    ebx = vw.getMeta("PIE_ebx")
+    if ebx and archname == 'i386':
+        if regname == 'ebx':
+            if vw.verbose: print("PIE_ebx but jmp ebx.  bailing!")
+            # is this even valid?  are we caring if they ditch ebx?  could be wrong.
+            return
+        special_vals['ebx'] = ebx
+        
+    oplist = [op]
+
+    found, satvals, rname, jmpreg, deref_ops, debug  = zero_in(vw, jmpva, oplist, special_vals)
+   
     # DIFFERENT TYPES:
     # * VS's multidimensional
     # * VS's single-dimension
@@ -371,19 +400,19 @@ def makeSwitch(vw, jmpva, count, offset, funcva=None):
         regrange *= vs_sub.sset('ebx', [ebx])
         terminator_addr.append(ebx)
 
-    symemu = SymEmu(vw)
+    symemu = TrackingSymbolikEmulator(vw)
     jmpreg.reduce()
     cases = {}
     memrefs = []
     
     for vals in regrange:
-        symemu.setMeta('va', va)
+        symemu.setMeta('va', jmpva)
         addr = jmpreg.solve(emu=symemu, vals=vals)
         
         memsymobj = symemu._trackReads[-1][1]
         memtgt = memsymobj.solve(emu=symemu, vals=vals)
         
-        if vw.verbose: print(hex(va), "analyzeSwitch: vals: ", vals, "\taddr: ", hex(addr), "\t tgt address: 0x%x" % (memtgt))
+        if vw.verbose: print(hex(jmpva), "analyzeSwitch: vals: ", vals, "\taddr: ", hex(addr), "\t tgt address: 0x%x" % (memtgt))
         
         if not vw.isValidPointer(addr):
             if vw.verbose: print("found invalid pointer.  quitting.")
