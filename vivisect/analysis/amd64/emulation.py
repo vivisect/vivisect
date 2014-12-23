@@ -10,9 +10,12 @@ from envi.registers import RMETA_NMASK
 
 from vivisect.const import *
 
+import vivisect.analysis.generic.switchcase as vag_switch
+
 regops = set(['cmp','sub'])
 
 class AnalysisMonitor(viv_monitor.AnalysisMonitor):
+
     def __init__(self, vw, fva):
         viv_monitor.AnalysisMonitor.__init__(self, vw, fva)
         self.addDynamicBranchHandler(vag_switch.analyzeJmp)
