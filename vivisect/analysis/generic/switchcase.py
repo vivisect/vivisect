@@ -42,6 +42,8 @@ end, names are applied as appropriate.
 # TODO: break up makeSwitch into smaller components
 # TODO: try codeblock-granularity and see if that's good enough, rather than backing up by instruction
 # TODO: fix broken xref event munging (try to just solve the symbolik state as it would be.
+# TODO: once thunk_bx is merged into mainline, drag into here and test
+# TODO: check offsets/pointers used to calculate jmp targets and either makeNumber or makePointer
 # TODO: complete documentation
 # TODO: figure out why KernelBase has switches which are not being discovered
 MAX_ICOUNT  = 10
@@ -170,6 +172,112 @@ def contains(symobj, subobj):
     return ctx.get('contains'), ctx
 
 
+
+    
+# Command Line Analysis and Linkage of Switch Cases - Microsoft and Posix - taking arguments "count" and "offset"
+def makeSwitch(vw, jmpva, count, offset, funcva=None):
+    '''
+    Determine jmp targets's and wire codeblocks together at a switch case based on 
+    provided count and offset data.
+
+        count   - number of sequential switch cases this jmp handles (iterates)
+        offset  - offset from the start of the function 
+                    (eg. sometimes "index -= 25" on the way to jmpva)
+
+    algorithm goes a little like this:
+    * start at the dynamic branch (jmp reg)
+    * back up instruction at a time until we hit a CODE xref to or from that instruction, 
+            or we run out of instructions, or we cross a max-instruction threshold.
+    * walk forward, evaluating the dynamic branch symbolikally, until we have only the 
+            switch/case index
+    * iterate "count" times through the switch case indexes starting from 0
+    * wire dynamic branch to next code snippits
+    * make sure codeblocks exist for any new code / trigger codeflow analysis
+    * name switches and cases
+
+
+    DIFFERENT TYPES OF SWITCH CASES:
+    * VS's multidimensional
+    * VS's single-dimension
+    * Posix single dimension
+    * Any of them with offset (EBX for Posix PIE, VS's base reg (typically 0x10000))
+
+    What we need:
+    * Resultant location for xrefs (iterative)
+    * Index symboliks (for Constraint checking, addition/subtraction)
+    * potentially, base va offset?  if only to identify the others.... but maybe not.
+
+    How do we get from jmpreg (which is a very limited scope symboliks) to full scope symboliks run (from funcva)?
+    * va effect comparison?
+
+    '''
+    special_vals = {}
+
+    if funcva == None:
+        funcva = vw.getFunction(jmpva)
+
+    if funcva == None:
+        print("ERROR getting function for jmpva 0x%x" % jmpva)
+        return
+
+    if count > MAX_CASES:
+        print("too many switch cases during analysis: %d   limiting to %d" % (count, MAX_CASES))
+        count = MAX_CASES
+
+    # build opcode and check initial requirements
+    op = vw.parseOpcode(jmpva)
+    if not (op.iflags & envi.IF_BRANCH):
+        return
+    if len(op.opers) != 1:
+        return
+    oper = op.opers[0]
+    if not isinstance(oper, e_i386.i386RegOper):   # i386/amd64 # FIXME: how can we un-intel this?
+        return
+    
+    # get jmp reg
+    rctx = vw.arch.archGetRegCtx()
+    reg = oper.reg
+    regname = rctx.getRegisterName(reg)
+
+    # fix up for PIE_ebx (POSIX Position Independent Exe)
+    # this requires that PIE_ebx be set up from previous analysis 
+    #   (see vivisect.analysis.i386.thunk_bx)
+    ebx = vw.getMeta("PIE_ebx")
+    if ebx and archname == 'i386':
+        if regname == 'ebx':
+            if vw.verbose: print("PIE_ebx but jmp ebx.  bailing!")
+            # is this even valid?  are we caring if they ditch ebx?  could be wrong.
+            return
+        special_vals['ebx'] = ebx
+        
+    oplist = [op]
+
+    found, satvals, rname, jmpreg, deref_ops, debug  = zero_in(vw, jmpva, oplist, special_vals)
+   
+    if not found:
+        if vw.verbose: print("Switch Analysis FAILURE")
+        return debug
+    
+
+    cases, memrefs = iterCases(vw, satvals, jmpva, jmpreg, rname, count, special_vals) 
+    # should we analyze for derefs here too?  should that be part of the SysEmu?
+    if vw.verbose:
+        print("cases:       ", repr(cases))
+        print("deref ops:   ", repr(deref_ops))
+        #print("reads:       ", repr(symemu._trackReads))
+
+    # the difference between success and failure...
+    if not len(cases):
+        if vw.verbose: print("no cases found... doesn't look like a switch case.")
+        return
+   
+    makeNames(vw, jmpva, offset, cases, deref_ops, memrefs)
+
+    # store some metadata in a VaSet
+    vw.setVaSetRow('SwitchCases', (jmpva, oplist[0].va, len(cases)) )
+
+    vagc.analyzeFunction(vw, funcva)
+
 def zero_in(vw, jmpva, oplist, special_vals={}):
     '''
     track the ideal instructions to symbolikally analyze for the switch case.
@@ -183,7 +291,6 @@ def zero_in(vw, jmpva, oplist, special_vals={}):
     regname = rctx.getRegisterName(reg)
     sctx = vs_anal.getSymbolikAnalysisContext(vw)
     xlate = sctx.getTranslator()
-    archname = vw.getMeta("Architecture")
     
     icount = 0
     xreflen = 0
@@ -216,179 +323,116 @@ def zero_in(vw, jmpva, oplist, special_vals={}):
     # now go forward until we have a lock
     # this next section tells us where we can resolve the jmp target, and what reg is used
     # to determine switch case.
-    found = False
-    rnames = [rctx.getRegisterName(x) for x in regidx_sets[archname]]
     satvals = None
 
     # analyze current opcodes.  if we don't solve symreg, pop earliest opcode and try again
-    oplist.insert(0,None)
     debug = []
+    found = False
     while len(oplist) and not found:
-        oplist.pop(0)
         
         # get effects for the "current suspect" opcodes
         xlate.clearEffects()
         for xop in oplist:
             if vw.verbose: print("%x %s"% (xop.va, xop))
             xlate.translateOpcode(xop)
-            
-        semu = TrackingSymbolikEmulator(vw)
+
         effs = xlate.getEffects()
-        aeffs = semu.applyEffects(effs)
+        found, rname, jmpreg, val, satvals = determineCaseIndex(vw, jmpva, regname, special_vals, effs, debug)
+
+        if vw.verbose: 
+            print(hex(val), satvals, deref_ops)
+            if vw.verbose > 1: 
+                print("\n".join([str(op) for op in oplist]))
+
+        if not found:
+            oplist.pop(0)
+
+    return found, satvals, rname, jmpreg, deref_ops, debug
+
+def determineCaseIndex(vw, jmpva, regname, special_vals, effs, debug):
+    archname = vw.getMeta("Architecture")
+
+    rctx = vw.arch.archGetRegCtx()
+    rnames = [rctx.getRegisterName(x) for x in regidx_sets[archname]]
+
+    found = False
+    semu = TrackingSymbolikEmulator(vw)
+    aeffs = semu.applyEffects(effs)
+
+    # grab the JMP register we're solving for
+    jmpreg = semu.getSymVariable(regname)
+    jmpreg.reduce(semu)
    
-        # grab the JMP register we're solving for
-        jmpreg = semu.getSymVariable(regname)
-        jmpreg.reduce(semu)
-        
-        # determine unknown registers
-        unks = []
-        jmpreg.walkTree(_cb_grab_vars, unks)
-        if vw.verbose: print("unknown regs: %s" % unks)
-        
-        # our models only account for two regs being fabricated
-        if len(unks) > 2:
-            continue
 
-        # cycle through possible case regs, check for valid location by providing index 0
-        #### ARG! NASTIEST THING EVAR.  i feel dirty
-        for rname in unks:
-            if rname not in rnames:
-                continue
-
-            # check for case 0 (should always work)
-            vals = { rname:0 }
-            
-            if rname in special_vals:
-                continue
-
-            vals.update(special_vals)
-                
-            if vw.verbose: print("vals: ", repr(vals))
-
-            # fix up for windows base
-            if vw.getMeta('Format') == 'pe':
-                imagename = vw.getFileByVa(jmpva)
-                imagebase = vw.filemeta[imagename]['imagebase']
-               
-                # FIXME: abstract this out by architecture
-                if archname == 'amd64':
-                    kvars = ('rdi','rsi', 'r8', 'r9', 'r10')
-                elif archname == 'i386':
-                    kvars = ('edi', 'esi')
-                    
-                for kvar in kvars:
-                    if rname == kvar:
-                        continue
-                    vals[kvar] = imagebase
-                
-            # magic happens
-            if vw.verbose: print(repr(jmpreg))
-            val = jmpreg.solve(emu=semu, vals=vals)
-            
-            if vw.isValidPointer(val):
-                if vw.verbose: print(hex(val), vals, deref_ops)
-                found = True
-                satvals = vals
-                if vw.verbose: print("\n".join([str(op) for op in oplist]))
-                break
-            debug.append((semu.getSymSnapshot(), jmpreg))
-    
     # Ideally, we will be able to "just do" this, not worrying about compiler-specific versions...
     # However, to get to that ideal (if possible), let's break down what we need from a C perspective
     # as well as what types we currently need to deal with to get there...
 
-    return found, satvals, rname, jmpreg, deref_ops, debug
-
+    # determine unknown registers
+    unks = []
+    jmpreg.walkTree(_cb_grab_vars, unks)
+    if vw.verbose: print("unknown regs: %s" % unks)
     
-# Command Line Analysis and Linkage of Switch Cases - Microsoft and Posix - taking arguments "count" and "offset"
-def makeSwitch(vw, jmpva, count, offset, funcva=None):
-    '''
-    Determine jmp targets's and wire codeblocks together at a switch case based on 
-    provided count and offset data.
+    # our models only account for two regs being fabricated
+    if len(unks) > 2:
+        return False, 0, 0, 0
 
-        count   - number of sequential switch cases this jmp handles (iterates)
-        offset  - offset from the start of the function 
-                    (eg. sometimes "index -= 25" on the way to jmpva)
+    # cycle through possible case regs, check for valid location by providing index 0
+    #### ARG! NASTIEST THING EVAR.  i feel dirty
+    for rname in unks:
+        if rname not in rnames:
+            continue
 
-    algorithm goes a little like this:
-    * start at the dynamic branch (jmp reg)
-    * back up instruction at a time until we hit a CODE xref to or from that instruction, 
-            or we run out of instructions, or we cross a max-instruction threshold.
-    * walk forward, evaluating the dynamic branch symbolikally, until we have only the 
-            switch/case index
-    * iterate "count" times through the switch case indexes starting from 0
-    * wire dynamic branch to next code snippits
-    * make sure codeblocks exist for any new code / trigger codeflow analysis
-    * name switches and cases
-    '''
-    va = jmpva
-    special_vals = {}
-
-    if funcva == None:
-        funcva = vw.getFunction(jmpva)
-
-    if funcva == None:
-        print("ERROR getting function for jmpva 0x%x" % jmpva)
-        return
-
-    # build opcode and check initial requirements
-    op = vw.parseOpcode(jmpva)
-    if not (op.iflags & envi.IF_BRANCH):
-        return
-    if len(op.opers) != 1:
-        return
-    oper = op.opers[0]
-    if not isinstance(oper, e_i386.i386RegOper):   # i386/amd64 # FIXME: how can we un-intel this?
-        return
-    
-    # get jmp reg
-    rctx = vw.arch.archGetRegCtx()
-    reg = oper.reg
-    regname = rctx.getRegisterName(reg)
-
-    # fix up for PIE_ebx (POSIX Position Independent Exe)
-    # this requires that PIE_ebx be set up from previous analysis 
-    #   (see vivisect.analysis.i386.thunk_bx)
-    ebx = vw.getMeta("PIE_ebx")
-    if ebx and archname == 'i386':
-        if regname == 'ebx':
-            if vw.verbose: print("PIE_ebx but jmp ebx.  bailing!")
-            # is this even valid?  are we caring if they ditch ebx?  could be wrong.
-            return
-        special_vals['ebx'] = ebx
+        # check for case 0 (should always work)
+        vals = { rname:0 }
         
-    oplist = [op]
+        if rname in special_vals:
+            continue
 
-    found, satvals, rname, jmpreg, deref_ops, debug  = zero_in(vw, jmpva, oplist, special_vals)
-   
-    # DIFFERENT TYPES:
-    # * VS's multidimensional
-    # * VS's single-dimension
-    # * Posix single dimension
-    # * Any of them with offset (EBX for Posix PIE, VS's base reg (typically 0x10000))
+        vals.update(special_vals)
+            
+        if vw.verbose: print("vals: ", repr(vals))
 
-    # What we need:
-    # * Resultant location for xrefs (iterative)
-    # * Index symboliks (for Constraint checking, addition/subtraction)
-    # * potentially, base va offset?  if only to identify the others.... but maybe not.
+        # fix up for windows base
+        if vw.getMeta('Format') == 'pe':
+            imagename = vw.getFileByVa(jmpva)
+            imagebase = vw.filemeta[imagename]['imagebase']
+           
+            # FIXME: abstract this out by architecture
+            if archname == 'amd64':
+                kvars = ('rdi','rsi', 'r8', 'r9', 'r10')
+            elif archname == 'i386':
+                kvars = ('edi', 'esi')
+                
+            for kvar in kvars:
+                if rname == kvar:
+                    continue
+                vals[kvar] = imagebase
+            
+        # magic happens
+        if vw.verbose: print(repr(jmpreg))
+        val = jmpreg.solve(emu=semu, vals=vals)
+        
+        if vw.isValidPointer(val):
+            found = True
+            satvals = vals
+            break
 
+        debug.append((semu.getSymSnapshot(), jmpreg))
 
-    # How do we get from jmpreg (which is a very limited scope symboliks) to full scope symboliks run (from funcva)?
-    #   * va effect comparison?
+    return found, rname, jmpreg, val, satvals
 
-    if not found:
-        if vw.verbose: print("Switch Analysis FAILURE")
-        return debug
-    
-
-    ############################################################################
-    ### let's exercize the correct number of instances, as provided by "count"
+def iterCases(vw, satvals, jmpva, jmpreg, rname, count, special_vals):
+    '''
+    let's exercize the correct number of instances, as provided by "count"
+    '''
     terminator_addr = []
+    symemu = TrackingSymbolikEmulator(vw)
+    jmpreg.reduce()
+    cases = {}
+    memrefs = []
     
-    if count > MAX_CASES:
-        print("too many switch cases during analysis: %d   limiting to %d" % (count, MAX_CASES))
-        count = MAX_CASES
-
+    
     regrange = vs_sub.srange(rname, int(count))
     for reg,val in satvals.items():
         if val == 0: continue
@@ -396,15 +440,10 @@ def makeSwitch(vw, jmpva, count, offset, funcva=None):
         regrange *= vs_sub.sset(reg, [val])
         terminator_addr.append(val)
         
-    if ebx:
-        regrange *= vs_sub.sset('ebx', [ebx])
-        terminator_addr.append(ebx)
+    for sreg, svals in special_vals.items():
+        regrange *= vs_sub.sset(sreg, [sval])
+        terminator_addr.append(svals)
 
-    symemu = TrackingSymbolikEmulator(vw)
-    jmpreg.reduce()
-    cases = {}
-    memrefs = []
-    
     for vals in regrange:
         symemu.setMeta('va', jmpva)
         addr = jmpreg.solve(emu=symemu, vals=vals)
@@ -438,22 +477,15 @@ def makeSwitch(vw, jmpva, count, offset, funcva=None):
         l.append(vals[rname])
         cases[addr] = l
         # FIXME: make the target locations numbers?  pointers? based on size of read.
-        
-    # should we analyze for derefs here too?  should that be part of the SysEmu?
-    if vw.verbose:
-        print("cases:       ", repr(cases))
-        print("deref ops:   ", repr(deref_ops))
-        #print("reads:       ", repr(symemu._trackReads))
 
-    # the difference between success and failure...
-    if not len(cases):
-        if vw.verbose: print("no cases found... doesn't look like a switch case.")
-        return
-    
+    return cases, memrefs
+
+
+def makeNames(vw, jmpva, offset, cases, deref_ops, memrefs):
     # creating names for each case
     for addr, l in cases.items():
         # make the connections (REF_CODE) and ensure the cases continue as code.
-        vw.addXref(va, addr, vivisect.REF_CODE)
+        vw.addXref(jmpva, addr, vivisect.REF_CODE)
         nloc = vw.getLocation(addr)
         if nloc == None:
             vw.makeCode(addr)
@@ -487,6 +519,7 @@ def makeSwitch(vw, jmpva, count, offset, funcva=None):
         if vw.verbose: print("OUTSTRINGS: ", repr(outstrings))
 
         idxs = '_'.join(outstrings)
+        # FIXME: check for existing name (this might possibly be part of another switchcase)?
         vw.makeName(addr, "case_%s_%x" % (idxs, addr))
         if vw.verbose:  print((addr, "case_%s_%x" % (idxs, addr)))
    
@@ -498,15 +531,8 @@ def makeSwitch(vw, jmpva, count, offset, funcva=None):
             vw.addXref(memref, tgt, vivisect.REF_PTR)
     
     # let's make switches easily findable.
-    vw.makeName(va, "switch_%.8x" % va)
-    vw.vprint("making switchname: switch_%.8x" % va)
-    
-    # store some metadata so we can know where to analyze later for naming
-    if 'switch_cases' not in vw.getVaSetNames():
-        vw.addVaSet('switch_cases', (('jmp_va', vivisect.VASET_ADDRESS),
-                                     ('setup_va',vivisect.VASET_ADDRESS)) )
-    vw.setVaSetRow('switch_cases', (va, oplist[0].va, len(cases)) )
-    vagc.analyzeFunction(vw, funcva)
+    vw.makeName(jmpva, "switch_%.8x" % jmpva)
+    vw.vprint("making switchname: switch_%.8x" % jmpva)
 
 def determineCountOffset(vw, jmpva):
     '''
