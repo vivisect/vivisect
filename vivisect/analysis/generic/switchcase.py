@@ -39,6 +39,12 @@ necessary, new codeblocks, and xrefs from the dynamic branch to the case handlin
 end, names are applied as appropriate.
 '''
 
+# TODO: v3-ify print statements
+# TODO: break up makeSwitch into smaller components
+# TODO: try codeblock-granularity and see if that's good enough, rather than backing up by instruction
+# TODO: fix broken xref event munging (try to just solve the symbolik state as it would be.
+# TODO: complete documentation
+# TODO: figure out why KernelBase has switches which are not being discovered
 MAX_ICOUNT  = 10
 MAX_CASES   = 3600
 
@@ -479,7 +485,7 @@ def determineCountOffset(vw, jmpva):
     Analyze instructions (symboliks) leading up to a "jmp reg" to determine which switch cases are 
     handled here.
 
-    we start out with 
+    we start out with symbolik analysis of routed paths from the start of the function to the dynamic jmp.
     '''
     sctx = vs_anal.getSymbolikAnalysisContext(vw)
     funcva = vw.getFunction(jmpva)
@@ -508,6 +514,9 @@ def determineCountOffset(vw, jmpva):
 
     cons = xlate.getConstraints()
     if vw.verbose > 1: print "cons: ", repr(cons)
+    if not len(cons):
+        if vw.verbose: print "skipping dynamic branch, no constraints discovered to analyze (not switch-case)" 
+        return (0,0,0)
 
     ajmp = semu.applyEffects([cons[0]])
     if vw.verbose > 1: print ajmp
@@ -622,25 +631,31 @@ def peel(symobj):
 def analyzeFunction(vw, fva):
     '''
     This is inserted as a function analysis module, right after codeblock analysis
+
     '''
-    jmp_indir = vw.getMeta('jmp_indir')
-    if not jmp_indir:
-        return
+    lastdynlen = 0
+    dynbranches = vw.getVaSet('DynamicBranches')
+    
+    # because the VaSet is often updated during analysis, we have to check to see if there are new 
+    # dynamic branches to analyze.
+    while lastdynlen != len(dynbranches):
+        lastdynlen = len(dynbranches)
+        for jmpva, (none, oprepr, bflags) in dynbranches.items():
+            funcva = vw.getFunction(jmpva)
+            if funcva != fva:
+                # jmp_indir is for the entire VivWorkspace.  
+                # we're just filtering to this function here.
+                continue
 
-    for jmpva in jmp_indir:
-        funcva = vw.getFunction(jmpva)
-        if funcva != fva:
-            # jmp_indir is for the entire VivWorkspace.  
-            # we're just filtering to this function here.
-            continue
+            lower, upper, baseoff = determineCountOffset(vw, jmpva)
+            if None in (lower, upper): 
+                if vw.verbose: print "something odd in count/offset calculation... skipping 0x%x..." % jmpva
+                continue
 
-        lower, upper, baseoff = determineCountOffset(vw, jmpva)
-        if None in (lower, upper): 
-            if vw.verbose: print "something odd in count/offset calculation... skipping 0x%x..." % jmpva
-            continue
+            count = (upper - lower) + 1
+            makeSwitch(vw, jmpva, count, baseoff, funcva=fva)
 
-        count = (upper - lower) + 1
-        makeSwitch(vw, jmpva, count, baseoff, funcva=fva)    
+        dynbranches = vw.getVaSet('DynamicBranches')
 
 
 # for use as vivisect script
