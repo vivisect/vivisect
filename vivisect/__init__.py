@@ -139,6 +139,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         self.addVaSet("Emulation Anomalies", (("va",VASET_ADDRESS),("Message",VASET_STRING)))
         self.addVaSet("Bookmarks", (("va",VASET_ADDRESS),("Bookmark Name", VASET_STRING)))
         self.addVaSet('DynamicBranches', (('va',VASET_ADDRESS),('opcode', VASET_STRING),('bflags',VASET_INTEGER)))
+        self.addVaSet('SwitchCases', (('jmp_va', vivisect.VASET_ADDRESS), ('setup_va',vivisect.VASET_ADDRESS), ('Cases', vivisect.VASET_INTEGER)) )
 
     def verbprint(self, msg):
         if self.verbose:
