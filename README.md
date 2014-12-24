@@ -47,4 +47,4 @@ a real process ( via vdb/vtrace ) and dealing with an emulator / viv workspace.
 
 ## Build Status
 
-[![Build Status](https://travis-ci.org/demoray/vivisect.svg?branch=master)](https://travis-ci.org/demoray/vivisect)
+[![Build Status](https://travis-ci.org/vivisect/vivisect.svg?branch=master)](https://travis-ci.org/vivisect/vivisect)
