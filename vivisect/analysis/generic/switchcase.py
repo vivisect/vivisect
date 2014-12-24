@@ -212,6 +212,7 @@ def makeSwitch(vw, jmpva, count, offset, funcva=None):
 
     '''
     special_vals = {}
+    archname = vw.getMeta("Architecture")
 
     if funcva == None:
         funcva = vw.getFunction(jmpva)
@@ -226,12 +227,12 @@ def makeSwitch(vw, jmpva, count, offset, funcva=None):
 
     # build opcode and check initial requirements
     op = vw.parseOpcode(jmpva)
-    if not (op.iflags & envi.IF_BRANCH):
+    if not (op.iflags & envi.IF_BRANCH):    # basically, not isCall() is what we're after.  
         return
     if len(op.opers) != 1:
         return
     oper = op.opers[0]
-    if not isinstance(oper, e_i386.i386RegOper):   # i386/amd64 # FIXME: how can we un-intel this?
+    if not isinstance(oper, e_i386.i386RegOper):   # i386/amd64 # FIXME: how can we un-intel this?  FIXME: some could use some reg-offset thingy.  this will need to change.  if not now, then as we bring in other architectures.  the architecture module should identify what operands can be used for switch cases.  "jmp [basereg + ptrsize * indexreg)" would be totally legit...  this is a Microsoft-style filter right now.
         return
     
     # get jmp reg
@@ -259,7 +260,7 @@ def makeSwitch(vw, jmpva, count, offset, funcva=None):
         return debug
     
 
-    cases, memrefs = iterCases(vw, satvals, jmpva, jmpreg, rname, count, special_vals) 
+    cases, memrefs, interval = iterCases(vw, satvals, jmpva, jmpreg, rname, count, special_vals) 
     # should we analyze for derefs here too?  should that be part of the SysEmu?
     if vw.verbose:
         print("cases:       ", repr(cases))
@@ -271,7 +272,7 @@ def makeSwitch(vw, jmpva, count, offset, funcva=None):
         if vw.verbose: print("no cases found... doesn't look like a switch case.")
         return
    
-    makeNames(vw, jmpva, offset, cases, deref_ops, memrefs)
+    makeNames(vw, jmpva, offset, cases, deref_ops, memrefs, interval)
 
     # store some metadata in a VaSet
     vw.setVaSetRow('SwitchCases', (jmpva, oplist[0].va, len(cases)) )
@@ -423,6 +424,22 @@ def determineCaseIndex(vw, jmpva, regname, special_vals, effs, debug):
 
     return found, rname, jmpreg, val, satvals
 
+def getRegRange(count, rname, satvals, special_vals, terminator_addr, start=0, interval=1):
+    regrange = vs_sub.srange(rname, int(count), imin=start, iinc=interval)
+    for reg,val in satvals.items():
+        if val == 0: continue
+
+        print vars(regrange)
+        print vars(vs_sub.sset(reg, [val]))
+        regrange *= vs_sub.sset(reg, [val])
+        terminator_addr.append(val)
+        
+    for sreg, sval in special_vals.items():
+        regrange *= vs_sub.sset(sreg, [sval])
+        terminator_addr.append(sval)
+
+    return regrange
+
 def iterCases(vw, satvals, jmpva, jmpreg, rname, count, special_vals):
     '''
     let's exercize the correct number of instances, as provided by "count"
@@ -433,18 +450,24 @@ def iterCases(vw, satvals, jmpva, jmpreg, rname, count, special_vals):
     cases = {}
     memrefs = []
     
+    # check once through to see if our index reg moves by 1, 2, 4, or 8:
+    interval = vw.psize / vw.psize
+    regrange = getRegRange(2, rname, satvals, special_vals, [], interval=interval)
+    testaddrs = []
+    testemu = TrackingSymbolikEmulator(vw)
+    for vals in regrange:
+        testemu.setMeta('va', jmpva)
+        memsymobj = symemu._trackReads[-1][1]
+        addr = memsymobj.solve(emu=testemu, vals=vals)
+        #addr = jmpreg.solve(emu=testemu, vals=vals)
+        testaddrs.append(addr)
+
+    # check for periodic changes:
+    print "finished interval test: %s" % (testaddrs)
+    delta = testaddrs[1] - testaddrs[0]
+    interval = vw.psize / delta
     
-    regrange = vs_sub.srange(rname, int(count))
-    for reg,val in satvals.items():
-        if val == 0: continue
-
-        regrange *= vs_sub.sset(reg, [val])
-        terminator_addr.append(val)
-        
-    for sreg, svals in special_vals.items():
-        regrange *= vs_sub.sset(sreg, [sval])
-        terminator_addr.append(svals)
-
+    regrange = getRegRange(count*interval, rname, satvals, special_vals, terminator_addr, interval=interval)
     for vals in regrange:
         symemu.setMeta('va', jmpva)
         addr = jmpreg.solve(emu=symemu, vals=vals)
@@ -475,14 +498,16 @@ def iterCases(vw, satvals, jmpva, jmpreg, rname, count, special_vals):
         # this is a valid thing, we have locations...  match them up
         memrefs.append((memtgt, addr))
         l = cases.get(addr, [])
-        l.append(vals[rname])
+        l.append( vals[rname]/interval )
         cases[addr] = l
         # FIXME: make the target locations numbers?  pointers? based on size of read.
 
-    return cases, memrefs
+    return cases, memrefs, interval
 
 
-def makeNames(vw, jmpva, offset, cases, deref_ops, memrefs):
+UNINIT_CASE_INDEX = -2
+
+def makeNames(vw, jmpva, offset, cases, deref_ops, memrefs, interval):
     # creating names for each case
     for addr, l in cases.items():
         # make the connections (REF_CODE) and ensure the cases continue as code.
@@ -493,7 +518,7 @@ def makeNames(vw, jmpva, offset, cases, deref_ops, memrefs):
 
         outstrings = []
         combined = False
-        start = last = -1
+        start = last = UNINIT_CASE_INDEX
         for x in l:
             # we make the case numbers into their originally intended form here:
             case = x + offset
@@ -506,7 +531,7 @@ def makeNames(vw, jmpva, offset, cases, deref_ops, memrefs):
                 if combined:
                     combined = False
                     outstrings.append("%Xto%X" % (start, last))
-                elif last != -1:
+                elif last != UNINIT_CASE_INDEX:
                     outstrings.append("%X" % last)
             last = case
 
@@ -542,6 +567,7 @@ def determineCountOffset(vw, jmpva):
 
     we start out with symbolik analysis of routed paths from the start of the function to the dynamic jmp.
     '''
+    #FIXME: some switch-cases (ELF PIE, libc:sub_020bbec0) use indexes that increment by ptrsize, not by 1.  back up farther?  identify that?
     sctx = vs_anal.getSymbolikAnalysisContext(vw)
     funcva = vw.getFunction(jmpva)
 
@@ -558,6 +584,7 @@ def determineCountOffset(vw, jmpva):
     spaths = sctx.getSymbolikPaths(funcva, pathGen, graph=graph)
     semu, aeffs = spaths.next()
 
+    ################## REFACTOR ##################
     # hack... give the jmp reg someplace to go so symboliks can help us
     choppt = len(vw._event_list)
     vw.addXref(jmpva, jmpcb[0], REF_CODE, rflags=op.iflags)
@@ -580,7 +607,7 @@ def determineCountOffset(vw, jmpva):
     vw._event_list = vw._event_list[:choppt]                # FIXME: THIS IS JUST WRONG.  some better way?
                                                             # should we just hack this xref directly into the vw.xrefs_by_from?
                                                             # it's required to use symboliks on the final jmp reg
-
+    ################## refactor end #################
     acon = ajmp[0].cons._v1
     fullcons = [eff for eff in aeffs if eff.efftype==EFFTYPE_CONSTRAIN]
     if vw.verbose > 1: print('\nFULLCONS: \n','\n\t'.join([repr(con) for con in fullcons]))
