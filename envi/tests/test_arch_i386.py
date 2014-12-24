@@ -167,7 +167,7 @@ class i386InstructionSet(unittest.TestCase):
         opbytez = '0440'
         oprepr = 'add al,64'
         opcheck = {'iflags': 65536, 'prefixes': 0, 'mnem': 'add', 'opcode': 8193, 'size': 2}
-        opercheck = ( {'tsize': 1, 'reg': 524288}, {'tsize': 4, 'imm': 64} )
+        opercheck = ( {'tsize': 1, 'reg': 524288}, {'tsize': 1, 'imm': 64} )
         self.checkOpcode( opbytez, 0x4000, oprepr, opcheck, opercheck, oprepr )
 
         opbytez = '0218'
