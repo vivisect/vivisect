@@ -351,6 +351,7 @@ def zero_in(vw, jmpva, oplist, special_vals={}):
 
 def determineCaseIndex(vw, jmpva, regname, special_vals, effs, debug):
     archname = vw.getMeta("Architecture")
+    satvals = None
 
     rctx = vw.arch.archGetRegCtx()
     rnames = [rctx.getRegisterName(x) for x in regidx_sets[archname]]
