@@ -17,10 +17,9 @@ def analyzeFunction(vw, fva):
     if vw.readMemory(fva, 4) == thunk_bx_sig:
 
         # have we already recorded this thunk_bx?
-        for afva, in vw.getVaSetRows('thunk_bx'):
-            if fva == afva:
-                if vw.verbose: print("ditching thunk_bx: %s")
-                return
+        if vw.getVaSetRow('thunk_bx', fva) != None:
+            if vw.verbose: print("ditching thunk_bx: %s")
+            return
         
         vw.setVaSetRow('thunk_bx', (fva,))
 

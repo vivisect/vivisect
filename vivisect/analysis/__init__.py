@@ -7,6 +7,7 @@ for different phases of analysis on different platforms.
 
 def addAnalysisModules(vw):
 
+    import vivisect
     import vivisect.analysis.i386 as viv_analysis_i386
 
     arch = vw.getMeta('Architecture')
