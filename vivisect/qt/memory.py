@@ -291,6 +291,18 @@ class VQVivMemoryCanvas(VivCanvasBase):
         nav = self.parent() # our parent is always a VQVivMemoryWindow (nav target)
         viv_q_ctxmenu.buildContextMenu(self.vw, va=va, menu=menu, nav=nav)
 
+    def _loc_helper(self, va):
+        '''
+        we assume we're being handed a valid va since renderMemory checks for valid MemoryMap
+        '''
+        nloc = self.mem.getLocation(va)
+        if nloc == None:
+            return va, 0
+
+        nva, nvsz, nvt, nvti = nloc
+        return (nva, va-nva)
+        
+
 class VQVivMemoryView(e_mem_qt.VQMemoryWindow, viv_base.VivEventCore):
 
     def __init__(self, vw, vwqgui):

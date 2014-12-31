@@ -55,8 +55,8 @@ class VQMemoryCanvas(QtWebKit.QWebView, e_memcanvas.MemoryCanvas):
                 raise Exception('Invalid Address:%s' % hex(va))
 
             origva = va
-            va = max(va - size, vmap[0])
-            size += size
+            va, szdiff = self._loc_helper(max(va - size, vmap[0]))
+            size += size + szdiff
 
         ret = e_memcanvas.MemoryCanvas.renderMemory(self, va, size, rend=rend)
 
@@ -189,15 +189,24 @@ class VQMemoryCanvas(QtWebKit.QWebView, e_memcanvas.MemoryCanvas):
     def contextMenuEvent(self, event):
 
         va = self._canv_curva
-        if va == None:
-            return
-
         menu = QtGui.QMenu()
-        self.initMemWindowMenu(va, menu)
+        if self._canv_curva:
+            self.initMemWindowMenu(va, menu)
+
+        viewmenu = menu.addMenu('view   ')
+        viewmenu.addAction("Save frame to HTML", ACT(self._menuSaveToHtml))
+
         menu.exec_(event.globalPos())
 
     def initMemWindowMenu(self, va, menu):
         initMemSendtoMenu('0x%.8x' % va, menu)
+
+    def _menuSaveToHtml(self):
+        fname = QtGui.QFileDialog.getSaveFileName(self, 'Save As HTML...')
+        if fname != None:
+            html = self.page().mainFrame().toHtml()
+            file(fname, 'w').write(html)
+
 
 def getNavTargetNames():
     '''

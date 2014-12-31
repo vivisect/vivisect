@@ -584,7 +584,28 @@ class VivWorkspaceCore(object,viv_impapi.ImportApi):
         fva,spdelta,symtype,syminfo = locsym
         self.localsyms[fva][spdelta] = locsym
 
+
+def trackDynBranches(cfctx, op, vw, bflags, branches):
+    '''
+    track dynamic branches
+    '''
+    # FIXME: do we want to filter anything out?  
+    #  jmp edx
+    #  jmp dword [ebx + 68]
+    #  call eax
+    #  call dword [ebx + eax * 4 - 228]
+
+    # if we have any xrefs from here, we have already been analyzed.  nevermind.
+    if len(vw.getXrefsFrom(op.va)):
+        return
+
+    if vw.verbose: print "Dynamic Branch found at 0x%x    %s" % (op.va, op)
+    vw.setVaSetRow('DynamicBranches', (op.va, repr(op), bflags))
+
 class VivCodeFlowContext(e_codeflow.CodeFlowContext):
+    def __init__(self, mem, persist=False, exptable=True, recurse=True):
+        e_codeflow.CodeFlowContext.__init__(self, mem, persist=persist, exptable=exptable, recurse=recurse)
+        self.addDynamicBranchHandler(trackDynBranches)
 
     def _cb_noflow(self, srcva, dstva):
         vw = self._mem
