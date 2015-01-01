@@ -1,9 +1,8 @@
 import struct
 
 from inspect import isclass
-from StringIO import StringIO
 
-import vstruct.primitives as vs_prims
+from . import primitives as vs_prims
 
 def isVstructType(x):
     return isinstance(x, vs_prims.v_base)
@@ -40,7 +39,7 @@ class VStruct(vs_prims.v_base):
 
     def __mul__(self, x):
         # build a list of instances of this vstruct
-        return [ self.__class__() for i in xrange(x) ]
+        return [ self.__class__() for i in range(x) ]
 
     def vsAddParseCallback(self, fieldname, callback):
         '''
@@ -123,7 +122,7 @@ class VStruct(vs_prims.v_base):
                 self._vsInitFastFields()
             values = struct.unpack_from( self._vs_fastfmt, sbytes, offset )
             # Ephemeral list comprehension for speed
-            [ self._vs_fastfields[i].vsSetValue( values[i] ) for i in xrange(len(values)) ]
+            [ self._vs_fastfields[i].vsSetValue( values[i] ) for i in range(len(values)) ]
             return offset + self._vs_fastlen
 
         # In order for callbacks to change fields, we can't use vsGetFields()
@@ -144,19 +143,20 @@ class VStruct(vs_prims.v_base):
         return fields
 
     def vsEmit(self, fast=False):
-        """
-        Get back the byte sequence associated with this structure.
-        """
+        '''
+        get back the byte sequence associated with this structure.
+        '''
         if fast:
             if self._vs_fastfields == None:
                 self._vsInitFastFields()
             ffvals = [ ff.vsGetValue() for ff in self._vs_fastfields ]
             return struct.pack(self._vs_fastfmt, *ffvals)
 
-        ret = ''
+        ba = bytearray()
         for fname, fobj in self.vsGetFields():
-            ret += fobj.vsEmit()
-        return ret
+            ba += fobj.vsEmit()
+
+        return bytes(ba)
 
     def vsCalculate(self):
         '''
@@ -185,13 +185,14 @@ class VStruct(vs_prims.v_base):
         while i < len(self._vs_fields):
             fname = self._vs_fields[i]
             fobj = self._vs_values.get(fname)
-            yield fname,fobj
+            yield fname, fobj
             i += 1
 
     def vsGetField(self, name):
         x = self._vs_values.get(name)
         if x == None:
-            raise Exception("Invalid field: %s" % name)
+            raise Exception('Invalid field: {}'.format(name))
+
         return x
 
     def vsHasField(self, name):
@@ -438,7 +439,7 @@ class VArray(VStruct):
         self.vsAddField("%d" % idx, elem)
 
     def vsAddElements(self, count, eclass):
-        for i in xrange( count ):
+        for i in range( count ):
             self.vsAddElement( eclass() )
 
     def __getitem__(self, index):
@@ -452,15 +453,14 @@ class VUnion(VStruct):
         raise Exception('VUnion is only for parse right now!')
 
     def vsParse(self, sbytes, offset=0):
-        """
+        '''
         For all the primitives contained within, allow them
         an opportunity to parse the given data and return the
         total offset...
 
         Any method named pcb_<FieldName> will be called back when the specified
         field is set by the parser.
-        
-        """
+        '''
         ret = offset
         for fname,fobj in self.vsGetFields():
             ret = max(offset, fobj.vsParse(sbytes, offset=offset))
