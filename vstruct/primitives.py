@@ -1,9 +1,8 @@
-
 import struct
 
 class v_enum(object):
     def __init__(self):
-        object.__setattr__(self, "_vs_reverseMap", {})
+        object.__setattr__(self, '_vs_reverseMap', {})
 
     def __setattr__(self, name, value):
         '''if duplicate values, last one wins!'''
@@ -43,7 +42,6 @@ class v_base(object):
     def vsGetTypeName(self): return NotImplemented
 
 class v_prim(v_base):
-
     def __init__(self):
         v_base.__init__(self)
         # Used by base len(),vsGetFormat, etc...
@@ -59,10 +57,9 @@ class v_prim(v_base):
         return self.__class__.__name__
 
     def vsParse(self, bytes, offset=0):
-        """
-        Parser for primitives which assumes we are
-        calling parse directly.
-        """
+        '''
+        Parser for primitives which assumes we are calling parse directly.
+        '''
         return NotImplemented
 
     def vsParseFd(self, fd):
@@ -80,17 +77,17 @@ class v_prim(v_base):
         return NotImplemented
 
     def vsGetValue(self):
-        """
+        '''
         Get the type specific value for this field.
         (Used by the structure dereference method to return
         a python native for the field by name)
-        """
+        '''
         return self._vs_value
 
     def vsSetValue(self, value):
-        """
+        '''
         Set the type specific value for this field.
-        """
+        '''
         self._vs_value = value
 
     def vsSetLength(self, size):
@@ -121,7 +118,6 @@ num_fmts = {
 }
 
 class v_number(v_prim):
-
     _vs_length = 1
 
     def __init__(self, value=0, bigend=False):
@@ -131,12 +127,15 @@ class v_number(v_prim):
         self._vs_length = self.__class__._vs_length
         self._vs_fmt = num_fmts.get( (bigend, self._vs_length) )
 
+        # TODO: could use envi.bits, but do we really want to dep on envi?
+        self.maxval = (2**(8 * self._vs_length)) - 1
+
     def vsGetValue(self):
         return self._vs_value
 
     def vsParse(self, fbytes, offset=0):
         '''
-        Parse the given numeric type from the given bytes...
+        Parse the given numeric type from the given bytes
         '''
         sizeoff = offset + self._vs_length
 
@@ -160,7 +159,7 @@ class v_number(v_prim):
 
     def vsEmit(self):
         '''
-        Emit the bytes for this numeric type...
+        Emit the bytes for this numeric type
         '''
         if self._vs_fmt != None:
             return struct.pack(self._vs_fmt, self._vs_value)
@@ -174,12 +173,8 @@ class v_number(v_prim):
 
         return ''.join(r)
 
-
     def vsSetValue(self, value):
-        """
-        Assure that the value is long() able for all numeric types.
-        """
-        self._vs_value = long(value)
+        self._vs_value = long(value & self.maxval)
 
     def __int__(self):
         return int(self._vs_value)
@@ -252,6 +247,23 @@ class v_number(v_prim):
     def __hex__(self): return hex(long(self))
     def __oct__(self): return oct(long(self))
 
+class v_snumber(v_number):
+    _vs_length = 1
+
+    def __init__(self, value=0, bigend=False):
+        v_number.__init__(self, value=value, bigend=bigend)
+
+        # TODO: could use envi.bits, but do we really want to dep on envi?
+        smaxval = (2**((8 * self._vs_length)-1)) - 1
+        self.smask = smaxval + 1
+
+    def vsSetValue(self, value):
+        value = value & self.maxval
+        if value & self.smask:
+            value = value - self.maxval - 1
+
+        self._vs_value = long(value)
+
 class v_uint8(v_number):
     _vs_builder = True
     _vs_length = 1
@@ -272,27 +284,27 @@ class v_uint64(v_number):
     _vs_builder = True
     _vs_length = 8
 
-class v_int8(v_number):
+class v_int8(v_snumber):
     _vs_builder = True
     _vs_length = 1
 
-class v_int16(v_number):
+class v_int16(v_snumber):
     _vs_builder = True
     _vs_length = 2
 
-class v_int24(v_number):
+class v_int24(v_snumber):
     _vs_builder = True
     _vs_length = 3
 
-class v_int32(v_number):
+class v_int32(v_snumber):
     _vs_builder = True
     _vs_length = 4
 
-class v_int64(v_number):
+class v_int64(v_snumber):
     _vs_builder = True
     _vs_length = 8
 
-pointersize = struct.calcsize("P")
+pointersize = struct.calcsize('P')
 
 class v_size_t(v_number):
     _vs_builder = True
@@ -311,7 +323,7 @@ class v_ptr32(v_ptr):
 class v_ptr64(v_ptr):
     _vs_builder = True
     _vs_length = 8
-    
+
 float_fmts = {
     (True,4):'>f',
     (True,8):'>d',
@@ -321,7 +333,7 @@ float_fmts = {
 
 class v_float(v_prim):
     _vs_length = 4
-    
+
     def __init__(self, value=0.0, bigend=False):
         v_prim.__init__(self)
         self._vs_bigend = bigend
@@ -340,7 +352,7 @@ class v_float(v_prim):
 
     def vsParse(self, fbytes, offset=0):
         '''
-        Parse the given numeric type from the given bytes...
+        Parse the given numeric type from the given bytes
         '''
         sizeoff = offset + self._vs_length
 
@@ -364,7 +376,7 @@ class v_float(v_prim):
 
     def vsEmit(self):
         '''
-        Emit the bytes for this numeric type...
+        Emit the bytes for this numeric type
         '''
         if self._vs_fmt != None:
             return struct.pack(self._vs_fmt, self._vs_value)

@@ -42,15 +42,15 @@ class VStructTests(unittest.TestCase):
         self.assertEqual(fname, 'four')
         self.assertIs(fobj, self.s.vsGetField('four'))
 
-    def test_vsGetFieldByOffset_invalid1(self):
+    def test_vsGetFieldByOffset_maxval_neg(self):
         with self.assertRaisesRegexp(Exception, 'Invalid Offset Specified'):
             tup = self.s.vsGetFieldByOffset(-1)
 
-    def test_vsGetFieldByOffset_invalid2(self):
+    def test_vsGetFieldByOffset_maxval_pos(self):
         with self.assertRaisesRegexp(Exception, 'Invalid Offset Specified'):
             tup = self.s.vsGetFieldByOffset(0xffffffff)
 
-    def test_vsGetFieldByOffset_invalid3(self):
+    def test_vsGetFieldByOffset_maxval_plus1_pos(self):
         with self.assertRaisesRegexp(Exception, 'Invalid Offset Specified'):
             tup = self.s.vsGetFieldByOffset(len(self.s))
 
@@ -73,3 +73,71 @@ class VStructTests(unittest.TestCase):
         fname, fobj = self.s.vsGetFieldByOffset(267)
         self.assertEqual(fname, 'two.faz.alpha')
         self.assertIs(fobj, self.s.two.faz.vsGetField('alpha'))
+
+# TODO: could use envi.bits, but do we really want envi dep by default?
+blkup = {}
+bwidths = (8, 16, 24, 32, 64, )
+for bwidth in bwidths:
+    umax = (2**bwidth) - 1
+    umin = 0
+
+    smax = (2**(bwidth-1)) - 1
+    smin = -(2**(bwidth-1))
+
+    blkup[bwidth] = (umin, umax, smin, smax)
+
+class IntegerStruct(vstruct.VStruct):
+    def __init__(self):
+        vstruct.VStruct.__init__(self)
+
+class VStructTypeTests(unittest.TestCase):
+    def setUp(self):
+        self.s = IntegerStruct()
+
+def getTestFunc(name, vsval, val, expval):
+
+    def func(self):
+        self.s.vsAddField(name, vsval)
+
+        setattr(self.s, name, val)
+
+        rval = getattr(self.s, name)
+        self.assertEqual(rval, expval)
+
+    return func
+
+tdefs = []
+
+# dynamically generate the test definitions
+# width, pname, vtype, test value, expected value
+for bwidth in bwidths:
+    umin, umax, smin, smax = blkup[bwidth]
+
+    for ttype, mmin, mmax in ( ('u', umin, umax), ('', smin, smax), ):
+        pname = '{}int{}'.format(ttype, bwidth)
+        vtype = 'v_{}int{}'.format(ttype, bwidth)
+        vtype = getattr(p, vtype)
+
+        tup = (bwidth, pname, vtype, mmin, mmin)
+        tdefs.append(tup)
+
+        tup = (bwidth, pname, vtype, mmax, mmax)
+        tdefs.append(tup)
+
+        tup = (bwidth, pname, vtype, mmin-1, mmax)
+        tdefs.append(tup)
+
+        tup = (bwidth, pname, vtype, mmin-2, mmax-1)
+        tdefs.append(tup)
+
+        tup = (bwidth, pname, vtype, mmax+1, mmin)
+        tdefs.append(tup)
+
+        tup = (bwidth, pname, vtype, mmax+2, mmin+1)
+        tdefs.append(tup)
+
+# generate unittest functions based on the test definitions
+for width, pname, vtype, val, expval in tdefs:
+    tfunc = getTestFunc(pname, vtype(), val, expval)
+    tname = 'test_{}_{}_{}'.format(pname, val, expval)
+    setattr(VStructTypeTests, tname, tfunc)
