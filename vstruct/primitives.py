@@ -129,7 +129,6 @@ class v_number(v_prim):
 
         # TODO: could use envi.bits, but do we really want to dep on envi?
         self.maxval = (2**(8 * self._vs_length)) - 1
-        self.minval = 0
 
     def vsGetValue(self):
         return self._vs_value
@@ -175,10 +174,7 @@ class v_number(v_prim):
         return ''.join(r)
 
     def vsSetValue(self, value):
-        if value < self.minval or value > self.maxval:
-            raise Exception('type cannot hold value')
-
-        self._vs_value = long(value)
+        self._vs_value = long(value & self.maxval)
 
     def __int__(self):
         return int(self._vs_value)
@@ -258,8 +254,15 @@ class v_snumber(v_number):
         v_number.__init__(self, value=value, bigend=bigend)
 
         # TODO: could use envi.bits, but do we really want to dep on envi?
-        self.maxval = (2**((8 * self._vs_length)-1)) - 1
-        self.minval = -(2**((8 * self._vs_length)-1))
+        smaxval = (2**((8 * self._vs_length)-1)) - 1
+        self.smask = smaxval + 1
+
+    def vsSetValue(self, value):
+        value = value & self.maxval
+        if value & self.smask:
+            value = value - self.maxval - 1
+
+        self._vs_value = long(value)
 
 class v_uint8(v_number):
     _vs_builder = True

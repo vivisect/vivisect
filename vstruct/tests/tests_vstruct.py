@@ -42,15 +42,15 @@ class VStructTests(unittest.TestCase):
         self.assertEqual(fname, 'four')
         self.assertIs(fobj, self.s.vsGetField('four'))
 
-    def test_vsGetFieldByOffset_invalid1(self):
+    def test_vsGetFieldByOffset_maxval_neg(self):
         with self.assertRaisesRegexp(Exception, 'Invalid Offset Specified'):
             tup = self.s.vsGetFieldByOffset(-1)
 
-    def test_vsGetFieldByOffset_invalid2(self):
+    def test_vsGetFieldByOffset_maxval_pos(self):
         with self.assertRaisesRegexp(Exception, 'Invalid Offset Specified'):
             tup = self.s.vsGetFieldByOffset(0xffffffff)
 
-    def test_vsGetFieldByOffset_invalid3(self):
+    def test_vsGetFieldByOffset_maxval_plus1_pos(self):
         with self.assertRaisesRegexp(Exception, 'Invalid Offset Specified'):
             tup = self.s.vsGetFieldByOffset(len(self.s))
 
@@ -94,23 +94,22 @@ class VStructTypeTests(unittest.TestCase):
     def setUp(self):
         self.s = IntegerStruct()
 
-def getTestFunc(name, vsval, val, shouldExc):
+def getTestFunc(name, vsval, val, expval):
 
     def func(self):
         self.s.vsAddField(name, vsval)
 
-        if shouldExc:
-            with self.assertRaisesRegexp(Exception, 'type cannot hold value'):
-                setattr(self.s, name, val)
-        else:
-            setattr(self.s, name, val)
+        setattr(self.s, name, val)
+
+        rval = getattr(self.s, name)
+        self.assertEqual(rval, expval)
 
     return func
 
 tdefs = []
 
 # dynamically generate the test definitions
-# width, pname, vtype, shouldException, test value
+# width, pname, vtype, test value, expected value
 for bwidth in bwidths:
     umin, umax, smin, smax = blkup[bwidth]
 
@@ -119,20 +118,26 @@ for bwidth in bwidths:
         vtype = 'v_{}int{}'.format(ttype, bwidth)
         vtype = getattr(p, vtype)
 
-        tup = (bwidth, pname, vtype, False, mmin)
+        tup = (bwidth, pname, vtype, mmin, mmin)
         tdefs.append(tup)
 
-        tup = (bwidth, pname, vtype, False, mmax)
+        tup = (bwidth, pname, vtype, mmax, mmax)
         tdefs.append(tup)
 
-        tup = (bwidth, pname, vtype, True, mmin-1)
+        tup = (bwidth, pname, vtype, mmin-1, mmax)
         tdefs.append(tup)
 
-        tup = (bwidth, pname, vtype, True, mmax+1)
+        tup = (bwidth, pname, vtype, mmin-2, mmax-1)
+        tdefs.append(tup)
+
+        tup = (bwidth, pname, vtype, mmax+1, mmin)
+        tdefs.append(tup)
+
+        tup = (bwidth, pname, vtype, mmax+2, mmin+1)
         tdefs.append(tup)
 
 # generate unittest functions based on the test definitions
-for width, pname, vtype, shouldExc, val in tdefs:
-    tfunc = getTestFunc(pname, vtype(), val, shouldExc)
-    tname = 'test_{}_{}_{}'.format(pname, shouldExc, val)
+for width, pname, vtype, val, expval in tdefs:
+    tfunc = getTestFunc(pname, vtype(), val, expval)
+    tname = 'test_{}_{}_{}'.format(pname, val, expval)
     setattr(VStructTypeTests, tname, tfunc)
