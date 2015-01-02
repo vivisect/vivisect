@@ -583,7 +583,7 @@ class v_wstr(v_str):
     _vs_builder = True
 
     def __init__(self, size=4, encode='utf-16le', val=''):
-        v_prim.__init__(self)
+        v_str.__init__(self)
         b = val.ljust(size, '\x00').encode(encode)
         self._vs_length = len(b)
         self._vs_value = b
@@ -619,7 +619,7 @@ class v_zwstr(v_str):
     _vs_builder = True
 
     def __init__(self, encode='utf-16le', val='', align=2):
-        v_prim.__init__(self)
+        v_str.__init__(self)
         self._vs_encode = encode
         self._vs_align = align
         self.vsParse(val+'\x00\x00')
