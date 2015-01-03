@@ -67,7 +67,7 @@ class VStructTest(unittest.TestCase):
         v.strfield = v_str(size=30)
         v.unifield = v_wstr(size=30)
 
-        v.strfield = 'wootwoot!'
+        v.strfield = b'wootwoot!'
         v.unifield = 'bazbaz'
 
         answer = b'776f6f74776f6f7421000000000000000000000000000000000000000000620061007a00620061007a00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000'
@@ -123,7 +123,7 @@ class VStructTest(unittest.TestCase):
         v.vsParse(b'BAAAAABCD', fast=True)
 
         self.assertEqual(v.x, 0x42)
-        self.assertEqual(v.y, 'AAAA')
+        self.assertEqual(v.y, b'AAAA')
         self.assertEqual(v.z, 0x44434241)
 
     def test_vstruct_fastparse_bigend(self):
@@ -135,12 +135,12 @@ class VStructTest(unittest.TestCase):
         v.vsParse(b'BAAAAABCD', fast=True)
 
         self.assertEqual(v.x, 0x42)
-        self.assertEqual(v.y, 'AAAA')
+        self.assertEqual(v.y, b'AAAA')
         self.assertEqual(v.z, 0x41424344 )
 
     def test_vstruct_varray(self):
         v = vstruct.VArray( [ v_uint8(i) for i in range(20) ] )
-        self.assertEqual( v[2], 2 )
+        self.assertEqual(v[2], 2)
         v.vsParse(b'A' * 20)
         self.assertEqual(v[2], 0x41)
 

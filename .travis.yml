@@ -1,9 +1,14 @@
+# after changing, check at http://lint.travis-ci.org before committing.
 os:
     - linux
 language: python
 python:
-    - "2.7_with_system_site_packages"
+    - "2.7"
+    - "3.4"
+virtualenv:
+    system_site_packages: true
 install:
     - "travis_retry sudo apt-get -qq install libfreetype6-dev liblcms2-dev python-qt4 ghostscript libffi-dev libjpeg-turbo-progs cmake imagemagick"
     - pip install msgpack-python
-script: py.test
+script:
+    - python -m unittest discover -v vstruct

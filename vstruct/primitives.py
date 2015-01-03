@@ -71,6 +71,9 @@ class v_prim(v_base):
         self._vs_value = None
         self._vs_length = None
 
+        # for fast parse
+        self._vs_fmt = None
+
     def vsIsPrim(self):
         return True
 
@@ -438,7 +441,6 @@ class v_smixin:
 
         size = int(size)
         self._vs_length = int(size)
-        self._vs_fmt = '{}s'.format(size)
 
         # chop or expand
         b = self._vs_value[:size]
@@ -458,24 +460,31 @@ class v_smixin:
 
 class v_bytes(v_smixin, v_prim):
     '''
-    use v_bytes for fixed width byte fields.
+    use for fixed width byte fields.
+
+    examples:
+        v_bytes(size=64)
+        v_bytes(bytez=b'foobar')
+        v_bytes(size=64, bytez=b'foobar')
+        v_bytes(size=64, bytez=b'foobar', fillbyte=b'\xff')
     '''
     def __init__(self, size=0, bytez=None, fillbyte=b'\x00'):
         v_prim.__init__(self)
         v_smixin.__init__(self)
 
-        if size != 0 and bytez != None:
-            raise Exception('specify size or bytez, not both')
-
         if bytez == None:
-            bytez = bytes(size)
+            bytez = b''
+
+        # TODO: be nice to combine this with vsSetValue, but due to calling
+        # from ctor, need to keep code sep.
+        if not isinstance(bytez, bytes):
+            raise Exception('pass object of type bytes')
+
+        bytez = bytez.ljust(size, fillbyte)
 
         self.fillbyte = fillbyte
         self._vs_length = len(bytez)
-        self._vs_align = 1
-        self._vs_fmt = '{}s'.format(self._vs_length)
-
-        self.vsSetValue(bytez)
+        self._vs_value = bytez
 
     def vsSetValue(self, bytez):
         if not isinstance(bytez, bytes):
@@ -486,95 +495,149 @@ class v_bytes(v_smixin, v_prim):
 
         self._vs_value = bytez
 
-class v_str(v_smixin, v_prim):
+class v_str(v_bytes):
     '''
-    A string placeholder class that automagically returns up to a null
-    terminator (and keeps it's size by null padding when assigned to)
+    use for fixed width byte fields that contain null terminated content.
+
+    returns up to (but not including) the first null terminator.
+    on assignment, keeps size by null padding or truncating.
+
+    examples:
+        v_str(size=64)
+        v_str(val=b'foo\x00')
+        v_str(size=64, val=b'foo')
+
+        vs = v_str(size=7)
+        vs = b'foo\x00\x00\x00\x00'
+        vs # b'foo'
+        len(vs) # 7
     '''
-    def __init__(self, size=4, val='', fillbyte='\x00'):
-        v_prim.__init__(self)
-        v_smixin.__init__(self)
+    def __init__(self, size=1, bytez=None):
+        v_bytes.__init__(self, size=size, bytez=bytez, fillbyte=b'\x00')
 
-        self.fillbyte = fillbyte
-        self._vs_length = size
-        self._vs_fmt = '{}s'.format(size)
-        self._vs_value = val.ljust(size, self.fillbyte)
-        self._vs_align = 1
+        # TODO: unittest for fastparse, add to other prims
+        self._vs_fmt = '{}s'.format(self._vs_length)
 
-    def vsSetValue(self, val):
-        self._vs_value = val.ljust(self._vs_length, self.fillbyte)
-
-    def vsGetValue(self):
-        s = self._vs_value.split(self.fillbyte)[0]
-        return s
-
-class v_zstr(v_prim):
-    '''
-    A string placeholder class that automagically returns up to a null
-    terminator dynamically.
-    '''
-    def __init__(self, val='', align=1):
-        v_prim.__init__(self)
-
-        self._vs_align = align
-        self.vsParse(val + '\x00')
-
-    def vsSetValue(self, val):
-        # FIXME: just call vsParse?
-        length = len(val)
-        diff = self._vs_align - (length % self._vs_align)
-        self._vs_value = val + '\x00'*(diff)
-        self._vs_length = len(self._vs_value)
-        self._vs_align_pad = diff
-
-    def vsGetValue(self):
-        return self._vs_value[:-self._vs_align_pad]
-
-    def vsSetLength(self, size):
-        raise Exception('Cannot vsSetLength on v_zstr! (its dynamic)')
-
-    def vsParse(self, fbytes, offset=0):
+    def vsSetValue(self, bytez):
         if not isinstance(bytez, bytes):
             raise Exception('pass object of type bytes')
 
-        nulloff = fbytes.find('\x00', offset)
-        if nulloff == -1:
+        self._vs_value = bytez.ljust(self._vs_length, self.fillbyte)
+
+    def vsGetValue(self):
+        idx = self._vs_value.find(self.fillbyte)
+        if idx == -1:
+            return self._vs_value
+        else:
+            return self._vs_value[:idx]
+
+class AlignmentMixin:
+    def __init__(self, align=1):
+        self._vs_align = align
+
+    def vsGetPadding(self, offset=None):
+        # should we use self._vs_value?
+        # TODO: why is _vs_length sep from _vs_value?
+        if offset == None:
+            offset = self._vs_length
+
+        padc = (self._vs_align - (offset % self._vs_align)) % self._vs_align
+
+        return self.fillbyte * padc
+
+    def vsAlign(self, offset=None):
+        pad = self.vsGetPadding(offset=offset)
+        if pad == 0:
+            return
+
+        self._vs_value = self._vs_value + pad
+        self._vs_length = len(self._vs_value)
+
+class v_zstr(AlignmentMixin, v_bytes):
+    '''
+    use for byte fields that are null terminated. the null is contained in this
+    field.
+
+    overrides vsParse to dynamically determine the length of the field by
+    looking for null.
+
+    examples:
+    '''
+    def __init__(self, bytez=None, fillbyte=b'\x00', align=1):
+        AlignmentMixin.__init__(self, align=align)
+        v_bytes.__init__(self, bytez=bytez, fillbyte=fillbyte)
+
+        self.vsAlign()
+
+    def vsSetValue(self, bytez):
+        if not isinstance(bytez, bytes):
+            raise Exception('pass object of type bytes')
+
+        self._vs_value = bytez
+        self._vs_length = len(self._vs_value)
+
+        self.vsAlign()
+
+    def vsGetValue(self):
+        idx = self._vs_value.find(self.fillbyte)
+        if idx == -1:
+            return self._vs_value
+        else:
+            return self._vs_value[:idx]
+
+    def vsSetLength(self, size):
+        raise Exception('cannot vsSetLength on v_zstr, use vsParse/vsSetValue')
+
+    def vsParse(self, bytez, offset=0):
+        if not isinstance(bytez, bytes):
+            raise Exception('pass object of type bytes')
+
+        idx = bytez.find(self.fillbyte, offset)
+        if idx == -1:
             raise Exception('v_zstr found no NULL terminator!')
 
-        # align things correctly
-        diff = self._vs_align - ((nulloff-offset) % self._vs_align)
-        self._vs_align_pad = diff
-        nulloff += diff
+        # fillbyte is included in our value
+        idx += len(self.fillbyte)
 
-        self._vs_value = fbytes[offset : nulloff]
+        # consume next padc bytes instead of using the padding directly by
+        # calling vsAlign.
+        padc = len(self.vsGetPadding(idx))
+        idx += padc
+
+        self._vs_value = bytez[offset:idx]
         self._vs_length = len(self._vs_value)
-        return nulloff
 
-    def vsEmit(self):
-        return self._vs_value
+        return idx
 
 class v_wstr(v_str):
     '''
     Unicode variant of the above string class
 
-    NOTE: the size paramater is in WCHARs!
+    NOTE: the size parameter is in WCHARs!
     '''
     def __init__(self, size=4, encode='utf-16le', val=''):
         v_str.__init__(self)
 
-        b = val.ljust(size, '\x00').encode(encode)
-        self._vs_length = len(b)
-        self._vs_value = b
+        bytez = val.ljust(size, '\x00').encode(encode)
+        self._vs_length = len(bytez)
+        self._vs_value = bytez
         self._vs_encode = encode
         self._vs_align = 2
 
     def vsSetValue(self, val):
-        rbytes = val.encode(self._vs_encode)
-        self._vs_value = rbytes.ljust(len(self), '\x00')
+        if not isinstance(val, str):
+            raise Exception('pass object of type str')
+
+        bytez = val.encode(self._vs_encode)
+        self._vs_value = bytez.ljust(len(self), b'\x00')
 
     def vsGetValue(self):
-        s = self._vs_value.decode(self._vs_encode)
-        return s.split('\x00')[0]
+        bytez = self._vs_value.decode(self._vs_encode)
+        idx = bytez.find(b'\x00\x00')
+        if idx == -1:
+            return bytez
+        else:
+            return bytez[:idx]
 
 class v_zwstr(v_str):
     '''
@@ -602,6 +665,7 @@ class v_zwstr(v_str):
 
     def vsGetValue(self):
         cstr = self._vs_value.decode(self._vs_encode)
+        # TODO: s/split/find
         return cstr.split('\x00')[0]
 
     def vsSetLength(self, size):
@@ -642,7 +706,6 @@ class GUID(v_prim):
         v_prim.__init__(self)
         self._vs_length = 16
         self._vs_value = '\x00' * 16
-        self._vs_fmt = '16s'
         self._guid_fields = (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
         if guidstr != None:
             self._parseGuidStr(guidstr)
