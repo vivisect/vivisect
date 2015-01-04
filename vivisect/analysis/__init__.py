@@ -7,6 +7,7 @@ for different phases of analysis on different platforms.
 
 def addAnalysisModules(vw):
 
+    import vivisect
     import vivisect.analysis.i386 as viv_analysis_i386
 
     arch = vw.getMeta('Architecture')
@@ -71,6 +72,9 @@ def addAnalysisModules(vw):
         if arch == 'i386':
             viv_analysis_i386.addEntrySigs(vw)
             vw.addAnalysisModule("vivisect.analysis.i386.importcalls")
+            # add va set for tracking thunk_bx function(s)
+            vw.addVaSet('thunk_bx', ( ('fva', vivisect.VASET_ADDRESS), ) )
+            vw.addFuncAnalysisModule("vivisect.analysis.i386.thunk_bx")
 
         vw.addAnalysisModule("vivisect.analysis.generic.funcentries")
         vw.addAnalysisModule("vivisect.analysis.generic.relocations")

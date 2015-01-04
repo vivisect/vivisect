@@ -45,3 +45,6 @@ that aren't ) are directly accessible for use writing your own custom
 research tools...  The interface should be nearly the same when dealing with
 a real process ( via vdb/vtrace ) and dealing with an emulator / viv workspace.
 
+## Build Status
+
+[![Build Status](https://travis-ci.org/vivisect/vivisect.svg?branch=master)](https://travis-ci.org/vivisect/vivisect)
