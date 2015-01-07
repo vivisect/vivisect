@@ -240,6 +240,7 @@ def heaps(vdb, line):
     -V Validate the heaps (check next/prev sizes and free list)
     -l <heapaddr> Leak detection (list probable leaked chunks)
     -U <heapaddr> Show un-commited ranges for the specified heap
+    -b <heapaddr|all> Print LFH information for given heap or all
     (no options lists heaps and segments)
     """
     t = vdb.getTrace()
@@ -255,8 +256,10 @@ def heaps(vdb, line):
     lookaside_heap = None
     leakfind_heap = None
     uncommit_heap = None
+    buckets_heap = None
+
     try:
-        opts,args = getopt.getopt(argv, "F:C:S:L:l:U:V")
+        opts,args = getopt.getopt(argv, "F:C:S:L:l:U:V:b:")
     except Exception, e:
         return vdb.do_help('heaps')
 
@@ -275,6 +278,11 @@ def heaps(vdb, line):
             leakfind_heap = t.parseExpression(optarg)
         elif opt == '-U':
             uncommit_heap = t.parseExpression(optarg)
+        elif opt == '-b':
+            if optarg == 'all':
+                buckets_heap = 'all'
+            else:
+                buckets_heap = t.parseExpression(optarg)
 
     if lookaside_heap != None:
         haddrs = [h.address for h in win32heap.getHeaps(t)]
@@ -369,12 +377,32 @@ def heaps(vdb, line):
                 if len(l) == 0:
                     vdb.vprint("0x%.8x may be leaked!" % addr)
 
+    elif buckets_heap != None:
+        headers = '{0:10} {1:10} {2:10} {3:>8} {4:>8} {5:>8} {6:>8}'.format('Heap', 'SubSeg', 'UserData', 'Index', 'Size', 'Total', 'Free')
+        vdb.vprint(headers)
+
+        for heap in win32heap.getHeaps(t):
+            if buckets_heap != heap.address and buckets_heap != 'all':
+                continue
+
+            if heap.isLFH():
+                lfh = heap.getLFH()
+                for s in lfh.getSubsegments():
+                    row = '{0:<#10x} {1:<#10x} {2:<#10x} {3:>#8x} {4:>#8x} {5:>#8x} {6:>#8x}'.format(heap.address, s.address, s.getUserBlocks(), s.getSizeIndex(), s.getBucketSize(), s.getBlockCount(), s.getFreeBlockCount())
+                    vdb.vprint(row)
+            else:
+                row = '{0:<#10x} {1:<10} {2:^10} {3:>8} {4:>8} {5:>8} {5:>8}'.format(heap.address, 'No LFH', '-', '-', '-', '-')
+                vdb.vprint(row)
+
     else:
         vdb.vprint("Heap\t\tSegment")
         for heap in win32heap.getHeaps(t):
+            lfh = ''
             flags = " ".join(heap.getFlagNames())
+            if heap.isLFH():
+                lfh = 'LFH'
             for s in heap.getSegments():
-                vdb.vprint("0x%.8x\t0x%.8x\t%s" % (heap.address, s.address, flags))
+                vdb.vprint("0x%.8x\t0x%.8x\t%s\t%s" % (heap.address, s.address, flags, lfh))
 
 IMAGE_DLLCHARACTERISTICS_DYNAMIC_BASE = 0x0040
 
