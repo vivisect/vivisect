@@ -449,9 +449,10 @@ def iterCases(vw, satvals, jmpva, jmpreg, rname, count, special_vals):
     jmpreg.reduce()
     cases = {}
     memrefs = []
-    
+   
+    ### FIXME: THIS IS NOT READY FOR PRIME TIME.  Windows 64-bit uses 32-bit offsets...  KernelBase.dll doesn't like this.
     # check once through to see if our index reg moves by 1, 2, 4, or 8:
-    interval = vw.psize / vw.psize
+    interval = 1
     regrange = getRegRange(2, rname, satvals, special_vals, [], interval=interval)
     testaddrs = []
     testemu = TrackingSymbolikEmulator(vw)
@@ -465,7 +466,10 @@ def iterCases(vw, satvals, jmpva, jmpreg, rname, count, special_vals):
     # check for periodic changes:
     print "finished interval test: %s" % (testaddrs)
     delta = testaddrs[1] - testaddrs[0]
-    interval = vw.psize / delta
+    if delta == 1:
+        interval = vw.psize
+
+    print "repr(interval): %s / %s = %s " % (repr(vw.psize), repr(delta), repr(interval))
     
     regrange = getRegRange(count*interval, rname, satvals, special_vals, terminator_addr, interval=interval)
     for vals in regrange:
