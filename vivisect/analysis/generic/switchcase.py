@@ -5,21 +5,18 @@ which use pointer arithetic to determine code path for each case.
 
 This will not connect switch cases which are actually explicit cmp/jz in the code.
 '''
-import envi
-import envi.archs.i386 as e_i386
-
-import vivisect
-import vivisect.tools.graphutil as viv_graph
-import vivisect.symboliks.analysis as vs_anal
-import vivisect.analysis.generic.codeblocks as vagc
 
 import envi
 import envi.archs.i386 as e_i386
+
 import vivisect
 import vivisect.cli as viv_cli
-
+import vivisect.tools.graphutil as viv_graph
 import vivisect.symboliks.emulator as vs_emu
+import vivisect.symboliks.analysis as vs_anal
 import vivisect.symboliks.substitution as vs_sub
+import vivisect.analysis.generic.codeblocks as vagc
+
 from vivisect.symboliks.common import *
 
 
@@ -39,12 +36,14 @@ necessary, new codeblocks, and xrefs from the dynamic branch to the case handlin
 end, names are applied as appropriate.
 '''
 
-# TODO: break up makeSwitch into smaller components
-# TODO: try codeblock-granularity and see if that's good enough, rather than backing up by instruction
-# TODO: fix broken xref event munging (try to just solve the symbolik state as it would be.
-# TODO: once thunk_bx is merged into mainline, drag into here and test
+# TODO: ARCHITECTURE ABSTRACTION: 
+#       ibvars = ('rdi','rsi', 'r8', 'r9', 'r10')
+#       i386RegOper (architecture-specific list of operands which would be used by switch-cases
+#       regidx_sets (list of register indexes)
+# TODO: fix broken xref event munging (try to just solve the symbolik state as it would be).
 # TODO: check offsets/pointers used to calculate jmp targets and either makeNumber or makePointer
 # TODO: complete documentation
+# TODO: try codeblock-granularity and see if that's good enough, rather than backing up by instruction
 # TODO: figure out why KernelBase has switches which are not being discovered
 MAX_ICOUNT  = 10
 MAX_CASES   = 3600
@@ -350,7 +349,13 @@ def zero_in(vw, jmpva, oplist, special_vals={}):
 
     return found, satvals, rname, jmpreg, deref_ops, debug
 
-def determineCaseIndex(vw, jmpva, regname, special_vals, effs, debug):
+def determineCaseIndex(vw, jmpva, regname, special_vals, effs, debug, verbose=False):
+    '''
+    determine what the switch case index register is, basically from the jmpva and 
+    previously discovered info
+    '''
+    print "\n%s\n%s\n%s\n%s\n%s\n"%(jmpva, regname, special_vals, effs, debug)
+
     archname = vw.getMeta("Architecture")
     satvals = None
 
@@ -373,9 +378,9 @@ def determineCaseIndex(vw, jmpva, regname, special_vals, effs, debug):
     # determine unknown registers
     unks = []
     jmpreg.walkTree(_cb_grab_vars, unks)
-    if vw.verbose: print("unknown regs: %s" % unks)
+    if vw.verbose>1: print("unknown regs: %s" % unks)
     
-    # our models only account for two regs being fabricated
+    # this solving model only accounts for two regs being fabricated:  the index reg, and the module baseva (optional)
     if len(unks) > 2:
         return False, 0, 0, 0
 
@@ -401,12 +406,13 @@ def determineCaseIndex(vw, jmpva, regname, special_vals, effs, debug):
             imagebase = vw.filemeta[imagename]['imagebase']
            
             # FIXME: abstract this out by architecture
+            # variables known to hold  imagebase  (this is compiler-specific as much as arch)
             if archname == 'amd64':
-                kvars = ('rdi','rsi', 'r8', 'r9', 'r10')
+                ibvars = ('rdi','rsi', 'r8', 'r9', 'r10')
             elif archname == 'i386':
-                kvars = ('edi', 'esi')
+                ibvars = ('edi', 'esi')
                 
-            for kvar in kvars:
+            for kvar in ibvars:
                 if rname == kvar:
                     continue
                 vals[kvar] = imagebase
@@ -424,13 +430,15 @@ def determineCaseIndex(vw, jmpva, regname, special_vals, effs, debug):
 
     return found, rname, jmpreg, val, satvals
 
-def getRegRange(count, rname, satvals, special_vals, terminator_addr, start=0, interval=1):
+def getRegRange(count, rname, satvals, special_vals, terminator_addr, start=0, interval=1, verbose=False):
     regrange = vs_sub.srange(rname, int(count), imin=start, iinc=interval)
     for reg,val in satvals.items():
         if val == 0: continue
 
-        print vars(regrange)
-        print vars(vs_sub.sset(reg, [val]))
+        #FIXME: REMOVE
+        if verbose > 1:
+            print(repr(vars(regrange)))
+            print(repr(vars(vs_sub.sset(reg, [val]))))
         regrange *= vs_sub.sset(reg, [val])
         terminator_addr.append(val)
         
@@ -450,27 +458,28 @@ def iterCases(vw, satvals, jmpva, jmpreg, rname, count, special_vals):
     cases = {}
     memrefs = []
    
-    ### FIXME: THIS IS NOT READY FOR PRIME TIME.  Windows 64-bit uses 32-bit offsets...  KernelBase.dll doesn't like this.
-    # check once through to see if our index reg moves by 1, 2, 4, or 8:
+    # check once through to see if our index reg moves by 1, 4, or 8
     interval = 1
-    regrange = getRegRange(2, rname, satvals, special_vals, [], interval=interval)
+    regrange = getRegRange(2, rname, satvals, special_vals, [], interval=interval, verbose=vw.verbose)
     testaddrs = []
     testemu = TrackingSymbolikEmulator(vw)
     for vals in regrange:
         testemu.setMeta('va', jmpva)
         memsymobj = symemu._trackReads[-1][1]
         addr = memsymobj.solve(emu=testemu, vals=vals)
-        #addr = jmpreg.solve(emu=testemu, vals=vals)
         testaddrs.append(addr)
 
     # check for periodic changes:
-    print "finished interval test: %s" % (testaddrs)
+    if vw.verbose>1: print("finished interval test: %s" % repr(testaddrs))
+
+    # SPECIAL_ONE_OFF: sometimes the index reg moves by "ptrsize" for each case
     delta = testaddrs[1] - testaddrs[0]
     if delta == 1:
         interval = vw.psize
 
-    print "repr(interval): %s / %s = %s " % (repr(vw.psize), repr(delta), repr(interval))
+    if vw.verbose>1: print("== %s / %s means interval of %s " % (repr(vw.psize), repr(delta), repr(interval)))
     
+    # now we iterate through the index register values to identify case handlers
     regrange = getRegRange(count*interval, rname, satvals, special_vals, terminator_addr, interval=interval)
     for vals in regrange:
         symemu.setMeta('va', jmpva)
@@ -481,6 +490,9 @@ def iterCases(vw, satvals, jmpva, jmpreg, rname, count, special_vals):
         
         if vw.verbose: print(hex(jmpva), "analyzeSwitch: vals: ", vals, "\taddr: ", hex(addr), "\t tgt address: 0x%x" % (memtgt))
         
+        # determining when to stop identifying switch-cases can be tough.  we assume that we have the 
+        # correct number handed into this function in "count", but currently we'll stop analyzing
+        # if we run into trouble.
         if not vw.isValidPointer(addr):
             if vw.verbose: print("found invalid pointer.  quitting.")
             break
