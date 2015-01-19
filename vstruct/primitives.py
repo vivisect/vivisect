@@ -609,35 +609,42 @@ class v_zstr(AlignmentMixin, v_bytes):
 
         return idx
 
-class v_wstr(v_str):
+class v_wstr(v_bytes):
     '''
-    Unicode variant of the above string class
-
-    NOTE: the size parameter is in WCHARs!
+    wide string version of v_str.  size is the *number* of wchars, *not* the
+    number of bytes. defaults to utf-16le as the codec.
     '''
-    def __init__(self, size=4, encode='utf-16le', val=''):
-        v_str.__init__(self)
+    def __init__(self, size=1, codec='utf-16le', val=None):
+        bytez = None
+        if val != None:
+            bytez = val.encode(codec)
 
-        bytez = val.ljust(size, '\x00').encode(encode)
-        self._vs_length = len(bytez)
-        self._vs_value = bytez
-        self._vs_encode = encode
-        self._vs_align = 2
+        size = size * 2
+
+        self._vs_codec = codec
+
+        v_bytes.__init__(self, size=size, bytez=bytez, fillbyte=b'\x00')
+
+        # TODO: unittest for fastparse, add to other prims
+        self._vs_fmt = '{}s'.format(self._vs_length)
+
+        # TODO:
+        #self._vs_align = 2
 
     def vsSetValue(self, val):
         if not isinstance(val, str):
             raise Exception('pass object of type str')
 
-        bytez = val.encode(self._vs_encode)
-        self._vs_value = bytez.ljust(len(self), b'\x00')
+        bytez = val.encode(self._vs_codec)
+        self._vs_value = bytez.ljust(self._vs_length, self.fillbyte)[:self._vs_length]
 
     def vsGetValue(self):
-        bytez = self._vs_value.decode(self._vs_encode)
-        idx = bytez.find(b'\x00\x00')
+        val = self._vs_value.decode(self._vs_codec)
+        idx = val.find('\x00')
         if idx == -1:
-            return bytez
+            return val
         else:
-            return bytez[:idx]
+            return val[:idx]
 
 class v_zwstr(v_str):
     '''

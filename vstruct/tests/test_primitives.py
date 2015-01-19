@@ -515,3 +515,83 @@ class v_zstrTests(unittest.TestCase):
         self.assertEqual(vs3.vsEmit(), b'1234\x00\xab')
 
 # TODO: add tests for fastparse with all the types deriving from v_prim
+
+class v_wstrTests(unittest.TestCase):
+    def test_ctor_none(self):
+        vs = p.v_wstr()
+        self.assertEqual(2, len(vs))
+
+        vval = vs.vsGetValue()
+        self.assertEqual('', vval)
+
+        bytez = vs.vsEmit()
+        self.assertEqual(b'\x00\x00', bytez)
+
+    def test_ctor_size(self, size=131):
+        vs = p.v_wstr(size=size)
+        self.assertEqual(size*2, len(vs))
+
+        vval = vs.vsGetValue()
+        self.assertEqual('', vval)
+
+        bytez = vs.vsEmit()
+        self.assertEqual(b'\x00\x00'*size, bytez)
+
+    def test_ctor_val(self, val='12345'):
+        vs = p.v_wstr(val=val)
+        self.assertEqual(len(val)*2, len(vs))
+
+        vval = vs.vsGetValue()
+        self.assertEqual(val, vval)
+
+        vval = vs.vsEmit()
+        self.assertEqual(val.encode('utf-16le'), vval)
+
+    def test_ctor_val_size(self, size=20, val='12345'):
+        vs = p.v_wstr(size=size, val=val)
+        self.assertEqual(40, len(vs))
+
+        vval = vs.vsGetValue()
+        self.assertEqual(val, vval)
+
+        vval = vs.vsEmit()
+        self.assertEqual('12345'.encode('utf-16le') + b'\x00'*30, vval)
+
+    def test_vsSetValue_vsGetValue(self, val='12345'):
+        vs = p.v_wstr()
+        vs.vsSetValue(val)
+
+        # default size is 1.
+        vval = vs.vsGetValue()
+        self.assertEqual('1', vval)
+
+        vval = vs.vsEmit()
+        self.assertEqual(vval, '1'.encode('utf-16le'))
+
+    def test_ctor_size_fill_vsSetValue_vsGetValue(self, val='12345'):
+        vs = p.v_wstr(size=30)
+        vs.vsSetValue(val)
+
+        vval = vs.vsGetValue()
+        self.assertEqual(val, vval)
+
+        vval = vs.vsEmit()
+        self.assertEqual(val.encode('utf-16le') + b'\x00'*25*2, vval)
+
+    def test_ctor_size_chop_vsSetValue_vsGetValue(self, val='12345'):
+        vs = p.v_wstr(size=2)
+        vs.vsSetValue(val)
+        self.assertEqual(4, len(vs))
+
+        # TODO: create unicodedecodeerror due to chop
+        vval = vs.vsGetValue()
+        self.assertEqual('12', vval)
+
+        vval = vs.vsEmit()
+        self.assertEqual('12'.encode('utf-16le'), vval)
+        self.assertEqual(4, len(vval))
+
+    def test_vsGetValue_nonull(self, val='12345'):
+        vs = p.v_wstr(val=val)
+        vval = vs.vsGetValue()
+        self.assertEqual(vval, val)
