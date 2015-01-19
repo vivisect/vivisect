@@ -1,8 +1,6 @@
-"""
-All the code related to vtrace process snapshots
-and TraceSnapshot classes.
-"""
-
+'''
+All the code related to vtrace process snapshots and TraceSnapshot classes.
+'''
 import sys
 import copy
 import cPickle as pickle
@@ -14,18 +12,11 @@ import envi.symstore.resolver as e_resolv
 import vtrace
 import vtrace.platforms.base as v_base
 
-class TraceSnapshot(
-            vtrace.Trace,
-            v_base.TracerBase,
-        ):
-    """
-    A tracer snapshot is similar to a traditional "core file" except that
+class TraceSnapshot(vtrace.Trace, v_base.TracerBase):
+    '''
+    A trace snapshot is similar to a traditional "core file" except that
     you may also have memory only snapshots that are never written to disk.
-
-    TraceSnapshots allow you to take a picture of a process from a given point
-    in it's execution and manipulate/test from there or save it to disk for later
-    analysis...
-    """
+    '''
     def __init__(self, snapdict):
 
         self.s_snapcache = {}
@@ -44,7 +35,7 @@ class TraceSnapshot(
             self.s_fds = snapdict['fds']
             self.localvars = snapdict.get('vars', {})
         else:
-            raise Exception("ERROR: Unknown snapshot version!")
+            raise Exception('ERROR: Unknown snapshot version!')
 
         # In the ghetto!
         archname = self.metadata.get('Architecture')
@@ -61,9 +52,9 @@ class TraceSnapshot(
 
         #FIXME hard-coded page size!
         self.s_map_lookup = {}
-        for map in self.s_maps:
-            for i in range(map[0],map[0] + map[1], 4096):
-                self.s_map_lookup[i] = map
+        for mmap in self.s_maps:
+            for i in range(mmap[0], mmap[0] + mmap[1], 4096):
+                self.s_map_lookup[i] = mmap
 
         # Lets get some symbol resolvers created for our libraries
         #for fname in self.getNormalizedLibNames():
@@ -83,15 +74,19 @@ class TraceSnapshot(
         pickle.dump(self.s_snapdict, fd)
 
     def saveToFile(self, filename):
-        """
+        '''
         Save a snapshot to file for later reading in...
-        """
-        f = file(filename, "wb")
+        '''
+        f = file(filename, 'wb')
         self.saveToFd(f)
         f.close()
 
     def getMemoryMap(self, addr):
-        base = addr & 0xfffff000
+        if self.getMeta('Architecture') == 'amd64':
+            base = addr & 0xfffffffffffff000
+        else:
+            base = addr & 0xfffff000
+
         return self.s_map_lookup.get(base, None)
 
     def platformGetFds(self):
@@ -101,10 +96,10 @@ class TraceSnapshot(
         return self.s_exe
 
     def getStackTrace(self):
-        tid = self.getMeta("ThreadId")
+        tid = self.getMeta('ThreadId')
         tr = self.s_stacktrace.get(tid, None)
         if tr == None:
-            raise Exception("ERROR: Invalid thread id specified")
+            raise Exception('ERROR: Invalid thread id specified')
         return tr
 
     def platformGetRegCtx(self, thrid):
@@ -112,7 +107,7 @@ class TraceSnapshot(
         ctx = self.archGetRegCtx()
         ctx.setRegisterInfo(rinfo)
         return ctx
-        
+
     def platformGetMaps(self):
         return self.s_maps
 
@@ -170,10 +165,10 @@ def loadSnapshot(filename):
     return TraceSnapshot(snapdict)
 
 def takeSnapshot(trace):
-    """
+    '''
     Take a snapshot of the process from the current state and return
     a reference to a tracer which wraps a "snapshot" or "core file".
-    """
+    '''
     sd = dict()
     orig_thread = trace.getMeta("ThreadId")
 
@@ -211,4 +206,3 @@ def takeSnapshot(trace):
     sd['vars'] = trace.localvars
 
     return TraceSnapshot(snapdict=sd)
-
