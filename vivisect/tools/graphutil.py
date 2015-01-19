@@ -184,10 +184,9 @@ def getCodePathsThru(fgraph, tgtcbva, loopcnt=0, maxpath=None):
     pathcnt = 0
     looptrack = []
     pnode = vg_pathcore.newPathNode(nid=tgtcbva, eid=None)
-    rootnodes = fgraph.getHierRootNodes()
 
-    tgtnode = fgraph.getNode(tgtcbva)
-    todo = [(tgtnode,pnode), ]
+    node = fgraph.getNode(tgtcbva)
+    todo = [(node,pnode), ]
 
     while todo:
 
@@ -196,7 +195,7 @@ def getCodePathsThru(fgraph, tgtcbva, loopcnt=0, maxpath=None):
         refsto = fgraph.getRefsTo(node)
 
         # This is the root node!
-        if node in rootnodes:
+        if node[1].get('rootnode'):
             path = vg_pathcore.getPathToNode(cpath)
             path.reverse()
             # build the path in the right direction
@@ -274,9 +273,8 @@ def getCodePathsTo(fgraph, tocbva, loopcnt=0, maxpath=None):
     looptrack = []
     pnode = vg_pathcore.newPathNode(nid=tocbva, eid=None)
 
-    #rootnodes = fgraph.getHierRootNodes()
-    cbnode = fgraph.getNode(tocbva)
-    todo = [(cbnode,pnode), ]
+    node = fgraph.getNode(tocbva)
+    todo = [(node,pnode), ]
 
     while todo:
 
@@ -303,8 +301,8 @@ def getCodePathsTo(fgraph, tocbva, loopcnt=0, maxpath=None):
 
             vg_pathcore.setNodeProp(cpath, 'eid', eid)
             npath = vg_pathcore.newPathNode(parent=cpath, nid=n1, eid=None)
-            node1 = fgraph.getNode(n1)
-            todo.append((node1,npath))
+            nid1,node1 = fgraph.getNode(n1)
+            todo.append(((nid1,node1),npath))
 
 def getCodePathsFrom(fgraph, fromcbva, loopcnt=0, maxpath=None):
     '''
@@ -320,14 +318,14 @@ def getCodePathsFrom(fgraph, fromcbva, loopcnt=0, maxpath=None):
     pathcnt = 0
     proot = vg_pathcore.newPathNode(nid=fromcbva, eid=None)
 
-    cbnode = fgraph.getNode(fromcbva)
-    todo = [(cbnode,proot), ]
+    cbnid,cbnode = fgraph.getNode(fromcbva)
+    todo = [(cbnid,proot), ]
 
     while todo:
 
-        node,cpath = todo.pop()
+        nid,cpath = todo.pop()
 
-        refsfrom = fgraph.getRefsFrom((node, None))
+        refsfrom = fgraph.getRefsFromByNid(nid)
 
         # This is a leaf node!
         if not refsfrom:
