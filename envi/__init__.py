@@ -753,6 +753,14 @@ class CallingConvention(object):
         rargs = [ v for (t, v) in self.arg_def if t == CC_REG ]
         return max(argc - len(rargs), 0)
 
+    def getStackArgOffset(self, emu, argc):
+        offset = 0
+        for atype, val in self.arg_def:
+            if atype == CC_STACK_INF:
+                offset = val
+                break
+        return offset
+
     def getPreCallArgs(self, emu, argc):
         '''
         Returns a list of the arguments passed to the function.
