@@ -591,6 +591,7 @@ def determineCountOffset(vw, jmpva):
     xlate = sctx.getTranslator()
     graph = viv_graph.buildFunctionGraph(vw, funcva)
     jmpcb = vw.getCodeBlock(jmpva)
+
     sctx.getSymbolikGraph(funcva, graph)
 
     pathGenFactory = viv_graph.PathGenerator(graph)
@@ -601,6 +602,7 @@ def determineCountOffset(vw, jmpva):
     semu, aeffs = spaths.next()
 
     ################## REFACTOR ##################
+    #'''
     # hack... give the jmp reg someplace to go so symboliks can help us
     choppt = len(vw._event_list)
     vw.addXref(jmpva, jmpcb[0], REF_CODE, rflags=op.iflags)
@@ -614,7 +616,7 @@ def determineCountOffset(vw, jmpva):
     if vw.verbose > 1: print("cons: ", repr(cons))
     if not len(cons):
         if vw.verbose: print("skipping dynamic branch, no constraints discovered to analyze (not switch-case)" )
-        return (0,0,0)
+        #return (0,0,0)
 
     ajmp = semu.applyEffects([cons[0]])
     if vw.verbose > 1: print(ajmp)
@@ -623,6 +625,7 @@ def determineCountOffset(vw, jmpva):
     vw._event_list = vw._event_list[:choppt]                # FIXME: THIS IS JUST WRONG.  some better way?
                                                             # should we just hack this xref directly into the vw.xrefs_by_from?
                                                             # it's required to use symboliks on the final jmp reg
+    #'''
     ################## refactor end #################
     acon = ajmp[0].cons._v1
     fullcons = [eff for eff in aeffs if eff.efftype==EFFTYPE_CONSTRAIN]
@@ -731,6 +734,8 @@ def analyzeFunction(vw, fva):
     This is inserted as a function analysis module, right after codeblock analysis
 
     '''
+    return
+
     lastdynlen = 0
     dynbranches = vw.getVaSet('DynamicBranches')
     
