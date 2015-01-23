@@ -302,6 +302,7 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QtGui.
     def enviNavGoto(self, expr, sizeexpr=None):
         self.addr_entry.setText(expr)
         self.history.append( expr )
+        self.updateWindowTitle()
         self._renderMemory()
 
     def vqGetSaveState(self):
@@ -314,7 +315,14 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QtGui.
     def updateWindowTitle(self):
         ename = self.getEnviNavName()
         expr = str(self.addr_entry.text())
-        self.setWindowTitle('%s: %s' % (ename,expr))
+        try:
+            va = self.vw.parseExpression(expr)
+        except:
+            va = 0
+
+        smartname = self.vw.getName(va, smart=True)
+
+        self.setWindowTitle('%s: %s (0x%x)' % (ename, smartname, va))
 
     def _buttonSaveAs(self):
         frame = self.mem_canvas.page().mainFrame()
