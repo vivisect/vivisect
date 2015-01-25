@@ -1900,21 +1900,23 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         '''
         name = self.name_by_va.get(va)
 
-        if name == None and smart:
-            baseva = self.getFunction(va)
-            basename = self.name_by_va.get(baseva, None)
+        if name != None or not smart:
+            return name
 
+        baseva = self.getFunction(va)
+        basename = self.name_by_va.get(baseva, None)
+
+        if basename == None:
+            basename = self.getFileByVa(va)
             if basename == None:
-                basename = self.getFileByVa(va)
-                if basename == None:
-                    return None
+                return None
 
-                baseva = self.getFileMeta(basename, 'imagebase')
+            baseva = self.getFileMeta(basename, 'imagebase')
 
-            delta = va - baseva
+        delta = va - baseva
 
-            pom = ('','+')[delta>=0]
-            name = "%s%s%s" % (basename, pom, hex(delta))
+        pom = ('','+')[delta>=0]
+        name = "%s%s%s" % (basename, pom, hex(delta))
         return name
 
     def makeName(self, va, name, filelocal=False):

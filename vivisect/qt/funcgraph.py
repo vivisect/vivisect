@@ -317,12 +317,11 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QtGui.
         expr = str(self.addr_entry.text())
         try:
             va = self.vw.parseExpression(expr)
+            smartname = self.vw.getName(va, smart=True)
+            self.setWindowTitle('%s: %s (0x%x)' % (ename, smartname, va))
         except:
-            va = 0
+            self.setWindowTitle('%s: %s (0x----)' % (ename, expr))
 
-        smartname = self.vw.getName(va, smart=True)
-
-        self.setWindowTitle('%s: %s (0x%x)' % (ename, smartname, va))
 
     def _buttonSaveAs(self):
         frame = self.mem_canvas.page().mainFrame()
