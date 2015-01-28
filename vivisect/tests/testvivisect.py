@@ -8,6 +8,7 @@ import vivisect.tools.graphutil as viv_graph
 from vivisect.const import *
 
 import vivisect.tests.vivbins as vivbins
+from vivisect.tests.vivbins import getTestWorkspace, getAnsWorkspace
 
 class VivisectTest(unittest.TestCase):
 
@@ -17,20 +18,6 @@ class VivisectTest(unittest.TestCase):
 
     #def tearDown(self):
         #pass
-
-    def getTestWorkspace(self, fname, analyze=True):
-        fpath = os.path.join('test_vivisect','bins',fname)
-        vw = vivisect.VivWorkspace()
-        vw.loadFromFile(fpath)
-        if analyze:
-            vw.analyze()
-        return vw
-
-    def getAnsWorkspace(self, fname):
-        fpath = os.path.join('test_vivisect','bins','%s.viv' % fname)
-        vw = vivisect.VivWorkspace()
-        vw.loadWorkspace(fpath)
-        return vw
 
     def _exe_generics(self, vw):
         globstr = [ loc for loc in vw.getLocations(LOC_STRING) if vw.readMemory(loc[0], loc[1]-1) == 'A Global String' ]
