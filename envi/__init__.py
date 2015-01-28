@@ -754,7 +754,10 @@ class CallingConvention(object):
         return max(argc - len(rargs), 0)
 
     def getStackArgOffset(self, emu, argc):
-        return self.pad + self.align    # one pointer for RET pointer and offset for CConv specialties
+        '''
+        Returns the number of bytes from RET to the first Stack Arg
+        '''
+        return self.pad + self.align
 
     def getPreCallArgs(self, emu, argc):
         '''
