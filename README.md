@@ -1,50 +1,41 @@
-# Vivisect / Vdb / Vtrace
+# Vivisect MarkII
 
-Now all as one project! ( made sense once vivisect went public )
-For more in-depth docs on various topics, see the wiki at
+Vivisect MarkII is a next generation vivisect architecture which codifies
+lessons learned from the years of organic growth of the vdb, vtrace, cobra,
+envi, vstruct, and vivisect projects.
+
 [http://visi.kenshoto.com/](http://visi.kenshoto.com/)
 
-## Vdb
+# MarkII Design
+A number of design considerations are the foundation for the Viv MarkII
+effort.
 
-As in previous vdb releases, the command ```python vdbbin``` from the
-checkout directory will drop you into a debugger prompt on supported
-platforms. ( Windows / Linux / FreeBSD / OSX... kinda? )
+* 100% python3 ( this feature alone would require a total refactor )
+* python2 compatible ( default case should be py3, with py2 fallbacks )
+* unit tests unit tests unit tests ( shooting for 100% non-interface code coverage )
+* portable / serializable data primitives
+* async event driven architecture
+* "impenetrable" abstraction layers
+* "top" level APIs are RMI compatible
+* more "data convention" less "data APIs" ( ie, setFooInfo("woot",10) > setFooWoot(10) )
+* truly unified code ( previous vtrace + vivisect was a smash and go )
+* ground-up distributed processing capability ( built in not bolt on )
+* 0 cruft ( the legacy code base had grown organically )
 
-Commands in vdb grow/refine quickly, so use in-line help such as:
+and more I'm sure to think of later...
 
-> vdb> help
+# Tools
+Vivisect command line tools are implemented as executable python modules
+which can be run using:
 
-or...
+> python -m <toolmodule>
 
-> vdb> help writemem
+Vivisect tools:
+* vivisect.tools.vdb    - replacement for vdbbin, the vivisect debug cli
+* vivisect.tools.viv    - replacement for vivbin, the vivisect workspace cli
+* vivisect.tools.bex    - binary executable dumper ( multi-format )
 
-to show available commands and options.  Additionally, for basic vdb
-use, the wiki at [http://visi.kenshoto.com/](http://visi.kenshoto.com/)
+## vivisect.tools.viv
+## vivisect.tools.vdb
+## vivisect.tools.bex
 
-## Vivisect
-
-Fairly un-documented static analysis / emulation / symbolik analysis
-framework for PE/Elf/Mach-O/Blob binary formats on various architectures.
-To start with, you probably want to run a "bulk analysis" pass on a binary
-using:
-
-> python vivbin -B <binaryfile>
-
-which will leave you with <binaryfile>.viv
-
-Then run:
-
-> python vivbin <binaryfile>.viv
-
-to open the GUI and begin reverse engineering.  As with most vtoys, the ui
-relies fairly heavily on right-click context menus and various memory
-views.
-
-For the binary ninjas, all APIs used during automatic analysis ( and several
-that aren't ) are directly accessible for use writing your own custom
-research tools...  The interface should be nearly the same when dealing with
-a real process ( via vdb/vtrace ) and dealing with an emulator / viv workspace.
-
-## Build Status
-
-[![Build Status](https://travis-ci.org/vivisect/vivisect.svg?branch=master)](https://travis-ci.org/vivisect/vivisect)
