@@ -114,6 +114,7 @@ class Server(s_eventdist.EventQueue):
         self.sock = socket.socket()
         self.srvthr = None
         self.seltor = None
+        self.wakesock = None
         self.srvshut = False
         self.timeout = timeout
         self.sockaddr = sockaddr
@@ -122,6 +123,7 @@ class Server(s_eventdist.EventQueue):
     def synShutDown(self):
         self.srvshut = True
         self.sock.close()
+        self.wakesock.close()
         self.seltor.close()
         self.srvthr.join()
         s_eventdist.EventQueue.synShutDown(self)
@@ -147,6 +149,9 @@ class Server(s_eventdist.EventQueue):
 
         self.seltor = selectors.DefaultSelector()
         key = self.seltor.register(self.sock, selectors.EVENT_READ)
+
+        self.wakesock,s2 = socket.socketpair()
+        self.seltor.register(s2, selectors.EVENT_READ)
 
         #s1,s2 = socket.socketpair()
         # stuff a socket into the selector to wake on close
@@ -186,6 +191,7 @@ class Server(s_eventdist.EventQueue):
                     self.synFireEvent('sockmsg',evtinfo)
 
             if self.srvshut:
+                s2.close()
                 self.synFireEvent('shutdown',{})
                 return
 
