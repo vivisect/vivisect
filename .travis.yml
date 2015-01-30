@@ -2,8 +2,7 @@ os:
     - linux
 language: python
 python:
-    - "2.7_with_system_site_packages"
+    - "3.4_with_system_site_packages"
 install:
-    - "travis_retry sudo apt-get -qq install libfreetype6-dev liblcms2-dev python-qt4 ghostscript libffi-dev libjpeg-turbo-progs cmake imagemagick"
     - pip install msgpack-python
 script: py.test
