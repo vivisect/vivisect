@@ -2,7 +2,7 @@ os:
     - linux
 language: python
 python:
-    - "3.4_with_system_site_packages"
+    - "3.4"
 install:
     - pip install msgpack-python
 script: py.test
