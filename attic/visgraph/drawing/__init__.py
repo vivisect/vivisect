@@ -1,3 +1,0 @@
-'''
-Some utils for drawing...
-'''
