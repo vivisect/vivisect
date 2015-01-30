@@ -32,7 +32,8 @@ class AnalysisMonitor(viv_monitor.AnalysisMonitor):
         if op.iflags & envi.IF_RET:
             if len(op.opers):
                 self.retbytes = op.opers[0].imm
-        
+
+##### FIXME: this should be all done through the calling convention
 sysvamd64argnames = {
     0: ('rdi', e_amd64.REG_RDI),
     1: ('rsi', e_amd64.REG_RSI),
@@ -70,6 +71,7 @@ def msx64name(idx):
     else:
         name, idx = ret
     return name
+#####
 
 def buildFunctionApi(vw, fva, emu, emumon):
     

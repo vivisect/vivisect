@@ -731,6 +731,35 @@ class CallingConvention(object):
     3. You want to call a arbitrary function and return to the same location
        you are currently breakpointed at or another arbitrary location.  To
        call an arbitrary function, use 'executeCall'.
+
+    Details:
+        pad - # of bytes on stack to allocate between RET and First Stack Arg
+
+        align - stack alignment.  as this is >= pointer size, this is used as 
+                the amount of space to leave for RET and Args
+
+        delta - stack delta to apply before arguments                # really?  isn't this basically the same thing as pad?
+
+        flags - flags for this convention, namely Caller or Callee Cleanup 
+
+        arg_def - list of tuples indicating what each arg is.  
+            (CC_REG, REG_which)     - this Arg is a register, specifically 
+                                        REG_which
+            (CC_STACK_INF, #)       - indicates the start of STACK-based Args
+                                        Currently the number is ignored
+
+        retaddr_def  - where does the function get a return address from?
+            (CC_STACK, #) - on the stack, at offset 0 
+            (CC_REG, REG_which) - in register "REG_which", eg. REG_LR
+
+        retval_def  - where does the function return value go?
+            (CC_STACK, #) - on the stack, at offset 0 
+            (CC_REG, REG_which) - in register "REG_which", eg. REG_EAX
+
+        CC_REG      - Ret, Retval or Arg use a particular register
+        CC_STACK    - Ret, Retval or Arg use stack memory at offset #
+        CC_STACK_INF- the rest of Args use stack memory starting at #
+
     '''
     pad = 0
     align = 4
