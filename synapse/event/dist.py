@@ -18,7 +18,8 @@ class EventDist:
     $   - called on event dist shutdown
     '''
     def __init__(self):
-        self._syn_verbose = False
+        self._syn_asplode = False   # should we explode on cb exception?
+        self._syn_verbose = False   # should we traceback on cb exception?
         self._syn_handlers = collections.defaultdict(list)
 
     def _synFireCallbacks(self, cblist, evt, evtinfo):
@@ -26,10 +27,12 @@ class EventDist:
             try:
                 cb(evt,evtinfo)
             except Exception as e:
+                if self._syn_asplode:
+                    raise e
                 if self._syn_verbose:
                     traceback.print_exc()
                 evtinfo = {'evt':evt,'evtinfo':evtinfo,'exc':e}
-                for errcb in self._syn_handlers.get('!',[]):
+                for errcb in self._syn_handlers.get('!',()):
                     try:
                         errcb('!',evtinfo)
                     except Exception as e:
@@ -62,6 +65,9 @@ class EventDist:
         cblist = self._syn_handlers.get('*')
         if cblist != None:
             self._synFireCallbacks(cblist,evt,evtinfo)
+
+    def synFireEventKw(self, evt, **evtinfo):
+        return self.synFireEvent(evt,evtinfo)
 
     def synAddHandler(self, name, callback):
         '''

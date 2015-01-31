@@ -51,7 +51,7 @@ class Socket(s_eventdist.EventDist):
         Use msgpack to serialize an object to the socket.
 
         Example:
-            x = (1,2,3,"qwer")
+            x = (1,2,3,'qwer')
             sock.emit(x)
         '''
         self.sendall( msgpack.packb(obj,use_bin_type=True) )

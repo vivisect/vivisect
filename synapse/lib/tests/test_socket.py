@@ -1,6 +1,8 @@
 import time
 import socket
 import unittest
+import threading
+
 import synapse.lib.socket as s_socket
 
 class SocketTest(unittest.TestCase):
@@ -35,6 +37,8 @@ class SocketTest(unittest.TestCase):
 
     def test_socket_server(self):
 
+        evtshut = threading.Event()
+        evtsrvshut = threading.Event()
         testdata = {}
         def onmsg(evt,evtinfo):
             testdata['msg'] = evtinfo.get('msg')
@@ -42,9 +46,11 @@ class SocketTest(unittest.TestCase):
 
         def onshut(evt,evtinfo):
             testdata['shut'] = True
+            evtshut.set()
 
         def srvshut(evt,evtinfo):
             testdata['srvshut'] = True
+            evtsrvshut.set()
 
         srv = s_socket.Server(('127.0.0.1',0))
         srv.synAddHandler('sockmsg',onmsg)
@@ -61,15 +67,15 @@ class SocketTest(unittest.TestCase):
 
         sock.close()
 
-        while not testdata.get('shut'):
-            time.sleep(0.01)
+        if not evtshut.wait(1):
+            raise Exception('evtshut timeout!')
 
         self.assertEqual(qwer,b'qwer')
 
         srv.synShutDown()
 
-        while not testdata.get('srvshut'):
-            pass
+        if not evtsrvshut.wait(1):
+            raise Exception('evtsrvshut timeout!')
 
         self.assertEqual(testdata.get('msg'),'woot')
         self.assertTrue(testdata.get('shut'))

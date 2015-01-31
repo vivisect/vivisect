@@ -2,6 +2,7 @@ import io
 import time
 import socket
 import unittest
+import threading
 
 import synapse.event.dist as s_eventdist
 import synapse.event.store as s_eventstore
@@ -41,9 +42,11 @@ class EventStoreTest(unittest.TestCase):
         d1 = s_eventdist.EventDist()
         d2 = s_eventdist.EventDist()
 
+        evtwoot = threading.Event()
         testdata = {}
         def onwoot(evt,evtinfo):
             testdata['woot'] = True
+            evtwoot.set()
 
         d2.synAddHandler('woot',onwoot)
 
@@ -58,7 +61,7 @@ class EventStoreTest(unittest.TestCase):
 
         d1.synFireEvent('woot',{'woot':'woot'})
 
-        while not testdata.get('woot'):
-            continue
+        if not evtwoot.wait(1):
+            raise Exception('evtwoot timeout!')
 
         d1.synShutDown()
