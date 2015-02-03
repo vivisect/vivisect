@@ -750,8 +750,87 @@ class CallingConvention(object):
         '''
         Returns the number of stack arguments.
         '''
+        rarglen = self.getNumRegArgs(emu, argc)
+        return max(argc - rarglen, 0)
+
+    def getNumRegArgs(self, emu, argc):
+        '''
+        Returns the number of stack arguments.
+        '''
         rargs = [ v for (t, v) in self.arg_def if t == CC_REG ]
-        return max(argc - len(rargs), 0)
+        return len(rargs)
+
+    def getStackArgOffset(self, emu, argc):
+        '''
+        Returns the number of bytes from RET to the first Stack Arg
+        '''
+        return self.pad + self.align
+
+    def getCallRegArgInfo(self, emu):
+        '''
+        Returns a list of tuples representing Register Arg names/indexes.
+        for CC_REG:     (CC_REG, regname, regindex)
+        '''
+        args = []
+        idx = 0
+        for arg_type, arg_val in self.arg_def:
+            if arg_type == CC_REG:
+                args.append((arg_type, emu.getRegisterName(arg_val), arg_val))
+            elif arg_type == CC_STACK_INF:
+                break
+            idx += 1
+        return args
+
+    def getCallArgInfo(self, emu, argc):
+        '''
+        Returns a list of tuples representing Arg names/indexes/offset.
+        for CC_REG:     (CC_REG, regname, regindex)
+        for CC_STACK:   (CC_STACK
+        '''
+        args = []
+        idx = 0
+        stkidxoff = self.getNumRegArgs(emu, argc)
+        for arg_type, arg_val in self.arg_def:
+            if argc <= 0:
+                break
+
+            if arg_type == CC_REG:
+                args.append((arg_type, emu.getRegisterName(arg_val), arg_val))
+                argc -= 1
+            elif arg_type == CC_STACK:
+                stackoffset = (idx - stkidxoff) * self.align
+                args.append((arg_type, "arg%d" % idx, (self.getStackArgOffset(emu, argc) + stackoffset) ))
+                argc -= 1
+            elif arg_type == CC_STACK_INF:
+                #args.extend([(arg_type, "arg%d" % i, ((i-base)*self.align)+self.pad) for i in range(idx, idx+argc)])
+                args.extend([(arg_type, "arg%d" % i, 
+                    self.getStackArgOffset(emu, argc) + ((i-stkidxoff)*self.align)) for i in range(idx, idx+argc)])
+                argc = 0
+            else:
+                raise Exception('unknown argument type')
+            idx += 1
+        return args
+
+    def getCallArgName(self, emu, idx):
+        '''
+        '''
+        if len(self.arg_def) <= idx:
+            if self.arg_def[-1][0] == CC_STACK_INF:
+                return 'arg%d' % idx
+            else:
+                raise Exception('unknown argument type')
+        else:
+            arg_type, arg_val = self.arg_def[idx]
+
+            if arg_type == CC_REG:
+                return emu.getRegisterName(arg_val)
+            elif arg_type == CC_STACK:
+                return "arg%d" % idx
+            elif arg_type == CC_STACK_INF:
+                return "arg%d" % idx
+            else:
+                raise Exception('unknown argument type')
+
 
     def getPreCallArgs(self, emu, argc):
         '''

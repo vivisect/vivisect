@@ -76,11 +76,15 @@ def buildFunctionApi(vw, fva, emu, emumon):
     argc = 0
     funcargs = []
     callconv = vw.getMeta('DefaultCall')
-    argnames = arch_bindings.get(callconv)
+    #argnames = arch_bindings.get(callconv)
+    cc = emu.getCallingConvention(callconv)
+    argnames = cc.getCallRegArgInfo(emu)
     undefregs = set(emu.getUninitRegUse())
 
+    # determine number of register args
     for argnum in range(len(argnames), 0, -1):
-        argname, argid = argnames[argnum-1]
+        #argname, argid = argnames[argnum-1]
+        argtype, argname, argid = argnames[argnum-1]
         if argid in undefregs:
             argc = argnum
             break
@@ -102,7 +106,8 @@ def buildFunctionApi(vw, fva, emu, emumon):
         vw.setFunctionLocal(fva, 24, LSYM_NAME, ('void *','shadow2'))
         vw.setFunctionLocal(fva, 32, LSYM_NAME, ('void *','shadow3'))
 
-        funcargs = [ ('int',msx64name(i)) for i in xrange(argc) ]
+        #funcargs = [ ('int',msx64name(i)) for i in xrange(argc) ]
+        funcargs = [ ('int',aname) for atype, aname, aindoff in cc.getCallArgInfo(emu, argc) ]
 
     elif callconv == 'sysvamd64call':
         if emumon.stackmax > 0:
@@ -113,7 +118,8 @@ def buildFunctionApi(vw, fva, emu, emumon):
             else:
                 argc = targc
 
-        funcargs = [ ('int',sysvamd64name(i)) for i in xrange(argc) ]
+        #funcargs = [ ('int',sysvamd64name(i)) for i in xrange(argc) ]
+        funcargs = [ ('int',aname) for atype, aname, aindoff in cc.getCallArgInfo(emu, argc) ]
 
     api = ('int',None,callconv,None,funcargs)
     vw.setFunctionApi(fva, api)
@@ -139,13 +145,13 @@ def analyzeFunction(vw, fva):
     cc = emu.getCallingConvention(callconv)
     stcount = cc.getNumStackArgs(emu, argc)
     stackidx = argc - stcount
+    baseoff = cc.getStackArgOffset(emu, argc)
 
     # Register our stack args as function locals
-    for i in xrange( argc ):
-        if i < stackidx:
-            continue
-
-        vw.setFunctionLocal(fva, 4 + ( i * 8 ), LSYM_FARG, i)
+    for i in xrange( stcount ):
+        
+        vw.setFunctionLocal(fva, baseoff + ( i * 4 ), LSYM_FARG, i+stackidx)
+        print "local: 0x%x, %s %s * 4   -- 0x%x" % (fva, baseoff, i, (i+stackidx)
 
     emumon.addAnalysisResults(vw, emu)
 
