@@ -16,7 +16,7 @@ regops = set(['cmp','sub'])
 
 class AnalysisMonitor(viv_monitor.AnalysisMonitor):
 
-    def __init__(self, vw, fva):
+    def __init__(self, vw, fva):    # most of this can be abstracted out to the the architecture modules
         viv_monitor.AnalysisMonitor.__init__(self, vw, fva)
         self.addDynamicBranchHandler(vag_switch.analyzeJmp)
         self.retbytes = None
@@ -32,28 +32,6 @@ class AnalysisMonitor(viv_monitor.AnalysisMonitor):
         if op.iflags & envi.IF_RET:
             if len(op.opers):
                 self.retbytes = op.opers[0].imm
-        
-sysvamd64argnames = {
-    0: ('rdi', e_amd64.REG_RDI),
-    1: ('rsi', e_amd64.REG_RSI),
-    2: ('rdx', e_amd64.REG_RDX),
-    3: ('rcx', e_amd64.REG_RCX),
-    4: ('r8',  e_amd64.REG_R8),
-    5: ('r9',  e_amd64.REG_R9),
-}
-
-msx64argnames = {
-    0: ('rcx', e_amd64.REG_RCX),
-    1: ('rdx', e_amd64.REG_RDX),
-    2: ('r8',  e_amd64.REG_R8),
-    3: ('r9',  e_amd64.REG_R9),
-}
-
-arch_bindings = {
-    'msx64call': msx64argnames,
-    'sysvamd64call': sysvamd64argnames,
-    None: [],
-}
 
 def sysvamd64name(idx):
     ret = sysvamd64argnames.get(idx)
@@ -80,7 +58,6 @@ def buildFunctionApi(vw, fva, emu, emumon):     # function is architecture speci
     argc = 0
     funcargs = []
     callconv = vw.getMeta('DefaultCall')
-    #argnames = arch_bindings.get(callconv)
     cc = emu.getCallingConvention(callconv)
     argnames = cc.getCallRegArgInfo(emu)
     undefregs = set(emu.getUninitRegUse())
