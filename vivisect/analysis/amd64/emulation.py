@@ -93,7 +93,7 @@ def buildFunctionApi(vw, fva, emu, emumon):
         # For msx64call there's the shadow space..
         if emumon.stackmax >= 40:
             #argc += ((emumon.stackmax - 40) / 8)
-            targc = (emumon.stackmax / 8) - 1
+            targc = (emumon.stackmax / 8)# - 1      # something about padding?
             if targc > 40:
                 emumon.logAnomaly(emu, fva, 'Crazy Stack Offset Touched: 0x%.8x' % emumon.stackmax)
                 #argc = 0
@@ -125,8 +125,7 @@ def buildFunctionApi(vw, fva, emu, emumon):
     vw.setFunctionApi(fva, api)
     return api
 
-def analyzeFunction(vw, fva):
-
+def analyzeFunction(vw, fva):   # this can by mostly made arch-independent and placed in one class (AnalysisMonitor??)
     emu = vw.getEmulator()
     emumon = AnalysisMonitor(vw, fva)
 
@@ -150,8 +149,8 @@ def analyzeFunction(vw, fva):
     # Register our stack args as function locals
     for i in xrange( stcount ):
         
-        vw.setFunctionLocal(fva, baseoff + ( i * 4 ), LSYM_FARG, i+stackidx)
-        print "local: 0x%x, %s %s * 4   -- 0x%x" % (fva, baseoff, i, (i+stackidx)
+        vw.setFunctionLocal(fva, baseoff + ( i * cc.align ), LSYM_FARG, i+stackidx)
+        pass
 
     emumon.addAnalysisResults(vw, emu)
 
