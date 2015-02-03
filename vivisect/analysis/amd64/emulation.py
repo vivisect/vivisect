@@ -71,8 +71,12 @@ def msx64name(idx):
         name, idx = ret
     return name
 
-def buildFunctionApi(vw, fva, emu, emumon):
-    
+def buildFunctionApi(vw, fva, emu, emumon):     # function is architecture specific, not ok to be wrapped into cconv class although some of it can be more cconv-specific
+    '''
+    Builds the function API:
+    * argc - number of arguments
+    * cc   - determines calling convention
+    '''
     argc = 0
     funcargs = []
     callconv = vw.getMeta('DefaultCall')
@@ -126,6 +130,13 @@ def buildFunctionApi(vw, fva, emu, emumon):
     return api
 
 def analyzeFunction(vw, fva):   # this can by mostly made arch-independent and placed in one class (AnalysisMonitor??)
+    '''
+    Determine function API and updates workspace with specifics
+    * Calling convention
+    * Argument count
+    * Stack Locals
+    '''
+    # setup emulator and analysis module and run it
     emu = vw.getEmulator()
     emumon = AnalysisMonitor(vw, fva)
 
@@ -140,6 +151,8 @@ def analyzeFunction(vw, fva):   # this can by mostly made arch-independent and p
 
     rettype,retname,callconv,callname,callargs = api
 
+    # set the function locals/args - stores info for workspace-prettification, 
+    #       eg. "[ebp + arg1]" instead of "[ebp + 12]"
     argc = len(callargs)
     cc = emu.getCallingConvention(callconv)
     stcount = cc.getNumStackArgs(emu, argc)
