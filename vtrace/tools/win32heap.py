@@ -118,11 +118,10 @@ def getHeaps(trace):
     return ret
 
 class Win32Heap:
-
     def __init__(self, trace, address):
         self.address = address
         self.trace = trace
-        self.heap = trace.getStruct("ntdll.HEAP", address)
+        self.heap = trace.getStruct('ntdll.HEAP', address)
         self._win7_heap = False
         self.heapenc = None
         if self.heap.vsHasField('Encoding'):
@@ -131,10 +130,26 @@ class Win32Heap:
         self.seglist = None
         self.ucrdict = None
 
+    def isLFH(self):
+        '''
+        Does this heap have LFH enabled?
+        '''
+        if self.heap.FrontEndHeapType == 0x2:
+            return True
+
+        return False
+
+    def getLFH(self):
+        '''
+        return LFH object
+        '''
+        if self.isLFH():
+            return Win32LFH(self.trace, self.heap, self.heap.FrontEndHeap)
+
     def hasLookAside(self):
-        """
+        '''
         Does this heap have a lookaside?
-        """
+        '''
         if not self.heap.Flags & HEAP_GROWABLE:
             return False
         if self.heap.Flags & HEAP_NO_SERIALIZE:
@@ -172,9 +187,9 @@ class Win32Heap:
             entry = self.trace.readMemoryFormat(entry, '<P')[0]
 
     def getSegments(self):
-        """
+        '''
         Return a list of Win32Segment objects.
-        """
+        '''
         if self.seglist == None:
             self.seglist = []
 
@@ -190,11 +205,11 @@ class Win32Heap:
         return self.seglist
 
     def getLookAsideLists(self):
-        """
+        '''
         Return a list of the lookaside list for this heap
-        """
+        '''
         if not self.hasLookAside():
-            raise Exception("Heap at 0x%.8x has no lookaside!" % (self.address))
+            raise Exception('Heap at 0x%.8x has no lookaside!' % (self.address))
         # Look aside lists are 128 pointer slots in a chunk pointed
         # to by the FrontEndHeap field in the heap structure.
         #fetype = self.heap.FrontEndHeapType
@@ -227,12 +242,12 @@ class Win32Heap:
         return []
 
     def getFreeLists(self):
-        """
+        '''
         Return a list of the free lists in this heap.
         (Not including look-aside)
-        """
+        '''
         ret = []
-        foff = self.heap.vsGetOffset("FreeLists")
+        foff = self.heap.vsGetOffset('FreeLists')
         if self._win7_heap:
             return self._win7FreeLists()
 
@@ -284,7 +299,7 @@ class Win32Segment:
         self.trace = trace
         self.heap = heap
         self.address = address
-        self.seg = trace.getStruct("ntdll.HEAP_SEGMENT", address)
+        self.seg = trace.getStruct('ntdll.HEAP_SEGMENT', address)
         #FIXME segments can specify chunk Size granularity
         self.chunks = None
         self.segend = self.address + (self.seg.NumberOfPages * 4096)
@@ -337,14 +352,14 @@ class Win32Chunk:
         self.trace = trace
         self.heap = heap
         self.address = address
-        self.chunk = trace.getStruct("ntdll.HEAP_ENTRY", address)
+        self.chunk = trace.getStruct('ntdll.HEAP_ENTRY', address)
 
         # Decode the heap chunk if needed...
         if self.heap.heapenc:
             self.chunk ^= self.heap.heapenc
 
     def __repr__(self):
-        return "HeapChunk: 0x%.8x (%d) %s" % (self.address, len(self),self.reprFlags())
+        return 'HeapChunk: 0x%.8x (%d) %s' % (self.address, len(self),self.reprFlags())
 
     def __len__(self):
         return int(self.chunk.Size) * 8
@@ -368,8 +383,60 @@ class Win32Chunk:
         return self.trace.readMemory(self.getDataAddress(), size)
 
     def getFlinkBlink(self):
-        return self.trace.readMemoryFormat(self.getDataAddress(), "<PP")
+        return self.trace.readMemoryFormat(self.getDataAddress(), '<PP')
 
     def reprFlags(self):
         return reprHeapFlags(int(self.chunk.Flags))
 
+class Win32Subsegment(object):
+    def __init__(self, trace, heap, address):
+        self.trace = trace
+        self.heap = heap
+        self.address = address
+        self.subsegment = trace.getStruct('ntdll.HEAP_SUBSEGMENT', address)
+
+    def getChunks(self):
+        for chunk in xrange(self.getChunksStart(), self.getChunksEnd(), self.getBucketSize()):
+            yield Win32Chunk(self.trace, self.heap, chunk)
+
+    def getUserBlocks(self):
+        return self.subsegment.UserBlocks
+
+    def getChunksStart(self):
+        # Length of HEAP_USERDATA_HEADER = 0x10
+        return self.getUserBlocks() + 0x10
+
+    def getChunksEnd(self):
+        return self.getChunksStart() + (self.subsegment.BlockCount * self.getBucketSize())
+
+    def getBucketSize(self):
+        if self.trace.getMeta('Architecture') == 'amd64':
+            return self.subsegment.BlockSize * 16
+        else:
+            return self.subsegment.BlockSize * 8
+
+    def getSizeIndex(self):
+        return self.subsegment.SizeIndex
+
+    def getBlockCount(self):
+        return self.subsegment.BlockCount
+
+    def getFreeBlockCount(self):
+        return self.subsegment.AggregateExchg.Depth
+
+    def getUsedBlockCount(self):
+        return self.getBlockCount() - self.getFreeBlockCount()
+
+class Win32LFH(object):
+    def __init__(self, trace, heap, address):
+        self.trace = trace
+        self.heap = heap
+        self.address = address
+        self.lfh = trace.getStruct('ntdll.LFH_HEAP', address)
+
+    def getSubsegments(self):
+        for num, localdata in self.lfh.LocalData:
+            for bucket, seginfo in localdata.SegmentInfo:
+                if seginfo.ActiveSubsegment == 0:
+                    continue
+                yield Win32Subsegment(self.trace, self.heap, seginfo.ActiveSubsegment)

@@ -9,11 +9,12 @@ def isVstructType(x):
     return isinstance(x, vs_prims.v_base)
 
 class VStruct(vs_prims.v_base):
-
     '''
-    The VStruct class is the bases for all groups of primitive fields which define a "structure".
-    Fields may be added with vsAddField() or simply added as attributes (provided you use a VStruct
-    or one of the vstruct.primitives in the initial assignment.)
+    The VStruct class is the bases for all groups of primitive fields which
+    define a "structure".
+    Fields may be added with vsAddField() or simply added as attributes
+    (provided you use a VStruct or one of the vstruct.primitives in the
+    initial assignment.)
 
     Example:
         import vstruct
@@ -26,10 +27,9 @@ class VStruct(vs_prims.v_base):
         bytes = vs.vsEmit()
 
     '''
-
     def __init__(self):
         # A tiny bit of evil...
-        object.__setattr__(self, "_vs_values", {})
+        object.__setattr__(self, '_vs_values', {})
         vs_prims.v_base.__init__(self)
         self._vs_name = self.__class__.__name__
         self._vs_fields = []
@@ -44,11 +44,12 @@ class VStruct(vs_prims.v_base):
 
     def vsAddParseCallback(self, fieldname, callback):
         '''
-        Register a callback which will be triggered when the field with the given name
-        is set by the parser.  This can be used to simplify auto-parsing to change fields
-        sizes or whatnot during parsing.
+        Register a callback which will be triggered when the field with the
+        given name is set by the parser.  This can be used to simplify
+        auto-parsing to change fields sizes or whatnot during parsing.
 
-        (You may also name a method pcb_<FieldName> to get a callback for your struct.)
+        (You may also name a method pcb_<FieldName> to get a callback for your
+        struct.)
 
         Example:
 
@@ -236,7 +237,7 @@ class VStruct(vs_prims.v_base):
 
     def vsAddField(self, name, value):
         if not isVstructType(value):
-            raise Exception("Added fields MUST be vstruct types!")
+            raise Exception('Added fields MUST be vstruct types!')
 
         # Do optional field alignment...
         if self._vs_field_align:
