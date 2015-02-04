@@ -12,15 +12,13 @@ from vivisect.const import *
 
 import vivisect.analysis.generic.switchcase as vag_switch
 
-regops = set(['cmp','sub'])
-
 class AnalysisMonitor(viv_monitor.AnalysisMonitor):
 
     def __init__(self, vw, fva):    # most of this can be abstracted out to the the architecture modules
         viv_monitor.AnalysisMonitor.__init__(self, vw, fva)
         self.addDynamicBranchHandler(vag_switch.analyzeJmp)
         self.retbytes = None
-        self.badop = vw.arch.archParseOpcode("\x00\x00\x00\x00\x00")
+        self.badop = vw.arch.archParseOpcode("\x00\x00\x00\x00\x00")    # badop can be a string value attached to the archmod
 
     def prehook(self, emu, op, starteip):
 
@@ -29,25 +27,9 @@ class AnalysisMonitor(viv_monitor.AnalysisMonitor):
 
         viv_monitor.AnalysisMonitor.prehook(self, emu, op, starteip)
 
-        if op.iflags & envi.IF_RET:
+        if op.iflags & envi.IF_RET:         # this should be a call to isRet, because not all architectures are so simple
             if len(op.opers):
                 self.retbytes = op.opers[0].imm
-
-def sysvamd64name(idx):
-    ret = sysvamd64argnames.get(idx)
-    if ret == None:
-        name = 'arg%d' % idx
-    else:
-        name, idx = ret
-    return name
-
-def msx64name(idx):
-    ret = msx64argnames.get(idx)
-    if ret == None:
-        name = 'arg%d' % idx
-    else:
-        name, idx = ret
-    return name
 
 def buildFunctionApi(vw, fva, emu, emumon):     # function is architecture specific, not ok to be wrapped into cconv class although some of it can be more cconv-specific
     '''
@@ -70,37 +52,29 @@ def buildFunctionApi(vw, fva, emu, emumon):     # function is architecture speci
             argc = argnum
             break
 
+    # calculate the stack argument space used
+    if emumon.stackmax > cc.pad:
+        # stack delta - padding (shadow space, etc)
+        stackargspace = emumon.stackmax - cc.pad# - cc.align
+        targc = cc.getNumRegArgs(emu, MAX_ARGS) + (stackargspace / 8)
+
+        if targc > MAX_ARGS:
+            emumon.logAnomaly(emu, fva, 'Crazy Stack Offset Touched: 0x%.8x' % emumon.stackmax)
+        else:
+            argc = targc
+
     if callconv == 'msx64call':
         # For msx64call there's the shadow space..
-        if emumon.stackmax >= 40:
-            #argc += ((emumon.stackmax - 40) / 8)
-            targc = (emumon.stackmax / 8)# - 1      # something about padding?
-            if targc > 40:
-                emumon.logAnomaly(emu, fva, 'Crazy Stack Offset Touched: 0x%.8x' % emumon.stackmax)
-                #argc = 0
-            else:
-                argc = targc
-
         # Add the shadow space "locals"
         vw.setFunctionLocal(fva, 8,  LSYM_NAME, ('void *','shadow0'))
         vw.setFunctionLocal(fva, 16, LSYM_NAME, ('void *','shadow1'))
         vw.setFunctionLocal(fva, 24, LSYM_NAME, ('void *','shadow2'))
         vw.setFunctionLocal(fva, 32, LSYM_NAME, ('void *','shadow3'))
 
-        #funcargs = [ ('int',msx64name(i)) for i in xrange(argc) ]
-        funcargs = [ ('int',aname) for atype, aname, aindoff in cc.getCallArgInfo(emu, argc) ]
-
     elif callconv == 'sysvamd64call':
-        if emumon.stackmax > 0:
-            targc = (emumon.stackmax / 8) + 6
-            if targc > 40:
-                emumon.logAnomaly(emu, fva, 'Crazy Stack Offset Touched: 0x%.8x' % emumon.stackmax)
-                #argc = 0
-            else:
-                argc = targc
+        pass
 
-        #funcargs = [ ('int',sysvamd64name(i)) for i in xrange(argc) ]
-        funcargs = [ ('int',aname) for atype, aname, aindoff in cc.getCallArgInfo(emu, argc) ]
+    funcargs = [ ('int',aname) for atype, aname, aindoff in cc.getCallArgInfo(emu, argc) ]
 
     api = ('int',None,callconv,None,funcargs)
     vw.setFunctionApi(fva, api)

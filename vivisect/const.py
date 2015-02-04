@@ -206,3 +206,5 @@ SYMT_OPER_LSHIFT    = SYMT_OPER | 9
 SYMT_OPER_RSHIFT    = SYMT_OPER | 10
 SYMT_OPER_POW       = SYMT_OPER | 11
 
+# number of function arguments viv will discover and allow
+MAX_ARGS            = 40
