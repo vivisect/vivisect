@@ -14,11 +14,11 @@ import vivisect.analysis.generic.switchcase as vag_switch
 
 class AnalysisMonitor(viv_monitor.AnalysisMonitor):
 
-    def __init__(self, vw, fva):    # most of this can be abstracted out to the the architecture modules
+    def __init__(self, vw, fva):
         viv_monitor.AnalysisMonitor.__init__(self, vw, fva)
         self.addDynamicBranchHandler(vag_switch.analyzeJmp)
         self.retbytes = None
-        self.badop = vw.arch.archParseOpcode("\x00\x00\x00\x00\x00")    # badop can be a string value attached to the archmod
+        self.badop = vw.arch.archParseOpcode("\x00\x00\x00\x00\x00")
 
     def prehook(self, emu, op, starteip):
 
@@ -27,11 +27,11 @@ class AnalysisMonitor(viv_monitor.AnalysisMonitor):
 
         viv_monitor.AnalysisMonitor.prehook(self, emu, op, starteip)
 
-        if op.iflags & envi.IF_RET:         # this should be a call to isRet, because not all architectures are so simple
+        if op.iflags & envi.IF_RET:
             if len(op.opers):
                 self.retbytes = op.opers[0].imm
 
-def buildFunctionApi(vw, fva, emu, emumon):     # function is architecture specific, not ok to be wrapped into cconv class although some of it can be more cconv-specific
+def buildFunctionApi(vw, fva, emu, emumon):
     '''
     Builds the function API:
     * argc - number of arguments
@@ -56,7 +56,7 @@ def buildFunctionApi(vw, fva, emu, emumon):     # function is architecture speci
     # calculate the stack argument space used
     if emumon.stackmax > cc.pad:
         # stack delta - padding (shadow space, etc)
-        stackargspace = emumon.stackmax - cc.pad# - cc.align
+        stackargspace = emumon.stackmax - cc.pad
         targc = cc.getNumRegArgs(emu, MAX_ARGS) + (stackargspace / 8)
 
         if targc > MAX_ARGS:
@@ -79,7 +79,7 @@ def buildFunctionApi(vw, fva, emu, emumon):     # function is architecture speci
     vw.setFunctionApi(fva, api)
     return api
 
-def analyzeFunction(vw, fva):   # this can by mostly made arch-independent and placed in one class (AnalysisMonitor??)
+def analyzeFunction(vw, fva):
     '''
     Determine function API and updates workspace with specifics
     * Calling convention

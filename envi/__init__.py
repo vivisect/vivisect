@@ -813,8 +813,8 @@ class CallingConvention(object):
     def getCallArgInfo(self, emu, argc):
         '''
         Returns a list of tuples representing Arg names/indexes/offset.
-        for CC_REG:     (CC_REG, regname, regindex)
-        for CC_STACK:   (CC_STACK
+        for CC_REG:         (CC_REG,   regname, regindex)
+        for CC_STACK:       (CC_STACK, argname, stackoffset)
         '''
         args = []
         idx = 0
@@ -832,7 +832,7 @@ class CallingConvention(object):
                 argc -= 1
             elif arg_type == CC_STACK_INF:
                 #args.extend([(arg_type, "arg%d" % i, ((i-base)*self.align)+self.pad) for i in range(idx, idx+argc)])
-                args.extend([(arg_type, "arg%d" % i, 
+                args.extend([(CC_STACK, "arg%d" % i, 
                     self.getStackArgOffset(emu, argc) + ((i-stkidxoff)*self.align)) for i in range(idx, idx+argc)])
                 argc = 0
             else:
@@ -842,6 +842,9 @@ class CallingConvention(object):
 
     def getCallArgName(self, emu, idx):
         '''
+        Returns the name of the argument at index "idx"
+        For registers, the register name is returned
+        Fro stack-args, "arg#" is returned where # is the arg index
         '''
         if len(self.arg_def) <= idx:
             if self.arg_def[-1][0] == CC_STACK_INF:
