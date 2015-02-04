@@ -797,7 +797,7 @@ class CallingConvention(object):
 
     def getCallRegArgInfo(self, emu):
         '''
-        Returns a list of tuples representing Register Arg names/indexes.
+        Returns a list of tuples (in order) representing Register Arg names/indexes.
         for CC_REG:     (CC_REG, regname, regindex)
         '''
         args = []
