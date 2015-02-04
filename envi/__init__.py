@@ -738,7 +738,7 @@ class CallingConvention(object):
         align - stack alignment.  as this is >= pointer size, this is used as 
                 the amount of space to leave for RET and Args
 
-        delta - stack delta to apply before arguments                # really?  isn't this basically the same thing as pad?
+        delta - stack delta to apply before arguments                
 
         flags - flags for this convention, namely Caller or Callee Cleanup 
 
@@ -763,7 +763,7 @@ class CallingConvention(object):
     '''
     pad = 0
     align = 4
-    delta = 0
+    delta = 0       # FIXME: possible duplicate use with pad
     flags = 0
     arg_def = []
     retval_def = (CC_STACK, 0)
