@@ -44,6 +44,7 @@ def buildFunctionApi(vw, fva, emu, emumon):     # function is architecture speci
     argnames = cc.getCallRegArgInfo(emu)
     undefregs = set(emu.getUninitRegUse())
 
+    ### determine argument count, register and stack
     # determine number of register args
     for argnum in range(len(argnames), 0, -1):
         #argname, argid = argnames[argnum-1]
@@ -63,6 +64,7 @@ def buildFunctionApi(vw, fva, emu, emumon):     # function is architecture speci
         else:
             argc = targc
 
+    # add in shadow space for msx64call
     if callconv == 'msx64call':
         # For msx64call there's the shadow space..
         # Add the shadow space "locals"
@@ -70,9 +72,6 @@ def buildFunctionApi(vw, fva, emu, emumon):     # function is architecture speci
         vw.setFunctionLocal(fva, 16, LSYM_NAME, ('void *','shadow1'))
         vw.setFunctionLocal(fva, 24, LSYM_NAME, ('void *','shadow2'))
         vw.setFunctionLocal(fva, 32, LSYM_NAME, ('void *','shadow3'))
-
-    elif callconv == 'sysvamd64call':
-        pass
 
     funcargs = [ ('int',aname) for atype, aname, aindoff in cc.getCallArgInfo(emu, argc) ]
 
@@ -114,7 +113,6 @@ def analyzeFunction(vw, fva):   # this can by mostly made arch-independent and p
     for i in xrange( stcount ):
         
         vw.setFunctionLocal(fva, baseoff + ( i * cc.align ), LSYM_FARG, i+stackidx)
-        pass
 
     emumon.addAnalysisResults(vw, emu)
 
