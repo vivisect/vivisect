@@ -113,13 +113,12 @@ def analyzeFunction(vw, fva):
     cc = emu.getCallingConvention(callconv)
     stcount = cc.getNumStackArgs(emu, argc)
     stackidx = argc - stcount
+    baseoff = cc.getStackArgOffset(emu, argc)
 
     # Register our stack args as function locals
-    for i in xrange( argc ):
-        if i < stackidx:
-            continue
+    for i in xrange( stcount ):
 
-        vw.setFunctionLocal(fva, 4 + ( i * 4 ), LSYM_FARG, i)
+        vw.setFunctionLocal(fva, baseoff + ( i * 4 ), LSYM_FARG, i+stackidx)
 
     emumon.addAnalysisResults(vw, emu)
 

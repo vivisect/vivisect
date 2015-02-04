@@ -32,7 +32,8 @@ class AnalysisMonitor(viv_monitor.AnalysisMonitor):
         if op.iflags & envi.IF_RET:
             if len(op.opers):
                 self.retbytes = op.opers[0].imm
-        
+
+##### FIXME: this should be all done through the calling convention
 sysvamd64argnames = {
     0: ('rdi', e_amd64.REG_RDI),
     1: ('rsi', e_amd64.REG_RSI),
@@ -70,6 +71,7 @@ def msx64name(idx):
     else:
         name, idx = ret
     return name
+#####
 
 def buildFunctionApi(vw, fva, emu, emumon):
     
@@ -139,13 +141,12 @@ def analyzeFunction(vw, fva):
     cc = emu.getCallingConvention(callconv)
     stcount = cc.getNumStackArgs(emu, argc)
     stackidx = argc - stcount
+    baseoff = cc.getStackArgOffset(emu, argc)
 
     # Register our stack args as function locals
-    for i in xrange( argc ):
-        if i < stackidx:
-            continue
+    for i in xrange( stcount ):
 
-        vw.setFunctionLocal(fva, 4 + ( i * 8 ), LSYM_FARG, i)
+        vw.setFunctionLocal(fva, baseoff + ( i * 8 ), LSYM_FARG, i+stackidx)
 
     emumon.addAnalysisResults(vw, emu)
 
