@@ -784,7 +784,7 @@ class CallingConvention(object):
 
     def getNumRegArgs(self, emu, argc):
         '''
-        Returns the number of stack arguments.
+        Returns the number of register arguments.
         '''
         rargs = [ v for (t, v) in self.arg_def if t == CC_REG ]
         return len(rargs)
