@@ -21,6 +21,16 @@ def getThreadLocal(name,ctor,*args,**kwargs):
     return ret
 
 def fireWorkThread(func,*args,**kwargs):
+    '''
+    Convenience routine to fire a "daemon" thread.
+
+    Example:
+
+        def woot(x,y):
+            morestuff(x,y)
+
+        thr = fireWorkThread(woot,10,30) # thr == threading.Thread
+    '''
     thr = threading.Thread(target=func,args=args,kwargs=kwargs)
     thr.setDaemon(True)
     thr.start()
@@ -41,6 +51,16 @@ class RWLock:
         self.rw_waiters = collections.deque()
 
     def reader(self):
+        '''
+        Acquire a multi-reader lock.
+
+        Example:
+            lock = RWLock()
+
+            with lock.reader():
+                # other readers can be here too...
+                dowrites()
+        '''
         # use thread locals with our GUID for holder ident
         holder = getThreadLocal(self.ident,RWWith,self)
 
@@ -61,7 +81,14 @@ class RWLock:
 
     def writer(self):
         '''
-        Acquire an exclusive write lock on the given RWLock.
+        Acquire an exclusive-write lock.
+
+        Example:
+            lock = RWLock()
+
+            with lock.writer():
+                # no readers or other writers but us!
+                dowrites()
         '''
         holder = getThreadLocal(self.ident,RWWith,self)
 
@@ -80,7 +107,10 @@ class RWLock:
         return holder
 
     def release(self, holder):
-
+        '''
+        Used to release an RWWith holder
+        ( you probably shouldn't use this )
+        '''
         with self.lock:
 
             if holder.writer:
