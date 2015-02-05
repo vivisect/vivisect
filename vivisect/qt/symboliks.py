@@ -153,12 +153,12 @@ class VivSymbolikFuncPane(e_q_memory.EnviNavMixin, vq_save.SaveableWidget, QtGui
                 ccb = self.vw.getCodeBlock(cva)
                 if ccb != None and ccb in self.vw.getFunctionBlocks(self.fva):
                     codepaths = viv_graph.getCodePathsThru(codegraph, ccb[0], loopcnt=3)   #FIXME: allow the GUI-setting of loopcnt, instead of hard-coding
+                    paths = self.symctx.getSymbolikPaths(self.fva, paths=codepaths, graph=codegraph, maxpath=100)
 
             if codepaths == None:
                 codepaths = viv_graph.getCodePaths(codegraph, 3)
+                paths = self.symctx.walkSymbolikPaths(self.fva, maxpath=100)
                     
-            #paths = self.symctx.getSymbolikPaths(self.fva, paths=codepaths, maxpath=100)
-            paths = self.symctx.walkSymbolikPaths(self.fva, maxpath=100)
             self.pathview.loadSymbolikPaths(paths)
 
         except Exception, e:

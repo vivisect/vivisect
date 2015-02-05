@@ -196,6 +196,7 @@ def getCodePathsThru(fgraph, tgtcbva, loopcnt=0, maxpath=None):
 
         # This is the root node!
         if node[1].get('rootnode'):
+            count = 0
             path = vg_pathcore.getPathToNode(cpath)
             path.reverse()
             # build the path in the right direction
