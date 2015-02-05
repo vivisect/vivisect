@@ -14,7 +14,7 @@ import vivisect.qt.ctxmenu as vq_ctxmenu
 import vivisect.tools.graphutil as viv_graphutil
 
 from PyQt4          import QtCore, QtGui, QtWebKit
-from vqt.main       import idlethread, idlethreadsync, eatevents, vqtconnect
+from vqt.main       import idlethread, idlethreadsync, eatevents, vqtconnect, workthread
 
 from vqt.common import *
 from vivisect.const import *
@@ -294,9 +294,32 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QtGui.
         self.mem_canvas.setZoomFactor(newzoom)
 
     def refresh(self):
+        '''
+        Cause the Function Graph to redraw itself.
+        This is particularly helpful because comments and name changes don't
+        immediately display.  Perhaps someday this will update only the blocks
+        that have changed since last update, and be fast, so we can update
+        after every change.  
+        '''
+        self._cur_point = self.mem_canvas.page().mainFrame().scrollPosition()
         self.clearText()
         self.fva = None
-        self._renderMemory()
+        self._renderMemory(cb=self._refresh_2)
+
+    @workthread
+    def _refresh_2(self, view):
+        '''
+        This is a hack to make sure that when _renderMemory() completes,
+        _refresh_3() gets run after all other rendering events yet to come.
+        '''
+        self._refresh_3(view)
+
+    @idlethread
+    def _refresh_3(self, view):
+        '''
+        Sets the view reticle back to where it started when Refresh was triggered
+        '''
+        self.mem_canvas.page().mainFrame().setScrollPosition(self._cur_point)
 
     def _histSetupMenu(self):
         self.histmenu.clear()
@@ -419,7 +442,7 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QtGui.
         #return e_mem_qt.VQMemoryWindow.closeEvent(self, event)
 
     @idlethread
-    def _renderMemory(self):
+    def _renderMemory(self, cb=None):
 
         expr = str(self.addr_entry.text())
         if not expr:
@@ -443,6 +466,9 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QtGui.
         self.clearText()
         self.renderFunctionGraph(fva)
         self.updateWindowTitle()
+
+        if cb != None:
+            cb(self)
 
     def loadDefaultRenderers(self):
         vivrend = viv_rend.WorkspaceRenderer(self.vw)
