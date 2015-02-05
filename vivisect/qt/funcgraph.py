@@ -294,6 +294,7 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QtGui.
         self.mem_canvas.setZoomFactor(newzoom)
 
     def refresh(self):
+        self.clearText()
         self.fva = None
         self._renderMemory()
 
