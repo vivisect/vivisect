@@ -23,6 +23,7 @@ class VQVivFuncgraphCanvas(vq_memory.VivCanvasBase):
     def __init__(self, *args, **kwargs):
         vq_memory.VivCanvasBase.__init__(self, *args, **kwargs)
         self.curs = QtGui.QCursor(self)
+        self._refresh_cb = None
 
     def wheelEvent(self, event):
         mods = QtGui.QApplication.keyboardModifiers()
@@ -83,15 +84,28 @@ class VQVivFuncgraphCanvas(vq_memory.VivCanvasBase):
         else:
             menu = QtGui.QMenu(parent=self)
 
-        viewmenu = menu.addMenu('view   ')
-        viewmenu.addAction("Save frame to HTML", ACT(self._menuSaveToHtml))
-        #TODO: Refresh menu item :)
+        self.viewmenu = menu.addMenu('view   ')
+        self.viewmenu.addAction("Save frame to HTML", ACT(self._menuSaveToHtml))
+        self.viewmenu.addAction("Refresh", ACT(self.refresh))
 
         menu.exec_(event.globalPos())
+
+    def setRefreshCallback(self, callback):
+        '''
+        Set a refresh "callback" that will be called whenever a user input
+        calls for refreshing the graph.
+        '''
+        self._refresh_cb = callback
 
     def _navExpression(self, expr):
         if self._canv_navcallback:
             self._canv_navcallback(expr)
+
+    def refresh(self):
+        if self._refresh_cb == None:
+            return
+
+        self._refresh_cb()
 
 funcgraph_js = '''
 svgns = "http://www.w3.org/2000/svg";
@@ -212,6 +226,7 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QtGui.
 
         self.mem_canvas = VQVivFuncgraphCanvas(vw, syms=vw, parent=self)
         self.mem_canvas.setNavCallback(self.enviNavGoto)
+        self.mem_canvas.setRefreshCallback(self.refresh)
 
         self.loadDefaultRenderers()
 
@@ -243,6 +258,7 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QtGui.
         self.addHotKeyTarget('funcgraph:inczoom', self._hotkey_inczoom)
         self.addHotKey('ctrl+-', 'funcgraph:deczoom')
         self.addHotKeyTarget('funcgraph:deczoom', self._hotkey_deczoom)
+        self.addHotKey('f5', 'funcgraph:refresh')
 
     def _hotkey_histback(self):
         if len(self.history) >= 2:
@@ -276,6 +292,10 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QtGui.
 
         #self.vw.vprint("NEW ZOOM    %f" % newzoom)
         self.mem_canvas.setZoomFactor(newzoom)
+
+    def refresh(self):
+        self.fva = None
+        self._renderMemory()
 
     def _histSetupMenu(self):
         self.histmenu.clear()
