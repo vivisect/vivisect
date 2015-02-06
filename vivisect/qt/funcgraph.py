@@ -210,13 +210,13 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QtGui.
         self._last_viewpt = None
         self.history = collections.deque((),100)
 
-        self._renderDoneSignal.connect(self._refresh_cb)
-
         QtGui.QWidget.__init__(self, parent=vwqgui)
         vq_hotkey.HotKeyMixin.__init__(self)
         viv_base.VivEventCore.__init__(self, vw)
         e_qt_memory.EnviNavMixin.__init__(self)
         self.setEnviNavName('FuncGraph%d' % self.viewidx.next())
+
+        self._renderDoneSignal.connect(self._refresh_cb)
 
         self.top_box = QtGui.QWidget(parent=self)
         hbox = QtGui.QHBoxLayout(self.top_box)
