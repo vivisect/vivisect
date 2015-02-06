@@ -13,8 +13,8 @@ import vivisect.qt.memory as vq_memory
 import vivisect.qt.ctxmenu as vq_ctxmenu
 import vivisect.tools.graphutil as viv_graphutil
 
-from PyQt4.QtCore   import pyqtSignal, pyqtSlot
 from PyQt4          import QtCore, QtGui, QtWebKit
+from PyQt4.QtCore   import pyqtSignal, pyqtSlot, QPoint
 from vqt.main       import idlethread, idlethreadsync, eatevents, vqtconnect, workthread
 
 from vqt.common import *
@@ -98,7 +98,18 @@ class VQVivFuncgraphCanvas(vq_memory.VivCanvasBase):
             self._canv_navcallback(expr)
 
     def refresh(self):
+        '''
+        Redraw the function graph (actually, tells the View to do it)
+        '''
         self.refreshSignal.emit()
+
+    @idlethread
+    def setScrollPosition(self, x, y):
+        '''
+        Sets the view reticle to an absolute scroll position
+        '''
+        point = QPoint(x, y)
+        self.page().mainFrame().setScrollPosition(point)
 
 funcgraph_js = '''
 svgns = "http://www.w3.org/2000/svg";
@@ -299,22 +310,15 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QtGui.
         self._cur_point = self.mem_canvas.page().mainFrame().scrollPosition()
         self.clearText()
         self.fva = None
-        self._renderMemory(cb=self._refresh_2)
+        self._renderMemory(cb=self._refresh_cb)
 
     @workthread
-    def _refresh_2(self, view):
+    def _refresh_cb(self, view):
         '''
         This is a hack to make sure that when _renderMemory() completes,
         _refresh_3() gets run after all other rendering events yet to come.
         '''
-        self._refresh_3(view)
-
-    @idlethread
-    def _refresh_3(self, view):
-        '''
-        Sets the view reticle back to where it started when Refresh was triggered
-        '''
-        self.mem_canvas.page().mainFrame().setScrollPosition(self._cur_point)
+        self.mem_canvas.setScrollPosition(self._cur_point.x(), self._cur_point.y())
 
     def _histSetupMenu(self):
         self.histmenu.clear()
