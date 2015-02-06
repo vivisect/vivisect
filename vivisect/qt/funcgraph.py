@@ -15,12 +15,14 @@ import vivisect.tools.graphutil as viv_graphutil
 
 from PyQt4          import QtCore, QtGui, QtWebKit
 from PyQt4.QtCore   import pyqtSignal, pyqtSlot, QPoint
-from vqt.main       import idlethread, idlethreadsync, eatevents, vqtconnect, workthread
+from vqt.main       import idlethread, idlethreadsync, eatevents, vqtconnect, workthread, vqtevent
 
 from vqt.common import *
 from vivisect.const import *
 
 class VQVivFuncgraphCanvas(vq_memory.VivCanvasBase):
+    paintUp = pyqtSignal()
+    paintDown = pyqtSignal()
     refreshSignal = pyqtSignal()
 
     def __init__(self, *args, **kwargs):
@@ -90,6 +92,7 @@ class VQVivFuncgraphCanvas(vq_memory.VivCanvasBase):
         self.viewmenu = menu.addMenu('view   ')
         self.viewmenu.addAction("Save frame to HTML", ACT(self._menuSaveToHtml))
         self.viewmenu.addAction("Refresh", ACT(self.refresh))
+        self.viewmenu.addAction("ColorizeDown", ACT(self.paintDown.emit))
 
         menu.exec_(event.globalPos())
 
@@ -233,6 +236,8 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QtGui.
         self.mem_canvas = VQVivFuncgraphCanvas(vw, syms=vw, parent=self)
         self.mem_canvas.setNavCallback(self.enviNavGoto)
         self.mem_canvas.refreshSignal.connect(self.refresh)
+        self.mem_canvas.paintUp.connect(self._hotkey_paintup)
+        self.mem_canvas.paintDown.connect(self._hotkey_paintdown)
 
         self.loadDefaultRenderers()
 
@@ -303,21 +308,6 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QtGui.
 
         #self.vw.vprint("NEW ZOOM    %f" % newzoom)
         self.mem_canvas.setZoomFactor(newzoom)
-
-    def _hotkey_paintup(self):
-        pass
-    def _hotkey_paintdown(self):
-        '''
-
-        '''
-        # get weighted nodes from graph
-        # follow all edges from starting node that traverse downward, recursively, 
-        #       until the end of function?
-        #       until the branches remerge? (first remerge after pathcount == 0)
-        # paint node colors and va colors 
-        # where do we access the graph?
-        graph = self.graph
-        startva = None
 
     @pyqtSlot()
     def refresh(self):
@@ -397,11 +387,12 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QtGui.
         #h = frame.toHtml()
         file('test.html','wb').write(str(h))
 
-    def renderFunctionGraph(self, fva):
+    def renderFunctionGraph(self, fva, graph=None):
 
         self.fva = fva
         #self.graph = self.vw.getFunctionGraph(fva)
-        self.graph = viv_graphutil.buildFunctionGraph(self.vw, fva, revloop=True)
+        if graph == None:
+            self.graph = viv_graphutil.buildFunctionGraph(self.vw, fva, revloop=True)
 
         # Go through each of the nodes and render them so we know sizes
         for node in self.graph.getNodes():
@@ -507,6 +498,46 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QtGui.
 
         memelem = frame.findFirstElement('#memcanvas')
         memelem.setInnerXml(' ')
+
+    def _hotkey_paintup(self, va=None):
+        pass
+        
+    def _hotkey_paintdown(self, va=None):
+        '''
+
+        '''
+        # get weighted nodes from graph
+        # follow all edges from starting node that traverse downward, recursively, 
+        #       until the end of function?
+        #       until the branches remerge? (first remerge after pathcount == 0)
+        # paint node colors and va colors 
+        # where do we access the graph?
+
+        graph = viv_graphutil.buildFunctionGraph(self.vw, self.fva, revloop=True)
+        startva = self.mem_canvas._canv_curva
+        if startva == None:
+            return
+
+        viv_graphutil.findRemergeDown(graph, startva)
+
+        colormap = {}
+        for node in graph.getNodesByProp('hit'):
+            off = 0
+            cbsize = node[1].get('cbsize')
+            if cbsize == None:
+                raise Exception('node has not cbsize: %s' % repr(node))
+
+            # step through opcode for a node
+            while off < cbsize:
+                op = self.vw.parseOpcode(node[0] + off)
+                colormap[op.va] = 'brown'
+                off += len(op)
+
+            #for eid, frid, toid, einfo in graph.getRefsTo(node):
+
+        print colormap
+        vqtevent('viv:colormap', colormap)
+        return colormap
 
 #@idlethread
 #def showFunctionGraph(fva, vw, vwqgui):
