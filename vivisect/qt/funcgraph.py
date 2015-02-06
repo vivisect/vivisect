@@ -208,6 +208,7 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QtGui.
         self.fva = None
         self.graph = None
         self.vwqgui = vwqgui
+        self._last_viewpt = None
         self.history = collections.deque((),100)
 
         QtGui.QWidget.__init__(self, parent=vwqgui)
@@ -308,7 +309,7 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QtGui.
         that have changed since last update, and be fast, so we can update
         after every change.  
         '''
-        self._cur_point = self.mem_canvas.page().mainFrame().scrollPosition()
+        self._last_viewpt = self.mem_canvas.page().mainFrame().scrollPosition()
         self.clearText()
         self.fva = None
         self._renderDoneSignal.connect(self._refresh_cb)
@@ -321,7 +322,7 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QtGui.
         This is a hack to make sure that when _renderMemory() completes,
         _refresh_3() gets run after all other rendering events yet to come.
         '''
-        self.mem_canvas.setScrollPosition(self._cur_point.x(), self._cur_point.y())
+        self.mem_canvas.setScrollPosition(self._last_viewpt.x(), self._last_viewpt.y())
         self._renderDoneSignal.disconnect(self._refresh_cb)
 
     def _histSetupMenu(self):
