@@ -13,8 +13,8 @@ import vivisect.qt.memory as vq_memory
 import vivisect.qt.ctxmenu as vq_ctxmenu
 import vivisect.tools.graphutil as viv_graphutil
 
+from PyQt4.QtCore   import pyqtSignal, QPoint
 from PyQt4          import QtCore, QtGui, QtWebKit
-from PyQt4.QtCore   import pyqtSignal, pyqtSlot, QPoint
 from vqt.main       import idlethread, idlethreadsync, eatevents, vqtconnect, workthread
 
 from vqt.common import *
@@ -26,7 +26,6 @@ class VQVivFuncgraphCanvas(vq_memory.VivCanvasBase):
     def __init__(self, *args, **kwargs):
         vq_memory.VivCanvasBase.__init__(self, *args, **kwargs)
         self.curs = QtGui.QCursor(self)
-        self._refresh_cb = None
 
     def wheelEvent(self, event):
         mods = QtGui.QApplication.keyboardModifiers()
@@ -211,6 +210,8 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QtGui.
         self._last_viewpt = None
         self.history = collections.deque((),100)
 
+        self._renderDoneSignal.connect(self._refresh_cb)
+
         QtGui.QWidget.__init__(self, parent=vwqgui)
         vq_hotkey.HotKeyMixin.__init__(self)
         viv_base.VivEventCore.__init__(self, vw)
@@ -300,7 +301,6 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QtGui.
         #self.vw.vprint("NEW ZOOM    %f" % newzoom)
         self.mem_canvas.setZoomFactor(newzoom)
 
-    @pyqtSlot()
     def refresh(self):
         '''
         Cause the Function Graph to redraw itself.
@@ -312,18 +312,19 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QtGui.
         self._last_viewpt = self.mem_canvas.page().mainFrame().scrollPosition()
         self.clearText()
         self.fva = None
-        self._renderDoneSignal.connect(self._refresh_cb)
         self._renderMemory()
 
     @workthread
-    @pyqtSlot()
     def _refresh_cb(self):
         '''
         This is a hack to make sure that when _renderMemory() completes,
         _refresh_3() gets run after all other rendering events yet to come.
         '''
+        if self._last_viewpt == None:
+            return
+
         self.mem_canvas.setScrollPosition(self._last_viewpt.x(), self._last_viewpt.y())
-        self._renderDoneSignal.disconnect(self._refresh_cb)
+        self._last_viewpt = None
 
     def _histSetupMenu(self):
         self.histmenu.clear()
