@@ -199,6 +199,7 @@ import itertools
 import collections
 
 class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QtGui.QWidget, vq_save.SaveableWidget, viv_base.VivEventCore):
+    _renderDoneSignal = pyqtSignal()
 
     viewidx = itertools.count()
 
@@ -310,15 +311,18 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QtGui.
         self._cur_point = self.mem_canvas.page().mainFrame().scrollPosition()
         self.clearText()
         self.fva = None
-        self._renderMemory(cb=self._refresh_cb)
+        self._renderDoneSignal.connect(self._refresh_cb)
+        self._renderMemory()
 
     @workthread
-    def _refresh_cb(self, view):
+    @pyqtSlot()
+    def _refresh_cb(self):
         '''
         This is a hack to make sure that when _renderMemory() completes,
         _refresh_3() gets run after all other rendering events yet to come.
         '''
         self.mem_canvas.setScrollPosition(self._cur_point.x(), self._cur_point.y())
+        self._renderDoneSignal.disconnect(self._refresh_cb)
 
     def _histSetupMenu(self):
         self.histmenu.clear()
@@ -441,7 +445,7 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QtGui.
         #return e_mem_qt.VQMemoryWindow.closeEvent(self, event)
 
     @idlethread
-    def _renderMemory(self, cb=None):
+    def _renderMemory(self):
 
         expr = str(self.addr_entry.text())
         if not expr:
@@ -466,8 +470,7 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QtGui.
         self.renderFunctionGraph(fva)
         self.updateWindowTitle()
 
-        if cb != None:
-            cb(self)
+        self._renderDoneSignal.emit()
 
     def loadDefaultRenderers(self):
         vivrend = viv_rend.WorkspaceRenderer(self.vw)
