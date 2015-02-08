@@ -539,6 +539,42 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QtGui.
         vqtevent('viv:colormap', colormap)
         return colormap
 
+    def _hotkey_paintTilMerge(self, va=None):
+        '''
+        same as paintdown but only until the graph remerges
+        '''
+        # get weighted nodes from graph
+        # follow all edges from starting node that traverse downward, recursively, 
+        #       until the end of function?
+        #       until the branches remerge? (first remerge after pathcount == 0)
+        # paint node colors and va colors 
+        # where do we access the graph?
+
+        graph = viv_graphutil.buildFunctionGraph(self.vw, self.fva, revloop=True)
+        startva = self.mem_canvas._canv_curva
+        if startva == None:
+            return
+
+        viv_graphutil.findRemergeDown(graph, startva)
+
+        colormap = {}
+        for node in graph.getNodesByProp('hit'):
+            off = 0
+            cbsize = node[1].get('cbsize')
+            if cbsize == None:
+                raise Exception('node has not cbsize: %s' % repr(node))
+
+            # step through opcode for a node
+            while off < cbsize:
+                op = self.vw.parseOpcode(node[0] + off)
+                colormap[op.va] = 'brown'
+                off += len(op)
+
+            #for eid, frid, toid, einfo in graph.getRefsTo(node):
+
+        print colormap
+        vqtevent('viv:colormap', colormap)
+        return colormap
 #@idlethread
 #def showFunctionGraph(fva, vw, vwqgui):
     #view = VQVivFuncgraphView(fva, vw, vwqgui)

@@ -627,13 +627,23 @@ def findRemergeDown(graph, va):
     starting at a given va, figure out the nodes connecting va to the next place something remerges
     '''
     count = 1
+    startnid = getGraphNodeByVa(graph, va)
     # paint down ?? FIXME: are we doing this down below as well?  is this superfluous?
-    preRouteGraphDown(graph, va, mark='hit', loop=False)
+    preRouteGraphDown(graph, startnid, mark='hit', loop=False)
+    # mark all parents of our starting node
+    preRouteGraphUp(graph, startnid, mark='parent', loop=False)
 
     #walk the different levels and check for the number of marked nodes at each level
     fft, nodewts, leaves = getWeightedFFT(graph)
+    startnode = graph.getNode(startnid)
+    startweight = nodewts.get(startnid)
 
-    startnid = getGraphNodeByVa(graph, va)
+    # clear nodes that are hit by other branches
+    for nid,ninfo in graph.getNodes():
+        if nodewts.get(nid) <= startweight and \
+                ninfo.get('hit') == ninfo.get('parent') == None:
+            clearMarkDown(graph, nid, mark='hit')
+
     if startnid == None:
         raise Exception("findRemergeDown: starting node does not exist for va 0x%x" % va)
 
@@ -646,37 +656,8 @@ def findRemergeDown(graph, va):
     edgecounts = [0 for x in range(len(fft))]
     #for count, nids in fft.items():
 
-    startnode = graph.getNode(startnid)
-    #startnode[1]['hit'] = 1
-    graph.setNodeProp(startnode, 'hit', 1)
-    todo = [ (startnode, startlvl) ]
-
-    while len(todo):
-        node, weight = todo.pop()
-
-        for eid, frnid, tonid, einfo in graph.getRefsFrom(node):
-            tonode = graph.getNode(tonid)
-            toweight = nodewts.get(tonid)
-
-            # no loops here, please.
-            if weight >= toweight:
-                continue
-
-            # add to the level weights (if gap between fr, to, the levels in 
-            # between get added to as well)
-            for lvl in range(weight, toweight):
-                edgecounts[lvl] += 1
-
-            # mark nodes/edges along the path
-            graph.setNodeProp(tonode, 'hit', 1)
-            edge = graph.getEdge(eid)
-            graph.setEdgeProp(edge, 'hit', 1)
-
-            # subtract for merges?  not yet.
-            # add to todo:
-            todo.append( (tonode, toweight) )
     return edgecounts
-    edgecounts = edgecounts[startlvl:]
+    #edgecounts = edgecounts[startlvl:]
 
 
 
@@ -702,16 +683,17 @@ def preRouteGraphUp(graph, tova, loop=True, mark='down'):
     paint a route from our destination, 'up' the graph
     '''
 
-    tonode = getGraphNodeByVa(graph, tova)
-    if tonode == None:
+    tonid = getGraphNodeByVa(graph, tova)
+    if tonid == None:
         raise Exception("tova not in graph 0x%x" % tova)
 
+    tonode = graph.getNode(tonid)
     nwlist = graph.getHierNodeWeights()
     todo = [ (tonode) ]
     while todo:
         curnode = todo.pop()
         graph.setNodeProp(curnode, mark, True)
-        for eid, fr, to, einfo in graph.getRefsTo((curnode, None)):
+        for eid, fr, to, einfo in graph.getRefsTo(curnode):
             if graph.getNodeProps(fr).get(mark) == True:
                 continue
             if not loop and nwlist.get(fr) <= nwlist.get(to):
@@ -733,6 +715,32 @@ def preRouteGraphDown(graph, fromva, loop=False, mark='up'):
         curnode = todo.pop()
         curnodeva, curninfo = curnode
         graph.setNodeProp(curnode, mark, True)
+        for eid, fr, to, einfo in graph.getRefsFrom(curnode):
+            if graph.getNodeProps(to).get(mark) == True:
+                continue
+            if not loop and nwlist.get(fr) >= nwlist.get(to):
+                continue
+
+            #raw_input("try next")
+            todo.append(graph.getNode(to))
+
+def clearMarkDown(graph, fromva, loop=False, mark='up'):
+    '''
+    clear a route from our starting point, 'down' the graph.
+    ie. remove the mark
+    '''
+    fromnode = getGraphNodeByVa(graph, fromva)
+    if fromnode == None:
+        raise Exception("fromva not in graph 0x%x" % fromva)
+
+    nwlist = graph.getHierNodeWeights()
+    todo = [ graph.getNode(fromnode) ]
+    while len(todo):
+        curnode = todo.pop()
+        curnodeva, curninfo = curnode
+
+        graph.delNodeProp(curnode, mark)
+
         for eid, fr, to, einfo in graph.getRefsFrom(curnode):
             if graph.getNodeProps(to).get(mark) == True:
                 continue
