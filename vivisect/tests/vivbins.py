@@ -13,10 +13,11 @@ def require(f):
 
 def getTestWorkspace(fname, analyze=True):
     path = os.getenv('VIVBINS') 
-    if path != None:
-        fpath = os.path.join(path,fname)
-    else:
+    fpath = os.path.join(path,fname)
+
+    if path == '1':
         fpath = os.path.join('test_vivisect','bins',fname)
+
     vw = vivisect.VivWorkspace()
     vw.loadFromFile(fpath)
     if analyze:
@@ -25,10 +26,11 @@ def getTestWorkspace(fname, analyze=True):
 
 def getAnsWorkspace(fname):
     path = os.getenv('VIVBINS') 
-    if path != None:
-        fpath = os.path.join(path,"%s.viv" % fname)
-    else:
+    fpath = os.path.join(path,"%s.viv" % fname)
+
+    if path == '1':
         fpath = os.path.join('test_vivisect','bins','%s.viv' % fname)
+
     vw = vivisect.VivWorkspace()
     vw.loadWorkspace(fpath)
     return vw
