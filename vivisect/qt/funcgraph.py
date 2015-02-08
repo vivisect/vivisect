@@ -525,7 +525,7 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QtGui.
             off = 0
             cbsize = node[1].get('cbsize')
             if cbsize == None:
-                raise Exception('node has not cbsize: %s' % repr(node))
+                raise Exception('node has no cbsize: %s' % repr(node))
 
             # step through opcode for a node
             while off < cbsize:
@@ -560,7 +560,7 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QtGui.
             off = 0
             cbsize = node[1].get('cbsize')
             if cbsize == None:
-                raise Exception('node has not cbsize: %s' % repr(node))
+                raise Exception('node has no cbsize: %s' % repr(node))
 
             # step through opcode for a node
             while off < cbsize:
@@ -591,7 +591,7 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QtGui.
             off = 0
             cbsize = node[1].get('cbsize')
             if cbsize == None:
-                raise Exception('node has not cbsize: %s' % repr(node))
+                raise Exception('node has no cbsize: %s' % repr(node))
 
             # step through opcode for a node
             while off < cbsize:
