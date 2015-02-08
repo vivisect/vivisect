@@ -93,8 +93,9 @@ class VQVivFuncgraphCanvas(vq_memory.VivCanvasBase):
         self.viewmenu = menu.addMenu('view   ')
         self.viewmenu.addAction("Save frame to HTML", ACT(self._menuSaveToHtml))
         self.viewmenu.addAction("Refresh", ACT(self.refresh))
-        self.viewmenu.addAction("Colorize Down", ACT(self.paintDown.emit))
-        self.viewmenu.addAction("Colorize until remerge", ACT(self.paintMerge.emit))
+        self.viewmenu.addAction("Paint Up", ACT(self.paintUp.emit))
+        self.viewmenu.addAction("Paint Down", ACT(self.paintDown.emit))
+        self.viewmenu.addAction("Paint Down until remerge", ACT(self.paintMerge.emit))
 
         menu.exec_(event.globalPos())
 
@@ -505,20 +506,44 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QtGui.
         memelem.setInnerXml(' ')
 
     def _hotkey_paintUp(self, va=None):
-        pass
+        '''
+        Paint the VA's from the selected basic block up to all possible 
+        non-looping starting points.
+        '''
+        graph = viv_graphutil.buildFunctionGraph(self.vw, self.fva, revloop=True)
+        startva = self.mem_canvas._canv_curva
+        if startva == None:
+            return
+
+        viv_graphutil.preRouteGraphUp(graph, startva, mark='hit')
+
+        count = 0
+        colormap = {}
+        for node in graph.getNodesByProp('hit'):
+            count += 1
+            off = 0
+            cbsize = node[1].get('cbsize')
+            if cbsize == None:
+                raise Exception('node has not cbsize: %s' % repr(node))
+
+            # step through opcode for a node
+            while off < cbsize:
+                op = self.vw.parseOpcode(node[0] + off)
+                colormap[op.va] = 'orange'
+                off += len(op)
+
+        self.vw.vprint("Colored Blocks: %d" % count)
+        vqtevent('viv:colormap', colormap)
+        return colormap
+
         
     def _hotkey_paintDown(self, va=None):
         '''
-
+        Paint the VA's from the selected basic block down to all possible 
+        non-looping blocks.  This is valuable for determining what code can 
+        execute from any starting basic block, without a loop.
         '''
-        #TODO: make overlapping colors available
-
-        # get weighted nodes from graph
-        # follow all edges from starting node that traverse downward, recursively, 
-        #       until the end of function?
-        #       until the branches remerge? (first remerge after pathcount == 0)
-        # paint node colors and va colors 
-        # where do we access the graph?
+        #TODO: make overlapping colors available for multiple paintings
 
         graph = viv_graphutil.buildFunctionGraph(self.vw, self.fva, revloop=True)
         startva = self.mem_canvas._canv_curva
@@ -542,23 +567,14 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QtGui.
                 colormap[op.va] = 'brown'
                 off += len(op)
 
-            #for eid, frid, toid, einfo in graph.getRefsTo(node):
-
-        print colormap
-        vqtevent('viv:colormap', colormap)
         self.vw.vprint("Colored Blocks: %d" % count)
+        vqtevent('viv:colormap', colormap)
         return colormap
 
     def _hotkey_paintMerge(self, va=None):
         '''
         same as paintdown but only until the graph remerges
         '''
-        # get weighted nodes from graph
-        # follow all edges from starting node that traverse downward, recursively, 
-        #       until the end of function?
-        #       until the branches remerge? (first remerge after pathcount == 0)
-        # paint node colors and va colors 
-        # where do we access the graph?
 
         graph = viv_graphutil.buildFunctionGraph(self.vw, self.fva, revloop=True)
         startva = self.mem_canvas._canv_curva
@@ -582,10 +598,7 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QtGui.
                 colormap[op.va] = 'brown'
                 off += len(op)
 
-            #for eid, frid, toid, einfo in graph.getRefsTo(node):
-
         self.vw.vprint("Colored Blocks: %d" % count)
-        print colormap
         vqtevent('viv:colormap', colormap)
         return colormap
 

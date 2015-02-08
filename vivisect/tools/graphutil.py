@@ -627,13 +627,10 @@ def findRemergeDown(graph, va):
     starting at a given va, figure out the nodes connecting va to the next place something remerges
     '''
     startnid = getGraphNodeByVa(graph, va)
-    if startnid == None:
-        raise Exception("findRemergeDown: starting node does not exist for va 0x%x" % va)
 
-    # paint down ?? FIXME: are we doing this down below as well?  is this superfluous?
+    # paint down graph, 
     preRouteGraphDown(graph, startnid, mark='hit', loop=False)
 
-    #walk the different levels and check for the number of marked nodes at each level
     fft, nodewts, leaves = getWeightedFFT(graph)
     startnode = graph.getNode(startnid)
     startweight = nodewts.get(startnid)
@@ -641,19 +638,16 @@ def findRemergeDown(graph, va):
     for node in graph.getNodesByProp('hit'):
         # skip the starting node
         if node[0] == startnid: 
-            print "startnid: 0x%x" % node[0]
             continue
+
         if node[1].get('hit') == None: 
-            print "already cleared 0x%x" % node[0]
             continue
 
         for eid, frva, tova, einfo in graph.getRefsTo(node):
             frnode = graph.getNode(frva)
             if frnode[1].get('hit') == None:
-                print "remerge: 0x%x -> 0x%x" % (frva, tova)
                 # clear from here down
                 clearMarkDown(graph, tova, mark='hit')
-                print repr(graph.getNode(tova))
                 break
 
 # path routing through a graph.  reduces aimless wandering when we know where we want to be
@@ -671,7 +665,7 @@ def clearGraphRouting(graph, marks=['up','down']):
     '''
     for nid, ninfo in graph.getNodes():
         for mark in marks:
-            graph.getNodeProps(nid)[mark] = False
+            graph.delNodeProp(nid, mark)
 
 def preRouteGraphUp(graph, tova, loop=True, mark='down'):
     '''
@@ -693,8 +687,8 @@ def preRouteGraphUp(graph, tova, loop=True, mark='down'):
                 continue
             if not loop and nwlist.get(fr) <= nwlist.get(to):
                 continue
-            #raw_input("try next")
-            todo.append(fr)
+            frnode = graph.getNode(fr)
+            todo.append(frnode)
    
 def preRouteGraphDown(graph, fromva, loop=False, mark='up'):
     '''
@@ -716,7 +710,6 @@ def preRouteGraphDown(graph, fromva, loop=False, mark='up'):
             if not loop and nwlist.get(fr) >= nwlist.get(to):
                 continue
 
-            #raw_input("try next")
             todo.append(graph.getNode(to))
 
 def clearMarkDown(graph, fromva, loop=False, mark='up'):
@@ -734,9 +727,8 @@ def clearMarkDown(graph, fromva, loop=False, mark='up'):
         curnode = todo.pop()
         curnodeva, curninfo = curnode
 
-        print "deleting mark '%s' from node 0x%x" % (mark, curnode[0])
+        # actually delete the node property, not just remove value
         graph.delNodeProp(curnode, mark)
-        print repr(graph.getNode(curnode[0]))
 
         for eid, fr, to, einfo in graph.getRefsFrom(curnode):
             if graph.getNodeProps(to).get(mark) == True:
@@ -744,7 +736,6 @@ def clearMarkDown(graph, fromva, loop=False, mark='up'):
             if not loop and nwlist.get(fr) >= nwlist.get(to):
                 continue
 
-            #raw_input("try next")
             todo.append(graph.getNode(to))
 
 
