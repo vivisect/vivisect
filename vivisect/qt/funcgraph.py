@@ -86,9 +86,9 @@ class VQVivFuncgraphCanvas(vq_memory.VivCanvasBase):
         else:
             menu = QtGui.QMenu(parent=self)
 
-        self.viewmenu = menu.addMenu('view   ')
-        self.viewmenu.addAction("Save frame to HTML", ACT(self._menuSaveToHtml))
-        self.viewmenu.addAction("Refresh", ACT(self.refresh))
+        viewmenu = menu.addMenu('view   ')
+        viewmenu.addAction("Save frame to HTML", ACT(self._menuSaveToHtml))
+        viewmenu.addAction("Refresh", ACT(self.refresh))
 
         menu.exec_(event.globalPos())
 
