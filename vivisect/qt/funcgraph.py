@@ -23,6 +23,7 @@ from vivisect.const import *
 class VQVivFuncgraphCanvas(vq_memory.VivCanvasBase):
     paintUp = pyqtSignal()
     paintDown = pyqtSignal()
+    paintMerge = pyqtSignal()
     refreshSignal = pyqtSignal()
 
     def __init__(self, *args, **kwargs):
@@ -92,7 +93,8 @@ class VQVivFuncgraphCanvas(vq_memory.VivCanvasBase):
         self.viewmenu = menu.addMenu('view   ')
         self.viewmenu.addAction("Save frame to HTML", ACT(self._menuSaveToHtml))
         self.viewmenu.addAction("Refresh", ACT(self.refresh))
-        self.viewmenu.addAction("ColorizeDown", ACT(self.paintDown.emit))
+        self.viewmenu.addAction("Colorize Down", ACT(self.paintDown.emit))
+        self.viewmenu.addAction("Colorize until remerge", ACT(self.paintMerge.emit))
 
         menu.exec_(event.globalPos())
 
@@ -236,8 +238,9 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QtGui.
         self.mem_canvas = VQVivFuncgraphCanvas(vw, syms=vw, parent=self)
         self.mem_canvas.setNavCallback(self.enviNavGoto)
         self.mem_canvas.refreshSignal.connect(self.refresh)
-        self.mem_canvas.paintUp.connect(self._hotkey_paintup)
-        self.mem_canvas.paintDown.connect(self._hotkey_paintdown)
+        self.mem_canvas.paintUp.connect(self._hotkey_paintUp)
+        self.mem_canvas.paintDown.connect(self._hotkey_paintDown)
+        self.mem_canvas.paintMerge.connect(self._hotkey_paintMerge)
 
         self.loadDefaultRenderers()
 
@@ -272,9 +275,11 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QtGui.
         self.addHotKey('f5', 'funcgraph:refresh')
         self.addHotKeyTarget('funcgraph:refresh', self.refresh)
         self.addHotKey('ctrl+u', 'funcgraph:paintup')
-        self.addHotKeyTarget('funcgraph:paintup', self._hotkey_paintup)
+        self.addHotKeyTarget('funcgraph:paintup', self._hotkey_paintUp)
         self.addHotKey('ctrl+d', 'funcgraph:paintdown')
-        self.addHotKeyTarget('funcgraph:paintdown', self._hotkey_paintdown)
+        self.addHotKeyTarget('funcgraph:paintdown', self._hotkey_paintDown)
+        self.addHotKey('ctrl+m', 'funcgraph:paintmerge')
+        self.addHotKeyTarget('funcgraph:paintmerge', self._hotkey_paintMerge)
 
     def _hotkey_histback(self):
         if len(self.history) >= 2:
@@ -499,13 +504,15 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QtGui.
         memelem = frame.findFirstElement('#memcanvas')
         memelem.setInnerXml(' ')
 
-    def _hotkey_paintup(self, va=None):
+    def _hotkey_paintUp(self, va=None):
         pass
         
-    def _hotkey_paintdown(self, va=None):
+    def _hotkey_paintDown(self, va=None):
         '''
 
         '''
+        #TODO: make overlapping colors available
+
         # get weighted nodes from graph
         # follow all edges from starting node that traverse downward, recursively, 
         #       until the end of function?
@@ -518,10 +525,12 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QtGui.
         if startva == None:
             return
 
-        viv_graphutil.findRemergeDown(graph, startva)
+        viv_graphutil.preRouteGraphDown(graph, startva, mark='hit')
 
+        count = 0
         colormap = {}
         for node in graph.getNodesByProp('hit'):
+            count += 1
             off = 0
             cbsize = node[1].get('cbsize')
             if cbsize == None:
@@ -537,9 +546,10 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QtGui.
 
         print colormap
         vqtevent('viv:colormap', colormap)
+        self.vw.vprint("Colored Blocks: %d" % count)
         return colormap
 
-    def _hotkey_paintTilMerge(self, va=None):
+    def _hotkey_paintMerge(self, va=None):
         '''
         same as paintdown but only until the graph remerges
         '''
@@ -557,8 +567,10 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QtGui.
 
         viv_graphutil.findRemergeDown(graph, startva)
 
+        count = 0
         colormap = {}
         for node in graph.getNodesByProp('hit'):
+            count += 1
             off = 0
             cbsize = node[1].get('cbsize')
             if cbsize == None:
@@ -572,9 +584,11 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QtGui.
 
             #for eid, frid, toid, einfo in graph.getRefsTo(node):
 
+        self.vw.vprint("Colored Blocks: %d" % count)
         print colormap
         vqtevent('viv:colormap', colormap)
         return colormap
+
 #@idlethread
 #def showFunctionGraph(fva, vw, vwqgui):
     #view = VQVivFuncgraphView(fva, vw, vwqgui)

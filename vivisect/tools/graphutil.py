@@ -626,40 +626,35 @@ def findRemergeDown(graph, va):
     '''
     starting at a given va, figure out the nodes connecting va to the next place something remerges
     '''
-    count = 1
     startnid = getGraphNodeByVa(graph, va)
+    if startnid == None:
+        raise Exception("findRemergeDown: starting node does not exist for va 0x%x" % va)
+
     # paint down ?? FIXME: are we doing this down below as well?  is this superfluous?
     preRouteGraphDown(graph, startnid, mark='hit', loop=False)
-    # mark all parents of our starting node
-    preRouteGraphUp(graph, startnid, mark='parent', loop=False)
 
     #walk the different levels and check for the number of marked nodes at each level
     fft, nodewts, leaves = getWeightedFFT(graph)
     startnode = graph.getNode(startnid)
     startweight = nodewts.get(startnid)
 
-    # clear nodes that are hit by other branches
-    for nid,ninfo in graph.getNodes():
-        if nodewts.get(nid) <= startweight and \
-                ninfo.get('hit') == ninfo.get('parent') == None:
-            clearMarkDown(graph, nid, mark='hit')
+    for node in graph.getNodesByProp('hit'):
+        # skip the starting node
+        if node[0] == startnid: 
+            print "startnid: 0x%x" % node[0]
+            continue
+        if node[1].get('hit') == None: 
+            print "already cleared 0x%x" % node[0]
+            continue
 
-    if startnid == None:
-        raise Exception("findRemergeDown: starting node does not exist for va 0x%x" % va)
-
-    startlvl = nodewts.get(startnid)
-    if startlvl == None:
-        raise Exception("findRemergeDown: starting node does not have a node weight for va 0x%x" % va)
-
-    # trial: count up the number of edges for each level (into?  out of?). then look for 1
-    # edgecount indexes refer to the edges FROM the nodes of the same index level.
-    edgecounts = [0 for x in range(len(fft))]
-    #for count, nids in fft.items():
-
-    return edgecounts
-    #edgecounts = edgecounts[startlvl:]
-
-
+        for eid, frva, tova, einfo in graph.getRefsTo(node):
+            frnode = graph.getNode(frva)
+            if frnode[1].get('hit') == None:
+                print "remerge: 0x%x -> 0x%x" % (frva, tova)
+                # clear from here down
+                clearMarkDown(graph, tova, mark='hit')
+                print repr(graph.getNode(tova))
+                break
 
 # path routing through a graph.  reduces aimless wandering when we know where we want to be
 def preRouteGraph(graph, fromva, tova):
@@ -739,7 +734,9 @@ def clearMarkDown(graph, fromva, loop=False, mark='up'):
         curnode = todo.pop()
         curnodeva, curninfo = curnode
 
+        print "deleting mark '%s' from node 0x%x" % (mark, curnode[0])
         graph.delNodeProp(curnode, mark)
+        print repr(graph.getNode(curnode[0]))
 
         for eid, fr, to, einfo in graph.getRefsFrom(curnode):
             if graph.getNodeProps(to).get(mark) == True:
