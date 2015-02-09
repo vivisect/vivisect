@@ -461,7 +461,7 @@ class SymbolikAnalysisContext:
             effs.extend(emu.applyEffects(seffs[:idx+1]))
             yield emu,effs
 
-    def walkSymbolikPaths(self, fva, maxpath=1000):
+    def walkSymbolikPaths(self, fva, graph=None, maxpath=1000):
         '''
         walkSymbolikPaths is a function-focused symbolik path generator, using the 
         walkCodePaths generator foundation.  Symbolik effects are dragged through
@@ -471,7 +471,8 @@ class SymbolikAnalysisContext:
         Begins first node by applying self.preeffects and self.preconstraints
         '''
 
-        graph = self.getSymbolikGraph(fva)
+        if graph == None:
+            graph = self.getSymbolikGraph(fva)
 
         # our callback routine for code path walking
         def codewalker(ppath, edge, path):

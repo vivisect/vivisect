@@ -344,9 +344,9 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         for imports) does *not* exit and code-flow should be stopped...
         '''
         c = re.compile(funcre, re.IGNORECASE)
-        m = self.getMeta('NoReturnApisRegex', {})
-        m[funcre] = c 
-        self.setMeta('NoReturnApisRegex', m)
+        m = self.getMeta('NoReturnApisRegex', [])
+        m.append( funcre )
+        self.setMeta('NoReturnApisRegex', m )
 
         for lva,lsize,ltype,linfo in self.getImports():
             if c.match(linfo):
@@ -1891,11 +1891,34 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         """
         return self.name_by_va.items()
 
-    def getName(self, va):
+    def getName(self, va, smart=False):
         '''
         Returns the name of the specified virtual address (or None).
+
+        Smart mode digs beyond simple name lookups, as follows:
+        If va falls within a known function in the workspace, we return "funcname+<delta>".
+        If not, and the va falls within a mapped binary, we return "filename+<delta>"
         '''
-        return self.name_by_va.get(va, None)
+        name = self.name_by_va.get(va)
+
+        if name != None or not smart:
+            return name
+
+        baseva = self.getFunction(va)
+        basename = self.name_by_va.get(baseva, None)
+
+        if basename == None:
+            basename = self.getFileByVa(va)
+            if basename == None:
+                return None
+
+            baseva = self.getFileMeta(basename, 'imagebase')
+
+        delta = va - baseva
+
+        pom = ('','+')[delta>=0]
+        name = "%s%s%s" % (basename, pom, hex(delta))
+        return name
 
     def makeName(self, va, name, filelocal=False):
         """

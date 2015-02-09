@@ -250,13 +250,13 @@ tbl32_Main = [
 ( 0, INS_POP, ADDRMETH_E | OPTYPE_v | OP_W, ARG_NONE, ARG_NONE, cpu_80386, "pop", 0, 0, 0),  
 # 0x90
 (0, INS_NOP, 0, 0, 0, cpu_80386, "nop", 0, 0, 0),  
-( 0, INS_XCHG, OP_REG | OP_W, OP_REG | OP_W, ARG_NONE, cpu_80386, "xchg", e_amd64_regs.REG_RAX, e_amd64_regs.REG_RCX, 0),  
-( 0, INS_XCHG, OP_REG | OP_W, OP_REG | OP_W, ARG_NONE, cpu_80386, "xchg", e_amd64_regs.REG_RAX, e_amd64_regs.REG_RDX, 0),  
-( 0, INS_XCHG, OP_REG | OP_W, OP_REG | OP_W, ARG_NONE, cpu_80386, "xchg", e_amd64_regs.REG_RAX, e_amd64_regs.REG_RBX, 0),  
-( 0, INS_XCHG, OP_REG | OP_W, OP_REG | OP_W, ARG_NONE, cpu_80386, "xchg", e_amd64_regs.REG_RAX, e_amd64_regs.REG_RSP, 0),  
-( 0, INS_XCHG, OP_REG | OP_W, OP_REG | OP_W, ARG_NONE, cpu_80386, "xchg", e_amd64_regs.REG_RAX, e_amd64_regs.REG_RBP, 0),  
-( 0, INS_XCHG, OP_REG | OP_W, OP_REG | OP_W, ARG_NONE, cpu_80386, "xchg", e_amd64_regs.REG_RAX, e_amd64_regs.REG_RSI, 0),  
-( 0, INS_XCHG, OP_REG | OP_W, OP_REG | OP_W, ARG_NONE, cpu_80386, "xchg", e_amd64_regs.REG_RAX, e_amd64_regs.REG_RDI, 0),  
+( 0, INS_XCHG, OP_REG | OP_W, OP_REG | OP_W, ARG_NONE, cpu_80386, "xchg", e_amd64_regs.REG_EAX, e_amd64_regs.REG_ECX, 0),  
+( 0, INS_XCHG, OP_REG | OP_W, OP_REG | OP_W, ARG_NONE, cpu_80386, "xchg", e_amd64_regs.REG_EAX, e_amd64_regs.REG_EDX, 0),  
+( 0, INS_XCHG, OP_REG | OP_W, OP_REG | OP_W, ARG_NONE, cpu_80386, "xchg", e_amd64_regs.REG_EAX, e_amd64_regs.REG_EBX, 0),  
+( 0, INS_XCHG, OP_REG | OP_W, OP_REG | OP_W, ARG_NONE, cpu_80386, "xchg", e_amd64_regs.REG_EAX, e_amd64_regs.REG_ESP, 0),  
+( 0, INS_XCHG, OP_REG | OP_W, OP_REG | OP_W, ARG_NONE, cpu_80386, "xchg", e_amd64_regs.REG_EAX, e_amd64_regs.REG_EBP, 0),  
+( 0, INS_XCHG, OP_REG | OP_W, OP_REG | OP_W, ARG_NONE, cpu_80386, "xchg", e_amd64_regs.REG_EAX, e_amd64_regs.REG_ESI, 0),  
+( 0, INS_XCHG, OP_REG | OP_W, OP_REG | OP_W, ARG_NONE, cpu_80386, "xchg", e_amd64_regs.REG_EAX, e_amd64_regs.REG_EDI, 0),  
 ( 0, INS_SZCONV, 0, 0, 0, cpu_80386, "cwde", 0, 0, 0),  
 ( 0, INS_SZCONV, 0, 0, 0, cpu_80386, "cdq", 0, 0, 0),  
 ( 0, INS_CALL, ADDRMETH_A | OPTYPE_p | OP_X, ARG_NONE, ARG_NONE, cpu_80386, "callf", 0, 0, 0),  
@@ -1535,9 +1535,9 @@ tbl32_FF = [
 ( 0, INS_INC, ADDRMETH_E | OPTYPE_v | OP_W, ARG_NONE, ARG_NONE, cpu_80386, "inc", 0, 0, 0),  
 ( 0, INS_DEC, ADDRMETH_E | OPTYPE_v | OP_W, ARG_NONE, ARG_NONE, cpu_80386, "dec", 0, 0, 0),  
 ( 0, INS_CALL, ADDRMETH_E | OPTYPE_v | OP_X | OP_64AUTO , ARG_NONE, ARG_NONE, cpu_80386, "call", 0, 0, 0),  
-( 0, INS_CALL, ADDRMETH_E | OPTYPE_p | OP_X, ARG_NONE, ARG_NONE, cpu_80386, "call", 0, 0, 0),  
+( 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
 ( 0, INS_BRANCH, ADDRMETH_E | OPTYPE_v | OP_X | OP_64AUTO, ARG_NONE, ARG_NONE, cpu_80386, "jmp", 0, 0, 0),  # on amd64 this is jmp rnx
-( 0, INS_BRANCH, ADDRMETH_E | OPTYPE_p | OP_X, ARG_NONE, ARG_NONE, cpu_80386, "jmp", 0, 0, 0),  
+( 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
 ( 0, INS_PUSH, ADDRMETH_E | OPTYPE_v | OP_R, ARG_NONE, ARG_NONE, cpu_80386, "push", 0, 0, 0),  
 ( 0, 0, 0, 0, 0, 0, 0, 0, 0, 0   ) 
 ]
