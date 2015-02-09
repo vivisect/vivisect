@@ -9,6 +9,12 @@ class v_bits(v_number):
         v_number.__init__(self)
         self._vs_bitwidth = width
 
+    def vsSetValue(self, value):
+        '''
+        override base because we are not using the min or max val.
+        '''
+        self._vs_value = long(value)
+
     def vsSetBitWidth(self, width):
         self._vs_bitwidth = width
 
