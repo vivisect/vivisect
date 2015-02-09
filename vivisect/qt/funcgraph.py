@@ -13,13 +13,16 @@ import vivisect.qt.memory as vq_memory
 import vivisect.qt.ctxmenu as vq_ctxmenu
 import vivisect.tools.graphutil as viv_graphutil
 
+from PyQt4.QtCore   import pyqtSignal, QPoint
 from PyQt4          import QtCore, QtGui, QtWebKit
-from vqt.main       import idlethread, idlethreadsync, eatevents, vqtconnect
+from vqt.main       import idlethread, idlethreadsync, eatevents, vqtconnect, workthread
 
 from vqt.common import *
 from vivisect.const import *
 
 class VQVivFuncgraphCanvas(vq_memory.VivCanvasBase):
+    refreshSignal = pyqtSignal()
+
     def __init__(self, *args, **kwargs):
         vq_memory.VivCanvasBase.__init__(self, *args, **kwargs)
         self.curs = QtGui.QCursor(self)
@@ -85,13 +88,27 @@ class VQVivFuncgraphCanvas(vq_memory.VivCanvasBase):
 
         viewmenu = menu.addMenu('view   ')
         viewmenu.addAction("Save frame to HTML", ACT(self._menuSaveToHtml))
-        #TODO: Refresh menu item :)
+        viewmenu.addAction("Refresh", ACT(self.refresh))
 
         menu.exec_(event.globalPos())
 
     def _navExpression(self, expr):
         if self._canv_navcallback:
             self._canv_navcallback(expr)
+
+    def refresh(self):
+        '''
+        Redraw the function graph (actually, tells the View to do it)
+        '''
+        self.refreshSignal.emit()
+
+    @idlethread
+    def setScrollPosition(self, x, y):
+        '''
+        Sets the view reticle to an absolute scroll position
+        '''
+        point = QPoint(x, y)
+        self.page().mainFrame().setScrollPosition(point)
 
 funcgraph_js = '''
 svgns = "http://www.w3.org/2000/svg";
@@ -181,6 +198,7 @@ import itertools
 import collections
 
 class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QtGui.QWidget, vq_save.SaveableWidget, viv_base.VivEventCore):
+    _renderDoneSignal = pyqtSignal()
 
     viewidx = itertools.count()
 
@@ -189,6 +207,7 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QtGui.
         self.fva = None
         self.graph = None
         self.vwqgui = vwqgui
+        self._last_viewpt = None
         self.history = collections.deque((),100)
 
         QtGui.QWidget.__init__(self, parent=vwqgui)
@@ -196,6 +215,8 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QtGui.
         viv_base.VivEventCore.__init__(self, vw)
         e_qt_memory.EnviNavMixin.__init__(self)
         self.setEnviNavName('FuncGraph%d' % self.viewidx.next())
+
+        self._renderDoneSignal.connect(self._refresh_cb)
 
         self.top_box = QtGui.QWidget(parent=self)
         hbox = QtGui.QHBoxLayout(self.top_box)
@@ -212,6 +233,7 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QtGui.
 
         self.mem_canvas = VQVivFuncgraphCanvas(vw, syms=vw, parent=self)
         self.mem_canvas.setNavCallback(self.enviNavGoto)
+        self.mem_canvas.refreshSignal.connect(self.refresh)
 
         self.loadDefaultRenderers()
 
@@ -243,6 +265,8 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QtGui.
         self.addHotKeyTarget('funcgraph:inczoom', self._hotkey_inczoom)
         self.addHotKey('ctrl+-', 'funcgraph:deczoom')
         self.addHotKeyTarget('funcgraph:deczoom', self._hotkey_deczoom)
+        self.addHotKey('f5', 'funcgraph:refresh')
+        self.addHotKeyTarget('funcgraph:refresh', self.refresh)
 
     def _hotkey_histback(self):
         if len(self.history) >= 2:
@@ -276,6 +300,31 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QtGui.
 
         #self.vw.vprint("NEW ZOOM    %f" % newzoom)
         self.mem_canvas.setZoomFactor(newzoom)
+
+    def refresh(self):
+        '''
+        Cause the Function Graph to redraw itself.
+        This is particularly helpful because comments and name changes don't
+        immediately display.  Perhaps someday this will update only the blocks
+        that have changed since last update, and be fast, so we can update
+        after every change.  
+        '''
+        self._last_viewpt = self.mem_canvas.page().mainFrame().scrollPosition()
+        self.clearText()
+        self.fva = None
+        self._renderMemory()
+
+    @workthread
+    def _refresh_cb(self):
+        '''
+        This is a hack to make sure that when _renderMemory() completes,
+        _refresh_3() gets run after all other rendering events yet to come.
+        '''
+        if self._last_viewpt == None:
+            return
+
+        self.mem_canvas.setScrollPosition(self._last_viewpt.x(), self._last_viewpt.y())
+        self._last_viewpt = None
 
     def _histSetupMenu(self):
         self.histmenu.clear()
@@ -422,6 +471,8 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QtGui.
         self.clearText()
         self.renderFunctionGraph(fva)
         self.updateWindowTitle()
+
+        self._renderDoneSignal.emit()
 
     def loadDefaultRenderers(self):
         vivrend = viv_rend.WorkspaceRenderer(self.vw)
