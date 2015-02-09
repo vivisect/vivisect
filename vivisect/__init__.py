@@ -343,9 +343,9 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         for imports) does *not* exit and code-flow should be stopped...
         '''
         c = re.compile(funcre, re.IGNORECASE)
-        m = self.getMeta('NoReturnApisRegex', {})
-        m[funcre] = c 
-        self.setMeta('NoReturnApisRegex', m)
+        m = self.getMeta('NoReturnApisRegex', [])
+        m.append( funcre )
+        self.setMeta('NoReturnApisRegex', m )
 
         for lva,lsize,ltype,linfo in self.getImports():
             if c.match(linfo):
