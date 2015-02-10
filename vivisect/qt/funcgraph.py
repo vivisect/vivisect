@@ -399,7 +399,9 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QtGui.
         self.fva = fva
         #self.graph = self.vw.getFunctionGraph(fva)
         if graph == None:
-            self.graph = viv_graphutil.buildFunctionGraph(self.vw, fva, revloop=True)
+            graph = viv_graphutil.buildFunctionGraph(self.vw, fva, revloop=True)
+
+        self.graph = graph
 
         # Go through each of the nodes and render them so we know sizes
         for node in self.graph.getNodes():
