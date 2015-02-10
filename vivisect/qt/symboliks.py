@@ -75,6 +75,9 @@ class VivSymbolikFuncPane(e_q_memory.EnviNavMixin, vq_save.SaveableWidget, QtGui
         self.alleffs = QtGui.QCheckBox('all effects', parent=self)
         self.alleffs.stateChanged.connect(self.rendSymbolikPath)
 
+        self.loop_count  = QtGui.QSpinBox(parent=self)
+        self.loop_count.setPrefix('Max Loops:')
+        
         self.pathview = VivSymbolikPathsView(vw, parent=self)
         self.memcanvas = e_q_memcanvas.VQMemoryCanvas(vw, syms=vw, parent=self)
 
@@ -84,7 +87,7 @@ class VivSymbolikFuncPane(e_q_memory.EnviNavMixin, vq_save.SaveableWidget, QtGui
 
         fvalabel = QtGui.QLabel(QtCore.QString("Function VA:"), parent=self)
         inccblabel = QtGui.QLabel(QtCore.QString("Must Include VA:"), parent=self)
-        navbox = HBox(fvalabel, self.exprtext, inccblabel, self.constraintext, self.alleffs)
+        navbox = HBox(fvalabel, self.exprtext, inccblabel, self.constraintext, self.loop_count, self.alleffs)
 
         mainbox = VBox()
         mainbox.addLayout(navbox)
@@ -145,19 +148,22 @@ class VivSymbolikFuncPane(e_q_memory.EnviNavMixin, vq_save.SaveableWidget, QtGui
                 raise Exception('Invalid Address: 0x%.8x' % va )
 
             # check the constraints
+            # FIXME: add ability to page through more than just the first 100 paths.  requires 
+            #   storing the codegraph and codepaths
             codepaths = None
             codegraph = self.symctx.getSymbolikGraph(self.fva)
             cexpr = str(self.constraintext.text())
             if cexpr:
                 cva = self.vw.parseExpression(cexpr)
                 ccb = self.vw.getCodeBlock(cva)
+
                 if ccb != None and ccb in self.vw.getFunctionBlocks(self.fva):
                     #FIXME: allow the GUI-setting of loopcnt, instead of hard-coding
-                    codepaths = viv_graph.getCodePathsThru(codegraph, ccb[0], loopcnt=3)   
+                    loopcnt = self.loop_count.value()
+                    codepaths = viv_graph.getCodePathsThru(codegraph, ccb[0], loopcnt=loopcnt)   
                     paths = self.symctx.getSymbolikPaths(self.fva, paths=codepaths, graph=codegraph, maxpath=100)
 
             if codepaths == None:
-                codepaths = viv_graph.getCodePaths(codegraph, 3)
                 paths = self.symctx.walkSymbolikPaths(self.fva, maxpath=100)
                     
             self.pathview.loadSymbolikPaths(paths)
