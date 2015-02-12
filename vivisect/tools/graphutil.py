@@ -663,9 +663,9 @@ def clearGraphRouting(graph, marks=['up','down']):
     '''
     clear all nodes of routing entries
     '''
-    for nid, ninfo in graph.getNodes():
+    for node in graph.getNodes():
         for mark in marks:
-            graph.delNodeProp(nid, mark)
+            graph.delNodeProp(node, mark)
 
 def preRouteGraphUp(graph, tova, loop=True, mark='down'):
     '''
