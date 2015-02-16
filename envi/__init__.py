@@ -928,6 +928,23 @@ class CallingConvention(object):
 
         return ra
 
+    def getReturnValue(self, emu):
+        '''
+        Returns the return value.
+
+        Expects to be called after the function return.
+        '''
+        rtype, rvalue = self.retval_def
+        if rtype == CC_REG:
+            rv = emu.getRegister(rvalue)
+        elif rtype == CC_STACK:
+            sp = emu.getStackCounter() + rvalue
+            rv = emu.readMemoryFormat(sp, '<P')[0]
+        else:
+            raise Exception('unknown argument type')
+
+        return rv
+
     def setReturnAddress(self, emu, ra):
         '''
         Sets the return address.
