@@ -15,7 +15,7 @@ import visgraph.graphcore as vg_graphcore
 
 xrskip = envi.BR_PROC | envi.BR_DEREF
 
-def getNodesByWeightAndLeaves(g):
+def getNodeWeightHisto(g):
     '''
     Takes a graph and returns the following tuple:
         (weights_to_node, nodes_to_weight, leaves)
@@ -46,7 +46,7 @@ def getLongPath(g, maxpath=1000):
     Returns a list of list tuples (node id, edge id) representing the longest path
     '''
 
-    weights_to_cb, cb_to_weights, todo = getNodesByWeightAndLeaves(g)
+    weights_to_cb, cb_to_weights, todo = getNodeWeightHisto(g)
 
     # unique root node code blocks
     rootnodes = set([cb for cb,nprops in g.getHierRootNodes()]) 
@@ -634,7 +634,7 @@ def findRemergeDown(graph, va):
     # paint down graph, 
     preRouteGraphDown(graph, startnid, mark='hit', loop=False)
 
-    fft, nodewts, leaves = getNodesByWeightAndLeaves(graph)
+    fft, nodewts, leaves = getNodeWeightHisto(graph)
     startnode = graph.getNode(startnid)
     startweight = nodewts.get(startnid)
 
