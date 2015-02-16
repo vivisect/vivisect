@@ -15,16 +15,19 @@ import visgraph.graphcore as vg_graphcore
 
 xrskip = envi.BR_PROC | envi.BR_DEREF
 
-def getWeightedFFT(g):
+def getNodesByWeightAndLeaves(g):
     '''
-    Creates a sort of Fourier's Transform from node weights, allowing us to do 
-    analysis on the distribution at each weight number
+    Takes a graph and returns the following tuple:
+        (weights_to_node, nodes_to_weight, leaves)
+
+    where:
+        weights_to_node - dict using weight as key
+        nodes_to_weight - dict using nodes as key
+        leaves          - dict of nodes without refs from
     '''
     nodeweights = g.getHierNodeWeights()
     leaves = collections.defaultdict(list)
     weights_to_cb = collections.defaultdict(list)
-    # mapping code block -> weight
-    cb_to_weights = {}
 
     # create default dict
     for cb, weight in sorted(nodeweights.items(), lambda x,y: cmp(y[1], x[1]) ):
@@ -43,7 +46,7 @@ def getLongPath(g, maxpath=1000):
     Returns a list of list tuples (node id, edge id) representing the longest path
     '''
 
-    weights_to_cb, cb_to_weights, todo = getWeightedFFT(g)
+    weights_to_cb, cb_to_weights, todo = getNodesByWeightAndLeaves(g)
 
     # unique root node code blocks
     rootnodes = set([cb for cb,nprops in g.getHierRootNodes()]) 
@@ -631,7 +634,7 @@ def findRemergeDown(graph, va):
     # paint down graph, 
     preRouteGraphDown(graph, startnid, mark='hit', loop=False)
 
-    fft, nodewts, leaves = getWeightedFFT(graph)
+    fft, nodewts, leaves = getNodesByWeightAndLeaves(graph)
     startnode = graph.getNode(startnid)
     startweight = nodewts.get(startnid)
 
