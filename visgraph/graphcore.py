@@ -310,10 +310,10 @@ class Graph:
         Example:
             g.delNode(node)
         '''
-        for eid,nfrom,nto,eprops in self.getRefsFrom(node):
-            self.delEdge(eid)
-        for eid,nfrom,nto,eprops in self.getRefsTo(node):
-            self.delEdge(eid)
+        for edge in self.getRefsFrom(node):
+            self.delEdge(edge)
+        for edge in self.getRefsTo(node):
+            self.delEdge(edge)
         [ self.delNodeProp(node, k) for k in node[1].keys() ]
         return self.nodes.pop(node[0])
 
