@@ -364,7 +364,8 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         '''
         noretva = self.getMeta('NoReturnApisVa', {})
 
-        for funcre, c in self.getMeta('NoReturnApisRegex', {}).items():
+        for funcre in self.getMeta('NoReturnApisRegex',[]):
+            c = re.compile(funcre, re.IGNORECASE)
             if c.match(apiname):
                 self.cfctx.addNoReturnAddr( va )
                 noretva[va] = True 
