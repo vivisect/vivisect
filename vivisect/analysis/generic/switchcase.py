@@ -588,6 +588,11 @@ def determineCountOffset(vw, jmpva):
     funcva = vw.getFunction(jmpva)
 
     op = vw.parseOpcode(jmpva)
+    if not (len(op.opers) and op.opers[0].isReg()):
+        if vw.verbose > 1: 
+            print('\nBAILING - not a VAR memory location (so it cannot be a register)')
+        return 0,0,0
+
     xlate = sctx.getTranslator()
     graph = viv_graph.buildFunctionGraph(vw, funcva)
     jmpcb = vw.getCodeBlock(jmpva)
@@ -601,8 +606,10 @@ def determineCountOffset(vw, jmpva):
     spaths = sctx.getSymbolikPaths(funcva, pathGen, graph=graph)
     semu, aeffs = spaths.next()
 
+    # FIXME: one path using this method may allow for layered opposing constraints, potentially
+    #        giving imposible results.  this shouldn't cause a problem, but it's possible.
     ################## REFACTOR ##################
-    #'''
+    '''
     # hack... give the jmp reg someplace to go so symboliks can help us
     choppt = len(vw._event_list)
     vw.addXref(jmpva, jmpcb[0], REF_CODE, rflags=op.iflags)
@@ -625,9 +632,38 @@ def determineCountOffset(vw, jmpva):
     vw._event_list = vw._event_list[:choppt]                # FIXME: THIS IS JUST WRONG.  some better way?
                                                             # should we just hack this xref directly into the vw.xrefs_by_from?
                                                             # it's required to use symboliks on the final jmp reg
-    #'''
-    ################## refactor end #################
     acon = ajmp[0].cons._v1
+    return ajmp, cons, seffs, semu, xlate
+
+    # instead of this hack, we need to figure out what the reg ast is (as in, jmp reg).
+    ' ''
+    In [8]: ajmp, cons, seffs, semu, xlate = vags.determineCountOffset(vw, jmpva)  # hacked up version, returning here.
+       jmp rcx
+       [(Const(0x7ff38892fcb,8), eq(Var("rcx", width=8),Const(0x7ff38892fcb,8)))]
+       ('cons: ', '[ConstrainPath( 0x7ff38892fd7, Const(0x7ff38892fcb,8), eq(Var("rcx", width=8),Const(0x7ff38892fcb,8)) )]')
+       [ConstrainPath( 0x7ff38892fd7, Const(0x7ff38892fcb,8), eq(o_add(Mem(o_add(o_add(Const(0x7ff38880000,8),o_mul(o_and(o_and(o_xor(o_and(Var("rbp", width=8),Const(0xffffffff,4),4),o_and(Var("rbp", width=8),Const(0xffffffff,4),4),4),Const(0xffffffff,4),4),Const(0xffffffff,4),4),Const(0x00000004,8),8),8),Const(0x0001c7b0,8),8), Const(0x00000004,8)),Const(0x7ff38880000,8),8),Const(0x7ff38892fcb,8)) )]
+
+    In [9]: ajmp
+    Out[9]: [ConstrainPath( 0x7ff38892fd7, Const(0x7ff38892fcb,8), eq(o_add(Mem(o_add(o_add(Const(0x7ff38880000,8),o_mul(o_and(o_and(o_xor(o_and(Var("rbp", width=8),Const(0xffffffff,4),4),o_and(Var("rbp", width=8),Const(0xffffffff,4),4),4),Const(0xffffffff,4),4),Const(0xffffffff,4),4),Const(0x00000004,8),8),8),Const(0x0001c7b0,8),8), Const(0x00000004,8)),Const(0x7ff38880000,8),8),Const(0x7ff38892fcb,8)) )]
+
+    In [10]: cons
+    Out[10]: [ConstrainPath( 0x7ff38892fd7, Const(0x7ff38892fcb,8), eq(Var("rcx", width=8),Const(0x7ff38892fcb,8)) )]
+
+    In [11]: semu
+    Out[11]: <vivisect.symboliks.archs.amd64.Amd64SymFuncEmu instance at 0x7f07c087f830>
+
+    In [12]: seffs
+    Out[12]: [(Const(0x7ff38892fcb,8), eq(Var("rcx", width=8),Const(0x7ff38892fcb,8)))]
+
+need to provide:
+    acon
+    aeffs???/fullcons
+    ' ''
+
+    '''
+    operobj = xlate.getOperObj(op, 0)
+    acon = semu.getSymVariable(operobj.name)
+    ################## refactor end #################
     fullcons = [eff for eff in aeffs if eff.efftype==EFFTYPE_CONSTRAIN]
     if vw.verbose > 1: print('\nFULLCONS: \n','\n\t'.join([repr(con) for con in fullcons]))
 
@@ -646,7 +682,7 @@ def determineCountOffset(vw, jmpva):
     delta = None
     
     for cons in fullcons[::-1]:
-        if not hasattr(cons.cons, 'operstr'): continue
+        if not hasattr(cons.cons, 'operstr'): continue  #FIXME: hack - is there some other way to tell this?
         if vw.verbose > 2: print(repr(cons))
         comparator = cons.cons.operstr
         symvar = cons.cons._v1
@@ -734,7 +770,6 @@ def analyzeFunction(vw, fva):
     This is inserted as a function analysis module, right after codeblock analysis
 
     '''
-    return
 
     lastdynlen = 0
     dynbranches = vw.getVaSet('DynamicBranches')
