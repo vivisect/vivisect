@@ -40,7 +40,6 @@ end, names are applied as appropriate.
 #       ibvars = ('rdi','rsi', 'r8', 'r9', 'r10')
 #       i386RegOper (architecture-specific list of operands which would be used by switch-cases
 #       regidx_sets (list of register indexes)
-# TODO: fix broken xref event munging (try to just solve the symbolik state as it would be).
 # TODO: check offsets/pointers used to calculate jmp targets and either makeNumber or makePointer
 # TODO: complete documentation
 # TODO: try codeblock-granularity and see if that's good enough, rather than backing up by instruction
@@ -582,17 +581,14 @@ def determineCountOffset(vw, jmpva):
     handled here.
 
     we start out with symbolik analysis of routed paths from the start of the function to the dynamic jmp.
+
+    this function is also used to weed out a lot of non-switch case dynamic branches
     '''
     #FIXME: some switch-cases (ELF PIE, libc:sub_020bbec0) use indexes that increment by ptrsize, not by 1.  back up farther?  identify that?
     sctx = vs_anal.getSymbolikAnalysisContext(vw)
     funcva = vw.getFunction(jmpva)
 
     op = vw.parseOpcode(jmpva)
-    if not (len(op.opers) and op.opers[0].isReg()):
-        if vw.verbose > 1: 
-            print('\nBAILING - not a VAR memory location (so it cannot be a register)')
-        return 0,0,0
-
     xlate = sctx.getTranslator()
     graph = viv_graph.buildFunctionGraph(vw, funcva)
     jmpcb = vw.getCodeBlock(jmpva)
@@ -608,86 +604,53 @@ def determineCountOffset(vw, jmpva):
 
     # FIXME: one path using this method may allow for layered opposing constraints, potentially
     #        giving imposible results.  this shouldn't cause a problem, but it's possible.
-    ################## REFACTOR ##################
-    '''
-    # hack... give the jmp reg someplace to go so symboliks can help us
-    choppt = len(vw._event_list)
-    vw.addXref(jmpva, jmpcb[0], REF_CODE, rflags=op.iflags)
 
-    if vw.verbose > 1: print(op)
-
-    seffs = xlate.translateOpcode(op)
-    if vw.verbose > 1: print(seffs)
-
-    cons = xlate.getConstraints()
-    if vw.verbose > 1: print("cons: ", repr(cons))
-    if not len(cons):
-        if vw.verbose: print("skipping dynamic branch, no constraints discovered to analyze (not switch-case)" )
-        #return (0,0,0)
-
-    ajmp = semu.applyEffects([cons[0]])
-    if vw.verbose > 1: print(ajmp)
-
-    vw.delXref((jmpva, jmpcb[0], REF_CODE, op.iflags))
-    vw._event_list = vw._event_list[:choppt]                # FIXME: THIS IS JUST WRONG.  some better way?
-                                                            # should we just hack this xref directly into the vw.xrefs_by_from?
-                                                            # it's required to use symboliks on the final jmp reg
-    acon = ajmp[0].cons._v1
-    return ajmp, cons, seffs, semu, xlate
-
-    # instead of this hack, we need to figure out what the reg ast is (as in, jmp reg).
-    ' ''
-    In [8]: ajmp, cons, seffs, semu, xlate = vags.determineCountOffset(vw, jmpva)  # hacked up version, returning here.
-       jmp rcx
-       [(Const(0x7ff38892fcb,8), eq(Var("rcx", width=8),Const(0x7ff38892fcb,8)))]
-       ('cons: ', '[ConstrainPath( 0x7ff38892fd7, Const(0x7ff38892fcb,8), eq(Var("rcx", width=8),Const(0x7ff38892fcb,8)) )]')
-       [ConstrainPath( 0x7ff38892fd7, Const(0x7ff38892fcb,8), eq(o_add(Mem(o_add(o_add(Const(0x7ff38880000,8),o_mul(o_and(o_and(o_xor(o_and(Var("rbp", width=8),Const(0xffffffff,4),4),o_and(Var("rbp", width=8),Const(0xffffffff,4),4),4),Const(0xffffffff,4),4),Const(0xffffffff,4),4),Const(0x00000004,8),8),8),Const(0x0001c7b0,8),8), Const(0x00000004,8)),Const(0x7ff38880000,8),8),Const(0x7ff38892fcb,8)) )]
-
-    In [9]: ajmp
-    Out[9]: [ConstrainPath( 0x7ff38892fd7, Const(0x7ff38892fcb,8), eq(o_add(Mem(o_add(o_add(Const(0x7ff38880000,8),o_mul(o_and(o_and(o_xor(o_and(Var("rbp", width=8),Const(0xffffffff,4),4),o_and(Var("rbp", width=8),Const(0xffffffff,4),4),4),Const(0xffffffff,4),4),Const(0xffffffff,4),4),Const(0x00000004,8),8),8),Const(0x0001c7b0,8),8), Const(0x00000004,8)),Const(0x7ff38880000,8),8),Const(0x7ff38892fcb,8)) )]
-
-    In [10]: cons
-    Out[10]: [ConstrainPath( 0x7ff38892fd7, Const(0x7ff38892fcb,8), eq(Var("rcx", width=8),Const(0x7ff38892fcb,8)) )]
-
-    In [11]: semu
-    Out[11]: <vivisect.symboliks.archs.amd64.Amd64SymFuncEmu instance at 0x7f07c087f830>
-
-    In [12]: seffs
-    Out[12]: [(Const(0x7ff38892fcb,8), eq(Var("rcx", width=8),Const(0x7ff38892fcb,8)))]
-
-need to provide:
-    acon
-    aeffs???/fullcons
-    ' ''
-
-    '''
     operobj = xlate.getOperObj(op, 0)
+    if operobj.symtype != SYMT_VAR:
+        if vw.verbose > 1: 
+            print('\nBAILING - not a VAR memory location')
+            return None,None,None
+
     acon = semu.getSymVariable(operobj.name)
-    ################## refactor end #################
+
+    # grab all the constraints from start of function to here.
     fullcons = [eff for eff in aeffs if eff.efftype==EFFTYPE_CONSTRAIN]
     if vw.verbose > 1: print('\nFULLCONS: \n','\n\t'.join([repr(con) for con in fullcons]))
 
+    # grab all the multiplication effects in the operand ast.  muls will be 
+    # used to calculate a pointer into some offset/address array
     muls = []
     acon.walkTree(_cb_grab_muls, muls)
-    if vw.verbose > 1: print('\nMULS: \n',repr(muls))
+    if vw.verbose > 1: print('\nMULS: \n'+repr(muls))
 
     # this algorithm depends on the index variable being in the last Const comparison.  
     # these options may be best used with a heuristic (if one doesn't make us happy, 
     # fall through to a different one).
 
-    # loop through fullcons looking for comparisons of symidx against Consts.  last one should be our index?!?
+    # loop through fullcons looking for comparisons of symidx against Consts.  last one should be our index.
     idx = None
     upper = None
     lower = 0
-    delta = None
     
-    for cons in fullcons[::-1]:
-        if not hasattr(cons.cons, 'operstr'): continue  #FIXME: hack - is there some other way to tell this?
+    for constraint in fullcons[::-1]:
+        cons = constraint.cons
+        # skip constraints that aren't bounding index
+        if not cons.symtype in (SYMT_CON_GT, SYMT_CON_GE, SYMT_CON_LT, SYMT_CON_LE): 
+            if vw.verbose>2: print("SKIPPING: cons = %s" % (repr(cons)))
+            continue
+
         if vw.verbose > 2: print(repr(cons))
-        comparator = cons.cons.operstr
-        symvar = cons.cons._v1
-        symcmp = cons.cons._v2
-        if symcmp.symtype != SYMT_CONST:
+
+
+        if cons._v1.symtype == SYMT_CONST:
+            symcmp = cons._v1
+            symvar = cons._v2
+        elif cons._v2.symtype == SYMT_CONST:
+            symvar = cons._v1
+            symcmp = cons._v2
+        else:
+            # neither side of the constraint is a CONST.  this constraint does 
+            # not set static bounds on idx
             continue
 
         if idx == None:
@@ -695,47 +658,46 @@ need to provide:
             baseoff = peel(idx)
 
         # once we identify idx, stick with it.  we only care about that.
-        #### FIXME: how do we get the base...  probably need to peel back just the sub's, ignoring ands.
+        # check the sanity of this constraint's symvar against our idx.
         d = 0
         if idx != symvar:
             d = idx.solve() - symvar.solve()
             if abs(d) > 1000:
                 continue
-        
 
-        delta = baseoff + d
-        if vw.verbose: print("* ", repr(cons.cons._v2), "\t",repr(cons.cons._v1),"\t", repr(cons), "\tdelta: ",delta)
+        if vw.verbose: print("* "+ repr(cons._v2)+ "\t"+repr(cons._v1)+"\t"+ repr(cons))
 
 
         # FIXME: probably don't want to reset things once they're set.  this could be some other indicator for a nested switchcase...  need to get one of those for testing.
-        if comparator == ">":
+        if cons.symtype == SYMT_CON_GT:
             # this is setting the lower bound
             if lower != 0:
                 if vw.verbose: print("==we're resetting a lower bound:  %s -> %s" % (lower, symcmp))
-            lower = symcmp.solve() + 1# + delta
+            lower = symcmp.solve() + 1
             
-        elif comparator == ">=":
+        elif cons.symtype == SYMT_CON_GE:
             # this is setting the lower bound
             if lower != 0:
                 if vw.verbose: print("==we're resetting a lower bound:  %s -> %s" % (lower, symcmp))
-            lower = symcmp.solve()# + delta
+            lower = symcmp.solve()
             
-        elif comparator == "<":
+        elif cons.symtype == SYMT_CON_LT:
             # this is setting the upper bound
             if upper != None:
                 if vw.verbose: print("==we're resetting a upper bound:  %s -> %s" % (upper, symcmp))
-            upper = symcmp.solve() - 1# + delta
+            upper = symcmp.solve() - 1
             
-        elif comparator == "<=":
+        elif cons.symtype == SYMT_CON_LE:
             # this is setting the upper bound
             if upper != None:
                 if vw.verbose: print("==we're resetting a upper bound:  %s -> %s" % (upper, symcmp))
-            upper = symcmp.solve()# + delta
+            upper = symcmp.solve()
 
         else:
-            if vw.verbose: print("Unhandled comparator:  %s\n" % repr(comparator))
+            if vw.verbose: print("Unhandled comparator:  %s\n" % repr(cons))
 
-    if None in (idx, upper, delta):
+    # if we failed to identify the index, the upper bound, or the offset, 
+    if None in (idx, upper):
         if vw.verbose: print("NON-SWITCH analysis terminated: 0x%x" % jmpva)
         return (None, None, None)
 

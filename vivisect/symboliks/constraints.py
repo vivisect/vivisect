@@ -112,36 +112,46 @@ def opose(c1, c2):
 
 class eq(Constraint):
     operstr = '=='
+    symtype = SYMT_CON_EQ
     def testTruth(self, v1, v2):
         return v1 == v2
 
 class ne(Constraint):
     operstr = '!='
+    symtype = SYMT_CON_NE
     def testTruth(self, v1, v2):
         return v1 != v2
 
 class le(Constraint):
     operstr = '<='
+    symtype = SYMT_CON_LE
     def testTruth(self, v1, v2):
         return v1 <= v2
 
 class gt(Constraint):
     operstr = '>'
+    symtype = SYMT_CON_GT
     def testTruth(self, v1, v2):
         return v1 > v2
 
 class lt(Constraint):
     operstr = '<'
+    symtype = SYMT_CON_LT
     def testTruth(self, v1, v2):
         return v1 < v2
 
 class ge(Constraint):
     operstr = '>='
+    symtype = SYMT_CON_GE
     def testTruth(self, v1, v2):
         return v1 >= v2
 
-class UNK(Constraint): operstr = 'UNK'
-class NOTUNK(Constraint): operstr = '!UNK'
+class UNK(Constraint): 
+    operstr = 'UNK'
+    symtype = SYMT_CON_UNK
+class NOTUNK(Constraint): 
+    operstr = '!UNK'
+    symtype = SYMT_CON_NOTUNK
 
 # Create our oposing constraints
 opose(ne, eq)
