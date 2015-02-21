@@ -9,10 +9,6 @@ import synapse.common as s_common
 
 # FIXME WORK IN PROGRESS
 
-class Proxy:
-    def __init__(self, uri):
-        pass
-
 class TelepathError(Exception):pass
 
 class NoSuchToken(TelepathError):pass
@@ -24,6 +20,7 @@ class Server(s_socket.Server):
         s_socket.Server.__init__(self, *args, **kwargs)
         self.shared = {}
         self.tokens = {}
+        self.synAddHandler( 'sockmsg', self._slot_sockmsg )
 
     def synShareObject(self, obj, name=None, meths=None):
         '''
@@ -45,3 +42,7 @@ class Server(s_socket.Server):
 
         return meth(*args,**kwargs)
 
+
+    def _slot_sockmsg(self, evt, evtinfo):
+        msg = evtinfo.get('msg')
+        sock = evtinfo.get('sock')
