@@ -106,6 +106,12 @@ def bits2int(binstr):
     '''
     return int(binstr,2)
 
+def int2bits(x,size):
+    '''
+    Convert a python integer to a bit string ( and pad to size )
+    '''
+    return bin(x)[2:].rjust(size,'0')
+
 def hex2bits(s):
     '''
     Convert a hex string into a bits string.
@@ -121,6 +127,12 @@ def bits2bytes(bitstr):
     '''
     i = int(bitstr,2)
     return i.to_bytes( len(bitstr) // 8, byteorder='big' )
+
+def bytes2int(buf,byteorder='little'):
+    return int.from_bytes(buf,byteorder=byteorder)
+
+def bytes2bits(b):
+    return ''.join([ bin(x)[2:].rjust(8,'0') for x in b ])
 
 def bitfields(maskstr):
     '''
@@ -161,3 +173,11 @@ def bitparser(maskstr):
         return dict([ (n,shrmask(fullint,s,b)) for (s,b,n) in namedfields ])
 
     return parsemask
+
+def iterbytes(intvals,size=1,byteorder='big'):
+    '''
+    Iterate a set of int values yielding bytes for each.
+    '''
+    for x in intvals:
+        yield x.to_bytes(size,byteorder=byteorder)
+
