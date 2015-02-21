@@ -4,6 +4,7 @@ import socket
 import unittest
 import threading
 
+import synapse.lib.socket as s_socket
 import synapse.event.dist as s_eventdist
 import synapse.event.store as s_eventstore
 
@@ -37,7 +38,7 @@ class EventStoreTest(unittest.TestCase):
         self._run_store(s)
 
     def test_event_store_sock(self):
-        s1,s2 = socket.socketpair()
+        s1,s2 = s_socket.socketpair()
 
         d1 = s_eventdist.EventDist()
         d2 = s_eventdist.EventDist()

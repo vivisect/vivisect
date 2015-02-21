@@ -150,7 +150,7 @@ class Server(s_eventdist.EventQueue):
         self.seltor = selectors.DefaultSelector()
         key = self.seltor.register(self.sock, selectors.EVENT_READ)
 
-        self.wakesock,s2 = socket.socketpair()
+        self.wakesock,s2 = socketpair()
         self.seltor.register(s2, selectors.EVENT_READ)
 
         #s1,s2 = socket.socketpair()
@@ -204,4 +204,26 @@ class Server(s_eventdist.EventQueue):
         '''
         host = socket.gethostname()
         return (host,self.sockaddr[1])
+
+def _sockpair():
+    s = socket.socket()
+    s.bind(('127.0.0.1',0))
+    s.listen(1)
+
+    s1 = socket.socket()
+    s1.connect( s.getsockname() )
+
+    s2 = s.accept()[0]
+
+    s.close()
+    return s1,s2
+
+def socketpair():
+    '''
+    Standard sockepair() on posix systems, and pure shinanegans on windows.
+    '''
+    try:
+        return socket.socketpair()
+    except AttributeError as e:
+        return _sockpair()
 

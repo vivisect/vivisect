@@ -8,7 +8,7 @@ import synapse.lib.socket as s_socket
 class SocketTest(unittest.TestCase):
 
     def test_socket_basic(self):
-        s1,s2 = socket.socketpair()
+        s1,s2 = s_socket.socketpair()
 
         sock1 = s_socket.Socket(s1)
         sock2 = s_socket.Socket(s2)
