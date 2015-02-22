@@ -12,8 +12,8 @@ class GraphTest(unittest.TestCase):
 
         self.assertEqual( g.getNodeById(node1[0])[1].get('woot'), 10 )
         self.assertEqual( g.getNodeById(node2[0])[1].get('woot'), 20 )
-        self.assertEqual( g.getEdgesByProp('edge:n1',node1[0])[0],edge )
-        self.assertEqual( g.getEdgesByProp('edge:n2',node2[0])[0],edge )
+        self.assertEqual( g.getEdgesByProp('_:n1',node1[0])[0],edge )
+        self.assertEqual( g.getEdgesByProp('_:n2',node2[0])[0],edge )
 
         node1 = g.delNodeProp(node1,'woot')
         node2 = g.delNodeProp(node2,'woot')

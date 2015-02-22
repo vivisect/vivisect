@@ -11,12 +11,14 @@ def now(): return int(time.time())
 def ldict(): return collections.defaultdict(list)
 
 class NoSuchIndex(Exception):pass
+class IndexProtests(Exception):pass
 class IndexNotSupported(Exception):pass
 class GraphStoreImplementMe(Exception):pass
 
 class GraphIndex:
 
-    indextype = 'keyval'    
+    indextype = 'keyval'
+
     def __init__(self, store, prop, info):
         self.info = info
         self.prop = prop
@@ -29,6 +31,9 @@ class GraphIndex:
         raise GraphStoreImplementMe()
 
     def put(self, noge, prop, valu, state):
+        raise GraphStoreImplementMe()
+
+    def test(self, noge, prop, valu, state):
         raise GraphStoreImplementMe()
 
 class GraphStore(s_evtdist.EventDist):
@@ -73,9 +78,11 @@ class GraphStore(s_evtdist.EventDist):
         '''
         with self.lock:
             state = self.implAddNode(node)
+            # FIXME make this "unwind" if an index refuses
             for prop,valu in node[1].items():
                 indexes = self.node_propidx.get(prop)
                 if indexes != None:
+                    [ i.test(node,prop,valu,state) for i in indexes ]
                     [ i.put(node,prop,valu,state) for i in indexes ]
 
         self.fireStoreEvent('store:node:add',node=node)
@@ -90,6 +97,7 @@ class GraphStore(s_evtdist.EventDist):
             for prop,valu in edge[1].items():
                 indexes = self.edge_propidx.get(prop)
                 if indexes != None:
+                    [ i.test(edge,prop,valu,state) for i in indexes ]
                     [ i.put(edge,prop,valu,state) for i in indexes ]
 
         self.fireStoreEvent('store:edge:add',edge=edge)
@@ -160,6 +168,7 @@ class GraphStore(s_evtdist.EventDist):
             state = self.implNodeState(node)
             indexes = self.node_propidx.get(prop)
             if indexes != None:
+                [ i.test(node,prop,valu,state) for i in indexes ]
                 if oldval != None:
                     [ i.pop(node,prop,oldval,state) for i in indexes ]
                 [ i.put(node,prop,valu,state) for i in indexes ]
@@ -174,6 +183,7 @@ class GraphStore(s_evtdist.EventDist):
             state = self.implEdgeState(edge)
             indexes = self.edge_propidx.get(prop)
             if indexes != None:
+                [ i.test(edge,prop,valu,state) for i in indexes ]
                 if oldval != None:
                     [ i.pop(edge,prop,oldval,state) for i in indexes ]
                 [ i.put(edge,prop,valu,state) for i in indexes ]
@@ -230,6 +240,8 @@ class GraphStore(s_evtdist.EventDist):
         ctor = self.indextypes.get(indextype)
         if ctor == None:
             raise IndexNotSupported(indextype)
+
+        # FIXME index existing data!
 
         index = ctor(self,prop,info)
         self.node_indexes[idxkey] = index

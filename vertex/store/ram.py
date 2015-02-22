@@ -8,6 +8,42 @@ import vertex.store.common as v_common
 def ldict(): return collections.defaultdict(list)
 def ddict(): return collections.defaultdict(dict)
 
+class UniqIndex(v_common.GraphIndex):
+
+    indextype = 'uniq'
+
+    def __init__(self, store, prop, info):
+        self.hasprop = {}
+        self.propval = {}
+
+    def put(self, noge, prop, valu, state):
+        self.propval[valu] = noge
+        self.hasprop[noge[0]] = noge
+
+    def get(self, prop, valu, limit):
+        if valu == None:
+            return list(itertools.islice(self.hasprop.values(),limit))
+
+        x = self.propval.get(valu)
+        if x == None:
+            return []
+        return [x]
+
+    def pop(self, noge, prop, valu, state):
+        self.hasprop.pop(noge[0], None)
+        x = self.propval.pop(valu,None)
+        if x == None:
+            return
+
+        if x[0] != noge[0]:
+            self.propval[valu] = x
+            raise v_common.IndexProtests('%s: pop on wrong noge: %s' % (noge[0],x[0]))
+
+    def test(self, noge, prop, valu, state):
+        x = self.propval.get(valu)
+        if x != None:
+            raise v_common.IndexProtests('%s: %s=%s (uniq violation)' % (noge[0],prop,valu))
+
 class KeyValIndex(v_common.GraphIndex):
 
     def __init__(self, store, prop, info):
@@ -41,13 +77,20 @@ class KeyValIndex(v_common.GraphIndex):
 
         return list(itertools.islice(valdict.values(),limit))
 
+    def test(self, noge, prop, valu, state):
+        try:
+            hash(valu)
+        except TypeError as e:
+            raise IndexProtests('%s: setting %s (%s is not hashable)' % (noge[0], prop, type(valu)))
+
 class GraphStore(v_common.GraphStore):
 
     def __init__(self):
         v_common.GraphStore.__init__(self)
         self.nodesbyid = {}
         self.edgesbyid = {}
-        self.initIndexCtor('keyval',self._ctor_index_keyval)
+        self.initIndexCtor('uniq', UniqIndex)
+        self.initIndexCtor('keyval', KeyValIndex)
 
     def getNodeById(self, nid):
         return self.nodesbyid.get(nid)
@@ -95,3 +138,6 @@ class GraphStore(v_common.GraphStore):
 
     def _ctor_index_keyval(self, store, prop, info):
         return KeyValIndex(store,prop,info)
+
+    def _ctor_index_uniq(self, store, prop, info):
+        return UniqIndex(store,prop,info)

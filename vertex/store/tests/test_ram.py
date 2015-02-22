@@ -1,6 +1,7 @@
 import unittest
 
 import vertex.store.ram as v_s_ram
+import vertex.store.common as v_common
 import synapse.lib.common as s_common
 
 class RamStorageTest(unittest.TestCase):
@@ -85,4 +86,22 @@ class RamStorageTest(unittest.TestCase):
         self.assertFalse( g.getEdgesByProp('keep',valu='keep') )
 
         g.synShutDown()
+
+    def test_ram_index_uniq(self):
+
+        g = v_s_ram.GraphStore()
+        g.initNodeIndex('woot','uniq')
+
+        node1 = (s_common.guid(), {'woot':'foo','size':1})
+        node2 = (s_common.guid(), {'woot':'bar','size':2})
+        node3 = (s_common.guid(), {'woot':'foo','size':3})
+
+        g.addNode(node1)
+        g.addNode(node2)
+
+        self.assertRaises( v_common.IndexProtests, g.addNode, node3 )
+        self.assertRaises( v_common.IndexProtests, g.setNodeProp, node2, 'woot', 'foo' )
+
+        self.assertEqual( g.getNodesByProp('woot','foo',index='uniq')[0][0], node1[0] )
+        self.assertEqual( g.getNodesByProp('woot','bar',index='uniq')[0][0], node2[0] )
 

@@ -177,12 +177,10 @@ class IMAGE_DOS_HEADER(VStruct):
         self.e_cs       = uint16()
         self.e_lfarlc   = uint16()
         self.e_ovno     = uint16()
-        #self.e_res      = VArray([uint16() for i in range(4)])
-        self.e_res      = vbytes(8)
+        self.e_res      = VArray([uint16() for i in range(4)])
         self.e_oemid    = uint16()
         self.e_oeminfo  = uint16()
-        #self.e_res2     = VArray([uint16() for i in range(10)])
-        self.e_res2     = vbytes(20)
+        self.e_res2     = VArray([uint16() for i in range(10)])
         self.e_lfanew   = uint32()
 
 class IMAGE_EXPORT_DIRECTORY(VStruct):
@@ -570,6 +568,11 @@ class PeBexFile(v_bexfile.BexFile):
         major = nthdr.OptionalHeader.MajorSubsystemVersion
         #minor = nthdr.OptionalHeader.MinorSubsystemVersion
 
+        # the PE header gets mapped at ra=0
+        # FIXME how much of it? ( page is 4096 but... )
+        hdrbytes = self.readAtOff(0,4096,exact=False).ljust(4096,b'\x00')
+        ret.append( (0,MM_READ,hdrbytes) )
+
         for sec in self.info('sections'):
             ra      = sec.VirtualAddress
             rsize   = sec.VirtualSize
@@ -587,7 +590,7 @@ class PeBexFile(v_bexfile.BexFile):
 
             size = min(rsize,fsize)
             buf = self.readAtRaddr(ra,size).ljust(rsize,b'\x00')
-            ret.append( (ra, perms, buf, {}) )
+            ret.append( (ra, perms, buf) )
 
         return ret
 
@@ -629,6 +632,12 @@ class PeBexFile(v_bexfile.BexFile):
 
     def _bex_info_arch(self):
         return archmap.get( self.info('ntheader').FileHeader.Machine )
+
+    def _bex_info_format(self):
+        return 'pe'
+
+    def _bex_info_platform(self):
+        return 'windows'
 
     def _bex_info_ptrsize(self):
         return ptrmap.get( self.info('ntheader').FileHeader.Machine )

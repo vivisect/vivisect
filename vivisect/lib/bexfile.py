@@ -6,7 +6,7 @@ executable formats.  Individual formats will extend the API
 and may implement additional APIs for retrieving format
 specific information.
 '''
-
+import hashlib
 import traceback
 
 from synapse.lib.apicache import ApiCache,cacheapi
@@ -21,6 +21,7 @@ class BexFile(ApiCache):
         self._bex_info = kwargs
         self._bex_infodocs = {}
 
+        self._bex_infodoc('md5','The md5 hash (bytes) of the file')
         self._bex_infodoc('memsize','The size of the memory range required to load the BexFile')
         self._bex_infodoc('filesize','The size of the file provided for parsing')
 
@@ -34,8 +35,9 @@ class BexFile(ApiCache):
 
         Info conventions:
 
-        'architecture':<archname>   - the executable architecture
+        'arch':<archname>           - the executable architecture
         'platform':<platname>       - the platform/os the bex is native to
+        'format':<fmtname>          - the name of the exeuctable format
 
         '''
         ret = self._bex_info.get(name)
@@ -247,6 +249,14 @@ class BexFile(ApiCache):
         self._bex_fd.seek(0,2)
         return self._bex_fd.tell()
 
+    def _bex_info_md5(self):
+        self._bex_fd.seek(0)
+        # no need to chunk considering...
+        return hashlib.md5( self._bex_fd.read() ).digest()
+
+    def _bex_info_path(self):
+        return self._bex_fd.name
+
     def _bex_entry(self): return None
     def _bex_bintype(self): raise implement('_bex_bintype')
     def _bex_baseaddr(self): return None
@@ -257,9 +267,11 @@ class BexFile(ApiCache):
     def _bex_imports(self): return []           # [ (ra, lib, func), ... ]
     def _bex_sections(self): return []          # [ (ra, size, name), ... ]
 
-    def _bex_info_arch(self): return None       # return a vivisect arch name
-    def _bex_info_ptrsize(self): return None    # return sizeof(void *)
-    def _bex_info_byteorder(self): return None  # return int byte order
+    def _bex_info_arch(self): return None       # vivisect arch name
+    def _bex_info_format(self): return None     # format name
+    def _bex_info_ptrsize(self): return None    # sizeof(void *)
+    def _bex_info_platform(self): return None   # platform name for the binary
+    def _bex_info_byteorder(self): return None  # int byte order
 
 bexformats = {}
 def addBexFormat(name,checker,parser):

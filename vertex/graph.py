@@ -18,8 +18,24 @@ class Graph(s_evtdist.EventDist):
             store = v_storeram.GraphStore()
 
         self.store = store
-        self.store.initEdgeIndex('edge:n1')
-        self.store.initEdgeIndex('edge:n2')
+        self.store.initEdgeIndex('_:n1')
+        self.store.initEdgeIndex('_:n2')
+
+    def initNodeIndex(self, prop, idxtype, **info):
+        '''
+        Initialize a node index in the underlying storage layer.
+
+        NOTE: if the index already exists, the call is ignored
+        '''
+        return self.store.initNodeIndex(prop, idxtype, **info)
+
+    def initEdgeIndex(self, prop, idxtype, **info):
+        '''
+        Initialize an edge index in the underlying storage layer.
+
+        NOTE: if the index already exists, the call is ignored
+        '''
+        return self.store.initEdgeIndex(prop, idxtype, **info)
 
     def initNodeId(self, props):
         return s_common.guid()
@@ -44,8 +60,17 @@ class Graph(s_evtdist.EventDist):
         Add a node to the graph with the given properties.
         '''
         nid = self.initNodeId(props)
-        node = self.store.addNode((nid,props))
+        return self._addNode( (nid,props) )
+
+    def _addNode(self, node):
+        # FIXME what to call this?
+        node = self.store.addNode(node)
         self.synFireEvent('graph:node:add',{'node':node})
+        return node
+
+    def setNodeProps(self, node, **props):
+        for key,val in props.items():
+            node = self.setNodeProp(node,key,val)
         return node
 
     def setNodeProp(self, node, prop, valu):
@@ -70,9 +95,9 @@ class Graph(s_evtdist.EventDist):
         '''
         Delete a node from the graph
         '''
-        for edge in self.getEdgesByProp('edge:n1',valu=node[0]):
+        for edge in self.getEdgesByProp('_:n1',valu=node[0]):
             self.delEdge(edge)
-        for edge in self.getEdgesByProp('edge:n2',valu=node[0]):
+        for edge in self.getEdgesByProp('_:n2',valu=node[0]):
             self.delEdge(edge)
         self.store.delNode(node)
         self.synFireEventKw('graph:node:del',node=node)
@@ -82,10 +107,19 @@ class Graph(s_evtdist.EventDist):
         Add an edge to the graph with the given src->dst and properties.
         '''
         eid = self.initEdgeId(props)
-        props['edge:n1'] = node1[0]
-        props['edge:n2'] = node2[0]
-        edge = self.store.addEdge((eid,props))
+        props['_:n1'] = node1[0]
+        props['_:n2'] = node2[0]
+        edge = (eid,props)
+        return self._addEdge(edge)
+
+    def _addEdge(self, edge):
+        edge = self.store.addEdge(edge)
         self.synFireEventKw('graph:edge:add',edge=edge)
+        return edge
+
+    def setEdgeProps(self, edge, **props):
+        for key,val in props.items():
+            edge = self.setEdgeProp(edge,key,val)
         return edge
 
     def setEdgeProp(self, edge, prop, valu):
