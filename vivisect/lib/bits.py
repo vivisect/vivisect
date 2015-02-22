@@ -181,3 +181,5 @@ def iterbytes(intvals,size=1,byteorder='big'):
     for x in intvals:
         yield x.to_bytes(size,byteorder=byteorder)
 
+def within(x,addr,size):
+    return x >= addr and x < addr + size

@@ -3,10 +3,10 @@ Unified binary executable file format module.
 
 The BexFile class implements the concepts common to most
 executable formats.  Individual formats will extend the API
-and may implement additional APIs which begin with the format
-name.
-
+and may implement additional APIs for retrieving format
+specific information.
 '''
+
 import traceback
 
 from synapse.lib.apicache import ApiCache,cacheapi
@@ -22,6 +22,7 @@ class BexFile(ApiCache):
         self._bex_infodocs = {}
 
         self._bex_infodoc('memsize','The size of the memory range required to load the BexFile')
+        self._bex_infodoc('filesize','The size of the file provided for parsing')
 
     def _bex_infodoc(self, name, doc):
         self._bex_infodocs[name] = doc
@@ -78,15 +79,28 @@ class BexFile(ApiCache):
         Each reloc is returned as a tuple of ( rtype, ra, rinfo )
 
         Example:
+
             for rtype,ra,rinfo in bex.relocs():
                 print("reloc at raddr: 0x%.8x" % ra)
         '''
         return self._bex_relocs()
 
     @cacheapi
+    def imports(self):
+        '''
+        Return a set of (ra,lib,func) tuples for the executable file.
+
+        Example:
+
+            for ra,lib,func in bex.imports():
+                print('import slot at: %d lib: %s func: %s' % (ra,lib,func))
+        '''
+        return self._bex_imports()
+
+    @cacheapi
     def memmaps(self):
         '''
-        Return a list of (ra,size,perms,off) tuples for
+        Return a list of (ra,perms,bytez) tuples for
         the memory maps defined in the executable file.  If the memory
         map is defined within the file, off is the offset within the
         file ( otherwise None )
@@ -96,15 +110,15 @@ class BexFile(ApiCache):
     @cacheapi
     def symbols(self):
         '''
-        Return a list of (type,name,ra,info) tuples for the
+        Return a list of (ra,size,name,info) tuples for the
         symbols defined in the executable file.
 
-        Current symbol types:
-        'unk'       - most generic form.  unknown symbol type.
-        'sec'       - a named memory "section" ( ex. ".text" )
-        'func'      - a symbol which points to a procedural entry (function)
-        'code'      - a symbol which points to a non-procedural entry
-        'data'      - a symbol which points to data
+        Additional flags in info:
+            * func=True     - a procedural entry point
+            * code=True     - a code entry point
+            * data=<type>   - a global variable
+
+        ( possibly other platform specific details )
 
         NOTE: Info dictionary contents depend on type and format.
         '''
@@ -159,13 +173,11 @@ class BexFile(ApiCache):
         return self._bex_bintype()
 
     @cacheapi
-    def ra2off(self, raddr):
+    def ra2off(self, ra):
         '''
         Translate from a relative addr to a file offset based on memmaps.
         '''
-        for addr,size,perms,off in self.memmaps():
-            if off != None and raddr >= addr and raddr <= (addr + size):
-                return off + (raddr-addr)
+        return self._bex_ra2off(ra)
 
     @cacheapi
     def off2ra(self, off):
@@ -176,14 +188,23 @@ class BexFile(ApiCache):
             if foff != None and off >= foff and off <= (foff + size):
                 return addr + (off - foff)
 
-    def readra(self, ra, size):
+    @cacheapi
+    def probera(self, ra):
+        off = self.ra2off(ra)
+        return self.probeoff(off)
+
+    @cacheapi
+    def probeoff(self, off):
+        return off < self.info('filesize')
+
+    def readAtRaddr(self, ra, size, exact=True):
         '''
         Read from the underlying file by translating a relative address.
         '''
         off = self.ra2off(ra)
-        return self.readoff(off,size)
+        return self.readAtOff(off,size)
 
-    def readoff(self, off, size):
+    def readAtOff(self, off, size, exact=True):
         '''
         Read from the underlying file at the given offset.
 
@@ -191,16 +212,54 @@ class BexFile(ApiCache):
               may fall short of "size" without triggering an error.
         '''
         self._bex_fd.seek(off)
-        return self._bex_fd.read(size)
+        ret = self._bex_fd.read(size)
+        if exact and len(ret) != size:
+            return None
+
+        return ret
+
+    def asciiAtRaddr(self, ra, size):
+        '''
+        Read an ascii string at the given relative address.
+
+        Size is used as a *maximum* but strings may be returned which
+        are shorter when a NULL is encountered or there are insufficient
+        bytes.
+
+        NOTE: in the event of a totally invalid ra, this returns ''
+        '''
+        return self.readAtRaddr(ra,size,exact=False).split(b'\x00')[0].decode('ascii')
+
+    def ptrAtRaddr(self, ra):
+        ptrsize = self.info('ptrsize')
+        byteorder = self.info('byteorder')
+        buf = self.readAtRaddr( ra, ptrsize, exact=True)
+        if buf == None:
+            return None
+        return int.from_bytes(buf,byteorder=byteorder)
+
+    def _bex_ra2off(self, ra):
+        for addr,size,perms,off in self.memmaps():
+            if off != None and ra >= addr and raddr <= (addr + size):
+                return off + (raddr-addr)
+
+    def _bex_info_filesize(self):
+        self._bex_fd.seek(0,2)
+        return self._bex_fd.tell()
 
     def _bex_entry(self): return None
     def _bex_bintype(self): raise implement('_bex_bintype')
     def _bex_baseaddr(self): return None
 
-    def _bex_relocs(self): return []
-    def _bex_memmaps(self): return []
-    def _bex_symbols(self): return []
-    def _bex_sections(self): return []
+    def _bex_relocs(self): return []            # [ (ra, type, info), ... ]
+    def _bex_memmaps(self): return []           # [ (ra,perm,bytez), ... ]
+    def _bex_symbols(self): return []           # [ (ra, size, name, info), ... ]
+    def _bex_imports(self): return []           # [ (ra, lib, func), ... ]
+    def _bex_sections(self): return []          # [ (ra, size, name), ... ]
+
+    def _bex_info_arch(self): return None       # return a vivisect arch name
+    def _bex_info_ptrsize(self): return None    # return sizeof(void *)
+    def _bex_info_byteorder(self): return None  # return int byte order
 
 bexformats = {}
 def addBexFormat(name,checker,parser):

@@ -52,6 +52,10 @@ class VStruct(vs_bases.v_base,object):
         self._vs_fields = {}
         self._vs_fieldorder = []
 
+    def __iter__(self):
+        for name in self._vs_fieldorder:
+            yield ( name, self._vs_fields.get(name) )
+
     def vsEmit(self):
         '''
         Return bytes for the current values in the structure definition.
@@ -153,6 +157,13 @@ class VStruct(vs_bases.v_base,object):
 
         field._prim_setval( valu )
 
+class VArray(VStruct):
+
+    def __init__(self, fields):
+        VStruct.__init__(self)
+
+        for i,f in enumerate(fields):
+            self[i] = f
 
 class vbytes(vs_bases.v_prim):
     def __init__(self, size=0):

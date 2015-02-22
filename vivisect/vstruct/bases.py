@@ -13,8 +13,8 @@ class v_base:
     def __len__(self):
         return self.vsSize()
 
-    #def __bytes__(self):
-        #return self.vsEmit()
+    def __bytes__(self):
+        return self.vsEmit()
 
     def vsOnset(self, callback, *args, **kwargs):
         '''
