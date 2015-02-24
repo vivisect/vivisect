@@ -35,7 +35,7 @@ the second phase actually wires up the switch case instance, providing new codef
 necessary, new codeblocks, and xrefs from the dynamic branch to the case handling code.  at the
 end, names are applied as appropriate.
 '''
-
+# TODO: Clean up isinstance() calls to use symtype
 # TODO: ARCHITECTURE ABSTRACTION: 
 #       ibvars = ('rdi','rsi', 'r8', 'r9', 'r10')
 #       i386RegOper (architecture-specific list of operands which would be used by switch-cases
@@ -44,7 +44,7 @@ end, names are applied as appropriate.
 # TODO: complete documentation
 # TODO: try codeblock-granularity and see if that's good enough, rather than backing up by instruction
 # TODO: figure out why KernelBase has switches which are not being discovered
-MAX_ICOUNT  = 10
+MAX_INSTR_COUNT  = 10
 MAX_CASES   = 3600
 
 regidx_sets = {
@@ -71,7 +71,6 @@ class TrackingSymbolikEmulator(vs_emu.SymbolikEmulator):
     def getTrackInfo(self):
         return self._trackReads
         
-    
     def readSymMemory(self, symaddr, symsize, vals=None):
         '''
         The readSymMemory API is designed to read from the given
@@ -121,13 +120,20 @@ class TrackingSymbolikEmulator(vs_emu.SymbolikEmulator):
 
             
 def _cb_grab_vars(path, symobj, ctx):
+    '''
+    walkTree callback for grabbing Var objects
+    '''
     if isinstance(symobj, Var):
         if symobj.name not in ctx:
             ctx.append(symobj.name)
 
 def _cb_grab_unks(path, symobj, ctx):
+    '''
+    walkTree callback for grabbing unknown primitives: Var, Arg, Mem
+    '''
     if symobj.isDiscrete():
         pass
+
     elif isinstance(symobj, Var):
         if symobj not in ctx:
             ctx.append(symobj)
@@ -143,6 +149,9 @@ def _cb_grab_unks(path, symobj, ctx):
     return symobj
     
 def _cb_grab_muls(path, symobj, ctx):
+    '''
+    walkTree callback to grab Mul objects
+    '''
     if isinstance(symobj, o_mul):
         if (path,symobj) not in ctx:
             ctx.append((path, symobj))
@@ -150,6 +159,9 @@ def _cb_grab_muls(path, symobj, ctx):
     return symobj
 
 def _cb_contains(path, symobj, ctx):
+    '''
+    walkTree callback for determining presence within an AST
+    '''
     if symobj.solve() == ctx['compare']:
         ctx['contains'] = True
 
@@ -162,6 +174,9 @@ def _cb_contains(path, symobj, ctx):
     return symobj
 
 def contains(symobj, subobj):
+    '''
+    search through an AST looking for a particular type of thing.
+    '''
     ctx = { 'compare'  : subobj,
             'contains' : False,
             'path'     : []
@@ -169,9 +184,6 @@ def contains(symobj, subobj):
     symobj.walkTree(_cb_contains, ctx)
     return ctx.get('contains'), ctx
 
-
-
-    
 # Command Line Analysis and Linkage of Switch Cases - Microsoft and Posix - taking arguments "count" and "offset"
 def makeSwitch(vw, jmpva, count, offset, funcva=None):
     '''
@@ -230,9 +242,15 @@ def makeSwitch(vw, jmpva, count, offset, funcva=None):
     if len(op.opers) != 1:
         return
     oper = op.opers[0]
-    if not isinstance(oper, e_i386.i386RegOper):   # i386/amd64 # FIXME: how can we un-intel this?  FIXME: some could use some reg-offset thingy.  this will need to change.  if not now, then as we bring in other architectures.  the architecture module should identify what operands can be used for switch cases.  "jmp [basereg + ptrsize * indexreg)" would be totally legit...  this is a Microsoft-style filter right now.
+
+    #### if arch thing...
+    if not isinstance(oper, e_i386.i386RegOper):   
+        # i386/amd64 
+        # FIXME: how can we un-intel this?  
+        # FIXME: some could use some reg-offset thingy.  this will need to change.  if not now, then as we bring in other architectures.  the architecture module should identify what operands can be used for switch cases.  "jmp [basereg + ptrsize * indexreg)" would be totally legit...  this is a Microsoft-style filter right now.
         return
-    
+    ####
+
     # get jmp reg
     rctx = vw.arch.archGetRegCtx()
     reg = oper.reg
@@ -298,7 +316,7 @@ def zero_in(vw, jmpva, oplist, special_vals={}):
     ###  NOTE: we are backing up past significant enough complexity to get the jmp data, 
     ###     next we'll zero in on the "right" ish starting point
     deref_ops = []
-    while not xreflen and icount < MAX_ICOUNT:
+    while not xreflen and icount < MAX_INSTR_COUNT:
         loc = vw.getLocation(nva-1)
         if loc == None:
             # we've reached the beginning of whatever blob of code we know about
@@ -399,18 +417,16 @@ def determineCaseIndex(vw, jmpva, regname, special_vals, effs, debug, verbose=Fa
             
         if vw.verbose: print("vals: ", repr(vals))
 
-        # fix up for windows base
+        # fix up for windows base - why PE only?
         if vw.getMeta('Format') == 'pe':
             imagename = vw.getFileByVa(jmpva)
             imagebase = vw.filemeta[imagename]['imagebase']
-           
-            # FIXME: abstract this out by architecture
+            
             # variables known to hold  imagebase  (this is compiler-specific as much as arch)
-            if archname == 'amd64':
-                ibvars = ('rdi','rsi', 'r8', 'r9', 'r10')
-            elif archname == 'i386':
-                ibvars = ('edi', 'esi')
-                
+            ibvars = vw.arch.archGetRegisterGroup('switch_mapbase')
+            if ibvars == None:
+                return
+
             for kvar in ibvars:
                 if rname == kvar:
                     continue
@@ -653,11 +669,12 @@ def determineCountOffset(vw, jmpva):
             # not set static bounds on idx
             continue
 
+        # once we identify idx, stick with it.
         if idx == None:
             idx = symvar
             baseoff = peel(idx)
 
-        # once we identify idx, stick with it.  we only care about that.
+
         # check the sanity of this constraint's symvar against our idx.
         d = 0
         if idx != symvar:

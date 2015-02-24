@@ -174,6 +174,19 @@ class ArchitectureModule:
         allr = [rname for rname in regctx.getRegisterNames()]
         return [ ('all', allr), ]
 
+    def archGetRegisterGroup(self, name):
+        '''
+        Returns a tuple of registers for a named register group.  Returns
+        None if requested name does not exist
+        '''
+        reg_groups = self.archGetRegisterGroups()
+        for gname, group in reg_groups:
+            if name == gname:
+                return group
+
+    def archGetValidSwitchcaseOperands(self):
+        raise ArchNotImplemented("archGetValidSwitchcaseOperands")
+
     def getEmulator(self):
         """
         Return a default instance of an emulator for the given arch.
