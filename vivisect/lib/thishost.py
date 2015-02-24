@@ -65,29 +65,10 @@ def initHostInfo():
     libc = ctypes.CDLL( find_library('c') )
     if getattr(libc,'mach_vm_read',None):
 
-        hostinfo['platform'] = 'darwin'
-
-        namelen = 256
-        class utsname(ctypes.Structure):
-            _fields_ = (
-                ('sysname',  ctypes.c_char * namelen),
-                ('nodename', ctypes.c_char * namelen),
-                ('release',  ctypes.c_char * namelen),
-                ('version',  ctypes.c_char * namelen),
-                ('machine',  ctypes.c_char * namelen),
-            )
-
-        u = utsname()
-        libc.uname( ctypes.byref(u) )
-
-        verstr = u.release.decode('ascii')
-        hostinfo['version'] = tuple([ int(p) for p in verstr.split('.') ])
-
-        macarchs = {'x86_64':'amd64','i386':'i386'}
-
-        machstr = u.machine.decode('ascii')
-        hostinfo['arch'] = macarchs.get(machstr)
+        import vivisect.runtime.darwin.macapi as v_macapi
+        hostinfo.update( v_macapi.hostinfo() )
 
         return
 
 initHostInfo()
+print(hostinfo)
