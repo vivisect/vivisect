@@ -5,9 +5,9 @@ class ArmWorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_arm.ArmEmulator):
 
     taintregs = [ x for x in range(13) ]
 
-    def __init__(self, vw, logwrite=False, logread=False):
+    def __init__(self, vw, logwrite=False, logread=False, stacksize=4096):
         e_arm.ArmEmulator.__init__(self)
-        v_i_emulator.WorkspaceEmulator.__init__(self, vw, logwrite=logwrite, logread=logread)
+        v_i_emulator.WorkspaceEmulator.__init__(self, vw, logwrite=logwrite, logread=logread, stacksize=stacksize)
 
 '''
 st0len gratuitously from wikipedia:
