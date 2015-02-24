@@ -243,13 +243,16 @@ def makeSwitch(vw, jmpva, count, offset, funcva=None):
         return
     oper = op.opers[0]
 
-    #### if arch thing...
-    if not isinstance(oper, e_i386.i386RegOper):   
-        # i386/amd64 
-        # FIXME: how can we un-intel this?  
-        # FIXME: some could use some reg-offset thingy.  this will need to change.  if not now, then as we bring in other architectures.  the architecture module should identify what operands can be used for switch cases.  "jmp [basereg + ptrsize * indexreg)" would be totally legit...  this is a Microsoft-style filter right now.
+    validOper = False
+    # make sure we have an approved register for switch cases for the architecture
+    validOperands = vw.arch.archGetValidSwitchcaseOperand()
+    for voper in validOperands:
+        if isinstance(oper, voper):
+            validOper = True
+            break
+
+    if not validOper:
         return
-    ####
 
     # get jmp reg
     rctx = vw.arch.archGetRegCtx()
