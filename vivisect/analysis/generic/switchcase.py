@@ -36,10 +36,6 @@ necessary, new codeblocks, and xrefs from the dynamic branch to the case handlin
 end, names are applied as appropriate.
 '''
 # TODO: Clean up isinstance() calls to use symtype
-# TODO: ARCHITECTURE ABSTRACTION: 
-#       ibvars = ('rdi','rsi', 'r8', 'r9', 'r10')
-#       i386RegOper (architecture-specific list of operands which would be used by switch-cases
-#       regidx_sets (list of register indexes)
 # TODO: check offsets/pointers used to calculate jmp targets and either makeNumber or makePointer
 # TODO: complete documentation
 # TODO: try codeblock-granularity and see if that's good enough, rather than backing up by instruction
@@ -47,10 +43,6 @@ end, names are applied as appropriate.
 MAX_INSTR_COUNT  = 10
 MAX_CASES   = 3600
 
-regidx_sets = {
-    'amd64': range(16),
-    'i386':  range(8),
-}
     
 class TrackingSymbolikEmulator(vs_emu.SymbolikEmulator):
     '''
@@ -380,7 +372,7 @@ def determineCaseIndex(vw, jmpva, regname, special_vals, effs, debug, verbose=Fa
     satvals = None
 
     rctx = vw.arch.archGetRegCtx()
-    rnames = [rctx.getRegisterName(x) for x in regidx_sets[archname]]
+    rnames = vw.arch.archGetRegisterGroup('general')
 
     found = False
     semu = TrackingSymbolikEmulator(vw)
