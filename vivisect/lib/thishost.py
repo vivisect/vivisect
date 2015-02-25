@@ -71,4 +71,3 @@ def initHostInfo():
         return
 
 initHostInfo()
-print(hostinfo)
