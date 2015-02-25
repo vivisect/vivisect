@@ -123,6 +123,12 @@ class SymbolikFunctionEmulator(vsym_emulator.SymbolikEmulator):
             return None
 
         va = symvar.solve(emu=self) # solver cache will help out...
+        if self.stackdown and va > self.stackbase:
+            return None
+
+        if not self.stackdown and va < self.stackbase:
+            return None
+
         offset = va - self.stackbase
 
         if self.stackdown and -offset < self.stacksize:
