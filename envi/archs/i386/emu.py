@@ -1625,3 +1625,14 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
     def i_pxor(self, op):
         return self.i_xor(op)
 
+    def i_lahf(self, op):
+        ah = 0
+        ah |= self.getFlag(EFLAGS_SF) << 7
+        ah |= self.getFlag(EFLAGS_ZF) << 6
+        # bit 5 reserved, 0
+        ah |= self.getFlag(EFLAGS_AF) << 4
+        # bit 3 reserved, 0
+        ah |= self.getFlag(EFLAGS_PF) << 2
+        # bit 1 reserved, 0
+        ah |= self.getFlag(EFLAGS_CF) << 0
+        self.setRegister(REG_AH, ah)
