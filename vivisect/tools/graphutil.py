@@ -629,7 +629,16 @@ def clearGraphRouting(graph):
     for nid, ninfo in graph.getNodes():
         graph.getNodeProps(nid)['up'  ] = False
         graph.getNodeProps(nid)['down'] = False
-    
+
+def reduceGraph(graph, props=['up','down']):
+    '''
+    trims all nodes that don't have all the props in the props list
+    '''
+    for node in graph.getNodes():
+        for prop in props:
+            if node[1].get(prop) == None:
+                graph.delNode(node)
+                break
 
 def preRouteGraphUp(graph, tova, loops=True):
     '''
