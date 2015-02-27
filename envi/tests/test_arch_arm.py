@@ -6,4 +6,4 @@ class ArmInstructionSet(unittest.TestCase):
         import envi.archs.arm as e_arm;reload(e_arm)
         am=e_arm.ArmModule()
         op = am.archParseOpcode('d3f021e3'.decode('hex'))
-        self.assertEqual('msr SPSR, #0xd3', repr(op))
+        self.assertEqual('msr CPSR_c, #0xd3', repr(op))
