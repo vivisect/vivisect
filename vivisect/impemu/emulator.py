@@ -28,8 +28,7 @@ class WorkspaceEmulator:
 
     taintregs = []
 
-    def __init__(self, vw, logwrite=False, logread=False):
-
+    def __init__(self, vw, logwrite=False, logread=False, stacksize=4096):
         self.vw = vw
         self.funcva = None # Set if using runFunction
         self.emustop = False
@@ -50,14 +49,20 @@ class WorkspaceEmulator:
 
         self.stack_map_mask = e_bits.sign_extend(0xfff00000, 4, vw.psize)
         self.stack_map_base = e_bits.sign_extend(0xbfb00000, 4, vw.psize)
-        self.stack_pointer = self.stack_map_base + 4096
+        self.stack_pointer = self.stack_map_base + stacksize
 
         # Possibly need an "options" API?
         self._safe_mem = True   # Should we be forgiving about memory accesses?
         self._func_only = True  # is this emulator meant to stay in one function scope?
 
         # Map in a memory map for the stack
-        self.addMemoryMap(self.stack_map_base, 6, "[stack]", init_stack_map)
+        stack_map = init_stack_map
+        if stacksize != 4096:
+            stack_map = ''
+            for i in xrange(stacksize):
+                stack_map += struct.pack("<I", self.stack_map_base+(i*4))
+
+        self.addMemoryMap(self.stack_map_base, 6, "[stack]", stack_map)
 
         # Map in all the memory associated with the workspace
         for va, size, perms, fname in vw.getMemoryMaps():
