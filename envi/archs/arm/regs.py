@@ -15,9 +15,9 @@ arm_regs = (
     ('r10', 32),
     ('r11', 32),
     ('r12', 32),
-    ('sp', 32),
-    ('lr', 32),
-    ('pc', 32),
+    ('sp', 32), # also r13
+    ('lr', 32), # also r14
+    ('pc', 32), # also r15
     ('cpsr', 32),
     # FIXME shadow regs go here (but are not encoded in
     # instructions... they are used by context only)
@@ -56,7 +56,9 @@ PSR_Z = 30  # zero
 PSR_C = 29  # carry
 PSR_V = 28  # oVerflow
 PSR_Q = 27
+PSR_IT = 25
 PSR_J = 24
+PSR_DNM = 20
 PSR_GE = 16
 PSR_E = 9
 PSR_A = 8
@@ -79,35 +81,64 @@ psr_fields[PSR_GE] = "GE"
 psr_fields[PSR_GE+1] = "GE+1"
 psr_fields[PSR_GE+2] = "GE+2"
 psr_fields[PSR_GE+3] = "GE+3"
+psr_fields[PSR_DNM] = "DNM"
+psr_fields[PSR_DNM+1] = "DNM+1"
+psr_fields[PSR_DNM+2] = "DNM+2"
+psr_fields[PSR_DNM+3] = "DNM+3"
 psr_fields[PSR_J] = "J"
+psr_fields[PSR_IT] = "IT"
+psr_fields[PSR_IT+1] = "IT+1"
+psr_fields[PSR_IT-15] = "IT+2"  # IT is split into two sections
+psr_fields[PSR_IT-14] = "IT+3"
+psr_fields[PSR_IT-13] = "IT+4"
+psr_fields[PSR_IT-12] = "IT+5"
+psr_fields[PSR_IT-11] = "IT+6"
+psr_fields[PSR_IT-10] = "IT+7"
 psr_fields[PSR_Q] = "Q"
 psr_fields[PSR_V] = "V"
 psr_fields[PSR_C] = "C"
 psr_fields[PSR_Z] = "Z"
 psr_fields[PSR_N] = "N"
 
-# FIXME this is....  hmm....
-ArmMeta =tuple([("N", REG_FLAGS, PSR_N, 1),
-                ("Z", REG_FLAGS, PSR_Z, 1),
-                ("C", REG_FLAGS, PSR_C, 1),
-                ("V", REG_FLAGS, PSR_V, 1),
-                ("Q", REG_FLAGS, PSR_Q, 1),
-                ("J", REG_FLAGS, PSR_J, 1),
-                ("GE",REG_FLAGS, PSR_GE, 4),
-                ("E", REG_FLAGS, PSR_E, 1),
-                ("A", REG_FLAGS, PSR_A, 1),
-                ("I", REG_FLAGS, PSR_I, 1),
-                ("F", REG_FLAGS, PSR_F, 1),
-                ("T", REG_FLAGS, PSR_T, 1),
-                ("M", REG_FLAGS, PSR_M, 5),
-                ])
+arm_status_metas = [
+        ("N", REG_FLAGS, PSR_N, 1, "Negative/LessThan flag"),
+        ("Z", REG_FLAGS, PSR_Z, 1, "Zero flag"),
+        ("C", REG_FLAGS, PSR_C, 1, "Carry/Borrow/Extend flag"),
+        ("V", REG_FLAGS, PSR_V, 1, "oVerflow flag"),
+        ("Q", REG_FLAGS, PSR_Q, 1, "Sticky Overflow flag"),
+        ("J", REG_FLAGS, PSR_J, 1, "Jazelle Mode bit"),
+        ("GE",REG_FLAGS, PSR_GE, 4, "Greater/Equal flag"),
+        ("DNM",REG_FLAGS, PSR_DNM, 4, "DO NOT MODIFY bits"),
+        ("IT0",REG_FLAGS, PSR_IT, 1, "IfThen 0 bit"),
+        ("IT1",REG_FLAGS, PSR_IT+1, 1, "IfThen 1 bit"),
+        ("IT2",REG_FLAGS, PSR_IT+2, 1, "IfThen 2 bit"),
+        ("IT3",REG_FLAGS, PSR_IT+3, 1, "IfThen 3 bit"),
+        ("IT4",REG_FLAGS, PSR_IT+4, 1, "IfThen 4 bit"),
+        ("IT5",REG_FLAGS, PSR_IT+5, 1, "IfThen 5 bit"),
+        ("IT6",REG_FLAGS, PSR_IT+6, 1, "IfThen 6 bit"),
+        ("IT7",REG_FLAGS, PSR_IT+7, 1, "IfThen 7 bit"),
+        ("E", REG_FLAGS, PSR_E, 1, "Data Endian bit"),
+        ("A", REG_FLAGS, PSR_A, 1, "Imprecise Abort Disable bit"),
+        ("I", REG_FLAGS, PSR_I, 1, "IRQ disable bit"),
+        ("F", REG_FLAGS, PSR_F, 1, "FIQ disable bit"),
+        ("T", REG_FLAGS, PSR_T, 1, "Thumb Mode bit"),
+        ("M", REG_FLAGS, PSR_M, 5, "Processor Mode"),
+        ]
+
+arm_metas = [
+        ("R13", REG_SP, 0, 32),
+        ("R14", REG_LR, 0, 32),
+        ("R15", REG_PC, 0, 32),
+        ]
+
+e_reg.addLocalStatusMetas(l, arm_metas, arm_status_metas, "CPSC")
+e_reg.addLocalMetas(l, arm_metas)
 
 
 class ArmRegisterContext(e_reg.RegisterContext):
     def __init__(self):
         e_reg.RegisterContext.__init__(self)
         self.loadRegDef(reg_data)
-        #self.loadRegDef(arm_regs)
-        #self.loadRegMetas(ArmMeta)
+        self.loadRegMetas(arm_metas, statmetas=arm_status_metas)
         self.setRegisterIndexes(REG_PC, REG_SP)
 

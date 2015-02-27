@@ -5,8 +5,9 @@ The initial arm module.
 import struct
 
 import envi
-from envi.archs.arm import ArmModule
+from envi.const import *
 from envi.archs.arm.regs import *
+from envi.archs.arm import ArmModule
 
 # CPU state (memory, regs inc SPSRs and banked registers)
 # CPU mode  (User, FIQ, IRQ, supervisor, Abort, Undefined, System)
@@ -17,9 +18,14 @@ from envi.archs.arm.regs import *
 
 # calling conventions
 class ArmArchitectureProcedureCall(envi.CallingConvention):
-    """
-    Implement calling conventions for your arch.
-    """
+    arg_def = [(CC_REG, REG_R0), (CC_REG, REG_R1), (CC_REG, REG_R2),
+                (CC_REG, REG_R3), (CC_STACK_INF, 4),]
+    retaddr_def = (CC_REG, REG_R14)
+    retval_def = (CC_REG, REG_R0)
+    flags = CC_CALLEE_CLEANUP
+    align = 8
+    pad = 0
+
     def execCallReturn(self, emu, value, ccinfo=None):
         esp = emu.getRegister(REG_ESP)
         eip = struct.unpack("<L", emu.readMemory(esp, 4))[0]
