@@ -26,20 +26,6 @@ class ArmArchitectureProcedureCall(envi.CallingConvention):
     align = 8
     pad = 0
 
-    def execCallReturn(self, emu, value, ccinfo=None):
-        esp = emu.getRegister(REG_ESP)
-        eip = struct.unpack("<L", emu.readMemory(esp, 4))[0]
-        esp += 4 # For the saved eip
-        esp += (4 * argc) # Cleanup saved args
-
-        emu.setRegister(REG_ESP, esp)
-        emu.setRegister(REG_EAX, value)
-        emu.setProgramCounter(eip)
-
-
-    def getCallArgs(self, emu, count):
-        return emu.getRegisters(0xf)  # r0-r3 are used to hand in parameters.  additional parms are stored and pointed to by r0
-
 aapcs = ArmArchitectureProcedureCall()
 
 class CoProcEmulator:       # useful for prototyping, but should be subclassed
@@ -68,7 +54,8 @@ class ArmEmulator(ArmModule, ArmRegisterContext, envi.Emulator):
     def __init__(self):
         ArmModule.__init__(self)
 
-        self.coprocs = [CoProcEmulator() for x in xrange(16)]       # FIXME: this should be None's, and added in for each real coproc... but this will work for now.
+        # FIXME: this should be None's, and added in for each real coproc... but this will work for now.
+        self.coprocs = [CoProcEmulator() for x in xrange(16)]       
 
         seglist = [ (0,0xffffffff) for x in xrange(6) ]
         envi.Emulator.__init__(self, ArmModule())
