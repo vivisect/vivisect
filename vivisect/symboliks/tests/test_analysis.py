@@ -31,7 +31,7 @@ class AnalysisTests(unittest.TestCase):
         self.sfe.setStackBase(addr, size)
         offset = self.sfe.getStackOffset(MockVar(addr-1))
 
-        self.assertIs(offset, -1)
+        self.assertIs(int(offset), -1)
 
     def test_getStackOffset_below(self, addr=0xbfbff000, size=16384):
         self.sfe.setStackBase(addr, size)
