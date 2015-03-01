@@ -135,9 +135,3 @@ class GraphStore(v_common.GraphStore):
     def implDelEdge(self, edge, state):
         eid = edge[0]
         self.edgesbyid.pop(eid,None)
-
-    def _ctor_index_keyval(self, store, prop, info):
-        return KeyValIndex(store,prop,info)
-
-    def _ctor_index_uniq(self, store, prop, info):
-        return UniqIndex(store,prop,info)
