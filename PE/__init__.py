@@ -807,7 +807,7 @@ class PE(object):
         
 
         while relbytes:
-            pageva, chunksize = struct.unpack("<LL", relbytes[:8])
+            pageva, chunksize = struct.unpack("<II", relbytes[:8])
             relcnt = (chunksize - 8) / 2
             
             # RP BUG FIX - when the reloc section has no fixups but the directory exists..
