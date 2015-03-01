@@ -88,6 +88,7 @@ class Graph(s_evtdist.EventDist):
         '''
         valu = node[1].get(prop)
         node = self.store.delNodeProp(node,prop)
+        node[1].pop(prop,None)
         self.synFireEventKw('graph:node:prop:del',node=node,prop=prop,valu=valu)
         return node
 
@@ -137,6 +138,7 @@ class Graph(s_evtdist.EventDist):
         '''
         prev = edge[1].get('prop')
         edge = self.store.delEdgeProp(edge,prop)
+        edge[1].pop(prop,None)
         self.synFireEventKw('graph:edge:prop:del',edge=edge,prop=prop,prev=prev)
         return edge
 
