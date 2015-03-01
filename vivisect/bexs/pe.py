@@ -51,6 +51,7 @@ IMAGE_REL_BASED_HIGHADJ               = 4
 IMAGE_REL_BASED_MIPS_JMPADDR          = 5
 IMAGE_REL_BASED_IA64_IMM64            = 9
 IMAGE_REL_BASED_DIR64                 = 10
+IMAGE_REL_BASED_HIGH3ADJ              = 11
 
 IMAGE_DIRECTORY_ENTRY_EXPORT            = 0   # Export Directory
 IMAGE_DIRECTORY_ENTRY_IMPORT            = 1   # Import Directory
@@ -149,10 +150,19 @@ RT_HTML             = 23
 RT_MANIFEST         = 24
 
 class IMAGE_BASE_RELOCATION(VStruct):
+
     def __init__(self):
         VStruct.__init__(self)
         self.VirtualAddress = uint32()
         self.SizeOfBlock    = uint32()
+        #self.blocks         = VArray()
+
+        #self.vsOnset('SizeOfBlock',self._slot_blocksize)
+
+    #def _slot_blocksize(self):
+        ##self.blocks.vsClear()
+        #for i in range( self.SizeOfBlock / 4 ):
+            #self.blocks[i] = uint32()
 
 class IMAGE_DATA_DIRECTORY(VStruct):
     def __init__(self):
@@ -470,52 +480,60 @@ class PeBexFile(v_bexfile.BexFile):
 
     def __init__(self, fd, **kwargs):
         v_bexfile.BexFile.__init__(self, fd, **kwargs)
-        self._bex_infodoc('dosheader','An IMAGE_DOS_HEADER vstruct object')
-        self._bex_infodoc('ntheader','An IMAGE_NT_HEADERS(64) vstruct object')
-        self._bex_infodoc('sections','A list of IMAGE_SECTION_HEADERS vstruct objects')
-        self._bex_infodoc('imports','A list of IMAGE_IMPORT_DIRECTORY vstruct objects')
-        self._bex_infodoc('datadirs','A list of IMAGE_DATA_DIRECTORY vstruct objects')
-        self._bex_infodoc('pdbpath','The PdbFileName from IMAGE_DEBUG_DIRECTORY (or None)')
+        self._bex_infodoc('pe:dos','An IMAGE_DOS_HEADER vstruct object')
+        self._bex_infodoc('pe:nt','An IMAGE_NT_HEADERS(64) vstruct object')
+        self._bex_infodoc('pe:sections','A list of IMAGE_SECTION_HEADERS vstruct objects')
+        self._bex_infodoc('pe:imports','A list of IMAGE_IMPORT_DIRECTORY vstruct objects')
+        self._bex_infodoc('pe:exports','A tuple of (exports,forwards)')
+        self._bex_infodoc('pe:datadirs','A list of IMAGE_DATA_DIRECTORY vstruct objects')
+        self._bex_infodoc('pe:pdbpath','The PdbFileName from IMAGE_DEBUG_DIRECTORY (or None)')
+        self._bex_infodoc('pe:pdata','A list of (ra,IMAGE_RUNTIME_FUNCTION_ENTRY,UNWIND_INFO) tuples')
 
     def _bex_sections(self):
         ret = []
-        for sec in self.info('sections'):
+        for sec in self.info('pe:sections'):
             if not sec.VirtualAddress:
                 continue
             ret.append( (sec.VirtualAddress, sec.VirtualSize, sec.Name) )
         return ret
 
     def _bex_ra2off(self, ra):
-        for sec in self.info('sections'):
+        for sec in self.info('pe:sections'):
             if v_bits.within(ra,sec.VirtualAddress,sec.VirtualSize):
                 return sec.PointerToRawData + (ra - sec.VirtualAddress)
 
     def _bex_imports(self):
         # normalize lib names for the outer api
         ret = []
-        for ra,lib,func in self.info('imports'):
+        for ra,lib,func in self.info('pe:imports'):
             libname = lib.lower()
             if libname[-4:] in ('.dll','.sys','.ocx','.exe'):
                 libname = libname[:-4]
             ret.append( (ra,libname,func) )
         return ret
 
-    def _bex_info_imports(self):
+    def _bex_bintype(self):
+        datadir = self.info('pe:datadirs')[IMAGE_DIRECTORY_ENTRY_EXPORT]
+        if datadir.VirtualAddress:
+            return 'dyn'
+        return 'exe'
+
+    def _bex_info_pe_imports(self):
         ret = []
 
-        datadir = self.info('datadirs')[IMAGE_DIRECTORY_ENTRY_IMPORT]
+        impdir = self.info('pe:datadirs')[IMAGE_DIRECTORY_ENTRY_IMPORT]
+        if not impdir.VirtualAddress:
+            return ()
+
+        if not impdir.Size:
+            return ()
+
         highmask = self.info('highmask')
 
-        ra = datadir.VirtualAddress
-        while True:
+        ra = impdir.VirtualAddress
+        size = impdir.Size
 
-            imp = IMAGE_IMPORT_DIRECTORY()
-            buf = self.readAtRaddr(ra, len(imp), exact=True)
-            if buf == None:
-                break
-
-            imp.vsParse(buf)
-            ra += len(buf)
+        for ra,imp in self.structs(ra,size,IMAGE_IMPORT_DIRECTORY):
 
             if not imp.Name:
                 break
@@ -524,7 +542,6 @@ class PeBexFile(v_bexfile.BexFile):
             if not libname:
                 break
 
-            # either OriginalFirstThunk or just FirstThunk
             byname = imp.OriginalFirstThunk
             if byname == 0:
                 byname = imp.FirstThunk
@@ -549,31 +566,171 @@ class PeBexFile(v_bexfile.BexFile):
                 byn.vsParse(buf)
                 ret.append( (byname, libname, byn.Name) )
 
-                byname += self.info('ptrsize')
+                byname += self.ptrsize()
 
         return ret
             
-    def _bex_info_pdbpath(self):
+    def _bex_info_pe_pdbpath(self):
         return 'FIXME'
 
-    def _bex_entry(self):
-        return self.info('ntheader').OptionalHeader.AddressOfEntryPoint
+    def _bex_exports(self):
+
+        ret = []
+
+        ra = self.info('pe:nt').OptionalHeader.AddressOfEntryPoint
+        if ra:
+            ret.append( (ra,'__entry','func') )
+
+        # FIXME need a forwarders test!
+        exps,fwds = self.info('pe:exports')
+        for ra,name,ordinal in exps:
+            ret.append( (ra,name,'unkn') )
+
+        # "pdata" entries are basically exported functions
+        # with no names...
+        for ra,ent,unwind in self.info('pe:pdata'):
+            flags = unwind.VerFlags >> 3
+            # FIXME ported from legacy code, revisit
+            if not flags & UNW_FLAG_CHAININFO:
+                ret.append( (ent.BeginAddress, None, 'func') )
+
+        return ret
+
+    def _bex_relocs(self):
+        # translate PE relocs to bex relocs
+        ret = []
+        # FIXME check on sizing of different relocs
+        for ra,rtype in self.info('pe:relocs'):
+
+            # ordered by likelyhood
+            if rtype == IMAGE_REL_BASED_HIGHLOW:
+                ret.append( (ra,'ptr',{'pre':True,'size':4}) )
+                continue
+
+            if rtype == IMAGE_REL_BASED_DIR64:
+                ret.append( (ra,'ptr',{'pre':True,'size':8}) )
+                continue
+
+            if rtype == IMAGE_REL_BASED_ABSOLUTE:
+                continue
+
+            if rtype == IMAGE_REL_BASED_LOW:
+                ret.append( (ra,'ptr',{'pre':True,'size':2}) )
+                continue
+
+            if rtype in (IMAGE_REL_BASED_HIGH, IMAGE_REL_BASED_HIGHADJ):
+                ret.append( (ra,'ptr',{'pre':True,'size':2,'shr':16}) )
+                continue
+
+            self.anomaly(ra,'pe:reloc:type',rtype=rtype)
+
+        return ret
+
+    def _bex_info_pe_relocs(self):
+
+        rdir = self.info('pe:datadirs')[IMAGE_DIRECTORY_ENTRY_BASERELOC]
+        if not rdir.VirtualAddress:
+            return ()
+
+        if not rdir.Size:
+            return ()
+
+        ra = rdir.VirtualAddress
+        size = rdir.Size
+
+        rmax = ra + size
+
+        ret = []
+
+        # iterate the variably sized IMAGE_BASE_RELOCATION blocks
+        blk = self.struct(ra,IMAGE_BASE_RELOCATION)
+        while blk != None and ra < rmax:
+
+            if not blk.VirtualAddress:
+                break
+
+            if not blk.SizeOfBlock:
+                break
+
+            cls = varray(blk.SizeOfBlock // 4, uint16)
+            blocks = self.struct(ra + len(blk), cls)
+            if blocks == None:
+                break
+
+            for i,typoff in blocks:
+                typoff = int(typoff)
+                typ = typoff >> 12
+                off = typoff & 0xfff
+
+                ret.append( ( blk.VirtualAddress + off, typ ) )
+
+            ra += blk.SizeOfBlock
+            blk = self.struct(ra,IMAGE_BASE_RELOCATION)
+
+        return ret
+
+    def _bex_info_pe_exports(self):
+
+        edir = self.info('pe:datadirs')[IMAGE_DIRECTORY_ENTRY_EXPORT]
+        if not edir.VirtualAddress:
+            return (),()
+
+        exp = self.struct(edir.VirtualAddress,IMAGE_EXPORT_DIRECTORY)
+        if exp == None:
+            return (),()
+
+        ExpArray32 = varray(exp.NumberOfFunctions,uint32)
+        ExpArray16 = varray(exp.NumberOfFunctions,uint16)
+
+        funcs = self.struct(exp.AddressOfFunctions, ExpArray32)
+        if funcs == None:
+            return (),()
+
+        names = self.struct(exp.AddressOfNames, ExpArray32)
+        if names == None:
+            return (),()
+
+        ords  = self.struct(exp.AddressOfOrdinals, ExpArray16)
+        if ords == None:
+            return (),()
+
+        exps = []
+        fwds = []
+
+        for i in range(exp.NumberOfFunctions):
+
+            o = int(ords[i])
+            ra = int(names[o])
+            func = int(funcs[o])
+
+            if ra:
+                name = self.asciiAtRaddr(ra,256)
+            else:
+                name = 'ord_%.4x' % o
+
+            if v_bits.within(func,edir.VirtualAddress,edir.Size):
+                fwdname = self.asciiAtRaddr(func,256)
+                fwds.append( (func,name,fwdname) )
+                continue
+
+            exps.append( (func, name, o) )
+
+        return exps,fwds
 
     def _bex_baseaddr(self):
-        return self.info('ntheader').OptionalHeader.ImageBase
+        return self.info('pe:nt').OptionalHeader.ImageBase
 
     def _bex_memmaps(self):
         ret = []
-        nthdr = self.info('ntheader')
+        nthdr = self.info('pe:nt')
         major = nthdr.OptionalHeader.MajorSubsystemVersion
         #minor = nthdr.OptionalHeader.MinorSubsystemVersion
 
-        # the PE header gets mapped at ra=0
-        # FIXME how much of it? ( page is 4096 but... )
+        # the PE header gets mapped at off=0/ra=0
         hdrbytes = self.readAtOff(0,4096,exact=False).ljust(4096,b'\x00')
         ret.append( (0,MM_READ,hdrbytes) )
 
-        for sec in self.info('sections'):
+        for sec in self.info('pe:sections'):
             ra      = sec.VirtualAddress
             rsize   = sec.VirtualSize
             fsize   = sec.SizeOfRawData
@@ -594,9 +751,9 @@ class PeBexFile(v_bexfile.BexFile):
 
         return ret
 
-    def _bex_info_sections(self):
-        nthdr = self.info('ntheader')
-        doshdr = self.info('dosheader')
+    def _bex_info_pe_sections(self):
+        nthdr = self.info('pe:nt')
+        doshdr = self.info('pe:dos')
 
         ret = []
 
@@ -610,15 +767,18 @@ class PeBexFile(v_bexfile.BexFile):
 
         return ret
 
-    def _bex_info_dosheader(self):
+    #################################################################
+    # NOTE: for the first 4096 bytes, readAtRadr == readAtOff
+
+    def _bex_info_pe_dos(self):
         doshdr = IMAGE_DOS_HEADER()
         doshdr.vsParse( self.readAtOff(0,len(doshdr)) )
         return doshdr
 
-    def _bex_info_ntheader(self):
+    def _bex_info_pe_nt(self):
         nthdr = IMAGE_NT_HEADERS()
 
-        doshdr = self.info('dosheader')
+        doshdr = self.info('pe:dos')
         nthdr.vsParse( self.readAtOff( doshdr.e_lfanew, len(nthdr) ) )
 
         if nthdr.FileHeader.Machine in ( IMAGE_FILE_MACHINE_AMD64, IMAGE_FILE_MACHINE_IA64 ):
@@ -627,26 +787,55 @@ class PeBexFile(v_bexfile.BexFile):
 
         return nthdr
 
-    def _bex_info_datadirs(self):
-        return [ field for name,field in self.info('ntheader').OptionalHeader.DataDirectory ]
+    def _bex_info_pe_datadirs(self):
+        return [ field for name,field in self.info('pe:nt').OptionalHeader.DataDirectory ]
 
-    def _bex_info_arch(self):
-        return archmap.get( self.info('ntheader').FileHeader.Machine )
+    def _bex_arch(self):
+        return archmap.get( self.info('pe:nt').FileHeader.Machine )
 
-    def _bex_info_format(self):
+    def _bex_format(self):
         return 'pe'
 
-    def _bex_info_platform(self):
+    def _bex_platform(self):
         return 'windows'
 
-    def _bex_info_ptrsize(self):
-        return ptrmap.get( self.info('ntheader').FileHeader.Machine )
+    def _bex_ptrsize(self):
+        return ptrmap.get( self.info('pe:nt').FileHeader.Machine )
 
-    def _bex_info_byteorder(self):
+    def _bex_byteorder(self):
         return 'little'
 
     def _bex_info_highmask(self):
-        return v_bits.signbits[ self.info('ptrsize') * 8 ]
+        return v_bits.signbits[ self.ptrsize() * 8 ]
+
+    def _bex_info_pe_pdata(self):
+
+        if not self.arch() == 'amd64':
+            return ()
+
+        exdir = self.info('pe:datadirs')[IMAGE_DIRECTORY_ENTRY_EXCEPTION]
+        if not exdir.VirtualAddress:
+            return ()
+
+        if not exdir.Size:
+            return ()
+
+        ra = exdir.VirtualAddress
+        size = exdir.Size
+
+        for ra,ent in self.structs(ra,size,IMAGE_RUNTIME_FUNCTION_ENTRY):
+            unwind = self.struct(ent.UnwindInfoAddress, UNWIND_INFO)
+            if unwind == None:
+                continue
+
+            # flags version info can only be 1 currently
+            if unwind.VerFlags & 0x7 != 1:
+                break
+
+            yield ra,ent,unwind
+            #ret.append( (ent, unwind) )
+
+        #return ret
 
 def isPeFd(fd):
     # maybe do more here...
