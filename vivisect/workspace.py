@@ -11,7 +11,6 @@ import vivisect.lib.pagelook as v_pagelook
 class VivError(Exception):pass
 class VivNoSuchFile(VivError):pass
 
-# should probably extend hal.memory
 class VivView(v_memory.Memory):
     '''
     A VivView represents files from a VivWorksace mapped at specific
@@ -58,10 +57,16 @@ class VivView(v_memory.Memory):
         '''
         Create a fileaddr graph node for the translated virtual address.
         '''
+        fa = self.addrToFileAddr(addr)
+        if fa == None:
+            raise Exception('Invalid File Addr: 0x%.8x' % (addr,))
+        return self.vw.formNodeByNoun('fileaddr',fa)
 
     def getFileAddr(self, addr):
         fa = self.addrToFileAddr(addr)
-        return self.vw.getFileAddr(fa)
+        if fa == None:
+            raise Exception('Invalid File Addr: 0x%.8x' % (addr,))
+        return self.vw.getNodeByNoun('fileaddr',fa)
 
     def formFuncAddr(self, addr, funcdef=None):
 
@@ -69,11 +74,21 @@ class VivView(v_memory.Memory):
             funcdef = 'void sub_%.8x()' % addr
 
         fa = self.addrToFileAddr(addr)
-        if fa == None:
-            raise Exception('Invalid File Addr: 0x%.8x' % (addr,))
+        return self.vw.formNodeByNoun('filefunc',fa)
 
-        node = self.vw.formFileAddr(*fa)
-        self.vw.setNodeProp(node,'fileaddr:func',1)
+    def formFuncCall(self, caller, callee):
+        '''
+        Form a filefunc --callfunc--> filefunc edge in the VivWorkspace.
+
+        Example:
+
+            func1 = vv.formFuncAddr(0x41414141)
+            func2 = vv.formFuncAddr(0x56565656)
+
+            edge = vv.formFuncCall(func1,func2)
+
+        '''
+        return self.vw.formEdgeByVerb(caller,'callfunc', callee)
 
     def formInstAddr(self, addr, inst):
         '''
@@ -84,7 +99,7 @@ class VivView(v_memory.Memory):
         while todo:
             addr,inst = todo.pop()
 
-            fh,ra = self.addrToFileAddr(addr)
+            fa = self.addrToFileAddr(addr)
             node = self.vw.formFileAddr(fh,ra)
 
             self.vw.setNodeProp(node,'fileaddr:inst:mnem',inst.mnem())
@@ -113,7 +128,7 @@ class VivView(v_memory.Memory):
 
         # FIXME apply relocations!
 
-class VivWorkspace(s_evtdist.EventDist):
+class VivWorkspace(v_model.GraphModel):
     '''
     The Vivisect MarkII Workspace.
 
@@ -124,41 +139,45 @@ class VivWorkspace(s_evtdist.EventDist):
     relative addresses within each file.
 
     '''
-    def __init__(self, model=None, **config):
-        s_evtdist.EventDist.__init__(self)
-        if model == None:
-            model = v_model.GraphModel()
+    def __init__(self, **config):
+        v_model.GraphModel.__init__(self)
 
         self.runinfo = {}   # used for non-persistant runtime info
 
-        # FIXME glue event layers together
-        self.model = model
+        self.initModelNoun('config')
 
-        self.model.initModelNoun('config')
+        # init model node defs
+        self.initModelNoun('file', ctor=self._ctor_file)
+        self.initModelNoun('filemap', ctor=self._ctor_filemap)
+        self.initModelNoun('fileaddr', ctor=self._ctor_fileaddr)
+        self.initModelNoun('filefunc', ctor=self._ctor_filefunc, dtor=self._dtor_filefunc)
 
-        self.model.initModelNoun('file', ctor=self._ctor_file)
-        self.model.initModelNoun('filemap', ctor=self._ctor_filemap)
-        self.model.initModelNoun('fileaddr', ctor=self._ctor_fileaddr)
+        self.initModelVerb('filefunc','callfunc','filefunc')
 
-        # setup default indexes
-        self.model.initModelProp('file',indexes=['keyval'])
-        self.model.initModelProp('filemap:file',indexes=['keyval'])
-        self.model.initModelProp('fileaddr:file',indexes=['keyval'])
+        # init model props and indexes
+        self.initModelProp('file',indexes=['keyval'])
+        self.initModelProp('filemap:file',indexes=['keyval'])
 
-        self.model.initModelNoun('config')
-        self.model.initModelVerb('fileaddr','flow','fileaddr')
+        self.initModelProp('fileaddr:file',indexes=['keyval'])
+        self.initModelProp('fileaddr:entry',indexes=['keyval'])
+        self.initModelProp('fileaddr:reloc',indexes=['keyval'])
 
-        node = self.model.formNodeByNoun('config','viv')
+        self.initModelProp('filefunc:file',indexes=['keyval'])
+
+        # init model edge defs
+        self.initModelVerb('fileaddr','flow','fileaddr')
+
+        node = self.formNodeByNoun('config','viv')
         if node[1].get('config:ident') == None:
             ident = s_common.guid()
-            node = self.model.setNodeProp(node,'config:ident',ident)
+            node = self.setNodeProp(node,'config:ident',ident)
 
         self.ident = node[1].get('config:ident')
 
         for key,val in config.items():
             prop = 'config:%s' % key
             if node[1].get(prop) != val:
-                node = self.model.setNodeProp(node,prop,val)
+                node = self.setNodeProp(node,prop,val)
 
     def runVivAnalyze(self, filehash=None):
         '''
@@ -166,7 +185,7 @@ class VivWorkspace(s_evtdist.EventDist):
         '''
         self.synFireEvent('viv:analyze:init',{})
 
-        for node in self.model.getNodesByProp('file'):
+        for node in self.getNodesByProp('file'):
             filehash = node[1].get('file')
             baseaddr = node[1].get('file:baseaddr', 0x41410000)
 
@@ -224,7 +243,7 @@ class VivWorkspace(s_evtdist.EventDist):
             ident = vw.getVivConfig('ident')
 
         '''
-        node = self.model.formNodeByNoun('config','viv')
+        node = self.formNodeByNoun('config','viv')
         return node[1].get('config:%s' % key, default)
 
     def setVivConfig(self, key, val):
@@ -236,28 +255,41 @@ class VivWorkspace(s_evtdist.EventDist):
             vw.setVivConfig('woot',10)
 
         '''
-        node = self.model.formNodeByNoun('config','viv')
-        return self.model.setNodeProp(node,'config:%s' % key, val)
+        node = self.formNodeByNoun('config','viv')
+        return self.setNodeProp(node,'config:%s' % key, val)
 
     def loadBexFile(self, bex):
         '''
         Load a binary executable file into the vivisect workspace.
         '''
-        md5 = bex.info('md5')
+        md5 = bex.md5()
 
         props = {}
-        props['file:arch']      = bex.info('arch')
-        props['file:path']      = bex.info('path')
-        props['file:size']      = bex.info('filesize')
-        props['file:format']    = bex.info('format')
-        props['file:platform']  = bex.info('platform')
+        props['file:arch']      = bex.arch()
+        props['file:path']      = bex.path()
+        props['file:size']      = bex.filesize()
+        props['file:format']    = bex.format()
+        props['file:platform']  = bex.platform()
         props['file:baseaddr']  = bex.baseaddr()
 
-        node = self.model.formNodeByNoun('file',md5,**props)
+        node = self.formNodeByNoun('file',md5,**props)
+
+        # do we already have a default arch?
+        if self.getVivConfig('arch') == None:
+            self.setVivConfig('arch',bex.arch())
 
         for ra,perms,bytez in bex.memmaps():
             props = {'filemap:perms':perms,'filemap:bytes':bytez}
-            mapnode = self.model.formNodeByNoun('filemap',(md5,ra),**props)
+            mapnode = self.formNodeByNoun('filemap',(md5,ra),**props)
+
+        for ra,name,etype in bex.exports():
+            self.addFileEntry( (md5,ra), etype=etype )
+            if name != None:
+                # FIXME MAKE SYMBOLS AND NAMES
+                pass
+
+        for ra,rtype,rinfo in bex.relocs():
+            self.addFileReloc( (md5,ra), rtype, **rinfo )
 
         # FIXME give the bexfile impl a shot at it
 
@@ -275,12 +307,9 @@ class VivWorkspace(s_evtdist.EventDist):
 
         Example:
             node = vw.getFileNode(md5)
-        '''
-        return self.model.getNodeByNoun('file',filehash)
 
-    def getFileAddr(self, filehash, ra):
-        valu = (filehash,ra)
-        return self.model.getNodeByNoun('fileaddr',valu=valu)
+        '''
+        return self.getNodeByNoun('file',filehash)
 
     def formFileAddr(self, fileaddr):
         '''
@@ -288,23 +317,48 @@ class VivWorkspace(s_evtdist.EventDist):
 
         A fileaddr node is used by the VivWorkspace to represent
         a relative address within a specific file in the workspace.
-        '''
-        return self.model.formNodeByNoun('fileaddr',fileaddr)
 
-    def getFileAddr(self, fileaddr):
         '''
-        Retrieve a fileaddr node from the VivWorkspace.
+        return self.formNodeByNoun('fileaddr',fileaddr)
 
-        See formFileAddr() for details on fileaddr nodes within
-        the VivWorkspace graph.
+    def addFileEntry(self, fa, etype='unkn'):
+        '''
+        Annotate a fileaddr node as being an "entry".
+
+        etypes:
+        * unkn      - unknown, marks for heuristic analysis
+        * func      - function entry point
+        * code      - code entry ( but possibly not procedure )
+        * data      - data entry ( likely exported variable )
 
         Example:
 
-            fa = (filehash,reladdr)
-            node = vw.getFileAddr(fa)
+            vw.addFileEntry(fa,etype='func')
 
         '''
-        return self.model.getNodeByNoun('fileaddr',fileaddr)
+        node = self.formNodeByNoun('fileaddr',fa)
+
+        # lets not go backwards in specificity...
+        valu = node[1].get('fileaddr:entry')
+        if etype == 'unkn' and valu != None:
+            return node
+
+        return self.setNodeProp(node,'fileaddr:entry',etype)
+
+    def addFileReloc(self, fa, rtype, **rinfo):
+        '''
+        Annotate a fileaddr node as being a relocation slot.
+
+        Example:
+
+            vw.addFileReloc(fa,'abs')
+
+        '''
+        node = self.formNodeByNoun('fileaddr',fa)
+        self.setNodeProp(node,'fileaddr:reloc',rtype)
+
+        for key,val in rinfo.items():
+            self.setNodeProp(node,'fileaddr:reloc:%s' % key, val)
 
     def formFileInst(self, filehash, ra, inst):
         '''
@@ -315,10 +369,20 @@ class VivWorkspace(s_evtdist.EventDist):
 
         node = self.formFileAddr(filehash,ra)
 
-    #def formCodeFlowEdge(self, filehash, fromra, tora):
-    #def formLogicFlowEdge(self, filehash, fromra, tora):
+    def getVivCpu(self, view=None, arch=None):
+        '''
+        Construct a vivisect.hal.Cpu backed by a VivView.
 
-    #def formFilePad(self,
+        The VivView is used to map various VivWorkspace files to
+        memory locations and is then used as the Memory object for
+        a Cpu.
+
+        Example:
+            cpu = vw.getVivCpu()
+
+        '''
+        if view == None:
+            view = self.getVivView()
 
     def getVivView(self, basemaps=None):
         '''
@@ -348,13 +412,13 @@ class VivWorkspace(s_evtdist.EventDist):
         view = VivView(self)
 
         if not basemaps:
-            for fnode in self.model.getNodesByProp('file'):
+            for fnode in self.getNodesByProp('file'):
                 filehash = fnode[1].get('file')
                 view.loadVivFile(filehash)
             return view
 
         for filehash,baseaddr in basemaps.items():
-            node = self.model.getNodeByNoun('file',filehash)
+            node = self.getNodeByNoun('file',filehash)
             #if node == None:
                 # FIXME try to get the file by basename
 
@@ -372,14 +436,14 @@ class VivWorkspace(s_evtdist.EventDist):
         '''
         Return a list of the file hashes loaded in the VivWorkspace.
         '''
-        return [ n[1].get('file') for n in self.model.getNodesByProp('file') ]
+        return [ n[1].get('file') for n in self.getNodesByProp('file') ]
 
     def getFileMaps(self, filehash):
         '''
         Return a list of (ra,perms,bytes) tuples for the a file by hash.
         '''
         ret = []
-        for node in self.model.getNodesByProp('filemap:file',valu=filehash):
+        for node in self.getNodesByProp('filemap:file',valu=filehash):
             ra = node[1].get('filemap:ra')
             perms = node[1].get('filemap:perms')
             bytez = node[1].get('filemap:bytes')
@@ -396,17 +460,36 @@ class VivWorkspace(s_evtdist.EventDist):
         props.setdefault('file:basename','')
         props.setdefault('file:origpath','')
         props.setdefault('file:baseaddr',None)
-        return self.model._ctor_node(noun, valu, **props)
+        return self._ctor_node(noun, valu, **props)
 
     def _ctor_filemap(self, noun, valu, **props):
         props['filemap:ra'] = valu[1]
         props['filemap:file'] = valu[0]
         props.setdefault('filemap:perms',0)
         props.setdefault('filemap:bytes',b'')
-        return self.model._ctor_node(noun, valu, **props)
+        return self._ctor_node(noun, valu, **props)
 
     def _ctor_fileaddr(self, noun, valu, **props):
         props['fileaddr:ra'] = valu[1]
         props['fileaddr:file'] = valu[0]
-        return self.model._ctor_node(noun, valu, **props)
+        return self._ctor_node(noun, valu, **props)
+
+    def _ctor_filefunc(self, noun, valu, **props):
+        props['filefunc:ra'] = valu[1]
+        props['filefunc:file'] = valu[0]
+
+        # give the fileaddr node a hint about filefunc
+        node = self.formNodeByNoun('fileaddr',valu)
+        self.setNodeProp(node,'fileaddr:cast:func',1)
+
+        return self._ctor_node(noun, valu, **props)
+
+    def _dtor_filefunc(self, node):
+        fa = node[1].get('filefunc')
+
+        fanode = self.getNodeByNoun('fileaddr',fa)
+        if fanode != None:
+            self.delNodeProp(fanode,'fileaddr:cast:func')
+
+        return self._dtor_node(node)
 
