@@ -119,7 +119,7 @@ class VStruct(vs_bases.v_base,object):
         ret = self._vs_fields.get(name)
         if ret != None:
             return ret._prim_getval()
-        return super(VStruct,self).__getattr__(name)
+        raise AttributeError('%s has no field %s' % (self.__class__.__name__,name))
 
     def __setattr__(self, name, valu):
         if name.startswith('_vs_'):
@@ -325,4 +325,23 @@ class uint64(vs_bases.v_int):
     '''
     def __init__(self, valu=0, endian='little'):
         vs_bases.v_int.__init__(self, valu=valu, size=8, endian=endian)
+
+def varray(size,cls):
+    '''
+    Dynamically generate an VArray sublcass with "size" fields of type "cls"
+
+    Example:
+
+        cls = varray(10,uint32)
+
+    # FIXME __mul__ for classes?
+
+    '''
+
+    def clsinit(self):
+        fields = [ cls() for i in range(size) ]
+        VArray.__init__(self,fields)
+
+    name = '%s_Array_%d' % (cls.__name__,size)
+    return type(name,(VArray,),{'__init__':clsinit})
 
