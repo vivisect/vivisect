@@ -152,6 +152,23 @@ class BexFile(ApiCache):
         return self._bex_baseaddr()
 
     @cacheapi
+    def basename(self):
+        '''
+        Return a normalized "basename" for the bexfile.
+
+        Where possible the basename is used to resolve dependancies
+        between loaded files.  The names should be compatible with
+        vtrace's "libnorm" concept.
+
+        Example:
+
+            if bex.basename() == 'kernel32':
+                print('it claims to be kernel32.dll!')
+
+        '''
+        return self._bex_basename()
+
+    @cacheapi
     def relocs(self):
         '''
         Retrieve a list of the relocation tuples for the executable file.
@@ -409,6 +426,7 @@ class BexFile(ApiCache):
 
     def _bex_bintype(self): return 'unk'
     def _bex_baseaddr(self): return None
+    def _bex_basename(self): return None
 
     def _bex_relocs(self): return []            # [ (ra, type, info), ... ]
     def _bex_memmaps(self): return []           # [ (ra,perm,bytez), ... ]
