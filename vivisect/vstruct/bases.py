@@ -45,6 +45,7 @@ class v_prim(v_base):
         self._vs_parent = None
 
         # on-demand field parsing
+        self._vs_backfd = None
         self._vs_backoff = None
         self._vs_backbytes = None
         self._vs_writeback = False
@@ -57,7 +58,16 @@ class v_prim(v_base):
         self._vs_backoff = offset
         self._vs_backbytes = bytez
         self._vs_writeback = writeback
-        retval = offset + self._vs_size
+        retval = offset + self.vsSize()
+        self._fire_onset()
+        return retval
+
+    def vsLoad(self, fd, offset=0, writeback=False):
+        self._vs_value = None
+        self._vs_backfd = fd
+        self._vs_backoff = offset
+        self._vs_writeback = writeback
+        retval = offset + self.vsSize()
         self._fire_onset()
         return retval
 
@@ -80,19 +90,33 @@ class v_prim(v_base):
         valu = self._prim_norm(newval)
         self._vs_value = valu
 
-        # if requested, write changes back to bytearray
+        # if requested, write changes back to bytearray / fd
         if self._vs_writeback:
             buf = self._prim_emit(valu)
-            self._vs_backbytes[ self._vs_backoff:self._vs_backoff + len(buf) ] = buf
+            if self._vs_backbytes != None:
+                self._vs_backbytes[ self._vs_backoff:self._vs_backoff + len(buf) ] = buf
+
+            if self._vs_backfd != None:
+                self._vs_backfd.seek( self._vs_backoff )
+                self._vs_backfd.write( buf )
 
         self._fire_onset()
 
     def _prim_getval(self):
         # trigger on-demand parsing if needed
-        if self._vs_value == None and self._vs_backbytes != None:
-            self._vs_value = self._prim_parse(self._vs_backbytes, self._vs_backoff)
+        if self._vs_value == None:
+            if self._vs_backfd:
+                self._vs_value = self._prim_load(self._vs_backfd, self._vs_backoff)
+            elif self._vs_backbytes:
+                self._vs_value = self._prim_parse(self._vs_backbytes, self._vs_backoff)
 
         return self._vs_value
+
+    def _prim_load(self, fd, offset):
+        # easy base case...
+        fd.seek(offset)
+        buf = fd.read(self._vs_size)
+        return self._prim_parse(buf, 0)
 
     def vsEmit(self):
         return self._prim_emit( self._prim_getval() )

@@ -1,3 +1,4 @@
+import io
 import unittest
 
 from ..types import *
@@ -38,6 +39,14 @@ class S3(VStruct):
         VStruct.__init__(self)
         self.x      = uint8()
         self.y      = vbytes(6)
+
+class S4(VStruct):
+    def __init__(self):
+        VStruct.__init__(self)
+        self.w      = uint8()
+        self.x      = vbytes(3)
+        self.y      = zstr()
+        self.z      = uint16()
 
 class TypesTest(unittest.TestCase):
 
@@ -96,3 +105,22 @@ class TypesTest(unittest.TestCase):
 
         s3.x = 20
         self.assertEqual( bytes(buf), b'\x14' + b'\x00' * 7)
+
+    def test_vstruct_load(self):
+        s4 = S4()
+
+        fd = io.BytesIO(b'\xffQQQabcd\x00VV')
+        off = s4.vsLoad(fd, writeback=True)
+
+        self.assertEqual(s4.w, 0xff)
+        self.assertEqual(s4.x, b'QQQ')
+        self.assertEqual(s4.y, 'abcd')
+        self.assertEqual(s4.z, 0x5656)
+
+        self.assertEqual(off,11)
+
+        s4.x = b'RRR'
+        fd.seek(0)
+
+        self.assertEqual( fd.read(), b'\xffRRRabcd\x00VV')
+

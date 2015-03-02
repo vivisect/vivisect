@@ -77,6 +77,13 @@ class VStruct(vs_bases.v_base,object):
         self._fire_onset()
         return retoff
 
+    def vsLoad(self, fd, offset=0, writeback=False):
+        retoff = offset
+        for off,prim in self.vsPrims():
+            retoff = prim.vsLoad(fd, offset=offset+off, writeback=writeback)
+        self._fire_onset()
+        return retoff
+
     def _vs_prims(self):
         # recursive primitive *yielder* ( allows resizing while yielding )
         for name in self._vs_fieldorder:
@@ -240,7 +247,6 @@ class zstr(vs_bases.v_prim):
         vs_bases.v_prim.__init__(self, size=size, valu=valu)
 
     def vsSize(self):
-        # make sure we've parsed
         self._prim_getval()
         return self._vs_size
 
@@ -252,23 +258,45 @@ class zstr(vs_bases.v_prim):
     def _prim_emit(self, x):
         return (x + '\x00').encode( self._vs_encoding )
 
-    def _prim_parse(self, bytez, offset):
-        chars = []
-        yinfo = {'size':0}
-        # a semi-hack until python's bytes.iterbytes() exists...
-        def yieldb():
-            for i in range(len(bytez) - offset):
-                yinfo['size'] += 1
-                yield bytez[offset+i:offset+i+1]
+    def _prim_parse(self, buf, off):
+        info = {}
+        gen = self._prim_yield_bytes(buf, off, info)
+        return self._prim_fromgen(gen,info)
 
+    def _prim_load(self, fd, off):
+        info = {}
+        gen = self._prim_yield_fd(fd,off,info)
+        return self._prim_fromgen(gen,info)
+
+    def _prim_fromgen(self, yielder, info):
+        chars = []
         # not exactly a model of efficiency...
-        for c in codecs.iterdecode(yieldb(), self._vs_encoding):
+        for c in codecs.iterdecode(yielder, self._vs_encoding):
             if ord(c) == 0:
                 break
             chars.append(c)
 
-        self.vsResize( yinfo['size'] )
+        self.vsResize(info['size'])
         return ''.join(chars)
+
+    def _prim_yield_bytes(self, buf, off, info):
+        info['size'] = 0
+        for i in range(len(buf) - off):
+            offi = off + i
+            b = buf[offi:offi+1]
+            info['size'] += 1
+            yield b
+
+    def _prim_yield_fd(self, fd, off,info):
+        fd.seek(off)
+        info['size'] = 0
+        while True:
+            b = fd.read(1)
+            if not b:
+                break
+
+            info['size'] += 1
+            yield b
 
 class int8(vs_bases.v_int):
     '''
