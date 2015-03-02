@@ -460,6 +460,9 @@ class ElfBexFile(v_bexfile.BexFile):
 
         ret =  []
         for off,sec in secs:
+            if not sec.sh_addr:
+                continue
+
             name = self.asciiAtOff( stroff + sec.sh_name, 256 )
             ret.append( (sec.sh_addr,sec.sh_size,name) )
 
