@@ -326,6 +326,14 @@ class uint64(vs_bases.v_int):
     def __init__(self, valu=0, endian='little'):
         vs_bases.v_int.__init__(self, valu=valu, size=8, endian=endian)
 
+class ptr32(vs_bases.v_int):
+    def __init__(self, valu=0, endian='little'):
+        vs_bases.v_int.__init__(self, valu=valu, size=4, endian=endian)
+
+class ptr64(vs_bases.v_int):
+    def __init__(self, valu=0, endian='little'):
+        vs_bases.v_int.__init__(self, valu=valu, size=8, endian=endian)
+
 def varray(size,cls):
     '''
     Dynamically generate an VArray sublcass with "size" fields of type "cls"
