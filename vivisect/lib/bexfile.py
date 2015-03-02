@@ -6,6 +6,7 @@ executable formats.  Individual formats will extend the API
 and may implement additional APIs for retrieving format
 specific information.
 '''
+import os
 import hashlib
 import traceback
 
@@ -21,6 +22,8 @@ class BexFile(ApiCache):
         self._bex_info = kwargs
         self._bex_infodocs = {}
         self._bex_anomalies = []    # (ra,typ,info)
+
+        #self._bex_info.setdefault('zeromap',None)
 
         self._bex_infodoc('memsize','The size of the memory range required to load the BexFile')
 
@@ -128,7 +131,7 @@ class BexFile(ApiCache):
             return ret
 
         methname = name.replace(':','_')
-        cb = getattr(self,'_bex_info_%s' % methname)
+        cb = getattr(self, '_bex_info_%s' % methname, None)
         if cb == None:
             return None
 
@@ -295,6 +298,13 @@ class BexFile(ApiCache):
         '''
         Translate from a relative addr to a file offset based on memmaps.
         '''
+        # bootstrap convenience for formats which map the beginning
+        # of the file at bex.baseaddr() essentially making off==ra
+        # while within the first page.
+        zeromap = self.info('zeromap')
+        if zeromap != None and ra < zeromap:
+            return ra
+
         return self._bex_ra2off(ra)
 
     @cacheapi
@@ -315,7 +325,7 @@ class BexFile(ApiCache):
     def probeoff(self, off):
         return off < self.filesize()
 
-    def struct(self, ra, cls):
+    def struct(self, ra, cls, off=False):
         '''
         Construct a vstruct class and parse bytes at a relative addr.
 
@@ -329,14 +339,19 @@ class BexFile(ApiCache):
         '''
         obj = cls()
         size = len(obj)
-        b = self.readAtRaddr(ra,size)
+
+        if off:
+            b = self.readAtOff(ra,size)
+        else:
+            b = self.readAtRaddr(ra,size)
+
         if b == None:
             return None
 
         obj.vsParse(b)
         return obj
 
-    def structs(self, ra, size, cls):
+    def structs(self, ra, size, cls, off=False):
         '''
         Yield structs parsed from the relative addr up to size.
 
@@ -348,7 +363,7 @@ class BexFile(ApiCache):
         '''
         ramax = ra + size
         while ra < ramax:
-            obj = self.struct(ra, cls)
+            obj = self.struct(ra, cls, off=off)
             if obj == None:
                 break
 
@@ -379,6 +394,9 @@ class BexFile(ApiCache):
 
         return ret
 
+    def asciiAtOff(self, off, size):
+        return self.readAtOff(off,size,exact=False).split(b'\x00')[0].decode('ascii')
+
     def asciiAtRaddr(self, ra, size):
         '''
         Read an ascii string at the given relative address.
@@ -399,10 +417,10 @@ class BexFile(ApiCache):
             return None
         return int.from_bytes(buf,byteorder=byteorder)
 
-    def _bex_ra2off(self, ra):
-        for addr,size,perms,off in self.memmaps():
-            if off != None and ra >= addr and raddr <= (addr + size):
-                return off + (raddr-addr)
+    #def _bex_ra2off(self, ra):
+        #for addr,perms,mem in self.memmaps():
+            #if off != None and ra >= addr and raddr <= (addr + size):
+                #return off + (raddr-addr)
 
     @cacheapi
     def filesize(self):
@@ -424,9 +442,17 @@ class BexFile(ApiCache):
     def _bex_path(self):
         return self._bex_fd.name
 
+    def _bex_basename(self):
+        path = self.path()
+        if path == None:
+            return None
+
+        # best possible general case...
+        base = os.path.basename( path )
+        return base.lower().rsplit('.',1)[0]
+
     def _bex_bintype(self): return 'unk'
     def _bex_baseaddr(self): return None
-    def _bex_basename(self): return None
 
     def _bex_relocs(self): return []            # [ (ra, type, info), ... ]
     def _bex_memmaps(self): return []           # [ (ra,perm,bytez), ... ]
