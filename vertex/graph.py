@@ -8,8 +8,10 @@ import vertex.store.ram as v_storeram
 
 class Graph(s_evtdist.EventDist):
 
-    def __init__(self, store=None):
+    def __init__(self, store=None, **info):
         s_evtdist.EventDist.__init__(self)
+
+        self._graf_info = info
 
         self._node_stors = {}
         self._edge_stors = {}
@@ -20,6 +22,15 @@ class Graph(s_evtdist.EventDist):
         self.store = store
         self.store.initEdgeIndex('_:n1')
         self.store.initEdgeIndex('_:n2')
+
+    def getGraphInfo(self, prop):
+        return self._graf_info.get(prop)
+
+    def setGraphInfo(self, prop, valu):
+        self._graf_info[prop] = valu
+
+    def delGraphInfo(self, prop):
+        return self._graf_info.pop(prop,None)
 
     def initNodeIndex(self, prop, idxtype, **info):
         '''
@@ -166,6 +177,14 @@ class Graph(s_evtdist.EventDist):
         index       - which index to ask to resolve the key/val
         '''
         return self.store.getNodesByProp(prop,valu=valu,limit=limit,index=index)
+
+    def getN2NodesByN1(self, node, limit=None):
+        for edge in self.getEdgesByProp('_:n1',valu=node[0],limit=limit):
+            yield self.getNodeById( edge[1].get('_:n2') )
+
+    def getN1NodesByN2(self, node, limit=None):
+        for edge in self.getEdgesByProp('_:n2',valu=node[0],limit=limit):
+            yield self.getNodeById( edge[1].get('_:n1') )
 
     def getEdgeByProp(self, prop, valu=None):
         '''

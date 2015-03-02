@@ -27,3 +27,19 @@ class GraphTest(unittest.TestCase):
         self.assertIsNone( g.getNodeById(node1[0]) )
 
         g.synShutDown()
+
+    def test_graph_n1byn2(self):
+        g = v_graph.Graph()
+        node1 = g.addNode(woot=10,keep='keep')
+        node2 = g.addNode(woot=20,keep='keep')
+        edge = g.addEdge(node1,node2,woot=30,keep='keep')
+
+        self.assertEqual( list(g.getN1NodesByN2(node2))[0][0], node1[0] )
+
+    def test_graph_n2byn1(self):
+        g = v_graph.Graph()
+        node1 = g.addNode(woot=10,keep='keep')
+        node2 = g.addNode(woot=20,keep='keep')
+        edge = g.addEdge(node1,node2,woot=30,keep='keep')
+
+        self.assertEqual( list(g.getN2NodesByN1(node1))[0][0], node2[0] )
