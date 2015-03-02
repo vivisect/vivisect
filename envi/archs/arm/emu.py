@@ -2,6 +2,7 @@
 The initial arm module.
 """
 
+import sys
 import struct
 
 import envi
@@ -395,9 +396,9 @@ class ArmEmulator(ArmModule, ArmRegisterContext, envi.Emulator):
         if op.opers[0].reg == REG_PC:
             return val
 
-
-
-
+    def i_mov(self, op):
+        val = self.getOperValue(op, 1)
+        self.setOperValue(op, 0, val)
 
     def i_add(self, op):
         src1 = self.getOperValue(op, 1)
