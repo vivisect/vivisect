@@ -159,17 +159,17 @@ class BexFile(ApiCache):
         '''
         Return a normalized "libname" for the bexfile.
 
-        Where possible the basename is used to resolve dependancies
+        Where possible the libname is used to resolve dependancies
         between loaded files.  The names should be compatible with
         vtrace's "libnorm" concept.
 
         Example:
 
-            if bex.basename() == 'kernel32':
+            if bex.libname() == 'kernel32':
                 print('it claims to be kernel32.dll!')
 
         '''
-        return self._bex_basename()
+        return self._bex_libname()
 
     @cacheapi
     def relocs(self):
@@ -442,7 +442,7 @@ class BexFile(ApiCache):
     def _bex_path(self):
         return self._bex_fd.name
 
-    def _bex_basename(self):
+    def _bex_libname(self):
         path = self.path()
         if path == None:
             return None
