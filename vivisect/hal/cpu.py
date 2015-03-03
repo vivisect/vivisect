@@ -325,12 +325,12 @@ def getArchList():
     '''
     return cpuctors.items()
 
-def getArchCpu(name, **kwargs):
+def getArchCpu(name, **opts):
     '''
     Construct a Cpu class for the given architecture by name.
     '''
     ctor = cpuctors.get(name)
     if ctor == None:
         raise UnknownArch(name)
-    return ctor(**kwargs)
+    return ctor(**opts)
 
