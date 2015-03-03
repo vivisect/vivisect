@@ -155,9 +155,9 @@ class BexFile(ApiCache):
         return self._bex_baseaddr()
 
     @cacheapi
-    def basename(self):
+    def libname(self):
         '''
-        Return a normalized "basename" for the bexfile.
+        Return a normalized "libname" for the bexfile.
 
         Where possible the basename is used to resolve dependancies
         between loaded files.  The names should be compatible with
@@ -451,6 +451,9 @@ class BexFile(ApiCache):
         base = os.path.basename( path )
         return base.lower().rsplit('.',1)[0]
 
+    def _bex_ptrsize(self):
+        return ptrsizes.get(self.arch())
+
     def _bex_bintype(self): return 'unk'
     def _bex_baseaddr(self): return None
 
@@ -462,9 +465,15 @@ class BexFile(ApiCache):
 
     def _bex_arch(self): return None       # vivisect arch name
     def _bex_format(self): return None     # format name
-    def _bex_ptrsize(self): return None    # sizeof(void *)
     def _bex_platform(self): return None   # platform name for the binary
     def _bex_byteorder(self): return None  # int byte order
+
+# a set of default pointer sizes
+ptrsizes = {
+    'arm':4,
+    'i386':4,
+    'amd64':8,
+}
 
 bexformats = {}
 def addBexFormat(name,checker,parser):
@@ -475,6 +484,9 @@ def addBexFormat(name,checker,parser):
     parser(fd,**kwargs)
     '''
     bexformats[name] = (checker,parser)
+
+class BexError(Exception):pass
+class BexInvalidFormat(BexError):pass
 
 def getBexFile(fd,**kwargs):
     '''
@@ -490,6 +502,15 @@ def getBexFile(fd,**kwargs):
             dostuff(map)
     '''
     offset = fd.tell()
+
+    fmt = kwargs.get('format')
+    if fmt != None:
+        checkparse = bexformats.get(fmt)
+        if checkparse == None:
+            raise BexInvalidFormat(fmt)
+        checker,parser = checkparse
+        return parser(fd,**kwargs)
+
     for name,(checker,parser) in bexformats.items():
         fd.seek(offset) # reset fd offset to where it started
         try:

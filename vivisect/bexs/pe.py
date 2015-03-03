@@ -669,18 +669,18 @@ class PeBexFile(v_bexfile.BexFile):
 
         return ret
 
-    def _bex_basename(self):
+    def _bex_libname(self):
         edir = self.info('pe:datadirs')[IMAGE_DIRECTORY_ENTRY_EXPORT]
         if not edir.VirtualAddress:
-            return Bexfile._bex_basename(self)
+            return v_bexfile.BexFile._bex_libname(self)
 
         exp = self.struct(edir.VirtualAddress,IMAGE_EXPORT_DIRECTORY)
         if exp == None:
-            return Bexfile._bex_basename(self)
+            return Bexfile._bex_libname(self)
 
         dllname = self.asciiAtRaddr(exp.Name, 32)
         if dllname == None:
-            return Bexfile._bex_basename(self)
+            return Bexfile._bex_libname(self)
 
         dllname = dllname.lower()
         if dllname[-4:] in ('.exe','.dll','.sys','.ocx'):

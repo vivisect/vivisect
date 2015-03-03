@@ -3,6 +3,7 @@ import vertex.model as v_model
 import synapse.lib.common as s_common
 import synapse.event.dist as s_evtdist
 
+import vivisect.hal.cpu as v_cpu
 import vivisect.lib.bits as v_bits
 import vivisect.hal.memory as v_memory
 import vivisect.lib.bexfile as v_bexfile
@@ -156,6 +157,8 @@ class VivWorkspace(v_model.GraphModel):
 
         # init model props and indexes
         self.initModelProp('file',indexes=['keyval'])
+        self.initModelProp('file:libname',indexes=['keyval'])
+
         self.initModelProp('filemap:file',indexes=['keyval'])
 
         self.initModelProp('fileaddr:file',indexes=['keyval'])
@@ -271,6 +274,7 @@ class VivWorkspace(v_model.GraphModel):
         props['file:format']    = bex.format()
         props['file:platform']  = bex.platform()
         props['file:baseaddr']  = bex.baseaddr()
+        props['file:libname']  = bex.libname()
 
         node = self.formNodeByNoun('file',md5,**props)
 
@@ -369,7 +373,7 @@ class VivWorkspace(v_model.GraphModel):
 
         node = self.formFileAddr(filehash,ra)
 
-    def getVivCpu(self, view=None, arch=None):
+    def getVivCpu(self, view=None, arch=None, **opts):
         '''
         Construct a vivisect.hal.Cpu backed by a VivView.
 
@@ -384,6 +388,13 @@ class VivWorkspace(v_model.GraphModel):
         if view == None:
             view = self.getVivView()
 
+        if arch == None:
+            arch = self.getVivConfig('arch')
+
+        cpu = v_cpu.getArchCpu(arch,**opts)
+        cpu.setCpuMem( view )
+        return cpu
+
     def getVivView(self, basemaps=None):
         '''
         Construct a VivView to represent files mapped at specific addresses.
@@ -393,7 +404,7 @@ class VivWorkspace(v_model.GraphModel):
         VivWorkspace files.
 
         The "basemaps" dictionary specifies <filehash>:<baseaddr> mappings
-        ( and will also map <basename>:<baseaddr> if the basename is uniq
+        ( and will also map <libname>:<baseaddr> if the libname is uniq
         amongst the files loaded in the workspace.
 
         When no basemaps are specified, we attempt to load each file at
@@ -419,8 +430,10 @@ class VivWorkspace(v_model.GraphModel):
 
         for filehash,baseaddr in basemaps.items():
             node = self.getNodeByNoun('file',filehash)
-            #if node == None:
-                # FIXME try to get the file by basename
+            if node == None:
+                nodes = self.getNodesByProp('file:libname',filehash)
+                if len(nodes) == 1:
+                    node = nodes[0]
 
             if node == None:
                 raise Exception('Unknown File: %s' % (filehash,))
@@ -456,8 +469,8 @@ class VivWorkspace(v_model.GraphModel):
     def _ctor_file(self, noun, valu, **props):
         props.setdefault('file:arch','')
         props.setdefault('file:format','')
+        props.setdefault('file:libname','')
         props.setdefault('file:platform','')
-        props.setdefault('file:basename','')
         props.setdefault('file:origpath','')
         props.setdefault('file:baseaddr',None)
         return self._ctor_node(noun, valu, **props)
