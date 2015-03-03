@@ -1,6 +1,14 @@
 from envi.archs.arm.const import *
 import envi.registers as e_reg
 
+'''
+Strategy:
+    * Use only distinct register for Register Context (unique in each bank)
+    * Store a lookup table for the different banks of registers, based on the 
+        register data in proc_modes (see const.py)
+    * Emulator does translation from register/mode to actual storage container
+        using reg_table and some math (see _getRegIdx)
+'''
 arm_regs = (
     ('r0', 32),
     ('r1', 32),
@@ -19,33 +27,42 @@ arm_regs = (
     ('lr', 32), # also r14
     ('pc', 32), # also r15
     ('cpsr', 32),
-    # FIXME shadow regs go here (but are not encoded in
-    # instructions... they are used by context only)
+    ('nil', 32),   # place holder
+    # FIXME: need to deal with ELR_hyp
 )
+MAX_REGS = 17
 
 # build a translation table to allow for fast access of banked registers
 modes = proc_modes.keys()
 modes.sort()
 
-reg_table = [ x for x in range(16 * 17) ]
+reg_table = [ x for x in range(16 * 18) ]
 reg_data = [ (reg, sz) for reg,sz in arm_regs ]
 
 for modenum in modes[1:]:       # skip first since we're already done
-    (mname, msname, desc, offset, mode_reg_count, PSR_offset) = proc_modes.get(modenum)
+    (mname, msname, desc, offset, mode_reg_count, PSR_offset, priv_level) = proc_modes.get(modenum)
     # shared regs
+    print "--",msname,"--"
     for ridx in range(mode_reg_count):
-        # don't create new entries for this
+        # don't create new entries for this register, use the usr-mode reg
         reg_table[ridx+offset] = ridx
+        print ridx
 
     # mode-regs (including PC)
-    for ridx in range(mode_reg_count, 16):
+    for ridx in range(mode_reg_count, 15):
         idx = len(reg_data)
-        reg_data.append((msname+"_"+arm_regs[ridx][0], 32))
+        reg_data.append((arm_regs[ridx][0]+"_"+msname, 32))
         reg_table[ridx+offset] = idx
+        print idx
 
+    # PC
+    reg_table[PSR_offset-2] = 15
+    # CPSR
+    reg_table[PSR_offset-1] = 16
     # PSR
     reg_table[PSR_offset] = len(reg_data)
-    reg_data.append((msname+"_SPSR", 32))
+    reg_data.append(("SPSR_"+msname, 32))
+
 # done with banked register translation table
 
 l = locals()
@@ -67,8 +84,14 @@ PSR_F = 6
 PSR_T = 5
 PSR_M = 0
 
+PSR_N_bit  = 1 << PSR_N
+PSR_N_mask = 0xffffffff ^ PSR_N_bit
+PSR_Z_bit  = 1 << PSR_Z
+PSR_Z_mask = 0xffffffff ^ PSR_Z_bit
 PSR_C_bit  = 1 << PSR_C
 PSR_C_mask = 0xffffffff ^ PSR_C_bit
+PSR_V_bit  = 1 << PSR_V
+PSR_V_mask = 0xffffffff ^ PSR_V_bit
 
 psr_fields = [None for x in xrange(32)]
 psr_fields[PSR_M] = "M"
