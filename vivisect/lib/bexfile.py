@@ -25,6 +25,8 @@ class BexFile(ApiCache):
 
         #self._bex_info.setdefault('zeromap',None)
 
+        self._bex_infodoc('raisoff','Set to True if ra=off for this bex')
+        self._bex_infodoc('zeromap','The size of a 0 based region where ra == off')
         self._bex_infodoc('memsize','The size of the memory range required to load the BexFile')
 
     def anomaly(self, ra, atype, **info):
@@ -301,20 +303,23 @@ class BexFile(ApiCache):
         # bootstrap convenience for formats which map the beginning
         # of the file at bex.baseaddr() essentially making off==ra
         # while within the first page.
+        if self.info('raisoff'):
+            return ra
+
         zeromap = self.info('zeromap')
         if zeromap != None and ra < zeromap:
             return ra
 
         return self._bex_ra2off(ra)
 
-    @cacheapi
-    def off2ra(self, off):
-        '''
-        Translate from a file offset to an ra based on memmaps.
-        '''
-        for addr,size,perms,foff in self.memmaps():
-            if foff != None and off >= foff and off <= (foff + size):
-                return addr + (off - foff)
+    #@cacheapi
+    #def off2ra(self, off):
+        #'''
+        ##Translate from a file offset to an ra based on memmaps.
+        #'''
+        #for addr,size,perms,foff in self.memmaps():
+            #if foff != None and off >= foff and off <= (foff + size):
+                #return addr + (off - foff)
 
     @cacheapi
     def probera(self, ra):

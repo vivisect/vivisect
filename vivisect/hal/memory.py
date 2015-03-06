@@ -1,7 +1,8 @@
 '''
 Vivisect machine abstraction for memory interfaces.
 '''
-import re
+
+import vivisect.lib.pagelook as v_pagelook
 
 # Memory Map Permission Flags
 MM_NONE     = 0x0
@@ -17,13 +18,13 @@ MM_RWX = MM_READ | MM_WRITE | MM_EXEC
 class MemPermsError(Exception):pass
 class MemInvalidAddr(Exception):pass
 
-pnames = ['No Access', 'Execute', 'Write', None, 'Read']
-def getPermName(perm):
-    '''
-    Return the human readable name for a *single* memory
-    perm enumeration value.
-    '''
-    return pnames[perm]
+#pnames = ['No Access', 'Execute', 'Write', None, 'Read']
+#def getPermName(perm):
+    #'''
+    #Return the human readable name for a *single* memory
+    #perm enumeration value.
+    #'''
+    #return pnames[perm]
 
 permstrs = [
   ('rwx',MM_RWX),('r--',MM_READ),('-w-',MM_WRITE),('--x',MM_EXEC),
@@ -43,48 +44,97 @@ def parsePerms(pstr):
 class ImplementMe(Exception):pass
 
 class IMemory:
-    """
-    This is the interface spec (and a few helper utils)
-    for the unified memory object interface.
 
-    NOTE: If your actual underlying memory format is such
-    that over-riding anything (like isValidPointer!) can
-    be faster than the default implementation, DO IT!
-    """
     def readMemory(self, addr, size):
-        """
-        Read memory from the specified virtual address for size bytes
-        and return it as a python string.
+        '''
+        Read memory bytes at addr for size bytes.
 
-        Example: mem.readMemory(0x41414141, 20) -> "A..."
-        """
-        raise ImplementMe
+        Example:
 
-    def writeMemory(self, addr, bytez):
-        """
-        Write the given bytes to the specified virtual address.
+            m.readMemory(0x41414141, 20) -> "A..."
 
-        Example: mem.writeMemory(0x41414141, "VISI")
-        """
-        raise ImplementMe
+        '''
+        return self._mem_read(addr,size)
+
+    def writeMemory(self, addr, mem):
+        '''
+        Write bytes to memory at addr.
+
+        Example:
+
+            m.writeMemory(0x41414141, b"VISI")
+
+        '''
+        return self._mem_write(addr, mem)
 
     def protectMemory(self, addr, size, perms):
-        """
-        Change the protections for the given memory map. On most platforms
-        the addr/size *must* exactly match an existing memory map.
-        """
-        raise ImplementMe
+        '''
+        Change the memory permissions for the given range.
+
+        Example:
+
+            m.protectMemory(0x41410000,4096,MM_RWX)
+
+        '''
+        return self._mem_protect(addr,size,perms)
 
     def probeMemory(self, addr, size, perm):
-        """
-        Check to be sure that the given virtual address and size
-        is contained within one memory map, and check that the
-        perms are contained within the permission bits
-        for the memory map. (MM_READ | MM_WRITE | MM_EXEC | ...)
+        '''
+        Probe a memory range to check permissions.
 
-        Example probeMemory(0x41414141, 20, MM_WRITE)
-        (check if the memory for 20 bytes at 0x41414141 is writable)
-        """
+        Example:
+
+            m.probeMemory(0x41414141, 20, MM_WRITE)
+
+        '''
+        return self._mem_probe(addr,size,perm)
+
+    def allocMemory(self, size, perms=MM_RWX, suggestaddr=0):
+        '''
+        Allocate and protect a segment of memory.
+
+        Returns the address of the newly allocated memory range
+        or None if the Memory instance doesn't support alloc.
+
+        Example:
+
+            ptr = m.allocMemory( 4096, perms=MM_RWX )
+            if ptr != None:
+                m.writeMemory(ptr, b'VISI')
+
+        '''
+        return self._mem_alloc(size, perms=perms, suggestaddr=suggestaddr)
+
+    def getMemoryMaps(self):
+        '''
+        Retrieve a list of (addr,size,perm,info) tuples.
+
+        Example:
+
+            for addr,size,perm,info in m.getMemoryMaps():
+
+        '''
+        return self._mem_getmaps()
+
+    def getMemoryMap(self, addr):
+        '''
+        Return the memory map tuple which contains addr or None.
+
+        Example:
+
+            map = m.getMemoryMap(addr)
+            if map != None:
+                addr,size,perm,info = map
+                print('map at: 0x%.8x' % (addr,))
+
+        '''
+        return self._mem_getmap(addr)
+
+    def _mem_getmaps(self):
+        return ()
+
+    def _mem_probe(self, addr, size, perm):
+        # a default memmap based impl
         mmap = self.getMemoryMap(addr)
         if mmap == None:
             return False
@@ -96,64 +146,13 @@ class IMemory:
             return False
         return True
 
-    def allocateMemory(self, size, perms=MM_RWX, suggestaddr=0):
-        return self._mem_alloc(size, perms=perms, suggestaddr=suggestaddr)
-
-    def addMemoryMap(self, mapaddr, perms, fname, bytez):
-        return self._mem_addmap(mapaddr,perms,fname,bytez)
-
-    def getMemoryMaps(self):
-        return self._mem_getmaps()
-
-    def getMemoryMap(self, addr):
-        '''
-        Return a tuple of mapaddr,size,perms,filename for the memory
-        map which contains the specified address (or None).
-        '''
-        return self._mem_getmap(addr)
 
     def _mem_getmap(self, addr):
+        # default memmap based impl
         for mapaddr,size,perms,mname in self.getMemoryMaps():
             if addr >= mapaddr and addr < (mapaddr+size):
                 return (mapaddr,size,perms,mname)
         return None
-
-    def searchMemory(self, needle, regex=False):
-        """
-        A quick cheater way to searchMemoryRange() for each
-        of the current memory maps.
-        """
-        results = []
-        for addr,size,perm,fname in self.getMemoryMaps():
-            try:
-                results.extend(self.searchMemoryRange(needle, addr, size, regex=regex))
-            except:
-                pass # Some platforms dont let debuggers read non-readable mem
-
-        return results
-
-    def searchMemoryRange(self, needle, address, size, regex=False):
-        """
-        Search the specified memory range (address -> size)
-        for the string needle.   Return a list of addresses
-        where the match occurs.
-        """
-        results = []
-        memory = self.readMemory(address, size)
-        if regex:
-            for match in re.finditer(needle, memory):
-                off = match.start()
-                results.append(address+off)
-        else:
-            offset = 0
-            while offset < size:
-                loc = memory.find(needle, offset)
-                if loc == -1: # No more to be found ;)
-                    break
-                results.append(address+loc)
-                offset = loc+len(needle) # Skip one past our matcher
-
-        return results
 
 class MemoryCache(IMemory):
     '''
@@ -169,13 +168,14 @@ class MemoryCache(IMemory):
     def _cachePage(self, addr):
         return self.mem.readMemory(addr, self.pagesize)
 
-    def getMemoryMap(self, addr):
+    def _mem_getmaps(self):
+        return self.mem.getMemoryMaps()
+
+    def _mem_getmap(self, addr):
         return self.mem.getMemoryMap(addr)
 
-    def getMemoryMaps(self, addr):
-        return self.mem.getMemoryMaps(addr)
-
-    def readMemory(self, addr, size):
+    #def readMemory(self, addr, size):
+    def _mem_read(self, addr, size):
         ret = b''
         while size:
             pageaddr = addr & self.pagemask
@@ -193,12 +193,12 @@ class MemoryCache(IMemory):
 
         return ret
 
-    def writeMemory(self, addr, bytez):
+    def _mem_write(self, addr, mem):
 
-        while len(bytez):
+        while len(mem):
             pageaddr = addr & self.pagemask
             pageoff = addr - pageaddr
-            chunksize = min(self.pagesize, len(bytez))
+            chunksize = min(self.pagesize, len(mem))
 
             page = self.pagecache.get(pageaddr)
             if page == None:
@@ -206,11 +206,11 @@ class MemoryCache(IMemory):
                 self.pagecache[pageaddr] = page
 
             self.pagedirty[pageaddr] = True
-            page = page[:pageoff] + bytez[:chunksize] + page[pageoff+chunksize:]
+            page = page[:pageoff] + mem[:chunksize] + page[pageoff+chunksize:]
             self.pagecache[pageaddr] = page
 
             addr += chunksize
-            bytez = bytez[chunksize:]
+            mem = mem[chunksize:]
 
     def clearDirtyPages(self):
         '''
@@ -234,72 +234,67 @@ class Memory(IMemory):
 
     def __init__(self):
         IMemory.__init__(self)
-        self._map_defs = []
+        self._mem_maps = []
+        self._mem_bytes = {}
+        self._mem_pagelook = v_pagelook.PageLook()
 
-    def addMemoryMap(self, addr, perms, fname, bytez):
+    def addMemoryMap(self, addr, perms, info, mem):
         '''
-        Add a memory map to this object...
+        Add a memory map to the Mmu.
         '''
-        msize = len(bytez)
-        mmap = (addr, msize, perms, fname)
-        hlpr = [addr, addr+msize, mmap, bytez]
-        self._map_defs.append(hlpr)
-        return
+        self._mem_bytes[addr] = bytearray(mem)
 
-    def getMemoryMap(self, addr):
-        """
-        Get the addr,size,perms,fname tuple for this memory map
-        """
-        for maddr, mmaxaddr, mmap, mbytes in self._map_defs:
-            if addr >= maddr and addr < mmaxaddr:
-                return mmap
-        return None
+        mmap = (addr,len(mem),perms,info)
 
-    def getMemoryMaps(self):
-        '''
-        Return a list if (mapaddr,mapsize,mapperms,mapfile) tuples.
-        '''
-        return [ mmap for maddr, mmaxaddr, mmap, mbytes in self._map_defs ]
+        self._mem_maps.append( mmap )
+        self._mem_pagelook.put( addr, len(mem), mmap )
 
-    def readMemory(self, addr, size):
-        '''
-        Read memory bytes by address.
-        '''
-        for maddr, mmaxaddr, mmap, mbytes in self._map_defs:
-            if addr >= maddr and addr < mmaxaddr:
-                maddr, msize, mperms, mfname = mmap
-                if not mperms & MM_READ:
-                    raise MemPermsError()
-                offset = addr - maddr
-                return mbytes[offset:offset+size]
-        raise MemInvalidAddr()
+        return mmap
 
-    def writeMemory(self, addr, bytez):
-        '''
-        Write memory bytes by address.
-        '''
-        for mapdef in self._map_defs:
-            maddr, mmaxaddr, mmap, mbytes = mapdef
-            if addr >= maddr and addr < mmaxaddr:
-                maddr, msize, mperms, mfname = mmap
-                if not mperms & MM_WRITE:
-                    raise MemPermsError()
-                offset = addr - maddr
-                mapdef[3] = mbytes[:offset] + bytez + mbytes[offset+len(bytez):]
-                return
+    def _mem_getmaps(self):
+        return self._mem_maps
 
-        raise MemInvalidAddr()
+    def _mem_getmap(self, addr):
+        return self._mem_pagelook.get(addr)
+
+    def _mem_read(self, addr, size):
+        mmap = self._mem_pagelook.get(addr)
+        if mmap == None:
+            raise MemInvalidAddr()
+
+        maddr,msize,mperms,minfo = mmap
+        if not mperms & MM_READ:
+            raise MemPermsError()
+
+        off = addr - maddr
+        mem = self._mem_bytes.get(maddr)
+        return mem[off:off+size]
+
+    def _mem_write(self, addr, mem):
+        mmap = self._mem_pagelook.get(addr)
+        if mmap == None:
+            raise MemInvalidAddr()
+
+        maddr,msize,mperms,minfo = mmap
+        if not mperms & MM_WRITE:
+            raise MemPermsError()
+
+        off = addr - maddr
+
+        mapmem = self._mem_bytes.get(maddr)
+        mapmem[off:] = mem
 
     def getBytesDef(self, addr):
         '''
         Retrieve an (offset,bytez) tuple for the given address.
         '''
-        for mapdef in self._map_defs:
-            maddr, mmaxaddr, mmap, mbytes = mapdef
-            if addr >= maddr and addr < mmaxaddr:
-                offset = addr - maddr
-                return (offset, mbytes)
-        raise MemInvalidAddr()
+        mmap = self._mem_pagelook.get(addr)
+        if mmap == None:
+            raise MemInvalidAddr()
+
+        off = addr - mmap[0]
+        mem = self._mem_bytes.get(mmap[0])
+        return (off,mem)
 
 class MemoryFile:
     '''
