@@ -52,10 +52,8 @@ class CoProcEmulator:       # useful for prototyping, but should be subclassed
 
 def _getRegIdx(idx, mode):
     if idx >= MAX_REGS:
-        #print "_getRegIdx: ", idx, mode
         return idx
     ridx = idx + (mode*17)  # account for different banks of registers
-    #print "_getRegIdx: ", idx, mode, ridx
     ridx = reg_table[ridx]  # magic pointers allowing overlapping banks of registers
     return ridx
 
@@ -148,7 +146,6 @@ class ArmEmulator(ArmModule, ArmRegisterContext, envi.Emulator):
             flags |= which
         else:
             flags &= ~which
-        print "setFlag: %x %x" % (flags, state)
         self.setCPSR(flags)
 
     def getFlag(self, which):          # FIXME: CPSR?
@@ -206,7 +203,6 @@ class ArmEmulator(ArmModule, ArmRegisterContext, envi.Emulator):
         # NOTE: If an opcode method returns
         #       other than None, that is the new eip
         x = None
-        print hex(op.prefixes), hex((self.getRegister(REG_FLAGS)>>28))
         if op.prefixes >= 0xe or conditionals[op.prefixes](self.getRegister(REG_FLAGS)>>28):
             meth = self.op_methods.get(op.mnem, None)
             if meth == None:
@@ -370,8 +366,6 @@ class ArmEmulator(ArmModule, ArmRegisterContext, envi.Emulator):
         ures = udst - usrc
         sres = sdst - ssrc
 
-        print udst, usrc, udst-usrc
-        print sdst, ssrc, sdst-ssrc
         if Sflag:
             curmode = self.getProcMode() 
             if rd == 15:
@@ -381,11 +375,170 @@ class ArmEmulator(ArmModule, ArmRegisterContext, envi.Emulator):
                     raise Exception("Messed up opcode...  adding to r15 from PM_usr or PM_sys")
             self.setFlag(PSR_N_bit, e_bits.is_signed(ures, 4))
             self.setFlag(PSR_Z_bit, not ures)
-            self.setFlag(PSR_C_bit, e_bits.is_unsigned_carry(ures, 4))
+            self.setFlag(PSR_C_bit, not e_bits.is_unsigned_carry(ures, 4))
             self.setFlag(PSR_V_bit, e_bits.is_signed_overflow(sres, 4))
 
         return ures
 
+        '''
+(gdb) set *(int*)(main+16)=0xe159000a
+(gdb) set *(int*)(main+20)=0x3affffeb
+
+0x83e0 <main+16>:       cmp     r9, r10
+
+(gdb) set $pc=main+16
+(gdb) set $r9=0xff000000
+(gdb) set $r10=0xffff0001
+(gdb) stepi
+0x000083e4 in main ()
+(gdb) print/x $cpsr
+$1 = 0x80000010
+
+(gdb) set $pc=main+16
+(gdb) set $r9=0xff000000
+(gdb) set $r10=0x70000001
+(gdb) stepi
+0x000083e4 in main ()
+(gdb) print/x $cpsr
+
+$2 = 0xa0000010
+(gdb) set $pc=main+16
+(gdb) set $r9=0xff000000
+(gdb) set $r10=0xff01
+(gdb) stepi
+0x000083e4 in main ()
+(gdb) print/x $cpsr
+$3 = 0xa0000010
+
+(gdb) set $pc=main+16
+(gdb) set $r9=0xff000000
+(gdb) set $r10=0xff000001
+(gdb) stepi
+0x000083e4 in main ()
+(gdb) print/x $cpsr
+$4 = 0x80000010
+
+(gdb) set $pc=main+16
+(gdb) set $r9=0x70000000
+(gdb) set $r10=0xffff0001
+(gdb) stepi
+0x000083e4 in main ()
+(gdb) print/x $cpsr
+$5 = 0x10
+
+(gdb) set $pc=main+16
+(gdb) set $r9=0x70000000
+(gdb) set $r10=0xffff0001
+(gdb) stepi
+0x000083e4 in main ()
+(gdb) print/x $cpsr
+$6 = 0x10
+
+(gdb) set $pc=main+16
+(gdb) set $r9=0x70000000
+(gdb) set $r10=0x70000001
+(gdb) stepi
+0x000083e4 in main ()
+(gdb) print/x $cpsr
+$7 = 0x80000010
+
+(gdb) set $pc=main+16
+(gdb) set $r9=0x70000000
+(gdb) set $r10=0xff01
+(gdb) stepi
+0x000083e4 in main ()
+(gdb) print/x $cpsr
+$8 = 0x20000010
+
+(gdb) set $pc=main+16
+(gdb) set $r9=0x70000000
+(gdb) set $r10=0xff000001
+(gdb) stepi
+0x000083e4 in main ()
+(gdb) print/x $cpsr
+$11 = 0x10
+
+(gdb) set $pc=main+16
+(gdb) set $r9=0xff00
+(gdb) set $r10=0xffff0001
+(gdb) stepi
+0x000083e4 in main ()
+(gdb) print/x $cpsr
+$14 = 0x10
+
+(gdb) set $pc=main+16
+(gdb) set $r9=0xff00
+(gdb) set $r10=0x70000001
+(gdb) stepi
+0x000083e4 in main ()
+(gdb) print/x $cpsr
+$17 = 0x80000010
+
+(gdb) set $pc=main+16
+(gdb) set $r9=0xff00
+(gdb) set $r10=0xff01
+(gdb) stepi
+0x000083e4 in main ()
+(gdb) print/x $cpsr
+$20 = 0x80000010
+
+(gdb) set $pc=main+16
+(gdb) set $r9=0xff00
+(gdb) set $r10=0xff000001
+(gdb) stepi
+0x000083e4 in main ()
+(gdb) print/x $cpsr
+$25 = 0x10
+
+(gdb) set $pc=main+16
+(gdb) set $r9=0xffff0000
+(gdb) set $r10=0xffff0001
+(gdb) stepi
+0x000083e4 in main ()
+(gdb) print/x $cpsr
+$28 = 0x80000010
+
+(gdb) set $pc=main+16
+(gdb) set $r9=0xffff0000
+(gdb) set $r10=0x70000001
+(gdb) stepi
+0x000083e4 in main ()
+(gdb) print/x $cpsr
+$31 = 0xa0000010
+
+(gdb) set $pc=main+16
+(gdb) set $r9=0xffff0000
+(gdb) set $r10=0xff01
+(gdb) stepi
+0x000083e4 in main ()
+(gdb) print/x $cpsr
+$34 = 0xa0000010
+
+(gdb) set $pc=main+16
+(gdb) set $r9=0xffff0000
+(gdb) set $r10=0xff000001
+(gdb) stepi
+0x000083e4 in main ()
+(gdb) print/x $cpsr
+$35 = 0x20000010
+
+0xff000000 - 0xffff0001   (N)
+0xff000000 - 0x70000001   (N C)
+0xff000000 - 0xff01       (N C)
+0xff000000 - 0xff000001   (N)
+0x70000000 - 0xffff0001   ()
+0x70000000 - 0x70000001   (N)
+0x70000000 - 0xff01       (  C)
+0x70000000 - 0xff000001   ()
+0xff00     - 0xffff0001   ()
+0xff00     - 0x70000001   (N)
+0xff00     - 0xff01       (N)
+0xff00     - 0xff000001   ()
+0xffff0000 - 0xffff0001   (N)
+0xffff0000 - 0x70000001   (N C)
+0xffff0000 - 0xff01       (N C)
+0xffff0000 - 0xff000001   (  C)
+'''
 
     def logicalAnd(self, op):
         src1 = self.getOperValue(op, 1)
@@ -536,16 +689,15 @@ class ArmEmulator(ArmModule, ArmRegisterContext, envi.Emulator):
                 self.setCPSR(self.getSPSR(curmode))
             else:
                 raise Exception("Messed up opcode...  adding to r15 from PM_usr or PM_sys")
-            self.setFlag(PSR_C_bit, e_bits.is_unsigned_carry(ures, dsize))
-            self.setFlag(PSR_Z_bit, not ures)
             self.setFlag(PSR_N_bit, e_bits.is_signed(ures, dsize))
+            self.setFlag(PSR_Z_bit, not ures)
+            self.setFlag(PSR_C_bit, e_bits.is_unsigned_carry(ures, dsize))
             self.setFlag(PSR_V_bit, e_bits.is_signed_overflow(sres, dsize))
 
     def i_b(self, op):
         '''
         conditional branches (eg. bne) will be handled here
         '''
-        print "i_b going to %x" % self.getOperValue(op, 0)
         return self.getOperValue(op, 0)
 
     def i_bl(self, op):
