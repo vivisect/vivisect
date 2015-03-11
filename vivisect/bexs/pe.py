@@ -842,6 +842,7 @@ class PeBexFile(v_bexfile.BexFile):
         ra = exdir.VirtualAddress
         size = exdir.Size
 
+        ret = []
         for ra,ent in self.structs(ra,size,IMAGE_RUNTIME_FUNCTION_ENTRY):
             unwind = self.struct(ent.UnwindInfoAddress, UNWIND_INFO)
             if unwind == None:
@@ -851,10 +852,10 @@ class PeBexFile(v_bexfile.BexFile):
             if unwind.VerFlags & 0x7 != 1:
                 break
 
-            yield ra,ent,unwind
-            #ret.append( (ent, unwind) )
+            #yield ra,ent,unwind
+            ret.append( (ra, ent, unwind) )
 
-        #return ret
+        return ret
 
 def isPeFd(fd):
     # maybe do more here...

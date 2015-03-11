@@ -4,6 +4,7 @@ class DebugApi:
     def __init__(self, targ, **info):
         self._dbg_targ = targ
         self._dbg_info = info
+        #self.ext object with proxy caller
 
     def getProcList(self):
         '''
@@ -15,7 +16,19 @@ class DebugApi:
                 print('pid: %d' % (pid,))
 
         '''
-        self._dbg_targ.getProcList()
+        return self._dbg_targ.getProcList()
+
+    def getProcTrace(self, proc, attach=True):
+        '''
+        Retrieve a Trace instance for the given proc tuple.
+
+        Caller may optionally specify attach=False to manually
+        call attach.
+        '''
+        trace = self._proc_trace(proc)
+        if attach:
+            trace.attach()
+        return trace
 
     def callExtApi(self, api, *args, **kwargs):
         '''
@@ -26,8 +39,7 @@ class DebugApi:
             dbg.callExtApi('woot',10,foo='blah')
 
         '''
-        self._dbg_targ.callExtApi(api,*args,**kwargs)
-
+        return self._dbg_targ.callExtApi(api,*args,**kwargs)
 
 dbgctors = {
 }
@@ -60,7 +72,3 @@ def getDebugApi(targ='this',**info):
         return ctor
 
     return ctor(**info)
-
-#import vivisect.lib.thishost as v_thishost
-#if v_thishost.check(platform='windows'):
-    #import vivisect.runtime.windows.target
