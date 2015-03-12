@@ -36,6 +36,8 @@ Vivisect tools:
 * vivisect.tools.bex    - binary executable dumper ( multi-format )
 
 ## vivisect.tools.viv
+
 ## vivisect.tools.vdb
+
 ## vivisect.tools.bex
 
