@@ -138,3 +138,20 @@ def GetSystemInfo():
     kernel32.GetSystemInfo( ctypes.byref( info ) )
     return info
 
+def getHostInfo():
+
+    hostinfo = {'platform':'windows'}
+
+    info = GetVersionEx()
+
+    major = info.dwMajorVersion
+    minor = info.dwMinorVersion
+    build = info.dwBuildNumber
+    hostinfo['version'] = ( major, minor, build )
+
+    winarchs = {0:'i386',5:'arm',9:'amd64'}
+
+    info = GetSystemInfo()
+    hostinfo['arch'] = winarchs.get( info.wProcessorArchitecture )
+
+    return hostinfo
