@@ -1,6 +1,6 @@
 import ctypes
 
-from vivisect.plats.windows.winnt import *
+from vivisect.platforms.windows.winnt import *
 
 NULL    = 0
 BYTE    = ctypes.c_ubyte
