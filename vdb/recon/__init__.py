@@ -7,7 +7,7 @@ conventions...
 
 Recon Format Chars:
     A - A NULL terminated ascii string
-    W - A NULL terminated utf-16le string
+    U - A NULL terminated utf-16le string
     P - A platform width pointer
     I - An integer (32 bits for now...)
 '''
@@ -68,6 +68,21 @@ def reprargs(trace, fmt, args):
         r.append(rstr)
     return r
 
+def getArgs(trace, args):
+    '''
+    Assuming we are at the instruction after
+    a call, grab the argument at the specified
+    index (skipping the saved instruction pointer).
+    '''
+    cc = trace.getEmulator().getCallingConvention("stdcall")
+    if "64" in trace.getMeta("Architecture"):
+        if trace.getMeta("Platform") == "windows":
+            cc = trace.getEmulator().getCallingConvention("msx64call")
+        else: trace.getEmulator().getCallingConvention("SysVAmd64Call")
+    
+    args = cc.getCallArgs(trace, args)
+    return args
+
 class ReconBreak(vt_breakpoints.Breakpoint):
     '''
     '''
@@ -85,8 +100,8 @@ class ReconBreak(vt_breakpoints.Breakpoint):
         stackptr = trace.getStackCounter()
 
         rawargs = trace.readMemoryFormat(stackptr, '<%dP' % (len(self._reconfmt) + 1))
-        savedeip = rawargs[0]
-        args = rawargs[1:]
+        savedeip = trace.getProgramCounter()
+        args = getArgs(trace, len(self._reconfmt))
 
         recon_hits = trace.getMeta('recon_hits')
 
@@ -116,4 +131,3 @@ def getReconHits(trace):
     of (threadid, savedeip, symname, argtup, argreprtup).
     '''
     return trace.getMeta('recon_hits', [])
-
