@@ -78,7 +78,7 @@ def getArgs(trace, args):
     if "64" in trace.getMeta("Architecture"):
         if trace.getMeta("Platform") == "windows":
             cc = trace.getEmulator().getCallingConvention("msx64call")
-        else: trace.getEmulator().getCallingConvention("SysVAmd64Call")
+        else: trace.getEmulator().getCallingConvention("sysvamd64call")
     
     args = cc.getCallArgs(trace, args)
     return args
