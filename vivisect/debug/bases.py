@@ -60,7 +60,6 @@ class TraceBase:
         self.targbus = s_evtdist.EventDist()    # events from target
         self.tracebus = s_evtdist.EventDist()   # "published" tracer events
 
-        #self.on('*',self._slot_print)
         #self.targbus.on('*',self._slot_print)
         #self.tracebus.on('*',self._slot_print)
         self.tracebus.on('*', self._slot_trace_events )

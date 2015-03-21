@@ -117,9 +117,11 @@ class DebugTestHelper:
         # test the default auto continue settings
 
         trace = self.getPyMainExec('pymain_exit42.py')
+        self.assertTrue( trace.isInState( attached=True ) )
         # we should be at trace:ready
-        print(trace.runinfo['lastevent'])
-
+        #print(trace.runinfo['lastevent'])
+#
         trace.run(wait=True)
         # we should be at trace:exit
-        print(trace.runinfo['lastevent'])
+        #print(trace.runinfo['lastevent'])
+        self.assertTrue( trace.isInState( attached=False ) )
