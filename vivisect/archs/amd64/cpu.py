@@ -30,7 +30,7 @@ def amd64info():
 
 class Amd64Cpu(v_cpu.Cpu):
 
-    def initCpuInfo(self):
+    def _init_cpu_info(self):
         return amd64info()
 
 v_cpu.addArchCpu('amd64',Amd64Cpu)

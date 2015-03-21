@@ -186,7 +186,7 @@ class VivWorkspace(v_model.GraphModel):
         '''
         Trigger VivWorkspace analysis.
         '''
-        self.synFireEvent('viv:analyze:init',{})
+        self.fire('viv:analyze:init')
 
         for node in self.getNodesByProp('file'):
             filehash = node[1].get('file')
@@ -197,11 +197,10 @@ class VivWorkspace(v_model.GraphModel):
 
             # notify the various strap hangers that it's time
             # for shit to get real.
-            evtinfo = dict(vw=self,node=node,view=view,filehash=filehash)
-            self.synFireEvent('viv:analyze:file',evtinfo)
+            self.fire('viv:analyze:file', vw=self, node=node, view=view, filehash=filehash)
 
         # FIXME put stats in here about new stuff?
-        self.synFireEvent('viv:analyze:fini',{})
+        self.fire('viv:analyze:fini')
 
     def getRunInfo(self, prop):
         '''
@@ -233,9 +232,8 @@ class VivWorkspace(v_model.GraphModel):
 
         '''
         self.runinfo[prop] = valu
-        evtinfo = {'prop':prop,'valu':valu}
-        self.synFireEvent('viv:run:info', evtinfo)
-        self.synFireEvent('viv:run:info:%s' % prop, evtinfo)
+        self.fire('viv:run:info', prop=prop, valu=valu)
+        self.fire('viv:run:info:%s' % prop, valu=valu)
 
     def getVivConfig(self, key, default=None):
         '''
@@ -296,8 +294,7 @@ class VivWorkspace(v_model.GraphModel):
             self.addFileReloc( (md5,ra), rtype, **rinfo )
 
         # FIXME give the bexfile impl a shot at it
-
-        self.synFireEventKw('viv:file:loaded', filehash=md5)
+        self.fire('viv:file:loaded', filehash=md5)
 
         return md5
 

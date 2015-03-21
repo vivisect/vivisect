@@ -46,4 +46,20 @@ class CpuTest(unittest.TestCase):
         cpu['ax']  = 0x4242
         cpu['al']  = 0x43
 
-        self.assertEqual( cpu.getCpuRegs().get('eax'), 0x41414243 )
+        self.assertEqual( cpu.get('eax'), 0x41414243 )
+
+    def test_cpu_thread_regs(self):
+        cpu = v_cpu.getArchCpu('i386',threads=2)
+        cpu.setThread(0)
+        cpu['eax'] = 0x41414141
+
+        cpu.setThread(1)
+        self.assertEqual( cpu.eax, 0 )
+
+        cpu.setThread(0)
+        self.assertEqual( cpu.eax, 0x41414141 )
+
+    def test_cpu_thread_valid(self):
+        cpu = v_cpu.getArchCpu('i386')
+        self.assertRaises( v_cpu.InvalidThread, cpu.setThread, 99 )
+

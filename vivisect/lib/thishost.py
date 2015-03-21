@@ -42,6 +42,18 @@ def check(**reqinfo):
             return False
     return True
 
+def get(prop):
+    '''
+    Retrieve a single property from the global hostinfo dict.
+
+    Example:
+
+        import vivisect.lib.thishost as v_thishost
+        arch = v_thishost.get('arch')
+
+    '''
+    return hostinfo.get(prop)
+
 def initHostInfo():
 
     hostinfo['ptrsize'] = ctypes.sizeof( ctypes.c_void_p )

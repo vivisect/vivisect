@@ -136,16 +136,16 @@ class VivDirStor(VivStor):
 
     def _initStoreWork(self, vw):
         # setup vw runtime for backing by this stor
-        vw.synAddHandler('viv:stor:save',self._slot_stor_save)
-        vw.synAddHandler('viv:stor:close',self._slot_stor_close)
+        vw.on('viv:stor:save',self._slot_stor_save)
+        vw.on('viv:stor:close',self._slot_stor_close)
 
-    def _slot_stor_save(self, evt, evtinfo):
-        vw = evtinfo.get('vw')
-        full = evtinfo.get('fullsave')
+    def _slot_stor_save(self, event):
+        vw = event[1].get('vw')
+        full = event[1].get('fullsave')
         ident = v_bits.b2h( vw.getVivConfig('ident') )
 
-    def _slot_stor_close(self, evt, evtinfo):
-        vw = evtinfo.get('vw')
+    def _slot_stor_close(self, event):
+        vw = event[1].get('vw')
 
         lock = vw.getRunInfo('stor:lock')
         if lock != None:

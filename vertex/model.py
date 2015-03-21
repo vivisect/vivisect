@@ -130,7 +130,7 @@ class GraphModel(s_evtdist.EventDist):
 
     def bumpDataModel(self):
         self.datamodel = self.getDataModel()
-        self.synFireEvent('model:bump',{'datamodel':self.datamodel})
+        self.fire('model:bump', datamodel=self.datamodel)
 
     def _ctor_node(self, noun, valu, **props):
         # base node constructor

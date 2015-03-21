@@ -1,3 +1,4 @@
+import vivisect.hal.memory as v_memory
 
 INFINITE = 0xffffffff
 EXCEPTION_MAXIMUM_PARAMETERS = 15
@@ -139,6 +140,17 @@ PAGE_GUARD              = 0x100
 PAGE_NOCACHE            = 0x200
 PAGE_WRITECOMBINE       = 0x400
 
+perm_lookup = {
+    PAGE_NOACCESS:0,
+    PAGE_READONLY:v_memory.MM_READ,
+    PAGE_READWRITE: v_memory.MM_READ | v_memory.MM_WRITE,
+    PAGE_WRITECOPY: v_memory.MM_READ | v_memory.MM_WRITE,
+    PAGE_EXECUTE: v_memory.MM_EXEC,
+    PAGE_EXECUTE_READ: v_memory.MM_EXEC | v_memory.MM_READ,
+    PAGE_EXECUTE_READWRITE: v_memory.MM_EXEC | v_memory.MM_READ | v_memory.MM_WRITE,
+    PAGE_EXECUTE_WRITECOPY: v_memory.MM_EXEC | v_memory.MM_READ | v_memory.MM_WRITE,
+}
+
 SE_PRIVILEGE_ENABLED    = 0x00000002
 TOKEN_ADJUST_PRIVILEGES = 0x00000020
 TOKEN_QUERY             = 0x00000008
@@ -193,4 +205,18 @@ PROCESSOR_ARCHITECTURE_MSIL             = 8
 PROCESSOR_ARCHITECTURE_AMD64            = 9
 PROCESSOR_ARCHITECTURE_IA32_ON_WIN64    = 10
 PROCESSOR_ARCHITECTURE_UNKNOWN          = 0xFFFF
+
+# Memory States
+MEM_COMMIT = 0x1000
+MEM_FREE = 0x10000
+MEM_RESERVE = 0x2000
+
+# Memory Types
+MEM_IMAGE = 0x1000000
+MEM_MAPPED = 0x40000
+MEM_PRIVATE = 0x20000
+
+# Process Creation Flags
+DEBUG_ONLY_THIS_PROCESS     = 0x02
+
 

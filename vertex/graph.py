@@ -76,7 +76,7 @@ class Graph(s_evtdist.EventDist):
     def _addNode(self, node):
         # FIXME what to call this?
         node = self.store.addNode(node)
-        self.synFireEvent('graph:node:add',{'node':node})
+        self.fire('graph:node:add', node=node)
         return node
 
     def setNodeProps(self, node, **props):
@@ -90,7 +90,7 @@ class Graph(s_evtdist.EventDist):
         '''
         prev = node[1].get(prop)
         node = self.store.setNodeProp(node,prop,valu)
-        self.synFireEventKw('graph:node:prop:set',node=node,prop=prop,valu=valu,prev=prev)
+        self.fire('graph:node:prop:set',node=node,prop=prop,valu=valu,prev=prev)
         return node
 
     def delNodeProp(self, node, prop):
@@ -100,7 +100,7 @@ class Graph(s_evtdist.EventDist):
         valu = node[1].get(prop)
         node = self.store.delNodeProp(node,prop)
         node[1].pop(prop,None)
-        self.synFireEventKw('graph:node:prop:del',node=node,prop=prop,valu=valu)
+        self.fire('graph:node:prop:del',node=node,prop=prop,valu=valu)
         return node
 
     def delNode(self, node):
@@ -112,7 +112,7 @@ class Graph(s_evtdist.EventDist):
         for edge in self.getEdgesByProp('_:n2',valu=node[0]):
             self.delEdge(edge)
         self.store.delNode(node)
-        self.synFireEventKw('graph:node:del',node=node)
+        self.fire('graph:node:del',node=node)
 
     def addEdge(self, node1, node2, **props):
         '''
@@ -126,7 +126,7 @@ class Graph(s_evtdist.EventDist):
 
     def _addEdge(self, edge):
         edge = self.store.addEdge(edge)
-        self.synFireEventKw('graph:edge:add',edge=edge)
+        self.fire('graph:edge:add',edge=edge)
         return edge
 
     def setEdgeProps(self, edge, **props):
@@ -140,7 +140,7 @@ class Graph(s_evtdist.EventDist):
         '''
         prev = edge[1].get(prop)
         edge = self.store.setEdgeProp(edge,prop,valu)
-        self.synFireEventKw('graph:edge:prop:set',edge=edge,prop=prop,valu=valu,prev=prev)
+        self.fire('graph:edge:prop:set',edge=edge,prop=prop,valu=valu,prev=prev)
         return edge
 
     def delEdgeProp(self, edge, prop):
@@ -150,7 +150,7 @@ class Graph(s_evtdist.EventDist):
         prev = edge[1].get('prop')
         edge = self.store.delEdgeProp(edge,prop)
         edge[1].pop(prop,None)
-        self.synFireEventKw('graph:edge:prop:del',edge=edge,prop=prop,prev=prev)
+        self.fire('graph:edge:prop:del',edge=edge,prop=prop,prev=prev)
         return edge
 
     def delEdge(self, edge):
@@ -158,7 +158,7 @@ class Graph(s_evtdist.EventDist):
         Delete an edge from the graph
         '''
         self.store.delEdge(edge)
-        self.synFireEventKw('graph:edge:del',edge=edge)
+        self.fire('graph:edge:del',edge=edge)
 
     def getNodeByProp(self, prop, valu=None):
         '''

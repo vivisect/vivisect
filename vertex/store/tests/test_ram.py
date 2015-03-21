@@ -85,7 +85,7 @@ class RamStorageTest(unittest.TestCase):
         self.assertFalse( g.getNodesByProp('keep',valu='keep') )
         self.assertFalse( g.getEdgesByProp('keep',valu='keep') )
 
-        g.synShutDown()
+        g.fini()
 
     def test_ram_index_uniq(self):
 

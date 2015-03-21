@@ -10,7 +10,7 @@ amd64 = v_cpu.getArchCpu('amd64')
 class RegisterTest(unittest.TestCase):
 
     def getregs(self):
-        return amd64.initCpuRegs()
+        return amd64._init_regs()
 
     def test_getreg(self):
         regs = self.getregs()
@@ -66,3 +66,13 @@ class RegisterTest(unittest.TestCase):
         self.assertEqual( regs.rax, rax )
         self.assertEqual( regs.rbx, rbx )
 
+    def test_regs_oncache(self):
+
+        def oncache():
+            return {'rax':0x41414141}
+
+        regs = self.getregs()
+        self.assertEqual( regs.rax, 0 )
+
+        regs.oncache( oncache )
+        self.assertEqual( regs.rax, 0x41414141 )

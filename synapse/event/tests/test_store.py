@@ -14,19 +14,19 @@ class EventStoreTest(unittest.TestCase):
         d1 = s_eventdist.EventDist()
         evtstore.synLoadAndStore(d1)
 
-        d1.synFireEvent('woot',{'woot':'woot','bytes':b'woot'})
-        d1.synShutDown()
+        d1.fire('woot', woot='woot', buf=b'woot')
+        d1.fini()
 
         testdata = {}
-        def onwoot(evt,evtinfo):
-            testdata.update(evtinfo)
+        def onwoot(event):
+            testdata.update(event[1])
 
         d2 = s_eventdist.EventDist()
-        d2.synAddHandler('woot',onwoot)
+        d2.on('woot',onwoot)
 
         evtstore.synLoadAndStore(d2)
         self.assertEqual(testdata.get('woot'),'woot')
-        self.assertEqual(testdata.get('bytes'),b'woot')
+        self.assertEqual(testdata.get('buf'),b'woot')
 
     def test_event_store_mem(self):
         s = s_eventstore.EventMemStore()
@@ -45,11 +45,11 @@ class EventStoreTest(unittest.TestCase):
 
         evtwoot = threading.Event()
         testdata = {}
-        def onwoot(evt,evtinfo):
+        def onwoot(event):
             testdata['woot'] = True
             evtwoot.set()
 
-        d2.synAddHandler('woot',onwoot)
+        d2.on('woot',onwoot)
 
         stor1 = s_eventstore.EventSockStore(s1)
         stor2 = s_eventstore.EventSockStore(s2)
@@ -60,9 +60,9 @@ class EventStoreTest(unittest.TestCase):
         stor1.synStoreEvents(d1)
         stor2.synStoreEvents(d2)
 
-        d1.synFireEvent('woot',{'woot':'woot'})
+        d1.fire('woot', woot='woot')
 
         if not evtwoot.wait(1):
             raise Exception('evtwoot timeout!')
 
-        d1.synShutDown()
+        d1.fini()

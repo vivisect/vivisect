@@ -10,31 +10,7 @@ import vivisect.symboliks.symstate as v_symstate
 import synapse.event.dist as s_evtdist
 import synapse.lib.apistack as s_apistack
 
-#class TerseApi:
-
-    #def getpc(self,tid=None):
-        #return self.regs.getpc()
-
-    #def getsp(self,tid=None):
-        #return self.regs.getsp()
-
-    #def getregs(self,tid=None):
-        #return self.regs
-
-    #def core(self, idx):
-        #return self.getCpuCore(idx)
-
-    #def getreg(self,reg):
-        #return self.regs.get(reg)
-
-    #def setreg(self,reg,val):
-        #return self.regs.set(reg,val)
-
-    #def getmem(self, va, size):
-        #return self.mem.readMemory(va,size)
-
-    #def setmem(self, va, bytez):
-        #return self.mem.writeMemory(va,size)
+from vertex.lib.common import tufo
 
 def regdef(**kwargs):
     ret = {
@@ -50,8 +26,8 @@ def cpuinfo(**kwargs):
     a = {
         'nop':None,
         'brk':None,
-        'cores':1,
         'mode':None,        # nearly ever CPU is "modal" in some form
+        'threads':1,        # how many execution contexts to create (threads/cores)
         'regdef':regdef(),  # registers etc...
         'ptrsize':4,        # how wide is a pointer ( default to 32 bit )
         'bigend':False,     # set to true for big-endian CPUs/modes
@@ -62,34 +38,40 @@ def cpuinfo(**kwargs):
     return a
 
 
-class Cpu(s_apistack.ApiStack,s_evtdist.EventDist,v_symstate.SymbolikCpu):
+class Cpu(s_apistack.ApiStack,v_symstate.SymbolikCpu):
     '''
     The Cpu class implements the synthesis of the various machine APIs.
 
     At it's core, the Cpu is the base class from which others such
     as tracers / emulators should extend.  It abstracts the idea of
-    threads/cores to manage multiple register contexts as well as memory.
+    threads to manage multiple register contexts as well as memory.
     '''
     instrclass = v_instr.Instr
 
     def __init__(self, **cpuopts):
-        s_evtdist.EventDist.__init__(self)
+        #s_evtdist.EventDist.__init__(self)
         s_apistack.ApiStack.__init__(self)
+
+        self.cpubus = s_evtdist.EventDist()
+
+        self._cpu_info = self._init_cpu_info()
+        self._cpu_info.update(cpuopts)
+
+        self._cpu_mem = self._init_cpu_mem()
+        self._cpu_regs = None
+        self._cpu_decoder = self._init_cpu_decoder()
+
+
+        self.thread = None
+        self.threads = {}
+
+        self._cpu_libs = {}
+
+        self._init_threads()
+        self._initCpuEvents()
+
+        # now that we have everything, mix in the symbolik cpu
         v_symstate.SymbolikCpu.__init__(self)
-
-        self.cpuinfo = self.initCpuInfo()
-        self.cpuinfo.update(cpuopts)
-
-        self.mem = None
-        self.regs = None
-        self.decoder = None
-
-        self.cpucores = {}
-
-        self.initCpuMem()
-        self.initCpuCores()
-        self.initCpuEvents()
-        self.initInstrDecoder()
 
         # every CPU probably needs a symbolik state builder
         self.symb = v_symstate.StateBuilder(self)
@@ -106,14 +88,8 @@ class Cpu(s_apistack.ApiStack,s_evtdist.EventDist,v_symstate.SymbolikCpu):
             # FIMXE maybe do some page aligning?
             self.addMemoryMap(mapaddr,mapperm,'addbytes',mapbytes)
 
-        #self.synAddHandler('cpu:info:set:cores',self._slot_set_cores)
-        #self.synAddHandler('cpu:info:set:regdef',self._slot_set_regdef)
-
-    def getCpuInfo(self, prop, default=None):
-        '''
-        Retrieve a value from the cpuinfo dictionary.
-        '''
-        return self.cpuinfo.get(name,default)
+    #def initLib(self, addr, **libinfo):
+    #def finiLib(self, lib):
 
     def getSymBuilder(self):
         '''
@@ -123,16 +99,21 @@ class Cpu(s_apistack.ApiStack,s_evtdist.EventDist,v_symstate.SymbolikCpu):
         '''
         return v_symstate.StateBuilder(self)
 
+    def getCpuInfo(self, prop, default=None):
+        '''
+        Retrieve a value from the cpuinfo dictionary.
+        '''
+        return self._cpu_info.get(name,default)
+
     def setCpuInfo(self, prop, valu):
         '''
         Set a value in the cpuinfo dictionary.
         '''
-        self.cpuinfo[name] = valu
-        evtinfo = {'cpu':self,'prop':prop,'valu':valu}
-        self.synFireEvent('cpu:info:set',cpuinfo)
-        self.synFireEvent('cpu:info:set:%s' % prop,cpuinfo)
+        self._cpu_info[name] = valu
+        self.fire('cpu:info:set', cpu=self, prop=prop, valu=valu)
+        self.fire('cpu:info:set:%s' % prop, cpu=self, valu=valu)
 
-    def initCpuInfo(self):
+    def _init_cpu_info(self):
         '''
         Initialize a new cpuinfo dict for the CPU.
 
@@ -141,23 +122,48 @@ class Cpu(s_apistack.ApiStack,s_evtdist.EventDist,v_symstate.SymbolikCpu):
         '''
         return cpuinfo()
 
-    def initInstrDecoder(self):
-        self.decoder = v_disasm.Decoder()
+    def setThreadInfo(self, tid, prop, valu):
+        '''
+        Set a prop:valu key in the info dictionary for the given thread.
 
-    def initCpuEvents(self):
+        Example:
+
+            # if we're debugging windows...
+            cpu.setThreadInfo(tid, 'teb', addr)
+
+        '''
+        thread = self.threads.get(tid)
+        if thread == None:
+            raise InvalidThread(tid)
+        thread[1][prop] = valu
+
+    def getThreadInfo(self, tid, prop):
+        '''
+        Retrieve a valu from the info dictionary for the given thread.
+        '''
+        thread = self.threads.get(tid)
+
+    def getCurThread(self):
+        return self.thread
+
+    def _init_cpu_decoder(self):
+        return v_disasm.Decoder()
+
+    def _initCpuEvents(self):
         pass
 
-    def initCpuCores(self):
-        for i in range( self.cpuinfo.get('cores',1) ):
-            self.initCpuCore(i)
+    def _init_threads(self):
+        for i in range( self._cpu_info.get('threads',1) ):
+            thread = tufo(i)
+            self._init_thread(thread)
 
     def __getattr__(self, name):
         # act like our regs/mem if requested...
-        ret = getattr(self.regs,name,None)
+        ret = getattr(self._cpu_regs,name,None)
         if ret != None:
             return ret
 
-        ret = getattr(self.mem,name,None)
+        ret = getattr(self._cpu_mem,name,None)
         if ret != None:
             return ret
 
@@ -165,97 +171,115 @@ class Cpu(s_apistack.ApiStack,s_evtdist.EventDist,v_symstate.SymbolikCpu):
 
     def __getitem__(self, key):
         if isinstance(key,slice):
-            return self.mem.readMemory(key.start,key.stop-key.start)
-        return self.regs.get(key)
+            return self._cpu_mem.readMemory(key.start,key.stop-key.start)
+        return self._cpu_regs.get(key)
 
     def __setitem__(self, key, val):
         if isinstance(key,slice):
-            return self.mem.writeMemory(key.start,val)
-        return self.regs.set(key,val)
+            return self._cpu_mem.writeMemory(key.start,val)
+        return self._cpu_regs.set(key,val)
 
-    def initCpuMem(self):
-        # arch specific CPUs should override here...
-        self.mem = v_mem.Memory()
+    #def mem(self):
+        #return self._cpu_mem
 
-    def initCpuRegs(self):
-        regdef = self.cpuinfo.get('regdef')
-        return v_regs.Registers(regdef)
+    #def regs(self):
+        #return self._cpu_regs
 
-    def initCpuCore(self, idx):
-        '''
-        Create and track an additional register context for the CPU.
+    def _init_cpu_mem(self):
+        return v_mem.Memory()
 
-        NOTE: this is also used to track threads in user-mode CPUs
-        '''
-        regs = self.initCpuRegs()
-        regs.synAddHandler('*',self.synFireEvent)
-        self.cpucores[idx] = regs
-        self.setCpuRegs(regs)
+    def _init_regs(self):
+        regdef = self._cpu_info.get('regdef')
+        regs = v_regs.Registers(regdef)
+        regs.link( self.cpubus )
         return regs
 
-    def getCpuCore(self, idx):
-        '''
-        Retrieve the Registers object for a given CPU core by id.
-        '''
-        return self.cpucores.get(idx)
+    def _init_thread(self, thread):
+        tid,info = thread
+        if info.get('regs') == None:
+            info['regs'] = self._init_regs()
 
-    def finiCpuCore(self, idx):
+        self.threads[tid] = thread
+
+        self.setThread(tid)
+        return thread
+
+    def _fini_thread(self, thread):
+        return self.threads.pop(thread[0], None)
+
+    def getThread(self, tid=None):
         '''
-        Pop the Registers object assocated with core idx.
+        Retrieve the thread tuple (tid,tinfo) for the current or
+        specified thread.
 
         Example:
-            regs = cpu.finiCpuCore(0)
 
-        NOTE: this is mostly used by debugger objects handling
-              "threadexit" events.
-        '''
-        # FIXME switch to another core?
-        regs = self.cpucores.pop(idx,None)
-        return regs
+            thread = cpu.getThread(tid)
 
-    def getCpuCores(self):
         '''
-        Get a list of (id,regs) tuples for the initialized CPU cores.
-        '''
-        return self.cpucores.items()
+        if tid == None:
+            return self.thread
+        return self.threads.get(tid)
 
-    def setCpuCore(self, idx):
+    def finiThread(self, tid):
         '''
-        Select a CPU core (by id) to be the "current" register context.
-        '''
-        regs = self.cpucores.get(idx)
-        if regs == None:
-            raise Exception('Invalid CPU Core: %s' % idx)
+        Release/free an execution context for the given thread id.
 
-        self.setCpuRegs(regs)
-        return regs
+        Example:
+            cpu.finiThread(tid)
+        '''
+        thread = self.threads.get(tid)
+        # FIXME switch to another thread?
+        if thread != None:
+            return self._fini_thread(thread)
+
+    def getThreads(self):
+        '''
+        Retrieve a list of (tid,tinfo) tuples for the current threads.
+
+        Example:
+
+            for tid,tinfo in cpu.getThreads():
+
+        '''
+        return list(self.threads.values())
+
+    def setThread(self, tid):
+        '''
+        Set the given thread as the "current thread" for the cpu.
+
+        Example:
+
+            cpu.setThread(tid)
+            eax = cpu['eax'] # "eax" register from tid thread context
+
+        '''
+        thread = self.threads.get(tid)
+        if thread == None:
+            raise InvalidThread(tid)
+
+        self._cpu_setthread( thread )
+        return thread
+
+    def _cpu_setthread(self, thread):
+        self.thread = thread
+        self._cpu_setregs( thread[1].get('regs') )
 
     def setCpuMem(self, mem):
         '''
         Assign a Memory object to the CPU.
         '''
-        self.mem = mem
-        #self.synFireEventKw('cpu:mem:set',cpu=self,mem=mem)
+        self._cpu_mem = mem
+        self.fire('cpu:mem:set',cpu=self,mem=mem)
 
-    def getCpuMem(self):
-        '''
-        Return the current Memory object for the Cpu.
-        '''
-        return self.mem
+    #def getCpuMem(self):
+        #'''
+        #Return the current Memory object for the Cpu.
+        #'''
+        #return self._cpu_mem
 
-    def setCpuRegs(self, regs):
-        '''
-        Assign a "current" Registers object to the CPU.
-
-        FIXME modify current cpu core?
-        '''
-        self.regs = regs
-
-    def getCpuRegs(self):
-        '''
-        Return the Registers object for the current Cpu context.
-        '''
-        return self.regs
+    def _cpu_setregs(self, regs):
+        self._cpu_regs = regs
 
     def snapshot(self):
         '''
@@ -263,21 +287,21 @@ class Cpu(s_apistack.ApiStack,s_evtdist.EventDist,v_symstate.SymbolikCpu):
 
         NOTE: cpu snapshots are *not* serializable/primitives.
         '''
-        regs = self.regs.save()
-        snap = (regs,self.mem)
+        regs = self._cpu_regs.save()
+        snap = (regs,self._cpu_mem)
 
         # setup a new "copy on write" memory object
-        self.setCpuMem( v_mem.MemoryCache( self.mem ) )
+        self.setCpuMem( v_mem.MemoryCache( self._cpu_mem ) )
 
         # FIXME support multiple cores...
         return snap
 
     def restore(self, snap):
         '''
-        Restore CPU state from a snapshot from initCpuSnap.
+        Restore CPU state from a snapshot from snapshot()
         '''
         regs,mem = snap
-        self.regs.load(regs)
+        self._cpu_regs.load(regs)
         self.setCpuMem(mem)
 
     #def decode(self, addr, **disinfo):
@@ -292,9 +316,9 @@ class Cpu(s_apistack.ApiStack,s_evtdist.EventDist,v_symstate.SymbolikCpu):
         Example:
             i = cpu.disasm(0x41410000)
         '''
-        offset,bytez = self.mem.getBytesDef(addr)
+        offset,bytez = self._cpu_mem.getBytesDef(addr)
 
-        inst = self.decoder.parse(bytez,offset=offset,addr=addr,**disinfo)
+        inst = self._cpu_decoder.parse(bytez,offset=offset,addr=addr,**disinfo)
         if inst == None:
             return None
 
@@ -307,6 +331,7 @@ class Cpu(s_apistack.ApiStack,s_evtdist.EventDist,v_symstate.SymbolikCpu):
         return self.instrclass(self,inst)
 
 class UnknownArch(Exception):pass
+class InvalidThread(Exception):pass
 
 cpuctors = {}
 def addArchCpu(name,callback):

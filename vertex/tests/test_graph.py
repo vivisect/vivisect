@@ -26,7 +26,7 @@ class GraphTest(unittest.TestCase):
         self.assertIsNone( g.getEdgeById(edge[0]) )
         self.assertIsNone( g.getNodeById(node1[0]) )
 
-        g.synShutDown()
+        g.fini()
 
     def test_graph_n1byn2(self):
         g = v_graph.Graph()

@@ -204,10 +204,10 @@ class SymbolikCpu:
         self.symvars = {}
         self.symcache = {}
 
-        self.synAddHandler('cpu:reg:set', self._slot_clearcache )
-        self.synAddHandler('cpu:mem:write', self._slot_clearcache )
+        self.cpubus.on('cpu:reg:set', self._slot_clear_symcache )
+        self.cpubus.on('cpu:mem:write', self._slot_clear_symcache )
 
-    def _slot_clearcache(self, evt, evtinfo):
+    def _slot_clear_symcache(self, event):
         self.symcache.clear()
 
     def getSymValue(self, state):
@@ -246,7 +246,8 @@ class SymbolikCpu:
 
     def _sym_var_value(self, s):
         name = s[1]
-        valu = self.regs.get(name)
+        # NOTE: we assume we're a CPU instance here!
+        valu = self._cpu_regs.get(name)
         if valu != None:
             return valu
         return self.ephem.get(name)

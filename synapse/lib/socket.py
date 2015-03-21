@@ -31,19 +31,19 @@ class Socket(s_eventdist.EventDist):
 
     def connect(self,sockaddr):
         self.sock.connect(sockaddr)
-        self.synFireEvent('connected',{'sockaddr':sockaddr,'sock':self})
+        self.fire('connected', sockaddr=sockaddr, sock=self)
 
     def fileno(self):
         return self.sock.fileno()
 
     def recv(self, size=None):
         buf = self.realrecv(size)
-        self.synFireEvent('datarecvd',{'size':size,'buf':buf,'sock':self})
+        self.fire('datarecvd', size=size, buf=buf, sock=self)
         return buf
 
     def send(self, buf):
         sent = self.realsend(buf)
-        self.synFireEvent('datasent',{'sent':sent,'buf':buf,'sock':self})
+        self.fire('datasent', sent=sent, buf=buf, sock=self)
         return sent
 
     def emit(self, obj):
@@ -120,13 +120,13 @@ class Server(s_eventdist.EventQueue):
         self.sockaddr = sockaddr
         s_eventdist.EventQueue.__init__(self,pool=pool)
 
-    def synShutDown(self):
+    def fini(self):
         self.srvshut = True
         self.sock.close()
         self.wakesock.close()
         self.seltor.close()
         self.srvthr.join()
-        s_eventdist.EventQueue.synShutDown(self)
+        s_eventdist.EventQueue.fini(self)
 
     def synRunServer(self):
         self.sock.bind( self.sockaddr )
@@ -178,7 +178,7 @@ class Server(s_eventdist.EventQueue):
                 buf = sock.recv(102400)
                 if not buf:
                     self.seltor.unregister(key.fileobj)
-                    self.synFireEvent('sockshut',key.data)
+                    self.fire('sockshut',**key.data)
                     key.fileobj.close()
                     continue
                     
@@ -186,13 +186,11 @@ class Server(s_eventdist.EventQueue):
 
                 unpk.feed(buf)
                 for msg in unpk:
-                    evtinfo = {'msg':msg}
-                    evtinfo.update( key.data )
-                    self.synFireEvent('sockmsg',evtinfo)
+                    self.fire('sockmsg', msg=msg, **key.data)
 
             if self.srvshut:
                 s2.close()
-                self.synFireEvent('shutdown',{})
+                self.fire('shutdown')
                 return
 
     def synGetServAddr(self):

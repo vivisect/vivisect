@@ -52,7 +52,7 @@ class GraphStore(s_evtdist.EventDist):
 
     def fireStoreEvent(self, evt, **evtinfo):
         evtinfo['time'] = now()
-        self.synFireEvent(evt,evtinfo)
+        self.fire(evt,**evtinfo)
 
     def getNodeById(self, nid): raise GraphStoreImplementMe()
     def getEdgeById(self, eid): raise GraphStoreImplementMe()

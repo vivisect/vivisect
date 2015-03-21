@@ -165,16 +165,19 @@ class MemoryCache(IMemory):
         self.pagecache = {}
         self.pagedirty = {}
 
+        self.mapcache = None
+
     def _cachePage(self, addr):
         return self.mem.readMemory(addr, self.pagesize)
 
     def _mem_getmaps(self):
-        return self.mem.getMemoryMaps()
+        if self.mapcache == None:
+            self.mapcache = self.mem.getMemoryMaps()
+        return self.mapcache
 
     def _mem_getmap(self, addr):
         return self.mem.getMemoryMap(addr)
 
-    #def readMemory(self, addr, size):
     def _mem_read(self, addr, size):
         ret = b''
         while size:
@@ -212,6 +215,25 @@ class MemoryCache(IMemory):
             addr += chunksize
             mem = mem[chunksize:]
 
+    def clearCache(self):
+        self.mapcache = None
+        self.pagecache.clear()
+        self.pagedirty.clear()
+
+    def getCacheSizes(self):
+        ret = {
+            'pagesize':self.pagesize,
+            'pages':len(self.pagecache),
+            'dirty':len(self.pagedirty),
+        }
+
+        maps = 0
+        if self.mapcache != None:
+            maps = len(self.mapcache)
+
+        ret['maps'] = maps
+        return ret
+
     def clearDirtyPages(self):
         '''
         Clear the "dirty cache" allowing tracking of writes *since* this call.
@@ -229,6 +251,13 @@ class MemoryCache(IMemory):
         Returns a list of dirty pages as (pageaddr, pagebytez) tuples.
         '''
         return [ (addr, self.pagecache.get(addr)) for addr in self.pagedirty.keys() ]
+
+    def syncDirtyPages(self):
+        '''
+        Push the cached "dirty" pages into the backing memory object.
+        '''
+        for addr,page in self.getDirtyPages():
+            self.mem.writeMemory(addr,page)
 
 class Memory(IMemory):
 

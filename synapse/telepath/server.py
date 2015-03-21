@@ -20,7 +20,7 @@ class Server(s_socket.Server):
         s_socket.Server.__init__(self, *args, **kwargs)
         self.shared = {}
         self.tokens = {}
-        self.synAddHandler( 'sockmsg', self._slot_sockmsg )
+        self.on( 'sockmsg', self._slot_sockmsg )
 
     def synShareObject(self, obj, name=None, meths=None):
         '''

@@ -14,14 +14,14 @@ class SocketTest(unittest.TestCase):
         sock2 = s_socket.Socket(s2)
 
         testdata = {}
-        def onsent(evt,evtinfo):
+        def onsent(event):
             testdata['datasent'] = True
 
-        def onrecvd(evt,evtinfo):
+        def onrecvd(event):
             testdata['datarecvd'] = True
 
-        sock1.synAddHandler('datasent',onsent)
-        sock1.synAddHandler('datarecvd',onrecvd)
+        sock1.on('datasent',onsent)
+        sock1.on('datarecvd',onrecvd)
 
         sock1.sendall(b'asdf')
         self.assertEqual( sock2.recvall(4), b'asdf')
@@ -40,22 +40,23 @@ class SocketTest(unittest.TestCase):
         evtshut = threading.Event()
         evtsrvshut = threading.Event()
         testdata = {}
-        def onmsg(evt,evtinfo):
-            testdata['msg'] = evtinfo.get('msg')
-            evtinfo['sock'].sendall(b'qwer')
+        def onmsg(event):
+            testdata['msg'] = event[1].get('msg')
+            event[1]['sock'].sendall(b'qwer')
 
-        def onshut(evt,evtinfo):
+        def onshut(event):
             testdata['shut'] = True
             evtshut.set()
 
-        def srvshut(evt,evtinfo):
+        def srvshut(event):
             testdata['srvshut'] = True
             evtsrvshut.set()
 
         srv = s_socket.Server(('127.0.0.1',0))
-        srv.synAddHandler('sockmsg',onmsg)
-        srv.synAddHandler('sockshut',onshut)
-        srv.synAddHandler('shutdown',srvshut)
+
+        srv.on('sockmsg',onmsg)
+        srv.on('sockshut',onshut)
+        srv.on('shutdown',srvshut)
 
         sockaddr = srv.synRunServer()
 
@@ -72,7 +73,7 @@ class SocketTest(unittest.TestCase):
 
         self.assertEqual(qwer,b'qwer')
 
-        srv.synShutDown()
+        srv.fini()
 
         if not evtsrvshut.wait(1):
             raise Exception('evtsrvshut timeout!')
