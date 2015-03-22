@@ -20,6 +20,6 @@ class WindowsTest(unittest.TestCase, v_helpers.DebugTestHelper):
     def test_windows_debug_exec(self):
         dbg = v_dbgapi.getDebugApi()
         trace = dbg.exec( sys.executable )
-        self.assertEqual( len( trace.getThreads() ), 1 )
+        self.assertEqual( len( trace.threads() ), 1 )
         trace.kill()
 

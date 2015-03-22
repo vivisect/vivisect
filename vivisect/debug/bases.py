@@ -20,14 +20,14 @@ class TraceMem:
         self.pid = trace.proc[0]
         self.target = trace.getDebugApi().getDebugTarget()
 
-    def getMemoryMaps(self):
-        return self.target.memmaps(self.pid)
+    def mmaps(self):
+        return self.target.mmaps(self.pid)
 
-    def readMemory(self, addr, size):
-        return self.target.memread(self.pid, addr, size)
+    def peek(self, addr, size):
+        return self.target.peek(self.pid, addr, size)
 
-    def writeMemory(self, addr, mem):
-        return self.target.memwrite(self.pid, addr, mem)
+    def poke(self, addr, mem):
+        return self.target.poke(self.pid, addr, mem)
 
 class TraceBase:
 

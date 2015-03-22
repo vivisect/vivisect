@@ -293,7 +293,7 @@ class WindowsTarget(v_target.DebugTarget):
         if not kernel32.DebugBreakProcess( hProc ):
             raise WinError()
 
-    def _proc_memwrite(self, proc, addr, mem):
+    def _proc_poke(self, proc, addr, mem):
         ret = c_ulong(0)
         hProc = proc[1].get('hProc')
         if not kernel32.WriteProcessMemory(hProc, addr, mem, len(mem), addressof(ret)):
@@ -301,7 +301,7 @@ class WindowsTarget(v_target.DebugTarget):
 
         return ret.value
 
-    def _proc_memread(self, proc, addr, size):
+    def _proc_peek(self, proc, addr, size):
         ret = c_ulong()
         mem = (c_char * size)()
 
@@ -321,7 +321,7 @@ class WindowsTarget(v_target.DebugTarget):
 
         return None
 
-    def _proc_memmaps(self, proc):
+    def _proc_mmaps(self, proc):
 
         ret = []
         addr = 0

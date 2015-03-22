@@ -129,7 +129,7 @@ class StateBuilder:
 
     def __getattr__(self, name):
         if type(name) == str:
-            bits = self.cpu.sizeof(name)
+            bits = self.cpu.regs().sizeof(name)
             if bits == None:
                 raise UnknownVariable(name)
 
@@ -141,7 +141,7 @@ class StateBuilder:
     def var(self, name, **info):
         bits = info.get('bits')
         if bits == None:
-            info['bits'] = self.cpu.sizeof(name)
+            info['bits'] = self.cpu.regs().sizeof(name)
         return self.wrap( var(name,**info) )
 
     def imm(self, valu, **info):
@@ -158,7 +158,7 @@ class StateBuilder:
             return imm(x)
 
         if xtype == str:
-            bits = self.cpu.sizeof(x)
+            bits = self.cpu.regs().sizeof(x)
             if bits != None:
                 return var(x,bits=bits)
 
@@ -204,8 +204,8 @@ class SymbolikCpu:
         self.symvars = {}
         self.symcache = {}
 
-        self.cpubus.on('cpu:reg:set', self._slot_clear_symcache )
-        self.cpubus.on('cpu:mem:write', self._slot_clear_symcache )
+        self._cpu_bus.on('cpu:reg:set', self._slot_clear_symcache )
+        self._cpu_bus.on('cpu:mem:write', self._slot_clear_symcache )
 
     def _slot_clear_symcache(self, event):
         self.symcache.clear()

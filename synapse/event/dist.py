@@ -50,7 +50,9 @@ class EventDist:
         Call this API when you are done with the event dist.
 
         Example:
+
             d.fini()
+
         '''
         cblist = self._syn_handlers.get('$')
         if cblist != None:
@@ -60,7 +62,7 @@ class EventDist:
 
     def fire(self, evt, **evtinfo):
         '''
-        Fire a single event on the EventBus.
+        Fire a single event on the EventDist.
 
         Example:
 

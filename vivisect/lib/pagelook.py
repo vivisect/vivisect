@@ -45,7 +45,31 @@ class PageLook:
         '''
         return self.pagedict.get( addr & self.pagemask )
 
+    def pop(self, addr, size):
+        '''
+        Remove objects from an addr range in the PageLook.
+
+        Example:
+
+            p = PageLook()
+            p.put( 0x41414000, 0xffff, thing)
+
+            # ... some time later ...
+
+            p.pop(0x41414000, 0xffff)
+
+        '''
+        base = addr & self.pagemask
+        maxaddr = addr + size
+
+        while base < maxaddr:
+            self.pagedict.pop(base,None)
+            base += self.pagesize
+
     def clear(self):
+        '''
+        Clear all objects from the PageLook.
+        '''
         self.pagedict.clear()
 
 class PageList:

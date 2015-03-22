@@ -3,6 +3,7 @@ import unittest
 import vivisect.hal.cpu as v_cpu
 
 from vivisect.lib.bits import *
+from vertex.lib.common import tufo
 
 class i386Test(unittest.TestCase):
 
@@ -34,13 +35,13 @@ class i386Test(unittest.TestCase):
         cpu = v_cpu.getArchCpu('i386')
         cpu['eip'] = 0x41424344
         cpu['esp'] = 0x44434241
-        self.assertEqual( cpu.getpc(), 0x41424344 )
-        self.assertEqual( cpu.getsp(), 0x44434241 )
+        self.assertEqual( cpu.regs().getpc(), 0x41424344 )
+        self.assertEqual( cpu.regs().getsp(), 0x44434241 )
 
     def _get_inst(self, hexstr):
         b = h2b(hexstr)
-        addbytes = (0x41410000,7,h2b(hexstr))
-        cpu = v_cpu.getArchCpu('i386', addbytes=addbytes)
+        mmaps = [ tufo(0x41410000, init=b) ]
+        cpu = v_cpu.getArchCpu('i386', mmaps=mmaps)
         return cpu,cpu.disasm(0x41410000)
 
     def _test_inst(self, hexstr, mnem, **info):
@@ -66,8 +67,8 @@ class i386Test(unittest.TestCase):
         #print('INST: %r' % (inst,))
 
     def test_i386_instr(self):
-        addbytes = (0x41410000,7,h2b('40'))
-        cpu = v_cpu.getArchCpu('i386',addbytes=addbytes)
+        mmaps = [ tufo(0x41410000, init=h2b('40')) ]
+        cpu = v_cpu.getArchCpu('i386', mmaps=mmaps)
         inst = cpu.disasm(0x41410000)
 
     #def test_i386_aas(self):

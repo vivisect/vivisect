@@ -170,17 +170,17 @@ class DebugTarget:
         proc = self.reqProcByPid(pid)
         return self._proc_detach(proc,addr,size)
 
-    def memread(self, pid, addr, size):
+    def peek(self, pid, addr, size):
         proc = self.reqProcByPid(pid)
-        return self._proc_memread(proc,addr,size)
+        return self._proc_peek(proc,addr,size)
 
-    def memwrite(self, pid, addr, mem):
+    def poke(self, pid, addr, mem):
         proc = self.reqProcByPid(pid)
-        return self._proc_memwrite(proc,addr,mem)
+        return self._proc_poke(proc,addr,mem)
 
-    def memmaps(self, pid):
+    def mmaps(self, pid):
         proc = self.reqProcByPid(pid)
-        return self._proc_memmaps(proc)
+        return self._proc_mmaps(proc)
 
     def getregs(self, pid, tid):
         proc = self.reqProcByPid(pid)
@@ -209,13 +209,13 @@ class DebugTarget:
     def _proc_setregs(self, proc, thread):
         raise ImplementMe()
 
-    def _proc_memmaps(self, proc):
+    def _proc_mmaps(self, proc):
         raise ImplementMe()
 
-    def _proc_memread(self, proc, addr, size):
+    def _proc_peek(self, proc, addr, size):
         raise ImplementMe()
 
-    def _proc_memwrite(self, proc, addr, mem):
+    def _proc_poke(self, proc, addr, mem):
         raise ImplementMe()
 
     def _proc_run(self, proc):

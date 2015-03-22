@@ -49,10 +49,9 @@ class Cpu(s_apistack.ApiStack,v_symstate.SymbolikCpu):
     instrclass = v_instr.Instr
 
     def __init__(self, **cpuopts):
-        #s_evtdist.EventDist.__init__(self)
         s_apistack.ApiStack.__init__(self)
 
-        self.cpubus = s_evtdist.EventDist()
+        self._cpu_bus = s_evtdist.EventDist()
 
         self._cpu_info = self._init_cpu_info()
         self._cpu_info.update(cpuopts)
@@ -76,17 +75,21 @@ class Cpu(s_apistack.ApiStack,v_symstate.SymbolikCpu):
         # every CPU probably needs a symbolik state builder
         self.symb = v_symstate.StateBuilder(self)
 
-        # process a few "universal" cpu options
-        addmap = cpuopts.get('addmap')  # (addr,perm,size) to add memory map
-        if addmap != None:
-            mapaddr,mapperm,mapsize = addmap
-            self.addMemoryMap(mapaddr,mapperm,'addmap',b'\x00' * mapsize)
+        for mmap in cpuopts.get('mmaps',()):
+            self._cpu_mem._init_mmap(mmap)
 
-        addbytes = cpuopts.get('addbytes')
-        if addbytes:
-            mapaddr,mapperm,mapbytes = addbytes
-            # FIMXE maybe do some page aligning?
-            self.addMemoryMap(mapaddr,mapperm,'addbytes',mapbytes)
+        # process a few "universal" cpu options
+        #addmap = cpuopts.get('addmap')  # (addr,perm,size) to add memory map
+        #if addmap != None:
+            #mapaddr,mapperm,mapsize = addmap
+            #mmap = self.mem().alloc( mapsize, perm=mapperm, addr=mapaddr )
+            #self.addMemoryMap(mapaddr,mapperm,'addmap',b'\x00' * mapsize)
+
+        #addbytes = cpuopts.get('addbytes')
+        #if addbytes:
+            #mapaddr,mapperm,mapbytes = addbytes
+            ## FIMXE maybe do some page aligning?
+            #self.addMemoryMap(mapaddr,mapperm,'addbytes',mapbytes)
 
     #def initLib(self, addr, **libinfo):
     #def finiLib(self, lib):
@@ -110,8 +113,8 @@ class Cpu(s_apistack.ApiStack,v_symstate.SymbolikCpu):
         Set a value in the cpuinfo dictionary.
         '''
         self._cpu_info[name] = valu
-        self.fire('cpu:info:set', cpu=self, prop=prop, valu=valu)
-        self.fire('cpu:info:set:%s' % prop, cpu=self, valu=valu)
+        self._cpu_bus.fire('cpu:info:set', cpu=self, prop=prop, valu=valu)
+        self._cpu_bus.fire('cpu:info:set:%s' % prop, cpu=self, valu=valu)
 
     def _init_cpu_info(self):
         '''
@@ -135,6 +138,7 @@ class Cpu(s_apistack.ApiStack,v_symstate.SymbolikCpu):
         thread = self.threads.get(tid)
         if thread == None:
             raise InvalidThread(tid)
+
         thread[1][prop] = valu
 
     def getThreadInfo(self, tid, prop):
@@ -171,19 +175,19 @@ class Cpu(s_apistack.ApiStack,v_symstate.SymbolikCpu):
 
     def __getitem__(self, key):
         if isinstance(key,slice):
-            return self._cpu_mem.readMemory(key.start,key.stop-key.start)
+            return self._cpu_mem.peek(key.start,key.stop-key.start)
         return self._cpu_regs.get(key)
 
     def __setitem__(self, key, val):
         if isinstance(key,slice):
-            return self._cpu_mem.writeMemory(key.start,val)
+            return self._cpu_mem.poke(key.start,val)
         return self._cpu_regs.set(key,val)
 
-    #def mem(self):
-        #return self._cpu_mem
+    def mem(self):
+        return self._cpu_mem
 
-    #def regs(self):
-        #return self._cpu_regs
+    def regs(self):
+        return self._cpu_regs
 
     def _init_cpu_mem(self):
         return v_mem.Memory()
@@ -191,17 +195,18 @@ class Cpu(s_apistack.ApiStack,v_symstate.SymbolikCpu):
     def _init_regs(self):
         regdef = self._cpu_info.get('regdef')
         regs = v_regs.Registers(regdef)
-        regs.link( self.cpubus )
+        regs.link( self._cpu_bus )
         return regs
 
     def _init_thread(self, thread):
         tid,info = thread
+
         if info.get('regs') == None:
             info['regs'] = self._init_regs()
 
         self.threads[tid] = thread
+        self._cpu_setthread(thread)
 
-        self.setThread(tid)
         return thread
 
     def _fini_thread(self, thread):
@@ -209,8 +214,7 @@ class Cpu(s_apistack.ApiStack,v_symstate.SymbolikCpu):
 
     def getThread(self, tid=None):
         '''
-        Retrieve the thread tuple (tid,tinfo) for the current or
-        specified thread.
+        Retrieve the thread tuple (tid,tinfo) for the current or specified thread.
 
         Example:
 
@@ -226,20 +230,22 @@ class Cpu(s_apistack.ApiStack,v_symstate.SymbolikCpu):
         Release/free an execution context for the given thread id.
 
         Example:
+
             cpu.finiThread(tid)
+
         '''
         thread = self.threads.get(tid)
         # FIXME switch to another thread?
         if thread != None:
             return self._fini_thread(thread)
 
-    def getThreads(self):
+    def threads(self):
         '''
         Retrieve a list of (tid,tinfo) tuples for the current threads.
 
         Example:
 
-            for tid,tinfo in cpu.getThreads():
+            for tid,tinfo in cpu.threads():
 
         '''
         return list(self.threads.values())
@@ -270,13 +276,7 @@ class Cpu(s_apistack.ApiStack,v_symstate.SymbolikCpu):
         Assign a Memory object to the CPU.
         '''
         self._cpu_mem = mem
-        self.fire('cpu:mem:set',cpu=self,mem=mem)
-
-    #def getCpuMem(self):
-        #'''
-        #Return the current Memory object for the Cpu.
-        #'''
-        #return self._cpu_mem
+        self._cpu_bus.fire('cpu:mem:set',cpu=self,mem=mem)
 
     def _cpu_setregs(self, regs):
         self._cpu_regs = regs
@@ -304,7 +304,6 @@ class Cpu(s_apistack.ApiStack,v_symstate.SymbolikCpu):
         self._cpu_regs.load(regs)
         self.setCpuMem(mem)
 
-    #def decode(self, addr, **disinfo):
     def disasm(self, addr, **disinfo):
         '''
         Decode in instruction *tuple* from the given addr.
@@ -316,7 +315,7 @@ class Cpu(s_apistack.ApiStack,v_symstate.SymbolikCpu):
         Example:
             i = cpu.disasm(0x41410000)
         '''
-        offset,bytez = self._cpu_mem.getBytesDef(addr)
+        offset,bytez = self._cpu_mem.mbuf(addr)
 
         inst = self._cpu_decoder.parse(bytez,offset=offset,addr=addr,**disinfo)
         if inst == None:
