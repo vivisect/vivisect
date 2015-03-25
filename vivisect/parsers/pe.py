@@ -160,7 +160,6 @@ def loadPeIntoWorkspace(vw, pe, filename=None):
 
     vw.makeStructure(ifhdr_va + len(ifstruct), "pe.IMAGE_OPTIONAL_HEADER")
 
-
     # get resource data directory
     ddir = pe.getDataDirectory(PE.IMAGE_DIRECTORY_ENTRY_RESOURCE)
     loadrsrc = vw.config.viv.parsers.pe.loadresources
@@ -186,7 +185,6 @@ def loadPeIntoWorkspace(vw, pe, filename=None):
         d = pe.getDataDirectory(datadir)
         if d.VirtualAddress:
             deadvas.append(d.VirtualAddress)
-            
 
     for idx, sec in enumerate(pe.sections):
         mapflags = 0

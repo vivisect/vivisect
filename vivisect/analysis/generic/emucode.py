@@ -110,7 +110,6 @@ def analyze(vw):
        
         vatodo = []
         vatodo = [ va for va, name in vw.getNames() if vw.getLocation(va) == None ]
-        vatodo.extend( [ va for addr, va in vw.findPointers() if vw.getLocation(va) == None ] ) 
         vatodo.extend( [tova for fromva, tova, reftype, rflags in vw.getXrefs(rtype=REF_PTR) if vw.getLocation(tova) == None] )
 
         for va in set(vatodo):

@@ -621,6 +621,12 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             self.printDiscoveredStats()
         self._fireEvent(VWE_AUTOANALFIN, (endtime, starttime))
 
+    def getStats(self):
+        stats = {
+            'functions':len(self.funcmeta),
+            'relocations':len(self.relocations),
+        }
+        return stats
 
     def printDiscoveredStats(self):
         disc, undisc = self.getDiscoveredInfo()
