@@ -7,7 +7,7 @@ conventions...
 
 Recon Format Chars:
     A - A NULL terminated ascii string
-    U - A NULL terminated utf-16le string
+    W - A NULL terminated utf-16le string
     P - A platform width pointer
     I - An integer (32 bits for now...)
 '''
@@ -68,18 +68,28 @@ def reprargs(trace, fmt, args):
         r.append(rstr)
     return r
 
+def detect_cc(trace):
+    '''
+	Autodetect the calling convention based on
+	the current architecture and platform
+	'''
+    cc_dict = {('i386' ,'windows') : 'stdcall',
+	    	   ('i386' ,'linux')   : 'stdcall',
+		       ('amd64','windows') : 'msx64call',
+               ('amd64','linux')   : 'sysvamd64call', 
+	          }
+		   
+    arch_plat = (trace.getMeta("Architecture"), trace.getMeta("Platform"))
+	
+    return trace.getEmulator().getCallingConvention(cc_dict[arch_plat])
+	
 def getArgs(trace, args):
     '''
     Assuming we are at the instruction after
     a call, grab the argument at the specified
     index (skipping the saved instruction pointer).
     '''
-    cc = trace.getEmulator().getCallingConvention("stdcall")
-    if "64" in trace.getMeta("Architecture"):
-        if trace.getMeta("Platform") == "windows":
-            cc = trace.getEmulator().getCallingConvention("msx64call")
-        else: trace.getEmulator().getCallingConvention("sysvamd64call")
-    
+    cc = detect_cc(trace)
     args = cc.getCallArgs(trace, args)
     return args
 

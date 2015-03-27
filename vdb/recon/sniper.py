@@ -11,18 +11,24 @@ def getArg(trace, argidx):
     a call, grab the argument at the specified
     index (skipping the saved instruction pointer).
     '''
-    cc = trace.getEmulator().getCallingConvention("stdcall")
-
-    if "64" in trace.getMeta("Architecture"):
-        if trace.getMeta("Platform") == "windows": cc = trace.getEmulator().getCallingConvention("msx64call")
-        else: cc = trace.getEmulator().getCallingConvention("sysvamd64call")
-    
+    cc = detect_cc(trace)    
     args = cc.getCallArgs(trace, argidx)
     return args[-1]
-    '''stack = trace.getStackCounter()
-    fmt = '<P' + ('P' * (argidx+1))
-    args = trace.readMemoryFormat(stack, fmt)
-    return args[-1]'''
+
+def detect_cc(trace):
+    '''
+	Autodetect the calling convention based on
+	the current architecture and platform
+	'''
+    cc_dict = {('i386' ,'windows') : 'stdcall',
+	    	   ('i386' ,'linux')   : 'stdcall',
+		       ('amd64','windows') : 'msx64call',
+               ('amd64','linux')   : 'sysvamd64call', 
+	          }
+		   
+    arch_plat = (trace.getMeta("Architecture"), trace.getMeta("Platform"))
+	
+    return trace.getEmulator().getCallingConvention(cc_dict[arch_plat])
 
 class SniperDynArgBreak(vt_breakpoints.Breakpoint):
     '''
