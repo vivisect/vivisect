@@ -159,18 +159,18 @@ class EventQueue(EventDist):
 
         self.que = s_queue.Queue()
         self.pool = pool
-        self.threads = []
+        self._evq_threads = []
 
         for i in range(pool):
             thr = s_threads.fireWorkThread(self._runEventLoop)
-            self.threads.append(thr)
+            self._evq_threads.append(thr)
 
     def fire(self, evt, **evtinfo):
         self.que.put( (evt,evtinfo) )
 
     def fini(self):
-        [ self.que.append(None) for t in self.threads ]
-        [ t.join() for t in self.threads ]
+        [ self.que.append(None) for t in self._evq_threads ]
+        [ t.join() for t in self._evq_threads ]
         self.que.shutdown()
         return EventDist.fini(self)
 
