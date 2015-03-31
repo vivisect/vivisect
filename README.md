@@ -11,7 +11,6 @@ A number of design considerations are the foundation for the Viv MarkII
 effort.
 
 * 100% python3 ( this feature alone would require a total refactor )
-* python2 compatible ( default case should be py3, with py2 fallbacks )
 * unit tests unit tests unit tests ( shooting for 100% non-interface code coverage )
 * portable / serializable data primitives
 * async event driven architecture
@@ -41,3 +40,4 @@ Vivisect tools:
 
 ## vivisect.tools.bex
 
+[![Build Status](https://travis-ci.org/vivisect/vivisect.svg?branch=mk2)](https://travis-ci.org/vivisect/vivisect)
