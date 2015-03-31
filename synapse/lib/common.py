@@ -8,3 +8,5 @@ if msgpack.version < (0,4,2):
 def guid():
     return os.urandom(16)
 
+def tufo(idx,**info):
+    return (idx,info)
