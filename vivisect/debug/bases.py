@@ -12,22 +12,27 @@ import vivisect.hal.memory as v_memory
 Internal guts of a few of the debug classes.
 '''
 
-class TraceMem:
+class TraceMem(v_memory.Memory):
     '''
     Implement the *super* thin API needed by the CacheMemory.
     '''
     def __init__(self, trace):
         self.pid = trace.proc[0]
+        self.cache = {}
         self.target = trace.getDebugApi().getDebugTarget()
 
-    def mmaps(self):
-        return self.target.mmaps(self.pid)
+    def _mem_mmaps(self):
+        mmaps = self.cache.get('mmaps')
+        if mmaps == None:
+            mmaps = self.target.mmaps(self.pid)
+            self.cache['mmaps'] = mmaps
+        return mmaps
 
-    def peek(self, addr, size):
-        return self.target.peek(self.pid, addr, size)
+    #def peek(self, addr, size):
+        #return self.target.peek(self.pid, addr, size)
 
-    def poke(self, addr, mem):
-        return self.target.poke(self.pid, addr, mem)
+    #def poke(self, addr, mem):
+        #return self.target.poke(self.pid, addr, mem)
 
 class TraceBase:
 
@@ -58,11 +63,19 @@ class TraceBase:
         self.states = {'attached':False,'running':False,'exited':False}
 
         self.targbus = s_evtdist.EventDist()    # events from target
-        self.tracebus = s_evtdist.EventDist()   # "published" tracer events
 
         #self.targbus.on('*',self._slot_print)
-        #self.tracebus.on('*',self._slot_print)
-        self.tracebus.on('*', self._slot_trace_events )
+        #self.on('*', self._slot_trace_events )
+
+        # fire the general handler for all trace events
+        self.on('trace:attach', self._slot_trace_events)
+        self.on('trace:detach', self._slot_trace_events)
+        self.on('trace:thread:init', self._slot_trace_events)
+        self.on('trace:thread:exit', self._slot_trace_events)
+        self.on('trace:lib:load', self._slot_trace_events)
+        self.on('trace:lib:unload', self._slot_trace_events)
+        self.on('trace:signal', self._slot_trace_events)
+        self.on('trace:exit', self._slot_trace_events)
 
         # "target" event handlers translate to "trace" events
         self.targbus.on('target:attach', self._slot_target_attach)
@@ -110,9 +123,9 @@ class TraceBase:
         return self.dbgapi
 
     def _init_cpu_mem(self):
-        self._trace_mem = TraceMem(self)
-        self._trace_mem_cache = v_memory.MemoryCache( self._trace_mem )
-        return self._trace_mem_cache
+        return TraceMem(self)
+        #self._trace_mem_cache = v_memory.MemoryCache( self._trace_mem )
+        #return self._trace_mem_cache
 
     def _req_state(self, **kwargs):
         for k,v in kwargs.items():
@@ -122,7 +135,7 @@ class TraceBase:
 
     def _runThreadLoop(self):
         for runinfo in self.runq:
-            self.tracebus.fire('trace:run')
+            self.fire('trace:run')
             try:
                 while True:
 
@@ -147,7 +160,7 @@ class TraceBase:
                         except Exception as e:
                             traceback.print_exc()
                             msg = 'run until callback error: %s' % (e,)
-                            self.tracebus.fire('trace:error', msg=msg)
+                            self.fire('trace:error', msg=msg)
 
                         # we're either @until or error
                         break
@@ -185,7 +198,7 @@ class TraceBase:
 
         # did they select a thread?
         if tid != None:
-            thread = self.setThread(tid)
+            thread = self.thread(tid)
 
             # did they prep us with regs?
             regdict = event[1].get('regdict')
@@ -196,11 +209,11 @@ class TraceBase:
         self.states['attached'] = True
         proc = event[1].get('proc')
         self.proc[1].update( proc[1] )
-        self.tracebus.fire('trace:attach', trace=self)
+        self.fire('trace:attach', trace=self)
 
     #def _slot_target_detach(self, evt, evtinfo):
         #self.states['attached'] = False
-        #self.tracebus.fire('trace:detach', proc=self.proc)
+        #self.fire('trace:detach', proc=self.proc)
 
     def _slot_target_signal(self, event):
         evtinfo = event[1]
@@ -212,25 +225,25 @@ class TraceBase:
         self.runinfo['exinfo'] = exinfo
         self.runinfo['signorm'] = signorm
 
-        self.tracebus.fire('trace:signal', trace=self, signo=signo, exinfo=exinfo, signorm=signorm)
+        self.fire('trace:signal', trace=self, signo=signo, exinfo=exinfo, signorm=signorm)
 
     def _slot_target_exit(self, event):
         exitcode = event[1].get('exitcode')
         self.states['attached'] = False
         self.runinfo['exitcode'] = exitcode
-        self.tracebus.fire('trace:exit', trace=self, exitcode=exitcode)
+        self.fire('trace:exit', trace=self, exitcode=exitcode)
 
     def _slot_target_lib_load(self, event):
         self._target_common(event)
         lib = event[1].get('lib')
         self.libs[ lib[0] ] = lib
-        self.tracebus.fire('trace:lib:load', trace=self, lib=lib)
+        self.fire('trace:lib:load', trace=self, lib=lib)
 
     def _slot_target_lib_unload(self, event):
         self._target_common(event)
         addr = event[1].get('addr')
         lib = self.libs.pop(addr,None)
-        self.tracebus.fire('trace:lib:unload', trace=self, lib=lib)
+        self.fire('trace:lib:unload', trace=self, lib=lib)
 
     def _slot_target_thread_init(self, event):
         thread = event[1].get('thread')
@@ -243,17 +256,17 @@ class TraceBase:
             return self.target.getregs( pid, tid )
 
         thread[1]['regs'].oncache( cacheregs )
-        self.tracebus.fire('trace:thread:init', trace=self, thread=thread)
+        self.fire('trace:thread:init', trace=self, thread=thread)
 
     def _slot_target_thread_exit(self, event):
         tid = event[1].get('tid')
         exitcode = event[1].get('exitcode')
 
-        thread = self.getThread(tid=tid)
+        thread = self.thread(tid)
         self._fini_thread(thread)
-        self.tracebus.fire('trace:thread:exit', trace=self, thread=thread, exitcode=exitcode)
+        self.fire('trace:thread:exit', trace=self, thread=thread, exitcode=exitcode)
 
     def _fireStopEvent(self):
-        self.tracebus.fire('trace:stop')
+        self.fire('trace:stop')
         self.stopevt.set()
 

@@ -35,8 +35,8 @@ class i386Test(unittest.TestCase):
         cpu = v_cpu.getArchCpu('i386')
         cpu['eip'] = 0x41424344
         cpu['esp'] = 0x44434241
-        self.assertEqual( cpu.regs().getpc(), 0x41424344 )
-        self.assertEqual( cpu.regs().getsp(), 0x44434241 )
+        self.assertEqual( cpu.getpc(), 0x41424344 )
+        self.assertEqual( cpu.getsp(), 0x44434241 )
 
     def _get_inst(self, hexstr):
         b = h2b(hexstr)

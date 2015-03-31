@@ -29,7 +29,11 @@ class CpuTest(unittest.TestCase):
 
         snap = cpu.snapshot()
 
-        cpu = v_cpu.getArchCpu('i386')
+        cpu['cl'] =  0
+        cpu['bx'] =  0
+        cpu['eax'] = 0
+
+        #cpu = v_cpu.getArchCpu('i386')
         cpu.restore(snap)
 
         self.assertEqual( cpu.cl, 30 )
@@ -52,20 +56,20 @@ class CpuTest(unittest.TestCase):
         cpu['ax']  = 0x4242
         cpu['al']  = 0x43
 
-        self.assertEqual( cpu.get('eax'), 0x41414243 )
+        self.assertEqual( cpu.reg('eax'), 0x41414243 )
 
     def test_cpu_thread_regs(self):
         cpu = v_cpu.getArchCpu('i386',threads=2)
-        cpu.setThread(0)
+        cpu.switch(0)
         cpu['eax'] = 0x41414141
 
-        cpu.setThread(1)
+        cpu.switch(1)
         self.assertEqual( cpu.eax, 0 )
 
-        cpu.setThread(0)
+        cpu.switch(0)
         self.assertEqual( cpu.eax, 0x41414141 )
 
     def test_cpu_thread_valid(self):
         cpu = v_cpu.getArchCpu('i386')
-        self.assertRaises( v_cpu.InvalidThread, cpu.setThread, 99 )
+        self.assertRaises( v_cpu.InvalidThread, cpu.switch, 99 )
 

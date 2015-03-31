@@ -86,8 +86,8 @@ class DebugTestHelper:
 
         trace.run(until=forever, wait=True)
 
-        self.assertEqual( testdata.get('inits'), 2 )
-        self.assertEqual( testdata.get('exits'), 2 )
+        self.assertEqual( testdata.get('inits'), 4 )
+        self.assertEqual( testdata.get('exits'), 4 )
 
     def test_debug_exec_print(self):
         trace = self.getPyMainExec('pymain_exit42.py')
@@ -125,3 +125,7 @@ class DebugTestHelper:
         # we should be at trace:exit
         #print(trace.runinfo['lastevent'])
         self.assertTrue( trace.isInState( attached=False ) )
+
+    def test_debug_regapi(self):
+        trace = self.getPyMainExec('pymain_exit42.py')
+

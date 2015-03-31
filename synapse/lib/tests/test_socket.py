@@ -4,6 +4,7 @@ import unittest
 import threading
 
 import synapse.lib.socket as s_socket
+import synapse.event.dist as s_evtdist
 
 class SocketTest(unittest.TestCase):
 
@@ -20,8 +21,8 @@ class SocketTest(unittest.TestCase):
         def onrecvd(event):
             testdata['datarecvd'] = True
 
-        sock1.on('datasent',onsent)
-        sock1.on('datarecvd',onrecvd)
+        sock1.on('sock:tx',onsent)
+        sock1.on('sock:rx',onrecvd)
 
         sock1.sendall(b'asdf')
         self.assertEqual( sock2.recvall(4), b'asdf')
@@ -54,9 +55,9 @@ class SocketTest(unittest.TestCase):
 
         srv = s_socket.Server(('127.0.0.1',0))
 
-        srv.on('sockmsg',onmsg)
-        srv.on('sockshut',onshut)
-        srv.on('shutdown',srvshut)
+        srv.on('sock:msg',onmsg)
+        srv.on('sock:shut',onshut)
+        srv.on('serv:shut',srvshut)
 
         sockaddr = srv.synRunServer()
 
@@ -82,3 +83,73 @@ class SocketTest(unittest.TestCase):
         self.assertTrue(testdata.get('shut'))
         self.assertTrue(testdata.get('srvshut'))
 
+    def test_socket_plex(self):
+
+        e = threading.Event()
+        def sockmsg(event):
+            e.set()
+
+        def sockshut(event):
+            e.set()
+
+        plex = s_socket.Plex()
+        plex.on('sock:msg', sockmsg)
+        plex.on('sock:shut', sockshut)
+
+        s1,s2 = s_socket.socketpair()
+
+        plex.wrap(s2)
+
+        #plex.addPlexSock(s2)
+
+        sock = s_socket.Socket(s1)
+
+        sock.emit( 'foo' )
+        if not e.wait(1):
+            raise Exception('timeout on sock:msg')
+
+        e.clear()
+
+        sock.teardown()
+        if not e.wait(1):
+            raise Exception('timeout on sock:shut')
+
+        plex.fini()
+
+    def test_socket_plex_listen(self):
+
+        e = threading.Event()
+        def onconn(event):
+            e.set()
+
+        def onmsg(event):
+            e.set()
+
+        def onshut(event):
+            e.set()
+
+        plex = s_socket.Plex()
+        plex.on('sock:conn', onconn)
+        plex.on('sock:msg', onmsg)
+        plex.on('sock:shut', onshut)
+
+        host,port = plex.listen()
+
+        sock = s_socket.connect('127.0.0.1',port)
+
+        if not e.wait(1):
+            raise Exception('waiting sock:conn')
+
+        e.clear()
+
+        sock.emit('woot')
+        if not e.wait(1):
+            raise Exception('waiting sock:msg')
+
+        e.clear()
+
+        sock.teardown()
+        if not e.wait(1):
+            raise Exception('waiting sock:shut')
+
+        plex.fini()

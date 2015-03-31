@@ -94,46 +94,6 @@ class Trace(v_bases.TraceBase):
         '''
         return self.stopevt.wait(timeout=timeout)
 
-    def on(self, name, callback):
-        '''
-        Add an event callback to the trace by name.
-
-        The callback is called as a standard synapse event callback.
-
-        Example:
-            def onload(event):
-                lib = event[1].get('lib')
-                trace = event[1].get('trace')
-                dostuff()
-
-            trace.on('trace:lib:load', onload)
-            trace.run()
-
-        Events:
-
-        'trace:attach'  - initial trace attach
-        'trace:detach'  - the trace has been detached
-        'trace:exit'    - the trace process has exited
-
-        'trace:run'     - the trace is about to run
-        'trace:stop'    - the trace has stopped
-
-        'trace:thread:init' - A thread has been created
-        'trace:thread:exit' - A thread has exited
-
-        'trace:lib:load'    - A library has been loaded
-        'trace:lib:unload'  - A library has been unloaded
-
-        'trace:signal'  - A signal/exception in the traced process
-
-        # events *not* originated from the target process
-
-        'trace:print'   - trace.print() method has been called
-        'trace:error'   - trace.error() method has been called
-
-        '''
-        self.tracebus.on(name,callback)
-
     def print(self, msg, **info):
         '''
         Fire a trace:print event to display msg on interactive debuggers.
@@ -146,7 +106,7 @@ class Trace(v_bases.TraceBase):
 
             trace.addBreakByAddr(addr, onhit=onhit)
         '''
-        self.tracebus.fire('trace:print', msg=msg, **info)
+        self.fire('trace:print', msg=msg, **info)
 
     def error(self, msg, **info):
         '''
@@ -160,7 +120,7 @@ class Trace(v_bases.TraceBase):
                 trace.error(e)
 
         '''
-        self.tracebus.fire('trace:error', msg=msg, **info)
+        self.fire('trace:error', msg=msg, **info)
 
     def setAutoCont(self, evtname, cont=True):
         '''
@@ -262,8 +222,8 @@ class Trace(v_bases.TraceBase):
 
         '''
         self.traceinfo[prop] = valu
-        self.tracebus.fire('trace:info:set', trace=self, prop=prop, valu=valu)
-        self.tracebus.fire('trace:info:set:%s' % prop, trace=self, valu=valu)
+        self.fire('trace:info:set', trace=self, prop=prop, valu=valu)
+        self.fire('trace:info:set:%s' % prop, trace=self, valu=valu)
 
     def getTraceInfo(self, prop):
         '''
