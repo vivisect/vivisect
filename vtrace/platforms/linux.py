@@ -307,18 +307,27 @@ class LinuxMixin(v_posix.PtraceMixin, v_posix.PosixMixin):
         self.execing = True
         cmdlist = e_cli.splitargs(cmdline)
         os.stat(cmdlist[0])
-        pid = os.fork()
-
+        
+        pid = os.fork() 
+        
+        # Child will be blocked after execv because of trace me!
         if pid == 0:
             v_posix.ptrace(v_posix.PT_TRACE_ME, 0, 0, 0)
-            # Make sure our parent gets some cycles
-            time.sleep(0.1)
             os.execv(cmdlist[0], cmdlist)
             sys.exit(-1)
 
-        if v_posix.ptrace(PT_ATTACH, pid, 0, 0) != 0:
-            raise Exception("PT_ATTACH failed! linux platformExec")
-
+        # Parent will wait for the child
+        for i in xrange(0, 33):
+            rid, status, rusage = os.wait4(pid, os.WCONTINUED | 
+                                                os.WUNTRACED  | 
+                                                os.WNOHANG)
+            if status != 0:
+                break
+                
+        res = v_posix.ptrace(PT_ATTACH, pid, 0, 0)
+        if res < 0:
+            raise Exception("Can't PTRACE to PID: %d ", pid)
+                    
         self.pthreads = [pid,]
         self.setMeta("ExeName", self._findExe(pid))
         return pid
