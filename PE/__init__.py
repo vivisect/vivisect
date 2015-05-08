@@ -806,6 +806,10 @@ class PE(object):
         relbytes = self.readAtOffset(reloff, rsize)
 
         while relbytes:
+            # bounce if we have less than 8 bytes to unpack
+            if len(relbytes[:8]) < 8:
+                return
+
             pageva, chunksize = struct.unpack("<II", relbytes[:8])
             relcnt = (chunksize - 8) / 2
             
