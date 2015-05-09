@@ -118,6 +118,7 @@ def loadPeIntoWorkspace(vw, pe, filename=None):
 
     # Setup some va sets used by windows analysis modules
     vw.addVaSet("Library Loads", (("Address", VASET_ADDRESS),("Library", VASET_STRING)))
+    vw.addVaSet('pe:ordinals', (('Address', VASET_ADDRESS),('Ordinal',VASET_INTEGER)))
 
     # SizeOfHeaders spoofable...
     curr_offset = pe.IMAGE_DOS_HEADER.e_lfanew + len(pe.IMAGE_NT_HEADERS) 
@@ -309,6 +310,7 @@ def loadPeIntoWorkspace(vw, pe, filename=None):
     for rva, ord, name in exports:
         eva = rva + baseaddr
         try:
+            vw.setVaSetRow('pe:ordinals', (eva,ord))
             vw.addExport(eva, EXP_UNTYPED, name, fname)
             if vw.probeMemory(eva, 1, e_mem.MM_EXEC):
                 vw.addEntryPoint(eva)
