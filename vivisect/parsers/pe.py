@@ -113,8 +113,11 @@ def loadPeIntoWorkspace(vw, pe, filename=None):
     if vs != None:
         vsver = vs.getVersionValue('FileVersion')
         if vsver != None and len(vsver):
-            vsver = vsver.split()[0]
-            vw.setFileMeta(fname, 'Version', vsver)
+            # add check to split seeing samples with spaces and nothing else..
+            parts = vsver.split()
+            if len(parts):
+                vsver = vsver.split()[0]
+                vw.setFileMeta(fname, 'Version', vsver)
 
     # Setup some va sets used by windows analysis modules
     vw.addVaSet("Library Loads", (("Address", VASET_ADDRESS),("Library", VASET_STRING)))
