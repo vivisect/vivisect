@@ -1704,11 +1704,19 @@ class WindowsMixin:
         return self.win32threads
 
     def platformSuspendThread(self, thrid):
-        if kernel32.SuspendThread(thrid) == 0xffffffff:
+        thandle = self.thandles.get(thrid)
+        if thandle == None:
+            raise Exception('Suspending Unknown Thread: %d' % (thrid,))
+
+        if kernel32.SuspendThread(thandle) == 0xffffffff:
             raiseWin32Error()
 
     def platformResumeThread(self, thrid):
-        if kernel32.ResumeThread(thrid) == 0xffffffff:
+        thandle = self.thandles.get(thrid)
+        if thandle == None:
+            raise Exception('Resuming Unknown Thread: %d' % (thrid,))
+
+        if kernel32.ResumeThread(thandle) == 0xffffffff:
             raiseWin32Error()
 
     def platformParseBinary(self, filename, baseaddr, normname):
