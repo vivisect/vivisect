@@ -966,10 +966,14 @@ bit_dbles = [
         ('bild', 0),
         ]
 
-def p_Bit_Doubles(va, val, buf, off, tsize):
-    iflags = 0
+def getBitDbl_OpMnem(val):
     op = val >> 6
     mnem = bit_dbles[(op & 0xf)]
+    return op, mnem
+
+def p_Bit_Doubles(va, val, buf, off, tsize):
+    iflags = 0
+    op, mnem = getBitDbl_OpMnem(val)
     
     i3 = (val>>4) & 0x7
     Rd = val & 0xf
@@ -1003,6 +1007,160 @@ def p_Mov_6C(va, val, buf, off, tsize):
         # @aa:16/24, Rd
         return p_aAA16_Rd(va, val, buf, off, tsize)
 
+def p_Mov_78(va, val, buf, off, tsize):
+    val2, val3_4 = struct.unpack(">HI", buf[off+2:off+8])
+
+    op = (val3_4 >> 24) | ((val2&0xfff0)<<4) | ((val&0xff80)<<(20+1)) | ((val&0xf)<<20)
+    #FIXME: complex and ugly.  do we even need these in this impl?
+
+    mnem = None
+    disp = val3_4 & 0xffffff
+
+    if (val2 & 8):
+        ers = (val>>4) & 0x7
+        rd  = val2 & 0xf
+        opers = (
+                H8RegIndirOper(ers, va, tsize=tsize, disp=disp, oflags=0),
+                H8RegOper(rd),
+                )
+    else:
+        erd = (val>>4) & 0x7
+        rs  = val2 & 0xf
+        opers = (
+                H8RegOper(rs),
+                H8RegIndirOper(erd, va, tsize=tsize, disp=disp, oflags=0),
+                )
+
+    return (op, mnem, opers, iflags, 2)
+
+mnem_79a = (
+        'mov',
+        'add',
+        'cmp',
+        'sub',
+        'or',
+        'xor',
+        'and',
+        )
+
+def p_79(va, val, buf, off, tsize):
+    op, m, opers, iflags, osz = p_i16_Rd(va, val, buf, off, tsize)
+    mnem = mnem_79a[(val>>4)&0xf]
+    return op, mnem, opers, iflags, osz
+
+def p_7a(va, val, buf, off, tsize):
+    op, m, opers, iflags, osz = p_i32_ERd(va, val, buf, off, tsize)
+    mnem = mnem_79a[(val>>4)&0xf]
+    return op, mnem, opers, iflags, osz
+
+def p_eepmov(va, val, buf, off, tsize):
+    val2, = struct.unpack('>H', buf[off+2: off+4])
+    op = (val<<8) | val2
+    tsize = (1,2)[ (val>>7)&1]
+    return op, None, (), 0, 4)
+
+def p_7c(va, val, buf, off, tsize):
+    # btst, bor, bior, bxor, bixor, band, biand, bid, bild (erd)
+    val2, = struct.unpack('>H', buf[off+2: off+4])
+    iflags = 0
+    op, mnem = getBitDbl_OpMnem(val2)
+    op |= ((val & 0xff80)<<9)
+
+    telltale = (val2>>8) 
+    
+    # FIXME: is any of this redundant with previous encodings?
+    if telltale == 0x63:
+        # btst (0x####63##
+        mnem = 'btst'
+        erd = (val>>4) & 0x7
+        rn = (val2>>4) & 0xf
+        opers = (
+                H8RegIndirOper(rn, tsize=tsize)
+                H8RegIndirOper(erd, tsize=tsize)
+                }
+
+    elif telltale == 0x73:
+        # btst (0x####73##
+        mnem = 'btst'
+        erd = (val>>4) & 0x7
+        imm = (val2>>4) & 0x7
+        opers = (
+                H8ImmOper(imm),
+                H8RegIndirOper(erd, tsize=tsize)
+                }
+
+    elif 0x78 > telltale > 0x73:
+        # other bit-halves:
+        i3 = (val2>>4) & 0x7
+        erd = val2 & 0xf
+
+        opers = (
+                H8ImmOper(i3),
+                H8RegDirOper(erd, va, 0),
+                )
+    
+    return op, mnem, opers, iflags, 4
+
+bit_dble7d = [
+        ('bset', 0),
+        ('bset', 0),
+        ('bnot', 0),
+        ('bnot', 0),
+        ('bclr', 0),
+        ('bclr', 0),
+        None, 
+        None, 
+        None, 
+        None,
+        None, 
+        None, 
+        None, 
+        None,
+        ('bst', 0),
+        ('bist', 0),
+        ]
+
+def p_7d(va, val, buf, off, tsize):
+    # bset, bnor, bclr
+    val2, = struct.unpack('>H', buf[off+2: off+4])
+    iflags = 0
+    op, mnem = getBitDbl_OpMnem(val2)
+    op |= ((val & 0xff80)<<9)
+
+    telltale = (val2>>8) 
+    
+    # FIXME: is any of this redundant with previous encodings?
+    if telltale == 0x63:
+        # btst (0x####63##
+        mnem = 'btst'
+        erd = (val>>4) & 0x7
+        rn = (val2>>4) & 0xf
+        opers = (
+                H8RegIndirOper(rn, tsize=tsize)
+                H8RegIndirOper(erd, tsize=tsize)
+                }
+
+    elif telltale == 0x73:
+        # btst (0x####73##
+        mnem = 'btst'
+        erd = (val>>4) & 0x7
+        imm = (val2>>4) & 0x7
+        opers = (
+                H8ImmOper(imm),
+                H8RegIndirOper(erd, tsize=tsize)
+                }
+
+    elif 0x78 > telltale > 0x73:
+        # other bit-halves:
+        i3 = (val2>>4) & 0x7
+        erd = val2 & 0xf
+
+        opers = (
+                H8ImmOper(i3),
+                H8RegDirOper(erd, va, 0),
+                )
+    
+    return op, mnem, opers, iflags, osz
 
 class H8Disasm:
     fmt = None
@@ -1025,6 +1183,7 @@ class H8Disasm:
 
         opcode, mnem, olist, flags = ienc_parsers[enc](opval, va)
 
+        ############# this is all in need of redoing....
         # Ok...  if we're a non-conditional branch, *or* we manipulate PC unconditionally,
         # lets call ourself envi.IF_NOFALL
         if cond == COND_AL:                             # FIXME: this could backfire if COND_EXTENDED...
@@ -1041,6 +1200,8 @@ class H8Disasm:
 
         else:
             flags |= envi.IF_COND
+
+        #####################################################
 
 
         # FIXME conditionals are currently plumbed as "prefixes".  Perhaps normalize to that...
