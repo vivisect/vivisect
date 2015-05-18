@@ -1,3 +1,5 @@
+import struct
+
 from disasm import H8ImmOper, H8RegDirOper, H8RegIndirOper, H8AbsAddrOper
 from const import *
 
@@ -518,7 +520,7 @@ def p_nooperands(va, val, buf, off, tsize):
     opers = ()
     return (op, None, opers, iflags, 2)
 
-def p_BccDoubles(va, vak, buf, off, tsize):
+def _p_BccDoubles(va, vak, buf, off, tsize):
     # Bcc
     disp, = struct.unpack('>H', buf[off+2: off+4])
     op = val
@@ -553,12 +555,11 @@ bit_dbles = [
 
 def getBitDbl_OpMnem(val, bitlist=bit_dbles):
     op = val >> 7
-    mnem = bitlist[(op & 0x1f)]
-    return op, mnem
+    mnem, flags = bitlist[(op & 0x1f)]
+    return op, mnem, flags
 
 def p_Bit_Doubles(va, val, buf, off, tsize):
-    iflags = 0
-    op, mnem = getBitDbl_OpMnem(val)
+    op, mnem, iflags = getBitDbl_OpMnem(val)
     
     i3 = (val>>4) & 0x7
     Rd = val & 0xf
@@ -650,7 +651,7 @@ def p_7c(va, val, buf, off, tsize):
     # btst, bor, bior, bxor, bixor, band, biand, bid, bild (erd)
     val2, = struct.unpack('>H', buf[off+2: off+4])
     iflags = 0
-    op, mnem = getBitDbl_OpMnem(val2)
+    op, mnem, flags = getBitDbl_OpMnem(val2)
     op |= ((val & 0xff80)<<9)
 
     telltale = (val2>>8) 
@@ -679,11 +680,11 @@ def p_7c(va, val, buf, off, tsize):
     elif 0x78 > telltale > 0x73:
         # other bit-halves:
         i3 = (val2>>4) & 0x7
-        erd = val2 & 0xf
+        rd = val2 & 0xf
 
         opers = (
                 H8ImmOper(i3),
-                H8RegDirOper(erd, va, 0),
+                H8RegDirOper(rd, va, 0),
                 )
     
     return op, mnem, opers, iflags, 4
@@ -711,24 +712,24 @@ bit_dble7df.extend(bit_dble7df)
 def p_7d(va, val, buf, off, tsize):
     # bset, bnor, bclr, bst/bist
     val2, = struct.unpack('>H', buf[off+2: off+4])
-    iflags = 0
-    op, mnem = getBitDbl_OpMnem(val2, bit_dble7df)
+
+    op, mnem, iflags = getBitDbl_OpMnem(val2, bit_dble7df)
     op |= ((val & 0xff80)<<9)
 
     erd = (val>>4) & 0x7
     imm = (val2>>4) & 0x7
     opers = (
             H8ImmOper(imm),
-            H8RegIndirOper(erd, tsize=tsize)
+            H8RegIndirOper(erd, va, tsize=tsize)
             )
 
-    return op, mnem, opers, iflags, osz
+    return op, mnem, opers, iflags, 4
 
 def p_7e(va, val, buf, off, tsize):
     # btst, bor, bior, bxor, bixor, band, biand, bid, bild (erd)
     val2, = struct.unpack('>H', buf[off+2: off+4])
-    iflags = 0
-    op, mnem = getBitDbl_OpMnem(val2)
+
+    op, mnem, iflags = getBitDbl_OpMnem(val2)
     op |= ((val & 0xff80)<<9)
     aa = val & 0xff
 
@@ -767,42 +768,16 @@ def p_7e(va, val, buf, off, tsize):
 def p_7f(va, val, buf, off, tsize):
     # bset, bnor, bclr
     val2, = struct.unpack('>H', buf[off+2: off+4])
-    iflags = 0
-    op, mnem = getBitDbl_OpMnem(val2)
+
+    op, mnem, iflags = getBitDbl_OpMnem(val2, bit_dble7df)
     op |= ((val & 0xff80)<<9)
 
-    telltale = (val2>>8) 
-    
-    # FIXME: is any of this redundant with previous encodings?
-    if telltale == 0x63:
-        # btst (0x####63##
-        mnem = 'btst'
-        erd = (val>>4) & 0x7
-        rn = (val2>>4) & 0xf
-        opers = (
-                H8RegIndirOper(rn, tsize=tsize),
-                H8RegIndirOper(erd, tsize=tsize),
-                )
+    erd = (val>>4) & 0x7
+    imm = (val2>>4) & 0x7
+    opers = (
+            H8ImmOper(imm),
+            H8RegIndirOper(erd, va, tsize=tsize)
+            )
 
-    elif telltale == 0x73:
-        # btst (0x####73##
-        mnem = 'btst'
-        erd = (val>>4) & 0x7
-        imm = (val2>>4) & 0x7
-        opers = (
-                H8ImmOper(imm),
-                H8RegIndirOper(erd, tsize=tsize),
-                )
-
-    elif 0x78 > telltale > 0x73:
-        # other bit-halves:
-        i3 = (val2>>4) & 0x7
-        erd = val2 & 0xf
-
-        opers = (
-                H8ImmOper(i3),
-                H8RegDirOper(erd, va, 0),
-                )
-    
-    return op, mnem, opers, iflags, osz
+    return op, mnem, opers, iflags, 4
 

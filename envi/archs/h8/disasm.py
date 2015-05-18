@@ -6,6 +6,8 @@ import envi
 import envi.bits as e_bits
 
 from envi.bits import binary
+from const import *
+from envi.archs.h8.regs import *
 
 '''
 mov b/w/l
@@ -108,29 +110,13 @@ class H8Opcode(envi.Opcode):
         """
         Render this opcode to the specified memory canvas
         """
-        mnem = self.mnem + cond_codes.get(self.prefixes)
-        daib_flags = self.iflags & IF_DAIB_MASK
-        if self.iflags & IF_L:
-            mnem += 'l'
-        elif self.iflags & IF_PSR_S:
-            mnem += 's'
-        elif daib_flags > 0:
-            idx = ((daib_flags)>>(IF_DAIB_SHFT)) 
-            mnem += daib[idx]
-        else:
-            if self.iflags & IF_S:
-                mnem += 's'
-            if self.iflags & IF_D:
-                mnem += 'd'
-            if self.iflags & IF_B:
-                mnem += 'b'
-            if self.iflags & IF_H:
-                mnem += 'h'
-            elif self.iflags & IF_T:
-                mnem += 't'
-        #FIXME: Advanced SIMD modifiers (IF_V*)
-        if self.iflags & IF_THUMB32:
-            mnem += ".w"
+        mnem = self.mnem
+        if self.iflags & IF_B:
+            mnem += '.b'
+        elif self.iflags & IF_H:
+            mnem += '.h'
+        elif self.iflags & IF_W:
+            mnem += '.w'
 
         mcanv.addNameText(mnem, typename="mnemonic")
         mcanv.addText(" ")
@@ -143,39 +129,20 @@ class H8Opcode(envi.Opcode):
             oper.render(mcanv, self, i)
             if i != lasti:
                 mcanv.addText(",")
-        #if self.iflags & IF_W:     # handled in operand.  still keeping flag to indicate this instruction writes back
-        #    mcanc.addText(" !")
 
     def __repr__(self):
-        mnem = self.mnem + cond_codes.get(self.prefixes)
-        daib_flags = self.iflags & IF_DAIB_MASK
-        if self.iflags & IF_L:
-            mnem += 'l'
-        elif self.iflags & IF_PSR_S:
-            mnem += 's'
-        elif daib_flags > 0:
-            idx = ((daib_flags)>>(IF_DAIB_SHFT)) 
-            mnem += daib[idx]
-        else:
-            if self.iflags & IF_S:
-                mnem += 's'
-            if self.iflags & IF_D:
-                mnem += 'd'
-            if self.iflags & IF_B:
-                mnem += 'b'
-            if self.iflags & IF_H:
-                mnem += 'h'
-            elif self.iflags & IF_T:
-                mnem += 't'
-        if self.iflags & IF_THUMB32:
-            mnem += ".w"
+        mnem = self.mnem
+        if self.iflags & IF_B:
+            mnem += '.b'
+        elif self.iflags & IF_H:
+            mnem += '.h'
+        elif self.iflags & IF_W:
+            mnem += '.w'
         
         x = []
-        
         for o in self.opers:
             x.append(o.repr(self))
-        #if self.iflags & IF_W:     # handled in operand.  still keeping flag to indicate this instruction writes back
-        #    x[-1] += " !"      
+
         return mnem + " " + ", ".join(x)
 
 
@@ -219,7 +186,7 @@ class H8Operand(envi.Operand):
     def involvesPC(self):
         return False
 
-class H8RegDirOper(H8Operand):
+class H8RegDirOper(envi.RegisterOper, H8Operand):
     ''' 
     Register direct [Rn]
     '''
@@ -263,11 +230,11 @@ class H8RegDirOper(H8Operand):
         mcanv.addNameText(name, name=rname, typename="registers")
 
     def repr(self, op):
-        name = self._dis_regctx.getRegisterName(self.reg)
+        #name = self._dis_regctx.getRegisterName(self.reg)
         rname = self._dis_regctx.getRegisterName(self.reg&RMETA_NMASK)
         return rname
 
-class H8RegIndirOper(H8Operand):
+class H8RegIndirOper(envi.DerefOper, H8Operand):
     '''
     Register Indirect
     register specifies 32bit ERn reg, lower 24bits being an address
@@ -398,7 +365,7 @@ class H8AbsAddrOper(H8Operand):
     def repr(self, op):
         return '@%x' % self.aa
 
-class H8ImmOper(H8Operand):
+class H8ImmOper(envi.ImmedOper, H8Operand):
     '''
     Immediate [#xx:8, #xx:16, or #xx:32]
     '''
@@ -428,7 +395,7 @@ class H8ImmOper(H8Operand):
     def repr(self, op):
         return "#%x" % self.val
 
-class H8MemIndirOper(H8Operand):
+class H8MemIndirOper(envi.DerefOper, H8Operand):
     '''
     Memory indirect [@@aa:8]
     '''
@@ -519,7 +486,9 @@ from optables import main_table
 class H8Disasm:
     fmt = None
     def __init__(self):
-        pass
+        self._dis_regctx = H8RegisterContext()
+        self._dis_oparch = envi.ARCH_H8
+        self.ptrsize = 4
 
     def disasm(self, bytez, offset, va):
         """
@@ -547,40 +516,19 @@ class H8Disasm:
             raise Exception("WHAT ARE WE DOING HERE.  NEED subtable at 0x%x:  %s" % (va, bytez[offset:offset+16]))
 
         elif decoder != None:
-            op, nmnem, olist, flags, isize = decoder(va, opval, bytez, off, tsize)
+            opcode, nmnem, olist, flags, isize = decoder(va, opval, bytez, offset, tsize)
+            print opcode, nmnem, olist, flags, isize, decoder
             if nmnem != None:
                 mnem = nmnem
 
         else:
             raise envi.InvalidInstruction(mesg='Failed to find subtable or decoder', bytez=bytez[startoff:startoff+16], va=va)
 
-        #######
-        ''' unfixed '''
-
-        #opcode, mnem, olist, flags = ienc_parsers[enc](opval, va)
-
-        ############# this is all in need of redoing....
-        # Ok...  if we're a non-conditional branch, *or* we manipulate PC unconditionally,
-        # lets call ourself envi.IF_NOFALL
-        '''
-        if cond == COND_AL:                             # FIXME: this could backfire if COND_EXTENDED...
-            if opcode in (INS_B, INS_BX):
-                flags |= envi.IF_NOFALL
-
-            elif (  len(olist) and 
-                    isinstance(olist[0], H8RegOper) and
-                    olist[0].involvesPC() and 
-                    (opcode & 0xffff) not in no_update_Rd ):       # FIXME: only want IF_NOFALL if it *writes* to PC!
-                
-                showop = True
-                flags |= envi.IF_NOFALL
-
-        else:
-            flags |= envi.IF_COND
-        '''
-        #####################################################
         op = H8Opcode(va, opcode, mnem, None, isize, olist, flags)
-        op.encoder = enc    #FIXME: DEBUG CODE
+        if op.opers != None:
+            # following the nasty little hack from other modules.  "everybody's doing it!"
+            for oper in op.opers:
+                oper._dis_regctx = self._dis_regctx
 
         return op
 
