@@ -1,3 +1,4 @@
+from parsers import *
 '''
 
 
@@ -117,7 +118,7 @@ main_table[0x54] = (False, 'rts', None, 0, 0)   # 5470
 main_table[0x55] = (False, 'bsr', p_disp8, 0, 0)
 main_table[0x56] = (False, 'rte', None, 0, 0)   # 5670
 main_table[0x57] = (False, 'trapa', p_i2, 0, 0)
-main_table[0x58] = (False, 'error', p_BccDoubles, 0, 0)
+main_table[0x58] = (False, 'error', p_disp16, 0, 0) # p_BccDoubles, 0, 0)
 main_table[0x59] = (False, 'jmp', p_aERn, 0, 0)
 main_table[0x5a] = (False, 'jmp', p_aAA24, 0, 0)
 main_table[0x5b] = (False, 'jmp', p_aaAA8, 3, 0)
@@ -131,10 +132,10 @@ main_table[0x60] = (False, 'bset', p_Rn_Rd, 0, 0)
 main_table[0x70] = (False, 'bset', p_i3_Rd, 0, 0)
 main_table[0x61] = (False, 'bnot', p_Rn_Rd, 0, 0)
 main_table[0x71] = (False, 'bnot', p_i3_Rd, 0, 0)
-main_table[0x62] = (False, 'bclr', p_Rn_Rd, , 0)
-main_table[0x72] = (False, 'bclr', p_i3_Rd, , 0)
+main_table[0x62] = (False, 'bclr', p_Rn_Rd, 0, 0)
+main_table[0x72] = (False, 'bclr', p_i3_Rd, 0, 0)
 main_table[0x63] = (False, 'btst', p_Rn_Rd, 0, 0)
-main_table[0x73] = (False, 'btst', p_i3_Rd, , 0)
+main_table[0x73] = (False, 'btst', p_i3_Rd, 0, 0)
 
 main_table[0x67] = (False, 'bitdoubles', p_Bit_Doubles, 0, 0)
 
@@ -150,25 +151,19 @@ main_table[0x6f] = (False, 'mov', p_aERs_Rd, 1, IF_B)
 for opbyte in range(0x74, 0x78):
     main_table[opbyte] = (False, 'bitdoubles', p_Bit_Doubles, 0, 0)
 
-main_table[0x74] = (False, 'bxor/bixor', #FIXME, , 0)
-main_table[0x74] = (False, 'bxor/bixor', #FIXME, , 0)
-main_table[0x65] = (False, 'band/biand', #FIXME, , 0)
-main_table[0x75] = (False, 'bld/bild', #FIXME, , 0)
+main_table[0x74] = (False, 'bxor/bixor', None, 0, 0)
+main_table[0x65] = (False, 'band/biand', None, 0, 0)
+main_table[0x75] = (False, 'bld/bild', None, 0, 0)
 
-main_table[0x78] = (False, 'mov', p_Mov_78, , 0)
-main_table[0x79] = (False, 'mov', p_79, , 0)
-main_table[0x7a] = (False, 'mov', p_7a, , 0)
-main_table[0x7b] = (False, 'epmov', p_eepmov, , 0)
-main_table[0x7c] = (False, '7Cmnem', p_7c, , 0)
-main_table[0x7d] = (False, '7Dmnem', p_7d, , 0)
-main_table[0x0e] = (False, 'stc', , , 0)
-main_table[0x0e] = (False, 'stc', , , 0)
-main_table[0x0e] = (False, 'stc', , , 0)
-main_table[0x0e] = (False, 'stc', , , 0)
-main_table[0x0e] = (False, 'stc', , , 0)
-main_table[0x0e] = (False, 'stc', , , 0)
-main_table[0x0e] = (False, 'stc', , , 0)
-main_table[0x0e] = (False, 'stc', , , 0)
+main_table[0x78] = (False, 'mov', p_Mov_78, 0, 0)
+main_table[0x79] = (False, 'mov', p_79, 0, 0)
+main_table[0x7a] = (False, 'mov', p_7a, 0, 0)
+main_table[0x7b] = (False, 'epmov', p_eepmov, 0, 0)
+main_table[0x7c] = (False, '7Cmnem', p_7c, 0, 0)
+main_table[0x7d] = (False, '7Dmnem', p_7d, 0, 0)
+main_table[0x7e] = (False, '7Emnem', p_7e, 0, 0)
+main_table[0x7f] = (False, '7Fmnem', p_7f, 0, 0)
+
 
 
 subtable_01 = {}

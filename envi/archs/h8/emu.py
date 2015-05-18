@@ -11,8 +11,8 @@ from envi.archs.h8.regs import *
 # CPU Operating Modes:  
 #   Normal      64kb RAM, program and data areas combined
 #       E0-E7 (extended regs) can be used as 16bit or combined with R0-R7 for 32bit data regs
-#           when used as 16bit reg it can contain any value, even when corresponding R# reg is used as an address reg.
-#           if the general reg is ref'd in reg indir adr mode with pre-dec or post-inc and carry/borrow occurs, the value in corresponding register will be affected.
+#           when used as 16bit reg it can contain any value, even when corrsponding R# reg is used as an address reg.
+#           if the general reg is ref'd in reg indir adr mode with pre-dec or post-inc and carry/borrow occurs, the value in corrsponding register will be affected.
 #       Instruction Set - all instrs/modes of H8-300 can be used.  if 24bit ea (effective address) is used, only lower 16bits used
 #       Exception Vector Table/MemIndirBranchAddress - top area starting at H'0000 is exception vector table.  16bit branch addrs
 #           differs by mcu, see mcu hardware manual for further info           
@@ -30,40 +30,19 @@ class H8ArchitectureProcedureCall(envi.CallingConvention):
     Implement calling conventions for your arch.
     """
     def execCallReturn(self, emu, value, ccinfo=None):
-        esp = emu.getRegister(REG_ESP)
-        eip = struct.unpack("<L", emu.readMemory(esp, 4))[0]
-        esp += 4 # For the saved eip
-        esp += (4 * argc) # Cleanup saved args
+        sp = emu.getRegister(REG_SP)
+        pc = struct.unpack(">H", emu.readMemory(sp, 2))[0]
+        sp += 2 # For the saved pc
+        sp += (2 * argc) # Cleanup saved args
 
-        emu.setRegister(REG_ESP, esp)
-        emu.setRegister(REG_EAX, value)
-        emu.setProgramCounter(eip)
-
+        emu.setRegister(REG_SP, sp)
+        emu.setRegister(REG_R0, value)
+        emu.setProgramCounter(pc)
 
     def getCallArgs(self, emu, count):
         return emu.getRegisters(0xf)  # r0-r3 are used to hand in parameters.  additional ph8s are stored and pointed to by r0
 
 aapcs = H8ArchitectureProcedureCall()
-
-class CoProcEmulator:       # useful for prototyping, but should be subclassed
-    def __init__(self):
-        pass
-
-    def stc(self, ph8s):
-        print >>sys.stderr,"CoProcEmu: stc(%s)"%repr(ph8s)
-    def ldc(self, ph8s):
-        print >>sys.stderr,"CoProcEmu: ldc(%s)"%repr(ph8s)
-    def cdp(self, ph8s):
-        print >>sys.stderr,"CoProcEmu: cdp(%s)"%repr(ph8s)
-    def mcr(self, ph8s):
-        print >>sys.stderr,"CoProcEmu: mcr(%s)"%repr(ph8s)
-    def mcrr(self, ph8s):
-        print >>sys.stderr,"CoProcEmu: mcrr(%s)"%repr(ph8s)
-    def mrc(self, ph8s):
-        print >>sys.stderr,"CoProcEmu: mrc(%s)"%repr(ph8s)
-    def mrrc(self, ph8s):
-        print >>sys.stderr,"CoProcEmu: mrrc(%s)"%repr(ph8s)
-
 
 
 class H8Emulator(H8Module, H8RegisterContext, envi.Emulator):
@@ -88,19 +67,16 @@ class H8Emulator(H8Module, H8RegisterContext, envi.Emulator):
         """
         self.setRegister(REG_EFLAGS, None)
 
-    def setFlag(self, which, state, mode=PM_usr):   # FIXME: CPSR?
-        flags = self.getSPSR(mode)
+    def setFlag(self, which, state):
+        flags = self.getRegister(REG_FLAGS)
         if state:
             flags |= which
         else:
             flags &= ~which
-        self.setSPSR(mode, flags)
+        self.setRegister(REG_FLAGS, flags)
 
-    def getFlag(self, which, mode=PM_usr):          # FIXME: CPSR?
-        #if (flags_reg == None):
-        #    flags_reg = proc_modes[self.getProcMode()][5]
-        #flags = self.getRegister(flags_reg)
-        flags = self.getSPSR(mode)
+    def getFlag(self, which):
+        flags = self.getRegister(REG_FLAGS)
         if flags == None:
             raise envi.PDEUndefinedFlag(self)
         return bool(flags & which)
@@ -109,18 +85,16 @@ class H8Emulator(H8Module, H8RegisterContext, envi.Emulator):
         bytes = self.readMemory(addr, size)
         if bytes == None:
             return None
-        #FIXME change this (and all uses of it) to passing in format...
-        #FIXME: Remove byte check and possibly half-word check.  (possibly all but word?)
         if len(bytes) != size:
             raise Exception("Read Gave Wrong Length At 0x%.8x (va: 0x%.8x wanted %d got %d)" % (self.getProgramCounter(),addr, size, len(bytes)))
         if size == 1:
             return struct.unpack("B", bytes)[0]
         elif size == 2:
-            return struct.unpack("<H", bytes)[0]
+            return struct.unpack(">H", bytes)[0]
         elif size == 4:
-            return struct.unpack("<L", bytes)[0]
+            return struct.unpack(">L", bytes)[0]
         elif size == 8:
-            return struct.unpack("<Q", bytes)[0]
+            return struct.unpack(">Q", bytes)[0]
 
     def writeMemValue(self, addr, value, size):
         #FIXME change this (and all uses of it) to passing in format...
@@ -128,11 +102,11 @@ class H8Emulator(H8Module, H8RegisterContext, envi.Emulator):
         if size == 1:
             bytes = struct.pack("B",value & 0xff)
         elif size == 2:
-            bytes = struct.pack("<H",value & 0xffff)
+            bytes = struct.pack(">H",value & 0xffff)
         elif size == 4:
-            bytes = struct.pack("<L", value & 0xffffffff)
+            bytes = struct.pack(">L", value & 0xffffffff)
         elif size == 8:
-            bytes = struct.pack("<Q", value & 0xffffffffffffffff)
+            bytes = struct.pack(">Q", value & 0xffffffffffffffff)
         self.writeMemory(addr, bytes)
 
     def readMemSignedValue(self, addr, size):
@@ -143,20 +117,19 @@ class H8Emulator(H8Module, H8RegisterContext, envi.Emulator):
         if size == 1:
             return struct.unpack("b", bytes)[0]
         elif size == 2:
-            return struct.unpack("<h", bytes)[0]
+            return struct.unpack(">h", bytes)[0]
         elif size == 4:
-            return struct.unpack("<l", bytes)[0]
+            return struct.unpack(">l", bytes)[0]
 
     def executeOpcode(self, op):
         # NOTE: If an opcode method returns
-        #       other than None, that is the new eip
+        #       other than None, that is the new pc
         x = None
-        if op.prefixes >= 0xe or op.prefixes == (self.getRegister(REG_FLAGS)>>28):         #nearly every opcode is optional
-            meth = self.op_methods.get(op.mnem, None)
-            if meth == None:
-                raise envi.UnsupportedInstruction(self, op)
-            x = meth(op)
-            print >>sys.stderr,"executed instruction, returned: %s"%x
+        meth = self.op_methods.get(op.mnem, None)
+        if meth == None:
+            raise envi.UnsupportedInstruction(self, op)
+        x = meth(op)
+        print >>sys.stderr,"executed instruction, returned: %s"%x
 
         if x == None:
             pc = self.getProgramCounter()
@@ -165,98 +138,16 @@ class H8Emulator(H8Module, H8RegisterContext, envi.Emulator):
         self.setProgramCounter(x)
 
     def doPush(self, val):
-        esp = self.getRegister(REG_ESP)
-        esp -= 4
-        self.writeMemValue(esp, val, 4)
-        self.setRegister(REG_ESP, esp)
+        sp = self.getRegister(REG_SP)
+        sp -= 2
+        self.writeMemValue(sp, val, 2)
+        self.setRegister(REG_SP, sp)
 
     def doPop(self):
-        esp = self.getRegister(REG_ESP)
-        val = self.readMemValue(esp, 4)
-        self.setRegister(REG_ESP, esp+4)
+        sp = self.getRegister(REG_SP)
+        val = self.readMemValue(sp, 2)
+        self.setRegister(REG_SP, sp+2)
         return val
-
-    def getProcMode(self):
-        return self._rctx_vals[REG_CPSR] & 0x1f     # obfuscated for speed.  could call getCPSR but it's not as fast
-
-    def getCPSR(self):
-        return self._rctx_vals[REG_CPSR]
-
-    def setCPSR(self, psr):
-        self._rctx_vals[REG_CPSR] = psr
-
-    def getSPSR(self, mode):
-        return self._rctx_vals[((mode&0xf)*17)+16]
-
-    def setSPSR(self, mode, psr):
-        self._rctx_vals[((mode&0xf)*17)+16] = psr
-
-    def setProcMode(self, mode):
-        # write current psr to the saved psr register for current mode
-        curSPSRidx = proc_modes[self.getProcMode()][5]
-        self._rctx_vals[curSPSRidx] = self._rctx_vals[REG_CPSR]
-
-        # do we restore saved spsr?
-        cpsr = self._rctx_vals[REG_CPSR] & 0xffffffe0
-        self._rctx_vals[REG_CPSR] = cpsr | mode
-
-    def getRegister(self, index, mode=None):
-        """
-        Return the current value of the specified register index.
-        """
-        if mode == None:
-            mode = self.getProcMode() & 0xf
-        else:
-            mode &= 0xf
-        idx = (index & 0xffff)
-        ridx = idx + (mode*17)  # account for different banks of registers
-        ridx = reg_table[ridx]  # magic pointers allowing overlapping banks of registers
-        if idx == index:
-            return self._rctx_vals[ridx]
-
-        offset = (index >> 24) & 0xff
-        width  = (index >> 16) & 0xff
-
-        mask = (2**width)-1
-        return (self._rctx_vals[ridx] >> offset) & mask
-
-    def setRegister(self, index, value, mode=None):
-        """
-        Set a register value by index.
-        """
-        if mode == None:
-            mode = self.getProcMode() & 0xf
-        else:
-            mode &= 0xf
-
-        self._rctx_dirty = True
-
-        idx = (index & 0xffff)
-        ridx = idx + (mode*17)  # account for different banks of registers
-        ridx = reg_table[ridx]  # magic pointers allowing overlapping banks of registers
-        if idx == index:
-            self._rctx_vals[ridx] = (value & self._rctx_masks[ridx])      # FIXME: hack.  should look up index in proc_modes dict?
-            return
-
-        # If we get here, it's a meta register index.
-        # NOTE: offset/width are in bits...
-        offset = (index >> 24) & 0xff
-        width  = (index >> 16) & 0xff
-
-        #FIXME is it faster to generate or look thses up?
-        mask = (2**width)-1
-        mask = mask << offset
-
-        # NOTE: basewidth is in *bits*
-        basewidth = self._rctx_widths[ridx]
-        basemask  = (2**basewidth)-1
-
-        # cut a whole in basemask at the size/offset of mask
-        finalmask = basemask ^ mask
-
-        curval = self._rctx_vals[ridx]
-
-        self._rctx_vals[ridx] = (curval & finalmask) | (value << offset)
 
     def integerSubtraction(self, op):
         """
@@ -268,7 +159,6 @@ class H8Emulator(H8Module, H8RegisterContext, envi.Emulator):
         #FIXME account for same operand with zero result for PDE
         src1 = self.getOperValue(op, 1)
         src2 = self.getOperValue(op, 2)
-        Sflag = op.iflags & IF_PSR_S
 
         if src1 == None or src2 == None:
             self.undefFlags()

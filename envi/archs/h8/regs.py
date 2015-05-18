@@ -76,6 +76,7 @@ H8Meta = tuple([
     ('e7', REG_ER7, 16, 16),
     ('r7h', REG_ER7, 8, 8),
     ('r7l', REG_ER7, 0, 8),
+])
 
 class H8RegisterContext(e_reg.RegisterContext):
     def __init__(self):
