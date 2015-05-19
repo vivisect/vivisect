@@ -166,8 +166,29 @@ main_table[0x7e] = (False, '7Emnem', p_7e, 1, 0)
 main_table[0x7f] = (False, '7Fmnem', p_7f, 1, 0)
 
 
-#for opbyte in range(0x80, 0x90):
-#    main_table[opbyte] = (False, 'add', p_80, 1, 0)
+for opbyte in range(0x80, 0x90):
+    main_table[opbyte] = (False, 'add', p_i8_Rd, 1, IF_B)
+
+for opbyte in range(0x90, 0xa0):
+    main_table[opbyte] = (False, 'addx', p_i8_Rd, 1, IF_B)
+
+for opbyte in range(0xa0, 0xb0):
+    main_table[opbyte] = (False, 'cmp', p_i8_Rd, 1, IF_B)
+
+for opbyte in range(0xb0, 0xc0):
+    main_table[opbyte] = (False, 'subx', p_i8_Rd, 1, IF_B)
+
+for opbyte in range(0xc0, 0xd0):
+    main_table[opbyte] = (False, 'or', p_i8_Rd, 1, IF_B)
+
+for opbyte in range(0xd0, 0xe0):
+    main_table[opbyte] = (False, 'xor', p_i8_Rd, 1, IF_B)
+
+for opbyte in range(0xe0, 0xf0):
+    main_table[opbyte] = (False, 'and', p_i8_Rd, 1, IF_B)
+
+for opbyte in range(0xf0, 0x100):
+    main_table[opbyte] = (False, 'mov', p_i8_Rd, 1, IF_B)
 
 subtable_01 = {}
 subtable_01[0x1] = None #FIXME:
