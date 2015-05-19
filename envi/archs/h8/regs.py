@@ -87,6 +87,7 @@ def metaFrom8(regidx):
     idx |= (width << 16)
     idx |= (offset << 24)
 
+    print "metaFrom8: %x" % idx
     return idx
 
 def metaFrom16(regidx):
@@ -98,6 +99,7 @@ def metaFrom16(regidx):
     idx |= (width << 16)
     idx |= (offset << 24)
 
+    print "metaFrom16: %x" % idx
     return idx
 
 converters = ( 
@@ -111,6 +113,7 @@ converters = (
 def convertMeta(regidx, tsize):
     print "convertMeta: 0x%x, %d" % (regidx, tsize)
     converter = converters[tsize]
+    print "  converter: %s" % repr(converter)
     if converter == None:
         return regidx
     return converter(regidx)

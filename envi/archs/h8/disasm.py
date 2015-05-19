@@ -233,9 +233,8 @@ class H8RegDirOper(envi.RegisterOper, H8Operand):
         mcanv.addNameText(name, name=rname, typename="registers")
 
     def repr(self, op):
-        #name = self._dis_regctx.getRegisterName(self.reg)
-        rname = self._dis_regctx.getRegisterName(self.reg&RMETA_NMASK)
-        return rname
+        name = self._dis_regctx.getRegisterName(self.reg)
+        return name
 
 class H8RegIndirOper(envi.DerefOper, H8Operand):
     '''
@@ -523,11 +522,12 @@ class H8Disasm:
             print opcode, nmnem, olist, flags, isize, decoder
             if nmnem != None:
                 mnem = nmnem
+            iflags |= flags
 
         else:
             raise envi.InvalidInstruction(mesg='Failed to find subtable or decoder', bytez=bytez[startoff:startoff+16], va=va)
 
-        op = H8Opcode(va, opcode, mnem, None, isize, olist, flags)
+        op = H8Opcode(va, opcode, mnem, None, isize, olist, iflags)
         if op.opers != None:
             # following the nasty little hack from other modules.  "everybody's doing it!"
             for oper in op.opers:
