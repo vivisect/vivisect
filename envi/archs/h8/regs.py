@@ -78,6 +78,43 @@ H8Meta = tuple([
     ('r7l', REG_ER7, 0, 8),
 ])
 
+def metaFrom8(regidx):
+    width = 8
+    extended = regidx >> 3
+    offset = (width, 0)[extended]
+    
+    idx = regidx & 0x7
+    idx |= (width << 16)
+    idx |= (offset << 24)
+
+    return idx
+
+def metaFrom16(regidx):
+    width = 16
+    extended = regidx >> 3
+    offset = (0, width)[extended]
+    
+    idx = regidx & 0x7
+    idx |= (width << 16)
+    idx |= (offset << 24)
+
+    return idx
+
+converters = ( 
+        None,
+        metaFrom8,
+        metaFrom16,
+        None,
+        None,
+        )
+
+def convertMeta(regidx, tsize):
+    print "convertMeta: 0x%x, %d" % (regidx, tsize)
+    converter = converters[tsize]
+    if converter == None:
+        return regidx
+    return converter(regidx)
+
 class H8RegisterContext(e_reg.RegisterContext):
     def __init__(self):
         e_reg.RegisterContext.__init__(self)

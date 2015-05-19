@@ -78,12 +78,12 @@ main_table[0x7d] = (True, None, None, 0,0)
 main_table[0x7e] = (True, None, None, 0,0)
 main_table[0x7f] = (True, None, None, 0,0)
 
-main_table[0x02] = (False, 'stc', p_CCR_Rd, 0, 0)
-main_table[0x03] = (False, 'ldc', p_Rs_CCR, 0, 0)
-main_table[0x04] = (False, 'orc', p_i8_CCR, 0, 0)
-main_table[0x05] = (False, 'xorc', p_i8_CCR, 0, 0)
-main_table[0x06] = (False, 'andc', p_i8_CCR, 0, 0)
-main_table[0x07] = (False, 'ldc', p_i8_CCR, 0, 0)
+main_table[0x02] = (False, 'stc', p_CCR_Rd, 1, 0)
+main_table[0x03] = (False, 'ldc', p_Rs_CCR, 1, 0)
+main_table[0x04] = (False, 'orc', p_i8_CCR, 1, 0)
+main_table[0x05] = (False, 'xorc', p_i8_CCR, 1, 0)
+main_table[0x06] = (False, 'andc', p_i8_CCR, 1, 0)
+main_table[0x07] = (False, 'ldc', p_i8_CCR, 1, 0)
 main_table[0x08] = (False, 'add', p_Rs_Rd, 1, IF_B)
 main_table[0x09] = (False, 'add', p_Rs_Rd, 2, IF_W)
 main_table[0x0c] = (False, 'mov', p_Rs_Rd, 1, IF_B)
@@ -108,34 +108,39 @@ for opbyte in range(0x30, 0x40):
 
 # generate Bcc opcodes
 for opbyte in range(16):
-    main_table[0x40 + opbyte] = (False, bcc[opbyte], p_disp8, 0, 0)
+    main_table[0x40 + opbyte] = (False, bcc[opbyte], p_disp8, 1, 0)
 
 main_table[0x50] = (False, 'mulxu', p_Rs_Rd, 1, IF_B)
 main_table[0x51] = (False, 'divxu', p_Rs_Rd, 1, IF_B)
 main_table[0x52] = (False, 'mulxu', p_Rs_ERd, 2, IF_W)
 main_table[0x53] = (False, 'divxu', p_Rs_ERd, 2, IF_W)
+
 main_table[0x54] = (False, 'rts', None, 0, 0)   # 5470
 main_table[0x55] = (False, 'bsr', p_disp8, 0, 0)
 main_table[0x56] = (False, 'rte', None, 0, 0)   # 5670
 main_table[0x57] = (False, 'trapa', p_i2, 0, 0)
-main_table[0x58] = (False, 'error', p_disp16, 0, 0) # p_BccDoubles, 0, 0)
+main_table[0x58] = (False, 'error', p_disp16, 2, 0) # p_BccDoubles, 0, 0)
 main_table[0x59] = (False, 'jmp', p_aERn, 0, 0)
 main_table[0x5a] = (False, 'jmp', p_aAA24, 0, 0)
-main_table[0x5b] = (False, 'jmp', p_aaAA8, 3, 0)
+main_table[0x5b] = (False, 'jmp', p_aaAA8, 0, 0)
 main_table[0x5c] = (False, 'bsr', p_disp16, 0, 0)
 main_table[0x5d] = (False, 'jsr', p_aERn, 0, 0)
 main_table[0x5e] = (False, 'jsr', p_aAA24, 0, 0)
 main_table[0x5f] = (False, 'jsr', p_aaAA8, 0, 0)
 
 # all bit instructions are B. may set 0->1
-main_table[0x60] = (False, 'bset', p_Rn_Rd, 0, 0)   
-main_table[0x70] = (False, 'bset', p_i3_Rd, 0, 0)
-main_table[0x61] = (False, 'bnot', p_Rn_Rd, 0, 0)
-main_table[0x71] = (False, 'bnot', p_i3_Rd, 0, 0)
-main_table[0x62] = (False, 'bclr', p_Rn_Rd, 0, 0)
-main_table[0x72] = (False, 'bclr', p_i3_Rd, 0, 0)
-main_table[0x63] = (False, 'btst', p_Rn_Rd, 0, 0)
-main_table[0x73] = (False, 'btst', p_i3_Rd, 0, 0)
+main_table[0x60] = (False, 'bset', p_Rn_Rd, 1, 0)   
+main_table[0x70] = (False, 'bset', p_i3_Rd, 1, 0)
+main_table[0x61] = (False, 'bnot', p_Rn_Rd, 1, 0)
+main_table[0x71] = (False, 'bnot', p_i3_Rd, 1, 0)
+main_table[0x62] = (False, 'bclr', p_Rn_Rd, 1, 0)
+main_table[0x72] = (False, 'bclr', p_i3_Rd, 1, 0)
+main_table[0x63] = (False, 'btst', p_Rn_Rd, 1, 0)
+main_table[0x73] = (False, 'btst', p_i3_Rd, 1, 0)
+
+main_table[0x64] = (False, 'or', p_Rs_Rd, 1, IF_W)
+main_table[0x65] = (False, 'xor', p_Rs_Rd, 1, IF_W)
+main_table[0x66] = (False, 'and', p_Rs_Rd, 1, IF_W)
 
 main_table[0x67] = (False, 'bitdoubles', p_Bit_Doubles, 0, 0)
 
@@ -149,22 +154,20 @@ main_table[0x6e] = (False, 'mov', p_aERs_Rd, 1, IF_B)
 main_table[0x6f] = (False, 'mov', p_aERs_Rd, 1, IF_B)
 
 for opbyte in range(0x74, 0x78):
-    main_table[opbyte] = (False, 'bitdoubles', p_Bit_Doubles, 0, 0)
+    main_table[opbyte] = (False, 'bitdoubles', p_Bit_Doubles, 1, 0)
 
-main_table[0x74] = (False, 'bxor/bixor', None, 0, 0)
-main_table[0x65] = (False, 'band/biand', None, 0, 0)
-main_table[0x75] = (False, 'bld/bild', None, 0, 0)
-
-main_table[0x78] = (False, 'mov', p_Mov_78, 0, 0)
-main_table[0x79] = (False, 'mov', p_79, 0, 0)
-main_table[0x7a] = (False, 'mov', p_7a, 0, 0)
+main_table[0x78] = (False, 'mov', p_Mov_78, 1, 0)
+main_table[0x79] = (False, 'p79', p_79, 2, 0)
+main_table[0x7a] = (False, 'p7a', p_7a, 4, 0)
 main_table[0x7b] = (False, 'epmov', p_eepmov, 0, 0)
-main_table[0x7c] = (False, '7Cmnem', p_7c, 0, 0)
-main_table[0x7d] = (False, '7Dmnem', p_7d, 0, 0)
-main_table[0x7e] = (False, '7Emnem', p_7e, 0, 0)
-main_table[0x7f] = (False, '7Fmnem', p_7f, 0, 0)
+main_table[0x7c] = (False, '7Cmnem', p_7c, 1, 0)
+main_table[0x7d] = (False, '7Dmnem', p_7d, 1, 0)
+main_table[0x7e] = (False, '7Emnem', p_7e, 1, 0)
+main_table[0x7f] = (False, '7Fmnem', p_7f, 1, 0)
 
 
+#for opbyte in range(0x80, 0x90):
+#    main_table[opbyte] = (False, 'add', p_80, 1, 0)
 
 subtable_01 = {}
 subtable_01[0x1] = None #FIXME:

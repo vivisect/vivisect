@@ -191,15 +191,18 @@ class H8RegDirOper(envi.RegisterOper, H8Operand):
     Register direct [Rn]
     '''
 
-    def __init__(self, reg, va=0, oflags=0):
+    def __init__(self, reg, tsize=4, va=0, oflags=0):
         self.va = va
-        self.reg = reg
+        self.reg = convertMeta(reg, tsize)
+        self.tsize = tsize
         self.oflags = oflags
 
     def __eq__(self, oper):
         if not isinstance(oper, self.__class__):
             return False
         if self.reg != oper.reg:
+            return False
+        if self.tsize != oper.tsize:
             return False
         if self.oflags != oper.oflags:
             return False
