@@ -9,6 +9,13 @@ from envi.bits import binary
 from const import *
 from envi.archs.h8.regs import *
 
+# TODO: IF_NOFALL
+# TODO: IF_BRANCH check
+# TODO: IF_CALL check
+# TODO: IF_RET check
+# TODO: IF_COND check
+# TODO: IF_REPEAT check
+
 '''
 mov b/w/l
 movfpe b
@@ -113,10 +120,10 @@ class H8Opcode(envi.Opcode):
         mnem = self.mnem
         if self.iflags & IF_B:
             mnem += '.b'
-        elif self.iflags & IF_H:
-            mnem += '.h'
         elif self.iflags & IF_W:
             mnem += '.w'
+        elif self.iflags & IF_L:
+            mnem += '.l'
 
         mcanv.addNameText(mnem, typename="mnemonic")
         mcanv.addText(" ")
@@ -134,10 +141,10 @@ class H8Opcode(envi.Opcode):
         mnem = self.mnem
         if self.iflags & IF_B:
             mnem += '.b'
-        elif self.iflags & IF_H:
-            mnem += '.h'
         elif self.iflags & IF_W:
             mnem += '.w'
+        elif self.iflags & IF_L:
+            mnem += '.l'
         
         x = []
         for o in self.opers:
@@ -507,12 +514,6 @@ class H8Disasm:
 
         subtable, mnem, decoder, tsize, iflags = opdata
         cond = 0 # FIXME: what?
-        # FIXME: IF_NOFALL
-        # FIXME: IF_BRANCH check
-        # FIXME: IF_CALL check
-        # FIXME: IF_RET check
-        # FIXME: IF_COND check
-        # FIXME: IF_REPEAT check
 
         if subtable:
             raise Exception("WHAT ARE WE DOING HERE.  NEED subtable at 0x%x:  %s" % (va, bytez[offset:offset+16]))

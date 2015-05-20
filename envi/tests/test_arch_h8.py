@@ -9,9 +9,13 @@ import platform
 import unittest
 
 instrs = [
-        ( "8342", 0x4560, 'add #42, r3h'),
+        ( "8342", 0x4560, 'add.b #42, r3h'),
         ( "7c6075f0", 0x4560, 'bixor #7, @er6'),
         ( "7d707170", 0x4560, 'bnot #7, @er7'),
+        ( "0832", 0x4560, 'add.b r3h, r2h'),
+        ( "791d4745", 0x4560, 'add.w #4745, e5'),
+        ( "0932", 0x4560, 'add.w r3, r2'),
+
         ]
 
 class H8InstrTest(unittest.TestCase):

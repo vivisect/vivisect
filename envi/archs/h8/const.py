@@ -7,8 +7,8 @@ REG_FLAGS = 9
 
 # opcode flags
 IF_B    = 1
-IF_H    = 2
-IF_W    = 4
+IF_W    = 2
+IF_L    = 4
 
 
 # operand flags

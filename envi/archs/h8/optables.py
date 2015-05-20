@@ -157,8 +157,8 @@ for opbyte in range(0x74, 0x78):
     main_table[opbyte] = (False, 'bitdoubles', p_Bit_Doubles, 1, 0)
 
 main_table[0x78] = (False, 'mov', p_Mov_78, 1, 0)
-main_table[0x79] = (False, 'p79', p_79, 2, 0)
-main_table[0x7a] = (False, 'p7a', p_7a, 4, 0)
+main_table[0x79] = (False, 'p79', p_79, 2, IF_W)
+main_table[0x7a] = (False, 'p7a', p_7a, 4, IF_L)
 main_table[0x7b] = (False, 'epmov', p_eepmov, 0, 0)
 main_table[0x7c] = (False, '7Cmnem', p_7c, 1, 0)
 main_table[0x7d] = (False, '7Dmnem', p_7d, 1, 0)
