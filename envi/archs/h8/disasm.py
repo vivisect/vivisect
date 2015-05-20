@@ -247,7 +247,7 @@ class H8RegIndirOper(envi.DerefOper, H8Operand):
     Register indirect with post-increment or pre-decrement [@ERn+ or @-ERn]
     '''
 
-    def __init__(self, reg, va, tsize, disp=0, oflags=0):
+    def __init__(self, reg, tsize, va, disp=0, oflags=0):
         self.va = va
         self.reg = reg
         self.disp = disp
@@ -528,6 +528,7 @@ class H8Disasm:
             raise envi.InvalidInstruction(mesg='Failed to find subtable or decoder', bytez=bytez[startoff:startoff+16], va=va)
 
         op = H8Opcode(va, opcode, mnem, None, isize, olist, iflags)
+
         if op.opers != None:
             # following the nasty little hack from other modules.  "everybody's doing it!"
             for oper in op.opers:
