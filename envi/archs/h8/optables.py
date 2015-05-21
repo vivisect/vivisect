@@ -59,7 +59,7 @@ bcc = [
 # table: ( subtable, mnem, decoder, tsize, iflags)
 main_table = [(None, 'DECODE_ERROR',0,0,0) for x in range(256)]
 main_table[0x0] = (False, 'nop', None, 0,0)
-main_table[0x1] = (True, None, None, 0,0)
+main_table[0x1] = (False, None, p_01, 0,0)
 main_table[0xa] = (True, None, None, 0,0)
 main_table[0xb] = (True, None, None, 0,0)
 main_table[0xf] = (True, None, None, 0,0)

@@ -516,7 +516,7 @@ class H8Disasm:
         cond = 0 # FIXME: what?
 
         if subtable:
-            raise Exception("WHAT ARE WE DOING HERE.  NEED subtable at 0x%x:  %s" % (va, bytez[offset:offset+16]))
+            raise Exception("WHAT ARE WE DOING HERE.  NEED subtable at 0x%x:  %s" % (va, bytez[offset:offset+16].encode('hex')))
 
         elif decoder != None:
             opcode, nmnem, olist, flags, isize = decoder(va, opval, bytez, offset, tsize)

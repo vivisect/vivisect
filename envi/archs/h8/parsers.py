@@ -1,7 +1,7 @@
 import struct
 
 from disasm import H8ImmOper, H8RegDirOper, H8RegIndirOper, H8AbsAddrOper
-from regs import metaFrom8, metaFrom16
+from regs import *
 from const import *
 
 def p_CCR_Rd(va, val, buf, off, tsize):
@@ -156,7 +156,7 @@ def p_i32_ERd(va, val, buf, off, tsize):
 
     opers = (
             H8ImmOper(i32),
-            H8RegIndirOper(ERd, tsize, va, 0),
+            H8RegDirOper(ERd, tsize, va, 0),
             )
     return (op, None, opers, iflags, 6)
 
@@ -573,6 +573,216 @@ def p_Bit_Doubles(va, val, buf, off, tsize):
             )
     return (op, mnem, opers, iflags, 2)
 
+
+def p_01(va, val, buf, off, tsize):
+    val2, = struct.unpack('>H', buf[off+2: off+4])
+    mnem = None
+    iflags = 0
+    isz = 4
+    op = (val << 9) | (val2 >> 7)
+
+    diff = (val>>4) & 0xf
+
+    if diff == 0:
+        mnem = 'mov'
+
+        # all 0100#### opcodes share these:
+        tsize = 4
+        iflags |= IF_L
+
+        d2 = val2>>8
+
+        # mov   0100##... where ## is basically another mov encoding with different register sizes
+        if d2 == 0x69:
+            if val2 & 0x80:
+                erd = (val2>>4) & 7
+                ers = val2 & 7
+                opers = (
+                        H8RegDirOper(ers, tsize, va),
+                        H8RegIndirOper(erd, tsize, va),
+                        )
+
+        elif d2 == 0x6b:
+            if val2 & 0x20:
+                isz = 8
+                val3, = struct.unpack(">I", buf[off+4:off+8])
+                if val2 & 0x80:
+                    # a
+                    erd = val2 & 7
+                    aa  = val3 & 0xfff
+                    opers = (
+                            H8RegDirOper(erd, tsize, va),
+                            H8AbsAddrOper(aa),
+                            )
+                else:
+                    # 2
+                    ers = val2 & 7
+                    aa  = val3 & 0xfff
+                    opers = (
+                            H8AbsAddrOper(aa),
+                            H8RegDirOper(ers, tsize, va),
+                            )
+            else:
+                val3, = struct.unpack(">H", buf[off+4:off+6])
+                isz = 6
+                if val2 & 0x80:
+                    # 8
+                    erd = val2 & 7
+                    aa  = val3 & 0xff
+                    opers = (
+                            H8RegDirOper(erd, tsize, va),
+                            H8AbsAddrOper(aa),
+                            )
+                else:
+                    # 0
+                    ers = val2 & 7
+                    aa  = val3 & 0xff
+                    opers = (
+                            H8AbsAddrOper(aa),
+                            H8RegDirOper(ers, tsize, va),
+                            )
+
+        elif d2 == 0x6d:    # TODO: test me!!
+            er0 = val2 & 7
+            er1 = (val2>>4) & 7
+
+            if val2 & 0x80:
+                # mov ERs, @-ERd
+                if val2 & 0xf0 == 0xf0:
+                    # push
+                    mnem = 'push'
+                    opers = (
+                            H8RegDirOper(er0, tsize, va),
+                            )
+                else:   
+                    # mov 
+                    opers = (
+                            H8RegDirOper(er0, tsize, va),
+                            H8RegIndirOper(er1, tsize, va, 0, OF_PREDEC),
+                            )
+            else:
+                # mov @ERs+,ERd
+                if val2 & 0xf0 == 0x70:
+                    # pop
+                    mnem = 'pop'
+                    opers = (
+                            H8RegDirOper(er0, tsize, va),
+                            )
+                else:
+                    # mov
+                    opers = (
+                            H8RegIndirOper(er1, tsize, va, 0, OF_POSTINC),
+                            H8RegDirOper(er0, tsize, va),
+                            )
+
+            ############### CONTINUE HERE ##################
+        elif d2 == 0x6f:
+            disp, = struct.unpack('>H', buf[off+4:off+6])
+            isz = 6
+            er0 = val2 & 7
+            er1 = (val2>>4) & 7
+            if val2 & 0x80:
+                # mov.l ERs, @(d:16,ERd)
+                opers = (
+                        H8RegDirOper(er1, tsize, va),
+                        H8RegIndirOper(er0, tsize, va, disp),
+                        )
+            else:
+                # mov.l @(d:16,ERs), ERd
+                opers = (
+                        H8RegIndirOper(er1, tsize, va, disp),
+                        H8RegDirOper(er0, tsize, va),
+                        )
+
+        elif d2 == 0x78:
+            val3, disp = struct.unpack(">HI", buf[off+4:off+10])
+            if val3 & 0xff20 != 0x6b2: raise envi.InvalidInstruction(bytez=bytez[off:startoff+16], va=va)
+
+            er0 = val3 & 7
+            er1 = (val2>>4) & 7
+            if (val3 & 0x80):
+                # mov.l ERs, @(d:24,ERd)
+                opers = (
+                        H8RegDirOper(er0, tsize, va),
+                        H8RegIndirOper(er1, tsize, va, disp),
+                        )
+
+            else:
+                # mov.l @(d:24,ERs), ERd
+                opers = (
+                        H8RegIndirOper(er1, tsize, va, disp),
+                        H8RegDirOper(er0, tsize, va),
+                        )
+
+    elif diff == 4:
+        # ldc/stc
+        # we'll build it for ldc, and reverse it if it's stc
+        d2 = val2>>8
+        isStc = (val2>>7) & 1
+        oflags = 0
+        tsize = 2
+
+        if d2 in (0x69, 0x6d):    #@ERs,CCR / @ERs+,CCR
+            if d2 == 0x6d:
+                oflags = OF_POSTINC
+            ers = (val2>>4) & 0x7
+            opers = (
+                    H8RegIndirOper(ers, tsize, va, oflags=oflags),
+                    H8RegDirOper(REG_CCR, 4, va)
+                    )
+
+        elif d2 in (0x6f, 0x78):  #@(d:16,ERs),CCR / @(d:24,ERs)
+            if d2 == 0x78:
+                val3, disp = struct.unpack('>HI', buf[off+4:off+10])
+                isStc = (val3>>7) & 1
+                isz = 10
+            else:
+                disp, = struct.unpack('>H', buf[off+4:off+6])
+                isz = 6
+            ers = (val2>>4) & 0x7
+            opers = (
+                    H8RegIndirOper(ers, tsize, va, disp),
+                    H8RegDirOper(REG_CCR, 4, va)
+                    )
+
+        elif d2 == 0x6b:    #@aa:16,CCR / @aa:24,CCR
+            if val2 & 0x20:
+                aa, = struct.unpack(">I", buf[off+4:off+8])
+                isz = 8
+            else:
+                aa, = struct.unpack(">H", buf[off+4:off+6])
+                isz = 6
+            isStc = (val2>>7) & 1
+            opers = (
+                    H8AbsAddrOper(aa),
+                    H8RegDirOper(REG_CCR, 4, va)
+                    )
+
+        # after all the decisions...
+        mnem = ('ldc','stc')[isStc]
+        if isStc:
+            opers = opers[::-1]
+
+    elif diff == 8:
+        # sleep
+        op = 0x0180
+        mnem = 'sleep'
+        opers = tuple()
+
+    elif diff == 0xc:
+        # table 2.6
+        pass
+
+    elif diff == 0xd:
+        # table 2.6
+        pass
+
+    elif diff == 0xf:
+        # table 2.6
+        pass
+
+    return (op, mnem, opers, iflags, isz)
+
 def p_Mov_6A(va, val, buf, off, tsize):
     op = val >> 4
     if op & 0x8:
@@ -639,14 +849,14 @@ mnem_79a = (
         )
 
 def p_79(va, val, buf, off, tsize):
-    op, m, opers, iflags, osz = p_i16_Rd(va, val, buf, off, tsize)
+    op, m, opers, iflags, isz = p_i16_Rd(va, val, buf, off, tsize)
     mnem = mnem_79a[(val>>4)&0xf]
-    return op, mnem, opers, iflags, osz
+    return op, mnem, opers, iflags, isz
 
 def p_7a(va, val, buf, off, tsize):
-    op, m, opers, iflags, osz = p_i32_ERd(va, val, buf, off, tsize)
+    op, m, opers, iflags, isz = p_i32_ERd(va, val, buf, off, tsize)
     mnem = mnem_79a[(val>>4)&0xf]
-    return op, mnem, opers, iflags, osz
+    return op, mnem, opers, iflags, isz
 
 def p_eepmov(va, val, buf, off, tsize):
     val2, = struct.unpack('>H', buf[off+2: off+4])
