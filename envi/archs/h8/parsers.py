@@ -1,9 +1,29 @@
 import envi
+import envi.bits as e_bits
 import struct
 
-from disasm import H8ImmOper, H8RegDirOper, H8RegIndirOper, H8AbsAddrOper
+from disasm import H8ImmOper, H8RegDirOper, H8RegIndirOper, H8AbsAddrOper, H8PcOffsetOper
 from regs import *
 from const import *
+
+bcc = [
+        ('bt' ),
+        ('bf' ),
+        ('bhi' ),
+        ('bls' ),
+        ('bhs' ),
+        ('blo' ),
+        ('bne' ),
+        ('beq' ),
+        ('bvc' ),
+        ('bvs' ),
+        ('bpl' ),
+        ('bmi' ),
+        ('bge' ),
+        ('blt' ),
+        ('bgt' ),
+        ('ble' ),
+    ]
 
 def p_CCR_Rd(va, val, buf, off, tsize):
     # stc
@@ -361,98 +381,12 @@ def p_aaAA8(va, val, buf, off, tsize):
             H8MemIndirOper(aaAA8),
             )
     return (op, None, opers, iflags, 2)
-'''
-def p_1_Rd(va, val, buf, off, tsize):  
-    # dec.w, inc.w
-    iflags = 0
-    op = val >> 4
-    Rd = val & 0xf
-
-    opers = (
-            H8ImmOper(1),
-            H8RegDirOper(Rd, tsize, va, 0),
-            )
-    return (op, None, opers, iflags, 2)
-
-def p_2_Rd(va, val, buf, off, tsize):  
-    # dec.w, inc.w
-    iflags = 0
-    op = val >> 4
-    Rd = val & 0xf
-
-    opers = (
-            H8ImmOper(2),
-            H8RegDirOper(Rd, tsize, va, 0),
-            )
-    return (op, None, opers, iflags, 2)
-
-def p_4_Rd(va, val, buf, off, tsize):  
-    # dec.w
-    iflags = 0
-    op = val >> 4
-    Rd = val & 0xf
-
-    opers = (
-            H8ImmOper(4),
-            H8RegDirOper(Rd, tsize, va, 0),
-            )
-    return (op, None, opers, iflags, 2)
-
-def p_n_ERd(va, val, buf, off, tsize):
-    diff = (0,0,0,0,0,0,0,1,2)[(val>>4)&0xf]
-    iflags = IF_L
-    imm = (1,2,4)
-    op = val >> 3
-    ERd = val & 0x7
-
-    opers = (
-            H8ImmOper(imm),
-            H8RegDirOper(ERd, tsize, va, 0),
-            )
-    return (op, None, opers, iflags, 2)
-
-def p_1_ERd(va, val, buf, off, tsize):  
-    # adds, dec.l, inc.l
-    iflags = 0
-    op = val >> 3
-    ERd = val & 0x7
-
-    opers = (
-            H8ImmOper(1),
-            H8RegDirOper(ERd, tsize, va, 0),
-            )
-    return (op, None, opers, iflags, 2)
-
-def p_2_ERd(va, val, buf, off, tsize):  
-    # adds, dec.l, inc.l
-    iflags = 0
-    op = val >> 3
-    ERd = val & 0x7
-
-    opers = (
-            H8ImmOper(1),
-            H8RegDirOper(ERd, tsize, va, 0),
-            )
-    return (op, None, opers, iflags, 2)
-
-def p_4_ERd(va, val, buf, off, tsize):  
-    # adds, dec.l
-    iflags = 0
-    op = val >> 3
-    ERd = val & 0x7
-
-    opers = (
-            H8ImmOper(1),
-            H8RegDirOper(ERd, tsize, va, 0),
-            )
-    return (op, None, opers, iflags, 2)
-'''
 
 def p_disp8(va, val, buf, off, tsize):  
     # bcc, bsr
     iflags = 0
     op = val >> 8
-    disp8 = val & 0xff
+    disp8 = e_bits.signed(val & 0xff, 1)
 
     opers = (
             H8PcOffsetOper(disp8, va),
@@ -465,7 +399,7 @@ def p_disp16(va, val, buf, off, tsize):
 
     iflags = 0
     op = val
-    disp16 = val2
+    disp16 = e_bits.signed(val2, 2)
     
     mnem = None
     if (op & 0x800):
@@ -475,7 +409,7 @@ def p_disp16(va, val, buf, off, tsize):
     opers = (
             H8PcOffsetOper(disp16, va),
             )
-    return (op, None, opers, iflags, 4)
+    return (op, mnem, opers, iflags, 4)
 
 def p_Rs_aAA16(va, val, buf, off, tsize):
     val2, = struct.unpack('>H', buf[off+2: off+4])

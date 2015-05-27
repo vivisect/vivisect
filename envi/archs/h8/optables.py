@@ -39,25 +39,6 @@ eDII    and.b #xx:8, Rd             2 states
 4CDS    bcc d:8             4 states
 58C0DISP    bcc d:16        6 states
 '''
-bcc = [
-        ('bt', ),
-        ('bf', ),
-        ('bhi', ),
-        ('bls', ),
-        ('bhs', ),
-        ('blo', ),
-        ('bne', ),
-        ('beq', ),
-        ('bvc', ),
-        ('bvs', ),
-        ('bpl', ),
-        ('bmi', ),
-        ('bge', ),
-        ('blt', ),
-        ('bgt', ),
-        ('ble', ),
-    ]
-
 # table: ( subtable, mnem, decoder, tsize, iflags)
 main_table = [(None, 'DECODE_ERROR',0,0,0) for x in range(256)]
 main_table[0x0] = (False, 'nop', None, 0,0)
