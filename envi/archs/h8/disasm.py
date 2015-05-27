@@ -84,7 +84,14 @@ Eight addressing modes
     Memory indirect [@@aa:8]
 
 '''
+def addrToName(mcanv, va):
+    sym = mcanv.syms.getSymByAddr(va)
+    if sym != None:
+        return repr(sym)
+    return "0x%.8x" % va
+
 class H8Opcode(envi.Opcode):
+    _def_arch = envi.ARCH_H8
     def __hash__(self):
         return int(hash(self.mnem) ^ (self.size << 4))
 
@@ -362,7 +369,8 @@ class H8AbsAddrOper(H8Operand):
 
     def render(self, mcanv, op, idx):
         mcanv.addText('@')
-        mcanv.addNameText('%x'%self.aa, name=self.aa, typename='address')
+        aa = '%x' % self.aa
+        mcanv.addNameText(aa, aa, typename='address')
 
     def repr(self, op):
         return '@%x' % self.aa
@@ -468,7 +476,7 @@ class H8PcOffsetOper(H8Operand):
         return False
 
     def getOperValue(self, op, emu=None):
-        return self.va + self.val
+        return len(op) + self.va + self.val
 
     def render(self, mcanv, op, idx):
         value = self.getOperValue(op)
@@ -486,7 +494,8 @@ class H8PcOffsetOper(H8Operand):
 
 from optables import main_table
 class H8Disasm:
-    fmt = None
+    fmt = ">H"
+
     def __init__(self):
         self._dis_regctx = H8RegisterContext()
         self._dis_oparch = envi.ARCH_H8

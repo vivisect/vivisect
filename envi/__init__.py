@@ -1176,6 +1176,7 @@ def getArchModules(default=ARCH_DEFAULT):
     import envi.archs.amd64 as e_amd64
     import envi.archs.thumb16 as e_thumb16
     import envi.archs.msp430 as e_msp430
+    import envi.archs.h8 as e_h8
 
     archs = [ None, ]
 
@@ -1186,6 +1187,7 @@ def getArchModules(default=ARCH_DEFAULT):
     archs.append( e_thumb16.Thumb16Module() )
     archs.append( e_thumb16.Thumb2Module() )
     archs.append( e_msp430.Msp430Module() )
+    archs.append( e_h8.H8Module() )
 
     # Set the default module ( or None )
     archs[ ARCH_DEFAULT ] = archs[ default >> 16 ]

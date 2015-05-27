@@ -85,7 +85,8 @@ for opbyte in range(0x30, 0x40):
 
 # generate Bcc opcodes
 for opbyte in range(16):
-    main_table[0x40 + opbyte] = (False, bcc[opbyte], p_disp8, 1, IF_BRANCH | IF_COND)
+    mnem, iflags = bcc[opbyte]
+    main_table[0x40 + opbyte] = (False, mnem, p_disp8, 1, iflags)
 
 main_table[0x50] = (False, 'mulxu', p_Rs_Rd, 1, IF_B)
 main_table[0x51] = (False, 'divxu', p_Rs_Rd, 1, IF_B)

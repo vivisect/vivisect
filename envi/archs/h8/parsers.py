@@ -7,22 +7,22 @@ from regs import *
 from const import *
 
 bcc = [
-        ('bt' ),
-        ('bf' ),
-        ('bhi' ),
-        ('bls' ),
-        ('bhs' ),
-        ('blo' ),
-        ('bne' ),
-        ('beq' ),
-        ('bvc' ),
-        ('bvs' ),
-        ('bpl' ),
-        ('bmi' ),
-        ('bge' ),
-        ('blt' ),
-        ('bgt' ),
-        ('ble' ),
+        ('bt', envi.IF_NOFALL | envi.IF_BRANCH),
+        ('bf',  envi.IF_BRANCH | envi.IF_COND),
+        ('bhi', envi.IF_BRANCH | envi.IF_COND),
+        ('bls', envi.IF_BRANCH | envi.IF_COND),
+        ('bhs', envi.IF_BRANCH | envi.IF_COND),
+        ('blo', envi.IF_BRANCH | envi.IF_COND),
+        ('bne', envi.IF_BRANCH | envi.IF_COND),
+        ('beq', envi.IF_BRANCH | envi.IF_COND),
+        ('bvc', envi.IF_BRANCH | envi.IF_COND),
+        ('bvs', envi.IF_BRANCH | envi.IF_COND),
+        ('bpl', envi.IF_BRANCH | envi.IF_COND),
+        ('bmi', envi.IF_BRANCH | envi.IF_COND),
+        ('bge', envi.IF_BRANCH | envi.IF_COND),
+        ('blt', envi.IF_BRANCH | envi.IF_COND),
+        ('bgt', envi.IF_BRANCH | envi.IF_COND),
+        ('ble', envi.IF_BRANCH | envi.IF_COND),
     ]
 
 def p_CCR_Rd(va, val, buf, off, tsize):
@@ -51,11 +51,11 @@ def p_aAA8_Rd(va, val, buf, off, tsize):
     # mov 0x2###
     iflags = 0
     op = val>>12
-    Rd = convertMeta((val >> 8) & 0xf, tsize)
+    Rd = (val >> 8) & 0xf
     aAA8 = val & 0xf
 
     opers = (
-            H8RegDirOper(Rn, tsize, va, 0),
+            H8RegDirOper(Rd, tsize, va, 0),
             H8AbsAddrOper(aAA8),
             )
     return (op, None, opers, iflags, 2)
@@ -64,12 +64,12 @@ def p_Rs_aAA8(va, val, buf, off, tsize):
     # mov 0x3###
     iflags = 0
     op = val>>12
-    Rs = convertMeta((val >> 8) & 0xf, tsize)
+    Rs = (val >> 8) & 0xf
     aAA8 = val & 0xf
 
     opers = (
             H8AbsAddrOper(aAA8),
-            H8RegDirOper(Rn, tsize, va, 0),
+            H8RegDirOper(Rs, tsize, va, 0),
             )
     return (op, None, opers, iflags, 2)
 
@@ -89,7 +89,7 @@ def p_i3_Rd(va, val, buf, off, tsize):
     iflags = 0
     op = val >> 7
     i3 = (val >> 4) & 0x7
-    Rd = convertMeta(val & 0xf, tsize)
+    Rd = val & 0xf
 
     opers = (
             H8ImmOper(i3),
@@ -402,9 +402,9 @@ def p_disp16(va, val, buf, off, tsize):
     disp16 = e_bits.signed(val2, 2)
     
     mnem = None
-    if (op & 0x800):
+    if (op & 0xf00 == 0x800):
         opnibble = (val>>4) & 0xf
-        mnem = bcc[opnibble]
+        mnem, iflags = bcc[opnibble]
 
     opers = (
             H8PcOffsetOper(disp16, va),
@@ -480,9 +480,8 @@ def _p_BccDoubles(va, vak, buf, off, tsize):
     disp, = struct.unpack('>H', buf[off+2: off+4])
     op = val
 
-    iflags = 0
     opnibble = (val>>4) & 0xf
-    mnem = bcc[opnibble]
+    mnem, iflags = bcc[opnibble]
 
     opers = (
             H8PcOffsetOper(),

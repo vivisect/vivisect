@@ -27,7 +27,7 @@ class H8Module(envi.ArchitectureModule):
 
     def archGetNopInstr(self):
         return '\x00'
- 
+
     def getPointerSize(self):
         return 2
 
