@@ -814,14 +814,16 @@ def p_01(va, val, buf, off, tsize):
 
     return (op, mnem, opers, iflags, isz)
 
-def p_0a(va, val, buf, off, tsize):
+def p_0a_1a(va, val, buf, off, tsize):
+
+    diff = (val >> 12)
     if val & 0xf0 == 0:
-        mnem = 'inc'
+        mnem = ('inc', 'dec')[diff]
         op, nmnem, opers, iflags, isz = p_Rd(va, val, buf, off, tsize=1)
         iflags = IF_B
 
     elif val & 0xf0 >= 0x80:
-        mnem = 'add'
+        mnem = ('add', 'sub')[diff]
         op, nmnem, opers, iflags, isz = p_ERs_ERd(va, val, buf, off, tsize=4)
 
     else:
@@ -849,12 +851,31 @@ data_0b = (
         (4, IF_L, 2, 'inc'),
         )
 
-def p_0b(va, val, buf, off, tsize):
+data_1b = (
+        (4, 0, 1, 'subs'),
+        None,
+        None,
+        None,
+        None,
+        (2, IF_W, 1, 'dec'),
+        None,
+        (4, IF_L, 1, 'dec'),
+        (4, 0, 2, 'subs'),
+        (4, 0, 4, 'subs'),
+        None,
+        None,
+        None,
+        (2, IF_W, 2, 'dec'),
+        None,
+        (4, IF_L, 2, 'dec'),
+        )
 
+def p_0b_1b(va, val, buf, off, tsize):
+    table = (data_0b, data_1b)[val>>12]
     diff = (val>>4)&0xf
-    tsize, iflags, imm, mnem = data_0b[diff]
+    tsize, iflags, imm, mnem = table[diff]
 
-    op = val >> 3
+    op = val >> 4
     ERd = val & 0xf
 
     opers = (
@@ -863,21 +884,62 @@ def p_0b(va, val, buf, off, tsize):
             )
     return (op, mnem, opers, iflags, 2)
 
-def p_0f(va, val, buf, off, tsize):
+def p_0f_1f(va, val, buf, off, tsize):
+    aors = val >> 12
     diff = val & 0xf0
     if diff == 0:
-        op = 0x0f0
-        mnem = 'daa'
+        op = val >> 4
+        mnem = ('daa', 'das')[aors]
         iflags = 0
         rd = val & 0xf
         opers = (
                 H8RegDirOper(rd, 1, va=va, oflags=0),
                 )
     elif diff >= 0x80:
-        mnem = 'mov'
+        mnem = ('mov', 'cmp')[aors]
         op, nmnem, opers, iflags, isz = p_ERs_ERd(va, val, buf, off, tsize)
     else:
         raise envi.InvalidInstruction(bytez=buf[off:off+16], va=va)
+
+    return (op, mnem, opers, iflags, 2)
+
+
+shift_info = []
+for name in ('shll','shal','shal','shar','rotxl','rotl','rotxr','rotr'):
+    shift_info.append( (name, 1) )
+    shift_info.append( (name, 2) )
+    shift_info.append( None )
+    shift_info.append( (name, 4) )
+    shift_info.append( None )
+    shift_info.append( None )
+    shift_info.append( None )
+    shift_info.append( None )
+
+for nothing in range(0x14, 0x17):
+    for xnothing in range(16):
+        shift_info.append(None)
+
+for name1,name2 in (('not','extu'), ('neg', 'exts')):
+    shift_info.append( (name1, 1) )
+    shift_info.append( (name1, 2) )
+    shift_info.append( None )
+    shift_info.append( (name1, 4) )
+    shift_info.append( None )
+    shift_info.append( (name2, 2) )
+    shift_info.append( None )
+    shift_info.append( (name2, 4) )
+
+def p_shift_10_11_12_13_17(va, val, buf, off, tsize):
+    op = val >> 4
+
+    mnem, osz = shift_info[(val>>4)&0xff]
+    iflags = OSZ_FLAGS[osz]
+    
+    # if 32bit (ERd), top bit should always be 0 anyway
+    rd = val & 0xf
+    opers = (
+        H8RegDirOper(rd, osz, va, 0),
+        )
 
     return (op, mnem, opers, iflags, 2)
 

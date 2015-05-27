@@ -1,4 +1,6 @@
 from parsers import *
+from envi import *
+
 '''
 
 
@@ -60,17 +62,17 @@ bcc = [
 main_table = [(None, 'DECODE_ERROR',0,0,0) for x in range(256)]
 main_table[0x0] = (False, 'nop', None, 0,0)
 main_table[0x1] = (False, None, p_01, 0,0)
-main_table[0xa] = (False, None, p_0a, 0,0)
-main_table[0xb] = (False, None, p_0b, 0,0)
-main_table[0xf] = (False, None, p_0f, 0,0)
-main_table[0x10] = (True, None, None, 0,0)
-main_table[0x11] = (True, None, None, 0,0)
-main_table[0x12] = (True, None, None, 0,0)
-main_table[0x13] = (True, None, None, 0,0)
-main_table[0x17] = (True, None, None, 0,0)
-main_table[0x1a] = (True, None, None, 0,0)
-main_table[0x1b] = (True, None, None, 0,0)
-main_table[0x1f] = (True, None, None, 0,0)
+main_table[0xa] = (False, None, p_0a_1a, 0,0)
+main_table[0xb] = (False, None, p_0b_1b, 0,0)
+main_table[0xf] = (False, None, p_0f_1f, 0,0)
+main_table[0x10] = (False, None, p_shift_10_11_12_13_17, 0,0)
+main_table[0x11] = (False, None, p_shift_10_11_12_13_17, 0,0)
+main_table[0x12] = (False, None, p_shift_10_11_12_13_17, 0,0)
+main_table[0x13] = (False, None, p_shift_10_11_12_13_17, 0,0)
+main_table[0x17] = (False, None, p_shift_10_11_12_13_17, 0,0)
+main_table[0x1a] = (False, None, p_0a_1a, 0,0)
+main_table[0x1b] = (False, None, p_0b_1b, 0,0)
+main_table[0x1f] = (False, None, p_0f_1f, 0,0)
 
 main_table[0x02] = (False, 'stc', p_CCR_Rd, 1, 0)
 main_table[0x03] = (False, 'ldc', p_Rs_CCR, 1, 0)
@@ -110,17 +112,17 @@ main_table[0x52] = (False, 'mulxu', p_Rs_ERd, 2, IF_W)
 main_table[0x53] = (False, 'divxu', p_Rs_ERd, 2, IF_W)
 
 main_table[0x54] = (False, 'rts', None, 0, 0)   # 5470
-main_table[0x55] = (False, 'bsr', p_disp8, 0, 0)
+main_table[0x55] = (False, 'bsr', p_disp8, 0, IF_CALL)
 main_table[0x56] = (False, 'rte', None, 0, 0)   # 5670
 main_table[0x57] = (False, 'trapa', p_i2, 0, 0)
 main_table[0x58] = (False, 'error', p_disp16, 2, 0) # p_BccDoubles, 0, 0)
-main_table[0x59] = (False, 'jmp', p_aERn, 0, 0)
-main_table[0x5a] = (False, 'jmp', p_aAA24, 0, 0)
-main_table[0x5b] = (False, 'jmp', p_aaAA8, 0, 0)
-main_table[0x5c] = (False, 'bsr', p_disp16, 0, 0)
-main_table[0x5d] = (False, 'jsr', p_aERn, 0, 0)
-main_table[0x5e] = (False, 'jsr', p_aAA24, 0, 0)
-main_table[0x5f] = (False, 'jsr', p_aaAA8, 0, 0)
+main_table[0x59] = (False, 'jmp', p_aERn, 0, IF_BRANCH | IF_NOFALL)
+main_table[0x5a] = (False, 'jmp', p_aAA24, 0, IF_BRANCH | IF_NOFALL)
+main_table[0x5b] = (False, 'jmp', p_aaAA8, 0, IF_BRANCH | IF_NOFALL)
+main_table[0x5c] = (False, 'bsr', p_disp16, 0, IF_CALL)
+main_table[0x5d] = (False, 'jsr', p_aERn, 0, IF_CALL)
+main_table[0x5e] = (False, 'jsr', p_aAA24, 0, IF_CALL)
+main_table[0x5f] = (False, 'jsr', p_aaAA8, 0, IF_CALL)
 
 # all bit instructions are B. may set 0->1
 main_table[0x60] = (False, 'bset', p_Rn_Rd, 1, 0)   

@@ -520,7 +520,7 @@ class H8Disasm:
 
         elif decoder != None:
             opcode, nmnem, olist, flags, isize = decoder(va, opval, bytez, offset, tsize)
-            print opcode, nmnem, olist, flags, isize, decoder
+            #print opcode, nmnem, olist, flags, isize, decoder
             if nmnem != None:
                 mnem = nmnem
             iflags |= flags
