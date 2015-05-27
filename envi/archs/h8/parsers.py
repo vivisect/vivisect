@@ -1,3 +1,4 @@
+import envi
 import struct
 
 from disasm import H8ImmOper, H8RegDirOper, H8RegIndirOper, H8AbsAddrOper
@@ -185,16 +186,19 @@ def p_Rs_Rd(va, val, buf, off, tsize):
     return (op, None, opers, iflags, 2)
 
 def p_Rs_Rd_4b(va, val, buf, off, tsize):  
-    # divxs.b
+    # divxs.b, mulxs.b
     val2, = struct.unpack('>H', buf[off+2: off+4])
-    iflags = 0
+    oszbit = (val2 >> 9) & 1
+    iflags = (IF_B, IF_W)[oszbit]
+    stsize, dtsize = ((1,2),(2,4))[oszbit]
+
     op = (val << 8) | (val2 >> 8)
     Rs = (val2 >> 4) & 0xf
     Rd = val2 & 0xf
 
     opers = (
-            H8RegDirOper(Rs, tsize, va, 0),
-            H8RegDirOper(Rd, tsize, va, 0),
+            H8RegDirOper(Rs, stsize, va, 0),
+            H8RegDirOper(Rd, dtsize, va, 0),
             )
     return (op, None, opers, iflags, 4)
 
@@ -216,12 +220,12 @@ def p_Rs_ERd(va, val, buf, off, tsize):
 def p_ERs_ERd(va, val, buf, off, tsize):  
     # add.l, cmp.l
     iflags = 0
-    op = ((val >> 7)&0xfffe) | (val&1)
+    op = ((val >> 6)&0xfffe) | ((val >> 3)&1) # first byte, and bits 3 and 7 of second byte
     ERs = (val >> 4) & 0x7
     ERd = val & 0x7
 
     opers = (
-            H8RegDirOper(Rs, tsize, va, 0),
+            H8RegDirOper(ERs, tsize, va, 0),
             H8RegDirOper(ERd, tsize, va, 0),
             )
     return (op, None, opers, iflags, 2)
@@ -252,7 +256,7 @@ def p_ERd(va, val, buf, off, tsize):
             )
     return (op, None, opers, iflags, 2)
 
-def p_ERs_ERd_4b(va, val, buf, off, tsize):  
+def p_ERs_ERd_4b_unused(va, val, buf, off, tsize):  
     # and.l, or.l
     val2, = struct.unpack('>H', buf[off+2: off+4])
 
@@ -357,7 +361,7 @@ def p_aaAA8(va, val, buf, off, tsize):
             H8MemIndirOper(aaAA8),
             )
     return (op, None, opers, iflags, 2)
-
+'''
 def p_1_Rd(va, val, buf, off, tsize):  
     # dec.w, inc.w
     iflags = 0
@@ -391,6 +395,19 @@ def p_4_Rd(va, val, buf, off, tsize):
     opers = (
             H8ImmOper(4),
             H8RegDirOper(Rd, tsize, va, 0),
+            )
+    return (op, None, opers, iflags, 2)
+
+def p_n_ERd(va, val, buf, off, tsize):
+    diff = (0,0,0,0,0,0,0,1,2)[(val>>4)&0xf]
+    iflags = IF_L
+    imm = (1,2,4)
+    op = val >> 3
+    ERd = val & 0x7
+
+    opers = (
+            H8ImmOper(imm),
+            H8RegDirOper(ERd, tsize, va, 0),
             )
     return (op, None, opers, iflags, 2)
 
@@ -429,6 +446,7 @@ def p_4_ERd(va, val, buf, off, tsize):
             H8RegDirOper(ERd, tsize, va, 0),
             )
     return (op, None, opers, iflags, 2)
+'''
 
 def p_disp8(va, val, buf, off, tsize):  
     # bcc, bsr
@@ -675,7 +693,6 @@ def p_01(va, val, buf, off, tsize):
                             H8RegDirOper(er0, tsize, va),
                             )
 
-            ############### CONTINUE HERE ##################
         elif d2 == 0x6f:
             disp, = struct.unpack('>H', buf[off+4:off+6])
             isz = 6
@@ -696,7 +713,7 @@ def p_01(va, val, buf, off, tsize):
 
         elif d2 == 0x78:
             val3, disp = struct.unpack(">HI", buf[off+4:off+10])
-            if val3 & 0xff20 != 0x6b2: raise envi.InvalidInstruction(bytez=bytez[off:startoff+16], va=va)
+            if val3 & 0xff20 != 0x6b2: raise envi.InvalidInstruction(bytez=buf[off:off+16], va=va)
 
             er0 = val3 & 7
             er1 = (val2>>4) & 7
@@ -770,18 +787,85 @@ def p_01(va, val, buf, off, tsize):
         opers = tuple()
 
     elif diff == 0xc:
-        # table 2.6
-        pass
+        if val2 & 0xfd00 == 0x5000:
+            # mulxs
+            mnem = 'mulxs'
+            op, nmnem, opers, iflags, isz =  p_Rs_Rd_4b(va, val, buf, off, tsize=1)
+        else:
+            raise envi.InvalidInstruction(bytez=buf[off:off+16], va=va)
 
     elif diff == 0xd:
-        # table 2.6
-        pass
+        if val2 & 0xfd00 == 0x5100:
+            mnem = 'divxs'
+            # divxs
+            op, nmnem, opers, iflags, isz =  p_Rs_Rd_4b(va, val, buf, off, tsize)
+        else:
+            raise envi.InvalidInstruction(bytez=buf[off:off+16], va=va)
 
     elif diff == 0xf:
-        # table 2.6
-        pass
+        if val2 & 0xfc00 == 0x6400:
+            # or/xor/and
+            #op, nmnem, opers, iflags, isz = p_ERs_ERd_4b(va, val, buf, off, tsize=4)
+            nop, nmnem, opers, iflags, isz = p_ERs_ERd(va, val2, buf, off, tsize=4)
+            op = (val << 8) | (val2 >> 8)
+            mnembits = (val2 >> 8) & 3
+            mnem = ('or', 'xor', 'and')[mnembits]
+            iflags = IF_L
+        else:
+            raise envi.InvalidInstruction(bytez=buf[off:off+16], va=va)
 
     return (op, mnem, opers, iflags, isz)
+
+def p_0a(va, val, buf, off, tsize):
+    if val & 0xf0 == 0:
+        mnem = 'inc'
+        op, nmnem, opers, iflags, isz = p_Rd(va, val, buf, off, tsize=1)
+        iflags = IF_B
+
+    elif val & 0xf0 >= 0x80:
+        mnem = 'add'
+        op, nmnem, opers, iflags, isz = p_ERs_ERd(va, val, buf, off, tsize=4)
+        iflags = IF_L
+
+    else:
+        raise envi.InvalidInstruction(bytez=buf[off:off+16], va=va)
+
+    return (op, mnem, opers, iflags, isz)
+
+
+data_0b = (
+        (4, IF_L, 1, 'adds'),
+        None,
+        None,
+        None,
+        None,
+        (2, IF_W, 1, 'inc'),
+        None,
+        (4, IF_L, 1, 'inc'),
+        (4, IF_L, 2, 'adds'),
+        (4, IF_L, 4, 'adds'),
+        None,
+        None,
+        None,
+        (2, IF_W, 2, 'inc'),
+        None,
+        (4, IF_L, 2, 'inc'),
+        )
+
+def p_0b(va, val, buf, off, tsize):
+
+    diff = (val>>4)&0xf
+    tsize, iflags, imm, mnem = data_0b[diff]
+
+    ############### CONTINUE HERE ##################
+    op = val >> 3
+    ERd = val & 0xf
+
+    opers = (
+            H8ImmOper(imm),
+            H8RegDirOper(ERd, tsize, va, 0),
+            )
+    return (op, mnem, opers, iflags, 2)
 
 def p_Mov_6A(va, val, buf, off, tsize):
     op = val >> 4
