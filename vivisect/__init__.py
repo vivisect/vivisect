@@ -722,7 +722,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
                     offset += loctup[L_SIZE]
                     continue
 
-                x = e_bits.parsebytes(bytes, offset, size)
+                x = e_bits.parsebytes(bytes, offset, size, bigend=self.bigend)
                 if self.isValidPointer(x):
                     ret.append((va, x))
                     offset += size
@@ -953,7 +953,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
                         offset, bytes = self.getByteDef(ref)
 
-                        val = e_bits.parsebytes(bytes, offset, o.tsize)
+                        val = self.parseNumber(ref, o.tsize)
 
                         if (self.psize == o.tsize and self.isValidPointer(val)):
                             self.makePointer(ref, tova=val)
@@ -1508,7 +1508,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         than parse memory.
         """
         offset, bytes = self.getByteDef(va)
-        return e_bits.parsebytes(bytes, offset, self.psize)
+        return e_bits.parsebytes(bytes, offset, self.psize, bigend=self.bigend)
 
     def makePointer(self, va, tova=None, follow=True):
         """
@@ -1520,8 +1520,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
         # Get and document the xrefs created for the new location
         if tova == None:
-            offset, bytes = self.getByteDef(va)
-            tova = e_bits.parsebytes(bytes, offset, psize)
+            tova = self.castPointer(va)
 
         self.addXref(va, tova, REF_PTR)
 
@@ -1555,7 +1554,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             val = vw.parseNumber(0x41414140, 4)
         '''
         offset, bytes = self.getByteDef(va)
-        return e_bits.parsebytes(bytes, offset, size)
+        return e_bits.parsebytes(bytes, offset, size, bigend=self.bigend)
 
     def makeString(self, va, size=None):
         """
