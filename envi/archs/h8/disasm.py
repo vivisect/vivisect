@@ -9,13 +9,6 @@ from envi.bits import binary
 from const import *
 from envi.archs.h8.regs import *
 
-# TODO: IF_NOFALL
-# TODO: IF_BRANCH check
-# TODO: IF_CALL check
-# TODO: IF_RET check
-# TODO: IF_COND check
-# TODO: IF_REPEAT check
-
 '''
 mov b/w/l
 movfpe b
@@ -510,10 +503,9 @@ class H8Disasm:
         opdata = main_table[prim]
 
         if opdata == None:
-            raise envi.InvalidInstruction(bytez=bytez[startoff:startoff+16], va=va)
+            raise envi.InvalidInstruction(bytez=bytez[offset:offset+16], va=va)
 
         subtable, mnem, decoder, tsize, iflags = opdata
-        cond = 0 # FIXME: what?
 
         if subtable:
             raise Exception("WHAT ARE WE DOING HERE.  NEED subtable at 0x%x:  %s" % (va, bytez[offset:offset+16].encode('hex')))
@@ -526,7 +518,10 @@ class H8Disasm:
             iflags |= flags
 
         else:
-            raise envi.InvalidInstruction(mesg='Failed to find subtable or decoder', bytez=bytez[startoff:startoff+16], va=va)
+            opcode = opval
+            isize = 2
+            olist = tuple()
+            #raise envi.InvalidInstruction(mesg='Failed to find subtable or decoder', bytez=bytez[offset:offset+16], va=va)
 
         op = H8Opcode(va, opcode, mnem, None, isize, olist, iflags)
 

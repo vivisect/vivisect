@@ -6,9 +6,9 @@ REG_FLAGS = 9
 
 
 # opcode flags
-IF_B    = 1
-IF_W    = 2
-IF_L    = 4
+IF_B    = 0x100
+IF_W    = 0x200
+IF_L    = 0x400
 
 OSZ_FLAGS = (
         None,

@@ -104,19 +104,19 @@ for opbyte in range(0x30, 0x40):
 
 # generate Bcc opcodes
 for opbyte in range(16):
-    main_table[0x40 + opbyte] = (False, bcc[opbyte], p_disp8, 1, 0)
+    main_table[0x40 + opbyte] = (False, bcc[opbyte], p_disp8, 1, IF_BRANCH | IF_COND)
 
 main_table[0x50] = (False, 'mulxu', p_Rs_Rd, 1, IF_B)
 main_table[0x51] = (False, 'divxu', p_Rs_Rd, 1, IF_B)
 main_table[0x52] = (False, 'mulxu', p_Rs_ERd, 2, IF_W)
 main_table[0x53] = (False, 'divxu', p_Rs_ERd, 2, IF_W)
 
-main_table[0x54] = (False, 'rts', None, 0, 0)   # 5470
+main_table[0x54] = (False, 'rts', None, 0, IF_RET | IF_NOFALL)   # 5470
 main_table[0x55] = (False, 'bsr', p_disp8, 0, IF_CALL)
-main_table[0x56] = (False, 'rte', None, 0, 0)   # 5670
-main_table[0x57] = (False, 'trapa', p_i2, 0, 0)
-main_table[0x58] = (False, 'error', p_disp16, 2, 0) # p_BccDoubles, 0, 0)
-main_table[0x59] = (False, 'jmp', p_aERn, 0, IF_BRANCH | IF_NOFALL)
+main_table[0x56] = (False, 'rte', None, 0, IF_RET | IF_NOFALL)   # 5670
+main_table[0x57] = (False, 'trapa', p_i2, 0, IF_NOFALL)
+main_table[0x58] = (False, 'error', p_disp16, 2, IF_BRANCH | IF_COND) # p_BccDoubles, 0, 0)
+main_table[0x59] = (False, 'jmp', p_aERn,  0, IF_BRANCH | IF_NOFALL)
 main_table[0x5a] = (False, 'jmp', p_aAA24, 0, IF_BRANCH | IF_NOFALL)
 main_table[0x5b] = (False, 'jmp', p_aaAA8, 0, IF_BRANCH | IF_NOFALL)
 main_table[0x5c] = (False, 'bsr', p_disp16, 0, IF_CALL)
@@ -185,11 +185,4 @@ for opbyte in range(0xe0, 0xf0):
 
 for opbyte in range(0xf0, 0x100):
     main_table[opbyte] = (False, 'mov', p_i8_Rd, 1, IF_B)
-
-subtable_01 = {}
-subtable_01[0x1] = None #FIXME:
-
-subtable_02 = {}
-subtable_02
-
 
