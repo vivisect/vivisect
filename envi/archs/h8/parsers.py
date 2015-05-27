@@ -219,7 +219,7 @@ def p_Rs_ERd(va, val, buf, off, tsize):
 
 def p_ERs_ERd(va, val, buf, off, tsize):  
     # add.l, cmp.l
-    iflags = 0
+    iflags = IF_L
     op = ((val >> 6)&0xfffe) | ((val >> 3)&1) # first byte, and bits 3 and 7 of second byte
     ERs = (val >> 4) & 0x7
     ERd = val & 0x7
@@ -805,12 +805,10 @@ def p_01(va, val, buf, off, tsize):
     elif diff == 0xf:
         if val2 & 0xfc00 == 0x6400:
             # or/xor/and
-            #op, nmnem, opers, iflags, isz = p_ERs_ERd_4b(va, val, buf, off, tsize=4)
             nop, nmnem, opers, iflags, isz = p_ERs_ERd(va, val2, buf, off, tsize=4)
             op = (val << 8) | (val2 >> 8)
             mnembits = (val2 >> 8) & 3
             mnem = ('or', 'xor', 'and')[mnembits]
-            iflags = IF_L
         else:
             raise envi.InvalidInstruction(bytez=buf[off:off+16], va=va)
 
@@ -825,7 +823,6 @@ def p_0a(va, val, buf, off, tsize):
     elif val & 0xf0 >= 0x80:
         mnem = 'add'
         op, nmnem, opers, iflags, isz = p_ERs_ERd(va, val, buf, off, tsize=4)
-        iflags = IF_L
 
     else:
         raise envi.InvalidInstruction(bytez=buf[off:off+16], va=va)
@@ -834,7 +831,7 @@ def p_0a(va, val, buf, off, tsize):
 
 
 data_0b = (
-        (4, IF_L, 1, 'adds'),
+        (4, 0, 1, 'adds'),
         None,
         None,
         None,
@@ -842,8 +839,8 @@ data_0b = (
         (2, IF_W, 1, 'inc'),
         None,
         (4, IF_L, 1, 'inc'),
-        (4, IF_L, 2, 'adds'),
-        (4, IF_L, 4, 'adds'),
+        (4, 0, 2, 'adds'),
+        (4, 0, 4, 'adds'),
         None,
         None,
         None,
@@ -857,7 +854,6 @@ def p_0b(va, val, buf, off, tsize):
     diff = (val>>4)&0xf
     tsize, iflags, imm, mnem = data_0b[diff]
 
-    ############### CONTINUE HERE ##################
     op = val >> 3
     ERd = val & 0xf
 
@@ -865,6 +861,24 @@ def p_0b(va, val, buf, off, tsize):
             H8ImmOper(imm),
             H8RegDirOper(ERd, tsize, va, 0),
             )
+    return (op, mnem, opers, iflags, 2)
+
+def p_0f(va, val, buf, off, tsize):
+    diff = val & 0xf0
+    if diff == 0:
+        op = 0x0f0
+        mnem = 'daa'
+        iflags = 0
+        rd = val & 0xf
+        opers = (
+                H8RegDirOper(rd, 1, va=va, oflags=0),
+                )
+    elif diff >= 0x80:
+        mnem = 'mov'
+        op, nmnem, opers, iflags, isz = p_ERs_ERd(va, val, buf, off, tsize)
+    else:
+        raise envi.InvalidInstruction(bytez=buf[off:off+16], va=va)
+
     return (op, mnem, opers, iflags, 2)
 
 def p_Mov_6A(va, val, buf, off, tsize):
