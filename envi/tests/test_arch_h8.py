@@ -43,10 +43,10 @@ instrs = [
         ( "1bf3", 0x4560, 'dec.l #2, er3', IF_L),
         ( "1f00", 0x4560, 'das r0h', 0),
         ( "5470", 0x4560, 'rts', IF_RET | IF_NOFALL),
-        ( "4670", 0x4560, 'bne #45d0', IF_BRANCH | IF_COND),
-        ( "4e90", 0x4560, 'bgt #44f0', IF_BRANCH | IF_COND),
-        ( "58500070", 0x4560, 'blo #45d0', IF_BRANCH | IF_COND),
-        ( "58b0f070", 0x4560, 'bmi #35d0', IF_BRANCH | IF_COND),
+        ( "4670", 0x4560, 'bne #45d2', IF_BRANCH | IF_COND),
+        ( "4e90", 0x4560, 'bgt #44f2', IF_BRANCH | IF_COND),
+        ( "58500070", 0x4560, 'blo #45d4', IF_BRANCH | IF_COND),
+        ( "58b0f070", 0x4560, 'bmi #35d4', IF_BRANCH | IF_COND),
 
         ]
 

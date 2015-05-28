@@ -317,6 +317,32 @@ def p_aERs_Rd(va, val, buf, off, tsize):
             )
     return (op, None, opers, iflags, 4)
 
+def p_aERsp_Rd(va, val, buf, off, tsize):  
+    # mov 0x6c
+    iflags = OSZ_FLAGS[tsize]
+    op = (val >> 7)
+    aERs = (val >> 4) & 0x7
+    Rd = (val) & 0xf
+
+    opers = (
+            H8RegIndirOper(aERs, tsize, va, disp=0, oflags=OF_POSTINC),
+            H8RegDirOper(Rd, tsize, va, 0),
+            )
+    return (op, None, opers, iflags, 4)
+
+def p_Rs_aERdm(va, val, buf, off, tsize):  
+    # mov 0x6c
+    iflags = OSZ_FLAGS[tsize]
+    op = (val >> 7)
+    aERd = (val >> 4) & 0x7
+    Rs = (val) & 0xf
+
+    opers = (
+            H8RegDirOper(Rs, tsize, va, 0),
+            H8RegIndirOper(aERd, tsize, va, disp=0, oflags=OF_PREDEC),
+            )
+    return (op, None, opers, iflags, 4)
+
 def p_Rn_aERd(va, val, buf, off, tsize):  
     # bclr, bset, btst
     val2, = struct.unpack('>H', buf[off+2: off+4])
@@ -531,6 +557,7 @@ def p_01(va, val, buf, off, tsize):
     iflags = 0
     isz = 4
     op = (val << 9) | (val2 >> 7)
+    opers = None
 
     diff = (val>>4) & 0xf
 
@@ -895,11 +922,51 @@ def p_Mov_6C(va, val, buf, off, tsize):
     op = val >> 7
     if op & 0x1:
         # @ERs+, Rd
-        return p_Rs_aAA16(va, val, buf, off, tsize)
+        return p_aERsp_Rd(va, val, buf, off, tsize)
 
     else:
-        # @aa:16/24, Rd
-        return p_aAA16_Rd(va, val, buf, off, tsize)
+        # Rs, @ERd
+        return p_Rs_aERdm(va, val, buf, off, tsize)
+
+def p_6c_6d_0100(va, val, buf, off, tsize):
+    op = val >> 7
+    iflags = OSZ_FLAGS[tsize]
+    isz = 4
+    mnem = None
+
+    er0 = val & 7
+    er1 = (val>>4) & 7
+
+    if val & 0x80:
+        # mov ERs, @-ERd
+        if val & 0xf0 == 0xf0:
+            # push
+            mnem = 'push'
+            opers = (
+                    H8RegDirOper(er0, tsize, va),
+                    )
+        else:   
+            # mov 
+            opers = (
+                    H8RegDirOper(er0, tsize, va),
+                    H8RegIndirOper(er1, tsize, va, 0, OF_PREDEC),
+                    )
+    else:
+        # mov @ERs+,ERd
+        if val & 0xf0 == 0x70:
+            # pop
+            mnem = 'pop'
+            opers = (
+                    H8RegDirOper(er0, tsize, va),
+                    )
+        else:
+            # mov
+            opers = (
+                    H8RegIndirOper(er1, tsize, va, 0, OF_POSTINC),
+                    H8RegDirOper(er0, tsize, va),
+                    )
+    return (op, mnem, opers, iflags, isz)
+
 
 def p_Mov_78(va, val, buf, off, tsize):
     val2, val3_4 = struct.unpack(">HI", buf[off+2:off+8])

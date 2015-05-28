@@ -108,8 +108,32 @@ class H8Opcode(envi.Opcode):
         """
         ret = []
 
+        # FIXME: which do we use?  _def_arch?  or  & ARCH_MASK?
+        brflags = (self.iflags & envi.ARCH_MASK) | self._def_arch
+
+        # If we can fall through, reflect that...
         if not self.iflags & envi.IF_NOFALL:
-            ret.append((self.va + self.size, envi.BR_FALL | self._def_arch))
+            ret.append((self.va + self.size, brflags|envi.BR_FALL))
+
+        # In H8, if we have no operands, it has no
+        # further branches...
+        if len(self.opers) == 0:
+            return ret
+
+        if self.iflags & envi.IF_COND:
+            brflags |= envi.BR_COND
+
+        if self.iflags & envi.IF_BRANCH:
+            brflags |= envi.BR_PROC
+            if self.opers[0].isDeref():
+                brflags |= envi.BR_DEREF
+            ret.append((self.getOperValue(0), brflags))
+
+        elif self.iflags & envi.IF_CALL:
+            brflags |= envi.BR_PROC
+            if self.opers[0].isDeref():
+                brflags |= envi.BR_DEREF
+            ret.append((self.getOperValue(0), brflags))
 
         return ret
 
