@@ -80,6 +80,38 @@ class EnviConfig:
         '''
         return self.cfgdocs.get(optname)
 
+    def getConfigPaths(self, with_vals=False):
+        '''
+        Return a list of valid path strings
+        If "with_vals" is True, also include the current values
+        '''
+        paths = []
+        todo = [ ([], self) ]
+
+        while todo:
+            path, config = todo.pop()
+            
+            if config.keys():
+                pathstr = '.'.join(path) + "."
+                if with_vals:
+                    newpaths = [ "%s%s = %s" % (pathstr, key, config[key])  for key in config.keys()]
+                else:
+                    newpaths = [ pathstr + key for key in config.keys()]
+                paths.extend(newpaths)
+
+            subnames = config.getSubConfigNames()
+            if not len(subnames):
+                paths.append('.'.join(path))
+                continue
+
+            for subname in subnames:
+                newpath = path[:]
+                newpath.append(subname)
+                newconfig = config.getSubConfig(subname, add=False)
+                todo.append( (newpath, newconfig,) )
+
+        return paths
+
     def parseConfigOption(self, optstr):
         '''
         Parse a simple foo.bar.baz=<json> syntax string into
@@ -93,10 +125,16 @@ class EnviConfig:
         for opart in optparts[:-1]:
             config = config.getSubConfig(opart, add=False)
             if config == None:
+                print "Valid Config Paths:\n   ", 
+                print "\n    ".join(self.getConfigPaths(True))
+                print "\n"
                 raise Exception('Invalid Config Name: %s' % optpath)
 
         optname = optparts[-1]
         if not config.cfginfo.has_key(optname):
+            print "Valid Config Paths:\n   ", 
+            print "\n    ".join(self.getConfigPaths(True))
+            print "\n"
             raise Exception('Invalid Config Option: %s' % optname)
 
         # json madness
