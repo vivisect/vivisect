@@ -612,6 +612,8 @@ class H8Disasm:
             olist = tuple()
             #raise envi.InvalidInstruction(mesg='Failed to find subtable or decoder', bytez=bytez[offset:offset+16], va=va)
 
+        if olist == None:
+            raise envi.InvalidInstruction(mesg='Operand list cannot be None for instruction "%s"' % mnem, bytez=bytez[offset:offset+16], va=va)
         op = H8Opcode(va, opcode, mnem, None, isize, olist, iflags)
 
         if op.opers != None:

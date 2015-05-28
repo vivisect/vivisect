@@ -473,7 +473,7 @@ def p_nooperands(va, val, buf, off, tsize):
     iflags = 0
     op = val
 
-    opers = ()
+    opers = tuple()
     return (op, None, opers, iflags, 2)
 
 def _p_BccDoubles(va, vak, buf, off, tsize):
@@ -547,12 +547,17 @@ def p_01(va, val, buf, off, tsize):
 
         # mov   0100##... where ## is basically another mov encoding with different register sizes
         if d2 == 0x69:
+            erd = (val2>>4) & 7
+            ers = val2 & 7
             if val2 & 0x80:
-                erd = (val2>>4) & 7
-                ers = val2 & 7
                 opers = (
                         H8RegDirOper(ers, tsize, va),
                         H8RegIndirOper(erd, tsize, va),
+                        )
+            else:
+                opers = (
+                        H8RegIndirOper(erd, tsize, va),
+                        H8RegDirOper(ers, tsize, va),
                         )
 
         elif d2 == 0x6b:
