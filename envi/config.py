@@ -118,7 +118,7 @@ class EnviConfig:
         and optionally values.  Useful for printing helper data.
         '''
         out = [ "Valid Config Paths\n    " ]
-        out.append("\n    ".join(self.getConfigPaths(True)))
+        out.append("\n    ".join(self.getConfigPaths(with_vals)))
         out.append("\n")
         return ''.join(out)
 
