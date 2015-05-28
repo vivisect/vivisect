@@ -47,6 +47,15 @@ instrs = [
         ( "4e90", 0x4560, 'bgt #44f2', IF_BRANCH | IF_COND),
         ( "58500070", 0x4560, 'blo #45d4', IF_BRANCH | IF_COND),
         ( "58b0f070", 0x4560, 'bmi #35d4', IF_BRANCH | IF_COND),
+        ( "01006df2", 0x4560, 'push.l er2', IF_L),
+        ( "6dfa", 0x4560, 'push.w e2', IF_W),
+        ( "6df2", 0x4560, 'push.w r2', IF_W),
+        ( "6cda", 0x4560, 'mov.b r2l, @-er5', IF_B),
+        ( '01006df2', 0x4560, 'push.l er2', IF_L),
+        ( '6df2', 0x4560, 'push.w r2', IF_W),
+        ( '6de2', 0x4560, 'mov.w r2, @-er6', IF_W),
+        ( '6dda', 0x4560, 'mov.w e2, @-er5', IF_W),
+        ( '01006dd2', 0x4560, 'mov.l er2, @-er5', IF_L),
 
         ]
 
