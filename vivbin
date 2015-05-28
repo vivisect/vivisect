@@ -63,7 +63,10 @@ def main():
             verbose = True
 
         elif opt == "-O":
-            vw.config.parseConfigOption( optarg )
+            try:
+                vw.config.parseConfigOption( optarg )
+            except:
+                print vw.config.reprConfigPaths(True)
 
         elif opt == "-p":
             parsemod = optarg

@@ -112,6 +112,16 @@ class EnviConfig:
 
         return paths
 
+    def reprConfigPaths(self, with_vals=False):
+        '''
+        Returns a string representation of the configuration paths/options
+        and optionally values.  Useful for printing helper data.
+        '''
+        out = [ "Valid Config Paths\n    " ]
+        out.append("\n    ".join(self.getConfigPaths(True)))
+        out.append("\n")
+        return ''.join(out)
+
     def parseConfigOption(self, optstr):
         '''
         Parse a simple foo.bar.baz=<json> syntax string into
@@ -125,16 +135,10 @@ class EnviConfig:
         for opart in optparts[:-1]:
             config = config.getSubConfig(opart, add=False)
             if config == None:
-                print "Valid Config Paths:\n   ", 
-                print "\n    ".join(self.getConfigPaths(True))
-                print "\n"
                 raise Exception('Invalid Config Name: %s' % optpath)
 
         optname = optparts[-1]
         if not config.cfginfo.has_key(optname):
-            print "Valid Config Paths:\n   ", 
-            print "\n    ".join(self.getConfigPaths(True))
-            print "\n"
             raise Exception('Invalid Config Option: %s' % optname)
 
         # json madness
