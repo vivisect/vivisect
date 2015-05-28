@@ -9,9 +9,10 @@ h8_regs = (
     ('er4', 32),
     ('er5', 32),
     ('er6', 32),
-    ('er7', 32),
+    ('sp', 32),
     ('pc', 24),
     ('ccr', 8),
+    ('exr', 8),
 )
 
 
@@ -72,10 +73,11 @@ H8Meta = tuple([
     ('e6', REG_ER6, 16, 16),
     ('r6h', REG_ER6, 8, 8),
     ('r6l', REG_ER6, 0, 8),
-    ('r7', REG_ER7, 0, 16),
-    ('e7', REG_ER7, 16, 16),
-    ('r7h', REG_ER7, 8, 8),
-    ('r7l', REG_ER7, 0, 8),
+    ('r7', REG_SP, 0, 16),
+    ('e7', REG_SP, 16, 16),
+    ('r7h', REG_SP, 8, 8),
+    ('r7l', REG_SP, 0, 8),
+    ('er7', REG_SP, 0, 32),
 ])
 
 def metaFrom8(regidx):

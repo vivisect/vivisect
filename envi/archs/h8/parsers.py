@@ -2,7 +2,7 @@ import envi
 import envi.bits as e_bits
 import struct
 
-from disasm import H8ImmOper, H8RegDirOper, H8RegIndirOper, H8AbsAddrOper, H8PcOffsetOper
+from disasm import H8ImmOper, H8RegDirOper, H8RegIndirOper, H8AbsAddrOper, H8PcOffsetOper, H8RegMultiOper
 from regs import *
 from const import *
 
@@ -135,6 +135,7 @@ def p_i8_CCR(va, val, buf, off, tsize):
 
     opers = (
             H8ImmOper(i8),
+            H8RegDirOper(REG_CCR),
             )
     return (op, None, opers, iflags, 2)
 
@@ -636,6 +637,32 @@ def p_01(va, val, buf, off, tsize):
                         H8RegIndirOper(er1, tsize, va, disp),
                         H8RegDirOper(er0, tsize, va),
                         )
+
+    elif diff in (1, 2, 3):
+        # ldm/stm (ERn-ERn+diff), @-SP
+        iflags = IF_L
+
+        tsize = 4
+        optest = val2 & 0xfff8
+        rn = val2 & 0x7
+
+        if optest == 0x6df0:
+            mnem = 'stm'
+            opers = (
+                    H8RegMultiOper(rn, diff+1),
+                    H8RegIndirOper(REG_SP, tsize, va, 0, OF_PREDEC),
+                    )
+
+        elif optest == 0x6d70:
+            mnem = 'ldm'
+            opers = (
+                    H8RegIndirOper(REG_SP, tsize, va, 0, OF_POSTINC),
+                    H8RegMultiOper(rn, diff+1),
+                    )
+
+        else:
+            raise envi.InvalidInstruction(bytez=buf[off:off+16], va=va)
+
 
     elif diff == 4:
         # ldc/stc

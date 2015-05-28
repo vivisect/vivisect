@@ -367,6 +367,59 @@ class H8RegIndirOper(envi.DerefOper, H8Operand):
             out.append(')')
         return ''.join(out)
 
+class H8RegMultiOper(H8Operand):
+    '''
+    Multiple Registers used by STM/LDM
+    rn = upper register
+    count = number of registers (2, 3, or 4)
+    '''
+    def __init__(self, basereg, count):
+        self.count = count
+        self.basereg = basereg
+
+    def __eq__(self, oper):
+        if not isinstance(oper, self.__class__):
+            return False
+        if self.basereg != oper.basereg:
+            return False
+        if self.count != oper.count:
+            return False
+        return True
+
+    def involvesPC(self):
+        return False
+
+    def isDeref(self):
+        return False
+
+    def getOperValue(self, op, emu=None):
+        return None
+
+    def render(self, mcanv, op, idx):
+        basereg = self.basereg & RMETA_NMASK
+        mcanv.addText('(')
+        rname = self._dis_regctx.getRegisterName(self.basereg)
+        mcanv.addNameText(rname, name=rname, typename="registers")
+        for x in range(1,self.count):
+            mcanv.addText(', ')
+            rname = self._dis_regctx.getRegisterName(self.basereg + x)
+            mcanv.addNameText(rname, name=rname, typename="registers")
+        mcanv.addText(')')
+
+    def repr(self, op):
+        basereg = self.basereg & RMETA_NMASK
+        out = [ '(' ]
+
+        rname = self._dis_regctx.getRegisterName(self.basereg)
+        out.append(rname)
+        for x in range(1,self.count):
+            out.append(', ')
+            rname = self._dis_regctx.getRegisterName(self.basereg + x)
+            out.append(rname)
+        out.append(')')
+        return ''.join(out)
+
+
 class H8AbsAddrOper(H8Operand):
     '''
     Absolute address [@aa:8, @aa:16, or @aa:24]
