@@ -80,7 +80,7 @@ def p_i2(va, val, buf, off, tsize):
     i2 = (val >> 4) & 0x3
 
     opers = (
-            H8ImmOper(i2),
+            H8ImmOper(i2, tsize),
             )
     return (op, None, opers, iflags, 2)
 
@@ -92,7 +92,7 @@ def p_i3_Rd(va, val, buf, off, tsize):
     Rd = val & 0xf
 
     opers = (
-            H8ImmOper(i3),
+            H8ImmOper(i3, tsize),
             H8RegDirOper(Rd, tsize, va, 0),
             )
     return (op, None, opers, iflags, 2)
@@ -107,7 +107,7 @@ def p_i3_aERd(va, val, buf, off, tsize):
     ERd = (val >> 4) & 0x7
 
     opers = (
-            H8ImmOper(i3),
+            H8ImmOper(i3, tsize),
             H8RegIndirOper(ERd, tsize, va, 0),
             )
     return (op, None, opers, iflags, 4)
@@ -122,7 +122,7 @@ def p_i3_aAA8(va, val, buf, off, tsize):
     aa = val & 0xff
 
     opers = (
-            H8ImmOper(i3),
+            H8ImmOper(i3, tsize),
             H8AbsAddrOper(aa),
             )
     return (op, None, opers, iflags, 4)
@@ -134,8 +134,8 @@ def p_i8_CCR(va, val, buf, off, tsize):
     i8 = val & 0xff
 
     opers = (
-            H8ImmOper(i8),
-            H8RegDirOper(REG_CCR),
+            H8ImmOper(i8, 1),
+            H8RegDirOper(REG_CCR, 4, 0),
             )
     return (op, None, opers, iflags, 2)
 
@@ -147,7 +147,7 @@ def p_i8_Rd(va, val, buf, off, tsize):
     Rd = (val >> 8) & 0xf
 
     opers = (
-            H8ImmOper(i8),
+            H8ImmOper(i8, 1),
             H8RegDirOper(Rd, tsize, va, 0),
             )
     return (op, None, opers, iflags, 2)
@@ -162,7 +162,7 @@ def p_i16_Rd(va, val, buf, off, tsize):
     Rd = val & 0xf
 
     opers = (
-            H8ImmOper(i16),
+            H8ImmOper(i16, 2),
             H8RegDirOper(Rd, tsize, va, 0),
             )
     return (op, None, opers, iflags, 4)
@@ -177,7 +177,7 @@ def p_i32_ERd(va, val, buf, off, tsize):
     ERd = val & 0x7
 
     opers = (
-            H8ImmOper(i32),
+            H8ImmOper(i32, 4),
             H8RegDirOper(ERd, tsize, va, 0),
             )
     return (op, None, opers, iflags, 6)
@@ -370,7 +370,7 @@ def p_aAA24(va, val, buf, off, tsize):
     opers = (
             H8AbsAddrOper(aAA24),
             )
-    return (op, None, opers, iflags, 2)
+    return (op, None, opers, iflags, 4)
 
 def p_aaAA8(va, val, buf, off, tsize):  
     # jmp, jsr
@@ -520,7 +520,7 @@ def p_Bit_Doubles(va, val, buf, off, tsize):
     Rd = val & 0xf
 
     opers = (
-            H8ImmOper(i3),
+            H8ImmOper(i3, tsize),
             H8RegDirOper(Rd, tsize, va, 0),
             )
     return (op, mnem, opers, iflags, 2)
@@ -812,7 +812,7 @@ def p_0b_1b(va, val, buf, off, tsize):
     ERd = val & 0xf
 
     opers = (
-            H8ImmOper(imm),
+            H8ImmOper(imm, tsize),
             H8RegDirOper(ERd, tsize, va, 0),
             )
     return (op, mnem, opers, iflags, 2)
@@ -839,40 +839,46 @@ def p_0f_1f(va, val, buf, off, tsize):
 
 shift_info = []
 for name in ('shll','shal','shal','shar','rotxl','rotl','rotxr','rotr'):
-    shift_info.append( (name, 1) )
-    shift_info.append( (name, 2) )
+    shift_info.append( (name, 1, 0) )
+    shift_info.append( (name, 2, 0) )
     shift_info.append( None )
-    shift_info.append( (name, 4) )
+    shift_info.append( (name, 4, 0) )
+    shift_info.append( (name, 1, 2) )
+    shift_info.append( (name, 2, 2) )
     shift_info.append( None )
-    shift_info.append( None )
-    shift_info.append( None )
-    shift_info.append( None )
+    shift_info.append( (name, 4, 2) )
 
 for nothing in range(0x14, 0x17):
     for xnothing in range(16):
         shift_info.append(None)
 
 for name1,name2 in (('not','extu'), ('neg', 'exts')):
-    shift_info.append( (name1, 1) )
-    shift_info.append( (name1, 2) )
+    shift_info.append( (name1, 1, 0) )
+    shift_info.append( (name1, 2, 0) )
     shift_info.append( None )
-    shift_info.append( (name1, 4) )
+    shift_info.append( (name1, 4, 0) )
     shift_info.append( None )
-    shift_info.append( (name2, 2) )
+    shift_info.append( (name2, 2, 0) )
     shift_info.append( None )
-    shift_info.append( (name2, 4) )
+    shift_info.append( (name2, 4, 0) )
 
 def p_shift_10_11_12_13_17(va, val, buf, off, tsize):
     op = val >> 4
 
-    mnem, osz = shift_info[(val>>4)&0xff]
+    mnem, osz, xtra = shift_info[(val>>4)&0xff]
     iflags = OSZ_FLAGS[osz]
     
     # if 32bit (ERd), top bit should always be 0 anyway
     rd = val & 0xf
-    opers = (
-        H8RegDirOper(rd, osz, va, 0),
-        )
+    if xtra:
+        opers = (
+                H8ImmOper(xtra, osz),
+                H8RegDirOper(rd, osz, va, 0),
+                )
+    else:
+        opers = (
+            H8RegDirOper(rd, osz, va, 0),
+            )
 
     return (op, mnem, opers, iflags, 2)
 
@@ -1015,7 +1021,7 @@ def p_7c(va, val, buf, off, tsize):
         erd = (val>>4) & 0x7
         imm = (val2>>4) & 0x7
         opers = (
-                H8ImmOper(imm),
+                H8ImmOper(imm, tsize),
                 H8RegIndirOper(erd, tsize, va),
                 )
 
@@ -1025,7 +1031,7 @@ def p_7c(va, val, buf, off, tsize):
         erd = (val >>4) & 0x7
 
         opers = (
-                H8ImmOper(i3),
+                H8ImmOper(i3, tsize),
                 H8RegIndirOper(erd, tsize, va, 0),
                 )
     
@@ -1061,7 +1067,7 @@ def p_7d(va, val, buf, off, tsize):
     erd = (val>>4) & 0x7
     imm = (val2>>4) & 0x7
     opers = (
-            H8ImmOper(imm),
+            H8ImmOper(imm, tsize),
             H8RegIndirOper(erd, tsize, va)
             )
 
@@ -1092,16 +1098,17 @@ def p_7e(va, val, buf, off, tsize):
         mnem = 'btst'
         i3 = (val2>>4) & 0x7
         opers = (
-                H8ImmOper(i3, tsize=tsize),
+                H8ImmOper(i3, tsize),
                 H8AbsAddrOper(aa, tsize=tsize),
                 )
 
     elif 0x78 > telltale > 0x73:
         # other bit-halves:
+        tsize = 1
         i3 = (val2>>4) & 0x7
 
         opers = (
-                H8ImmOper(i3),
+                H8ImmOper(i3, tsize),
                 H8AbsAddrOper(aa, tsize=tsize),
                 )
     
@@ -1117,7 +1124,7 @@ def p_7f(va, val, buf, off, tsize):
     erd = (val>>4) & 0x7
     imm = (val2>>4) & 0x7
     opers = (
-            H8ImmOper(imm),
+            H8ImmOper(imm, tsize),
             H8RegIndirOper(erd, tsize, va)
             )
 

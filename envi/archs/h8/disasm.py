@@ -424,14 +424,16 @@ class H8AbsAddrOper(H8Operand):
     '''
     Absolute address [@aa:8, @aa:16, or @aa:24]
     '''
-    def __init__(self, aa):
+    def __init__(self, aa, tsize=1):
         self.aa = aa
+        self.tsize = tsize
 
     def __eq__(self, oper):
-        ''' unfixed '''
         if not isinstance(oper, self.__class__):
             return False
         if self.aa != oper.aa:
+            return False
+        if self.tsize != oper.tsize:
             return False
         return True
 
@@ -456,8 +458,9 @@ class H8ImmOper(envi.ImmedOper, H8Operand):
     '''
     Immediate [#xx:8, #xx:16, or #xx:32]
     '''
-    def __init__(self, val):
+    def __init__(self, val, tsize, oflags=0):
         self.val = val
+        self.oflags = oflags
 
     def __eq__(self, oper):
         if not isinstance(oper, self.__class__):

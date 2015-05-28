@@ -13,7 +13,7 @@ from envi.archs.h8.const import *
 instrs = [
         ( "8342", 0x4560, 'add.b #42, r3h', IF_B),
         ( "7c6075f0", 0x4560, 'bixor #7, @er6', 0),
-        ( "7d707170", 0x4560, 'bnot #7, @er7', 0),
+        ( "7d507170", 0x4560, 'bnot #7, @er5', 0),
         ( "0832", 0x4560, 'add.b r3h, r2h', IF_B),
         ( "791d4745", 0x4560, 'add.w #4745, e5', IF_W),
         ( "0932", 0x4560, 'add.w r3, r2', IF_W),
