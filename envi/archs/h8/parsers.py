@@ -867,7 +867,7 @@ def p_Mov_6A(va, val, buf, off, tsize):
 def p_6c_6d_0100(va, val, buf, off, tsize):
     op = val >> 7
     iflags = OSZ_FLAGS[tsize]
-    isz = 4
+    isz = 2
     mnem = None
 
     er0 = val & 0xf
