@@ -529,15 +529,22 @@ def p_Bit_Doubles(va, val, buf, off, tsize):
 
 
 def p_01(va, val, buf, off, tsize):
-    val2, = struct.unpack('>H', buf[off+2: off+4])
     mnem = None
     iflags = 0
-    isz = 4
-    op = (val << 9) | (val2 >> 7)
     opers = None
 
     diff = (val>>4) & 0xf
 
+    if diff == 8:
+        # sleep
+        op = 0x0180
+        mnem = 'sleep'
+        opers = tuple()
+        return op, mnem, opers, iflags, 2
+
+    val2, = struct.unpack('>H', buf[off+2: off+4])
+    isz = 4
+    op = (val << 9) | (val2 >> 7)
     if diff == 0:
         mnem = 'mov'
 
@@ -685,6 +692,10 @@ def p_01(va, val, buf, off, tsize):
             op, nmnem, opers, iflags, isz =  p_i8_CCR(va, val2, buf, off, tsize, exr)
             return op, 'andc', opers, iflags, isz
 
+        elif d2 == 5:
+            op, nmnem, opers, iflags, isz =  p_i8_CCR(va, val2, buf, off, tsize, exr)
+            return op, 'xorc', opers, iflags, isz
+
         else:
 
             if d2 == 0x04:              ##xx:8, EXR
@@ -737,12 +748,6 @@ def p_01(va, val, buf, off, tsize):
             if isStc:
                 opers = opers[::-1]
 
-    elif diff == 8:
-        # sleep
-        op = 0x0180
-        mnem = 'sleep'
-        opers = tuple()
-
     elif diff == 0xc:
         if val2 & 0xfd00 == 0x5000:
             # mulxs
@@ -759,6 +764,17 @@ def p_01(va, val, buf, off, tsize):
         else:
             raise envi.InvalidInstruction(bytez=buf[off:off+16], va=va)
 
+    elif diff == 0xe:
+        if val2 & 0xff00 == 0x7b00:
+            mnem = 'tas'        # FIXME: check out what this decodes to
+            erd = (val2 >> 4) & 7
+            opers = (
+                    H8RegIndirOper(erd, tsize, va, 0),
+                    )
+
+        else:
+            raise envi.InvalidInstruction(bytez=buf[off:off+16], va=va)
+
     elif diff == 0xf:
         if val2 & 0xfc00 == 0x6400:
             # or/xor/and
@@ -768,6 +784,9 @@ def p_01(va, val, buf, off, tsize):
             mnem = ('or', 'xor', 'and')[mnembits]
         else:
             raise envi.InvalidInstruction(bytez=buf[off:off+16], va=va)
+
+    else:
+        raise envi.InvalidInstruction(bytez=buf[off:off+16], va=va)
 
     return (op, mnem, opers, iflags, isz)
 
