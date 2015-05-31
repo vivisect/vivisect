@@ -957,18 +957,20 @@ def p_Mov_78(va, val, buf, off, tsize):
     tsz_opt = (val2 >> 8) & 1
     tsize = (1, 2)[tsz_opt]
 
+    iflags = OSZ_FLAGS[tsize]
+
     if (val2 & 8):
         ers = (val>>4) & 0x7
         rd  = val2 & 0xf
         opers = (
                 H8RegIndirOper(ers, tsize, va, disp=disp, oflags=0),
-                H8RegOper(rd),
+                H8RegDirOper(rd),
                 )
     else:
         erd = (val>>4) & 0x7
         rs  = val2 & 0xf
         opers = (
-                H8RegOper(rs),
+                H8RegDirOper(rs),
                 H8RegIndirOper(erd, tsize, va, disp=disp, oflags=0),
                 )
 

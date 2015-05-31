@@ -124,7 +124,6 @@ class H8Opcode(envi.Opcode):
             brflags |= envi.BR_COND
 
         if self.iflags & envi.IF_BRANCH:
-            brflags |= envi.BR_PROC
             if self.opers[0].isDeref():
                 brflags |= envi.BR_DEREF
             ret.append((self.getOperValue(0), brflags))

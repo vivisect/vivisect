@@ -29,7 +29,7 @@ class H8Module(envi.ArchitectureModule):
         return '\x00'
 
     def getPointerSize(self):
-        return 2
+        return 3
 
     def pointerString(self, va):
         return "0x%.8x" % va
