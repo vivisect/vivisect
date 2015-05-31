@@ -41,7 +41,7 @@ def p_Rs_CCR(va, val, buf, off, tsize):
     # ldc
     iflags = 0
     op = val>>4
-    rs = metaFrom8(val & 0xf)
+    rs = val & 0xf
     exr = op & 1
     opers = (
             H8RegDirOper(rs, tsize, va),
@@ -627,7 +627,7 @@ def p_01(va, val, buf, off, tsize):
 
         elif d2 == 0x78:
             val3, disp = struct.unpack(">HI", buf[off+4:off+10])
-            if val3 & 0xff20 != 0x6b2: raise envi.InvalidInstruction(bytez=buf[off:off+16], va=va)
+            if val3 & 0xff20 != 0x6b20: raise envi.InvalidInstruction(bytez=buf[off:off+16], va=va)
 
             er0 = val3 & 7
             er1 = (val2>>4) & 7
@@ -679,7 +679,7 @@ def p_01(va, val, buf, off, tsize):
         oflags = 0
         tsize = 2
 
-        exr = val & 0xf
+        exr = val & 0x1
 
         if d2 == 6:
             op, nmnem, opers, iflags, isz =  p_i8_CCR(va, val2, buf, off, tsize, exr)
@@ -687,7 +687,11 @@ def p_01(va, val, buf, off, tsize):
 
         else:
 
-            if d2 == 0x07:              ##xx:8, EXR
+            if d2 == 0x04:              ##xx:8, EXR
+                op, nmnem, opers, iflags, isz =  p_i8_CCR(va, val2, buf, off, tsize, exr)
+                return op, 'or', opers, iflags, isz
+
+            elif d2 == 0x07:              ##xx:8, EXR
                 op, nmnem, opers, iflags, isz =  p_i8_CCR(va, val2, buf, off, tsize, exr)
                 return op, 'ldc', opers, iflags, isz
 
