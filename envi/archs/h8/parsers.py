@@ -127,17 +127,18 @@ def p_i3_aAA8(va, val, buf, off, tsize):
             )
     return (op, None, opers, iflags, 4)
 
-def p_i8_CCR(va, val, buf, off, tsize): 
+def p_i8_CCR(va, val, buf, off, tsize, exr=0): 
     # andc
+    mnem = 'andc'
     iflags = 0
     op = val >> 8
     i8 = val & 0xff
 
     opers = (
             H8ImmOper(i8, 1),
-            H8RegDirOper(REG_CCR, 4, 0),
+            H8RegDirOper(REG_CCR + exr, 4, 0),
             )
-    return (op, None, opers, iflags, 2)
+    return (op, mnem, opers, iflags, 2)
 
 def p_i8_Rd(va, val, buf, off, tsize): 
     # add.b, addx, and.b, cmp.b
@@ -670,53 +671,60 @@ def p_01(va, val, buf, off, tsize):
 
 
     elif diff == 4:
-        # ldc/stc
+        # ldc/stc - anything that touches ccr or exr
         # we'll build it for ldc, and reverse it if it's stc
         d2 = val2>>8
         isStc = (val2>>7) & 1
         oflags = 0
         tsize = 2
 
-        if d2 in (0x69, 0x6d):    #@ERs,CCR / @ERs+,CCR
-            if d2 == 0x6d:
-                oflags = OF_POSTINC
-            ers = (val2>>4) & 0x7
-            opers = (
-                    H8RegIndirOper(ers, tsize, va, oflags=oflags),
-                    H8RegDirOper(REG_CCR, 4, va)
-                    )
+        exr = val & 0xf
 
-        elif d2 in (0x6f, 0x78):  #@(d:16,ERs),CCR / @(d:24,ERs)
-            if d2 == 0x78:
-                val3, disp = struct.unpack('>HI', buf[off+4:off+10])
-                isStc = (val3>>7) & 1
-                isz = 10
-            else:
-                disp, = struct.unpack('>H', buf[off+4:off+6])
-                isz = 6
-            ers = (val2>>4) & 0x7
-            opers = (
-                    H8RegIndirOper(ers, tsize, va, disp),
-                    H8RegDirOper(REG_CCR, 4, va)
-                    )
+        if d2 == 6:
+            return p_i8_CCR(va, val2, buf, off, tsize, exr)
 
-        elif d2 == 0x6b:    #@aa:16,CCR / @aa:24,CCR
-            if val2 & 0x20:
-                aa, = struct.unpack(">I", buf[off+4:off+8])
-                isz = 8
-            else:
-                aa, = struct.unpack(">H", buf[off+4:off+6])
-                isz = 6
-            isStc = (val2>>7) & 1
-            opers = (
-                    H8AbsAddrOper(aa),
-                    H8RegDirOper(REG_CCR, 4, va)
-                    )
+        else:
 
-        # after all the decisions...
-        mnem = ('ldc','stc')[isStc]
-        if isStc:
-            opers = opers[::-1]
+            if d2 in (0x69, 0x6d):    #@ERs,CCR / @ERs+,CCR
+                if d2 == 0x6d:
+                    oflags = OF_POSTINC
+                ers = (val2>>4) & 0x7
+                opers = (
+                        H8RegIndirOper(ers, tsize, va, oflags=oflags),
+                        H8RegDirOper(REG_CCR + exr, 4, va)
+                        )
+
+            elif d2 in (0x6f, 0x78):  #@(d:16,ERs),CCR / @(d:24,ERs)
+                if d2 == 0x78:
+                    val3, disp = struct.unpack('>HI', buf[off+4:off+10])
+                    isStc = (val3>>7) & 1
+                    isz = 10
+                else:
+                    disp, = struct.unpack('>H', buf[off+4:off+6])
+                    isz = 6
+                ers = (val2>>4) & 0x7
+                opers = (
+                        H8RegIndirOper(ers, tsize, va, disp),
+                        H8RegDirOper(REG_CCR + exr, 4, va)
+                        )
+
+            elif d2 == 0x6b:    #@aa:16,CCR / @aa:24,CCR
+                if val2 & 0x20:
+                    aa, = struct.unpack(">I", buf[off+4:off+8])
+                    isz = 8
+                else:
+                    aa, = struct.unpack(">H", buf[off+4:off+6])
+                    isz = 6
+                isStc = (val2>>7) & 1
+                opers = (
+                        H8AbsAddrOper(aa),
+                        H8RegDirOper(REG_CCR + exr, 4, va)
+                        )
+
+            # after all the decisions...
+            mnem = ('ldc','stc')[isStc]
+            if isStc:
+                opers = opers[::-1]
 
     elif diff == 8:
         # sleep
@@ -1118,6 +1126,9 @@ def p_7e(va, val, buf, off, tsize):
                 H8ImmOper(i3, tsize),
                 H8AbsAddrOper(aa, tsize=tsize),
                 )
+    else:
+        raise envi.InvalidInstruction(bytez=buf[off:off+16], va=va)
+
     
     return op, mnem, opers, iflags, 4
 
