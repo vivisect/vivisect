@@ -2,7 +2,7 @@ import envi
 import envi.bits as e_bits
 import struct
 
-from disasm import H8ImmOper, H8RegDirOper, H8RegIndirOper, H8AbsAddrOper, H8PcOffsetOper, H8RegMultiOper
+from disasm import H8ImmOper, H8RegDirOper, H8RegIndirOper, H8AbsAddrOper, H8PcOffsetOper, H8RegMultiOper, H8MemIndirOper
 from regs import *
 from const import *
 
@@ -30,8 +30,9 @@ def p_CCR_Rd(va, val, buf, off, tsize):
     iflags = 0
     op = val>>4
     rd = val & 0xf
+    exr = op & 1
     opers = (
-            H8RegDirOper(REG_FLAGS, 4, va),
+            H8RegDirOper(REG_CCR + exr, 4, va),
             H8RegDirOper(rd, tsize, va),
             )
     return (op, None, opers, iflags, 2)
@@ -41,9 +42,10 @@ def p_Rs_CCR(va, val, buf, off, tsize):
     iflags = 0
     op = val>>4
     rs = metaFrom8(val & 0xf)
+    exr = op & 1
     opers = (
             H8RegDirOper(rs, tsize, va),
-            H8RegDirOper(REG_FLAGS, tsize, va),
+            H8RegDirOper(REG_CCR + exr, tsize, va),
             )
     return (op, None, opers, iflags, 2)
 
@@ -129,7 +131,6 @@ def p_i3_aAA8(va, val, buf, off, tsize):
 
 def p_i8_CCR(va, val, buf, off, tsize, exr=0): 
     # andc
-    mnem = 'andc'
     iflags = 0
     op = val >> 8
     i8 = val & 0xff
@@ -138,7 +139,7 @@ def p_i8_CCR(va, val, buf, off, tsize, exr=0):
             H8ImmOper(i8, 1),
             H8RegDirOper(REG_CCR + exr, 4, 0),
             )
-    return (op, mnem, opers, iflags, 2)
+    return (op, None, opers, iflags, 2)
 
 def p_i8_Rd(va, val, buf, off, tsize): 
     # add.b, addx, and.b, cmp.b
@@ -681,11 +682,17 @@ def p_01(va, val, buf, off, tsize):
         exr = val & 0xf
 
         if d2 == 6:
-            return p_i8_CCR(va, val2, buf, off, tsize, exr)
+            op, nmnem, opers, iflags, isz =  p_i8_CCR(va, val2, buf, off, tsize, exr)
+            return op, 'andc', opers, iflags, isz
 
         else:
 
-            if d2 in (0x69, 0x6d):    #@ERs,CCR / @ERs+,CCR
+            if d2 == 0x07:              ##xx:8, EXR
+                op, nmnem, opers, iflags, isz =  p_i8_CCR(va, val2, buf, off, tsize, exr)
+                return op, 'ldc', opers, iflags, isz
+
+            
+            elif d2 in (0x69, 0x6d):    #@ERs,CCR / @ERs+,CCR
                 if d2 == 0x6d:
                     oflags = OF_POSTINC
                 ers = (val2>>4) & 0x7
