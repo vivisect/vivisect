@@ -639,6 +639,7 @@ def p_01(va, val, buf, off, tsize):
                         )
 
         elif d2 == 0x78:
+            isz = 10
             val3, disp = struct.unpack(">HI", buf[off+4:off+10])
             if val3 & 0xff20 != 0x6b20: raise envi.InvalidInstruction(bytez=buf[off:off+16], va=va)
 
@@ -1040,7 +1041,7 @@ def p_Mov_78(va, val, buf, off, tsize):
                 H8RegIndirOper(erd, tsize, va, disp=disp, oflags=0),
                 )
 
-    return (op, mnem, opers, iflags, 2)
+    return (op, mnem, opers, iflags, 8)
 
 mnem_79a = (
         'mov',
