@@ -119,6 +119,8 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         self.chan_lookup = {}
         self.nextchanid = 1
 
+        self._cached_emus = {}
+
         # The function entry signature decision tree
         # FIXME add to export
         self.sigtree = e_bytesig.SignatureTree()
@@ -206,6 +208,18 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             raise Exception("WorkspaceEmulation not supported on %s yet!" % arch)
 
         return eclass(self, logwrite=logwrite, logread=logread)
+
+    def getCachedEmu(self, emuname):
+        """
+        Get a cached emulator by name. If one doesn't exist it is
+        created and then cached.
+        """
+
+        emu = self._cached_emus.get(emuname)
+        if emu == None:
+            emu = self.getEmulator()
+            self._cached_emus[emuname] = emu
+        return emu
 
     def addLibraryDependancy(self, libname):
         """
