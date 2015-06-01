@@ -308,17 +308,23 @@ def p_Rn_Rd(va, val, buf, off, tsize):
     return (op, None, opers, iflags, 2)
 
 def p_aERs_Rd(va, val, buf, off, tsize):  
-    # mov 0x68
+    # mov 0x68, 0x69, 0x6e, 0x6f
     iflags = 0
     op = (val >> 7)
     aERs = (val >> 4) & 0x7
     Rd = (val) & 0xf
+    if (val & 0x600):
+        disp = struct.unpack('>H', buf[off+2: off+4])
+        isz = 4
+    else:
+        disp = 0
+        isz = 2
 
     opers = (
-            H8RegIndirOper(aERs, tsize, va, disp=0, oflags=0),
+            H8RegIndirOper(aERs, tsize, va, disp=disp, oflags=0),
             H8RegDirOper(Rd, tsize, va, 0),
             )
-    return (op, None, opers, iflags, 4)
+    return (op, None, opers, iflags, isz)
 
 def p_Rn_aERd(va, val, buf, off, tsize):  
     # bclr, bset, btst
@@ -927,21 +933,22 @@ def p_shift_10_11_12_13_17(va, val, buf, off, tsize):
 
 def p_Mov_6A(va, val, buf, off, tsize):
     op = val >> 4
+    diff = op & 0xf
     if op & 0x8:
         # Rs, @aa:16/24
-        if op == 0x6aa:
+        if diff == 0xa:
             return p_Rs_aAA24(va, val, buf, off, tsize)
-        elif op == 0x6a8:
+        elif diff == 0x8:
             return p_Rs_aAA16(va, val, buf, off, tsize)
         else:
             raise envi.InvalidInstruction(bytez=buf[off:off+16], va=va)
 
     else:
         # @aa:16/24, Rd
-        if op == 0x6a2:
+        if diff == 0x2:
             return p_aAA24_Rd(va, val, buf, off, tsize)
 
-        elif op == 0x6a0:
+        elif diff == 0x0:
             return p_aAA16_Rd(va, val, buf, off, tsize)
 
         elif val in (0x6a10, 0x6a18, 0x6a30, 0x6a38):
