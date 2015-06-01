@@ -689,21 +689,21 @@ def p_01(va, val, buf, off, tsize):
         exr = val & 0x1
 
         if d2 == 6:
-            op, nmnem, opers, iflags, isz =  p_i8_CCR(va, val2, buf, off, tsize, exr)
+            op, nmnem, opers, iflags, nisz =  p_i8_CCR(va, val2, buf, off, tsize, exr)
             return op, 'andc', opers, iflags, isz
 
         elif d2 == 5:
-            op, nmnem, opers, iflags, isz =  p_i8_CCR(va, val2, buf, off, tsize, exr)
+            op, nmnem, opers, iflags, nisz =  p_i8_CCR(va, val2, buf, off, tsize, exr)
             return op, 'xorc', opers, iflags, isz
 
         else:
 
             if d2 == 0x04:              ##xx:8, EXR
-                op, nmnem, opers, iflags, isz =  p_i8_CCR(va, val2, buf, off, tsize, exr)
+                op, nmnem, opers, iflags, nisz =  p_i8_CCR(va, val2, buf, off, tsize, exr)
                 return op, 'or', opers, iflags, isz
 
             elif d2 == 0x07:              ##xx:8, EXR
-                op, nmnem, opers, iflags, isz =  p_i8_CCR(va, val2, buf, off, tsize, exr)
+                op, nmnem, opers, iflags, nisz =  p_i8_CCR(va, val2, buf, off, tsize, exr)
                 return op, 'ldc', opers, iflags, isz
 
             
@@ -752,7 +752,7 @@ def p_01(va, val, buf, off, tsize):
         if val2 & 0xfd00 == 0x5000:
             # mulxs
             mnem = 'mulxs'
-            op, nmnem, opers, iflags, isz =  p_Rs_Rd_4b(va, val, buf, off, tsize=1)
+            op, nmnem, opers, iflags, nisz =  p_Rs_Rd_4b(va, val, buf, off, tsize=1)
         else:
             raise envi.InvalidInstruction(bytez=buf[off:off+16], va=va)
 
@@ -760,7 +760,7 @@ def p_01(va, val, buf, off, tsize):
         if val2 & 0xfd00 == 0x5100:
             mnem = 'divxs'
             # divxs
-            op, nmnem, opers, iflags, isz =  p_Rs_Rd_4b(va, val, buf, off, tsize)
+            op, nmnem, opers, iflags, nisz =  p_Rs_Rd_4b(va, val, buf, off, tsize)
         else:
             raise envi.InvalidInstruction(bytez=buf[off:off+16], va=va)
 
@@ -778,7 +778,7 @@ def p_01(va, val, buf, off, tsize):
     elif diff == 0xf:
         if val2 & 0xfc00 == 0x6400:
             # or/xor/and
-            nop, nmnem, opers, iflags, isz = p_ERs_ERd(va, val2, buf, off, tsize=4)
+            nop, nmnem, opers, iflags, nisz = p_ERs_ERd(va, val2, buf, off, tsize=4)
             op = (val << 8) | (val2 >> 8)
             mnembits = (val2 >> 8) & 3
             mnem = ('or', 'xor', 'and')[mnembits]
@@ -929,16 +929,37 @@ def p_Mov_6A(va, val, buf, off, tsize):
     op = val >> 4
     if op & 0x8:
         # Rs, @aa:16/24
-        if op & 0x2:
+        if op == 0x6aa:
             return p_Rs_aAA24(va, val, buf, off, tsize)
-        return p_Rs_aAA16(va, val, buf, off, tsize)
+        elif op == 0x6a8:
+            return p_Rs_aAA16(va, val, buf, off, tsize)
+        else:
+            raise envi.InvalidInstruction(bytez=buf[off:off+16], va=va)
 
     else:
         # @aa:16/24, Rd
-        if op & 0x2:
+        if op == 0x6a2:
             return p_aAA24_Rd(va, val, buf, off, tsize)
 
-        return p_aAA16_Rd(va, val, buf, off, tsize)
+        elif op == 0x6a0:
+            return p_aAA16_Rd(va, val, buf, off, tsize)
+
+        elif val in (0x6a10, 0x6a18, 0x6a30, 0x6a38):
+            isz, fmt = (None, (6,'>HH'),None,(8,'>IH'))[(val>>4)&3]
+
+            aa, val2 = struct.unpack(fmt, buf[off+2:off+isz])
+            table = (bit_dbles, bit_dble7df)[(val>>3)&1]
+            op, mnem, iflags = getBitDbl_OpMnem(val2, table)
+            i3 = (val2>>4) & 7
+
+            opers = (
+                    H8ImmOper(i3, tsize),
+                    H8AbsAddrOper(aa, tsize),
+                    )
+            return op, mnem, opers, iflags, isz
+
+        else:
+            raise envi.InvalidInstruction(bytez=buf[off:off+16], va=va)
 
 def p_6c_6d_0100(va, val, buf, off, tsize):
     op = val >> 7

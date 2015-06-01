@@ -93,6 +93,7 @@ def generateTestInfo(ophexbytez='6e'):
     print "opercheck = %s" % (repr(opersvars))
 
 
+
 raw_instrs = [
     ('8340'.decode('hex'), ),
     ('0832'.decode('hex'), ),
@@ -442,4 +443,15 @@ raw_instrs = [
     ('0540'.decode('hex'), ),
     ('01410540'.decode('hex'), ),
     ]
+
+if __name__ == '__main__':
+    h8m = envi.getArchModule('h8')      
+
+    for instr in raw_instrs:
+        inst = instr[0]
+        op = h8m.archParseOpcode(inst, 0, 0x50)
+        print "%26s %s" % (instr[0].encode('hex'), op)
+        if len(op) != len(inst):
+            #raise Exception(" LENGTH FAILURE:  expected: %d  real: %d  '%s'" % (len(inst), len(op), inst.encode('hex')))
+            print(" LENGTH FAILURE:  expected: %d  real: %d  '%s'" % (len(inst), len(op), inst.encode('hex')))
 
