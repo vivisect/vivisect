@@ -704,7 +704,7 @@ class GUID(v_prim):
         return offend
 
     def vsEmit(self):
-        return struck.pack("<IHH8B", *self._guid_fields)
+        return struct.pack("<IHH8B", *self._guid_fields)
 
     def _parseGuidStr(self, gstr):
         gstr = gstr.replace("{","")
