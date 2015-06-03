@@ -581,21 +581,52 @@ def p_undef(opval, va):
         
     return (opcode, mnem, olist, 0)
 
+hint_mnem = {
+            0: 'Nop',
+            1: 'yield',
+            2: 'wfe',
+            3: 'wfi',
+            4: 'sev',
+            }
+
 def p_mov_imm_stat(opval, va):      # only one instruction: "msr"
+    iflags = 0
     imm = opval & 0xff
     rot = (opval>>8) & 0xf
     r = (opval>>22) & 1
     mask = (opval>>16) & 0xf
-    
-    immed = ((imm>>rot) + (imm<<(32-rot))) & 0xffffffff
-    
-    olist = (
-        ArmPgmStatRegOper(mask),
-        ArmImmOper(immed),
-    )
-    
     opcode = (IENC_MOV_IMM_STAT << 16)
-    return (opcode, "msr", olist, 0)
+
+    if mask == 0:
+        opcode += 1
+        # it's a NOP or some hint instruction
+        if imm>>16:
+            mnem = 'dbg'
+            option = opval & 0xf
+            olist = ( ArmDbgHintOption(option), )
+
+        else:
+            mnem = hint_mnem.get(imm)
+            if mnem == None:
+                raise envi.InvalidInstruction(
+                        mesg="MSR/Hint illegal encoding",
+                        bytez=struct.pack("<I", opval), va=va)
+            olist = tuple()
+
+    else:
+        # it's an MSR <immediate>
+        mnem = 'msr'
+        immed = ((imm>>rot) + (imm<<(32-rot))) & 0xffffffff
+
+        if mask & 3:    # USER mode these will be 0
+            iflags |= IF_SYS_MODE
+        
+        olist = (
+            ArmPgmStatRegOper(r, mask),
+            ArmImmOper(immed),
+        )
+    
+    return (opcode, mnem, olist, iflags)
     
 ldr_mnem = ("str", "ldr")
 tsizes = (4, 1,)
@@ -1237,7 +1268,7 @@ s_0_table = (
 )
 
 s_1_table = (
-    (0b00001111101100000000000000000000, 0b00000011010000000000000000000000, IENC_MOV_IMM_STAT),
+    (0b00001111101100000000000000000000, 0b00000011001000000000000000000000, IENC_MOV_IMM_STAT),
     (0b00001110000000000000000000000000, 0b00000010000000000000000000000000, IENC_DP_IMM),
     (0, 0, IENC_UNDEF),
 )
@@ -2029,9 +2060,11 @@ class ArmPcOffsetOper(ArmOperand):
         return tname
 
 psrs = ("CPSR", "SPSR", 'inval', 'inval', 'inval', 'inval', 'inval', 'inval',)
+fields = (None, 'c', 'x', 'cx', 's', 'cs', 'xs', 'cxs',  'f', 'fc', 'fx', 'fcx', 'fs', 'fcs', 'fxs', 'fcxs')
 class ArmPgmStatRegOper(ArmOperand):
-    def __init__(self, val):
+    def __init__(self, r, val=0):
         self.val = val
+        self.psr = r
 
     def __eq__(self, oper):
         if not isinstance(oper, self.__class__):
@@ -2053,7 +2086,7 @@ class ArmPgmStatRegOper(ArmOperand):
         return None # FIXME
 
     def repr(self, op):
-        return psrs[self.val]
+        return psrs[self.psr] + '_' + fields[self.val]
     
 class ArmPgmStatFlagsOper(ArmOperand):
     def __init__(self, val):
@@ -2075,7 +2108,7 @@ class ArmPgmStatFlagsOper(ArmOperand):
     def getOperValue(self, op, emu=None):
         if emu == None:
             return None
-        raise Exception("FIXME: Implement ArmPgmStatRegOper.getOperValue()")
+        raise Exception("FIXME: Implement ArmPgmStatFlagsOper.getOperValue()")
         return None # FIXME
 
     def repr(self, op):
@@ -2277,6 +2310,28 @@ class ArmModeOper(ArmOperand):
     def repr(self, op):
         return (proc_modes % self.mode)[PM_SNAME]
 
+class ArmDbgHintOption(ArmOperand):
+    def __init__(self, option):
+        self.val = option
+
+    def __eq__(self, oper):
+        if not isinstance(oper, self.__class__):
+            return False
+        if self.val != oper.val:
+            return False
+        return True
+
+    def involvesPC(self):
+        return False
+
+    def isDeref(self):
+        return False
+
+    def getOperValue(self, op, emu=None):
+        return self.val
+
+    def repr(self, op):
+        return "#%d"%self.val
 
 
 ENDIAN_LSB = 0

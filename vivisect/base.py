@@ -149,6 +149,7 @@ class VivWorkspaceCore(object,viv_impapi.ImportApi):
     def __init__(self):
         viv_impapi.ImportApi.__init__(self)
         self.loclist = []
+        self.bigend   = False
         self.locmap   = e_page.MapLookup()
         self.blockmap = e_page.MapLookup()
         self._mods_loaded = False
@@ -548,6 +549,10 @@ class VivWorkspaceCore(object,viv_impapi.ImportApi):
         defcall = self.arch.getArchDefaultCall()
         if defcall:
             self.setMeta('DefaultCall', defcall)
+
+    def _mcb_bigend(self, name, value):
+        print('OH HAI')
+        self.bigend = bool(value)
 
     def _mcb_Platform(self, name, value):
         # Default calling convention for platform
