@@ -9,7 +9,7 @@ class i386WorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_i386.IntelEmulator
         e_i386.REG_EDI,
     ]
 
-    def __init__(self, vw, logwrite=False, logread=False, stacksize=4096):
+    def __init__(self, vw, logwrite=False, logread=False):
         e_i386.IntelEmulator.__init__(self)
-        v_i_emulator.WorkspaceEmulator.__init__(self, vw, logwrite=logwrite, logread=logread, stacksize=stacksize)
+        v_i_emulator.WorkspaceEmulator.__init__(self, vw, logwrite=logwrite, logread=logread)
         self.setEmuOpt('i386:reponce',True)

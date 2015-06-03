@@ -5,9 +5,9 @@ class Msp430WorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_msp430e.Msp430Em
 
     taintregs = [ x for x in range(2, 16) ]
 
-    def __init__(self, vw, logwrite=False, logread=False, stacksize=4096):
+    def __init__(self, vw, logwrite=False, logread=False):
         e_msp430e.Msp430Emulator.__init__(self)
-        v_i_emulator.WorkspaceEmulator.__init__(self, vw, logwrite=logwrite, logread=logread, stacksize=4096)
+        v_i_emulator.WorkspaceEmulator.__init__(self, vw, logwrite=logwrite, logread=logread)
 
 '''
 st0len gratuitously from mspgcc:

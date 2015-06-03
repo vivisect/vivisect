@@ -189,7 +189,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         """
         return self.frefs.get((va,idx))
 
-    def getEmulator(self, logwrite=False, logread=False, stacksize=4096):
+    def getEmulator(self, logwrite=False, logread=False):
         """
         Get an instance of a WorkspaceEmulator for this workspace.
 
@@ -205,7 +205,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         if eclass == None:
             raise Exception("WorkspaceEmulation not supported on %s yet!" % arch)
 
-        return eclass(self, logwrite=logwrite, logread=logread, stacksize=stacksize)
+        return eclass(self, logwrite=logwrite, logread=logread)
 
     def addLibraryDependancy(self, libname):
         """

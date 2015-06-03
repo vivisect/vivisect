@@ -103,8 +103,8 @@ class Windowsi386Emulator(WindowsMixin, v_i_i386.i386WorkspaceEmulator):
         e_i386.REG_EDI,
     ]
 
-    def __init__(self, vw, logwrite=False, logread=False, stacksize=4096):
-        v_i_i386.i386WorkspaceEmulator.__init__(self, vw, logwrite=logwrite, logread=logread, stacksize=stacksize)
+    def __init__(self, vw, logwrite=False, logread=False):
+        v_i_i386.i386WorkspaceEmulator.__init__(self, vw, logwrite=logwrite, logread=logread)
         WindowsMixin.__init__(self)
 
     @imphook('ntdll.seh3_prolog')
