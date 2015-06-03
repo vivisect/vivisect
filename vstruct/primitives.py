@@ -724,3 +724,27 @@ class GUID(v_prim):
         base = "{%.8x-%.4x-%.4x-%.2x%.2x-%.2x%.2x%.2x%.2x%.2x%.2x}"
         return base  % self._guid_fields
 
+class enum_mixin(object):
+    def __init__(self, enum):
+        super(enum_mixin, self).__init__()
+        self._enum = enum
+
+    def __str__(self):
+        return self._enum.vsReverseMapping(self.vsGetValue())
+
+class enum_uint8(enum_mixin, v_uint8):
+    def __init__(self, enum):
+        super(enum_uint8, self).__init__(enum)
+
+class enum_uint16(enum_mixin, v_uint16):
+    def __init__(self, enum):
+        super(enum_uint16, self).__init__(enum)
+
+class enum_uint32(enum_mixin, v_uint32):
+    def __init__(self, enum):
+        super(enum_uint32, self).__init__(enum)
+
+class enum_uint64(enum_mixin, v_uint64):
+    def __init__(self, enum):
+        super(enum_uint64, self).__init__(enum)
+
