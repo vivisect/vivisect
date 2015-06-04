@@ -56,6 +56,10 @@ instrs = [
         ( '6de2', 0x4560, 'mov.w r2, @-er6', IF_W),
         ( '6dda', 0x4560, 'mov.w e2, @-er5', IF_W),
         ( '01006dd2', 0x4560, 'mov.l er2, @-er5', IF_L),
+        ( '6843', 0x4560, 'mov.b @er4, r3h', IF_B),
+        ( '68c3', 0x4560, 'mov.b r3h, @er4', IF_B),
+        ( '6ec34715', 0x4560, 'mov.b r3h, @(0x4715, er4)', IF_B),
+        ( '6ecb4715', 0x4560, 'mov.b r3l, @(0x4715, er4)', IF_B),
 
         ]
 

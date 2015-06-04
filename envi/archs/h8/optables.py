@@ -122,16 +122,16 @@ main_table[0x66] = (False, 'and', p_Rs_Rd, 1, IF_W)
 
 main_table[0x67] = (False, 'bitdoubles', p_Bit_Doubles, 0, 0)
 
-main_table[0x68] = (False, 'mov', p_aERs_Rd, 1, IF_B)
-main_table[0x69] = (False, 'mov', p_aERs_Rd, 2, IF_W)
+main_table[0x68] = (False, 'mov', p_68_69_6e_6f, 1, IF_B)
+main_table[0x69] = (False, 'mov', p_68_69_6e_6f, 2, IF_W)
 main_table[0x6a] = (False, 'mov', p_Mov_6A, 1, IF_B)
 main_table[0x6b] = (False, 'mov', p_Mov_6A, 2, IF_W)
 #main_table[0x6c] = (False, 'mov', p_Mov_6C, 1, IF_B)
 #main_table[0x6d] = (False, 'mov', p_Mov_6C, 2, IF_W)
 main_table[0x6c] = (False, 'mov', p_6c_6d_0100, 1, IF_B)
 main_table[0x6d] = (False, 'mov', p_6c_6d_0100, 2, IF_W)
-main_table[0x6e] = (False, 'mov', p_aERs_Rd, 1, IF_B)
-main_table[0x6f] = (False, 'mov', p_aERs_Rd, 1, IF_B)
+main_table[0x6e] = (False, 'mov', p_68_69_6e_6f, 1, IF_B)
+main_table[0x6f] = (False, 'mov', p_68_69_6e_6f, 1, IF_B)
 
 for opbyte in range(0x74, 0x78):
     main_table[opbyte] = (False, 'bitdoubles', p_Bit_Doubles, 1, 0)

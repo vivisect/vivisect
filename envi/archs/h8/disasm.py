@@ -337,7 +337,7 @@ class H8RegIndirOper(envi.DerefOper, H8Operand):
         rname = self._dis_regctx.getRegisterName(self.reg&RMETA_NMASK)
         mcanv.addText('@')
         if self.disp:
-            mcanv.addText('(%d, ' % self.disp)
+            mcanv.addText('(0x%x, ' % self.disp)
         if self.oflags & OF_PREDEC:
             mcanv.addText('-')
         mcanv.addNameText(name, name=rname, typename="registers")
@@ -352,7 +352,7 @@ class H8RegIndirOper(envi.DerefOper, H8Operand):
         name = self._dis_regctx.getRegisterName(self.reg)
         rname = self._dis_regctx.getRegisterName(self.reg&RMETA_NMASK)
         if self.disp:
-            out.append('(%d, ' % self.disp)
+            out.append('(0x%x, ' % self.disp)
 
         if self.oflags & OF_PREDEC:
             out.append('-')
@@ -442,13 +442,19 @@ class H8AbsAddrOper(H8Operand):
     def isDeref(self):
         return False
 
+    def getOperAddr(self, op, emu=None):
+        return self.aa
+
     def getOperValue(self, op, emu=None):
         return self.aa
 
     def render(self, mcanv, op, idx):
         mcanv.addText('@')
-        aa = '%x' % self.aa
-        mcanv.addNameText(aa, aa, typename='address')
+        if mcanv.mem.isValidPointer(self.aa):
+            name = addrToName(mcanv, self.aa)
+            mcanv.addVaText(name, self.aa)
+        else:
+            mcanv.addVaText('%.4x' % aa, aa)
 
     def repr(self, op):
         return '@%x' % self.aa
@@ -488,14 +494,16 @@ class H8MemIndirOper(envi.DerefOper, H8Operand):
     '''
     Memory indirect [@@aa:8]
     '''
-    def __init__(self, aa):
+    def __init__(self, aa, tsize=1):
         self.aa = aa
+        self.tsize = tsize
 
     def __eq__(self, oper):
-        ''' unfixed '''
         if not isinstance(oper, self.__class__):
             return False
         if self.aa != oper.aa:
+            return False
+        if self.tsize != oper.tsize:
             return False
         return True
 
@@ -516,6 +524,14 @@ class H8MemIndirOper(envi.DerefOper, H8Operand):
 
     def getOperAddr(self, op, emu=None):
         return self.aa
+
+    def getOperValue(self, op, emu=None):
+        if emu == None:
+            return 
+
+        dsize = self.tsize
+        val = emu.readMemoryValue(self.getOperAddr(op, emu), dsize)
+        return val
 
     def render(self, mcanv, op, idx):
         mcanv.addText('@@')

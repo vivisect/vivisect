@@ -307,12 +307,13 @@ def p_Rn_Rd(va, val, buf, off, tsize):
             )
     return (op, None, opers, iflags, 2)
 
-def p_aERs_Rd(va, val, buf, off, tsize):  
+def p_68_69_6e_6f(va, val, buf, off, tsize):  
     # mov 0x68, 0x69, 0x6e, 0x6f
     iflags = 0
     op = (val >> 7)
     aERs = (val >> 4) & 0x7
     Rd = (val) & 0xf
+
     if (val & 0x600):
         disp = struct.unpack('>H', buf[off+2: off+4])
         isz = 4
@@ -320,10 +321,16 @@ def p_aERs_Rd(va, val, buf, off, tsize):
         disp = 0
         isz = 2
 
-    opers = (
-            H8RegIndirOper(aERs, tsize, va, disp=disp, oflags=0),
-            H8RegDirOper(Rd, tsize, va, 0),
-            )
+    if val & 0x80:  # reverse operand order
+        opers = (
+                H8RegDirOper(Rd, tsize, va, 0),
+                H8RegIndirOper(aERs, tsize, va, disp=disp, oflags=0),
+                )
+    else:
+        opers = (
+                H8RegIndirOper(aERs, tsize, va, disp=disp, oflags=0),
+                H8RegDirOper(Rd, tsize, va, 0),
+                )
     return (op, None, opers, iflags, isz)
 
 def p_Rn_aERd(va, val, buf, off, tsize):  
@@ -1031,13 +1038,13 @@ def p_Mov_78(va, val, buf, off, tsize):
         rd  = val2 & 0xf
         opers = (
                 H8RegIndirOper(ers, tsize, va, disp=disp, oflags=0),
-                H8RegDirOper(rd),
+                H8RegDirOper(rd, tsize),
                 )
     else:
         erd = (val>>4) & 0x7
         rs  = val2 & 0xf
         opers = (
-                H8RegDirOper(rs),
+                H8RegDirOper(rs, tsize),
                 H8RegIndirOper(erd, tsize, va, disp=disp, oflags=0),
                 )
 
