@@ -88,7 +88,7 @@ def addrToName(mcanv, va):
     sym = mcanv.syms.getSymByAddr(va)
     if sym != None:
         return repr(sym)
-    return "0x%.8x" % va
+    return "0x%x" % va
 
 class H8Opcode(envi.Opcode):
     _def_arch = envi.ARCH_H8
@@ -399,10 +399,9 @@ class H8RegMultiOper(H8Operand):
         mcanv.addText('(')
         rname = self._dis_regctx.getRegisterName(self.basereg)
         mcanv.addNameText(rname, name=rname, typename="registers")
-        for x in range(1,self.count):
-            mcanv.addText(', ')
-            rname = self._dis_regctx.getRegisterName(self.basereg + x)
-            mcanv.addNameText(rname, name=rname, typename="registers")
+        mcanv.addText('-')
+        rname = self._dis_regctx.getRegisterName(self.basereg + self.count - 1)
+        mcanv.addNameText(rname, name=rname, typename="registers")
         mcanv.addText(')')
 
     def repr(self, op):
@@ -411,10 +410,11 @@ class H8RegMultiOper(H8Operand):
 
         rname = self._dis_regctx.getRegisterName(self.basereg)
         out.append(rname)
-        for x in range(1,self.count):
-            out.append(', ')
-            rname = self._dis_regctx.getRegisterName(self.basereg + x)
-            out.append(rname)
+       
+        out.append('-')
+        rname = self._dis_regctx.getRegisterName(self.basereg + self.count - 1)
+        out.append(rname)
+        
         out.append(')')
         return ''.join(out)
 
@@ -454,10 +454,11 @@ class H8AbsAddrOper(H8Operand):
             name = addrToName(mcanv, self.aa)
             mcanv.addVaText(name, self.aa)
         else:
-            mcanv.addVaText('%.4x' % aa, aa)
+            aa = '0x%.4x' % self.aa
+            mcanv.addVaText(aa, self.aa)
 
     def repr(self, op):
-        return '@%x' % self.aa
+        return '@0x%x' % self.aa
 
 class H8ImmOper(envi.ImmedOper, H8Operand):
     '''
@@ -466,11 +467,14 @@ class H8ImmOper(envi.ImmedOper, H8Operand):
     def __init__(self, val, tsize, oflags=0):
         self.val = val
         self.oflags = oflags
+        self.tsize = tsize
 
     def __eq__(self, oper):
         if not isinstance(oper, self.__class__):
             return False
         if self.val != oper.val:
+            return False
+        if self.tsize != oper.tsize:
             return False
         return True
 
@@ -485,7 +489,14 @@ class H8ImmOper(envi.ImmedOper, H8Operand):
 
     def render(self, mcanv, op, idx):
         mcanv.addText('#')
-        mcanv.addNameText('%x' % self.val, typename='immediate')
+        if mcanv.mem.isValidPointer(self.val):
+            if mcanv.mem.getName(self.val):
+                name = addrToName(mcanv, self.val)
+                mcanv.addVaText(name, self.val)
+            else:
+                mcanv.addVaText('0x%x' % self.val, self.val)
+        else:
+            mcanv.addNameText('0x%x' % self.val, typename='immediate')
 
     def repr(self, op):
         return "#%x" % self.val
