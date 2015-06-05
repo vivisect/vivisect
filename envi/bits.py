@@ -92,6 +92,22 @@ def msb(value, size):
         return 1
     return 0
 
+def is_signed_half_carry(value, size, src):
+    smax = s_maxes[size] >>4
+    if value > smax > src:
+        return True
+    if value < -smax < -src:
+        return True
+    return False
+
+def is_signed_carry(value, size, src):
+    smax = s_maxes[size]
+    if value > smax > src:
+        return True
+    if value < -smax < -src:
+        return True
+    return False
+
 def is_signed_overflow(value, size):
     smax = s_maxes[size]
     if value > smax:

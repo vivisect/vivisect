@@ -674,10 +674,11 @@ def p_01(va, val, buf, off, tsize):
         optest = val2 & 0xfff8
         rn = val2 & 0x7
 
+        rcount = diff + 1
         if optest == 0x6df0:
             mnem = 'stm'
             opers = (
-                    H8RegMultiOper(rn, diff+1),
+                    H8RegMultiOper(rn, rcount),
                     H8RegIndirOper(REG_SP, tsize, va, 0, OF_PREDEC),
                     )
 
@@ -685,7 +686,7 @@ def p_01(va, val, buf, off, tsize):
             mnem = 'ldm'
             opers = (
                     H8RegIndirOper(REG_SP, tsize, va, 0, OF_POSTINC),
-                    H8RegMultiOper(rn, diff+1),
+                    H8RegMultiOper(rn-diff, rcount),
                     )
 
         else:
