@@ -65,7 +65,7 @@ main_table[0x08] = (False, 'add', p_Rs_Rd, 1, IF_B)
 main_table[0x09] = (False, 'add', p_Rs_Rd, 2, IF_W)
 main_table[0x0c] = (False, 'mov', p_Rs_Rd, 1, IF_B)
 main_table[0x0d] = (False, 'mov', p_Rs_Rd, 2, IF_W)
-main_table[0x0e] = (False, 'addx', p_Rs_Rd, 1, IF_B)
+main_table[0x0e] = (False, 'addx', p_Rs_Rd, 1, 0)
 
 main_table[0x14] = (False, 'or', p_Rs_Rd, 1, IF_B)
 main_table[0x15] = (False, 'xor', p_Rs_Rd, 1, IF_B)
@@ -97,7 +97,7 @@ main_table[0x54] = (False, 'rts', None, 0, IF_RET | IF_NOFALL)   # 5470
 main_table[0x55] = (False, 'bsr', p_disp8, 0, IF_CALL)
 main_table[0x56] = (False, 'rte', None, 0, IF_RET | IF_NOFALL)   # 5670
 main_table[0x57] = (False, 'trapa', p_i2, 0, IF_NOFALL)
-main_table[0x58] = (False, 'error', p_disp16, 2, IF_BRANCH | IF_COND) # p_BccDoubles, 0, 0)
+main_table[0x58] = (False, 'error', p_disp16, 2, 0)
 main_table[0x59] = (False, 'jmp', p_aERn,  0, IF_BRANCH | IF_NOFALL)
 main_table[0x5a] = (False, 'jmp', p_aAA24, 0, IF_BRANCH | IF_NOFALL)
 main_table[0x5b] = (False, 'jmp', p_aaAA8, 0, IF_BRANCH | IF_NOFALL)
@@ -116,15 +116,15 @@ main_table[0x72] = (False, 'bclr', p_i3_Rd, 1, 0)
 main_table[0x63] = (False, 'btst', p_Rn_Rd, 1, 0)
 main_table[0x73] = (False, 'btst', p_i3_Rd, 1, 0)
 
-main_table[0x64] = (False, 'or', p_Rs_Rd, 1, IF_W)
-main_table[0x65] = (False, 'xor', p_Rs_Rd, 1, IF_W)
-main_table[0x66] = (False, 'and', p_Rs_Rd, 1, IF_W)
+main_table[0x64] = (False, 'or', p_Rs_Rd, 2, IF_W)
+main_table[0x65] = (False, 'xor', p_Rs_Rd, 2, IF_W)
+main_table[0x66] = (False, 'and', p_Rs_Rd, 2, IF_W)
 
 main_table[0x67] = (False, 'bitdoubles', p_Bit_Doubles, 0, 0)
 
 main_table[0x68] = (False, 'mov', p_68_69_6e_6f, 1, IF_B)
 main_table[0x69] = (False, 'mov', p_68_69_6e_6f, 2, IF_W)
-main_table[0x6a] = (False, 'mov', p_Mov_6A, 1, IF_B)
+main_table[0x6a] = (False, 'mov', p_Mov_6A, 1, 0)
 main_table[0x6b] = (False, 'mov', p_Mov_6A, 2, IF_W)
 #main_table[0x6c] = (False, 'mov', p_Mov_6C, 1, IF_B)
 #main_table[0x6d] = (False, 'mov', p_Mov_6C, 2, IF_W)
@@ -150,7 +150,7 @@ for opbyte in range(0x80, 0x90):
     main_table[opbyte] = (False, 'add', p_i8_Rd, 1, IF_B)
 
 for opbyte in range(0x90, 0xa0):
-    main_table[opbyte] = (False, 'addx', p_i8_Rd, 1, IF_B)
+    main_table[opbyte] = (False, 'addx', p_i8_Rd, 1, 0)
 
 for opbyte in range(0xa0, 0xb0):
     main_table[opbyte] = (False, 'cmp', p_i8_Rd, 1, IF_B)

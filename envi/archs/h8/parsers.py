@@ -7,12 +7,12 @@ from regs import *
 from const import *
 
 bcc = [
-        ('bt', envi.IF_NOFALL | envi.IF_BRANCH),
-        ('bf',  envi.IF_BRANCH | envi.IF_COND),
+        ('bra', envi.IF_NOFALL | envi.IF_BRANCH),
+        ('brn', envi.IF_BRANCH | envi.IF_COND),
         ('bhi', envi.IF_BRANCH | envi.IF_COND),
         ('bls', envi.IF_BRANCH | envi.IF_COND),
-        ('bhs', envi.IF_BRANCH | envi.IF_COND),
-        ('blo', envi.IF_BRANCH | envi.IF_COND),
+        ('bcc', envi.IF_BRANCH | envi.IF_COND),
+        ('bcs', envi.IF_BRANCH | envi.IF_COND),
         ('bne', envi.IF_BRANCH | envi.IF_COND),
         ('beq', envi.IF_BRANCH | envi.IF_COND),
         ('bvc', envi.IF_BRANCH | envi.IF_COND),
@@ -58,7 +58,7 @@ def p_aAA8_Rd(va, val, buf, off, tsize):
 
     opers = (
             H8RegDirOper(Rd, tsize, va, 0),
-            H8AbsAddrOper(aAA8),
+            H8AbsAddrOper(aAA8, tsize, aasize=1),
             )
     return (op, None, opers, iflags, 2)
 
@@ -70,7 +70,7 @@ def p_Rs_aAA8(va, val, buf, off, tsize):
     aAA8 = val & 0xf
 
     opers = (
-            H8AbsAddrOper(aAA8),
+            H8AbsAddrOper(aAA8, tsize, aasize=1),
             H8RegDirOper(Rs, tsize, va, 0),
             )
     return (op, None, opers, iflags, 2)
@@ -125,7 +125,7 @@ def p_i3_aAA8(va, val, buf, off, tsize):
 
     opers = (
             H8ImmOper(i3, tsize),
-            H8AbsAddrOper(aa),
+            H8AbsAddrOper(aa, tsize, aasize=1),
             )
     return (op, None, opers, iflags, 4)
 
@@ -359,7 +359,7 @@ def p_Rn_aAA8(va, val, buf, off, tsize):
 
     opers = (
             H8RegDirOper(Rn, tsize, va, 0),
-            H8AbsAddrOper(aAA8),
+            H8AbsAddrOper(aAA8, tsize, aasize=1),
             )
     return (op, None, opers, iflags, 4)
 
@@ -383,7 +383,7 @@ def p_aAA24(va, val, buf, off, tsize):
     aAA24 = ((val&0xf) << 16) | val2
 
     opers = (
-            H8AbsAddrOper(aAA24),
+            H8AbsAddrOper(aAA24, tsize, aasize=3),
             )
     return (op, None, opers, iflags, 4)
 
@@ -402,10 +402,10 @@ def p_disp8(va, val, buf, off, tsize):
     # bcc, bsr
     iflags = 0
     op = val >> 8
-    disp8 = e_bits.signed(val & 0xff, 1)
+    disp8 = e_bits.signed(val & 0xfe, 1)
 
     opers = (
-            H8PcOffsetOper(disp8, va),
+            H8PcOffsetOper(disp8, va, 1),
             )
     return (op, None, opers, iflags, 2)
 
@@ -415,7 +415,7 @@ def p_disp16(va, val, buf, off, tsize):
 
     iflags = 0
     op = val
-    disp16 = e_bits.signed(val2, 2)
+    disp16 = e_bits.signed(val2 & 0xfffffe, 2)
     
     mnem = None
     if (op & 0xf00 == 0x800):
@@ -423,7 +423,7 @@ def p_disp16(va, val, buf, off, tsize):
         mnem, iflags = bcc[opnibble]
 
     opers = (
-            H8PcOffsetOper(disp16, va),
+            H8PcOffsetOper(disp16, va, 2),
             )
     return (op, mnem, opers, iflags, 4)
 
@@ -437,7 +437,7 @@ def p_Rs_aAA16(va, val, buf, off, tsize):
 
     opers = (
             H8RegDirOper(Rs, tsize, va),
-            H8AbsAddrOper(aAA16),
+            H8AbsAddrOper(aAA16, tsize, aasize=2),
             )
     return (op, None, opers, iflags, 4)
 
@@ -451,7 +451,7 @@ def p_Rs_aAA24(va, val, buf, off, tsize):
 
     opers = (
             H8RegDirOper(Rs, tsize, va),
-            H8AbsAddrOper(aAA24),
+            H8AbsAddrOper(aAA24, tsize, aasize=3),
             )
     return (op, None, opers, iflags, 6)
 
@@ -464,7 +464,7 @@ def p_aAA16_Rd(va, val, buf, off, tsize):
     aAA16 = val2
 
     opers = (
-            H8AbsAddrOper(aAA16),
+            H8AbsAddrOper(aAA16, tsize, aasize=2),
             H8RegDirOper(Rd, tsize, va),
             )
     return (op, None, opers, iflags, 4)
@@ -478,7 +478,7 @@ def p_aAA24_Rd(va, val, buf, off, tsize):
     aAA16 = val2 & 0xffffff
 
     opers = (
-            H8AbsAddrOper(aAA16),
+            H8AbsAddrOper(aAA16, tsize, aasize=2),
             H8RegDirOper(Rd, tsize, va),
             )
     return (op, None, opers, iflags, 6)
@@ -490,19 +490,6 @@ def p_nooperands(va, val, buf, off, tsize):
 
     opers = tuple()
     return (op, None, opers, iflags, 2)
-
-def _p_BccDoubles(va, vak, buf, off, tsize):
-    # Bcc
-    disp, = struct.unpack('>H', buf[off+2: off+4])
-    op = val
-
-    opnibble = (val>>4) & 0xf
-    mnem, iflags = bcc[opnibble]
-
-    opers = (
-            H8PcOffsetOper(),
-            )
-    return (op, mnem, opers, iflags, 4)
 
 bit_dbles = [
         ('error', 0),
@@ -589,17 +576,17 @@ def p_01(va, val, buf, off, tsize):
                 if val2 & 0x80:
                     # a
                     erd = val2 & 7
-                    aa  = val3 & 0xfff
+                    aa  = val3 & 0xffff
                     opers = (
                             H8RegDirOper(erd, tsize, va),
-                            H8AbsAddrOper(aa),
+                            H8AbsAddrOper(aa, tsize, aasize=2),
                             )
                 else:
                     # 2
                     ers = val2 & 7
-                    aa  = val3 & 0xfff
+                    aa  = val3 & 0xffff
                     opers = (
-                            H8AbsAddrOper(aa),
+                            H8AbsAddrOper(aa, tsize, aasize=2),
                             H8RegDirOper(ers, tsize, va),
                             )
             else:
@@ -611,14 +598,14 @@ def p_01(va, val, buf, off, tsize):
                     aa  = val3 & 0xff
                     opers = (
                             H8RegDirOper(erd, tsize, va),
-                            H8AbsAddrOper(aa),
+                            H8AbsAddrOper(aa, tsize, aasize=1),
                             )
                 else:
                     # 0
                     ers = val2 & 7
                     aa  = val3 & 0xff
                     opers = (
-                            H8AbsAddrOper(aa),
+                            H8AbsAddrOper(aa, tsize, aasize=1),
                             H8RegDirOper(ers, tsize, va),
                             )
 
@@ -749,12 +736,14 @@ def p_01(va, val, buf, off, tsize):
                 if val2 & 0x20:
                     aa, = struct.unpack(">I", buf[off+4:off+8])
                     isz = 8
+                    aasize = 3
                 else:
                     aa, = struct.unpack(">H", buf[off+4:off+6])
                     isz = 6
+                    aasize = 2
                 isStc = (val2>>7) & 1
                 opers = (
-                        H8AbsAddrOper(aa),
+                        H8AbsAddrOper(aa, tsize, aasize),
                         H8RegDirOper(REG_CCR + exr, 4, va)
                         )
 
@@ -961,18 +950,18 @@ def p_Mov_6A(va, val, buf, off, tsize):
             return p_aAA16_Rd(va, val, buf, off, tsize)
 
         elif val in (0x6a10, 0x6a18, 0x6a30, 0x6a38):
-            isz, fmt = (None, (6,'>HH'),None,(8,'>IH'))[(val>>4)&3]
+            isz, aasize, fmt = (None, (6,2,'>HH'),None,(8,4,'>IH'))[(val>>4)&3]
 
             aa, val2 = struct.unpack(fmt, buf[off+2:off+isz])
             table = (bit_dbles, bit_dble7df)[(val>>3)&1]
-            op, mnem, iflags = getBitDbl_OpMnem(val2, table)
+            op, mnem, niflags = getBitDbl_OpMnem(val2, table)
             i3 = (val2>>4) & 7
 
             opers = (
                     H8ImmOper(i3, tsize),
-                    H8AbsAddrOper(aa, tsize),
+                    H8AbsAddrOper(aa, tsize, aasize),
                     )
-            return op, mnem, opers, iflags, isz
+            return op, mnem, opers, 0, isz
 
         else:
             raise envi.InvalidInstruction(bytez=buf[off:off+16], va=va)
@@ -1172,7 +1161,7 @@ def p_7e(va, val, buf, off, tsize):
         rn = (val2>>4) & 0xf
         opers = (
                 H8RegDirOper(rn, tsize, va, 0),
-                H8AbsAddrOper(aa, tsize=tsize),
+                H8AbsAddrOper(aa, tsize=tsize, aasize=1),
                 )
 
     elif telltale == 0x73:
@@ -1181,7 +1170,7 @@ def p_7e(va, val, buf, off, tsize):
         i3 = (val2>>4) & 0x7
         opers = (
                 H8ImmOper(i3, tsize),
-                H8AbsAddrOper(aa, tsize=tsize),
+                H8AbsAddrOper(aa, tsize=tsize, aasize=1),
                 )
 
     elif 0x78 > telltale > 0x73:
@@ -1191,7 +1180,7 @@ def p_7e(va, val, buf, off, tsize):
 
         opers = (
                 H8ImmOper(i3, tsize),
-                H8AbsAddrOper(aa, tsize=tsize),
+                H8AbsAddrOper(aa, tsize=tsize, aasize=1),
                 )
     else:
         raise envi.InvalidInstruction(bytez=buf[off:off+16], va=va)

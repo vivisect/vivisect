@@ -423,9 +423,13 @@ class H8AbsAddrOper(H8Operand):
     '''
     Absolute address [@aa:8, @aa:16, or @aa:24]
     '''
-    def __init__(self, aa, tsize=1):
+    def __init__(self, aa, tsize=1, aasize=2):
+        if aa & 0xffff00 == 0:
+            aa |= 0xffff00
+
         self.aa = aa
         self.tsize = tsize
+        self.aasize = aasize
 
     def __eq__(self, oper):
         if not isinstance(oper, self.__class__):
@@ -453,12 +457,13 @@ class H8AbsAddrOper(H8Operand):
         if mcanv.mem.isValidPointer(self.aa):
             name = addrToName(mcanv, self.aa)
             mcanv.addVaText(name, self.aa)
+            mcanv.addText(':%d' % (8*self.aasize))
         else:
-            aa = '0x%.4x' % self.aa
+            aa = '0x%.4x:%d' % (self.aa, 8*self.aasize)
             mcanv.addVaText(aa, self.aa)
 
     def repr(self, op):
-        return '@0x%x' % self.aa
+        return '@0x%x:%d' % (self.aa, 8*self.aasize)
 
 class H8ImmOper(envi.ImmedOper, H8Operand):
     '''
@@ -558,9 +563,10 @@ class H8PcOffsetOper(H8Operand):
     H8ImmOper but for Branches, not a dereference.  perhaps we can have H8ImmOper do all the things... but for now we have this.
     Program-counter relative [@(d:8,PC) or @(d:16,PC)]
     '''
-    def __init__(self, val, va):
+    def __init__(self, val, va, aasize):
         self.va = va
         self.val = val
+        self.aasize = aasize
 
     def __eq__(self, oper):
         ''' unfixed '''
@@ -569,6 +575,8 @@ class H8PcOffsetOper(H8Operand):
         if self.val != oper.val:
             return False
         if self.va != oper.va:
+            return False
+        if self.aasize != oper.aasize:
             return False
         return True
 
@@ -589,12 +597,13 @@ class H8PcOffsetOper(H8Operand):
         if mcanv.mem.isValidPointer(value):
             name = addrToName(mcanv, value)
             mcanv.addVaText(name, value)
+            mcanv.addText(':%d' % (8 * self.aasize))
         else:
-            mcanv.addVaText('%.4x' % value, value)
+            mcanv.addVaText('%.4x:%d' % (value, 8 * self.aasize), value)
 
     def repr(self, op):
         targ = self.getOperValue(op)
-        tname = "#%.4x" % targ
+        tname = "#%.4x:%d" % (targ, 8 * self.aasize)
         return tname
 
 
