@@ -492,12 +492,12 @@ def p_nooperands(va, val, buf, off, tsize):
 
 # 60-67, 70-77, 7d, 7f, 7c, 7e  (converge?)
 bit_dbles = [
-        ('error', 0),
-        ('error', 0),
-        ('error', 0),
-        ('error', 0),
-        ('error', 0),
-        ('error', 0),
+        ('bset', 0),
+        ('bset', 0),
+        ('bnot', 0),
+        ('bnot', 0),
+        ('bclr', 0),
+        ('bclr', 0),
         ('btst', 0),
         ('bist', 0),
         ('bor', 0),
@@ -1203,7 +1203,7 @@ def p_7d(va, val, buf, off, tsize):
     op |= ((val & 0xff80)<<9)
 
     erd = (val>>4) & 0x7
-    immreg = (val2>>4) & 0xf
+    immreg = (val2>>4) & 0x7
 
     if val2 & 0x1c00:
         opers = (

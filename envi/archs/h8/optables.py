@@ -120,7 +120,7 @@ main_table[0x64] = (False, 'or', p_Rs_Rd, 2, IF_W)
 main_table[0x65] = (False, 'xor', p_Rs_Rd, 2, IF_W)
 main_table[0x66] = (False, 'and', p_Rs_Rd, 2, IF_W)
 
-main_table[0x67] = (False, 'bitdoubles', p_Bit_Doubles, 0, 0)
+main_table[0x67] = (False, 'bitdoubles', p_Bit_Doubles, 1, 0)
 
 main_table[0x68] = (False, 'mov', p_68_69_6e_6f, 1, IF_B)
 main_table[0x69] = (False, 'mov', p_68_69_6e_6f, 2, IF_W)

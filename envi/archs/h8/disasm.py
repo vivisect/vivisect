@@ -605,7 +605,7 @@ class H8PcOffsetOper(H8Operand):
 
     def repr(self, op):
         targ = self.getOperValue(op)
-        tname = "#%.4x:%d" % (targ, 8 * self.aasize)
+        tname = "%.4x:%d" % (targ, 8 * self.aasize)
         return tname
 
 
