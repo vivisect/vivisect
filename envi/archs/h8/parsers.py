@@ -489,6 +489,8 @@ def p_nooperands(va, val, buf, off, tsize):
     opers = tuple()
     return (op, None, opers, iflags, 2)
 
+
+# 60-67, 70-77, 7d, 7f, 7c, 7e  (converge?)
 bit_dbles = [
         ('error', 0),
         ('error', 0),
@@ -496,7 +498,7 @@ bit_dbles = [
         ('error', 0),
         ('error', 0),
         ('error', 0),
-        ('bst', 0),
+        ('btst', 0),
         ('bist', 0),
         ('bor', 0),
         ('bior', 0),
@@ -504,13 +506,32 @@ bit_dbles = [
         ('bixor', 0),
         ('band', 0),
         ('biand', 0),
-        ('bld', 0),
-        ('bild', 0),
+        ('bst', 0),
+        ('bist', 0),
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
         ]
+bit_dbles.extend(bit_dbles)
+bit_dbles[0x2e] = ('bld', 0)
+bit_dbles[0x2f] = ('bild', 0)
 
 def getBitDbl_OpMnem(val, bitlist=bit_dbles):
     op = val >> 7
-    mnem, flags = bitlist[(op & 0x1f)]
+    mnem, flags = bitlist[(op & 0x3f)]
     return op, mnem, flags
 
 def p_Bit_Doubles(va, val, buf, off, tsize):
@@ -970,17 +991,16 @@ def p_6A_6B(va, val, buf, off, tsize):
             table = (bit_dbles, bit_dble7df)[(val>>3)&1]
             op, mnem, niflags = getBitDbl_OpMnem(val2, table)
 
-            diff = val2 >> 8
-            if diff in (0x60, 0x61, 0x62, 0x63):
-                rn = (val2 >> 4) & 0xf
-                opers = (
-                        H8RegDirOper(rn, tsize, va, ),
-                        H8AbsAddrOper(aa, tsize, aasize),
-                        )
-            elif diff in (0x67, 0x70, 0x71, 0x72, 0x73, 0x74, 0x75, 0x76, 0x77):
+            if val2 & 0x1c00:
                 i3 = (val2>>4) & 7
                 opers = (
                         H8ImmOper(i3, tsize),
+                        H8AbsAddrOper(aa, tsize, aasize),
+                        )
+            else:
+                rn = (val2 >> 4) & 0xf
+                opers = (
+                        H8RegDirOper(rn, tsize, va, ),
                         H8AbsAddrOper(aa, tsize, aasize),
                         )
             return op, mnem, opers, 0, isz
@@ -1146,16 +1166,32 @@ bit_dble7df = [
         ('bnot', 0),
         ('bclr', 0),
         ('bclr', 0),
-        None, 
-        None, 
-        None, 
-        None,
-        None, 
-        None, 
-        None, 
-        None,
+        None, # btst
+        None, # btst
+        None, # or
+        None, # or
+        None, # xor
+        None, # xor
+        None, # and
+        None, # and 
         ('bst', 0),
         ('bist', 0),
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
         ]
 bit_dble7df.extend(bit_dble7df)
 
@@ -1169,7 +1205,7 @@ def p_7d(va, val, buf, off, tsize):
     erd = (val>>4) & 0x7
     immreg = (val2>>4) & 0xf
 
-    if val2 & 0x1000:
+    if val2 & 0x1c00:
         opers = (
                 H8ImmOper(immreg, tsize),
                 H8RegIndirOper(erd, tsize, va),
@@ -1226,7 +1262,7 @@ def p_7e(va, val, buf, off, tsize):
     return op, mnem, opers, iflags, 4
 
 def p_7f(va, val, buf, off, tsize):
-    # bset, bnor, bclr
+    # bset, bnor, bclr, bist, bst
     val2, = struct.unpack('>H', buf[off+2: off+4])
 
     op, mnem, iflags = getBitDbl_OpMnem(val2, bit_dble7df)
@@ -1235,7 +1271,7 @@ def p_7f(va, val, buf, off, tsize):
     aa = val & 0xff
     immreg = (val2>>4) & 0x7
 
-    if val2 & 0x1000:
+    if val2 & 0x1c00:
         opers = (
                 H8ImmOper(immreg, tsize),
                 H8AbsAddrOper(aa, tsize, 1),
