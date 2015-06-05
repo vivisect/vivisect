@@ -277,10 +277,11 @@ class H8RegIndirOper(envi.DerefOper, H8Operand):
     Register indirect with post-increment or pre-decrement [@ERn+ or @-ERn]
     '''
 
-    def __init__(self, reg, tsize, va, disp=0, oflags=0):
+    def __init__(self, reg, tsize, va, disp=0, dispsz=0, oflags=0):
         self.va = va
         self.reg = reg
         self.disp = disp
+        self.dispsz = 8 * dispsz
         self.tsize = tsize
         self.oflags = oflags
 
@@ -292,6 +293,8 @@ class H8RegIndirOper(envi.DerefOper, H8Operand):
         if self.disp != oper.disp:
             return False
         if self.oflags != oper.oflags:
+            return False
+        if self.dispsz != oper.dispsz:
             return False
         return True
 
@@ -337,7 +340,7 @@ class H8RegIndirOper(envi.DerefOper, H8Operand):
         rname = self._dis_regctx.getRegisterName(self.reg&RMETA_NMASK)
         mcanv.addText('@')
         if self.disp:
-            mcanv.addText('(0x%x, ' % self.disp)
+            mcanv.addText('(0x%x:%d, ' % (self.disp, self.dispsz))
         if self.oflags & OF_PREDEC:
             mcanv.addText('-')
         mcanv.addNameText(name, name=rname, typename="registers")
@@ -347,12 +350,11 @@ class H8RegIndirOper(envi.DerefOper, H8Operand):
             mcanv.addText(')')
 
     def repr(self, op):
-        ''' unfixed '''
         out = ['@']
         name = self._dis_regctx.getRegisterName(self.reg)
         rname = self._dis_regctx.getRegisterName(self.reg&RMETA_NMASK)
         if self.disp:
-            out.append('(0x%x, ' % self.disp)
+            out.append('(0x%x:%d, ' % (self.disp, self.dispsz))
 
         if self.oflags & OF_PREDEC:
             out.append('-')
@@ -429,7 +431,7 @@ class H8AbsAddrOper(H8Operand):
 
         self.aa = aa
         self.tsize = tsize
-        self.aasize = aasize
+        self.aasize = 8 * aasize
 
     def __eq__(self, oper):
         if not isinstance(oper, self.__class__):
@@ -457,13 +459,13 @@ class H8AbsAddrOper(H8Operand):
         if mcanv.mem.isValidPointer(self.aa):
             name = addrToName(mcanv, self.aa)
             mcanv.addVaText(name, self.aa)
-            mcanv.addText(':%d' % (8*self.aasize))
+            mcanv.addText(':%d' % (self.aasize))
         else:
-            aa = '0x%.4x:%d' % (self.aa, 8*self.aasize)
+            aa = '0x%.4x:%d' % (self.aa, self.aasize)
             mcanv.addVaText(aa, self.aa)
 
     def repr(self, op):
-        return '@0x%x:%d' % (self.aa, 8*self.aasize)
+        return '@0x%x:%d' % (self.aa, self.aasize)
 
 class H8ImmOper(envi.ImmedOper, H8Operand):
     '''

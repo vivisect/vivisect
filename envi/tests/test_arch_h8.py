@@ -18,8 +18,8 @@ instrs = [
         ( "791d4745", 0x4560, 'add.w #4745, e5', IF_W),
         ( "0932", 0x4560, 'add.w r3, r2', IF_W),
         ( "7a1d00047145", 0x4560, 'add.l #47145, er5', IF_L),
-        ( "01406930", 0x4560, 'ldc @er3, ccr', 0),
-        ( "014069b0", 0x4560, 'stc ccr, @er3', 0),
+        ( "01406930", 0x4560, 'ldc.w @er3, ccr', 0),
+        ( "014069b0", 0x4560, 'stc.w ccr, @er3', 0),
         ( "01c05023", 0x4560, 'mulxs.b r2h, r3', IF_B),
         ( "01c05223", 0x4560, 'mulxs.w r2, er3', IF_W),
         ( "01d05123", 0x4560, 'divxs.b r2h, r3', IF_B),
@@ -58,8 +58,8 @@ instrs = [
         ( '01006dd2', 0x4560, 'mov.l er2, @-er5', IF_L),
         ( '6843', 0x4560, 'mov.b @er4, r3h', IF_B),
         ( '68c3', 0x4560, 'mov.b r3h, @er4', IF_B),
-        ( '6ec34715', 0x4560, 'mov.b r3h, @(0x4715, er4)', IF_B),
-        ( '6ecb4715', 0x4560, 'mov.b r3l, @(0x4715, er4)', IF_B),
+        ( '6ec34715', 0x4560, 'mov.b r3h, @(0x4715:16, er4)', IF_B),
+        ( '6ecb4715', 0x4560, 'mov.b r3l, @(0x4715:16, er4)', IF_B),
         ( '01106d75', 0x4560, 'ldm.l @sp+, (er4-er5)', IF_L),
         ( '01106df4', 0x4560, 'stm.l (er4-er5), @-sp', IF_L),
 
@@ -234,9 +234,9 @@ instrs = [
         ( '0B73', 0x28c, 'inc.l #1, er3', IF_L),
         ( '0BF3', 0x28e, 'inc.l #2, er3', IF_L),
         ( '5940', 0x290, 'jmp  @er4', 0),
-        ( '5A047145', 0x292, 'jmp  47145:24', 0),
+        ( '5A047145', 0x292, 'jmp  @0x47145:24', 0),
         ( '5D40', 0x298, 'jsr  @er4', 0),
-        ( '5E047145', 0x29a, 'jsr  47145:24', 0),
+        ( '5E047145', 0x29a, 'jsr  @0x47145:24', 0),
         ( '0740', 0x2a0, 'ldc.b #40, ccr', IF_B),
         ( '01410740', 0x2a2, 'ldc.b #40, exr', IF_B),
         ( '0304', 0x2a6, 'ldc.b r4h, ccr', IF_B),
@@ -406,59 +406,24 @@ instrs = [
 
 class H8InstrTest(unittest.TestCase):
     def test_envi_h8_assorted_instrs(self):
-       global instrs
+        global instrs
 
-       archmod = envi.getArchModule("h8")
+        archmod = envi.getArchModule("h8")
 
-       for bytez, va, reprOp, iflags in instrs:
+        badcount = 0
+        for bytez, va, reprOp, iflags in instrs:
             op = archmod.archParseOpcode(bytez.decode('hex'), 0, va)
             redoprepr = repr(op).replace(' ','').lower()
             redgoodop = reprOp.replace(' ','').lower()
             if redoprepr != redgoodop:
                 #raise Exception("FAILED to decode instr:  %.8x %s - should be: %s  - is: %s" % \
                 print("FAILED to decode instr:  %.8x %s - should be: %s  - is: %s" % \
-                        ( va, bytez, reprOp, repr(op) ) )
+                         ( va, bytez, reprOp, repr(op) ) )
+                badcount += 1
             #self.assertEqual((bytez, redoprepr, op.iflags), (bytez, redgoodop, iflags))
 
+        print "Failed Instruction Count: %d" % badcount
     #FIXME: test emuluation as well.
-
-    def test_idaknow(self):
-        arch = envi.getArchModule('h8')
-        filename='envi/tests/example_h8_instructions.ida-txt'
-        fdata = file(filename).readlines()
-
-        for line in fdata:
-            addr = int(line[4:13], 16)
-            line = line[13:line.find(';')].strip()
-            if len(line) < 65: continue
-            if 'loc_' in line: continue
-            if '---------' in line: continue
-            if '.byte' in line: continue
-            if '.word' in line: continue
-            if '.long' in line: continue
-
-            hextext = line[:65].replace(' ','')
-            hexbytes = hextext.decode('hex')
-            optext = line[65:].replace('0x','').replace('@FFFFFF','@ffff')
-            redoptext = optext.replace(' ','')
-
-            flags = '0'
-            if '.b ' in optext:
-                flags = 'IF_B'
-            if '.w ' in optext:
-                flags = 'IF_W'
-            if '.l ' in optext:
-                flags = 'IF_L'
-            #print "( '%s', 0x%x, '%s', %s)," % (hextext, addr, optext, flags)
-
-
-            op = arch.archParseOpcode(hexbytes,0, addr)
-            redoprepr = repr(op).replace(' ','').replace('0x','')
-            if redoptext != redoprepr:
-                #print "%-20s\t%s\t!=\t%s" % (hextest, op, optext)
-                #print "%-20s\t%s\t!=\t%s" % (hextext, repr(redoprepr), repr(redoptext))
-                pass
-            #self.assertEqual((hextext,redoprepr), (hextext,redoptext))
 
 def generateTestInfo(ophexbytez='6e'):
     h8 = e_h8.H8Module()

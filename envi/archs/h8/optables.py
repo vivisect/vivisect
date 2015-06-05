@@ -55,12 +55,12 @@ main_table[0x1a] = (False, None, p_0a_1a, 0,0)
 main_table[0x1b] = (False, None, p_0b_1b, 0,0)
 main_table[0x1f] = (False, None, p_0f_1f, 0,0)
 
-main_table[0x02] = (False, 'stc', p_CCR_Rd, 1, 0)
-main_table[0x03] = (False, 'ldc', p_Rs_CCR, 1, 0)
+main_table[0x02] = (False, 'stc', p_CCR_Rd, 1, IF_B)
+main_table[0x03] = (False, 'ldc', p_Rs_CCR, 1, IF_B)
 main_table[0x04] = (False, 'orc', p_i8_CCR, 1, 0)
 main_table[0x05] = (False, 'xorc', p_i8_CCR, 1, 0)
 main_table[0x06] = (False, 'andc', p_i8_CCR, 1, 0)
-main_table[0x07] = (False, 'ldc', p_i8_CCR, 1, 0)
+main_table[0x07] = (False, 'ldc', p_i8_CCR, 1, IF_B)
 main_table[0x08] = (False, 'add', p_Rs_Rd, 1, IF_B)
 main_table[0x09] = (False, 'add', p_Rs_Rd, 2, IF_W)
 main_table[0x0c] = (False, 'mov', p_Rs_Rd, 1, IF_B)
@@ -88,8 +88,8 @@ for opbyte in range(16):
     mnem, iflags = bcc[opbyte]
     main_table[0x40 + opbyte] = (False, mnem, p_disp8, 1, iflags)
 
-main_table[0x50] = (False, 'mulxu', p_Rs_Rd, 1, IF_B)
-main_table[0x51] = (False, 'divxu', p_Rs_Rd, 1, IF_B)
+main_table[0x50] = (False, 'mulxu', p_Rs_Rd_mul, 1, IF_B)
+main_table[0x51] = (False, 'divxu', p_Rs_Rd_mul, 1, IF_B)
 main_table[0x52] = (False, 'mulxu', p_Rs_ERd, 2, IF_W)
 main_table[0x53] = (False, 'divxu', p_Rs_ERd, 2, IF_W)
 
@@ -124,14 +124,14 @@ main_table[0x67] = (False, 'bitdoubles', p_Bit_Doubles, 0, 0)
 
 main_table[0x68] = (False, 'mov', p_68_69_6e_6f, 1, IF_B)
 main_table[0x69] = (False, 'mov', p_68_69_6e_6f, 2, IF_W)
-main_table[0x6a] = (False, 'mov', p_Mov_6A, 1, 0)
-main_table[0x6b] = (False, 'mov', p_Mov_6A, 2, IF_W)
+main_table[0x6a] = (False, 'mov', p_6A_6B, 1, 0)
+main_table[0x6b] = (False, 'mov', p_6A_6B, 2, IF_W)
 #main_table[0x6c] = (False, 'mov', p_Mov_6C, 1, IF_B)
 #main_table[0x6d] = (False, 'mov', p_Mov_6C, 2, IF_W)
 main_table[0x6c] = (False, 'mov', p_6c_6d_0100, 1, IF_B)
 main_table[0x6d] = (False, 'mov', p_6c_6d_0100, 2, IF_W)
 main_table[0x6e] = (False, 'mov', p_68_69_6e_6f, 1, IF_B)
-main_table[0x6f] = (False, 'mov', p_68_69_6e_6f, 1, IF_B)
+main_table[0x6f] = (False, 'mov', p_68_69_6e_6f, 2, IF_W)
 
 for opbyte in range(0x74, 0x78):
     main_table[opbyte] = (False, 'bitdoubles', p_Bit_Doubles, 1, 0)
@@ -139,7 +139,7 @@ for opbyte in range(0x74, 0x78):
 main_table[0x78] = (False, 'mov', p_Mov_78, 1, 0)
 main_table[0x79] = (False, 'p79', p_79, 2, IF_W)
 main_table[0x7a] = (False, 'p7a', p_7a, 4, IF_L)
-main_table[0x7b] = (False, 'epmov', p_eepmov, 0, 0)
+main_table[0x7b] = (False, 'eepmov', p_eepmov, 0, 0)
 main_table[0x7c] = (False, '7Cmnem', p_7c, 1, 0)
 main_table[0x7d] = (False, '7Dmnem', p_7d, 1, 0)
 main_table[0x7e] = (False, '7Emnem', p_7e, 1, 0)
@@ -156,7 +156,7 @@ for opbyte in range(0xa0, 0xb0):
     main_table[opbyte] = (False, 'cmp', p_i8_Rd, 1, IF_B)
 
 for opbyte in range(0xb0, 0xc0):
-    main_table[opbyte] = (False, 'subx', p_i8_Rd, 1, IF_B)
+    main_table[opbyte] = (False, 'subx', p_i8_Rd, 1, 0)
 
 for opbyte in range(0xc0, 0xd0):
     main_table[opbyte] = (False, 'or', p_i8_Rd, 1, IF_B)
