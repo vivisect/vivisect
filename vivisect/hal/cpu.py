@@ -37,7 +37,6 @@ def cpuinfo(**kwargs):
     a.update(kwargs)
     return a
 
-
 class Cpu(s_apistack.ApiStack,v_symstate.SymbolikCpu,v_memory.Memory):
     '''
     The Cpu class implements the synthesis of the various machine APIs.
@@ -52,21 +51,22 @@ class Cpu(s_apistack.ApiStack,v_symstate.SymbolikCpu,v_memory.Memory):
         s_apistack.ApiStack.__init__(self)
         v_memory.Memory.__init__(self)
 
-        self._cpu_info = self._init_cpu_info()
+        self._cpu_info = self._initCpuInfo()
         self._cpu_info.update(cpuopts)
 
-        self._cpu_mem = self._init_cpu_mem()
+        self._cpu_mem = self._initCpuMemory()
         self._cpu_regs = None
-        self._cpu_decoder = self._init_cpu_decoder()
+        self._cpu_decoder = self._initCpuDecoder()
 
 
+        self._cpu_locals = CpuLocals(self)
         self._cpu_thread = None
         self._cpu_threads = {}
 
         self._cpu_libs = {}
+        self._cpu_libs_byname = {}
 
-        self._init_threads()
-        self._initCpuEvents()
+        self._initThreads()
 
         # now that we have everything, mix in the symbolik cpu
         v_symstate.SymbolikCpu.__init__(self)
@@ -75,23 +75,80 @@ class Cpu(s_apistack.ApiStack,v_symstate.SymbolikCpu,v_memory.Memory):
         self.symb = v_symstate.StateBuilder(self)
 
         for mmap in cpuopts.get('mmaps',()):
-            self._cpu_mem._init_mmap(mmap)
+            self._cpu_mem.addMemoryMap(mmap)
 
-        # process a few "universal" cpu options
-        #addmap = cpuopts.get('addmap')  # (addr,perm,size) to add memory map
-        #if addmap != None:
-            #mapaddr,mapperm,mapsize = addmap
-            #mmap = self.mem().alloc( mapsize, perm=mapperm, addr=mapaddr )
-            #self.addMemoryMap(mapaddr,mapperm,'addmap',b'\x00' * mapsize)
+    def print(self, msg, **info):
+        '''
+        Fire a cpu:print event to display msg on interactive interfaces.
 
-        #addbytes = cpuopts.get('addbytes')
-        #if addbytes:
-            #mapaddr,mapperm,mapbytes = addbytes
-            ## FIMXE maybe do some page aligning?
-            #self.addMemoryMap(mapaddr,mapperm,'addbytes',mapbytes)
+        Example:
 
-    #def initLib(self, addr, **libinfo):
-    #def finiLib(self, lib):
+            cpu.print('woot!', blah=10)
+
+        '''
+        self.fire('cpu:print', msg=str(msg), **info)
+
+    def error(self, msg, **info):
+        '''
+        Fire a cpu:error event to notify interactive interfaces we have a problem.
+
+        Example:
+
+            try:
+                dostuff( cpu )
+            except Exception as e:
+                cpu.error(e)
+
+        '''
+        self.fire('cpu:error', msg=str(msg), **info)
+
+    def libs(self):
+        '''
+        Returns a list of the loaded libraries in the current Cpu.
+
+        Example:
+
+            for lib in cpu.libs():
+                print('lib: %s' % (lib[1].get('path'),))
+
+        Note:
+
+            * "loaded libraries" includes the main executable image.
+
+        '''
+        return list(self._cpu_libs.values())
+
+    def getLibByName(self, name):
+        '''
+        Return a lib tuple by name.
+
+        Example:
+
+            libc = cpu.getLibByName('c')
+            print('libc at: 0x%.8x' % ( libc[0], ))
+            print('libc path: %s' % ( libc[1].get('path'),))
+
+        '''
+        return self._cpu_libs_byname.get(name)
+
+
+    def eval(self, expr):
+        '''
+        Evaluate an expression containing  regs/symbols/libs.
+
+        Example:
+
+            addr = cpu.eval('kernel32 + eax')
+
+        Notes:
+
+            * returns None on failure to resolve a symbol
+
+        '''
+        try:
+            return eval( expr, {}, self._cpu_locals )
+        except LocalNotFound as e:
+            return None
 
     def getSymBuilder(self):
         '''
@@ -101,21 +158,7 @@ class Cpu(s_apistack.ApiStack,v_symstate.SymbolikCpu,v_memory.Memory):
         '''
         return v_symstate.StateBuilder(self)
 
-    def getCpuInfo(self, prop, default=None):
-        '''
-        Retrieve a value from the cpuinfo dictionary.
-        '''
-        return self._cpu_info.get(name,default)
-
-    def setCpuInfo(self, prop, valu):
-        '''
-        Set a value in the cpuinfo dictionary.
-        '''
-        self._cpu_info[name] = valu
-        self.fire('cpu:info:set', cpu=self, prop=prop, valu=valu)
-        self.fire('cpu:info:set:%s' % prop, cpu=self, valu=valu)
-
-    def _init_cpu_info(self):
+    def _initCpuInfo(self):
         '''
         Initialize a new cpuinfo dict for the CPU.
 
@@ -124,83 +167,98 @@ class Cpu(s_apistack.ApiStack,v_symstate.SymbolikCpu,v_memory.Memory):
         '''
         return cpuinfo()
 
-    #def setThreadInfo(self, tid, prop, valu):
-        #'''
-        #Set a prop:valu key in the info dictionary for the given thread.
-
-        #Example:
-
-            # if we're debugging windows...
-            #cpu.setThreadInfo(tid, 'teb', addr)
-
-        #'''
-        #thread = self._cpu_threads.get(tid)
-        #if thread == None:
-            #raise InvalidThread(tid)
-
-        #thread[1][prop] = valu
-
-    def _init_cpu_decoder(self):
+    def _initCpuDecoder(self):
         return v_disasm.Decoder()
 
-    def _initCpuEvents(self):
-        pass
-
-    def _init_threads(self):
+    def _initThreads(self):
+        # default impl for spinning up initial threads
         for i in range( self._cpu_info.get('threads',1) ):
             thread = tufo(i)
-            self._init_thread(thread)
+            self._initCpuThread(thread)
+
+    def _initLib(self, lib):
+        # initialize an (addr,info) lib tufo
+        lib[1].setdefault('parsed', False)
+
+        self._cpu_libs[ lib[0] ] = lib
+
+        name = lib[1].get('name')
+        if name != None:
+            self._cpu_libs_byname[name] = lib
+
+        return lib
+
+    def _finiLib(self, lib):
+        # tear down an (addr,info) lib tufo
+        self._cpu_libs.pop(lib[0], None)
+
+        name = lib[1].get('name')
+        if name != None:
+            self._cpu_libs_byname.pop(name, None)
+
+        return lib
 
     def __getattr__(self, name):
 
         ret = self._cpu_regs.get(name)
-
-        # act like our regs/mem if requested...
-        #ret = getattr(self._cpu_regs,name,None)
         if ret != None:
             return ret
-
-        #ret = getattr(self._cpu_mem,name,None)
-        #if ret != None:
-            #return ret
 
         raise AttributeError(name)
 
     def __getitem__(self, key):
         if isinstance(key,slice):
-            return self._cpu_mem.peek(key.start,key.stop-key.start)
+            return self._cpu_mem.readMemory(key.start,key.stop-key.start)
         return self._cpu_regs.get(key)
 
     def __setitem__(self, key, val):
         if isinstance(key,slice):
-            return self._cpu_mem.poke(key.start,val)
+            return self._cpu_mem.writeMemory(key.start,val)
         return self._cpu_regs.set(key,val)
 
-    #def mem(self):
-        #return self._cpu_mem
 
-    def reg(self, name, valu=None):
+    def getReg(self, name):
         '''
-        Get/Set a register (by name) for the current Cpu thread.
+        Get a register (by name) for the current Cpu thread.
 
         Example:
 
-            eax = cpu.reg('eax')
-            cpu.reg('eax', eax + 20)
+            eax = cpu.getReg('eax')
 
         '''
-        if valu != None:
-            return self._cpu_regs.set(name,valu)
-
         return self._cpu_regs.get(name)
 
-    def sizeof(self, name):
+    def setReg(self, name, valu):
         '''
-        Return the size of a register for the current Cpu thread.
+        Set a register (by name) for the current Cpu thread.
 
         Example:
 
-            width = cpu.sizeof('ebx')
+            eax = cpu.getReg('eax')
+            cpu.setReg('eax', eax + 20)
+
+        '''
+        return self._cpu_regs.set(name,valu)
+
+    def setRegsKw(self, **regs):
+        '''
+        Syntax sugar for setting several registers as once by kwargs.
+
+        Example:
+
+            cpu.setRegsKw(eax=20,ebx=30)
+
+        '''
+        for name,valu in regs.items():
+            self.setReg(name,valu)
+
+    def getRegSize(self, name):
+        '''
+        Return the size (in bits) of a register for the current Cpu.
+
+        Example:
+
+            width = cpu.getRegSize('ebx')
 
         '''
         return self._cpu_regs.sizeof(name)
@@ -229,39 +287,44 @@ class Cpu(s_apistack.ApiStack,v_symstate.SymbolikCpu,v_memory.Memory):
 
     # memory wrapper API
 
-    def _mem_peek(self, addr, size):
-        return self._cpu_mem.peek(addr,size)
+    def _readMemory(self, addr, size):
+        return self._cpu_mem.readMemory(addr,size)
 
-    def _mem_poke(self, addr, byts):
-        return self._cpu_mem.poke(addr,byts)
+    def _writeMemory(self, addr, byts):
+        return self._cpu_mem.writeMemory(addr,byts)
 
-    def _mem_mmaps(self):
-        return self._cpu_mem.mmaps()
+    def _getMemoryMaps(self):
+        return self._cpu_mem.getMemoryMaps()
 
-    def _mem_mmap(self, addr):
-        return self._cpu_mem.mmap(addr)
+    def _getMemoryMap(self, addr):
+        return self._cpu_mem.getMemoryMap(addr)
 
-    def _mem_alloc(self, size, **info):
-        return self._cpu_mem.alloc(size, **info)
+    def _allocMemory(self, size, **info):
+        return self._cpu_mem.allocMemory(size, **info)
 
-    def _mem_free(self, addr):
-        return self._cpu_mem.free(addr)
+    def _freeMemory(self, addr):
+        return self._cpu_mem.freeMemory(addr)
 
-    def _init_cpu_mem(self):
+    def _addMemoryMap(self, mmap):
+        return self._cpu_mem.addMemoryMap(mmap)
+
+    def _delMemoryMap(self, mmap):
+        return self._cpu_mem.delMemoryMap(mmap)
+
+    def _initCpuMemory(self):
         return v_memory.Memory()
 
-
-    def _init_regs(self):
+    def _initCpuRegs(self):
         regdef = self._cpu_info.get('regdef')
         regs = v_regs.Registers(regdef)
         regs.link( self )
         return regs
 
-    def _init_thread(self, thread):
+    def _initCpuThread(self, thread):
         tid,info = thread
 
         if info.get('regs') == None:
-            info['regs'] = self._init_regs()
+            info['regs'] = self._initCpuRegs()
 
         if info.get('mem') == None:
             info['mem'] = self._cpu_mem
@@ -276,7 +339,7 @@ class Cpu(s_apistack.ApiStack,v_symstate.SymbolikCpu,v_memory.Memory):
 
     def thread(self, tid=None):
         '''
-        Retrieve the thread tuple (tid,tinfo) for the current or specified thread.
+        Retrieve the thread tuple (tid,info) for the current or specified thread.
 
         Example:
 
@@ -299,16 +362,17 @@ class Cpu(s_apistack.ApiStack,v_symstate.SymbolikCpu,v_memory.Memory):
         '''
         return list(self._cpu_threads.values())
 
-    def switch(self, tid):
+    def switchThread(self, tid):
         '''
         Switch the Cpu context to the specified thread by id.
 
         Example:
 
-            cpu.switch(tid)
+            cpu.switchThread(tid)
 
             # get eax from thread id "tid"
-            eax = cpu.reg('eax')
+
+            eax = cpu.getReg('eax')
 
         '''
         thread = self._cpu_threads.get(tid)
@@ -320,57 +384,55 @@ class Cpu(s_apistack.ApiStack,v_symstate.SymbolikCpu,v_memory.Memory):
 
     def _cpu_setthread(self, thread):
         self._cpu_thread = thread
-
         self._cpu_mem = thread[1].get('mem')
         self._cpu_regs = thread[1].get('regs')
 
-    def snapshot(self):
+    def getCpuSnap(self):
         '''
         Return an opaque "snapshot" for the CPU which can later be restored.
 
         Example:
 
-            cpu.reg('eax', 10)
-            cpu.alloc(4096, addr=0x41410000)
+            cpu.setReg('eax', 10)
+            cpu.initMemoryMap(0x41410000, 4096)
 
-            snap = cpu.snapshot()
+            snap = cpu.getCpuSnap()
 
-            cpu.poke( 0x41410000, b'VISI' )
-            cpu.reg('eax', 20)
+            cpu.writeMemory( 0x41410000, b'VISI' )
+            cpu.setReg('eax', 20)
 
-            cpu.restore(snap)
+            cpu.setCpuSnap(snap)
 
             # eax is back to 10 and bytes at 0x41410000 are reverted
 
         '''
         regs = self._cpu_regs.save()
-        mem = self._cpu_mem.snapshot()
+        mem = self._cpu_mem.getMemorySnap()
         return {'mem':mem,'regs':regs}
 
-    def restore(self, snap):
+    def setCpuSnap(self, snap):
         '''
-        Restore CPU state from a snapshot from snapshot()
+        Restore CPU state from a snapshot from getCpuSnap()
 
         Notes:
 
-            * see Cpu.snapshot() for examples/notes
+            * see Cpu.getCpuSnap() for examples/notes
 
         '''
         self._cpu_regs.load( snap.get('regs') )
-        self._cpu_mem.restore( snap.get('mem') )
+        self._cpu_mem.setMemorySnap( snap.get('mem') )
 
     def disasm(self, addr, **disinfo):
         '''
         Decode in instruction *tuple* from the given addr.
         ( see cpu.instr() to get an Instr object )
 
-        Returns:
-            (mnem,opers,info) or None
-
         Example:
+
             i = cpu.disasm(0x41410000)
+
         '''
-        offset,bytez = self._cpu_mem.mbuf(addr)
+        offset,bytez = self._cpu_mem.getMemBuf(addr)
 
         inst = self._cpu_decoder.parse(bytez,offset=offset,addr=addr,**disinfo)
         if inst == None:
@@ -384,8 +446,45 @@ class Cpu(s_apistack.ApiStack,v_symstate.SymbolikCpu,v_memory.Memory):
 
         return self.instrclass(self,inst)
 
+class LibLocals(int):
+
+    def _set_cpu_lib(self, cpu, lib):
+        self.cpu = cpu
+        self.lib = lib
+
+    def __getattr__(self, name):
+        libname = self.lib[1].get('name')
+        sym = self.cpu.libsym(libname, name)
+        return sym[1].get('addr')
+
+class CpuLocals:
+    '''
+    A dictionary like object for use in expression evaluation.
+    '''
+    def __init__(self, cpu):
+        self.cpu = cpu
+
+    def __getitem__(self, name):
+
+        reg = self.cpu.getReg(name)
+        if reg != None:
+            return reg
+
+        lib = self.cpu.getLibByName(name)
+        if lib != None:
+            loc = LibLocals(lib[0])
+            loc._set_cpu_lib(self.cpu, lib)
+            return loc
+
+        meth = getattr(self.cpu, name, None)
+        if meth != None:
+            return meth
+
+        raise LocalNotFound(name)
+
 class UnknownArch(Exception):pass
 class InvalidThread(Exception):pass
+class LocalNotFound(Exception):pass
 
 cpuctors = {}
 def addArchCpu(name,callback):
@@ -404,6 +503,7 @@ def addArchCpu(name,callback):
     Notes:
 
         * arch "variants" should be named <arch>.<exten>
+          ( ex, addArchCpu('i386.realmode', RealModeCpu ) )
 
     '''
     cpuctors[name] = callback
@@ -422,7 +522,7 @@ def getArchList():
     '''
     return cpuctors.items()
 
-def getArchCpu(name, **opts):
+def getArchCpu(name, **info):
     '''
     Construct a Cpu class for the given architecture by name.
 
@@ -434,11 +534,11 @@ def getArchCpu(name, **opts):
 
     Notes:
 
-        * extended **opts are passed to Cpu constructor.
+        * extended **info are passed to Cpu constructor.
 
     '''
     ctor = cpuctors.get(name)
     if ctor == None:
         raise UnknownArch(name)
-    return ctor(**opts)
+    return ctor(**info)
 

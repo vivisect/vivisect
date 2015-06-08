@@ -3,6 +3,7 @@ import socket
 import unittest
 import threading
 
+import synapse.server as s_server
 import synapse.lib.socket as s_socket
 import synapse.event.dist as s_evtdist
 
@@ -36,14 +37,22 @@ class SocketTest(unittest.TestCase):
         sock1.close()
         sock2.close()
 
-    def test_socket_server(self):
+    def test_socket_server_pool(self):
+        srv = s_server.SynServer(('127.0.0.1',0), pool=10)
+        self._runServUnit(srv)
 
+    def test_socket_server_threads(self):
+        srv = s_server.SynServer(('127.0.0.1',0))
+        self._runServUnit(srv)
+
+    def _runServUnit(self, srv):
         evtshut = threading.Event()
         evtsrvshut = threading.Event()
         testdata = {}
-        def onmsg(event):
-            testdata['msg'] = event[1].get('msg')
-            event[1]['sock'].sendall(b'qwer')
+
+        def onwoot(sock,msg):
+            testdata['msg'] = msg[0]
+            sock.firemsg('qwer')
 
         def onshut(event):
             testdata['shut'] = True
@@ -53,34 +62,37 @@ class SocketTest(unittest.TestCase):
             testdata['srvshut'] = True
             evtsrvshut.set()
 
-        srv = s_socket.Server(('127.0.0.1',0))
+        def onconn(event):
+            testdata['conn'] = True
 
-        srv.on('sock:msg',onmsg)
-        srv.on('sock:shut',onshut)
-        srv.on('serv:shut',srvshut)
+        srv.synServOn('sock:shut',onshut)
+        srv.synServOn('serv:shut',srvshut)
+        srv.synServOn('sock:conn',onconn)
+        srv.synServMeth('woot', onwoot)
 
         sockaddr = srv.synRunServer()
 
         sock = s_socket.Socket()
         sock.connect(sockaddr)
-        sock.emit('woot')
+        sock.firemsg('woot')
 
-        qwer = sock.recvall(4)
+        qwer = sock.recvmsg()[0]
 
         sock.close()
 
         if not evtshut.wait(1):
             raise Exception('evtshut timeout!')
 
-        self.assertEqual(qwer,b'qwer')
+        self.assertEqual(qwer,'qwer')
 
-        srv.fini()
+        srv.synFiniServer()
 
         if not evtsrvshut.wait(1):
             raise Exception('evtsrvshut timeout!')
 
         self.assertEqual(testdata.get('msg'),'woot')
         self.assertTrue(testdata.get('shut'))
+        self.assertTrue(testdata.get('conn'))
         self.assertTrue(testdata.get('srvshut'))
 
     def test_socket_plex(self):
@@ -104,7 +116,7 @@ class SocketTest(unittest.TestCase):
 
         sock = s_socket.Socket(s1)
 
-        sock.emit( 'foo' )
+        sock.sendmsg( 'foo' )
         if not e.wait(1):
             raise Exception('timeout on sock:msg')
 
@@ -142,7 +154,7 @@ class SocketTest(unittest.TestCase):
 
         e.clear()
 
-        sock.emit('woot')
+        sock.sendmsg('woot')
         if not e.wait(1):
             raise Exception('waiting sock:msg')
 

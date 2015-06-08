@@ -1,3 +1,5 @@
+import collections
+
 import vertex.model as v_model
 
 import synapse.lib.common as s_common
@@ -6,11 +8,280 @@ import synapse.event.dist as s_evtdist
 import vivisect.hal.cpu as v_cpu
 import vivisect.lib.bits as v_bits
 import vivisect.hal.memory as v_memory
-import vivisect.lib.bexfile as v_bexfile
+import vivisect.lib.binfile as v_binfile
 import vivisect.lib.pagelook as v_pagelook
+
+from vertex.lib.common import tufo
+
+def ldict():
+    return collections.defaultdict(list)
 
 class VivError(Exception):pass
 class VivNoSuchFile(VivError):pass
+
+class VivFile:
+    '''
+    A VivFile contains knowledge of a single file.
+    '''
+    def __init__(self, store, filemd5):
+        self.store = store
+        self.filemd5 = filemd5
+
+        self.locsbyprop = collections.defaultdict( ldict )
+        self.refsbyprop = collections.defaultdict( ldict )
+
+        self.locsbyra = {}          # addr:(addr,info)
+        self.refsbydef = {}         # (src,type,dst):((src,type,dst),info)
+        self.refsbysrc = ldict()    # src:[ ((src,type,dst),info), ... ]
+        self.refsbydst = ldict()    # dst:[ ((src,type,dst),info), ... ]
+
+        self.evtbus = s_evtdist.EventDist()
+        self.evtbus.on('loc:add', self._slot_addLoc )
+        self.evtbus.on('loc:del', self._slot_delLoc )
+        self.evtbus.on('loc:prop:set', self._slot_setLocProp )
+        self.evtbus.on('loc:prop:del', self._slot_delLocProp )
+
+        self.evtbus.on('ref:add', self._slot_addRef )
+        self.evtbus.on('ref:del', self._slot_delRef )
+        self.evtbus.on('ref:prop:set', self._slot_setRefProp )
+        self.evtbus.on('ref:prop:del', self._slot_delRefProp )
+
+        #self.evtstor = store.getFileEventStore(filemd5)
+        #self.evtstor.synLoadAndStore( self.evtbus )
+
+    def getLocByAddr(self, addr, add=False):
+        '''
+        Return a location tuple (addr,info) by relative address.
+        '''
+        loc = self.locsbyra.get(addr)
+        if loc == None and add:
+            self.evtbus.fire('loc:add', addr=addr)
+            loc = self.locsbyra.get(addr)
+        return loc
+
+    def getLocsByProp(self, prop, valu=None):
+        '''
+        Return a list of location tuples (addr,info) by prop[=valu].
+        '''
+        if valu == None:
+            p = self.locsbyprop.get(prop)
+            if p == None:
+                return ()
+
+            ret = []
+            [ ret.extend( locs ) for locs in p.values() ]
+            return ret
+
+        p = self.locsbyprop.get(prop)
+        if p == None:
+            return ()
+
+        return p.get(valu,())
+
+    def getBinFile(self):
+        '''
+        Return the vivisect.lib.binfile.BinFile object.
+        '''
+        pass
+
+    def getRefsByProp(self, prop, valu=None):
+        if valu == None:
+            p = self.refsbyprop.get(prop)
+            if p == None:
+                return ()
+
+            ret = []
+            [ ret.extend( refs ) for refs in p.values() ]
+            return ret
+
+        p = self.refsbyprop.get(prop)
+        if p == None:
+            return ()
+
+        return p.get(valu,())
+
+    def getRefsBySrc(self, addr):
+        '''
+        Retrieve a list of ( (src,rtype,dst), info ) tuples by src.
+        '''
+        return self.refsbysrc.get( addr, () )
+
+    def getRefsByDst(self, addr):
+        '''
+        Retrieve a list of ( (src,rtype,dst), info ) tuples by dst.
+        '''
+        return self.refsbydst.get( addr, () )
+
+    def getRefByDef(self, src, reftype, dst, add=False):
+        '''
+        Return a ref tuple ( (src,reftype,dst), info ) by src:type:dst uniqness.
+
+        Example:
+
+            ref = vf.getRefByDef( addr1, 'code', addr2 )
+            vf.setRefProp(ref,'woot',30)
+
+        '''
+        rdef = (src,reftype,dst)
+        ref = self.refsbydef.get(rdef)
+        if ref == None and add:
+            self.evtbus.fire('ref:add', rdef=rdef)
+            ref = self.refsbydef.get(rdef)
+        return ref
+
+    def setLocProp(self, loc, prop, valu):
+        oldval = loc[1].get(prop)
+        self.evtbus.fire('loc:prop:set', addr=loc[0], prop=prop, valu=valu, oldval=oldval)
+
+    def setRefProp(self, ref, prop, valu):
+        '''
+        Set a property on on a ref to the given value.
+
+        Example:
+
+            vf.setRefProp(ref, prop, valu)
+
+        '''
+        oldval = ref[1].get(prop)
+        self.evtbus.fire('ref:prop:set', rdef=ref[0], prop=prop, valu=valu, oldval=oldval)
+
+    def delLocProp(self, loc, prop):
+        '''
+        Delete a property from the given location tuple.
+
+        Example:
+
+            vf.delLocProp(loc, prop)
+
+        '''
+        oldval = loc[1].get(prop)
+        self.evtbus.fire('loc:prop:del', addr=loc[0], prop=prop, oldval=oldval)
+
+    def delLoc(self, loc):
+        '''
+        Delete a location.
+
+        Example:
+
+            vf.delLoc(loc)
+
+        '''
+        addr = loc[0]
+        for prop,valu in loc[1].items():
+            self.evtbus.fire('loc:prop:del', addr=addr, prop=prop, oldval=valu)
+        self.evtbus.fire('loc:del', addr=addr)
+
+    def delRefProp(self, ref, prop):
+        '''
+        Delete a property from the given ref tuple.
+
+        Example:
+
+            vf.delRefProp(ref,prop)
+
+        '''
+        self.evtbus.fire('ref:prop:del', rdef=ref[0], prop=prop, oldval=oldval)
+
+    def _slot_addLoc(self, event):
+        addr = event[1].get('addr')
+        self.locsbyra[addr] = (addr,{})
+
+    def _slot_addRef(self, event):
+        rdef = event[1].get('rdef')
+
+        ref = ( rdef, {} )
+        self.refsbydef[ rdef ] = ref
+        self.refsbysrc[ rdef[0] ].append( ref )
+        self.refsbydst[ rdef[2] ].append( ref )
+
+    def _slot_setLocProp(self, event):
+        evt,evtinfo = event
+        addr = evtinfo.get('addr')
+        prop = evtinfo.get('prop')
+        valu = evtinfo.get('valu')
+
+        loc = self.locsbyra.get(addr)
+        self.locsbyprop[prop][valu].append(loc)
+        loc[1][prop] = valu
+
+    def _slot_delLoc(self, event):
+        addr = event[1].get('addr')
+        self.locsbyra.pop(addr,None)
+
+    def _slot_delLocProp(self, event):
+        evt,evtinfo = event
+
+        addr = evtinfo.get('addr')
+        prop = evtinfo.get('prop')
+
+        loc = self.locbyra.get(addr)
+
+        valu = loc[1].pop(prop,None)
+        if valu == None:
+            return valu
+
+        vdict = self.locsbyprop[prop]
+        locs = vdict[valu]
+
+        locs.remove(loc)
+        if not locs:
+            vdict.pop(valu,None)
+
+        if not vdict:
+            self.locsbyprop.pop(prop,None)
+
+        return valu
+
+    def _slot_setRefProp(self, event):
+        evt,evtinfo = event
+        rdef = evtinfo.get('rdef')
+        prop = evtinfo.get('prop')
+        valu = evtinfo.get('valu')
+        ref = self.refsbydef.get(rdef)
+        self.refsbyprop[prop][valu].append(ref)
+        ref[1][prop] = valu
+
+    def delRef(self, ref):
+        '''
+        Delete a ref from the VivFile.
+
+        Example:
+
+            vf.delRef(ref)
+
+        '''
+        rdef = ref[0]
+        for prop,valu in ref[1].items():
+            self.evtbus.fire('ref:prop:del', rdef=rdef, prop=prop, oldval=valu)
+        self.evtbus.fire('ref:del', rdef=rdef)
+
+    def _slot_delRef(self, event):
+        rdef = event[1].get('rdef')
+        src,rtype,dst = rdef
+
+        ref = self.refsbydef.pop(rdef,None)
+        self.refsbysrc[src].remove(ref)
+        self.refsbydst[dst].remove(ref)
+
+    def _slot_delRefProp(self, event):
+        evt,evtinfo = event
+        rdef = evtinfo.get('rdef')
+        prop = evtinfo.get('prop')
+
+        ref = self.refsbydef.get(rdef)
+        valu = ref[1].get(prop)
+
+        vdict = self.refsbyprop[prop]
+        refs = vdict[valu]
+
+        refs.remove( ref )
+        if not refs:
+            vdict.pop(valu,None)
+
+        if not vdict:
+            self.refsbyprop.pop(prop,None)
+
+        ref[1].pop(prop,None)
 
 class VivView(v_memory.Memory):
     '''
@@ -31,7 +302,7 @@ class VivView(v_memory.Memory):
     def __init__(self, vw, pagesize=4096):
         v_memory.Memory.__init__(self)
         self.vw = vw
-        self.pages = v_pagelook.PageLook(pagesize=pagesize)
+        #self.pages = v_pagelook.PageLook(pagesize=pagesize)
 
     def addrToFileAddr(self, addr):
         '''
@@ -46,13 +317,14 @@ class VivView(v_memory.Memory):
             fa = vv.addToFileAddr(0x41414100)
             # do fileaddr specific stuff...
         '''
-        maptup = self.pages.get(addr)
-        if maptup == None:
+        mmap = self.getMemoryMap(addr)
+        if mmap == None:
             return None
 
-        fh,ba = maptup
-        ra = addr - ba
-        return (fh,ra)
+        maddr,msize,mperm,minfo = mmap
+
+        ra = addr - minfo.get('baseaddr')
+        return (minfo.get('filehash'), ra)
 
     def formFileAddr(self, addr):
         '''
@@ -120,12 +392,24 @@ class VivView(v_memory.Memory):
 
         # FIXME deconflict collisions
 
-        filename = v_bits.b2h(filehash)
+        path = v_bits.b2h(filehash)
 
-        for ra,perms,bytez in self.vw.getFileMaps(filehash):
-            maptup = (filehash,baseaddr)
-            self.pages.put( baseaddr + ra, len(bytez), maptup)
-            self.addMemoryMap( baseaddr + ra, perms, filename, bytez )
+        for m in self.vw.getFileMaps(filehash):
+
+            ra = m[0]
+            init = m[1].get('init')
+            size = m[1].get('size',len(init))
+            perm = m[1].get('perm',v_memory.MM_RWX)
+
+            addr = baseaddr + ra
+
+            info = {
+                'init':init,
+                'path':path,
+                'baseaddr':baseaddr,
+                'filehash':filehash,
+            }
+            mmap = self.initMemoryMap(addr, size, perm, **info)
 
         # FIXME apply relocations!
 
@@ -143,7 +427,13 @@ class VivWorkspace(v_model.GraphModel):
     def __init__(self, **config):
         v_model.GraphModel.__init__(self)
 
+
         self.runinfo = {}   # used for non-persistant runtime info
+        self.binfiles = {}  # BinFile instances for loaded files
+        self.byteblobs = {} # <md5>:<bytes>
+
+        # register an event for binary blobs in the graph storage layer
+        self.graph.store.on('viv:savebytes', self._viv_savebytes )
 
         self.initModelNoun('config')
 
@@ -181,6 +471,16 @@ class VivWorkspace(v_model.GraphModel):
             prop = 'config:%s' % key
             if node[1].get(prop) != val:
                 node = self.setNodeProp(node,prop,val)
+
+    def _viv_savebytes(self, event):
+        md5 = event[1].get('md5')
+        byts = event[1].get('bytes')
+        info = event[1].get('info',{})
+
+        bf = v_binfile.getBinFile(byts, **info)
+
+        self.binfiles[md5] = bf
+        self.byteblobs[md5] = byts
 
     def runVivAnalyze(self, filehash=None):
         '''
@@ -259,48 +559,86 @@ class VivWorkspace(v_model.GraphModel):
         node = self.formNodeByNoun('config','viv')
         return self.setNodeProp(node,'config:%s' % key, val)
 
-    def loadBexFile(self, bex):
+    #def loadFileBytes(self, byts):
+
+    def loadBinFd(self, fd, **info):
+        byts = fd.read()
+        bf = v_binfile.getBinFile(byts, **info)
+        return self.loadBinFile(bf)
+
+    #def loadBinFilePath(self, path):
+        #fd = open(path,'rb')
+        #return self.loadBinFd(fd, path=path)
+
+    def loadFileBytes(self, byts, **info):
         '''
-        Load a binary executable file into the vivisect workspace.
+        Load a binary file into the workspace from python bytes.
+
+        Example:
+
+            byts = open('foo.exe','rb').read()
+            viv.loadFileBytes(byts)
+
+        Notes:
+
+            * **info kwargs are passed to getFile()
+
         '''
-        md5 = bex.md5()
+        bf = v_binfile.getFile(byts, **info)
+        return self.loadBinFile(bf)
+
+    def loadBinFile(self, bf):
+        '''
+        Load a BinFile into the vivisect workspace.
+
+        Notes:
+
+            * See vivisect.lib.binfile for creating a BinFile instance.
+              ( or use loadBinFd )
+
+        '''
+        md5 = bf.getMd5()
 
         props = {}
-        props['file:arch']      = bex.arch()
-        props['file:path']      = bex.path()
-        props['file:size']      = bex.filesize()
-        props['file:format']    = bex.format()
-        props['file:platform']  = bex.platform()
-        props['file:baseaddr']  = bex.baseaddr()
-        props['file:libname']  = bex.libname()
+        props['file:arch']      = bf.getArch()
+        props['file:size']      = bf.getSize()
+        props['file:format']    = bf.getFormat()
+        props['file:libname']   = bf.getLibName()
+        props['file:platform']  = bf.getPlatform()
+        props['file:baseaddr']  = bf.getBaseAddr()
+
+        props['file:path']      = bf.getInfo('path')
 
         node = self.formNodeByNoun('file',md5,**props)
 
         # do we already have a default arch?
         if self.getVivConfig('arch') == None:
-            self.setVivConfig('arch',bex.arch())
+            self.setVivConfig('arch',bf.getArch())
 
-        for ra,perms,bytez in bex.memmaps():
-            props = {'filemap:perms':perms,'filemap:bytes':bytez}
+        byts = bf.getBytes()
+        self.graph.store.fire('viv:savebytes', md5=md5, bytes=byts)
+
+        for mmap in bf.getMemoryMaps():
+            ra = mmap[0]
+            perm = mmap[1].get('perm')
+            init = mmap[1].get('init')
+
+            props = {'filemap:perm':perm,'filemap:init':init}
             mapnode = self.formNodeByNoun('filemap',(md5,ra),**props)
 
-        for ra,name,etype in bex.exports():
+        for ra,name,etype in bf.getExports():
             self.addFileEntry( (md5,ra), etype=etype )
             if name != None:
                 # FIXME MAKE SYMBOLS AND NAMES
                 pass
 
-        for ra,rtype,rinfo in bex.relocs():
+        for ra,rtype,rinfo in bf.getRelocs():
             self.addFileReloc( (md5,ra), rtype, **rinfo )
 
-        # FIXME give the bexfile impl a shot at it
+        # FIXME give the binfile impl a shot at it
         self.fire('viv:file:loaded', filehash=md5)
 
         return md5
-
-    def loadFileFd(self, fd):
-        bex = v_bexfile.getBexFile(fd)
-        return self.loadBexFile(bex)
 
     def getFileNode(self, filehash):
         '''
@@ -389,7 +727,10 @@ class VivWorkspace(v_model.GraphModel):
             arch = self.getVivConfig('arch')
 
         cpu = v_cpu.getArchCpu(arch,**opts)
-        cpu.setCpuMem( view )
+
+        for mmap in view.getMemoryMaps():
+            cpu.addMemoryMap(mmap)
+
         return cpu
 
     def getVivView(self, basemaps=None):
@@ -450,14 +791,14 @@ class VivWorkspace(v_model.GraphModel):
 
     def getFileMaps(self, filehash):
         '''
-        Return a list of (ra,perms,bytes) tuples for the a file by hash.
+        Return a list of (ra,perm,bytes) tuples for the a file by hash.
         '''
         ret = []
         for node in self.getNodesByProp('filemap:file',valu=filehash):
             ra = node[1].get('filemap:ra')
-            perms = node[1].get('filemap:perms')
-            bytez = node[1].get('filemap:bytes')
-            ret.append( (ra,perms,bytez) )
+            perm = node[1].get('filemap:perm')
+            init = node[1].get('filemap:init')
+            ret.append( tufo(ra, perm=perm, init=init) )
         return ret
 
     #def getFileSyms(self, filehash):
@@ -475,8 +816,8 @@ class VivWorkspace(v_model.GraphModel):
     def _ctor_filemap(self, noun, valu, **props):
         props['filemap:ra'] = valu[1]
         props['filemap:file'] = valu[0]
-        props.setdefault('filemap:perms',0)
-        props.setdefault('filemap:bytes',b'')
+        props.setdefault('filemap:perm',0)
+        props.setdefault('filemap:init',b'')
         return self._ctor_node(noun, valu, **props)
 
     def _ctor_fileaddr(self, noun, valu, **props):

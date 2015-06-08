@@ -15,10 +15,10 @@ badmem_perms = {
 
 class WinTrace(v_trace.Trace):
 
-    def _init_trace_handlers(self):
-        self.targbus.on('target:win:exception', self._slot_win_exception)
+    def _initTraceLocals(self):
+        self.on('target:win:exception', self._onWinException)
 
-    def _slot_win_exception(self, event):
+    def _onWinException(self, event):
         code = event[1].get('code')
         addr = event[1].get('addr')
         params = event[1].get('params')
@@ -27,7 +27,7 @@ class WinTrace(v_trace.Trace):
 
             if self.proc[1].get('firststop') == None:
                 self.proc[1]['firststop'] = True
-                self.tracebus.fire('trace:ready')
+                self.fire('proc:ready')
                 return
 
             # check for addr is at breakpoint!
@@ -44,14 +44,14 @@ class WinTrace(v_trace.Trace):
         elif code == EXCEPTION_ILLEGAL_INSTRUCTION:
             signorm = tufo('badinst')
 
-        self.targbus.fire('target:signal', signo=code, signorm=signorm, exinfo=exinfo)
+        self.fire('proc:signal', signo=code, signorm=signorm, exinfo=exinfo)
 
 class I386WinTrace(WinTrace,v_i386_cpu.I386Cpu):
 
-    def _init_trace_cpu(self):
+    def _initTraceMixins(self):
         v_i386_cpu.I386Cpu.__init__(self,threads=0)
 
 class Amd64WinTrace(WinTrace,v_amd64_cpu.Amd64Cpu):
 
-    def _init_trace_cpu(self):
+    def _initTraceMixins(self):
         v_amd64_cpu.Amd64Cpu.__init__(self,threads=0)

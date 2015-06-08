@@ -1,5 +1,10 @@
+import os
+import socket
+import getpass
+
 import synapse.lib.queue as s_queue
 import synapse.lib.threads as s_threads
+import vivisect.lib.thishost as v_thishost
 
 from vertex.lib.common import tufo
 
@@ -21,12 +26,48 @@ class DebugTarget:
     '''
 
     def __init__(self, **info):
+
         self._tgt_info = info
-        self._tgt_procs = {}
+        self._tgt_traces = {}
         self._tgt_extapis = {}
 
         self._tgt_pidq = {}
         self._tgt_pidt = {}
+
+    def getDebugInfo(self):
+        '''
+        Retrieve the initial info for the Debugger info dict.
+
+        By Convention:
+
+        pid     - the pid of the DebugTarget
+        user    - the user the debugger is running as
+        host    - the host name of the DebugTarget
+        path    - the current dir of the DebugTarget
+        '''
+        info = {
+            'pid':os.getpid(),
+            'user':getpass.getuser(),
+            'host':socket.gethostname(),
+            'path':os.path.abspath( os.curdir ),
+
+            'arch':v_thishost.get('arch'),
+            'format':v_thishost.get('format'),
+            'platform':v_thishost.get('platform'),
+        }
+        return info
+
+    def getTargInfo(self, prop, default=None):
+        '''
+        Retrieve a value from the target info dict.
+        '''
+        return self._tgt_info.get(prop,default)
+
+    def setTargInfo(self, prop, valu):
+        '''
+        Set a value in the DebugTarget info dict.
+        '''
+        self._tgt_info[prop] = valu
 
     def initPidThread(self, pid):
         '''
@@ -52,6 +93,16 @@ class DebugTarget:
         '''
         Helper utility for platforms which require only a single thread
         to call particular debug APIs.
+
+        Example:
+
+            def woot(x):
+                dostuff(x)
+                return 'hi'
+
+            retval = tgt.callPidThread(pid, woot, 10)
+            # retval == 'hi' but was executed in pid thread
+
         '''
         retq = s_threads.getThreadLocal('_pid_retq',s_queue.Queue)
         pidq = self._tgt_pidq.get(pid)
@@ -59,10 +110,10 @@ class DebugTarget:
         pidq.put( (retq,func,args,kwargs) )
 
         ret = retq.get()
-        if not isinstance(ret,Exception):
-            return ret
+        if isinstance(ret,Exception):
+            raise ret
 
-        raise ret
+        return ret
 
     def execPidThread(self, func, *args, **kwargs):
         '''
@@ -99,18 +150,17 @@ class DebugTarget:
     def getFileBytes(self, path):
         return open(path,'rb').read()
 
-    def putFileBytes(self, path, buf):
-        fd = open(path,'wb')
-        fd.write(buf)
-        fd.close()
+    def putFileBytes(self, path, byts):
+        with open(path,'wb') as fd:
+            fd.write( byts )
 
-    def reqProcByPid(self, pid):
-        proc = self._tgt_procs.get(pid)
-        if proc == None:
+    def reqTraceProc(self, pid):
+        info = self._tgt_traces.get(pid)
+        if info == None:
             raise Exception('pid is not attached: %s' % (pid,))
-        return proc
+        return info
 
-    def _init_thread(self, proc, tid, **info):
+    def _initProcThread(self, proc, tid, **info):
         '''
         Initialize a thread tufo for the specified proc.
         ( used only target side )
@@ -119,7 +169,7 @@ class DebugTarget:
         proc[1]['threads'][tid] = thread
         return thread
 
-    def _fini_thread(self, proc, tid):
+    def _finiProcThread(self, proc, tid):
         '''
         Tear down a thread tufo by tid from the specified proc.
         '''
@@ -131,95 +181,103 @@ class DebugTarget:
             raise Exception('tid %d is not valid for pid %d' % (proc[0],tid))
         return thread
 
-    def proc(self, pid):
+    def getProcByPid(self, pid):
         '''
-        Return a proc tufo for a pid *without* attaching.
-        '''
-        return self._proc_forpid(pid)
+        Return a proc tuple (pid,info) for the given pid.
 
-    def attach(self, pid):
-        proc = self._tgt_procs.get(pid)
+        Example:
+
+            proc = tgt.getProcByPid(pid)
+
+        '''
+        return self._getProcByPid(pid)
+
+    def getProcList(self):
+        return self._getProcList()
+
+    def traceAttach(self, pid):
+        proc = self._tgt_traces.get(pid)
         if proc != None:
             raise Exception('pid already attached: %s' % (pid,))
 
-        proc = self._init_proc(pid)
-        return self._proc_attach(proc)
+        proc = self._initTraceProc(pid)
+        return self._traceAttach(proc)
 
-    def kill(self, pid):
-        proc = self.reqProcByPid(pid)
-        return self._proc_kill(proc)
+    def traceExec(self, cmdline, **opts):
+        return self._traceExec(cmdline, **opts)
 
-    def _init_proc(self, pid, **info):
+    def traceKill(self, pid):
+        proc = self.reqTraceProc(pid)
+        return self._traceKill(proc)
+
+    def _initTraceProc(self, pid, **info):
         info['threads'] = {}
         proc = tufo(pid,**info)
-        self._tgt_procs[pid] = proc
+        self._tgt_traces[pid] = proc
         return proc
 
-    def run(self, pid, signo=None):
+    def traceRun(self, pid, signo=None):
         '''
         Run the process until the next debug event.
         '''
-        proc = self.reqProcByPid(pid)
-        return self._proc_run(proc,signo=signo)
+        proc = self.reqTraceProc(pid)
+        return self._traceRun(proc,signo=signo)
 
-    def stop(self, pid):
-        proc = self.reqProcByPid(pid)
-        return self._proc_stop(proc)
+    def traceStop(self, pid):
+        proc = self.reqTraceProc(pid)
+        return self._traceStop(proc)
 
-    def detach(self, pid):
-        proc = self.reqProcByPid(pid)
-        return self._proc_detach(proc,addr,size)
+    def traceDetach(self, pid):
+        proc = self.reqTraceProc(pid)
+        return self._traceDetach(proc,addr,size)
 
-    def peek(self, pid, addr, size):
-        proc = self.reqProcByPid(pid)
-        return self._proc_peek(proc,addr,size)
+    def traceReadMemory(self, pid, addr, size):
+        proc = self.reqTraceProc(pid)
+        return self._traceReadMemory(proc,addr,size)
 
-    def poke(self, pid, addr, mem):
-        proc = self.reqProcByPid(pid)
-        return self._proc_poke(proc,addr,mem)
+    def traceWriteMemory(self, pid, addr, byts):
+        proc = self.reqTraceProc(pid)
+        return self._traceWriteMemory(proc,addr,byts)
 
-    def mmaps(self, pid):
-        proc = self.reqProcByPid(pid)
-        return self._proc_mmaps(proc)
+    def traceGetMemoryMaps(self, pid):
+        proc = self.reqTraceProc(pid)
+        return self._traceGetMemoryMaps(proc)
 
-    def getregs(self, pid, tid):
-        proc = self.reqProcByPid(pid)
+    def traceGetRegs(self, pid, tid):
+        proc = self.reqTraceProc(pid)
         thread = self.reqThreadByTid(proc,tid)
-        return self._proc_getregs(proc, thread)
+        return self._traceGetRegs(proc, thread)
 
-    def setregs(self, pid, tid, regdict):
-        proc = self.reqProcByPid(pid)
+    def traceSetRegs(self, pid, tid, regs):
+        trac = self.reqTraceProc(pid)
         thread = self.reqThreadByTid(proc,tid)
-        self._proc_setregs(proc,thread,regdict)
+        self._traceSetRegs(proc,thread,regs)
 
     # methods for a platform to implement...
 
-    def _proc_forpid(self, pid):
+    def _getProcByPid(self, pid):
         raise ImplementMe()
 
-    def _proc_kill(self, proc):
+    def _traceKill(self, proc):
         raise ImplementMe()
 
-    def _proc_run(self, proc, signo=None):
+    def _traceRun(self, proc, signo=None):
         raise ImplementMe()
 
-    def _proc_getregs(self, proc, tid):
+    def _traceGetRegs(self, proc, tid):
         raise ImplementMe()
 
-    def _proc_setregs(self, proc, thread):
+    def _traceSetRegs(self, proc, thread, regs):
         raise ImplementMe()
 
-    def _proc_mmaps(self, proc):
+    def _traceGetMemoryMaps(self, proc):
         raise ImplementMe()
 
-    def _proc_peek(self, proc, addr, size):
+    def _traceReadMemory(self, proc, addr, size):
         raise ImplementMe()
 
-    def _proc_poke(self, proc, addr, mem):
+    def _traceWriteMemory(self, proc, addr, mem):
         raise ImplementMe()
 
-    def _proc_run(self, proc):
-        raise ImplementMe()
-
-    def _proc_stop(self, proc):
+    def _traceStop(self, proc):
         raise ImplementMe()

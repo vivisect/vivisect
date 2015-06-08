@@ -41,10 +41,10 @@ def i386info():
 
 class I386Cpu(v_cpu.Cpu):
 
-    def _init_cpu_info(self):
+    def _initCpuInfo(self):
         return i386info()
 
-    def _init_cpu_decoder(self):
+    def _initCpuDecoder(self):
         return i386Prot32Decoder(self)
 
     #def _slot_setmode(self, evt, evtinfo):

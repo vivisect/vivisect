@@ -36,12 +36,20 @@ class GraphIndex:
     def test(self, noge, prop, valu, state):
         raise GraphStoreImplementMe()
 
+class GraphUniqIndex(GraphIndex):
+
+    indextype = 'uniq'
+
+    def uniq(self, prop, valu):
+        raise GraphStoreImplementMe()
+
 class GraphStore(s_evtdist.EventDist):
 
     def __init__(self):
         s_evtdist.EventDist.__init__(self)
         self.lock = threading.Lock()    # held by "transactional" APIs
         self._syn_asplode = True    # it's *not* ok for our callbacks to fail *ever*
+        self.defidx = None          # typename of default index
         self.indextypes = {}        # typename = builder
         self.node_indexes = {}      # (prop,name) = indexobj
         self.edge_indexes = {}      # (prop,name) = indexobj
@@ -49,6 +57,22 @@ class GraphStore(s_evtdist.EventDist):
         self.edge_propidx = ldict() # prop = [ index, ... ]
         self.node_indexfree = {}    # node properties that we dont index
         self.edge_indexfree = {}    # edge properties that we dont index
+
+    def setDefIndex(self, indextype):
+        '''
+        Set a default index to be used on properties without declared indexes.
+
+        Example:
+
+            # use the keyval index by default
+            s.setDefIndex('keyval')
+
+        '''
+        ctor = self.indextypes.get(indextype)
+        if ctor == None:
+            raise IndexNotSupported(indextype)
+
+        self.defidx = indextype
 
     def fireStoreEvent(self, evt, **evtinfo):
         evtinfo['time'] = now()
@@ -80,7 +104,7 @@ class GraphStore(s_evtdist.EventDist):
             state = self.implAddNode(node)
             # FIXME make this "unwind" if an index refuses
             for prop,valu in node[1].items():
-                indexes = self.node_propidx.get(prop)
+                indexes = self.getNodeIndexes(prop)
                 if indexes != None:
                     [ i.test(node,prop,valu,state) for i in indexes ]
                     [ i.put(node,prop,valu,state) for i in indexes ]
@@ -95,7 +119,7 @@ class GraphStore(s_evtdist.EventDist):
         with self.lock:
             state = self.implAddEdge(edge)
             for prop,valu in edge[1].items():
-                indexes = self.edge_propidx.get(prop)
+                indexes = self.getEdgeIndexes(prop)
                 if indexes != None:
                     [ i.test(edge,prop,valu,state) for i in indexes ]
                     [ i.put(edge,prop,valu,state) for i in indexes ]
@@ -166,7 +190,7 @@ class GraphStore(s_evtdist.EventDist):
         oldval = node[1].get(prop)
         with self.lock:
             state = self.implNodeState(node)
-            indexes = self.node_propidx.get(prop)
+            indexes = self.getNodeIndexes(prop)
             if indexes != None:
                 [ i.test(node,prop,valu,state) for i in indexes ]
                 if oldval != None:
@@ -181,7 +205,7 @@ class GraphStore(s_evtdist.EventDist):
         oldval = edge[1].get(prop)
         with self.lock:
             state = self.implEdgeState(edge)
-            indexes = self.edge_propidx.get(prop)
+            indexes = self.getEdgeIndexes(prop)
             if indexes != None:
                 [ i.test(edge,prop,valu,state) for i in indexes ]
                 if oldval != None:
@@ -246,6 +270,7 @@ class GraphStore(s_evtdist.EventDist):
         index = ctor(self,prop,info)
         self.node_indexes[idxkey] = index
         self.node_propidx[prop].append( index )
+        return index
 
     def initEdgeIndex(self, prop, indextype='keyval', **info):
         idxkey = (prop,indextype)
@@ -260,6 +285,7 @@ class GraphStore(s_evtdist.EventDist):
         index = ctor(self,prop,info)
         self.edge_indexes[idxkey] = index
         self.edge_propidx[prop].append( index )
+        return index
 
     def addNodeIndex(self, prop, name, index):
         '''
@@ -267,6 +293,21 @@ class GraphStore(s_evtdist.EventDist):
         '''
         self.node_propidx[prop].append(index)
         self.node_indexes[(prop,name)] = index
+
+    def getNodeIndexes(self, prop):
+        '''
+        Retrieve the list of indexes for the given node property.
+        '''
+        ret = self.node_propidx.get(prop)
+        if ret == None and self.defidx != None:
+            ret = [ self.initNodeIndex(prop,self.defidx) ]
+        return ret
+
+    def getEdgeIndexes(self, prop):
+        ret = self.edge_propidx.get(prop)
+        if ret == None and self.defidx != None:
+            ret = [ self.initEdgeIndex(prop,self.defidx) ]
+        return ret
 
     def addEdgeIndex(self, prop, name, index):
         self.edge_propidx[prop].append(index)

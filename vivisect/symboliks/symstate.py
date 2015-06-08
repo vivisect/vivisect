@@ -129,7 +129,7 @@ class StateBuilder:
 
     def __getattr__(self, name):
         if type(name) == str:
-            bits = self.cpu.sizeof(name)
+            bits = self.cpu.getRegSize(name)
             if bits == None:
                 raise UnknownVariable(name)
 
@@ -141,7 +141,7 @@ class StateBuilder:
     def var(self, name, **info):
         bits = info.get('bits')
         if bits == None:
-            info['bits'] = self.cpu.sizeof(name)
+            info['bits'] = self.cpu.getRegSize(name)
         return self.wrap( var(name,**info) )
 
     def imm(self, valu, **info):
@@ -158,7 +158,7 @@ class StateBuilder:
             return imm(x)
 
         if xtype == str:
-            bits = self.cpu.sizeof(x)
+            bits = self.cpu.getRegSize(x)
             if bits != None:
                 return var(x,bits=bits)
 
@@ -247,7 +247,7 @@ class SymbolikCpu:
     def _sym_var_value(self, s):
         name = s[1]
         # NOTE: we assume we're a CPU instance here!
-        valu = self.reg(name)
+        valu = self.getReg(name)
         if valu != None:
             return valu
         return self.ephem.get(name)

@@ -32,3 +32,8 @@ class TestLibBits(unittest.TestCase):
         self.assertEqual( b['a'], 0)
         self.assertEqual( b['b'], 2)
         self.assertEqual( b['c'], 1)
+
+    def test_bits_align(self):
+        self.assertEqual( v_bits.align(b'asdf',4), b'asdf' )
+        self.assertEqual( v_bits.align(b'asdfg',8), b'asdfg\x00\x00\x00' )
+        self.assertEqual( v_bits.align(b'asdfg',8,pad=b'A'), b'asdfgAAA' )

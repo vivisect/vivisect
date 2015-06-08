@@ -24,7 +24,7 @@ def getHostInfo():
     '''
     Retrieve info for vivisect.lib.thishost.
     '''
-    ret = {'platform':'darwin'}
+    ret = {'platform':'darwin','format':'macho'}
 
     u = uname()
 

@@ -1,153 +1,11 @@
 import vivisect.lib.bits as v_bits
-import vivisect.lib.bexfile as v_bexfile
+import vivisect.lib.binfile as v_binfile
 
+from vertex.lib.common import tufo
 from vivisect.hal.memory import MM_READ, MM_WRITE, MM_EXEC
 from vivisect.vstruct.types import *
 
-IMAGE_DLLCHARACTERISTICS_RESERVED_1      = 1
-IMAGE_DLLCHARACTERISTICS_RESERVED_2      = 2
-IMAGE_DLLCHARACTERISTICS_RESERVED_4      = 4
-IMAGE_DLLCHARACTERISTICS_RESERVED_8      = 8
-IMAGE_DLLCHARACTERISTICS_DYNAMIC_BASE    = 0x0040 # The DLL can be relocated at load time.
-IMAGE_DLLCHARACTERISTICS_FORCE_INTEGRITY = 0x0080 # Code integrity checks are forced. If you set this flag and a section contains only uninitialized data, set the PointerToRawData member of IMAGE_SECTION_HEADER for that section to zero; otherwise, the image will fail to load because the digital signature cannot be verified.
-IMAGE_DLLCHARACTERISTICS_NX_COMPAT       = 0x0100 # The image is compatible with data execution prevention (DEP).
-IMAGE_DLLCHARACTERISTICS_NO_ISOLATION    = 0x0200 # The image is isolation aware, but should not be isolated.
-IMAGE_DLLCHARACTERISTICS_NO_SEH          = 0x0400 # The image does not use structured exception handling (SEH). No handlers can be called in this image.
-IMAGE_DLLCHARACTERISTICS_NO_BIND         = 0x0800 # Do not bind the image.
-IMAGE_DLLCHARACTERISTICS_RESERVED_1000   = 0x1000 # Reserved
-IMAGE_DLLCHARACTERISTICS_WDM_DRIVER      = 0x2000 # A WDM driver.
-IMAGE_DLLCHARACTERISTICS_RESERVED_4000   = 0x4000 # Reserved
-IMAGE_DLLCHARACTERISTICS_TERMINAL_SERVER_AWARE  = 0x8000
-
-IMAGE_SUBSYSTEM_UNKNOWN                     = 0 #Unknown subsystem.
-IMAGE_SUBSYSTEM_NATIVE                      = 1 #No subsystem required (device drivers and native system processes).
-IMAGE_SUBSYSTEM_WINDOWS_GUI                 = 2 #Windows graphical user interface (GUI) subsystem.
-IMAGE_SUBSYSTEM_WINDOWS_CUI                 = 3 #Windows character-mode user interface (CUI) subsystem.
-IMAGE_SUBSYSTEM_OS2_CUI                     = 5 #OS/2 CUI subsystem.
-IMAGE_SUBSYSTEM_POSIX_CUI                   = 7 #POSIX CUI subsystem.
-IMAGE_SUBSYSTEM_WINDOWS_CE_GUI              = 9 #Windows CE system.
-IMAGE_SUBSYSTEM_EFI_APPLICATION             = 10 #Extensible Firmware Interface (EFI) application.
-IMAGE_SUBSYSTEM_EFI_BOOT_SERVICE_DRIVER     = 11 #EFI driver with boot services.
-IMAGE_SUBSYSTEM_EFI_RUNTIME_DRIVER          = 12 #EFI driver with run-time services.
-IMAGE_SUBSYSTEM_EFI_ROM                     = 13 #EFI ROM image.
-IMAGE_SUBSYSTEM_XBOX                        = 14 #Xbox system.
-IMAGE_SUBSYSTEM_WINDOWS_BOOT_APPLICATION    = 16 #Boot application.
-
-IMAGE_FILE_MACHINE_I386  = 0x014c
-IMAGE_FILE_MACHINE_IA64  = 0x0200
-IMAGE_FILE_MACHINE_AMD64 = 0x8664
-
-machine_names = {
-    IMAGE_FILE_MACHINE_I386: 'i386',
-    IMAGE_FILE_MACHINE_IA64: 'ia64',
-    IMAGE_FILE_MACHINE_AMD64: 'amd64',
-}
-
-IMAGE_REL_BASED_ABSOLUTE              = 0
-IMAGE_REL_BASED_HIGH                  = 1
-IMAGE_REL_BASED_LOW                   = 2
-IMAGE_REL_BASED_HIGHLOW               = 3
-IMAGE_REL_BASED_HIGHADJ               = 4
-IMAGE_REL_BASED_MIPS_JMPADDR          = 5
-IMAGE_REL_BASED_IA64_IMM64            = 9
-IMAGE_REL_BASED_DIR64                 = 10
-IMAGE_REL_BASED_HIGH3ADJ              = 11
-
-IMAGE_DIRECTORY_ENTRY_EXPORT            = 0   # Export Directory
-IMAGE_DIRECTORY_ENTRY_IMPORT            = 1   # Import Directory
-IMAGE_DIRECTORY_ENTRY_RESOURCE          = 2   # Resource Directory
-IMAGE_DIRECTORY_ENTRY_EXCEPTION         = 3   # Exception Directory
-IMAGE_DIRECTORY_ENTRY_SECURITY          = 4   # Security Directory
-IMAGE_DIRECTORY_ENTRY_BASERELOC         = 5   # Base Relocation Table
-IMAGE_DIRECTORY_ENTRY_DEBUG             = 6   # Debug Directory
-IMAGE_DIRECTORY_ENTRY_COPYRIGHT         = 7   # (X86 usage)
-IMAGE_DIRECTORY_ENTRY_ARCHITECTURE      = 7   # Architecture Specific Data
-IMAGE_DIRECTORY_ENTRY_GLOBALPTR         = 8   # RVA of GP
-IMAGE_DIRECTORY_ENTRY_TLS               = 9   # TLS Directory
-IMAGE_DIRECTORY_ENTRY_LOAD_CONFIG       = 10  # Load Configuration Directory
-IMAGE_DIRECTORY_ENTRY_BOUND_IMPORT      = 11  # Bound Import Directory in headers
-IMAGE_DIRECTORY_ENTRY_IAT               = 12  # Import Address Table
-IMAGE_DIRECTORY_ENTRY_DELAY_IMPORT      = 13  # Delay Load Import Descriptors
-IMAGE_DIRECTORY_ENTRY_COM_DESCRIPTOR    = 14  # COM Runtime descriptor
-
-IMAGE_DEBUG_TYPE_UNKNOWN          = 0
-IMAGE_DEBUG_TYPE_COFF             = 1
-IMAGE_DEBUG_TYPE_CODEVIEW         = 2
-IMAGE_DEBUG_TYPE_FPO              = 3
-IMAGE_DEBUG_TYPE_MISC             = 4
-IMAGE_DEBUG_TYPE_EXCEPTION        = 5
-IMAGE_DEBUG_TYPE_FIXUP            = 6
-IMAGE_DEBUG_TYPE_OMAP_TO_SRC      = 7
-IMAGE_DEBUG_TYPE_OMAP_FROM_SRC    = 8
-IMAGE_DEBUG_TYPE_BORLAND          = 9
-IMAGE_DEBUG_TYPE_RESERVED10       = 10
-IMAGE_DEBUG_TYPE_CLSID            = 11
-
-IMAGE_SCN_CNT_CODE                  = 0x00000020
-IMAGE_SCN_CNT_INITIALIZED_DATA      = 0x00000040
-IMAGE_SCN_CNT_UNINITIALIZED_DATA    = 0x00000080
-IMAGE_SCN_LNK_OTHER                 = 0x00000100
-IMAGE_SCN_LNK_INFO                  = 0x00000200
-IMAGE_SCN_LNK_REMOVE                = 0x00000800
-IMAGE_SCN_LNK_COMDAT                = 0x00001000
-IMAGE_SCN_MEM_FARDATA               = 0x00008000
-IMAGE_SCN_MEM_PURGEABLE             = 0x00020000
-IMAGE_SCN_MEM_16BIT                 = 0x00020000
-IMAGE_SCN_MEM_LOCKED                = 0x00040000
-IMAGE_SCN_MEM_PRELOAD               = 0x00080000
-IMAGE_SCN_ALIGN_1BYTES              = 0x00100000
-IMAGE_SCN_ALIGN_2BYTES              = 0x00200000
-IMAGE_SCN_ALIGN_4BYTES              = 0x00300000
-IMAGE_SCN_ALIGN_8BYTES              = 0x00400000
-IMAGE_SCN_ALIGN_16BYTES             = 0x00500000
-IMAGE_SCN_ALIGN_32BYTES             = 0x00600000
-IMAGE_SCN_ALIGN_64BYTES             = 0x00700000
-IMAGE_SCN_ALIGN_128BYTES            = 0x00800000
-IMAGE_SCN_ALIGN_256BYTES            = 0x00900000
-IMAGE_SCN_ALIGN_512BYTES            = 0x00A00000
-IMAGE_SCN_ALIGN_1024BYTES           = 0x00B00000
-IMAGE_SCN_ALIGN_2048BYTES           = 0x00C00000
-IMAGE_SCN_ALIGN_4096BYTES           = 0x00D00000
-IMAGE_SCN_ALIGN_8192BYTES           = 0x00E00000
-IMAGE_SCN_ALIGN_MASK                = 0x00F00000
-IMAGE_SCN_LNK_NRELOC_OVFL           = 0x01000000
-IMAGE_SCN_MEM_DISCARDABLE           = 0x02000000
-IMAGE_SCN_MEM_NOT_CACHED            = 0x04000000
-IMAGE_SCN_MEM_NOT_PAGED             = 0x08000000
-IMAGE_SCN_MEM_SHARED                = 0x10000000
-IMAGE_SCN_MEM_EXECUTE               = 0x20000000
-IMAGE_SCN_MEM_READ                  = 0x40000000
-IMAGE_SCN_MEM_WRITE                 = 0x80000000
-
-# Flags for the UNWIND_INFO flags field from
-# RUNTIME_FUNCTION defs
-UNW_FLAG_NHANDLER   = 0x0
-UNW_FLAG_EHANDLER   = 0x1
-UNW_FLAG_UHANDLER   = 0x2
-UNW_FLAG_CHAININFO  = 0x4
-
-# Resource Types
-RT_CURSOR           = 1
-RT_BITMAP           = 2
-RT_ICON             = 3
-RT_MENU             = 4
-RT_DIALOG           = 5
-RT_STRING           = 6
-RT_FONTDIR          = 7
-RT_FONT             = 8
-RT_ACCELERATOR      = 9
-RT_RCDATA           = 10
-RT_MESSAGETABLE     = 11
-RT_GROUP_CURSOR     = 12
-RT_GROUP_ICON       = 14
-RT_VERSION          = 16
-RT_DLGINCLUDE       = 17
-RT_PLUGPLAY         = 19
-RT_VXD              = 20
-RT_ANICURSOR        = 21
-RT_ANIICON          = 22
-RT_HTML             = 23
-RT_MANIFEST         = 24
+from vivisect.formats.pe.const import *
 
 class IMAGE_BASE_RELOCATION(VStruct):
 
@@ -173,7 +31,7 @@ class IMAGE_DATA_DIRECTORY(VStruct):
 class IMAGE_DOS_HEADER(VStruct):
     def __init__(self):
         VStruct.__init__(self)
-        self.e_magic    = uint16()
+        self.e_magic    = vbytes(2)
         self.e_cblp     = uint16()
         self.e_cp       = uint16()
         self.e_crlc     = uint16()
@@ -422,6 +280,7 @@ class IMAGE_SECTION_HEADER(VStruct):
         self.NumberOfLineNumbers  = uint16()
         self.Characteristics      = uint32()
 
+secsize = len(IMAGE_SECTION_HEADER())
 
 class IMAGE_RUNTIME_FUNCTION_ENTRY(VStruct):
     """
@@ -476,69 +335,114 @@ ptrmap = {
     IMAGE_FILE_MACHINE_AMD64:8,
 }
 
-class PeBexFile(v_bexfile.BexFile):
+class PeBinFile(v_binfile.BinFile):
 
-    def __init__(self, fd, **kwargs):
-        v_bexfile.BexFile.__init__(self, fd, **kwargs)
-        self._bex_infodoc('pe:dos','An IMAGE_DOS_HEADER vstruct object')
-        self._bex_infodoc('pe:nt','An IMAGE_NT_HEADERS(64) vstruct object')
-        self._bex_infodoc('pe:sections','A list of IMAGE_SECTION_HEADERS vstruct objects')
-        self._bex_infodoc('pe:imports','A list of IMAGE_IMPORT_DIRECTORY vstruct objects')
-        self._bex_infodoc('pe:exports','A tuple of (exports,forwards)')
-        self._bex_infodoc('pe:datadirs','A list of IMAGE_DATA_DIRECTORY vstruct objects')
-        self._bex_infodoc('pe:pdbpath','The PdbFileName from IMAGE_DEBUG_DIRECTORY (or None)')
-        self._bex_infodoc('pe:pdata','A list of (ra,IMAGE_RUNTIME_FUNCTION_ENTRY,UNWIND_INFO) tuples')
+    def __init__(self, fd, **info):
+        info.setdefault('zeromap',4096)
+        v_binfile.BinFile.__init__(self, fd, **info)
 
-    def _bex_sections(self):
+        self.info.addKeyCtor('pe:nt', self._getNtHeader )
+        self.info.addKeyCtor('pe:dos', self._getDosHeader )
+        self.info.addKeyCtor('pe:datadirs', self._getDataDirs )
+
+        self.info.addKeyCtor('pe:relocs', self._getPeRelocs )
+        self.info.addKeyCtor('pe:imports', self._getPeImports )
+        self.info.addKeyCtor('pe:exports', self._getPeExports )
+        self.info.addKeyCtor('pe:pdata', self._getPData )
+        self.info.addKeyCtor('pe:highmask', self._getHighMask )
+
+        self.info.addKeyCtor('pe:pdbpath', self._getPdbPath )
+
+        #self._bin_infodoc('pe:dos','An IMAGE_DOS_HEADER vstruct object')
+        #self._bin_infodoc('pe:nt','An IMAGE_NT_HEADERS(64) vstruct object')
+        #self._bin_infodoc('pe:sections','A list of IMAGE_SECTION_HEADERS vstruct objects')
+        #self._bin_infodoc('pe:imports','A list of IMAGE_IMPORT_DIRECTORY vstruct objects')
+        #self._bin_infodoc('pe:exports','A tuple of (exports,forwards)')
+        #self._bin_infodoc('pe:datadirs','A list of IMAGE_DATA_DIRECTORY vstruct objects')
+        #self._bin_infodoc('pe:pdbpath','The PdbFileName from IMAGE_DEBUG_DIRECTORY (or None)')
+        #self._bin_infodoc('pe:pdata','A list of (ra,IMAGE_RUNTIME_FUNCTION_ENTRY,UNWIND_INFO) tuples')
+
+    def _getSections(self):
+
+        nthdr = self.getInfo('pe:nt')
+        doshdr = self.getInfo('pe:dos')
+
         ret = []
-        for sec in self.info('pe:sections'):
-            if not sec.VirtualAddress:
-                continue
-            ret.append( (sec.VirtualAddress, sec.VirtualSize, sec.Name) )
+
+        count = nthdr.FileHeader.NumberOfSections
+        size = count * secsize
+
+        ra = doshdr.e_lfanew + len(nthdr)
+        headers = list(self.getStructs(self.ra2off(ra), size, IMAGE_SECTION_HEADER))
+
+        for hra,hdr in headers:
+            name = hdr.Name
+            size = hdr.VirtualSize
+            ret.append( (hdr.VirtualAddress, size, name, {'header':hdr}) )
+
         return ret
 
-    def _bex_ra2off(self, ra):
-        for sec in self.info('pe:sections'):
-            if v_bits.within(ra,sec.VirtualAddress,sec.VirtualSize):
-                return sec.PointerToRawData + (ra - sec.VirtualAddress)
+    def _bin_ra2off(self, ra):
+        for addr,size,name,info in self.getSections():
+            if v_bits.within(ra, addr, size):
+                hdr = info.get('header')
+                return hdr.PointerToRawData + (ra - addr)
 
-    def _bex_imports(self):
+    def _getImports(self):
         # normalize lib names for the outer api
         ret = []
-        for ra,lib,func in self.info('pe:imports'):
+        for ra,lib,func in self.getInfo('pe:imports'):
             libname = lib.lower()
             if libname[-4:] in ('.dll','.sys','.ocx','.exe'):
                 libname = libname[:-4]
             ret.append( (ra,libname,func) )
         return ret
 
-    def _bex_bintype(self):
-        datadir = self.info('pe:datadirs')[IMAGE_DIRECTORY_ENTRY_EXPORT]
-        if datadir.VirtualAddress:
+    def _getBinType(self):
+        if self.getPeDataDir(IMAGE_DIRECTORY_ENTRY_EXPORT):
             return 'dyn'
         return 'exe'
 
-    def _bex_info_pe_imports(self):
+    def getPeDataDir(self, idx, minsize=None):
+        '''
+        Retrieve and validate a PE data directory by index.
+        Optionally specify a minimum size for the data directory.
+
+        Example:
+
+            edir = self.getPeDataDir(IMAGE_DIRECTORY_ENTRY_EXPORT)
+
+        '''
+        dirent = self.getInfo('pe:datadirs')[idx]
+        if not dirent.VirtualAddress:
+            return None
+
+        if not dirent.Size:
+            return None
+
+        if minsize != None and dirent.Size < minsize:
+            return None
+
+        return dirent
+
+    def _getPeImports(self):
         ret = []
 
-        impdir = self.info('pe:datadirs')[IMAGE_DIRECTORY_ENTRY_IMPORT]
-        if not impdir.VirtualAddress:
+        impdir = self.getPeDataDir(IMAGE_DIRECTORY_ENTRY_IMPORT)
+        if impdir == None:
             return ()
 
-        if not impdir.Size:
-            return ()
-
-        highmask = self.info('highmask')
+        highmask = self.getInfo('pe:highmask')
 
         ra = impdir.VirtualAddress
         size = impdir.Size
 
-        for ra,imp in self.structs(ra,size,IMAGE_IMPORT_DIRECTORY):
+        for ra,imp in self.getStructs(self.ra2off(ra),size,IMAGE_IMPORT_DIRECTORY):
 
             if not imp.Name:
                 break
 
-            libname = self.asciiAtRaddr(imp.Name, 256)
+            libname = self.ascii(self.ra2off(imp.Name), 256)
             if not libname:
                 break
 
@@ -548,7 +452,7 @@ class PeBexFile(v_bexfile.BexFile):
 
             funcs = []
             while True:
-                ptr = self.ptrAtRaddr(byname)
+                ptr = self.ptrAtRa(byname)
                 if not ptr:
                     break
 
@@ -559,36 +463,36 @@ class PeBexFile(v_bexfile.BexFile):
                     continue
 
                 byn = IMAGE_IMPORT_BY_NAME()
-                buf = self.readAtRaddr(ptr, 130)
+                buf = self.readAtRa(ptr, 130)
                 if not buf:
                     break
 
                 byn.vsParse(buf)
                 ret.append( (byname, libname, byn.Name) )
 
-                byname += self.ptrsize()
+                byname += self.getPtrSize()
 
         return ret
             
-    def _bex_info_pe_pdbpath(self):
+    def _getPdbPath(self):
         return 'FIXME'
 
-    def _bex_exports(self):
+    def _getExports(self):
 
         ret = []
 
-        ra = self.info('pe:nt').OptionalHeader.AddressOfEntryPoint
+        ra = self.getInfo('pe:nt').OptionalHeader.AddressOfEntryPoint
         if ra:
             ret.append( (ra,'__entry','func') )
 
         # FIXME need a forwarders test!
-        exps,fwds = self.info('pe:exports')
+        exps,fwds = self.getInfo('pe:exports')
         for ra,name,ordinal in exps:
             ret.append( (ra,name,'unkn') )
 
         # "pdata" entries are basically exported functions
         # with no names...
-        for ra,ent,unwind in self.info('pe:pdata'):
+        for ra,ent,unwind in self.getInfo('pe:pdata'):
             flags = unwind.VerFlags >> 3
             # FIXME ported from legacy code, revisit
             if not flags & UNW_FLAG_CHAININFO:
@@ -596,11 +500,11 @@ class PeBexFile(v_bexfile.BexFile):
 
         return ret
 
-    def _bex_relocs(self):
-        # translate PE relocs to bex relocs
+    def _getRelocs(self):
+        # translate PE relocs to viv relocs
         ret = []
         # FIXME check on sizing of different relocs
-        for ra,rtype in self.info('pe:relocs'):
+        for ra,rtype in self.getInfo('pe:relocs'):
 
             # ordered by likelyhood
             if rtype == IMAGE_REL_BASED_HIGHLOW:
@@ -622,18 +526,15 @@ class PeBexFile(v_bexfile.BexFile):
                 ret.append( (ra,'ptr',{'pre':True,'size':2,'shr':16}) )
                 continue
 
-            self.anomaly(ra,'pe:reloc:type',rtype=rtype)
+            self.addAnomaly('unknown reloc type: %d' % (rtype,), ra=ra, rtype=rtype)
 
         return ret
 
-    def _bex_info_pe_relocs(self):
+    def _getPeRelocs(self):
 
-        rdir = self.info('pe:datadirs')[IMAGE_DIRECTORY_ENTRY_BASERELOC]
-        if not rdir.VirtualAddress:
-            return ()
-
-        if not rdir.Size:
-            return ()
+        rdir = self.getPeDataDir(IMAGE_DIRECTORY_ENTRY_BASERELOC)
+        if rdir == None:
+            return()
 
         ra = rdir.VirtualAddress
         size = rdir.Size
@@ -643,7 +544,7 @@ class PeBexFile(v_bexfile.BexFile):
         ret = []
 
         # iterate the variably sized IMAGE_BASE_RELOCATION blocks
-        blk = self.struct(ra,IMAGE_BASE_RELOCATION)
+        blk = self.getStruct(self.ra2off(ra), IMAGE_BASE_RELOCATION)
         while blk != None and ra < rmax:
 
             if not blk.VirtualAddress:
@@ -653,7 +554,7 @@ class PeBexFile(v_bexfile.BexFile):
                 break
 
             cls = varray(blk.SizeOfBlock // 4, uint16)
-            blocks = self.struct(ra + len(blk), cls)
+            blocks = self.getStruct(self.ra2off(ra + len(blk)), cls)
             if blocks == None:
                 break
 
@@ -665,22 +566,22 @@ class PeBexFile(v_bexfile.BexFile):
                 ret.append( ( blk.VirtualAddress + off, typ ) )
 
             ra += blk.SizeOfBlock
-            blk = self.struct(ra,IMAGE_BASE_RELOCATION)
+            blk = self.getStruct(self.ra2off(ra),IMAGE_BASE_RELOCATION)
 
         return ret
 
-    def _bex_libname(self):
-        edir = self.info('pe:datadirs')[IMAGE_DIRECTORY_ENTRY_EXPORT]
-        if not edir.VirtualAddress:
-            return v_bexfile.BexFile._bex_libname(self)
+    def _getLibName(self):
+        edir = self.getPeDataDir(IMAGE_DIRECTORY_ENTRY_EXPORT)
+        if edir == None:
+            return None
 
-        exp = self.struct(edir.VirtualAddress,IMAGE_EXPORT_DIRECTORY)
+        exp = self.getStruct(self.ra2off(edir.VirtualAddress),IMAGE_EXPORT_DIRECTORY)
         if exp == None:
-            return Bexfile._bex_libname(self)
+            return None
 
-        dllname = self.asciiAtRaddr(exp.Name, 32)
+        dllname = self.ascii( self.ra2off(exp.Name), 32)
         if dllname == None:
-            return Bexfile._bex_libname(self)
+            return None
 
         dllname = dllname.lower()
         if dllname[-4:] in ('.exe','.dll','.sys','.ocx'):
@@ -688,28 +589,28 @@ class PeBexFile(v_bexfile.BexFile):
 
         return dllname
 
-    def _bex_info_pe_exports(self):
+    def _getPeExports(self):
 
-        edir = self.info('pe:datadirs')[IMAGE_DIRECTORY_ENTRY_EXPORT]
-        if not edir.VirtualAddress:
+        edir = self.getPeDataDir(IMAGE_DIRECTORY_ENTRY_EXPORT)
+        if edir == None:
             return (),()
 
-        exp = self.struct(edir.VirtualAddress,IMAGE_EXPORT_DIRECTORY)
+        exp = self.getStruct(self.ra2off(edir.VirtualAddress), IMAGE_EXPORT_DIRECTORY)
         if exp == None:
             return (),()
 
         ExpArray32 = varray(exp.NumberOfFunctions,uint32)
         ExpArray16 = varray(exp.NumberOfFunctions,uint16)
 
-        funcs = self.struct(exp.AddressOfFunctions, ExpArray32)
+        funcs = self.getStruct(self.ra2off(exp.AddressOfFunctions), ExpArray32)
         if funcs == None:
             return (),()
 
-        names = self.struct(exp.AddressOfNames, ExpArray32)
+        names = self.getStruct(self.ra2off(exp.AddressOfNames), ExpArray32)
         if names == None:
             return (),()
 
-        ords  = self.struct(exp.AddressOfOrdinals, ExpArray16)
+        ords  = self.getStruct(self.ra2off(exp.AddressOfOrdinals), ExpArray16)
         if ords == None:
             return (),()
 
@@ -723,12 +624,12 @@ class PeBexFile(v_bexfile.BexFile):
             func = int(funcs[o])
 
             if ra:
-                name = self.asciiAtRaddr(ra,256)
+                name = self.ascii(self.ra2off(ra),256)
             else:
                 name = 'ord_%.4x' % o
 
             if v_bits.within(func,edir.VirtualAddress,edir.Size):
-                fwdname = self.asciiAtRaddr(func,256)
+                fwdname = self.ascii(self.ra2off(func),256)
                 fwds.append( (func,name,fwdname) )
                 continue
 
@@ -736,68 +637,53 @@ class PeBexFile(v_bexfile.BexFile):
 
         return exps,fwds
 
-    def _bex_baseaddr(self):
-        return self.info('pe:nt').OptionalHeader.ImageBase
+    def _getBaseAddr(self):
+        return self.getInfo('pe:nt').OptionalHeader.ImageBase
 
-    def _bex_memmaps(self):
+    def _getMemoryMaps(self):
         ret = []
-        nthdr = self.info('pe:nt')
+
+        nthdr = self.getInfo('pe:nt')
         major = nthdr.OptionalHeader.MajorSubsystemVersion
         #minor = nthdr.OptionalHeader.MinorSubsystemVersion
 
         # the PE header gets mapped at off=0/ra=0
-        hdrbytes = self.readAtOff(0,4096,exact=False).ljust(4096,b'\x00')
-        ret.append( (0,MM_READ,hdrbytes) )
+        init = self.readAtOff(0,4096,exact=False).ljust(4096,b'\x00')
+        ret.append( tufo(0, perm=MM_READ, init=init) )
 
-        for sec in self.info('pe:sections'):
-            ra      = sec.VirtualAddress
-            rsize   = sec.VirtualSize
-            fsize   = sec.SizeOfRawData
+        for sec in self.getSections():
 
-            perms = 0
+            hdr = sec[3].get('header')
 
-            ch = sec.Characteristics
-            for scn,perm in scnperms:
+            ra      = hdr.VirtualAddress
+            rsize   = hdr.VirtualSize
+            fsize   = hdr.SizeOfRawData
+
+            perm = 0
+
+            ch = hdr.Characteristics
+            for scn,scnperm in scnperms:
                 if ch & scn:
-                    perms |= perm
+                    perm |= scnperm
 
             if major < 6: # FIXME and not resource!
-                perms |= MM_EXEC # may not be NX prior to 6
+                perm |= MM_EXEC # may not be NX prior to 6
 
             size = min(rsize,fsize)
-            buf = self.readAtRaddr(ra,size).ljust(rsize,b'\x00')
-            ret.append( (ra, perms, buf) )
+            init = self.readAtRa(ra,size).ljust(rsize,b'\x00')
+            ret.append( tufo(ra, perm=perm, init=init) )
 
         return ret
 
-    def _bex_info_pe_sections(self):
-        nthdr = self.info('pe:nt')
-        doshdr = self.info('pe:dos')
-
-        ret = []
-
-        off = doshdr.e_lfanew + len(nthdr)
-        for i in range( nthdr.FileHeader.NumberOfSections ):
-            sec = IMAGE_SECTION_HEADER()
-            seclen = len(sec)
-            sec.vsParse( self.readAtOff( off, seclen ) )
-            ret.append( sec )
-            off += seclen
-
-        return ret
-
-    #################################################################
-    # NOTE: for the first 4096 bytes, readAtRadr == readAtOff
-
-    def _bex_info_pe_dos(self):
+    def _getDosHeader(self):
         doshdr = IMAGE_DOS_HEADER()
         doshdr.vsParse( self.readAtOff(0,len(doshdr)) )
         return doshdr
 
-    def _bex_info_pe_nt(self):
+    def _getNtHeader(self):
         nthdr = IMAGE_NT_HEADERS()
 
-        doshdr = self.info('pe:dos')
+        doshdr = self.getInfo('pe:dos')
         nthdr.vsParse( self.readAtOff( doshdr.e_lfanew, len(nthdr) ) )
 
         if nthdr.FileHeader.Machine in ( IMAGE_FILE_MACHINE_AMD64, IMAGE_FILE_MACHINE_IA64 ):
@@ -806,45 +692,39 @@ class PeBexFile(v_bexfile.BexFile):
 
         return nthdr
 
-    def _bex_info_pe_datadirs(self):
-        return [ field for name,field in self.info('pe:nt').OptionalHeader.DataDirectory ]
+    def _getDataDirs(self):
+        return [ field for name,field in self.getInfo('pe:nt').OptionalHeader.DataDirectory ]
 
-    def _bex_arch(self):
-        return archmap.get( self.info('pe:nt').FileHeader.Machine )
+    def _getArch(self):
+        return archmap.get( self.getInfo('pe:nt').FileHeader.Machine )
 
-    def _bex_format(self):
+    def _getFormat(self):
         return 'pe'
 
-    def _bex_platform(self):
+    def _getPlatform(self):
         return 'windows'
 
-    def _bex_ptrsize(self):
-        return ptrmap.get( self.info('pe:nt').FileHeader.Machine )
-
-    def _bex_byteorder(self):
+    def _getByteOrder(self):
         return 'little'
 
-    def _bex_info_highmask(self):
-        return v_bits.signbits[ self.ptrsize() * 8 ]
+    def _getHighMask(self):
+        return v_bits.signbits[ self.getPtrSize() * 8 ]
 
-    def _bex_info_pe_pdata(self):
+    def _getPData(self):
 
-        if not self.arch() == 'amd64':
+        if not self.getArch() == 'amd64':
             return ()
 
-        exdir = self.info('pe:datadirs')[IMAGE_DIRECTORY_ENTRY_EXCEPTION]
-        if not exdir.VirtualAddress:
-            return ()
-
-        if not exdir.Size:
-            return ()
+        exdir = self.getPeDataDir(IMAGE_DIRECTORY_ENTRY_EXCEPTION)
+        if exdir == None:
+            return()
 
         ra = exdir.VirtualAddress
         size = exdir.Size
 
         ret = []
-        for ra,ent in self.structs(ra,size,IMAGE_RUNTIME_FUNCTION_ENTRY):
-            unwind = self.struct(ent.UnwindInfoAddress, UNWIND_INFO)
+        for ra,ent in self.getStructs( self.ra2off(ra) ,size,IMAGE_RUNTIME_FUNCTION_ENTRY):
+            unwind = self.getStruct( self.ra2off(ent.UnwindInfoAddress), UNWIND_INFO)
             if unwind == None:
                 continue
 
@@ -857,9 +737,19 @@ class PeBexFile(v_bexfile.BexFile):
 
         return ret
 
-def isPeFd(fd):
-    # maybe do more here...
-    if fd.read(2) == b'MZ':
+    @staticmethod
+    def isMyFormat(byts):
+
+        dos = IMAGE_DOS_HEADER()
+        dos.vsParse(byts)
+
+        if dos.e_magic != b'MZ':
+            return False
+
+        lfanew = dos.e_lfanew
+        if byts[ lfanew : lfanew + 2 ] != b'PE':
+            return False
+
         return True
 
-v_bexfile.addBexFormat('pe',isPeFd,PeBexFile)
+v_binfile.addBinFormat('pe',PeBinFile)

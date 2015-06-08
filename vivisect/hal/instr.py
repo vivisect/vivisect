@@ -2,9 +2,8 @@ import vivisect.lib.bits as v_bits
 
 class Instr:
     '''
-    HAL Instruction base class.
+    Vivisect HAL Instruction base class.
     '''
-
     def __init__(self, cpu, inst):
         self.cpu = cpu
         self.inst = inst
@@ -62,6 +61,18 @@ class Instr:
 
     #def html(self):
     #def title(self):
+
+    def getRefs(self):
+        '''
+        Return a list of (addr,reftype,addr,info) tuples for refs from here.
+
+        Example:
+
+            for ref in inst.getRefs():
+                print('ref to: 0x%.8x' % (ref[2],))
+
+        '''
+        return self._getRefs()
 
     #def coderefs(self):
     #def datarefs(self):

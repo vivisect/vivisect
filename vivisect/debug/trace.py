@@ -1,47 +1,86 @@
 import vivisect.debug.bases as v_bases
-from vivisect.debug.lib.until import forever
+from vivisect.debug.common import forever
 
 class Trace(v_bases.TraceBase):
     '''
     The Trace class implements the API for debugging a process.
 
+    Traces can operate synchronously or asynchronously to allow both
+    simple scripting as well as non-blocking debugger behavior.
+
+    Trace Events:
+
+            * proc:attach       - the trace has newly attached
+            * proc:ready        - initial attach/loads complete
+
+            * proc:exit         - the trace process has exited
+            * proc:detach       - the trace has detached from process
+
+
+            * trace:break       - the trace hit a break/watch
+            * proc:signal       - the trace detected a signal/exception
+
+            * lib:load          - the trace detected a library load
+            * lib:free          - the trace detected a library free
+
+            * thread:init       - the trace detected a new thread
+            * thread:exit       - the trace detected a thread exit
+
+            * cpu:run           - the trace is about to continue execution
+            * cpu:stop          - the trace is stopping execution
+
+
     Example:
 
-        import vivisect.debug.api as v_dbgapi
+        import vivisect.debug.debugger as v_debugger
 
-        dbg = v_dbgapi.getDebugApi()
-        for proc in dbg.ps():
-            if proc[1].get('name') == 'calc.exe':
+        dbg = v_dbgapi.getDebugger()
+
+        for p in dbg.getProcessList():
+            if p.getProcInfo('name') == 'calc.exe':
+                t = p.getTrace(attach=True)
 
                 trace = dbg.getTraceForProc(proc)
                 # do stuff...
 
+
     '''
-    def attach(self):
+    def attach(self, wait=True):
+        '''
+        Attach the trace to the target process and optionally block.
+
+        Example:
+
+            trace = dbgapi.traceForPid(pid)
+            trace.on('lib:load', dostuff)
+            trace.attach()
+
+            # we are now attached and stopped
+            # ( with initial libs loaded )
+
+        '''
         if self.once:
             raise Exception('Trace object may not be re-used')
 
         self.once = True
-        pid = self.proc[0]
+        self.stopevt.clear()
+        self.runq.put( {'attach':True} )
 
-        # FIXME this belongs in the run loop
-        events = self.target.attach(pid)
-        [ self.targbus.dist(e) for e in events ]
-        self._fireStopEvent()
+        if wait:
+            self.wait()
 
-    def run(self, until=None, wait=False):
+    def run(self, until=None, wait=True):
         '''
         Continue execution for the trace process.
 
         The optional callback "until" will be used to continue
         the process execution loop until the callback returns
-        True.  Specify wait=True to block until execution has
-        ceased.
+        True.  Specify wait=False to enable async/non-blocking.
 
         Example:
 
             def until(trace):
-                return trace.getLibByName('woot') != None
+                return trace.lib('woot') != None
 
             trace.run(until=until,wait=True)
 
@@ -64,7 +103,6 @@ class Trace(v_bases.TraceBase):
         once current run or event callbacks are complete.
 
         def mybreak(event):
-            trace = event[1].get('trace')
             if not thingiwantisready(trace):
                 trace.cont()
 
@@ -75,8 +113,18 @@ class Trace(v_bases.TraceBase):
         self.runinfo['cont'] = True
 
     def stop(self, wait=True):
+        '''
+        Stop (break) the target process and optionally wait for it to fully stop.
+
+        Example:
+
+            trace.stop(wait=True)
+
+            # traced process has stopped executing
+
+        '''
         self._req_state(running=True)
-        self.target.stop( self.proc[0] )
+        self.target.traceStop( self.proc[0] )
         if wait:
             self.wait()
 
@@ -94,34 +142,6 @@ class Trace(v_bases.TraceBase):
         '''
         return self.stopevt.wait(timeout=timeout)
 
-    def print(self, msg, **info):
-        '''
-        Fire a trace:print event to display msg on interactive debuggers.
-
-        Example:
-
-            def onhit(event):
-                trace = event[1].get('trace')
-                trace.print('my break was hit')
-
-            trace.addBreakByAddr(addr, onhit=onhit)
-        '''
-        self.fire('trace:print', msg=msg, **info)
-
-    def error(self, msg, **info):
-        '''
-        Fire a trace:error event to notify debuggers we have a problem.
-
-        Example:
-
-            try:
-                dostuff( trace )
-            except Exception as e:
-                trace.error(e)
-
-        '''
-        self.fire('trace:error', msg=msg, **info)
-
     def setAutoCont(self, evtname, cont=True):
         '''
         Set an events "auto continue" status by name.
@@ -129,7 +149,7 @@ class Trace(v_bases.TraceBase):
         Example:
 
             # do not stop on library load events
-            trace.setAutoCont('trace:lib:load')
+            trace.setAutoCont('lib:load')
 
         '''
         self.autocont[evtname] = cont
@@ -149,7 +169,7 @@ class Trace(v_bases.TraceBase):
               effect trace behavior.
 
         '''
-        return self.autocont
+        return dict(self.autocont)
 
     def setSigIgnore(self, code, ignore=True):
         '''
@@ -183,7 +203,7 @@ class Trace(v_bases.TraceBase):
         '''
         Send the traced process a kill signal and wait for it to exit.
         '''
-        self.target.kill( self.proc[0] )
+        self.target.traceKill( self.proc[0] )
         self.run(until=forever, wait=True)
 
     def addBreakByAddr(self, addr, onhit=None, **info):
@@ -204,6 +224,13 @@ class Trace(v_bases.TraceBase):
             trace.run()
 
         '''
+        info['addr'] = addr
+        info['onhit'] = onhit
+
+        bp = self._bp_init(**info)
+
+        return bp
+
     def addBreakByExpr(self, expr, onhit=None, **info):
         '''
         Add a breakpoint by expression.
@@ -211,6 +238,32 @@ class Trace(v_bases.TraceBase):
         If the expression does not currently evalutate to an address
         the breakpoint will be deferred and evaluation will re-attempted.
         '''
+
+        info['expr'] = expr
+        info['onhit'] = onhit
+
+        bp = self._bp_init(**info)
+        ## if expression is not currently resolved, delay
+        #self.bpdelay[ bp[0] ] = bp
+
+        #self.fire('trace:bp:add', trace=self, bp=bp)
+        return bp
+
+    #def setBreakEnabled(self, bp, enabled=True):
+
+    def delBreakPoint(self, bp):
+        '''
+        Delete a breakpoint by id.
+
+        Example:
+
+            trace.delBreakById( bpid )
+
+
+        '''
+        self._t_breaks.pop( bp[0], None)
+        self.fire('trace:bp:del', trace=self, bp=bp)
+        return bp
 
     def setTraceInfo(self, prop, valu):
         '''
@@ -241,20 +294,19 @@ class Trace(v_bases.TraceBase):
         self.runq.shutdown()
         self.runthr.wait()
 
-    #def getLibs(self):
-    #def getLibByName(
-    #def getLibByAddr(
-
     def isInState(self, **kwargs):
         '''
+        Checks that the trace matches the given states specified in kwargs.
+
+        Example:
+
+            if trace.isInState(attached=True, running=False):
+                dostuff(trace)
+
         '''
         for k,v in kwargs.items():
             s = self.states.get(k)
             if s != v:
                 return False
         return True
-
-    #def detach(self):
-    #def getLibBex(self, 
-
 

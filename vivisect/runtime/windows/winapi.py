@@ -465,7 +465,7 @@ def GetSystemInfo():
 
 def getHostInfo():
 
-    hostinfo = {'platform':'windows'}
+    hostinfo = {'platform':'windows','format':'pe'}
 
     info = GetVersionEx()
 
@@ -488,9 +488,11 @@ def getDebugPrivileges():
     tokprivs = TOKEN_PRIVILEGES()
 
     if not advapi32.LookupPrivilegeValueW(0, 'seDebugPrivilege', ctypes.addressof(dbgluid)):
+        print('lookup fail')
         return False
 
     if not advapi32.OpenProcessToken(-1, TOKEN_ADJUST_PRIVILEGES, ctypes.addressof(token)):
+        print('open fail')
         return False
 
     tokprivs.PrivilegeCount = 1
@@ -498,6 +500,7 @@ def getDebugPrivileges():
     tokprivs.PrivilegeAttribute = SE_PRIVILEGE_ENABLED
 
     if not advapi32.AdjustTokenPrivileges(token, 0, ctypes.addressof(tokprivs), 0, 0, 0):
+        print('adjust fail')
         kernel32.CloseHandle(token)
         return False
 

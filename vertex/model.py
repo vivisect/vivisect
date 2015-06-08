@@ -15,7 +15,7 @@ datamodel = {
         ('bar',{'n1:noun':'foo','n2:noun':'bar','uniq':'bazprop','doc':'the bar edge!'})
     ],
     'props':[
-        ('bazprop', {'type':'utf8','defval':None,'indexes':['keyval'] } )
+        ('bazprop', {'type':'str','defval':None,'indexes':['keyval'] } )
     ],
     'types':[
     ],
@@ -56,6 +56,9 @@ class GraphModel(s_evtdist.EventDist):
         self.node_ctors = {}
         self.node_dtors = {}
 
+        self.node_setrs = {}
+        self.edge_setrs = {}
+
         # manually initialize ctors for intrinsic types
         self.node_ctors['type'] = self._ctor_node
         self.node_ctors['prop'] = self._ctor_node
@@ -67,6 +70,13 @@ class GraphModel(s_evtdist.EventDist):
 
         self.type_disps = {}
         self.type_norms = {}
+
+        self.datamodel = {'nouns':{},'verbs':{},'props':{},'types':{}}
+
+        self.initModelType('str', disp=nop, norm=str)
+        self.initModelType('int', disp=str, norm=int)
+
+        self.bumpDataModel()
 
         self.initDataModel()
         self.bumpDataModel()
@@ -107,6 +117,7 @@ class GraphModel(s_evtdist.EventDist):
             name = node[1].get('prop')
 
             propinfo = {}
+            propinfo['datatype'] = node[1].get('prop:type')
             ret['props'][name] = propinfo
 
         for node in self.graph.getNodesByProp('noun'):
@@ -120,7 +131,7 @@ class GraphModel(s_evtdist.EventDist):
             verbinfo = {}
             ret['verbs'][verb] = verbinfo
 
-        return {}
+        return ret
 
     def initDataModel(self):
         '''
@@ -132,6 +143,32 @@ class GraphModel(s_evtdist.EventDist):
         self.datamodel = self.getDataModel()
         self.fire('model:bump', datamodel=self.datamodel)
 
+    def normPropValu(self, prop, valu):
+        '''
+        Normalize a property value using the data model.
+
+        Example:
+
+            valu = g.normPropValu('foo:bar',valu)
+
+        '''
+        if valu == None:
+            return None
+
+        propinfo = self.datamodel['props'].get(prop)
+        if propinfo == None:
+            return valu
+
+        datatype = propinfo.get('datatype')
+        if datatype == None:
+            return valu
+
+        norm = self.type_norms.get(datatype)
+        if norm == None:
+            return valu
+
+        return norm(valu)
+
     def _ctor_node(self, noun, valu, **props):
         # base node constructor
         nid = graphid( (noun,valu) )
@@ -142,15 +179,14 @@ class GraphModel(s_evtdist.EventDist):
             if not key.startswith(prefix):
                 continue
 
-            norm = self.type_norms.get(key,nop)
-            nprops[key] = norm(val)
+            nprops[key] = self.normPropValu(key,val)
 
         # FIXME set default values from data model
         node = (nid,nprops)
         return self.graph._addNode(node)
 
     def _dtor_node(self, node):
-        print('FIXME _dtor_node')
+        self.graph.delNode(node)
 
     def _ctor_edge(self, n1, verb, valu, n2, **props):
         eid = graphid( (n1[0],verb,valu,n2[0]) )
@@ -161,8 +197,7 @@ class GraphModel(s_evtdist.EventDist):
             if not key.startswith(prefix):
                 continue
 
-            norm = self.type_norms.get(key,nop)
-            eprops[key] = norm(val)
+            eprops[key] = self.normPropValu(key,val)
 
         # FIXME set default values from data model
 
@@ -192,8 +227,29 @@ class GraphModel(s_evtdist.EventDist):
         self.type_norms[name] = norm
 
     def initModelNoun(self, noun, ctor=None, dtor=None):
+        '''
+        Initialize a noun within the GraphModel.
+        Optionally specify ctor/dtor routines for node construction / deletion.
+
+        Example:
+
+            m = GraphModel()
+
+            def _ctor_woot(noun,valu,**props):
+                props.setdefault('woot:score',0)
+
+                score = props.get('woot:score')
+                if score > 9999: # some kinda max...
+                    raise DataModelProtests('woot:score may not be larger than 9999')
+
+                return m._ctor_node(noun,valu,**props)
+
+            m.initModelNoun('woot', ctor=_ctor_woot)
+
+        '''
         node = self.formNodeByNoun('noun',noun)
-        self.graph.initNodeIndex(noun,'uniq')
+        #self.graph.initNodeIndex(noun,'uniq')
+        self.graph.initNodeIndex(noun,'keyval')
 
         if ctor == None: ctor = self._ctor_node
         if dtor == None: dtor = self._dtor_node
@@ -201,14 +257,58 @@ class GraphModel(s_evtdist.EventDist):
         self.node_ctors[noun] = ctor
         self.node_dtors[noun] = dtor
 
-    def initModelProp(self, prop, datatype='utf8', indexes=()):
-        node = self.formNodeByNoun('prop',prop,datatype=datatype)
+    def initModelProp(self, prop, datatype='str', indexes=('keyval',)):
+        props = {'prop:type':datatype}
+        node = self.formNodeByNoun('prop',prop,**props)
         # hrm...  we need to know if it's a node prop or an edge prop
         for index in indexes:
             self.graph.initNodeIndex(prop,index)
 
-    def initModelVerb(self, n1, verb, n2, ctor=None, dtor=None):
+    def addNodePropSetr(self, prop, setr):
+        '''
+        Add a "setter" method to the GraphModel for the given node property.
 
+        Example:
+
+            m = GraphModel()
+
+            def setwoot(node,prop,valu):
+                return m.graph.setNodeProp(node,prop,valu + 30)
+
+            m.addNodePropSetr('woot',setwoot)
+                
+
+        Notes:
+
+            * setter is expected to update graph layer
+            * setter will recieve normalized values
+
+        '''
+        self.node_setrs[prop] = setr
+
+    def addEdgePropSetr(self, prop, setr):
+        '''
+        Add a "setter" method to the GraphModel for the given edge property.
+
+        ( see addNodePropSetr for details )
+        '''
+        self.edge_setrs[prop] = setr
+
+    def initModelVerb(self, n1, verb, n2, ctor=None, dtor=None):
+        '''
+        Initialize an edge verb in the GraphModel.
+
+        Each type of edge within the GraphModel must be declared in advance.
+        For a given verb, a constructor/destructor may be specified which
+        will be called to handle the creation/destruction of that edge type.
+        If none are specified, default ctor/dtors will form and delete the edge.
+
+        Example:
+
+            g.initModelVerb('file','containsfile','file')
+
+
+        '''
         props = {'verb:n1':n1,'verb:n2':n2}
         node = self.formNodeByNoun('verb',verb,**props)
 
@@ -221,6 +321,14 @@ class GraphModel(s_evtdist.EventDist):
         self.edge_dtors[verb] = dtor
 
     def formNodeByNoun(self, noun, valu, **props):
+        '''
+        Create or retrieve a node from the GraphModel.
+
+        Example:
+
+            node = g.formNodeByNoun('foo',10)
+
+        '''
         ctor = self.node_ctors.get(noun)
 
         if ctor == None:
@@ -236,20 +344,69 @@ class GraphModel(s_evtdist.EventDist):
         return node
 
     def formNodeByDisp(self, noun, valu, **props):
-        norm = self.type_norms.get(noun,nop)
-        return self.formNodeByNoun(noun,norm(valu),**props)
+        valu = self.normPropValu(noun,valu)
+        return self.formNodeByNoun(noun,valu,**props)
 
     def getNodeByNoun(self, noun, valu):
+        '''
+        Retrieve an existing node from the GraphModel by noun.
+
+        Example:
+
+            node = g.getNodeByNoun('foo',10)
+            if node != None:
+                dostuff(node)
+
+        '''
         nodes = self.graph.getNodesByProp(noun,valu)
         if nodes:
             return nodes[0]
         return None
 
     def getNodesByProp(self, prop, valu=None, limit=None, index='keyval'):
+        '''
+        Retrieve a list of nodes from the GraphModel by prop[=valu].
+
+        Example:
+
+            nodes = g.getNodesByProp('vehicle:type','car')
+            print('there are %d cars' % (len(nodes),))
+
+        '''
         return self.graph.getNodesByProp(prop,valu=valu,limit=limit,index=index)
 
-    def formEdgeByVerb(self, n1, verb, valu, n2, **props):
+    def delNode(self, node):
+        '''
+        Delete a node from the GraphModel.
 
+        Example:
+
+            node = g.getNodeByProp('foo',10)
+
+            g.delNode(node)
+
+        '''
+        noun = node[1].get('_:noun')
+        dtor = self.node_dtors.get(noun, self._dtor_node)
+        return dtor(node)
+
+    def formEdgeByVerb(self, n1, verb, valu, n2, **props):
+        '''
+        Create or retrieve an edge from the GraphModel.
+
+        Example:
+
+            node1 = g.formNodeByNoun('foo',10)
+            node2 = g.formNodeByNoun('foo',20)
+
+            g.formEdgeByVerb(node1, 'parentof', node2 )
+
+        Notes:
+
+            * the verb must have been declared in the model using
+              initModelVerb.
+
+        '''
         ctor = self.edge_ctors.get(verb)
         if ctor == None:
             raise DataModelProtests('%s is not a valid verb' % (verb,))
@@ -284,25 +441,53 @@ class GraphModel(s_evtdist.EventDist):
         '''
         return self.graph.getNodesByProp(prop,valu=valu,limit=limit,index=index)
 
-    def getNodesByDisp(self, prop, valu, limit=None, index='keyval'):
-        norm = self.type_norms.get(prop,nop)
-        return self.getNodesByProp(prop,valu=norm(valu),limit=limit,index=index)
-            
-    def getEdgesByDisp(self, prop, valu, limit=None, index='keyval'):
-        norm = self.type_norms.get(prop,nop)
-        return self.getEdgesByProp(prop,valu=norm(valu),limit=limit,index=index)
-
     def setNodeProp(self, node, prop, valu):
-        return self.graph.setNodeProp(node,prop,valu)
+        '''
+        Set a node property in the GraphModel.
+
+        Example:
+
+            g.setNodeProp(node, 'foo', 30)
+
+        '''
+        valu = self.normPropValu(prop,valu)
+        setr = self.node_setrs.get(prop, self.graph.setNodeProp )
+        return setr(node, prop, valu)
 
     def setEdgeProp(self, edge, prop, valu):
-        return self.graph.setEdgeProp(edge,prop,valu)
+        '''
+        Set an edge property in the GraphModel.
 
-    def setNodeProps(self, node, **props):
-        return self.graph.setNodeProps(node,**props)
+        Example:
 
-    def setEdgeProps(self, edge, **props):
-        return self.graph.setEdgeProps(edge,**props)
+            g.setEdgeProp(edge, 'foo', 30)
+
+        '''
+        valu = self.normPropValu(prop,valu)
+        setr = self.edge_setrs.get(prop, self.graph.setEdgeProp )
+        return setr(edge, prop, valu)
+
+    def getNodeById(self, nid):
+        '''
+        Return a node from the GraphModel by node id.
+
+        Example:
+
+            node = g.getNodeById(nid)
+
+        '''
+        return self.graph.getNodeById(nid)
+
+    def getEdgeById(self, nid):
+        '''
+        Return an edge from the GraphModel by edge id.
+
+        Example:
+
+            edge = g.getEdgeById(eid)
+
+        '''
+        self.graph.getEdgeById(eid)
 
     def getPropDisp(self, noge, prop):
         disp = self.type_disps.get(prop)

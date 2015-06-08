@@ -10,7 +10,7 @@ amd64 = v_cpu.getArchCpu('amd64')
 class RegisterTest(unittest.TestCase):
 
     def getregs(self):
-        return amd64._init_regs()
+        return amd64._initCpuRegs()
 
     def test_getreg(self):
         regs = self.getregs()

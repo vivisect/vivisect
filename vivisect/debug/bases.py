@@ -1,5 +1,7 @@
+import itertools
 import threading
 import traceback
+import collections
 
 import synapse.lib.queue as s_queue
 import synapse.event.dist as s_evtdist
@@ -19,39 +21,53 @@ class TraceMem(v_memory.Memory):
     def __init__(self, trace):
         self.pid = trace.proc[0]
         self.cache = {}
-        self.target = trace.getDebugApi().getDebugTarget()
+        self.trace = trace
+        self.target = trace.getDebugTarget()
 
-    def _mem_mmaps(self):
+    def _getMemoryMaps(self):
         mmaps = self.cache.get('mmaps')
         if mmaps == None:
-            mmaps = self.target.mmaps(self.pid)
+            mmaps = self.target.traceGetMemoryMaps(self.pid)
             self.cache['mmaps'] = mmaps
         return mmaps
 
-    #def peek(self, addr, size):
-        #return self.target.peek(self.pid, addr, size)
+    def _getMemoryMap(self, addr):
+        for mmap in self.mmaps():
+            if addr < mmap[0]:
+                continue
+            if addr > mmap[0] + mmap[1].get('size'):
+                continue
+            return mmap
 
-    #def poke(self, addr, mem):
-        #return self.target.poke(self.pid, addr, mem)
+    def _readMemory(self, addr, size):
+        return self.target.traceReadMemory(self.pid,addr,size)
+
+    def _writeMemory(self, addr, byts):
+        return self.target.traceWriteMemory(self.pid,addr,byts)
 
 class TraceBase:
 
-    def __init__(self, proc, dbgapi):
+    def __init__(self, proc, dbg):
 
+        self.dbg = dbg
         self.once = False
         self.proc = proc
-        self.dbgapi = dbgapi
-        self.target = dbgapi.getDebugTarget()
+        self.target = dbg.getDebugTarget()
+
+        self.bpidgen = itertools.count(0)
 
         self.autocont = {}      # auto-continue event status
         self.sigignore = {}     # auto-continue signal code status
-        self.traceinfo = {}     # backing for setTraceInfo/getTraceInfo
 
-        # allow each Trace subclass to call his own cpu ctor
-        self._init_trace_cpu()
+        self._t_breaks = {}         # id:tufo
 
-        self._syn_verbose = True
-        self.traceinfo.update( self._init_trace_info() )
+        def membrk():
+            return {'breaks':{}, 'active':False, 'saved':None, 'refs':0 }
+
+        self._t_membreaks = collections.defaultdict( membrk )# saved memory break info
+
+        # hook for trace mixin ctors
+        self._initTraceMixins()
 
         # one thread per-trace to facilitate "non-blocking" run()
         self.runq = s_queue.Queue()
@@ -59,73 +75,183 @@ class TraceBase:
         self.runinfo = {}   # run loop info ( such as cont=True and lastevent )
         self.stopevt = threading.Event()
 
-        self.libs = {}
         self.states = {'attached':False,'running':False,'exited':False}
 
-        self.targbus = s_evtdist.EventDist()    # events from target
+        # "target" event handlers translate to "trace" events
+        self.on('proc:exit', self._onProcExit)
+        self.on('proc:attach', self._onProcAttach)
 
-        #self.targbus.on('*',self._slot_print)
-        #self.on('*', self._slot_trace_events )
+        self.on('proc:signal', self._onProcSignal)
+
+        self.on('thread:init', self._onThreadInit)
+        self.on('thread:exit', self._onThreadExit)
+
+        self.on('lib:load', self._onLibLoad)
+        self.on('lib:free', self._onLibFree)
 
         # fire the general handler for all trace events
-        self.on('trace:attach', self._slot_trace_events)
-        self.on('trace:detach', self._slot_trace_events)
-        self.on('trace:thread:init', self._slot_trace_events)
-        self.on('trace:thread:exit', self._slot_trace_events)
-        self.on('trace:lib:load', self._slot_trace_events)
-        self.on('trace:lib:unload', self._slot_trace_events)
-        self.on('trace:signal', self._slot_trace_events)
-        self.on('trace:exit', self._slot_trace_events)
+        self.on('proc:attach', self._onTraceEvent)
+        self.on('proc:detach', self._onTraceEvent)
 
-        # "target" event handlers translate to "trace" events
-        self.targbus.on('target:attach', self._slot_target_attach)
-        self.targbus.on('target:thread:init', self._slot_target_thread_init)
-        self.targbus.on('target:thread:exit', self._slot_target_thread_exit)
-        self.targbus.on('target:lib:load', self._slot_target_lib_load)
-        self.targbus.on('target:lib:unload', self._slot_target_lib_unload)
-        self.targbus.on('target:signal', self._slot_target_signal)
-        self.targbus.on('target:exit', self._slot_target_exit)
+        self.on('thread:init', self._onTraceEvent)
+        self.on('thread:exit', self._onTraceEvent)
+
+        self.on('lib:load', self._onTraceEvent)
+        self.on('lib:free', self._onTraceEvent)
+
+        self.on('proc:signal', self._onTraceEvent)
+        self.on('proc:exit', self._onTraceEvent)
 
         # setup auto-continue event defaults
-        self.setAutoCont('trace:attach')
-        self.setAutoCont('trace:lib:load')
-        self.setAutoCont('trace:lib:unload')
-        self.setAutoCont('trace:thread:init')
-        self.setAutoCont('trace:thread:exit')
+        self.setAutoCont('proc:attach')
 
-        # allow each Trace subclass to init his own handlers
-        self._init_trace_handlers()
+        self.setAutoCont('lib:load')
+        self.setAutoCont('lib:free')
 
-    def _slot_trace_events(self, event):
+        self.setAutoCont('thread:init')
+        self.setAutoCont('thread:exit')
+
+        # allow each Trace subclass to init his own stuff
+        self._initTraceLocals()
+
+    def _bp_set_enabled(self, bp, en):
+        if bp[1].get('enabled') == en:
+            return
+
+        self.fire('bp:enabled', bp=bp, en=en)
+
+        addr = bp[1].get('addr')
+        if addr == None:
+            return
+
+        if en:
+            self._inc_membreak(addr, bp)
+        else:
+            self._dec_membreak(addr, bp)
+
+    def _mb_clear(self):
+        # deactivate all memory breaks
+        for addr,mbinfo in self._t_membreaks.items():
+            if not mbinfo.get('active'):
+                continue
+
+            self._mb_deactivate(addr,mbinfo)
+
+    def _mb_activate(self, addr, mbinfo):
+        #activate a memory break address
+        brk = self._cpu_info.get('brk')
+
+        if brk == None:
+            self.error('cpu info has no brk!')
+            return
+
+        mbinfo['saved'] = self.readMemory(addr, len(brk))
+
+        self.writeMemory(addr, brk)
+        mbinfo['active'] = True
+
+    def _mb_deactivate(self, addr, mbinfo):
+        # deactivate a memory break address
+        sav = mbinfo.get('saved')
+        self.writeMemory(addr, sav)
+        mbinfo['active'] = False
+
+    def _bp_sync(self):
+        # resolve/activate/clear breakpoints
+
+        #FIXME handle deferred breaks here
+
+        for addr,mbinfo in self._t_membreaks.items():
+            refs = mbinfo.get('refs')
+            activ = mbinfo.get('active')
+
+            if refs == 0 and activ:
+                self._mb_deactivate(addr,mbinfo)
+                # FIXME check for not breaks and pop
+                continue
+
+            if refs != 0 and not activ:
+                self._mb_activate(addr,mbinfo)
+
+    def _inc_membreak(self, addr, bp):
+        mbinfo = self._t_membreaks[addr]
+        mbinfo['breaks'][ bp[0] ] = bp
+        mbinfo['refs'] += 1
+
+    def _dec_membreak(self, addr, bp):
+        mbinfo = self._t_membreaks[addr]
+        mbinfo['breaks'].pop( bp[0], None)
+        mbinfo['refs'] -= 1
+
+    def _bp_init(self, **info):
+        # initialize a bp tufo
+        info['active'] = False
+        info['enabled'] = True
+
+        bp = (next(self.bpidgen), info)
+
+        self._t_breaks[ bp[0] ] = bp
+        self.fire('bp:add', bp=bp)
+
+        if bp[1].get('enabled'):
+            self._bp_set_enabled(bp, True)
+
+        return
+
+    def _bp_fini(self, bp):
+
+        self.fire('bp:del', bp=bp)
+
+        # disable to handle dec membreak
+        self._bp_set_enabled(bp, False)
+        self._t_breaks.pop( bp[0], None )
+
+        # do we have an addr?
+        addr = bp[1].get('addr')
+        if addr == None:
+            return
+
+        # does the addr have mem break info yet?
+        mbinfo = self._t_membreaks.get(addr)
+        if mbinfo == None:
+            return
+
+        # pop the mbinfo if there are no other breaks
+        if not mbinfo.get('breaks'):
+            self._t_membreaks.pop(addr,None)
+
+    def _onTraceEvent(self, event):
         # gets called for each and every event on the trace bus
         self.runinfo['cont'] = self.autocont.get( event[0], False )
         self.runinfo['lastevent'] = event
 
-    def _init_trace_handlers(self):
+    def _initTraceLocals(self):
         pass
 
-    def _init_trace_info(self):
-        return {}
-
-    def _slot_print(self, event):
-        print('EVENT: %s %r' % event)
-
-    def getDebugApi(self):
+    def getDebugger(self):
         '''
-        Returns the DebugApi instance used to create the trace.
+        Returns the Debugger instance used to create the trace.
 
         Example:
 
-            dbg = trace.getDebugApi()
+            dbg = trace.getDebugger()
             dbg.doOtherStuff()
 
         '''
-        return self.dbgapi
+        return self.dbg
 
-    def _init_cpu_mem(self):
+    def getDebugTarget(self):
+        '''
+        Return a reference to the DebugTarget object.
+
+        Example:
+
+            tgt = trace.getDebugTarget()
+        '''
+        return self.target
+
+    def _initCpuMemory(self):
         return TraceMem(self)
-        #self._trace_mem_cache = v_memory.MemoryCache( self._trace_mem )
-        #return self._trace_mem_cache
 
     def _req_state(self, **kwargs):
         for k,v in kwargs.items():
@@ -133,16 +259,29 @@ class TraceBase:
             if s != v:
                 raise Exception('invalid state: %s=%s (requires %s)' % (k,s,v))
 
+    def _run_attach(self):
+        pid = self.proc[0]
+        events = self.target.traceAttach(pid)
+        self.distall( events )
+        self._traceFullStop()
+
     def _runThreadLoop(self):
         for runinfo in self.runq:
-            self.fire('trace:run')
+
             try:
+
+                if runinfo.get('attach'):
+                    self._run_attach()
+                    continue
+
+                self.fire('cpu:run')
                 while True:
 
                     signo = self.runinfo.get('signo')
-                    self.runinfo.clear()
 
-                    events = self.target.run(self.proc[0], signo=signo)
+                    self._traceToRun()
+
+                    events = self.target.traceRun(self.proc[0], signo=signo)
 
                     cont = self._run_targ_events( events )
 
@@ -154,13 +293,13 @@ class TraceBase:
                     until = runinfo.get('until')
                     if until != None:
                         try:
+
                             if not until(self):
                                 continue
 
                         except Exception as e:
                             traceback.print_exc()
-                            msg = 'run until callback error: %s' % (e,)
-                            self.fire('trace:error', msg=msg)
+                            self.error('run until callback error: %s' % (e,))
 
                         # we're either @until or error
                         break
@@ -168,28 +307,34 @@ class TraceBase:
                     if not cont:
                         break
 
-                self._fireStopEvent()
+                self._traceFullStop()
 
             except Exception as e:
                 traceback.print_exc()
-                self._fireStopEvent()
+                self._traceFullStop()
 
-    def _run_exec_events(self, events):
+    def _runExecEvents(self, events):
         cont = self._run_targ_events(events)
         if not cont:
-            self._fireStopEvent()
+            self._traceFullStop()
             return
 
         self.run(wait=True)
+
+    def _traceToRun(self):
+        # called pre-run in the loop
+        self._bp_sync()
+        self.stopevt.clear()
+        self.runinfo.clear()
 
     def _run_targ_events(self, events):
         # fire the given events through the targbus
         # Returns True if we should continue
         for event in events:
-            self.targbus.dist(event)
-
-        if self.runinfo.get('cont'):
-            return True
+            self._target_common(event)
+            self.dist( event )
+        #self.distall(events)
+        return self.runinfo.get('cont',False)
 
     def _target_common(self, event):
         # consume generic elements of target events
@@ -205,18 +350,14 @@ class TraceBase:
             if regdict != None:
                 thread[1]['regs'].load( regdict )
 
-    def _slot_target_attach(self, event):
+    def _onProcAttach(self, event):
         self.states['attached'] = True
         proc = event[1].get('proc')
         self.proc[1].update( proc[1] )
-        self.fire('trace:attach', trace=self)
 
-    #def _slot_target_detach(self, evt, evtinfo):
-        #self.states['attached'] = False
-        #self.fire('trace:detach', proc=self.proc)
-
-    def _slot_target_signal(self, event):
+    def _onProcSignal(self, event):
         evtinfo = event[1]
+
         signo = evtinfo.get('signo')
         exinfo = evtinfo.get('exinfo')
         signorm = evtinfo.get('signorm')
@@ -225,48 +366,51 @@ class TraceBase:
         self.runinfo['exinfo'] = exinfo
         self.runinfo['signorm'] = signorm
 
-        self.fire('trace:signal', trace=self, signo=signo, exinfo=exinfo, signorm=signorm)
-
-    def _slot_target_exit(self, event):
+    def _onProcExit(self, event):
         exitcode = event[1].get('exitcode')
         self.states['attached'] = False
         self.runinfo['exitcode'] = exitcode
-        self.fire('trace:exit', trace=self, exitcode=exitcode)
 
-    def _slot_target_lib_load(self, event):
-        self._target_common(event)
+    def _onLibLoad(self, event):
         lib = event[1].get('lib')
-        self.libs[ lib[0] ] = lib
-        self.fire('trace:lib:load', trace=self, lib=lib)
+        v_cpu.Cpu._initLib(self, lib)
 
-    def _slot_target_lib_unload(self, event):
-        self._target_common(event)
+    def _onLibFree(self, event):
         addr = event[1].get('addr')
-        lib = self.libs.pop(addr,None)
-        self.fire('trace:lib:unload', trace=self, lib=lib)
+        lib = self._cpu_libs.get(addr,None)
+        v_cpu.Cpu._finLib(lib)
 
-    def _slot_target_thread_init(self, event):
+        # put the lib into the event for everyone else
+        event[1]['lib'] = lib
+
+    def _onThreadInit(self, event):
         thread = event[1].get('thread')
-        self._init_thread(thread)
+        self._initCpuThread(thread)
 
         pid = self.proc[0]
         tid = thread[0]
 
         def cacheregs():
-            return self.target.getregs( pid, tid )
+            return self.target.traceGetRegs( pid, tid )
 
         thread[1]['regs'].oncache( cacheregs )
-        self.fire('trace:thread:init', trace=self, thread=thread)
 
-    def _slot_target_thread_exit(self, event):
+    def _onThreadExit(self, event):
         tid = event[1].get('tid')
         exitcode = event[1].get('exitcode')
 
         thread = self.thread(tid)
         self._fini_thread(thread)
-        self.fire('trace:thread:exit', trace=self, thread=thread, exitcode=exitcode)
 
-    def _fireStopEvent(self):
-        self.fire('trace:stop')
+        # put the thread tuple into the event for everybody else
+        event[1]['thread'] = thread
+
+    def _traceFullStop(self):
+        '''
+        Called by event processing when we know the trace is stopped.
+        ( and not going to immediately go again )
+        '''
+        self._mb_clear()
+        self.states['running'] = False
         self.stopevt.set()
-
+        self.fire('cpu:stop')

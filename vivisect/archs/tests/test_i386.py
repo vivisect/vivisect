@@ -40,8 +40,8 @@ class i386Test(unittest.TestCase):
 
     def _get_inst(self, hexstr):
         b = h2b(hexstr)
-        mmaps = [ tufo(0x41410000, init=b) ]
-        cpu = v_cpu.getArchCpu('i386', mmaps=mmaps)
+        cpu = v_cpu.getArchCpu('i386')
+        cpu.initMemoryMap(0x41410000, 4096, init=b)
         return cpu,cpu.disasm(0x41410000)
 
     def _test_inst(self, hexstr, mnem, **info):
@@ -67,8 +67,8 @@ class i386Test(unittest.TestCase):
         #print('INST: %r' % (inst,))
 
     def test_i386_instr(self):
-        mmaps = [ tufo(0x41410000, init=h2b('40')) ]
-        cpu = v_cpu.getArchCpu('i386', mmaps=mmaps)
+        cpu = v_cpu.getArchCpu('i386')
+        cpu.initMemoryMap(0x41410000, 4096, init=h2b('40'))
         inst = cpu.disasm(0x41410000)
 
     #def test_i386_aas(self):

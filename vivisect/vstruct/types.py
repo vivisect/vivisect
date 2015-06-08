@@ -166,7 +166,7 @@ class VStruct(vs_bases.v_base,object):
 
 class VArray(VStruct):
 
-    def __init__(self, fields):
+    def __init__(self, fields=()):
         VStruct.__init__(self)
 
         for i,f in enumerate(fields):
@@ -175,6 +175,9 @@ class VArray(VStruct):
 class vbytes(vs_bases.v_prim):
     def __init__(self, size=0):
         vs_bases.v_prim.__init__(self, size=size, valu=b'')
+
+    #def vsResize(self, size):
+        #self._vs_size = size
 
     def _prim_emit(self, x):
         return x
@@ -206,6 +209,9 @@ class cstr(vs_bases.v_prim):
     def __init__(self, size=0, valu='', encoding='utf8'):
         self._vs_encoding = encoding
         vs_bases.v_prim.__init__(self,size=size,valu=valu)
+
+    #def vsResize(self, size):
+        #self._vs_size = size
 
     def _prim_emit(self, x):
         return x.encode( self._vs_encoding ).ljust( self.vsSize(), b'\x00' )
@@ -249,6 +255,9 @@ class zstr(vs_bases.v_prim):
     def vsSize(self):
         self._prim_getval()
         return self._vs_size
+
+    #def vsResize(self, size):
+        #self._vs_size = size
 
     def _prim_norm(self, x):
         buf = (x + '\x00').encode( self._vs_encoding )
@@ -362,7 +371,7 @@ class ptr64(vs_bases.v_int):
     def __init__(self, valu=0, endian='little'):
         vs_bases.v_int.__init__(self, valu=valu, size=8, endian=endian)
 
-def varray(size,cls):
+def varray(size, cls, *args, **kwargs):
     '''
     Dynamically generate an VArray sublcass with "size" fields of type "cls"
 
@@ -375,7 +384,7 @@ def varray(size,cls):
     '''
 
     def clsinit(self):
-        fields = [ cls() for i in range(size) ]
+        fields = [ cls(*args,**kwargs) for i in range(size) ]
         VArray.__init__(self,fields)
 
     name = '%s_Array_%d' % (cls.__name__,size)

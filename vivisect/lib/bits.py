@@ -183,3 +183,17 @@ def iterbytes(intvals,size=1,byteorder='big'):
 
 def within(x,addr,size):
     return x >= addr and x < addr + size
+
+def align(byts, size, pad=b'\x00'):
+    '''
+    Return a size aligned copy of byts.
+
+    Example:
+
+        buf = align(b'asdf',32)
+    '''
+    rem = len(byts) % size
+    if rem == 0:
+        return byts
+
+    return byts + (pad * (size-rem) )

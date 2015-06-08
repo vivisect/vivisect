@@ -2,9 +2,9 @@
 Vivisect machine abstraction for memory interfaces.
 '''
 import synapse.event.dist as s_evtdist
-import vivisect.lib.pagelook as v_pagelook
 
-from vertex.lib.common import tufo
+import vivisect.lib.bits as v_bits
+import vivisect.lib.pagelook as v_pagelook
 
 # Memory Map Permission Flags
 MM_NONE     = 0x0
@@ -20,14 +20,6 @@ MM_RWX = MM_READ | MM_WRITE | MM_EXEC
 
 class MemPermsError(Exception):pass
 class MemInvalidAddr(Exception):pass
-
-#pnames = ['No Access', 'Execute', 'Write', None, 'Read']
-#def getPermName(perm):
-    #'''
-    #Return the human readable name for a *single* memory
-    #perm enumeration value.
-    #'''
-    #return pnames[perm]
 
 permstrs = [
   ('rwx', MM_RWX),('r--', MM_READ),('-w-', MM_WRITE), ('--x', MM_EXEC),
@@ -89,7 +81,7 @@ class PageCache:
 
         return off,end
 
-    def _cache_peek(self, addr, size):
+    def _cache_read(self, addr, size):
         ret = b''
         for base,off,size in self._iter_bases(addr,addr + size):
             page = self._get_page(base)
@@ -97,7 +89,7 @@ class PageCache:
 
         return ret
 
-    def _cache_poke(self, addr, byts):
+    def _cache_write(self, addr, byts):
         valuoff = 0
         for base,off,size in self._iter_bases(addr,addr + len(byts)):
             page = self._get_page(base)
@@ -148,6 +140,11 @@ class PageCache:
 class CopyOnWrite(PageCache):
     '''
     Implements a page-oriented copy-on-write buffer-like object wrapper.
+
+    Notes:
+
+        * used by the memory snapshot interface
+
     '''
     def __init__(self, buf, pagesize=4096):
         self.realbuf = buf
@@ -161,8 +158,19 @@ class CopyOnWrite(PageCache):
 
 class Memory(s_evtdist.EventDist):
 
+    '''
+    The top level vivisect Memory abstraction API.
+
+    Notes:
+
+        * mostly used as a mixin to Cpu and others
+
+    '''
+
     def __init__(self, pagesize=4096, **info):
         s_evtdist.EventDist.__init__(self)
+
+        info.setdefault('allocbase',0x22220000)
 
         self._mem_maps = {}
         self._mem_info = info
@@ -172,21 +180,47 @@ class Memory(s_evtdist.EventDist):
 
         self._mem_dirty = {}
         self._mem_pagesize = pagesize
+        self._mem_offmask = (pagesize - 1)
         self._mem_pagemask = ~ (pagesize - 1)
 
-    def free(self, addr):
+    def getMemInfo(self, name, default=None):
+        '''
+        Retrieve a value from the memory info dict.
+
+        Example:
+
+            foo = mem.getMemInfo('foo')
+
+        Notes:
+
+            allocbase=<int>     - The base addr for allocMemory to begin at
+
+        '''
+        return self._mem_info.get(name,default)
+
+    def setMemInfo(self, name, valu):
+        '''
+        Set a value in the memory info dict.
+
+        Example:
+
+            mem.setMemInfo('foo',20)
+
+        '''
+        self._mem_info[name] = valu
+
+    def freeMemory(self, addr):
         '''
         Free/Release the memory map with the given base addr.
 
         Example:
 
-            mem.free( addr )
+            mem.freeMemory( addr )
 
         '''
+        return self._freeMemory(addr)
 
-        return self._mem_free(addr)
-
-    def alloc(self, size, perm=MM_RWX, addr=None, **info):
+    def allocMemory(self, size, perm=MM_RWX, addr=None, **info):
         '''
         Allocate a new memory map within the Memory object and return the map.
 
@@ -194,7 +228,7 @@ class Memory(s_evtdist.EventDist):
 
             wantaddr = 0x41414141
 
-            mmap = mem.alloc(4096, addr=wantaddr)
+            mmap = mem.allocMemory(4096, addr=wantaddr)
 
             print('alloc at: 0x%.8x' % ( mmap[0],) )
 
@@ -204,45 +238,42 @@ class Memory(s_evtdist.EventDist):
             * addr is a *suggestion*, the allocator may rebase
             * addr may be re-based to return a page aligned addr
             * size may be modified to return a page aligned size
-
-            Pass the following optional info for special initialization:
-
-            * init=<bytes>  ( bytes to initialize the memory map )
-            * mbuf=<mbuf>   ( a pre-cooked bytearray or buffer interface )
-
         '''
-        if addr != None:
-            addr &= self._mem_pagemask
+        if addr == None:
+            addr = self._mem_info.get('allocbase')
+
+        addr &= self._mem_pagemask
+
+        # FIXME addr + size check
+        while self.getMemoryMap(addr) != None:
+            addr += self._mem_pagesize
 
         off = size % self._mem_pagesize
         if off != 0:
             size += ( self._mem_pagesize - off )
 
-        mmap = self._mem_alloc(size, perm=perm, addr=addr, **info)
+        return self._allocMemory(size, perm=perm, addr=addr, **info)
 
-        self._init_mmap(mmap)
-        return mmap
-
-    def peek(self, addr, size):
+    def readMemory(self, addr, size):
         '''
         Read memory bytes at addr for size bytes.
 
         Example:
 
-            byts = m.peek(0x41414141, 20)
+            byts = m.readMemory(0x41414141, 20)
 
         '''
-        byts = self._mem_peek(addr,size)
-        self.fire('mem:peek', mem=self, addr=addr, size=size, byts=byts)
+        byts = self._readMemory(addr,size)
+        self.fire('mem:read', addr=addr, size=size, byts=byts)
         return byts
 
-    def pages(self, addr, size):
+    def getMemPages(self, addr, size):
         '''
         Yield each of the page base addresses for a given address range.
 
         Example:
 
-            for addr in mem.pages(0x41414141, 128):
+            for addr in mem.getMemPages(0x41414141, 128):
                 pagething(addr)
 
         '''
@@ -253,29 +284,27 @@ class Memory(s_evtdist.EventDist):
             yield pageaddr
             pageaddr += self._mem_pagesize
 
-    def poke(self, addr, byts):
+    def writeMemory(self, addr, byts):
         '''
         Write bytes to memory at addr.
 
         Example:
 
-            m.poke(0x41414141, b'VISI')
+            m.writeMemory(0x41414141, b'VISI')
 
         '''
         size = len(byts)
         self._mem_dirtify(addr,size)
+        self.fire('mem:write', addr=addr, byts=byts)
+        return self._writeMemory(addr,byts)
 
-        curval = self.peek(addr,size)
-        self.fire('mem:poke', mem=self, addr=addr, byts=byts, curval=curval)
-        return self._mem_poke(addr,byts)
-
-    def flush(self):
+    def getDirtyPages(self, flush=False):
         '''
         For each currenly "dirty" page yield (addr,bytes) tuple and clear.
 
         Example:
 
-            for addr,byts in mem.flush():
+            for addr,byts in mem.getDirtyPages():
                 stuff(addr,byts)
 
             # no more dirty pages!
@@ -283,253 +312,273 @@ class Memory(s_evtdist.EventDist):
         '''
         pages = self._mem_dirty.keys()
         for addr in pages:
-            byts = self.peek(addr, self.pagesize)
+            byts = self.readMemory(addr, self._mem_pagesize)
             yield addr,byts
-            self._mem_dirty.pop(addr)
+            if flush:
+                self._mem_dirty.pop(addr)
 
-    def probe(self, addr, size, perm):
+    def probeMemory(self, addr, perm, size=1):
         '''
         Probe a memory range to check permissions.
 
         Example:
 
-            if m.probe(0x41414141, 20, MM_WRITE):
-                m.poke( 0x41414141, b'V' * 20 )
+            if m.probeMemory(0x41414141, MM_WRITE, size=20):
+                m.writeMemory( 0x41414141, b'V' * 20 )
 
         '''
-        #self.fire('mem:probe', addr=addr, size=size, perm=perm)
-        return self._mem_probe(addr,size,perm)
+        return self._probeMemory(addr,perm,size=size)
 
-    def protect(self, addr, size, perm=MM_RWX):
+    def protectMemory(self, addr, size, perm=MM_RWX):
         '''
         Change the memory permissions for the given range.
 
         Example:
 
-            m.protect(0x41410000,4096,MM_RWX)
+            m.protectMemory(0x41410000,4096,MM_RWX)
 
         '''
         self.fire('mem:protect', mem=self, addr=addr, size=size, perm=perm)
         return self._mem_protect(addr,size,perm)
 
-    def mmaps(self):
+    def getMemoryMaps(self):
         '''
-        Retrieve a list of mmap tufos (addr,info).
+        Retrieve a list of mmap tuples (addr,size,perm,info).
 
         Example:
 
-            for mmap in m.mmaps():
-                addr = mmap[0]
-                size = mmap[1].get('size')
-
+            for addr,size,perm,info in m.getMemoryMaps():
                 print('mem map: 0x%.8x (%d)' % (addr, size))
 
         Notes:
 
             ( mmap info convention )
-            * perm = MM_XXX permissions const
             * path = <path> ( for file backed memory maps or None )
             * name = <name> ( for named memory maps and humon display )
             * init = <bytes> ( initial memory map state if given to ctor )
 
         '''
-        return self._mem_mmaps()
+        return self._getMemoryMaps()
 
-    def mmap(self, addr):
+    def getMemoryMap(self, addr):
         '''
         Return the memory map tuple which contains addr or None.
 
         Example:
 
-            mmap = m.mmap(addr)
+            mmap = m.getMemoryMap(addr)
             if mmap != None:
                 addr = mmap[0]
                 print('map at: 0x%.8x' % (addr,))
 
         '''
-        return self._mem_mmap(addr)
+        return self._getMemoryMap(addr)
 
-    def mbuf(self, addr):
+    def getMemBuf(self, addr):
         '''
         Retrieve an (off,bytes) tuple for the given memory address.
 
         Example:
 
-            off,mbuf = m.mbuf(addr)
+            off,mbuf = m.getMemBuf(addr)
 
         Notes:
 
             * this is an optimization routine for consuming memory
 
         '''
-        mmap = self.mmap(addr)
+        mmap = self.getMemoryMap(addr)
         if mmap == None:
             return None
 
-        mbuf = mmap[1].get('mbuf')
+        mbuf = mmap[3].get('mbuf')
         return addr - mmap[0], mbuf
 
-    def snapshot(self):
+    def getMemorySnap(self):
         '''
-        Return an opaque "snapshot" object to be restored with restore()
+        Return an opaque "snapshot" object to be restored with setMemorySnap()
 
         Example:
 
-            snap = mem.snapshot()
+            snap = mem.getMemorySnap()
 
-            mem.poke(0x41410000, b'VISI')
+            mem.writeMemory(0x41410000, b'VISI')
 
-            mem.restore(snap)
+            mem.setMemorySnap(snap)
 
-            # poke has been reverted
+            # writeMemory has been reverted
 
         Notes:
 
-            * snpashot does not support save/restore across uses of alloc()/free()
+            * snpashot does not support save/restore across uses of allocMemory()/freeMemory()
             * snapshot *does* save/restore 
 
         '''
         # what we really do is wrap each mbuf with a copy on write
         snap = { 'mmaps':{} }
-        for mmap in self.mmaps():
+        for addr,size,perm,info in self.getMemoryMaps():
 
-            addr = mmap[0]
-            mbuf = mmap[1].get('mbuf')
-
+            mbuf = info.get('mbuf')
             snap['mmaps'][addr] = {'mbuf':mbuf}
 
-            mmap[1]['mbuf'] = CopyOnWrite(mbuf)
+            info['mbuf'] = CopyOnWrite(mbuf)
 
         snap['dirty'] = dict( self._mem_dirty )
-
-        self.fire('mem:snapshot', mem=self, snap=snap)
         return snap
 
-    def restore(self, snap):
+    def setMemorySnap(self, snap):
         '''
-        Restore a previous memory state captured with snapshot()
+        Restore a previous memory state captured with getMemorySnap()
 
         Example:
 
-            see snapshot()
+            see getMemorySnap()
 
         '''
-        for addr,info in snap['mmaps'].items():
-            mmap = self.mmap(addr)
-            mmap[1].update( info )
-
+        [ self.getMemoryMap(addr)[3].update(info) for (addr,info) in snap['mmaps'].items() ]
         self._mem_dirty = snap.get('dirty')
-        self.fire('mem:restore', mem=self, snap=snap)
 
-    def _mem_poke(self, addr, byts):
-        mmap = self.mmap(addr)
+    def initMemoryMap(self, addr, size, perm=MM_RWX, **info):
+        '''
+        Add a memory map at the specified addr.
+        Optional arguments must include either size, init, or mbuf.
+
+        Additional options:
+        * init  - raw bytes to initialize the memory
+        * mbuf  - memory buffer / bytearray to use directly
+
+        Example:
+
+            mmap = mem.initMemoryMap(0x41410000, 4096, perm=MM_RWX)
+
+        '''
+        mmap = (addr,size,perm,info)
+        return self.addMemoryMap(mmap)
+
+    def addMemoryMap(self, mmap):
+        '''
+        Add a memory map tuple (addr, size, perm, info).
+
+        Notes:
+            * casual users probably want initMemoryMap()
+
+        Example:
+
+            mmap = (0x41414141, 4096, MM_RWX, {})
+            mem.addMemoryMap(mmap)
+
+        '''
+        addr,size,perm,info = mmap
+
+        # check size for page alignment and update as needed
+        rem = size % self._mem_pagesize
+        if rem:
+            size += ( self._mem_pagesize - rem )
+
+        # ensure that init ( if present ) is padded to length
+        init = info.get('init')
+        if init != None and len(init) < size:
+            info['init'] = init.ljust(size,b'\x00')
+
+        return self._addMemoryMap( (addr,size,perm,info) )
+
+    def delMemoryMap(self, mmap):
+        '''
+        Delete a memory map tuple (addr, size, perm, info).
+
+        Example:
+
+            mem.delMemoryMap(mmap)
+
+        '''
+        return self._delMemoryMap(mmap)
+
+    # APIs from here down implement the "guts" and can be over-ridden
+
+    def _writeMemory(self, addr, byts):
+        mmap = self.getMemoryMap(addr)
         if mmap == None:
             return None
 
-        mbuf = mmap[1].get('mbuf')
+        mbuf = mmap[3].get('mbuf')
 
         off = addr - mmap[0]
         mbuf[off:] = byts
         return len(byts)
 
-    def _mem_peek(self, addr, size):
-        mmap = self.mmap(addr)
+    def _readMemory(self, addr, size):
+        mmap = self.getMemoryMap(addr)
         if mmap == None:
             return None
 
-        mbuf = mmap[1].get('mbuf')
+        mbuf = mmap[3].get('mbuf')
 
         off = addr - mmap[0]
         return mbuf[off:off+size]
 
     def _mem_dirtify(self, addr, size):
-        for page in self.pages(addr,size):
+        for page in self.getMemPages(addr,size):
             self._mem_dirty[page] = True
 
-    def _mem_mmaps(self):
+    def _getMemoryMaps(self):
         return self._mem_maps.values()
 
-    def _mem_probe(self, addr, size, perm):
+    def _probeMemory(self, addr, perm, size=1):
 
         addrmax = addr + size
         while addr < addrmax:
             # a default mmap based impl
-            mmap = self.mmap(addr)
+            mmap = self.getMemoryMap(addr)
             if mmap == None:
                 return False
 
-            if perm & mmap[1].get('perm') != perm:
+            if perm & mmap[2] != perm:
                 return False
 
-            addr = mmap[0] + mmap[1].get('size')
+            addr = mmap[0] + mmap[1]
 
         return True
 
-    def _mem_mmap(self, addr):
+    def _getMemoryMap(self, addr):
         return self._mem_pagelook.get(addr)
 
-    def _mem_alloc(self, size, perm=MM_RWX, addr=None, **info):
+    def _allocMemory(self, size, perm=MM_RWX, addr=None, **info):
+        mmap = (addr,size,perm,info)
+        return self.addMemoryMap(mmap)
 
-        if addr == None:
-            addr = 0
-
-        # FIXME addr + size check
-        while self.mmap(addr) != None:
-            addr += 4096 # FIXME pagesize
-
-        return tufo(addr, perm=perm, size=size, **info)
-
-    def _mem_free(self, addr):
-        mmap = self.mmap(addr)
+    def _freeMemory(self, addr):
+        mmap = self.getMemoryMap(addr)
         if mmap == None:
             raise MemInvalidAddr(addr)
 
         if mmap[0] != addr:
             raise MemInvalidAddr(addr)
 
-        self._fini_mmap(mmap)
+        self.delMemoryMap(mmap)
         return mmap
 
+    def _addMemoryMap(self, mmap):
+        addr,size,perm,info = mmap
 
-    def _init_mmap(self, mmap):
-        addr = mmap[0]
-
-        size = mmap[1].get('size')
-        init = mmap[1].get('init')
-        mbuf = mmap[1].get('mbuf')
-
-        mmap[1].setdefault('perm', MM_RWX)
+        mbuf = info.get('mbuf')
 
         # a few initialization precedents...
-        if mbuf == None and init != None:
-            mbuf = bytearray(init)
-            mmap[1]['mbuf'] = mbuf
-
-        if size == None and mbuf != None:
-            size = len(mbuf)
-            mmap[1]['size'] = size
-
-        if size == None:
-            raise Exception('mmap *must* have size or init or mbuf!')
-
         if mbuf == None:
-            mbuf = bytearray(b'\x00' * size)
-            mmap[1]['mbuf'] = mbuf
+            init = info.get('init')
+            if init == None:
+                init = b'\x00' * size
+
+            mbuf = bytearray(init)
+            info['mbuf'] = mbuf
 
         self._mem_maps[ addr ] = mmap
+        self._mem_pagelook.put( addr, size, mmap )
 
-        # let a subclass disable this behavior by initializing
-        # to None...
-        if self._mem_pagelook != None:
-            self._mem_pagelook.put( addr, size, mmap )
+        self.fire('mem:mmap:add', mmap=mmap)
+        return mmap
 
-        self.fire('mem:map:init', mem=self, mmap=mmap)
-
-    def _fini_mmap(self, mmap):
-        addr = mmap[0]
-        size = mmap[1].get('size')
-
+    def _delMemoryMap(self, mmap):
+        addr,size,perm,info = mmap
         self._mem_maps.pop( addr, None)
         self._mem_pagelook.pop(addr,size)
-
-        self.fire('mem:map:fini', mem=self, mmap=mmap)
+        self.fire('mem:mmap:del', mmap=mmap)

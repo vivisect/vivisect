@@ -2,6 +2,7 @@
 Synapse extensible/hookable sockets.
 '''
 import time
+import types
 import socket
 import msgpack
 import selectors
@@ -17,46 +18,64 @@ class SocketClosed(SocketError):pass
 class Socket(s_evtdist.EventDist):
     '''
     An extensible socket object.
-
-    Event Names:
-    sock:conn       - the socket is newly connected
-    sock:accept     - the socket accepted a newsock
-    sock:tx         - the socket returned from sending data
-    sock:rx         - the socket returned from recieving data
-    sock:shut       - the socket connection has terminated
     '''
     def __init__(self, sock=None):
         if sock == None:
             sock = socket.socket()
 
         self.sock = sock
-        self._sock_info = {}
+
+        self._sock_info = {
+            'unpacker':msgpack.Unpacker(use_list=False,encoding='utf8')
+        }
 
         s_evtdist.EventDist.__init__(self)
 
-    def info(self, prop, valu=None):
+    def getSockInfo(self, prop, default=None):
         '''
-        Get/Set arbitrary/app-layer info for this socket.
+        Returns a socket metadata property by name.
 
         Example:
 
-            s = Socket()
-            s.info('woot',5) # set by specifying valu
-
-            # ...some time later...
-            x = s.info('woot')
+            woot = sock.getSockInfo('woot')
 
         '''
-        if valu != None:
-            self._sock_info[prop] = valu
+        return self._sock_info.get(prop,default)
 
-        return self._sock_info.get(prop)
+    def setSockInfo(self, prop, valu):
+        '''
+        Store a socket metadata prop=valu for later use.
+
+        Example:
+
+            sock.setSockInfo('woot',20)
+
+        '''
+        self._sock_info[prop] = valu
 
     def connect(self, sockaddr):
+        '''
+        Connect the socket to a remote sockaddr.
+        ( API compatible with python socket object )
+
+        Example:
+
+            sock.connect( ('127.0.0.1',8989) )
+
+        '''
         self.sock.connect(sockaddr)
-        self.fire('sock:conn', sock=self)
+        self.fire('sock:conn', sock=self, sockaddr=sockaddr)
 
     def accept(self):
+        '''
+        Accept a new connection on a listening socket.
+        ( API compatible with python socket object )
+
+        Example:
+
+            newsock = sock.accept()
+
+        '''
         s,addr = self.sock.accept()
 
         sock = Socket(s)
@@ -66,25 +85,43 @@ class Socket(s_evtdist.EventDist):
         return sock
 
     def fileno(self):
+        '''
+        Retrieve the file descriptor number for the socket.
+        ( API compatible with python socket object )
+
+        Example:
+
+            i = sock.fileno()
+
+        '''
         return self.sock.fileno()
 
     def recv(self, size=None):
-        buf = self._sock_recv(size)
-        self.fire('sock:rx', size=size, buf=buf, sock=self)
-        return buf
+        '''
+        Recieve transmitted bytes on the socket.
+        ( API compatible with python socket object )
 
-    def send(self, buf):
-        sent = self._sock_send(buf)
-        self.fire('sock:tx', sent=sent, buf=buf, sock=self)
+        Example:
+
+            byts = sock.recv(30)
+
+        '''
+        byts = self._sock_recv(size)
+        self.fire('sock:rx', size=size, byts=byts, sock=self)
+        return byts
+
+    def send(self, byts):
+        sent = self._sock_send(byts)
+        self.fire('sock:tx', sent=sent, byts=byts, sock=self)
         return sent
 
-    def emit(self, obj):
+    def sendmsg(self, obj):
         '''
         Use msgpack to serialize an object to the socket.
 
         Example:
             x = (1,2,3,'qwer')
-            sock.emit(x)
+            sock.sendmsg(x)
         '''
         try:
             self.sendall( msgpack.packb(obj,use_bin_type=True) )
@@ -93,10 +130,37 @@ class Socket(s_evtdist.EventDist):
         except SocketError as e:
             return False
 
-    def _sock_send(self, buf):
+    def firemsg(self, name, **kwargs):
+        '''
+        Construct and send a (name,info) message tuple.
+
+        Example:
+            sock.firemsg('woot',val=10)
+        '''
+        self.sendmsg( (name,kwargs) )
+
+    def recvmsg(self):
+        '''
+        Receive a single msgpack (name,info) message tuple.
+
+        Example:
+
+            msg = sock.recvmsg()
+
+        Notes:
+
+            * this API must be *only* used when the whole socket
+              is msgpack.  Intermingling msgs and arbitrary data
+              is not supported in this API.
+
+        '''
+        for msg in self.itermsgs():
+            return msg
+
+    def _sock_send(self, byts):
         try:
-            return self.sock.send(buf)
-        except socket.error as e:
+            return self.sock.sendall(byts)
+        except OSError as e:
             raise SocketClosed()
 
     def shutdown(self, how):
@@ -108,7 +172,7 @@ class Socket(s_evtdist.EventDist):
 
     def teardown(self):
 
-        if not self.info('listen'):
+        if not self.getSockInfo('listen'):
             try:
                 self.sock.shutdown(socket.SHUT_WR)
             except Exception as e:
@@ -124,130 +188,41 @@ class Socket(s_evtdist.EventDist):
     def _sock_recv(self, size):
         try:
             return self.sock.recv(size)
-        except socket.error as e:
+        except OSError as e:
             raise SocketClosed()
 
-    def sendall(self, buf):
-        sent = 0
-        size = len(buf)
-        while sent < size:
-            off = self.send(buf)
-            sent += off
+    def sendall(self, byts):
+        # our send() *is* sendall()
+        return self.send(byts)
 
     def recvall(self, size):
-        buf = b''
-        while len(buf) < size:
-            x = self.recv(size-len(buf))
+        byts = b''
+        remain = size
+        while remain:
+            x = self.recv(size-len(byts))
             if not x:
                 raise SocketClosed()
-            buf += x
-        return buf
+            byts += x
+            remain -= len(x)
+        return byts
+
+    def itermsgs(self):
+        unpk = self.getSockInfo('unpacker')
+        for msg in unpk:
+            yield msg
+
+        while True:
+            byts = self.recv(1024000)
+            if not byts:
+                break
+
+            unpk.feed(byts)
+            for msg in unpk:
+                yield msg
 
     # socket API pass throughs...
     def settimeout(self, t):
         self.sock.settimeout(t)
-
-class Server(s_evtdist.EventQueue):
-    '''
-    A socket server using multiplexed IO and EventDist.
-    '''
-
-    def __init__(self, sockaddr, pool=10, timeout=None):
-        self.sock = socket.socket()
-        self.srvthr = None
-        self.seltor = None
-        self.wakesock = None
-        self.srvshut = False
-        self.timeout = timeout
-        self.sockaddr = sockaddr
-        s_evtdist.EventQueue.__init__(self,pool=pool)
-
-    def fini(self):
-        self.srvshut = True
-        self.sock.close()
-        self.wakesock.close()
-        self.seltor.close()
-        self.srvthr.join()
-        s_evtdist.EventQueue.fini(self)
-
-    def synRunServer(self):
-        self.sock.bind( self.sockaddr )
-        self.sockaddr = self.sock.getsockname()
-        self.sock.listen(100)
-
-        self.srvthr = s_threads.fireWorkThread(self._runServerLoop)
-        return self.sockaddr
-
-    def synWaitServer(self):
-        '''
-        Wait for the server to terminate ( but do not instruct it to ).
-        '''
-        self.srvthr.join()
-
-    def synGetServAddr(self):
-        return self.sockaddr
-
-    def _runServerLoop(self):
-
-        self.seltor = selectors.DefaultSelector()
-        key = self.seltor.register(self.sock, selectors.EVENT_READ)
-
-        self.wakesock,s2 = socketpair()
-        self.seltor.register(s2, selectors.EVENT_READ)
-
-        #s1,s2 = socket.socketpair()
-        # stuff a socket into the selector to wake on close
-
-        while True:
-
-            for key,events in self.seltor.select():
-
-                if self.srvshut:
-                    break
-
-                if key.data == None:
-                    conn,addr = key.fileobj.accept()
-                    # TIMEOUT
-                    sock = Socket(conn)
-                    # re dist all socket events to self
-                    sock.link(self)
-
-                    sock.fire('sock:conn', addr=addr, sock=sock)
-
-                    unpacker = msgpack.Unpacker(use_list=False,encoding='utf8')
-                    sockdata = {'sock':sock,'unpacker':unpacker,'serv':self,'addr':addr}
-
-                    self.seltor.register(conn, selectors.EVENT_READ, data=sockdata)
-                    continue
-
-                sock = key.data['sock']
-                buf = sock.recv(102400)
-                if not buf:
-                    self.seltor.unregister(key.fileobj)
-                    self.fire('sock:shut',**key.data)
-                    key.fileobj.close()
-                    continue
-                    
-                unpk = key.data['unpacker']
-
-                unpk.feed(buf)
-                for msg in unpk:
-                    sock.fire('sock:msg', msg=msg, sock=sock)
-
-            if self.srvshut:
-                s2.close()
-                self.fire('serv:shut', serv=self)
-                return
-
-    def synGetServAddr(self):
-        '''
-        Retrieve a tuple of (host,port) for this server.
-
-        NOTE: the "host" part is the return value from
-              socket.gethostname()
-        '''
-        host = socket.gethostname()
-        return (host,self.sockaddr[1])
 
 class Plex(s_evtdist.EventDist):
     '''
@@ -304,7 +279,7 @@ class Plex(s_evtdist.EventDist):
         port = s.getsockname()[1]
 
         sock = Socket(s)
-        sock.info('listen', True)
+        sock.setSockInfo('listen', True)
 
         sock.link( self )
 
@@ -359,7 +334,7 @@ class Plex(s_evtdist.EventDist):
     def _sock_on(self, sock):
 
         unpacker = msgpack.Unpacker(use_list=False, encoding='utf8')
-        sock.info('unpacker', unpacker)
+        sock.setSockInfo('unpacker', unpacker)
 
         self._plex_sel.register(sock, selectors.EVENT_READ)
         self._plex_socks.add(sock)
@@ -384,21 +359,21 @@ class Plex(s_evtdist.EventDist):
                     sock.recv(1024)
                     continue
 
-                if sock.info('listen'):
+                if sock.getSockInfo('listen'):
                     # his sock:conn event handles reg
                     sock.accept()
                     continue
 
-                buf = sock.recv(102400)
+                byts = sock.recv(102400)
 
-                if not buf:
+                if not byts:
                     # his sock:shut handles unreg
                     sock.teardown()
                     continue
 
-                unpk = sock.info('unpacker')
+                unpk = sock.getSockInfo('unpacker')
 
-                unpk.feed( buf )
+                unpk.feed( byts )
 
                 for msg in unpk:
                     sock.fire('sock:msg', plex=self, msg=msg, sock=sock)

@@ -1,6 +1,8 @@
-'''
-Some pre-defined "run until" callbacks for use in trace.run()
-'''
+
+class VivDebugError(Exception): pass
+class NoSuchProcess(VivDebugError): pass
+
+# Some pre-defined "run until" callbacks for use in trace.run()
 
 def forever(trace):
     '''
@@ -22,6 +24,6 @@ def tillib(name):
     trace.run(until=tillib(name))  - run trace until lib <name> loads
     '''
     def libfunc(trace):
-        return trace.getLibByName(name) != None
+        return trace.lib(name) != None
     return libfunc
 

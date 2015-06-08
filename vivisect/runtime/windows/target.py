@@ -1,11 +1,11 @@
 import os
 
-import vivisect.debug.api as v_dbgapi
 import vivisect.debug.trace as v_trace
 import vivisect.debug.target as v_target
 import vivisect.lib.thishost as v_thishost
+import vivisect.debug.debugger as v_debugger
 
-import vivisect.platforms.windows.dbgapi as v_win_dbgapi
+import vivisect.platforms.windows.debugger as v_win_debugger
 
 from ctypes import *
 from vertex.lib.common import tufo
@@ -16,13 +16,23 @@ archctx = {
     'amd64':CONTEXTx64,
 }
 
+hostinfo = getHostInfo()
+dbgpriv = getDebugPrivileges()
+
 class WindowsTarget(v_target.DebugTarget):
 
     def __init__(self, **info):
         v_target.DebugTarget.__init__(self, **info)
-        self._init_dosmaps()
+        self._initDosMaps()
 
-    def _proc_attach(self, proc):
+    def getDebugInfo(self):
+        ret = v_target.DebugTarget.getDebugInfo(self)
+        ret['arch'] = hostinfo.get('arch')
+        ret['windows:version'] = hostinfo.get('version')
+        ret['windows:seDebugPrivilege'] = dbgpriv
+        return ret
+
+    def _traceAttach(self, proc):
 
         pid = proc[0]
         self.initPidThread(pid)
@@ -32,24 +42,24 @@ class WindowsTarget(v_target.DebugTarget):
             if not kernel32.DebugActiveProcess(pid):
                 raise WinError()
 
-            return self._proc_wait(proc)
+            return self._traceWait(proc)
 
         return self.callPidThread(pid,perpid)
 
-    def _init_proc(self, pid, **info):
-        proc = v_target.DebugTarget._init_proc(self, pid, **info)
+    def _initTraceProc(self, pid, **info):
+        proc = v_target.DebugTarget._initTraceProc(self, pid, **info)
         proc[1]['DEBUG_EVENT'] = DEBUG_EVENT()  # re-usable struct buf
         return proc
 
-    def _init_thread(self, proc, tid, **info):
-        thread = v_target.DebugTarget._init_thread(self, proc, tid, **info)
+    def _initProcThread(self, proc, tid, **info):
+        thread = v_target.DebugTarget._initProcThread(self, proc, tid, **info)
 
         arch = proc[1].get('arch')
         thread[1]['context'] = archctx.get(arch)()
 
         return thread
 
-    def _proc_wait(self, proc):
+    def _traceWait(self, proc):
         event = proc[1].get('DEBUG_EVENT')
 
         if not kernel32.WaitForDebugEvent(addressof(event), INFINITE):
@@ -57,24 +67,24 @@ class WindowsTarget(v_target.DebugTarget):
 
         return self._make_events(proc,event)
 
-    def _proc_detach(self, proc):
+    def _traceDetach(self, proc):
         pid = proc[0]
         def perpid():
-            return self._real_proc_detach(proc)
+            return self._winProcDetach(proc)
 
         ret = self.callPidThread(pid,perpid)
         self.finiPidThread(pid)
         return ret
 
-    def _real_proc_detach(self, proc):
+    def _winProcDetach(self, proc):
         kernel32.DebugActiveProcessStop(proc[0])
         kernel32.CloseHandle( proc[1]['hProc'] )
 
-    def _proc_stop(self, proc):
+    def _traceStop(self, proc):
         hProc = proc[1].get('hProc')
         kernel32.DebugBreakProcess(hProc)
 
-    def _proc_run(self, proc, signo=None):
+    def _traceRun(self, proc, signo=None):
         pid = proc[0]
 
         def perpid():
@@ -86,11 +96,11 @@ class WindowsTarget(v_target.DebugTarget):
             if not kernel32.ContinueDebugEvent(pid,tid,status):
                 raise WinError()
 
-            return self._proc_wait(proc)
+            return self._traceWait(proc)
 
         return self.callPidThread(pid,perpid)
 
-    def _trace_exec(self, cmdline, **opts):
+    def _traceExec(self, cmdline, **opts):
 
         procinfo = {}
         def perpid():
@@ -106,10 +116,7 @@ class WindowsTarget(v_target.DebugTarget):
             hProc = pinfo.Process
             hThread = pinfo.Thread
 
-            proc = self._init_proc(pid)
-
-            #pinfo = self._winProcInfo(hProc)
-            # update both the "return proc" *and* ours
+            proc = self._initTraceProc(pid)
 
             kernel32.CloseHandle(hProc)
             kernel32.CloseHandle(hThread)
@@ -117,14 +124,14 @@ class WindowsTarget(v_target.DebugTarget):
             return proc
 
         proc = self.execPidThread(perpid)
-        events = self.callPidThread(proc[0], self._proc_wait, proc)
+        events = self.callPidThread(proc[0], self._traceWait, proc)
 
         hProc = proc[1]['hProc']
 
         retproc = (proc[0], self._winProcInfo(hProc))
         return retproc,events
 
-    def _proc_kill(self, proc):
+    def _traceKill(self, proc):
         hProc = proc[1].get('hProc')
         kernel32.TerminateProcess(hProc, 0)
 
@@ -184,41 +191,41 @@ class WindowsTarget(v_target.DebugTarget):
             # shove the win proc info into our proc as well
             proc[1].update( procinfo )
 
-            thread = self._init_thread(proc, tid, handle=hThread, teb=teb)
+            thread = self._initProcThread(proc, tid, handle=hThread, teb=teb)
 
             retproc = (pid, procinfo)
             retproc[1]['handle'] = hProc
 
-            attach = tufo('target:attach', proc=retproc)
+            attach = tufo('proc:attach', proc=retproc)
 
             path = retproc[1]['path']
             name = self._make_libname(path)
             lib = tufo( baseaddr, name=name, path=path )
-            libload = tufo('target:lib:load', lib=lib, tid=tid)
+            libload = tufo('lib:load', lib=lib, tid=tid)
 
-            thrinit = tufo('target:thread:init', thread=thread)
+            thrinit = tufo('thread:init', thread=thread)
 
             return [attach, thrinit, libload]
 
         if dbgcode == EXIT_PROCESS_DEBUG_EVENT:
             exitcode = event.u.ExitProcess.ExitCode
-            exit = tufo('target:exit', exitcode=exitcode)
-            self._real_proc_detach(proc)
+            exit = tufo('proc:exit', exitcode=exitcode)
+            self._winProcDetach(proc)
             return [ exit ]
 
         if dbgcode == CREATE_THREAD_DEBUG_EVENT:
             teb = event.u.CreateThread.ThreadLocalBase
             hThread = event.u.CreateThread.Thread
             #FIXME WANT? startaddr = event.u.CreateThread.StartAddress
-            thread = self._init_thread(proc, tid, handle=hThread, teb=teb)
-            thrinit = tufo('target:thread:init', thread=thread)
+            thread = self._initProcThread(proc, tid, handle=hThread, teb=teb)
+            thrinit = tufo('thread:init', thread=thread)
             return [ thrinit ]
 
         if dbgcode == EXIT_THREAD_DEBUG_EVENT:
             exitcode = event.u.ExitThread.ExitCode
 
-            threxit = tufo('target:thread:exit', tid=tid, exitcode=exitcode)
-            self._fini_thread(proc, tid)
+            threxit = tufo('thread:exit', tid=tid, exitcode=exitcode)
+            self._finiProcThread(proc, tid)
 
             return [ threxit ]
 
@@ -231,7 +238,7 @@ class WindowsTarget(v_target.DebugTarget):
             name = self._make_libname(path)
 
             lib = tufo(addr, addr=addr, path=path, name=name)
-            libload = tufo('target:lib:load', lib=lib, tid=tid)
+            libload = tufo('lib:load', lib=lib, tid=tid)
 
             kernel32.CloseHandle(event.u.LoadDll.File)
 
@@ -239,10 +246,10 @@ class WindowsTarget(v_target.DebugTarget):
 
         if dbgcode == UNLOAD_DLL_DEBUG_EVENT:
             addr = event.u.UnloadDll.BaseOfDll
-            libfree = tufo('target:lib:unload',addr=addr,tid=tid)
+            libfree = tufo('lib:free',addr=addr,tid=tid)
             return [ libfree ]
 
-        err = tufo('target:err',msg='unknown DebugEventCode: %d' % (dbgcode,))
+        err = tufo('cpu:error',msg='unknown DebugEventCode: %d' % (dbgcode,))
         return [ err ]
 
     def _make_libname(self, path):
@@ -264,17 +271,18 @@ class WindowsTarget(v_target.DebugTarget):
         psapi.GetProcessImageFileNameW(hProc, path, 1024)
 
         dospath = self.getDosPath(path.value).lower()
-        uac = self.getProcUacLevel(hProc)
+        uac = self._getProcUacLevel(hProc)
 
         pbi = self.getProcBasicInfo(hProc)
         peb = pbi.get('peb')
 
         info = {
-            'name':name.value.lower(),
-            'path':dospath,
             'uac':uac,
             'peb':peb,
+            'path':dospath,
+            'name':name.value.lower(),
             'arch':v_thishost.get('arch'),
+            'wow64':False,
         }
 
         if IsWow64Process != None:
@@ -288,12 +296,7 @@ class WindowsTarget(v_target.DebugTarget):
         kernel32.CloseHandle(hModule)
         return info
 
-    def _proc_break(self, proc):
-        hProc = proc[1].get('hProc')
-        if not kernel32.DebugBreakProcess( hProc ):
-            raise WinError()
-
-    def _proc_poke(self, proc, addr, mem):
+    def _traceWriteMemory(self, proc, addr, mem):
         ret = c_ulong(0)
         hProc = proc[1].get('hProc')
         if not kernel32.WriteProcessMemory(hProc, addr, mem, len(mem), addressof(ret)):
@@ -301,7 +304,7 @@ class WindowsTarget(v_target.DebugTarget):
 
         return ret.value
 
-    def _proc_peek(self, proc, addr, size):
+    def _traceReadMemory(self, proc, addr, size):
         ret = c_ulong()
         mem = (c_char * size)()
 
@@ -321,7 +324,7 @@ class WindowsTarget(v_target.DebugTarget):
 
         return None
 
-    def _proc_mmaps(self, proc):
+    def _traceGetMemoryMaps(self, proc):
 
         ret = []
         addr = 0
@@ -374,16 +377,9 @@ class WindowsTarget(v_target.DebugTarget):
             if path.startswith(device):
                 return path.replace(device,drive)
 
-    def getProcUacLevel(self, hProc):
+    def _getProcUacLevel(self, hProc):
         '''
         Retrieve the UAC elevation type for a process (by handle).
-
-        Example:
-
-            uac = tgt.getProcUacLevel(hProc)
-            if uac == TokenElevationTypeFull:
-                dostuff()
-
         '''
 
         token = HANDLE(0)
@@ -396,7 +392,7 @@ class WindowsTarget(v_target.DebugTarget):
 
         return etype.value
 
-    def _init_dosmaps(self):
+    def _initDosMaps(self):
         self.dosdevs = []
         namebuf = (c_char * 1024)()
         size = kernel32.GetLogicalDriveStringsW(512, namebuf)
@@ -410,7 +406,7 @@ class WindowsTarget(v_target.DebugTarget):
             kernel32.QueryDosDeviceW(drive, device, 512)
             self.dosdevs.append( (drive, device.value) )
 
-    def _proc_forpid(self, pid):
+    def _getProcByPid(self, pid):
 
         hProc = kernel32.OpenProcess( PROCESS_ALL_ACCESS, 0, pid )
         if not hProc:
@@ -422,7 +418,7 @@ class WindowsTarget(v_target.DebugTarget):
 
         return tufo(pid,**info)
 
-    def ps(self):
+    def _getProcList(self):
         count = 4096
         needed = c_int(0)
 
@@ -439,7 +435,7 @@ class WindowsTarget(v_target.DebugTarget):
 
         ret = []
         for i in range(needed.value // 4):
-            proc = self._proc_forpid(pids[i])
+            proc = self.getProcByPid(pids[i])
             if proc == None:
                 continue
 
@@ -447,7 +443,7 @@ class WindowsTarget(v_target.DebugTarget):
 
         return ret
 
-    def _proc_getregs(self, proc, thread):
+    def _traceGetRegs(self, proc, thread):
         ctx = thread[1]['context']
         ctx.initContextFlags()
 
@@ -462,11 +458,11 @@ class WindowsTarget(v_target.DebugTarget):
 
         return self.callPidThread( proc[0], perpid )
 
-    def _proc_setregs(self, proc, thread, regdict):
+    def _traceSetRegs(self, proc, thread, regs):
         ctx = thread[1]['context']
         hThread = thread[1]['handle']
 
-        ctx.setRegDict(regdict)
+        ctx.setRegDict(regs)
 
         def perpid():
             if not kernel32.SetThreadContext( hThread, ctypes.addressof(ctx) ):
@@ -484,10 +480,10 @@ def winDebugCtor(**info):
 
     if v_thishost.check(arch='i386'):
         targ = WinTargetI386(**info)
-        return v_win_dbgapi.WinDebugApi(targ)
+        return v_win_debugger.WindowsDebugger(targ)
 
     if v_thishost.check(arch='amd64'):
         targ = WinTargetAmd64(**info)
-        return v_win_dbgapi.WinDebugApi(targ)
+        return v_win_debugger.WindowsDebugger(targ)
 
-v_dbgapi.addDebugApi('this',winDebugCtor)
+v_debugger.addDebugCtor('this',winDebugCtor)

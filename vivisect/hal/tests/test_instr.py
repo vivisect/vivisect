@@ -8,8 +8,8 @@ from vertex.lib.common import tufo
 class InstrTests(unittest.TestCase):
 
     def _get_dis(self, hexstr):
-        mmaps = [ tufo(0x41410000, init=v_bits.h2b(hexstr)) ]
-        cpu = v_cpu.getArchCpu('i386', mmaps=mmaps)
+        cpu = v_cpu.getArchCpu('i386')
+        cpu.initMemoryMap(0x41410000, 4096, init=v_bits.h2b(hexstr))
         return cpu.disasm(0x41410000)
 
     def test_instr_size(self):

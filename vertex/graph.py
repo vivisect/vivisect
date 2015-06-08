@@ -23,6 +23,12 @@ class Graph(s_evtdist.EventDist):
         self.store.initEdgeIndex('_:n1')
         self.store.initEdgeIndex('_:n2')
 
+    def setDefIndex(self, indextype):
+        '''
+        Set the default index for the storage layer.
+        '''
+        self.store.setDefIndex(indextype)
+
     def getGraphInfo(self, prop):
         return self._graf_info.get(prop)
 
@@ -80,6 +86,9 @@ class Graph(s_evtdist.EventDist):
         return node
 
     def setNodeProps(self, node, **props):
+        '''
+        Set several properties on a node in the graph.
+        '''
         for key,val in props.items():
             node = self.setNodeProp(node,key,val)
         return node
