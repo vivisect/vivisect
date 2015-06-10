@@ -29,11 +29,21 @@ class H8ArchitectureProcedureCall(envi.CallingConvention):
 aapcs = H8ArchitectureProcedureCall()
 
 
+CPUSTATE_RESET =    0
+CPUSTATE_EXC =      1
+CPUSTATE_EXEC =     2
+CPUSTATE_BUS =      3
+CPUSTATE_SLEEP =    4
+CPUSTATE_SWSTDBY =  5
+CPUSTATE_HWSTDBY =  6
+
 class H8Emulator(H8Module, H8RegisterContext, envi.Emulator):
 
     def __init__(self, advanced=True):
         H8Module.__init__(self)
-        self.advanced = advanced
+        self.setAdvanced(advanced)
+        self.mode = STATE_RESET
+        self.ptrsz = 0
 
         seglist = [ (0,0xffffffff) for x in xrange(6) ]
         envi.Emulator.__init__(self, H8Module())
@@ -41,6 +51,26 @@ class H8Emulator(H8Module, H8RegisterContext, envi.Emulator):
         H8RegisterContext.__init__(self)
 
         self.addCallingConvention("H8 Arch Procedure Call", aapcs)
+
+    def setAdvanced(self, advanced=True):
+        self.advanced = advanced
+        if advanced:
+            self.ptrsz = 4
+        else:
+            self.ptrsz = 2
+
+    def processInterrupt(self, intval=0):
+        print("Interrupt Handler: 0x%x" % intval)
+
+        # 16-bit stack
+        if self.advanced:
+            isrAddr = self.readPointer(4 * intval)
+            pass
+        else:
+            isrAddr = self.readPointer(4 * intval)
+
+        return isrAddr
+        
 
     def undefFlags(self):
         """
