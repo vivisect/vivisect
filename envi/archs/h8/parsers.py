@@ -988,8 +988,7 @@ def p_6A_6B(va, val, buf, off, tsize):
             isz, aasize, fmt = (None, (6,2,'>HH'),None,(8,4,'>IH'))[(val>>4)&3]
 
             aa, val2 = struct.unpack(fmt, buf[off+2:off+isz])
-            table = (bit_dbles, bit_dble7df)[(val>>3)&1]
-            op, mnem, niflags = getBitDbl_OpMnem(val2, table)
+            op, mnem, niflags = getBitDbl_OpMnem(val2)
 
             if val2 & 0x1c00:
                 i3 = (val2>>4) & 7
@@ -1159,47 +1158,11 @@ def p_7c(va, val, buf, off, tsize):
     
     return op, mnem, opers, iflags, 4
 
-bit_dble7df = [
-        ('bset', 0),
-        ('bset', 0),
-        ('bnot', 0),
-        ('bnot', 0),
-        ('bclr', 0),
-        ('bclr', 0),
-        None, # btst
-        None, # btst
-        None, # or
-        None, # or
-        None, # xor
-        None, # xor
-        None, # and
-        None, # and 
-        ('bst', 0),
-        ('bist', 0),
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        ]
-bit_dble7df.extend(bit_dble7df)
-
 def p_7d(va, val, buf, off, tsize):
     # bset, bnor, bclr, bst/bist
     val2, = struct.unpack('>H', buf[off+2: off+4])
 
-    op, mnem, iflags = getBitDbl_OpMnem(val2, bit_dble7df)
+    op, mnem, iflags = getBitDbl_OpMnem(val2)
     op |= ((val & 0xff80)<<9)
 
     erd = (val>>4) & 0x7
@@ -1265,7 +1228,7 @@ def p_7f(va, val, buf, off, tsize):
     # bset, bnor, bclr, bist, bst
     val2, = struct.unpack('>H', buf[off+2: off+4])
 
-    op, mnem, iflags = getBitDbl_OpMnem(val2, bit_dble7df)
+    op, mnem, iflags = getBitDbl_OpMnem(val2)
     op |= ((val & 0xff00)<<8)
 
     aa = val & 0xff
