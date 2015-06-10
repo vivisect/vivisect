@@ -35,6 +35,30 @@ compattypes = {
     type(None):(int,str,bool,long,unicode),
 }
 
+CONFIG_PATH = 0
+CONFIG_ENTRY = 1
+
+class ConfigNoAssignment(Exception):
+    def __init__(self, optstr):
+        Exception.__init__(self)
+        self.optstr = optstr
+    def __str__(self):
+        return "No value given in option %s" % self.optstr
+
+class ConfigInvalidName(Exception):
+    def __init__(self, optpath):
+        Exception.__init__(self)
+        self.optpath = optpath
+    def __str__(self):
+        return 'Invalid Config Name: %s' % self.optpath
+
+class ConfigInvalidOption(Exception):
+    def __init__(self, optname):
+        Exception.__init__(self)
+        self.optname = optname
+    def __str__(self):
+        return 'Invalid Config Option: %s' % self.optname
+
 class EnviConfig:
     '''
     EnviConfig basically works like a multi-layer dictionary that 
@@ -80,10 +104,12 @@ class EnviConfig:
         '''
         return self.cfgdocs.get(optname)
 
-    def getConfigPaths(self, with_vals=False):
+    def getConfigPaths(self):
         '''
-        Return a list of valid path strings
-        If "with_vals" is True, also include the current values
+        Return a list of tuples including: (type, valid path strings, existing value)
+
+        'type' can be CONFIG_PATH or CONFIG_ENTRY to indicate whether the tuple 
+        represents a subconfig or an actual key/value pair
         '''
         paths = []
         todo = [ ([], self) ]
@@ -93,15 +119,12 @@ class EnviConfig:
             
             if config.keys():
                 pathstr = '.'.join(path) + "."
-                if with_vals:
-                    newpaths = [ "%s%s = %s" % (pathstr, key, config[key])  for key in config.keys()]
-                else:
-                    newpaths = [ pathstr + key for key in config.keys()]
+                newpaths = [ (CONFIG_ENTRY, "%s%s" % (pathstr, key), "%s" % (config[key]))  for key in config.keys()]
                 paths.extend(newpaths)
 
             subnames = config.getSubConfigNames()
             if not len(subnames):
-                paths.append('.'.join(path))
+                paths.append((CONFIG_PATH, '.'.join(path), None))
                 continue
 
             for subname in subnames:
@@ -112,13 +135,20 @@ class EnviConfig:
 
         return paths
 
-    def reprConfigPaths(self, with_vals=False):
+    def reprConfigPaths(self):
         '''
         Returns a string representation of the configuration paths/options
         and optionally values.  Useful for printing helper data.
         '''
-        out = [ "Valid Config Paths\n    " ]
-        out.append("\n    ".join(self.getConfigPaths(with_vals)))
+        configpaths = self.getConfigPaths()
+        out = [ "Valid Config Entries:\n    " ]
+        reprs = ['%s = %s' % (ckey, cval) for ctype, ckey, cval in configpaths if ctype==CONFIG_ENTRY]
+        out.append("\n    ".join(reprs))
+        out.append("\n")
+
+        out.append("\nValid Config Paths:\n    ")
+        reprs = [ckey for ctype, ckey, cval in configpaths if ctype==CONFIG_PATH]
+        out.append("\n    ".join(reprs))
         out.append("\n")
         return ''.join(out)
 
@@ -127,6 +157,9 @@ class EnviConfig:
         Parse a simple foo.bar.baz=<json> syntax string into
         the current config.
         '''
+        if '=' not in optstr:
+            raise ConfigNoAssignment(optstr)
+
         optpath,valstr = optstr.split('=',1)
 
         optparts = optpath.split('.')
@@ -135,11 +168,11 @@ class EnviConfig:
         for opart in optparts[:-1]:
             config = config.getSubConfig(opart, add=False)
             if config == None:
-                raise Exception('Invalid Config Name: %s' % optpath)
+                raise ConfigInvalidName(optpath)
 
         optname = optparts[-1]
         if not config.cfginfo.has_key(optname):
-            raise Exception('Invalid Config Option: %s' % optname)
+            raise ConfigInvalidOption(optname)
 
         # json madness
         if valstr.startswith('0x'):
