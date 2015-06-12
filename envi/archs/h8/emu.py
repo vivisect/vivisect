@@ -4,6 +4,7 @@ The H8 Emulator module.
 
 import struct
 
+import emu
 import envi
 from envi.archs.h8 import H8Module
 from envi.archs.h8.regs import *
@@ -38,18 +39,19 @@ CPUSTATE_SWSTDBY =  5
 CPUSTATE_HWSTDBY =  6
 
 class H8Emulator(H8Module, H8RegisterContext, envi.Emulator):
+    IVT_RESET = 0
 
     def __init__(self, advanced=True):
         H8Module.__init__(self)
-        self.setAdvanced(advanced)
+        envi.Emulator.__init__(self, self)
+        H8RegisterContext.__init__(self)
+
         self.mode = CPUSTATE_RESET
         self.ptrsz = 0
 
         seglist = [ (0,0xffffffff) for x in xrange(6) ]
-        envi.Emulator.__init__(self, H8Module())
 
-        H8RegisterContext.__init__(self)
-
+        self.setAdvanced(advanced)
         self.addCallingConvention("H8 Arch Procedure Call", aapcs)
 
     def setAdvanced(self, advanced=True):
@@ -59,15 +61,75 @@ class H8Emulator(H8Module, H8RegisterContext, envi.Emulator):
         else:
             self.ptrsz = 2
 
-    def processInterrupt(self, intval=0):
+    def reset(self):
+        '''
+        triggers the reset interrupt
+        '''
+        if self.getProgramCounter() == 0:
+            va = self.readMemoryPtr(self.IVT_RESET)
+            self.setProgramCounter(va)
+
+    def getPointerSize(self):
+        return self.ptrsz
+
+    def processInterrupt_2140(self, intval=0):
+        '''
+        interrupt processing done according to H8/300 standards.  subclass and modify this function 
+        if the desired behavior differs.
+        supports: advanced and normal modes
+        '''
         print("Interrupt Handler: 0x%x" % intval)
 
-        # 16-bit stack
+        addr = 0
+
         if self.advanced:
-            isrAddr = self.readPointer(4 * intval)
-            pass
+            if intval != 0:
+                val = (self.getRegister(REG_CCR) << 24) | self.getRegister(REG_CCR)
+                self.doPush(val, 4)
+
+                addr = (intval * 4) + 0xc
+
+            isrAddr = self.readMemortPtr(addr)
         else:
-            isrAddr = self.readPointer(4 * intval)
+            if intval != 0:
+                val = self.getRegister(REG_CCR)
+                val |= (val << 8)
+                self.doPush(val, 2)
+                self.doPush(self.getProgramCounter())
+
+                addr = (intval * 2) + 6
+            
+            isrAddr = self.readMemoryPtr(addr)
+
+        return isrAddr
+
+    def processInterrupt(self, intval=0):
+        '''
+        interrupt processing done according to H8/300 standards.  subclass and modify this function 
+        if the desired behavior differs.
+        supports: advanced and normal modes
+        '''
+        print("Interrupt Handler: 0x%x" % intval)
+
+        addr = 0
+
+        if self.advanced:
+            if intval != 0:
+                self.doPush(self.getRegister(REG_CCR))
+                self.doPush(self.getRegister(REG_CCR))
+                self.doPush(self.getProgramCounter())
+
+                addr = (intval * 4) + 0xa
+
+            isrAddr = self.readMemortPtr(addr)
+        else:
+            if intval != 0:
+                self.doPush(self.getRegister(REG_CCR))
+                self.doPush(self.getProgramCounter())
+
+                addr = (intval * 2) + 4
+            
+            isrAddr = self.readMemoryPtr(addr)
 
         return isrAddr
         
@@ -150,16 +212,16 @@ class H8Emulator(H8Module, H8RegisterContext, envi.Emulator):
 
         self.setProgramCounter(x)
 
-    def doPush(self, val, reg=REG_SP):
+    def doPush(self, val, inc=2, reg=REG_SP):
         sp = self.getRegister(reg)
-        sp -= 2
-        self.writeMemValue(sp, val, 2)
+        sp -= inc
+        self.writeMemValue(sp, val, inc)
         self.setRegister(reg, sp)
 
-    def doPop(self, reg=REG_SP):
+    def doPop(self, inc=2, reg=REG_SP):
         sp = self.getRegister(reg)
-        val = self.readMemValue(sp, 2)
-        self.setRegister(reg, sp+2)
+        val = self.readMemValue(sp, inc)
+        self.setRegister(reg, sp+inc)
         return val
 
     def integerSubtraction(self, op):
@@ -321,7 +383,7 @@ class H8Emulator(H8Module, H8RegisterContext, envi.Emulator):
         nextva = self.getOperValue(op, 0)
         return nextva
 
-    i_bt = i_bla
+    i_bt = i_bra
     i_bf = i_brn
     i_bcc = i_bhs
     i_bcs = i_blo
@@ -435,8 +497,7 @@ class H8Emulator(H8Module, H8RegisterContext, envi.Emulator):
         nextva = self.getProgramCounter()
 
         if self.advanced:
-            self.doPush(nextva>>16)
-            self.doPush(nextva & 0xff)
+            self.doPush(nextva, 4)
         else:
             self.doPush(nextva)
 
@@ -448,8 +509,7 @@ class H8Emulator(H8Module, H8RegisterContext, envi.Emulator):
         nextva = self.getProgramCounter()
 
         if self.advanced:
-            self.doPush(nextva>>16)
-            self.doPush(nextva & 0xff)
+            self.doPush(nextva, 4)
         else:
             self.doPush(nextva)
 
@@ -464,9 +524,6 @@ class H8Emulator(H8Module, H8RegisterContext, envi.Emulator):
         for reg in reglist:
             val = self.getRegister(reg)
 
-    i_stmia = i_stm
-
-
     def i_ldm(self, op):
         start_address = self.getOperValue(op,0)
         reglist = self.getOperValue(op,1)
@@ -475,8 +532,6 @@ class H8Emulator(H8Module, H8RegisterContext, envi.Emulator):
         for reg in reglist:
             regval = self.readMemValue(addr, 4)
             self.setRegister(reg, regval)
-
-    i_ldmia = i_ldm
 
     def i_mov(self, op):
         val = self.getOperValue(op, 1)
@@ -542,6 +597,28 @@ class H8Emulator(H8Module, H8RegisterContext, envi.Emulator):
         self.setFlag(CCR_V, e_bits.is_signed_overflow(sres, dsize))
 
 
+
+    def i_daa(self, op):
+        oper = self.getOperValue(op, 0)
+        upop = oper >> 4 & 0xf
+        loop = oper & 0xf
+        C = self.getFlag(CCR_C)
+        H = self.getFlag(CCR_H)
+
+        addval = daa_add.get(C, H, upop, loop)
+        ures = addval + oper
+
+        self.setOperValue(op, 0, ures)
+
+        self.setFlag(CCR_N, e_bits.is_signed(ures, 1))
+        self.setFlag(CCR_Z, not ures)
+        self.setFlag(CCR_C, e_bits.is_unsigned_carry(ures, 1))
+
+    def i_das(self, op):
+        pass
+    def i_dec(self, op):
+        pass
+
     def i_jmp(self, op):
         return self.getOperValue(op, 0)
 
@@ -581,13 +658,9 @@ class H8Emulator(H8Module, H8RegisterContext, envi.Emulator):
         self.setFlag(CCR_N, e_bits.is_signed(ures, 4))
         self.setFlag(CCR_V, e_bits.is_signed_overflow(sres, 4))
 
+    def i_nop(self, op):
+        pass
     '''
-    def i_daa(self, op):
-        pass
-    def i_das(self, op):
-        pass
-    def i_dec(self, op):
-        pass
     def i_divxu(self, op):
         pass
     def i_eepmov(self, op):
@@ -603,8 +676,6 @@ class H8Emulator(H8Module, H8RegisterContext, envi.Emulator):
     def i_mulxu(self, op):
         pass
     def i_neg(self, op):
-        pass
-    def i_nop(self, op):
         pass
     def i_not(self, op):
         pass
@@ -647,4 +718,38 @@ class H8Emulator(H8Module, H8RegisterContext, envi.Emulator):
     def i_xorc(self, op):
         pass
     '''
+
+bcd_add = {}
+for x in range(0xa):
+    for y in range(0xa):
+        bcd_add[(0,0,(x,y))] = 0
+
+    for y in range(4):
+        bcd_add[(0,1,(x,y))] = 0x6
+
+for x in range(9):
+    for y in range(0xa, 0x10):
+        bcd_add[(0,0,(x,y))] = 0x6
+
+for x in range(0xa, 0x10):
+    for y in range(0xa):
+        bcd_add[(0,0,(x,y))] = 0x60
+
+    for y in range(4):
+        bcd_add[(0,1,(x,y))] = 0x66
+
+for x in range(9, 0x10):
+    for y in range(0xa, 0x10):
+        bcd_add[(0,0,(x,y))] = 0x66
+
+for x in range(3):
+    for y in range(0xa):
+        bcd_add[(1,0,(x,y))] = 0x60
+
+    for y in range(0xa, 0x10):
+        bcd_add[(1,0,(x,y))] = 0x66
+
+for x in range(4):
+    for y in range(4):
+        bcd_add[(1,1,(x,y))] = 0x66
 
