@@ -42,7 +42,7 @@ class H8Emulator(H8Module, H8RegisterContext, envi.Emulator):
     def __init__(self, advanced=True):
         H8Module.__init__(self)
         self.setAdvanced(advanced)
-        self.mode = STATE_RESET
+        self.mode = CPUSTATE_RESET
         self.ptrsz = 0
 
         seglist = [ (0,0xffffffff) for x in xrange(6) ]
@@ -265,13 +265,11 @@ class H8Emulator(H8Module, H8RegisterContext, envi.Emulator):
         if self.getFlag(CCR_C):     return
         nextva = self.getOperValue(op, 0)
         return nextva
-    i_bcc = i_bhs
 
     def i_blo(self, op):
         if not self.getFlag(CCR_C):     return
         nextva = self.getOperValue(op, 0)
         return nextva
-    i_bcs = i_blo
 
     def i_bne(self, op):
         if self.getFlag(CCR_Z):     return
@@ -308,44 +306,130 @@ class H8Emulator(H8Module, H8RegisterContext, envi.Emulator):
         nextva = self.getOperValue(op, 0)
         return nextva
 
-    def i_blt(self, op):
+    def i_blt(self, op):    # FIXME: TEST.  these last 4 seem mixed up.
         if self.getFlag(CCR_V) == self.getFlag(CCR_N):     return
         nextva = self.getOperValue(op, 0)
         return nextva
 
-    def i_bgt(self, op):
+    def i_bgt(self, op):    # FIXME: TEST.  these last 4 seem mixed up.
         if (self.getFlag(CCR_V) != self.getFlag(CCR_N)) or self.getFlag(CCR_Z):     return
         nextva = self.getOperValue(op, 0)
         return nextva
 
-    def i_ble(self, op):
-        if (self.getFlag(CCR_V) != self.getFlag(CCR_N)) or self.getFlag(CCR_Z):     return
+    def i_ble(self, op):    # FIXME: TEST.  these last 4 seem mixed up.
+        if not ((self.getFlag(CCR_V) != self.getFlag(CCR_N)) and self.getFlag(CCR_Z)):     return
         nextva = self.getOperValue(op, 0)
         return nextva
 
+    i_bt = i_bla
+    i_bf = i_brn
+    i_bcc = i_bhs
+    i_bcs = i_blo
 
-    '''
+
     def i_bclr(self, op):
-        pass
+        bit = self.getOperValue(op, 0)
+        tgt = self.getOperValue(op, 1)
+
+        tgt &= ~(1<<bit)
+        self.setOperValue(op, 1, tgt)
+
     def i_biand(self, op):
-        pass
+        C = self.getFlag(CCR_C)
+        bit = self.getOperValue(op, 0)
+        tgt = self.getOperValue(op, 1)
+
+        C &= ~(tgt>>bit) & 1
+        self.setFlag(CCR_C, C)
+
     def i_bild(self, op):
-        pass
+        bit = self.getOperValue(op, 0)
+        tgt = self.getOperValue(op, 1)
+
+        C = ~(tgt>>bit) & 1
+        self.setFlag(CCR_C, C)
+
     def i_bior(self, op):
-        pass
+        C = self.getFlag(CCR_C)
+        bit = self.getOperValue(op, 0)
+        tgt = self.getOperValue(op, 1)
+
+        C |= ~(tgt>>bit) & 1
+        self.setFlag(CCR_C, C)
+
     def i_bist(self, op):
-        pass
+        C = self.getFlag(CCR_C)
+        bit = self.getOperValue(op, 0)
+        tgt = self.getOperValue(op, 1)
+
+        tgt &= ~(1<<bit)
+        tgt |= (C ^ 1) << bit
+        self.setOperValue(op, 1, tgt)
+
     def i_bixor(self, op):
-        pass
+        C = self.getFlag(CCR_C)
+        bit = self.getOperValue(op, 0)
+        tgt = self.getOperValue(op, 1)
+
+        C ^= ~(tgt>>bit) & 1
+        self.setFlag(CCR_C, C)
+
     def i_bld(self, op):
-        pass
+        bit = self.getOperValue(op, 0)
+        tgt = self.getOperValue(op, 1)
+
+        C = (tgt>>bit) & 1
+        self.setFlag(CCR_C, C)
+        
     def i_bnot(self, op):
-        pass
+        bit = self.getOperValue(op, 0)
+        tgt = self.getOperValue(op, 1)
+
+        tgt ^= (1<<bit)
+        self.setOperValue(op, 1, tgt)
+
     def i_bor(self, op):
-        pass
+        C = self.getFlag(CCR_C)
+        bit = self.getOperValue(op, 0)
+        tgt = self.getOperValue(op, 1)
+
+        C |= (tgt>>bit) & 1
+        self.setFlag(CCR_C, C)
+
     def i_bset(self, op):
-        pass
-    '''
+        bit = self.getOperValue(op, 0)
+        tgt = self.getOperValue(op, 1)
+
+        tgt |= (1<<bit)
+        self.setOperValue(op, 1, tgt)
+
+    def i_bst(self, op):
+        C = self.getFlag(CCR_C)
+        bit = self.getOperValue(op, 0)
+        tgt = self.getOperValue(op, 1)
+
+        tgt &= ~(1<<bit)
+        tgt |= C << bit
+        self.setOperValue(op, 1, tgt)
+
+    def i_btst(self, op):
+        bit = self.getOperValue(op, 0)
+        tgt = self.getOperValue(op, 1)
+
+        Z = ((tgt>>bit) & 1) ^ 1
+        self.setFlag(CCR_Z, Z)
+        
+    def i_bxor(self, op):
+        C = self.getFlag(CCR_C)
+        bit = self.getOperValue(op, 0)
+        tgt = self.getOperValue(op, 1)
+
+        C ^= (tgt>>bit) & 1
+        self.setFlag(CCR_C, C)
+
+
+    def i_cmp(self, op):
+        self.integerSubtraction(op)
 
     def i_bsr(self, op):
         nextva = self.getProgramCounter()
@@ -461,18 +545,6 @@ class H8Emulator(H8Module, H8RegisterContext, envi.Emulator):
     def i_jmp(self, op):
         return self.getOperValue(op, 0)
 
-    def i_btst(self, op):
-        src1 = self.getOperValue(op, 0)
-        src2 = self.getOperValue(op, 1)
-
-        dsize = op.opers[0].tsize
-        ures = src1 & src2
-
-        self.setFlag(CCR_N, e_bits.is_signed(ures, dsize))
-        self.setFlag(CCR_Z, (0,1)[ures==0])
-        self.setFlag(CCR_C, e_bits.is_unsigned_carry(ures, dsize))
-        #self.setFlag(CCR_V, e_bits.is_signed_overflow(sres, dsize))
-        
     def i_sub(self, op):
         # Src op gets sign extended to dst
         #FIXME account for same operand with zero result for PDE
@@ -510,12 +582,6 @@ class H8Emulator(H8Module, H8RegisterContext, envi.Emulator):
         self.setFlag(CCR_V, e_bits.is_signed_overflow(sres, 4))
 
     '''
-    def i_bst(self, op):
-        pass
-    def i_bxor(self, op):
-        pass
-    def i_cmp(self, op):
-        pass
     def i_daa(self, op):
         pass
     def i_das(self, op):
