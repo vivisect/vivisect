@@ -106,6 +106,9 @@ class v_prim(v_base):
     def __str__(self):
         return str(self.vsGetValue())
 
+    def __hash__(self):
+        return hash(self.vsGetValue())
+
 num_fmts = {
     (True,1):'>B',
     (True,2):'>H',
@@ -704,7 +707,7 @@ class GUID(v_prim):
         return offend
 
     def vsEmit(self):
-        return struck.pack("<IHH8B", *self._guid_fields)
+        return struct.pack("<IHH8B", *self._guid_fields)
 
     def _parseGuidStr(self, gstr):
         gstr = gstr.replace("{","")
