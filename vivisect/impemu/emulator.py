@@ -52,6 +52,8 @@ class WorkspaceEmulator:
         self._safe_mem = True   # Should we be forgiving about memory accesses?
         self._func_only = True  # is this emulator meant to stay in one function scope?
 
+        self.strictops = True   # shoudl we bail on emulation if unsupported instruction encountered
+
         # Map in all the memory associated with the workspace
         for va, size, perms, fname in vw.getMemoryMaps():
             offset, bytes = vw.getByteDef(va)
@@ -264,7 +266,7 @@ class WorkspaceEmulator:
         if not self.checkCall(starteip, endeip, op):
             self.checkBranches(starteip, endeip, op)
 
-    def runFunction(self, funcva, stopva=None, maxhit=None, maxloop=None, ignoreunknown=False):
+    def runFunction(self, funcva, stopva=None, maxhit=None, maxloop=None):
         """
         This is a utility function specific to WorkspaceEmulation (and impemu) that
         will emulate, but only inside the given function.  You may specify a stopva
@@ -360,11 +362,11 @@ class WorkspaceEmulator:
                         vg_path.setNodeProp(self.curpath, 'cleanret', True)
                         break
                 except envi.UnsupportedInstruction, e:
-                    if ignoreunknown:
-                        print 'runFunction skipping unsupported instruction: 0x%08x %s' % (e.op.va, e.op.mnem)
-                        self.setProgramCounter(e.op.va+ e.op.size)
-                    else:
+                    if self.strictops:
                         break
+                    else:
+                        print 'runFunction continuing after unsupported instruction: 0x%08x %s' % (e.op.va, e.op.mnem)
+                        self.setProgramCounter(e.op.va+ e.op.size)
                 except Exception, e:
                     #traceback.print_exc()
                     if self.emumon != None:
