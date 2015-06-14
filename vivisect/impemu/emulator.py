@@ -264,7 +264,7 @@ class WorkspaceEmulator:
         if not self.checkCall(starteip, endeip, op):
             self.checkBranches(starteip, endeip, op)
 
-    def runFunction(self, funcva, stopva=None, maxhit=None, maxloop=None):
+    def runFunction(self, funcva, stopva=None, maxhit=None, maxloop=None, ignoreunknown=False):
         """
         This is a utility function specific to WorkspaceEmulation (and impemu) that
         will emulate, but only inside the given function.  You may specify a stopva
@@ -359,7 +359,12 @@ class WorkspaceEmulator:
                     if op.iflags & envi.IF_RET:
                         vg_path.setNodeProp(self.curpath, 'cleanret', True)
                         break
-
+                except envi.UnsupportedInstruction, e:
+                    if ignoreunknown:
+                        print 'runFunction skipping unsupported instruction: 0x%08x %s' % (e.op.va, e.op.mnem)
+                        self.setProgramCounter(e.op.va+ e.op.size)
+                    else:
+                        break
                 except Exception, e:
                     #traceback.print_exc()
                     if self.emumon != None:
