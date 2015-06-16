@@ -52,6 +52,8 @@ class WorkspaceEmulator:
         self._safe_mem = True   # Should we be forgiving about memory accesses?
         self._func_only = True  # is this emulator meant to stay in one function scope?
 
+        self.strictops = True   # shoudl we bail on emulation if unsupported instruction encountered
+
         # Map in all the memory associated with the workspace
         for va, size, perms, fname in vw.getMemoryMaps():
             offset, bytes = vw.getByteDef(va)
@@ -359,7 +361,12 @@ class WorkspaceEmulator:
                     if op.iflags & envi.IF_RET:
                         vg_path.setNodeProp(self.curpath, 'cleanret', True)
                         break
-
+                except envi.UnsupportedInstruction, e:
+                    if self.strictops:
+                        break
+                    else:
+                        print 'runFunction continuing after unsupported instruction: 0x%08x %s' % (e.op.va, e.op.mnem)
+                        self.setProgramCounter(e.op.va+ e.op.size)
                 except Exception, e:
                     #traceback.print_exc()
                     if self.emumon != None:
