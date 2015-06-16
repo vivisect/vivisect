@@ -72,7 +72,15 @@ class H8Emulator(H8Module, H8RegisterContext, envi.Emulator):
     def getPointerSize(self):
         return self.ptrsz
 
-    def processInterrupt_2140(self, intval=0):
+    def processInterrupt(self, intval=0):
+        '''
+        From outside the emulator, cause an interrupt to be handled.
+        FIXME: wants to pause the run()/runFunction() thread, if any active
+        '''
+        va = emuProcessInterrupt_2140(intval)
+        self.setProgramCounter(va)
+
+    def emuProcessInterrupt_2140(self, intval=0):
         '''
         interrupt processing done according to H8/300 standards.  subclass and modify this function 
         if the desired behavior differs.
@@ -84,7 +92,7 @@ class H8Emulator(H8Module, H8RegisterContext, envi.Emulator):
 
         if self.advanced:
             if intval != 0:
-                val = (self.getRegister(REG_CCR) << 24) | self.getRegister(REG_CCR)
+                val = (self.getStatusRegister() << 24) | self.getStatusRegister()
                 self.doPush(val, 4)
 
                 addr = (intval * 4) + 0xc
@@ -92,7 +100,7 @@ class H8Emulator(H8Module, H8RegisterContext, envi.Emulator):
             isrAddr = self.readMemortPtr(addr)
         else:
             if intval != 0:
-                val = self.getRegister(REG_CCR)
+                val = self.getStatusRegister()
                 val |= (val << 8)
                 self.doPush(val, 2)
                 self.doPush(self.getProgramCounter())
@@ -103,7 +111,7 @@ class H8Emulator(H8Module, H8RegisterContext, envi.Emulator):
 
         return isrAddr
 
-    def processInterrupt(self, intval=0):
+    def emuProcessInterrupt(self, intval=0):
         '''
         interrupt processing done according to H8/300 standards.  subclass and modify this function 
         if the desired behavior differs.
@@ -115,8 +123,8 @@ class H8Emulator(H8Module, H8RegisterContext, envi.Emulator):
 
         if self.advanced:
             if intval != 0:
-                self.doPush(self.getRegister(REG_CCR))
-                self.doPush(self.getRegister(REG_CCR))
+                self.doPush(self.getStatusRegister())
+                self.doPush(self.getStatusRegister())
                 self.doPush(self.getProgramCounter())
 
                 addr = (intval * 4) + 0xa
@@ -124,7 +132,7 @@ class H8Emulator(H8Module, H8RegisterContext, envi.Emulator):
             isrAddr = self.readMemortPtr(addr)
         else:
             if intval != 0:
-                self.doPush(self.getRegister(REG_CCR))
+                self.doPush(self.getStatusRegister())
                 self.doPush(self.getProgramCounter())
 
                 addr = (intval * 2) + 4
@@ -536,6 +544,11 @@ class H8Emulator(H8Module, H8RegisterContext, envi.Emulator):
     def i_mov(self, op):
         val = self.getOperValue(op, 1)
         self.setOperValue(op, 0, val)
+
+        self.setFlag(CCR_N, e_bits.is_signed(val))
+        self.setFlag(CCR_Z, not val)
+        self.setFlag(CCR_V, 0)
+
         if op.opers[0].reg == REG_PC:
             return val
 
@@ -605,19 +618,66 @@ class H8Emulator(H8Module, H8RegisterContext, envi.Emulator):
         C = self.getFlag(CCR_C)
         H = self.getFlag(CCR_H)
 
-        addval = daa_add.get(C, H, upop, loop)
+        addval, resC = daa_add.get(C, H, upop, loop)
         ures = addval + oper
 
         self.setOperValue(op, 0, ures)
 
         self.setFlag(CCR_N, e_bits.is_signed(ures, 1))
         self.setFlag(CCR_Z, not ures)
-        self.setFlag(CCR_C, e_bits.is_unsigned_carry(ures, 1))
+        self.setFlag(CCR_C, resC)
 
     def i_das(self, op):
-        pass
+        oper = self.getOperValue(op, 0)
+        upop = oper >> 4 & 0xf
+        loop = oper & 0xf
+        C = self.getFlag(CCR_C)
+        H = self.getFlag(CCR_H)
+
+        addval, resC = bcd_sub.get(C, H, upop, loop)
+        ures = addval + oper
+
+        self.setOperValue(op, 0, ures)
+
+        self.setFlag(CCR_N, e_bits.is_signed(ures, 1))
+        self.setFlag(CCR_Z, not ures)
+        self.setFlag(CCR_C, resC)       # this should always be what it was coming in
+
+    def i_inc(self, op):
+        oper = self.getOperValue(op, 0)
+        ssize = op.opers[0].tsize
+
+        usrc = e_bits.unsigned(oper, ssize)
+
+        ssrc = e_bits.signed(oper, ssize)
+
+        ures = usrc + 1
+        sres = ssrc + 1
+
+        self.setFlag(CCR_Z, not ures)
+        self.setFlag(CCR_N, e_bits.is_signed(ures, ssize))
+        self.setFlag(CCR_V, e_bits.is_signed_overflow(sres, ssize))
+        # V must be set if previous value was 0x7f (per docs, page 78 of H8/300)
+
+        self.setOperValue(op, 0, ures)
+
     def i_dec(self, op):
-        pass
+        oper = self.getOperValue(op, 0)
+        ssize = op.opers[0].tsize
+
+        usrc = e_bits.unsigned(oper, ssize)
+
+        ssrc = e_bits.signed(oper, ssize)
+
+        ures = usrc - 1
+        sres = ssrc - 1
+
+        self.setFlag(CCR_Z, not ures)
+        self.setFlag(CCR_N, e_bits.is_signed(ures, ssize))
+        self.setFlag(CCR_V, e_bits.is_signed_overflow(sres, ssize))
+        # V must be set if previous value was 0x80 (per docs, page 73 of H8/300)
+
+        self.setOperValue(op, 0, ures)
 
     def i_jmp(self, op):
         return self.getOperValue(op, 0)
@@ -660,45 +720,250 @@ class H8Emulator(H8Module, H8RegisterContext, envi.Emulator):
 
     def i_nop(self, op):
         pass
-    '''
+
+
     def i_divxu(self, op):
-        pass
+        divisor = self.getOperValue(op, 0)
+        dividend = self.getOperValue(op, 1)
+
+        quotient = dividend / divisor
+        remainder = dividend % divisor
+
+        rdval = (remainder << 8) | quotient
+
+        self.setOperValue(op, 1, rdval)
+
+        self.setFlag(CCR_Z, not quotient)
+        self.setFlag(CCR_N, e_bits.is_signed(quotient, 4))
+
     def i_eepmov(self, op):
+        if op.iflags & IF_W:
+            delta = 2
+            count = self.getRegister(REG_R4)
+        elif op.iflags & IF_B:
+            delta = 1
+            count = self.getRegister(REG_R4L)
+
+        src = self.getRegister(REG_ER5)
+        dst = self.getRegister(REG_ER6)
+        print("WARNING: EEPMOV instruction executed... 0x%x -> 0x%x (count=0x%x)" % (
+            src, dst, count * delta))
+
+        for x in range(count):
+            data = self.readMemValue(src, delta)
+            self.writeMemValue(dst, data)
+            src += delta
+            dst += delta
+            # FIXME: NMI can interrupt, must be handled after the current read/write cycle
+
+    def i_exts(self, op):
         pass
-    def i_inc(self, op):
+    def i_extu(self, op):
         pass
+
     def i_ldc(self, op):
-        pass
+        oper = self.getOperValue(op, 0)
+        self.setStatusRegister(oper)
+
     def i_movfpe(self, op):
-        pass
+        raise Exception("Implement MOVFPE emulator instruction with peripherals")
+
     def i_movtpe(self, op):
-        pass
+        raise Exception("Implement MOVTPE emulator instruction with peripherals")
+
     def i_mulxu(self, op):
-        pass
+        '''
+        mul, extend as unsigned
+        rs is 8 bits
+        rd is 16 bits, but only uses the lower 8 bits for multiplicand
+        product is then stored in 16-bit rd
+        flags are not updated
+        '''
+        dsize = op.opers[1].tsize
+        src = self.getOperValue(op, 0)
+        dst = self.getOperValue(op, 1)
+
+        ures = (dst * src)
+        val = ures & e_bits.u_maxes[dsize]
+
+        self.setOperValue(op, 1, val)
+
     def i_neg(self, op):
-        pass
+        dsize = op.opers[0].tsize
+        oper = self.getOperValue(op, 0)
+        oper = e_bits.signed(oper, dsize)
+        oper = -oper
+        self.setOperValue(op, 0, oper)
+        
+        self.setFlag(CCR_H, e_bits.is_signed_half_carry(oper, dsize))
+        self.setFlag(CCR_N, e_bits.is_signed(oper, dsize))
+        self.setFlag(CCR_Z, not oper)
+        self.setFlag(CCR_V, e_bits.is_signed_overflow(oper, dsize))
+        self.setFlag(CCR_C, e_bits.is_unsigned_carry(oper, dsize))
+
     def i_not(self, op):
-        pass
+        dsize = op.opers[0].tsize
+        oper = self.getOperValue(op, 0)
+        #oper = e_bits.signed(oper, dsize)
+        oper = e_bits.u_maxes[dsize] - oper
+        self.setOperValue(op, 0, oper)
+        
+        self.setFlag(CCR_N, e_bits.is_signed(oper, dsize))
+        self.setFlag(CCR_Z, not oper)
+        self.setFlag(CCR_V, 0)
+
     def i_or(self, op):
-        pass
+        src = self.getOperValue(op, 0)
+        dst = self.getOperValue(op, 1)
+
+        #FIXME PDE and flags
+        if src == None:
+            self.undefFlags()
+            self.setOperValue(op, 0, None)
+            return
+
+        ssize = op.opers[0].tsize
+        dsize = op.opers[1].tsize
+
+        ures = src | dst
+
+        self.setOperValue(op, 0, ures)
+        self.setFlag(CCR_N, e_bits.is_signed(ures, dsize))
+        self.setFlag(CCR_Z, not ures)
+        self.setFlag(CCR_V, 0)
+
     def i_orc(self, op):
-        pass
+        src = self.getOperValue(op, 0)
+        dst = self.getStatusRegister()
+
+        #FIXME PDE and flags
+        if src == None:
+            self.undefFlags()
+            self.setOperValue(op, 0, None)
+            return
+
+        ssize = op.opers[0].tsize
+        dsize = op.opers[1].tsize
+
+        ures = src | dst
+
+        self.setStatusRegister(ures)
+
     def i_pop(self, op):
-        pass
+        dsize = op.opers[0].tsize
+        val = self.doPop()
+        self.setOperValue(op, 0, val)
+
+        self.setFlag(CCR_N, e_bits.is_signed(val, dsize))
+        self.setFlag(CCR_Z, not val)
+        self.setFlag(CCR_V, 0)
+
     def i_push(self, op):
-        pass
+        dsize = op.opers[0].tsize
+        val = self.getOperValue(op, 0)
+        self.doPush(val)
+
+        self.setFlag(CCR_N, e_bits.is_signed(val, dsize))
+        self.setFlag(CCR_Z, not val)
+        self.setFlag(CCR_V, 0)
+
     def i_rotl(self, op):
-        pass
+        dsize = op.opers[0].tsize
+        bits = (dsize * 8) - 1
+        val = self.getOperValue(op, 0)
+        C = (val >> bits) & 1
+        val <<= 1
+        val |= C
+        val &= e_bits.u_maxes[dsize]
+
+        self.setOperValue(op, 0, val)
+
+        self.setFlag(CCR_N, e_bits.is_signed(val, dsize))
+        self.setFlag(CCR_Z, not val)
+        self.setFlag(CCR_V, 0)
+        self.setFlag(CCR_C, C)
+
     def i_rotr(self, op):
-        pass
+        dsize = op.opers[0].tsize
+        bits = (dsize * 8) - 1
+        val = self.getOperValue(op, 0)
+        C = val & 1
+        val >>= 1
+        val |= (C<<bits)
+
+        self.setOperValue(op, 0, val)
+
+        self.setFlag(CCR_N, e_bits.is_signed(val, dsize))
+        self.setFlag(CCR_Z, not val)
+        self.setFlag(CCR_V, 0)
+        self.setFlag(CCR_C, C)
+
     def i_rotxl(self, op):
-        pass
+        dsize = op.opers[0].tsize
+        bits = (dsize * 8) - 1
+        val = self.getOperValue(op, 0)
+
+        C = self.getFlag(CCR_C)
+        newC = (val >> bits) & 1
+        val <<= 1
+        val |= C
+        val &= e_bits.u_maxes[dsize]
+
+        self.setOperValue(op, 0, val)
+
+        self.setFlag(CCR_N, e_bits.is_signed(val, dsize))
+        self.setFlag(CCR_Z, not val)
+        self.setFlag(CCR_V, 0)
+        self.setFlag(CCR_C, newC)
+
     def i_rotxr(self, op):
-        pass
+        dsize = op.opers[0].tsize
+        bits = (dsize * 8) - 1
+        val = self.getOperValue(op, 0)
+
+        C = self.getFlag(CCR_C)
+        newC = val & 1
+        val >>= 1
+        val |= (C<<bits)
+
+        self.setOperValue(op, 0, val)
+
+        self.setFlag(CCR_N, e_bits.is_signed(val, dsize))
+        self.setFlag(CCR_Z, not val)
+        self.setFlag(CCR_V, 0)
+        self.setFlag(CCR_C, newC)
+
     def i_rte(self, op):
-        pass
+        '''
+        return from Interrupt Exception
+        EXCLAMATION: stack layout for calls and ISRs differ between archs!
+        '''
+        print("Return from Interrupt Handler")
+
+        if self.advanced:
+            pop = self.doPop(4)
+            retAddr = pop & 0xffffff
+            ccr = (pop >> 24) & 0xff
+        else:
+            ccr = self.doPop() & 0xff
+            retAddr = self.doPop()
+
+        self.setStatusRegster(ccr)
+        return retAddr
+
+
     def i_rts(self, op):
-        pass
+        '''
+        return from Subroutine
+        EXCLAMATION: stack layout for calls and ISRs differ between archs!
+        '''
+        if self.advanced:
+            pop = self.doPop(4)
+            retAddr = pop & 0xffffff
+        else:
+            retAddr = self.doPop()
+
+        return retAddr
     def i_shal(self, op):
         pass
     def i_shar(self, op):
@@ -707,6 +972,7 @@ class H8Emulator(H8Module, H8RegisterContext, envi.Emulator):
         pass
     def i_shlr(self, op):
         pass
+    '''
     def i_sleep(self, op):
         pass
     def i_str(self, op):
@@ -722,34 +988,50 @@ class H8Emulator(H8Module, H8RegisterContext, envi.Emulator):
 bcd_add = {}
 for x in range(0xa):
     for y in range(0xa):
-        bcd_add[(0,0,(x,y))] = 0
+        bcd_add[(0,0,(x,y))] = 0, 0
 
     for y in range(4):
-        bcd_add[(0,1,(x,y))] = 0x6
+        bcd_add[(0,1,(x,y))] = 0x6, 0
 
 for x in range(9):
     for y in range(0xa, 0x10):
-        bcd_add[(0,0,(x,y))] = 0x6
+        bcd_add[(0,0,(x,y))] = 0x6, 0
 
 for x in range(0xa, 0x10):
     for y in range(0xa):
-        bcd_add[(0,0,(x,y))] = 0x60
+        bcd_add[(0,0,(x,y))] = 0x60, 1
 
     for y in range(4):
-        bcd_add[(0,1,(x,y))] = 0x66
+        bcd_add[(0,1,(x,y))] = 0x66, 1
 
 for x in range(9, 0x10):
     for y in range(0xa, 0x10):
-        bcd_add[(0,0,(x,y))] = 0x66
+        bcd_add[(0,0,(x,y))] = 0x66, 1
 
 for x in range(3):
     for y in range(0xa):
-        bcd_add[(1,0,(x,y))] = 0x60
+        bcd_add[(1,0,(x,y))] = 0x60, 1
 
     for y in range(0xa, 0x10):
-        bcd_add[(1,0,(x,y))] = 0x66
+        bcd_add[(1,0,(x,y))] = 0x66, 1
 
 for x in range(4):
     for y in range(4):
-        bcd_add[(1,1,(x,y))] = 0x66
+        bcd_add[(1,1,(x,y))] = 0x66, 1
 
+bcd_sub = {}
+for x in range(0xa):
+    for y in range(0xa):
+        bcd_sub[(0,0,(x,y))] = 0, 0
+
+for x in range(0x9):
+    for y in range(6, 0x10):
+        bcd_sub[(0,1,(x,y))] = 0xfa, 0
+
+for x in range(7, 0x10):
+    for y in range(0xa):
+        bcd_sub[(1,0,(x,y))] = 0xa0, 1
+
+for x in range(6, 0x10):
+    for y in range(6, 0x10):
+        bcd_sub[(1,1,(x,y))] = 0x9a, 1

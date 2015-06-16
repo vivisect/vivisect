@@ -19,32 +19,32 @@ h8_regs = (
 l = locals()
 e_reg.addLocalEnums(l, h8_regs)
 
-CCR_T = 7
-CCR_U1= 6
-CCR_H = 5
-CCR_U0= 4
-CCR_N = 3
-CCR_Z = 2
-CCR_V = 1
-CCR_C = 0
+REG_CCR_T = 7
+REG_CCR_U1= 6
+REG_CCR_H = 5
+REG_CCR_U0= 4
+REG_CCR_N = 3
+REG_CCR_Z = 2
+REG_CCR_V = 1
+REG_CCR_C = 0
 
 ccr_fields = [None for x in range(8)]
 for k,v in locals().items():
-    if k.startswith('CCR_'):
+    if k.startswith('REG_CCR_'):
         ccr_fields[v] = k
 
 H8StatMeta =tuple([
-    ("N", REG_FLAGS, CCR_N, 1),
-    ("Z", REG_FLAGS, CCR_Z, 1),
-    ("C", REG_FLAGS, CCR_C, 1),
-    ("V", REG_FLAGS, CCR_V, 1),
-    ("U0", REG_FLAGS, CCR_U0, 1),
-    ("U1", REG_FLAGS, CCR_U1, 1),
-    ("T", REG_FLAGS, CCR_T, 1),
-    ("H", REG_FLAGS, CCR_H, 1),
+    ("N", REG_FLAGS, REG_CCR_N, 1, 'Negative'),
+    ("Z", REG_FLAGS, REG_CCR_Z, 1, 'Zero'),
+    ("C", REG_FLAGS, REG_CCR_C, 1, 'Carry'),
+    ("V", REG_FLAGS, REG_CCR_V, 1, 'oVerflow'),
+    ("U0", REG_FLAGS, REG_CCR_U0, 1, 'User 0'),
+    ("U1", REG_FLAGS, REG_CCR_U1, 1, 'User 0'),
+    ("T", REG_FLAGS, REG_CCR_T, 1, 'T'),
+    ("H", REG_FLAGS, REG_CCR_H, 1, 'Half Carry'),
     ])
 
-H8Meta = tuple([
+H8Meta = [
     ('r0', REG_ER0, 0, 16),
     ('e0', REG_ER0, 16, 16),
     ('r0h', REG_ER0, 8, 8),
@@ -78,7 +78,7 @@ H8Meta = tuple([
     ('r7h', REG_SP, 8, 8),
     ('r7l', REG_SP, 0, 8),
     ('er7', REG_SP, 0, 32),
-])
+]
 
 def metaFrom8(regidx):
     width = 8
@@ -116,10 +116,12 @@ def convertMeta(regidx, tsize):
         return regidx
     return converter(regidx)
 
+e_reg.addLocalStatusMetas(l, H8Meta, H8StatMeta, 'CCR')
+
 class H8RegisterContext(e_reg.RegisterContext):
     def __init__(self):
         e_reg.RegisterContext.__init__(self)
         self.loadRegDef(h8_regs)
         self.loadRegMetas(H8Meta, statmetas=H8StatMeta)
-        self.setRegisterIndexes(REG_PC, REG_SP)
+        self.setRegisterIndexes(REG_PC, REG_SP, REG_CCR)
 
