@@ -323,9 +323,9 @@ class H8RegIndirOper(envi.DerefOper, H8Operand):
 
         if mod:
             if self.oflags & OF_PREDEC:
-                emu.setRegister(emu.getRegister(self.reg) - self.tsize)
+                emu.setRegister(self.reg, emu.getRegister(self.reg) - self.tsize)
             elif self.oflags & OF_POSTINC:
-                emu.setRegister(emu.getRegister(self.reg) + self.tsize)
+                emu.setRegister(self.reg, emu.getRegister(self.reg) + self.tsize)
 
         return addr
 
@@ -333,7 +333,14 @@ class H8RegIndirOper(envi.DerefOper, H8Operand):
         if emu == None:
             return None
         addr = self.getOperAddr( op, emu, mod )
-        return emu.readMemValue(self.reg, self.tsize)
+        return emu.readMemValue(addr, self.tsize)
+
+    def setOperValue(self, op, emu=None, val=None, mod=True):
+        if emu == None:
+            return None
+        
+        addr = self.getOperAddr( op, emu, mod )
+        emu.writeMemValue(addr, val, self.tsize)
 
     def render(self, mcanv, op, idx):
         name = self._dis_regctx.getRegisterName(self.reg)
@@ -394,7 +401,7 @@ class H8RegMultiOper(H8Operand):
         return False
 
     def getOperValue(self, op, emu=None):
-        return None
+        return [self.basereg + x for x in range(self.count)]
 
     def render(self, mcanv, op, idx):
         basereg = self.basereg & RMETA_NMASK

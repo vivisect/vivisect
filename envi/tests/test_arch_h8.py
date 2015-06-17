@@ -8,6 +8,7 @@ import vivisect
 import platform
 import unittest
 from envi import IF_RET, IF_NOFALL, IF_BRANCH, IF_CALL, IF_COND
+from envi.archs.h8.regs import *
 from envi.archs.h8.const import *
 
 instrs = [
@@ -18,8 +19,8 @@ instrs = [
         ( "791d4745", 0x4560, 'add.w #4745, e5', IF_W),
         ( "0932", 0x4560, 'add.w r3, r2', IF_W),
         ( "7a1d00047145", 0x4560, 'add.l #47145, er5', IF_L),
-        ( "01406930", 0x4560, 'ldc.w @er3, ccr', 0),
-        ( "014069b0", 0x4560, 'stc.w ccr, @er3', 0),
+        ( "01406930", 0x4560, 'ldc.w @er3, ccr', IF_W),
+        ( "014069b0", 0x4560, 'stc.w ccr, @er3', IF_W),
         ( "01c05023", 0x4560, 'mulxs.b r2h, r3', IF_B),
         ( "01c05223", 0x4560, 'mulxs.w r2, er3', IF_W),
         ( "01d05123", 0x4560, 'divxs.b r2h, r3', IF_B),
@@ -184,7 +185,7 @@ instrs = [
         ( '7F406040', 0x1d2, 'bset r4h, @0xffff40:8', 0),
         ( '6A1847156040', 0x1d6, 'bset r4h, @0x4715:16', 0),
         ( '6A38000471456040', 0x1dc, 'bset r4h, @0x47145:32', 0),
-        ( '5C004242', 0x1e6, 'bsr  442C:16', 0),
+        ( '5C004242', 0x1e6, 'bsr  442C:16', IF_CALL),
         ( '6743', 0x1ea, 'bst  #4, r3h', 0),
         ( '7D306740', 0x1ec, 'bst  #4, @er3', 0),
         ( '7F406740', 0x1f0, 'bst  #4, @0xffff40:8', 0),
@@ -222,8 +223,8 @@ instrs = [
         ( '01D05343', 0x26e, 'divxs.w r4, er3', IF_W),
         ( '5143', 0x272, 'divxu.b r4h, r3', IF_B),
         ( '5343', 0x274, 'divxu.w r4, er3', IF_W),
-        ( '7B5C598F', 0x276, 'eepmov.b', 0),
-        ( '7BD4598F', 0x27a, 'eepmov.w', 0),
+        ( '7B5C598F', 0x276, 'eepmov.b', IF_B),
+        ( '7BD4598F', 0x27a, 'eepmov.w', IF_W),
         ( '17D3', 0x27e, 'exts.w r3', IF_W),
         ( '17F3', 0x280, 'exts.l er3', IF_L),
         ( '1753', 0x282, 'extu.w r3', IF_W),
@@ -233,10 +234,10 @@ instrs = [
         ( '0BD3', 0x28a, 'inc.w #2, r3', IF_W),
         ( '0B73', 0x28c, 'inc.l #1, er3', IF_L),
         ( '0BF3', 0x28e, 'inc.l #2, er3', IF_L),
-        ( '5940', 0x290, 'jmp  @er4', 0),
-        ( '5A047145', 0x292, 'jmp  @0x47145:24', 0),
-        ( '5D40', 0x298, 'jsr  @er4', 0),
-        ( '5E047145', 0x29a, 'jsr  @0x47145:24', 0),
+        ( '5940', 0x290, 'jmp  @er4', IF_BRANCH | IF_NOFALL),
+        ( '5A047145', 0x292, 'jmp  @0x47145:24', IF_BRANCH | IF_NOFALL),
+        ( '5D40', 0x298, 'jsr  @er4', IF_CALL),
+        ( '5E047145', 0x29a, 'jsr  @0x47145:24', IF_CALL),
         ( '0740', 0x2a0, 'ldc.b #40, ccr', IF_B),
         ( '01410740', 0x2a2, 'ldc.b #40, exr', IF_B),
         ( '0304', 0x2a6, 'ldc.b r4h, ccr', IF_B),
@@ -341,8 +342,8 @@ instrs = [
         ( '1353', 0x42a, 'rotxr.w #2, r3', IF_W),
         ( '1333', 0x42c, 'rotxr.l er3', IF_L),
         ( '1373', 0x42e, 'rotxr.l #2, er3', IF_L),
-        ( '5670', 0x430, 'rte', 0),
-        ( '5470', 0x432, 'rts', 0),
+        ( '5670', 0x430, 'rte', IF_RET | IF_NOFALL),
+        ( '5470', 0x432, 'rts', IF_RET | IF_NOFALL),
         ( '1083', 0x434, 'shal.b r3h', IF_B),
         ( '10C3', 0x436, 'shal.b #2, r3h', IF_B),
         ( '1093', 0x438, 'shal.w r3', IF_W),
@@ -393,7 +394,7 @@ instrs = [
         ( 'B340', 0x4d8, 'subx #40, r3h', 0),
         ( '1E43', 0x4da, 'subx r4h, r3h', 0),
         ( '01E07B3C', 0x4dc, 'tas  @er3', 0),
-        ( '5730', 0x4e0, 'trapa #3', 0),
+        ( '5730', 0x4e0, 'trapa #3', IF_NOFALL),
         ( 'D340', 0x4e2, 'xor.b #40, r3h', IF_B),
         ( '1543', 0x4e4, 'xor.b r4h, r3h', IF_B),
         ( '79434715', 0x4e6, 'or.w #4715, r3', IF_W),
@@ -408,22 +409,54 @@ class H8InstrTest(unittest.TestCase):
     def test_envi_h8_assorted_instrs(self):
         global instrs
 
-        archmod = envi.getArchModule("h8")
+        #archmod = envi.getArchModule("h8")
+        vw = vivisect.VivWorkspace()
+        vw.setMeta("Architecture", "h8")
+        vw.addMemoryMap(0, 7, 'firmware', '\xff' * 16384*1024)
+        vw.addMemoryMap(0x400000, 7, 'firmware', '\xff' * 16384*1024)
+        emu = vw.getEmulator()
+        emu.logread = emu.logwrite = True
 
         badcount = 0
+        goodcount = 0
+
+        #emu = archmod.getEmulator()
+        #emu.addMemoryMap(0, 7, 'firmware', '\xff' * 16384*1024)
+        #emu.addMemoryMap(0x400000, 7, 'firmware', '\xff' * 16384*1024)
+
         for bytez, va, reprOp, iflags in instrs:
-            op = archmod.archParseOpcode(bytez.decode('hex'), 0, va)
+            #op = archmod.archParseOpcode(bytez.decode('hex'), 0, va)
+            op = vw.arch.archParseOpcode(bytez.decode('hex'), 0, va)
             redoprepr = repr(op).replace(' ','').lower()
             redgoodop = reprOp.replace(' ','').lower()
             if redoprepr != redgoodop:
-                #raise Exception("FAILED to decode instr:  %.8x %s - should be: %s  - is: %s" % \
                 print("FAILED to decode instr:  %.8x %s - should be: %s  - is: %s" % \
                          ( va, bytez, reprOp, repr(op) ) )
                 badcount += 1
-            #self.assertEqual((bytez, redoprepr, op.iflags), (bytez, redgoodop, iflags))
+                raise Exception("FAILED to decode instr:  %.8x %s - should be: %s  - is: %s" % \
+                         ( va, bytez, reprOp, repr(op) ) )
+            self.assertEqual((bytez, redoprepr, op.iflags), (bytez, redgoodop, iflags))
+
+            emu.setRegister(REG_ER3, 0x414141)
+            emu.setRegister(REG_ER4, 0x444444)
+            emu.setRegister(REG_ER5, 0x454545)
+            emu.setRegister(REG_ER6, 0x464646)
+            emu.setRegister(REG_SP, 0x450000)
+            print goodcount, op
+            emu.executeOpcode(op)
+            # FIXME: actually test values. 
+            goodcount += 1
+            #print emu.curpath
+            if len(emu.curpath[2]['readlog']):
+                print '\tRead:', emu.curpath[2]['readlog']
+            if len(emu.curpath[2]['writelog']):
+                print '\tWrite:', emu.curpath[2]['writelog']
+            emu.curpath[2]['readlog'] = []
+            emu.curpath[2]['writelog'] = []
 
         print "Failed Instruction Count: %d" % badcount
     #FIXME: test emuluation as well.
+            
 
 def generateTestInfo(ophexbytez='6e'):
     h8 = e_h8.H8Module()

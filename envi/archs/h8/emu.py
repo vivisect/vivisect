@@ -2,10 +2,12 @@
 The H8 Emulator module.
 """
 
+import sys
 import struct
 
 import emu
 import envi
+import envi.bits as e_bits
 from envi.archs.h8 import H8Module
 from envi.archs.h8.regs import *
 
@@ -46,7 +48,7 @@ class H8Emulator(H8Module, H8RegisterContext, envi.Emulator):
         envi.Emulator.__init__(self, self)
         H8RegisterContext.__init__(self)
 
-        self.mode = CPUSTATE_RESET
+        self.state = CPUSTATE_RESET
         self.ptrsz = 0
 
         seglist = [ (0,0xffffffff) for x in xrange(6) ]
@@ -86,6 +88,12 @@ class H8Emulator(H8Module, H8RegisterContext, envi.Emulator):
         if the desired behavior differs.
         supports: advanced and normal modes
         '''
+        if self.getFlag(CCR_I):
+            # FIXME: check for NMI or RESET
+            if intval != 0 and intval not in NMI_INTS:
+                print("Ignoring maskable interrupt (CCR_I flag is set)")
+                return
+
         print("Interrupt Handler: 0x%x" % intval)
 
         addr = 0
@@ -212,7 +220,7 @@ class H8Emulator(H8Module, H8RegisterContext, envi.Emulator):
         if meth == None:
             raise envi.UnsupportedInstruction(self, op)
         x = meth(op)
-        print >>sys.stderr,"executed instruction, returned: %s"%x
+        #print >>sys.stderr,"executed instruction, returned: %s"%x
 
         if x == None:
             pc = self.getProgramCounter()
@@ -240,23 +248,21 @@ class H8Emulator(H8Module, H8RegisterContext, envi.Emulator):
         """
         # Src op gets sign extended to dst
         #FIXME account for same operand with zero result for PDE
-        src1 = self.getOperValue(op, 1)
-        src2 = self.getOperValue(op, 2)
+        ssize = op.opers[0].tsize
+        dsize = op.opers[1].tsize
+        src = self.getOperValue(op, 0)
+        dst = self.getOperValue(op, 1)
 
-        if src1 == None or src2 == None:
+        if dst == None or src == None:
             self.undefFlags()
             return None
 
-        return self.intSubBase(src1, src2)
+        return self.intSubBase(dst, dsize, src, ssize)
 
-    def intSubBase(self, src1, src2):
+    def intSubBase(self, src1, dsize, src2, ssize):
         # So we can either do a BUNCH of crazyness with xor and shifting to
         # get the necessary flags here, *or* we can just do both a signed and
         # unsigned sub and use the results.
-
-
-        ssize = op.opers[0].tsize
-        dsize = op.opers[1].tsize
 
         usrc = e_bits.unsigned(src1, ssize)
         udst = e_bits.unsigned(src2, dsize)
@@ -267,7 +273,7 @@ class H8Emulator(H8Module, H8RegisterContext, envi.Emulator):
         ures = udst - usrc
         sres = sdst - ssrc
 
-        self.setFlag(CCR_H, e_bits.is_signed_half_carry(ures, dsize))
+        self.setFlag(CCR_H, e_bits.is_signed_half_carry(ures, dsize, udst))
         self.setFlag(CCR_C, e_bits.is_unsigned_carry(ures, dsize))
         self.setFlag(CCR_Z, not ures)
         self.setFlag(CCR_N, e_bits.is_signed(ures, dsize))
@@ -283,7 +289,7 @@ class H8Emulator(H8Module, H8RegisterContext, envi.Emulator):
         # PDE
         if src1 == None or src2 == None:
             self.undefFlags()
-            self.setOperValue(op, 0, None)
+            self.setOperValue(op, 1, None)
             return
 
         res = src1 & src2
@@ -291,11 +297,12 @@ class H8Emulator(H8Module, H8RegisterContext, envi.Emulator):
         return res
 
     def i_and(self, op):
+        dsize = op.opers[1].tsize
         res = self.logicalAnd(op)
         self.setOperValue(op, 1, res)
        
-        self.setFlag(CCR_Z, not ures)
-        self.setFlag(CCR_N, e_bits.is_signed(ures, dsize))
+        self.setFlag(CCR_Z, not res)
+        self.setFlag(CCR_N, e_bits.is_signed(res, dsize))
         self.setFlag(CCR_V, 0)
 
     def i_andc(self, op):
@@ -525,27 +532,25 @@ class H8Emulator(H8Module, H8RegisterContext, envi.Emulator):
         return ea
 
     def i_stm(self, op):
-        start_address = self.getOperValue(op,0)
-        reglist = self.getOperValue(op,1)
+        reglist = self.getOperValue(op,0)
 
-        addr = start_address
         for reg in reglist:
             val = self.getRegister(reg)
+            op.opers[1].setOperValue(op, self, val)
 
     def i_ldm(self, op):
-        start_address = self.getOperValue(op,0)
         reglist = self.getOperValue(op,1)
 
-        addr = start_address
         for reg in reglist:
-            regval = self.readMemValue(addr, 4)
+            regval = op.opers[0].getOperValue(op, self, mod=True)
             self.setRegister(reg, regval)
 
     def i_mov(self, op):
-        val = self.getOperValue(op, 1)
-        self.setOperValue(op, 0, val)
+        ssize = op.opers[0].tsize
+        val = self.getOperValue(op, 0)
+        self.setOperValue(op, 1, val)
 
-        self.setFlag(CCR_N, e_bits.is_signed(val))
+        self.setFlag(CCR_N, e_bits.is_signed(val, ssize))
         self.setFlag(CCR_Z, not val)
         self.setFlag(CCR_V, 0)
 
@@ -559,7 +564,7 @@ class H8Emulator(H8Module, H8RegisterContext, envi.Emulator):
         #FIXME PDE and flags
         if src == None:
             self.undefFlags()
-            self.setOperValue(op, 0, None)
+            self.setOperValue(op, 1, None)
             return
 
         ssize = op.opers[0].tsize
@@ -579,7 +584,7 @@ class H8Emulator(H8Module, H8RegisterContext, envi.Emulator):
     def i_add(self, op):
         (ssize, dsize, sres, ures, sdst, udst) = self.integerAddition(op)
 
-        self.setOperValue(op, 0, ures)
+        self.setOperValue(op, 1, ures)
 
         # FIXME: test and validate
         self.setFlag(CCR_H, e_bits.is_signed_half_carry(sres, dsize, sdst))
@@ -591,7 +596,7 @@ class H8Emulator(H8Module, H8RegisterContext, envi.Emulator):
     def i_adds(self, op):
         (ssize, dsize, sres, ures, sdst, udst) = self.integerAddition(op)
 
-        self.setOperValue(op, 0, ures)
+        self.setOperValue(op, 1, ures)
 
     def i_addx(self, op):
         (ssize, dsize, sres, ures, sdst, udst) = self.integerAddition(op)
@@ -600,7 +605,7 @@ class H8Emulator(H8Module, H8RegisterContext, envi.Emulator):
         sres += C
         ures += C
 
-        self.setOperValue(op, 0, ures)
+        self.setOperValue(op, 1, ures)
 
         # FIXME: test and validate  (same as i_add)
         self.setFlag(CCR_H, e_bits.is_signed_half_carry(sres, dsize, sdst))
@@ -618,7 +623,11 @@ class H8Emulator(H8Module, H8RegisterContext, envi.Emulator):
         C = self.getFlag(CCR_C)
         H = self.getFlag(CCR_H)
 
-        addval, resC = daa_add.get(C, H, upop, loop)
+        addtup = bcd_add.get((C, H, upop, loop))
+        if addtup == None:
+            print("DAA:  %x %x %x %x - addtup is None" % (C, H, upop, loop))
+            return #FIXME: raise exception once figured out
+        addval, resC = addtup
         ures = addval + oper
 
         self.setOperValue(op, 0, ures)
@@ -634,7 +643,11 @@ class H8Emulator(H8Module, H8RegisterContext, envi.Emulator):
         C = self.getFlag(CCR_C)
         H = self.getFlag(CCR_H)
 
-        addval, resC = bcd_sub.get(C, H, upop, loop)
+        addtup = bcd_sub.get((C, H, upop, loop))
+        if addtup == None:
+            print("DAS:  %x %x %x %x - addtup is None" % (C, H, upop, loop))
+            return #FIXME: raise exception once figured out
+        addval, resC = addtup
         ures = addval + oper
 
         self.setOperValue(op, 0, ures)
@@ -662,48 +675,82 @@ class H8Emulator(H8Module, H8RegisterContext, envi.Emulator):
         self.setOperValue(op, 0, ures)
 
     def i_dec(self, op):
-        oper = self.getOperValue(op, 0)
-        ssize = op.opers[0].tsize
+        dstidx = len(op.opers) - 1
+        if dstidx == 1:
+            ssize = op.opers[0].tsize
+            dsize = op.opers[1].tsize
+            src = self.getOperValue(op, 0)
+            dst = self.getOperValue(op, 1)
 
-        usrc = e_bits.unsigned(oper, ssize)
+            udst = e_bits.unsigned(dst, dsize)
+            sdst = e_bits.signed(dst, dsize)
+            usrc = e_bits.unsigned(src, ssize)
+            ssrc = e_bits.signed(src, ssize)
+    
+        else:
+            dsize = op.opers[0].tsize
+            dst = self.getOperValue(op, 0)
 
-        ssrc = e_bits.signed(oper, ssize)
+            udst = e_bits.unsigned(dst, dsize)
+            sdst = e_bits.signed(dst, dsize)
+            ssrc = usrc = 1
 
-        ures = usrc - 1
-        sres = ssrc - 1
+        ures = udst - usrc
+        sres = sdst - ssrc
 
         self.setFlag(CCR_Z, not ures)
-        self.setFlag(CCR_N, e_bits.is_signed(ures, ssize))
-        self.setFlag(CCR_V, e_bits.is_signed_overflow(sres, ssize))
+        self.setFlag(CCR_N, e_bits.is_signed(ures, dsize))
+        self.setFlag(CCR_V, e_bits.is_signed_overflow(sres, dsize))
         # V must be set if previous value was 0x80 (per docs, page 73 of H8/300)
 
-        self.setOperValue(op, 0, ures)
+        self.setOperValue(op, dstidx, ures)
 
     def i_jmp(self, op):
         return self.getOperValue(op, 0)
 
     def i_sub(self, op):
         # Src op gets sign extended to dst
-        #FIXME account for same operand with zero result for PDE
-        src1 = self.getOperValue(op, 1)
-        src2 = self.getOperValue(op, 2)
-        Sflag = op.iflags & IF_CCR_S
+        res = self.integerSubtraction(op)
+        self.setOperValue(op, 1, res)
 
-        if src1 == None or src2 == None:
+    def i_subs(self, op):
+        # Src op gets sign extended to dst
+        ssize = op.opers[0].tsize
+        dsize = op.opers[1].tsize
+        src = e_bits.sign_extend(self.getOperValue(op, 0), ssize, self.ptrsz)
+        dst = e_bits.sign_extend(self.getOperValue(op, 1), ssize, self.ptrsz)
+
+        if src == None or dst == None:
             self.undefFlags()
             return None
 
-        res = self.intSubBase(src1, src2)
-        self.setOperValue(op, 0, res)
+        res = src - dst
+        self.setOperValue(op, 1, res)
+
+
+    def i_subx(self, op):
+        # Src op gets sign extended to dst
+        ssize = op.opers[0].tsize
+        dsize = op.opers[1].tsize
+        src = e_bits.sign_extend(self.getOperValue(op, 0), ssize, self.ptrsz)
+        dst = e_bits.sign_extend(self.getOperValue(op, 1), dsize, self.ptrsz)
+        C = self.getFlag(CCR_C)
+
+        if src == None or dst == None:
+            self.undefFlags()
+            return None
+
+        res = self.intSubBase(dst, dsize, src + C, ssize)
+        self.setOperValue(op, 1, res)
 
     def i_xor(self, op):
-        src1 = self.getOperValue(op, 1)
-        src2 = self.getOperValue(op, 2)
+        src1 = self.getOperValue(op, 0)
+        src2 = self.getOperValue(op, 1)
         
         #FIXME PDE and flags
         if src1 == None or src2 == None:
             self.undefFlags()
-            self.setOperValue(op, 0, None)
+            self.setOperValue(op, 1, None)
             return
 
         usrc1 = e_bits.unsigned(src1, 4)
@@ -711,12 +758,29 @@ class H8Emulator(H8Module, H8RegisterContext, envi.Emulator):
 
         ures = usrc1 ^ usrc2
 
-        self.setOperValue(op, 0, ures)
+        self.setOperValue(op, 1, ures)
 
         self.setFlag(CCR_C, e_bits.is_unsigned_carry(ures, 4))
         self.setFlag(CCR_Z, not ures)
         self.setFlag(CCR_N, e_bits.is_signed(ures, 4))
-        self.setFlag(CCR_V, e_bits.is_signed_overflow(sres, 4))
+        self.setFlag(CCR_V, e_bits.is_signed_overflow(ures, 4))
+
+    def i_xorc(self, op):
+        src = self.getOperValue(op, 0)
+        dst = self.getStatusRegister()
+
+        #FIXME PDE and flags
+        if src == None:
+            self.undefFlags()
+            self.setOperValue(op, 1, None)
+            return
+
+        ssize = op.opers[0].tsize
+        dsize = op.opers[1].tsize
+
+        ures = src ^ dst
+
+        self.setStatusRegister(ures)
 
     def i_nop(self, op):
         pass
@@ -728,6 +792,26 @@ class H8Emulator(H8Module, H8RegisterContext, envi.Emulator):
 
         quotient = dividend / divisor
         remainder = dividend % divisor
+
+        rdval = (remainder << 8) | quotient
+
+        self.setOperValue(op, 1, rdval)
+
+        self.setFlag(CCR_Z, not quotient)
+        self.setFlag(CCR_N, e_bits.is_signed(quotient, 4))
+
+    def i_divxs(self, op):
+        ssize = op.opers[0].tsize
+        dsize = op.opers[1].tsize
+
+        divisor = self.getOperValue(op, 0)
+        dividend = self.getOperValue(op, 1)
+
+        sdivisor = e_bits.signed(divisor, ssize)
+        sdividend = e_bits.signed(dividend, dsize)
+        
+        quotient = sdividend / sdivisor
+        remainder = sdividend % sdivisor
 
         rdval = (remainder << 8) | quotient
 
@@ -765,6 +849,10 @@ class H8Emulator(H8Module, H8RegisterContext, envi.Emulator):
         oper = self.getOperValue(op, 0)
         self.setStatusRegister(oper)
 
+    def i_stc(self, op):
+        oper = self.getStatusRegister()
+        self.setOperValue(op, 1, oper)
+
     def i_movfpe(self, op):
         raise Exception("Implement MOVFPE emulator instruction with peripherals")
 
@@ -788,6 +876,27 @@ class H8Emulator(H8Module, H8RegisterContext, envi.Emulator):
 
         self.setOperValue(op, 1, val)
 
+    def i_mulxs(self, op):
+        '''
+        mul, extend as signed
+        rs is 8 bits
+        rd is 16 bits, but only uses the lower 8 bits for multiplicand
+        product is then stored in 16-bit rd
+        flags are not updated
+        '''
+        ssize = op.opers[0].tsize
+        dsize = op.opers[1].tsize
+        src = self.getOperValue(op, 0)
+        dst = self.getOperValue(op, 1)
+
+        ssrc = e_bits.signed(src, ssize)
+        sdst = e_bits.signed(dst, dsize)
+
+        sres = (sdst * ssrc)
+        val = sres & e_bits.u_maxes[dsize]
+
+        self.setOperValue(op, 1, val)
+
     def i_neg(self, op):
         dsize = op.opers[0].tsize
         oper = self.getOperValue(op, 0)
@@ -795,7 +904,7 @@ class H8Emulator(H8Module, H8RegisterContext, envi.Emulator):
         oper = -oper
         self.setOperValue(op, 0, oper)
         
-        self.setFlag(CCR_H, e_bits.is_signed_half_carry(oper, dsize))
+        self.setFlag(CCR_H, e_bits.is_signed_half_carry(oper, dsize, oper))
         self.setFlag(CCR_N, e_bits.is_signed(oper, dsize))
         self.setFlag(CCR_Z, not oper)
         self.setFlag(CCR_V, e_bits.is_signed_overflow(oper, dsize))
@@ -964,6 +1073,7 @@ class H8Emulator(H8Module, H8RegisterContext, envi.Emulator):
             retAddr = self.doPop()
 
         return retAddr
+
     def i_shal(self, op):
         pass
     def i_shar(self, op):
@@ -972,18 +1082,79 @@ class H8Emulator(H8Module, H8RegisterContext, envi.Emulator):
         pass
     def i_shlr(self, op):
         pass
-    '''
+    def i_shal(self, op):
+        dsize = op.opers[0].tsize
+        bits = (dsize * 8) - 1
+
+        val = self.getOperValue(op, 0)
+        C = (val >> bits) & 1
+        val <<= 1
+        val &= e_bits.u_maxes[dsize]
+
+        self.setOperValue(op, 0, val)
+
+        self.setFlag(CCR_N, e_bits.is_signed(val, dsize))
+        self.setFlag(CCR_Z, not val)
+        self.setFlag(CCR_V, e_bits.is_signed_overflow(oper, dsize))
+        self.setFlag(CCR_C, C)
+
+    def i_shar(self, op):
+        dsize = op.opers[0].tsize
+        bits = (dsize * 8) - 1
+
+        val = self.getOperValue(op, 0)
+        saveval = val
+        C = val & 1
+        val >>= 1
+        val |= (saveval & (1<<bits))
+
+        self.setOperValue(op, 0, val)
+
+        self.setFlag(CCR_N, e_bits.is_signed(val, dsize))
+        self.setFlag(CCR_Z, not val)
+        self.setFlag(CCR_V, 0)
+        self.setFlag(CCR_C, C)
+
+    def i_shll(self, op):
+        dsize = op.opers[0].tsize
+        bits = (dsize * 8) - 1
+        val = self.getOperValue(op, 0)
+
+        C = self.getFlag(CCR_C)
+        newC = (val >> bits) & 1
+        val <<= 1
+        val &= e_bits.u_maxes[dsize]
+
+        self.setOperValue(op, 0, val)
+
+        self.setFlag(CCR_N, e_bits.is_signed(val, dsize))
+        self.setFlag(CCR_Z, not val)
+        self.setFlag(CCR_V, 0)
+        self.setFlag(CCR_C, newC)
+
+    def i_shlr(self, op):
+        dsize = op.opers[0].tsize
+        bits = (dsize * 8) - 1
+        val = self.getOperValue(op, 0)
+
+        C = self.getFlag(CCR_C)
+        newC = val & 1
+        val >>= 1
+
+        self.setOperValue(op, 0, val)
+
+        self.setFlag(CCR_N, e_bits.is_signed(val, dsize))
+        self.setFlag(CCR_Z, not val)
+        self.setFlag(CCR_V, 0)
+        self.setFlag(CCR_C, newC)
+
     def i_sleep(self, op):
-        pass
+        print("Entering Sleep Mode... waiting for an External Interrupt")
+        self.state = CPUSTATE_SLEEP
+
     def i_str(self, op):
-        pass
-    def i_subs(self, op):
-        pass
-    def i_subx(self, op):
-        pass
-    def i_xorc(self, op):
-        pass
-    '''
+        ccr = self.getStatusRegister()
+        self.setOperValue(op, 0, ccr)
 
 bcd_add = {}
 for x in range(0xa):
