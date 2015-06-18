@@ -795,6 +795,7 @@ def p_01(va, val, buf, off, tsize):
     elif diff == 0xe:
         if val2 & 0xff00 == 0x7b00:
             mnem = 'tas'        # FIXME: check out what this decodes to
+            tsize = 1
             erd = (val2 >> 4) & 7
             opers = (
                     H8RegIndirOper(erd, tsize, va, oflags=0),

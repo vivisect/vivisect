@@ -433,8 +433,11 @@ class H8AbsAddrOper(H8Operand):
     Absolute address [@aa:8, @aa:16, or @aa:24]
     '''
     def __init__(self, aa, tsize=1, aasize=2):
-        if aa & 0xffff00 == 0:
+
+        if aasize == 1:
             aa |= 0xffff00
+        elif aasize == 2 and aa & 0x8000:
+            aa |= 0xff0000
 
         self.aa = aa
         self.tsize = tsize
@@ -460,6 +463,11 @@ class H8AbsAddrOper(H8Operand):
 
     def getOperValue(self, op, emu=None):
         return self.aa
+
+    def setOperValue(self, op, emu=None, val=None):
+        if emu == None:
+            return
+        emu.writeMemValue(self.aa, val, self.tsize)
 
     def render(self, mcanv, op, idx):
         mcanv.addText('@')
@@ -544,18 +552,18 @@ class H8MemIndirOper(envi.DerefOper, H8Operand):
             return None
 
         addr = self.getOperAddr(op, emu)
-        ret = emu.readMemoryValue(addr, self.tsize)
+        ret = emu.readMemValue(addr, self.tsize)
         return ret
 
     def getOperAddr(self, op, emu=None):
         return self.aa
 
-    def getOperValue(self, op, emu=None):
+    def setOperValue(self, op, emu=None, val=None):
         if emu == None:
             return 
 
-        dsize = self.tsize
-        val = emu.readMemoryValue(self.getOperAddr(op, emu), dsize)
+        addr = self.getOperAddr(op, emu)
+        ret = emu.writeMemValue(addr, val, self.tsize)
         return val
 
     def render(self, mcanv, op, idx):
