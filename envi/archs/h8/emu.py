@@ -1001,11 +1001,11 @@ class H8Emulator(H8Module, H8RegisterContext, envi.Emulator):
             val = self.getOperValue(op, 0)
             dsize = op.opers[0].tsize
 
-        bits = (dsize * 8) - 1
-        C = (val >> bits) & 1
+        bits = (dsize * 8)
         val <<= shbits
-        val |= (val >> (bits + 1 - shbits))   # FIXME: TEST
+        val |= (val >> bits)
         val &= e_bits.u_maxes[dsize]
+        C = val & 1
 
         self.setOperValue(op, dstidx, val)
 
@@ -1025,9 +1025,9 @@ class H8Emulator(H8Module, H8RegisterContext, envi.Emulator):
             val = self.getOperValue(op, 0)
             dsize = op.opers[0].tsize
 
-        bits = (dsize * 8) - 1
-        C = val & 1
-        val |= (val<<(bits + 1 - shbits))
+        bits = (dsize * 8)
+        C = (val >>(shbits-1)) & 1
+        val |= (val<<(bits))
         val >>= shbits
         val &= e_bits.u_maxes[dsize]
 
@@ -1055,9 +1055,10 @@ class H8Emulator(H8Module, H8RegisterContext, envi.Emulator):
         bits = (dsize * 8) - 1
 
         C = self.getFlag(CCR_C)
-        newC = (val >> bits) & 1
+        newC = (val >> (bits+1-shbits)) & 1
         val <<= shbits
-        val |= (val >> (bits-shbits))   # FIXME: TEST
+        val |= (val >> (bits + 2))
+        val |= (C << (shbits - 1))
         val &= e_bits.u_maxes[dsize]
 
         self.setOperValue(op, dstidx, val)
@@ -1078,12 +1079,18 @@ class H8Emulator(H8Module, H8RegisterContext, envi.Emulator):
             val = self.getOperValue(op, 0)
             dsize = op.opers[0].tsize
 
-        bits = (dsize * 8) - 1
+        bits = (dsize * 8)
         C = self.getFlag(CCR_C)
-        newC = val & 1
-        val |= (val << (bits-shbits))   # FIXME: TEST
+        newC = (val >> (shbits-1)) & 1
+        print 0, shbits, C, newC, hex(val), hex((val<<(bits+1)))
+        val |= (val << (bits + 1))
+        print 1, shbits, C, newC, hex(val), hex((val<<(bits+1)))
+        val |= (C << bits)
+        print 2, shbits, C, newC, hex(val), hex((val<<(bits+1)))
         val >>= shbits
+        print 3, shbits, C, newC, hex(val), hex((val<<(bits+1)))
         val &= e_bits.u_maxes[dsize]
+        print 4, shbits, C, newC, hex(val), hex((val<<(bits+1)))
 
         self.setOperValue(op, dstidx, val)
 
@@ -1135,17 +1142,18 @@ class H8Emulator(H8Module, H8RegisterContext, envi.Emulator):
             val = self.getOperValue(op, 0)
             dsize = op.opers[0].tsize
 
-        bits = (dsize * 8) - 1
+        bits = (dsize * 8)
 
-        C = (val >> bits) & 1
+        C = (val >> (bits - shbits)) & 1
         val <<= shbits
+        rawval = val
         val &= e_bits.u_maxes[dsize]
 
         self.setOperValue(op, dstidx, val)
 
         self.setFlag(CCR_N, e_bits.is_signed(val, dsize))
         self.setFlag(CCR_Z, not val)
-        self.setFlag(CCR_V, e_bits.is_signed_overflow(val, dsize))
+        self.setFlag(CCR_V, e_bits.is_signed_overflow(rawval, dsize))
         self.setFlag(CCR_C, C)
 
     def i_shar(self, op):
@@ -1162,10 +1170,13 @@ class H8Emulator(H8Module, H8RegisterContext, envi.Emulator):
         print shbits, val, dsize
         max_mask = e_bits.u_maxes[dsize]
         signbits = ((-1&max_mask)<<((8*dsize)-shbits) & max_mask)
-        bits = (dsize * 8) - 1
-        C = val & 1
+        S = val > e_bits.s_maxes[dsize]
+
+        C = (val >> (shbits-1)) & 1
         val >>= shbits
-        val |= signbits
+
+        if S:
+            val |= signbits
 
         self.setOperValue(op, dstidx, val)
 
@@ -1188,9 +1199,9 @@ class H8Emulator(H8Module, H8RegisterContext, envi.Emulator):
             val = self.getOperValue(op, 0)
             dsize = op.opers[0].tsize
 
-        bits = (dsize * 8) - 1
+        bits = (dsize * 8)
 
-        C = (val >> bits) & 1
+        C = (val >> (bits - shbits)) & 1
         val <<= shbits
         val &= e_bits.u_maxes[dsize]
 
@@ -1217,7 +1228,7 @@ class H8Emulator(H8Module, H8RegisterContext, envi.Emulator):
 
         bits = (dsize * 8) - 1
 
-        newC = val & 1
+        C = (val >> (shbits-1)) & 1
         val >>= shbits
 
         self.setOperValue(op, dstidx, val)
@@ -1225,7 +1236,7 @@ class H8Emulator(H8Module, H8RegisterContext, envi.Emulator):
         self.setFlag(CCR_N, e_bits.is_signed(val, dsize))
         self.setFlag(CCR_Z, not val)
         self.setFlag(CCR_V, 0)
-        self.setFlag(CCR_C, newC)
+        self.setFlag(CCR_C, C)
 
     def i_sleep(self, op):
         print("Entering Sleep Mode... waiting for an External Interrupt")

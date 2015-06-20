@@ -321,56 +321,147 @@ instrs = [
         ( '01006D74', 0x3f6, 'pop.l er4', IF_L, () ),
         ( '6DF4', 0x3fa, 'push.w r4', IF_W, () ),
         ( '01006DF4', 0x3fc, 'push.l er4', IF_L, () ),
-        ( '1283', 0x400, 'rotl.b r3h', IF_B, () ),
-        ( '12C3', 0x402, 'rotl.b #2, r3h', IF_B, () ),
-        ( '1293', 0x404, 'rotl.w r3', IF_W, () ),
-        ( '12D3', 0x406, 'rotl.w #2, r3', IF_W, () ),
-        ( '12B3', 0x408, 'rotl.l er3', IF_L, () ),
-        ( '12F3', 0x40a, 'rotl.l #2, er3', IF_L, () ),
-        ( '1383', 0x40c, 'rotr.b r3h', IF_B, () ),
-        ( '13C3', 0x40e, 'rotr.b #2, r3h', IF_B, () ),
-        ( '1393', 0x410, 'rotr.w r3', IF_W, () ),
-        ( '13D3', 0x412, 'rotr.w #2, r3', IF_W, () ),
-        ( '13B3', 0x414, 'rotr.l er3', IF_L, () ),
-        ( '13F3', 0x416, 'rotr.l #2, er3', IF_L, () ),
-        ( '1203', 0x418, 'rotxl.b r3h', IF_B, () ),
-        ( '1243', 0x41a, 'rotxl.b #2, r3h', IF_B, () ),
-        ( '1213', 0x41c, 'rotxl.w r3', IF_W, () ),
-        ( '1253', 0x41e, 'rotxl.w #2, r3', IF_W, () ),
-        ( '1233', 0x420, 'rotxl.l er3', IF_L, () ),
-        ( '1273', 0x422, 'rotxl.l #2, er3', IF_L, () ),
-        ( '1303', 0x424, 'rotxr.b r3h', IF_B, () ),
-        ( '1343', 0x426, 'rotxr.b #2, r3h', IF_B, () ),
-        ( '1313', 0x428, 'rotxr.w r3', IF_W, () ),
-        ( '1353', 0x42a, 'rotxr.w #2, r3', IF_W, () ),
-        ( '1333', 0x42c, 'rotxr.l er3', IF_L, () ),
-        ( '1373', 0x42e, 'rotxr.l #2, er3', IF_L, () ),
+        ( '1283', 0x400, 'rotl.b r3h', IF_B, (
+            {'setup':(('r3h',0xaa),('CCR_C',0)), 'tests':(('r3h',0x55),('CCR_C',1),('CCR_V',0)) }, ) ),
+        ( '12C3', 0x402, 'rotl.b #2, r3h', IF_B, (
+            {'setup':(('r3h',0xaa),('CCR_C',0)), 'tests':(('r3h',0xaa),('CCR_C',0),('CCR_V',0)) },
+            {'setup':(('r3h',0x7a),('CCR_C',0)), 'tests':(('r3h',0xe9),('CCR_C',1),('CCR_V',0)) },
+            ) ),
+        ( '1293', 0x404, 'rotl.w r3', IF_W, (
+            {'setup':(('r3',0xabcd),('CCR_C',0)), 'tests':(('r3',0x579b),('CCR_C',1),('CCR_V',0)) }, ) ),
+        ( '12D3', 0x406, 'rotl.w #2, r3', IF_W, (
+            {'setup':(('r3',0xabcd),('CCR_C',0)), 'tests':(('r3',0xaf36),('CCR_C',0),('CCR_V',0)) }, ) ),
+        ( '12B3', 0x408, 'rotl.l er3', IF_L, (
+            {'setup':(('er3',0xbadfaaaa),('CCR_C',0)), 'tests':(('er3',0x75bf5555),('CCR_C',1),('CCR_V',0))},
+            {'setup':(('er3',0x7adfaaaa),('CCR_C',0)), 'tests':(('er3',0xf5bf5554),('CCR_C',0),('CCR_V',0))},
+            )),
+        ( '12F3', 0x40a, 'rotl.l #2, er3', IF_L, (
+            {'setup':(('er3',0xabcdef12),('CCR_C',0)), 'tests':(('er3',0xaf37bc4a),('CCR_C',0),('CCR_V',0))},
+            {'setup':(('er3',0x6bcdef12),('CCR_C',0)), 'tests':(('er3',0xaf37bc49),('CCR_C',1),('CCR_V',0))},
+            )),
+        ( '1383', 0x40c, 'rotr.b r3h', IF_B, (
+            {'setup':(('r3h',0xaa),('CCR_C',0)), 'tests':(('r3h',0x55),('CCR_C',0),('CCR_V',0)) },
+            {'setup':(('r3h',0xab),('CCR_C',0)), 'tests':(('r3h',0xd5),('CCR_C',1),('CCR_V',0)) },
+            ) ),
+        ( '13C3', 0x40e, 'rotr.b #2, r3h', IF_B, (
+            {'setup':(('r3h',0xaa),('CCR_C',0)), 'tests':(('r3h',0xaa),('CCR_C',1),('CCR_V',0)) }, 
+            {'setup':(('r3h',0xab),('CCR_C',0)), 'tests':(('r3h',0xea),('CCR_C',1),('CCR_V',0)) },
+            ) ),
+        ( '1393', 0x410, 'rotr.w r3', IF_W, (
+            {'setup':(('r3',0xccaa),('CCR_C',0)), 'tests':(('r3',0x6655),('CCR_C',0),('CCR_V',0)) }, ) ),
+        ( '13D3', 0x412, 'rotr.w #2, r3', IF_W, (
+            {'setup':(('r3',0xccaa),('CCR_C',0)), 'tests':(('r3',0xb32a),('CCR_C',1),('CCR_V',0)) }, ) ),
+        ( '13B3', 0x414, 'rotr.l er3', IF_L, (
+            {'setup':(('er3',0xabcdefaa),('CCR_C',0)), 'tests':(('er3',0x55e6f7d5),('CCR_C',0),('CCR_V',0))},
+            {'setup':(('er3',0x7bcdefaa),('CCR_C',0)), 'tests':(('er3',0x3de6f7d5),('CCR_C',0),('CCR_V',0))},
+            ) ),
+        ( '13F3', 0x416, 'rotr.l #2, er3', IF_L, (
+            {'setup':(('er3',0xabcdefaa),('CCR_C',0)), 'tests':(('er3',0xaaf37bea),('CCR_C',1),('CCR_V',0))},
+            {'setup':(('er3',0x7bcdefaa),('CCR_C',0)), 'tests':(('er3',0x9ef37bea),('CCR_C',1),('CCR_V',0))},
+            )),
+        ( '1203', 0x418, 'rotxl.b r3h', IF_B, (
+            {'setup':(('r3h',0xaa),('CCR_C',0)), 'tests':(('r3h',0x54),('CCR_C',1),('CCR_V',0)) },
+            {'setup':(('r3h',0xaa),('CCR_C',1)), 'tests':(('r3h',0x55),('CCR_C',1),('CCR_V',0)) },
+            ) ),
+        ( '1243', 0x41a, 'rotxl.b #2, r3h', IF_B, (
+            {'setup':(('r3h',0xaa),('CCR_C',1)), 'tests':(('r3h',0xab),('CCR_C',0),('CCR_V',0)) },
+            {'setup':(('r3h',0x7a),('CCR_C',0)), 'tests':(('r3h',0xe8),('CCR_C',1),('CCR_V',0)) },
+            ) ),
+        ( '1213', 0x41c, 'rotxl.w r3', IF_W, (
+            {'setup':(('r3',0xabcd),('CCR_C',0)), 'tests':(('r3',0x579a),('CCR_C',1),('CCR_V',0)) },
+            {'setup':(('r3',0xabcd),('CCR_C',1)), 'tests':(('r3',0x579b),('CCR_C',1),('CCR_V',0)) },
+            ) ),
+        ( '1253', 0x41e, 'rotxl.w #2, r3', IF_W, (
+            {'setup':(('r3',0xabcd),('CCR_C',0)), 'tests':(('r3',0xaf35),('CCR_C',0),('CCR_V',0)) },
+            {'setup':(('r3',0xabcd),('CCR_C',1)), 'tests':(('r3',0xaf37),('CCR_C',0),('CCR_V',0)) },
+            ) ),
+        ( '1233', 0x420, 'rotxl.l er3', IF_L, (
+            {'setup':(('er3',0xbadfaaaa),('CCR_C',1)), 'tests':(('er3',0x75bf5555),('CCR_C',1),('CCR_V',0))},
+            {'setup':(('er3',0x7adfaaaa),('CCR_C',0)), 'tests':(('er3',0xf5bf5554),('CCR_C',0),('CCR_V',0))},
+            ) ),
+        ( '1273', 0x422, 'rotxl.l #2, er3', IF_L, (
+            {'setup':(('er3',0xabcdef12),('CCR_C',0)), 'tests':(('er3',0xaf37bc49),('CCR_C',0),('CCR_V',0))},
+            {'setup':(('er3',0x6bcdef12),('CCR_C',1)), 'tests':(('er3',0xaf37bc4a),('CCR_C',1),('CCR_V',0))},
+            ) ),
+        ( '1303', 0x424, 'rotxr.b r3h', IF_B, (
+            {'setup':(('r3h',0xaa),('CCR_C',1)), 'tests':(('r3h',0xd5),('CCR_C',0),('CCR_V',0)) },
+            {'setup':(('r3h',0xab),('CCR_C',0)), 'tests':(('r3h',0x55),('CCR_C',1),('CCR_V',0)) },
+            ) ),
+        ( '1343', 0x426, 'rotxr.b #2, r3h', IF_B, (
+            {'setup':(('r3h',0xaa),('CCR_C',1)), 'tests':(('r3h',0x6a),('CCR_C',1),('CCR_V',0)) }, 
+            {'setup':(('r3h',0xab),('CCR_C',0)), 'tests':(('r3h',0xaa),('CCR_C',1),('CCR_V',0)) },
+            ) ),
+        ( '1313', 0x428, 'rotxr.w r3', IF_W, (
+            {'setup':(('r3',0xccaa),('CCR_C',0)), 'tests':(('r3',0x6655),('CCR_C',0),('CCR_V',0)) }, ) ),
+        ( '1353', 0x42a, 'rotxr.w #2, r3', IF_W, (
+            {'setup':(('r3',0xccaa),('CCR_C',1)), 'tests':(('r3',0x732a),('CCR_C',1),('CCR_V',0)) }, ) ),
+        ( '1333', 0x42c, 'rotxr.l er3', IF_L, (
+            {'setup':(('er3',0xabcdefaa),('CCR_C',0)), 'tests':(('er3',0x55e6f7d5),('CCR_C',0),('CCR_V',0))},
+            {'setup':(('er3',0x7bcdefaa),('CCR_C',1)), 'tests':(('er3',0xbde6f7d5),('CCR_C',0),('CCR_V',0))},
+            ) ),
+        ( '1373', 0x42e, 'rotxr.l #2, er3', IF_L, (
+            {'setup':(('er3',0xabcdefaa),('CCR_C',0)), 'tests':(('er3',0x2af37bea),('CCR_C',1),('CCR_V',0))},
+            {'setup':(('er3',0x7bcdefaa),('CCR_C',1)), 'tests':(('er3',0x5ef37bea),('CCR_C',1),('CCR_V',0))},
+            ) ),
         ( '5670', 0x430, 'rte', IF_RET | IF_NOFALL, () ),
         ( '5470', 0x432, 'rts', IF_RET | IF_NOFALL, () ),
-        ( '1083', 0x434, 'shal.b r3h', IF_B, () ),
-        ( '10C3', 0x436, 'shal.b #2, r3h', IF_B, () ),
-        ( '1093', 0x438, 'shal.w r3', IF_W, () ),
-        ( '10D3', 0x43a, 'shal.w #2, r3', IF_W, () ),
-        ( '10B3', 0x43c, 'shal.l er3', IF_L, () ),
-        ( '10F3', 0x43e, 'shal.l #2, er3', IF_L, () ),
-        ( '1183', 0x440, 'shar.b r3h', IF_B, ( [ (('r3h',0xaa),('CCR_C',0)), (('r3h',0xd5),) ], ) ),
-        ( '11C3', 0x442, 'shar.b #2, r3h', IF_B, ( [ (('r3h',0xaa),('CCR_C',0)), (('r3h',0xea),) ], ) ),
-        ( '1193', 0x444, 'shar.w r3', IF_W, () ),
-        ( '11D3', 0x446, 'shar.w #2, r3', IF_W, () ),
-        ( '11B3', 0x448, 'shar.l er3', IF_L, () ),
-        ( '11F3', 0x44a, 'shar.l #2, er3', IF_L, () ),
-        ( '1003', 0x44c, 'shll.b r3h', IF_B, () ),
-        ( '1043', 0x44e, 'shll.b #2, r3h', IF_B, () ),
-        ( '1013', 0x450, 'shll.w r3', IF_W, () ),
-        ( '1053', 0x452, 'shll.w #2, r3', IF_W, () ),
-        ( '1033', 0x454, 'shll.l er3', IF_L, () ),
-        ( '1073', 0x456, 'shll.l #2, er3', IF_L, () ),
-        ( '1103', 0x458, 'shlr.b r3h', IF_B, () ),
-        ( '1143', 0x45a, 'shlr.b #2, r3h', IF_B, () ),
-        ( '1113', 0x45c, 'shlr.w r3', IF_W, () ),
-        ( '1153', 0x45e, 'shlr.w #2, r3', IF_W, () ),
-        ( '1133', 0x460, 'shlr.l er3', IF_L, () ),
-        ( '1173', 0x462, 'shlr.l #2, er3', IF_L, () ),
+        ( '1083', 0x434, 'shal.b r3h', IF_B,     (
+            {'setup':(('r3h',0xaa),('CCR_C',0)), 'tests':(('r3h',0x54),('CCR_C',1),('CCR_V',1)) }, ) ),
+        ( '10C3', 0x436, 'shal.b #2, r3h', IF_B, (
+            {'setup':(('r3h',0xaa),('CCR_C',0)), 'tests':(('r3h',0xa8),('CCR_C',0),('CCR_V',1)) },
+            {'setup':(('r3h',0x7a),('CCR_C',0)), 'tests':(('r3h',0xe8),('CCR_C',1),('CCR_V',1)) },
+            )),
+        ( '1093', 0x438, 'shal.w r3', IF_W,      (
+            {'setup':(('r3',0xabcd),('CCR_C',0)), 'tests':(('r3',0x579a),('CCR_C',1),('CCR_V',1)) }, ) ),
+        ( '10D3', 0x43a, 'shal.w #2, r3', IF_W,  (
+            {'setup':(('r3',0xabcd),('CCR_C',0)), 'tests':(('r3',0xaf34),('CCR_C',0),('CCR_V',1)) }, ) ),
+        ( '10B3', 0x43c, 'shal.l er3', IF_L,     (
+            {'setup':(('er3',0xbadfaaaa),('CCR_C',0)), 'tests':(('er3',0x75bf5554),('CCR_C',1),('CCR_V',1))},)),
+        ( '10F3', 0x43e, 'shal.l #2, er3', IF_L, (
+            {'setup':(('er3',0xabcdef12),('CCR_C',0)), 'tests':(('er3',0xaf37bc48),('CCR_C',0),('CCR_V',1))},)),
+        ( '1183', 0x440, 'shar.b r3h', IF_B,     (
+            {'setup':(('r3h',0xaa),('CCR_C',0)), 'tests':(('r3h',0xd5),('CCR_C',0),('CCR_V',0)) },
+            {'setup':(('r3h',0x3a),('CCR_C',0)), 'tests':(('r3h',0x1d),('CCR_C',0),('CCR_V',0)) },
+            )),
+        ( '11C3', 0x442, 'shar.b #2, r3h', IF_B, (
+            {'setup':(('r3h',0xaa),('CCR_C',0)), 'tests':(('r3h',0xea),('CCR_C',1),('CCR_V',0)) }, 
+            {'setup':(('r3h',0xab),('CCR_C',0)), 'tests':(('r3h',0xea),('CCR_C',1),('CCR_V',0)) },
+            )),
+        ( '1193', 0x444, 'shar.w r3', IF_W,      (
+            {'setup':(('r3',0xccaa),('CCR_C',0)), 'tests':(('r3',0xe655),('CCR_C',0),('CCR_V',0)) }, ) ),
+        ( '11D3', 0x446, 'shar.w #2, r3', IF_W,  (
+            {'setup':(('r3',0xccaa),('CCR_C',0)), 'tests':(('r3',0xf32a),('CCR_C',1),('CCR_V',0)) }, ) ),
+        ( '11B3', 0x448, 'shar.l er3', IF_L,     (
+            {'setup':(('er3',0xabcdefaa),('CCR_C',0)), 'tests':(('er3',0xd5e6f7d5),('CCR_C',0),('CCR_V',0))},
+            {'setup':(('er3',0x7bcdefaa),('CCR_C',0)), 'tests':(('er3',0x3de6f7d5),('CCR_C',0),('CCR_V',0))},
+            )),
+
+        ( '11F3', 0x44a, 'shar.l #2, er3', IF_L, (
+            {'setup':(('er3',0xabcdefaa),('CCR_C',0)), 'tests':(('er3',0xeaf37bea),('CCR_C',1),('CCR_V',0))},)),
+        ( '1003', 0x44c, 'shll.b r3h', IF_B,     (
+            {'setup':(('r3h',0xaa),('CCR_C',0)), 'tests':(('r3h',0x54),('CCR_C',1),('CCR_V',0)) }, ) ),
+        ( '1043', 0x44e, 'shll.b #2, r3h', IF_B, (
+            {'setup':(('r3h',0xaa),('CCR_C',0)), 'tests':(('r3h',0xa8),('CCR_C',0),('CCR_V',0)) }, ) ),
+        ( '1013', 0x450, 'shll.w r3', IF_W,      (
+            {'setup':(('r3',0xaacc),('CCR_C',0)), 'tests':(('r3',0x5598),('CCR_C',1),('CCR_V',0)) }, ) ),
+        ( '1053', 0x452, 'shll.w #2, r3', IF_W,  (
+            {'setup':(('r3',0xaacc),('CCR_C',0)), 'tests':(('r3',0xab30),('CCR_C',0),('CCR_V',0)) }, ) ),
+        ( '1033', 0x454, 'shll.l er3', IF_L,     (
+            {'setup':(('er3',0xabcdefaa),('CCR_C',0)), 'tests':(('er3',0x579bdf54),('CCR_C',1),('CCR_V',0))},)),
+        ( '1073', 0x456, 'shll.l #2, er3', IF_L, (
+            {'setup':(('er3',0xabcdefaa),('CCR_C',0)), 'tests':(('er3',0xaf37bea8),('CCR_C',0),('CCR_V',0))},)),
+        ( '1103', 0x458, 'shlr.b r3h', IF_B,     (
+            {'setup':(('r3h',0xaa),('CCR_C',0)), 'tests':(('r3h',0x55),('CCR_C',0),('CCR_V',0)) }, ) ),
+        ( '1143', 0x45a, 'shlr.b #2, r3h', IF_B, (
+            {'setup':(('r3h',0xaa),('CCR_C',0)), 'tests':(('r3h',0x2a),('CCR_C',1),('CCR_V',0)) }, ) ),
+        ( '1113', 0x45c, 'shlr.w r3', IF_W,      (
+            {'setup':(('r3',0xacca),('CCR_C',0)), 'tests':(('r3',0x5665),('CCR_C',0),('CCR_V',0)) }, ) ),
+        ( '1153', 0x45e, 'shlr.w #2, r3', IF_W,  (
+            {'setup':(('r3',0xacca),('CCR_C',0)), 'tests':(('r3',0x2b32),('CCR_C',1),('CCR_V',0)) }, ) ),
+        ( '1133', 0x460, 'shlr.l er3', IF_L,     (
+            {'setup':(('er3',0xabcdefaa),('CCR_C',0)), 'tests':(('er3',0x55e6f7d5),('CCR_C',0),('CCR_V',0))},)),
+        ( '1173', 0x462, 'shlr.l #2, er3', IF_L, (
+            {'setup':(('er3',0xabcdefaa),('CCR_C',0)), 'tests':(('er3',0x2af37bea),('CCR_C',1),('CCR_V',0))},)),
         ( '0180', 0x464, 'sleep', 0, () ),
         ( '0203', 0x466, 'stc.b ccr, r3h', IF_B, () ),
         ( '0213', 0x468, 'stc.b exr, r3h', IF_B, () ),
@@ -444,62 +535,27 @@ class H8InstrTest(unittest.TestCase):
 
             # test some things
             if not len(emutests):
-                setters, tests = (), ()
+                # if we don't have tests, let's just run it in the emulator anyway and see if things break
+                if not self.validateEmulation(emu, op, (), ()):
+                    goodcount += 1
+                else:
+                    print( "FAILED emulation:  %s" % op )
+                    badcount += 1
+
             else:
-                for setters, tests in emutests:
-                    if not self.validateEmulation(emu, op, setters, tests):
+                for tdata in emutests:  # dict with 'setup' and 'tests' as keys
+                    setup = tdata.get('setup', ())
+                    tests = tdata.get('tests', ())
+                    if not self.validateEmulation(emu, op, setup, tests):
                         goodcount += 1
                     else:
                         print( "FAILED emulation:  %s" % op )
+                        badcount += 1
 
         print( "Failed Instruction Count: %d" % badcount )
+        self.assertEqual(badcount, 0)
     #FIXME: test emuluation as well.
             
-
-        # specific tests
-        op = vw.arch.archParseOpcode('11C3'.decode('hex'))
-        #shar.b #2, r3h
-        print( op, hex(0xab) )
-        emu.setRegisterByName('r3h', 0xab)
-        emu.executeOpcode(op)
-        outreg, flag = emu.getRegisterByName('r3h'), emu.getFlag(CCR_C)
-        self.assertEqual((0xea, True), (outreg, flag))
-
-        print( op, hex(0xaa) )
-        emu.setRegisterByName('r3h', 0xaa)
-        emu.executeOpcode(op)
-        outreg, flag = emu.getRegisterByName('r3h'), emu.getFlag(CCR_C)
-        self.assertEqual((0xea, False), (outreg, flag))
-
-        op = vw.arch.archParseOpcode('10C3'.decode('hex'))
-        #shal.b #2, r3h
-        print( op, hex(0xaa) )
-        emu.setRegisterByName('r3h', 0xaa)
-        emu.executeOpcode(op)
-        outreg, flag = emu.getRegisterByName('r3h'), emu.getFlag(CCR_C)
-        self.assertEqual((0xa8, True), (outreg, flag))
-
-        print( op, hex(0x7a) )
-        emu.setRegisterByName('r3h', 0x7a)
-        emu.executeOpcode(op)
-        outreg, flag = emu.getRegisterByName('r3h'), emu.getFlag(CCR_C)
-        self.assertEqual((0xe8, False), (outreg, flag))
-
-        op = vw.arch.archParseOpcode('1183'.decode('hex'))
-        #shar.l er3
-        print( op, hex(0xaa) )
-        emu.setRegisterByName('r3h', 0xaa)
-        emu.executeOpcode(op)
-        print( hex(emu.getRegisterByName('r3h')), emu.getFlag(CCR_C) )
-        #0x3d False
-
-        op = vw.arch.archParseOpcode('11B3'.decode('hex'))
-        #shar.l er3
-        print( op, hex(0xaa) )
-        emu.setRegisterByName('r3h', 0xaa)
-        emu.executeOpcode(op)
-        print( hex(emu.getRegisterByName('r3h')), emu.getFlag(CCR_C) )
-        #0x3d False
 
         op = vw.arch.archParseOpcode('12C3'.decode('hex'))
         #rotl.b #2, r3h
@@ -567,7 +623,7 @@ class H8InstrTest(unittest.TestCase):
                 # try register first
                 testval = emu.getRegisterByName(tgt)
                 if testval == val:
-                    print("SUCCESS: %s  ==  0x%x" % (tgt, val))
+                    #print("SUCCESS: %s  ==  0x%x" % (tgt, val))
                     continue
                 success = 0
                 print("FAILED(reg): %s  !=  0x%x (observed: 0x%x)" % (tgt, val, testval))
@@ -576,16 +632,18 @@ class H8InstrTest(unittest.TestCase):
                 # it's not a register
                 if type(tgt) == str and tgt.startswith("CCR_"):
                     # it's a flag
-                    if emu.getFlag(eval(tgt)) == val:
-                        print("SUCCESS: %s  ==  0x%x" % (tgt, val))
+                    testval = emu.getFlag(eval(tgt)) 
+                    if testval == val:
+                        #print("SUCCESS: %s  ==  0x%x" % (tgt, val))
                         continue
                     success = 0
                     print("FAILED(flag): %s  !=  0x%x (observed: 0x%x)" % (tgt, val, testval))
 
                 elif type(tgt) in (long, int):
                     # it's an address
-                    if emu.readMemValue(tgt, 1) == val:
-                        print("SUCCESS: 0x%x  ==  0x%x" % (tgt, val))
+                    testval = emu.readMemValue(tgt, 1)
+                    if testval == val:
+                        #print("SUCCESS: 0x%x  ==  0x%x" % (tgt, val))
                         continue
                     success = 0
                     print("FAILED(mem): 0x%x  !=  0x%x (observed: 0x%x)" % (tgt, val, testval))
