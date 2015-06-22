@@ -15,6 +15,7 @@ defconfig = {
             },
             'blob':{
                 'arch':'',
+                'bigend':False,
                 'baseaddr':0x20200000,
             },
             'macho':{

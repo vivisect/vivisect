@@ -6,6 +6,7 @@ from vivisect.const import *
 def parseFd(vw, fd, filename=None):
     fd.seek(0)
     arch = vw.config.viv.parsers.blob.arch
+    bigend = vw.config.viv.parsers.blob.bigend
     baseaddr = vw.config.viv.parsers.blob.baseaddr
     try:
         envi.getArchModule(arch)
@@ -15,6 +16,8 @@ def parseFd(vw, fd, filename=None):
     vw.setMeta('Architecture', arch)
     vw.setMeta('Platform','unknown')
     vw.setMeta('Format','blob')
+
+    vw.setMeta('bigend', bigend)
 
     bytez =  fd.read() 
     vw.addMemoryMap(baseaddr, 7, filename, bytez)
@@ -23,6 +26,7 @@ def parseFd(vw, fd, filename=None):
 def parseFile(vw, filename):
 
     arch = vw.config.viv.parsers.blob.arch
+    bigend = vw.config.viv.parsers.blob.bigend
     baseaddr = vw.config.viv.parsers.blob.baseaddr
 
     try:
@@ -34,6 +38,8 @@ def parseFile(vw, filename):
     vw.setMeta('Architecture', arch)
     vw.setMeta('Platform','unknown')
     vw.setMeta('Format','blob')
+
+    vw.setMeta('bigend', bigend)
 
     fname = vw.addFile(filename, baseaddr, v_parsers.md5File(filename))
     bytez =  file(filename, "rb").read()
