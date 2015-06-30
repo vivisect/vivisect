@@ -94,18 +94,21 @@ def msb(value, size):
 
 def is_signed_half_carry(value, size, src):
     '''
-    BCD carry/borrow in the least sig 4-bits
+    BCD carry/borrow in the second most important nibble:
+        32bit   - bit 27
+        16bit   - bit 11
+        8bit    - bit 3
     '''
     smax = s_maxes[size] >> 3
+    
     if value > smax > src:
         return True
     if value < -smax < -src:
         return True
 
-    val = value & smax
-    s = src & smax
-    # FIXME: how to do this elegantly?
-    
+    '''val = value & smax
+    return val < value
+    '''
     return False
 
 def is_signed_carry(value, size, src):

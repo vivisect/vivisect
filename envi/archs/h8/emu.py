@@ -1082,15 +1082,10 @@ class H8Emulator(H8Module, H8RegisterContext, envi.Emulator):
         bits = (dsize * 8)
         C = self.getFlag(CCR_C)
         newC = (val >> (shbits-1)) & 1
-        print 0, shbits, C, newC, hex(val), hex((val<<(bits+1)))
         val |= (val << (bits + 1))
-        print 1, shbits, C, newC, hex(val), hex((val<<(bits+1)))
         val |= (C << bits)
-        print 2, shbits, C, newC, hex(val), hex((val<<(bits+1)))
         val >>= shbits
-        print 3, shbits, C, newC, hex(val), hex((val<<(bits+1)))
         val &= e_bits.u_maxes[dsize]
-        print 4, shbits, C, newC, hex(val), hex((val<<(bits+1)))
 
         self.setOperValue(op, dstidx, val)
 
