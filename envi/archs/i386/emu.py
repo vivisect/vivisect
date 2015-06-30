@@ -1625,3 +1625,5 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
     def i_pxor(self, op):
         return self.i_xor(op)
 
+    def i_lahf(self, op):
+        self.setRegister(REG_AH, self.getRegister(REG_EFLAGS) & 0b11010101)

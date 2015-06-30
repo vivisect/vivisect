@@ -1,6 +1,8 @@
 import os
 import unittest
 
+from cStringIO import StringIO
+
 import vivisect
 import vivisect.vector as viv_vector
 import vivisect.tools.graphutil as viv_graph
@@ -94,6 +96,19 @@ class VivisectTest(unittest.TestCase):
 
         # Make sure we found our silly call...
         self.assertTrue( cargs in argvs )
+
+    def test_viv_bigend(self):
+        fd = StringIO('ABCDEFG')
+
+        vw = vivisect.VivWorkspace()
+        vw.config.viv.parsers.blob.arch = 'arm'
+        vw.config.viv.parsers.blob.bigend = True
+        vw.config.viv.parsers.blob.baseaddr = 0x22220000
+
+        vw.loadFromFd(fd,fmtname='blob')
+
+        self.assertEqual( vw.castPointer(0x22220000), 0x41424344 )
+        self.assertEqual( vw.parseNumber(0x22220000, 2), 0x4142 )
 
     #def test_impapi_windows(self):
         #imp = viv_impapi.getImportApi('windows','i386')

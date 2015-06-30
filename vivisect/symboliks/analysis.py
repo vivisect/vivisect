@@ -123,6 +123,12 @@ class SymbolikFunctionEmulator(vsym_emulator.SymbolikEmulator):
             return None
 
         va = symvar.solve(emu=self) # solver cache will help out...
+        if self.stackdown and va > self.stackbase:
+            return None
+
+        if not self.stackdown and va < self.stackbase:
+            return None
+
         offset = va - self.stackbase
 
         if self.stackdown and -offset < self.stacksize:
@@ -451,7 +457,7 @@ class SymbolikAnalysisContext:
             raise Exception("No codeblock for 'tova': 0x%x" % tova)
 
         paths = viv_graph.getCodePathsTo(graph, tocb[0])
-        spaths = self.getSymbolikPaths(fva, paths=paths, args=args, maxpath=maxpath)
+        spaths = self.getSymbolikPaths(fva, paths=paths, args=args, maxpath=maxpath, graph=graph)
         for emu, effs in spaths:
             # we have symboliks up to the codeblock, but not into it.  
             seffs = graph.getNodeProps(tocb[0]).get('symbolik_effects')

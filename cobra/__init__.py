@@ -1066,6 +1066,12 @@ class CobraProxy:
         authinfo = self._cobra_kwargs.get('authinfo') 
         return CobraClientSocket(builder, retrymax=retrymax, sflags=self._cobra_sflags, authinfo=authinfo, pool=self._cobra_sockpool)
 
+    def __dir__(self):
+        '''
+        return a list of proxied method names
+        '''
+        return self._cobra_methods.keys()
+
     def __getstate__(self):
         return self.__dict__
 

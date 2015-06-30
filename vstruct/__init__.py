@@ -83,10 +83,21 @@ class VStruct(vs_prims.v_base):
             for callback in cblist:
                 callback(self)
 
-    def vsParseFd(self, fd):
+    @classmethod
+    def vsFromFd(cls, fd, fast=True):
+        v = cls()
+        v.vsParseFd(fd,fast=fast)
+        return v
+
+    def vsParseFd(self, fd, fast=False):
         '''
         Parse from the given file like object as input.
         '''
+        if fast:
+            b = fd.read( len(self) )
+            self.vsParse(b,fast=True)
+            return
+
         for fname in self._vs_fields:
             fobj = self._vs_values.get(fname)
             fobj.vsParseFd(fd)

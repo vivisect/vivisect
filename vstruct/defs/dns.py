@@ -41,6 +41,9 @@ DNS_FLAG_RECUR  = 1 << 8
 #DNS_FLAG_AD = 1 << 10   # authentic data
 #DNS_FLAG_CD = 1 << 11   # checking disabled
 
+#totally arbitrary count value to abort parsing dns records
+DNS_SUSPICIOUS_COUNT = 0x20
+
 class DnsParseError(Exception):
     pass
 
@@ -217,6 +220,9 @@ class DnsResourceRecord(vstruct.VStruct):
         size = self.rdlength
         if self.rdata.vsHasField('bytez'):
             self.rdata.vsGetField('bytez').vsSetLength(size)
+        elif self.rdata.vsHasField('txtdata'):
+            self.rdata.vsGetField('txtdata').vsSetLength(size)
+
 
 class DnsResourceRecordArray(vstruct.VArray):
     '''
@@ -250,15 +256,23 @@ class DnsMessage(vstruct.VStruct):
         self._nptr = {}  # name pointer cache
 
     def pcb_qdcount(self):
+        if self.qdcount > DNS_SUSPICIOUS_COUNT:
+            raise RuntimeError('DNS suspicious count threshold hit')
         self.section.question = DnsQuestionArray(self.qdcount)
 
     def pcb_ancount(self):
+        if self.ancount > DNS_SUSPICIOUS_COUNT:
+            raise RuntimeError('DNS suspicious count threshold hit')
         self.section.answer = DnsResourceRecordArray(self.ancount)
 
     def pcb_nscount(self):
+        if self.nscount > DNS_SUSPICIOUS_COUNT:
+            raise RuntimeError('DNS suspicious count threshold hit')
         self.section.authority = DnsResourceRecordArray(self.nscount)
 
     def pcb_arcount(self):
+        if self.arcount > DNS_SUSPICIOUS_COUNT:
+            raise RuntimeError('DNS suspicious count threshold hit')
         self.section.additional = DnsResourceRecordArray(self.arcount)
 
     def vsParse(self, bytez, offset=0):
