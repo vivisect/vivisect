@@ -68,10 +68,14 @@ instrs = [
         ( '01106df4', 0x4560, 'stm.l (er4-er5), @-sp', IF_L, () ),
 
 
-        ( '8340', 0x0, 'add.b #40, r3h', IF_B, () ),
-        ( '0832', 0x2, 'add.b r3h, r2h', IF_B, () ),
-        ( '79134715', 0x4, 'add.w #4715, r3', IF_W, () ),
-        ( '0943', 0x8, 'add.w r4, r3', IF_W, () ),
+        ( '8340', 0x0, 'add.b #40, r3h', IF_B, (
+            {'setup':(('r3h',0xca),('CCR_C',0)), 'tests':(('r3h',0x0a),('CCR_C',1),('CCR_V',0)) }, ) ),
+        ( '0832', 0x2, 'add.b r3h, r2h', IF_B, (
+            {'setup':(('r3h',0xca),('r2h',0x40), ('CCR_C',0)), 'tests':(('r2h',0x0a),('CCR_C',1),('CCR_V',0)) }, ) ),
+        ( '79134715', 0x4, 'add.w #4715, r3', IF_W, (
+            {'setup':(('r3',0xccca),('CCR_C',0)), 'tests':(('r3',0x13df),('CCR_C',1),('CCR_V',0)) }, ) ),
+        ( '0943', 0x8, 'add.w r4, r3', IF_W, (
+            {'setup':(('r3',0xccca),('r4',0x4715), ('CCR_C',0)), 'tests':(('r3',0x13df),('CCR_C',1),('CCR_V',0)) }, ) ),
         ( '7A1300047145', 0xa, 'add.l #47145, er3', IF_L, () ),
         ( '0AA3', 0x10, 'add.l er2, er3', IF_L, () ),
         ( '0B03', 0x12, 'adds #1, er3', 0, () ),
