@@ -741,6 +741,16 @@ def clearMarkDown(graph, fromva, loop=False, mark='up'):
 
             todo.append(graph.getNode(to))
 
+def reduceGraph(graph, props=('up','down')):
+    '''
+    trims all nodes that don't have all the props in the props list
+    '''
+    for node in graph.getNodes():
+        for prop in props:
+            if node[1].get(prop) == None:
+                graph.delNode(node)
+                break
+
 
 class PathForceQuitException(Exception):
     def __repr__(self):

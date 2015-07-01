@@ -96,6 +96,10 @@ class VQVivFuncgraphCanvas(vq_memory.VivCanvasBase):
         self.viewmenu.addAction("Paint Down", ACT(self.paintDown.emit))
         self.viewmenu.addAction("Paint Down until remerge", ACT(self.paintMerge.emit))
 
+        viewmenu = menu.addMenu('view   ')
+        viewmenu.addAction("Save frame to HTML", ACT(self._menuSaveToHtml))
+        viewmenu.addAction("Refresh", ACT(self.refresh))
+
         menu.exec_(event.globalPos())
 
     def _navExpression(self, expr):
@@ -480,6 +484,7 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QtGui.
         fva = self.vw.getFunction(addr)
         if fva == self.fva:
             self.mem_canvas.page().mainFrame().scrollToAnchor('viv:0x%.8x' % addr)
+            self.updateWindowTitle()
             return
 
         if fva == None:

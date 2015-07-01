@@ -4,6 +4,8 @@
 import vstruct
 from vstruct.primitives import *
 
+MAX_PATH = 260
+
 class CLIENT_ID(vstruct.VStruct):
     def __init__(self):
         vstruct.VStruct.__init__(self)
@@ -296,6 +298,20 @@ class KEY_EVENT_RECORD(vstruct.VStruct):
         self.unicodeChar            = v_uint16()
         self.dwControlKeyState      = v_uint32()
 
+class WIN32_FIND_DATAW(vstruct.VStruct):
+    def __init__(self):
+        vstruct.VStruct.__init__(self)
+        self.dwFileAttributes       = v_uint32()
+        self.ftCreationTime         = v_uint64()
+        self.ftLastAccessTime       = v_uint64()
+        self.ftLastWriteTime        = v_uint64()
+        self.nFileSizeHigh          = v_uint32()
+        self.nFileSizeLow           = v_uint32()
+        self.dwReserved0            = v_uint32()
+        self.dwReserved1            = v_uint32()
+        self.cFileName              = v_wstr(MAX_PATH)
+        self.cAlternateFileName     = v_wstr(14)
+
 
 DRIVE_TYPE = v_enum()
 DRIVE_TYPE.UNKNOWN              = 0
@@ -457,6 +473,19 @@ EXIT_WINDOWS.RESTARTAPPS      = 0x00000040
 EXIT_WINDOWS.SHUTDOWN         = 0x00000001 
 EXIT_WINDOWS.FORCE            = 0x00000004 
 EXIT_WINDOWS.FORCEIFHUNG      = 0x00000010 
+
+WTS_CHANGE_EVENT = v_enum()
+WTS_CHANGE_EVENT.WTS_CONSOLE_CONNECT             = 0x1
+WTS_CHANGE_EVENT.WTS_CONSOLE_DISCONNECT          = 0x2
+WTS_CHANGE_EVENT.WTS_REMOTE_CONNECT              = 0x3
+WTS_CHANGE_EVENT.WTS_REMOTE_DISCONNECT           = 0x4
+WTS_CHANGE_EVENT.WTS_SESSION_LOGON               = 0x5
+WTS_CHANGE_EVENT.WTS_SESSION_LOGOFF              = 0x6
+WTS_CHANGE_EVENT.WTS_SESSION_LOCK                = 0x7
+WTS_CHANGE_EVENT.WTS_SESSION_UNLOCK              = 0x8
+WTS_CHANGE_EVENT.WTS_SESSION_REMOTE_CONTROL      = 0x9
+WTS_CHANGE_EVENT.WTS_SESSION_CREATE              = 0xA
+WTS_CHANGE_EVENT.WTS_SESSION_TERMINATE           = 0xB
 
 # each entry is the (vkey_name, mappable_base, shift_modified)
 # if the key is non printable, None is used

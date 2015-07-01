@@ -804,19 +804,22 @@ class PE(object):
         
         reloff = self.rvaToOffset(rva)
         relbytes = self.readAtOffset(reloff, rsize)
-        
 
         while relbytes:
-            pageva, chunksize = struct.unpack("<LL", relbytes[:8])
+            # bounce if we have less than 8 bytes to unpack
+            if len(relbytes) < 8:
+                return
+
+            pageva, chunksize = struct.unpack("<II", relbytes[:8])
             relcnt = (chunksize - 8) / 2
             
-            # RP BUG FIX - when the reloc section has no fixups but the directory exists..
-            if not chunksize or not pageva:
+            # if chunksize == 0 bail
+            if not chunksize:
                 return
+
             # RP BUG FIX - sometimes the chunksize is invalid we do a quick check to make sure we dont overrun the buffer
             if chunksize > len(relbytes):
                 return
-            
             
             rels = struct.unpack("<%dH" % relcnt, relbytes[8:chunksize])
             for r in rels:

@@ -26,6 +26,7 @@ IF_VQ        = 1<<51    # Adv SIMD: operation uses saturating arithmetic
 IF_VR        = 1<<52    # Adv SIMD: operation performs rounding
 IF_VD        = 1<<53    # Adv SIMD: operation doubles the result
 IF_VH        = 1<<54    # Adv SIMD: operation halves the result
+IF_SYS_MODE  = 1<<58    # instruction is encoded to be executed in SYSTEM mode, not USER mode
 
 OF_W         = 1<<8     # Write back to 
 OF_UM        = 1<<9     # Usermode, or if r15 included set current SPSR -> CPSR

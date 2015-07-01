@@ -106,6 +106,9 @@ class v_prim(v_base):
     def __str__(self):
         return str(self.vsGetValue())
 
+    def __hash__(self):
+        return hash(self.vsGetValue())
+
 num_fmts = {
     (True,1):'>B',
     (True,2):'>H',
@@ -610,18 +613,13 @@ class v_wstr(v_str):
     def vsEmit(self):
         return self._vs_value
 
-    def vsGetValue(self):
-        cstr = self._vs_value.decode(self._vs_encode)
-        return cstr.split('\x00')[0]
-
     def vsSetValue(self, val):
         rbytes = val.encode(self._vs_encode)
         self._vs_value = rbytes.ljust(len(self), '\x00')
 
     def vsGetValue(self):
-        s = self._vs_value.decode(self._vs_encode)
-        s = s.split("\x00")[0]
-        return s
+        s = self._vs_value.decode(self._vs_encode, errors='replace')
+        return s.split("\x00")[0]
 
 class v_zwstr(v_str):
     '''
@@ -667,7 +665,7 @@ class v_zwstr(v_str):
         return self._vs_value
 
     def vsGetValue(self):
-        cstr = self._vs_value.decode(self._vs_encode)
+        cstr = self._vs_value.decode(self._vs_encode, errors='replace')
         return cstr.split('\x00')[0]
 
     def vsSetValue(self, val):
@@ -709,7 +707,7 @@ class GUID(v_prim):
         return offend
 
     def vsEmit(self):
-        return struck.pack("<IHH8B", *self._guid_fields)
+        return struct.pack("<IHH8B", *self._guid_fields)
 
     def _parseGuidStr(self, gstr):
         gstr = gstr.replace("{","")

@@ -113,11 +113,15 @@ def loadPeIntoWorkspace(vw, pe, filename=None):
     if vs != None:
         vsver = vs.getVersionValue('FileVersion')
         if vsver != None and len(vsver):
-            vsver = vsver.split()[0]
-            vw.setFileMeta(fname, 'Version', vsver)
+            # add check to split seeing samples with spaces and nothing else..
+            parts = vsver.split()
+            if len(parts):
+                vsver = vsver.split()[0]
+                vw.setFileMeta(fname, 'Version', vsver)
 
     # Setup some va sets used by windows analysis modules
     vw.addVaSet("Library Loads", (("Address", VASET_ADDRESS),("Library", VASET_STRING)))
+    vw.addVaSet('pe:ordinals', (('Address', VASET_ADDRESS),('Ordinal',VASET_INTEGER)))
 
     # SizeOfHeaders spoofable...
     curr_offset = pe.IMAGE_DOS_HEADER.e_lfanew + len(pe.IMAGE_NT_HEADERS) 
@@ -160,7 +164,6 @@ def loadPeIntoWorkspace(vw, pe, filename=None):
 
     vw.makeStructure(ifhdr_va + len(ifstruct), "pe.IMAGE_OPTIONAL_HEADER")
 
-
     # get resource data directory
     ddir = pe.getDataDirectory(PE.IMAGE_DIRECTORY_ENTRY_RESOURCE)
     loadrsrc = vw.config.viv.parsers.pe.loadresources
@@ -186,7 +189,6 @@ def loadPeIntoWorkspace(vw, pe, filename=None):
         d = pe.getDataDirectory(datadir)
         if d.VirtualAddress:
             deadvas.append(d.VirtualAddress)
-            
 
     for idx, sec in enumerate(pe.sections):
         mapflags = 0
@@ -311,6 +313,7 @@ def loadPeIntoWorkspace(vw, pe, filename=None):
     for rva, ord, name in exports:
         eva = rva + baseaddr
         try:
+            vw.setVaSetRow('pe:ordinals', (eva,ord))
             vw.addExport(eva, EXP_UNTYPED, name, fname)
             if vw.probeMemory(eva, 1, e_mem.MM_EXEC):
                 vw.addEntryPoint(eva)
