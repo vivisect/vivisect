@@ -444,14 +444,16 @@ class SymbolikAnalysisContext:
         '''
         self.funccb[name] = callback
 
-    def getSymbolikPathsTo(self, fva, tova, args=None, maxpath=1000):
+    def getSymbolikPathsTo(self, fva, tova, args=None, maxpath=1000, graph=None):
         '''
         For each path from the function start to tova, run all symbolik
         effects in an emulator instance and yield emu, effects tuples.
         Differs from getSymbolikPaths() in that it stops at tova rather
         than continuing to a ret or loop path.
         '''
-        graph = self.getSymbolikGraph(fva)
+        if graph == None:
+            graph = self.getSymbolikGraph(fva)
+
         tocb = self.vw.getCodeBlock(tova)
         if tocb == None:
             raise Exception("No codeblock for 'tova': 0x%x" % tova)
