@@ -2,11 +2,14 @@
 The initial arm module.
 """
 
+import sys
 import struct
 
 import envi
-from envi.archs.arm import ArmModule
+import envi.bits as e_bits
+from envi.const import *
 from envi.archs.arm.regs import *
+from envi.archs.arm import ArmModule
 
 # CPU state (memory, regs inc SPSRs and banked registers)
 # CPU mode  (User, FIQ, IRQ, supervisor, Abort, Undefined, System)
@@ -17,22 +20,13 @@ from envi.archs.arm.regs import *
 
 # calling conventions
 class ArmArchitectureProcedureCall(envi.CallingConvention):
-    """
-    Implement calling conventions for your arch.
-    """
-    def execCallReturn(self, emu, value, ccinfo=None):
-        esp = emu.getRegister(REG_ESP)
-        eip = struct.unpack("<L", emu.readMemory(esp, 4))[0]
-        esp += 4 # For the saved eip
-        esp += (4 * argc) # Cleanup saved args
-
-        emu.setRegister(REG_ESP, esp)
-        emu.setRegister(REG_EAX, value)
-        emu.setProgramCounter(eip)
-
-
-    def getCallArgs(self, emu, count):
-        return emu.getRegisters(0xf)  # r0-r3 are used to hand in parameters.  additional parms are stored and pointed to by r0
+    arg_def = [(CC_REG, REG_R0), (CC_REG, REG_R1), (CC_REG, REG_R2),
+                (CC_REG, REG_R3), (CC_STACK_INF, 4),]
+    retaddr_def = (CC_REG, REG_R14)
+    retval_def = (CC_REG, REG_R0)
+    flags = CC_CALLEE_CLEANUP
+    align = 8
+    pad = 0
 
 aapcs = ArmArchitectureProcedureCall()
 
@@ -56,13 +50,80 @@ class CoProcEmulator:       # useful for prototyping, but should be subclassed
         print >>sys.stderr,"CoProcEmu: mrrc(%s)"%repr(parms)
 
 
+def _getRegIdx(idx, mode):
+    if idx >= MAX_REGS:
+        return idx
+    ridx = idx + (mode*17)  # account for different banks of registers
+    ridx = reg_table[ridx]  # magic pointers allowing overlapping banks of registers
+    return ridx
+
+def c0000(flags):
+    return flags & 4
+
+def c0001(flags):
+    return flags & 4 == 0
+
+def c0010(flags):
+    return flags & 2
+
+def c0011(flags):
+    return flags & 2 == 0
+
+def c0100(flags):
+    return flags & 8
+
+def c0101(flags):
+    return flags & 8 == 0
+
+def c0110(flags):
+    return flags & 1
+
+def c0111(flags):
+    return flags & 1 == 0
+
+def c1000(flags):
+    return (flags & 6) == 2
+
+def c1001(flags):
+    return (flags & c) in (0, 4, 6) # C clear or Z set
+
+def c1010(flags):
+    return (flags & 9) in (0, 9)    # N == V
+
+def c1011(flags):
+    return (flags & 9) in (1, 8)    # N != V
+
+def c1100(flags):
+    return (flags & 4) == 0 and (flags & 9) in (0, 9)   # Z==0, N==V
+
+def c1101(flags):
+    return (flags & 4) or (flags & 9) in (1, 8)         # Z==1 or N!=V (basically, "not c1100")
+
+
+conditionals = [
+        c0000,
+        c0001,
+        c0010,
+        c0011,
+        c0100,
+        c0101,
+        c0110,
+        c0111,
+        c1000,
+        c1001,
+        c1010,
+        c1011,
+        c1100,
+        c1101,
+        ]
 
 class ArmEmulator(ArmModule, ArmRegisterContext, envi.Emulator):
 
     def __init__(self):
         ArmModule.__init__(self)
 
-        self.coprocs = [CoProcEmulator() for x in xrange(16)]       # FIXME: this should be None's, and added in for each real coproc... but this will work for now.
+        # FIXME: this should be None's, and added in for each real coproc... but this will work for now.
+        self.coprocs = [CoProcEmulator() for x in xrange(16)]       
 
         seglist = [ (0,0xffffffff) for x in xrange(6) ]
         envi.Emulator.__init__(self, ArmModule())
@@ -79,19 +140,19 @@ class ArmEmulator(ArmModule, ArmRegisterContext, envi.Emulator):
         """
         self.setRegister(REG_EFLAGS, None)
 
-    def setFlag(self, which, state, mode=PM_usr):   # FIXME: CPSR?
-        flags = self.getSPSR(mode)
+    def setFlag(self, which, state):
+        flags = self.getCPSR()
         if state:
             flags |= which
         else:
             flags &= ~which
-        self.setSPSR(mode, flags)
+        self.setCPSR(flags)
 
-    def getFlag(self, which, mode=PM_usr):          # FIXME: CPSR?
+    def getFlag(self, which):          # FIXME: CPSR?
         #if (flags_reg == None):
         #    flags_reg = proc_modes[self.getProcMode()][5]
         #flags = self.getRegister(flags_reg)
-        flags = self.getSPSR(mode)
+        flags = self.getCPSR()
         if flags == None:
             raise envi.PDEUndefinedFlag(self)
         return bool(flags & which)
@@ -142,12 +203,11 @@ class ArmEmulator(ArmModule, ArmRegisterContext, envi.Emulator):
         # NOTE: If an opcode method returns
         #       other than None, that is the new eip
         x = None
-        if op.prefixes >= 0xe or op.prefixes == (self.getRegister(REG_FLAGS)>>28):         #nearly every opcode is optional
+        if op.prefixes >= 0xe or conditionals[op.prefixes](self.getRegister(REG_FLAGS)>>28):
             meth = self.op_methods.get(op.mnem, None)
             if meth == None:
                 raise envi.UnsupportedInstruction(self, op)
             x = meth(op)
-            print >>sys.stderr,"executed instruction, returned: %s"%x
 
         if x == None:
             pc = self.getProgramCounter()
@@ -168,26 +228,50 @@ class ArmEmulator(ArmModule, ArmRegisterContext, envi.Emulator):
         return val
 
     def getProcMode(self):
+        '''
+        get current ARM processor mode.  see proc_modes (const.py)
+        '''
         return self._rctx_vals[REG_CPSR] & 0x1f     # obfuscated for speed.  could call getCPSR but it's not as fast
 
     def getCPSR(self):
+        '''
+        return the Current Program Status Register.
+        '''
         return self._rctx_vals[REG_CPSR]
 
-    def setCPSR(self, psr):
+    def setCPSR(self, psr, mask=0xffffffff):
+        '''
+        set the CPSR for the current ARM processor mode
+        '''
+        psr = self._rctx_vals[REG_CPSR] & (~mask) | (psr & mask)
         self._rctx_vals[REG_CPSR] = psr
 
     def getSPSR(self, mode):
-        return self._rctx_vals[((mode&0xf)*17)+16]
+        '''
+        get the SPSR for the given ARM processor mode
+        '''
+        ridx = _getRegIdx(REG_SPSR, mode)
+        return self._rctx_vals[ridx]
 
-    def setSPSR(self, mode, psr):
-        self._rctx_vals[((mode&0xf)*17)+16] = psr
+    def setSPSR(self, mode, psr, mask=0xffffffff):
+        '''
+        set the SPSR for the given ARM processor mode
+        '''
+        ridx = _getRegIdx(PSR_Offset, mode)
+        psr = self._rctx_vals[REG_CPSR] & (~mask) | (psr & mask)
+        self._rctx_vals[ridx] = psr
 
     def setProcMode(self, mode):
-        # write current psr to the saved psr register for current mode
-        curSPSRidx = proc_modes[self.getProcMode()][5]
-        self._rctx_vals[curSPSRidx] = self._rctx_vals[REG_CPSR]
+        '''
+        set the current processor mode.  stored in CPSR
+        '''
+        # write current psr to the saved psr register for target mode
+        # but not for USR or SYS modes, which don't have their own SPSR
+        if mode not in (PM_usr, PM_sys):
+            curSPSRidx = proc_modes[mode]
+            self._rctx_vals[curSPSRidx] = self.getCPSR()
 
-        # do we restore saved spsr?
+        # set current processor mode
         cpsr = self._rctx_vals[REG_CPSR] & 0xffffffe0
         self._rctx_vals[REG_CPSR] = cpsr | mode
 
@@ -199,9 +283,9 @@ class ArmEmulator(ArmModule, ArmRegisterContext, envi.Emulator):
             mode = self.getProcMode() & 0xf
         else:
             mode &= 0xf
+
         idx = (index & 0xffff)
-        ridx = idx + (mode*17)  # account for different banks of registers
-        ridx = reg_table[ridx]  # magic pointers allowing overlapping banks of registers
+        ridx = _getRegIdx(idx, mode)
         if idx == index:
             return self._rctx_vals[ridx]
 
@@ -223,9 +307,9 @@ class ArmEmulator(ArmModule, ArmRegisterContext, envi.Emulator):
         self._rctx_dirty = True
 
         idx = (index & 0xffff)
-        ridx = idx + (mode*17)  # account for different banks of registers
-        ridx = reg_table[ridx]  # magic pointers allowing overlapping banks of registers
-        if idx == index:
+        ridx = _getRegIdx(idx, mode)
+
+        if idx == index:    # not a metaregister
             self._rctx_vals[ridx] = (value & self._rctx_masks[ridx])      # FIXME: hack.  should look up index in proc_modes dict?
             return
 
@@ -273,11 +357,11 @@ class ArmEmulator(ArmModule, ArmRegisterContext, envi.Emulator):
         # unsigned sub and use the results.
 
 
-        usrc = e_bits.unsigned(src1, 4)
-        udst = e_bits.unsigned(src2, 4)
+        udst = e_bits.unsigned(src1, 4)
+        usrc = e_bits.unsigned(src2, 4)
 
-        ssrc = e_bits.signed(src1, 4)
-        sdst = e_bits.signed(src2, 4)
+        sdst = e_bits.signed(src1, 4)
+        ssrc = e_bits.signed(src2, 4)
 
         ures = udst - usrc
         sres = sdst - ssrc
@@ -289,23 +373,12 @@ class ArmEmulator(ArmModule, ArmRegisterContext, envi.Emulator):
                     self.setCPSR(self.getSPSR(curmode))
                 else:
                     raise Exception("Messed up opcode...  adding to r15 from PM_usr or PM_sys")
-            self.setFlag(PSR_C, e_bits.is_unsigned_carry(ures, 4))
-            self.setFlag(PSR_Z, not ures)
-            self.setFlag(PSR_N, e_bits.is_signed(ures, 4))
-            self.setFlag(PSR_V, e_bits.is_signed_overflow(sres, 4))
-
-        #print "s2size/s1size: %d %d" % (s2size, s1size)
-        #print "unsigned: %d %d %d" % (usrc, udst, ures)
-        #print "signed: %d %d %d" % (ssrc, sdst, sres)
-        
-        #if Sflag:
-        #    self.setFlag(PSR_N, sres>>32)
-        #    self.setFlag(PSR_Z, sres==0)
-        #    self.setFlag(PSR_C, e_bits.is_unsigned_carry(ures, s2size))
-        #    self.setFlag(PSR_V, e_bits.is_signed_overflow(sres, s2size))
+            self.setFlag(PSR_N_bit, e_bits.is_signed(ures, 4))
+            self.setFlag(PSR_Z_bit, not ures)
+            self.setFlag(PSR_C_bit, not e_bits.is_unsigned_carry(ures, 4))
+            self.setFlag(PSR_V_bit, e_bits.is_signed_overflow(sres, 4))
 
         return ures
-
 
     def logicalAnd(self, op):
         src1 = self.getOperValue(op, 1)
@@ -319,10 +392,10 @@ class ArmEmulator(ArmModule, ArmRegisterContext, envi.Emulator):
 
         res = src1 & src2
 
-        self.setFlag(PSR_N, 0)
-        self.setFlag(PSR_V, 0)
-        self.setFlag(PSR_C, 0)
-        self.setFlag(PSR_Z, not res)
+        self.setFlag(PSR_N_bit, 0)
+        self.setFlag(PSR_Z_bit, not res)
+        self.setFlag(PSR_C_bit, 0)
+        self.setFlag(PSR_V_bit, 0)
         return res
 
     def i_and(self, op):
@@ -330,15 +403,17 @@ class ArmEmulator(ArmModule, ArmRegisterContext, envi.Emulator):
         self.setOperValue(op, 0, res)
         
     def i_stm(self, op):
-        srcreg = self.getOperValue(op,0)
-        regmask = self.getOperValue(op,1)
+        srcreg = op.opers[0].reg
+        addr = self.getOperValue(op,0)
+        regvals = self.getOperValue(op, 1)
+        regmask = op.opers[1].val
         pc = self.getRegister(REG_PC)       # store for later check
 
-        start_address = self.getRegister(srcreg)
-        addr = start_address
-        for reg in xrange(16):
-            if reg in regmask:
-                val = self.getRegister(reg)
+        addr = self.getRegister(srcreg)
+        for val in regvals:
+        #for reg in xrange(16):
+            #if reg in regmask:
+                #val = self.getRegister(reg)
                 if op.iflags & IF_DAIB_B:
                     if op.iflags & IF_DAIB_I:
                         addr += 4
@@ -351,26 +426,27 @@ class ArmEmulator(ArmModule, ArmRegisterContext, envi.Emulator):
                         addr += 4
                     else:
                         addr -= 4
-                if op.opers[0].oflags & OF_W:
-                    self.setRegister(srcreg,addr)
+        if op.opers[0].oflags & OF_W:
+            self.setRegister(srcreg,addr)
         #FIXME: add "shared memory" functionality?  prolly just in strex which will be handled in i_strex
         # is the following necessary?  
         newpc = self.getRegister(REG_PC)    # check whether pc has changed
         if pc != newpc:
+            print "PC HAS CHANGED!  THIS CODE IS WORTHWHILE!"
             return newpc
 
     i_stmia = i_stm
 
 
     def i_ldm(self, op):
-        srcreg = self.getOperValue(op,0)
-        regmask = self.getOperValue(op,1)
+        srcreg = op.opers[0].reg
+        addr = self.getOperValue(op,0)
+        #regmask = self.getOperValue(op,1)
+        regmask = op.opers[1].val
         pc = self.getRegister(REG_PC)       # store for later check
 
-        start_address = self.getRegister(srcreg)
-        addr = start_address
         for reg in xrange(16):
-            if reg in regmask:
+            if (1<<reg) & regmask:
                 if op.iflags & IF_DAIB_B:
                     if op.iflags & IF_DAIB_I:
                         addr += 4
@@ -385,8 +461,8 @@ class ArmEmulator(ArmModule, ArmRegisterContext, envi.Emulator):
                         addr += 4
                     else:
                         addr -= 4
-                if op.opers[0].oflags & OF_W:
-                    self.setRegister(srcreg,addr)
+        if op.opers[0].oflags & OF_W:
+            self.setRegister(srcreg,addr)
         #FIXME: add "shared memory" functionality?  prolly just in ldrex which will be handled in i_ldrex
         # is the following necessary?  
         newpc = self.getRegister(REG_PC)    # check whether pc has changed
@@ -402,9 +478,25 @@ class ArmEmulator(ArmModule, ArmRegisterContext, envi.Emulator):
         if op.opers[0].reg == REG_PC:
             return val
 
+    def i_mov(self, op):
+        val = self.getOperValue(op, 1)
+        self.setOperValue(op, 0, val)
 
+    '''def i_adr(self, op):
+        val = self.getOperValue(op, 1)
+        self.setOperValue(op, 0, val)
 
+    def i_msr(self, op):
+        val = self.getOperValue(op, 1)
+        self.setOperValue(op, 0, val)
+'''
+    i_msr = i_mov
+    i_adr = i_mov
 
+    def i_str(self, op):
+        # hint: covers str, strb, strbt, strd, strh, strsh, strsb, strt   (any instr where the syntax is str{condition}stuff)
+        val = self.getOperValue(op, 0)
+        self.setOperValue(op, 1, val)
 
     def i_add(self, op):
         src1 = self.getOperValue(op, 1)
@@ -432,17 +524,20 @@ class ArmEmulator(ArmModule, ArmRegisterContext, envi.Emulator):
         self.setOperValue(op, 0, ures)
 
         curmode = self.getProcMode() 
-        if op.flags & IF_S:
+        if op.iflags & IF_S:
             if op.opers[0].reg == 15 and (curmode != PM_sys and curmode != PM_usr):
                 self.setCPSR(self.getSPSR(curmode))
             else:
                 raise Exception("Messed up opcode...  adding to r15 from PM_usr or PM_sys")
-            self.setFlag(PSR_C, e_bits.is_unsigned_carry(ures, dsize))
-            self.setFlag(PSR_Z, not ures)
-            self.setFlag(PSR_N, e_bits.is_signed(ures, dsize))
-            self.setFlag(PSR_V, e_bits.is_signed_overflow(sres, dsize))
+            self.setFlag(PSR_N_bit, e_bits.is_signed(ures, dsize))
+            self.setFlag(PSR_Z_bit, not ures)
+            self.setFlag(PSR_C_bit, e_bits.is_unsigned_carry(ures, dsize))
+            self.setFlag(PSR_V_bit, e_bits.is_signed_overflow(sres, dsize))
 
     def i_b(self, op):
+        '''
+        conditional branches (eg. bne) will be handled here
+        '''
         return self.getOperValue(op, 0)
 
     def i_bl(self, op):
@@ -456,10 +551,10 @@ class ArmEmulator(ArmModule, ArmRegisterContext, envi.Emulator):
         dsize = op.opers[0].tsize
         ures = src1 & src2
 
-        self.setFlag(PSR_N, e_bits.is_signed(ures, dsize))
-        self.setFlag(PSR_Z, (0,1)[ures==0])
-        self.setFlag(PSR_C, e_bits.is_unsigned_carry(ures, dsize))
-        #self.setFlag(PSR_V, e_bits.is_signed_overflow(sres, dsize))
+        self.setFlag(PSR_N_bit, e_bits.is_signed(ures, dsize))
+        self.setFlag(PSR_Z_bit, (0,1)[ures==0])
+        self.setFlag(PSR_C_bit, e_bits.is_unsigned_carry(ures, dsize))
+        #self.setFlag(PSR_V_bit, e_bits.is_signed_overflow(sres, dsize))
         
     def i_rsb(self, op):
         src1 = self.getOperValue(op, 1)
@@ -487,16 +582,16 @@ class ArmEmulator(ArmModule, ArmRegisterContext, envi.Emulator):
         self.setOperValue(op, 0, ures)
 
         curmode = self.getProcMode() 
-        if op.flags & IF_S:
+        if op.iflags & IF_S:
             if op.opers[0].reg == 15:
                 if (curmode != PM_sys and curmode != PM_usr):
                     self.setCPSR(self.getSPSR(curmode))
                 else:
                     raise Exception("Messed up opcode...  adding to r15 from PM_usr or PM_sys")
-            self.setFlag(PSR_C, e_bits.is_unsigned_carry(ures, dsize))
-            self.setFlag(PSR_Z, not ures)
-            self.setFlag(PSR_N, e_bits.is_signed(ures, dsize))
-            self.setFlag(PSR_V, e_bits.is_signed_overflow(sres, dsize))
+            self.setFlag(PSR_C_bit, e_bits.is_unsigned_carry(ures, dsize))
+            self.setFlag(PSR_Z_bit, not ures)
+            self.setFlag(PSR_N_bit, e_bits.is_signed(ures, dsize))
+            self.setFlag(PSR_V_bit, e_bits.is_signed_overflow(sres, dsize))
 
     def i_rsb(self, op):
         # Src op gets sign extended to dst
@@ -526,6 +621,8 @@ class ArmEmulator(ArmModule, ArmRegisterContext, envi.Emulator):
         res = self.intSubBase(src1, src2, Sflag, op.opers[0].reg)
         self.setOperValue(op, 0, res)
 
+    i_subs = i_sub
+
     def i_eor(self, op):
         src1 = self.getOperValue(op, 1)
         src2 = self.getOperValue(op, 2)
@@ -550,12 +647,20 @@ class ArmEmulator(ArmModule, ArmRegisterContext, envi.Emulator):
                     self.setCPSR(self.getSPSR(curmode))
                 else:
                     raise Exception("Messed up opcode...  adding to r15 from PM_usr or PM_sys")
-            self.setFlag(PSR_C, e_bits.is_unsigned_carry(ures, 4))
-            self.setFlag(PSR_Z, not ures)
-            self.setFlag(PSR_N, e_bits.is_signed(ures, 4))
-            self.setFlag(PSR_V, e_bits.is_signed_overflow(sres, 4))
+            self.setFlag(PSR_C_bit, e_bits.is_unsigned_carry(ures, 4))
+            self.setFlag(PSR_Z_bit, not ures)
+            self.setFlag(PSR_N_bit, e_bits.is_signed(ures, 4))
+            self.setFlag(PSR_V_bit, e_bits.is_signed_overflow(sres, 4))
 
+    def i_cmp(self, op):
+        # Src op gets sign extended to dst
+        src1 = self.getOperValue(op, 0)
+        src2 = self.getOperValue(op, 1)
+        Sflag = op.iflags & IF_PSR_S
 
+        res = self.intSubBase(src1, src2, Sflag, op.opers[0].reg)
+
+    i_cmps = i_cmp
 
 
     # Coprocessor Instructions
@@ -627,7 +732,7 @@ opcode_dist = \
  ('teq', 45),
  ('cmp', 41),
  ('sbc', 40),
- ('mov', 35),
+ ('mov', 35),#
  ('bic', 34),
  ('mcr2', 29),#
  ('mrc2', 28),#
