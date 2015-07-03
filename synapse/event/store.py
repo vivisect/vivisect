@@ -16,10 +16,10 @@ class EventStore:
     def __iter__(self):
         pass
 
-    def append(self, evt, evtinfo):
+    def append(self, event):
         pass
 
-    def synShutDown(self):
+    def fini(self):
         pass
 
     def synLoadAndStore(self, evtdist, fire=False):
@@ -31,8 +31,8 @@ class EventStore:
             self.thr = s_threads.fireWorkThread(self.synLoadAndStore,evtdist,fire=False)
             return
 
-        [ evtdist.synFireEvent(evt,evtinfo) for evt,evtinfo in self ]
-        evtdist.synAddHandler('*',self.append)
+        evtdist.distall(self)
+        evtdist.on('*',self.append)
 
     def synLoadEvents(self, evtdist, fire=False):
         '''
@@ -40,13 +40,14 @@ class EventStore:
         '''
         if fire:
             return s_threads.fireWorkThread(self.synLoadEvents,evtdist,fire=False)
-        [ evtdist.synFireEvent(evt,evtinfo) for evt,evtinfo in self ]
+
+        evtdist.distall( self )
 
     def synStoreEvents(self, evtdist):
         '''
         Register this EventStore to recieve and archive events from evtdist.
         '''
-        evtdist.synAddHandler('*',self.append)
+        evtdist.on('*',self.append)
 
 class EventFdStore(EventStore):
     '''
@@ -66,9 +67,9 @@ class EventFdStore(EventStore):
                 yield e
             self.fd.seek(s)
 
-    def append(self, evt, evtinfo):
+    def append(self, event):
         with self.lock:
-            b = msgpack.packb( (evt,evtinfo), use_bin_type=True)
+            b = msgpack.packb( event, use_bin_type=True)
             self.fd.write(b)
 
 class EventMemStore(EventStore):
@@ -79,8 +80,8 @@ class EventMemStore(EventStore):
         EventStore.__init__(self)
         self.events = []
 
-    def append(self, evt, evtinfo):
-        self.events.append( (evt,evtinfo) )
+    def append(self, event):
+        self.events.append( event )
 
     def __iter__(self):
         for e in self.events:
@@ -105,9 +106,9 @@ class EventSockStore(EventStore):
             for e in unpack:
                 yield e
 
-    def append(self, evt, evtinfo):
-        if evt == '$':
+    def append(self, event):
+        if event[0] == '$':
             self.sock.teardown()
             return
-        self.sock.sendall( msgpack.packb((evt,evtinfo), use_bin_type=True) )
+        self.sock.sendall( msgpack.packb(event, use_bin_type=True) )
 

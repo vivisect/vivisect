@@ -82,8 +82,8 @@ class v_prim(v_base):
         Resizing callback which can dynamically change the size
         of a primitive.
         '''
-        if isinstance(size,v_prim):
-            size = size._prim_getval()
+        #if isinstance(size,v_prim):
+            #size = size._prim_getval()
         self._vs_size = size
 
     def _prim_setval(self, newval):

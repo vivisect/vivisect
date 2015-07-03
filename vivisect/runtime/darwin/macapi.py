@@ -20,11 +20,11 @@ def uname():
 
 macarchs = {'x86_64':'amd64','i386':'i386'}
 
-def hostinfo():
+def getHostInfo():
     '''
     Retrieve info for vivisect.lib.thishost.
     '''
-    ret = {'platform':'darwin'}
+    ret = {'platform':'darwin','format':'macho'}
 
     u = uname()
 

@@ -13,32 +13,33 @@ class EventDistTest(unittest.TestCase):
 
     def _run_eventdist(self, d):
         testdata = {}
-        def ondone(evt,evtinfo):
+        def ondone(event):
             testdata['ondone'] = True
-            testdata['doneinfo'] = evtinfo.get('woot')
+            testdata['doneinfo'] = event[1].get('woot')
 
-        def makeerr(evt,evtinfo):
+        def makeerr(event):
             testdata['makeerr'] = True
             raise Exception('makeerr')
 
-        def onerr(evt,evtinfo):
+        def onerr(event):
             testdata['onerr'] = True
 
-        def onall(evt,evtinfo):
+        def onall(event):
             testdata['onall'] = True
 
-        def onshut(evt,evtinfo):
+        def onshut(event):
             testdata['onshut'] = True
 
-        d.synAddHandler('!',onerr)
-        d.synAddHandler('*',onall)
-        d.synAddHandler('$',onshut)
-        d.synAddHandler('ondone',ondone)
-        d.synAddHandler('makeerr',makeerr)
-        d.synFireEvent('ondone',{'woot':'woot'})
-        d.synFireEvent('makeerr',{'woot':'woot'})
+        d.on('!',onerr)
+        d.on('*',onall)
+        d.on('$',onshut)
+        d.on('ondone',ondone)
+        d.on('makeerr',makeerr)
 
-        d.synShutDown()
+        d.fire('ondone', woot='woot')
+        d.fire('makeerr', woot='woot')
+
+        d.fini()
 
         self.assertTrue(testdata['ondone'])
         self.assertEqual(testdata['doneinfo'],'woot')

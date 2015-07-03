@@ -29,3 +29,25 @@ class ModelTest(unittest.TestCase):
 
         # since it's a ram graph, we should get the same instance back
         self.assertEqual( id(node1), id(g.formNodeByNoun('woot','foo')) )
+
+    def test_model_norm(self):
+        g = v_model.GraphModel()
+        g.initModelNoun('woot')
+        g.initModelProp('woot:bar',datatype='int')
+        g.bumpDataModel()
+
+        node = g.formNodeByNoun('woot','foo')
+        g.setNodeProp(node,'woot:bar','30')
+
+        self.assertEqual( node[1].get('woot:bar'), 30 )
+
+    def test_model_del_node(self):
+        g = v_model.GraphModel()
+        g.initModelNoun('woot')
+        g.initModelProp('woot:bar',datatype='int')
+
+        g.bumpDataModel()
+
+        node = g.formNodeByNoun('woot','foo')
+        g.delNode(node)
+        self.assertIsNone( g.getNodeByNoun('woot','foo') )

@@ -39,19 +39,16 @@ def i386info():
         ),
     )
 
-class i386Cpu(v_cpu.Cpu):
+class I386Cpu(v_cpu.Cpu):
 
-    def initCpuInfo(self):
+    def _initCpuInfo(self):
         return i386info()
 
-    def initCpuEvents(self):
-        self.synAddHandler('cpu:info:set:mode',self._slot_setmode)
+    def _initCpuDecoder(self):
+        return i386Prot32Decoder(self)
 
-    def initInstrDecoder(self):
-        self.decoder = i386Prot32Decoder(self)
-
-    def _slot_setmode(self, evt, evtinfo):
-        pass
+    #def _slot_setmode(self, evt, evtinfo):
+        #pass
 
         #mode = evtinfo['valu']
         #self.decoder = self.decoders.get(mode)
@@ -69,5 +66,5 @@ class i386Cpu(v_cpu.Cpu):
         #symb[ opers[0] ] = opers[0] + 1
         #return sym.effects
 
-v_cpu.addArchCpu('i386',i386Cpu)
+v_cpu.addArchCpu('i386',I386Cpu)
 

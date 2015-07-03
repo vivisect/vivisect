@@ -26,7 +26,7 @@ class GraphTest(unittest.TestCase):
         self.assertIsNone( g.getEdgeById(edge[0]) )
         self.assertIsNone( g.getNodeById(node1[0]) )
 
-        g.synShutDown()
+        g.fini()
 
     def test_graph_n1byn2(self):
         g = v_graph.Graph()
@@ -43,3 +43,15 @@ class GraphTest(unittest.TestCase):
         edge = g.addEdge(node1,node2,woot=30,keep='keep')
 
         self.assertEqual( list(g.getN2NodesByN1(node1))[0][0], node2[0] )
+
+    def test_graph_defidx(self):
+        g = v_graph.Graph()
+        g.setDefIndex('keyval')
+
+        node1 = g.addNode(woot=10,foo='bar')
+        node2 = g.addNode(woot=10,foo='baz')
+
+        self.assertEqual( len( g.getNodesByProp('foo') ), 2 )
+        self.assertEqual( len( g.getNodesByProp('woot',10) ), 2 )
+        self.assertEqual( len( g.getNodesByProp('foo','bar') ), 1 )
+        self.assertEqual( len( g.getNodesByProp('foo','baz') ), 1 )

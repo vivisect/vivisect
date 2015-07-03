@@ -3,11 +3,13 @@ import unittest
 import vivisect.hal.cpu as v_cpu
 import vivisect.lib.bits as v_bits
 
+from vertex.lib.common import tufo
+
 class InstrTests(unittest.TestCase):
 
     def _get_dis(self, hexstr):
-        cpu = v_cpu.getArchCpu('i386',addmap=(0x41410000,7,4096))
-        cpu[0x41410000:] = v_bits.h2b(hexstr)
+        cpu = v_cpu.getArchCpu('i386')
+        cpu.initMemoryMap(0x41410000, 4096, init=v_bits.h2b(hexstr))
         return cpu.disasm(0x41410000)
 
     def test_instr_size(self):

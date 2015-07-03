@@ -2,6 +2,8 @@
 Functions for normalizing platform/architecture detection.
 '''
 import ctypes
+import unittest
+
 from ctypes.util import find_library
 
 hostinfo = {}
@@ -40,25 +42,26 @@ def check(**reqinfo):
             return False
     return True
 
+def get(prop):
+    '''
+    Retrieve a single property from the global hostinfo dict.
+
+    Example:
+
+        import vivisect.lib.thishost as v_thishost
+        arch = v_thishost.get('arch')
+
+    '''
+    return hostinfo.get(prop)
+
 def initHostInfo():
 
     hostinfo['ptrsize'] = ctypes.sizeof( ctypes.c_void_p )
 
     if getattr(ctypes,'windll',None):
-        hostinfo['platform'] = 'windows'
 
         import vivisect.runtime.windows.winapi as v_winapi
-        info = v_winapi.GetVersionEx()
-
-        major = info.dwMajorVersion
-        minor = info.dwMinorVersion
-        build = info.dwBuildNumber
-        hostinfo['version'] = ( major, minor, build )
-
-        winarchs = {0:'i386',5:'arm',9:'amd64'}
-
-        info = v_winapi.GetSystemInfo()
-        hostinfo['arch'] = winarchs.get( info.wProcessorArchitecture )
+        hostinfo.update( v_winapi.getHostInfo() )
 
         return
 

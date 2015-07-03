@@ -11,6 +11,8 @@ class Registers(s_dist.EventDist):
         s_dist.EventDist.__init__(self)
 
         self._rctx_regdef = regdef
+        self._rctx_cached = True
+        self._rctx_cachecb = None
 
         self._rctx_vals = {}
         self._rctx_dirty = False
@@ -84,6 +86,9 @@ class Registers(s_dist.EventDist):
 
         NOTE: "reg" may be a meta reg or alias.
         '''
+        if not self._rctx_cached:
+            self._load_cache()
+
         gter = self._rctx_getters.get(reg)
         if gter == None:
             return None
@@ -100,14 +105,13 @@ class Registers(s_dist.EventDist):
             The new ( unsigned / masked to width ) value.
 
         '''
+        if not self._rctx_cached:
+            self._load_cache()
+
         self._rctx_dirty = True
         ret = self._rctx_setters[reg](valu)
-        self.synFireEvent('cpu:reg:set',{'reg':reg,'valu':ret})
+        self.fire('cpu:reg:set', reg=reg, valu=ret)
         return ret
-
-    def clear(self):
-        self._rctx_dirty = False
-        self._rctx_vals = { reg:0 for reg in self._rctx_vals.keys() }
 
     def __iter__(self):
         for r,v in self._rctx_vals.items():
@@ -122,10 +126,25 @@ class Registers(s_dist.EventDist):
     def __getattr__(self, reg):
         return self.get(reg)
 
+    def _load_cache(self):
+        self.load( self._rctx_cachecb() )
+
     def save(self, clean=True):
         self._rctx_dirty = not clean
         return dict(self._rctx_vals)
 
     def load(self, regs, dirty=False):
         self._rctx_dirty = dirty
+        self._rctx_cached = True
         self._rctx_vals.update(regs)
+
+    def oncache(self, cb):
+        self._rctx_cached = False
+        self._rctx_cachecb = cb
+
+    def clear(self):
+        '''
+        Clear the register cache and force a load on the next access.
+        '''
+        self._rctx_cached = False
+

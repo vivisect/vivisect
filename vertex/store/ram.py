@@ -8,7 +8,7 @@ import vertex.store.common as v_common
 def ldict(): return collections.defaultdict(list)
 def ddict(): return collections.defaultdict(dict)
 
-class UniqIndex(v_common.GraphIndex):
+class UniqIndex(v_common.GraphUniqIndex):
 
     indextype = 'uniq'
 
@@ -19,6 +19,9 @@ class UniqIndex(v_common.GraphIndex):
     def put(self, noge, prop, valu, state):
         self.propval[valu] = noge
         self.hasprop[noge[0]] = noge
+
+    def uniq(self, prop, valu):
+        return self.propval.get(valu)
 
     def get(self, prop, valu, limit):
         if valu == None:

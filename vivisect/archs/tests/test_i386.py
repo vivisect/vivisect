@@ -3,6 +3,7 @@ import unittest
 import vivisect.hal.cpu as v_cpu
 
 from vivisect.lib.bits import *
+from vertex.lib.common import tufo
 
 class i386Test(unittest.TestCase):
 
@@ -39,8 +40,8 @@ class i386Test(unittest.TestCase):
 
     def _get_inst(self, hexstr):
         b = h2b(hexstr)
-        addbytes = (0x41410000,7,h2b(hexstr))
-        cpu = v_cpu.getArchCpu('i386', addbytes=addbytes)
+        cpu = v_cpu.getArchCpu('i386')
+        cpu.initMemoryMap(0x41410000, 4096, init=b)
         return cpu,cpu.disasm(0x41410000)
 
     def _test_inst(self, hexstr, mnem, **info):
@@ -66,8 +67,8 @@ class i386Test(unittest.TestCase):
         #print('INST: %r' % (inst,))
 
     def test_i386_instr(self):
-        addbytes = (0x41410000,7,h2b('40'))
-        cpu = v_cpu.getArchCpu('i386',addbytes=addbytes)
+        cpu = v_cpu.getArchCpu('i386')
+        cpu.initMemoryMap(0x41410000, 4096, init=h2b('40'))
         inst = cpu.disasm(0x41410000)
 
     #def test_i386_aas(self):
