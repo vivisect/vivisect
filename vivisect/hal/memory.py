@@ -160,9 +160,15 @@ class MemoryCache(IMemory):
     Create a "copy on write" memory cache for another memory object.
     '''
     def __init__(self, mem, pagesize=4096):
-        self.mem = mem
         self.pagesize = pagesize # must be binary multiplicative
         self.pagemask = ~ (self.pagesize - 1)
+        self._cacheSet(mem)
+
+    def _cacheSet(self, mem):
+        self.mem = mem
+        self._cacheClear()
+
+    def _cacheClear(self):
         self.pagecache = {}
         self.pagedirty = {}
 
