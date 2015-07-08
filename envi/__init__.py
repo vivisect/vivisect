@@ -1122,6 +1122,33 @@ def getCurrentArch():
 
     return ret
 
+import envi.archs.i386 as e_i386
+import envi.archs.amd64 as e_amd64
+import envi.archs.arm as e_arm
+import envi.archs.thumb16 as e_thumb
+import envi.archs.msp430 as e_msp430
+
+# THIS ORDER MUST NEVER CHANGE
+# These must be in ARCH_FOO order
+archmap = [
+        (e_i386.i386Module(),       ("i386","i486","i586","i686","x86")),
+        (e_amd64.Amd64Module(),     ("amd64",)),
+        (e_arm.ArmModule(),         ('arm', 'armv6l', 'armv7l')),
+        (e_thumb.Thumb16Module(),   ('thumb', 'thumb16')),
+        (e_thumb.Thumb2Module(),    ('thumb2',)),
+        (e_msp430.Msp430Module(),   ('msp430',)),
+        ]
+
+def getArchNames():
+    '''
+    Returns a list of all supported architecture names
+    This list is generated from 
+    '''
+    out = []
+    for archmod, archnames in archmap:
+        out.extend(archnames)
+    return out
+
 def getArchModule(name=None):
     """
     return an Envi architecture module instance for the following
@@ -1135,50 +1162,28 @@ def getArchModule(name=None):
     if name == None:
         name = getCurrentArch()
 
-    # Some builds have x86 (py2.6) and some have other stuff...
-    if name in ["i386","i486","i586","i686","x86"]:
-        import envi.archs.i386 as e_i386
-        return e_i386.i386Module()
+    for archmod, archnames in archmap:
+        if name in archnames:
+            return archmod
 
-    elif name == "amd64":
-        import envi.archs.amd64 as e_amd64
-        return e_amd64.Amd64Module()
-
-    elif name in ( 'arm', 'armv6l', 'armv7l' ):
-        import envi.archs.arm as e_arm
-        return e_arm.ArmModule()
-
-    elif name in ( 'thumb', 'thumb16', 'thumb2' ):
-        import envi.archs.thumb16 as e_thumb
-        return e_thumb.Thumb16Module()
-
-    elif name in ( 'msp430' ):
-        import envi.archs.msp430 as e_msp430
-        return e_msp430.Msp430Module()
-
-    else:
-        raise ArchNotImplemented(name)
+    raise ArchNotImplemented(name)
 
 def getArchModules(default=ARCH_DEFAULT):
     '''
     Retrieve a default array of arch modules ( where index 0 is
     also the "named" or "default" arch module.
     '''
-    import envi.archs.arm as e_arm
-    import envi.archs.i386 as e_i386
-    import envi.archs.amd64 as e_amd64
-    import envi.archs.thumb16 as e_thumb16
-    import envi.archs.msp430 as e_msp430
-
     archs = [ None, ]
 
-    # These must be in ARCH_FOO order
+    '''
     archs.append( e_i386.i386Module() )
     archs.append( e_amd64.Amd64Module() )
     archs.append( e_arm.ArmModule() )
     archs.append( e_thumb16.Thumb16Module() )
     archs.append( e_thumb16.Thumb2Module() )
     archs.append( e_msp430.Msp430Module() )
+    '''
+    archs.extend([archmod for archmod, archnames in archmap])
 
     # Set the default module ( or None )
     archs[ ARCH_DEFAULT ] = archs[ default >> 16 ]

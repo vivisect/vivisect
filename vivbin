@@ -13,6 +13,7 @@ import traceback
 
 import vivisect
 import vivisect.cli as viv_cli
+import envi.config as e_config
 import envi.threads as e_threads
 import vivisect.parsers as viv_parsers
 
@@ -63,7 +64,25 @@ def main():
             verbose = True
 
         elif opt == "-O":
-            vw.config.parseConfigOption( optarg )
+            if optarg in ('-h','?'):
+                print(vw.config.reprConfigPaths())
+                sys.exit(-1)
+
+            try:
+                vw.config.parseConfigOption( optarg )
+            except e_config.ConfigNoAssignment, e:
+                print(vw.config.reprConfigPaths())
+                print
+                print(e)
+                print("syntax: \t-O <secname>.<optname>=<optval> (optval must be json syntax)")
+                sys.exit(-1)
+
+            except Exception, e:
+                print(vw.config.reprConfigPaths())
+                print("With entry: %s" % optarg)
+                print(e)
+                sys.exit(-1)
+
 
         elif opt == "-p":
             parsemod = optarg
@@ -91,11 +110,15 @@ def main():
             parsemod = viv_parsers.guessFormatFilename(fname)
 
         start = time.time()
-        if parsemod == 'viv':
-            vw.loadWorkspace(fname)
-        else:
-            needanalyze = True
-            vw.loadFromFile(fname, fmtname=parsemod)
+        try:
+            if parsemod == 'viv':
+                vw.loadWorkspace(fname)
+            else:
+                needanalyze = True
+                vw.loadFromFile(fname, fmtname=parsemod)
+        except Exception, e:
+            print e
+            sys.exit(-1)
 
         end = time.time()
         print('Loaded (%.4f sec) %s' % (end-start, fname))

@@ -3,6 +3,13 @@ import vivisect
 import vivisect.parsers as v_parsers
 from vivisect.const import *
 
+class BlobArchException(Exception):
+    def __str__(self):
+        out = [ 'Blob loader *requires* valid arch option (-O viv.parsers.blob.arch="<archname>")\n    ' ]
+        out.append('\n    '.join(envi.getArchNames()))
+        return ''.join(out)
+
+
 def parseFd(vw, fd, filename=None):
     fd.seek(0)
     arch = vw.config.viv.parsers.blob.arch
@@ -11,7 +18,7 @@ def parseFd(vw, fd, filename=None):
     try:
         envi.getArchModule(arch)
     except Exception, e:
-        raise Exception('Blob loader *requires* arch option (-O viv.parsers.blob.arch="<archname>")')
+        raise BlobArchException()
 
     vw.setMeta('Architecture', arch)
     vw.setMeta('Platform','unknown')
@@ -32,7 +39,7 @@ def parseFile(vw, filename):
     try:
         envi.getArchModule(arch)
     except Exception, e:
-        raise Exception('Blob loader *requires* arch option (-O viv.parsers.blob.arch="<archname>")')
+        raise BlobArchException()
 
 
     vw.setMeta('Architecture', arch)
