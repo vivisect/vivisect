@@ -59,6 +59,7 @@ def main():
     parser.add_argument('--android', dest='doandroid', default=False, action='store_true', help='Debug Android with ADB!')
     parser.add_argument('-e', '--eventid', dest='eventid', default=None, type=int, help='Used for Windows JIT')
     parser.add_argument('-w', '--waitfor', dest='waitfor', default=None, help='Wait for process with name')
+    parser.add_argument('platargs', nargs='*')
 
     args = parser.parse_args()
 
@@ -67,7 +68,7 @@ def main():
 
     platargs = {}
 
-    for arg in args:
+    for arg in args.platargs:
 
         if arg.find('=') == -1:
             continue
