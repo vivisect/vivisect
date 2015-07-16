@@ -120,10 +120,11 @@ num_fmts = {
 class v_number(v_prim):
     _vs_length = 1
 
-    def __init__(self, value=0, bigend=False):
+    def __init__(self, value=0, bigend=False, enum=None):
         v_prim.__init__(self)
         self._vs_bigend = bigend
         self._vs_value = value
+        self._vs_enum = enum
         self._vs_length = self.__class__._vs_length
         self._vs_fmt = num_fmts.get( (bigend, self._vs_length) )
 
@@ -132,6 +133,13 @@ class v_number(v_prim):
 
     def vsGetValue(self):
         return self._vs_value
+
+    def vsGetEnum(self):
+        '''
+        Get the v_enum instance used to interpret this number, or None if
+          there are no associated enums.
+        '''
+        return self._vs_enum
 
     def vsParse(self, fbytes, offset=0):
         '''
@@ -181,6 +189,12 @@ class v_number(v_prim):
 
     def __long__(self):
         return long(self._vs_value)
+
+    def __str__(self):
+        v = self.vsGetValue()
+        if self._vs_enum is not None:
+            return self._vs_enum.vsReverseMapping(v, default=str(v))
+        return str(v)
 
     ##################################################################
     # Implement the number API
@@ -723,28 +737,4 @@ class GUID(v_prim):
     def __repr__(self):
         base = "{%.8x-%.4x-%.4x-%.2x%.2x-%.2x%.2x%.2x%.2x%.2x%.2x}"
         return base  % self._guid_fields
-
-class enum_mixin(object):
-    def __init__(self, enum):
-        super(enum_mixin, self).__init__()
-        self._enum = enum
-
-    def __str__(self):
-        return self._enum.vsReverseMapping(self.vsGetValue())
-
-class enum_uint8(enum_mixin, v_uint8):
-    def __init__(self, enum):
-        super(enum_uint8, self).__init__(enum)
-
-class enum_uint16(enum_mixin, v_uint16):
-    def __init__(self, enum):
-        super(enum_uint16, self).__init__(enum)
-
-class enum_uint32(enum_mixin, v_uint32):
-    def __init__(self, enum):
-        super(enum_uint32, self).__init__(enum)
-
-class enum_uint64(enum_mixin, v_uint64):
-    def __init__(self, enum):
-        super(enum_uint64, self).__init__(enum)
 
