@@ -4,7 +4,7 @@ Utilities for generating "archetecture independant" ASTs.
 from vivisect.const import *
 from vivisect.symboliks.common import * 
 
-def wipeAstArch(symctx, symobjs, emu=None, wipeva=False, debug=False):
+def wipeAstArch(symctx, symobjs, emu=None, wipeva=False):
     '''
     Given a symbolik analysis context, modify a set of
     symbolik states to be "arch independant" while
@@ -38,7 +38,7 @@ def wipeAstArch(symctx, symobjs, emu=None, wipeva=False, debug=False):
     Specify wipeva=True to similarly "replace" all virtual addresses
     within the AST.
     '''
-    archemu = symctx.vw.getEmulator()
+    archemu = symctx.vw.getCachedEmu('sym:archind')
 
     # step one, create symid->reg mapping and replace all
     # sym vars that are regs with a constant value

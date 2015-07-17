@@ -1468,6 +1468,9 @@ class ArmOperand(envi.Operand):
     def involvesPC(self):
         return False
 
+    def getOperAddr(self, op, emu=None):
+        return None
+
 class ArmRegOper(ArmOperand):
     ''' register operand.  see "addressing mode 1 - data processing operands - register" '''
 
@@ -1906,6 +1909,19 @@ class ArmImmOffsetOper(ArmOperand):
     def isDeref(self):
         return True
 
+    def setOperValue(self, op, emu=None, val=None):
+        # can't survive without an emulator
+        if emu == None:
+            return None
+
+        pubwl = self.pubwl >> 2
+        b = pubwl & 1
+
+        addr = self.getOperAddr(op, emu)
+
+        fmt = ("<I", "B")[b]
+        emu.writeMemoryFormat(addr, fmt, val)
+
     def getOperValue(self, op, emu=None):
         # can't survive without an emulator
         if emu == None:
@@ -1916,7 +1932,7 @@ class ArmImmOffsetOper(ArmOperand):
 
         addr = self.getOperAddr(op, emu)
 
-        fmt = ("<L", "B")[b]
+        fmt = ("<I", "B")[b]
         ret, = emu.readMemoryFormat(addr, fmt)
         return ret
 
@@ -2059,10 +2075,13 @@ class ArmPcOffsetOper(ArmOperand):
         tname = "#0x%.8x" % targ
         return tname
 
+
 psrs = ("CPSR", "SPSR", 'inval', 'inval', 'inval', 'inval', 'inval', 'inval',)
 fields = (None, 'c', 'x', 'cx', 's', 'cs', 'xs', 'cxs',  'f', 'fc', 'fx', 'fcx', 'fs', 'fcs', 'fxs', 'fcxs')
+
 class ArmPgmStatRegOper(ArmOperand):
-    def __init__(self, r, val=0):
+    def __init__(self, r, val=0, mask=0xffffffff):
+        self.mask = mask
         self.val = val
         self.psr = r
 
@@ -2071,6 +2090,8 @@ class ArmPgmStatRegOper(ArmOperand):
             return False
         if self.val != oper.val:
             return False
+        if self.r != oper.r:
+            return False
         return True
 
     def involvesPC(self):
@@ -2082,38 +2103,33 @@ class ArmPgmStatRegOper(ArmOperand):
     def getOperValue(self, op, emu=None):
         if emu == None:
             return None
-        raise Exception("FIXME: Implement ArmPgmStatRegOper.getOperValue()")
-        return None # FIXME
+
+        mode = emu.getProcMode()
+        if self.psr: # SPSR
+            psr = emu.getSPSR(mode)
+        else:
+            psr = emu.getCPSR()
+
+        return psr
+
+    def setOperValue(self, op, emu=None, val=None):
+        if emu == None:
+            return None
+        mode = emu.getProcMode()
+        if self.psr:    # SPSR
+            psr = emu.getSPSR(mode)
+            newpsr = psr & (~self.mask) | (val & self.mask)
+            emu.setSPSR(mode, newpsr)
+
+        else:           # CPSR
+            psr = emu.getCPSR()
+            newpsr = psr & (~self.mask) | (val & self.mask)
+            emu.setCPSR(newpsr)
+
+        return newpsr
 
     def repr(self, op):
         return psrs[self.psr] + '_' + fields[self.val]
-    
-class ArmPgmStatFlagsOper(ArmOperand):
-    def __init__(self, val):
-        self.val = val
-
-    def __eq__(self, oper):
-        if not isinstance(oper, self.__class__):
-            return False
-        if self.val != oper.val:
-            return False
-        return True
-
-    def involvesPC(self):
-        return False
-
-    def isDeref(self):
-        return False
-
-    def getOperValue(self, op, emu=None):
-        if emu == None:
-            return None
-        raise Exception("FIXME: Implement ArmPgmStatFlagsOper.getOperValue()")
-        return None # FIXME
-
-    def repr(self, op):
-        s = ["PSR_",psr_fields[self.val]]
-        return "".join(s)
     
 class ArmEndianOper(ArmImmOper):
     def repr(self, op):
@@ -2343,7 +2359,7 @@ class ArmDisasm:
         self.setEndian(endian)
         
     def setEndian(self, endian):
-        self.fmt = ("<L", ">L")[endian]
+        self.fmt = ("<I", ">I")[endian]
 
     def disasm(self, bytez, offset, va):
         """
