@@ -425,8 +425,11 @@ class VStruct(vs_prims.v_base):
         for off, indent, name, field in self.vsGetPrintInfo():
             rstr = repr(field) #field.vsGetTypeName()
             if isinstance(field, vs_prims.v_number):
-                val = field.vsGetValue()
-                rstr = '0x%.8x (%d)' % (val,val)
+                if field.vsGetEnum() is not None:
+                    rstr = '%s (0x%.8x)' % (str(field), field.vsGetValue())
+                else:
+                    val = field.vsGetValue()
+                    rstr = '0x%.8x (%d)' % (val,val)
             elif isinstance(field, vs_prims.v_prim):
                 rstr = repr(field)
             if reprmax != None and len(rstr) > reprmax:
