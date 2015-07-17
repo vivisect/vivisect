@@ -17,6 +17,7 @@ from vstruct.primitives import *
 SFX_MODMAX  = 1024000 # one meg
 RAR4_SIGNATURE = '526172211a0700'.decode('hex')
 RAR5_SIGNATURE = '526172211a070100'.decode('hex')
+
 def getRarOffset(fd):
     cur = fd.tell()
     head = fd.read(SFX_MODMAX * 2)

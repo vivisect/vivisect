@@ -568,6 +568,15 @@ class v_zstr(v_prim):
         self._vs_length = len(self._vs_value)
         return nulloff
 
+    def vsParseFd(self, fd):
+        ret = ''
+        while not ret.endswith('\x00'):
+            y = fd.read(1)
+            if not y:
+                raise Exception('v_zstr file ended before NULL')
+            ret += y
+        return self.vsParse(ret)
+
     def vsEmit(self):
         return self._vs_value
 

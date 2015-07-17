@@ -420,6 +420,9 @@ class VStruct(vs_prims.v_base):
     def __getitem__(self, name):
         return self.vsGetField(name)
 
+    def __setitem__(self, name, valu):
+        return self.vsSetField(name,valu)
+
     def tree(self, va=0, reprmax=None):
         ret = ""
         for off, indent, name, field in self.vsGetPrintInfo():
