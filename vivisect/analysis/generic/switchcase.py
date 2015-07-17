@@ -398,6 +398,7 @@ def determineCaseIndex(vw, jmpva, regname, special_vals, effs, debug, verbose=Fa
 
     # cycle through possible case regs, check for valid location by providing index 0
     #### ARG! NASTIEST THING EVAR.  i feel dirty
+    rname = None
     for rname in unks:
         if rname not in rnames:
             continue
@@ -620,7 +621,7 @@ def determineCountOffset(vw, jmpva):
     if operobj.symtype != SYMT_VAR:
         if vw.verbose > 1: 
             print('\nBAILING - not a VAR memory location')
-            return None,None,None
+        return None,None,None
 
     acon = semu.getSymVariable(operobj.name)
 
