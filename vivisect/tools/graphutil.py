@@ -129,7 +129,7 @@ def getCoveragePaths(fgraph, maxpath=None):
 
     for root in fgraph.getHierRootNodes():
 
-        proot = vg_pathcore.newPathNode(nid=root, eid=None)
+        proot = vg_pathcore.newPathNode(nid=root[0], eid=None)
         todo = [(root,proot), ]
 
         while todo:
