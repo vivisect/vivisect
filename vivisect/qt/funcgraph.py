@@ -28,7 +28,7 @@ class VQVivFuncgraphCanvas(vq_memory.VivCanvasBase):
 
     def __init__(self, *args, **kwargs):
         vq_memory.VivCanvasBase.__init__(self, *args, **kwargs)
-        self.curs = QtGui.QCursor(self)
+        self.curs = QtGui.QCursor()
 
     def wheelEvent(self, event):
         mods = QtGui.QApplication.keyboardModifiers()
