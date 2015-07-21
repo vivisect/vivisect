@@ -129,7 +129,7 @@ def getCoveragePaths(fgraph, maxpath=None):
 
     for root in fgraph.getHierRootNodes():
 
-        proot = vg_pathcore.newPathNode(nid=root, eid=None)
+        proot = vg_pathcore.newPathNode(nid=root[0], eid=None)
         todo = [(root,proot), ]
 
         while todo:
@@ -146,7 +146,7 @@ def getCoveragePaths(fgraph, maxpath=None):
                 yield [ _nodeedge(n) for n in path ]
 
                 pathcnt += 1
-                if pathcnt >= maxpath:
+                if maxpath != None and pathcnt >= maxpath:
                     return
 
             for eid, fromid, toid, einfo in refsfrom:
@@ -158,7 +158,7 @@ def getCoveragePaths(fgraph, maxpath=None):
 
                     # Check if that was the last path we should yield
                     pathcnt += 1
-                    if pathcnt >= maxpath:
+                    if maxpath != None and pathcnt >= maxpath:
                         return
 
                     # If we're at a completed node, take no further branches
