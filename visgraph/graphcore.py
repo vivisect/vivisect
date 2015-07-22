@@ -38,11 +38,11 @@ class Graph:
         Edges are directional sets of a from node-id and to node-id and
         a piece of arbitrary edge information.
     '''
-    def __init__(self, clone=None):
+    def __init__(self, merge=None):
         self.wipeGraph()
         self.formlock = threading.Lock()
-        if clone != None:
-            self.clone(clone)
+        if merge != None:
+            self.merge(merge)
 
     def setMeta(self, mprop, mval):
         self.metadata[mprop] = mval
@@ -97,7 +97,7 @@ class Graph:
             node2 = (n2, graph['nodes'][n2])
             self.addEdge(node1, node2, eid=eid, eprops=eprops)
 
-    def clone(self, graph):
+    def merge(self, graph):
         '''
         duplicate another graph's contents.  subclasses may wish to modify this
         function to duplicate more properties if present.
@@ -612,8 +612,8 @@ class HierGraph(Graph):
     NOTE: rootnodes are designated by the presence of the "rootnode"
           property.
     '''
-    def __init__(self, clone=None):
-        Graph.__init__(self, clone)
+    def __init__(self, merge=None):
+        Graph.__init__(self, merge)
 
     def addHierRootNode(self,*args,**kwargs):
         '''
