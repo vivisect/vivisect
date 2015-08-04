@@ -754,6 +754,9 @@ def analyzeFunction(vw, fva):
     while lastdynlen != len(dynbranches):
         lastdynlen = len(dynbranches)
         for jmpva, (none, oprepr, bflags) in dynbranches.items():
+            if bflags & envi.BR_PROC:   # skip calls
+                continue
+
             funcva = vw.getFunction(jmpva)
             if funcva != fva:
                 # jmp_indir is for the entire VivWorkspace.  
