@@ -1073,8 +1073,13 @@ class MemObjFile:
     def seek(self, offset):
         self.offset = self.baseaddr + offset
 
-    def read(self, size):
-        ret = self.memobj.readMemory(self.offset, size)
+    def read(self, size=None):
+        if size != None:
+            ret = self.memobj.readMemory(self.offset, size)
+        else:
+            va, mapsize, _, _ = self.memobj.getMemoryMap(self.offset)
+            size = mapsize - self.offset
+            ret = self.memobj.readMemory(self.offset, size)
         self.offset += size
         return ret
         

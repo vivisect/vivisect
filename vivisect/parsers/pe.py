@@ -100,7 +100,7 @@ def loadPeIntoWorkspace(vw, pe, filename=None):
         fvivname = "pe_%.8x" % baseaddr
 
     fhash = "unknown hash"
-    if os.path.exists(filename):
+    if filename and os.path.exists(filename):
         fhash = v_parsers.md5File(filename)
 
     fname = vw.addFile(fvivname.lower(), baseaddr, fhash)
@@ -357,7 +357,7 @@ def loadPeIntoWorkspace(vw, pe, filename=None):
                     vw.vprint("SEHandlerTable parse error")
 
     # Last but not least, see if we have symbol support and use it if we do
-    if vt_win32.dbghelp:
+    if filename and os.path.exists(filename) and vt_win32.dbghelp:
 
         s = vt_win32.Win32SymbolParser(-1, filename, baseaddr)
 
