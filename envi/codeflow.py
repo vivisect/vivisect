@@ -2,6 +2,7 @@
 A module to contain code flow analysis for envi opcode objects...
 '''
 import copy
+import logging
 import traceback
 import envi
 import envi.memory as e_mem
@@ -154,10 +155,10 @@ class CodeFlowContext(object):
             try:
                 op = self._mem.parseOpcode(va, arch=arch)
             except envi.InvalidInstruction, e:
-                print 'parseOpcode error at 0x%.8x: %s' % (va,e)
+                logging.getLogger("envi/codeflow.addCodeFlow").warning('parseOpcode error at 0x%.8x: %s', (va,e))
                 continue 
             except Exception, e:
-                print 'parseOpcode error at 0x%.8x: %s' % (va,e)
+                logging.getLogger("envi/codeflow.addCodeFlow").warning('parseOpcode error at 0x%.8x: %s', (va,e))
                 continue
 
             branches = op.getBranches()
