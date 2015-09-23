@@ -59,6 +59,8 @@ class WorkspaceEmulator:
         # Map in a memory map for the stack
         self.addMemoryMap(self.stack_map_base, 6, "[stack]", init_stack_map)
 
+        self.strictops = True   # should we bail on emulation if unsupported instruction encountered
+
         # Map in all the memory associated with the workspace
         for va, size, perms, fname in vw.getMemoryMaps():
             offset, bytes = vw.getByteDef(va)
@@ -324,7 +326,12 @@ class WorkspaceEmulator:
                     if op.iflags & envi.IF_RET:
                         vg_path.setNodeProp(self.curpath, 'cleanret', True)
                         break
-
+                except envi.UnsupportedInstruction, e:
+                    if self.strictops:
+                        break
+                    else:
+                        print 'runFunction continuing after unsupported instruction: 0x%08x %s' % (e.op.va, e.op.mnem)
+                        self.setProgramCounter(e.op.va+ e.op.size)
                 except Exception, e:
                     #traceback.print_exc()
                     if self.emumon != None:

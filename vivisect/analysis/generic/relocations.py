@@ -7,10 +7,5 @@ import vivisect
 
 def analyze(vw):
     for va, rtype in vw.getRelocations():
-        if rtype == vivisect.RTYPE_BASERELOC:
-            ptr = vw.castPointer(va)
-            if vw.isValidPointer(ptr):
-                loc = vw.getLocation(ptr)
-                if loc == None:
-                    vw.followPointer(ptr)
-
+        if rtype == vivisect.RTYPE_BASERELOC and not vw.isLocation(va):
+            vw.makePointer(va, follow=True)

@@ -108,6 +108,8 @@ def analyzeFunction(vw, fva):
         api = buildFunctionApi(vw, fva, emu, emumon)
 
     rettype,retname,callconv,callname,callargs = api
+    if callconv == 'unkcall':
+        return
 
     argc = len(callargs)
     cc = emu.getCallingConvention(callconv)

@@ -34,7 +34,7 @@ OF_UM        = 1<<9     # Usermode, or if r15 included set current SPSR -> CPSR
 
 OSZFMT_BYTE = "B"
 OSZFMT_HWORD = "<H"  # Introduced in ARMv4
-OSZFMT_WORD = "<L"
+OSZFMT_WORD = "<I"
 OSZ_BYTE = 1
 OSZ_HWORD = 2
 OSZ_WORD = 4

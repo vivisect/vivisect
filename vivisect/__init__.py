@@ -1575,7 +1575,8 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             raise Exception("Invalid Unicode Size: %d" % size)
 
         if self.getName(va) == None:
-            self.makeName(va, "wstr_%.8x" % va)
+            m = self.readMemory(va, size-1).replace("\n","").replace("\0","")
+            self.makeName(va, "wstr_%s_%.8x" % (m[:16],va))
         return self.addLocation(va, size, LOC_UNI)
 
     def addConstModule(self, modname):

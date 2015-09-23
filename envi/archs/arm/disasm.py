@@ -1919,7 +1919,7 @@ class ArmImmOffsetOper(ArmOperand):
 
         addr = self.getOperAddr(op, emu)
 
-        fmt = ("<L", "B")[b]
+        fmt = ("<I", "B")[b]
         emu.writeMemoryFormat(addr, fmt, val)
 
     def getOperValue(self, op, emu=None):
@@ -1932,7 +1932,7 @@ class ArmImmOffsetOper(ArmOperand):
 
         addr = self.getOperAddr(op, emu)
 
-        fmt = ("<L", "B")[b]
+        fmt = ("<I", "B")[b]
         ret, = emu.readMemoryFormat(addr, fmt)
         return ret
 
@@ -2359,7 +2359,7 @@ class ArmDisasm:
         self.setEndian(endian)
         
     def setEndian(self, endian):
-        self.fmt = ("<L", ">L")[endian]
+        self.fmt = ("<I", ">I")[endian]
 
     def disasm(self, bytez, offset, va):
         """

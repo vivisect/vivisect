@@ -76,6 +76,10 @@ class VQVivMainWindow(vq_app.VQMainCmdWindow, viv_base.VivEventDist):
 
         self.vqAddDynMenu('&Tools.&Va Sets', self._menuToolsVaSets)
 
+        self.vqAddMenuField('&Window.&Fullscreen', self._menuWindowFullscreen)
+        self.vqAddMenuField('&Window.&Maximized', self._menuWindowMaximize)
+        self.vqAddMenuField('&Window.&Normal', self._menuWindowNormal)
+
         self.vw.vprint('Welcome to Vivisect (Qt Edition)!')
         self.vw.vprint('Random Tip: %s' % viv_q_tips.getRandomTip())
 
@@ -86,6 +90,7 @@ class VQVivMainWindow(vq_app.VQMainCmdWindow, viv_base.VivEventDist):
 
         fname = os.path.basename(self.vw.getMeta('StorageName', 'Unknown'))
         self.setWindowTitle('Vivisect: %s' % fname)
+        self.windowState = QtCore.Qt.WindowNoState
 
     def setVaName(self, va, parent=None):
         if parent == None:
@@ -289,6 +294,23 @@ class VQVivMainWindow(vq_app.VQMainCmdWindow, viv_base.VivEventDist):
 
     def _menuViewMemory(self):
         self.vqBuildDockWidget('VQVivMemoryView', area=QtCore.Qt.TopDockWidgetArea)
+
+    def _menuWindowFullscreen(self):
+        if not self.windowState & QtCore.Qt.WindowFullScreen:
+            self.windowState = QtCore.Qt.WindowFullScreen
+            self.showFullScreen()
+        else:
+            self._menuWindowNormal()
+
+    def _menuWindowMaximize(self):
+        if not self.windowState & QtCore.Qt.WindowMaximized:
+            self.windowState = QtCore.Qt.WindowMaximized
+            self.showMaximized()
+
+    def _menuWindowNormal(self):
+        if not self.windowState & QtCore.Qt.WindowNoState:
+            self.windowState = QtCore.Qt.WindowNoState
+            self.showNormal()
 
     @vq_main.idlethread
     def _ve_fireEvent(self, event, edata):
