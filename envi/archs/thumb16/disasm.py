@@ -140,7 +140,7 @@ def bl_imm23(va, val, val2): # bl
     return ((oper0, ) , mnem, opcode, flags)
 
 def pc_imm11(va, value): # b
-    imm = e_bits.signed(shmaskval(value, 0, 0x7ff), 1) * 2
+    imm = e_bits.signed(((value & 0x7ff)<<1), 3)
     oper0 = ArmPcOffsetOper(imm, va=va)
     return oper0,
 
