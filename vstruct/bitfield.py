@@ -1,4 +1,4 @@
-import envi.bits as ebits
+import envi.bits as e_bits
 from vstruct import VStruct
 from vstruct.primitives import *
 from binascii import unhexlify
@@ -119,7 +119,4 @@ class VBitField(VStruct):
             bytelen += 1
             valu <<= ( 8 - bitrem )
 
-        # python turbo speed hackz
         return unhexlify(('%.' + str(bytelen*2) + 'x') % valu)
-
-

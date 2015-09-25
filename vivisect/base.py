@@ -149,6 +149,7 @@ class VivWorkspaceCore(object,viv_impapi.ImportApi):
     def __init__(self):
         viv_impapi.ImportApi.__init__(self)
         self.loclist = []
+        self.bigend   = False
         self.locmap   = e_page.MapLookup()
         self.blockmap = e_page.MapLookup()
         self._mods_loaded = False
@@ -549,6 +550,10 @@ class VivWorkspaceCore(object,viv_impapi.ImportApi):
         if defcall:
             self.setMeta('DefaultCall', defcall)
 
+    def _mcb_bigend(self, name, value):
+        print('OH HAI')
+        self.bigend = bool(value)
+
     def _mcb_Platform(self, name, value):
         # Default calling convention for platform
         # This supercedes Architecture's setting and should make
@@ -632,7 +637,7 @@ class VivCodeFlowContext(e_codeflow.CodeFlowContext):
             # dont code flow through import calls
             branches = [br for br in branches if not self._mem.isLocType(br[0],LOC_IMPORT)]
 
-            self._mem.makeOpcode(op.va, op=op)
+            self._mem.makeOpcode(va, op=op)
             return branches
 
         return ()
