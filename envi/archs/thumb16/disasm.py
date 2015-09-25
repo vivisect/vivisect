@@ -172,8 +172,13 @@ def rm_reglist(va, value):
     oper0.oflags |= OF_W
     return oper0,oper1
 
-def reglist(va, value):
-    reglist = (value & 0xff) | ((value & 0x100)<<5)
+def pop_reglist(va, value):
+    reglist = (value & 0xff) | ((value & 0x100)<<7)
+    oper0 = ArmRegListOper(reglist)
+    return (oper0,)
+
+def push_reglist(va, value):
+    reglist = (value & 0xff) | ((value & 0x100)<<6)
     oper0 = ArmRegListOper(reglist)
     return (oper0,)
 
@@ -749,7 +754,7 @@ thumb_base = [
     ('1011001001',  (561,'sxtb',    rm_rd,      0)), # SXTB<c> <Rd>, <Rm>
     ('1011001000',  (561,'uxth',    rm_rd,      0)), # UXTH<c> <Rd>, <Rm>
     ('1011001001',  (561,'uxtb',    rm_rd,      0)), # UXTB<c> <Rd>, <Rm>
-    ('1011010',     (56,'push',    reglist,    0)), # PUSH <reglist>
+    ('1011010',     (56,'push',    push_reglist,    0)), # PUSH <reglist>
     ('10110110010', (57,'setend',  sh4_imm1,   0)), # SETEND <endian_specifier>
     ('10110110011', (58,'cps',     simpleops(),0)), # CPS<effect> <iflags> FIXME
     ('10110001',    (59,'cbz',     i_imm5_rn,  0)), # CBZ{<q>} <Rn>, <label>    # label must be positive, even offset from PC
@@ -761,7 +766,7 @@ thumb_base = [
     ('1011101011',  (63,'revsh',   rn_rdm,     0)), # REVSH Rd, Rn
     ('101100000',   (INS_ADD,'add',     sp_sp_imm7, 0)), # ADD<c> SP,SP,#<imm>
     ('101100001',   (INS_SUB,'sub',     sp_sp_imm7, 0)), # SUB<c> SP,SP,#<imm>
-    ('1011110',     (66,'pop',     reglist,    0)), # POP<c> <registers>
+    ('1011110',     (66,'pop',     pop_reglist,    0)), # POP<c> <registers>
     ('10111110',    (67,'bkpt',    imm8,       0)), # BKPT <blahblah>
     # Load / Store Mu64iple
     ('11000',       (68,'stm',   rm_reglist, IF_IA|IF_W)), # LDMIA Rd!, reg_list
@@ -926,6 +931,8 @@ thumb2_extension = [
     ('11110101011',         (85,'sbc',      dp_mod_imm_32,        IF_THUMB32)),
     ('11110101101',         (85,'sub',      dp_mod_imm_32,        IF_THUMB32)),  # cmp if rd=1111 and s=1
     ('11110101110',         (85,'rsb',      dp_mod_imm_32,        IF_THUMB32)),
+    ('11100',       (INS_B,  'b',       pc_imm11,           envi.IF_NOFALL)),        # B <imm11>
+    ('1111',        (INS_BL, 'bl',      bl_imm23,       IF_THUMB32)),   # BL/BLX <addr25> 
     ]
 '''
 '''
@@ -970,6 +977,7 @@ class Thumb16Disasm:
     _opclass = ThumbOpcode
 
     def disasm(self, bytez, offset, va, trackMode=True):
+        va &= -2
         val, = struct.unpack("<H", bytez[offset:offset+2])
         try:
             opcode, mnem, opermkr, flags = self._tree.getInt(val, 16)

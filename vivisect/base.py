@@ -632,7 +632,7 @@ class VivCodeFlowContext(e_codeflow.CodeFlowContext):
             # dont code flow through import calls
             branches = [br for br in branches if not self._mem.isLocType(br[0],LOC_IMPORT)]
 
-            self._mem.makeOpcode(va, op=op)
+            self._mem.makeOpcode(op.va, op=op)
             return branches
 
         return ()
