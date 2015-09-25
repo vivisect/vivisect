@@ -48,16 +48,11 @@ class WorkspaceEmulator:
         self.emumon = None
         self.psize = self.getPointerSize()
 
-        self.stack_map_mask = e_bits.sign_extend(0xfff00000, 4, vw.psize)
-        self.stack_map_base = e_bits.sign_extend(0xbfb00000, 4, vw.psize)
-        self.stack_pointer = self.stack_map_base + 4096
-
         # Possibly need an "options" API?
         self._safe_mem = True   # Should we be forgiving about memory accesses?
         self._func_only = True  # is this emulator meant to stay in one function scope?
 
-        # Map in a memory map for the stack
-        self.addMemoryMap(self.stack_map_base, 6, "[stack]", init_stack_map)
+        self.strictops = True   # shoudl we bail on emulation if unsupported instruction encountered
 
         # Map in all the memory associated with the workspace
         for va, size, perms, fname in vw.getMemoryMaps():
@@ -69,14 +64,6 @@ class WorkspaceEmulator:
             regval = self.setVivTaint( 'uninitreg', regidx )
             self.setRegister(regidx, regval)
 
-        self.setStackCounter(self.stack_pointer)
-
-        # Create some pre-made taints for positive stack indexes
-        # NOTE: This is *ugly* for speed....
-        taints = [ self.setVivTaint('funcstack', i * self.psize) for i in xrange(20) ]
-        taintbytes = ''.join([ e_bits.buildbytes(taint,self.psize) for taint in taints ])
-        self.writeMemory(self.stack_pointer, taintbytes )
-
         for name in dir(self):
             val = getattr(self, name, None)
             if val == None:
@@ -87,6 +74,56 @@ class WorkspaceEmulator:
                 continue
 
             self.hooks[impname] = val
+
+        self.stack_map_mask = None
+        self.stack_map_base = None
+        self.stack_map_top = None
+        self.stack_pointer = None
+        self.initStackMemory()
+
+    def initStackMemory(self, stacksize=4096):
+        '''
+        Setup and initialize stack memory.
+        You may call this prior to emulating instructions.
+        '''
+        if self.stack_map_base is None:
+            self.stack_map_mask = e_bits.sign_extend(0xfff00000, 4, self.vw.psize)
+            self.stack_map_base = e_bits.sign_extend(0xbfb00000, 4, self.vw.psize)
+            self.stack_map_top = self.stack_map_base + stacksize
+            self.stack_pointer = self.stack_map_top
+
+            # Map in a memory map for the stack
+            stack_map = init_stack_map
+            if stacksize != 4096:
+                stack_map = ''.join([struct.pack('<I', self.stack_map_base+(i*4))
+                                        for i in xrange(stacksize)])
+
+            self.addMemoryMap(self.stack_map_base, 6, "[stack]", stack_map)
+            self.setStackCounter(self.stack_pointer)
+
+            # Create some pre-made taints for positive stack indexes
+            # NOTE: This is *ugly* for speed....
+            taints = [ self.setVivTaint('funcstack', i * self.psize) for i in xrange(20) ]
+            taintbytes = ''.join([ e_bits.buildbytes(taint,self.psize) for taint in taints ])
+
+            self.writeMemory(self.stack_pointer, taintbytes)
+        else:
+            existing_map_size = self.stack_map_top - self.stack_map_base
+            new_map_size = stacksize - existing_map_size
+            if new_map_size < 0:
+                raise RuntimeError('cannot shrink stack')
+
+            new_map_top = self.stack_map_base
+            new_map_base = new_map_top - new_map_size
+
+            stack_map = ''.join([struct.pack('<I', new_map_base+(i*4))
+                                    for i in xrange(new_map_size)])
+
+            self.addMemoryMap(new_map_base, 6, "[stack]", stack_map)
+            self.stack_map_base = new_map_base
+
+            # no need to do tainting here, since SP will always be in the
+            #   first map
 
     def stopEmu(self):
         '''
@@ -324,7 +361,12 @@ class WorkspaceEmulator:
                     if op.iflags & envi.IF_RET:
                         vg_path.setNodeProp(self.curpath, 'cleanret', True)
                         break
-
+                except envi.UnsupportedInstruction, e:
+                    if self.strictops:
+                        break
+                    else:
+                        print 'runFunction continuing after unsupported instruction: 0x%08x %s' % (e.op.va, e.op.mnem)
+                        self.setProgramCounter(e.op.va+ e.op.size)
                 except Exception, e:
                     #traceback.print_exc()
                     if self.emumon != None:
@@ -505,7 +547,6 @@ class WorkspaceEmulator:
         return self.uninit_use.keys()
 
     def readMemory(self, va, size):
-
         if self.logread:
             rlog = vg_path.getNodeProp(self.curpath, 'readlog')
             rlog.append((self.getProgramCounter(),va,size))

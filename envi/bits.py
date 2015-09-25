@@ -4,7 +4,7 @@ A file full of bit twidling helpers
 
 import struct
 
-MAX_WORD = 16 # usually no more than 8, 16 is for SIMD register support
+MAX_WORD = 32 # usually no more than 8, 16 is for SIMD register support
 
 # Masks to use for unsigned anding to size
 u_maxes = [ (2 ** (8*i)) - 1 for i in range(MAX_WORD+1) ]

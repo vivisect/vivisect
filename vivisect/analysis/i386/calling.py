@@ -86,6 +86,9 @@ def buildFunctionApi(vw, fva, emu, emumon):
 
         vw.setFunctionMeta(fva, "UndefRegUse", undefkeys)
 
+    if argc > 64:
+        callconv = 'unkcall' 
+        argc = 0
     # Add argument indexes to our argument names
     funcargs = [ argcname(callconv, i) for i in xrange(argc) ]
     api = ('int',None,callconv,None,funcargs)
@@ -108,6 +111,8 @@ def analyzeFunction(vw, fva):
         api = buildFunctionApi(vw, fva, emu, emumon)
 
     rettype,retname,callconv,callname,callargs = api
+    if callconv == 'unkcall':
+        return
 
     argc = len(callargs)
     cc = emu.getCallingConvention(callconv)

@@ -106,6 +106,9 @@ class v_prim(v_base):
     def __str__(self):
         return str(self.vsGetValue())
 
+    def __hash__(self):
+        return hash(self.vsGetValue())
+
 num_fmts = {
     (True,1):'>B',
     (True,2):'>H',
@@ -120,10 +123,11 @@ num_fmts = {
 class v_number(v_prim):
     _vs_length = 1
 
-    def __init__(self, value=0, bigend=False):
+    def __init__(self, value=0, bigend=False, enum=None):
         v_prim.__init__(self)
         self._vs_bigend = bigend
         self._vs_value = value
+        self._vs_enum = enum
         self._vs_length = self.__class__._vs_length
         self._vs_fmt = num_fmts.get( (bigend, self._vs_length) )
 
@@ -132,6 +136,13 @@ class v_number(v_prim):
 
     def vsGetValue(self):
         return self._vs_value
+
+    def vsGetEnum(self):
+        '''
+        Get the v_enum instance used to interpret this number, or None if
+          there are no associated enums.
+        '''
+        return self._vs_enum
 
     def vsParse(self, fbytes, offset=0):
         '''
@@ -181,6 +192,12 @@ class v_number(v_prim):
 
     def __long__(self):
         return long(self._vs_value)
+
+    def __str__(self):
+        v = self.vsGetValue()
+        if self._vs_enum is not None:
+            return self._vs_enum.vsReverseMapping(v, default=str(v))
+        return str(v)
 
     ##################################################################
     # Implement the number API
@@ -568,6 +585,15 @@ class v_zstr(v_prim):
         self._vs_length = len(self._vs_value)
         return nulloff
 
+    def vsParseFd(self, fd):
+        ret = ''
+        while not ret.endswith('\x00'):
+            y = fd.read(1)
+            if not y:
+                raise Exception('v_zstr file ended before NULL')
+            ret += y
+        return self.vsParse(ret)
+
     def vsEmit(self):
         return self._vs_value
 
@@ -610,18 +636,13 @@ class v_wstr(v_str):
     def vsEmit(self):
         return self._vs_value
 
-    def vsGetValue(self):
-        cstr = self._vs_value.decode(self._vs_encode)
-        return cstr.split('\x00')[0]
-
     def vsSetValue(self, val):
         rbytes = val.encode(self._vs_encode)
         self._vs_value = rbytes.ljust(len(self), '\x00')
 
     def vsGetValue(self):
-        s = self._vs_value.decode(self._vs_encode)
-        s = s.split("\x00")[0]
-        return s
+        s = self._vs_value.decode(self._vs_encode, errors='replace')
+        return s.split("\x00")[0]
 
 class v_zwstr(v_str):
     '''
@@ -667,7 +688,7 @@ class v_zwstr(v_str):
         return self._vs_value
 
     def vsGetValue(self):
-        cstr = self._vs_value.decode(self._vs_encode)
+        cstr = self._vs_value.decode(self._vs_encode, errors='replace')
         return cstr.split('\x00')[0]
 
     def vsSetValue(self, val):
@@ -709,7 +730,7 @@ class GUID(v_prim):
         return offend
 
     def vsEmit(self):
-        return struck.pack("<IHH8B", *self._guid_fields)
+        return struct.pack("<IHH8B", *self._guid_fields)
 
     def _parseGuidStr(self, gstr):
         gstr = gstr.replace("{","")
