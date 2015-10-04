@@ -116,7 +116,7 @@ def rt_pc_imm8(va, value): # ldr
 
 def bl_imm23(va, val, val2): # bl
     opcode = INS_BL
-    flags = 0
+    flags = envi.IF_CALL # 0# None
     # need next two bytes
     imm = (val&0x7ff) << 12
     imm |= ((val2&0x7ff) << 1)
@@ -815,7 +815,7 @@ thumb_base = [
 
 thumb1_extension = [
     ('11100',       (INS_B,  'b',       pc_imm11,           envi.IF_NOFALL)),        # B <imm11>
-    ('1111',        (INS_BL, 'bl',      bl_imm23,       IF_THUMB32)),   # BL/BLX <addr25> 
+    ('1111',        (INS_BL, 'bl',      bl_imm23,       envi.IF_CALL | IF_THUMB32)),   # BL/BLX <addr25> 
 ]
 
 ###  holy crap, this is so wrong and imcomplete....
@@ -932,7 +932,7 @@ thumb2_extension = [
     ('11110101101',         (85,'sub',      dp_mod_imm_32,        IF_THUMB32)),  # cmp if rd=1111 and s=1
     ('11110101110',         (85,'rsb',      dp_mod_imm_32,        IF_THUMB32)),
     ('11100',       (INS_B,  'b',       pc_imm11,           envi.IF_NOFALL)),        # B <imm11>
-    ('1111',        (INS_BL, 'bl',      bl_imm23,       IF_THUMB32)),   # BL/BLX <addr25> 
+    ('1111',        (INS_BL, 'bl',      bl_imm23,       envi.IF_CALL | IF_THUMB32)),   # BL/BLX <addr25> 
     ]
 '''
 '''
@@ -977,6 +977,7 @@ class Thumb16Disasm:
     _opclass = ThumbOpcode
 
     def disasm(self, bytez, offset, va, trackMode=True):
+        flags = 0
         va &= -2
         val, = struct.unpack("<H", bytez[offset:offset+2])
         try:
