@@ -13,6 +13,7 @@ import string
 import struct
 import weakref
 import hashlib
+import logging
 import itertools
 import traceback
 import threading
@@ -873,7 +874,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             except envi.InvalidInstruction, msg:
                 #FIXME something is just not right about this...
                 bytes = self.readMemory(va, 16)
-                print "Invalid Instruct Attempt At:",hex(va),bytes.encode("hex")
+                logging.getLogger("vivisect.VivWorkspace.makeOpcode").warning("Invalid Instruct Attempt At: %s %s", hex(va), bytes.encode("hex"))
                 raise InvalidLocation(va,msg)
 
             except Exception, msg:
@@ -1949,7 +1950,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         if filelocal:
             segtup = self.getSegment(va)
             if segtup == None:
-                print "Failed to find file for 0x%.8x (%s) (and filelocal == True!)"  % (va, name)
+                logging.getLogger("vivisect.VivWorkspace.makeName").warning("Failed to find file for 0x%.8x (%s) (and filelocal == True!)", va, name)
             if segtup != None:
                 fname = segtup[SEG_FNAME]
                 if fname != None:

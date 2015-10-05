@@ -5,6 +5,7 @@ ArchitectureModule, Opcode, Operand, and Emulator objects.
 
 import types
 import struct
+import logging
 import platform
 
 # TODO: move into const.py
@@ -293,7 +294,7 @@ class Operand:
         NOTE: This API may be passed a None emu and should return what it can
               (or None if it can't be resolved)
         """
-        print "%s needs to implement getOperValue!" % self.__class__.__name__
+        logging.getLogger("operand").warning("%s needs to implement getOperValue!", self.__class__.__name__)
         return None
 
     def setOperValue(self, op, emu, val):
@@ -302,7 +303,7 @@ class Operand:
         the given emulator/workspace/trace to assign things like
         memory and registers.
         """
-        print("%s needs to implement setOperValue! (0x%.8x: %s) " % (self.__class__.__name__, op.va, repr(op)))
+        logging.getLogger("operand").warning("%s needs to implement setOperValue! (0x%.8x: %s) ", self.__class__.__name__, op.va, repr(op))
 
     def isDeref(self):
         """
@@ -336,7 +337,7 @@ class Operand:
         NOTE: This API may be passed a None emu and should return what it can
               (or None if it can't be resolved)
         """
-        print("%s needs to implement getOperAddr!" % self.__class__.__name__)
+        logging.getLogger("operand").warning("%s needs to implement getOperAddr!", self.__class__.__name__)
         return None
 
     def repr(self, op):

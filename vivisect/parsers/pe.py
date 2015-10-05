@@ -1,5 +1,6 @@
 
 import os
+import logging
 import PE
 import vstruct
 import vivisect
@@ -286,7 +287,7 @@ def loadPeIntoWorkspace(vw, pe, filename=None):
                 vw.markDeadData(secbase, secbase+len(secbytes))
 
         except Exception, e:
-            print "Error Loading Section (%s size:%d rva:%.8x offset: %d): %s" % (secname,secfsize,secrva,secoff,e)
+            logging.getLogger("parsers.pe.loadPE").warning("Error Loading Section (%s size:%d rva:%.8x offset: %d): %s", secname, secfsize, secrva, secoff, e)
 
     vw.addExport(entry, EXP_FUNCTION, '__entry', fname)
     vw.addEntryPoint(entry)
