@@ -1892,7 +1892,7 @@ class ArmImmOffsetOper(ArmOperand):
         return True
 
     def involvesPC(self):
-        return self.base_reg == 15
+        return self.base_reg == REG_PC
 
     def isDeref(self):
         return True

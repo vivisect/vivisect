@@ -109,14 +109,14 @@ def rd_pc_imm8(va, value):  # add
 
 def rt_pc_imm8(va, value): # ldr
     rt = shmaskval(value, 8, 0x7)
-    imm = e_bits.signed(shmaskval(value, 0, 0xff), 1) * 4
+    imm = e_bits.signed((value & 0xff), 1) << 2
     oper0 = ArmRegOper(rt, va=va)
-    oper1 = ArmImmOffsetOper(REG_PC, imm, (va&0xfffffffc)+4)
+    oper1 = ArmImmOffsetOper(REG_PC, imm, (va&0xfffffffc))
     return oper0,oper1
 
 def bl_imm23(va, val, val2): # bl
     opcode = INS_BL
-    flags = envi.IF_CALL # 0# None
+    flags = envi.IF_CALL
     # need next two bytes
     imm = (val&0x7ff) << 12
     imm |= ((val2&0x7ff) << 1)
