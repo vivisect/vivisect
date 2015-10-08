@@ -764,8 +764,10 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         maxlen = len(bytes) - offset
         count = 0
         while count < maxlen:
-            # If we hit another thing, then probably not...
-            if self.getLocation(va+count) != None:
+            # If we hit another thing, then probably not.
+            # Ignore when count==0 so detection can check something
+            # already set as a location.
+            if (count > 0) and (self.getLocation(va+count) != None):
                 return -1
             c = bytes[offset+count]
             # The "strings" algo basically says 4 or more...
@@ -797,8 +799,10 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         maxlen = len(bytes) + offset
         count = 0
         while count < maxlen:
-            # If we hit another thing, then probably not...
-            if self.getLocation(va+count) != None:
+            # If we hit another thing, then probably not.
+            # Ignore when count==0 so detection can check something
+            # already set as a location.
+            if (count > 0) and (self.getLocation(va+count) != None):
                 return -1
 
             c0 = bytes[offset+count]
@@ -999,16 +1003,6 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
                     continue
                 if ref != None and self.isValidPointer(ref):
                     self.addXref(va, ref, REF_PTR)
-                    # Save the content if it points to a string constant
-                    # in a defined memory segment.
-                    if self.getSegment(ref) :
-                        sz = self.detectString(ref)
-                        if sz > 0 :
-                            self.addLocation(ref, sz, LOC_STRING)
-                        else :
-                            sz = self.detectUnicode(ref)
-                            if sz > 0 :
-                                self.addLocation(ref, sz, LOC_UNI)
 
         return loc
 
