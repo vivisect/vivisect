@@ -55,6 +55,11 @@ defcalls = {
     'amd64':'msx64call',
 }
 
+# map PE relocation types to vivisect types where possible
+relmap = {
+    PE.IMAGE_REL_BASED_HIGHLOW:vivisect.RTYPE_BASERELOC,
+}
+
 def loadPeIntoWorkspace(vw, pe, filename=None):
 
     mach = pe.IMAGE_NT_HEADERS.FileHeader.Machine
@@ -286,7 +291,7 @@ def loadPeIntoWorkspace(vw, pe, filename=None):
                 vw.markDeadData(secbase, secbase+len(secbytes))
 
         except Exception, e:
-            print "Error Loading Section (%s size:%d rva:%.8x offset: %d): %s" % (secname,secfsize,secrva,secoff,e)
+            print("Error Loading Section (%s size:%d rva:%.8x offset: %d): %s" % (secname,secfsize,secrva,secoff,e))
 
     vw.addExport(entry, EXP_FUNCTION, '__entry', fname)
     vw.addEntryPoint(entry)
@@ -298,7 +303,13 @@ def loadPeIntoWorkspace(vw, pe, filename=None):
     vw.setFileMeta(fname, "reloc_va", reloc_va)
 
     for rva,rtype in pe.getRelocations():
-        vw.addRelocation(rva+baseaddr, vivisect.RTYPE_BASERELOC)
+
+        # map PE reloc to VIV reloc ( or dont... )
+        vtype = relmap.get(rtype)
+        if vtype == None:
+            continue
+
+        vw.addRelocation(rva+baseaddr, vtype)
 
     for rva, lname, iname in pe.getImports():
         if vw.probeMemory(rva+baseaddr, 4, e_mem.MM_READ):
