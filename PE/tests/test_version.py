@@ -29,3 +29,29 @@ class PEResourceTest(unittest.TestCase):
         self.assertEqual(len(keys), len(vs_version))
         for key in vs.getVersionKeys():
             self.assertEqual(vs_version.get(key), vs.getVersionValue(key))
+
+    def test_export_by_name(self):
+        fpath = os.path.join('bins','export_by_name.dll')
+        pe = PE.peFromFileName(fpath)
+        exportlist = pe.getExports()
+        self.assertEquals(len(exportlist), 2, "expecting 2 exported functions")
+        self.assertEquals(exportlist[0][1], 0, "exported function with ordinal 0 not found")
+        self.assertEquals(exportlist[0][2], "Func1", "exported function with name 'Func1' not found")
+        self.assertEquals(exportlist[1][1], 1, "exported function with ordinal 1 not found")
+        self.assertEquals(exportlist[1][2], "Func2", "exported function with name 'Func2' not found")
+
+    def test_export_by_ordinal_base_01(self):
+        fpath = os.path.join('bins','export_by_ordinal_base_01.dll')
+        pe = PE.peFromFileName(fpath)
+        exportlist = pe.getExports()
+        self.assertEquals(len(exportlist), 2, "expecting 2 exported functions")
+        self.assertEquals(exportlist[0][1], 1, "exported function with ordinal 1 not found")
+        self.assertEquals(exportlist[1][1], 2, "exported function with ordinal 2 not found")
+
+    def test_export_by_ordinal_base_45(self):
+        fpath = os.path.join('bins','export_by_ordinal_base_45.dll')
+        pe = PE.peFromFileName(fpath)
+        exportlist = pe.getExports()
+        self.assertEquals(len(exportlist), 2, "expecting 2 exported functions")
+        self.assertEquals(exportlist[0][1], 45, "exported function with ordinal 45 not found")
+        self.assertEquals(exportlist[1][1], 55, "exported function with ordinal 55 not found")
