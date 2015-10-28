@@ -6,6 +6,7 @@ from vstruct.primitives import *
 
 PCAP_LINKTYPE_ETHER     = 1
 PCAP_LINKTYPE_RAW       = 101
+PCAP_LINKTYPE_LINUX_SLL = 113
 
 PCAPNG_BOM              = 0x1A2B3C4D
 OPT_ENDOFOPT            = 0
