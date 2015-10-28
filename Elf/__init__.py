@@ -522,7 +522,7 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
             while offset < notebyteslen:
                 note = vs_elf.ElfNote()
                 if notebyteslen - offset < len(note):
-                    print ("\nNOTES section length mismatch!\n\t%s\n\tSection Bytes: %s\n\tStranded bytes: %s\n" % (sec, repr(notebytes), repr(notebytes[offset:])))
+                    #print ("\nNOTES section length mismatch!\n\t%s\n\tSection Bytes: %s\n\tStranded bytes: %s\n" % (sec, repr(notebytes), repr(notebytes[offset:])))
                     break
 
                 offset = note.vsParse(notebytes,offset=offset)
