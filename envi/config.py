@@ -104,10 +104,16 @@ class EnviConfig:
             valstr = str(int(valstr, 16))
 
         if not (valstr.startswith('"') and valstr.endswith('"')):
-            try:
-                int(valstr)
-            except:
-                valstr = '"' + valstr + '"'
+            if valstr.lower() == 'true':
+                valstr = 'true'
+            elif valstr.lower() == 'false':
+                valstr = 'false'
+
+            else:
+                try:
+                    int(valstr)
+                except:
+                    valstr = '"' + valstr + '"'
 
         config[ optname ] = json.loads(valstr)
 
