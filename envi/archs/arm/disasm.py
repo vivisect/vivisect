@@ -1350,25 +1350,7 @@ class ArmOpcode(envi.Opcode):
         if self.prefixes != COND_AL:
             flags |= envi.BR_COND
 
-        if self.opcode in ( INS_B, INS_BX ):
-            oper = self.opers[0]
-
-            # check for location being ODD
-            operval = oper.getOperValue(self)
-            if operval == None:
-                return ret
-
-            if self.opcode == INS_BX and operval & 3:
-                flags |= envi.ARCH_THUMB16
-            # if we don't know that it's thumb, default to "ARCH_DEFAULT"
-            #else:
-            #    flags |= envi.ARCH_ARMV7
-
-
-            operval &= 0xfffffffe           # this has to work for both arm and thumb
-            ret.append((operval, flags))
-
-        elif self.opcode in ( INS_BL, INS_BLX ):
+        if self.opcode in ( INS_B, INS_BX, INS_BL, INS_BLX, INS_BCC ):
             oper = self.opers[0]
 
             # check for location being ODD
@@ -1377,14 +1359,20 @@ class ArmOpcode(envi.Opcode):
                 # probably a branch to a register.  just return.
                 return ret
 
-            if self.opcode == INS_BLX and operval & 3:
-                flags |= envi.ARCH_THUMB16
-            # if we don't know that it's thumb, default to "ARCH_DEFAULT"
-            #else:
-            #    flags |= envi.ARCH_ARMV7
+            if self.opcode in (INS_BLX, INS_BX):
+                if operval & 3:
+                    flags |= envi.ARCH_THUMB16
+                else:
+                    flags |= envi.ARCH_ARM
 
-            operval &= 0xfffffffe           # this has to work for both arm and thumb
-            flags |= envi.BR_PROC
+            # if we don't know that it's thumb, default to "ARCH_DEFAULT"
+            else:
+                flags |= self._def_arch
+
+
+            #operval &= 0xfffffffe           # this has to work for both arm and thumb
+            if self.iflags & envi.IF_CALL:
+                flags |= envi.BR_PROC
             ret.append((operval, flags))
 
         return ret
@@ -1904,7 +1892,7 @@ class ArmImmOffsetOper(ArmOperand):
         return True
 
     def involvesPC(self):
-        return self.base_reg == 15
+        return self.base_reg == REG_PC
 
     def isDeref(self):
         return True

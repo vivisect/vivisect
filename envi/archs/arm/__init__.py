@@ -11,9 +11,11 @@ from envi.archs.arm.disasm import *
 class ArmModule(envi.ArchitectureModule):
 
     def __init__(self, name='armv6'):
+        import envi.archs.thumb16.disasm as eatd
         envi.ArchitectureModule.__init__(self, name, maxinst=4)
         self._arch_reg = self.archGetRegCtx()
         self._arch_dis = ArmDisasm()
+        self._arch_thumb_dis = eatd.Thumb2Disasm()
 
     def archGetRegCtx(self):
         return ArmRegisterContext()
@@ -35,6 +37,9 @@ class ArmModule(envi.ArchitectureModule):
         """
         Parse a sequence of bytes out into an envi.Opcode instance.
         """
+        if va & 3:
+            return self._arch_thumb_dis.disasm(bytes, offset, va)
+
         return self._arch_dis.disasm(bytes, offset, va)
 
     def getEmulator(self):

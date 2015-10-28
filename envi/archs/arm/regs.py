@@ -42,18 +42,15 @@ reg_data = [ (reg, sz) for reg,sz in arm_regs ]
 for modenum in modes[1:]:       # skip first since we're already done
     (mname, msname, desc, offset, mode_reg_count, PSR_offset, priv_level) = proc_modes.get(modenum)
     # shared regs
-    #print "--",msname,"--"
     for ridx in range(mode_reg_count):
         # don't create new entries for this register, use the usr-mode reg
         reg_table[ridx+offset] = ridx
-        #print ridx
 
     # mode-regs (including PC)
     for ridx in range(mode_reg_count, 15):
         idx = len(reg_data)
         reg_data.append((arm_regs[ridx][0]+"_"+msname, 32))
         reg_table[ridx+offset] = idx
-        #print idx
 
     # PC
     reg_table[PSR_offset-2] = 15
