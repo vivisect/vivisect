@@ -7321,4 +7321,6 @@ api = {
     'wininet.urlzonesdetach':( 'int', None, 'cdecl', 'wininet.UrlZonesDetach', () ),
     'wininet._getfileextensionfromurl':( 'int', None, 'stdcall', 'wininet._GetFileExtensionFromUrl', (('int', None), ('int', None), ('void *', 'ptr'), ('int', None)) ),
 
+    'mfc42.?afxbeginthread@@ygpavcwinthread@@p6aipax@z0hikpau_security_attributes@@@z':( 'int', None, 'cdecl', 'mfc42.?AfxBeginThread@@YGPAVCWinThread@@P6AIPAX@Z0HIKPAU_SECURITY_ATTRIBUTES@@@Z', (('void *','funcptr'), ('void *','ptr'), ('int',None), ('int',None), ('int',None), ('void *','ptr')) ),
+
 } # END
