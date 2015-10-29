@@ -409,23 +409,25 @@ class ArmEmulator(ArmModule, ArmRegisterContext, envi.Emulator):
         regmask = op.opers[1].val
         pc = self.getRegister(REG_PC)       # store for later check
 
+        print "stm"
         addr = self.getRegister(srcreg)
         for val in regvals:
-        #for reg in xrange(16):
-            #if reg in regmask:
-                #val = self.getRegister(reg)
-                if op.iflags & IF_DAIB_B:
-                    if op.iflags & IF_DAIB_I:
-                        addr += 4
-                    else:
-                        addr -= 4
-                    self.writeMemValue(addr, val, 4)
+            print hex(val), hex(op.iflags), hex(IF_DAIB_B), hex(IF_DAIB_I)
+            if op.iflags & IF_DAIB_B == IF_DAIB_B:
+                print "DAIB_B!?!?"
+                if op.iflags & IF_DAIB_I == IF_DAIB_I:
+                    addr += 4
                 else:
-                    self.writeMemValue(addr, val, 4)
-                    if op.iflags & IF_DAIB_I:
-                        addr += 4
-                    else:
-                        addr -= 4
+                    addr -= 4
+                self.writeMemValue(addr, val, 4)
+            else:
+                print "%x -> [%x]" % (val, addr)
+                self.writeMemValue(addr, val, 4)
+                if op.iflags & IF_DAIB_I == IF_DAIB_I:
+                    addr += 4
+                else:
+                    addr -= 4
+
         if op.opers[0].oflags & OF_W:
             self.setRegister(srcreg,addr)
         #FIXME: add "shared memory" functionality?  prolly just in strex which will be handled in i_strex
@@ -447,8 +449,8 @@ class ArmEmulator(ArmModule, ArmRegisterContext, envi.Emulator):
 
         for reg in xrange(16):
             if (1<<reg) & regmask:
-                if op.iflags & IF_DAIB_B:
-                    if op.iflags & IF_DAIB_I:
+                if op.iflags & IF_DAIB_B == IF_DAIB_B:
+                    if op.iflags & IF_DAIB_I == IF_DAIB_I:
                         addr += 4
                     else:
                         addr -= 4
@@ -457,7 +459,7 @@ class ArmEmulator(ArmModule, ArmRegisterContext, envi.Emulator):
                 else:
                     regval = self.readMemValue(addr, 4)
                     self.setRegister(reg, regval)
-                    if op.iflags & IF_DAIB_I:
+                    if op.iflags & IF_DAIB_I == IF_DAIB_I:
                         addr += 4
                     else:
                         addr -= 4
