@@ -47,7 +47,7 @@ def analyzeFunction(vw, funcva):
 
             lva,lsize,ltype,linfo = loc
 
-            if ltype == LOC_POINTER and lva != va:
+            if ltype == LOC_POINTER:
                 # pointer analysis mis-identified a pointer,
                 # so clear and re-analyze instructions.
 
