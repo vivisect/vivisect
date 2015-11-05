@@ -3,7 +3,7 @@ import imp
 import sys
 import traceback
 
-import vdb.ext
+import vdb.ext as vdbext
 
 __all__ = ['loadExtensions','windows','i386','darwin','amd64','gdbstub','arm','android','winkern',]
 
@@ -28,8 +28,10 @@ def loadExtensions(vdb, trace):
         mod.vdbExtension(vdb, trace)
 
     extdir = os.getenv('VDB_EXT_PATH')
-    if extdir == None:
+    if not extdir:
         extdir = os.path.abspath(os.path.join('vdb', 'ext'))
+        if not os.path.isdir(extdir):
+            extdir = os.path.dirname(vdbext.__file__)
 
     for dirname in extdir.split(';'):
 
