@@ -807,7 +807,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             # already set as a location.
             if (count > 0):
                 loc = self.getLocation(va+count)
-                if loc and loc[L_LTYPE] == LOC_UNICODE:
+                if loc and loc[L_LTYPE] == LOC_UNI:
                     return loc[L_VA] - (va + count) + loc[L_SIZE]
                 return -1
 
