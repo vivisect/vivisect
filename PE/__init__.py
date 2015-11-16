@@ -755,6 +755,9 @@ class PE(object):
                 if ibn_rva & self.high_bit_mask:
                     funcname = ordlookup.ordLookup(libname, ibn_rva & 0x7fffffff)
 
+                elif not self.checkRva(ibn_rva):
+                    break
+
                 else:
                     # RP BUG FIX - we can't use this API on this call because we can have binaries that put their import table
                     # right at the end of the file, statically saying the imported function name is 128 will cause use to potentially
