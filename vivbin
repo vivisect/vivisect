@@ -43,7 +43,26 @@ def main():
     vw.verbose = args.verbose
 
     if args.option is not None:
-        vw.config.parseConfigOption(args.option)
+        if optarg in ('-h','?'):
+            print(vw.config.reprConfigPaths())
+            sys.exit(-1)
+
+        try:
+            vw.config.parseConfigOption(args.option)
+        except e_config.ConfigNoAssignment, e:
+            print(vw.config.reprConfigPaths())
+            print
+            print(e)
+            print("syntax: \t-O <secname>.<optname>=<optval> (optval must be json syntax)")
+            sys.exit(-1)
+
+        except Exception, e:
+            print(vw.config.reprConfigPaths())
+            print("With entry: %s" % optarg)
+            print(e)
+            sys.exit(-1)
+
+
 
     if args.storage_name is not None:
         vw.setMeta("StorageModule", args.storage_name)
