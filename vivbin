@@ -43,7 +43,7 @@ def main():
     vw.verbose = args.verbose
 
     if args.option is not None:
-        if optarg in ('-h','?'):
+        if args.option in ('-h','?'):
             print(vw.config.reprConfigPaths())
             sys.exit(-1)
 
@@ -57,7 +57,7 @@ def main():
 
         except Exception, e:
             print(vw.config.reprConfigPaths())
-            print("With entry: %s" % optarg)
+            print("With entry: %s" % args.option)
             print(e)
             sys.exit(-1)
 
