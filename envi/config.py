@@ -116,10 +116,11 @@ class EnviConfig:
 
         while todo:
             path, config = todo.pop()
-            
-            if config.keys():
+
+            cfgkeys = config.keys()
+            if cfgkeys:
                 pathstr = '.'.join(path) + "."
-                newpaths = [ (CONFIG_ENTRY, "%s%s" % (pathstr, key), "%s" % (config[key]))  for key in config.keys()]
+                newpaths = [ (CONFIG_ENTRY, "%s%s" % (pathstr, key), "%s" % (config[key]))  for key in cfgkeys]
                 paths.extend(newpaths)
 
             subnames = config.getSubConfigNames()
