@@ -48,6 +48,7 @@ def parseFd(vw, fd, filename=None):
 arch_names = {
     PE.IMAGE_FILE_MACHINE_I386:'i386',
     PE.IMAGE_FILE_MACHINE_AMD64:'amd64',
+    PE.IMAGE_FILE_MACHINE_ARM:'arm',
 }
 
 defcalls = {
