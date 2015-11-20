@@ -1,5 +1,6 @@
 import struct
 
+from copy import deepcopy
 from inspect import isclass
 from StringIO import StringIO
 
@@ -40,7 +41,7 @@ class VStruct(vs_prims.v_base):
 
     def __mul__(self, x):
         # build a list of instances of this vstruct
-        return [ self.__class__() for i in xrange(x) ]
+        return [ deepcopy(self) for i in xrange(x) ]
 
     def vsAddParseCallback(self, fieldname, callback):
         '''
