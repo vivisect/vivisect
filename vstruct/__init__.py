@@ -83,10 +83,21 @@ class VStruct(vs_prims.v_base):
             for callback in cblist:
                 callback(self)
 
-    def vsParseFd(self, fd):
+    @classmethod
+    def vsFromFd(cls, fd, fast=True):
+        v = cls()
+        v.vsParseFd(fd,fast=fast)
+        return v
+
+    def vsParseFd(self, fd, fast=False):
         '''
         Parse from the given file like object as input.
         '''
+        if fast:
+            b = fd.read( len(self) )
+            self.vsParse(b,fast=True)
+            return
+
         for fname in self._vs_fields:
             fobj = self._vs_values.get(fname)
             fobj.vsParseFd(fd)
@@ -409,13 +420,19 @@ class VStruct(vs_prims.v_base):
     def __getitem__(self, name):
         return self.vsGetField(name)
 
+    def __setitem__(self, name, valu):
+        return self.vsSetField(name,valu)
+
     def tree(self, va=0, reprmax=None):
         ret = ""
         for off, indent, name, field in self.vsGetPrintInfo():
             rstr = repr(field) #field.vsGetTypeName()
             if isinstance(field, vs_prims.v_number):
-                val = field.vsGetValue()
-                rstr = '0x%.8x (%d)' % (val,val)
+                if field.vsGetEnum() is not None:
+                    rstr = '%s (0x%.8x)' % (str(field), field.vsGetValue())
+                else:
+                    val = field.vsGetValue()
+                    rstr = '0x%.8x (%d)' % (val,val)
             elif isinstance(field, vs_prims.v_prim):
                 rstr = repr(field)
             if reprmax != None and len(rstr) > reprmax:

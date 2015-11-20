@@ -33,13 +33,11 @@ def addAnalysisModules(vw):
 
         vw.addConstModule('vstruct.constants.ntstatus')
 
-        vw.addAnalysisModule("vivisect.analysis.generic.pointers")
         vw.addAnalysisModule("vivisect.analysis.generic.relocations")
-        vw.addAnalysisModule("vivisect.analysis.generic.pointers")
-        vw.addAnalysisModule("vivisect.analysis.generic.pointertables")
 
         vw.addAnalysisModule("vivisect.analysis.ms.vftables") # RELIES ON LOC_POINTER
         vw.addAnalysisModule("vivisect.analysis.generic.emucode") # RELIES ON LOC_POINTER
+
         # run imports after emucode
         if arch == 'i386':
             vw.addAnalysisModule("vivisect.analysis.i386.importcalls")
@@ -62,7 +60,8 @@ def addAnalysisModules(vw):
         vw.addFuncAnalysisModule("vivisect.analysis.generic.thunks")
         vw.addAnalysisModule("vivisect.analysis.generic.funcentries")
         vw.addAnalysisModule('vivisect.analysis.ms.msvcfunc')
-        vw.addAnalysisModule("vivisect.analysis.generic.mkpointers")
+
+        vw.addAnalysisModule('vivisect.analysis.generic.strconst')
 
     elif fmt == 'elf': # ELF ########################################################
 

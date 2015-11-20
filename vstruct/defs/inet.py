@@ -9,6 +9,7 @@ import vstruct
 from vstruct.primitives import *
 
 ETH_P_IP    = 0x0800
+ETH_P_ARP   = 0x0806
 ETH_P_IPv6  = 0x86dd
 ETH_P_VLAN  = 0x8100
 
@@ -115,6 +116,8 @@ class IPv4(vstruct.VStruct):
 
     # Make our len over-ride
     def __len__(self):
+        if self.veriphl == 0:
+            return vstruct.VStruct.__len__(self)
         return (self.veriphl & 0x0f) * 4
 
 class IPv6(vstruct.VStruct):
@@ -126,10 +129,6 @@ class IPv6(vstruct.VStruct):
         self.hoplimit   = v_uint8()
         self.srcaddr    = IPv6Address()
         self.dstaddr    = IPv6Address()
-
-    # Make our len over-ride
-    def __len__(self):
-        return (self.veriphl & 0x0f) * 4
 
 class TCP(vstruct.VStruct):
 
@@ -146,6 +145,8 @@ class TCP(vstruct.VStruct):
         self.urgent     = v_uint16(bigend=True)
 
     def __len__(self):
+        if self.doff == 0:
+            return vstruct.VStruct.__len__(self)
         return self.doff >> 2
 
 class UDP(vstruct.VStruct):

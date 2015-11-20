@@ -119,6 +119,8 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         self.chan_lookup = {}
         self.nextchanid = 1
 
+        self._cached_emus = {}
+
         # The function entry signature decision tree
         # FIXME add to export
         self.sigtree = e_bytesig.SignatureTree()
@@ -206,6 +208,18 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             raise Exception("WorkspaceEmulation not supported on %s yet!" % arch)
 
         return eclass(self, logwrite=logwrite, logread=logread)
+
+    def getCachedEmu(self, emuname):
+        """
+        Get a cached emulator by name. If one doesn't exist it is
+        created and then cached.
+        """
+
+        emu = self._cached_emus.get(emuname)
+        if emu == None:
+            emu = self.getEmulator()
+            self._cached_emus[emuname] = emu
+        return emu
 
     def addLibraryDependancy(self, libname):
         """
@@ -364,7 +378,8 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         '''
         noretva = self.getMeta('NoReturnApisVa', {})
 
-        for funcre, c in self.getMeta('NoReturnApisRegex', {}).items():
+        for funcre in self.getMeta('NoReturnApisRegex',[]):
+            c = re.compile(funcre, re.IGNORECASE)
             if c.match(apiname):
                 self.cfctx.addNoReturnAddr( va )
                 noretva[va] = True 
@@ -620,6 +635,12 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             self.printDiscoveredStats()
         self._fireEvent(VWE_AUTOANALFIN, (endtime, starttime))
 
+    def getStats(self):
+        stats = {
+            'functions':len(self.funcmeta),
+            'relocations':len(self.relocations),
+        }
+        return stats
 
     def printDiscoveredStats(self):
         disc, undisc = self.getDiscoveredInfo()
@@ -715,7 +736,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
                     offset += loctup[L_SIZE]
                     continue
 
-                x = e_bits.parsebytes(bytes, offset, size)
+                x = e_bits.parsebytes(bytes, offset, size, bigend=self.bigend)
                 if self.isValidPointer(x):
                     ret.append((va, x))
                     offset += size
@@ -729,7 +750,11 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
         return ret
 
-    def isProbablyString(self, va):
+    def detectString(self, va):
+        '''
+        If the address appears to be the start of a string, then
+        return the string length in bytes, else return -1.
+        '''
         plen = 0 # pascal string length
         dlen = 0 # delphi string length
         if self.isReadable(va-4):
@@ -739,57 +764,82 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         maxlen = len(bytes) - offset
         count = 0
         while count < maxlen:
-            # If we hit another thing, then probably not...
-            if self.getLocation(va+count) != None:
-                return False
+            # If we hit another thing, then probably not.
+            # Ignore when count==0 so detection can check something
+            # already set as a location.
+            if (count > 0):
+                loc = self.getLocation(va+count)
+                if loc and loc[L_LTYPE] == LOC_STRING:
+                    return loc[L_VA] - (va + count) + loc[L_SIZE]
+                return -1
             c = bytes[offset+count]
             # The "strings" algo basically says 4 or more...
             if ord(c) == 0 and count >= 4:
-                return True
+                return count
             elif ord(c) == 0 and (count == dlen or count == plen):
-                return True
+                return count
             if c not in string.printable:
-                return False
+                return -1
             count += 1
+        return -1
+
+    def isProbablyString(self, va):
+        if self.detectString(va) > 0 :
+            return True
         return False
 
-    def isProbablyUnicode(self, va):
-        """
+    def detectUnicode(self, va):
+        '''
+        If the address appears to be the start of a unicode string, then
+        return the string length in bytes, else return -1.
+
         This will return true if the memory location is likely
         *simple* UTF16-LE unicode (<ascii><0><ascii><0><0><0>).
-        """
-        #FIXME this totally sucks...
+        '''
+        #FIXME this does not detect Unicode...
 
         offset, bytes = self.getByteDef(va)
         maxlen = len(bytes) + offset
         count = 0
         while count < maxlen:
-            if self.getLocation(va+count) != None:
-                return False
+            # If we hit another thing, then probably not.
+            # Ignore when count==0 so detection can check something
+            # already set as a location.
+            if (count > 0):
+                loc = self.getLocation(va+count)
+                if loc and loc[L_LTYPE] == LOC_UNI:
+                    return loc[L_VA] - (va + count) + loc[L_SIZE]
+                return -1
 
             c0 = bytes[offset+count]
             if offset+count+1 >= len(bytes):
-                return False
+                return -1
             c1 = bytes[offset+count+1]
 
             # If it's not null,char,null,char then it's
             # not simple unicode...
             if ord(c1) != 0:
-                return False
+                return -1
 
             # If we find our null terminator after more
             # than 4 chars, we're probably a real string
             if ord(c0) == 0:
                 if count > 8:
-                    return True
-                return False
+                    return count
+                return -1
 
             # If the first byte char isn't printable, then
             # we're probably not a real "simple" ascii string
             if c0 not in string.printable:
-                return False
+                return -1
 
             count += 2
+        return -1
+
+    def isProbablyUnicode(self, va):
+        if self.detectUnicode(va) > 0 :
+            return True
+        return False
 
     def isProbablyCode(self, va):
         """
@@ -946,7 +996,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
                         offset, bytes = self.getByteDef(ref)
 
-                        val = e_bits.parsebytes(bytes, offset, o.tsize)
+                        val = self.parseNumber(ref, o.tsize)
 
                         if (self.psize == o.tsize and self.isValidPointer(val)):
                             self.makePointer(ref, tova=val)
@@ -1501,7 +1551,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         than parse memory.
         """
         offset, bytes = self.getByteDef(va)
-        return e_bits.parsebytes(bytes, offset, self.psize)
+        return e_bits.parsebytes(bytes, offset, self.psize, bigend=self.bigend)
 
     def makePointer(self, va, tova=None, follow=True):
         """
@@ -1513,8 +1563,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
         # Get and document the xrefs created for the new location
         if tova == None:
-            offset, bytes = self.getByteDef(va)
-            tova = e_bits.parsebytes(bytes, offset, psize)
+            tova = self.castPointer(va)
 
         self.addXref(va, tova, REF_PTR)
 
@@ -1548,7 +1597,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             val = vw.parseNumber(0x41414140, 4)
         '''
         offset, bytes = self.getByteDef(va)
-        return e_bits.parsebytes(bytes, offset, size)
+        return e_bits.parsebytes(bytes, offset, size, bigend=self.bigend)
 
     def makeString(self, va, size=None):
         """
@@ -1575,7 +1624,8 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             raise Exception("Invalid Unicode Size: %d" % size)
 
         if self.getName(va) == None:
-            self.makeName(va, "wstr_%.8x" % va)
+            m = self.readMemory(va, size-1).replace("\n","").replace("\0","")
+            self.makeName(va, "wstr_%s_%.8x" % (m[:16],va))
         return self.addLocation(va, size, LOC_UNI)
 
     def addConstModule(self, modname):

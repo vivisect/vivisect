@@ -129,7 +129,7 @@ def getCoveragePaths(fgraph, maxpath=None):
 
     for root in fgraph.getHierRootNodes():
 
-        proot = vg_pathcore.newPathNode(nid=root, eid=None)
+        proot = vg_pathcore.newPathNode(nid=root[0], eid=None)
         todo = [(root,proot), ]
 
         while todo:
@@ -146,7 +146,7 @@ def getCoveragePaths(fgraph, maxpath=None):
                 yield [ _nodeedge(n) for n in path ]
 
                 pathcnt += 1
-                if pathcnt >= maxpath:
+                if maxpath != None and pathcnt >= maxpath:
                     return
 
             for eid, fromid, toid, einfo in refsfrom:
@@ -158,7 +158,7 @@ def getCoveragePaths(fgraph, maxpath=None):
 
                     # Check if that was the last path we should yield
                     pathcnt += 1
-                    if pathcnt >= maxpath:
+                    if maxpath != None and pathcnt >= maxpath:
                         return
 
                     # If we're at a completed node, take no further branches
@@ -180,83 +180,13 @@ def getCodePathsThru(fgraph, tgtcbva, loopcnt=0, maxpath=None):
             for node,edge in path:
                 ...etc...
     '''    
-    # this starts with the "To" side, finding a path back from tgtcbva to root
-    pathcnt = 0
-    looptrack = []
-    pnode = vg_pathcore.newPathNode(nid=tgtcbva, eid=None)
-
-    node = fgraph.getNode(tgtcbva)
-    todo = [(node,pnode), ]
-
-    while todo:
-
-        node,cpath = todo.pop()
-
-        refsto = fgraph.getRefsTo(node)
-
-        # This is the root node!
-        if node[1].get('rootnode'):
-            path = vg_pathcore.getPathToNode(cpath)
-            path.reverse()
-            # build the path in the right direction
-            newcpath = None
-            lastnk = {'eid':None}
-            for np,nc,nk in path:
-                newcpath = vg_pathcore.newPathNode(parent=newcpath, nid=nk['nid'], eid=lastnk['eid'])
-                lastnk = nk
-
-            for fullpath, count in _getCodePathsThru2(fgraph, tgtcbva, path, newcpath, loopcnt=loopcnt, pathcnt=pathcnt, maxpath=maxpath):
-                yield [ _nodeedge(n) for n in fullpath ]
-            vg_pathcore.trimPath(cpath)
-
-            pathcnt += count
-            if maxpath and pathcnt >= maxpath:
+    cnt = 0
+    for pathto in getCodePathsTo(fgraph, tgtcbva, loopcnt=loopcnt, maxpath=maxpath):
+        for pathfrom in getCodePathsFrom(fgraph, tgtcbva, loopcnt=loopcnt, maxpath=maxpath):
+            yield pathto + pathfrom[1:]
+            cnt += 1
+            if maxpath != None and cnt >= maxpath:
                 return
-
-        for eid, fromid, toid, einfo in refsto:
-            # Skip loops if they are "deeper" than we are allowed
-            loops = vg_pathcore.getPathLoopCount(cpath, 'nid', fromid)
-            if loops > loopcnt:
-                continue
-
-            #vg_pathcore.setNodeProp(cpath, 'eid', eid)
-            #print "-e: %d %x %x %s" % (eid, fromid, toid, repr(einfo))
-            npath = vg_pathcore.newPathNode(parent=cpath, nid=fromid, eid=eid)
-            fromnode = fgraph.getNode(fromid)
-            todo.append((fromnode,npath))
-
-
-def _getCodePathsThru2(fgraph, tgtcbva, path, firstpath, loopcnt=0, pathcnt=0, maxpath=None):
-
-    tgtnode = fgraph.getNode(tgtcbva)
-    todo = [ (tgtnode,firstpath), ]
-
-    while todo:
-
-        node,cpath = todo.pop()
-
-        refsfrom = fgraph.getRefsFrom(node)
-
-        # This is a leaf node!
-        if not refsfrom:
-            path = vg_pathcore.getPathToNode(cpath)
-            yield path, pathcnt
-            vg_pathcore.trimPath(cpath)
-
-            pathcnt += 1
-            if maxpath and pathcnt >= maxpath:
-                return
-
-        for eid, fromid, toid, einfo in refsfrom:
-            # Skip loops if they are "deeper" than we are allowed
-            loops = vg_pathcore.getPathLoopCount(cpath, 'nid', toid)
-            if loops > loopcnt:
-                continue
-
-            npath = vg_pathcore.newPathNode(parent=cpath, nid=toid, eid=eid)
-            tonode = fgraph.getNode(toid)
-            todo.append((tonode,npath))
-
 
 def getCodePathsTo(fgraph, tocbva, loopcnt=0, maxpath=None):
     '''
@@ -627,9 +557,18 @@ def clearGraphRouting(graph):
     clear all nodes of routing entries
     '''
     for nid, ninfo in graph.getNodes():
-        graph.getNodeProps(nid)['up'  ] = False
-        graph.getNodeProps(nid)['down'] = False
-    
+        graph.setNodeProps(nid, 'up',   False)
+        graph.setNodeProps(nid, 'down', False)
+
+def reduceGraph(graph, props=('up','down')):
+    '''
+    trims all nodes that don't have all the props in the props list
+    '''
+    for node in graph.getNodes():
+        for prop in props:
+            if node[1].get(prop) == None:
+                graph.delNode(node)
+                break
 
 def preRouteGraphUp(graph, tova, loops=True):
     '''

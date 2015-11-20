@@ -331,9 +331,9 @@ class Graph:
         Example:
             g.delNode(node)
         '''
-        for edge in self.getRefsFrom(node):
+        for edge in self.getRefsFrom(node)[:]:
             self.delEdge(edge)
-        for edge in self.getRefsTo(node):
+        for edge in self.getRefsTo(node)[:]:
             self.delEdge(edge)
         [ self.delNodeProp(node, k) for k in node[1].keys() ]
         return self.nodes.pop(node[0])
@@ -362,7 +362,7 @@ class Graph:
         '''
         return len(self.getRefsFrom(node)) == 0
 
-    def isRootNode(self):
+    def isRootNode(self, node):
         '''
         A node is a "root" node if he has no "incoming" edges.
         '''

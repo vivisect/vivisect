@@ -55,6 +55,11 @@ defcalls = {
     'amd64':'msx64call',
 }
 
+# map PE relocation types to vivisect types where possible
+relmap = {
+    PE.IMAGE_REL_BASED_HIGHLOW:vivisect.RTYPE_BASERELOC,
+}
+
 def loadPeIntoWorkspace(vw, pe, filename=None):
 
     mach = pe.IMAGE_NT_HEADERS.FileHeader.Machine
@@ -113,11 +118,15 @@ def loadPeIntoWorkspace(vw, pe, filename=None):
     if vs != None:
         vsver = vs.getVersionValue('FileVersion')
         if vsver != None and len(vsver):
-            vsver = vsver.split()[0]
-            vw.setFileMeta(fname, 'Version', vsver)
+            # add check to split seeing samples with spaces and nothing else..
+            parts = vsver.split()
+            if len(parts):
+                vsver = vsver.split()[0]
+                vw.setFileMeta(fname, 'Version', vsver)
 
     # Setup some va sets used by windows analysis modules
     vw.addVaSet("Library Loads", (("Address", VASET_ADDRESS),("Library", VASET_STRING)))
+    vw.addVaSet('pe:ordinals', (('Address', VASET_ADDRESS),('Ordinal',VASET_INTEGER)))
 
     # SizeOfHeaders spoofable...
     curr_offset = pe.IMAGE_DOS_HEADER.e_lfanew + len(pe.IMAGE_NT_HEADERS) 
@@ -160,7 +169,6 @@ def loadPeIntoWorkspace(vw, pe, filename=None):
 
     vw.makeStructure(ifhdr_va + len(ifstruct), "pe.IMAGE_OPTIONAL_HEADER")
 
-
     # get resource data directory
     ddir = pe.getDataDirectory(PE.IMAGE_DIRECTORY_ENTRY_RESOURCE)
     loadrsrc = vw.config.viv.parsers.pe.loadresources
@@ -186,7 +194,6 @@ def loadPeIntoWorkspace(vw, pe, filename=None):
         d = pe.getDataDirectory(datadir)
         if d.VirtualAddress:
             deadvas.append(d.VirtualAddress)
-            
 
     for idx, sec in enumerate(pe.sections):
         mapflags = 0
@@ -220,8 +227,7 @@ def loadPeIntoWorkspace(vw, pe, filename=None):
         secbase = secrva + baseaddr
         secname = sec.Name.strip("\x00")
         secrvamax = secrva + secvsize
-
-
+    
         # If the section is part of BaseOfCode->SizeOfCode
         # force execute perms...
         if secrva >= codebase and secrva < codervamax:
@@ -257,7 +263,6 @@ def loadPeIntoWorkspace(vw, pe, filename=None):
             #FIXME create a mask for this
             if not (chars & PE.IMAGE_SCN_CNT_CODE) and not (chars & PE.IMAGE_SCN_MEM_EXECUTE) and not (chars & PE.IMAGE_SCN_MEM_WRITE):
                 vw.markDeadData(secbase, secbase+len(secbytes))
-
             continue
         
         # if SizeOfRawData is greater than VirtualSize we'll end up using VS in our read..
@@ -286,13 +291,25 @@ def loadPeIntoWorkspace(vw, pe, filename=None):
                 vw.markDeadData(secbase, secbase+len(secbytes))
 
         except Exception, e:
-            print "Error Loading Section (%s size:%d rva:%.8x offset: %d): %s" % (secname,secfsize,secrva,secoff,e)
+            print("Error Loading Section (%s size:%d rva:%.8x offset: %d): %s" % (secname,secfsize,secrva,secoff,e))
 
     vw.addExport(entry, EXP_FUNCTION, '__entry', fname)
     vw.addEntryPoint(entry)
 
+    # store the actual reloc section virtual address
+    reloc_va = pe.getDataDirectory(PE.IMAGE_DIRECTORY_ENTRY_BASERELOC).VirtualAddress
+    if reloc_va:
+        reloc_va += baseaddr
+    vw.setFileMeta(fname, "reloc_va", reloc_va)
+
     for rva,rtype in pe.getRelocations():
-        vw.addRelocation(rva+baseaddr, vivisect.RTYPE_BASERELOC)
+
+        # map PE reloc to VIV reloc ( or dont... )
+        vtype = relmap.get(rtype)
+        if vtype == None:
+            continue
+
+        vw.addRelocation(rva+baseaddr, vtype)
 
     for rva, lname, iname in pe.getImports():
         if vw.probeMemory(rva+baseaddr, 4, e_mem.MM_READ):
@@ -311,6 +328,7 @@ def loadPeIntoWorkspace(vw, pe, filename=None):
     for rva, ord, name in exports:
         eva = rva + baseaddr
         try:
+            vw.setVaSetRow('pe:ordinals', (eva,ord))
             vw.addExport(eva, EXP_UNTYPED, name, fname)
             if vw.probeMemory(eva, 1, e_mem.MM_EXEC):
                 vw.addEntryPoint(eva)
