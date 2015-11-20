@@ -613,7 +613,7 @@ class HierGraph(Graph):
           property.
     '''
     def __init__(self, merge=None):
-        Graph.__init__(self, merge)
+        Graph.__init__(self, merge=merge)
 
     def addHierRootNode(self,*args,**kwargs):
         '''
