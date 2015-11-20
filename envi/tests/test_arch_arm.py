@@ -245,3 +245,5 @@ class ArmInstructionSet(unittest.TestCase):
         op = am.archParseOpcode('d3f021e3'.decode('hex'))
         self.assertEqual('msr CPSR_c, #0xd3', repr(op))
 
+        op = am.archParseOpcode('3f030be3'.decode('hex'))
+        self.assertEqual('mov r0, #0xbeef', repr(op))
