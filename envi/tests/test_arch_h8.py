@@ -1,3 +1,4 @@
+import struct
 
 import envi
 import envi.memory as e_mem
@@ -11,6 +12,7 @@ import unittest
 from envi import IF_RET, IF_NOFALL, IF_BRANCH, IF_CALL, IF_COND
 from envi.archs.h8.regs import *
 from envi.archs.h8.const import *
+from envi.archs.h8.parsers import *
 
 
 # OPHEX, VA, repr, flags, emutests
@@ -670,6 +672,46 @@ class H8InstrTest(unittest.TestCase):
 
         return not success
 
+    def test_parsers_rudimentary(self, buf = 'ABCDEFGHIJKLMNOP', off=3, va=0x2544):
+        val, = struct.unpack_from('>H', buf, off)
+
+        for tsize in (1,2,4):
+            p_i3_Rd(va, val, buf, off, tsize)
+            p_i3_aERd(va, val, buf, off, tsize) 
+            p_i3_aAA8(va, val, buf, off, tsize) 
+            p_i8_CCR(va, val, buf, off, tsize) 
+            p_i8_Rd(va, val, buf, off, tsize) 
+            p_i16_Rd(va, val, buf, off, tsize) 
+            p_i32_ERd(va, val, buf, off, tsize) 
+            p_Rd(va, val, buf, off, tsize) 
+            p_Rs_Rd(va, val, buf, off, tsize)  
+            p_Rs_Rd_4b(va, val, buf, off, tsize)  
+            p_Rs_ERd(va, val, buf, off, tsize)  
+            p_Rs_ERd_4b(va, val, buf, off, tsize)  
+            p_ERd(va, val, buf, off, tsize)  
+            p_ERs_ERd(va, val, buf, off, tsize)  
+            p_Rn_Rd(va, val, buf, off, tsize)  
+            p_Rn_aERd(va, val, buf, off, tsize)  
+            p_Rn_aAA8(va, val, buf, off, tsize)  
+            p_aERn(va, val, buf, off, tsize)  
+            p_aAA24(va, val, buf, off, tsize)  
+            p_aaAA8(va, val, buf, off, tsize)  
+            p_disp8(va, val, buf, off, tsize)  
+            p_disp16(va, val, buf, off, tsize)  
+            p_nooperands(va, val, buf, off, tsize) 
+
+        h8m = envi.getArchModule('h8')      
+
+        for instr in raw_instrs:
+            inst = instr[0]
+            op = h8m.archParseOpcode(inst, 0, 0x50)
+            print( "%26s %s" % (instr[0].encode('hex'), op) )
+            if len(op) != len(inst):
+                #raise Exception(" LENGTH FAILURE:  expected: %d  real: %d  '%s'" % (len(inst), len(op), inst.encode('hex')))
+                print(" LENGTH FAILURE:  expected: %d  real: %d  '%s'" % (len(inst), len(op), inst.encode('hex')))
+
+
+
 def generateTestInfo(ophexbytez='6e'):
     h8 = e_h8.H8Module()
     opbytez = ophexbytez
@@ -1038,20 +1080,5 @@ raw_instrs = [
     ('0540'.decode('hex'), ),
     ('01410540'.decode('hex'), ),
     ]
-
-
-if __name__ == '__main__':
-    h8m = envi.getArchModule('h8')      
-
-    for instr in raw_instrs:
-        inst = instr[0]
-        op = h8m.archParseOpcode(inst, 0, 0x50)
-        print( "%26s %s" % (instr[0].encode('hex'), op) )
-        if len(op) != len(inst):
-            #raise Exception(" LENGTH FAILURE:  expected: %d  real: %d  '%s'" % (len(inst), len(op), inst.encode('hex')))
-            print(" LENGTH FAILURE:  expected: %d  real: %d  '%s'" % (len(inst), len(op), inst.encode('hex')))
-
-    idaknow(vw)
-
 
 

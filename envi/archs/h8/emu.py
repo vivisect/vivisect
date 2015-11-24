@@ -13,7 +13,7 @@ from envi.archs.h8.regs import *
 from disasm import H8RegDirOper
 
 # calling conventions
-class H8ArchitectureProcedureCall(envi.CallingConvention):
+class H8Call(envi.CallingConvention):
     """
     Implement calling conventions for your arch.
     """
@@ -30,7 +30,7 @@ class H8ArchitectureProcedureCall(envi.CallingConvention):
     def getCallArgs(self, emu, count):
         return emu.getRegisters(0xf)  # r0-r3 are used to hand in parameters.  additional ph8s are stored and pointed to by r0
 
-aapcs = H8ArchitectureProcedureCall()
+h8call = H8Call()
 
 
 CPUSTATE_RESET =    0
@@ -55,7 +55,7 @@ class H8Emulator(H8Module, H8RegisterContext, envi.Emulator):
         seglist = [ (0,0xffffffff) for x in xrange(6) ]
 
         self.setAdvanced(advanced)
-        self.addCallingConvention("H8 Arch Procedure Call", aapcs)
+        self.addCallingConvention("H8 Arch Procedure Call", h8call)
 
     def setAdvanced(self, advanced=True):
         self.advanced = advanced

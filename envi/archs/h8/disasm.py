@@ -177,40 +177,6 @@ class H8Opcode(envi.Opcode):
 
 
 
-def unittest_parsers(buf = 'ABCDEFGHIJKLMNOP', off=3, va=0x2544):
-    val, = struct.unpack('>H', buf[off:off+2])
-
-    for tsize in (1,2,4):
-        p_i3_Rd(va, val, buf, off, tsize)
-        p_i3_aERd(va, val, buf, off, tsize) 
-        p_i3_aAA8(va, val, buf, off, tsize) 
-        p_i8_CCR(va, val, buf, off, tsize) 
-        p_i8_Rd(va, val, buf, off, tsize) 
-        p_i16_Rd(va, val, buf, off, tsize) 
-        p_i32_ERd(va, val, buf, off, tsize) 
-        p_Rd(va, val, buf, off, tsize) 
-        p_Rs_Rd(va, val, buf, off, tsize)  
-        p_Rs_Rd_4b(va, val, buf, off, tsize)  
-        p_Rs_ERd(va, val, buf, off, tsize)  
-        p_Rs_ERd_4b(va, val, buf, off, tsize)  
-        p_ERd(va, val, buf, off, tsize)  
-        p_ERs_ERd(va, val, buf, off, tsize)  
-        p_Rn_Rd(va, val, buf, off, tsize)  
-        p_Rn_aERd(va, val, buf, off, tsize)  
-        p_Rn_aAA8(va, val, buf, off, tsize)  
-        p_aERn(va, val, buf, off, tsize)  
-        p_aAA24(va, val, buf, off, tsize)  
-        p_aaAA8(va, val, buf, off, tsize)  
-        p_1_Rd(va, val, buf, off, tsize)  
-        p_2_Rd(va, val, buf, off, tsize)  
-        p_4_Rd(va, val, buf, off, tsize)  
-        p_1_ERd(va, val, buf, off, tsize)  
-        p_2_ERd(va, val, buf, off, tsize)  
-        p_4_ERd(va, val, buf, off, tsize)  
-        p_disp8(va, val, buf, off, tsize)  
-        p_dis16(va, val, buf, off, tsize)  
-        p_nooperands(va, val, buf, off, tsize) 
-
 class H8Operand(envi.Operand):
     tsize = 2
     def involvesPC(self):
@@ -637,8 +603,7 @@ class H8Disasm:
         """
         Parse a sequence of bytes out into an envi.Opcode instance.
         """
-        opbytes = bytez[offset:offset+2]
-        opval, = struct.unpack(">H", opbytes)
+        opval, = struct.unpack_from(">H", bytez, offset)
 
         prim = opval >> 8
         opdata = main_table[prim]
