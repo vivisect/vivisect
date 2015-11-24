@@ -55,6 +55,11 @@ defcalls = {
     'amd64':'msx64call',
 }
 
+# map PE relocation types to vivisect types where possible
+relmap = {
+    PE.IMAGE_REL_BASED_HIGHLOW:vivisect.RTYPE_BASERELOC,
+}
+
 def loadPeIntoWorkspace(vw, pe, filename=None):
 
     mach = pe.IMAGE_NT_HEADERS.FileHeader.Machine
@@ -222,8 +227,7 @@ def loadPeIntoWorkspace(vw, pe, filename=None):
         secbase = secrva + baseaddr
         secname = sec.Name.strip("\x00")
         secrvamax = secrva + secvsize
-
-
+    
         # If the section is part of BaseOfCode->SizeOfCode
         # force execute perms...
         if secrva >= codebase and secrva < codervamax:
@@ -259,7 +263,6 @@ def loadPeIntoWorkspace(vw, pe, filename=None):
             #FIXME create a mask for this
             if not (chars & PE.IMAGE_SCN_CNT_CODE) and not (chars & PE.IMAGE_SCN_MEM_EXECUTE) and not (chars & PE.IMAGE_SCN_MEM_WRITE):
                 vw.markDeadData(secbase, secbase+len(secbytes))
-
             continue
         
         # if SizeOfRawData is greater than VirtualSize we'll end up using VS in our read..
@@ -288,13 +291,25 @@ def loadPeIntoWorkspace(vw, pe, filename=None):
                 vw.markDeadData(secbase, secbase+len(secbytes))
 
         except Exception, e:
-            print "Error Loading Section (%s size:%d rva:%.8x offset: %d): %s" % (secname,secfsize,secrva,secoff,e)
+            print("Error Loading Section (%s size:%d rva:%.8x offset: %d): %s" % (secname,secfsize,secrva,secoff,e))
 
     vw.addExport(entry, EXP_FUNCTION, '__entry', fname)
     vw.addEntryPoint(entry)
 
+    # store the actual reloc section virtual address
+    reloc_va = pe.getDataDirectory(PE.IMAGE_DIRECTORY_ENTRY_BASERELOC).VirtualAddress
+    if reloc_va:
+        reloc_va += baseaddr
+    vw.setFileMeta(fname, "reloc_va", reloc_va)
+
     for rva,rtype in pe.getRelocations():
-        vw.addRelocation(rva+baseaddr, vivisect.RTYPE_BASERELOC)
+
+        # map PE reloc to VIV reloc ( or dont... )
+        vtype = relmap.get(rtype)
+        if vtype == None:
+            continue
+
+        vw.addRelocation(rva+baseaddr, vtype)
 
     for rva, lname, iname in pe.getImports():
         if vw.probeMemory(rva+baseaddr, 4, e_mem.MM_READ):

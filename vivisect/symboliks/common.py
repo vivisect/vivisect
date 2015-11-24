@@ -63,6 +63,12 @@ def getSymbolikImport(vw, impname):
     mod = vw.loadModule(modbase)
     return vstruct.resolve(mod, nameparts)
 
+def cb_astNodeCount(path,obj,ctx):
+    ctx['count'] += 1
+    if len(path) > ctx['depth']:
+        ctx['depth'] = len(path)
+
+
 class SymbolikBase:
     idgen = itertools.count()
 
@@ -321,6 +327,15 @@ class SymbolikBase:
 
     def render(self, canvas, vw):
         canvas.addText( str(self) )
+
+    def countAstNodes(ast):
+        ctx = {
+                'count':0,
+                'depth':0
+                }
+
+        newast = ast.walkTree(cb_astNodeCount, ctx)
+        return ctx['count'], ctx['depth']
 
 class cnot(SymbolikBase):
     '''

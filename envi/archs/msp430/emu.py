@@ -64,7 +64,7 @@ class Msp430Emulator(e_msp430regs.Msp430RegisterContext, envi.Emulator):
         elif size == 2:
             return struct.unpack("<H", bytes)[0]
         elif size == 4:
-            return struct.unpack("<L", bytes)[0]
+            return struct.unpack("<I", bytes)[0]
         elif size == 8:
             return struct.unpack("<Q", bytes)[0]
 
@@ -75,7 +75,7 @@ class Msp430Emulator(e_msp430regs.Msp430RegisterContext, envi.Emulator):
         elif size == 2:
             bytes = struct.pack("<H",value & 0xffff)
         elif size == 4:
-            bytes = struct.pack("<L", value & 0xffffffff)
+            bytes = struct.pack("<I", value & 0xffffffff)
         elif size == 8:
             bytes = struct.pack("<Q", value & 0xffffffffffffffff)
         self.writeMemory(addr, bytes)

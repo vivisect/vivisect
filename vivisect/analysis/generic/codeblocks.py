@@ -47,6 +47,23 @@ def analyzeFunction(vw, funcva):
 
             lva,lsize,ltype,linfo = loc
 
+            if ltype == LOC_POINTER:
+                # pointer analysis mis-identified a pointer,
+                # so clear and re-analyze instructions.
+
+                vw.delLocation(va)
+
+                # assume we're add a valid instruction, which is most likely.
+                vw.makeCode(va)
+
+                loc = vw.getLocation(va)
+                if loc is None:
+                    blocks[start] = va - start
+                    brefs.append( (va, False) )
+                    break
+                    
+                lva,lsize,ltype,linfo = loc
+
             # If it's not an op, terminate
             if ltype != LOC_OP:
                 blocks[start] = va - start                     

@@ -2,6 +2,7 @@
 A package for any of the vivisect workspace renderers.
 """
 import envi
+import string
 import urllib
 
 from vivisect.const import *
@@ -238,8 +239,10 @@ class WorkspaceRenderer(e_canvas.MemoryRenderer):
 
             mcanv.addText(linepre, vatag)
             offset,bytes = self.vw.getByteDef(lva)
-            b = bytes[offset].encode('hex')
-            mcanv.addNameText(b, typename="undefined")
+            b = bytes[offset]
+            mcanv.addNameText(b.encode('hex'), typename="undefined")
+            if b in string.printable:
+                mcanv.addText('    %s' % repr(b), tag=cmnttag)
             if cmnt != None:
                 mcanv.addText('    ;%s' % cmnt, tag=cmnttag)
             mcanv.addText("\n")
