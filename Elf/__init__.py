@@ -222,7 +222,8 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
         fd.seek(0)
         bytes = fd.read(len(e))
         e.vsParse(bytes)
-        if e.e_machine in e_machine_32:
+        #Parse 32bit header
+        if e.e_class == ELFCLASS32:
             vs_elf.Elf32.__init__(self)
             self.bits = 32
             self.psize = 4
@@ -231,8 +232,8 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
             self._cls_reloca = Elf32Reloca
             self._cls_symbol = Elf32Symbol
             self._cls_section = Elf32Section
-
-        elif e.e_machine in e_machine_64:
+        #Parse 64bit header
+        elif e.e_class == ELFCLASS64:
             vs_elf.Elf64.__init__(self)
             self.bits = 64
             self.psize = 8
@@ -241,9 +242,8 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
             self._cls_reloca = Elf64Reloca
             self._cls_symbol = Elf64Symbol
             self._cls_section = Elf64Section
-
         else:
-            raise Exception('Unrecognized e_machine: %d' % e.e_machine)
+            raise Exception('Unrecognized e_class: %d' % e.e_class)
 
         self.fd = fd
 
