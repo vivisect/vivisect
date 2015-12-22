@@ -6,9 +6,7 @@ import envi
 import envi.bits as e_bits
 import envi.memory as e_mem
 
-
-#from const import *
-from regs import *
+from envi.archs.msp430.regs import *
 
 ########################################################
 # Process special opcodes that come from double opcodes
@@ -244,7 +242,8 @@ def decode8(workData, opData, va):
             DOUBLE_OPCODE_TYPE,
             dcode[dcode_val],
             [ Msp430Operands[ds_addr_mode](dsreg, opData, dsopsize, va), Msp430Operands[dest_addr_mode](destreg, opData, destopsize, va) ],
-            op_bw
+            op_bw,
+            opData.lenData()
             )
 
 def decode9(workData, opData, va):
@@ -471,7 +470,7 @@ class Msp430RegDirectOper(Msp430Operand):
             return "#0"
         else:
             # return Rn
-            regname = priregisters[self.val]
+            regname = registers[self.val]
             return "%s" % regname
 
     def render(self, mcanv, op, idx):
@@ -496,6 +495,9 @@ class Msp430RegDirectOper(Msp430Operand):
             return 0
 
         return emu.setRegister(self.val, val)
+
+    def isReg(self):
+        return True
 
 class Msp430RegIndexOper(Msp430Operand):
     def __init__(self, val, inData, tsize=0, va=0):
@@ -522,7 +524,7 @@ class Msp430RegIndexOper(Msp430Operand):
         if not self.val:
             return "0x%0.4x" % new_val
 
-        regname = priregisters[self.val]
+        regname = registers[self.val]
         return "0x%x(%s)" % (new_val,regname)
 
     def render(self, mcanv, op, idx):
@@ -588,7 +590,7 @@ class Msp430RegIndirOper(Msp430Operand):
         if self.val == 0x3:
             # Special Case
             return "#0x2"
-        regname = priregisters[self.val]
+        regname = registers[self.val]
         return "@%s" % regname
 
     def render(self, mcanv, op, idx):
@@ -659,7 +661,7 @@ class Msp430RegIndirAutoincOper(Msp430Operand):
             # Special Case
             return "#-0x1"
 
-        regname = priregisters[self.val]
+        regname = registers[self.val]
         return "@%s+" % regname
 
     def render(self, mcanv, op, idx):
@@ -701,11 +703,14 @@ class Msp430RegIndirAutoincOper(Msp430Operand):
             return None
         addr = self.getOperAddr(op, emu)
         val = emu.readMemValue(addr, self.tsize)
+        return val
 
     def getOperAddr(self, op, emu=None):
         if emu == None:
             return None
-        return emu.getRegister(self.val)
+        addr = emu.getRegister(self.val)
+        emu.setRegister(self.val, addr + self.tsize)
+        return addr
 
     def isDeref(self):
         if self.val in (0,2,3):
@@ -852,7 +857,7 @@ class Msp430Disasm:
         #REG_CG = 3  # reg3 is the Constant Generator
 
     def getPointerSize(self):
-        return 4
+        return 2
 
     def getProgramCounterIndex(self):
         return REG_PC

@@ -127,7 +127,7 @@ class IMemory:
             return False
         mapva, mapsize, mapperm, mapfile = mmap
         mapend = mapva+mapsize
-        if va+size >= mapend:
+        if va+size > mapend:
             return False
         if mapperm & perm != perm:
             return False
