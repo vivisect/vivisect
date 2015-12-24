@@ -18,6 +18,7 @@ class Msp430Call(envi.CallingConvention):
     align = 2
     pad = 0
 
+
 msp430call = Msp430Call()
 
 class Msp430Emulator(Msp430RegisterContext, envi.Emulator):
@@ -104,6 +105,13 @@ class Msp430Emulator(Msp430RegisterContext, envi.Emulator):
         pc = self.getProgramCounter()
         newpc = pc + op.size
         self.setProgramCounter(newpc)
+
+    def getOperSize(self, op):
+        if op.iflags & IF_BYTE:
+            size = BYTE
+        else:
+            size = WORD
+        return size
 
     # Conditions
     def cond_c(self):
@@ -196,7 +204,7 @@ class Msp430Emulator(Msp430RegisterContext, envi.Emulator):
 
         return ures
 
-    # res = a - b + carry
+    # res = a - b [-1 + carry]
     def doSubC(self, a, b, carry, size):
         ua = e_bits.unsigned(a, size)
         ub = e_bits.unsigned(b, size)
@@ -223,10 +231,7 @@ class Msp430Emulator(Msp430RegisterContext, envi.Emulator):
         dst = self.getOperValue(op, 0)
         c = self.getFlag(SR_C)
 
-        if op.iflags & IF_BYTE:
-            size = BYTE
-        else:
-            size = WORD
+        size = self.getOperSize(op)
 
         res = self.doAddC(0, dst, c, size)
         self.setOperValue(op, 0, res)
@@ -235,10 +240,7 @@ class Msp430Emulator(Msp430RegisterContext, envi.Emulator):
         src = self.getOperValue(op, 0)
         dst = self.getOperValue(op, 1)
 
-        if op.iflags & IF_BYTE:
-            size = BYTE
-        else:
-            size = WORD
+        size = self.getOperSize(op)
 
         res = self.doAddC(src, dst, 0, size)
         self.setOperValue(op, 1, res)
@@ -248,10 +250,7 @@ class Msp430Emulator(Msp430RegisterContext, envi.Emulator):
         dst = self.getOperValue(op, 1)
         c = self.getFlag(SR_C)
 
-        if op.iflags & IF_BYTE:
-            size = BYTE
-        else:
-            size = WORD
+        size = self.getOperSize(op)
 
         res = self.doAddC(src, dst, c, size)
         self.setOperValue(op, 1, res)
@@ -260,10 +259,7 @@ class Msp430Emulator(Msp430RegisterContext, envi.Emulator):
         src = self.getOperValue(op, 0)
         dst = self.getOperValue(op, 1)
 
-        if op.iflags & IF_BYTE:
-            size = BYTE
-        else:
-            size = WORD
+        size = self.getOperSize(op)
 
         res = self.doAnd(src, dst, size)
         self.setOperValue(op, 1, res)
@@ -272,10 +268,7 @@ class Msp430Emulator(Msp430RegisterContext, envi.Emulator):
         src = self.getOperValue(op, 0)
         dst = self.getOperValue(op, 1)
 
-        if op.iflags & IF_BYTE:
-            size = BYTE
-        else:
-            size = WORD
+        size = self.getOperSize(op)
 
         usrc = e_bits.unsigned(~src, size)
         udst = e_bits.unsigned(dst, size)
@@ -288,10 +281,7 @@ class Msp430Emulator(Msp430RegisterContext, envi.Emulator):
         src = self.getOperValue(op, 0)
         dst = self.getOperValue(op, 1)
 
-        if op.iflags & IF_BYTE:
-            size = BYTE
-        else:
-            size = WORD
+        size = self.getOperSize(op)
 
         usrc = e_bits.unsigned(src, size)
         udst = e_bits.unsigned(dst, size)
@@ -304,10 +294,7 @@ class Msp430Emulator(Msp430RegisterContext, envi.Emulator):
         src = self.getOperValue(op, 0)
         dst = self.getOperValue(op, 1)
 
-        if op.iflags & IF_BYTE:
-            size = BYTE
-        else:
-            size = WORD
+        size = self.getOperSize(op)
 
         res = self.doAnd(src, dst, size)
         self.setOperValue(op, 1, res)
@@ -338,10 +325,7 @@ class Msp430Emulator(Msp430RegisterContext, envi.Emulator):
         src = self.getOperValue(op, 0)
         dst = self.getOperValue(op, 1)
 
-        if op.iflags & IF_BYTE:
-            size = BYTE
-        else:
-            size = WORD
+        size = self.getOperSize(op)
 
         self.doSubC(dst, src, 0, size)
 
@@ -349,10 +333,7 @@ class Msp430Emulator(Msp430RegisterContext, envi.Emulator):
         dst = self.getOperValue(op, 0)
         c = self.getFlag(SR_C)
 
-        if op.iflags & IF_BYTE:
-            size = BYTE
-        else:
-            size = WORD
+        size = self.getOperSize(op)
 
         res = self.doDecAddC(0, dst, c, size)
         self.setOperValue(op, 0, res)
@@ -362,10 +343,7 @@ class Msp430Emulator(Msp430RegisterContext, envi.Emulator):
         dst = self.getOperValue(op, 1)
         c = self.getFlag(SR_C)
 
-        if op.iflags & IF_BYTE:
-            size = BYTE
-        else:
-            size = WORD
+        size = self.getOperSize(op)
 
         res = self.doDecAddC(src, dst, c, size)
         self.setOperValue(op, 1, res)
@@ -373,10 +351,7 @@ class Msp430Emulator(Msp430RegisterContext, envi.Emulator):
     def i_dec(self, op):
         dst = self.getOperValue(op, 0)
 
-        if op.iflags & IF_BYTE:
-            size = BYTE
-        else:
-            size = WORD
+        size = self.getOperSize(op)
 
         res = self.doSubC(dst, 1, 0, size)
         self.setOperValue(op, 0, res)
@@ -384,10 +359,7 @@ class Msp430Emulator(Msp430RegisterContext, envi.Emulator):
     def i_decd(self, op):
         dst = self.getOperValue(op, 0)
 
-        if op.iflags & IF_BYTE:
-            size = BYTE
-        else:
-            size = WORD
+        size = self.getOperSize(op)
 
         res = self.doSubC(dst, 2, 0, size)
         self.setOperValue(op, 0, res)
@@ -401,10 +373,7 @@ class Msp430Emulator(Msp430RegisterContext, envi.Emulator):
     def i_inc(self, op):
         dst = self.getOperValue(op, 0)
 
-        if op.iflags & IF_BYTE:
-            size = BYTE
-        else:
-            size = WORD
+        size = self.getOperSize(op)
 
         res = self.doAddC(1, dst, 0, size)
         self.setOperValue(op, 0, res)
@@ -412,10 +381,7 @@ class Msp430Emulator(Msp430RegisterContext, envi.Emulator):
     def i_incd(self, op):
         dst = self.getOperValue(op, 0)
 
-        if op.iflags & IF_BYTE:
-            size = BYTE
-        else:
-            size = WORD
+        size = self.getOperSize(op)
 
         res = self.doAddC(2, dst, 0, size)
         self.setOperValue(op, 0, res)
@@ -423,10 +389,7 @@ class Msp430Emulator(Msp430RegisterContext, envi.Emulator):
     def i_inv(self, op):
         dst = self.getOperValue(op, 0)
 
-        if op.iflags & IF_BYTE:
-            size = BYTE
-        else:
-            size = WORD
+        size = self.getOperSize(op)
 
         sdst = e_bits.unsigned(dst, size)
 
@@ -496,10 +459,7 @@ class Msp430Emulator(Msp430RegisterContext, envi.Emulator):
     def i_rla(self, op):
         dst = self.getOperValue(op, 0)
 
-        if op.iflags & IF_BYTE:
-            size = BYTE
-        else:
-            size = WORD
+        size = self.getOperSize(op)
 
         self.setFlag(SR_C, e_bits.msb(dst, size))
 
@@ -518,10 +478,7 @@ class Msp430Emulator(Msp430RegisterContext, envi.Emulator):
     def i_rlc(self, op):
         dst = self.getOperValue(op, 0)
 
-        if op.iflags & IF_BYTE:
-            size = BYTE
-        else:
-            size = WORD
+        size = self.getOperSize(op)
 
         c = self.getFlag(SR_C)
         self.setFlag(SR_C, e_bits.msb(dst, size))
@@ -541,10 +498,7 @@ class Msp430Emulator(Msp430RegisterContext, envi.Emulator):
     def i_rra(self, op):
         dst = self.getOperValue(op, 0)
 
-        if op.iflags & IF_BYTE:
-            size = BYTE
-        else:
-            size = WORD
+        size = self.getOperSize(op)
 
         shift = (size * 8) - 1
         res = ((dst&1) << shift) | (dst>>1)
@@ -562,10 +516,7 @@ class Msp430Emulator(Msp430RegisterContext, envi.Emulator):
     def i_rrc(self, op):
         dst = self.getOperValue(op, 0)
 
-        if op.iflags & IF_BYTE:
-            size = BYTE
-        else:
-            size = WORD
+        size = self.getOperSize(op)
 
         c = self.getFlag(SR_C)
 
@@ -587,10 +538,7 @@ class Msp430Emulator(Msp430RegisterContext, envi.Emulator):
         dst = self.getOperValue(op, 0)
         c = self.getFlag(SR_C)
 
-        if op.iflags & IF_BYTE:
-            size = BYTE
-        else:
-            size = WORD
+        size = self.getOperSize(op)
 
         res = self.doSubC(dst, 1, c, size)
         self.setOperValue(op, 0, res)
@@ -608,10 +556,7 @@ class Msp430Emulator(Msp430RegisterContext, envi.Emulator):
         src = self.getOperValue(op, 0)
         dst = self.getOperValue(op, 1)
 
-        if op.iflags & IF_BYTE:
-            size = BYTE
-        else:
-            size = WORD
+        size = self.getOperSize(op)
 
         res = self.doSubC(dst, src, 0, size)
         self.setOperValue(op, 1, res)
@@ -621,10 +566,7 @@ class Msp430Emulator(Msp430RegisterContext, envi.Emulator):
         dst = self.getOperValue(op, 1)
         c = self.getFlag(SR_C)
 
-        if op.iflags & IF_BYTE:
-            size = BYTE
-        else:
-            size = WORD
+        size = self.getOperSize(op)
 
         res = self.doSubC(dst, src, c, size)
         self.setOperValue(op, 1, res)
@@ -656,10 +598,7 @@ class Msp430Emulator(Msp430RegisterContext, envi.Emulator):
     def i_tst(self, op):
         dst = self.getOperValue(op, 0)
 
-        if op.iflags & IF_BYTE:
-            size = BYTE
-        else:
-            size = WORD
+        size = self.getOperSize(op)
 
         self.doSubC(dst, 0, 0, size)
 
@@ -667,10 +606,7 @@ class Msp430Emulator(Msp430RegisterContext, envi.Emulator):
         src = self.getOperValue(op, 0)
         dst = self.getOperValue(op, 1)
 
-        if op.iflags & IF_BYTE:
-            size = BYTE
-        else:
-            size = WORD
+        size = self.getOperSize(op)
 
         usrc = e_bits.unsigned(src, size)
         udst = e_bits.unsigned(dst, size)
