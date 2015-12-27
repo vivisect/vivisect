@@ -3,12 +3,12 @@ from envi import IF_NOFALL, IF_PRIV, IF_CALL, IF_BRANCH, IF_RET, IF_COND
 
 IF_BYTE = 1<<8
 
-# no operand instructions
+# No operand instructions
 nocode = [
     '.word' # Something is wrong, so return the dirty word
 ]
 
-# single operand intructions
+# Single operand intructions
 scode = [
     ('rrc', 0),          # RRC Rotate right through carry
     ('swpb', 0),         # SWPB Swap bytes
@@ -19,8 +19,7 @@ scode = [
     ('reti', IF_NOFALL), # RETI Return from interrupt; pop SR then pop PC
 ]
 
-# jump conditions
-# PC = PC + 2 * offset
+# Jump conditions
 jcode = [
     ('jnz', IF_BRANCH | IF_COND),   # JNE/JNZ Jump if not equal/zero
     ('jz', IF_BRANCH | IF_COND),    # JEQ/JZ Jump if equal/zero
@@ -32,7 +31,7 @@ jcode = [
     ('jmp', IF_BRANCH | IF_NOFALL), # JMP Jump (unconditionally)
 ]
 
-# double operand instrucitons
+# Double operand instrucitons
 dcode = [
     'mov',  # MOV Move source to destination
     'add',  # ADD Add source to destination
@@ -48,7 +47,7 @@ dcode = [
     'and'   # AND Logical AND source with destination (dest &= src)
 ]
 
-# double special operand instructions
+# Double special operand instructions
 dspcode = [
     ('nop', 0),                  # No Operation - MOV
     ('pop', 0),                  # POP stackpointer - MOV

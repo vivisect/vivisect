@@ -345,7 +345,7 @@ class Msp430Emulator(Msp430RegisterContext, envi.Emulator):
 
         size = self.getOperSize(op)
 
-        res = self.doDecAddC(src, dst, c, size)
+        res = self.doDecAddC(src, dst, 0, size)
         self.setOperValue(op, 1, res)
 
     def i_dec(self, op):
@@ -434,8 +434,6 @@ class Msp430Emulator(Msp430RegisterContext, envi.Emulator):
     def i_mov(self, op):
         val = self.getOperValue(op, 0)
         opers = op.getOperands()
-        if opers[0].isReg() and opers[0].val == REG_PC:
-            val += op.size
         self.setOperValue(op, 1, val)
 
     def i_nop(self, op):

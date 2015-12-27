@@ -488,16 +488,16 @@ class Msp430RegDirectOper(Msp430Operand):
         if emu==None: 
             return
 
-        return emu.getRegister(self.val)
+        val = emu.getRegister(self.val)
+        if self.val == REG_PC:
+            val += op.size
+        return val
 
     def setOperValue(self, op, emu, val):
         if self.val == 3:
             return 0
 
         return emu.setRegister(self.val, val)
-
-    def isReg(self):
-        return True
 
 class Msp430RegIndexOper(Msp430Operand):
     def __init__(self, val, inData, tsize=0, va=0):
@@ -574,7 +574,10 @@ class Msp430RegIndexOper(Msp430Operand):
         if emu==None:
             return None
 
-        return emu.getRegister(self.val) + self.new_val
+        addr = emu.getRegister(self.val)
+        if self.val == REG_PC:
+            addr += op.size
+        return addr + self.new_val
 
     def isDeref(self):
         if self.val == 3:
@@ -631,7 +634,11 @@ class Msp430RegIndirOper(Msp430Operand):
     def getOperAddr(self, op, emu=None):
         if emu == None:
             return None
-        return emu.getRegister(self.val)
+
+        addr = emu.getRegister(self.val)
+        if self.val == REG_PC:
+            addr += op.size
+        return addr
 
     def isDeref(self):
         if self.val in (2,3):
@@ -708,6 +715,7 @@ class Msp430RegIndirAutoincOper(Msp430Operand):
     def getOperAddr(self, op, emu=None):
         if emu == None:
             return None
+
         addr = emu.getRegister(self.val)
         emu.setRegister(self.val, addr + self.tsize)
         return addr
