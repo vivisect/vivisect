@@ -5,6 +5,11 @@ from envi.archs.msp430.regs import *
 
 checks = [
     (
+        'ADD r14, r15',
+        { 'regs': [(REG_R14, 0x1), (REG_R15, 0x2)], 'flags': [(SR_N, 0), (SR_Z, 0), (SR_C, 0), (SR_V, 0)], 'code': "0f5e", 'data': "" },
+        { 'regs': [(REG_R14, 0x1), (REG_R15, 0x3)], 'flags': [(SR_N, 0), (SR_Z, 0), (SR_C, 0), (SR_V, 0)], 'code': "0f5e", 'data': "" }
+    ),
+    (
         'NOP',
         { 'regs': [], 'flags': [], 'code': "0343", 'data': "" },
         { 'regs': [], 'flags': [], 'code': "0343", 'data': "" }
@@ -43,17 +48,18 @@ class msp430InstructionSet(unittest.TestCase):
         self._emu.writeMemory(self.DATA_VA, init_state['data'].decode('hex'))
 
         # Emulate instruction
+        self._emu.setProgramCounter(self.CODE_VA)
         op = self._emu.parseOpcode(self.CODE_VA)
         self._emu.executeOpcode(op)
 
         # Check final state
         for reg, want in final_state['regs']:
             val = self._emu.getRegister(reg)
-            self.assertEqual(val, want, test_name + ' - regs')
+            self.assertEqual(val, want, '{} - regs ({})'.format(test_name, reg))
 
         for flag, want in final_state['flags']:
             val = self._emu.getFlag(flag)
-            self.assertEqual(val, want, test_name + ' - flags')
+            self.assertEqual(val, want, '{} - flags ({})'.format(test_name, flag))
 
         want = final_state['code'].decode('hex')
         data = self._emu.readMemory(self.CODE_VA, len(want))
