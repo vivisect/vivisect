@@ -225,7 +225,7 @@ class Msp430Emulator(Msp430RegisterContext, envi.Emulator):
         self.setFlag(SR_C, e_bits.is_unsigned_carry(ures, size))
         self.setFlag(SR_V, e_bits.is_signed_overflow(sres, size))
 
-        return ures
+        return res
 
     # Instructions
     def i_adc(self, op):
