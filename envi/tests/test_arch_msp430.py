@@ -1,7 +1,8 @@
 import unittest
 
 import vivisect
-from envi.tests.msp430 import iadc, iadd, iaddc, iand, ibic
+from envi.tests.msp430 import iadc, iadd, iaddc, iand, ibic, ibis, ibit, ibr
+from envi.tests.msp430 import icall, iclr, iclrc, iclrn, iclrz, icmp
 
 class msp430InstructionSet(unittest.TestCase):
     @classmethod
@@ -76,4 +77,40 @@ class msp430InstructionSet(unittest.TestCase):
 
     def test_envi_msp430_bic(self):
         for name, init, final in ibic.checks:
+            self.doTest(name, init, final)
+
+    def test_envi_msp430_bis(self):
+        for name, init, final in ibis.checks:
+            self.doTest(name, init, final)
+
+    def test_envi_msp430_bit(self):
+        for name, init, final in ibit.checks:
+            self.doTest(name, init, final)
+
+    def test_envi_msp430_br(self):
+        for name, init, final in ibr.checks:
+            self.doTest(name, init, final)
+
+    def test_envi_msp430_call(self):
+        for name, init, final in icall.checks:
+            self.doTest(name, init, final)
+
+    def test_envi_msp430_clr(self):
+        for name, init, final in iclr.checks:
+            self.doTest(name, init, final)
+
+    def test_envi_msp430_clrc(self):
+        for name, init, final in iclrc.checks:
+            self.doTest(name, init, final)
+
+    def test_envi_msp430_clrn(self):
+        for name, init, final in iclrn.checks:
+            self.doTest(name, init, final)
+
+    def test_envi_msp430_clrz(self):
+        for name, init, final in iclrz.checks:
+            self.doTest(name, init, final)
+
+    def test_envi_msp430_cmp(self):
+        for name, init, final in icmp.checks:
             self.doTest(name, init, final)

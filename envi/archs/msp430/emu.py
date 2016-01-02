@@ -160,14 +160,14 @@ class Msp430Emulator(Msp430RegisterContext, envi.Emulator):
 
         ures = ua + ub + carry
         sres = sa + sb + carry
-        ret = e_bits.unsigned(ures, size)
+        res = e_bits.unsigned(ures, size)
 
-        self.setFlag(SR_N, e_bits.msb(ret, size))
-        self.setFlag(SR_Z, ret == 0)
+        self.setFlag(SR_N, e_bits.msb(res, size))
+        self.setFlag(SR_Z, res == 0)
         self.setFlag(SR_C, e_bits.is_unsigned_carry(ures, size))
         self.setFlag(SR_V, e_bits.is_signed_overflow(sres, size))
 
-        return ret
+        return res
 
     def doDecAddC(self, a, b, carry, size):
         ua = e_bits.unsigned(a, size)
@@ -178,31 +178,31 @@ class Msp430Emulator(Msp430RegisterContext, envi.Emulator):
         int_res = int_a + int_b + carry
 
         bcd_res = e_enc.int_to_bcd(int_res)
-        ret = e_bits.unsigned(bcd_res, size)
+        res = e_bits.unsigned(bcd_res, size)
 
         if size == BYTE:
             bcd_max = 99
         else:
             bcd_max = 9999
 
-        self.setFlag(SR_N, e_bits.msb(ret, size))
-        self.setFlag(SR_Z, ret == 0)
+        self.setFlag(SR_N, e_bits.msb(res, size))
+        self.setFlag(SR_Z, res == 0)
         self.setFlag(SR_C, 1 if int_res > bcd_max else 0)
 
-        return ret
+        return res
 
     def doAnd(self, a, b, size):
         ua = e_bits.unsigned(a, size)
         ub = e_bits.unsigned(b, size)
 
-        ret = ua & ub
+        res = ua & ub
 
-        self.setFlag(SR_N, e_bits.msb(ret, size))
-        self.setFlag(SR_Z, ret == 0)
-        self.setFlag(SR_C, ret != 0)
+        self.setFlag(SR_N, e_bits.msb(res, size))
+        self.setFlag(SR_Z, res == 0)
+        self.setFlag(SR_C, res != 0)
         self.setFlag(SR_V, 0)
 
-        return ret
+        return res
 
     # res = a - b [-1 + carry]
     def doSubC(self, a, b, carry, size):
@@ -218,9 +218,10 @@ class Msp430Emulator(Msp430RegisterContext, envi.Emulator):
         else:
             ures = ua - ub - 1 + carry
             sres = sa - sb - 1 + carry
+        res = e_bits.unsigned(ures, size)
 
-        self.setFlag(SR_N, sres < 0)
-        self.setFlag(SR_Z, sres == 0)
+        self.setFlag(SR_N, e_bits.msb(res, size))
+        self.setFlag(SR_Z, res == 0)
         self.setFlag(SR_C, e_bits.is_unsigned_carry(ures, size))
         self.setFlag(SR_V, e_bits.is_signed_overflow(sres, size))
 
@@ -273,9 +274,9 @@ class Msp430Emulator(Msp430RegisterContext, envi.Emulator):
         usrc = e_bits.unsigned(~src, size)
         udst = e_bits.unsigned(dst, size)
 
-        ures = usrc & udst
+        res = usrc & udst
 
-        self.setOperValue(op, 1, ures)
+        self.setOperValue(op, 1, res)
 
     def i_bis(self, op):
         src = self.getOperValue(op, 0)
@@ -286,7 +287,7 @@ class Msp430Emulator(Msp430RegisterContext, envi.Emulator):
         usrc = e_bits.unsigned(src, size)
         udst = e_bits.unsigned(dst, size)
 
-        ures = usrc | udst
+        res = usrc | udst
 
         self.setOperValue(op, 1, res)
 
@@ -297,6 +298,7 @@ class Msp430Emulator(Msp430RegisterContext, envi.Emulator):
         size = self.getOperSize(op)
 
         res = self.doAnd(src, dst, size)
+
         self.setOperValue(op, 1, res)
 
     def i_br(self, op):
