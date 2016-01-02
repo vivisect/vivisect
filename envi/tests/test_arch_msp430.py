@@ -3,7 +3,7 @@ import unittest
 import vivisect
 from envi.tests.msp430 import iadc, iadd, iaddc, iand, ibic, ibis, ibit, ibr
 from envi.tests.msp430 import icall, iclr, iclrc, iclrn, iclrz, icmp, idadc
-from envi.tests.msp430 import idadd, idec, idecd, iinc
+from envi.tests.msp430 import idadd, idec, idecd, iinc, iincd, iinv, ijumps
 
 class msp430InstructionSet(unittest.TestCase):
     @classmethod
@@ -60,77 +60,63 @@ class msp430InstructionSet(unittest.TestCase):
         data = self._emu.readMemory(self.DATA_VA, len(want))
         self.assertEqual(data, want, test_name + ' - data')
 
-    def test_envi_msp430_adc(self):
-        for name, init, final in iadc.checks:
+    def iterChecks(self, checks):
+        for name, init, final in checks:
             self.doTest(name, init, final)
+
+    def test_envi_msp430_adc(self):
+        self.iterChecks(iadc.checks)
 
     def test_envi_msp430_add(self):
-        for name, init, final in iadd.checks:
-            self.doTest(name, init, final)
+        self.iterChecks(iadd.checks)
 
     def test_envi_msp430_addc(self):
-        for name, init, final in iaddc.checks:
-            self.doTest(name, init, final)
+        self.iterChecks(iaddc.checks)
 
     def test_envi_msp430_and(self):
-        for name, init, final in iand.checks:
-            self.doTest(name, init, final)
+        self.iterChecks(iand.checks)
 
     def test_envi_msp430_bic(self):
-        for name, init, final in ibic.checks:
-            self.doTest(name, init, final)
+        self.iterChecks(ibic.checks)
 
     def test_envi_msp430_bis(self):
-        for name, init, final in ibis.checks:
-            self.doTest(name, init, final)
+        self.iterChecks(ibis.checks)
 
     def test_envi_msp430_bit(self):
-        for name, init, final in ibit.checks:
-            self.doTest(name, init, final)
+        self.iterChecks(ibit.checks)
 
     def test_envi_msp430_br(self):
-        for name, init, final in ibr.checks:
-            self.doTest(name, init, final)
+        self.iterChecks(ibr.checks)
 
     def test_envi_msp430_call(self):
-        for name, init, final in icall.checks:
-            self.doTest(name, init, final)
+        self.iterChecks(icall.checks)
 
     def test_envi_msp430_clr(self):
-        for name, init, final in iclr.checks:
-            self.doTest(name, init, final)
+        self.iterChecks(iclr.checks)
 
     def test_envi_msp430_clrc(self):
-        for name, init, final in iclrc.checks:
-            self.doTest(name, init, final)
+        self.iterChecks(iclrc.checks)
 
     def test_envi_msp430_clrn(self):
-        for name, init, final in iclrn.checks:
-            self.doTest(name, init, final)
+        self.iterChecks(iclrn.checks)
 
     def test_envi_msp430_clrz(self):
-        for name, init, final in iclrz.checks:
-            self.doTest(name, init, final)
+        self.iterChecks(iclrz.checks)
 
     def test_envi_msp430_cmp(self):
-        for name, init, final in icmp.checks:
-            self.doTest(name, init, final)
+        self.iterChecks(icmp.checks)
 
     def test_envi_msp430_dadc(self):
-        for name, init, final in idadc.checks:
-            self.doTest(name, init, final)
+        self.iterChecks(idadc.checks)
 
     def test_envi_msp430_dadd(self):
-        for name, init, final in idadd.checks:
-            self.doTest(name, init, final)
+        self.iterChecks(idadd.checks)
 
     def test_envi_msp430_dec(self):
-        for name, init, final in idec.checks:
-            self.doTest(name, init, final)
+        self.iterChecks(idec.checks)
 
     def test_envi_msp430_decd(self):
-        for name, init, final in idecd.checks:
-            self.doTest(name, init, final)
+        self.iterChecks(idecd.checks)
 
     def test_envi_msp430_dint(self):
         # Not implemented
@@ -141,5 +127,13 @@ class msp430InstructionSet(unittest.TestCase):
         pass
 
     def test_envi_msp430_inc(self):
-        for name, init, final in iinc.checks:
-            self.doTest(name, init, final)
+        self.iterChecks(iinc.checks)
+
+    def test_envi_msp430_incd(self):
+        self.iterChecks(iincd.checks)
+
+    def test_envi_msp430_iinv(self):
+        self.iterChecks(iinv.checks)
+
+    def test_envi_msp430_ijumps(self):
+        self.iterChecks(ijumps.checks)

@@ -393,17 +393,15 @@ class Msp430Emulator(Msp430RegisterContext, envi.Emulator):
 
         size = self.getOperSize(op)
 
-        sdst = e_bits.unsigned(dst, size)
+        udst = e_bits.unsigned(dst, size)
+        res = e_bits.unsigned(~dst, size)
 
-        ures = e_bits.unsigned(~dst, size)
-        sres = e_bits.signed(~dst, size)
+        self.setFlag(SR_N, e_bits.msb(res, size))
+        self.setFlag(SR_Z, res == 0)
+        self.setFlag(SR_C, res != 0)
+        self.setFlag(SR_V, e_bits.msb(udst, size))
 
-        self.setFlag(SR_N, sres < 0)
-        self.setFlag(SR_Z, sres == 0)
-        self.SetFlag(SR_C, sres != 0)
-        self.setFlag(SR_V, sdst < 0)
-
-        self.setOperValue(op, 0, ures)
+        self.setOperValue(op, 0, res)
 
     def i_jc(self, op):
         if self.cond_c(): return self.relJump(op)
