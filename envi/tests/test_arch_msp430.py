@@ -1,7 +1,7 @@
 import unittest
 
 import vivisect
-from envi.tests.test_arch_msp430_checks import *
+from envi.tests.msp430 import iadc, iadd, iaddc, iand, ibic
 
 class msp430InstructionSet(unittest.TestCase):
     @classmethod
@@ -58,6 +58,22 @@ class msp430InstructionSet(unittest.TestCase):
         data = self._emu.readMemory(self.DATA_VA, len(want))
         self.assertEqual(data, want, test_name + ' - data')
 
-    def test_envi_msp430(self):
-        for name, init, final in msp430_checks:
+    def test_envi_msp430_adc(self):
+        for name, init, final in iadc.checks:
+            self.doTest(name, init, final)
+
+    def test_envi_msp430_add(self):
+        for name, init, final in iadd.checks:
+            self.doTest(name, init, final)
+
+    def test_envi_msp430_addc(self):
+        for name, init, final in iaddc.checks:
+            self.doTest(name, init, final)
+
+    def test_envi_msp430_and(self):
+        for name, init, final in iand.checks:
+            self.doTest(name, init, final)
+
+    def test_envi_msp430_bic(self):
+        for name, init, final in ibic.checks:
             self.doTest(name, init, final)
