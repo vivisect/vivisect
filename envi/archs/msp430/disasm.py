@@ -57,7 +57,7 @@ def decode0(workData, opData, va):
     # POP
     if ((dsreg == 1) and (ds_addr_mode == REG_IND_AUTOINC)):
         mnem, flags = dspcode[1]
-        return Msp430Opcode( va, SINGLE_OPCODE_TYPE, mnem, [ Msp430Operands[dest_addr_mode](destreg, opData, destopsize, va) ], 0, opData.lenData())
+        return Msp430Opcode( va, SINGLE_OPCODE_TYPE, mnem, [ Msp430Operands[dest_addr_mode](destreg, opData, destopsize, va) ], op_bw, opData.lenData())
     # BRANCH
     if (destreg == 0) and not dest_addr_mode:
         mnem, flags = dspcode[2]
@@ -845,7 +845,7 @@ class Msp430Disasm:
                         raise Exception('Decode Error 2')
                 else:
                     mnem, flags = scode[(workData & SINGLE_OPCODE) >> 7]
-                    flags |= op_bw
+                    flags |= (op_bw << 8)
                     op = Msp430Opcode(
                             va,
                             SINGLE_OPCODE_TYPE,

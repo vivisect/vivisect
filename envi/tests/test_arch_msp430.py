@@ -4,6 +4,7 @@ import vivisect
 from envi.tests.msp430 import iadc, iadd, iaddc, iand, ibic, ibis, ibit, ibr
 from envi.tests.msp430 import icall, iclr, iclrc, iclrn, iclrz, icmp, idadc
 from envi.tests.msp430 import idadd, idec, idecd, iinc, iincd, iinv, ijumps
+from envi.tests.msp430 import imov, inop, ipop, ipush
 
 class msp430InstructionSet(unittest.TestCase):
     @classmethod
@@ -137,3 +138,15 @@ class msp430InstructionSet(unittest.TestCase):
 
     def test_envi_msp430_ijumps(self):
         self.iterChecks(ijumps.checks)
+
+    def test_envi_msp430_imov(self):
+        self.iterChecks(imov.checks)
+
+    def test_envi_msp430_inop(self):
+        self.iterChecks(inop.checks)
+
+    def test_envi_msp430_ipop(self):
+        self.iterChecks(ipop.checks)
+
+    def test_envi_msp430_ipush(self):
+        self.iterChecks(ipush.checks)

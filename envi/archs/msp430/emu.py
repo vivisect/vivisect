@@ -139,16 +139,16 @@ class Msp430Emulator(Msp430RegisterContext, envi.Emulator):
         return  self.getOperValue(op, 0)
 
     # Helpers
-    def doPush(self, val):
-        sp = self.getRegister(REG_SP) - WORD
-        self.writeMemValue(sp, val, WORD)
-        self.setRegister(REG_SP, sp)
-
-    def doPop(self):
+    def doPop(self, size):
         sp = self.getRegister(REG_SP)
-        val = self.readMemValue(sp, WORD)
+        val = self.readMemValue(sp, size)
         self.setRegister(REG_SP, sp + WORD)
         return val
+
+    def doPush(self, val, size):
+        sp = self.getRegister(REG_SP) - WORD
+        self.writeMemValue(sp, val, size)
+        self.setRegister(REG_SP, sp)
 
     # res = a + b + carry
     def doAddC(self, a, b, carry, size):
@@ -307,8 +307,8 @@ class Msp430Emulator(Msp430RegisterContext, envi.Emulator):
 
     def i_call(self, op):
         pc = self.getRegister(REG_PC)
-        saved = pc + op.size
-        self.doPush(saved)
+        retaddr = pc + op.size
+        self.doPush(retaddr, WORD)
         return self.getOperValue(op, 0)
 
     def i_clr(self, op):
@@ -432,20 +432,23 @@ class Msp430Emulator(Msp430RegisterContext, envi.Emulator):
     i_jnz = i_jne
 
     def i_mov(self, op):
-        val = self.getOperValue(op, 0)
-        opers = op.getOperands()
-        self.setOperValue(op, 1, val)
+        src = self.getOperValue(op, 0)
+        size = self.getOperSize(op)
+        res = e_bits.unsigned(src, size)
+        self.setOperValue(op, 1, res)
 
     def i_nop(self, op):
         pass
 
     def i_pop(self, op):
-        val = self.doPop()
+        size = self.getOperSize(op)
+        val = self.doPop(size)
         self.setOperValue(op, 0, val)
 
     def i_push(self, op):
+        size = self.getOperSize(op)
         val = self.getOperValue(op, 0)
-        self.doPush(val)
+        self.doPush(val, size)
 
     def i_ret(self, op):
         pc = self.doPop()
