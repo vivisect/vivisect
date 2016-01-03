@@ -205,19 +205,15 @@ class Msp430Emulator(Msp430RegisterContext, envi.Emulator):
         return res
 
     # res = a - b [-1 + carry]
-    def doSubC(self, a, b, carry, size, withcarry=False):
+    def doSubC(self, a, b, carry, size):
         ua = e_bits.unsigned(a, size)
         ub = e_bits.unsigned(b, size)
 
         sa = e_bits.signed(a, size)
         sb = e_bits.signed(b, size)
 
-        if withcarry:
-            ures = ua - ub - 1 + carry
-            sres = sa - sb - 1 + carry
-        else:
-            ures = ua - ub
-            sres = sa - sb
+        ures = ua - ub + carry
+        sres = sa - sb + carry
         res = e_bits.unsigned(ures, size)
 
         self.setFlag(SR_N, e_bits.msb(res, size))
@@ -549,7 +545,7 @@ class Msp430Emulator(Msp430RegisterContext, envi.Emulator):
 
         size = self.getOperSize(op)
 
-        res = self.doSubC(dst, 0, c, size, True)
+        res = self.doSubC(dst, 0, c, size)
         self.setOperValue(op, 0, res)
 
     def i_setc(self, op):
