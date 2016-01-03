@@ -580,32 +580,42 @@ class Msp430Emulator(Msp430RegisterContext, envi.Emulator):
 
     def i_swpb(self, op):
         dst = self.getOperValue(op, 0)
-        res = ((dst&0xff) << 8) | ((dst&0xff00) >> 8)
+
+        udst = e_bits.unsigned(dst, WORD)
+
+        res = ((udst&0xff) << 8) | ((udst&0xff00) >> 8)
         self.setOperValue(op, 0, res)
 
     def i_sxt(self, op):
         dst = self.getOperValue(op, 0)
 
+        udst = e_bits.unsigned(dst, BYTE)
+
         smax = e_bits.s_maxes[BYTE]
         umax = e_bits.u_maxes[WORD]
 
-        if dst > smax:
+        if udst > smax:
             ubits = smax ^ umax
-            dst |= ubits
+            udst |= ubits
 
-        self.setFlag(SR_N, dst < 0)
+        self.setFlag(SR_N, e_bits.msb(udst, WORD))
         self.setFlag(SR_Z, dst == 0)
         self.setFlag(SR_C, dst != 0)
         self.setFlag(SR_V, 0)
 
-        self.setOperValue(op, 0, dst)
+        self.setOperValue(op, 0, udst)
 
     def i_tst(self, op):
         dst = self.getOperValue(op, 0)
 
         size = self.getOperSize(op)
 
-        self.doSubC(dst, 0, 0, size)
+        udst = e_bits.unsigned(dst, size)
+
+        self.setFlag(SR_N, e_bits.msb(udst, size))
+        self.setFlag(SR_Z, udst == 0)
+        self.setFlag(SR_C, 1)
+        self.setFlag(SR_V, 0)
 
     def i_xor(self, op):
         src = self.getOperValue(op, 0)
@@ -616,14 +626,11 @@ class Msp430Emulator(Msp430RegisterContext, envi.Emulator):
         usrc = e_bits.unsigned(src, size)
         udst = e_bits.unsigned(dst, size)
 
-        ssrc = e_bits.signed(src, size)
-        sdst = e_bits.signed(dst, size)
-
         ures = usrc ^ udst
 
         self.setFlag(SR_N, e_bits.msb(ures, size))
         self.setFlag(SR_Z, ures == 0)
         self.setFlag(SR_C, ures != 0)
-        self.setFlag(SR_V, ssrc < 0 and sdst < 0)
+        self.setFlag(SR_V, e_bits.msb(usrc, size) and e_bits.msb(udst, size))
 
         self.setOperValue(op, 1, ures)

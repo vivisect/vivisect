@@ -6,6 +6,7 @@ from envi.tests.msp430 import icall, iclr, iclrc, iclrn, iclrz, icmp, idadc
 from envi.tests.msp430 import idadd, idec, idecd, iinc, iincd, iinv, ijumps
 from envi.tests.msp430 import imov, inop, ipop, ipush, iret, irla, irlc, irra
 from envi.tests.msp430 import irrc, isbc, isetc, isetn, isetz, isub, isubc
+from envi.tests.msp430 import iswpb, isxt, itst, ixor
 
 class msp430InstructionSet(unittest.TestCase):
     @classmethod
@@ -188,3 +189,15 @@ class msp430InstructionSet(unittest.TestCase):
 
     def test_envi_msp430_subc(self):
         self.iterChecks(isubc.checks)
+
+    def test_envi_msp430_swpb(self):
+        self.iterChecks(iswpb.checks)
+
+    def test_envi_msp430_sxt(self):
+        self.iterChecks(isxt.checks)
+
+    def test_envi_msp430_tst(self):
+        self.iterChecks(itst.checks)
+
+    def test_envi_msp430_xor(self):
+        self.iterChecks(ixor.checks)
