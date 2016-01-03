@@ -4,7 +4,8 @@ import vivisect
 from envi.tests.msp430 import iadc, iadd, iaddc, iand, ibic, ibis, ibit, ibr
 from envi.tests.msp430 import icall, iclr, iclrc, iclrn, iclrz, icmp, idadc
 from envi.tests.msp430 import idadd, idec, idecd, iinc, iincd, iinv, ijumps
-from envi.tests.msp430 import imov, inop, ipop, ipush
+from envi.tests.msp430 import imov, inop, ipop, ipush, iret, irla, irlc, irra
+from envi.tests.msp430 import irrc, isbc
 
 class msp430InstructionSet(unittest.TestCase):
     @classmethod
@@ -133,20 +134,42 @@ class msp430InstructionSet(unittest.TestCase):
     def test_envi_msp430_incd(self):
         self.iterChecks(iincd.checks)
 
-    def test_envi_msp430_iinv(self):
+    def test_envi_msp430_inv(self):
         self.iterChecks(iinv.checks)
 
-    def test_envi_msp430_ijumps(self):
+    def test_envi_msp430_jumps(self):
         self.iterChecks(ijumps.checks)
 
-    def test_envi_msp430_imov(self):
+    def test_envi_msp430_mov(self):
         self.iterChecks(imov.checks)
 
-    def test_envi_msp430_inop(self):
+    def test_envi_msp430_nop(self):
         self.iterChecks(inop.checks)
 
-    def test_envi_msp430_ipop(self):
+    def test_envi_msp430_pop(self):
         self.iterChecks(ipop.checks)
 
-    def test_envi_msp430_ipush(self):
+    def test_envi_msp430_push(self):
         self.iterChecks(ipush.checks)
+
+    def test_envi_msp430_ret(self):
+        self.iterChecks(iret.checks)
+
+    def test_envi_msp430_reti(self):
+        # Not implemented
+        pass
+
+    def test_envi_msp430_rla(self):
+        self.iterChecks(irla.checks)
+
+    def test_envi_msp430_rlc(self):
+        self.iterChecks(irlc.checks)
+
+    def test_envi_msp430_rra(self):
+        self.iterChecks(irra.checks)
+
+    def test_envi_msp430_rrc(self):
+        self.iterChecks(irrc.checks)
+
+    def test_envi_msp430_sbc(self):
+        self.iterChecks(isbc.checks)

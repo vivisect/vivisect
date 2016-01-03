@@ -205,19 +205,19 @@ class Msp430Emulator(Msp430RegisterContext, envi.Emulator):
         return res
 
     # res = a - b [-1 + carry]
-    def doSubC(self, a, b, carry, size):
+    def doSubC(self, a, b, carry, size, withcarry=False):
         ua = e_bits.unsigned(a, size)
         ub = e_bits.unsigned(b, size)
 
         sa = e_bits.signed(a, size)
         sb = e_bits.signed(b, size)
 
-        if carry == 0:
-            ures = ua - ub
-            sres = sa - sb
-        else:
+        if withcarry:
             ures = ua - ub - 1 + carry
             sres = sa - sb - 1 + carry
+        else:
+            ures = ua - ub
+            sres = sa - sb
         res = e_bits.unsigned(ures, size)
 
         self.setFlag(SR_N, e_bits.msb(res, size))
@@ -451,7 +451,7 @@ class Msp430Emulator(Msp430RegisterContext, envi.Emulator):
         self.doPush(val, size)
 
     def i_ret(self, op):
-        pc = self.doPop()
+        pc = self.doPop(WORD)
         return pc
 
     def i_reti(self, op):
@@ -462,17 +462,22 @@ class Msp430Emulator(Msp430RegisterContext, envi.Emulator):
 
         size = self.getOperSize(op)
 
-        self.setFlag(SR_C, e_bits.msb(dst, size))
+        udst = e_bits.unsigned(dst, size)
 
-        shift = (size * 8) - 1
-        res = dst << shift
-
+        self.setFlag(SR_C, e_bits.msb(udst, size))
+        res = udst << 1
         ures = e_bits.unsigned(res, size)
-        sres = e_bits.signed(res, size)
 
-        self.setFlag(SR_N, sres < 0)
-        self.setFlag(SR_Z, sres == 0)
-        self.setFlag(SR_V, e_bits.is_signed_overflow(sres, size))
+        if size == BYTE:
+            val_min = 0x40
+            val_max = 0xc0
+        else:
+            val_min = 0x4000
+            val_max = 0xc000
+
+        self.setFlag(SR_N, e_bits.msb(ures, size))
+        self.setFlag(SR_Z, ures == 0)
+        self.setFlag(SR_V, udst >= val_min and udst < val_max)
 
         self.setOperValue(op, 0, ures)
 
@@ -481,18 +486,23 @@ class Msp430Emulator(Msp430RegisterContext, envi.Emulator):
 
         size = self.getOperSize(op)
 
+        udst = e_bits.unsigned(dst, size)
+
         c = self.getFlag(SR_C)
-        self.setFlag(SR_C, e_bits.msb(dst, size))
-
-        shift = (size * 8) - 1
-        res = (dst << shift) | (c & 0x1)
-
+        self.setFlag(SR_C, e_bits.msb(udst, size))
+        res = (udst << 1) | c
         ures = e_bits.unsigned(res, size)
-        sres = e_bits.signed(res, size)
 
-        self.setFlag(SR_N, sres < 0)
-        self.setFlag(SR_Z, sres == 0)
-        self.setFlag(SR_V, e_bits.is_signed_overflow(sres, size))
+        if size == BYTE:
+            val_min = 0x40
+            val_max = 0xc0
+        else:
+            val_min = 0x4000
+            val_max = 0xc000
+
+        self.setFlag(SR_N, e_bits.msb(ures, size))
+        self.setFlag(SR_Z, ures == 0)
+        self.setFlag(SR_V, udst >= val_min and udst < val_max)
 
         self.setOperValue(op, 0, ures)
 
@@ -501,15 +511,15 @@ class Msp430Emulator(Msp430RegisterContext, envi.Emulator):
 
         size = self.getOperSize(op)
 
+        udst = e_bits.unsigned(dst, size)
+
         shift = (size * 8) - 1
-        res = ((dst&1) << shift) | (dst>>1)
-
+        res = (e_bits.msb(udst, size) << shift) | (udst>>1)
         ures = e_bits.unsigned(res, size)
-        sres = e_bits.signed(res, size)
 
-        self.setFlag(SR_N, sres < 0)
-        self.setFlag(SR_Z, sres == 0)
-        self.setFlag(SR_C, e_bits.lsb(ures))
+        self.setFlag(SR_N, e_bits.msb(ures, size))
+        self.setFlag(SR_Z, ures == 0)
+        self.setFlag(SR_C, e_bits.lsb(udst))
         self.setFlag(SR_V, 0)
 
         self.setOperValue(op, 0, ures)
@@ -520,17 +530,15 @@ class Msp430Emulator(Msp430RegisterContext, envi.Emulator):
         size = self.getOperSize(op)
 
         c = self.getFlag(SR_C)
-
-        self.setFlag(SR_C, dst&1)
+        udst = e_bits.unsigned(dst, size)
 
         shift = (size * 8) - 1
-        res = (c<<shift) | (dst>>1)
-
+        res = (c << shift) | (udst>>1)
         ures = e_bits.unsigned(res, size)
-        sres = e_bits.signed(res, size)
 
-        self.setFlag(SR_N, sres < 0)
-        self.setFlag(SR_Z, sres == 0)
+        self.setFlag(SR_N, e_bits.msb(ures, size))
+        self.setFlag(SR_Z, ures == 0)
+        self.setFlag(SR_C, e_bits.lsb(udst))
         self.setFlag(SR_V, 0)
 
         self.setOperValue(op, 0, ures)
@@ -541,7 +549,7 @@ class Msp430Emulator(Msp430RegisterContext, envi.Emulator):
 
         size = self.getOperSize(op)
 
-        res = self.doSubC(dst, 1, c, size)
+        res = self.doSubC(dst, 0, c, size, True)
         self.setOperValue(op, 0, res)
 
     def i_setc(self, op):
