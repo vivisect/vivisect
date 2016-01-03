@@ -204,7 +204,7 @@ class Msp430Emulator(Msp430RegisterContext, envi.Emulator):
 
         return res
 
-    # res = a - b [-1 + carry]
+    # res = a - b - 1 + carry (inverted carry result)
     def doSubC(self, a, b, carry, size):
         ua = e_bits.unsigned(a, size)
         ub = e_bits.unsigned(b, size)
@@ -212,13 +212,13 @@ class Msp430Emulator(Msp430RegisterContext, envi.Emulator):
         sa = e_bits.signed(a, size)
         sb = e_bits.signed(b, size)
 
-        ures = ua - ub + carry
-        sres = sa - sb + carry
+        ures = ua - ub - 1 + carry
+        sres = sa - sb - 1 + carry
         res = e_bits.unsigned(ures, size)
 
         self.setFlag(SR_N, e_bits.msb(res, size))
         self.setFlag(SR_Z, res == 0)
-        self.setFlag(SR_C, e_bits.is_unsigned_carry(ures, size))
+        self.setFlag(SR_C, not e_bits.is_unsigned_carry(ures, size))
         self.setFlag(SR_V, e_bits.is_signed_overflow(sres, size))
 
         return res
@@ -325,7 +325,7 @@ class Msp430Emulator(Msp430RegisterContext, envi.Emulator):
 
         size = self.getOperSize(op)
 
-        self.doSubC(dst, src, 0, size)
+        self.doSubC(dst, src, 1, size)
 
     def i_dadc(self, op):
         dst = self.getOperValue(op, 0)
@@ -351,7 +351,7 @@ class Msp430Emulator(Msp430RegisterContext, envi.Emulator):
 
         size = self.getOperSize(op)
 
-        res = self.doSubC(dst, 1, 0, size)
+        res = self.doSubC(dst, 1, 1, size)
         self.setOperValue(op, 0, res)
 
     def i_decd(self, op):
@@ -359,7 +359,7 @@ class Msp430Emulator(Msp430RegisterContext, envi.Emulator):
 
         size = self.getOperSize(op)
 
-        res = self.doSubC(dst, 2, 0, size)
+        res = self.doSubC(dst, 2, 1, size)
         self.setOperValue(op, 0, res)
 
     def i_dint(self, op):
@@ -563,7 +563,7 @@ class Msp430Emulator(Msp430RegisterContext, envi.Emulator):
 
         size = self.getOperSize(op)
 
-        res = self.doSubC(dst, src, 0, size)
+        res = self.doSubC(dst, src, 1, size)
         self.setOperValue(op, 1, res)
 
     def i_subc(self, op):
