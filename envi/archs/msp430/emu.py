@@ -77,21 +77,6 @@ class Msp430Emulator(Msp430RegisterContext, envi.Emulator):
 
         self.writeMemory(addr, bytez)
 
-    def readMemSignedValue(self, addr, size):
-        bytez = self.readMemory(addr, size)
-        if bytez == None:
-            return None
-        if size == 1:
-            return struct.unpack("b", bytez)[0]
-        elif size == 2:
-            return struct.unpack("<h", bytez)[0]
-        else:
-            raise Exception("Invalid size")
-
-    def makeOpcode(self, pc):
-        bytez = self.readMemory(pc,6)
-        return self.arch.makeOpcode(bytez)
-
     def executeOpcode(self, op):
         meth = self.op_methods.get(op.mnem, None)
         if meth == None:
