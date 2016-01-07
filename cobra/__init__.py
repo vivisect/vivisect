@@ -1020,11 +1020,13 @@ class CobraProxy:
             return True
         return False
 
-    def _cobra_getsock(self):
+    def _cobra_getsock(self, thr=None):
         if self._cobra_spoolcnt:
             sock = self._cobra_sockpool.get()
         else:
-            thr = currentThread()
+            if not thr: # if thread isn't specified, use the current thread
+                thr = currentThread()
+                
             tsocks = getattr(thr, 'cobrasocks', None)
             if tsocks == None:
                 tsocks = {}
