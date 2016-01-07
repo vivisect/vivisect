@@ -3,6 +3,7 @@ Graphcore contains all the base graph manipulation objects.
 '''
 import os
 import json
+import uuid
 import itertools
 import threading
 import collections
@@ -20,9 +21,6 @@ def ldict():
 
 def pdict():
     return collections.defaultdict(ldict)
-
-def guid():
-    return hexlify(os.urandom(16))
 
 class Graph:
 
@@ -229,7 +227,7 @@ class Graph:
               node and will have an ID automagically assigned.
         '''
         if nid == None:
-            nid = guid()
+            nid = uuid.uuid4().hex
 
         p = self.nodes.get(nid)
         if p != None:
@@ -276,7 +274,7 @@ class Graph:
             if node != None:
                 return node
 
-            nid = guid()
+            nid = uuid.uuid4().hex
             node = (nid,{prop:value})
 
             self.nodes[nid] = node
@@ -374,7 +372,7 @@ class Graph:
 
         eprops.update(kwargs)
         if eid == None:
-            eid = guid()
+            eid = uuid.uuid4().hex
 
         n1 = node1[0]
         n2 = node2[0]

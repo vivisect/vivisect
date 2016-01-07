@@ -8,6 +8,7 @@ import os
 import re
 import sys
 import time
+import uuid
 import Queue
 import string
 import struct
@@ -49,9 +50,6 @@ from vivisect.const import *
 from vivisect.defconfig import *
 
 import vivisect.analysis.generic.emucode as v_emucode
-
-def guid():
-    return hexlify(os.urandom(16))
 
 
 class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
@@ -612,7 +610,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         to do their thing...
         """
         if self.getMeta('GUID') == None:
-            self.setMeta('GUID', guid())
+            self.setMeta('GUID', uuid.uuid4().hex)
 
         if self.verbose: self.vprint('Beginning analysis...')
         if self.verbose: self.vprint('...analyzing exports.')
