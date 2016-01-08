@@ -146,7 +146,9 @@ class IMemory:
     def readMemoryFormat(self, va, fmt):
         # Somehow, pointers are "signed" when they
         # get chopped up by python's struct package
-        if self.imem_psize == 4:
+        if self.imem_psize == 2:
+            fmt = fmt.replace("P","H")
+        elif self.imem_psize == 4:
             fmt = fmt.replace("P","I")
         elif self.imem_psize == 8:
             fmt = fmt.replace("P","Q")
