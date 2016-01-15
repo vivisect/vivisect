@@ -4,6 +4,7 @@ The H8 Emulator module.
 
 import sys
 import struct
+import logging
 
 import emu
 import envi
@@ -12,14 +13,85 @@ from envi.archs.h8 import H8Module
 from envi.archs.h8.regs import *
 from disasm import H8RegDirOper
 
+
+logger = logging.getLogger(__name__)
+
+# bcd lookup table generation
+bcd_add = {}
+for x in range(0xa):
+    for y in range(0xa):
+        bcd_add[(0,0,(x,y))] = 0, 0
+
+    for y in range(4):
+        bcd_add[(0,1,(x,y))] = 0x6, 0
+
+for x in range(9):
+    for y in range(0xa, 0x10):
+        bcd_add[(0,0,(x,y))] = 0x6, 0
+
+for x in range(0xa, 0x10):
+    for y in range(0xa):
+        bcd_add[(0,0,(x,y))] = 0x60, 1
+
+    for y in range(4):
+        bcd_add[(0,1,(x,y))] = 0x66, 1
+
+for x in range(9, 0x10):
+    for y in range(0xa, 0x10):
+        bcd_add[(0,0,(x,y))] = 0x66, 1
+
+for x in range(3):
+    for y in range(0xa):
+        bcd_add[(1,0,(x,y))] = 0x60, 1
+
+    for y in range(0xa, 0x10):
+        bcd_add[(1,0,(x,y))] = 0x66, 1
+
+for x in range(4):
+    for y in range(4):
+        bcd_add[(1,1,(x,y))] = 0x66, 1
+
+bcd_sub = {}
+for x in range(0xa):
+    for y in range(0xa):
+        bcd_sub[(0,0,(x,y))] = 0, 0
+
+for x in range(0x9):
+    for y in range(6, 0x10):
+        bcd_sub[(0,1,(x,y))] = 0xfa, 0
+
+for x in range(7, 0x10):
+    for y in range(0xa):
+        bcd_sub[(1,0,(x,y))] = 0xa0, 1
+
+for x in range(6, 0x10):
+    for y in range(6, 0x10):
+        bcd_sub[(1,1,(x,y))] = 0x9a, 1
+
+sign_ext_bits = {
+        1: [((-1&0xff)<<(8-x) & 0xff) for x in range(8)],
+        2: [],
+        4: [],
+        }
+
 # calling conventions
-class H8Call(envi.CallingConvention):
+class H8CallAdv(envi.CallingConvention):
     """
-    Implement calling conventions for your arch.
+    H8 architectures hand arguments between functions using 
+
+    reference: C_H8_User_Manual.pdf
     """
+    arg_def = [(CC_REG, REG_ER0), (CC_REG, REG_ER1), (CC_REG, REG_ER2),
+                (CC_STACK_INF, 4),]
+    retaddr_def = (CC_STACK_INF, 0)
+    retval_def = (CC_REG, REG_ER0), (CC_STACK_INF, 0) #FIXME
+    flags = CC_CALLEE_CLEANUP
+    align = 2
+    pad = 0
+
     def execCallReturn(self, emu, value, ccinfo=None):
         sp = emu.getRegister(REG_SP)
-        pc = struct.unpack(">H", emu.readMemory(sp, 2))[0]
+        pc = struct.unpack('>H', emu.readMemory(sp, 2))[0]
         sp += 2 # For the saved pc
         sp += (2 * argc) # Cleanup saved args
 
@@ -28,9 +100,9 @@ class H8Call(envi.CallingConvention):
         emu.setProgramCounter(pc)
 
     def getCallArgs(self, emu, count):
-        return emu.getRegisters(0xf)  # r0-r3 are used to hand in parameters.  additional ph8s are stored and pointed to by r0
+        return emu.getRegister(0xf)  # r0-r3 are used to hand in parameters.  additional ph8s are stored and pointed to by r0
 
-h8call = H8Call()
+h8call = H8CallAdv()
 
 
 CPUSTATE_RESET =    0
@@ -92,10 +164,10 @@ class H8Emulator(H8Module, H8RegisterContext, envi.Emulator):
         if self.getFlag(CCR_I):
             # FIXME: check for NMI or RESET
             if intval != 0 and intval not in NMI_INTS:
-                print("Ignoring maskable interrupt (CCR_I flag is set)")
+                logger.info("Ignoring maskable interrupt (CCR_I flag is set)")
                 return
 
-        print("Interrupt Handler: 0x%x" % intval)
+        logger.info("Interrupt Handler: 0x%x" % intval)
 
         addr = 0
 
@@ -126,7 +198,7 @@ class H8Emulator(H8Module, H8RegisterContext, envi.Emulator):
         if the desired behavior differs.
         supports: advanced and normal modes
         '''
-        print("Interrupt Handler: 0x%x" % intval)
+        logger.info("Interrupt Handler: 0x%x" % intval)
 
         addr = 0
 
@@ -157,7 +229,7 @@ class H8Emulator(H8Module, H8RegisterContext, envi.Emulator):
         A flag setting operation has resulted in un-defined value.  Set
         the flags to un-defined as well.
         """
-        self.setRegister(REG_EFLAGS, None)
+        self.setRegister(REG_FLAGS, None)
 
     def setFlag(self, which, state):
         flags = self.getRegister(REG_FLAGS)
@@ -173,46 +245,6 @@ class H8Emulator(H8Module, H8RegisterContext, envi.Emulator):
             raise envi.PDEUndefinedFlag(self)
         return bool(flags & which)
 
-    def readMemValue(self, addr, size):
-        bytes = self.readMemory(addr, size)
-        if bytes == None:
-            return None
-        if len(bytes) != size:
-            raise Exception("Read Gave Wrong Length At 0x%.8x (va: 0x%.8x wanted %d got %d)" % (self.getProgramCounter(),addr, size, len(bytes)))
-        if size == 1:
-            return struct.unpack("B", bytes)[0]
-        elif size == 2:
-            return struct.unpack(">H", bytes)[0]
-        elif size == 4:
-            return struct.unpack(">L", bytes)[0]
-        elif size == 8:
-            return struct.unpack(">Q", bytes)[0]
-
-    def writeMemValue(self, addr, value, size):
-        #FIXME change this (and all uses of it) to passing in format...
-        #FIXME: Remove byte check and possibly half-word check.  (possibly all but word?)
-        if size == 1:
-            bytes = struct.pack("B",value & 0xff)
-        elif size == 2:
-            bytes = struct.pack(">H",value & 0xffff)
-        elif size == 4:
-            bytes = struct.pack(">L", value & 0xffffffff)
-        elif size == 8:
-            bytes = struct.pack(">Q", value & 0xffffffffffffffff)
-        self.writeMemory(addr, bytes)
-
-    def readMemSignedValue(self, addr, size):
-        #FIXME: Remove byte check and possibly half-word check.  (possibly all but word?)
-        bytes = self.readMemory(addr, size)
-        if bytes == None:
-            return None
-        if size == 1:
-            return struct.unpack("b", bytes)[0]
-        elif size == 2:
-            return struct.unpack(">h", bytes)[0]
-        elif size == 4:
-            return struct.unpack(">l", bytes)[0]
-
     def executeOpcode(self, op):
         # NOTE: If an opcode method returns
         #       other than None, that is the new pc
@@ -221,7 +253,6 @@ class H8Emulator(H8Module, H8RegisterContext, envi.Emulator):
         if meth == None:
             raise envi.UnsupportedInstruction(self, op)
         x = meth(op)
-        #print >>sys.stderr,"executed instruction, returned: %s"%x
 
         if x == None:
             pc = self.getProgramCounter()
@@ -240,62 +271,6 @@ class H8Emulator(H8Module, H8RegisterContext, envi.Emulator):
         val = self.readMemValue(sp, inc)
         self.setRegister(reg, sp+inc)
         return val
-
-    def integerSubtraction(self, op):
-        """
-        Do the core of integer subtraction but only *return* the
-        resulting value rather than assigning it.
-        (allows cmp and sub to use the same code)
-        """
-        # Src op gets sign extended to dst
-        #FIXME account for same operand with zero result for PDE
-        ssize = op.opers[0].tsize
-        dsize = op.opers[1].tsize
-        src = self.getOperValue(op, 0)
-        dst = self.getOperValue(op, 1)
-
-        if dst == None or src == None:
-            self.undefFlags()
-            return None
-
-        return self.intSubBase(dst, dsize, src, ssize)
-
-    def intSubBase(self, src1, dsize, src2, ssize):
-        # So we can either do a BUNCH of crazyness with xor and shifting to
-        # get the necessary flags here, *or* we can just do both a signed and
-        # unsigned sub and use the results.
-
-        usrc = e_bits.unsigned(src1, ssize)
-        udst = e_bits.unsigned(src2, dsize)
-
-        ssrc = e_bits.signed(src1, ssize)
-        sdst = e_bits.signed(src2, dsize)
-
-        ures = udst - usrc
-        sres = sdst - ssrc
-
-        self.setFlag(CCR_H, e_bits.is_signed_half_carry(ures, dsize, udst))
-        self.setFlag(CCR_C, e_bits.is_unsigned_carry(ures, dsize))
-        self.setFlag(CCR_Z, not ures)
-        self.setFlag(CCR_N, e_bits.is_signed(ures, dsize))
-        self.setFlag(CCR_V, e_bits.is_signed_overflow(sres, dsize))
-
-        return ures
-
-
-    def logicalAnd(self, op):
-        src1 = self.getOperValue(op, 0)
-        src2 = self.getOperValue(op, 1)
-
-        # PDE
-        if src1 == None or src2 == None:
-            self.undefFlags()
-            self.setOperValue(op, 1, None)
-            return
-
-        res = src1 & src2
-
-        return res
 
     def i_and(self, op):
         dsize = op.opers[1].tsize
@@ -330,72 +305,86 @@ class H8Emulator(H8Module, H8RegisterContext, envi.Emulator):
         pass
 
     def i_bhi(self, op):
-        if not (self.getFlag(CCR_C) == 0 or self.getFlag(CCR_Z) == 0):  return
+        if not (self.getFlag(CCR_C) == 0 or self.getFlag(CCR_Z) == 0):
+            return
         nextva = self.getOperValue(op, 0)
         return nextva
 
     def i_bls(self, op):
-        if not (self.getFlag(CCR_C) or self.getFlag(CCR_Z)):    return
+        if not (self.getFlag(CCR_C) or self.getFlag(CCR_Z)):
+            return
         nextva = self.getOperValue(op, 0)
         return nextva
 
     def i_bhs(self, op):
-        if self.getFlag(CCR_C):     return
+        if self.getFlag(CCR_C):
+            return
         nextva = self.getOperValue(op, 0)
         return nextva
 
     def i_blo(self, op):
-        if not self.getFlag(CCR_C):     return
+        if not self.getFlag(CCR_C):
+            return
         nextva = self.getOperValue(op, 0)
         return nextva
 
     def i_bne(self, op):
-        if self.getFlag(CCR_Z):     return
+        if self.getFlag(CCR_Z):
+            return
         nextva = self.getOperValue(op, 0)
         return nextva
 
     def i_beq(self, op):
-        if not self.getFlag(CCR_Z):     return
+        if not self.getFlag(CCR_Z):
+            return
         nextva = self.getOperValue(op, 0)
         return nextva
 
     def i_bvc(self, op):
-        if self.getFlag(CCR_V):     return
+        if self.getFlag(CCR_V):
+            return
         nextva = self.getOperValue(op, 0)
         return nextva
 
     def i_bvs(self, op):
-        if not self.getFlag(CCR_V):     return
+        if not self.getFlag(CCR_V):
+            return
         nextva = self.getOperValue(op, 0)
         return nextva
 
     def i_bpl(self, op):
-        if self.getFlag(CCR_N):     return
+        if self.getFlag(CCR_N):
+            return
         nextva = self.getOperValue(op, 0)
         return nextva
 
     def i_bmi(self, op):
-        if not self.getFlag(CCR_N):     return
+        if not self.getFlag(CCR_N):
+            return
         nextva = self.getOperValue(op, 0)
         return nextva
 
     def i_bge(self, op):    # FIXME: TEST.  these last 4 seem mixed up.
-        if self.getFlag(CCR_V) != self.getFlag(CCR_N):     return
+        if self.getFlag(CCR_V) != self.getFlag(CCR_N):
+            return
         nextva = self.getOperValue(op, 0)
         return nextva
 
     def i_blt(self, op):    # FIXME: TEST.  these last 4 seem mixed up.
-        if self.getFlag(CCR_V) == self.getFlag(CCR_N):     return
+        if self.getFlag(CCR_V) == self.getFlag(CCR_N):
+            return
         nextva = self.getOperValue(op, 0)
         return nextva
 
     def i_bgt(self, op):    # FIXME: TEST.  these last 4 seem mixed up.
-        if (self.getFlag(CCR_V) != self.getFlag(CCR_N)) or self.getFlag(CCR_Z):     return
+        if (self.getFlag(CCR_V) != self.getFlag(CCR_N)) or self.getFlag(CCR_Z):
+            return
         nextva = self.getOperValue(op, 0)
         return nextva
 
     def i_ble(self, op):    # FIXME: TEST.  these last 4 seem mixed up.
-        if not ((self.getFlag(CCR_V) != self.getFlag(CCR_N)) and self.getFlag(CCR_Z)):     return
+        if not ((self.getFlag(CCR_V) != self.getFlag(CCR_N)) and self.getFlag(CCR_Z)):
+            return
         nextva = self.getOperValue(op, 0)
         return nextva
 
@@ -615,8 +604,6 @@ class H8Emulator(H8Module, H8RegisterContext, envi.Emulator):
         self.setFlag(CCR_N, e_bits.is_signed(ures, dsize))
         self.setFlag(CCR_V, e_bits.is_signed_overflow(sres, dsize))
 
-
-
     def i_daa(self, op):
         oper = self.getOperValue(op, 0)
         upop = oper >> 4 & 0xf
@@ -626,7 +613,7 @@ class H8Emulator(H8Module, H8RegisterContext, envi.Emulator):
 
         addtup = bcd_add.get((C, H, upop, loop))
         if addtup == None:
-            print("DAA:  %x %x %x %x - addtup is None" % (C, H, upop, loop))
+            logger.debug("DAA:  %x %x %x %x - addtup is None" % (C, H, upop, loop))
             return #FIXME: raise exception once figured out
         addval, resC = addtup
         ures = addval + oper
@@ -646,7 +633,7 @@ class H8Emulator(H8Module, H8RegisterContext, envi.Emulator):
 
         addtup = bcd_sub.get((C, H, upop, loop))
         if addtup == None:
-            print("DAS:  %x %x %x %x - addtup is None" % (C, H, upop, loop))
+            logger.debug("DAS:  %x %x %x %x - addtup is None" % (C, H, upop, loop))
             return #FIXME: raise exception once figured out
         addval, resC = addtup
         ures = addval + oper
@@ -741,7 +728,6 @@ class H8Emulator(H8Module, H8RegisterContext, envi.Emulator):
         res = src - dst
         self.setOperValue(op, 1, res)
 
-
     def i_subx(self, op):
         # Src op gets sign extended to dst
         ssize = op.opers[0].tsize
@@ -799,7 +785,6 @@ class H8Emulator(H8Module, H8RegisterContext, envi.Emulator):
     def i_nop(self, op):
         pass
 
-
     def i_divxu(self, op):
         divisor = self.getOperValue(op, 0)
         dividend = self.getOperValue(op, 1)
@@ -844,7 +829,7 @@ class H8Emulator(H8Module, H8RegisterContext, envi.Emulator):
 
         src = self.getRegister(REG_ER5)
         dst = self.getRegister(REG_ER6)
-        print("WARNING: EEPMOV instruction executed... 0x%x -> 0x%x (count=0x%x)" % (
+        logger.info("WARNING: EEPMOV instruction executed... 0x%x -> 0x%x (count=0x%x)" % (
             src, dst, count * delta))
 
         for x in range(count):
@@ -856,6 +841,7 @@ class H8Emulator(H8Module, H8RegisterContext, envi.Emulator):
 
     def i_exts(self, op):
         pass
+
     def i_extu(self, op):
         pass
 
@@ -1099,7 +1085,7 @@ class H8Emulator(H8Module, H8RegisterContext, envi.Emulator):
         return from Interrupt Exception
         EXCLAMATION: stack layout for calls and ISRs differ between archs!
         '''
-        print("Return from Interrupt Handler")
+        logger.info("Return from Interrupt Handler")
 
         if self.advanced:
             pop = self.doPop(4)
@@ -1111,7 +1097,6 @@ class H8Emulator(H8Module, H8RegisterContext, envi.Emulator):
 
         self.setStatusRegister(ccr)
         return retAddr
-
 
     def i_rts(self, op):
         '''
@@ -1162,7 +1147,7 @@ class H8Emulator(H8Module, H8RegisterContext, envi.Emulator):
             val = self.getOperValue(op, 0)
             dsize = op.opers[0].tsize
 
-        print shbits, val, dsize
+        logger.debug(repr((shbits, val, dsize)))
         max_mask = e_bits.u_maxes[dsize]
         signbits = ((-1&max_mask)<<((8*dsize)-shbits) & max_mask)
         S = val > e_bits.s_maxes[dsize]
@@ -1234,7 +1219,7 @@ class H8Emulator(H8Module, H8RegisterContext, envi.Emulator):
         self.setFlag(CCR_C, C)
 
     def i_sleep(self, op):
-        print("Entering Sleep Mode... waiting for an External Interrupt")
+        logger.info("Entering Sleep Mode... waiting for an External Interrupt")
         self.state = CPUSTATE_SLEEP
 
     def i_str(self, op):
@@ -1243,7 +1228,7 @@ class H8Emulator(H8Module, H8RegisterContext, envi.Emulator):
 
     def i_tas(self, op):
         dsize = op.opers[0].tsize
-        print dsize
+        logger.debug(repr(dsize))
         oper = self.getOperValue(op, 0)
 
         # do comparison and set flags
@@ -1253,62 +1238,6 @@ class H8Emulator(H8Module, H8RegisterContext, envi.Emulator):
         self.setOperValue(op, 0, oper)
 
     def i_trapa(self, op):
-        print("SW EXCEPTION:  %s" % op)
+        logger.info("SW EXCEPTION:  %s" % op)
         #FIXME: processInterrupt()
 
-bcd_add = {}
-for x in range(0xa):
-    for y in range(0xa):
-        bcd_add[(0,0,(x,y))] = 0, 0
-
-    for y in range(4):
-        bcd_add[(0,1,(x,y))] = 0x6, 0
-
-for x in range(9):
-    for y in range(0xa, 0x10):
-        bcd_add[(0,0,(x,y))] = 0x6, 0
-
-for x in range(0xa, 0x10):
-    for y in range(0xa):
-        bcd_add[(0,0,(x,y))] = 0x60, 1
-
-    for y in range(4):
-        bcd_add[(0,1,(x,y))] = 0x66, 1
-
-for x in range(9, 0x10):
-    for y in range(0xa, 0x10):
-        bcd_add[(0,0,(x,y))] = 0x66, 1
-
-for x in range(3):
-    for y in range(0xa):
-        bcd_add[(1,0,(x,y))] = 0x60, 1
-
-    for y in range(0xa, 0x10):
-        bcd_add[(1,0,(x,y))] = 0x66, 1
-
-for x in range(4):
-    for y in range(4):
-        bcd_add[(1,1,(x,y))] = 0x66, 1
-
-bcd_sub = {}
-for x in range(0xa):
-    for y in range(0xa):
-        bcd_sub[(0,0,(x,y))] = 0, 0
-
-for x in range(0x9):
-    for y in range(6, 0x10):
-        bcd_sub[(0,1,(x,y))] = 0xfa, 0
-
-for x in range(7, 0x10):
-    for y in range(0xa):
-        bcd_sub[(1,0,(x,y))] = 0xa0, 1
-
-for x in range(6, 0x10):
-    for y in range(6, 0x10):
-        bcd_sub[(1,1,(x,y))] = 0x9a, 1
-
-sign_ext_bits = {
-        1: [((-1&0xff)<<(8-x) & 0xff) for x in range(8)],
-        2: [],
-        4: [],
-        }

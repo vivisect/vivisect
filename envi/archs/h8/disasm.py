@@ -367,7 +367,9 @@ class H8RegMultiOper(H8Operand):
         return False
 
     def getOperValue(self, op, emu=None):
-        return [self.basereg + x for x in range(self.count)]
+        if emu == None:
+            return
+        return [emu.getRegister(self.basereg + x) for x in range(self.count)]
 
     def render(self, mcanv, op, idx):
         basereg = self.basereg & RMETA_NMASK
@@ -592,7 +594,7 @@ class H8PcOffsetOper(H8Operand):
 
 from optables import main_table
 class H8Disasm:
-    fmt = ">H"
+    fmt = '>H'
 
     def __init__(self):
         self._dis_regctx = H8RegisterContext()
@@ -603,7 +605,7 @@ class H8Disasm:
         """
         Parse a sequence of bytes out into an envi.Opcode instance.
         """
-        opval, = struct.unpack_from(">H", bytez, offset)
+        opval, = struct.unpack_from('>H', bytez, offset)
 
         prim = opval >> 8
         opdata = main_table[prim]

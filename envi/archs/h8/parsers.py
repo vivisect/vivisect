@@ -591,7 +591,7 @@ def p_01(va, val, buf, off, tsize):
         elif d2 == 0x6b:
             if val2 & 0x20:
                 isz = 8
-                val3, = struct.unpack(">I", buf[off+4:off+8])
+                val3, = struct.unpack('>I', buf[off+4:off+8])
                 if val2 & 0x80:
                     # a
                     erd = val2 & 7
@@ -609,7 +609,7 @@ def p_01(va, val, buf, off, tsize):
                             H8RegDirOper(ers, tsize, va),
                             )
             else:
-                val3, = struct.unpack(">H", buf[off+4:off+6])
+                val3, = struct.unpack('>H', buf[off+4:off+6])
                 isz = 6
                 if val2 & 0x80:
                     # 8
@@ -653,7 +653,7 @@ def p_01(va, val, buf, off, tsize):
 
         elif d2 == 0x78:
             isz = 10
-            val3, disp = struct.unpack(">HI", buf[off+4:off+10])
+            val3, disp = struct.unpack('>HI', buf[off+4:off+10])
             if val3 & 0xff20 != 0x6b20: raise envi.InvalidInstruction(bytez=buf[off:off+16], va=va)
 
             er0 = val3 & 7
@@ -758,11 +758,11 @@ def p_01(va, val, buf, off, tsize):
 
             elif d2 == 0x6b:    #@aa:16,CCR / @aa:24,CCR
                 if val2 & 0x20:
-                    aa, = struct.unpack(">I", buf[off+4:off+8])
+                    aa, = struct.unpack('>I', buf[off+4:off+8])
                     isz = 8
                     aasize = 4
                 else:
-                    aa, = struct.unpack(">H", buf[off+4:off+6])
+                    aa, = struct.unpack('>H', buf[off+4:off+6])
                     isz = 6
                     aasize = 2
                 isStc = (val2>>7) & 1
@@ -1052,7 +1052,7 @@ def p_6c_6d_0100(va, val, buf, off, tsize):
 
 
 def p_Mov_78(va, val, buf, off, tsize):
-    val2, val3_4 = struct.unpack(">HI", buf[off+2:off+8])
+    val2, val3_4 = struct.unpack('>HI', buf[off+2:off+8])
 
     op = (val3_4 >> 24) | ((val2&0xfff0)<<4) | ((val&0xff80)<<(20+1)) | ((val&0xf)<<20)
     #FIXME: complex and ugly.  do we even need these in this impl?
