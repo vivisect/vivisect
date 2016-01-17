@@ -507,7 +507,6 @@ instrs = [
 
 class H8InstrTest(unittest.TestCase):
     def test_envi_h8_assorted_instrs(self):
-        global instrs
 
         #archmod = envi.getArchModule("h8")
         vw = vivisect.VivWorkspace()
