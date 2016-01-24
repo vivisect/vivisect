@@ -38,11 +38,9 @@ class Graph:
         Edges are directional sets of a from node-id and to node-id and
         a piece of arbitrary edge information.
     '''
-    def __init__(self, merge=None):
+    def __init__(self):
         self.wipeGraph()
         self.formlock = threading.Lock()
-        if merge != None:
-            self.merge(merge)
 
     def setMeta(self, mprop, mval):
         self.metadata[mprop] = mval
@@ -612,8 +610,8 @@ class HierGraph(Graph):
     NOTE: rootnodes are designated by the presence of the "rootnode"
           property.
     '''
-    def __init__(self, merge=None):
-        Graph.__init__(self, merge=merge)
+    def __init__(self):
+        Graph.__init__(self)
 
     def addHierRootNode(self,*args,**kwargs):
         '''
