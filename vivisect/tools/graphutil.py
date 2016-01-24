@@ -36,7 +36,7 @@ def getNodeWeightHisto(g):
             # these are our leaf nodes
             leaves[weight].append( (cb, list(), set()) ) 
 
-        # create FFT
+        # create histogram
         weights_to_cb[weight].append( (cb, list(), set()) )
 
     return weights_to_cb, nodeweights, leaves
@@ -564,7 +564,7 @@ def findRemergeDown(graph, va):
     # paint down graph, 
     preRouteGraphDown(graph, startnid, mark='hit', loop=False)
 
-    fft, nodewts, leaves = getNodeWeightHisto(graph)
+    histo, nodewts, leaves = getNodeWeightHisto(graph)
     startnode = graph.getNode(startnid)
     startweight = nodewts.get(startnid)
 
@@ -588,17 +588,9 @@ def preRouteGraph(graph, fromva, tova):
     '''
     Package it all together
     '''
-    clearGraphRouting(graph)
+    graph.delNodesProps(('up','down'))
     preRouteGraphUp(graph, tova)
     preRouteGraphDown(graph, fromva)
-
-def clearGraphRouting(graph, marks=['up','down']):
-    '''
-    clear all nodes of routing entries
-    '''
-    for node in graph.getNodes():
-        for mark in marks:
-            graph.delNodeProp(node, mark)
 
 def preRouteGraphUp(graph, tova, loop=True, mark='down'):
     '''
