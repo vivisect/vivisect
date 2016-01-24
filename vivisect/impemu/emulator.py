@@ -11,10 +11,9 @@ import visgraph.pathcore as vg_path
 
 from vivisect.const import *
 
-# Pre-initialize a stack memory bytes
-init_stack_map = ''
-for i in xrange(8192/4):
-    init_stack_map += struct.pack("<I", 0xfefe0000+(i*4))
+# Pre-initialize a default stack size
+init_stack_size = 0x7fff
+init_stack_map = b'\xfe' * init_stack_size
 
 def imphook(impname):
 
@@ -52,6 +51,8 @@ class WorkspaceEmulator:
         self._safe_mem = True   # Should we be forgiving about memory accesses?
         self._func_only = True  # is this emulator meant to stay in one function scope?
 
+        self.strictops = True   # shoudl we bail on emulation if unsupported instruction encountered
+
         # Map in all the memory associated with the workspace
         for va, size, perms, fname in vw.getMemoryMaps():
             offset, bytes = vw.getByteDef(va)
@@ -79,7 +80,7 @@ class WorkspaceEmulator:
         self.stack_pointer = None
         self.initStackMemory()
 
-    def initStackMemory(self, stacksize=4096):
+    def initStackMemory(self, stacksize=init_stack_size):
         '''
         Setup and initialize stack memory.
         You may call this prior to emulating instructions.
@@ -90,11 +91,11 @@ class WorkspaceEmulator:
             self.stack_map_top = self.stack_map_base + stacksize
             self.stack_pointer = self.stack_map_top
 
-            # Map in a memory map for the stack
             stack_map = init_stack_map
-            if stacksize != 4096:
-                stack_map = ''.join([struct.pack('<I', self.stack_map_base+(i*4))
-                                        for i in xrange(stacksize)])
+            if stacksize != init_stack_size:
+                stack_map = b'\xfe' * stacksize
+
+            # Map in a memory map for the stack
 
             self.addMemoryMap(self.stack_map_base, 6, "[stack]", stack_map)
             self.setStackCounter(self.stack_pointer)
@@ -359,7 +360,12 @@ class WorkspaceEmulator:
                     if op.iflags & envi.IF_RET:
                         vg_path.setNodeProp(self.curpath, 'cleanret', True)
                         break
-
+                except envi.UnsupportedInstruction, e:
+                    if self.strictops:
+                        break
+                    else:
+                        print 'runFunction continuing after unsupported instruction: 0x%08x %s' % (e.op.va, e.op.mnem)
+                        self.setProgramCounter(e.op.va+ e.op.size)
                 except Exception, e:
                     #traceback.print_exc()
                     if self.emumon != None:
