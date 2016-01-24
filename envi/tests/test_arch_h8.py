@@ -559,34 +559,34 @@ class H8InstrTest(unittest.TestCase):
 
         op = vw.arch.archParseOpcode('12C3'.decode('hex'))
         #rotl.b #2, r3h
-        print( op, hex(0x7a) )
+        #print( op, hex(0x7a) )
         emu.setRegisterByName('r3h', 0x7a)
         emu.executeOpcode(op)
-        print( hex(emu.getRegisterByName('r3h')), emu.getFlag(CCR_C) )
+        #print( hex(emu.getRegisterByName('r3h')), emu.getFlag(CCR_C) )
         #0xef False
 
         op = vw.arch.archParseOpcode('1283'.decode('hex'))
         #rotl.b #2, r3h
-        print( op, hex(0x7a) )
+        #print( op, hex(0x7a) )
         emu.setRegisterByName('r3h', 0x7a)
         emu.executeOpcode(op)
-        print( hex(emu.getRegisterByName('r3h')), emu.getFlag(CCR_C) )
+        #print( hex(emu.getRegisterByName('r3h')), emu.getFlag(CCR_C) )
         #0xef False
 
         op = vw.arch.archParseOpcode('13C3'.decode('hex'));\
         #rotr.b #2, r3h
-        print( op, hex(0x7a) )
+        #print( op, hex(0x7a) )
         emu.setRegisterByName('r3h', 0x7a);\
         emu.executeOpcode(op);\
-        print( hex(emu.getRegisterByName('r3h')), emu.getFlag(CCR_C) )
+        #print( hex(emu.getRegisterByName('r3h')), emu.getFlag(CCR_C) )
         #0x7a False
 
         op = vw.arch.archParseOpcode('1383'.decode('hex'));\
         #rotr.b #2, r3h
-        print( op, hex(0x7a) )
+        #print( op, hex(0x7a) )
         emu.setRegisterByName('r3h', 0x7a);\
         emu.executeOpcode(op);\
-        print( hex(emu.getRegisterByName('r3h')), emu.getFlag(CCR_C) )
+        #print( hex(emu.getRegisterByName('r3h')), emu.getFlag(CCR_C) )
         #0x7a False
 
     def validateEmulation(self, emu, op, setters, tests):

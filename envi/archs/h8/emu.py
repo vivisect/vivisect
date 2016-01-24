@@ -115,6 +115,11 @@ CPUSTATE_HWSTDBY =  6
 
 class H8Emulator(H8Module, H8RegisterContext, envi.Emulator):
     IVT_RESET = 0
+    EMU_V = CCR_V
+    EMU_H = CCR_H
+    EMU_C = CCR_C
+    EMU_Z = CCR_Z
+    EMU_N = CCR_N
 
     def __init__(self, advanced=True):
         H8Module.__init__(self)
@@ -524,12 +529,11 @@ class H8Emulator(H8Module, H8RegisterContext, envi.Emulator):
     def i_stm(self, op):
         reglist = self.getOperValue(op,0)
 
-        for reg in reglist:
-            val = self.getRegister(reg)
-            op.opers[1].setOperValue(op, self, val)
+        for regval in reglist:
+            op.opers[1].setOperValue(op, self, regval)
 
     def i_ldm(self, op):
-        reglist = self.getOperValue(op,1)
+        reglist = op.opers[1].getOperRegs(op)
 
         for reg in reglist:
             regval = op.opers[0].getOperValue(op, self, mod=True)

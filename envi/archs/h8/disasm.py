@@ -210,9 +210,6 @@ class H8RegDirOper(envi.RegisterOper, H8Operand):
     def involvesPC(self):
         return self.reg == REG_PC
 
-    def isDeref(self):
-        return False
-
     def getOperValue(self, op, emu=None):
         if self.reg == REG_PC:
             return self.va  # FIXME: is this modified?  or do we need to att # to this?
@@ -363,11 +360,8 @@ class H8RegMultiOper(H8Operand):
             return False
         return True
 
-    def involvesPC(self):
-        return False
-
-    def isDeref(self):
-        return False
+    def getOperRegs(self, op):
+        return [(self.basereg + x) for x in range(self.count)]
 
     def getOperValue(self, op, emu=None):
         if emu == None:
@@ -423,12 +417,6 @@ class H8AbsAddrOper(H8Operand):
             return False
         return True
 
-    def involvesPC(self):
-        return False
-
-    def isDeref(self):
-        return False
-
     def getOperAddr(self, op, emu=None):
         return self.aa
 
@@ -471,12 +459,6 @@ class H8ImmOper(envi.ImmedOper, H8Operand):
             return False
         return True
 
-    def involvesPC(self):
-        return False
-
-    def isDeref(self):
-        return False
-
     def getOperValue(self, op, emu=None):
         return self.val
 
@@ -510,9 +492,6 @@ class H8MemIndirOper(envi.DerefOper, H8Operand):
         if self.tsize != oper.tsize:
             return False
         return True
-
-    def involvesPC(self):
-        return False
 
     def isDeref(self):
         return True
@@ -570,12 +549,6 @@ class H8PcOffsetOper(H8Operand):
 
     def involvesPC(self):
         return True
-
-    def isDeref(self):
-        return False
-
-    def isDiscrete(self):
-        return False
 
     def getOperValue(self, op, emu=None):
         return len(op) + self.va + self.val

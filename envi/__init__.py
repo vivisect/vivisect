@@ -788,11 +788,11 @@ class Emulator(e_reg.RegisterContext, e_mem.MemoryObject):
         ures = udst - usrc
         sres = sdst - ssrc
 
-        self.setFlag(CCR_H, e_bits.is_signed_half_carry(ures, dsize, udst))
-        self.setFlag(CCR_C, e_bits.is_unsigned_carry(ures, dsize))
-        self.setFlag(CCR_Z, not ures)
-        self.setFlag(CCR_N, e_bits.is_signed(ures, dsize))
-        self.setFlag(CCR_V, e_bits.is_signed_overflow(sres, dsize))
+        self.setFlag(self.EMU_H, e_bits.is_signed_half_carry(ures, dsize, udst))
+        self.setFlag(self.EMU_C, e_bits.is_unsigned_carry(ures, dsize))
+        self.setFlag(self.EMU_Z, not ures)
+        self.setFlag(self.EMU_N, e_bits.is_signed(ures, dsize))
+        self.setFlag(self.EMU_V, e_bits.is_signed_overflow(sres, dsize))
 
         return ures
 
