@@ -1,3 +1,0 @@
-'''
-Synapse distributed computing framework.
-'''
