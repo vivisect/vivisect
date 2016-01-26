@@ -864,7 +864,7 @@ class Msp430Disasm:
         #REG_CG = 3  # reg3 is the Constant Generator
 
     def getPointerSize(self):
-        return WORD
+        return 2
 
     def getProgramCounterIndex(self):
         return REG_PC

@@ -32,7 +32,7 @@ class Msp430Module(envi.ArchitectureModule):
         return groups
 
     def getPointerSize(self):
-        return WORD
+        return 2
 
     def pointerString(self, va):
         return '0x{:04x}'.format(va)
