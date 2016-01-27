@@ -13,6 +13,7 @@ import traceback
 
 import vivisect
 import vivisect.cli as viv_cli
+import envi.config as e_config
 import envi.threads as e_threads
 import vivisect.parsers as viv_parsers
 
