@@ -4,12 +4,15 @@ The initial arm module.
 
 import sys
 import struct
+import logging
 
 import envi
 import envi.bits as e_bits
 from envi.const import *
 from envi.archs.arm.regs import *
 from envi.archs.arm import ArmModule
+
+log = logging.getLogger(__name__)
 
 # CPU state (memory, regs inc SPSRs and banked registers)
 # CPU mode  (User, FIQ, IRQ, supervisor, Abort, Undefined, System)
@@ -35,19 +38,19 @@ class CoProcEmulator:       # useful for prototyping, but should be subclassed
         pass
 
     def stc(self, parms):
-        print >>sys.stderr,"CoProcEmu: stc(%s)"%repr(parms)
+        log.info("CoProcEmu: stc(%s)"%repr(parms))
     def ldc(self, parms):
-        print >>sys.stderr,"CoProcEmu: ldc(%s)"%repr(parms)
+        log.info("CoProcEmu: ldc(%s)"%repr(parms))
     def cdp(self, parms):
-        print >>sys.stderr,"CoProcEmu: cdp(%s)"%repr(parms)
+        log.info("CoProcEmu: cdp(%s)"%repr(parms))
     def mcr(self, parms):
-        print >>sys.stderr,"CoProcEmu: mcr(%s)"%repr(parms)
+        log.info("CoProcEmu: mcr(%s)"%repr(parms))
     def mcrr(self, parms):
-        print >>sys.stderr,"CoProcEmu: mcrr(%s)"%repr(parms)
+        log.info("CoProcEmu: mcrr(%s)"%repr(parms))
     def mrc(self, parms):
-        print >>sys.stderr,"CoProcEmu: mrc(%s)"%repr(parms)
+        log.info("CoProcEmu: mrc(%s)"%repr(parms))
     def mrrc(self, parms):
-        print >>sys.stderr,"CoProcEmu: mrrc(%s)"%repr(parms)
+        log.info("CoProcEmu: mrrc(%s)"%repr(parms))
 
 
 def _getRegIdx(idx, mode):
@@ -409,19 +412,15 @@ class ArmEmulator(ArmModule, ArmRegisterContext, envi.Emulator):
         regmask = op.opers[1].val
         pc = self.getRegister(REG_PC)       # store for later check
 
-        print "stm"
         addr = self.getRegister(srcreg)
         for val in regvals:
-            print hex(val), hex(op.iflags), hex(IF_DAIB_B), hex(IF_DAIB_I)
             if op.iflags & IF_DAIB_B == IF_DAIB_B:
-                print "DAIB_B!?!?"
                 if op.iflags & IF_DAIB_I == IF_DAIB_I:
                     addr += 4
                 else:
                     addr -= 4
                 self.writeMemValue(addr, val, 4)
             else:
-                print "%x -> [%x]" % (val, addr)
                 self.writeMemValue(addr, val, 4)
                 if op.iflags & IF_DAIB_I == IF_DAIB_I:
                     addr += 4
@@ -434,7 +433,6 @@ class ArmEmulator(ArmModule, ArmRegisterContext, envi.Emulator):
         # is the following necessary?  
         newpc = self.getRegister(REG_PC)    # check whether pc has changed
         if pc != newpc:
-            print "PC HAS CHANGED!  THIS CODE IS WORTHWHILE!"
             return newpc
 
     i_stmia = i_stm
