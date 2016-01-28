@@ -760,6 +760,8 @@ class Emulator(e_reg.RegisterContext, e_mem.MemoryObject):
         Do the core of integer subtraction but only *return* the
         resulting value rather than assigning it.
         (allows cmp and sub to use the same code)
+
+        Architectures can override this if operand order is inapproprate.
         """
         # Src op gets sign extended to dst
         #FIXME account for same operand with zero result for PDE
@@ -775,9 +777,16 @@ class Emulator(e_reg.RegisterContext, e_mem.MemoryObject):
         return self.intSubBase(dst, dsize, src, ssize)
 
     def intSubBase(self, src1, dsize, src2, ssize):
-        # So we can either do a BUNCH of crazyness with xor and shifting to
-        # get the necessary flags here, *or* we can just do both a signed and
-        # unsigned sub and use the results.
+        '''
+        Base for integer subtraction.  
+        Segmented such that order of operands can easily be overridden by 
+        subclasses.  Does not set flags (arch-specific), and doesn't set
+        the dest operand.  That's up to the instruction implementation.
+
+        So we can either do a BUNCH of crazyness with xor and shifting to
+        get the necessary flags here, *or* we can just do both a signed and
+        unsigned sub and use the results.
+        '''
 
         usrc = e_bits.unsigned(src1, ssize)
         udst = e_bits.unsigned(src2, dsize)
@@ -788,14 +797,38 @@ class Emulator(e_reg.RegisterContext, e_mem.MemoryObject):
         ures = udst - usrc
         sres = sdst - ssrc
 
-        self.setFlag(self.EMU_H, e_bits.is_signed_half_carry(ures, dsize, udst))
-        self.setFlag(self.EMU_C, e_bits.is_unsigned_carry(ures, dsize))
-        self.setFlag(self.EMU_Z, not ures)
-        self.setFlag(self.EMU_N, e_bits.is_signed(ures, dsize))
-        self.setFlag(self.EMU_V, e_bits.is_signed_overflow(sres, dsize))
+        return (ssize, dsize, sres, ures, sdst, udst)
 
-        return ures
+    def integerAddition(self, op):
+        """
+        Do the core of integer addition but only *return* the
+        resulting value rather than assigning it.
 
+        Architectures shouldn't have to override this as operand order 
+        doesn't matter
+        """
+        src = self.getOperValue(op, 0)
+        dst = self.getOperValue(op, 1)
+
+        #FIXME PDE and flags
+        if src == None:
+            self.undefFlags()
+            self.setOperValue(op, 1, None)
+            return
+
+        ssize = op.opers[0].tsize
+        dsize = op.opers[1].tsize
+
+        udst = e_bits.unsigned(dst, dsize)
+        sdst = e_bits.signed(dst, dsize)
+
+        usrc = e_bits.unsigned(src, dsize)
+        ssrc = e_bits.signed(src, dsize)
+
+        ures = usrc + udst
+        sres = ssrc + sdst
+
+        return (ssize, dsize, sres, ures, sdst, udst)
 
     def logicalAnd(self, op):
         src1 = self.getOperValue(op, 0)
