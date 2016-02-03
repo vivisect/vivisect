@@ -1288,11 +1288,11 @@ def getArchModule(name=None):
         import envi.archs.thumb16 as e_thumb
         return e_thumb.Thumb16Module()
 
-    elif name in ( 'msp430' ):
+    elif name in ( 'msp430', ):
         import envi.archs.msp430 as e_msp430
         return e_msp430.Msp430Module()
 
-    elif name in ( 'h8' ):
+    elif name in ( 'h8', ):
         import envi.archs.h8 as e_h8
         return e_h8.H8Module()
 
