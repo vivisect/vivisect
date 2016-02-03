@@ -303,6 +303,14 @@ class Graph:
                 self.nodeprops[prop].pop(pval,None)
         return pval
 
+    def delNodesProps(graph, props=('up','down')):
+        '''
+        Delete all listed properties from all nodes in the graph.
+        '''
+        for prop in props:
+            for node in graph.getNodesByProp(prop):
+                graph.delNodeProp(node, mark)
+
     def delNode(self, node):
         '''
         Delete a node from the graph.
@@ -310,9 +318,9 @@ class Graph:
         Example:
             g.delNode(node)
         '''
-        for edge in self.getRefsFrom(node):
+        for edge in self.getRefsFrom(node)[:]:
             self.delEdge(edge)
-        for edge in self.getRefsTo(node):
+        for edge in self.getRefsTo(node)[:]:
             self.delEdge(edge)
         [ self.delNodeProp(node, k) for k in node[1].keys() ]
         return self.nodes.pop(node[0])

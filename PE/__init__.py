@@ -755,6 +755,9 @@ class PE(object):
                 if ibn_rva & self.high_bit_mask:
                     funcname = ordlookup.ordLookup(libname, ibn_rva & 0x7fffffff)
 
+                elif not self.checkRva(ibn_rva):
+                    break
+
                 else:
                     # RP BUG FIX - we can't use this API on this call because we can have binaries that put their import table
                     # right at the end of the file, statically saying the imported function name is 128 will cause use to potentially
@@ -863,48 +866,70 @@ class PE(object):
         namesize = 4 * self.IMAGE_EXPORT_DIRECTORY.NumberOfNames
         ordoff = self.rvaToOffset(self.IMAGE_EXPORT_DIRECTORY.AddressOfOrdinals)
         ordsize = 2 * self.IMAGE_EXPORT_DIRECTORY.NumberOfNames
-        
-        
+
         # RP BUG FIX - sanity check the exports before reading
-        if not funcoff or not ordoff and not nameoff or funcsize > 0x7FFF:
+        # FH BUG FIX - ordoff and nameoff must both be set (named function exports)
+        #              or both be null (unnamed function exports)
+        if not funcoff or funcsize > 0x7FFF or ((ordoff > 0) ^ (nameoff > 0)):
             self.IMAGE_EXPORT_DIRECTORY = None
             return
     
         funcbytes = self.readAtOffset(funcoff, funcsize)
-
-        namebytes = self.readAtOffset(nameoff, namesize)
-
-        ordbytes = self.readAtOffset(ordoff, ordsize)
-
         funclist = struct.unpack("%dI" % (len(funcbytes) / 4), funcbytes)
-        namelist = struct.unpack("%dI" % (len(namebytes) / 4), namebytes)
-        ordlist = struct.unpack("%dH" % (len(ordbytes) / 2), ordbytes)
 
-        #for i in range(len(funclist)):
-        for i in range(len(namelist)):
+        # named function exports
+        if nameoff and ordoff:
+            namebytes = self.readAtOffset(nameoff, namesize)
+            ordbytes = self.readAtOffset(ordoff, ordsize)
 
-            ord = ordlist[i]
-            nameoff = self.rvaToOffset(namelist[i])
-            if ord > len(funclist):
+            namelist = struct.unpack("%dI" % (len(namebytes) / 4), namebytes)
+            ordlist = struct.unpack("%dH" % (len(ordbytes) / 2), ordbytes)
+
+            #for i in range(len(funclist)):
+            for i in range(len(namelist)):
+
+                ord = ordlist[i]
+                nameoff = self.rvaToOffset(namelist[i])
+                if ord > len(funclist):
+                    self.IMAGE_EXPORT_DIRECTORY = None
+                    return
+
+                funcoff = funclist[ord]
+                ffoff = self.rvaToOffset(funcoff)
+
+                name = None
+
+                if nameoff != 0:
+                    name = self.readAtOffset(nameoff, 256, shortok=True).split("\x00", 1)[0]
+                else:
+                    name = "ord_%.4x" % ord
+
+                # RP BUG FIX - Export forwarding range check is done using RVA's
+                if funcoff >= edir.VirtualAddress and funcoff < edir.VirtualAddress + edir.Size:
+                    fwdname = self.readAtRva(funcoff, 260, shortok=True).split("\x00", 1)[0]
+                    self.forwarders.append((funclist[ord],name,fwdname))
+                else:
+                    self.exports.append((funclist[ord], ord, name))
+
+        # unnamed function exports
+        else:
+            # sanity check length of array containing export functions
+            if len(funclist) != self.IMAGE_EXPORT_DIRECTORY.NumberOfFunctions:
                 self.IMAGE_EXPORT_DIRECTORY = None
                 return
 
-            funcoff = funclist[ord]
-            ffoff = self.rvaToOffset(funcoff)
+            for i in range(len(funclist)):
+                funcoff = funclist[i]
 
-            name = None
-
-            if nameoff != 0:
-                name = self.readAtOffset(nameoff, 256, shortok=True).split("\x00", 1)[0]
-            else:
-                name = "ord_%.4x" % ord
-
-            # RP BUG FIX - Export forwarding range check is done using RVA's 
-            if funcoff >= edir.VirtualAddress and funcoff < edir.VirtualAddress + edir.Size:
-                fwdname = self.readAtRva(funcoff, 260, shortok=True).split("\x00", 1)[0]
-                self.forwarders.append((funclist[ord],name,fwdname))
-            else:
-                self.exports.append((funclist[ord], ord, name))
+                # The function array will contain X elements, where X equals (highest
+                # ordinal number - lowest ordinal number). For example, a PE with ordinal
+                # exports of 0x10, 0x14, and 0x18 will contain 0x9 elements, with elements
+                # 0x0, 0x4, and 0x8 containing the relative offset of the corresponding
+                # exported function. An element with a value of 0 indicates the element in
+                # the array is a placeholder to preserve the length of the array.
+                if funcoff > 0:
+                    ord = self.IMAGE_EXPORT_DIRECTORY.Base + i
+                    self.exports.append((funcoff, ord, None))
 
     def getSignature(self):
         '''

@@ -61,6 +61,12 @@ class VivGraphTest(unittest.TestCase):
         self.codepaths = paths
         self.assertGreater(len(self.codepaths), 150)
 
+    def checkCoveragePaths(self, vw, fva):
+        graph = viv_graph.buildFunctionGraph(vw, fva)
+        paths = [ path for path in viv_graph.getCoveragePaths(graph, 150) ]
+        self.codepaths = paths
+        self.assertEqual(len(self.codepaths), 22)
+
     @vivbins.require
     def test_viv_graph_paths(self):
         # one file
@@ -75,4 +81,5 @@ class VivGraphTest(unittest.TestCase):
         self.checkGetCodePathsTo(vw, fva, cbva)
         self.checkGetLoopPaths(vw, fva)
         self.checkGetLongPath(vw, fva)
+        self.checkCoveragePaths(vw, fva)
 

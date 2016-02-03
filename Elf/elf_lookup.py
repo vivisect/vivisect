@@ -89,6 +89,14 @@ e_machine_64 =  (
                 EM_SPARCV9,
                 EM_X86_64
                 )
+                
+ELFCLASSNONE = 0
+ELFCLASS32 = 1 # 32-bit object file
+ELFCLASS64 = 2 # 64-bit object file
+
+ELFDATANONE = 0
+ELFDATA2LSB = 1
+ELFDATA2MSB = 2
 
 e_machine_types = {
 EM_NONE:"No machine",

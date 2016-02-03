@@ -35,6 +35,30 @@ compattypes = {
     type(None):(int,str,bool,long,unicode),
 }
 
+CONFIG_PATH = 0
+CONFIG_ENTRY = 1
+
+class ConfigNoAssignment(Exception):
+    def __init__(self, optstr):
+        Exception.__init__(self)
+        self.optstr = optstr
+    def __str__(self):
+        return "No value given in option %s" % self.optstr
+
+class ConfigInvalidName(Exception):
+    def __init__(self, optpath):
+        Exception.__init__(self)
+        self.optpath = optpath
+    def __str__(self):
+        return 'Invalid Config Name: %s' % self.optpath
+
+class ConfigInvalidOption(Exception):
+    def __init__(self, optname):
+        Exception.__init__(self)
+        self.optname = optname
+    def __str__(self):
+        return 'Invalid Config Option: %s' % self.optname
+
 class EnviConfig:
     '''
     EnviConfig basically works like a multi-layer dictionary that 
@@ -80,11 +104,63 @@ class EnviConfig:
         '''
         return self.cfgdocs.get(optname)
 
+    def getConfigPaths(self):
+        '''
+        Return a list of tuples including: (type, valid path strings, existing value)
+
+        'type' can be CONFIG_PATH or CONFIG_ENTRY to indicate whether the tuple 
+        represents a subconfig or an actual key/value pair
+        '''
+        paths = []
+        todo = [ ([], self) ]
+
+        while todo:
+            path, config = todo.pop()
+
+            cfgkeys = config.keys()
+            if cfgkeys:
+                pathstr = '.'.join(path) + "."
+                newpaths = [ (CONFIG_ENTRY, "%s%s" % (pathstr, key), "%s" % (config[key]))  for key in cfgkeys]
+                paths.extend(newpaths)
+
+            subnames = config.getSubConfigNames()
+            if not len(subnames):
+                paths.append((CONFIG_PATH, '.'.join(path), None))
+                continue
+
+            for subname in subnames:
+                newpath = path[:]
+                newpath.append(subname)
+                newconfig = config.getSubConfig(subname, add=False)
+                todo.append( (newpath, newconfig,) )
+
+        return paths
+
+    def reprConfigPaths(self):
+        '''
+        Returns a string representation of the configuration paths/options
+        and optionally values.  Useful for printing helper data.
+        '''
+        configpaths = self.getConfigPaths()
+        out = [ "Valid Config Entries:\n    " ]
+        reprs = ['%s = %s' % (ckey, cval) for ctype, ckey, cval in configpaths if ctype==CONFIG_ENTRY]
+        out.append("\n    ".join(reprs))
+        out.append("\n")
+
+        out.append("\nValid Config Paths:\n    ")
+        reprs = [ckey for ctype, ckey, cval in configpaths if ctype==CONFIG_PATH]
+        out.append("\n    ".join(reprs))
+        out.append("\n")
+        return ''.join(out)
+
     def parseConfigOption(self, optstr):
         '''
         Parse a simple foo.bar.baz=<json> syntax string into
         the current config.
         '''
+        if '=' not in optstr:
+            raise ConfigNoAssignment(optstr)
+
         optpath,valstr = optstr.split('=',1)
 
         optparts = optpath.split('.')
@@ -93,21 +169,27 @@ class EnviConfig:
         for opart in optparts[:-1]:
             config = config.getSubConfig(opart, add=False)
             if config == None:
-                raise Exception('Invalid Config Name: %s' % optpath)
+                raise ConfigInvalidName(optpath)
 
         optname = optparts[-1]
         if not config.cfginfo.has_key(optname):
-            raise Exception('Invalid Config Option: %s' % optname)
+            raise ConfigInvalidOption(optname)
 
         # json madness
         if valstr.startswith('0x'):
             valstr = str(int(valstr, 16))
 
         if not (valstr.startswith('"') and valstr.endswith('"')):
-            try:
-                int(valstr)
-            except:
-                valstr = '"' + valstr + '"'
+            if valstr.lower() == 'true':
+                valstr = 'true'
+            elif valstr.lower() == 'false':
+                valstr = 'false'
+
+            else:
+                try:
+                    int(valstr)
+                except:
+                    valstr = '"' + valstr + '"'
 
         config[ optname ] = json.loads(valstr)
 
