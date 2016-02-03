@@ -6,9 +6,7 @@ import envi
 import envi.bits as e_bits
 import envi.memory as e_mem
 
-
-#from const import *
-from regs import *
+from envi.archs.msp430.regs import *
 
 ########################################################
 # Process special opcodes that come from double opcodes
@@ -59,7 +57,7 @@ def decode0(workData, opData, va):
     # POP
     if ((dsreg == 1) and (ds_addr_mode == REG_IND_AUTOINC)):
         mnem, flags = dspcode[1]
-        return Msp430Opcode( va, SINGLE_OPCODE_TYPE, mnem, [ Msp430Operands[dest_addr_mode](destreg, opData, destopsize, va) ], 0, opData.lenData())
+        return Msp430Opcode( va, SINGLE_OPCODE_TYPE, mnem, [ Msp430Operands[dest_addr_mode](destreg, opData, destopsize, va) ], op_bw, opData.lenData())
     # BRANCH
     if (destreg == 0) and not dest_addr_mode:
         mnem, flags = dspcode[2]
@@ -76,7 +74,7 @@ def decode0(workData, opData, va):
             va,
             DOUBLE_OPCODE_TYPE,
             dcode[dcode_val],
-            [ Msp430Operands[ds_addr_mode](dsreg, opData, dsopsize), Msp430Operands[dest_addr_mode](destreg, opData, destopsize, va) ],
+            [ Msp430Operands[ds_addr_mode](dsreg, opData, dsopsize, va), Msp430Operands[dest_addr_mode](destreg, opData, destopsize, va) ],
             op_bw, 
             opData.lenData()
             )
@@ -244,7 +242,8 @@ def decode8(workData, opData, va):
             DOUBLE_OPCODE_TYPE,
             dcode[dcode_val],
             [ Msp430Operands[ds_addr_mode](dsreg, opData, dsopsize, va), Msp430Operands[dest_addr_mode](destreg, opData, destopsize, va) ],
-            op_bw
+            op_bw,
+            opData.lenData()
             )
 
 def decode9(workData, opData, va):
@@ -466,16 +465,16 @@ class Msp430Operand(envi.Operand):
 class Msp430RegDirectOper(Msp430Operand):
     def __repr__(self):
         # Register direct
-        if self.val == 0x3:
+        if self.val == REG_CG:
             # Special Case
             return "#0"
         else:
             # return Rn
-            regname = priregisters[self.val]
+            regname = registers[self.val]
             return "%s" % regname
 
     def render(self, mcanv, op, idx):
-        if self.val == 3:
+        if self.val == REG_CG:
             mcanv.addText("#0x0")
             return
 
@@ -483,7 +482,9 @@ class Msp430RegDirectOper(Msp430Operand):
 
 
     def getOperValue(self, op, emu=None):
-        if self.val == 3:
+        if self.val == REG_PC:
+            return op.va + op.size
+        if self.val == REG_CG:
             return 0
 
         if emu==None: 
@@ -492,7 +493,7 @@ class Msp430RegDirectOper(Msp430Operand):
         return emu.getRegister(self.val)
 
     def setOperValue(self, op, emu, val):
-        if self.val == 3:
+        if self.val == REG_CG:
             return 0
 
         return emu.setRegister(self.val, val)
@@ -500,7 +501,7 @@ class Msp430RegDirectOper(Msp430Operand):
 class Msp430RegIndexOper(Msp430Operand):
     def __init__(self, val, inData, tsize=0, va=0):
         Msp430Operand.__init__(self, val, inData, tsize, va)
-        if val != 3:
+        if val != REG_CG:
             new_val = inData.nextData()
 
             # this is signed
@@ -511,10 +512,10 @@ class Msp430RegIndexOper(Msp430Operand):
 
     def __repr__(self):
         # Register indexed
-        if self.val == 0x2:
+        if self.val == REG_SR:
             # Special Case
             return "&0x%0.4x" % self.new_val
-        if self.val == 0x3:
+        if self.val == REG_CG:
             # Special Case
             return "#1"
         new_val = self.new_val
@@ -522,18 +523,18 @@ class Msp430RegIndexOper(Msp430Operand):
         if not self.val:
             return "0x%0.4x" % new_val
 
-        regname = priregisters[self.val]
+        regname = registers[self.val]
         return "0x%x(%s)" % (new_val,regname)
 
     def render(self, mcanv, op, idx):
-        if self.val == 2:
+        if self.val == REG_SR:
             mcanv.addText('&')
             renderPossibleLocation(mcanv, op, idx, self.new_val)
 
-        elif self.val == 3:
+        elif self.val == REG_CG:
             mcanv.addText('#0x1')
 
-        elif self.val == 0:
+        elif self.val == REG_PC:
             mcanv.addText('#')
             renderPossibleLocation(mcanv, op, idx, self.new_val)
 
@@ -547,14 +548,14 @@ class Msp430RegIndexOper(Msp430Operand):
             mcanv.addText(')')
 
     def setOperValue(self, op, emu, val):
-        if self.val == 3:
+        if self.val == REG_CG:
             return 1
 
         addr = self.getOperAddr(op, emu)
         emu.writeMemValue(addr, val, self.tsize)
 
     def getOperValue(self, op, emu=None):
-        if self.val == 3:
+        if self.val == REG_CG:
             return 1
 
         if emu==None:
@@ -566,40 +567,43 @@ class Msp430RegIndexOper(Msp430Operand):
 
 
     def getOperAddr(self, op, emu=None):
-        if self.val == 2:
+        if self.val == REG_SR:
             return self.new_val
+        if self.val == REG_PC:
+            return op.va + op.size + self.new_val
 
         if emu==None:
             return None
 
-        return emu.getRegister(self.val) + self.new_val
+        addr = emu.getRegister(self.val)
+        return addr + self.new_val
 
     def isDeref(self):
-        if self.val == 3:
+        if self.val == REG_CG:
             return False
         return True
 
 class Msp430RegIndirOper(Msp430Operand):
     def __repr__(self):
         # Register indirect
-        if self.val == 0x2:
+        if self.val == REG_SR:
             # Special Case
             return "#0x4"
-        if self.val == 0x3:
+        if self.val == REG_CG:
             # Special Case
             return "#0x2"
-        regname = priregisters[self.val]
+        regname = registers[self.val]
         return "@%s" % regname
 
     def render(self, mcanv, op, idx):
         # Register indirect
-        if self.val == 0x2:
+        if self.val == REG_SR:
             # Special Case
             mcanv.addText("#")
             mcanv.addNameText("0x4")
             return
 
-        if self.val == 0x3:
+        if self.val == REG_CG:
             # Special Case
             mcanv.addText("#")
             mcanv.addNameText("0x2")
@@ -609,14 +613,14 @@ class Msp430RegIndirOper(Msp430Operand):
         self.renderReg(mcanv, op, idx, self.val)
 
     def setOperValue(self, op, emu, val):
-        if self.val in (2,3):
+        if self.val in (REG_SR, REG_CG):
             return
 
         addr = self.getOperAddr(op, emu)
         emu.writeMemValue(addr, val, self.tsize)
 
     def getOperValue(self, op, emu=None):
-        if self.val in (2,3):
+        if self.val in (REG_SR, REG_CG):
             return (None, None, 4, 2)[self.val]
 
         if emu == None:
@@ -627,19 +631,23 @@ class Msp430RegIndirOper(Msp430Operand):
         return val
 
     def getOperAddr(self, op, emu=None):
+        if self.val == REG_PC:
+            return op.va + op.size
+
         if emu == None:
             return None
+
         return emu.getRegister(self.val)
 
     def isDeref(self):
-        if self.val in (2,3):
+        if self.val in (REG_SR, REG_CG):
             return False
         return True
 
 class Msp430RegIndirAutoincOper(Msp430Operand):
     def __init__(self, val, inData, tsize, va=0):
         Msp430Operand.__init__(self, val, inData, tsize, va)
-        if val == 0:
+        if val == REG_PC:
             new_val = inData.nextData()
             if new_val > 32768:
                 new_val = ((new_val & 32767) - 32768)
@@ -648,34 +656,34 @@ class Msp430RegIndirAutoincOper(Msp430Operand):
 
     def __repr__(self):
         # Register indirect autoincrement
-        if self.val == 0x0:
+        if self.val == REG_PC:
             # Return @PC+x where x is the next word in the instruction stream
             return "#0x%x" % (self.new_val)
 
-        if self.val == 0x2:
+        if self.val == REG_SR:
             # Special Case
             return "#0x8"
-        if self.val == 0x3:
+        if self.val == REG_CG:
             # Special Case
             return "#-0x1"
 
-        regname = priregisters[self.val]
+        regname = registers[self.val]
         return "@%s+" % regname
 
     def render(self, mcanv, op, idx):
         # Register indirect autoincrement
-        if self.val == 0x0:
+        if self.val == REG_PC:
             # Return @PC+x where x is the next word in the instruction stream
             mcanv.addText("#")
             renderPossibleLocation(mcanv, op, idx, self.new_val)
             return
 
-        if self.val == 0x2:
+        if self.val == REG_SR:
             mcanv.addText("#")
             mcanv.addNameText("0x8")
             return
 
-        if self.val == 0x3:
+        if self.val == REG_CG:
             mcanv.addText("#")
             mcanv.addNameText("-0x1")
             return
@@ -683,32 +691,36 @@ class Msp430RegIndirAutoincOper(Msp430Operand):
         self.renderReg(mcanv, op, idx, self.val)
 
     def setOperValue(self, op, emu, val):
-        if self.val in (0,2,3):
+        if self.val in (REG_PC, REG_SR, REG_CG):
             return 
 
         addr = self.getOperAddr(op, emu)
         emu.readMemValue(addr, va, self.tsize)
 
     def getOperValue(self, op, emu=None):
-        if self.val == 0:
+        if self.val == REG_PC:
             return self.new_val
-        elif self.val == 2:
+        elif self.val == REG_SR:
             return 8
-        elif self.val == 3:
+        elif self.val == REG_CG:
             return -1
 
         if emu == None:
             return None
         addr = self.getOperAddr(op, emu)
         val = emu.readMemValue(addr, self.tsize)
+        return val
 
     def getOperAddr(self, op, emu=None):
         if emu == None:
             return None
-        return emu.getRegister(self.val)
+
+        addr = emu.getRegister(self.val)
+        emu.setRegister(self.val, addr + self.tsize)
+        return addr
 
     def isDeref(self):
-        if self.val in (0,2,3):
+        if self.val in (REG_PC, REG_SR, REG_CG):
             return False
         return True
 
@@ -832,7 +844,7 @@ class Msp430Disasm:
                         raise Exception('Decode Error 2')
                 else:
                     mnem, flags = scode[(workData & SINGLE_OPCODE) >> 7]
-                    flags |= op_bw
+                    flags |= (op_bw << 8)
                     op = Msp430Opcode(
                             va,
                             SINGLE_OPCODE_TYPE,
@@ -852,7 +864,7 @@ class Msp430Disasm:
         #REG_CG = 3  # reg3 is the Constant Generator
 
     def getPointerSize(self):
-        return 4
+        return 2
 
     def getProgramCounterIndex(self):
         return REG_PC
