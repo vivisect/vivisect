@@ -210,13 +210,12 @@ class VQVivMainWindow(vq_app.VQMainCmdWindow, viv_base.VivEventDist):
         self.vqAddDockWidgetClass(viv_q_symboliks.VivSymbolikFuncPane, args=(self.vw, self))
 
     def vqRestoreGuiSettings(self, settings):
-        guid = self.vw.getMeta('GUID')
-        if guid != None:
-            dwcls = settings.value('%s/DockClasses' % guid)
-            state = settings.value('%s/DockState' % guid)
-            geom =  settings.value('%s/DockGeometry' % guid)
+        guid = self.vw.getVivGuid()
+        dwcls = settings.value('%s/DockClasses' % guid)
+        state = settings.value('%s/DockState' % guid)
+        geom =  settings.value('%s/DockGeometry' % guid)
 
-        if guid == None or dwcls.isNull():
+        if dwcls.isNull():
             names = self.vw.filemeta.keys()
             names.sort()
             name = '+'.join(names)
@@ -271,11 +270,10 @@ class VQVivMainWindow(vq_app.VQMainCmdWindow, viv_base.VivEventDist):
             w.vqSaveState(settings,name)
 
         # first store for this specific workspace
-        guid = self.vw.getMeta('GUID')
-        if guid != None:
-            settings.setValue('%s/DockClasses' % guid, dock_classes)
-            settings.setValue('%s/DockGeometry' % guid, self.saveGeometry())
-            settings.setValue('%s/DockState' % guid, self.saveState())
+        guid = self.vw.getVivGuid()
+        settings.setValue('%s/DockClasses' % guid, dock_classes)
+        settings.setValue('%s/DockGeometry' % guid, self.saveGeometry())
+        settings.setValue('%s/DockState' % guid, self.saveState())
 
         # next store for this filename
         names = self.vw.filemeta.keys()
