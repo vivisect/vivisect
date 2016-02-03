@@ -494,9 +494,9 @@ class H8Emulator(H8Module, H8RegisterContext, envi.Emulator):
         C ^= (tgt>>bit) & 1
         self.setFlag(CCR_C, C)
 
-
     def i_cmp(self, op):
-        self.integerSubtraction(op)
+        flagtup = self.integerSubtraction(op)
+        self.doFlags(flagtup)
 
     def i_bsr(self, op):
         nextva = self.getProgramCounter()
@@ -686,15 +686,19 @@ class H8Emulator(H8Module, H8RegisterContext, envi.Emulator):
 
     def i_sub(self, op):
         # Src op gets sign extended to dst
-        (ssize, dsize, sres, ures, sdst, udst) = self.integerSubtraction(op)
+        flagtup = self.integerSubtraction(op)
+        self.doFlags(flagtup)
+        (ssize, dsize, sres, ures, sdst, udst) = flagtup
+        self.setOperValue(op, 1, ures)
+
+    def doFlags(self, flagtup):
+        (ssize, dsize, sres, ures, sdst, udst) = flagtup
 
         self.setFlag(CCR_H, e_bits.is_signed_half_carry(ures, dsize, udst))
         self.setFlag(CCR_C, e_bits.is_unsigned_carry(ures, dsize))
         self.setFlag(CCR_Z, not ures)
         self.setFlag(CCR_N, e_bits.is_signed(ures, dsize))
         self.setFlag(CCR_V, e_bits.is_signed_overflow(sres, dsize))
-
-        self.setOperValue(op, 1, ures)
 
     def i_subs(self, op):
         # Src op gets sign extended to dst
@@ -722,7 +726,7 @@ class H8Emulator(H8Module, H8RegisterContext, envi.Emulator):
             self.undefFlags()
             return None
 
-        (ssize, dsize, sres, ures, sdst, udst) = self.intSubBase(dst, dsize, src + C, ssize)
+        (ssize, dsize, sres, ures, sdst, udst) = self.intSubBase(dst, src + C, dsize, ssize)
         self.setOperValue(op, 1, ures)
 
     def i_xor(self, op):
@@ -1214,13 +1218,8 @@ class H8Emulator(H8Module, H8RegisterContext, envi.Emulator):
         oper = self.getOperValue(op, 0)
 
         # do comparison and set flags
-        (ssize, dsize, sres, ures, sdst, udst) = self.intSubBase(oper, dsize, 0, dsize)
-
-        self.setFlag(CCR_H, e_bits.is_signed_half_carry(ures, dsize, udst))
-        self.setFlag(CCR_C, e_bits.is_unsigned_carry(ures, dsize))
-        self.setFlag(CCR_Z, not ures)
-        self.setFlag(CCR_N, e_bits.is_signed(ures, dsize))
-        self.setFlag(CCR_V, e_bits.is_signed_overflow(sres, dsize))
+        flagtup = self.intSubBase(oper, 0, dsize, dsize)
+        self.doFlags(flagtup)
 
         oper |= 0x80
 

@@ -755,28 +755,25 @@ class Emulator(e_reg.RegisterContext, e_mem.MemoryObject):
         elif size == 4:
             return struct.unpack(">l", bytes)[0]
 
-    def integerSubtraction(self, op):
+    def integerSubtraction(self, op, sidx=0, midx=1):
         """
         Do the core of integer subtraction but only *return* the
         resulting value rather than assigning it.
         (allows cmp and sub to use the same code)
-
-        Architectures can override this if operand order is inapproprate.
         """
         # Src op gets sign extended to dst
-        #FIXME account for same operand with zero result for PDE
-        ssize = op.opers[0].tsize
-        dsize = op.opers[1].tsize
-        src = self.getOperValue(op, 0)
-        dst = self.getOperValue(op, 1)
+        ssize = op.opers[sidx].tsize
+        msize = op.opers[midx].tsize
+        subtra = self.getOperValue(op, sidx)
+        minuend = self.getOperValue(op, midx)
 
-        if dst == None or src == None:
+        if subtra == None or minuend == None:
             self.undefFlags()
             return None
 
-        return self.intSubBase(dst, dsize, src, ssize)
+        return self.intSubBase(subtra, minuend, ssize, msize)
 
-    def intSubBase(self, src1, dsize, src2, ssize):
+    def intSubBase(self, subtrahend, minuend, ssize, msize):
         '''
         Base for integer subtraction.  
         Segmented such that order of operands can easily be overridden by 
@@ -786,18 +783,19 @@ class Emulator(e_reg.RegisterContext, e_mem.MemoryObject):
         So we can either do a BUNCH of crazyness with xor and shifting to
         get the necessary flags here, *or* we can just do both a signed and
         unsigned sub and use the results.
+
+        Math vocab refresher: Subtrahend - Minuend = Difference
         '''
+        usubtra = e_bits.unsigned(subtrahend, ssize)
+        uminuend = e_bits.unsigned(minuend, msize)
 
-        usrc = e_bits.unsigned(src1, ssize)
-        udst = e_bits.unsigned(src2, dsize)
+        ssubtra = e_bits.signed(subtrahend, ssize)
+        sminuend = e_bits.signed(minuend, msize)
 
-        ssrc = e_bits.signed(src1, ssize)
-        sdst = e_bits.signed(src2, dsize)
+        ures = usubtra - uminuend
+        sres = ssubtra - sminuend
 
-        ures = udst - usrc
-        sres = sdst - ssrc
-
-        return (ssize, dsize, sres, ures, sdst, udst)
+        return (ssize, msize, sres, ures, ssubtra, usubtra)
 
     def integerAddition(self, op):
         """

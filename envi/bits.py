@@ -99,17 +99,13 @@ def is_signed_half_carry(value, size, src):
         16bit   - bit 11
         8bit    - bit 3
     '''
-    smax = s_maxes[size] >> 3
-    
-    if value > smax > src:
-        return True
-    if value < -smax < -src:
-        return True
+    bitsize = (size << 3) - 5
+    mask = 1<<bitsize
 
-    '''val = value & smax
-    return val < value
-    '''
-    return False
+    p1 = value & mask
+    p2 = src & mask
+    
+    return ((p1 ^ p2) != 0)
 
 def is_signed_carry(value, size, src):
     smax = s_maxes[size]

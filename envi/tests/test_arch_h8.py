@@ -42,7 +42,12 @@ instrs = [
         ( "0f00", 0x4560, 'daa r0h', 0, () ),
         ( "0f93", 0x4560, 'mov.l er1, er3', IF_L, () ),
         ( "1a03", 0x4560, 'dec.b r3h', IF_B, () ),
-        ( "1a83", 0x4560, 'sub.l er0, er3', IF_L, () ),
+        ( "1a83", 0x4560, 'sub.l er0, er3', IF_L, (
+            {'setup':(('er0',0xaa),('CCR_C',0),('er3',0x1a)), 
+                'tests':(('er3',0x90),('CCR_H',0),('CCR_N',0),('CCR_Z',0),('CCR_V',0),('CCR_C',0)) },
+            {'setup':(('er0',0xab),('CCR_C',0),('er3',0xb0)), 
+                'tests':(('er3',0xfffffffb),('CCR_H',1),('CCR_N',1),('CCR_Z',0),('CCR_V',0),('CCR_C',1)) },
+            ) ),
         ( "1b83", 0x4560, 'subs #2, er3', 0, () ),
         ( "1b93", 0x4560, 'subs #4, er3', 0, () ),
         ( "1b53", 0x4560, 'dec.w #1, r3', IF_W, () ),
@@ -535,8 +540,6 @@ class H8InstrTest(unittest.TestCase):
                 raise Exception("FAILED to decode instr:  %.8x %s - should be: %s  - is: %s" % \
                          ( va, bytez, reprOp, repr(op) ) )
             self.assertEqual((bytez, redoprepr, op.iflags), (bytez, redgoodop, iflags))
-
-            #print goodcount, op
 
             # test some things
             if not len(emutests):

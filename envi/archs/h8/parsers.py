@@ -893,6 +893,7 @@ def p_0f_1f(va, val, buf, off, tsize):
     aors = val >> 12
     diff = val & 0xf0
     if diff == 0:
+        tsize = 1
         op = val >> 4
         mnem = ('daa', 'das')[aors]
         iflags = 0
@@ -902,7 +903,7 @@ def p_0f_1f(va, val, buf, off, tsize):
                 )
     elif diff >= 0x80:
         mnem = ('mov', 'cmp')[aors]
-        op, nmnem, opers, iflags, isz = p_ERs_ERd(va, val, buf, off, tsize)
+        op, nmnem, opers, iflags, isz = p_ERs_ERd(va, val, buf, off, tsize=4)
     else:
         raise envi.InvalidInstruction(bytez=buf[off:off+16], va=va)
 
