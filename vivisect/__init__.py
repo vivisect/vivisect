@@ -166,6 +166,23 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         '''
         return self._viv_gui
 
+    def getVivGuid(self):
+        '''
+        Return the GUID for this workspace.  Every newly created VivWorkspace 
+        should have a unique GUID, for identifying a particular workspace for
+        a given binary/process-space versus another created at a different 
+        time.  Filesystem-copies of the same workspace will have the same GUID
+        by design.  This easily allows for workspace-specific GUI layouts as
+        well as comparisons of Server-based workspaces to the original file-
+        based workspace used to store to the server.
+        '''
+        vivGuid = self.getMeta('GUID')
+        if vivGuid == None:
+            vivGuid = guid()
+            self.setMeta('GUID', vivGuid)
+
+        return vivGuid
+
     def loadWorkspace(self, wsname):
         mname = self.getMeta("StorageModule")
         mod = self.loadModule(mname)
@@ -610,9 +627,6 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         Call this to ask any available analysis modules
         to do their thing...
         """
-        if self.getMeta('GUID') == None:
-            self.setMeta('GUID', guid())
-
         if self.verbose: self.vprint('Beginning analysis...')
         if self.verbose: self.vprint('...analyzing exports.')
 
