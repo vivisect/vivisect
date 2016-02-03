@@ -12,7 +12,7 @@ from envi.const import *
 from envi.archs.arm.regs import *
 from envi.archs.arm import ArmModule
 
-log = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 # CPU state (memory, regs inc SPSRs and banked registers)
 # CPU mode  (User, FIQ, IRQ, supervisor, Abort, Undefined, System)
@@ -38,19 +38,19 @@ class CoProcEmulator:       # useful for prototyping, but should be subclassed
         pass
 
     def stc(self, parms):
-        log.info("CoProcEmu: stc(%s)"%repr(parms))
+        logger.info("CoProcEmu: stc(%s)"%repr(parms))
     def ldc(self, parms):
-        log.info("CoProcEmu: ldc(%s)"%repr(parms))
+        logger.info("CoProcEmu: ldc(%s)"%repr(parms))
     def cdp(self, parms):
-        log.info("CoProcEmu: cdp(%s)"%repr(parms))
+        logger.info("CoProcEmu: cdp(%s)"%repr(parms))
     def mcr(self, parms):
-        log.info("CoProcEmu: mcr(%s)"%repr(parms))
+        logger.info("CoProcEmu: mcr(%s)"%repr(parms))
     def mcrr(self, parms):
-        log.info("CoProcEmu: mcrr(%s)"%repr(parms))
+        logger.info("CoProcEmu: mcrr(%s)"%repr(parms))
     def mrc(self, parms):
-        log.info("CoProcEmu: mrc(%s)"%repr(parms))
+        logger.info("CoProcEmu: mrc(%s)"%repr(parms))
     def mrrc(self, parms):
-        log.info("CoProcEmu: mrrc(%s)"%repr(parms))
+        logger.info("CoProcEmu: mrrc(%s)"%repr(parms))
 
 
 def _getRegIdx(idx, mode):
