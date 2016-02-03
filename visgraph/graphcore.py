@@ -13,6 +13,9 @@ from binascii import hexlify
 from exc import *
 import visgraph.pathcore as vg_pathcore
 
+def guid(size=16):
+    return hexlify(os.urandom(size))
+
 def zdict():
     return collections.defaultdict(int)
 
@@ -227,7 +230,7 @@ class Graph:
               node and will have an ID automagically assigned.
         '''
         if nid == None:
-            nid = uuid.uuid4().hex
+            nid = guid()
 
         p = self.nodes.get(nid)
         if p != None:
@@ -274,7 +277,7 @@ class Graph:
             if node != None:
                 return node
 
-            nid = uuid.uuid4().hex
+            nid = guid()
             node = (nid,{prop:value})
 
             self.nodes[nid] = node
@@ -372,7 +375,7 @@ class Graph:
 
         eprops.update(kwargs)
         if eid == None:
-            eid = uuid.uuid4().hex
+            eid = guid()
 
         n1 = node1[0]
         n2 = node2[0]
