@@ -26,7 +26,7 @@ class Amd64Module(e_i386.i386Module):
     def __init__(self):
         envi.ArchitectureModule.__init__(self, "amd64")
         self._arch_dis = Amd64Disasm()
-        
+
     def archGetRegCtx(self):
         return Amd64RegisterContext()
 

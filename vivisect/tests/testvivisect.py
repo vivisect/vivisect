@@ -54,8 +54,8 @@ class VivisectTest(unittest.TestCase):
 
 
     def getAndTestWorkspace(self, fname):
-        vw = self.getTestWorkspace(fname)
-        ans = self.getAnsWorkspace(fname)
+        vw = getTestWorkspace(fname)
+        ans = getAnsWorkspace(fname)
         self.checkTestWorkspace(vw, ans)
         return vw
 
