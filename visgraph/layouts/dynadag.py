@@ -245,6 +245,9 @@ class DynadagLayout(vg_layout.GraphLayout):
 
         done = set()
         def doit(node):
+            '''
+            Roll through all the nodes and assign them positions in their layer (based on weight)
+            '''
 
             if node[0] in done:
                 return
@@ -263,8 +266,8 @@ class DynadagLayout(vg_layout.GraphLayout):
             layer.append(node)
 
         # FIXME support more than one root!
-        rootnode = self.graph.getHierRootNodes()[0]
-        doit(rootnode)
+        for rootnode in self.graph.getHierRootNodes():
+            doit(rootnode)
 
         # Now lets use positional averaging to order nodes in the layer
         self._orderNodesByBary()

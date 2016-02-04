@@ -95,6 +95,25 @@ class Graph:
             node2 = (n2, graph['nodes'][n2])
             self.addEdge(node1, node2, eid=eid, eprops=eprops)
 
+    def merge(self, graph):
+        '''
+        duplicate another graph's contents.  subclasses may wish to modify this
+        function to duplicate more properties if present.
+        '''
+        self.wipeGraph()
+
+        self.metadata.update(graph.metadata)
+        self.formnodes.update(graph.formnodes)
+
+        for nid,nprops in graph.nodes.values():
+            self.addNode(nid=nid, nprops=nprops)
+
+        for eid, n1, n2, eprops in graph.edges.values():
+            node1 = graph.getNode(n1)
+            node2 = graph.getNode(n2)
+            self.addEdge(node1, node2, eid=eid, eprops=eprops)
+        
+
     def wipeGraph(self):
         '''
         Re-initialize the graph structures and start clean again.

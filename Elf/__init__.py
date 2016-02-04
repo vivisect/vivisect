@@ -55,32 +55,32 @@ class ElfReloc:
         return self.r_info & 0xff
 
 class Elf32Reloc(ElfReloc, vs_elf.Elf32Reloc):
-    def __init__(self):
-        vs_elf.Elf32Reloc.__init__(self)
+    def __init__(self, bigend=False):
+        vs_elf.Elf32Reloc.__init__(self, bigend=bigend)
         ElfReloc.__init__(self)
 
     def getSymTabIndex(self):
         return self.r_info >> 8
 
 class Elf32Reloca(ElfReloc, vs_elf.Elf32Reloca):
-    def __init__(self):
-        vs_elf.Elf32Reloca.__init__(self)
+    def __init__(self, bigend=False):
+        vs_elf.Elf32Reloca.__init__(self, bigend=bigend)
         ElfReloc.__init__(self)
 
     def getSymTabIndex(self):
         return self.r_info >> 8
 
 class Elf64Reloc(ElfReloc, vs_elf.Elf64Reloc):
-    def __init__(self):
-        vs_elf.Elf64Reloc.__init__(self)
+    def __init__(self, bigend=False):
+        vs_elf.Elf64Reloc.__init__(self, bigend=bigend)
         ElfReloc.__init__(self)
 
     def getSymTabIndex(self):
         return self.r_info >> 32
 
 class Elf64Reloca(ElfReloc, vs_elf.Elf64Reloca):
-    def __init__(self):
-        vs_elf.Elf64Reloca.__init__(self)
+    def __init__(self, bigend=False):
+        vs_elf.Elf64Reloca.__init__(self, bigend=bigend)
         ElfReloc.__init__(self)
 
     def getSymTabIndex(self):
@@ -112,13 +112,13 @@ class ElfDynamic:
         return dt_types.get(self.d_tag,"Unknown: %s"%hex(self.d_tag))
 
 class Elf32Dynamic(ElfDynamic, vs_elf.Elf32Dynamic):
-    def __init__(self):
-        vs_elf.Elf32Dynamic.__init__(self)
+    def __init__(self, bigend=False):
+        vs_elf.Elf32Dynamic.__init__(self, bigend=bigend)
         ElfDynamic.__init__(self)
 
 class Elf64Dynamic(ElfDynamic, vs_elf.Elf64Dynamic):
-    def __init__(self):
-        vs_elf.Elf64Dynamic.__init__(self)
+    def __init__(self, bigend=False):
+        vs_elf.Elf64Dynamic.__init__(self, bigend=bigend)
         ElfDynamic.__init__(self)
 
 class ElfSymbol:
@@ -146,13 +146,13 @@ class ElfSymbol:
         return "0x%.8x %d %s" % (self.st_value, self.st_size, self.name)
 
 class Elf32Symbol(ElfSymbol, vs_elf.Elf32Symbol):
-    def __init__(self):
-        vs_elf.Elf32Symbol.__init__(self)
+    def __init__(self, bigend=False):
+        vs_elf.Elf32Symbol.__init__(self, bigend=bigend)
         ElfSymbol.__init__(self)
 
 class Elf64Symbol(ElfSymbol, vs_elf.Elf64Symbol):
-    def __init__(self):
-        vs_elf.Elf64Symbol.__init__(self)
+    def __init__(self, bigend=False):
+        vs_elf.Elf64Symbol.__init__(self, bigend=bigend)
         ElfSymbol.__init__(self)
 
 class ElfPheader:
@@ -174,13 +174,13 @@ class ElfPheader:
             self.p_flags)
 
 class Elf32Pheader(ElfPheader, vs_elf.Elf32Pheader):
-    def __init__(self):
-        vs_elf.Elf32Pheader.__init__(self)
+    def __init__(self, bigend=False):
+        vs_elf.Elf32Pheader.__init__(self, bigend=bigend)
         ElfPheader.__init__(self)
 
 class Elf64Pheader(ElfPheader, vs_elf.Elf64Pheader):
-    def __init__(self):
-        vs_elf.Elf64Pheader.__init__(self)
+    def __init__(self, bigend=False):
+        vs_elf.Elf64Pheader.__init__(self, bigend=bigend)
         ElfPheader.__init__(self)
 
 class ElfSection:
@@ -203,13 +203,13 @@ class ElfSection:
                 self.sh_addralign)
     
 class Elf32Section(ElfSection, vs_elf.Elf32Section):
-    def __init__(self):
-        vs_elf.Elf32Section.__init__(self)
+    def __init__(self, bigend=False):
+        vs_elf.Elf32Section.__init__(self, bigend=bigend)
         ElfSection.__init__(self)
 
 class Elf64Section(ElfSection, vs_elf.Elf64Section):
-    def __init__(self):
-        vs_elf.Elf64Section.__init__(self)
+    def __init__(self, bigend=False):
+        vs_elf.Elf64Section.__init__(self, bigend=bigend)
         ElfSection.__init__(self)
 
 class Elf(vs_elf.Elf32, vs_elf.Elf64):
@@ -222,8 +222,15 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
         fd.seek(0)
         bytes = fd.read(len(e))
         e.vsParse(bytes)
-        if e.e_machine in e_machine_32:
-            vs_elf.Elf32.__init__(self)
+        
+        if e.e_data == ELFDATA2MSB:
+            bigend = True
+        else:
+            bigend = False
+            
+        #Parse 32bit header
+        if e.e_class == ELFCLASS32:
+            vs_elf.Elf32.__init__(self, bigend=bigend)
             self.bits = 32
             self.psize = 4
 
@@ -231,9 +238,9 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
             self._cls_reloca = Elf32Reloca
             self._cls_symbol = Elf32Symbol
             self._cls_section = Elf32Section
-
-        elif e.e_machine in e_machine_64:
-            vs_elf.Elf64.__init__(self)
+        #Parse 64bit header
+        elif e.e_class == ELFCLASS64:
+            vs_elf.Elf64.__init__(self, bigend=bigend)
             self.bits = 64
             self.psize = 8
 
@@ -241,12 +248,12 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
             self._cls_reloca = Elf64Reloca
             self._cls_symbol = Elf64Symbol
             self._cls_section = Elf64Section
-
         else:
-            raise Exception('Unrecognized e_machine: %d' % e.e_machine)
+            raise Exception('Unrecognized e_class: %d' % e.e_class)
 
         self.fd = fd
-
+        self.bigend = bigend
+        
         bytes = self.readAtOffset(0, len(self))
         self.vsParse(bytes)
 
@@ -287,9 +294,9 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
             plen = self.e_phentsize
             for i in range(self.e_phnum):
                 if self.bits == 32:
-                    pgm = Elf32Pheader()
+                    pgm = Elf32Pheader(bigend=self.bigend)
                 elif self.bits == 64:
-                    pgm = Elf64Pheader()
+                    pgm = Elf64Pheader(bigend=self.bigend)
                 else:
                     raise Exception('Platform not supported: %d' % (self.bits))
 
@@ -304,7 +311,7 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
         if self.e_shoff:
             # Load up the sections
             sbase = self.e_shoff
-            sec = self._cls_section()
+            sec = self._cls_section(bigend=self.bigend)
             slen = self.e_shentsize
             if len(sec) != slen:
                 raise Exception('Invalid Section Header Size: %d' % slen)
@@ -331,7 +338,7 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
         """
         for sec in self.sections:
             if sec.sh_type == SHT_SYMTAB:
-                sym = self._cls_symbol()
+                sym = self._cls_symbol(bigend=self.bigend)
                 symtab = self.readAtOffset(sec.sh_offset, sec.sh_size)
 
                 count,remain = divmod(sec.sh_size,len(sym))
@@ -351,7 +358,7 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
         if symtab == None:
             return
 
-        sym = self._cls_symbol()
+        sym = self._cls_symbol(bigend=self.bigend)
         syms = sym * (len(symtab) / len(sym))
         vstruct.VArray(elems=syms).vsParse(symtab,fast=True)
 
@@ -366,9 +373,9 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
         dynbytes = self.getSectionBytes('.dynamic')
         while dynbytes:
             if self.bits == 32:
-                dyn = Elf32Dynamic()
+                dyn = Elf32Dynamic(bigend=self.bigend)
             elif self.bits == 64:
-                dyn = Elf64Dynamic()
+                dyn = Elf64Dynamic(bigend=self.bigend)
             else:
                 raise Exception('Platform not supported: %d' % (self.bits))
             dyn.vsParse(dynbytes)
@@ -395,7 +402,7 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
                 reloccls = self._cls_reloca
 
             secbytes = self.readAtOffset(sec.sh_offset, sec.sh_size)
-            reloc = reloccls()
+            reloc = reloccls(bigend=self.bigend)
             count, remain = divmod(len(secbytes),len(reloc))
 
             relocs = reloc * count

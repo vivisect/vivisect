@@ -19,13 +19,17 @@ class watcher(viv_imp_monitor.EmulationMonitor):
     def __init__(self, vw, tryva):
         viv_imp_monitor.EmulationMonitor.__init__(self)
         self.vw = vw
-        self.badops = [vw.arch.archParseOpcode("\x00\x00\x00\x00\x00")]
         self.tryva = tryva
         self.hasret = False
         self.mndist = {}
         self.insn_count = 0
         self.lastop = None
         self.badcode = False
+
+        try:
+            self.badops = [vw.arch.archParseOpcode("\x00\x00\x00\x00\x00")]
+        except:
+            self.badops = []
 
     def logAnomaly(self, emu, eip, msg):
         self.badcode = True
