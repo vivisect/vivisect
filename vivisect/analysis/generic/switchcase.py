@@ -7,9 +7,7 @@ This will not connect switch cases which are actually explicit cmp/jz in the cod
 '''
 import logging
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
-ch = logging.StreamHandler()
-logger.addHandler(ch)
+#logger.setLevel(logging.DEBUG)
 
 import envi
 import envi.archs.i386 as e_i386
@@ -45,7 +43,7 @@ end, names are applied as appropriate.
 # TODO: complete documentation
 # TODO: figure out why KernelBase has switches which are not being discovered
 MAX_INSTR_COUNT  = 10
-MAX_CASES   = 3600
+MAX_CASES   = 5000
 
     
 class TrackingSymbolikEmulator(vs_emu.SymbolikEmulator):
@@ -487,6 +485,12 @@ def iterCases(vw, satvals, jmpva, jmpreg, rname, count, special_vals):
     if delta == 1:
         logger.info("SPECIAL: Register Index increases by <ptrsize>, not incremental")
         interval = vw.psize
+    elif delta == vw.psize:
+        logger.debug("Register Index is incremental")
+    else:
+        logger.critical("REGISTER INDEX increments by ptrsize/2??!?")
+        print repr(testaddrs)
+    #FIXME: does this ever end up being psize/2?  (ie.  4-bytes on a 64-bin binary?)  if so, then what?
 
     logger.debug("== %s / %s means interval of %s ", repr(vw.psize), repr(delta), repr(interval))
     
@@ -536,7 +540,11 @@ def iterCases(vw, satvals, jmpva, jmpreg, rname, count, special_vals):
 UNINIT_CASE_INDEX = -2
 
 def makeNames(vw, jmpva, offset, cases, deref_ops, memrefs, interval):
-    # creating names for each case
+    '''
+    Create names and xrefs for each identified case.
+    '''
+    # FIXME:  use memrefs to tie xrefs for the dynamic ptr/offsets and make ptr/numbers
+
     for addr, l in cases.items():
         # make the connections (REF_CODE) and ensure the cases continue as code.
         vw.addXref(jmpva, addr, vivisect.REF_CODE)
@@ -573,12 +581,21 @@ def makeNames(vw, jmpva, offset, cases, deref_ops, memrefs, interval):
         logger.info("OUTSTRINGS: %s", repr(outstrings))
 
         idxs = '_'.join(outstrings)
-        # FIXME: check for existing name (this might possibly be part of another switchcase)?
-        vw.makeName(addr, "case_%s_%x" % (idxs, addr))
-        logger.info("case_%s_%x", idxs, addr)
+        casename = "case_%s_%x" % (idxs, addr)
+
+        curname = vw.getName(addr) 
+        if curname != None:
+            logger.warn("%s is already labeled %s", casename, curname)
+
+        vw.makeName(addr, casename)
+        logger.info(casename)
    
-    # link the dereferncing opcode to the base of deref points.
-    if len(deref_ops):
+    # link the dereferencing opcode to the base of deref points.
+    dropslen = len(deref_ops)
+    if dropslen:
+        if dropslen > 1:
+            logger.warn("deref_ops has more than one option (using last): %r", deref_ops)
+
         memop = deref_ops[-1]   # FIXME: Hack.  if we have two, one will get all xrefs
         for memref,tgt in memrefs:
             vw.addXref(memop.va, memref, vivisect.REF_DATA)
@@ -678,7 +695,7 @@ def determineCountOffset(vw, jmpva):
         # once we identify idx, stick with it.
         if idx == None:
             idx = symvar
-            baseoff = peel(idx)
+            baseoff = peelIndexOffset(idx)
 
 
         # check the sanity of this constraint's symvar against our idx.
@@ -728,17 +745,25 @@ def determineCountOffset(vw, jmpva):
 
     return lower, upper, baseoff
 
-def peel(symobj):
+def peelIndexOffset(symobj):
+    '''
+    Peel back ignorable wrapped layers of a symbolik Index register, and track
+    offset in the process.  Once we've skipped out of the ignorable 
+    
+    '''
     offset = 0
     while True:
         # peel off o_subs and size-limiting o_ands and o_sextends
         if isinstance(symobj, o_and) and symobj.kids[1].isDiscrete() and symobj.kids[1].solve() in e_bits.u_maxes:
+            # this wrapper is a size-limiting bitmask
             pass
 
         elif isinstance(symobj, o_sub):
+            # this is an offset, used to rebase the index into a different pointer array
             offset += symobj.kids[1].solve()
 
         elif isinstance(symobj, o_sextend):
+            # sign-extension is irrelevant for indexes
             pass
 
         # anything else and we're done peeling
@@ -752,8 +777,8 @@ def peel(symobj):
 
 def analyzeFunction(vw, fva):
     '''
-    This is inserted as a function analysis module, right after codeblock analysis
-
+    Function analysis module.
+    This is inserted right after codeblock analysis
     '''
 
     lastdynlen = 0
@@ -771,6 +796,8 @@ def analyzeFunction(vw, fva):
             if funcva != fva:
                 # jmp_indir is for the entire VivWorkspace.  
                 # we're just filtering to this function here.
+                # this should be checked again when codeblocks are allowed to 
+                #   be part of multiple functions.
                 continue
 
             lower, upper, baseoff = determineCountOffset(vw, jmpva)
