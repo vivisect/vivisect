@@ -3,7 +3,6 @@ Graphcore contains all the base graph manipulation objects.
 '''
 import os
 import json
-import uuid
 import itertools
 import threading
 import collections
