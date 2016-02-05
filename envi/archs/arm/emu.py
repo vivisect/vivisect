@@ -38,19 +38,19 @@ class CoProcEmulator:       # useful for prototyping, but should be subclassed
         pass
 
     def stc(self, parms):
-        logger.info("CoProcEmu: stc(%s)", repr(parms))
+        logger.info("CoProcEmu: stc(%r)", parms)
     def ldc(self, parms):
-        logger.info("CoProcEmu: ldc(%s)", repr(parms))
+        logger.info("CoProcEmu: ldc(%r)", parms)
     def cdp(self, parms):
-        logger.info("CoProcEmu: cdp(%s)", repr(parms))
+        logger.info("CoProcEmu: cdp(%r)", parms)
     def mcr(self, parms):
-        logger.info("CoProcEmu: mcr(%s)", repr(parms))
+        logger.info("CoProcEmu: mcr(%r)", parms)
     def mcrr(self, parms):
-        logger.info("CoProcEmu: mcrr(%s)", repr(parms))
+        logger.info("CoProcEmu: mcrr(%r)", parms)
     def mrc(self, parms):
-        logger.info("CoProcEmu: mrc(%s)", repr(parms))
+        logger.info("CoProcEmu: mrc(%r)", parms)
     def mrrc(self, parms):
-        logger.info("CoProcEmu: mrrc(%s)", repr(parms))
+        logger.info("CoProcEmu: mrrc(%r)", parms)
 
 
 def _getRegIdx(idx, mode):
