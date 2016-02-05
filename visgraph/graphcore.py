@@ -12,6 +12,9 @@ from binascii import hexlify
 from exc import *
 import visgraph.pathcore as vg_pathcore
 
+def guid(size=16):
+    return hexlify(os.urandom(size))
+
 def zdict():
     return collections.defaultdict(int)
 
@@ -20,9 +23,6 @@ def ldict():
 
 def pdict():
     return collections.defaultdict(ldict)
-
-def guid():
-    return hexlify(os.urandom(16))
 
 class Graph:
 
