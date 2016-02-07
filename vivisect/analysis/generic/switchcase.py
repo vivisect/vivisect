@@ -38,7 +38,6 @@ the second phase actually wires up the switch case instance, providing new codef
 necessary, new codeblocks, and xrefs from the dynamic branch to the case handling code.  at the
 end, names are applied as appropriate.
 '''
-# TODO: try codeblock-granularity and see if that's good enough, rather than backing up by instruction
 # TODO: complete documentation
 # TODO: figure out why KernelBase has switches which are not being discovered
 MAX_INSTR_COUNT  = 10
@@ -294,25 +293,58 @@ def zero_in(vw, jmpva, oplist, special_vals={}):
     ###  NOTE: we are backing up past significant enough complexity to get the jmp data, 
     ###     next we'll zero in on the "right" ish starting point
     deref_ops = []
-    while not xreflen and icount < MAX_INSTR_COUNT:
-        loc = vw.getLocation(nva-1)
-        if loc == None:
-            # we've reached the beginning of whatever blob of code we know about
-            # if we hit this, likely we're at the beginning of a code chunk we've
-            # manually called code.
-            break
-        
-        nva = loc[0]
-        xrefs = vw.getXrefsTo(nva, vivisect.REF_CODE)
-        xrefs.extend(vw.getXrefsFrom(nva, vivisect.REF_CODE))
-        xreflen = len(xrefs)
-        icount += 1
-        
-        op = vw.parseOpcode(nva)
-        oplist.insert(0, op)
-        for oper in op.opers:
-            if oper.isDeref():
-                deref_ops.append(op)
+    #raw_input("ABOUT TO START: oplist: \n    %s" % '\n    '.join([repr(op) for op in oplist]))
+    '''
+    try:
+
+        while not xreflen and icount < MAX_INSTR_COUNT:
+            loc = vw.getLocation(nva-1)
+            if loc == None:
+                # we've reached the beginning of whatever blob of code we know about
+                # if we hit this, likely we're at the beginning of a code chunk we've
+                # manually called code.
+                break
+            
+            nva = loc[0]
+            xrefs = vw.getXrefsTo(nva, vivisect.REF_CODE)
+            xrefs.extend(vw.getXrefsFrom(nva, vivisect.REF_CODE))
+            xreflen = len(xrefs)
+            icount += 1
+            
+            op = vw.parseOpcode(nva)
+            oplist.insert(0, op)
+            for oper in op.opers:
+                if oper.isDeref():
+                    deref_ops.append(op)
+
+        #raw_input("oplist: \n    %s\n" % '\n    '.join([repr(op) for op in oplist]))
+    except Exception, e:
+        print "ERROR: %s" % repr(e)
+        sys.excepthook(*sys.exc_info())
+    '''
+
+    #'''
+    try:
+        ### alternate attempt using codeblock boundaries - may not be as reliable?
+        oplist = []
+        deref_ops = []
+        cbva = vw.getCodeBlock(jmpva)
+        nva = cbva[vivisect.CB_VA]
+
+        while nva <= jmpva:
+            op = vw.parseOpcode(nva)
+            oplist.append(op)
+            for oper in op.opers:
+                if oper.isDeref():
+                    deref_ops.insert(0, op)
+
+            nva += len(op)
+        #raw_input("oplist: \n    %s\n" % '\n    '.join([repr(op) for op in oplist]))
+
+    except Exception, e:
+        print "ERROR: %s" % repr(e)
+        sys.excepthook(*sys.exc_info())
+    #'''
 
 
     # now go forward until we have a lock
