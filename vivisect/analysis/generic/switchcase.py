@@ -38,7 +38,6 @@ the second phase actually wires up the switch case instance, providing new codef
 necessary, new codeblocks, and xrefs from the dynamic branch to the case handling code.  at the
 end, names are applied as appropriate.
 '''
-# TODO: check offsets/pointers used to calculate jmp targets and either makeNumber or makePointer
 # TODO: try codeblock-granularity and see if that's good enough, rather than backing up by instruction
 # TODO: complete documentation
 # TODO: figure out why KernelBase has switches which are not being discovered
@@ -528,7 +527,7 @@ def iterCases(vw, satvals, jmpva, jmpreg, rname, count, special_vals):
             break
         
         # this is a valid thing, we have locations...  match them up
-        memrefs.append((memtgt, addr))
+        memrefs.append((memtgt, addr, delta))
         l = cases.get(addr, [])
         l.append( vals[rname]/interval )
         cases[addr] = l
@@ -544,6 +543,8 @@ def makeNames(vw, jmpva, offset, cases, deref_ops, memrefs, interval):
     Create names and xrefs for each identified case.
     '''
     # FIXME:  use memrefs to tie xrefs for the dynamic ptr/offsets and make ptr/numbers
+
+    logger.info("memrefs: %r", memrefs)
 
     for addr, l in cases.items():
         # make the connections (REF_CODE) and ensure the cases continue as code.
@@ -596,10 +597,16 @@ def makeNames(vw, jmpva, offset, cases, deref_ops, memrefs, interval):
         if dropslen > 1:
             logger.warn("deref_ops has more than one option (using last): %r", deref_ops)
 
+        # make xrefs and numbers/pointer
         memop = deref_ops[-1]   # FIXME: Hack.  if we have two, one will get all xrefs
-        for memref,tgt in memrefs:
+        for memref,tgt,delta in memrefs:
             vw.addXref(memop.va, memref, vivisect.REF_DATA)
             vw.addXref(memref, tgt, vivisect.REF_PTR)
+
+            if delta == vw.psize:
+                vw.makePointer(memref)
+            else:
+                vw.makeNumber(memref, delta)
     
     # let's make switches easily findable.
     vw.makeName(jmpva, "switch_%.8x" % jmpva)
