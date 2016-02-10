@@ -38,8 +38,8 @@ the second phase actually wires up the switch case instance, providing new codef
 necessary, new codeblocks, and xrefs from the dynamic branch to the case handling code.  at the
 end, names are applied as appropriate.
 '''
+# FIXME: overlapping case names...  doublecheck the naming algorithm.
 # TODO: complete documentation
-# TODO: figure out why KernelBase has switches which are not being discovered
 MAX_INSTR_COUNT  = 10
 MAX_CASES   = 5000
 
@@ -110,31 +110,17 @@ class TrackingSymbolikEmulator(vs_emu.SymbolikEmulator):
 
         return Mem(symaddr, symsize)
 
-            
-def _cb_grab_unks(path, symobj, ctx):
-    '''
-    walkTree callback for grabbing unknown primitives: Var, Arg, Mem
-    '''
-    if symobj.isDiscrete():
-        pass
-
-    elif symobj.symtype == SYMT_VAR:
-        if symobj not in ctx:
-            ctx.append(symobj)
-
-    elif symobj.symtype == SYMT_ARG:
-        if symobj not in ctx:
-            ctx.append(symobj)
-        
-    elif symobj.symtype ==  SYMT_MEM:
-        if symobj not in ctx:
-            ctx.append(symobj)
-        
-    return symobj
-    
 def contains(symobj, subobj):
     '''
     search through an AST looking for a particular type of thing.
+
+    args:
+        symobj - the AST to walk through
+        subobj - the value to compare against (symobj.solve())
+
+    returns:
+        contains - whether or not the AST contains the sought value
+        path - the operator path to get to that object (last one seen)
     '''
     def _cb_contains(path, symobj, ctx):
         '''
@@ -142,12 +128,7 @@ def contains(symobj, subobj):
         '''
         if symobj.solve() == ctx['compare']:
             ctx['contains'] = True
-
-        # FIXME: this needs to have some way to back up the path (chop) when 
-        # AST ascention occurs
-        if isinstance(symobj, Operator):
-            if not ctx['contains']:
-                ctx['path'].append(symobj)
+            ctx['path'] = tuple(path)
 
         return symobj
 
@@ -156,7 +137,7 @@ def contains(symobj, subobj):
             'path'     : []
           }
     symobj.walkTree(_cb_contains, ctx)
-    return ctx.get('contains'), ctx
+    return ctx.get('contains'), ctx['path']
 
 # Command Line Analysis and Linkage of Switch Cases - Microsoft and Posix - taking arguments "count" and "offset"
 def makeSwitch(vw, jmpva, count, offset, funcva=None):
@@ -211,24 +192,13 @@ def makeSwitch(vw, jmpva, count, offset, funcva=None):
 
     # build opcode and check initial requirements
     op = vw.parseOpcode(jmpva)
+
     if not (op.iflags & envi.IF_BRANCH):    # basically, not isCall() is what we're after.  
         return
     if len(op.opers) != 1:
         return
+
     oper = op.opers[0]
-
-    '''
-    validOper = False
-    # make sure we have an approved register for switch cases for the architecture
-    validOperands = vw.arch.archGetValidSwitchcaseOperand()
-    for voper in validOperands:
-        if isinstance(oper, voper):
-            validOper = True
-            break
-
-    if not validOper:
-        return
-    '''
 
     # get jmp reg
     rctx = vw.arch.archGetRegCtx()
@@ -248,14 +218,18 @@ def makeSwitch(vw, jmpva, count, offset, funcva=None):
         
     oplist = [op]
 
-    found, satvals, rname, jmpreg, deref_ops, debug  = zero_in(vw, jmpva, oplist, special_vals)
+    # zero in on the details of the switch
+    found, satvals, rname, jmpreg, deref_ops, debug  = \
+            zero_in(vw, jmpva, oplist, special_vals)
    
     if not found:
         logger.info("Switch Analysis failure, couldn't zero-in on constraints/values for dynamic branch")
         return debug
     
+    # iterate through switch cases
+    cases, memrefs, interval = \
+            iterCases(vw, satvals, jmpva, jmpreg, rname, count, special_vals) 
 
-    cases, memrefs, interval = iterCases(vw, satvals, jmpva, jmpreg, rname, count, special_vals) 
     # should we analyze for derefs here too?  should that be part of the SysEmu?
     logger.info("cases:       %s", repr(cases))
     logger.info("deref ops:   %s", repr(deref_ops))
@@ -265,7 +239,8 @@ def makeSwitch(vw, jmpva, count, offset, funcva=None):
     if not len(cases):
         logger.info("no cases found... doesn't look like a switch case.")
         return
-   
+    
+    # mark names and make appropriate xrefs
     makeNames(vw, jmpva, offset, cases, deref_ops, memrefs, interval)
 
     # store some metadata in a VaSet
@@ -276,6 +251,10 @@ def makeSwitch(vw, jmpva, count, offset, funcva=None):
 def zero_in(vw, jmpva, oplist, special_vals={}):
     '''
     track the ideal instructions to symbolikally analyze for the switch case.
+    
+        jmpva - the va of the jmp <reg> opcode
+        oplist - the list of opcodes occuring in this analysis
+        special_vals - dict of "reg":val pairs which must be (eg.  EBX for PIE binaries)
     '''
     # setup symboliks/register context objects
     rctx = vw.arch.archGetRegCtx()
@@ -286,66 +265,23 @@ def zero_in(vw, jmpva, oplist, special_vals={}):
     sctx = vs_anal.getSymbolikAnalysisContext(vw)
     xlate = sctx.getTranslator()
     
-    icount = 0
-    xreflen = 0
-    nva = jmpva
-    # first loop...  back up the truck  until we hit some change in basic block
+    # first loop...  back up the truck to the start of the codeblock
     ###  NOTE: we are backing up past significant enough complexity to get the jmp data, 
     ###     next we'll zero in on the "right" ish starting point
+
+    oplist = []
     deref_ops = []
-    #raw_input("ABOUT TO START: oplist: \n    %s" % '\n    '.join([repr(op) for op in oplist]))
-    '''
-    try:
+    cbva = vw.getCodeBlock(jmpva)
+    nva = cbva[vivisect.CB_VA]
 
-        while not xreflen and icount < MAX_INSTR_COUNT:
-            loc = vw.getLocation(nva-1)
-            if loc == None:
-                # we've reached the beginning of whatever blob of code we know about
-                # if we hit this, likely we're at the beginning of a code chunk we've
-                # manually called code.
-                break
-            
-            nva = loc[0]
-            xrefs = vw.getXrefsTo(nva, vivisect.REF_CODE)
-            xrefs.extend(vw.getXrefsFrom(nva, vivisect.REF_CODE))
-            xreflen = len(xrefs)
-            icount += 1
-            
-            op = vw.parseOpcode(nva)
-            oplist.insert(0, op)
-            for oper in op.opers:
-                if oper.isDeref():
-                    deref_ops.append(op)
+    while nva <= jmpva:
+        op = vw.parseOpcode(nva)
+        oplist.append(op)
+        for oper in op.opers:
+            if oper.isDeref():
+                deref_ops.insert(0, op)
 
-        #raw_input("oplist: \n    %s\n" % '\n    '.join([repr(op) for op in oplist]))
-    except Exception, e:
-        print "ERROR: %s" % repr(e)
-        sys.excepthook(*sys.exc_info())
-    '''
-
-    #'''
-    try:
-        ### alternate attempt using codeblock boundaries - may not be as reliable?
-        oplist = []
-        deref_ops = []
-        cbva = vw.getCodeBlock(jmpva)
-        nva = cbva[vivisect.CB_VA]
-
-        while nva <= jmpva:
-            op = vw.parseOpcode(nva)
-            oplist.append(op)
-            for oper in op.opers:
-                if oper.isDeref():
-                    deref_ops.insert(0, op)
-
-            nva += len(op)
-        #raw_input("oplist: \n    %s\n" % '\n    '.join([repr(op) for op in oplist]))
-
-    except Exception, e:
-        print "ERROR: %s" % repr(e)
-        sys.excepthook(*sys.exc_info())
-    #'''
-
+        nva += len(op)
 
     # now go forward until we have a lock
     # this next section tells us where we can resolve the jmp target, and what reg is used
@@ -364,7 +300,10 @@ def zero_in(vw, jmpva, oplist, special_vals={}):
             xlate.translateOpcode(xop)
 
         effs = xlate.getEffects()
-        found, rname, jmpreg, val, satvals = determineCaseIndex(vw, jmpva, regname, special_vals, effs, debug)
+
+        # determine which reg is the switch case index (and other details)
+        found, rname, jmpreg, val, satvals = \
+                determineCaseIndex(vw, jmpva, regname, special_vals, effs, debug)
 
         logger.info("0x%x %s %s", val, satvals, deref_ops)
         logger.debug("\n".join([str(op) for op in oplist]))
@@ -374,10 +313,22 @@ def zero_in(vw, jmpva, oplist, special_vals={}):
 
     return found, satvals, rname, jmpreg, deref_ops, debug
 
-def determineCaseIndex(vw, jmpva, regname, special_vals, effs, debug, verbose=False):
+def determineCaseIndex(vw, jmpva, regname, special_vals, effs, debug):
     '''
     determine what the switch case index register is, basically from the jmpva and 
     previously discovered info
+    
+    args:
+        jmpva - the va of the jmp <reg> opcode
+        regname - the <reg> from jmp <reg>.  must be string as it would appear in SymEmu
+        special_vals - dict of "reg":val pairs which must be (eg.  EBX for PIE binaries)
+        effs - symbolik effects of the opcodes for this analysis
+        debug - list to store debugging data [deprecated]
+
+    returns:
+        found - whether we found the case index or not
+        rname - index register name
+        satvals - dict of register/value pairs 
     '''
     def _cb_grab_vars(path, symobj, ctx):
         '''
@@ -387,16 +338,13 @@ def determineCaseIndex(vw, jmpva, regname, special_vals, effs, debug, verbose=Fa
             if symobj.name not in ctx:
                 ctx.append(symobj.name)
 
-    #FIXME: this is ugly.
-    logger.info("\n%s\n%s\n%s\n%s\n%s\n", jmpva, regname, special_vals, effs, debug)
+    logger.info("\njmpva: %r\nregname: %r\nspecial_vals: %r\neffs: %r\ndebug: %r\n",\
+            jmpva, regname, special_vals, effs, debug)
 
-    archname = vw.getMeta("Architecture")
-    satvals = None
-
-    rctx = vw.arch.archGetRegCtx()
     rnames = vw.arch.archGetRegisterGroup('general')
 
     found = False
+    satvals = None
     semu = TrackingSymbolikEmulator(vw)
     aeffs = semu.applyEffects(effs)
 
@@ -409,23 +357,23 @@ def determineCaseIndex(vw, jmpva, regname, special_vals, effs, debug, verbose=Fa
     # However, to get to that ideal (if possible), let's break down what we need from a C perspective
     # as well as what types we currently need to deal with to get there...
 
-    # determine unknown registers
+    # determine unknown registers in this symbolik object
     unks = []
     jmpreg.walkTree(_cb_grab_vars, unks)
     logger.debug("unknown regs: %s", unks)
     
-    # this solving model only accounts for two regs being fabricated:  the index reg, and the module baseva (optional)
+    # this solving model only accounts for two regs being fabricated:  
+    #       the index reg, and the module baseva (optional)
     if len(unks) > 2:
+        logger.debug("bailing on this dynamic branch: more than 2 unknowns in this AST")
         return False, 0, 0, 0
 
     # cycle through possible case regs, check for valid location by providing index 0
-    #### ARG! NASTIEST THING EVAR.  i feel dirty
-    rname = None
     for rname in unks:
         if rname not in rnames:
             continue
 
-        # check for case 0 (should always work)
+        # check for case 0 (should always work, when we have the right index reg)
         vals = { rname:0 }
         
         if rname in special_vals:
@@ -435,7 +383,7 @@ def determineCaseIndex(vw, jmpva, regname, special_vals, effs, debug, verbose=Fa
             
         logger.info("vals: %s", repr(vals))
 
-        # fix up for windows base - why PE only?
+        # fix up for windows base - why PE only?  FIXME: CAN THIS HAPPEN ELSEWHERE?  like when PIE_ebx is set and added to special_vals?
         if vw.getMeta('Format') == 'pe':
             imagename = vw.getFileByVa(jmpva)
             imagebase = vw.filemeta[imagename]['imagebase']
@@ -461,16 +409,16 @@ def determineCaseIndex(vw, jmpva, regname, special_vals, effs, debug, verbose=Fa
 
         debug.append((semu.getSymSnapshot(), jmpreg))
 
+    logger.info("\ndebug: %r\n", debug)
     return found, rname, jmpreg, val, satvals
 
-def getRegRange(count, rname, satvals, special_vals, terminator_addr, start=0, interval=1, verbose=False):
+def getRegRange(count, rname, satvals, special_vals, terminator_addr, start=0, interval=1):
+    '''
+
+    '''
     regrange = vs_sub.srange(rname, int(count), imin=start, iinc=interval)
     for reg,val in satvals.items():
         if val == 0: continue
-
-        #FIXME: REMOVE THESE LOGS
-        logger.debug(repr(vars(regrange)))
-        logger.debug(repr(vars(vs_sub.sset(reg, [val]))))
 
         regrange *= vs_sub.sset(reg, [val])
         terminator_addr.append(val)
@@ -484,6 +432,13 @@ def getRegRange(count, rname, satvals, special_vals, terminator_addr, start=0, i
 def iterCases(vw, satvals, jmpva, jmpreg, rname, count, special_vals):
     '''
     let's exercize the correct number of instances, as provided by "count"
+
+        satvals - 
+        jmpva - the va of the jmp <reg> opcode
+        jmpreg - symbolik state of jmp <reg> register
+        rname - string name of jmp <reg> register (as found in SymEmu)
+        count - identified number of cases handled by this dynbranch
+        special_vals - dict of "reg":val pairs which must be (eg.  EBX for PIE binaries)
     '''
     cases = {}
     memrefs = []
@@ -499,7 +454,7 @@ def iterCases(vw, satvals, jmpva, jmpreg, rname, count, special_vals):
     testemu = TrackingSymbolikEmulator(vw)
 
     # check once through to see if our index reg moves by 1, 4, or 8
-    regrange = getRegRange(2, rname, satvals, special_vals, [], interval=interval, verbose=vw.verbose)
+    regrange = getRegRange(2, rname, satvals, special_vals, [], interval=interval)
 
     # ratchet through the regrange set to determine index interval
     for vals in regrange:
@@ -563,7 +518,6 @@ def iterCases(vw, satvals, jmpva, jmpreg, rname, count, special_vals):
         l = cases.get(addr, [])
         l.append( vals[rname]/interval )
         cases[addr] = l
-        # FIXME: make the target locations numbers?  pointers? based on size of read.
 
     return cases, memrefs, interval
 
