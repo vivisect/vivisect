@@ -271,6 +271,42 @@ def zero_in(vw, jmpva, oplist, special_vals={}):
 
     oplist = []
     deref_ops = []
+
+    #raw_input("ABOUT TO START: oplist: \n    %s" % '\n    '.join([repr(op) for op in oplist]))
+    icount = 0
+    xreflen = 0
+    nva = jmpva
+
+    #FIXME:  this relies on backing up, but not intelligently.  this may need to have a codeblock-aware intelligent pather.
+    try:
+
+        while not xreflen and icount < MAX_INSTR_COUNT:
+            loc = vw.getLocation(nva-1)
+            if loc == None:
+                # we've reached the beginning of whatever blob of code we know about
+                # if we hit this, likely we're at the beginning of a code chunk we've
+                # manually called code.
+                break
+            
+            nva = loc[0]
+            xrefs = vw.getXrefsTo(nva, vivisect.REF_CODE)
+            xrefs.extend(vw.getXrefsFrom(nva, vivisect.REF_CODE))       # FIXME: broken for libc.
+            xreflen = len(xrefs)
+            icount += 1
+            
+            op = vw.parseOpcode(nva)
+            oplist.insert(0, op)
+            for oper in op.opers:
+                if oper.isDeref():
+                    deref_ops.append(op)
+
+        #raw_input("oplist: \n    %s\n" % '\n    '.join([repr(op) for op in oplist]))
+    except Exception, e:
+        print "ERROR: %s" % repr(e)
+        sys.excepthook(*sys.exc_info())
+    '''
+
+
     cbva = vw.getCodeBlock(jmpva)
     nva = cbva[vivisect.CB_VA]
 
@@ -282,6 +318,7 @@ def zero_in(vw, jmpva, oplist, special_vals={}):
                 deref_ops.insert(0, op)
 
         nva += len(op)
+    '''
 
     # now go forward until we have a lock
     # this next section tells us where we can resolve the jmp target, and what reg is used
@@ -729,12 +766,17 @@ def determineCountOffset(vw, jmpva):
         else:
             logger.info("Unhandled comparator:  %s\n", repr(cons))
 
+    # if upper is None:  we need to exercize upper until something doesn't make sense.  
+    # we also need to make sure we don't analyze non-Switches.  
+    if upper == None:
+        upper = MAX_CASES
+
     # if we failed to identify the index, the upper bound, or the offset, 
-    if None in (idx, upper):
+    if idx == None:
         logger.info("NON-SWITCH analysis terminated: 0x%x", jmpva)
         return (None, None, None)
 
-    logger.info("Lower: %d\tUpper: %d\tOffset: %d\tIndex: %s", lower, upper, baseoff, idx)
+    logger.info("Lower: %r\tUpper: %r\tOffset: %r\tIndex: %r", lower, upper, baseoff, idx)
 
     return lower, upper, baseoff
 
@@ -794,7 +836,7 @@ def analyzeFunction(vw, fva):
                 continue
 
             lower, upper, baseoff = determineCountOffset(vw, jmpva)
-            if None in (lower, upper): 
+            if None in (lower, ): 
                 logger.info("something odd in count/offset calculation... skipping 0x%x...", jmpva)
                 continue
 
