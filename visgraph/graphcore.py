@@ -308,7 +308,7 @@ class Graph:
         Delete all listed properties from all nodes in the graph.
 
         Example:
-            g.delNodesProps(props=('up', 'down'))
+            g.delNodesProps(('foo', 'bar'))
         '''
         for prop in props:
             for node in self.getNodesByProp(prop):
