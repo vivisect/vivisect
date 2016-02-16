@@ -303,7 +303,7 @@ class Graph:
                 self.nodeprops[prop].pop(pval,None)
         return pval
 
-    def delNodesProps(self, props)):
+    def delNodesProps(self, props):
         '''
         Delete all listed properties from all nodes in the graph.
 
