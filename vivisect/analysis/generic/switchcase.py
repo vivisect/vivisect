@@ -38,7 +38,12 @@ the second phase actually wires up the switch case instance, providing new codef
 necessary, new codeblocks, and xrefs from the dynamic branch to the case handling code.  at the
 end, names are applied as appropriate.
 '''
-# FIXME: overlapping case names...  doublecheck the naming algorithm.
+# FIXME: make all switchcase analysis for a given function cohesive (ie. don't finish up with naming until the entire function has been analyzed).  this will break cohesion if we use the CLI to add switchcases, but so be it.
+# FIXME: overlapping case names...  doublecheck the naming algorithm.  ahh... different switch-cases colliding on handlers?  is this legit?  or is it because we don't stop correctly?
+# CHECK: are the algorithms for "stopping" correct?  currently getting 1 switch case for several cases in libc-32
+# FIXME: cycle multiple paths until getting a good one.
+# TODO: regrange description of Symbolik Variables... normalize so "eax" and "eax+4" make sense.
+# FIXME: libc 64bit doesn't work at all.  why?
 # TODO: complete documentation
 MAX_INSTR_COUNT  = 10
 MAX_CASES   = 5000
@@ -241,6 +246,7 @@ def makeSwitch(vw, jmpva, count, offset, funcva=None):
         return
     
     # mark names and make appropriate xrefs
+    #FIXME: make all switchcase analysis for a given function cohesive.  this will break if we use the CLI to add switchcases, but so be it.
     makeNames(vw, jmpva, offset, cases, deref_ops, memrefs, interval)
 
     # store some metadata in a VaSet
@@ -546,9 +552,22 @@ def iterCases(vw, satvals, jmpva, jmpreg, rname, count, special_vals):
             logger.info("found terminator_addr.  quitting.")
             break
         
-        if len(cases) and len(vw.getXrefsTo(memtgt)):
-            logger.info("target location (0x%x) has xrefs.", memtgt)
-            break
+        if len(cases):
+            xrefsto = vw.getXrefsTo(memtgt)
+            # if there is an xref to this target from within this function, we're still ok... ish?
+            if len(xrefsto):
+                good = True
+                for xrfr,xrto,xrt,xrtinfo in xrefsto:
+                    xrfrfunc = vw.getFunction(xrfr)
+                    if xrfrfunc == fva:
+                        continue
+
+                    # this one is *not* in the same function
+                    good = False
+
+                if not good:
+                    logger.info("target location (0x%x) has xrefs.", memtgt)
+                    break
         
         # this is a valid thing, we have locations...  match them up
         memrefs.append((memtgt, addr, delta))
@@ -666,117 +685,126 @@ def determineCountOffset(vw, jmpva):
     sctx.getSymbolikGraph(funcva, graph)
 
     pathGenFactory = viv_graph.PathGenerator(graph)
+
     pathGen=pathGenFactory.getFuncCbRoutedPaths(funcva, jmpcb[0], 1, maxsec=20)
 
     # get symbolik paths
     spaths = sctx.getSymbolikPaths(funcva, pathGen, graph=graph)
-    semu, aeffs = spaths.next()
 
-    # FIXME: one path using this method may allow for layered opposing constraints, potentially
-    #        giving imposible results.  this shouldn't cause a problem, but it's possible.
+    lower = upper = -1
+    while lower >= upper:
+        #############
 
-    operobj = xlate.getOperObj(op, 0)
-    if operobj.symtype != SYMT_VAR:
-        logger.debug('\nBAILING - not a VAR memory location')
-        return None,None,None
+        semu, aeffs = spaths.next()
 
-    acon = semu.getSymVariable(operobj.name)
+        # FIXME: one path using this method may allow for layered opposing constraints, potentially
+        #        giving imposible results.  this shouldn't cause a problem, but it's possible.
+        # FIXME: TODO: regrange type of constraints calculation :)
 
-    # grab all the constraints from start of function to here.
-    fullcons = [eff for eff in aeffs if eff.efftype==EFFTYPE_CONSTRAIN]
-    logger.debug('\nFULLCONS: \n%s','\n\t'.join([repr(con) for con in fullcons]))
+        operobj = xlate.getOperObj(op, 0)
+        if operobj.symtype != SYMT_VAR:
+            logger.debug('\nBAILING - not a VAR memory location')
+            return None,None,None
 
-    # grab all the multiplication effects in the operand ast.  muls will be 
-    # used to calculate a pointer into some offset/address array
-    muls = []
-    acon.walkTree(_cb_grab_muls, muls)
-    logger.debug('\nMULS: \n'+repr(muls))
+        acon = semu.getSymVariable(operobj.name)
 
-    # this algorithm depends on the index variable being in the last Const comparison.  
-    # these options may be best used with a heuristic (if one doesn't make us happy, 
-    # fall through to a different one).
+        # grab all the constraints from start of function to here.
+        fullcons = [eff for eff in aeffs if eff.efftype==EFFTYPE_CONSTRAIN]
+        logger.debug('\nFULLCONS: \n%s','\n\t'.join([repr(con) for con in fullcons]))
 
-    # loop through fullcons looking for comparisons of symidx against Consts.  last one should be our index.
-    idx = None
-    upper = None
-    lower = 0
-    
-    for constraint in fullcons[::-1]:
-        cons = constraint.cons
-        # skip constraints that aren't bounding index
-        if not cons.symtype in (SYMT_CON_GT, SYMT_CON_GE, SYMT_CON_LT, SYMT_CON_LE): 
-            logger.debug("SKIPPING: cons = %s", repr(cons))
-            continue
+        # grab all the multiplication effects in the operand ast.  muls will be 
+        # used to calculate a pointer into some offset/address array
+        muls = []
+        acon.walkTree(_cb_grab_muls, muls)
+        logger.debug('\nMULS: \n'+repr(muls))
 
-        logger.debug(repr(cons))
+        # this algorithm depends on the index variable being in the last Const comparison.  
+        # these options may be best used with a heuristic (if one doesn't make us happy, 
+        # fall through to a different one).
 
-
-        if cons._v1.symtype == SYMT_CONST:
-            symcmp = cons._v1
-            symvar = cons._v2
-        elif cons._v2.symtype == SYMT_CONST:
-            symvar = cons._v1
-            symcmp = cons._v2
-        else:
-            # neither side of the constraint is a CONST.  this constraint does 
-            # not set static bounds on idx
-            continue
-
-        # once we identify idx, stick with it.
-        if idx == None:
-            idx = symvar
-            baseoff = peelIndexOffset(idx)
-
-
-        # check the sanity of this constraint's symvar against our idx.
-        d = 0
-        if idx != symvar:
-            d = idx.solve() - symvar.solve()
-            if abs(d) > 1000:
+        # loop through fullcons looking for comparisons of symidx against Consts.  last one should be our index.
+        idx = None
+        upper = None
+        lower = 0
+        
+        for constraint in fullcons[::-1]:
+            cons = constraint.cons
+            # skip constraints that aren't bounding index
+            if not cons.symtype in (SYMT_CON_GT, SYMT_CON_GE, SYMT_CON_LT, SYMT_CON_LE): 
+                logger.debug("SKIPPING: cons = %s", repr(cons))
                 continue
 
-        logger.info("* "+ repr(cons._v2)+ "\t"+repr(cons._v1)+"\t"+ repr(cons))
+            logger.debug(repr(cons))
 
 
-        # FIXME: probably don't want to reset things once they're set.  this could be some other indicator for a nested switchcase...  need to get one of those for testing.
-        if cons.symtype == SYMT_CON_GT:
-            # this is setting the lower bound
-            if lower != 0:
-                logger.info("==we're resetting a lower bound:  %s -> %s", lower, symcmp)
-            lower = symcmp.solve() + 1
-            
-        elif cons.symtype == SYMT_CON_GE:
-            # this is setting the lower bound
-            if lower != 0:
-                logger.info("==we're resetting a lower bound:  %s -> %s", lower, symcmp)
-            lower = symcmp.solve()
-            
-        elif cons.symtype == SYMT_CON_LT:
-            # this is setting the upper bound
-            if upper != None:
-                logger.info("==we're resetting a upper bound:  %s -> %s", upper, symcmp)
-            upper = symcmp.solve() - 1
-            
-        elif cons.symtype == SYMT_CON_LE:
-            # this is setting the upper bound
-            if upper != None:
-                logger.info("==we're resetting a upper bound:  %s -> %s", upper, symcmp)
-            upper = symcmp.solve()
+            if cons._v1.symtype == SYMT_CONST:
+                symcmp = cons._v1
+                symvar = cons._v2
+            elif cons._v2.symtype == SYMT_CONST:
+                symvar = cons._v1
+                symcmp = cons._v2
+            else:
+                # neither side of the constraint is a CONST.  this constraint does 
+                # not set static bounds on idx
+                continue
 
-        else:
-            logger.info("Unhandled comparator:  %s\n", repr(cons))
+            # once we identify idx, stick with it.
+            if idx == None:
+                idx = symvar
+                baseoff = peelIndexOffset(idx)
 
-    # if upper is None:  we need to exercize upper until something doesn't make sense.  
-    # we also need to make sure we don't analyze non-Switches.  
-    if upper == None:
-        upper = MAX_CASES
 
-    # if we failed to identify the index, the upper bound, or the offset, 
-    if idx == None:
-        logger.info("NON-SWITCH analysis terminated: 0x%x", jmpva)
-        return (None, None, None)
+            # check the sanity of this constraint's symvar against our idx.
+            d = 0
+            if idx != symvar:
+                d = idx.solve() - symvar.solve()
+                if abs(d) > 1000:
+                    continue
 
-    logger.info("Lower: %r\tUpper: %r\tOffset: %r\tIndex: %r", lower, upper, baseoff, idx)
+            logger.info("* "+ repr(cons._v2)+ "\t"+repr(cons._v1)+"\t"+ repr(cons))
+
+
+            # FIXME: probably don't want to reset things once they're set.  this could be some other indicator for a nested switchcase...  need to get one of those for testing.
+            if cons.symtype == SYMT_CON_GT:
+                # this is setting the lower bound
+                if lower != 0:
+                    logger.info("==we're resetting a lower bound:  %s -> %s", lower, symcmp)
+                lower = symcmp.solve() + 1
+                
+            elif cons.symtype == SYMT_CON_GE:
+                # this is setting the lower bound
+                if lower != 0:
+                    logger.info("==we're resetting a lower bound:  %s -> %s", lower, symcmp)
+                lower = symcmp.solve()
+                
+            elif cons.symtype == SYMT_CON_LT:
+                # this is setting the upper bound
+                if upper != None:
+                    logger.info("==we're resetting a upper bound:  %s -> %s", upper, symcmp)
+                upper = symcmp.solve() - 1
+                
+            elif cons.symtype == SYMT_CON_LE:
+                # this is setting the upper bound
+                if upper != None:
+                    logger.info("==we're resetting a upper bound:  %s -> %s", upper, symcmp)
+                upper = symcmp.solve()
+
+            else:
+                logger.info("Unhandled comparator:  %s\n", repr(cons))
+
+        # if upper is None:  we need to exercize upper until something doesn't make sense.  
+        # we also need to make sure we don't analyze non-Switches.  
+        if upper == None:
+            upper = MAX_CASES
+
+        # if we failed to identify the index, the upper bound, or the offset, 
+        if idx == None:
+            logger.info("NON-SWITCH analysis terminated: 0x%x", jmpva)
+            return (None, None, None)
+
+        logger.info("Lower: %r\tUpper: %r\tOffset: %r\tIndex: %r", lower, upper, baseoff, idx)
+
+    #################
 
     return lower, upper, baseoff
 
