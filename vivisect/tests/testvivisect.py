@@ -90,7 +90,7 @@ class VivisectTest(unittest.TestCase):
 
     @vivbins.require
     def test_viv_vector_getImportCallers(self):
-        vw = self.getTestWorkspace('testexe_i386.exe')
+        vw = getTestWorkspace('testexe_i386.exe')
         cargs = [64, 65, 66, 67, 68, 69, 70]
         argvs = [ argv for (va,argv) in viv_vector.trackImportInputs(vw, 'kernel32.CreateFileA') ]
 
