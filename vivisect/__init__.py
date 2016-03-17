@@ -899,7 +899,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
         note: differs from the IMemory interface by checking loclist
         '''
-        b, off = self.getMemoryBlock(va)
+        off, b = self.getByteDef(va)
         if arch == envi.ARCH_DEFAULT:
             loctup = self.getLocation(va)
             # XXX - in the case where we've set a location on what should be an 
