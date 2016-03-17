@@ -430,6 +430,18 @@ class MemoryObject(IMemory):
     def getMemoryMaps(self):
         return [ mmap for mva, mmaxva, mmap, mbytes in self._map_defs ]
 
+    def getMemoryBlock(self, va):
+        '''
+        Returns the memory map that contains va as a string, along with the offset from the base
+        '''
+        for mva, mmaxva, mmap, mbytes in self._map_defs:
+            if va >= mva and va < mmaxva:
+                mva, msize, mperms, mfname = mmap
+                if not mperms & MM_READ:
+                    raise envi.SegmentationViolation(va)
+                offset = va - mva
+                return mbytes, offset
+
     def readMemory(self, va, size):
 
         for mva, mmaxva, mmap, mbytes in self._map_defs:
