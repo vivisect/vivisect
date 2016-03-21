@@ -899,7 +899,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
         note: differs from the IMemory interface by checking loclist
         '''
-        b = self.readMemory(va, 16)
+        off, b = self.getByteDef(va)
         if arch == envi.ARCH_DEFAULT:
             loctup = self.getLocation(va)
             # XXX - in the case where we've set a location on what should be an 
@@ -908,7 +908,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             if loctup != None and loctup[ L_TINFO ] and loctup[ L_LTYPE ] == LOC_OP:
                 arch = loctup[ L_TINFO ]
 
-        return self.imem_archs[ (arch & envi.ARCH_MASK) >> 16 ].archParseOpcode(b, 0, va)
+        return self.imem_archs[ (arch & envi.ARCH_MASK) >> 16 ].archParseOpcode(b, off, va)
 
     def makeOpcode(self, va, op=None, arch=envi.ARCH_DEFAULT):
         """
