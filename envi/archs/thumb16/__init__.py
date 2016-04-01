@@ -9,10 +9,10 @@ class Thumb16Module(ArmModule):
         ArmModule.__init__(self, name='thumb16')
         self._arch_dis = th_disasm.Thumb16Disasm()
 
-class Thumb2Module(Thumb16Module):
+class ThumbModule(Thumb16Module):
 
     def __init__(self):
-        ArmModule.__init__(self, name='thumb2')
-        self._arch_dis = th_disasm.Thumb2Disasm()
+        ArmModule.__init__(self, name='thumb')
+        self._arch_dis = th_disasm.ThumbDisasm()
 
 

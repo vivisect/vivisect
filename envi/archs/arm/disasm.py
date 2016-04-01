@@ -1346,6 +1346,7 @@ class ArmOpcode(envi.Opcode):
 
         if not self.iflags & envi.IF_NOFALL:
             ret.append((self.va + self.size, envi.BR_FALL | self._def_arch))
+            print "getBranches: next...", hex(self.va), self.size
 
         # FIXME if this is a move to PC god help us...
         flags = 0
@@ -1404,6 +1405,10 @@ class ArmOpcode(envi.Opcode):
                 mnem += 'h'
             elif self.iflags & IF_T:
                 mnem += 't'
+            if self.iflags & IF_F32:
+                mnem += '.f32'
+            elif self.iflags & IF_F64:
+                mnem += '.f64'
         #FIXME: Advanced SIMD modifiers (IF_V*)
         if self.iflags & IF_THUMB32:
             mnem += ".w"
@@ -1443,6 +1448,10 @@ class ArmOpcode(envi.Opcode):
                 mnem += 'h'
             elif self.iflags & IF_T:
                 mnem += 't'
+            if self.iflags & IF_F32:
+                mnem += '.f32'
+            elif self.iflags & IF_F64:
+                mnem += '.f64'
         if self.iflags & IF_THUMB32:
             mnem += ".w"
         
@@ -1499,14 +1508,14 @@ class ArmRegOper(ArmOperand):
         emu.setRegister(self.reg, val)
 
     def render(self, mcanv, op, idx):
-        rname = arm_regs[self.reg][0]
+        rname = rctx.getRegisterName(self.reg)
         mcanv.addNameText(rname, typename='registers')
         if self.oflags & OF_W:
             mcanv.addText( "!" )
 
 
     def repr(self, op):
-        rname = arm_regs[self.reg][0]
+        rname = rctx.getRegisterName(self.reg)
         if self.oflags & OF_W:
             rname += "!"
         return rname
@@ -1840,8 +1849,8 @@ class ArmRegOffsetOper(ArmOperand):
     def render(self, mcanv, op, idx):
         pom = ('-','')[(self.pubwl>>3)&1]
         idxing = self.pubwl & 0x12
-        basereg = arm_regs[self.base_reg][0]
-        offreg = arm_regs[self.offset_reg][0]
+        basereg = rctx.getRegisterName(self.base_reg)
+        offreg = rctx.getRegisterName(self.offset_reg)
 
         mcanv.addText('[')
         mcanv.addNameText(basereg, typename='registers')
@@ -1859,8 +1868,8 @@ class ArmRegOffsetOper(ArmOperand):
     def repr(self, op):
         pom = ('-','')[(self.pubwl>>3)&1]
         idxing = self.pubwl & 0x12
-        basereg = arm_regs[self.base_reg][0]
-        offreg = arm_regs[self.offset_reg][0]
+        basereg = rctx.getRegisterName(self.base_reg)
+        offreg = rctx.getRegisterName(self.offset_reg)
         if (idxing&0x10) == 0:         # post-indexed
             tname = '[%s], %s%s' % (basereg, pom, offreg)
         elif idxing == 0x10:  # offset addressing, not updated
@@ -2186,6 +2195,72 @@ class ArmRegListOper(ArmOperand):
                 s.append('^')
             return " ".join(s)
     
+class ArmExtRegListOper(ArmOperand):
+    def __init__(self, firstreg, count, size):
+        self.firstreg = firstreg
+        self.count = count
+        self.size = size    # 0 or 1, meaning 32bit or 64bit
+
+    def __eq__(self, oper):
+        if not isinstance(oper, self.__class__):
+            return False
+        if self.firstreg != oper.firstreg:
+            return False
+        if self.count != oper.count:
+            return False
+        if self.size != oper.size:
+            return False
+        return True
+
+    def isDeref(self):
+        return True
+
+    def render(self, mcanv, op, idx):
+        regbase = ("S%d", "D%d")[self.size]
+        mcanv.addText('{')
+        for l in xrange(self.count):
+            #vreg = REGS_VECTOR_BASE_IDX + self.firstreg + l
+            #mcanv.addNameText(arm_regs[l][0], typename='registers')
+            vreg = self.firstreg + l
+            mcanv.addNameText(regbase % vreg, typename='registers')
+            mcanv.addText(', ')
+
+        mcanv.addText('}')
+
+    def getOperValue(self, op, emu=None):
+        '''
+        Returns a list of the values in the targeted Extension Registers
+        '''
+        if emu == None:
+            return None
+        reglist = []
+        for regidx in xrange(self.firstreg, self.firstreg + self.count):
+            reg = emu.getRegister(REGS_VECTOR_BASE_IDX + regidx)
+            reglist.append(reg)
+        return reglist
+
+    def setOperValue(self, op, vals, emu=None):
+        '''
+        Takes a list of values and places them in the targeted Extension Registers
+        '''
+        if emu == None:
+            return None
+        
+        base = REGS_VECTOR_BASE_IDX + self.firstreg
+        for vidx in range(len(vals)):
+            emu.setRegister(base + vidx, vals[vidx])
+
+    def repr(self, op):
+        regbase = ("S%d", "D%d")[self.size]
+        s = [ "{" ]
+        for l in xrange(self.count):
+            vreg = self.firstreg + l
+            s.append(regbase % vreg)
+            s.append(', ')
+
+        s.append('}')
+        return " ".join(s)
+    
 aif_flags = (None, 'f','i','if','a','af','ai','aif')
 class ArmPSRFlagsOper(ArmOperand):
     def __init__(self, flags):
@@ -2358,30 +2433,8 @@ class ArmDisasm:
         """
         opbytes = bytez[offset:offset+4]
         opval, = struct.unpack(self.fmt, opbytes)
-        
-        cond = opval >> 28
 
-        # Begin the table lookup sequence with the first 3 non-cond bits
-        encfam = (opval >> 25) & 0x7
-        if cond == COND_EXTENDED:
-            enc = IENC_UNCOND
-
-        else:
-
-            enc,nexttab = inittable[encfam]
-            if nexttab != None: # we have to sub-parse...
-                for mask,val,penc in nexttab:
-                    if (opval & mask) == val:
-                        enc = penc
-                        break
-
-        # If we don't know the encoding by here, we never will ;)
-        if enc == None:
-            raise envi.InvalidInstruction(mesg="No encoding found!",
-                    bytez=bytez[offset:offset+4], va=va)
-
-        opcode, mnem, olist, flags = ienc_parsers[enc](opval, va+8)
-
+        opcode, mnem, olist, flags = self.doDecode(va, opval, bytez, offset)
         # since our flags determine how the instruction is decoded later....  
         # performance-wise this should be set as the default value instead of 0, but this is cleaner
         #flags |= envi.ARCH_ARMV7
@@ -2405,10 +2458,41 @@ class ArmDisasm:
 
 
         # FIXME conditionals are currently plumbed as "prefixes".  Perhaps normalize to that...
-        op = ArmOpcode(va, opcode, mnem, cond, 4, olist, flags)
+        op = stemCell(va, opcode, mnem, cond, 4, olist, flags)
+        print vars(op), hex(flags)
         op.encoder = enc    #FIXME: DEBUG CODE
 
         return op
+        
+    def doDecode(self, va, opval, bytez, offset):
+        '''
+        Actually do the parsing.  This function uses opval for all parsing.
+        '''
+        cond = opval >> 28
+
+        # Begin the table lookup sequence with the first 3 non-cond bits
+        encfam = (opval >> 25) & 0x7
+        if cond == COND_EXTENDED:
+            enc = IENC_UNCOND
+
+        else:
+
+            enc,nexttab = inittable[encfam]
+            if nexttab != None: # we have to sub-parse...
+                for mask,val,penc in nexttab:
+                    if (opval & mask) == val:
+                        enc = penc
+                        break
+
+        # If we don't know the encoding by here, we never will ;)
+        if enc == None:
+            raise envi.InvalidInstruction(mesg="No encoding found!",
+                    bytez=bytez[offset:offset+4], va=va)
+
+        opcode, mnem, olist, flags = ienc_parsers[enc](opval, va+8)
+
+        return opcode, mnem, olist, flags
+
 
 if __name__ == '__main__':
     import envi.archs
