@@ -1405,7 +1405,32 @@ class ArmOpcode(envi.Opcode):
                 mnem += 'h'
             elif self.iflags & IF_T:
                 mnem += 't'
-            if self.iflags & IF_F32:
+
+            if self.iflags & IF_S32F64:
+                mnem += '.s32.f64'
+            elif self.iflags & IF_S32F32:
+                mnem += '.s32.f32'
+            elif self.iflags & IF_U32F64:
+                mnem += '.u32.f64'
+            elif self.iflags & IF_U32F32:
+                mnem += '.u32.f32'
+            elif self.iflags & IF_F64S32:
+                mnem += '.f64.s32'
+            elif self.iflags & IF_F64U32:
+                mnem += '.f64.u32'
+            elif self.iflags & IF_F32S32:
+                mnem += '.f32.s32'
+            elif self.iflags & IF_F32U32:
+                mnem += '.f32.u32'
+            elif self.iflags & IF_F3264:
+                mnem += '.f32.f64'
+            elif self.iflags & IF_F6432:
+                mnem += '.f64.f32'
+            elif self.iflags & IF_F1632:
+                mnem += '.f16.f32'
+            elif self.iflags & IF_F3216:
+                mnem += '.f32.f16'
+            elif self.iflags & IF_F32:
                 mnem += '.f32'
             elif self.iflags & IF_F64:
                 mnem += '.f64'
@@ -1660,6 +1685,22 @@ class ArmImmOper(ArmOperand):
     def repr(self, op):
         val = self.getOperValue(op)
         return '#0x%.2x' % (val)
+
+class ArmImmFPOper(ArmImmOper):
+    def __init__(self, val, precision=0):
+        self.val = val
+        self.precision = precision
+
+    def getOperValue(self, op, emu=None):
+        return float(self.val)
+
+    def render(self, mcanv, op, idx):
+        val = self.getOperValue(op)
+        mcanv.addNameText('#%.2f' % (val))
+
+    def repr(self, op):
+        val = self.getOperValue(op)
+        return '#%.2f' % (val)
 
 
 class ArmScaledOffsetOper(ArmOperand):
@@ -2434,6 +2475,7 @@ class ArmDisasm:
         opbytes = bytez[offset:offset+4]
         opval, = struct.unpack(self.fmt, opbytes)
 
+        cond = opval >> 28
         opcode, mnem, olist, flags = self.doDecode(va, opval, bytez, offset)
         # since our flags determine how the instruction is decoded later....  
         # performance-wise this should be set as the default value instead of 0, but this is cleaner
@@ -2458,9 +2500,10 @@ class ArmDisasm:
 
 
         # FIXME conditionals are currently plumbed as "prefixes".  Perhaps normalize to that...
-        op = stemCell(va, opcode, mnem, cond, 4, olist, flags)
-        print vars(op), hex(flags)
-        op.encoder = enc    #FIXME: DEBUG CODE
+        #op = stemCell(va, opcode, mnem, cond, 4, olist, flags)
+        op = ArmOpcode(va, opcode, mnem, cond, 4, olist, flags)
+        #print vars(op), hex(flags)
+        #op.encoder = enc    #FIXME: DEBUG CODE
 
         return op
         

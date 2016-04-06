@@ -138,7 +138,8 @@ def bl_imm23(va, val, val2): # bl
         imm |= 0xff000000
 
     oper0 = ArmPcOffsetOper(e_bits.signed(imm,4), va=va)
-    return ((oper0, ) , mnem, opcode, flags)
+    #return ((oper0, ) , mnem, opcode, flags)
+    return opcode, mnem, (oper0, ), flags
 
 def pc_imm11(va, value): # b
     imm = e_bits.signed(((value & 0x7ff)<<1), 3)
@@ -871,9 +872,6 @@ def fp_dp(va, val1, val2):
             n = (opc2<<1) | N
 
         # D and S, depending on sz
-
-        #FIXME: THIS IS IN NEED OF SOMETHING ELSE... rctx.getRegisterIndex("S%d".....)
-
         rbase = ("S%d","D%d")[sz]
         iflags |= (IF_F32, IF_F64)[sz]
 
@@ -918,30 +916,171 @@ def fp_dp(va, val1, val2):
                     ArmImmOper(imm),
                     )
 
-        # VMOV p935
-        elif opc3 & 1 and opc2 == 0:
-            mnem = 'vmov'
+        elif opc2 == 0:
+            # VMOV p935
+            if opc3 & 1:
+                mnem = 'vmov'
+
+            # VABS p822 T2/A2
+            elif opc3 == 3:
+                mnem = 'vabs'
+
             opers = (
                     ArmRegOper(rctx.getRegisterIndex(rbase%d)),
                     ArmRegOper(rctx.getRegisterIndex(rbase%m)),
                     )
 
-        # VABS p822 T2/A2
-        elif opc3 == 3 and opc2 == 0:
-            mnem = 'vabs'
+        elif opc2 == 1:
+            # VNEG p966 T2/A2
+            if opc3 == 0x1:
+                mnem = 'vneg'
+
+            # VSQRT p1056
+            elif opc3 == 0x3:
+                mnem = 'vsqrt'
+
             opers = (
                     ArmRegOper(rctx.getRegisterIndex(rbase%d)),
                     ArmRegOper(rctx.getRegisterIndex(rbase%m)),
                     )
 
-        # VNEG p966
-
-        # VSQRT p1056
         # VCVTB, VCVTT p878
+        elif opc2 in (2,3) and opc3 in (1,3):
+            T = N
+            iflags |= (IF_F1632, IF3216)[val1&1]
+            mnem = ('vcvtb','vcvtt')[T]
+
+            opers = (
+                    ArmRegOper(rctx.getRegisterIndex(rbase%d)),
+                    ArmRegOper(rctx.getRegisterIndex(rbase%m)),
+                    )
+
         # VCMP, VCMPE p862
+        elif opc2 in (4,5) and opc3 in (1,3):
+            E = N
+            mnem = ('vcmp','vcmpe')[E]
+            
+            if opc2 == 4:
+                opers = (
+                        ArmRegOper(rctx.getRegisterIndex(rbase%d)),
+                        ArmRegOper(rctx.getRegisterIndex(rbase%m)),
+                        )
+            else:
+                opers = (
+                        ArmRegOper(rctx.getRegisterIndex(rbase%d)),
+                        ArmImmFPOper(0.0),
+                        )
+
         # VCVT p874
+        elif opc2 == 7 and opc3 == 3:
+            mnem = 'vcvt'
+            if sz:
+                d = (Vd<<1) | D
+                m = (M<<4) | Vm
+                iflags |= IF_F32F64
+                rbase1 = "S%d"
+                rbase2 = "D%d"
+            else:
+                d = (D<<4) | Vd
+                m = (Vm<<1) | M
+                iflags |= IF_F64F32
+                rbase1 = "D%d"
+                rbase2 = "S%d"
+
+            opers = (
+                    ArmRegOper(rctx.getRegisterIndex(rbase1%d)),
+                    ArmRegOper(rctx.getRegisterIndex(rbase2%m)),
+                    )
+
         # VCVT, VCVTR p868
+        elif opc2 in (0b1000,0b1100,0b1101) and opc3 & 1:
+            op = opc3>>1
+            # S32F64, S32F32, U32F64, U32F32, F64TM, F32TM??
+            to_int = opc2 & 0b100
+            if to_int:
+                mnem = 'vcvtr'
+                signed = opc2&1
+                round_zero = op
+
+                d = (Vd<<1) | D
+                if sz:
+                    m = (M<<4) | Vm
+                    iflags |= (IF_U32F64, IF_S32F64)[signed]
+                    rbase1 = "S%d"
+                    rbase2 = "D%d"
+                else:
+                    m = (Vm<<1) | M
+                    iflags |= (IF_U32F32, IF_S32F32)[signed]
+                    rbase1 = "S%d"
+                    rbase2 = "S%d"
+
+            else:
+                mnem = 'vcvt'
+                signed = op
+                round_nearest = False
+                m = (Vm<<1) | M
+                if sz:
+                    d = (D<<4) | Vd
+                    iflags |= (IF_F64U32, IF_F64S32)[signed]
+                    rbase1 = "D%d"
+                    rbase2 = "S%d"
+                else:
+                    d = (Vd<<1) | D
+                    iflags |= (IF_F32U32, IF_F32S32)[signed]
+                    rbase1 = "S%d"
+                    rbase2 = "S%d"
+
+            opers = (
+                    ArmRegOper(rctx.getRegisterIndex(rbase1%d)),
+                    ArmRegOper(rctx.getRegisterIndex(rbase2%m)),
+                    )
+
         # VCVT p872
+        elif opc2 in (0b1010,0b1011,0b1110,0b1111) and opc3&1:
+            mnem = 'vcvt'
+            U = (val1>>12) & 1 # thumb only.  arm gets U from bit 22
+            imm6 = val1 & 0x3f
+            op = sz
+            Q = opc3
+
+            if imm6 & 0b000111:
+                raise InvalidInstruction('fp/adv simd parsing error.  alternate encoding p267.',va=va, bytez=bytez)
+            if imm6 & 0b011111:
+                raise InvalidInstruction('fp/adv simd parsing error.  undefined behavior.',va=va, bytez=bytez)
+
+            if op:      # FIXME: not sure what to do with these.
+                #round_zero = True  - like, what does this mean?
+                if U:
+                    iflags |= IF_U32F32
+                else:
+                    iflags |= IF_S32F32
+            else:
+                #round_nearest = True
+                if U:
+                    iflags |= IF_F32U32
+                else:
+                    iflags |= IF_F32S32
+
+            #esize = 32
+            frac_bits = 64 - imm6
+            #elements = 2
+
+            d = (D<<4) | Vd
+            m = (M<<4) | Vm
+
+            if Q:
+                rbase = "Q%d"
+            else:
+                rbase = "D%d"
+
+            #regs = Q + 1
+
+
+            opers = (
+                    ArmRegOper(rctx.getRegisterIndex(rbase%d)),
+                    ArmRegOper(rctx.getRegisterIndex(rbase%m)),
+                    ArmImmOper(frac_bits),
+                    )
 
     return (opcode, mnem, opers, iflags)
 
@@ -979,7 +1118,7 @@ def adv_simd_32(va, val1, val2):
 
                 opcode, mnem = ( (INS_VHADD,'vhadd'), (INS_VHSUB,'vhsub') )[op]
                 flags = (IF_S8, IF_S16, IF_S32, 0, IF_U8, IF_U16, IF_U32)[(u<<2)|size]
-                return opers, mnem, opcode, flags
+                return opcode, mnem, opers, flags
 
         elif a==1:
             raise Exception("Advanced SIMD instructions not all implemented")
@@ -1335,6 +1474,7 @@ class ThumbDisasm:
         if flags & IF_THUMB32:
             val2, = struct.unpack("<H", bytez[offset+2:offset+4])
             #print "============" + repr( opermkr(va+4, val, val2) )
+            #print opermkr
             nopcode, nmnem, olist, nflags = opermkr(va+4, val, val2)
             if nmnem != None:   # allow opermkr to set the mnem
                 mnem = nmnem
@@ -1352,6 +1492,7 @@ class ThumbDisasm:
         # performance-wise this should be set as the default value instead of 0, but this is cleaner
         flags |= self._optype
 
+        print opcode, mnem, olist, flags
         if (  len(olist) and 
                 isinstance(olist[0], ArmRegOper) and
                 olist[0].involvesPC() and 
