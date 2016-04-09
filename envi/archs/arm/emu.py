@@ -88,7 +88,7 @@ def c1000(flags):
     return (flags & 6) == 2
 
 def c1001(flags):
-    return (flags & c) in (0, 4, 6) # C clear or Z set
+    return (flags & 0xc) in (0, 4, 6) # C clear or Z set
 
 def c1010(flags):
     return (flags & 9) in (0, 9)    # N == V
@@ -133,7 +133,7 @@ class ArmEmulator(ArmModule, ArmRegisterContext, envi.Emulator):
 
         ArmRegisterContext.__init__(self)
 
-        self.addCallingConvention("Arm Arch Procedure Call", aapcs)
+        self.addCallingConvention("armcall", aapcs)
 
     def undefFlags(self):
         """
@@ -212,10 +212,12 @@ class ArmEmulator(ArmModule, ArmRegisterContext, envi.Emulator):
                 raise envi.UnsupportedInstruction(self, op)
             x = meth(op)
 
+        
         if x == None:
             pc = self.getProgramCounter()
             x = pc+op.size
 
+        # should we set this to the odd address or even during thumb?  (debugger)
         self.setProgramCounter(x)
 
     def doPush(self, val):
@@ -354,6 +356,35 @@ class ArmEmulator(ArmModule, ArmRegisterContext, envi.Emulator):
 
         return self.intSubBase(src1, src2, Sflag)
 
+    def AddWithCarry(self, src1, src2, carry=0, Sflag=0, rd=0):
+        udst = e_bits.unsigned(src1, 4)
+        usrc = e_bits.unsigned(src2, 4)
+
+        sdst = e_bits.signed(src1, 4)
+        ssrc = e_bits.signed(src2, 4)
+
+        ures = (udst + usrc + carry) & 0xffffffff
+        sres = (sdst + ssrc + carry)
+        result = ures & 0x7fffffff
+
+        #newcarry = (ures != result)
+        newcarry = (udst >= usrc)
+        overflow = (sres != result)
+
+        if Sflag:
+            curmode = self.getProcMode() 
+            if rd == 15:
+                if(curmode != PM_sys and curmode != PM_usr):
+                    self.setCPSR(self.getSPSR(curmode))
+                else:
+                    raise Exception("Messed up opcode...  adding to r15 from PM_usr or PM_sys")
+            self.setFlag(PSR_N_bit, e_bits.is_signed(ures, 4))
+            self.setFlag(PSR_Z_bit, not ures)
+            self.setFlag(PSR_C_bit, newcarry)
+            self.setFlag(PSR_V_bit, overflow)
+
+        return ures
+
     def intSubBase(self, src1, src2, Sflag=0, rd=0):
         # So we can either do a BUNCH of crazyness with xor and shifting to
         # get the necessary flags here, *or* we can just do both a signed and
@@ -378,7 +409,7 @@ class ArmEmulator(ArmModule, ArmRegisterContext, envi.Emulator):
                     raise Exception("Messed up opcode...  adding to r15 from PM_usr or PM_sys")
             self.setFlag(PSR_N_bit, e_bits.is_signed(ures, 4))
             self.setFlag(PSR_Z_bit, not ures)
-            self.setFlag(PSR_C_bit, not e_bits.is_unsigned_carry(ures, 4))
+            self.setFlag(PSR_C_bit, e_bits.is_unsigned_carry(ures, 4))
             self.setFlag(PSR_V_bit, e_bits.is_signed_overflow(sres, 4))
 
         return ures
@@ -493,6 +524,11 @@ class ArmEmulator(ArmModule, ArmRegisterContext, envi.Emulator):
     i_msr = i_mov
     i_adr = i_mov
 
+    def i_mvn(self, op):
+        val = self.getOperValue(op, 1)
+        val ^= 0xffffffff
+        self.setOperValue(op, 0, val)
+
     def i_str(self, op):
         # hint: covers str, strb, strbt, strd, strh, strsh, strsb, strt   (any instr where the syntax is str{condition}stuff)
         val = self.getOperValue(op, 0)
@@ -543,6 +579,17 @@ class ArmEmulator(ArmModule, ArmRegisterContext, envi.Emulator):
     def i_bl(self, op):
         self.setRegister(REG_LR, self.getRegister(REG_PC))
         return self.getOperValue(op, 0)
+
+    def i_bx(self, op):
+        target = self.getOperValue(op, 0)
+        self.setFlag(PSR_T_bit, target & 1)
+        return target
+
+    def i_blx(self, op):
+        self.setRegister(REG_LR, self.getRegister(REG_PC))
+        target = self.getOperValue(op, 0)
+        self.setFlag(PSR_T_bit, target & 1)
+        return target
 
     def i_tst(self, op):
         src1 = self.getOperValue(op, 0)
@@ -658,7 +705,37 @@ class ArmEmulator(ArmModule, ArmRegisterContext, envi.Emulator):
         src2 = self.getOperValue(op, 1)
         Sflag = op.iflags & IF_PSR_S
 
+        origeflags = self.getRegister(REG_CPSR)
+
         res = self.intSubBase(src1, src2, Sflag, op.opers[0].reg)
+        eflags1 = self.getRegister(REG_CPSR)
+
+        self.setRegister(REG_CPSR, origeflags)
+        res2 = self.AddWithCarry(src1, 0xffffffff^src2, 1, Sflag, op.opers[0].reg)
+        eflags2 = self.getRegister(REG_CPSR)
+
+        if res != res2 or eflags1 != eflags2:
+            print "==== uhoh: intSubBase and AddWithCarry methods differ!: 0x%x:  %s    %x ? %x  (%x / %x ? %x) "  %\
+                    (op.va, op, res, res2, origeflags, eflags1, eflags2)
+
+    def i_cmn(self, op):
+        # Src op gets sign extended to dst
+        src1 = self.getOperValue(op, 0)
+        src2 = self.getOperValue(op, 1)
+        Sflag = op.iflags & IF_PSR_S
+
+        origeflags = self.getRegister(REG_CPSR)
+
+        res = self.intSubBase(src1, src2, Sflag, op.opers[0].reg)
+        eflags1 = self.getRegister(REG_CPSR)
+
+        self.setRegister(REG_CPSR, origeflags)
+        res2 = self.AddWithCarry(src1, src2, 0, Sflag, op.opers[0].reg)
+        eflags2 = self.getRegister(REG_CPSR)
+
+        if res != res2 or eflags1 != eflags2:
+            print "==== uhoh: intSubBase and AddWithCarry methods differ!: 0x%x:  %s    %x ? %x  (%x / %x ? %x) "  %\
+                    (op.va, op, res, res2, origeflags, eflags1, eflags2)
 
     i_cmps = i_cmp
 

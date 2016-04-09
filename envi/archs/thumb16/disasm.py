@@ -1492,7 +1492,7 @@ class ThumbDisasm:
         # performance-wise this should be set as the default value instead of 0, but this is cleaner
         flags |= self._optype
 
-        print opcode, mnem, olist, flags
+        #print opcode, mnem, olist, flags
         if (  len(olist) and 
                 isinstance(olist[0], ArmRegOper) and
                 olist[0].involvesPC() and 

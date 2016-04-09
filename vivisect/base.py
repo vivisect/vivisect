@@ -638,8 +638,6 @@ class VivCodeFlowContext(e_codeflow.CodeFlowContext):
             branches = [br for br in branches if not self._mem.isLocType(br[0],LOC_IMPORT)]
 
             self._mem.makeOpcode(op.va, op=op)
-            print repr(branches)
-            print [len(x) for x in branches]
             return branches
 
         return ()

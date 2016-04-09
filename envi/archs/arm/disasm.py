@@ -333,11 +333,15 @@ def p_misc1(opval, va): #
     #rot_imm = (opval>>8) & 0xf
     #imm = opval & 0xff
     #Rm = opval & 0xf
+    iflags = 0
+
     if opval & 0x0ff000f0 == 0x01200010:
         opcode = INS_BX
         mnem = 'bx'
         Rm = opval & 0xf
         olist = ( ArmRegOper(Rm, va=va), )
+        if Rm == REG_LR:
+            iflags |= envi.IF_RET
         
     elif opval & 0x0ff000f0 == 0x01600010:  
         opcode = (IENC_MISC << 16) + 4
@@ -354,6 +358,7 @@ def p_misc1(opval, va): #
         mnem = 'blx'
         Rm = opval & 0xf
         olist = ( ArmRegOper(Rm, va=va), )
+        iflags |= envi.IF_CALL
         
     elif opval & 0x0f9000f0 == 0x01000050:  #all qadd/qsub's
         opcode = (IENC_MISC << 16) + 7
@@ -379,7 +384,7 @@ def p_misc1(opval, va): #
                 mesg="p_misc1: invalid instruction",
                 bytez=struct.pack("<I", opval), va=va)
         
-    return (opcode, mnem, olist, 0)
+    return (opcode, mnem, olist, iflags)
 
 
 
@@ -1346,7 +1351,7 @@ class ArmOpcode(envi.Opcode):
 
         if not self.iflags & envi.IF_NOFALL:
             ret.append((self.va + self.size, envi.BR_FALL | self._def_arch))
-            print "getBranches: next...", hex(self.va), self.size
+            #print "getBranches: next...", hex(self.va), self.size
 
         # FIXME if this is a move to PC god help us...
         flags = 0
@@ -1573,7 +1578,7 @@ class ArmRegShiftRegOper(ArmOperand):
     def getOperValue(self, op, emu=None):
         if emu == None:
             return None
-        return shifters[self.shtype](emu.getRegister(self.reg), emu.getRegister(shreg))
+        return shifters[self.shtype](emu.getRegister(self.reg), emu.getRegister(self.shreg))
 
     def render(self, mcanv, op, idx):
         rname = arm_regs[self.reg][0]
@@ -1739,6 +1744,19 @@ class ArmScaledOffsetOper(ArmOperand):
     def isDeref(self):
         return True
 
+    def setOperValue(self, op, emu=None, val=None):
+        # can't survive without an emulator
+        if emu == None:
+            return None
+
+        pubwl = self.pubwl >> 2
+        b = pubwl & 1
+
+        addr = self.getOperAddr(op, emu)
+
+        fmt = ("<I", "B")[b]
+        emu.writeMemoryFormat(addr, fmt, val)
+
     def getOperValue(self, op, emu=None, writeback=False):
         if emu == None:
             return None
@@ -1768,10 +1786,10 @@ class ArmScaledOffsetOper(ArmOperand):
         if emu == None:
             return None
 
-        if self.basereg == REG_PC:
+        if self.base_reg == REG_PC:
             addr = self.va
         elif emu != None:
-            addr = emu.getRegister(self.basereg)
+            addr = emu.getRegister(self.base_reg)
         else:
             return None
 
@@ -2502,8 +2520,6 @@ class ArmDisasm:
         # FIXME conditionals are currently plumbed as "prefixes".  Perhaps normalize to that...
         #op = stemCell(va, opcode, mnem, cond, 4, olist, flags)
         op = ArmOpcode(va, opcode, mnem, cond, 4, olist, flags)
-        #print vars(op), hex(flags)
-        #op.encoder = enc    #FIXME: DEBUG CODE
 
         return op
         
