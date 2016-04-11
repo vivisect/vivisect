@@ -35,7 +35,7 @@ class ArmWorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_arm.ArmEmulator):
         vw = self.vw # Save a dereference many many times
 
         while len(todo):
-          try:  
+          #try:  
 
             va,esnap,self.curpath = todo.pop()
 
@@ -129,8 +129,8 @@ class ArmWorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_arm.ArmEmulator):
                         self.emumon.logAnomaly(self, starteip, str(e))
 
                     break # If we exc during execution, this branch is dead.
-          except:
-              sys.excepthook(*sys.exc_info())
+          #except:
+          #    sys.excepthook(*sys.exc_info())
 
 '''
 st0len gratuitously from wikipedia:

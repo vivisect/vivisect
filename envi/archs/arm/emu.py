@@ -436,6 +436,19 @@ class ArmEmulator(ArmModule, ArmRegisterContext, envi.Emulator):
         res = self.logicalAnd(op)
         self.setOperValue(op, 0, res)
         
+    def i_orr(self, op):
+        val1 = self.getOperValue(op, 1)
+        val2 = self.getOperValue(op, 2)
+        val = val1 | val2
+        self.setOperValue(op, 0, val)
+
+        Sflag = op.iflags & IF_S # FIXME: IF_PSR_S???
+        if Sflag:
+            self.setFlag(PSR_N_bit, e_bits.is_signed(val, 4))
+            self.setFlag(PSR_Z_bit, not val)
+            self.setFlag(PSR_C_bit, e_bits.is_unsigned_carry(val, 4))
+            self.setFlag(PSR_V_bit, e_bits.is_signed_overflow(val, 4))
+        
     def i_stm(self, op):
         srcreg = op.opers[0].reg
         addr = self.getOperValue(op,0)
@@ -707,16 +720,16 @@ class ArmEmulator(ArmModule, ArmRegisterContext, envi.Emulator):
 
         origeflags = self.getRegister(REG_CPSR)
 
-        res = self.intSubBase(src1, src2, Sflag, op.opers[0].reg)
-        eflags1 = self.getRegister(REG_CPSR)
-
-        self.setRegister(REG_CPSR, origeflags)
         res2 = self.AddWithCarry(src1, 0xffffffff^src2, 1, Sflag, op.opers[0].reg)
         eflags2 = self.getRegister(REG_CPSR)
 
-        if res != res2 or eflags1 != eflags2:
-            print "==== uhoh: intSubBase and AddWithCarry methods differ!: 0x%x:  %s    %x ? %x  (%x / %x ? %x) "  %\
-                    (op.va, op, res, res2, origeflags, eflags1, eflags2)
+        self.setRegister(REG_CPSR, origeflags)
+        res = self.intSubBase(src1, src2, Sflag, op.opers[0].reg)
+        eflags1 = self.getRegister(REG_CPSR)
+
+        #if res != res2 or eflags1 != eflags2:
+        #    print "==== uhoh: intSubBase and AddWithCarry methods differ!: 0x%x:  %s    %x ? %x  (%x / %x ? %x) "  %\
+        #            (op.va, op, res, res2, origeflags, eflags1, eflags2)
 
     def i_cmn(self, op):
         # Src op gets sign extended to dst
@@ -726,19 +739,31 @@ class ArmEmulator(ArmModule, ArmRegisterContext, envi.Emulator):
 
         origeflags = self.getRegister(REG_CPSR)
 
-        res = self.intSubBase(src1, src2, Sflag, op.opers[0].reg)
-        eflags1 = self.getRegister(REG_CPSR)
-
-        self.setRegister(REG_CPSR, origeflags)
         res2 = self.AddWithCarry(src1, src2, 0, Sflag, op.opers[0].reg)
         eflags2 = self.getRegister(REG_CPSR)
 
-        if res != res2 or eflags1 != eflags2:
-            print "==== uhoh: intSubBase and AddWithCarry methods differ!: 0x%x:  %s    %x ? %x  (%x / %x ? %x) "  %\
-                    (op.va, op, res, res2, origeflags, eflags1, eflags2)
+        self.setRegister(REG_CPSR, origeflags)
+        res = self.intSubBase(src1, src2, Sflag, op.opers[0].reg)
+        eflags1 = self.getRegister(REG_CPSR)
+
+        #if res != res2 or eflags1 != eflags2:
+        #    print "==== uhoh: intSubBase and AddWithCarry methods differ!: 0x%x:  %s    %x ? %x  (%x / %x ? %x) "  %\
+        #            (op.va, op, res, res2, origeflags, eflags1, eflags2)
 
     i_cmps = i_cmp
 
+    def i_bic(self, op):
+        val = self.getOperValue(op, 1)
+        const = self.getOperValue(op, 2)
+        val &= ~const
+        self.setOperValue(op, 0, val)
+
+        Sflag = op.iflags & IF_S # FIXME: IF_PSR_S???
+        if Sflag:
+            self.setFlag(PSR_N_bit, e_bits.is_signed(val, 4))
+            self.setFlag(PSR_Z_bit, not val)
+            self.setFlag(PSR_C_bit, e_bits.is_unsigned_carry(val, 4))
+            self.setFlag(PSR_V_bit, e_bits.is_signed_overflow(val, 4))
 
     # Coprocessor Instructions
     def i_stc(self, op):

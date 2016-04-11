@@ -1462,7 +1462,7 @@ class ThumbDisasm:
         oplen = None
         flags = 0
         va &= -2
-        val, = struct.unpack("<H", bytez[offset:offset+2])
+        val, = struct.unpack_from("<H", bytez, offset)
         try:
             opcode, mnem, opermkr, flags = self._tree.getInt(val, 16)
         except TypeError:
@@ -1472,7 +1472,7 @@ class ThumbDisasm:
 
         #print "FLAGS: ", hex(va),hex(flags)
         if flags & IF_THUMB32:
-            val2, = struct.unpack("<H", bytez[offset+2:offset+4])
+            val2, = struct.unpack_from("<H", bytez, offset+2)
             #print "============" + repr( opermkr(va+4, val, val2) )
             #print opermkr
             nopcode, nmnem, olist, nflags = opermkr(va+4, val, val2)

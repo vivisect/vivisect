@@ -1749,12 +1749,12 @@ class ArmScaledOffsetOper(ArmOperand):
         if emu == None:
             return None
 
-        pubwl = self.pubwl >> 2
-        b = pubwl & 1
+        b = (self.pubwl >> 2) & 1
 
         addr = self.getOperAddr(op, emu)
 
         fmt = ("<I", "B")[b]
+        val &= (0xffffffff, 0xff)[b]
         emu.writeMemoryFormat(addr, fmt, val)
 
     def getOperValue(self, op, emu=None, writeback=False):
@@ -1870,7 +1870,7 @@ class ArmRegOffsetOper(ArmOperand):
     def isDeref(self):
         return True
 
-    def getOperValue(self, op, emu=None):
+    def getOperValue(self, op, emu=None, writeback=True):
         if emu == None:
             return None
 
@@ -1979,6 +1979,7 @@ class ArmImmOffsetOper(ArmOperand):
         addr = self.getOperAddr(op, emu)
 
         fmt = ("<I", "B")[b]
+        val &= (0xffffffff, 0xff)[b]
         emu.writeMemoryFormat(addr, fmt, val)
 
     def getOperValue(self, op, emu=None):
