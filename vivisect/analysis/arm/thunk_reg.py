@@ -97,6 +97,8 @@ def analyzeFunction(vw, fva, prepend=False):
 
             if vw.getFunctionMeta(fva, 'PIE_reg') == None:
                 vw.setFunctionMeta(fva, 'PIE_reg', reg)
+                vw.setComment('Position Indendent Code Register Set: ' % \
+                        vw.arch._arch_reg.getRegisterName(reg))
 
             if vw.getMeta('PIE_GOT') == None:
                 vw.setMeta('PIE_GOT', got)

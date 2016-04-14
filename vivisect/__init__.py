@@ -781,6 +781,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         if self.isReadable(va-4):
             plen = self.readMemValue(va-2, 2) # pascal string length
             dlen = self.readMemValue(va-4, 4) # delphi string length
+
         offset, bytes = self.getByteDef(va)
         maxlen = len(bytes) - offset
         count = 0
@@ -790,17 +791,22 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             # already set as a location.
             if (count > 0):
                 loc = self.getLocation(va+count)
-                if loc and loc[L_LTYPE] == LOC_STRING:
-                    return loc[L_VA] - (va + count) + loc[L_SIZE]
-                return -1
+                if loc != None:
+                    if loc[L_LTYPE] == LOC_STRING:
+                        return loc[L_VA] - (va + count) + loc[L_SIZE]
+                    return -1
+
             c = bytes[offset+count]
             # The "strings" algo basically says 4 or more...
             if ord(c) == 0 and count >= 4:
                 return count
+
             elif ord(c) == 0 and (count == dlen or count == plen):
                 return count
+
             if c not in string.printable:
                 return -1
+
             count += 1
         return -1
 
