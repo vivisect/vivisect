@@ -34,23 +34,23 @@ class ArmArchitectureProcedureCall(envi.CallingConvention):
 aapcs = ArmArchitectureProcedureCall()
 
 class CoProcEmulator:       # useful for prototyping, but should be subclassed
-    def __init__(self):
-        pass
+    def __init__(self, ident):
+        self.ident = ident
 
     def stc(self, parms):
-        logger.info("CoProcEmu: stc(%r)", parms)
+        logger.info("CoProcEmu(%s): stc(%r)", self.ident, parms)
     def ldc(self, parms):
-        logger.info("CoProcEmu: ldc(%r)", parms)
+        logger.info("CoProcEmu(%s): ldc(%r)", self.ident, parms)
     def cdp(self, parms):
-        logger.info("CoProcEmu: cdp(%r)", parms)
+        logger.info("CoProcEmu(%s): cdp(%r)", self.ident, parms)
     def mcr(self, parms):
-        logger.info("CoProcEmu: mcr(%r)", parms)
+        logger.info("CoProcEmu(%s): mcr(%r)", self.ident, parms)
     def mcrr(self, parms):
-        logger.info("CoProcEmu: mcrr(%r)", parms)
+        logger.info("CoProcEmu(%s): mcrr(%r)", self.ident, parms)
     def mrc(self, parms):
-        logger.info("CoProcEmu: mrc(%r)", parms)
+        logger.info("CoProcEmu(%s): mrc(%r)", self.ident, parms)
     def mrrc(self, parms):
-        logger.info("CoProcEmu: mrrc(%r)", parms)
+        logger.info("CoProcEmu(%s): mrrc(%r)", self.ident, parms)
 
 
 def _getRegIdx(idx, mode):
@@ -126,7 +126,8 @@ class ArmEmulator(ArmModule, ArmRegisterContext, envi.Emulator):
         ArmModule.__init__(self)
 
         # FIXME: this should be None's, and added in for each real coproc... but this will work for now.
-        self.coprocs = [CoProcEmulator() for x in xrange(16)]       
+        self.coprocs = [CoProcEmulator(x) for x in xrange(16)]       
+        self.int_handlers = [self.default_int_handler for x in range(100)]
 
         seglist = [ (0,0xffffffff) for x in xrange(6) ]
         envi.Emulator.__init__(self, ArmModule())
@@ -431,6 +432,21 @@ class ArmEmulator(ArmModule, ArmRegisterContext, envi.Emulator):
         self.setFlag(PSR_C_bit, 0)
         self.setFlag(PSR_V_bit, 0)
         return res
+
+    def interrupt(self, val):
+        if val >= len(self.int_handlers):
+            print("FIXME: Interrupt Handler %x is not handled") % val
+
+        handler = self.int_handlers[val]
+        handler(val)
+
+    def default_int_handler(self, val):
+        print("DEFAULT INTERRUPT HANDLER for Interrupt %d (called at 0x%x)" % (val, self.getProgramCounter()))
+        print("Stack Dump:")
+        sp = self.getStackCounter()
+        for x in range(16):
+            print("\t0x%x:\t0x%x" % (sp, self.readMemValue(sp, self.psize)))
+            sp += 4
 
     def i_and(self, op):
         res = self.logicalAnd(op)
@@ -766,7 +782,8 @@ class ArmEmulator(ArmModule, ArmRegisterContext, envi.Emulator):
             self.setFlag(PSR_V_bit, e_bits.is_signed_overflow(val, 4))
 
     def i_swi(self, op):
-        print("FIXME: 0x%x: %s" % (op.va, op))
+        # this causes a software interrupt.  we need a good way to handle interrupts
+        self.interrupt(op.opers[0].val)
 
     def i_mul(self, op):
         Rn = self.getOperValue(op, 1)
@@ -784,39 +801,54 @@ class ArmEmulator(ArmModule, ArmRegisterContext, envi.Emulator):
             self.setFlag(PSR_C_bit, e_bits.is_unsigned_carry(val, 4))
             self.setFlag(PSR_V_bit, e_bits.is_signed_overflow(val, 4))
 
+
+    def i_umull(self, op):
+        print("FIXME: 0x%x: %s" % (op.va, op))
+
+    def i_pld2(self, op):
+        print("FIXME: 0x%x: %s" % (op.va, op))
+
+    def _getCoProc(self, cpnum):
+        if cpnum > 15:
+            raise Exception("Emu error: Attempting to access coproc %d (max: 15)" % cpnum)
+
+        coproc = self.coprocs[cpnum]
+        return coproc
+
+
     # Coprocessor Instructions
     def i_stc(self, op):
-        cpnum = op.opers[0]
+        cpnum = op.opers[0].val
         coproc = self._getCoProc(cpnum)
         coproc.stc(op.opers)
 
     def i_ldc(self, op):
-        cpnum = op.opers[0]
+        cpnum = op.opers[0].val
         coproc = self._getCoProc(cpnum)
         coproc.ldc(op.opers)
 
     def i_cdp(self, op):
-        cpnum = op.opers[0]
+        cpnum = op.opers[0].val
         coproc = self._getCoProc(cpnum)
         coproc.cdp(op.opers)
 
     def i_mrc(self, op):
-        cpnum = op.opers[0]
+        cpnum = op.opers[0].val
         coproc = self._getCoProc(cpnum)
         coproc.mrc(op.opers)
 
     def i_mrrc(self, op):
-        cpnum = op.opers[0]
+        cpnum = op.opers[0].val
         coproc = self._getCoProc(cpnum)
         coproc.mrrc(op.opers)
 
     def i_mcr(self, op):
-        cpnum = op.opers[0]
+        cpnum = op.opers[0].val
         coproc = self._getCoProc(cpnum)
         coproc.mrrc(op.opers)
 
     def i_mcrr(self, op):
-        cpnum = op.opers[0]
+        cpnum = op.opers[0].val
         coproc = self._getCoProc(cpnum)
         coproc.mcrr(op.opers)
 

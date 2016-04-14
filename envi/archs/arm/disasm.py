@@ -19,10 +19,15 @@ from envi.archs.arm.const import *
 from envi.archs.arm.regs import *
 
 # FIXME: TODO
+# FIXME:   codeflow currently misses all switchcases
+# FIXME:   codeflow needs to identify the following pattern as a call with fallthrough
+#          (currently identifying the xref and making the fallthrough into a function):
+#           mov lr, pc
+#           sub pc, <blah>
+
 # FIXME ldm sp, { pc } seems to not get marked NOFALL
 # FIXME ldm sp, { pc } should probably be marked IF_RET too...
 # FIXME b lr / bx lr should be marked IF_RET as well!
-# FIXME encoding for swi instruction ( <4 cond> 1111 <24 bytes immediate> ) is totally horked (it's in p_uncond)
 # FIXME some arm opcode values are ENC << and some are ENC and some are etc..
 #       (make all be ENC_FOO << 16 + <their index>
 
@@ -1722,6 +1727,7 @@ class ArmScaledOffsetOper(ArmOperand):
         self.shval = shval
         self.pubwl = pubwl
         self.va = va
+        print "TESTME: ArmScaledOffsetOper at 0x%x" % va
 
     def __eq__(self, oper):
         if not isinstance(oper, self.__class__):
@@ -1744,61 +1750,59 @@ class ArmScaledOffsetOper(ArmOperand):
     def isDeref(self):
         return True
 
+    def setOperValue(self, op, emu=None, val=None, writeback=True):
+        if emu == None:
+            return None
+
+        addr = self.getOperAddr(op, emu, writeback)
+        b = (self.pubwl >> 2) & 1
+        tsize = (4,1)[b]
+        return emu.writeMemValue(addr, val, tsize)
+
+    def getOperValue(self, op, emu=None, writeback=True):
+        if emu == None:
+            return None
+
+        addr = self.getOperAddr(op, emu, writeback)
+        b = (self.pubwl >> 2) & 1
+        tsize = (4,1)[b]
+        return emu.readMemValue(addr, tsize)
+
     def setOperValue(self, op, emu=None, val=None):
         # can't survive without an emulator
         if emu == None:
             return None
 
         b = (self.pubwl >> 2) & 1
-
         addr = self.getOperAddr(op, emu)
+        emu.writeMemValue(addr, val, (4,1)[b])
 
-        fmt = ("<I", "B")[b]
-        val &= (0xffffffff, 0xff)[b]
-        emu.writeMemoryFormat(addr, fmt, val)
-
-    def getOperValue(self, op, emu=None, writeback=False):
+    def getOperAddr(self, op, emu=None, writeback=False):
         if emu == None:
             return None
 
-        retval = 0
+        Rn = emu.getRegister(self.base_reg)
 
-        addr = self.getOperAddr( op, emu )
-        rn = emu.getRegister( self.base_reg )
-        # FIXME: THIS IS COMPLETELY BORKED AND WRONG!
+        pom = (-1, 1)[(self.pubwl>>3)&1]
+        addval = shifters[self.shtype]( emu.getRegister( self.offset_reg ), self.shval )
+        # if U==0, subtract
+        addval *= pom
+
+        addr = Rn + addval
+
         # if pre-indexed, we incremement/decrement the register before determining the OperAddr
         if (self.pubwl & 0x12 == 0x12):
             # pre-indexed...
             if writeback: emu.setRegister( self.base_reg, addr )
-            return emu.readMemValue(addr, self.tsize)
+            return addr
 
         elif (self.pubwl & 0x12 == 0):
             # post-indexed... still write it but return the original value
             if writeback: emu.setRegister( self.base_reg, addr )
-            return emu.readMemValue(addr, self.tsize)
+            return Rn
 
-        # plain jane just return the calculated address... no updates are necessary
+        # non-indexed...  just return the addr, update nothing
         return addr
-
-
-
-    def getOperAddr(self, op, emu=None):
-        if emu == None:
-            return None
-
-        if self.base_reg == REG_PC:
-            addr = self.va
-        elif emu != None:
-            addr = emu.getRegister(self.base_reg)
-        else:
-            return None
-
-        addval = shifters[self.shtype]( emu.getRegister( self.offset_reg ), self.shval )
-        # if U==0, subtract
-        addval *= (-1, 1)[(self.pubwl>>3)&1]
-
-        return addr + addval
-
 
     def render(self, mcanv, op, idx):
         pom = ('-','')[(self.pubwl>>3)&1]
@@ -1852,6 +1856,7 @@ class ArmRegOffsetOper(ArmOperand):
         self.base_reg = base_reg
         self.offset_reg = offset_reg
         self.pubwl = pubwl
+        print "TESTME: ArmRegOffsetOper at 0x%x" % va
 
     def __eq__(self, oper):
         if not isinstance(oper, self.__class__):
@@ -1870,40 +1875,49 @@ class ArmRegOffsetOper(ArmOperand):
     def isDeref(self):
         return True
 
+    def setOperValue(self, op, emu=None, val=None, writeback=True):
+        if emu == None:
+            return None
+
+        addr = self.getOperAddr(op, emu, writeback)
+        b = (self.pubwl >> 2) & 1
+        tsize = (4,1)[b]
+        return emu.writeMemValue(addr, val, tsize)
+
     def getOperValue(self, op, emu=None, writeback=True):
         if emu == None:
             return None
 
+        addr = self.getOperAddr(op, emu, writeback)
+        b = (self.pubwl >> 2) & 1
+        tsize = (4,1)[b]
+        return emu.readMemValue(addr, tsize)
+
+    def getOperAddr(self, op, emu=None, writeback=False):
+        if emu == None:
+            return None
+
+        pom = (-1, 1)[(self.pubwl>>3)&1]
         rn = emu.getRegister( self.base_reg )
-        addr = self.getOperAddr( op, emu, rn )
+        rm = emu.getRegister( self.offset_reg )
+        addr = rn + (pom*rm)
+
+        b = (self.pubwl >> 2) & 1
+        tsize = (4,1)[b]
 
         # if pre-indexed, we incremement/decrement the register before determining the OperAddr
         if (self.pubwl & 0x12 == 0x12):
             # pre-indexed...
-            if writeback: emu.setRegister( self.base_reg, addr )
+            if writeback: emu.setRegister( self.base_reg, addr)
             return addr
 
         elif (self.pubwl & 0x12 == 0):
             # post-indexed... still write it but return the original value
-            if writeback: emu.setRegister( self.base_reg, addr )
+            if writeback: emu.setRegister( self.offset_reg, addr )
             return rn
 
         # plain jane just return the calculated address... no updates are necessary
         return addr
-
-
-    def getOperAddr(self, op, emu=None, rn=None):
-        if emu == None:
-            return None
-
-        if rn == None:
-            rn = emu.getRegister( self.base_reg )
-
-        rm = emu.getRegister( self.offset_reg )
-
-        return rn + rm
-
-
 
     def render(self, mcanv, op, idx):
         pom = ('-','')[(self.pubwl>>3)&1]
