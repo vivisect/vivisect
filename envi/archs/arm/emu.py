@@ -765,6 +765,25 @@ class ArmEmulator(ArmModule, ArmRegisterContext, envi.Emulator):
             self.setFlag(PSR_C_bit, e_bits.is_unsigned_carry(val, 4))
             self.setFlag(PSR_V_bit, e_bits.is_signed_overflow(val, 4))
 
+    def i_swi(self, op):
+        print("FIXME: 0x%x: %s" % (op.va, op))
+
+    def i_mul(self, op):
+        Rn = self.getOperValue(op, 1)
+        if len(op.opers) == 3:
+            Rm = self.getOperValue(op, 2)
+        else:
+            Rm = self.getOperValue(op, 0)
+        val = Rn * Rm
+        self.setOperValue(op, 0, val)
+
+        Sflag = op.iflags & IF_S
+        if Sflag:
+            self.setFlag(PSR_N_bit, e_bits.is_signed(val, 4))
+            self.setFlag(PSR_Z_bit, not val)
+            self.setFlag(PSR_C_bit, e_bits.is_unsigned_carry(val, 4))
+            self.setFlag(PSR_V_bit, e_bits.is_signed_overflow(val, 4))
+
     # Coprocessor Instructions
     def i_stc(self, op):
         cpnum = op.opers[0]

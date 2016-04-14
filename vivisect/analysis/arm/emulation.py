@@ -29,10 +29,10 @@ class AnalysisMonitor(viv_monitor.AnalysisMonitor):
                 if hasattr(op.opers, 'imm'):
                     self.retbytes = op.opers[0].imm
 argnames = {
-    0: ('r4', 4),
-    1: ('r5', 5),
-    2: ('r6', 6),
-    3: ('r7', 7),
+    0: ('r0', 0),
+    1: ('r1', 1),
+    2: ('r2', 2),
+    3: ('r3', 3),
 }
 
 def archargname(idx):
@@ -44,11 +44,9 @@ def archargname(idx):
     return name
 
 def buildFunctionApi(vw, fva, emu, emumon):
-    
     argc = 0
     funcargs = []
     callconv = vw.getMeta('DefaultCall')
-    #argnames = 
     undefregs = set(emu.getUninitRegUse())
 
     for argnum in range(len(argnames), 0, -1):
@@ -57,13 +55,11 @@ def buildFunctionApi(vw, fva, emu, emumon):
             argc = argnum
             break
 
-
     if callconv == 'armcall':
         if emumon.stackmax > 0:
             targc = (emumon.stackmax / 8) + 6
             if targc > 40:
                 emumon.logAnomaly(emu, fva, 'Crazy Stack Offset Touched: 0x%.8x' % emumon.stackmax)
-                #argc = 0
             else:
                 argc = targc
 
@@ -102,3 +98,4 @@ def analyzeFunction(vw, fva):
 
     emumon.addAnalysisResults(vw, emu)
 
+# TODO: incorporate some of emucode's analysis but for function analysis... if it makes sense.
