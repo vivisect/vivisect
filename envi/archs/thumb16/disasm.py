@@ -291,38 +291,82 @@ def thumb32_11(va, val, val2):
 
     return ( olist, mnem, opcode, flags )
 
+def ROR_C(imm, bitcount, shift):
+    m = shift % bitcount
+    result = (imm >> m) | (imm << (bitcount-m))
+    carry = result >> (bitcount-1)
+    return result, carry
+
+def ThumbExpandImm_C(imm4, imm8, carry):
+    if imm4 & 0xc == 0:
+        ducky = imm4 & 3
+        if ducky == 0:
+            return imm8, carry
+        if ducky == 1:
+            return (imm8 << 16) | imm8, carry
+        if ducky == 2:
+            return (imm8 << 24) | (imm8 << 8), carry
+        if ducky == 3:
+            return imm8 | (imm8 << 8) | (imm8 << 16) | (imm8 << 24), carry
+    else:
+        a = imm8 >> 7
+        imm8 |= 0x80 # 1bcdefg
+        off = (a | (imm4<<1) )
+        return ROR_C(imm8, 32, off)
+
 def dp_mod_imm_32(va, val1, val2):
+    if val2 & 0x8000:
+        return bl_imm23(va, val1,val2)
+
     flags = 0
+    Rd = (val2 >> 8) & 0xf
+    S = (val1>>4) & 1
+
+    if Rd==15 and S:
+        raise Exception("dp_mod_imm_32 - FIXME: secondary dp encoding")
+
+    Rn = val1 & 0xf
+
     i = (val1 >> 10) & 1
     imm3 = (val2 >> 12) & 0x7
+    imm4 = imm3 | (i<<3)
     const = val2 & 0xff
-    a = const >> 7
 
-    if i == 0:
-        if imm3 & 4:
-            const |= 0x80 # 1bcdefg
-            off = (a | (imm3<<1) ) & 7
-            const <<= (24-off)
-        elif imm3 == 1:
-            const |= (const << 16)
-        elif imm3 == 2:
-            const <<= 8
-            const |= (const << 16)
-        elif imm3 == 3:
-            const |= (const << 8) | (const << 16) | (const << 24)
-    else:
-        # see above for imm3 & 4
-        const |= 0x80 # 1bcdefg
-        off = (a | (imm3<<1) ) & 7
-        const <<= (16-off)
+    if S:
+        iflags |= IF_S
+
+    const,carry = ThumbExpandImm_C(imm4, const, 0)
     
-    oper0 = ArmImmOper(const)
-    opers = (oper0, oper1)
+    oper0 = ArmRegOper(Rd)
+    oper1 = ArmRegOper(Rn)
+    oper2 = ArmImmOper(const)
+    opers = (oper0, oper1, oper2)
     return None, None, opers, flags
 
 
-def dp_plain_imm_32(va, val1, val2):
-    pass
+def dp_bin_imm_32(va, val1, val2):
+    if val2 & 0x8000:
+        return bl_imm23(va, val1,val2)
+
+    flags = 0
+    Rd = (val2 >> 8) & 0xf
+
+    if Rd==15 and S:
+        raise Exception("dp_bin_imm_32 - FIXME: secondary dp encoding")
+
+    Rn = val1 & 0xf
+    imm4 = val1 & 0xf
+    i = (val1 >> 10) & 1
+    imm3 = (val2 >> 12) & 0x7
+    const = val2 & 0xff
+
+    const |= (imm4 << 12) | (i << 11) | (imm3 << 8)
+    
+    oper0 = ArmRegOper(Rd)
+    oper1 = ArmRegOper(Rd)
+    oper2 = ArmImmOper(const)
+    opers = (oper0, oper1, oper2)
+    return None, None, opers, flags
 
 def ldm_reg_mode_32(va, val1, val2):
     flags = 0
@@ -372,9 +416,6 @@ def pop_32(va, val1, val2):
     oper0 = ArmRegListOper(val2)
     opers = (oper0, )
     return None, None, opers, flags
-
-def dp_plain_imm_32(va, val1, val2):
-    pass
 
 def strex_32(va, val1, val2):
     rn = val1 & 0xf
@@ -587,7 +628,7 @@ def dp_shift_32(va, val1, val2):
 
     return opcode, mnem, opers, flags
 
-def dp_mod_imm_32(va, val1, val2):
+def dp_mod_imm_32_deprecated(va, val1, val2):
     op = (val1 >> 5) & 0xf
     rn = val1 & 0xf
     rd = (val2 >> 8) & 0xf
@@ -1416,8 +1457,30 @@ thumb2_extension = [
     ('11110101011',         (85,'sbc',      dp_mod_imm_32,        IF_THUMB32)),
     ('11110101101',         (85,'sub',      dp_mod_imm_32,        IF_THUMB32)),  # cmp if rd=1111 and s=1
     ('11110101110',         (85,'rsb',      dp_mod_imm_32,        IF_THUMB32)),
+    ('11110010000',         (85,'and',      dp_bin_imm_32,        IF_W | IF_THUMB32)),  # tst if rd=1111 and s=1
+    ('11110010001',         (85,'bic',      dp_bin_imm_32,        IF_W | IF_THUMB32)),
+    ('11110010010',       (85,'orr',      dp_bin_imm_32,        IF_W | IF_THUMB32)),
+    ('11110010011',         (85,'orn',      dp_bin_imm_32,        IF_W | IF_THUMB32)),  # mvn if rn=1111
+    ('11110010100',         (85,'eor',      dp_bin_imm_32,        IF_W | IF_THUMB32)),  # teq if rd=1111 and s=1
+    ('11110011000',         (85,'add',      dp_bin_imm_32,        IF_W | IF_THUMB32)),  # cmn if rd=1111 and s=1
+    ('11110011010',         (85,'adc',      dp_bin_imm_32,        IF_W | IF_THUMB32)),
+    ('11110011011',         (85,'sbc',      dp_bin_imm_32,        IF_W | IF_THUMB32)),
+    ('11110011101',         (85,'sub',      dp_bin_imm_32,        IF_W | IF_THUMB32)),  # cmp if rd=1111 and s=1
+    ('11110011110',         (85,'rsb',      dp_bin_imm_32,        IF_W | IF_THUMB32)),
+    ('11110110000',         (85,'and',      dp_bin_imm_32,        IF_W | IF_THUMB32)),  # tst if rd=1111 and s=1
+    ('11110110001',         (85,'bic',      dp_bin_imm_32,        IF_W | IF_THUMB32)),
+    ('11110110010',       (85,'orr',      dp_bin_imm_32,        IF_W | IF_THUMB32)),
+    ('11110110011',         (85,'orn',      dp_bin_imm_32,        IF_W | IF_THUMB32)),  # mvn if rn=1111
+    ('11110110100',         (85,'eor',      dp_bin_imm_32,        IF_W | IF_THUMB32)),  # teq if rd=1111 and s=1
+    ('11110111000',         (85,'add',      dp_bin_imm_32,        IF_W | IF_THUMB32)),  # cmn if rd=1111 and s=1
+    ('11110111010',         (85,'adc',      dp_bin_imm_32,        IF_W | IF_THUMB32)),
+    ('11110111011',         (85,'sbc',      dp_bin_imm_32,        IF_W | IF_THUMB32)),
+    ('11110111101',         (85,'sub',      dp_bin_imm_32,        IF_W | IF_THUMB32)),  # cmp if rd=1111 and s=1
+    ('11110111110',         (85,'rsb',      dp_bin_imm_32,        IF_W | IF_THUMB32)),
+
     ('11100',       (INS_B,  'b',       pc_imm11,           envi.IF_NOFALL)),        # B <imm11>
-    ('1111',        (INS_BL, 'bl',      bl_imm23,       envi.IF_CALL | IF_THUMB32)),   # BL/BLX <addr25> 
+    # blx is covered by special exceptions in dp_bin_imm_32 and dp_mod_imm_32
+    #('11110',       (INS_BL, 'bl',      bl_imm23,       envi.IF_CALL | IF_THUMB32)),   # BL/BLX <addr25>
     ]
 '''
 '''
@@ -1467,6 +1530,7 @@ class ThumbDisasm:
         oplen = None
         flags = 0
         va &= -2
+        offset &= -2
         val, = struct.unpack_from("<H", bytez, offset)
         try:
             opcode, mnem, opermkr, flags = self._tree.getInt(val, 16)
