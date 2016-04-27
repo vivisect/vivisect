@@ -292,6 +292,7 @@ def thumb32_11(va, val, val2):
     return ( olist, mnem, opcode, flags )
 
 def dp_mod_imm_32(va, val1, val2):
+    flags = 0
     i = (val1 >> 10) & 1
     imm3 = (val2 >> 12) & 0x7
     const = val2 & 0xff
@@ -324,6 +325,7 @@ def dp_plain_imm_32(va, val1, val2):
     pass
 
 def ldm_reg_mode_32(va, val1, val2):
+    flags = 0
     rn = val1 & 0xf
     mode = val2 & 0xf
     wback = (val1 >> 5) & 1
@@ -336,6 +338,7 @@ def ldm_reg_mode_32(va, val1, val2):
     return None, None, opers, flags
 
 def ldm_reg_32(va, val1, val2):
+    flags = 0
     rn = val1 & 0xf
     wback = (val1 >> 5) & 1
 
@@ -346,6 +349,7 @@ def ldm_reg_32(va, val1, val2):
     return None, None, opers, flags
 
 def ldm_32(va, val1, val2):
+    flags = 0
     rn = val1 & 0xf
     if val2 & 0x2000:
         raise InvalidInstruction("LDM instruction with stack indicated: 0x%x: 0x%x, 0x%x" % (va, val1, val2))
@@ -361,6 +365,7 @@ def ldm_32(va, val1, val2):
     return None, None, opers, flags
 
 def pop_32(va, val1, val2):
+    flags = 0
     if val2 & 0x2000:
         raise InvalidInstruction("LDM instruction with stack indicated: 0x%x: 0x%x, 0x%x" % (va, val1, val2))
         # PC not ok on some instructions...  
