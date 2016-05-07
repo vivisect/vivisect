@@ -873,6 +873,10 @@ class PE(object):
         if not funcoff or funcsize > 0x7FFF or ((ordoff > 0) ^ (nameoff > 0)):
             self.IMAGE_EXPORT_DIRECTORY = None
             return
+        
+        if funczise == 0:
+            self.IMAGE_EXPORT_DIRECTORY = None
+            return
     
         funcbytes = self.readAtOffset(funcoff, funcsize)
         funclist = struct.unpack("%dI" % (len(funcbytes) / 4), funcbytes)
