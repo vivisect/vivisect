@@ -466,6 +466,51 @@ class ArmEmulator(ArmModule, ArmRegisterContext, envi.Emulator):
             self.setFlag(PSR_V_bit, e_bits.is_signed_overflow(val, 4))
         
     def i_stm(self, op):
+        if len(op.opers) == 2:
+            srcreg = op.opers[0].reg
+            addr = self.getOperValue(op,0)
+            regvals = self.getOperValue(op, 1)
+            regmask = op.opers[1].val
+            updatereg = op.opers[0].oflags & OF_W
+            flags = op.iflags
+        else:
+            srcreg = REG_SP
+            addr = self.getStackCounter()
+            regvals = self.getOperValue(op, 0)
+            regmask = op.opers[0].val
+            updatereg = 1
+            flags = IF_DAIB_B
+
+        pc = self.getRegister(REG_PC)       # store for later check
+
+        addr = self.getRegister(srcreg)
+        for val in regvals:
+            if flags & IF_DAIB_B == IF_DAIB_B:
+                if flags & IF_DAIB_I == IF_DAIB_I:
+                    addr += 4
+                else:
+                    addr -= 4
+                self.writeMemValue(addr, val, 4)
+            else:
+                self.writeMemValue(addr, val, 4)
+                if flags & IF_DAIB_I == IF_DAIB_I:
+                    addr += 4
+                else:
+                    addr -= 4
+
+        if updatereg:
+            self.setRegister(srcreg,addr)
+        #FIXME: add "shared memory" functionality?  prolly just in strex which will be handled in i_strex
+        # is the following necessary?  
+        newpc = self.getRegister(REG_PC)    # check whether pc has changed
+        if pc != newpc:
+            return newpc
+
+    i_stmia = i_stm
+    i_push = i_stmia
+
+    '''
+    def i_push(self, op):
         srcreg = op.opers[0].reg
         addr = self.getOperValue(op,0)
         regvals = self.getOperValue(op, 1)
@@ -494,11 +539,57 @@ class ArmEmulator(ArmModule, ArmRegisterContext, envi.Emulator):
         newpc = self.getRegister(REG_PC)    # check whether pc has changed
         if pc != newpc:
             return newpc
+'''
 
-    i_stmia = i_stm
 
 
     def i_ldm(self, op):
+        if len(op.opers) == 2:
+            srcreg = op.opers[0].reg
+            addr = self.getOperValue(op,0)
+            #regmask = self.getOperValue(op,1)
+            regmask = op.opers[1].val
+            updatereg = op.opers[0].oflags & OF_W
+            flags = op.iflags
+        else:
+            srcreg = REG_SP
+            addr = self.getStackCounter()
+            #regmask = self.getOperValue(op,1)
+            regmask = op.opers[0].val
+            updatereg = 1
+            flags = IF_DAIB_I
+
+        pc = self.getRegister(REG_PC)       # store for later check
+
+        for reg in xrange(16):
+            if (1<<reg) & regmask:
+                if flags & IF_DAIB_B == IF_DAIB_B:
+                    if flags & IF_DAIB_I == IF_DAIB_I:
+                        addr += 4
+                    else:
+                        addr -= 4
+                    regval = self.readMemValue(addr, 4)
+                    self.setRegister(reg, regval)
+                else:
+                    regval = self.readMemValue(addr, 4)
+                    self.setRegister(reg, regval)
+                    if flags & IF_DAIB_I == IF_DAIB_I:
+                        addr += 4
+                    else:
+                        addr -= 4
+        if updatereg:
+            self.setRegister(srcreg,addr)
+        #FIXME: add "shared memory" functionality?  prolly just in ldrex which will be handled in i_ldrex
+        # is the following necessary?  
+        newpc = self.getRegister(REG_PC)    # check whether pc has changed
+        if pc != newpc:
+            return newpc
+
+    i_ldmia = i_ldm
+    i_pop = i_ldmia
+
+    '''
+    def i_pop(self, op):
         srcreg = op.opers[0].reg
         addr = self.getOperValue(op,0)
         #regmask = self.getOperValue(op,1)
@@ -528,8 +619,7 @@ class ArmEmulator(ArmModule, ArmRegisterContext, envi.Emulator):
         newpc = self.getRegister(REG_PC)    # check whether pc has changed
         if pc != newpc:
             return newpc
-
-    i_ldmia = i_ldm
+        '''
 
     def i_ldr(self, op):
         # hint: covers ldr, ldrb, ldrbt, ldrd, ldrh, ldrsh, ldrsb, ldrt   (any instr where the syntax is ldr{condition}stuff)
@@ -540,6 +630,10 @@ class ArmEmulator(ArmModule, ArmRegisterContext, envi.Emulator):
 
     def i_mov(self, op):
         val = self.getOperValue(op, 1)
+        self.setOperValue(op, 0, val)
+
+    def i_movt(self, op):
+        val = self.getOperValue(op, 1) << 16
         self.setOperValue(op, 0, val)
 
     '''def i_adr(self, op):
@@ -564,8 +658,12 @@ class ArmEmulator(ArmModule, ArmRegisterContext, envi.Emulator):
         self.setOperValue(op, 1, val)
 
     def i_add(self, op):
-        src1 = self.getOperValue(op, 1)
-        src2 = self.getOperValue(op, 2)
+        if len(op.opers) == 3:
+            src1 = self.getOperValue(op, 1)
+            src2 = self.getOperValue(op, 2)
+        else:
+            src1 = self.getOperValue(op, 0)
+            src2 = self.getOperValue(op, 1)
         
         #FIXME PDE and flags
         if src1 == None or src2 == None:
@@ -575,7 +673,6 @@ class ArmEmulator(ArmModule, ArmRegisterContext, envi.Emulator):
 
         dsize = op.opers[0].tsize
         ssize = op.opers[1].tsize
-        s2size = op.opers[2].tsize
 
         usrc1 = e_bits.unsigned(src1, 4)
         usrc2 = e_bits.unsigned(src2, 4)
@@ -644,7 +741,6 @@ class ArmEmulator(ArmModule, ArmRegisterContext, envi.Emulator):
 
         dsize = op.opers[0].tsize
         ssize = op.opers[1].tsize
-        s2size = op.opers[2].tsize
 
         usrc1 = e_bits.unsigned(src1, 4)
         usrc2 = e_bits.unsigned(src2, 4)
@@ -801,6 +897,18 @@ class ArmEmulator(ArmModule, ArmRegisterContext, envi.Emulator):
             self.setFlag(PSR_C_bit, e_bits.is_unsigned_carry(val, 4))
             self.setFlag(PSR_V_bit, e_bits.is_signed_overflow(val, 4))
 
+
+    def i_cbz(self, op):
+        regval = op.getOperValue(0)
+        imm32 = op.getOperValue(1)
+        if not regval:
+            return imm32
+
+    def i_cbnz(self, op):
+        regval = op.getOperValue(0)
+        imm32 = op.getOperValue(1)
+        if regval:
+            return imm32
 
     def i_umull(self, op):
         print("FIXME: 0x%x: %s" % (op.va, op))
