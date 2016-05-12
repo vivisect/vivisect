@@ -17,7 +17,7 @@ from envi.archs.h8.parsers import *
 
 # OPHEX, VA, repr, flags, emutests
 instrs = [
-        # FIXME: create list of this from IDA flow below
+        # FIXME: create list of this from IDA flow below - THIS CURRENT DATA IS FOR H8!  NOT ARM/THUMB
         ( '8342', 0x4560, 'add.b #42, r3h', IF_B, () ),
         ( '7c6075f0', 0x4560, 'bixor #7, @er6', 0, () ),
         ( '7d507170', 0x4560, 'bnot #7, @er5', 0, () ),
@@ -55,6 +55,37 @@ instrs = [
         ( '1bf3', 0x4560, 'dec.l #2, er3', IF_L, () ),
         ]
 
+# temp scratch: generated these while testing
+['0de803c0','8de903c0','ade903c0','2de803c0','1de803c0','3de803c0','9de903c0','bde903c0',]]
+['srsdb.w sp, svc',
+         'srsia.w sp, svc',
+          'srsia.w sp!, svc',
+           'srsdb.w sp!, svc',
+            'rfedb.w sp',
+             'rfedb.w sp!',
+              'rfeia.w sp',
+               'rfeia.w sp!']
+
+import struct
+def getThumbStr(val, val2):
+    return struct.pack('<HH', val, val2)
+
+def getThumbOps(numtups):
+    return [vw.arch.archParseOpcode(getThumbStr(val,val2), 1, 0x8000001) for val,val2 in numtups]
+
+# more scratch
+ops = getThumbOps([(0x0df7,0x03b0),(0x00f7,0xaa8a),(0xf7fe,0xbdbc),(0xf385,0x8424)]) ;op=ops[0];ops
+ops = getThumbOps([(0xf386,0x8424),(0xf385,0x8400)]) ;op=ops[0];ops
+#Out[1]: [msr.w APSR_s, r5]
+
+# testing PSR stuff - not actually working unittesting...
+import envi.memcanvas as ememc
+import envi.archs.thumb16.disasm as eatd
+oper = eatd.ArmPgmStatRegOper(1,15)
+smc = ememc.StringMemoryCanvas(vw)
+oper.render(smc, None, 0)
+smc.strval == 'SPSR_fcxs'
+###############################################33
 
 class ArmInstructionSet(unittest.TestCase):
     def test_msr(self):
