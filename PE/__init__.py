@@ -874,7 +874,7 @@ class PE(object):
             self.IMAGE_EXPORT_DIRECTORY = None
             return
         
-        if funczise == 0:
+        if funcsize == 0:
             self.IMAGE_EXPORT_DIRECTORY = None
             return
     
