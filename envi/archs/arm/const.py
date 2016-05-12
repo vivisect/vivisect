@@ -1,6 +1,7 @@
 MODE_ARM        = 0
 MODE_THUMB      = 1
 MODE_JAZELLE    = 2
+MODE_THUMBEE    = 3
 
 #IFLAGS - keep bottom 8-bits for cross-platform flags like envi.IF_NOFALL and envi.IF_BRFALL
 IF_PSR_S     = 1<<32     # This DP instruciton can update CPSR
@@ -171,8 +172,13 @@ PM_LNAME =  0
 PM_SNAME =  1
 PM_DESC =   2
 PM_REGOFF = 3
-PM_BANKED = 4
-PM_SPSR =   5
+PM_REGCNT = 4
+PM_PSROFF   = 5
+PM_PRIVLVL  = 6
+
+PSR_APSR    = 2
+PSR_SPSR    = 1
+PSR_CPSR    = 0
 
 INST_ENC_DP_IMM = 0 # Data Processing Immediate Shift
 INST_ENC_MISC   = 1 # Misc Instructions
@@ -202,6 +208,9 @@ IENC_EXTRA_LOAD   = 20 # extra load/store (swp)
 IENC_DP_MOVW      = 21 # 
 IENC_DP_MOVT      = 22 # 
 IENC_DP_MSR_IMM   = 23 # 
+IENC_LOAD_STORE_WORD_UBYTE = 24
+
+IENC_MAX        = 25
 
 # offchutes
 IENC_MEDIA_PARALLEL = ((IENC_MEDIA << 8) + 1) << 8

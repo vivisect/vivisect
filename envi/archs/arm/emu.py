@@ -142,7 +142,7 @@ class ArmEmulator(ArmModule, ArmRegisterContext, envi.Emulator):
         A flag setting operation has resulted in un-defined value.  Set
         the flags to un-defined as well.
         """
-        self.setRegister(REG_EFLAGS, None)
+        self.setRegister(REG_FLAGS, None)
 
     def setFlag(self, which, state):
         flags = self.getCPSR()
@@ -222,15 +222,15 @@ class ArmEmulator(ArmModule, ArmRegisterContext, envi.Emulator):
         self.setProgramCounter(x)
 
     def doPush(self, val):
-        esp = self.getRegister(REG_ESP)
+        esp = self.getRegister(REG_SP)
         esp -= 4
         self.writeMemValue(esp, val, 4)
-        self.setRegister(REG_ESP, esp)
+        self.setRegister(REG_SP, esp)
 
     def doPop(self):
-        esp = self.getRegister(REG_ESP)
+        esp = self.getRegister(REG_SP)
         val = self.readMemValue(esp, 4)
-        self.setRegister(REG_ESP, esp+4)
+        self.setRegister(REG_SP, esp+4)
         return val
 
     def getProcMode(self):
@@ -427,10 +427,11 @@ class ArmEmulator(ArmModule, ArmRegisterContext, envi.Emulator):
 
         res = src1 & src2
 
-        self.setFlag(PSR_N_bit, 0)
-        self.setFlag(PSR_Z_bit, not res)
-        self.setFlag(PSR_C_bit, 0)
-        self.setFlag(PSR_V_bit, 0)
+        if op.iflags & IF_S:
+            self.setFlag(PSR_N_bit, 0)
+            self.setFlag(PSR_Z_bit, not res)
+            self.setFlag(PSR_C_bit, 0)
+            self.setFlag(PSR_V_bit, 0)
         return res
 
     def interrupt(self, val):
@@ -484,15 +485,24 @@ class ArmEmulator(ArmModule, ArmRegisterContext, envi.Emulator):
         pc = self.getRegister(REG_PC)       # store for later check
 
         addr = self.getRegister(srcreg)
-        for val in regvals:
+        numregs = len(regvals)
+        for vidx in range(numregs):
             if flags & IF_DAIB_B == IF_DAIB_B:
                 if flags & IF_DAIB_I == IF_DAIB_I:
                     addr += 4
+                    val = regvals[vidx]
                 else:
                     addr -= 4
+                    val = regvals[numregs-vidx-1]
                 self.writeMemValue(addr, val, 4)
             else:
+                if flags & IF_DAIB_I == IF_DAIB_I:
+                    val = regvals[vidx]
+                else:
+                    val = regvals[numregs-vidx-1]
+
                 self.writeMemValue(addr, val, 4)
+
                 if flags & IF_DAIB_I == IF_DAIB_I:
                     addr += 4
                 else:
@@ -561,6 +571,29 @@ class ArmEmulator(ArmModule, ArmRegisterContext, envi.Emulator):
 
         pc = self.getRegister(REG_PC)       # store for later check
 
+        if flags & IF_DAIB_I == IF_DAIB_I:
+            for reg in xrange(16):
+                if (1<<reg) & regmask:
+                    if flags & IF_DAIB_B == IF_DAIB_B:
+                        addr += 4
+                        regval = self.readMemValue(addr, 4)
+                        self.setRegister(reg, regval)
+                    else:
+                        regval = self.readMemValue(addr, 4)
+                        self.setRegister(reg, regval)
+                        addr += 4
+        else:
+            for reg in xrange(15, -1, -1):
+                if (1<<reg) & regmask:
+                    if flags & IF_DAIB_B == IF_DAIB_B:
+                        addr -= 4
+                        regval = self.readMemValue(addr, 4)
+                        self.setRegister(reg, regval)
+                    else:
+                        regval = self.readMemValue(addr, 4)
+                        self.setRegister(reg, regval)
+                        addr -= 4
+        '''
         for reg in xrange(16):
             if (1<<reg) & regmask:
                 if flags & IF_DAIB_B == IF_DAIB_B:
@@ -577,6 +610,7 @@ class ArmEmulator(ArmModule, ArmRegisterContext, envi.Emulator):
                         addr += 4
                     else:
                         addr -= 4
+        '''
         if updatereg:
             self.setRegister(srcreg,addr)
         #FIXME: add "shared memory" functionality?  prolly just in ldrex which will be handled in i_ldrex
@@ -703,7 +737,7 @@ class ArmEmulator(ArmModule, ArmRegisterContext, envi.Emulator):
         return self.getOperValue(op, 0)
 
     def i_bl(self, op):
-        self.setRegister(REG_LR, self.getRegister(REG_PC))
+        self.setRegister(REG_LR, self.getRegister(REG_PC) + len(op))
         return self.getOperValue(op, 0)
 
     def i_bx(self, op):
@@ -712,7 +746,7 @@ class ArmEmulator(ArmModule, ArmRegisterContext, envi.Emulator):
         return target
 
     def i_blx(self, op):
-        self.setRegister(REG_LR, self.getRegister(REG_PC))
+        self.setRegister(REG_LR, self.getRegister(REG_PC) + len(op))
         target = self.getOperValue(op, 0)
         self.setFlag(PSR_T_bit, target & 1)
         return target

@@ -227,8 +227,8 @@ def branch_misc(va, val, val2): # bl and misc control
                 mesg="branch_misc subsection 2",
                 bytez=struct.pack("<H", val)+struct.pack("<H", val2), va=va-4)
 
-        elif imm8 == 0:
-            if op == 0b0111101:
+        else:
+            if imm8 == 0 and op == 0b0111101:
                 imm8 = val2 & 0xff
                 if imm8:
                     opers = (
@@ -239,19 +239,33 @@ def branch_misc(va, val, val2): # bl and misc control
                     return None, 'sub', opers, IF_S
 
                 return None, 'eret', tuple(), IF_RET    # should this have some other flag?
+            print "TEST ME: branch_misc subsection 3"
+##### FIXME!  THIS NEEDS TO ALSO HIT MSR BELOW....
+            #raise InvalidInstruction(
+            #    mesg="branch_misc subsection 3",
+            #    bytez=struct.pack("<H", val)+struct.pack("<H", val2), va=va-4)
 
-            raise InvalidInstruction(
-                mesg="branch_misc subsection 3",
-                bytez=struct.pack("<H", val)+struct.pack("<H", val2), va=va-4)
-
-        else:                   # xx0xxxxx and others
+            # xx0xxxxx and others
             if op == 0b0111000:
+                print "HIT"
                 tmp = op2 & 3
+
+                Rn = val & 0xf
+                mask = (val2>>8) & 0xf
                 if tmp == 0:
-                    raise Exception("FIXME:  MSR(register) p A8-498")
+                    R = PSR_APSR
+                    #raise Exception("FIXME:  MSR(register) p A8-498")
 
                 else:
-                    raise Exception("FIXME:  MSR(register) p B9-1968")
+                    R = (val >> 4) & 1
+
+                    #raise Exception("FIXME:  MSR(register) p B9-1968")
+                opers = (
+                        ArmPgmStatRegOper(R, mask),
+                        ArmRegOper(Rn)
+                        )
+                return None, 'msr', opers, None
+
 
             elif op == 0b0111001:
                 # coalesce with previous
