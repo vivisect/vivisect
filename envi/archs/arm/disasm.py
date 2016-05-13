@@ -1154,7 +1154,7 @@ def p_uncond(opval, va):
             flags = ((pu_w_>>3)<<(IF_DAIB_SHFT)) | IF_DA
             mode = opval & 0x1f
             #reg_list = ( 1<<14 | 1<<SPSR )
-            if pu_w_ & 2:    # base_reg writeback
+            if pu_w_ & 2:    # base_reg update
                 flags |= IF_W
            
             # base_reg = R13
@@ -1438,6 +1438,10 @@ class ArmOpcode(envi.Opcode):
 
         return ret
 
+    def getOperValue(self, idx, emu=None, update=False):
+        oper = self.opers[idx]
+        return oper.getOperValue(self, emu=emu, update=False)
+
     def render(self, mcanv):
         """
         Render this opcode to the specified memory canvas
@@ -1550,7 +1554,7 @@ class ArmOperand(envi.Operand):
     def involvesPC(self):
         return False
 
-    def getOperAddr(self, op, emu=None):
+    def getOperAddr(self, op, emu=None, update=False):
         return None
 
 class ArmRegOper(ArmOperand):
@@ -1576,7 +1580,7 @@ class ArmRegOper(ArmOperand):
     def isDeref(self):
         return False
 
-    def getOperValue(self, op, emu=None):
+    def getOperValue(self, op, emu=None, update=False):
         if self.reg == REG_PC:
             return self.va  # FIXME: is this modified?  or do we need to att # to this?
 
@@ -1584,7 +1588,7 @@ class ArmRegOper(ArmOperand):
             return None
         return emu.getRegister(self.reg)
 
-    def setOperValue(self, op, emu=None, val=None):
+    def setOperValue(self, op, emu=None, val=None, update=False):
         if emu == None:
             return None
         emu.setRegister(self.reg, val)
@@ -1627,7 +1631,7 @@ class ArmRegShiftRegOper(ArmOperand):
     def isDeref(self):
         return False
 
-    def getOperValue(self, op, emu=None):
+    def getOperValue(self, op, emu=None, update=False):
         if emu == None:
             return None
         return shifters[self.shtype](emu.getRegister(self.reg), emu.getRegister(self.shreg))
@@ -1675,7 +1679,7 @@ class ArmRegShiftImmOper(ArmOperand):
     def isDeref(self):
         return False
 
-    def getOperValue(self, op, emu=None):
+    def getOperValue(self, op, emu=None, update=False):
         if self.reg == REG_PC:
             return shifters[self.shtype](self.va, self.shimm)
 
@@ -1732,7 +1736,7 @@ class ArmImmOper(ArmOperand):
     def isDiscrete(self):
         return True
 
-    def getOperValue(self, op, emu=None):
+    def getOperValue(self, op, emu=None, update=False):
         return shifters[self.shtype](self.val, self.shval)
 
     def render(self, mcanv, op, idx):
@@ -1748,7 +1752,7 @@ class ArmImmFPOper(ArmImmOper):
         self.val = val
         self.precision = precision
 
-    def getOperValue(self, op, emu=None):
+    def getOperValue(self, op, emu=None, update=False):
         return float(self.val)
 
     def render(self, mcanv, op, idx):
@@ -1797,25 +1801,25 @@ class ArmScaledOffsetOper(ArmOperand):
     def isDeref(self):
         return True
 
-    def setOperValue(self, op, emu=None, val=None, writeback=True):
+    def setOperValue(self, op, emu=None, val=None, update=True):
         if emu == None:
             return None
 
-        addr = self.getOperAddr(op, emu, writeback)
+        addr = self.getOperAddr(op, emu, update)
         b = (self.pubwl >> 2) & 1
         tsize = (4,1)[b]
         return emu.writeMemValue(addr, val, tsize)
 
-    def getOperValue(self, op, emu=None, writeback=True):
+    def getOperValue(self, op, emu=None, update=True):
         if emu == None:
             return None
 
-        addr = self.getOperAddr(op, emu, writeback)
+        addr = self.getOperAddr(op, emu, update)
         b = (self.pubwl >> 2) & 1
         tsize = (4,1)[b]
         return emu.readMemValue(addr, tsize)
 
-    def setOperValue(self, op, emu=None, val=None):
+    def setOperValue(self, op, emu=None, val=None, update=False):
         # can't survive without an emulator
         if emu == None:
             return None
@@ -1824,7 +1828,7 @@ class ArmScaledOffsetOper(ArmOperand):
         addr = self.getOperAddr(op, emu)
         emu.writeMemValue(addr, val, (4,1)[b])
 
-    def getOperAddr(self, op, emu=None, writeback=False):
+    def getOperAddr(self, op, emu=None, update=True):
         if emu == None:
             return None
 
@@ -1840,12 +1844,12 @@ class ArmScaledOffsetOper(ArmOperand):
         # if pre-indexed, we incremement/decrement the register before determining the OperAddr
         if (self.pubwl & 0x12 == 0x12):
             # pre-indexed...
-            if writeback: emu.setRegister( self.base_reg, addr )
+            if update: emu.setRegister( self.base_reg, addr )
             return addr
 
         elif (self.pubwl & 0x12 == 0):
             # post-indexed... still write it but return the original value
-            if writeback: emu.setRegister( self.base_reg, addr )
+            if update: emu.setRegister( self.base_reg, addr )
             return Rn
 
         # non-indexed...  just return the addr, update nothing
@@ -1922,26 +1926,28 @@ class ArmRegOffsetOper(ArmOperand):
     def isDeref(self):
         return True
 
-    def setOperValue(self, op, emu=None, val=None, writeback=True):
+    def setOperValue(self, op, emu=None, val=None, update=True):
         if emu == None:
             return None
 
-        addr = self.getOperAddr(op, emu, writeback)
+        addr = self.getOperAddr(op, emu, update)
         b = (self.pubwl >> 2) & 1
         tsize = (4,1)[b]
         return emu.writeMemValue(addr, val, tsize)
 
-    def getOperValue(self, op, emu=None, writeback=True):
+    def getOperValue(self, op, emu=None, update=True):
         if emu == None:
             return None
 
-        addr = self.getOperAddr(op, emu, writeback)
+        addr = self.getOperAddr(op, emu, update)
         b = (self.pubwl >> 2) & 1
         tsize = (4,1)[b]
         return emu.readMemValue(addr, tsize)
 
-    def getOperAddr(self, op, emu=None, writeback=False):
+    # FIXME: should identify whether we're in an emulator or being "analyzed".  should be forcible either way, but defaults should be to update in emulator.executeOpcode() and not in other
+    def getOperAddr(self, op, emu=None, update=True):
         if emu == None:
+            print "emu==None"
             return None
 
         pom = (-1, 1)[(self.pubwl>>3)&1]
@@ -1953,14 +1959,12 @@ class ArmRegOffsetOper(ArmOperand):
         tsize = (4,1)[b]
 
         # if pre-indexed, we incremement/decrement the register before determining the OperAddr
-        if (self.pubwl & 0x12 == 0x12):
-            # pre-indexed...
-            if writeback: emu.setRegister( self.base_reg, addr)
+        if (self.pubwl & 0x12 == 0x12):     # pre-indexed...
+            if update: emu.setRegister( self.base_reg, addr)
             return addr
 
-        elif (self.pubwl & 0x12 == 0):
-            # post-indexed... still write it but return the original value
-            if writeback: emu.setRegister( self.offset_reg, addr )
+        elif (self.pubwl & 0x12 == 0):      # post-indexed... still write it but return the original value
+            if update: emu.setRegister( self.base_reg, addr )
             return rn
 
         # plain jane just return the calculated address... no updates are necessary
@@ -2029,7 +2033,7 @@ class ArmImmOffsetOper(ArmOperand):
     def isDeref(self):
         return True
 
-    def setOperValue(self, op, emu=None, val=None):
+    def setOperValue(self, op, emu=None, val=None, update=True):
         # can't survive without an emulator
         if emu == None:
             return None
@@ -2037,13 +2041,13 @@ class ArmImmOffsetOper(ArmOperand):
         pubwl = self.pubwl >> 2
         b = pubwl & 1
 
-        addr = self.getOperAddr(op, emu)
+        addr = self.getOperAddr(op, emu, update)
 
         fmt = ("<I", "B")[b]
         val &= (0xffffffff, 0xff)[b]
         emu.writeMemoryFormat(addr, fmt, val)
 
-    def getOperValue(self, op, emu=None):
+    def getOperValue(self, op, emu=None, update=False):
         # can't survive without an emulator
         if emu == None:
             return None
@@ -2051,29 +2055,39 @@ class ArmImmOffsetOper(ArmOperand):
         pubwl = self.pubwl >> 2
         b = pubwl & 1
 
-        addr = self.getOperAddr(op, emu)
+        addr = self.getOperAddr(op, emu, update)
 
         fmt = ("<I", "B")[b]
         ret, = emu.readMemoryFormat(addr, fmt)
         return ret
 
-    def getOperAddr(self, op, emu=None):
+    def getOperAddr(self, op, emu=None, update=True):
         # there are certain circumstances where we can survive without an emulator
         pubwl = self.pubwl >> 3
         u = pubwl & 1
 
         # if we don't have an emulator, we must be PC-based since we know it
         if self.base_reg == REG_PC:
-            addr = self.va
+            base = self.va
         elif emu == None:
             return None
         else:
-            addr = emu.getRegister(self.base_reg)
+            base = emu.getRegister(self.base_reg)
 
         if u:
-            addr += self.offset
+            addr = base + self.offset
         else:
-            addr -= self.offset
+            addr = base - self.offset
+
+        
+        if (self.pubwl & 0x12) == 0x12:    # pre-indexed
+            print "foo"
+            if update: emu.setRegister( self.base_reg, addr)
+            return addr
+
+        elif (self.pubwl & 0x12) == 0:     # post-indexed
+            if update: emu.setRegister( self.base_reg, addr )
+            return base
 
         return addr
 
@@ -2180,7 +2194,7 @@ class ArmPcOffsetOper(ArmOperand):
     def isDiscrete(self):
         return False
 
-    def getOperValue(self, op, emu=None):
+    def getOperValue(self, op, emu=None, update=False):
         return self.va + self.val
 
     def render(self, mcanv, op, idx):
@@ -2221,7 +2235,7 @@ class ArmPgmStatRegOper(ArmOperand):
     def isDeref(self):
         return False
 
-    def getOperValue(self, op, emu=None):
+    def getOperValue(self, op, emu=None, update=False):
         if emu == None:
             return None
 
@@ -2233,7 +2247,7 @@ class ArmPgmStatRegOper(ArmOperand):
 
         return psr
 
-    def setOperValue(self, op, emu=None, val=None):
+    def setOperValue(self, op, emu=None, val=None, update=False):
         if emu == None:
             return None
         mode = emu.getProcMode()
@@ -2280,7 +2294,7 @@ class ArmEndianOper(ArmImmOper):
     def isDeref(self):
         return False
 
-    def getOperValue(self, op, emu=None):
+    def getOperValue(self, op, emu=None, update=False):
         return self.val
 
 class ArmRegListOper(ArmOperand):
@@ -2313,7 +2327,7 @@ class ArmRegListOper(ArmOperand):
         if self.oflags & OF_UM:
             mcanv.addText('^')
 
-    def getOperValue(self, op, emu=None):
+    def getOperValue(self, op, emu=None, update=False):
         if emu == None:
             return None
         reglist = []
@@ -2366,7 +2380,7 @@ class ArmExtRegListOper(ArmOperand):
 
         mcanv.addText('}')
 
-    def getOperValue(self, op, emu=None):
+    def getOperValue(self, op, emu=None, update=False):
         '''
         Returns a list of the values in the targeted Extension Registers
         '''
@@ -2378,7 +2392,7 @@ class ArmExtRegListOper(ArmOperand):
             reglist.append(reg)
         return reglist
 
-    def setOperValue(self, op, vals, emu=None):
+    def setOperValue(self, op, vals, emu=None, update=False):
         '''
         Takes a list of values and places them in the targeted Extension Registers
         '''
@@ -2418,7 +2432,7 @@ class ArmPSRFlagsOper(ArmOperand):
     def isDeref(self):
         return False
 
-    def getOperValue(self, op, emu=None):
+    def getOperValue(self, op, emu=None, update=False):
         if emu == None:
             return None
         raise Exception("FIXME: Implement ArmPSRFlagsOper.getOperValue() (does it want to be a bitmask? or the actual value according to the PSR?)")
@@ -2444,7 +2458,7 @@ class ArmCoprocOpcodeOper(ArmOperand):
     def isDeref(self):
         return False
 
-    def getOperValue(self, op, emu=None):
+    def getOperValue(self, op, emu=None, update=False):
         return self.val
 
     def repr(self, op):
@@ -2467,7 +2481,7 @@ class ArmCoprocOper(ArmOperand):
     def isDeref(self):
         return False
 
-    def getOperValue(self, op, emu=None):
+    def getOperValue(self, op, emu=None, update=False):
         return self.val
 
     def repr(self, op):
@@ -2496,7 +2510,7 @@ class ArmCoprocRegOper(ArmOperand):
     def isDeref(self):
         return False
 
-    def getOperValue(self, op, emu=None):
+    def getOperValue(self, op, emu=None, update=False):
         if emu == None:
             return None
         raise Exception("FIXME: Implement ArmCoprocRegOper.getOperValue()")
@@ -2506,16 +2520,16 @@ class ArmCoprocRegOper(ArmOperand):
         return "c%d"%self.val
 
 class ArmModeOper(ArmOperand):
-    def __init__(self, mode, writeback=False):
+    def __init__(self, mode, update=False):
         self.mode = mode
-        self.writeback = writeback
+        self.update = update
 
     def __eq__(self, oper):
         if not isinstance(oper, self.__class__):
             return False
         if self.mode != oper.mode:
             return False
-        if self.writeback != oper.writeback:
+        if self.update != oper.update:
             return False
         return True
 
@@ -2525,7 +2539,7 @@ class ArmModeOper(ArmOperand):
     def isDeref(self):
         return False
 
-    def getOperValue(self, op, emu=None):
+    def getOperValue(self, op, emu=None, update=False):
         return None
 
     def repr(self, op):
@@ -2548,7 +2562,7 @@ class ArmDbgHintOption(ArmOperand):
     def isDeref(self):
         return False
 
-    def getOperValue(self, op, emu=None):
+    def getOperValue(self, op, emu=None, update=False):
         return self.val
 
     def repr(self, op):
