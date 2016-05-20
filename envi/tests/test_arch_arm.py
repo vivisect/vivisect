@@ -17,7 +17,20 @@ from envi.archs.h8.parsers import *
 
 # OPHEX, VA, repr, flags, emutests
 instrs = [
-        # FIXME: create list of this from IDA flow below - THIS CURRENT DATA IS FOR H8!  NOT ARM/THUMB
+        ('08309fe5', 0xbfb00000, 'ldr r3, [#0xbfb00010]', 0, ()),
+        ('0830bbe5', 0xbfb00000, 'ldr r3, [r11, #0x8]!', 0, ()),
+        ('08309be4', 0xbfb00000, 'ldr r3, [r11], #0x8', 0, ()),
+        ('08301be4', 0xbfb00000, 'ldr r3, [r11], #-0x8', 0, ()),
+        ('02209ae7', 0xbfb00000, 'ldr r2, [r10, r2]', 0, ()),
+        ('02209ae6', 0xbfb00000, 'ldr r2, [r10], r2', 0, ()),
+        ('02203ae7', 0xbfb00000, 'ldr r2, [r10, -r2]!', 0, ()),
+        ('0220bae7', 0xbfb00000, 'ldr r2, [r10, r2]!', 0, ()),
+        ('22209ae7', 0xbfb00000, 'ldr r2, [r10, r2 lsr #32]', 0, ()),
+        ('08309fe5', 0xbfb00000, 'ldr r3, [#0xbfb00010]', 0, ()),
+        ('08309fe5', 0xbfb00000, 'ldr r3, [#0xbfb00010]', 0, ()),
+        ]
+# FIXME: create list of this from IDA flow below - THIS CURRENT DATA IS FOR H8!  NOT ARM/THUMB
+'''
         ( '8342', 0x4560, 'add.b #42, r3h', IF_B, () ),
         ( '7c6075f0', 0x4560, 'bixor #7, @er6', 0, () ),
         ( '7d507170', 0x4560, 'bnot #7, @er5', 0, () ),
@@ -53,10 +66,10 @@ instrs = [
         ( '1b93', 0x4560, 'subs #4, er3', 0, () ),
         ( '1b53', 0x4560, 'dec.w #1, r3', IF_W, () ),
         ( '1bf3', 0x4560, 'dec.l #2, er3', IF_L, () ),
-        ]
+        '''
 
 # temp scratch: generated these while testing
-['0de803c0','8de903c0','ade903c0','2de803c0','1de803c0','3de803c0','9de903c0','bde903c0',]]
+['0de803c0','8de903c0','ade903c0','2de803c0','1de803c0','3de803c0','9de903c0','bde903c0',]
 ['srsdb.w sp, svc',
          'srsia.w sp, svc',
           'srsia.w sp!, svc',
@@ -70,21 +83,21 @@ import struct
 def getThumbStr(val, val2):
     return struct.pack('<HH', val, val2)
 
-def getThumbOps(numtups):
+def getThumbOps(vw, numtups):
     return [vw.arch.archParseOpcode(getThumbStr(val,val2), 1, 0x8000001) for val,val2 in numtups]
 
 # more scratch
-ops = getThumbOps([(0x0df7,0x03b0),(0x00f7,0xaa8a),(0xf7fe,0xbdbc),(0xf385,0x8424)]) ;op=ops[0];ops
-ops = getThumbOps([(0xf386,0x8424),(0xf385,0x8400)]) ;op=ops[0];ops
+#ops = getThumbOps(vw, [(0x0df7,0x03b0),(0x00f7,0xaa8a),(0xf7fe,0xbdbc),(0xf385,0x8424)]) ;op=ops[0];ops
+#ops = getThumbOps(vw, [(0xf386,0x8424),(0xf385,0x8400)]) ;op=ops[0];ops
 #Out[1]: [msr.w APSR_s, r5]
 
 # testing PSR stuff - not actually working unittesting...
 import envi.memcanvas as ememc
 import envi.archs.thumb16.disasm as eatd
 oper = eatd.ArmPgmStatRegOper(1,15)
-smc = ememc.StringMemoryCanvas(vw)
-oper.render(smc, None, 0)
-smc.strval == 'SPSR_fcxs'
+#smc = ememc.StringMemoryCanvas(vw)
+#oper.render(smc, None, 0)
+#smc.strval == 'SPSR_fcxs'
 ###############################################33
 
 class ArmInstructionSet(unittest.TestCase):
@@ -95,6 +108,165 @@ class ArmInstructionSet(unittest.TestCase):
         op = am.archParseOpcode('d3f021e3'.decode('hex'))
         self.assertEqual('msr CPSR_c, #0xd3', repr(op))
 
+    def test_envi_arm_operands(self):
+        vw = vivisect.VivWorkspace()
+        vw.setMeta("Architecture", "arm")
+        vw.addMemoryMap(0, 7, 'firmware', '\xff' * 16384*1024)
+        #vw.addMemoryMap(0x400000, 7, 'firmware', '\xff' * 16384*1024)
+        vw.addMemoryMap(0xbfb00000, 7, 'firmware', '\xfe' * 16384*1024)
+
+
+        # testing the ArmImmOffsetOper
+
+        # ldr r3, [#0xbfb00010]
+        emu = vw.getEmulator()
+        emu.writeMemory(0xbfb00010, "abcdef98".decode('hex'))
+        op = vw.arch.archParseOpcode('\x080\x9f\xe5', va=0xbfb00000)
+        print repr(op)
+        print hex(op.getOperValue(1, emu))
+
+        self.assertEqual(hex(0x98efcdab), hex(op.getOperValue(1, emu)))
+
+
+
+        # ldr r3, [r11, #0x8]!
+        emu.writeMemory(0xbfb00018, "FFEEDDCC".decode('hex'))
+        emu.setRegister(11, 0xbfb00010)
+        op = vw.arch.archParseOpcode('\x08\x30\xbb\xe5', va=0xbfb00000)
+        value = op.getOperValue(1, emu, update=True)
+        print repr(op)
+        print hex(value)
+        print hex(emu.getRegister(11))
+
+        self.assertEqual(hex(0xccddeeff), hex(value))
+
+
+        
+        # ldr r3, [r11], #0x8
+        emu.writeMemory(0xbfb00010, "ABCDEF10".decode('hex'))
+        emu.setRegister(11, 0xbfb00010)
+        op = vw.arch.archParseOpcode('\x08\x30\x9b\xe4', va=0xbfb00000)
+        value = op.getOperValue(1, emu, update=True)
+        print repr(op)
+        print hex(value)
+        print hex(emu.getRegister(11))
+
+        self.assertEqual(hex(0xbfb00018), hex(emu.getRegister(11)))
+        self.assertEqual(hex(0x10efcdab), hex(value))
+
+
+        # ldr r3, [r11], #-0x8
+        emu.writeMemory(0xbfb00010, "ABCDEF10".decode('hex'))
+        emu.setRegister(11, 0xbfb00010)
+        op = vw.arch.archParseOpcode('\x08\x30\x1b\xe4', va=0xbfb00000)
+        value = op.getOperValue(1, emu, update=True)
+        print repr(op)
+        print hex(value)
+        print hex(emu.getRegister(11))
+
+        self.assertEqual(hex(0xbfb00008), hex(emu.getRegister(11)))
+        self.assertEqual(hex(0x10efcdab), hex(value))
+
+
+        # testing the ArmScaledOffsetOper
+        
+        # ldr r2, [r10, r2 ]
+        emu = vw.getEmulator()
+        op = vw.arch.archParseOpcode('02209ae7'.decode('hex'), va=0xbfb00000)
+        emu.setRegister(10, 0xbfb00008)
+        emu.setRegister(2,  8)
+        emu.writeMemory(0xbfb00010, "abcdef98".decode('hex'))
+        print repr(op)
+        print hex(op.getOperValue(1, emu))
+
+        self.assertEqual(hex(0x98efcdab), hex(op.getOperValue(1, emu)))
+        self.assertEqual(hex(0xbfb00008), hex(emu.getRegister(10)))
+        self.assertEqual(hex(8), hex(emu.getRegister(2)))
+
+
+
+        # ldr r2, [r10], r2 
+        emu.setRegister(10, 0xbfb00008)
+        emu.setRegister(2,  8)
+        emu.writeMemory(0xbfb00008, "ABCDEF10".decode('hex'))
+        op = vw.arch.archParseOpcode('02209ae6'.decode('hex'), va=0xbfb00000)
+        value = op.getOperValue(1, emu, update=True)
+        print repr(op)
+        print hex(value)
+        print hex(emu.getRegister(10))
+
+        self.assertEqual(hex(0xbfb00010), hex(emu.getRegister(10)))
+        self.assertEqual(hex(0x10efcdab), hex(value))
+
+        
+        
+        # ldr r2, [r10, -r2 ]!
+        emu.writeMemory(0xbfb00018, "FFEEDDCC".decode('hex'))
+        emu.writeMemory(0xbfb00010, "55555555".decode('hex'))
+        emu.writeMemory(0xbfb00008, "f000f000".decode('hex'))
+        emu.setRegister(10, 0xbfb00010)
+        emu.setRegister(2,  8)
+        op = vw.arch.archParseOpcode('02203ae7'.decode('hex'), va=0xbfb00000)
+        value = op.getOperValue(1, emu, update=True)
+        print repr(op)
+        print hex(value)
+        print hex(emu.getRegister(10))
+
+        self.assertEqual(hex(0x00f000f0), hex(value))
+        self.assertEqual(hex(0xbfb00008), hex(emu.getRegister(10)))
+
+
+        
+        # ldr r2, [r10, r2 ]!
+        emu.writeMemory(0xbfb00018, "FFEEDDCC".decode('hex'))
+        emu.writeMemory(0xbfb00010, "55555555".decode('hex'))
+        emu.setRegister(10, 0xbfb00010)
+        emu.setRegister(2,  8)
+        op = vw.arch.archParseOpcode('0220bae7'.decode('hex'), va=0xbfb00000)
+        value = op.getOperValue(1, emu, update=True)
+        print repr(op)
+        print hex(value)
+        print hex(emu.getRegister(10))
+
+        self.assertEqual(hex(0xccddeeff), hex(value))
+        self.assertEqual(hex(0xbfb00018), hex(emu.getRegister(10)))
+
+        # Scaled with shifts/roll
+        # ldr r2, [r10, r2 lsr #32]
+        emu = vw.getEmulator()
+        op = vw.arch.archParseOpcode('22209ae7'.decode('hex'), va=0xbfb00000)
+        emu.setRegister(10, 0xbfb00008)
+        emu.setRegister(2,  8)
+        emu.writeMemory(0xbfb00010, "abcdef98".decode('hex'))
+        print repr(op)
+        print hex(op.getOperValue(1, emu))
+
+        self.assertEqual(hex(0xbfb00008), hex(emu.getRegister(10)))
+        self.assertEqual(hex(0x98efcdab), hex(op.getOperValue(1, emu)))
+        self.assertEqual(hex(8), hex(emu.getRegister(2)))
+
+
+
+        # ldr r2, [r10], r2 
+        emu.setRegister(10, 0xbfb00008)
+        emu.setRegister(2,  8)
+        emu.writeMemory(0xbfb00008, "ABCDEF10".decode('hex'))
+        op = vw.arch.archParseOpcode('22219ae6'.decode('hex'), va=0xbfb00000)
+        value = op.getOperValue(1, emu, update=True)
+        print repr(op)
+        print hex(value)
+        print hex(emu.getRegister(10))
+
+        self.assertEqual(hex(0xbfb00010), hex(emu.getRegister(10)))
+        self.assertEqual(hex(0x98efcdab), hex(op.getOperValue(1, emu)))
+        self.assertEqual(hex(8), hex(emu.getRegister(2)))
+        self.assertEqual(hex(0x10efcdab), hex(value))
+
+        
+        
+
+
+        
     def test_envi_arm_assorted_instrs(self):
 
         #archmod = envi.getArchModule("h8")
@@ -230,8 +402,7 @@ class ArmInstructionSet(unittest.TestCase):
         emu.curpath[2]['writelog'] = []
 
         return not success
-
-
+"""
 def generateTestInfo(ophexbytez='6e'):
     '''
     Helper function to help generate test cases that can easily be copy-pasta
@@ -814,7 +985,7 @@ F745F3E1                    LDRSH           R4, [R3,#0x57]!
 6745D3E0                    SBCS            R4, R3, R7,ROR#10
 6745E3E0                    RSC             R4, R3, R7,ROR#10
 6745F3E0                    RSCS            R4, R3, R7,ROR#10
-'''
+"""
 
 
 def genMediaInstructionBytes():

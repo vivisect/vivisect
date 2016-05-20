@@ -1440,7 +1440,7 @@ class ArmOpcode(envi.Opcode):
 
     def getOperValue(self, idx, emu=None, update=False):
         oper = self.opers[idx]
-        return oper.getOperValue(self, emu=emu, update=False)
+        return oper.getOperValue(self, emu=emu, update=update)
 
     def render(self, mcanv):
         """
@@ -1778,7 +1778,7 @@ class ArmScaledOffsetOper(ArmOperand):
         self.shval = shval
         self.pubwl = pubwl
         self.va = va
-        print "TESTME: ArmScaledOffsetOper at 0x%x" % va
+        #print "TESTME: ArmScaledOffsetOper at 0x%x" % va
 
     def __eq__(self, oper):
         if not isinstance(oper, self.__class__):
