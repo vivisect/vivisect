@@ -135,6 +135,7 @@ class ArmEmulator(ArmModule, ArmRegisterContext, envi.Emulator):
         ArmRegisterContext.__init__(self)
 
         self.addCallingConvention("armcall", aapcs)
+        self._forrealz = False  # this tells the indexed operands whether to update registers on access
 
     def undefFlags(self):
         """
@@ -206,20 +207,24 @@ class ArmEmulator(ArmModule, ArmRegisterContext, envi.Emulator):
     def executeOpcode(self, op):
         # NOTE: If an opcode method returns
         #       other than None, that is the new eip
-        x = None
-        if op.prefixes >= 0xe or conditionals[op.prefixes](self.getRegister(REG_FLAGS)>>28):
-            meth = self.op_methods.get(op.mnem, None)
-            if meth == None:
-                raise envi.UnsupportedInstruction(self, op)
-            x = meth(op)
+        try:
+            self._forrealz = True
+            x = None
+            if op.prefixes >= 0xe or conditionals[op.prefixes](self.getRegister(REG_FLAGS)>>28):
+                meth = self.op_methods.get(op.mnem, None)
+                if meth == None:
+                    raise envi.UnsupportedInstruction(self, op)
+                x = meth(op)
 
-        
-        if x == None:
-            pc = self.getProgramCounter()
-            x = pc+op.size
+            
+            if x == None:
+                pc = self.getProgramCounter()
+                x = pc+op.size
 
-        # should we set this to the odd address or even during thumb?  (debugger)
-        self.setProgramCounter(x)
+            # should we set this to the odd address or even during thumb?  (debugger)
+            self.setProgramCounter(x)
+        finally:
+            self._forrealz = False
 
     def doPush(self, val):
         esp = self.getRegister(REG_SP)
@@ -256,7 +261,7 @@ class ArmEmulator(ArmModule, ArmRegisterContext, envi.Emulator):
         '''
         get the SPSR for the given ARM processor mode
         '''
-        ridx = _getRegIdx(REG_SPSR, mode)
+        ridx = _getRegIdx(PSR_Offset, mode)
         return self._rctx_vals[ridx]
 
     def setSPSR(self, mode, psr, mask=0xffffffff):
