@@ -358,6 +358,30 @@ class ArmEmulator(ArmModule, ArmRegisterContext, envi.Emulator):
         return self.intSubBase(src1, src2, Sflag)
 
     def AddWithCarry(self, src1, src2, carry=0, Sflag=0, rd=0):
+        '''////AddWithCarry()
+        ==============
+        (bits(N), bit, bit) AddWithCarry(bits(N) x, bits(N) y, bit carry_in)
+            unsigned_sum = UInt(x) + UInt(y) + UInt(carry_in);
+            signed_sum = SInt(x) + SInt(y) + UInt(carry_in);
+            result = unsigned_sum<N-1:0>; // same value as signed_sum<N-1:0>
+            carry_out = if UInt(result) == unsigned_sum then '0' else '1';
+            overflow = if SInt(result) == signed_sum then '0' else '1';
+            return (result, carry_out, overflow);
+
+        An important property of the AddWithCarry() function is that if:
+        (result, carry_out, overflow) = AddWithCarry(x, NOT(y), carry_in)
+        then:
+        * if carry_in == '1', then result == x-y with:
+            overflow == '1' if signed overflow occurred during the subtraction
+            carry_out == '1' if unsigned borrow did not occur during the subtraction, that is, if x >= y
+        * if carry_in == '0', then result == x-y-1 with:
+            overflow == '1' if signed overflow occurred during the subtraction
+            carry_out == '1' if unsigned borrow did not occur during the subtraction, that is, if x > y.
+
+        Together, these mean that the carry_in and carry_out bits in AddWithCarry() calls can act as NOT borrow flags for
+        subtractions as well as carry flags for additions.
+        (@ we don't retrn carry-out and overflow, but set the flags here)
+        '''
         udst = e_bits.unsigned(src1, 4)
         usrc = e_bits.unsigned(src2, 4)
 
@@ -379,10 +403,11 @@ class ArmEmulator(ArmModule, ArmRegisterContext, envi.Emulator):
                     self.setCPSR(self.getSPSR(curmode))
                 else:
                     raise Exception("Messed up opcode...  adding to r15 from PM_usr or PM_sys")
-            self.setFlag(PSR_N_bit, e_bits.is_signed(ures, 4))
-            self.setFlag(PSR_Z_bit, not ures)
-            self.setFlag(PSR_C_bit, newcarry)
-            self.setFlag(PSR_V_bit, overflow)
+            else:
+                self.setFlag(PSR_N_bit, e_bits.is_signed(ures, 4))
+                self.setFlag(PSR_Z_bit, not ures)
+                self.setFlag(PSR_C_bit, newcarry)
+                self.setFlag(PSR_V_bit, overflow)
 
         return ures
 
@@ -730,6 +755,29 @@ class ArmEmulator(ArmModule, ArmRegisterContext, envi.Emulator):
             self.setFlag(PSR_C_bit, e_bits.is_unsigned_carry(ures, dsize))
             self.setFlag(PSR_V_bit, e_bits.is_signed_overflow(sres, dsize))
 
+    def i_adc(self, op):
+        if len(op.opers) == 3:
+            src1 = self.getOperValue(op, 1)
+            src2 = self.getOperValue(op, 2)
+        else:
+            src1 = self.getOperValue(op, 0)
+            src2 = self.getOperValue(op, 1)
+        
+        #FIXME PDE and flags
+        if src1 == None or src2 == None:
+            self.undefFlags()
+            self.setOperValue(op, 0, None)
+            return
+
+        
+        dsize = op.opers[0].tsize
+        ssize = op.opers[1].tsize
+
+        Carry = self.getFlag(PSR_C_bit)
+        ures = self.AddWithCarry(src1, srv2, Carry, Sflag, op.opers[0].reg)
+
+        self.setOperValue(op, 0, ures)
+
     def i_b(self, op):
         '''
         conditional branches (eg. bne) will be handled here
@@ -757,6 +805,18 @@ class ArmEmulator(ArmModule, ArmRegisterContext, envi.Emulator):
 
         dsize = op.opers[0].tsize
         ures = src1 & src2
+
+        self.setFlag(PSR_N_bit, e_bits.is_signed(ures, dsize))
+        self.setFlag(PSR_Z_bit, (0,1)[ures==0])
+        self.setFlag(PSR_C_bit, e_bits.is_unsigned_carry(ures, dsize))
+        #self.setFlag(PSR_V_bit, e_bits.is_signed_overflow(sres, dsize))
+        
+    def i_teq(self, op):
+        src1 = self.getOperValue(op, 0)
+        src2 = self.getOperValue(op, 1)
+
+        dsize = op.opers[0].tsize
+        ures = src1 ^ src2
 
         self.setFlag(PSR_N_bit, e_bits.is_signed(ures, dsize))
         self.setFlag(PSR_Z_bit, (0,1)[ures==0])
@@ -813,6 +873,18 @@ class ArmEmulator(ArmModule, ArmRegisterContext, envi.Emulator):
         res = self.intSubBase(src2, src1, Sflag, op.opers[0].reg)
         self.setOperValue(op, 0, res)
 
+    def i_rsc(self, op):
+        # Src op gets sign extended to dst
+        src1 = self.getOperValue(op, 1)
+        src2 = self.getOperValue(op, 2)
+        Sflag = op.iflags & IF_PSR_S
+        Carry = self.getFlag(PSR_C_bit)
+
+        mask = e_bits.u_maxes[op.opers[1].tsize]
+        res = self.AddWithCarry(src2, mask ^ src1, Carry, Sflag, op.opers[0].reg)
+
+        self.setOperValue(op, 0, res)
+
     def i_sub(self, op):
         # Src op gets sign extended to dst
         #FIXME account for same operand with zero result for PDE
@@ -828,6 +900,18 @@ class ArmEmulator(ArmModule, ArmRegisterContext, envi.Emulator):
         self.setOperValue(op, 0, res)
 
     i_subs = i_sub
+
+    def i_sbc(self, op):
+        # Src op gets sign extended to dst
+        src1 = self.getOperValue(op, 1)
+        src2 = self.getOperValue(op, 2)
+        Sflag = op.iflags & IF_PSR_S
+        Carry = self.getFlag(PSR_C_bit)
+
+        mask = e_bits.u_maxes[op.opers[1].tsize]
+        res = self.AddWithCarry(src1, mask ^ src2, Carry, Sflag, op.opers[0].reg)
+
+        self.setOperValue(op, 0, res)
 
     def i_eor(self, op):
         src1 = self.getOperValue(op, 1)
@@ -869,9 +953,9 @@ class ArmEmulator(ArmModule, ArmRegisterContext, envi.Emulator):
         res2 = self.AddWithCarry(src1, 0xffffffff^src2, 1, Sflag, op.opers[0].reg)
         eflags2 = self.getRegister(REG_CPSR)
 
-        self.setRegister(REG_CPSR, origeflags)
-        res = self.intSubBase(src1, src2, Sflag, op.opers[0].reg)
-        eflags1 = self.getRegister(REG_CPSR)
+        #self.setRegister(REG_CPSR, origeflags)
+        #res = self.intSubBase(src1, src2, Sflag, op.opers[0].reg)
+        #eflags1 = self.getRegister(REG_CPSR)
 
         #if res != res2 or eflags1 != eflags2:
         #    print "==== uhoh: intSubBase and AddWithCarry methods differ!: 0x%x:  %s    %x ? %x  (%x / %x ? %x) "  %\
@@ -944,6 +1028,14 @@ class ArmEmulator(ArmModule, ArmRegisterContext, envi.Emulator):
         if regval:
             return imm32
 
+    def i_umull(self, op):
+        print("FIXME: 0x%x: %s" % (op.va, op))
+    def i_umlal(self, op):
+        print("FIXME: 0x%x: %s" % (op.va, op))
+    def i_smull(self, op):
+        print("FIXME: 0x%x: %s" % (op.va, op))
+    def i_umull(self, op):
+        print("FIXME: 0x%x: %s" % (op.va, op))
     def i_umull(self, op):
         print("FIXME: 0x%x: %s" % (op.va, op))
 
