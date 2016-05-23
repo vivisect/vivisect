@@ -2081,7 +2081,6 @@ class ArmImmOffsetOper(ArmOperand):
 
         
         if (self.pubwl & 0x12) == 0x12:    # pre-indexed
-            print "foo"
             if update: emu.setRegister( self.base_reg, addr)
             return addr
 

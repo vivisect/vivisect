@@ -36,7 +36,6 @@ class AnalysisMonitor(viv_monitor.AnalysisMonitor):
 
     def prehook(self, emu, op, starteip):
         viv_monitor.AnalysisMonitor.prehook(self, emu, op, starteip)
-        if self.vw.verbose: sys.stderr.write('.')
 
     def posthook(self, emu, op, starteip):
         viv_monitor.AnalysisMonitor.posthook(self, emu, op, starteip)
@@ -97,7 +96,7 @@ def analyzeFunction(vw, fva, prepend=False):
 
             if vw.getFunctionMeta(fva, 'PIE_reg') == None:
                 vw.setFunctionMeta(fva, 'PIE_reg', reg)
-                vw.setComment('Position Indendent Code Register Set: ' % \
+                vw.setComment(op.va, 'Position Indendent Code Register Set: %s' % \
                         vw.arch._arch_reg.getRegisterName(reg))
 
             if vw.getMeta('PIE_GOT') == None:
@@ -107,14 +106,13 @@ def analyzeFunction(vw, fva, prepend=False):
         tva += len(op)
 
     if not success: 
-        if vw.verbose: vw.vprint('funcva 0x%x *not* using thunk_reg for PIE' % fva)
         return
+
+    if vw.verbose: vw.vprint('funcva 0x%x using thunk_reg for PIE' % fva)
 
     # now check through all the functions and track references
     emumon = AnalysisMonitor(vw, fva)
-    if vw.verbose: sys.stderr.write('=')
     emu.setEmulationMonitor(emumon)
-    if vw.verbose: sys.stderr.write('=')
     try:
         emu.runFunction(fva, maxhit=1)
     except:
@@ -135,7 +133,7 @@ def analyzeFunction(vw, fva, prepend=False):
             if xto == tgt:
                 nogo = True
         if not nogo:
-            vw.vprint("PIE XREF: 0x%x -> 0x%x" % (va, tgt))
+            #vw.vprint("PIE XREF: 0x%x -> 0x%x" % (va, tgt))
             try:
                 vw.addXref(va, tgt, REF_DATA, 0)
             except:
@@ -151,7 +149,7 @@ def analyzeFunction(vw, fva, prepend=False):
             cmt = "0x%x: %s ;\n %s" % (tgt, reprPointer(vw, tgt), curcmt)
             vw.setComment(va, cmt)
 
-        vw.vprint("%x  %s" % (va, cmt))
+        vw.vprint("PIE XREF: %x  %s" % (va, cmt))
 
     vw.vprint("ANOMS: \n", repr(emumon.emuanom))
 
