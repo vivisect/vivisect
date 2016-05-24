@@ -120,6 +120,8 @@ class ArmInstructionSet(unittest.TestCase):
 
         # ldr r3, [#0xbfb00010]
         emu = vw.getEmulator()
+        emu._forrealz = True    # cause base_reg updates on certain Operands.
+
         emu.writeMemory(0xbfb00010, "abcdef98".decode('hex'))
         op = vw.arch.archParseOpcode('\x080\x9f\xe5', va=0xbfb00000)
         print repr(op)
@@ -133,7 +135,7 @@ class ArmInstructionSet(unittest.TestCase):
         emu.writeMemory(0xbfb00018, "FFEEDDCC".decode('hex'))
         emu.setRegister(11, 0xbfb00010)
         op = vw.arch.archParseOpcode('\x08\x30\xbb\xe5', va=0xbfb00000)
-        value = op.getOperValue(1, emu, update=True)
+        value = op.getOperValue(1, emu)
         print repr(op)
         print hex(value)
         print hex(emu.getRegister(11))
@@ -146,7 +148,7 @@ class ArmInstructionSet(unittest.TestCase):
         emu.writeMemory(0xbfb00010, "ABCDEF10".decode('hex'))
         emu.setRegister(11, 0xbfb00010)
         op = vw.arch.archParseOpcode('\x08\x30\x9b\xe4', va=0xbfb00000)
-        value = op.getOperValue(1, emu, update=True)
+        value = op.getOperValue(1, emu)
         print repr(op)
         print hex(value)
         print hex(emu.getRegister(11))
@@ -159,7 +161,7 @@ class ArmInstructionSet(unittest.TestCase):
         emu.writeMemory(0xbfb00010, "ABCDEF10".decode('hex'))
         emu.setRegister(11, 0xbfb00010)
         op = vw.arch.archParseOpcode('\x08\x30\x1b\xe4', va=0xbfb00000)
-        value = op.getOperValue(1, emu, update=True)
+        value = op.getOperValue(1, emu)
         print repr(op)
         print hex(value)
         print hex(emu.getRegister(11))
@@ -190,7 +192,7 @@ class ArmInstructionSet(unittest.TestCase):
         emu.setRegister(2,  8)
         emu.writeMemory(0xbfb00008, "ABCDEF10".decode('hex'))
         op = vw.arch.archParseOpcode('02209ae6'.decode('hex'), va=0xbfb00000)
-        value = op.getOperValue(1, emu, update=True)
+        value = op.getOperValue(1, emu)
         print repr(op)
         print hex(value)
         print hex(emu.getRegister(10))
@@ -207,7 +209,7 @@ class ArmInstructionSet(unittest.TestCase):
         emu.setRegister(10, 0xbfb00010)
         emu.setRegister(2,  8)
         op = vw.arch.archParseOpcode('02203ae7'.decode('hex'), va=0xbfb00000)
-        value = op.getOperValue(1, emu, update=True)
+        value = op.getOperValue(1, emu)
         print repr(op)
         print hex(value)
         print hex(emu.getRegister(10))
@@ -223,7 +225,7 @@ class ArmInstructionSet(unittest.TestCase):
         emu.setRegister(10, 0xbfb00010)
         emu.setRegister(2,  8)
         op = vw.arch.archParseOpcode('0220bae7'.decode('hex'), va=0xbfb00000)
-        value = op.getOperValue(1, emu, update=True)
+        value = op.getOperValue(1, emu)
         print repr(op)
         print hex(value)
         print hex(emu.getRegister(10))
@@ -252,7 +254,7 @@ class ArmInstructionSet(unittest.TestCase):
         emu.setRegister(2,  8)
         emu.writeMemory(0xbfb00008, "ABCDEF10".decode('hex'))
         op = vw.arch.archParseOpcode('22219ae6'.decode('hex'), va=0xbfb00000)
-        value = op.getOperValue(1, emu, update=True)
+        value = op.getOperValue(1, emu)
         print repr(op)
         print hex(value)
         print hex(emu.getRegister(10))
@@ -262,7 +264,8 @@ class ArmInstructionSet(unittest.TestCase):
         self.assertEqual(hex(8), hex(emu.getRegister(2)))
         self.assertEqual(hex(0x10efcdab), hex(value))
 
-        
+
+        # testing the ArmRegOffsetOper
         
 
 
@@ -975,8 +978,6 @@ F745F3E1                    LDRSH           R4, [R3,#0x57]!
 674533E0                    EORS            R4, R3, R7,ROR#10
 674543E0                    SUB             R4, R3, R7,ROR#10
 674553E0                    SUBS            R4, R3, R7,ROR#10
-674563E0                    RSB             R4, R3, R7,ROR#10
-674573E0                    RSBS            R4, R3, R7,ROR#10
 674583E0                    ADD             R4, R3, R7,ROR#10
 674593E0                    ADDS            R4, R3, R7,ROR#10
 6745A3E0                    ADC             R4, R3, R7,ROR#10

@@ -779,7 +779,7 @@ class ArmEmulator(ArmModule, ArmRegisterContext, envi.Emulator):
         ssize = op.opers[1].tsize
 
         Carry = self.getFlag(PSR_C_bit)
-        ures = self.AddWithCarry(src1, srv2, Carry, Sflag, op.opers[0].reg)
+        ures = self.AddWithCarry(src1, src2, Carry, Sflag, op.opers[0].reg)
 
         self.setOperValue(op, 0, ures)
 
