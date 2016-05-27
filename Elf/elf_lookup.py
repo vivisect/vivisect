@@ -74,6 +74,7 @@ EM_OPENRISC = 92
 EM_ARC_A5 = 93
 EM_XTENSA = 94
 EM_NUM = 95
+EM_MSP430 = 105
 EM_ALPHA = 0x9026
 
 # There are plenty more of these to
@@ -93,6 +94,10 @@ e_machine_64 =  (
 ELFCLASSNONE = 0
 ELFCLASS32 = 1 # 32-bit object file
 ELFCLASS64 = 2 # 64-bit object file
+
+ELFDATANONE = 0
+ELFDATA2LSB = 1
+ELFDATA2MSB = 2
 
 e_machine_types = {
 EM_NONE:"No machine",
