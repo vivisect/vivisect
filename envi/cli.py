@@ -468,6 +468,8 @@ class EnviCli(Cmd):
               all be strings)
 
         Usage: script <scriptfile> [<argv[0]>, ...]
+            
+        or     script ?
         '''
         if len(line) == 0:
             return self.do_help('script')
@@ -480,7 +482,7 @@ class EnviCli(Cmd):
             scripts = []
             for scriptdir in self.scriptpaths:
                 # FIXME: filter on more than just ".py".  something internal
-                potential_scripts = [py[:-3] for py in os.listdir(scriptdir) if py.endswith('.py')]
+                potential_scripts = [py for py in os.listdir(scriptdir) if py.endswith('.py')]
                 scripts.extend(potential_scripts)
 
             self.vprint('Scripts available script paths:\n\t' + '\n\t'.join(scripts))
