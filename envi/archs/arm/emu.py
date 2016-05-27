@@ -477,7 +477,7 @@ class ArmEmulator(ArmModule, ArmRegisterContext, envi.Emulator):
         sp = self.getStackCounter()
         for x in range(16):
             print("\t0x%x:\t0x%x" % (sp, self.readMemValue(sp, self.psize)))
-            sp += 4
+            sp += self.psize
 
     def i_and(self, op):
         res = self.logicalAnd(op)

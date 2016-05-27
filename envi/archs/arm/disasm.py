@@ -1778,6 +1778,9 @@ class ArmScaledOffsetOper(ArmOperand):
         self.shval = shval
         self.pubwl = pubwl
         self.va = va
+
+        b = (self.pubwl >> 2) & 1
+        self.tsize = (4,1)[b]
         #print "TESTME: ArmScaledOffsetOper at 0x%x" % va
 
     def __eq__(self, oper):
@@ -1806,27 +1809,22 @@ class ArmScaledOffsetOper(ArmOperand):
             return None
 
         addr = self.getOperAddr(op, emu)
-        b = (self.pubwl >> 2) & 1
-        tsize = (4,1)[b]
-        return emu.writeMemValue(addr, val, tsize)
+        return emu.writeMemValue(addr, val, self.tsize)
 
     def getOperValue(self, op, emu=None):
         if emu == None:
             return None
 
         addr = self.getOperAddr(op, emu)
-        b = (self.pubwl >> 2) & 1
-        tsize = (4,1)[b]
-        return emu.readMemValue(addr, tsize)
+        return emu.readMemValue(addr, self.tsize)
 
     def setOperValue(self, op, emu=None, val=None):
         # can't survive without an emulator
         if emu == None:
             return None
 
-        b = (self.pubwl >> 2) & 1
         addr = self.getOperAddr(op, emu)
-        emu.writeMemValue(addr, val, (4,1)[b])
+        emu.writeMemValue(addr, val, self.tsize)
 
     def getOperAddr(self, op, emu=None):
         if emu == None:
@@ -1839,7 +1837,7 @@ class ArmScaledOffsetOper(ArmOperand):
         # if U==0, subtract
         addval *= pom
 
-        addr = Rn + addval
+        addr = (Rn + addval) & e_bits.u_maxes[self.tsize]
 
         # if pre-indexed, we incremement/decrement the register before determining the OperAddr
         if (self.pubwl & 0x12 == 0x12):
@@ -1907,6 +1905,9 @@ class ArmRegOffsetOper(ArmOperand):
         self.base_reg = base_reg
         self.offset_reg = offset_reg
         self.pubwl = pubwl
+
+        b = (self.pubwl >> 2) & 1
+        self.tsize = (4,1)[b]
         print "TESTME: ArmRegOffsetOper at 0x%x" % va
 
     def __eq__(self, oper):
@@ -1931,18 +1932,14 @@ class ArmRegOffsetOper(ArmOperand):
             return None
 
         addr = self.getOperAddr(op, emu)
-        b = (self.pubwl >> 2) & 1
-        tsize = (4,1)[b]
-        return emu.writeMemValue(addr, val, tsize)
+        return emu.writeMemValue(addr, val, self.tsize)
 
     def getOperValue(self, op, emu=None):
         if emu == None:
             return None
 
         addr = self.getOperAddr(op, emu)
-        b = (self.pubwl >> 2) & 1
-        tsize = (4,1)[b]
-        return emu.readMemValue(addr, tsize)
+        return emu.readMemValue(addr, self.tsize)
 
     # FIXME: should identify whether we're in an emulator or being "analyzed".  should be forcible either way, but defaults should be to update in emulator.executeOpcode() and not in other
     def getOperAddr(self, op, emu=None):
@@ -1953,10 +1950,8 @@ class ArmRegOffsetOper(ArmOperand):
         pom = (-1, 1)[(self.pubwl>>3)&1]
         rn = emu.getRegister( self.base_reg )
         rm = emu.getRegister( self.offset_reg )
-        addr = rn + (pom*rm)
 
-        b = (self.pubwl >> 2) & 1
-        tsize = (4,1)[b]
+        addr = rn + (pom*rm) & e_bits.u_maxes[self.tsize]
 
         # if pre-indexed, we incremement/decrement the register before determining the OperAddr
         if (self.pubwl & 0x12 == 0x12):     # pre-indexed...
@@ -2016,6 +2011,9 @@ class ArmImmOffsetOper(ArmOperand):
         self.pubwl = pubwl
         self.va = va
 
+        b = (pubwl >> 2) & 1
+        self.tsize = (4,1)[b]
+
     def __eq__(self, oper):
         if not isinstance(oper, self.__class__):
             return False
@@ -2038,27 +2036,19 @@ class ArmImmOffsetOper(ArmOperand):
         if emu == None:
             return None
 
-        pubwl = self.pubwl >> 2
-        b = pubwl & 1
-
         addr = self.getOperAddr(op, emu)
+        val &= e_bits.u_maxes[self.tsize]
 
-        fmt = ("<I", "B")[b]
-        val &= (0xffffffff, 0xff)[b]
-        emu.writeMemoryFormat(addr, fmt, val)
+        emu.writeMemValue(addr, val, self.tsize)
 
     def getOperValue(self, op, emu=None):
         # can't survive without an emulator
         if emu == None:
             return None
 
-        pubwl = self.pubwl >> 2
-        b = pubwl & 1
-
         addr = self.getOperAddr(op, emu)
 
-        fmt = ("<I", "B")[b]
-        ret, = emu.readMemoryFormat(addr, fmt)
+        ret = emu.readMemValue(addr, self.tsize)
         return ret
 
     def getOperAddr(self, op, emu=None):
@@ -2075,9 +2065,9 @@ class ArmImmOffsetOper(ArmOperand):
             base = emu.getRegister(self.base_reg)
 
         if u:
-            addr = base + self.offset
+            addr = (base + self.offset) & e_bits.u_maxes[self.tsize]
         else:
-            addr = base - self.offset
+            addr = (base - self.offset) & e_bits.u_maxes[self.tsize]
 
         
         if (self.pubwl & 0x12) == 0x12:    # pre-indexed
@@ -2641,6 +2631,7 @@ class ArmDisasm:
             raise envi.InvalidInstruction(mesg="No encoding found!",
                     bytez=bytez[offset:offset+4], va=va)
 
+        #print "ienc_parser index: %d" % enc
         opcode, mnem, olist, flags = ienc_parsers[enc](opval, va+8)
 
         return opcode, mnem, olist, flags
