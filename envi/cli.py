@@ -476,6 +476,17 @@ class EnviCli(Cmd):
         locals = self.getExpressionLocals()
         locals['argv'] = argv
 
+        if line.startswith("?"):
+            scripts = []
+            for scriptdir in self.scriptpaths:
+                # FIXME: filter on more than just ".py".  something internal
+                potential_scripts = [py[:-3] for py in os.listdir(scriptdir) if py.endswith('.py')]
+                scripts.extend(potential_scripts)
+
+            self.vprint('Scripts available script paths:\n\t' + '\n\t'.join(scripts))
+            return
+
+
         # TODO: unify vdb.extensions.loadExtensions VDB_EXT_PATH with this
         # TODO: where should env var parsing live?
         scriptpath = None
