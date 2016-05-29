@@ -51,9 +51,9 @@ def analyzeFunction(vw, funcva):
                 # pointer analysis mis-identified a pointer,
                 # so clear and re-analyze instructions.
 
-                vw.delLocation(va)
+                vw.delLocation(lva)
 
-                # assume we're add a valid instruction, which is most likely.
+                # assume we're adding a valid instruction, which is most likely.
                 vw.makeCode(va)
 
                 loc = vw.getLocation(va)
