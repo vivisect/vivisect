@@ -482,10 +482,10 @@ class EnviCli(Cmd):
             scripts = []
             for scriptdir in self.scriptpaths:
                 # FIXME: filter on more than just ".py".  something internal
-                potential_scripts = [py for py in os.listdir(scriptdir) if py.endswith('.py')]
+                potential_scripts = [py for py in os.listdir(scriptdir) if self.validate_script(py)]
                 scripts.extend(potential_scripts)
 
-            self.vprint('Scripts available script paths:\n\t' + '\n\t'.join(scripts))
+            self.vprint('Scripts available in script paths:\n\t' + '\n\t'.join(scripts))
             return
 
 
@@ -795,6 +795,19 @@ class EnviCli(Cmd):
 
         showmem()
         self.setEmptyMethod(showmem)
+
+    def validate_script(self, scriptpath):
+        try:
+            with open(scriptpath, 'rb') as f:
+                contents = f.read()
+
+            cobj = compile(contents, scriptpath, 'exec')
+            return True
+        except Exception, e:
+            self.vprint( traceback.format_exc() )
+            pass
+        
+        return False
 
 class EnviMutableCli(EnviCli):
     """
