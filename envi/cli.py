@@ -478,7 +478,7 @@ class EnviCli(Cmd):
         locals = self.getExpressionLocals()
         locals['argv'] = argv
 
-        if line.startswith("?"):
+        if len(argv) and argv[0] == "?":
             scripts = []
             for scriptdir in self.scriptpaths:
                 # FIXME: filter on more than just ".py".  something internal
