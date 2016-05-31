@@ -482,8 +482,8 @@ class EnviCli(Cmd):
             scripts = []
             for scriptdir in self.scriptpaths:
                 # FIXME: filter on more than just ".py".  something internal
-                potential_scripts = [py for py in os.listdir(scriptdir) if self.validate_script(py)]
-                scripts.extend(potential_scripts)
+                pscripts = [py for py in os.listdir(scriptdir) if self.validate_script(scriptdir + os.sep + py)]
+                scripts.extend(pscripts)
 
             self.vprint('Scripts available in script paths:\n\t' + '\n\t'.join(scripts))
             return
