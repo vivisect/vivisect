@@ -804,7 +804,6 @@ class EnviCli(Cmd):
             cobj = compile(contents, scriptpath, 'exec')
             return True
         except Exception, e:
-            self.vprint( traceback.format_exc() )
             pass
         
         return False
