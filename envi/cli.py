@@ -52,6 +52,59 @@ class CliExtMeth:
     def __call__(self, line):
         return self.func(self.cli, line)
 
+def validateScript(scriptpath):
+    '''
+    Takes in a filepath
+    Returns whether the file is valid python (ie. suvives import)
+    '''
+    try:
+        with open(scriptpath, 'rb') as f:
+            contents = f.read()
+
+        cobj = compile(contents, scriptpath, 'exec')
+        return True
+    except Exception, e:
+        pass
+    
+    return False
+
+def getRelScriptsFromPath(scriptpaths):
+    '''
+    Takes in a list of base paths (eg. VIV_SCRIPT_DIR list) and recurses the 
+    directories looking for valid python files (ie. they don't throw errors
+    on import).
+
+    Returns a list of scripts usable from the cli in *relative path* format.
+    ie.  if my path has "/home/hacker/fooscripts" in it, the script located
+    at "/home/hacker/fooscripts/barmazing/bazthis.py" is listed as
+    "barmazing/bazthis.py" and the do_script() handler can use that.
+    '''
+    scripts = []
+    todo = [(path, len(path)+1) for path in scriptpaths]
+
+    while len(todo):
+        curpath, baselen = todo.pop()
+
+        for filething in os.listdir(curpath):
+            fullpath = os.sep.join([curpath, filething])
+            if os.path.isdir(fullpath):
+                todo.append((fullpath, baselen))
+                continue
+
+            if not validateScript(fullpath):
+                continue
+
+            scripts.append(fullpath[baselen:])
+
+    return scripts
+
+
+
+    for scriptdir in self.scriptpaths:
+        # FIXME: filter on more than just ".py".  something internal
+        scripts.extend(pscripts)
+
+
 cfgdefs = {
     'cli':{
         'verbose':False,
@@ -479,12 +532,7 @@ class EnviCli(Cmd):
         locals['argv'] = argv
 
         if len(argv) and argv[0] == "?":
-            scripts = []
-            for scriptdir in self.scriptpaths:
-                # FIXME: filter on more than just ".py".  something internal
-                pscripts = [py for py in os.listdir(scriptdir) if self.validate_script(scriptdir + os.sep + py)]
-                scripts.extend(pscripts)
-
+            scripts = getRelScriptsFromPath(self.scriptpaths)
             self.vprint('Scripts available in script paths:\n\t' + '\n\t'.join(scripts))
             return
 
@@ -796,17 +844,6 @@ class EnviCli(Cmd):
         showmem()
         self.setEmptyMethod(showmem)
 
-    def validate_script(self, scriptpath):
-        try:
-            with open(scriptpath, 'rb') as f:
-                contents = f.read()
-
-            cobj = compile(contents, scriptpath, 'exec')
-            return True
-        except Exception, e:
-            pass
-        
-        return False
 
 class EnviMutableCli(EnviCli):
     """
