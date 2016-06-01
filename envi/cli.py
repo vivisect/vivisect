@@ -101,13 +101,6 @@ def getRelScriptsFromPath(scriptpaths):
 
     return scripts
 
-
-
-    for scriptdir in self.scriptpaths:
-        # FIXME: filter on more than just ".py".  something internal
-        scripts.extend(pscripts)
-
-
 cfgdefs = {
     'cli':{
         'verbose':False,
