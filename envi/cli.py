@@ -57,10 +57,13 @@ def validateScript(scriptpath):
     Takes in a filepath
     Returns whether the file is valid python (ie. suvives import)
     '''
-    try:
-        with open(scriptpath, 'rb') as f:
-            contents = f.read()
+    if not os.path.isfile():
+        return False
 
+    with open(scriptpath, 'rb') as f:
+        contents = f.read()
+
+    try:
         cobj = compile(contents, scriptpath, 'exec')
         return True
     except Exception, e:
