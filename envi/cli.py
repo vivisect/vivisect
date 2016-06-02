@@ -73,7 +73,7 @@ def validateScript(scriptpath):
 
 def getRelScriptsFromPath(scriptpaths):
     '''
-    Takes in a list of base paths (eg. VIV_SCRIPT_DIR list) and recurses the 
+    Takes in a list of base paths (eg. ENVI_SCRIPT_PATH list) and recurses the 
     directories looking for valid python files (ie. they don't throw errors
     on import).
 
