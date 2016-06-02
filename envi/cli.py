@@ -52,12 +52,12 @@ class CliExtMeth:
     def __call__(self, line):
         return self.func(self.cli, line)
 
-def validateScript(scriptpath):
+def isValidScript(scriptpath):
     '''
     Takes in a filepath
     Returns whether the file is valid python (ie. suvives import)
     '''
-    if not os.path.isfile():
+    if not os.path.isfile(scriptpath):
         return False
 
     with open(scriptpath, 'rb') as f:
@@ -83,21 +83,14 @@ def getRelScriptsFromPath(scriptpaths):
     "barmazing/bazthis.py" and the do_script() handler can use that.
     '''
     scripts = []
-    todo = [(path, len(path)+1) for path in scriptpaths]
+    for basedir in scriptpaths:
+        baselen = len(basedir) + 1
 
-    while len(todo):
-        curpath, baselen = todo.pop()
-
-        for filething in os.listdir(curpath):
-            fullpath = os.sep.join([curpath, filething])
-            if os.path.isdir(fullpath):
-                todo.append((fullpath, baselen))
-                continue
-
-            if not validateScript(fullpath):
-                continue
-
-            scripts.append(fullpath[baselen:])
+        for dirname,subdirs,subfiles in os.walk(basedir):
+            for subfile in subfiles:
+                subpath = os.path.join(dirname,subfile)
+                if isValidScript(subpath):
+                    scripts.append(subpath[baselen:])
 
     return scripts
 
