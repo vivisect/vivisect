@@ -38,6 +38,7 @@ the second phase actually wires up the switch case instance, providing new codef
 necessary, new codeblocks, and xrefs from the dynamic branch to the case handling code.  at the
 end, names are applied as appropriate.
 '''
+# FIXME: some cases set the non-index reg much higher up the chain, so we don't identify the case index
 # FIXME: make all switchcase analysis for a given function cohesive (ie. don't finish up with naming until the entire function has been analyzed).  this will break cohesion if we use the CLI to add switchcases, but so be it.
 # FIXME: overlapping case names...  doublecheck the naming algorithm.  ahh... different switch-cases colliding on handlers?  is this legit?  or is it because we don't stop correctly?
 # CHECK: are the algorithms for "stopping" correct?  currently getting 1 switch case for several cases in libc-32
@@ -48,7 +49,19 @@ end, names are applied as appropriate.
 MAX_INSTR_COUNT  = 10
 MAX_CASES   = 5000
 
-    
+
+signed_fmts = (
+    None,
+    '<b',
+    '<h',
+    None,
+    '<i',
+    None,
+    None,
+    None,
+    '<q',
+    )
+
 class TrackingSymbolikEmulator(vs_emu.SymbolikEmulator):
     '''
     TrackingSymbolikEmulator tracks reads.  where they occur, where they read from, and
@@ -104,9 +117,9 @@ class TrackingSymbolikEmulator(vs_emu.SymbolikEmulator):
                     
                 if size in (1,2,4,8):
                     # return real number from memory
-                    symval = self._sym_vw.readMemValue(addrval, size)
-                    self.track(self.getMeta('va'), symaddr, symval)
-                    return Const(symval, size)
+                    val, = self._sym_vw.readMemoryFormat(addrval, signed_fmts[size])
+                    self.track(self.getMeta('va'), symaddr, val)
+                    return Const(val, size)
                 
                 # return string  (really?)
                 symval = self._sym_vw.readMemory(addrval, size)
@@ -114,6 +127,20 @@ class TrackingSymbolikEmulator(vs_emu.SymbolikEmulator):
                 return symval
 
         return Mem(symaddr, symsize)
+
+def getSymMuls(eff):
+    def _cb_grab_muls(path, symobj, ctx):
+        '''
+        walkTree callback to grab Mul objects
+        '''
+        if symobj.symtype == SYMT_OPER_MUL:
+            if (path,symobj) not in ctx:
+                ctx.append((path, symobj))
+            
+        return symobj
+    muls = []
+    acon.walkTree(_cb_grab_muls, muls)
+    return muls
 
 def contains(symobj, subobj):
     '''
@@ -356,6 +383,20 @@ def zero_in(vw, jmpva, oplist, special_vals={}):
 
     return found, satvals, rname, jmpreg, deref_ops, debug
 
+def getUnknowns(symvar):
+    # determine unknown registers in this symbolik object
+    def _cb_grab_vars(path, symobj, ctx):
+        '''
+        walkTree callback for grabbing Var objects
+        '''
+        if symobj.symtype == SYMT_VAR:
+            if symobj.name not in ctx:
+                ctx.append(symobj.name)
+
+    unks = []
+    symvar.walkTree(_cb_grab_vars, unks)
+    return unks
+
 def determineCaseIndex(vw, jmpva, regname, special_vals, effs, debug):
     '''
     determine what the switch case index register is, basically from the jmpva and 
@@ -373,14 +414,6 @@ def determineCaseIndex(vw, jmpva, regname, special_vals, effs, debug):
         rname - index register name
         satvals - dict of register/value pairs 
     '''
-    def _cb_grab_vars(path, symobj, ctx):
-        '''
-        walkTree callback for grabbing Var objects
-        '''
-        if symobj.symtype == SYMT_VAR:
-            if symobj.name not in ctx:
-                ctx.append(symobj.name)
-
     logger.info("\njmpva: %r\nregname: %r\nspecial_vals: %r\neffs: %r\ndebug: %r\n",\
             jmpva, regname, special_vals, effs, debug)
 
@@ -400,9 +433,7 @@ def determineCaseIndex(vw, jmpva, regname, special_vals, effs, debug):
     # However, to get to that ideal (if possible), let's break down what we need from a C perspective
     # as well as what types we currently need to deal with to get there...
 
-    # determine unknown registers in this symbolik object
-    unks = []
-    jmpreg.walkTree(_cb_grab_vars, unks)
+    unks = getUnknowns(jmpreg)
     logger.debug("unknown regs: %s", unks)
     
     # this solving model only accounts for two regs being fabricated:  
@@ -450,7 +481,56 @@ def determineCaseIndex(vw, jmpva, regname, special_vals, effs, debug):
             satvals = vals
             break
 
-        debug.append((semu.getSymSnapshot(), jmpreg))
+        if not found:
+            # try method 2:  this could potentially replace previous method.
+            #   use a small "run" (from just before the jmpva) to determine our interesting regs
+            #   and a long "run" (from funcva to jmpva) to determine values of regs
+            fva = vw.getFunction(jmpva)
+            sctx = vs_anal.getSymbolikAnalysisContext(vw)
+            fgraph = sctx.getSymbolikGraph(fva)
+            cb = vw.getCodeBlock(jmpva)
+            paths = viv_graph.getCodePathsTo(fgraph, cb[0])
+            sympaths = sctx.getSymbolikPaths(fva, graph=fgraph, paths=paths)
+            
+            symemu, symeffs = sympaths.next()   # FIXME: take all paths?
+
+            vals = {}
+            for reg in unks:
+                regobj = symemu.getSymVariable(reg)
+                if not regobj.isDiscrete():
+                    vals[reg] = 0
+                    continue
+                if not vw.isValidPointer(regobj.solve()):
+                    continue
+                vals[reg] = regobj.solve()
+
+            print '\n'.join([str(x) for x in symeffs])
+            print symemu.getSymSnapshot()[2]
+            semu.setSymSnapshot(({},{},{},''))
+            val = jmpreg.solve(emu=semu, vals=vals) & e_bits.u_maxes[jmpreg.getWidth()]
+            print jmpreg, " = ", hex(val),
+            print '\n\t' + '\n\t'.join(["%s: %s" % (reg, repr(symemu.getSymVariable(reg).reduce())) for reg in unks])
+            raw_input("PRESS ENTER")
+            print '\n'
+
+            # if we have a Const, it's a base of some sort.
+            # the other unknown should be the index.
+
+            # not finished here.
+            if vw.isValidPointer(val):
+                for reg in unks:
+                    if vals.get(reg) == None:
+                        rname = reg
+                        break
+                found = True
+                satvals = vals
+                break
+
+            debug.append((symemu.getSymSnapshot(), jmpreg))
+
+    # we don't find all switch cases this way.  gcc amd64 can set the image base higher in the code.  should we skip this and just use the output address delta to determine index?  see crunchtime from ctf quals 2016.
+
+
 
     logger.info("\ndebug: %r\n", debug)
     return found, rname, jmpreg, val, satvals
@@ -654,15 +734,7 @@ def makeNames(vw, jmpva, offset, cases, deref_ops, memrefs, interval):
     vw.makeName(jmpva, "switch_%.8x" % jmpva)
     logger.info("making switchname: switch_%.8x", jmpva)
 
-def determineCountOffset(vw, jmpva):
-    '''
-    Analyze instructions (symboliks) leading up to a "jmp reg" to determine which switch cases are 
-    handled here.
-
-    we start out with symbolik analysis of routed paths from the start of the function to the dynamic jmp.
-
-    this function is also used to weed out a lot of non-switch case dynamic branches
-    '''
+def getMuls(symvar):
     def _cb_grab_muls(path, symobj, ctx):
         '''
         walkTree callback to grab Mul objects
@@ -673,6 +745,19 @@ def determineCountOffset(vw, jmpva):
             
         return symobj
 
+    muls = []
+    symvar.walkTree(_cb_grab_muls, muls)
+    return muls
+
+def determineCountOffset(vw, jmpva):
+    '''
+    Analyze instructions (symboliks) leading up to a "jmp reg" to determine which switch cases are 
+    handled here.
+
+    we start out with symbolik analysis of routed paths from the start of the function to the dynamic jmp.
+
+    this function is also used to weed out a lot of non-switch case dynamic branches
+    '''
     #FIXME: some switch-cases (ELF PIE, libc:sub_020bbec0) use indexes that increment by ptrsize, not by 1.  back up farther?  identify that?
     sctx = vs_anal.getSymbolikAnalysisContext(vw)
     funcva = vw.getFunction(jmpva)
@@ -714,98 +799,98 @@ def determineCountOffset(vw, jmpva):
 
         # grab all the multiplication effects in the operand ast.  muls will be 
         # used to calculate a pointer into some offset/address array
-        muls = []
-        acon.walkTree(_cb_grab_muls, muls)
+        getMuls(acon)
         logger.debug('\nMULS: \n'+repr(muls))
 
-        # this algorithm depends on the index variable being in the last Const comparison.  
-        # these options may be best used with a heuristic (if one doesn't make us happy, 
-        # fall through to a different one).
+        lower, upper, baseoff = getBoundsFromConstraints(fullcons)
+    return lower, upper, baseoff
 
-        # loop through fullcons looking for comparisons of symidx against Consts.  last one should be our index.
-        idx = None
-        upper = None
-        lower = 0
-        
-        for constraint in fullcons[::-1]:
-            cons = constraint.cons
-            # skip constraints that aren't bounding index
-            if not cons.symtype in (SYMT_CON_GT, SYMT_CON_GE, SYMT_CON_LT, SYMT_CON_LE): 
-                logger.debug("SKIPPING: cons = %s", repr(cons))
-                continue
+def getBoundsFromConstraints(fullcons):
+    # this algorithm depends on the index variable being in the last Const comparison.  
+    # these options may be best used with a heuristic (if one doesn't make us happy, 
+    # fall through to a different one).
 
-            logger.debug(repr(cons))
+    # loop through fullcons looking for comparisons of symidx against Consts.  last one should be our index.
+    idx = None
+    upper = None
+    lower = 0
+    
+    for constraint in fullcons[::-1]:
+        cons = constraint.cons
+        # skip constraints that aren't bounding index
+        if not cons.symtype in (SYMT_CON_GT, SYMT_CON_GE, SYMT_CON_LT, SYMT_CON_LE): 
+            logger.debug("SKIPPING: cons = %s", repr(cons))
+            return None, None, None
 
-
-            if cons._v1.symtype == SYMT_CONST:
-                symcmp = cons._v1
-                symvar = cons._v2
-            elif cons._v2.symtype == SYMT_CONST:
-                symvar = cons._v1
-                symcmp = cons._v2
-            else:
-                # neither side of the constraint is a CONST.  this constraint does 
-                # not set static bounds on idx
-                continue
-
-            # once we identify idx, stick with it.
-            if idx == None:
-                idx = symvar
-                baseoff = peelIndexOffset(idx)
+        logger.debug(repr(cons))
 
 
-            # check the sanity of this constraint's symvar against our idx.
-            d = 0
-            if idx != symvar:
-                d = idx.solve() - symvar.solve()
-                if abs(d) > 1000:
-                    continue
+        if cons._v1.symtype == SYMT_CONST:
+            symcmp = cons._v1
+            symvar = cons._v2
+        elif cons._v2.symtype == SYMT_CONST:
+            symvar = cons._v1
+            symcmp = cons._v2
+        else:
+            # neither side of the constraint is a CONST.  this constraint does 
+            # not set static bounds on idx
+            continue
 
-            logger.info("* "+ repr(cons._v2)+ "\t"+repr(cons._v1)+"\t"+ repr(cons))
-
-
-            # FIXME: probably don't want to reset things once they're set.  this could be some other indicator for a nested switchcase...  need to get one of those for testing.
-            if cons.symtype == SYMT_CON_GT:
-                # this is setting the lower bound
-                if lower != 0:
-                    logger.info("==we're resetting a lower bound:  %s -> %s", lower, symcmp)
-                lower = symcmp.solve() + 1
-                
-            elif cons.symtype == SYMT_CON_GE:
-                # this is setting the lower bound
-                if lower != 0:
-                    logger.info("==we're resetting a lower bound:  %s -> %s", lower, symcmp)
-                lower = symcmp.solve()
-                
-            elif cons.symtype == SYMT_CON_LT:
-                # this is setting the upper bound
-                if upper != None:
-                    logger.info("==we're resetting a upper bound:  %s -> %s", upper, symcmp)
-                upper = symcmp.solve() - 1
-                
-            elif cons.symtype == SYMT_CON_LE:
-                # this is setting the upper bound
-                if upper != None:
-                    logger.info("==we're resetting a upper bound:  %s -> %s", upper, symcmp)
-                upper = symcmp.solve()
-
-            else:
-                logger.info("Unhandled comparator:  %s\n", repr(cons))
-
-        # if upper is None:  we need to exercize upper until something doesn't make sense.  
-        # we also need to make sure we don't analyze non-Switches.  
-        if upper == None:
-            upper = MAX_CASES
-
-        # if we failed to identify the index, the upper bound, or the offset, 
+        # once we identify idx, stick with it.
         if idx == None:
-            logger.info("NON-SWITCH analysis terminated: 0x%x", jmpva)
-            return (None, None, None)
+            idx = symvar
+            baseoff = peelIndexOffset(idx)
 
-        logger.info("Lower: %r\tUpper: %r\tOffset: %r\tIndex: %r", lower, upper, baseoff, idx)
+        # check the sanity of this constraint's symvar against our idx.
+        d = 0
+        if idx != symvar:
+            d = idx.solve() - symvar.solve()
+            if abs(d) > 1000:
+                continue
+
+        logger.info("* "+ repr(cons._v2)+ "\t"+repr(cons._v1)+"\t"+ repr(cons))
+
+        # FIXME: probably don't want to reset things once they're set.  this could be some other indicator for a nested switchcase...  need to get one of those for testing.
+        if cons.symtype == SYMT_CON_GT:
+            # this is setting the lower bound
+            if lower != 0:
+                logger.info("==we're resetting a lower bound:  %s -> %s", lower, symcmp)
+            lower = symcmp.solve() + 1
+            
+        elif cons.symtype == SYMT_CON_GE:
+            # this is setting the lower bound
+            if lower != 0:
+                logger.info("==we're resetting a lower bound:  %s -> %s", lower, symcmp)
+            lower = symcmp.solve()
+            
+        elif cons.symtype == SYMT_CON_LT:
+            # this is setting the upper bound
+            if upper != None:
+                logger.info("==we're resetting a upper bound:  %s -> %s", upper, symcmp)
+            upper = symcmp.solve() - 1
+            
+        elif cons.symtype == SYMT_CON_LE:
+            # this is setting the upper bound
+            if upper != None:
+                logger.info("==we're resetting a upper bound:  %s -> %s", upper, symcmp)
+            upper = symcmp.solve()
+
+        else:
+            logger.info("Unhandled comparator:  %s\n", repr(cons))
+
+    # if upper is None:  we need to exercize upper until something doesn't make sense.  
+    # we also need to make sure we don't analyze non-Switches.  
+    if upper == None:
+        upper = MAX_CASES
+
+    # if we failed to identify the index, the upper bound, or the offset, 
+    if idx == None:
+        logger.info("NON-SWITCH analysis terminated: 0x%x", jmpva)
+        return None, None, None
+
+    logger.info("Lower: %r\tUpper: %r\tOffset: %r\tIndex: %r", lower, upper, baseoff, idx)
 
     #################
-
     return lower, upper, baseoff
 
 def peelIndexOffset(symobj):
@@ -873,6 +958,37 @@ def analyzeFunction(vw, fva):
 
         dynbranches = vw.getVaSet('DynamicBranches')
 
+def analyzeFunction(vw, fva):
+    '''
+    Function analysis module.
+    This is inserted right after codeblock analysis
+    '''
+
+    lastdynlen = 0
+    dynbranches = vw.getVaSet('DynamicBranches')
+    
+    # because the VaSet is often updated during analysis, we have to check to see if there are new 
+    # dynamic branches to analyze.
+    while lastdynlen != len(dynbranches):
+        lastdynlen = len(dynbranches)
+        for jmpva, (none, oprepr, bflags) in dynbranches.items():
+            if bflags & envi.BR_PROC:   # skip calls
+                continue
+
+            funcva = vw.getFunction(jmpva)
+            if funcva != fva:
+                # jmp_indir is for the entire VivWorkspace.  
+                # we're just filtering to this function here.
+                # this should be checked again when codeblocks are allowed to 
+                #   be part of multiple functions.
+                continue
+
+            sc = SwitchCase(vw, jmpva)
+            sc.analyze()
+
+        dynbranches = vw.getVaSet('DynamicBranches')
+
+
 
 # for use as vivisect script
 if globals().get('vw'):
@@ -935,3 +1051,221 @@ if globals().get('vw'):
          ConstrainPath( 0x0002076c, Const(0x00020772,8), le(o_and(o_sub(o_and(Mem(o_add(o_add(o_lshift(o_and(Mem(o_add(Mem(o_add(Arg(0,width=8),Const(0x00000608,8),8), Const(0x00000008,8)),Const(0x00000042,8),8), Const(0x00000002,8)),Const(0xffffffff,4),4),Const(0x00000003,8),4),o_mul(Mem(o_add(Arg(0,width=8),Const(0x00000608,8),8), Const(0x00000008,8)),Const(0x00000001,8),8),8),Const(0x00000040,8),8), Const(0x00000004,8)),Const(0xffffffff,4),4),Const(0x00000001,8),4),Const(0xffffffff,4),4),Const(0x00000078,8)) )]
 
     '''
+
+class SwitchCase:
+    def __init__(self, vw, jmpva):
+        self.vw = vw
+        self.jmpva = jmpva
+
+        self.cspath = None
+        self.aspath = None
+
+        self.upper = None
+        self.lower = None
+        self.count = None
+        self.baseoff = None
+
+        self.sctx = vs_anal.getSymbolikAnalysisContext(vw)
+        self.xlate = self.sctx.getTranslator()
+        self.longSemu = TrackingSymbolikEmulator(vw)
+        self.shortSemu = TrackingSymbolikEmulator(vw)
+
+        self.idxregidx = None
+        self.idxregname = None
+        self.idxregsymbx = None
+
+        self.jmpregidx = None
+        self.jmpregname = None
+        self.jmpregsymbx = None
+
+
+    def analyze(self):
+        self.count, self.baseoff = self.determineCountOffset()
+        if None in (lower, ): 
+            logger.info("something odd in count/offset calculation... skipping 0x%x...", self.jmpva)
+            return
+
+        self.makeSwitch(vw, jmpva, count, baseoff, funcva=fva)
+
+    def getJmpSymVar(self):
+        if self.jmpregsymbx != None:
+            return self.jmpregsymbx
+
+        op = self.vw.parseOpcode(self.jmpva)
+
+        self.jmpregsymbx = self.xlate.getOperObj(op, 0)
+        return self.jmpregsymbx
+
+    def getSymTarget(self, short=True):
+        jmpsymvar = self.getJmpSymVar()
+
+        cspath, aspath = self.getSymbolikParts()
+        emu = (cspath[0], aspath[0])[short]
+        tgtsym = jmpsymvar.update(emu)
+        return tgtsym
+
+
+    def getSymIdx(self):
+        '''
+        returns the symbolik index register
+        '''
+        symtgt = self.getSymTarget()
+        unks = getUnknowns(symtgt)
+
+        cspart, aspart = self.getSymbolikParts()
+
+        potentials = []
+        for unk in unks:
+            if cspart[0].getSymVariable(unk).isDiscrete():
+                continue
+            potentials.append(unk)
+            
+        raw_input(repr(potentials))
+        return potentials[0]
+
+    def getCountOffset(self):
+        cons = [eff for eff in conslist if eff.efftype==EFFTYPE_CONSTRAIN]
+        pass
+
+    def getBoundsFromConstraints(self, conslist):
+        symidx = self.getSymIdx()
+
+        while self.upper <= self.lower:
+
+        return idx, upper, lower
+
+        
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    def determineCountOffset_deprecate(self):
+        '''
+        Analyze instructions (symboliks) leading up to a "jmp reg" to determine which switch cases are 
+        handled here.
+
+        we start out with symbolik analysis of routed paths from the start of the function to the dynamic jmp.
+
+        this function is also used to weed out a lot of non-switch case dynamic branches
+        '''
+        vw = self.vw
+        sctx = self.sctx
+        jmpva = self.jmpva
+
+        # set up a symboliks run through the function to jmpva
+        funcva = vw.getFunction(jmpva)
+        jmpcb = vw.getCodeBlock(jmpva)
+        graph = viv_graph.buildFunctionGraph(vw, funcva)
+
+
+        # run the existing graph through the "symboliksizing" process
+        sctx.getSymbolikGraph(funcva, graph)
+
+        # use a PathGenerator object to provide the path through the graph. 
+        #   bail out if it takes more than 20 seconds to generate the path.
+        pathGenFactory = viv_graph.PathGenerator(graph)
+        pathGen = pathGenFactory.getFuncCbRoutedPaths(funcva, jmpcb[0], 1, maxsec=20)
+
+        # get symbolik paths
+        spaths = sctx.getSymbolikPaths(funcva, pathGen, graph=graph)
+
+
+        # grab the opcode used for our dynamic branch:
+        op = vw.parseOpcode(jmpva)
+
+        # start out with insane values for upper and lower index bounds
+        lower = upper = -1
+
+        #NOTE: some switch-cases (ELF PIE, libc:sub_020bbec0) use indexes that increment by ptrsize, not by 1.  back up farther?  identify that?
+        # FIXME: one path using this method may allow for layered opposing constraints, potentially
+        #        giving imposible results.  this shouldn't cause a problem, but it's possible.
+        # FIXME: TODO: regrange type of constraints calculation :)
+        while lower >= upper:
+            semu, aeffs = spaths.next()
+
+            # make sure our jmp operand is indeed a Var (this is arch-agnostic, unlike Operand comparisons)
+            # FIXME: some switch-cases use jmp [mem-thing-based-on-regs].  do we need this check?
+            operobj = xlate.getOperObj(op, 0)
+            if operobj.symtype != SYMT_VAR:
+                logger.debug('\nBAILING - not a VAR memory location')
+                return None,None,None
+
+            acon = semu.getSymVariable(operobj.name)    # expects a Var
+
+        # grab all the constraints from start of function to here.
+        fullcons = [eff for eff in aeffs if eff.efftype==EFFTYPE_CONSTRAIN]
+        logger.debug('\nFULLCONS: \n%s','\n\t'.join([repr(con) for con in fullcons]))
+
+        # grab all the multiplication effects in the operand ast.  muls will be 
+        # used to calculate a pointer into some offset/address array
+        muls = getSymMuls(acon)
+        logger.debug('\nMULS: \n'+repr(muls))
+
+
+
+        #
+        count = (upper - lower) + 1
+
+
+    def getSymbolikParts(self):
+        if self.cspath != None and self.aspath != None:
+            return self.cspath, self.aspath
+        
+        vw = self.vw
+        sctx = self.sctx
+        jmpva = self.jmpva
+
+        fva = vw.getFunction(jmpva)
+        cb = vw.getCodeBlock(jmpva)
+        if cb == None:
+            return None
+        cbva, cbsz, cbfva = cb
+
+        sgraph = sctx.getSymbolikGraph(fva)
+        codepath = viv_graph.getCodePathsTo(sgraph, cbva).next()
+        
+        contextpath = codepath[:-1]
+        analpath = codepath[-1:]
+
+        self.cspath = sctx.getSymbolikPaths(fva, graph=sgraph, paths=[contextpath]).next()
+        self.aspath = sctx.getSymbolikPaths(fva, graph=sgraph, paths=[analpath]).next()
+
+        return self.cspath, self.aspath
+
