@@ -7,7 +7,8 @@ This will not connect switch cases which are actually explicit cmp/jz in the cod
 '''
 import logging
 logger = logging.getLogger(__name__)
-#logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.DEBUG)
+logger.addHandler(logging.StreamHandler())
 
 import envi
 import envi.archs.i386 as e_i386
@@ -549,6 +550,7 @@ def iterCases(vw, satvals, jmpva, jmpreg, rname, count, special_vals):
         count - identified number of cases handled by this dynbranch
         special_vals - dict of "reg":val pairs which must be (eg.  EBX for PIE binaries)
     '''
+    fva = vw.getFunction(jmpva)
     cases = {}
     memrefs = []
     testaddrs = []
@@ -806,7 +808,7 @@ def getBoundsFromConstraints(fullcons):
         # skip constraints that aren't bounding index
         if not cons.symtype in (SYMT_CON_GT, SYMT_CON_GE, SYMT_CON_LT, SYMT_CON_LE): 
             logger.debug("SKIPPING: cons = %s", repr(cons))
-            return None, None, None
+            continue
 
         logger.debug(repr(cons))
 
@@ -944,7 +946,7 @@ def analyzeFunction(vw, fva):
 
         dynbranches = vw.getVaSet('DynamicBranches')
 
-def analyzeFunction(vw, fva):
+def analyzeFunction_new(vw, fva):
     '''
     Function analysis module.
     This is inserted right after codeblock analysis
