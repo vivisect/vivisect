@@ -3,6 +3,63 @@ MODE_THUMB      = 1
 MODE_JAZELLE    = 2
 MODE_THUMBEE    = 3
 
+'''
+Support for different ARM Instruction set versions
+Note that the bit values COULD change as more are added so always use the name when referencing versions
+'''
+# name          bitmask                    decimal         hex
+REV_ARMv4   =   0b0000000000000000000001 #        1        0x1
+REV_ARMv4T  =   0b0000000000000000000010 #        2        0x2
+REV_ARMv5   =   0b0000000000000000000100 #        4        0x4
+REV_ARMv5T  =   0b0000000000000000001000 #        8        0x8
+REV_ARMv5E  =   0b0000000000000000010000 #       16        0x10
+REV_ARMv5J  =   0b0000000000000000100000 #       32        0x20
+REV_ARMv5TE =   0b0000000000000001000000 #       64        0x40
+REV_ARMv6   =   0b0000000000000010000000 #      128        0x80
+REV_ARMv6T2 =   0b0000000000000100000000 #      256        0x100
+REV_ARMv6M  =   0b0000000000001000000000 #      512        0x200
+REV_ARMv7A  =   0b0000000000010000000000 #     1024        0x400
+REV_ARMv7R  =   0b0000000000100000000000 #     2048        0x800
+REV_ARMv7M  =   0b0000000001000000000000 #     4096        0x1000
+REV_ARMv7EM =   0b0000000010000000000000 #     8192        0x2000
+REV_ARMv8A  =   0b0000000100000000000000 #    16384        0x4000
+REV_ARMv8R  =   0b0000001000000000000000 #    32768        0x8000
+REV_ARMv8M  =   0b0000010000000000000000 #    65536        0x10000
+REVS_ARMv4  = (REV_ARMv4 | REV_ARMv4T)
+REVS_ARMv5  = (REV_ARMv5 | REV_ARMv5T | REV_ARMv5E | REV_ARMv5J | REV_ARMv5TE)
+REVS_ARMv6  = (REV_ARMv6 | REV_ARMv6T2 | REV_ARMv6M)
+REVS_ARMv7  = (REV_ARMv7A | REV_ARMv7R | REV_ARMv7M | REV_ARMv7EM) 
+REVS_ARMv8  = (REV_ARMv8A | REV_ARMv8R | REV_ARMv8M)
+REV_ALL = (REVS_ARMv4 | REVS_ARMv5 | REVS_ARMv6 | REVS_ARMv7 | REVS_ARMv8)
+
+#Not sure, did from memory , needs to be confirmed
+REVT_THUMB16 = (REVS_ARMv5 | REVS_ARMv6)
+REVT_THUMB2  = (REVS_ARMv7 | REVS_ARMv8)
+REVT_THUMBEE = (REVS_ARMv7 | REVS_ARMv8)
+
+#In progress - Draft version
+ARCH_REVS = {
+    0:  ['ARMv4',     REV_ARMv4],
+    1:  ['ARMv4T',    REV_ARMv4T],
+    2:  ['ARMv5',     REV_ARMv5],
+    3:  ['ARMv5T',    REV_ARMv5T],
+    4:  ['ARMv5E',    REV_ARMv5E],
+    5:  ['ARMv5J',    REV_ARMv5J],
+    6:  ['ARMv5TE',   REV_ARMv5TE],
+    7:  ['REV_ARMv6', REV_ARMv6],
+    8:  ['ARMv6T2',   REV_ARMv6T2],
+    9:  ['ARMv6M',    REV_ARMv6M],
+    10: ['ARMv7A',    REV_ARMv7A],
+    11: ['ARMv7R',    REV_ARMv7R],
+    12: ['ARMv7M',    REV_ARMv7M],
+    13: ['ARMv7EM',   REV_ARMv7EM],
+    14: ['ARMv8A',    REV_ARMv8A],
+    15: ['ARMv8R',    REV_ARMv8R],
+    16: ['ARMv8M',    REV_ARMv8M],
+    17: ['ARMALL',    REV_ALL]
+}
+ARCH_REVSLEN = len(ARCH_REVS) 
+
 #IFLAGS - keep bottom 8-bits for cross-platform flags like envi.IF_NOFALL and envi.IF_BRFALL
 IF_PSR_S     = 1<<32     # This DP instruciton can update CPSR
 IF_B         = 1<<33     # Byte
@@ -13,6 +70,7 @@ IF_L         = 1<<38    # Long-store (eg. Dblword Precision) for STC
 IF_T         = 1<<39    # Translate for strCCbt
 IF_W         = 1<<40    # Write Back for STM/LDM (!)
 IF_UM        = 1<<41    # User Mode Registers for STM/LDM (^) (obviously no R15)
+IF_TT        = 1<<42    # Flag for STRT/LDRT and STRBT/LDRBT etc
 
 IF_DAIB_SHFT = 56       # shift-bits to get DAIB bits down to 0.  this chops off the "is DAIB present" bit that the following store.
 IF_DAIB_MASK = 7<<(IF_DAIB_SHFT-1)

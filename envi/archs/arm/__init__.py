@@ -9,8 +9,15 @@ from envi.archs.arm.regs import *
 from envi.archs.arm.disasm import *
 
 class ArmModule(envi.ArchitectureModule):
+    '''
+    Following line before function is to help with different architecture
+       versions. These are not planned to be fully implemented until after ARMv8
+       is implimented. Will be important for including ARMv7M and
+       some other variants that fork from normal instruction path.
+    '''
+    archVersion = ('ARMv7A')
 
-    def __init__(self, name='armv6'):
+    def __init__(self, name='ARMv7A'):
         import envi.archs.thumb16.disasm as eatd
         envi.ArchitectureModule.__init__(self, name, maxinst=4)
         self._arch_reg = self.archGetRegCtx()
@@ -50,8 +57,15 @@ class ThumbModule(envi.ArchitectureModule):
     '''
     This architecture module will *not* shift to ARM mode.  Evar.
     '''
+    '''
+    Following line before function is to help with different architecture
+       versions. These are not planned to be fully implemented until after ARMv8
+       is implimented. Will be important for including ARMv7M and
+       some other variants that fork from normal instruction path.
+    '''
+    archVersion = ('ARMv7A')
 
-    def __init__(self, name='armv6'):
+    def __init__(self, name='ARMv7A'):
         import envi.archs.thumb16.disasm as eatd
         envi.ArchitectureModule.__init__(self, name, maxinst=4)
         self._arch_reg = self.archGetRegCtx()
