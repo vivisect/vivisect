@@ -1809,7 +1809,7 @@ class ArmScaledOffsetOper(ArmOperand):
     def isDeref(self):
         return True
 
-    def setOperValue(self, op, emu=None, val=None):
+    def setOperValue(self, op, emu=None, val=None):  #first of duplicates
         if emu == None:
             return None
 
@@ -1823,7 +1823,7 @@ class ArmScaledOffsetOper(ArmOperand):
         addr = self.getOperAddr(op, emu)
         return emu.readMemValue(addr, self.tsize)
 
-    def setOperValue(self, op, emu=None, val=None):
+    def setOperValue(self, op, emu=None, val=None):     # Duplicate or typo? setOperAddr ???
         # can't survive without an emulator
         if emu == None:
             return None
@@ -1895,12 +1895,15 @@ class ArmScaledOffsetOper(ArmOperand):
             shval = shname
         else:
             shval = ""
+        #Fix putting a comma between register and shift oper
+        #may be dirty but seems to work
+        comma = ('', ',')[(len(shval))&1]                                                                                                
         if (idxing&0x10) == 0:         # post-indexed
-            tname = '[%s], %s%s %s' % (basereg, pom, offreg, shval)
+            tname = '[%s], %s%s%s %s' % (basereg, pom, offreg, comma, shval)
         elif idxing == 0x10:
-            tname = '[%s, %s%s %s]' % (basereg, pom, offreg, shval)
+            tname = '[%s, %s%s%s %s]' % (basereg, pom, offreg, comma, shval)
         else:               # pre-indexed
-            tname = '[%s, %s%s %s]!' % (basereg, pom, offreg, shval)
+            tname = '[%s, %s%s%s %s]!' % (basereg, pom, offreg, comma, shval)
         return tname
 
 class ArmRegOffsetOper(ArmOperand):

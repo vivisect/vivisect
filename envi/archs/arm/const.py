@@ -3,10 +3,9 @@ MODE_THUMB      = 1
 MODE_JAZELLE    = 2
 MODE_THUMBEE    = 3
 
-'''
-Support for different ARM Instruction set versions
-Note that the bit values COULD change as more are added so always use the name when referencing versions
-'''
+
+#Support for different ARM Instruction set versions
+
 # name          bitmask                    decimal         hex
 REV_ARMv4   =   0b0000000000000000000001 #        1        0x1
 REV_ARMv4T  =   0b0000000000000000000010 #        2        0x2
@@ -16,8 +15,8 @@ REV_ARMv5E  =   0b0000000000000000010000 #       16        0x10
 REV_ARMv5J  =   0b0000000000000000100000 #       32        0x20
 REV_ARMv5TE =   0b0000000000000001000000 #       64        0x40
 REV_ARMv6   =   0b0000000000000010000000 #      128        0x80
-REV_ARMv6T2 =   0b0000000000000100000000 #      256        0x100
-REV_ARMv6M  =   0b0000000000001000000000 #      512        0x200
+REV_ARMv6M  =   0b0000000000000100000000 #      256        0x100
+REV_ARMv6T2 =   0b0000000000001000000000 #      512        0x200
 REV_ARMv7A  =   0b0000000000010000000000 #     1024        0x400
 REV_ARMv7R  =   0b0000000000100000000000 #     2048        0x800
 REV_ARMv7M  =   0b0000000001000000000000 #     4096        0x1000
@@ -25,40 +24,57 @@ REV_ARMv7EM =   0b0000000010000000000000 #     8192        0x2000
 REV_ARMv8A  =   0b0000000100000000000000 #    16384        0x4000
 REV_ARMv8R  =   0b0000001000000000000000 #    32768        0x8000
 REV_ARMv8M  =   0b0000010000000000000000 #    65536        0x10000
-REVS_ARMv4  = (REV_ARMv4 | REV_ARMv4T)
-REVS_ARMv5  = (REV_ARMv5 | REV_ARMv5T | REV_ARMv5E | REV_ARMv5J | REV_ARMv5TE)
-REVS_ARMv6  = (REV_ARMv6 | REV_ARMv6T2 | REV_ARMv6M)
-REVS_ARMv7  = (REV_ARMv7A | REV_ARMv7R | REV_ARMv7M | REV_ARMv7EM) 
-REVS_ARMv8  = (REV_ARMv8A | REV_ARMv8R | REV_ARMv8M)
-REV_ALL = (REVS_ARMv4 | REVS_ARMv5 | REVS_ARMv6 | REVS_ARMv7 | REVS_ARMv8)
 
-#Not sure, did from memory , needs to be confirmed
-REVT_THUMB16 = (REVS_ARMv5 | REVS_ARMv6)
-REVT_THUMB2  = (REVS_ARMv7 | REVS_ARMv8)
-REVT_THUMBEE = (REVS_ARMv7 | REVS_ARMv8)
+#To be replaced with dynamic setting up to prevent bugs when adding additional versions above
+REV_ALL_ARMv4  = (REV_ARMv4 | REV_ARMv4T)
+REV_ALL_ARMv5  = (REV_ARMv5 | REV_ARMv5T | REV_ARMv5E | REV_ARMv5J | REV_ARMv5TE)
+REV_ALL_ARMv6  = (REV_ARMv6 | REV_ARMv6T2 | REV_ARMv6M)
+REV_ALL_ARMv7  = (REV_ARMv7A | REV_ARMv7R | REV_ARMv7M | REV_ARMv7EM) 
+REV_ALL_ARMv8  = (REV_ARMv8A | REV_ARMv8R | REV_ARMv8M)
 
-#In progress - Draft version
-ARCH_REVS = {
-    0:  ['ARMv4',     REV_ARMv4],
-    1:  ['ARMv4T',    REV_ARMv4T],
-    2:  ['ARMv5',     REV_ARMv5],
-    3:  ['ARMv5T',    REV_ARMv5T],
-    4:  ['ARMv5E',    REV_ARMv5E],
-    5:  ['ARMv5J',    REV_ARMv5J],
-    6:  ['ARMv5TE',   REV_ARMv5TE],
-    7:  ['REV_ARMv6', REV_ARMv6],
-    8:  ['ARMv6T2',   REV_ARMv6T2],
-    9:  ['ARMv6M',    REV_ARMv6M],
-    10: ['ARMv7A',    REV_ARMv7A],
-    11: ['ARMv7R',    REV_ARMv7R],
-    12: ['ARMv7M',    REV_ARMv7M],
-    13: ['ARMv7EM',   REV_ARMv7EM],
-    14: ['ARMv8A',    REV_ARMv8A],
-    15: ['ARMv8R',    REV_ARMv8R],
-    16: ['ARMv8M',    REV_ARMv8M],
-    17: ['ARMALL',    REV_ALL]
-}
-ARCH_REVSLEN = len(ARCH_REVS) 
+#Set below
+REV_ARM_ALL = 0
+
+#trying to look at way to dynamically set these see commented section below.
+#This line will replace simililar lines above once dynamically set
+#REV_ALL_ARMv4 = REV_ALL_ARMv5 = REV_ALL_ARMv6 = REV_ALL_ARMv7 = REV_ALL_ARMv8 = 0
+
+#Will be set below, THUMB16 up through v6 except v6T2, THUMB2 from v6T2 up, THUMBEE from v7 up.
+REV_THUMB16 = REV_THUMB2  = REV_THUMBEE = 0   
+
+
+ARCH_REVS = {}
+#Itterate through all REV_ARM values and setup related combo values 
+for name, val in globals().items():
+    if (not name.startswith('REV_ARM') or name.startswith('REV_ARM_')):
+        continue
+    shortName = name[4:]
+    #add to lookup dictionary
+    ARCH_REVS[shortName] = val
+    #add to "all" version value
+    REV_ARM_ALL = REV_ARM_ALL | val
+    #setup thumb versions to Architecture versions
+    if (int(shortName[4]) > 6 or shortName == 'ARMv6T2'):
+        REV_THUMB2 = REV_THUMB2 | val
+        if int(shortName[4])!= 6:
+            REV_THUMBEE = REV_THUMBEE | val
+    else:
+        REV_THUMB16 = REV_THUMB16 | val
+    '''
+    Doesn't work, while lets me read the value it doesn't let me set it?  
+    #setup version number combos    
+    for version, summ in globals().items():
+        if (not version.startswith('REV_ALL_ARMv')):
+            continue
+        print version[12], shortName[4]
+        # add bitmask to version combo
+        if (version[12] == shortName[4]):
+            print "adding"
+            summ = summ | val
+    '''
+ARCH_REVSLEN = len(ARCH_REVS)
+
+ 
 
 #IFLAGS - keep bottom 8-bits for cross-platform flags like envi.IF_NOFALL and envi.IF_BRFALL
 IF_PSR_S     = 1<<32     # This DP instruciton can update CPSR

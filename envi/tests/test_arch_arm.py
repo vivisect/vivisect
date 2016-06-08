@@ -16,8 +16,6 @@ from envi.archs.arm.disasm import *
 import binascii   # temporarily included for testing purposes only - allows to print out binary values
 
 
-
-
 ''' 
   This dictionary will contain all commands supported by ARM to test
   Fields will contain following information:
@@ -29,552 +27,552 @@ import binascii   # temporarily included for testing purposes only - allows to p
 #this will be the case until the 's' issue is resolved
 
 instrs = [
-        (REV_ALL, '08309fe5', 0xbfb00000, 'ldr r3, [#0xbfb00010]', 0, ()),
-        (REV_ALL, '0830bbe5', 0xbfb00000, 'ldr r3, [r11, #0x8]!', 0, ()),
-        (REV_ALL, '08309be4', 0xbfb00000, 'ldr r3, [r11], #0x8', 0, ()),
-        (REV_ALL, '08301be4', 0xbfb00000, 'ldr r3, [r11], #-0x8', 0, ()),
-        (REV_ALL, '02209ae7', 0xbfb00000, 'ldr r2, [r10, r2]', 0, ()),
-        (REV_ALL, '02209ae6', 0xbfb00000, 'ldr r2, [r10], r2', 0, ()),
-        (REV_ALL, '02203ae7', 0xbfb00000, 'ldr r2, [r10, -r2]!', 0, ()),
-        (REV_ALL, '0220bae7', 0xbfb00000, 'ldr r2, [r10, r2]!', 0, ()),
-        (REV_ALL, '22209ae7', 0xbfb00000, 'ldr r2, [r10, r2 lsr #32]', 0, ()),
-        (REV_ALL, '08309fe5', 0xbfb00000, 'ldr r3, [#0xbfb00010]', 0, ()),
-        (REV_ALL, '08309fe5', 0xbfb00000, 'ldr r3, [#0xbfb00010]', 0, ()),
-        (REV_ALL, '674503e0', 0x4560, 'and r4, r3, r7, ror #10', 0, ()),
-        (REV_ALL, '674513e0', 0x4560, 'ands r4, r3, r7, ror #10', 0, ()),
-        (REV_ALL, '674523e0', 0x4560, 'eor r4, r3, r7, ror #10', 0, ()),
-        (REV_ALL, '674533e0', 0x4560, 'eors r4, r3, r7, ror #10', 0, ()),
-        (REV_ALL, '674543e0', 0x4560, 'sub r4, r3, r7, ror #10', 0, ()),
-        (REV_ALL, '674553e0', 0x4560, 'subs r4, r3, r7, ror #10', 0, ()),
-        (REV_ALL, '674563e0', 0x4560, 'rsb r4, r3, r7, ror #10', 0, ()),
-        (REV_ALL, '674573e0', 0x4560, 'rsbs r4, r3, r7, ror #10', 0, ()),
-        (REV_ALL, '674583e0', 0x4560, 'add r4, r3, r7, ror #10', 0, ()),
-        (REV_ALL, '674593e0', 0x4560, 'adds r4, r3, r7, ror #10', 0, ()),
-        (REV_ALL, '6745a3e0', 0x4560, 'adc r4, r3, r7, ror #10', 0, ()),
-        (REV_ALL, '6745b3e0', 0x4560, 'adcs r4, r3, r7, ror #10', 0, ()),
-        (REV_ALL, '6745c3e0', 0x4560, 'sbc r4, r3, r7, ror #10', 0, ()),
-        (REV_ALL, '6745d3e0', 0x4560, 'sbcs r4, r3, r7, ror #10', 0, ()),
-        (REV_ALL, '6745e3e0', 0x4560, 'rsc r4, r3, r7, ror #10', 0, ()),
-        (REV_ALL, '6745f3e0', 0x4560, 'rscs r4, r3, r7, ror #10', 0, ()),
-        (REV_ALL, '674513e1', 0x4560, 'tsts r3, r7, ror #10', 0, ()),
-        (REV_ALL, '674533e1', 0x4560, 'teqs r3, r7, ror #10', 0, ()),
-        (REV_ALL, '674553e1', 0x4560, 'cmps r3, r7, ror #10', 0, ()),
-        (REV_ALL, '674573e1', 0x4560, 'cmns r3, r7, ror #10', 0, ()),
-        (REV_ALL, '674583e1', 0x4560, 'orr r4, r3, r7, ror #10', 0, ()),
-        (REV_ALL, '674593e1', 0x4560, 'orrs r4, r3, r7, ror #10', 0, ()),
-        (REV_ALL, '6745a3e1', 0x4560, 'mov r4, r7, ror #10', 0, ()),
-        (REV_ALL, '6745b3e1', 0x4560, 'movs r4, r7, ror #10', 0, ()),
-        (REV_ALL, '6745c3e1', 0x4560, 'bic r4, r3, r7, ror #10', 0, ()),
-        (REV_ALL, '6745d3e1', 0x4560, 'bics r4, r3, r7, ror #10', 0, ()),
-        (REV_ALL, '6745e3e1', 0x4560, 'mvn r4, r7, ror #10', 0, ()),
-        (REV_ALL, '6745f3e1', 0x4560, 'mvns r4, r7, ror #10', 0, ()),
-        (REV_ALL, '774503e0', 0x4560, 'and r4, r3, r7, ror r5', 0, ()),
-        (REV_ALL, '774513e0', 0x4560, 'ands r4, r3, r7, ror r5', 0, ()),
-        (REV_ALL, '774523e0', 0x4560, 'eor r4, r3, r7, ror r5', 0, ()),
-        (REV_ALL, '774533e0', 0x4560, 'eors r4, r3, r7, ror r5', 0, ()),
-        (REV_ALL, '774543e0', 0x4560, 'sub r4, r3, r7, ror r5', 0, ()),
-        (REV_ALL, '774553e0', 0x4560, 'subs r4, r3, r7, ror r5', 0, ()),
-        (REV_ALL, '774563e0', 0x4560, 'rsb r4, r3, r7, ror r5', 0, ()),
-        (REV_ALL, '774573e0', 0x4560, 'rsbs r4, r3, r7, ror r5', 0, ()),
-        (REV_ALL, '774583e0', 0x4560, 'add r4, r3, r7, ror r5', 0, ()),
-        (REV_ALL, '774593e0', 0x4560, 'adds r4, r3, r7, ror r5', 0, ()),
-        (REV_ALL, '7745a3e0', 0x4560, 'adc r4, r3, r7, ror r5', 0, ()),
-        (REV_ALL, '7745b3e0', 0x4560, 'adcs r4, r3, r7, ror r5', 0, ()),
-        (REV_ALL, '7745c3e0', 0x4560, 'sbc r4, r3, r7, ror r5', 0, ()),
-        (REV_ALL, '7745d3e0', 0x4560, 'sbcs r4, r3, r7, ror r5', 0, ()),
-        (REV_ALL, '7745e3e0', 0x4560, 'rsc r4, r3, r7, ror r5', 0, ()), 
-        (REV_ALL, '7745f3e0', 0x4560, 'rscs r4, r3, r7, ror r5', 0, ()),
-        (REV_ALL, '774513e1', 0x4560, 'tsts r3, r7, ror r5', 0, ()),  # s added
-        (REV_ALL, '774523e1', 0x4560, 'bkpt #0x3457', 0, ()),  # v6 book shows no #, IDA and ODA show no #. v7 book does show a # so putting it in for now
-        #(REV_ALL, '774533e1', 0x4560, 'teqs r3, r7, ror r5', 0, ()), # s added    # invalid instruction
-        #(REV_ALL, '774543e1', 0x4560, 'hvc #0x3457', 0, ()), # invalid instruction
-        (REV_ALL, '774553e1', 0x4560, 'cmps r3, r7, ror r5', 0, ()), # s added
-        #(REV_ALL, '774563e1', 0x4560, 'smc #0x3457', 0, ()), # invalid instruction
-        (REV_ALL, '774573e1', 0x4560, 'cmns r3, r7, ror r5', 0, ()), # s added
-        (REV_ALL, '774583e1', 0x4560, 'orr r4, r3, r7, ror r5', 0, ()),
-        (REV_ALL, '774593e1', 0x4560, 'orrs r4, r3, r7, ror r5', 0, ()),
-        (REV_ALL, '7745a3e1', 0x4560, 'mov r4, r7, ror r5', 0, ()),
-        (REV_ALL, '7745b3e1', 0x4560, 'movs r4, r7, ror r5', 0, ()),
-        (REV_ALL, '7745c3e1', 0x4560, 'bic r4, r3, r7, ror r5', 0, ()),
-        (REV_ALL, '7745d3e1', 0x4560, 'bics r4, r3, r7, ror r5', 0, ()),
-        (REV_ALL, '7745e3e1', 0x4560, 'mvn r4, r7, ror r5', 0, ()),
-        (REV_ALL, '7745f3e1', 0x4560, 'mvns r4, r7, ror r5', 0, ()),
-        (REV_ALL, '874503e0', 0x4560, 'and r4, r3, r7, lsl #11', 0, ()),    
-        (REV_ALL, '874513e0', 0x4560, 'ands r4, r3, r7, lsl #11', 0, ()),   
-        (REV_ALL, '874523e0', 0x4560, 'eor r4, r3, r7, lsl #11', 0, ()),    
-        (REV_ALL, '874533e0', 0x4560, 'eors r4, r3, r7, lsl #11', 0, ()),  
-        (REV_ALL, '874543e0', 0x4560, 'sub r4, r3, r7, lsl #11', 0, ()),    
-        (REV_ALL, '874553e0', 0x4560, 'subs r4, r3, r7, lsl #11', 0, ()),   
-        (REV_ALL, '874563e0', 0x4560, 'rsb r4, r3, r7, lsl #11', 0, ()),    
-        (REV_ALL, '874573e0', 0x4560, 'rsbs r4, r3, r7, lsl #11', 0, ()),   
-        (REV_ALL, '874583e0', 0x4560, 'add r4, r3, r7, lsl #11', 0, ()),    
-        (REV_ALL, '874593e0', 0x4560, 'adds r4, r3, r7, lsl #11', 0, ()),    
-        (REV_ALL, '8745a3e0', 0x4560, 'adc r4, r3, r7, lsl #11', 0, ()),    
-        (REV_ALL, '8745b3e0', 0x4560, 'adcs r4, r3, r7, lsl #11', 0, ()),    
-        (REV_ALL, '8745c3e0', 0x4560, 'sbc r4, r3, r7, lsl #11', 0, ()),    
-        (REV_ALL, '8745d3e0', 0x4560, 'sbcs r4, r3, r7, lsl #11', 0, ()),  
-        (REV_ALL, '8745e3e0', 0x4560, 'rsc r4, r3, r7, lsl #11', 0, ()),    
-        (REV_ALL, '8745f3e0', 0x4560, 'rscs r4, r3, r7, lsl #11', 0, ()),   
-        #(REV_ALL, '874503e1', 0x4560, 'smlabb r3, r7, r5, r4', 0, ()),  #TypeError: cannot concatenate 'str' and 'NoneType' objects
-        (REV_ALL, '874513e1', 0x4560, 'tsts r3, r7, lsl #11', 0, ()),  # s added  
-        #(REV_ALL, '874523e1', 0x4560, 'smlawb r3, r7, r5, r4', 0, ()), #TypeError: cannot concatenate 'str' and 'NoneType' objects
-        (REV_ALL, '874533e1', 0x4560, 'teqs r3, r7, lsl #11', 0, ()),   # s added  
-        #(REV_ALL, '874543e1', 0x4560, 'smlalbb r4, r3, r7, r5', 0, ()),  #UnboundLocalError: local variable 'Rn' referenced before assignment
-        (REV_ALL, '874553e1', 0x4560, 'cmps r3, r7, lsl #11', 0, ()),  # s added  
-        (REV_ALL, '874563e1', 0x4560, 'smulbb r3, r7, r5', 0, ()),  
-        (REV_ALL, '874573e1', 0x4560, 'cmns r3, r7, lsl #11', 0, ()),   # s added   
-        (REV_ALL, '874583e1', 0x4560, 'orr r4, r3, r7, lsl #11', 0, ()),  
-        (REV_ALL, '874593e1', 0x4560, 'orrs r4, r3, r7, lsl #11', 0, ()),  
-        (REV_ALL, '8745a3e1', 0x4560, 'mov r4, r7, lsl #11', 0, ()),  
-        (REV_ALL, '8745b3e1', 0x4560, 'movs r4, r7, lsl #11', 0, ()),  
-        (REV_ALL, '8745c3e1', 0x4560, 'bic r4, r3, r7, lsl #11', 0, ()),  
-        (REV_ALL, '8745d3e1', 0x4560, 'bics r4, r3, r7, lsl #11', 0, ()), 
-        (REV_ALL, '8745e3e1', 0x4560, 'mvn r4, r7, lsl #11', 0, ()),  
-        (REV_ALL, '8745f3e1', 0x4560, 'mvns r4, r7, lsl #11', 0, ()),  
-        (REV_ALL, '974523e0', 0x4560, 'mla r3, r7, r5, r4', 0, ()),
-        (REV_ALL, '974533e0', 0x4560, 'mlas r3, r7, r5, r4', 0, ()),
-        #(REV_ALL, '974543e0', 0x4560, 'umaal r4, r3, r7, r5', 0, ()),  # invalid instruction
-        #(REV_ALL, '974553e0', 0x4560, 'umaals r4, r3, r7, r5', 0, ()), # invalid instruction
-        #(REV_ALL, '974563e0', 0x4560, 'mls r3, r7, r5, r4', 0, ()),  # invalid instruction
-        #(REV_ALL, '974573e0', 0x4560, 'mlss r3, r7, r5, r4', 0, ()),   # invalid instruction
-        (REV_ALL, '974583e0', 0x4560, 'umull r4, r3, r7, r5', 0, ()),
-        (REV_ALL, '974593e0', 0x4560, 'umulls r4, r3, r7, r5', 0, ()),
-        (REV_ALL, '9745a3e0', 0x4560, 'umlal r4, r3, r7, r5', 0, ()),
-        (REV_ALL, '9745b3e0', 0x4560, 'umlals r4, r3, r7, r5', 0, ()),
-        (REV_ALL, '9745c3e0', 0x4560, 'smull r4, r3, r7, r5', 0, ()),
-        (REV_ALL, '9745d3e0', 0x4560, 'smulls r4, r3, r7, r5', 0, ()),
-        (REV_ALL, '9745e3e0', 0x4560, 'smlal r4, r3, r7, r5', 0, ()),
-        (REV_ALL, '9745f3e0', 0x4560, 'smlals r4, r3, r7, r5', 0, ()),
-        (REV_ALL, '974503e1', 0x4560, 'swp r4, r7, [r3]', 0, ()),  # ida shows tst r3, r7, lsl r5
-        #(REV_ALL, '974513e1', 0x4560, 'tst r3, r7, lsl r5', 0, ()), # invalid instruction
-        #(REV_ALL, '974523e1', 0x4560, 'teq r3, r7, lsl r5', 0, ()), # invalid instruction
-        #(REV_ALL, '974533e1', 0x4560, 'teq r3, r7, lsl r5', 0, ()), # invalid instruction
-        (REV_ALL, '974543e1', 0x4560, 'swpb r4, r7, [r3]', 0, ()), # ida shows cmp r3, r7, lsl r5
-        #(REV_ALL, '974553e1', 0x4560, 'cmp r3, r7, lsl r5', 0, ()), # invalid instruction
-        #(REV_ALL, '974563e1', 0x4560, 'cmn r3, r7, lsl r5', 0, ()), # invalid instruction
-        #(REV_ALL, '974573e1', 0x4560, 'cmn r3, r7, lsl r5', 0, ()), # invalid instruction
-        (REV_ALL, '974583e1', 0x4560, 'strex r4, r7, r3', 0, ()), # ida shows orr r4, r3, r7, lsl r5
-        (REV_ALL, '974593e1', 0x4560, 'ldrex r4, r7, r3', 0, ()), # ida shows orrs r4, r3, r7, lsl r5
-        #(REV_ALL, '9745a3e1', 0x4560, 'mov r4, r7, lsl r5', 0, ()),
-        #(REV_ALL, '9745b3e1', 0x4560, 'movs r4, r7, lsl r5', 0, ()),
-        #(REV_ALL, '9745c3e1', 0x4560, 'bic r4, r3, r7, lsl r5', 0, ()),
-        #(REV_ALL, '9745d3e1', 0x4560, 'bics r4, r3, r7, lsl r5', 0, ()),
-        #(REV_ALL, '9745e3e1', 0x4560, 'mvn r4, r7, lsl r5', 0, ()),
-        #(REV_ALL, '9745f3e1', 0x4560, 'mvns r4, r7, lsl r5', 0, ()),
-        (REV_ALL, 'a74503e0', 0x4560, 'and r4, r3, r7, lsr #11', 0, ()),
-        (REV_ALL, 'a74513e0', 0x4560, 'ands r4, r3, r7, lsr #11', 0, ()),
-        (REV_ALL, 'a74523e0', 0x4560, 'eor r4, r3, r7, lsr #11', 0, ()),
-        (REV_ALL, 'a74533e0', 0x4560, 'eors r4, r3, r7, lsr #11', 0, ()),
-        (REV_ALL, 'a74543e0', 0x4560, 'sub r4, r3, r7, lsr #11', 0, ()),
-        (REV_ALL, 'a74553e0', 0x4560, 'subs r4, r3, r7, lsr #11', 0, ()),
-        (REV_ALL, 'a74563e0', 0x4560, 'rsb r4, r3, r7, lsr #11', 0, ()),
-        (REV_ALL, 'a74573e0', 0x4560, 'rsbs r4, r3, r7, lsr #11', 0, ()),
-        (REV_ALL, 'a74583e0', 0x4560, 'add r4, r3, r7, lsr #11', 0, ()),
-        (REV_ALL, 'a74593e0', 0x4560, 'adds r4, r3, r7, lsr #11', 0, ()),
-        (REV_ALL, 'a745a3e0', 0x4560, 'adc r4, r3, r7, lsr #11', 0, ()),
-        (REV_ALL, 'a745b3e0', 0x4560, 'adcs r4, r3, r7, lsr #11', 0, ()),
-        (REV_ALL, 'a745c3e0', 0x4560, 'sbc r4, r3, r7, lsr #11', 0, ()),
-        (REV_ALL, 'a745d3e0', 0x4560, 'sbcs r4, r3, r7, lsr #11', 0, ()),
-        (REV_ALL, 'a745e3e0', 0x4560, 'rsc r4, r3, r7, lsr #11', 0, ()),
-        (REV_ALL, 'a745f3e0', 0x4560, 'rscs r4, r3, r7, lsr #11', 0, ()),
-        #(REV_ALL, 'a74503e1', 0x4560, 'smlatb r3, r7, r5, r4', 0, ()),
-        (REV_ALL, 'a74513e1', 0x4560, 'tsts r3, r7, lsr #11', 0, ()),   # s added 
-        #(REV_ALL, 'a74523e1', 0x4560, 'smulwb r3, r7, r5', 0, ()),   
-        (REV_ALL, 'a74533e1', 0x4560, 'teqs r3, r7, lsr #11', 0, ()),    # s added 
-        #(REV_ALL, 'a74543e1', 0x4560, 'smlaltb r4, r3, r7, r5', 0, ()),
-        (REV_ALL, 'a74553e1', 0x4560, 'cmps r3, r7, lsr #11', 0, ()),  # s added 
-        (REV_ALL, 'a74563e1', 0x4560, 'smultb r3, r7, r5', 0, ()),
-        (REV_ALL, 'a74573e1', 0x4560, 'cmns r3, r7, lsr #11', 0, ()),  # s added 
-        (REV_ALL, 'a74583e1', 0x4560, 'orr r4, r3, r7, lsr #11', 0, ()),
-        (REV_ALL, 'a74593e1', 0x4560, 'orrs r4, r3, r7, lsr #11', 0, ()),
-        (REV_ALL, 'a745a3e1', 0x4560, 'mov r4, r7, lsr #11', 0, ()),
-        (REV_ALL, 'a745b3e1', 0x4560, 'movs r4, r7, lsr #11', 0, ()),
-        (REV_ALL, 'a745c3e1', 0x4560, 'bic r4, r3, r7, lsr #11', 0, ()),
-        (REV_ALL, 'a745d3e1', 0x4560, 'bics r4, r3, r7, lsr #11', 0, ()),
-        (REV_ALL, 'a745e3e1', 0x4560, 'mvn r4, r7, lsr #11', 0, ()),
-        (REV_ALL, 'a745f3e1', 0x4560, 'mvns r4, r7, lsr #11', 0, ()),
-        (REV_ALL, 'b74503e0', 0x4560, 'strh r4, [r3], -r7 ', 0, ()),
-        (REV_ALL, 'b74513e0', 0x4560, 'ldrh r4, [r3], -r7 ', 0, ()),
-        #(REV_ALL, 'b74523e0', 0x4560, 'strht r4, [r3], -r7 ', 0, ()),    # not implimented yet
-        #(REV_ALL, 'b74533e0', 0x4560, 'ldrht r4, [r3], -r7 ', 0, ()), # not implimented yet
-        (REV_ALL, 'b74543e0', 0x4560, 'strh r4, [r3], #-0x57 ', 0, ()),
-        (REV_ALL, 'b74553e0', 0x4560, 'ldrh r4, [r3], #-0x57 ', 0, ()),
-        #(REV_ALL, 'b74563e0', 0x4560, 'strht r4, [r3], #-0x57 ', 0, ()),  # not implimented yet
-        #(REV_ALL, 'b74573e0', 0x4560, 'ldrht r4, [r3], #-0x57 ', 0, ()),  # not implimented yet
-        (REV_ALL, 'b74583e0', 0x4560, 'strh r4, [r3], r7 ', 0, ()),
-        (REV_ALL, 'b74593e0', 0x4560, 'ldrh r4, [r3], r7 ', 0, ()),
-        #(REV_ALL, 'b745a3e0', 0x4560, 'strht r4, [r3], r7 ', 0, ()),   # not implimented yet
-        #(REV_ALL, 'b745b3e0', 0x4560, 'ldrht r4, [r3], r7 ', 0, ()),   # not implimented yet
-        (REV_ALL, 'b745c3e0', 0x4560, 'strh r4, [r3], #0x57 ', 0, ()),
-        (REV_ALL, 'b745d3e0', 0x4560, 'ldrh r4, [r3], #0x57 ', 0, ()),
-        #(REV_ALL, 'b745e3e0', 0x4560, 'strht r4, [r3], #0x57 ', 0, ()), # not implimented yet
-        #(REV_ALL, 'b745f3e0', 0x4560, 'ldrht r4, [r3], #0x57 ', 0, ()),  # not implimented yet
-        (REV_ALL, 'b74503e1', 0x4560, 'strh r4, [r3, -r7] ', 0, ()),
-        (REV_ALL, 'b74513e1', 0x4560, 'ldrh r4, [r3, -r7] ', 0, ()),
-        (REV_ALL, 'b74523e1', 0x4560, 'strh r4, [r3, -r7]! ', 0, ()),
-        (REV_ALL, 'b74533e1', 0x4560, 'ldrh r4, [r3, -r7]! ', 0, ()),
-        (REV_ALL, 'b74543e1', 0x4560, 'strh r4, [r3, #-0x57] ', 0, ()),
-        (REV_ALL, 'b74553e1', 0x4560, 'ldrh r4, [r3, #-0x57] ', 0, ()),
-        (REV_ALL, 'b74563e1', 0x4560, 'strh r4, [r3, #-0x57]! ', 0, ()),
-        (REV_ALL, 'b74573e1', 0x4560, 'ldrh r4, [r3, #-0x57]! ', 0, ()),
-        (REV_ALL, 'b74583e1', 0x4560, 'strh r4, [r3, r7] ', 0, ()),
-        (REV_ALL, 'b74593e1', 0x4560, 'ldrh r4, [r3, r7] ', 0, ()),
-        (REV_ALL, 'b745a3e1', 0x4560, 'strh r4, [r3, r7]! ', 0, ()),
-        (REV_ALL, 'b745b3e1', 0x4560, 'ldrh r4, [r3, r7]! ', 0, ()),
-        (REV_ALL, 'b745c3e1', 0x4560, 'strh r4, [r3, #0x57] ', 0, ()),
-        (REV_ALL, 'b745d3e1', 0x4560, 'ldrh r4, [r3, #0x57] ', 0, ()),
-        (REV_ALL, 'b745e3e1', 0x4560, 'strh r4, [r3, #0x57]! ', 0, ()),
-        (REV_ALL, 'b745f3e1', 0x4560, 'ldrh r4, [r3, #0x57]! ', 0, ()),
-        (REV_ALL, 'c74503e0', 0x4560, 'and r4, r3, r7, asr #11', 0, ()),
-        (REV_ALL, 'c74513e0', 0x4560, 'ands r4, r3, r7, asr #11', 0, ()),
-        (REV_ALL, 'c74523e0', 0x4560, 'eor r4, r3, r7, asr #11', 0, ()),
-        (REV_ALL, 'c74533e0', 0x4560, 'eors r4, r3, r7, asr #11', 0, ()),
-        (REV_ALL, 'c74543e0', 0x4560, 'sub r4, r3, r7, asr #11', 0, ()),
-        (REV_ALL, 'c74553e0', 0x4560, 'subs r4, r3, r7, asr #11', 0, ()),
-        (REV_ALL, 'c74563e0', 0x4560, 'rsb r4, r3, r7, asr #11', 0, ()),
-        (REV_ALL, 'c74573e0', 0x4560, 'rsbs r4, r3, r7, asr #11', 0, ()),
-        (REV_ALL, 'c74583e0', 0x4560, 'add r4, r3, r7, asr #11', 0, ()),
-        (REV_ALL, 'c74593e0', 0x4560, 'adds r4, r3, r7, asr #11', 0, ()),
-        (REV_ALL, 'c745a3e0', 0x4560, 'adc r4, r3, r7, asr #11', 0, ()),
-        (REV_ALL, 'c745b3e0', 0x4560, 'adcs r4, r3, r7, asr #11', 0, ()),
-        (REV_ALL, 'c745c3e0', 0x4560, 'sbc r4, r3, r7, asr #11', 0, ()),
-        (REV_ALL, 'c745d3e0', 0x4560, 'sbcs r4, r3, r7, asr #11', 0, ()),
-        (REV_ALL, 'c745e3e0', 0x4560, 'rsc r4, r3, r7, asr #11', 0, ()),
-        (REV_ALL, 'c745f3e0', 0x4560, 'rscs r4, r3, r7, asr #11', 0, ()),
-        #(REV_ALL, 'c74503e1', 0x4560, 'smlabt r3, r7, r5, r4', 0, ()),   
-        (REV_ALL, 'c74513e1', 0x4560, 'tsts r3, r7, asr #11', 0, ()),    #added s
-        #(REV_ALL, 'c74523e1', 0x4560, 'smlawt r3, r7, r5, r4', 0, ()),
-        (REV_ALL, 'c74533e1', 0x4560, 'teqs r3, r7, asr #11', 0, ()),     #added s
-        #(REV_ALL, 'c74543e1', 0x4560, 'smlalbt r4, r3, r7, r5', 0, ()),
-        (REV_ALL, 'c74553e1', 0x4560, 'cmps r3, r7, asr #11', 0, ()),
-        (REV_ALL, 'c74563e1', 0x4560, 'smulbt r3, r7, r5', 0, ()),
-        (REV_ALL, 'c74573e1', 0x4560, 'cmns r3, r7, asr #11', 0, ()),      #added s
-        (REV_ALL, 'c74583e1', 0x4560, 'orr r4, r3, r7, asr #11', 0, ()),
-        (REV_ALL, 'c74593e1', 0x4560, 'orrs r4, r3, r7, asr #11', 0, ()),
-        (REV_ALL, 'c745a3e1', 0x4560, 'mov r4, r7, asr #11', 0, ()),
-        (REV_ALL, 'c745b3e1', 0x4560, 'movs r4, r7, asr #11', 0, ()),
-        (REV_ALL, 'c745c3e1', 0x4560, 'bic r4, r3, r7, asr #11', 0, ()),
-        (REV_ALL, 'c745d3e1', 0x4560, 'bics r4, r3, r7, asr #11', 0, ()),
-        (REV_ALL, 'c745e3e1', 0x4560, 'mvn r4, r7, asr #11', 0, ()),
-        (REV_ALL, 'c745f3e1', 0x4560, 'mvns r4, r7, asr #11', 0, ()),
-        (REV_ALL, 'd74503e0', 0x4560, 'ldrd r4, [r3], -r7 ', 0, ()),
-        (REV_ALL, 'd74513e0', 0x4560, 'ldrsb r4, [r3], -r7 ', 0, ()),
-        (REV_ALL, 'd74523e0', 0x4560, 'ldrd r4, [r3], -r7 ', 0, ()),    #ida says ldrtd but ldrt bits 26 & 25 need to be 1's and are 0's which is ldrd
-        #(REV_ALL, 'd74533e0', 0x4560, 'ldrsbt r4, [r3], -r7 ', 0, ()),  # not implimented yet
-        (REV_ALL, 'd74543e0', 0x4560, 'ldrd r4, [r3], #-0x57 ', 0, ()),
-        (REV_ALL, 'd74553e0', 0x4560, 'ldrsb r4, [r3], #-0x57 ', 0, ()),
-        #(REV_ALL, 'd74563e0', 0x4560, 'ldrtd r4, [r3], #-0x57 ', 0, ()), # not implimented yet
-        #(REV_ALL, 'd74573e0', 0x4560, 'ldrsbt r4, [r3], #-0x57 ', 0, ()), # not implimented yet
-        (REV_ALL, 'd74583e0', 0x4560, 'ldrd r4, [r3], r7 ', 0, ()),
-        (REV_ALL, 'd74593e0', 0x4560, 'ldrsb r4, [r3], r7 ', 0, ()),
-        #(REV_ALL, 'd745a3e0', 0x4560, 'ldrtd r4, [r3], r7 ', 0, ()), # not implimented yet
-        #(REV_ALL, 'd745b3e0', 0x4560, 'ldrsbt r4, [r3], r7 ', 0, ()), # not implimented yet
-        (REV_ALL, 'd745c3e0', 0x4560, 'ldrd r4, [r3], #0x57 ', 0, ()),
-        (REV_ALL, 'd745d3e0', 0x4560, 'ldrsb r4, [r3], #0x57 ', 0, ()),
-        #(REV_ALL, 'd745e3e0', 0x4560, 'ldrtd r4, [r3], #0x57 ', 0, ()), # not implimented yet
-        #(REV_ALL, 'd745f3e0', 0x4560, 'ldrsbt r4, [r3], #0x57 ', 0, ()), # not implimented yet
-        (REV_ALL, 'd74503e1', 0x4560, 'ldrd r4, [r3, -r7] ', 0, ()),
-        (REV_ALL, 'd74513e1', 0x4560, 'ldrsb r4, [r3, -r7] ', 0, ()),
-        (REV_ALL, 'd74523e1', 0x4560, 'ldrd r4, [r3, -r7]! ', 0, ()),
-        (REV_ALL, 'd74533e1', 0x4560, 'ldrsb r4, [r3, -r7]! ', 0, ()),
-        (REV_ALL, 'd74543e1', 0x4560, 'ldrd r4, [r3, #-0x57] ', 0, ()),
-        (REV_ALL, 'd74553e1', 0x4560, 'ldrsb r4, [r3, #-0x57] ', 0, ()),
-        (REV_ALL, 'd74563e1', 0x4560, 'ldrd r4, [r3, #-0x57]! ', 0, ()),
-        (REV_ALL, 'd74573e1', 0x4560, 'ldrsb r4, [r3, #-0x57]! ', 0, ()),
-        (REV_ALL, 'd74583e1', 0x4560, 'ldrd r4, [r3, r7] ', 0, ()),
-        (REV_ALL, 'd74593e1', 0x4560, 'ldrsb r4, [r3, r7] ', 0, ()),
-        (REV_ALL, 'd745a3e1', 0x4560, 'ldrd r4, [r3, r7]! ', 0, ()),
-        (REV_ALL, 'd745b3e1', 0x4560, 'ldrsb r4, [r3, r7]! ', 0, ()),
-        (REV_ALL, 'd745c3e1', 0x4560, 'ldrd r4, [r3, #0x57] ', 0, ()),
-        (REV_ALL, 'd745d3e1', 0x4560, 'ldrsb r4, [r3, #0x57] ', 0, ()),
-        (REV_ALL, 'd745e3e1', 0x4560, 'ldrd r4, [r3, #0x57]! ', 0, ()),
-        (REV_ALL, 'd745f3e1', 0x4560, 'ldrsb r4, [r3, #0x57]! ', 0, ()),
-        (REV_ALL, 'e74503e0', 0x4560, 'and r4, r3, r7, ror #11', 0, ()),
-        (REV_ALL, 'e74513e0', 0x4560, 'ands r4, r3, r7, ror #11', 0, ()),
-        (REV_ALL, 'e74523e0', 0x4560, 'eor r4, r3, r7, ror #11', 0, ()),
-        (REV_ALL, 'e74533e0', 0x4560, 'eors r4, r3, r7, ror #11', 0, ()),
-        (REV_ALL, 'e74543e0', 0x4560, 'sub r4, r3, r7, ror #11', 0, ()),
-        (REV_ALL, 'e74553e0', 0x4560, 'subs r4, r3, r7, ror #11', 0, ()),
-        (REV_ALL, 'e74563e0', 0x4560, 'rsb r4, r3, r7, ror #11', 0, ()),
-        (REV_ALL, 'e74573e0', 0x4560, 'rsbs r4, r3, r7, ror #11', 0, ()),
-        (REV_ALL, 'e74583e0', 0x4560, 'add r4, r3, r7, ror #11', 0, ()),
-        (REV_ALL, 'e74593e0', 0x4560, 'adds r4, r3, r7, ror #11', 0, ()),
-        (REV_ALL, 'e745a3e0', 0x4560, 'adc r4, r3, r7, ror #11', 0, ()),
-        (REV_ALL, 'e745b3e0', 0x4560, 'adcs r4, r3, r7, ror #11', 0, ()),
-        (REV_ALL, 'e745c3e0', 0x4560, 'sbc r4, r3, r7, ror #11', 0, ()),
-        (REV_ALL, 'e745d3e0', 0x4560, 'sbcs r4, r3, r7, ror #11', 0, ()),
-        (REV_ALL, 'e745e3e0', 0x4560, 'rsc r4, r3, r7, ror #11', 0, ()),
-        (REV_ALL, 'e745f3e0', 0x4560, 'rscs r4, r3, r7, ror #11', 0, ()),
-        #(REV_ALL, 'e74503e1', 0x4560, 'smlatt r3, r7, r5, r4', 0, ()),
-        (REV_ALL, 'e74513e1', 0x4560, 'tsts r3, r7, ror #11', 0, ()),   #added s
-        #(REV_ALL, 'e74523e1', 0x4560, 'smulwt r3, r7, r5', 0, ()), 
-        (REV_ALL, 'e74533e1', 0x4560, 'teqs r3, r7, ror #11', 0, ()),    #added s
-        #(REV_ALL, 'e74543e1', 0x4560, 'smlaltt r4, r3, r7, r5', 0, ()),
-        (REV_ALL, 'e74553e1', 0x4560, 'cmps r3, r7, ror #11', 0, ()),   #added s
-        (REV_ALL, 'e74563e1', 0x4560, 'smultt r3, r7, r5', 0, ()),
-        (REV_ALL, 'e74573e1', 0x4560, 'cmns r3, r7, ror #11', 0, ()),   #added s
-        (REV_ALL, 'e74583e1', 0x4560, 'orr r4, r3, r7, ror #11', 0, ()),
-        (REV_ALL, 'e74593e1', 0x4560, 'orrs r4, r3, r7, ror #11', 0, ()),
-        (REV_ALL, 'e745a3e1', 0x4560, 'mov r4, r7, ror #11', 0, ()),
-        (REV_ALL, 'e745b3e1', 0x4560, 'movs r4, r7, ror #11', 0, ()),
-        (REV_ALL, 'e745c3e1', 0x4560, 'bic r4, r3, r7, ror #11', 0, ()),
-        (REV_ALL, 'e745d3e1', 0x4560, 'bics r4, r3, r7, ror #11', 0, ()),
-        (REV_ALL, 'e745e3e1', 0x4560, 'mvn r4, r7, ror #11', 0, ()),
-        (REV_ALL, 'e745f3e1', 0x4560, 'mvns r4, r7, ror #11', 0, ()),
-        (REV_ALL, 'f74503e0', 0x4560, 'strd r4, [r3], -r7 ', 0, ()),
-        (REV_ALL, 'f74513e0', 0x4560, 'ldrsh r4, [r3], -r7 ', 0, ()),
-        #(REV_ALL, 'f74523e0', 0x4560, 'strtd r4, [r3], -r7 ', 0, ()),  # not implimented yet
-        #(REV_ALL, 'f74533e0', 0x4560, 'ldrsht r4, [r3], -r7 ', 0, ()), # not implimented yet
-        (REV_ALL, 'f74543e0', 0x4560, 'strd r4, [r3], #-0x57 ', 0, ()),
-        (REV_ALL, 'f74553e0', 0x4560, 'ldrsh r4, [r3], #-0x57 ', 0, ()),
-        #(REV_ALL, 'f74563e0', 0x4560, 'strtd r4, [r3], #-0x57 ', 0, ()), # not implimented yet
-        #(REV_ALL, 'f74573e0', 0x4560, 'ldrsht r4, [r3], #-0x57 ', 0, ()), # not implimented yet
-        (REV_ALL, 'f74583e0', 0x4560, 'strd r4, [r3], r7 ', 0, ()),
-        (REV_ALL, 'f74593e0', 0x4560, 'ldrsh r4, [r3], r7 ', 0, ()),
-        #(REV_ALL, 'f745a3e0', 0x4560, 'strtd r4, [r3], r7 ', 0, ()), # not implimented yet
-        #(REV_ALL, 'f745b3e0', 0x4560, 'ldrsht r4, [r3], r7 ', 0, ()), # not implimented yet
-        (REV_ALL, 'f745c3e0', 0x4560, 'strd r4, [r3], #0x57 ', 0, ()),
-        (REV_ALL, 'f745d3e0', 0x4560, 'ldrsh r4, [r3], #0x57 ', 0, ()),
-        #(REV_ALL, 'f745e3e0', 0x4560, 'strtd r4, [r3], #0x57 ', 0, ()), # not implimented yet
-        #(REV_ALL, 'f745f3e0', 0x4560, 'ldrsht r4, [r3], #0x57 ', 0, ()), # not implimented yet
-        (REV_ALL, 'f74503e1', 0x4560, 'strd r4, [r3, -r7] ', 0, ()),
-        (REV_ALL, 'f74513e1', 0x4560, 'ldrsh r4, [r3, -r7] ', 0, ()),
-        (REV_ALL, 'f74523e1', 0x4560, 'strd r4, [r3, -r7]! ', 0, ()),
-        (REV_ALL, 'f74533e1', 0x4560, 'ldrsh r4, [r3, -r7]! ', 0, ()),
-        (REV_ALL, 'f74543e1', 0x4560, 'strd r4, [r3, #-0x57] ', 0, ()),
-        (REV_ALL, 'f74553e1', 0x4560, 'ldrsh r4, [r3, #-0x57] ', 0, ()),
-        (REV_ALL, 'f74563e1', 0x4560, 'strd r4, [r3, #-0x57]! ', 0, ()),
-        (REV_ALL, 'f74573e1', 0x4560, 'ldrsh r4, [r3, #-0x57]! ', 0, ()),
-        (REV_ALL, 'f74583e1', 0x4560, 'strd r4, [r3, r7] ', 0, ()),
-        (REV_ALL, 'f74593e1', 0x4560, 'ldrsh r4, [r3, r7] ', 0, ()),
-        (REV_ALL, 'f745a3e1', 0x4560, 'strd r4, [r3, r7]! ', 0, ()),
-        (REV_ALL, 'f745b3e1', 0x4560, 'ldrsh r4, [r3, r7]! ', 0, ()),
-        (REV_ALL, 'f745c3e1', 0x4560, 'strd r4, [r3, #0x57] ', 0, ()),
-        (REV_ALL, 'f745d3e1', 0x4560, 'ldrsh r4, [r3, #0x57] ', 0, ()),
-        (REV_ALL, 'f745e3e1', 0x4560, 'strd r4, [r3, #0x57]! ', 0, ()),
-        (REV_ALL, 'f745f3e1', 0x4560, 'ldrsh r4, [r3, #0x57]! ', 0, ()),
-        (REV_ALL, '074603e0', 0x4560, 'and r4, r3, r7, lsl #12', 0, ()),
-        (REV_ALL, '074613e0', 0x4560, 'ands r4, r3, r7, lsl #12', 0, ()),
-        (REV_ALL, '074623e0', 0x4560, 'eor r4, r3, r7, lsl #12', 0, ()),
-        (REV_ALL, '074633e0', 0x4560, 'eors r4, r3, r7, lsl #12', 0, ()),
-        (REV_ALL, '074643e0', 0x4560, 'sub r4, r3, r7, lsl #12', 0, ()),
-        (REV_ALL, '074653e0', 0x4560, 'subs r4, r3, r7, lsl #12', 0, ()),
-        (REV_ALL, '074663e0', 0x4560, 'rsb r4, r3, r7, lsl #12', 0, ()),
-        (REV_ALL, '074673e0', 0x4560, 'rsbs r4, r3, r7, lsl #12', 0, ()),
-        (REV_ALL, '074683e0', 0x4560, 'add r4, r3, r7, lsl #12', 0, ()),
-        (REV_ALL, '074693e0', 0x4560, 'adds r4, r3, r7, lsl #12', 0, ()),
-        (REV_ALL, '0746a3e0', 0x4560, 'adc r4, r3, r7, lsl #12', 0, ()),
-        (REV_ALL, '0746b3e0', 0x4560, 'adcs r4, r3, r7, lsl #12', 0, ()),
-        (REV_ALL, '0746c3e0', 0x4560, 'sbc r4, r3, r7, lsl #12', 0, ()),
-        (REV_ALL, '0746d3e0', 0x4560, 'sbcs r4, r3, r7, lsl #12', 0, ()),
-        (REV_ALL, '0746e3e0', 0x4560, 'rsc r4, r3, r7, lsl #12', 0, ()),
-        (REV_ALL, '0746f3e0', 0x4560, 'rscs r4, r3, r7, lsl #12', 0, ()),
-        #(REV_ALL, '074603e1', 0x4560, 'tsts r3, r7, lsl #12', 0, ()), #added s , doesn't decode even close and doesn't match ref
-        (REV_ALL, '074613e1', 0x4560, 'tsts r3, r7, lsl #12', 0, ()), #added s
-        #(REV_ALL, '074623e1', 0x4560, 'teqs r3, r7, lsl #12', 0, ()), #added s, doesn't decode even close and doesn't match ref
-        (REV_ALL, '074633e1', 0x4560, 'teqs r3, r7, lsl #12', 0, ()), #added s
-        #(REV_ALL, '074643e1', 0x4560, 'cmps r3, r7, lsl #12', 0, ()), #added s not implimented
-        (REV_ALL, '074653e1', 0x4560, 'cmps r3, r7, lsl #12', 0, ()), #added s
-        #(REV_ALL, '074663e1', 0x4560, 'cmns r3, r7, lsl #12', 0, ()), #added s not implimented
-        (REV_ALL, '074673e1', 0x4560, 'cmns r3, r7, lsl #12', 0, ()), #added s
-        (REV_ALL, '074683e1', 0x4560, 'orr r4, r3, r7, lsl #12', 0, ()),
-        (REV_ALL, '074693e1', 0x4560, 'orrs r4, r3, r7, lsl #12', 0, ()),
-        (REV_ALL, '0746a3e1', 0x4560, 'mov r4, r7, lsl #12', 0, ()),
-        (REV_ALL, '0746b3e1', 0x4560, 'movs r4, r7, lsl #12', 0, ()),
-        (REV_ALL, '0746c3e1', 0x4560, 'bic r4, r3, r7, lsl #12', 0, ()),
-        (REV_ALL, '0746d3e1', 0x4560, 'bics r4, r3, r7, lsl #12', 0, ()),
-        (REV_ALL, '0746e3e1', 0x4560, 'mvn r4, r7, lsl #12', 0, ()),
-        (REV_ALL, '0746f3e1', 0x4560, 'mvns r4, r7, lsl #12', 0, ()),
-        (REV_ALL, '174603e0', 0x4560, 'and r4, r3, r7, lsl r6', 0, ()),
-        (REV_ALL, '174613e0', 0x4560, 'ands r4, r3, r7, lsl r6', 0, ()),
-        (REV_ALL, '174623e0', 0x4560, 'eor r4, r3, r7, lsl r6', 0, ()),
-        (REV_ALL, '174633e0', 0x4560, 'eors r4, r3, r7, lsl r6', 0, ()),
-        (REV_ALL, '174643e0', 0x4560, 'sub r4, r3, r7, lsl r6', 0, ()),
-        (REV_ALL, '174653e0', 0x4560, 'subs r4, r3, r7, lsl r6', 0, ()),
-        (REV_ALL, '174663e0', 0x4560, 'rsb r4, r3, r7, lsl r6', 0, ()),
-        (REV_ALL, '174673e0', 0x4560, 'rsbs r4, r3, r7, lsl r6', 0, ()),
-        (REV_ALL, '174683e0', 0x4560, 'add r4, r3, r7, lsl r6', 0, ()),
-        (REV_ALL, '174693e0', 0x4560, 'adds r4, r3, r7, lsl r6', 0, ()),
-        (REV_ALL, '1746a3e0', 0x4560, 'adc r4, r3, r7, lsl r6', 0, ()),
-        (REV_ALL, '1746b3e0', 0x4560, 'adcs r4, r3, r7, lsl r6', 0, ()),
-        (REV_ALL, '1746c3e0', 0x4560, 'sbc r4, r3, r7, lsl r6', 0, ()),
-        (REV_ALL, '1746d3e0', 0x4560, 'sbcs r4, r3, r7, lsl r6', 0, ()),
-        (REV_ALL, '1746e3e0', 0x4560, 'rsc r4, r3, r7, lsl r6', 0, ()),
-        (REV_ALL, '1746f3e0', 0x4560, 'rscs r4, r3, r7, lsl r6', 0, ()),
-        #(REV_ALL, '174603e1', 0x4560, 'tst r3, r7, lsl r6', 0, ()),     # not implimented
-        (REV_ALL, '174613e1', 0x4560, 'tsts r3, r7, lsl r6', 0, ()),    #added s
-        (REV_ALL, '174623e1', 0x4560, 'bx r7', 0, ()),
-        #(REV_ALL, '174643e1', 0x4560, 'cmp r3, r7, lsl r6', 0, ()), # not implimented
-        (REV_ALL, '174653e1', 0x4560, 'cmps r3, r7, lsl r6', 0, ()),  #added s
-        (REV_ALL, '174663e1', 0x4560, 'clz r4, r7', 0, ()),
-        (REV_ALL, '174673e1', 0x4560, 'cmns r3, r7, lsl r6', 0, ()),  #added s
-        (REV_ALL, '174683e1', 0x4560, 'orr r4, r3, r7, lsl r6', 0, ()),
-        (REV_ALL, '174693e1', 0x4560, 'orrs r4, r3, r7, lsl r6', 0, ()),
-        (REV_ALL, '1746a3e1', 0x4560, 'mov r4, r7, lsl r6', 0, ()),
-        (REV_ALL, '1746b3e1', 0x4560, 'movs r4, r7, lsl r6', 0, ()),
-        (REV_ALL, '1746c3e1', 0x4560, 'bic r4, r3, r7, lsl r6', 0, ()),
-        (REV_ALL, '1746d3e1', 0x4560, 'bics r4, r3, r7, lsl r6', 0, ()),
-        (REV_ALL, '1746e3e1', 0x4560, 'mvn r4, r7, lsl r6', 0, ()),
-        (REV_ALL, '1746f3e1', 0x4560, 'mvns r4, r7, lsl r6', 0, ()),
-        (REV_ALL, '274603e0', 0x4560, 'and r4, r3, r7, lsr #12', 0, ()),
-        (REV_ALL, '274613e0', 0x4560, 'ands r4, r3, r7, lsr #12', 0, ()),
-        (REV_ALL, '274623e0', 0x4560, 'eor r4, r3, r7, lsr #12', 0, ()),
-        (REV_ALL, '274633e0', 0x4560, 'eors r4, r3, r7, lsr #12', 0, ()),
-        (REV_ALL, '274643e0', 0x4560, 'sub r4, r3, r7, lsr #12', 0, ()),
-        (REV_ALL, '274653e0', 0x4560, 'subs r4, r3, r7, lsr #12', 0, ()),
-        (REV_ALL, '274663e0', 0x4560, 'rsb r4, r3, r7, lsr #12', 0, ()),
-        (REV_ALL, '274673e0', 0x4560, 'rsbs r4, r3, r7, lsr #12', 0, ()),
-        (REV_ALL, '274683e0', 0x4560, 'add r4, r3, r7, lsr #12', 0, ()),
-        (REV_ALL, '274693e0', 0x4560, 'adds r4, r3, r7, lsr #12', 0, ()),
-        (REV_ALL, '2746a3e0', 0x4560, 'adc r4, r3, r7, lsr #12', 0, ()),
-        (REV_ALL, '2746b3e0', 0x4560, 'adcs r4, r3, r7, lsr #12', 0, ()),
-        (REV_ALL, '2746c3e0', 0x4560, 'sbc r4, r3, r7, lsr #12', 0, ()),
-        (REV_ALL, '2746d3e0', 0x4560, 'sbcs r4, r3, r7, lsr #12', 0, ()),
-        (REV_ALL, '2746e3e0', 0x4560, 'rsc r4, r3, r7, lsr #12', 0, ()),
-        (REV_ALL, '2746f3e0', 0x4560, 'rscs r4, r3, r7, lsr #12', 0, ()),
-        #(REV_ALL, '274603e1', 0x4560, 'tst r3, r7, lsr #12', 0, ()),  #should be: tst r3, r7, lsr #12  - is: mrs r4, CPSR
-        (REV_ALL, '274613e1', 0x4560, 'tsts r3, r7, lsr #12', 0, ()),
-        #(REV_ALL, '274623e1', 0x4560, 'bxj r7', 0, ()),  # should be: bxj r7  - is: mrs r4, CPSR
-        #(REV_ALL, '274643e1', 0x4560, 'cmp r3, r7, lsr #12', 0, ()),  
-        (REV_ALL, '274653e1', 0x4560, 'cmps r3, r7, lsr #12', 0, ()),  #added s
-        #(REV_ALL, '274663e1', 0x4560, 'cmns r3, r7, lsr #12', 0, ()),  #added s   # not implimented
-        (REV_ALL, '274673e1', 0x4560, 'cmns r3, r7, lsr #12', 0, ()),  #added s
-        (REV_ALL, '274683e1', 0x4560, 'orr r4, r3, r7, lsr #12', 0, ()),
-        (REV_ALL, '274693e1', 0x4560, 'orrs r4, r3, r7, lsr #12', 0, ()),
-        (REV_ALL, '2746a3e1', 0x4560, 'mov r4, r7, lsr #12', 0, ()),
-        (REV_ALL, '2746b3e1', 0x4560, 'movs r4, r7, lsr #12', 0, ()),
-        (REV_ALL, '2746c3e1', 0x4560, 'bic r4, r3, r7, lsr #12', 0, ()),
-        (REV_ALL, '2746d3e1', 0x4560, 'bics r4, r3, r7, lsr #12', 0, ()),
-        (REV_ALL, '2746e3e1', 0x4560, 'mvn r4, r7, lsr #12', 0, ()),
-        (REV_ALL, '2746f3e1', 0x4560, 'mvns r4, r7, lsr #12', 0, ()),
-        (REV_ALL, '374603e0', 0x4560, 'and r4, r3, r7, lsr r6', 0, ()),
-        (REV_ALL, '374613e0', 0x4560, 'ands r4, r3, r7, lsr r6', 0, ()),
-        (REV_ALL, '374623e0', 0x4560, 'eor r4, r3, r7, lsr r6', 0, ()),
-        (REV_ALL, '374633e0', 0x4560, 'eors r4, r3, r7, lsr r6', 0, ()),
-        (REV_ALL, '374643e0', 0x4560, 'sub r4, r3, r7, lsr r6', 0, ()),
-        (REV_ALL, '374653e0', 0x4560, 'subs r4, r3, r7, lsr r6', 0, ()),
-        (REV_ALL, '374663e0', 0x4560, 'rsb r4, r3, r7, lsr r6', 0, ()),
-        (REV_ALL, '374673e0', 0x4560, 'rsbs r4, r3, r7, lsr r6', 0, ()),
-        (REV_ALL, '374683e0', 0x4560, 'add r4, r3, r7, lsr r6', 0, ()),
-        (REV_ALL, '374693e0', 0x4560, 'adds r4, r3, r7, lsr r6', 0, ()),
-        (REV_ALL, '3746a3e0', 0x4560, 'adc r4, r3, r7, lsr r6', 0, ()),
-        (REV_ALL, '3746b3e0', 0x4560, 'adcs r4, r3, r7, lsr r6', 0, ()),
-        (REV_ALL, '3746c3e0', 0x4560, 'sbc r4, r3, r7, lsr r6', 0, ()),
-        (REV_ALL, '3746d3e0', 0x4560, 'sbcs r4, r3, r7, lsr r6', 0, ()),
-        (REV_ALL, '3746e3e0', 0x4560, 'rsc r4, r3, r7, lsr r6', 0, ()),
-        (REV_ALL, '3746f3e0', 0x4560, 'rscs r4, r3, r7, lsr r6', 0, ()),
-        #(REV_ALL, '374603e1', 0x4560, 'tstS r3, r7, lsr r6', 0, ()),   #added s   # not implimented
-        (REV_ALL, '374613e1', 0x4560, 'tsts r3, r7, lsr r6', 0, ()),  #added s
-        (REV_ALL, '374623e1', 0x4560, 'blx r7', 0, ()),
-        (REV_ALL, '374633e1', 0x4560, 'teqs r3, r7, lsr r6', 0, ()), #added s
-        #(REV_ALL, '374643e1', 0x4560, 'cmps r3, r7, lsr r6', 0, ()),    #added s   # not implimented
-        (REV_ALL, '374653e1', 0x4560, 'cmps r3, r7, lsr r6', 0, ()), #added s
-        #(REV_ALL, '374663e1', 0x4560, 'cmns r3, r7, lsr r6', 0, ()),   #added s   # not implimented
-        (REV_ALL, '374673e1', 0x4560, 'cmns r3, r7, lsr r6', 0, ()),  #added s 
-        (REV_ALL, '374683e1', 0x4560, 'orr r4, r3, r7, lsr r6', 0, ()),
-        (REV_ALL, '374693e1', 0x4560, 'orrs r4, r3, r7, lsr r6', 0, ()),
-        (REV_ALL, '3746a3e1', 0x4560, 'mov r4, r7, lsr r6', 0, ()),
-        (REV_ALL, '3746b3e1', 0x4560, 'movs r4, r7, lsr r6', 0, ()),
-        (REV_ALL, '3746c3e1', 0x4560, 'bic r4, r3, r7, lsr r6', 0, ()),
-        (REV_ALL, '3746d3e1', 0x4560, 'bics r4, r3, r7, lsr r6', 0, ()),
-        (REV_ALL, '3746e3e1', 0x4560, 'mvn r4, r7, lsr r6', 0, ()),
-        (REV_ALL, '3746f3e1', 0x4560, 'mvns r4, r7, lsr r6', 0, ()),
-        (REV_ALL, '474603e0', 0x4560, 'and r4, r3, r7, asr #12', 0, ()),
-        (REV_ALL, '474613e0', 0x4560, 'ands r4, r3, r7, asr #12', 0, ()),
-        (REV_ALL, '474623e0', 0x4560, 'eor r4, r3, r7, asr #12', 0, ()),
-        (REV_ALL, '474633e0', 0x4560, 'eors r4, r3, r7, asr #12', 0, ()),
-        (REV_ALL, '474643e0', 0x4560, 'sub r4, r3, r7, asr #12', 0, ()),
-        (REV_ALL, '474653e0', 0x4560, 'subs r4, r3, r7, asr #12', 0, ()),
-        (REV_ALL, '474663e0', 0x4560, 'rsb r4, r3, r7, asr #12', 0, ()),
-        (REV_ALL, '474673e0', 0x4560, 'rsbs r4, r3, r7, asr #12', 0, ()),
-        (REV_ALL, '474683e0', 0x4560, 'add r4, r3, r7, asr #12', 0, ()),
-        (REV_ALL, '474693e0', 0x4560, 'adds r4, r3, r7, asr #12', 0, ()),
-        (REV_ALL, '4746a3e0', 0x4560, 'adc r4, r3, r7, asr #12', 0, ()),
-        (REV_ALL, '4746b3e0', 0x4560, 'adcs r4, r3, r7, asr #12', 0, ()),
-        (REV_ALL, '4746c3e0', 0x4560, 'sbc r4, r3, r7, asr #12', 0, ()),
-        (REV_ALL, '4746d3e0', 0x4560, 'sbcs r4, r3, r7, asr #12', 0, ()),
-        (REV_ALL, '4746e3e0', 0x4560, 'rsc r4, r3, r7, asr #12', 0, ()),
-        (REV_ALL, '4746f3e0', 0x4560, 'rscs r4, r3, r7, asr #12', 0, ()),
-        #(REV_ALL, '474603e1', 0x4560, 'tsts r3, r7, asr #12', 0, ()),  #added s   # should be: tsts r3, r7, asr #12  - is: mrs r4, CPSR
-        (REV_ALL, '474613e1', 0x4560, 'tsts r3, r7, asr #12', 0, ()), #added s 
-        #(REV_ALL, '474623e1', 0x4560, 'teqs r3, r7, asr #12', 0, ()), #added s   # should be: teqs r3, r7, asr #12  - is: mrs r4, CPSR
-        (REV_ALL, '474633e1', 0x4560, 'teqs r3, r7, asr #12', 0, ()), #added s 
-        #(REV_ALL, '474643e1', 0x4560, 'cmps r3, r7, asr #12', 0, ()), #added s   # not implimented
-        (REV_ALL, '474653e1', 0x4560, 'cmps r3, r7, asr #12', 0, ()), #added s 
-        #(REV_ALL, '474663e1', 0x4560, 'cmns r3, r7, asr #12', 0, ()), #added s   # not implimented
-        (REV_ALL, '474673e1', 0x4560, 'cmns r3, r7, asr #12', 0, ()), #added s 
-        (REV_ALL, '474683e1', 0x4560, 'orr r4, r3, r7, asr #12', 0, ()),
-        (REV_ALL, '474693e1', 0x4560, 'orrs r4, r3, r7, asr #12', 0, ()),
-        (REV_ALL, '4746a3e1', 0x4560, 'mov r4, r7, asr #12', 0, ()),
-        (REV_ALL, '4746b3e1', 0x4560, 'movs r4, r7, asr #12', 0, ()),
-        (REV_ALL, '4746c3e1', 0x4560, 'bic r4, r3, r7, asr #12', 0, ()),
-        (REV_ALL, '4746d3e1', 0x4560, 'bics r4, r3, r7, asr #12', 0, ()),
-        (REV_ALL, '4746e3e1', 0x4560, 'mvn r4, r7, asr #12', 0, ()),
-        (REV_ALL, '4746f3e1', 0x4560, 'mvns r4, r7, asr #12', 0, ()),
-        (REV_ALL, '574603e0', 0x4560, 'and r4, r3, r7, asr r6', 0, ()),
-        (REV_ALL, '574613e0', 0x4560, 'ands r4, r3, r7, asr r6', 0, ()),
-        (REV_ALL, '574623e0', 0x4560, 'eor r4, r3, r7, asr r6', 0, ()),
-        (REV_ALL, '574633e0', 0x4560, 'eors r4, r3, r7, asr r6', 0, ()),
-        (REV_ALL, '574643e0', 0x4560, 'sub r4, r3, r7, asr r6', 0, ()),
-        (REV_ALL, '574653e0', 0x4560, 'subs r4, r3, r7, asr r6', 0, ()),
-        (REV_ALL, '574663e0', 0x4560, 'rsb r4, r3, r7, asr r6', 0, ()),
-        (REV_ALL, '574673e0', 0x4560, 'rsbs r4, r3, r7, asr r6', 0, ()),
-        (REV_ALL, '574683e0', 0x4560, 'add r4, r3, r7, asr r6', 0, ()),
-        (REV_ALL, '574693e0', 0x4560, 'adds r4, r3, r7, asr r6', 0, ()),
-        (REV_ALL, '5746a3e0', 0x4560, 'adc r4, r3, r7, asr r6', 0, ()),
-        (REV_ALL, '5746b3e0', 0x4560, 'adcs r4, r3, r7, asr r6', 0, ()),
-        (REV_ALL, '5746c3e0', 0x4560, 'sbc r4, r3, r7, asr r6', 0, ()),
-        (REV_ALL, '5746d3e0', 0x4560, 'sbcs r4, r3, r7, asr r6', 0, ()),
-        (REV_ALL, '5746e3e0', 0x4560, 'rsc r4, r3, r7, asr r6', 0, ()),
-        (REV_ALL, '5746f3e0', 0x4560, 'rscs r4, r3, r7, asr r6', 0, ()),
-        #(REV_ALL, '574603e1', 0x4560, 'tst r3, r7, asr r6', 0, ()), # should be: tst r3, r7, asr r6  - is: qadd r4, r7, r3
-        (REV_ALL, '574613e1', 0x4560, 'tsts r3, r7, asr r6', 0, ()),  #added s
-        #(REV_ALL, '574623e1', 0x4560, 'teq r3, r7, asr r6', 0, ()),  #should be: teq r3, r7, asr r6  - is: qsub r4, r7, r3
-        (REV_ALL, '574633e1', 0x4560, 'teqs r3, r7, asr r6', 0, ()),  #added s
-        #(REV_ALL, '574643e1', 0x4560, 'cmp r3, r7, asr r6', 0, ()),  # should be: cmp r3, r7, asr r6  - is: qdadd r4, r7, r3
-        (REV_ALL, '574653e1', 0x4560, 'cmps r3, r7, asr r6', 0, ()),  #added s
-        #(REV_ALL, '574663e1', 0x4560, 'cmn r3, r7, asr r6', 0, ()), #should be: cmp r3, r7, asr r6  - is: qdadd r4, r7, r3
-        (REV_ALL, '574673e1', 0x4560, 'cmns r3, r7, asr r6', 0, ()),  #added s
-        (REV_ALL, '574683e1', 0x4560, 'orr r4, r3, r7, asr r6', 0, ()),
-        (REV_ALL, '574693e1', 0x4560, 'orrs r4, r3, r7, asr r6', 0, ()),
-        (REV_ALL, '5746a3e1', 0x4560, 'mov r4, r7, asr r6', 0, ()),
-        (REV_ALL, '5746b3e1', 0x4560, 'movs r4, r7, asr r6', 0, ()),
-        (REV_ALL, '5746c3e1', 0x4560, 'bic r4, r3, r7, asr r6', 0, ()),
-        (REV_ALL, '5746d3e1', 0x4560, 'bics r4, r3, r7, asr r6', 0, ()),
-        (REV_ALL, '5746e3e1', 0x4560, 'mvn r4, r7, asr r6', 0, ()),
-        (REV_ALL, '5746f3e1', 0x4560, 'mvns r4, r7, asr r6', 0, ()),
-        #(REV_ALL, '674503e6', 0x4560, 'str r4, [r3], -r7, ror #10', 0, ()),  #should be: str r4, [r3], -r7, ror #10  - is: str r4, [r3], -r7 ror #10
-        #(REV_ALL, '674523e6', 0x4560, 'strt r4, [r3], -r7, ror #10', 0, ()),  #should be: strt r4, [r3], -r7, ror #10  - is: strt r4, [r3], -r7 ror #10
-        #(REV_ALL, '674543e6', 0x4560, 'strb r4, [r3], -r7, ror #10', 0, ()), #should be: strb r4, [r3], -r7, ror #10  - is: strb r4, [r3], -r7 ror #10
-        #(REV_ALL, '674563e6', 0x4560, 'strbt r4, [r3], -r7, ror #10', 0, ())  # missing last ',' same as above
-        #(REV_ALL, '674583e6', 0x4560, 'str r4, [r3], r7, ror #10', 0, ()), # missing last ',' same as above
-        #(REV_ALL, '6745a3e6', 0x4560, 'strt r4, [r3], r7, ror #10', 0, ()), # missing last ',' same as above
-        #(REV_ALL, '6745c3e6', 0x4560, 'strb r4, [r3], r7, ror #10', 0, ()), # missing last ',' same as above
-        #(REV_ALL, '6745e3e6', 0x4560, 'strbt r4, [r3], r7, ror #10', 0, ()), # missing last ',' same as above
-        #(REV_ALL, '674503e7', 0x4560, 'str r4, [r3, -r7, ror #10]', 0, ()), # missing last ',' same as above
-        #(REV_ALL, '674523e7', 0x4560, 'str r4, [r3, -r7, ror #10]!', 0, ()), # missing last ',' same as above
-        #(REV_ALL, '674543e7', 0x4560, 'strb r4, [r3, -r7, ror #10]', 0, ()), # missing last ',' same as above
-        #(REV_ALL, '674563e7', 0x4560, 'strb r4, [r3, -r7, ror #10]!', 0, ()),  # missing last ',' same as above
-        #(REV_ALL, '674583e7', 0x4560, 'str r4, [r3, r7, ror #10]', 0, ()), # missing last ',' same as above
-        #(REV_ALL, '6745a3e7', 0x4560, 'str r4, [r3, r7, ror #10]!', 0, ()), # missing last ',' same as above
-        #(REV_ALL, '6745c3e7', 0x4560, 'strb r4, [r3, r7, ror #10]', 0, ()), # missing last ',' same as above
-        (REV_ALL, '6745e3e7', 0x4560, 'strb r4, [r3, r7, ror #10]!', 0, ()), # missing last ',' same as above
-        (REV_ALL, '674503e0', 0x4560, 'and r4, r3, r7, ror #10', 0, ()),
-        (REV_ALL, '674513e0', 0x4560, 'ands r4, r3, r7, ror #10', 0, ()),
-        (REV_ALL, '674523e0', 0x4560, 'eor r4, r3, r7, ror #10', 0, ()),
-        (REV_ALL, '674533e0', 0x4560, 'eors r4, r3, r7, ror #10', 0, ()),
-        (REV_ALL, '674543e0', 0x4560, 'sub r4, r3, r7, ror #10', 0, ()),
-        (REV_ALL, '674553e0', 0x4560, 'subs r4, r3, r7, ror #10', 0, ()),
-        (REV_ALL, '674563e0', 0x4560, 'rsb r4, r3, r7, ror #10', 0, ()),
-        (REV_ALL, '674573e0', 0x4560, 'rsbs r4, r3, r7, ror #10', 0, ()),
-        (REV_ALL, '674583e0', 0x4560, 'add r4, r3, r7, ror #10', 0, ()),
-        (REV_ALL, '674593e0', 0x4560, 'adds r4, r3, r7, ror #10', 0, ()),
-        (REV_ALL, '6745a3e0', 0x4560, 'adc r4, r3, r7, ror #10', 0, ()),
-        (REV_ALL, '6745b3e0', 0x4560, 'adcs r4, r3, r7, ror #10', 0, ()),
-        (REV_ALL, '6745c3e0', 0x4560, 'sbc r4, r3, r7, ror #10', 0, ()),
-        (REV_ALL, '6745d3e0', 0x4560, 'sbcs r4, r3, r7, ror #10', 0, ()),
-        (REV_ALL, '6745e3e0', 0x4560, 'rsc r4, r3, r7, ror #10', 0, ()),
-        (REV_ALL, '6745f3e0', 0x4560, 'rscs r4, r3, r7, ror #10', 0, ()) 
+        (REV_ARM_ALL, '08309fe5', 0xbfb00000, 'ldr r3, [#0xbfb00010]', 0, ()),
+        (REV_ARM_ALL, '0830bbe5', 0xbfb00000, 'ldr r3, [r11, #0x8]!', 0, ()),
+        (REV_ARM_ALL, '08309be4', 0xbfb00000, 'ldr r3, [r11], #0x8', 0, ()),
+        (REV_ARM_ALL, '08301be4', 0xbfb00000, 'ldr r3, [r11], #-0x8', 0, ()),
+        (REV_ARM_ALL, '02209ae7', 0xbfb00000, 'ldr r2, [r10, r2]', 0, ()),
+        (REV_ARM_ALL, '02209ae6', 0xbfb00000, 'ldr r2, [r10], r2', 0, ()),
+        (REV_ARM_ALL, '02203ae7', 0xbfb00000, 'ldr r2, [r10, -r2]!', 0, ()),
+        (REV_ARM_ALL, '0220bae7', 0xbfb00000, 'ldr r2, [r10, r2]!', 0, ()),
+        (REV_ARM_ALL, '22209ae7', 0xbfb00000, 'ldr r2, [r10, r2, lsr #32]', 0, ()),  # Needs a , between r2 and lsr
+        (REV_ARM_ALL, '08309fe5', 0xbfb00000, 'ldr r3, [#0xbfb00010]', 0, ()),
+        (REV_ARM_ALL, '08309fe5', 0xbfb00000, 'ldr r3, [#0xbfb00010]', 0, ()),
+        (REV_ARM_ALL, '674503e0', 0x4560, 'and r4, r3, r7, ror #10', 0, ()),
+        (REV_ARM_ALL, '674513e0', 0x4560, 'ands r4, r3, r7, ror #10', 0, ()),
+        (REV_ARM_ALL, '674523e0', 0x4560, 'eor r4, r3, r7, ror #10', 0, ()),
+        (REV_ARM_ALL, '674533e0', 0x4560, 'eors r4, r3, r7, ror #10', 0, ()),
+        (REV_ARM_ALL, '674543e0', 0x4560, 'sub r4, r3, r7, ror #10', 0, ()),
+        (REV_ARM_ALL, '674553e0', 0x4560, 'subs r4, r3, r7, ror #10', 0, ()),
+        (REV_ARM_ALL, '674563e0', 0x4560, 'rsb r4, r3, r7, ror #10', 0, ()),
+        (REV_ARM_ALL, '674573e0', 0x4560, 'rsbs r4, r3, r7, ror #10', 0, ()),
+        (REV_ARM_ALL, '674583e0', 0x4560, 'add r4, r3, r7, ror #10', 0, ()),
+        (REV_ARM_ALL, '674593e0', 0x4560, 'adds r4, r3, r7, ror #10', 0, ()),
+        (REV_ARM_ALL, '6745a3e0', 0x4560, 'adc r4, r3, r7, ror #10', 0, ()),
+        (REV_ARM_ALL, '6745b3e0', 0x4560, 'adcs r4, r3, r7, ror #10', 0, ()),
+        (REV_ARM_ALL, '6745c3e0', 0x4560, 'sbc r4, r3, r7, ror #10', 0, ()),
+        (REV_ARM_ALL, '6745d3e0', 0x4560, 'sbcs r4, r3, r7, ror #10', 0, ()),
+        (REV_ARM_ALL, '6745e3e0', 0x4560, 'rsc r4, r3, r7, ror #10', 0, ()),
+        (REV_ARM_ALL, '6745f3e0', 0x4560, 'rscs r4, r3, r7, ror #10', 0, ()),
+        (REV_ARM_ALL, '674513e1', 0x4560, 'tsts r3, r7, ror #10', 0, ()),
+        (REV_ARM_ALL, '674533e1', 0x4560, 'teqs r3, r7, ror #10', 0, ()),
+        (REV_ARM_ALL, '674553e1', 0x4560, 'cmps r3, r7, ror #10', 0, ()),
+        (REV_ARM_ALL, '674573e1', 0x4560, 'cmns r3, r7, ror #10', 0, ()),
+        (REV_ARM_ALL, '674583e1', 0x4560, 'orr r4, r3, r7, ror #10', 0, ()),
+        (REV_ARM_ALL, '674593e1', 0x4560, 'orrs r4, r3, r7, ror #10', 0, ()),
+        (REV_ARM_ALL, '6745a3e1', 0x4560, 'mov r4, r7, ror #10', 0, ()),
+        (REV_ARM_ALL, '6745b3e1', 0x4560, 'movs r4, r7, ror #10', 0, ()),
+        (REV_ARM_ALL, '6745c3e1', 0x4560, 'bic r4, r3, r7, ror #10', 0, ()),
+        (REV_ARM_ALL, '6745d3e1', 0x4560, 'bics r4, r3, r7, ror #10', 0, ()),
+        (REV_ARM_ALL, '6745e3e1', 0x4560, 'mvn r4, r7, ror #10', 0, ()),
+        (REV_ARM_ALL, '6745f3e1', 0x4560, 'mvns r4, r7, ror #10', 0, ()),
+        (REV_ARM_ALL, '774503e0', 0x4560, 'and r4, r3, r7, ror r5', 0, ()),
+        (REV_ARM_ALL, '774513e0', 0x4560, 'ands r4, r3, r7, ror r5', 0, ()),
+        (REV_ARM_ALL, '774523e0', 0x4560, 'eor r4, r3, r7, ror r5', 0, ()),
+        (REV_ARM_ALL, '774533e0', 0x4560, 'eors r4, r3, r7, ror r5', 0, ()),
+        (REV_ARM_ALL, '774543e0', 0x4560, 'sub r4, r3, r7, ror r5', 0, ()),
+        (REV_ARM_ALL, '774553e0', 0x4560, 'subs r4, r3, r7, ror r5', 0, ()),
+        (REV_ARM_ALL, '774563e0', 0x4560, 'rsb r4, r3, r7, ror r5', 0, ()),
+        (REV_ARM_ALL, '774573e0', 0x4560, 'rsbs r4, r3, r7, ror r5', 0, ()),
+        (REV_ARM_ALL, '774583e0', 0x4560, 'add r4, r3, r7, ror r5', 0, ()),
+        (REV_ARM_ALL, '774593e0', 0x4560, 'adds r4, r3, r7, ror r5', 0, ()),
+        (REV_ARM_ALL, '7745a3e0', 0x4560, 'adc r4, r3, r7, ror r5', 0, ()),
+        (REV_ARM_ALL, '7745b3e0', 0x4560, 'adcs r4, r3, r7, ror r5', 0, ()),
+        (REV_ARM_ALL, '7745c3e0', 0x4560, 'sbc r4, r3, r7, ror r5', 0, ()),
+        (REV_ARM_ALL, '7745d3e0', 0x4560, 'sbcs r4, r3, r7, ror r5', 0, ()),
+        (REV_ARM_ALL, '7745e3e0', 0x4560, 'rsc r4, r3, r7, ror r5', 0, ()), 
+        (REV_ARM_ALL, '7745f3e0', 0x4560, 'rscs r4, r3, r7, ror r5', 0, ()),
+        (REV_ARM_ALL, '774513e1', 0x4560, 'tsts r3, r7, ror r5', 0, ()),  # s added
+        (REV_ARM_ALL, '774523e1', 0x4560, 'bkpt #0x3457', 0, ()),  
+        #(REV_ARM_ALL, '774533e1', 0x4560, 'teqs r3, r7, ror r5', 0, ()), # s added    # invalid instruction
+        #(REV_ARM_ALL, '774543e1', 0x4560, 'hvc #0x3457', 0, ()), # invalid instruction
+        (REV_ARM_ALL, '774553e1', 0x4560, 'cmps r3, r7, ror r5', 0, ()), # s added
+        #(REV_ARM_ALL, '774563e1', 0x4560, 'smc #0x3457', 0, ()), # invalid instruction
+        (REV_ARM_ALL, '774573e1', 0x4560, 'cmns r3, r7, ror r5', 0, ()), # s added
+        (REV_ARM_ALL, '774583e1', 0x4560, 'orr r4, r3, r7, ror r5', 0, ()),
+        (REV_ARM_ALL, '774593e1', 0x4560, 'orrs r4, r3, r7, ror r5', 0, ()),
+        (REV_ARM_ALL, '7745a3e1', 0x4560, 'mov r4, r7, ror r5', 0, ()),
+        (REV_ARM_ALL, '7745b3e1', 0x4560, 'movs r4, r7, ror r5', 0, ()),
+        (REV_ARM_ALL, '7745c3e1', 0x4560, 'bic r4, r3, r7, ror r5', 0, ()),
+        (REV_ARM_ALL, '7745d3e1', 0x4560, 'bics r4, r3, r7, ror r5', 0, ()),
+        (REV_ARM_ALL, '7745e3e1', 0x4560, 'mvn r4, r7, ror r5', 0, ()),
+        (REV_ARM_ALL, '7745f3e1', 0x4560, 'mvns r4, r7, ror r5', 0, ()),
+        (REV_ARM_ALL, '874503e0', 0x4560, 'and r4, r3, r7, lsl #11', 0, ()),    
+        (REV_ARM_ALL, '874513e0', 0x4560, 'ands r4, r3, r7, lsl #11', 0, ()),   
+        (REV_ARM_ALL, '874523e0', 0x4560, 'eor r4, r3, r7, lsl #11', 0, ()),    
+        (REV_ARM_ALL, '874533e0', 0x4560, 'eors r4, r3, r7, lsl #11', 0, ()),  
+        (REV_ARM_ALL, '874543e0', 0x4560, 'sub r4, r3, r7, lsl #11', 0, ()),    
+        (REV_ARM_ALL, '874553e0', 0x4560, 'subs r4, r3, r7, lsl #11', 0, ()),   
+        (REV_ARM_ALL, '874563e0', 0x4560, 'rsb r4, r3, r7, lsl #11', 0, ()),    
+        (REV_ARM_ALL, '874573e0', 0x4560, 'rsbs r4, r3, r7, lsl #11', 0, ()),   
+        (REV_ARM_ALL, '874583e0', 0x4560, 'add r4, r3, r7, lsl #11', 0, ()),    
+        (REV_ARM_ALL, '874593e0', 0x4560, 'adds r4, r3, r7, lsl #11', 0, ()),    
+        (REV_ARM_ALL, '8745a3e0', 0x4560, 'adc r4, r3, r7, lsl #11', 0, ()),    
+        (REV_ARM_ALL, '8745b3e0', 0x4560, 'adcs r4, r3, r7, lsl #11', 0, ()),    
+        (REV_ARM_ALL, '8745c3e0', 0x4560, 'sbc r4, r3, r7, lsl #11', 0, ()),    
+        (REV_ARM_ALL, '8745d3e0', 0x4560, 'sbcs r4, r3, r7, lsl #11', 0, ()),  
+        (REV_ARM_ALL, '8745e3e0', 0x4560, 'rsc r4, r3, r7, lsl #11', 0, ()),    
+        (REV_ARM_ALL, '8745f3e0', 0x4560, 'rscs r4, r3, r7, lsl #11', 0, ()),   
+        #(REV_ARM_ALL, '874503e1', 0x4560, 'smlabb r3, r7, r5, r4', 0, ()),  #TypeError: cannot concatenate 'str' and 'NoneType' objects
+        (REV_ARM_ALL, '874513e1', 0x4560, 'tsts r3, r7, lsl #11', 0, ()),  # s added  
+        #(REV_ARM_ALL, '874523e1', 0x4560, 'smlawb r3, r7, r5, r4', 0, ()), #TypeError: cannot concatenate 'str' and 'NoneType' objects
+        (REV_ARM_ALL, '874533e1', 0x4560, 'teqs r3, r7, lsl #11', 0, ()),   # s added  
+        #(REV_ARM_ALL, '874543e1', 0x4560, 'smlalbb r4, r3, r7, r5', 0, ()),  #UnboundLocalError: local variable 'Rn' referenced before assignment
+        (REV_ARM_ALL, '874553e1', 0x4560, 'cmps r3, r7, lsl #11', 0, ()),  # s added  
+        (REV_ARM_ALL, '874563e1', 0x4560, 'smulbb r3, r7, r5', 0, ()),  
+        (REV_ARM_ALL, '874573e1', 0x4560, 'cmns r3, r7, lsl #11', 0, ()),   # s added   
+        (REV_ARM_ALL, '874583e1', 0x4560, 'orr r4, r3, r7, lsl #11', 0, ()),  
+        (REV_ARM_ALL, '874593e1', 0x4560, 'orrs r4, r3, r7, lsl #11', 0, ()),  
+        (REV_ARM_ALL, '8745a3e1', 0x4560, 'mov r4, r7, lsl #11', 0, ()),  
+        (REV_ARM_ALL, '8745b3e1', 0x4560, 'movs r4, r7, lsl #11', 0, ()),  
+        (REV_ARM_ALL, '8745c3e1', 0x4560, 'bic r4, r3, r7, lsl #11', 0, ()),  
+        (REV_ARM_ALL, '8745d3e1', 0x4560, 'bics r4, r3, r7, lsl #11', 0, ()), 
+        (REV_ARM_ALL, '8745e3e1', 0x4560, 'mvn r4, r7, lsl #11', 0, ()),  
+        (REV_ARM_ALL, '8745f3e1', 0x4560, 'mvns r4, r7, lsl #11', 0, ()),  
+        (REV_ARM_ALL, '974523e0', 0x4560, 'mla r3, r7, r5, r4', 0, ()),
+        (REV_ARM_ALL, '974533e0', 0x4560, 'mlas r3, r7, r5, r4', 0, ()),
+        #(REV_ARM_ALL, '974543e0', 0x4560, 'umaal r4, r3, r7, r5', 0, ()),  # invalid instruction
+        #(REV_ARM_ALL, '974553e0', 0x4560, 'umaals r4, r3, r7, r5', 0, ()), # invalid instruction
+        #(REV_ARM_ALL, '974563e0', 0x4560, 'mls r3, r7, r5, r4', 0, ()),  # invalid instruction
+        #(REV_ARM_ALL, '974573e0', 0x4560, 'mlss r3, r7, r5, r4', 0, ()),   # invalid instruction
+        (REV_ARM_ALL, '974583e0', 0x4560, 'umull r4, r3, r7, r5', 0, ()),
+        (REV_ARM_ALL, '974593e0', 0x4560, 'umulls r4, r3, r7, r5', 0, ()),
+        (REV_ARM_ALL, '9745a3e0', 0x4560, 'umlal r4, r3, r7, r5', 0, ()),
+        (REV_ARM_ALL, '9745b3e0', 0x4560, 'umlals r4, r3, r7, r5', 0, ()),
+        (REV_ARM_ALL, '9745c3e0', 0x4560, 'smull r4, r3, r7, r5', 0, ()),
+        (REV_ARM_ALL, '9745d3e0', 0x4560, 'smulls r4, r3, r7, r5', 0, ()),
+        (REV_ARM_ALL, '9745e3e0', 0x4560, 'smlal r4, r3, r7, r5', 0, ()),
+        (REV_ARM_ALL, '9745f3e0', 0x4560, 'smlals r4, r3, r7, r5', 0, ()),
+        (REV_ARM_ALL, '974503e1', 0x4560, 'swp r4, r7, [r3]', 0, ()),  # ida shows tst r3, r7, lsl r5
+        #(REV_ARM_ALL, '974513e1', 0x4560, 'tst r3, r7, lsl r5', 0, ()), # invalid instruction
+        #(REV_ARM_ALL, '974523e1', 0x4560, 'teq r3, r7, lsl r5', 0, ()), # invalid instruction
+        #(REV_ARM_ALL, '974533e1', 0x4560, 'teq r3, r7, lsl r5', 0, ()), # invalid instruction
+        (REV_ARM_ALL, '974543e1', 0x4560, 'swpb r4, r7, [r3]', 0, ()), # ida shows cmp r3, r7, lsl r5
+        #(REV_ARM_ALL, '974553e1', 0x4560, 'cmp r3, r7, lsl r5', 0, ()), # invalid instruction
+        #(REV_ARM_ALL, '974563e1', 0x4560, 'cmn r3, r7, lsl r5', 0, ()), # invalid instruction
+        #(REV_ARM_ALL, '974573e1', 0x4560, 'cmn r3, r7, lsl r5', 0, ()), # invalid instruction
+        (REV_ARM_ALL, '974583e1', 0x4560, 'strex r4, r7, r3', 0, ()), # ida shows orr r4, r3, r7, lsl r5
+        (REV_ARM_ALL, '974593e1', 0x4560, 'ldrex r4, r7, r3', 0, ()), # ida shows orrs r4, r3, r7, lsl r5
+        #(REV_ARM_ALL, '9745a3e1', 0x4560, 'mov r4, r7, lsl r5', 0, ()),
+        #(REV_ARM_ALL, '9745b3e1', 0x4560, 'movs r4, r7, lsl r5', 0, ()),
+        #(REV_ARM_ALL, '9745c3e1', 0x4560, 'bic r4, r3, r7, lsl r5', 0, ()),
+        #(REV_ARM_ALL, '9745d3e1', 0x4560, 'bics r4, r3, r7, lsl r5', 0, ()),
+        #(REV_ARM_ALL, '9745e3e1', 0x4560, 'mvn r4, r7, lsl r5', 0, ()),
+        #(REV_ARM_ALL, '9745f3e1', 0x4560, 'mvns r4, r7, lsl r5', 0, ()),
+        (REV_ARM_ALL, 'a74503e0', 0x4560, 'and r4, r3, r7, lsr #11', 0, ()),
+        (REV_ARM_ALL, 'a74513e0', 0x4560, 'ands r4, r3, r7, lsr #11', 0, ()),
+        (REV_ARM_ALL, 'a74523e0', 0x4560, 'eor r4, r3, r7, lsr #11', 0, ()),
+        (REV_ARM_ALL, 'a74533e0', 0x4560, 'eors r4, r3, r7, lsr #11', 0, ()),
+        (REV_ARM_ALL, 'a74543e0', 0x4560, 'sub r4, r3, r7, lsr #11', 0, ()),
+        (REV_ARM_ALL, 'a74553e0', 0x4560, 'subs r4, r3, r7, lsr #11', 0, ()),
+        (REV_ARM_ALL, 'a74563e0', 0x4560, 'rsb r4, r3, r7, lsr #11', 0, ()),
+        (REV_ARM_ALL, 'a74573e0', 0x4560, 'rsbs r4, r3, r7, lsr #11', 0, ()),
+        (REV_ARM_ALL, 'a74583e0', 0x4560, 'add r4, r3, r7, lsr #11', 0, ()),
+        (REV_ARM_ALL, 'a74593e0', 0x4560, 'adds r4, r3, r7, lsr #11', 0, ()),
+        (REV_ARM_ALL, 'a745a3e0', 0x4560, 'adc r4, r3, r7, lsr #11', 0, ()),
+        (REV_ARM_ALL, 'a745b3e0', 0x4560, 'adcs r4, r3, r7, lsr #11', 0, ()),
+        (REV_ARM_ALL, 'a745c3e0', 0x4560, 'sbc r4, r3, r7, lsr #11', 0, ()),
+        (REV_ARM_ALL, 'a745d3e0', 0x4560, 'sbcs r4, r3, r7, lsr #11', 0, ()),
+        (REV_ARM_ALL, 'a745e3e0', 0x4560, 'rsc r4, r3, r7, lsr #11', 0, ()),
+        (REV_ARM_ALL, 'a745f3e0', 0x4560, 'rscs r4, r3, r7, lsr #11', 0, ()),
+        #(REV_ARM_ALL, 'a74503e1', 0x4560, 'smlatb r3, r7, r5, r4', 0, ()),
+        (REV_ARM_ALL, 'a74513e1', 0x4560, 'tsts r3, r7, lsr #11', 0, ()),   # s added 
+        #(REV_ARM_ALL, 'a74523e1', 0x4560, 'smulwb r3, r7, r5', 0, ()),   
+        (REV_ARM_ALL, 'a74533e1', 0x4560, 'teqs r3, r7, lsr #11', 0, ()),    # s added 
+        #(REV_ARM_ALL, 'a74543e1', 0x4560, 'smlaltb r4, r3, r7, r5', 0, ()),
+        (REV_ARM_ALL, 'a74553e1', 0x4560, 'cmps r3, r7, lsr #11', 0, ()),  # s added 
+        (REV_ARM_ALL, 'a74563e1', 0x4560, 'smultb r3, r7, r5', 0, ()),
+        (REV_ARM_ALL, 'a74573e1', 0x4560, 'cmns r3, r7, lsr #11', 0, ()),  # s added 
+        (REV_ARM_ALL, 'a74583e1', 0x4560, 'orr r4, r3, r7, lsr #11', 0, ()),
+        (REV_ARM_ALL, 'a74593e1', 0x4560, 'orrs r4, r3, r7, lsr #11', 0, ()),
+        (REV_ARM_ALL, 'a745a3e1', 0x4560, 'mov r4, r7, lsr #11', 0, ()),
+        (REV_ARM_ALL, 'a745b3e1', 0x4560, 'movs r4, r7, lsr #11', 0, ()),
+        (REV_ARM_ALL, 'a745c3e1', 0x4560, 'bic r4, r3, r7, lsr #11', 0, ()),
+        (REV_ARM_ALL, 'a745d3e1', 0x4560, 'bics r4, r3, r7, lsr #11', 0, ()),
+        (REV_ARM_ALL, 'a745e3e1', 0x4560, 'mvn r4, r7, lsr #11', 0, ()),
+        (REV_ARM_ALL, 'a745f3e1', 0x4560, 'mvns r4, r7, lsr #11', 0, ()),
+        (REV_ARM_ALL, 'b74503e0', 0x4560, 'strh r4, [r3], -r7 ', 0, ()),
+        (REV_ARM_ALL, 'b74513e0', 0x4560, 'ldrh r4, [r3], -r7 ', 0, ()),
+        #(REV_ARM_ALL, 'b74523e0', 0x4560, 'strht r4, [r3], -r7 ', 0, ()),    # not implimented yet
+        #(REV_ARM_ALL, 'b74533e0', 0x4560, 'ldrht r4, [r3], -r7 ', 0, ()), # not implimented yet
+        (REV_ARM_ALL, 'b74543e0', 0x4560, 'strh r4, [r3], #-0x57 ', 0, ()),
+        (REV_ARM_ALL, 'b74553e0', 0x4560, 'ldrh r4, [r3], #-0x57 ', 0, ()),
+        #(REV_ARM_ALL, 'b74563e0', 0x4560, 'strht r4, [r3], #-0x57 ', 0, ()),  # not implimented yet
+        #(REV_ARM_ALL, 'b74573e0', 0x4560, 'ldrht r4, [r3], #-0x57 ', 0, ()),  # not implimented yet
+        (REV_ARM_ALL, 'b74583e0', 0x4560, 'strh r4, [r3], r7 ', 0, ()),
+        (REV_ARM_ALL, 'b74593e0', 0x4560, 'ldrh r4, [r3], r7 ', 0, ()),
+        #(REV_ARM_ALL, 'b745a3e0', 0x4560, 'strht r4, [r3], r7 ', 0, ()),   # not implimented yet
+        #(REV_ARM_ALL, 'b745b3e0', 0x4560, 'ldrht r4, [r3], r7 ', 0, ()),   # not implimented yet
+        (REV_ARM_ALL, 'b745c3e0', 0x4560, 'strh r4, [r3], #0x57 ', 0, ()),
+        (REV_ARM_ALL, 'b745d3e0', 0x4560, 'ldrh r4, [r3], #0x57 ', 0, ()),
+        #(REV_ARM_ALL, 'b745e3e0', 0x4560, 'strht r4, [r3], #0x57 ', 0, ()), # not implimented yet
+        #(REV_ARM_ALL, 'b745f3e0', 0x4560, 'ldrht r4, [r3], #0x57 ', 0, ()),  # not implimented yet
+        (REV_ARM_ALL, 'b74503e1', 0x4560, 'strh r4, [r3, -r7] ', 0, ()),
+        (REV_ARM_ALL, 'b74513e1', 0x4560, 'ldrh r4, [r3, -r7] ', 0, ()),
+        (REV_ARM_ALL, 'b74523e1', 0x4560, 'strh r4, [r3, -r7]! ', 0, ()),
+        (REV_ARM_ALL, 'b74533e1', 0x4560, 'ldrh r4, [r3, -r7]! ', 0, ()),
+        (REV_ARM_ALL, 'b74543e1', 0x4560, 'strh r4, [r3, #-0x57] ', 0, ()),
+        (REV_ARM_ALL, 'b74553e1', 0x4560, 'ldrh r4, [r3, #-0x57] ', 0, ()),
+        (REV_ARM_ALL, 'b74563e1', 0x4560, 'strh r4, [r3, #-0x57]! ', 0, ()),
+        (REV_ARM_ALL, 'b74573e1', 0x4560, 'ldrh r4, [r3, #-0x57]! ', 0, ()),
+        (REV_ARM_ALL, 'b74583e1', 0x4560, 'strh r4, [r3, r7] ', 0, ()),
+        (REV_ARM_ALL, 'b74593e1', 0x4560, 'ldrh r4, [r3, r7] ', 0, ()),
+        (REV_ARM_ALL, 'b745a3e1', 0x4560, 'strh r4, [r3, r7]! ', 0, ()),
+        (REV_ARM_ALL, 'b745b3e1', 0x4560, 'ldrh r4, [r3, r7]! ', 0, ()),
+        (REV_ARM_ALL, 'b745c3e1', 0x4560, 'strh r4, [r3, #0x57] ', 0, ()),
+        (REV_ARM_ALL, 'b745d3e1', 0x4560, 'ldrh r4, [r3, #0x57] ', 0, ()),
+        (REV_ARM_ALL, 'b745e3e1', 0x4560, 'strh r4, [r3, #0x57]! ', 0, ()),
+        (REV_ARM_ALL, 'b745f3e1', 0x4560, 'ldrh r4, [r3, #0x57]! ', 0, ()),
+        (REV_ARM_ALL, 'c74503e0', 0x4560, 'and r4, r3, r7, asr #11', 0, ()),
+        (REV_ARM_ALL, 'c74513e0', 0x4560, 'ands r4, r3, r7, asr #11', 0, ()),
+        (REV_ARM_ALL, 'c74523e0', 0x4560, 'eor r4, r3, r7, asr #11', 0, ()),
+        (REV_ARM_ALL, 'c74533e0', 0x4560, 'eors r4, r3, r7, asr #11', 0, ()),
+        (REV_ARM_ALL, 'c74543e0', 0x4560, 'sub r4, r3, r7, asr #11', 0, ()),
+        (REV_ARM_ALL, 'c74553e0', 0x4560, 'subs r4, r3, r7, asr #11', 0, ()),
+        (REV_ARM_ALL, 'c74563e0', 0x4560, 'rsb r4, r3, r7, asr #11', 0, ()),
+        (REV_ARM_ALL, 'c74573e0', 0x4560, 'rsbs r4, r3, r7, asr #11', 0, ()),
+        (REV_ARM_ALL, 'c74583e0', 0x4560, 'add r4, r3, r7, asr #11', 0, ()),
+        (REV_ARM_ALL, 'c74593e0', 0x4560, 'adds r4, r3, r7, asr #11', 0, ()),
+        (REV_ARM_ALL, 'c745a3e0', 0x4560, 'adc r4, r3, r7, asr #11', 0, ()),
+        (REV_ARM_ALL, 'c745b3e0', 0x4560, 'adcs r4, r3, r7, asr #11', 0, ()),
+        (REV_ARM_ALL, 'c745c3e0', 0x4560, 'sbc r4, r3, r7, asr #11', 0, ()),
+        (REV_ARM_ALL, 'c745d3e0', 0x4560, 'sbcs r4, r3, r7, asr #11', 0, ()),
+        (REV_ARM_ALL, 'c745e3e0', 0x4560, 'rsc r4, r3, r7, asr #11', 0, ()),
+        (REV_ARM_ALL, 'c745f3e0', 0x4560, 'rscs r4, r3, r7, asr #11', 0, ()),
+        #(REV_ARM_ALL, 'c74503e1', 0x4560, 'smlabt r3, r7, r5, r4', 0, ()),   
+        (REV_ARM_ALL, 'c74513e1', 0x4560, 'tsts r3, r7, asr #11', 0, ()),    #added s
+        #(REV_ARM_ALL, 'c74523e1', 0x4560, 'smlawt r3, r7, r5, r4', 0, ()),
+        (REV_ARM_ALL, 'c74533e1', 0x4560, 'teqs r3, r7, asr #11', 0, ()),     #added s
+        #(REV_ARM_ALL, 'c74543e1', 0x4560, 'smlalbt r4, r3, r7, r5', 0, ()),
+        (REV_ARM_ALL, 'c74553e1', 0x4560, 'cmps r3, r7, asr #11', 0, ()),
+        (REV_ARM_ALL, 'c74563e1', 0x4560, 'smulbt r3, r7, r5', 0, ()),
+        (REV_ARM_ALL, 'c74573e1', 0x4560, 'cmns r3, r7, asr #11', 0, ()),      #added s
+        (REV_ARM_ALL, 'c74583e1', 0x4560, 'orr r4, r3, r7, asr #11', 0, ()),
+        (REV_ARM_ALL, 'c74593e1', 0x4560, 'orrs r4, r3, r7, asr #11', 0, ()),
+        (REV_ARM_ALL, 'c745a3e1', 0x4560, 'mov r4, r7, asr #11', 0, ()),
+        (REV_ARM_ALL, 'c745b3e1', 0x4560, 'movs r4, r7, asr #11', 0, ()),
+        (REV_ARM_ALL, 'c745c3e1', 0x4560, 'bic r4, r3, r7, asr #11', 0, ()),
+        (REV_ARM_ALL, 'c745d3e1', 0x4560, 'bics r4, r3, r7, asr #11', 0, ()),
+        (REV_ARM_ALL, 'c745e3e1', 0x4560, 'mvn r4, r7, asr #11', 0, ()),
+        (REV_ARM_ALL, 'c745f3e1', 0x4560, 'mvns r4, r7, asr #11', 0, ()),
+        (REV_ARM_ALL, 'd74503e0', 0x4560, 'ldrd r4, [r3], -r7 ', 0, ()),
+        (REV_ARM_ALL, 'd74513e0', 0x4560, 'ldrsb r4, [r3], -r7 ', 0, ()),
+        (REV_ARM_ALL, 'd74523e0', 0x4560, 'ldrd r4, [r3], -r7 ', 0, ()),    #ida says ldrtd but ldrt bits 26 & 25 need to be 1's and are 0's which is ldrd
+        #(REV_ARM_ALL, 'd74533e0', 0x4560, 'ldrsbt r4, [r3], -r7 ', 0, ()),  # not implimented yet
+        (REV_ARM_ALL, 'd74543e0', 0x4560, 'ldrd r4, [r3], #-0x57 ', 0, ()),
+        (REV_ARM_ALL, 'd74553e0', 0x4560, 'ldrsb r4, [r3], #-0x57 ', 0, ()),
+        #(REV_ARM_ALL, 'd74563e0', 0x4560, 'ldrtd r4, [r3], #-0x57 ', 0, ()), # not implimented yet
+        #(REV_ARM_ALL, 'd74573e0', 0x4560, 'ldrsbt r4, [r3], #-0x57 ', 0, ()), # not implimented yet
+        (REV_ARM_ALL, 'd74583e0', 0x4560, 'ldrd r4, [r3], r7 ', 0, ()),
+        (REV_ARM_ALL, 'd74593e0', 0x4560, 'ldrsb r4, [r3], r7 ', 0, ()),
+        #(REV_ARM_ALL, 'd745a3e0', 0x4560, 'ldrtd r4, [r3], r7 ', 0, ()), # not implimented yet
+        #(REV_ARM_ALL, 'd745b3e0', 0x4560, 'ldrsbt r4, [r3], r7 ', 0, ()), # not implimented yet
+        (REV_ARM_ALL, 'd745c3e0', 0x4560, 'ldrd r4, [r3], #0x57 ', 0, ()),
+        (REV_ARM_ALL, 'd745d3e0', 0x4560, 'ldrsb r4, [r3], #0x57 ', 0, ()),
+        #(REV_ARM_ALL, 'd745e3e0', 0x4560, 'ldrtd r4, [r3], #0x57 ', 0, ()), # not implimented yet
+        #(REV_ARM_ALL, 'd745f3e0', 0x4560, 'ldrsbt r4, [r3], #0x57 ', 0, ()), # not implimented yet
+        (REV_ARM_ALL, 'd74503e1', 0x4560, 'ldrd r4, [r3, -r7] ', 0, ()),
+        (REV_ARM_ALL, 'd74513e1', 0x4560, 'ldrsb r4, [r3, -r7] ', 0, ()),
+        (REV_ARM_ALL, 'd74523e1', 0x4560, 'ldrd r4, [r3, -r7]! ', 0, ()),
+        (REV_ARM_ALL, 'd74533e1', 0x4560, 'ldrsb r4, [r3, -r7]! ', 0, ()),
+        (REV_ARM_ALL, 'd74543e1', 0x4560, 'ldrd r4, [r3, #-0x57] ', 0, ()),
+        (REV_ARM_ALL, 'd74553e1', 0x4560, 'ldrsb r4, [r3, #-0x57] ', 0, ()),
+        (REV_ARM_ALL, 'd74563e1', 0x4560, 'ldrd r4, [r3, #-0x57]! ', 0, ()),
+        (REV_ARM_ALL, 'd74573e1', 0x4560, 'ldrsb r4, [r3, #-0x57]! ', 0, ()),
+        (REV_ARM_ALL, 'd74583e1', 0x4560, 'ldrd r4, [r3, r7] ', 0, ()),
+        (REV_ARM_ALL, 'd74593e1', 0x4560, 'ldrsb r4, [r3, r7] ', 0, ()),
+        (REV_ARM_ALL, 'd745a3e1', 0x4560, 'ldrd r4, [r3, r7]! ', 0, ()),
+        (REV_ARM_ALL, 'd745b3e1', 0x4560, 'ldrsb r4, [r3, r7]! ', 0, ()),
+        (REV_ARM_ALL, 'd745c3e1', 0x4560, 'ldrd r4, [r3, #0x57] ', 0, ()),
+        (REV_ARM_ALL, 'd745d3e1', 0x4560, 'ldrsb r4, [r3, #0x57] ', 0, ()),
+        (REV_ARM_ALL, 'd745e3e1', 0x4560, 'ldrd r4, [r3, #0x57]! ', 0, ()),
+        (REV_ARM_ALL, 'd745f3e1', 0x4560, 'ldrsb r4, [r3, #0x57]! ', 0, ()),
+        (REV_ARM_ALL, 'e74503e0', 0x4560, 'and r4, r3, r7, ror #11', 0, ()),
+        (REV_ARM_ALL, 'e74513e0', 0x4560, 'ands r4, r3, r7, ror #11', 0, ()),
+        (REV_ARM_ALL, 'e74523e0', 0x4560, 'eor r4, r3, r7, ror #11', 0, ()),
+        (REV_ARM_ALL, 'e74533e0', 0x4560, 'eors r4, r3, r7, ror #11', 0, ()),
+        (REV_ARM_ALL, 'e74543e0', 0x4560, 'sub r4, r3, r7, ror #11', 0, ()),
+        (REV_ARM_ALL, 'e74553e0', 0x4560, 'subs r4, r3, r7, ror #11', 0, ()),
+        (REV_ARM_ALL, 'e74563e0', 0x4560, 'rsb r4, r3, r7, ror #11', 0, ()),
+        (REV_ARM_ALL, 'e74573e0', 0x4560, 'rsbs r4, r3, r7, ror #11', 0, ()),
+        (REV_ARM_ALL, 'e74583e0', 0x4560, 'add r4, r3, r7, ror #11', 0, ()),
+        (REV_ARM_ALL, 'e74593e0', 0x4560, 'adds r4, r3, r7, ror #11', 0, ()),
+        (REV_ARM_ALL, 'e745a3e0', 0x4560, 'adc r4, r3, r7, ror #11', 0, ()),
+        (REV_ARM_ALL, 'e745b3e0', 0x4560, 'adcs r4, r3, r7, ror #11', 0, ()),
+        (REV_ARM_ALL, 'e745c3e0', 0x4560, 'sbc r4, r3, r7, ror #11', 0, ()),
+        (REV_ARM_ALL, 'e745d3e0', 0x4560, 'sbcs r4, r3, r7, ror #11', 0, ()),
+        (REV_ARM_ALL, 'e745e3e0', 0x4560, 'rsc r4, r3, r7, ror #11', 0, ()),
+        (REV_ARM_ALL, 'e745f3e0', 0x4560, 'rscs r4, r3, r7, ror #11', 0, ()),
+        #(REV_ARM_ALL, 'e74503e1', 0x4560, 'smlatt r3, r7, r5, r4', 0, ()),
+        (REV_ARM_ALL, 'e74513e1', 0x4560, 'tsts r3, r7, ror #11', 0, ()),   #added s
+        #(REV_ARM_ALL, 'e74523e1', 0x4560, 'smulwt r3, r7, r5', 0, ()), 
+        (REV_ARM_ALL, 'e74533e1', 0x4560, 'teqs r3, r7, ror #11', 0, ()),    #added s
+        #(REV_ARM_ALL, 'e74543e1', 0x4560, 'smlaltt r4, r3, r7, r5', 0, ()),
+        (REV_ARM_ALL, 'e74553e1', 0x4560, 'cmps r3, r7, ror #11', 0, ()),   #added s
+        (REV_ARM_ALL, 'e74563e1', 0x4560, 'smultt r3, r7, r5', 0, ()),
+        (REV_ARM_ALL, 'e74573e1', 0x4560, 'cmns r3, r7, ror #11', 0, ()),   #added s
+        (REV_ARM_ALL, 'e74583e1', 0x4560, 'orr r4, r3, r7, ror #11', 0, ()),
+        (REV_ARM_ALL, 'e74593e1', 0x4560, 'orrs r4, r3, r7, ror #11', 0, ()),
+        (REV_ARM_ALL, 'e745a3e1', 0x4560, 'mov r4, r7, ror #11', 0, ()),
+        (REV_ARM_ALL, 'e745b3e1', 0x4560, 'movs r4, r7, ror #11', 0, ()),
+        (REV_ARM_ALL, 'e745c3e1', 0x4560, 'bic r4, r3, r7, ror #11', 0, ()),
+        (REV_ARM_ALL, 'e745d3e1', 0x4560, 'bics r4, r3, r7, ror #11', 0, ()),
+        (REV_ARM_ALL, 'e745e3e1', 0x4560, 'mvn r4, r7, ror #11', 0, ()),
+        (REV_ARM_ALL, 'e745f3e1', 0x4560, 'mvns r4, r7, ror #11', 0, ()),
+        (REV_ARM_ALL, 'f74503e0', 0x4560, 'strd r4, [r3], -r7 ', 0, ()),
+        (REV_ARM_ALL, 'f74513e0', 0x4560, 'ldrsh r4, [r3], -r7 ', 0, ()),
+        #(REV_ARM_ALL, 'f74523e0', 0x4560, 'strtd r4, [r3], -r7 ', 0, ()),  # not implimented yet
+        #(REV_ARM_ALL, 'f74533e0', 0x4560, 'ldrsht r4, [r3], -r7 ', 0, ()), # not implimented yet
+        (REV_ARM_ALL, 'f74543e0', 0x4560, 'strd r4, [r3], #-0x57 ', 0, ()),
+        (REV_ARM_ALL, 'f74553e0', 0x4560, 'ldrsh r4, [r3], #-0x57 ', 0, ()),
+        #(REV_ARM_ALL, 'f74563e0', 0x4560, 'strtd r4, [r3], #-0x57 ', 0, ()), # not implimented yet
+        #(REV_ARM_ALL, 'f74573e0', 0x4560, 'ldrsht r4, [r3], #-0x57 ', 0, ()), # not implimented yet
+        (REV_ARM_ALL, 'f74583e0', 0x4560, 'strd r4, [r3], r7 ', 0, ()),
+        (REV_ARM_ALL, 'f74593e0', 0x4560, 'ldrsh r4, [r3], r7 ', 0, ()),
+        #(REV_ARM_ALL, 'f745a3e0', 0x4560, 'strtd r4, [r3], r7 ', 0, ()), # not implimented yet
+        #(REV_ARM_ALL, 'f745b3e0', 0x4560, 'ldrsht r4, [r3], r7 ', 0, ()), # not implimented yet
+        (REV_ARM_ALL, 'f745c3e0', 0x4560, 'strd r4, [r3], #0x57 ', 0, ()),
+        (REV_ARM_ALL, 'f745d3e0', 0x4560, 'ldrsh r4, [r3], #0x57 ', 0, ()),
+        #(REV_ARM_ALL, 'f745e3e0', 0x4560, 'strtd r4, [r3], #0x57 ', 0, ()), # not implimented yet
+        #(REV_ARM_ALL, 'f745f3e0', 0x4560, 'ldrsht r4, [r3], #0x57 ', 0, ()), # not implimented yet
+        (REV_ARM_ALL, 'f74503e1', 0x4560, 'strd r4, [r3, -r7] ', 0, ()),
+        (REV_ARM_ALL, 'f74513e1', 0x4560, 'ldrsh r4, [r3, -r7] ', 0, ()),
+        (REV_ARM_ALL, 'f74523e1', 0x4560, 'strd r4, [r3, -r7]! ', 0, ()),
+        (REV_ARM_ALL, 'f74533e1', 0x4560, 'ldrsh r4, [r3, -r7]! ', 0, ()),
+        (REV_ARM_ALL, 'f74543e1', 0x4560, 'strd r4, [r3, #-0x57] ', 0, ()),
+        (REV_ARM_ALL, 'f74553e1', 0x4560, 'ldrsh r4, [r3, #-0x57] ', 0, ()),
+        (REV_ARM_ALL, 'f74563e1', 0x4560, 'strd r4, [r3, #-0x57]! ', 0, ()),
+        (REV_ARM_ALL, 'f74573e1', 0x4560, 'ldrsh r4, [r3, #-0x57]! ', 0, ()),
+        (REV_ARM_ALL, 'f74583e1', 0x4560, 'strd r4, [r3, r7] ', 0, ()),
+        (REV_ARM_ALL, 'f74593e1', 0x4560, 'ldrsh r4, [r3, r7] ', 0, ()),
+        (REV_ARM_ALL, 'f745a3e1', 0x4560, 'strd r4, [r3, r7]! ', 0, ()),
+        (REV_ARM_ALL, 'f745b3e1', 0x4560, 'ldrsh r4, [r3, r7]! ', 0, ()),
+        (REV_ARM_ALL, 'f745c3e1', 0x4560, 'strd r4, [r3, #0x57] ', 0, ()),
+        (REV_ARM_ALL, 'f745d3e1', 0x4560, 'ldrsh r4, [r3, #0x57] ', 0, ()),
+        (REV_ARM_ALL, 'f745e3e1', 0x4560, 'strd r4, [r3, #0x57]! ', 0, ()),
+        (REV_ARM_ALL, 'f745f3e1', 0x4560, 'ldrsh r4, [r3, #0x57]! ', 0, ()),
+        (REV_ARM_ALL, '074603e0', 0x4560, 'and r4, r3, r7, lsl #12', 0, ()),
+        (REV_ARM_ALL, '074613e0', 0x4560, 'ands r4, r3, r7, lsl #12', 0, ()),
+        (REV_ARM_ALL, '074623e0', 0x4560, 'eor r4, r3, r7, lsl #12', 0, ()),
+        (REV_ARM_ALL, '074633e0', 0x4560, 'eors r4, r3, r7, lsl #12', 0, ()),
+        (REV_ARM_ALL, '074643e0', 0x4560, 'sub r4, r3, r7, lsl #12', 0, ()),
+        (REV_ARM_ALL, '074653e0', 0x4560, 'subs r4, r3, r7, lsl #12', 0, ()),
+        (REV_ARM_ALL, '074663e0', 0x4560, 'rsb r4, r3, r7, lsl #12', 0, ()),
+        (REV_ARM_ALL, '074673e0', 0x4560, 'rsbs r4, r3, r7, lsl #12', 0, ()),
+        (REV_ARM_ALL, '074683e0', 0x4560, 'add r4, r3, r7, lsl #12', 0, ()),
+        (REV_ARM_ALL, '074693e0', 0x4560, 'adds r4, r3, r7, lsl #12', 0, ()),
+        (REV_ARM_ALL, '0746a3e0', 0x4560, 'adc r4, r3, r7, lsl #12', 0, ()),
+        (REV_ARM_ALL, '0746b3e0', 0x4560, 'adcs r4, r3, r7, lsl #12', 0, ()),
+        (REV_ARM_ALL, '0746c3e0', 0x4560, 'sbc r4, r3, r7, lsl #12', 0, ()),
+        (REV_ARM_ALL, '0746d3e0', 0x4560, 'sbcs r4, r3, r7, lsl #12', 0, ()),
+        (REV_ARM_ALL, '0746e3e0', 0x4560, 'rsc r4, r3, r7, lsl #12', 0, ()),
+        (REV_ARM_ALL, '0746f3e0', 0x4560, 'rscs r4, r3, r7, lsl #12', 0, ()),
+        #(REV_ARM_ALL, '074603e1', 0x4560, 'tsts r3, r7, lsl #12', 0, ()), #added s , doesn't decode even close and doesn't match ref
+        (REV_ARM_ALL, '074613e1', 0x4560, 'tsts r3, r7, lsl #12', 0, ()), #added s
+        #(REV_ARM_ALL, '074623e1', 0x4560, 'teqs r3, r7, lsl #12', 0, ()), #added s, doesn't decode even close and doesn't match ref
+        (REV_ARM_ALL, '074633e1', 0x4560, 'teqs r3, r7, lsl #12', 0, ()), #added s
+        #(REV_ARM_ALL, '074643e1', 0x4560, 'cmps r3, r7, lsl #12', 0, ()), #added s not implimented
+        (REV_ARM_ALL, '074653e1', 0x4560, 'cmps r3, r7, lsl #12', 0, ()), #added s
+        #(REV_ARM_ALL, '074663e1', 0x4560, 'cmns r3, r7, lsl #12', 0, ()), #added s not implimented
+        (REV_ARM_ALL, '074673e1', 0x4560, 'cmns r3, r7, lsl #12', 0, ()), #added s
+        (REV_ARM_ALL, '074683e1', 0x4560, 'orr r4, r3, r7, lsl #12', 0, ()),
+        (REV_ARM_ALL, '074693e1', 0x4560, 'orrs r4, r3, r7, lsl #12', 0, ()),
+        (REV_ARM_ALL, '0746a3e1', 0x4560, 'mov r4, r7, lsl #12', 0, ()),
+        (REV_ARM_ALL, '0746b3e1', 0x4560, 'movs r4, r7, lsl #12', 0, ()),
+        (REV_ARM_ALL, '0746c3e1', 0x4560, 'bic r4, r3, r7, lsl #12', 0, ()),
+        (REV_ARM_ALL, '0746d3e1', 0x4560, 'bics r4, r3, r7, lsl #12', 0, ()),
+        (REV_ARM_ALL, '0746e3e1', 0x4560, 'mvn r4, r7, lsl #12', 0, ()),
+        (REV_ARM_ALL, '0746f3e1', 0x4560, 'mvns r4, r7, lsl #12', 0, ()),
+        (REV_ARM_ALL, '174603e0', 0x4560, 'and r4, r3, r7, lsl r6', 0, ()),
+        (REV_ARM_ALL, '174613e0', 0x4560, 'ands r4, r3, r7, lsl r6', 0, ()),
+        (REV_ARM_ALL, '174623e0', 0x4560, 'eor r4, r3, r7, lsl r6', 0, ()),
+        (REV_ARM_ALL, '174633e0', 0x4560, 'eors r4, r3, r7, lsl r6', 0, ()),
+        (REV_ARM_ALL, '174643e0', 0x4560, 'sub r4, r3, r7, lsl r6', 0, ()),
+        (REV_ARM_ALL, '174653e0', 0x4560, 'subs r4, r3, r7, lsl r6', 0, ()),
+        (REV_ARM_ALL, '174663e0', 0x4560, 'rsb r4, r3, r7, lsl r6', 0, ()),
+        (REV_ARM_ALL, '174673e0', 0x4560, 'rsbs r4, r3, r7, lsl r6', 0, ()),
+        (REV_ARM_ALL, '174683e0', 0x4560, 'add r4, r3, r7, lsl r6', 0, ()),
+        (REV_ARM_ALL, '174693e0', 0x4560, 'adds r4, r3, r7, lsl r6', 0, ()),
+        (REV_ARM_ALL, '1746a3e0', 0x4560, 'adc r4, r3, r7, lsl r6', 0, ()),
+        (REV_ARM_ALL, '1746b3e0', 0x4560, 'adcs r4, r3, r7, lsl r6', 0, ()),
+        (REV_ARM_ALL, '1746c3e0', 0x4560, 'sbc r4, r3, r7, lsl r6', 0, ()),
+        (REV_ARM_ALL, '1746d3e0', 0x4560, 'sbcs r4, r3, r7, lsl r6', 0, ()),
+        (REV_ARM_ALL, '1746e3e0', 0x4560, 'rsc r4, r3, r7, lsl r6', 0, ()),
+        (REV_ARM_ALL, '1746f3e0', 0x4560, 'rscs r4, r3, r7, lsl r6', 0, ()),
+        #(REV_ARM_ALL, '174603e1', 0x4560, 'tst r3, r7, lsl r6', 0, ()),     # not implimented
+        (REV_ARM_ALL, '174613e1', 0x4560, 'tsts r3, r7, lsl r6', 0, ()),    #added s
+        (REV_ARM_ALL, '174623e1', 0x4560, 'bx r7', 0, ()),
+        #(REV_ARM_ALL, '174643e1', 0x4560, 'cmp r3, r7, lsl r6', 0, ()), # not implimented
+        (REV_ARM_ALL, '174653e1', 0x4560, 'cmps r3, r7, lsl r6', 0, ()),  #added s
+        (REV_ARM_ALL, '174663e1', 0x4560, 'clz r4, r7', 0, ()),
+        (REV_ARM_ALL, '174673e1', 0x4560, 'cmns r3, r7, lsl r6', 0, ()),  #added s
+        (REV_ARM_ALL, '174683e1', 0x4560, 'orr r4, r3, r7, lsl r6', 0, ()),
+        (REV_ARM_ALL, '174693e1', 0x4560, 'orrs r4, r3, r7, lsl r6', 0, ()),
+        (REV_ARM_ALL, '1746a3e1', 0x4560, 'mov r4, r7, lsl r6', 0, ()),
+        (REV_ARM_ALL, '1746b3e1', 0x4560, 'movs r4, r7, lsl r6', 0, ()),
+        (REV_ARM_ALL, '1746c3e1', 0x4560, 'bic r4, r3, r7, lsl r6', 0, ()),
+        (REV_ARM_ALL, '1746d3e1', 0x4560, 'bics r4, r3, r7, lsl r6', 0, ()),
+        (REV_ARM_ALL, '1746e3e1', 0x4560, 'mvn r4, r7, lsl r6', 0, ()),
+        (REV_ARM_ALL, '1746f3e1', 0x4560, 'mvns r4, r7, lsl r6', 0, ()),
+        (REV_ARM_ALL, '274603e0', 0x4560, 'and r4, r3, r7, lsr #12', 0, ()),
+        (REV_ARM_ALL, '274613e0', 0x4560, 'ands r4, r3, r7, lsr #12', 0, ()),
+        (REV_ARM_ALL, '274623e0', 0x4560, 'eor r4, r3, r7, lsr #12', 0, ()),
+        (REV_ARM_ALL, '274633e0', 0x4560, 'eors r4, r3, r7, lsr #12', 0, ()),
+        (REV_ARM_ALL, '274643e0', 0x4560, 'sub r4, r3, r7, lsr #12', 0, ()),
+        (REV_ARM_ALL, '274653e0', 0x4560, 'subs r4, r3, r7, lsr #12', 0, ()),
+        (REV_ARM_ALL, '274663e0', 0x4560, 'rsb r4, r3, r7, lsr #12', 0, ()),
+        (REV_ARM_ALL, '274673e0', 0x4560, 'rsbs r4, r3, r7, lsr #12', 0, ()),
+        (REV_ARM_ALL, '274683e0', 0x4560, 'add r4, r3, r7, lsr #12', 0, ()),
+        (REV_ARM_ALL, '274693e0', 0x4560, 'adds r4, r3, r7, lsr #12', 0, ()),
+        (REV_ARM_ALL, '2746a3e0', 0x4560, 'adc r4, r3, r7, lsr #12', 0, ()),
+        (REV_ARM_ALL, '2746b3e0', 0x4560, 'adcs r4, r3, r7, lsr #12', 0, ()),
+        (REV_ARM_ALL, '2746c3e0', 0x4560, 'sbc r4, r3, r7, lsr #12', 0, ()),
+        (REV_ARM_ALL, '2746d3e0', 0x4560, 'sbcs r4, r3, r7, lsr #12', 0, ()),
+        (REV_ARM_ALL, '2746e3e0', 0x4560, 'rsc r4, r3, r7, lsr #12', 0, ()),
+        (REV_ARM_ALL, '2746f3e0', 0x4560, 'rscs r4, r3, r7, lsr #12', 0, ()),
+        #(REV_ARM_ALL, '274603e1', 0x4560, 'tst r3, r7, lsr #12', 0, ()),  #should be: tst r3, r7, lsr #12  - is: mrs r4, CPSR
+        (REV_ARM_ALL, '274613e1', 0x4560, 'tsts r3, r7, lsr #12', 0, ()),
+        #(REV_ARM_ALL, '274623e1', 0x4560, 'bxj r7', 0, ()),  # should be: bxj r7  - is: mrs r4, CPSR
+        #(REV_ARM_ALL, '274643e1', 0x4560, 'cmp r3, r7, lsr #12', 0, ()),  
+        (REV_ARM_ALL, '274653e1', 0x4560, 'cmps r3, r7, lsr #12', 0, ()),  #added s
+        #(REV_ARM_ALL, '274663e1', 0x4560, 'cmns r3, r7, lsr #12', 0, ()),  #added s   # not implimented
+        (REV_ARM_ALL, '274673e1', 0x4560, 'cmns r3, r7, lsr #12', 0, ()),  #added s
+        (REV_ARM_ALL, '274683e1', 0x4560, 'orr r4, r3, r7, lsr #12', 0, ()),
+        (REV_ARM_ALL, '274693e1', 0x4560, 'orrs r4, r3, r7, lsr #12', 0, ()),
+        (REV_ARM_ALL, '2746a3e1', 0x4560, 'mov r4, r7, lsr #12', 0, ()),
+        (REV_ARM_ALL, '2746b3e1', 0x4560, 'movs r4, r7, lsr #12', 0, ()),
+        (REV_ARM_ALL, '2746c3e1', 0x4560, 'bic r4, r3, r7, lsr #12', 0, ()),
+        (REV_ARM_ALL, '2746d3e1', 0x4560, 'bics r4, r3, r7, lsr #12', 0, ()),
+        (REV_ARM_ALL, '2746e3e1', 0x4560, 'mvn r4, r7, lsr #12', 0, ()),
+        (REV_ARM_ALL, '2746f3e1', 0x4560, 'mvns r4, r7, lsr #12', 0, ()),
+        (REV_ARM_ALL, '374603e0', 0x4560, 'and r4, r3, r7, lsr r6', 0, ()),
+        (REV_ARM_ALL, '374613e0', 0x4560, 'ands r4, r3, r7, lsr r6', 0, ()),
+        (REV_ARM_ALL, '374623e0', 0x4560, 'eor r4, r3, r7, lsr r6', 0, ()),
+        (REV_ARM_ALL, '374633e0', 0x4560, 'eors r4, r3, r7, lsr r6', 0, ()),
+        (REV_ARM_ALL, '374643e0', 0x4560, 'sub r4, r3, r7, lsr r6', 0, ()),
+        (REV_ARM_ALL, '374653e0', 0x4560, 'subs r4, r3, r7, lsr r6', 0, ()),
+        (REV_ARM_ALL, '374663e0', 0x4560, 'rsb r4, r3, r7, lsr r6', 0, ()),
+        (REV_ARM_ALL, '374673e0', 0x4560, 'rsbs r4, r3, r7, lsr r6', 0, ()),
+        (REV_ARM_ALL, '374683e0', 0x4560, 'add r4, r3, r7, lsr r6', 0, ()),
+        (REV_ARM_ALL, '374693e0', 0x4560, 'adds r4, r3, r7, lsr r6', 0, ()),
+        (REV_ARM_ALL, '3746a3e0', 0x4560, 'adc r4, r3, r7, lsr r6', 0, ()),
+        (REV_ARM_ALL, '3746b3e0', 0x4560, 'adcs r4, r3, r7, lsr r6', 0, ()),
+        (REV_ARM_ALL, '3746c3e0', 0x4560, 'sbc r4, r3, r7, lsr r6', 0, ()),
+        (REV_ARM_ALL, '3746d3e0', 0x4560, 'sbcs r4, r3, r7, lsr r6', 0, ()),
+        (REV_ARM_ALL, '3746e3e0', 0x4560, 'rsc r4, r3, r7, lsr r6', 0, ()),
+        (REV_ARM_ALL, '3746f3e0', 0x4560, 'rscs r4, r3, r7, lsr r6', 0, ()),
+        #(REV_ARM_ALL, '374603e1', 0x4560, 'tstS r3, r7, lsr r6', 0, ()),   #added s   # not implimented
+        (REV_ARM_ALL, '374613e1', 0x4560, 'tsts r3, r7, lsr r6', 0, ()),  #added s
+        (REV_ARM_ALL, '374623e1', 0x4560, 'blx r7', 0, ()),
+        (REV_ARM_ALL, '374633e1', 0x4560, 'teqs r3, r7, lsr r6', 0, ()), #added s
+        #(REV_ARM_ALL, '374643e1', 0x4560, 'cmps r3, r7, lsr r6', 0, ()),    #added s   # not implimented
+        (REV_ARM_ALL, '374653e1', 0x4560, 'cmps r3, r7, lsr r6', 0, ()), #added s
+        #(REV_ARM_ALL, '374663e1', 0x4560, 'cmns r3, r7, lsr r6', 0, ()),   #added s   # not implimented
+        (REV_ARM_ALL, '374673e1', 0x4560, 'cmns r3, r7, lsr r6', 0, ()),  #added s 
+        (REV_ARM_ALL, '374683e1', 0x4560, 'orr r4, r3, r7, lsr r6', 0, ()),
+        (REV_ARM_ALL, '374693e1', 0x4560, 'orrs r4, r3, r7, lsr r6', 0, ()),
+        (REV_ARM_ALL, '3746a3e1', 0x4560, 'mov r4, r7, lsr r6', 0, ()),
+        (REV_ARM_ALL, '3746b3e1', 0x4560, 'movs r4, r7, lsr r6', 0, ()),
+        (REV_ARM_ALL, '3746c3e1', 0x4560, 'bic r4, r3, r7, lsr r6', 0, ()),
+        (REV_ARM_ALL, '3746d3e1', 0x4560, 'bics r4, r3, r7, lsr r6', 0, ()),
+        (REV_ARM_ALL, '3746e3e1', 0x4560, 'mvn r4, r7, lsr r6', 0, ()),
+        (REV_ARM_ALL, '3746f3e1', 0x4560, 'mvns r4, r7, lsr r6', 0, ()),
+        (REV_ARM_ALL, '474603e0', 0x4560, 'and r4, r3, r7, asr #12', 0, ()),
+        (REV_ARM_ALL, '474613e0', 0x4560, 'ands r4, r3, r7, asr #12', 0, ()),
+        (REV_ARM_ALL, '474623e0', 0x4560, 'eor r4, r3, r7, asr #12', 0, ()),
+        (REV_ARM_ALL, '474633e0', 0x4560, 'eors r4, r3, r7, asr #12', 0, ()),
+        (REV_ARM_ALL, '474643e0', 0x4560, 'sub r4, r3, r7, asr #12', 0, ()),
+        (REV_ARM_ALL, '474653e0', 0x4560, 'subs r4, r3, r7, asr #12', 0, ()),
+        (REV_ARM_ALL, '474663e0', 0x4560, 'rsb r4, r3, r7, asr #12', 0, ()),
+        (REV_ARM_ALL, '474673e0', 0x4560, 'rsbs r4, r3, r7, asr #12', 0, ()),
+        (REV_ARM_ALL, '474683e0', 0x4560, 'add r4, r3, r7, asr #12', 0, ()),
+        (REV_ARM_ALL, '474693e0', 0x4560, 'adds r4, r3, r7, asr #12', 0, ()),
+        (REV_ARM_ALL, '4746a3e0', 0x4560, 'adc r4, r3, r7, asr #12', 0, ()),
+        (REV_ARM_ALL, '4746b3e0', 0x4560, 'adcs r4, r3, r7, asr #12', 0, ()),
+        (REV_ARM_ALL, '4746c3e0', 0x4560, 'sbc r4, r3, r7, asr #12', 0, ()),
+        (REV_ARM_ALL, '4746d3e0', 0x4560, 'sbcs r4, r3, r7, asr #12', 0, ()),
+        (REV_ARM_ALL, '4746e3e0', 0x4560, 'rsc r4, r3, r7, asr #12', 0, ()),
+        (REV_ARM_ALL, '4746f3e0', 0x4560, 'rscs r4, r3, r7, asr #12', 0, ()),
+        #(REV_ARM_ALL, '474603e1', 0x4560, 'tsts r3, r7, asr #12', 0, ()),  #added s   # should be: tsts r3, r7, asr #12  - is: mrs r4, CPSR
+        (REV_ARM_ALL, '474613e1', 0x4560, 'tsts r3, r7, asr #12', 0, ()), #added s 
+        #(REV_ARM_ALL, '474623e1', 0x4560, 'teqs r3, r7, asr #12', 0, ()), #added s   # should be: teqs r3, r7, asr #12  - is: mrs r4, CPSR
+        (REV_ARM_ALL, '474633e1', 0x4560, 'teqs r3, r7, asr #12', 0, ()), #added s 
+        #(REV_ARM_ALL, '474643e1', 0x4560, 'cmps r3, r7, asr #12', 0, ()), #added s   # not implimented
+        (REV_ARM_ALL, '474653e1', 0x4560, 'cmps r3, r7, asr #12', 0, ()), #added s 
+        #(REV_ARM_ALL, '474663e1', 0x4560, 'cmns r3, r7, asr #12', 0, ()), #added s   # not implimented
+        (REV_ARM_ALL, '474673e1', 0x4560, 'cmns r3, r7, asr #12', 0, ()), #added s 
+        (REV_ARM_ALL, '474683e1', 0x4560, 'orr r4, r3, r7, asr #12', 0, ()),
+        (REV_ARM_ALL, '474693e1', 0x4560, 'orrs r4, r3, r7, asr #12', 0, ()),
+        (REV_ARM_ALL, '4746a3e1', 0x4560, 'mov r4, r7, asr #12', 0, ()),
+        (REV_ARM_ALL, '4746b3e1', 0x4560, 'movs r4, r7, asr #12', 0, ()),
+        (REV_ARM_ALL, '4746c3e1', 0x4560, 'bic r4, r3, r7, asr #12', 0, ()),
+        (REV_ARM_ALL, '4746d3e1', 0x4560, 'bics r4, r3, r7, asr #12', 0, ()),
+        (REV_ARM_ALL, '4746e3e1', 0x4560, 'mvn r4, r7, asr #12', 0, ()),
+        (REV_ARM_ALL, '4746f3e1', 0x4560, 'mvns r4, r7, asr #12', 0, ()),
+        (REV_ARM_ALL, '574603e0', 0x4560, 'and r4, r3, r7, asr r6', 0, ()),
+        (REV_ARM_ALL, '574613e0', 0x4560, 'ands r4, r3, r7, asr r6', 0, ()),
+        (REV_ARM_ALL, '574623e0', 0x4560, 'eor r4, r3, r7, asr r6', 0, ()),
+        (REV_ARM_ALL, '574633e0', 0x4560, 'eors r4, r3, r7, asr r6', 0, ()),
+        (REV_ARM_ALL, '574643e0', 0x4560, 'sub r4, r3, r7, asr r6', 0, ()),
+        (REV_ARM_ALL, '574653e0', 0x4560, 'subs r4, r3, r7, asr r6', 0, ()),
+        (REV_ARM_ALL, '574663e0', 0x4560, 'rsb r4, r3, r7, asr r6', 0, ()),
+        (REV_ARM_ALL, '574673e0', 0x4560, 'rsbs r4, r3, r7, asr r6', 0, ()),
+        (REV_ARM_ALL, '574683e0', 0x4560, 'add r4, r3, r7, asr r6', 0, ()),
+        (REV_ARM_ALL, '574693e0', 0x4560, 'adds r4, r3, r7, asr r6', 0, ()),
+        (REV_ARM_ALL, '5746a3e0', 0x4560, 'adc r4, r3, r7, asr r6', 0, ()),
+        (REV_ARM_ALL, '5746b3e0', 0x4560, 'adcs r4, r3, r7, asr r6', 0, ()),
+        (REV_ARM_ALL, '5746c3e0', 0x4560, 'sbc r4, r3, r7, asr r6', 0, ()),
+        (REV_ARM_ALL, '5746d3e0', 0x4560, 'sbcs r4, r3, r7, asr r6', 0, ()),
+        (REV_ARM_ALL, '5746e3e0', 0x4560, 'rsc r4, r3, r7, asr r6', 0, ()),
+        (REV_ARM_ALL, '5746f3e0', 0x4560, 'rscs r4, r3, r7, asr r6', 0, ()),
+        #(REV_ARM_ALL, '574603e1', 0x4560, 'tst r3, r7, asr r6', 0, ()), # should be: tst r3, r7, asr r6  - is: qadd r4, r7, r3
+        (REV_ARM_ALL, '574613e1', 0x4560, 'tsts r3, r7, asr r6', 0, ()),  #added s
+        #(REV_ARM_ALL, '574623e1', 0x4560, 'teq r3, r7, asr r6', 0, ()),  #should be: teq r3, r7, asr r6  - is: qsub r4, r7, r3
+        (REV_ARM_ALL, '574633e1', 0x4560, 'teqs r3, r7, asr r6', 0, ()),  #added s
+        #(REV_ARM_ALL, '574643e1', 0x4560, 'cmp r3, r7, asr r6', 0, ()),  # should be: cmp r3, r7, asr r6  - is: qdadd r4, r7, r3
+        (REV_ARM_ALL, '574653e1', 0x4560, 'cmps r3, r7, asr r6', 0, ()),  #added s
+        #(REV_ARM_ALL, '574663e1', 0x4560, 'cmn r3, r7, asr r6', 0, ()), #should be: cmp r3, r7, asr r6  - is: qdadd r4, r7, r3
+        (REV_ARM_ALL, '574673e1', 0x4560, 'cmns r3, r7, asr r6', 0, ()),  #added s
+        (REV_ARM_ALL, '574683e1', 0x4560, 'orr r4, r3, r7, asr r6', 0, ()),
+        (REV_ARM_ALL, '574693e1', 0x4560, 'orrs r4, r3, r7, asr r6', 0, ()),
+        (REV_ARM_ALL, '5746a3e1', 0x4560, 'mov r4, r7, asr r6', 0, ()),
+        (REV_ARM_ALL, '5746b3e1', 0x4560, 'movs r4, r7, asr r6', 0, ()),
+        (REV_ARM_ALL, '5746c3e1', 0x4560, 'bic r4, r3, r7, asr r6', 0, ()),
+        (REV_ARM_ALL, '5746d3e1', 0x4560, 'bics r4, r3, r7, asr r6', 0, ()),
+        (REV_ARM_ALL, '5746e3e1', 0x4560, 'mvn r4, r7, asr r6', 0, ()),
+        (REV_ARM_ALL, '5746f3e1', 0x4560, 'mvns r4, r7, asr r6', 0, ()),
+        (REV_ARM_ALL, '674503e6', 0x4560, 'str r4, [r3], -r7, ror #10', 0, ()),
+        (REV_ARM_ALL, '674523e6', 0x4560, 'strt r4, [r3], -r7, ror #10', 0, ()),
+        (REV_ARM_ALL, '674543e6', 0x4560, 'strb r4, [r3], -r7, ror #10', 0, ()),
+        (REV_ARM_ALL, '674563e6', 0x4560, 'strbt r4, [r3], -r7, ror #10', 0, ()),
+        (REV_ARM_ALL, '674583e6', 0x4560, 'str r4, [r3], r7, ror #10', 0, ()),
+        (REV_ARM_ALL, '6745a3e6', 0x4560, 'strt r4, [r3], r7, ror #10', 0, ()),
+        (REV_ARM_ALL, '6745c3e6', 0x4560, 'strb r4, [r3], r7, ror #10', 0, ()),
+        (REV_ARM_ALL, '6745e3e6', 0x4560, 'strbt r4, [r3], r7, ror #10', 0, ()),
+        (REV_ARM_ALL, '674503e7', 0x4560, 'str r4, [r3, -r7, ror #10]', 0, ()),
+        (REV_ARM_ALL, '674523e7', 0x4560, 'str r4, [r3, -r7, ror #10]!', 0, ()),
+        (REV_ARM_ALL, '674543e7', 0x4560, 'strb r4, [r3, -r7, ror #10]', 0, ()),
+        (REV_ARM_ALL, '674563e7', 0x4560, 'strb r4, [r3, -r7, ror #10]!', 0, ()),
+        (REV_ARM_ALL, '674583e7', 0x4560, 'str r4, [r3, r7, ror #10]', 0, ()), 
+        (REV_ARM_ALL, '6745a3e7', 0x4560, 'str r4, [r3, r7, ror #10]!', 0, ()), 
+        (REV_ARM_ALL, '6745c3e7', 0x4560, 'strb r4, [r3, r7, ror #10]', 0, ()), 
+        (REV_ARM_ALL, '6745e3e7', 0x4560, 'strb r4, [r3, r7, ror #10]!', 0, ()), 
+        (REV_ARM_ALL, '674503e0', 0x4560, 'and r4, r3, r7, ror #10', 0, ()),
+        (REV_ARM_ALL, '674513e0', 0x4560, 'ands r4, r3, r7, ror #10', 0, ()),
+        (REV_ARM_ALL, '674523e0', 0x4560, 'eor r4, r3, r7, ror #10', 0, ()),
+        (REV_ARM_ALL, '674533e0', 0x4560, 'eors r4, r3, r7, ror #10', 0, ()),
+        (REV_ARM_ALL, '674543e0', 0x4560, 'sub r4, r3, r7, ror #10', 0, ()),
+        (REV_ARM_ALL, '674553e0', 0x4560, 'subs r4, r3, r7, ror #10', 0, ()),
+        (REV_ARM_ALL, '674563e0', 0x4560, 'rsb r4, r3, r7, ror #10', 0, ()),
+        (REV_ARM_ALL, '674573e0', 0x4560, 'rsbs r4, r3, r7, ror #10', 0, ()),
+        (REV_ARM_ALL, '674583e0', 0x4560, 'add r4, r3, r7, ror #10', 0, ()),
+        (REV_ARM_ALL, '674593e0', 0x4560, 'adds r4, r3, r7, ror #10', 0, ()),
+        (REV_ARM_ALL, '6745a3e0', 0x4560, 'adc r4, r3, r7, ror #10', 0, ()),
+        (REV_ARM_ALL, '6745b3e0', 0x4560, 'adcs r4, r3, r7, ror #10', 0, ()),
+        (REV_ARM_ALL, '6745c3e0', 0x4560, 'sbc r4, r3, r7, ror #10', 0, ()),
+        (REV_ARM_ALL, '6745d3e0', 0x4560, 'sbcs r4, r3, r7, ror #10', 0, ()),
+        (REV_ARM_ALL, '6745e3e0', 0x4560, 'rsc r4, r3, r7, ror #10', 0, ()),
+        (REV_ARM_ALL, '6745f3e0', 0x4560, 'rscs r4, r3, r7, ror #10', 0, ()) 
         ] 
 
 # FIXME: create list of this from IDA flow below - THIS CURRENT DATA IS FOR H8!  NOT ARM/THUMB
@@ -806,9 +804,7 @@ class ArmInstructionSet(unittest.TestCase):
         vw.addMemoryMap(0, 7, 'firmware', '\xff' * 16384*1024)
         vw.addMemoryMap(0x400000, 7, 'firmware', '\xff' * 16384*1024)
         emu = vw.getEmulator()
-        #took out next line while testing routine
-        #mu.logread = 
-        emu.logwrite = True
+        emu.logread = emu.logwrite = True
         badcount = 0
         goodcount = 0
         for archz, bytez, va, reprOp, iflags, emutests in instrs:
@@ -884,7 +880,7 @@ class ArmInstructionSet(unittest.TestCase):
                         raise Exception( "FAILED emulation:  %s" % op )
                         badcount += 1
                     '''
-
+        print "done with assorted instructions test" # Will remove line when done. Here to know I finished otherwise.
         #op = vw.arch.archParseOpcode('12c3'.decode('hex'))
         ##rotl.b #2, r3h
         ##print( op, hex(0x7a) )
@@ -993,7 +989,7 @@ def generateTestInfo(ophexbytez='6e'):
 
     print( "opercheck = %s" % (repr(opersvars)) )
 
-
+"""
 
 raw_instrs = [
     ]

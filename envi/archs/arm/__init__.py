@@ -9,12 +9,7 @@ from envi.archs.arm.regs import *
 from envi.archs.arm.disasm import *
 
 class ArmModule(envi.ArchitectureModule):
-    '''
-    Following line before function is to help with different architecture
-       versions. These are not planned to be fully implemented until after ARMv8
-       is implimented. Will be important for including ARMv7M and
-       some other variants that fork from normal instruction path.
-    '''
+    #Current ARM version working in - Not fully integrated yet
     archVersion = ('ARMv7A')
 
     def __init__(self, name='ARMv7A'):
@@ -57,12 +52,7 @@ class ThumbModule(envi.ArchitectureModule):
     '''
     This architecture module will *not* shift to ARM mode.  Evar.
     '''
-    '''
-    Following line before function is to help with different architecture
-       versions. These are not planned to be fully implemented until after ARMv8
-       is implimented. Will be important for including ARMv7M and
-       some other variants that fork from normal instruction path.
-    '''
+    #Current ARM version working in - Not fully integrated yet
     archVersion = ('ARMv7A')
 
     def __init__(self, name='ARMv7A'):
