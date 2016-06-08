@@ -84,18 +84,20 @@ archcalls = {
     'amd64':'sysvamd64call',
 }
 
-def loadElfIntoWorkspace(vw, elf, filename=None):
+def loadElfIntoWorkspace(vw, elf, filename=None, arch=None, platform=None, filefmt='elf'):
 
-    arch = arch_names.get(elf.e_machine)
     if arch == None:
-       raise Exception("Unsupported Architecture: %d\n", elf.e_machine)
+        arch = arch_names.get(elf.e_machine)
+        if arch == None:
+           raise Exception("Unsupported Architecture: %d\n", elf.e_machine)
 
-    platform = elf.getPlatform()
+    if platform == None:
+        platform = elf.getPlatform()
 
     # setup needed platform/format
     vw.setMeta('Architecture', arch)
     vw.setMeta('Platform', platform)
-    vw.setMeta('Format', 'elf')
+    vw.setMeta('Format', filefmt)
 
     vw.setMeta('DefaultCall', archcalls.get(arch,'unknown'))
 
@@ -128,6 +130,8 @@ def loadElfIntoWorkspace(vw, elf, filename=None):
 
     for pgm in pgms:
         if pgm.p_type == Elf.PT_LOAD:
+            if pgm.p_memsz == 0:
+                continue
             if vw.verbose: vw.vprint('Loading: %s' % (repr(pgm)))
             bytez = elf.readAtOffset(pgm.p_offset, pgm.p_filesz)
             bytez += "\x00" * (pgm.p_memsz - pgm.p_filesz)
