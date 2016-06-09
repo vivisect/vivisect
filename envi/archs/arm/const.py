@@ -25,34 +25,25 @@ REV_ARMv8A  =   0b0000000100000000000000 #    16384        0x4000
 REV_ARMv8R  =   0b0000001000000000000000 #    32768        0x8000
 REV_ARMv8M  =   0b0000010000000000000000 #    65536        0x10000
 
-#To be replaced with dynamic setting up to prevent bugs when adding additional versions above
 REV_ALL_ARMv4  = (REV_ARMv4 | REV_ARMv4T)
 REV_ALL_ARMv5  = (REV_ARMv5 | REV_ARMv5T | REV_ARMv5E | REV_ARMv5J | REV_ARMv5TE)
 REV_ALL_ARMv6  = (REV_ARMv6 | REV_ARMv6T2 | REV_ARMv6M)
 REV_ALL_ARMv7  = (REV_ARMv7A | REV_ARMv7R | REV_ARMv7M | REV_ARMv7EM) 
 REV_ALL_ARMv8  = (REV_ARMv8A | REV_ARMv8R | REV_ARMv8M)
 
-#Set below
-REV_ARM_ALL = 0
-
-#trying to look at way to dynamically set these see commented section below.
-#This line will replace simililar lines above once dynamically set
-#REV_ALL_ARMv4 = REV_ALL_ARMv5 = REV_ALL_ARMv6 = REV_ALL_ARMv7 = REV_ALL_ARMv8 = 0
+REV_ALL_ARM = (REV_ALL_ARMv4 | REV_ALL_ARMv5 | REV_ALL_ARMv6 | REV_ALL_ARMv7 | REV_ALL_ARMv8)
 
 #Will be set below, THUMB16 up through v6 except v6T2, THUMB2 from v6T2 up, THUMBEE from v7 up.
 REV_THUMB16 = REV_THUMB2  = REV_THUMBEE = 0   
 
-
 ARCH_REVS = {}
 #Itterate through all REV_ARM values and setup related combo values 
 for name, val in globals().items():
-    if (not name.startswith('REV_ARM') or name.startswith('REV_ARM_')):
+    if (not name.startswith('REV_ARM')):
         continue
     shortName = name[4:]
     #add to lookup dictionary
     ARCH_REVS[shortName] = val
-    #add to "all" version value
-    REV_ARM_ALL = REV_ARM_ALL | val
     #setup thumb versions to Architecture versions
     if (int(shortName[4]) > 6 or shortName == 'ARMv6T2'):
         REV_THUMB2 = REV_THUMB2 | val
@@ -60,18 +51,7 @@ for name, val in globals().items():
             REV_THUMBEE = REV_THUMBEE | val
     else:
         REV_THUMB16 = REV_THUMB16 | val
-    '''
-    Doesn't work, while lets me read the value it doesn't let me set it?  
-    #setup version number combos    
-    for version, summ in globals().items():
-        if (not version.startswith('REV_ALL_ARMv')):
-            continue
-        print version[12], shortName[4]
-        # add bitmask to version combo
-        if (version[12] == shortName[4]):
-            print "adding"
-            summ = summ | val
-    '''
+
 ARCH_REVSLEN = len(ARCH_REVS)
 
  

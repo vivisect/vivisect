@@ -1809,13 +1809,6 @@ class ArmScaledOffsetOper(ArmOperand):
     def isDeref(self):
         return True
 
-    def setOperValue(self, op, emu=None, val=None):  #first of duplicates
-        if emu == None:
-            return None
-
-        addr = self.getOperAddr(op, emu)
-        return emu.writeMemValue(addr, val, self.tsize)
-
     def getOperValue(self, op, emu=None):
         if emu == None:
             return None
@@ -1823,7 +1816,7 @@ class ArmScaledOffsetOper(ArmOperand):
         addr = self.getOperAddr(op, emu)
         return emu.readMemValue(addr, self.tsize)
 
-    def setOperValue(self, op, emu=None, val=None):     # Duplicate or typo? setOperAddr ???
+    def setOperValue(self, op, emu=None, val=None):   
         # can't survive without an emulator
         if emu == None:
             return None
@@ -1890,20 +1883,17 @@ class ArmScaledOffsetOper(ArmOperand):
         offreg = arm_regs[self.offset_reg][0]
         shname = shift_names[self.shtype]
         if self.shval != 0:
-            shval = "%s #%d"%(shname,self.shval)
+            shval = ", %s #%d"%(shname,self.shval)
         elif self.shtype == S_RRX:
             shval = shname
         else:
-            shval = ""
-        #Fix putting a comma between register and shift oper
-        #may be dirty but seems to work
-        comma = ('', ',')[(len(shval))&1]                                                                                                
+            shval = ""                                                                                           
         if (idxing&0x10) == 0:         # post-indexed
-            tname = '[%s], %s%s%s %s' % (basereg, pom, offreg, comma, shval)
+            tname = '[%s], %s%s %s' % (basereg, pom, offreg,  shval)
         elif idxing == 0x10:
-            tname = '[%s, %s%s%s %s]' % (basereg, pom, offreg, comma, shval)
+            tname = '[%s, %s%s %s]' % (basereg, pom, offreg,  shval)
         else:               # pre-indexed
-            tname = '[%s, %s%s%s %s]!' % (basereg, pom, offreg, comma, shval)
+            tname = '[%s, %s%s %s]!' % (basereg, pom, offreg,  shval)
         return tname
 
 class ArmRegOffsetOper(ArmOperand):
