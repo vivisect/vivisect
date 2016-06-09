@@ -224,7 +224,7 @@ def loadElfIntoWorkspace(vw, elf, filename=None, arch=None, platform=None, filef
             makeRelocTable(vw, sva, sva+size, addbase, baseaddr)
 
         if sec.sh_flags & Elf.SHF_STRINGS:
-            print "FIXME HANDLE SHF STRINGS"
+            makeStringTable(vw, sva, sva+size)
 
     # Let pyelf do all the stupid string parsing...
     for r in elf.getRelocs():
