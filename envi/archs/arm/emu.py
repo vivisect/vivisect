@@ -777,7 +777,7 @@ class ArmEmulator(ArmModule, ArmRegisterContext, envi.Emulator):
         
         dsize = op.opers[0].tsize
         ssize = op.opers[1].tsize
-
+        #FIXME needs sflag
         Carry = self.getFlag(PSR_C_bit)
         ures = self.AddWithCarry(src1, src2, Carry, Sflag, op.opers[0].reg)
 

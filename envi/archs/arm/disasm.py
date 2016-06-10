@@ -188,7 +188,7 @@ def p_dp_imm_shift(opval, va):
     ocode,sflag,Rn,Rd = dpbase(opval)
     Rm = opval & 0xf
     shtype = (opval >> 5) & 0x3
-    shval = (opval >> 7) & 0x1e   # effectively, rot*2
+    shval = (opval >> 7) & 0x1f   # effectively, rot*2
 
     if ocode in dp_noRn:# FIXME: FUGLY (and slow...)
         olist = (
@@ -218,7 +218,7 @@ def p_dp_imm_shift(opval, va):
 qop_mnem = ('qadd','qsub','qdadd','qdsub')
 smla_mnem = ('smlabb','smlabt','smlatb','smlatt',)
 smlal_mnem = ('smlalbb','smlalbt','smlaltb','smlaltt',)
-smul_mnem = ('smulbb','smulbt','smultb','smultt',)
+smul_mnem = ('smulbb','smultb','smulbt','smultt',)
 smlaw_mnem = ('smlawb','smlawt',)
 smulw_mnem = ('smulwb','smulwt',)
 
@@ -304,8 +304,8 @@ def p_misc(opval, va):
         )
     elif opval & 0x0ff00090 == 0x01600080:
         opcode = (IENC_MISC << 16) + 13
-        xy = (opval>>5)&3
-        mnem = smul_mnem[xy]
+        yx = (opval>>5)&3
+        mnem = smul_mnem[yx]
         Rd = (opval>>16) & 0xf
         Rs = (opval>>8) & 0xf
         Rm = opval & 0xf
@@ -314,7 +314,6 @@ def p_misc(opval, va):
             ArmRegOper(Rm, va=va),
             ArmRegOper(Rs, va=va),
         )
-        mnem = 'smul'   #xy
     #elif opval & 0x0fc00000 == 0x03200000:
         #mnem = 'msr'
     else:
@@ -429,6 +428,10 @@ def p_extra_load_store(opval, va):
     elif opval&0x0e4000f0==0x000000b0:# strh/ldrh regoffset
         # 000pu0w0-Rn--Rt-SBZ-1011-Rm-  - STRH
         # 0000u110-Rn--Rt-imm41011imm4  - STRHT (v7+)
+        # if p ==0 and w ==1 then STRHT
+        #isT = (opval >> 21) & 9 # will be a 1 if STRHT/LDRHT Need to incorporate 
+        # will replace with IF_TT tag in const.py and set when setting those flags
+        # will look into more because there are other combos too
         idx = pubwl&1
         opcode = (IENC_EXTRA_LOAD << 16) + 4 + idx
         mnem,iflags = strh_mnem[idx]
@@ -445,6 +448,7 @@ def p_extra_load_store(opval, va):
             ArmImmOffsetOper(Rn,(Rs<<4)+Rm, va, pubwl),
         )
     elif opval&0x0e5000d0==0x005000d0:# ldrsh/b immoffset
+        # if p ==0 and w ==1 then add t   v7+ see above
         idx = (opval>>5)&1
         opcode = (IENC_EXTRA_LOAD << 16) + 8 + idx
         mnem,iflags = ldrs_mnem[idx]
@@ -453,6 +457,7 @@ def p_extra_load_store(opval, va):
             ArmImmOffsetOper(Rn, (Rs<<4)+Rm, va, pubwl),
         )
     elif opval&0x0e5000d0==0x001000d0:# ldrsh/b regoffset
+        # if p ==0 and w ==1 then add t   v7+ see above
         idx = (opval>>5)&1
         opcode = (IENC_EXTRA_LOAD << 16) + 10 + idx
         mnem,iflags = ldrs_mnem[idx]
@@ -568,7 +573,7 @@ def p_mult(opval, va):
 def p_dp_imm(opval, va):
     ocode,sflag,Rn,Rd = dpbase(opval)
     imm = opval & 0xff
-    rot = (opval >> 7) & 0x1e   # effectively, rot*2
+    rot = (opval >> 7) & 0x1f   # effectively, rot*2
     
     # hack to make add/sub against PC more readable (also legit for ADR instruction)
     if Rn == REG_PC and ocode in dp_ADR:    # we know PC
@@ -1804,13 +1809,6 @@ class ArmScaledOffsetOper(ArmOperand):
     def isDeref(self):
         return True
 
-    def setOperValue(self, op, emu=None, val=None):
-        if emu == None:
-            return None
-
-        addr = self.getOperAddr(op, emu)
-        return emu.writeMemValue(addr, val, self.tsize)
-
     def getOperValue(self, op, emu=None):
         if emu == None:
             return None
@@ -1885,7 +1883,7 @@ class ArmScaledOffsetOper(ArmOperand):
         offreg = arm_regs[self.offset_reg][0]
         shname = shift_names[self.shtype]
         if self.shval != 0:
-            shval = "%s #%d"%(shname,self.shval)
+            shval = ", %s #%d"%(shname,self.shval)
         elif self.shtype == S_RRX:
             shval = shname
         else:
