@@ -1040,10 +1040,20 @@ if globals().get('vw'):
 
     '''
 
+
+
+def thunk_bx(emu, fname, symargs):
+    vw = emu._sym_vw
+    bx = vw.getMeta("PIE_ebx")
+    rctx = vw.arch.archGetRegCtx()
+    reg = rctx.getRealRegisterName('bx')
+    emu.setSymVariable(reg, bx)
+
 class SwitchCase:
     def __init__(self, vw, jmpva):
         self.vw = vw
         self.jmpva = jmpva
+        self.op = vw.parseOpcode(jmpva)
 
         self.cspath = None
         self.aspath = None
@@ -1061,6 +1071,11 @@ class SwitchCase:
         self.sctx = vs_anal.getSymbolikAnalysisContext(vw)
         self.xlate = self.sctx.getTranslator()
 
+        # 32-bit i386 thunk_bx handling.  this should be the only oddity for this architecture
+        if vw.getMeta('PIE_ebx'):
+            for tva in vw.getVaSetRow('thunk_bx'):
+                self.sctx.addSymFuncCallback(tva, thunk_bx)
+
         # ??
         self.longSemu = TrackingSymbolikEmulator(vw)
         self.shortSemu = TrackingSymbolikEmulator(vw)
@@ -1075,13 +1090,14 @@ class SwitchCase:
 
 
     def analyze(self):
-        self.count, self.baseoff = self.determineCountOffset()
+        lower, upper, baseoff = self.getBounds()
         if None in (lower, ): 
             logger.info("something odd in count/offset calculation... skipping 0x%x...", self.jmpva)
             return
 
         self.makeSwitch(vw, jmpva, count, baseoff, funcva=fva)
 
+    #### primitives for switchcase analysis ####
     def getJmpSymVar(self):
         '''
         returns the Simple Symbolik state of the dynamic target of the branch/jmp
@@ -1131,7 +1147,10 @@ class SwitchCase:
         Limited value function.
         '''
         lower, upper, offset = self.getBounds()
-        return (upper-lower), offset
+        if None in (lower, upper): 
+            logger.info("something odd in count/offset calculation... skipping 0x%x...", self.jmpva)
+            return
+        return (upper-lower), offset+lower
 
 
     def getConstraints(self):
@@ -1140,6 +1159,48 @@ class SwitchCase:
         cons = [eff for eff in fullp[1] if eff.efftype==EFFTYPE_CONSTRAIN]
         [con.reduce() for con in cons]
         return cons
+
+    def getSymbolikParts(self, next=False):
+        '''
+        Puts together a path from the start of the function to the jmpva, breaking off the last 
+        codeblock, and returning the symbolik path for both sections:
+        cspath = (emu, effs) for the "context" path (from function start)
+        aspath = (emu, effs) for the last codeblock
+
+        FIXME: this needs to be able to handle things like "thunk_bx" calls.
+        '''
+        if not next and self.cspath != None and self.aspath != None:
+            return self.cspath, self.aspath, self.fullpath
+        
+        vw = self.vw
+        sctx = self.sctx
+        jmpva = self.jmpva
+
+        fva = vw.getFunction(jmpva)
+        cb = vw.getCodeBlock(jmpva)
+        if cb == None:
+            return None
+        cbva, cbsz, cbfva = cb
+
+        if self._sgraph == None:
+            self._sgraph = sctx.getSymbolikGraph(fva)
+
+        if self._codepathgen == None:
+            self._codepathgen = viv_graph.getCodePathsTo(self._sgraph, cbva)
+
+        self._codepath = self._codepathgen.next()
+        contextpath = self._codepath[:-1]
+        analpath = self._codepath[-1:]
+
+        self.cspath = sctx.getSymbolikPaths(fva, graph=self._sgraph, paths=[contextpath]).next()
+        self.aspath = sctx.getSymbolikPaths(fva, graph=self._sgraph, paths=[analpath]).next()
+        self.fullpath = sctx.getSymbolikPaths(fva, graph=self._sgraph, paths=[self._codepath]).next()
+
+
+        return self.cspath, self.aspath, self.fullpath
+
+
+    #### higher level functionality ####
 
     def getBounds(self):
         csp, asp, fullp = self.getSymbolikParts()
@@ -1227,7 +1288,6 @@ class SwitchCase:
                 csp, asp, fullp = self.getSymbolikParts(next=True)
 
                 smplIdx = self.getSymIdx()
-                #print "smplIdx: %r" % smplIdx
                
         except StopIteration:
             pass
@@ -1245,55 +1305,10 @@ class SwitchCase:
         #################
         return self.lower, self.upper, self.baseoff
 
+    def makeSwitch(self):
 
+        if not (self.op.iflags & envi.IF_BRANCH):
+            return
+        lower, upper, baseoff = self.getBounds()
 
-
-
-        '''  parse this out...
-smplIdx: 'rax'
-
-cplxIdx: o_sub(o_and(o_or(o_sub(Mem(Const(0xbfbfefdc,8), Const(0x00000001,8)),Const(0x00000030,8),1),o_and(Call(Const(0x02000a20,8),8, argsyms=[]),Const(0xffffffffffffff00,8),8),1),Const(0xffffffff,4),4),Const(0x00000001,8),4)
-
-[ConstrainPath( 0x02000bf5, Const(0x02000bfc,8), eq(o_and(Call(Const(0x02000a50,8),8, argsyms=[]),Const(0xffffffff,4),4),Const(0x00000000,8)) ), ConstrainPath( 0x02000c68, Const(0x02000c6a,8), le(o_and(o_sub(o_and(o_or(o_sub(Mem(Const(0xbfbfefdc,8), Const(0x00000001,8)),Const(0x00000030,8),1),o_and(Call(Const(0x02000a20,8),8, argsyms=[]),Const(0xffffffffffffff00,8),8),1),Const(0xffffffff,4),4),Const(0x00000001,8),4),Const(0x000000ff,1),1),Const(0x00000004,8)) )]
-
-            '''
-
-    def getSymbolikParts(self, next=False):
-        '''
-        Puts together a path from the start of the function to the jmpva, breaking off the last 
-        codeblock, and returning the symbolik path for both sections:
-        cspath = (emu, effs) for the "context" path (from function start)
-        aspath = (emu, effs) for the last codeblock
-
-        FIXME: this needs to be able to handle things like "thunk_bx" calls.
-        '''
-        if not next and self.cspath != None and self.aspath != None:
-            return self.cspath, self.aspath, self.fullpath
-        
-        vw = self.vw
-        sctx = self.sctx
-        jmpva = self.jmpva
-
-        fva = vw.getFunction(jmpva)
-        cb = vw.getCodeBlock(jmpva)
-        if cb == None:
-            return None
-        cbva, cbsz, cbfva = cb
-
-        if self._sgraph == None:
-            self._sgraph = sctx.getSymbolikGraph(fva)
-
-        if self._codepathgen == None:
-            self._codepathgen = viv_graph.getCodePathsTo(self._sgraph, cbva)
-
-        self._codepath = self._codepathgen.next()
-        contextpath = self._codepath[:-1]
-        analpath = self._codepath[-1:]
-
-        self.cspath = sctx.getSymbolikPaths(fva, graph=self._sgraph, paths=[contextpath]).next()
-        self.aspath = sctx.getSymbolikPaths(fva, graph=self._sgraph, paths=[analpath]).next()
-        self.fullpath = sctx.getSymbolikPaths(fva, graph=self._sgraph, paths=[self._codepath]).next()
-
-
-        return self.cspath, self.aspath, self.fullpath
 
