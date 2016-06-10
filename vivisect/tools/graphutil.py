@@ -592,9 +592,24 @@ def preRouteGraph(graph, fromva, tova):
     '''
     Package it all together
     '''
-    graph.delNodesProps(('up','down'))
+    clearRouting(graph)
     preRouteGraphUp(graph, tova)
     preRouteGraphDown(graph, fromva)
+    preRouteGraphEdges(graph)
+
+def preRouteGraphEdges(graph):
+    '''
+    Mark edges as 'follow' if from-node is marked 'up' and to-node id marked 'down'
+    Note: unlike the other preRoute functions, this is not flexible on naming.
+    '''
+    for edge in graph.getEdges():
+        eid, frnid, tonid, einfo = edge
+        if not graph.getNodeProps(frnid).get('up'):
+            continue
+        if not graph.getNodeProps(tonid).get('down'):
+            continue
+
+        graph.setEdgeProp(edge, 'follow', True)
 
 def preRouteGraphUp(graph, tova, loop=True, mark='down'):
     '''
@@ -668,8 +683,9 @@ def clearMarkDown(graph, fromva, loop=False, mark='up'):
 
             todo.append(graph.getNode(to))
 
-def clearRouting(graph, marks=('up','down')):
-    graph.delNodesProps(marks)
+def clearRouting(graph, nmarks=('up','down'), emarks=('follow',)):
+    graph.delNodesProps(nmarks)
+    graph.delEdgesProps(emarks)
     graph.setMeta('Routed', False)
 
 def reduceGraph(graph, props=('up','down')):
