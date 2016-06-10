@@ -4,7 +4,6 @@ The initial arm module.
 """
 
 import envi
-
 from envi.archs.arm.regs import *
 from envi.archs.arm.disasm import *
 
@@ -13,6 +12,7 @@ class ArmModule(envi.ArchitectureModule):
     archVersion = ('ARMv7A')
 
     def __init__(self, name='ARMv7A'):
+        self.archVersion = name
         import envi.archs.thumb16.disasm as eatd
         envi.ArchitectureModule.__init__(self, name, maxinst=4)
         self._arch_reg = self.archGetRegCtx()

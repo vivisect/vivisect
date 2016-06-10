@@ -218,7 +218,7 @@ def p_dp_imm_shift(opval, va):
 qop_mnem = ('qadd','qsub','qdadd','qdsub')
 smla_mnem = ('smlabb','smlabt','smlatb','smlatt',)
 smlal_mnem = ('smlalbb','smlalbt','smlaltb','smlaltt',)
-smul_mnem = ('smulbb','smultb','smulbt','smultt',)  
+smul_mnem = ('smulbb','smultb','smulbt','smultt',)
 smlaw_mnem = ('smlawb','smlawt',)
 smulw_mnem = ('smulwb','smulwt',)
 
@@ -1816,7 +1816,7 @@ class ArmScaledOffsetOper(ArmOperand):
         addr = self.getOperAddr(op, emu)
         return emu.readMemValue(addr, self.tsize)
 
-    def setOperValue(self, op, emu=None, val=None):   
+    def setOperValue(self, op, emu=None, val=None):
         # can't survive without an emulator
         if emu == None:
             return None
@@ -1887,13 +1887,13 @@ class ArmScaledOffsetOper(ArmOperand):
         elif self.shtype == S_RRX:
             shval = shname
         else:
-            shval = ""                                                                                           
+            shval = ""
         if (idxing&0x10) == 0:         # post-indexed
-            tname = '[%s], %s%s %s' % (basereg, pom, offreg,  shval)
+            tname = '[%s], %s%s %s' % (basereg, pom, offreg, shval)
         elif idxing == 0x10:
-            tname = '[%s, %s%s %s]' % (basereg, pom, offreg,  shval)
+            tname = '[%s, %s%s %s]' % (basereg, pom, offreg, shval)
         else:               # pre-indexed
-            tname = '[%s, %s%s %s]!' % (basereg, pom, offreg,  shval)
+            tname = '[%s, %s%s %s]!' % (basereg, pom, offreg, shval)
         return tname
 
 class ArmRegOffsetOper(ArmOperand):
