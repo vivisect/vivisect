@@ -341,6 +341,7 @@ def walkCodePaths(fgraph, callback, loopcnt=0, maxpath=None):
     For root nodes, the current path and edge will be None types.  
     '''
     pathcnt = 0
+    routed = fgraph.getMeta('Routed', False)
     for root in fgraph.getHierRootNodes():
         proot = vg_pathcore.newPathNode(nid=root[0], eid=None)
 
@@ -370,6 +371,9 @@ def walkCodePaths(fgraph, callback, loopcnt=0, maxpath=None):
                     return
 
             for eid, fromid, toid, einfo in refsfrom:
+                # skip edges which are not marked "follow"
+                if routed and not einfo.get('follow', False):
+                    continue
                 # Skip loops if they are "deeper" than we are allowed
                 if vg_pathcore.getPathLoopCount(cpath, 'nid', toid) > loopcnt:
                     continue
@@ -596,7 +600,7 @@ def preRouteGraphUp(graph, tova, loop=True, mark='down'):
     '''
     paint a route from our destination, 'up' the graph
     '''
-
+    graph.setMeta('Routed', True)
     tonid = getGraphNodeByVa(graph, tova)
     if tonid == None:
         raise Exception("tova not in graph 0x%x" % tova)
@@ -619,6 +623,7 @@ def preRouteGraphDown(graph, fromva, loop=False, mark='up'):
     '''
     paint a route from our starting point, 'down' the graph
     '''
+    graph.setMeta('Routed', True)
     fromnode = getGraphNodeByVa(graph, fromva)
     if fromnode == None:
         raise Exception("fromva not in graph 0x%x" % fromva)
@@ -663,6 +668,10 @@ def clearMarkDown(graph, fromva, loop=False, mark='up'):
 
             todo.append(graph.getNode(to))
 
+def clearRouting(graph, marks=('up','down')):
+    graph.delNodesProps(marks)
+    graph.setMeta('Routed', False)
+
 def reduceGraph(graph, props=('up','down')):
     '''
     trims all nodes that don't have all the props in the props list
@@ -695,31 +704,36 @@ class PathGenerator:
         self.__go__ = False
 
     def watchdog(self, time):
-        # FIXME: make this use one thread, not N
         '''
         set a watchdog timer for path generation (if it takes too long to get another path)
         '''
-        self.wdt = threading.Thread(target=self.__wd, args=[time])
-        self.wdt.setDaemon = True
-        self.wdt.start()
+        self._wd_maxsec = time * 10
+        self._wd_count = 0
+        if self.wdt == None:
+            self.wdt = threading.Thread(target=self.__wd)
+            self.wdt.setDaemon = True
+            self.wdt.start()
 
-    def __wd(self, maxsec):
-        # FIXME: make this use one thread, not N
-        maxsec *=10
-        count = 0
-        while self.__go__:
-            time.sleep(.1)
-            self.__steplock.acquire()
+    def __wd(self):
+        while True:
             try:
-                if not self.__update:
-                    count += 1
-                    if count > maxsec:
-                        self.stop()
-                        break
-            finally:
-                self.__steplock.release()
+                while self.__go__:
+                    time.sleep(.1)
+                    self.__steplock.acquire()
+                    try:
+                        if not self.__update:
+                            count += 1
+                            if count > maxsec:
+                                self.stop()
+                                break
+                    finally:
+                        self.__steplock.release()
 
-            self.__update = False
+                    self.__update = False
+            except:
+                sys.excepthook(*sys.exc_info())
+
+            time.sleep(1)
                 
 
     def getFuncCbRoutedPaths_genback(self, fromva, tova, loopcnt=0, maxpath=None, maxsec=None):
