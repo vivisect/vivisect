@@ -29,22 +29,18 @@ import binascii   # temporarily included for testing purposes only - allows to p
 instrs = [
         (REV_ALL_ARM, '08309fe5', 0xbfb00000, 'ldr r3, [#0xbfb00010]', 0, ()),
         (REV_ALL_ARM, '0830bbe5', 0xbfb00000, 'ldr r3, [r11, #0x8]!', 0, ()),
-
-#not working at the base level with just one entry as second entry is
-#may try to do some simple code to pass to the validate function but 
         (REV_ALL_ARM, '08309fe5', 0xbfb00000, 'ldr r3, [#0xbfb00010]', 0, (
-            {'setup':(('er0',0xaa),('CCR_C',0),('er3',0x1a)), 
-                'tests':(('er3',0x90),('CCR_H',0),('CCR_N',0),('CCR_Z',0),('CCR_V',0),('CCR_C',0)) },
-            {'setup':(('er0',0xab),('CCR_C',0),('er3',0xb0)), 
-                'tests':(('er3',0xfffffffb),('CCR_H',1),('CCR_N',1),('CCR_Z',0),('CCR_V',0),('CCR_C',1)) }
+            {'setup':(('r0',0xaa),('PSR_C',0),('r3',0x1a)), 
+                'tests':(('r3',0xfefefefe),('PSR_Q',0),('PSR_N',0),('PSR_Z',0),('PSR_V',0),('PSR_C',0)) },
+            {'setup':(('r0',0xaa),('PSR_C',0),('r3',0x1a)), 
+                'tests':(('r3',0xfefefefe),('PSR_Q',0),('PSR_N',0),('PSR_Z',0),('PSR_V',0),('PSR_C',0)) }
         )),  
-
-#        (REV_ALL_ARM, '0830bbe5', 0xbfb00000, 'ldr r3, [r11, #0x8]!', 0, (
-#            {'setup':(('er0',0xaa),('CCR_C',0),('er3',0x1a)), 
-#                'tests':(('er3',0x90),('CCR_H',0),('CCR_N',0),('CCR_Z',0),('CCR_V',0),('CCR_C',0)) }
-#       #     {'setup':(('er0',0xab),('CCR_C',0),('er3',0xb0)), 
-#       #         'tests':(('er3',0xfffffffb),('CCR_H',1),('CCR_N',1),('CCR_Z',0),('CCR_V',0),('CCR_C',1)) }
-#        )),
+        (REV_ALL_ARM, '08309fe5', 0xbfb00000, 'ldr r3, [#0xbfb00010]', 0, (
+            {#'setup':(('r0',0xaa),('PSR_C',0),('r3',0x1a)), 
+                'tests':(('r3',0xfefefefe),('PSR_Q',0),('PSR_N',0),('PSR_Z',0),('PSR_V',0),('PSR_C',0)) },
+        #    {'setup':(('r0',0xaa),('PSR_C',0),('r3',0x1a)), 
+        #        'tests':(('r3',0xfefefefe),('PSR_Q',0),('PSR_N',0),('PSR_Z',0),('PSR_V',0),('PSR_C',0)) }
+        )), 
 
         (REV_ALL_ARM, '08309be4', 0xbfb00000, 'ldr r3, [r11], #0x8', 0, ()),
         (REV_ALL_ARM, '08301be4', 0xbfb00000, 'ldr r3, [r11], #-0x8', 0, ()),
@@ -629,7 +625,7 @@ class ArmInstructionSet(unittest.TestCase):
     ''' main unit test with all tests to run '''
     
     # defaults for settings - not fully implimented and won't be so until after ARMv8 is completed.
-    armTestVersion = 0x100
+    armTestVersion = REV_ARMv7A
     armTestOnce = True
 
     def test_msr(self):
@@ -814,14 +810,11 @@ class ArmInstructionSet(unittest.TestCase):
         for archz, bytez, va, reprOp, iflags, emutests in instrs:
             ranAlready = False  # support for run once only
             #itterate through architectures 
-            #for arch_mask in range(ARCH_REVSLEN): # will have to redo when architecture version dictionary is finalized for now will just run once
-            for arch_mask in range(1): # place holder for now. Run once
-                #test_arch = int(pow(2,arch_mask)) #mask for architecture to test
-                test_arch = 0 # temporary until dictionary finalized
-                #if ((not ranAlready) or (not self.armTestOnce)) and ((archz & test_arch & self.armTestVersion) != 0): # until dictionary finalized
-                if not ranAlready: # until dictionary is finalized - allows to run once
+            for key in ARCH_REVS: 
+                test_arch = ARCH_REVS[key]
+                if ((not ranAlready) or (not self.armTestOnce)) and ((archz & test_arch & self.armTestVersion) != 0): 
                     ranAlready = True
-                    #arm.ThumbModule.archVersion = arm.ArmModule.archVersion = archBitMask[arch_mask][0]   # todo once arch dict is done
+                    arm.ThumbModule.archVersion = arm.ArmModule.archVersion = key
                     op = vw.arch.archParseOpcode(bytez.decode('hex'), 0, va)
                     redoprepr = repr(op).replace(' ','').lower()
                     redgoodop = reprOp.replace(' ','')
@@ -834,34 +827,15 @@ class ArmInstructionSet(unittest.TestCase):
                         print hex(num)
                         bs = bin(num)[2:].zfill(32)
                         ''' For reference
-        00 01 02 03 04 05 06 07 08 09 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
-        31 30 29 28 27 26 25 24 23 22 21 20 19 18 17 16 15 14 13 12 11 10 09 08 07 06 05 04 03 02 01 00
+                        00 01 02 03 04 05 06 07 08 09 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
+                        31 30 29 28 27 26 25 24 23 22 21 20 19 18 17 16 15 14 13 12 11 10 09 08 07 06 05 04 03 02 01 00
                         print out fields to check against bible
                         '''
                         print bs
                         #to help with bit decoding - will be removed when done
-                        choice = 2
-                        def zero():
-                            print bs[0:4], bs[4:6], bs[6], bs[7:12], bs[12:24], bs[24:28], bs[28:],'  ; dataprocessing and misc'
-                            print '         ', bs[7:11], bs[11], bs[12:16], bs[16:20], bs[20:], '  ; and, '
-                            print '                          ', bs[20:25], bs[25:28], bs[28:], ' ; lsr (Middle should be 010)'
-                        def one():
-                            print bs[0:4], bs[4:6], bs[6], bs[7:11], bs[11], bs[12:16], bs[16:20], bs[20:25], bs[25:27], bs[27], bs[28:] + '  ; register'
-                            print '                           '+bs[20:]+ '  ; immediate'
-                            print '                           '+bs[20:24], bs[24], bs[25:27], bs[27], bs[28:] + '  ; register shift'
-                        def two():
-                            print bs[0:4], bs[4:6], bs[6], bs[7:11],bs[11],bs[12:16] , bs[16:20], bs[20:], '  ; tst (immediate)'
-                            print '                          ', bs[20:25], bs[25:27], bs[27], bs[28:], ' ; register'
-                            print '                          ', bs[20:24], bs[24], bs[25:27], bs[27], bs[28:], ' ; register shift'
-                            print
-                        def three():
-                            pass
-                        case = {0:zero,
-                                1:one,
-                                2:two,
-                                3:three,
-                                }
-                        case[choice]()
+                        print bs[0:4], bs[4:6], bs[6], bs[7:12], bs[12:24], bs[24:28], bs[28:],'  ; dataprocessing and misc'
+                        print '         ', bs[7:11], bs[11], bs[12:16], bs[16:20], bs[20:], '  ; and, '
+                        print '                          ', bs[20:25], bs[25:28], bs[28:], ' ; lsr (Middle should be 010)'
                         print
                         
                         badcount += 1
@@ -869,28 +843,36 @@ class ArmInstructionSet(unittest.TestCase):
                         raise Exception("FAILED to decode instr:  %.8x %s - should be: %s  - is: %s" % \
                                 ( va, bytez, reprOp, repr(op) ) )
                         self.assertEqual((bytez, redoprepr), (bytez, redgoodop))
-                    #print bytez, op # print so can track down bad command
                     if not len(emutests):
-                        # if we don't have tests, let's just run it in the emulator anyway and see if things break
+                        # if we don't have special tests, let's just run it in the emulator anyway and see if things break
                         if not self.validateEmulation(emu, op, (), ()):
                             goodcount += 1
                         else:
+                            badcount += 1 #note exception will exit execution of function so this must be before - will remove this comment next commit
                             raise Exception( "FAILED emulation:  %s" % op )
-                            badcount += 1
                     else:
-                        # if we have a test lets run it
-                        #this routine will exit out of the main function test_envi_arm_assorted_instrs
-                        #if run with only one set of setup: and test:  ???
-                        #print "emutests not implimented yet"
-                        for tests in emutests:
-                            print tests
+                        # if we have a special test lets run it
+                        for sCase in emutests:
+                            #allows us to just have a result to check if no setup needed
+                            if 'tests' in sCase:
+                                setters = ()
+                                if 'setup' in sCase:
+                                    setters = sCase['setup']
+                                tests = sCase['tests']
+                                if not self.validateEmulation(emu, op, (setters), (tests)):
+                                    goodcount += 1
+                                else:
+                                    badcount += 1
+                                    raise Exception( "FAILED emulation (special case):  %s" % op )
 
-
-                        #raise Exception( "FAILED emulation:  %s" % op )
-                        #badcount += 1
+                            else:
+                                badcount += 1
+                                raise Exception( "FAILED special case test format bad:  Instruction %s test does not have a 'tests' field: %s" % (bytez))
 
                     
         print "done with assorted instructions test" # Will remove line when done. Here to know I finished otherwise.
+        
+        #pending deletion of following comments. Please comment if they need to stay or I will delete in following commit
         #op = vw.arch.archParseOpcode('12c3'.decode('hex'))
         ##rotl.b #2, r3h
         ##print( op, hex(0x7a) )
@@ -898,9 +880,6 @@ class ArmInstructionSet(unittest.TestCase):
         #emu.executeOpcode(op)
         ##print( hex(emu.getRegisterByName('r3h')), emu.getFlag(CCR_C) )
         ##0xef False
-        
-    def test_emu_special(emutest):
-        pass
 
     def test_envi_arm_thumb_switches(self):
         pass
@@ -914,7 +893,6 @@ class ArmInstructionSet(unittest.TestCase):
         emu.setRegister(REG_R6, 0x464646)
         emu.setRegister(REG_R7, 0x474747)
         emu.setRegister(REG_SP, 0x450000)
-
         ## special cases
         # setup flags and registers
         for tgt, val in setters:
@@ -923,52 +901,54 @@ class ArmInstructionSet(unittest.TestCase):
                 emu.setRegisterByName(tgt, val)
             except e_reg.InvalidRegisterName, e:
                 # it's not a register
-                if type(tgt) == str and tgt.startswith("CCR_"):
+                if type(tgt) == str and tgt.startswith("PSR_"):
                     # it's a flag
                     emu.setFlag(eval(tgt), val)
                 elif type(tgt) in (long, int):
                     # it's an address
+                    #For this couldn't we set a temp value equal to endian and write that? Assuming byte order is issue with this one
                     emu.writeMemValue(tgt, val, 1) # limited to 1-byte writes currently
                 else:
                     raise Exception( "Funkt up Setting:  %s = 0x%x" % (tgt, val) )
-
         emu.executeOpcode(op)
         ## Special cases
         # do tests
-        success = 1
+        #FIXME: If test is not correct for instruction the test will exit without warning or error
+        if not len(tests):
+            success = 0
+        else:
+            success = 1
         for tgt, val in tests:
             try:
                 # try register first
                 testval = emu.getRegisterByName(tgt)
                 if testval == val:
-                    #print("SUCCESS: %s  ==  0x%x" % (tgt, val))
-                    continue
-                success = 0
-                raise Exception("FAILED(reg): %s  !=  0x%x (observed: 0x%x)" % (tgt, val, testval))
-
+                    #print("SUCCESS(reg): %s  ==  0x%x" % (tgt, val))
+                    success = 0
+                else:  # should be an else
+                    raise Exception("FAILED(reg): %s  !=  0x%x (observed: 0x%x)" % (tgt, val, testval))
             except e_reg.InvalidRegisterName, e:
                 # it's not a register
-                if type(tgt) == str and tgt.startswith("CCR_"):
+                if type(tgt) == str and tgt.startswith("PSR_"):
                     # it's a flag
-                    testval = emu.getFlag(eval(tgt)) 
+                    testval = emu.getFlag(eval(tgt))
                     if testval == val:
-                        #print("SUCCESS: %s  ==  0x%x" % (tgt, val))
-                        continue
-                    success = 0
-                    raise Exception("FAILED(flag): %s  !=  0x%x (observed: 0x%x)" % (tgt, val, testval))
-
+                        #print("SUCCESS(flag): %s  ==  0x%x" % (tgt, val))
+                        success = 0
+                    else:
+                        raise Exception("FAILED(flag): %s  !=  0x%x (observed: 0x%x)" % (tgt, val, testval))
                 elif type(tgt) in (long, int):
                     # it's an address
                     testval = emu.readMemValue(tgt, 1)
                     if testval == val:
-                        #print("SUCCESS: 0x%x  ==  0x%x" % (tgt, val))
-                        continue
-                    success = 0
+                        #print("SUCCESS(addr): 0x%x  ==  0x%x" % (tgt, val))
+                        success = 0
                     raise Exception("FAILED(mem): 0x%x  !=  0x%x (observed: 0x%x)" % (tgt, val, testval))
 
                 else:
                     raise Exception( "Funkt up test: %s == %s" % (tgt, val) )
-
+        
+        # NOTE: Not sure how to test this to see if working
         # do some read/write tracking/testing
         #print emu.curpath
         if len(emu.curpath[2]['readlog']):
@@ -981,8 +961,9 @@ class ArmInstructionSet(unittest.TestCase):
             #print( repr(op) + '\t\tWrite: '+ repr(outstr) )
         emu.curpath[2]['readlog'] = []
         emu.curpath[2]['writelog'] = []
+        
+        return success
 
-        return not success
 """
 def generateTestInfo(ophexbytez='6e'):
     '''
