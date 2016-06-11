@@ -1092,12 +1092,6 @@ class SwitchCase:
 
 
     def analyze(self):
-        lower, upper, baseoff = self.getBounds()
-        if None in (lower, ): 
-            logger.info("something odd in count/offset calculation...(%r,%r,%r) skipping 0x%x...", 
-                    lower, upper, baseoff, self.jmpva)
-            return
-
         self.makeSwitch()
 
     #### primitives for switchcase analysis ####
@@ -1328,5 +1322,16 @@ class SwitchCase:
         if not (self.op.iflags & envi.IF_BRANCH):
             return
         lower, upper, baseoff = self.getBounds()
+        if None in (lower, ): 
+            logger.info("something odd in count/offset calculation...(%r,%r,%r) skipping 0x%x...", 
+                    lower, upper, baseoff, self.jmpva)
+            return
 
+        # determine deref-ops...  uses TrackingSymbolikEmulator
+        # iterCases
+        # makeNames
 
+        # store some metadata in a VaSet
+        #vw.setVaSetRow('SwitchCases', (jmpva, oplist[0].va, len(cases)) )
+
+        #vagc.analyzeFunction(vw, funcva)
