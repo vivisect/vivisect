@@ -588,11 +588,13 @@ def findRemergeDown(graph, va):
                 break
 
 # path routing through a graph.  reduces aimless wandering when we know where we want to be
-def preRouteGraph(graph, fromva, tova):
+def preRouteGraph(graph, fromva, tova, clearFirst=True):
     '''
     Package it all together
     '''
-    clearRouting(graph)
+    if clearFirst:
+        clearRouting(graph)
+
     preRouteGraphUp(graph, tova)
     preRouteGraphDown(graph, fromva)
     preRouteGraphEdges(graph)
