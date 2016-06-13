@@ -65,6 +65,7 @@ IF_T         = 1<<39    # Translate for strCCbt
 IF_W         = 1<<40    # Write Back for STM/LDM (!)
 IF_UM        = 1<<41    # User Mode Registers for STM/LDM (^) (obviously no R15)
 IF_TT        = 1<<42    # Flag for STRT/LDRT and STRBT/LDRBT etc
+IF_PSR_S_SIL = 1<<43    # Flag for Silent S. Related to IF_PSR_S and will prevent S from being rendered. TST, TEQ, CMN, CMP commands.
 
 IF_DAIB_SHFT = 56       # shift-bits to get DAIB bits down to 0.  this chops off the "is DAIB present" bit that the following store.
 IF_DAIB_MASK = 7<<(IF_DAIB_SHFT-1)

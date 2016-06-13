@@ -209,7 +209,11 @@ def p_dp_imm_shift(opval, va):
 
     opcode = (IENC_DP_IMM_SHIFT << 16) + ocode
     if sflag > 0:
-        iflags = IF_PSR_S
+        # IF_PSR_S_SIL is silent s for tst, teq, cmp cmn
+        if ocode in [8, 9, 10, 11]:
+            iflags = IF_PSR_S | IF_PSR_S_SIL
+        else:
+            iflags = IF_PSR_S
     else:
         iflags = 0
     return (opcode, dp_mnem[ocode], olist, iflags)
@@ -548,12 +552,17 @@ def p_dp_reg_shift(opval, va):
 
     opcode = (IENC_DP_REG_SHIFT << 16) + ocode
     if sflag > 0:
-        iflags = IF_PSR_S
+        # IF_PSR_S_SIL is silent s for tst, teq, cmp cmn
+        if ocode in [8, 9, 10, 11]:
+            iflags = IF_PSR_S | IF_PSR_S_SIL
+        else:
+            iflags = IF_PSR_S
     else:
         iflags = 0
     return (opcode, dp_mnem[ocode], olist, iflags)
 
 multfail = (None, None, None,)
+
 def p_mult(opval, va):
     ocode, vals = chopmul(opval)
                              
@@ -610,7 +619,11 @@ def p_dp_imm(opval, va):
 
     opcode = (IENC_DP_IMM << 16) + ocode
     if sflag > 0:
-        iflags = IF_PSR_S
+        # IF_PSR_S_SIL is silent s for tst, teq, cmp cmn
+        if ocode in [8, 9, 10, 11]:
+            iflags = IF_PSR_S | IF_PSR_S_SIL
+        else:
+            iflags = IF_PSR_S
     else:
         iflags = 0
     return (opcode, dp_mnem[ocode], olist, iflags)
@@ -1455,7 +1468,7 @@ class ArmOpcode(envi.Opcode):
         daib_flags = self.iflags & IF_DAIB_MASK
         if self.iflags & IF_L:
             mnem += 'l'
-        elif self.iflags & IF_PSR_S:
+        elif self.iflags & IF_PSR_S and not (self.iflags & IF_PSR_S_SIL):
             mnem += 's'
         elif daib_flags > 0:
             idx = ((daib_flags)>>(IF_DAIB_SHFT)) 
@@ -1523,7 +1536,7 @@ class ArmOpcode(envi.Opcode):
         daib_flags = self.iflags & IF_DAIB_MASK
         if self.iflags & IF_L:
             mnem += 'l'
-        elif self.iflags & IF_PSR_S:
+        elif (self.iflags & IF_PSR_S) and not (self.iflags & IF_PSR_S_SIL):
             mnem += 's'
         elif daib_flags > 0:
             idx = ((daib_flags)>>(IF_DAIB_SHFT)) 
@@ -2575,6 +2588,7 @@ class ArmDisasm:
         opval, = struct.unpack(self.fmt, opbytes)
 
         cond = opval >> 28
+        #Get opcode, base mnem, operator list and flags
         opcode, mnem, olist, flags = self.doDecode(va, opval, bytez, offset)
         # since our flags determine how the instruction is decoded later....  
         # performance-wise this should be set as the default value instead of 0, but this is cleaner
@@ -2601,7 +2615,6 @@ class ArmDisasm:
         # FIXME conditionals are currently plumbed as "prefixes".  Perhaps normalize to that...
         #op = stemCell(va, opcode, mnem, cond, 4, olist, flags)
         op = ArmOpcode(va, opcode, mnem, cond, 4, olist, flags)
-
         return op
         
     def doDecode(self, va, opval, bytez, offset):
@@ -2623,7 +2636,6 @@ class ArmDisasm:
                     if (opval & mask) == val:
                         enc = penc
                         break
-
         # If we don't know the encoding by here, we never will ;)
         if enc == None:
             raise envi.InvalidInstruction(mesg="No encoding found!",
@@ -2631,6 +2643,7 @@ class ArmDisasm:
 
         #print "ienc_parser index: %d" % enc
         opcode, mnem, olist, flags = ienc_parsers[enc](opval, va+8)
+        #print mnem, bin(flags), hex(flags)
 
         return opcode, mnem, olist, flags
 
