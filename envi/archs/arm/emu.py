@@ -777,8 +777,14 @@ class ArmEmulator(ArmModule, ArmRegisterContext, envi.Emulator):
         
         dsize = op.opers[0].tsize
         ssize = op.opers[1].tsize
-        #FIXME needs sflag
         Carry = self.getFlag(PSR_C_bit)
+        #FIXME is this right?
+        if op.iflags & IF_PSR_S > 1:
+            Sflag =1
+        else:
+            Sflag = 0
+        #Or should it be:
+        #Sflag = op.iflag & IF_PRS_S
         ures = self.AddWithCarry(src1, src2, Carry, Sflag, op.opers[0].reg)
 
         self.setOperValue(op, 0, ures)

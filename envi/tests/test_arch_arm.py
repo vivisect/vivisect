@@ -13,8 +13,6 @@ from envi import IF_RET, IF_NOFALL, IF_BRANCH, IF_CALL, IF_COND
 from envi.archs.arm.regs import *
 from envi.archs.arm.const import *
 from envi.archs.arm.disasm import *
-import binascii   # temporarily included for testing purposes only - allows to print out binary values
-
 
 ''' 
   This dictionary will contain all commands supported by ARM to test
@@ -62,7 +60,7 @@ instrs = [
         (REV_ALL_ARM, '674583e0', 0x4560, 'add r4, r3, r7, ror #10', 0, ()),
         (REV_ALL_ARM, '674593e0', 0x4560, 'adds r4, r3, r7, ror #10', 0, ()),
         #(REV_ALL_ARM, '6745a3e0', 0x4560, 'adc r4, r3, r7, ror #10', 0, ()),  # emu: error is No sflag defined at global level
-        #(REV_ALL_ARM, '6745b3e0', 0x4560, 'adcs r4, r3, r7, ror #10', 0, ()), # emu: same as last
+        (REV_ALL_ARM, '6745b3e0', 0x4560, 'adcs r4, r3, r7, ror #10', 0, ()), # emu: same as last
         (REV_ALL_ARM, '6745c3e0', 0x4560, 'sbc r4, r3, r7, ror #10', 0, ()),
         (REV_ALL_ARM, '6745d3e0', 0x4560, 'sbcs r4, r3, r7, ror #10', 0, ()),
         (REV_ALL_ARM, '6745e3e0', 0x4560, 'rsc r4, r3, r7, ror #10', 0, ()),
