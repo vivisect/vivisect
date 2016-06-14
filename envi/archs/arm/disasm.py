@@ -532,7 +532,7 @@ def p_load_store_word_ubyte(opval, va):
         iflags = IF_B
 
     if (pubwl & 0x12) == 2:
-        iflags |= IF_T  
+        iflags |= IF_T
 
     olist = (
         ArmRegOper(Rd, va=va),
@@ -1565,7 +1565,7 @@ class ArmOpcode(envi.Opcode):
                 mnem += 'd'
             if self.iflags & IF_B:
                 mnem += 'b'
-            if self.iflags & IF_H: 
+            if self.iflags & IF_H:
                 mnem += 'h'
             if self.iflags & IF_T: #removed el
                 mnem += 't'
