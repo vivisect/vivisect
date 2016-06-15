@@ -54,8 +54,6 @@ for name, val in globals().items():
 
 ARCH_REVSLEN = len(ARCH_REVS)
 
- 
-
 #IFLAGS - keep bottom 8-bits for cross-platform flags like envi.IF_NOFALL and envi.IF_BRFALL
 IF_PSR_S     = 1<<32     # This DP instruciton can update CPSR
 IF_B         = 1<<33     # Byte
@@ -63,10 +61,10 @@ IF_H         = 1<<35    # HalfWord
 IF_S         = 1<<36    # Signed    #(not to be confused with IF_PSR_S which is the "update status" flag.
 IF_D         = 1<<37    # Dword
 IF_L         = 1<<38    # Long-store (eg. Dblword Precision) for STC
-IF_T         = 1<<39    # Translate for strCCbt
+IF_T         = 1<<39    # Translate for strbt - denotes ldr/str command runs in user mode
 IF_W         = 1<<40    # Write Back for STM/LDM (!)
 IF_UM        = 1<<41    # User Mode Registers for STM/LDM (^) (obviously no R15)
-IF_TT        = 1<<42    # Flag for STRT/LDRT and STRBT/LDRBT etc
+IF_PSR_S_SIL = 1<<42    # Flag for Silent S. Related to IF_PSR_S and will prevent S from being rendered. TST, TEQ, CMN, CMP commands.
 
 IF_DAIB_SHFT = 56       # shift-bits to get DAIB bits down to 0.  this chops off the "is DAIB present" bit that the following store.
 IF_DAIB_MASK = 7<<(IF_DAIB_SHFT-1)
@@ -74,8 +72,8 @@ IF_DA        = 1<<(IF_DAIB_SHFT-1)  # Decrement After
 IF_IA        = 3<<(IF_DAIB_SHFT-1)  # Increment After
 IF_DB        = 5<<(IF_DAIB_SHFT-1)  # Decrement Before
 IF_IB        = 7<<(IF_DAIB_SHFT-1)  # Increment Before
-IF_DAIB_B    = 5<<(IF_DAIB_SHFT-1)  # Before mask 
-IF_DAIB_I    = 3<<(IF_DAIB_SHFT-1)  # Before mask 
+IF_DAIB_B    = 5<<(IF_DAIB_SHFT-1)  # Before mask
+IF_DAIB_I    = 3<<(IF_DAIB_SHFT-1)  # Before mask
 IF_THUMB32   = 1<<50    # thumb32
 IF_VQ        = 1<<51    # Adv SIMD: operation uses saturating arithmetic
 IF_VR        = 1<<52    # Adv SIMD: operation performs rounding

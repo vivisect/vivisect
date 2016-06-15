@@ -160,6 +160,7 @@ dp_mnem = ("and","eor","sub","rsb","add","adc","sbc","rsc","tst","teq","cmp","cm
 # FIXME: THIS IS FUGLY but sadly it works
 dp_noRn = (13,15)
 dp_noRd = (8,9,10,11)
+dp_silS = (8,9,10,11)
 
 # FIXME: dp_MOV was supposed to be a tuple of opcodes that could be converted to MOV's if offset from PC.
 # somehow this list has vanished into the ether.  add seems like the right one here.
@@ -209,7 +210,11 @@ def p_dp_imm_shift(opval, va):
 
     opcode = (IENC_DP_IMM_SHIFT << 16) + ocode
     if sflag > 0:
-        iflags = IF_PSR_S
+        # IF_PSR_S_SIL is silent s for tst, teq, cmp cmn
+        if ocode in dp_silS:
+            iflags = IF_PSR_S | IF_PSR_S_SIL
+        else:
+            iflags = IF_PSR_S
     else:
         iflags = 0
     return (opcode, dp_mnem[ocode], olist, iflags)
@@ -391,7 +396,19 @@ def p_misc1(opval, va): #
     return (opcode, mnem, olist, iflags)
 
 
+'''
+NOTES: For 'T' Variant (T = unpriveleged - must be accessible in user mode)
+When P = 0 and W = 1 then add T to following
+LDR (imm) & (reg)
+LDRB (imm) & (reg)
+LDRH (imm) & (lit) & (reg)
+LDRSB (imm) & (reg)
+LDRSH (imm) & (reg)
+STR (imm) & (reg)
+STRB (imm) & (reg)
+STRH (imm) & (reg)
 
+'''
 swap_mnem = ("swp","swpb",)
 strex_mnem = ("strex","ldrex",)  # actual full instructions
 strh_mnem = (("str",IF_H),("ldr",IF_H),)          # IF_H
@@ -406,7 +423,7 @@ def p_extra_load_store(opval, va):
     op1 = (opval>>5) & 0x3
     Rm = opval & 0xf
     iflags = 0
-
+    tvariant = bool ((pubwl & 0x12)==2)
     if opval&0x0fb000f0==0x01000090:# swp/swpb
         idx = (pubwl>>2)&1
         opcode = (IENC_EXTRA_LOAD << 16) + idx
@@ -428,13 +445,11 @@ def p_extra_load_store(opval, va):
     elif opval&0x0e4000f0==0x000000b0:# strh/ldrh regoffset
         # 000pu0w0-Rn--Rt-SBZ-1011-Rm-  - STRH
         # 0000u110-Rn--Rt-imm41011imm4  - STRHT (v7+)
-        # if p ==0 and w ==1 then STRHT
-        #isT = (opval >> 21) & 9 # will be a 1 if STRHT/LDRHT Need to incorporate 
-        # will replace with IF_TT tag in const.py and set when setting those flags
-        # will look into more because there are other combos too
         idx = pubwl&1
         opcode = (IENC_EXTRA_LOAD << 16) + 4 + idx
         mnem,iflags = strh_mnem[idx]
+        if tvariant:
+            iflags |= IF_T
         olist = (
             ArmRegOper(Rd, va=va),
             ArmRegOffsetOper(Rn, Rm, va, pubwl),
@@ -443,24 +458,28 @@ def p_extra_load_store(opval, va):
         idx = pubwl&1
         opcode = (IENC_EXTRA_LOAD << 16) + 6 + idx
         mnem,iflags = strh_mnem[idx]
+        if tvariant:
+            iflags |= IF_T
         olist = (
             ArmRegOper(Rd, va=va),
             ArmImmOffsetOper(Rn,(Rs<<4)+Rm, va, pubwl),
         )
     elif opval&0x0e5000d0==0x005000d0:# ldrsh/b immoffset
-        # if p ==0 and w ==1 then add t   v7+ see above
         idx = (opval>>5)&1
         opcode = (IENC_EXTRA_LOAD << 16) + 8 + idx
         mnem,iflags = ldrs_mnem[idx]
+        if tvariant:
+            iflags |= IF_T
         olist = (
             ArmRegOper(Rd, va=va),
             ArmImmOffsetOper(Rn, (Rs<<4)+Rm, va, pubwl),
         )
     elif opval&0x0e5000d0==0x001000d0:# ldrsh/b regoffset
-        # if p ==0 and w ==1 then add t   v7+ see above
         idx = (opval>>5)&1
         opcode = (IENC_EXTRA_LOAD << 16) + 10 + idx
         mnem,iflags = ldrs_mnem[idx]
+        if tvariant:
+            iflags |= IF_T
         olist = (
             ArmRegOper(Rd, va=va),
             ArmRegOffsetOper(Rn, Rm, va, pubwl),
@@ -548,12 +567,17 @@ def p_dp_reg_shift(opval, va):
 
     opcode = (IENC_DP_REG_SHIFT << 16) + ocode
     if sflag > 0:
-        iflags = IF_PSR_S
+        # IF_PSR_S_SIL is silent s for tst, teq, cmp cmn
+        if ocode in dp_silS:
+            iflags = IF_PSR_S | IF_PSR_S_SIL
+        else:
+            iflags = IF_PSR_S
     else:
         iflags = 0
     return (opcode, dp_mnem[ocode], olist, iflags)
 
 multfail = (None, None, None,)
+
 def p_mult(opval, va):
     ocode, vals = chopmul(opval)
                              
@@ -610,7 +634,11 @@ def p_dp_imm(opval, va):
 
     opcode = (IENC_DP_IMM << 16) + ocode
     if sflag > 0:
-        iflags = IF_PSR_S
+        # IF_PSR_S_SIL is silent s for tst, teq, cmp cmn
+        if ocode in dp_silS:
+            iflags = IF_PSR_S | IF_PSR_S_SIL
+        else:
+            iflags = IF_PSR_S
     else:
         iflags = 0
     return (opcode, dp_mnem[ocode], olist, iflags)
@@ -1447,6 +1475,8 @@ class ArmOpcode(envi.Opcode):
         oper = self.opers[idx]
         return oper.getOperValue(self, emu=emu)
 
+    S_FLAG_MASK = IF_PSR_S | IF_PSR_S_SIL
+    
     def render(self, mcanv):
         """
         Render this opcode to the specified memory canvas
@@ -1455,7 +1485,7 @@ class ArmOpcode(envi.Opcode):
         daib_flags = self.iflags & IF_DAIB_MASK
         if self.iflags & IF_L:
             mnem += 'l'
-        elif self.iflags & IF_PSR_S:
+        elif (self.iflags & self.S_FLAG_MASK) == IF_PSR_S:
             mnem += 's'
         elif daib_flags > 0:
             idx = ((daib_flags)>>(IF_DAIB_SHFT)) 
@@ -1469,7 +1499,7 @@ class ArmOpcode(envi.Opcode):
                 mnem += 'b'
             if self.iflags & IF_H:
                 mnem += 'h'
-            elif self.iflags & IF_T:
+            if self.iflags & IF_T: # removed el
                 mnem += 't'
 
             if self.iflags & IF_S32F64:
@@ -1523,7 +1553,7 @@ class ArmOpcode(envi.Opcode):
         daib_flags = self.iflags & IF_DAIB_MASK
         if self.iflags & IF_L:
             mnem += 'l'
-        elif self.iflags & IF_PSR_S:
+        elif (self.iflags & self.S_FLAG_MASK) == IF_PSR_S:
             mnem += 's'
         elif daib_flags > 0:
             idx = ((daib_flags)>>(IF_DAIB_SHFT)) 
@@ -1537,7 +1567,7 @@ class ArmOpcode(envi.Opcode):
                 mnem += 'b'
             if self.iflags & IF_H:
                 mnem += 'h'
-            elif self.iflags & IF_T:
+            if self.iflags & IF_T: #removed el
                 mnem += 't'
             if self.iflags & IF_F32:
                 mnem += '.f32'
@@ -2575,6 +2605,7 @@ class ArmDisasm:
         opval, = struct.unpack(self.fmt, opbytes)
 
         cond = opval >> 28
+        #Get opcode, base mnem, operator list and flags
         opcode, mnem, olist, flags = self.doDecode(va, opval, bytez, offset)
         # since our flags determine how the instruction is decoded later....  
         # performance-wise this should be set as the default value instead of 0, but this is cleaner
@@ -2601,7 +2632,6 @@ class ArmDisasm:
         # FIXME conditionals are currently plumbed as "prefixes".  Perhaps normalize to that...
         #op = stemCell(va, opcode, mnem, cond, 4, olist, flags)
         op = ArmOpcode(va, opcode, mnem, cond, 4, olist, flags)
-
         return op
         
     def doDecode(self, va, opval, bytez, offset):
@@ -2631,7 +2661,6 @@ class ArmDisasm:
 
         #print "ienc_parser index: %d" % enc
         opcode, mnem, olist, flags = ienc_parsers[enc](opval, va+8)
-
         return opcode, mnem, olist, flags
 
 
