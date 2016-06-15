@@ -96,9 +96,9 @@ instrs = [
         (REV_ALL_ARM, '774513e1', 0x4560, 'tst r3, r7, ror r5', 0, ()),
         #(REV_ALL_ARM, '774523e1', 0x4560, 'bkpt #0x3457', 0, ()), #Emu: Unsupported instruction
         (REV_ALL_ARM, '774533e1', 0x4560, 'teq r3, r7, ror r5', 0, ()),
-        #(REV_ALL_ARM, '774543e1', 0x4560, 'hvc #0x3457', 0, ()), # not implimented
+        #(REV_ALL_ARM, '774543e1', 0x4560, 'hvc #0x3457', 0, ()), # not implimented*
         (REV_ALL_ARM, '774553e1', 0x4560, 'cmp r3, r7, ror r5', 0, ()),
-        #(REV_ALL_ARM, '774563e1', 0x4560, 'smc #0x3457', 0, ()), # not implimented
+        #(REV_ALL_ARM, '774563e1', 0x4560, 'smc #0x3457', 0, ()), # invalid - SB0 are not all 0
         (REV_ALL_ARM, '774573e1', 0x4560, 'cmn r3, r7, ror r5', 0, ()),
         (REV_ALL_ARM, '774583e1', 0x4560, 'orr r4, r3, r7, ror r5', 0, ()),
         (REV_ALL_ARM, '774593e1', 0x4560, 'orrs r4, r3, r7, ror r5', 0, ()),
@@ -142,10 +142,10 @@ instrs = [
         (REV_ALL_ARM, '8745f3e1', 0x4560, 'mvns r4, r7, lsl #11', 0, ()),
         #(REV_ALL_ARM, '974523e0', 0x4560, 'mla r3, r7, r5, r4', 0, ()), #Emu: Unsupported instruction
         #(REV_ALL_ARM, '974533e0', 0x4560, 'mlas r3, r7, r5, r4', 0, ()), #Emu: Unsupported instruction
-        #(REV_ALL_ARM, '974543e0', 0x4560, 'umaal r4, r3, r7, r5', 0, ()),  # not implimented
-        #(REV_ALL_ARM, '974553e0', 0x4560, 'umaals r4, r3, r7, r5', 0, ()), # not implimented
-        #(REV_ALL_ARM, '974563e0', 0x4560, 'mls r3, r7, r5, r4', 0, ()),  # not implimented
-        #(REV_ALL_ARM, '974573e0', 0x4560, 'mlss r3, r7, r5, r4', 0, ()),   # not implimented
+        #(REV_ALL_ARM, '974543e0', 0x4560, 'umaal r4, r3, r7, r5', 0, ()), #Emu: Unsupported instruction
+        #(REV_ALL_ARM, '974553e0', 0x4560, 'umaals r4, r3, r7, r5', 0, ()), # not implimented - needs S flag support
+        (REV_ALL_ARM, '974563e0', 0x4560, 'mls r3, r7, r5, r4', 0, ()),  # not implimented
+        (REV_ALL_ARM, '974573e0', 0x4560, 'mlss r3, r7, r5, r4', 0, ()),   # not implimented
         (REV_ALL_ARM, '974583e0', 0x4560, 'umull r4, r3, r7, r5', 0, ()),
         (REV_ALL_ARM, '974593e0', 0x4560, 'umulls r4, r3, r7, r5', 0, ()),
         (REV_ALL_ARM, '9745a3e0', 0x4560, 'umlal r4, r3, r7, r5', 0, ()),
@@ -154,22 +154,24 @@ instrs = [
         (REV_ALL_ARM, '9745d3e0', 0x4560, 'smulls r4, r3, r7, r5', 0, ()),
         #(REV_ALL_ARM, '9745e3e0', 0x4560, 'smlal r4, r3, r7, r5', 0, ()), #Emu: Unsupported instruction
         #(REV_ALL_ARM, '9745f3e0', 0x4560, 'smlals r4, r3, r7, r5', 0, ()), #Emu: Unsupported instruction
-        #(REV_ALL_ARM, '974503e1', 0x4560, 'tst r3, r7, lsl r5', 0, ()), # not implimented
-        #(REV_ALL_ARM, '974513e1', 0x4560, 'tst r3, r7, lsl r5', 0, ()), # not implimented
-        #(REV_ALL_ARM, '974523e1', 0x4560, 'teq r3, r7, lsl r5', 0, ()), # not implimented
-        #(REV_ALL_ARM, '974533e1', 0x4560, 'teq r3, r7, lsl r5', 0, ()), # not implimented
-        #(REV_ALL_ARM, '974543e1', 0x4560, 'cmp r3, r7, lsl r5', 0, ()), # not implimented
-        #(REV_ALL_ARM, '974553e1', 0x4560, 'cmp r3, r7, lsl r5', 0, ()), # not implimented
-        #(REV_ALL_ARM, '974563e1', 0x4560, 'cmn r3, r7, lsl r5', 0, ()), # not implimented
-        #(REV_ALL_ARM, '974573e1', 0x4560, 'cmn r3, r7, lsl r5', 0, ()), # not implimented
-        #(REV_ALL_ARM, '974583e1', 0x4560, 'orr r4, r3, r7, lsl r5', 0, ()),  # not implimented
-        #(REV_ALL_ARM, '974593e1', 0x4560, 'orrs r4, r3, r7, lsl r5', 0, ()), # not implimented
-        #(REV_ALL_ARM, '9745a3e1', 0x4560, 'mov r4, r7, lsl r5', 0, ()), # not implimented
-        #(REV_ALL_ARM, '9745b3e1', 0x4560, 'movs r4, r7, lsl r5', 0, ()), # not implimented
-        #(REV_ALL_ARM, '9745c3e1', 0x4560, 'bic r4, r3, r7, lsl r5', 0, ()), # not implimented
-        #(REV_ALL_ARM, '9745d3e1', 0x4560, 'bics r4, r3, r7, lsl r5', 0, ()), # not implimented
-        #(REV_ALL_ARM, '9745e3e1', 0x4560, 'mvn r4, r7, lsl r5', 0, ()), # not implimented
-        #(REV_ALL_ARM, '9745f3e1', 0x4560, 'mvns r4, r7, lsl r5', 0, ()), # not implimented
+        #next command IDA wrongly has as 'tst r3, r7, lsl r5'. Book shows this is the correct one minus the SBZ field is 0101; depreciated ARMv6
+        #(REV_ALL_ARM, '974503e1', 0x4560, 'swp r4, r7, [r3]', 0, ()), #Emu: Unsupported instruction
+        #(REV_ALL_ARM, '974513e1', 0x4560, 'tst r3, r7, lsl r5', 0, ()), # not valid - bit 7 is wrong
+        #(REV_ALL_ARM, '974523e1', 0x4560, 'teq r3, r7, lsl r5', 0, ()), # not valid - no sflag
+        #(REV_ALL_ARM, '974533e1', 0x4560, 'teq r3, r7, lsl r5', 0, ()), # not valid - bit 7 is wrong
+        #next command IDA wrongly has as 'cmp r3, r7, lsl r5'. Book shows this is the correct one minus the SBZ field is 0101; depreciated ARMv6
+        #(REV_ALL_ARM, '974543e1', 0x4560, 'swpb r4, r7, [r3]', 0, ()), #Emu: Unsupported instruction
+        #(REV_ALL_ARM, '974553e1', 0x4560, 'cmp r3, r7, lsl r5', 0, ()), # not valid - bit 7 is wrong
+        #(REV_ALL_ARM, '974563e1', 0x4560, 'cmn r3, r7, lsl r5', 0, ()), # not valid - bit 7 is wrong - no Sflag
+        #(REV_ALL_ARM, '974573e1', 0x4560, 'cmn r3, r7, lsl r5', 0, ()), # not valid - bit 7 is wrong
+        #(REV_ALL_ARM, '974583e1', 0x4560, 'orr r4, r3, r7, lsl r5', 0, ()),  # not valid - bit 7 is wrong
+        #(REV_ALL_ARM, '974593e1', 0x4560, 'orrs r4, r3, r7, lsl r5', 0, ()), # not valid - bit 7 is wrong
+        #(REV_ALL_ARM, '9745a3e1', 0x4560, 'mov r4, r7, lsl r5', 0, ()), # not valid - bit 7 is wrong
+        #(REV_ALL_ARM, '9745b3e1', 0x4560, 'movs r4, r7, lsl r5', 0, ()), # not valid - bit 7 is wrong
+        #(REV_ALL_ARM, '9745c3e1', 0x4560, 'bic r4, r3, r7, lsl r5', 0, ()), # not valid - bit 7 is wrong
+        #(REV_ALL_ARM, '9745d3e1', 0x4560, 'bics r4, r3, r7, lsl r5', 0, ()), # not valid - bit 7 is wrong
+        #(REV_ALL_ARM, '9745e3e1', 0x4560, 'mvn r4, r7, lsl r5', 0, ()), # not valid - bit 7 is wrong
+        #(REV_ALL_ARM, '9745f3e1', 0x4560, 'mvns r4, r7, lsl r5', 0, ()), # not valid - bit 7 is wrong
         (REV_ALL_ARM, 'a74503e0', 0x4560, 'and r4, r3, r7, lsr #11', 0, ()),
         (REV_ALL_ARM, 'a74513e0', 0x4560, 'ands r4, r3, r7, lsr #11', 0, ()),
         (REV_ALL_ARM, 'a74523e0', 0x4560, 'eor r4, r3, r7, lsr #11', 0, ()),
@@ -272,15 +274,15 @@ instrs = [
         (REV_ALL_ARM, 'd74533e0', 0x4560, 'ldrsbt r4, [r3], -r7 ', 0, ()),
         (REV_ALL_ARM, 'd74543e0', 0x4560, 'ldrd r4, [r3], #-0x57 ', 0, ()),
         (REV_ALL_ARM, 'd74553e0', 0x4560, 'ldrsb r4, [r3], #-0x57 ', 0, ()),
-        #(REV_ALL_ARM, 'd74563e0', 0x4560, 'ldrtd r4, [r3], #-0x57 ', 0, ()), # ldrd variant - unpredictable - not valid through v7
+        #(REV_ALL_ARM, 'd74563e0', 0x4560, 'ldrtd r4, [r3], #-0x57 ', 0, ()), # ldrd variant - unpredictable - not valid
         (REV_ALL_ARM, 'd74573e0', 0x4560, 'ldrsbt r4, [r3], #-0x57 ', 0, ()),
         (REV_ALL_ARM, 'd74583e0', 0x4560, 'ldrd r4, [r3], r7 ', 0, ()),
         (REV_ALL_ARM, 'd74593e0', 0x4560, 'ldrsb r4, [r3], r7 ', 0, ()),
-        #(REV_ALL_ARM, 'd745a3e0', 0x4560, 'ldrtd r4, [r3], r7 ', 0, ()), # ldrd variant - unpredictable - not valid through v7
+        #(REV_ALL_ARM, 'd745a3e0', 0x4560, 'ldrtd r4, [r3], r7 ', 0, ()), # ldrd variant - unpredictable - not valid
         (REV_ALL_ARM, 'd745b3e0', 0x4560, 'ldrsbt r4, [r3], r7 ', 0, ()),
         (REV_ALL_ARM, 'd745c3e0', 0x4560, 'ldrd r4, [r3], #0x57 ', 0, ()),
         (REV_ALL_ARM, 'd745d3e0', 0x4560, 'ldrsb r4, [r3], #0x57 ', 0, ()),
-        #(REV_ALL_ARM, 'd745e3e0', 0x4560, 'ldrtd r4, [r3], #0x57 ', 0, ()), # ldrd variant - unpredictable - not valid through v7
+        #(REV_ALL_ARM, 'd745e3e0', 0x4560, 'ldrtd r4, [r3], #0x57 ', 0, ()), # ldrd variant - unpredictable - not valid
         (REV_ALL_ARM, 'd745f3e0', 0x4560, 'ldrsbt r4, [r3], #0x57 ', 0, ()),
         (REV_ALL_ARM, 'd74503e1', 0x4560, 'ldrd r4, [r3, -r7] ', 0, ()),
         (REV_ALL_ARM, 'd74513e1', 0x4560, 'ldrsb r4, [r3, -r7] ', 0, ()),
@@ -332,19 +334,19 @@ instrs = [
         (REV_ALL_ARM, 'e745f3e1', 0x4560, 'mvns r4, r7, ror #11', 0, ()),
         (REV_ALL_ARM, 'f74503e0', 0x4560, 'strd r4, [r3], -r7 ', 0, ()),
         (REV_ALL_ARM, 'f74513e0', 0x4560, 'ldrsh r4, [r3], -r7 ', 0, ()),
-        #(REV_ALL_ARM, 'f74523e0', 0x4560, 'strtd r4, [r3], -r7 ', 0, ()),  # strd variant - unpredictable - not valid through v7
+        #(REV_ALL_ARM, 'f74523e0', 0x4560, 'strtd r4, [r3], -r7 ', 0, ()),  # strd variant - unpredictable - not valid
         (REV_ALL_ARM, 'f74533e0', 0x4560, 'ldrsht r4, [r3], -r7 ', 0, ()),
         (REV_ALL_ARM, 'f74543e0', 0x4560, 'strd r4, [r3], #-0x57 ', 0, ()),
         (REV_ALL_ARM, 'f74553e0', 0x4560, 'ldrsh r4, [r3], #-0x57 ', 0, ()),
-        #(REV_ALL_ARM, 'f74563e0', 0x4560, 'strtd r4, [r3], #-0x57 ', 0, ()), # strd variant - unpredictable - not valid through v7
+        #(REV_ALL_ARM, 'f74563e0', 0x4560, 'strtd r4, [r3], #-0x57 ', 0, ()), # strd variant - unpredictable - not valid
         (REV_ALL_ARM, 'f74573e0', 0x4560, 'ldrsht r4, [r3], #-0x57 ', 0, ()),
         (REV_ALL_ARM, 'f74583e0', 0x4560, 'strd r4, [r3], r7 ', 0, ()),
         (REV_ALL_ARM, 'f74593e0', 0x4560, 'ldrsh r4, [r3], r7 ', 0, ()),
-        #(REV_ALL_ARM, 'f745a3e0', 0x4560, 'strtd r4, [r3], r7 ', 0, ()), # strd variant - unpredictable - not valid through v7
+        #(REV_ALL_ARM, 'f745a3e0', 0x4560, 'strtd r4, [r3], r7 ', 0, ()), # strd variant - unpredictable - not valid
         (REV_ALL_ARM, 'f745b3e0', 0x4560, 'ldrsht r4, [r3], r7 ', 0, ()),
         (REV_ALL_ARM, 'f745c3e0', 0x4560, 'strd r4, [r3], #0x57 ', 0, ()),
         (REV_ALL_ARM, 'f745d3e0', 0x4560, 'ldrsh r4, [r3], #0x57 ', 0, ()),
-        #(REV_ALL_ARM, 'f745e3e0', 0x4560, 'strtd r4, [r3], #0x57 ', 0, ()), # strd variant - unpredictable - not valid through v7
+        #(REV_ALL_ARM, 'f745e3e0', 0x4560, 'strtd r4, [r3], #0x57 ', 0, ()), # strd variant - unpredictable - not valid
         (REV_ALL_ARM, 'f745f3e0', 0x4560, 'ldrsht r4, [r3], #0x57 ', 0, ()),
         (REV_ALL_ARM, 'f74503e1', 0x4560, 'strd r4, [r3, -r7] ', 0, ()),
         (REV_ALL_ARM, 'f74513e1', 0x4560, 'ldrsh r4, [r3, -r7] ', 0, ()),
@@ -378,13 +380,13 @@ instrs = [
         (REV_ALL_ARM, '0746d3e0', 0x4560, 'sbcs r4, r3, r7, lsl #12', 0, ()),
         (REV_ALL_ARM, '0746e3e0', 0x4560, 'rsc r4, r3, r7, lsl #12', 0, ()),
         (REV_ALL_ARM, '0746f3e0', 0x4560, 'rscs r4, r3, r7, lsl #12', 0, ()),
-        #(REV_ALL_ARM, '074603e1', 0x4560, 'tst r3, r7, lsl #12', 0, ()), # not implimented
+        #(REV_ALL_ARM, '074603e1', 0x4560, 'tst r3, r7, lsl #12', 0, ()), # not valid command - same as next but no sflag which is required
         (REV_ALL_ARM, '074613e1', 0x4560, 'tst r3, r7, lsl #12', 0, ()),
-        #(REV_ALL_ARM, '074623e1', 0x4560, 'teq r3, r7, lsl #12', 0, ()), # not implimented
+        #(REV_ALL_ARM, '074623e1', 0x4560, 'teq r3, r7, lsl #12', 0, ()), # not valid command - same as next but no sflag which is required
         (REV_ALL_ARM, '074633e1', 0x4560, 'teq r3, r7, lsl #12', 0, ()),
-        #(REV_ALL_ARM, '074643e1', 0x4560, 'cmp r3, r7, lsl #12', 0, ()), # not implimented
+        #(REV_ALL_ARM, '074643e1', 0x4560, 'cmp r3, r7, lsl #12', 0, ()), # not valid command - same as next but no sflag which is required
         (REV_ALL_ARM, '074653e1', 0x4560, 'cmp r3, r7, lsl #12', 0, ()),
-        #(REV_ALL_ARM, '074663e1', 0x4560, 'cmn r3, r7, lsl #12', 0, ()), # not implimented
+        #(REV_ALL_ARM, '074663e1', 0x4560, 'cmn r3, r7, lsl #12', 0, ()), # not valid command - same as next but no sflag which is required
         (REV_ALL_ARM, '074673e1', 0x4560, 'cmn r3, r7, lsl #12', 0, ()),
         (REV_ALL_ARM, '074683e1', 0x4560, 'orr r4, r3, r7, lsl #12', 0, ()),
         (REV_ALL_ARM, '074693e1', 0x4560, 'orrs r4, r3, r7, lsl #12', 0, ()),
@@ -410,10 +412,10 @@ instrs = [
         (REV_ALL_ARM, '1746d3e0', 0x4560, 'sbcs r4, r3, r7, lsl r6', 0, ()),
         (REV_ALL_ARM, '1746e3e0', 0x4560, 'rsc r4, r3, r7, lsl r6', 0, ()),
         (REV_ALL_ARM, '1746f3e0', 0x4560, 'rscs r4, r3, r7, lsl r6', 0, ()),
-        #(REV_ALL_ARM, '174603e1', 0x4560, 'tst r3, r7, lsl r6', 0, ()),   # not implimented
+        #(REV_ALL_ARM, '174603e1', 0x4560, 'tst r3, r7, lsl r6', 0, ()),   # not valid command - same as next but no sflag which is required
         (REV_ALL_ARM, '174613e1', 0x4560, 'tst r3, r7, lsl r6', 0, ()),
         (REV_ALL_ARM, '174623e1', 0x4560, 'bx r7', 0, ()),
-        #(REV_ALL_ARM, '174643e1', 0x4560, 'cmp r3, r7, lsl r6', 0, ()), # not implimented
+        #(REV_ALL_ARM, '174643e1', 0x4560, 'cmp r3, r7, lsl r6', 0, ()), # not valid command - same as next but no sflag which is required
         (REV_ALL_ARM, '174653e1', 0x4560, 'cmp r3, r7, lsl r6', 0, ()),
         #(REV_ALL_ARM, '174663e1', 0x4560, 'clz r4, r7', 0, ()), #Emu: Unsupported instruction
         (REV_ALL_ARM, '174673e1', 0x4560, 'cmn r3, r7, lsl r6', 0, ()),
@@ -441,12 +443,12 @@ instrs = [
         (REV_ALL_ARM, '2746d3e0', 0x4560, 'sbcs r4, r3, r7, lsr #12', 0, ()),
         (REV_ALL_ARM, '2746e3e0', 0x4560, 'rsc r4, r3, r7, lsr #12', 0, ()),
         (REV_ALL_ARM, '2746f3e0', 0x4560, 'rscs r4, r3, r7, lsr #12', 0, ()),
-        #(REV_ALL_ARM, '274603e1', 0x4560, 'tst r3, r7, lsr #12', 0, ()),  # not implimented
+        #(REV_ALL_ARM, '274603e1', 0x4560, 'tst r3, r7, lsr #12', 0, ()),  # not valid command - same as next but no sflag which is required
         (REV_ALL_ARM, '274613e1', 0x4560, 'tst r3, r7, lsr #12', 0, ()),
-        #(REV_ALL_ARM, '274623e1', 0x4560, 'bxj r7', 0, ()),  # not implimented
-        #(REV_ALL_ARM, '274643e1', 0x4560, 'cmp r3, r7, lsr #12', 0, ()), # not implimented
+        #(REV_ALL_ARM, '274623e1', 0x4560, 'bxj r7', 0, ()),  # not valid command - none of SBO fields are all 1's
+        #(REV_ALL_ARM, '274643e1', 0x4560, 'cmp r3, r7, lsr #12', 0, ()), # not valid command - same as next but no sflag which is required
         (REV_ALL_ARM, '274653e1', 0x4560, 'cmp r3, r7, lsr #12', 0, ()),
-        #(REV_ALL_ARM, '274663e1', 0x4560, 'cmn r3, r7, lsr #12', 0, ()), # not implimented
+        #(REV_ALL_ARM, '274663e1', 0x4560, 'cmn r3, r7, lsr #12', 0, ()), # not valid command - same as next but no sflag which is required
         (REV_ALL_ARM, '274673e1', 0x4560, 'cmn r3, r7, lsr #12', 0, ()),
         (REV_ALL_ARM, '274683e1', 0x4560, 'orr r4, r3, r7, lsr #12', 0, ()),
         (REV_ALL_ARM, '274693e1', 0x4560, 'orrs r4, r3, r7, lsr #12', 0, ()),
@@ -472,13 +474,13 @@ instrs = [
         (REV_ALL_ARM, '3746d3e0', 0x4560, 'sbcs r4, r3, r7, lsr r6', 0, ()),
         (REV_ALL_ARM, '3746e3e0', 0x4560, 'rsc r4, r3, r7, lsr r6', 0, ()),
         (REV_ALL_ARM, '3746f3e0', 0x4560, 'rscs r4, r3, r7, lsr r6', 0, ()),
-        #(REV_ALL_ARM, '374603e1', 0x4560, 'tst r3, r7, lsr r6', 0, ()),  # not implimented
+        #(REV_ALL_ARM, '374603e1', 0x4560, 'tst r3, r7, lsr r6', 0, ()),  # not valid command - same as next but no sflag which is required
         (REV_ALL_ARM, '374613e1', 0x4560, 'tst r3, r7, lsr r6', 0, ()),
         (REV_ALL_ARM, '374623e1', 0x4560, 'blx r7', 0, ()),
         (REV_ALL_ARM, '374633e1', 0x4560, 'teq r3, r7, lsr r6', 0, ()),
-        #(REV_ALL_ARM, '374643e1', 0x4560, 'cmp r3, r7, lsr r6', 0, ()), # not implimented
+        #(REV_ALL_ARM, '374643e1', 0x4560, 'cmp r3, r7, lsr r6', 0, ()), # not valid command - same as next but no sflag which is required
         (REV_ALL_ARM, '374653e1', 0x4560, 'cmp r3, r7, lsr r6', 0, ()),
-        #(REV_ALL_ARM, '374663e1', 0x4560, 'cmn r3, r7, lsr r6', 0, ()), # not implimented
+        #(REV_ALL_ARM, '374663e1', 0x4560, 'cmn r3, r7, lsr r6', 0, ()), # not valid command - same as next but no sflag which is required
         (REV_ALL_ARM, '374673e1', 0x4560, 'cmn r3, r7, lsr r6', 0, ()),
         (REV_ALL_ARM, '374683e1', 0x4560, 'orr r4, r3, r7, lsr r6', 0, ()),
         (REV_ALL_ARM, '374693e1', 0x4560, 'orrs r4, r3, r7, lsr r6', 0, ()),
@@ -504,13 +506,13 @@ instrs = [
         (REV_ALL_ARM, '4746d3e0', 0x4560, 'sbcs r4, r3, r7, asr #12', 0, ()),
         (REV_ALL_ARM, '4746e3e0', 0x4560, 'rsc r4, r3, r7, asr #12', 0, ()),
         (REV_ALL_ARM, '4746f3e0', 0x4560, 'rscs r4, r3, r7, asr #12', 0, ()),
-        #(REV_ALL_ARM, '474603e1', 0x4560, 'tst r3, r7, asr #12', 0, ()),   # not implimented
+        #(REV_ALL_ARM, '474603e1', 0x4560, 'tst r3, r7, asr #12', 0, ()),   # not valid command - same as next but no sflag which is required
         (REV_ALL_ARM, '474613e1', 0x4560, 'tst r3, r7, asr #12', 0, ()),
-        #(REV_ALL_ARM, '474623e1', 0x4560, 'teq r3, r7, asr #12', 0, ()),    # not implimented
+        #(REV_ALL_ARM, '474623e1', 0x4560, 'teq r3, r7, asr #12', 0, ()),    # not valid command - same as next but no sflag which is required
         (REV_ALL_ARM, '474633e1', 0x4560, 'teq r3, r7, asr #12', 0, ()),
-        #(REV_ALL_ARM, '474643e1', 0x4560, 'cmp r3, r7, asr #12', 0, ()),   # not implimented
+        #(REV_ALL_ARM, '474643e1', 0x4560, 'cmp r3, r7, asr #12', 0, ()),   # not valid command - same as next but no sflag which is required
         (REV_ALL_ARM, '474653e1', 0x4560, 'cmp r3, r7, asr #12', 0, ()),
-        #(REV_ALL_ARM, '474663e1', 0x4560, 'cmn r3, r7, asr #12', 0, ()),  # not implimented
+        #(REV_ALL_ARM, '474663e1', 0x4560, 'cmn r3, r7, asr #12', 0, ()),  # not valid command - same as next but no sflag which is required
         (REV_ALL_ARM, '474673e1', 0x4560, 'cmn r3, r7, asr #12', 0, ()),
         (REV_ALL_ARM, '474683e1', 0x4560, 'orr r4, r3, r7, asr #12', 0, ()),
         (REV_ALL_ARM, '474693e1', 0x4560, 'orrs r4, r3, r7, asr #12', 0, ()),
@@ -536,13 +538,13 @@ instrs = [
         (REV_ALL_ARM, '5746d3e0', 0x4560, 'sbcs r4, r3, r7, asr r6', 0, ()),
         (REV_ALL_ARM, '5746e3e0', 0x4560, 'rsc r4, r3, r7, asr r6', 0, ()),
         (REV_ALL_ARM, '5746f3e0', 0x4560, 'rscs r4, r3, r7, asr r6', 0, ()),
-        #(REV_ALL_ARM, '574603e1', 0x4560, 'tst r3, r7, asr r6', 0, ()), # not implimented
+        #(REV_ALL_ARM, '574603e1', 0x4560, 'tst r3, r7, asr r6', 0, ()), # not valid command - same as next but no sflag which is required
         (REV_ALL_ARM, '574613e1', 0x4560, 'tst r3, r7, asr r6', 0, ()),  
-        #(REV_ALL_ARM, '574623e1', 0x4560, 'teq r3, r7, asr r6', 0, ()),  # not implimented
+        #(REV_ALL_ARM, '574623e1', 0x4560, 'teq r3, r7, asr r6', 0, ()),  # not valid command - same as next but no sflag which is required
         (REV_ALL_ARM, '574633e1', 0x4560, 'teq r3, r7, asr r6', 0, ()),  
-        #(REV_ALL_ARM, '574643e1', 0x4560, 'cmp r3, r7, asr r6', 0, ()),  # not implimented
+        #(REV_ALL_ARM, '574643e1', 0x4560, 'cmp r3, r7, asr r6', 0, ()),  # not valid command - same as next but no sflag which is required
         (REV_ALL_ARM, '574653e1', 0x4560, 'cmp r3, r7, asr r6', 0, ()),  
-        #(REV_ALL_ARM, '574663e1', 0x4560, 'cmn r3, r7, asr r6', 0, ()), # not implimented
+        #(REV_ALL_ARM, '574663e1', 0x4560, 'cmn r3, r7, asr r6', 0, ()), # not valid command - same as next but no sflag which is required
         (REV_ALL_ARM, '574673e1', 0x4560, 'cmn r3, r7, asr r6', 0, ()),
         (REV_ALL_ARM, '574683e1', 0x4560, 'orr r4, r3, r7, asr r6', 0, ()),
         (REV_ALL_ARM, '574693e1', 0x4560, 'orrs r4, r3, r7, asr r6', 0, ()),
@@ -813,6 +815,9 @@ class ArmInstructionSet(unittest.TestCase):
                 if ((not ranAlready) or (not self.armTestOnce)) and ((archz & test_arch & self.armTestVersion) != 0): 
                     ranAlready = True
                     arm.ThumbModule.archVersion = arm.ArmModule.archVersion = key
+                    num, = struct.unpack("<I", bytez.decode('hex'))
+                    bs = bin(num)[2:].zfill(32)
+                    print bytez, bs
                     op = vw.arch.archParseOpcode(bytez.decode('hex'), 0, va)
                     redoprepr = repr(op).replace(' ','').lower()
                     redgoodop = reprOp.replace(' ','')
@@ -832,8 +837,9 @@ class ArmInstructionSet(unittest.TestCase):
                         print bs
                         #to help with bit decoding - will be removed when done
                         print bs[0:4], bs[4:6], bs[6], bs[7:12], bs[12:24], bs[24:28], bs[28:],'  ; dataprocessing and misc'
-                        print '         ', bs[7:11], bs[11], bs[12:16], bs[16:20], bs[20:], '  ; and, '
-                        print '                          ', bs[20:25], bs[25:28], bs[28:], ' ; lsr (Middle should be 010)'
+                        print '               ', bs[12:24], bs[24], bs[25:27], bs[27], bs[28:], '  ; data-processing (register shifted)'
+                        #print '         ', bs[7:11], bs[11], bs[12:16], bs[16:20], bs[20:], '  ; and, '
+                        #print '                          ', bs[20:25], bs[25:28], bs[28:], ' ; lsr (Middle should be 010)'
                         print
                         
                         badcount += 1
