@@ -1485,7 +1485,7 @@ class ArmOpcode(envi.Opcode):
         daib_flags = self.iflags & IF_DAIB_MASK
         if self.iflags & IF_L:
             mnem += 'l'
-        elif (self.iflag & S_FLAG_MASK) == IF_PSR_S:
+        elif (self.iflags & self.S_FLAG_MASK) == IF_PSR_S:
             mnem += 's'
         elif daib_flags > 0:
             idx = ((daib_flags)>>(IF_DAIB_SHFT)) 
@@ -1553,7 +1553,7 @@ class ArmOpcode(envi.Opcode):
         daib_flags = self.iflags & IF_DAIB_MASK
         if self.iflags & IF_L:
             mnem += 'l'
-        elif (self.iflag & S_FLAG_MASK) == IF_PSR_S::
+        elif (self.iflags & self.S_FLAG_MASK) == IF_PSR_S:
             mnem += 's'
         elif daib_flags > 0:
             idx = ((daib_flags)>>(IF_DAIB_SHFT)) 
