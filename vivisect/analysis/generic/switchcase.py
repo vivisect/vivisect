@@ -8,7 +8,8 @@ This will not connect switch cases which are actually explicit cmp/jz in the cod
 import logging
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
-logger.addHandler(logging.StreamHandler())
+if not len(logger.handlers):
+    logger.addHandler(logging.StreamHandler())
 
 import envi
 import envi.archs.i386 as e_i386
@@ -63,16 +64,19 @@ signed_fmts = (
     '<q',
     )
 
-class TrackingSymbolikEmulator(vs_emu.SymbolikEmulator):
+
+class TrackingSymbolikEmulator(vs_anal.SymbolikFunctionEmulator):
     '''
     TrackingSymbolikEmulator tracks reads.  where they occur, where they read from, and
     returns as much info as possible if not discrete data.
+
+    If a read is from a real memory map, return that memory.
     '''
-    _trackReads = []
     def __init__(self, vw):
-        vs_emu.SymbolikEmulator.__init__(self, vw)
+        vs_anal.SymbolikFunctionEmulator.__init__(self, vw)
         self.__width__ = vw.psize
-    
+        self.clear()
+
     def clear(self):
         self._trackReads = []
         
@@ -89,13 +93,15 @@ class TrackingSymbolikEmulator(vs_emu.SymbolikEmulator):
         current symbolik emulator has no knowledge of the state of
         the given memory symbol, None is returned.
         '''
-        addrval = symaddr.solve(emu=self, vals=vals)
+        addrval = symaddr.update(self).solve(emu=self, vals=vals)
+        print symaddr, addrval, symsize
         
         # check for a previous write first...
         symmem = self._sym_mem.get(addrval)
         if symmem != None:
             symaddr, symval = symmem
             self.track(self.getMeta('va'), symaddr, symval)
+            print 1
             return symval
 
         # If we have a workspace, check it for meaningful symbols etc...
@@ -108,6 +114,7 @@ class TrackingSymbolikEmulator(vs_emu.SymbolikEmulator):
                     # return name of import
                     symval = Var(linfo, self.__width__)
                     self.track(self.getMeta('va'), symaddr, symval)
+                    print 2
                     return symval
             
             if self._sym_vw.isValidPointer(addrval):        
@@ -120,13 +127,16 @@ class TrackingSymbolikEmulator(vs_emu.SymbolikEmulator):
                     # return real number from memory
                     val, = self._sym_vw.readMemoryFormat(addrval, signed_fmts[size])
                     self.track(self.getMeta('va'), symaddr, val)
+                    print 3
                     return Const(val, size)
                 
                 # return string  (really?)
                 symval = self._sym_vw.readMemory(addrval, size)
                 self.track(self.getMeta('va'), symaddr, symval)
+                print 4, size
                 return symval
 
+        print 5
         return Mem(symaddr, symsize)
 
 def contains(symobj, subobj):
@@ -145,16 +155,19 @@ def contains(symobj, subobj):
         '''
         walkTree callback for determining presence within an AST
         '''
-        if symobj.solve() == ctx['compare']:
+        symsolve = symobj.solve()
+        print "==--==", repr(symobj), symsolve, ctx['compare']
+        if symsolve == ctx['compare']:
             ctx['contains'] = True
             ctx['path'] = tuple(path)
 
         return symobj
 
-    ctx = { 'compare'  : subobj,
+    ctx = { 'compare'  : subobj.solve(),
             'contains' : False,
             'path'     : []
           }
+
     symobj.walkTree(_cb_contains, ctx)
     return ctx.get('contains'), ctx['path']
 
@@ -282,7 +295,7 @@ def zero_in(vw, jmpva, oplist, special_vals={}):
     oper = op.opers[0]
     reg = oper.reg
     regname = rctx.getRegisterName(reg)
-    sctx = vs_anal.getSymbolikAnalysisContext(vw)
+    sctx = SwitchCaseSymbolikAnalysisContext(vw)
     xlate = sctx.getTranslator()
     
     # first loop...  back up the truck to the start of the codeblock
@@ -565,7 +578,7 @@ def iterCases(vw, satvals, jmpva, jmpreg, rname, count, special_vals):
     symemu = TrackingSymbolikEmulator(vw)
     testemu = TrackingSymbolikEmulator(vw)
 
-    # check once through to see if our index reg moves by 1, 4, or 8
+    # identify whether our index reg moves by 1, 4, or 8
     regrange = getRegRange(2, rname, satvals, special_vals, [], interval=interval)
 
     # ratchet through the regrange set to determine index interval
@@ -1073,6 +1086,10 @@ class SwitchCase:
         self.sctx = vs_anal.getSymbolikAnalysisContext(vw)
         self.xlate = self.sctx.getTranslator()
 
+        #tmpemu = self.sctx.__emu__
+        #self.sctx.__emu__ = TrackingSymbolikEmulator
+        #self.sctx.__emu__.readSymMemory = self.sctx2.readSymMemory
+
         # 32-bit i386 thunk_bx handling.  this should be the only oddity for this architecture
         if vw.getMeta('PIE_ebx'):
             for tva in vw.getVaSetRow('thunk_bx'):
@@ -1202,9 +1219,9 @@ class SwitchCase:
         csp, asp, fullp = self.getSymbolikParts()
 
         smplIdx = self.getSymIdx()
-        logger.debug("smplIdx: %r", smplIdx)
-        if raw_input('PRESS ENTER').lower().startswith('q'):
-            return None, None, None
+        #logger.debug("smplIdx: %r", smplIdx)
+        #if raw_input('PRESS ENTER').lower().startswith('q'):
+        #    return None, None, None
 
         lower = self.lower
         upper = self.upper
@@ -1224,6 +1241,7 @@ class SwitchCase:
                 logger.debug("cplxIdx: %r", cplxIdx)
 
                 # identify constraints which contain our index
+                logger.debug("\n%r", self.getConstraints())
                 boundingcons = [con for con in self.getConstraints() if contains(con, cplxIdx)[0] ]
                 logger.debug("\n%r", boundingcons)
 
@@ -1300,7 +1318,8 @@ class SwitchCase:
 
                     else:
                         logger.info("Unhandled comparator:  %s\n", repr(cons))
-                raw_input("Done.. %r %r %r...\n" % (lower, upper, baseoff))
+                #raw_input("Done.. %r %r %r...\n" % (lower, upper, baseoff))
+                logger.info("Done.. %r %r %r...\n" % (lower, upper, baseoff))
         except StopIteration:
             pass
 
@@ -1321,17 +1340,205 @@ class SwitchCase:
 
         if not (self.op.iflags & envi.IF_BRANCH):
             return
+
+        funcva = self.vw.getFunction(self.jmpva)
+        if funcva == None:
+            logger.error("ERROR getting function for jmpva 0x%x", jmpva)
+            return
+
         lower, upper, baseoff = self.getBounds()
         if None in (lower, ): 
             logger.info("something odd in count/offset calculation...(%r,%r,%r) skipping 0x%x...", 
                     lower, upper, baseoff, self.jmpva)
             return
 
+        count = upper - lower
+
+        if count > MAX_CASES:
+            logger.warn("too many switch cases during analysis: %d   limiting to %d", count, MAX_CASES)
+            count = MAX_CASES
+
+        vw = self.vw
+
         # determine deref-ops...  uses TrackingSymbolikEmulator
         # iterCases
-        # makeNames
+        cases = {}
+        memrefs = []
+        for idx, addr in self.iterCases():
+            logger.info("0x%x analyzeSwitch: idx: %s \t address: 0x%x", self.jmpva, idx, addr)
+            
+            # determining when to stop identifying switch-cases can be tough.  we assume that we have the 
+            # correct number handed into this function in "count", but currently we'll stop analyzing
+            # if we run into trouble.
+            if not vw.isValidPointer(addr):
+                logger.info("found invalid pointer.  quitting.  (0x%x)" % addr)
+                break
+            
+            tloc = vw.getLocation(addr)
+            if tloc != None and tloc[0] != addr:
+                # pointing at something not right.  must be done.
+                logger.info("found overlapping location.  quitting.")
+                break
+         
+            #deprecated
+            #if addr in terminator_addr:
+            #    logger.info("found terminator_addr.  quitting.")
+            #    break
+            
+            if len(cases):
+                xrefsto = vw.getXrefsTo(addr)
+                # if there is an xref to this target from within this function, we're still ok... ish?
+                if len(xrefsto):
+                    good = True
+                    for xrfr,xrto,xrt,xrtinfo in xrefsto:
+                        xrfrfunc = vw.getFunction(xrfr)
+                        if xrfrfunc == funcva:
+                            continue
+
+                        # this one is *not* in the same function
+                        good = False
+
+                    if not good:
+                        logger.info("target location (0x%x) has xrefs.", addr)
+                        break
+            
+            # this is a valid thing, we have locations...  match them up
+            #memrefs.append((tgt, addr, delta))
+            l = cases.get(addr, [])
+            l.append( idx )
+            cases[addr] = l
+
+            # make the connections
+            vw.addXref(self.jmpva, addr, vivisect.REF_CODE)
+            nloc = vw.getLocation(addr)
+            if nloc == None:
+                vw.makeCode(addr)
+
+        # makeNames (done separately because some indexes may be combined)
+        self.makeNames(cases)
 
         # store some metadata in a VaSet
-        #vw.setVaSetRow('SwitchCases', (jmpva, oplist[0].va, len(cases)) )
+        vw.setVaSetRow('SwitchCases', (self.jmpva, self.jmpva, count) )
 
-        #vagc.analyzeFunction(vw, funcva)
+        vagc.analyzeFunction(vw, funcva)
+
+    def getDerefs(self):
+        derefs = []
+
+        csp, asp, fullp = self.getSymbolikParts()
+        csemu,cseffs = csp
+        asemu,aseffs = asp
+
+        # create a tracking emulator and populate with with current "csp" state
+        semu = TrackingSymbolikEmulator(self.vw)
+        semu.setSymSnapshot(csemu.getSymSnapshot())
+
+        symIdx = self.getSymIdx()
+
+        # set our index to 0, to get the base of pointer/offset arrays
+        semu.setSymVariable(symIdx, Const(0,8))
+
+        for eff in aseffs:
+            startlen = len(semu.getTrackInfo())
+
+            if eff.efftype == EFFTYPE_READMEM:
+                if eff.va == self.jmpva:
+                    continue
+
+                symaddr = eff.symaddr.update(emu=semu)
+                if symaddr.isDiscrete():
+                    solution = symaddr.solve()
+                    print "0x%x->0x%x" % (eff.va, solution)
+
+                    if not self.vw.isValidPointer(solution):
+                        print("ARRRG: Non-pointer in ReadMemory???")
+
+                    target = semu.readSymMemory(eff.symaddr, eff.symsize)
+                    size = target.getWidth()
+                    derefs.append((eff.va, symaddr, solution, target.solve(), size))
+
+            endlen = len(semu.getTrackInfo())
+
+        return derefs
+
+    def markDerefs(self):
+        lower, upper, offset = self.getBounds()
+
+        for va, symaddr, addr, tgt, sz in self.getDerefs():
+            # first make the xref from opcode to data:
+            self.vw.addXref(va, addr, REF_DATA)
+
+            if sz == self.vw.psize and self.vw.isValidPointer(tgt):
+                for count in range(upper-lower):
+                    self.vw.makePointer(addr + (sz*count))
+
+            else:
+                for count in range(upper-lower):
+                    self.vw.makeNumber(addr + (sz*count), sz)
+
+
+    def iterCases(self):
+        '''
+        Generator which yields the case index and the target address
+        '''
+        vw = self.vw
+
+        symidx = self.getSymIdx()
+        jmptgt = self.getSymTarget()
+        lower, upper, offset = self.getBounds()
+        print repr(symidx), lower, upper, offset
+        symemu = TrackingSymbolikEmulator(vw)
+
+        for idx in range(lower, upper):
+            coderef = jmptgt.solve(emu=symemu, vals={symidx:idx})
+            print idx, hex(coderef)
+            yield idx + offset, coderef
+
+    def makeNames(self, cases):
+        '''
+        Create names and xrefs for each identified case.
+        '''
+        vw = self.vw
+
+        for addr, indexes in cases.items():
+            outstrings = []
+            combined = False
+            start = last = UNINIT_CASE_INDEX
+            for x in indexes:
+                # we make the case numbers into their originally intended form here:
+                case = x# + offset
+
+                if case == last+1:
+                    if not combined:
+                        combined = True
+                        start = last
+                else:
+                    if combined:
+                        combined = False
+                        outstrings.append("%Xto%X" % (start, last))
+                    elif last != UNINIT_CASE_INDEX:
+                        outstrings.append("%X" % last)
+                last = case
+
+            # catch the last one if highest cases are combined
+            if combined:
+                combined = False
+                outstrings.append("%Xto%X" % (start, last))
+            else:
+                outstrings.append("%X" % case)
+
+            logger.info("OUTSTRINGS: %s", repr(outstrings))
+
+            idxs = '_'.join(outstrings)
+            casename = "case_%s_%x" % (idxs, addr)
+
+            curname = vw.getName(addr) 
+            if curname != None:
+                logger.warn("%s is already labeled %s", casename, curname)
+
+            vw.makeName(addr, casename)
+            logger.info(casename)
+       
+        vw.makeName(self.jmpva, "switch_%.8x" % self.jmpva)
+        logger.info("making switchname: switch_%.8x", self.jmpva)
+
