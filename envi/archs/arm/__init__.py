@@ -8,8 +8,6 @@ from envi.archs.arm.regs import *
 from envi.archs.arm.disasm import *
 
 class ArmModule(envi.ArchitectureModule):
-    #Current ARM version working in - Not fully integrated yet
-    archVersion = ('ARMv7A')
 
     def __init__(self, name='ARMv7A'):
         self.archVersion = name
@@ -52,8 +50,6 @@ class ThumbModule(envi.ArchitectureModule):
     '''
     This architecture module will *not* shift to ARM mode.  Evar.
     '''
-    #Current ARM version working in - Not fully integrated yet
-    archVersion = ('ARMv7A')
 
     def __init__(self, name='ARMv7A'):
         self.archVersion = name

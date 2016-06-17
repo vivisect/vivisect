@@ -39,7 +39,16 @@ from envi.archs.arm.regs import *
 #   * VectorPointFloat subsystem (coproc 10+11)
 #   * Debug subsystem (coproc 14)
 #   * other 'default' coprocs we can handle and add value?
-    
+
+#This holds the current running Arm instruction version and mask
+archVersion = 'ARMv7A'
+archVersionMask = ARCH_REVS['ARMv7A']
+
+def setArchVersion(key = 'ARMv7A'):
+    ''' set arch versions '''
+    archVersion = key
+    archVersionMask = ARCH_REVS[key]
+
 def chopmul(opcode):
     op1 = (opcode >> 20) & 0xff
     a = (opcode >> 16) & 0xf
@@ -220,16 +229,115 @@ def p_dp_imm_shift(opval, va):
     return (opcode, dp_mnem[ocode], olist, iflags)
 
 # specialized mnemonics for p_misc
-qop_mnem = ('qadd','qsub','qdadd','qdsub')
-smla_mnem = ('smlabb','smlabt','smlatb','smlatt',)
-smlal_mnem = ('smlalbb','smlalbt','smlaltb','smlaltt',)
+qop_mnem = ('qadd','qsub','qdadd','qdsub') # used in misc1
+smla_mnem = ('smlabb','smlatb','smlabt','smlatt',)
+smlal_mnem = ('smlalbb','smlaltb','smlalbt','smlaltt',)
 smul_mnem = ('smulbb','smultb','smulbt','smultt',)
 smlaw_mnem = ('smlawb','smlawt',)
 smulw_mnem = ('smulwb','smulwt',)
 
 def p_misc(opval, va):  
     # 0x0f900000 = 0x01000000 or 0x01000010 (misc and misc1 are both parsed at the same time.  see the footnote [2] on dp instructions in the Atmel AT91SAM7 docs
-    if   opval & 0x0fc00000 == 0x01000000:
+
+    #Including SBO and SBZ - rearranged for most exclusive to least
+    #updated reference names to match v7 reference ie Rm Rn Rd Rs m n etc
+    
+    #if opval & 0x0ff000f0 == 0x01200020:
+    if opval & 0x0FFFFFF0 == 0x012FFF20:  
+        opcode = (IENC_MISC << 16) + 5
+        mnem = 'bxj'
+        Rm = opval & 0xf
+        olist = ( ArmRegOper(Rm, va=va), )
+        
+    #elif opval & 0x0fb002f0 == 0x01200000:
+    elif opval & 0x0DB0F000 == 0x0120F000:
+        opcode = (IENC_MISC << 16) + 2
+        mnem = 'msr'        # register.   immediate has it's own parser in the 001 section
+        r = (opval>>22) & 1
+        Rn = (opval) & 0xf
+        olist = (
+            ArmPgmStatRegOper(r),
+            ArmRegOper(Rn, va=va),
+        )
+
+    #smla 
+    #Mask and value are OK
+    elif opval & 0x0FF00090 == 0x01000080:
+        opcode = (IENC_MISC << 16) + 9
+        mn = (opval>>5)&3
+        mnem = smla_mnem[mn]
+        Rd = (opval>>16) & 0xf
+        Ra = (opval>>12) & 0xf 
+        Rm = (opval>>8) & 0xf
+        Rn = opval & 0xf
+        olist = (
+            ArmRegOper(Rd, va=va),
+            ArmRegOper(Rn, va=va),
+            ArmRegOper(Rm, va=va),
+            ArmRegOper(Ra, va=va),
+        )
+    #smlaw
+    #mask and value are OK
+    elif opval & 0x0ff000b0 == 0x01200080:
+        opcode = (IENC_MISC << 16) + 10
+        m = (opval>>6)&1
+        mnem = smlaw_mnem[m]
+        Rd = (opval>>16) & 0xf
+        Ra = (opval>>12) & 0xf 
+        Rm = (opval>>8) & 0xf
+        Rn = opval & 0xf
+        olist = (
+            ArmRegOper(Rd, va=va),
+            ArmRegOper(Rn, va=va),
+            ArmRegOper(Rm, va=va),
+            ArmRegOper(Ra, va=va),
+        )
+    #smulw
+    #mask and value are ok
+    elif opval & 0x0ff000b0 == 0x012000a0:
+        opcode = (IENC_MISC << 16) + 11
+        m = (opval>>6)&1
+        mnem = smulw_mnem[m]
+        Rd = (opval>>16) & 0xf
+        Rm = (opval>>8) & 0xf
+        Rn = opval & 0xf
+        olist = (
+            ArmRegOper(Rd, va=va),
+            ArmRegOper(Rn, va=va),
+            ArmRegOper(Rm, va=va),
+        )
+    #smlal
+    #mask and value are ok
+    elif opval & 0x0ff00090 == 0x01400080:
+        opcode = (IENC_MISC << 16) + 12
+        mn = (opval>>5)&3
+        mnem = smlal_mnem[mn]
+        Rdhi = (opval>>16) & 0xf
+        Rdlo = (opval>>12) & 0xf 
+        Rm = (opval>>8) & 0xf
+        Rn = opval & 0xf
+        olist = (
+            ArmRegOper(Rdlo, va=va),
+            ArmRegOper(Rdhi, va=va),
+            ArmRegOper(Rn, va=va),
+            ArmRegOper(Rm, va=va),
+        )
+    #smul
+    #elif opval & 0x0ff00090 == 0x01600080:
+    elif opval & 0x0ff0f090 == 0x01600080:
+        opcode = (IENC_MISC << 16) + 13
+        mn = (opval>>5)&3
+        mnem = smul_mnem[mn]
+        Rd = (opval>>16) & 0xf
+        Rm = (opval>>8) & 0xf
+        Rn = opval & 0xf
+        olist = (
+            ArmRegOper(Rd, va=va),
+            ArmRegOper(Rn, va=va),
+            ArmRegOper(Rm, va=va),
+        )
+    #if opval & 0x0fc00000 == 0x01000000:
+    elif opval & 0x0FB00C0F == 0x01000000:
         opcode = (IENC_MISC << 16) + 1
         mnem = 'mrs'
         r = (opval>>22) & 1
@@ -238,89 +346,6 @@ def p_misc(opval, va):
             ArmRegOper(Rd, va=va),
             ArmPgmStatRegOper(r),
         )
-    elif opval & 0x0fb002f0 == 0x01200000:
-        opcode = (IENC_MISC << 16) + 2
-        mnem = 'msr'        # register.   immediate has it's own parser in the 001 section
-        r = (opval>>22) & 1
-        Rd = (opval) & 0xf
-        olist = (
-            ArmPgmStatRegOper(r),
-            ArmRegOper(Rd, va=va),
-        )
-    elif opval & 0x0ff000f0 == 0x01200020:
-        opcode = (IENC_MISC << 16) + 5
-        mnem = 'bxj'
-        Rm = opval & 0xf
-        olist = ( ArmRegOper(Rm, va=va), )
-        
-    elif opval & 0x0ff00090 == 0x01000080:
-        opcode = (IENC_MISC << 16) + 9
-        xy = (opval>>5)&3
-        mnem = smla_mnem[xy]
-        Rd = (opval>>16) & 0xf
-        Rn = (opval>>12) & 0xf 
-        Rs = (opval>>8) & 0xf
-        Rm = opval & 0xf
-        olist = (
-            ArmRegOper(Rd, va=va),
-            ArmRegOper(Rm, va=va),
-            ArmRegOper(Rs, va=va),
-            ArmRegOper(Rn, va=va),
-        )
-    elif opval & 0x0ff000b0 == 0x01200080:
-        opcode = (IENC_MISC << 16) + 10
-        y = (opval>>6)&1
-        mnem = smlaw_mnem[y]
-        Rd = (opval>>16) & 0xf
-        Rn = (opval>>12) & 0xf 
-        Rs = (opval>>8) & 0xf
-        Rm = opval & 0xf
-        olist = (
-            ArmRegOper(Rd, va=va),
-            ArmRegOper(Rm, va=va),
-            ArmRegOper(Rs, va=va),
-            ArmRegOper(Rn, va=va),
-        )
-    elif opval & 0x0ff000b0 == 0x012000a0:
-        opcode = (IENC_MISC << 16) + 11
-        y = (opval>>6)&1
-        mnem = smulw_mnem[y]
-        Rd = (opval>>16) & 0xf
-        Rs = (opval>>8) & 0xf
-        Rm = opval & 0xf
-        olist = (
-            ArmRegOper(Rd, va=va),
-            ArmRegOper(Rm, va=va),
-            ArmRegOper(Rs, va=va),
-        )
-    elif opval & 0x0ff00090 == 0x01400080:
-        opcode = (IENC_MISC << 16) + 12
-        xy = (opval>>5)&3
-        mnem = smlal_mnem[xy]
-        Rdhi = (opval>>16) & 0xf
-        Rdlo = (opval>>12) & 0xf 
-        Rs = (opval>>8) & 0xf
-        Rm = opval & 0xf
-        olist = (
-            ArmRegOper(Rdlo, va=va),
-            ArmRegOper(Rdhi, va=va),
-            ArmRegOper(Rs, va=va),
-            ArmRegOper(Rn, va=va),
-        )
-    elif opval & 0x0ff00090 == 0x01600080:
-        opcode = (IENC_MISC << 16) + 13
-        yx = (opval>>5)&3
-        mnem = smul_mnem[yx]
-        Rd = (opval>>16) & 0xf
-        Rs = (opval>>8) & 0xf
-        Rm = opval & 0xf
-        olist = (
-            ArmRegOper(Rd, va=va),
-            ArmRegOper(Rm, va=va),
-            ArmRegOper(Rs, va=va),
-        )
-    #elif opval & 0x0fc00000 == 0x03200000:
-        #mnem = 'msr'
     else:
         raise envi.InvalidInstruction(
                 mesg="p_misc: invalid instruction",
@@ -579,8 +604,7 @@ def p_dp_reg_shift(opval, va):
 multfail = (None, None, None,)
 
 def p_mult(opval, va):
-    ocode, vals = chopmul(opval)
-                             
+    ocode, vals = chopmul(opval)                         
     mnem, opindexes, flags = iencmul_codes.get(ocode, multfail)
     if mnem == None:
         raise envi.InvalidInstruction(
@@ -1972,7 +1996,6 @@ class ArmRegOffsetOper(ArmOperand):
     # FIXME: should identify whether we're in an emulator or being "analyzed".  should be forcible either way, but defaults should be to update in emulator.executeOpcode() and not in other
     def getOperAddr(self, op, emu=None):
         if emu == None:
-            print "emu==None"
             return None
 
         pom = (-1, 1)[(self.pubwl>>3)&1]
@@ -2642,6 +2665,7 @@ class ArmDisasm:
 
         # Begin the table lookup sequence with the first 3 non-cond bits
         encfam = (opval >> 25) & 0x7
+        #print "encode family =", encfam
         if cond == COND_EXTENDED:
             enc = IENC_UNCOND
 
@@ -2650,6 +2674,7 @@ class ArmDisasm:
             enc,nexttab = inittable[encfam]
             if nexttab != None: # we have to sub-parse...
                 for mask,val,penc in nexttab:
+                    #print "penc", penc
                     if (opval & mask) == val:
                         enc = penc
                         break
