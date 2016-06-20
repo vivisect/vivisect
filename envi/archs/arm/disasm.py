@@ -2615,14 +2615,14 @@ class ArmDisasm:
         
 
     def setArchVersion(key = 'ARMv7A'):
-    ''' set arch versions '''
+        ''' set arch versions '''
         archVersion = key
         archVersionMask = ARCH_REVS[key]
 
-    def getArchMask()
+    def getArchMask():
         return _archVersionMask
 
-    def getArchVersion()
+    def getArchVersion():
         return _archVersion
     
     def setEndian(self, endian):
