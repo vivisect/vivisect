@@ -40,15 +40,6 @@ from envi.archs.arm.regs import *
 #   * Debug subsystem (coproc 14)
 #   * other 'default' coprocs we can handle and add value?
 
-#This holds the current running Arm instruction version and mask
-archVersion = 'ARMv7A'
-archVersionMask = ARCH_REVS['ARMv7A']
-
-def setArchVersion(key = 'ARMv7A'):
-    ''' set arch versions '''
-    archVersion = key
-    archVersionMask = ARCH_REVS[key]
-
 def chopmul(opcode):
     op1 = (opcode >> 20) & 0xff
     a = (opcode >> 16) & 0xf
@@ -2614,9 +2605,26 @@ ENDIAN_MSB = 1
 
 class ArmDisasm:
     fmt = None
+
+    #This holds the current running Arm instruction version and mask
+    _archVersion = 'ARMv7A'
+    _archVersionMask = ARCH_REVS['ARMv7A']
+
     def __init__(self, endian=ENDIAN_LSB):
         self.setEndian(endian)
         
+
+    def setArchVersion(key = 'ARMv7A'):
+    ''' set arch versions '''
+        archVersion = key
+        archVersionMask = ARCH_REVS[key]
+
+    def getArchMask()
+        return _archVersionMask
+
+    def getArchVersion()
+        return _archVersion
+    
     def setEndian(self, endian):
         self.fmt = ("<I", ">I")[endian]
 
