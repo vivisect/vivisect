@@ -157,6 +157,25 @@ shifters = (
 dp_mnem = ("and","eor","sub","rsb","add","adc","sbc","rsc","tst","teq","cmp","cmn","orr","mov","bic","mvn",
         "adr")  # added
 
+#list of commands and versions supported:
+#putting full list here for now.
+#adc = v4, v5t, v6, v7
+#add = v4, v5t, v6, v7
+#adr = v4, v5t, v6, v7
+#and = v4, v5t, v6, v7
+#asr = v4, v5t, v6, v7
+#b = v4, v5t, v6, v7
+#bfc = v6t2, v7
+#bfi = v6t2, v7
+#bic = v4, v5t, v6, v7
+#bkpt = v5t, v6, v7
+#bl = v4, v5t, v6, v7
+#blx = v5t, v6, v7
+#bx = v4T, v5t, v6, v7
+#bxj = v5tej, v6, v7
+#cdp = v4, v5t, v6, v7
+#cdp2 = v5t, v6, v7
+
 # FIXME: THIS IS FUGLY but sadly it works
 dp_noRn = (13,15)
 dp_noRd = (8,9,10,11)
@@ -2697,7 +2716,7 @@ class ArmDisasm:
             raise envi.InvalidInstruction(mesg="No encoding found!",
                     bytez=bytez[offset:offset+4], va=va)
 
-        #print "ienc_parser index: %d" % enc
+        #print "ienc_parser index, routine: %d, %s" % (enc, ienc_parsers[enc])
         opcode, mnem, olist, flags = ienc_parsers[enc](opval, va+8)
         return opcode, mnem, olist, flags
 

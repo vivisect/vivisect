@@ -512,6 +512,51 @@ instrs = [
         (REV_ALL_ARM, '6745d3e0', 0x4560, 'sbcs r4, r3, r7, ror #10', 0, ()),
         (REV_ALL_ARM, '6745e3e0', 0x4560, 'rsc r4, r3, r7, ror #10', 0, ()),
         (REV_ALL_ARM, '6745f3e0', 0x4560, 'rscs r4, r3, r7, ror #10', 0, ()),
+        #ADDED TESTS
+        (REV_ALL_ARM, 'ff4ca3e2', 0x4560, 'adc  r4, r3, #0xff00', 0, ()),
+        (REV_ALL_ARM, 'ff4cb3e2', 0x4560, 'adcs  r4, r3, #0xff00', 0, ()),
+        (REV_ALL_ARM, 'ff4c83e2', 0x4560, 'add  r4, r3, #0xff00', 0, ()),
+        (REV_ALL_ARM, 'ff4c93e2', 0x4560, 'adds  r4, r3, #0xff00', 0, ()),
+        (REV_ALL_ARM, 'ff4c03e2', 0x4560, 'and  r4, r3, #0xff00', 0, ()),
+        (REV_ALL_ARM, 'ff4c13e2', 0x4560, 'ands  r4, r3, #0xff00', 0, ()),
+        (REV_ALL_ARM, '001000ea', 0x4560, 'b 0x00008568', 0, ()),
+        (REV_ALL_ARM, 'ff4cc3e3', 0x4560, 'bic  r4, r3, #0xff00', 0, ()),
+        (REV_ALL_ARM, '001000eb', 0x4560, 'bl  0x00008568', 0, ()),
+        (REV_ALL_ARM, '273764ee', 0x4560, 'cdp  p7, 6, c3, c4, c7, 1', 0, ()),
+        (REV_ALL_ARM, '473b34ee', 0x4560, 'cdp  p11, 3, c3, c4, c7, 2', 0, ()),
+
+        
+        #commands with issues
+
+        #ADR returns value calculated from PC. Not sure if this is correct.
+        #Believe for disassembly this should just show the number in the command.
+        #Will address later. Should be showing 0x1000 for the value on next two.
+        #Add to PC
+        (REV_ALL_ARM, '013a8fe2', 0x4560, 'adr  r3, 0x00005568', 0, ()),
+        # or sub r3, pc, #0x100 value before current instruction[pc]
+        (REV_ALL_ARM, '013a4fe2', 0x4560, 'adr  r3, 0x00003568', 0, ()),
+        #blx2? Should just be blx, just is 2nd variation.
+        #(REV_ALL_ARM, '001000fa', 0x4560, 'blx  0x00008568', 0, ()),
+        #shows up as cdp22
+        #(REV_ALL_ARM, '273764fe', 0x4560, 'cdp2  p7, 6, r3, r4, r7, 1', 0, ()),
+        #(REV_ALL_ARM, '473b34fe', 0x4560, 'cdp2  p11, 3, c3, c4, c7, 2', 0, ()),
+
+        
+        #Not yet implimented
+        #these next ones show up as mov r4, r3, asr #30
+        #(REV_ALL_ARM, '434fa0e1', 0x4560, 'asr  r4, r3, #30', 0, ()),
+        #(REV_ALL_ARM, '434fb0e1', 0x4560, 'asrs  r4, r3, #30', 0, ()),
+        #(REV_ALL_ARM, '5345a0e1', 0x4560, 'asr  r4, r3, r7', 0, ()),
+        #(REV_ALL_ARM, '5345b0e1', 0x4560, 'asrs  r4, r3, r7', 0, ()),
+        #(REV_ALL_ARM, '1f32cfe7', 0x4560, 'bfc r3, #16, #4', 0, ()),
+        #(REV_ALL_ARM, '1432cfe7', 0x4560, 'bfi r3, r4, #16, #4', 0, ()),
+
+        #implimented but not yet in emu
+        #(REV_ALL_ARM, '70f02fe1', 0x4560, 'bkpt  #0xff00', 0, ()),
+        #(REV_ALL_ARM, '24ff2fe1', 0x4560, 'bxj  r4', 0, ()), # note this switches to jazelle
+
+        #ORIGINAL TESTS
+        #start of commands with issues
         #not implimented at all yet but should be valid
         #(REV_ALL_ARM, '774543e1', 0x4560, 'hvc #0x3457', 0, ()), # not implimented - hypervisor
         #(REV_ALL_ARM, '974563e0', 0x4560, 'mls r3, r7, r5, r4', 0, ()),  # not implimented
