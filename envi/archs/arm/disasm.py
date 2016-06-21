@@ -609,11 +609,16 @@ def p_mult(opval, va):
     opcode = (IENC_MULT << 16) + ocode
     return (opcode, mnem, olist, flags)
 
+#FIXME, ADR calculates at this point which I believe to be wrong
+#Will research when doing EMU portion.
 def p_dp_imm(opval, va):
     ocode,sflag,Rn,Rd = dpbase(opval)
     imm = opval & 0xff
-    rot = (opval >> 7) & 0x1f   # effectively, rot*2
-    
+    #FIXME: Original was (opval>> 7) & 0x1f which grabs top 5 bits
+    #supposed to be top 4 bits. Temp fix mask out wrong bit
+    #should be (opval >> 8) & 0xf
+    #need to find where rot / 2 and fix that.
+    rot = ((opval >> 7) & 0x1e)
     # hack to make add/sub against PC more readable (also legit for ADR instruction)
     if Rn == REG_PC and ocode in dp_ADR:    # we know PC
         if ocode == 2:  # and this is a subtraction
