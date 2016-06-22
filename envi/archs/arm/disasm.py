@@ -170,11 +170,24 @@ dp_mnem = ("and","eor","sub","rsb","add","adc","sbc","rsc","tst","teq","cmp","cm
 #bic = v4, v5t, v6, v7
 #bkpt = v5t, v6, v7
 #bl = v4, v5t, v6, v7
-#blx = v5t, v6, v7
+#blx = v4, v5t, v6, v7
+#blx(2) = v5t, v6, v7
 #bx = v4T, v5t, v6, v7
 #bxj = v5tej, v6, v7
 #cdp = v4, v5t, v6, v7
 #cdp2 = v5t, v6, v7
+#clrex = v6k, v7
+#clz = v5t, v6, v7
+#cmn =  v4, v5t, v6, v7
+#cmp =  v4, v5t, v6, v7
+#dbg = v7 (nop in v6t2)
+#dmb = v7
+#dsb = v7
+#eor =  v4, v5t, v6, v7
+#isb = v7
+#ldc = v4, v5t, v6, v7
+#ldc2 = v5t, v6, v7
+
 
 # FIXME: THIS IS FUGLY but sadly it works
 dp_noRn = (13,15)
@@ -1122,7 +1135,7 @@ def p_coproc_dp(opval, va):
     
     opcode = (IENC_COPROC_DP << 16)
     return (opcode, mnem, olist, 0)       #FIXME: CDP2 (cond = 0b1111) also needs handling.
-
+                                          # 6/22/16 CDP2 decodes properly. Is this still needed?
 mcr_mnem = ("mcr", "mrc")
 def p_coproc_reg_xfer(opval, va):
     opcode1 = (opval>>21) & 0x7

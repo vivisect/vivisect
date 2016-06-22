@@ -15,14 +15,19 @@ from envi.archs.arm.const import *
 from envi.archs.arm.disasm import *
 
 ''' 
-  This dictionary will contain all commands supported by ARM to test
+  This dictionary will contain all instructions supported by ARM to test
   Fields will contain following information:
   archVersionBitmask, ophex, va, repr, flags, emutests
 '''
-#items commented out are either not yet implimented or raise exceptions due to bugs.
-#all errors found are commented for instruction involved
-#note that cmn, cmp, teq and tst all have s's improperly attached to them for testing.
-#this will be the case until the 's' issue is resolved
+#List of instructions not tested and reason:
+#chka - thumbee
+#cps - thumb
+#cpy - pre ual for mov
+#enterx - go from thumb to thumbee
+#eret - exception return see B9.1980
+#F* (FLDMX, FSTMX)commands per A8.8.50 - pre UAL floating point
+#HB, HBL, HBLP, HBP - thumbee instructions see A9.1125-1127
+#IT - thumb
 
 instrs = [
         (REV_ALL_ARM, '08309fe5', 0xbfb00000, 'ldr r3, [#0xbfb00010]', 0, ()),
@@ -517,31 +522,51 @@ instrs = [
         (REV_ALL_ARM, 'ff4cb3e2', 0x4560, 'adcs  r4, r3, #0xff00', 0, ()),
         (REV_ALL_ARM, 'ff4c83e2', 0x4560, 'add  r4, r3, #0xff00', 0, ()),
         (REV_ALL_ARM, 'ff4c93e2', 0x4560, 'adds  r4, r3, #0xff00', 0, ()),
+        (REV_ALL_ARM, '013a8fe2', 0x4560, 'adr  r3, 0x00005568', 0, ()),
+        (REV_ALL_ARM, '013a4fe2', 0x4560, 'adr  r3, 0x00003568', 0, ()),
         (REV_ALL_ARM, 'ff4c03e2', 0x4560, 'and  r4, r3, #0xff00', 0, ()),
         (REV_ALL_ARM, 'ff4c13e2', 0x4560, 'ands  r4, r3, #0xff00', 0, ()),
         (REV_ALL_ARM, '001000ea', 0x4560, 'b 0x00008568', 0, ()),
         (REV_ALL_ARM, 'ff4cc3e3', 0x4560, 'bic  r4, r3, #0xff00', 0, ()),
         (REV_ALL_ARM, '001000eb', 0x4560, 'bl  0x00008568', 0, ()),
+        (REV_ALL_ARM, '001000fa', 0x4560, 'blx  0x00005568', 0, ()),
         (REV_ALL_ARM, '273764ee', 0x4560, 'cdp  p7, 6, c3, c4, c7, 1', 0, ()),
         (REV_ALL_ARM, '473b34ee', 0x4560, 'cdp  p11, 3, c3, c4, c7, 2', 0, ()),
 
+        (REV_ALL_ARM, 'ff0c74e3', 0x4560, 'cmn  r4, #0xff00', 0, ()),
+        (REV_ALL_ARM, 'ff0c54e3', 0x4560, 'cmp  r4, #0xff00', 0, ()),
+        (REV_ALL_ARM, 'ff4c23e2', 0x4560, 'eor r4, r3, #0xff00', 0, ()),
+        (REV_ALL_ARM, 'ff4c33e2', 0x4560, 'eors r4, r3, #0xff00', 0, ()),
+        (REV_ALL_ARM, '073894ed', 0x4560, 'ldc p8, c3, [r4, #0x1c]', 0, ()),
+        (REV_ALL_ARM, '073814ed', 0x4560, 'ldc p8, c3, [r4, #-0x1c]', 0, ()),
+        (REV_ALL_ARM, '0738b4ed', 0x4560, 'ldc p8, c3, [r4, #0x1c]!', 0, ()),
+        (REV_ALL_ARM, '073834ed', 0x4560, 'ldc p8, c3, [r4, #-0x1c]!', 0, ()),
+        (REV_ALL_ARM, '0738b4ec', 0x4560, 'ldc p8, c3, [r4], #0x1c', 0, ()),
+        (REV_ALL_ARM, '073834ec', 0x4560, 'ldc p8, c3, [r4], #-0x1c', 0, ()),
+        (REV_ALL_ARM, '073894ec', 0x4560, 'ldc p8, c3, [r4], #0x1c', 0, ()),  #option should not have # listed
+        (REV_ALL_ARM, '0738d4ed', 0x4560, 'ldcl p8, c3, [r4, #0x1c]', 0, ()),
+        (REV_ALL_ARM, '073854ed', 0x4560, 'ldcl p8, c3, [r4, #-0x1c]', 0, ()),
+        (REV_ALL_ARM, '0738f4ed', 0x4560, 'ldcl p8, c3, [r4, #0x1c]!', 0, ()),
+        (REV_ALL_ARM, '073874ed', 0x4560, 'ldcl p8, c3, [r4, #-0x1c]!', 0, ()),
+        (REV_ALL_ARM, '0738f4ec', 0x4560, 'ldcl p8, c3, [r4], #0x1c', 0, ()),
+        (REV_ALL_ARM, '073874ec', 0x4560, 'ldcl p8, c3, [r4], #-0x1c', 0, ()),
+        (REV_ALL_ARM, '0738d4ec', 0x4560, 'ldcl p8, c3, [r4], #0x1c', 0, ()),  #option should not have # listed
+        (REV_ALL_ARM, '07381fed', 0x4560, 'ldc p8, c3, [#0x454c]', 0, ()),
+        (REV_ALL_ARM, '07383fed', 0x4560, 'ldc p8, c3, #0x4584', 0, ()), #broken
+        #(REV_ALL_ARM, '07389fec', 0x4560, 'ldc p8, c3, #0x1c', 0, ()), #broken
+        #(REV_ALL_ARM, '07385fed', 0x4560, 'ldcl p8, c3, [#0x454c]', 0, ()), #broken only returns 4c
+        #(REV_ALL_ARM, '07387fed', 0x4560, 'ldcl p8, c3, #0x4584', 0, ()), #broken
+        #(REV_ALL_ARM, '0738dfec', 0x4560, 'ldcl p8, c3, #0x1c', 0, ()), #broken
+        #Will fix issues then retest before moving following ones
+        #(REV_ALL_ARM, '07381ffd', 0x4560, 'ldc2 p8, c3, [#0x454c]', 0, ()),
+        #(REV_ALL_ARM, '07383ffd', 0x4560, 'ldc2 p8, c3, #0x4584', 0, ()), #broken
+        #(REV_ALL_ARM, '07389ffc', 0x4560, 'ldc2 p8, c3, #0x1c', 0, ()), #broken
+        #(REV_ALL_ARM, '07385ffd', 0x4560, 'ldc2l p8, c3, [#0x454c]', 0, ()),#broken only returns 4c
+        #(REV_ALL_ARM, '07387ffd', 0x4560, 'ldc2l p8, c3, #0x4584', 0, ()),
+        #(REV_ALL_ARM, '0738dffc', 0x4560, 'ldc2l p8, c3, #0x1c', 0, ()),
         
         #commands with issues
 
-        #ADR returns value calculated from PC. Not sure if this is correct.
-        #Believe for disassembly this should just show the number in the command.
-        #Will address later. Should be showing 0x1000 for the value on next two.
-        #Add to PC
-        (REV_ALL_ARM, '013a8fe2', 0x4560, 'adr  r3, 0x00005568', 0, ()),
-        # or sub r3, pc, #0x100 value before current instruction[pc]
-        (REV_ALL_ARM, '013a4fe2', 0x4560, 'adr  r3, 0x00003568', 0, ()),
-        #blx2? Should just be blx, just is 2nd variation.
-        #(REV_ALL_ARM, '001000fa', 0x4560, 'blx  0x00008568', 0, ()),
-        #shows up as cdp22
-        #(REV_ALL_ARM, '273764fe', 0x4560, 'cdp2  p7, 6, r3, r4, r7, 1', 0, ()),
-        #(REV_ALL_ARM, '473b34fe', 0x4560, 'cdp2  p11, 3, c3, c4, c7, 2', 0, ()),
-
-        
         #Not yet implimented
         #these next ones show up as mov r4, r3, asr #30
         #(REV_ALL_ARM, '434fa0e1', 0x4560, 'asr  r4, r3, #30', 0, ()),
@@ -550,10 +575,33 @@ instrs = [
         #(REV_ALL_ARM, '5345b0e1', 0x4560, 'asrs  r4, r3, r7', 0, ()),
         #(REV_ALL_ARM, '1f32cfe7', 0x4560, 'bfc r3, #16, #4', 0, ()),
         #(REV_ALL_ARM, '1432cfe7', 0x4560, 'bfi r3, r4, #16, #4', 0, ()),
+        #(REV_ALL_ARM, '1ff07ff5', 0x4560, 'clrex', 0, ()),
+        #(REV_ALL_ARM, 'f3f020e3', 0x4560, 'dbg  #3', 0, ()),
+        #(REV_ALL_ARM, '53f07ff5', 0x4560, 'dmb  osh', 0, ()),
+        #(REV_ALL_ARM, '43f07ff5', 0x4560, 'dsb  osh', 0, ()),
+        #(REV_ALL_ARM, '6ff07ff5', 0x4560, 'isb sy', 0, ()),
 
-        #implimented but not yet in emu
+        #implimented in disasm but not yet in emu
         #(REV_ALL_ARM, '70f02fe1', 0x4560, 'bkpt  #0xff00', 0, ()),
         #(REV_ALL_ARM, '24ff2fe1', 0x4560, 'bxj  r4', 0, ()), # note this switches to jazelle
+        #(REV_ALL_ARM, '143f6fe1', 0x4560, 'clz r3, r4', 0, ()),
+        #(REV_ALL_ARM, '273764fe', 0x4560, 'cdp2  p7, 6, c3, c4, c7, 1', 0, ()),
+        #(REV_ALL_ARM, '473b34fe', 0x4560, 'cdp2  p11, 3, c3, c4, c7, 2', 0, ()),
+        #(REV_ALL_ARM, '073894fd', 0x4560, 'ldc2 p8, c3, [r4, #0x1c]', 0, ()),
+        #(REV_ALL_ARM, '073814fd', 0x4560, 'ldc2 p8, c3, [r4, #-0x1c]', 0, ()),
+        #(REV_ALL_ARM, '0738b4fd', 0x4560, 'ldc2 p8, c3, [r4, #0x1c]!', 0, ()),
+        #(REV_ALL_ARM, '073834fd', 0x4560, 'ldc2 p8, c3, [r4, #-0x1c]!', 0, ()),
+        #(REV_ALL_ARM, '0738b4fc', 0x4560, 'ldc2 p8, c3, [r4], #0x1c', 0, ()),
+        #(REV_ALL_ARM, '073834fc', 0x4560, 'ldc2 p8, c3, [r4], #-0x1c', 0, ()),
+        #(REV_ALL_ARM, '073894fc', 0x4560, 'ldc2 p8, c3, [r4], #0x1c', 0, ()),  #option should not have # listed
+        #(REV_ALL_ARM, '0738d4fd', 0x4560, 'ldc2l p8, c3, [r4, #0x1c]', 0, ()),
+        #(REV_ALL_ARM, '073854fd', 0x4560, 'ldc2l p8, c3, [r4, #-0x1c]', 0, ()),
+        #(REV_ALL_ARM, '0738f4fd', 0x4560, 'ldc2l p8, c3, [r4, #0x1c]!', 0, ()),
+        #(REV_ALL_ARM, '073874fd', 0x4560, 'ldc2l p8, c3, [r4, #-0x1c]!', 0, ()),
+        #(REV_ALL_ARM, '0738f4fc', 0x4560, 'ldc2l p8, c3, [r4], #0x1c', 0, ()),
+        #(REV_ALL_ARM, '073874fc', 0x4560, 'ldc2l p8, c3, [r4], #-0x1c', 0, ()),
+        #(REV_ALL_ARM, '0738d4fc', 0x4560, 'ldc2l p8, c3, [r4], #0x1c', 0, ()),  #option should not have # listed
+
 
         #ORIGINAL TESTS
         #start of commands with issues
