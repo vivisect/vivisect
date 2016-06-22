@@ -148,7 +148,7 @@ COND_LT:"lt", # Signed less than N set and V clear, or N clear and V set (N!= V)
 COND_GT:"gt", # Signed greater than Z clear, and either N set and V set, or N clear and V clear (Z == 0,N == V) 
 COND_LE:"le", # Signed less than or equal Z set, or N set and V clear, or N clear and V set (Z == 1 or N!= V) 
 COND_AL:"", # Always (unconditional) - could be "al" but "" seems better...
-COND_EXTENDED:"2", # See extended opcode table
+COND_EXTENDED:"", # See extended opcode table
 }
 cond_map = {
 COND_EQ:0,      # Equal Z set 
