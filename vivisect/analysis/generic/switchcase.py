@@ -156,7 +156,7 @@ def contains(symobj, subobj):
         walkTree callback for determining presence within an AST
         '''
         symsolve = symobj.solve()
-        print "==--==", repr(symobj), symsolve, ctx['compare']
+        #print "==--==", repr(symobj), symsolve, ctx['compare']
         if symsolve == ctx['compare']:
             ctx['contains'] = True
             ctx['path'] = tuple(path)
@@ -896,6 +896,9 @@ def getBoundsFromConstraints(fullcons):
     return lower, upper, baseoff
 
 def peelIndexOffset(symobj):
+    return peelIdxOffset(symobj)[1]
+
+def peelIdxOffset(symobj):
     '''
     Peel back ignorable wrapped layers of a symbolik Index register, and track
     offset in the process.  Once we've skipped out of the ignorable 
@@ -910,7 +913,12 @@ def peelIndexOffset(symobj):
 
         elif isinstance(symobj, o_sub):
             # this is an offset, used to rebase the index into a different pointer array
+            print symobj.kids[1]
             offset += symobj.kids[1].solve()
+
+        elif isinstance(symobj, o_add):
+            # this is an offset, used to rebase the index into a different pointer array
+            offset -= symobj.kids[1].solve()
 
         elif isinstance(symobj, o_sextend):
             # sign-extension is irrelevant for indexes
@@ -923,7 +931,7 @@ def peelIndexOffset(symobj):
         # this algorithm depends on only taking left turns
         symobj = symobj.kids[0]
 
-    return offset
+    return symobj, offset
 
 def analyzeFunction_old(vw, fva):
     '''
@@ -1058,17 +1066,28 @@ if globals().get('vw'):
 
 def thunk_bx(emu, fname, symargs):
     vw = emu._sym_vw
-    bx = vw.getMeta("PIE_ebx")
     rctx = vw.arch.archGetRegCtx()
-    reg = rctx.getRealRegisterName('bx')
-    emu.setSymVariable(reg, bx)
+    ebxval = emu.getMeta('calling_va')
+    oploc = vw.getLocation(ebxval)
+    if oploc == None:
+        ebxval += 5
+    else:
+        ebxval += oploc[L_SIZE]
+
+    ebx = Const(ebxval, vw.psize)
+    reg = rctx.getRealRegisterName('ebx')
+    raw_input("YAY!  Thunk_bx is being called! %s\t%s\t%s\t%s" % (emu, symargs, reg, ebx))
+    emu.setSymVariable(reg, ebx)
 
 class SwitchCase:
+    # FIXME: enhance "don't analyze" checks (like, already analyzed?)  or no?
+    # FIXME: collisions in named targets... shared between jmp's in same switch/function
+    # FIXME: thunk_bx needs to already be called on the thunk_bx functions *before* switchcase analysis can occur.  current setup doesn't guarantee that. ordering?  or we need to rewrite thunk_bx analysis to run during calling-function's analysis pass (during codeflow?) to analyze the functions being called...
     def __init__(self, vw, jmpva):
-        logger.info('=== 0x%x ===' % jmpva)
         self.vw = vw
         self.jmpva = jmpva
         self.op = vw.parseOpcode(jmpva)
+        logger.info('=== 0x%x: %r ===' % (jmpva, self.op))
 
         self.cspath = None
         self.aspath = None
@@ -1086,16 +1105,15 @@ class SwitchCase:
         self.sctx = vs_anal.getSymbolikAnalysisContext(vw)
         self.xlate = self.sctx.getTranslator()
 
-        #tmpemu = self.sctx.__emu__
-        #self.sctx.__emu__ = TrackingSymbolikEmulator
-        #self.sctx.__emu__.readSymMemory = self.sctx2.readSymMemory
-
         # 32-bit i386 thunk_bx handling.  this should be the only oddity for this architecture
-        if vw.getMeta('PIE_ebx'):
-            for tva in vw.getVaSetRow('thunk_bx'):
-                self.sctx.addSymFuncCallback(tva, thunk_bx)
+        #if vw.getMeta('PIE_ebx'):
+        for tva, in vw.getVaSetRows('thunk_bx'):
+            fname = vw.getName(tva, True)
+            self.sctx.addSymFuncCallback(fname, thunk_bx)
+            print "sctx.addSymFuncCallback(%s, thunk_bx)" % fname
 
-        # ??
+        # 
+        '''
         self.longSemu = TrackingSymbolikEmulator(vw)
         self.shortSemu = TrackingSymbolikEmulator(vw)
 
@@ -1105,6 +1123,7 @@ class SwitchCase:
 
         self.jmpregidx = None
         self.jmpregname = None
+        '''
         self.jmpregsymbx = None
 
 
@@ -1212,16 +1231,20 @@ class SwitchCase:
 
         return self.cspath, self.aspath, self.fullpath
 
+    def getComplexIdx(self):
+        smplIdx = self.getSymIdx()
+
+        (csemu,cseffs), asp, fullp = self.getSymbolikParts()
+        cplxIdx = csemu.getSymVariable(smplIdx)
+        return cplxIdx
 
     #### higher level functionality ####
 
-    def getBounds(self):
-        csp, asp, fullp = self.getSymbolikParts()
+    def getBoundingCons(self, cplxIdx):
+        return [con for con in self.getConstraints() if contains(con, cplxIdx)[0] ]
 
-        smplIdx = self.getSymIdx()
-        #logger.debug("smplIdx: %r", smplIdx)
-        #if raw_input('PRESS ENTER').lower().startswith('q'):
-        #    return None, None, None
+    def getBounds(self):
+        (csemu,cseffs), asp, fullp = self.getSymbolikParts()
 
         lower = self.lower
         upper = self.upper
@@ -1229,25 +1252,31 @@ class SwitchCase:
         count = 0
        
         try:
-            while upper <= lower: # FIXME: this will fail badly when it fails.  make this dependent on the codepathgen
+            while lower == None or upper <= lower: # FIXME: this will fail badly when it fails.  make this dependent on the codepathgen
                 # get the index we'll be looking for in constraints
                 if count != 0:
-                    csp, asp, fullp = self.getSymbolikParts(next=True)
-                    smplIdx = self.getSymIdx()
+                    (csemu,cseffs), asp, fullp = self.getSymbolikParts(next=True)
 
                 count += 1
 
-                cplxIdx = csp[0].getSymVariable(smplIdx)
+                cplxIdx = self.getComplexIdx().reduce()
+                ##### PEAL the cplxIdx #####
+                baseIdx, idxoff = self.getBaseSymIdx()
+
                 logger.debug("cplxIdx: %r", cplxIdx)
+                logger.debug("cplxIdx2: %r (%d)", *peelIdxOffset(cplxIdx))
+                logger.debug("baseIdx: %r", baseIdx)
 
                 # identify constraints which contain our index
-                logger.debug("\n%r", self.getConstraints())
-                boundingcons = [con for con in self.getConstraints() if contains(con, cplxIdx)[0] ]
-                logger.debug("\n%r", boundingcons)
+                logger.debug("\n$$$Generic$$$\n%r", self.getConstraints())
+
+                boundingcons = self.getBoundingCons(baseIdx)
+                #boundingcons = self.getBoundingCons(cplxIdx)
+                logger.debug("\n===Bounding cons:===\n %r", boundingcons)
 
                 lower = 0
                 upper = None
-                baseoff = None
+                #baseoff = 0
 
                 for con in boundingcons:
                     cons = con.cons
@@ -1272,9 +1301,14 @@ class SwitchCase:
                         # not set static bounds on idx
                         continue
 
+
+                    # NORMALIZE!!!!
+
+
+
                     # once we identify idx, stick with it.
-                    if baseoff == None:
-                        baseoff = peelIndexOffset(symvar)
+                    #if baseoff == None:
+                    consoff = peelIndexOffset(symvar)
                         # try peeling until it we're left with cplxIdx
                         # can this be a separate function?  doesn't seem likely
 
@@ -1305,14 +1339,14 @@ class SwitchCase:
                     elif cons.symtype == SYMT_CON_LT:
                         # this is setting the upper bound
                         newupper = symcmp.solve() - 1
-                        if upper == None or newupper < upper:
+                        if upper == None or newupper < upper and newupper > 0:
                             logger.info("==we're resetting a upper bound:  %s -> %s", upper, newupper)
                             upper = newupper
                         
                     elif cons.symtype == SYMT_CON_LE:
                         # this is setting the upper bound
                         newupper = symcmp.solve()
-                        if upper == None or newupper < upper:
+                        if upper == None or newupper < upper and newupper > 0:
                             logger.info("==we're resetting a upper bound:  %s -> %s", upper, newupper)
                             upper = newupper
 
@@ -1461,6 +1495,114 @@ class SwitchCase:
 
         return derefs
 
+    def getBaseSymIdx(self):
+        def _cb_peel_idx(path, symobj, ctx):
+            print 'PATH: %r\nSYMOBJ: %r\nCTX: %r' % (path, symobj, ctx)
+
+        def _cb_mark_longpath(path, symobj, ctx):
+            print 'PATH: %r\nSYMOBJ: %r\nCTX: %r' % (path, symobj, ctx)
+            longpath = ctx.get('longpath')
+            if longpath == None:
+                ctx['longpath'] = list(path)
+            elif len(path) > len(longpath):
+                ctx['longpath'] = list(path)
+
+        (csemu,cseff), aspath, fullpath = self.getSymbolikParts()
+
+        #idx = self.getComplexIdx().update(csemu).reduce()
+        idx = self.getComplexIdx().reduce()
+
+        # peel it back
+        ctx = {}
+        idx.walkTree(_cb_mark_longpath, ctx)
+
+        longpath = ctx.get('longpath')
+
+        # now compare the long path against constraints that contain it.  find sweet spot
+        count = last = None
+        which = None
+        print '\n'
+        offset = 0
+        cons = self.getConstraints()
+        for symobj in longpath:
+            last = count
+            count = len(self.getBoundingCons(symobj))
+            print "%d: %r" % (count, symobj)
+            #if count < last:
+            #    break
+            # peel off o_subs and size-limiting o_ands and o_sextends
+            if isinstance(symobj, o_and) and symobj.kids[1].isDiscrete() and symobj.kids[1].solve() in e_bits.u_maxes:
+                pass    # this wrapper is a size-limiting bitmask
+
+            elif isinstance(symobj, o_sub):
+                offset += symobj.kids[1].solve() # this is an offset, used to rebase the index into a different pointer array
+
+            elif isinstance(symobj, o_add):
+                offset -= symobj.kids[1].solve() # this is an offset, used to rebase the index into a different pointer array
+
+            elif isinstance(symobj, o_sextend):
+                pass # sign-extension is irrelevant for indexes
+
+            # anything else and we're done peeling
+            else:
+                break
+
+        print "DONE: (%d) %r" % (last, symobj)
+        # now figure what was cut, and what impact it has.
+
+        return symobj, offset
+        
+        '''
+PATH: [o_add(Mem(o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), Const(0x00000004,8)),Const(0x7ff38880000,8),8), Mem(o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), Const(0x00000004,8)), o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8), Const(0x7ff38880000,8)]
+SYMOBJ: Const(0x7ff38880000,8)
+CTX: {}
+PATH: [o_add(Mem(o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), Const(0x00000004,8)),Const(0x7ff38880000,8),8), Mem(o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), Const(0x00000004,8)), o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8), o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8), o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)), o_and(Var("rdx", width=8),Const(0xffffffff,4),4), Var("rdx", width=8)]
+SYMOBJ: Var("rdx", width=8)
+CTX: {}
+PATH: [o_add(Mem(o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), Const(0x00000004,8)),Const(0x7ff38880000,8),8), Mem(o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), Const(0x00000004,8)), o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8), o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8), o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)), o_and(Var("rdx", width=8),Const(0xffffffff,4),4), Const(0xffffffff,4)]
+SYMOBJ: Const(0xffffffff,4)
+CTX: {}
+PATH: [o_add(Mem(o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), Const(0x00000004,8)),Const(0x7ff38880000,8),8), Mem(o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), Const(0x00000004,8)), o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8), o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8), o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)), o_and(Var("rdx", width=8),Const(0xffffffff,4),4)]
+SYMOBJ: o_and(Var("rdx", width=8),Const(0xffffffff,4),4)
+CTX: {}
+PATH: [o_add(Mem(o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), Const(0x00000004,8)),Const(0x7ff38880000,8),8), Mem(o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), Const(0x00000004,8)), o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8), o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8), o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)), Const(0x00000004,8)]
+SYMOBJ: Const(0x00000004,8)
+CTX: {}
+PATH: [o_add(Mem(o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), Const(0x00000004,8)),Const(0x7ff38880000,8),8), Mem(o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), Const(0x00000004,8)), o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8), o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8), o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8))]
+SYMOBJ: o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8))
+CTX: {}
+PATH: [o_add(Mem(o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), Const(0x00000004,8)),Const(0x7ff38880000,8),8), Mem(o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), Const(0x00000004,8)), o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8), o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8), Const(0x00000004,8)]
+SYMOBJ: Const(0x00000004,8)
+CTX: {}
+PATH: [o_add(Mem(o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), Const(0x00000004,8)),Const(0x7ff38880000,8),8), Mem(o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), Const(0x00000004,8)), o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8), o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8)]
+SYMOBJ: o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8)
+CTX: {}
+PATH: [o_add(Mem(o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), Const(0x00000004,8)),Const(0x7ff38880000,8),8), Mem(o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), Const(0x00000004,8)), o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8)]
+SYMOBJ: o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8)
+CTX: {}
+PATH: [o_add(Mem(o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), Const(0x00000004,8)),Const(0x7ff38880000,8),8), Mem(o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), Const(0x00000004,8)), o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), Const(0x0003027c,8)]
+SYMOBJ: Const(0x0003027c,8)
+CTX: {}
+PATH: [o_add(Mem(o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), Const(0x00000004,8)),Const(0x7ff38880000,8),8), Mem(o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), Const(0x00000004,8)), o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8)]
+SYMOBJ: o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8)
+CTX: {}
+PATH: [o_add(Mem(o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), Const(0x00000004,8)),Const(0x7ff38880000,8),8), Mem(o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), Const(0x00000004,8)), Const(0x00000004,8)]
+SYMOBJ: Const(0x00000004,8)
+CTX: {}
+PATH: [o_add(Mem(o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), Const(0x00000004,8)),Const(0x7ff38880000,8),8), Mem(o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), Const(0x00000004,8))]
+SYMOBJ: Mem(o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), Const(0x00000004,8))
+CTX: {}
+PATH: [o_add(Mem(o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), Const(0x00000004,8)),Const(0x7ff38880000,8),8), Const(0x7ff38880000,8)]
+SYMOBJ: Const(0x7ff38880000,8)
+CTX: {}
+PATH: [o_add(Mem(o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), Const(0x00000004,8)),Const(0x7ff38880000,8),8)]
+SYMOBJ: o_add(Mem(o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), Const(0x00000004,8)),Const(0x7ff38880000,8),8)
+CTX: {}
+Out[14]: o_add(Mem(o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), Const(0x00000004,8)),Const(0x7ff38880000,8),8)
+
+'''
+
+
     def markDerefs(self):
         lower, upper, offset = self.getBounds()
 
@@ -1534,6 +1676,10 @@ class SwitchCase:
 
             curname = vw.getName(addr) 
             if curname != None:
+                ## FIXME NOW!:   if already labeled, chances are good this is other cases in the same function.
+                ## either simply add the new outstrings to the current one or we need to keep track of what
+                ## calls each and with what switchcase/index info.  VaSet?  or do we want this to only expect
+                ## the same function to call each one, and all part of the same Switchcase?
                 logger.warn("%s is already labeled %s", casename, curname)
 
             vw.makeName(addr, casename)
