@@ -913,7 +913,6 @@ def peelIdxOffset(symobj):
 
         elif isinstance(symobj, o_sub):
             # this is an offset, used to rebase the index into a different pointer array
-            print symobj.kids[1]
             offset += symobj.kids[1].solve()
 
         elif isinstance(symobj, o_add):
@@ -1246,9 +1245,9 @@ class SwitchCase:
     def getBounds(self):
         (csemu,cseffs), asp, fullp = self.getSymbolikParts()
 
-        lower = self.lower
-        upper = self.upper
-        baseoff = self.baseoff
+        lower = self.lower      # the smallest index used.  most often wants to be 0
+        upper = self.upper      # the largest index used.  max=MAX_CASES
+        baseoff = self.baseoff  # the offset added/subtracted to the index to get this this jmpva
         count = 0
        
         try:
@@ -1261,7 +1260,7 @@ class SwitchCase:
 
                 cplxIdx = self.getComplexIdx().reduce()
                 ##### PEAL the cplxIdx #####
-                baseIdx, idxoff = self.getBaseSymIdx()
+                baseIdx, baseoff = self.getBaseSymIdx()
 
                 logger.debug("cplxIdx: %r", cplxIdx)
                 logger.debug("cplxIdx2: %r (%d)", *peelIdxOffset(cplxIdx))
@@ -1282,7 +1281,7 @@ class SwitchCase:
                     cons = con.cons
 
                     if not cons.symtype in (SYMT_CON_GT, SYMT_CON_GE, SYMT_CON_LT, SYMT_CON_LE): 
-                        logger.debug("SKIPPING: cons = %s", repr(cons))
+                        logger.debug("SKIPPING NON-LIMITING: cons = %s", repr(cons))
                         #return None, None, None
                         continue
 
@@ -1299,18 +1298,23 @@ class SwitchCase:
                     else:
                         # neither side of the constraint is a CONST.  this constraint does 
                         # not set static bounds on idx
+                        logger.debug("SKIPPING (non-discrete): cons = %s", repr(cons))
+                        continue
+
+                    if not contains(symvar, baseIdx):
+                        logger.debug("Constraint not based on Index: %r" % cons)
+                        continue
+
+                    if cons.symtype == SYMT_CON_LT and symcmp.solve() == 0:
+                        logger.debug("SKIPPING Constraint Checking for Zero: %r" % cons)
                         continue
 
 
                     # NORMALIZE!!!!
 
-
-
-                    # once we identify idx, stick with it.
-                    #if baseoff == None:
-                    consoff = peelIndexOffset(symvar)
-                        # try peeling until it we're left with cplxIdx
-                        # can this be a separate function?  doesn't seem likely
+                    conthing, consoff = peelIdxOffset(symvar)
+                    # try peeling until it we're left with cplxIdx
+                    # can this be a separate function?  doesn't seem likely
 
                     ## check the sanity of this constraint's symvar against our idx.
                     #d = 0
@@ -1320,32 +1324,34 @@ class SwitchCase:
                             #continue
 
                     logger.info("* "+ repr(cons._v2)+ "\t"+repr(cons._v1)+"\t"+ repr(cons))
+                    diff = symcmp.solve() + consoff
+                    logger.info('** symcmp: %r \tconsoff: %r \tdiff: %r \t%r\t%r', symcmp.solve(), consoff, diff, symcmp, symvar) #conthing)
 
                     # FIXME: probably don't want to reset things once they're set.  this could be some other indicator for a nested switchcase...  need to get one of those for testing.
                     if cons.symtype == SYMT_CON_GT:
                         # this is setting the lower bound
-                        newlower = symcmp.solve() + 1
+                        newlower = diff + 1
                         if lower == 0 or newlower > lower: 
                             logger.info("==we're resetting a lower bound:  %s -> %s", lower, newlower)
                             lower = newlower
                         
                     elif cons.symtype == SYMT_CON_GE:
                         # this is setting the lower bound
-                        newlower = symcmp.solve()
+                        newlower = diff
                         if lower == 0 or newlower > lower: 
                             logger.info("==we're resetting a lower bound:  %s -> %s", lower, newlower)
                             lower = newlower
                         
                     elif cons.symtype == SYMT_CON_LT:
                         # this is setting the upper bound
-                        newupper = symcmp.solve() - 1
+                        newupper = diff - 1
                         if upper == None or newupper < upper and newupper > 0:
                             logger.info("==we're resetting a upper bound:  %s -> %s", upper, newupper)
                             upper = newupper
                         
                     elif cons.symtype == SYMT_CON_LE:
                         # this is setting the upper bound
-                        newupper = symcmp.solve()
+                        newupper = diff
                         if upper == None or newupper < upper and newupper > 0:
                             logger.info("==we're resetting a upper bound:  %s -> %s", upper, newupper)
                             upper = newupper
@@ -1356,6 +1362,8 @@ class SwitchCase:
                 logger.info("Done.. %r %r %r...\n" % (lower, upper, baseoff))
         except StopIteration:
             pass
+        except Exception, e:
+            logger.info("!@#$!@#$!@#$!@#$ BOMBED OUT !@#$!@#$!@#$!@#$ \n%r" % e)
 
         # if upper is None:  we need to exercize upper until something doesn't make sense.  
         # we also need to make sure we don't analyze non-Switches.  
