@@ -2150,11 +2150,11 @@ class ArmImmOffsetOper(ArmOperand):
 
         
         if (self.pubwl & 0x12) == 0x12:    # pre-indexed
-            if emu._forrealz: emu.setRegister( self.base_reg, addr)
+            if (emu != None) and (emu._forrealz): emu.setRegister( self.base_reg, addr)
             return addr
 
         elif (self.pubwl & 0x12) == 0:     # post-indexed
-            if emu._forrealz: emu.setRegister( self.base_reg, addr )
+            if (emu != None) and (emu._forrealz): emu.setRegister( self.base_reg, addr )
             return base
 
         return addr
