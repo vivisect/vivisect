@@ -51,7 +51,7 @@ class ThumbModule(envi.ArchitectureModule):
     This architecture module will *not* shift to ARM mode.  Evar.
     '''
 
-    def __init__(self, name='ARMv7'):
+    def __init__(self, name='ARMv7A'):
         import envi.archs.thumb16.disasm as eatd
         envi.ArchitectureModule.__init__(self, name, maxinst=4)
         self._arch_reg = self.archGetRegCtx()
