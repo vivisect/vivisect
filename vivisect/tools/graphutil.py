@@ -330,7 +330,7 @@ def getCodePaths(fgraph, loopcnt=0, maxpath=None):
                 tonode = fgraph.getNode(toid)
                 todo.append((tonode,npath))
 
-def walkCodePaths(fgraph, callback, loopcnt=0, maxpath=None):
+def walkCodePaths(fgraph, callback, maxpath=None, loopcnt=0):
     '''
     walkCodePaths is a path generator which uses a callback function to determine the 
     viability of each particular path.  This approach allows the calling function 
