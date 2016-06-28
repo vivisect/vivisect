@@ -543,30 +543,30 @@ instrs = [
         (REV_ALL_ARM, '073834ed', 0x4560, 'ldc p8, c3, [r4, #-0x1c]!', 0, ()),
         (REV_ALL_ARM, '0738b4ec', 0x4560, 'ldc p8, c3, [r4], #0x1c', 0, ()),
         (REV_ALL_ARM, '073834ec', 0x4560, 'ldc p8, c3, [r4], #-0x1c', 0, ()),
-        (REV_ALL_ARM, '073894ec', 0x4560, 'ldc p8, c3, [r4], #0x1c', 0, ()),  #option should not have # listed
+        (REV_ALL_ARM, '073894ec', 0x4560, 'ldc p8, c3, [r4], {7}', 0, ()),
         (REV_ALL_ARM, '0738d4ed', 0x4560, 'ldcl p8, c3, [r4, #0x1c]', 0, ()),
         (REV_ALL_ARM, '073854ed', 0x4560, 'ldcl p8, c3, [r4, #-0x1c]', 0, ()),
         (REV_ALL_ARM, '0738f4ed', 0x4560, 'ldcl p8, c3, [r4, #0x1c]!', 0, ()),
         (REV_ALL_ARM, '073874ed', 0x4560, 'ldcl p8, c3, [r4, #-0x1c]!', 0, ()),
         (REV_ALL_ARM, '0738f4ec', 0x4560, 'ldcl p8, c3, [r4], #0x1c', 0, ()),
         (REV_ALL_ARM, '073874ec', 0x4560, 'ldcl p8, c3, [r4], #-0x1c', 0, ()),
-        (REV_ALL_ARM, '0738d4ec', 0x4560, 'ldcl p8, c3, [r4], #0x1c', 0, ()),  #option should not have # listed
+        (REV_ALL_ARM, '0738d4ec', 0x4560, 'ldcl p8, c3, [r4], {7}', 0, ()),
+        #in progress testing and debugging
+        (REV_ALL_ARM, '07389fed', 0x4560, 'ldc p8, c3, [#0x4584]', 0, ()),
         (REV_ALL_ARM, '07381fed', 0x4560, 'ldc p8, c3, [#0x454c]', 0, ()),
-        (REV_ALL_ARM, '07383fed', 0x4560, 'ldc p8, c3, #0x4584', 0, ()), #broken
-        #(REV_ALL_ARM, '07389fec', 0x4560, 'ldc p8, c3, #0x1c', 0, ()), #broken
-        #(REV_ALL_ARM, '07385fed', 0x4560, 'ldcl p8, c3, [#0x454c]', 0, ()), #broken only returns 4c
-        #(REV_ALL_ARM, '07387fed', 0x4560, 'ldcl p8, c3, #0x4584', 0, ()), #broken
-        #(REV_ALL_ARM, '0738dfec', 0x4560, 'ldcl p8, c3, #0x1c', 0, ()), #broken
-        #Will fix issues then retest before moving following ones
-        #(REV_ALL_ARM, '07381ffd', 0x4560, 'ldc2 p8, c3, [#0x454c]', 0, ()),
-        #(REV_ALL_ARM, '07383ffd', 0x4560, 'ldc2 p8, c3, #0x4584', 0, ()), #broken
-        #(REV_ALL_ARM, '07389ffc', 0x4560, 'ldc2 p8, c3, #0x1c', 0, ()), #broken
-        #(REV_ALL_ARM, '07385ffd', 0x4560, 'ldc2l p8, c3, [#0x454c]', 0, ()),#broken only returns 4c
-        #(REV_ALL_ARM, '07387ffd', 0x4560, 'ldc2l p8, c3, #0x4584', 0, ()),
-        #(REV_ALL_ARM, '0738dffc', 0x4560, 'ldc2l p8, c3, #0x1c', 0, ()),
+        (REV_ALL_ARM, '0738bfed', 0x4560, 'ldc p8, c3, [#0x4584]', 0, ()),
+        (REV_ALL_ARM, '07383fed', 0x4560, 'ldc p8, c3, [#0x454c]', 0, ()),
+        (REV_ALL_ARM, '0738bfec', 0x4560, 'ldc p8, c3, [#0x4584]', 0, ()),
+        (REV_ALL_ARM, '07383fec', 0x4560, 'ldc p8, c3, [#0x454c]', 0, ()),
+        (REV_ALL_ARM, '07389fec', 0x4560, 'ldc p8, c3, [pc], {7}', 0, ()),
+        (REV_ALL_ARM, '0738dfed', 0x4560, 'ldcl p8, c3, [#0x4584]', 0, ()),
+        (REV_ALL_ARM, '07385fed', 0x4560, 'ldcl p8, c3, [#0x454c]', 0, ()),
+        (REV_ALL_ARM, '0738ffed', 0x4560, 'ldcl p8, c3, [#0x4584]', 0, ()),
+        (REV_ALL_ARM, '07387fed', 0x4560, 'ldcl p8, c3, [#0x454c]', 0, ()),
+        (REV_ALL_ARM, '0738ffec', 0x4560, 'ldcl p8, c3, [#0x4584]', 0, ()),
+        (REV_ALL_ARM, '07387fec', 0x4560, 'ldcl p8, c3, [#0x454c]', 0, ()),
+        (REV_ALL_ARM, '0738dfec', 0x4560, 'ldcl p8, c3, [pc], {7}', 0, ()),
         
-        #commands with issues
-
         #Not yet implimented
         #these next ones show up as mov r4, r3, asr #30
         #(REV_ALL_ARM, '434fa0e1', 0x4560, 'asr  r4, r3, #30', 0, ()),
@@ -920,10 +920,11 @@ class ArmInstructionSet(unittest.TestCase):
                 test_arch = ARCH_REVS[key]
                 if ((not ranAlready) or (not self.armTestOnce)) and ((archz & test_arch & self.armTestVersion) != 0): 
                     ranAlready = True
-                    #arm.setArchVersion(key)
+                    #print arm.ArmDisasm._archVersionMask
                     #num, = struct.unpack("<I", bytez.decode('hex'))
                     #bs = bin(num)[2:].zfill(32)
                     #print bytez, bs
+                    #in arm/init.py
                     op = vw.arch.archParseOpcode(bytez.decode('hex'), 0, va)
                     redoprepr = repr(op).replace(' ','').lower()
                     redgoodop = reprOp.replace(' ','')
