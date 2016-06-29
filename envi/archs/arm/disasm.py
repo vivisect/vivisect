@@ -2140,18 +2140,22 @@ class ArmImmOffsetOper(ArmOperand):
         # there are certain circumstances where we can survive without an emulator
         pubwl = self.pubwl >> 3
         u = pubwl & 1
+        tsize = self.tsize # to help cope with ldcl
         # if we don't have an emulator, we must be PC-based since we know it
         if self.base_reg == REG_PC:
             base = self.va
+            #to handle lcdl. Override tsize to return proper address
+            if ((self.pubwl >>2) & 1) == 1:
+                tsize =4
         elif emu == None:
             return None
         else:
             base = emu.getRegister(self.base_reg)
 
         if u:
-            addr = (base + self.offset) & e_bits.u_maxes[self.tsize]
+            addr = (base + self.offset) & e_bits.u_maxes[tsize]
         else:
-            addr = (base - self.offset) & e_bits.u_maxes[self.tsize]
+            addr = (base - self.offset) & e_bits.u_maxes[tsize]
 
         
         if (self.pubwl & 0x12) == 0x12:    # pre-indexed
@@ -2191,6 +2195,7 @@ class ArmImmOffsetOper(ArmOperand):
                     mcanv.addNameText("0x%x" % value)
 
             # FIXME: is there any chance of us doing indexing on PC?!?
+            # ldcl literal trips this in some cases - leaving for now
             if idxing != 0x10:
                 print "OMJ! indexing on the program counter!"
         else:
@@ -2220,6 +2225,7 @@ class ArmImmOffsetOper(ArmOperand):
             addr = self.getOperAddr(op)    # only works without an emulator because we've already verified base_reg is PC
             tname = "[#0x%x]" % addr
             # FIXME: is there any chance of us doing indexing on PC?!?
+            # ldcl literal trips this in some cases - leaving for now - to check for other instances
             if idxing != 0x10:
                 print "OMJ! indexing on the program counter!"
         else:
