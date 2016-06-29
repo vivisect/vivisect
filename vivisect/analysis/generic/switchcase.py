@@ -5,6 +5,8 @@ which use pointer arithetic to determine code path for each case.
 
 This will not connect switch cases which are actually explicit cmp/jz in the code.
 '''
+import sys
+
 import logging
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -295,7 +297,7 @@ def zero_in(vw, jmpva, oplist, special_vals={}):
     oper = op.opers[0]
     reg = oper.reg
     regname = rctx.getRegisterName(reg)
-    sctx = SwitchCaseSymbolikAnalysisContext(vw)
+    sctx = vs_anal.getSymbolikAnalysisContext(vw)
     xlate = sctx.getTranslator()
     
     # first loop...  back up the truck to the start of the codeblock
@@ -440,7 +442,7 @@ def determineCaseIndex(vw, jmpva, regname, special_vals, effs, debug):
     #       the index reg, and the module baseva (optional)
     if len(unks) > 2:
         logger.debug("bailing on this dynamic branch: more than 2 unknowns in this AST")
-        return False, 0, 0, 0
+        return False, 0, 0, 0, 0
 
     # cycle through possible case regs, check for valid location by providing index 0
     for rname in unks:
@@ -465,7 +467,7 @@ def determineCaseIndex(vw, jmpva, regname, special_vals, effs, debug):
             # variables known to hold  imagebase  (this is compiler-specific as much as arch)
             ibvars = vw.arch.archGetRegisterGroup('switch_mapbase')
             if ibvars == None:
-                return
+                return False, 0, 0, 0, 0
 
             for kvar in ibvars:
                 if rname == kvar:
@@ -504,15 +506,15 @@ def determineCaseIndex(vw, jmpva, regname, special_vals, effs, debug):
                     continue
                 vals[reg] = regobj.solve()
 
-            print '\n'.join([str(x) for x in symeffs])
-            print symemu.getSymSnapshot()[2]
-            semu.setSymSnapshot(({},{},{},''))
-            val = jmpreg.solve(emu=semu, vals=vals) & e_bits.u_maxes[jmpreg.getWidth()]
-            print jmpreg, " = ", hex(val),
-            print '\n\t' + '\n\t'.join(["%s: %s" % (reg, repr(symemu.getSymVariable(reg).reduce())) for reg in unks])
-            if raw_input("PRESS ENTER").lower().startswith('q'):
-                break
-            print '\n'
+            #print '\n'.join([str(x) for x in symeffs])
+            #print symemu.getSymSnapshot()[2]
+            #semu.setSymSnapshot(({},{},{},''))
+            #val = jmpreg.solve(emu=semu, vals=vals) & e_bits.u_maxes[jmpreg.getWidth()]
+            #print jmpreg, " = ", hex(val),
+            #print '\n\t' + '\n\t'.join(["%s: %s" % (reg, repr(symemu.getSymVariable(reg).reduce())) for reg in unks])
+            #if raw_input("PRESS ENTER").lower().startswith('q'):
+            #    break
+            #print '\n'
 
             # if we have a Const, it's a base of some sort.
             # the other unknown should be the index.
@@ -998,6 +1000,7 @@ def analyzeFunction_new(vw, fva):
         dynbranches = vw.getVaSet('DynamicBranches')
 
 analyzeFunction = analyzeFunction_new
+#analyzeFunction = analyzeFunction_old
 
 # for use as vivisect script
 if globals().get('vw'):
@@ -1075,7 +1078,7 @@ def thunk_bx(emu, fname, symargs):
 
     ebx = Const(ebxval, vw.psize)
     reg = rctx.getRealRegisterName('ebx')
-    raw_input("YAY!  Thunk_bx is being called! %s\t%s\t%s\t%s" % (emu, symargs, reg, ebx))
+    #raw_input("YAY!  Thunk_bx is being called! %s\t%s\t%s\t%s" % (emu, symargs, reg, ebx))
     emu.setSymVariable(reg, ebx)
 
 class SwitchCase:
@@ -1088,6 +1091,20 @@ class SwitchCase:
         self.op = vw.parseOpcode(jmpva)
         logger.info('=== 0x%x: %r ===' % (jmpva, self.op))
 
+        self.sctx = vs_anal.getSymbolikAnalysisContext(vw)
+        self.xlate = self.sctx.getTranslator()
+
+        # 32-bit i386 thunk_bx handling.  this should be the only oddity for this architecture
+        #if vw.getMeta('PIE_ebx'):
+        for tva, in vw.getVaSetRows('thunk_bx'):
+            fname = vw.getName(tva, True)
+            self.sctx.addSymFuncCallback(fname, thunk_bx)
+            print "sctx.addSymFuncCallback(%s, thunk_bx)" % fname
+        self.clearCache()
+
+
+
+    def clearCache(self):
         self.cspath = None
         self.aspath = None
         self.fullpath = None
@@ -1100,16 +1117,7 @@ class SwitchCase:
         self.lower = None
         self.count = None
         self.baseoff = None
-
-        self.sctx = vs_anal.getSymbolikAnalysisContext(vw)
-        self.xlate = self.sctx.getTranslator()
-
-        # 32-bit i386 thunk_bx handling.  this should be the only oddity for this architecture
-        #if vw.getMeta('PIE_ebx'):
-        for tva, in vw.getVaSetRows('thunk_bx'):
-            fname = vw.getName(tva, True)
-            self.sctx.addSymFuncCallback(fname, thunk_bx)
-            print "sctx.addSymFuncCallback(%s, thunk_bx)" % fname
+        self.baseIdx = None
 
         # 
         '''
@@ -1200,9 +1208,11 @@ class SwitchCase:
 
         FIXME: this needs to be able to handle things like "thunk_bx" calls.
         '''
-        if not next and self.cspath != None and self.aspath != None:
+        if not next and self.cspath != None and self.aspath != None and self.fullpath != None:
             return self.cspath, self.aspath, self.fullpath
         
+        self.clearCache()
+
         vw = self.vw
         sctx = self.sctx
         jmpva = self.jmpva
@@ -1210,6 +1220,7 @@ class SwitchCase:
         fva = vw.getFunction(jmpva)
         cb = vw.getCodeBlock(jmpva)
         if cb == None:
+            raise Exception("Dynamic Branch is not currently part of a CodeBlock!")
             return None
         cbva, cbsz, cbfva = cb
 
@@ -1242,12 +1253,64 @@ class SwitchCase:
     def getBoundingCons(self, cplxIdx):
         return [con for con in self.getConstraints() if contains(con, cplxIdx)[0] ]
 
+    def getNormalizedConstraints(self):
+        '''
+        takes in a complix index symbolik state
+        returns a list of tuples of (SYMT_CON_??, offset)
+        '''
+        retcons = []
+        baseIdx, baseoff = self.getBaseSymIdx()
+
+        for con in self.getBoundingCons(baseIdx): # merge the two
+            cons = con.cons
+
+            if not cons.symtype in (SYMT_CON_GT, SYMT_CON_GE, SYMT_CON_LT, SYMT_CON_LE): 
+                logger.debug("SKIPPING NON-LIMITING: cons = %s", repr(cons))
+                #return None, None, None
+                continue
+            
+            if cons._v2.symtype == SYMT_CONST:
+                symvar = cons._v1
+                symcmp = cons._v2
+            
+            elif cons._v1.symtype == SYMT_CONST:
+                symcmp = cons._v1
+                symvar = cons._v2
+            
+            else:
+                # neither side of the constraint is a CONST.  this constraint does 
+                # not set static bounds on idx
+                logger.debug("SKIPPING (non-discrete): cons = %s", repr(cons))
+                continue
+
+            if not contains(symvar, baseIdx):
+                logger.debug("Constraint not based on Index: %r" % cons)
+                continue
+
+            if cons.symtype == SYMT_CON_LT and symcmp.solve() == 0:
+                logger.debug("SKIPPING Constraint Checking for Zero: %r" % cons)
+                continue
+
+            conthing, consoff = peelIdxOffset(symvar)
+
+            if conthing != baseIdx:
+                raw_input("FAIL: %r  != %r" % (conthing, baseIdx))
+                continue
+
+            logger.debug("GOOD: %r\n\t%r\n\t%r\t%r + %r" % (cons, symvar, conthing, consoff, symcmp))
+            retcons.append((con, cons.symtype, consoff+symcmp.solve()))
+
+        return retcons
+
+            
+
+
     def getBounds(self):
         (csemu,cseffs), asp, fullp = self.getSymbolikParts()
 
         lower = self.lower      # the smallest index used.  most often wants to be 0
         upper = self.upper      # the largest index used.  max=MAX_CASES
-        baseoff = self.baseoff  # the offset added/subtracted to the index to get this this jmpva
+        #baseoff = self.baseoff  # the offset added/subtracted to the index to get this this jmpva
         count = 0
        
         try:
@@ -1258,12 +1321,12 @@ class SwitchCase:
 
                 count += 1
 
-                cplxIdx = self.getComplexIdx().reduce()
+                #cplxIdx = self.getComplexIdx().reduce()
                 ##### PEAL the cplxIdx #####
                 baseIdx, baseoff = self.getBaseSymIdx()
 
-                logger.debug("cplxIdx: %r", cplxIdx)
-                logger.debug("cplxIdx2: %r (%d)", *peelIdxOffset(cplxIdx))
+                #logger.debug("cplxIdx: %r", cplxIdx)
+                #logger.debug("cplxIdx2: %r (%d)", *peelIdxOffset(cplxIdx))
                 logger.debug("baseIdx: %r", baseIdx)
 
                 # identify constraints which contain our index
@@ -1358,12 +1421,13 @@ class SwitchCase:
 
                     else:
                         logger.info("Unhandled comparator:  %s\n", repr(cons))
-                #raw_input("Done.. %r %r %r...\n" % (lower, upper, baseoff))
-                logger.info("Done.. %r %r %r...\n" % (lower, upper, baseoff))
+                raw_input("Done.. %r %r...\n" % (lower, upper))#, baseoff))
+                logger.info("Done.. %r %r ...\n" % (lower, upper))#, baseoff))
         except StopIteration:
             pass
         except Exception, e:
             logger.info("!@#$!@#$!@#$!@#$ BOMBED OUT !@#$!@#$!@#$!@#$ \n%r" % e)
+            sys.excepthook(*sys.exc_info())
 
         # if upper is None:  we need to exercize upper until something doesn't make sense.  
         # we also need to make sure we don't analyze non-Switches.  
@@ -1373,7 +1437,7 @@ class SwitchCase:
         #logger.info("Lower: %r\tUpper: %r\tOffset: %r\tIndex: %r", lower, upper, baseoff, smplIdx)
         self.upper = upper
         self.lower = lower
-        self.baseoff = baseoff
+        #self.baseoff = baseoff
 
         #################
         return self.lower, self.upper, self.baseoff
@@ -1504,6 +1568,9 @@ class SwitchCase:
         return derefs
 
     def getBaseSymIdx(self):
+        if None not in (self.baseIdx, self.baseoff):
+            return self.baseIdx, self.baseoff
+
         def _cb_peel_idx(path, symobj, ctx):
             print 'PATH: %r\nSYMOBJ: %r\nCTX: %r' % (path, symobj, ctx)
 
@@ -1531,6 +1598,10 @@ class SwitchCase:
         which = None
         print '\n'
         offset = 0
+
+        # peel back the constraints to remove any incidental modifications to the index variable
+        #  some compilers separate disparate groupings of cases into multiple dynamic branches.
+        #  in order to make all pointer/offset arrays 0-based, the index gets modified (subtracted)
         cons = self.getConstraints()
         for symobj in longpath:
             last = count
@@ -1555,8 +1626,10 @@ class SwitchCase:
             else:
                 break
 
-        print "DONE: (%d) %r" % (last, symobj)
+        print "DONE: (%r) %r" % (last, symobj)
         # now figure what was cut, and what impact it has.
+        self.baseIdx = symobj
+        self.baseoff = offset
 
         return symobj, offset
         
@@ -1696,3 +1769,22 @@ Out[14]: o_add(Mem(o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var(
         vw.makeName(self.jmpva, "switch_%.8x" % self.jmpva)
         logger.info("making switchname: switch_%.8x", self.jmpva)
 
+
+'''
+# libc-2.13.so
+
+
+
+path=[0x205ac40, 0x205ac41, 0x205ac43, 0x205ac44, 0x205ac45, 0x205ac46, 0x205ac49, 0x205ac4c, 0x205ac4f, 0x205ac54, 0x205ac5a, 0x205ac5d, 0x205ac60, 0x205ac64, 0x205ac6b, 0x205ac72, 0x205ac75, 0x205ac78, 0x205ac7b, 0x205ac7f, 0x205ac82, 0x205ac85, 0x205ac88, 0x205ac8b, 0x205ac8d, 0x205ac90, 0x205ac93, 0x205ac96, 0x205ac98, 0x205ac9b, 0x205ac9e, 0x205aca1, 0x205aca4, 0x205aca7, 0x205acaa, 0x205acac, 0x205acaf, 0x205acb0, 0x205acb3, 0x205acb6, 0x205acb9, 0x205acbb, 0x205acbe, 0x205acc1, 0x205acc3, 0x205acc6, 0x205acc9, 0x205accb, 0x205accd, 0x205acd1, 0x205acd7, 0x205acda, 0x205acdd, 0x205acdf, 0x205ace2, 0x205ace5, 0x205aceb, 0x205acee, 0x205acf2, 0x205acf4, 0x205acfb, 0x205ad02, 0x205ad09, 0x205ad0b, 0x205ad0e, 0x205b178, 0x205b17b, 0x205b17d, 0x205b180, 0x205b183, 0x205b186, 0x205b188, 0x205b18b, 0x205b18e, 0x205b191, 0x205b194, 0x205b197, 0x205b19a, 0x205b19c, 0x205b19f, 0x205b1a0, 0x205b1a3, 0x205b1a6, 0x205b1a9, 0x205b1ab, 0x205b1ae, 0x205b1b1, 0x205b1b3, 0x205b1b6, 0x205b1b9, 0x205b1bb, 0x205b1bd, 0x205b1c1, 0x205b41c, 0x205b41f, 0x205b422, 0x205b425, 0x205b427, 0x205b429, 0x205b42c, 0x205b42f, 0x205b432, 0x205b434, 0x205b437, 0x205b43a, 0x205b43c, 0x205b1c8, 0x205b1cb, 0x205b1ce, 0x205b1d5, 0x205b1d8, 0x205b1db, 0x205b1de, 0x205ad5b, 0x205ad62, 0x205ad68, 0x205ad6b, 0x205b1e8, 0x205b1eb, 0x205b1ed, 0x205b1f0, 0x205b1f3, 0x205b360, 0x205b363, 0x205b365, 0x205b368, 0x205b36b, 0x205b36e, 0x205b374, 0x205b377, 0x205b37a, 0x205b37d, 0x205b380, 0x205b383, 0x205b386, 0x205b388, 0x205b38b, 0x205b38e, 0x205b390, 0x205b393, 0x205b395, 0x205b398, 0x205b39b, 0x205b39e, 0x205b3a1, 0x205b3a3, 0x205b3a6, 0x205b3a9, 0x205b3ab, 0x205b3ad, 0x205b3b0, 0x205b3b2, 0x205b3b5, 0x205b3b8, 0x205b3bb, 0x205b3bd, 0x205b3bf, 0x205b3c2, 0x205b3c4, 0x205b3c7, 0x205b3ca, 0x205b3cd, 0x205b3cf, 0x205b3d2, 0x205b3f8, 0x205b3fb, 0x205b3ff, 0x205b402, 0x205b405, 0x205b408, 0x205b40b, 0x205ad71, 0x205ad75, 0x205ad79, 0x205ad7f, 0x205ad85, 0x205ad87, 0x205b450, 0x205b452, 0x205b456, 0x205b45c, 0x205b45f, 0x205b463, 0x205b466, 0x205b46b, 0x205b46d, 0x205ae81, 0x205ae84, 0x205ae86, 0x205ae89, 0x205ae90, 0x205ae96, 0x205ae99, 0x205ae9c, 0x205aea3, 0x205aea5, 0x205b4a0, 0x205b4a6, 0x205b4ac, 0x205b4b2, 0x205b4b5, 0x205b4b7, 0x205aeab, 0x205aeae, 0x205aeb1, 0x205aeb8, 0x205b040, 0x205b042, 0x205b049 ]
+#print '\n'.join([x for x in dir(vw) if 'olor' in x])
+
+from vqt.main       import vqtevent
+vqtevent('viv:colormap', {x:'green' for x in path})
+
+#vw.addColorMap('thispath',{x:'green' for x in path})
+#vw._viv_gui.setColorMap()
+
+
+
+print ("DONE")
+'''
