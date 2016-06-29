@@ -10,6 +10,7 @@ import sys
 import logging
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
+#logger.setLevel(logging.INFO)
 if not len(logger.handlers):
     logger.addHandler(logging.StreamHandler())
 
@@ -1099,7 +1100,13 @@ class SwitchCase:
         for tva, in vw.getVaSetRows('thunk_bx'):
             fname = vw.getName(tva, True)
             self.sctx.addSymFuncCallback(fname, thunk_bx)
-            print "sctx.addSymFuncCallback(%s, thunk_bx)" % fname
+            logger.debug( "sctx.addSymFuncCallback(%s, thunk_bx)" % fname)
+
+
+        self._sgraph = None
+        self._codepath = None
+        self._codepathgen = None
+
         self.clearCache()
 
 
@@ -1108,10 +1115,6 @@ class SwitchCase:
         self.cspath = None
         self.aspath = None
         self.fullpath = None
-
-        self._sgraph = None
-        self._codepath = None
-        self._codepathgen = None
 
         self.upper = None
         self.lower = None
@@ -1421,7 +1424,7 @@ class SwitchCase:
 
                     else:
                         logger.info("Unhandled comparator:  %s\n", repr(cons))
-                raw_input("Done.. %r %r...\n" % (lower, upper))#, baseoff))
+                #raw_input("Done.. %r %r...\n" % (lower, upper))#, baseoff))
                 logger.info("Done.. %r %r ...\n" % (lower, upper))#, baseoff))
         except StopIteration:
             pass
@@ -1554,10 +1557,10 @@ class SwitchCase:
                 symaddr = eff.symaddr.update(emu=semu)
                 if symaddr.isDiscrete():
                     solution = symaddr.solve()
-                    print "0x%x->0x%x" % (eff.va, solution)
+                    logger.info("0x%x->0x%x" % (eff.va, solution))
 
                     if not self.vw.isValidPointer(solution):
-                        print("ARRRG: Non-pointer in ReadMemory???")
+                        logger.warn(("ARRRG: Non-pointer in ReadMemory???"))
 
                     target = semu.readSymMemory(eff.symaddr, eff.symsize)
                     size = target.getWidth()
@@ -1572,10 +1575,10 @@ class SwitchCase:
             return self.baseIdx, self.baseoff
 
         def _cb_peel_idx(path, symobj, ctx):
-            print 'PATH: %r\nSYMOBJ: %r\nCTX: %r' % (path, symobj, ctx)
+            logger.debug( 'PATH: %r\nSYMOBJ: %r\nCTX: %r' % (path, symobj, ctx))
 
         def _cb_mark_longpath(path, symobj, ctx):
-            print 'PATH: %r\nSYMOBJ: %r\nCTX: %r' % (path, symobj, ctx)
+            logger.debug( 'PATH: %r\nSYMOBJ: %r\nCTX: %r' % (path, symobj, ctx))
             longpath = ctx.get('longpath')
             if longpath == None:
                 ctx['longpath'] = list(path)
@@ -1596,7 +1599,7 @@ class SwitchCase:
         # now compare the long path against constraints that contain it.  find sweet spot
         count = last = None
         which = None
-        print '\n'
+        logger.debug( '\n')
         offset = 0
 
         # peel back the constraints to remove any incidental modifications to the index variable
@@ -1606,7 +1609,7 @@ class SwitchCase:
         for symobj in longpath:
             last = count
             count = len(self.getBoundingCons(symobj))
-            print "%d: %r" % (count, symobj)
+            logger.debug( "%d: %r" % (count, symobj))
             #if count < last:
             #    break
             # peel off o_subs and size-limiting o_ands and o_sextends
@@ -1626,7 +1629,7 @@ class SwitchCase:
             else:
                 break
 
-        print "DONE: (%r) %r" % (last, symobj)
+        logger.debug( "DONE: (%r) %r" % (last, symobj))
         # now figure what was cut, and what impact it has.
         self.baseIdx = symobj
         self.baseoff = offset
@@ -1709,12 +1712,12 @@ Out[14]: o_add(Mem(o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var(
         symidx = self.getSymIdx()
         jmptgt = self.getSymTarget()
         lower, upper, offset = self.getBounds()
-        print repr(symidx), lower, upper, offset
+        logger.debug( repr(symidx), lower, upper, offset)
         symemu = TrackingSymbolikEmulator(vw)
 
         for idx in range(lower, upper):
             coderef = jmptgt.solve(emu=symemu, vals={symidx:idx})
-            print idx, hex(coderef)
+            logger.debug( idx, hex(coderef))
             yield idx + offset, coderef
 
     def makeNames(self, cases):
