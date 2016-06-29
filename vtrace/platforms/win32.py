@@ -5,6 +5,7 @@ Win32 Platform Module
 import os
 import sys
 import struct
+import logging
 import traceback
 import platform
 
@@ -31,6 +32,7 @@ import envi.symstore.symcache as e_symcache
 from ctypes import *
 #from ctypes.wintypes import *
 
+logger = logging.getLogger(__name__)
 platdir = os.path.dirname(__file__)
 
 kernel32 = None
@@ -883,7 +885,7 @@ def loadlib(path):
     try:
         return windll.LoadLibrary(path)
     except Exception as e:
-        print('LoadLibrary %s: %s' % (path,e))
+        logger.warning('LoadLibrary %s: %s', path,e)
 
 # All platforms must be able to import this module (for exceptions etc..)
 # (do this stuff *after* we define some types...)

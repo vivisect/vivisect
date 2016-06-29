@@ -256,6 +256,7 @@ class CallFunction(SymbolikEffect):
             self.argsyms = [ x.reduce(emu=emu) for x in self.argsyms ]
 
     def applyEffect(self, emu):
+        emu.setMeta('calling_va', self.va)
         funcsym = self.funcsym.update(emu)
 
         # If we have argsyms, the function's work has been broken out
