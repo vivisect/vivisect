@@ -1929,10 +1929,11 @@ class ArmScaledOffsetOper(ArmOperand):
 class ArmRegOffsetOper(ArmOperand):
     ''' register offset operand.  see "addressing mode 2 - load and store word or unsigned byte - register *" 
     dereference address mode using the combination of two register values '''
-    def __init__(self, base_reg, offset_reg, va, pubwl=0):
+    def __init__(self, base_reg, offset_reg, va, pubwl=0, psize=4):
         self.base_reg = base_reg
         self.offset_reg = offset_reg
         self.pubwl = pubwl
+        self.psize = psize
 
         b = (self.pubwl >> 2) & 1
         self.tsize = (4,1)[b]
@@ -1979,7 +1980,7 @@ class ArmRegOffsetOper(ArmOperand):
         rn = emu.getRegister( self.base_reg )
         rm = emu.getRegister( self.offset_reg )
 
-        addr = rn + (pom*rm) & e_bits.u_maxes[self.tsize]
+        addr = rn + (pom*rm) & e_bits.u_maxes[self.psize]
 
         # if pre-indexed, we incremement/decrement the register before determining the OperAddr
         if (self.pubwl & 0x12 == 0x12):     # pre-indexed...
@@ -2033,10 +2034,11 @@ class ArmImmOffsetOper(ArmOperand):
     possibly with indexing, pre/post for faster rolling through arrays and such
     if the base_reg is PC, we'll dig in and hopefully grab the data being referenced.
     '''
-    def __init__(self, base_reg, offset, va, pubwl=8):
+    def __init__(self, base_reg, offset, va, pubwl=8, psize=4):
         self.base_reg = base_reg
         self.offset = offset
         self.pubwl = pubwl
+        self.psize = psize
         self.va = va
 
         b = (pubwl >> 2) & 1
@@ -2093,9 +2095,9 @@ class ArmImmOffsetOper(ArmOperand):
             base = emu.getRegister(self.base_reg)
 
         if u:
-            addr = (base + self.offset) & e_bits.u_maxes[self.tsize]
+            addr = (base + self.offset) & e_bits.u_maxes[self.psize]
         else:
-            addr = (base - self.offset) & e_bits.u_maxes[self.tsize]
+            addr = (base - self.offset) & e_bits.u_maxes[self.psize]
 
         
         if (self.pubwl & 0x12) == 0x12:    # pre-indexed
