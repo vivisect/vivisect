@@ -970,11 +970,46 @@ def analyzeFunction_old(vw, fva):
 
         dynbranches = vw.getVaSet('DynamicBranches')
 
+
+def targetNewFunctions(vw, fva):
+    '''
+    scan through all direct calls in this function and force analysis of called functions
+    if this is too cumbersome, we'll just do the first one, or any in the first codeblock
+    '''
+
+    todo = [vw.getCodeBlock(fva)]
+
+    while len(todo):
+        cbva, cbsz, cbfva = todo.pop()
+        endva = cbva + cbsz
+        while cbva < endva:
+            try:
+                op = vw.parseOpcode(cbva)
+            except:
+                logger.warn('failed to parse opcode within function at 0x%x (fva: 0x%x)', cbva, fva)
+                cbva += 1
+                continue
+
+            for xrfr,xrto,xrt,xrflag in vw.getXrefsFrom(cbva):
+                if not (op.iflags & envi.IF_CALL):
+                    continue
+
+                tgtva = op.getOperValue(0)
+                logger.debug("-- 0x%x", tgtva)
+                if not vw.isValidPointer(tgtva):
+                    continue
+
+                logger.warn('Making new function: 0x%x', tgtva)
+                vw.makeFunction(tgtva)
+
+            cbva += len(op)
+
 def analyzeFunction_new(vw, fva):
     '''
     Function analysis module.
     This is inserted right after codeblock analysis
     '''
+    targetNewFunctions(vw, fva)
 
     lastdynlen = 0
     dynbranches = vw.getVaSet('DynamicBranches')
@@ -997,11 +1032,21 @@ def analyzeFunction_new(vw, fva):
 
             sc = SwitchCase(vw, jmpva)
             sc.analyze()
+            
+            inp = raw_input("PRESS ENTER TO CONTINUE...")
+            while len(inp):
+                print repr(eval(inp, globals(), locals()))
+                inp = raw_input("PRESS ENTER TO CONTINUE...")
 
         dynbranches = vw.getVaSet('DynamicBranches')
 
+def analyzeFunction_pass(vw, fva):
+    pass
+
+
 analyzeFunction = analyzeFunction_new
 #analyzeFunction = analyzeFunction_old
+#analyzeFunction = analyzeFunction_pass
 
 # for use as vivisect script
 if globals().get('vw'):
@@ -1068,6 +1113,7 @@ if globals().get('vw'):
 
 
 def thunk_bx(emu, fname, symargs):
+    # FIXME: thunk_bx analysis needs to run *before* switchcase analysis for us to get a good symbolik ebx value.
     vw = emu._sym_vw
     rctx = vw.arch.archGetRegCtx()
     ebxval = emu.getMeta('calling_va')
@@ -1144,6 +1190,7 @@ class SwitchCase:
     def getJmpSymVar(self):
         '''
         returns the Simple Symbolik state of the dynamic target of the branch/jmp
+        this is the symbolik register at the start of the last codeblock.
         '''
         if self.jmpregsymbx != None:
             return self.jmpregsymbx
@@ -1317,7 +1364,7 @@ class SwitchCase:
         count = 0
        
         try:
-            while lower == None or upper <= lower: # FIXME: this will fail badly when it fails.  make this dependent on the codepathgen
+            while lower == None or (lower == 0 and upper == None) or upper <= lower: # FIXME: this will fail badly when it fails.  make this dependent on the codepathgen
                 # get the index we'll be looking for in constraints
                 if count != 0:
                     (csemu,cseffs), asp, fullp = self.getSymbolikParts(next=True)
@@ -1512,10 +1559,11 @@ class SwitchCase:
                         break
             
             # this is a valid thing, we have locations...  match them up
-            #memrefs.append((tgt, addr, delta))
-            l = cases.get(addr, [])
-            l.append( idx )
-            cases[addr] = l
+            caselist = cases.get(addr)
+            if caselist == None:
+                caselist = []
+                cases[addr] = caselist
+            caselist.append( idx )
 
             # make the connections
             vw.addXref(self.jmpva, addr, vivisect.REF_CODE)
@@ -1528,6 +1576,7 @@ class SwitchCase:
 
         # store some metadata in a VaSet
         vw.setVaSetRow('SwitchCases', (self.jmpva, self.jmpva, count) )
+        vw.setComment(self.jmpva, "lower: 0x%x, upper: 0x%x" % (lower+baseoff, upper+baseoff))
 
         vagc.analyzeFunction(vw, funcva)
 
@@ -1709,15 +1758,28 @@ Out[14]: o_add(Mem(o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var(
         '''
         vw = self.vw
 
+        (csemu,cseffs), aspath, fullpath = self.getSymbolikParts()
+
         symidx = self.getSymIdx()
         jmptgt = self.getSymTarget()
         lower, upper, offset = self.getBounds()
-        logger.debug( repr(symidx), lower, upper, offset)
+        logger.debug( "%r %r %r %r", symidx, lower, upper, offset)
+
+        # use a TrackingSymbolikEmulator so we get the "readSymMemory()" function actually hitting 
+        # the r/o data from our VivWorkspace
         symemu = TrackingSymbolikEmulator(vw)
+        symemu.setSymSnapshot(csemu.getSymSnapshot())
+
+        symemu.setSymVariable(symidx, None) # don't want to update this out of the symbolik state
+        #workJmpTgt = jmptgt.update(emu=symemu)
+
 
         for idx in range(lower, upper):
-            coderef = jmptgt.solve(emu=symemu, vals={symidx:idx})
-            logger.debug( idx, hex(coderef))
+            symemu.setSymVariable(symidx, Const(idx, 8))
+            workJmpTgt = jmptgt.update(emu=symemu)
+            coderef = workJmpTgt.solve(emu=symemu, vals={symidx:idx})
+            #coderef = jmptgt.update(emu=symemu)
+            logger.debug( "%r, %r", idx, hex(coderef))
             yield idx + offset, coderef
 
     def makeNames(self, cases):
