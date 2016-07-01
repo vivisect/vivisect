@@ -1367,6 +1367,9 @@ class SwitchCase:
 
 
     def getBounds(self):
+        if None not in (self.lower, self.upper, self.baseoff):
+            return self.lower, self.upper, self.baseoff
+
         (csemu,cseffs), asp, fullp = self.getSymbolikParts()
 
         lower = self.lower      # the smallest index used.  most often wants to be 0
@@ -1377,19 +1380,20 @@ class SwitchCase:
         try:
             while lower == None or (lower == 0 and upper == None) or upper <= lower: # FIXME: this will fail badly when it fails.  make this dependent on the codepathgen
                 # get the index we'll be looking for in constraints
+                lower = 0           # the smallest index used.  most often wants to be 0
+                upper = None        # the largest index used.  max=MAX_CASES
+
                 if count != 0:
                     (csemu,cseffs), asp, fullp = self.getSymbolikParts(next=True)
 
                 count += 1
 
-                #cplxIdx = self.getComplexIdx().reduce()
                 ##### PEAL the cplxIdx #####
                 baseIdx, baseoff = self.getBaseSymIdx()
 
-                #logger.debug("cplxIdx: %r", cplxIdx)
-                #logger.debug("cplxIdx2: %r (%d)", *peelIdxOffset(cplxIdx))
                 logger.debug("baseIdx: %r", baseIdx)
 
+                '''
                 # identify constraints which contain our index
                 logger.debug("\n$$$Generic$$$\n\t%s\n", '\n\t'.join([repr(x) for x in self.getConstraints()]))
 
@@ -1451,6 +1455,7 @@ class SwitchCase:
                     diff = symcmp.solve() + consoff
                     logger.info('** symcmp: %r \tconsoff: %r \tdiff: %r \t%r\t%r', symcmp.solve(), consoff, diff, symcmp, symvar) #conthing)
 
+
                     # FIXME: probably don't want to reset things once they're set.  this could be some other indicator for a nested switchcase...  need to get one of those for testing.
                     if cons.symtype == SYMT_CON_GT:
                         # this is setting the lower bound
@@ -1482,8 +1487,45 @@ class SwitchCase:
 
                     else:
                         logger.info("Unhandled comparator:  %s\n", repr(cons))
-                #raw_input("Done.. %r %r...\n" % (lower, upper))#, baseoff))
-                logger.info("Done.. %r %r ...\n" % (lower, upper))#, baseoff))
+                    '''
+                # there are two important offsets: constraint offsets and index offsets
+                #   index offsets are mostly subtractions from the actual number used (eg. index 1500 would be idx-1500 for an offset of 1500)
+                #   constraint offsets are subtractions from the index at the point of the constraint check.  these are accounted for by getNormalizedConstraints()
+                for con, stype, offset in self.getNormalizedConstraints():
+
+                    #conthing, consoff = peelIdxOffset(symvar)
+                    if stype == SYMT_CON_GT:
+                        # this is setting the lower bound
+                        newlower = offset + 1
+                        if lower == 0 or newlower > lower: 
+                            logger.info("==setting a lower bound:  %s -> %s", lower, newlower)
+                            lower = newlower
+                        
+                    elif stype == SYMT_CON_GE:
+                        # this is setting the lower bound
+                        newlower = offset
+                        if lower == 0 or newlower > lower: 
+                            logger.info("==setting a lower bound:  %s -> %s", lower, newlower)
+                            lower = newlower
+                        
+                    elif stype == SYMT_CON_LT:
+                        # this is setting the upper bound
+                        newupper = offset - 1
+                        if upper == None or newupper < upper and newupper > 0:
+                            logger.info("==setting a upper bound:  %s -> %s", upper, newupper)
+                            upper = newupper
+                        
+                    elif stype == SYMT_CON_LE:
+                        # this is setting the upper bound
+                        newupper = offset
+                        if upper == None or newupper < upper and newupper > 0:
+                            logger.info("==setting a upper bound:  %s -> %s", upper, newupper)
+                            upper = newupper
+
+                    else:
+                        logger.info("Unhandled comparator:  %s\n", repr(cons))
+                #raw_input("Done.. %r %r...\n" % (lower, upper))
+                logger.info("Done.. %r %r ...\n" % (lower, upper))
         except StopIteration:
             pass
         except Exception, e:
@@ -1495,10 +1537,14 @@ class SwitchCase:
         if upper == None:
             upper = MAX_CASES
 
+        if lower < baseoff:
+            # assume the compiler doesn't adjust the index below 0
+            lower = baseoff
+
         #logger.info("Lower: %r\tUpper: %r\tOffset: %r\tIndex: %r", lower, upper, baseoff, smplIdx)
         self.upper = upper
         self.lower = lower
-        #self.baseoff = baseoff
+        self.baseoff = baseoff
 
         #################
         return self.lower, self.upper, self.baseoff
@@ -1636,6 +1682,10 @@ class SwitchCase:
         return derefs
 
     def getBaseSymIdx(self):
+        '''
+        (cached)
+        returns the baseIdx and greatest index offset (ie.  the offset at the point of jmp).
+        '''
         if None not in (self.baseIdx, self.baseoff):
             return self.baseIdx, self.baseoff
 
@@ -1658,27 +1708,28 @@ class SwitchCase:
         # peel it back
         ctx = {}
         idx.walkTree(_cb_mark_longpath, ctx)
-
         longpath = ctx.get('longpath')
 
         # now compare the long path against constraints that contain it.  find sweet spot
         count = last = None
         which = None
-        #logger.debug( '\n')
         offset = 0
 
         # peel back the constraints to remove any incidental modifications to the index variable
         #  some compilers separate disparate groupings of cases into multiple dynamic branches.
         #  in order to make all pointer/offset arrays 0-based, the index gets modified (subtracted)
-        cons = self.getConstraints()
+
+
+        # HACK: this is left-handed, and based on the longpath.  it may also benefit from actual comparing with the 
+        # known index.
         for symobj in longpath:
             last = count
             count = len(self.getBoundingCons(symobj))
             logger.debug(" lp %d: %r" % (count, symobj))
-            #if count < last:
-            #    break
+
             # peel off o_subs and size-limiting o_ands and o_sextends
             if isinstance(symobj, o_and) and symobj.kids[1].isDiscrete() and symobj.kids[1].solve() in e_bits.u_maxes:
+                mask = symobj.kids[1].solve()
                 pass    # this wrapper is a size-limiting bitmask
 
             elif isinstance(symobj, o_sub):
@@ -1694,7 +1745,7 @@ class SwitchCase:
             else:
                 break
 
-        logger.debug(" lp DONE: (%r) %r" % (last, symobj))
+        logger.debug(" lp DONE: (%r) %r" % (offset, symobj))
         # now figure what was cut, and what impact it has.
         self.baseIdx = symobj
         self.baseoff = offset
@@ -1790,7 +1841,7 @@ Out[14]: o_add(Mem(o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var(
         #workJmpTgt = jmptgt.update(emu=symemu)
 
 
-        for idx in range(lower, upper):
+        for idx in range(lower-offset, upper-offset):
             symemu.setSymVariable(symidx, Const(idx, 8))
             workJmpTgt = jmptgt.update(emu=symemu)
             coderef = workJmpTgt.solve(emu=symemu, vals={symidx:idx})
