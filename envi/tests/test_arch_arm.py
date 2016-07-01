@@ -566,6 +566,22 @@ instrs = [
         (REV_ALL_ARM, '0738ffec', 0x4560, 'ldcl p8, c3, [#0x4584]', 0, ()),
         (REV_ALL_ARM, '07387fec', 0x4560, 'ldcl p8, c3, [#0x454c]', 0, ()),
         (REV_ALL_ARM, '0738dfec', 0x4560, 'ldcl p8, c3, [pc], {7}', 0, ()),
+        (REV_ALL_ARM, '980090e8', 0x4560, 'ldmia  r0, {r3, r4, r7}', 0, ()), #not ual, should be ldm
+        (REV_ALL_ARM, '9800b0e8', 0x4560, 'ldmia  r0!, {r3, r4, r7}', 0, ()), #not ual, should be ldm
+        (REV_ALL_ARM, '98009de9', 0x4560, 'ldmib  sp, {r3, r4, r7}', 0, ()),
+        (REV_ALL_ARM, '9800bde9', 0x4560, 'ldmib  sp!, {r3, r4, r7}', 0, ()),
+        (REV_ALL_ARM, '98001de8', 0x4560, 'ldmda  sp, {r3, r4, r7}', 0, ()),
+        (REV_ALL_ARM, '98003de8', 0x4560, 'ldmda  sp!, {r3, r4, r7}', 0, ()),
+        (REV_ALL_ARM, '98001de9', 0x4560, 'ldmdb  sp, {r3, r4, r7}', 0, ()),
+        (REV_ALL_ARM, '98003de9', 0x4560, 'ldmdb  sp!, {r3, r4, r7}', 0, ()),
+        #(REV_ALL_ARM, '034fa0e1', 0x4560, 'lsl r4, r3, #30', 0, ()), #not a mov
+        #(REV_ALL_ARM, '034fb0e1', 0x4560, 'lsls r4, r3, #30', 0, ()), #not a movs
+        #(REV_ALL_ARM, '7347a0e1', 0x4560, 'lsl r4, r3, r7', 0, ()), #not a mov
+        #(REV_ALL_ARM, '7347b0e1', 0x4560, 'lsls r4, r3, r7', 0, ()), #not a movs
+        #(REV_ALL_ARM, '234fa0e1', 0x4560, 'lsr r4, r3, #30', 0, ()), #not a mov
+        #(REV_ALL_ARM, '234fb0e1', 0x4560, 'lsrs r4, r3, #30', 0, ()), #not a movs
+        #(REV_ALL_ARM, '3347a0e3', 0x4560, 'lsr r4, r3, r7', 0, ()), #not a mov
+        #(REV_ALL_ARM, '3347b0e3', 0x4560, 'lsrs r4, r3, r7', 0, ()), #not a movs
         
         #Not yet implimented
         #these next ones show up as mov r4, r3, asr #30
@@ -580,6 +596,8 @@ instrs = [
         #(REV_ALL_ARM, '53f07ff5', 0x4560, 'dmb  osh', 0, ()),
         #(REV_ALL_ARM, '43f07ff5', 0x4560, 'dsb  osh', 0, ()),
         #(REV_ALL_ARM, '6ff07ff5', 0x4560, 'isb sy', 0, ()),
+        #(REV_ALL_ARM, '04609de4', 0x4560, 'pop {r6}', 0, ()),  #ldm variant
+        #(REV_ALL_ARM, '9800bde8', 0x4560, 'pop {r3, r4, r7}', 0, ()),  #ldm variant ia and fd are not ual. Otherwise is good for older style.. Should be pop now
 
         #implimented in disasm but not yet in emu
         #(REV_ALL_ARM, '70f02fe1', 0x4560, 'bkpt  #0xff00', 0, ()),

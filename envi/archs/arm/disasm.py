@@ -187,6 +187,11 @@ dp_mnem = ("and","eor","sub","rsb","add","adc","sbc","rsc","tst","teq","cmp","cm
 #isb = v7
 #ldc = v4, v5t, v6, v7
 #ldc2 = v5t, v6, v7
+#ldm/ldmia/ldmfd = v4, v5t, v6, v7
+#pop = v4, v5t, v6, v7
+#ldmda/ldmfa = v4, v5t, v6, v7
+#ldmdb/ldmea = v4, v5t, v6, v7
+#ldmib/ldmed = v4, v5t, v6, v7
 
 
 # FIXME: THIS IS FUGLY but sadly it works
@@ -2417,14 +2422,19 @@ class ArmRegListOper(ArmOperand):
         return reglist
 
     def repr(self, op):
+            #fixed register list. Should be {r1, r2, r3 ..} not { r1 r2 r3 ..}
+            cnt = 0
             s = [ "{" ]
             for l in xrange(16):
                 if (self.val & (1<<l)):
+                    cnt += 1
+                    if cnt > 1:
+                        s.append(', ')
                     s.append(arm_regs[l][0])
             s.append('}')
             if self.oflags & OF_UM:
                 s.append('^')
-            return " ".join(s)
+            return "".join(s)
     
 class ArmExtRegListOper(ArmOperand):
     def __init__(self, firstreg, count, size):
