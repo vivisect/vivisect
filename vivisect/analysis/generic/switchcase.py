@@ -97,7 +97,7 @@ class TrackingSymbolikEmulator(vs_anal.SymbolikFunctionEmulator):
         the given memory symbol, None is returned.
         '''
         addrval = symaddr.update(self).solve(emu=self, vals=vals)
-        print symaddr, addrval, symsize
+        logger.debug('   TSE.readSymMemory: symaddr:%r  addrval:0x%x symsize:%s',symaddr, addrval, symsize)
         
         # check for a previous write first...
         symmem = self._sym_mem.get(addrval)
@@ -130,7 +130,7 @@ class TrackingSymbolikEmulator(vs_anal.SymbolikFunctionEmulator):
                     # return real number from memory
                     val, = self._sym_vw.readMemoryFormat(addrval, signed_fmts[size])
                     self.track(self.getMeta('va'), symaddr, val)
-                    print 3
+                    #print 3
                     return Const(val, size)
                 
                 # return string  (really?)
@@ -1035,7 +1035,11 @@ def analyzeFunction_new(vw, fva):
             
             inp = raw_input("PRESS ENTER TO CONTINUE...")
             while len(inp):
-                print repr(eval(inp, globals(), locals()))
+                try:
+                    print repr(eval(inp, globals(), locals()))
+                except:
+                    sys.excepthook(*sys.exc_info())
+
                 inp = raw_input("PRESS ENTER TO CONTINUE...")
 
         dynbranches = vw.getVaSet('DynamicBranches')
@@ -1126,6 +1130,7 @@ def thunk_bx(emu, fname, symargs):
     ebx = Const(ebxval, vw.psize)
     reg = rctx.getRealRegisterName('ebx')
     #raw_input("YAY!  Thunk_bx is being called! %s\t%s\t%s\t%s" % (emu, symargs, reg, ebx))
+    logger.info("YAY!  Thunk_bx is being called! %s\t%s\t%s\t%s", emu, symargs, reg, ebx)
     emu.setSymVariable(reg, ebx)
 
 class SwitchCase:
@@ -1228,6 +1233,10 @@ class SwitchCase:
             if cspath[0].getSymVariable(unk).isDiscrete():
                 continue
             potentials.append(unk)
+
+        if not len(potentials):
+            logger.critical('=-=-=-= failed to getSymIdx: unks: %r\n\nCSPATH:\n%r\n\nASPATH:\n%r\n\n',
+                    unks, cspath, aspath)
             
         return potentials[0]
 
@@ -1278,7 +1287,9 @@ class SwitchCase:
             self._sgraph = sctx.getSymbolikGraph(fva)
 
         if self._codepathgen == None:
-            self._codepathgen = viv_graph.getCodePathsTo(self._sgraph, cbva)
+            #self._codepathgen = viv_graph.getCodePathsTo(self._sgraph, cbva)
+            pathGenFactory = viv_graph.PathGenerator(self._sgraph)
+            self._codepathgen = pathGenFactory.getFuncCbRoutedPaths(fva, cbva, 1, maxsec=20)
 
         self._codepath = self._codepathgen.next()
         contextpath = self._codepath[:-1]
@@ -1380,11 +1391,11 @@ class SwitchCase:
                 logger.debug("baseIdx: %r", baseIdx)
 
                 # identify constraints which contain our index
-                logger.debug("\n$$$Generic$$$\n%r", self.getConstraints())
+                logger.debug("\n$$$Generic$$$\n\t%s\n", '\n\t'.join([repr(x) for x in self.getConstraints()]))
 
                 boundingcons = self.getBoundingCons(baseIdx)
                 #boundingcons = self.getBoundingCons(cplxIdx)
-                logger.debug("\n===Bounding cons:===\n %r", boundingcons)
+                logger.debug("\n===Bounding cons:===\n\t%s\n", '\n\t'.join([repr(x) for x in boundingcons]))
 
                 lower = 0
                 upper = None
@@ -1576,7 +1587,12 @@ class SwitchCase:
 
         # store some metadata in a VaSet
         vw.setVaSetRow('SwitchCases', (self.jmpva, self.jmpva, count) )
-        vw.setComment(self.jmpva, "lower: 0x%x, upper: 0x%x" % (lower+baseoff, upper+baseoff))
+
+        if baseoff != None:
+            lower += baseoff
+            upper += baseoff
+        
+        vw.setComment(self.jmpva, "lower: 0x%x, upper: 0x%x" % (lower, upper))
 
         vagc.analyzeFunction(vw, funcva)
 
@@ -1624,10 +1640,10 @@ class SwitchCase:
             return self.baseIdx, self.baseoff
 
         def _cb_peel_idx(path, symobj, ctx):
-            logger.debug( 'PATH: %r\nSYMOBJ: %r\nCTX: %r' % (path, symobj, ctx))
+            logger.debug( ' PATH: %r\n SYMOBJ: %r\n CTX: %r\n' % (path, symobj, ctx))
 
         def _cb_mark_longpath(path, symobj, ctx):
-            logger.debug( 'PATH: %r\nSYMOBJ: %r\nCTX: %r' % (path, symobj, ctx))
+            logger.debug( ' PATH: %r\n SYMOBJ: %r\n CTX: %r\n' % (path, symobj, ctx))
             longpath = ctx.get('longpath')
             if longpath == None:
                 ctx['longpath'] = list(path)
@@ -1648,7 +1664,7 @@ class SwitchCase:
         # now compare the long path against constraints that contain it.  find sweet spot
         count = last = None
         which = None
-        logger.debug( '\n')
+        #logger.debug( '\n')
         offset = 0
 
         # peel back the constraints to remove any incidental modifications to the index variable
@@ -1658,7 +1674,7 @@ class SwitchCase:
         for symobj in longpath:
             last = count
             count = len(self.getBoundingCons(symobj))
-            logger.debug( "%d: %r" % (count, symobj))
+            logger.debug(" lp %d: %r" % (count, symobj))
             #if count < last:
             #    break
             # peel off o_subs and size-limiting o_ands and o_sextends
@@ -1678,7 +1694,7 @@ class SwitchCase:
             else:
                 break
 
-        logger.debug( "DONE: (%r) %r" % (last, symobj))
+        logger.debug(" lp DONE: (%r) %r" % (last, symobj))
         # now figure what was cut, and what impact it has.
         self.baseIdx = symobj
         self.baseoff = offset
@@ -1763,7 +1779,7 @@ Out[14]: o_add(Mem(o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var(
         symidx = self.getSymIdx()
         jmptgt = self.getSymTarget()
         lower, upper, offset = self.getBounds()
-        logger.debug( "%r %r %r %r", symidx, lower, upper, offset)
+        logger.debug( " itercases: %r %r %r %r", symidx, lower, upper, offset)
 
         # use a TrackingSymbolikEmulator so we get the "readSymMemory()" function actually hitting 
         # the r/o data from our VivWorkspace
@@ -1779,7 +1795,7 @@ Out[14]: o_add(Mem(o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var(
             workJmpTgt = jmptgt.update(emu=symemu)
             coderef = workJmpTgt.solve(emu=symemu, vals={symidx:idx})
             #coderef = jmptgt.update(emu=symemu)
-            logger.debug( "%r, %r", idx, hex(coderef))
+            logger.debug(" itercases: %r, %r", idx, hex(coderef))
             yield idx + offset, coderef
 
     def makeNames(self, cases):
