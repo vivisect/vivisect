@@ -53,6 +53,7 @@ end, names are applied as appropriate.
 # TODO: complete documentation
 MAX_INSTR_COUNT  = 10
 MAX_CASES   = 5000
+MIN_FUNC_INSTR_SIZE = 10
 
 
 signed_fmts = (
@@ -995,8 +996,11 @@ def targetNewFunctions(vw, fva):
                     continue
 
                 tgtva = op.getOperValue(0)
-                logger.debug("-- 0x%x", tgtva)
+                #logger.debug("-- 0x%x", tgtva)
                 if not vw.isValidPointer(tgtva):
+                    continue
+
+                if vw.getFunction(tgtva) != None:
                     continue
 
                 logger.warn('Making new function: 0x%x', tgtva)
@@ -1372,9 +1376,8 @@ class SwitchCase:
 
         (csemu,cseffs), asp, fullp = self.getSymbolikParts()
 
-        lower = self.lower      # the smallest index used.  most often wants to be 0
-        upper = self.upper      # the largest index used.  max=MAX_CASES
-        #baseoff = self.baseoff  # the offset added/subtracted to the index to get this this jmpva
+        lower = 0       # the smallest index used.  most often wants to be 0
+        upper = None    # the largest index used.  max=MAX_CASES
         count = 0
        
         try:
@@ -1393,29 +1396,7 @@ class SwitchCase:
 
                 logger.debug("baseIdx: %r", baseIdx)
 
-                '''
-                # identify constraints which contain our index
-                logger.debug("\n$$$Generic$$$\n\t%s\n", '\n\t'.join([repr(x) for x in self.getConstraints()]))
-
-                boundingcons = self.getBoundingCons(baseIdx)
-                #boundingcons = self.getBoundingCons(cplxIdx)
-                logger.debug("\n===Bounding cons:===\n\t%s\n", '\n\t'.join([repr(x) for x in boundingcons]))
-
-                lower = 0
-                upper = None
-                #baseoff = 0
-
-                for con in boundingcons:
-                    cons = con.cons
-
-                    if not cons.symtype in (SYMT_CON_GT, SYMT_CON_GE, SYMT_CON_LT, SYMT_CON_LE): 
-                        logger.debug("SKIPPING NON-LIMITING: cons = %s", repr(cons))
-                        #return None, None, None
-                        continue
-
-                    logger.debug(repr(cons))
-
-
+                ''' # the rest of this code has been replaced by the below code.  however, there are some nuggest we can incorporate into getNormalizedConstraints().
                     ### FIXME: make this contains(cons._v1, cplxIdx)  -- but what if we subtract on our way down?  need a peeled version
                     if cons._v2.symtype == SYMT_CONST:
                         symvar = cons._v1
@@ -1432,91 +1413,32 @@ class SwitchCase:
                     if not contains(symvar, baseIdx):
                         logger.debug("Constraint not based on Index: %r" % cons)
                         continue
-
-                    if cons.symtype == SYMT_CON_LT and symcmp.solve() == 0:
-                        logger.debug("SKIPPING Constraint Checking for Zero: %r" % cons)
-                        continue
-
-
-                    # NORMALIZE!!!!
-
-                    conthing, consoff = peelIdxOffset(symvar)
-                    # try peeling until it we're left with cplxIdx
-                    # can this be a separate function?  doesn't seem likely
-
-                    ## check the sanity of this constraint's symvar against our idx.
-                    #d = 0
-                    #if idx != symvar:
-                        #d = idx.solve() - symvar.solve()
-                        #if abs(d) > 1000:
-                            #continue
-
-                    logger.info("* "+ repr(cons._v2)+ "\t"+repr(cons._v1)+"\t"+ repr(cons))
-                    diff = symcmp.solve() + consoff
-                    logger.info('** symcmp: %r \tconsoff: %r \tdiff: %r \t%r\t%r', symcmp.solve(), consoff, diff, symcmp, symvar) #conthing)
-
-
-                    # FIXME: probably don't want to reset things once they're set.  this could be some other indicator for a nested switchcase...  need to get one of those for testing.
-                    if cons.symtype == SYMT_CON_GT:
-                        # this is setting the lower bound
-                        newlower = diff + 1
-                        if lower == 0 or newlower > lower: 
-                            logger.info("==we're resetting a lower bound:  %s -> %s", lower, newlower)
-                            lower = newlower
-                        
-                    elif cons.symtype == SYMT_CON_GE:
-                        # this is setting the lower bound
-                        newlower = diff
-                        if lower == 0 or newlower > lower: 
-                            logger.info("==we're resetting a lower bound:  %s -> %s", lower, newlower)
-                            lower = newlower
-                        
-                    elif cons.symtype == SYMT_CON_LT:
-                        # this is setting the upper bound
-                        newupper = diff - 1
-                        if upper == None or newupper < upper and newupper > 0:
-                            logger.info("==we're resetting a upper bound:  %s -> %s", upper, newupper)
-                            upper = newupper
-                        
-                    elif cons.symtype == SYMT_CON_LE:
-                        # this is setting the upper bound
-                        newupper = diff
-                        if upper == None or newupper < upper and newupper > 0:
-                            logger.info("==we're resetting a upper bound:  %s -> %s", upper, newupper)
-                            upper = newupper
-
-                    else:
-                        logger.info("Unhandled comparator:  %s\n", repr(cons))
-                    '''
+                        '''
                 # there are two important offsets: constraint offsets and index offsets
                 #   index offsets are mostly subtractions from the actual number used (eg. index 1500 would be idx-1500 for an offset of 1500)
                 #   constraint offsets are subtractions from the index at the point of the constraint check.  these are accounted for by getNormalizedConstraints()
                 for con, stype, offset in self.getNormalizedConstraints():
 
                     #conthing, consoff = peelIdxOffset(symvar)
-                    if stype == SYMT_CON_GT:
-                        # this is setting the lower bound
+                    if stype == SYMT_CON_GT: # this is setting the lower bound
                         newlower = offset + 1
-                        if lower == 0 or newlower > lower: 
+                        if newlower > lower: 
                             logger.info("==setting a lower bound:  %s -> %s", lower, newlower)
                             lower = newlower
                         
-                    elif stype == SYMT_CON_GE:
-                        # this is setting the lower bound
+                    elif stype == SYMT_CON_GE: # this is setting the lower bound
                         newlower = offset
-                        if lower == 0 or newlower > lower: 
+                        if newlower > lower: 
                             logger.info("==setting a lower bound:  %s -> %s", lower, newlower)
                             lower = newlower
                         
-                    elif stype == SYMT_CON_LT:
-                        # this is setting the upper bound
+                    elif stype == SYMT_CON_LT: # this is setting the upper bound
                         newupper = offset - 1
                         if upper == None or newupper < upper and newupper > 0:
                             logger.info("==setting a upper bound:  %s -> %s", upper, newupper)
                             upper = newupper
                         
-                    elif stype == SYMT_CON_LE:
-                        # this is setting the upper bound
+                    elif stype == SYMT_CON_LE: # this is setting the upper bound
                         newupper = offset
                         if upper == None or newupper < upper and newupper > 0:
                             logger.info("==setting a upper bound:  %s -> %s", upper, newupper)
@@ -1524,7 +1446,7 @@ class SwitchCase:
 
                     else:
                         logger.info("Unhandled comparator:  %s\n", repr(cons))
-                #raw_input("Done.. %r %r...\n" % (lower, upper))
+
                 logger.info("Done.. %r %r ...\n" % (lower, upper))
         except StopIteration:
             pass
@@ -1550,15 +1472,31 @@ class SwitchCase:
         return self.lower, self.upper, self.baseoff
 
     def makeSwitch(self):
+        vw = self.vw
 
+        # only support branching switch-cases (ie, not calls)
         if not (self.op.iflags & envi.IF_BRANCH):
+            return
+
+        if len(vw.getXrefsFrom(self.jmpva)):
+            logger.info('skipping existing switchcase: 0x%x', self.jmpva)
             return
 
         funcva = self.vw.getFunction(self.jmpva)
         if funcva == None:
-            logger.error("ERROR getting function for jmpva 0x%x", jmpva)
+            logger.error("ERROR getting function for jmpva 0x%x", self.jmpva)
             return
 
+        if funcva == self.jmpva:
+            logger.error("ERROR function va IS jmpva 0x%x", self.jmpva)
+            return
+
+        instrcount = vw.getFunctionMeta(funcva, 'InstructionCount')
+        if instrcount < MIN_FUNC_INSTR_SIZE:
+            logger.error("Ignoring jmp in too small a function: %d instructions", instrcount)
+            return
+
+        # relying on getBounds() to bail on non-switch-cases
         lower, upper, baseoff = self.getBounds()
         if None in (lower, ): 
             logger.info("something odd in count/offset calculation...(%r,%r,%r) skipping 0x%x...", 
@@ -1566,12 +1504,9 @@ class SwitchCase:
             return
 
         count = upper - lower
-
         if count > MAX_CASES:
             logger.warn("too many switch cases during analysis: %d   limiting to %d", count, MAX_CASES)
             count = MAX_CASES
-
-        vw = self.vw
 
         # determine deref-ops...  uses TrackingSymbolikEmulator
         # iterCases
