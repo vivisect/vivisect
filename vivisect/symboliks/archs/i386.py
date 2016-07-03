@@ -433,7 +433,7 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
         return self._cond_jmp(op, Var('eflags_lt', self._psize))
 
     def i_jbe(self, op):
-        return self._cond_jmp(op, cnot(Var('eflags_lt', self._psize)))
+        return self._cond_jmp(op, cnot(Var('eflags_gt', self._psize)))
 
     def i_jc(self, op):
         return self._cond_jmp(op, Var('eflags_cf', self._psize))

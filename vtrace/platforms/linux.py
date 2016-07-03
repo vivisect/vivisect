@@ -24,8 +24,6 @@ import vtrace.platforms.posix as v_posix
 
 from ctypes import *
 import ctypes.util as cutil
-from vtrace.platforms.posix import PT_CONTINUE
-from ptrace.binding.func import PTRACE_EVENT_EXEC, PTRACE_O_TRACEEXEC
 
 if os.getenv('ANDROID_ROOT'):
     libc = CDLL('/system/lib/libc.so')
@@ -309,36 +307,42 @@ class LinuxMixin(v_posix.PtraceMixin, v_posix.PosixMixin):
         self.execing = True
         cmdlist = e_cli.splitargs(cmdline)
         os.stat(cmdlist[0])
-        
-        pid = os.fork() 
-        
-        # Child will be blocked after execv because of trace me!
+        pid = os.fork()
+
         if pid == 0:
-            v_posix.ptrace(v_posix.PT_TRACE_ME, 0, 0, 0)
-            os.execv(cmdlist[0], cmdlist)
+            try: 
+                # Don't use PT_TRACEME -- on some linux (tested on ubuntu)
+                # it will cause immediate asignment of ptrace slot to parent
+                # without parent having PT_ATTACH'D.... MAKES SYNCHRONIZATION HARD
+                # SIGSTOP ourself until parent continues us
+                os.kill(os.getpid(),signal.SIGSTOP)
+                os.execv(cmdlist[0], cmdlist)
+            except Exception as e:
+                print e
             sys.exit(-1)
+        
+        # Attach to child. should cause SIGSTOP
+        if 0 != v_posix.ptrace(PT_ATTACH, pid, 0, 0):
+            raise Exception("PT_ATTACH failed! linux platformExec")
 
-        # Parent will wait for the child to do TRACE_ME
-        rid, status, rusage = os.wait4(pid, os.WUNTRACED )
+        # Eat all SIGSTOP (or other signal) and break from loop on SIGTRAP.
+        # SIGTRAP triggered by execv while PTRACE_ATTACH'd
+        while True:
+            wpid,status = os.waitpid(pid,os.WUNTRACED)
+            if wpid != pid: #should never happen
+                continue
+            if os.WIFSTOPPED(status):
+                cause = os.WSTOPSIG(status)
+                if cause == signal.SIGTRAP:
+                    break
+                if v_posix.ptrace(v_posix.PT_CONTINUE, pid, 0, 0) != 0:
+                    raise Exception("PT_CONTINUE failed! linux platformExec")
         
-        # Only then we attach
-        res = v_posix.ptrace(PT_ATTACH, pid, 0, 0)
-        if res < 0:
-            raise Exception("Can't PTRACE_ATTACH to PID: %d ", pid)
+        # Do a single step, which will allow a new stop event for the 
+        # rest of vtrace to eat up.
+        if v_posix.ptrace(v_posix.PT_STEP, pid, 0, 0) != 0:
+            raise Exception("PT_CONTINUE failed! linux platformExec")
 
-        # since we are attached to our child - a python interpreter
-        # make it run until exec occurs. Would be nice to make it work!
-        #res = v_posix.ptrace(PT_SETOPTIONS, pid, PT_O_TRACEEXEC, 0)
-        #if res < 0:
-        #    raise Exception("Can't PTRACE_STEP to PID: %d ", pid)
-        
-        # since vtrace will invoke wait() on the tracee after this
-        # make sure there is at least one event waiting 
-        # otherwise we are blocked in vtrace waiting()
-        res = v_posix.ptrace(v_posix.PT_STEP, pid, 0, 0)
-        if res < 0:
-            raise Exception("Can't PTRACE_STEP to PID: %d ", pid)
-        
         self.pthreads = [pid,]
         self.setMeta("ExeName", self._findExe(pid))
         return pid

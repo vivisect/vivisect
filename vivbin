@@ -1,108 +1,96 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 
 import os
 import imp
 import sys
 import time
-import getopt
 import inspect
 import cProfile
+import argparse
 import threading
 import traceback
 
 
 import vivisect
 import vivisect.cli as viv_cli
+import envi.config as e_config
 import envi.threads as e_threads
 import vivisect.parsers as viv_parsers
 
-def usage():
-    print "Usage: vivbin [options] <workspace|binaries...>"
-    print "\t-M <bulkmod>  Run the file listed as an analysis module in non-gui mode and exit"
-    print "\t-A Do *not* do an initial auto-analysis pass"
-    print "\t-B Bulk mode. Do *not* start the gui, just load, analyze and save"
-    print "\t-C Output vivisect performace profiling (cProfile) info."
-    print "\t-O <secname>.<optname>=<optval> (optval must be json syntax)"
-    print "\t-p <parser> Manually specify the parser module (pe/elf/blob/...)"
-    print "\t-s <storage_name> Specify a storage module by name."
-    print "\t-v verbose mode"
-    print "\t-V Add file version (if available) to save file name"
-    sys.exit(0)
-
 def main():
+    parser = argparse.ArgumentParser(prog='vivbin', usage='%(prog)s [options] <workspace|binaries...>')
+    parser.add_argument('-M', '--module', dest='modname', default=None, action='store',
+                        help='run the file listed as an analysis module in non-gui mode and exit')
+    parser.add_argument('-A', '--skip-analysis', dest='doanalyze', default=True, action='store_false',
+                        help='Do *not* do an initial auto-analysis pass')
+    parser.add_argument('-B', '--bulk', dest='bulk', default=False, action='store_true',
+                        help='Do *not* start the gui, just load, analyze and save')
+    parser.add_argument('-C', '--cprofile', dest='cprof', default=False, action='store_true',
+                        help='Output vivisect performace profiling (cProfile) info')
+    parser.add_argument('-O', '--option', dest='option', default=None, action='store',
+                        help='<secname>.<optname>=<optval> (optval must be json syntax)')
+    parser.add_argument('-p', '--parser', dest='parsemod', default=None, action='store',
+                        help='Manually specify the parser module (pe/elf/blob/...)')
+    parser.add_argument('-s', '--storage', dest='storage_name', default=None, action='store',
+                        help='Specify a storage module by name')
+    parser.add_argument('-v', '--verbose', dest='verbose', default=False, action='store_true',
+                        help='Enable verbose mode')
+    parser.add_argument('-V', '--version', dest='version', default=None, action='store',
+                        help='Add file version (if available) to save file name')
+    parser.add_argument('file', nargs='*')
+    args = parser.parse_args()
 
     vw = viv_cli.VivCli()
+    vw.verbose = args.verbose
 
-    modname = None
-    bulk = False
-    doanalyze = True
-    vwname = None
-    verbose = False
-    parsemod = None
-    cprof = False
+    if args.option is not None:
+        if args.option in ('-h','?'):
+            print(vw.config.reprConfigPaths())
+            sys.exit(-1)
 
-    try:
-        # FIXME optparse!
-        opts,args = getopt.getopt(sys.argv[1:], "ABCM:vO:Pp:SwV")
-    except:
-        usage()
+        try:
+            vw.config.parseConfigOption(args.option)
+        except e_config.ConfigNoAssignment, e:
+            print(vw.config.reprConfigPaths() + "\n")
+            print(e)
+            print("syntax: \t-O <secname>.<optname>=<optval> (optval must be json syntax)")
+            sys.exit(-1)
 
-    for opt,optarg in opts:
+        except Exception, e:
+            print(vw.config.reprConfigPaths())
+            print("With entry: %s" % args.option)
+            print(e)
+            sys.exit(-1)
 
-        if opt == "-A":
-            doanalyze = False
 
-        elif opt == "-B":
-            bulk = True
 
-        elif opt == "-M":
-            bulk = True
-            modname = optarg
-
-        elif opt == "-v":
-            verbose = True
-
-        elif opt == "-O":
-            vw.config.parseConfigOption( optarg )
-
-        elif opt == "-p":
-            parsemod = optarg
-
-        elif opt == "-s":
-            vw.setMeta("StorageModule", optarg)
-
-        elif opt == "-w":
-            parsemod = 'viv'
-            print('-w is obsoleted, loading workspaces anyway (for now)')
-
-        elif opt == "-C":
-            cprof = True
-
-    vw.verbose = verbose
+    if args.storage_name is not None:
+        vw.setMeta("StorageModule", args.storage_name)
 
     # If we're not gonna load files, no analyze
-    if len(args) == 0:
-        doanalyze = False
+    if args.file is None:
+        args.doanalyze = False
 
     # Load in any additional files...
     needanalyze = False
-    for fname in args:
-        if parsemod == None:
-            parsemod = viv_parsers.guessFormatFilename(fname)
+    if args.file is not None:
+        for fname in args.file:
+            if args.parsemod == None:
+                args.parsemod = viv_parsers.guessFormatFilename(fname)
 
-        start = time.time()
-        if parsemod == 'viv':
-            vw.loadWorkspace(fname)
-        else:
-            needanalyze = True
-            vw.loadFromFile(fname, fmtname=parsemod)
+            start = time.time()
+            if args.parsemod == 'viv':
+                vw.loadWorkspace(fname)
+            else:
+                needanalyze = True
+                vw.loadFromFile(fname, fmtname=args.parsemod)
 
-        end = time.time()
-        print('Loaded (%.4f sec) %s' % (end-start, fname))
+            end = time.time()
+            print('Loaded (%.4f sec) %s' % (end - start, fname))
 
-    if bulk:
-        if doanalyze:
-            if cprof:
+    if args.bulk:
+        if args.doanalyze:
+            if args.cprof:
                 cProfile.run("vw.analyze()")
             else:
                 start = time.time()
@@ -110,7 +98,7 @@ def main():
                 end = time.time()
                 print "ANALYSIS TIME: %s" % (end-start)
 
-        if modname != None:
+        if args.modname is not None:
             module = imp.load_module("custom_analysis", file(modname, "rb"), modname, ('.py', 'U', 1))
             module.analyze(vw)
 
@@ -125,12 +113,12 @@ def main():
 
         # If we are interactive, lets turn on extended output...
         vw.verbose = True
-        if doanalyze and needanalyze:
+        if args.doanalyze and needanalyze:
             e_threads.firethread(vw.analyze)()
 
         viv_qt_main.main(vw)
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     try:
         # psyco makes disasm much faster (2-3X)
         import psyco

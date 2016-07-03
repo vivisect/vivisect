@@ -67,7 +67,8 @@ class TraceEmulator(vtrace.Trace, v_base.TracerBase):
     """
     def __init__(self, emu):
         self.emu = emu
-        vtrace.Trace.__init__(self)
+        archname = emu.vw.getMeta('Architecture')
+        vtrace.Trace.__init__(self, archname)
         v_base.TracerBase.__init__(self)
 
         # Fake out being attached
