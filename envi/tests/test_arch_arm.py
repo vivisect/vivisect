@@ -551,7 +551,6 @@ instrs = [
         (REV_ALL_ARM, '0738f4ec', 0x4560, 'ldcl p8, c3, [r4], #0x1c', 0, ()),
         (REV_ALL_ARM, '073874ec', 0x4560, 'ldcl p8, c3, [r4], #-0x1c', 0, ()),
         (REV_ALL_ARM, '0738d4ec', 0x4560, 'ldcl p8, c3, [r4], {7}', 0, ()),
-        #in progress testing and debugging
         (REV_ALL_ARM, '07389fed', 0x4560, 'ldc p8, c3, [#0x4584]', 0, ()),
         (REV_ALL_ARM, '07381fed', 0x4560, 'ldc p8, c3, [#0x454c]', 0, ()),
         (REV_ALL_ARM, '0738bfed', 0x4560, 'ldc p8, c3, [#0x4584]', 0, ()),
@@ -574,14 +573,44 @@ instrs = [
         (REV_ALL_ARM, '98003de8', 0x4560, 'ldmda  sp!, {r3, r4, r7}', 0, ()),
         (REV_ALL_ARM, '98001de9', 0x4560, 'ldmdb  sp, {r3, r4, r7}', 0, ()),
         (REV_ALL_ARM, '98003de9', 0x4560, 'ldmdb  sp!, {r3, r4, r7}', 0, ()),
-        #(REV_ALL_ARM, '034fa0e1', 0x4560, 'lsl r4, r3, #30', 0, ()), #not a mov
-        #(REV_ALL_ARM, '034fb0e1', 0x4560, 'lsls r4, r3, #30', 0, ()), #not a movs
-        #(REV_ALL_ARM, '7347a0e1', 0x4560, 'lsl r4, r3, r7', 0, ()), #not a mov
-        #(REV_ALL_ARM, '7347b0e1', 0x4560, 'lsls r4, r3, r7', 0, ()), #not a movs
-        #(REV_ALL_ARM, '234fa0e1', 0x4560, 'lsr r4, r3, #30', 0, ()), #not a mov
-        #(REV_ALL_ARM, '234fb0e1', 0x4560, 'lsrs r4, r3, #30', 0, ()), #not a movs
-        #(REV_ALL_ARM, '3347a0e3', 0x4560, 'lsr r4, r3, r7', 0, ()), #not a mov
-        #(REV_ALL_ARM, '3347b0e3', 0x4560, 'lsrs r4, r3, r7', 0, ()), #not a movs
+        (REV_ALL_ARM, 'ff30d4e5', 0x4560, 'ldrb  r3, [r4, #0xff]', 0, ()),
+        (REV_ALL_ARM, 'ff3054e5', 0x4560, 'ldrb  r3, [r4, #-0xff]', 0, ()),
+        (REV_ALL_ARM, 'ff30f4e5', 0x4560, 'ldrb  r3, [r4, #0xff]!', 0, ()),
+        (REV_ALL_ARM, 'ff3074e5', 0x4560, 'ldrb  r3, [r4, #-0xff]!', 0, ()),
+        (REV_ALL_ARM, 'ff30d4e4', 0x4560, 'ldrb  r3, [r4], #0xff', 0, ()),
+        (REV_ALL_ARM, 'ff3054e4', 0x4560, 'ldrb  r3, [r4], #-0xff', 0, ()),
+        (REV_ALL_ARM, 'ff305fe5', 0x4560, 'ldrb  r3, [#0x4469]', 0, ()),
+        (REV_ALL_ARM, 'ff30dfe5', 0x4560, 'ldrb  r3, [#0x4667]', 0, ()),
+        (REV_ALL_ARM, '0730d4e7', 0x4560, 'ldrb  r3, [r4, r7]', 0, ()),
+        (REV_ALL_ARM, '0736d4e7', 0x4560, 'ldrb  r3, [r4, r7, lsl #12]', 0, ()),
+        (REV_ALL_ARM, '0736f4e7', 0x4560, 'ldrb  r3, [r4, r7, lsl #12]!', 0, ()),
+        (REV_ALL_ARM, '073654e7', 0x4560, 'ldrb  r3, [r4, -r7, lsl #12]', 0, ()),
+        (REV_ALL_ARM, '073674e7', 0x4560, 'ldrb  r3, [r4, -r7, lsl #12]!', 0, ()),
+        (REV_ALL_ARM, '0730d4e6', 0x4560, 'ldrb  r3, [r4], r7', 0, ()),
+        (REV_ALL_ARM, '073054e6', 0x4560, 'ldrb  r3, [r4], -r7', 0, ()),
+        (REV_ALL_ARM, '0736d4e6', 0x4560, 'ldrb  r3, [r4], r7, lsl #12', 0, ()),
+        (REV_ALL_ARM, '073654e6', 0x4560, 'ldrb  r3, [r4], -r7, lsl #12', 0, ()),
+        (REV_ALL_ARM, '0730f4e6', 0x4560, 'ldrbt  r3, [r4], r7', 0, ()),
+        (REV_ALL_ARM, '073074e6', 0x4560, 'ldrbt  r3, [r4], -r7', 0, ()),
+        (REV_ALL_ARM, '2736f4e6', 0x4560, 'ldrbt  r3, [r4], r7, lsr #12', 0, ()),
+        (REV_ALL_ARM, '273674e6', 0x4560, 'ldrbt  r3, [r4], -r7, lsr #12', 0, ()),
+        (REV_ALL_ARM, 'dc3c4fe1', 0x4560, 'ldrd  r3, [#0x449c]', 0, ()),
+        (REV_ALL_ARM, 'dc3ccfe1', 0x4560, 'ldrd  r3, [#0x4634]', 0, ()),
+        (REV_ALL_ARM, 'dc3c5fe1', 0x4560, 'ldrsb  r3, [#0x449c]', 0, ()),
+        (REV_ALL_ARM, 'dc3cdfe1', 0x4560, 'ldrsb  r3, [#0x4634]', 0, ()),
+        (REV_ALL_ARM, 'fc3c5fe1', 0x4560, 'ldrsh  r3, [#0x449c]', 0, ()),
+        (REV_ALL_ARM, 'fc3cdfe1', 0x4560, 'ldrsh  r3, [#0x4634]', 0, ()),
+
+        (REV_ALL_ARM, 'ff3034e4', 0x4560, 'ldrt  r3, [r4], #-0xff', 0, ()),
+        (REV_ALL_ARM, 'ff30b4e4', 0x4560, 'ldrt  r3, [r4], #0xff', 0, ()),
+        (REV_ALL_ARM, '073034e6', 0x4560, 'ldrt  r3, [r4], -r7', 0, ()),
+        (REV_ALL_ARM, '0730b4e6', 0x4560, 'ldrt  r3, [r4], r7', 0, ()),
+        (REV_ALL_ARM, '0736b4e6', 0x4560, 'ldrt  r3, [r4], r7, lsl #12', 0, ()),
+        (REV_ALL_ARM, '073634e6', 0x4560, 'ldrt  r3, [r4], -r7, lsl #12', 0, ()),
+
+        #in progress testing and debugging
+
+
         
         #Not yet implimented
         #these next ones show up as mov r4, r3, asr #30
@@ -598,6 +627,22 @@ instrs = [
         #(REV_ALL_ARM, '6ff07ff5', 0x4560, 'isb sy', 0, ()),
         #(REV_ALL_ARM, '04609de4', 0x4560, 'pop {r6}', 0, ()),  #ldm variant
         #(REV_ALL_ARM, '9800bde8', 0x4560, 'pop {r3, r4, r7}', 0, ()),  #ldm variant ia and fd are not ual. Otherwise is good for older style.. Should be pop now
+        #(REV_ALL_ARM, '034fa0e1', 0x4560, 'lsl r4, r3, #30', 0, ()), #not a mov
+        #(REV_ALL_ARM, '034fb0e1', 0x4560, 'lsls r4, r3, #30', 0, ()), #not a movs
+        #(REV_ALL_ARM, '7347a0e1', 0x4560, 'lsl r4, r3, r7', 0, ()), #not a mov
+        #(REV_ALL_ARM, '7347b0e1', 0x4560, 'lsls r4, r3, r7', 0, ()), #not a movs
+        #(REV_ALL_ARM, '234fa0e1', 0x4560, 'lsr r4, r3, #30', 0, ()), #not a mov
+        #(REV_ALL_ARM, '234fb0e1', 0x4560, 'lsrs r4, r3, #30', 0, ()), #not a movs
+        #(REV_ALL_ARM, '3347a0e3', 0x4560, 'lsr r4, r3, r7', 0, ()), #not a mov
+        #(REV_ALL_ARM, '3347b0e3', 0x4560, 'lsrs r4, r3, r7', 0, ()), #not a movs
+        #(REV_ALL_ARM, '9f3f94e1', 0x4560, 'ldrex  r3, [r4]', 0, ()), # Not ldrex r3, pc, r4
+        #(REV_ALL_ARM, '9f3fd4e1', 0x4560, 'ldrexb  r3, [r4]', 0, ()),
+        #(REV_ALL_ARM, '9f3fb4e1', 0x4560, 'ldrexd  r3, [r4]', 0, ()),
+        #(REV_ALL_ARM, '9f3ff4e1', 0x4560, 'ldrexh  r3, [r4]', 0, ()),
+        #(REV_ALL_ARM, 'dc3c5fe1', 0x4560, 'ldrh  r3, [#0x449c]', 0, ()),
+        #(REV_ALL_ARM, 'dc3cdfe1', 0x4560, 'ldrh  r3, [#0x4634]', 0, ()),
+
+
 
         #implimented in disasm but not yet in emu
         #(REV_ALL_ARM, '70f02fe1', 0x4560, 'bkpt  #0xff00', 0, ()),
