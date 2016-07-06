@@ -532,7 +532,6 @@ instrs = [
         (REV_ALL_ARM, '001000fa', 0x4560, 'blx  0x00005568', 0, ()),
         (REV_ALL_ARM, '273764ee', 0x4560, 'cdp  p7, 6, c3, c4, c7, 1', 0, ()),
         (REV_ALL_ARM, '473b34ee', 0x4560, 'cdp  p11, 3, c3, c4, c7, 2', 0, ()),
-
         (REV_ALL_ARM, 'ff0c74e3', 0x4560, 'cmn  r4, #0xff00', 0, ()),
         (REV_ALL_ARM, 'ff0c54e3', 0x4560, 'cmp  r4, #0xff00', 0, ()),
         (REV_ALL_ARM, 'ff4c23e2', 0x4560, 'eor r4, r3, #0xff00', 0, ()),
@@ -600,7 +599,6 @@ instrs = [
         (REV_ALL_ARM, 'dc3cdfe1', 0x4560, 'ldrsb  r3, [#0x4634]', 0, ()),
         (REV_ALL_ARM, 'fc3c5fe1', 0x4560, 'ldrsh  r3, [#0x449c]', 0, ()),
         (REV_ALL_ARM, 'fc3cdfe1', 0x4560, 'ldrsh  r3, [#0x4634]', 0, ()),
-
         (REV_ALL_ARM, 'ff3034e4', 0x4560, 'ldrt  r3, [r4], #-0xff', 0, ()),
         (REV_ALL_ARM, 'ff30b4e4', 0x4560, 'ldrt  r3, [r4], #0xff', 0, ()),
         (REV_ALL_ARM, '073034e6', 0x4560, 'ldrt  r3, [r4], -r7', 0, ()),

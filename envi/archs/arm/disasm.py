@@ -197,8 +197,11 @@ dp_mnem = ("and","eor","sub","rsb","add","adc","sbc","rsc","tst","teq","cmp","cm
 #ldrd =  v5t, v6, v7
 #ldrex/ldrexb/ldrexd/ldrexh = v6, v7
 #ldrh = v4, v5t, v6, v7
-#ldrh (literal) = v6t, v7
+#ldrh (literal) = v6t2, v7
 #ldrsb = v4, v5t, v6, v7
+#ldrsbt = v6t2, v7
+#ldrsh = v4, v5t, v6, v7
+#ldrt = v6t2, v7
 
 
 # FIXME: THIS IS FUGLY but sadly it works
