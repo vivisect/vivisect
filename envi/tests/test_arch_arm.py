@@ -551,7 +551,6 @@ instrs = [
         (REV_ALL_ARM, '0738f4ec', 0x4560, 'ldcl p8, c3, [r4], #0x1c', 0, ()),
         (REV_ALL_ARM, '073874ec', 0x4560, 'ldcl p8, c3, [r4], #-0x1c', 0, ()),
         (REV_ALL_ARM, '0738d4ec', 0x4560, 'ldcl p8, c3, [r4], {7}', 0, ()),
-        #in progress testing and debugging
         (REV_ALL_ARM, '07389fed', 0x4560, 'ldc p8, c3, [#0x4584]', 0, ()),
         (REV_ALL_ARM, '07381fed', 0x4560, 'ldc p8, c3, [#0x454c]', 0, ()),
         (REV_ALL_ARM, '0738bfed', 0x4560, 'ldc p8, c3, [#0x4584]', 0, ()),

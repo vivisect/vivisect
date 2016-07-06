@@ -463,7 +463,7 @@ strh_mnem = (("str",IF_H),("ldr",IF_H),)          # IF_H
 ldrs_mnem = (("ldr",IF_S|IF_B),("ldr",IF_S|IF_H),)      # IF_SH, IF_SB
 ldrd_mnem = (("ldr",IF_D),("str",IF_D),)        # IF_D
 
-def p_extra_load_store(opval, va):
+def p_extra_load_store(opval, va, psize=4):
     pubwl = (opval>>20) & 0x1f
     Rn = (opval>>16) & 0xf
     Rd = (opval>>12) & 0xf
@@ -479,7 +479,7 @@ def p_extra_load_store(opval, va):
         olist = (
             ArmRegOper(Rd, va=va),
             ArmRegOper(Rm, va=va),
-            ArmImmOffsetOper(Rn, 0, va, pubwl),
+            ArmImmOffsetOper(Rn, 0, va, pubwl, psize=psize),
         )
     elif opval&0x0fe000f0==0x01800090:# strex/ldrex
         idx = pubwl&1
@@ -500,7 +500,7 @@ def p_extra_load_store(opval, va):
             iflags |= IF_T
         olist = (
             ArmRegOper(Rd, va=va),
-            ArmRegOffsetOper(Rn, Rm, va, pubwl),
+            ArmRegOffsetOper(Rn, Rm, va, pubwl, psize=psize),
         )
     elif opval&0x0e4000f0==0x004000b0:# strh/ldrh immoffset
         idx = pubwl&1
@@ -510,7 +510,7 @@ def p_extra_load_store(opval, va):
             iflags |= IF_T
         olist = (
             ArmRegOper(Rd, va=va),
-            ArmImmOffsetOper(Rn,(Rs<<4)+Rm, va, pubwl),
+            ArmImmOffsetOper(Rn,(Rs<<4)+Rm, va, pubwl, psize=psize),
         )
     elif opval&0x0e5000d0==0x005000d0:# ldrsh/b immoffset
         idx = (opval>>5)&1
@@ -520,7 +520,7 @@ def p_extra_load_store(opval, va):
             iflags |= IF_T
         olist = (
             ArmRegOper(Rd, va=va),
-            ArmImmOffsetOper(Rn, (Rs<<4)+Rm, va, pubwl),
+            ArmImmOffsetOper(Rn, (Rs<<4)+Rm, va, pubwl, psize=psize),
         )
     elif opval&0x0e5000d0==0x001000d0:# ldrsh/b regoffset
         idx = (opval>>5)&1
@@ -530,7 +530,7 @@ def p_extra_load_store(opval, va):
             iflags |= IF_T
         olist = (
             ArmRegOper(Rd, va=va),
-            ArmRegOffsetOper(Rn, Rm, va, pubwl),
+            ArmRegOffsetOper(Rn, Rm, va, pubwl, psize=psize),
         )
     elif opval&0x0e5000d0==0x000000d0:# ldrd/strd regoffset
         # 000pu0w0-Rn--Rt-SBZ-1101-Rm-  ldrd regoffset
@@ -540,7 +540,7 @@ def p_extra_load_store(opval, va):
         mnem,iflags = ldrd_mnem[idx]
         olist = (
             ArmRegOper(Rd, va=va),
-            ArmRegOffsetOper(Rn, Rm, va, pubwl),
+            ArmRegOffsetOper(Rn, Rm, va, pubwl, psize=psize),
         )
     elif opval&0x0e5000d0==0x004000d0:# ldrd/strd immoffset
         idx = (opval>>5)&1
@@ -548,7 +548,7 @@ def p_extra_load_store(opval, va):
         mnem,iflags = ldrd_mnem[idx]
         olist = (
             ArmRegOper(Rd, va=va),
-            ArmImmOffsetOper(Rn, (Rs<<4)+Rm, va, pubwl),
+            ArmImmOffsetOper(Rn, (Rs<<4)+Rm, va, pubwl, psize=psize),
         )
     else:
         raise envi.InvalidInstruction(
@@ -558,7 +558,7 @@ def p_extra_load_store(opval, va):
     return (opcode, mnem, olist, iflags)
 
 
-def p_load_store_word_ubyte(opval, va):
+def p_load_store_word_ubyte(opval, va, psize=4):
     # p206
     #STR(register) pA8-672
     #STRT  A8-704
@@ -584,7 +584,7 @@ def p_load_store_word_ubyte(opval, va):
 
     olist = (
         ArmRegOper(Rd, va=va),
-        ArmScaledOffsetOper(Rn, Rm, shtype, shval, va, pubwl)    # u=-/+, b=word/byte
+        ArmScaledOffsetOper(Rn, Rm, shtype, shval, va, pubwl, psize=psize)    # u=-/+, b=word/byte
     )
     
     opcode = (IENC_LOAD_STORE_WORD_UBYTE << 16)
@@ -641,8 +641,6 @@ def p_mult(opval, va):
     opcode = (IENC_MULT << 16) + ocode
     return (opcode, mnem, olist, flags)
 
-#FIXME, ADR calculates at this point which I believe to be wrong
-#Will research when doing EMU portion.
 def p_dp_imm(opval, va):
     ocode,sflag,Rn,Rd = dpbase(opval)
     imm = opval & 0xff
@@ -757,7 +755,7 @@ def p_mov_imm_stat(opval, va):      # only one instruction: "msr"
     
 ldr_mnem = ("str", "ldr")
 tsizes = (4, 1,)
-def p_load_imm_off(opval, va):
+def p_load_imm_off(opval, va, psize=4):
     # FIXME: handle STRT and others introduced in ARMv7 (p206)
     # * STR(imm) A8-672
     # * STRT A8-704
@@ -781,7 +779,7 @@ def p_load_imm_off(opval, va):
 
     olist = (
         ArmRegOper(Rd, va=va),
-        ArmImmOffsetOper(Rn, imm, va, pubwl=pubwl)    # u=-/+, b=word/byte
+        ArmImmOffsetOper(Rn, imm, va, pubwl=pubwl, psize=psize)    # u=-/+, b=word/byte
     )
     
     opcode = (IENC_LOAD_IMM_OFF << 16)
@@ -804,7 +802,7 @@ def p_load_reg_off(opval, va):
 
     olist = (
         ArmRegOper(Rd, va=va),
-        ArmScaledOffsetOper(Rn, Rm, shtype, shval, va, pubwl),  # u=-/+, b=word/byte
+        ArmScaledOffsetOper(Rn, Rm, shtype, shval, va, pubwl, psize=psize),  # u=-/+, b=word/byte
     )
     
     opcode = (IENC_LOAD_REG_OFF << 16) 
@@ -1226,12 +1224,12 @@ def p_uncond(opval, va):
             opcode = IENC_UNCOND_PLD
             if I:
                 immoffset = opval & 0xfff
-                olist = (ArmImmOffsetOper(Rn, immoffset, va, U<<3),)
+                olist = (ArmImmOffsetOper(Rn, immoffset, va, U<<3, psize=psize),)
             else:
                 Rm = opval & 0xf
                 shtype = (opval>>5) & 3
                 shval = (opval>>7) & 0x1f
-                olist = (ArmScaledOffsetOper(Rn, Rm, shtype, shval, va), )
+                olist = (ArmScaledOffsetOper(Rn, Rm, shtype, shval, va, psize=psize), )
             return (opcode, mnem, olist, 0)
         else:
             raise envi.InvalidInstruction(
@@ -1322,7 +1320,7 @@ def p_uncond(opval, va):
             olist = (
                 ArmCoprocOper(cp_num),
                 ArmCoprocRegOper(CRd),
-                ArmImmOffsetOper(Rn, offset*4, va, pubwl=punwl),
+                ArmImmOffsetOper(Rn, offset*4, va, pubwl=punwl, psize=psize),
             )
             
             opcode = (IENC_COPROC_LOAD << 16)
@@ -1859,7 +1857,7 @@ class ArmImmFPOper(ArmImmOper):
 
 class ArmScaledOffsetOper(ArmOperand):
     ''' scaled offset operand.  see "addressing mode 2 - load and store word or unsigned byte - scaled register *" '''
-    def __init__(self, base_reg, offset_reg, shtype, shval, va, pubwl=0):
+    def __init__(self, base_reg, offset_reg, shtype, shval, va, pubwl=0, psize=4):
         if shval == 0:
             if shtype == S_ROR:
                 shtype = S_RRX
@@ -1870,6 +1868,7 @@ class ArmScaledOffsetOper(ArmOperand):
         self.shtype = shtype
         self.shval = shval
         self.pubwl = pubwl
+        self.psize = psize
         self.va = va
 
         b = (self.pubwl >> 2) & 1
@@ -1888,6 +1887,8 @@ class ArmScaledOffsetOper(ArmOperand):
         if self.shval != oper.shval:
             return False
         if self.pubwl != oper.pubwl:
+            return False
+        if self.psize != oper.psize:
             return False
         return True
 
@@ -1923,7 +1924,7 @@ class ArmScaledOffsetOper(ArmOperand):
         # if U==0, subtract
         addval *= pom
 
-        addr = (Rn + addval) & e_bits.u_maxes[self.tsize]
+        addr = (Rn + addval) & e_bits.u_maxes[self.psize]
 
         # if pre-indexed, we incremement/decrement the register before determining the OperAddr
         if (self.pubwl & 0x12 == 0x12):
@@ -1987,10 +1988,11 @@ class ArmScaledOffsetOper(ArmOperand):
 class ArmRegOffsetOper(ArmOperand):
     ''' register offset operand.  see "addressing mode 2 - load and store word or unsigned byte - register *" 
     dereference address mode using the combination of two register values '''
-    def __init__(self, base_reg, offset_reg, va, pubwl=0):
+    def __init__(self, base_reg, offset_reg, va, pubwl=0, psize=4):
         self.base_reg = base_reg
         self.offset_reg = offset_reg
         self.pubwl = pubwl
+        self.psize = psize
 
         b = (self.pubwl >> 2) & 1
         self.tsize = (4,1)[b]
@@ -2004,6 +2006,8 @@ class ArmRegOffsetOper(ArmOperand):
         if self.offset_reg != oper.offset_reg:
             return False
         if self.pubwl != oper.pubwl:
+            return False
+        if self.psize != oper.psize:
             return False
         return True
 
@@ -2030,13 +2034,14 @@ class ArmRegOffsetOper(ArmOperand):
     # FIXME: should identify whether we're in an emulator or being "analyzed".  should be forcible either way, but defaults should be to update in emulator.executeOpcode() and not in other
     def getOperAddr(self, op, emu=None):
         if emu == None:
+            print "emu==None"
             return None
 
         pom = (-1, 1)[(self.pubwl>>3)&1]
         rn = emu.getRegister( self.base_reg )
         rm = emu.getRegister( self.offset_reg )
 
-        addr = rn + (pom*rm) & e_bits.u_maxes[self.tsize]
+        addr = rn + (pom*rm) & e_bits.u_maxes[self.psize]
 
         # if pre-indexed, we incremement/decrement the register before determining the OperAddr
         if (self.pubwl & 0x12 == 0x12):     # pre-indexed...
@@ -2090,10 +2095,11 @@ class ArmImmOffsetOper(ArmOperand):
     possibly with indexing, pre/post for faster rolling through arrays and such
     if the base_reg is PC, we'll dig in and hopefully grab the data being referenced.
     '''
-    def __init__(self, base_reg, offset, va, pubwl=8):
+    def __init__(self, base_reg, offset, va, pubwl=8, psize=4):
         self.base_reg = base_reg
         self.offset = offset
         self.pubwl = pubwl
+        self.psize = psize
         self.va = va
 
         b = (pubwl >> 2) & 1
@@ -2107,6 +2113,8 @@ class ArmImmOffsetOper(ArmOperand):
         if self.offset != oper.offset:
             return False
         if self.pubwl != oper.pubwl:
+            return False
+        if self.psize != oper.psize:
             return False
         return True
 
@@ -2140,22 +2148,24 @@ class ArmImmOffsetOper(ArmOperand):
         # there are certain circumstances where we can survive without an emulator
         pubwl = self.pubwl >> 3
         u = pubwl & 1
-        tsize = self.tsize # to help cope with ldcl
+        #tsize = self.tsize # to help cope with ldcl
         # if we don't have an emulator, we must be PC-based since we know it
         if self.base_reg == REG_PC:
             base = self.va
             #to handle lcdl. Override tsize to return proper address
-            if ((self.pubwl >>2) & 1) == 1:
-                tsize =4
+            #if ((self.pubwl >>2) & 1) == 1:
+            #    tsize =4
         elif emu == None:
             return None
         else:
             base = emu.getRegister(self.base_reg)
 
         if u:
-            addr = (base + self.offset) & e_bits.u_maxes[tsize]
+            addr = (base + self.offset) & e_bits.u_maxes[self.psize]
+            #addr = (base + self.offset) & e_bits.u_maxes[tsize]
         else:
-            addr = (base - self.offset) & e_bits.u_maxes[tsize]
+            addr = (base - self.offset) & e_bits.u_maxes[self.psize]
+            #addr = (base - self.offset) & e_bits.u_maxes[tsize]
 
         
         if (self.pubwl & 0x12) == 0x12:    # pre-indexed
@@ -2223,6 +2233,7 @@ class ArmImmOffsetOper(ArmOperand):
         basereg = arm_regs[self.base_reg][0]
         if self.base_reg == REG_PC:
             addr = self.getOperAddr(op)    # only works without an emulator because we've already verified base_reg is PC
+
             tname = "[#0x%x]" % addr
             # FIXME: is there any chance of us doing indexing on PC?!?
             # ldcl literal trips this in some cases - leaving for now - to check for other instances
@@ -2597,8 +2608,7 @@ class ArmCoprocRegOper(ArmOperand):
     def repr(self, op):
         return "c%d"%self.val
 
-#copied code from ArmImmOffsetOper - works but render is not correct. Not sure if can delete commented code yet
-class ArmCoprocOption(ArmImmOffsetOper):
+class ArmCoprocOption(ArmImmOper):
     def __init__(self, base_reg, offset, va, pubwl=8):
         self.base_reg = base_reg
         self.offset = offset
@@ -2606,134 +2616,21 @@ class ArmCoprocOption(ArmImmOffsetOper):
         self.va = va
         b = (pubwl >> 2) & 1
         self.tsize = (4,1)[b]
-    '''
     def setOperValue(self, op, emu=None, val=None):
-        # can't survive without an emulator
-        if emu == None:
             return None
-
-        addr = self.getOperAddr(op, emu)
-        val &= e_bits.u_maxes[self.tsize]
-        emu.writeMemValue(addr, val, self.tsize)
 
     def getOperValue(self, op, emu=None):
-        # can't survive without an emulator
-        if emu == None:
-            return None
-        addr = self.getOperAddr(op, emu)
-        ret = emu.readMemValue(addr, self.tsize)
-        return ret
+        return self.offset
 
     def getOperAddr(self, op, emu=None):
-        # there are certain circumstances where we can survive without an emulator
-        pubwl = self.pubwl >> 3
-        u = pubwl & 1
+        return none
 
-        # if we don't have an emulator, we must be PC-based since we know it
-        if self.base_reg == REG_PC:
-            base = self.va
-        elif emu == None:
-            return None
-        else:
-            base = emu.getRegister(self.base_reg)
-
-        if u:
-            addr = (base + self.offset) & e_bits.u_maxes[self.tsize]
-        else:
-            addr = (base - self.offset) & e_bits.u_maxes[self.tsize]
-
-        
-        if (self.pubwl & 0x12) == 0x12:    # pre-indexed
-            if (emu != None) and (emu._forrealz): emu.setRegister( self.base_reg, addr)
-            return addr
-
-        elif (self.pubwl & 0x12) == 0:     # post-indexed
-            if (emu != None) and (emu._forrealz): emu.setRegister( self.base_reg, addr )
-            return base
-
-        return addr
-
-    def render(self, mcanv, op, idx):
-        u = (self.pubwl>>3)&1
-        idxing = self.pubwl & 0x12
-        basereg = arm_regs[self.base_reg][0]
-        if self.base_reg == REG_PC:
-
-            mcanv.addText('[')
-
-            addr = self.getOperAddr(op, mcanv.mem)    # only works without an emulator because we've already verified base_reg is PC
-
-            if mcanv.mem.isValidPointer(addr):
-                name = addrToName(mcanv, addr)
-                mcanv.addVaText(name, addr)
-            else:
-                mcanv.addVaText('#0x%.8x' % addr, addr)
-            mcanv.addText(']')
-
-            value = self.getOperValue(op, mcanv.mem)
-            if value != None:
-                mcanv.addText("\t; ")
-                if mcanv.mem.isValidPointer(value):
-                    name = addrToName(mcanv, value)
-                    mcanv.addVaText(name, value)
-                else:
-                    mcanv.addNameText("0x%x" % value)
-
-            # FIXME: is there any chance of us doing indexing on PC?!?
-            if idxing != 0x10:
-                print "OMJ! indexing on the program counter!"
-        else:
-            pom = ('-','')[u]
-            mcanv.addText('[')
-            mcanv.addNameText(basereg, typename='registers')
-            if self.offset == 0:
-                mcanv.addText(']')
-            else:
-                if (idxing&0x10) == 0:
-                    mcanv.addText('] ')
-                else:
-                    mcanv.addText(', ')
-
-                mcanv.addNameText('#%s0x%x' % (pom,self.offset))
-
-                if idxing == 0x10:
-                    mcanv.addText(']')
-                elif idxing != 0:
-                    mcanv.addText(']!')
-'''
     def render(self, mcanv, op, idx):
         basereg = arm_regs[self.base_reg][0]
         mcanv.addText('[')
         mcanv.addNameText(basereg, typename='registers')
         mcanv.addVaText('], {%s}' % self.offset)
-    '''
-    def repr(self, op):
-        u = (self.pubwl>>3)&1
-        idxing = (self.pubwl) & 0x12
-        basereg = arm_regs[self.base_reg][0]
-        if self.base_reg == REG_PC:
-            addr = self.getOperAddr(op)    # only works without an emulator because we've already verified base_reg is PC
-
-            tname = "[#0x%x]" % addr
-            # FIXME: is there any chance of us doing indexing on PC?!?
-            if idxing != 0x10:
-                print "OMJ! indexing on the program counter!"
-        else:
-            pom = ('-','')[u]
-            if self.offset != 0:
-                offset = ", #%s0x%x"%(pom,self.offset)
-            else:
-                offset = ""
-                
-            if (idxing&0x10) == 0:         # post-indexed
-                tname = '[%s]%s' % (basereg, offset)
-            else:
-                if idxing == 0x10:  # offset addressing, not updated
-                    tname = '[%s%s]' % (basereg,offset)
-                else:               # pre-indexed
-                    tname = '[%s%s]!' % (basereg,offset)
-        return tname
-'''
+        
     def repr(self, op):
         return '[%s], {%s}' % (arm_regs[self.base_reg][0],self.offset)
 
@@ -2793,10 +2690,10 @@ ENDIAN_MSB = 1
 class ArmDisasm:
     fmt = None
     #This holds the current running Arm instruction version and mask
-    _archVersionMask = 'ARMvA'
+    _archVersionMask = 'ARMv7A'
 
-    def __init__(self, endian=ENDIAN_LSB):
-        self.setArchMask()
+    def __init__(self, endian=ENDIAN_LSB, mask = 'ARMv7A'):
+        self.setArchMask(mask)
         self.setEndian(endian)
 
     def setArchMask(self, key = 'ARMv7R'):
