@@ -592,7 +592,10 @@ class PE(object):
                     if not namelen_bytes:
                         continue
                     namelen = struct.unpack('<H', namelen_bytes)[0]
-                    name_id = self.readAtRva(namerva + 2, namelen * 2).decode('utf-16le', 'ignore')
+                    name_raw = self.readAtRva(namerva + 2, namelen * 2)
+                    if not name_raw:
+                        continue
+                    name_id = name_raw.decode('utf-16le', 'ignore')
                     if not name_id:
                         name_id = dirent.Name
 
