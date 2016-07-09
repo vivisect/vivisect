@@ -52,6 +52,48 @@ class CliExtMeth:
     def __call__(self, line):
         return self.func(self.cli, line)
 
+def isValidScript(scriptpath):
+    '''
+    Takes in a filepath
+    Returns whether the file is valid python (ie. suvives import)
+    '''
+    if not os.path.isfile(scriptpath):
+        return False
+
+    with open(scriptpath, 'rb') as f:
+        contents = f.read()
+
+    try:
+        cobj = compile(contents, scriptpath, 'exec')
+        return True
+    except Exception, e:
+        pass
+    
+    return False
+
+def getRelScriptsFromPath(scriptpaths):
+    '''
+    Takes in a list of base paths (eg. ENVI_SCRIPT_PATH list) and recurses the 
+    directories looking for valid python files (ie. they don't throw errors
+    on import).
+
+    Returns a list of scripts usable from the cli in *relative path* format.
+    ie.  if my path has "/home/hacker/fooscripts" in it, the script located
+    at "/home/hacker/fooscripts/barmazing/bazthis.py" is listed as
+    "barmazing/bazthis.py" and the do_script() handler can use that.
+    '''
+    scripts = []
+    for basedir in scriptpaths:
+        baselen = len(basedir) + 1
+
+        for dirname,subdirs,subfiles in os.walk(basedir):
+            for subfile in subfiles:
+                subpath = os.path.join(dirname,subfile)
+                if isValidScript(subpath):
+                    scripts.append(subpath[baselen:])
+
+    return scripts
+
 cfgdefs = {
     'cli':{
         'verbose':False,
@@ -468,6 +510,8 @@ class EnviCli(Cmd):
               all be strings)
 
         Usage: script <scriptfile> [<argv[0]>, ...]
+            
+        or     script ?
         '''
         if len(line) == 0:
             return self.do_help('script')
@@ -475,6 +519,12 @@ class EnviCli(Cmd):
         argv = splitargs(line)
         locals = self.getExpressionLocals()
         locals['argv'] = argv
+
+        if len(argv) and argv[0] == "?":
+            scripts = getRelScriptsFromPath(self.scriptpaths)
+            self.vprint('Scripts available in script paths:\n\t' + '\n\t'.join(scripts))
+            return
+
 
         # TODO: unify vdb.extensions.loadExtensions VDB_EXT_PATH with this
         # TODO: where should env var parsing live?
@@ -782,6 +832,7 @@ class EnviCli(Cmd):
 
         showmem()
         self.setEmptyMethod(showmem)
+
 
 class EnviMutableCli(EnviCli):
     """
