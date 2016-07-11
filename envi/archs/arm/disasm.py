@@ -202,6 +202,22 @@ dp_mnem = ("and","eor","sub","rsb","add","adc","sbc","rsc","tst","teq","cmp","cm
 #ldrsbt = v6t2, v7
 #ldrsh = v4, v5t, v6, v7
 #ldrt = v6t2, v7
+#mov = v4, v5t, v6, v7
+#movw = v6t2, v7
+#movt = v6t2, v7
+#mcr = v4, v5t, v6, v7
+#mcr2 = v5t, v6, v7
+#mcrr = v5te, v6, v7
+#mcrr2 = v6, v7
+#movt = v6t2, v7
+#mrc =  v4, v5t, v6, v7
+#mrc2 = v5t, v6, v7
+#mrcr = v5te, v6, v7
+#mrcr2 = v6, v7
+#mrs =  v4, v5t, v6, v7
+#nop = v6t2, v7
+#orr=  v4, v5t, v6, v7
+
 
 
 # FIXME: THIS IS FUGLY but sadly it works

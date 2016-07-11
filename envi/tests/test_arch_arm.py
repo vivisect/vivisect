@@ -605,10 +605,36 @@ instrs = [
         (REV_ALL_ARM, '0730b4e6', 0x4560, 'ldrt  r3, [r4], r7', 0, ()),
         (REV_ALL_ARM, '0736b4e6', 0x4560, 'ldrt  r3, [r4], r7, lsl #12', 0, ()),
         (REV_ALL_ARM, '073634e6', 0x4560, 'ldrt  r3, [r4], -r7, lsl #12', 0, ()),
+        (REV_ALL_ARM, 'ff3ca0e3', 0x4560, 'mov r3, #0xff00', 0, ()),
+        (REV_ALL_ARM, 'ff3cb0e3', 0x4560, 'movs r3, #0xff00', 0, ()),
+        (REV_ALL_ARM, '0430a0e1', 0x4560, 'mov r3, r4', 0, ()),
+        (REV_ALL_ARM, '0430b0e1', 0x4560, 'movs r3, r4', 0, ()),
+        (REV_ALL_ARM, 'd73884ee', 0x4560, 'mcr p8, 4, r3, c4, c7, 6', 0, ()),
+        (REV_ALL_ARM, '473844ec', 0x4560, 'mcrr p8, 4, r3, r4, c7', 0, ()),
+        (REV_ALL_ARM, 'd73894ee', 0x4560, 'mrc p8, 4, r3, c4, c7, 6', 0, ()),
+        (REV_ALL_ARM, '473854ec', 0x4560, 'mrrc p8, 4, r3, r4, c7', 0, ()),
+        #insert msr tests here
+        (REV_ALL_ARM, '940703e0', 0x4560, 'mul r3, r4, r7', 0, ()),
+        (REV_ALL_ARM, 'ff3ce0e3', 0x4560, 'mvn r3, #0xff00', 0, ()),
+        (REV_ALL_ARM, 'ff3cf0e3', 0x4560, 'mvns r3, #0xff00', 0, ()),
+        (REV_ALL_ARM, '013a84e3', 0x4560, 'orr r3, r4, #0x1000', 0, ()),
+        (REV_ALL_ARM, '013a94e3', 0x4560, 'orrs r3, r4, #0x1000', 0, ()),
+        
+
+
+
 
         #in progress testing and debugging
 
-
+        #"canocial forms" Not sure if we need these or not? otherwise not implimented in this format. Same as a move with shift
+        #(REV_ALL_ARM, '034fa0e1', 0x4560, 'lsl r4, r3, #30', 0, ()),
+        #(REV_ALL_ARM, '034fb0e1', 0x4560, 'lsls r4, r3, #30', 0, ()),
+        #(REV_ALL_ARM, '7347a0e1', 0x4560, 'lsl r4, r3, r7', 0, ()),
+        #(REV_ALL_ARM, '7347b0e1', 0x4560, 'lsls r4, r3, r7', 0, ()),
+        #(REV_ALL_ARM, '234fa0e1', 0x4560, 'lsr r4, r3, #30', 0, ()),
+        #(REV_ALL_ARM, '234fb0e1', 0x4560, 'lsrs r4, r3, #30', 0, ()),
+        #(REV_ALL_ARM, '3347a0e3', 0x4560, 'lsr r4, r3, r7', 0, ()),
+        #(REV_ALL_ARM, '3347b0e3', 0x4560, 'lsrs r4, r3, r7', 0, ()),
         
         #Not yet implimented
         #these next ones show up as mov r4, r3, asr #30
@@ -625,20 +651,15 @@ instrs = [
         #(REV_ALL_ARM, '6ff07ff5', 0x4560, 'isb sy', 0, ()),
         #(REV_ALL_ARM, '04609de4', 0x4560, 'pop {r6}', 0, ()),  #ldm variant
         #(REV_ALL_ARM, '9800bde8', 0x4560, 'pop {r3, r4, r7}', 0, ()),  #ldm variant ia and fd are not ual. Otherwise is good for older style.. Should be pop now
-        #(REV_ALL_ARM, '034fa0e1', 0x4560, 'lsl r4, r3, #30', 0, ()), #not a mov
-        #(REV_ALL_ARM, '034fb0e1', 0x4560, 'lsls r4, r3, #30', 0, ()), #not a movs
-        #(REV_ALL_ARM, '7347a0e1', 0x4560, 'lsl r4, r3, r7', 0, ()), #not a mov
-        #(REV_ALL_ARM, '7347b0e1', 0x4560, 'lsls r4, r3, r7', 0, ()), #not a movs
-        #(REV_ALL_ARM, '234fa0e1', 0x4560, 'lsr r4, r3, #30', 0, ()), #not a mov
-        #(REV_ALL_ARM, '234fb0e1', 0x4560, 'lsrs r4, r3, #30', 0, ()), #not a movs
-        #(REV_ALL_ARM, '3347a0e3', 0x4560, 'lsr r4, r3, r7', 0, ()), #not a mov
-        #(REV_ALL_ARM, '3347b0e3', 0x4560, 'lsrs r4, r3, r7', 0, ()), #not a movs
         #(REV_ALL_ARM, '9f3f94e1', 0x4560, 'ldrex  r3, [r4]', 0, ()), # Not ldrex r3, pc, r4
         #(REV_ALL_ARM, '9f3fd4e1', 0x4560, 'ldrexb  r3, [r4]', 0, ()),
         #(REV_ALL_ARM, '9f3fb4e1', 0x4560, 'ldrexd  r3, [r4]', 0, ()),
         #(REV_ALL_ARM, '9f3ff4e1', 0x4560, 'ldrexh  r3, [r4]', 0, ()),
         #(REV_ALL_ARM, 'dc3c5fe1', 0x4560, 'ldrh  r3, [#0x449c]', 0, ()),
         #(REV_ALL_ARM, 'dc3cdfe1', 0x4560, 'ldrh  r3, [#0x4634]', 0, ()),
+        #(REV_ALL_ARM, 'ff3f0fe3', 0x4560, 'movw r3, #0xffff', 0, ()),
+        #(REV_ALL_ARM, 'ff3f4fe3', 0x4560, 'movt r3, #0xffff', 0, ()),
+
 
 
 
@@ -662,6 +683,12 @@ instrs = [
         #(REV_ALL_ARM, '0738f4fc', 0x4560, 'ldc2l p8, c3, [r4], #0x1c', 0, ()),
         #(REV_ALL_ARM, '073874fc', 0x4560, 'ldc2l p8, c3, [r4], #-0x1c', 0, ()),
         #(REV_ALL_ARM, '0738d4fc', 0x4560, 'ldc2l p8, c3, [r4], #0x1c', 0, ()),  #option should not have # listed
+        #(REV_ALL_ARM, 'd73884fe', 0x4560, 'mcr2 p8, 4, r3, c4, c7, 6', 0, ()),
+        #(REV_ALL_ARM, '473844fc', 0x4560, 'mcrr2 p8, 4, r3, r4, c7', 0, ()),
+        #(REV_ALL_ARM, 'd73894fe', 0x4560, 'mrc2 p8, 4, r3, c4, c7, 6', 0, ()),
+        #(REV_ALL_ARM, '473854fc', 0x4560, 'mrrc2 p8, 4, r3, r4, c7', 0, ()),
+        #(REV_ALL_ARM, '00300fe1', 0x4560, 'mrs r3, cpsr', 0, ()),
+        #(REV_ALL_ARM, '00f020e3', 0x4560, 'nop', 0, ()),
 
 
         #ORIGINAL TESTS
@@ -981,10 +1008,9 @@ class ArmInstructionSet(unittest.TestCase):
                 test_arch = ARCH_REVS[key]
                 if ((not ranAlready) or (not self.armTestOnce)) and ((archz & test_arch & self.armTestVersion) != 0): 
                     ranAlready = True
-                    #print arm.ArmDisasm._archVersionMask
-                    #num, = struct.unpack("<I", bytez.decode('hex'))
-                    #bs = bin(num)[2:].zfill(32)
-                    #print bytez, bs
+                    num, = struct.unpack("<I", bytez.decode('hex'))
+                    bs = bin(num)[2:].zfill(32)
+                    print bytez, bs
                     #in arm/init.py
                     op = vw.arch.archParseOpcode(bytez.decode('hex'), 0, va)
                     redoprepr = repr(op).replace(' ','').lower()
