@@ -2690,7 +2690,7 @@ ENDIAN_MSB = 1
 class ArmDisasm:
     fmt = None
     #This holds the current running Arm instruction version and mask
-    _archVersionMask = 'ARMv7A'
+    _archVersionMask = ARCH_REVS['ARMv7A']
 
     def __init__(self, endian=ENDIAN_LSB, mask = 'ARMv7A'):
         self.setArchMask(mask)
@@ -2698,16 +2698,9 @@ class ArmDisasm:
 
     def setArchMask(self, key = 'ARMv7R'):
         ''' set arch version mask '''
+        self._archVersionMask = 0
         if key in ARCH_REVS:
             self._archVersionMask = ARCH_REVS[key]
-        elif key == 'thumb16':
-            self._archVersionMask = REV_THUMB16
-        elif key == 'thumb':
-            self._archVersionMask = REV_THUMB2
-        else:
-            #Not supported so no mask
-            #will include thumbee and any non supported arm versions.
-            self._archVersionMask = 0
 
     def getArchMask(self):
         return self._archVersionMask
