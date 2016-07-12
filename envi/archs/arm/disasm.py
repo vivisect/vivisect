@@ -217,6 +217,8 @@ dp_mnem = ("and","eor","sub","rsb","add","adc","sbc","rsc","tst","teq","cmp","cm
 #mrs =  v4, v5t, v6, v7
 #nop = v6t2, v7
 #orr=  v4, v5t, v6, v7
+#pkh = v6t2, v7
+#pld(w) = v5te, v6, v7
 
 
 
@@ -917,21 +919,30 @@ def p_media_pack_sat_rev_extend(opval, va):
     opcode = 0
     
     if opc1 == 0 and opc25 == 1:   #pkh
+        #pkhtb = asr, pkhbt = lsl
+        shifter = (S_LSL, S_ASR)
         idx = (opval>>6)&1
         mnem = pkh_mnem[idx]
+        shift_type = shifter[idx]
         Rn = (opval>>16) & 0xf
         Rd = (opval>>12) & 0xf
         shift_imm = (opval>>7) & 0x1f
         Rm = opval & 0xf
-
         opcode = IENC_MEDIA_PACK + idx
-        
-        olist = (
-            ArmRegOper(Rd, va=va),
-            ArmRegOper(Rn, va=va),
-            ArmRegShiftImmOper(Rm, S_LSL, shift_imm, va),
-        )
-
+        #don't have to have a shift
+        if shift_imm > 0:
+            olist = (
+                ArmRegOper(Rd, va=va),
+                ArmRegOper(Rn, va=va),
+                ArmRegShiftImmOper(Rm, shift_type, shift_imm, va),
+            )
+        else:
+            olist = (
+                ArmRegOper(Rd, va=va),
+                ArmRegOper(Rn, va=va),
+                ArmRegOper(Rm, va=va),
+            )
+            
     elif (opc1 & 2) and opc25 == 1: #word sat
         opidx = (opval>>22)&1
         sat_imm = 1 + (opval>>16) & 0xf

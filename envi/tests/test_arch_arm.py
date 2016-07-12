@@ -619,6 +619,18 @@ instrs = [
         (REV_ALL_ARM, 'ff3cf0e3', 0x4560, 'mvns r3, #0xff00', 0, ()),
         (REV_ALL_ARM, '013a84e3', 0x4560, 'orr r3, r4, #0x1000', 0, ()),
         (REV_ALL_ARM, '013a94e3', 0x4560, 'orrs r3, r4, #0x1000', 0, ()),
+
+
+
+
+
+
+
+
+
+
+
+        
         
 
 
@@ -626,6 +638,7 @@ instrs = [
 
         #in progress testing and debugging
 
+        
         #"canocial forms" Not sure if we need these or not? otherwise not implimented in this format. Same as a move with shift
         #(REV_ALL_ARM, '034fa0e1', 0x4560, 'lsl r4, r3, #30', 0, ()),
         #(REV_ALL_ARM, '034fb0e1', 0x4560, 'lsls r4, r3, #30', 0, ()),
@@ -659,7 +672,20 @@ instrs = [
         #(REV_ALL_ARM, 'dc3cdfe1', 0x4560, 'ldrh  r3, [#0x4634]', 0, ()),
         #(REV_ALL_ARM, 'ff3f0fe3', 0x4560, 'movw r3, #0xffff', 0, ()),
         #(REV_ALL_ARM, 'ff3f4fe3', 0x4560, 'movt r3, #0xffff', 0, ()),
-
+        #almost
+        #(REV_ALL_ARM, 'fff053f5', 0x4560, 'pld [r3, #-0xff]', 0, ()),
+        #(REV_ALL_ARM, 'fff0d3f5', 0x4560, 'pld [r3, #0xff]', 0, ()),
+        #(REV_ALL_ARM, 'fff013f5', 0x4560, 'pldw [r3, #-0xff]', 0, ()),
+        #(REV_ALL_ARM, 'fff093f5', 0x4560, 'pldw [r3, #0xff]', 0, ()),
+        #(REV_ALL_ARM, '00f05ff5', 0x4560, 'pld [pc, #-0]', 0, ()),
+        #(REV_ALL_ARM, '08f05ff5', 0x4560, 'pld 0x4560', 0, ()),
+        #(REV_ALL_ARM, '08f0dff5', 0x4560, 'pld 0x4570', 0, ()),
+        #(REV_ALL_ARM, '04f0d3f7', 0x4560, 'pld [r3, r4]', 0, ()),
+        #(REV_ALL_ARM, '04f053f7', 0x4560, 'pld [r3, -r4]', 0, ()),
+        #(REV_ALL_ARM, '24f3d3f7', 0x4560, 'pld r3, r4, lsr #6', 0, ()),
+        #(REV_ALL_ARM, '04f093f7', 0x4560, 'pldw [r3, r4]', 0, ()),
+        #(REV_ALL_ARM, '04f013f7', 0x4560, 'pldw [r3, -r4]', 0, ()),
+        #(REV_ALL_ARM, '44f393f7', 0x4560, 'pldw r3, r4, asr #6', 0, ()),
 
 
 
@@ -689,7 +715,11 @@ instrs = [
         #(REV_ALL_ARM, '473854fc', 0x4560, 'mrrc2 p8, 4, r3, r4, c7', 0, ()),
         #(REV_ALL_ARM, '00300fe1', 0x4560, 'mrs r3, cpsr', 0, ()),
         #(REV_ALL_ARM, '00f020e3', 0x4560, 'nop', 0, ()),
-
+        #(REV_ALL_ARM, '173384e6', 0x4560, 'pkhbt r3, r4, r7, lsl #6', 0, ()),
+        #(REV_ALL_ARM, '173084e6', 0x4560, 'pkhbt r3, r4, r7', 0, ()),
+        #(REV_ALL_ARM, '573384e6', 0x4560, 'pkhtb r3, r4, r7, asr #6', 0, ()),
+        #(REV_ALL_ARM, '573084e6', 0x4560, 'pkhtb r3, r4, r7', 0, ()), 
+        
 
         #ORIGINAL TESTS
         #start of commands with issues
