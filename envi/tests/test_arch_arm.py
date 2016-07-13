@@ -619,26 +619,38 @@ instrs = [
         (REV_ALL_ARM, 'ff3cf0e3', 0x4560, 'mvns r3, #0xff00', 0, ()),
         (REV_ALL_ARM, '013a84e3', 0x4560, 'orr r3, r4, #0x1000', 0, ()),
         (REV_ALL_ARM, '013a94e3', 0x4560, 'orrs r3, r4, #0x1000', 0, ()),
+        (REV_ALL_ARM, 'ff3c64e2', 0x4560, 'rsb r3, r4, #0xff00', 0, ()),
+        (REV_ALL_ARM, 'ff3c74e2', 0x4560, 'rsbs r3, r4, #0xff00', 0, ()),
+        (REV_ALL_ARM, 'ff3ce4e2', 0x4560, 'rsc r3, r4, #0xff00', 0, ()),
+        (REV_ALL_ARM, 'ff3cf4e2', 0x4560, 'rscs r3, r4, #0xff00', 0, ()),
+        (REV_ALL_ARM, '0730c4e0', 0x4560, 'sbc r3, r4, r7', 0, ()),
+        (REV_ALL_ARM, '0730d4e0', 0x4560, 'sbcs r3, r4, r7', 0, ()),
+        (REV_ALL_ARM, 'ff3cc4e2', 0x4560, 'sbc r3, r4, #0xff00', 0, ()),
+        (REV_ALL_ARM, 'ff3cd4e2', 0x4560, 'sbcs r3, r4, #0xff00', 0, ()),
 
 
 
 
 
+        #in progress testing and debugging - these have bugs 
+        #(REV_ALL_ARM, 'f73f34e6', 0x4560, 'shsub8 r3, r4, r7', 0, ()),
+        #(REV_ALL_ARM, 'f73f24e6', 0x4560, 'qsub8 r3, r4, r7', 0, ()),
+        #(REV_ALL_ARM, '373f24e6', 0x4560, 'qasx r3, r4, r7', 0, ()),
+        #(REV_ALL_ARM, '573f24e6', 0x4560, 'qsax r3, r4, r7', 0, ()),
+        #(REV_ALL_ARM, '373f14e6', 0x4560, 'sasx r3, r4, r7', 0, ()),
+        #(REV_ALL_ARM, '373f34e6', 0x4560, 'shasx r3, r4, r7', 0, ()),
+        #(REV_ALL_ARM, '573f34e6', 0x4560, 'shsax r3, r4, r7', 0, ()),
+        #(REV_ALL_ARM, '146703e7', 0x4560, 'smlad r3, r4, r7, r6', 0, ()),
+        #(REV_ALL_ARM, '346703e7', 0x4560, 'smladx r3, r4, r7, r6', 0, ()),
+        #(REV_ALL_ARM, '163744e7', 0x4560, 'smlald r3, r4, r6, r7', 0, ()),
+        #(REV_ALL_ARM, '363744e7', 0x4560, 'smlaldx r3, r4, r6, r7', 0, ()),
+        #(REV_ALL_ARM, '547603e7', 0x4560, 'smlsd r3, r4, r6, r7', 0, ()),
+        #(REV_ALL_ARM, '747603e7', 0x4560, 'smlsdx r3, r4, r6, r7', 0, ()),
+        #(REV_ALL_ARM, '563744e7', 0x4560, 'smlsld r3, r4, r6, r7', 0, ()),
+        #(REV_ALL_ARM, '763744e7', 0x4560, 'smlsldx r3, r4, r6, r7', 0, ()),
+        #(REV_ALL_ARM, '147653e7', 0x4560, 'smmla r3, r4, r6, r7', 0, ()),
+        #(REV_ALL_ARM, '347653e7', 0x4560, 'smmlar r3, r4, r6, r7', 0, ()),
 
-
-
-
-
-
-        
-        
-
-
-
-
-        #in progress testing and debugging
-
-        
         #"canocial forms" Not sure if we need these or not? otherwise not implimented in this format. Same as a move with shift
         #(REV_ALL_ARM, '034fa0e1', 0x4560, 'lsl r4, r3, #30', 0, ()),
         #(REV_ALL_ARM, '034fb0e1', 0x4560, 'lsls r4, r3, #30', 0, ()),
@@ -648,13 +660,18 @@ instrs = [
         #(REV_ALL_ARM, '234fb0e1', 0x4560, 'lsrs r4, r3, #30', 0, ()),
         #(REV_ALL_ARM, '3347a0e3', 0x4560, 'lsr r4, r3, r7', 0, ()),
         #(REV_ALL_ARM, '3347b0e3', 0x4560, 'lsrs r4, r3, r7', 0, ()),
-        
-        #Not yet implimented
-        #these next ones show up as mov r4, r3, asr #30
+        #(REV_ALL_ARM, 'e437a0e1', 0x4560, 'ror r3, r4, #15', 0, ()),
+        #(REV_ALL_ARM, 'e437b0e1', 0x4560, 'rors r3, r4, #15', 0, ()),
+        #(REV_ALL_ARM, '7437a0e1', 0x4560, 'ror r3, r4, r7', 0, ()),
+        #(REV_ALL_ARM, '7437b0e1', 0x4560, 'rors r3, r4, r7', 0, ()),
+        #(REV_ALL_ARM, '6430a0e1', 0x4560, 'rrx r3, r4', 0, ()),
+        #(REV_ALL_ARM, '6430b0e1', 0x4560, 'rrxs r3, r4', 0, ()),
         #(REV_ALL_ARM, '434fa0e1', 0x4560, 'asr  r4, r3, #30', 0, ()),
         #(REV_ALL_ARM, '434fb0e1', 0x4560, 'asrs  r4, r3, #30', 0, ()),
         #(REV_ALL_ARM, '5345a0e1', 0x4560, 'asr  r4, r3, r7', 0, ()),
         #(REV_ALL_ARM, '5345b0e1', 0x4560, 'asrs  r4, r3, r7', 0, ()),
+        
+        #Not yet implimented (Some look like they may have been started)
         #(REV_ALL_ARM, '1f32cfe7', 0x4560, 'bfc r3, #16, #4', 0, ()),
         #(REV_ALL_ARM, '1432cfe7', 0x4560, 'bfi r3, r4, #16, #4', 0, ()),
         #(REV_ALL_ARM, '1ff07ff5', 0x4560, 'clrex', 0, ()),
@@ -672,7 +689,6 @@ instrs = [
         #(REV_ALL_ARM, 'dc3cdfe1', 0x4560, 'ldrh  r3, [#0x4634]', 0, ()),
         #(REV_ALL_ARM, 'ff3f0fe3', 0x4560, 'movw r3, #0xffff', 0, ()),
         #(REV_ALL_ARM, 'ff3f4fe3', 0x4560, 'movt r3, #0xffff', 0, ()),
-        #almost
         #(REV_ALL_ARM, 'fff053f5', 0x4560, 'pld [r3, #-0xff]', 0, ()),
         #(REV_ALL_ARM, 'fff0d3f5', 0x4560, 'pld [r3, #0xff]', 0, ()),
         #(REV_ALL_ARM, 'fff013f5', 0x4560, 'pldw [r3, #-0xff]', 0, ()),
@@ -686,7 +702,20 @@ instrs = [
         #(REV_ALL_ARM, '04f093f7', 0x4560, 'pldw [r3, r4]', 0, ()),
         #(REV_ALL_ARM, '04f013f7', 0x4560, 'pldw [r3, -r4]', 0, ()),
         #(REV_ALL_ARM, '44f393f7', 0x4560, 'pldw r3, r4, asr #6', 0, ()),
-
+        #(REV_ALL_ARM, '00f0d3f4', 0x4560, 'pli [r3]', 0, ()),
+        #(REV_ALL_ARM, 'fff0d3f4', 0x4560, 'pli [r3, #0xff]', 0, ()),
+        #(REV_ALL_ARM, 'fff053f4', 0x4560, 'pli [r3, #-0xff]', 0, ()),
+        #(REV_ALL_ARM, '0ff0dff4', 0x4560, 'pli [#0x4577]', 0, ()),
+        #(REV_ALL_ARM, '0ff0dff4', 0x4560, 'pli [#0x4559]', 0, ()),
+        #(REV_ALL_ARM, '04f053f6', 0x4560, 'pli [r3, -r4]', 0, ()),
+        #(REV_ALL_ARM, '04f0d3f6', 0x4560, 'pli [r3, r4]', 0, ()),
+        #(REV_ALL_ARM, 'a4f353f6', 0x4560, 'pli [r3, -r4, lsr #7]', 0, ()),
+        #(REV_ALL_ARM, 'e4f3d3f6', 0x4560, 'pli [r3, r4, ror #7]', 0, ()),
+        #(REV_ALL_ARM, '16002de9', 0x4560, 'push {r1, r2, r4}', 0, ()),
+        #(REV_ALL_ARM, '04102de5', 0x4560, 'push {r1}', 0, ()),
+        #(REV_ALL_ARM, '343fffe6', 0x4560, 'rbit r3, r4', 0, ()),
+        #(REV_ALL_ARM, '5434a3e7', 0x4560, 'sbfx r3, r4, #8, #4', 0, ()),
+        #(REV_ALL_ARM, '14f713e7', 0x4560, 'sdiv r3, r4, r7', 0, ()),
 
 
         #implimented in disasm but not yet in emu
@@ -718,98 +747,42 @@ instrs = [
         #(REV_ALL_ARM, '173384e6', 0x4560, 'pkhbt r3, r4, r7, lsl #6', 0, ()),
         #(REV_ALL_ARM, '173084e6', 0x4560, 'pkhbt r3, r4, r7', 0, ()),
         #(REV_ALL_ARM, '573384e6', 0x4560, 'pkhtb r3, r4, r7, asr #6', 0, ()),
-        #(REV_ALL_ARM, '573084e6', 0x4560, 'pkhtb r3, r4, r7', 0, ()), 
-        
+        #(REV_ALL_ARM, '573084e6', 0x4560, 'pkhtb r3, r4, r7', 0, ()),
+        #(REV_ALL_ARM, '543007e1', 0x4560, 'qadd r3, r4, r7', 0, ()),
+        #(REV_ALL_ARM, '173f24e6', 0x4560, 'qadd16 r3, r4, r7', 0, ()),
+        #(REV_ALL_ARM, '973f24e6', 0x4560, 'qadd8 r3, r4, r7', 0, ()),
+        #(REV_ALL_ARM, '543027e1', 0x4560, 'qsub r3, r4, r7', 0, ()),
+        #(REV_ALL_ARM, '773f24e6', 0x4560, 'qsub16 r3, r4, r7', 0, ()),
+        #(REV_ALL_ARM, '543047e1', 0x4560, 'qdadd r3, r4, r7', 0, ()),
+        #(REV_ALL_ARM, '543067e1', 0x4560, 'qdsub r3, r4, r7', 0, ()),
+        #(REV_ALL_ARM, '343fbfe6', 0x4560, 'rev r3, r4', 0, ()),
+        #(REV_ALL_ARM, 'b43fbfe6', 0x4560, 'rev16 r3, r4', 0, ()),
+        #(REV_ALL_ARM, 'b43fffe6', 0x4560, 'revsh r3, r4', 0, ()),
+        #(REV_ALL_ARM, '173f14e6', 0x4560, 'sadd16 r3, r4, r7', 0, ()),
+        #(REV_ALL_ARM, '973f14e6', 0x4560, 'sadd8 r3, r4, r7', 0, ()),
+        #(REV_ALL_ARM, 'b73f84e6', 0x4560, 'sel r3, r4, r7', 0, ()),
+        #(REV_ALL_ARM, '000201F1', 0x4560, 'setend be', 0, ()),
+        #(REV_ALL_ARM, '000001F1', 0x4560, 'setend le', 0, ()),
+        #(REV_ALL_ARM, '04f020e3', 0x4560, 'sev', 0, ()),
+        #(REV_ALL_ARM, '173f34e6', 0x4560, 'shadd16 r3, r4, r7', 0, ()),
+        #(REV_ALL_ARM, '973f34e6', 0x4560, 'shadd8 r3, r4, r7', 0, ()),
+        #(REV_ALL_ARM, '773f34e6', 0x4560, 'shsub16 r3, r4, r7', 0, ()),
+        #(REV_ALL_ARM, '846703e1', 0x4560, 'smlabb r3, r4, r7, r6', 0, ()),
+        #(REV_ALL_ARM, 'e46703e1', 0x4560, 'smlatt r3, r4, r7, r6', 0, ()),
+        #(REV_ALL_ARM, 'c46703e1', 0x4560, 'smlabt r3, r4, r7, r6', 0, ()),
+        #(REV_ALL_ARM, 'a46703e1', 0x4560, 'smlatb r3, r4, r7, r6', 0, ()),
+        #(REV_ALL_ARM, '9637e4e0', 0x4560, 'smlal r3, r4, r6, r7', 0, ()),
+        #(REV_ALL_ARM, '9637f4e0', 0x4560, 'smlals r3, r4, r6, r7', 0, ()),
+        #(REV_ALL_ARM, '863744e1', 0x4560, 'smlalbb r3, r4, r6, r7', 0, ()),
+        #(REV_ALL_ARM, 'e63744e1', 0x4560, 'smlaltt r3, r4, r6, r7', 0, ()),
+        #(REV_ALL_ARM, 'c63744e1', 0x4560, 'smlalbt r3, r4, r6, r7', 0, ()),
+        #(REV_ALL_ARM, 'a63744e1', 0x4560, 'smlaltb r3, r4, r6, r7', 0, ()),
+        #(REV_ALL_ARM, '847623e1', 0x4560, 'smlawb r3, r4, r6, r7', 0, ()),
+        #(REV_ALL_ARM, 'c47623e1', 0x4560, 'smlawt r3, r4, r6, r7', 0, ()),
+        #(REV_ALL_ARM, 'd47653e7', 0x4560, 'smmls r3, r4, r6, r7', 0, ()),
+        #(REV_ALL_ARM, 'f47653e7', 0x4560, 'smmlsr r3, r4, r6, r7', 0, ()),
 
-        #ORIGINAL TESTS
-        #start of commands with issues
-        #not implimented at all yet but should be valid
-        #(REV_ALL_ARM, '774543e1', 0x4560, 'hvc #0x3457', 0, ()), # not implimented - hypervisor
-        #(REV_ALL_ARM, '974563e0', 0x4560, 'mls r3, r7, r5, r4', 0, ()),  # not implimented
-        
-        #valid codes but not implimented in EMU yet. Put here so they will fail after other tests done
-        #doing this to check test coverage
-        #(REV_ALL_ARM, '174663e1', 0x4560, 'clz r4, r7', 0, ()), #Emu: Unsupported instruction
-        #(REV_ALL_ARM, 'e74503e1', 0x4560, 'smlatt r3, r7, r5, r4', 0, ()), #Emu: Unsupported instruction
-        #(REV_ALL_ARM, 'e74523e1', 0x4560, 'smulwt r3, r7, r5', 0, ()), #Emu: Unsupported instruction
-        #(REV_ALL_ARM, 'e74543e1', 0x4560, 'smlaltt r4, r3, r7, r5', 0, ()), #Emu: Unsupported instruction
-        #(REV_ALL_ARM, 'c74503e1', 0x4560, 'smlabt r3, r7, r5, r4', 0, ()), #Emu: Unsupported instruction
-        #(REV_ALL_ARM, 'c74523e1', 0x4560, 'smlawt r3, r7, r5, r4', 0, ()), #Emu: Unsupported instruction
-        #(REV_ALL_ARM, 'c74543e1', 0x4560, 'smlalbt r4, r3, r7, r5', 0, ()), #Emu: Unsupported instruction
-        #(REV_ALL_ARM, 'c74503e1', 0x4560, 'smlabt r3, r7, r5, r4', 0, ()), #Emu: Unsupported instruction
-        #(REV_ALL_ARM, 'c74523e1', 0x4560, 'smlawt r3, r7, r5, r4', 0, ()), #Emu: Unsupported instruction
-        #(REV_ALL_ARM, 'c74543e1', 0x4560, 'smlalbt r4, r3, r7, r5', 0, ()), #Emu: Unsupported instruction
-        #(REV_ALL_ARM, 'a74503e1', 0x4560, 'smlatb r3, r7, r5, r4', 0, ()), #Emu: Unsupported instruction
-        #(REV_ALL_ARM, 'a74523e1', 0x4560, 'smulwb r3, r7, r5', 0, ()), #Emu: Unsupported instruction
-        #(REV_ALL_ARM, 'a74543e1', 0x4560, 'smlaltb r4, r3, r7, r5', 0, ()), #Emu: Unsupported instruction
-        #(REV_ALL_ARM, 'a74563e1', 0x4560, 'smultb r3, r7, r5', 0, ()), #Emu: Unsupported instruction
-        #(REV_ALL_ARM, '774523e1', 0x4560, 'bkpt #0x3457', 0, ()), #Emu: Unsupported instruction
-        #(REV_ALL_ARM, '9745e3e0', 0x4560, 'smlal r4, r3, r7, r5', 0, ()), #Emu: Unsupported instruction
-        #(REV_ALL_ARM, '9745f3e0', 0x4560, 'smlals r4, r3, r7, r5', 0, ()), #Emu: Unsupported instruction
-        #(REV_ALL_ARM, '974503e1', 0x4560, 'swp r4, r7, [r3]', 0, ()), #Emu: Unsupported instruction
-        #(REV_ALL_ARM, '974543e1', 0x4560, 'swpb r4, r7, [r3]', 0, ()), #Emu: Unsupported instruction
-        #(REV_ALL_ARM, '974523e0', 0x4560, 'mla r3, r7, r5, r4', 0, ()), #Emu: Unsupported instruction
-        #(REV_ALL_ARM, '974533e0', 0x4560, 'mlas r3, r7, r5, r4', 0, ()), #Emu: Unsupported instruction
-        #(REV_ALL_ARM, '974543e0', 0x4560, 'umaal r4, r3, r7, r5', 0, ()), #Emu: Unsupported instruction
-        #(REV_ALL_ARM, '874503e1', 0x4560, 'smlabb r3, r7, r5, r4', 0, ()),  #Emu: Unsupported instruction
-        #(REV_ALL_ARM, '874523e1', 0x4560, 'smlawb r3, r7, r5, r4', 0, ()), #Emu: Unsupported instruction
-        #(REV_ALL_ARM, '874543e1', 0x4560, 'smlalbb r4, r3, r7, r5', 0, ()),  #Emu: Unsupported instruction
-        #(REV_ALL_ARM, '874563e1', 0x4560, 'smulbb r3, r7, r5', 0, ()), #Emu: Unsupported instruction
-
-        
-        #not valid codes - will save for now and retry when all commands have been added
-        #to see if they match up somewhere. Delete after v8 has been done
-        #(REV_ALL_ARM, '574663e1', 0x4560, 'cmn r3, r7, asr r6', 0, ()), # not valid command - no sflag which is required
-        #(REV_ALL_ARM, '574643e1', 0x4560, 'cmp r3, r7, asr r6', 0, ()),  # not valid command - no sflag which is required
-        #(REV_ALL_ARM, '574623e1', 0x4560, 'teq r3, r7, asr r6', 0, ()),  # not valid command - no sflag which is required
-        #(REV_ALL_ARM, '574603e1', 0x4560, 'tst r3, r7, asr r6', 0, ()), # not valid command - no sflag which is required
-        #(REV_ALL_ARM, '474603e1', 0x4560, 'tst r3, r7, asr #12', 0, ()),   # not valid command - no sflag which is required
-        #(REV_ALL_ARM, '474623e1', 0x4560, 'teq r3, r7, asr #12', 0, ()),    # not valid command - no sflag which is required
-        #(REV_ALL_ARM, '474643e1', 0x4560, 'cmp r3, r7, asr #12', 0, ()),   # not valid command - no sflag which is required
-        #(REV_ALL_ARM, '474663e1', 0x4560, 'cmn r3, r7, asr #12', 0, ()),  # not valid command - no sflag which is required
-        #(REV_ALL_ARM, '374603e1', 0x4560, 'tst r3, r7, lsr r6', 0, ()),  # not valid command - no sflag which is required
-        #(REV_ALL_ARM, '374643e1', 0x4560, 'cmp r3, r7, lsr r6', 0, ()), # not valid command - no sflag which is required
-        #(REV_ALL_ARM, '374663e1', 0x4560, 'cmn r3, r7, lsr r6', 0, ()), # not valid command - no sflag which is required
-        #(REV_ALL_ARM, '274603e1', 0x4560, 'tst r3, r7, lsr #12', 0, ()),  # not valid command - no sflag which is required
-        #(REV_ALL_ARM, '274623e1', 0x4560, 'bxj r7', 0, ()),  # not valid command - none of SBO fields are all 1's
-        #(REV_ALL_ARM, '274643e1', 0x4560, 'cmp r3, r7, lsr #12', 0, ()), # not valid command - no sflag which is required
-        #(REV_ALL_ARM, '274663e1', 0x4560, 'cmn r3, r7, lsr #12', 0, ()), # not valid command - no sflag which is required
-        #(REV_ALL_ARM, '174603e1', 0x4560, 'tst r3, r7, lsl r6', 0, ()),   # not valid command - no sflag which is required
-        #(REV_ALL_ARM, '174643e1', 0x4560, 'cmp r3, r7, lsl r6', 0, ()), # not valid command - no sflag which is required
-        #(REV_ALL_ARM, '074603e1', 0x4560, 'tst r3, r7, lsl #12', 0, ()), # not valid command - no sflag which is required
-        #(REV_ALL_ARM, '074623e1', 0x4560, 'teq r3, r7, lsl #12', 0, ()), # not valid command - no sflag which is required
-        #(REV_ALL_ARM, '074643e1', 0x4560, 'cmp r3, r7, lsl #12', 0, ()), # not valid command - no sflag which is required
-        #(REV_ALL_ARM, '074663e1', 0x4560, 'cmn r3, r7, lsl #12', 0, ()), # not valid command - no sflag which is required
-        #(REV_ALL_ARM, 'f745e3e0', 0x4560, 'strtd r4, [r3], #0x57 ', 0, ()), # strd variant - unpredictable - not valid
-        #(REV_ALL_ARM, 'f745a3e0', 0x4560, 'strtd r4, [r3], r7 ', 0, ()), # strd variant - unpredictable - not valid
-        #(REV_ALL_ARM, 'f74523e0', 0x4560, 'strtd r4, [r3], -r7 ', 0, ()),  # strd variant - unpredictable - not valid
-        #(REV_ALL_ARM, 'f74563e0', 0x4560, 'strtd r4, [r3], #-0x57 ', 0, ()), # strd variant - unpredictable - not valid
-        #(REV_ALL_ARM, 'e74563e1', 0x4560, 'smultt r3, r7, r5', 0, ()), # invalid command sbz had a 1 in it
-        #(REV_ALL_ARM, 'd74563e0', 0x4560, 'ldrtd r4, [r3], #-0x57 ', 0, ()), # ldrd variant - unpredictable - not valid
-        #(REV_ALL_ARM, 'd745a3e0', 0x4560, 'ldrtd r4, [r3], r7 ', 0, ()), # ldrd variant - unpredictable - not valid
-        #(REV_ALL_ARM, 'd745e3e0', 0x4560, 'ldrtd r4, [r3], #0x57 ', 0, ()), # ldrd variant - unpredictable - not valid
-        #(REV_ALL_ARM, 'c74563e1', 0x4560, 'smulbt r3, r7, r5', 0, ()), # invalid command sbz had a 1 in it
-        #(REV_ALL_ARM, 'c74563e1', 0x4560, 'smulbt r3, r7, r5', 0, ()), # invalid command sbz had a 1 in it
-        #(REV_ALL_ARM, '774563e1', 0x4560, 'smc #0x3457', 0, ()), # invalid - SB0 are not all 0
-        #next command IDA wrongly has as 'tst r3, r7, lsl r5'. Book shows this is the correct one minus the SBZ field is 0101; depreciated ARMv6
-        #(REV_ALL_ARM, '974513e1', 0x4560, 'tst r3, r7, lsl r5', 0, ()), # not valid - bit 7 is wrong
-        #(REV_ALL_ARM, '974523e1', 0x4560, 'teq r3, r7, lsl r5', 0, ()), # not valid - no sflag
-        #(REV_ALL_ARM, '974533e1', 0x4560, 'teq r3, r7, lsl r5', 0, ()), # not valid - bit 7 is wrong
-        #next command IDA wrongly has as 'cmp r3, r7, lsl r5'. Book shows this is the correct one minus the SBZ field is 0101; depreciated ARMv6
-        #(REV_ALL_ARM, '974553e1', 0x4560, 'cmp r3, r7, lsl r5', 0, ()), # not valid - bit 7 is wrong
-        #(REV_ALL_ARM, '974563e1', 0x4560, 'cmn r3, r7, lsl r5', 0, ()), # not valid - bit 7 is wrong - no Sflag
-        #(REV_ALL_ARM, '974573e1', 0x4560, 'cmn r3, r7, lsl r5', 0, ()), # not valid - bit 7 is wrong
-        #(REV_ALL_ARM, '974583e1', 0x4560, 'orr r4, r3, r7, lsl r5', 0, ()),  # not valid - bit 7 is wrong
-        #(REV_ALL_ARM, '974593e1', 0x4560, 'orrs r4, r3, r7, lsl r5', 0, ()), # not valid - bit 7 is wrong
-        #(REV_ALL_ARM, '9745a3e1', 0x4560, 'mov r4, r7, lsl r5', 0, ()), # not valid - bit 7 is wrong
-        #(REV_ALL_ARM, '9745b3e1', 0x4560, 'movs r4, r7, lsl r5', 0, ()), # not valid - bit 7 is wrong
-        #(REV_ALL_ARM, '9745c3e1', 0x4560, 'bic r4, r3, r7, lsl r5', 0, ()), # not valid - bit 7 is wrong
-        #(REV_ALL_ARM, '9745d3e1', 0x4560, 'bics r4, r3, r7, lsl r5', 0, ()), # not valid - bit 7 is wrong
-        #(REV_ALL_ARM, '9745e3e1', 0x4560, 'mvn r4, r7, lsl r5', 0, ()), # not valid - bit 7 is wrong
-        #(REV_ALL_ARM, '9745f3e1', 0x4560, 'mvns r4, r7, lsl r5', 0, ()), # not valid - bit 7 is wrong
-        #(REV_ALL_ARM, '974553e0', 0x4560, 'umaals r4, r3, r7, r5', 0, ()), # invalid instruction
-        #(REV_ALL_ARM, '974573e0', 0x4560, 'mlss r3, r7, r5, r4', 0, ()),   # invalid instruction
-        
+        #Deleted all old stuff was saving as see no point now
         ]
 
 
