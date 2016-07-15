@@ -627,10 +627,29 @@ instrs = [
         (REV_ALL_ARM, '0730d4e0', 0x4560, 'sbcs r3, r4, r7', 0, ()),
         (REV_ALL_ARM, 'ff3cc4e2', 0x4560, 'sbc r3, r4, #0xff00', 0, ()),
         (REV_ALL_ARM, 'ff3cd4e2', 0x4560, 'sbcs r3, r4, #0xff00', 0, ()),
-
-
-
-
+        (REV_ALL_ARM, '9637c4e0', 0x4560, 'smull r3, r4, r6, r7', 0, ()),
+        (REV_ALL_ARM, '9637d4e0', 0x4560, 'smulls r3, r4, r6, r7', 0, ()),
+        (REV_ALL_ARM, '3f3884ed', 0x4560, 'stc p8, c3, [r4, #0xfc]', 0, ()),
+        (REV_ALL_ARM, '3f3804ed', 0x4560, 'stc p8, c3, [r4, #-0xfc]', 0, ()),
+        (REV_ALL_ARM, '3f38a4ed', 0x4560, 'stc p8, c3, [r4, #0xfc]!', 0, ()),
+        (REV_ALL_ARM, '3f3824ed', 0x4560, 'stc p8, c3, [r4, #-0xfc]!', 0, ()),
+        (REV_ALL_ARM, '3f38a4ec', 0x4560, 'stc p8, c3, [r4], #0xfc', 0, ()),
+        (REV_ALL_ARM, '3f3824ec', 0x4560, 'stc p8, c3, [r4], #-0xfc', 0, ()),
+        (REV_ALL_ARM, '0f3884ec', 0x4560, 'stc p8, c3, [r4], {15}', 0, ()),
+        (REV_ALL_ARM, '940001e8', 0x4560, 'stmda r1, {r2, r4, r7}', 0, ()),
+        (REV_ALL_ARM, '940021e8', 0x4560, 'stmda r1!, {r2, r4, r7}', 0, ()),
+        (REV_ALL_ARM, '940081e9', 0x4560, 'stmib r1, {r2, r4, r7}', 0, ()),
+        (REV_ALL_ARM, '9400a1e9', 0x4560, 'stmib r1!, {r2, r4, r7}', 0, ()),
+        (REV_ALL_ARM, '003084e5', 0x4560, 'str r3, [r4]', 0, ()),
+        (REV_ALL_ARM, 'ff3084e5', 0x4560, 'str r3, [r4, #0xff]', 0, ()),
+        (REV_ALL_ARM, 'ff3004e5', 0x4560, 'str r3, [r4, #-0xff]', 0, ()),
+        (REV_ALL_ARM, 'ff3084e4', 0x4560, 'str r3, [r4], #0xff', 0, ()),
+        (REV_ALL_ARM, 'ff3004e4', 0x4560, 'str r3, [r4], #-0xff', 0, ()),
+        (REV_ALL_ARM, 'ff30a4e5', 0x4560, 'str r3, [r4, #0xff]!', 0, ()),
+        (REV_ALL_ARM, '073084e7', 0x4560, 'str r3, [r4, r7]', 0, ()),
+        (REV_ALL_ARM, '073004e7', 0x4560, 'str r3, [r4, -r7]', 0, ()),
+        (REV_ALL_ARM, '073084e6', 0x4560, 'str r3, [r4], r7', 0, ()),
+        (REV_ALL_ARM, '073004e6', 0x4560, 'str r3, [r4], -r7', 0, ()),
 
         #in progress testing and debugging - these have bugs 
         #(REV_ALL_ARM, 'f73f34e6', 0x4560, 'shsub8 r3, r4, r7', 0, ()),
@@ -650,6 +669,9 @@ instrs = [
         #(REV_ALL_ARM, '763744e7', 0x4560, 'smlsldx r3, r4, r6, r7', 0, ()),
         #(REV_ALL_ARM, '147653e7', 0x4560, 'smmla r3, r4, r6, r7', 0, ()),
         #(REV_ALL_ARM, '347653e7', 0x4560, 'smmlar r3, r4, r6, r7', 0, ()),
+        #need to be updated to UAL
+        #(REV_ALL_ARM, '940081e8', 0x4560, 'stm r1, {r2, r4, r7}', 0, ()),
+        #(REV_ALL_ARM, '9400a1e8', 0x4560, 'stm r1!, {r2, r4, r7}', 0, ()),
 
         #"canocial forms" Not sure if we need these or not? otherwise not implimented in this format. Same as a move with shift
         #(REV_ALL_ARM, '034fa0e1', 0x4560, 'lsl r4, r3, #30', 0, ()),
@@ -716,7 +738,13 @@ instrs = [
         #(REV_ALL_ARM, '343fffe6', 0x4560, 'rbit r3, r4', 0, ()),
         #(REV_ALL_ARM, '5434a3e7', 0x4560, 'sbfx r3, r4, #8, #4', 0, ()),
         #(REV_ALL_ARM, '14f713e7', 0x4560, 'sdiv r3, r4, r7', 0, ()),
-
+        #(REV_ALL_ARM, '14f603e7', 0x4560, 'smuad r3, r4, r6', 0, ()),
+        #(REV_ALL_ARM, '34f603e7', 0x4560, 'smuadx r3, r4, r6', 0, ()),
+        #(REV_ALL_ARM, '343fa6e6', 0x4560, 'ssat16 r3, #0x07, r4', 0, ()),
+        #(REV_ALL_ARM, '563f14e6', 0x4560, 'ssax r3, r4, r6', 0, ()),
+        #(REV_ALL_ARM, 'f63f14e6', 0x4560, 'ssub8 r3, r4, r6', 0, ()),
+        #(REV_ALL_ARM, '940001e9', 0x4560, 'stmdb r1, {r2, r4, r7}', 0, ()),
+        #(REV_ALL_ARM, '940021e0', 0x4560, 'stmdb r1!, {r2, r4, r7}', 0, ()),
 
         #implimented in disasm but not yet in emu
         #(REV_ALL_ARM, '70f02fe1', 0x4560, 'bkpt  #0xff00', 0, ()),
@@ -781,6 +809,21 @@ instrs = [
         #(REV_ALL_ARM, 'c47623e1', 0x4560, 'smlawt r3, r4, r6, r7', 0, ()),
         #(REV_ALL_ARM, 'd47653e7', 0x4560, 'smmls r3, r4, r6, r7', 0, ()),
         #(REV_ALL_ARM, 'f47653e7', 0x4560, 'smmlsr r3, r4, r6, r7', 0, ()),
+        #(REV_ALL_ARM, '14f653e7', 0x4560, 'smmul r3, r4, r6', 0, ()),
+        #(REV_ALL_ARM, '34f653e7', 0x4560, 'smmulr r3, r4, r6', 0, ()),
+        #(REV_ALL_ARM, '840663e1', 0x4560, 'smulbb r3, r4, r6', 0, ()),
+        #(REV_ALL_ARM, 'c40663e1', 0x4560, 'smulbt r3, r4, r6', 0, ()),
+        #(REV_ALL_ARM, 'a40663e1', 0x4560, 'smultb r3, r4, r6', 0, ()),
+        #(REV_ALL_ARM, 'e40663e1', 0x4560, 'smultt r3, r4, r6', 0, ()),
+        #(REV_ALL_ARM, 'a40623e1', 0x4560, 'smulwb r3, r4, r6', 0, ()),
+        #(REV_ALL_ARM, 'e40623e1', 0x4560, 'smulwt r3, r4, r6', 0, ()),
+        #(REV_ALL_ARM, '54f603e7', 0x4560, 'smusd r3, r4, r6', 0, ()),
+        #(REV_ALL_ARM, '74f603e7', 0x4560, 'smusdx r3, r4, r6', 0, ()),
+        #(REV_ALL_ARM, '1430a6e6', 0x4560, 'ssat r3, #0x07, r4', 0, ()),
+        #(REV_ALL_ARM, '1433a6e6', 0x4560, 'ssat r3, #0x07, r4, lsl #6', 0, ()),
+        #(REV_ALL_ARM, '5433a6e6', 0x4560, 'ssat r3, #0x07, r4, asr #6', 0, ()),
+        #(REV_ALL_ARM, '5430a6e6', 0x4560, 'ssat r3, #0x07, r4, asr #32', 0, ()),
+        #(REV_ALL_ARM, '763f14e6', 0x4560, 'ssub16 r3, r4, r6', 0, ()),
 
         #Deleted all old stuff was saving as see no point now
         ]
