@@ -564,8 +564,7 @@ instrs = [
         (REV_ALL_ARM, '0738ffec', 0x4560, 'ldcl p8, c3, [#0x4584]', 0, ()),
         (REV_ALL_ARM, '07387fec', 0x4560, 'ldcl p8, c3, [#0x454c]', 0, ()),
         (REV_ALL_ARM, '0738dfec', 0x4560, 'ldcl p8, c3, [pc], {7}', 0, ()),
-        (REV_ALL_ARM, '980090e8', 0x4560, 'ldmia  r0, {r3, r4, r7}', 0, ()), #not ual, should be ldm
-        (REV_ALL_ARM, '9800b0e8', 0x4560, 'ldmia  r0!, {r3, r4, r7}', 0, ()), #not ual, should be ldm
+
         (REV_ALL_ARM, '98009de9', 0x4560, 'ldmib  sp, {r3, r4, r7}', 0, ()),
         (REV_ALL_ARM, '9800bde9', 0x4560, 'ldmib  sp!, {r3, r4, r7}', 0, ()),
         (REV_ALL_ARM, '98001de8', 0x4560, 'ldmda  sp, {r3, r4, r7}', 0, ()),
@@ -650,6 +649,37 @@ instrs = [
         (REV_ALL_ARM, '073004e7', 0x4560, 'str r3, [r4, -r7]', 0, ()),
         (REV_ALL_ARM, '073084e6', 0x4560, 'str r3, [r4], r7', 0, ()),
         (REV_ALL_ARM, '073004e6', 0x4560, 'str r3, [r4], -r7', 0, ()),
+        (REV_ALL_ARM, '0030c4e5', 0x4560, 'strb r3, [r4]', 0, ()),
+        (REV_ALL_ARM, 'ff30c4e5', 0x4560, 'strb r3, [r4, #0xff]', 0, ()),
+        (REV_ALL_ARM, 'ff3044e5', 0x4560, 'strb r3, [r4, #-0xff]', 0, ()),
+        (REV_ALL_ARM, 'ff30c4e4', 0x4560, 'strb r3, [r4], #0xff', 0, ()),
+        (REV_ALL_ARM, 'ff3044e4', 0x4560, 'strb r3, [r4], #-0xff', 0, ()),
+        (REV_ALL_ARM, 'ff30e4e5', 0x4560, 'strb r3, [r4, #0xff]!', 0, ()),
+        (REV_ALL_ARM, '0730c4e7', 0x4560, 'strb r3, [r4, r7]', 0, ()),
+        (REV_ALL_ARM, '073044e7', 0x4560, 'strb r3, [r4, -r7]', 0, ()),
+        (REV_ALL_ARM, '0730C4e6', 0x4560, 'strb r3, [r4], r7', 0, ()),
+        (REV_ALL_ARM, '073044e6', 0x4560, 'strb r3, [r4], -r7', 0, ()),
+        (REV_ALL_ARM, 'ff30e4e4', 0x4560, 'strbt r3, [r4], #0xff', 0, ()),
+        (REV_ALL_ARM, 'ff3064e4', 0x4560, 'strbt r3, [r4], #-0xff', 0, ()),
+        (REV_ALL_ARM, '0730e4e6', 0x4560, 'strbt r3, [r4], r7', 0, ()),
+        (REV_ALL_ARM, '073064e6', 0x4560, 'strbt r3, [r4], -r7', 0, ()),
+        (REV_ALL_ARM, 'b030c7e1', 0x4560, 'strh r3, [r7]', 0, ()),
+        (REV_ALL_ARM, 'b030e7e0', 0x4560, 'strht r3, [r7]', 0, ()),
+        (REV_ALL_ARM, '0030a7e4', 0x4560, 'strt r3, [r7]', 0, ()),
+        (REV_ALL_ARM, 'ff30a7e4', 0x4560, 'strt r3, [r7], #0xff', 0, ()),
+        (REV_ALL_ARM, 'ff3027e4', 0x4560, 'strt r3, [r7], #-0xff', 0, ()),
+        (REV_ALL_ARM, '0730a4e6', 0x4560, 'strt r3, [r4], r7', 0, ()),
+        (REV_ALL_ARM, '073024e6', 0x4560, 'strt r3, [r4], -r7', 0, ()),
+        (REV_ALL_ARM, 'ff3c44e2', 0x4560, 'sub r3, r4, #0xff00', 0, ()),
+        (REV_ALL_ARM, 'ff3c54e2', 0x4560, 'subs r3, r4, #0xff00', 0, ()),
+        (REV_ALL_ARM, '073044e0', 0x4560, 'sub r3, r4, r7', 0, ()),
+        (REV_ALL_ARM, '073054e0', 0x4560, 'subs r3, r4, r7', 0, ()),
+        (REV_ALL_ARM, 'ff3c4de2', 0x4560, 'sub r3, sp, #0xff00', 0, ()),
+        (REV_ALL_ARM, 'ff3c5de2', 0x4560, 'subs r3, sp, #0xff00', 0, ()),
+        (REV_ALL_ARM, '04304de0', 0x4560, 'sub r3, sp, r4', 0, ()),
+        (REV_ALL_ARM, '04305de0', 0x4560, 'subs r3, sp, r4', 0, ()),
+        (REV_ALL_ARM, '44364de0', 0x4560, 'sub r3, sp, r4, asr #12', 0, ()),
+        (REV_ALL_ARM, '44365de0', 0x4560, 'subs r3, sp, r4, asr #12', 0, ()),
 
         #in progress testing and debugging - these have bugs 
         #(REV_ALL_ARM, 'f73f34e6', 0x4560, 'shsub8 r3, r4, r7', 0, ()),
@@ -670,8 +700,25 @@ instrs = [
         #(REV_ALL_ARM, '147653e7', 0x4560, 'smmla r3, r4, r6, r7', 0, ()),
         #(REV_ALL_ARM, '347653e7', 0x4560, 'smmlar r3, r4, r6, r7', 0, ()),
         #need to be updated to UAL
+        #(REV_ALL_ARM, '00ff00ef', 0x4560, 'svc #0xff00', 0, ()), #needs to be changed from swi
         #(REV_ALL_ARM, '940081e8', 0x4560, 'stm r1, {r2, r4, r7}', 0, ()),
         #(REV_ALL_ARM, '9400a1e8', 0x4560, 'stm r1!, {r2, r4, r7}', 0, ()),
+        #fails to decode rt2, rt must be even, less than r14, rt2 is rt+1 per A8.8.210
+        #(REV_ALL_ARM, 'f040c7e1', 0x4560, 'strd r4, r5, [r7]', 0, ()),
+        #(REV_ALL_ARM, 'ff4fc7e1', 0x4560, 'strd r4, r5, [r7, #0xff]', 0, ()),
+        #(REV_ALL_ARM, 'ff4f47e1', 0x4560, 'strd r4, r5, [r7, #-0xff]', 0, ()),
+        #(REV_ALL_ARM, 'ff4fe7e1', 0x4560, 'strd r4, r5, [r7, #0xff]!', 0, ()),
+        #(REV_ALL_ARM, 'ff4f67e1', 0x4560, 'strd r4, r5, [r7, #-0xff]!', 0, ()),
+        #(REV_ALL_ARM, 'ff4fc7e0', 0x4560, 'strd r4, r5, [r7], #0xff', 0, ()),
+        #(REV_ALL_ARM, 'ff4f47e0', 0x4560, 'strd r4, r5, [r7], #-0xff', 0, ()),
+        #(REV_ALL_ARM, 'f64087e1', 0x4560, 'strd r4, r5, [r7, r6]', 0, ()),
+        #(REV_ALL_ARM, 'f64007e1', 0x4560, 'strd r4, r5, [r7, -r6]', 0, ()),
+        #(REV_ALL_ARM, 'f640a7e1', 0x4560, 'strd r4, r5, [r7, r6]!', 0, ()),
+        #(REV_ALL_ARM, 'f64027e1', 0x4560, 'strd r4, r5, [r7, -r6]!', 0, ()),
+        #(REV_ALL_ARM, 'f64087e0', 0x4560, 'strd r4, r5, [r7], r6', 0, ()),
+        #(REV_ALL_ARM, 'f64007e0', 0x4560, 'strd r4, r5, [r7], -r6', 0, ()),
+        (REV_ALL_ARM, '980090e8', 0x4560, 'ldmia  r0, {r3, r4, r7}', 0, ()), #not ual, should be ldm
+        (REV_ALL_ARM, '9800b0e8', 0x4560, 'ldmia  r0!, {r3, r4, r7}', 0, ()), #not ual, should be ldm
 
         #"canocial forms" Not sure if we need these or not? otherwise not implimented in this format. Same as a move with shift
         #(REV_ALL_ARM, '034fa0e1', 0x4560, 'lsl r4, r3, #30', 0, ()),
@@ -745,6 +792,10 @@ instrs = [
         #(REV_ALL_ARM, 'f63f14e6', 0x4560, 'ssub8 r3, r4, r6', 0, ()),
         #(REV_ALL_ARM, '940001e9', 0x4560, 'stmdb r1, {r2, r4, r7}', 0, ()),
         #(REV_ALL_ARM, '940021e0', 0x4560, 'stmdb r1!, {r2, r4, r7}', 0, ()),
+        #(REV_ALL_ARM, '943f87e1', 0x4560, 'strex r3, r4, [r7]', 0, ()),
+        #(REV_ALL_ARM, '943fc7e1', 0x4560, 'strexb r3, r4, [r7]', 0, ()),
+        #(REV_ALL_ARM, '943fa7e1', 0x4560, 'strexd r3, r4, r5, [r7]', 0, ()),
+        #(REV_ALL_ARM, '943fe7e1', 0x4560, 'strexh r3, r4, [r7]', 0, ()),
 
         #implimented in disasm but not yet in emu
         #(REV_ALL_ARM, '70f02fe1', 0x4560, 'bkpt  #0xff00', 0, ()),
