@@ -690,23 +690,18 @@ instrs = [
 
 
         #in progress testing and debugging - these have bugs 
-        #(REV_ALL_ARM, 'f73f34e6', 0x4560, 'shsub8 r3, r4, r7', 0, ()),
-        #(REV_ALL_ARM, 'f73f24e6', 0x4560, 'qsub8 r3, r4, r7', 0, ()),
-        #(REV_ALL_ARM, '373f24e6', 0x4560, 'qasx r3, r4, r7', 0, ()),
-        #(REV_ALL_ARM, '573f24e6', 0x4560, 'qsax r3, r4, r7', 0, ()),
-        #(REV_ALL_ARM, '373f14e6', 0x4560, 'sasx r3, r4, r7', 0, ()),
-        #(REV_ALL_ARM, '373f34e6', 0x4560, 'shasx r3, r4, r7', 0, ()),
-        #(REV_ALL_ARM, '573f34e6', 0x4560, 'shsax r3, r4, r7', 0, ()),
-        #(REV_ALL_ARM, '146703e7', 0x4560, 'smlad r3, r4, r7, r6', 0, ()),
-        #(REV_ALL_ARM, '346703e7', 0x4560, 'smladx r3, r4, r7, r6', 0, ()),
-        #(REV_ALL_ARM, '163744e7', 0x4560, 'smlald r3, r4, r6, r7', 0, ()),
-        #(REV_ALL_ARM, '363744e7', 0x4560, 'smlaldx r3, r4, r6, r7', 0, ()),
-        #(REV_ALL_ARM, '547603e7', 0x4560, 'smlsd r3, r4, r6, r7', 0, ()),
-        #(REV_ALL_ARM, '747603e7', 0x4560, 'smlsdx r3, r4, r6, r7', 0, ()),
-        #(REV_ALL_ARM, '563744e7', 0x4560, 'smlsld r3, r4, r6, r7', 0, ()),
-        #(REV_ALL_ARM, '763744e7', 0x4560, 'smlsldx r3, r4, r6, r7', 0, ()),
-        #(REV_ALL_ARM, '147653e7', 0x4560, 'smmla r3, r4, r6, r7', 0, ()),
-        #(REV_ALL_ARM, '347653e7', 0x4560, 'smmlar r3, r4, r6, r7', 0, ()),
+
+
+        (REV_ALL_ARM, '146703e7', 0x4560, 'smlad r3, r4, r7, r6', 0, ()),
+        (REV_ALL_ARM, '346703e7', 0x4560, 'smladx r3, r4, r7, r6', 0, ()),
+        (REV_ALL_ARM, '163744e7', 0x4560, 'smlald r3, r4, r6, r7', 0, ()),
+        (REV_ALL_ARM, '363744e7', 0x4560, 'smlaldx r3, r4, r6, r7', 0, ()),
+        (REV_ALL_ARM, '547603e7', 0x4560, 'smlsd r3, r4, r6, r7', 0, ()),
+        (REV_ALL_ARM, '747603e7', 0x4560, 'smlsdx r3, r4, r6, r7', 0, ()),
+        (REV_ALL_ARM, '563744e7', 0x4560, 'smlsld r3, r4, r6, r7', 0, ()),
+        (REV_ALL_ARM, '763744e7', 0x4560, 'smlsldx r3, r4, r6, r7', 0, ()),
+        (REV_ALL_ARM, '147653e7', 0x4560, 'smmla r3, r4, r6, r7', 0, ()),
+        (REV_ALL_ARM, '347653e7', 0x4560, 'smmlar r3, r4, r6, r7', 0, ()),
         #need to be updated to UAL
         #(REV_ALL_ARM, '00ff00ef', 0x4560, 'svc #0xff00', 0, ()), #needs to be changed from swi
         #(REV_ALL_ARM, '940081e8', 0x4560, 'stm r1, {r2, r4, r7}', 0, ()),
@@ -880,6 +875,7 @@ instrs = [
         #(REV_ALL_ARM, '7434ffe6', 0x4560, 'uxth r3, r4, ror #8', 0, ()),
         #(REV_ALL_ARM, '7438ffe6', 0x4560, 'uxth r3, r4, ror #16', 0, ()),
         #(REV_ALL_ARM, '743cffe6', 0x4560, 'uxth r3, r4, ror #24', 0, ()),
+        #all v codes are suspect at this time - not implimented but may not be correct here either
         #(REV_ALL_ARM, '173704f2', 0x4560, 'vaba.s8 d3, d4, d7', 0, ()),
         #(REV_ALL_ARM, '173714f2', 0x4560, 'vaba.s16 d3, d4, d7', 0, ()),
         #(REV_ALL_ARM, '173724f2', 0x4560, 'vaba.s32 d3, d4, d7', 0, ()),
@@ -1143,6 +1139,7 @@ instrs = [
         #(REV_ALL_ARM, '973f24e6', 0x4560, 'qadd8 r3, r4, r7', 0, ()),
         #(REV_ALL_ARM, '543027e1', 0x4560, 'qsub r3, r4, r7', 0, ()),
         #(REV_ALL_ARM, '773f24e6', 0x4560, 'qsub16 r3, r4, r7', 0, ()),
+        #(REV_ALL_ARM, 'f73f24e6', 0x4560, 'qsub8 r3, r4, r7', 0, ()),
         #(REV_ALL_ARM, '543047e1', 0x4560, 'qdadd r3, r4, r7', 0, ()),
         #(REV_ALL_ARM, '543067e1', 0x4560, 'qdsub r3, r4, r7', 0, ()),
         #(REV_ALL_ARM, '343fbfe6', 0x4560, 'rev r3, r4', 0, ()),
@@ -1157,6 +1154,7 @@ instrs = [
         #(REV_ALL_ARM, '173f34e6', 0x4560, 'shadd16 r3, r4, r7', 0, ()),
         #(REV_ALL_ARM, '973f34e6', 0x4560, 'shadd8 r3, r4, r7', 0, ()),
         #(REV_ALL_ARM, '773f34e6', 0x4560, 'shsub16 r3, r4, r7', 0, ()),
+        #(REV_ALL_ARM, 'f73f34e6', 0x4560, 'shsub8 r3, r4, r7', 0, ()),
         #(REV_ALL_ARM, '846703e1', 0x4560, 'smlabb r3, r4, r7, r6', 0, ()),
         #(REV_ALL_ARM, 'e46703e1', 0x4560, 'smlatt r3, r4, r7, r6', 0, ()),
         #(REV_ALL_ARM, 'c46703e1', 0x4560, 'smlabt r3, r4, r7, r6', 0, ()),
@@ -1203,6 +1201,11 @@ instrs = [
         #(REV_ALL_ARM, '148783e7', 0x4560, 'usada8 r3, r4, r7, r8', 0, ()),
         #(REV_ALL_ARM, '373fe4e6', 0x4560, 'usat16 r3, #4, r7', 0, ()),
         #(REV_ALL_ARM, '773f54e6', 0x4560, 'usub16 r3, r4, r7', 0, ()),
+        #(REV_ALL_ARM, '373f24e6', 0x4560, 'qasx r3, r4, r7', 0, ()),
+        #(REV_ALL_ARM, '573f24e6', 0x4560, 'qsax r3, r4, r7', 0, ()),
+        #(REV_ALL_ARM, '373f14e6', 0x4560, 'sasx r3, r4, r7', 0, ()),
+        #(REV_ALL_ARM, '373f34e6', 0x4560, 'shasx r3, r4, r7', 0, ()),
+        #(REV_ALL_ARM, '573f34e6', 0x4560, 'shsax r3, r4, r7', 0, ()),
 
         #Deleted all old stuff was saving as see no point now
         ]
@@ -1248,6 +1251,7 @@ class ArmInstructionSet(unittest.TestCase):
     armTestOnce = True
 
     def test_msr(self):
+        print "\n\n\nstart of test_msr"
         # test the MSR instruction
         import envi.archs.arm as e_arm;reload(e_arm)
         am=e_arm.ArmModule()
@@ -1255,6 +1259,7 @@ class ArmInstructionSet(unittest.TestCase):
         self.assertEqual('msr CPSR_c, #0xd3', repr(op))
 
     def test_envi_arm_operands(self):
+        print "\n\n\nstart of test_envi_arm_operands"
         vw = vivisect.VivWorkspace()
         vw.setMeta("Architecture", "arm")
         vw.addMemoryMap(0, 7, 'firmware', '\xff' * 16384*1024)
@@ -1417,6 +1422,7 @@ class ArmInstructionSet(unittest.TestCase):
 
         
     def test_envi_arm_assorted_instrs(self):
+        print "\n\n\nstart of test_envi_arm_assorted_instrs"
         #setup initial work space for test
         vw = vivisect.VivWorkspace()
         vw.setMeta("Architecture", "arm")

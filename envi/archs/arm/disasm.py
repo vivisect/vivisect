@@ -791,19 +791,24 @@ def p_media(opval, va):
     #  smlad, smlsd, smlald, smusd              01110
     #  usad8, usada8                            01111
     definer = (opval>>23) & 0x1f
+    print "definer", definer
     if   definer == 0xc:
+        print "p_media_parallel"
         return p_media_parallel(opval, va)
     elif definer == 0xd:
+        print "p_media_pack_sat_rev_extend"
         return p_media_pack_sat_rev_extend(opval, va)
     elif definer == 0xe:
+        print "p_mult"
         return p_mult(opval, va)
+        #Never gets to next line
         return p_media_smul(opval, va)
     else:
         return p_media_usada(opval, va)
 
 #generate mnemonics for parallel instructions (could do manually like last time...)
 parallel_mnem = []
-par_suffixes = ("add16", "addsubx", "subaddx", "sub16", "add8", "sub8", "", "")
+par_suffixes = ("add16", "asx", "sax", "sub16", "add8", "", "", "sub8")
 par_prefixes = ("","s","q","sh","","u","uq","uh")
 for pre in par_prefixes:
     for suf in par_suffixes:
@@ -822,7 +827,7 @@ def p_media_parallel(opval, va):
     opc1 += (opval>>5) & 7
     Rm = opval & 0xf
     mnem = parallel_mnem[opc1]
-    
+    print "mnem, rd, rn, rm, opc1", mnem, Rd, Rn, Rm, opc1
     olist = (
         ArmRegOper(Rd, va=va),
         ArmRegOper(Rn, va=va),
@@ -2814,7 +2819,6 @@ class ArmDisasm:
         # since our flags determine how the instruction is decoded later....  
         # performance-wise this should be set as the default value instead of 0, but this is cleaner
         #flags |= envi.ARCH_ARMV7
-
         # Ok...  if we're a non-conditional branch, *or* we manipulate PC unconditionally,
         # lets call ourself envi.IF_NOFALL
         if cond == COND_AL:                             # FIXME: this could backfire if COND_EXTENDED...
@@ -2846,7 +2850,7 @@ class ArmDisasm:
 
         # Begin the table lookup sequence with the first 3 non-cond bits
         encfam = (opval >> 25) & 0x7
-        #print "encode family =", encfam
+        print "encode family =", encfam
         if cond == COND_EXTENDED:
             enc = IENC_UNCOND
 
@@ -2865,7 +2869,7 @@ class ArmDisasm:
             raise envi.InvalidInstruction(mesg="No encoding found!",
                     bytez=bytez[offset:offset+4], va=va)
 
-        #print "ienc_parser index, routine: %d, %s" % (enc, ienc_parsers[enc])
+        print "ienc_parser index, routine: %d, %s" % (enc, ienc_parsers[enc])
         opcode, mnem, olist, flags = ienc_parsers[enc](opval, va+8)
         return opcode, mnem, olist, flags
 
