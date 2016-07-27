@@ -564,6 +564,8 @@ instrs = [
         (REV_ALL_ARM, '0738ffec', 0x4560, 'ldcl p8, c3, [#0x4584]', 0, ()),
         (REV_ALL_ARM, '07387fec', 0x4560, 'ldcl p8, c3, [#0x454c]', 0, ()),
         (REV_ALL_ARM, '0738dfec', 0x4560, 'ldcl p8, c3, [pc], {7}', 0, ()),
+        (REV_ALL_ARM, '980090e8', 0x4560, 'ldm  r0, {r3, r4, r7}', 0, ()),
+        (REV_ALL_ARM, '9800b0e8', 0x4560, 'ldm  r0!, {r3, r4, r7}', 0, ()),
         (REV_ALL_ARM, '98009de9', 0x4560, 'ldmib  sp, {r3, r4, r7}', 0, ()),
         (REV_ALL_ARM, '9800bde9', 0x4560, 'ldmib  sp!, {r3, r4, r7}', 0, ()),
         (REV_ALL_ARM, '98001de8', 0x4560, 'ldmda  sp, {r3, r4, r7}', 0, ()),
@@ -637,6 +639,8 @@ instrs = [
         (REV_ALL_ARM, '3f38a4ec', 0x4560, 'stc p8, c3, [r4], #0xfc', 0, ()),
         (REV_ALL_ARM, '3f3824ec', 0x4560, 'stc p8, c3, [r4], #-0xfc', 0, ()),
         (REV_ALL_ARM, '0f3884ec', 0x4560, 'stc p8, c3, [r4], {15}', 0, ()),
+        (REV_ALL_ARM, '940081e8', 0x4560, 'stm r1, {r2, r4, r7}', 0, ()),
+        (REV_ALL_ARM, '9400a1e8', 0x4560, 'stm r1!, {r2, r4, r7}', 0, ()),
         (REV_ALL_ARM, '940001e8', 0x4560, 'stmda r1, {r2, r4, r7}', 0, ()),
         (REV_ALL_ARM, '940021e8', 0x4560, 'stmda r1!, {r2, r4, r7}', 0, ()),
         (REV_ALL_ARM, '940081e9', 0x4560, 'stmib r1, {r2, r4, r7}', 0, ()),
@@ -691,11 +695,6 @@ instrs = [
 
         #in progress testing and debugging - these have bugs 
 
-
-        #need to be updated to UAL
-        #(REV_ALL_ARM, '00ff00ef', 0x4560, 'svc #0xff00', 0, ()), #needs to be changed from swi
-        #(REV_ALL_ARM, '940081e8', 0x4560, 'stm r1, {r2, r4, r7}', 0, ()),
-        #(REV_ALL_ARM, '9400a1e8', 0x4560, 'stm r1!, {r2, r4, r7}', 0, ()),
         #fails to decode rt2, rt must be even, less than r14, rt2 is rt+1 per A8.8.210
         #(REV_ALL_ARM, 'f040c7e1', 0x4560, 'strd r4, r5, [r7]', 0, ()),
         #(REV_ALL_ARM, 'ff4fc7e1', 0x4560, 'strd r4, r5, [r7, #0xff]', 0, ()),
@@ -710,8 +709,6 @@ instrs = [
         #(REV_ALL_ARM, 'f64027e1', 0x4560, 'strd r4, r5, [r7, -r6]!', 0, ()),
         #(REV_ALL_ARM, 'f64087e0', 0x4560, 'strd r4, r5, [r7], r6', 0, ()),
         #(REV_ALL_ARM, 'f64007e0', 0x4560, 'strd r4, r5, [r7], -r6', 0, ()),
-        (REV_ALL_ARM, '980090e8', 0x4560, 'ldmia  r0, {r3, r4, r7}', 0, ()), #not ual, should be ldm
-        (REV_ALL_ARM, '9800b0e8', 0x4560, 'ldmia  r0!, {r3, r4, r7}', 0, ()), #not ual, should be ldm
         #not sure if these are correct?
         #(REV_ALL_ARM, 'd3f061e3', 0x4560, 'msr spsr_c, #0xd3', 0, ()),
         #(REV_ALL_ARM, 'd3f062e3', 0x4560, 'msr spsr_x, #0xd3', 0, ()),
@@ -1206,6 +1203,7 @@ instrs = [
         #(REV_ALL_ARM, '373f14e6', 0x4560, 'sasx r3, r4, r7', 0, ()),
         #(REV_ALL_ARM, '373f34e6', 0x4560, 'shasx r3, r4, r7', 0, ()),
         #(REV_ALL_ARM, '573f34e6', 0x4560, 'shsax r3, r4, r7', 0, ()),
+        #(REV_ALL_ARM, '00ff00ef', 0x4560, 'svc #0xff00', 0, ()),
 
         #Deleted all old stuff was saving as see no point now
         ]

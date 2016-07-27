@@ -298,8 +298,8 @@ shift_names = ("lsl", "lsr", "asr", "ror", "rrx")
 
 SOT_REG = 0
 SOT_IMM = 1
-
-daib = ("da", "ia", "db", "ib")
+#ia was removed as it is not UAL
+daib = ("da", "", "db", "ib")
 
 
 def instrenc(encoding, index):

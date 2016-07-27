@@ -1023,7 +1023,6 @@ def p_load_mult(opval, va):
         ArmRegOper(Rn, va=va),
         ArmRegListOper(reg_list, puswl),
     )
-
     # If we are a load multi (ldm), and we load PC, we are NOFALL
     # (FIXME unless we are conditional... ung...)
     if mnem_idx == 1 and reg_list & (1 << REG_PC):
@@ -1040,7 +1039,6 @@ def p_load_mult(opval, va):
         flags |= IF_UM
         olist[1].oflags |= OF_UM
 
-    
     opcode = (IENC_LOAD_MULT << 16)
     return (opcode, mnem, olist, flags)
 
@@ -1154,12 +1152,13 @@ def p_coproc_reg_xfer(opval, va):
     opcode = (IENC_COPROC_REG_XFER << 16)
     return (opcode, mcr_mnem[load], olist, 0)
 
+#swi has been changed to svc in latest ref
 def p_swint(opval, va):
     swint = opval & 0xffffff
     
     olist = ( ArmImmOper(swint), )
     opcode = IENC_SWINT << 16 + 1
-    return (opcode, "swi", olist, 0)
+    return (opcode, "svc", olist, 0)
 
 cps_mnem = ("cps","cps FAIL-bad encoding","cpsie","cpsid")
 mcrr2_mnem = ("mcrr2", "mrrc2")
@@ -1598,6 +1597,7 @@ class ArmOpcode(envi.Opcode):
 
     def __repr__(self):
         mnem = self.mnem + cond_codes.get(self.prefixes)
+        print mnem
         daib_flags = self.iflags & IF_DAIB_MASK
         if self.iflags & IF_L:
             mnem += 'l'
@@ -1623,7 +1623,6 @@ class ArmOpcode(envi.Opcode):
                 mnem += '.f64'
         if self.iflags & IF_THUMB32:
             mnem += ".w"
-        
         x = []
         
         for o in self.opers:
@@ -2842,7 +2841,6 @@ class ArmDisasm:
 
         else:
             flags |= envi.IF_COND
-
 
         # FIXME conditionals are currently plumbed as "prefixes".  Perhaps normalize to that...
         #op = stemCell(va, opcode, mnem, cond, 4, olist, flags)
