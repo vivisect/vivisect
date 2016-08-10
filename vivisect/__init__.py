@@ -18,6 +18,7 @@ import traceback
 import threading
 import collections
 
+from binascii import hexlify
 from StringIO import StringIO
 from collections import deque
 from ConfigParser import ConfigParser
@@ -48,6 +49,9 @@ from vivisect.const import *
 from vivisect.defconfig import *
 
 import vivisect.analysis.generic.emucode as v_emucode
+
+def guid(size=16):
+    return hexlify(os.urandom(size))
 
 class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
@@ -161,6 +165,23 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
                 vwgui.doStuffAndThings()
         '''
         return self._viv_gui
+
+    def getVivGuid(self):
+        '''
+        Return the GUID for this workspace.  Every newly created VivWorkspace 
+        should have a unique GUID, for identifying a particular workspace for
+        a given binary/process-space versus another created at a different 
+        time.  Filesystem-copies of the same workspace will have the same GUID
+        by design.  This easily allows for workspace-specific GUI layouts as
+        well as comparisons of Server-based workspaces to the original file-
+        based workspace used to store to the server.
+        '''
+        vivGuid = self.getMeta('GUID')
+        if vivGuid == None:
+            vivGuid = guid()
+            self.setMeta('GUID', vivGuid)
+
+        return vivGuid
 
     def loadWorkspace(self, wsname):
         mname = self.getMeta("StorageModule")
@@ -760,6 +781,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         if self.isReadable(va-4):
             plen = self.readMemValue(va-2, 2) # pascal string length
             dlen = self.readMemValue(va-4, 4) # delphi string length
+
         offset, bytes = self.getByteDef(va)
         maxlen = len(bytes) - offset
         count = 0
@@ -769,17 +791,22 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             # already set as a location.
             if (count > 0):
                 loc = self.getLocation(va+count)
-                if loc and loc[L_LTYPE] == LOC_STRING:
-                    return loc[L_VA] - (va + count) + loc[L_SIZE]
-                return -1
+                if loc != None:
+                    if loc[L_LTYPE] == LOC_STRING:
+                        return loc[L_VA] - (va + count) + loc[L_SIZE]
+                    return -1
+
             c = bytes[offset+count]
             # The "strings" algo basically says 4 or more...
             if ord(c) == 0 and count >= 4:
                 return count
+
             elif ord(c) == 0 and (count == dlen or count == plen):
                 return count
+
             if c not in string.printable:
                 return -1
+
             count += 1
         return -1
 
@@ -878,7 +905,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
         note: differs from the IMemory interface by checking loclist
         '''
-        b = self.readMemory(va, 16)
+        off, b = self.getByteDef(va)
         if arch == envi.ARCH_DEFAULT:
             loctup = self.getLocation(va)
             # XXX - in the case where we've set a location on what should be an 
@@ -887,7 +914,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             if loctup != None and loctup[ L_TINFO ] and loctup[ L_LTYPE ] == LOC_OP:
                 arch = loctup[ L_TINFO ]
 
-        return self.imem_archs[ (arch & envi.ARCH_MASK) >> 16 ].archParseOpcode(b, 0, va)
+        return self.imem_archs[ (arch & envi.ARCH_MASK) >> 16 ].archParseOpcode(b, off, va)
 
     def makeOpcode(self, va, op=None, arch=envi.ARCH_DEFAULT):
         """

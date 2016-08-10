@@ -61,6 +61,7 @@ class VQVivMainWindow(vq_app.VQMainCmdWindow, viv_base.VivEventDist):
         self.vqAddMenuField('&View.&Structures', self._menuViewStructs)
         self.vqAddMenuField('&View.&Segments', self._menuViewSegments)
         self.vqAddMenuField('&View.&Symboliks', self._menuViewSymboliks)
+        self.vqAddMenuField('&View.&Layouts.&Set Default', self._menuViewLayoutsSetDefault)
         self.vqAddMenuField('&View.&Layouts.&Save', self._menuViewLayoutsSave)
         self.vqAddMenuField('&View.&Layouts.&Load', self._menuViewLayoutsLoad)
 
@@ -208,6 +209,81 @@ class VQVivMainWindow(vq_app.VQMainCmdWindow, viv_base.VivEventDist):
         self.vqAddDockWidgetClass(viv_q_funcgraph.VQVivFuncgraphView, args=(self.vw, self))
         self.vqAddDockWidgetClass(viv_q_symboliks.VivSymbolikFuncPane, args=(self.vw, self))
 
+    def vqRestoreGuiSettings(self, settings):
+        guid = self.vw.getVivGuid()
+        dwcls = settings.value('%s/DockClasses' % guid)
+        state = settings.value('%s/DockState' % guid)
+        geom =  settings.value('%s/DockGeometry' % guid)
+
+        if dwcls.isNull():
+            names = self.vw.filemeta.keys()
+            names.sort()
+            name = '+'.join(names)
+            dwcls = settings.value('%s/DockClasses' % name)
+            state = settings.value('%s/DockState' % name)
+            geom =  settings.value('%s/DockGeometry' % name)
+
+        if dwcls.isNull():
+            dwcls = settings.value('DockClasses')
+            state = settings.value('DockState')
+            geom =  settings.value('DockGeometry')
+
+
+        if not dwcls.isNull():
+            for i, clsname in enumerate(dwcls.toStringList()):
+                name = 'VQDockWidget%d'  % i
+                try:
+                    tup = self.vqBuildDockWidget(str(clsname), floating=True)
+                    if tup != None:
+                        d, obj = tup
+                        d.setObjectName(name)
+                        d.vqRestoreState(settings,name)
+                        d.show()
+                except Exception, e:
+                    print('Error Building: %s: %s'  % (clsname,e))
+
+        # Once dock widgets are loaded, we can restoreState
+        if not state.isNull():
+            self.restoreState(state.toByteArray())
+
+        if not geom.isNull():
+            self.restoreGeometry(geom.toByteArray())
+
+        # Just get all the resize activities done...
+        vq_main.eatevents()
+        for w in self.vqGetDockWidgets():
+            w.show()
+
+        return True
+
+    def vqSaveGuiSettings(self, settings):
+
+        dock_classes = []
+
+        # Enumerate the current dock windows and set
+        # their names by their list order...
+        for i, w in enumerate(self.vqGetDockWidgets()):
+            widget = w.widget()
+            dock_classes.append(widget.__class__.__name__)
+            name = 'VQDockWidget%d' % i
+            w.setObjectName(name)
+            w.vqSaveState(settings,name)
+
+        # first store for this specific workspace
+        guid = self.vw.getVivGuid()
+        settings.setValue('%s/DockClasses' % guid, dock_classes)
+        settings.setValue('%s/DockGeometry' % guid, self.saveGeometry())
+        settings.setValue('%s/DockState' % guid, self.saveState())
+
+        # next store for this filename
+        names = self.vw.filemeta.keys()
+        names.sort()
+        name = '+'.join(names)
+        settings.setValue('%s/DockClasses' % name, dock_classes)
+        settings.setValue('%s/DockGeometry' % name, self.saveGeometry())
+        settings.setValue('%s/DockState' % name, self.saveState())
+        # don't store the default.  that should be saved manually
+
     def _menuToolsDebug(self):
         viv_vdbext.runVdb(self)
 
@@ -248,6 +324,9 @@ class VQVivMainWindow(vq_app.VQMainCmdWindow, viv_base.VivEventDist):
 
         settings = QtCore.QSettings(fname, QtCore.QSettings.IniFormat)
         self.vqSaveGuiSettings(settings)
+
+    def _menuViewLayoutsSetDefault(self):
+        vq_app.VQMainCmdWindow.vqSaveGuiSettings(self, self._vq_settings)
 
     def _menuToolsStructNames(self):
         nsinfo = vs_qt.selectStructNamespace()

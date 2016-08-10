@@ -824,6 +824,9 @@ class PE(object):
             if chunksize > len(relbytes):
                 return
             
+            if relcnt < 0:
+                return
+            
             rels = struct.unpack("<%dH" % relcnt, relbytes[8:chunksize])
             for r in rels:
                 rtype = r >> 12
@@ -871,6 +874,10 @@ class PE(object):
         # FH BUG FIX - ordoff and nameoff must both be set (named function exports)
         #              or both be null (unnamed function exports)
         if not funcoff or funcsize > 0x7FFF or ((ordoff > 0) ^ (nameoff > 0)):
+            self.IMAGE_EXPORT_DIRECTORY = None
+            return
+        
+        if funcsize == 0:
             self.IMAGE_EXPORT_DIRECTORY = None
             return
     

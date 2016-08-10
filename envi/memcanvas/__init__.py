@@ -357,7 +357,7 @@ class MemoryCanvas(object):
 class StringMemoryCanvas(MemoryCanvas):
 
     def __init__(self, mem, syms=None):
-        MemoryCanvas.__init__(self, mem, syms=None)
+        MemoryCanvas.__init__(self, mem, syms=syms)
         self.strval = ''
 
         # we perform manual clearing of the canvas.

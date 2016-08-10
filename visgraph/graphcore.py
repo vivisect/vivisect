@@ -12,6 +12,9 @@ from binascii import hexlify
 from exc import *
 import visgraph.pathcore as vg_pathcore
 
+def guid(size=16):
+    return hexlify(os.urandom(size))
+
 def zdict():
     return collections.defaultdict(int)
 
@@ -20,9 +23,6 @@ def ldict():
 
 def pdict():
     return collections.defaultdict(ldict)
-
-def guid():
-    return hexlify(os.urandom(16))
 
 class Graph:
 
@@ -321,6 +321,17 @@ class Graph:
             if not vlist:
                 self.nodeprops[prop].pop(pval,None)
         return pval
+
+    def delNodesProps(self, props):
+        '''
+        Delete all listed properties from all nodes in the graph.
+
+        Example:
+            g.delNodesProps(('foo', 'bar'))
+        '''
+        for prop in props:
+            for node in self.getNodesByProp(prop):
+                self.delNodeProp(node, prop)
 
     def delNode(self, node):
         '''
