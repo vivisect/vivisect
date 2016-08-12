@@ -8,15 +8,13 @@ from envi.archs.arm.regs import *
 from envi.archs.arm.disasm import *
 
 class ArmModule(envi.ArchitectureModule):
-    #Current ARM version working in - Not fully integrated yet
-    archVersion = ('ARMv7A')
 
     def __init__(self, name='ARMv7A'):
-        self.archVersion = name
         import envi.archs.thumb16.disasm as eatd
         envi.ArchitectureModule.__init__(self, name, maxinst=4)
         self._arch_reg = self.archGetRegCtx()
         self._arch_dis = ArmDisasm()
+        self._arch_dis.setArchMask(name)
         self._arch_thumb_dis = eatd.ThumbDisasm()
 
     def archGetRegCtx(self):
@@ -52,16 +50,14 @@ class ThumbModule(envi.ArchitectureModule):
     '''
     This architecture module will *not* shift to ARM mode.  Evar.
     '''
-    #Current ARM version working in - Not fully integrated yet
-    archVersion = ('ARMv7A')
 
     def __init__(self, name='ARMv7A'):
-        self.archVersion = name
         import envi.archs.thumb16.disasm as eatd
         envi.ArchitectureModule.__init__(self, name, maxinst=4)
         self._arch_reg = self.archGetRegCtx()
         self._arch_dis = eatd.ThumbDisasm(doModeSwitch=False)
-
+        #armVersion mask should be set here if needed
+        
     def archGetRegCtx(self):
         return ArmRegisterContext()
 
