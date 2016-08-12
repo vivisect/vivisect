@@ -157,38 +157,6 @@ shifters = (
 dp_mnem = ("and","eor","sub","rsb","add","adc","sbc","rsc","tst","teq","cmp","cmn","orr","mov","bic","mvn",
         "adr")  # added
 
-#list of commands and versions supported:
-#putting full list here for now.
-#adc = v4, v5t, v6, v7
-#add = v4, v5t, v6, v7
-#adr = v4, v5t, v6, v7
-#and = v4, v5t, v6, v7
-#asr = v4, v5t, v6, v7
-#b = v4, v5t, v6, v7
-#bfc = v6t2, v7
-#bfi = v6t2, v7
-#bic = v4, v5t, v6, v7
-#bkpt = v5t, v6, v7
-#bl = v4, v5t, v6, v7
-#blx = v4, v5t, v6, v7
-#blx(2) = v5t, v6, v7
-#bx = v4T, v5t, v6, v7
-#bxj = v5tej, v6, v7
-#cdp = v4, v5t, v6, v7
-#cdp2 = v5t, v6, v7
-#clrex = v6k, v7
-#clz = v5t, v6, v7
-#cmn =  v4, v5t, v6, v7
-#cmp =  v4, v5t, v6, v7
-#dbg = v7 (nop in v6t2)
-#dmb = v7
-#dsb = v7
-#eor =  v4, v5t, v6, v7
-#isb = v7
-#ldc = v4, v5t, v6, v7
-#ldc2 = v5t, v6, v7
-
-
 # FIXME: THIS IS FUGLY but sadly it works
 dp_noRn = (13,15)
 dp_noRd = (8,9,10,11)
