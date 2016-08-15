@@ -852,21 +852,31 @@ def p_media_pack_sat_rev_extend(opval, va):
     opcode = 0
     
     if opc1 == 0 and opc25 == 1:   #pkh
+        #pkhtb = asr, pkhbt = lsl
+        shifter = (S_LSL, S_ASR)
         idx = (opval>>6)&1
         mnem = pkh_mnem[idx]
+        shift_type = shifter[idx]
         Rn = (opval>>16) & 0xf
         Rd = (opval>>12) & 0xf
         shift_imm = (opval>>7) & 0x1f
         Rm = opval & 0xf
 
         opcode = IENC_MEDIA_PACK + idx
-        
-        olist = (
-            ArmRegOper(Rd, va=va),
-            ArmRegOper(Rn, va=va),
-            ArmRegShiftImmOper(Rm, S_LSL, shift_imm, va),
-        )
-
+        #don't have to have a shift
+        if shift_imm > 0:
+            olist = (
+                ArmRegOper(Rd, va=va),
+                ArmRegOper(Rn, va=va),
+                ArmRegShiftImmOper(Rm, shift_type, shift_imm, va),
+            )
+        else:
+            olist = (
+                ArmRegOper(Rd, va=va),
+                ArmRegOper(Rn, va=va),
+                ArmRegOper(Rm, va=va),
+            )
+            
     elif (opc1 & 2) and opc25 == 1: #word sat
         opidx = (opval>>22)&1
         sat_imm = 1 + (opval>>16) & 0xf
@@ -2395,14 +2405,19 @@ class ArmRegListOper(ArmOperand):
         return reglist
 
     def repr(self, op):
+            #fixed register list. Should be {r1, r2, r3 ..} not { r1 r2 r3 ..}
+            cnt = 0
             s = [ "{" ]
             for l in xrange(16):
                 if (self.val & (1<<l)):
+                    cnt += 1
+                    if cnt > 1:
+                        s.append(', ')
                     s.append(arm_regs[l][0])
             s.append('}')
             if self.oflags & OF_UM:
                 s.append('^')
-            return " ".join(s)
+            return "".join(s)
     
 class ArmExtRegListOper(ArmOperand):
     def __init__(self, firstreg, count, size):
@@ -2575,7 +2590,8 @@ class ArmCoprocRegOper(ArmOperand):
     def repr(self, op):
         return "c%d"%self.val
 
-class ArmCoprocOption(ArmImmOper):
+#copied code from ArmImmOffsetOper - works but render is not correct. Not sure if can delete commented code yet
+class ArmCoprocOption(ArmImmOffsetOper):
     def __init__(self, base_reg, offset, va, pubwl=8):
         self.base_reg = base_reg
         self.offset = offset
@@ -2583,21 +2599,134 @@ class ArmCoprocOption(ArmImmOper):
         self.va = va
         b = (pubwl >> 2) & 1
         self.tsize = (4,1)[b]
+    '''
     def setOperValue(self, op, emu=None, val=None):
+        # can't survive without an emulator
+        if emu == None:
             return None
 
+        addr = self.getOperAddr(op, emu)
+        val &= e_bits.u_maxes[self.tsize]
+        emu.writeMemValue(addr, val, self.tsize)
+
     def getOperValue(self, op, emu=None):
-        return self.offset
+        # can't survive without an emulator
+        if emu == None:
+            return None
+        addr = self.getOperAddr(op, emu)
+        ret = emu.readMemValue(addr, self.tsize)
+        return ret
 
     def getOperAddr(self, op, emu=None):
-        return none
+        # there are certain circumstances where we can survive without an emulator
+        pubwl = self.pubwl >> 3
+        u = pubwl & 1
 
+        # if we don't have an emulator, we must be PC-based since we know it
+        if self.base_reg == REG_PC:
+            base = self.va
+        elif emu == None:
+            return None
+        else:
+            base = emu.getRegister(self.base_reg)
+
+        if u:
+            addr = (base + self.offset) & e_bits.u_maxes[self.tsize]
+        else:
+            addr = (base - self.offset) & e_bits.u_maxes[self.tsize]
+
+        
+        if (self.pubwl & 0x12) == 0x12:    # pre-indexed
+            if (emu != None) and (emu._forrealz): emu.setRegister( self.base_reg, addr)
+            return addr
+
+        elif (self.pubwl & 0x12) == 0:     # post-indexed
+            if (emu != None) and (emu._forrealz): emu.setRegister( self.base_reg, addr )
+            return base
+
+        return addr
+
+    def render(self, mcanv, op, idx):
+        u = (self.pubwl>>3)&1
+        idxing = self.pubwl & 0x12
+        basereg = arm_regs[self.base_reg][0]
+        if self.base_reg == REG_PC:
+
+            mcanv.addText('[')
+
+            addr = self.getOperAddr(op, mcanv.mem)    # only works without an emulator because we've already verified base_reg is PC
+
+            if mcanv.mem.isValidPointer(addr):
+                name = addrToName(mcanv, addr)
+                mcanv.addVaText(name, addr)
+            else:
+                mcanv.addVaText('#0x%.8x' % addr, addr)
+            mcanv.addText(']')
+
+            value = self.getOperValue(op, mcanv.mem)
+            if value != None:
+                mcanv.addText("\t; ")
+                if mcanv.mem.isValidPointer(value):
+                    name = addrToName(mcanv, value)
+                    mcanv.addVaText(name, value)
+                else:
+                    mcanv.addNameText("0x%x" % value)
+
+            # FIXME: is there any chance of us doing indexing on PC?!?
+            if idxing != 0x10:
+                print "OMJ! indexing on the program counter!"
+        else:
+            pom = ('-','')[u]
+            mcanv.addText('[')
+            mcanv.addNameText(basereg, typename='registers')
+            if self.offset == 0:
+                mcanv.addText(']')
+            else:
+                if (idxing&0x10) == 0:
+                    mcanv.addText('] ')
+                else:
+                    mcanv.addText(', ')
+
+                mcanv.addNameText('#%s0x%x' % (pom,self.offset))
+
+                if idxing == 0x10:
+                    mcanv.addText(']')
+                elif idxing != 0:
+                    mcanv.addText(']!')
+'''
     def render(self, mcanv, op, idx):
         basereg = arm_regs[self.base_reg][0]
         mcanv.addText('[')
         mcanv.addNameText(basereg, typename='registers')
         mcanv.addVaText('], {%s}' % self.offset)
-        
+    '''
+    def repr(self, op):
+        u = (self.pubwl>>3)&1
+        idxing = (self.pubwl) & 0x12
+        basereg = arm_regs[self.base_reg][0]
+        if self.base_reg == REG_PC:
+            addr = self.getOperAddr(op)    # only works without an emulator because we've already verified base_reg is PC
+
+            tname = "[#0x%x]" % addr
+            # FIXME: is there any chance of us doing indexing on PC?!?
+            if idxing != 0x10:
+                print "OMJ! indexing on the program counter!"
+        else:
+            pom = ('-','')[u]
+            if self.offset != 0:
+                offset = ", #%s0x%x"%(pom,self.offset)
+            else:
+                offset = ""
+                
+            if (idxing&0x10) == 0:         # post-indexed
+                tname = '[%s]%s' % (basereg, offset)
+            else:
+                if idxing == 0x10:  # offset addressing, not updated
+                    tname = '[%s%s]' % (basereg,offset)
+                else:               # pre-indexed
+                    tname = '[%s%s]!' % (basereg,offset)
+        return tname
+'''
     def repr(self, op):
         return '[%s], {%s}' % (arm_regs[self.base_reg][0],self.offset)
 
@@ -2668,6 +2797,14 @@ class ArmDisasm:
         self._archVersionMask = 0
         if key in ARCH_REVS:
             self._archVersionMask = ARCH_REVS[key]
+        elif key == 'thumb16':
+            self._archVersionMask = REV_THUMB16
+        elif key == 'thumb':
+            self._archVersionMask = REV_THUMB2
+        else:
+            #Not supported so no mask
+            #will include thumbee and any non supported arm versions.
+            self._archVersionMask = 0
 
     def getArchMask(self):
         return self._archVersionMask
