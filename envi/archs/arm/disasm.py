@@ -747,7 +747,7 @@ def p_load_imm_off(opval, va):
     Rn = (opval>>16) & 0xf
     Rd = (opval>>12) & 0xf
     imm = opval & 0xfff
-
+    mnem = ldr_mnem[pubwl&1]
     iflags = 0
     if pubwl & 4:   # B   
         iflags = IF_B
@@ -759,9 +759,13 @@ def p_load_imm_off(opval, va):
         ArmRegOper(Rd, va=va),
         ArmImmOffsetOper(Rn, imm, va, pubwl=pubwl)    # u=-/+, b=word/byte
     )
-    
+    if (opval & 0xfff0fff) == 0x49d0004:
+        mnem = "pop"
+        olist = (
+            ArmRegOper(Rd, va=va),
+        )
     opcode = (IENC_LOAD_IMM_OFF << 16)
-    return (opcode, ldr_mnem[pubwl&1], olist, iflags)
+    return (opcode, mnem, olist, iflags)
 
 def p_load_reg_off(opval, va):
     pubwl = (opval>>20) & 0x1f
@@ -1018,11 +1022,16 @@ def p_load_mult(opval, va):
     flags = ((puswl>>3)<<(IF_DAIB_SHFT)) | IF_DA     # store bits for decoding whether to dec/inc before/after between ldr/str.  IF_DA tells the repr to print the the DAIB extension after the conditional.  right shift necessary to clear lower three bits, and align us with IF_DAIB_SHFT
     Rn = (opval>>16) & 0xf
     reg_list = opval & 0xffff
-    
-    olist = (
-        ArmRegOper(Rn, va=va),
-        ArmRegListOper(reg_list, puswl),
-    )
+    if (opval&0xfff0000) == 0x8bd0000:
+        mnem = "pop"
+        olist = (
+            ArmRegListOper(reg_list, puswl),
+        )
+    else:
+        olist = (
+            ArmRegOper(Rn, va=va),
+            ArmRegListOper(reg_list, puswl),
+        )
     # If we are a load multi (ldm), and we load PC, we are NOFALL
     # (FIXME unless we are conditional... ung...)
     if mnem_idx == 1 and reg_list & (1 << REG_PC):

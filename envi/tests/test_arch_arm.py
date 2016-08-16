@@ -753,8 +753,8 @@ instrs = [
         #(REV_ALL_ARM, '53f07ff5', 0x4560, 'dmb  osh', 0, ()),
         #(REV_ALL_ARM, '43f07ff5', 0x4560, 'dsb  osh', 0, ()),
         #(REV_ALL_ARM, '6ff07ff5', 0x4560, 'isb sy', 0, ()),
-        #(REV_ALL_ARM, '04609de4', 0x4560, 'pop {r6}', 0, ()),  #ldm variant
-        #(REV_ALL_ARM, '9800bde8', 0x4560, 'pop {r3, r4, r7}', 0, ()),  #ldm variant ia and fd are not ual. Otherwise is good for older style.. Should be pop now
+
+        (REV_ALL_ARM, '9800bde8', 0x4560, 'pop {r3, r4, r7}', 0, ()),
         #(REV_ALL_ARM, '9f3f94e1', 0x4560, 'ldrex  r3, [r4]', 0, ()), # Not ldrex r3, pc, r4
         #(REV_ALL_ARM, '9f3fd4e1', 0x4560, 'ldrexb  r3, [r4]', 0, ()),
         #(REV_ALL_ARM, '9f3fb4e1', 0x4560, 'ldrexd  r3, [r4]', 0, ()),
@@ -1204,7 +1204,8 @@ instrs = [
         #(REV_ALL_ARM, '373f34e6', 0x4560, 'shasx r3, r4, r7', 0, ()),
         #(REV_ALL_ARM, '573f34e6', 0x4560, 'shsax r3, r4, r7', 0, ()),
         #(REV_ALL_ARM, '00ff00ef', 0x4560, 'svc #0xff00', 0, ()),
-
+        #(REV_ALL_ARM, '04609de4', 0x4560, 'pop r6', 0, ()),
+        
         #Deleted all old stuff was saving as see no point now
         ]
 
