@@ -81,6 +81,7 @@ class SymbolikBase:
         self.kids          = []
         self.parents       = []
         self.cache         = {}
+        self._reduced       = False
     
     def __add__(self, other):
         return o_add(self, other, self.getWidth())
@@ -369,6 +370,11 @@ class cnot(SymbolikBase):
     def _reduce(self, emu=None):
         # FIXME dependancy loop...
         from vivisect.symboliks.constraints import Constraint
+        if self._reduced:
+            return self
+
+        self._reduced = True
+
         #self.kids[0] = self.kids[0].reduce(emu=emu)
 
         if isinstance( self.kids[0], Constraint):
