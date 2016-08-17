@@ -2389,6 +2389,13 @@ class ArmRegListOper(ArmOperand):
             if self.val & 1<<l:
                 mcanv.addNameText(arm_regs[l][0], typename='registers')
                 mcanv.addText(', ')
+        regs = [arm_regs[l][0] for l in range(16) if (self.val & (1<<l))]
+        for regidx in range(len(regs) - 1):
+            reg = regs[regidx]
+            #mcanv.addNameText(", ".join(regs), typename='registers') #line believed to be mistake
+            mcanv.addNameText(reg, typename='registers')
+            mcanv.addText(', ')
+        mcanv.addNameText(regs[-1], typename='registers')
         mcanv.addText('}')
         if self.oflags & OF_UM:
             mcanv.addText('^')
@@ -2406,15 +2413,8 @@ class ArmRegListOper(ArmOperand):
 
     def repr(self, op):
             #fixed register list. Should be {r1, r2, r3 ..} not { r1 r2 r3 ..}
-            #cnt = 0 # leaving here for the moment for reference until render is correct
             s = [ "{" ]
             regs = [arm_regs[l][0] for l in range(16) if (self.val & (1<<l))]
-            '''for l in xrange(16):
-                if (self.val & (1<<l)):
-                    cnt += 1
-                    if cnt > 1:
-                        s.append(', ')
-                    s.append(arm_regs[l][0])'''
             s.append(', '.join(regs))
             s.append('}')
             if self.oflags & OF_UM:
