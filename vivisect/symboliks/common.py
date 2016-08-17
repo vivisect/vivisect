@@ -371,7 +371,7 @@ class cnot(SymbolikBase):
         if kidzero.symtype == SYMT_CON:
             return kidzero.reverse()
 
-        if kidzero,efftype == SYMT_NOT cnot):
+        if kidzero.efftype == SYMT_NOT:
             return self.kids[0].kids[0]
 
     def getWidth(self):
