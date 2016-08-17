@@ -443,7 +443,9 @@ def p_extra_load_store(opval, va):
     Rm = opval & 0xf
     iflags = 0
     tvariant = bool ((pubwl & 0x12)==2)
+    print bin(opval), bin(pubwl), " here here here"
     if opval&0x0fb000f0==0x01000090:# swp/swpb
+        print "lol"
         idx = (pubwl>>2)&1
         opcode = (IENC_EXTRA_LOAD << 16) + idx
         mnem = swap_mnem[idx]
@@ -525,7 +527,6 @@ def p_extra_load_store(opval, va):
         raise envi.InvalidInstruction(
                 mesg="extra_load_store: invalid instruction",
                 bytez=struct.pack("<I", opval), va=va)
-
     return (opcode, mnem, olist, iflags)
 
 
@@ -684,6 +685,9 @@ def p_undef(opval, va):
         
     return (opcode, mnem, olist, 0)
 
+def p_dp_movt(opval, va):
+    pass
+    
 hint_mnem = {
             0: 'Nop',
             1: 'yield',
@@ -1372,6 +1376,7 @@ ienc_parsers_tmp[IENC_COPROC_DP] =   p_coproc_dp
 ienc_parsers_tmp[IENC_COPROC_REG_XFER] =   p_coproc_reg_xfer
 ienc_parsers_tmp[IENC_SWINT] =    p_swint
 ienc_parsers_tmp[IENC_UNCOND] = p_uncond
+ienc_parsers_tmp[IENC_DP_MOVT] = p_dp_movt
 
 ienc_parsers = tuple(ienc_parsers_tmp)
 
@@ -2873,8 +2878,10 @@ class ArmDisasm:
         if enc == None:
             raise envi.InvalidInstruction(mesg="No encoding found!",
                     bytez=bytez[offset:offset+4], va=va)
-
+        print "max", IENC_MAX
         print "ienc_parser index, routine: %d, %s" % (enc, ienc_parsers[enc])
+        for x in range(IENC_MAX):
+            print x,ienc_parsers[x]
         opcode, mnem, olist, flags = ienc_parsers[enc](opval, va+8)
         return opcode, mnem, olist, flags
 

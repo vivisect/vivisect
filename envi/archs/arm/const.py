@@ -264,8 +264,8 @@ IENC_COPROC_REG_XFER = 17 # Coprocessor register transfers
 IENC_SWINT        = 18 # Sofware interrupts
 IENC_UNCOND       = 19 # unconditional wacko instructions
 IENC_EXTRA_LOAD   = 20 # extra load/store (swp)
-IENC_DP_MOVW      = 21 # 
-IENC_DP_MOVT      = 22 # 
+IENC_DP_MOVW      = 21 # Not sure it exists?
+IENC_DP_MOVT      = 22 # move top
 IENC_DP_MSR_IMM   = 23 # 
 IENC_LOAD_STORE_WORD_UBYTE = 24
 

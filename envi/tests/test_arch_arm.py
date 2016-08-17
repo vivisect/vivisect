@@ -690,7 +690,8 @@ instrs = [
         (REV_ALL_ARM, '040031e1', 0x4560, 'teq r1, r4', 0, ()),
         (REV_ALL_ARM, 'ff0c11e3', 0x4560, 'tst r1, #0xff00', 0, ()),
         (REV_ALL_ARM, '040011e1', 0x4560, 'tst r1, r4', 0, ()),
-
+        (REV_ALL_ARM, 'bc3c5fe1', 0x4560, 'ldrh  r3, [#0x449c]', 0, ()),
+        (REV_ALL_ARM, 'bc3cdfe1', 0x4560, 'ldrh  r3, [#0x4634]', 0, ()),
 
 
         #in progress testing and debugging - these have bugs 
@@ -759,10 +760,7 @@ instrs = [
         #(REV_ALL_ARM, '9f3fd4e1', 0x4560, 'ldrexb  r3, [r4]', 0, ()),
         #(REV_ALL_ARM, '9f3fb4e1', 0x4560, 'ldrexd  r3, [r4]', 0, ()),
         #(REV_ALL_ARM, '9f3ff4e1', 0x4560, 'ldrexh  r3, [r4]', 0, ()),
-        #(REV_ALL_ARM, 'dc3c5fe1', 0x4560, 'ldrh  r3, [#0x449c]', 0, ()),
-        #(REV_ALL_ARM, 'dc3cdfe1', 0x4560, 'ldrh  r3, [#0x4634]', 0, ()),
-        #(REV_ALL_ARM, 'ff3f0fe3', 0x4560, 'movw r3, #0xffff', 0, ()),
-        #(REV_ALL_ARM, 'ff3f4fe3', 0x4560, 'movt r3, #0xffff', 0, ()),
+        (REV_ALL_ARM, 'ff3f4fe3', 0x4560, 'movt r3, #0xffff', 0, ()),
         #(REV_ALL_ARM, 'fff053f5', 0x4560, 'pld [r3, #-0xff]', 0, ()),
         #(REV_ALL_ARM, 'fff0d3f5', 0x4560, 'pld [r3, #0xff]', 0, ()),
         #(REV_ALL_ARM, 'fff013f5', 0x4560, 'pldw [r3, #-0xff]', 0, ()),
