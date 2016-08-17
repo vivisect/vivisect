@@ -2392,7 +2392,6 @@ class ArmRegListOper(ArmOperand):
         regs = [arm_regs[l][0] for l in range(16) if (self.val & (1<<l))]
         for regidx in range(len(regs) - 1):
             reg = regs[regidx]
-            #mcanv.addNameText(", ".join(regs), typename='registers') #line believed to be mistake
             mcanv.addNameText(reg, typename='registers')
             mcanv.addText(', ')
         mcanv.addNameText(regs[-1], typename='registers')
