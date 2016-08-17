@@ -7,6 +7,8 @@ import envi.bits as e_bits
 
 from envi.bits import binary
 
+
+
 #import sys
 #import struct
 #import traceback
@@ -852,21 +854,31 @@ def p_media_pack_sat_rev_extend(opval, va):
     opcode = 0
     
     if opc1 == 0 and opc25 == 1:   #pkh
+        #pkhtb = asr, pkhbt = lsl
+        shifter = (S_LSL, S_ASR)
         idx = (opval>>6)&1
         mnem = pkh_mnem[idx]
+        shift_type = shifter[idx]
         Rn = (opval>>16) & 0xf
         Rd = (opval>>12) & 0xf
         shift_imm = (opval>>7) & 0x1f
         Rm = opval & 0xf
 
         opcode = IENC_MEDIA_PACK + idx
-        
-        olist = (
-            ArmRegOper(Rd, va=va),
-            ArmRegOper(Rn, va=va),
-            ArmRegShiftImmOper(Rm, S_LSL, shift_imm, va),
-        )
-
+        #don't have to have a shift
+        if shift_imm > 0:
+            olist = (
+                ArmRegOper(Rd, va=va),
+                ArmRegOper(Rn, va=va),
+                ArmRegShiftImmOper(Rm, shift_type, shift_imm, va),
+            )
+        else:
+            olist = (
+                ArmRegOper(Rd, va=va),
+                ArmRegOper(Rn, va=va),
+                ArmRegOper(Rm, va=va),
+            )
+            
     elif (opc1 & 2) and opc25 == 1: #word sat
         opidx = (opval>>22)&1
         sat_imm = 1 + (opval>>16) & 0xf
@@ -2375,10 +2387,12 @@ class ArmRegListOper(ArmOperand):
 
     def render(self, mcanv, op, idx):
         mcanv.addText('{')
-        for l in xrange(16):
-            if self.val & 1<<l:
-                mcanv.addNameText(arm_regs[l][0], typename='registers')
-                mcanv.addText(', ')
+        regs = [arm_regs[l][0] for l in range(16) if (self.val & (1<<l))]
+        for regidx in range(len(regs) - 1):
+            reg = regs[regidx]
+            mcanv.addNameText(reg, typename='registers')
+            mcanv.addText(', ')
+        mcanv.addNameText(regs[-1], typename='registers')
         mcanv.addText('}')
         if self.oflags & OF_UM:
             mcanv.addText('^')
@@ -2395,14 +2409,14 @@ class ArmRegListOper(ArmOperand):
         return reglist
 
     def repr(self, op):
+            #fixed register list. Should be {r1, r2, r3 ..} not { r1 r2 r3 ..}
             s = [ "{" ]
-            for l in xrange(16):
-                if (self.val & (1<<l)):
-                    s.append(arm_regs[l][0])
+            regs = [arm_regs[l][0] for l in range(16) if (self.val & (1<<l))]
+            s.append(', '.join(regs))
             s.append('}')
             if self.oflags & OF_UM:
                 s.append('^')
-            return " ".join(s)
+            return "".join(s)
     
 class ArmExtRegListOper(ArmOperand):
     def __init__(self, firstreg, count, size):
@@ -2575,7 +2589,8 @@ class ArmCoprocRegOper(ArmOperand):
     def repr(self, op):
         return "c%d"%self.val
 
-class ArmCoprocOption(ArmImmOper):
+#copied code from ArmImmOffsetOper - works but render is not correct. Not sure if can delete commented code yet
+class ArmCoprocOption(ArmImmOffsetOper):
     def __init__(self, base_reg, offset, va, pubwl=8):
         self.base_reg = base_reg
         self.offset = offset
@@ -2583,21 +2598,13 @@ class ArmCoprocOption(ArmImmOper):
         self.va = va
         b = (pubwl >> 2) & 1
         self.tsize = (4,1)[b]
-    def setOperValue(self, op, emu=None, val=None):
-            return None
-
-    def getOperValue(self, op, emu=None):
-        return self.offset
-
-    def getOperAddr(self, op, emu=None):
-        return none
 
     def render(self, mcanv, op, idx):
         basereg = arm_regs[self.base_reg][0]
         mcanv.addText('[')
         mcanv.addNameText(basereg, typename='registers')
         mcanv.addVaText('], {%s}' % self.offset)
-        
+
     def repr(self, op):
         return '[%s], {%s}' % (arm_regs[self.base_reg][0],self.offset)
 
@@ -2665,9 +2672,7 @@ class ArmDisasm:
 
     def setArchMask(self, key = 'ARMv7R'):
         ''' set arch version mask '''
-        self._archVersionMask = 0
-        if key in ARCH_REVS:
-            self._archVersionMask = ARCH_REVS[key]
+        self._archVersionMask = ARCH_REVS.get(key,0)
 
     def getArchMask(self):
         return self._archVersionMask
