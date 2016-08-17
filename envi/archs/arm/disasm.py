@@ -7,6 +7,8 @@ import envi.bits as e_bits
 
 from envi.bits import binary
 
+
+
 #import sys
 #import struct
 #import traceback
@@ -2385,10 +2387,6 @@ class ArmRegListOper(ArmOperand):
 
     def render(self, mcanv, op, idx):
         mcanv.addText('{')
-        for l in xrange(16):
-            if self.val & 1<<l:
-                mcanv.addNameText(arm_regs[l][0], typename='registers')
-                mcanv.addText(', ')
         regs = [arm_regs[l][0] for l in range(16) if (self.val & (1<<l))]
         for regidx in range(len(regs) - 1):
             reg = regs[regidx]
