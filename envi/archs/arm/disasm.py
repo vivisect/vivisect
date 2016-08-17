@@ -429,7 +429,7 @@ STRH (imm) & (reg)
 
 '''
 swap_mnem = ("swp","swpb",)
-strex_mnem = ("strex","ldrex",)  # actual full instructions
+strex_mnem = ("strex","ldrex","","d","b","h")  # full instruction then suffix 
 strh_mnem = (("str",IF_H),("ldr",IF_H),)          # IF_H
 ldrs_mnem = (("ldr",IF_S|IF_B),("ldr",IF_S|IF_H),)      # IF_SH, IF_SB
 ldrd_mnem = (("ldr",IF_D),("str",IF_D),)        # IF_D
@@ -452,15 +452,38 @@ def p_extra_load_store(opval, va):
             ArmRegOper(Rm, va=va),
             ArmImmOffsetOper(Rn, 0, va, pubwl),
         )
-    elif opval&0x0fe000f0==0x01800090:# strex/ldrex
+    elif opval&0x0f8000f0==0x01800090:# strex/ldrex - Still needs [] around last entry
         idx = pubwl&1
         opcode = (IENC_EXTRA_LOAD << 16) + 2 + idx
-        mnem = strex_mnem[idx]
-        olist = (
-            ArmRegOper(Rd, va=va),
-            ArmRegOper(Rm, va=va),
-            ArmRegOper(Rn, va=va),
-        )
+        itype = (opval >> 21) & 3
+        print itype
+        mnem = strex_mnem[idx]+strex_mnem[2+itype]
+        print "strex/ldrex "
+        if (idx==0) & (itype !=1): #strex has 1 more entry than ldrex
+            olist = (
+                ArmRegOper(Rd, va=va),
+                ArmRegOper(Rm, va=va),
+                ArmRegOper(Rn, va=va),
+            )
+        elif idx==0: #special case
+            olist = (
+                ArmRegOper(Rd, va=va),
+                ArmRegOper(Rm, va=va),
+                ArmRegOper(Rm+1, va=va),
+                ArmRegOper(Rn, va=va),
+            )
+        elif (idx==1) & (itype != 1):
+            olist = (
+                ArmRegOper(Rd, va=va),
+                ArmRegOper(Rn, va=va),
+            )
+        else: #special case
+            olist = (
+                ArmRegOper(Rd, va=va),
+                ArmRegOper(Rd+1, va=va),
+                ArmRegOper(Rn, va=va),
+            )
+
     elif opval&0x0e4000f0==0x000000b0:# strh/ldrh regoffset
         # 000pu0w0-Rn--Rt-SBZ-1011-Rm-  - STRH
         # 0000u110-Rn--Rt-imm41011imm4  - STRHT (v7+)

@@ -690,7 +690,7 @@ instrs = [
         (REV_ALL_ARM, '040031e1', 0x4560, 'teq r1, r4', 0, ()),
         (REV_ALL_ARM, 'ff0c11e3', 0x4560, 'tst r1, #0xff00', 0, ()),
         (REV_ALL_ARM, '040011e1', 0x4560, 'tst r1, r4', 0, ()),
-
+        (REV_ALL_ARM, '9800bde8', 0x4560, 'pop {r3, r4, r7}', 0, ()),
 
 
         #in progress testing and debugging - these have bugs 
@@ -754,11 +754,6 @@ instrs = [
         #(REV_ALL_ARM, '43f07ff5', 0x4560, 'dsb  osh', 0, ()),
         #(REV_ALL_ARM, '6ff07ff5', 0x4560, 'isb sy', 0, ()),
 
-        (REV_ALL_ARM, '9800bde8', 0x4560, 'pop {r3, r4, r7}', 0, ()),
-        #(REV_ALL_ARM, '9f3f94e1', 0x4560, 'ldrex  r3, [r4]', 0, ()), # Not ldrex r3, pc, r4
-        #(REV_ALL_ARM, '9f3fd4e1', 0x4560, 'ldrexb  r3, [r4]', 0, ()),
-        #(REV_ALL_ARM, '9f3fb4e1', 0x4560, 'ldrexd  r3, [r4]', 0, ()),
-        #(REV_ALL_ARM, '9f3ff4e1', 0x4560, 'ldrexh  r3, [r4]', 0, ()),
         #(REV_ALL_ARM, 'dc3c5fe1', 0x4560, 'ldrh  r3, [#0x449c]', 0, ()),
         #(REV_ALL_ARM, 'dc3cdfe1', 0x4560, 'ldrh  r3, [#0x4634]', 0, ()),
         #(REV_ALL_ARM, 'ff3f0fe3', 0x4560, 'movw r3, #0xffff', 0, ()),
@@ -797,10 +792,7 @@ instrs = [
         #(REV_ALL_ARM, 'f63f14e6', 0x4560, 'ssub8 r3, r4, r6', 0, ()),
         #(REV_ALL_ARM, '940001e9', 0x4560, 'stmdb r1, {r2, r4, r7}', 0, ()),
         #(REV_ALL_ARM, '940021e0', 0x4560, 'stmdb r1!, {r2, r4, r7}', 0, ()),
-        #(REV_ALL_ARM, '943f87e1', 0x4560, 'strex r3, r4, [r7]', 0, ()),
-        #(REV_ALL_ARM, '943fc7e1', 0x4560, 'strexb r3, r4, [r7]', 0, ()),
-        #(REV_ALL_ARM, '943fa7e1', 0x4560, 'strexd r3, r4, r5, [r7]', 0, ()),
-        #(REV_ALL_ARM, '943fe7e1', 0x4560, 'strexh r3, r4, [r7]', 0, ()),
+
         #(REV_ALL_ARM, '7730a4e6', 0x4560, 'sxtab r3, r4, r7', 0, ()),
         #(REV_ALL_ARM, '7734a4e6', 0x4560, 'sxtab r3, r4, r7, ror #8', 0, ()),
         #(REV_ALL_ARM, '7738a4e6', 0x4560, 'sxtab r3, r4, r7, ror #16', 0, ()),
@@ -1205,8 +1197,16 @@ instrs = [
         #(REV_ALL_ARM, '573f34e6', 0x4560, 'shsax r3, r4, r7', 0, ()),
         #(REV_ALL_ARM, '00ff00ef', 0x4560, 'svc #0xff00', 0, ()),
         #(REV_ALL_ARM, '04609de4', 0x4560, 'pop r6', 0, ()),
-        
-        #Deleted all old stuff was saving as see no point now
+        #need [] around last entry. Not sure how to accomplish yet for ldrex and strex
+        #(REV_ALL_ARM, '9f3f94e1', 0x4560, 'ldrex  r3, r4', 0, ()), 
+        #(REV_ALL_ARM, '9f3fd4e1', 0x4560, 'ldrexb  r3, r4', 0, ()),
+        #(REV_ALL_ARM, '9f4fb6e1', 0x4560, 'ldrexd  r4, r5, r6', 0, ()),
+        #(REV_ALL_ARM, '9f3ff4e1', 0x4560, 'ldrexh  r3, r4', 0, ()),
+        #(REV_ALL_ARM, '943f87e1', 0x4560, 'strex r3, r4, r7', 0, ()),
+        #(REV_ALL_ARM, '943fc7e1', 0x4560, 'strexb r3, r4, r7', 0, ()),
+        #(REV_ALL_ARM, '943fa7e1', 0x4560, 'strexd r3, r4, r5, r7', 0, ()),
+        #(REV_ALL_ARM, '943fe7e1', 0x4560, 'strexh r3, r4, r7', 0, ()),
+
         ]
 
 
