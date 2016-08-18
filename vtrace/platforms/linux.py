@@ -310,14 +310,38 @@ class LinuxMixin(v_posix.PtraceMixin, v_posix.PosixMixin):
         pid = os.fork()
 
         if pid == 0:
-            v_posix.ptrace(v_posix.PT_TRACE_ME, 0, 0, 0)
-            # Make sure our parent gets some cycles
-            time.sleep(0.1)
-            os.execv(cmdlist[0], cmdlist)
+            try: 
+                # Don't use PT_TRACEME -- on some linux (tested on ubuntu)
+                # it will cause immediate asignment of ptrace slot to parent
+                # without parent having PT_ATTACH'D.... MAKES SYNCHRONIZATION HARD
+                # SIGSTOP ourself until parent continues us
+                os.kill(os.getpid(),signal.SIGSTOP)
+                os.execv(cmdlist[0], cmdlist)
+            except Exception as e:
+                print e
             sys.exit(-1)
-
-        if v_posix.ptrace(PT_ATTACH, pid, 0, 0) != 0:
+        
+        # Attach to child. should cause SIGSTOP
+        if 0 != v_posix.ptrace(PT_ATTACH, pid, 0, 0):
             raise Exception("PT_ATTACH failed! linux platformExec")
+
+        # Eat all SIGSTOP (or other signal) and break from loop on SIGTRAP.
+        # SIGTRAP triggered by execv while PTRACE_ATTACH'd
+        while True:
+            wpid,status = os.waitpid(pid,os.WUNTRACED)
+            if wpid != pid: #should never happen
+                continue
+            if os.WIFSTOPPED(status):
+                cause = os.WSTOPSIG(status)
+                if cause == signal.SIGTRAP:
+                    break
+                if v_posix.ptrace(v_posix.PT_CONTINUE, pid, 0, 0) != 0:
+                    raise Exception("PT_CONTINUE failed! linux platformExec")
+        
+        # Do a single step, which will allow a new stop event for the 
+        # rest of vtrace to eat up.
+        if v_posix.ptrace(v_posix.PT_STEP, pid, 0, 0) != 0:
+            raise Exception("PT_CONTINUE failed! linux platformExec")
 
         self.pthreads = [pid,]
         self.setMeta("ExeName", self._findExe(pid))

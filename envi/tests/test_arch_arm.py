@@ -1433,9 +1433,9 @@ class ArmInstructionSet(unittest.TestCase):
                 test_arch = ARCH_REVS[key]
                 if ((not ranAlready) or (not self.armTestOnce)) and ((archz & test_arch & self.armTestVersion) != 0): 
                     ranAlready = True
-                    num, = struct.unpack("<I", bytez.decode('hex'))
-                    bs = bin(num)[2:].zfill(32)
-                    print bytez, bs
+                    #num, = struct.unpack("<I", bytez.decode('hex'))
+                    #bs = bin(num)[2:].zfill(32)
+                    #print bytez, bs
                     #in arm/init.py
                     op = vw.arch.archParseOpcode(bytez.decode('hex'), 0, va)
                     redoprepr = repr(op).replace(' ','').lower()
