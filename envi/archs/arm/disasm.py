@@ -7,8 +7,6 @@ import envi.bits as e_bits
 
 from envi.bits import binary
 
-
-
 #import sys
 #import struct
 #import traceback
@@ -796,13 +794,14 @@ def p_media(opval, va):
         return p_media_pack_sat_rev_extend(opval, va)
     elif definer == 0xe:
         return p_mult(opval, va)
+        #Never gets to next line
         return p_media_smul(opval, va)
     else:
         return p_media_usada(opval, va)
 
 #generate mnemonics for parallel instructions (could do manually like last time...)
 parallel_mnem = []
-par_suffixes = ("add16", "addsubx", "subaddx", "sub16", "add8", "sub8", "", "")
+par_suffixes = ("add16", "asx", "sax", "sub16", "add8", "", "", "sub8")
 par_prefixes = ("","s","q","sh","","u","uq","uh")
 for pre in par_prefixes:
     for suf in par_suffixes:
