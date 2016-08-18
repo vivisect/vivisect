@@ -532,6 +532,7 @@ instrs = [
         (REV_ALL_ARM, '001000fa', 0x4560, 'blx  0x00005568', 0, ()),
         (REV_ALL_ARM, '273764ee', 0x4560, 'cdp  p7, 6, c3, c4, c7, 1', 0, ()),
         (REV_ALL_ARM, '473b34ee', 0x4560, 'cdp  p11, 3, c3, c4, c7, 2', 0, ()),
+
         (REV_ALL_ARM, 'ff0c74e3', 0x4560, 'cmn  r4, #0xff00', 0, ()),
         (REV_ALL_ARM, 'ff0c54e3', 0x4560, 'cmp  r4, #0xff00', 0, ()),
         (REV_ALL_ARM, 'ff4c23e2', 0x4560, 'eor r4, r3, #0xff00', 0, ()),
