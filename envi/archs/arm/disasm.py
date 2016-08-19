@@ -612,7 +612,7 @@ def p_mult(opval, va):
         newset = iencmul_r15_codes.get(ocode)
         if newset != None:
             mnem, opindexes, flags = newset
-    elif mnem == None:
+    if mnem == None:
         raise envi.InvalidInstruction(
                 mesg="p_mult: invalid instruction",
                 bytez=struct.pack("<I", opval), va=va)
