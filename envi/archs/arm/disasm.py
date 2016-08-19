@@ -100,20 +100,22 @@ iencmul_codes = {
     binary("011100000011"): ("smuadx", (0,4,2), 0),
     binary("011100000101"): ("smusd", (0,4,2), 0),
     binary("011100000111"): ("smusdx", (0,4,2), 0),
-    binary("011100000001"): ("smlad", (0,4,2), 0),
-    binary("011100000011"): ("smladx", (0,4,2), 0),
-    binary("011100000101"): ("smlsd", (0,4,2), 0),
-    binary("011100000111"): ("smlsdx", (0,4,2), 0),
-    binary("011101000001"): ("smlald", (0,4,2), 0),
-    binary("011101000011"): ("smlaldx", (0,4,2), 0),
-    binary("011101000101"): ("smlsld", (0,4,2), 0),
-    binary("011101000111"): ("smlsldx", (0,4,2), 0),
+    binary("011100000001"): ("smlad", (0,4,2,1), 0),
+    binary("011100000011"): ("smladx", (0,4,2,1), 0),
+    binary("011100000101"): ("smlsd", (0,4,2,1), 0),
+    binary("011100000111"): ("smlsdx", (0,4,2,1), 0),
+    binary("011101000001"): ("smlald", (1,0,4,2), 0),
+    binary("011101000011"): ("smlaldx", (1,0,4,2), 0),
+    binary("011101000101"): ("smlsld", (1,0,4,2), 0),
+    binary("011101000111"): ("smlsldx", (1,0,4,2), 0),
     binary("011101010001"): ("smmla", (0,4,2,1), 0),
     binary("011101010011"): ("smmlar", (0,4,2,1), 0),
     binary("011101011101"): ("smmls", (0,4,2,1), 0),
     binary("011101011111"): ("smmlsr", (0,4,2,1), 0),
-    binary("011101010001"): ("smmul", (0,4,2), 0),
-    binary("011101010011"): ("smmulr", (0,4,2), 0),
+    #note for next two must check that Ra = 1111 otherwise is smmla
+    #hard coding values until find better solution
+    #binary("011101010001"): ("smmul", (0,4,2), 0),
+    #binary("011101010011"): ("smmulr", (0,4,2), 0),
 }
 
 def sh_lsl(num, shval):
@@ -597,10 +599,15 @@ multfail = (None, None, None,)
 def p_mult(opval, va):
     ocode, vals = chopmul(opval)                         
     mnem, opindexes, flags = iencmul_codes.get(ocode, multfail)
+    #work around because masks match up - should be a cleaner way to do this?
+    #if Ra = 15 then smmul
     if mnem == None:
         raise envi.InvalidInstruction(
                 mesg="p_mult: invalid instruction",
                 bytez=struct.pack("<I", opval), va=va)
+    elif vals[1] == 15 and(mnem == 'smmla' or mnem == 'smmlar'):
+        mnem = mnem.replace("la", "ul")
+        opindexes = (0,4,2)
 
     olist = []
     for i in opindexes:
@@ -820,7 +827,7 @@ def p_media_parallel(opval, va):
     opc1 += (opval>>5) & 7
     Rm = opval & 0xf
     mnem = parallel_mnem[opc1]
-    
+
     olist = (
         ArmRegOper(Rd, va=va),
         ArmRegOper(Rn, va=va),
@@ -1141,12 +1148,13 @@ def p_coproc_reg_xfer(opval, va):
     opcode = (IENC_COPROC_REG_XFER << 16)
     return (opcode, mcr_mnem[load], olist, 0)
 
+#swi has been changed to svc in latest ref
 def p_swint(opval, va):
     swint = opval & 0xffffff
     
     olist = ( ArmImmOper(swint), )
     opcode = IENC_SWINT << 16 + 1
-    return (opcode, "swi", olist, 0)
+    return (opcode, "svc", olist, 0)
 
 cps_mnem = ("cps","cps FAIL-bad encoding","cpsie","cpsid")
 mcrr2_mnem = ("mcrr2", "mrrc2")
@@ -2692,7 +2700,6 @@ class ArmDisasm:
         # since our flags determine how the instruction is decoded later....  
         # performance-wise this should be set as the default value instead of 0, but this is cleaner
         #flags |= envi.ARCH_ARMV7
-
         # Ok...  if we're a non-conditional branch, *or* we manipulate PC unconditionally,
         # lets call ourself envi.IF_NOFALL
         if cond == COND_AL:                             # FIXME: this could backfire if COND_EXTENDED...
@@ -2709,7 +2716,6 @@ class ArmDisasm:
 
         else:
             flags |= envi.IF_COND
-
 
         # FIXME conditionals are currently plumbed as "prefixes".  Perhaps normalize to that...
         #op = stemCell(va, opcode, mnem, cond, 4, olist, flags)
