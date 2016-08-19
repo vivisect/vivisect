@@ -550,6 +550,11 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
     def i_cli(self, op):
         self.setFlag(EFLAGS_IF, False)
 
+    def i_cmc(self, op):
+        # set the CF flag to its complement
+        val = self.getFlag(EFLAGS_CF)
+        self.setFlag(EFLAGS_CF, ~val)
+
     # We include all the possible CMOVcc names just in case somebody
     # gets hinkey with the disassembler.
     def i_cmova(self, op):
