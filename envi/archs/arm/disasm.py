@@ -616,14 +616,9 @@ def p_mult(opval, va):
         raise envi.InvalidInstruction(
                 mesg="p_mult: invalid instruction",
                 bytez=struct.pack("<I", opval), va=va)
-    #elif vals[1] == 15 and(mnem == 'smmla' or mnem == 'smmlar'):
-    #    mnem = mnem.replace("la", "ul")
-    #    opindexes = (0,4,2)
-
     olist = []
     for i in opindexes:
         olist.append(ArmRegOper(vals[i], va=va))
-
     opcode = (IENC_MULT << 16) + ocode
     return (opcode, mnem, olist, flags)
 
