@@ -406,7 +406,13 @@ def p_misc1(opval, va): #
         mnem = 'bkpt'
         immed = ((opval>>4)&0xfff0) + (opval&0xf)
         olist = ( ArmImmOper(immed), )
-
+    #dbg - not sure where to put this
+    elif opval & 0xfff00f0 == 0x32000f0:
+        #need opcode
+        opcode = (IENC_MISC << 16) + 8
+        mnem = "dbg"
+        immed = opval & 0xf
+        olist = (ArmImmOper(immed),)
     else:
         raise envi.InvalidInstruction(
                 mesg="p_misc1: invalid instruction",
@@ -1017,7 +1023,6 @@ def p_load_mult(opval, va):
         ArmRegOper(Rn, va=va),
         ArmRegListOper(reg_list, puswl),
     )
-
     # If we are a load multi (ldm), and we load PC, we are NOFALL
     # (FIXME unless we are conditional... ung...)
     if mnem_idx == 1 and reg_list & (1 << REG_PC):
@@ -1217,6 +1222,32 @@ def p_uncond(opval, va):
                 shval = (opval>>7) & 0x1f
                 olist = (ArmScaledOffsetOper(Rn, Rm, shtype, shval, va, psize=psize), )
             return (opcode, mnem, olist, 0)
+        elif (opval & 0xff000f0) == 0x5700010:
+            #clrex
+            mnem = "clrex"
+            olist =()
+            #fixme : need opcode
+            opcode = INS_BLX
+            return (opcode, mnem, olist, 0)
+        elif (opval & 0xff000e0) == 0x5700040:
+            #dmb/dsb
+            print "FIXME: need opcode"
+            option = opval & 0xf
+            if (opval & 0x10 )== 0x10:
+                mnem = 'dmb'
+            else:
+                mnem = 'dsb'
+            olist = (ArmBarrierOption(option),)
+            opcode = IENC_UNCOND_PLD
+            return (opcode, mnem, olist, 0)
+        elif (opval & 0xff000f0) == 0x5700060:
+            #isb
+            print "FIXME: need opcode"
+            option = opval & 0xf
+            mnem = 'isb'
+            olist = (ArmBarrierOption(option),)
+            opcode = IENC_UNCOND_PLD
+            return (opcode, mnem, olist, 0)
         else:
             raise envi.InvalidInstruction(
                     mesg="p_uncond (ontop=1): invalid instruction",
@@ -1398,6 +1429,7 @@ s_0_table = (
 )
 
 s_1_table = (
+    (0b00001111111111110000000011110000, 0b00000011001000000000000011110000, IENC_MISC1), #dbg command
     (0b00001111101100000000000000000000, 0b00000011001000000000000000000000, IENC_MOV_IMM_STAT),
     (0b00001111111100000000000000000000, 0b00000011000000000000000000000000, IENC_DP_MOVW),
     (0b00001111111100000000000000000000, 0b00000011010000000000000000000000, IENC_DP_MOVT),
@@ -2662,6 +2694,18 @@ class ArmDbgHintOption(ArmOperand):
 
     def repr(self, op):
         return "#%d"%self.val
+
+class ArmBarrierOption(ArmOperand):
+    options = ("","","oshst","osh","","","nshst","nsh","","","ishst","ish","","","st","sy")
+    def __init__(self, option):
+        self.option = option
+
+    def retOption(self):
+        return self.options[self.option]
+
+    def repr(self, op):
+        return self.retOption()
+        
 
 
 ENDIAN_LSB = 0

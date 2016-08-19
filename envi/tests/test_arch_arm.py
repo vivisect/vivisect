@@ -741,11 +741,6 @@ instrs = [
         #Not yet implimented (Some look like they may have been started)
         #(REV_ALL_ARM, '1f32cfe7', 0x4560, 'bfc r3, #16, #4', 0, ()),
         #(REV_ALL_ARM, '1432cfe7', 0x4560, 'bfi r3, r4, #16, #4', 0, ()),
-        #(REV_ALL_ARM, '1ff07ff5', 0x4560, 'clrex', 0, ()),
-        #(REV_ALL_ARM, 'f3f020e3', 0x4560, 'dbg  #3', 0, ()),
-        #(REV_ALL_ARM, '53f07ff5', 0x4560, 'dmb  osh', 0, ()),
-        #(REV_ALL_ARM, '43f07ff5', 0x4560, 'dsb  osh', 0, ()),
-        #(REV_ALL_ARM, '6ff07ff5', 0x4560, 'isb sy', 0, ()),
         #(REV_ALL_ARM, '04609de4', 0x4560, 'pop {r6}', 0, ()),  #ldm variant
         #(REV_ALL_ARM, '9800bde8', 0x4560, 'pop {r3, r4, r7}', 0, ()),  #ldm variant ia and fd are not ual. Otherwise is good for older style.. Should be pop now
         #(REV_ALL_ARM, '9f3f94e1', 0x4560, 'ldrex  r3, [r4]', 0, ()), # Not ldrex r3, pc, r4
@@ -1207,6 +1202,17 @@ instrs = [
         #(REV_ALL_ARM, '03f062e1', 0x4560, 'msr spsr_x, r3', 0, ()),
         #(REV_ALL_ARM, '03f064e1', 0x4560, 'msr spsr_s, r3', 0, ()),
         #(REV_ALL_ARM, '03f068e1', 0x4560, 'msr spsr_f, r3', 0, ()),
+        #(REV_ALL_ARM, '1ff07ff5', 0x4560, 'clrex', 0, ()),
+        #(REV_ALL_ARM, 'f3f020e3', 0x4560, 'dbg  #3', 0, ()),
+        #(REV_ALL_ARM, '5ff07ff5', 0x4560, 'dmb sy', 0, ()),
+        #(REV_ALL_ARM, '5ef07ff5', 0x4560, 'dmb st', 0, ()),
+        #(REV_ALL_ARM, '5bf07ff5', 0x4560, 'dmb ish', 0, ()),
+        #(REV_ALL_ARM, '5af07ff5', 0x4560, 'dmb ishst', 0, ()),
+        #(REV_ALL_ARM, '57f07ff5', 0x4560, 'dmb nsh', 0, ()),
+        #(REV_ALL_ARM, '56f07ff5', 0x4560, 'dmb nshst', 0, ()),
+        #(REV_ALL_ARM, '53f07ff5', 0x4560, 'dmb osh', 0, ()),
+        #(REV_ALL_ARM, '42f07ff5', 0x4560, 'dsb oshst', 0, ()),
+        #(REV_ALL_ARM, '6ff07ff5', 0x4560, 'isb sy', 0, ()),
 
         #Deleted all old stuff was saving as see no point now
         ]
