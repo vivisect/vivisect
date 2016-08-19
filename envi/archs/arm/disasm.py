@@ -597,18 +597,28 @@ def p_dp_reg_shift(opval, va):
 
 multfail = (None, None, None,)
 
+iencmul_r15_codes = {
+     # Basic multiplication opcodes
+     binary("011101010001"): ("smmul", (0,4,2), 0),
+     binary("011101010011"): ("smmulr", (0,4,2), 0),
+}
+
 def p_mult(opval, va):
     ocode, vals = chopmul(opval)                         
     mnem, opindexes, flags = iencmul_codes.get(ocode, multfail)
     #work around because masks match up - should be a cleaner way to do this?
     #if Ra = 15 then smmul
-    if mnem == None:
+    if vals[1] == 15:
+        newset = iencmul_r15_codes.get(ocode)
+        if newset != None:
+            mnem, opindexes, flags = newset
+    elif mnem == None:
         raise envi.InvalidInstruction(
                 mesg="p_mult: invalid instruction",
                 bytez=struct.pack("<I", opval), va=va)
-    elif vals[1] == 15 and(mnem == 'smmla' or mnem == 'smmlar'):
-        mnem = mnem.replace("la", "ul")
-        opindexes = (0,4,2)
+    #elif vals[1] == 15 and(mnem == 'smmla' or mnem == 'smmlar'):
+    #    mnem = mnem.replace("la", "ul")
+    #    opindexes = (0,4,2)
 
     olist = []
     for i in opindexes:
