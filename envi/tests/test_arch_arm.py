@@ -617,6 +617,11 @@ instrs = [
         (REV_ALL_ARM, 'd3f022e3', 0x4560, 'msr cpsr_x, #0xd3', 0, ()),
         (REV_ALL_ARM, 'd3f024e3', 0x4560, 'msr cpsr_s, #0xd3', 0, ()),
         (REV_ALL_ARM, 'd3f028e3', 0x4560, 'msr cpsr_f, #0xd3', 0, ()),
+        #not sure if these msr are correct?
+        (REV_ALL_ARM, '03f021e1', 0x4560, 'msr cpsr_c, r3', 0, ()),
+        (REV_ALL_ARM, '03f022e1', 0x4560, 'msr cpsr_x, r3', 0, ()),
+        (REV_ALL_ARM, '03f024e1', 0x4560, 'msr cpsr_s, r3', 0, ()),
+        (REV_ALL_ARM, '03f028e1', 0x4560, 'msr cpsr_f, r3', 0, ()),
         (REV_ALL_ARM, '940703e0', 0x4560, 'mul r3, r4, r7', 0, ()),
         (REV_ALL_ARM, 'ff3ce0e3', 0x4560, 'mvn r3, #0xff00', 0, ()),
         (REV_ALL_ARM, 'ff3cf0e3', 0x4560, 'mvns r3, #0xff00', 0, ()),
@@ -709,19 +714,7 @@ instrs = [
         #(REV_ALL_ARM, 'f64027e1', 0x4560, 'strd r4, r5, [r7, -r6]!', 0, ()),
         #(REV_ALL_ARM, 'f64087e0', 0x4560, 'strd r4, r5, [r7], r6', 0, ()),
         #(REV_ALL_ARM, 'f64007e0', 0x4560, 'strd r4, r5, [r7], -r6', 0, ()),
-        #not sure if these are correct?
-        #(REV_ALL_ARM, 'd3f061e3', 0x4560, 'msr spsr_c, #0xd3', 0, ()),
-        #(REV_ALL_ARM, 'd3f062e3', 0x4560, 'msr spsr_x, #0xd3', 0, ()),
-        #(REV_ALL_ARM, 'd3f064e3', 0x4560, 'msr spsr_s, #0xd3', 0, ()),
-        #(REV_ALL_ARM, 'd3d068e3', 0x4560, 'msr spsr_f, #0xd3', 0, ()),
-        #(REV_ALL_ARM, '03f021e1', 0x4560, 'msr cpsr_c, r3', 0, ()),
-        #(REV_ALL_ARM, '03f022e1', 0x4560, 'msr cpsr_x, r3', 0, ()),
-        #(REV_ALL_ARM, '03f024e1', 0x4560, 'msr cpsr_s, r3', 0, ()),
-        #(REV_ALL_ARM, '03f028e1', 0x4560, 'msr cpsr_f, r3', 0, ()),
-        #(REV_ALL_ARM, '03f061e1', 0x4560, 'msr spsr_c, r3', 0, ()),
-        #(REV_ALL_ARM, '03f062e1', 0x4560, 'msr spsr_x, r3', 0, ()),
-        #(REV_ALL_ARM, '03f064e1', 0x4560, 'msr spsr_s, r3', 0, ()),
-        #(REV_ALL_ARM, '03f068e1', 0x4560, 'msr spsr_f, r3', 0, ()),
+
         #(REV_ALL_ARM, '1730e4e6', 0x4560, 'usat r3, #4, r7', 0, ()),
         #(REV_ALL_ARM, '1734e4e6', 0x4560, 'usat r3, #4, r7, lsl #8', 0, ()),
 
@@ -1204,6 +1197,16 @@ instrs = [
         #(REV_ALL_ARM, '373f34e6', 0x4560, 'shasx r3, r4, r7', 0, ()),
         #(REV_ALL_ARM, '573f34e6', 0x4560, 'shsax r3, r4, r7', 0, ()),
         #(REV_ALL_ARM, '00ff00ef', 0x4560, 'svc #0xff00', 0, ()),
+        #not sure if these msr are correct? Left here to be sorted out in emu. Disassembles correctly
+        #fails in emu.getSPSR
+        #(REV_ALL_ARM, 'd3f061e3', 0x4560, 'msr spsr_c, #0xd3', 0, ()),
+        #(REV_ALL_ARM, 'd3f062e3', 0x4560, 'msr spsr_x, #0xd3', 0, ()),
+        #(REV_ALL_ARM, 'd3f064e3', 0x4560, 'msr spsr_s, #0xd3', 0, ()),
+        #(REV_ALL_ARM, 'd3d068e3', 0x4560, 'msr spsr_f, #0xd3', 0, ()),
+        #(REV_ALL_ARM, '03f061e1', 0x4560, 'msr spsr_c, r3', 0, ()),
+        #(REV_ALL_ARM, '03f062e1', 0x4560, 'msr spsr_x, r3', 0, ()),
+        #(REV_ALL_ARM, '03f064e1', 0x4560, 'msr spsr_s, r3', 0, ()),
+        #(REV_ALL_ARM, '03f068e1', 0x4560, 'msr spsr_f, r3', 0, ()),
 
         #Deleted all old stuff was saving as see no point now
         ]

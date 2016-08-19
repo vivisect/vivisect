@@ -248,8 +248,9 @@ def p_misc(opval, va):
         mnem = 'msr'        # register.   immediate has it's own parser in the 001 section
         r = (opval>>22) & 1
         Rn = (opval) & 0xf
+        mask = (opval>>16) & 0xf
         olist = (
-            ArmPgmStatRegOper(r),
+            ArmPgmStatRegOper(r, mask),
             ArmRegOper(Rn, va=va),
         )
 
@@ -869,7 +870,6 @@ def p_media_pack_sat_rev_extend(opval, va):
         Rd = (opval>>12) & 0xf
         shift_imm = (opval>>7) & 0x1f
         Rm = opval & 0xf
-
         opcode = IENC_MEDIA_PACK + idx
         #don't have to have a shift
         if shift_imm > 0:
@@ -1034,7 +1034,6 @@ def p_load_mult(opval, va):
         flags |= IF_UM
         olist[1].oflags |= OF_UM
 
-    
     opcode = (IENC_LOAD_MULT << 16)
     return (opcode, mnem, olist, flags)
 
@@ -1618,7 +1617,6 @@ class ArmOpcode(envi.Opcode):
                 mnem += '.f64'
         if self.iflags & IF_THUMB32:
             mnem += ".w"
-        
         x = []
         
         for o in self.opers:
@@ -2326,6 +2324,7 @@ class ArmPgmStatRegOper(ArmOperand):
         if emu == None:
             return None
         mode = emu.getProcMode()
+        #SPSR does not work - fails in emu.getSPSR
         if self.psr == PSR_SPSR:    # SPSR
             psr = emu.getSPSR(mode)
             newpsr = psr & (~self.mask) | (val & self.mask)
