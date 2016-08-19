@@ -532,7 +532,6 @@ instrs = [
         (REV_ALL_ARM, '001000fa', 0x4560, 'blx  0x00005568', 0, ()),
         (REV_ALL_ARM, '273764ee', 0x4560, 'cdp  p7, 6, c3, c4, c7, 1', 0, ()),
         (REV_ALL_ARM, '473b34ee', 0x4560, 'cdp  p11, 3, c3, c4, c7, 2', 0, ()),
-
         (REV_ALL_ARM, 'ff0c74e3', 0x4560, 'cmn  r4, #0xff00', 0, ()),
         (REV_ALL_ARM, 'ff0c54e3', 0x4560, 'cmp  r4, #0xff00', 0, ()),
         (REV_ALL_ARM, 'ff4c23e2', 0x4560, 'eor r4, r3, #0xff00', 0, ()),
@@ -565,6 +564,8 @@ instrs = [
         (REV_ALL_ARM, '0738ffec', 0x4560, 'ldcl p8, c3, [#0x4584]', 0, ()),
         (REV_ALL_ARM, '07387fec', 0x4560, 'ldcl p8, c3, [#0x454c]', 0, ()),
         (REV_ALL_ARM, '0738dfec', 0x4560, 'ldcl p8, c3, [pc], {7}', 0, ()),
+        (REV_ALL_ARM, '980090e8', 0x4560, 'ldm  r0, {r3, r4, r7}', 0, ()),
+        (REV_ALL_ARM, '9800b0e8', 0x4560, 'ldm  r0!, {r3, r4, r7}', 0, ()),
         (REV_ALL_ARM, '98009de9', 0x4560, 'ldmib  sp, {r3, r4, r7}', 0, ()),
         (REV_ALL_ARM, '9800bde9', 0x4560, 'ldmib  sp!, {r3, r4, r7}', 0, ()),
         (REV_ALL_ARM, '98001de8', 0x4560, 'ldmda  sp, {r3, r4, r7}', 0, ()),
@@ -616,6 +617,11 @@ instrs = [
         (REV_ALL_ARM, 'd3f022e3', 0x4560, 'msr cpsr_x, #0xd3', 0, ()),
         (REV_ALL_ARM, 'd3f024e3', 0x4560, 'msr cpsr_s, #0xd3', 0, ()),
         (REV_ALL_ARM, 'd3f028e3', 0x4560, 'msr cpsr_f, #0xd3', 0, ()),
+        #not sure if these msr are correct?
+        (REV_ALL_ARM, '03f021e1', 0x4560, 'msr cpsr_c, r3', 0, ()),
+        (REV_ALL_ARM, '03f022e1', 0x4560, 'msr cpsr_x, r3', 0, ()),
+        (REV_ALL_ARM, '03f024e1', 0x4560, 'msr cpsr_s, r3', 0, ()),
+        (REV_ALL_ARM, '03f028e1', 0x4560, 'msr cpsr_f, r3', 0, ()),
         (REV_ALL_ARM, '940703e0', 0x4560, 'mul r3, r4, r7', 0, ()),
         (REV_ALL_ARM, 'ff3ce0e3', 0x4560, 'mvn r3, #0xff00', 0, ()),
         (REV_ALL_ARM, 'ff3cf0e3', 0x4560, 'mvns r3, #0xff00', 0, ()),
@@ -638,6 +644,8 @@ instrs = [
         (REV_ALL_ARM, '3f38a4ec', 0x4560, 'stc p8, c3, [r4], #0xfc', 0, ()),
         (REV_ALL_ARM, '3f3824ec', 0x4560, 'stc p8, c3, [r4], #-0xfc', 0, ()),
         (REV_ALL_ARM, '0f3884ec', 0x4560, 'stc p8, c3, [r4], {15}', 0, ()),
+        (REV_ALL_ARM, '940081e8', 0x4560, 'stm r1, {r2, r4, r7}', 0, ()),
+        (REV_ALL_ARM, '9400a1e8', 0x4560, 'stm r1!, {r2, r4, r7}', 0, ()),
         (REV_ALL_ARM, '940001e8', 0x4560, 'stmda r1, {r2, r4, r7}', 0, ()),
         (REV_ALL_ARM, '940021e8', 0x4560, 'stmda r1!, {r2, r4, r7}', 0, ()),
         (REV_ALL_ARM, '940081e9', 0x4560, 'stmib r1, {r2, r4, r7}', 0, ()),
@@ -692,21 +700,6 @@ instrs = [
 
         #in progress testing and debugging - these have bugs 
 
-
-        (REV_ALL_ARM, '146703e7', 0x4560, 'smlad r3, r4, r7, r6', 0, ()),
-        (REV_ALL_ARM, '346703e7', 0x4560, 'smladx r3, r4, r7, r6', 0, ()),
-        (REV_ALL_ARM, '163744e7', 0x4560, 'smlald r3, r4, r6, r7', 0, ()),
-        (REV_ALL_ARM, '363744e7', 0x4560, 'smlaldx r3, r4, r6, r7', 0, ()),
-        (REV_ALL_ARM, '547603e7', 0x4560, 'smlsd r3, r4, r6, r7', 0, ()),
-        (REV_ALL_ARM, '747603e7', 0x4560, 'smlsdx r3, r4, r6, r7', 0, ()),
-        (REV_ALL_ARM, '563744e7', 0x4560, 'smlsld r3, r4, r6, r7', 0, ()),
-        (REV_ALL_ARM, '763744e7', 0x4560, 'smlsldx r3, r4, r6, r7', 0, ()),
-        (REV_ALL_ARM, '147653e7', 0x4560, 'smmla r3, r4, r6, r7', 0, ()),
-        (REV_ALL_ARM, '347653e7', 0x4560, 'smmlar r3, r4, r6, r7', 0, ()),
-        #need to be updated to UAL
-        #(REV_ALL_ARM, '00ff00ef', 0x4560, 'svc #0xff00', 0, ()), #needs to be changed from swi
-        #(REV_ALL_ARM, '940081e8', 0x4560, 'stm r1, {r2, r4, r7}', 0, ()),
-        #(REV_ALL_ARM, '9400a1e8', 0x4560, 'stm r1!, {r2, r4, r7}', 0, ()),
         #fails to decode rt2, rt must be even, less than r14, rt2 is rt+1 per A8.8.210
         #(REV_ALL_ARM, 'f040c7e1', 0x4560, 'strd r4, r5, [r7]', 0, ()),
         #(REV_ALL_ARM, 'ff4fc7e1', 0x4560, 'strd r4, r5, [r7, #0xff]', 0, ()),
@@ -721,21 +714,7 @@ instrs = [
         #(REV_ALL_ARM, 'f64027e1', 0x4560, 'strd r4, r5, [r7, -r6]!', 0, ()),
         #(REV_ALL_ARM, 'f64087e0', 0x4560, 'strd r4, r5, [r7], r6', 0, ()),
         #(REV_ALL_ARM, 'f64007e0', 0x4560, 'strd r4, r5, [r7], -r6', 0, ()),
-        (REV_ALL_ARM, '980090e8', 0x4560, 'ldmia  r0, {r3, r4, r7}', 0, ()), #not ual, should be ldm
-        (REV_ALL_ARM, '9800b0e8', 0x4560, 'ldmia  r0!, {r3, r4, r7}', 0, ()), #not ual, should be ldm
-        #not sure if these are correct?
-        #(REV_ALL_ARM, 'd3f061e3', 0x4560, 'msr spsr_c, #0xd3', 0, ()),
-        #(REV_ALL_ARM, 'd3f062e3', 0x4560, 'msr spsr_x, #0xd3', 0, ()),
-        #(REV_ALL_ARM, 'd3f064e3', 0x4560, 'msr spsr_s, #0xd3', 0, ()),
-        #(REV_ALL_ARM, 'd3d068e3', 0x4560, 'msr spsr_f, #0xd3', 0, ()),
-        #(REV_ALL_ARM, '03f021e1', 0x4560, 'msr cpsr_c, r3', 0, ()),
-        #(REV_ALL_ARM, '03f022e1', 0x4560, 'msr cpsr_x, r3', 0, ()),
-        #(REV_ALL_ARM, '03f024e1', 0x4560, 'msr cpsr_s, r3', 0, ()),
-        #(REV_ALL_ARM, '03f028e1', 0x4560, 'msr cpsr_f, r3', 0, ()),
-        #(REV_ALL_ARM, '03f061e1', 0x4560, 'msr spsr_c, r3', 0, ()),
-        #(REV_ALL_ARM, '03f062e1', 0x4560, 'msr spsr_x, r3', 0, ()),
-        #(REV_ALL_ARM, '03f064e1', 0x4560, 'msr spsr_s, r3', 0, ()),
-        #(REV_ALL_ARM, '03f068e1', 0x4560, 'msr spsr_f, r3', 0, ()),
+
         #(REV_ALL_ARM, '1730e4e6', 0x4560, 'usat r3, #4, r7', 0, ()),
         #(REV_ALL_ARM, '1734e4e6', 0x4560, 'usat r3, #4, r7, lsl #8', 0, ()),
 
@@ -1172,6 +1151,16 @@ instrs = [
         #(REV_ALL_ARM, 'f47653e7', 0x4560, 'smmlsr r3, r4, r6, r7', 0, ()),
         #(REV_ALL_ARM, '14f653e7', 0x4560, 'smmul r3, r4, r6', 0, ()),
         #(REV_ALL_ARM, '34f653e7', 0x4560, 'smmulr r3, r4, r6', 0, ()),
+        #(REV_ALL_ARM, '146703e7', 0x4560, 'smlad r3, r4, r7, r6', 0, ()),
+        #(REV_ALL_ARM, '346703e7', 0x4560, 'smladx r3, r4, r7, r6', 0, ()),
+        #(REV_ALL_ARM, '163744e7', 0x4560, 'smlald r3, r4, r6, r7', 0, ()),
+        #(REV_ALL_ARM, '363744e7', 0x4560, 'smlaldx r3, r4, r6, r7', 0, ()),
+        #(REV_ALL_ARM, '547603e7', 0x4560, 'smlsd r3, r4, r6, r7', 0, ()),
+        #(REV_ALL_ARM, '747603e7', 0x4560, 'smlsdx r3, r4, r6, r7', 0, ()),
+        #(REV_ALL_ARM, '563744e7', 0x4560, 'smlsld r3, r4, r6, r7', 0, ()),
+        #(REV_ALL_ARM, '763744e7', 0x4560, 'smlsldx r3, r4, r6, r7', 0, ()),
+        #(REV_ALL_ARM, '147653e7', 0x4560, 'smmla r3, r4, r6, r7', 0, ()),
+        #(REV_ALL_ARM, '347653e7', 0x4560, 'smmlar r3, r4, r6, r7', 0, ()),
         #(REV_ALL_ARM, '840663e1', 0x4560, 'smulbb r3, r4, r6', 0, ()),
         #(REV_ALL_ARM, 'c40663e1', 0x4560, 'smulbt r3, r4, r6', 0, ()),
         #(REV_ALL_ARM, 'a40663e1', 0x4560, 'smultb r3, r4, r6', 0, ()),
@@ -1207,6 +1196,17 @@ instrs = [
         #(REV_ALL_ARM, '373f14e6', 0x4560, 'sasx r3, r4, r7', 0, ()),
         #(REV_ALL_ARM, '373f34e6', 0x4560, 'shasx r3, r4, r7', 0, ()),
         #(REV_ALL_ARM, '573f34e6', 0x4560, 'shsax r3, r4, r7', 0, ()),
+        #(REV_ALL_ARM, '00ff00ef', 0x4560, 'svc #0xff00', 0, ()),
+        #not sure if these msr are correct? Left here to be sorted out in emu. Disassembles correctly
+        #fails in emu.getSPSR
+        #(REV_ALL_ARM, 'd3f061e3', 0x4560, 'msr spsr_c, #0xd3', 0, ()),
+        #(REV_ALL_ARM, 'd3f062e3', 0x4560, 'msr spsr_x, #0xd3', 0, ()),
+        #(REV_ALL_ARM, 'd3f064e3', 0x4560, 'msr spsr_s, #0xd3', 0, ()),
+        #(REV_ALL_ARM, 'd3d068e3', 0x4560, 'msr spsr_f, #0xd3', 0, ()),
+        #(REV_ALL_ARM, '03f061e1', 0x4560, 'msr spsr_c, r3', 0, ()),
+        #(REV_ALL_ARM, '03f062e1', 0x4560, 'msr spsr_x, r3', 0, ()),
+        #(REV_ALL_ARM, '03f064e1', 0x4560, 'msr spsr_s, r3', 0, ()),
+        #(REV_ALL_ARM, '03f068e1', 0x4560, 'msr spsr_f, r3', 0, ()),
 
         #Deleted all old stuff was saving as see no point now
         ]
