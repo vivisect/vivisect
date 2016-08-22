@@ -1218,22 +1218,25 @@ def p_uncond(opval, va):
                     mesg="p_uncond (ontop=0): invalid instruction",
                     bytez=struct.pack("<I", opval), va=va)
     elif optop == 1:
-        if (opval & 0xf570f000) == 0xf550f000:
+        #if (opval & 0xf570f000) == 0xf550f000:
+        if (opval & 0xfd30f000) == 0xf510f000:
             #cache preload  -  also known as a nop on most platforms... does nothing except prefetch instructions from cache.
-            # i'm tempted to cut the parsing of it and just return a canned something.
             mnem = "pld"
-            I = (opval>>25) & 1     # what the freak am i supposed to do with "i"???
+            I = (opval>>25) & 1
             Rn = (opval>>16) & 0xf
             U = (opval>>23) & 1
+            R = (opval>>22) & 1
             opcode = IENC_UNCOND_PLD
-            if I:
+            if not R:
+                mnem += "w"
+            if not I:
                 immoffset = opval & 0xfff
-                olist = (ArmImmOffsetOper(Rn, immoffset, va, U<<3),)
+                olist = (ArmImmOffsetOper(Rn, immoffset, va, (U<<3) | 0x10),)
             else:
                 Rm = opval & 0xf
                 shtype = (opval>>5) & 3
                 shval = (opval>>7) & 0x1f
-                olist = (ArmScaledOffsetOper(Rn, Rm, shtype, shval, va), )
+                olist = (ArmScaledOffsetOper(Rn, Rm, shtype, shval, va, (U<<3) | 0x10), )
             return (opcode, mnem, olist, 0)
         else:
             raise envi.InvalidInstruction(
@@ -2101,7 +2104,7 @@ class ArmImmOffsetOper(ArmOperand):
 
         b = (pubwl >> 2) & 1
         self.tsize = (4,1)[b]
-
+        print bin(pubwl)
     def __eq__(self, oper):
         if not isinstance(oper, self.__class__):
             return False

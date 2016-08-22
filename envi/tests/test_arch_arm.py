@@ -692,6 +692,7 @@ instrs = [
         (REV_ALL_ARM, '040011e1', 0x4560, 'tst r1, r4', 0, ()),
         (REV_ALL_ARM, 'bc3c5fe1', 0x4560, 'ldrh  r3, [#0x449c]', 0, ()),
         (REV_ALL_ARM, 'bc3cdfe1', 0x4560, 'ldrh  r3, [#0x4634]', 0, ()),
+        (REV_ALL_ARM, 'ff3f4fe3', 0x4560, 'movt r3, #0xffff', 0, ()),
 
 
         #in progress testing and debugging - these have bugs 
@@ -760,20 +761,6 @@ instrs = [
         #(REV_ALL_ARM, '9f3fd4e1', 0x4560, 'ldrexb  r3, [r4]', 0, ()),
         #(REV_ALL_ARM, '9f3fb4e1', 0x4560, 'ldrexd  r3, [r4]', 0, ()),
         #(REV_ALL_ARM, '9f3ff4e1', 0x4560, 'ldrexh  r3, [r4]', 0, ()),
-        (REV_ALL_ARM, 'ff3f4fe3', 0x4560, 'movt r3, #0xffff', 0, ()),
-        #(REV_ALL_ARM, 'fff053f5', 0x4560, 'pld [r3, #-0xff]', 0, ()),
-        #(REV_ALL_ARM, 'fff0d3f5', 0x4560, 'pld [r3, #0xff]', 0, ()),
-        #(REV_ALL_ARM, 'fff013f5', 0x4560, 'pldw [r3, #-0xff]', 0, ()),
-        #(REV_ALL_ARM, 'fff093f5', 0x4560, 'pldw [r3, #0xff]', 0, ()),
-        #(REV_ALL_ARM, '00f05ff5', 0x4560, 'pld [pc, #-0]', 0, ()),
-        #(REV_ALL_ARM, '08f05ff5', 0x4560, 'pld 0x4560', 0, ()),
-        #(REV_ALL_ARM, '08f0dff5', 0x4560, 'pld 0x4570', 0, ()),
-        #(REV_ALL_ARM, '04f0d3f7', 0x4560, 'pld [r3, r4]', 0, ()),
-        #(REV_ALL_ARM, '04f053f7', 0x4560, 'pld [r3, -r4]', 0, ()),
-        #(REV_ALL_ARM, '24f3d3f7', 0x4560, 'pld r3, r4, lsr #6', 0, ()),
-        #(REV_ALL_ARM, '04f093f7', 0x4560, 'pldw [r3, r4]', 0, ()),
-        #(REV_ALL_ARM, '04f013f7', 0x4560, 'pldw [r3, -r4]', 0, ()),
-        #(REV_ALL_ARM, '44f393f7', 0x4560, 'pldw r3, r4, asr #6', 0, ()),
         #(REV_ALL_ARM, '00f0d3f4', 0x4560, 'pli [r3]', 0, ()),
         #(REV_ALL_ARM, 'fff0d3f4', 0x4560, 'pli [r3, #0xff]', 0, ()),
         #(REV_ALL_ARM, 'fff053f4', 0x4560, 'pli [r3, #-0xff]', 0, ()),
@@ -1202,7 +1189,20 @@ instrs = [
         #(REV_ALL_ARM, '373f34e6', 0x4560, 'shasx r3, r4, r7', 0, ()),
         #(REV_ALL_ARM, '573f34e6', 0x4560, 'shsax r3, r4, r7', 0, ()),
         #(REV_ALL_ARM, '00ff00ef', 0x4560, 'svc #0xff00', 0, ()),
-
+        #(REV_ALL_ARM, 'fff053f5', 0x4560, 'pld [r3, #-0xff]', 0, ()),
+        #(REV_ALL_ARM, 'fff0d3f5', 0x4560, 'pld [r3, #0xff]', 0, ()),
+        #(REV_ALL_ARM, 'fff013f5', 0x4560, 'pldw [r3, #-0xff]', 0, ()),
+        #(REV_ALL_ARM, 'fff093f5', 0x4560, 'pldw [r3, #0xff]', 0, ()),
+        #(REV_ALL_ARM, '00f05ff5', 0x4560, 'pld [#0x4568]', 0, ()),
+        #(REV_ALL_ARM, '08f05ff5', 0x4560, 'pld [#0x4560]', 0, ()),
+        #(REV_ALL_ARM, '08f0dff5', 0x4560, 'pld [#0x4570]', 0, ()),
+        #(REV_ALL_ARM, '04f0d3f7', 0x4560, 'pld [r3, r4]', 0, ()),
+        #(REV_ALL_ARM, '04f053f7', 0x4560, 'pld [r3, -r4]', 0, ()),
+        #(REV_ALL_ARM, '24f3d3f7', 0x4560, 'pld [r3, r4, lsr #6]', 0, ()),
+        #(REV_ALL_ARM, '04f093f7', 0x4560, 'pldw [r3, r4]', 0, ()),
+        #(REV_ALL_ARM, '04f013f7', 0x4560, 'pldw [r3, -r4]', 0, ()),
+        #(REV_ALL_ARM, '44f393f7', 0x4560, 'pldw [r3, r4, asr #6]', 0, ()),
+        
         #Deleted all old stuff was saving as see no point now
         ]
 
