@@ -158,6 +158,13 @@ shifters = (
 # Dataprocessing mnemonics
 dp_mnem = ("and","eor","sub","rsb","add","adc","sbc","rsc","tst","teq","cmp","cmn","orr","mov","bic","mvn",
         "adr")  # added
+dp_shift_mnem = (
+    "lsl",
+    "lsr",
+    "asr",
+    "ror",
+    "rrx"
+)
 
 # FIXME: THIS IS FUGLY but sadly it works
 dp_noRn = (13,15)
@@ -192,11 +199,16 @@ def p_dp_imm_shift(opval, va):
     Rm = opval & 0xf
     shtype = (opval >> 5) & 0x3
     shval = (opval >> 7) & 0x1f   # effectively, rot*2
-
+    mnem = dp_mnem[ocode]
+    display_shift = True
     if ocode in dp_noRn:# FIXME: FUGLY (and slow...)
+        #is it a mov? Only if shval is a 0, type is lsl, and ocode = 
+        if  (ocode == 13) and ((shval != 0) or (shtype != 0)):
+            mnem = dp_shift_mnem[shtype]
+            display_shift = False
         olist = (
             ArmRegOper(Rd, va=va),
-            ArmRegShiftImmOper(Rm, shtype, shval, va),
+            ArmRegShiftImmOper(Rm, shtype, shval, va, display_shift),
         )
     elif ocode in dp_noRd:
         olist = (
@@ -209,7 +221,6 @@ def p_dp_imm_shift(opval, va):
             ArmRegOper(Rn, va=va),
             ArmRegShiftImmOper(Rm, shtype, shval, va),
         )
-
     opcode = (IENC_DP_IMM_SHIFT << 16) + ocode
     if sflag > 0:
         # IF_PSR_S_SIL is silent s for tst, teq, cmp cmn
@@ -219,7 +230,7 @@ def p_dp_imm_shift(opval, va):
             iflags = IF_PSR_S
     else:
         iflags = 0
-    return (opcode, dp_mnem[ocode], olist, iflags)
+    return (opcode, mnem, olist, iflags)
 
 # specialized mnemonics for p_misc
 qop_mnem = ('qadd','qsub','qdadd','qdsub') # used in misc1
@@ -579,11 +590,16 @@ def p_dp_reg_shift(opval, va):
     Rm = opval & 0xf
     shtype = (opval >> 5) & 0x3
     Rs = (opval >> 8) & 0xf
-
+    mnem = dp_mnem[ocode]
+    display_shift = True
     if ocode in dp_noRn:# FIXME: FUGLY
+        #no register shift with mov
+        if  (ocode == 13):
+            mnem = dp_shift_mnem[shtype]
+            display_shift = False
         olist = (
             ArmRegOper(Rd, va=va),
-            ArmRegShiftRegOper(Rm, shtype, Rs),
+            ArmRegShiftRegOper(Rm, shtype, Rs, display_shift),
         )
     elif ocode in dp_noRd:
         olist = (
@@ -606,7 +622,7 @@ def p_dp_reg_shift(opval, va):
             iflags = IF_PSR_S
     else:
         iflags = 0
-    return (opcode, dp_mnem[ocode], olist, iflags)
+    return (opcode, mnem, olist, iflags)
 
 multfail = (None, None, None,)
 
@@ -812,7 +828,7 @@ def p_media(opval, va):
     #  pkh, ssat, ssat16, usat, usat16, sel     01101
     #  rev, rev16, revsh                        01101
     #  smlad, smlsd, smlald, smusd              01110
-    #  usad8, usada8                            01111
+    #  usad8, usada8, bfc, bfi                  01111
     definer = (opval>>23) & 0x1f
     if   definer == 0xc:
         return p_media_parallel(opval, va)
@@ -822,6 +838,8 @@ def p_media(opval, va):
         return p_mult(opval, va)
         #Never gets to next line
         return p_media_smul(opval, va)
+    elif (definer == 0xf) and (((opval >> 22) &1) == 1):
+        return p_media_bf(opval, va)
     else:
         return p_media_usada(opval, va)
 
@@ -991,12 +1009,37 @@ def p_media_smul(opval, va):
             bytez=struct.pack("<I", opval), va=va)
     # hmmm, is this already handled?
     
+
+def p_media_bf(opval, va):
+    width = (opval>>16) & 0x1f
+    Rd = (opval>>12) & 0xf
+    lsb = (opval>>7) & 0x1f
+    Rn = opval &0xf
+    if Rn == 0xf:
+        mnem = "bfc"
+        olist = (
+            ArmRegOper(Rd, va=va),
+            ArmImmOper(lsb),
+            ArmImmOper(width)
+        )
+        opcode = IENC_MEDIA_USAD8 # FIXME
+    else:
+        mnem = "bfi"
+        olist = (
+            ArmRegOper(Rd, va=va),
+            ArmRegOper(Rn, va=va),
+            ArmImmOper(lsb),
+            ArmImmOper(width)
+        )
+        opcode = IENC_MEDIA_USAD8 #FIXME
+    print mnem,  Rd, Rn, lsb, width
+    return (opcode, mnem, olist, 0)
+
 def p_media_usada(opval, va):
     Rd = (opval>>16) & 0xf
     Rn = (opval>>12) & 0xf
     Rs = (opval>>8) & 0xf
     Rm = opval & 0xf
-    
     if Rn == 0xf:
         mnem = "usad8"
         olist = (
@@ -1705,10 +1748,11 @@ class ArmRegOper(ArmOperand):
 class ArmRegShiftRegOper(ArmOperand):
     ''' register shift operand.  see "addressing mode 1 - data processing operands - * shift * by register" '''
 
-    def __init__(self, reg, shtype, shreg):
+    def __init__(self, reg, shtype, shreg, display_shift = True):
         self.reg = reg
         self.shtype = shtype
         self.shreg = shreg
+        self.display_shift = display_shift
 
     def __eq__(self, oper):
         if not isinstance(oper, self.__class__):
@@ -1741,13 +1785,17 @@ class ArmRegShiftRegOper(ArmOperand):
         mcanv.addNameText(arm_regs[self.shreg][0], typename='registers')
 
     def repr(self, op):
-        rname = arm_regs[self.reg][0]+","
-        return " ".join([rname, shift_names[self.shtype], arm_regs[self.shreg][0]])
+        rname = arm_regs[self.reg][0]+", "
+        if self.display_shift:
+            rname+=shift_names[self.shtype]
+        rname+= arm_regs[self.shreg][0]
+        #return " ".join([rname, shift_names[self.shtype], arm_regs[self.shreg][0]])
+        return rname
 
 class ArmRegShiftImmOper(ArmOperand):
     ''' register shift immediate operand.  see "addressing mode 1 - data processing operands - * shift * by immediate" '''
 
-    def __init__(self, reg, shtype, shimm, va):
+    def __init__(self, reg, shtype, shimm, va, display_shift = True):
         if shimm == 0:
             if shtype == S_ROR:
                 shtype = S_RRX
@@ -1757,6 +1805,7 @@ class ArmRegShiftImmOper(ArmOperand):
         self.shtype = shtype
         self.shimm = shimm
         self.va = va
+        self.display_shift = display_shift
 
     def __eq__(self, oper):
         if not isinstance(oper, self.__class__):
@@ -1788,10 +1837,11 @@ class ArmRegShiftImmOper(ArmOperand):
         mcanv.addNameText(rname, typename='registers')
         if self.shimm != 0:
             mcanv.addText(', ')
-            mcanv.addNameText(shift_names[self.shtype])
-            mcanv.addText(' ')
+            if self.display_shift:
+                mcanv.addNameText(shift_names[self.shtype])
+                mcanv.addText(' ')
             mcanv.addNameText('#%d' % self.shimm)
-        elif self.shtype == S_RRX:
+        elif self.shtype == S_RRX and self.display_shift:
             mcanv.addText(', ')
             mcanv.addNameText(shift_names[self.shtype])
 
@@ -1799,9 +1849,11 @@ class ArmRegShiftImmOper(ArmOperand):
         rname = arm_regs[self.reg][0]
         retval = [ rname ]
         if self.shimm != 0:
-            retval.append(", "+shift_names[self.shtype])
+            retval.append(",")
+            if self.display_shift:
+                retval.append(shift_names[self.shtype])
             retval.append("#%d"%self.shimm)
-        elif self.shtype == S_RRX:
+        elif (self.shtype == S_RRX) and self.display_shift:
             retval.append(shift_names[self.shtype])
         return " ".join(retval)
 
