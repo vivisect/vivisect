@@ -506,19 +506,32 @@ def p_extra_load_store(opval, va, psize=4):
     elif opval&0x0e5000d0==0x000000d0:# ldrd/strd regoffset
         # 000pu0w0-Rn--Rt-SBZ-1101-Rm-  ldrd regoffset
         # 0001u1001111-Rt-imm41101imm4  ldrd regoffset (literal, v7+)
+        # Rt = Rd and must be even and not 14 per A8.8.72/A8.8.210
+        # Rt2 = R(t+1)
+        print Rd, "reg"
+        if (Rd == 14) or (Rd % 2 !=0):
+            raise envi.InvalidInstruction(
+                mesg="extra_load_store: invalid Rt argument",
+                bytez=struct.pack("<I", opval), va=va)
         idx = (opval>>5)&1
         opcode = (IENC_EXTRA_LOAD << 16) + 12 + idx
         mnem,iflags = ldrd_mnem[idx]
         olist = (
             ArmRegOper(Rd, va=va),
+            ArmRegOper(Rd+1, va=va),
             ArmRegOffsetOper(Rn, Rm, va, pubwl, psize=psize),
         )
     elif opval&0x0e5000d0==0x004000d0:# ldrd/strd immoffset
+        if (Rd == 14) or (Rd % 2 != 0):
+            raise envi.InvalidInstruction(
+                mesg="extra_load_store: invalid Rt argument",
+                bytez=struct.pack("<I", opval), va=va)
         idx = (opval>>5)&1
         opcode = (IENC_EXTRA_LOAD << 16) + 14 + idx
         mnem,iflags = ldrd_mnem[idx]
         olist = (
             ArmRegOper(Rd, va=va),
+            ArmRegOper(Rd+1, va=va),
             ArmImmOffsetOper(Rn, (Rs<<4)+Rm, va, pubwl, psize=psize),
         )
     else:
@@ -892,7 +905,7 @@ def p_media_pack_sat_rev_extend(opval, va):
             
     elif (opc1 & 2) and opc25 == 1: #word sat
         opidx = (opval>>22)&1
-        sat_imm = 1 + (opval>>16) & 0xf
+        sat_imm = (opval>>16) & 0xf
         Rd = (opval>>12) & 0xf
         Rm = opval & 0xf
         if opc1 & 0x10: # ?sat16
@@ -905,6 +918,9 @@ def p_media_pack_sat_rev_extend(opval, va):
             opcode = IENC_MEDIA_SAT + opidx
         else:
             mnem = sat_mnem[opidx]
+            #Only add 1 for SSAT
+            if opidx == 0:
+                sat_imm += 1
             shift_imm = (opval>>7) & 0x1f
             sh = (opval>>5) & 2
             olist = (
@@ -1022,7 +1038,6 @@ def p_load_mult(opval, va):
         ArmRegOper(Rn, va=va),
         ArmRegListOper(reg_list, puswl),
     )
-
     # If we are a load multi (ldm), and we load PC, we are NOFALL
     # (FIXME unless we are conditional... ung...)
     if mnem_idx == 1 and reg_list & (1 << REG_PC):
@@ -2753,7 +2768,7 @@ class ArmDisasm:
             raise envi.InvalidInstruction(mesg="No encoding found!",
                     bytez=bytez[offset:offset+4], va=va)
 
-        #print "ienc_parser index, routine: %d, %s" % (enc, ienc_parsers[enc])
+        print "ienc_parser index, routine: %d, %s" % (enc, ienc_parsers[enc])
         opcode, mnem, olist, flags = ienc_parsers[enc](opval, va+8)
         return opcode, mnem, olist, flags
 
