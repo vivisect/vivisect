@@ -761,15 +761,7 @@ instrs = [
         #(REV_ALL_ARM, '9f3fd4e1', 0x4560, 'ldrexb  r3, [r4]', 0, ()),
         #(REV_ALL_ARM, '9f3fb4e1', 0x4560, 'ldrexd  r3, [r4]', 0, ()),
         #(REV_ALL_ARM, '9f3ff4e1', 0x4560, 'ldrexh  r3, [r4]', 0, ()),
-        #(REV_ALL_ARM, '00f0d3f4', 0x4560, 'pli [r3]', 0, ()),
-        #(REV_ALL_ARM, 'fff0d3f4', 0x4560, 'pli [r3, #0xff]', 0, ()),
-        #(REV_ALL_ARM, 'fff053f4', 0x4560, 'pli [r3, #-0xff]', 0, ()),
-        #(REV_ALL_ARM, '0ff0dff4', 0x4560, 'pli [#0x4577]', 0, ()),
-        #(REV_ALL_ARM, '0ff0dff4', 0x4560, 'pli [#0x4559]', 0, ()),
-        #(REV_ALL_ARM, '04f053f6', 0x4560, 'pli [r3, -r4]', 0, ()),
-        #(REV_ALL_ARM, '04f0d3f6', 0x4560, 'pli [r3, r4]', 0, ()),
-        #(REV_ALL_ARM, 'a4f353f6', 0x4560, 'pli [r3, -r4, lsr #7]', 0, ()),
-        #(REV_ALL_ARM, 'e4f3d3f6', 0x4560, 'pli [r3, r4, ror #7]', 0, ()),
+
         #(REV_ALL_ARM, '16002de9', 0x4560, 'push {r1, r2, r4}', 0, ()),
         #(REV_ALL_ARM, '04102de5', 0x4560, 'push {r1}', 0, ()),
         #(REV_ALL_ARM, '343fffe6', 0x4560, 'rbit r3, r4', 0, ()),
@@ -1202,6 +1194,15 @@ instrs = [
         #(REV_ALL_ARM, '04f093f7', 0x4560, 'pldw [r3, r4]', 0, ()),
         #(REV_ALL_ARM, '04f013f7', 0x4560, 'pldw [r3, -r4]', 0, ()),
         #(REV_ALL_ARM, '44f393f7', 0x4560, 'pldw [r3, r4, asr #6]', 0, ()),
+        #(REV_ALL_ARM, '00f0d3f4', 0x4560, 'pli [r3]', 0, ()),
+        #(REV_ALL_ARM, 'fff0d3f4', 0x4560, 'pli [r3, #0xff]', 0, ()),
+        #(REV_ALL_ARM, 'fff053f4', 0x4560, 'pli [r3, #-0xff]', 0, ()),
+        #(REV_ALL_ARM, '0ff0dff4', 0x4560, 'pli [#0x4577]', 0, ()),
+        #(REV_ALL_ARM, '0ff05ff4', 0x4560, 'pli [#0x4559]', 0, ()),
+        #(REV_ALL_ARM, '04f053f6', 0x4560, 'pli [r3, -r4]', 0, ()),
+        #(REV_ALL_ARM, '04f0d3f6', 0x4560, 'pli [r3, r4]', 0, ()),
+        #(REV_ALL_ARM, 'a4f353f6', 0x4560, 'pli [r3, -r4, lsr #7]', 0, ()),
+        #(REV_ALL_ARM, 'e4f3d3f6', 0x4560, 'pli [r3, r4, ror #7]', 0, ()),
         
         #Deleted all old stuff was saving as see no point now
         ]

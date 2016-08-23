@@ -1177,6 +1177,8 @@ cps_mnem = ("cps","cps FAIL-bad encoding","cpsie","cpsid")
 mcrr2_mnem = ("mcrr2", "mrrc2")
 ldc2_mnem = ("stc2", "ldc2",)
 mcr2_mnem = ("mcr2", "mrc2")
+pl_mnem = ("pli", "pld")
+pl_opcode = (IENC_UNCOND_PLD, IENC_UNCOND_PLD) # needs to be fixed 0 = pli
 def p_uncond(opval, va):
 
     if opval & 0x0f000000 == 0x0f000000:
@@ -1218,17 +1220,13 @@ def p_uncond(opval, va):
                     mesg="p_uncond (ontop=0): invalid instruction",
                     bytez=struct.pack("<I", opval), va=va)
     elif optop == 1:
-        #if (opval & 0xf570f000) == 0xf550f000:
-        if (opval & 0xfd30f000) == 0xf510f000:
-            #cache preload  -  also known as a nop on most platforms... does nothing except prefetch instructions from cache.
-            mnem = "pld"
-            I = (opval>>25) & 1
-            Rn = (opval>>16) & 0xf
+        if (opval & 0xfc70f000) == 0xf450f000:
+            pl = (opval>>24)&1
             U = (opval>>23) & 1
-            R = (opval>>22) & 1
-            opcode = IENC_UNCOND_PLD
-            if not R:
-                mnem += "w"
+            Rn = (opval>>16) & 0xf
+            I = (opval>>25) & 1
+            opcode = pl_opcode[pl]
+            mnem = pl_mnem[pl]
             if not I:
                 immoffset = opval & 0xfff
                 olist = (ArmImmOffsetOper(Rn, immoffset, va, (U<<3) | 0x10),)
