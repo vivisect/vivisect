@@ -747,21 +747,25 @@ def p_load_imm_off(opval, va):
     Rn = (opval>>16) & 0xf
     Rd = (opval>>12) & 0xf
     imm = opval & 0xfff
-
+    mnem = ldr_mnem[pubwl&1]
     iflags = 0
     if pubwl & 4:   # B   
         iflags = IF_B
-
     if (pubwl & 0x12) == 2:
         iflags |= IF_T
-
-    olist = (
-        ArmRegOper(Rd, va=va),
-        ArmImmOffsetOper(Rn, imm, va, pubwl=pubwl)    # u=-/+, b=word/byte
-    )
+    if (opval & 0xfff0fff) == 0x52D0004:
+        mnem = "push"
+        olist = (
+            ArmRegOper(Rd, va=va),
+        )
+    else: 
+        olist = (
+            ArmRegOper(Rd, va=va),
+            ArmImmOffsetOper(Rn, imm, va, pubwl=pubwl)    # u=-/+, b=word/byte
+        )
     
     opcode = (IENC_LOAD_IMM_OFF << 16)
-    return (opcode, ldr_mnem[pubwl&1], olist, iflags)
+    return (opcode, mnem, olist, iflags)
 
 def p_load_reg_off(opval, va):
     pubwl = (opval>>20) & 0x1f
@@ -798,15 +802,11 @@ def p_media(opval, va):
     #  smlad, smlsd, smlald, smusd              01110
     #  usad8, usada8                            01111
     definer = (opval>>23) & 0x1f
-    print "definer", definer
     if   definer == 0xc:
-        print "p_media_parallel"
         return p_media_parallel(opval, va)
     elif definer == 0xd:
-        print "p_media_pack_sat_rev_extend"
         return p_media_pack_sat_rev_extend(opval, va)
     elif definer == 0xe:
-        print "p_mult"
         return p_mult(opval, va)
         #Never gets to next line
         return p_media_smul(opval, va)
@@ -834,7 +834,6 @@ def p_media_parallel(opval, va):
     opc1 += (opval>>5) & 7
     Rm = opval & 0xf
     mnem = parallel_mnem[opc1]
-    print "mnem, rd, rn, rm, opc1", mnem, Rd, Rn, Rm, opc1
     olist = (
         ArmRegOper(Rd, va=va),
         ArmRegOper(Rn, va=va),
@@ -1018,11 +1017,19 @@ def p_load_mult(opval, va):
     flags = ((puswl>>3)<<(IF_DAIB_SHFT)) | IF_DA     # store bits for decoding whether to dec/inc before/after between ldr/str.  IF_DA tells the repr to print the the DAIB extension after the conditional.  right shift necessary to clear lower three bits, and align us with IF_DAIB_SHFT
     Rn = (opval>>16) & 0xf
     reg_list = opval & 0xffff
-    
-    olist = (
-        ArmRegOper(Rn, va=va),
-        ArmRegListOper(reg_list, puswl),
-    )
+
+    if  (mnem_idx == 0) &(Rn == REG_SP) & ((puswl & 2)==2) & (bin(reg_list).count("1") > 1):
+        #push
+        mnem = "push"
+        olist = (
+            ArmRegListOper(reg_list, puswl),
+        )
+        
+    else:     
+        olist = (
+            ArmRegOper(Rn, va=va),
+            ArmRegListOper(reg_list, puswl),
+        )
 
     # If we are a load multi (ldm), and we load PC, we are NOFALL
     # (FIXME unless we are conditional... ung...)
@@ -1031,7 +1038,6 @@ def p_load_mult(opval, va):
         # If the load is from the stack, call it a "return"
         if Rn == REG_SP:
             flags |= envi.IF_RET
-
     if puswl & 2:       # W (mnemonic: "!")
         flags |= IF_W
         olist[0].oflags |= OF_W
@@ -1040,7 +1046,6 @@ def p_load_mult(opval, va):
         flags |= IF_UM
         olist[1].oflags |= OF_UM
 
-    
     opcode = (IENC_LOAD_MULT << 16)
     return (opcode, mnem, olist, flags)
 
@@ -1603,10 +1608,11 @@ class ArmOpcode(envi.Opcode):
             mnem += 'l'
         elif (self.iflags & self.S_FLAG_MASK) == IF_PSR_S:
             mnem += 's'
-        elif daib_flags > 0:
+        elif (daib_flags > 0) & (mnem != "push"):
             idx = ((daib_flags)>>(IF_DAIB_SHFT)) 
             mnem += daib[idx]
         else:
+
             if self.iflags & IF_S:
                 mnem += 's'
             if self.iflags & IF_D:
@@ -1623,7 +1629,6 @@ class ArmOpcode(envi.Opcode):
                 mnem += '.f64'
         if self.iflags & IF_THUMB32:
             mnem += ".w"
-        
         x = []
         
         for o in self.opers:
@@ -2842,11 +2847,10 @@ class ArmDisasm:
 
         else:
             flags |= envi.IF_COND
-
-
         # FIXME conditionals are currently plumbed as "prefixes".  Perhaps normalize to that...
         #op = stemCell(va, opcode, mnem, cond, 4, olist, flags)
         op = ArmOpcode(va, opcode, mnem, cond, 4, olist, flags)
+
         return op
         
     def doDecode(self, va, opval, bytez, offset):
@@ -2877,6 +2881,7 @@ class ArmDisasm:
                     bytez=bytez[offset:offset+4], va=va)
 
         print "ienc_parser index, routine: %d, %s" % (enc, ienc_parsers[enc])
+        
         opcode, mnem, olist, flags = ienc_parsers[enc](opval, va+8)
         return opcode, mnem, olist, flags
 
