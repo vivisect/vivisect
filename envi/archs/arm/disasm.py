@@ -796,22 +796,33 @@ def p_media(opval, va):
     27:20, 7:4
     """
     # media is a parent for the following:
-    #  parallel add/sub                         01100
-    #  pkh, ssat, ssat16, usat, usat16, sel     01101
-    #  rev, rev16, revsh                        01101
-    #  smlad, smlsd, smlald, smusd              01110
-    #  usad8, usada8                            01111
-    definer = (opval>>23) & 0x1f
-    if   definer == 0xc:
+    #  parallel add/sub                         0110000
+    #  pkh, ssat, ssat16, usat, usat16, sel     0110100
+    #  rev, rev16, rbit, revsh                  0110100
+    #  smlad, smlsd, smlald, smusd              0111000
+    #  usad8, usada8                            0111100
+    #  sbfx                                     0111101
+    #  note: added two more fields after adding sbfx.
+    #  changed comparitar to still work with old commands instead of retesting all commands
+    #  at this point. (definer&0x7c then added 2 bits of 0 to compared number)
+    #  will readdress when going through emulation of commands if necissary.
+    definer = (opval>>21) & 0x7f
+    if   (definer&0x7c) == 0x30:
         return p_media_parallel(opval, va)
-    elif definer == 0xd:
+    elif (definer&0x7c) == 0x34:
         return p_media_pack_sat_rev_extend(opval, va)
-    elif definer == 0xe:
+    elif (definer&0x7c) == 0x38:
         return p_mult(opval, va)
         #Never gets to next line
         return p_media_smul(opval, va)
-    else:
+    elif definer == 0x3c:
         return p_media_usada(opval, va)
+    elif definer == 0x3d:
+        return p_media_sbfx(opval, va)
+    else:
+        raise envi.InvalidInstruction(
+        mesg="p_media: can not find command! Definer = "+str(definer),
+        bytez=struct.pack("<I", opval), va=va)
 
 #generate mnemonics for parallel instructions (could do manually like last time...)
 parallel_mnem = []
@@ -998,6 +1009,23 @@ def p_media_usada(opval, va):
         )
         opcode = IENC_MEDIA_USADA8
 
+    return (opcode, mnem, olist, 0)
+
+def p_media_sbfx(opval, va):
+    Rd = (opval>>12) & 0xf
+    Rn = opval & 0xf
+    width = (opval>>16) & 0x1f
+    lsb= (opval>>7) & 0x1f
+    print lsb, width
+    mnem = "sbfx"
+    olist = (
+        ArmRegOper(Rd, va=va),
+        ArmRegOper(Rn, va=va),
+        ArmImmOper(lsb, 0, va=va),
+        ArmImmOper(width, 0, va=va),
+    )
+    #fixme opcode
+    opcode = IENC_MEDIA_USADA8
     return (opcode, mnem, olist, 0)
 
 def p_arch_undef(opval, va):
