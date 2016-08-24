@@ -789,7 +789,7 @@ instrs = [
         #(REV_ALL_ARM, 'a4f353f6', 0x4560, 'pli [r3, -r4, lsr #7]', 0, ()),
         #(REV_ALL_ARM, 'e4f3d3f6', 0x4560, 'pli [r3, r4, ror #7]', 0, ()),
 
-        (REV_ALL_ARM, '14f713e7', 0x4560, 'sdiv r3, r4, r7', 0, ()),
+
         #(REV_ALL_ARM, '14f603e7', 0x4560, 'smuad r3, r4, r6', 0, ()),
         #(REV_ALL_ARM, '34f603e7', 0x4560, 'smuadx r3, r4, r6', 0, ()),
         #(REV_ALL_ARM, '343fa6e6', 0x4560, 'ssat16 r3, #0x07, r4', 0, ()),
@@ -1207,6 +1207,7 @@ instrs = [
         #(REV_ALL_ARM, '04102de5', 0x4560, 'push r1', 0, ()),
         #(REV_ALL_ARM, '343fffe6', 0x4560, 'rbit r3, r4', 0, ()),
         #(REV_ALL_ARM, '5434a3e7', 0x4560, 'sbfx r3, r4, #0x08, #0x03', 0, ()),
+        #(REV_ALL_ARM, '14f713e7', 0x4560, 'sdiv r3, r4, r7', 0, ()),
         ]
 
 
