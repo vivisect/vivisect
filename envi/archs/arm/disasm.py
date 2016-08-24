@@ -855,7 +855,7 @@ xtnd_mnem = tuple(xtnd_mnem)
 pkh_mnem = ('pkhbt', 'pkhtb',)
 sat_mnem = ('ssat','usat')
 sat16_mnem = ('ssat16','usat16')    
-rev_mnem = ('rev','rev16',None,'revsh',)
+rev_mnem = ('rev','rev16','rbit','revsh',)
 
 def p_media_pack_sat_rev_extend(opval, va):
     ## part of p_media
@@ -864,7 +864,6 @@ def p_media_pack_sat_rev_extend(opval, va):
     opc2 = (opval>>4) & 0xf
     opc25 = opc2 & 3
     opcode = 0
-    
     if opc1 == 0 and opc25 == 1:   #pkh
         #pkhtb = asr, pkhbt = lsl
         shifter = (S_LSL, S_ASR)
@@ -963,7 +962,7 @@ def p_media_pack_sat_rev_extend(opval, va):
         opcode = IENC_MEDIA_EXTEND + opc1
     else:
         raise envi.InvalidInstruction(
-                mesg="p_media_extend: invalid instruction",
+                mesg="p_media_extend: invalid instruction"+opc1+"."+opc2,
                 bytez=struct.pack("<I", opval), va=va)
 
     return (opcode, mnem, olist, 0)
