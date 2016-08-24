@@ -617,8 +617,6 @@ def p_mult(opval, va):
     opcode = (IENC_MULT << 16) + ocode
     return (opcode, mnem, olist, flags)
 
-#FIXME, ADR calculates at this point which I believe to be wrong
-#Will research when doing EMU portion.
 def p_dp_imm(opval, va):
     ocode,sflag,Rn,Rd = dpbase(opval)
     imm = opval & 0xff
@@ -790,34 +788,71 @@ def p_load_reg_off(opval, va):
     opcode = (IENC_LOAD_REG_OFF << 16) 
     return (opcode, ldr_mnem[pubwl&1], olist, iflags)
 
-    
+# Fixme: Integrate into CONST - Need input. Use IENC_MEDIA_PARALLEL etc?
+# if so then need to add more and not sure how?
+'''
+  tabling for now... Doesn't work. Need input on what I am doing wrong.
+  Error is '"p_media_parallel" is not defined'
+MEDIA_MAX = 10
+media_parsers_tmp = [None for x in range(MEDIA_MAX)]
+
+media_parsers_tmp[0] = p_media_parallel
+media_parsers_tmp[1] = p_media_pack_sat_rev_extend
+media_parsers_tmp[2] = p_mult
+media_parsers_tmp[3] = p_div
+media_parsers_tmp[4] = p_media_usada
+media_parsers_tmp[5] = p_media_sbfx
+media_parsers = tuple(media_parsers_tmp)
+
+media_codes = (
+    (0b11111000, 0b01100000, 0),
+    (0b11111000, 0b01101000, 1),
+    (0b11111011, 0b01110000, 2),
+    (0b01110001, 0b01110001, 3),
+    (0b11111110, 0b01111000, 4),
+    (0b11111110, 0b01111010, 5),
+    #(0b11111000, 0b01100000, 6),
+
+)
+'''
 def p_media(opval, va):
     """
     27:20, 7:4
     """
     # media is a parent for the following:
-    #  parallel add/sub                         0110000
-    #  pkh, ssat, ssat16, usat, usat16, sel     0110100
-    #  rev, rev16, rbit, revsh                  0110100
-    #  smlad, smlsd, smlald, smusd              0111000
-    #  usad8, usada8                            0111100
-    #  sbfx                                     0111101
-    #  note: added two more fields after adding sbfx.
-    #  changed comparitar to still work with old commands instead of retesting all commands
-    #  at this point. (definer&0x7c then added 2 bits of 0 to compared number)
-    #  will readdress when going through emulation of commands if necissary.
-    definer = (opval>>21) & 0x7f
-    if   (definer&0x7c) == 0x30:
+    #  parallel add/sub                         01100000    0x60
+    #  pkh, ssat, ssat16, usat, usat16, sel     01101000    0x68
+    #  rev, rev16, rbit, revsh                  01101000    0x68
+    #  smlad, smlsd, smlald, smusd              01110000    0x70
+    #  sdiv                                     01110001    0x71
+    #  usad8, usada8                            01111000    0x78
+    #  sbfx                                     01111010    0x7a
+    #  had to add additional bits to fields to properly decode new commands.
+    #  note added masks to reflect this. 
+    definer = (opval>>20) & 0xff
+    ''' tabled for now, goes with above but doesn't like it?
+    for mask,val,idx in media_codes:
+        if (definer & mask) == val:
+            p_routine = idx
+            break
+    if p_routine == None:
+        raise envi.InvalidInstruction(
+        mesg="p_media: can not find command! Definer = "+str(definer),
+        bytez=struct.pack("<I", opval), va=va)
+    print media_parsers
+    return media_parsers[p_routine](opval, va)
+    '''
+    if   (definer & 0xf8) == 0x60:
         return p_media_parallel(opval, va)
-    elif (definer&0x7c) == 0x34:
+    elif (definer & 0xf8) == 0x68:
         return p_media_pack_sat_rev_extend(opval, va)
-    elif (definer&0x7c) == 0x38:
+    elif (definer & 0xfb) == 0x70:
         return p_mult(opval, va)
-        #Never gets to next line
-        return p_media_smul(opval, va)
-    elif definer == 0x3c:
+    elif definer == 0x71:
+        return p_media_sdiv(opval, va)
+    elif (definer & 0xfe) == 0x78:
         return p_media_usada(opval, va)
-    elif definer == 0x3d:
+    elif (definer & 0xfe) == 0x7a:
         return p_media_sbfx(opval, va)
     else:
         raise envi.InvalidInstruction(
@@ -978,13 +1013,6 @@ def p_media_pack_sat_rev_extend(opval, va):
 
     return (opcode, mnem, olist, 0)
 
-#smult3_mnem = ('smlad','smlsd',,,'smlald')
-def p_media_smul(opval, va):
-    raise envi.InvalidInstruction(
-            mesg="Should not reach here.  If we reach here, we'll have to implement MEDIA_SMUL extended multiplication (type 3)",
-            bytez=struct.pack("<I", opval), va=va)
-    # hmmm, is this already handled?
-    
 def p_media_usada(opval, va):
     Rd = (opval>>16) & 0xf
     Rn = (opval>>12) & 0xf
@@ -1016,13 +1044,26 @@ def p_media_sbfx(opval, va):
     Rn = opval & 0xf
     width = (opval>>16) & 0x1f
     lsb= (opval>>7) & 0x1f
-    print lsb, width
     mnem = "sbfx"
     olist = (
         ArmRegOper(Rd, va=va),
         ArmRegOper(Rn, va=va),
         ArmImmOper(lsb, 0, va=va),
         ArmImmOper(width, 0, va=va),
+    )
+    #fixme opcode
+    opcode = IENC_MEDIA_USADA8
+    return (opcode, mnem, olist, 0)
+
+def p_media_sdiv(opval, va):
+    Rd = (opval>>16) & 0xf
+    Rm = (opval>>8) & 0xf
+    Rn = opval & 0xf
+    mnem = "sdiv"
+    olist = (
+        ArmRegOper(Rd, va=va),
+        ArmRegOper(Rn, va=va),
+        ArmRegOper(Rm, va=va),
     )
     #fixme opcode
     opcode = IENC_MEDIA_USADA8
