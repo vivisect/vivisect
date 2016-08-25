@@ -709,8 +709,7 @@ instrs = [
         #(REV_ALL_ARM, '5345b0e1', 0x4560, 'asrs  r4, r3, r7', 0, ()),
 
         #Not yet implimented (Some look like they may have been started)
-        #(REV_ALL_ARM, '1f32cfe7', 0x4560, 'bfc r3, #16, #4', 0, ()),
-        #(REV_ALL_ARM, '1432cfe7', 0x4560, 'bfi r3, r4, #16, #4', 0, ()),
+
         #(REV_ALL_ARM, '1ff07ff5', 0x4560, 'clrex', 0, ()),
         #(REV_ALL_ARM, 'f3f020e3', 0x4560, 'dbg  #3', 0, ()),
         #(REV_ALL_ARM, '53f07ff5', 0x4560, 'dmb  osh', 0, ()),
