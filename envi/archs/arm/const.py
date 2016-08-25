@@ -58,7 +58,10 @@ for name, val in globals().items():
             REV_THUMBEE = REV_THUMBEE | val
     else:
         REV_THUMB16 = REV_THUMB16 | val
-
+#Added thumbs to dictionary
+ARCH_REVS['thumb16'] = REV_THUMB16
+ARCH_REVS['thumb'] = REV_THUMB2
+ARCH_REVS['thumbee'] = REV_THUMBEE
 ARCH_REVSLEN = len(ARCH_REVS)
 
 #IFLAGS - keep bottom 8-bits for cross-platform flags like envi.IF_NOFALL and envi.IF_BRFALL
@@ -298,8 +301,8 @@ shift_names = ("lsl", "lsr", "asr", "ror", "rrx")
 
 SOT_REG = 0
 SOT_IMM = 1
-
-daib = ("da", "ia", "db", "ib")
+#ia was removed as it is not UAL
+daib = ("da", "", "db", "ib")
 
 
 def instrenc(encoding, index):
