@@ -752,13 +752,9 @@ instrs = [
         #(REV_ALL_ARM, '343fffe6', 0x4560, 'rbit r3, r4', 0, ()),
         #(REV_ALL_ARM, '5434a3e7', 0x4560, 'sbfx r3, r4, #8, #4', 0, ()),
         #(REV_ALL_ARM, '14f713e7', 0x4560, 'sdiv r3, r4, r7', 0, ()),
-        #(REV_ALL_ARM, '14f603e7', 0x4560, 'smuad r3, r4, r6', 0, ()),
-        #(REV_ALL_ARM, '34f603e7', 0x4560, 'smuadx r3, r4, r6', 0, ()),
-        #(REV_ALL_ARM, '343fa6e6', 0x4560, 'ssat16 r3, #0x07, r4', 0, ()),
-        #(REV_ALL_ARM, '563f14e6', 0x4560, 'ssax r3, r4, r6', 0, ()),
-        #(REV_ALL_ARM, 'f63f14e6', 0x4560, 'ssub8 r3, r4, r6', 0, ()),
-        #(REV_ALL_ARM, '940001e9', 0x4560, 'stmdb r1, {r2, r4, r7}', 0, ()),
-        #(REV_ALL_ARM, '940021e0', 0x4560, 'stmdb r1!, {r2, r4, r7}', 0, ()),
+
+        (REV_ALL_ARM, '940001e9', 0x4560, 'stmdb r1, {r2, r4, r7}', 0, ()),
+        (REV_ALL_ARM, '940021e0', 0x4560, 'stmdb r1!, {r2, r4, r7}', 0, ()),
         #(REV_ALL_ARM, '943f87e1', 0x4560, 'strex r3, r4, [r7]', 0, ()),
         #(REV_ALL_ARM, '943fc7e1', 0x4560, 'strexb r3, r4, [r7]', 0, ()),
         #(REV_ALL_ARM, '943fa7e1', 0x4560, 'strexd r3, r4, r5, [r7]', 0, ()),
@@ -1223,7 +1219,11 @@ instrs = [
         #(REV_ALL_ARM, '5345b0e1', 0x4560, 'asrs  r4, r3, r7', 0, ()),
         #(REV_ALL_ARM, '1f32cfe7', 0x4560, 'bfc r3, #0x04, #0x0f', 0, ()),
         #(REV_ALL_ARM, '1432cfe7', 0x4560, 'bfi r3, r4, #0x04, #0x0f', 0, ()),
-
+        #(REV_ALL_ARM, '14f603e7', 0x4560, 'smuad r3, r4, r6', 0, ()),
+        #(REV_ALL_ARM, '34f603e7', 0x4560, 'smuadx r3, r4, r6', 0, ()),
+        #(REV_ALL_ARM, '343fa6e6', 0x4560, 'ssat16 r3, #0x06, r4', 0, ()),
+        #(REV_ALL_ARM, '563f14e6', 0x4560, 'ssax r3, r4, r6', 0, ()),
+        #(REV_ALL_ARM, 'f63f14e6', 0x4560, 'ssub8 r3, r4, r6', 0, ()),
         #Deleted all old stuff was saving as see no point now
         ]
 

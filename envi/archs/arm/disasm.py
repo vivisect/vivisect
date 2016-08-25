@@ -627,9 +627,11 @@ def p_dp_reg_shift(opval, va):
 multfail = (None, None, None,)
 
 iencmul_r15_codes = {
-     # Basic multiplication opcodes
-     binary("011101010001"): ("smmul", (0,4,2), 0),
-     binary("011101010011"): ("smmulr", (0,4,2), 0),
+    # Basic multiplication opcodes
+    binary("011101010001"): ("smmul", (0,4,2), 0),
+    binary("011101010011"): ("smmulr", (0,4,2), 0),
+    binary("011100000001"): ("smuad", (0,4,2), 0),
+    binary("011100000011"): ("smuadx", (0,4,2), 0),
 }
 
 def p_mult(opval, va):
@@ -638,6 +640,7 @@ def p_mult(opval, va):
     #work around because masks match up - should be a cleaner way to do this?
     #if Ra = 15 then smmul
     if vals[1] == 15:
+        print "Im here", bin(ocode)
         newset = iencmul_r15_codes.get(ocode)
         if newset != None:
             mnem, opindexes, flags = newset
@@ -889,6 +892,7 @@ sat_mnem = ('ssat','usat')
 sat16_mnem = ('ssat16','usat16')    
 rev_mnem = ('rev','rev16',None,'revsh',)
 
+#Routine is too complicated, needs to be redone
 def p_media_pack_sat_rev_extend(opval, va):
     ## part of p_media
     # assume bit 23 == 1
@@ -927,7 +931,7 @@ def p_media_pack_sat_rev_extend(opval, va):
         sat_imm = (opval>>16) & 0xf
         Rd = (opval>>12) & 0xf
         Rm = opval & 0xf
-        if opc1 & 0x10: # ?sat16
+        if opc1 & 0x10: # ?sat16 
             mnem = sat16_mnem[opidx]
             olist = (
                 ArmRegOper(Rd, va=va),
@@ -949,11 +953,19 @@ def p_media_pack_sat_rev_extend(opval, va):
             )
             opcode = IENC_MEDIA_SAT + 2 + opidx
             
-    elif (opc1 & 3) == 2 and opc2 == 3:     #parallel half-word sat
-        # FIXME: implement this instruction!
-        raise envi.InvalidInstruction(
-                mesg="WTF! Parallel Half-Word Saturate...  what is that instruction?",
-                bytez=struct.pack("<I", opval), va=va)
+    elif (opc1 & 3) == 2 and opc2 == 3:     #ssat16
+        opidx = (opval>>22)&1
+        sat_imm = (opval>>16) & 0xf
+        Rd = (opval>>12) & 0xf
+        Rm = opval & 0xf
+        mnem = sat16_mnem[opidx]
+        olist = (
+            ArmRegOper(Rd, va=va),
+            ArmImmOper(sat_imm),
+            ArmRegOper(Rm, va=va),
+        )
+        opcode = IENC_MEDIA_SAT + opidx
+        
     
     elif (opc1 > 0) and (opc2 & 7) == 3:           # byte rev word
         opidx = ((opval>>21) & 2) + ((opval>>7) & 1)
