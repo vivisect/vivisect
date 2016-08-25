@@ -788,33 +788,6 @@ def p_load_reg_off(opval, va):
     opcode = (IENC_LOAD_REG_OFF << 16) 
     return (opcode, ldr_mnem[pubwl&1], olist, iflags)
 
-# Fixme: Integrate into CONST - Need input. Use IENC_MEDIA_PARALLEL etc?
-# if so then need to add more and not sure how?
-'''
-  tabling for now... Doesn't work. Need input on what I am doing wrong.
-  Error is '"p_media_parallel" is not defined'
-MEDIA_MAX = 10
-media_parsers_tmp = [None for x in range(MEDIA_MAX)]
-
-media_parsers_tmp[0] = p_media_parallel
-media_parsers_tmp[1] = p_media_pack_sat_rev_extend
-media_parsers_tmp[2] = p_mult
-media_parsers_tmp[3] = p_div
-media_parsers_tmp[4] = p_media_usada
-media_parsers_tmp[5] = p_media_sbfx
-media_parsers = tuple(media_parsers_tmp)
-
-media_codes = (
-    (0b11111000, 0b01100000, 0),
-    (0b11111000, 0b01101000, 1),
-    (0b11111011, 0b01110000, 2),
-    (0b01110001, 0b01110001, 3),
-    (0b11111110, 0b01111000, 4),
-    (0b11111110, 0b01111010, 5),
-    #(0b11111000, 0b01100000, 6),
-
-)
-'''
 def p_media(opval, va):
     """
     27:20, 7:4
@@ -828,9 +801,30 @@ def p_media(opval, va):
     #  usad8, usada8                            01111000    0x78
     #  sbfx                                     01111010    0x7a
     #  had to add additional bits to fields to properly decode new commands.
-    #  note added masks to reflect this. 
+    #  note added masks to reflect this.
+
+    #Prototype for new structure. Left working structure in place but commented out until receive comments.
+    MEDIA_MAX = 10
+    media_parsers_tmp = [None for x in range(MEDIA_MAX)]
+
+    media_parsers_tmp[0] = p_media_parallel
+    media_parsers_tmp[1] = p_media_pack_sat_rev_extend
+    media_parsers_tmp[2] = p_mult
+    media_parsers_tmp[3] = p_div
+    media_parsers_tmp[4] = p_media_usada
+    media_parsers_tmp[5] = p_media_sbfx
+    media_parsers = tuple(media_parsers_tmp)
+
+    media_codes = (
+        (0b11111000, 0b01100000, 0),
+        (0b11111000, 0b01101000, 1),
+        (0b11111011, 0b01110000, 2),
+        (0b01110001, 0b01110001, 3),
+        (0b11111110, 0b01111000, 4),
+        (0b11111110, 0b01111010, 5),
+    )
+
     definer = (opval>>20) & 0xff
-    ''' tabled for now, goes with above but doesn't like it?
     for mask,val,idx in media_codes:
         if (definer & mask) == val:
             p_routine = idx
@@ -857,7 +851,7 @@ def p_media(opval, va):
     else:
         raise envi.InvalidInstruction(
         mesg="p_media: can not find command! Definer = "+str(definer),
-        bytez=struct.pack("<I", opval), va=va)
+        bytez=struct.pack("<I", opval), va=va)'''
 
 #generate mnemonics for parallel instructions (could do manually like last time...)
 parallel_mnem = []
