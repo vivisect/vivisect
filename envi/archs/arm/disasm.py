@@ -995,7 +995,7 @@ def p_media_pack_sat_rev_extend(opval, va):
         )
         opcode = IENC_MEDIA_SEL
     elif opc2 == 7:                         # sign extend
-        idx = opc1
+        idx = (opc1&3) + 8 * ((opval>>22) &1)
         Rn = (opval>>16) & 0xf
         Rd = (opval>>12) & 0xf
         rot = (opval>>10) & 3
