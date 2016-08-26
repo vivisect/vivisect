@@ -833,7 +833,7 @@ def p_media(opval, va):
     #  smlad, smlsd, smlald, smusd              01110
     #  usad8, usada8, bfc, bfi                  01111
     definer = (opval>>23) & 0x1f
-    print "definer", definer
+    print "definer", hex(definer)
     if   definer == 0xc:
         return p_media_parallel(opval, va)
     elif definer == 0xd:
@@ -879,7 +879,7 @@ def p_media_parallel(opval, va):
 
 
 xtnd_mnem = []
-xtnd_suffixes = ("xtab16","xtab","xtah","xtb16","xtb","xth",)
+xtnd_suffixes = ("xtab16", "","xtab", "xtah","xtb16", "", "xtb","xth",)
 xtnd_prefixes = ("s","u")
 for pre in xtnd_prefixes:
     for suf in xtnd_suffixes:
@@ -900,7 +900,6 @@ def p_media_pack_sat_rev_extend(opval, va):
     opc2 = (opval>>4) & 0xf
     opc25 = opc2 & 3
     opcode = 0
-    
     if opc1 == 0 and opc25 == 1:   #pkh
         #pkhtb = asr, pkhbt = lsl
         shifter = (S_LSL, S_ASR)
@@ -996,17 +995,25 @@ def p_media_pack_sat_rev_extend(opval, va):
         )
         opcode = IENC_MEDIA_SEL
     elif opc2 == 7:                         # sign extend
-        mnem = xtnd_mnem[opc1]
+        idx = opc1
         Rn = (opval>>16) & 0xf
         Rd = (opval>>12) & 0xf
         rot = (opval>>10) & 3
         Rm = opval & 0xf
-        
-        olist = (
-            ArmRegOper(Rd, va=va),
-            ArmRegOper(Rn, va=va),
-            ArmRegShiftImmOper(Rm, S_ROR, rot, va),
-        )
+        print idx, Rn
+        if Rn == 0xf:
+            idx +=4
+            olist = (
+                ArmRegOper(Rd, va=va),
+                ArmRegShiftXtndOper(Rm, S_ROR, rot, va),
+            )
+        else:
+            olist = (
+                ArmRegOper(Rd, va=va),
+                ArmRegOper(Rn, va=va),
+                ArmRegShiftXtndOper(Rm, S_ROR, rot, va),
+            )
+        mnem = xtnd_mnem[idx]
         opcode = IENC_MEDIA_EXTEND + opc1
     else:
         raise envi.InvalidInstruction(
@@ -1022,30 +1029,30 @@ def p_media_smul(opval, va):
             bytez=struct.pack("<I", opval), va=va)
     # hmmm, is this already handled?
     
-
+bf_mnem = ("bfi", "ubfx", "bfc")
 def p_media_bf(opval, va):
+    idx = (opval>>21) & 1
     width = (opval>>16) & 0x1f
     Rd = (opval>>12) & 0xf
     lsb = (opval>>7) & 0x1f
     Rn = opval &0xf
     if Rn == 0xf:
-        mnem = "bfc"
+        idx += 2
         olist = (
             ArmRegOper(Rd, va=va),
             ArmImmOper(lsb),
             ArmImmOper(width)
         )
-        opcode = IENC_MEDIA_USAD8 # FIXME
     else:
-        mnem = "bfi"
         olist = (
             ArmRegOper(Rd, va=va),
             ArmRegOper(Rn, va=va),
             ArmImmOper(lsb),
             ArmImmOper(width)
         )
-        opcode = IENC_MEDIA_USAD8 #FIXME
-    print mnem,  Rd, Rn, lsb, width
+        
+    opcode = IENC_MEDIA_USAD8 #FIXME
+    mnem = bf_mnem[idx]
     return (opcode, mnem, olist, 0)
 
 def p_media_usada(opval, va):
@@ -1868,6 +1875,59 @@ class ArmRegShiftImmOper(ArmOperand):
             retval.append("#%d"%self.shimm)
         elif (self.shtype == S_RRX) and self.display_shift:
             retval.append(shift_names[self.shtype])
+        return " ".join(retval)
+
+class ArmRegShiftXtndOper(ArmOperand):
+    ''' xtend shifts - ROR shift of 0, 8, 16 or 24. see sxtab for example
+        pulled from ArmRegShiftImmOper'''
+
+    def __init__(self, reg, shtype, shimm, va):
+        print reg, shtype, shimm, va
+        self.reg = reg
+        self.shtype = S_ROR
+        self.shimm = shimm*8
+        self.va = va
+
+    def __eq__(self, oper):
+        if not isinstance(oper, self.__class__):
+            return False
+        if self.reg != oper.reg:
+            return False
+        if self.shtype != oper.shtype:
+            return False
+        if self.shimm != oper.shimm:
+            return False
+        return True
+
+    def involvesPC(self):
+        return self.reg == 15
+
+    def isDeref(self):
+        return False
+
+    def getOperValue(self, op, emu=None):
+        if self.reg == REG_PC:
+            return shifters[self.shtype](self.va, self.shimm)
+        if emu == None:
+            return None
+        return shifters[self.shtype](emu.getRegister(self.reg), self.shimm)
+
+    def render(self, mcanv, op, idx):
+        rname = arm_regs[self.reg][0]
+        mcanv.addNameText(rname, typename='registers')
+        if self.shimm != 0:
+            mcanv.addText(', ')
+            mcanv.addNameText(shift_names[self.shtype])
+            mcanv.addText(' ')
+            mcanv.addNameText('#%d' % self.shimm)
+
+    def repr(self, op):
+        rname = arm_regs[self.reg][0]
+        retval = [ rname ]
+        if self.shimm != 0:
+            retval.append(",")
+            retval.append(shift_names[self.shtype])
+            retval.append("#%d"%self.shimm)
         return " ".join(retval)
 
 class ArmImmOper(ArmOperand):
