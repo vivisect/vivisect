@@ -828,7 +828,6 @@ instrs = [
         #(REV_ALL_ARM, '373f54e6', 0x4560, 'uasx r3, r4, r7', 0, ()),
         #(REV_ALL_ARM, '5436efe7', 0x4560, 'ubfx r3, r4, #12, #16', 0, ()),
         #(REV_ALL_ARM, 'f000f0e7', 0x4560, 'udf #0', 0, ()),
-        #(REV_ALL_ARM, '14f733e7', 0x4560, 'udiv r3, r4, r7', 0, ()),
         #(REV_ALL_ARM, '373f74e6', 0x4560, 'uhasx r3, r4, r7', 0, ()),
         #(REV_ALL_ARM, '573f74e6', 0x4560, 'uhsax r3, r4, r7', 0, ()),
         #(REV_ALL_ARM, 'f73f74e6', 0x4560, 'uhsub8 r3, r4, r7', 0, ()),
@@ -1208,7 +1207,7 @@ instrs = [
         #(REV_ALL_ARM, '343fffe6', 0x4560, 'rbit r3, r4', 0, ()),
         #(REV_ALL_ARM, '5434a3e7', 0x4560, 'sbfx r3, r4, #0x08, #0x03', 0, ()),
         #(REV_ALL_ARM, '14f713e7', 0x4560, 'sdiv r3, r4, r7', 0, ()),
-        
+        #(REV_ALL_ARM, '14f733e7', 0x4560, 'udiv r3, r4, r7', 0, ()),
         ]
 
 

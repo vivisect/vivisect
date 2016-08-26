@@ -1049,11 +1049,12 @@ def p_media_sbfx(opval, va):
     opcode = IENC_MEDIA_USADA8
     return (opcode, mnem, olist, 0)
 
+div_mnem= ("sdiv","udiv")
 def p_div(opval, va):
     Rd = (opval>>16) & 0xf
     Rm = (opval>>8) & 0xf
     Rn = opval & 0xf
-    mnem = "sdiv"
+    mnem = div_mnem[(opval>>21) & 1]
     olist = (
         ArmRegOper(Rd, va=va),
         ArmRegOper(Rn, va=va),
