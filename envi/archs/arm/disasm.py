@@ -430,8 +430,8 @@ STRH (imm) & (reg)
 '''
 swap_mnem = ("swp","swpb",)
 strex_mnem = ("strex","ldrex",)  # actual full instructions
-strh_mnem = (("str",IF_H),("ldr",IF_H),)          # IF_H
-ldrs_mnem = (("ldr",IF_S|IF_B),("ldr",IF_S|IF_H),)      # IF_SH, IF_SB
+strh_mnem = (("str",IF_H,2),("ldr",IF_H,2),)          # IF_H
+ldrs_mnem = (("ldr",IF_S|IF_B,1),("ldr",IF_S|IF_H,2),)      # IF_SH, IF_SB
 ldrd_mnem = (("ldr",IF_D),("str",IF_D),)        # IF_D
 
 def p_extra_load_store(opval, va, psize=4):
@@ -466,17 +466,17 @@ def p_extra_load_store(opval, va, psize=4):
         # 0000u110-Rn--Rt-imm41011imm4  - STRHT (v7+)
         idx = pubwl&1
         opcode = (IENC_EXTRA_LOAD << 16) + 4 + idx
-        mnem,iflags = strh_mnem[idx]
+        mnem,iflags,tsize = strh_mnem[idx]
         if tvariant:
             iflags |= IF_T
         olist = (
             ArmRegOper(Rd, va=va),
-            ArmRegOffsetOper(Rn, Rm, va, pubwl, psize=psize),
+            ArmRegOffsetOper(Rn, Rm, va, pubwl, psize=psize, force_tsize=2),
         )
     elif opval&0x0e4000f0==0x004000b0:# strh/ldrh immoffset
         idx = pubwl&1
         opcode = (IENC_EXTRA_LOAD << 16) + 6 + idx
-        mnem,iflags = strh_mnem[idx]
+        mnem,iflags,tsize= strh_mnem[idx]
         if tvariant:
             iflags |= IF_T
         olist = (
@@ -486,7 +486,7 @@ def p_extra_load_store(opval, va, psize=4):
     elif opval&0x0e5000d0==0x005000d0:# ldrsh/b immoffset
         idx = (opval>>5)&1
         opcode = (IENC_EXTRA_LOAD << 16) + 8 + idx
-        mnem,iflags = ldrs_mnem[idx]
+        mnem,iflags,tsize = ldrs_mnem[idx]
         if tvariant:
             iflags |= IF_T
         olist = (
@@ -496,12 +496,12 @@ def p_extra_load_store(opval, va, psize=4):
     elif opval&0x0e5000d0==0x001000d0:# ldrsh/b regoffset
         idx = (opval>>5)&1
         opcode = (IENC_EXTRA_LOAD << 16) + 10 + idx
-        mnem,iflags = ldrs_mnem[idx]
+        mnem,iflags,tsize = ldrs_mnem[idx]
         if tvariant:
             iflags |= IF_T
         olist = (
             ArmRegOper(Rd, va=va),
-            ArmRegOffsetOper(Rn, Rm, va, pubwl, psize=psize),
+            ArmRegOffsetOper(Rn, Rm, va, pubwl, psize=psize, force_tsize=tsize),
         )
     elif opval&0x0e5000d0==0x000000d0:# ldrd/strd regoffset
         # 000pu0w0-Rn--Rt-SBZ-1101-Rm-  ldrd regoffset
@@ -1978,15 +1978,17 @@ class ArmScaledOffsetOper(ArmOperand):
 class ArmRegOffsetOper(ArmOperand):
     ''' register offset operand.  see "addressing mode 2 - load and store word or unsigned byte - register *" 
     dereference address mode using the combination of two register values '''
-    def __init__(self, base_reg, offset_reg, va, pubwl=0, psize=4):
+    def __init__(self, base_reg, offset_reg, va, pubwl=0, psize=4, force_tsize=None):
         self.base_reg = base_reg
         self.offset_reg = offset_reg
         self.pubwl = pubwl
         self.psize = psize
 
-        b = (self.pubwl >> 2) & 1
-        self.tsize = (4,1)[b]
-        print "TESTME: ArmRegOffsetOper at 0x%x" % va
+        if force_tsize == None:
+            b = (self.pubwl >> 2) & 1
+            self.tsize = (4,1)[b]
+        else:
+            self.tsize = force_tsize
 
     def __eq__(self, oper):
         if not isinstance(oper, self.__class__):
@@ -2021,7 +2023,6 @@ class ArmRegOffsetOper(ArmOperand):
         addr = self.getOperAddr(op, emu)
         return emu.readMemValue(addr, self.tsize)
 
-    # FIXME: should identify whether we're in an emulator or being "analyzed".  should be forcible either way, but defaults should be to update in emulator.executeOpcode() and not in other
     def getOperAddr(self, op, emu=None):
         if emu == None:
             print "emu==None"

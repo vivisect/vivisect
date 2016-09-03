@@ -1326,6 +1326,7 @@ class ArmInstructionSet(unittest.TestCase):
         
         # ldr r2, [r10, r2 ]
         emu = vw.getEmulator()
+        emu._forrealz = True
         op = vw.arch.archParseOpcode('02209ae7'.decode('hex'), va=0xbfb00000)
         emu.setRegister(10, 0xbfb00008)
         emu.setRegister(2,  8)
@@ -1387,7 +1388,9 @@ class ArmInstructionSet(unittest.TestCase):
 
         # Scaled with shifts/roll
         # ldr r2, [r10, r2 lsr #32]
+        # FIXME: TEST IS LIKELY WRONG....  LSR #32 is odd to begin with.
         emu = vw.getEmulator()
+        emu._forrealz = True
         op = vw.arch.archParseOpcode('22209ae7'.decode('hex'), va=0xbfb00000)
         emu.setRegister(10, 0xbfb00008)
         emu.setRegister(2,  8)
@@ -1418,6 +1421,79 @@ class ArmInstructionSet(unittest.TestCase):
 
 
         # testing the ArmRegOffsetOper
+
+        # (131071, 'b2451ae1', 17760, 'ldrh r4, [r10, -r2] ', 0, ())
+        # (131071, 'b2459ae1', 17760, 'ldrh r4, [r10, r2] ', 0, ())
+
+
+        # ldrh r3, [r10], -r2 
+        #b2451ae0 
+        emu = vw.getEmulator()
+        emu._forrealz = True
+
+        op = vw.arch.archParseOpcode('b2351ae0'.decode('hex'), va=0xbfb00000)
+        emu.setRegister(10, 0xbfb00008)
+        emu.setRegister(2,  8)
+        emu.writeMemory(0xbfb00000, "abcdef98".decode('hex'))
+        emu.writeMemory(0xbfb00008, "12345678".decode('hex'))
+        print repr(op)
+        print hex(op.getOperValue(1, emu))
+
+        self.assertEqual(hex(0x3412), hex(op.getOperValue(1, emu)))
+        self.assertEqual(hex(0xbfb00000), hex(emu.getRegister(10)))
+        self.assertEqual(hex(8), hex(emu.getRegister(2)))
+
+
+
+        # ldr r3, [r10], r2 
+        # (131071, 'b2359ae0', 17760, 'ldrh r4, [r10], r2 ', 0, ())
+        emu.setRegister(10, 0xbfb00008)
+        emu.setRegister(2,  8)
+        emu.writeMemory(0xbfb00008, "ABCDEF10".decode('hex'))
+        op = vw.arch.archParseOpcode('b2359ae0'.decode('hex'), va=0xbfb00000)
+        value = op.getOperValue(1, emu)
+        print repr(op)
+        print hex(value)
+        print hex(emu.getRegister(10))
+
+        self.assertEqual(hex(0xbfb00010), hex(emu.getRegister(10)))
+        self.assertEqual(hex(0xcdab), hex(value))
+
+        
+        
+        # ldr r2, [r10, -r2 ]!
+        # (131071, 'b2453ae1', 17760, 'ldrh r4, [r10, -r2]! ', 0, ())
+        emu.writeMemory(0xbfb00018, "FFEEDDCC".decode('hex'))
+        emu.writeMemory(0xbfb00010, "55555555".decode('hex'))
+        emu.writeMemValue(0xbfb00008, 0xf030e040, 4)
+        emu.setRegister(10, 0xbfb00010)
+        emu.setRegister(2,  8)
+        op = vw.arch.archParseOpcode('b2453ae1'.decode('hex'), va=0xbfb00000)
+        value = op.getOperValue(1, emu)
+        print repr(op)
+        print hex(value)
+        print hex(emu.getRegister(10))
+
+        self.assertEqual(hex(0xe040), hex(value))
+        self.assertEqual(hex(0xbfb00008), hex(emu.getRegister(10)))
+
+
+        
+        # ldr r2, [r10, r2 ]!
+        # (131071, 'b245bae1', 17760, 'ldrh r4, [r10, r2]! ', 0, ())
+        emu.writeMemory(0xbfb00018, "FFEEDDCC".decode('hex'))
+        emu.writeMemory(0xbfb00010, "55555555".decode('hex'))
+        emu.setRegister(10, 0xbfb00010)
+        emu.setRegister(2,  8)
+        op = vw.arch.archParseOpcode('b245bae1'.decode('hex'), va=0xbfb00000)
+        value = op.getOperValue(1, emu)
+        print repr(op)
+        print hex(value)
+        print hex(emu.getRegister(10))
+
+        self.assertEqual(hex(0xeeff), hex(value))
+        self.assertEqual(hex(0xbfb00018), hex(emu.getRegister(10)))
+
         
 
 
@@ -1430,6 +1506,7 @@ class ArmInstructionSet(unittest.TestCase):
         vw.addMemoryMap(0, 7, 'firmware', '\xff' * 16384*1024)
         vw.addMemoryMap(0x400000, 7, 'firmware', '\xff' * 16384*1024)
         emu = vw.getEmulator()
+        emu._forrealz = True
         emu.logread = emu.logwrite = True
         badcount = 0  # Note: doesn't really do anything since we error out right away
         goodcount = 0
