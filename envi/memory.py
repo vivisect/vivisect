@@ -298,8 +298,29 @@ class IMemory:
 
         Example: op = m.parseOpcode(0x7c773803)
         '''
-        b = self.readMemory(va, 16)
+        ret = self.getMemoryMap(va)
+        if ret is None:
+            # trying to parse an opcode from unmapped memory,
+            #  we're gonna have a bad time.
+            #  but, .readMemory() will handle the tainting.
+            insnsize = 16
+        else:
+            mapva,mapsize,mapperms,mapfilename = self.getMemoryMap(va)
+            if va + 16 > mapva + mapsize:
+                # we're at the end of a section,
+                #  but must not read beyond end of it, or everything gets taint data.
+                # read at *most* up to the end of the section.
+                # worst case, we won't have enough bytes from which to parse
+                #  the instruction.
+                insnsize = (mapva + mapsize) - va
+            else:
+                # if we're early in a section, assume an instruction is
+                #  at most 16 bytes long.
+                insnsize = 16
+
+        b = self.readMemory(va, insnsize)
         return self.imem_archs[ arch >> 16 ].archParseOpcode(b, 0, va)
+
 
 class MemoryCache(IMemory):
     '''
