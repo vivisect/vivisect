@@ -16,6 +16,7 @@ from vivisect.const import *
 def analyzeFunction(vw, funcva):
     blocks = {}
     done = {}
+    mnem = {}
     todo = [ funcva, ]
     brefs = []
     size = 0
@@ -69,6 +70,14 @@ def analyzeFunction(vw, funcva):
                 blocks[start] = va - start                     
                 brefs.append( (va, False) )
                 break
+
+            # If it's an opcode, update the mnemonic distribution dict
+            if ltype == LOC_OP:
+                op = vw.parseOpcode(va)
+                if mnem.has_key(op.mnem):
+                    mnem[op.mnem] += 1
+                else:
+                    mnem[op.mnem] = 1				
 
             size += lsize
             opcount += 1
@@ -127,4 +136,4 @@ def analyzeFunction(vw, funcva):
     vw.setFunctionMeta(funcva, 'Size', size)
     vw.setFunctionMeta(funcva, 'BlockCount', bcnt)
     vw.setFunctionMeta(funcva, "InstructionCount", opcount)
-
+    vw.setFunctionMeta(funcva, "MnemDist", mnem)
