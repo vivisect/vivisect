@@ -457,6 +457,11 @@ class i386SibOper(envi.DerefOper):
         if self.index != None:
             ret += (emu.getRegister(self.index) * self.scale)
 
+        if emu.imem_psize == 4:
+            ret &= 0xFFFFFFFF
+        elif emu.imem_psize == 8:
+            ret &= 0xFFFFFFFFFFFFFFFF
+
         # Handle x86 segmentation
         base, size = emu.getSegmentInfo(op)
         ret += base

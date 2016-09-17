@@ -312,6 +312,22 @@ class WIN32_FIND_DATAW(vstruct.VStruct):
         self.cFileName              = v_wstr(MAX_PATH)
         self.cAlternateFileName     = v_wstr(14)
 
+class MIB_TCPROW(vstruct.VStruct):
+    def __init__(self):
+        vstruct.VStruct.__init__(self)
+        self.dwState                = v_uint32()
+        self.dwLocalAddr            = v_uint32()
+        self.dwLocalPort            = v_uint32()
+        self.dwRemoteAddr           = v_uint32()
+        self.dwRemotePort           = v_uint32()
+
+class MIB_UDPROW_OWNER_PID(vstruct.VStruct):
+    def __init__(self):
+        vstruct.VStruct.__init__(self)
+        self.dwLocalAddr            = v_uint32()
+        self.dwLocalPort            = v_uint32()
+        self.dwOwningPid            = v_uint32()
+
 
 DRIVE_TYPE = v_enum()
 DRIVE_TYPE.UNKNOWN              = 0

@@ -750,7 +750,11 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
         return ret
 
-    def isProbablyString(self, va):
+    def detectString(self, va):
+        '''
+        If the address appears to be the start of a string, then
+        return the string length in bytes, else return -1.
+        '''
         plen = 0 # pascal string length
         dlen = 0 # delphi string length
         if self.isReadable(va-4):
@@ -760,57 +764,82 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         maxlen = len(bytes) - offset
         count = 0
         while count < maxlen:
-            # If we hit another thing, then probably not...
-            if self.getLocation(va+count) != None:
-                return False
+            # If we hit another thing, then probably not.
+            # Ignore when count==0 so detection can check something
+            # already set as a location.
+            if (count > 0):
+                loc = self.getLocation(va+count)
+                if loc and loc[L_LTYPE] == LOC_STRING:
+                    return loc[L_VA] - (va + count) + loc[L_SIZE]
+                return -1
             c = bytes[offset+count]
             # The "strings" algo basically says 4 or more...
             if ord(c) == 0 and count >= 4:
-                return True
+                return count
             elif ord(c) == 0 and (count == dlen or count == plen):
-                return True
+                return count
             if c not in string.printable:
-                return False
+                return -1
             count += 1
+        return -1
+
+    def isProbablyString(self, va):
+        if self.detectString(va) > 0 :
+            return True
         return False
 
-    def isProbablyUnicode(self, va):
-        """
+    def detectUnicode(self, va):
+        '''
+        If the address appears to be the start of a unicode string, then
+        return the string length in bytes, else return -1.
+
         This will return true if the memory location is likely
         *simple* UTF16-LE unicode (<ascii><0><ascii><0><0><0>).
-        """
-        #FIXME this totally sucks...
+        '''
+        #FIXME this does not detect Unicode...
 
         offset, bytes = self.getByteDef(va)
         maxlen = len(bytes) + offset
         count = 0
         while count < maxlen:
-            if self.getLocation(va+count) != None:
-                return False
+            # If we hit another thing, then probably not.
+            # Ignore when count==0 so detection can check something
+            # already set as a location.
+            if (count > 0):
+                loc = self.getLocation(va+count)
+                if loc and loc[L_LTYPE] == LOC_UNI:
+                    return loc[L_VA] - (va + count) + loc[L_SIZE]
+                return -1
 
             c0 = bytes[offset+count]
             if offset+count+1 >= len(bytes):
-                return False
+                return -1
             c1 = bytes[offset+count+1]
 
             # If it's not null,char,null,char then it's
             # not simple unicode...
             if ord(c1) != 0:
-                return False
+                return -1
 
             # If we find our null terminator after more
             # than 4 chars, we're probably a real string
             if ord(c0) == 0:
                 if count > 8:
-                    return True
-                return False
+                    return count
+                return -1
 
             # If the first byte char isn't printable, then
             # we're probably not a real "simple" ascii string
             if c0 not in string.printable:
-                return False
+                return -1
 
             count += 2
+        return -1
+
+    def isProbablyUnicode(self, va):
+        if self.detectUnicode(va) > 0 :
+            return True
+        return False
 
     def isProbablyCode(self, va):
         """
@@ -1595,7 +1624,8 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             raise Exception("Invalid Unicode Size: %d" % size)
 
         if self.getName(va) == None:
-            self.makeName(va, "wstr_%.8x" % va)
+            m = self.readMemory(va, size-1).replace("\n","").replace("\0","")
+            self.makeName(va, "wstr_%s_%.8x" % (m[:16],va))
         return self.addLocation(va, size, LOC_UNI)
 
     def addConstModule(self, modname):

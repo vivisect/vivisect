@@ -61,6 +61,8 @@ def addAnalysisModules(vw):
         vw.addAnalysisModule("vivisect.analysis.generic.funcentries")
         vw.addAnalysisModule('vivisect.analysis.ms.msvcfunc')
 
+        vw.addAnalysisModule('vivisect.analysis.generic.strconst')
+
     elif fmt == 'elf': # ELF ########################################################
 
         vw.addAnalysisModule("vivisect.analysis.elf")
