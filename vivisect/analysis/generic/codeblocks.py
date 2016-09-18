@@ -10,13 +10,14 @@ module which should be snapped in *very* early by parsers.
 import sys
 import envi
 import vivisect
+import collections
 
 from vivisect.const import *
 
 def analyzeFunction(vw, funcva):
     blocks = {}
     done = {}
-    mnem = {}
+    mnem = collections.defaultdict(int)
     todo = [ funcva, ]
     brefs = []
     size = 0
@@ -74,10 +75,7 @@ def analyzeFunction(vw, funcva):
             # If it's an opcode, update the mnemonic distribution dict
             if ltype == LOC_OP:
                 op = vw.parseOpcode(va)
-                if mnem.has_key(op.mnem):
-                    mnem[op.mnem] += 1
-                else:
-                    mnem[op.mnem] = 1				
+                mnem[op.mnem] += 1			
 
             size += lsize
             opcount += 1
