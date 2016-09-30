@@ -342,7 +342,7 @@ class cnot(SymbolikBase):
     Mostly used to wrap the reverse of a contraint which is based on
     a variable.
     '''
-    symtype     = SYMT_SEXT
+    symtype     = SYMT_NOT
 
     def __init__(self, v1):
         SymbolikBase.__init__(self)
@@ -359,22 +359,19 @@ class cnot(SymbolikBase):
         return int( not bool( self.kids[0].solve(emu=emu, vals=vals)) )
 
     def update(self, emu):
-        # FIXME dependancy loop...
-        from vivisect.symboliks.constraints import Constraint
         v1 = self.kids[0].update(emu=emu)
-        if isinstance(v1, Constraint):
+        if v1.efftype == EFFTYPE_CONSTRAIN:
             return v1.reverse()
         return cnot(v1)
 
     def _reduce(self, emu=None):
-        # FIXME dependancy loop...
-        from vivisect.symboliks.constraints import Constraint
         #self.kids[0] = self.kids[0].reduce(emu=emu)
 
-        if isinstance( self.kids[0], Constraint):
-            return self.kids[0].reverse()
+        kidzero = self.kids[0]
+        if kidzero.symtype == SYMT_CON:
+            return kidzero.reverse()
 
-        if isinstance( self.kids[0], cnot):
+        if kidzero.efftype == SYMT_NOT:
             return self.kids[0].kids[0]
 
     def getWidth(self):
