@@ -14,7 +14,7 @@ i386_omits = set([
     'ntdll.gs_prolog',
 ])
 
-for normname,(rtype,rname,cconv,cname,cargs) in v_w_i386.api.items():
+for normname,(rtype,rname,cconv,cname,cargs) in list(v_w_i386.api.items()):
     if normname in i386_omits:
         continue
 

@@ -25,7 +25,7 @@ def printEmuState(vw, fva, va):
     dstack = emu.getStackCounter() - stack
 
     regs = emu.getRegisters()
-    rnames = regs.keys()
+    rnames = list(regs.keys())
     rnames.sort()
 
     vw.vprint("Showing Register/Magic State At: 0x%.8x" % va)
@@ -42,7 +42,7 @@ def printEmuState(vw, fva, va):
     vw.canvas.addVaText("0x%.8x: " % va, va)
     op.render(vw.canvas)
     vw.canvas.addText("\n")
-    for i in xrange(len(op.opers)):
+    for i in range(len(op.opers)):
         o = op.opers[i]
         o.render(vw.canvas, op, i)
         vw.canvas.addText(" = ")
@@ -162,7 +162,7 @@ def buildContextMenu(vw, va=None, expr=None, menu=None, parent=None, nav=None):
         archmenu = makemenu.addMenu('code (archs)')
         prevumenu = menu.addMenu('preview instruction')
 
-        archs = [ (archname,archid) for (archid,archname) in envi.arch_names.items() ]
+        archs = [ (archname,archid) for (archid,archname) in list(envi.arch_names.items()) ]
         archs.sort()
         for archname,archid in archs:
             if archname == 'default':

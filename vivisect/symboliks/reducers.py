@@ -85,7 +85,7 @@ def ismatch(sym,tmp):
         raise Exception(str(t))
 
     # replace all consts with their solved values...
-    for k,v in ret.items():
+    for k,v in list(ret.items()):
         if k.startswith('c'):
             ret[k] = v.solve()
 
@@ -122,7 +122,7 @@ def variants(sym):
 
         todo.extend(t.kids)
 
-    for i in xrange(2**len(swaps)):
+    for i in range(2**len(swaps)):
         for t,k in swaps:
             t.kids[0:2] = k[ i & 1 ]
             i >>= 1
@@ -329,7 +329,7 @@ def reduceoper(sym,emu=None):
             #print 'MATCH',str(symtmp)
             ret = reducer(m,emu=emu)
             # do this to much simplify reducers...
-            if type(ret) in (int,long):
+            if type(ret) in (int,int):
                 ret = Const(ret,sym.getWidth())
             return ret
 
@@ -338,10 +338,10 @@ if __name__ == '__main__':
     import sys
     for argv in sys.argv[1:]:
         sym = symexp(argv)
-        print('== %s' % str(sym))
-        print('  repr: %s' % (repr(sym),))
-        print('  solve: 0x%.8x' % (sym.solve()))
+        print(('== %s' % str(sym)))
+        print(('  repr: %s' % (repr(sym),)))
+        print(('  solve: 0x%.8x' % (sym.solve())))
         red = sym.reduce(foo=True)
-        print('  reduc: %s' % (str(red),))
-        print('  red repr: %s' % (repr(red),))
-        print('  red solve: 0x%.8x' % (red.solve()))
+        print(('  reduc: %s' % (str(red),)))
+        print(('  red repr: %s' % (repr(red),)))
+        print(('  red solve: 0x%.8x' % (red.solve())))

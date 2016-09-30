@@ -164,8 +164,8 @@ def main():
     font = QtGui.QFont('Courier')#'Consolas', 10)#'Courier New', 10)
     dlg.hex_edit.setFont(font)
     if dlg.exec_() == QtGui.QDialog.Accepted:
-        print(dlg.pattern)
-        print(dlg.filename)
+        print((dlg.pattern))
+        print((dlg.filename))
 
 if __name__ == '__main__':
     main()

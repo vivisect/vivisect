@@ -29,7 +29,7 @@ def emuFromTrace(trace):
             bytez = trace.readMemory(va, size)
             emu.addMemoryMap(va, perms, fname, bytez)
         except vtrace.PlatformException:
-            print('failed to map: 0x{:x} into emu'.format(va, size))
+            print(('failed to map: 0x{:x} into emu'.format(va, size)))
             continue
 
     rsnap = trace.getRegisterContext().getRegisterSnap()
@@ -42,20 +42,20 @@ def emuFromTrace(trace):
 
 def lockStepEmulator(emu, trace):
     while True:
-        print "Lockstep: 0x%.8x" % emu.getProgramCounter()
+        print("Lockstep: 0x%.8x" % emu.getProgramCounter())
         try:
             pc = emu.getProgramCounter()
             op = emu.parseOpcode(pc)
             trace.stepi()
             emu.stepi()
             cmpRegs(emu, trace)
-        except RegisterException, msg:
-            print "Lockstep Error: %s: %s" % (repr(op),msg)
+        except RegisterException as msg:
+            print("Lockstep Error: %s: %s" % (repr(op),msg))
             setRegs(emu, trace)
             sys.stdin.readline()
-        except Exception, msg:
+        except Exception as msg:
             traceback.print_exc()
-            print "Lockstep Error: %s" % msg
+            print("Lockstep Error: %s" % msg)
             return
 
 import vtrace

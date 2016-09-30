@@ -28,10 +28,10 @@ class TraceManager:
         else:
             trace.registerNotifier(vtrace.NOTIFY_ALL, self.dnotif)
 
-        for name,val in self.modes.items():
+        for name,val in list(self.modes.items()):
             trace.setMode(name, val)
 
-        for name,val in self.metadata.items():
+        for name,val in list(self.metadata.items()):
             trace.setMeta(name, val)
 
     def unManageTrace(self, trace):

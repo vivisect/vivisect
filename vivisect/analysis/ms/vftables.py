@@ -37,5 +37,5 @@ def analyze(vw):
             va += psize
 
         if count >= 4:
-            print "VFTABLE? 0x%.8x" % ptrva
+            print("VFTABLE? 0x%.8x" % ptrva)
 

@@ -1,4 +1,3 @@
-
 """
 The vivisect.parsers package contains all the known file format parsers
 for vivisect.  Each parser module must implement the following functions:
@@ -11,25 +10,28 @@ for vivisect.  Each parser module must implement the following functions:
 """
 # Some parser utilities
 
-import md5
 import sys
 import struct
+from hashlib import md5
 
 import vstruct.defs.macho as vs_macho
 
-def md5File(filename):
+
+def md5File(filename: str):
     d = md5.md5()
-    f = file(filename,"rb")
-    bytes = f.read(4096)
-    while len(bytes):
-        d.update(bytes)
+    with open(filename, "rb") as f:
         bytes = f.read(4096)
+        while len(bytes):
+            d.update(bytes)
+            bytes = f.read(4096)
     return d.hexdigest()
+
 
 def md5Bytes(bytes):
     d = md5.md5()
     d.update(bytes)
     return d.hexdigest()
+
 
 macho_magics = (
     vs_macho.MH_MAGIC,
@@ -39,6 +41,7 @@ macho_magics = (
     vs_macho.FAT_MAGIC,
     vs_macho.FAT_CIGAM,
 )
+
 
 def guessFormat(bytes):
     if bytes.startswith('VIV'):
@@ -62,9 +65,11 @@ def guessFormat(bytes):
 
     return 'blob'
 
+
 def guessFormatFilename(filename):
     bytez = file(filename, "rb").read(32)
     return guessFormat(bytez)
+
 
 def getParserModule(fmt):
     mname = "vivisect.parsers.%s" % fmt
@@ -73,4 +78,3 @@ def getParserModule(fmt):
         __import__(mname)
         mod = sys.modules[mname]
     return mod
-

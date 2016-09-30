@@ -42,7 +42,7 @@ class watcher(viv_imp_monitor.EmulationMonitor):
             return False
 
         # if there is 1 mnem that makes up over 50% of all instructions then flag it as invalid
-        for mnem, count in self.mndist.items():
+        for mnem, count in list(self.mndist.items()):
             if round(float( float(count) / float(self.insn_count)), 3) >= .67:
                 return False
 
@@ -57,7 +57,7 @@ class watcher(viv_imp_monitor.EmulationMonitor):
         if not (op.iflags & envi.IF_RET) and not (op.iflags & envi.IF_BRANCH) and not (op.iflags & envi.IF_CALL):
             return False
 
-        for mnem, count in self.mndist.items():
+        for mnem, count in list(self.mndist.items()):
             # XXX - CONFIG OPTION
             if round(float( float(count) / float(self.insn_count)), 3) >= .60:
                 return False
@@ -136,7 +136,7 @@ def analyze(vw):
             emu.setEmulationMonitor(wat)
             try:
                 emu.runFunction(va, maxhit=1)
-            except Exception, e:
+            except Exception as e:
                 continue
             if wat.looksgood():
                 docode.append(va)

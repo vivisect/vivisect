@@ -28,7 +28,7 @@ def deAslr(trace, va):
     if sym == None:
         return va
 
-    membase = long(sym)
+    membase = int(sym)
 
     pe = PE.peFromFileName(mapfname)
     filebase = pe.IMAGE_NT_HEADERS.OptionalHeader.ImageBase

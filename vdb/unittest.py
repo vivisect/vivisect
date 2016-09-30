@@ -73,12 +73,12 @@ def runTests(tests):
             test.runTest()
             stage = 'clean'
             test.cleanTest()
-            print('Test Success: %s' % test.__class__.__name__)
-        except vdb.testmods.SkipTest, e:
-            print('Test Skipped: %s (in %s) %s' % (testname, stage, e))
-        except Exception, e:
+            print(('Test Success: %s' % test.__class__.__name__))
+        except vdb.testmods.SkipTest as e:
+            print(('Test Skipped: %s (in %s) %s' % (testname, stage, e)))
+        except Exception as e:
             traceback.print_exc()
-            print('Test Failure: %s (in %s) %s' % (testname, stage, e))
+            print(('Test Failure: %s (in %s) %s' % (testname, stage, e)))
 
 def main():
 

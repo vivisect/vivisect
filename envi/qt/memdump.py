@@ -68,8 +68,8 @@ def main():
     app = QtGui.QApplication([])
     dlg = MemDumpDialog(0x1234, '5678', 0x9ab)
     if dlg.exec_() == QtGui.QDialog.Accepted:
-        print(dlg.filename)
-        print(dlg.size)
+        print((dlg.filename))
+        print((dlg.size))
 
 if __name__ == '__main__':
     main()

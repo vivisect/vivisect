@@ -6,15 +6,15 @@ import pprint
 import signal
 import threading
 import traceback
-from Queue import Queue
+from queue import Queue
 from collections import defaultdict
 
-from ConfigParser import *
+from configparser import *
 
 from cmd import *
 from struct import *
 from getopt import getopt
-from UserDict import *
+from collections import UserDict
 
 import vtrace
 import vtrace.util as v_util
@@ -38,21 +38,24 @@ import vstruct.primitives as vs_prims
 
 vdb.basepath = vdb.__path__[0] + '/'
 
+
 class VdbLookup(UserDict):
     '''
     Used for lookups by key or value.
     '''
+
     def __init__(self, initdict=None):
         UserDict.__init__(self)
         if initdict == None:
             return
 
-        for key, val in initdict.items():
+        for key, val in list(initdict.items()):
             self.__setitem__(self, key, val)
 
     def __setitem__(self, key, item):
         UserDict.__setitem__(self, key, item)
         UserDict.__setitem__(self, item, key)
+
 
 class ScriptThread(threading.Thread):
     def __init__(self, cobj, locals):
@@ -64,9 +67,10 @@ class ScriptThread(threading.Thread):
     def run(self):
         try:
             exec(self.cobj, self.locals)
-        except Exception, e:
+        except Exception as e:
             traceback.print_exc()
-            print('Script Error: %s' % repr(e))
+            print(('Script Error: %s' % repr(e)))
+
 
 def setupBreakOnEntry(trace):
     '''
@@ -82,11 +86,13 @@ def setupBreakOnEntry(trace):
             otb = vtrace.OneTimeBreak(None, expression=entrySymExpr)
             trace.addBreakpoint(otb)
 
+
 class VdbTrace:
     """
     Used to hand thing that need a persistant reference to a trace
     when using vdb to manage tracers.
     """
+
     def __init__(self, db):
         self.db = db
 
@@ -102,10 +108,10 @@ class VdbTrace:
     def deregisterNotifier(self, event, notif):
         self.db.deregisterNotifier(event, notif)
 
-    #FIXME should we add modes to this?
+    # FIXME should we add modes to this?
 
     def selectThread(self, threadid):
-        #FIXME perhaps a thread selected LOCAL event?
+        # FIXME perhaps a thread selected LOCAL event?
         trace = self.db.getTrace()
         trace.selectThread(threadid)
         self.db.fireLocalNotifiers(vtrace.NOTIFY_BREAK, trace)
@@ -113,38 +119,40 @@ class VdbTrace:
     def __getattr__(self, name):
         return getattr(self.db.getTrace(), name)
 
+
 defconfig = {
 
-    'vdb':{
-        'BreakOnEntry':False,
-        'BreakOnMain':False,
+    'vdb': {
+        'BreakOnEntry': False,
+        'BreakOnMain': False,
 
-        'SymbolCacheActive':True,
-        'SymbolCachePath':e_config.gethomedir('.envi','symcache'),
+        'SymbolCacheActive': True,
+        'SymbolCachePath': e_config.gethomedir('.envi', 'symcache'),
 
         'KillOnQuit': False,
     },
 
-    'cli':{
-        'verbose':False,
+    'cli': {
+        'verbose': False,
         'aliases': {
-            '<f1>':'stepi',
-            '<f2>':'go -I 1',
-            '<f5>':'go',
+            '<f1>': 'stepi',
+            '<f2>': 'go -I 1',
+            '<f5>': 'go',
         }
     },
 
 }
 
 docconfig = {
-    'vdb':{
-        'BreakOnMain':'Should the debugger break on main() if known?',
-        'BreakOnEntry':'Should the debugger break on the entry to the main module? (only works if you exec (and not attach to) the process)',
+    'vdb': {
+        'BreakOnMain': 'Should the debugger break on main() if known?',
+        'BreakOnEntry': 'Should the debugger break on the entry to the main module? (only works if you exec (and not attach to) the process)',
 
-        'SymbolCacheActive':'Should we cache symbols for subsequent loads?',
-        'SymbolCachePaths':'Path elements ( ; seperated) to search/cache symbols (filepath,cobra)',
+        'SymbolCacheActive': 'Should we cache symbols for subsequent loads?',
+        'SymbolCachePaths': 'Path elements ( ; seperated) to search/cache symbols (filepath,cobra)',
     }
 }
+
 
 class WrapExcThread(threading.Thread):
     '''
@@ -152,6 +160,7 @@ class WrapExcThread(threading.Thread):
     be checked by the caller.
     If the method calls exit(), then nothing will be in the queue.
     '''
+
     def __init__(self, target=None, args=tuple(), kwargs={}):
         threading.Thread.__init__(self)
         self.queue = Queue()
@@ -166,6 +175,7 @@ class WrapExcThread(threading.Thread):
         except Exception as e:
             tb = traceback.format_exc()
             self.queue.put((e, tb))
+
 
 class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
     '''
@@ -194,7 +204,7 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
         self.server = None
         self.autoscript = None
 
-        self.runagain = False           # A one-time thing for the cli
+        self.runagain = False  # A one-time thing for the cli
         self.windows_jit_event = None
 
         # We hang on to an opcode renderer instance
@@ -209,7 +219,7 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
         self.registerNotifier(vtrace.NOTIFY_ALL, self)
 
         # FIXME if config verbose
-        #self.registerNotifier(vtrace.NOTIFY_ALL, vtrace.VerboseNotifier())
+        # self.registerNotifier(vtrace.NOTIFY_ALL, vtrace.VerboseNotifier())
 
         self.vdbhome = e_config.gethomedir('.vdb')
 
@@ -273,12 +283,12 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
         self.canvas.addRenderer('Symbols View', srend)
 
         for arch in envi.getArchModules():
-            if arch == None: # The "empty" default...
+            if arch == None:  # The "empty" default...
                 continue
             archid = arch.getArchId()
             archname = arch.getArchName()
 
-            archrend = v_rend.OpcodeRenderer( self.trace, arch=archid)
+            archrend = v_rend.OpcodeRenderer(self.trace, arch=archid)
             self.canvas.addRenderer('asm - %s' % archname, archrend)
 
     def verror(self, msg, addnl=True):
@@ -349,7 +359,7 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
         """
         If given an int, return the name, for a name, return the int ;)
         """
-        return self.siglookup.get(sig,None)
+        return self.siglookup.get(sig, None)
 
     def parseExpression(self, exprstr):
         return self.trace.parseExpression(exprstr)
@@ -372,10 +382,10 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
         # Do we have a symbol?
         sym = self.trace.getSymByAddr(address, exact=False)
         if sym != None:
-            return "%s + %d" % (repr(sym),address-long(sym))
+            return "%s + %d" % (repr(sym), address - int(sym))
 
         # Check if it's a thread's stack
-        for tid,tinfo in self.trace.getThreads().items():
+        for tid, tinfo in list(self.trace.getThreads().items()):
             ctx = self.trace.getRegisterContext(tid)
             sp = ctx.getStackCounter()
 
@@ -383,14 +393,14 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
             if not smap:
                 continue
 
-            stack,size,perms,fname = smap
-            if address >= stack and address < (stack+size):
+            stack, size, perms, fname = smap
+            if address >= stack and address < (stack + size):
                 off = address - sp
                 op = "+"
                 if off < 0:
                     op = "-"
                 off = abs(off)
-                return "tid:%d sp%s%s (stack)" % (tid,op,off)
+                return "tid:%d sp%s%s (stack)" % (tid, op, off)
 
         map = self.trace.getMemoryMap(address)
         if map:
@@ -421,7 +431,7 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
 
             # only respect BreakOnEntry if we exec'd something
             if self.config.vdb.BreakOnEntry and trace.hasMeta('ExecCommand'):
-                self.runagain = True # skip initial break
+                self.runagain = True  # skip initial break
 
             if self.autoscript:
                 self.do_script(self.autoscript)
@@ -440,7 +450,7 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
 
             self.vprint("Process Recieved Signal %d (0x%.8x) (Thread: %d (0x%.8x))" % (signo, signo, thr, thr))
 
-            faddr,fperm = trace.getMemoryFault()
+            faddr, fperm = trace.getMemoryFault()
             if faddr != None:
                 accstr = e_mem.getPermName(fperm)
                 self.vprint('Memory Fault: addr: 0x%.8x perm: %s' % (faddr, accstr))
@@ -457,7 +467,7 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
             else:
                 self.vprint("Thread: %d NOTIFY_BREAK" % tid)
 
-                if self.runagain: # One-time run-again behavior (for cli option)
+                if self.runagain:  # One-time run-again behavior (for cli option)
                     if self.config.vdb.BreakOnEntry:
                         setupBreakOnEntry(trace)
 
@@ -466,10 +476,10 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
 
         elif event == vtrace.NOTIFY_EXIT:
             ecode = trace.getMeta('ExitCode')
-            self.vprint("PID %d exited: %d (0x%.8x)" % (pid,ecode,ecode))
+            self.vprint("PID %d exited: %d (0x%.8x)" % (pid, ecode, ecode))
 
         elif event == vtrace.NOTIFY_LOAD_LIBRARY:
-            self.vprint("Loading Binary: %s" % trace.getMeta("LatestLibrary",None))
+            self.vprint("Loading Binary: %s" % trace.getMeta("LatestLibrary", None))
             if self.waitlib != None:
                 normname = trace.getMeta('LatestLibraryNorm', None)
                 if self.waitlib == normname:
@@ -477,14 +487,14 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
                     trace.runAgain(False)
 
         elif event == vtrace.NOTIFY_UNLOAD_LIBRARY:
-            self.vprint("Unloading Binary: %s" % trace.getMeta("LatestLibrary",None))
+            self.vprint("Unloading Binary: %s" % trace.getMeta("LatestLibrary", None))
 
         elif event == vtrace.NOTIFY_CREATE_THREAD:
             self.vprint("New Thread: %d" % tid)
 
         elif event == vtrace.NOTIFY_EXIT_THREAD:
             ecode = trace.getMeta("ExitCode", 0)
-            self.vprint("Exit Thread: %d (ecode: 0x%.8x (%d))" % (tid,ecode,ecode))
+            self.vprint("Exit Thread: %d (ecode: 0x%.8x (%d))" % (tid, ecode, ecode))
 
         elif event == vtrace.NOTIFY_DEBUG_PRINT:
             s = "<unknown>"
@@ -495,7 +505,7 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
 
         else:
             pass
-            #self.vprint('unhandled event: %d' % event)
+            # self.vprint('unhandled event: %d' % event)
 
     ###################################################################
     #
@@ -515,14 +525,14 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
 
         try:
             argv = e_cli.splitargs(args)
-            opts,args = getopt(argv, "XU")
+            opts, args = getopt(argv, "XU")
         except:
             return self.do_help("writemem")
 
         if len(args) != 2:
             return self.do_help("writemem")
 
-        for opt,optarg in opts:
+        for opt, optarg in opts:
             if opt == "-X":
                 dohex = True
             elif opt == "-U":
@@ -534,7 +544,7 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
 
         addr = self.parseExpression(exprstr)
         self.memobj.writeMemory(addr, memstr)
-        self.vdbUIEvent('vdb:writemem', (addr,memstr))
+        self.vdbUIEvent('vdb:writemem', (addr, memstr))
 
     def do_vstruct(self, line):
         """
@@ -605,25 +615,25 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
         if not vars:
             self.vprint("None.")
         else:
-            vnames = vars.keys()
+            vnames = list(vars.keys())
             vnames.sort()
             for n in vnames:
                 val = vars.get(n)
-                if type(val) in (int, long):
-                    self.vprint("%20s = 0x%.8x" % (n,val))
+                if type(val) in (int, int):
+                    self.vprint("%20s = 0x%.8x" % (n, val))
                 else:
                     rstr = repr(val)
                     if len(rstr) > 30:
                         rstr = rstr[:30] + '...'
-                    self.vprint("%20s = %s" % (n,rstr))
+                    self.vprint("%20s = %s" % (n, rstr))
 
     def do_alloc(self, args):
-        #"""
-        #Allocate a chunk of memory in the target process.  You may
-        #optionally specify permissions and a suggested base address.
+        # """
+        # Allocate a chunk of memory in the target process.  You may
+        # optionally specify permissions and a suggested base address.
 
-        #Usage: alloc [-p rwx] [-s <base>] <size>
-        #"""
+        # Usage: alloc [-p rwx] [-s <base>] <size>
+        # """
         """
         Allocate a chunk of memory in the target process.  It will be
         allocated with rwx permissions.
@@ -633,12 +643,12 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
         if len(args) == 0:
             return self.do_help("alloc")
         t = self.trace
-        #argv = e_cli.splitargs(args)
+        # argv = e_cli.splitargs(args)
         try:
             size = t.parseExpression(args)
             base = t.allocateMemory(size)
             self.vprint("Allocated %d bytes at: 0x%.8x" % (size, base))
-        except Exception, e:
+        except Exception as e:
             traceback.print_exc()
             self.vprint("Allocation Error: %s" % e)
 
@@ -768,14 +778,14 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
         """
         argv = e_cli.splitargs(args)
         try:
-            opts,args = getopt(argv, 'Ccd')
-        except Exception, e:
+            opts, args = getopt(argv, 'Ccd')
+        except Exception as e:
             return self.do_help('ignore')
 
         remove = False
         sigs = []
 
-        for opt,optarg in opts:
+        for opt, optarg in opts:
             if opt == '-c':
                 sig = self.trace.getCurrentSignal()
                 if sig == None:
@@ -833,7 +843,7 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
         self.vprint("[thrid] [thrinfo]  [pc]")
 
         curtid = self.trace.getMeta("ThreadId")
-        for tid, tinfo in self.trace.getThreads().items():
+        for tid, tinfo in list(self.trace.getThreads().items()):
             a = " "
             if tid == curtid:
                 a = "*"
@@ -853,14 +863,14 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
         """
         argv = e_cli.splitargs(line)
         try:
-            opts,args = getopt(argv, "A")
-        except Exception, e:
+            opts, args = getopt(argv, "A")
+        except Exception as e:
             return self.do_help("suspend")
 
-        for opt,optarg in opts:
+        for opt, optarg in opts:
             if opt == "-A":
                 # hehe...
-                args = [str(tid) for tid in self.trace.getThreads().keys()]
+                args = [str(tid) for tid in list(self.trace.getThreads().keys())]
 
         if not len(args):
             return self.do_help("suspend")
@@ -904,14 +914,14 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
         """
         argv = e_cli.splitargs(line)
         try:
-            opts,args = getopt(argv, "A")
-        except Exception, e:
+            opts, args = getopt(argv, "A")
+        except Exception as e:
             return self.do_help("suspend")
 
-        for opt,optarg in opts:
+        for opt, optarg in opts:
             if opt == "-A":
                 # hehe...
-                args = [str(tid) for tid in self.trace.getThreads().keys()]
+                args = [str(tid) for tid in list(self.trace.getThreads().keys())]
 
         if not len(args):
             return self.do_help("resume")
@@ -921,7 +931,7 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
             self.trace.resumeThread(tid)
             self.vprint("Resumed Thread: %d" % tid)
 
-    #def do_inject(self, line):
+    # def do_inject(self, line):
 
     def do_mode(self, args):
         """
@@ -929,12 +939,12 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
         mode Foo=True/False
         """
         if args:
-            mode,val = args.split("=")
+            mode, val = args.split("=")
             newmode = eval(val)
             self.setMode(mode, newmode)
         else:
-            for key,val in self.trace.modes.items():
-                self.vprint("%s -> %d" % (key,val))
+            for key, val in list(self.trace.modes.items()):
+                self.vprint("%s -> %d" % (key, val))
 
     def do_reg(self, args):
         """
@@ -948,7 +958,7 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
             if args.find("=") == -1:
                 return self.do_help("reg")
 
-            regname,expr = args.split("=", 1)
+            regname, expr = args.split("=", 1)
             val = self.trace.parseExpression(expr)
             self.trace.setRegisterByName(regname, val)
             self.vprint("%s = 0x%.8x" % (regname, val))
@@ -956,7 +966,7 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
             return
 
         regs = self.trace.getRegisters()
-        rnames = regs.keys()
+        rnames = list(regs.keys())
         rnames.sort()
         final = []
         for r in rnames:
@@ -966,7 +976,7 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
                 continue
             val = regs.get(r)
             vstr = e_bits.hex(val, 4)
-            final.append(("%12s:0x%.8x (%d)" % (r,val,val)))
+            final.append(("%12s:0x%.8x (%d)" % (r, val, val)))
         self.columnize(final)
 
     def complete_reg(self, text, line, bigidx, endidx):
@@ -974,14 +984,14 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
         if '=' in line:
             return []
 
-        regs = self.trace.getRegisters().keys()
+        regs = list(self.trace.getRegisters().keys())
         if not text:
             return regs
 
         if text in regs:
-            return [ text + '=' ]
+            return [text + '=']
 
-        return [ i for i in regs if i.startswith(text) ]
+        return [i for i in regs if i.startswith(text)]
 
     def do_stepi(self, line):
         """
@@ -999,8 +1009,8 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
         t = self.trace
         argv = e_cli.splitargs(line)
         try:
-            opts,args = getopt(argv, "A:BC:RVUQ")
-        except Exception, e:
+            opts, args = getopt(argv, "A:BC:RVUQ")
+        except Exception as e:
             return self.do_help("stepi")
 
         until = None
@@ -1034,11 +1044,11 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
             elif opt == '-Q':
                 quiet = True
 
-        if ( count == None 
-             and taddr == None
-             and until == None
-             and toret == False 
-             and tobrn == False):
+        if (count == None
+            and taddr == None
+            and until == None
+            and toret == False
+            and tobrn == False):
             count = 1
 
         oldmode = self.getMode('FastStep')
@@ -1063,7 +1073,7 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
                     self.canvas.addText(':\n')
 
                 if not quiet:
-                    self.canvas.addText('  ' * max(depth,0))
+                    self.canvas.addText('  ' * max(depth, 0))
                     self.canvas.addVaText('0x%.8x' % pc, pc)
                     self.canvas.addText(':  ')
                     op.render(self.canvas)
@@ -1075,7 +1085,7 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
                         try:
                             val = oper.getOperValue(op, emu=t)
                             self.canvas.addText('0x%.8x ' % val)
-                        except Exception, e:
+                        except Exception as e:
                             self.canvas.addText(str(e))
 
                 if not quiet:
@@ -1123,7 +1133,6 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
                             break
                     if getout:
                         break
-
 
                 if count != None and hits >= count:
                     break
@@ -1253,7 +1262,7 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
 
         if icount != None:
             addr = self.trace.getProgramCounter()
-            for i in xrange(icount):
+            for i in range(icount):
                 addr += len(self.trace.parseOpcode(addr))
 
             until = addr
@@ -1302,7 +1311,7 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
 
         argv = e_cli.splitargs(line)
         try:
-            opts,args = getopt(argv, "D")
+            opts, args = getopt(argv, "D")
         except:
             return self.do_help("waitlib")
 
@@ -1341,7 +1350,7 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
             return
 
         self.vprint('Displaying remotely debugged traces:')
-        shared = [ t for (n,t) in self.server.getSharedObjects() if isinstance(t, vtrace.Trace) ]
+        shared = [t for (n, t) in self.server.getSharedObjects() if isinstance(t, vtrace.Trace)]
         if not shared:
             self.vprint('None.')
             return
@@ -1470,7 +1479,7 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
 
             self.trace.release()
 
-        except Exception, e:
+        except Exception as e:
             self.vprint('Exception during quit (may need: quit force): %s' % e)
 
     def do_detach(self, line):
@@ -1510,7 +1519,7 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
         pid = None
         try:
             pid = int(args)
-        except ValueError, e:
+        except ValueError as e:
 
             for mypid, pname in self.trace.ps():
                 if pname.find(args) != -1:
@@ -1524,14 +1533,14 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
 
     def complete_attach(self, text, line, begidx, endidx):
         procs = self.trace.ps()
-        pidlist = [ str(x) for x,y in procs ]
-        proclist = [ y for x,y in procs ]
+        pidlist = [str(x) for x, y in procs]
+        proclist = [y for x, y in procs]
         if not text:
             return proclist
         if text.isdigit():
-            return [ i for i in pidlist if i.startswith(text) ]
+            return [i for i in pidlist if i.startswith(text)]
 
-        return [ i for i in proclist if i.find(text) != -1 ]
+        return [i for i in proclist if i.find(text) != -1]
 
     def do_autocont(self, line):
         """
@@ -1551,21 +1560,21 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
                    "exitthread",
                    "dbgprint"]
 
-        acvals = [ vtrace.NOTIFY_ATTACH,
-                   vtrace.NOTIFY_SIGNAL,
-                   vtrace.NOTIFY_BREAK,
-                   vtrace.NOTIFY_LOAD_LIBRARY,
-                   vtrace.NOTIFY_UNLOAD_LIBRARY,
-                   vtrace.NOTIFY_CREATE_THREAD,
-                   vtrace.NOTIFY_EXIT_THREAD,
-                   vtrace.NOTIFY_DEBUG_PRINT]
+        acvals = [vtrace.NOTIFY_ATTACH,
+                  vtrace.NOTIFY_SIGNAL,
+                  vtrace.NOTIFY_BREAK,
+                  vtrace.NOTIFY_LOAD_LIBRARY,
+                  vtrace.NOTIFY_UNLOAD_LIBRARY,
+                  vtrace.NOTIFY_CREATE_THREAD,
+                  vtrace.NOTIFY_EXIT_THREAD,
+                  vtrace.NOTIFY_DEBUG_PRINT]
 
         c = self.trace.getAutoContinueList()
 
         if len(line):
             try:
                 index = acnames.index(line)
-            except ValueError, e:
+            except ValueError as e:
                 self.vprint("Unknown event name: %s" % line)
                 return
             sig = acvals[index]
@@ -1583,7 +1592,7 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
             acont = False
             if sig in c:
                 acont = True
-            self.vprint("%s %s" % (name.rjust(14),repr(acont)))
+            self.vprint("%s %s" % (name.rjust(14), repr(acont)))
 
         self.vdbUIEvent('vdb:setautocont')
 
@@ -1595,8 +1604,8 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
         """
         self.vprint("      [   PC   ] [ Frame  ] [ Location ]")
         idx = 0
-        for pc,frame in self.trace.getStackTrace():
-            self.vprint("[%3d] 0x%.8x 0x%.8x %s" % (idx,pc,frame,self.reprPointer(pc)))
+        for pc, frame in self.trace.getStackTrace():
+            self.vprint("[%3d] 0x%.8x 0x%.8x %s" % (idx, pc, frame, self.reprPointer(pc)))
             idx += 1
 
     def do_lm(self, args):
@@ -1676,7 +1685,7 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
             self.trace.setBreakpointCode(bpid, argv[1])
 
         pystr = self.trace.getBreakpointCode(bpid)
-        self.vprint("[%d] Breakpoint code: %s" % (bpid,pystr))
+        self.vprint("[%d] Breakpoint code: %s" % (bpid, pystr))
 
     def do_bp(self, line):
         """
@@ -1710,8 +1719,8 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
 
         argv = e_cli.splitargs(line)
         try:
-            opts,args = getopt(argv, "fF:e:d:o:r:L:Cc:S:W:")
-        except Exception, e:
+            opts, args = getopt(argv, "fF:e:d:o:r:L:Cc:S:W:")
+        except Exception as e:
             return self.do_help('bp')
 
         pycode = None
@@ -1719,13 +1728,13 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
         fastbreak = False
         libsearch = None
 
-        for opt,optarg in opts:
+        for opt, optarg in opts:
             if opt == "-e":
                 self.trace.setBreakpointEnabled(eval(optarg), True)
 
             elif opt == "-c":
                 pycode = optarg
-                test = compile(pycode, "test","exec")
+                test = compile(pycode, "test", "exec")
 
             elif opt == "-F":
                 pycode = file(optarg, "rU").read()
@@ -1761,7 +1770,7 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
                         bpid = self.trace.addBreakpoint(bp)
                         self.vdbUIEvent('vdb:addbreak', bpid)
                         self.vprint("Added: %s" % str(sym))
-                    except Exception, msg:
+                    except Exception as msg:
                         self.vprint("WARNING: %s" % str(msg))
 
             elif opt == "-W":
@@ -1774,7 +1783,7 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
                     for sym in self.trace.searchSymbols(regex, libname=libname):
 
                         symstr = str(sym)
-                        symval = long(sym)
+                        symval = int(sym)
                         if self.trace.getBreakpointByAddr(symval) != None:
                             self.vprint('Duplicate (0x%.8x) %s' % (symval, symstr))
                             continue
@@ -1782,7 +1791,7 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
                         self.trace.addBreakpoint(bp)
                         self.vprint('Added: %s' % symstr)
 
-                except re.error, e:
+                except re.error as e:
                     self.vprint('Invalid Regular Expression: %s' % regex)
                     return
 
@@ -1823,8 +1832,8 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
         Usage: fds
         """
         self.trace.requireAttached()
-        for id,fdtype,fname in self.trace.getFds():
-            self.vprint("0x%.8x [%d] %s" % (id,fdtype,fname))
+        for id, fdtype, fname in self.trace.getFds():
+            self.vprint("0x%.8x [%d] %s" % (id, fdtype, fname))
 
     def do_ps(self, args):
         """
@@ -1834,7 +1843,7 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
         """
         self.vprint("[Pid]\t[ Name ]")
         for ps in self.trace.ps():
-            self.vprint("%s\t%s" % (ps[0],ps[1]))
+            self.vprint("%s\t%s" % (ps[0], ps[1]))
 
     def do_break(self, args):
         """
@@ -1878,23 +1887,23 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
                        and show any differences.
         """
         argv = e_cli.splitargs(line)
-        opts,args = getopt(argv, "A:CDM:")
+        opts, args = getopt(argv, "A:CDM:")
 
         if len(opts) == 0:
             return self.do_help('memdiff')
 
         self.trace.requireNotRunning()
 
-        for opt,optarg in opts:
+        for opt, optarg in opts:
 
             if opt == "-A":
                 if optarg.find(':') == -1:
                     return self.do_help('memdiff')
 
-                vastr,sizestr = optarg.split(':')
+                vastr, sizestr = optarg.split(':')
                 va = self.parseExpression(vastr)
                 size = self.parseExpression(sizestr)
-                bytez = self.trace.readMemory(va,size)
+                bytez = self.trace.readMemory(va, size)
                 self.difftracks[va] = bytez
 
             elif opt == '-C':
@@ -1905,7 +1914,7 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
                 if len(difs) == 0:
                     self.vprint('No Differences!')
                 else:
-                    for va,thenbytes,nowbytes in difs:
+                    for va, thenbytes, nowbytes in difs:
                         self.vprint('0x%.8x: %s %s' %
                                     (va,
                                      thenbytes.encode('hex'),
@@ -1917,24 +1926,23 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
                 if mmap == None:
                     self.vprint('No Memory Map At: 0x%.8x' % va)
                     return
-                mva,msize,mperm,mfile = mmap
+                mva, msize, mperm, mfile = mmap
                 bytez = self.trace.readMemory(mva, msize)
                 self.difftracks[mva] = bytez
-
 
     def _getDiffs(self):
 
         ret = []
-        for va, bytez in self.difftracks.items():
+        for va, bytez in list(self.difftracks.items()):
             nowbytez = self.trace.readMemory(va, len(bytez))
 
             i = 0
             while i < len(bytez):
                 thendiff = ""
                 nowdiff = ""
-                iva = va+i
+                iva = va + i
                 while (i < len(bytez) and
-                            bytez[i] != nowbytez[i]):
+                               bytez[i] != nowbytez[i]):
                     thendiff += bytez[i]
                     nowdiff += nowbytez[i]
                     i += 1
@@ -1966,7 +1974,7 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
         if len(argv) == 0:
             return self.do_help('dope')
 
-        opts,args = getopt(argv, 'ADE')
+        opts, args = getopt(argv, 'ADE')
 
         if len(opts) == 0:
             return self.do_help('dope')
@@ -1987,7 +1995,6 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
                 self.vprint('Enabling thread doping on CONTINUE events...')
                 vr_dopestack.enableEventDoping(self.trace)
                 self.vprint('...complete!')
-
 
     def do_recon(self, line):
         '''
@@ -2025,7 +2032,7 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
             self.vprint('FIXME: recon only works on i386 right now...')
             return
 
-        opts,args = getopt(argv, 'A:CHQS:')
+        opts, args = getopt(argv, 'A:CHQS:')
         for opt, optarg in opts:
             if opt == '-A':
                 symname, reconfmt = optarg.split(':', 1)
@@ -2072,8 +2079,8 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
             return self.do_help('stalker')
 
         try:
-            opts,args = getopt(argv, 'cCE:HIL:R')
-        except Exception ,e:
+            opts, args = getopt(argv, 'cCE:HIL:R')
+        except Exception as e:
             return self.do_help('stalker')
 
         trace = self.trace
@@ -2101,7 +2108,7 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
             elif opt == '-L':
                 libname, regex = optarg.split(':', 1)
                 for sym in trace.searchSymbols(regex, libname=libname):
-                    v_stalker.addStalkerEntry(trace, long(sym))
+                    v_stalker.addStalkerEntry(trace, int(sym))
                     self.vprint('Stalking %s' % str(sym))
 
             elif opt == '-R':
@@ -2149,24 +2156,24 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
         commands.
         '''
         # commands can be docstrings or have help_<cmd> methods.
-        HELP_DOCS = 0 # help docstring
-        HELP_FUNC = 1 # help function (precedence over docstring)
+        HELP_DOCS = 0  # help docstring
+        HELP_FUNC = 1  # help function (precedence over docstring)
         cmds = defaultdict(list)
         for name in dir(self):
 
             if name.startswith('help_'):
                 hstr = getattr(self, name)()
-                cmds[name[5:]].append( (HELP_FUNC, hstr) )
+                cmds[name[5:]].append((HELP_FUNC, hstr))
 
             elif name.startswith('do_'):
                 hstr = getattr(self, name).__doc__
-                cmds[name[3:]].append( (HELP_DOCS, hstr) )
+                cmds[name[3:]].append((HELP_DOCS, hstr))
 
             else:
                 pass
 
         rcmds = []
-        for cname, clist in cmds.iteritems():
+        for cname, clist in cmds.items():
             if len(clist) > 2:
                 raise Exception('how do we handle inherited overridden help')
 
@@ -2180,7 +2187,7 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
             # maybe change to first line or first sentence in line?
             fline = self._getFirstLine(chelp)
 
-            rcmds.append( (cname, fline, chelp) )
+            rcmds.append((cname, fline, chelp))
 
         rcmds.sort()
         return rcmds
@@ -2242,4 +2249,4 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
         libnames = self.trace.getNormalizedLibNames()
         if not text:
             return libnames
-        return [ i for i in libnames if i.startswith( text ) ]
+        return [i for i in libnames if i.startswith(text)]

@@ -118,7 +118,7 @@ class VQMainCmdWindow(vq_hotkey.HotKeyMixin, QtGui.QMainWindow):
     def vqBuildDockWidget(self, clsname, floating=False, area=QtCore.Qt.TopDockWidgetArea):
         res = self._dock_classes.get(clsname)
         if res == None:
-            print('vqBuildDockWidget Failed For: %s' % clsname)
+            print(('vqBuildDockWidget Failed For: %s' % clsname))
             return
         cls, args = res
         obj = cls(*args)
@@ -127,7 +127,7 @@ class VQMainCmdWindow(vq_hotkey.HotKeyMixin, QtGui.QMainWindow):
     def vqRestoreGuiSettings(self, settings):
 
         dwcls = settings.value('DockClasses')
-        if not dwcls.isNull():
+        if dwcls is not None:
 
             for i, clsname in enumerate(dwcls.toStringList()):
                 name = 'VQDockWidget%d'  % i
@@ -138,17 +138,17 @@ class VQMainCmdWindow(vq_hotkey.HotKeyMixin, QtGui.QMainWindow):
                         d.setObjectName(name)
                         d.vqRestoreState(settings,name)
                         d.show()
-                except Exception, e:
-                    print('Error Building: %s: %s'  % (clsname,e))
+                except Exception as e:
+                    print(('Error Building: %s: %s'  % (clsname,e)))
 
         # Once dock widgets are loaded, we can restoreState
         state = settings.value('DockState')
-        if not state.isNull():
-            self.restoreState(state.toByteArray())
+        if state is not None:
+            self.restoreState(state)
 
         geom = settings.value('DockGeometry')
-        if not geom.isNull():
-            self.restoreGeometry(geom.toByteArray())
+        if geom is not None:
+            self.restoreGeometry(geom)
 
         # Just get all the resize activities done...
         vq_main.eatevents()

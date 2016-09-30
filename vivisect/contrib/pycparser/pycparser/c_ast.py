@@ -425,7 +425,7 @@ class For(Node):
         nodelist = []
         if self.init is not None: nodelist.append(("init", self.init))
         if self.cond is not None: nodelist.append(("cond", self.cond))
-        if self.next is not None: nodelist.append(("next", self.next))
+        if self.__next__ is not None: nodelist.append(("next", self.__next__))
         if self.stmt is not None: nodelist.append(("stmt", self.stmt))
         return tuple(nodelist)
 

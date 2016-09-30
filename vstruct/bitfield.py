@@ -13,7 +13,7 @@ class v_bits(v_number):
         '''
         override base because we are not using the min or max val.
         '''
-        self._vs_value = long(value)
+        self._vs_value = int(value)
 
     def vsSetBitWidth(self, width):
         self._vs_bitwidth = width

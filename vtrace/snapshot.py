@@ -3,7 +3,7 @@ All the code related to vtrace process snapshots and TraceSnapshot classes.
 '''
 import sys
 import copy
-import cPickle as pickle
+import pickle as pickle
 
 import envi
 import envi.memory as e_mem
@@ -47,7 +47,7 @@ class TraceSnapshot(vtrace.Trace, v_base.TracerBase):
         self.metadata = snapdict['meta']
 
         # Steal the reg defs of the first thread
-        rinfo = self.s_regs.items()[0][1]
+        rinfo = list(self.s_regs.items())[0][1]
         self.setRegisterInfo(rinfo)
 
         #FIXME hard-coded page size!
@@ -144,7 +144,7 @@ class TraceSnapshot(vtrace.Trace, v_base.TracerBase):
         pass
 
     def platformParseBinary(self, *args):
-        print 'FIXME FAKE PLATFORM PARSE BINARY: %s' % repr(args)
+        print('FIXME FAKE PLATFORM PARSE BINARY: %s' % repr(args))
 
     # Over-ride register *caching* subsystem to store/retrieve
     # register information in pure dictionaries
@@ -175,14 +175,14 @@ def takeSnapshot(trace):
     regs = dict()
     stacktrace = dict()
 
-    for thrid,tdata in trace.getThreads().items():
+    for thrid,tdata in list(trace.getThreads().items()):
         ctx = trace.getRegisterContext(thrid)
         reginfo = ctx.getRegisterInfo()
         regs[thrid] = reginfo
         try:
             stacktrace[thrid] = trace.getStackTrace()
-        except Exception, msg:
-            print >> sys.stderr, "WARNING: Failed to get stack trace for thread 0x%.8x" % thrid
+        except Exception as msg:
+            print("WARNING: Failed to get stack trace for thread 0x%.8x" % thrid, file=sys.stderr)
 
     mem = dict()
     maps = []
@@ -190,8 +190,8 @@ def takeSnapshot(trace):
         try:
             mem[base] = trace.readMemory(base, size)
             maps.append((base,size,perms,fname))
-        except Exception, msg:
-            print >> sys.stderr, "WARNING: Can't snapshot memmap at 0x%.8x (%s)" % (base,msg)
+        except Exception as msg:
+            print("WARNING: Can't snapshot memmap at 0x%.8x (%s)" % (base,msg), file=sys.stderr)
 
     # If the contents here change, change the version...
     sd['version'] = 1

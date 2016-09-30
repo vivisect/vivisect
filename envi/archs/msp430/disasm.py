@@ -358,7 +358,7 @@ class Msp430Opcode(envi.Opcode):
         # Allow each of our operands to render
         imax = len(self.opers)
         lasti = imax - 1
-        for i in xrange(imax):
+        for i in range(imax):
             oper = self.opers[i]
             oper.render(mcanv, self, i)
             if i != lasti:
@@ -773,11 +773,11 @@ class Msp430Disasm:
             self.next = inPos + 2
     
         def getData(self):
-            return struct.unpack("<H", self.data[self.offset:self.next])[0]
+            return struct.unpack("<H", self.data[self.offset:self.__next__])[0]
     
         def nextData(self):
             self.incData()
-            return struct.unpack("<H", self.data[self.offset:self.next])[0]
+            return struct.unpack("<H", self.data[self.offset:self.__next__])[0]
 
         def incData(self):
             self.offset += 2
@@ -785,7 +785,7 @@ class Msp430Disasm:
             return
 
         def lenData(self):
-            return (self.next - self.start)
+            return (self.__next__ - self.start)
 
     def disasm(self, bytes, offset=0, va=0):
         opData = self.Msp430Data(bytes, offset)

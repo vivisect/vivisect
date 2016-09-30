@@ -4,7 +4,7 @@ import envi
 import envi.bits as e_bits
 import envi.archs.i386 as e_i386
 import envi.archs.i386.disasm as ed_i386
-import opcode64 as opcode86
+from . import opcode64 as opcode86
 all_tables = opcode86.tables86
 
 from envi.archs.i386.disasm import iflag_lookup, operand_range, priv_lookup, \
@@ -101,7 +101,7 @@ class Amd64Opcode (i386Opcode):
         # Allow each of our operands to render
         imax = len(self.opers)
         lasti = imax - 1
-        for i in xrange(imax):
+        for i in range(imax):
             oper = self.opers[i]
             oper.render(mcanv, self, i)
             if i != lasti:
@@ -401,7 +401,7 @@ class Amd64Disasm(e_i386.i386Disasm):
                     else:
                         osize, oper = ameth(bytez, offset, tsize, prefixes, operflags)
 
-                except struct.error, e:
+                except struct.error as e:
                     # Catch struct unpack errors due to insufficient data length
                     raise envi.InvalidInstruction(bytez=bytez[startoff:startoff+16])
 

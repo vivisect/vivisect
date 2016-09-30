@@ -17,6 +17,6 @@ def analyze(vw):
                 # RP we need to make pointers out of what we find... 
                 # otherwise we miss a ton of functions because we mark sections exec when subsystem < win7
                 vw.makePointer(addr)
-        except Exception, e:
+        except Exception as e:
             if vw.verbose: vw.vprint("followPointer() failed for 0x%.8x (pval: 0x%.8x)" % (addr,pval))
 

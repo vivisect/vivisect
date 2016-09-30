@@ -30,7 +30,7 @@ def getNodeWeightHisto(g):
     weights_to_cb = collections.defaultdict(list)
 
     # create default dict
-    for cb, weight in sorted(nodeweights.items(), lambda x,y: cmp(y[1], x[1]) ):
+    for cb, weight in sorted(list(nodeweights.items()), lambda x,y: cmp(y[1], x[1]) ):
         if not len(g.getRefsFromByNid(cb)):
             # leaves is a tuple of (cb, current path, visited nodes)
             # these are our leaf nodes
@@ -69,7 +69,7 @@ def getLongPath(g, maxpath=1000):
     fva = g.getMeta('fva')
     # this is our loop that we want to yield out of..
     # start at the bottom of the graph and work our way back up
-    for weight in xrange(leafmax, -1, -1):
+    for weight in range(leafmax, -1, -1):
         # the todo is a a list of codeblocks a specific level 
         codeblocks = todo.get(weight)
         if not codeblocks: 
@@ -114,7 +114,7 @@ def getLongPath(g, maxpath=1000):
                     yield l
 
             # update our todo with our new paths to resume from 
-            for nw, l in tleafs.items():
+            for nw, l in list(tleafs.items()):
                 todo[nw].extend( l )
 
 def _nodeedge(tnode):
@@ -480,14 +480,14 @@ def buildFunctionGraph(vw, fva, revloop=False, g=None):
             if not g.hasNode(xrto):
                 cblock = vw.getCodeBlock(xrto)
                 if cblock == None:
-                    print 'CB == None in graph building?!?! (0x%x)' % xrto
-                    print '(fva: 0x%.8x cbva: 0x%.8x)' % (fva, xrto)
+                    print('CB == None in graph building?!?! (0x%x)' % xrto)
+                    print('(fva: 0x%.8x cbva: 0x%.8x)' % (fva, xrto))
                     continue
 
                 tova, tosize, tofunc = cblock
                 if tova != xrto:
-                    print 'CBVA != XREFTO in graph building!?'
-                    print '(cbva: 0x%.8x xrto: 0x%.8x)' % (tova, xrto)
+                    print('CBVA != XREFTO in graph building!?')
+                    print('(cbva: 0x%.8x xrto: 0x%.8x)' % (tova, xrto))
                     continue
 
                 # Since we haven't seen this node, lets add it to todo
@@ -511,11 +511,11 @@ def buildFunctionGraph(vw, fva, revloop=False, g=None):
         if not g.hasNode(fallva):
             fallblock = vw.getCodeBlock(fallva)
             if fallblock == None:
-                print 'FB == None in graph building!??!'
-                print '(fva: 0x%.8x  fallva: 0x%.8x' % (fva, fallva)
+                print('FB == None in graph building!??!')
+                print('(fva: 0x%.8x  fallva: 0x%.8x' % (fva, fallva))
             elif fallva != fallblock[0]:
-                print 'FALLVA != CBVA in graph building!??!'
-                print '(fallva: 0x%.8x CBVA: 0x%.8x' % (fallva, fallblock[0])
+                print('FALLVA != CBVA in graph building!??!')
+                print('(fallva: 0x%.8x CBVA: 0x%.8x' % (fallva, fallblock[0]))
             else:
                 fbva, fbsize, fbfunc = fallblock
                 #if fbfunc != fva and fbva not in blocks:
@@ -545,7 +545,7 @@ def getGraphNodeByVa(fgraph, va):
 
     DEPRECATED as soon as visi's new CodeGraph gains this functionality inherently
     '''
-    for nva, ninfo in fgraph.nodes.values():
+    for nva, ninfo in list(fgraph.nodes.values()):
         nvamax = ninfo.get('cbsize')
         if nvamax == None: 
             raise Exception('getGraphNodeByVa() called on graph with non-codeblock nodes')

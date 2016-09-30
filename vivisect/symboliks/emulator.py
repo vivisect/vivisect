@@ -154,4 +154,4 @@ class SymbolikEmulator:
             for vname, vsym in t.getSymVariables():
                 print '%s = %s' % (vname, str(vsym))
         '''
-        return self._sym_vars.items()
+        return list(self._sym_vars.items())

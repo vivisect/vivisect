@@ -52,7 +52,7 @@ class ImportCallProxy(CallingConventionProxy):
         argn = aspec.args[1:]
         argt = aspec.defaults
 
-        argv = [ (argt[i],argn[i]) for i in xrange(len(argn)) ]
+        argv = [ (argt[i],argn[i]) for i in range(len(argn)) ]
 
         modlast = func.__module__.split('.')[-1]
         funcsym = Var('%s.%s' % (modlast, func.__name__))

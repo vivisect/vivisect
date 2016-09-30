@@ -1,4 +1,4 @@
-import cPickle as pickle
+import pickle as pickle
 import vivisect
 
 vivsig_cpickle = 'VIV'.ljust(8,'\x00')
@@ -44,9 +44,9 @@ def vivEventsFromFile(filename):
     while True:
         try:
             events.extend( pickle.load(f) )
-        except EOFError, e:
+        except EOFError as e:
             break
-        except pickle.UnpicklingError, e:
+        except pickle.UnpicklingError as e:
             raise vivisect.InvalidWorkspace(filename, "invalid workspace file")
 
     f.close()

@@ -1,12 +1,12 @@
 import os
 import struct
 
-from cStringIO import StringIO
+from io import StringIO
 
 import vstruct
 import vstruct.defs.pe as vs_pe
 
-import ordlookup
+from . import ordlookup
 
 IMAGE_DLLCHARACTERISTICS_RESERVED_1      = 1
 IMAGE_DLLCHARACTERISTICS_RESERVED_2      = 2
@@ -174,7 +174,7 @@ class VS_VERSIONINFO:
 
         Example: for keyname in vs.getVersionKeys(): print keyname
         '''
-        return self._version_info.keys()
+        return list(self._version_info.keys())
 
     def getVersionItems(self):
         '''
@@ -183,7 +183,7 @@ class VS_VERSIONINFO:
 
         Example: for vskey,vsdata in vs.getVersionItems(): print vskey,vsdata
         '''
-        return self._version_info.items()
+        return list(self._version_info.items())
 
     def _parseBytes(self, bytes):
         offset = 0
@@ -500,8 +500,8 @@ class PE(object):
         resource in the PE.
         '''
         ret = []
-        for rtype,subdir in self.ResourceRoot._rsrc_subdirs.items():
-            for nameid, subsubdir in subdir._rsrc_subdirs.items():
+        for rtype,subdir in list(self.ResourceRoot._rsrc_subdirs.items()):
+            for nameid, subsubdir in list(subdir._rsrc_subdirs.items()):
                 ret.append( (rtype, nameid, subsubdir._rsrc_data[0]) )
         return ret
 
@@ -577,7 +577,7 @@ class PE(object):
                 continue
             
             offset = len(rsdir)
-            for i in xrange(totcount):
+            for i in range(totcount):
                 dentrva = rsrva + offset
 
                 dirent = self.readStructAtRva( dentrva, 'pe.IMAGE_RESOURCE_DIRECTORY_ENTRY', check=True )

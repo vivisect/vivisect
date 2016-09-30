@@ -43,7 +43,7 @@ arch_by_name = {
     'h8':       ARCH_H8,
 }
 
-# Instruction flags (The first 8 bits are reserved for arch independant use)
+# Instruction flags (The first 8 bits are reserved for arch independent use)
 IF_NOFALL = 0x01 # Set if this instruction does *not* fall through
 IF_PRIV   = 0x02 # Set if this is a "privileged mode" instruction
 IF_CALL   = 0x04 # Set if this instruction branches to a procedure
@@ -282,7 +282,7 @@ class MapOverlapException(EnviException):
 class Operand:
 
     """
-    Thses are the expected methods needed by any implemented operand object
+    These are the expected methods needed by any implemented operand object
     attached to an envi Opcode.  This does *not* have a constructor of it's
     pwn on purpose to cut down on memory use and constructor CPU cost.
     """
@@ -296,7 +296,7 @@ class Operand:
         NOTE: This API may be passed a None emu and should return what it can
               (or None if it can't be resolved)
         """
-        print "%s needs to implement getOperValue!" % self.__class__.__name__
+        print("%s needs to implement getOperValue!" % self.__class__.__name__)
         return None
 
     def setOperValue(self, op, emu, val):
@@ -305,7 +305,7 @@ class Operand:
         the given emulator/workspace/trace to assign things like
         memory and registers.
         """
-        print("%s needs to implement setOperValue! (0x%.8x: %s) " % (self.__class__.__name__, op.va, repr(op)))
+        print(("%s needs to implement setOperValue! (0x%.8x: %s) " % (self.__class__.__name__, op.va, repr(op))))
 
     def isDeref(self):
         """
@@ -339,7 +339,7 @@ class Operand:
         NOTE: This API may be passed a None emu and should return what it can
               (or None if it can't be resolved)
         """
-        print("%s needs to implement getOperAddr!" % self.__class__.__name__)
+        print(("%s needs to implement getOperAddr!" % self.__class__.__name__))
         return None
 
     def repr(self, op):
@@ -564,7 +564,7 @@ class Emulator(e_reg.RegisterContext, e_mem.MemoryObject):
         '''
         Set a (previously initialized) emulator option.
         '''
-        if not self._emu_opts.has_key(opt):
+        if opt not in self._emu_opts:
             raise Exception('Unknown Emu Opt: %s' % opt)
         self._emu_opts[opt] = val
 
@@ -573,7 +573,7 @@ class Emulator(e_reg.RegisterContext, e_mem.MemoryObject):
         Retrieve the current value of an emulator option.
         ( emu impls may directly access _emu_opts for speed )
         '''
-        if not self._emu_opts.has_key(opt):
+        if opt not in self._emu_opts:
             raise Exception('Unknown Emu Opt: %s' % opt)
         return self._emu_opts.get(opt)
 
@@ -607,7 +607,7 @@ class Emulator(e_reg.RegisterContext, e_mem.MemoryObject):
         (breakpoint, segv, syscall, etc...)
         """
         if stepcount != None:
-            for i in xrange(stepcount):
+            for i in range(stepcount):
                 self.stepi()
         else:
             while True:
@@ -707,7 +707,7 @@ class Emulator(e_reg.RegisterContext, e_mem.MemoryObject):
         return self._emu_call_convs.get(name)
 
     def getCallingConventions(self):
-        return self._emu_call_convs.items()
+        return list(self._emu_call_convs.items())
 
     def readMemValue(self, addr, size):
         """

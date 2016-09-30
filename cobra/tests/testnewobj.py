@@ -3,7 +3,7 @@ import unittest
 
 import cobra
 
-import cStringIO as StringIO
+import io as StringIO
 
 class NewObjectReturn:
 
@@ -30,5 +30,5 @@ class CobraNewObjTest(unittest.TestCase):
         with t.open() as fd:
             self.assertEqual(fd.read(),'asdf')
 
-        self.assertEqual( len(daemon.shared.keys()), 1)
+        self.assertEqual( len(list(daemon.shared.keys())), 1)
         daemon.stopServer()

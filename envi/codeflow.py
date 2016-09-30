@@ -153,11 +153,11 @@ class CodeFlowContext(object):
 
             try:
                 op = self._mem.parseOpcode(va, arch=arch)
-            except envi.InvalidInstruction, e:
-                print 'parseOpcode error at 0x%.8x: %s' % (va,e)
+            except envi.InvalidInstruction as e:
+                print('parseOpcode error at 0x%.8x: %s' % (va,e))
                 continue 
-            except Exception, e:
-                print 'parseOpcode error at 0x%.8x: %s' % (va,e)
+            except Exception as e:
+                print('parseOpcode error at 0x%.8x: %s' % (va,e))
                 continue
 
             branches = op.getBranches()
@@ -249,7 +249,7 @@ class CodeFlowContext(object):
             if not self._mem.isFunction(fva):
                 self.addEntryPoint(fva, arch=arch)
 
-        return calls_from.keys()
+        return list(calls_from.keys())
 
     def addEntryPoint(self, va, arch=envi.ARCH_DEFAULT):
         '''

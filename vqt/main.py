@@ -2,7 +2,7 @@ import sys
 import functools
 import traceback
 
-from Queue import Queue
+from queue import Queue
 from threading import currentThread
 
 from PyQt4 import QtCore, QtGui
@@ -67,7 +67,7 @@ def idlethreadsync(func):
     def dowork(*args, **kwargs):
         try:
             q.put(func(*args, **kwargs))
-        except Exception, e:
+        except Exception as e:
             q.put(e)
 
     def idleadd(*args, **kwargs):
@@ -128,8 +128,8 @@ class QEventThread(QtCore.QThread):
 
                 self.idleadd.emit(func,args,kwargs)
 
-            except Exception, e:
-                print('vqt event thread: %s' % e)
+            except Exception as e:
+                print(('vqt event thread: %s' % e))
 
 class VQApplication(QtGui.QApplication):
 
@@ -160,8 +160,8 @@ def workerThread():
 
                 func(*args,**kwargs)
 
-        except Exception, e:
-            print('vqt worker warning: %s' % e)
+        except Exception as e:
+            print(('vqt worker warning: %s' % e))
 
 def startup(css=None):
     # yea yea.... globals suck...

@@ -4,7 +4,7 @@ import PE
 import vstruct
 import vivisect
 import PE.carve as pe_carve
-import cStringIO as StringIO
+import io as StringIO
 import vivisect.parsers as v_parsers
 
 # Steal symbol parsing from vtrace
@@ -290,8 +290,8 @@ def loadPeIntoWorkspace(vw, pe, filename=None):
             if not (chars & PE.IMAGE_SCN_CNT_CODE) and not (chars & PE.IMAGE_SCN_MEM_EXECUTE) and not (chars & PE.IMAGE_SCN_MEM_WRITE):
                 vw.markDeadData(secbase, secbase+len(secbytes))
 
-        except Exception, e:
-            print("Error Loading Section (%s size:%d rva:%.8x offset: %d): %s" % (secname,secfsize,secrva,secoff,e))
+        except Exception as e:
+            print(("Error Loading Section (%s size:%d rva:%.8x offset: %d): %s" % (secname,secfsize,secrva,secoff,e)))
 
     vw.addExport(entry, EXP_FUNCTION, '__entry', fname)
     vw.addEntryPoint(entry)
@@ -332,7 +332,7 @@ def loadPeIntoWorkspace(vw, pe, filename=None):
             vw.addExport(eva, EXP_UNTYPED, name, fname)
             if vw.probeMemory(eva, 1, e_mem.MM_EXEC):
                 vw.addEntryPoint(eva)
-        except Exception, e:
+        except Exception as e:
             vw.vprint('addExport Failed: %s.%s (0x%.8x): %s' % (fname,name,eva,e))
 
     # Save off the ordinals...
@@ -387,7 +387,7 @@ def loadPeIntoWorkspace(vw, pe, filename=None):
                 if vw.getName(symva) == None:
                     vw.makeName(symva, symname, filelocal=True)
 
-            except Exception, e:
+            except Exception as e:
                 vw.vprint("Symbol Load Error: %s" % e)
 
         # Also, lets set the locals/args name hints if we found any

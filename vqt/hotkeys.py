@@ -14,7 +14,7 @@ special_keys = {
 }
 
 fkey_base = 0x100002f
-for i in xrange(1,12):
+for i in range(1,12):
     special_keys[ fkey_base + i ] = 'f%d' % i
 
 def hotkey(targname):
@@ -54,7 +54,7 @@ class HotKeyMixin(object):
                 print('Found Hotkey Target: %s' % tname)
 
         '''
-        return self._vq_hotkey_targets.keys()
+        return list(self._vq_hotkey_targets.keys())
 
     def isHotKeyTarget(self, targname):
         '''
@@ -66,7 +66,7 @@ class HotKeyMixin(object):
         '''
         Retrieve a list of (hotkey,target) tuples.
         '''
-        return self._vq_hotkeys.items()
+        return list(self._vq_hotkeys.items())
 
     def addHotKey(self, keystr, hktarg):
         '''
@@ -94,7 +94,7 @@ class HotKeyMixin(object):
 
             keyobj = settings.value('hotkey:%s' % tname)
 
-            if not keyobj.isNull():
+            if keyobj is not None:
                 self.addHotKey(keyobj.toString(),tname)
 
     def getHotKeyFromEvent(self, event):

@@ -68,5 +68,5 @@ class MapLookup:
         return None
 
     def __getslice__(self, start, end):
-        print 'GET SLICE'
+        print('GET SLICE')
 

@@ -128,7 +128,7 @@ def makeSwitch(vw, vajmp, offarraybase, indiroffbase=None):
 
     #TODO: analyze indiroffbase to determine case information
     
-    for va, opts in naming.items():
+    for va, opts in list(naming.items()):
         options = "_".join(opts)
         name = "switch_case_%s_%.8x" % (options, va)
         vw.makeName(va, name)

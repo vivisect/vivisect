@@ -372,7 +372,7 @@ class MemoryCache(IMemory):
         '''
         Returns a list of dirty pages as (pageva, pagebytez) tuples.
         '''
-        return [ (va, self.pagecache.get(va)) for va in self.pagedirty.keys() ]
+        return [ (va, self.pagecache.get(va)) for va in list(self.pagedirty.keys()) ]
 
     #def syncDirtyPages(self):
         #'''

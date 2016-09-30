@@ -19,9 +19,9 @@ else: # python 2.x....
         #from __future__ import absolute_import
         #from __future__ import unicode_literals
 
-    import urlparse
-    import Queue as queue
-    import cPickle as pickle
+    import urllib.parse
+    import queue as queue
+    import pickle as pickle
 
     # must go at the end due to "urllib" override
     import urllib2 as urllib

@@ -14,7 +14,7 @@ def eflags(vdb, line):
 
     if len(argv) > 0:
         flag = argv[0].upper()
-        valid_flags = trace.getStatusFlags().keys()
+        valid_flags = list(trace.getStatusFlags().keys())
         if flag not in valid_flags:
             raise Exception('invalid flag: %s, valid flags %s' % (flag, valid_flags))
         value = trace.getRegisterByName(flag)

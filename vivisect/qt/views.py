@@ -53,7 +53,7 @@ class VivLocView(VivView):
     def VWE_DELLOCATION(self, vw, event, einfo):
         lva, lsize, ltype, linfo = einfo
         if ltype in self.loctypes:
-            print 'DEL ONE!'
+            print('DEL ONE!')
 
 def getLocView(vw, loctypes, title, parent=None):
     view = VivLocView( vw, loctypes, parent=parent)
@@ -164,7 +164,7 @@ class VQVivLocView(VQVivTreeView):
             self.vivAddLocation(lva, lsize, ltype, linfo)
 
     def vivAddLocation(self, lva, lsize, ltype, linfo):
-        print "FIXME OVERRIDE"
+        print("FIXME OVERRIDE")
 
 class VQVivStringsView(VQVivLocView):
 
@@ -291,8 +291,8 @@ class VQVivFunctionsView(VQVivTreeView):
 
 vaset_coltypes = {
     VASET_STRING:str,
-    VASET_ADDRESS:long,
-    VASET_INTEGER:long,
+    VASET_ADDRESS:int,
+    VASET_INTEGER:int,
 }
 
 class VQVivVaSetView(VQVivTreeView):

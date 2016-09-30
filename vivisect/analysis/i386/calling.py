@@ -74,7 +74,7 @@ def buildFunctionApi(vw, fva, emu, emumon):
     stackidx = 0 # arg index of first *stack* arg
 
     # Log registers we used by didn't init
-    undefkeys = emu.uninit_use.keys()
+    undefkeys = list(emu.uninit_use.keys())
     undefkeys.sort()
 
     undeflen = len(undefkeys)
@@ -90,7 +90,7 @@ def buildFunctionApi(vw, fva, emu, emumon):
         callconv = 'unkcall' 
         argc = 0
     # Add argument indexes to our argument names
-    funcargs = [ argcname(callconv, i) for i in xrange(argc) ]
+    funcargs = [ argcname(callconv, i) for i in range(argc) ]
     api = ('int',None,callconv,None,funcargs)
 
     vw.setFunctionApi(fva, api)
@@ -121,7 +121,7 @@ def analyzeFunction(vw, fva):
     baseoff = cc.getStackArgOffset(emu, argc)
 
     # Register our stack args as function locals
-    for i in xrange( stcount ):
+    for i in range( stcount ):
 
         vw.setFunctionLocal(fva, baseoff + ( i * 4 ), LSYM_FARG, i+stackidx)
 

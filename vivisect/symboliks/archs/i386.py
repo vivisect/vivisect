@@ -65,7 +65,7 @@ class ArgDefSymEmu(object):
         if not fmt.startswith('<') and not fmt.endswith('P'):
             raise Exception('we dont handle this format string')
 
-        if isinstance(va, int) or isinstance(va, long):
+        if isinstance(va, int) or isinstance(va, int):
             va = Const(va, self.xlator._psize)
 
         if len(fmt) == 2:
@@ -73,7 +73,7 @@ class ArgDefSymEmu(object):
 
         args = []
         num = int(fmt[1:fmt.index('P')])
-        for i in xrange(num):
+        for i in range(num):
             args.append(Mem(va, Const(self.xlator._psize, self.xlator._psize)))
             va += Const(self.xlator._psize, self.xlator._psize)
 

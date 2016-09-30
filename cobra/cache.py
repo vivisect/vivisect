@@ -28,7 +28,7 @@ class FixedDepthCache:
         '''
         Retrieve the given key's value in the cache.
         '''
-        if not self.cache.has_key(key) and self.misscb:
+        if key not in self.cache and self.misscb:
             val = self.misscb(key)
             self.put( key, val )
             return val
@@ -53,7 +53,7 @@ class FixedDepthCache:
         return (key,val)
 
     def has(self, key):
-        return self.cache.has_key(key)
+        return key in self.cache
 
     def __len__(self):
         return len(self.cdeque)

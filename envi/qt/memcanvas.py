@@ -17,7 +17,7 @@ from vqt.common import *
 
 class LoggerPage(QtWebKit.QWebPage):
     def javaScriptConsoleMessage(self, msg, line, source):
-        print '%s line %d: %s' % (source, line, msg)
+        print('%s line %d: %s' % (source, line, msg))
 
 class VQMemoryCanvas(QtWebKit.QWebView, e_memcanvas.MemoryCanvas):
 
@@ -45,7 +45,7 @@ class VQMemoryCanvas(QtWebKit.QWebView, e_memcanvas.MemoryCanvas):
 
     @QtCore.pyqtSlot(str)  
     def showMessage(self, message):
-        print "Message from website:", message
+        print("Message from website:", message)
 
     def renderMemory(self, va, size, rend=None):
 

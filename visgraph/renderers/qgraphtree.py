@@ -218,7 +218,7 @@ if __name__ == '__main__':
     app = QtGui.QApplication(sys.argv)
     app.setFont( QtGui.QFont('Courier') )
 
-    initnodes = [ (i, {'repr':'node%d' % i}) for i in xrange( 30 ) ]
+    initnodes = [ (i, {'repr':'node%d' % i}) for i in range( 30 ) ]
 
     # Build up a fake graph
     vg = vg_graphcore.Graph()

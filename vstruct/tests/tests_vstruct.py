@@ -3,12 +3,14 @@ import unittest
 import vstruct
 import vstruct.primitives as p
 
+
 class NNestedStruct(vstruct.VStruct):
     def __init__(self):
         vstruct.VStruct.__init__(self)
 
         self.alpha = p.v_uint64()
         self.beta = vstruct.VStruct()
+
 
 class NestedStruct(vstruct.VStruct):
     def __init__(self):
@@ -19,6 +21,7 @@ class NestedStruct(vstruct.VStruct):
         self.baz = p.v_bytes(size=256)
         self.faz = NNestedStruct()
 
+
 class TestStruct(vstruct.VStruct):
     def __init__(self):
         vstruct.VStruct.__init__(self)
@@ -27,6 +30,7 @@ class TestStruct(vstruct.VStruct):
         self.two = NestedStruct()
         self.three = p.v_uint32()
         self.four = p.v_bytes(size=100)
+
 
 class VStructTests(unittest.TestCase):
     def setUp(self):
@@ -43,15 +47,15 @@ class VStructTests(unittest.TestCase):
         self.assertIs(fobj, self.s.vsGetField('four'))
 
     def test_vsGetFieldByOffset_maxval_neg(self):
-        with self.assertRaisesRegexp(Exception, 'Invalid Offset Specified'):
+        with self.assertRaisesRegex(Exception, 'Invalid Offset Specified'):
             tup = self.s.vsGetFieldByOffset(-1)
 
     def test_vsGetFieldByOffset_maxval_pos(self):
-        with self.assertRaisesRegexp(Exception, 'Invalid Offset Specified'):
+        with self.assertRaisesRegex(Exception, 'Invalid Offset Specified'):
             tup = self.s.vsGetFieldByOffset(0xffffffff)
 
     def test_vsGetFieldByOffset_maxval_plus1_pos(self):
-        with self.assertRaisesRegexp(Exception, 'Invalid Offset Specified'):
+        with self.assertRaisesRegex(Exception, 'Invalid Offset Specified'):
             tup = self.s.vsGetFieldByOffset(len(self.s))
 
     def test_vsGetFieldByOffset_nested1(self):
@@ -74,28 +78,31 @@ class VStructTests(unittest.TestCase):
         self.assertEqual(fname, 'two.faz.alpha')
         self.assertIs(fobj, self.s.two.faz.vsGetField('alpha'))
 
+
 # TODO: could use envi.bits, but do we really want envi dep by default?
 blkup = {}
-bwidths = (8, 16, 24, 32, 64, )
+bwidths = (8, 16, 24, 32, 64,)
 for bwidth in bwidths:
-    umax = (2**bwidth) - 1
+    umax = (2 ** bwidth) - 1
     umin = 0
 
-    smax = (2**(bwidth-1)) - 1
-    smin = -(2**(bwidth-1))
+    smax = (2 ** (bwidth - 1)) - 1
+    smin = -(2 ** (bwidth - 1))
 
     blkup[bwidth] = (umin, umax, smin, smax)
+
 
 class IntegerStruct(vstruct.VStruct):
     def __init__(self):
         vstruct.VStruct.__init__(self)
 
+
 class VStructTypeTests(unittest.TestCase):
     def setUp(self):
         self.s = IntegerStruct()
 
-def getTestFunc(name, vsval, val, expval):
 
+def getTestFunc(name, vsval, val, expval):
     def func(self):
         self.s.vsAddField(name, vsval)
 
@@ -106,6 +113,7 @@ def getTestFunc(name, vsval, val, expval):
 
     return func
 
+
 tdefs = []
 
 # dynamically generate the test definitions
@@ -113,7 +121,7 @@ tdefs = []
 for bwidth in bwidths:
     umin, umax, smin, smax = blkup[bwidth]
 
-    for ttype, mmin, mmax in ( ('u', umin, umax), ('', smin, smax), ):
+    for ttype, mmin, mmax in (('u', umin, umax), ('', smin, smax),):
         pname = '{}int{}'.format(ttype, bwidth)
         vtype = 'v_{}int{}'.format(ttype, bwidth)
         vtype = getattr(p, vtype)
@@ -124,16 +132,16 @@ for bwidth in bwidths:
         tup = (bwidth, pname, vtype, mmax, mmax)
         tdefs.append(tup)
 
-        tup = (bwidth, pname, vtype, mmin-1, mmax)
+        tup = (bwidth, pname, vtype, mmin - 1, mmax)
         tdefs.append(tup)
 
-        tup = (bwidth, pname, vtype, mmin-2, mmax-1)
+        tup = (bwidth, pname, vtype, mmin - 2, mmax - 1)
         tdefs.append(tup)
 
-        tup = (bwidth, pname, vtype, mmax+1, mmin)
+        tup = (bwidth, pname, vtype, mmax + 1, mmin)
         tdefs.append(tup)
 
-        tup = (bwidth, pname, vtype, mmax+2, mmin+1)
+        tup = (bwidth, pname, vtype, mmax + 2, mmin + 1)
         tdefs.append(tup)
 
 # generate unittest functions based on the test definitions

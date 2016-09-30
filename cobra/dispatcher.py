@@ -11,7 +11,7 @@ class CobraDispatchMethod:
         self.methname = methname
 
     def __call__(self, *args, **kwargs):
-        if verbose: print "CALLING:",name,self.methname,repr(args)[:20],repr(kwargs)[:20]
+        if verbose: print("CALLING:",name,self.methname,repr(args)[:20],repr(kwargs)[:20])
         waiters = []
 
         try:
@@ -49,7 +49,7 @@ class CobraDispatcher:
         return self._cobra_proxies
 
     def __getattr__(self, name):
-        if verbose: print "GETATTR",name
+        if verbose: print("GETATTR",name)
 
         if name == "__getinitargs__":
             raise AttributeError()

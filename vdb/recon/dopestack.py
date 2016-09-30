@@ -17,15 +17,15 @@ def dopeThreadStack(trace, threadid):
         dopesize = sp - mapva
         trace.writeMemory(mapva, 'V' * dopesize)
 
-    except Exception, e:
-        print 'dopeThreadStack Failed On %d' % threadid
+    except Exception as e:
+        print('dopeThreadStack Failed On %d' % threadid)
         trace.selectThread(curthread)
 
 def dopeAllThreadStacks(trace):
     '''
     Apply stack doping to all thread stacks.
     '''
-    for threadid in trace.getThreads().keys():
+    for threadid in list(trace.getThreads().keys()):
         dopeThreadStack(trace, threadid)
 
 class ThreadDopeNotifier(vtrace.Notifier):

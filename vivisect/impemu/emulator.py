@@ -102,7 +102,7 @@ class WorkspaceEmulator:
 
             # Create some pre-made taints for positive stack indexes
             # NOTE: This is *ugly* for speed....
-            taints = [ self.setVivTaint('funcstack', i * self.psize) for i in xrange(20) ]
+            taints = [ self.setVivTaint('funcstack', i * self.psize) for i in range(20) ]
             taintbytes = ''.join([ e_bits.buildbytes(taint,self.psize) for taint in taints ])
 
             self.writeMemory(self.stack_pointer, taintbytes)
@@ -116,7 +116,7 @@ class WorkspaceEmulator:
             new_map_base = new_map_top - new_map_size
 
             stack_map = ''.join([struct.pack('<I', new_map_base+(i*4))
-                                    for i in xrange(new_map_size)])
+                                    for i in range(new_map_size)])
 
             self.addMemoryMap(new_map_base, 6, "[stack]", stack_map)
             self.stack_map_base = new_map_base
@@ -173,7 +173,7 @@ class WorkspaceEmulator:
             if self.emumon != None:
                 try:
                     ret = self.emumon.apicall(self, op, endeip, api, argv)
-                except Exception, e:
+                except Exception as e:
                     self.emumon.logAnomaly(self, endeip, "%s.apicall failed: %s" % (self.emumon.__class__.__name__, e))
 
             hook = self.hooks.get(callname)
@@ -235,7 +235,7 @@ class WorkspaceEmulator:
         if len(blist) > 1:
             for bva,bflags in blist:
                 if bva == None:
-                    print "Unresolved branch even WITH an emulator?"
+                    print("Unresolved branch even WITH an emulator?")
                     continue
 
                 bpath = self.getBranchNode(self.curpath, bva)
@@ -360,13 +360,13 @@ class WorkspaceEmulator:
                     if op.iflags & envi.IF_RET:
                         vg_path.setNodeProp(self.curpath, 'cleanret', True)
                         break
-                except envi.UnsupportedInstruction, e:
+                except envi.UnsupportedInstruction as e:
                     if self.strictops:
                         break
                     else:
-                        print 'runFunction continuing after unsupported instruction: 0x%08x %s' % (e.op.va, e.op.mnem)
+                        print('runFunction continuing after unsupported instruction: 0x%08x %s' % (e.op.va, e.op.mnem))
                         self.setProgramCounter(e.op.va+ e.op.size)
-                except Exception, e:
+                except Exception as e:
                     #traceback.print_exc()
                     if self.emumon != None:
                         self.emumon.logAnomaly(self, starteip, str(e))
@@ -410,7 +410,7 @@ class WorkspaceEmulator:
 
     def nextVivTaint(self):
         # One page into the new taint range
-        return self.taintva.next() + 4096
+        return next(self.taintva) + 4096
 
     def setVivTaint(self, typename, taint):
         '''
@@ -543,7 +543,7 @@ class WorkspaceEmulator:
         self.uninit_use[regid] = True
 
     def getUninitRegUse(self):
-        return self.uninit_use.keys()
+        return list(self.uninit_use.keys())
 
     def readMemory(self, va, size):
         if self.logread:

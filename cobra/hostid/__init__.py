@@ -4,11 +4,11 @@ import platform
 def getHostId():
     osname = platform.system().lower()
     if osname == 'darwin':
-        import darwinhostid
+        from . import darwinhostid
         return darwinhostid.getHostId()
 
     elif osname in ['microsoft','windows']:
-        import windowshostid
+        from . import windowshostid
         return windowshostid.getHostId()
 
     return None

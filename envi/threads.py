@@ -33,8 +33,8 @@ def maintthread(stime):
             while True:
                 try:
                     func(*args, **kwargs)
-                except Exception, e:
-                    print('MaintThread (%s) Error: %s' % (args[0],e))
+                except Exception as e:
+                    print(('MaintThread (%s) Error: %s' % (args[0],e)))
                 time.sleep(stime)
 
         def dothread(*args, **kwargs):
@@ -99,7 +99,7 @@ class ChunkQueue:
             while True:
                 for i in self.get(timeout=1):
                     yield i
-        except QueueShutdown,e:
+        except QueueShutdown as e:
             pass
 
     def put(self, item):
@@ -181,7 +181,7 @@ class EnviQueue:
             while True:
                 ret = self.get()
                 yield ret
-        except QueueShutdown,e:
+        except QueueShutdown as e:
             pass
 
     def put(self, x):

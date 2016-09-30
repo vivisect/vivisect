@@ -77,7 +77,7 @@ class VivCanvasBase(vq_hotkey.HotKeyMixin, e_mem_canvas.VQMemoryCanvas):
         style = frame.findFirstElement('#cmapstyle')
 
         rows = []
-        for va,color in cmap.items():
+        for va,color in list(cmap.items()):
             rows.append('.envi-va-0x%.8x { color: #000000; background-color: %s }' % (va, color))
 
         style.setInnerXml('\n'.join(rows))
@@ -357,7 +357,7 @@ class VQVivMemoryView(e_mem_qt.VQMemoryWindow, viv_base.VivEventCore):
             if name != None:
                 title = name
 
-        except Exception, e:
+        except Exception as e:
             title = 'expr error'
 
         if self._leading:

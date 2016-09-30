@@ -8,7 +8,7 @@ import vtrace
 import traceback
 import platform
 
-from Queue import Queue
+from queue import Queue
 from threading import Thread,currentThread,Lock
 
 import envi
@@ -196,7 +196,7 @@ class TracerBase(vtrace.Notifier):
         Cleanup all breakpoints (if the current bp is "fastbreak" this routine
         will not be called...
         '''
-        for bp in self.breakpoints.itervalues():
+        for bp in self.breakpoints.values():
             if bp.active:
                 # only effects active breaks
                 bp.deactivate(self)
@@ -218,7 +218,7 @@ class TracerBase(vtrace.Notifier):
                 self.deferred.remove(bp)
                 self.breakpoints[addr] = bp
 
-        for bp in self.breakpoints.values():
+        for bp in list(self.breakpoints.values()):
             if bp.isEnabled():
                 bp.activate(self)
 
@@ -227,7 +227,7 @@ class TracerBase(vtrace.Notifier):
         Sync the reg-cache into the target process
         """
         if self.regcache != None:
-            for tid, ctx in self.regcache.items():
+            for tid, ctx in list(self.regcache.items()):
                 if ctx.isDirty():
                     self.platformSetRegCtx(tid, ctx)
         self.regcache = None
@@ -327,7 +327,7 @@ class TracerBase(vtrace.Notifier):
 
     def __del__(self):
         if not self._released:
-            print 'Warning! tracer del w/o release()!'
+            print('Warning! tracer del w/o release()!')
 
     def fireTracerThread(self):
         # Fire the threadwrap proxy thread for this tracer
@@ -342,7 +342,7 @@ class TracerBase(vtrace.Notifier):
         if event == vtrace.NOTIFY_SIGNAL:
             signo = self.getCurrentSignal()
             if signo in self.getMeta('IgnoredSignals', []):
-                if vtrace.verbose: print('Ignoring %s' % signo)
+                if vtrace.verbose: print(('Ignoring %s' % signo))
                 self.runAgain()
                 return
 
@@ -363,14 +363,14 @@ class TracerBase(vtrace.Notifier):
             try:
                 notifier.handleEvent(event, trace)
             except:
-                print('WARNING: Notifier exception for %s' % repr(notifier))
+                print(('WARNING: Notifier exception for %s' % repr(notifier)))
                 traceback.print_exc()
 
         for notifier in nlist:
             try:
                 notifier.handleEvent(event, trace)
             except:
-                print('WARNING: Notifier exception for %s' % repr(notifier))
+                print(('WARNING: Notifier exception for %s' % repr(notifier)))
                 traceback.print_exc()
 
     def _fireStep(self):
@@ -385,9 +385,9 @@ class TracerBase(vtrace.Notifier):
 
         try:
             bp.notify(vtrace.NOTIFY_BREAK, self)
-        except Exception, msg:
+        except Exception as msg:
             traceback.print_exc()
-            print "Breakpoint Exception 0x%.8x : %s" % (bp.address,msg)
+            print("Breakpoint Exception 0x%.8x : %s" % (bp.address,msg))
 
         # "stealthbreak" bp's do not NOTIFY *or* run again
         if bp.stealthbreak:
@@ -494,7 +494,7 @@ class TracerBase(vtrace.Notifier):
             pass
 
         elif event == vtrace.NOTIFY_DETACH:
-            for tid in self.sus_threads.keys():
+            for tid in list(self.sus_threads.keys()):
                 self.resumeThread(tid)
             self._clearBreakpoints()
 
@@ -615,7 +615,7 @@ class TracerBase(vtrace.Notifier):
         (for use by tracers which don't get help from the OS)
         '''
         initid = self.getMeta('ThreadId')
-        for tid in self.platformGetThreads().keys():
+        for tid in list(self.platformGetThreads().keys()):
             self.setMeta('ThreadId', tid)
             self.fireNotifiers(vtrace.NOTIFY_CREATE_THREAD)
         self.setMeta('ThreadId', initid)
@@ -915,7 +915,7 @@ class TracerThread(Thread):
                 meth, args, kwargs, queue = qobj
                 try:
                     queue.put(meth(*args, **kwargs))
-                except Exception,e:
+                except Exception as e:
                     queue.put(e)
                     if vtrace.verbose:
                         traceback.print_exc()

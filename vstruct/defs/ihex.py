@@ -169,6 +169,6 @@ asdf
     #print h.tree()
 
     for addr,perms,fname,bytes in h.getMemoryMaps():
-        print '0x%.8x: %r' % ( addr, bytes )
+        print('0x%.8x: %r' % ( addr, bytes ))
 
-    print h.getEntryPoint()
+    print(h.getEntryPoint())

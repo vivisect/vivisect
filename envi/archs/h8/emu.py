@@ -6,12 +6,12 @@ import sys
 import struct
 import logging
 
-import emu
+from . import emu
 import envi
 import envi.bits as e_bits
 from envi.archs.h8 import H8Module
 from envi.archs.h8.regs import *
-from disasm import H8RegDirOper
+from .disasm import H8RegDirOper
 
 
 logger = logging.getLogger(__name__)
@@ -124,7 +124,7 @@ class H8Emulator(H8Module, H8RegisterContext, envi.Emulator):
         self.state = CPUSTATE_RESET
         self.ptrsz = 0
 
-        seglist = [ (0,0xffffffff) for x in xrange(6) ]
+        seglist = [ (0,0xffffffff) for x in range(6) ]
 
         self.setAdvanced(advanced)
         self.addCallingConvention("H8 Arch Procedure Call", h8call)

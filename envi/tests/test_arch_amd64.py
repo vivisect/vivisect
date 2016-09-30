@@ -114,14 +114,14 @@ class Amd64InstructionSet(unittest.TestCase):
 
         self.assertEqual( repr(op), oprepr )
         opvars = vars(op)
-        for opk,opv in opcheck.items():
+        for opk,opv in list(opcheck.items()):
             #print "op: %s %s" % (opk,opv)
             self.assertEqual( (repr(op), opk, opvars.get(opk)), (oprepr, opk, opv) )
 
         for oidx in range(len(op.opers)):
             oper = op.opers[oidx]
             opervars = vars(oper)
-            for opk,opv in opercheck[oidx].items():
+            for opk,opv in list(opercheck[oidx].items()):
                 #print "oper: %s %s" % (opk,opv)
                 self.assertEqual( (repr(op), opk, opervars.get(opk)), (oprepr, opk, opv) )
 
@@ -342,7 +342,7 @@ class Amd64InstructionSet(unittest.TestCase):
         opbytez = 'a1a2345678aabbccdd'
         oprepr = 'mov eax,dword [0xddccbbaa785634a2]'
         opcheck =  {'iflags': 131072, 'va': 16384, 'repr': None, 'prefixes': 0, 'mnem': 'mov', 'opcode': 24577, 'size': 9}
-        opercheck = [{'tsize': 4, 'reg': 2097152}, {'tsize': 4, '_is_deref': True, 'imm': 15982355518468797602L}]
+        opercheck = [{'tsize': 4, 'reg': 2097152}, {'tsize': 4, '_is_deref': True, 'imm': 15982355518468797602}]
         self.checkOpcode( opbytez, 0x4000, oprepr, opcheck, opercheck, oprepr )
 
     def test_envi_amd64_disasm_SIB_Operands(self):
@@ -391,10 +391,10 @@ def generateTestInfo(ophexbytez='6e'):
     a64 = e_amd64.Amd64Module()
     opbytez = ophexbytez
     op = a64.archParseOpcode(opbytez.decode('hex'), 0, 0x4000)
-    print "opbytez = '%s'\noprepr = '%s'"%(opbytez,repr(op))
+    print("opbytez = '%s'\noprepr = '%s'"%(opbytez,repr(op)))
     opvars=vars(op)
     opers = opvars.pop('opers')
-    print "opcheck = ",repr(opvars)
+    print("opcheck = ",repr(opvars))
 
     opersvars = []
     for x in range(len(opers)):
@@ -402,5 +402,5 @@ def generateTestInfo(ophexbytez='6e'):
         opervars.pop('_dis_regctx')
         opersvars.append(opervars)
 
-    print "opercheck = %s" % (repr(opersvars))
+    print("opercheck = %s" % (repr(opersvars)))
 

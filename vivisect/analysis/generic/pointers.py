@@ -15,6 +15,6 @@ def analyze(vw):
             continue
         try:
             vw.followPointer(pval)
-        except Exception, e:
+        except Exception as e:
             if vw.verbose: vw.vprint("followPointer() failed for 0x%.8x (pval: 0x%.8x)" % (addr,pval))
 

@@ -1,5 +1,5 @@
 from envi.archs.i386.opconst import *
-import regs as e_amd64_regs
+from . import regs as e_amd64_regs
 
 
 
@@ -84,7 +84,7 @@ tablenames = [  None,           # nexttable index 0 means NO TABLE!
 tables_lookup = {}
 
 # generate TBL_* "constants"
-for nidx in xrange(1, len(tablenames)):
+for nidx in range(1, len(tablenames)):
     name = tablenames[nidx]
     stub = name[6:]
     const = "TBL_" + stub
@@ -1023,7 +1023,7 @@ desc_0F18       = (tbl32_0F18,3,3,0x07,0,0xff)
 """
 (optable, optype, operand 0, operand 1, operand 2, CPU required, "opcodename", op0Register, op1Register, op2Register)
 """
-tbl32_0F38 = [ (0, 0, 0, 0, 0, 0, 0, 0, 0, 0) for x in xrange(256) ]
+tbl32_0F38 = [ (0, 0, 0, 0, 0, 0, 0, 0, 0, 0) for x in range(256) ]
 tbl32_0F38[0x0] = ( 0, INS_OTHER, ADDRMETH_P | OPTYPE_q | OP_W, ADDRMETH_Q | OPTYPE_q | OP_R, ARG_NONE, cpu_PENTIUM2, "pshufb", 0, 0, 0)
 tbl32_0F38[0x1] = ( 0, INS_OTHER, ADDRMETH_P | OPTYPE_q | OP_W, ADDRMETH_Q | OPTYPE_q | OP_R, ARG_NONE, cpu_PENTIUM2, "phaddw", 0, 0, 0)
 tbl32_0F38[0x2] = ( 0, INS_OTHER, ADDRMETH_P | OPTYPE_q | OP_W, ADDRMETH_Q | OPTYPE_q | OP_R, ARG_NONE, cpu_PENTIUM2, "phaddd", 0, 0, 0)
@@ -1087,10 +1087,10 @@ tbl32_F20F38 = list(tbl32_0F38)
 #tbl32_F20F38 = [ (0, 0, 0, 0, 0, 0, 0, 0, 0, 0) for x in xrange(256) ]
 tbl32_F20F38[0xf0] = (0, INS_OTHER, ADDRMETH_G | OPTYPE_d  | OP_W, ADDRMETH_E | OPTYPE_b  | OP_R, ARG_NONE, cpu_AMD64, "crc32", 0, 0, 0)
 
-tbl32_F30F38 = [ (0, 0, 0, 0, 0, 0, 0, 0, 0, 0) for x in xrange(256) ]
+tbl32_F30F38 = [ (0, 0, 0, 0, 0, 0, 0, 0, 0, 0) for x in range(256) ]
 tbl32_F30F38[0xf0] = (0, INS_OTHER, ADDRMETH_G | OPTYPE_d  | OP_W, ADDRMETH_E | OPTYPE_b  | OP_R, ARG_NONE, cpu_AMD64, "crc32", 0, 0, 0)
 
-tbl32_F3660F38 = [ (0, 0, 0, 0, 0, 0, 0, 0, 0, 0) for x in xrange(256) ]
+tbl32_F3660F38 = [ (0, 0, 0, 0, 0, 0, 0, 0, 0, 0) for x in range(256) ]
 
 tbl32_F2660F38 = list(tbl32_660F38)
 tbl32_F2660F38[0xf0] = (0, INS_OTHER, ADDRMETH_G | OPTYPE_d  | OP_W, ADDRMETH_E | OPTYPE_b  | OP_R, ARG_NONE, cpu_AMD64, "crc32", 0, 0, 0)
@@ -1104,7 +1104,7 @@ desc_F20F38         = (tbl32_0F38,3,0,0xff,0,0xff)
 desc_F2660F38       = (tbl32_F2660F38,3,0,0xff,0,0xff)
 
 
-tbl32_0F38F3 = [ (0, 0, 0, 0, 0, 0, 0, 0, 0, 0) for x in xrange(256) ]
+tbl32_0F38F3 = [ (0, 0, 0, 0, 0, 0, 0, 0, 0, 0) for x in range(256) ]
 tbl32_0F38F3[1] = (0, INS_OTHER, ADDRMETH_B | OPTYPE_y  | OP_W, ADDRMETH_E | OPTYPE_y  | OP_R, ARG_NONE, cpu_AMD64, "blsr", 0, 0, 0)
 tbl32_0F38F3[2] = (0, INS_OTHER, ADDRMETH_B | OPTYPE_y  | OP_W, ADDRMETH_E | OPTYPE_y  | OP_R, ARG_NONE, cpu_AMD64, "blsmsk", 0, 0, 0)
 tbl32_0F38F3[3] = (0, INS_OTHER, ADDRMETH_B | OPTYPE_y  | OP_W, ADDRMETH_E | OPTYPE_y  | OP_R, ARG_NONE, cpu_AMD64, "blsi", 0, 0, 0)
@@ -1116,7 +1116,7 @@ desc_0F38F3           = (tbl32_0F38F3,3,3,0x7,0,0xff)
 (optable, optype, operand 0, operand 1, operand 2, CPU required, "opcodename", op0Register, op1Register, op2Register)
 """
 ##### NOTE: this table configured for 4 arguments
-tbl32_0F3A = [ (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0) for x in xrange(256) ]
+tbl32_0F3A = [ (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0) for x in range(256) ]
 tbl32_0F3A[0xf] = ( 0, INS_OTHER, ADDRMETH_V | OPTYPE_q | OP_W, ADDRMETH_W | OPTYPE_q | OP_R, ADDRMETH_I | OPTYPE_b | OP_R, cpu_PENTIUM2, "palignr", 0, 0, 0)
 
 tbl32_660F3A = list(tbl32_0F3A)
@@ -2278,7 +2278,7 @@ IMPORTANT: the decoder will assume the opcode is ultimately selected by bits in 
 # this generation must be placed after all tables are defined
 tables86=[ None for x in range(256) ]
 
-for nidx in xrange(1, len(tablenames)):
+for nidx in range(1, len(tablenames)):
     name = tablenames[nidx]
     stub = name[6:]
     desc = "desc_" + stub

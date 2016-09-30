@@ -87,7 +87,7 @@ class MemoryCanvas(object):
         return self.renderers.get(name)
 
     def getRendererNames(self):
-        ret = self.renderers.keys()
+        ret = list(self.renderers.keys())
         ret.sort()
         return ret
 
@@ -250,7 +250,7 @@ class MemoryCanvas(object):
                 self._endRenderVa(startva)
                 startva += rsize
 
-        except Exception, e:
+        except Exception as e:
             s = traceback.format_exc()
             self.addText("\nException At %s: %s\n" % (hex(va),s))
 
@@ -283,7 +283,7 @@ class MemoryCanvas(object):
 
             self._canv_rendvas.extend(savedrendvas)
 
-        except Exception, e:
+        except Exception as e:
             s = traceback.format_exc()
             self.addText("\nException At %s: %s\n" % (hex(va),s))
 
@@ -308,7 +308,7 @@ class MemoryCanvas(object):
 
             self._canv_endva = maxva
 
-        except Exception, e:
+        except Exception as e:
             s = traceback.format_exc()
             self.addText("\nException At %s: %s\n" % (hex(va),s))
 
@@ -342,13 +342,13 @@ class MemoryCanvas(object):
                     self._canv_rendvas.append((va,rsize))
                     self._endRenderVa(va)
                     va += rsize
-                except Exception, e:
+                except Exception as e:
                     traceback.print_exc()
                     self.addText("\nRender Exception At %s: %s\n" % (hex(va),e))
                     self._endRenderVa(va)
                     break
 
-        except Exception, e:
+        except Exception as e:
             self.addText("\nException At %s: %s\n" % (hex(va),e))
 
         # Canvas callback for render completion (or error...)

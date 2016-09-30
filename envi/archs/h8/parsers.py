@@ -2,9 +2,9 @@ import envi
 import envi.bits as e_bits
 import struct
 
-from disasm import H8ImmOper, H8RegDirOper, H8RegIndirOper, H8AbsAddrOper, H8PcOffsetOper, H8RegMultiOper, H8MemIndirOper
-from regs import *
-from const import *
+from .disasm import H8ImmOper, H8RegDirOper, H8RegIndirOper, H8AbsAddrOper, H8PcOffsetOper, H8RegMultiOper, H8MemIndirOper
+from .regs import *
+from .const import *
 
 bcc = [
         ('bra', envi.IF_NOFALL | envi.IF_BRANCH),

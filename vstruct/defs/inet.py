@@ -176,8 +176,8 @@ class ICMP(vstruct.VStruct):
 if __name__ == '__main__':
     eII = ETHERII()
     eII.vsParse('AAAAAABBBBBB\x08\x00')
-    print eII.tree()
+    print(eII.tree())
     eII = ETHERII()
     eII.vsParse('AAAAAABBBBBB\x81\x00\x02\x02\x08\x00')
-    print eII.tree()
+    print(eII.tree())
 

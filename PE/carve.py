@@ -3,18 +3,18 @@
 import sys
 import struct
 
-from cStringIO import StringIO
-from itertools import izip, cycle
+from io import StringIO
+from itertools import cycle
 
 import PE
  
 def xorbytes(data, key):
-    return ''.join(chr(ord(x) ^ ord(y)) for (x,y) in izip(data, cycle(key)))
+    return ''.join(chr(ord(x) ^ ord(y)) for (x,y) in zip(data, cycle(key)))
 
 def xorstatic(data, i):
     return ''.join( chr( ord(c) ^ i ) for c in data )
 
-mz_xor = [ (xorstatic('MZ', i), xorstatic('PE', i), i) for i in xrange(256) ]
+mz_xor = [ (xorstatic('MZ', i), xorstatic('PE', i), i) for i in range(256) ]
 
 def carve(pbytes, offset=0):
     '''
@@ -69,7 +69,7 @@ if __name__ == '__main__':
 
     fbytes = file(sys.argv[1], 'rb').read()
     for offset, i in  carve(fbytes):
-        print 'OFFSET: %d (xor: %d)' % (offset, i)
+        print('OFFSET: %d (xor: %d)' % (offset, i))
         p = CarvedPE(fbytes, offset, chr(i))
-        print 'SIZE',p.getFileSize()
+        print('SIZE',p.getFileSize())
 

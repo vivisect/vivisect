@@ -23,7 +23,7 @@ def report(vw):
                 sname = seg[vivisect.SEG_NAME]
             try:
                 b = vw.readMemory(tova, 8).encode('hex')
-            except Exception, e:
+            except Exception as e:
                 b = str(e)
             res[tova] = (b, "%s ref from 0x%x (%s)" % (rname,fromva,sname))
 
@@ -31,7 +31,7 @@ def report(vw):
         if vw.getLocation(va) == None:
             try:
                 b = vw.readMemory(tova, 8).encode('hex')
-            except Exception, e:
+            except Exception as e:
                 b = str(e)
             res[va] = (b, name)
 

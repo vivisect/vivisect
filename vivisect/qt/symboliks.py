@@ -68,7 +68,7 @@ class VivSymbolikFuncPane(e_q_memory.EnviNavMixin, vq_save.SaveableWidget, QtGui
 
         QtGui.QWidget.__init__(self, parent=parent)
         e_q_memory.EnviNavMixin.__init__(self)
-        self.setEnviNavName('Symboliks%d' % self.viewidx.next())
+        self.setEnviNavName('Symboliks%d' % next(self.viewidx))
 
         self.exprtext = QtGui.QLineEdit(parent=self)
         self.constraintext = QtGui.QLineEdit(parent=self)
@@ -168,7 +168,7 @@ class VivSymbolikFuncPane(e_q_memory.EnviNavMixin, vq_save.SaveableWidget, QtGui
                     
             self.pathview.loadSymbolikPaths(paths)
 
-        except Exception, e:
+        except Exception as e:
             traceback.print_exc()
             self.memcanvas.addText('ERROR: %s' % e)
 

@@ -165,7 +165,7 @@ class SymbolikFunctionEmulator(vsym_emulator.SymbolikEmulator):
         if args == None:
             # Initialize arguments by setting variables based on their arg indexes
             argc = len( self._sym_vw.getFunctionArgs(fva) )
-            args = [ Var('arg%d' % i, self.__width__) for i in xrange( argc ) ]
+            args = [ Var('arg%d' % i, self.__width__) for i in range( argc ) ]
 
         self.cconv.setSymbolikArgs(self, args)
 
@@ -297,7 +297,7 @@ class SymbolikFunctionEmulator(vsym_emulator.SymbolikEmulator):
         Retrieve a list of (name, ccobj) tuples for the registered *symbolik*
         calling convention objects in this context.
         '''
-        return self.cconvs.items()
+        return list(self.cconvs.items())
 
     def addFunctionCallback(self, funcname, callback):
         '''
@@ -485,7 +485,7 @@ class SymbolikAnalysisContext:
             # first, test for the "entry" case
             if ppath == None and edge == None:
                 emu = self.getFuncEmu(fva)
-                for fname, funccb in self.funccb.items():
+                for fname, funccb in list(self.funccb.items()):
                     emu.addFunctionCallback(fname, funccb)
 
                 patheffs = emu.applyEffects(self.preeffects)
@@ -521,7 +521,7 @@ class SymbolikAnalysisContext:
                 # bail if the constraint is dorked
                 if coneff.cons.isDiscrete():
                     if not coneff.cons.prove():
-                        print('TRIM: %s' % (str(coneff.cons),))
+                        print(('TRIM: %s' % (str(coneff.cons),)))
                         return False
                     continue
                     
@@ -558,7 +558,7 @@ class SymbolikAnalysisContext:
 
         if args == None:
             argdef = self.vw.getFunctionArgs( fva )
-            args = [ Arg(i, width=self.vw.psize) for i in xrange(len(argdef)) ]
+            args = [ Arg(i, width=self.vw.psize) for i in range(len(argdef)) ]
 
         if paths == None:
             paths = viv_graph.getCodePaths(graph, maxpath=maxpath)
@@ -572,7 +572,7 @@ class SymbolikAnalysisContext:
             skippath = False
             emu = self.getFuncEmu(fva, fargs=args)
 
-            for fname, funccb in self.funccb.items():
+            for fname, funccb in list(self.funccb.items()):
                 emu.addFunctionCallback(fname, funccb)
 
             opcodes = []
@@ -637,7 +637,7 @@ class SymbolikAnalysisContext:
         '''
         if args == None:
             argdef = self.vw.getFunctionArgs( fva )
-            args = [ Arg(i, width=self.vw.psize) for i in xrange(len(argdef)) ]
+            args = [ Arg(i, width=self.vw.psize) for i in range(len(argdef)) ]
 
         for emu, effects in self.getSymbolikPaths(fva, args=args):
 

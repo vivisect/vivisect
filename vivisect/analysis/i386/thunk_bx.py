@@ -34,7 +34,7 @@ def analyzeFunction(vw, fva):
         op = vw.parseOpcode(va)
         op2 = vw.parseOpcode(va + len(op))
         if op2.mnem != "add":
-            if vw.verbose: print("call to thunk_bx not followed by an add: %s" % op2)
+            if vw.verbose: print(("call to thunk_bx not followed by an add: %s" % op2))
             return
         
         addt = op2.opers[1].getOperValue(op2)
@@ -42,7 +42,7 @@ def analyzeFunction(vw, fva):
         if vw.getMeta('PIE_ebx') != None:
             return
 
-        if vw.verbose: print("__x86.get_pc_thunk.bx:  ", hex(ebx))
+        if vw.verbose: print(("__x86.get_pc_thunk.bx:  ", hex(ebx)))
         curname = vw.getName(fva)
         if curname == None or curname == "sub_%.8x"%fva:
             vw.makeName(fva, "thunk_bx_%.8x"%fva)

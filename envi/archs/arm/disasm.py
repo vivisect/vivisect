@@ -874,7 +874,7 @@ def p_media_usada(opval, va):
     return (opcode, mnem, olist, 0)
 
 def p_arch_undef(opval, va):
-    print ("p_arch_undef: invalid instruction (by definition in ARM spec): %.8x:\t%.8x"%(va,opval))
+    print(("p_arch_undef: invalid instruction (by definition in ARM spec): %.8x:\t%.8x"%(va,opval)))
     raise envi.InvalidInstruction(
             mesg="p_arch_undef: invalid instruction (by definition in ARM spec)",
             bytez=struct.pack("<I", opval), va=va)
@@ -1415,7 +1415,7 @@ class ArmOpcode(envi.Opcode):
         # Allow each of our operands to render
         imax = len(self.opers)
         lasti = imax - 1
-        for i in xrange(imax):
+        for i in range(imax):
             oper = self.opers[i]
             oper.render(mcanv, self, i)
             if i != lasti:
@@ -1976,7 +1976,7 @@ class ArmImmOffsetOper(ArmOperand):
 
             # FIXME: is there any chance of us doing indexing on PC?!?
             if idxing != 0x10:
-                print "OMJ! indexing on the program counter!"
+                print("OMJ! indexing on the program counter!")
         else:
             pom = ('-','')[u]
             mcanv.addText('[')
@@ -2006,7 +2006,7 @@ class ArmImmOffsetOper(ArmOperand):
             tname = "[#0x%x]" % addr
             # FIXME: is there any chance of us doing indexing on PC?!?
             if idxing != 0x10:
-                print "OMJ! indexing on the program counter!"
+                print("OMJ! indexing on the program counter!")
         else:
             pom = ('-','')[u]
             if self.offset != 0:
@@ -2158,7 +2158,7 @@ class ArmRegListOper(ArmOperand):
 
     def render(self, mcanv, op, idx):
         mcanv.addText('{')
-        for l in xrange(16):
+        for l in range(16):
             if self.val & 1<<l:
                 mcanv.addNameText(arm_regs[l][0], typename='registers')
                 mcanv.addText(', ')
@@ -2170,7 +2170,7 @@ class ArmRegListOper(ArmOperand):
         if emu == None:
             return None
         reglist = []
-        for regidx in xrange(16):
+        for regidx in range(16):
             #FIXME: check processor mode (abort, system, user, etc... use banked registers?)
             if self.val & (1<<regidx):
                 reg = emu.getRegister(regidx)
@@ -2179,7 +2179,7 @@ class ArmRegListOper(ArmOperand):
 
     def repr(self, op):
             s = [ "{" ]
-            for l in xrange(16):
+            for l in range(16):
                 if (self.val & (1<<l)):
                     s.append(arm_regs[l][0])
             s.append('}')

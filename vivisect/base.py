@@ -1,4 +1,4 @@
-import Queue
+import queue
 import traceback
 import threading
 import collections
@@ -26,6 +26,8 @@ from vivisect.const import *
 Mostly this is a place to scuttle away some of the inner workings
 of a workspace, so the outer facing API is a little cleaner.
 """
+
+
 class VivEventCore(object):
     '''
     A class to facilitate event monitoring in the viv workspace.
@@ -33,8 +35,8 @@ class VivEventCore(object):
 
     def __init__(self, vw):
         self._ve_vw = vw
-        self._ve_ehand = [None for x in xrange(VWE_MAX)]
-        self._ve_thand = [None for x in xrange(VTE_MAX)]
+        self._ve_ehand = [None for x in range(VWE_MAX)]
+        self._ve_thand = [None for x in range(VTE_MAX)]
         self._ve_lock = threading.Lock()
 
         # Find and put handler functions into the list
@@ -56,7 +58,7 @@ class VivEventCore(object):
         if h != None:
             try:
                 h(self._ve_vw, event, edata)
-            except Exception, e:
+            except Exception as e:
                 traceback.print_exc()
 
     @firethread
@@ -81,20 +83,23 @@ class VivEventCore(object):
     def _ve_thawEvents(self):
         self._ve_lock.release()
 
+
 vaset_xlate = {
-    int:VASET_ADDRESS,
-    str:VASET_STRING,
+    int: VASET_ADDRESS,
+    str: VASET_STRING,
 }
+
 
 class VivEventDist(VivEventCore):
     '''
     Similar to an event core, but does optimized distribution
     to a set of sub eventcore objects (think GUI windows...)
     '''
+
     def __init__(self, vw):
         VivEventCore.__init__(self, vw)
-        self._ve_subs = [ [] for x in xrange(VWE_MAX) ]
-        self._ve_tsubs = [ [] for x in xrange(VTE_MAX) ]
+        self._ve_subs = [[] for x in range(VWE_MAX)]
+        self._ve_tsubs = [[] for x in range(VTE_MAX)]
 
         self.addEventCore(self)
 
@@ -102,23 +107,23 @@ class VivEventDist(VivEventCore):
         self._ve_fireListener()
 
     def addEventCore(self, core):
-        for i in xrange(VWE_MAX):
+        for i in range(VWE_MAX):
             h = core._ve_ehand[i]
             if h != None:
                 self._ve_subs[i].append(h)
 
-        for i in xrange(VTE_MAX):
+        for i in range(VTE_MAX):
             h = core._ve_thand[i]
             if h != None:
                 self._ve_tsubs[i].append(h)
 
     def delEventCore(self, core):
-        for i in xrange(VWE_MAX):
+        for i in range(VWE_MAX):
             h = core._ve_ehand[i]
             if h != None:
                 self._ve_subs[i].remove(h)
 
-        for i in xrange(VTE_MAX):
+        for i in range(VTE_MAX):
             h = core._ve_thand[i]
             if h != None:
                 self._ve_tsubs[i].remove(h)
@@ -136,21 +141,23 @@ class VivEventDist(VivEventCore):
         for h in hlist:
             try:
                 h(self._ve_vw, event, edata)
-            except Exception, e:
+            except Exception as e:
                 traceback.print_exc()
 
         VivEventCore._ve_fireEvent(self, event, edata)
 
+
 def ddict():
     return collections.defaultdict(dict)
 
-class VivWorkspaceCore(object,viv_impapi.ImportApi):
 
+class VivWorkspaceCore(viv_impapi.ImportApi):
     def __init__(self):
-        viv_impapi.ImportApi.__init__(self)
+        super(VivWorkspaceCore, self).__init__()
+        # viv_impapi.ImportApi.__init__(self)
         self.loclist = []
-        self.bigend   = False
-        self.locmap   = e_page.MapLookup()
+        self.bigend = False
+        self.locmap = e_page.MapLookup()
         self.blockmap = e_page.MapLookup()
         self._mods_loaded = False
 
@@ -164,11 +171,11 @@ class VivWorkspaceCore(object,viv_impapi.ImportApi):
         self._call_graph.setMeta('edgecolor', '#00802b')
 
         self._event_list = []
-        self._event_saved = 0 # The index of the last "save" event...
+        self._event_saved = 0  # The index of the last "save" event...
 
         # Give ourself a structure namespace!
         self.vsbuilder = vs_builder.VStructBuilder()
-        self.vsconsts  = vs_const.VSConstResolver()
+        self.vsconsts = vs_const.VSConstResolver()
 
     def _snapInAnalysisModules(self):
         '''
@@ -197,7 +204,7 @@ class VivWorkspaceCore(object,viv_impapi.ImportApi):
         if ltype == LOC_IMPORT:
             # Check if the import is registered in NoReturnApis
             if self.getMeta('NoReturnApis', {}).get(linfo.lower()):
-                self.cfctx.addNoReturnAddr( lva )
+                self.cfctx.addNoReturnAddr(lva)
 
     def _handleDELLOCATION(self, loc):
         # FIXME delete xrefs
@@ -213,25 +220,25 @@ class VivWorkspaceCore(object,viv_impapi.ImportApi):
         self.relocations.append(einfo)
 
     def _handleADDMODULE(self, einfo):
-        print('DEPRICATED (ADDMODULE) ignored: %s' % einfo)
+        print(('DEPRICATED (ADDMODULE) ignored: %s' % einfo))
 
     def _handleDELMODULE(self, einfo):
-        print('DEPRICATED (DELMODULE) ignored: %s' % einfo)
+        print(('DEPRICATED (DELMODULE) ignored: %s' % einfo))
 
     def _handleADDFMODULE(self, einfo):
-        print('DEPRICATED (ADDFMODULE) ignored: %s' % einfo)
+        print(('DEPRICATED (ADDFMODULE) ignored: %s' % einfo))
 
     def _handleDELFMODULE(self, einfo):
-        print('DEPRICATED (DELFMODULE) ignored: %s' % einfo)
+        print(('DEPRICATED (DELFMODULE) ignored: %s' % einfo))
 
     def _handleADDFUNCTION(self, einfo):
         va, meta = einfo
         self._initFunction(va)
 
-        #node = self._call_graph.addNode( nid=va, repr=self.getName( va ) ) #, color='#00ff00' )
-        #node = self._call_graph.getFunctionNode(va, repr=self.getName( va ) )
+        # node = self._call_graph.addNode( nid=va, repr=self.getName( va ) ) #, color='#00ff00' )
+        # node = self._call_graph.getFunctionNode(va, repr=self.getName( va ) )
         node = self._call_graph.getFunctionNode(va)
-        self._call_graph.setNodeProp(node,'repr',self.getName(va))
+        self._call_graph.setNodeProp(node, 'repr', self.getName(va))
 
         # Tell the codeflow subsystem about this one!
         calls_from = meta.get('CallsFrom')
@@ -239,7 +246,7 @@ class VivWorkspaceCore(object,viv_impapi.ImportApi):
 
         self.funcmeta[va] = meta
 
-        for name,value in meta.items():
+        for name, value in list(meta.items()):
             mcbname = "_fmcb_%s" % name.split(':')[0]
             mcb = getattr(self, mcbname, None)
             if mcb != None:
@@ -263,13 +270,13 @@ class VivWorkspaceCore(object,viv_impapi.ImportApi):
             mcb(funcva, name, value)
 
     def _handleADDCODEBLOCK(self, einfo):
-        va,size,funcva = einfo
+        va, size, funcva = einfo
         self.blockmap.setMapLookup(va, size, einfo)
         self.codeblocks_by_funcva.get(funcva).append(einfo)
         self.codeblocks.append(einfo)
 
     def _handleDELCODEBLOCK(self, cb):
-        va,size,funcva = cb
+        va, size, funcva = cb
         self.codeblocks.remove(cb)
         self.codeblocks_by_funcva.get(cb[CB_FUNCVA]).remove(cb)
         self.blockmap.setMapLookup(va, size, None)
@@ -286,7 +293,7 @@ class VivWorkspaceCore(object,viv_impapi.ImportApi):
             xr_from = []
             self.xrefs_by_from[fromva] = xr_from
 
-        if einfo not in xr_to: # Just check one for now
+        if einfo not in xr_to:  # Just check one for now
             xr_to.append(einfo)
             xr_from.append(einfo)
             self.xrefs.append(einfo)
@@ -297,7 +304,7 @@ class VivWorkspaceCore(object,viv_impapi.ImportApi):
         self.xrefs_by_from[fromva].remove(einfo)
 
     def _handleSETNAME(self, einfo):
-        va,name = einfo
+        va, name = einfo
         if name == None:
             oldname = self.name_by_va.pop(va, None)
             self.va_by_name.pop(oldname, None)
@@ -309,9 +316,9 @@ class VivWorkspaceCore(object,viv_impapi.ImportApi):
             self.va_by_name[name] = va
             self.name_by_va[va] = name
 
-        if self.isFunction( va ):
+        if self.isFunction(va):
             fnode = self._call_graph.getFunctionNode(va)
-            self._call_graph.setNodeProp(fnode,'repr',name)
+            self._call_graph.setNodeProp(fnode, 'repr', name)
 
     def _handleADDMMAP(self, einfo):
         va, perms, fname, mbytes = einfo
@@ -323,17 +330,17 @@ class VivWorkspaceCore(object,viv_impapi.ImportApi):
 
         # On loading a new memory map, we need to crush a few
         # transmeta items...
-        self.transmeta.pop('findPointers',None)
+        self.transmeta.pop('findPointers', None)
 
     def _handleADDEXPORT(self, einfo):
         va, etype, name, filename = einfo
         self.exports.append(einfo)
         self.exports_by_va[va] = einfo
-        fullname = "%s.%s" % (filename,name)
+        fullname = "%s.%s" % (filename, name)
         self.makeName(va, fullname)
 
     def _handleSETMETA(self, einfo):
-        name,value = einfo
+        name, value = einfo
         # See if there's a callback handler for this meta set.
         # For "meta namespaces" use the first part to find the
         # callback name....
@@ -344,7 +351,7 @@ class VivWorkspaceCore(object,viv_impapi.ImportApi):
         self.metadata[name] = value
 
     def _handleCOMMENT(self, einfo):
-        va,comment = einfo
+        va, comment = einfo
         if comment == None:
             self.comments.pop(va)
         else:
@@ -352,7 +359,7 @@ class VivWorkspaceCore(object,viv_impapi.ImportApi):
 
     def _handleADDFILE(self, einfo):
         normname, imagebase, md5sum = einfo
-        self.filemeta[normname] = {"md5sum":md5sum,"imagebase":imagebase}
+        self.filemeta[normname] = {"md5sum": md5sum, "imagebase": imagebase}
 
     def _handleSETFILEMETA(self, einfo):
         fname, key, value = einfo
@@ -368,7 +375,7 @@ class VivWorkspaceCore(object,viv_impapi.ImportApi):
     def _handleADDVASET(self, argtup):
         name, defs, rows = argtup
         # NOTE: legacy translation for vaset column types...
-        defs = [ (cname,vaset_xlate.get(ctype,ctype)) for (cname,ctype) in defs ]
+        defs = [(cname, vaset_xlate.get(ctype, ctype)) for (cname, ctype) in defs]
         self.vasetdefs[name] = defs
         vals = {}
         for row in rows:
@@ -381,11 +388,11 @@ class VivWorkspaceCore(object,viv_impapi.ImportApi):
 
     def _handleADDFREF(self, frtup):
         va, idx, val = frtup
-        self.frefs[(va,idx)] = val
+        self.frefs[(va, idx)] = val
 
     def _handleDELFREF(self, frtup):
         va, idx, val = frtup
-        self.frefs.pop((va,idx), None)
+        self.frefs.pop((va, idx), None)
 
     def _handleSETVASETROW(self, argtup):
         name, row = argtup
@@ -396,7 +403,7 @@ class VivWorkspaceCore(object,viv_impapi.ImportApi):
         self.vasets[name].pop(va, None)
 
     def _handleADDFSIG(self, einfo):
-        print('DEPRICATED (ADDFSIG) ignored: %s' % (einfo,))
+        print(('DEPRICATED (ADDFSIG) ignored: %s' % (einfo,)))
 
     def _handleFOLLOWME(self, va):
         pass
@@ -409,9 +416,9 @@ class VivWorkspaceCore(object,viv_impapi.ImportApi):
     def _handleSYMHINT(self, msgtup):
         va, idx, hint = msgtup
         if hint == None:
-            self.symhints.pop((va,idx), None)
+            self.symhints.pop((va, idx), None)
         else:
-            self.symhints[(va,idx)] = hint
+            self.symhints[(va, idx)] = hint
 
     def _handleSETFUNCARGS(self, einfo):
         fva, args = einfo
@@ -426,7 +433,7 @@ class VivWorkspaceCore(object,viv_impapi.ImportApi):
         pass
 
     def _initEventHandlers(self):
-        self.ehand = [None for x in xrange(VWE_MAX)]
+        self.ehand = [None for x in range(VWE_MAX)]
         self.ehand[VWE_ADDLOCATION] = self._handleADDLOCATION
         self.ehand[VWE_DELLOCATION] = self._handleDELLOCATION
         self.ehand[VWE_ADDSEGMENT] = self._handleADDSEGMENT
@@ -465,17 +472,17 @@ class VivWorkspaceCore(object,viv_impapi.ImportApi):
         self.ehand[VWE_ADDFREF] = self._handleADDFREF
         self.ehand[VWE_DELFREF] = self._handleDELFREF
         self.ehand[VWE_FOLLOWME] = self._handleFOLLOWME
-        self.ehand[VWE_CHAT]     = self._handleCHAT
-        self.ehand[VWE_SYMHINT]  = self._handleSYMHINT
+        self.ehand[VWE_CHAT] = self._handleCHAT
+        self.ehand[VWE_SYMHINT] = self._handleSYMHINT
         self.ehand[VWE_AUTOANALFIN] = self._handleAUTOANALFIN
 
-        self.thand = [None for x in xrange(VTE_MAX)]
+        self.thand = [None for x in range(VTE_MAX)]
         self.thand[VTE_IAMLEADER] = self._handleIAMLEADER
         self.thand[VTE_FOLLOWME] = self._handleFOLLOWME
 
     def _handleIAMLEADER(self, event, einfo):
-        user,follow = einfo
-        self.vprint('*%s invites everyone to follow "%s"' % (user,follow))
+        user, follow = einfo
+        self.vprint('*%s invites everyone to follow "%s"' % (user, follow))
 
     def _handleFOLLOWME(self, event, einfo):
         # workspace has nothing to do...
@@ -506,36 +513,37 @@ class VivWorkspaceCore(object,viv_impapi.ImportApi):
             # if we have one? Just to confirm it works before we apply it...
             self._event_list.append((event, einfo))
 
-            for id,q in self.chan_lookup.items():
+            for id, q in list(self.chan_lookup.items()):
                 if id == skip:
                     continue
                 try:
                     q.put_nowait((event, einfo))
-                except Queue.Full, e:
-                    print "FULL QUEUE DO SOMETHING"
+                except queue.Full as e:
+                    print("FULL QUEUE DO SOMETHING")
 
-        except Exception, e:
+        except Exception as e:
             traceback.print_exc()
 
     def _fireTransEvent(self, event, einfo):
-        for q in self.chan_lookup.values():
+        for q in list(self.chan_lookup.values()):
             q.put((event, einfo))
-        return self.thand[event ^ VTE_MASK](event,einfo)
+        return self.thand[event ^ VTE_MASK](event, einfo)
 
     def _initFunction(self, funcva):
         # Internal function to initialize all datastructures necessary for
         # a function, but only if they haven't been done already.
         if self.funcmeta.get(funcva) == None:
-            self.funcmeta[funcva] = {} # His metadata
-            self.codeblocks_by_funcva[funcva] = [] # Init code block list
+            self.funcmeta[funcva] = {}  # His metadata
+            self.codeblocks_by_funcva[funcva] = []  # Init code block list
 
-    #def _loadImportApi(self, apidict):
-        #self._imp_api.update( apidict )
+            # def _loadImportApi(self, apidict):
+            # self._imp_api.update( apidict )
 
-#################################################################
-#
-#  setMeta key callbacks
-#
+        #################################################################
+        #
+        #  setMeta key callbacks
+        #
+
     def _mcb_Architecture(self, name, value):
         # This is for legacy stuff...
         self.arch = envi.getArchModule(value)
@@ -566,8 +574,8 @@ class VivWorkspaceCore(object,viv_impapi.ImportApi):
         # All meta values in the "ustruct" namespace are user defined
         # structure defintions in C.
         sname = name.split(':')[1]
-        ctor = vs_cparse.ctorFromCSource( ssrc )
-        self.vsbuilder.addVStructCtor( sname, ctor )
+        ctor = vs_cparse.ctorFromCSource(ssrc)
+        self.vsbuilder.addVStructCtor(sname, ctor)
 
     def _mcb_WorkspaceServer(self, name, wshost):
         self.vprint('Workspace was Saved to Server: %s' % wshost)
@@ -576,17 +584,17 @@ class VivWorkspaceCore(object,viv_impapi.ImportApi):
     def _fmcb_Thunk(self, funcva, th, thunkname):
         # If the function being made a thunk is registered
         # in NoReturnApis, update codeflow...
-        if self.getMeta('NoReturnApis').get( thunkname.lower() ):
-            self.cfctx.addNoReturnAddr( funcva )
+        if self.getMeta('NoReturnApis').get(thunkname.lower()):
+            self.cfctx.addNoReturnAddr(funcva)
 
     def _fmcb_CallsFrom(self, funcva, th, callsfrom):
         for va in callsfrom:
-            f2va = self.getFunction( va )
+            f2va = self.getFunction(va)
             if f2va != None:
-                self._call_graph.getCallEdge( funcva, f2va )
+                self._call_graph.getCallEdge(funcva, f2va)
 
     def _fmcb_LocalSymbol(self, fva, mname, locsym):
-        fva,spdelta,symtype,syminfo = locsym
+        fva, spdelta, symtype, syminfo = locsym
         self.localsyms[fva][spdelta] = locsym
 
 
@@ -604,8 +612,9 @@ def trackDynBranches(cfctx, op, vw, bflags, branches):
     if len(vw.getXrefsFrom(op.va)):
         return
 
-    if vw.verbose: print "Dynamic Branch found at 0x%x    %s" % (op.va, op)
+    if vw.verbose: print("Dynamic Branch found at 0x%x    %s" % (op.va, op))
     vw.setVaSetRow('DynamicBranches', (op.va, repr(op), bflags))
+
 
 class VivCodeFlowContext(e_codeflow.CodeFlowContext):
     def __init__(self, mem, persist=False, exptable=True, recurse=True):
@@ -614,11 +623,11 @@ class VivCodeFlowContext(e_codeflow.CodeFlowContext):
 
     def _cb_noflow(self, srcva, dstva):
         vw = self._mem
-        loc = vw.getLocation( srcva )
+        loc = vw.getLocation(srcva)
         if loc == None:
             return
 
-        lva,lsize,ltype,linfo = loc
+        lva, lsize, ltype, linfo = loc
         if ltype != LOC_OP:
             return
 
@@ -632,10 +641,9 @@ class VivCodeFlowContext(e_codeflow.CodeFlowContext):
     def _cb_opcode(self, va, op, branches):
 
         loc = self._mem.getLocation(va)
-        if loc  == None: 
-
+        if loc == None:
             # dont code flow through import calls
-            branches = [br for br in branches if not self._mem.isLocType(br[0],LOC_IMPORT)]
+            branches = [br for br in branches if not self._mem.isLocType(br[0], LOC_IMPORT)]
 
             self._mem.makeOpcode(op.va, op=op)
             return branches
@@ -657,32 +665,32 @@ class VivCodeFlowContext(e_codeflow.CodeFlowContext):
         if vw.getName(fva) == None:
             vw.makeName(fva, "sub_%.8x" % fva)
 
-        vw._fireEvent(VWE_ADDFUNCTION, (fva,fmeta))
+        vw._fireEvent(VWE_ADDFUNCTION, (fva, fmeta))
 
         # Go through the function analysis modules in order
         for fmname in vw.fmodlist:
             fmod = vw.fmods.get(fmname)
             try:
                 fmod.analyzeFunction(vw, fva)
-            except Exception, e:
+            except Exception as e:
                 if vw.verbose:
                     traceback.print_exc()
                 vw.verbprint("Function Analysis Exception for 0x%x   %s: %s" % (fva, fmod.__name__, e))
                 vw.setFunctionMeta(fva, "%s fail" % fmod.__name__, traceback.format_exc())
 
-        fname = vw.getName( fva )
-        if vw.getMeta('NoReturnApis').get( fname.lower() ):
-            self._cf_noret[ fva ] = True
+        fname = vw.getName(fva)
+        if vw.getMeta('NoReturnApis').get(fname.lower()):
+            self._cf_noret[fva] = True
 
-        if len( vw.getFunctionBlocks( fva )) == 1:
+        if len(vw.getFunctionBlocks(fva)) == 1:
             return
 
         fmeta = vw.getFunctionMetaDict(fva)
-        for lva in vw.getVaSetRows('NoReturnCalls'): 
+        for lva in vw.getVaSetRows('NoReturnCalls'):
             va = lva[0]
             ctup = vw.getCodeBlock(va)
             if ctup and fva == ctup[2] and vw.getFunctionMeta(fva, 'BlockCount', default=0) == 1:
-                self._cf_noret[ fva ] = True
+                self._cf_noret[fva] = True
                 break
 
     def _cb_branchtable(self, tablebase, tableva, destva):
@@ -692,6 +700,5 @@ class VivCodeFlowContext(e_codeflow.CodeFlowContext):
 
         if self._mem.getLocation(tableva) == None:
             self._mem.makePointer(tableva, tova=destva, follow=False)
-    
-        return True
 
+        return True

@@ -8,7 +8,7 @@ import struct
 import envi
 import envi.bits as e_bits
 
-import opcode86
+from . import opcode86
 all_tables = opcode86.tables86
 
 # Grab our register enums etc...
@@ -608,7 +608,7 @@ class i386Opcode(envi.Opcode):
         # Allow each of our operands to render
         imax = len(self.opers)
         lasti = imax - 1
-        for i in xrange(imax):
+        for i in range(imax):
             oper = self.opers[i]
             oper.render(mcanv, self, i)
             if i != lasti:
@@ -925,7 +925,7 @@ class i386Disasm:
                     else:
                         osize, oper = ameth(bytez, offset, tsize, prefixes, operflags)
 
-                except struct.error, e:
+                except struct.error as e:
                     # Catch struct unpack errors due to insufficient data length
                     raise envi.InvalidInstruction(bytez=bytez[startoff:startoff+16])
 

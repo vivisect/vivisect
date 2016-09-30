@@ -23,7 +23,7 @@ class v_bitmask(object):
 
     def vsReverseMapping(self, val, default=None):
         '''Returns a list of names where apply the AND of the mask and val is non-zero'''
-        return [ v for k,v in self._vs_reverseMap.items() if (val&k) != 0 ]
+        return [ v for k,v in list(self._vs_reverseMap.items()) if (val&k) != 0 ]
 
 class v_base(object):
     def __init__(self):
@@ -185,13 +185,13 @@ class v_number(v_prim):
         return ''.join(r)
 
     def vsSetValue(self, value):
-        self._vs_value = long(value & self.maxval)
+        self._vs_value = int(value & self.maxval)
 
     def __int__(self):
         return int(self._vs_value)
 
     def __long__(self):
-        return long(self._vs_value)
+        return int(self._vs_value)
 
     def __str__(self):
         v = self.vsGetValue()
@@ -202,34 +202,34 @@ class v_number(v_prim):
     ##################################################################
     # Implement the number API
 
-    def __add__(self, other): return long(self) + long(other)
-    def __sub__(self, other): return long(self) - long(other)
-    def __mul__(self, other): return long(self) * long(other)
-    def __div__(self, other): return long(self) / long(other)
-    def __floordiv__(self, other): return long(self) // long(other)
-    def __mod__(self, other): return long(self) % long(other)
-    def __divmod__(self, other): return divmod(long(self), long(other))
-    def __pow__(self, other, modulo=None): return pow(long(self), long(other), modulo)
-    def __lshift__(self, other): return long(self) << long(other)
-    def __rshift__(self, other): return long(self) >> long(other)
-    def __and__(self, other): return long(self) & long(other)
-    def __xor__(self, other): return long(self) ^ long(other)
-    def __or__(self, other): return long(self) | long(other)
+    def __add__(self, other): return int(self) + int(other)
+    def __sub__(self, other): return int(self) - int(other)
+    def __mul__(self, other): return int(self) * int(other)
+    def __div__(self, other): return int(self) / int(other)
+    def __floordiv__(self, other): return int(self) // int(other)
+    def __mod__(self, other): return int(self) % int(other)
+    def __divmod__(self, other): return divmod(int(self), int(other))
+    def __pow__(self, other, modulo=None): return pow(int(self), int(other), modulo)
+    def __lshift__(self, other): return int(self) << int(other)
+    def __rshift__(self, other): return int(self) >> int(other)
+    def __and__(self, other): return int(self) & int(other)
+    def __xor__(self, other): return int(self) ^ int(other)
+    def __or__(self, other): return int(self) | int(other)
 
     # Operator swapped variants
-    def __radd__(self, other): return long(other) + long(self)
-    def __rsub__(self, other): return long(other) - long(self)
-    def __rmul__(self, other): return long(other) * long(self)
-    def __rdiv__(self, other): return long(other) / long(self)
-    def __rfloordiv__(self, other): return long(other) // long(self)
-    def __rmod__(self, other): return long(other) % long(self)
-    def __rdivmod__(self, other): return divmod(long(other), long(self))
-    def __rpow__(self, other, modulo=None): return pow(long(other), long(self), modulo)
-    def __rlshift__(self, other): return long(other) << long(self)
-    def __rrshift__(self, other): return long(other) >> long(self)
-    def __rand__(self, other): return long(other) & long(self)
-    def __rxor__(self, other): return long(other) ^ long(self)
-    def __ror__(self, other): return long(other) | long(self)
+    def __radd__(self, other): return int(other) + int(self)
+    def __rsub__(self, other): return int(other) - int(self)
+    def __rmul__(self, other): return int(other) * int(self)
+    def __rdiv__(self, other): return int(other) / int(self)
+    def __rfloordiv__(self, other): return int(other) // int(self)
+    def __rmod__(self, other): return int(other) % int(self)
+    def __rdivmod__(self, other): return divmod(int(other), int(self))
+    def __rpow__(self, other, modulo=None): return pow(int(other), int(self), modulo)
+    def __rlshift__(self, other): return int(other) << int(self)
+    def __rrshift__(self, other): return int(other) >> int(self)
+    def __rand__(self, other): return int(other) & int(self)
+    def __rxor__(self, other): return int(other) ^ int(self)
+    def __ror__(self, other): return int(other) | int(self)
 
     # Inplace variants
     def __iadd__(self, other): self.vsSetValue(self+other); return self
@@ -246,23 +246,23 @@ class v_number(v_prim):
     def __ior__(self, other): self.vsSetValue(self | other); return self
 
     # operator helpers
-    def __neg__(self): return -(long(self))
-    def __pos__(self): return +(long(self))
-    def __abs__(self): return abs(long(self))
-    def __invert__(self): return ~(long(self))
+    def __neg__(self): return -(int(self))
+    def __pos__(self): return +(int(self))
+    def __abs__(self): return abs(int(self))
+    def __invert__(self): return ~(int(self))
 
     # index use helper
-    def __index__(self): return long(self)
+    def __index__(self): return int(self)
 
     def __coerce__(self, other):
         try:
-            return long(self),long(other)
-        except Exception, e:
+            return int(self),int(other)
+        except Exception as e:
             return NotImplemented
 
     # Print helpers
-    def __hex__(self): return hex(long(self))
-    def __oct__(self): return oct(long(self))
+    def __hex__(self): return hex(int(self))
+    def __oct__(self): return oct(int(self))
 
 class v_snumber(v_number):
     _vs_length = 1
@@ -279,7 +279,7 @@ class v_snumber(v_number):
         if value & self.smask:
             value = value - self.maxval - 1
 
-        self._vs_value = long(value)
+        self._vs_value = int(value)
 
 class v_uint8(v_number):
     _vs_builder = True
@@ -411,7 +411,7 @@ class v_float(v_prim):
         return int(self._vs_value)
 
     def __long__(self):
-        return long(self._vs_value)
+        return int(self._vs_value)
 
     def __add__(self, other): return double(self) + double(other)
     def __sub__(self, other): return double(self) - double(other)
@@ -468,7 +468,7 @@ class v_float(v_prim):
     def __coerce__(self, other):
         try:
             return double(self),double(other)
-        except Exception, e:
+        except Exception as e:
             return NotImplemented
 
     # Print helpers

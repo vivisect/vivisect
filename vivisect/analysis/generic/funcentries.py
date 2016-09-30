@@ -44,13 +44,13 @@ def analyze(vw):
                     #print "MATCH MATCH MATCH: 0x%.8x" % va
                     vw.makeFunction(va)
 
-            except vivisect.InvalidLocation, msg:
+            except vivisect.InvalidLocation as msg:
                 if vw.verbose: vw.vprint("InvalidLocation: %s" % msg)
-            except envi.InvalidInstruction, e:
+            except envi.InvalidInstruction as e:
                 continue
-            except envi.EnviException, msg:
+            except envi.EnviException as msg:
                 if vw.verbose: vw.vprint("%s: %s" % (msg.__class__.__name__,msg))
-            except Exception, msg:
+            except Exception as msg:
                 traceback.print_exc()
                 continue
 

@@ -224,7 +224,7 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QtGui.
         vq_hotkey.HotKeyMixin.__init__(self)
         viv_base.VivEventCore.__init__(self, vw)
         e_qt_memory.EnviNavMixin.__init__(self)
-        self.setEnviNavName('FuncGraph%d' % self.viewidx.next())
+        self.setEnviNavName('FuncGraph%d' % next(self.viewidx))
 
         self._renderDoneSignal.connect(self._refresh_cb)
 
@@ -477,7 +477,7 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QtGui.
 
         try:
             addr = self.vw.parseExpression(expr)
-        except Exception, e:
+        except Exception as e:
             self.mem_canvas.addText('Invalid Address: %s (%s)' % (expr, e))
             return
 

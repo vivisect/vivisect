@@ -1,6 +1,6 @@
 
 # Import all local structure modules
-import elf
-import pe
-import win32
+from . import elf
+from . import pe
+from . import win32
 

@@ -26,7 +26,7 @@ def main():
     vw = vivisect.VivWorkspace()
     vw.loadWorkspace(sys.argv[1])
 
-    print '# %s' % sys.argv[1]
+    print('# %s' % sys.argv[1])
 
     fnames = {}
 
@@ -47,17 +47,17 @@ def main():
         #argv = tuple([ (type_lookup.get(t.__name__, t.__name__), name_lookup.get(t.__name__)) for t,name in vw.getFunctionArgs(fva) ])
         #rtype = vw.getFunctionMeta(fva, 'ReturnType', 'int')
         #ccname = vw.getFunctionMeta(fva, 'CallingConvention')
-        print "    '%s.%s':( %r, None, %r, '%s.%s', %r )," % (fnamekey,enamekey,rtype,ccname,fname,ename,argv)
+        print("    '%s.%s':( %r, None, %r, '%s.%s', %r )," % (fnamekey,enamekey,rtype,ccname,fname,ename,argv))
 
-    for fwdfname in fnames.keys():
+    for fwdfname in list(fnames.keys()):
 
         for rva, name, fwdname in vw.getFileMeta(fwdfname, 'forwarders', ()):
             fwdapi = vw.getImpApi( fwdname )
             if not fwdapi:
-                print('    # FIXME unresolved %s -> %s' % (name, fwdname))
+                print(('    # FIXME unresolved %s -> %s' % (name, fwdname)))
                 continue
 
-            print("    '%s.%s':%r," % ( fwdfname.lower(), name.lower(), fwdapi))
+            print(("    '%s.%s':%r," % ( fwdfname.lower(), name.lower(), fwdapi)))
 
 if __name__ == '__main__':
     sys.exit(main())

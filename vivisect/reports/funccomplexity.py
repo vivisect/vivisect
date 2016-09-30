@@ -16,7 +16,7 @@ def report(vw):
         fblocks = vw.getFunctionBlocks(f)
         cbtot[f] = len(fblocks)
 
-    for f,c in cbtot.items():
+    for f,c in list(cbtot.items()):
         mndist = vw.getFunctionMeta(f, "MnemDist", -1)
         ret[f] = (c,mndist)
 

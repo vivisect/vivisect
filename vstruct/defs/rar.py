@@ -254,14 +254,14 @@ def initIvKey30(passwd,salt):
 
     passb = passwd.encode('utf-16le')
     initkey = passb + salt
-    print 'PASS','->%s<-' % passwd
-    print 'SALT',salt.encode('hex')
-    print 'INIT',initkey.encode('hex')
+    print('PASS','->%s<-' % passwd)
+    print('SALT',salt.encode('hex'))
+    print('INIT',initkey.encode('hex'))
 
     sha1hash = hashlib.sha1()
     #sha1hash = rarsha()
     # crazy russian awesomeness/paranoia
-    for i in xrange(rounds): # srsly?!?! fscking russians ;)
+    for i in range(rounds): # srsly?!?! fscking russians ;)
         sha1hash.update(initkey)
         #print "INITKEY",initkey.encode("hex")
         ib = struct.pack('<I',i)
@@ -277,10 +277,10 @@ def initIvKey30(passwd,salt):
             #print 'AESINIT',i/roundsdiv,digest[-1].encode('hex')
             #raise 'WOOT'
 
-    print 'IV',(''.join(aesiv)).encode('hex')
+    print('IV',(''.join(aesiv)).encode('hex'))
     endswap = struct.unpack_from('<4I', sha1hash.digest())
     aeskey  = struct.pack('>4I', *endswap)
-    print 'KEY',aeskey.encode('hex')
+    print('KEY',aeskey.encode('hex'))
     #digest = sha1hash.digest()
     #print 'PREKEY',digest.encode('hex')
     #for i in xrange(4):
@@ -369,7 +369,7 @@ class Rar:
         while len(self.clearbuf) < size:
             crypted = self.fd.read(4096)
             self.clearbuf += self.aes.decrypt(crypted)
-            print 'CLEARBUF',self.clearbuf.encode('hex')
+            print('CLEARBUF',self.clearbuf.encode('hex'))
 
         ret = self.clearbuf[:size]
         self.clearbuf = self.clearbuf[size:]
@@ -405,7 +405,7 @@ class Rar:
                 rar4 = cls()
                 rar4.vsParse(hdr+body)
 
-            print rar4.tree()
+            print(rar4.tree())
             import sys; sys.stdin.readline()
 
             #if ctype == MAIN_HEAD and cflags & MHD_PASSWORD:
@@ -451,11 +451,11 @@ def main():
 
     rar4 = Rar4Block()
     offset = rar4.vsParse(buf,offset=offset)
-    print rar4.tree()
+    print(rar4.tree())
 
     #print 'PRE',buf[offset:offset+32].encode('hex')
     salt = buf[offset:offset+SIZE_SALT30]
-    print 'SALT',salt.encode('hex')
+    print('SALT',salt.encode('hex'))
     offset += SIZE_SALT30
 
     iv,key = initIvKey30(testpass,salt)
@@ -469,7 +469,7 @@ def main():
     rar4 = Rar4Block()
     rar4.vsParse(x)
     #offset = rar4.vsParse(buf,offset=offset)
-    print rar4.tree()
+    print(rar4.tree())
 
     #while offset < len(b):
         #r = RarBlock()

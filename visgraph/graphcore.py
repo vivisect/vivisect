@@ -9,7 +9,7 @@ import collections
 
 from binascii import hexlify
 
-from exc import *
+from .exc import *
 import visgraph.pathcore as vg_pathcore
 
 def guid(size=16):
@@ -87,7 +87,7 @@ class Graph:
         '''
         load a json serializable graph
         '''
-        for nid,nprops in graph['nodes'].items():
+        for nid,nprops in list(graph['nodes'].items()):
             self.addNode(nid=nid, nprops=nprops)
 
         for eid, n1, n2, eprops in graph['edges']:
@@ -105,10 +105,10 @@ class Graph:
         self.metadata.update(graph.metadata)
         self.formnodes.update(graph.formnodes)
 
-        for nid,nprops in graph.nodes.values():
+        for nid,nprops in list(graph.nodes.values()):
             self.addNode(nid=nid, nprops=nprops)
 
-        for eid, n1, n2, eprops in graph.edges.values():
+        for eid, n1, n2, eprops in list(graph.edges.values()):
             node1 = graph.getNode(n1)
             node2 = graph.getNode(n2)
             self.addEdge(node1, node2, eid=eid, eprops=eprops)
@@ -167,7 +167,7 @@ class Graph:
             return self.edgeprops.get(prop,{}).get(val,[])
 
         ret = []
-        [ ret.extend(v) for v in self.edgeprops.get(prop,{}).values() ]
+        [ ret.extend(v) for v in list(self.edgeprops.get(prop,{}).values()) ]
         return ret
 
     def setEdgeProp(self, edge, prop, value):
@@ -188,7 +188,7 @@ class Graph:
                 curlist = self.edgeprops[prop][curval]
                 curlist.remove( edge )
             self.edgeprops[prop][value].append(edge)
-        except TypeError, e:
+        except TypeError as e:
             pass
 
         return True
@@ -216,7 +216,7 @@ class Graph:
                 curlist.remove( node )
 
             self.nodeprops[prop][value].append(node)
-        except TypeError, e:
+        except TypeError as e:
             pass # no value indexing for un-hashable values
 
         return True
@@ -233,7 +233,7 @@ class Graph:
             return self.nodeprops.get(prop,{}).get(val,[])
 
         ret = []
-        [ ret.extend(v) for v in self.nodeprops.get(prop,{}).values() ]
+        [ ret.extend(v) for v in list(self.nodeprops.get(prop,{}).values()) ]
         return ret
 
     def addNode(self, nid=None, nprops=None, **kwargs):
@@ -262,10 +262,10 @@ class Graph:
         node = (nid,myprops)
         self.nodes[nid] = node
 
-        for k,v in myprops.items():
+        for k,v in list(myprops.items()):
             try:
                 self.nodeprops[k][v].append(node)
-            except TypeError, e:
+            except TypeError as e:
                 pass
 
         return node
@@ -344,7 +344,7 @@ class Graph:
             self.delEdge(edge)
         for edge in self.getRefsTo(node)[:]:
             self.delEdge(edge)
-        [ self.delNodeProp(node, k) for k in node[1].keys() ]
+        [ self.delNodeProp(node, k) for k in list(node[1].keys()) ]
         return self.nodes.pop(node[0])
 
     def getNode(self, nid):
@@ -360,7 +360,7 @@ class Graph:
         '''
         Return a list of (nid, nprops) tuples.
         '''
-        return self.nodes.values()
+        return list(self.nodes.values())
 
     def getNodeCount(self):
         return len(self.nodes)
@@ -415,10 +415,10 @@ class Graph:
         self.edge_by_to[n2].append(edge)
         self.edge_by_from[n1].append(edge)
 
-        for k,v in eprops.items():
+        for k,v in list(eprops.items()):
             try:
                 self.edgeprops[k][v].append(edge)
-            except TypeError, e:
+            except TypeError as e:
                 pass # no value indexes for unhashable types
 
         return edge
@@ -431,7 +431,7 @@ class Graph:
         '''
         eid,n1,n2,eprops = edge
 
-        [ self.delEdgeProp(edge,k) for k in eprops.keys() ]
+        [ self.delEdgeProp(edge,k) for k in list(eprops.keys()) ]
 
         self.edges.pop(eid)
         self.edge_by_to[n2].remove(edge)
@@ -673,7 +673,7 @@ class HierGraph(Graph):
                 if not path.get(n2):
                     todo.append((n2, dict(path)))
 
-        for nid,weight in weights.items():
+        for nid,weight in list(weights.items()):
             node = self.getNode(nid)
             self.setNodeProp(node,'weight',weight)
 

@@ -18,8 +18,8 @@ class SaveableWidget(object):
         try:
             state = json.loads(str(qstate.toString()))
             self.vqSetSaveState(state)
-        except Exception, e:
-            print('failed to restore %s: %s' % (name,e))
+        except Exception as e:
+            print(('failed to restore %s: %s' % (name,e)))
 
     def vqGetSaveState(self):
         return None

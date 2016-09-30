@@ -35,7 +35,7 @@ class SniperDynArgBreak(vt_breakpoints.Breakpoint):
         arg = getStackArg(trace, self._argidx)
         self.fastbreak = True
         if trace.probeMemory(arg, 1, e_mem.MM_WRITE):
-            print 'SNIPER: %s TOOK DYNAMIC ARG IDX %d (0x%.8x)' % (self._symname, self._argidx, arg)
+            print('SNIPER: %s TOOK DYNAMIC ARG IDX %d (0x%.8x)' % (self._symname, self._argidx, arg))
             self.fastbreak = False
 
 class SniperArgValueBreak(vt_breakpoints.Breakpoint):

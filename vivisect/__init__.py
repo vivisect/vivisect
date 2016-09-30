@@ -8,7 +8,7 @@ import os
 import re
 import sys
 import time
-import Queue
+import queue
 import string
 import struct
 import weakref
@@ -19,9 +19,9 @@ import threading
 import collections
 
 from binascii import hexlify
-from StringIO import StringIO
+from io import StringIO
 from collections import deque
-from ConfigParser import ConfigParser
+from configparser import ConfigParser
 
 import vivisect.contrib # This should go first
 
@@ -151,7 +151,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             return self.vprint(msg)
 
     def vprint(self, msg):
-        print msg
+        print(msg)
 
     def getVivGui(self):
         '''
@@ -298,7 +298,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             for va,cmnt in vw.getComments():
                 print 'Comment at 0x%.8x: %s' % (va, cmnt)
         '''
-        return self.comments.items()
+        return list(self.comments.items())
 
     def addRelocation(self, va, rtype):
         """
@@ -405,7 +405,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
                 self.cfctx.addNoReturnAddr( va )
                 noretva[va] = True 
 
-        for funcname in self.getMeta('NoReturnApis', {}).keys():
+        for funcname in list(self.getMeta('NoReturnApis', {}).keys()):
             if funcname.lower() == apiname.lower():
                 self.cfctx.addNoReturnAddr( va )
                 noretva[va] = True 
@@ -416,7 +416,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         """
         Add an analysis module by python import path
         """
-        if self.amods.has_key(modname):
+        if modname in self.amods:
             return
         mod = self.loadModule(modname)
         self.amods[modname] = mod
@@ -426,7 +426,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         """
         Remove an analysis module from the list used during analysis()
         """
-        if not self.amods.has_key(modname):
+        if modname not in self.amods:
             raise Exception("Unknown Module in delAnalysisModule: %s" % modname)
         x = self.amods.pop(modname, None)
         if x != None:
@@ -442,7 +442,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         will be triggered during the creation of a new function
         (makeFunction).
         """
-        if self.fmods.has_key(modname):
+        if modname in self.fmods:
             return
         mod = self.loadModule(modname)
         self.fmods[modname] = mod
@@ -455,15 +455,15 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         Example:
             vw.delFuncAnalysisModule('mypkg.mymod')
         '''
-        if not self.fmods.has_key(modname):
+        if modname not in self.fmods:
             raise Exception("Unknown Module in delAnalysisModule: %s" % modname)
         x = self.fmods.pop(modname, None)
         if x != None:
             self.fmodlist.remove(modname)
 
     def createEventChannel(self):
-        chanid = self.chanids.next()
-        self.chan_lookup[chanid] = Queue.Queue()
+        chanid = next(self.chanids)
+        self.chan_lookup[chanid] = queue.Queue()
         return chanid
 
     def importWorkspace(self, wsevents):
@@ -645,7 +645,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             if self.verbose: self.vprint("Extended Analysis: %s" % mod.__name__)
             try:
                 mod.analyze(self)
-            except Exception, e:
+            except Exception as e:
                 if self.verbose:
                     traceback.print_exc()
                 self.verbprint("Extended Analysis Exception %s: %s" % (mod.__name__,e))
@@ -886,7 +886,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         emu.setEmulationMonitor(wat)
         try:
             emu.runFunction(va, maxhit=1)
-        except Exception, e:
+        except Exception as e:
             return False
  
         if wat.looksgood():
@@ -926,13 +926,13 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
                 op = self.parseOpcode(va, arch=arch)
 
-            except envi.InvalidInstruction, msg:
+            except envi.InvalidInstruction as msg:
                 #FIXME something is just not right about this...
                 bytes = self.readMemory(va, 16)
-                print "Invalid Instruct Attempt At:",hex(va),bytes.encode("hex")
+                print("Invalid Instruct Attempt At:",hex(va),bytes.encode("hex"))
                 raise InvalidLocation(va,msg)
 
-            except Exception, msg:
+            except Exception as msg:
                 traceback.print_exc()
                 raise InvalidLocation(va,msg)
 
@@ -1075,7 +1075,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         Return a list of the function virtual addresses
         defined in the workspace.
         """
-        return self.funcmeta.keys()
+        return list(self.funcmeta.keys())
 
     def getFunction(self, va):
         """
@@ -1180,7 +1180,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         '''
         if not self.isFunction(fva):
             raise InvalidFunction(fva)
-        return self.localsyms[fva].values()
+        return list(self.localsyms[fva].values())
 
     def getFunctionLocal(self, fva, spdelta):
         '''
@@ -1290,7 +1290,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         if api:
             # Set any argument names that are None
             rettype,retname,callconv,callname,callargs = api
-            callargs = [ callargs[i] if callargs[i][1] else (callargs[i][0],'arg%d' % i) for i in xrange(len(callargs)) ]
+            callargs = [ callargs[i] if callargs[i][1] else (callargs[i][0],'arg%d' % i) for i in range(len(callargs)) ]
             self.setFunctionApi(fva, (rettype,retname,callconv,callname,callargs))
 
     def getCallers(self, va):
@@ -1965,7 +1965,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         """
         Return a list of tuples containing (va, name)
         """
-        return self.name_by_va.items()
+        return list(self.name_by_va.items())
 
     def getName(self, va, smart=False):
         '''
@@ -2005,7 +2005,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         if filelocal:
             segtup = self.getSegment(va)
             if segtup == None:
-                print "Failed to find file for 0x%.8x (%s) (and filelocal == True!)"  % (va, name)
+                print("Failed to find file for 0x%.8x (%s) (and filelocal == True!)"  % (va, name))
             if segtup != None:
                 fname = segtup[SEG_FNAME]
                 if fname != None:
@@ -2090,7 +2090,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         for fname in self.getFiles():
             imgbases[ fname ] = self.getFileMeta(fname,'imagebase')
 
-        for va,name in self.name_by_va.items():
+        for va,name in list(self.name_by_va.items()):
             map = self.getMemoryMap(va)
             if map == None:
                 continue
@@ -2104,7 +2104,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
                 symsbyfile[ map[3] ].append( (symva, 0, name, symtype) )
 
-        for filenorm, symtups in symsbyfile.items():
+        for filenorm, symtups in list(symsbyfile.items()):
             symhash = self.getFileMeta(filenorm, 'SymbolCacheHash')
             if symhash == None:
                 continue
@@ -2160,7 +2160,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         Return the current list of file objects in this
         workspace.
         """
-        return self.filemeta.keys()
+        return list(self.filemeta.keys())
 
     def normFileName(self, filename):
         normname = os.path.basename(filename).lower()
@@ -2173,7 +2173,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         ok = string.letters + string.digits + '_'
 
         chars = list(normname)
-        for i in xrange(len(chars)):
+        for i in range(len(chars)):
             if chars[i] not in ok:
                 chars[i] = '_'
 
@@ -2191,7 +2191,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         add imports/exports/segments etc...
         """
         nname = self.normFileName(filename)
-        if self.filemeta.has_key(nname):
+        if nname in self.filemeta:
             raise Exception("Duplicate File Name: %s" % nname)
         self._fireEvent(VWE_ADDFILE, (nname, imagebase, md5sum))
         return nname
@@ -2219,7 +2219,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         """
         Store a piece of file specific metadata (python primatives are best for values)
         """
-        if not self.filemeta.has_key(fname):
+        if fname not in self.filemeta:
             raise Exception("Invalid File: %s" % fname)
         self._fireEvent(VWE_SETFILEMETA, (fname, key, value))
 
@@ -2254,7 +2254,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             totsize += mapsize
         loctot = 0
         ret = {}
-        for i in xrange(LOC_MAX):
+        for i in range(LOC_MAX):
             cnt = 0
             size = 0
             for lva,lsize,ltype,tinfo in self.getLocations(i):
@@ -2280,7 +2280,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         """
         Get a list of the names of the current VA lists.
         """
-        return self.vasets.keys()
+        return list(self.vasets.keys())
 
     def getVaSetDef(self, name):
         """
@@ -2298,7 +2298,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         """
         x = self.vasets.get(name)
         if x == None: InvalidVaSet(name)
-        return x.values()
+        return list(x.values())
 
     def getVaSet(self, name):
         """
@@ -2322,7 +2322,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         """
         Delete a VA set by name.
         """
-        if not self.vasets.has_key(name):
+        if name not in self.vasets:
             raise Exception("Unknown VA Set: %s" % name)
         self._fireEvent(VWE_DELVASET, name)
 
@@ -2351,7 +2351,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         Use this API to delete the rowdata associated
         with the specified VA from the set.
         """
-        if not self.vasets.has_key(name):
+        if name not in self.vasets:
             raise Exception("Unknown VA Set: %s" % name)
         self._fireEvent(VWE_DELVASETROW, (name, va))
 
@@ -2401,7 +2401,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         """
         Return a list of the names of the given color maps
         """
-        return self.colormaps.keys()
+        return list(self.colormaps.keys())
 
     def addColorMap(self, mapname, colormap):
         """

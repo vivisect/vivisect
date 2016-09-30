@@ -17,7 +17,7 @@ import vtrace.breakpoints as vt_breakpoints
 def reprargs(trace, fmt, args):
 
     r = []
-    for i in xrange(len(fmt)):
+    for i in range(len(fmt)):
         fchr = fmt[i]
         arg  = args[i]
 
@@ -95,7 +95,7 @@ class ReconBreak(vt_breakpoints.Breakpoint):
 
         if not trace.getMeta('recon_quiet'):
             argstr = '(%s)' % ', '.join(argrep)
-            print 'RECON: %.4d 0x%.8x %s%s' % (thid, savedeip, self._symname, argstr)
+            print('RECON: %.4d 0x%.8x %s%s' % (thid, savedeip, self._symname, argstr))
 
 def addReconBreak(trace, symname, reconfmt):
     if trace.getMeta('recon_hits') == None:

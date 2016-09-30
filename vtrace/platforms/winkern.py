@@ -212,7 +212,7 @@ def initWinkernTrace(trace, kpcrva):
     if winver == None:
         winver = 'Untested Windows Build! (%d)' % kver.MinorVersion
 
-    print('vtrace (vmware32): Windows Version: %s' % winver)
+    print(('vtrace (vmware32): Windows Version: %s' % winver))
 
     kernbase = kver.KernBase & trace.bigmask
     modlist = kver.PsLoadedModuleList & trace.bigmask
@@ -237,7 +237,7 @@ def initWinkernTrace(trace, kpcrva):
             dllname = trace.readMemory(ldte.FullDllName.Buffer, ldte.FullDllName.Length).decode('utf-16le')
             dllbase = ldte.DllBase & trace.bigmask
             trace.addLibraryBase(dllname, dllbase, always=True)
-        except Exception, e:
+        except Exception as e:
             print('Trouble while parsing one...')
         ldr_entry = ldte.InLoadOrderLinks.Flink & trace.bigmask
 

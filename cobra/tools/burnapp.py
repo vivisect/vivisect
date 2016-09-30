@@ -70,8 +70,8 @@ def main(uri,cacrt=None,sslcert=None,sslkey=None):
 
     try:
         c_remoteapp.getAndRunApp(uri)
-    except Exception, e:
-        print('error: %s' % e)
+    except Exception as e:
+        print(('error: %s' % e))
 
 if __name__ == '__main__':
     sys.exit(release()) # this *must* be the *last* line...

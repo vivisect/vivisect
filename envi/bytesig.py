@@ -103,7 +103,7 @@ class SignatureTree:
             # just check the byte sequence.
             if len(sigs) == 1:
                 sbytes, smasks, sobj = sigs[0]
-                for i in xrange(depth, len(sbytes)):
+                for i in range(depth, len(sbytes)):
                     realoff = offset + i
                     masked = ord(bytes[realoff]) & smasks[i]
                     if masked != sbytes[i]:

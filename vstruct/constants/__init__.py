@@ -11,7 +11,7 @@ class VSConstResolver:
     def addModule(self, mod):
         for name in dir(mod):
             val = getattr(mod, name)
-            if type(val) not in (int,long):
+            if type(val) not in (int,int):
                 continue
 
             # First lets add the "reverse" lookup

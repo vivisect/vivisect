@@ -20,7 +20,7 @@ def main():
 
     for fname in argv:
 
-        print 'Parsing: %s' % fname
+        print('Parsing: %s' % fname)
 
         vsver = None
         expname = None
@@ -31,19 +31,19 @@ def main():
             print('Type Nameid - rva size sample')
             for rtype,nameid,(rva,size,codepage) in pe.getResources():
                 hexstr = pe.readAtRva(rva, max(size,8)).encode('hex')
-                print('0x%.4x 0x%.4x - 0x%.8x 0x%.8x %s' % (rtype,nameid,rva,size,hexstr))
+                print(('0x%.4x 0x%.4x - 0x%.8x 0x%.8x %s' % (rtype,nameid,rva,size,hexstr)))
 
         if opts.version:
             vs = pe.getVS_VERSIONINFO()
             if vs == None:
-                print 'No VS_VERSIONINFO found!'
+                print('No VS_VERSIONINFO found!')
 
             else:
                 keys = vs.getVersionKeys()
                 keys.sort()
                 for k in keys:
                     val = vs.getVersionValue(k)
-                    print '%s: %r' % (k, val)
+                    print('%s: %r' % (k, val))
 
         code.interact(local=locals())
 

@@ -15,13 +15,13 @@ class WindowsMixin(v_i_emulator.WorkspaceEmulator):
     def __init__(self):
         pass
 
-    def readFilePath(self, va, unicode=False, default='unknown'):
+    def readFilePath(self, va, str=False, default='unknown'):
         size = MAX_PATH
-        if unicode:
+        if str:
             size = MAX_PATH * 2
 
         bytez = self.readMemory(va, size)
-        if unicode:
+        if str:
             bytez = bytez.decode('utf-16le','ignore')
 
         bytez = bytez.split('\x00')[0]
@@ -31,8 +31,8 @@ class WindowsMixin(v_i_emulator.WorkspaceEmulator):
 
         return bytez
 
-    def readLibraryPath(self, va, unicode=False):
-        bytez = self.readFilePath(va, unicode=unicode, default='unknownlib')
+    def readLibraryPath(self, va, str=False):
+        bytez = self.readFilePath(va, str=str, default='unknownlib')
         return bytez.lower().split('.')[0]
 
     @imphook('kernel32.LoadLibraryA')
@@ -45,7 +45,7 @@ class WindowsMixin(v_i_emulator.WorkspaceEmulator):
     @imphook('kernel32.LoadLibraryW')
     def kernel32_LoadLibraryW(self, emu, callconv, api, argv):
         lpLibName = argv[0]
-        libname = self.readLibraryPath(lpLibName, unicode=True)
+        libname = self.readLibraryPath(lpLibName, str=True)
         retval = emu.setVivTaint('dynlib',libname)
         callconv.execCallReturn(emu, retval, len(argv))
 
@@ -83,14 +83,14 @@ class WindowsMixin(v_i_emulator.WorkspaceEmulator):
     @imphook('kernel32.GetModuleHandleA')
     def kernel32_GetModuleHandleExA(self, emu, callconv, api, argv):
         dwFlags,lpLibName,phModule = argv
-        libname = self.readLibraryPath(lpLibName, unicode=False)
+        libname = self.readLibraryPath(lpLibName, str=False)
         retval = emu.setVivTaint('dynlib',libname)
         callconv.execCallReturn(emu, retval, len(argv))
 
     @imphook('kernel32.GetModuleHandleW')
     def kernel32_GetModuleHandleExA(self, emu, callconv, api, argv):
         dwFlags,lpLibName,phModule = argv
-        libname = self.readLibraryPath(lpLibName, unicode=True)
+        libname = self.readLibraryPath(lpLibName, str=True)
         retval = emu.setVivTaint('dynlib',libname)
         callconv.execCallReturn(emu, retval, len(argv))
 

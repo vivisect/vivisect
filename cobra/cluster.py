@@ -6,17 +6,17 @@ Cobra's built in clustering framework
 import gc
 import sys
 import time
-import Queue
+import queue
 import struct
 import socket
-import urllib2
+import urllib.request, urllib.error, urllib.parse
 import traceback
 import threading
 import subprocess
 import multiprocessing
 
 import cobra
-import dcode
+from . import dcode
 
 queen_port   = 32124
 
@@ -73,7 +73,7 @@ class ClusterWork(object):
         """
         Actually do the work associated with this work object.
         """
-        print "OVERRIDE ME"
+        print("OVERRIDE ME")
         for i in range(10):
             self.setCompletion(i*10)
             self.setStatus("Sleeping: %d" % i)
@@ -84,7 +84,7 @@ class ClusterWork(object):
         This is called back on the server once a work unit
         is complete and returned.
         """
-        print "OVERRIDE DONE"
+        print("OVERRIDE DONE")
 
     def setCompletion(self, percent):
         """
@@ -150,21 +150,21 @@ class ClusterCallback:
 class VerboseCallback(ClusterCallback):
     # This is mostly for testing...
     def workAdded(self, server, work):
-        print "WORK ADDED: %d" % work.id
+        print("WORK ADDED: %d" % work.id)
     def workGotten(self, server, work):
-        print "WORK GOTTEN: %d" % work.id
+        print("WORK GOTTEN: %d" % work.id)
     def workStatus(self, server, workid, status):
-        print "WORK STATUS: (%d) %s" % (workid, status)
+        print("WORK STATUS: (%d) %s" % (workid, status))
     def workCompletion(self, server, workid, completion):
-        print "WORK COMPLETION: (%d) %d%%" % (workid, completion)
+        print("WORK COMPLETION: (%d) %d%%" % (workid, completion))
     def workDone(self, server, work):
-        print "WORK DONE: %d" % work.id
+        print("WORK DONE: %d" % work.id)
     def workFailed(self, server, work):
-        print "WORK FAILED: %d" % work.id
+        print("WORK FAILED: %d" % work.id)
     def workTimeout(self, server, work):
-        print "WORK TIMEOUT: %d" % work.id
+        print("WORK TIMEOUT: %d" % work.id)
     def workCanceled(self, server, work):
-        print "WORK CANCELED %d" % work.id
+        print("WORK CANCELED %d" % work.id)
 
 import collections
 
@@ -189,7 +189,7 @@ class ClusterServer:
         self.maxsize = maxsize
         self.queue = collections.deque()
         self.qcond = threading.Condition()
-        self.widiter = iter(xrange(999999999))
+        self.widiter = iter(range(999999999))
 
         # Initialize a cobra daemon if needed
         if cobrad == None:
@@ -282,12 +282,12 @@ class ClusterServer:
         # Internal function to monitor work unit time
         while self.go:
             try:
-                for id,work in self.inprog.items():
+                for id,work in list(self.inprog.items()):
                     if work.isTimedOut():
                         self.timeoutWork(work)
 
-            except Exception, e:
-                print "ClusterTimer: %s" % e
+            except Exception as e:
+                print("ClusterTimer: %s" % e)
 
             time.sleep(2)
 
@@ -303,8 +303,8 @@ class ClusterServer:
             for q in self.queens:
                 try:
                     q.proxyAnnounceWork(self.name, self.cobraname, self.cobrad.port)
-                except Exception, e:
-                    print('Queen Error: %s' % e)
+                except Exception as e:
+                    print(('Queen Error: %s' % e))
 
         else:
             buf = "cobra:%s:%s:%d" % (self.name, self.cobraname, self.cobrad.port)
@@ -347,7 +347,7 @@ class ClusterServer:
 
         # If this work has no ID, give it one
         if work.id == None:
-            work.id = self.widiter.next()
+            work.id = next(self.widiter)
 
         self.qcond.acquire()
         if self.maxsize != None:
@@ -365,7 +365,7 @@ class ClusterServer:
 
         try:
             ret = self.queue.popleft()
-        except IndexError, e:
+        except IndexError as e:
             self.qcond.release()
             return None
 
@@ -422,7 +422,7 @@ class ClusterServer:
         if inprog:
             p = self.inprog
             self.inprog = {}
-            qlist.extend(p.values())
+            qlist.extend(list(p.values()))
 
         self.qcond.notifyAll()
         self.qcond.release()
@@ -572,7 +572,7 @@ def getHostPortFromUri(uri):
     host and port for use in building the
     dcode uri.
     """
-    x = urllib2.Request(uri)
+    x = urllib.request.Request(uri)
     port = None
     hparts = x.get_host().split(":")
     host = hparts[0]
@@ -590,10 +590,10 @@ def workThread(server, work):
         work.server = None
         server.doneWork(work)
 
-    except InvalidInProgWorkId, e: # the work was canceled
+    except InvalidInProgWorkId as e: # the work was canceled
         pass # Nothing to do, the server already knows
 
-    except Exception, e:
+    except Exception as e:
         # Tell the server that the work unit failed
         work.excinfo = traceback.format_exc()
         traceback.print_exc()
@@ -639,7 +639,7 @@ def getAndDoWork(uri, docode=False):
         if work != None:
             runAndWaitWork(proxy, work)
 
-    except Exception, e:
+    except Exception as e:
         traceback.print_exc()
 
     # Any way it goes we wanna exit now.  Work units may have

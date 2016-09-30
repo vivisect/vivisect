@@ -99,7 +99,7 @@ def getBasicUnicodeFormatted(bytez):
 def getSymByAddrFormatted(trace, va):
     sym = trace.getSymByAddr(va, exact=False)
     if sym != None:
-        return '%s + %d' % (repr(sym), va-long(sym))
+        return '%s + %d' % (repr(sym), va-int(sym))
     return sym
 
 def getFilenameFromFdFormatted(trace, va):

@@ -28,7 +28,7 @@ class ScriptThread(Thread):
     def run(self):
         try:
             exec(self.cobj, self.locals)
-        except Exception, e:
+        except Exception as e:
             scripterr(str(e), traceback.format_exc())
 
 class VQPythonView(QtGui.QWidget):
@@ -66,7 +66,7 @@ class VQPythonView(QtGui.QWidget):
 
     def _helpClicked(self):
         withhelp = []
-        for lname,lval in self._locals.items():
+        for lname,lval in list(self._locals.items()):
             if type(lval) in (types.ModuleType, ):
                 continue
             doc = getattr(lval, '__doc__', '\nNo Documentation\n')

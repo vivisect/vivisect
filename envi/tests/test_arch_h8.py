@@ -606,12 +606,12 @@ class H8InstrTest(unittest.TestCase):
             try:
                 # try register first
                 emu.setRegisterByName(tgt, val)
-            except e_reg.InvalidRegisterName, e:
+            except e_reg.InvalidRegisterName as e:
                 # it's not a register
                 if type(tgt) == str and tgt.startswith("CCR_"):
                     # it's a flag
                     emu.setFlag(eval(tgt), val)
-                elif type(tgt) in (long, int):
+                elif type(tgt) in (int, int):
                     # it's an address
                     emu.writeMemValue(tgt, val, 1) # limited to 1-byte writes currently
                 else:
@@ -631,7 +631,7 @@ class H8InstrTest(unittest.TestCase):
                 success = 0
                 raise Exception("FAILED(reg): %s  !=  0x%x (observed: 0x%x)" % (tgt, val, testval))
 
-            except e_reg.InvalidRegisterName, e:
+            except e_reg.InvalidRegisterName as e:
                 # it's not a register
                 if type(tgt) == str and tgt.startswith("CCR_"):
                     # it's a flag
@@ -642,7 +642,7 @@ class H8InstrTest(unittest.TestCase):
                     success = 0
                     raise Exception("FAILED(flag): %s  !=  0x%x (observed: 0x%x)" % (tgt, val, testval))
 
-                elif type(tgt) in (long, int):
+                elif type(tgt) in (int, int):
                     # it's an address
                     testval = emu.readMemValue(tgt, 1)
                     if testval == val:
@@ -717,10 +717,10 @@ def generateTestInfo(ophexbytez='6e'):
     h8 = e_h8.H8Module()
     opbytez = ophexbytez
     op = h8.archParseOpcode(opbytez.decode('hex'), 0, 0x4000)
-    print( "opbytez = '%s'\noprepr = '%s'"%(opbytez,repr(op)) )
+    print(( "opbytez = '%s'\noprepr = '%s'"%(opbytez,repr(op)) ))
     opvars=vars(op)
     opers = opvars.pop('opers')
-    print( "opcheck = ",repr(opvars) )
+    print(( "opcheck = ",repr(opvars) ))
 
     opersvars = []
     for x in range(len(opers)):
@@ -728,7 +728,7 @@ def generateTestInfo(ophexbytez='6e'):
         opervars.pop('_dis_regctx')
         opersvars.append(opervars)
 
-    print( "opercheck = %s" % (repr(opersvars)) )
+    print(( "opercheck = %s" % (repr(opersvars)) ))
 
 
 

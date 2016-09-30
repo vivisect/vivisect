@@ -10,7 +10,7 @@ def parseFd(vw, fd, filename=None):
     baseaddr = vw.config.viv.parsers.blob.baseaddr
     try:
         envi.getArchModule(arch)
-    except Exception, e:
+    except Exception as e:
         raise Exception('Blob loader *requires* arch option (-O viv.parsers.blob.arch="<archname>")')
 
     vw.setMeta('Architecture', arch)
@@ -31,7 +31,7 @@ def parseFile(vw, filename):
 
     try:
         envi.getArchModule(arch)
-    except Exception, e:
+    except Exception as e:
         raise Exception('Blob loader *requires* arch option (-O viv.parsers.blob.arch="<archname>")')
 
 

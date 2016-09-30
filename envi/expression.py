@@ -41,7 +41,7 @@ class MemoryExpressionLocals(ExpressionLocals):
 
         Example x = sym('kernel32.??2@$$FYAPAXI@Z')
         '''
-        return long(evaluate(symstr, self))
+        return int(evaluate(symstr, self))
 
     def mapbase(self, address):
         """

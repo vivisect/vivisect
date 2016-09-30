@@ -112,7 +112,7 @@ def getHeaps(trace):
     pebaddr = trace.getMeta("PEB")
     peb = trace.getStruct("ntdll.PEB", pebaddr)
     heapcount = int(peb.NumberOfHeaps)
-    hlist = trace.readMemoryFormat(long(peb.ProcessHeaps), "<"+('P'*heapcount))
+    hlist = trace.readMemoryFormat(int(peb.ProcessHeaps), "<"+('P'*heapcount))
     for haddr in hlist:
         ret.append(Win32Heap(trace, haddr))
     return ret
@@ -198,9 +198,9 @@ class Win32Heap:
                 self._win7ParseSegments()
 
             else:
-                for i in range(long(self.heap.LastSegmentIndex)+1):
+                for i in range(int(self.heap.LastSegmentIndex)+1):
                     sa = self.heap.Segments[i]
-                    self.seglist.append(Win32Segment(self.trace, self, long(sa)))
+                    self.seglist.append(Win32Segment(self.trace, self, int(sa)))
 
         return self.seglist
 
@@ -263,7 +263,7 @@ class Win32Heap:
                 # If we die here, the guy before us was dorked.
                 try:
                     chunk = Win32Chunk(self.trace, self, addr-8)
-                except Exception, e:
+                except Exception as e:
                     chunk = bucket[-1]
                     pchunk = None
                     if len(bucket) >= 2:
@@ -285,7 +285,7 @@ class Win32Heap:
 
     def getFlagNames(self):
         ret = []
-        for k,v in heap_flag_names.items():
+        for k,v in list(heap_flag_names.items()):
             if self.heap.Flags & k:
                 ret.append(v)
         return ret
@@ -396,7 +396,7 @@ class Win32Subsegment(object):
         self.subsegment = trace.getStruct('ntdll.HEAP_SUBSEGMENT', address)
 
     def getChunks(self):
-        for chunk in xrange(self.getChunksStart(), self.getChunksEnd(), self.getBucketSize()):
+        for chunk in range(self.getChunksStart(), self.getChunksEnd(), self.getBucketSize()):
             yield Win32Chunk(self.trace, self.heap, chunk)
 
     def getUserBlocks(self):

@@ -128,14 +128,14 @@ class i386InstructionSet(unittest.TestCase):
 
         self.assertEqual( repr(op), oprepr )
         opvars = vars(op)
-        for opk,opv in opcheck.items():
+        for opk,opv in list(opcheck.items()):
             #print "op: %s %s" % (opk,opv)
             self.assertEqual( (opk, opvars.get(opk)), (opk, opv) )
 
         for oidx in range(len(op.opers)):
             oper = op.opers[oidx]
             opervars = vars(oper)
-            for opk,opv in opercheck[oidx].items():
+            for opk,opv in list(opercheck[oidx].items()):
                 #print "oper: %s %s" % (opk,opv)
                 self.assertEqual( (opk, opervars.get(opk)), (opk, opv) )
 

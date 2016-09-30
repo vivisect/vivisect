@@ -88,11 +88,11 @@ class z80Disasm:
             return z80ImmOper(imm)
 
         elif otype == OPTYPE_RegAlt:
-            print 'REG ALT!'
+            print('REG ALT!')
             return z80RegOper(oinfo)
 
         elif otype == OPTYPE_Ind:
-            print 'OPTYPE IND'
+            print('OPTYPE IND')
 
         elif otype == OPTYPE_RegMemDisp:
             disp = e_bits.parsebytes(bytez, offset+immoff, 1, sign=True)
@@ -102,11 +102,11 @@ class z80Disasm:
             raise Exception('Unknown z80 operand type: %d' % otype)
 
 if __name__ == '__main__':
-    print sigtree.getSignature('\x00')
-    print sigtree.getSignature('fdcb0006'.decode('hex'))
+    print(sigtree.getSignature('\x00'))
+    print(sigtree.getSignature('fdcb0006'.decode('hex')))
 
     d = z80Disasm()
 
-    print repr(d.disasm('\xfd\xcb\x30\x06', 0, 20))
+    print(repr(d.disasm('\xfd\xcb\x30\x06', 0, 20)))
 
 

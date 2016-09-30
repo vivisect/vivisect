@@ -126,7 +126,7 @@ class RegisterContext:
         """
         # On import from a structure, we are clean again.
         self._rctx_dirty = False
-        for name,idx in self._rctx_names.items():
+        for name,idx in list(self._rctx_names.items()):
             # Skip meta registers
             if (idx & 0xffff) != idx:
                 continue
@@ -140,7 +140,7 @@ class RegisterContext:
         registers in our context, set the ones he has to match
         our values.
         """
-        for name,idx in self._rctx_names.items():
+        for name,idx in list(self._rctx_names.items()):
             # Skip meta registers
             if (idx & 0xffff) != idx:
                 continue
@@ -243,7 +243,7 @@ class RegisterContext:
         '''
         Returns a list of the 'real' (non meta) registers.
         '''
-        regs = [rname for rname, ridx in self._rctx_names.items()
+        regs = [rname for rname, ridx in list(self._rctx_names.items())
                 if not self.isMetaRegister(ridx)]
         return regs
 
@@ -253,7 +253,7 @@ class RegisterContext:
 
         Example: for regname, regidx in x.getRegisterNameIndexes():
         '''
-        regs = [(rname, ridx) for rname, ridx in self._rctx_names.items()
+        regs = [(rname, ridx) for rname, ridx in list(self._rctx_names.items())
                 if not self.isMetaRegister(ridx)]
         return regs
 
@@ -263,7 +263,7 @@ class RegisterContext:
         value pairs.
         """
         ret = {}
-        for name,idx in self._rctx_names.items():
+        for name,idx in list(self._rctx_names.items()):
             if (idx & 0xffff) != idx:
                 continue
             ret[name] = self.getRegister(idx)
@@ -274,7 +274,7 @@ class RegisterContext:
         For any name value pairs in the specified dictionary, set the current
         register values in this context.
         """
-        for name,value in regdict.items():
+        for name,value in list(regdict.items()):
             self.setRegisterByName(name, value)
 
     def getRegisterIndex(self, name):

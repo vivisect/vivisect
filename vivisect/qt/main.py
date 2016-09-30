@@ -29,13 +29,13 @@ from PyQt4 import QtCore, QtGui
 from vqt.common import *
 from vivisect.const import *
 
-dock_top   = QtCore.Qt.TopDockWidgetArea
+dock_top = QtCore.Qt.TopDockWidgetArea
 dock_right = QtCore.Qt.RightDockWidgetArea
 
-class VQVivMainWindow(vq_app.VQMainCmdWindow, viv_base.VivEventDist):
 
+class VQVivMainWindow(vq_app.VQMainCmdWindow, viv_base.VivEventDist):
     # Child windows may emit this on "navigate" requests...
-    #vivNavSignal = QtCore.pyqtSignal(str, name='vivNavSignal') 
+    # vivNavSignal = QtCore.pyqtSignal(str, name='vivNavSignal')
     vivMemColorSignal = QtCore.pyqtSignal(dict, name='vivMemColorSignal')
 
     def __init__(self, vw):
@@ -57,7 +57,7 @@ class VQVivMainWindow(vq_app.VQMainCmdWindow, viv_base.VivEventDist):
         self.vqAddMenuField('&View.&Memory', self._menuViewMemory)
         self.vqAddMenuField('&View.&Function Graph', self._menuViewFuncGraph)
         self.vqAddMenuField('&View.&Strings', self._menuViewStrings)
-        #self.vqAddMenuField('&View.&Strings', ACT(viv_q_views.getLocView, vw, (LOC_STRING,LOC_UNI) ,'Strings'))
+        # self.vqAddMenuField('&View.&Strings', ACT(viv_q_views.getLocView, vw, (LOC_STRING,LOC_UNI) ,'Strings'))
         self.vqAddMenuField('&View.&Structures', self._menuViewStructs)
         self.vqAddMenuField('&View.&Segments', self._menuViewSegments)
         self.vqAddMenuField('&View.&Symboliks', self._menuViewSymboliks)
@@ -124,7 +124,7 @@ class VQVivMainWindow(vq_app.VQMainCmdWindow, viv_base.VivEventDist):
     def addVaXref(self, va, parent=None):
         if parent == None:
             parent = self
-        xtova, ok = QtGui.QInputDialog.getText(parent, 'Enter...', 'Make Code Xref 0x%x -> '% va)
+        xtova, ok = QtGui.QInputDialog.getText(parent, 'Enter...', 'Make Code Xref 0x%x -> ' % va)
         if ok:
             try:
                 val = self.vw.parseExpression(str(xtova))
@@ -132,13 +132,13 @@ class VQVivMainWindow(vq_app.VQMainCmdWindow, viv_base.VivEventDist):
                     self.vw.addXref(va, val, REF_CODE)
                 else:
                     self.vw.vprint("Invalid Expression: %s   (%s)" % (xtova, val))
-            except Exception, e:
+            except Exception as e:
                 self.vw.vprint(repr(e))
 
     def setFuncLocalName(self, fva, offset, atype, aname):
         newname, ok = QtGui.QInputDialog.getText(self, 'Enter...', 'Local Name')
         if ok:
-            self.vw.setFunctionLocal(fva, offset, LSYM_NAME, (atype,str(newname)))
+            self.vw.setFunctionLocal(fva, offset, LSYM_NAME, (atype, str(newname)))
 
     def setFuncArgName(self, fva, idx, atype, aname):
         newname, ok = QtGui.QInputDialog.getText(self, 'Enter...', 'Argument Name')
@@ -146,10 +146,10 @@ class VQVivMainWindow(vq_app.VQMainCmdWindow, viv_base.VivEventDist):
             self.vw.setFunctionArg(fva, idx, atype, str(newname))
 
     def showFuncCallGraph(self, fva):
-        callview = viv_q_funcviews.FuncCallsView( self.vw )
-        callview.functionSelected( fva )
+        callview = viv_q_funcviews.FuncCallsView(self.vw)
+        callview.functionSelected(fva)
         callview.show()
-        self.vqDockWidget( callview, floating=True )
+        self.vqDockWidget(callview, floating=True)
 
     def makeStruct(self, va, parent=None):
         if parent == None:
@@ -167,22 +167,22 @@ class VQVivMainWindow(vq_app.VQMainCmdWindow, viv_base.VivEventDist):
 
     def _menuEditPrefs(self):
         configs = []
-        configs.append(('Vivisect',self.vw.config.viv))
-        configs.append(('Vdb',self.vw.config.vdb))
+        configs.append(('Vivisect', self.vw.config.viv))
+        configs.append(('Vdb', self.vw.config.vdb))
         self._cfg_widget = e_q_config.EnviConfigTabs(configs)
         self._cfg_widget.show()
 
     def _menuToolsUStructNew(self):
-        u = viv_q_ustruct.UserStructEditor( self.vw )
-        w = self.vqDockWidget( u, floating=True )
-        w.resize( 600, 600 )
+        u = viv_q_ustruct.UserStructEditor(self.vw)
+        w = self.vqDockWidget(u, floating=True)
+        w.resize(600, 600)
 
     def _menuToolsUStructEdit(self, name=None):
         if name == None:
             return self.vw.getUserStructNames()
-        u = viv_q_ustruct.UserStructEditor( self.vw , name=name)
-        w = self.vqDockWidget( u, floating=True )
-        w.resize( 600, 600 )
+        u = viv_q_ustruct.UserStructEditor(self.vw, name=name)
+        w = self.vqDockWidget(u, floating=True)
+        w.resize(600, 600)
 
     def _menuToolsVaSets(self, name=None):
         if name == None:
@@ -213,41 +213,42 @@ class VQVivMainWindow(vq_app.VQMainCmdWindow, viv_base.VivEventDist):
         guid = self.vw.getVivGuid()
         dwcls = settings.value('%s/DockClasses' % guid)
         state = settings.value('%s/DockState' % guid)
-        geom =  settings.value('%s/DockGeometry' % guid)
+        geom = settings.value('%s/DockGeometry' % guid)
 
-        if dwcls.isNull():
-            names = self.vw.filemeta.keys()
+        if dwcls is None:  # dwcls.isNull():
+            names = list(self.vw.filemeta.keys())
             names.sort()
             name = '+'.join(names)
             dwcls = settings.value('%s/DockClasses' % name)
             state = settings.value('%s/DockState' % name)
-            geom =  settings.value('%s/DockGeometry' % name)
+            geom = settings.value('%s/DockGeometry' % name)
 
-        if dwcls.isNull():
+        if dwcls is None:  # dwcls.isNull():
             dwcls = settings.value('DockClasses')
             state = settings.value('DockState')
-            geom =  settings.value('DockGeometry')
+            geom = settings.value('DockGeometry')
 
-
-        if not dwcls.isNull():
+        if dwcls is not None: #  not dwcls.isNull():
             for i, clsname in enumerate(dwcls.toStringList()):
-                name = 'VQDockWidget%d'  % i
+                name = 'VQDockWidget%d' % i
                 try:
                     tup = self.vqBuildDockWidget(str(clsname), floating=True)
-                    if tup != None:
+                    if tup is not None:
                         d, obj = tup
                         d.setObjectName(name)
-                        d.vqRestoreState(settings,name)
+                        d.vqRestoreState(settings, name)
                         d.show()
-                except Exception, e:
-                    print('Error Building: %s: %s'  % (clsname,e))
+                except Exception as e:
+                    print(('Error Building: %s: %s' % (clsname, e)))
 
         # Once dock widgets are loaded, we can restoreState
-        if not state.isNull():
-            self.restoreState(state.toByteArray())
+        if state is not None: #  not state.isNull():
+            # self.restoreState(state.toByteArray())
+            self.restoreState(state)
 
-        if not geom.isNull():
-            self.restoreGeometry(geom.toByteArray())
+        if geom is not None: #  not geom.isNull():
+            # self.restoreGeometry(geom.toByteArray())
+            self.restoreGeometry(geom)
 
         # Just get all the resize activities done...
         vq_main.eatevents()
@@ -267,7 +268,7 @@ class VQVivMainWindow(vq_app.VQMainCmdWindow, viv_base.VivEventDist):
             dock_classes.append(widget.__class__.__name__)
             name = 'VQDockWidget%d' % i
             w.setObjectName(name)
-            w.vqSaveState(settings,name)
+            w.vqSaveState(settings, name)
 
         # first store for this specific workspace
         guid = self.vw.getVivGuid()
@@ -276,7 +277,7 @@ class VQVivMainWindow(vq_app.VQMainCmdWindow, viv_base.VivEventDist):
         settings.setValue('%s/DockState' % guid, self.saveState())
 
         # next store for this filename
-        names = self.vw.filemeta.keys()
+        names = list(self.vw.filemeta.keys())
         names.sort()
         name = '+'.join(names)
         settings.setValue('%s/DockClasses' % name, dock_classes)
@@ -395,6 +396,7 @@ class VQVivMainWindow(vq_app.VQMainCmdWindow, viv_base.VivEventDist):
     def _ve_fireEvent(self, event, edata):
         return viv_base.VivEventDist._ve_fireEvent(self, event, edata)
 
+
 @vq_main.idlethread
 def runqt(vw, closeme=None):
     '''
@@ -402,7 +404,7 @@ def runqt(vw, closeme=None):
     there is already a main thread running...
     '''
     mw = VQVivMainWindow(vw)
-    viv_extensions.loadExtensions( vw, mw )
+    viv_extensions.loadExtensions(vw, mw)
     mw.show()
 
     if closeme:
@@ -410,17 +412,19 @@ def runqt(vw, closeme=None):
 
     return mw
 
+
 def main(vw):
     vq_main.startup(css=vq_colors.qt_matrix)
     mw = VQVivMainWindow(vw)
-    viv_extensions.loadExtensions( vw, mw )
+    viv_extensions.loadExtensions(vw, mw)
     mw.show()
     vq_main.main()
+
 
 if __name__ == '__main__':
     vw = viv_cli.VivCli()
     import sys
+
     if len(sys.argv) == 2:
         vw.loadWorkspace(sys.argv[1])
     main(vw)
-

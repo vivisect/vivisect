@@ -7,7 +7,7 @@ import vivisect.parsers as v_parsers
 
 from vivisect.const import *
 
-from cStringIO import StringIO
+from io import StringIO
 
 def parseFile(vw, filename):
     fd = file(filename, 'rb')
@@ -39,8 +39,8 @@ def makeStringTable(vw, va, maxva):
                     return
                 l = vw.makeString(va)
                 va += l[vivisect.L_SIZE]
-            except Exception, e:
-                print "makeStringTable",e
+            except Exception as e:
+                print("makeStringTable",e)
                 return
 
 def makeSymbolTable(vw, va, maxva):
@@ -145,7 +145,7 @@ def loadElfIntoWorkspace(vw, elf, filename=None):
         maps.sort()
 
         merged = []
-        for i in xrange(len(maps)):
+        for i in range(len(maps)):
 
             if merged and maps[i][0] == (merged[-1][0] + merged[-1][1]):
                 merged[-1][1] += maps[i][1]
@@ -220,7 +220,7 @@ def loadElfIntoWorkspace(vw, elf, filename=None):
             makeRelocTable(vw, sva, sva+size, addbase, baseaddr)
 
         if sec.sh_flags & Elf.SHF_STRINGS:
-            print "FIXME HANDLE SHF STRINGS"
+            print("FIXME HANDLE SHF STRINGS")
 
     # Let pyelf do all the stupid string parsing...
     for r in elf.getRelocs():
@@ -256,8 +256,8 @@ def loadElfIntoWorkspace(vw, elf, filename=None):
                     else:
                         vw.verbprint('unknown reloc type: %d %s (at %s)' % (rtype, name, hex(rlva)))
 
-        except vivisect.InvalidLocation, e:
-            print "NOTE",e
+        except vivisect.InvalidLocation as e:
+            print("NOTE",e)
 
     for s in elf.getDynSyms():
         stype = s.getInfoType()
@@ -272,14 +272,14 @@ def loadElfIntoWorkspace(vw, elf, filename=None):
             try:
                 vw.addExport(sva, EXP_FUNCTION, s.name, fname)
                 vw.addEntryPoint(sva)
-            except Exception, e:
+            except Exception as e:
                 vw.vprint('addExport Failure: %s' % e)
 
         elif stype == Elf.STT_OBJECT:
             if vw.isValidPointer(sva):
                 try:
                     vw.addExport(sva, EXP_DATA, s.name, fname)
-                except Exception, e:
+                except Exception as e:
                     vw.vprint('WARNING: %s' % e)
 
         elif stype == Elf.STT_HIOS:
@@ -291,7 +291,7 @@ def loadElfIntoWorkspace(vw, elf, filename=None):
                 try:
                     vw.addExport(sva, EXP_FUNCTION, s.name, fname)
                     vw.addEntryPoint(sva)
-                except Exception, e:
+                except Exception as e:
                     vw.vprint('WARNING: %s' % e)
 
         elif stype == 14:# OMG WTF FUCK ALL THIS NONSENSE! FIXME
@@ -302,7 +302,7 @@ def loadElfIntoWorkspace(vw, elf, filename=None):
             if vw.isValidPointer(sva):
                 try:
                     vw.addExport(sva, EXP_DATA, s.name, fname)
-                except Exception, e:
+                except Exception as e:
                     vw.vprint('WARNING: %s' % e)
 
         else:
@@ -325,8 +325,8 @@ def loadElfIntoWorkspace(vw, elf, filename=None):
         if vw.isValidPointer(sva) and len(s.name):
             try:
                 vw.makeName(sva, s.name, filelocal=True)
-            except Exception, e:
-                print "WARNING:",e
+            except Exception as e:
+                print("WARNING:",e)
 
     if vw.isValidPointer(elf.e_entry):
         vw.addExport(elf.e_entry, EXP_FUNCTION, '__entry', fname)

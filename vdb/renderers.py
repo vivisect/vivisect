@@ -20,7 +20,7 @@ class OpcodeRenderer(e_canvas.MemoryRenderer):
 
     def _getOpcodePrefix(self, trace, va, op):
         regs = trace.getRegisters()
-        regs = dict([ (rval,rname) for (rname,rval) in regs.items() if rval != 0 ])
+        regs = dict([ (rval,rname) for (rname,rval) in list(regs.items()) if rval != 0 ])
 
         bp = trace.getBreakpointByAddr(va)
         if bp != None:
@@ -97,7 +97,7 @@ class OpcodeRenderer(e_canvas.MemoryRenderer):
             suffix = self._getOpcodeSuffix(trace, va, op)
             if suffix:
                 mcanv.addText(' ;'+suffix)
-        except Exception, e:
+        except Exception as e:
             mcanv.addText('; suffix error: %s' % e)
 
         mcanv.addText("\n")
@@ -131,7 +131,7 @@ class SymbolRenderer(e_canvas.MemoryRenderer):
         if isptr:
             sym = trace.getSymByAddr(p, exact=False)
             if sym != None:
-                mcanv.addText(' %s + %d' % (repr(sym), p-long(sym)))
+                mcanv.addText(' %s + %d' % (repr(sym), p-int(sym)))
 
         mcanv.addText('\n')
 
@@ -155,7 +155,7 @@ class DerefRenderer(e_canvas.MemoryRenderer):
         preg = ""
 
         regs = trace.getRegisters()
-        for name,val in regs.items():
+        for name,val in list(regs.items()):
             if val == 0:
                 continue
             if val == va:
@@ -229,7 +229,7 @@ class StackRenderer(DerefRenderer):
         args_def = impapi.getImpApiArgs(sym)
         if args_def == None:
             # sym did not exist in impapi :(
-            print('sym but no impapi match: {}'.format(sym))
+            print(('sym but no impapi match: {}'.format(sym)))
             return DerefRenderer.render(self, mcanv, va)
 
         argc = len(args_def)

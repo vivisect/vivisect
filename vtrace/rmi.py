@@ -59,7 +59,7 @@ class RemoteTrace(cobra.CobraProxy):
 
     def __del__(self):
         if not self.__dict__['_remote_released']:
-            print 'RemoteTrace del w/o release()!'
+            print('RemoteTrace del w/o release()!')
 
 def getCallbackProxy(trace, notifier):
     """

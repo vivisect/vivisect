@@ -2,7 +2,7 @@ import os
 import sys
 import time
 import cobra
-import Queue
+import queue
 import optparse
 import threading
 
@@ -38,7 +38,7 @@ class VivServerClient:
         self.wsname = wsname
         self.server = server
         self.eoffset = 0
-        self.q = Queue.Queue()  # The actual local Q we deliver to
+        self.q = queue.Queue()  # The actual local Q we deliver to
 
     @e_threads.firethread
     def _eatServerEvents(self):
@@ -86,7 +86,7 @@ class VivServer:
     @e_threads.maintthread(1)
     def _maintThread(self):
 
-        for chan in self.chandict.keys():
+        for chan in list(self.chandict.keys()):
             chaninfo = self.chandict.get(chan)
             # NOTE: double check because we're lock free...
             if chaninfo == None:
@@ -103,7 +103,7 @@ class VivServer:
 
     @e_threads.maintthread(30)
     def _saveWorkspaceThread(self):
-        for wsinfo in self.wsdict.values():
+        for wsinfo in list(self.wsdict.values()):
             lock,path,events,users = wsinfo
             if events:
                 with lock:
@@ -121,7 +121,7 @@ class VivServer:
         '''
         Get a list of the workspaces this server is willing to share.
         '''
-        return self.wsdict.keys()
+        return list(self.wsdict.keys())
 
     def addNewWorkspace(self, wsname, events):
         wspath = os.path.join(self.path, wsname)
@@ -134,7 +134,7 @@ class VivServer:
 
         wsdir = os.path.dirname(wspath)
         if not os.path.isdir(wsdir):
-            os.makedirs(wsdir, 0750)
+            os.makedirs(wsdir, 0o750)
 
         viv_basicfile.vivEventsToFile(wspath, events)
         wsinfo = [ threading.Lock(), wspath, [], {} ]
@@ -143,7 +143,7 @@ class VivServer:
     def _loadWorkspaces(self):
 
         # First, ditch any that are missing
-        for wsname in self.wsdict.keys():
+        for wsname in list(self.wsdict.keys()):
             wsinfo = self.wsdict.get(wsname)
             if not os.path.isfile(wsinfo[1]):
                 self.wsdict.pop(wsname, None)
@@ -165,7 +165,7 @@ class VivServer:
                     # Initialize the workspace info tuple
                     lock = threading.Lock()
                     wsinfo = [ lock, wspath, [], {} ]
-                    print('loaded: %s' % wsname)
+                    print(('loaded: %s' % wsname))
                     self.wsdict[wsname] = wsinfo
 
         os.path.walk(self.path, checkWorkspaceDir, None)
@@ -187,7 +187,7 @@ class VivServer:
             if not event & VTE_MASK:
                 pevents.append(evtup)
             # SPEED HACK
-            [ q.append(evtup) for (chan,q) in users.items() if chan != skip ]
+            [ q.append(evtup) for (chan,q) in list(users.items()) if chan != skip ]
 
     def createEventChannel(self, wsname):
         wsinfo = self._req_wsinfo(wsname)
@@ -228,9 +228,9 @@ def runMainServer(dirname=''):
     daemon.serve_forever()
 
 def usage():
-    print 'Usage: python -m vivisect.tools.server <vivdir>'
-    print ''
-    print 'NOTE: vivdir is simply a directory full of viv files to share'
+    print('Usage: python -m vivisect.tools.server <vivdir>')
+    print('')
+    print('NOTE: vivdir is simply a directory full of viv files to share')
     sys.exit(0)
 
 if __name__ == '__main__':
@@ -245,6 +245,6 @@ if __name__ == '__main__':
     if not os.path.isdir(vivdir):
         usage()
 
-    print('Server Starting (port:%d)' % (viv_port,))
+    print(('Server Starting (port:%d)' % (viv_port,)))
     runMainServer(vivdir)
 

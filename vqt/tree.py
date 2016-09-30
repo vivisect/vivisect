@@ -206,7 +206,7 @@ class VQTreeView(QtGui.QTreeView):
 
     def vqSizeColumns(self):
         c = self.model().columnCount()
-        for i in xrange(c):
+        for i in range(c):
             self.resizeColumnToContents(i)
 
     def setModel(self, model):

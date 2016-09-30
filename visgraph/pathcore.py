@@ -213,7 +213,7 @@ def reprPath(node, startFromRoot=True):
 
     snid = getNodeProp(node, 'nid')
     todo = [ (snid, node, 1) ]
-    print hex(snid)
+    print(hex(snid))
 
     while len(todo):
         nid, pnode, indent = todo.pop()
@@ -223,7 +223,7 @@ def reprPath(node, startFromRoot=True):
             outstr = "   |"*indent + "--" + hex(tnid)
             if tnid == snid:
                 outstr += "  <<<<-- our node!"
-            print outstr
+            print(outstr)
 
             todo.append( (tnid, tpnode, indent+1) )
 

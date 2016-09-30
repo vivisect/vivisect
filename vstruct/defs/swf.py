@@ -167,7 +167,7 @@ class EncodedU32(v_number):
     def vsParse(self, bytez, offset=0):
         self._vs_value = 0
         # this shit is *not* my fault... ;)
-        for i in xrange(5):
+        for i in range(5):
             b = ord(bytez[offset + i])
             self._vs_value |= (b & 0x7f) << (7 * i)
             if not b & 0x80:
@@ -260,7 +260,7 @@ class GRADIENT(VStruct):
 
     def pcb_BitFields(self):
         gcount = self.BitFields.NumGradients
-        for i in xrange(gcount):
+        for i in range(gcount):
             g = GRADRECORD(shape=self._swf_shape)
             self.GradientRecords.vsAddElement(g)
 
@@ -322,7 +322,7 @@ class FILLSTYLEARRAY(VStruct):
         self.swfAddFillStyles(self.FillStyleCountEx)
 
     def swfAddFillStyles(self, count):
-        for i in xrange(count):
+        for i in range(count):
             elem = FILLSTYLE(shape=self._swf_shape)
             self.FillStyles.vsAddElement(elem)
 
@@ -353,7 +353,7 @@ class LINESTYLEARRAY(VStruct):
         self.swfAddLineStyles(self.LineStyleCountEx)
 
     def swfAddLineStyles(self, count):
-        for i in xrange(count):
+        for i in range(count):
             elem = LINESTYLE(shape=self._swf_shape)
             self.LineStyles.vsAddElement(elem)
 
@@ -546,7 +546,7 @@ class SwfFile(VStruct):
             bytez = bytez[:8] + zlib.decompress(bytez[8:])
 
         offset = self.Header.vsParse(bytez, offset=offset)
-        print('Header Says: %d Bytes Are: %d' %  (self.Header.FileLength,len(bytez)))
+        print(('Header Says: %d Bytes Are: %d' %  (self.Header.FileLength,len(bytez))))
         i = 0
         while offset < len(bytez):
             swftag = SwfTag()

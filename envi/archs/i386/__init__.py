@@ -9,7 +9,7 @@ import struct
 import traceback
 
 # Gank in our bundled libdisassemble
-import opcode86
+from . import opcode86
 
 from envi.archs.i386.regs import *
 from envi.archs.i386.disasm import *

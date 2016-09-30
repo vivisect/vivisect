@@ -3,7 +3,7 @@ A package for any of the vivisect workspace renderers.
 """
 import envi
 import string
-import urllib
+import urllib.request, urllib.parse, urllib.error
 
 from vivisect.const import *
 
@@ -140,7 +140,7 @@ class WorkspaceRenderer(e_canvas.MemoryRenderer):
             mcanv.addText(linepre, tag=vatag)
             if name == None:
                 name = "loc_%.8x" % lva
-            mcanv.addText(urllib.quote_plus(name), tag=vatag)
+            mcanv.addText(urllib.parse.quote_plus(name), tag=vatag)
             mcanv.addText(": ")
             xrtag = mcanv.getTag("xrefs")
             mcanv.addText('[%d XREFS]\n' % xrcount, tag=xrtag)
@@ -153,7 +153,7 @@ class WorkspaceRenderer(e_canvas.MemoryRenderer):
             # extra is the opcode object
             try:
                 extra.render(mcanv)
-            except Exception, e:
+            except Exception as e:
                 import traceback
                 traceback.print_exc()
                 mcanv.addText("Opcode Render Failed: %s\n" % repr(extra))
@@ -178,7 +178,7 @@ class WorkspaceRenderer(e_canvas.MemoryRenderer):
 
                 totag = None
                 if isinstance(sobj, vs_prims.v_ptr):
-                    stova = long(sobj)
+                    stova = int(sobj)
                     stoname = self.vw.getName(stova)
                     if stoname == None:
                         stoname = repr(sobj)

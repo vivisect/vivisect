@@ -33,7 +33,7 @@ arm_regs = (
 MAX_REGS = 17
 
 # build a translation table to allow for fast access of banked registers
-modes = proc_modes.keys()
+modes = list(proc_modes.keys())
 modes.sort()
 
 reg_table = [ x for x in range(16 * 18) ]
@@ -90,7 +90,7 @@ PSR_C_mask = 0xffffffff ^ PSR_C_bit
 PSR_V_bit  = 1 << PSR_V
 PSR_V_mask = 0xffffffff ^ PSR_V_bit
 
-psr_fields = [None for x in xrange(32)]
+psr_fields = [None for x in range(32)]
 psr_fields[PSR_M] = "M"
 psr_fields[PSR_T] = "T"
 psr_fields[PSR_F] = "F"

@@ -3,7 +3,7 @@ Cobra Distributed Event subsystem.
 '''
 import json
 import time
-import Queue
+import queue
 import socket
 import struct
 import itertools
@@ -37,8 +37,8 @@ class CobraEventCore:
         for args,kwargs in self._ce_fireq:
             try:
                 self._fireEvent(*args, **kwargs)
-            except Exception, e:
-                print('fireFireThread _fireEventError: %s' % e)
+            except Exception as e:
+                print(('fireFireThread _fireEventError: %s' % e))
 
     @e_threads.maintthread(3)
     def cullAbandonedChannels(self, abtime):
@@ -49,7 +49,7 @@ class CobraEventCore:
         Create a new channel id and allocate an
         event Queue.
         '''
-        chanid = self._ce_chanids.next()
+        chanid = next(self._ce_chanids)
         q = e_threads.ChunkQueue()
         q.chanid = chanid # monkey patch the chanid to the q
         self._ce_chans.append( q )
@@ -74,9 +74,9 @@ class CobraEventCore:
         for upstream,upchan in self._ce_upstreams:
             try:
                 upstream.finiEventChannel(upchan)
-            except Exception, e:
-                print('upstream error: %r %s' % (upstream,e))
-        [ self.finiEventChannel( chanid ) for chanid in self._ce_chanlookup.keys() ]
+            except Exception as e:
+                print(('upstream error: %r %s' % (upstream,e)))
+        [ self.finiEventChannel( chanid ) for chanid in list(self._ce_chanlookup.keys()) ]
 
     def getNextEventsForChan(self, chanid, timeout=None):
         '''
@@ -116,15 +116,15 @@ class CobraEventCore:
         for handler in self._ce_handlers[event]:
             try:
                 handler(event,einfo)
-            except Exception, e:
-                print('handler error(%r): %s' % (event,e))
+            except Exception as e:
+                print(('handler error(%r): %s' % (event,e)))
 
         if upstream:
             for upstream,upchan in self._ce_upstreams:
                 try:
                     upstream.fireEvent(event, einfo, skip=upchan)
-                except Exception, e:
-                    print('upstream error: %r %s' % (upstream,e))
+                except Exception as e:
+                    print(('upstream error: %r %s' % (upstream,e)))
 
     def addEventHandler(self, event, callback):
         '''
@@ -155,8 +155,8 @@ class CobraEventCore:
         while True:
             try:
                 events = evtcore.getNextEventsForChan( chan, timeout=5 )
-            except Exception, e:
-                print('addEventUpstream Error: %s' % e)
+            except Exception as e:
+                print(('addEventUpstream Error: %s' % e))
                 time.sleep(1)
                 # grab a new channel...
                 chan = evtcore.initEventChannel(qmax=qmax)
@@ -169,8 +169,8 @@ class CobraEventCore:
 
             try:
                 [ self.fireEvent(event,einfo,upstream=False) for (event,einfo) in events ]
-            except Exception, e:
-                print('addEventUpstream fireEvent Error: %s' % e)
+            except Exception as e:
+                print(('addEventUpstream fireEvent Error: %s' % e))
                 time.sleep(1)
 
     def addEventCallback(self, callback, qmax=0, firethread=True):
@@ -204,8 +204,8 @@ class CobraEventCore:
 
                 try:
                     callback(event,einfo)
-                except Exception, e:
-                    print('Event Callback Exception (chan: %d): %s' % (chanid,e))
+                except Exception as e:
+                    print(('Event Callback Exception (chan: %d): %s' % (chanid,e)))
 
     def setEventCast(self, mcast='224.56.56.56', port=45654, bind='0.0.0.0'):
         '''
@@ -246,14 +246,14 @@ if __name__ == '__main__':
     #ecore.setEventCast(bind='192.168.1.117')
 
     def wootback(event,einfo):
-        print 'wootback',event,einfo
+        print('wootback',event,einfo)
 
     #ecore0.addEventHandler('foo', wootback)
     #ecore1.addEventHandler('foo', wootback)
 
     chan0 = ecore0.initEventChannel()
     chan1 = ecore1.initEventChannel()
-    print('Channel: %d' % chan1)
+    print(('Channel: %d' % chan1))
 
     # both channels should get exactly one copy of these
     ecore0.fireEvent('foo',('some','foo','info'))
@@ -261,6 +261,6 @@ if __name__ == '__main__':
 
     import time; time.sleep(1)
     while True:
-        print 'GOT0',ecore0.getNextEventsForChan( chan0, timeout=2 )
-        print 'GOT1',ecore1.getNextEventsForChan( chan1, timeout=2 )
+        print('GOT0',ecore0.getNextEventsForChan( chan0, timeout=2 ))
+        print('GOT1',ecore1.getNextEventsForChan( chan1, timeout=2 ))
 
