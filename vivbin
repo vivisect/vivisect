@@ -10,12 +10,12 @@ import argparse
 import threading
 import traceback
 
-
 import vivisect
 import vivisect.cli as viv_cli
 import envi.config as e_config
 import envi.threads as e_threads
 import vivisect.parsers as viv_parsers
+
 
 def main():
     parser = argparse.ArgumentParser(prog='vivbin', usage='%(prog)s [options] <workspace|binaries...>')
@@ -44,7 +44,7 @@ def main():
     vw.verbose = args.verbose
 
     if args.option is not None:
-        if args.option in ('-h','?'):
+        if args.option in ('-h', '?'):
             print((vw.config.reprConfigPaths()))
             sys.exit(-1)
 
@@ -61,8 +61,6 @@ def main():
             print(("With entry: %s" % args.option))
             print(e)
             sys.exit(-1)
-
-
 
     if args.storage_name is not None:
         vw.setMeta("StorageModule", args.storage_name)
@@ -96,10 +94,10 @@ def main():
                 start = time.time()
                 vw.analyze()
                 end = time.time()
-                print("ANALYSIS TIME: %s" % (end-start))
+                print("ANALYSIS TIME: %s" % (end - start))
 
         if args.modname is not None:
-            module = imp.load_module("custom_analysis", file(modname, "rb"), modname, ('.py', 'U', 1))
+            module = imp.load_module("custom_analysis", open(modname, "rb"), modname, ('.py', 'U', 1))
             module.analyze(vw)
 
         print(('stats: %r' % (vw.getStats(),)))
@@ -118,14 +116,15 @@ def main():
 
         viv_qt_main.main(vw)
 
+
 if __name__ == '__main__':
     try:
         # psyco makes disasm much faster (2-3X)
         import psyco
-        #psyco.log()
+
+        # psyco.log()
         psyco.full()
     except ImportError:
         pass
 
     main()
-

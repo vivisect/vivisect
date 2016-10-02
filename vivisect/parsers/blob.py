@@ -42,7 +42,7 @@ def parseFile(vw, filename):
     vw.setMeta('bigend', bigend)
 
     fname = vw.addFile(filename, baseaddr, v_parsers.md5File(filename))
-    bytez =  file(filename, "rb").read()
+    bytez = open(filename, "rb").read()
     vw.addMemoryMap(baseaddr, 7, filename, bytez)
     vw.addSegment( baseaddr, len(bytez), '%.8x' % baseaddr, 'blob' )
 

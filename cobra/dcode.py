@@ -41,7 +41,7 @@ class DcodeServer:
             return None
 
         path = os.path.dirname(filename)
-        fbytes = file(filename, "rU").read()
+        fbytes = open(filename, "rU").read()
         return (fbytes,filename,path)
 
         #return DcodeLoader(fbytes, filename, path)

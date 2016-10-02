@@ -6,7 +6,7 @@ Quick utility to generate ord lookups from DLL exports.
 
 import PE
 
-p = PE.PE(file(sys.argv[1], 'rb'))
+p = PE.PE(open(sys.argv[1], 'rb'))
 
 base = int(p.IMAGE_EXPORT_DIRECTORY.Base)
 

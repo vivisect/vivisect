@@ -18,11 +18,13 @@ from vqt.main import workthread, idlethread, idlethreadsync
 QtGui objects which assist in GUIs which use vtrace parts.
 '''
 
+
 class VQTraceNotifier(vtrace.Notifier):
     '''
     A bit of shared mixin code for the handling of vtrace
     notifier callbacks in various VQTreeViews...
     '''
+
     def __init__(self, trace=None):
         self.trace = trace
         vtrace.Notifier.__init__(self)
@@ -39,6 +41,7 @@ class VQTraceNotifier(vtrace.Notifier):
             if not trace.shouldRunAgain():
                 self.setEnabled(True)
                 self.vqLoad()
+
 
 class RegisterListModel(envi_qt_memory.EnviNavModel):
     columns = ('Name', 'Hex', 'Dec', 'Best')
@@ -69,10 +72,12 @@ class RegisterListModel(envi_qt_memory.EnviNavModel):
 
         return True
 
+
 class RegistersListView(vq_tree.VQTreeView, VQTraceNotifier):
     '''
     A pure "list view" object for registers
     '''
+
     def __init__(self, trace=None, parent=None):
         VQTraceNotifier.__init__(self, trace)
         vq_tree.VQTreeView.__init__(self, parent=parent)
@@ -148,8 +153,8 @@ class RegistersListView(vq_tree.VQTreeView, VQTraceNotifier):
             finally:
                 model.append((rname, hexva, rval, str(smc)))
 
-class RegColorDelegate(QtGui.QStyledItemDelegate):
 
+class RegColorDelegate(QtGui.QStyledItemDelegate):
     def __init__(self, parent):
         QtGui.QStyledItemDelegate.__init__(self, parent)
         self.reglist = parent
@@ -161,6 +166,7 @@ class RegColorDelegate(QtGui.QStyledItemDelegate):
             weight = QtGui.QFont.Bold
         option.font.setWeight(weight)
         return QtGui.QStyledItemDelegate.paint(self, painter, option, index)
+
 
 class RegistersView(QtGui.QWidget):
     '''
@@ -189,8 +195,8 @@ class RegistersView(QtGui.QWidget):
         self.regdelegate = RegColorDelegate(self.reglist)
         self.reglist.setItemDelegate(self.regdelegate)
         # TODO: we should switch theme overall to monospace font
-        #font = Qt.QFont('Courier New', 10)
-        #self.reglist.setFont(font)
+        # font = Qt.QFont('Courier New', 10)
+        # self.reglist.setFont(font)
 
         vbox.addWidget(self.viewnames)
 
@@ -223,10 +229,12 @@ class RegistersView(QtGui.QWidget):
         self.reglist.regnames = self.regviews.get(str(name), None)
         self.reglist.vqLoad()
 
+
 class VQFlagsGridView(QtGui.QWidget, VQTraceNotifier):
     '''
     Show the state of the status register (if available).
     '''
+
     def __init__(self, trace=None, parent=None):
         QtGui.QWidget.__init__(self, parent=parent)
         VQTraceNotifier.__init__(self, trace)
@@ -286,8 +294,10 @@ class VQFlagsGridView(QtGui.QWidget, VQTraceNotifier):
 
         self.update()
 
+
 class VQProcessListModel(vq_tree.VQTreeModel):
     columns = ('Pid', 'Name')
+
 
 class VQProcessListView(vq_tree.VQTreeView):
     def __init__(self, trace=None, parent=None):
@@ -300,11 +310,11 @@ class VQProcessListView(vq_tree.VQTreeView):
         self.setModel(model)
         self.setAlternatingRowColors(True)
 
-        for pid,name in self.trace.ps():
-            model.append((pid,name))
+        for pid, name in self.trace.ps():
+            model.append((pid, name))
+
 
 class VQProcessSelectDialog(QtGui.QDialog):
-
     def __init__(self, trace=None, parent=None):
         QtGui.QDialog.__init__(self, parent=parent)
 
@@ -322,7 +332,7 @@ class VQProcessSelectDialog(QtGui.QDialog):
         ok = QtGui.QPushButton("Ok", parent=hbox)
         cancel = QtGui.QPushButton("Cancel", parent=hbox)
 
-        self.plisttree.doubleClicked.connect( self.dialog_activated )
+        self.plisttree.doubleClicked.connect(self.dialog_activated)
 
         ok.clicked.connect(self.dialog_ok)
         cancel.clicked.connect(self.dialog_cancel)
@@ -355,17 +365,19 @@ class VQProcessSelectDialog(QtGui.QDialog):
     def dialog_cancel(self):
         self.reject()
 
+
 @idlethreadsync
 def getProcessPid(trace=None, parent=None):
     d = VQProcessSelectDialog(trace=trace, parent=parent)
     r = d.exec_()
     return d.pid
 
+
 class FileDescModel(vq_tree.VQTreeModel):
-    columns = ('Fd','Type','Name')
+    columns = ('Fd', 'Type', 'Name')
+
 
 class VQFileDescView(vq_tree.VQTreeView, VQTraceNotifier):
-
     def __init__(self, trace, parent=None):
         VQTraceNotifier.__init__(self, trace)
         vq_tree.VQTreeView.__init__(self, parent=parent)
@@ -384,12 +396,12 @@ class VQFileDescView(vq_tree.VQTreeView, VQTraceNotifier):
             return
 
         model = FileDescModel(parent=self)
-        for fd,fdtype,bestname in self.trace.getFds():
+        for fd, fdtype, bestname in self.trace.getFds():
             model.append((fd, fdtype, bestname))
         self.setModel(model)
 
-class VQTraceToolBar(QtGui.QToolBar, vtrace.Notifier):
 
+class VQTraceToolBar(QtGui.QToolBar, vtrace.Notifier):
     def __init__(self, trace, parent=None):
         QtGui.QToolBar.__init__(self, parent=parent)
         vtrace.Notifier.__init__(self)
@@ -488,11 +500,13 @@ class VQTraceToolBar(QtGui.QToolBar, vtrace.Notifier):
         else:
             self._updateActions(trace.isAttached(), trace.shouldRunAgain())
 
+
 class VQMemoryMapView(envi_qt_memmap.VQMemoryMapView, VQTraceNotifier):
     '''
     A memory map view which is sensitive to the status of a
     trace object.
     '''
+
     def __init__(self, trace, parent=None):
         VQTraceNotifier.__init__(self, trace)
         envi_qt_memmap.VQMemoryMapView.__init__(self, trace, parent=parent)
@@ -508,11 +522,12 @@ class VQMemoryMapView(envi_qt_memmap.VQMemoryMapView, VQTraceNotifier):
 
         envi_qt_memmap.VQMemoryMapView.vqLoad(self)
 
+
 class VQThreadListModel(vq_tree.VQTreeModel):
-    columns = ('Thread Id','Thread Info', 'State')
+    columns = ('Thread Id', 'Thread Info', 'State')
+
 
 class VQThreadsView(vq_tree.VQTreeView, VQTraceNotifier):
-
     def __init__(self, trace=None, parent=None, selectthread=None):
         # selectthread is an optional endpoint to connect to
         VQTraceNotifier.__init__(self, trace)

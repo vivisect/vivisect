@@ -5,13 +5,13 @@ import vivisect.symboliks.expression as v_s_expr
 from vivisect.const import *
 from vivisect.symboliks.common import *
 
-class SymbolikEmulator:
 
+class SymbolikEmulator:
     # FIXME possible  _sym_width set automatically from vw?
     # FIXME possible "sym factory" mixin that builds Vars/Consts/Opers etc?
     # ( v = emu.initSymvar('woot')  ( with size default etc.. )
 
-    __width__ = None    # Extenders *must* set this.
+    __width__ = None  # Extenders *must* set this.
 
     def __init__(self, vw):
         '''
@@ -22,22 +22,21 @@ class SymbolikEmulator:
         self._sym_mem = {}
         self._sym_rseed = ''
         self._sym_vw = vw
-        self._sym_cconvs = {}    # function emulation can be calling convention aware
+        self._sym_cconvs = {}  # function emulation can be calling convention aware
 
         self._sym_expr_parser = v_s_expr.SymbolikExpressionParser(defwidth=vw.psize)
 
     def getSymSnapshot(self):
-        return ( dict( self._sym_meta ),
-                 dict( self._sym_vars ),
-                 dict( self._sym_mem ),
-                 self._sym_rseed )
-            
+        return (dict(self._sym_meta),
+                dict(self._sym_vars),
+                dict(self._sym_mem),
+                self._sym_rseed)
 
     def setSymSnapshot(self, snap):
-        ( self._sym_meta,
-          self._sym_vars,
-          self._sym_mem,
-          self._sym_rseed ) = snap
+        (self._sym_meta,
+         self._sym_vars,
+         self._sym_mem,
+         self._sym_rseed) = snap
 
     def setMeta(self, name, val):
         '''
@@ -68,7 +67,7 @@ class SymbolikEmulator:
         Apply the given effects to the emulator.  Return a list of updated
         effects which reflect the state during emulation.
         '''
-        return [ e.applyEffect(self) for e in effects ]
+        return [e.applyEffect(self) for e in effects]
 
     def applyFunctionCall(self, funcsym):
         '''
@@ -125,7 +124,7 @@ class SymbolikEmulator:
         # FIXME handle memory offsets etc...
         # FIXME handle write size.. (using isDiscrete?)
         addrval = symaddr.solve(emu=self, vals=vals)
-        #sizeval = symsize.solve(slvctx=self)
+        # sizeval = symsize.solve(slvctx=self)
         self._sym_mem[addrval] = (symaddr, symval)
 
     def setSymVariable(self, name, symval, width=None):

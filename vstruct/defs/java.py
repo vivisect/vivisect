@@ -208,7 +208,7 @@ if __name__ == '__main__':
     import traceback
 
     for fname in sys.argv[1:]:
-        fbytes = file(fname,'rb').read()
+        fbytes = open(fname,'rb').read()
         c = JavaClass()
         try:
             c.vsParse( fbytes )

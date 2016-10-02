@@ -4,20 +4,22 @@ import vivisect.parsers as viv_parsers
 import vstruct.defs.macho as vs_macho
 import vivisect.analysis.i386 as viv_a_i386
 
+
 def parseFile(vw, filename):
-    fbytes = file(filename, 'rb').read()
+    fbytes = open(filename, 'rb').read()
     return _loadMacho(vw, fbytes, filename=filename)
+
 
 def parseBytes(vw, filebytes):
     return _loadMacho(vw, filebytes)
 
-def _loadMacho(vw, filebytes, filename=None):
 
+def _loadMacho(vw, filebytes, filename=None):
     # We fake them to *much* higher than norm so pointer tests do better...
     baseaddr = vw.config.viv.parsers.macho.baseaddr
 
     if filename == None:
-        filename = 'macho_%.8x' % baseaddr # FIXME more than one!
+        filename = 'macho_%.8x' % baseaddr  # FIXME more than one!
 
     # Check for the FAT binary magic...
     if filebytes[:4].encode('hex') in ('cafebabe', 'bebafeca'):
@@ -37,7 +39,7 @@ def _loadMacho(vw, filebytes, filename=None):
             if archname == fatarch:
                 archhdr = ar
                 break
-            archlist.append((archname,ar))
+            archlist.append((archname, ar))
 
         if not archhdr:
             # If we don't have a specified arch, exception!
@@ -46,7 +48,7 @@ def _loadMacho(vw, filebytes, filename=None):
                 vw.vprint('0x%.8x 0x%.8x %s' % (ar.offset, ar.size, archname))
             raise Exception('Mach-O Fat Binary: Please specify arch with -O viv.parsers.macho.fatarch="<archname>"')
 
-        filebytes = filebytes[archhdr.offset:archhdr.offset+archhdr.size]
+        filebytes = filebytes[archhdr.offset:archhdr.offset + archhdr.size]
 
     # Instantiate the parser wrapper and parse bytes
     macho = vs_macho.mach_o()
@@ -86,6 +88,6 @@ def _loadMacho(vw, filebytes, filename=None):
 
     return fname
 
+
 def parseMemory(vw, memobj, baseaddr):
     pass
-

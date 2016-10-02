@@ -6,8 +6,8 @@ from PyQt4 import QtCore, QtGui
 import vqt.colors as vq_colors
 import visgraph.pathcore as vg_path
 
-class VQTreeSorter:
 
+class VQTreeSorter:
     def __init__(self, colnum, asc=1):
         self.colnum = colnum
         self.asc = asc
@@ -20,8 +20,8 @@ class VQTreeSorter:
 
         return cmp(x2val, x1val)
 
-class VQTreeItem(object):
 
+class VQTreeItem(object):
     def __init__(self, rowdata, parent):
         self.parent = parent
         self.rowdata = list(rowdata)
@@ -54,13 +54,14 @@ class VQTreeItem(object):
             return self.parent.children.index(self)
         return 0
 
+
 class VQTreeModel(QtCore.QAbstractItemModel):
     '''
     A QT tree model that uses the tree API from visgraph
     to hold the data...
     '''
 
-    columns = ( 'A first column!', 'The Second Column!')
+    columns = ('A first column!', 'The Second Column!')
     editable = None
     dragable = False
 
@@ -73,7 +74,7 @@ class VQTreeModel(QtCore.QAbstractItemModel):
         self.rootnode = VQTreeItem((), None)
 
         if self.editable == None:
-            self.editable = [False,] * len(self.columns)
+            self.editable = [False, ] * len(self.columns)
 
     def vqEdited(self, pnode, col, value):
         return value
@@ -93,7 +94,7 @@ class VQTreeModel(QtCore.QAbstractItemModel):
     def sort(self, colnum, order=0):
         cmpf = VQTreeSorter(colnum, order)
         self.layoutAboutToBeChanged.emit()
-        self.rootnode.children.sort(cmp=cmpf)
+        self.rootnode.children.sort(key=cmpf)
         self.layoutChanged.emit()
 
     def flags(self, index):
@@ -141,9 +142,8 @@ class VQTreeModel(QtCore.QAbstractItemModel):
         return True
 
     def headerData(self, column, orientation, role):
-        if ( orientation == QtCore.Qt.Horizontal and
-             role == QtCore.Qt.DisplayRole):
-
+        if (orientation == QtCore.Qt.Horizontal and
+                    role == QtCore.Qt.DisplayRole):
             return self.columns[column]
 
         return None
@@ -193,8 +193,8 @@ class VQTreeModel(QtCore.QAbstractItemModel):
 
         return len(pitem.children)
 
-class VQTreeView(QtGui.QTreeView):
 
+class VQTreeView(QtGui.QTreeView):
     def __init__(self, parent=None, cols=None):
         QtGui.QTreeView.__init__(self, parent=parent)
         self.setSortingEnabled(True)
@@ -202,7 +202,7 @@ class VQTreeView(QtGui.QTreeView):
 
         if cols != None:
             model = VQTreeModel(parent=self, columns=cols)
-            self.setModel( model )
+            self.setModel(model)
 
     def vqSizeColumns(self):
         c = self.model().columnCount()
@@ -210,7 +210,6 @@ class VQTreeView(QtGui.QTreeView):
             self.resizeColumnToContents(i)
 
     def setModel(self, model):
-        model.dataChanged.connect( self.dataChanged )
-        model.rowsInserted.connect( self.rowsInserted )
+        model.dataChanged.connect(self.dataChanged)
+        model.rowsInserted.connect(self.rowsInserted)
         return QtGui.QTreeView.setModel(self, model)
-

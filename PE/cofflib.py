@@ -188,7 +188,7 @@ def foo(a, b, idx):
 if __name__ == '__main__':
 
     import sys
-    b = file(sys.argv[1], 'rb').read()
+    b = open(sys.argv[1], 'rb').read()
 
     import code
     a = IMAGE_ARCHIVE()

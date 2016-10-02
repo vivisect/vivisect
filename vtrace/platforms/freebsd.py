@@ -418,7 +418,7 @@ class FreeBSDMixin:
         ret = []
         mpath = "/proc/%d/map" % self.pid
 
-        mapfile = file(mpath, "rb")
+        mapfile = open(mpath, "rb")
         for line in mapfile:
             perms = 0
             fname = ""

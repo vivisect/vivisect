@@ -23,7 +23,7 @@ def accessTestObject( t ):
 
 dirname = os.path.dirname(__file__)
 def openTestFile(name):
-    return file(testFileName(name),'rb')
+    return open(testFileName(name),'rb')
 
 def testFileName(name):
     return os.path.join(dirname, name)

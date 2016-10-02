@@ -243,7 +243,7 @@ class ClusterServer:
         if not self.sharedfiles.get(filename):
             raise Exception('File %s is not shared!')
 
-        fd = file(filename, 'rb')
+        fd = open(filename, 'rb')
 
         cname = self.cobrad.shareObject(fd, doref=True)
         host,port = cobra.getLocalInfo()

@@ -688,7 +688,7 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
             self.vprint('Invalid File: %s' % fname)
             return
 
-        fbytes = file(fname, 'rb').read()
+        fbytes = open(fname, 'rb').read()
         memva = self.trace.allocateMemory(len(fbytes))
         self.trace.writeMemory(memva, fbytes)
 
@@ -1662,7 +1662,7 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
             return self.do_help("bpfile")
 
         bpid = int(argv[0])
-        pycode = file(argv[1], "rU").read()
+        pycode = open(argv[1], "rU").read()
 
         self.trace.setBreakpointCode(bpid, pycode)
 
@@ -1737,7 +1737,7 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
                 test = compile(pycode, "test", "exec")
 
             elif opt == "-F":
-                pycode = file(optarg, "rU").read()
+                pycode = open(optarg, "rU").read()
 
             elif opt == '-f':
                 fastbreak = True

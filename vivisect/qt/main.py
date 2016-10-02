@@ -215,7 +215,7 @@ class VQVivMainWindow(vq_app.VQMainCmdWindow, viv_base.VivEventDist):
         state = settings.value('%s/DockState' % guid)
         geom = settings.value('%s/DockGeometry' % guid)
 
-        if dwcls is None:  # dwcls.isNull():
+        if dwcls is None:
             names = list(self.vw.filemeta.keys())
             names.sort()
             name = '+'.join(names)
@@ -223,13 +223,13 @@ class VQVivMainWindow(vq_app.VQMainCmdWindow, viv_base.VivEventDist):
             state = settings.value('%s/DockState' % name)
             geom = settings.value('%s/DockGeometry' % name)
 
-        if dwcls is None:  # dwcls.isNull():
+        if dwcls is None:
             dwcls = settings.value('DockClasses')
             state = settings.value('DockState')
             geom = settings.value('DockGeometry')
 
-        if dwcls is not None: #  not dwcls.isNull():
-            for i, clsname in enumerate(dwcls.toStringList()):
+        if dwcls is not None:
+            for i, clsname in enumerate(dwcls):
                 name = 'VQDockWidget%d' % i
                 try:
                     tup = self.vqBuildDockWidget(str(clsname), floating=True)
@@ -242,12 +242,10 @@ class VQVivMainWindow(vq_app.VQMainCmdWindow, viv_base.VivEventDist):
                     print(('Error Building: %s: %s' % (clsname, e)))
 
         # Once dock widgets are loaded, we can restoreState
-        if state is not None: #  not state.isNull():
-            # self.restoreState(state.toByteArray())
+        if state is not None:
             self.restoreState(state)
 
-        if geom is not None: #  not geom.isNull():
-            # self.restoreGeometry(geom.toByteArray())
+        if geom is not None:
             self.restoreGeometry(geom)
 
         # Just get all the resize activities done...

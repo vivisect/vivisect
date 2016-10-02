@@ -18,10 +18,12 @@ MM_EXEC = 0x1
 MM_SHARED = 0x08
 
 MM_READ_WRITE = MM_READ | MM_WRITE
-MM_READ_EXEC  =  MM_READ | MM_EXEC
+MM_READ_EXEC = MM_READ | MM_EXEC
 MM_RWX = MM_READ | MM_WRITE | MM_EXEC
 
 pnames = ['No Access', 'Execute', 'Write', None, 'Read']
+
+
 def getPermName(perm):
     '''
     Return the human readable name for a *single* memory
@@ -29,8 +31,9 @@ def getPermName(perm):
     '''
     return pnames[perm]
 
+
 def reprPerms(mask):
-    plist = ['-','-','-','-']
+    plist = ['-', '-', '-', '-']
     if mask & MM_SHARED:
         plist[0] = 's'
     if mask & MM_READ:
@@ -42,6 +45,7 @@ def reprPerms(mask):
 
     return "".join(plist)
 
+
 def parsePerms(pstr):
     ret = 0
     if pstr.find('s') != -1: ret |= MM_SHARED
@@ -49,6 +53,7 @@ def parsePerms(pstr):
     if pstr.find('w') != -1: ret |= MM_WRITE
     if pstr.find('x') != -1: ret |= MM_EXEC
     return ret
+
 
 class IMemory:
     """
@@ -83,7 +88,7 @@ class IMemory:
         '''
         Get a reference to the default arch module for the memory object.
         '''
-        return self.imem_archs[ arch >> 16 ]
+        return self.imem_archs[arch >> 16]
 
     def getPointerSize(self):
         return self.imem_psize
@@ -126,8 +131,8 @@ class IMemory:
         if mmap == None:
             return False
         mapva, mapsize, mapperm, mapfile = mmap
-        mapend = mapva+mapsize
-        if va+size > mapend:
+        mapend = mapva + mapsize
+        if va + size > mapend:
             return False
         if mapperm & perm != perm:
             return False
@@ -147,26 +152,27 @@ class IMemory:
         # Somehow, pointers are "signed" when they
         # get chopped up by python's struct package
         if self.imem_psize == 2:
-            fmt = fmt.replace("P","H")
+            fmt = fmt.replace("P", "H")
         elif self.imem_psize == 4:
-            fmt = fmt.replace("P","I")
+            fmt = fmt.replace("P", "I")
         elif self.imem_psize == 8:
-            fmt = fmt.replace("P","Q")
+            fmt = fmt.replace("P", "Q")
 
         size = struct.calcsize(fmt)
         bytez = self.readMemory(va, size)
         return struct.unpack(fmt, bytez)
 
     def getSegmentInfo(self, id):
-        return (0,0xffffffff)
+        return (0, 0xffffffff)
 
     def readMemValue(self, addr, size):
         bytes = self.readMemory(addr, size)
         if bytes == None:
             return None
-        #FIXME change this (and all uses of it) to passing in format...
+        # FIXME change this (and all uses of it) to passing in format...
         if len(bytes) != size:
-            raise Exception("Read Gave Wrong Length At 0x%.8x (va: 0x%.8x wanted %d got %d)" % (self.getProgramCounter(),addr, size, len(bytes)))
+            raise Exception("Read Gave Wrong Length At 0x%.8x (va: 0x%.8x wanted %d got %d)" % (
+            self.getProgramCounter(), addr, size, len(bytes)))
         if size == 1:
             return struct.unpack("B", bytes)[0]
         elif size == 2:
@@ -194,9 +200,9 @@ class IMemory:
             trace.writeMemoryFormat(va, '<PBB', 10, 30, 99)
         '''
         if self.imem_psize == 4:
-            fmt = fmt.replace("P","I")
+            fmt = fmt.replace("P", "I")
         elif self.imem_psize == 8:
-            fmt = fmt.replace("P","Q")
+            fmt = fmt.replace("P", "Q")
         mbytes = struct.pack(fmt, *args)
         self.writeMemory(va, mbytes)
 
@@ -205,9 +211,9 @@ class IMemory:
         Return a tuple of mapva,size,perms,filename for the memory
         map which contains the specified address (or None).
         '''
-        for mapva,size,perms,mname in self.getMemoryMaps():
-            if va >= mapva and va < (mapva+size):
-                return (mapva,size,perms,mname)
+        for mapva, size, perms, mname in self.getMemoryMaps():
+            if va >= mapva and va < (mapva + size):
+                return (mapva, size, perms, mname)
         return None
 
     def isValidPointer(self, va):
@@ -261,11 +267,11 @@ class IMemory:
         of the current memory maps.
         """
         results = []
-        for va,size,perm,fname in self.getMemoryMaps():
+        for va, size, perm, fname in self.getMemoryMaps():
             try:
                 results.extend(self.searchMemoryRange(needle, va, size, regex=regex))
             except:
-                pass # Some platforms dont let debuggers read non-readable mem
+                pass  # Some platforms dont let debuggers read non-readable mem
 
         return results
 
@@ -280,15 +286,15 @@ class IMemory:
         if regex:
             for match in re.finditer(needle, memory):
                 off = match.start()
-                results.append(address+off)
+                results.append(address + off)
         else:
             offset = 0
             while offset < size:
                 loc = memory.find(needle, offset)
-                if loc == -1: # No more to be found ;)
+                if loc == -1:  # No more to be found ;)
                     break
-                results.append(address+loc)
-                offset = loc+len(needle) # Skip one past our matcher
+                results.append(address + loc)
+                offset = loc + len(needle)  # Skip one past our matcher
 
         return results
 
@@ -299,16 +305,18 @@ class IMemory:
         Example: op = m.parseOpcode(0x7c773803)
         '''
         b = self.readMemory(va, 16)
-        return self.imem_archs[ arch >> 16 ].archParseOpcode(b, 0, va)
+        return self.imem_archs[arch >> 16].archParseOpcode(b, 0, va)
+
 
 class MemoryCache(IMemory):
     '''
     An object which acts like "copy on write" cache for another memory
     object.
     '''
+
     def __init__(self, mem, pagesize=4096):
         self.mem = mem
-        self.pagesize = pagesize # must be binary multiplicative
+        self.pagesize = pagesize  # must be binary multiplicative
         self.pagemask = ~ (self.pagesize - 1)
         self.pagecache = {}
         self.pagedirty = {}
@@ -325,12 +333,12 @@ class MemoryCache(IMemory):
         while size:
             pageva = va & self.pagemask
             pageoff = va - pageva
-            chunksize = min( self.pagesize - pageoff, size )
-            page = self.pagecache.get( pageva )
+            chunksize = min(self.pagesize - pageoff, size)
+            page = self.pagecache.get(pageva)
             if page == None:
                 page = self.mem.readMemory(pageva, self.pagesize)
                 self.pagecache[pageva] = page
-            ret += page[ pageoff : pageoff + chunksize ]
+            ret += page[pageoff: pageoff + chunksize]
 
             va += chunksize
             size -= chunksize
@@ -350,7 +358,7 @@ class MemoryCache(IMemory):
                 self.pagecache[pageva] = page
 
             self.pagedirty[pageva] = True
-            page = page[:pageoff] + bytez[:chunksize] + page[pageoff+chunksize:]
+            page = page[:pageoff] + bytez[:chunksize] + page[pageoff + chunksize:]
             self.pagecache[pageva] = page
 
             va += chunksize
@@ -366,21 +374,21 @@ class MemoryCache(IMemory):
         '''
         Return True if the given page is currently "dirty" according to the cache.
         '''
-        return self.pagedirty.get( va & self.pagemask, False )
+        return self.pagedirty.get(va & self.pagemask, False)
 
     def getDirtyPages(self):
         '''
         Returns a list of dirty pages as (pageva, pagebytez) tuples.
         '''
-        return [ (va, self.pagecache.get(va)) for va in list(self.pagedirty.keys()) ]
+        return [(va, self.pagecache.get(va)) for va in list(self.pagedirty.keys())]
 
-    #def syncDirtyPages(self):
-        #'''
-        #Write all of the "dirty" pages back to the underlying memory object.
-        #'''
+        # def syncDirtyPages(self):
+        # '''
+        # Write all of the "dirty" pages back to the underlying memory object.
+        # '''
+
 
 class MemoryObject(IMemory):
-
     def __init__(self, arch=None):
         """
         Take a set of memory maps (va, perms, fname, bytes) and put them in
@@ -390,7 +398,7 @@ class MemoryObject(IMemory):
         IMemory.__init__(self, arch=arch)
         self._map_defs = []
 
-    #FIXME MemoryObject: def allocateMemory(self, size, perms=MM_RWX, suggestaddr=0):
+    # FIXME MemoryObject: def allocateMemory(self, size, perms=MM_RWX, suggestaddr=0):
 
     def addMemoryMap(self, va, perms, fname, bytez):
         '''
@@ -398,7 +406,7 @@ class MemoryObject(IMemory):
         '''
         msize = len(bytez)
         mmap = (va, msize, perms, fname)
-        hlpr = [va, va+msize, mmap, bytez]
+        hlpr = [va, va + msize, mmap, bytez]
         self._map_defs.append(hlpr)
         return
 
@@ -408,7 +416,7 @@ class MemoryObject(IMemory):
 
         Example: snap = mem.getMemorySnap()
         '''
-        return [ list(mdef) for mdef in self._map_defs ]
+        return [list(mdef) for mdef in self._map_defs]
 
     def setMemorySnap(self, snap):
         '''
@@ -428,7 +436,7 @@ class MemoryObject(IMemory):
         return None
 
     def getMemoryMaps(self):
-        return [ mmap for mva, mmaxva, mmap, mbytes in self._map_defs ]
+        return [mmap for mva, mmaxva, mmap, mbytes in self._map_defs]
 
     def readMemory(self, va, size):
 
@@ -438,7 +446,7 @@ class MemoryObject(IMemory):
                 if not mperms & MM_READ:
                     raise envi.SegmentationViolation(va)
                 offset = va - mva
-                return mbytes[offset:offset+size]
+                return mbytes[offset:offset + size]
         raise envi.SegmentationViolation(va)
 
     def writeMemory(self, va, bytes):
@@ -449,7 +457,7 @@ class MemoryObject(IMemory):
                 if not mperms & MM_WRITE:
                     raise envi.SegmentationViolation(va)
                 offset = va - mva
-                mapdef[3] = mbytes[:offset] + bytes + mbytes[offset+len(bytes):]
+                mapdef[3] = mbytes[:offset] + bytes + mbytes[offset + len(bytes):]
                 return
 
         raise envi.SegmentationViolation(va)
@@ -464,15 +472,17 @@ class MemoryObject(IMemory):
         """
         for mapdef in self._map_defs:
             mva, mmaxva, mmap, mbytes = mapdef
-            if va >= mva and va < mmaxva:
+            if mva <= va < mmaxva:
                 offset = va - mva
-                return (offset, mbytes)
+                return offset, mbytes
         raise envi.SegmentationViolation(va)
+
 
 class MemoryFile:
     '''
     A file like object to wrap around a memory object.
     '''
+
     def __init__(self, memobj, baseaddr):
         self.baseaddr = baseaddr
         self.offset = baseaddr
@@ -509,10 +519,9 @@ def memdiff(bytes1, bytes2):
         if bytes1[offset] != bytes2[offset]:
             beginoff = offset
             # Gather up all the difference bytes.
-            while ( offset < size and
-                    bytes1[offset] != bytes2[offset]):
+            while (offset < size and
+                           bytes1[offset] != bytes2[offset]):
                 offset += 1
-            ret.append((beginoff, offset-beginoff))
+            ret.append((beginoff, offset - beginoff))
         offset += 1
     return ret
-

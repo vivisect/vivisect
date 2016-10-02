@@ -890,7 +890,7 @@ def hooks(vdb, line):
     for bname in list(bases.keys()):
         base = bases.get(bname)
         fpath = paths.get(base)
-        pobj = PE.PE(file(fpath,'rb'))
+        pobj = PE.PE(open(fpath, 'rb'))
         filebase = pobj.IMAGE_NT_HEADERS.OptionalHeader.ImageBase
 
         skips = {}

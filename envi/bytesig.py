@@ -1,4 +1,3 @@
-
 """
 A byte and mask based decision engine for creating byte
 sequences (and potential comparison masks) for general purpose
@@ -6,6 +5,7 @@ signature matching.
 
 Currently used by vivisect function entry sig db and others.
 """
+
 
 class SignatureTree:
     """
@@ -23,11 +23,11 @@ class SignatureTree:
 
     def __init__(self):
         self.basenode = (0, [], [None] * 256)
-        self.sigs = {} # track duplicates
+        self.sigs = {}  # track duplicates
 
     def _addChoice(self, siginfo, node):
 
-        todo = [(node, siginfo),]
+        todo = [(node, siginfo), ]
 
         # Recursion is for the weak minded.
         while len(todo):
@@ -39,18 +39,18 @@ class SignatureTree:
 
             sigs.append(siginfo)
             if siglen == 0:
-                pass # we just don't want the "else" here, if we're the only
+                pass  # we just don't want the "else" here, if we're the only
                 # one on this node, just let it ride.
 
             elif siglen == 1:
                 # If it has one already, we *both* need to add another level
                 # (because if it is the only one, it thought it was last choice)
                 for s in sigs:
-                    chval = s[0][depth] # get the choice byte from siginfo
+                    chval = s[0][depth]  # get the choice byte from siginfo
                     nnode = self._getNode(depth, choices, chval)
                     todo.append((nnode, s))
 
-            else: # This is already a choice node, keep on choosing...
+            else:  # This is already a choice node, keep on choosing...
                 chval = bytes[depth]
                 nnode = self._getNode(depth, choices, chval)
                 todo.append((nnode, siginfo))
@@ -58,12 +58,12 @@ class SignatureTree:
     def _getNode(self, depth, choices, choice):
         # Chose, (and or initialize) a sub node
         nnode = choices[choice]
-        if nnode == None:
-            nnode = (depth+1, [], [None] * 256)
+        if nnode is None:
+            nnode = (depth + 1, [], [None] * 256)
             choices[choice] = nnode
         return nnode
 
-    def addSignature(self, bytes, masks=None, val=None):
+    def addSignature(self, bytes: bytearray, masks: bytearray = None, val=None):
         """
         Add a signature to the search tree.  If masks goes unspecified, it will be
         assumed to be all ones (\\xff * len(bytes)).
@@ -72,29 +72,29 @@ class SignatureTree:
         getSignature().
         """
         # FIXME perhaps make masks None on all ff's
-        if masks == None:
-            masks = "\xff" * len(bytes)
+        if masks is None:
+            masks = b"\xff" * len(bytes)
 
-        if val == None:
+        if val is None:
             val = True
 
         # Detect and skip duplicate additions...
         bytekey = bytes + masks
-        if self.sigs.get(bytekey) != None:
+        if self.sigs.get(bytekey) is not None:
             return
 
         self.sigs[bytekey] = True
 
-        byteord = [ord(c) for c in bytes]
-        maskord = [ord(c) for c in masks]
+        # byteord = [ord(c) for c in bytes]
+        # maskord = [ord(c) for c in masks]
 
-        siginfo = (byteord, maskord, val)
+        siginfo = (bytes, masks, val)
         self._addChoice(siginfo, self.basenode)
 
     def isSignature(self, bytes, offset=0):
-        return self.getSignature(bytes, offset=offset) != None
+        return self.getSignature(bytes, offset=offset) is not None
 
-    def getSignature(self, bytes, offset=0):
+    def getSignature(self, bytes: bytearray, offset: int=0):
 
         node = self.basenode
         while True:
@@ -111,15 +111,15 @@ class SignatureTree:
                 return sobj
 
             # There are still more choices, keep branching.
-            node = None # Lets go find a new one
+            node = None  # Lets go find a new one
             for sig in sigs:
                 sbytes, smasks, sobj = sig
-                masked = ord(bytes[offset+depth]) & smasks[depth]
-                if sbytes[depth] == masked: # We have a winner!
+                masked = bytes[offset + depth] & smasks[depth]
+                if sbytes[depth] == masked:  # We have a winner!
                     # FIXME find the *best* winner! (because of masking)
                     node = choices[masked]
                     break
 
             # We failed to make our next choice
-            if node == None:
+            if node is None:
                 return None

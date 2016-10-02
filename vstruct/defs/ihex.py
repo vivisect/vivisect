@@ -165,7 +165,7 @@ asdf
 
     import sys
     h = IHexFile()
-    h.vsParse( file(sys.argv[1], 'rb').read() )
+    h.vsParse(open(sys.argv[1], 'rb').read())
     #print h.tree()
 
     for addr,perms,fname,bytes in h.getMemoryMaps():
