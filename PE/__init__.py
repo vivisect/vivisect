@@ -409,7 +409,7 @@ class PE(object):
         Return the "dll name" from the Name field of the IMAGE_EXPORT_DIRECTORY
         if one is present.  If not, return None.
         '''
-        if self.IMAGE_EXPORT_DIRECTORY != None:
+        if self.IMAGE_EXPORT_DIRECTORY is not None:
             rawname = self.readAtRva(self.IMAGE_EXPORT_DIRECTORY.Name, 32)
             return rawname.split('\x00')[0]
         return None
@@ -737,7 +737,7 @@ class PE(object):
         while self.checkRva(x.Name):
 
             # RP BUG FIX - we can't assume that we have 256 bytes to read
-            libname = self.readStringAtRva(x.Name, maxsize=256)
+            libname = self.readStringAtRva(x.Name, maxsize=256).decode()
             idx = 0
 
             imp_by_name = x.OriginalFirstThunk
@@ -751,7 +751,7 @@ class PE(object):
 
                 arrayoff = self.psize * idx
                 if self.filesize is not None and arrayoff > self.filesize:
-                    self.imports = []  # we probably put grabage in  here..
+                    self.imports = []  # we probably put garbage in  here..
                     return
 
                 ibn_rva = self.readPointerAtRva(imp_by_name + arrayoff)
@@ -781,7 +781,7 @@ class PE(object):
                         idx += 1
                         continue
 
-                    funcname = ibn.Name
+                    funcname = ibn.Name.decode()
 
                 self.imports.append((x.FirstThunk + arrayoff, libname, funcname))
 

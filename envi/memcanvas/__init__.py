@@ -131,7 +131,8 @@ class MemoryCanvas(object):
         decide if they should scroll to the end of the view...
         """
         if sys.stdout.encoding:
-            text = text.encode(sys.stdout.encoding, 'replace')
+            if not isinstance(text, str):
+                text = text.decode(sys.stdout.encoding)
         sys.stdout.write(text)
 
     def addNameText(self, text, name=None, typename='name'):

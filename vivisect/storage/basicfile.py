@@ -30,7 +30,7 @@ def vivEventsToFile(filename, events):
     try:
         with open(filename, 'wb') as f:
             # Mime type for the basic workspace
-            f.write(vivsig_cpickle.encode())
+            f.write(vivsig_cpickle)
             pickle.dump(events, f, protocol=2)
     except Exception as e:
         traceback.print_exc()

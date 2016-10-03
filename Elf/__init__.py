@@ -202,7 +202,7 @@ class ElfSection:
         self.name = ''
 
     def setName(self, name):
-        self.name = name
+        self.name = name.decode()
 
     def getName(self):
         return self.name
@@ -343,7 +343,7 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
             strsec = self.sections[self.e_shstrndx]
             names = self.readAtOffset(strsec.sh_offset, strsec.sh_size)
             for sec in self.sections:
-                name = names[sec.sh_name:].split("\x00")[0]
+                name = names[sec.sh_name:].split(b"\x00")[0]
                 if len(name) > 0:
                     sec.setName(name)
                     self.secnames[name] = sec
@@ -453,14 +453,14 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
             if pgm.p_vaddr == 0:
                 continue
 
-            if base == None:
+            if base is None:
                 base = pgm.p_vaddr
                 continue
 
             if pgm.p_vaddr < base:
                 base = pgm.p_vaddr
 
-        if base == None:
+        if base is None:
             base = 0x20000000
 
         base &= 0xfffff000
@@ -516,7 +516,7 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
 
     def getSectionBytes(self, secname):
         sec = self.getSection(secname)
-        if sec == None:
+        if sec is None:
             return None
         return self.readAtOffset(sec.sh_offset, sec.sh_size)
 
@@ -560,7 +560,7 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
             plat = e.getPlatform()
         '''
         for note in self.getNotes():
-            if note.name == 'GNU\x00' and note.ntype == 1:
+            if note.name == b'GNU\x00' and note.ntype == 1:
                 desc0 = int(note.desc[0])
                 return osnotes.get(desc0, 'unknown')
 
@@ -611,7 +611,8 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
         return self.e_type == ET_EXEC
 
     def __repr__(self, verbose=False):
-        """  Returns a string summary of this ELF.  If (verbose) the summary will include Symbols, Relocs, Dynamics and Dynamic Symbol tables"""
+        """  Returns a string summary of this ELF.
+        If (verbose) the summary will include Symbols, Relocs, Dynamics and Dynamic Symbol tables"""
         mystr = 'Elf Binary:'
         mystr += "\n= Intimate Details:"
         mystr += "\n==Magic:\t\t\t\t" + self.e_ident

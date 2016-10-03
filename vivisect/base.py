@@ -305,12 +305,12 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
 
     def _handleSETNAME(self, einfo):
         va, name = einfo
-        if name == None:
+        if name is None:
             oldname = self.name_by_va.pop(va, None)
             self.va_by_name.pop(oldname, None)
         else:
             curname = self.name_by_va.get(va)
-            if curname != None:
+            if curname is not None:
                 self.va_by_name.pop(curname)
 
             self.va_by_name[name] = va
@@ -506,7 +506,7 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
             self.ehand[event](einfo)
 
             # If we're supposed to call a server, do that.
-            if self.server != None and local == False:
+            if self.server is not None and local is False:
                 self.server._fireEvent(event, einfo, skip=self.rchan)
 
             # FIXME perhaps we should only process events *via* our server
@@ -532,7 +532,7 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
     def _initFunction(self, funcva):
         # Internal function to initialize all datastructures necessary for
         # a function, but only if they haven't been done already.
-        if self.funcmeta.get(funcva) == None:
+        if self.funcmeta.get(funcva) is None:
             self.funcmeta[funcva] = {}  # His metadata
             self.codeblocks_by_funcva[funcva] = []  # Init code block list
 
@@ -624,7 +624,7 @@ class VivCodeFlowContext(e_codeflow.CodeFlowContext):
     def _cb_noflow(self, srcva, dstva):
         vw = self._mem
         loc = vw.getLocation(srcva)
-        if loc == None:
+        if loc is None:
             return
 
         lva, lsize, ltype, linfo = loc
@@ -641,7 +641,7 @@ class VivCodeFlowContext(e_codeflow.CodeFlowContext):
     def _cb_opcode(self, va, op, branches):
 
         loc = self._mem.getLocation(va)
-        if loc == None:
+        if loc is None:
             # dont code flow through import calls
             branches = [br for br in branches if not self._mem.isLocType(br[0], LOC_IMPORT)]
 
@@ -662,7 +662,7 @@ class VivCodeFlowContext(e_codeflow.CodeFlowContext):
             return
 
         # If the function doesn't have a name, make one
-        if vw.getName(fva) == None:
+        if vw.getName(fva) is None:
             vw.makeName(fva, "sub_%.8x" % fva)
 
         vw._fireEvent(VWE_ADDFUNCTION, (fva, fmeta))
@@ -698,7 +698,7 @@ class VivCodeFlowContext(e_codeflow.CodeFlowContext):
         if tablebase != tableva and self._mem.getXrefsTo(tableva):
             return False
 
-        if self._mem.getLocation(tableva) == None:
+        if self._mem.getLocation(tableva) is None:
             self._mem.makePointer(tableva, tova=destva, follow=False)
 
         return True

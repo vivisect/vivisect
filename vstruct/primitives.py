@@ -685,7 +685,7 @@ class v_bytes(v_prim):
     def __init__(self, size=0, vbytes=None):
         v_prim.__init__(self)
         if vbytes is None:
-            vbytes = b'\x00' * size
+            vbytes = '\x00' * size
         self._vs_length = len(vbytes)
         self._vs_value = vbytes
         self._vs_align = 1
@@ -710,7 +710,7 @@ class v_bytes(v_prim):
         self._vs_fmt = '%ds' % size
         # Either chop or expand my string...
         b = self._vs_value[:size]
-        self._vs_value = b.ljust(size, b'\x00')
+        self._vs_value = b.ljust(size, '\x00')
 
     def __repr__(self):
         return self._vs_value.hex()
@@ -729,7 +729,7 @@ class v_str(v_prim):
         v_prim.__init__(self)
         self._vs_length = size
         self._vs_fmt = '%ds' % size
-        self._vs_value = val.ljust(size, b'\x00')
+        self._vs_value = val.ljust(size, '\x00')
         self._vs_align = 1
 
     def vsParse(self, fbytes, offset=0):
@@ -745,7 +745,7 @@ class v_str(v_prim):
         return s
 
     def vsSetValue(self, val):
-        self._vs_value = val.ljust(self._vs_length, b'\x00')
+        self._vs_value = val.ljust(self._vs_length, '\x00')
 
     def vsSetLength(self, size):
         size = int(size)
@@ -753,7 +753,7 @@ class v_str(v_prim):
         self._vs_fmt = '%ds' % size
         # Either chop or expand my string...
         b = self._vs_value[:size]
-        self._vs_value = b.ljust(size, b'\x00')
+        self._vs_value = b.ljust(size, '\x00')
 
 
 class v_zstr(v_prim):
@@ -767,10 +767,10 @@ class v_zstr(v_prim):
     def __init__(self, val='', align=1):
         v_prim.__init__(self)
         self._vs_align = align
-        self.vsParse(val + b'\x00')
+        self.vsParse(val + '\x00')
 
     def vsParse(self, fbytes, offset=0):
-        nulloff = fbytes.find(b'\x00', offset)
+        nulloff = fbytes.find('\x00', offset)
         if nulloff == -1:
             raise Exception('v_zstr found no NULL terminator!')
 
@@ -785,7 +785,7 @@ class v_zstr(v_prim):
 
     def vsParseFd(self, fd):
         ret = ''
-        while not ret.endswith(b'\x00'):
+        while not ret.endswith('\x00'):
             y = fd.read(1)
             if not y:
                 raise Exception('v_zstr file ended before NULL')
@@ -802,7 +802,7 @@ class v_zstr(v_prim):
         # FIXME: just call vsParse?
         length = len(val)
         diff = self._vs_align - (length % self._vs_align)
-        self._vs_value = val + b'\x00' * (diff)
+        self._vs_value = val + '\x00' * (diff)
         self._vs_length = len(self._vs_value)
         self._vs_align_pad = diff
 
@@ -821,7 +821,7 @@ class v_wstr(v_str):
 
     def __init__(self, size=4, encode='utf-16le', val=''):
         v_str.__init__(self)
-        b = val.ljust(size, b'\x00').encode(encode)
+        b = val.ljust(size, '\x00').encode(encode)
         self._vs_length = len(b)
         self._vs_value = b
         self._vs_encode = encode
@@ -837,11 +837,11 @@ class v_wstr(v_str):
 
     def vsSetValue(self, val):
         rbytes = val.encode(self._vs_encode)
-        self._vs_value = rbytes.ljust(len(self), b'\x00')
+        self._vs_value = rbytes.ljust(len(self), '\x00')
 
     def vsGetValue(self):
         s = self._vs_value.decode(self._vs_encode, errors='replace')
-        return s.split(b"\x00")[0]
+        return s.split("\x00")[0]
 
 
 class v_zwstr(v_str):
@@ -855,12 +855,12 @@ class v_zwstr(v_str):
         v_str.__init__(self)
         self._vs_encode = encode
         self._vs_align = align
-        self.vsParse(val + b'\x00\x00')
+        self.vsParse(val + '\x00\x00')
 
     def vsParse(self, fbytes, offset=0):
         nulloff = offset
         while nulloff < len(fbytes):
-            nulloff = fbytes.find(b'\x00\x00', nulloff)
+            nulloff = fbytes.find('\x00\x00', nulloff)
             if nulloff == -1:
                 raise Exception('v_wzstr found no NULL terminator!')
             # make sure that this is acutally the null word by checking if
@@ -889,7 +889,7 @@ class v_zwstr(v_str):
 
     def vsGetValue(self):
         cstr = self._vs_value.decode(self._vs_encode, errors='replace')
-        return cstr.split(b'\x00')[0]
+        return cstr.split('\x00')[0]
 
     def vsSetValue(self, val):
         # rbytes = val.encode(self._vs_encode)
@@ -899,8 +899,8 @@ class v_zwstr(v_str):
         rbytes = val.encode(self._vs_encode)
         length = len(rbytes)
         diff = self._vs_align - (length % self._vs_align)
-        self._vs_value = rbytes + b'\x00' * (diff)
-        self._vs_value = rbytes.ljust(len(self), b'\x00')
+        self._vs_value = rbytes + '\x00' * (diff)
+        self._vs_value = rbytes.ljust(len(self), '\x00')
         self._vs_length = len(self._vs_value)
         self._vs_align_pad = diff
 
@@ -918,7 +918,7 @@ class GUID(v_prim):
         """
         v_prim.__init__(self)
         self._vs_length = 16
-        self._vs_value = b"\x00" * 16
+        self._vs_value = "\x00" * 16
         self._vs_fmt = "16s"
         self._guid_fields = (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
         if guidstr is not None:

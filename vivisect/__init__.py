@@ -550,12 +550,12 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         A quick way for scripts to get a string for a given virtual address.
         """
         loc = self.getLocation(va)
-        if loc != None:
+        if loc is not None:
             return self.reprLocation(loc)
         return "None"
 
     def reprLocation(self, loctup):
-        if loctup == None:
+        if loctup is None:
             return 'no loc info'
 
         lva, lsize, ltype, tinfo = loctup
@@ -564,12 +564,13 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             return repr(op)
 
         elif ltype == LOC_STRING:
-            return repr(self.readMemory(lva, lsize))
+            return repr(self.readMemory(lva, lsize).decode('ascii'))
 
         elif ltype == LOC_UNI:
             # FIXME super ghetto "simple" unicode handling for now
             bytes = self.readMemory(lva, lsize)
-            return "u'%s'" % string.join(bytes.split("\x00"), sep="")
+            # return "u'%s'" % string.join(bytes.split("\x00"), sep="")
+            return bytes.decode('utf-8')
 
         elif ltype == LOC_STRUCT:
             lstruct = self.getStructure(lva, tinfo)
@@ -598,7 +599,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
     def followPointer(self, va):
         """
-        Do pointer analysis and folllow up the recomendation
+        Do pointer analysis and follow up the recommendation
         by creating locations etc...
         """
         ltype = self.analyzePointer(va)
@@ -799,13 +800,13 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
             c = bytes[offset + count]
             # The "strings" algo basically says 4 or more...
-            if ord(c) == 0 and count >= 4:
+            if c == 0 and count >= 4:
                 return count
 
-            elif ord(c) == 0 and (count == dlen or count == plen):
+            elif c == 0 and (count == dlen or count == plen):
                 return count
 
-            if c not in string.printable:
+            if chr(c) not in string.printable:
                 return -1
 
             count += 1
@@ -846,19 +847,19 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
             # If it's not null,char,null,char then it's
             # not simple unicode...
-            if ord(c1) != 0:
+            if c1 != 0:
                 return -1
 
             # If we find our null terminator after more
             # than 4 chars, we're probably a real string
-            if ord(c0) == 0:
+            if c0 == 0:
                 if count > 8:
                     return count
                 return -1
 
             # If the first byte char isn't printable, then
             # we're probably not a real "simple" ascii string
-            if c0 not in string.printable:
+            if chr(c0) not in string.printable:
                 return -1
 
             count += 2
@@ -987,7 +988,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
                 # If the actual dest is executable, make a code ref fixup
                 # which *removes* the deref flag...
-                if ptrdest and self.probeMemory(ptrdest, 1, e_mem.MM_EXEC):
+                if ptrdest and self.probeMemory(ptrdest[0], 1, e_mem.MM_EXEC):
                     self.addXref(va, ptrdest, REF_CODE, bflags & ~envi.BR_DEREF)
                 else:
                     self.addXref(va, tova, REF_CODE, bflags)
@@ -1124,7 +1125,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
     def setFunctionArg(self, fva, idx, atype, aname):
         '''
-        Set the name and type information for a single function arguemnt by index.
+        Set the name and type information for a single function argument by index.
 
         Example:
             # If we were setting up main...
@@ -1643,7 +1644,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
         if self.getName(va) is None:
             m = self.readMemory(va, size - 1).replace(b"\n", b"")
-            self.makeName(va, "str_%s_%.8x" % (m[:16], va))
+            self.makeName(va, "str_%s_%.8x" % (m[:16].decode('ascii'), va))
         return self.addLocation(va, size, LOC_STRING)
 
     def makeUnicode(self, va, size=None):
@@ -1655,7 +1656,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
         if self.getName(va) is None:
             m = self.readMemory(va, size - 1).replace(b"\n", b"").replace(b"\0", b"")
-            self.makeName(va, "wstr_%s_%.8x" % (m[:16], va))
+            self.makeName(va, "wstr_%s_%.8x" % (m[:16].decode('utf-8'), va))
         return self.addLocation(va, size, LOC_UNI)
 
     def addConstModule(self, modname):
@@ -1787,9 +1788,9 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         Add a location tuple.
         """
         ltup = (va, size, ltype, tinfo)
-        #loc = self.locmap.getMapLookup(va)
-        #if loc != None:
-            #raise Exception('Duplicate Location: (is: %r wants: %r)' % (loc,ltup))
+        # loc = self.locmap.getMapLookup(va)
+        # if loc != None:
+        #     raise Exception('Duplicate Location: (is: %r wants: %r)' % (loc,ltup))
 
         self._fireEvent(VWE_ADDLOCATION, ltup)
         return ltup

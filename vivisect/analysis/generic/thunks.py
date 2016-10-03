@@ -1,4 +1,3 @@
-
 """
 A simple analysis module to detect import thunks.
 """
@@ -6,13 +5,13 @@ A simple analysis module to detect import thunks.
 import envi
 import vivisect
 
-def analyzeFunction(vw, funcva):
 
+def analyzeFunction(vw, funcva):
     for fromva, tova, rtype, rflags in vw.getXrefsFrom(funcva, vivisect.REF_CODE):
 
         # You goin NOWHERE!
         loc = vw.getLocation(tova)
-        if loc == None:
+        if loc is None:
             continue
 
         # FIXME this could check for thunks to other known function pointers...
@@ -22,4 +21,3 @@ def analyzeFunction(vw, funcva):
             continue
 
         vw.makeFunctionThunk(funcva, linfo)
-

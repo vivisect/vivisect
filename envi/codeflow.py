@@ -3,6 +3,7 @@ A module to contain code flow analysis for envi opcode objects...
 '''
 import copy
 import traceback
+
 import envi
 import envi.memory as e_mem
 
@@ -153,9 +154,11 @@ class CodeFlowContext(object):
             try:
                 op = self._mem.parseOpcode(va, arch=arch)
             except envi.InvalidInstruction as e:
+                traceback.print_exc()
                 print('parseOpcode error at 0x%.8x: %s' % (va, e))
                 continue
             except Exception as e:
+                traceback.print_exc()
                 print('parseOpcode error at 0x%.8x: %s' % (va, e))
                 continue
 
@@ -259,7 +262,7 @@ class CodeFlowContext(object):
             ... callbacks flow along ...
         '''
         # Check if this is already a known function.
-        if self._funcs.get(va) != None:
+        if self._funcs.get(va) is not None:
             return
 
         # Add this function to known functions

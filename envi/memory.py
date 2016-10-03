@@ -128,7 +128,7 @@ class IMemory:
         (check if the memory for 20 bytes at 0x41414141 is writable)
         """
         mmap = self.getMemoryMap(va)
-        if mmap == None:
+        if mmap is None:
             return False
         mapva, mapsize, mapperm, mapfile = mmap
         mapend = mapva + mapsize
@@ -430,9 +430,10 @@ class MemoryObject(IMemory):
         """
         Get the va,size,perms,fname tuple for this memory map
         """
-        for mva, mmaxva, mmap, mbytes in self._map_defs:
-            if va >= mva and va < mmaxva:
-                return mmap
+        if va is not None:
+            for mva, mmaxva, mmap, mbytes in self._map_defs:
+                if mva <= va < mmaxva:
+                    return mmap
         return None
 
     def getMemoryMaps(self):

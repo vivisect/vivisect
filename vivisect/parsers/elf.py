@@ -95,7 +95,7 @@ archcalls = {
 
 def loadElfIntoWorkspace(vw, elf, filename=None):
     arch = arch_names.get(elf.e_machine)
-    if arch == None:
+    if arch is None:
         raise Exception("Unsupported Architecture: %d\n", elf.e_machine)
 
     platform = elf.getPlatform()
@@ -117,7 +117,7 @@ def loadElfIntoWorkspace(vw, elf, filename=None):
     baseaddr = elf.getBaseAddress()
 
     # FIXME make filename come from dynamic's if present for shared object
-    if filename == None:
+    if filename is None:
         filename = "elf_%.8x" % baseaddr
 
     fhash = "unknown hash"
@@ -138,7 +138,7 @@ def loadElfIntoWorkspace(vw, elf, filename=None):
         if pgm.p_type == Elf.PT_LOAD:
             if vw.verbose: vw.vprint('Loading: %s' % (repr(pgm)))
             bytez = elf.readAtOffset(pgm.p_offset, pgm.p_filesz)
-            bytez += "\x00" * (pgm.p_memsz - pgm.p_filesz)
+            bytez += b"\x00" * (pgm.p_memsz - pgm.p_filesz)
             pva = pgm.p_vaddr
             if addbase: pva += baseaddr
             vw.addMemoryMap(pva, pgm.p_flags & 0x7, fname, bytez)  # FIXME perms
@@ -277,7 +277,8 @@ def loadElfIntoWorkspace(vw, elf, filename=None):
             continue
 
         if stype == Elf.STT_FUNC or (
-                stype == Elf.STT_GNU_IFUNC and arch in ('i386', 'amd64')):  # HACK: linux is what we're really after.
+                        stype == Elf.STT_GNU_IFUNC and arch in (
+                'i386', 'amd64')):  # HACK: linux is what we're really after.
             try:
                 vw.addExport(sva, EXP_FUNCTION, s.name, fname)
                 vw.addEntryPoint(sva)
