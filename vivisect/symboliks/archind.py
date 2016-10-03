@@ -133,7 +133,7 @@ def wipeAstArch(symctx, symobjs, emu=None, wipeva=False):
             return Var(indregs.get(oldsym.name), 4)
 
         oldsym = idtova.get(symobj._sym_id)
-        if oldsym != None:
+        if oldsym is not None:
             obj = Var(indvas.get(oldsym.value), 4)
             ploc = symctx.vw.getLocation(oldsym.value)
             if ploc:
