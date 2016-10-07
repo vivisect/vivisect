@@ -200,16 +200,19 @@ def p_dp_imm_shift(opval, va):
     shtype = (opval >> 5) & 0x3
     shval = (opval >> 7) & 0x1f   # effectively, rot*2
     mnem = dp_mnem[ocode]
-    display_shift = True
     if ocode in dp_noRn:# FIXME: FUGLY (and slow...)
-        #is it a mov? Only if shval is a 0, type is lsl, and ocode = 
+        #is it a mov? Only if shval is a 0, type is lsl, and ocode = 13
         if  (ocode == 13) and ((shval != 0) or (shtype != 0)):
             mnem = dp_shift_mnem[shtype]
-            display_shift = False
-        olist = (
-            ArmRegOper(Rd, va=va),
-            ArmRegShiftImmOper(Rm, shtype, shval, va, display_shift),
-        )
+            olist = (
+                ArmRegOper(Rd, va=va),
+                ArmRegShiftImmOperMov(Rm, shtype, shval, va),
+            )
+        else:
+            olist = (
+                ArmRegOper(Rd, va=va),
+                ArmRegShiftImmOper(Rm, shtype, shval, va),
+            )
     elif ocode in dp_noRd:
         olist = (
             ArmRegOper(Rn, va=va),
@@ -591,16 +594,19 @@ def p_dp_reg_shift(opval, va):
     shtype = (opval >> 5) & 0x3
     Rs = (opval >> 8) & 0xf
     mnem = dp_mnem[ocode]
-    display_shift = True
     if ocode in dp_noRn:# FIXME: FUGLY
-        #no register shift with mov
+        #no register shift displayed with mov
         if  (ocode == 13):
             mnem = dp_shift_mnem[shtype]
-            display_shift = False
-        olist = (
-            ArmRegOper(Rd, va=va),
-            ArmRegShiftRegOper(Rm, shtype, Rs, display_shift),
-        )
+            olist = (
+                ArmRegOper(Rd, va=va),
+                ArmRegShiftRegOperMov(Rm, shtype, Rs),
+            )
+        else:
+            olist = (
+                ArmRegOper(Rd, va=va),
+                ArmRegShiftRegOper(Rm, shtype, Rs),
+            )
     elif ocode in dp_noRd:
         olist = (
             ArmRegOper(Rn, va=va),
@@ -1748,11 +1754,10 @@ class ArmRegOper(ArmOperand):
 class ArmRegShiftRegOper(ArmOperand):
     ''' register shift operand.  see "addressing mode 1 - data processing operands - * shift * by register" '''
 
-    def __init__(self, reg, shtype, shreg, display_shift = True):
+    def __init__(self, reg, shtype, shreg):
         self.reg = reg
         self.shtype = shtype
         self.shreg = shreg
-        self.display_shift = display_shift
 
     def __eq__(self, oper):
         if not isinstance(oper, self.__class__):
@@ -1786,16 +1791,27 @@ class ArmRegShiftRegOper(ArmOperand):
 
     def repr(self, op):
         rname = arm_regs[self.reg][0]+", "
-        if self.display_shift:
-            rname+=shift_names[self.shtype]
+        rname+=shift_names[self.shtype]
         rname+= arm_regs[self.shreg][0]
         #return " ".join([rname, shift_names[self.shtype], arm_regs[self.shreg][0]])
+        return rname
+
+class ArmRegShiftRegOperMov(ArmRegShiftRegOper):
+    def render(self, mcanv, op, idx):
+        rname = arm_regs[self.reg][0]
+        mcanv.addNameText(rname, typename='registers')
+        mcanv.addText(' ')
+        mcanv.addNameText(arm_regs[self.shreg][0], typename='registers')
+
+    def repr(self, op):
+        rname = arm_regs[self.reg][0]+", "
+        rname+= arm_regs[self.shreg][0]
         return rname
 
 class ArmRegShiftImmOper(ArmOperand):
     ''' register shift immediate operand.  see "addressing mode 1 - data processing operands - * shift * by immediate" '''
 
-    def __init__(self, reg, shtype, shimm, va, display_shift = True):
+    def __init__(self, reg, shtype, shimm, va):
         if shimm == 0:
             if shtype == S_ROR:
                 shtype = S_RRX
@@ -1805,7 +1821,6 @@ class ArmRegShiftImmOper(ArmOperand):
         self.shtype = shtype
         self.shimm = shimm
         self.va = va
-        self.display_shift = display_shift
 
     def __eq__(self, oper):
         if not isinstance(oper, self.__class__):
@@ -1837,11 +1852,10 @@ class ArmRegShiftImmOper(ArmOperand):
         mcanv.addNameText(rname, typename='registers')
         if self.shimm != 0:
             mcanv.addText(', ')
-            if self.display_shift:
-                mcanv.addNameText(shift_names[self.shtype])
-                mcanv.addText(' ')
+            mcanv.addNameText(shift_names[self.shtype])
+            mcanv.addText(' ')
             mcanv.addNameText('#%d' % self.shimm)
-        elif self.shtype == S_RRX and self.display_shift:
+        elif self.shtype == S_RRX:
             mcanv.addText(', ')
             mcanv.addNameText(shift_names[self.shtype])
 
@@ -1849,12 +1863,26 @@ class ArmRegShiftImmOper(ArmOperand):
         rname = arm_regs[self.reg][0]
         retval = [ rname ]
         if self.shimm != 0:
-            retval.append(",")
-            if self.display_shift:
-                retval.append(shift_names[self.shtype])
+            retval.append(", "+shift_names[self.shtype])
             retval.append("#%d"%self.shimm)
-        elif (self.shtype == S_RRX) and self.display_shift:
+        elif self.shtype == S_RRX:
             retval.append(shift_names[self.shtype])
+        return " ".join(retval)
+
+class ArmRegShiftImmOperMov(ArmRegShiftImmOper):
+    def render(self, mcanv, op, idx):
+        rname = arm_regs[self.reg][0]
+        mcanv.addNameText(rname, typename='registers')
+        if self.shimm != 0:
+            mcanv.addText(', ')
+            mcanv.addNameText('#%d' % self.shimm)
+
+    def repr(self, op):
+        rname = arm_regs[self.reg][0]
+        retval = [ rname ]
+        if self.shimm != 0:
+            retval.append(",")
+            retval.append("#%d"%self.shimm)
         return " ".join(retval)
 
 class ArmImmOper(ArmOperand):
