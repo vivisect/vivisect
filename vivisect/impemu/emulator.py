@@ -27,7 +27,7 @@ class WorkspaceEmulator:
 
     taintregs = []
 
-    def __init__(self, vw, logwrite=False, logread=False):
+    def __init__(self, vw, logwrite=False, logread=False, taintbyte='A'):
 
         self.vw = vw
         self.funcva = None # Set if using runFunction
@@ -46,6 +46,7 @@ class WorkspaceEmulator:
         self.opcache = {}
         self.emumon = None
         self.psize = self.getPointerSize()
+        self.taintbyte = taintbyte  # Define byte(s) returned if invalid memory is read
 
         # Possibly need an "options" API?
         self._safe_mem = True   # Should we be forgiving about memory accesses?
@@ -563,7 +564,7 @@ class WorkspaceEmulator:
         # Read from the emulator's pages if we havent resolved it yet
         probeok = self.probeMemory(va, size, e_mem.MM_READ)
         if self._safe_mem and not probeok:
-            return 'A' * size
+            return self.taintbyte * size
 
         return e_mem.MemoryObject.readMemory(self, va, size)
 

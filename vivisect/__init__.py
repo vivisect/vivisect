@@ -212,11 +212,12 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         """
         return self.frefs.get((va,idx))
 
-    def getEmulator(self, logwrite=False, logread=False):
+    def getEmulator(self, logwrite=False, logread=False, taintbyte='A'):
         """
         Get an instance of a WorkspaceEmulator for this workspace.
 
         Use logread/logwrite to enable memory access tracking.
+        taintbyte specifies data returned if invalid memory is read.
         """
         plat = self.getMeta('Platform')
         arch = self.getMeta('Architecture')
@@ -228,7 +229,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         if eclass == None:
             raise Exception("WorkspaceEmulation not supported on %s yet!" % arch)
 
-        return eclass(self, logwrite=logwrite, logread=logread)
+        return eclass(self, logwrite=logwrite, logread=logread, taintbyte=taintbyte)
 
     def getCachedEmu(self, emuname):
         """
