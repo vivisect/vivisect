@@ -73,7 +73,7 @@ def main():
     needanalyze = False
     if args.file is not None:
         for fname in args.file:
-            if args.parsemod == None:
+            if args.parsemod is None:
                 args.parsemod = viv_parsers.guessFormatFilename(fname)
 
             start = time.time()

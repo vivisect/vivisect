@@ -14,7 +14,7 @@ from vivisect.symboliks.constraints import *
 def symcache(f):
     def docache(*args, **kwargs):
         ret = args[0].cache.get(f.__name__)
-        if ret != None:
+        if ret is not None:
             return ret
 
         ret = f(*args, **kwargs)
@@ -26,37 +26,37 @@ def symcache(f):
 
 
 def varsolve(name, width, emu=None):
-    '''
+    """
     A helper routine which unifies the way symboliks
     "solves" ( aka, generates a repeatable entropic
     value ) for a varible by name.
-    '''
-    if emu != None:
+    """
+    if emu is not None:
         name += emu.getRandomSeed()
 
-    md5sum = hashlib.md5(name).hexdigest()
+    md5sum = hashlib.md5(name.encode()).hexdigest()
     return int(md5sum[:width * 2], 16)
 
 
 def evalSymbolik(reprstr):
-    '''
+    """
     Take a previously repr'd symboliks object and eval it
     back into objecthood.
 
     Example:
         x = "o_add(Var('eax', 4), 3)"
         symobj = evalSymbolik(x)
-    '''
+    """
     return eval(reprstr, globals(), {})
 
 
 def getSymbolikImport(vw, impname):
-    '''
+    """
     Resolve (hopefully) and return a symbolik import emulation
     function for the given import by name.
-    '''
+    """
     modbase = vw.getMeta('SymbolikImportEmulation')
-    if modbase == None:
+    if modbase is None:
         return None
 
     nameparts = impname.split('.')
@@ -155,7 +155,7 @@ class SymbolikBase:
 
     def __eq__(self, other):
 
-        if other == None:
+        if other is None:
             return False
 
         if type(other) in (int, int):
@@ -167,10 +167,10 @@ class SymbolikBase:
         return not self.__eq__(other)
 
     def clearCache(self):
-        '''
+        """
         Recursively clear the solve/reduce/etc cache
         for this symbolik object/AST.
-        '''
+        """
 
         def cb(path, obj, ctx):
             obj.cache.clear()
@@ -179,7 +179,7 @@ class SymbolikBase:
 
     # @symcache - we use the cache, but specially...
     def solve(self, emu=None, vals=None):
-        '''
+        """
         Produce a reproducable answer based on the current state.
 
         Additionally, if a "vals" dict is specified, the solve()
@@ -188,32 +188,32 @@ class SymbolikBase:
 
         NOTE: specifying a vals dict will circumvent the solve
               cache under the assumption they could be iterated.
-        '''
+        """
         # only use the cache if they're not specifying vars
-        if vals == None:
+        if vals is None:
             ret = self.cache.get('solve')
             if ret != None:
                 return ret
 
         ret = self._solve(emu=emu, vals=vals)
-        if vals == None:
+        if vals is None:
             self.cache['solve'] = ret
 
         return ret
 
     def _solve(self, emu=None, vals=None):
-        '''
+        """
         Produce a reproducable answer based on the current state if provided.
-        '''
+        """
         raise Exception('%s *must* implement solve(emu=emu)!' % self.__class__.__name__)
 
     def reduce(self, emu=None, foo=False):
-        '''
+        """
         Algebraic reduction and operator folding where possible.
 
         Example:
             symobj = symobj.reduce()
-        '''
+        """
 
         def doreduce(path, oldkid, ctx):
             return oldkid._reduce(emu=emu)
@@ -231,21 +231,21 @@ class SymbolikBase:
         return sym
 
     def _reduce(self, emu=None):
-        '''
+        """
         Algebraic reduction and operator folding where possible.
-        '''
+        """
         return None
 
     def update(self, emu):
-        '''
+        """
         Return an updated representation for this symbolik state based on the given
         emulator.
-        '''
+        """
         raise Exception('%s *must* implement update(emu)!' % self.__class__.__name__)
 
     def setSymKid(self, idx, kid):
-        '''
-        '''
+        """
+        """
         if idx > len(self.kids) - 1:
             self.kids.append(kid)
             self.kids[idx].parents.append(self)
@@ -284,10 +284,10 @@ class SymbolikBase:
 
     @symcache
     def isDiscrete(self, emu=None):
-        '''
+        """
         Returns True if the given symbolik (from here down) does *not* depend on
         any variables or runtime values.
-        '''
+        """
         if not self.kids:
             return self.discrete
 
@@ -297,7 +297,7 @@ class SymbolikBase:
         return False
 
     def walkTree(self, cb, ctx=None):
-        '''
+        """
         Walk the tree of symbolik objects. (depth first)
 
         The callback is expected to have the following
@@ -311,7 +311,7 @@ class SymbolikBase:
 
               symobj = symbobj.walkTree(callback)
 
-        '''
+        """
         return self._walkTreeImpl([], cb, ctx=ctx)
 
     def _walkTreeImpl(self, path, cb, ctx=None):
@@ -325,7 +325,7 @@ class SymbolikBase:
                 self.setSymKid(i, newkid)
 
         newkid = cb(path, self, ctx)
-        if newkid == None:
+        if newkid is None:
             newkid = self
 
         # lifo like a stack ( and like a baws )
@@ -346,10 +346,10 @@ class SymbolikBase:
 
 
 class cnot(SymbolikBase):
-    '''
+    """
     Mostly used to wrap the reverse of a contraint which is based on
     a variable.
-    '''
+    """
     symtype = SYMT_NOT
 
     def __init__(self, v1):
@@ -388,10 +388,10 @@ class cnot(SymbolikBase):
 
 
 class Call(SymbolikBase):
-    '''
+    """
     This represents the return value of an instance of a call to
     a function.
-    '''
+    """
     symtype = SYMT_CALL
 
     def __init__(self, funcsym, width, argsyms=[]):
@@ -446,10 +446,10 @@ class Call(SymbolikBase):
 
 
 class Mem(SymbolikBase):
-    '''
+    """
     This is effectivly a cop-out for symbolic states read in from
     memory which has not been initialized yet.
-    '''
+    """
     symtype = SYMT_MEM
 
     def __init__(self, symaddr, symsize):
@@ -471,7 +471,7 @@ class Mem(SymbolikBase):
 
         # If the emulator (or is viv) knows about us, update to his...
         ret = emu.readSymMemory(symaddr, symsize)
-        if ret != None:
+        if ret is not None:
             return ret
 
         return Mem(symaddr, symsize)
@@ -482,7 +482,7 @@ class Mem(SymbolikBase):
         return False
 
     def _solve(self, emu=None, vals=None):
-        if emu != None:
+        if emu is not None:
             val = emu.readSymMemory(self.kids[0], self.kids[1], vals=vals)
             if val and val.isDiscrete():
                 return val.solve()
@@ -515,7 +515,7 @@ class Var(SymbolikBase):
             return
 
         sym = vw.getSymByName(strval)
-        if sym != None:
+        if sym is not None:
             value = int(sym)
             canvas.addVaText(strval, va=value)
             return
@@ -532,16 +532,16 @@ class Var(SymbolikBase):
         return self.name
 
     def _solve(self, emu=None, vals=None):
-        if vals != None:
+        if vals is not None:
             ret = vals.get(self.name)
-            if ret != None:
+            if ret is not None:
                 return ret
 
         return varsolve(self.name, self.width, emu=emu)
 
     def update(self, emu):
         ret = emu.getSymVariable(self.name, create=False)
-        if ret != None:
+        if ret is not None:
             return ret
         return Var(self.name, width=self.width)
 
@@ -550,13 +550,13 @@ class Var(SymbolikBase):
 
 
 class LookupVar(Var):
-    '''
-    A 'LookupVar' is a special kind of variable used to track hardware-level 
+    """
+    A 'LookupVar' is a special kind of variable used to track hardware-level
     information, such as the VMREAD data.  Because VMREAD instructions require
-    a register value to determine what is being read, and this register info 
+    a register value to determine what is being read, and this register info
     isn't available until symbolik emulation, LookupVar allows the important
     data to be tracked between simple effects and applied effects.
-    '''
+    """
 
     symtype = SYMT_LOOKUP
 
@@ -568,7 +568,7 @@ class LookupVar(Var):
     @symcache
     def __repr__(self):
         return 'LookupVar(%s,%s,%s, width=%s)' % (
-        repr(self.name), repr(self.offset), repr(self.lookupdict), repr(self.width))
+            repr(self.name), repr(self.offset), repr(self.lookupdict), repr(self.width))
 
     @symcache
     def __str__(self):
@@ -584,7 +584,7 @@ class LookupVar(Var):
     def _solve(self, emu=None):
         name = 'LookupVar:%s:%s' % (self.name, self.offset)
 
-        if emu != None:
+        if emu is not None:
             name += emu.getRandomSeed()
 
         return int(hashlib.md5(name).hexdigest()[:self.width * 2], 16)
@@ -608,10 +608,10 @@ class LookupVar(Var):
 
 
 class Arg(SymbolikBase):
-    '''
+    """
     An "Arg" is a special kind of variable used to facilitate cross
     function boundary solving.
-    '''
+    """
     symtype = SYMT_ARG
 
     def __init__(self, idx, width):
@@ -633,9 +633,9 @@ class Arg(SymbolikBase):
     def _solve(self, emu=None, vals=None):
         name = 'arg%d' % self.idx
 
-        if vals != None:
+        if vals is not None:
             ret = vals.get(name)
-            if ret != None:
+            if ret is not None:
                 return ret
 
         return varsolve(name, self.width, emu=emu)
@@ -652,11 +652,11 @@ class Const(SymbolikBase):
     discrete = True
 
     def __init__(self, value, width, ptrname=None, constname=None):
-        '''
+        """
         A symbolik constant.  Optionally specify ptrname or constname
         ( or set them during walkTree() ) to allow the const to render
         itself with humon readable names.
-        '''
+        """
         SymbolikBase.__init__(self)
         self.width = width
         self.value = value % (2 ** (self.width * 8))
@@ -712,10 +712,10 @@ class Const(SymbolikBase):
 
 
 class Operator(SymbolikBase):
-    '''
+    """
     A class representing an algebraic operator being carried out on two
     symboliks.
-    '''
+    """
     oper = None
     operstr = None
 
@@ -746,7 +746,7 @@ class Operator(SymbolikBase):
         # FIXME - dependancy loop.  does this effect perf?
         from vivisect.symboliks.reducers import reduceoper
         ret = reduceoper(self, emu=emu)
-        if ret != None:
+        if ret is not None:
             return ret
         return self._op_reduce(v1, v1val, v2, v2val, emu)
 
@@ -783,7 +783,7 @@ class Operator(SymbolikBase):
 
     @symcache
     def __str__(self):
-        if self.operstr == None:
+        if self.operstr is None:
             raise Exception('Operators *must* set operstr')
         x, y = self.kids
         return '(%s %s %s)' % (str(x), self.operstr, str(y))

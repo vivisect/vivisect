@@ -1,6 +1,6 @@
-'''
+"""
 Some of the basic/universal memory renderers.
-'''
+"""
 
 import struct
 
@@ -90,21 +90,21 @@ def isBasicUnicode(bytez):
 
 def getAsciiFormatted(bytez):
     is_ascii, bytez = isAscii(bytez)
-    if bytez != None:
+    if bytez is not None:
         bytez = "'%s'" % bytez
     return bytez
 
 
 def getBasicUnicodeFormatted(bytez):
     is_uni, bytez = isBasicUnicode(bytez)
-    if bytez != None:
+    if bytez is not None:
         bytez = "u'%s'" % bytez
     return bytez
 
 
 def getSymByAddrFormatted(trace, va):
     sym = trace.getSymByAddr(va, exact=False)
-    if sym != None:
+    if sym is not None:
         return '%s + %d' % (repr(sym), va - int(sym))
     return sym
 
@@ -131,7 +131,7 @@ class AutoBytesRenderer(e_canvas.MemoryRenderer):
 
         prettyperm = ''
         mmap = trace.getMemoryMap(va)
-        if mmap != None:
+        if mmap is not None:
             addr, size, perm, fname = mmap
             prettyperm = e_mem.reprPerms(perm)
 

@@ -14,12 +14,15 @@ body {
     color: #00ff00;
     background-color: #000000;
     white-space: pre;
-    font: 10pt Monospace;
+    font: 12pt;
+    font-family: "monospace";
 }
 
 div.memcanvas {
     color: #00ff00;
     background-color: #000000;
+    font: 12pt;
+    font-family: "monospace";
 }
 
 div.codeblock {
@@ -27,54 +30,76 @@ div.codeblock {
     background-color: #000000;
     border: 2px solid #00ff00;
     display: inline-block;
+    font: 12pt;
+    font-family: "monospace";
 }
 
 div.codeblock:hover {
     border: 2px solid #ff0000;
+    font: 12pt;
+    font-family: "monospace";
 }
 
 .envi-va {
     color: #4040ff;
     background-color: #000000;
+    font: 12pt;
+    font-family: "monospace";
 }
 
 .envi-va-selected {
     color: #000000;
     background-color: #4040ff;
+    font: 12pt;
+    font-family: "monospace";
 }
 
 .envi-va:hover {
     font-weight: 900;
+    font: 12pt;
+    font-family: "monospace";
 }
 
 .envi-name {
     color: #00ff00;
     background-color: #000000;
+    font: 12pt;
+    font-family: "monospace";
 }
 
 .envi-name-selected {
     color: #000000;
     background-color: #00ff00;
+    font: 12pt;
+    font-family: "monospace";
 }
 
 .envi-registers {
     color: #ff0000;
     background-color: #000000;
+    font: 12pt;
+    font-family: "monospace";
 }
 
 .envi-registers-selected {
     color: #000000;
     background-color: #ff0000;
+    font: 12pt;
+    font-family: "monospace";
 }
 
 .envi-mnemonic {
     color: #ffff00;
     background-color: #000000;
+    font: 12pt;
+    font-family: "monospace";
 }
 
 .envi-mnemonic-selected {
     color: #000000;
     background-color: #ffff00;
+    font: 12pt;
+    font-family: "monospace";
 }
 
 </style>

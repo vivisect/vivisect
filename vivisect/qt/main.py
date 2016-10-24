@@ -94,11 +94,11 @@ class VQVivMainWindow(vq_app.VQMainCmdWindow, viv_base.VivEventDist):
         self.windowState = QtCore.Qt.WindowNoState
 
     def setVaName(self, va, parent=None):
-        if parent == None:
+        if parent is None:
             parent = self
 
         curname = self.vw.getName(va)
-        if curname == None:
+        if curname is None:
             curname = ''
 
         name, ok = QtGui.QInputDialog.getText(parent, 'Enter...', 'Name', text=curname)
@@ -110,11 +110,11 @@ class VQVivMainWindow(vq_app.VQMainCmdWindow, viv_base.VivEventDist):
             self.vw.makeName(va, name)
 
     def setVaComment(self, va, parent=None):
-        if parent == None:
+        if parent is None:
             parent = self
 
         curcomment = self.vw.getComment(va)
-        if curcomment == None:
+        if curcomment is None:
             curcomment = ''
 
         comment, ok = QtGui.QInputDialog.getText(parent, 'Enter...', 'Comment', text=curcomment)
@@ -122,7 +122,7 @@ class VQVivMainWindow(vq_app.VQMainCmdWindow, viv_base.VivEventDist):
             self.vw.setComment(va, str(comment))
 
     def addVaXref(self, va, parent=None):
-        if parent == None:
+        if parent is None:
             parent = self
         xtova, ok = QtGui.QInputDialog.getText(parent, 'Enter...', 'Make Code Xref 0x%x -> ' % va)
         if ok:
@@ -152,14 +152,14 @@ class VQVivMainWindow(vq_app.VQMainCmdWindow, viv_base.VivEventDist):
         self.vqDockWidget(callview, floating=True)
 
     def makeStruct(self, va, parent=None):
-        if parent == None:
+        if parent is None:
             parent = self
         sname = vs_qt.selectStructure(self.vw.vsbuilder, parent=parent)
-        if sname != None:
+        if sname is not None:
             self.vw.makeStructure(va, sname)
 
     def addBookmark(self, va, parent=None):
-        if parent == None:
+        if parent is None:
             parent = self
         bname, ok = QtGui.QInputDialog.getText(parent, 'Enter...', 'Bookmark Name')
         if ok:
@@ -178,14 +178,14 @@ class VQVivMainWindow(vq_app.VQMainCmdWindow, viv_base.VivEventDist):
         w.resize(600, 600)
 
     def _menuToolsUStructEdit(self, name=None):
-        if name == None:
+        if name is None:
             return self.vw.getUserStructNames()
         u = viv_q_ustruct.UserStructEditor(self.vw, name=name)
         w = self.vqDockWidget(u, floating=True)
         w.resize(600, 600)
 
     def _menuToolsVaSets(self, name=None):
-        if name == None:
+        if name is None:
             return self.vw.getVaSetNames()
         view = viv_q_views.VQVivVaSetView(self.vw, self, name)
         self.vqDockWidget(view)
@@ -397,10 +397,10 @@ class VQVivMainWindow(vq_app.VQMainCmdWindow, viv_base.VivEventDist):
 
 @vq_main.idlethread
 def runqt(vw, closeme=None):
-    '''
+    """
     Use this API to instantiate a QT main window and show it when
     there is already a main thread running...
-    '''
+    """
     mw = VQVivMainWindow(vw)
     viv_extensions.loadExtensions(vw, mw)
     mw.show()

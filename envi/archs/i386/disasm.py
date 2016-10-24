@@ -717,13 +717,15 @@ class i386Disasm:
             elif rm == 4:
                 sibsize, scale, index, base, imm = self.parse_sib(bytez, offset + size, mod, prefixes=prefixes)
                 size += sibsize
-                if base != None: base += regbase  # Adjust for different register addressing modes
-                if index != None: index += regbase  # Adjust for different register addressing modes
+                if base is not None:
+                    base += regbase  # Adjust for different register addressing modes
+                if index is not None:
+                    index += regbase  # Adjust for different register addressing modes
                 oper = i386SibOper(opersize, reg=base, imm=imm, index=index, scale=scale_lookup[scale])
-                return (size, oper)
+                return size, oper
 
             else:
-                return (size, i386RegMemOper(regbase + rm, opersize))
+                return size, i386RegMemOper(regbase + rm, opersize)
 
         elif mod == 1:
             # mod 1 means we are [ reg + disp8 ] (unless rm == 4 which means sib + disp8)
@@ -732,14 +734,16 @@ class i386Disasm:
                 size += sibsize
                 disp = e_bits.parsebytes(bytez, offset + size, 1, sign=True)
                 size += 1
-                if base != None: base += regbase  # Adjust for different register addressing modes
-                if index != None: index += regbase  # Adjust for different register addressing modes
+                if base is not None:
+                    base += regbase  # Adjust for different register addressing modes
+                if index is not None:
+                    index += regbase  # Adjust for different register addressing modes
                 oper = i386SibOper(opersize, reg=base, index=index, scale=scale_lookup[scale], disp=disp)
-                return (size, oper)
+                return size, oper
             else:
                 x = e_bits.signed((bytez[offset + size]), 1)
                 size += 1
-                return (size, i386RegMemOper(regbase + rm, opersize, disp=x))
+                return size, i386RegMemOper(regbase + rm, opersize, disp=x)
 
         elif mod == 2:
             # Means we are [ reg + disp32 ] (unless rm == 4  which means SIB + disp32)
@@ -748,16 +752,18 @@ class i386Disasm:
                 size += sibsize
                 disp = e_bits.parsebytes(bytez, offset + size, 4, sign=True)
                 size += 4
-                if base != None: base += regbase  # Adjust for different register addressing modes
-                if index != None: index += regbase  # Adjust for different register addressing modes
+                if base is not None:
+                    base += regbase  # Adjust for different register addressing modes
+                if index is not None:
+                    index += regbase  # Adjust for different register addressing modes
                 oper = i386SibOper(opersize, reg=base, imm=imm, index=index, scale=scale_lookup[scale], disp=disp)
-                return (size, oper)
+                return size, oper
 
             else:
                 # NOTE: Immediate displacements in SIB are still 4 bytes in 64 bit mode
                 disp = e_bits.parsebytes(bytez, offset + size, 4, sign=True)
                 size += 4
-                return (size, i386RegMemOper(regbase + rm, opersize, disp=disp))
+                return size, i386RegMemOper(regbase + rm, opersize, disp=disp)
 
         else:
             raise Exception("How does mod == %d" % mod)
@@ -792,7 +798,7 @@ class i386Disasm:
                 pass
                 # raise "OMG MOD 2"
 
-        return (size, scale, index, base, imm)
+        return size, scale, index, base, imm
 
     def _dis_calc_tsize(self, opertype, prefixes, operflags):
         """
@@ -803,7 +809,7 @@ class i386Disasm:
 
         # print "OPERTYPE",hex(opertype)
         sizelist = opcode86.OPERSIZE.get(opertype, None)
-        if sizelist == None:
+        if sizelist is None:
             raise "OPERSIZE FAIL: %.8x" % opertype
 
         if prefixes & PREFIX_OP_SIZE:
@@ -917,7 +923,7 @@ class i386Disasm:
                 # print "ADDRTYPE",hex(addrmeth)
                 ameth = self._dis_amethods[addrmeth >> 16]
                 # print "AMETH",ameth
-                if ameth == None:
+                if ameth is None:
                     raise Exception("Implement Addressing Method 0x%.8x" % addrmeth)
 
                 # NOTE: Depending on your addrmethod you may get beginning of operands, or offset
@@ -978,7 +984,7 @@ class i386Disasm:
         # seg = e_bits.parsebytes(bytez, offset+tsize, 2)
         # THIS BEING GHETTORIGGED ONLY EFFECTS callf jmpf - unghettorigged by atlas
         # print "FIXME: envi.intel.ameth_a skipping seg prefix %d" % seg
-        return (tsize, i386ImmOper(imm, tsize))
+        return tsize, i386ImmOper(imm, tsize)
 
     def ameth_e(self, bytez, offset, tsize, prefixes, operflags):
         return self.extended_parse_modrm(bytez, offset, tsize, prefixes=prefixes)

@@ -62,7 +62,7 @@ class VivSymbolikFuncPane(e_q_memory.EnviNavMixin, vq_save.SaveableWidget, QtGui
         self.symctx = viv_sym_analysis.getSymbolikAnalysisContext(vw)
         self.symexpr = viv_sym_expression.SymbolikExpressionParser(defwidth=vw.psize)
 
-        if self.symctx == None:
+        if self.symctx is None:
             raise Exception('No Symboliks For: %s (yet)' % vw.getMeta('Architecture'))
 
         self.symctx.consolve = True
@@ -77,7 +77,7 @@ class VivSymbolikFuncPane(e_q_memory.EnviNavMixin, vq_save.SaveableWidget, QtGui
         self.alleffs.stateChanged.connect(self.rendSymbolikPath)
 
         self.loop_count = QtGui.QSpinBox(parent=self)
-        looplabel = QtGui.QLabel(QtCore.QString("Max Loops:"), parent=self)
+        looplabel = QtGui.QLabel("Max Loops:", parent=self)
 
         self.pathview = VivSymbolikPathsView(vw, parent=self)
         self.memcanvas = e_q_memcanvas.VQMemoryCanvas(vw, syms=vw, parent=self)
@@ -86,8 +86,8 @@ class VivSymbolikFuncPane(e_q_memory.EnviNavMixin, vq_save.SaveableWidget, QtGui
         self.exprtext.returnPressed.connect(self.renderSymbolikPaths)
         self.constraintext.returnPressed.connect(self.renderSymbolikPaths)
 
-        fvalabel = QtGui.QLabel(QtCore.QString("Function VA:"), parent=self)
-        inccblabel = QtGui.QLabel(QtCore.QString("Must Include VA:"), parent=self)
+        fvalabel = QtGui.QLabel("Function VA:", parent=self)
+        inccblabel = QtGui.QLabel("Must Include VA:", parent=self)
         navbox = HBox(fvalabel, self.exprtext, inccblabel, self.constraintext, looplabel, self.loop_count, self.alleffs)
 
         mainbox = VBox()
@@ -145,7 +145,7 @@ class VivSymbolikFuncPane(e_q_memory.EnviNavMixin, vq_save.SaveableWidget, QtGui
 
             va = self.vw.parseExpression(expr)
             self.fva = self.vw.getFunction(va)
-            if self.fva == None:
+            if self.fva is None:
                 raise Exception('Invalid Address: 0x%.8x' % va)
 
             # check the constraints
@@ -158,13 +158,13 @@ class VivSymbolikFuncPane(e_q_memory.EnviNavMixin, vq_save.SaveableWidget, QtGui
                 cva = self.vw.parseExpression(cexpr)
                 ccb = self.vw.getCodeBlock(cva)
 
-                if ccb != None and ccb in self.vw.getFunctionBlocks(self.fva):
+                if ccb is not None and ccb in self.vw.getFunctionBlocks(self.fva):
                     # FIXME: allow the GUI-setting of loopcnt, instead of hard-coding
                     loopcnt = self.loop_count.value()
                     codepaths = viv_graph.getCodePathsThru(codegraph, ccb[0], loopcnt=loopcnt)
                     paths = self.symctx.getSymbolikPaths(self.fva, paths=codepaths, graph=codegraph, maxpath=100)
 
-            if codepaths == None:
+            if codepaths is None:
                 paths = self.symctx.walkSymbolikPaths(self.fva, maxpath=100)
 
             self.pathview.loadSymbolikPaths(paths)
@@ -204,7 +204,7 @@ class VivSymbolikFuncPane(e_q_memory.EnviNavMixin, vq_save.SaveableWidget, QtGui
                 return viv_sym_common.Var('L"%s"' % buf.decode('utf-16le', 'ignore'), width)
 
             name = self.vw.getName(symobj.value)
-            if name != None:
+            if name is not None:
                 symobj = viv_sym_common.Var(name, width)
 
         return symobj
@@ -215,10 +215,10 @@ class VivSymbolikFuncPane(e_q_memory.EnviNavMixin, vq_save.SaveableWidget, QtGui
         self.rendSymbolikPath()
 
     def rendSymbolikPath(self, *args, **kwargs):
-        '''
+        """
         Render the events from the currently selected emu/events.
         NOTE: args/kwargs syntax to allow arbitrary slot use
-        '''
+        """
         emu = self.curemu
         effects = self.cureffects
 
