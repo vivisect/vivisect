@@ -280,7 +280,7 @@ class VQVivMemoryCanvas(VivCanvasBase):
     def _clearColorMap(self):
         frame = self.page().mainFrame()
         style = frame.findFirstElement('#cmapstyle')
-        style.setInnerXml('');
+        style.setInnerXml('')
 
     def _navExpression(self, expr):
         if self._canv_navcallback:

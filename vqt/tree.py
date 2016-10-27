@@ -14,7 +14,8 @@ class VQTreeSorter:
 
     def __call__(self, x1, x2):
         def cmp(_x1, _x2):
-            return(_x1 > _x2) - (_x1 < _x2)
+            return (_x1 > _x2) - (_x1 < _x2)
+
         x1val = x1.rowdata[self.colnum]
         x2val = x2.rowdata[self.colnum]
         if self.asc:
@@ -180,7 +181,7 @@ class VQTreeModel(QtCore.QAbstractItemModel):
         if pitem == self.rootnode:
             return QtCore.QModelIndex()
 
-        if pitem == None:
+        if pitem is None:
             return QtCore.QModelIndex()
 
         return self.createIndex(pitem.row(), 0, pitem)
@@ -203,7 +204,7 @@ class VQTreeView(QtGui.QTreeView):
         self.setSortingEnabled(True)
         self.setAlternatingRowColors(True)
 
-        if cols != None:
+        if cols is not None:
             model = VQTreeModel(parent=self, columns=cols)
             self.setModel(model)
 

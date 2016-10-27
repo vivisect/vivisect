@@ -10,6 +10,7 @@ from PyQt4 import QtCore, QtGui
 from vqt.main import idlethread
 from vqt.basics import *
 
+
 @idlethread
 def scripterr(msg, info):
     msgbox = QtGui.QMessageBox()
@@ -17,8 +18,8 @@ def scripterr(msg, info):
     msgbox.setInformativeText(info)
     msgbox.exec_()
 
-class ScriptThread(Thread):
 
+class ScriptThread(Thread):
     def __init__(self, cobj, locals):
         Thread.__init__(self)
         self.setDaemon(True)
@@ -31,8 +32,8 @@ class ScriptThread(Thread):
         except Exception as e:
             scripterr(str(e), traceback.format_exc())
 
-class VQPythonView(QtGui.QWidget):
 
+class VQPythonView(QtGui.QWidget):
     def __init__(self, locals=None, parent=None):
         if locals == None:
             locals = {}
@@ -46,15 +47,15 @@ class VQPythonView(QtGui.QWidget):
         self._help_button = QtGui.QPushButton('?', parent=self._botWidget)
         self._run_button = QtGui.QPushButton('Run', parent=self._botWidget)
         self._run_button.clicked.connect(self._okClicked)
-        self._help_button.clicked.connect( self._helpClicked ) 
+        self._help_button.clicked.connect(self._helpClicked)
 
         self._help_text = None
 
-        hbox = HBox( None, self._help_button, self._run_button )
-        self._botWidget.setLayout( hbox )
+        hbox = HBox(None, self._help_button, self._run_button)
+        self._botWidget.setLayout(hbox)
 
-        vbox = VBox( self._textWidget, self._botWidget )
-        self.setLayout( vbox )
+        vbox = VBox(self._textWidget, self._botWidget)
+        self.setLayout(vbox)
 
         self.setWindowTitle('Python Interactive')
 
@@ -66,25 +67,23 @@ class VQPythonView(QtGui.QWidget):
 
     def _helpClicked(self):
         withhelp = []
-        for lname,lval in list(self._locals.items()):
-            if type(lval) in (types.ModuleType, ):
+        for lname, lval in list(self._locals.items()):
+            if type(lval) in (types.ModuleType,):
                 continue
             doc = getattr(lval, '__doc__', '\nNo Documentation\n')
             if doc == None:
                 doc = '\nNo Documentation\n'
-            withhelp.append( (lname, doc) )
+            withhelp.append((lname, doc))
 
         withhelp.sort()
 
         txt = 'Objects/Functions in the namespace:\n'
-        for name,doc in withhelp:
-            txt += ( '====== %s\n' % name )
-            txt += ( '%s\n' % doc )
+        for name, doc in withhelp:
+            txt += ('====== %s\n' % name)
+            txt += ('%s\n' % doc)
 
         self._help_text = QtGui.QTextEdit()
-        self._help_text.setReadOnly( True )
+        self._help_text.setReadOnly(True)
         self._help_text.setWindowTitle('Python Interactive Help')
-        self._help_text.setText( txt )
+        self._help_text.setText(txt)
         self._help_text.show()
-
-

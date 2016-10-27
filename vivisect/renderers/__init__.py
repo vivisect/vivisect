@@ -241,10 +241,16 @@ class WorkspaceRenderer(e_canvas.MemoryRenderer):
 
             mcanv.addText(linepre, vatag)
             offset, bytes = self.vw.getByteDef(lva)
-            b = '%x' % bytes[offset]
+            data = bytes[offset:offset+1]
+            # b = '0x%.2x' % data
+            b = '0x'+data.hex()
             mcanv.addNameText(b, typename="undefined")
-            if b in string.printable:
-                mcanv.addText('    %s' % repr(b), tag=cmnttag)
+            data = chr(data[0])
+            if data in string.printable:
+                if data in string.whitespace:
+                    data = repr(data)
+                mcanv.addText('    %s' % data, tag=cmnttag)
+
             if cmnt is not None:
                 mcanv.addText('    ;%s' % cmnt, tag=cmnttag)
             mcanv.addText("\n")

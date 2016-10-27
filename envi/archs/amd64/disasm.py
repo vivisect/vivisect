@@ -198,7 +198,7 @@ class Amd64Disasm(e_i386.i386Disasm):
         mode = MODE_32
 
         sizelist = opcode86.OPERSIZE.get(opertype, None)
-        if sizelist == None:
+        if sizelist is None:
             raise Exception("OPERSIZE FAIL")
 
         if operflags & opcode86.OP_64AUTO:
@@ -380,7 +380,7 @@ class Amd64Disasm(e_i386.i386Disasm):
                 # print "ADDRTYPE",hex(addrmeth)
                 ameth = self._dis_amethods[addrmeth >> 16]
                 # print "AMETH",ameth
-                if ameth == None:
+                if ameth is None:
                     raise Exception("Implement Addressing Method 0x%.8x" % addrmeth)
 
                 # NOTE: Depending on your addrmethod you may get beginning of operands, or offset
