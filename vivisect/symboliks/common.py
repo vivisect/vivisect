@@ -29,7 +29,7 @@ def varsolve(name, width, emu=None):
     """
     A helper routine which unifies the way symboliks
     "solves" ( aka, generates a repeatable entropic
-    value ) for a varible by name.
+    value ) for a variable by name.
     """
     if emu is not None:
         name += emu.getRandomSeed()
@@ -192,7 +192,7 @@ class SymbolikBase:
         # only use the cache if they're not specifying vars
         if vals is None:
             ret = self.cache.get('solve')
-            if ret != None:
+            if ret is not None:
                 return ret
 
         ret = self._solve(emu=emu, vals=vals)
@@ -347,7 +347,7 @@ class SymbolikBase:
 
 class cnot(SymbolikBase):
     """
-    Mostly used to wrap the reverse of a contraint which is based on
+    Mostly used to wrap the reverse of a constraint which is based on
     a variable.
     """
     symtype = SYMT_NOT
@@ -447,7 +447,7 @@ class Call(SymbolikBase):
 
 class Mem(SymbolikBase):
     """
-    This is effectivly a cop-out for symbolic states read in from
+    This is effectively a cop-out for symbolic states read in from
     memory which has not been initialized yet.
     """
     symtype = SYMT_MEM

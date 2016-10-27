@@ -34,6 +34,8 @@ class MemoryRenderer(object):
             bstr = "%.2x" % val
             if val < 0x20 or val > 0x7e:
                 b = "."
+            else:
+                b = chr(b)
             mcanv.addNameText(b, bstr)
 
     def render(self, mcanv, va):

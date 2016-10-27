@@ -14,8 +14,8 @@ The module's vivExtension function takes a vivisect workspace
 (vw) and an vivisect gui reference (if present).
 '''
 
-def loadExtensions( vw, vwgui ):
 
+def loadExtensions(vw, vwgui):
     extdir = os.getenv('VIV_EXT_PATH')
 
     if extdir == None:
@@ -41,6 +41,5 @@ def loadExtensions( vw, vwgui ):
                 exec(filebytes, mod.__dict__)
                 mod.vivExtension(vw, vwgui)
             except Exception as e:
-                vw.vprint( traceback.format_exc() )
+                vw.vprint(traceback.format_exc())
                 vw.vprint('Extension Error: %s' % filepath)
-

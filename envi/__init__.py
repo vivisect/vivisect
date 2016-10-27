@@ -69,7 +69,7 @@ import envi.memcanvas as e_canvas
 
 class ArchitectureModule:
     """
-    An architecture module implementes methods to deal
+    An architecture module implements methods to deal
     with the creation of envi objects for the specified
     architecture.
     """

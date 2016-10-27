@@ -1,6 +1,7 @@
 from vivisect.symboliks.common import *
 from vivisect.symboliks.effects import *
 
+
 class SymbolikTranslator:
     '''
     The SymbolikTranslator is responsible for translating architecture specific
@@ -24,30 +25,30 @@ class SymbolikTranslator:
         (any meta register processing is the responsiblity of the translator
         calling this interface!)
         '''
-        self._eff_log.append( SetVariable(self._cur_va, rname, rsym) )
+        self._eff_log.append(SetVariable(self._cur_va, rname, rsym))
 
     def effReadMemory(self, symaddr, symsize):
-        self._eff_log.append( ReadMemory(self._cur_va, symaddr, symsize) )
+        self._eff_log.append(ReadMemory(self._cur_va, symaddr, symsize))
         return Mem(symaddr, symsize)
 
     def effWriteMemory(self, symaddr, symsize, symobj):
-        self._eff_log.append( WriteMemory(self._cur_va, symaddr, symsize, symobj) )
+        self._eff_log.append(WriteMemory(self._cur_va, symaddr, symsize, symobj))
 
     def effFofX(self, funcsym, argsyms=None):
-        self._eff_log.append( CallFunction(self._cur_va, funcsym, argsyms) )
+        self._eff_log.append(CallFunction(self._cur_va, funcsym, argsyms))
 
     def effConstrain(self, addrsym, conssym):
-        self._con_log.append( ConstrainPath(self._cur_va, addrsym, conssym) )
+        self._con_log.append(ConstrainPath(self._cur_va, addrsym, conssym))
 
     def effDebug(self, msg):
-        self._eff_log.append( DebugEffect(self._cur_va, msg) )
+        self._eff_log.append(DebugEffect(self._cur_va, msg))
 
     def translateOpcode(self, op):
         self._cur_va = op.va
         meth = self._op_methods.get(op.mnem, None)
         if meth == None:
-            #print '%s Needs: %s' % (self.__class__.__name__,repr(op))
-            self.effDebug(  "%s Needs %s" % (self.__class__.__name__, repr(op)) )
+            # print '%s Needs: %s' % (self.__class__.__name__,repr(op))
+            self.effDebug("%s Needs %s" % (self.__class__.__name__, repr(op)))
             return DebugEffect(op.va, "%s Needs %s" % (self.__class__.__name__, repr(op)))
 
         # instruction translator methods may return branches / constraints
