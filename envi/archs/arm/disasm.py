@@ -199,15 +199,25 @@ def p_dp_imm_shift(opval, va):
     Rm = opval & 0xf
     shtype = (opval >> 5) & 0x3
     shval = (opval >> 7) & 0x1f   # effectively, rot*2
+    if (shtype==3) & (shval ==0): # is it an rrx?
+        shtype = 4
     mnem = dp_mnem[ocode]
     if ocode in dp_noRn:# FIXME: FUGLY (and slow...)
         #is it a mov? Only if shval is a 0, type is lsl, and ocode = 13
         if  (ocode == 13) and ((shval != 0) or (shtype != 0)):
             mnem = dp_shift_mnem[shtype]
-            olist = (
-                ArmRegOper(Rd, va=va),
-                ArmRegShiftImmOperMov(Rm, shtype, shval, va),
-            )
+            if shtype!= 4: #if not rrx
+                olist = (
+                    ArmRegOper(Rd, va=va),
+                    ArmRegOper(Rm, va=va),
+                    ArmImmOper(shval, va=va),
+                )
+            else:
+                olist = (
+                    ArmRegOper(Rd, va=va),
+                    ArmRegOper(Rm, va=va),
+                )
+                
         else:
             olist = (
                 ArmRegOper(Rd, va=va),
@@ -522,7 +532,6 @@ def p_extra_load_store(opval, va, psize=4):
         # 0001u1001111-Rt-imm41101imm4  ldrd regoffset (literal, v7+)
         # Rt = Rd and must be even and not 14 per A8.8.72/A8.8.210
         # Rt2 = R(t+1)
-        print Rd, "reg"
         if (Rd == 14) or (Rd % 2 !=0):
             raise envi.InvalidInstruction(
                 mesg="extra_load_store: invalid Rt argument",
@@ -600,7 +609,10 @@ def p_dp_reg_shift(opval, va):
             mnem = dp_shift_mnem[shtype]
             olist = (
                 ArmRegOper(Rd, va=va),
-                ArmRegShiftRegOperMov(Rm, shtype, Rs),
+                ArmRegOper(Rm, va=va),
+                ArmRegOper(Rs, va=va),
+                
+                #ArmRegShiftRegOperMov(Rm, shtype, Rs),
             )
         else:
             olist = (
@@ -1791,20 +1803,7 @@ class ArmRegShiftRegOper(ArmOperand):
 
     def repr(self, op):
         rname = arm_regs[self.reg][0]+", "
-        rname+=shift_names[self.shtype]
-        rname+= arm_regs[self.shreg][0]
-        #return " ".join([rname, shift_names[self.shtype], arm_regs[self.shreg][0]])
-        return rname
-
-class ArmRegShiftRegOperMov(ArmRegShiftRegOper):
-    def render(self, mcanv, op, idx):
-        rname = arm_regs[self.reg][0]
-        mcanv.addNameText(rname, typename='registers')
-        mcanv.addText(' ')
-        mcanv.addNameText(arm_regs[self.shreg][0], typename='registers')
-
-    def repr(self, op):
-        rname = arm_regs[self.reg][0]+", "
+        rname+=shift_names[self.shtype] #Changed to remove extra spaces
         rname+= arm_regs[self.shreg][0]
         return rname
 
@@ -1867,22 +1866,6 @@ class ArmRegShiftImmOper(ArmOperand):
             retval.append("#%d"%self.shimm)
         elif self.shtype == S_RRX:
             retval.append(shift_names[self.shtype])
-        return " ".join(retval)
-
-class ArmRegShiftImmOperMov(ArmRegShiftImmOper):
-    def render(self, mcanv, op, idx):
-        rname = arm_regs[self.reg][0]
-        mcanv.addNameText(rname, typename='registers')
-        if self.shimm != 0:
-            mcanv.addText(', ')
-            mcanv.addNameText('#%d' % self.shimm)
-
-    def repr(self, op):
-        rname = arm_regs[self.reg][0]
-        retval = [ rname ]
-        if self.shimm != 0:
-            retval.append(",")
-            retval.append("#%d"%self.shimm)
         return " ".join(retval)
 
 class ArmImmOper(ArmOperand):
