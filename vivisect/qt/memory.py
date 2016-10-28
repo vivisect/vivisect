@@ -49,6 +49,7 @@ class VivCanvasBase(vq_hotkey.HotKeyMixin, e_mem_canvas.VQMemoryCanvas):
         self.addHotKey(';','viv:comment')
         self.addHotKey('S','viv:make:struct')
         self.addHotKey('ctrl+S','viv:make:struct:again')
+        self.addHotKey('ctrl+meta+S','viv:make:struct:multi')
         self.addHotKey('U','viv:undefine')
         self.addHotKey('ctrl+s','viv:save')
         self.addHotKey('B', 'viv:bookmark')
@@ -211,13 +212,39 @@ class VivCanvasBase(vq_hotkey.HotKeyMixin, e_mem_canvas.VQMemoryCanvas):
     @vq_hotkey.hotkey('viv:make:struct')
     def _hotkey_make_struct(self):
         if self._canv_curva:
-            self._menuMakeStruct(self._canv_curva)
+            sname = self.vw.getVivGui().makeStruct(self._canv_curva)
+            if sname != None:
+                self._last_sname = sname
 
     @vq_hotkey.hotkey('viv:make:struct:again')
     def _hotkey_make_struct_again(self):
         if self._canv_curva:
             if self._last_sname != None:
                 self.vw.makeStructure(self._canv_curva, self._last_sname)
+
+    @vq_hotkey.hotkey('viv:make:struct:multi')
+    def _hotkey_make_struct_multi(self, parent=None):
+        if self._canv_curva:
+            if self._last_sname != None:
+                number, ok = QtGui.QInputDialog.getText(parent, 'Make Multiple Consecutive Structs', 'Number of Structures')
+                if ok:
+                    curva = self._canv_curva
+                    number = int(str(number), 0)
+                    for count in range(number):
+                        vs = self.vw.makeStructure(curva, self._last_sname)
+                        curva += len(vs)
+
+    def makeStructAgainMulti(self, va, parent=None):
+        if parent == None:
+            parent = self
+
+        curcomment = self.vw.getComment(va)
+        if curcomment == None:
+            curcomment = ''
+
+        comment, ok = QtGui.QInputDialog.getText(parent, 'Enter...', 'Comment', text=curcomment)
+        if ok:
+            self.vw.setComment(va, str(comment))
 
     @vq_hotkey.hotkey('viv:make:number:one')
     def _hotkey_make_number_one(self):

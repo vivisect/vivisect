@@ -1,5 +1,6 @@
 from PyQt4 import QtCore, QtGui
 
+QMOD_META   = 0x08000000
 QMOD_CTRL   = 0x04000000
 QMOD_SHIFT  = 0x02000000
 
@@ -123,7 +124,10 @@ class HotKeyMixin(object):
                 keytxt = keytxt.upper()
 
             if mods & QMOD_CTRL:
-                keytxt = 'ctrl+' + keytxt
+                if mods & QMOD_META:
+                    keytxt = 'ctrl+meta+' + keytxt
+                else:
+                    keytxt = 'ctrl+' + keytxt
 
         return keytxt
 
