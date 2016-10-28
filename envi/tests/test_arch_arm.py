@@ -76,8 +76,6 @@ instrs = [
         (REV_ALL_ARM, '674573e1', 0x4560, 'cmn r3, r7, ror #10', 0, ()),
         (REV_ALL_ARM, '674583e1', 0x4560, 'orr r4, r3, r7, ror #10', 0, ()),
         (REV_ALL_ARM, '674593e1', 0x4560, 'orrs r4, r3, r7, ror #10', 0, ()),
-        (REV_ALL_ARM, '6745a3e1', 0x4560, 'mov r4, r7, ror #10', 0, ()),
-        (REV_ALL_ARM, '6745b3e1', 0x4560, 'movs r4, r7, ror #10', 0, ()),
         (REV_ALL_ARM, '6745c3e1', 0x4560, 'bic r4, r3, r7, ror #10', 0, ()),
         (REV_ALL_ARM, '6745d3e1', 0x4560, 'bics r4, r3, r7, ror #10', 0, ()),
         (REV_ALL_ARM, '6745e3e1', 0x4560, 'mvn r4, r7, ror #10', 0, ()),
@@ -104,8 +102,6 @@ instrs = [
         (REV_ALL_ARM, '774573e1', 0x4560, 'cmn r3, r7, ror r5', 0, ()),
         (REV_ALL_ARM, '774583e1', 0x4560, 'orr r4, r3, r7, ror r5', 0, ()),
         (REV_ALL_ARM, '774593e1', 0x4560, 'orrs r4, r3, r7, ror r5', 0, ()),
-        (REV_ALL_ARM, '7745a3e1', 0x4560, 'mov r4, r7, ror r5', 0, ()),
-        (REV_ALL_ARM, '7745b3e1', 0x4560, 'movs r4, r7, ror r5', 0, ()),
         (REV_ALL_ARM, '7745c3e1', 0x4560, 'bic r4, r3, r7, ror r5', 0, ()),
         (REV_ALL_ARM, '7745d3e1', 0x4560, 'bics r4, r3, r7, ror r5', 0, ()),
         (REV_ALL_ARM, '7745e3e1', 0x4560, 'mvn r4, r7, ror r5', 0, ()),
@@ -132,8 +128,6 @@ instrs = [
         (REV_ALL_ARM, '874573e1', 0x4560, 'cmn r3, r7, lsl #11', 0, ()),
         (REV_ALL_ARM, '874583e1', 0x4560, 'orr r4, r3, r7, lsl #11', 0, ()),
         (REV_ALL_ARM, '874593e1', 0x4560, 'orrs r4, r3, r7, lsl #11', 0, ()),
-        (REV_ALL_ARM, '8745a3e1', 0x4560, 'mov r4, r7, lsl #11', 0, ()),
-        (REV_ALL_ARM, '8745b3e1', 0x4560, 'movs r4, r7, lsl #11', 0, ()),
         (REV_ALL_ARM, '8745c3e1', 0x4560, 'bic r4, r3, r7, lsl #11', 0, ()),
         (REV_ALL_ARM, '8745d3e1', 0x4560, 'bics r4, r3, r7, lsl #11', 0, ()),
         (REV_ALL_ARM, '8745e3e1', 0x4560, 'mvn r4, r7, lsl #11', 0, ()),
@@ -166,8 +160,6 @@ instrs = [
         (REV_ALL_ARM, 'a74573e1', 0x4560, 'cmn r3, r7, lsr #11', 0, ()),
         (REV_ALL_ARM, 'a74583e1', 0x4560, 'orr r4, r3, r7, lsr #11', 0, ()),
         (REV_ALL_ARM, 'a74593e1', 0x4560, 'orrs r4, r3, r7, lsr #11', 0, ()),
-        (REV_ALL_ARM, 'a745a3e1', 0x4560, 'mov r4, r7, lsr #11', 0, ()),
-        (REV_ALL_ARM, 'a745b3e1', 0x4560, 'movs r4, r7, lsr #11', 0, ()),
         (REV_ALL_ARM, 'a745c3e1', 0x4560, 'bic r4, r3, r7, lsr #11', 0, ()),
         (REV_ALL_ARM, 'a745d3e1', 0x4560, 'bics r4, r3, r7, lsr #11', 0, ()),
         (REV_ALL_ARM, 'a745e3e1', 0x4560, 'mvn r4, r7, lsr #11', 0, ()),
@@ -226,40 +218,38 @@ instrs = [
         (REV_ALL_ARM, 'c74573e1', 0x4560, 'cmn r3, r7, asr #11', 0, ()),
         (REV_ALL_ARM, 'c74583e1', 0x4560, 'orr r4, r3, r7, asr #11', 0, ()),
         (REV_ALL_ARM, 'c74593e1', 0x4560, 'orrs r4, r3, r7, asr #11', 0, ()),
-        (REV_ALL_ARM, 'c745a3e1', 0x4560, 'mov r4, r7, asr #11', 0, ()),
-        (REV_ALL_ARM, 'c745b3e1', 0x4560, 'movs r4, r7, asr #11', 0, ()),
         (REV_ALL_ARM, 'c745c3e1', 0x4560, 'bic r4, r3, r7, asr #11', 0, ()),
         (REV_ALL_ARM, 'c745d3e1', 0x4560, 'bics r4, r3, r7, asr #11', 0, ()),
         (REV_ALL_ARM, 'c745e3e1', 0x4560, 'mvn r4, r7, asr #11', 0, ()),
         (REV_ALL_ARM, 'c745f3e1', 0x4560, 'mvns r4, r7, asr #11', 0, ()),
-        (REV_ALL_ARM, 'd74503e0', 0x4560, 'ldrd r4, [r3], -r7 ', 0, ()),
+        (REV_ALL_ARM, 'd74503e0', 0x4560, 'ldrd r4, r5, [r3], -r7 ', 0, ()),
         (REV_ALL_ARM, 'd74513e0', 0x4560, 'ldrsb r4, [r3], -r7 ', 0, ()),
-        (REV_ALL_ARM, 'd74523e0', 0x4560, 'ldrd r4, [r3], -r7 ', 0, ()),
+        (REV_ALL_ARM, 'd74523e0', 0x4560, 'ldrd r4, r5, [r3], -r7 ', 0, ()),
         (REV_ALL_ARM, 'd74533e0', 0x4560, 'ldrsbt r4, [r3], -r7 ', 0, ()),
-        (REV_ALL_ARM, 'd74543e0', 0x4560, 'ldrd r4, [r3], #-0x57 ', 0, ()),
+        (REV_ALL_ARM, 'd74543e0', 0x4560, 'ldrd r4, r5, [r3], #-0x57 ', 0, ()),
         (REV_ALL_ARM, 'd74553e0', 0x4560, 'ldrsb r4, [r3], #-0x57 ', 0, ()),
         (REV_ALL_ARM, 'd74573e0', 0x4560, 'ldrsbt r4, [r3], #-0x57 ', 0, ()),
-        (REV_ALL_ARM, 'd74583e0', 0x4560, 'ldrd r4, [r3], r7 ', 0, ()),
+        (REV_ALL_ARM, 'd74583e0', 0x4560, 'ldrd r4, r5, [r3], r7 ', 0, ()),
         (REV_ALL_ARM, 'd74593e0', 0x4560, 'ldrsb r4, [r3], r7 ', 0, ()),
         (REV_ALL_ARM, 'd745b3e0', 0x4560, 'ldrsbt r4, [r3], r7 ', 0, ()),
-        (REV_ALL_ARM, 'd745c3e0', 0x4560, 'ldrd r4, [r3], #0x57 ', 0, ()),
+        (REV_ALL_ARM, 'd745c3e0', 0x4560, 'ldrd r4, r5,[r3], #0x57 ', 0, ()),
         (REV_ALL_ARM, 'd745d3e0', 0x4560, 'ldrsb r4, [r3], #0x57 ', 0, ()),
         (REV_ALL_ARM, 'd745f3e0', 0x4560, 'ldrsbt r4, [r3], #0x57 ', 0, ()),
-        (REV_ALL_ARM, 'd74503e1', 0x4560, 'ldrd r4, [r3, -r7] ', 0, ()),
+        (REV_ALL_ARM, 'd74503e1', 0x4560, 'ldrd r4, r5, [r3, -r7] ', 0, ()),
         (REV_ALL_ARM, 'd74513e1', 0x4560, 'ldrsb r4, [r3, -r7] ', 0, ()),
-        (REV_ALL_ARM, 'd74523e1', 0x4560, 'ldrd r4, [r3, -r7]! ', 0, ()),
+        (REV_ALL_ARM, 'd74523e1', 0x4560, 'ldrd r4, r5, [r3, -r7]! ', 0, ()),
         (REV_ALL_ARM, 'd74533e1', 0x4560, 'ldrsb r4, [r3, -r7]! ', 0, ()),
-        (REV_ALL_ARM, 'd74543e1', 0x4560, 'ldrd r4, [r3, #-0x57] ', 0, ()),
+        (REV_ALL_ARM, 'd74543e1', 0x4560, 'ldrd r4, r5, [r3, #-0x57] ', 0, ()),
         (REV_ALL_ARM, 'd74553e1', 0x4560, 'ldrsb r4, [r3, #-0x57] ', 0, ()),
-        (REV_ALL_ARM, 'd74563e1', 0x4560, 'ldrd r4, [r3, #-0x57]! ', 0, ()),
+        (REV_ALL_ARM, 'd74563e1', 0x4560, 'ldrd r4, r5, [r3, #-0x57]! ', 0, ()),
         (REV_ALL_ARM, 'd74573e1', 0x4560, 'ldrsb r4, [r3, #-0x57]! ', 0, ()),
-        (REV_ALL_ARM, 'd74583e1', 0x4560, 'ldrd r4, [r3, r7] ', 0, ()),
+        (REV_ALL_ARM, 'd74583e1', 0x4560, 'ldrd r4, r5, [r3, r7] ', 0, ()),
         (REV_ALL_ARM, 'd74593e1', 0x4560, 'ldrsb r4, [r3, r7] ', 0, ()),
-        (REV_ALL_ARM, 'd745a3e1', 0x4560, 'ldrd r4, [r3, r7]! ', 0, ()),
+        (REV_ALL_ARM, 'd745a3e1', 0x4560, 'ldrd r4, r5, [r3, r7]! ', 0, ()),
         (REV_ALL_ARM, 'd745b3e1', 0x4560, 'ldrsb r4, [r3, r7]! ', 0, ()),
-        (REV_ALL_ARM, 'd745c3e1', 0x4560, 'ldrd r4, [r3, #0x57] ', 0, ()),
+        (REV_ALL_ARM, 'd745c3e1', 0x4560, 'ldrd r4, r5, [r3, #0x57] ', 0, ()),
         (REV_ALL_ARM, 'd745d3e1', 0x4560, 'ldrsb r4, [r3, #0x57] ', 0, ()),
-        (REV_ALL_ARM, 'd745e3e1', 0x4560, 'ldrd r4, [r3, #0x57]! ', 0, ()),
+        (REV_ALL_ARM, 'd745e3e1', 0x4560, 'ldrd r4, r5,  [r3, #0x57]! ', 0, ()),
         (REV_ALL_ARM, 'd745f3e1', 0x4560, 'ldrsb r4, [r3, #0x57]! ', 0, ()),
         (REV_ALL_ARM, 'e74503e0', 0x4560, 'and r4, r3, r7, ror #11', 0, ()),
         (REV_ALL_ARM, 'e74513e0', 0x4560, 'ands r4, r3, r7, ror #11', 0, ()),
@@ -283,39 +273,37 @@ instrs = [
         (REV_ALL_ARM, 'e74573e1', 0x4560, 'cmn r3, r7, ror #11', 0, ()),
         (REV_ALL_ARM, 'e74583e1', 0x4560, 'orr r4, r3, r7, ror #11', 0, ()),
         (REV_ALL_ARM, 'e74593e1', 0x4560, 'orrs r4, r3, r7, ror #11', 0, ()),
-        (REV_ALL_ARM, 'e745a3e1', 0x4560, 'mov r4, r7, ror #11', 0, ()),
-        (REV_ALL_ARM, 'e745b3e1', 0x4560, 'movs r4, r7, ror #11', 0, ()),
         (REV_ALL_ARM, 'e745c3e1', 0x4560, 'bic r4, r3, r7, ror #11', 0, ()),
         (REV_ALL_ARM, 'e745d3e1', 0x4560, 'bics r4, r3, r7, ror #11', 0, ()),
         (REV_ALL_ARM, 'e745e3e1', 0x4560, 'mvn r4, r7, ror #11', 0, ()),
         (REV_ALL_ARM, 'e745f3e1', 0x4560, 'mvns r4, r7, ror #11', 0, ()),
-        (REV_ALL_ARM, 'f74503e0', 0x4560, 'strd r4, [r3], -r7 ', 0, ()),
+        (REV_ALL_ARM, 'f74503e0', 0x4560, 'strd r4, r5, [r3], -r7 ', 0, ()),
         (REV_ALL_ARM, 'f74513e0', 0x4560, 'ldrsh r4, [r3], -r7 ', 0, ()),
         (REV_ALL_ARM, 'f74533e0', 0x4560, 'ldrsht r4, [r3], -r7 ', 0, ()),
-        (REV_ALL_ARM, 'f74543e0', 0x4560, 'strd r4, [r3], #-0x57 ', 0, ()),
+        (REV_ALL_ARM, 'f74543e0', 0x4560, 'strd r4, r5, [r3], #-0x57 ', 0, ()),
         (REV_ALL_ARM, 'f74553e0', 0x4560, 'ldrsh r4, [r3], #-0x57 ', 0, ()),
         (REV_ALL_ARM, 'f74573e0', 0x4560, 'ldrsht r4, [r3], #-0x57 ', 0, ()),
-        (REV_ALL_ARM, 'f74583e0', 0x4560, 'strd r4, [r3], r7 ', 0, ()),
+        (REV_ALL_ARM, 'f74583e0', 0x4560, 'strd r4, r5, [r3], r7 ', 0, ()),
         (REV_ALL_ARM, 'f74593e0', 0x4560, 'ldrsh r4, [r3], r7 ', 0, ()),
         (REV_ALL_ARM, 'f745b3e0', 0x4560, 'ldrsht r4, [r3], r7 ', 0, ()),
-        (REV_ALL_ARM, 'f745c3e0', 0x4560, 'strd r4, [r3], #0x57 ', 0, ()),
+        (REV_ALL_ARM, 'f745c3e0', 0x4560, 'strd r4, r5, [r3], #0x57 ', 0, ()),
         (REV_ALL_ARM, 'f745d3e0', 0x4560, 'ldrsh r4, [r3], #0x57 ', 0, ()),
         (REV_ALL_ARM, 'f745f3e0', 0x4560, 'ldrsht r4, [r3], #0x57 ', 0, ()),
-        (REV_ALL_ARM, 'f74503e1', 0x4560, 'strd r4, [r3, -r7] ', 0, ()),
+        (REV_ALL_ARM, 'f74503e1', 0x4560, 'strd r4, r5, [r3, -r7] ', 0, ()),
         (REV_ALL_ARM, 'f74513e1', 0x4560, 'ldrsh r4, [r3, -r7] ', 0, ()),
-        (REV_ALL_ARM, 'f74523e1', 0x4560, 'strd r4, [r3, -r7]! ', 0, ()),
+        (REV_ALL_ARM, 'f74523e1', 0x4560, 'strd r4, r5, [r3, -r7]! ', 0, ()),
         (REV_ALL_ARM, 'f74533e1', 0x4560, 'ldrsh r4, [r3, -r7]! ', 0, ()),
-        (REV_ALL_ARM, 'f74543e1', 0x4560, 'strd r4, [r3, #-0x57] ', 0, ()),
+        (REV_ALL_ARM, 'f74543e1', 0x4560, 'strd r4, r5, [r3, #-0x57] ', 0, ()),
         (REV_ALL_ARM, 'f74553e1', 0x4560, 'ldrsh r4, [r3, #-0x57] ', 0, ()),
-        (REV_ALL_ARM, 'f74563e1', 0x4560, 'strd r4, [r3, #-0x57]! ', 0, ()),
+        (REV_ALL_ARM, 'f74563e1', 0x4560, 'strd r4, r5, [r3, #-0x57]! ', 0, ()),
         (REV_ALL_ARM, 'f74573e1', 0x4560, 'ldrsh r4, [r3, #-0x57]! ', 0, ()),
-        (REV_ALL_ARM, 'f74583e1', 0x4560, 'strd r4, [r3, r7] ', 0, ()),
+        (REV_ALL_ARM, 'f74583e1', 0x4560, 'strd r4, r5, [r3, r7] ', 0, ()),
         (REV_ALL_ARM, 'f74593e1', 0x4560, 'ldrsh r4, [r3, r7] ', 0, ()),
-        (REV_ALL_ARM, 'f745a3e1', 0x4560, 'strd r4, [r3, r7]! ', 0, ()),
+        (REV_ALL_ARM, 'f745a3e1', 0x4560, 'strd r4, r5, [r3, r7]! ', 0, ()),
         (REV_ALL_ARM, 'f745b3e1', 0x4560, 'ldrsh r4, [r3, r7]! ', 0, ()),
-        (REV_ALL_ARM, 'f745c3e1', 0x4560, 'strd r4, [r3, #0x57] ', 0, ()),
+        (REV_ALL_ARM, 'f745c3e1', 0x4560, 'strd r4, r5, [r3, #0x57] ', 0, ()),
         (REV_ALL_ARM, 'f745d3e1', 0x4560, 'ldrsh r4, [r3, #0x57] ', 0, ()),
-        (REV_ALL_ARM, 'f745e3e1', 0x4560, 'strd r4, [r3, #0x57]! ', 0, ()),
+        (REV_ALL_ARM, 'f745e3e1', 0x4560, 'strd r4, r5,[r3, #0x57]! ', 0, ()),
         (REV_ALL_ARM, 'f745f3e1', 0x4560, 'ldrsh r4, [r3, #0x57]! ', 0, ()),
         (REV_ALL_ARM, '074603e0', 0x4560, 'and r4, r3, r7, lsl #12', 0, ()),
         (REV_ALL_ARM, '074613e0', 0x4560, 'ands r4, r3, r7, lsl #12', 0, ()),
@@ -339,8 +327,6 @@ instrs = [
         (REV_ALL_ARM, '074673e1', 0x4560, 'cmn r3, r7, lsl #12', 0, ()),
         (REV_ALL_ARM, '074683e1', 0x4560, 'orr r4, r3, r7, lsl #12', 0, ()),
         (REV_ALL_ARM, '074693e1', 0x4560, 'orrs r4, r3, r7, lsl #12', 0, ()),
-        (REV_ALL_ARM, '0746a3e1', 0x4560, 'mov r4, r7, lsl #12', 0, ()),
-        (REV_ALL_ARM, '0746b3e1', 0x4560, 'movs r4, r7, lsl #12', 0, ()),
         (REV_ALL_ARM, '0746c3e1', 0x4560, 'bic r4, r3, r7, lsl #12', 0, ()),
         (REV_ALL_ARM, '0746d3e1', 0x4560, 'bics r4, r3, r7, lsl #12', 0, ()),
         (REV_ALL_ARM, '0746e3e1', 0x4560, 'mvn r4, r7, lsl #12', 0, ()),
@@ -367,8 +353,6 @@ instrs = [
         (REV_ALL_ARM, '174673e1', 0x4560, 'cmn r3, r7, lsl r6', 0, ()),
         (REV_ALL_ARM, '174683e1', 0x4560, 'orr r4, r3, r7, lsl r6', 0, ()),
         (REV_ALL_ARM, '174693e1', 0x4560, 'orrs r4, r3, r7, lsl r6', 0, ()),
-        (REV_ALL_ARM, '1746a3e1', 0x4560, 'mov r4, r7, lsl r6', 0, ()),
-        (REV_ALL_ARM, '1746b3e1', 0x4560, 'movs r4, r7, lsl r6', 0, ()),
         (REV_ALL_ARM, '1746c3e1', 0x4560, 'bic r4, r3, r7, lsl r6', 0, ()),
         (REV_ALL_ARM, '1746d3e1', 0x4560, 'bics r4, r3, r7, lsl r6', 0, ()),
         (REV_ALL_ARM, '1746e3e1', 0x4560, 'mvn r4, r7, lsl r6', 0, ()),
@@ -394,8 +378,6 @@ instrs = [
         (REV_ALL_ARM, '274673e1', 0x4560, 'cmn r3, r7, lsr #12', 0, ()),
         (REV_ALL_ARM, '274683e1', 0x4560, 'orr r4, r3, r7, lsr #12', 0, ()),
         (REV_ALL_ARM, '274693e1', 0x4560, 'orrs r4, r3, r7, lsr #12', 0, ()),
-        (REV_ALL_ARM, '2746a3e1', 0x4560, 'mov r4, r7, lsr #12', 0, ()),
-        (REV_ALL_ARM, '2746b3e1', 0x4560, 'movs r4, r7, lsr #12', 0, ()),
         (REV_ALL_ARM, '2746c3e1', 0x4560, 'bic r4, r3, r7, lsr #12', 0, ()),
         (REV_ALL_ARM, '2746d3e1', 0x4560, 'bics r4, r3, r7, lsr #12', 0, ()),
         (REV_ALL_ARM, '2746e3e1', 0x4560, 'mvn r4, r7, lsr #12', 0, ()),
@@ -423,8 +405,6 @@ instrs = [
         (REV_ALL_ARM, '374673e1', 0x4560, 'cmn r3, r7, lsr r6', 0, ()),
         (REV_ALL_ARM, '374683e1', 0x4560, 'orr r4, r3, r7, lsr r6', 0, ()),
         (REV_ALL_ARM, '374693e1', 0x4560, 'orrs r4, r3, r7, lsr r6', 0, ()),
-        (REV_ALL_ARM, '3746a3e1', 0x4560, 'mov r4, r7, lsr r6', 0, ()),
-        (REV_ALL_ARM, '3746b3e1', 0x4560, 'movs r4, r7, lsr r6', 0, ()),
         (REV_ALL_ARM, '3746c3e1', 0x4560, 'bic r4, r3, r7, lsr r6', 0, ()),
         (REV_ALL_ARM, '3746d3e1', 0x4560, 'bics r4, r3, r7, lsr r6', 0, ()),
         (REV_ALL_ARM, '3746e3e1', 0x4560, 'mvn r4, r7, lsr r6', 0, ()),
@@ -451,8 +431,6 @@ instrs = [
         (REV_ALL_ARM, '474673e1', 0x4560, 'cmn r3, r7, asr #12', 0, ()),
         (REV_ALL_ARM, '474683e1', 0x4560, 'orr r4, r3, r7, asr #12', 0, ()),
         (REV_ALL_ARM, '474693e1', 0x4560, 'orrs r4, r3, r7, asr #12', 0, ()),
-        (REV_ALL_ARM, '4746a3e1', 0x4560, 'mov r4, r7, asr #12', 0, ()),
-        (REV_ALL_ARM, '4746b3e1', 0x4560, 'movs r4, r7, asr #12', 0, ()),
         (REV_ALL_ARM, '4746c3e1', 0x4560, 'bic r4, r3, r7, asr #12', 0, ()),
         (REV_ALL_ARM, '4746d3e1', 0x4560, 'bics r4, r3, r7, asr #12', 0, ()),
         (REV_ALL_ARM, '4746e3e1', 0x4560, 'mvn r4, r7, asr #12', 0, ()),
@@ -479,8 +457,6 @@ instrs = [
         (REV_ALL_ARM, '574673e1', 0x4560, 'cmn r3, r7, asr r6', 0, ()),
         (REV_ALL_ARM, '574683e1', 0x4560, 'orr r4, r3, r7, asr r6', 0, ()),
         (REV_ALL_ARM, '574693e1', 0x4560, 'orrs r4, r3, r7, asr r6', 0, ()),
-        (REV_ALL_ARM, '5746a3e1', 0x4560, 'mov r4, r7, asr r6', 0, ()),
-        (REV_ALL_ARM, '5746b3e1', 0x4560, 'movs r4, r7, asr r6', 0, ()),
         (REV_ALL_ARM, '5746c3e1', 0x4560, 'bic r4, r3, r7, asr r6', 0, ()),
         (REV_ALL_ARM, '5746d3e1', 0x4560, 'bics r4, r3, r7, asr r6', 0, ()),
         (REV_ALL_ARM, '5746e3e1', 0x4560, 'mvn r4, r7, asr r6', 0, ()),
@@ -593,8 +569,8 @@ instrs = [
         (REV_ALL_ARM, '073074e6', 0x4560, 'ldrbt  r3, [r4], -r7', 0, ()),
         (REV_ALL_ARM, '2736f4e6', 0x4560, 'ldrbt  r3, [r4], r7, lsr #12', 0, ()),
         (REV_ALL_ARM, '273674e6', 0x4560, 'ldrbt  r3, [r4], -r7, lsr #12', 0, ()),
-        (REV_ALL_ARM, 'dc3c4fe1', 0x4560, 'ldrd  r3, [#0x449c]', 0, ()),
-        (REV_ALL_ARM, 'dc3ccfe1', 0x4560, 'ldrd  r3, [#0x4634]', 0, ()),
+        (REV_ALL_ARM, 'dc4c4fe1', 0x4560, 'ldrd  r4, r5, [#0x449c]', 0, ()),
+        (REV_ALL_ARM, 'dc4ccfe1', 0x4560, 'ldrd  r4, r5, [#0x4634]', 0, ()),
         (REV_ALL_ARM, 'dc3c5fe1', 0x4560, 'ldrsb  r3, [#0x449c]', 0, ()),
         (REV_ALL_ARM, 'dc3cdfe1', 0x4560, 'ldrsb  r3, [#0x4634]', 0, ()),
         (REV_ALL_ARM, 'fc3c5fe1', 0x4560, 'ldrsh  r3, [#0x449c]', 0, ()),
@@ -695,26 +671,20 @@ instrs = [
         (REV_ALL_ARM, '040031e1', 0x4560, 'teq r1, r4', 0, ()),
         (REV_ALL_ARM, 'ff0c11e3', 0x4560, 'tst r1, #0xff00', 0, ()),
         (REV_ALL_ARM, '040011e1', 0x4560, 'tst r1, r4', 0, ()),
-
-
-
-        #in progress testing and debugging - these have bugs 
-
-        #fails to decode rt2, rt must be even, less than r14, rt2 is rt+1 per A8.8.210
-        #(REV_ALL_ARM, 'f040c7e1', 0x4560, 'strd r4, r5, [r7]', 0, ()),
-        #(REV_ALL_ARM, 'ff4fc7e1', 0x4560, 'strd r4, r5, [r7, #0xff]', 0, ()),
-        #(REV_ALL_ARM, 'ff4f47e1', 0x4560, 'strd r4, r5, [r7, #-0xff]', 0, ()),
-        #(REV_ALL_ARM, 'ff4fe7e1', 0x4560, 'strd r4, r5, [r7, #0xff]!', 0, ()),
-        #(REV_ALL_ARM, 'ff4f67e1', 0x4560, 'strd r4, r5, [r7, #-0xff]!', 0, ()),
-        #(REV_ALL_ARM, 'ff4fc7e0', 0x4560, 'strd r4, r5, [r7], #0xff', 0, ()),
-        #(REV_ALL_ARM, 'ff4f47e0', 0x4560, 'strd r4, r5, [r7], #-0xff', 0, ()),
-        #(REV_ALL_ARM, 'f64087e1', 0x4560, 'strd r4, r5, [r7, r6]', 0, ()),
-        #(REV_ALL_ARM, 'f64007e1', 0x4560, 'strd r4, r5, [r7, -r6]', 0, ()),
-        #(REV_ALL_ARM, 'f640a7e1', 0x4560, 'strd r4, r5, [r7, r6]!', 0, ()),
-        #(REV_ALL_ARM, 'f64027e1', 0x4560, 'strd r4, r5, [r7, -r6]!', 0, ()),
-        #(REV_ALL_ARM, 'f64087e0', 0x4560, 'strd r4, r5, [r7], r6', 0, ()),
-        #(REV_ALL_ARM, 'f64007e0', 0x4560, 'strd r4, r5, [r7], -r6', 0, ()),
-
+        #rt must be even, less than r14, rt2 is r(t+1) per A8.8.210/A8.8.72
+        (REV_ALL_ARM, 'f040c7e1', 0x4560, 'strd r4, r5, [r7]', 0, ()),
+        (REV_ALL_ARM, 'ff4fc7e1', 0x4560, 'strd r4, r5, [r7, #0xff]', 0, ()),
+        (REV_ALL_ARM, 'ff4f47e1', 0x4560, 'strd r4, r5, [r7, #-0xff]', 0, ()),
+        (REV_ALL_ARM, 'ff4fe7e1', 0x4560, 'strd r4, r5, [r7, #0xff]!', 0, ()),
+        (REV_ALL_ARM, 'ff4f67e1', 0x4560, 'strd r4, r5, [r7, #-0xff]!', 0, ()),
+        (REV_ALL_ARM, 'ff4fc7e0', 0x4560, 'strd r4, r5, [r7], #0xff', 0, ()),
+        (REV_ALL_ARM, 'ff4f47e0', 0x4560, 'strd r4, r5, [r7], #-0xff', 0, ()),
+        (REV_ALL_ARM, 'f64087e1', 0x4560, 'strd r4, r5, [r7, r6]', 0, ()),
+        (REV_ALL_ARM, 'f64007e1', 0x4560, 'strd r4, r5, [r7, -r6]', 0, ()),
+        (REV_ALL_ARM, 'f640a7e1', 0x4560, 'strd r4, r5, [r7, r6]!', 0, ()),
+        (REV_ALL_ARM, 'f64027e1', 0x4560, 'strd r4, r5, [r7, -r6]!', 0, ()),
+        (REV_ALL_ARM, 'f64087e0', 0x4560, 'strd r4, r5, [r7], r6', 0, ()),
+        (REV_ALL_ARM, 'f64007e0', 0x4560, 'strd r4, r5, [r7], -r6', 0, ()),
         #(REV_ALL_ARM, '1730e4e6', 0x4560, 'usat r3, #4, r7', 0, ()),
         #(REV_ALL_ARM, '1734e4e6', 0x4560, 'usat r3, #4, r7, lsl #8', 0, ()),
 
@@ -741,6 +711,11 @@ instrs = [
         #Not yet implimented (Some look like they may have been started)
         #(REV_ALL_ARM, '1f32cfe7', 0x4560, 'bfc r3, #16, #4', 0, ()),
         #(REV_ALL_ARM, '1432cfe7', 0x4560, 'bfi r3, r4, #16, #4', 0, ()),
+        #(REV_ALL_ARM, '1ff07ff5', 0x4560, 'clrex', 0, ()),
+        #(REV_ALL_ARM, 'f3f020e3', 0x4560, 'dbg  #3', 0, ()),
+        #(REV_ALL_ARM, '53f07ff5', 0x4560, 'dmb  osh', 0, ()),
+        #(REV_ALL_ARM, '43f07ff5', 0x4560, 'dsb  osh', 0, ()),
+        #(REV_ALL_ARM, '6ff07ff5', 0x4560, 'isb sy', 0, ()),
         #(REV_ALL_ARM, '04609de4', 0x4560, 'pop {r6}', 0, ()),  #ldm variant
         #(REV_ALL_ARM, '9800bde8', 0x4560, 'pop {r3, r4, r7}', 0, ()),  #ldm variant ia and fd are not ual. Otherwise is good for older style.. Should be pop now
         #(REV_ALL_ARM, '9f3f94e1', 0x4560, 'ldrex  r3, [r4]', 0, ()), # Not ldrex r3, pc, r4
@@ -1168,6 +1143,8 @@ instrs = [
         #(REV_ALL_ARM, '1433a6e6', 0x4560, 'ssat r3, #0x07, r4, lsl #6', 0, ()),
         #(REV_ALL_ARM, '5433a6e6', 0x4560, 'ssat r3, #0x07, r4, asr #6', 0, ()),
         #(REV_ALL_ARM, '5430a6e6', 0x4560, 'ssat r3, #0x07, r4, asr #32', 0, ()),
+        #(REV_ALL_ARM, '1730e4e6', 0x4560, 'usat r3, #0x04, r7', 0, ()),
+        #(REV_ALL_ARM, '1734e4e6', 0x4560, 'usat r3, #0x04, r7, lsl #8', 0, ()),
         #(REV_ALL_ARM, '763f14e6', 0x4560, 'ssub16 r3, r4, r6', 0, ()),
         #(REV_ALL_ARM, '954007e1', 0x4560, 'swp r4, r5, [r7]', 0, ()),
         #(REV_ALL_ARM, '954047e1', 0x4560, 'swpb r4, r5, [r7]', 0, ()),
@@ -1202,6 +1179,52 @@ instrs = [
         #(REV_ALL_ARM, '03f062e1', 0x4560, 'msr spsr_x, r3', 0, ()),
         #(REV_ALL_ARM, '03f064e1', 0x4560, 'msr spsr_s, r3', 0, ()),
         #(REV_ALL_ARM, '03f068e1', 0x4560, 'msr spsr_f, r3', 0, ()),
+
+        #same as mov with rotation but now is UAL
+        #(REV_ALL_ARM, '6745a3e1', 0x4560, 'ror r4, r7, #0x0a', 0, ()),
+        #(REV_ALL_ARM, '6745b3e1', 0x4560, 'rors r4, r7, #0x0a', 0, ()),
+        #(REV_ALL_ARM, '8745a3e1', 0x4560, 'lsl r4, r7, #0x0b', 0, ()),
+        #(REV_ALL_ARM, '8745b3e1', 0x4560, 'lsls r4, r7, #0x0b', 0, ()),
+        #(REV_ALL_ARM, 'a745a3e1', 0x4560, 'lsr r4, r7, #0x0b', 0, ()),
+        #(REV_ALL_ARM, 'a745b3e1', 0x4560, 'lsrs r4, r7, #0x0b', 0, ()),
+        #(REV_ALL_ARM, 'c745a3e1', 0x4560, 'asr r4, r7, #0x0b', 0, ()),
+        #(REV_ALL_ARM, 'c745b3e1', 0x4560, 'asrs r4, r7, #0x0b', 0, ()),
+        #(REV_ALL_ARM, 'e745a3e1', 0x4560, 'ror r4, r7, #0x0b', 0, ()),
+        #(REV_ALL_ARM, 'e745b3e1', 0x4560, 'rors r4, r7, #0x0b', 0, ()),
+        #(REV_ALL_ARM, '0746a3e1', 0x4560, 'lsl r4, r7, #0x0c', 0, ()),
+        #(REV_ALL_ARM, '0746b3e1', 0x4560, 'lsls r4, r7, #0x0c', 0, ()),
+        #(REV_ALL_ARM, '7745a3e1', 0x4560, 'ror r4, r7, r5', 0, ()),
+        #(REV_ALL_ARM, '7745b3e1', 0x4560, 'rors r4, r7, r5', 0, ()),
+        #(REV_ALL_ARM, '1746a3e1', 0x4560, 'lsl r4, r7, r6', 0, ()),
+        #(REV_ALL_ARM, '1746b3e1', 0x4560, 'lsls r4, r7, r6', 0, ()),
+        #(REV_ALL_ARM, '2746a3e1', 0x4560, 'lsr r4, r7, #0x0c', 0, ()),
+        #(REV_ALL_ARM, '2746b3e1', 0x4560, 'lsrs r4, r7, #0x0c', 0, ()),
+        #(REV_ALL_ARM, '3746a3e1', 0x4560, 'lsr r4, r7, r6', 0, ()),
+        #(REV_ALL_ARM, '3746b3e1', 0x4560, 'lsrs r4, r7, r6', 0, ()),
+        #(REV_ALL_ARM, '4746a3e1', 0x4560, 'asr r4, r7, #0x0c', 0, ()),
+        #(REV_ALL_ARM, '4746b3e1', 0x4560, 'asrs r4, r7, #0x0c', 0, ()),
+        #(REV_ALL_ARM, '5746a3e1', 0x4560, 'asr r4, r7, r6', 0, ()),
+        #(REV_ALL_ARM, '5746b3e1', 0x4560, 'asrs r4, r7, r6', 0, ()),
+        #(REV_ALL_ARM, '034fa0e1', 0x4560, 'lsl r4, r3, #0x1e', 0, ()),
+        #(REV_ALL_ARM, '034fb0e1', 0x4560, 'lsls r4, r3, #0x1e', 0, ()),
+        #(REV_ALL_ARM, '7347a0e1', 0x4560, 'ror r4, r3, r7', 0, ()),
+        #(REV_ALL_ARM, '7347b0e1', 0x4560, 'rors r4, r3, r7', 0, ()),
+        #(REV_ALL_ARM, '234fa0e1', 0x4560, 'lsr r4, r3, #0x1e', 0, ()),
+        #(REV_ALL_ARM, '234fb0e1', 0x4560, 'lsrs r4, r3, #0x1e', 0, ()),
+        #(REV_ALL_ARM, '3347a0e1', 0x4560, 'lsr r4, r3, r7', 0, ()),
+        #(REV_ALL_ARM, '3347b0e1', 0x4560, 'lsrs r4, r3, r7', 0, ()),
+        #(REV_ALL_ARM, 'e437a0e1', 0x4560, 'ror r3, r4, #0x0f', 0, ()),
+        #(REV_ALL_ARM, 'e437b0e1', 0x4560, 'rors r3, r4, #0x0f', 0, ()),
+        #(REV_ALL_ARM, '7437a0e1', 0x4560, 'ror r3, r4, r7', 0, ()),
+        #(REV_ALL_ARM, '7437b0e1', 0x4560, 'rors r3, r4, r7', 0, ()),
+        #(REV_ALL_ARM, '6430a0e1', 0x4560, 'rrx r3, r4', 0, ()),
+        #(REV_ALL_ARM, '6430b0e1', 0x4560, 'rrxs r3, r4', 0, ()),
+        #(REV_ALL_ARM, '434fa0e1', 0x4560, 'asr  r4, r3, #0x1e', 0, ()),
+        #(REV_ALL_ARM, '434fb0e1', 0x4560, 'asrs  r4, r3, #0x1e', 0, ()),
+        #(REV_ALL_ARM, '5345a0e1', 0x4560, 'asr  r4, r3, r5', 0, ()),
+        #(REV_ALL_ARM, '5345b0e1', 0x4560, 'asrs  r4, r3, r5', 0, ()),
+        #(REV_ALL_ARM, '1f32cfe7', 0x4560, 'bfc r3, #0x04, #0x0f', 0, ()),
+        #(REV_ALL_ARM, '1432cfe7', 0x4560, 'bfi r3, r4, #0x04, #0x0f', 0, ()),
         #(REV_ALL_ARM, '1ff07ff5', 0x4560, 'clrex', 0, ()),
         #(REV_ALL_ARM, 'f3f020e3', 0x4560, 'dbg  #3', 0, ()),
         #(REV_ALL_ARM, '5ff07ff5', 0x4560, 'dmb sy', 0, ()),
@@ -1332,6 +1355,7 @@ class ArmInstructionSet(unittest.TestCase):
         
         # ldr r2, [r10, r2 ]
         emu = vw.getEmulator()
+        emu._forrealz = True
         op = vw.arch.archParseOpcode('02209ae7'.decode('hex'), va=0xbfb00000)
         emu.setRegister(10, 0xbfb00008)
         emu.setRegister(2,  8)
@@ -1393,7 +1417,9 @@ class ArmInstructionSet(unittest.TestCase):
 
         # Scaled with shifts/roll
         # ldr r2, [r10, r2 lsr #32]
+        # FIXME: TEST IS LIKELY WRONG....  LSR #32 is odd to begin with.
         emu = vw.getEmulator()
+        emu._forrealz = True
         op = vw.arch.archParseOpcode('22209ae7'.decode('hex'), va=0xbfb00000)
         emu.setRegister(10, 0xbfb00008)
         emu.setRegister(2,  8)
@@ -1424,6 +1450,79 @@ class ArmInstructionSet(unittest.TestCase):
 
 
         # testing the ArmRegOffsetOper
+
+        # (131071, 'b2451ae1', 17760, 'ldrh r4, [r10, -r2] ', 0, ())
+        # (131071, 'b2459ae1', 17760, 'ldrh r4, [r10, r2] ', 0, ())
+
+
+        # ldrh r3, [r10], -r2 
+        #b2451ae0 
+        emu = vw.getEmulator()
+        emu._forrealz = True
+
+        op = vw.arch.archParseOpcode('b2351ae0'.decode('hex'), va=0xbfb00000)
+        emu.setRegister(10, 0xbfb00008)
+        emu.setRegister(2,  8)
+        emu.writeMemory(0xbfb00000, "abcdef98".decode('hex'))
+        emu.writeMemory(0xbfb00008, "12345678".decode('hex'))
+        print repr(op)
+        print hex(op.getOperValue(1, emu))
+
+        self.assertEqual(hex(0x3412), hex(op.getOperValue(1, emu)))
+        self.assertEqual(hex(0xbfb00000), hex(emu.getRegister(10)))
+        self.assertEqual(hex(8), hex(emu.getRegister(2)))
+
+
+
+        # ldr r3, [r10], r2 
+        # (131071, 'b2359ae0', 17760, 'ldrh r4, [r10], r2 ', 0, ())
+        emu.setRegister(10, 0xbfb00008)
+        emu.setRegister(2,  8)
+        emu.writeMemory(0xbfb00008, "ABCDEF10".decode('hex'))
+        op = vw.arch.archParseOpcode('b2359ae0'.decode('hex'), va=0xbfb00000)
+        value = op.getOperValue(1, emu)
+        print repr(op)
+        print hex(value)
+        print hex(emu.getRegister(10))
+
+        self.assertEqual(hex(0xbfb00010), hex(emu.getRegister(10)))
+        self.assertEqual(hex(0xcdab), hex(value))
+
+        
+        
+        # ldr r2, [r10, -r2 ]!
+        # (131071, 'b2453ae1', 17760, 'ldrh r4, [r10, -r2]! ', 0, ())
+        emu.writeMemory(0xbfb00018, "FFEEDDCC".decode('hex'))
+        emu.writeMemory(0xbfb00010, "55555555".decode('hex'))
+        emu.writeMemValue(0xbfb00008, 0xf030e040, 4)
+        emu.setRegister(10, 0xbfb00010)
+        emu.setRegister(2,  8)
+        op = vw.arch.archParseOpcode('b2453ae1'.decode('hex'), va=0xbfb00000)
+        value = op.getOperValue(1, emu)
+        print repr(op)
+        print hex(value)
+        print hex(emu.getRegister(10))
+
+        self.assertEqual(hex(0xe040), hex(value))
+        self.assertEqual(hex(0xbfb00008), hex(emu.getRegister(10)))
+
+
+        
+        # ldr r2, [r10, r2 ]!
+        # (131071, 'b245bae1', 17760, 'ldrh r4, [r10, r2]! ', 0, ())
+        emu.writeMemory(0xbfb00018, "FFEEDDCC".decode('hex'))
+        emu.writeMemory(0xbfb00010, "55555555".decode('hex'))
+        emu.setRegister(10, 0xbfb00010)
+        emu.setRegister(2,  8)
+        op = vw.arch.archParseOpcode('b245bae1'.decode('hex'), va=0xbfb00000)
+        value = op.getOperValue(1, emu)
+        print repr(op)
+        print hex(value)
+        print hex(emu.getRegister(10))
+
+        self.assertEqual(hex(0xeeff), hex(value))
+        self.assertEqual(hex(0xbfb00018), hex(emu.getRegister(10)))
+
         
 
 
@@ -1436,6 +1535,7 @@ class ArmInstructionSet(unittest.TestCase):
         vw.addMemoryMap(0, 7, 'firmware', '\xff' * 16384*1024)
         vw.addMemoryMap(0x400000, 7, 'firmware', '\xff' * 16384*1024)
         emu = vw.getEmulator()
+        emu._forrealz = True
         emu.logread = emu.logwrite = True
         badcount = 0  # Note: doesn't really do anything since we error out right away
         goodcount = 0
