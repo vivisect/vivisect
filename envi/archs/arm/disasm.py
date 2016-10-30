@@ -158,6 +158,13 @@ shifters = (
 # Dataprocessing mnemonics
 dp_mnem = ("and","eor","sub","rsb","add","adc","sbc","rsc","tst","teq","cmp","cmn","orr","mov","bic","mvn",
         "adr")  # added
+dp_shift_mnem = (
+    "lsl",
+    "lsr",
+    "asr",
+    "ror",
+    "rrx"
+)
 
 # FIXME: THIS IS FUGLY but sadly it works
 dp_noRn = (13,15)
@@ -192,12 +199,30 @@ def p_dp_imm_shift(opval, va):
     Rm = opval & 0xf
     shtype = (opval >> 5) & 0x3
     shval = (opval >> 7) & 0x1f   # effectively, rot*2
-
+    if (shtype==3) & (shval ==0): # is it an rrx?
+        shtype = 4
+    mnem = dp_mnem[ocode]
     if ocode in dp_noRn:# FIXME: FUGLY (and slow...)
-        olist = (
-            ArmRegOper(Rd, va=va),
-            ArmRegShiftImmOper(Rm, shtype, shval, va),
-        )
+        #is it a mov? Only if shval is a 0, type is lsl, and ocode = 13
+        if  (ocode == 13) and ((shval != 0) or (shtype != 0)):
+            mnem = dp_shift_mnem[shtype]
+            if shtype!= 4: #if not rrx
+                olist = (
+                    ArmRegOper(Rd, va=va),
+                    ArmRegOper(Rm, va=va),
+                    ArmImmOper(shval, va=va),
+                )
+            else:
+                olist = (
+                    ArmRegOper(Rd, va=va),
+                    ArmRegOper(Rm, va=va),
+                )
+                
+        else:
+            olist = (
+                ArmRegOper(Rd, va=va),
+                ArmRegShiftImmOper(Rm, shtype, shval, va),
+            )
     elif ocode in dp_noRd:
         olist = (
             ArmRegOper(Rn, va=va),
@@ -209,7 +234,6 @@ def p_dp_imm_shift(opval, va):
             ArmRegOper(Rn, va=va),
             ArmRegShiftImmOper(Rm, shtype, shval, va),
         )
-
     opcode = (IENC_DP_IMM_SHIFT << 16) + ocode
     if sflag > 0:
         # IF_PSR_S_SIL is silent s for tst, teq, cmp cmn
@@ -219,7 +243,7 @@ def p_dp_imm_shift(opval, va):
             iflags = IF_PSR_S
     else:
         iflags = 0
-    return (opcode, dp_mnem[ocode], olist, iflags)
+    return (opcode, mnem, olist, iflags)
 
 # specialized mnemonics for p_misc
 qop_mnem = ('qadd','qsub','qdadd','qdsub') # used in misc1
@@ -506,19 +530,31 @@ def p_extra_load_store(opval, va, psize=4):
     elif opval&0x0e5000d0==0x000000d0:# ldrd/strd regoffset
         # 000pu0w0-Rn--Rt-SBZ-1101-Rm-  ldrd regoffset
         # 0001u1001111-Rt-imm41101imm4  ldrd regoffset (literal, v7+)
+        # Rt = Rd and must be even and not 14 per A8.8.72/A8.8.210
+        # Rt2 = R(t+1)
+        if (Rd == 14) or (Rd % 2 !=0):
+            raise envi.InvalidInstruction(
+                mesg="extra_load_store: invalid Rt argument",
+                bytez=struct.pack("<I", opval), va=va)
         idx = (opval>>5)&1
         opcode = (IENC_EXTRA_LOAD << 16) + 12 + idx
         mnem,iflags = ldrd_mnem[idx]
         olist = (
             ArmRegOper(Rd, va=va),
+            ArmRegOper(Rd+1, va=va),
             ArmRegOffsetOper(Rn, Rm, va, pubwl, psize=psize),
         )
     elif opval&0x0e5000d0==0x004000d0:# ldrd/strd immoffset
+        if (Rd == 14) or (Rd % 2 != 0):
+            raise envi.InvalidInstruction(
+                mesg="extra_load_store: invalid Rt argument",
+                bytez=struct.pack("<I", opval), va=va)
         idx = (opval>>5)&1
         opcode = (IENC_EXTRA_LOAD << 16) + 14 + idx
         mnem,iflags = ldrd_mnem[idx]
         olist = (
             ArmRegOper(Rd, va=va),
+            ArmRegOper(Rd+1, va=va),
             ArmImmOffsetOper(Rn, (Rs<<4)+Rm, va, pubwl, psize=psize),
         )
     else:
@@ -566,12 +602,23 @@ def p_dp_reg_shift(opval, va):
     Rm = opval & 0xf
     shtype = (opval >> 5) & 0x3
     Rs = (opval >> 8) & 0xf
-
+    mnem = dp_mnem[ocode]
     if ocode in dp_noRn:# FIXME: FUGLY
-        olist = (
-            ArmRegOper(Rd, va=va),
-            ArmRegShiftRegOper(Rm, shtype, Rs),
-        )
+        #no register shift displayed with mov
+        if  (ocode == 13):
+            mnem = dp_shift_mnem[shtype]
+            olist = (
+                ArmRegOper(Rd, va=va),
+                ArmRegOper(Rm, va=va),
+                ArmRegOper(Rs, va=va),
+                
+                #ArmRegShiftRegOperMov(Rm, shtype, Rs),
+            )
+        else:
+            olist = (
+                ArmRegOper(Rd, va=va),
+                ArmRegShiftRegOper(Rm, shtype, Rs),
+            )
     elif ocode in dp_noRd:
         olist = (
             ArmRegOper(Rn, va=va),
@@ -593,7 +640,7 @@ def p_dp_reg_shift(opval, va):
             iflags = IF_PSR_S
     else:
         iflags = 0
-    return (opcode, dp_mnem[ocode], olist, iflags)
+    return (opcode, mnem, olist, iflags)
 
 multfail = (None, None, None,)
 
@@ -799,7 +846,7 @@ def p_media(opval, va):
     #  pkh, ssat, ssat16, usat, usat16, sel     01101
     #  rev, rev16, revsh                        01101
     #  smlad, smlsd, smlald, smusd              01110
-    #  usad8, usada8                            01111
+    #  usad8, usada8, bfc, bfi                  01111
     definer = (opval>>23) & 0x1f
     if   definer == 0xc:
         return p_media_parallel(opval, va)
@@ -809,6 +856,8 @@ def p_media(opval, va):
         return p_mult(opval, va)
         #Never gets to next line
         return p_media_smul(opval, va)
+    elif (definer == 0xf) and (((opval >> 22) &1) == 1):
+        return p_media_bf(opval, va)
     else:
         return p_media_usada(opval, va)
 
@@ -892,7 +941,7 @@ def p_media_pack_sat_rev_extend(opval, va):
             
     elif (opc1 & 2) and opc25 == 1: #word sat
         opidx = (opval>>22)&1
-        sat_imm = 1 + (opval>>16) & 0xf
+        sat_imm = (opval>>16) & 0xf
         Rd = (opval>>12) & 0xf
         Rm = opval & 0xf
         if opc1 & 0x10: # ?sat16
@@ -905,6 +954,9 @@ def p_media_pack_sat_rev_extend(opval, va):
             opcode = IENC_MEDIA_SAT + opidx
         else:
             mnem = sat_mnem[opidx]
+            #Only add 1 for SSAT
+            if opidx == 0:
+                sat_imm += 1
             shift_imm = (opval>>7) & 0x1f
             sh = (opval>>5) & 2
             olist = (
@@ -975,12 +1027,37 @@ def p_media_smul(opval, va):
             bytez=struct.pack("<I", opval), va=va)
     # hmmm, is this already handled?
     
+
+def p_media_bf(opval, va):
+    width = (opval>>16) & 0x1f
+    Rd = (opval>>12) & 0xf
+    lsb = (opval>>7) & 0x1f
+    Rn = opval &0xf
+    if Rn == 0xf:
+        mnem = "bfc"
+        olist = (
+            ArmRegOper(Rd, va=va),
+            ArmImmOper(lsb),
+            ArmImmOper(width)
+        )
+        opcode = IENC_MEDIA_USAD8 # FIXME
+    else:
+        mnem = "bfi"
+        olist = (
+            ArmRegOper(Rd, va=va),
+            ArmRegOper(Rn, va=va),
+            ArmImmOper(lsb),
+            ArmImmOper(width)
+        )
+        opcode = IENC_MEDIA_USAD8 #FIXME
+    print mnem,  Rd, Rn, lsb, width
+    return (opcode, mnem, olist, 0)
+
 def p_media_usada(opval, va):
     Rd = (opval>>16) & 0xf
     Rn = (opval>>12) & 0xf
     Rs = (opval>>8) & 0xf
     Rm = opval & 0xf
-    
     if Rn == 0xf:
         mnem = "usad8"
         olist = (
@@ -1022,7 +1099,6 @@ def p_load_mult(opval, va):
         ArmRegOper(Rn, va=va),
         ArmRegListOper(reg_list, puswl),
     )
-
     # If we are a load multi (ldm), and we load PC, we are NOFALL
     # (FIXME unless we are conditional... ung...)
     if mnem_idx == 1 and reg_list & (1 << REG_PC):
@@ -1726,8 +1802,10 @@ class ArmRegShiftRegOper(ArmOperand):
         mcanv.addNameText(arm_regs[self.shreg][0], typename='registers')
 
     def repr(self, op):
-        rname = arm_regs[self.reg][0]+","
-        return " ".join([rname, shift_names[self.shtype], arm_regs[self.shreg][0]])
+        rname = arm_regs[self.reg][0]+", "
+        rname+=shift_names[self.shtype] #Changed to remove extra spaces
+        rname+= arm_regs[self.shreg][0]
+        return rname
 
 class ArmRegShiftImmOper(ArmOperand):
     ''' register shift immediate operand.  see "addressing mode 1 - data processing operands - * shift * by immediate" '''
