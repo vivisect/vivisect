@@ -158,6 +158,13 @@ shifters = (
 # Dataprocessing mnemonics
 dp_mnem = ("and","eor","sub","rsb","add","adc","sbc","rsc","tst","teq","cmp","cmn","orr","mov","bic","mvn",
         "adr")  # added
+dp_shift_mnem = (
+    "lsl",
+    "lsr",
+    "asr",
+    "ror",
+    "rrx"
+)
 
 # FIXME: THIS IS FUGLY but sadly it works
 dp_noRn = (13,15)
@@ -192,12 +199,30 @@ def p_dp_imm_shift(opval, va):
     Rm = opval & 0xf
     shtype = (opval >> 5) & 0x3
     shval = (opval >> 7) & 0x1f   # effectively, rot*2
-
+    if (shtype==3) & (shval ==0): # is it an rrx?
+        shtype = 4
+    mnem = dp_mnem[ocode]
     if ocode in dp_noRn:# FIXME: FUGLY (and slow...)
-        olist = (
-            ArmRegOper(Rd, va=va),
-            ArmRegShiftImmOper(Rm, shtype, shval, va),
-        )
+        #is it a mov? Only if shval is a 0, type is lsl, and ocode = 13
+        if  (ocode == 13) and ((shval != 0) or (shtype != 0)):
+            mnem = dp_shift_mnem[shtype]
+            if shtype!= 4: #if not rrx
+                olist = (
+                    ArmRegOper(Rd, va=va),
+                    ArmRegOper(Rm, va=va),
+                    ArmImmOper(shval, va=va),
+                )
+            else:
+                olist = (
+                    ArmRegOper(Rd, va=va),
+                    ArmRegOper(Rm, va=va),
+                )
+                
+        else:
+            olist = (
+                ArmRegOper(Rd, va=va),
+                ArmRegShiftImmOper(Rm, shtype, shval, va),
+            )
     elif ocode in dp_noRd:
         olist = (
             ArmRegOper(Rn, va=va),
@@ -209,7 +234,6 @@ def p_dp_imm_shift(opval, va):
             ArmRegOper(Rn, va=va),
             ArmRegShiftImmOper(Rm, shtype, shval, va),
         )
-
     opcode = (IENC_DP_IMM_SHIFT << 16) + ocode
     if sflag > 0:
         # IF_PSR_S_SIL is silent s for tst, teq, cmp cmn
@@ -219,7 +243,7 @@ def p_dp_imm_shift(opval, va):
             iflags = IF_PSR_S
     else:
         iflags = 0
-    return (opcode, dp_mnem[ocode], olist, iflags)
+    return (opcode, mnem, olist, iflags)
 
 # specialized mnemonics for p_misc
 qop_mnem = ('qadd','qsub','qdadd','qdsub') # used in misc1
@@ -436,8 +460,8 @@ STRH (imm) & (reg)
 '''
 swap_mnem = ("swp","swpb",)
 strex_mnem = ("strex","ldrex",)  # actual full instructions
-strh_mnem = (("str",IF_H),("ldr",IF_H),)          # IF_H
-ldrs_mnem = (("ldr",IF_S|IF_B),("ldr",IF_S|IF_H),)      # IF_SH, IF_SB
+strh_mnem = (("str",IF_H,2),("ldr",IF_H,2),)          # IF_H
+ldrs_mnem = (("ldr",IF_S|IF_B,1),("ldr",IF_S|IF_H,2),)      # IF_SH, IF_SB
 ldrd_mnem = (("ldr",IF_D),("str",IF_D),)        # IF_D
 
 def p_extra_load_store(opval, va, psize=4):
@@ -472,17 +496,17 @@ def p_extra_load_store(opval, va, psize=4):
         # 0000u110-Rn--Rt-imm41011imm4  - STRHT (v7+)
         idx = pubwl&1
         opcode = (IENC_EXTRA_LOAD << 16) + 4 + idx
-        mnem,iflags = strh_mnem[idx]
+        mnem,iflags,tsize = strh_mnem[idx]
         if tvariant:
             iflags |= IF_T
         olist = (
             ArmRegOper(Rd, va=va),
-            ArmRegOffsetOper(Rn, Rm, va, pubwl, psize=psize),
+            ArmRegOffsetOper(Rn, Rm, va, pubwl, psize=psize, force_tsize=2),
         )
     elif opval&0x0e4000f0==0x004000b0:# strh/ldrh immoffset
         idx = pubwl&1
         opcode = (IENC_EXTRA_LOAD << 16) + 6 + idx
-        mnem,iflags = strh_mnem[idx]
+        mnem,iflags,tsize= strh_mnem[idx]
         if tvariant:
             iflags |= IF_T
         olist = (
@@ -492,7 +516,7 @@ def p_extra_load_store(opval, va, psize=4):
     elif opval&0x0e5000d0==0x005000d0:# ldrsh/b immoffset
         idx = (opval>>5)&1
         opcode = (IENC_EXTRA_LOAD << 16) + 8 + idx
-        mnem,iflags = ldrs_mnem[idx]
+        mnem,iflags,tsize = ldrs_mnem[idx]
         if tvariant:
             iflags |= IF_T
         olist = (
@@ -502,29 +526,41 @@ def p_extra_load_store(opval, va, psize=4):
     elif opval&0x0e5000d0==0x001000d0:# ldrsh/b regoffset
         idx = (opval>>5)&1
         opcode = (IENC_EXTRA_LOAD << 16) + 10 + idx
-        mnem,iflags = ldrs_mnem[idx]
+        mnem,iflags,tsize = ldrs_mnem[idx]
         if tvariant:
             iflags |= IF_T
         olist = (
             ArmRegOper(Rd, va=va),
-            ArmRegOffsetOper(Rn, Rm, va, pubwl, psize=psize),
+            ArmRegOffsetOper(Rn, Rm, va, pubwl, psize=psize, force_tsize=tsize),
         )
     elif opval&0x0e5000d0==0x000000d0:# ldrd/strd regoffset
         # 000pu0w0-Rn--Rt-SBZ-1101-Rm-  ldrd regoffset
         # 0001u1001111-Rt-imm41101imm4  ldrd regoffset (literal, v7+)
+        # Rt = Rd and must be even and not 14 per A8.8.72/A8.8.210
+        # Rt2 = R(t+1)
+        if (Rd == 14) or (Rd % 2 !=0):
+            raise envi.InvalidInstruction(
+                mesg="extra_load_store: invalid Rt argument",
+                bytez=struct.pack("<I", opval), va=va)
         idx = (opval>>5)&1
         opcode = (IENC_EXTRA_LOAD << 16) + 12 + idx
         mnem,iflags = ldrd_mnem[idx]
         olist = (
             ArmRegOper(Rd, va=va),
+            ArmRegOper(Rd+1, va=va),
             ArmRegOffsetOper(Rn, Rm, va, pubwl, psize=psize),
         )
     elif opval&0x0e5000d0==0x004000d0:# ldrd/strd immoffset
+        if (Rd == 14) or (Rd % 2 != 0):
+            raise envi.InvalidInstruction(
+                mesg="extra_load_store: invalid Rt argument",
+                bytez=struct.pack("<I", opval), va=va)
         idx = (opval>>5)&1
         opcode = (IENC_EXTRA_LOAD << 16) + 14 + idx
         mnem,iflags = ldrd_mnem[idx]
         olist = (
             ArmRegOper(Rd, va=va),
+            ArmRegOper(Rd+1, va=va),
             ArmImmOffsetOper(Rn, (Rs<<4)+Rm, va, pubwl, psize=psize),
         )
     else:
@@ -572,12 +608,23 @@ def p_dp_reg_shift(opval, va):
     Rm = opval & 0xf
     shtype = (opval >> 5) & 0x3
     Rs = (opval >> 8) & 0xf
-
+    mnem = dp_mnem[ocode]
     if ocode in dp_noRn:# FIXME: FUGLY
-        olist = (
-            ArmRegOper(Rd, va=va),
-            ArmRegShiftRegOper(Rm, shtype, Rs),
-        )
+        #no register shift displayed with mov
+        if  (ocode == 13):
+            mnem = dp_shift_mnem[shtype]
+            olist = (
+                ArmRegOper(Rd, va=va),
+                ArmRegOper(Rm, va=va),
+                ArmRegOper(Rs, va=va),
+                
+                #ArmRegShiftRegOperMov(Rm, shtype, Rs),
+            )
+        else:
+            olist = (
+                ArmRegOper(Rd, va=va),
+                ArmRegShiftRegOper(Rm, shtype, Rs),
+            )
     elif ocode in dp_noRd:
         olist = (
             ArmRegOper(Rn, va=va),
@@ -599,27 +646,32 @@ def p_dp_reg_shift(opval, va):
             iflags = IF_PSR_S
     else:
         iflags = 0
-    return (opcode, dp_mnem[ocode], olist, iflags)
+    return (opcode, mnem, olist, iflags)
 
 multfail = (None, None, None,)
+
+iencmul_r15_codes = {
+     # Basic multiplication opcodes
+     binary("011101010001"): ("smmul", (0,4,2), 0),
+     binary("011101010011"): ("smmulr", (0,4,2), 0),
+}
 
 def p_mult(opval, va):
     ocode, vals = chopmul(opval)                         
     mnem, opindexes, flags = iencmul_codes.get(ocode, multfail)
     #work around because masks match up - should be a cleaner way to do this?
     #if Ra = 15 then smmul
+    if vals[1] == 15:
+        newset = iencmul_r15_codes.get(ocode)
+        if newset != None:
+            mnem, opindexes, flags = newset
     if mnem == None:
         raise envi.InvalidInstruction(
                 mesg="p_mult: invalid instruction",
                 bytez=struct.pack("<I", opval), va=va)
-    elif vals[1] == 15 and(mnem == 'smmla' or mnem == 'smmlar'):
-        mnem = mnem.replace("la", "ul")
-        opindexes = (0,4,2)
-
     olist = []
     for i in opindexes:
         olist.append(ArmRegOper(vals[i], va=va))
-
     opcode = (IENC_MULT << 16) + ocode
     return (opcode, mnem, olist, flags)
 
@@ -800,7 +852,7 @@ def p_media(opval, va):
     #  pkh, ssat, ssat16, usat, usat16, sel     01101
     #  rev, rev16, revsh                        01101
     #  smlad, smlsd, smlald, smusd              01110
-    #  usad8, usada8                            01111
+    #  usad8, usada8, bfc, bfi                  01111
     definer = (opval>>23) & 0x1f
     if   definer == 0xc:
         return p_media_parallel(opval, va)
@@ -810,6 +862,8 @@ def p_media(opval, va):
         return p_mult(opval, va)
         #Never gets to next line
         return p_media_smul(opval, va)
+    elif (definer == 0xf) and (((opval >> 22) &1) == 1):
+        return p_media_bf(opval, va)
     else:
         return p_media_usada(opval, va)
 
@@ -893,7 +947,7 @@ def p_media_pack_sat_rev_extend(opval, va):
             
     elif (opc1 & 2) and opc25 == 1: #word sat
         opidx = (opval>>22)&1
-        sat_imm = 1 + (opval>>16) & 0xf
+        sat_imm = (opval>>16) & 0xf
         Rd = (opval>>12) & 0xf
         Rm = opval & 0xf
         if opc1 & 0x10: # ?sat16
@@ -906,6 +960,9 @@ def p_media_pack_sat_rev_extend(opval, va):
             opcode = IENC_MEDIA_SAT + opidx
         else:
             mnem = sat_mnem[opidx]
+            #Only add 1 for SSAT
+            if opidx == 0:
+                sat_imm += 1
             shift_imm = (opval>>7) & 0x1f
             sh = (opval>>5) & 2
             olist = (
@@ -976,12 +1033,37 @@ def p_media_smul(opval, va):
             bytez=struct.pack("<I", opval), va=va)
     # hmmm, is this already handled?
     
+
+def p_media_bf(opval, va):
+    width = (opval>>16) & 0x1f
+    Rd = (opval>>12) & 0xf
+    lsb = (opval>>7) & 0x1f
+    Rn = opval &0xf
+    if Rn == 0xf:
+        mnem = "bfc"
+        olist = (
+            ArmRegOper(Rd, va=va),
+            ArmImmOper(lsb),
+            ArmImmOper(width)
+        )
+        opcode = IENC_MEDIA_USAD8 # FIXME
+    else:
+        mnem = "bfi"
+        olist = (
+            ArmRegOper(Rd, va=va),
+            ArmRegOper(Rn, va=va),
+            ArmImmOper(lsb),
+            ArmImmOper(width)
+        )
+        opcode = IENC_MEDIA_USAD8 #FIXME
+    print mnem,  Rd, Rn, lsb, width
+    return (opcode, mnem, olist, 0)
+
 def p_media_usada(opval, va):
     Rd = (opval>>16) & 0xf
     Rn = (opval>>12) & 0xf
     Rs = (opval>>8) & 0xf
     Rm = opval & 0xf
-    
     if Rn == 0xf:
         mnem = "usad8"
         olist = (
@@ -1753,8 +1835,10 @@ class ArmRegShiftRegOper(ArmOperand):
         mcanv.addNameText(arm_regs[self.shreg][0], typename='registers')
 
     def repr(self, op):
-        rname = arm_regs[self.reg][0]+","
-        return " ".join([rname, shift_names[self.shtype], arm_regs[self.shreg][0]])
+        rname = arm_regs[self.reg][0]+", "
+        rname+=shift_names[self.shtype] #Changed to remove extra spaces
+        rname+= arm_regs[self.shreg][0]
+        return rname
 
 class ArmRegShiftImmOper(ArmOperand):
     ''' register shift immediate operand.  see "addressing mode 1 - data processing operands - * shift * by immediate" '''
@@ -2005,15 +2089,17 @@ class ArmScaledOffsetOper(ArmOperand):
 class ArmRegOffsetOper(ArmOperand):
     ''' register offset operand.  see "addressing mode 2 - load and store word or unsigned byte - register *" 
     dereference address mode using the combination of two register values '''
-    def __init__(self, base_reg, offset_reg, va, pubwl=0, psize=4):
+    def __init__(self, base_reg, offset_reg, va, pubwl=0, psize=4, force_tsize=None):
         self.base_reg = base_reg
         self.offset_reg = offset_reg
         self.pubwl = pubwl
         self.psize = psize
 
-        b = (self.pubwl >> 2) & 1
-        self.tsize = (4,1)[b]
-        print "TESTME: ArmRegOffsetOper at 0x%x" % va
+        if force_tsize == None:
+            b = (self.pubwl >> 2) & 1
+            self.tsize = (4,1)[b]
+        else:
+            self.tsize = force_tsize
 
     def __eq__(self, oper):
         if not isinstance(oper, self.__class__):
@@ -2048,7 +2134,6 @@ class ArmRegOffsetOper(ArmOperand):
         addr = self.getOperAddr(op, emu)
         return emu.readMemValue(addr, self.tsize)
 
-    # FIXME: should identify whether we're in an emulator or being "analyzed".  should be forcible either way, but defaults should be to update in emulator.executeOpcode() and not in other
     def getOperAddr(self, op, emu=None):
         if emu == None:
             print "emu==None"

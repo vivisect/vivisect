@@ -1179,7 +1179,6 @@ instrs = [
         #(REV_ALL_ARM, '03f062e1', 0x4560, 'msr spsr_x, r3', 0, ()),
         #(REV_ALL_ARM, '03f064e1', 0x4560, 'msr spsr_s, r3', 0, ()),
         #(REV_ALL_ARM, '03f068e1', 0x4560, 'msr spsr_f, r3', 0, ()),
-
         #same as mov with rotation but now is UAL
         #(REV_ALL_ARM, '6745a3e1', 0x4560, 'ror r4, r7, #0x0a', 0, ()),
         #(REV_ALL_ARM, '6745b3e1', 0x4560, 'rors r4, r7, #0x0a', 0, ()),
@@ -1226,7 +1225,7 @@ instrs = [
         #(REV_ALL_ARM, '1f32cfe7', 0x4560, 'bfc r3, #0x04, #0x0f', 0, ()),
         #(REV_ALL_ARM, '1432cfe7', 0x4560, 'bfi r3, r4, #0x04, #0x0f', 0, ()),
         #(REV_ALL_ARM, '1ff07ff5', 0x4560, 'clrex', 0, ()),
-        #(REV_ALL_ARM, 'f3f020e3', 0x4560, 'dbg  #3', 0, ()),
+        #(REV_ALL_ARM, 'f3f020e3', 0x4560, 'dbg  #0x03', 0, ()),
         #(REV_ALL_ARM, '5ff07ff5', 0x4560, 'dmb sy', 0, ()),
         #(REV_ALL_ARM, '5ef07ff5', 0x4560, 'dmb st', 0, ()),
         #(REV_ALL_ARM, '5bf07ff5', 0x4560, 'dmb ish', 0, ()),
