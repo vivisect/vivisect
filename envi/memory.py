@@ -1,13 +1,14 @@
+"""
+A module containing memory utilities and the definition of the
+memory access API used by all vtoys trace/emulators/workspaces.
+"""
+
 import re
 import struct
 import collections
 
 import envi
 
-"""
-A module containing memory utilities and the definition of the
-memory access API used by all vtoys trace/emulators/workspaces.
-"""
 
 # Memory Map Permission Flags
 # TODO: move these into envi.const
@@ -68,7 +69,7 @@ class IMemory:
     def __init__(self, arch=None):
         self.imem_psize = struct.calcsize('P')
         self.imem_archs = envi.getArchModules()
-        if arch != None:
+        if arch is not None:
             self.setMemArchitecture(arch)
 
     def setMemArchitecture(self, arch):
@@ -167,12 +168,12 @@ class IMemory:
 
     def readMemValue(self, addr, size):
         bytes = self.readMemory(addr, size)
-        if bytes == None:
+        if bytes is None:
             return None
         # FIXME change this (and all uses of it) to passing in format...
         if len(bytes) != size:
             raise Exception("Read Gave Wrong Length At 0x%.8x (va: 0x%.8x wanted %d got %d)" % (
-            self.getProgramCounter(), addr, size, len(bytes)))
+                            self.getProgramCounter(), addr, size, len(bytes)))
         if size == 1:
             return struct.unpack("B", bytes)[0]
         elif size == 2:
@@ -212,12 +213,12 @@ class IMemory:
         map which contains the specified address (or None).
         '''
         for mapva, size, perms, mname in self.getMemoryMaps():
-            if va >= mapva and va < (mapva + size):
+            if mapva <= va < (mapva + size):
                 return (mapva, size, perms, mname)
         return None
 
     def isValidPointer(self, va):
-        return self.getMemoryMap(va) != None
+        return self.getMemoryMap(va) is not None
 
     def getMaxReadSize(self, va):
         '''
@@ -227,7 +228,7 @@ class IMemory:
         nread = 0
 
         mmap = self.getMemoryMap(va)
-        while mmap != None:
+        while mmap is not None:
             mapva, size, perms, mname = mmap
             if not (perms & MM_READ):
                 break
@@ -239,25 +240,25 @@ class IMemory:
 
     def isReadable(self, va):
         maptup = self.getMemoryMap(va)
-        if maptup == None:
+        if maptup is None:
             return False
         return bool(maptup[2] & MM_READ)
 
     def isWriteable(self, va):
         maptup = self.getMemoryMap(va)
-        if maptup == None:
+        if maptup is None:
             return False
         return bool(maptup[2] & MM_WRITE)
 
     def isExecutable(self, va):
         maptup = self.getMemoryMap(va)
-        if maptup == None:
+        if maptup is None:
             return False
         return bool(maptup[2] & MM_EXEC)
 
     def isShared(self, va):
         maptup = self.getMemoryMap(va)
-        if maptup == None:
+        if maptup is None:
             return False
         return bool(maptup[2] & MM_SHAR)
 
@@ -335,7 +336,7 @@ class MemoryCache(IMemory):
             pageoff = va - pageva
             chunksize = min(self.pagesize - pageoff, size)
             page = self.pagecache.get(pageva)
-            if page == None:
+            if page is None:
                 page = self.mem.readMemory(pageva, self.pagesize)
                 self.pagecache[pageva] = page
             ret += page[pageoff: pageoff + chunksize]
@@ -353,7 +354,7 @@ class MemoryCache(IMemory):
             chunksize = min(self.pagesize, len(bytez))
 
             page = self.pagecache.get(pageva)
-            if page == None:
+            if page is None:
                 page = self.mem.readMemory(pageva, self.pagesize)
                 self.pagecache[pageva] = page
 
@@ -442,7 +443,7 @@ class MemoryObject(IMemory):
     def readMemory(self, va, size):
 
         for mva, mmaxva, mmap, mbytes in self._map_defs:
-            if va >= mva and va < mmaxva:
+            if mva <= va < mmaxva:
                 mva, msize, mperms, mfname = mmap
                 if not mperms & MM_READ:
                     raise envi.SegmentationViolation(va)
@@ -453,7 +454,7 @@ class MemoryObject(IMemory):
     def writeMemory(self, va, bytes):
         for mapdef in self._map_defs:
             mva, mmaxva, mmap, mbytes = mapdef
-            if va >= mva and va < mmaxva:
+            if mva <= va < mmaxva:
                 mva, msize, mperms, mfname = mmap
                 if not mperms & MM_WRITE:
                     raise envi.SegmentationViolation(va)

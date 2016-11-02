@@ -1106,6 +1106,7 @@ def p_uncond(opval, va):
 
             opcode = IENC_UNCOND_CPS + imod
             return (opcode, mnem, olist, 0)
+
         elif (opval & 0xffff00f0) == 0xf1010000:
             # setend
             e = (opval >> 9) & 1
@@ -1113,13 +1114,16 @@ def p_uncond(opval, va):
             olist = (ArmEndianOper(e),)
             opcode = IENC_UNCOND_SETEND
             return (opcode, mnem, olist, 0)
+
         else:
             raise envi.InvalidInstruction(
                 mesg="p_uncond (ontop=0): invalid instruction",
                 bytez=struct.pack("<I", opval), va=va)
+
     elif optop == 1:
         if (opval & 0xf570f000) == 0xf550f000:
-            # cache preload  -  also known as a nop on most platforms... does nothing except prefetch instructions from cache.
+            # cache preload  -  also known as a nop on most platforms...
+            # does nothing except prefetch instructions from cache.
             # i'm tempted to cut the parsing of it and just return a canned something.
             mnem = "pld"
             I = (opval >> 25) & 1  # what the freak am i supposed to do with "i"???
@@ -1135,6 +1139,7 @@ def p_uncond(opval, va):
                 shval = (opval >> 7) & 0x1f
                 olist = (ArmScaledOffsetOper(Rn, Rm, shtype, shval, va, pubwl),)
             return (opcode, mnem, olist, 0)
+
         else:
             raise envi.InvalidInstruction(
                 mesg="p_uncond (ontop=1): invalid instruction",
@@ -1158,7 +1163,11 @@ def p_uncond(opval, va):
             )
             opcode = IENC_UNCOND_SRS
             return (opcode, mnem, olist, flags)
-        # elif (opval & 0xfe500f00) == 0xf8100a00:       # this is too restrictive, although does weed out oddballs.  what does "Should Be Zero" really *want* to mean?
+
+        # elif (opval & 0xfe500f00) == 0xf8100a00:
+            #  this is too restrictive, although does weed out oddballs.
+            # what does "Should Be Zero" really *want* to mean?
+
         elif (opval & 0xfe500000) == 0xf8100000:
             # rfe
             pu = (opval >> 23) & 3
@@ -1184,6 +1193,7 @@ def p_uncond(opval, va):
 
             opcode = INS_BLX  # should this be IENC_UNCOND_BLX?
             return (opcode, mnem, olist, 0)
+
         else:
             raise envi.InvalidInstruction(
                 mesg="p_uncond (ontop=2): invalid instruction",
@@ -1408,7 +1418,7 @@ class ArmOpcode(envi.Opcode):
 
             # check for location being ODD
             operval = oper.getOperValue(self)
-            if operval == None:
+            if operval is None:
                 # probably a branch to a register.  just return.
                 return ret
 
@@ -1429,18 +1439,20 @@ class ArmOpcode(envi.Opcode):
 
         return ret
 
-    def render(self, mcanv):
+    def __getHumanMnemonic(self):
         """
-        Render this opcode to the specified memory canvas
+        :return: Human readable representation of the mnemonic
         """
+
         mnem = self.mnem + cond_codes.get(self.prefixes)
         daib_flags = self.iflags & IF_DAIB_MASK
+
         if self.iflags & IF_L:
             mnem += 'l'
         elif self.iflags & IF_PSR_S:
             mnem += 's'
         elif daib_flags > 0:
-            idx = ((daib_flags) >> (IF_DAIB_SHFT))
+            idx = (daib_flags >> IF_DAIB_SHFT)
             mnem += daib[idx]
         else:
             if self.iflags & IF_S:
@@ -1453,6 +1465,17 @@ class ArmOpcode(envi.Opcode):
                 mnem += 'h'
             elif self.iflags & IF_T:
                 mnem += 't'
+        if self.iflags & IF_THUMB32:
+            mnem += ".w"
+
+        return mnem
+
+    def render(self, mcanv):
+        """
+        Render this opcode to the specified memory canvas
+        """
+        mnem = self.__getHumanMnemonic()
+
         # FIXME: Advanced SIMD modifiers (IF_V*)
         if self.iflags & IF_THUMB32:
             mnem += ".w"
@@ -1472,33 +1495,8 @@ class ArmOpcode(envi.Opcode):
                 #    mcanc.addText(" !")
 
     def __repr__(self):
-        mnem = self.mnem + cond_codes.get(self.prefixes)
-        daib_flags = self.iflags & IF_DAIB_MASK
-        if self.iflags & IF_L:
-            mnem += 'l'
-        elif self.iflags & IF_PSR_S:
-            mnem += 's'
-        elif daib_flags > 0:
-            idx = ((daib_flags) >> (IF_DAIB_SHFT))
-            mnem += daib[idx]
-        else:
-            if self.iflags & IF_S:
-                mnem += 's'
-            if self.iflags & IF_D:
-                mnem += 'd'
-            if self.iflags & IF_B:
-                mnem += 'b'
-            if self.iflags & IF_H:
-                mnem += 'h'
-            elif self.iflags & IF_T:
-                mnem += 't'
-        if self.iflags & IF_THUMB32:
-            mnem += ".w"
-
-        x = []
-
-        for o in self.opers:
-            x.append(o.repr(self))
+        mnem = self.__getHumanMnemonic()
+        x = [o.repr(self) for o in self.opers]
         # if self.iflags & IF_W:     # handled in operand.  still keeping flag to indicate this instruction writes back
         #    x[-1] += " !"      
         return mnem + " " + ", ".join(x)
@@ -1515,7 +1513,7 @@ class ArmOperand(envi.Operand):
 
 
 class ArmRegOper(ArmOperand):
-    ''' register operand.  see "addressing mode 1 - data processing operands - register" '''
+    """ register operand.  see "addressing mode 1 - data processing operands - register" """
 
     def __init__(self, reg, va=0, oflags=0):
         self.va = va
@@ -1541,12 +1539,12 @@ class ArmRegOper(ArmOperand):
         if self.reg == REG_PC:
             return self.va  # FIXME: is this modified?  or do we need to att # to this?
 
-        if emu == None:
+        if emu is None:
             return None
         return emu.getRegister(self.reg)
 
     def setOperValue(self, op, emu=None, val=None):
-        if emu == None:
+        if emu is None:
             return None
         emu.setRegister(self.reg, val)
 
@@ -1564,7 +1562,7 @@ class ArmRegOper(ArmOperand):
 
 
 class ArmRegShiftRegOper(ArmOperand):
-    ''' register shift operand.  see "addressing mode 1 - data processing operands - * shift * by register" '''
+    """ register shift operand.  see "addressing mode 1 - data processing operands - * shift * by register" """
 
     def __init__(self, reg, shtype, shreg):
         self.reg = reg
@@ -1589,9 +1587,9 @@ class ArmRegShiftRegOper(ArmOperand):
         return False
 
     def getOperValue(self, op, emu=None):
-        if emu == None:
+        if emu is None:
             return None
-        return shifters[self.shtype](emu.getRegister(self.reg), emu.getRegister(shreg))
+        return shifters[self.shtype](emu.getRegister(self.reg), emu.getRegister(self.shreg))
 
     def render(self, mcanv, op, idx):
         rname = arm_regs[self.reg][0]
@@ -1607,7 +1605,8 @@ class ArmRegShiftRegOper(ArmOperand):
 
 
 class ArmRegShiftImmOper(ArmOperand):
-    ''' register shift immediate operand.  see "addressing mode 1 - data processing operands - * shift * by immediate" '''
+    """ register shift immediate operand.
+    see "addressing mode 1 - data processing operands - * shift * by immediate" """
 
     def __init__(self, reg, shtype, shimm, va):
         if shimm == 0:
@@ -1641,7 +1640,7 @@ class ArmRegShiftImmOper(ArmOperand):
         if self.reg == REG_PC:
             return shifters[self.shtype](self.va, self.shimm)
 
-        if emu == None:
+        if emu is None:
             return None
         return shifters[self.shtype](emu.getRegister(self.reg), self.shimm)
 
@@ -1669,7 +1668,7 @@ class ArmRegShiftImmOper(ArmOperand):
 
 
 class ArmImmOper(ArmOperand):
-    ''' register operand.  see "addressing mode 1 - data processing operands - immediate" '''
+    """ register operand.  see "addressing mode 1 - data processing operands - immediate" """
 
     def __init__(self, val, shval=0, shtype=S_ROR, va=0):
         self.val = val
@@ -1707,7 +1706,8 @@ class ArmImmOper(ArmOperand):
 
 
 class ArmScaledOffsetOper(ArmOperand):
-    ''' scaled offset operand.  see "addressing mode 2 - load and store word or unsigned byte - scaled register *" '''
+    """ scaled offset operand.
+    see "addressing mode 2 - load and store word or unsigned byte - scaled register *" """
 
     def __init__(self, base_reg, offset_reg, shtype, shval, va, pubwl=0):
         if shval == 0:
@@ -1744,7 +1744,7 @@ class ArmScaledOffsetOper(ArmOperand):
         return True
 
     def getOperValue(self, op, emu=None, writeback=False):
-        if emu == None:
+        if emu is None:
             return None
 
         retval = 0
@@ -1753,12 +1753,12 @@ class ArmScaledOffsetOper(ArmOperand):
         rn = emu.getRegister(self.base_reg)
         # FIXME: THIS IS COMPLETELY BORKED AND WRONG!
         # if pre-indexed, we incremement/decrement the register before determining the OperAddr
-        if (self.pubwl & 0x12 == 0x12):
+        if self.pubwl & 0x12 == 0x12:
             # pre-indexed...
             if writeback: emu.setRegister(self.base_reg, addr)
             return emu.readMemValue(addr, self.tsize)
 
-        elif (self.pubwl & 0x12 == 0):
+        elif self.pubwl & 0x12 == 0:
             # post-indexed... still write it but return the original value
             if writeback: emu.setRegister(self.base_reg, addr)
             return emu.readMemValue(addr, self.tsize)
@@ -1767,12 +1767,12 @@ class ArmScaledOffsetOper(ArmOperand):
         return addr
 
     def getOperAddr(self, op, emu=None):
-        if emu == None:
+        if emu is None:
             return None
 
         if self.basereg == REG_PC:
             addr = self.va
-        elif emu != None:
+        elif emu is not None:
             addr = emu.getRegister(self.basereg)
         else:
             return None
@@ -1830,8 +1830,8 @@ class ArmScaledOffsetOper(ArmOperand):
 
 
 class ArmRegOffsetOper(ArmOperand):
-    ''' register offset operand.  see "addressing mode 2 - load and store word or unsigned byte - register *" 
-    dereference address mode using the combination of two register values '''
+    """ register offset operand.  see "addressing mode 2 - load and store word or unsigned byte - register *"
+    dereference address mode using the combination of two register values """
 
     def __init__(self, base_reg, offset_reg, va, pubwl=0):
         self.base_reg = base_reg
@@ -1856,14 +1856,14 @@ class ArmRegOffsetOper(ArmOperand):
         return True
 
     def getOperValue(self, op, emu=None):
-        if emu == None:
+        if emu is None:
             return None
 
         rn = emu.getRegister(self.base_reg)
         addr = self.getOperAddr(op, emu, rn)
 
         # if pre-indexed, we incremement/decrement the register before determining the OperAddr
-        if (self.pubwl & 0x12 == 0x12):
+        if self.pubwl & 0x12 == 0x12:
             # pre-indexed...
             if writeback: emu.setRegister(self.base_reg, addr)
             return addr
@@ -1877,10 +1877,10 @@ class ArmRegOffsetOper(ArmOperand):
         return addr
 
     def getOperAddr(self, op, emu=None, rn=None):
-        if emu == None:
+        if emu is None:
             return None
 
-        if rn == None:
+        if rn is None:
             rn = emu.getRegister(self.base_reg)
 
         rm = emu.getRegister(self.offset_reg)
@@ -1954,7 +1954,7 @@ class ArmImmOffsetOper(ArmOperand):
 
     def setOperValue(self, op, emu=None, val=None):
         # can't survive without an emulator
-        if emu == None:
+        if emu is None:
             return None
 
         pubwl = self.pubwl >> 2
@@ -1967,7 +1967,7 @@ class ArmImmOffsetOper(ArmOperand):
 
     def getOperValue(self, op, emu=None):
         # can't survive without an emulator
-        if emu == None:
+        if emu is None:
             return None
 
         pubwl = self.pubwl >> 2
@@ -2017,7 +2017,7 @@ class ArmImmOffsetOper(ArmOperand):
             mcanv.addText(']')
 
             value = self.getOperValue(op, mcanv.mem)
-            if value != None:
+            if value is not None:
                 mcanv.addText("\t; ")
                 if mcanv.mem.isValidPointer(value):
                     name = addrToName(mcanv, value)
@@ -2424,7 +2424,7 @@ class ArmDisasm:
         """
         Parse a sequence of bytes out into an envi.Opcode instance.
         """
-        opbytes = bytez[offset:offset + 4]
+        opbytes = bytez[offset: offset + 4]
         opval, = struct.unpack(self.fmt, opbytes)
 
         cond = opval >> 28
@@ -2437,7 +2437,7 @@ class ArmDisasm:
         else:
 
             enc, nexttab = inittable[encfam]
-            if nexttab != None:  # we have to sub-parse...
+            if nexttab is not None:  # we have to sub-parse...
                 for mask, val, penc in nexttab:
                     if (opval & mask) == val:
                         enc = penc
@@ -2447,8 +2447,14 @@ class ArmDisasm:
         if enc is None:
             raise envi.InvalidInstruction(mesg="No encoding found!",
                                           bytez=bytez[offset:offset + 4], va=va)
-
-        opcode, mnem, olist, flags = ienc_parsers[enc](opval, va + 8)
+        try:
+            opcode, mnem, olist, flags = ienc_parsers[enc](opval, va + 8)
+        except Exception as e:
+            print("Cannot parse {}".format(opval))
+            traceback.print_exc()
+            print(enc, opval, va+8)
+            # return None
+            raise e
 
         # since our flags determine how the instruction is decoded later....  
         # performance-wise this should be set as the default value instead of 0, but this is cleaner
@@ -2461,11 +2467,10 @@ class ArmDisasm:
                 flags |= envi.IF_NOFALL
 
             elif (len(olist) and
-                      isinstance(olist[0], ArmRegOper) and
-                      olist[0].involvesPC() and
-                          (opcode & 0xffff) not in no_update_Rd):  # FIXME: only want IF_NOFALL if it *writes* to PC!
+                  isinstance(olist[0], ArmRegOper) and
+                  olist[0].involvesPC() and
+                  (opcode & 0xffff) not in no_update_Rd):  # FIXME: only want IF_NOFALL if it *writes* to PC!
 
-                showop = True
                 flags |= envi.IF_NOFALL
 
         else:

@@ -6,6 +6,7 @@ import threading
 import functools
 import collections
 
+
 def firethread(func):
     '''
     A decorator which fires a thread to do the given call.
@@ -13,13 +14,16 @@ def firethread(func):
     NOTE: This means these methods may not return anything
     and callers may not expect sync behavior!
     '''
+
     def dothread(*args, **kwargs):
         thr = threading.Thread(target=func, args=args, kwargs=kwargs)
         thr.setDaemon(True)
         thr.start()
         return thr
-    functools.update_wrapper(dothread,func)
+
+    functools.update_wrapper(dothread, func)
     return dothread
+
 
 def maintthread(stime):
     '''
@@ -27,6 +31,7 @@ def maintthread(stime):
     back the wrapped function ( in a thread fired for this purpose )
     every "stime" seconds.
     '''
+
     def maintwrap(func):
 
         def maintloop(*args, **kwargs):
@@ -34,7 +39,7 @@ def maintthread(stime):
                 try:
                     func(*args, **kwargs)
                 except Exception as e:
-                    print(('MaintThread (%s) Error: %s' % (args[0],e)))
+                    print(('MaintThread (%s) Error: %s' % (args[0], e)))
                 time.sleep(stime)
 
         def dothread(*args, **kwargs):
@@ -42,12 +47,14 @@ def maintthread(stime):
             thr.setDaemon(True)
             thr.start()
 
-        functools.update_wrapper(dothread,func)
+        functools.update_wrapper(dothread, func)
         return dothread
 
     return maintwrap
 
+
 class QueueShutdown(Exception): pass
+
 
 class ChunkQueue:
     '''
@@ -55,12 +62,13 @@ class ChunkQueue:
     when requested to minimize round tripping.  It's also keeps track
     of client checkins to help identify "abandonment" behaviors.
     '''
+
     def __init__(self, items=None):
         self.shut = False
         self.last = time.time()
         self.lock = threading.Lock()
         self.event = threading.Event()
-        if items == None:
+        if items is None:
             items = []
         self.items = items
 
@@ -82,7 +90,7 @@ class ChunkQueue:
         # NOTE: this is heavy, use judiciously
         if self.shut: raise QueueShutdown()
         with self.lock:
-            self.items.insert(0,x)
+            self.items.insert(0, x)
             self.event.set()
 
     def extend(self, x):
@@ -104,7 +112,7 @@ class ChunkQueue:
 
     def put(self, item):
         if self.shut: raise QueueShutdown()
-        self.append( item )
+        self.append(item)
 
     def get(self, timeout=None):
         self.last = time.time()
@@ -133,10 +141,12 @@ class ChunkQueue:
         self.items = []
         return ret
 
+
 class EnviQueue:
     '''
     A deterministic Queue that doesn't suck.
     '''
+
     def __init__(self, items=None):
         self.shut = False
         self.last = time.time()
@@ -207,4 +217,3 @@ class EnviQueue:
 
             if not self.event.wait(timeout=deltat):
                 return None
-

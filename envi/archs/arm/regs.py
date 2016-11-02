@@ -23,9 +23,9 @@ arm_regs = (
     ('r10', 32),
     ('r11', 32),
     ('r12', 32),
-    ('sp', 32), # also r13
-    ('lr', 32), # also r14
-    ('pc', 32), # also r15
+    ('sp', 32),  # also r13
+    ('lr', 32),  # also r14
+    ('pc', 32),  # also r15
     ('cpsr', 32),
     ('nil', 32),   # place holder
     # FIXME: need to deal with ELR_hyp
@@ -36,8 +36,8 @@ MAX_REGS = 17
 modes = list(proc_modes.keys())
 modes.sort()
 
-reg_table = [ x for x in range(16 * 18) ]
-reg_data = [ (reg, sz) for reg,sz in arm_regs ]
+reg_table = [x for x in range(16 * 18)]
+reg_data = [(reg, sz) for reg, sz in arm_regs]
 
 for modenum in modes[1:]:       # skip first since we're already done
     (mname, msname, desc, offset, mode_reg_count, PSR_offset, priv_level) = proc_modes.get(modenum)
@@ -121,35 +121,35 @@ psr_fields[PSR_Z] = "Z"
 psr_fields[PSR_N] = "N"
 
 arm_status_metas = [
-        ("N", REG_FLAGS, PSR_N, 1, "Negative/LessThan flag"),
-        ("Z", REG_FLAGS, PSR_Z, 1, "Zero flag"),
-        ("C", REG_FLAGS, PSR_C, 1, "Carry/Borrow/Extend flag"),
-        ("V", REG_FLAGS, PSR_V, 1, "oVerflow flag"),
-        ("Q", REG_FLAGS, PSR_Q, 1, "Sticky Overflow flag"),
-        ("J", REG_FLAGS, PSR_J, 1, "Jazelle Mode bit"),
-        ("GE",REG_FLAGS, PSR_GE, 4, "Greater/Equal flag"),
-        ("DNM",REG_FLAGS, PSR_DNM, 4, "DO NOT MODIFY bits"),
-        ("IT0",REG_FLAGS, PSR_IT, 1, "IfThen 0 bit"),
-        ("IT1",REG_FLAGS, PSR_IT+1, 1, "IfThen 1 bit"),
-        ("IT2",REG_FLAGS, PSR_IT+2, 1, "IfThen 2 bit"),
-        ("IT3",REG_FLAGS, PSR_IT+3, 1, "IfThen 3 bit"),
-        ("IT4",REG_FLAGS, PSR_IT+4, 1, "IfThen 4 bit"),
-        ("IT5",REG_FLAGS, PSR_IT+5, 1, "IfThen 5 bit"),
-        ("IT6",REG_FLAGS, PSR_IT+6, 1, "IfThen 6 bit"),
-        ("IT7",REG_FLAGS, PSR_IT+7, 1, "IfThen 7 bit"),
-        ("E", REG_FLAGS, PSR_E, 1, "Data Endian bit"),
-        ("A", REG_FLAGS, PSR_A, 1, "Imprecise Abort Disable bit"),
-        ("I", REG_FLAGS, PSR_I, 1, "IRQ disable bit"),
-        ("F", REG_FLAGS, PSR_F, 1, "FIQ disable bit"),
-        ("T", REG_FLAGS, PSR_T, 1, "Thumb Mode bit"),
-        ("M", REG_FLAGS, PSR_M, 5, "Processor Mode"),
+        ("N",   REG_FLAGS, PSR_N, 1, "Negative/LessThan flag"),
+        ("Z",   REG_FLAGS, PSR_Z, 1, "Zero flag"),
+        ("C",   REG_FLAGS, PSR_C, 1, "Carry/Borrow/Extend flag"),
+        ("V",   REG_FLAGS, PSR_V, 1, "oVerflow flag"),
+        ("Q",   REG_FLAGS, PSR_Q, 1, "Sticky Overflow flag"),
+        ("J",   REG_FLAGS, PSR_J, 1, "Jazelle Mode bit"),
+        ("GE",  REG_FLAGS, PSR_GE, 4, "Greater/Equal flag"),
+        ("DNM", REG_FLAGS, PSR_DNM, 4, "DO NOT MODIFY bits"),
+        ("IT0", REG_FLAGS, PSR_IT, 1, "IfThen 0 bit"),
+        ("IT1", REG_FLAGS, PSR_IT+1, 1, "IfThen 1 bit"),
+        ("IT2", REG_FLAGS, PSR_IT+2, 1, "IfThen 2 bit"),
+        ("IT3", REG_FLAGS, PSR_IT+3, 1, "IfThen 3 bit"),
+        ("IT4", REG_FLAGS, PSR_IT+4, 1, "IfThen 4 bit"),
+        ("IT5", REG_FLAGS, PSR_IT+5, 1, "IfThen 5 bit"),
+        ("IT6", REG_FLAGS, PSR_IT+6, 1, "IfThen 6 bit"),
+        ("IT7", REG_FLAGS, PSR_IT+7, 1, "IfThen 7 bit"),
+        ("E",   REG_FLAGS, PSR_E, 1, "Data Endian bit"),
+        ("A",   REG_FLAGS, PSR_A, 1, "Imprecise Abort Disable bit"),
+        ("I",   REG_FLAGS, PSR_I, 1, "IRQ disable bit"),
+        ("F",   REG_FLAGS, PSR_F, 1, "FIQ disable bit"),
+        ("T",   REG_FLAGS, PSR_T, 1, "Thumb Mode bit"),
+        ("M",   REG_FLAGS, PSR_M, 5, "Processor Mode"),
         ]
 
 arm_metas = [
         ("R13", REG_SP, 0, 32),
         ("R14", REG_LR, 0, 32),
         ("R15", REG_PC, 0, 32),
-        ]
+]
 
 e_reg.addLocalStatusMetas(l, arm_metas, arm_status_metas, "CPSC")
 e_reg.addLocalMetas(l, arm_metas)

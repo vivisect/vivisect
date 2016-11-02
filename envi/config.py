@@ -15,7 +15,7 @@ def gethomedir(*paths):
     homepath = os.path.expanduser('~')
     path = os.path.join(homepath, *paths)
 
-    if path != None and not os.path.exists(path):
+    if path is not None and not os.path.exists(path):
         try:
             os.makedirs(path)
         except Exception as err:

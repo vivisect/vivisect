@@ -6,8 +6,10 @@ from io import StringIO
 
 import vstruct.primitives as vs_prims
 
+
 def isVstructType(x):
     return isinstance(x, vs_prims.v_base)
+
 
 class VStruct(vs_prims.v_base):
     '''
@@ -28,20 +30,21 @@ class VStruct(vs_prims.v_base):
         bytes = vs.vsEmit()
 
     '''
+
     def __init__(self):
         # A tiny bit of evil...
         object.__setattr__(self, '_vs_values', {})
         vs_prims.v_base.__init__(self)
         self._vs_name = self.__class__.__name__
         self._vs_fields = []
-        self._vs_field_align = False # To toggle visual studio style packing
+        self._vs_field_align = False  # To toggle visual studio style packing
         self._vs_padnum = 0
         self._vs_pcallbacks = {}
         self._vs_fastfields = None
 
     def __mul__(self, x):
         # build a list of instances of this vstruct
-        return [ deepcopy(self) for i in range(x) ]
+        return [deepcopy(self) for i in range(x)]
 
     def vsAddParseCallback(self, fieldname, callback):
         '''
@@ -87,7 +90,7 @@ class VStruct(vs_prims.v_base):
     @classmethod
     def vsFromFd(cls, fd, fast=True):
         v = cls()
-        v.vsParseFd(fd,fast=fast)
+        v.vsParseFd(fd, fast=fast)
         return v
 
     def vsParseFd(self, fd, fast=False):
@@ -95,8 +98,8 @@ class VStruct(vs_prims.v_base):
         Parse from the given file like object as input.
         '''
         if fast:
-            b = fd.read( len(self) )
-            self.vsParse(b,fast=True)
+            b = fd.read(len(self))
+            self.vsParse(b, fast=True)
             return
 
         for fname in self._vs_fields:
@@ -107,16 +110,16 @@ class VStruct(vs_prims.v_base):
     def _vsInitFastFields(self):
         fields = self.vsGetFastParseFields()
         self._vs_fastfields = fields
-        fmt = ''.join([ f._vs_fmt for f in fields ])
+        fmt = ''.join([f._vs_fmt for f in fields])
         endian = '<'
         if fmt.find('>') != -1:
             endian = '>'
         # Strip all in-band endian specifiers
-        fmt = fmt.replace('<','')
-        fmt = fmt.replace('>','')
+        fmt = fmt.replace('<', '')
+        fmt = fmt.replace('>', '')
 
         self._vs_fastfmt = endian + fmt
-        self._vs_fastlen = struct.calcsize( self._vs_fastfmt )
+        self._vs_fastlen = struct.calcsize(self._vs_fastfmt)
 
     def vsParse(self, sbytes, offset=0, fast=False):
         """
@@ -133,9 +136,9 @@ class VStruct(vs_prims.v_base):
         if fast:
             if self._vs_fastfields == None:
                 self._vsInitFastFields()
-            values = struct.unpack_from( self._vs_fastfmt, sbytes, offset )
+            values = struct.unpack_from(self._vs_fastfmt, sbytes, offset)
             # Ephemeral list comprehension for speed
-            [ self._vs_fastfields[i].vsSetValue( values[i] ) for i in range(len(values)) ]
+            [self._vs_fastfields[i].vsSetValue(values[i]) for i in range(len(values))]
             return offset + self._vs_fastlen
 
         # In order for callbacks to change fields, we can't use vsGetFields()
@@ -150,9 +153,9 @@ class VStruct(vs_prims.v_base):
         for fname in self._vs_fields:
             fobj = self._vs_values.get(fname)
             if fobj.vsIsPrim():
-                fields.append( fobj )
+                fields.append(fobj)
                 continue
-            fields.extend( fobj.vsGetFastParseFields() )
+            fields.extend(fobj.vsGetFastParseFields())
         return fields
 
     def vsEmit(self, fast=False):
@@ -162,7 +165,7 @@ class VStruct(vs_prims.v_base):
         if fast:
             if self._vs_fastfields == None:
                 self._vsInitFastFields()
-            ffvals = [ ff.vsGetValue() for ff in self._vs_fastfields ]
+            ffvals = [ff.vsGetValue() for ff in self._vs_fastfields]
             return struct.pack(self._vs_fastfmt, *ffvals)
 
         ret = ''
@@ -197,7 +200,7 @@ class VStruct(vs_prims.v_base):
         while i < len(self._vs_fields):
             fname = self._vs_fields[i]
             fobj = self._vs_values.get(fname)
-            yield fname,fobj
+            yield fname, fobj
             i += 1
 
     def vsGetField(self, name):
@@ -229,7 +232,7 @@ class VStruct(vs_prims.v_base):
 
     # FIXME implement more arithmetic for structs...
     def __ixor__(self, other):
-        for name,value in list(other._vs_values.items()):
+        for name, value in list(other._vs_values.items()):
             self._vs_values[name] ^= value
         return self
 
@@ -271,7 +274,7 @@ class VStruct(vs_prims.v_base):
                 pname = "_pad%d" % self._vs_padnum
                 self._vs_padnum += 1
                 self._vs_fields.append(pname)
-                self._vs_values[pname] = vs_prims.v_bytes(align-delta)
+                self._vs_values[pname] = vs_prims.v_bytes(align - delta)
 
         self._vs_fields.append(name)
         self._vs_values[name] = value
@@ -280,7 +283,7 @@ class VStruct(vs_prims.v_base):
         '''
         Remove a field from the VStruct definition
         '''
-        field = self._vs_values.pop(name,None)
+        field = self._vs_values.pop(name, None)
         if field == None:
             raise Exception('Invalid Field Name: %s' % name)
         self._vs_fields.remove(name)
@@ -323,7 +326,7 @@ class VStruct(vs_prims.v_base):
         nameparts = name.split('.')
         namedepth = len(nameparts) - 1
         depth = 0
-        for fname,field in self.vsGetFields():
+        for fname, field in self.vsGetFields():
             if nameparts[depth] == fname:
                 if depth == namedepth:
                     return offset
@@ -368,7 +371,7 @@ class VStruct(vs_prims.v_base):
         indent += 1
         for fname in self._vs_fields:
             x = self._vs_values.get(fname)
-            #off = offset + self.vsGetOffset(fname)
+            # off = offset + self.vsGetOffset(fname)
             if isinstance(x, VStruct):
                 ret.append((off, indent, fname, x))
                 ret.extend(x.vsGetPrintInfo(offset=off, indent=indent, top=False))
@@ -387,7 +390,7 @@ class VStruct(vs_prims.v_base):
     def __getattr__(self, name):
         # Gotta do this for pickle issues...
         vsvals = self.__dict__.get("_vs_values")
-        if vsvals == None:
+        if vsvals is None:
             vsvals = {}
             self.__dict__["_vs_values"] = vsvals
         r = vsvals.get(name)
@@ -412,7 +415,7 @@ class VStruct(vs_prims.v_base):
 
     def __iter__(self):
         # Our iteration returns name,field pairs
-        ret = [ (name, self._vs_values.get(name)) for name in self._vs_fields ]
+        ret = [(name, self._vs_values.get(name)) for name in self._vs_fields]
         return iter(ret)
 
     def __repr__(self):
@@ -422,27 +425,27 @@ class VStruct(vs_prims.v_base):
         return self.vsGetField(name)
 
     def __setitem__(self, name, valu):
-        return self.vsSetField(name,valu)
+        return self.vsSetField(name, valu)
 
     def tree(self, va=0, reprmax=None):
         ret = ""
         for off, indent, name, field in self.vsGetPrintInfo():
-            rstr = repr(field) #field.vsGetTypeName()
+            rstr = repr(field)  # field.vsGetTypeName()
             if isinstance(field, vs_prims.v_number):
                 if field.vsGetEnum() is not None:
                     rstr = '%s (0x%.8x)' % (str(field), field.vsGetValue())
                 else:
                     val = field.vsGetValue()
-                    rstr = '0x%.8x (%d)' % (val,val)
+                    rstr = '0x%.8x (%d)' % (val, val)
             elif isinstance(field, vs_prims.v_prim):
                 rstr = repr(field)
             if reprmax != None and len(rstr) > reprmax:
                 rstr = rstr[:reprmax] + '...'
-            ret += "%.8x (%.2d)%s %s: %s\n" % (va+off, len(field), " "*(indent*2), name, rstr)
+            ret += "%.8x (%.2d)%s %s: %s\n" % (va + off, len(field), " " * (indent * 2), name, rstr)
         return ret
 
-class VArray(VStruct):
 
+class VArray(VStruct):
     def __init__(self, elems=()):
         VStruct.__init__(self)
         for e in elems:
@@ -456,16 +459,16 @@ class VArray(VStruct):
         self.vsAddField("%d" % idx, elem)
 
     def vsAddElements(self, count, eclass):
-        for i in range( count ):
-            self.vsAddElement( eclass() )
+        for i in range(count):
+            self.vsAddElement(eclass())
 
     def __getitem__(self, index):
         return self.vsGetField("%d" % index)
 
-    #FIXME slice asignment
+        # FIXME slice asignment
+
 
 class VUnion(VStruct):
-
     def vsEmit(self):
         raise Exception('VUnion is only for parse right now!')
 
@@ -480,7 +483,7 @@ class VUnion(VStruct):
         
         """
         ret = offset
-        for fname,fobj in self.vsGetFields():
+        for fname, fobj in self.vsGetFields():
             ret = max(offset, fobj.vsParse(sbytes, offset=offset))
             callback = getattr(self, 'pcb_%s' % fname, None)
             if callback != None:
@@ -511,6 +514,7 @@ class VUnion(VStruct):
                 ret.append((offset, indent, fname, x))
         return ret
 
+
 def resolve(impmod, nameparts):
     """
     Resolve the given (potentially nested) object
@@ -527,6 +531,7 @@ def resolve(impmod, nameparts):
 
     return m
 
+
 def resolvepath(impmod, pathstr):
     '''
     Resolve an object/module from within the given module
@@ -537,8 +542,10 @@ def resolvepath(impmod, pathstr):
     nameparts = pathstr.split('.')
     return resolve(impmod, nameparts)
 
+
 # NOTE: Gotta import this *after* VStruct/VSArray defined
 import vstruct.defs as vs_defs
+
 
 def getStructure(sname):
     """
@@ -553,8 +560,10 @@ def getStructure(sname):
 
     return None
 
+
 def getModuleNames():
     return [x for x in dir(vs_defs) if not x.startswith("__")]
+
 
 def getStructNames(modname):
     ret = []
@@ -568,4 +577,3 @@ def getStructNames(modname):
             ret.append(n)
 
     return ret
-

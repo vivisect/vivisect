@@ -1,4 +1,3 @@
-
 '''
 A dynadag-ish graph layout calculator...
 '''
@@ -11,16 +10,18 @@ import visgraph.graphcore as vg_graphcore
 import visgraph.drawing.bezier as vg_bezier
 import visgraph.drawing.catmullrom as vg_catmullrom
 
-zero_zero = (0,0)
+zero_zero = (0, 0)
+
 
 def revenumerate(l):
-    return zip(range(len(l)-1, -1, -1), reversed(l))
+    return zip(range(len(l) - 1, -1, -1), reversed(l))
 
-SCOOCH_LEFT     = 0
-SCOOCH_RIGHT    = 1
+
+SCOOCH_LEFT = 0
+SCOOCH_RIGHT = 1
+
 
 class DynadagLayout(vg_layout.GraphLayout):
-
     def __init__(self, graph):
 
         vg_layout.GraphLayout.__init__(self, graph)
@@ -36,13 +37,13 @@ class DynadagLayout(vg_layout.GraphLayout):
         Return the width,height of this layout.
         '''
         height = 0
-        width  = 0
+        width = 0
         for layer in self.layers:
 
             lheight = 0
             lwidth = 0
 
-            for nid,ninfo in layer:
+            for nid, ninfo in layer:
                 xsize, ysize = ninfo.get('size', zero_zero)
                 lheight = max(lheight, ysize + self.height_pad)
                 lwidth += xsize + self.width_pad
@@ -80,13 +81,14 @@ class DynadagLayout(vg_layout.GraphLayout):
         # FIXME how do we tell when we're done?
         for i in range(self._barry_count):
             for layer in self.layers:
-                for nid,ninfo in layer:
+                for nid, ninfo in layer:
                     self._baryCenter(nid, ninfo)
 
             for layer in self.layers:
-                layer.sort(cmp=self._cmpBaryCenter)
-                for i,(nid,ninfo) in enumerate(layer):
-                    ninfo['layerpos'] = i
+                # layer.sort(cmp=self._cmpBaryCenter)
+                layer.sort(key=lambda x: x[1].get('barycenter'))
+                for _i, (nid, ninfo) in enumerate(layer):
+                    ninfo['layerpos'] = _i
 
     def _getNodeRelPos(self, nid, ninfo):
 
@@ -95,7 +97,7 @@ class DynadagLayout(vg_layout.GraphLayout):
         abovepos = []
         for eid, n1, n2, einfo in self.graph.getRefsToByNid(nid):
             fprops = self.graph.getNodeProps(n1)
-            if fprops['weight'] != weight-1:
+            if fprops['weight'] != weight - 1:
                 continue
             abovepos.append(fprops['layerpos'])
         abovepos.sort()
@@ -103,7 +105,7 @@ class DynadagLayout(vg_layout.GraphLayout):
         belowpos = []
         for eid, n1, n2, einfo in self.graph.getRefsFromByNid(nid):
             tprops = self.graph.getNodeProps(n2)
-            if tprops['weight'] != weight+1:
+            if tprops['weight'] != weight + 1:
                 continue
             belowpos.append(tprops['layerpos'])
         belowpos.sort()
@@ -117,7 +119,7 @@ class DynadagLayout(vg_layout.GraphLayout):
         for i in range(1, len(layer)):
 
             myabove, mybelow = self._getNodeRelPos(*layer[i])
-            hisabove, hisbelow = self._getNodeRelPos(*layer[i-1])
+            hisabove, hisbelow = self._getNodeRelPos(*layer[i - 1])
 
             # If I have any nodes above with position lower
             # than any of his, those are cross overs...
@@ -154,26 +156,26 @@ class DynadagLayout(vg_layout.GraphLayout):
 
                 # TODO should we do this multipliciative rather than
                 # neighbors only?
-                for j in range(len(layer)-1):
+                for j in range(len(layer) - 1):
 
                     n1 = layer[j]
-                    n2 = layer[j+1]
+                    n2 = layer[j + 1]
 
                     layer[j] = n2
-                    layer[j+1] = n1
+                    layer[j + 1] = n1
 
                     newscore = self._getLayerCross(i)
                     # If this was optimal, keep it and continue
                     if newscore < score:
                         reduced = True
-                        n1[1]['layerpos'] = j+1
+                        n1[1]['layerpos'] = j + 1
                         n2[1]['layerpos'] = j
                         break
 
                     # Nope, put it back...
                     layer[j] = n1
-                    layer[j+1] = n2
-                    
+                    layer[j + 1] = n2
+
     def _addGhostNodes(self):
         '''
         Translate the hierarchical graph we are given into dynadag
@@ -194,7 +196,7 @@ class DynadagLayout(vg_layout.GraphLayout):
 
             # In the case of a single block loop, add one ghost and
             # connect them all
-            #if n1 == n2:
+            # if n1 == n2:
             if topweight == botweight:
                 bridgenode = self.graph.addNode(ghost=True, weight=topweight)
                 weights[bridgenode[0]] = topweight
@@ -212,7 +214,7 @@ class DynadagLayout(vg_layout.GraphLayout):
             botnode = self.graph.addNode(ghost=True, weight=botweight)
             weights[botnode[0]] = botweight
 
-            self.graph.addEdge(topnode, botnode) # For rendering, these will be normal!
+            self.graph.addEdge(topnode, botnode)  # For rendering, these will be normal!
 
             # Now, remove the "reverse" edge, and add a 'looptop' and 'loopbot' edge
             self.graph.delEdgeByEid(eid)
@@ -229,7 +231,7 @@ class DynadagLayout(vg_layout.GraphLayout):
                     xweight += 1
                     ghostid = self.graph.addNode(ghost=True, weight=xweight)[0]
                     self.graph.addEdgeByNids(n1, ghostid)
-                    #print 'ADDED GHOST %d (%d -> %d)' % (ghostid,n1,n2)
+                    # print 'ADDED GHOST %d (%d -> %d)' % (ghostid,n1,n2)
                     n1 = ghostid
                 self.graph.addEdgeByNids(n1, n2)
 
@@ -239,11 +241,12 @@ class DynadagLayout(vg_layout.GraphLayout):
 
         for nid, ninfo in self.graph.getNodes():
             self.maxweight = max(ninfo.get('weight', 0), self.maxweight)
-        #print 'Max Weight: %d' % self.maxweight
+        # print 'Max Weight: %d' % self.maxweight
 
-        self.layers = [ [] for i in range(self.maxweight + 1) ]
+        self.layers = [[] for i in range(self.maxweight + 1)]
 
         done = set()
+
         def doit(node):
             '''
             Roll through all the nodes and assign them positions in their layer (based on weight)
@@ -262,7 +265,7 @@ class DynadagLayout(vg_layout.GraphLayout):
             w = node[1].get('weight', 0)
 
             layer = self.layers[w]
-            self.graph.setNodeProp(node,'layerpos',len(layer))
+            self.graph.setNodeProp(node, 'layerpos', len(layer))
             layer.append(node)
 
         # FIXME support more than one root!
@@ -276,16 +279,16 @@ class DynadagLayout(vg_layout.GraphLayout):
         self.maxwidth = 0
 
         # Calculate the width / height of each layer...
-        lwidths = []        # The width of this total layer
-        self.lheights = []       # The tallest node in this layer
+        lwidths = []  # The width of this total layer
+        self.lheights = []  # The tallest node in this layer
         for layer in self.layers:
             x = self.width_pad
             y = 0
 
             heightmax = 0
-            for nid,ninfo in layer:
+            for nid, ninfo in layer:
                 size = ninfo.get('size', zero_zero)
-                xx,yy = size
+                xx, yy = size
 
                 heightmax = max(heightmax, yy)
 
@@ -299,16 +302,16 @@ class DynadagLayout(vg_layout.GraphLayout):
 
         # Now that we have them sorted, lets set their individual positions...
         vpad = 0
-        for i,layer in enumerate(self.layers):
+        for i, layer in enumerate(self.layers):
             hpad = (self.maxwidth - lwidths[i]) / 2
             hpad += self.width_pad
-            for nid,ninfo in layer:
+            for nid, ninfo in layer:
                 xpos = hpad
                 ypos = vpad
 
                 xsize, ysize = ninfo.get('size', zero_zero)
 
-                ninfo['position'] = (xpos,ypos)
+                ninfo['position'] = (xpos, ypos)
                 ninfo['vert_pad'] = self.lheights[i] - ysize
 
                 hpad += xsize
@@ -318,7 +321,6 @@ class DynadagLayout(vg_layout.GraphLayout):
             vpad += self.lheights[i]
             vpad += self.height_pad
 
-
         # Optimize the positions of nodes by moving them outward to align
 
         # First from top to bottom
@@ -327,7 +329,7 @@ class DynadagLayout(vg_layout.GraphLayout):
             layermid = len(layer) / 2
 
             # From the left side, scooch kids out...
-            for j, (nid,ninfo) in enumerate(layer):
+            for j, (nid, ninfo) in enumerate(layer):
 
                 if not ninfo.get('ghost'):
                     break
@@ -348,7 +350,7 @@ class DynadagLayout(vg_layout.GraphLayout):
             layermid = len(layer) / 2
 
             # From the left side, scooch kids out...
-            for j, (nid,ninfo) in enumerate(layer):
+            for j, (nid, ninfo) in enumerate(layer):
 
                 if not ninfo.get('ghost'):
                     break
@@ -379,7 +381,7 @@ class DynadagLayout(vg_layout.GraphLayout):
                 continue
 
             # Only do this to parents in the layer above us...
-            if pinfo['weight'] != weight-1:
+            if pinfo['weight'] != weight - 1:
                 continue
 
             self._scoochXAlign(ninfo, pinfo, lr=lr)
@@ -397,7 +399,7 @@ class DynadagLayout(vg_layout.GraphLayout):
                 continue
 
             # Only do this to kids in the layer beneath us...
-            if kinfo['weight'] != weight+1:
+            if kinfo['weight'] != weight + 1:
                 continue
 
             self._scoochXAlign(ninfo, kinfo, lr=lr)
@@ -411,11 +413,11 @@ class DynadagLayout(vg_layout.GraphLayout):
         '''
         xpos, ypos = ninfo['position']
         xsize, ysize = ninfo.get('size', zero_zero)
-        xmid = xpos + ( xsize / 2 )
+        xmid = xpos + (xsize / 2)
 
         kxpos, kypos = kinfo['position']
         kxsize, kysize = kinfo.get('size', zero_zero)
-        kxmid = kxpos + ( kxsize / 2 )
+        kxmid = kxpos + (kxsize / 2)
 
         xdelta = xmid - kxmid
 
@@ -441,12 +443,12 @@ class DynadagLayout(vg_layout.GraphLayout):
 
         # There's always room on the left if we're the first...
         if layerpos == 0 and xdelta < 0:
-            ninfo['position'] = (x+xdelta, y)
+            ninfo['position'] = (x + xdelta, y)
             return
 
         # Always room on the right if we're last!
         if layerpos == layermax and xdelta > 0:
-            ninfo['position'] = (x+xdelta, y)
+            ninfo['position'] = (x + xdelta, y)
             return
 
         # Sigh... now we have to get fancy...
@@ -460,10 +462,10 @@ class DynadagLayout(vg_layout.GraphLayout):
 
             sright = (sx + sxsize) + self.width_pad
 
-            #leftroom = sright - x
+            # leftroom = sright - x
             # "greater" is less movement here...
             xdelta = max(xdelta, sright - x)
-            ninfo['position'] = (x+xdelta, y)
+            ninfo['position'] = (x + xdelta, y)
             return
 
         # If they're asking us to go right, find out about our
@@ -475,8 +477,8 @@ class DynadagLayout(vg_layout.GraphLayout):
 
             myright = x + xsize + self.width_pad
 
-            xdelta = min(xdelta, sx-myright)
-            ninfo['position'] = (x+xdelta, y)
+            xdelta = min(xdelta, sx - myright)
+            ninfo['position'] = (x + xdelta, y)
             return
 
     def _calcEdgeLines(self):
@@ -492,7 +494,7 @@ class DynadagLayout(vg_layout.GraphLayout):
             pinfo = self.graph.getNodeProps(n1)
             kinfo = self.graph.getNodeProps(n2)
 
-            pwidth, pheight = pinfo.get('size', (0,0))
+            pwidth, pheight = pinfo.get('size', (0, 0))
             pweight = pinfo.get('weight')
             lheight = self.lheights[pweight]
             voffset = lheight - pheight
@@ -504,18 +506,18 @@ class DynadagLayout(vg_layout.GraphLayout):
 
                 xhalf = (x1 - x2) / 2
 
-                b = [ (x1, y1),
-                      (x1, y1 - h_vpad),
-                      (x2, y2 - h_vpad),
-                      (x2, y2),
-                    ]
-                
+                b = [(x1, y1),
+                     (x1, y1 - h_vpad),
+                     (x2, y2 - h_vpad),
+                     (x2, y2),
+                     ]
+
             elif einfo.get('loopbot'):
 
                 x1, y1 = vg_layout.exit_pos(pinfo)
                 x2, y2 = vg_layout.exit_pos(kinfo)
 
-                kwidth, kheight = kinfo.get('size', (0,0))
+                kwidth, kheight = kinfo.get('size', (0, 0))
                 kweight = kinfo.get('weight')
                 klheight = self.lheights[kweight]
 
@@ -524,27 +526,26 @@ class DynadagLayout(vg_layout.GraphLayout):
                 pre_lines = [(x1, y1), (x1, y1 + voffset)]
                 post_lines = [(x2, y2), (x2, y2 + kvoffset)]
 
-                b = [ (x1, y1 + voffset),
-                      (x1, y1 + voffset + h_vpad),
-                      (x2, y2 + kvoffset + h_vpad),
-                      (x2, y2 + kvoffset),
-                    ]
+                b = [(x1, y1 + voffset),
+                     (x1, y1 + voffset + h_vpad),
+                     (x2, y2 + kvoffset + h_vpad),
+                     (x2, y2 + kvoffset),
+                     ]
 
             else:
 
                 x1, y1 = vg_layout.exit_pos(pinfo)
                 x2, y2 = vg_layout.entry_pos(kinfo)
 
-                pre_lines = [(x1,y1), (x1, y1 + voffset)]
+                pre_lines = [(x1, y1), (x1, y1 + voffset)]
 
-                b = [ (x1, y1 + voffset),
-                      (x1, y1 + voffset + h_vpad),
-                      (x2, y2 - h_vpad),
-                      (x2, y2),
-                    ]
+                b = [(x1, y1 + voffset),
+                     (x1, y1 + voffset + h_vpad),
+                     (x2, y2 - h_vpad),
+                     (x2, y2),
+                     ]
 
             bez_lines = vg_bezier.calculate_bezier(b, 20)
 
             einfo['edge_points'] = pre_lines + bez_lines + post_lines
-            #einfo['edge_points'] = bez_lines
-
+            # einfo['edge_points'] = bez_lines

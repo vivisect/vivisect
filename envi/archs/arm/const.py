@@ -130,7 +130,9 @@ REG_SPSR_hyp = REG_OFFSET_HYP + 17
 REG_SPSR_und = REG_OFFSET_UND + 17
 REG_SPSR_sys = REG_OFFSET_SYS + 17
 
+
 REG_PC = 0xf
+REG_LR = 0xe
 REG_SP = 0xd
 REG_BP = None
 REG_CPSR = REG_OFFSET_CPSR
@@ -148,12 +150,12 @@ proc_modes = { # mode_name, short_name, description, offset, mode_reg_count, PSR
     PM_sys: ("System Processor Mode", "sys", "Runs privileged operating system tasks (ARMv4 and above)", REG_OFFSET_SYS, 15, REG_SPSR_sys, 1),
 }
 
-PM_LNAME =  0
-PM_SNAME =  1
-PM_DESC =   2
+PM_LNAME  = 0
+PM_SNAME  = 1
+PM_DESC   = 2
 PM_REGOFF = 3
 PM_BANKED = 4
-PM_SPSR =   5
+PM_SPSR   = 5
 
 INST_ENC_DP_IMM = 0 # Data Processing Immediate Shift
 INST_ENC_MISC   = 1 # Misc Instructions

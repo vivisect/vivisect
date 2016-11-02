@@ -6,11 +6,12 @@ access information about objects which contain registers
 import envi.bits as e_bits
 from envi.const import *
 
+
 class InvalidRegisterName(Exception):
     pass
 
-class RegisterContext:
 
+class RegisterContext:
     def __init__(self, regdef=(), metas=(), pcindex=None, spindex=None, srindex=None):
         """
         Hand in a register definition which consists of
@@ -61,18 +62,18 @@ class RegisterContext:
 
         NOTE: All widths in envi RegisterContexts are in bits.
         """
-        self._rctx_regdef = regdef # Save this for snaps etc..
+        self._rctx_regdef = regdef  # Save this for snaps etc..
         self._rctx_names = {}
         self._rctx_ids = {}
         self._rctx_widths = []
-        self._rctx_vals  = []
+        self._rctx_vals = []
         self._rctx_masks = []
 
         for i, (name, width) in enumerate(regdef):
             self._rctx_names[name] = i
             self._rctx_ids[i] = name
             self._rctx_widths.append(width)
-            self._rctx_masks.append((2**width)-1)
+            self._rctx_masks.append((2 ** width) - 1)
             self._rctx_vals.append(defval)
 
     def getRegDef(self):
@@ -126,7 +127,7 @@ class RegisterContext:
         """
         # On import from a structure, we are clean again.
         self._rctx_dirty = False
-        for name,idx in list(self._rctx_names.items()):
+        for name, idx in list(self._rctx_names.items()):
             # Skip meta registers
             if (idx & 0xffff) != idx:
                 continue
@@ -140,7 +141,7 @@ class RegisterContext:
         registers in our context, set the ones he has to match
         our values.
         """
-        for name,idx in list(self._rctx_names.items()):
+        for name, idx in list(self._rctx_names.items()):
             # Skip meta registers
             if (idx & 0xffff) != idx:
                 continue
@@ -169,7 +170,7 @@ class RegisterContext:
         self.setRegisterSnap(snap)
 
     def getRegisterName(self, index):
-        return self._rctx_ids.get(index,"REG%.8x" % index)
+        return self._rctx_ids.get(index, "REG%.8x" % index)
 
     def getProgramCounter(self):
         """
@@ -263,7 +264,7 @@ class RegisterContext:
         value pairs.
         """
         ret = {}
-        for name,idx in list(self._rctx_names.items()):
+        for name, idx in list(self._rctx_names.items()):
             if (idx & 0xffff) != idx:
                 continue
             ret[name] = self.getRegister(idx)
@@ -274,7 +275,7 @@ class RegisterContext:
         For any name value pairs in the specified dictionary, set the current
         register values in this context.
         """
-        for name,value in list(regdict.items()):
+        for name, value in list(regdict.items()):
             self.setRegisterByName(name, value)
 
     def getRegisterIndex(self, name):
@@ -292,7 +293,7 @@ class RegisterContext:
         ridx = index & 0xffff
         if ridx == index:
             return self._rctx_widths[index]
-        width  = (index >> 16) & 0xff
+        width = (index >> 16) & 0xff
         return width
 
     def getRegister(self, index):
@@ -319,9 +320,9 @@ class RegisterContext:
             return None
 
         offset = (index >> 24) & 0xff
-        width  = (index >> 16) & 0xff
+        width = (index >> 16) & 0xff
 
-        mask = (2**width)-1
+        mask = (2 ** width) - 1
         return ridx, offset, mask
 
     def _xlateToMetaReg(self, index, value):
@@ -331,9 +332,9 @@ class RegisterContext:
         '''
         ridx = index & 0xffff
         offset = (index >> 24) & 0xff
-        width  = (index >> 16) & 0xff
+        width = (index >> 16) & 0xff
 
-        mask = (2**width)-1
+        mask = (2 ** width) - 1
 
         if offset != 0:
             value >>= offset
@@ -347,15 +348,15 @@ class RegisterContext:
         '''
         ridx = index & 0xffff
         offset = (index >> 24) & 0xff
-        width  = (index >> 16) & 0xff
+        width = (index >> 16) & 0xff
 
-        #FIXME is it faster to generate or look thses up?
-        mask = (2**width)-1
+        # FIXME is it faster to generate or look thses up?
+        mask = (2 ** width) - 1
         mask = mask << offset
 
         # NOTE: basewidth is in *bits*
         basewidth = self._rctx_widths[ridx]
-        basemask  = (2**basewidth)-1
+        basemask = (2 ** basewidth) - 1
 
         # cut a whole in basemask at the size/offset of mask
         finalmask = basemask ^ mask
@@ -388,7 +389,7 @@ class RegisterContext:
         of meta-registers) or the name of the register.
         (by Index)
         """
-        return self.getRegisterName(regidx& RMETA_NMASK)
+        return self.getRegisterName(regidx & RMETA_NMASK)
 
     def getRealRegisterName(self, regname):
         """
@@ -406,8 +407,9 @@ def addLocalEnums(l, regdef):
     Update a dictionary (or module locals) with REG_FOO index
     values for all the base registers defined in regdef.
     """
-    for i,(rname,width) in enumerate(regdef):
+    for i, (rname, width) in enumerate(regdef):
         l["REG_%s" % rname.upper()] = i
+
 
 def addLocalStatusMetas(l, metas, statmetas, regname):
     '''
@@ -417,15 +419,16 @@ def addLocalStatusMetas(l, metas, statmetas, regname):
     '''
     for metaname, idx, offset, width, desc in statmetas:
         # create meta registers
-        metas.append( (metaname, idx, offset, width) )
+        metas.append((metaname, idx, offset, width))
 
         # create local bitmask constants (EFLAGS_%)
-        l['%s_%s' % (regname, metaname)] = 1 << offset # TODO: fix for arbitrary width
+        l['%s_%s' % (regname, metaname)] = 1 << offset  # TODO: fix for arbitrary width
+
 
 def addLocalMetas(l, metas):
     """
     Update a dictionary (or module locals) with REG_FOO index
     values for all meta registers defined in metas.
     """
-    for name,idx,offset,width in metas:
+    for name, idx, offset, width in metas:
         l["REG_%s" % name.upper()] = (offset << 24) | (width << 16) | idx

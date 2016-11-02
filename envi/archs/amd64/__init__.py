@@ -12,6 +12,7 @@ import envi.archs.i386 as e_i386
 from envi.archs.amd64.regs import *
 from envi.archs.amd64.disasm import *
 
+
 # NOTE: The REX prefixes don't end up with displayed names
 # NOTE: the REX prefix must be the *last* non escape (0f) prefix
 
@@ -22,7 +23,6 @@ from envi.archs.amd64.disasm import *
 # In 64 bit mode, if mod/rm is mod=0 and r/m is 5, it's RIP relative IMM32
 
 class Amd64Module(e_i386.i386Module):
-
     def __init__(self):
         envi.ArchitectureModule.__init__(self, "amd64")
         self._arch_dis = Amd64Disasm()
@@ -33,8 +33,8 @@ class Amd64Module(e_i386.i386Module):
     def archGetRegisterGroups(self):
         groups = envi.ArchitectureModule.archGetRegisterGroups(self)
         general = ('general', ['rax', 'rbx', 'rcx', 'rdx', 'rsi', 'rdi', 'rbp',
-                                'rsp', 'rip', 'r8', 'r9', 'r10', 'r11', 'r12',
-                                'r13', 'r14', 'r15'], )
+                               'rsp', 'rip', 'r8', 'r9', 'r10', 'r11', 'r12',
+                               'r13', 'r14', 'r15'],)
 
         groups.append(general)
         return groups
@@ -48,6 +48,7 @@ class Amd64Module(e_i386.i386Module):
     def getEmulator(self):
         return Amd64Emulator()
 
+
 class MSx64Call(envi.CallingConvention):
     '''
     Has space for 4 homing parameters.
@@ -55,45 +56,47 @@ class MSx64Call(envi.CallingConvention):
     this is not specified.
     '''
     arg_def = [(CC_REG, REG_RCX), (CC_REG, REG_RDX), (CC_REG, REG_R8),
-                (CC_REG, REG_R9), (CC_STACK_INF, 8*4+8),]
+               (CC_REG, REG_R9), (CC_STACK_INF, 8 * 4 + 8), ]
     retaddr_def = (CC_STACK, 0)
     retval_def = (CC_REG, REG_RAX)
     flags = CC_CALLER_CLEANUP
     align = 8
-    pad = 8*4
+    pad = 8 * 4
+
 
 class SysVAmd64Call(envi.CallingConvention):
     '''
     Does not have shadow space like MSx64.
     '''
     arg_def = [(CC_REG, REG_RDI), (CC_REG, REG_RSI), (CC_REG, REG_RDX),
-                (CC_REG, REG_RCX), (CC_REG, REG_R8), (CC_REG, REG_R9),
-                    (CC_STACK_INF, 8),]
+               (CC_REG, REG_RCX), (CC_REG, REG_R8), (CC_REG, REG_R9),
+               (CC_STACK_INF, 8), ]
     retaddr_def = (CC_STACK, 0)
     retval_def = (CC_REG, REG_RAX)
     flags = CC_CALLEE_CLEANUP
     align = 8
     pad = 0
 
+
 class SysVAmd64SystemCall(SysVAmd64Call):
     '''
     For system calls, R10 is used instead of RCX.
     '''
     arg_def = [(CC_REG, REG_RDI), (CC_REG, REG_RSI), (CC_REG, REG_RDX),
-                (CC_REG, REG_R10), (CC_REG, REG_R8), (CC_REG, REG_R9),
-                (CC_STACK_INF, 8),]
+               (CC_REG, REG_R10), (CC_REG, REG_R8), (CC_REG, REG_R9),
+               (CC_STACK_INF, 8), ]
+
 
 sysvamd64call = SysVAmd64Call()
 sysvamd64systemcall = SysVAmd64SystemCall()
 msx64call = MSx64Call()
 
-class Amd64Emulator(Amd64RegisterContext, e_i386.IntelEmulator):
 
+class Amd64Emulator(Amd64RegisterContext, e_i386.IntelEmulator):
     flagidx = REG_EFLAGS
-    accumreg = { 1:REG_AL, 2:REG_AX, 4:REG_EAX, 8:REG_RAX }
+    accumreg = {1: REG_AL, 2: REG_AX, 4: REG_EAX, 8: REG_RAX}
 
     def __init__(self):
-
         archmod = Amd64Module()
         e_i386.IntelEmulator.__init__(self, archmod=archmod)
         # The above sets up the intel reg context, so we smash over it
@@ -114,7 +117,7 @@ class Amd64Emulator(Amd64RegisterContext, e_i386.IntelEmulator):
     def doPop(self):
         rsp = self.getRegister(REG_RSP)
         val = self.readMemValue(rsp, 8)
-        self.setRegister(REG_RSP, rsp+8)
+        self.setRegister(REG_RSP, rsp + 8)
         return val
 
     def i_movsxd(self, op):
@@ -132,4 +135,3 @@ class Amd64Emulator(Amd64RegisterContext, e_i386.IntelEmulator):
     i_movntps = e_i386.IntelEmulator.i_mov
     i_movntdq = e_i386.IntelEmulator.i_mov
     i_movntdqa = e_i386.IntelEmulator.i_mov
-

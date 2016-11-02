@@ -1,7 +1,7 @@
 import vqt.hotkeys as vq_hotkey
 import vqt.saveable as vq_save
 import envi.qt.memory as e_mem_qt
-import envi.memcanvas as e_memcanvas
+# import envi.memcanvas as e_memcanvas
 import envi.qt.memory as e_qt_memory
 import envi.qt.memcanvas as e_qt_memcanvas
 
@@ -78,7 +78,8 @@ class VQVivFuncgraphCanvas(vq_memory.VivCanvasBase):
 
         self._canv_rendtagid = '#codeblock_%.8x' % va
 
-        ret = e_memcanvas.MemoryCanvas.renderMemory(self, va, size, rend=rend)
+        ret = super(VQVivFuncgraphCanvas, self).renderMemory(va, size, rend=rend)
+        # ret = self.renderMemory(va, size, rend=rend)
 
         self._canv_rendtagid = '#memcanvas'
 
@@ -210,7 +211,8 @@ import itertools
 import collections
 
 
-class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QtGui.QWidget, vq_save.SaveableWidget,
+class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin,
+                         QtGui.QWidget, vq_save.SaveableWidget,
                          viv_base.VivEventCore):
     _renderDoneSignal = pyqtSignal()
 
@@ -405,7 +407,7 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QtGui.
 
         self.fva = fva
         # self.graph = self.vw.getFunctionGraph(fva)
-        if graph == None:
+        if graph is None:
             graph = viv_graphutil.buildFunctionGraph(self.vw, fva, revloop=True)
 
         self.graph = graph
@@ -443,7 +445,7 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QtGui.
         for nid, nprops in self.graph.getNodes():
 
             cbva = nprops.get('cbva')
-            if cbva == None:
+            if cbva is None:
                 continue
 
             xpos, ypos = nprops.get('position')
@@ -490,7 +492,7 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QtGui.
             self.updateWindowTitle()
             return
 
-        if fva == None:
+        if fva is None:
             self.vw.vprint('0x%.8x is not in a function!' % addr)
             return
 

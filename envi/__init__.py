@@ -1,7 +1,7 @@
-'''
+"""
 The Envi framework allows architecture abstraction through the use of the
 ArchitectureModule, Opcode, Operand, and Emulator objects.
-'''
+"""
 
 import types
 import struct
@@ -10,55 +10,55 @@ import platform
 # TODO: move into const.py
 # Parsed Opcode Formats
 ARCH_DEFAULT = 0 << 16  # arch 0 is whatever the mem object has as default
-ARCH_I386 = 1 << 16
-ARCH_AMD64 = 2 << 16
-ARCH_ARMV7 = 3 << 16
+ARCH_I386    = 1 << 16
+ARCH_AMD64   = 2 << 16
+ARCH_ARMV7   = 3 << 16
 ARCH_THUMB16 = 4 << 16
-ARCH_THUMB2 = 5 << 16
-ARCH_MSP430 = 6 << 16
-ARCH_H8 = 7 << 16
-ARCH_MASK = 0xffff0000  # Masked into IF_FOO and BR_FOO values
+ARCH_THUMB2  = 5 << 16
+ARCH_MSP430  = 6 << 16
+ARCH_H8      = 7 << 16
+ARCH_MASK    = 0xffff0000  # Masked into IF_FOO and BR_FOO values
 
 arch_names = {
-    ARCH_DEFAULT: 'default',
-    ARCH_I386: 'i386',
-    ARCH_AMD64: 'amd64',
-    ARCH_ARMV7: 'arm',
-    ARCH_THUMB16: 'thumb16',
-    ARCH_THUMB2: 'thumb2',
-    ARCH_MSP430: 'msp430',
-    ARCH_H8: 'h8',
+    ARCH_DEFAULT:   'default',
+    ARCH_I386:      'i386',
+    ARCH_AMD64:     'amd64',
+    ARCH_ARMV7:      'arm',
+    ARCH_THUMB16:   'thumb16',
+    ARCH_THUMB2:    'thumb2',
+    ARCH_MSP430:    'msp430',
+    ARCH_H8:        'h8',
 }
 
 arch_by_name = {
-    'default': ARCH_DEFAULT,
-    'i386': ARCH_I386,
-    'amd64': ARCH_AMD64,
-    'arm': ARCH_ARMV7,
-    'armv6l': ARCH_ARMV7,
-    'armv7l': ARCH_ARMV7,
-    'thumb16': ARCH_THUMB16,
-    'thumb2': ARCH_THUMB2,
-    'msp430': ARCH_MSP430,
-    'h8': ARCH_H8,
+    'default':  ARCH_DEFAULT,
+    'i386':     ARCH_I386,
+    'amd64':    ARCH_AMD64,
+    'arm':      ARCH_ARMV7,
+    'armv6l':   ARCH_ARMV7,
+    'armv7l':   ARCH_ARMV7,
+    'thumb16':  ARCH_THUMB16,
+    'thumb2':   ARCH_THUMB2,
+    'msp430':   ARCH_MSP430,
+    'h8':       ARCH_H8,
 }
 
 # Instruction flags (The first 8 bits are reserved for arch independent use)
 IF_NOFALL = 0x01  # Set if this instruction does *not* fall through
-IF_PRIV = 0x02  # Set if this is a "privileged mode" instruction
-IF_CALL = 0x04  # Set if this instruction branches to a procedure
+IF_PRIV   = 0x02  # Set if this is a "privileged mode" instruction
+IF_CALL   = 0x04  # Set if this instruction branches to a procedure
 IF_BRANCH = 0x08  # Set if this instruction branches
-IF_RET = 0x10  # Set if this instruction terminates a procedure
-IF_COND = 0x20  # Set if this instruction is conditional
+IF_RET    = 0x10  # Set if this instruction terminates a procedure
+IF_COND   = 0x20  # Set if this instruction is conditional
 IF_REPEAT = 0x40  # set if this instruction repeats (including 0 times)
 
 # Branch flags (flags returned by the getBranches() method on an opcode)
-BR_PROC = 1 << 0  # The branch target is a procedure (call <foo>)
-BR_COND = 1 << 1  # The branch target is conditional (jz <foo>)
+BR_PROC  = 1 << 0  # The branch target is a procedure (call <foo>)
+BR_COND  = 1 << 1  # The branch target is conditional (jz <foo>)
 BR_DEREF = 1 << 2  # the branch target is *dereferenced* into PC (call [0x41414141])
 BR_TABLE = 1 << 3  # The branch target is the base of a pointer array of jmp/call slots
-BR_FALL = 1 << 4  # The branch is a "fall through" to the next instruction
-BR_ARCH = 1 << 5  # The branch *switches opcode formats*. ( ARCH_FOO in high bits )
+BR_FALL  = 1 << 4  # The branch is a "fall through" to the next instruction
+BR_ARCH  = 1 << 5  # The branch *switches opcode formats*. ( ARCH_FOO in high bits )
 
 from envi.const import *
 import envi.bits as e_bits
@@ -82,16 +82,16 @@ class ArchitectureModule:
         self._arch_maxinst = maxinst
 
     def getArchId(self):
-        '''
+        """
         Return the envi ARCH_FOO value for this arch.
-        '''
+        """
         return self._arch_id
 
     def getArchName(self):
-        '''
+        """
         Get the "humon" readable name for the arch implemented
         in this module.
-        '''
+        """
         return self._arch_name
 
     def archGetBreakInstr(self):
@@ -117,7 +117,7 @@ class ArchitectureModule:
         raise ArchNotImplemented("archGetRegCtx")
 
     def archParseOpcode(self, bytez, offset=0, va=0):
-        '''
+        """
         Parse an architecture specific Opcode object from the given bytes.
 
         offset  - Offset into bytes to begin opcode parsing
@@ -125,18 +125,18 @@ class ArchitectureModule:
 
         Example:
             a.archParseOpcode('\xeb\xfe', va=0x41414141)
-        '''
+        """
         raise ArchNotImplemented('archParseOpcode')
 
     def archGetRegisterGroups(self):
-        '''
+        """
         Returns a tuple of tuples of registers for different register groups.
         If not implemented for an architecture, returns a single group with
         all non-meta registers.
 
         Example:
             [ ('all', ['eax', 'ebx', ...] ), ...]
-        '''
+        """
         regctx = self.archGetRegCtx()
         allr = [rname for rname in regctx.getRegisterNames()]
         return [('all', allr), ]
@@ -168,10 +168,10 @@ class ArchitectureModule:
 
 
 def stealArchMethods(obj, archname):
-    '''
+    """
     Used by objects which are expected to inherit from an
     architecture module but don't know which one until runtime!
-    '''
+    """
     arch = getArchModule(archname)
     for name in dir(arch):
         o = getattr(arch, name, None)
@@ -210,7 +210,7 @@ class SegmentationViolation(EnviException):
     """
 
     def __init__(self, va, msg=None):
-        if msg == None:
+        if msg is None:
             msg = "Bad Memory Access: %s" % hex(va)
         EnviException.__init__(self, msg)
         self.va = va
@@ -334,21 +334,21 @@ class Operand:
         return False
 
     def isImmed(self):
-        '''
+        """
         If the given operand represents an immediate value, this must return True.
-        '''
+        """
         return False
 
     def isReg(self):
-        '''
+        """
         If the given operand represents a register value, this must return True.
-        '''
+        """
         return False
 
     def isDiscrete(self):
-        '''
+        """
         If the given operand can be completly resolved without an emulator, return True.
-        '''
+        """
         return False
 
     def getOperAddr(self, op, emu):

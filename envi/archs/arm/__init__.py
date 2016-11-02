@@ -1,4 +1,3 @@
-
 """
 The initial arm module.
 """
@@ -8,8 +7,8 @@ import envi
 from envi.archs.arm.regs import *
 from envi.archs.arm.disasm import *
 
-class ArmModule(envi.ArchitectureModule):
 
+class ArmModule(envi.ArchitectureModule):
     def __init__(self, name='armv6'):
         import envi.archs.thumb16.disasm as eatd
         envi.ArchitectureModule.__init__(self, name, maxinst=4)
@@ -21,12 +20,12 @@ class ArmModule(envi.ArchitectureModule):
         return ArmRegisterContext()
 
     def archGetBreakInstr(self):
-        raise Exception ("weird... what are you trying to do here?  ARM has a complex breakpoint instruction")
+        raise Exception("weird... what are you trying to do here?  ARM has a complex breakpoint instruction")
         return
 
     def archGetNopInstr(self):
         return '\x00'
- 
+
     def getPointerSize(self):
         return 4
 
@@ -44,5 +43,6 @@ class ArmModule(envi.ArchitectureModule):
 
     def getEmulator(self):
         return ArmEmulator()
+
 
 from envi.archs.arm.emu import *

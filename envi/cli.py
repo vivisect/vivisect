@@ -24,11 +24,13 @@ import envi.memcanvas.renderers as e_render
 from cmd import Cmd
 from getopt import getopt
 
+
 def splitargs(cmdline):
     cmdline = cmdline.replace('\\\\"', '"').replace('\\"', '')
     patt = re.compile('\".+?\"|\S+')
     for item in cmdline.split('\n'):
         return [s.strip('"') for s in patt.findall(item)]
+
 
 def columnstr(slist):
     msize = 0
@@ -44,6 +46,7 @@ class CliExtMeth:
     between functions and bound methods for extended
     command modules
     """
+
     def __init__(self, cli, func):
         self.cli = cli
         self.func = func
@@ -52,11 +55,12 @@ class CliExtMeth:
     def __call__(self, line):
         return self.func(self.cli, line)
 
+
 def isValidScript(scriptpath):
-    '''
+    """
     Takes in a filepath
     Returns whether the file is valid python (ie. suvives import)
-    '''
+    """
     if not os.path.isfile(scriptpath):
         return False
 
@@ -68,12 +72,13 @@ def isValidScript(scriptpath):
         return True
     except Exception as e:
         pass
-    
+
     return False
 
+
 def getRelScriptsFromPath(scriptpaths):
-    '''
-    Takes in a list of base paths (eg. ENVI_SCRIPT_PATH list) and recurses the 
+    """
+    Takes in a list of base paths (eg. ENVI_SCRIPT_PATH list) and recurses the
     directories looking for valid python files (ie. they don't throw errors
     on import).
 
@@ -81,42 +86,45 @@ def getRelScriptsFromPath(scriptpaths):
     ie.  if my path has "/home/hacker/fooscripts" in it, the script located
     at "/home/hacker/fooscripts/barmazing/bazthis.py" is listed as
     "barmazing/bazthis.py" and the do_script() handler can use that.
-    '''
+    """
     scripts = []
     for basedir in scriptpaths:
         baselen = len(basedir) + 1
 
-        for dirname,subdirs,subfiles in os.walk(basedir):
+        for dirname, subdirs, subfiles in os.walk(basedir):
             for subfile in subfiles:
-                subpath = os.path.join(dirname,subfile)
+                subpath = os.path.join(dirname, subfile)
                 if isValidScript(subpath):
                     scripts.append(subpath[baselen:])
 
     return scripts
 
+
 cfgdefs = {
-    'cli':{
-        'verbose':False,
-        'aliases':{
+    'cli': {
+        'verbose': False,
+        'aliases': {
         }
     }
 }
 
+
 class VOptionParser(optparse.OptionParser):
-    '''
+    """
     overloads error function that prints to stdout/stderr.
 
     error is overloaded to raise an exception if an error occurs during the
     parse of arguments.  normally optionparser sends it to stderr.
-    '''
+    """
+
     def __init__(self, *args, **kwargs):
         optparse.OptionParser.__init__(self, *args, add_help_option=False, **kwargs)
 
     def error(self, msg):
         raise Exception(msg)
 
-class EnviCli(Cmd):
 
+class EnviCli(Cmd):
     def __init__(self, memobj, config=None, symobj=None):
 
         self.extcmds = {}
@@ -130,15 +138,15 @@ class EnviCli(Cmd):
 
         for name in dir(self):
             if name.startswith('do_'):
-                self.basecmds.append( name[3:] )
+                self.basecmds.append(name[3:])
 
         self.shutdown = threading.Event()
 
         # If they didn't give us a resolver, make one.
-        if symobj == None:
+        if symobj is None:
             symobj = e_resolv.SymbolResolver()
 
-        if config == None:
+        if config is None:
             config = e_config.EnviConfig(defaults=cfgdefs)
 
         # Force it to be there if its not
@@ -149,33 +157,33 @@ class EnviCli(Cmd):
         self.symobj = symobj
         self.canvas = e_canvas.MemoryCanvas(memobj, syms=symobj)
 
-        self.aliases = {} # For *runtime* aliases only!
+        self.aliases = {}  # For *runtime* aliases only!
 
     def addCmdAlias(self, alias, cmd, persist=False):
-        '''
+        """
         Add a command alias and optionally save it.
 
         Specify persist=True to save the alias.
 
         Example:
             cli.addRuntimeAlias('woot', 'woot -F -T')
-        '''
+        """
         if not persist:
-            self.aliases[ alias ] = cmd
+            self.aliases[alias] = cmd
             return
-        self.config.cli.aliases[ alias ] = cmd
+        self.config.cli.aliases[alias] = cmd
 
     def addScriptPathEnvVar(self, pathenv):
-        '''
+        """
         Reads a script environment variable in, parses it, and stores the paths
-        '''
-        scriptdirs = os.getenv( pathenv )
-        if scriptdirs != None:
+        """
+        scriptdirs = os.getenv(pathenv)
+        if scriptdirs is not None:
             for scriptdir in scriptdirs.split(os.pathsep):
                 if scriptdir in self.scriptpaths:
                     continue
 
-                self.scriptpaths.append( scriptdir )
+                self.scriptpaths.append(scriptdir)
 
     def setCanvas(self, canvas):
         """
@@ -206,41 +214,41 @@ class EnviCli(Cmd):
 
     def registerCmdExtension(self, func, subsys='extended'):
         self.extcmds["do_%s" % func.__name__] = CliExtMeth(self, func)
-        self.extsubsys[ subsys ].append( func.__name__ )
+        self.extsubsys[subsys].append(func.__name__)
 
     def vprint(self, msg, addnl=True):
-        '''
+        """
         Print output to the CLI's output handler.  This allows routines to
         print to the terminal or the GUI depending on which mode we're in.
 
         Example:
             vprint('hi mom!')
-        '''
+        """
         if addnl:
-            msg = msg+"\n"
+            msg += "\n"
         self.canvas.write(msg)
 
     def __getattr__(self, name):
         func = self.extcmds.get(name, None)
-        if func == None:
+        if func is None:
             raise AttributeError(name)
         return func
 
     def aliascmd(self, line):
         # Check the "runtime" aliases first
-        for alias,cmd in list(self.aliases.items()):
+        for alias, cmd in list(self.aliases.items()):
             if line.startswith(alias):
-                return line.replace(alias,cmd)
+                return line.replace(alias, cmd)
 
         # Now the "configured" aliases
-        for alias,cmd in list(self.config.cli.aliases.items()):
+        for alias, cmd in list(self.config.cli.aliases.items()):
             if line.startswith(alias):
-                return line.replace(alias,cmd)
+                return line.replace(alias, cmd)
 
         return line
 
     def cmdloop(self, intro=None):
-        if intro != None:
+        if intro is not None:
             self.vprint(intro)
 
         while not self.shutdown.isSet():
@@ -253,7 +261,7 @@ class EnviCli(Cmd):
         return self.do_help('')
 
     def setEmptyMethod(self, callback):
-        '''
+        """
         Set a method to be called back in the event of emptyline().
         NOTE: this method is cleared on every onecmd() call.
 
@@ -271,7 +279,7 @@ class EnviCli(Cmd):
                 showx()
                 cli.setcrmeth(showx)
 
-        '''
+        """
         self.emptymeth = callback
 
     def onecmd(self, line):
@@ -285,27 +293,27 @@ class EnviCli(Cmd):
         lines = line.split("&&")
         try:
             for line in lines:
-                line = self.aliascmd( line )
+                line = self.aliascmd(line)
                 Cmd.onecmd(self, line)
         except SystemExit:
             raise
         except Exception as msg:
             if self.config.cli.verbose:
                 self.vprint(traceback.format_exc())
-            self.vprint("\nERROR: (%s) %s" % (msg.__class__.__name__,msg))
+            self.vprint("\nERROR: (%s) %s" % (msg.__class__.__name__, msg))
 
         if self.shutdown.isSet():
             return True
 
     def do_help(self, line):
         if line:
-            return Cmd.do_help(self,line)
+            return Cmd.do_help(self, line)
 
         self.basecmds.sort()
         self.vprint('\nbasics:')
 
-        #self.vprint( self.columnize( self.basecmds ) )
-        self.columnize( self.basecmds )
+        # self.vprint( self.columnize( self.basecmds ) )
+        self.columnize(self.basecmds)
 
         subsys = list(self.extsubsys.keys())
         subsys.sort()
@@ -321,9 +329,9 @@ class EnviCli(Cmd):
         self.vprint('\n')
 
     def do_clear(self, line):
-        '''
+        """
         Clears the CLI output. (GUI only)
-        '''
+        """
         self.canvas.clearCanvas()
 
     def do_EOF(self, line):
@@ -338,14 +346,14 @@ class EnviCli(Cmd):
         self.shutdown.set()
 
     def do_config(self, line):
-        '''
+        """
         Show, edit, or save config options from the command line.
 
         Usage: config [-s] [config option[=value]]
 
         no options  display config
         -s          save config to default location AFTER setting any options.
-        '''
+        """
         parser = VOptionParser()
         parser.add_option('-s', action='store_true', dest='do_save')
 
@@ -357,7 +365,7 @@ class EnviCli(Cmd):
             return self.do_help('config')
 
         if len(args) <= 0 and not options.do_save:
-            #FIXME for now we will hard code one level of sections
+            # FIXME for now we will hard code one level of sections
             subnames = self.config.getSubConfigNames()
             subnames.sort()
             for subname in subnames:
@@ -379,21 +387,21 @@ class EnviCli(Cmd):
             subname, optname = parts[0].split('.', 1)
 
             subcfg = self.config.getSubConfig(subname, add=False)
-            if subcfg == None:
+            if subcfg is None:
                 self.vprint('No Such Config Section: %s' % subname)
                 return
 
             optval = subcfg.get(optname)
-            if optval == None:
+            if optval is None:
                 self.vprint('No Such Config Option: %s' % optname)
                 return
 
             if len(parts) == 2:
                 newval = json.loads(parts[1])
 
-                if type(newval) not in (str,str) or type(optval) not in (str,str):
+                if type(newval) not in (str, str) or type(optval) not in (str, str):
                     if type(newval) != type(optval):
-                        self.vprint('Invalid Type Mismatch: %r - %r' % (newval,optval))
+                        self.vprint('Invalid Type Mismatch: %r - %r' % (newval, optval))
                         return
 
                 optval = newval
@@ -417,21 +425,21 @@ class EnviCli(Cmd):
             row = line.split(None, 1)
             self.config.cli.aliases.pop(row[0])
             if len(row) > 1:
-                self.config.cli.aliases[ row[0] ] = row[1]
+                self.config.cli.aliases[row[0]] = row[1]
 
         self.vprint('')
         self.vprint('Runtime Aliases (not saved):')
         aliases = list(self.aliases.keys())
         aliases.sort()
         for alias in aliases:
-            self.vprint('%s -> %s' % (alias,self.aliases.get(alias)))
+            self.vprint('%s -> %s' % (alias, self.aliases.get(alias)))
         self.vprint('')
 
         self.vprint('Configured Aliases:')
         aliases = list(self.config.cli.aliases.keys())
         aliases.sort()
         for alias in aliases:
-            self.vprint('%s -> %s' % (alias,self.config.cli.aliases.get(alias)))
+            self.vprint('%s -> %s' % (alias, self.config.cli.aliases.get(alias)))
         self.vprint('')
         return
 
@@ -488,16 +496,16 @@ class EnviCli(Cmd):
         if self.memobj.isValidPointer(value):
             self.canvas.addVaText("0x%.8x" % value, value)
             sym = self.symobj.getSymByAddr(value, exact=False)
-            if sym != None:
+            if sym is not None:
                 self.canvas.addText(" ")
-                self.canvas.addVaText("%s + %d" % (repr(sym),value-int(sym)), value)
+                self.canvas.addVaText("%s + %d" % (repr(sym), value - int(sym)), value)
         else:
             self.canvas.addText("0x%.8x (%d)" % (value, value))
 
         self.canvas.addText("\n")
 
     def do_script(self, line):
-        '''
+        """
         Execute a python file.
 
         The script file is arbitrary python code which is run with the
@@ -510,9 +518,9 @@ class EnviCli(Cmd):
               all be strings)
 
         Usage: script <scriptfile> [<argv[0]>, ...]
-            
+
         or     script ?
-        '''
+        """
         if len(line) == 0:
             return self.do_help('script')
 
@@ -524,7 +532,6 @@ class EnviCli(Cmd):
             scripts = getRelScriptsFromPath(self.scriptpaths)
             self.vprint('Scripts available in script paths:\n\t' + '\n\t'.join(scripts))
             return
-
 
         # TODO: unify vdb.extensions.loadExtensions VDB_EXT_PATH with this
         # TODO: where should env var parsing live?
@@ -541,7 +548,7 @@ class EnviCli(Cmd):
                 if os.path.exists(spath):
                     scriptpath = spath
 
-        if scriptpath == None:
+        if scriptpath is None:
             self.vprint('failed to find script')
             return
 
@@ -552,7 +559,7 @@ class EnviCli(Cmd):
             cobj = compile(contents, scriptpath, 'exec')
             exec(cobj, locals)
         except Exception as e:
-            self.vprint( traceback.format_exc() )
+            self.vprint(traceback.format_exc())
             self.vprint('SCRIPT ERROR: %s' % e)
 
     def do_maps(self, line):
@@ -567,30 +574,30 @@ class EnviCli(Cmd):
             expr = " ".join(argv)
             va = self.parseExpression(expr)
             map = self.memobj.getMemoryMap(va)
-            if map == None:
-                self.vprint("Memory Map Not Found For: 0x%.8x"%va)
+            if map is None:
+                self.vprint("Memory Map Not Found For: 0x%.8x" % va)
 
             else:
-                addr,size,perm,fname = map
+                addr, size, perm, fname = map
                 pname = e_mem.reprPerms(perm)
                 self.canvas.addText("Memory Map For: ")
                 self.canvas.addVaText("0x%.8x" % va, va)
                 self.canvas.addText("\n")
                 self.canvas.addVaText("0x%.8x" % addr, addr)
-                self.canvas.addText("\t%d\t%s\t%s\n" % (size,pname,fname))
+                self.canvas.addText("\t%d\t%s\t%s\n" % (size, pname, fname))
         else:
             totsize = 0
             self.vprint("[ address ] [ size ] [ perms ] [ File ]")
-            for addr,size,perm,fname in self.memobj.getMemoryMaps():
+            for addr, size, perm, fname in self.memobj.getMemoryMaps():
                 pname = e_mem.reprPerms(perm)
                 totsize += size
                 self.canvas.addVaText("0x%.8x" % addr, addr)
-                sizestr = ("%dK" % (size/1024,)).rjust(8)
-                self.canvas.addText("%s\t%s\t%s\n" % (sizestr,pname,fname))
-            self.vprint("Total Virtual Memory: %.2f MB" % ((float(totsize)/1024)/1024))
+                sizestr = ("%dK" % (size / 1024,)).rjust(8)
+                self.canvas.addText("%s\t%s\t%s\n" % (sizestr, pname, fname))
+            self.vprint("Total Virtual Memory: %.2f MB" % ((float(totsize) / 1024) / 1024))
 
     def do_saveout(self, line):
-        '''
+        """
         saves output to file for any command.  still outputs to whatever
         canvas the command normally outputs to.
 
@@ -598,7 +605,7 @@ class EnviCli(Cmd):
 
         Example:
         saveout out.txt search -c MZ
-        '''
+        """
         argv = shlex.split(line)
         if len(argv) < 2:
             return self.do_help('saveout')
@@ -614,7 +621,7 @@ class EnviCli(Cmd):
                 f.write(str(strcanvas))
 
     def do_search(self, line):
-        '''
+        """
         search memory for patterns.
 
         search [options] <pattern>
@@ -625,7 +632,7 @@ class EnviCli(Cmd):
         -r  pattern is a regular expression
         -R  <baseexpr:sizeexpr> search a range of memory (base + size)
         -c  show context (32 bytes) after each hit
-        '''
+        """
         parser = VOptionParser()
         parser.add_option('-e', action='store', dest='encode_as')
         parser.add_option('-X', action='store_true', dest='is_hex')
@@ -633,7 +640,7 @@ class EnviCli(Cmd):
         parser.add_option('-r', action='store_true', dest='is_regex')
         parser.add_option('-R', action='store', dest='range_search')
         parser.add_option('-c', action='store_const', dest='num_context_bytes',
-                const=32)
+                          const=32)
 
         argv = shlex.split(line)
         try:
@@ -648,14 +655,14 @@ class EnviCli(Cmd):
             return self.do_help('search')
 
         if options.is_expr:
-            import struct #FIXME see below
+            import struct  # FIXME see below
             sval = self.parseExpression(pattern)
-            pattern = struct.pack('<L', sval) # FIXME 64bit (and alt arch)
+            pattern = struct.pack('<L', sval)  # FIXME 64bit (and alt arch)
 
         if options.is_hex:
             pattern = pattern.decode('hex')
 
-        if options.encode_as != None:
+        if options.encode_as is not None:
             pattern = pattern.encode(options.encode_as)
 
         if options.range_search:
@@ -682,7 +689,7 @@ class EnviCli(Cmd):
         brend = e_render.ByteRend()
         self.vprint('matches for: %s (%s)' % (pattern.encode('hex'), repr(pattern)))
         for va in res:
-            mbase,msize,mperm,mfile = self.memobj.getMemoryMap(va)
+            mbase, msize, mperm, mfile = self.memobj.getMemoryMap(va)
             pname = e_mem.reprPerms(mperm)
             sname = self.reprPointer(va)
 
@@ -691,7 +698,7 @@ class EnviCli(Cmd):
             self.canvas.addText('%s ' % pname)
             self.canvas.addText(sname)
 
-            if options.num_context_bytes != None:
+            if options.num_context_bytes is not None:
                 self.canvas.addText('\n')
                 self.canvas.renderMemory(va, options.num_context_bytes, rend=brend)
 
@@ -707,11 +714,11 @@ class EnviCli(Cmd):
         if va == 0:
             return "NULL"
 
-        mbase,msize,mperm,mfile = self.memobj.getMemoryMap(va)
+        mbase, msize, mperm, mfile = self.memobj.getMemoryMap(va)
         ret = mfile
         sym = self.symobj.getSymByAddr(va, exact=False)
-        if sym != None:
-            ret = "%s + %d" % (repr(sym),va-int(sym))
+        if sym is not None:
+            ret = "%s + %d" % (repr(sym), va - int(sym))
         return ret
 
     def do_memdump(self, line):
@@ -757,7 +764,7 @@ class EnviCli(Cmd):
 
         addr1 = self.parseExpression(argv[0])
         addr2 = self.parseExpression(argv[1])
-        size  = self.parseExpression(argv[2])
+        size = self.parseExpression(argv[2])
 
         bytes1 = self.memobj.readMemory(addr1, size)
         bytes2 = self.memobj.readMemory(addr2, size)
@@ -768,16 +775,16 @@ class EnviCli(Cmd):
             return
 
         for offset, offsize in res:
-            diff1 = addr1+offset
-            diff2 = addr2+offset
-            self.canvas.addText('==== %d byte difference at offset %d\n' % (offsize,offset))
+            diff1 = addr1 + offset
+            diff2 = addr2 + offset
+            self.canvas.addText('==== %d byte difference at offset %d\n' % (offsize, offset))
             self.canvas.addVaText("0x%.8x" % diff1, diff1)
             self.canvas.addText(":")
-            self.canvas.addText(bytes1[offset:offset+offsize].encode('hex'))
+            self.canvas.addText(bytes1[offset:offset + offsize].encode('hex'))
             self.canvas.addText('\n')
             self.canvas.addVaText("0x%.8x" % diff2, diff2)
             self.canvas.addText(":")
-            self.canvas.addText(bytes2[offset:offset+offsize].encode('hex'))
+            self.canvas.addText(bytes2[offset:offset + offsize].encode('hex'))
             self.canvas.addText('\n')
 
     def do_mem(self, line):
@@ -797,11 +804,11 @@ class EnviCli(Cmd):
 
         argv = splitargs(line)
         try:
-            opts,args = getopt(argv, "F:")
+            opts, args = getopt(argv, "F:")
         except:
             return self.do_help("mem")
 
-        for opt,optarg in opts:
+        for opt, optarg in opts:
             if opt == "-F":
                 fmtname = optarg
                 fnames = self.canvas.getRendererNames()
@@ -824,7 +831,8 @@ class EnviCli(Cmd):
         if len(args) == 2:
             size = self.parseExpression(args[1])
 
-        scope = {'addr':addr}
+        scope = {'addr': addr}
+
         def showmem():
             self.canvas.setRenderer(fmtname)
             self.canvas.renderMemory(scope['addr'], size)
@@ -841,15 +849,14 @@ class EnviMutableCli(EnviCli):
     """
 
     def do_memcpy(self, line):
-        '''
+        """
         Copy memory from one location to another...
 
         Usage: memcpy <dest_expr> <src_expr> <size_expr>
-        '''
+        """
         argv = splitargs(line)
         if len(argv) != 3:
             return self.do_help('memcpy')
-
 
         dst = self.parseExpression(argv[0])
         src = self.parseExpression(argv[1])
@@ -876,20 +883,19 @@ class EnviMutableCli(EnviCli):
         except Exception as e:
             return self.do_help("memprotect")
 
-        for opt,optarg in opts:
+        for opt, optarg in opts:
             if opt == "-S":
                 size = self.parseExpression(optarg)
 
         if len(args) != 2:
             return self.do_help("memprotect")
 
-
         addr = self.parseExpression(args[0])
         perm = e_mem.parsePerms(args[1])
 
-        if size == None:
+        if size is None:
             map = self.memobj.getMemoryMap(addr)
-            if map == None:
+            if map is None:
                 raise Exception("Unknown memory map for 0x%.8x" % addr)
             size = map[1]
 
@@ -907,14 +913,14 @@ class EnviMutableCli(EnviCli):
 
         try:
             argv = splitargs(args)
-            opts,args = getopt(argv, "XU")
+            opts, args = getopt(argv, "XU")
         except:
             return self.do_help("writemem")
 
         if len(args) != 2:
             return self.do_help("writemem")
 
-        for opt,optarg in opts:
+        for opt, optarg in opts:
             if opt == "-X":
                 dohex = True
             elif opt == "-U":
@@ -926,4 +932,3 @@ class EnviMutableCli(EnviCli):
 
         addr = self.parseExpression(exprstr)
         self.memobj.writeMemory(addr, memstr)
-

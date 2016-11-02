@@ -39,11 +39,11 @@ class MemoryExpressionLocals(ExpressionLocals):
         })
 
     def sym(self, symstr):
-        '''
+        """
         An easy to use utility for symbols which have un-pythonic names.
 
         Example x = sym('kernel32.??2@$$FYAPAXI@Z')
-        '''
+        """
         return int(evaluate(symstr, self))
 
     def mapbase(self, address):

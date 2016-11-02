@@ -1,8 +1,6 @@
 import cgi
 
 import vqt.main as vq_main
-import vqt.colors as vq_colors
-import vqt.hotkeys as vq_hotkey
 import envi.qt.html as e_q_html
 import envi.qt.jquery as e_q_jquery
 import envi.memcanvas as e_memcanvas
@@ -59,7 +57,7 @@ class VQMemoryCanvas(QtWebKit.QWebView, e_memcanvas.MemoryCanvas):
             va, szdiff = self._loc_helper(max(va - size, vmap[0]))
             size += size + szdiff
 
-        ret = e_memcanvas.MemoryCanvas.renderMemory(self, va, size, rend=rend)
+        ret = super(VQMemoryCanvas, self).renderMemory(va, size, rend=rend)
 
         if self._canv_rend_middle:
             self._scrollToVa(origva)
@@ -158,7 +156,7 @@ class VQMemoryCanvas(QtWebKit.QWebView, e_memcanvas.MemoryCanvas):
     def _jsSetCurVa(self, vastr):
         self._canv_curva = int(str(vastr), 0)
 
-    # NOTE: doing append / scroll seperately allows render to catch up
+    # NOTE: doing append / scroll separately allows render to catch up
     @idlethread
     def _appendInside(self, text):
         frame = self.page().mainFrame()

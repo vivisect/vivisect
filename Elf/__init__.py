@@ -1,7 +1,7 @@
 """
 Kenshoto's Elf parser
 
-This package will let you use programatic ninja-fu
+This package will let you use programmatic ninja-fu
 when trying to parse Elf binaries.  The API is based
 around several objects representing constructs in the
 Elf binary format.  The Elf object itself contains
@@ -26,6 +26,7 @@ import zlib
 
 from stat import *
 from Elf.elf_lookup import *
+
 import vstruct
 import vstruct.defs.elf as vs_elf
 
@@ -202,7 +203,7 @@ class ElfSection:
         self.name = ''
 
     def setName(self, name):
-        self.name = name.decode()
+        self.name = name
 
     def getName(self):
         return self.name
@@ -297,10 +298,10 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
         self._parseRelocs()
 
     def getRelocTypeName(self, rtype):
-        '''
+        """
         Because relocation type names are decided based on the
         arch, only the Elf knows for sure...
-        '''
+        """
         return self.r_types.get(rtype)
 
     def _parsePheaders(self):
@@ -344,6 +345,7 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
             names = self.readAtOffset(strsec.sh_offset, strsec.sh_size)
             for sec in self.sections:
                 name = names[sec.sh_name:].split(b"\x00")[0]
+                name = name.decode()
                 if len(name) > 0:
                     sec.setName(name)
                     self.secnames[name] = sec
@@ -371,11 +373,11 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
 
     def _parseDynamic(self):
         symtab = self.getSectionBytes('.dynsym')
-        if symtab == None:
+        if symtab is None:
             return
 
         sym = self._cls_symbol(bigend=self.bigend)
-        syms = sym * (len(symtab) / len(sym))
+        syms = sym * (len(symtab) // len(sym))
         vstruct.VArray(elems=syms).vsParse(symtab, fast=True)
 
         for sym in syms:
@@ -467,16 +469,16 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
         return base
 
     def readAtRva(self, rva, size):
-        '''
+        """
         Calculate the file offset for the given RVA and
         read from it...
-        '''
+        """
         return self.readAtOffset(self.rvaToOffset(rva), size)
 
     def rvaToOffset(self, rva):
-        '''
+        """
         Convert an RVA for this ELF binary to a file offset.
-        '''
+        """
         baseaddr = 0
         # if self.isPreLinked() or not self.isSharedObject():
         # if not self.isSharedObject():
@@ -495,13 +497,13 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
             rvaoff = rva - phrva
             return pgm.p_offset + rvaoff
 
-        # raise Exception('omg', hex(rva))
+        raise Exception('omg', hex(rva))
         return None
 
     def readAtOffset(self, off, size):
-        '''
+        """
         Read from the given file offset.
-        '''
+        """
         self.fd.seek(off)
         return self.fd.read(size)
 
@@ -523,18 +525,18 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
     def getStrtabString(self, offset, section=".strtab"):
         sec = self.getSection(section)
         bytes = self.readAtOffset(sec.sh_offset, sec.sh_size)
-        index = bytes.find("\x00", offset)
-        return bytes[offset:index]
+        index = bytes.find(b"\x00", offset)
+        return bytes[offset:index].decode()
 
     def getNotes(self):
-        '''
+        """
         Retrieve a list of the ElfNote vstructs from any
         sections of type SHT_NOTE.
 
         Example:
             for note in e.getNotes():
                 print('%s : %d' % (e.name,e.ntype))
-        '''
+        """
         for sec in self.getSections():
             if sec.sh_type != SHT_NOTE:
                 continue
@@ -552,13 +554,13 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
                 yield note
 
     def getPlatform(self):
-        '''
+        """
         Return a "best effort" platform guess (envi platform name).
         ( and platform specific details if any )
 
         Example:
             plat = e.getPlatform()
-        '''
+        """
         for note in self.getNotes():
             if note.name == b'GNU\x00' and note.ntype == 1:
                 desc0 = int(note.desc[0])
@@ -567,27 +569,27 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
         return 'unknown'
 
     def getDynamics(self):
-        '''
+        """
         Return a list of the dynamics.
-        '''
+        """
         return list(self.dynamics)
 
     def getDynSyms(self):
-        '''
+        """
         Return a list of dynamic symbol objects.
-        '''
+        """
         return self.dynamic_symbols
 
     def getRelocs(self):
-        '''
+        """
         Get the list of relocations.
-        '''
+        """
         return list(self.relocs)
 
     def isPreLinked(self):
-        '''
+        """
         Returns True if the Elf binary is prelinked.
-        '''
+        """
         for dyn in self.dynamics:
             if dyn.d_tag == DT_GNU_PRELINKED:
                 return True
@@ -596,18 +598,18 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
         return False
 
     def isSharedObject(self):
-        '''
+        """
         Returns true if the given Elf binary is a dynamically shared
         object.
-        '''
+        """
         if self.e_type == ET_DYN:
             return True
         return False
 
     def isExecutable(self):
-        '''
+        """
         Returns true if the given Elf binary is an executable file type.
-        '''
+        """
         return self.e_type == ET_EXEC
 
     def __repr__(self, verbose=False):
