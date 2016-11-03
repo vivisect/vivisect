@@ -1,7 +1,6 @@
 import vqt.hotkeys as vq_hotkey
 import vqt.saveable as vq_save
 import envi.qt.memory as e_mem_qt
-# import envi.memcanvas as e_memcanvas
 import envi.qt.memory as e_qt_memory
 import envi.qt.memcanvas as e_qt_memcanvas
 
@@ -72,7 +71,7 @@ class VQVivFuncgraphCanvas(vq_memory.VivCanvasBase):
         canvelem = frame.findFirstElement('#memcanvas')
 
         elem = frame.findFirstElement('#codeblock_%.8x' % va)
-        if elem is None:
+        if elem.isNull():
             # Lets add a codeblock element for this
             canvelem.appendInside('<div class="codeblock" id="codeblock_%.8x"></div>' % va)
 
@@ -109,16 +108,16 @@ class VQVivFuncgraphCanvas(vq_memory.VivCanvasBase):
             self._canv_navcallback(expr)
 
     def refresh(self):
-        '''
+        """
         Redraw the function graph (actually, tells the View to do it)
-        '''
+        """
         self.refreshSignal.emit()
 
     @idlethread
     def setScrollPosition(self, x, y):
-        '''
+        """
         Sets the view reticle to an absolute scroll position
-        '''
+        """
         point = QPoint(x, y)
         self.page().mainFrame().setScrollPosition(point)
 
@@ -327,13 +326,13 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin,
         self.mem_canvas.setZoomFactor(newzoom)
 
     def refresh(self):
-        '''
+        """
         Cause the Function Graph to redraw itself.
         This is particularly helpful because comments and name changes don't
         immediately display.  Perhaps someday this will update only the blocks
         that have changed since last update, and be fast, so we can update
-        after every change.  
-        '''
+        after every change.
+        """
         self._last_viewpt = self.mem_canvas.page().mainFrame().scrollPosition()
         self.clearText()
         self.fva = None
@@ -341,11 +340,11 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin,
 
     @workthread
     def _refresh_cb(self):
-        '''
+        """
         This is a hack to make sure that when _renderMemory() completes,
         _refresh_3() gets run after all other rendering events yet to come.
-        '''
-        if self._last_viewpt == None:
+        """
+        if self._last_viewpt is None:
             return
 
         self.mem_canvas.setScrollPosition(self._last_viewpt.x(), self._last_viewpt.y())
@@ -359,7 +358,7 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin,
             addr = self.vw.parseExpression(expr)
             menustr = '0x%.8x' % addr
             sym = self.vw.getSymByAddr(addr)
-            if sym != None:
+            if sym is not None:
                 menustr += ' - %s' % repr(sym)
 
             history.append((menustr, expr))
@@ -429,8 +428,8 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin,
             cbva = nprops.get('cbva')
 
             cbname = 'codeblock_%.8x' % cbva
-            girth, ok = frame.evaluateJavaScript('document.getElementById("%s").offsetWidth;' % cbname).toInt()
-            height, ok = frame.evaluateJavaScript('document.getElementById("%s").offsetHeight;' % cbname).toInt()
+            girth = frame.evaluateJavaScript('document.getElementById("%s").offsetWidth;' % cbname)
+            height = frame.evaluateJavaScript('document.getElementById("%s").offsetHeight;' % cbname)
             self.graph.setNodeProp((nid, nprops), "size", (girth, height))
 
         self.dylayout = vg_dynadag.DynadagLayout(self.graph)
@@ -525,7 +524,7 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin,
         '''
         graph = viv_graphutil.buildFunctionGraph(self.vw, self.fva, revloop=True)
         startva = self.mem_canvas._canv_curva
-        if startva == None:
+        if startva is None:
             return
 
         viv_graphutil.preRouteGraphUp(graph, startva, mark='hit')
@@ -536,7 +535,7 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin,
             count += 1
             off = 0
             cbsize = node[1].get('cbsize')
-            if cbsize == None:
+            if cbsize is None:
                 raise Exception('node has no cbsize: %s' % repr(node))
 
             # step through opcode for a node
@@ -550,16 +549,16 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin,
         return colormap
 
     def _hotkey_paintDown(self, va=None):
-        '''
-        Paint the VA's from the selected basic block down to all possible 
-        non-looping blocks.  This is valuable for determining what code can 
+        """
+        Paint the VA's from the selected basic block down to all possible
+        non-looping blocks.  This is valuable for determining what code can
         execute from any starting basic block, without a loop.
-        '''
+        """
         # TODO: make overlapping colors available for multiple paintings
 
         graph = viv_graphutil.buildFunctionGraph(self.vw, self.fva, revloop=True)
         startva = self.mem_canvas._canv_curva
-        if startva == None:
+        if startva is None:
             return
 
         viv_graphutil.preRouteGraphDown(graph, startva, mark='hit')
@@ -570,7 +569,7 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin,
             count += 1
             off = 0
             cbsize = node[1].get('cbsize')
-            if cbsize == None:
+            if cbsize is None:
                 raise Exception('node has no cbsize: %s' % repr(node))
 
             # step through opcode for a node
@@ -584,13 +583,13 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin,
         return colormap
 
     def _hotkey_paintMerge(self, va=None):
-        '''
+        """
         same as paintdown but only until the graph remerges
-        '''
+        """
 
         graph = viv_graphutil.buildFunctionGraph(self.vw, self.fva, revloop=True)
         startva = self.mem_canvas._canv_curva
-        if startva == None:
+        if startva is None:
             return
 
         viv_graphutil.findRemergeDown(graph, startva)
@@ -601,7 +600,7 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin,
             count += 1
             off = 0
             cbsize = node[1].get('cbsize')
-            if cbsize == None:
+            if cbsize is None:
                 raise Exception('node has no cbsize: %s' % repr(node))
 
             # step through opcode for a node

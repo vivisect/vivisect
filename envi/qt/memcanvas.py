@@ -1,14 +1,13 @@
-import cgi
+import html
 
 import vqt.main as vq_main
 import envi.qt.html as e_q_html
 import envi.qt.jquery as e_q_jquery
 import envi.memcanvas as e_memcanvas
 
-qt_horizontal = 1
-qt_vertical = 2
-
-from PyQt4 import QtCore, QtGui, QtWebKit
+from PyQt4 import QtGui
+from PyQt4 import QtCore
+from PyQt4 import QtWebKit
 
 from vqt.main import *
 from vqt.common import *
@@ -67,7 +66,7 @@ class VQMemoryCanvas(QtWebKit.QWebView, e_memcanvas.MemoryCanvas):
     def _frameContentsSizeChanged(self, size):
         if self._canv_scrolled:
             frame = self.page().mainFrame()
-            frame.setScrollBarValue(qt_vertical, 0x0fffffff)
+            frame.setScrollBarValue(QtCore.Qt.Vertical, 0x0fffffff)
 
     @idlethread
     def _scrollToVa(self, va):
@@ -132,19 +131,21 @@ class VQMemoryCanvas(QtWebKit.QWebView, e_memcanvas.MemoryCanvas):
         self._canv_cache = None
 
     def getNameTag(self, name, typename='name'):
-        '''
+        """
         Return a "tag" for this memory canvas.  In the case of the
         qt tags, they are a tuple of html text (<opentag>, <closetag>)
-        '''
+        """
         clsname = 'envi-%s' % typename
         namehex = name.lower()
         subclsname = 'envi-%s-%s' % (typename, namehex)
-        return ('<span class="%s %s" envitag="%s" envival="%s" onclick="nameclick(this)">' % (
-                clsname, subclsname, typename, namehex), '</span>')
+        return ('<span class="%s %s" envitag="%s" envival="%s" '
+                'onclick="nameclick(this)">' % (clsname, subclsname, typename, namehex), '</span>')
 
     def getVaTag(self, va):
         # The "class" will be the same that we get back from goto event
-        return ('<span class="envi-va envi-va-0x%.8x" va="0x%.8x" ondblclick="vagoto(this)" oncontextmenu="vaclick(this)" onclick="vaclick(this)">' % (va, va), '</span>')
+        return ('<span class="envi-va envi-va-0x%.8x" va="0x%.8x" '
+                ' ondblclick="vagoto(this)" oncontextmenu="vaclick(this)" '
+                ' onclick="vaclick(this)">' % (va, va), '</span>')
 
     @QtCore.pyqtSlot(str)
     def _jsGotoExpr(self, expr):
@@ -174,7 +175,7 @@ class VQMemoryCanvas(QtWebKit.QWebView, e_memcanvas.MemoryCanvas):
     def addText(self, text, tag=None):
         if isinstance(text, int):
             text = '%x' % text
-        text = cgi.escape(text)
+        text = html.escape(text)
 
         if tag is not None:
             otag, ctag = tag
@@ -206,16 +207,16 @@ class VQMemoryCanvas(QtWebKit.QWebView, e_memcanvas.MemoryCanvas):
     def _menuSaveToHtml(self):
         fname = QtGui.QFileDialog.getSaveFileName(self, 'Save As HTML...')
         if fname is not None:
-            html = self.page().mainFrame().toHtml()
-            open(fname, 'w').write(html)
+            _html = self.page().mainFrame().toHtml()
+            open(fname, 'w').write(_html)
 
 
 def getNavTargetNames():
-    '''
+    """
     Returns a list of Memory View names.
-    Populated by vqt in a seperate thread, thus is time-sensitive.  If the 
+    Populated by vqt in a separate thread, thus is time-sensitive.  If the
     list is accessed too quickly, some valid names may not yet be inserted.
-    '''
+    """
     ret = []
     vqtevent('envi:nav:getnames', ret)
     return ret

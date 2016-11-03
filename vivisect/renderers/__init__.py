@@ -5,11 +5,11 @@ import envi
 import string
 import urllib.request, urllib.parse, urllib.error
 
-from vivisect.const import *
-
-import vstruct.primitives as vs_prims
 import envi.cli as e_cli
 import envi.memcanvas as e_canvas
+
+from vivisect.const import *
+import vstruct.primitives as vs_prims
 
 location_tags = {
     LOC_PAD: "pad",

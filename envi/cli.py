@@ -446,7 +446,7 @@ class EnviCli(Cmd):
     def do_python(self, line):
         """
         Start an interactive python interpreter. The namespace of the
-        interpreter is updated with expression nicities.  You may also
+        interpreter is updated with expression niceties.  You may also
         specify a line of python code as an argument to be exec'd without
         beginning an interactive python interpreter on the controlling
         terminal.
