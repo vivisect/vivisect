@@ -1597,6 +1597,8 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
 
     def i_sub(self, op):
         x = self.integerSubtraction(op)
+        dsize = op.opers[0].tsize
+        x = e_bits.unsigned(x, dsize)
         if x != None:
             self.setOperValue(op, 0, x)
 
