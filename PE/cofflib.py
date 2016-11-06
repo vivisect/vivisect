@@ -1,6 +1,6 @@
-'''
+"""
 Some utilities for dealing with COFF .LIB files
-'''
+"""
 
 import vstruct
 from vstruct.defs.pe import *
@@ -15,6 +15,7 @@ IMAGE_ARCHIVE_LONGNAMES_MEMBER       = '//              '
 
 IMAGE_ARCHIVE_HEADER_SIZE           = 60
 
+
 class IMAGE_ARCHIVE_MEMBER_HEADER(vstruct.VStruct):
 
     def __init__(self):
@@ -27,6 +28,7 @@ class IMAGE_ARCHIVE_MEMBER_HEADER(vstruct.VStruct):
         self.Size       = v_str(size=10)
         self.EndHeader  = v_str(size=2)
         self.FileData   = vstruct.VStruct()
+
 
 class IMAGE_ARCHIVE_MEMBER(vstruct.VStruct):
 
@@ -46,6 +48,7 @@ class IMAGE_ARCHIVE_MEMBER(vstruct.VStruct):
 
         return offset
 
+
 class IMAGE_ARCHIVE_LINKER1(IMAGE_ARCHIVE_MEMBER):
 
     def __init__(self):
@@ -60,6 +63,7 @@ class IMAGE_ARCHIVE_LINKER1(IMAGE_ARCHIVE_MEMBER):
         print('SYMBOLS',c)
         self.SymbolOffsets = vstruct.VArray( elems=[ v_uint32(bigend=True) for i in range(c) ])
         self.SymbolNames = vstruct.VArray( elems=[ v_zstr() for i in range(c) ])
+
 
 class IMAGE_ARCHIVE_LINKER2(IMAGE_ARCHIVE_MEMBER):
 
@@ -85,6 +89,7 @@ IMPORT_CODE     = 0 #Executable code.
 IMPORT_DATA     = 1 #Data.
 IMPORT_CONST    = 2 #Specified as CONST in the .def file.
 
+
 class IMAGE_ARCHIVE_IMPORT(IMAGE_ARCHIVE_MEMBER):
 
     def __init__(self):
@@ -99,6 +104,7 @@ class IMAGE_ARCHIVE_IMPORT(IMAGE_ARCHIVE_MEMBER):
         self.ImportFlags    = v_uint16()
         self.ImportName     = v_zstr()
         self.ImportLibName  = v_zstr()
+
 
 class IMAGE_COFF_SYMBOL(vstruct.VStruct):
 
@@ -122,6 +128,7 @@ class IMAGE_COFF_SYMBOL(vstruct.VStruct):
         a = self.NumberOfAuxSymbols
         self.AuxSymbols = vstruct.VArray(elems=[ v_bytes(size=18) for i in range(a) ])
 
+
 class IMAGE_ARCHIVE_COFF(IMAGE_ARCHIVE_MEMBER):
 
     def __init__(self, bigend=False):
@@ -141,6 +148,7 @@ class IMAGE_ARCHIVE_COFF(IMAGE_ARCHIVE_MEMBER):
             p -= len(self.SectionHeaders)
             self.vsGetField('SectionData').vsSetLength(p)
             self.SymbolTable = vstruct.VArray(elems=[IMAGE_COFF_SYMBOL() for i in range(s)])
+
 
 class IMAGE_ARCHIVE(vstruct.VStruct):
 
@@ -176,6 +184,7 @@ class IMAGE_ARCHIVE(vstruct.VStruct):
             self.ImageArchiveMembers.vsAddElement(memb)
 
         return offset
+
 
 def foo(a, b, idx):
     print('NAME',a.ImageArchiveMembers[1].SymbolNames[idx])

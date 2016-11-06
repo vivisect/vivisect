@@ -3,8 +3,8 @@ from vstruct import VStruct
 from vstruct.primitives import *
 from binascii import unhexlify
 
-class v_bits(v_number):
 
+class v_bits(v_number):
     def __init__(self, width):
         v_number.__init__(self)
         self._vs_bitwidth = width
@@ -18,6 +18,7 @@ class v_bits(v_number):
     def vsSetBitWidth(self, width):
         self._vs_bitwidth = width
 
+
 class VBitField(VStruct):
     '''
     A VStruct *like* field which may contain v_bits
@@ -29,6 +30,7 @@ class VBitField(VStruct):
 
     NOTE: this object will pad itself to byte aligned bounds
     '''
+
     def __init__(self):
         VStruct.__init__(self)
 
@@ -47,19 +49,19 @@ class VBitField(VStruct):
 
         indent += 1
         bitoff = 0
-        for fname,field in self.vsGetFields():
+        for fname, field in self.vsGetFields():
             # use vsSetBitWidth(0) to disable fields
             if field._vs_bitwidth == 0:
                 continue
-            bitname = '%s[%d:%d]' % (fname,bitoff,bitoff + field._vs_bitwidth)
-            ret.append( (offset, indent, bitname, field) )
+            bitname = '%s[%d:%d]' % (fname, bitoff, bitoff + field._vs_bitwidth)
+            ret.append((offset, indent, bitname, field))
             bitoff += field._vs_bitwidth
 
         return ret
 
     def __len__(self):
-        bits = sum([ f._vs_bitwidth for (n,f) in self.vsGetFields() ])
-        bittobyte,bitoff = divmod(bits,8)
+        bits = sum([f._vs_bitwidth for (n, f) in self.vsGetFields()])
+        bittobyte, bitoff = divmod(bits, 8)
         if bitoff:
             bittobyte += 1
         return bittobyte
@@ -67,39 +69,39 @@ class VBitField(VStruct):
     def vsParse(self, bytez, offset=0):
         bitoff = 0
 
-        for fname,field in self.vsGetFields():
+        for fname, field in self.vsGetFields():
 
             # use vsSetBitWidth(0) to disable fields
             if field._vs_bitwidth == 0:
                 continue
 
             # adjust forward from last fields bits % 8
-            startbyte,startbit = divmod(bitoff,8)
-            #print 'BYTE BIT OFF',byteoff,bitoff,(
-            #offset += bittobyte
+            startbyte, startbit = divmod(bitoff, 8)
+            # print 'BYTE BIT OFF',byteoff,bitoff,(
+            # offset += bittobyte
 
-            endbyte,endbit = divmod(bitoff + field._vs_bitwidth,8)
+            endbyte, endbit = divmod(bitoff + field._vs_bitwidth, 8)
             # if we have an endbit remainder, we need to grab
             # an additional byte...
             endround = 0
             endshift = 0
             if endbit:
-                endshift = (8-endbit)
+                endshift = (8 - endbit)
                 endround = 1
 
-            fieldbytes = bytez[offset + startbyte:offset+endbyte+endround]
-            rawint = int( fieldbytes.encode('hex'), 16)
+            fieldbytes = bytez[offset + startbyte:offset + endbyte + endround]
+            rawint = int(fieldbytes.encode('hex'), 16)
             if endshift:
-            #if bitshift:
+                # if bitshift:
                 rawint >>= endshift
 
-            rawint &= (2**field._vs_bitwidth)-1
+            rawint &= (2 ** field._vs_bitwidth) - 1
             field.vsSetValue(rawint)
             bitoff += field._vs_bitwidth
 
             self._vsFireCallbacks(fname)
 
-        offbytes,offbits = divmod(bitoff,8)
+        offbytes, offbits = divmod(bitoff, 8)
         offset += offbytes
         # mop up any remaining bits int a byte boundary
         if offbits:
@@ -111,12 +113,12 @@ class VBitField(VStruct):
         valu = 0
         width = 0
 
-        for name,field in self.vsGetFields():
-                width += field._vs_bitwidth
-                valu = ( valu << field._vs_bitwidth ) | field._vs_value
-        bytelen,bitrem = divmod(width,8)
+        for name, field in self.vsGetFields():
+            width += field._vs_bitwidth
+            valu = (valu << field._vs_bitwidth) | field._vs_value
+        bytelen, bitrem = divmod(width, 8)
         if bitrem:
             bytelen += 1
-            valu <<= ( 8 - bitrem )
+            valu <<= (8 - bitrem)
 
-        return unhexlify(('%.' + str(bytelen*2) + 'x') % valu)
+        return unhexlify(('%.' + str(bytelen * 2) + 'x') % valu)

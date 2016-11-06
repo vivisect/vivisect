@@ -1,5 +1,5 @@
-'''
-'''
+"""
+"""
 import sys
 import struct
 
@@ -21,9 +21,9 @@ mz_xor = [(xorstatic(b'MZ', i), xorstatic(b'PE', i), i) for i in range(0xff)]
 
 
 def carve(pbytes, offset=0):
-    '''
+    """
     Return a list of (offset, size, xor) tuples of embedded PEs
-    '''
+    """
     pblen = len(pbytes)
     todo = [(pbytes.find(mzx, offset), mzx, pex, i) for mzx, pex, i in mz_xor]
     todo = [(off, mzx, pex, i) for (off, mzx, pex, i) in todo if off != -1]

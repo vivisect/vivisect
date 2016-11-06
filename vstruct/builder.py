@@ -1,8 +1,8 @@
-'''
+"""
 
 VStruct builder!  Used to serialize structure definitions etc...
 
-'''
+"""
 
 import copy
 import types

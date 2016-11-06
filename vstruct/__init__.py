@@ -12,7 +12,7 @@ def isVstructType(x):
 
 
 class VStruct(vs_prims.v_base):
-    '''
+    """
     The VStruct class is the bases for all groups of primitive fields which
     define a "structure".
     Fields may be added with vsAddField() or simply added as attributes
@@ -29,7 +29,7 @@ class VStruct(vs_prims.v_base):
 
         bytes = vs.vsEmit()
 
-    '''
+    """
 
     def __init__(self):
         # A tiny bit of evil...
@@ -47,7 +47,7 @@ class VStruct(vs_prims.v_base):
         return [deepcopy(self) for i in range(x)]
 
     def vsAddParseCallback(self, fieldname, callback):
-        '''
+        """
         Register a callback which will be triggered when the field with the
         given name is set by the parser.  This can be used to simplify
         auto-parsing to change fields sizes or whatnot during parsing.
@@ -61,29 +61,29 @@ class VStruct(vs_prims.v_base):
                 dostuff()
 
             v.vsAddParseCallback('lenfield', updateLengthTarget)
-        '''
-        if self._vs_values.get(fieldname) == None:
+        """
+        if self._vs_values.get(fieldname) is None:
             raise Exception('Invalid Field: %s' % fieldname)
 
         cblist = self._vs_pcallbacks.get(fieldname)
-        if cblist == None:
+        if cblist is None:
             cblist = []
             self._vs_pcallbacks[fieldname] = cblist
 
         cblist.append(callback)
 
     def vsGetClassPath(self):
-        '''
+        """
         Return the entire class name (including module path).
-        '''
+        """
         return '%s.%s' % (self.__module__, self._vs_name)
 
     def _vsFireCallbacks(self, fname):
         callback = getattr(self, 'pcb_%s' % fname, None)
-        if callback != None:
+        if callback is not None:
             callback()
         cblist = self._vs_pcallbacks.get(fname)
-        if cblist != None:
+        if cblist is not None:
             for callback in cblist:
                 callback(self)
 
@@ -94,9 +94,9 @@ class VStruct(vs_prims.v_base):
         return v
 
     def vsParseFd(self, fd, fast=False):
-        '''
+        """
         Parse from the given file like object as input.
-        '''
+        """
         if fast:
             b = fd.read(len(self))
             self.vsParse(b, fast=True)
@@ -134,7 +134,7 @@ class VStruct(vs_prims.v_base):
         can may not be compatible with some structure defs.  ( eg mixed endian )
         """
         if fast:
-            if self._vs_fastfields == None:
+            if self._vs_fastfields is None:
                 self._vsInitFastFields()
             values = struct.unpack_from(self._vs_fastfmt, sbytes, offset)
             # Ephemeral list comprehension for speed
@@ -163,7 +163,7 @@ class VStruct(vs_prims.v_base):
         Get back the byte sequence associated with this structure.
         """
         if fast:
-            if self._vs_fastfields == None:
+            if self._vs_fastfields is None:
                 self._vsInitFastFields()
             ffvals = [ff.vsGetValue() for ff in self._vs_fastfields]
             return struct.pack(self._vs_fastfmt, *ffvals)
@@ -174,11 +174,11 @@ class VStruct(vs_prims.v_base):
         return ret
 
     def vsCalculate(self):
-        '''
+        """
         Calculate fields which need correction before emitting bytes etc...
 
         (VStruct extenders may call this, then modify fields internally)
-        '''
+        """
         for fname, fobj in self.vsGetFields():
             fobj.vsCalculate()
 
@@ -186,14 +186,14 @@ class VStruct(vs_prims.v_base):
         return False
 
     def vsGetFields(self):
-        '''
+        """
         Get a list of (fieldname, fieldobj) tuples for all the kids
         in this VStruct (non-recursive)
 
         Example:
                 for kidname, kidobj in x.vsGetFields():
                     print(kidname)
-        '''
+        """
         # This yield generator allows field list changes
         # during iteration...
         i = 0
@@ -205,25 +205,25 @@ class VStruct(vs_prims.v_base):
 
     def vsGetField(self, name):
         x = self._vs_values.get(name)
-        if x == None:
+        if x is None:
             raise Exception("Invalid field: %s" % name)
         return x
 
     def vsHasField(self, name):
-        '''
+        """
         Test whether this structure contains a field with the
         given name....
 
         Example:
             if x.vsHasField('woot'):
                 print 'STRUCT HAS WOOT FIELD!'
-        '''
-        return self._vs_values.get(name) != None
+        """
+        return self._vs_values.get(name) is not None
 
     def vsSetField(self, name, value):
-        '''
+        """
         Mostly for internal use...
-        '''
+        """
         if isVstructType(value):
             self._vs_values[name] = value
             return
@@ -237,10 +237,10 @@ class VStruct(vs_prims.v_base):
         return self
 
     def vsClearFields(self):
-        '''
+        """
         Clear all fields from the current vstruct object.  This may be useful
         in specialized parsers which populate their structure on vsParse()
-        '''
+        """
         self.__init__()
 
     def vsGetFirstPrim(self):
@@ -261,12 +261,12 @@ class VStruct(vs_prims.v_base):
             # the first element of the VStruct/VArray...
             if value.vsIsPrim():
                 align = value._vs_align
-                if align == None:
+                if align is None:
                     align = len(value)
             else:
                 field = value.vsGetFirstPrim()
                 align = field._vs_align
-                if align == None:
+                if align is None:
                     align = len(field)
 
             delta = len(self) % align
@@ -280,19 +280,19 @@ class VStruct(vs_prims.v_base):
         self._vs_values[name] = value
 
     def vsDelField(self, name):
-        '''
+        """
         Remove a field from the VStruct definition
-        '''
+        """
         field = self._vs_values.pop(name, None)
-        if field == None:
+        if field is None:
             raise Exception('Invalid Field Name: %s' % name)
         self._vs_fields.remove(name)
 
     def vsInsertField(self, name, value, befname):
-        '''
+        """
         WARNING: vsInsertField does NOT honor field alignment! # FIXME
         (AND CAN MESS UP OTHER FIELDS ALIGNMENT!)
-        '''
+        """
         if not isVstructType(value):
             raise Exception("Added fields MUST be vstruct types!")
 
@@ -336,11 +336,11 @@ class VStruct(vs_prims.v_base):
         raise Exception("Invalid Field Specified!")
 
     def vsGetFieldByOffset(self, offset, names=None, coffset=0):
-        '''
+        """
         Return a tuple of (name, field) for the field at the specified offset.
-        '''
+        """
         nparts = names
-        if nparts == None:
+        if nparts is None:
             nparts = []
 
         off = coffset
@@ -403,7 +403,7 @@ class VStruct(vs_prims.v_base):
     def __setattr__(self, name, value):
         # If we have this field, asign to it
         x = self._vs_values.get(name, None)
-        if x != None:
+        if x is not None:
             return self.vsSetField(name, value)
 
         # If it's a vstruct type, create a new field
@@ -439,7 +439,7 @@ class VStruct(vs_prims.v_base):
                     rstr = '0x%.8x (%d)' % (val, val)
             elif isinstance(field, vs_prims.v_prim):
                 rstr = repr(field)
-            if reprmax != None and len(rstr) > reprmax:
+            if reprmax is not None and len(rstr) > reprmax:
                 rstr = rstr[:reprmax] + '...'
             ret += "%.8x (%.2d)%s %s: %s\n" % (va + off, len(field), " " * (indent * 2), name, rstr)
         return ret
@@ -486,10 +486,10 @@ class VUnion(VStruct):
         for fname, fobj in self.vsGetFields():
             ret = max(offset, fobj.vsParse(sbytes, offset=offset))
             callback = getattr(self, 'pcb_%s' % fname, None)
-            if callback != None:
+            if callback is not None:
                 callback()
             cblist = self._vs_pcallbacks.get(fname)
-            if cblist != None:
+            if cblist is not None:
                 for callback in cblist:
                     callback(self)
         return ret
@@ -526,19 +526,19 @@ def resolve(impmod, nameparts):
     m = impmod
     for nname in nameparts:
         m = getattr(m, nname, None)
-        if m == None:
+        if m is None:
             break
 
     return m
 
 
 def resolvepath(impmod, pathstr):
-    '''
+    """
     Resolve an object/module from within the given module
     by path name (ie. 'foo.bar.baz')
 
     Example: x = resolvepath(vstruct.defs, 'win32.SEH_SCOPETABLE')
-    '''
+    """
     nameparts = pathstr.split('.')
     return resolve(impmod, nameparts)
 
@@ -555,7 +555,7 @@ def getStructure(sname):
     definition from within vstruct.defs.
     """
     x = resolve(vs_defs, sname.split("."))
-    if x != None:
+    if x is not None:
         return x()
 
     return None
@@ -568,7 +568,7 @@ def getModuleNames():
 def getStructNames(modname):
     ret = []
     mod = resolve(vs_defs, modname)
-    if mod == None:
+    if mod is None:
         return ret
 
     for n in dir(mod):

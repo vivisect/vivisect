@@ -39,18 +39,21 @@ class v_base(object):
         self._vs_meta[name] = value
 
     # Sub-classes (primitive base, or VStruct must have these
-    def vsParse(self, bytes): return NotImplemented
+    def vsParse(self, bytes: bytearray):
+        return NotImplemented
 
     def vsCalculate(self): pass
 
-    def vsIsPrim(self): return NotImplemented
+    def vsIsPrim(self):
+        return NotImplemented
 
-    def vsGetTypeName(self): return NotImplemented
+    def vsGetTypeName(self):
+        return NotImplemented
 
 
 class v_prim(v_base):
     def __init__(self):
-        v_base.__init__(self)
+        super(v_prim, self).__init__()
         # Used by base len(),vsGetFormat, etc...
         self._vs_value = None
         self._vs_length = None
@@ -133,7 +136,7 @@ class v_number(v_prim):
     _vs_length = 1
 
     def __init__(self, value=0, bigend=False, enum=None):
-        v_prim.__init__(self)
+        super(v_number, self).__init__()
         self._vs_bigend = bigend
         self._vs_value = value
         self._vs_enum = enum
@@ -362,7 +365,7 @@ class v_snumber(v_number):
     _vs_length = 1
 
     def __init__(self, value=0, bigend=False):
-        v_number.__init__(self, value=value, bigend=bigend)
+        super(v_snumber, self).__init__(value=value, bigend=bigend)
 
         # TODO: could use envi.bits, but do we really want to dep on envi?
         smaxval = (2 ** ((8 * self._vs_length) - 1)) - 1
@@ -463,7 +466,7 @@ class v_float(v_prim):
     _vs_length = 4
 
     def __init__(self, value=0.0, bigend=False):
-        v_prim.__init__(self)
+        super(v_float, self).__init__()
         self._vs_bigend = bigend
         self._vs_value = value
         self._vs_length = self.__class__._vs_length
@@ -525,83 +528,83 @@ class v_float(v_prim):
         return int(self._vs_value)
 
     def __add__(self, other):
-        return double(self) + double(other)
+        return float(self) + float(other)
 
     def __sub__(self, other):
-        return double(self) - double(other)
+        return float(self) - float(other)
 
     def __mul__(self, other):
-        return double(self) * double(other)
+        return float(self) * float(other)
 
     def __div__(self, other):
-        return double(self) / double(other)
+        return float(self) / float(other)
 
     def __floordiv__(self, other):
-        return double(self) // double(other)
+        return float(self) // float(other)
 
     def __mod__(self, other):
-        return double(self) % double(other)
+        return float(self) % float(other)
 
     def __divmod__(self, other):
-        return divmod(double(self), double(other))
+        return divmod(float(self), float(other))
 
     def __pow__(self, other, modulo=None):
-        return pow(double(self), double(other), modulo)
+        return pow(float(self), float(other), modulo)
 
     def __lshift__(self, other):
-        return double(self) << double(other)
+        return float(self) << float(other)
 
     def __rshift__(self, other):
-        return double(self) >> double(other)
+        return float(self) >> float(other)
 
     def __and__(self, other):
-        return double(self) & double(other)
+        return float(self) & float(other)
 
     def __xor__(self, other):
-        return double(self) ^ double(other)
+        return float(self) ^ float(other)
 
     def __or__(self, other):
-        return double(self) | double(other)
+        return float(self) | float(other)
 
     # Operator swapped variants
     def __radd__(self, other):
-        return double(other) + double(self)
+        return float(other) + float(self)
 
     def __rsub__(self, other):
-        return double(other) - double(self)
+        return float(other) - float(self)
 
     def __rmul__(self, other):
-        return double(other) * double(self)
+        return float(other) * float(self)
 
     def __rdiv__(self, other):
-        return double(other) / double(self)
+        return float(other) / float(self)
 
     def __rfloordiv__(self, other):
-        return double(other) // double(self)
+        return float(other) // float(self)
 
     def __rmod__(self, other):
-        return double(other) % double(self)
+        return float(other) % float(self)
 
     def __rdivmod__(self, other):
-        return divmod(double(other), double(self))
+        return divmod(float(other), float(self))
 
     def __rpow__(self, other, modulo=None):
-        return pow(double(other), double(self), modulo)
+        return pow(float(other), float(self), modulo)
 
     def __rlshift__(self, other):
-        return double(other) << double(self)
+        return float(other) << float(self)
 
     def __rrshift__(self, other):
-        return double(other) >> double(self)
+        return float(other) >> float(self)
 
     def __rand__(self, other):
-        return double(other) & double(self)
+        return float(other) & float(self)
 
     def __rxor__(self, other):
-        return double(other) ^ double(self)
+        return float(other) ^ float(self)
 
     def __ror__(self, other):
-        return double(other) | double(self)
+        return float(other) | float(self)
 
     # Inplace variants
     def __iadd__(self, other):
@@ -642,33 +645,33 @@ class v_float(v_prim):
 
     # operator helpers
     def __neg__(self):
-        return -(double(self))
+        return -(float(self))
 
     def __pos__(self):
-        return +(double(self))
+        return +(float(self))
 
     def __abs__(self):
-        return abs(double(self))
+        return abs(float(self))
 
     def __invert__(self):
-        return ~(double(self))
+        return ~(float(self))
 
     # index use helper
     def __index__(self):
-        return double(self)
+        return float(self)
 
     def __coerce__(self, other):
         try:
-            return double(self), double(other)
+            return float(self), float(other)
         except Exception as e:
             return NotImplemented
 
     # Print helpers
     def __hex__(self):
-        return hex(double(self))
+        return hex(float(self))
 
     def __oct__(self):
-        return oct(double(self))
+        return oct(float(self))
 
 
 class v_double(v_float):
@@ -683,9 +686,9 @@ class v_bytes(v_prim):
     _vs_builder = True
 
     def __init__(self, size=0, vbytes=None):
-        v_prim.__init__(self)
+        super(v_bytes, self).__init__()
         if vbytes is None:
-            vbytes = '\x00' * size
+            vbytes = b'\x00' * size
         self._vs_length = len(vbytes)
         self._vs_value = vbytes
         self._vs_align = 1
@@ -710,7 +713,7 @@ class v_bytes(v_prim):
         self._vs_fmt = '%ds' % size
         # Either chop or expand my string...
         b = self._vs_value[:size]
-        self._vs_value = b.ljust(size, '\x00')
+        self._vs_value = b.ljust(size, b'\x00')
 
     def __repr__(self):
         return self._vs_value.hex()
@@ -725,14 +728,16 @@ class v_str(v_prim):
 
     _vs_builder = True
 
-    def __init__(self, size=4, val=''):
-        v_prim.__init__(self)
+    def __init__(self, size: int=4, val: bytearray=b''):
+        super(v_str, self).__init__()
         self._vs_length = size
         self._vs_fmt = '%ds' % size
-        self._vs_value = val.ljust(size, '\x00')
+        if isinstance(val, str):
+            val = val.encode('ascii')
+        self._vs_value = val.ljust(size, b'\x00')
         self._vs_align = 1
 
-    def vsParse(self, fbytes, offset=0):
+    def vsParse(self, fbytes: bytearray, offset=0):
         offend = offset + self._vs_length
         self._vs_value = fbytes[offset: offend]
         return offend
@@ -742,10 +747,11 @@ class v_str(v_prim):
 
     def vsGetValue(self):
         s = self._vs_value.split(b"\x00")[0]
-        return s
+        return s.decode('ascii')
 
     def vsSetValue(self, val):
-        self._vs_value = val.ljust(self._vs_length, '\x00')
+        val = val.encode()
+        self._vs_value = val.ljust(self._vs_length, b'\x00')
 
     def vsSetLength(self, size):
         size = int(size)
@@ -753,7 +759,7 @@ class v_str(v_prim):
         self._vs_fmt = '%ds' % size
         # Either chop or expand my string...
         b = self._vs_value[:size]
-        self._vs_value = b.ljust(size, '\x00')
+        self._vs_value = b.ljust(size, b'\x00')
 
 
 class v_zstr(v_prim):
@@ -764,13 +770,15 @@ class v_zstr(v_prim):
 
     _vs_builder = True
 
-    def __init__(self, val='', align=1):
-        v_prim.__init__(self)
+    def __init__(self, val: bytearray=b'', align=1):
+        super(v_zstr, self).__init__()
         self._vs_align = align
+        if isinstance(val, str):
+            val = val.encode('ascii')
         self.vsParse(val + '\x00')
 
-    def vsParse(self, fbytes, offset=0):
-        nulloff = fbytes.find('\x00', offset)
+    def vsParse(self, fbytes: bytearray, offset=0):
+        nulloff = fbytes.find(b'\x00', offset)
         if nulloff == -1:
             raise Exception('v_zstr found no NULL terminator!')
 
@@ -785,7 +793,7 @@ class v_zstr(v_prim):
 
     def vsParseFd(self, fd):
         ret = ''
-        while not ret.endswith('\x00'):
+        while not ret.endswith(b'\x00'):
             y = fd.read(1)
             if not y:
                 raise Exception('v_zstr file ended before NULL')
@@ -796,7 +804,8 @@ class v_zstr(v_prim):
         return self._vs_value
 
     def vsGetValue(self):
-        return self._vs_value[:-self._vs_align_pad]
+        v = self._vs_value[:-self._vs_align_pad]
+        return v.decode('ascii')
 
     def vsSetValue(self, val):
         # FIXME: just call vsParse?
@@ -819,15 +828,17 @@ class v_wstr(v_str):
 
     _vs_builder = True
 
-    def __init__(self, size=4, encode='utf-16le', val=''):
-        v_str.__init__(self)
-        b = val.ljust(size, '\x00').encode(encode)
+    def __init__(self, size=4, encode='utf-16le', val: bytearray=b''):
+        super(v_wstr, self).__init__()
+        if isinstance(val, str):
+            val = val.encode(encode)
+        b = val.ljust(size, b'\x00').encode(encode)
         self._vs_length = len(b)
         self._vs_value = b
         self._vs_encode = encode
         self._vs_align = 2
 
-    def vsParse(self, fbytes, offset=0):
+    def vsParse(self, fbytes: bytearray, offset=0):
         offend = offset + self._vs_length
         self._vs_value = fbytes[offset: offend]
         return offend
@@ -837,7 +848,7 @@ class v_wstr(v_str):
 
     def vsSetValue(self, val):
         rbytes = val.encode(self._vs_encode)
-        self._vs_value = rbytes.ljust(len(self), '\x00')
+        self._vs_value = rbytes.ljust(len(self), b'\x00')
 
     def vsGetValue(self):
         s = self._vs_value.decode(self._vs_encode, errors='replace')
@@ -851,16 +862,18 @@ class v_zwstr(v_str):
 
     _vs_builder = True
 
-    def __init__(self, encode='utf-16le', val='', align=2):
-        v_str.__init__(self)
+    def __init__(self, encode='utf-16le', val: bytearray=b'', align=2):
+        super(v_zwstr, self).__init__()
         self._vs_encode = encode
         self._vs_align = align
-        self.vsParse(val + '\x00\x00')
+        if isinstance(val, str):
+            val = val.encode(encode)
+        self.vsParse(val + b'\x00\x00')
 
-    def vsParse(self, fbytes, offset=0):
+    def vsParse(self, fbytes: bytearray, offset=0):
         nulloff = offset
         while nulloff < len(fbytes):
-            nulloff = fbytes.find('\x00\x00', nulloff)
+            nulloff = fbytes.find(b'\x00\x00', nulloff)
             if nulloff == -1:
                 raise Exception('v_wzstr found no NULL terminator!')
             # make sure that this is acutally the null word by checking if
@@ -899,8 +912,8 @@ class v_zwstr(v_str):
         rbytes = val.encode(self._vs_encode)
         length = len(rbytes)
         diff = self._vs_align - (length % self._vs_align)
-        self._vs_value = rbytes + '\x00' * (diff)
-        self._vs_value = rbytes.ljust(len(self), '\x00')
+        self._vs_value = rbytes + b'\x00' * (diff)
+        self._vs_value = rbytes.ljust(len(self), b'\x00')
         self._vs_length = len(self._vs_value)
         self._vs_align_pad = diff
 
@@ -916,7 +929,7 @@ class GUID(v_prim):
         Construct a new GUID primitive.  You may specify a GUID string in the
         constructor to populate initial values.
         """
-        v_prim.__init__(self)
+        super(GUID, self).__init__()
         self._vs_length = 16
         self._vs_value = "\x00" * 16
         self._vs_fmt = "16s"

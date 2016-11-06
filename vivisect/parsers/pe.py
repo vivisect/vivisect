@@ -69,7 +69,7 @@ def loadPeIntoWorkspace(vw, pe, filename=None):
     mach = pe.IMAGE_NT_HEADERS.FileHeader.Machine
 
     arch = arch_names.get(mach)
-    if arch == None:
+    if arch is None:
         raise Exception("Machine %.4x is not supported for PE!" % mach)
 
     vw.setMeta('Architecture', arch)
@@ -229,17 +229,17 @@ def loadPeIntoWorkspace(vw, pe, filename=None):
         secvsize = sec.VirtualSize
         secfsize = sec.SizeOfRawData
         secbase = secrva + baseaddr
-        secname = sec.Name.strip(b"\x00")
+        secname = sec.Name.strip("\x00")
         secrvamax = secrva + secvsize
 
         # If the section is part of BaseOfCode->SizeOfCode
         # force execute perms...
-        if secrva >= codebase and secrva < codervamax:
+        if codebase <= secrva < codervamax:
             mapflags |= e_mem.MM_EXEC
 
         # If the entry point is in this section, force execute
         # permissions.
-        if secrva <= entryrva and entryrva < secrvamax:
+        if secrva <= entryrva < secrvamax:
             mapflags |= e_mem.MM_EXEC
 
         if not vw.config.viv.parsers.pe.nx and subsys_majver < 6 and mapflags & e_mem.MM_READ:
@@ -278,7 +278,8 @@ def loadPeIntoWorkspace(vw, pe, filename=None):
         plen = sec.VirtualSize - sec.SizeOfRawData
 
         try:
-            # According to http://code.google.com/p/corkami/wiki/PE#section_table if SizeOfRawData is larger than VirtualSize, VS is used..
+            # According to http://code.google.com/p/corkami/wiki/PE#section_table if SizeOfRawData is
+            # larger than VirtualSize, VS is used..
             readsize = sec.SizeOfRawData if sec.SizeOfRawData < sec.VirtualSize else sec.VirtualSize
 
             secoff = pe.rvaToOffset(secrva)

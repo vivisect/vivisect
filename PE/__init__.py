@@ -154,37 +154,37 @@ RT_MANIFEST = 24
 
 
 class VS_VERSIONINFO:
-    '''
+    """
     A simple (read-only) VS_VERSIONINFO parser
-    '''
+    """
 
     def __init__(self, bytes):
         self._version_info = {}
         self._parseBytes(bytes)
 
     def getVersionValue(self, key, default=None):
-        '''
+        """
         Retrieve a key from the VS_VERSIONINFO data.
 
         Example: vs.getVersionValue('FileVersion')
-        '''
+        """
         return self._version_info.get(key, default)
 
     def getVersionKeys(self):
-        '''
+        """
         Return a list of the keys in this VS_VERSIONINFO struct.
 
         Example: for keyname in vs.getVersionKeys(): print keyname
-        '''
+        """
         return list(self._version_info.keys())
 
     def getVersionItems(self):
-        '''
+        """
         Return dictionary style key,val tuples for the version keys
         in this VS_VERSIONINFO structure.
 
         Example: for vskey,vsdata in vs.getVersionItems(): print vskey,vsdata
-        '''
+        """
         return list(self._version_info.items())
 
     def _parseBytes(self, bytes):
@@ -279,9 +279,9 @@ class VS_VERSIONINFO:
         return offset + size
 
     def _stringData(self, bytes, offset):
-        '''
+        """
         Parse out a "String" structure...
-        '''
+        """
         xoffset = offset
         mysize, valsize, stype = struct.unpack('<HHH', bytes[offset:offset + 6])
 
@@ -309,11 +309,11 @@ class VS_VERSIONINFO:
 
 
 class ResourceDirectory:
-    '''
+    """
     Resources are sorted into a hierarchy which begins with
     "type" and then "name/id" which still points to another
     directory entry which has 1 child (id 1033) with data.
-    '''
+    """
 
     def __init__(self, nameid=None):
         self._rsrc_data = []
@@ -332,9 +332,9 @@ class ResourceDirectory:
         return self._rsrc_subdirs.get(name_id)
 
     def getResourceDef(self, restype, name_id):
-        '''
+        """
         This should *only* be called on the root node!
-        '''
+        """
         typedir = self._rsrc_subdirs.get(restype)
         if typedir is None:
             return None
@@ -405,10 +405,10 @@ class PE(object):
         return ret
 
     def getDllName(self):
-        '''
+        """
         Return the "dll name" from the Name field of the IMAGE_EXPORT_DIRECTORY
         if one is present.  If not, return None.
-        '''
+        """
         if self.IMAGE_EXPORT_DIRECTORY is not None:
             rawname = self.readAtRva(self.IMAGE_EXPORT_DIRECTORY.Name, 32)
             return rawname.split('\x00')[0]
@@ -490,17 +490,17 @@ class PE(object):
         return self.IMAGE_NT_HEADERS.OptionalHeader.DataDirectory[idx]
 
     def getResourceDef(self, rtype, name_id):
-        '''
-        Get the (rva, size, (codepage,langid,sublangid)) tuple for the specified
+        """
+        Get the (rva, size, (codepage, langid, sublangid)) tuple for the specified
         resource type/id combination.  Returns None if not found.
-        '''
+        """
         return self.ResourceRoot.getResourceDef(rtype, name_id)
 
     def getResources(self):
-        '''
+        """
         Get the (rtype, nameid, (rva, size, (codepage,langid,sublangid))) tuples for each
         resource in the PE.
-        '''
+        """
         ret = []
         for rtype, subdir in list(self.ResourceRoot._rsrc_subdirs.items()):
             for nameid, subsubdir in list(subdir._rsrc_subdirs.items()):
@@ -508,10 +508,10 @@ class PE(object):
         return ret
 
     def readResource(self, rtype, name_id):
-        '''
+        """
         Return the bytes which define the specified resource.  Returns
         None if not found.
-        '''
+        """
         rsdef = self.getResourceDef(rtype, name_id)
         if rsdef is None:
             return None
@@ -519,11 +519,11 @@ class PE(object):
         return self.readAtRva(rsrva, rssize)
 
     def getPdbPath(self):
-        '''
+        """
         Parse and return the Pdb path from the Code View 4.0 data
         specified by the IMAGE_DEBUG_DIRECTORY strucutre, or None
         if a pdb path is not present.
-        '''
+        """
         ddir = self.getDataDirectory(IMAGE_DIRECTORY_ENTRY_DEBUG)
         drva = ddir.VirtualAddress
         dsize = ddir.Size
@@ -545,10 +545,10 @@ class PE(object):
         return cv.PdbFileName
 
     def getVS_VERSIONINFO(self):
-        '''
+        """
         Get a VS_VERSIONINFO object for this PE.
         (returns None if version resource is not found)
-        '''
+        """
         vbytes = self.readResource(RT_VERSION, 1)
         if vbytes is None:
             return None
@@ -558,7 +558,8 @@ class PE(object):
 
         self.ResourceRoot = ResourceDirectory()
 
-        # RP BUG FIX - Binaries can have a .rsrc section it doesn't mean that the .rsrc section contains the resource data we think it does
+        # RP BUG FIX - Binaries can have a .rsrc section it doesn't 
+        # mean that the .rsrc section contains the resource data we think it does
         # validate .rsrc == RESOURCE Section by checking data directory entries...
         dresc = self.getDataDirectory(IMAGE_DIRECTORY_ENTRY_RESOURCE)
         if not dresc.VirtualAddress:
@@ -570,7 +571,7 @@ class PE(object):
         while len(rsrc_todo):
             rsrva, rsdirobj = rsrc_todo.pop()
             rsdir = self.readStructAtRva(rsrva, 'pe.IMAGE_RESOURCE_DIRECTORY', check=True)
-            if rsdir == None:
+            if rsdir is None:
                 continue
 
             totcount = rsdir.NumberOfIdEntries + rsdir.NumberOfNamedEntries
@@ -690,10 +691,10 @@ class PE(object):
         return self.IMAGE_NT_HEADERS.OptionalHeader.SizeOfImage
 
     def checkRva(self, rva, size=None):
-        '''
+        """
         Make sure an RVA falls inside the valid mapped range
         for the file.  (also make sure it's not 0...)
-        '''
+        """
         if rva == 0:
             return False
 
@@ -765,9 +766,9 @@ class PE(object):
                     break
 
                 else:
-                    # RP BUG FIX - we can't use this API on this call because we can have binaries that put their import table
-                    # right at the end of the file, statically saying the imported function name is 128 will cause use to potentially
-                    # over run our read and traceback...
+                    # RP BUG FIX - we can't use this API on this call because we can have binaries
+                    # that put their import table right at the end of the file, statically saying the imported
+                    # function name is 128 will cause use to potentially over run our read and traceback...
 
                     diff = self.getMaxRva() - ibn_rva - 2
                     ibn = vstruct.getStructure("pe.IMAGE_IMPORT_BY_NAME")
@@ -781,7 +782,7 @@ class PE(object):
                         idx += 1
                         continue
 
-                    funcname = ibn.Name.decode()
+                    funcname = ibn.Name
 
                 self.imports.append((x.FirstThunk + arrayoff, libname, funcname))
 
@@ -826,7 +827,8 @@ class PE(object):
             if not chunksize:
                 return
 
-            # RP BUG FIX - sometimes the chunksize is invalid we do a quick check to make sure we dont overrun the buffer
+            # RP BUG FIX - sometimes the chunksize is invalid we do a quick check
+            # to make sure we dont overrun the buffer
             if chunksize > len(relbytes):
                 return
 
@@ -841,11 +843,11 @@ class PE(object):
             relbytes = relbytes[chunksize:]
 
     def getExportName(self):
-        '''
+        """
         Return the name of this file acording to it's export entry.
         (if there are no exports, return None)
 
-        '''
+        """
         e = self.IMAGE_EXPORT_DIRECTORY
         if e is None:
             return None
@@ -945,11 +947,11 @@ class PE(object):
                     self.exports.append((funcoff, ord, None))
 
     def getSignature(self):
-        '''
+        """
         Returns the SignatureEntry vstruct if the pe has an embedded
         certificate, None if the magic bytes are NOT set in the security
         directory entry AND the size of the signature entry is less than 0.
-        '''
+        """
         ds = self.getDataDirectory(IMAGE_DIRECTORY_ENTRY_SECURITY)
 
         va = ds.VirtualAddress
@@ -972,8 +974,7 @@ class PE(object):
     def getSignCertInfo(self):
 
         sig = self.getSignature()
-
-        if sig == None:
+        if sig is None:
             return ()
 
         # Runtime import these so they are optional dependancies

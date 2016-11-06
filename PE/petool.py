@@ -6,17 +6,17 @@ import optparse
 import PE
 
 '''
-For now, all this does is rename files to their exportname and version info.
+For now, all this does is rename files to their export name and version info.
 (more to come is likely)
 '''
 
-def main():
 
+def main():
     parser = optparse.OptionParser()
     parser.add_option('--version', dest='version', default=False, action='store_true')
     parser.add_option('--resources', dest='resources', default=False, action='store_true')
 
-    opts,argv = parser.parse_args()
+    opts, argv = parser.parse_args()
 
     for fname in argv:
 
@@ -29,13 +29,13 @@ def main():
 
         if opts.resources:
             print('Type Nameid - rva size sample')
-            for rtype,nameid,(rva,size,codepage) in pe.getResources():
-                hexstr = pe.readAtRva(rva, max(size,8)).encode('hex')
-                print(('0x%.4x 0x%.4x - 0x%.8x 0x%.8x %s' % (rtype,nameid,rva,size,hexstr)))
+            for rtype, nameid, (rva, size, codepage) in pe.getResources():
+                hexstr = pe.readAtRva(rva, max(size, 8)).encode('hex')
+                print(('0x%.4x 0x%.4x - 0x%.8x 0x%.8x %s' % (rtype, nameid, rva, size, hexstr)))
 
         if opts.version:
             vs = pe.getVS_VERSIONINFO()
-            if vs == None:
+            if vs is None:
                 print('No VS_VERSIONINFO found!')
 
             else:
@@ -46,6 +46,7 @@ def main():
                     print('%s: %r' % (k, val))
 
         code.interact(local=locals())
+
 
 if __name__ == "__main__":
     sys.exit(main())
