@@ -191,37 +191,37 @@ class RegisterContext:
         self.setRegister(self._rctx_spindex, value)
 
     def hasStatusRegister(self):
-        '''
+        """
         Returns True if this context is aware of a status register.
-        '''
+        """
         if self._rctx_srindex == None:
             return False
 
         return True
 
     def getStatusRegNameDesc(self):
-        '''
+        """
         Return a list of status register names and descriptions.
-        '''
+        """
         return [(name, desc) for name, idx, offset, width, desc in self._rctx_statmetas]
 
     def getStatusRegister(self):
-        '''
+        """
         Gets the status register for this register context.
-        '''
+        """
         return self.getRegister(self._rctx_srindex)
 
     def setStatusRegister(self, value):
-        '''
+        """
         Sets the status register for this register context.
-        '''
+        """
         self.setRegister(self._rctx_srindex, value)
 
     def getStatusFlags(self):
-        '''
+        """
         Return a dictionary of reg name and reg value for the meta registers
         that are part of the status register.
-        '''
+        """
         ret = {}
         for name, idx, offset, width, desc in self._rctx_statmetas:
             ret[name] = self.getRegisterByName(name)
@@ -241,19 +241,19 @@ class RegisterContext:
         self.setRegister(idx, value)
 
     def getRegisterNames(self):
-        '''
+        """
         Returns a list of the 'real' (non meta) registers.
-        '''
+        """
         regs = [rname for rname, ridx in list(self._rctx_names.items())
                 if not self.isMetaRegister(ridx)]
         return regs
 
     def getRegisterNameIndexes(self):
-        '''
+        """
         Return a list of all the 'real' (non meta) registers and their indexes.
 
         Example: for regname, regidx in x.getRegisterNameIndexes():
-        '''
+        """
         regs = [(rname, ridx) for rname, ridx in list(self._rctx_names.items())
                 if not self.isMetaRegister(ridx)]
         return regs
@@ -307,14 +307,14 @@ class RegisterContext:
         return value
 
     def getMetaRegInfo(self, index):
-        '''
+        """
         Return the appropriate realreg, shift, mask info
         for the specified metareg idx (or None if it's not
         meta).
 
         Example:
             real_reg, lshift, mask = r.getMetaRegInfo(x)
-        '''
+        """
         ridx = index & 0xffff
         if ridx == index:
             return None
@@ -326,10 +326,10 @@ class RegisterContext:
         return ridx, offset, mask
 
     def _xlateToMetaReg(self, index, value):
-        '''
+        """
         Translate a register value to the meta register value
         (used when getting a meta register)
-        '''
+        """
         ridx = index & 0xffff
         offset = (index >> 24) & 0xff
         width = (index >> 16) & 0xff
@@ -342,17 +342,17 @@ class RegisterContext:
         return value & mask
 
     def _xlateToNativeReg(self, index, value):
-        '''
+        """
         Translate a register value to the native register value
         (used when setting a meta register)
-        '''
+        """
         ridx = index & 0xffff
         offset = (index >> 24) & 0xff
         width = (index >> 16) & 0xff
 
         # FIXME is it faster to generate or look thses up?
         mask = (2 ** width) - 1
-        mask = mask << offset
+        mask <<= offset
 
         # NOTE: basewidth is in *bits*
         basewidth = self._rctx_widths[ridx]
@@ -397,7 +397,7 @@ class RegisterContext:
         of meta-registers) or the name of the register.
         """
         ridx = self.getRegisterIndex(regname)
-        if ridx != None:
+        if ridx is not None:
             return self.getRegisterName(ridx & RMETA_NMASK)
         return regname
 
@@ -412,11 +412,11 @@ def addLocalEnums(l, regdef):
 
 
 def addLocalStatusMetas(l, metas, statmetas, regname):
-    '''
+    """
     Dynamically create data based on the status register meta register
     definition.
     Adds new meta registers and bitmask constants.
-    '''
+    """
     for metaname, idx, offset, width, desc in statmetas:
         # create meta registers
         metas.append((metaname, idx, offset, width))
