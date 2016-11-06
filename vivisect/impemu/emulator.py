@@ -51,7 +51,7 @@ class WorkspaceEmulator:
         self._safe_mem = True  # Should we be forgiving about memory accesses?
         self._func_only = True  # is this emulator meant to stay in one function scope?
 
-        self.strictops = True  # shoudl we bail on emulation if unsupported instruction encountered
+        self.strictops = True  # should we bail on emulation if unsupported instruction encountered
 
         # Map in all the memory associated with the workspace
         for va, size, perms, fname in vw.getMemoryMaps():
@@ -81,10 +81,10 @@ class WorkspaceEmulator:
         self.initStackMemory()
 
     def initStackMemory(self, stacksize=init_stack_size):
-        '''
+        """
         Setup and initialize stack memory.
         You may call this prior to emulating instructions.
-        '''
+        """
         if self.stack_map_base is None:
             self.stack_map_mask = e_bits.sign_extend(0xfff00000, 4, self.vw.psize)
             self.stack_map_base = e_bits.sign_extend(0xbfb00000, 4, self.vw.psize)
@@ -125,15 +125,15 @@ class WorkspaceEmulator:
             #   first map
 
     def stopEmu(self):
-        '''
+        """
         This is called by monitor to stop emulation
-        '''
+        """
         self.emustop = True
 
     def getPathProp(self, key):
-        '''
+        """
         Retrieve a named value from the current code path context.
-        '''
+        """
         return vg_path.getNodeProp(self.curpath, key)
 
     def setPathProp(self, key, value):
@@ -194,11 +194,11 @@ class WorkspaceEmulator:
         return iscall
 
     def newCodePathNode(self, parent=None, bva=None):
-        '''
+        """
         NOTE: Right now, this is only called from the actual branch state which
         needs it.  it must stay that way for now (register context is being copied
         for symbolic emulator...)
-        '''
+        """
         props = {
             'bva': bva,  # the entry virtual address for this branch
             'valist': [],  # the virtual addresses in this node in order
@@ -210,10 +210,10 @@ class WorkspaceEmulator:
         return ret
 
     def getBranchNode(self, node, bva):
-        '''
+        """
         If a node exists already for the specified branch, return it. Otherwise,
         create a new one and return that...
-        '''
+        """
         for knode in vg_path.getNodeKids(node):
             if vg_path.getNodeProp(knode, 'bva') == bva:
                 return knode
@@ -329,7 +329,7 @@ class WorkspaceEmulator:
                         if self.emustop:
                             return
 
-                            # Execute the opcode
+                    # Execute the opcode
                     self.executeOpcode(op)
                     vg_path.getNodeProp(self.curpath, 'valist').append(starteip)
 
@@ -355,7 +355,7 @@ class WorkspaceEmulator:
                                 todo.append((bva, esnap, bpath))
                             break
 
-                    # If we enounter a procedure exit, it doesn't
+                    # If we encounter a procedure exit, it doesn't
                     # matter what EIP is, we're done here.
                     if op.iflags & envi.IF_RET:
                         vg_path.setNodeProp(self.curpath, 'cleanret', True)
@@ -374,12 +374,12 @@ class WorkspaceEmulator:
                     break  # If we exc during execution, this branch is dead.
 
     def getCallApi(self, va):
-        '''
+        """
         Retrieve an API definition from either the vivisect workspace
         ( if the call target is a function within the workspace ) or
         the impapi definition subsystem ( if the call target is a known
         import definition )
-        '''
+        """
         vw = self.vw
         ret = None
 
@@ -413,26 +413,26 @@ class WorkspaceEmulator:
         return next(self.taintva) + 4096
 
     def setVivTaint(self, typename, taint):
-        '''
+        """
         Set a taint in the emulator.  Returns the new value for
         the created taint.
-        '''
+        """
         va = self.nextVivTaint()
         self.taints[va & 0xffffe000] = (va, typename, taint)
         return va
 
     def getVivTaint(self, va):
-        '''
+        """
         Retrieve a previously registered taint ( this will automagically
         mask values down and allow you to retrieve "near taint" values.)
-        '''
+        """
         return self.taints.get(va & 0xffffe000)
 
     def reprVivTaint(self, taint):
-        '''
+        """
         For the base "known" taint types, return a humon readable string
         to represent the value of the taint.
-        '''
+        """
         va, ttype, tinfo = taint
         if ttype == 'uninitreg':
             return self.getRegisterName(tinfo)
@@ -473,11 +473,11 @@ class WorkspaceEmulator:
         return 'taint: 0x%.8x %s %r' % (va, ttype, tinfo)
 
     def reprVivValue(self, val):
-        '''
+        """
         Return a humon readable string which is the best description for
         the given value ( given knowledge of the workspace, emu,
         and taint subsystems ).
-        '''
+        """
         if self.vw.isFunction(val):
             thunk = self.vw.getFunctionMeta(val, 'Thunk')
             if thunk:
@@ -585,3 +585,4 @@ class WorkspaceEmulator:
     def getStackOffset(self, va):
         if (va & self.stack_map_mask) == self.stack_map_base:
             return va - self.stack_pointer
+

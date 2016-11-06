@@ -966,7 +966,7 @@ class PE(object):
         se = vstruct.getStructure('pe.SignatureEntry')
         se.vsParse(bytez)
 
-        if se.magic != "\x00\x02\x02\x00":
+        if se.magic != b"\x00\x02\x02\x00":
             return None
 
         return se

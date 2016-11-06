@@ -430,7 +430,7 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin,
             cbname = 'codeblock_%.8x' % cbva
             girth = frame.evaluateJavaScript('document.getElementById("%s").offsetWidth;' % cbname)
             height = frame.evaluateJavaScript('document.getElementById("%s").offsetHeight;' % cbname)
-            self.graph.setNodeProp((nid, nprops), "size", (girth, height))
+            self.graph.setNodeProp((nid, nprops), "size", (int(girth), int(height)))
 
         self.dylayout = vg_dynadag.DynadagLayout(self.graph)
         self.dylayout._barry_count = 20

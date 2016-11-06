@@ -155,7 +155,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         print(msg)
 
     def getVivGui(self):
-        '''
+        """
         Return a reference to the vivisect GUI object for this workspace.  If
         the GUI is not running (aka, the workspace is being used programatically)
         this routine returns None.
@@ -164,11 +164,11 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             vwgui = vw.getVivGui()
             if vwgui:
                 vwgui.doStuffAndThings()
-        '''
+        """
         return self._viv_gui
 
     def getVivGuid(self):
-        '''
+        """
         Return the GUID for this workspace.  Every newly created VivWorkspace 
         should have a unique GUID, for identifying a particular workspace for
         a given binary/process-space versus another created at a different 
@@ -176,9 +176,9 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         by design.  This easily allows for workspace-specific GUI layouts as
         well as comparisons of Server-based workspaces to the original file-
         based workspace used to store to the server.
-        '''
+        """
         vivGuid = self.getMeta('GUID')
-        if vivGuid == None:
+        if vivGuid is None:
             vivGuid = guid()
             self.setMeta('GUID', vivGuid)
 
@@ -223,10 +223,10 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         arch = self.getMeta('Architecture')
 
         eclass = viv_imp_lookup.workspace_emus.get((plat, arch))
-        if eclass == None:
+        if eclass is None:
             eclass = viv_imp_lookup.workspace_emus.get(arch)
 
-        if eclass == None:
+        if eclass is None:
             raise Exception("WorkspaceEmulation not supported on %s yet!" % arch)
 
         return eclass(self, logwrite=logwrite, logread=logread)
@@ -238,7 +238,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         """
 
         emu = self._cached_emus.get(emuname)
-        if emu == None:
+        if emu is None:
             emu = self.getEmulator()
             self._cached_emus[emuname] = emu
         return emu
@@ -252,53 +252,53 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         # FIXME this needs to be event enabled... either plumb it special,
         # or allow the get/append/set race...
         dl = self.getMeta("DepLibs", None)
-        if dl == None:
+        if dl is None:
             dl = []
         dl.append(libname)
         self.setMeta("DepLibs", dl)
 
     def getLibraryDependancies(self):
-        '''
+        """
         Retrieve the list of *normalized* library dependancies.
-        '''
+        """
         dl = self.getMeta("DepLibs", None)
-        if dl == None:
+        if dl is None:
             return []
         return list(dl)
 
     def setComment(self, va, comment, check=False):
-        '''
+        """
         Set the humon readable comment for a given virtual.
         Comments will be displayed by the code renderer, and
         are an important part of this balanced breakfast.
 
         Example:
             vw.setComment(callva, "This actually calls FOO...")
-        '''
+        """
         if check and self.comments.get(va):
             return
         self._fireEvent(VWE_COMMENT, (va, comment))
 
     def getComment(self, va):
-        '''
+        """
         Returns the comment string (or None) for a given
         virtual address.
 
         Example:
             cmnt = vw.getComment(va)
             print('COMMENT: %s' % cmnt)
-        '''
+        """
         return self.comments.get(va)
 
     def getComments(self):
-        '''
+        """
         Retrieve all the comments in the viv workspace as
         (va, cmnt) tuples.
 
         Example:
             for va,cmnt in vw.getComments():
                 print 'Comment at 0x%.8x: %s' % (va, cmnt)
-        '''
+        """
         return list(self.comments.items())
 
     def addRelocation(self, va, rtype):
@@ -373,11 +373,11 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         self.setMeta('NoReturnApisVa', noretva)
 
     def addNoReturnApiRegex(self, funcre):
-        '''
+        """
         Inform vivisect code-flow disassembly that any call target
         which matches the specified regex ("funcname" or "libname.funcname"
         for imports) does *not* exit and code-flow should be stopped...
-        '''
+        """
         c = re.compile(funcre, re.IGNORECASE)
         m = self.getMeta('NoReturnApisRegex', [])
         m.append(funcre)
@@ -388,16 +388,16 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
                 self.addNoReturnApi(linfo)
 
     def isNoReturnVa(self, va):
-        '''
+        """
         Check if a VA is a no return API
-        '''
+        """
         return self.getMeta('NoReturnApisVa', {}).get(va, False)
 
     def checkNoRetApi(self, apiname, va):
-        '''
+        """
         Called as new APIs (thunks) are discovered, checks to see
         if they wrap a NoReturnApi. Updates if it is a no ret API thunk
-        '''
+        """
         noretva = self.getMeta('NoReturnApisVa', {})
 
         for funcre in self.getMeta('NoReturnApisRegex', []):
@@ -430,7 +430,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         if modname not in self.amods:
             raise Exception("Unknown Module in delAnalysisModule: %s" % modname)
         x = self.amods.pop(modname, None)
-        if x != None:
+        if x is not None:
             self.amodlist.remove(modname)
 
     def loadModule(self, modname):
@@ -450,16 +450,16 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         self.fmodlist.append(modname)
 
     def delFuncAnalysisModule(self, modname):
-        '''
+        """
         Remove a currently registered function analysis module.
 
         Example:
             vw.delFuncAnalysisModule('mypkg.mymod')
-        '''
+        """
         if modname not in self.fmods:
             raise Exception("Unknown Module in delAnalysisModule: %s" % modname)
         x = self.fmods.pop(modname, None)
-        if x != None:
+        if x is not None:
             self.fmodlist.remove(modname)
 
     def createEventChannel(self):
@@ -475,7 +475,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         # During import, if we have a server, be sure not to notify
         # the server about the events he just gave us...
         local = False
-        if self.server != None:
+        if self.server is not None:
             local = True
 
         # Process the events from the import data...
@@ -485,17 +485,17 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         return
 
     def exportWorkspace(self):
-        '''
+        """
         Return the (probably big) list of events which define this
         workspace.
-        '''
+        """
         return self._event_list
 
     def exportWorkspaceChanges(self):
-        '''
+        """
         Export the list of events which have been applied to the
         workspace since the last save.
-        '''
+        """
         return self._event_list[self._event_saved:]
 
     def initWorkspaceClient(self, remotevw):
@@ -522,10 +522,10 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         The thread that monitors events on a server to stay
         in sync.
         """
-        if self.server == None:
+        if self.server is None:
             raise Exception("_clientThread() with no server?!?!")
 
-        while self.server != None:
+        while self.server is not None:
             event, einfo = self.server.waitForEvent(self.rchan)
             self._fireEvent(event, einfo, local=True)
 
@@ -534,7 +534,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         Return an event,eventinfo tuple.
         """
         q = self.chan_lookup.get(chanid)
-        if q == None:
+        if q is None:
             raise Exception("Invalid Channel")
         return q.get(timeout=timeout)
 
@@ -774,10 +774,10 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         return ret
 
     def detectString(self, va):
-        '''
+        """
         If the address appears to be the start of a string, then
         return the string length in bytes, else return -1.
-        '''
+        """
         plen = 0  # pascal string length
         dlen = 0  # delphi string length
         if self.isReadable(va - 4):
@@ -818,13 +818,13 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         return False
 
     def detectUnicode(self, va):
-        '''
+        """
         If the address appears to be the start of a unicode string, then
         return the string length in bytes, else return -1.
 
         This will return true if the memory location is likely
         *simple* UTF16-LE unicode (<ascii><0><ascii><0><0><0>).
-        '''
+        """
         # FIXME this does not detect Unicode...
 
         offset, bytes = self.getByteDef(va)
@@ -900,13 +900,13 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
     # Opcode API
     #
     def parseOpcode(self, va, arch=envi.ARCH_DEFAULT):
-        '''
+        """
         Parse an opcode from the specified virtual address.
 
         Example: op = m.parseOpcode(0x7c773803)
 
         note: differs from the IMemory interface by checking loclist
-        '''
+        """
         off, b = self.getByteDef(va)
         if arch == envi.ARCH_DEFAULT:
             loctup = self.getLocation(va)
@@ -996,7 +996,8 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             else:
                 # vivisect does NOT create REF_CODE entries for
                 # instruction fall through
-                if bflags & envi.BR_FALL: continue
+                if bflags & envi.BR_FALL:
+                    continue
 
                 self.addXref(va, tova, REF_CODE, bflags)
 
@@ -1057,9 +1058,9 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         calls_from = self.cfctx.addCodeFlow(va, arch=arch)
 
     def previewCode(self, va, arch=envi.ARCH_DEFAULT):
-        '''
+        """
         Show the repr of an instruction in the current canvas *before* making it that
-        '''
+        """
         op = self.parseOpcode(va, arch)
         self.vprint("0x%x  (%d bytes)  %s" % (va, len(op), repr(op)))
 
@@ -1124,14 +1125,14 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         self._fireEvent(VWE_DELFUNCTION, funcva)
 
     def setFunctionArg(self, fva, idx, atype, aname):
-        '''
+        """
         Set the name and type information for a single function argument by index.
 
         Example:
             # If we were setting up main...
             vw.setFunctionArg(fva, 0, 'int','argc')
             vw.setFunctionArg(fva, 1, 'char **','argv')
-        '''
+        """
         rettype, retname, callconv, callname, callargs = self.getFunctionApi(fva)
         while len(callargs) <= idx:
             callargs.append(('int', 'arg%d' % len(callargs)))
@@ -1140,24 +1141,24 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         self.setFunctionApi(fva, (rettype, retname, callconv, callname, callargs))
 
     def getFunctionArgs(self, fva):
-        '''
+        """
         Returns the list of (typename,argname) tuples which define the
         arguments for the specified function.
 
         Example:
             for typename,argname in vw.getFunctionArgs(fva):
                 print('Takes: %s %s' % (typename,argname))
-        '''
+        """
         rettype, retname, callconv, callname, callargs = self.getFunctionApi(fva)
         return list(callargs)
 
     def getFunctionApi(self, fva):
-        '''
+        """
         Retrieve the API definition for the given function address.
 
         Returns: an API tuple (similar to impapi subsystem) or None
             ( rettype, retname, callconv, funcname, ( (argtype, argname), ...) )
-        '''
+        """
         ret = self.getFunctionMeta(fva, 'api')
         if ret is not None:
             return ret
@@ -1166,7 +1167,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         return ('void', None, defcall, None, ())
 
     def setFunctionApi(self, fva, apidef):
-        '''
+        """
         Set a function's API definition.
         NOTE: apidef is a tuple similar to the impapi subsystem
             ( rettype, retname, callconv, funcname, ( (argtype, argname), ...) )
@@ -1174,20 +1175,20 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         Example:
             apidef = ('int','size','stdcall','getThingSize', ( ('void *','thing'), ))
             vw.setFunctionApi(fva, apidef)
-        '''
+        """
         self.setFunctionMeta(fva, 'api', apidef)
 
     def getFunctionLocals(self, fva):
-        '''
+        """
         Retrieve the list of (fva,spdelta,symtype,syminfo) tuples which
         represent the given function's local memory offsets.
-        '''
+        """
         if not self.isFunction(fva):
             raise InvalidFunction(fva)
         return list(self.localsyms[fva].values())
 
     def getFunctionLocal(self, fva, spdelta):
-        '''
+        """
         Retrieve a function local symbol definition as a
         (typename,symname) tuple or None if not found.
 
@@ -1200,7 +1201,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             if locsym:
                 symtype,symname = locsym
                 print('%s %s;' % (symtype,symname))
-        '''
+        """
         locsym = self.localsyms[fva].get(spdelta)
         if locsym is None:
             return None
@@ -1224,7 +1225,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         raise Exception('Unknown Local Symbol Type: %d' % symtype)
 
     def setFunctionLocal(self, fva, spdelta, symtype, syminfo):
-        '''
+        """
         Assign a local symbol within a function (addressed
         by delta from initial sp).  For each symbol, a "symtype"
         and "syminfo" field are used to specify the details.
@@ -1238,7 +1239,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
             # Setup amd64 style shadow space
             vw.setFunctionLocal(fva, 8, LSYM_NAME, ('void *','shadow0'))
-        '''
+        """
         metaname = 'LocalSymbol:%d' % spdelta
         metavalue = (fva, spdelta, symtype, syminfo)
         self.setFunctionMeta(fva, metaname, metavalue)
@@ -1298,13 +1299,13 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             self.setFunctionApi(fva, (rettype, retname, callconv, callname, callargs))
 
     def getCallers(self, va):
-        '''
+        """
         Get the va for all the callers of the given function/import.
 
         Example:
             for va in vw.getCallers( importva ):
                 dostuff(va)
-        '''
+        """
         ret = []
         for fromva, tova, rtype, rflags in self.getXrefsTo(va, rtype=REF_CODE):
             if rflags & envi.BR_PROC:
@@ -1312,22 +1313,22 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         return ret
 
     def getCallGraph(self):
-        '''
+        """
         Retrieve a visgraph Graph object representing all known inter procedural
         branches in the workspace.  Each node has an ID that is the same as the
         function va.
 
         Example:
             graph = vw.getCallGraph()
-        '''
+        """
         return self._call_graph
 
     def getFunctionGraph(self, fva):
-        '''
+        """
         Retrieve a code-block graph for the specified virtual address.
         Procedural branches (ie, calls) will not be followed during graph
         construction.
-        '''
+        """
         return viv_codegraph.FuncBlockGraph(self, fva)
 
     def getImportCallers(self, name):
@@ -1561,17 +1562,17 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         return m
 
     def getTransMeta(self, mname, default=None):
-        '''
+        """
         Retrieve a piece of "transient" metadata which is *not*
         stored across runs or pushed through the event subsystem.
-        '''
+        """
         return self.transmeta.get(mname, default)
 
     def setTransMeta(self, mname, value):
-        '''
+        """
         Store a piece of "transient" metadata which is *not*
         stored across runs or pushed through the event subsystem.
-        '''
+        """
         self.transmeta[mname] = value
 
     def castPointer(self, va):
@@ -1621,12 +1622,12 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         return self.addLocation(va, size, LOC_NUMBER, None)
 
     def parseNumber(self, va, size):
-        '''
+        """
         Parse a <size> width numeric value from memory at <va>.
 
         Example:
             val = vw.parseNumber(0x41414140, 4)
-        '''
+        """
         offset, bytes = self.getByteDef(va)
         return e_bits.parsebytes(bytes, offset, size, bigend=self.bigend)
 
@@ -1660,24 +1661,24 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         return self.addLocation(va, size, LOC_UNI)
 
     def addConstModule(self, modname):
-        '''
+        """
         Add constants declared within the named module
         to the constants resolver namespace.
 
         Example: vw.addConstModule('vstruct.constants.ntstatus')
-        '''
+        """
         mod = self.loadModule(modname)
         self.vsconsts.addModule(mod)
 
     def addStructureModule(self, namespace, modname):
-        '''
+        """
         Add a vstruct structure module to the workspace with the given
         namespace.
 
         Example: vw.addStructureModule('ntdll', 'vstruct.defs.windows.win_5_1_i386.ntdll')
 
         This allows subsequent struct lookups by names like
-        '''
+        """
 
         mod = self.loadModule(modname)
         self.vsbuilder.addVStructNamespace(namespace, mod)
@@ -1721,28 +1722,28 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         return vs
 
     def getUserStructNames(self):
-        '''
+        """
         Retrive the list of the existing user-defined structure
         names.
 
         Example:
             for name in vw.getUserStructNames():
                 print 'Structure Name: %s' % name
-        '''
+        """
         return self.vsbuilder.getVStructCtorNames()
 
     def getUserStructSource(self, sname):
-        '''
+        """
         Get the source code (as a string) for the given user
         defined structure.
 
         Example:
             ssrc = vw.getUserStructSource('MyStructureThing')
-        '''
+        """
         return self.getMeta('ustruct:%s' % sname)
 
     def setUserStructSource(self, ssrc):
-        '''
+        """
         Save the input string as a C structure definition for the
         workspace.  User-defined structures may then be applied
         to locations, or further edited in the future.
@@ -1750,7 +1751,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         Example:
             src = "struct woot { int x; int y; };"
             vw.setUserStructSource( src )
-        '''
+        """
         # First, we make sure it compiles...
         ctor = vs_cparse.ctorFromCSource(ssrc)
         # Then, build one to get the name from it...
@@ -1972,13 +1973,13 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         return list(self.name_by_va.items())
 
     def getName(self, va, smart=False):
-        '''
+        """
         Returns the name of the specified virtual address (or None).
 
         Smart mode digs beyond simple name lookups, as follows:
         If va falls within a known function in the workspace, we return "funcname+<delta>".
         If not, and the va falls within a mapped binary, we return "filename+<delta>"
-        '''
+        """
         name = self.name_by_va.get(va)
 
         if name is not None or not smart:
@@ -2203,22 +2204,22 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         return nname
 
     def addEntryPoint(self, va):
-        '''
+        """
         Add an entry point to the definition for the given file.  This
         will hint the analysis system to create functions when analysis
         is run.
 
         NOTE: No analysis is triggered by this function.
-        '''
+        """
         self.setVaSetRow('EntryPoints', (va,))
 
     def getEntryPoints(self):
-        '''
+        """
         Get all the parsed entry points for all the files loaded into the
         workspace.
 
         Example:  for va in vw.getEntryPoints():
-        '''
+        """
         return [x for x, in self.getVaSetRows('EntryPoints')]
 
     def setFileMeta(self, fname, key, value):
@@ -2239,9 +2240,9 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         return d.get(key, default)
 
     def getFileMetaDict(self, filename):
-        '''
+        """
         Retrieve the file metadata for this file as a key:val dict.
-        '''
+        """
         d = self.filemeta.get(filename)
         if d is None:
             raise Exception('Invalid File: %s' % filename)
@@ -2341,12 +2342,12 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         self._fireEvent(VWE_SETVASETROW, (name, rowtup))
 
     def getVaSetRow(self, name, va):
-        '''
+        """
         Retrieve the va set row for va in the va set named name.
 
         Example:
             row = vw.getVaSetRow('WootFunctions', fva)
-        '''
+        """
         vaset = self.vasets.get(name)
         if vaset is None:
             return None
@@ -2371,14 +2372,14 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         self._fireEvent(VWE_CHAT, (uname, msg))
 
     def iAmLeader(self, winname):
-        '''
+        """
         Announce that your workspace is leading a window with the
         specified name.  This allows others to opt-in to following
         the nav events for the given window name.
 
         Example:
             vw.iAmLeader('WindowTitle')
-        '''
+        """
         if not self.server:
             raise Exception('iAmLeader() requires being connected to a server.')
 
@@ -2386,13 +2387,13 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         self.server._fireEvent(VTE_MASK | VTE_IAMLEADER, (user, winname))
 
     def followTheLeader(self, winname, expr):
-        '''
+        """
         Announce a new memory expression to navigate to if if a given window
         is following the specified user/winname
 
         Example:
             vw.followTheLeader('FunExample', 'sub_08042323')
-        '''
+        """
         if not self.server:
             raise Exception('followTheLeader() requires being connected to a server.')
         user = e_config.getusername()
@@ -2453,12 +2454,12 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             return e_resolv.Symbol(name, addr, 0)
 
     def setSymHint(self, va, idx, hint):
-        '''
+        """
         Set a symbol hint which will be used in place of operand
         values during disassembly among other things...
 
         You may also set hint=None to delete sym hints.
-        '''
+        """
         self._fireEvent(VWE_SYMHINT, (va, idx, hint))
 
     def getSymHint(self, va, idx):

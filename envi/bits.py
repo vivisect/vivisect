@@ -77,8 +77,8 @@ def is_parity(val):
     s = 0
     while val:
         s ^= val & 1
-        val = val >> 1
-    return (not s)
+        val >>= 1
+    return not s
 
 
 parity_table = []
@@ -188,7 +188,7 @@ def slowparsebytes(bytes, offset, size, sign=False, bigend=False):
     ret = 0
     ioff = 0
     for x in range(size):
-        ret = ret << 8
+        ret <<= 8
         ret |= ord(bytes[begin + ioff])
         ioff += inc
     if sign:
@@ -211,7 +211,7 @@ def byteswap(value, size):
     ret = 0
     for i in range(size):
         ret |= (value >> (8 * i)) & 0xff
-        ret = ret << 8
+        ret <<= 8
     return ret
 
 
@@ -230,7 +230,7 @@ def intwidth(val):
     ret = 0
     while val:
         ret += 1
-        val = val >> 8
+        val >>= 8
     return ret
 
 
@@ -245,7 +245,7 @@ def hex(value, size=None):
     x = []
     while value:
         x.append('%.2x' % (value & 0xff))
-        value = value >> 8
+        value >>= 8
     x.reverse()
     return '0x%.s' % ''.join(x)
 

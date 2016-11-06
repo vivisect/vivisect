@@ -2776,7 +2776,8 @@ tbl32_fpuDF_rest = [
 ( 0,0,ARG_NONE,ARG_NONE,ARG_NONE,cpu_80387,0,0,0,0 ),  
 ( 0,0,ARG_NONE,ARG_NONE,ARG_NONE,cpu_80387,0,0,0,0 ),  
 ( 0,0,ARG_NONE,ARG_NONE,ARG_NONE,cpu_80387,0,0,0,0 ),  
-( 0,0,ARG_NONE,ARG_NONE,ARG_NONE,cpu_80387,0,0,0,0 )]
+( 0,0,ARG_NONE,ARG_NONE,ARG_NONE,cpu_80387,0,0,0,0 )
+]
 
 
 tbl_INVALID = [ ( 0,0,ARG_NONE,ARG_NONE,ARG_NONE,0,0,0,0,0 ) ]
@@ -2798,155 +2799,156 @@ These values allow an opcode to be sliced and diced to make it fit correctly int
 IMPORTANT: the decoder will assume the opcode is ultimately selected by bits in a MOD/RM 
     byte if the field in tabdesc[2] != 0xff
 """
-tables86=[
-(tbl32_Main,0,0xff,0,0xff),              #0
-(tbl32_0F,0,0xff,0,0xff),                #1
-(tbl32_80,3,0x07,0,0xff),                #2
-(tbl32_81,3,0x07,0,0xff),                #3
-(tbl32_82,3,0x07,0,0xff),                #4
-(tbl32_83,3,0x07,0,0xff),                #5
-(tbl32_C0,3,0x07,0,0xff),                #6
-(tbl32_C1,3,0x07,0,0xff),                #7
-(tbl32_D0,3,0x07,0,0xff),                #8
-(tbl32_D1,3,0x07,0,0xff),                #9
-(tbl32_D2,3,0x07,0,0xff),                #10
-(tbl32_D3,3,0x07,0,0xff),                #11
-(tbl32_F6,3,0x07,0,0xff),                #12
-(tbl32_F7,3,0x07,0,0xff),                #13
-(tbl32_FE,3,0x07,0,0xff),                #14
-(tbl32_FF,3,0x07,0,0xff),                #15
-(tbl32_0F00,3,0x07,0,0xff),              #16
-(tbl32_0F01_00BF,3,0x07,0,0xbf,42),      #17
-(tbl32_0F18,3,0x07,0,0xff),              #18
-(tbl32_0F71,3,0x07,0,0xff),              #19
-(tbl32_0F72,3,0x07,0,0xff),              #20
-(tbl32_0F73,3,0x07,0,0xff),              #21
-(tbl32_0FAE_00BF,3,0x07,0,0xbf, 53),     #22
-(tbl32_0FBA,3,0x07,0,0xff),              #23
-(tbl32_0FC7_00BF,3,0x07,0,0xbf, 25),     #24
-(tbl32_0FC7_rest,0,0x07,0xc0,0xff),      #25
-(tbl32_fpuD8_00BF,3,0x07,0,0xbf, 27),    #26
-(tbl32_fpuD8_rest,0,0xff,0xc0,0xff),     #27
-(tbl32_fpuD9_00BF,3,0x07,0,0xbf, 29),    #28
-(tbl32_fpuD9_rest,0,0xff,0xc0,0xff),     #29
-(tbl32_fpuDA_00BF,3,0x07,0,0xbf, 31),    #30
-(tbl32_fpuDA_rest,0,0xff,0xc0,0xff),     #31
-(tbl32_fpuDB_00BF,3,0x07,0,0xbf, 33),    #32
-(tbl32_fpuDB_rest,0,0xff,0xc0,0xff),     #33
-(tbl32_fpuDC_00BF,3,0x07,0,0xbf, 35),    #34
-(tbl32_fpuDC_rest,0,0xff,0xc0,0xff),     #35
-(tbl32_fpuDD_00BF,3,0x07,0,0xbf, 37),    #36
-(tbl32_fpuDD_rest,0,0xff,0xc0,0xff),     #37
-(tbl32_fpuDE_00BF,3,0x07,0,0xbf, 39),    #38
-(tbl32_fpuDE_rest,0,0xff,0xc0,0xff),     #39
-(tbl32_fpuDF_00BF,3,0x07,0,0xbf, 41),    #40
-(tbl32_fpuDF_rest,0,0xff,0xc0,0xff),     #41
-(tbl32_0F01_rest,0,0xff,0xc0,0xff),      #42
-(tbl_INVALID, 0,0x00, 0, 0xff),          #43
-(tbl32_660F,0,0xff,0,0xff),              #44
-(tbl32_F20F,0,0xff,0,0xff),              #45
-(tbl32_F30F,0,0xff,0,0xff),              #46
-(tbl32_660FC7_00BF,3,0x07,0,0xff, 48),   #47
-(tbl32_660FC7_rest,3,0x07,0xc0,0xff),    #48
-(tbl32_F20FC7_00BF,3,0x07,0,0xff, 50),   #49
-(tbl32_F20FC7_rest,3,0x07,0xc0,0xff),    #50
-(tbl32_F30FC7_00BF,3,0x07,0,0xff, 50),   #51
-(tbl32_F30FC7_rest,3,0x07,0xc0,0xff),    #52
-(tbl32_0FAE_rest,3,0x07,0xc0,0xff),      #53
-(tbl32_660F73,3,0x7,0,0xff),             #54
-(tbl32_0F38,0,0xff,0,0xff),              #55
-(tbl32_660F38,0,0xff,0,0xff),            #56    - unused at present
-(tbl32_0F3A,0,0xff,0,0xff),              #57
-(tbl32_660F3A,0,0xff,0,0xff),            #58    - unused at present
+tables86 = [
+    (tbl32_Main,0,0xff,0,0xff),              #0
+    (tbl32_0F,0,0xff,0,0xff),                #1
+    (tbl32_80,3,0x07,0,0xff),                #2
+    (tbl32_81,3,0x07,0,0xff),                #3
+    (tbl32_82,3,0x07,0,0xff),                #4
+    (tbl32_83,3,0x07,0,0xff),                #5
+    (tbl32_C0,3,0x07,0,0xff),                #6
+    (tbl32_C1,3,0x07,0,0xff),                #7
+    (tbl32_D0,3,0x07,0,0xff),                #8
+    (tbl32_D1,3,0x07,0,0xff),                #9
+    (tbl32_D2,3,0x07,0,0xff),                #10
+    (tbl32_D3,3,0x07,0,0xff),                #11
+    (tbl32_F6,3,0x07,0,0xff),                #12
+    (tbl32_F7,3,0x07,0,0xff),                #13
+    (tbl32_FE,3,0x07,0,0xff),                #14
+    (tbl32_FF,3,0x07,0,0xff),                #15
+    (tbl32_0F00,3,0x07,0,0xff),              #16
+    (tbl32_0F01_00BF,3,0x07,0,0xbf,42),      #17
+    (tbl32_0F18,3,0x07,0,0xff),              #18
+    (tbl32_0F71,3,0x07,0,0xff),              #19
+    (tbl32_0F72,3,0x07,0,0xff),              #20
+    (tbl32_0F73,3,0x07,0,0xff),              #21
+    (tbl32_0FAE_00BF,3,0x07,0,0xbf, 53),     #22
+    (tbl32_0FBA,3,0x07,0,0xff),              #23
+    (tbl32_0FC7_00BF,3,0x07,0,0xbf, 25),     #24
+    (tbl32_0FC7_rest,0,0x07,0xc0,0xff),      #25
+    (tbl32_fpuD8_00BF,3,0x07,0,0xbf, 27),    #26
+    (tbl32_fpuD8_rest,0,0xff,0xc0,0xff),     #27
+    (tbl32_fpuD9_00BF,3,0x07,0,0xbf, 29),    #28
+    (tbl32_fpuD9_rest,0,0xff,0xc0,0xff),     #29
+    (tbl32_fpuDA_00BF,3,0x07,0,0xbf, 31),    #30
+    (tbl32_fpuDA_rest,0,0xff,0xc0,0xff),     #31
+    (tbl32_fpuDB_00BF,3,0x07,0,0xbf, 33),    #32
+    (tbl32_fpuDB_rest,0,0xff,0xc0,0xff),     #33
+    (tbl32_fpuDC_00BF,3,0x07,0,0xbf, 35),    #34
+    (tbl32_fpuDC_rest,0,0xff,0xc0,0xff),     #35
+    (tbl32_fpuDD_00BF,3,0x07,0,0xbf, 37),    #36
+    (tbl32_fpuDD_rest,0,0xff,0xc0,0xff),     #37
+    (tbl32_fpuDE_00BF,3,0x07,0,0xbf, 39),    #38
+    (tbl32_fpuDE_rest,0,0xff,0xc0,0xff),     #39
+    (tbl32_fpuDF_00BF,3,0x07,0,0xbf, 41),    #40
+    (tbl32_fpuDF_rest,0,0xff,0xc0,0xff),     #41
+    (tbl32_0F01_rest,0,0xff,0xc0,0xff),      #42
+    (tbl_INVALID, 0,0x00, 0, 0xff),          #43
+    (tbl32_660F,0,0xff,0,0xff),              #44
+    (tbl32_F20F,0,0xff,0,0xff),              #45
+    (tbl32_F30F,0,0xff,0,0xff),              #46
+    (tbl32_660FC7_00BF,3,0x07,0,0xff, 48),   #47
+    (tbl32_660FC7_rest,3,0x07,0xc0,0xff),    #48
+    (tbl32_F20FC7_00BF,3,0x07,0,0xff, 50),   #49
+    (tbl32_F20FC7_rest,3,0x07,0xc0,0xff),    #50
+    (tbl32_F30FC7_00BF,3,0x07,0,0xff, 50),   #51
+    (tbl32_F30FC7_rest,3,0x07,0xc0,0xff),    #52
+    (tbl32_0FAE_rest,3,0x07,0xc0,0xff),      #53
+    (tbl32_660F73,3,0x7,0,0xff),             #54
+    (tbl32_0F38,0,0xff,0,0xff),              #55
+    (tbl32_660F38,0,0xff,0,0xff),            #56    - unused at present
+    (tbl32_0F3A,0,0xff,0,0xff),              #57
+    (tbl32_660F3A,0,0xff,0,0xff),            #58    - unused at present
 ]
 
-regs=[
-        ("eax", "REG_GENERAL,REG_RET", 4),
-        ("ecx", "REG_GENERAL,REG_COUNT", 4),
-        ("edx", "REG_GENERAL", 4),
-        ("ebx", "REG_GENERAL", 4),
-        ("esp", "REG_SP", 4),
-        ("ebp", "REG_GENERAL,REG_FP", 4),
-        ("esi", "REG_GENERAL,REG_SRC", 4),
-        ("edi", "REG_GENERAL,REG_DEST", 4),
-        ("ax", "REG_GENERAL,REG_RET", 2),
-        ("cx", "REG_GENERAL,REG_COUNT", 2),
-        ("dx", "REG_GENERAL", 2),
-        ("bx", "REG_GENERAL", 2),
-        ("sp", "REG_SP", 2),
-        ("bp", "REG_GENERAL,REG_FP", 2),
-        ("si", "REG_GENERAL,REG_SRC", 2),
-        ("di", "REG_GENERAL,REG_DEST", 2),
-        ("al", "REG_GENERAL", 1),
-        ("cl", "REG_GENERAL", 1),
-        ("dl", "REG_GENERAL", 1),
-        ("bl", "REG_GENERAL", 1),
-        ("ah", "REG_GENERAL", 1),
-        ("ch", "REG_GENERAL", 1),
-        ("dh", "REG_GENERAL", 1),
-        ("bh", "REG_GENERAL", 1),
-        ("mm0", "REG_SIMD", 4),
-        ("mm1", "REG_SIMD", 4),
-        ("mm2", "REG_SIMD", 4),
-        ("mm3", "REG_SIMD", 4),
-        ("mm4", "REG_SIMD", 4),
-        ("mm5", "REG_SIMD", 4),
-        ("mm6", "REG_SIMD", 4),
-        ("mm7", "REG_SIMD", 4),
-        ("xmm0", "REG_SIMD", 4),
-        ("xmm1", "REG_SIMD", 4),
-        ("xmm2", "REG_SIMD", 4),
-        ("xmm3", "REG_SIMD", 4),
-        ("xmm4", "REG_SIMD", 4),
-        ("xmm5", "REG_SIMD", 4),
-        ("xmm6", "REG_SIMD", 4),
-        ("xmm7", "REG_SIMD", 4),
-        ("dr0", "REG_DEBUG", 4),
-        ("dr1", "REG_DEBUG", 4),
-        ("dr2", "REG_DEBUG", 4),
-        ("dr3", "REG_DEBUG", 4),
-        ("dr4", "REG_DEBUG", 4),
-        ("dr5", "REG_DEBUG", 4),
-        ("dr6", "REG_DEBUG,REG_SYS", 4),
-        ("dr7", "REG_DEBUG,REG_SYS", 4),
-        ("cr0", "REG_SYS", 4),
-        ("cr1", "REG_SYS", 4),
-        ("cr2", "REG_SYS", 4),
-        ("cr3", "REG_SYS", 4),
-        ("cr4", "REG_SYS", 4),
-        ("cr5", "REG_SYS", 4),
-        ("cr6", "REG_SYS", 4),
-        ("cr7", "REG_SYS", 4),
-        ("tr0", "REG_SYS", 4),
-        ("tr1", "REG_SYS", 4),
-        ("tr2", "REG_SYS", 4),
-        ("tr3", "REG_SYS", 4),
-        ("tr4", "REG_SYS", 4),
-        ("tr5", "REG_SYS", 4),
-        ("tr6", "REG_SYS", 4),
-        ("tr7", "REG_SYS", 4),
-        ("es", "REG_DATASEG", 2),
-        ("cs", "REG_CODESEG", 2),
-        ("ss", "REG_STACKSEG", 2),
-        ("ds", "REG_DATASEG", 2),
-        ("fs", "REG_DATASEG", 2),
-        ("gs", "REG_DATASEG", 2),
-        (" ", "REG_INVALID", 0),
-        (" ", "REG_INVALID", 0),
-        ("st(0)", "REG_FPU", "OPSIZE_FPREG"),
-        ("st(1)", "REG_FPU", "OPSIZE_FPREG"),
-        ("st(2)", "REG_FPU", "OPSIZE_FPREG"),
-        ("st(3)", "REG_FPU", "OPSIZE_FPREG"),
-        ("st(4)", "REG_FPU", "OPSIZE_FPREG"),
-        ("st(5)", "REG_FPU", "OPSIZE_FPREG"),
-        ("st(6)", "REG_FPU", "OPSIZE_FPREG"),
-        ("st(7)", "REG_FPU", "OPSIZE_FPREG"),
-        ("eflags", "REG_CC", "OPSIZE_FPREG"),
-        ("fpctrl", "REG_FPU,REG_SYS", 2),
-        ("fpstat", "REG_FPU,REG_SYS", 2),
-        ("fptag", "REG_FPU,REG_SYS", 2),
-        ("eip", "REG_PC", 4),
-        ("ip", "REG_PC", 2) ]
+regs = [
+    ("eax", "REG_GENERAL,REG_RET", 4),
+    ("ecx", "REG_GENERAL,REG_COUNT", 4),
+    ("edx", "REG_GENERAL", 4),
+    ("ebx", "REG_GENERAL", 4),
+    ("esp", "REG_SP", 4),
+    ("ebp", "REG_GENERAL,REG_FP", 4),
+    ("esi", "REG_GENERAL,REG_SRC", 4),
+    ("edi", "REG_GENERAL,REG_DEST", 4),
+    ("ax", "REG_GENERAL,REG_RET", 2),
+    ("cx", "REG_GENERAL,REG_COUNT", 2),
+    ("dx", "REG_GENERAL", 2),
+    ("bx", "REG_GENERAL", 2),
+    ("sp", "REG_SP", 2),
+    ("bp", "REG_GENERAL,REG_FP", 2),
+    ("si", "REG_GENERAL,REG_SRC", 2),
+    ("di", "REG_GENERAL,REG_DEST", 2),
+    ("al", "REG_GENERAL", 1),
+    ("cl", "REG_GENERAL", 1),
+    ("dl", "REG_GENERAL", 1),
+    ("bl", "REG_GENERAL", 1),
+    ("ah", "REG_GENERAL", 1),
+    ("ch", "REG_GENERAL", 1),
+    ("dh", "REG_GENERAL", 1),
+    ("bh", "REG_GENERAL", 1),
+    ("mm0", "REG_SIMD", 4),
+    ("mm1", "REG_SIMD", 4),
+    ("mm2", "REG_SIMD", 4),
+    ("mm3", "REG_SIMD", 4),
+    ("mm4", "REG_SIMD", 4),
+    ("mm5", "REG_SIMD", 4),
+    ("mm6", "REG_SIMD", 4),
+    ("mm7", "REG_SIMD", 4),
+    ("xmm0", "REG_SIMD", 4),
+    ("xmm1", "REG_SIMD", 4),
+    ("xmm2", "REG_SIMD", 4),
+    ("xmm3", "REG_SIMD", 4),
+    ("xmm4", "REG_SIMD", 4),
+    ("xmm5", "REG_SIMD", 4),
+    ("xmm6", "REG_SIMD", 4),
+    ("xmm7", "REG_SIMD", 4),
+    ("dr0", "REG_DEBUG", 4),
+    ("dr1", "REG_DEBUG", 4),
+    ("dr2", "REG_DEBUG", 4),
+    ("dr3", "REG_DEBUG", 4),
+    ("dr4", "REG_DEBUG", 4),
+    ("dr5", "REG_DEBUG", 4),
+    ("dr6", "REG_DEBUG,REG_SYS", 4),
+    ("dr7", "REG_DEBUG,REG_SYS", 4),
+    ("cr0", "REG_SYS", 4),
+    ("cr1", "REG_SYS", 4),
+    ("cr2", "REG_SYS", 4),
+    ("cr3", "REG_SYS", 4),
+    ("cr4", "REG_SYS", 4),
+    ("cr5", "REG_SYS", 4),
+    ("cr6", "REG_SYS", 4),
+    ("cr7", "REG_SYS", 4),
+    ("tr0", "REG_SYS", 4),
+    ("tr1", "REG_SYS", 4),
+    ("tr2", "REG_SYS", 4),
+    ("tr3", "REG_SYS", 4),
+    ("tr4", "REG_SYS", 4),
+    ("tr5", "REG_SYS", 4),
+    ("tr6", "REG_SYS", 4),
+    ("tr7", "REG_SYS", 4),
+    ("es", "REG_DATASEG", 2),
+    ("cs", "REG_CODESEG", 2),
+    ("ss", "REG_STACKSEG", 2),
+    ("ds", "REG_DATASEG", 2),
+    ("fs", "REG_DATASEG", 2),
+    ("gs", "REG_DATASEG", 2),
+    (" ", "REG_INVALID", 0),
+    (" ", "REG_INVALID", 0),
+    ("st(0)", "REG_FPU", "OPSIZE_FPREG"),
+    ("st(1)", "REG_FPU", "OPSIZE_FPREG"),
+    ("st(2)", "REG_FPU", "OPSIZE_FPREG"),
+    ("st(3)", "REG_FPU", "OPSIZE_FPREG"),
+    ("st(4)", "REG_FPU", "OPSIZE_FPREG"),
+    ("st(5)", "REG_FPU", "OPSIZE_FPREG"),
+    ("st(6)", "REG_FPU", "OPSIZE_FPREG"),
+    ("st(7)", "REG_FPU", "OPSIZE_FPREG"),
+    ("eflags", "REG_CC", "OPSIZE_FPREG"),
+    ("fpctrl", "REG_FPU,REG_SYS", 2),
+    ("fpstat", "REG_FPU,REG_SYS", 2),
+    ("fptag", "REG_FPU,REG_SYS", 2),
+    ("eip", "REG_PC", 4),
+    ("ip", "REG_PC", 2)
+]
 
 '''      DEPRECATED 131016 by atlas
 prefix_table = {
