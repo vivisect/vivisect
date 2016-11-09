@@ -347,6 +347,7 @@ class cnot(SymbolikBase):
     def __init__(self, v1):
         SymbolikBase.__init__(self)
         self.setSymKid(0, v1)
+
     @symcache
     def __repr__(self):
         return 'cnot( %s )' % (repr(self.kids[0]))
@@ -360,7 +361,7 @@ class cnot(SymbolikBase):
 
     def update(self, emu):
         v1 = self.kids[0].update(emu=emu)
-        if v1.efftype == EFFTYPE_CONSTRAIN:
+        if v1.symtype & SYMT_CON:
             return v1.reverse()
         return cnot(v1)
 
@@ -371,7 +372,7 @@ class cnot(SymbolikBase):
         if kidzero.symtype == SYMT_CON:
             return kidzero.reverse()
 
-        if kidzero.efftype == SYMT_NOT:
+        if kidzero.symtype == SYMT_NOT:
             return self.kids[0].kids[0]
 
     def getWidth(self):
