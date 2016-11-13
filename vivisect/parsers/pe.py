@@ -256,7 +256,7 @@ def loadPeIntoWorkspace(vw, pe, filename=None):
             readsize = sec.SizeOfRawData if sec.SizeOfRawData < sec.VirtualSize else sec.VirtualSize
             secoff = pe.rvaToOffset(secrva)
             secbytes = pe.readAtOffset(secoff, readsize)
-            secbytes += "\x00" * plen
+            secbytes += b"\x00" * plen
             vw.addMemoryMap(secbase, mapflags, fname, secbytes)
             vw.addSegment(secbase, len(secbytes), secname, fname)
 

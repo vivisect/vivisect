@@ -285,11 +285,11 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
         fromva, tova, reftype, rflags = einfo
         xr_to = self.xrefs_by_to.get(tova, None)
         xr_from = self.xrefs_by_from.get(fromva, None)
-        if xr_to == None:
+        if xr_to is None:
             xr_to = []
             self.xrefs_by_to[tova] = xr_to
 
-        if xr_from == None:
+        if xr_from is None:
             xr_from = []
             self.xrefs_by_from[fromva] = xr_from
 
@@ -346,13 +346,13 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
         # callback name....
         mcbname = "_mcb_%s" % name.split(':')[0]
         mcb = getattr(self, mcbname, None)
-        if mcb != None:
+        if mcb is not None:
             mcb(name, value)
         self.metadata[name] = value
 
     def _handleCOMMENT(self, einfo):
         va, comment = einfo
-        if comment == None:
+        if comment is None:
             self.comments.pop(va)
         else:
             self.comments[va] = comment
@@ -415,7 +415,7 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
 
     def _handleSYMHINT(self, msgtup):
         va, idx, hint = msgtup
-        if hint == None:
+        if hint is None:
             self.symhints.pop((va, idx), None)
         else:
             self.symhints[(va, idx)] = hint
@@ -489,14 +489,14 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
         pass
 
     def _fireEvent(self, event, einfo, local=False, skip=None):
-        '''
+        """
         Fire an event down the hole.  "local" specifies that this is
         being called on a client (self.server != None) but we got it
         from the server in the first place so no need to send it back.
 
         skip is used to tell the server to bypass our channelid when
         putting the event into channel queues (we took care of our own).
-        '''
+        """
 
         try:
             if event & VTE_MASK:
@@ -539,10 +539,10 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
             # def _loadImportApi(self, apidict):
             # self._imp_api.update( apidict )
 
-        #################################################################
-        #
-        #  setMeta key callbacks
-        #
+            #################################################################
+            #
+            #  setMeta key callbacks
+            #
 
     def _mcb_Architecture(self, name, value):
         # This is for legacy stuff...
@@ -590,7 +590,7 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
     def _fmcb_CallsFrom(self, funcva, th, callsfrom):
         for va in callsfrom:
             f2va = self.getFunction(va)
-            if f2va != None:
+            if f2va is not None:
                 self._call_graph.getCallEdge(funcva, f2va)
 
     def _fmcb_LocalSymbol(self, fva, mname, locsym):
@@ -599,9 +599,9 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
 
 
 def trackDynBranches(cfctx, op, vw, bflags, branches):
-    '''
+    """
     track dynamic branches
-    '''
+    """
     # FIXME: do we want to filter anything out?  
     #  jmp edx
     #  jmp dword [ebx + 68]

@@ -158,7 +158,7 @@ class CodeFlowContext(object):
                 print('parseOpcode error at 0x%.8x: %s' % (va, e))
                 continue
             except Exception as e:
-                # traceback.print_exc()
+                traceback.print_exc()
                 print('parseOpcode error at 0x%.8x: %s' % (va, e))
                 continue
 
