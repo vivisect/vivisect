@@ -2,11 +2,12 @@
 A module to contain code flow analysis for envi opcode objects...
 """
 
-import copy
-import traceback
+import logging
 
 import envi
 import envi.memory as e_mem
+
+logger = logging.getLogger(__name__)
 
 
 class CodeFlowContext(object):
@@ -123,7 +124,7 @@ class CodeFlowContext(object):
 
     def addCodeFlow(self, va, arch=envi.ARCH_DEFAULT):
         """
-        Do code flow disassembly from the specified address.  Returnes a list
+        Do code flow disassembly from the specified address.  Returns a list
         of the procedural branch targets discovered during code flow...
 
         Set persist=True to store 'opdone' and never disassemble the same thing twice
@@ -154,12 +155,10 @@ class CodeFlowContext(object):
             try:
                 op = self._mem.parseOpcode(va, arch=arch)
             except envi.InvalidInstruction as e:
-                # traceback.print_exc()
-                print('parseOpcode error at 0x%.8x: %s' % (va, e))
+                logger.warning('parseOpcode error at 0x%.8x: %s' % (va, e), exc_info=True)
                 continue
             except Exception as e:
-                traceback.print_exc()
-                print('parseOpcode error at 0x%.8x: %s' % (va, e))
+                logger.warning('Generic exception at 0x%.8x: %s' % (va, e), exc_info=True)
                 continue
 
             branches = op.getBranches()
