@@ -45,4 +45,13 @@ class ArmModule(envi.ArchitectureModule):
     def getEmulator(self):
         return ArmEmulator()
 
+    def setEndian(self, endian):
+        self._endian = endian
+        self._arch_dis.setEndian(endian)
+        self._arch_thumb_dis.setEndian(endian)
+
+    def getEndian(self):
+        return self._endian
+
+
 from envi.archs.arm.emu import *
