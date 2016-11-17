@@ -154,11 +154,8 @@ class CodeFlowContext(object):
 
             try:
                 op = self._mem.parseOpcode(va, arch=arch)
-            except envi.InvalidInstruction as e:
-                logger.warning('parseOpcode error at 0x%.8x: %s' % (va, e), exc_info=True)
-                continue
             except Exception as e:
-                logger.warning('Generic exception at 0x%.8x: %s' % (va, e), exc_info=True)
+                logger.warning('\nException at VA: 0x%.8x - %s\n' % (va, e), exc_info=True)
                 continue
 
             branches = op.getBranches()
