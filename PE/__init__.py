@@ -592,7 +592,10 @@ class PE(object):
                     if not namelen_bytes:
                         continue
                     namelen = struct.unpack('<H', namelen_bytes)[0]
-                    name_id = self.readAtRva(namerva + 2, namelen * 2).decode('utf-16le', 'ignore')
+                    name_raw = self.readAtRva(namerva + 2, namelen * 2)
+                    if not name_raw:
+                        continue
+                    name_id = name_raw.decode('utf-16le', 'ignore')
                     if not name_id:
                         name_id = dirent.Name
 
@@ -824,6 +827,9 @@ class PE(object):
             if chunksize > len(relbytes):
                 return
             
+            if relcnt < 0:
+                return
+            
             rels = struct.unpack("<%dH" % relcnt, relbytes[8:chunksize])
             for r in rels:
                 rtype = r >> 12
@@ -874,7 +880,7 @@ class PE(object):
             self.IMAGE_EXPORT_DIRECTORY = None
             return
         
-        if funczise == 0:
+        if funcsize == 0:
             self.IMAGE_EXPORT_DIRECTORY = None
             return
     

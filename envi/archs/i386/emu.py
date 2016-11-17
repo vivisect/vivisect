@@ -550,6 +550,11 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
     def i_cli(self, op):
         self.setFlag(EFLAGS_IF, False)
 
+    def i_cmc(self, op):
+        # set the CF flag to its complement
+        val = self.getFlag(EFLAGS_CF)
+        self.setFlag(EFLAGS_CF, ~val)
+
     # We include all the possible CMOVcc names just in case somebody
     # gets hinkey with the disassembler.
     def i_cmova(self, op):
@@ -760,6 +765,19 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
 
             self.setRegister(REG_EAX, quot)
             self.setRegister(REG_EDX, rem)
+
+        elif oper.tsize == 8:
+            rax = self.getRegisterByName("rax")
+            rdx = self.getRegisterByName("rdx")
+            tot = (rdx << 64) + rax
+            quot = tot / val
+            rem = tot % val
+
+            if tot > (2**64)-1:
+                raise Exception('division exception')
+
+            self.setRegisterByName("rax", quot)
+            self.setRegisterByName("rdx", rem)
 
         else:
             raise envi.UnsupportedInstruction(self, op)
@@ -1579,6 +1597,8 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
 
     def i_sub(self, op):
         x = self.integerSubtraction(op)
+        dsize = op.opers[0].tsize
+        x = e_bits.unsigned(x, dsize)
         if x != None:
             self.setOperValue(op, 0, x)
 
