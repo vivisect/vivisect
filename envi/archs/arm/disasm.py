@@ -875,7 +875,6 @@ def p_media(opval, va):
     #  smlad, smlsd, smlald, smusd              01110
     #  usad8, usada8, bfc, bfi                  01111
     definer = (opval>>23) & 0x1f
-    print "definer", definer
     if   definer == 0xc:
         return p_media_parallel(opval, va)
     elif definer == 0xd:
@@ -1732,7 +1731,7 @@ class ArmOpcode(envi.Opcode):
         if self.iflags & IF_THUMB32:
             mnem += ".w"
         x = []
-        
+
         for o in self.opers:
             x.append(o.repr(self))
         #if self.iflags & IF_W:     # handled in operand.  still keeping flag to indicate this instruction writes back
@@ -2134,6 +2133,7 @@ class ArmRegOffsetOper(ArmOperand):
         addr = self.getOperAddr(op, emu)
         return emu.readMemValue(addr, self.tsize)
 
+    # FIXME: should identify whether we're in an emulator or being "analyzed".  should be forcible either way, but defaults should be to update in emulator.executeOpcode() and not in other
     def getOperAddr(self, op, emu=None):
         if emu == None:
             return None
@@ -2249,23 +2249,18 @@ class ArmImmOffsetOper(ArmOperand):
         # there are certain circumstances where we can survive without an emulator
         pubwl = self.pubwl >> 3
         u = pubwl & 1
-        #tsize = self.tsize # to help cope with ldcl
         # if we don't have an emulator, we must be PC-based since we know it
         if self.base_reg == REG_PC:
             base = self.va
             #to handle lcdl. Override tsize to return proper address
-            #if ((self.pubwl >>2) & 1) == 1:
-            #    tsize =4
         elif emu == None:
             return None
         else:
             base = emu.getRegister(self.base_reg)
 
         if u:
-            #addr = (base + self.offset) & e_bits.u_maxes[tsize]
             addr = (base + self.offset) & e_bits.u_maxes[self.psize]
         else:
-            #addr = (base - self.offset) & e_bits.u_maxes[tsize]
             addr = (base - self.offset) & e_bits.u_maxes[self.psize]
 
         
@@ -2844,8 +2839,8 @@ class ArmDisasm:
         cond = opval >> 28
 
         # Begin the table lookup sequence with the first 3 non-cond bits
-        encfam = (opval >> 25) & 0x7
-        print "encode family =", encfam
+        #encfam = (opval >> 25) & 0x7
+        #print "encode family =", encfam
         if cond == COND_EXTENDED:
             enc = IENC_UNCOND
 
@@ -2864,7 +2859,7 @@ class ArmDisasm:
             raise envi.InvalidInstruction(mesg="No encoding found!",
                     bytez=bytez[offset:offset+4], va=va)
 
-        print "ienc_parser index, routine: %d, %s" % (enc, ienc_parsers[enc])
+        #print "ienc_parser index, routine: %d, %s" % (enc, ienc_parsers[enc])
         opcode, mnem, olist, flags = ienc_parsers[enc](opval, va+8)
         return opcode, mnem, olist, flags
 
