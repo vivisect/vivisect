@@ -199,17 +199,30 @@ def p_dp_imm_shift(opval, va):
     Rm = opval & 0xf
     shtype = (opval >> 5) & 0x3
     shval = (opval >> 7) & 0x1f   # effectively, rot*2
+    if (shtype==3) & (shval ==0): # is it an rrx?
+        shtype = 4
     mnem = dp_mnem[ocode]
-    display_shift = True
     if ocode in dp_noRn:# FIXME: FUGLY (and slow...)
-        #is it a mov? Only if shval is a 0, type is lsl, and ocode = 
+        #is it a mov? Only if shval is a 0, type is lsl, and ocode = 13
         if  (ocode == 13) and ((shval != 0) or (shtype != 0)):
             mnem = dp_shift_mnem[shtype]
-            display_shift = False
-        olist = (
-            ArmRegOper(Rd, va=va),
-            ArmRegShiftImmOper(Rm, shtype, shval, va, display_shift),
-        )
+            if shtype!= 4: #if not rrx
+                olist = (
+                    ArmRegOper(Rd, va=va),
+                    ArmRegOper(Rm, va=va),
+                    ArmImmOper(shval, va=va),
+                )
+            else:
+                olist = (
+                    ArmRegOper(Rd, va=va),
+                    ArmRegOper(Rm, va=va),
+                )
+                
+        else:
+            olist = (
+                ArmRegOper(Rd, va=va),
+                ArmRegShiftImmOper(Rm, shtype, shval, va),
+            )
     elif ocode in dp_noRd:
         olist = (
             ArmRegOper(Rn, va=va),
@@ -441,8 +454,8 @@ STRH (imm) & (reg)
 '''
 swap_mnem = ("swp","swpb",)
 strex_mnem = ("strex","ldrex",)  # actual full instructions
-strh_mnem = (("str",IF_H),("ldr",IF_H),)          # IF_H
-ldrs_mnem = (("ldr",IF_S|IF_B),("ldr",IF_S|IF_H),)      # IF_SH, IF_SB
+strh_mnem = (("str",IF_H,2),("ldr",IF_H,2),)          # IF_H
+ldrs_mnem = (("ldr",IF_S|IF_B,1),("ldr",IF_S|IF_H,2),)      # IF_SH, IF_SB
 ldrd_mnem = (("ldr",IF_D),("str",IF_D),)        # IF_D
 
 def p_extra_load_store(opval, va, psize=4):
@@ -477,17 +490,17 @@ def p_extra_load_store(opval, va, psize=4):
         # 0000u110-Rn--Rt-imm41011imm4  - STRHT (v7+)
         idx = pubwl&1
         opcode = (IENC_EXTRA_LOAD << 16) + 4 + idx
-        mnem,iflags = strh_mnem[idx]
+        mnem,iflags,tsize = strh_mnem[idx]
         if tvariant:
             iflags |= IF_T
         olist = (
             ArmRegOper(Rd, va=va),
-            ArmRegOffsetOper(Rn, Rm, va, pubwl, psize=psize),
+            ArmRegOffsetOper(Rn, Rm, va, pubwl, psize=psize, force_tsize=2),
         )
     elif opval&0x0e4000f0==0x004000b0:# strh/ldrh immoffset
         idx = pubwl&1
         opcode = (IENC_EXTRA_LOAD << 16) + 6 + idx
-        mnem,iflags = strh_mnem[idx]
+        mnem,iflags,tsize= strh_mnem[idx]
         if tvariant:
             iflags |= IF_T
         olist = (
@@ -497,7 +510,7 @@ def p_extra_load_store(opval, va, psize=4):
     elif opval&0x0e5000d0==0x005000d0:# ldrsh/b immoffset
         idx = (opval>>5)&1
         opcode = (IENC_EXTRA_LOAD << 16) + 8 + idx
-        mnem,iflags = ldrs_mnem[idx]
+        mnem,iflags,tsize = ldrs_mnem[idx]
         if tvariant:
             iflags |= IF_T
         olist = (
@@ -507,19 +520,18 @@ def p_extra_load_store(opval, va, psize=4):
     elif opval&0x0e5000d0==0x001000d0:# ldrsh/b regoffset
         idx = (opval>>5)&1
         opcode = (IENC_EXTRA_LOAD << 16) + 10 + idx
-        mnem,iflags = ldrs_mnem[idx]
+        mnem,iflags,tsize = ldrs_mnem[idx]
         if tvariant:
             iflags |= IF_T
         olist = (
             ArmRegOper(Rd, va=va),
-            ArmRegOffsetOper(Rn, Rm, va, pubwl, psize=psize),
+            ArmRegOffsetOper(Rn, Rm, va, pubwl, psize=psize, force_tsize=tsize),
         )
     elif opval&0x0e5000d0==0x000000d0:# ldrd/strd regoffset
         # 000pu0w0-Rn--Rt-SBZ-1101-Rm-  ldrd regoffset
         # 0001u1001111-Rt-imm41101imm4  ldrd regoffset (literal, v7+)
         # Rt = Rd and must be even and not 14 per A8.8.72/A8.8.210
         # Rt2 = R(t+1)
-        print Rd, "reg"
         if (Rd == 14) or (Rd % 2 !=0):
             raise envi.InvalidInstruction(
                 mesg="extra_load_store: invalid Rt argument",
@@ -549,7 +561,6 @@ def p_extra_load_store(opval, va, psize=4):
         raise envi.InvalidInstruction(
                 mesg="extra_load_store: invalid instruction",
                 bytez=struct.pack("<I", opval), va=va)
-
     return (opcode, mnem, olist, iflags)
 
 
@@ -591,16 +602,22 @@ def p_dp_reg_shift(opval, va):
     shtype = (opval >> 5) & 0x3
     Rs = (opval >> 8) & 0xf
     mnem = dp_mnem[ocode]
-    display_shift = True
     if ocode in dp_noRn:# FIXME: FUGLY
-        #no register shift with mov
+        #no register shift displayed with mov
         if  (ocode == 13):
             mnem = dp_shift_mnem[shtype]
-            display_shift = False
-        olist = (
-            ArmRegOper(Rd, va=va),
-            ArmRegShiftRegOper(Rm, shtype, Rs, display_shift),
-        )
+            olist = (
+                ArmRegOper(Rd, va=va),
+                ArmRegOper(Rm, va=va),
+                ArmRegOper(Rs, va=va),
+                
+                #ArmRegShiftRegOperMov(Rm, shtype, Rs),
+            )
+        else:
+            olist = (
+                ArmRegOper(Rd, va=va),
+                ArmRegShiftRegOper(Rm, shtype, Rs),
+            )
     elif ocode in dp_noRd:
         olist = (
             ArmRegOper(Rn, va=va),
@@ -640,7 +657,6 @@ def p_mult(opval, va):
     #work around because masks match up - should be a cleaner way to do this?
     #if Ra = 15 then smmul
     if vals[1] == 15:
-        print "Im here", bin(ocode)
         newset = iencmul_r15_codes.get(ocode)
         if newset != None:
             mnem, opindexes, flags = newset
@@ -718,6 +734,18 @@ def p_undef(opval, va):
     )
         
     return (opcode, mnem, olist, 0)
+
+def p_dp_movt(opval, va):
+    #fix opcode
+    iflags = 0
+    imm =  ((opval >>4) &0xf000) + (opval & 0xfff)
+    Rd = (opval >> 12) & 0xf
+    opcode = (IENC_MOV_IMM_STAT << 16)
+    olist = (
+        ArmRegOper(Rd, va=va),
+        ArmImmOper(imm),
+    )
+    return(opcode, "movt", olist, iflags)
 
 hint_mnem = {
             0: 'Nop',
@@ -833,7 +861,6 @@ def p_media(opval, va):
     #  smlad, smlsd, smlald, smusd              01110
     #  usad8, usada8, bfc, bfi                  01111
     definer = (opval>>23) & 0x1f
-    print "definer", hex(definer)
     if   definer == 0xc:
         return p_media_parallel(opval, va)
     elif definer == 0xd:
@@ -930,7 +957,7 @@ def p_media_pack_sat_rev_extend(opval, va):
         sat_imm = (opval>>16) & 0xf
         Rd = (opval>>12) & 0xf
         Rm = opval & 0xf
-        if opc1 & 0x10: # ?sat16 
+        if opc1 & 0x10: # ?sat16
             mnem = sat16_mnem[opidx]
             olist = (
                 ArmRegOper(Rd, va=va),
@@ -1242,6 +1269,8 @@ cps_mnem = ("cps","cps FAIL-bad encoding","cpsie","cpsid")
 mcrr2_mnem = ("mcrr2", "mrrc2")
 ldc2_mnem = ("stc2", "ldc2",)
 mcr2_mnem = ("mcr2", "mrc2")
+pl_mnem = ("pli", "pld")
+pl_opcode = (IENC_UNCOND_PLD, IENC_UNCOND_PLD) # needs to be fixed 0 = pli
 def p_uncond(opval, va):
 
     if opval & 0x0f000000 == 0x0f000000:
@@ -1283,22 +1312,21 @@ def p_uncond(opval, va):
                     mesg="p_uncond (ontop=0): invalid instruction",
                     bytez=struct.pack("<I", opval), va=va)
     elif optop == 1:
-        if (opval & 0xf570f000) == 0xf550f000:
-            #cache preload  -  also known as a nop on most platforms... does nothing except prefetch instructions from cache.
-            # i'm tempted to cut the parsing of it and just return a canned something.
-            mnem = "pld"
-            I = (opval>>25) & 1     # what the freak am i supposed to do with "i"???
-            Rn = (opval>>16) & 0xf
+        if (opval & 0xfc70f000) == 0xf450f000:
+            pl = (opval>>24)&1
             U = (opval>>23) & 1
-            opcode = IENC_UNCOND_PLD
-            if I:
+            Rn = (opval>>16) & 0xf
+            I = (opval>>25) & 1
+            opcode = pl_opcode[pl]
+            mnem = pl_mnem[pl]
+            if not I:
                 immoffset = opval & 0xfff
-                olist = (ArmImmOffsetOper(Rn, immoffset, va, U<<3, psize=psize),)
+                olist = (ArmImmOffsetOper(Rn, immoffset, va, (U<<3) | 0x10, psize=psize),)
             else:
                 Rm = opval & 0xf
                 shtype = (opval>>5) & 3
                 shval = (opval>>7) & 0x1f
-                olist = (ArmScaledOffsetOper(Rn, Rm, shtype, shval, va, psize=psize), )
+                olist = (ArmScaledOffsetOper(Rn, Rm, shtype, shval, va, (U<<3) | 0x10, psize=psize), )
             return (opcode, mnem, olist, 0)
         else:
             raise envi.InvalidInstruction(
@@ -1450,6 +1478,7 @@ ienc_parsers_tmp[IENC_COPROC_DP] =   p_coproc_dp
 ienc_parsers_tmp[IENC_COPROC_REG_XFER] =   p_coproc_reg_xfer
 ienc_parsers_tmp[IENC_SWINT] =    p_swint
 ienc_parsers_tmp[IENC_UNCOND] = p_uncond
+ienc_parsers_tmp[IENC_DP_MOVT] = p_dp_movt
 
 ienc_parsers = tuple(ienc_parsers_tmp)
 
@@ -1768,11 +1797,10 @@ class ArmRegOper(ArmOperand):
 class ArmRegShiftRegOper(ArmOperand):
     ''' register shift operand.  see "addressing mode 1 - data processing operands - * shift * by register" '''
 
-    def __init__(self, reg, shtype, shreg, display_shift = True):
+    def __init__(self, reg, shtype, shreg):
         self.reg = reg
         self.shtype = shtype
         self.shreg = shreg
-        self.display_shift = display_shift
 
     def __eq__(self, oper):
         if not isinstance(oper, self.__class__):
@@ -1806,16 +1834,14 @@ class ArmRegShiftRegOper(ArmOperand):
 
     def repr(self, op):
         rname = arm_regs[self.reg][0]+", "
-        if self.display_shift:
-            rname+=shift_names[self.shtype]
+        rname+=shift_names[self.shtype] #Changed to remove extra spaces
         rname+= arm_regs[self.shreg][0]
-        #return " ".join([rname, shift_names[self.shtype], arm_regs[self.shreg][0]])
         return rname
 
 class ArmRegShiftImmOper(ArmOperand):
     ''' register shift immediate operand.  see "addressing mode 1 - data processing operands - * shift * by immediate" '''
 
-    def __init__(self, reg, shtype, shimm, va, display_shift = True):
+    def __init__(self, reg, shtype, shimm, va):
         if shimm == 0:
             if shtype == S_ROR:
                 shtype = S_RRX
@@ -1825,7 +1851,6 @@ class ArmRegShiftImmOper(ArmOperand):
         self.shtype = shtype
         self.shimm = shimm
         self.va = va
-        self.display_shift = display_shift
 
     def __eq__(self, oper):
         if not isinstance(oper, self.__class__):
@@ -1857,11 +1882,10 @@ class ArmRegShiftImmOper(ArmOperand):
         mcanv.addNameText(rname, typename='registers')
         if self.shimm != 0:
             mcanv.addText(', ')
-            if self.display_shift:
-                mcanv.addNameText(shift_names[self.shtype])
-                mcanv.addText(' ')
+            mcanv.addNameText(shift_names[self.shtype])
+            mcanv.addText(' ')
             mcanv.addNameText('#%d' % self.shimm)
-        elif self.shtype == S_RRX and self.display_shift:
+        elif self.shtype == S_RRX:
             mcanv.addText(', ')
             mcanv.addNameText(shift_names[self.shtype])
 
@@ -1869,11 +1893,9 @@ class ArmRegShiftImmOper(ArmOperand):
         rname = arm_regs[self.reg][0]
         retval = [ rname ]
         if self.shimm != 0:
-            retval.append(",")
-            if self.display_shift:
-                retval.append(shift_names[self.shtype])
+            retval.append(", "+shift_names[self.shtype])
             retval.append("#%d"%self.shimm)
-        elif (self.shtype == S_RRX) and self.display_shift:
+        elif self.shtype == S_RRX:
             retval.append(shift_names[self.shtype])
         return " ".join(retval)
 
@@ -2118,15 +2140,17 @@ class ArmScaledOffsetOper(ArmOperand):
 class ArmRegOffsetOper(ArmOperand):
     ''' register offset operand.  see "addressing mode 2 - load and store word or unsigned byte - register *" 
     dereference address mode using the combination of two register values '''
-    def __init__(self, base_reg, offset_reg, va, pubwl=0, psize=4):
+    def __init__(self, base_reg, offset_reg, va, pubwl=0, psize=4, force_tsize=None):
         self.base_reg = base_reg
         self.offset_reg = offset_reg
         self.pubwl = pubwl
         self.psize = psize
 
-        b = (self.pubwl >> 2) & 1
-        self.tsize = (4,1)[b]
-        print "TESTME: ArmRegOffsetOper at 0x%x" % va
+        if force_tsize == None:
+            b = (self.pubwl >> 2) & 1
+            self.tsize = (4,1)[b]
+        else:
+            self.tsize = force_tsize
 
     def __eq__(self, oper):
         if not isinstance(oper, self.__class__):
@@ -2161,10 +2185,8 @@ class ArmRegOffsetOper(ArmOperand):
         addr = self.getOperAddr(op, emu)
         return emu.readMemValue(addr, self.tsize)
 
-    # FIXME: should identify whether we're in an emulator or being "analyzed".  should be forcible either way, but defaults should be to update in emulator.executeOpcode() and not in other
     def getOperAddr(self, op, emu=None):
         if emu == None:
-            print "emu==None"
             return None
 
         pom = (-1, 1)[(self.pubwl>>3)&1]
@@ -2278,23 +2300,17 @@ class ArmImmOffsetOper(ArmOperand):
         # there are certain circumstances where we can survive without an emulator
         pubwl = self.pubwl >> 3
         u = pubwl & 1
-        #tsize = self.tsize # to help cope with ldcl
         # if we don't have an emulator, we must be PC-based since we know it
         if self.base_reg == REG_PC:
             base = self.va
-            #to handle lcdl. Override tsize to return proper address
-            #if ((self.pubwl >>2) & 1) == 1:
-            #    tsize =4
         elif emu == None:
             return None
         else:
             base = emu.getRegister(self.base_reg)
 
         if u:
-            #addr = (base + self.offset) & e_bits.u_maxes[tsize]
             addr = (base + self.offset) & e_bits.u_maxes[self.psize]
         else:
-            #addr = (base - self.offset) & e_bits.u_maxes[tsize]
             addr = (base - self.offset) & e_bits.u_maxes[self.psize]
 
         
@@ -2755,7 +2771,6 @@ class ArmCoprocOption(ArmImmOffsetOper):
         mcanv.addText('[')
         mcanv.addNameText(basereg, typename='registers')
         mcanv.addVaText('], {%s}' % self.offset)
-
     def repr(self, op):
         return '[%s], {%s}' % (arm_regs[self.base_reg][0],self.offset)
 
@@ -2874,7 +2889,7 @@ class ArmDisasm:
 
         # Begin the table lookup sequence with the first 3 non-cond bits
         encfam = (opval >> 25) & 0x7
-        print "encode family =", encfam
+        #print "encode family =", encfam
         if cond == COND_EXTENDED:
             enc = IENC_UNCOND
 
@@ -2893,7 +2908,7 @@ class ArmDisasm:
             raise envi.InvalidInstruction(mesg="No encoding found!",
                     bytez=bytez[offset:offset+4], va=va)
 
-        print "ienc_parser index, routine: %d, %s" % (enc, ienc_parsers[enc])
+        #print "ienc_parser index, routine: %d, %s" % (enc, ienc_parsers[enc])
         opcode, mnem, olist, flags = ienc_parsers[enc](opval, va+8)
         return opcode, mnem, olist, flags
 
