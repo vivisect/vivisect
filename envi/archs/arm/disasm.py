@@ -567,7 +567,6 @@ def p_extra_load_store(opval, va, psize=4):
         raise envi.InvalidInstruction(
                 mesg="extra_load_store: invalid instruction",
                 bytez=struct.pack("<I", opval), va=va)
-
     return (opcode, mnem, olist, iflags)
 
 
@@ -739,6 +738,18 @@ def p_undef(opval, va):
     )
         
     return (opcode, mnem, olist, 0)
+
+def p_dp_movt(opval, va):
+    #fix opcode
+    iflags = 0
+    imm =  ((opval >>4) &0xf000) + (opval & 0xfff)
+    Rd = (opval >> 12) & 0xf
+    opcode = (IENC_MOV_IMM_STAT << 16)
+    olist = (
+        ArmRegOper(Rd, va=va),
+        ArmImmOper(imm),
+    )
+    return(opcode, "movt", olist, iflags)
 
 hint_mnem = {
             0: 'Nop',
@@ -1246,6 +1257,8 @@ cps_mnem = ("cps","cps FAIL-bad encoding","cpsie","cpsid")
 mcrr2_mnem = ("mcrr2", "mrrc2")
 ldc2_mnem = ("stc2", "ldc2",)
 mcr2_mnem = ("mcr2", "mrc2")
+pl_mnem = ("pli", "pld")
+pl_opcode = (IENC_UNCOND_PLD, IENC_UNCOND_PLD) # needs to be fixed 0 = pli
 def p_uncond(opval, va):
 
     if opval & 0x0f000000 == 0x0f000000:
@@ -1287,22 +1300,21 @@ def p_uncond(opval, va):
                     mesg="p_uncond (ontop=0): invalid instruction",
                     bytez=struct.pack("<I", opval), va=va)
     elif optop == 1:
-        if (opval & 0xf570f000) == 0xf550f000:
-            #cache preload  -  also known as a nop on most platforms... does nothing except prefetch instructions from cache.
-            # i'm tempted to cut the parsing of it and just return a canned something.
-            mnem = "pld"
-            I = (opval>>25) & 1     # what the freak am i supposed to do with "i"???
-            Rn = (opval>>16) & 0xf
+        if (opval & 0xfc70f000) == 0xf450f000:
+            pl = (opval>>24)&1
             U = (opval>>23) & 1
-            opcode = IENC_UNCOND_PLD
-            if I:
+            Rn = (opval>>16) & 0xf
+            I = (opval>>25) & 1
+            opcode = pl_opcode[pl]
+            mnem = pl_mnem[pl]
+            if not I:
                 immoffset = opval & 0xfff
-                olist = (ArmImmOffsetOper(Rn, immoffset, va, U<<3, psize=psize),)
+                olist = (ArmImmOffsetOper(Rn, immoffset, va, (U<<3) | 0x10, psize=psize),)
             else:
                 Rm = opval & 0xf
                 shtype = (opval>>5) & 3
                 shval = (opval>>7) & 0x1f
-                olist = (ArmScaledOffsetOper(Rn, Rm, shtype, shval, va, psize=psize), )
+                olist = (ArmScaledOffsetOper(Rn, Rm, shtype, shval, va, (U<<3) | 0x10, psize=psize), )
             return (opcode, mnem, olist, 0)
         elif (opval & 0xff000f0) == 0x5700010:
             #clrex
@@ -1480,6 +1492,7 @@ ienc_parsers_tmp[IENC_COPROC_DP] =   p_coproc_dp
 ienc_parsers_tmp[IENC_COPROC_REG_XFER] =   p_coproc_reg_xfer
 ienc_parsers_tmp[IENC_SWINT] =    p_swint
 ienc_parsers_tmp[IENC_UNCOND] = p_uncond
+ienc_parsers_tmp[IENC_DP_MOVT] = p_dp_movt
 
 ienc_parsers = tuple(ienc_parsers_tmp)
 
@@ -2136,7 +2149,6 @@ class ArmRegOffsetOper(ArmOperand):
 
     def getOperAddr(self, op, emu=None):
         if emu == None:
-            print "emu==None"
             return None
 
         pom = (-1, 1)[(self.pubwl>>3)&1]
@@ -2250,23 +2262,17 @@ class ArmImmOffsetOper(ArmOperand):
         # there are certain circumstances where we can survive without an emulator
         pubwl = self.pubwl >> 3
         u = pubwl & 1
-        #tsize = self.tsize # to help cope with ldcl
         # if we don't have an emulator, we must be PC-based since we know it
         if self.base_reg == REG_PC:
             base = self.va
-            #to handle lcdl. Override tsize to return proper address
-            #if ((self.pubwl >>2) & 1) == 1:
-            #    tsize =4
         elif emu == None:
             return None
         else:
             base = emu.getRegister(self.base_reg)
 
         if u:
-            #addr = (base + self.offset) & e_bits.u_maxes[tsize]
             addr = (base + self.offset) & e_bits.u_maxes[self.psize]
         else:
-            #addr = (base - self.offset) & e_bits.u_maxes[tsize]
             addr = (base - self.offset) & e_bits.u_maxes[self.psize]
 
         
@@ -2727,7 +2733,6 @@ class ArmCoprocOption(ArmImmOffsetOper):
         mcanv.addText('[')
         mcanv.addNameText(basereg, typename='registers')
         mcanv.addVaText('], {%s}' % self.offset)
-
     def repr(self, op):
         return '[%s], {%s}' % (arm_regs[self.base_reg][0],self.offset)
 
@@ -2828,6 +2833,7 @@ class ArmDisasm:
         # since our flags determine how the instruction is decoded later....  
         # performance-wise this should be set as the default value instead of 0, but this is cleaner
         #flags |= envi.ARCH_ARMV7
+
         # Ok...  if we're a non-conditional branch, *or* we manipulate PC unconditionally,
         # lets call ourself envi.IF_NOFALL
         if cond == COND_AL:                             # FIXME: this could backfire if COND_EXTENDED...
@@ -2844,6 +2850,7 @@ class ArmDisasm:
 
         else:
             flags |= envi.IF_COND
+
 
         # FIXME conditionals are currently plumbed as "prefixes".  Perhaps normalize to that...
         #op = stemCell(va, opcode, mnem, cond, 4, olist, flags)
