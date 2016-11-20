@@ -50,7 +50,7 @@ def wipeAstArch(symctx, symobjs, emu=None, wipeva=False):
     # a tree walker to frob reg vars
     def normast(path,oldsym,ctx):
         # are we wipping away consts?
-        if wipeva and isinstance(oldsym,Const):
+        if wipeva and oldsym.symtype == SYMT_CONST:
             if symctx.vw.isValidPointer(oldsym.value):
                 # check for function thunks
                 if symctx.vw.isFunction(oldsym.value):
@@ -62,8 +62,7 @@ def wipeAstArch(symctx, symobjs, emu=None, wipeva=False):
                 idtova[newobj._sym_id] = oldsym
                 return newobj
 
-        # FIXME isinstance shit...
-        if not isinstance(oldsym,Var):
+        if oldsym.symtype != SYMT_VAR:
             return None
 
         # check if this is a register

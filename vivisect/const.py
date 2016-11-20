@@ -194,6 +194,7 @@ SYMT_MEM            = 3
 SYMT_SEXT           = 4
 SYMT_CONST          = 5
 SYMT_LOOKUP         = 6
+SYMT_NOT            = 7
 
 SYMT_OPER           = 0x00010000
 SYMT_OPER_ADD       = SYMT_OPER | 1
