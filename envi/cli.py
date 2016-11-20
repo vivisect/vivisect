@@ -84,16 +84,13 @@ def getRelScriptsFromPath(scriptpaths):
     '''
     scripts = []
     for basedir in scriptpaths:
-        baselen = len(basedir)
+        baselen = len(basedir) + 1
 
         for dirname,subdirs,subfiles in os.walk(basedir):
             for subfile in subfiles:
                 subpath = os.path.join(dirname,subfile)
                 if isValidScript(subpath):
-                    script = subpath[baselen:]
-                    if script.startswith('/'):
-                        script = script[1:]
-                    scripts.append(script)
+                    scripts.append(subpath[baselen:])
 
     return scripts
 
@@ -525,7 +522,6 @@ class EnviCli(Cmd):
 
         if len(argv) and argv[0] == "?":
             scripts = getRelScriptsFromPath(self.scriptpaths)
-            scripts.sort()
             self.vprint('Scripts available in script paths:\n\t' + '\n\t'.join(scripts))
             return
 
