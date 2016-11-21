@@ -1273,6 +1273,12 @@ instrs = [
         #(REV_ALL_ARM, '53f07ff5', 0x4560, 'dmb osh', 0, ()),
         #(REV_ALL_ARM, '42f07ff5', 0x4560, 'dsb oshst', 0, ()),
         #(REV_ALL_ARM, '6ff07ff5', 0x4560, 'isb sy', 0, ()),
+        #(REV_ALL_ARM, '16002de9', 0x4560, 'push {r1, r2, r4}', 0, ()),
+        #(REV_ALL_ARM, '04102de5', 0x4560, 'push r1', 0, ()),
+        #(REV_ALL_ARM, '343fffe6', 0x4560, 'rbit r3, r4', 0, ()),
+        #(REV_ALL_ARM, '5434a3e7', 0x4560, 'sbfx r3, r4, #0x08, #0x03', 0, ()),
+        #(REV_ALL_ARM, '14f713e7', 0x4560, 'sdiv r3, r4, r7', 0, ()),
+        #(REV_ALL_ARM, '14f733e7', 0x4560, 'udiv r3, r4, r7', 0, ()),
         ]
 
 
