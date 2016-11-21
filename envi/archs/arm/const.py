@@ -335,9 +335,7 @@ INS_BX      = instrenc(IENC_MISC, 3)
 INS_BXJ     = instrenc(IENC_MISC, 5)
 INS_BLX     = IENC_UNCOND_BLX
 
-
 INS_SWI     = IENC_SWINT
-
 
 # FIXME: must fit these into the numbering scheme
 INS_TB = 85
@@ -349,6 +347,12 @@ INS_LSR = 85
 INS_ASR = 85
 INS_ROR = 85
 INS_RRX = 85
+#New commands for ARMV7
+INS_CLREX = 85
+INS_DMB = 85
+INS_DSB = 85
+INS_ISB = 85
+
 
 INS_LDR = instrenc(IENC_LOAD_IMM_OFF,  0)
 INS_STR = instrenc(IENC_LOAD_IMM_OFF,  1)

@@ -1340,6 +1340,17 @@ instrs = [
         #(REV_ALL_ARM, '7438ffe6', 0x4560, 'uxth r3, r4, ror #16', 0, ()),
         #(REV_ALL_ARM, '743cffe6', 0x4560, 'uxth r3, r4, ror #24', 0, ()),
         #(REV_ALL_ARM, 'f000f0e7', 0x4560, 'udf #0', 0, ()), #This forces an undefined instruction. Think will delete this one see A8.8.247 Rev 7 docs
+        #(REV_ALL_ARM, '1ff07ff5', 0x4560, 'clrex', 0, ()),
+        #(REV_ALL_ARM, 'f3f020e3', 0x4560, 'dbg  #0x03', 0, ()),
+        #(REV_ALL_ARM, '5ff07ff5', 0x4560, 'dmb sy', 0, ()),
+        #(REV_ALL_ARM, '5ef07ff5', 0x4560, 'dmb st', 0, ()),
+        #(REV_ALL_ARM, '5bf07ff5', 0x4560, 'dmb ish', 0, ()),
+        #(REV_ALL_ARM, '5af07ff5', 0x4560, 'dmb ishst', 0, ()),
+        #(REV_ALL_ARM, '57f07ff5', 0x4560, 'dmb nsh', 0, ()),
+        #(REV_ALL_ARM, '56f07ff5', 0x4560, 'dmb nshst', 0, ()),
+        #(REV_ALL_ARM, '53f07ff5', 0x4560, 'dmb osh', 0, ()),
+        #(REV_ALL_ARM, '42f07ff5', 0x4560, 'dsb oshst', 0, ()),
+        #(REV_ALL_ARM, '6ff07ff5', 0x4560, 'isb sy', 0, ()),
         #(REV_ALL_ARM, '16002de9', 0x4560, 'push {r1, r2, r4}', 0, ()),
         #(REV_ALL_ARM, '04102de5', 0x4560, 'push r1', 0, ()),
         #(REV_ALL_ARM, '343fffe6', 0x4560, 'rbit r3, r4', 0, ()),
@@ -1663,6 +1674,7 @@ class ArmInstructionSet(unittest.TestCase):
                     redgoodop = reprOp.replace(' ','')
                     if redoprepr != redgoodop:
                         print  bytez,redgoodop
+                        print  bytez,redoprepr
                         print
                         #print out binary representation of opcode for checking
                         num, = struct.unpack("<I", bytez.decode('hex'))
