@@ -2966,7 +2966,7 @@ class ArmDisasm:
         cond = opval >> 28
 
         # Begin the table lookup sequence with the first 3 non-cond bits
-        #encfam = (opval >> 25) & 0x7
+        encfam = (opval >> 25) & 0x7
         #print "encode family =", encfam
         if cond == COND_EXTENDED:
             enc = IENC_UNCOND
