@@ -1070,7 +1070,6 @@ def p_media_pack_sat_rev_extend(opval, va):
         Rn = (opval>>16) & 0xf
         Rd = (opval>>12) & 0xf
         shift_imm = (opval>>7) & 0x1f
-        rot = (opval>>10) & 3
         Rm = opval & 0xf
         if Rn == 0xf:
             idx +=4
