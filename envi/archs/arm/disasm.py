@@ -561,7 +561,6 @@ def p_extra_load_store(opval, va, psize=4):
         raise envi.InvalidInstruction(
                 mesg="extra_load_store: invalid instruction",
                 bytez=struct.pack("<I", opval), va=va)
-
     return (opcode, mnem, olist, iflags)
 
 
@@ -645,9 +644,11 @@ def p_dp_reg_shift(opval, va):
 multfail = (None, None, None,)
 
 iencmul_r15_codes = {
-     # Basic multiplication opcodes
-     binary("011101010001"): ("smmul", (0,4,2), 0),
-     binary("011101010011"): ("smmulr", (0,4,2), 0),
+    # Basic multiplication opcodes
+    binary("011101010001"): ("smmul", (0,4,2), 0),
+    binary("011101010011"): ("smmulr", (0,4,2), 0),
+    binary("011100000001"): ("smuad", (0,4,2), 0),
+    binary("011100000011"): ("smuadx", (0,4,2), 0),
 }
 
 def p_mult(opval, va):
@@ -823,7 +824,7 @@ def p_load_imm_off(opval, va, psize=4):
     else: 
         olist = (
             ArmRegOper(Rd, va=va),
-            ArmImmOffsetOper(Rn, imm, va, pubwl=pubwl)    # u=-/+, b=word/byte
+            ArmImmOffsetOper(Rn, imm, va, pubwl=pubwl, psize=psize)    # u=-/+, b=word/byte
         )
     
     opcode = (IENC_LOAD_IMM_OFF << 16)
@@ -899,7 +900,7 @@ def p_media(opval, va):
         bytez=struct.pack("<I", opval), va=va)
     print media_parsers
     return media_parsers[p_routine](opval, va)
-    '''
+    ''' Prototype stops here. From here to end of comment is original code
     if   (definer & 0xf8) == 0x60:
         return p_media_parallel(opval, va)
     elif (definer & 0xf8) == 0x68:
@@ -948,7 +949,8 @@ def p_media_parallel(opval, va):
 
 
 xtnd_mnem = []
-xtnd_suffixes = ("xtab16","xtab","xtah","xtb16","xtb","xth",)
+xtnd_suffixes = ("xtab16", "","xtab", "xtah","xtb16", "", "xtb","xth",)
+#xtnd_suffixes = ("xtab16","xtab","xtah","xtb16","xtb","xth",)  #old ones left here in case I merged wrong ones
 xtnd_prefixes = ("s","u")
 for pre in xtnd_prefixes:
     for suf in xtnd_suffixes:
@@ -961,6 +963,7 @@ sat_mnem = ('ssat','usat')
 sat16_mnem = ('ssat16','usat16')    
 rev_mnem = ('rev','rev16',None,'revsh',)
 
+#Routine is too complicated, needs to be redone
 def p_media_pack_sat_rev_extend(opval, va):
     ## part of p_media
     # assume bit 23 == 1
@@ -1020,11 +1023,19 @@ def p_media_pack_sat_rev_extend(opval, va):
             )
             opcode = IENC_MEDIA_SAT + 2 + opidx
             
-    elif (opc1 & 3) == 2 and opc2 == 3:     #parallel half-word sat
-        # FIXME: implement this instruction!
-        raise envi.InvalidInstruction(
-                mesg="WTF! Parallel Half-Word Saturate...  what is that instruction?",
-                bytez=struct.pack("<I", opval), va=va)
+    elif (opc1 & 3) == 2 and opc2 == 3:     #ssat16
+        opidx = (opval>>22)&1
+        sat_imm = (opval>>16) & 0xf
+        Rd = (opval>>12) & 0xf
+        Rm = opval & 0xf
+        mnem = sat16_mnem[opidx]
+        olist = (
+            ArmRegOper(Rd, va=va),
+            ArmImmOper(sat_imm),
+            ArmRegOper(Rm, va=va),
+        )
+        opcode = IENC_MEDIA_SAT + opidx
+        
     
     elif (opc1 > 0) and (opc2 & 7) == 3:           # byte rev word
         opidx = ((opval>>21) & 2) + ((opval>>7) & 1)
@@ -1055,17 +1066,38 @@ def p_media_pack_sat_rev_extend(opval, va):
         )
         opcode = IENC_MEDIA_SEL
     elif opc2 == 7:                         # sign extend
-        mnem = xtnd_mnem[opc1]
+        idx = (opc1&3) + 8 * ((opval>>22) &1)
         Rn = (opval>>16) & 0xf
         Rd = (opval>>12) & 0xf
+        shift_imm = (opval>>7) & 0x1f
         rot = (opval>>10) & 3
         Rm = opval & 0xf
-        
-        olist = (
-            ArmRegOper(Rd, va=va),
-            ArmRegOper(Rn, va=va),
-            ArmRegShiftImmOper(Rm, S_ROR, rot, va),
-        )
+        if Rn == 0xf:
+            idx +=4
+            if (shift_imm != 0): # Needed or will show rrx when shift_imm == 0 which is wrong
+                olist = (
+                    ArmRegOper(Rd, va=va),
+                    ArmRegShiftImmOper(Rm, S_ROR, shift_imm, va), ###
+                )
+            else:
+                olist = (
+                    ArmRegOper(Rd, va=va),
+                    ArmRegOper(Rm, va=va),
+                )
+        else:
+            if (shift_imm != 0): # Needed or will show rrx when shift_imm == 0 which is wrong 
+                olist = (
+                    ArmRegOper(Rd, va=va),
+                    ArmRegOper(Rn, va=va),
+                    ArmRegShiftImmOper(Rm, S_ROR, shift_imm, va), ###
+                )
+            else:
+                olist = (
+                    ArmRegOper(Rd, va=va),
+                    ArmRegOper(Rn, va=va),
+                    ArmRegOper(Rm, va=va),
+                )
+        mnem = xtnd_mnem[idx]
         opcode = IENC_MEDIA_EXTEND + opc1
     else:
         raise envi.InvalidInstruction(
@@ -1081,30 +1113,29 @@ def p_media_smul(opval, va):
             bytez=struct.pack("<I", opval), va=va)
     # hmmm, is this already handled?
     
-
+bf_mnem = ("bfi", "ubfx", "bfc")
 def p_media_bf(opval, va):
+    idx = (opval>>21) & 1
     width = (opval>>16) & 0x1f
     Rd = (opval>>12) & 0xf
     lsb = (opval>>7) & 0x1f
     Rn = opval &0xf
     if Rn == 0xf:
-        mnem = "bfc"
+        idx += 2
         olist = (
             ArmRegOper(Rd, va=va),
             ArmImmOper(lsb),
             ArmImmOper(width)
         )
-        opcode = IENC_MEDIA_USAD8 # FIXME
     else:
-        mnem = "bfi"
         olist = (
             ArmRegOper(Rd, va=va),
             ArmRegOper(Rn, va=va),
             ArmImmOper(lsb),
             ArmImmOper(width)
         )
-        opcode = IENC_MEDIA_USAD8 #FIXME
-    print mnem,  Rd, Rn, lsb, width
+    opcode = IENC_MEDIA_USAD8 #FIXME
+    mnem = bf_mnem[idx]
     return (opcode, mnem, olist, 0)
 
 def p_media_usada(opval, va):
