@@ -1186,6 +1186,16 @@ instrs = [
         #(REV_ALL_ARM, '373f34e6', 0x4560, 'shasx r3, r4, r7', 0, ()),
         #(REV_ALL_ARM, '573f34e6', 0x4560, 'shsax r3, r4, r7', 0, ()),
         #(REV_ALL_ARM, '00ff00ef', 0x4560, 'svc #0xff00', 0, ()),
+        #(REV_ALL_ARM, '04609de4', 0x4560, 'pop r6', 0, ()),
+        #need [] around last entry. Not sure how to accomplish yet for ldrex and strex
+        #(REV_ALL_ARM, '9f3f94e1', 0x4560, 'ldrex  r3, r4', 0, ()), 
+        #(REV_ALL_ARM, '9f3fd4e1', 0x4560, 'ldrexb  r3, r4', 0, ()),
+        #(REV_ALL_ARM, '9f4fb6e1', 0x4560, 'ldrexd  r4, r5, r6', 0, ()),
+        #(REV_ALL_ARM, '9f3ff4e1', 0x4560, 'ldrexh  r3, r4', 0, ()),
+        #(REV_ALL_ARM, '943f87e1', 0x4560, 'strex r3, r4, r7', 0, ()),
+        #(REV_ALL_ARM, '943fc7e1', 0x4560, 'strexb r3, r4, r7', 0, ()),
+        #(REV_ALL_ARM, '943fa7e1', 0x4560, 'strexd r3, r4, r5, r7', 0, ()),
+        #(REV_ALL_ARM, '943fe7e1', 0x4560, 'strexh r3, r4, r7', 0, ()),
         #not sure if these msr are correct? Left here to be sorted out in emu. Disassembles correctly
         #fails in emu.getSPSR
         #(REV_ALL_ARM, 'd3f061e3', 0x4560, 'msr spsr_c, #0xd3', 0, ()),

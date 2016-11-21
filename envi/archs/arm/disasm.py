@@ -479,12 +479,33 @@ def p_extra_load_store(opval, va, psize=4):
     elif opval&0x0fe000f0==0x01800090:# strex/ldrex
         idx = pubwl&1
         opcode = (IENC_EXTRA_LOAD << 16) + 2 + idx
-        mnem = strex_mnem[idx]
-        olist = (
-            ArmRegOper(Rd, va=va),
-            ArmRegOper(Rm, va=va),
-            ArmRegOper(Rn, va=va),
-        )
+        itype = (opval >> 21) & 3
+        mnem = strex_mnem[idx]+strex_mnem[2+itype]
+        if (idx==0) & (itype !=1): #strex has 1 more entry than ldrex
+            olist = (
+                ArmRegOper(Rd, va=va),
+                ArmRegOper(Rm, va=va),
+                ArmRegOper(Rn, va=va),
+            )
+        elif idx==0: #special case
+            olist = (
+                ArmRegOper(Rd, va=va),
+                ArmRegOper(Rm, va=va),
+                ArmRegOper(Rm+1, va=va),
+                ArmRegOper(Rn, va=va),
+            )
+        elif (idx==1) & (itype != 1):
+            olist = (
+                ArmRegOper(Rd, va=va),
+                ArmRegOper(Rn, va=va),
+            )
+        else: #special case
+            olist = (
+                ArmRegOper(Rd, va=va),
+                ArmRegOper(Rd+1, va=va),
+                ArmRegOper(Rn, va=va),
+            )
+
     elif opval&0x0e4000f0==0x000000b0:# strh/ldrh regoffset
         # 000pu0w0-Rn--Rt-SBZ-1011-Rm-  - STRH
         # 0000u110-Rn--Rt-imm41011imm4  - STRHT (v7+)
@@ -826,7 +847,15 @@ def p_load_imm_off(opval, va, psize=4):
             ArmRegOper(Rd, va=va),
             ArmImmOffsetOper(Rn, imm, va, pubwl=pubwl, psize=psize)    # u=-/+, b=word/byte
         )
-    
+    olist = (
+        ArmRegOper(Rd, va=va),
+        ArmImmOffsetOper(Rn, imm, va, pubwl=pubwl, psize=psize)    # u=-/+, b=word/byte
+    )
+    if (opval & 0xfff0fff) == 0x49d0004:
+        mnem = "pop"
+        olist = (
+            ArmRegOper(Rd, va=va),
+        )
     opcode = (IENC_LOAD_IMM_OFF << 16)
     return (opcode, mnem, olist, iflags)
 
@@ -1209,7 +1238,16 @@ def p_load_mult(opval, va):
     flags = ((puswl>>3)<<(IF_DAIB_SHFT)) | IF_DA     # store bits for decoding whether to dec/inc before/after between ldr/str.  IF_DA tells the repr to print the the DAIB extension after the conditional.  right shift necessary to clear lower three bits, and align us with IF_DAIB_SHFT
     Rn = (opval>>16) & 0xf
     reg_list = opval & 0xffff
-
+    if (opval&0xfff0000) == 0x8bd0000:
+        mnem = "pop"
+        olist = (
+            ArmRegListOper(reg_list, puswl),
+        )
+    else:
+        olist = (
+            ArmRegOper(Rn, va=va),
+            ArmRegListOper(reg_list, puswl),
+        )
     if  (mnem_idx == 0) &(Rn == REG_SP) & ((puswl & 2)==2) & (bin(reg_list).count("1") > 1):
         #push
         mnem = "push"
@@ -1824,7 +1862,6 @@ class ArmOpcode(envi.Opcode):
         if self.iflags & IF_THUMB32:
             mnem += ".w"
         x = []
-        
         for o in self.opers:
             x.append(o.repr(self))
         #if self.iflags & IF_W:     # handled in operand.  still keeping flag to indicate this instruction writes back
