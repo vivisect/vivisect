@@ -1329,8 +1329,13 @@ instrs = [
         #(REV_ALL_ARM, '7434ffe6', 0x4560, 'uxth r3, r4, ror #8', 0, ()),
         #(REV_ALL_ARM, '7438ffe6', 0x4560, 'uxth r3, r4, ror #16', 0, ()),
         #(REV_ALL_ARM, '743cffe6', 0x4560, 'uxth r3, r4, ror #24', 0, ()),
-
         #(REV_ALL_ARM, 'f000f0e7', 0x4560, 'udf #0', 0, ()), #This forces an undefined instruction. Think will delete this one see A8.8.247 Rev 7 docs
+        #(REV_ALL_ARM, '16002de9', 0x4560, 'push {r1, r2, r4}', 0, ()),
+        #(REV_ALL_ARM, '04102de5', 0x4560, 'push r1', 0, ()),
+        #(REV_ALL_ARM, '343fffe6', 0x4560, 'rbit r3, r4', 0, ()),
+        #(REV_ALL_ARM, '5434a3e7', 0x4560, 'sbfx r3, r4, #0x08, #0x03', 0, ()),
+        #(REV_ALL_ARM, '14f713e7', 0x4560, 'sdiv r3, r4, r7', 0, ()),
+        #(REV_ALL_ARM, '14f733e7', 0x4560, 'udiv r3, r4, r7', 0, ()),
         ]
 
 
@@ -1648,7 +1653,6 @@ class ArmInstructionSet(unittest.TestCase):
                     redgoodop = reprOp.replace(' ','')
                     if redoprepr != redgoodop:
                         print  bytez,redgoodop
-                        print  bytez,redoprepr
                         print
                         #print out binary representation of opcode for checking
                         num, = struct.unpack("<I", bytez.decode('hex'))
