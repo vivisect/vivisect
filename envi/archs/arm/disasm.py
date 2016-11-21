@@ -1402,27 +1402,26 @@ def p_uncond(opval, va):
             #clrex
             mnem = "clrex"
             olist =()
-            #fixme : need opcode
-            opcode = INS_BLX
+            opcode = INS_CLREX
             return (opcode, mnem, olist, 0)
         elif (opval & 0xff000e0) == 0x5700040:
             #dmb/dsb
-            print "FIXME: need opcode"
             option = opval & 0xf
             if (opval & 0x10 )== 0x10:
                 mnem = 'dmb'
+                opcode = INS_DMB
             else:
                 mnem = 'dsb'
+                opcode = INS_DSB
             olist = (ArmBarrierOption(option),)
-            opcode = IENC_UNCOND_PLD
+            
             return (opcode, mnem, olist, 0)
         elif (opval & 0xff000f0) == 0x5700060:
             #isb
-            print "FIXME: need opcode"
             option = opval & 0xf
             mnem = 'isb'
             olist = (ArmBarrierOption(option),)
-            opcode = IENC_UNCOND_PLD
+            opcode = INS_ISB
             return (opcode, mnem, olist, 0)
         else:
             raise envi.InvalidInstruction(
