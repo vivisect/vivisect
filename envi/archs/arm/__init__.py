@@ -38,7 +38,6 @@ class ArmModule(envi.ArchitectureModule):
         Parse a sequence of bytes out into an envi.Opcode instance.
         """
         if va & 3:
-            #print hex(va), offset, repr(bytes)
             return self._arch_thumb_dis.disasm(bytes, offset-1, va-1)
 
         return self._arch_dis.disasm(bytes, offset, va)
