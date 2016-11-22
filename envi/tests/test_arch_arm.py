@@ -1534,21 +1534,28 @@ class ArmInstructionSet(unittest.TestCase):
         self.assertEqual(hex(0xccddeeff), hex(value))
         self.assertEqual(hex(0xbfb00018), hex(emu.getRegister(10)))
 
+
+
         # Scaled with shifts/roll
-        # ldr r2, [r10, r2 lsr #32]
-        # FIXME: TEST IS LIKELY WRONG....  LSR #32 is odd to begin with.
+        # ldr r3, [r10, r2 lsr #2]
         emu = vw.getEmulator()
         emu._forrealz = True
-        op = vw.arch.archParseOpcode('22209ae7'.decode('hex'), va=0xbfb00000)
+        op = vw.arch.archParseOpcode('22319ae7'.decode('hex'), va=0xbfb00000)
         emu.setRegister(10, 0xbfb00008)
-        emu.setRegister(2,  8)
-        emu.writeMemory(0xbfb00010, "abcdef98".decode('hex'))
+        emu.setRegister(2,  2)
+        emu.writeMemory(0xbfb00008, "abcdef98".decode('hex'))
         print repr(op)
         print hex(op.getOperValue(1, emu))
 
         self.assertEqual(hex(0xbfb00008), hex(emu.getRegister(10)))
         self.assertEqual(hex(0x98efcdab), hex(op.getOperValue(1, emu)))
-        self.assertEqual(hex(8), hex(emu.getRegister(2)))
+        self.assertEqual(hex(2), hex(emu.getRegister(2)))
+
+        emu.executeOpcode(op)
+
+        self.assertEqual(hex(0xbfb00008), hex(emu.getRegister(10)))
+        self.assertEqual(hex(0x98efcdab), hex(op.getOperValue(1, emu)))
+        self.assertEqual(hex(2), hex(emu.getRegister(2)))
 
 
 
