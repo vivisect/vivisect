@@ -11,11 +11,13 @@ class ArmModule(envi.ArchitectureModule):
 
     def __init__(self, name='ARMv7A'):
         import envi.archs.thumb16.disasm as eatd
-        envi.ArchitectureModule.__init__(self, name, maxinst=4)
-        self._arch_reg = self.archGetRegCtx()
+        # these are required for setEndian() which is called from ArchitectureModule.__init__()
         self._arch_dis = ArmDisasm()
         self._arch_dis.setArchMask(name)
         self._arch_thumb_dis = eatd.ThumbDisasm()
+
+        envi.ArchitectureModule.__init__(self, name, maxinst=4)
+        self._arch_reg = self.archGetRegCtx()
 
     def archGetRegCtx(self):
         return ArmRegisterContext()
@@ -57,9 +59,11 @@ class ThumbModule(envi.ArchitectureModule):
 
     def __init__(self, name='ARMv7A'):
         import envi.archs.thumb16.disasm as eatd
+        # this is required for setEndian() which is called from ArchitectureModule.__init__()
+        self._arch_dis = eatd.ThumbDisasm(doModeSwitch=False)
+
         envi.ArchitectureModule.__init__(self, name, maxinst=4)
         self._arch_reg = self.archGetRegCtx()
-        self._arch_dis = eatd.ThumbDisasm(doModeSwitch=False)
         #armVersion mask should be set here if needed
         
     def archGetRegCtx(self):
@@ -91,6 +95,5 @@ class ThumbModule(envi.ArchitectureModule):
     def setEndian(self, endian):
         self._endian = endian
         self._arch_dis.setEndian(endian)
-        self._arch_thumb_dis.setEndian(endian)
 
 from envi.archs.arm.emu import *

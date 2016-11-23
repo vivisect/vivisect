@@ -74,11 +74,11 @@ class ArchitectureModule:
     """
     _default_call = None
     _plat_def_calls = {}
-    def __init__(self, archname, maxinst=32):
+    def __init__(self, archname, maxinst=32, endian=ENDIAN_LSB):
         self._arch_id = getArchByName(archname)
         self._arch_name = archname
         self._arch_maxinst = maxinst
-        self._endian = ENDIAN_LSB
+        self.setEndian(endian)
 
     def getArchId(self):
         '''
