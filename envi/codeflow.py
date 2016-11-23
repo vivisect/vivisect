@@ -1,7 +1,6 @@
 '''
 A module to contain code flow analysis for envi opcode objects...
 '''
-import sys
 import copy
 import traceback
 import envi
@@ -159,7 +158,6 @@ class CodeFlowContext(object):
                 continue 
             except Exception, e:
                 print 'parseOpcode error at 0x%.8x: %s' % (va,e)
-                sys.excepthook(*sys.exc_info())
                 continue
 
             branches = op.getBranches()

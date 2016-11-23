@@ -1,80 +1,17 @@
 MODE_ARM        = 0
 MODE_THUMB      = 1
 MODE_JAZELLE    = 2
-MODE_THUMBEE    = 3
-
-
-#Support for different ARM Instruction set versions
-
-# name          bitmask                    decimal         hex
-REV_ARMv4   =   0b0000000000000000000001 #        1        0x1
-REV_ARMv4T  =   0b0000000000000000000010 #        2        0x2
-REV_ARMv5   =   0b0000000000000000000100 #        4        0x4
-REV_ARMv5T  =   0b0000000000000000001000 #        8        0x8
-REV_ARMv5E  =   0b0000000000000000010000 #       16        0x10
-REV_ARMv5J  =   0b0000000000000000100000 #       32        0x20
-REV_ARMv5TE =   0b0000000000000001000000 #       64        0x40
-REV_ARMv6   =   0b0000000000000010000000 #      128        0x80
-REV_ARMv6M  =   0b0000000000000100000000 #      256        0x100
-REV_ARMv6T2 =   0b0000000000001000000000 #      512        0x200
-REV_ARMv7A  =   0b0000000000010000000000 #     1024        0x400
-REV_ARMv7R  =   0b0000000000100000000000 #     2048        0x800
-REV_ARMv7M  =   0b0000000001000000000000 #     4096        0x1000
-REV_ARMv7EM =   0b0000000010000000000000 #     8192        0x2000
-REV_ARMv8A  =   0b0000000100000000000000 #    16384        0x4000
-REV_ARMv8R  =   0b0000001000000000000000 #    32768        0x8000
-REV_ARMv8M  =   0b0000010000000000000000 #    65536        0x10000
-
-REV_ALL_ARMv4  = (REV_ARMv4 | REV_ARMv4T)
-REV_ALL_ARMv5  = (REV_ARMv5 | REV_ARMv5T | REV_ARMv5E | REV_ARMv5J | REV_ARMv5TE)
-REV_ALL_ARMv6  = (REV_ARMv6 | REV_ARMv6T2 | REV_ARMv6M)
-REV_ALL_ARMv7  = (REV_ARMv7A | REV_ARMv7R | REV_ARMv7M | REV_ARMv7EM) 
-REV_ALL_ARMv8  = (REV_ARMv8A | REV_ARMv8R | REV_ARMv8M)
-
-#Todo - For easy instruction filtering add more like:
-REV_ALL_TO_ARMv6 = REV_ALL_ARMv4 | REV_ALL_ARMv5 | REV_ALL_ARMv6
-REV_ALL_FROM_ARMv6 = REV_ALL_ARMv6 | REV_ALL_ARMv7 | REV_ALL_ARMv8
-#Note: since arm must be backwards compatible any depreciated commands
-#Would be noted but not removed with the REV_ALL_TO_* if this is even used.
-#These are put here for suggestion and comment for now
-
-REV_ALL_ARM = (REV_ALL_ARMv4 | REV_ALL_ARMv5 | REV_ALL_ARMv6 | REV_ALL_ARMv7 | REV_ALL_ARMv8)
-
-#Will be set below, THUMB16 up through v6 except v6T2, THUMB2 from v6T2 up, THUMBEE from v7 up.
-REV_THUMB16 = REV_THUMB2  = REV_THUMBEE = 0   
-
-ARCH_REVS = {}
-#Itterate through all REV_ARM values and setup related combo values 
-for name, val in globals().items():
-    if (not name.startswith('REV_ARM')):
-        continue
-    shortName = name[4:]
-    #add to lookup dictionary
-    ARCH_REVS[shortName] = val
-    #setup thumb versions to Architecture versions
-    if (int(shortName[4]) > 6 or shortName == 'ARMv6T2'):
-        REV_THUMB2 = REV_THUMB2 | val
-        if int(shortName[4])!= 6:
-            REV_THUMBEE = REV_THUMBEE | val
-    else:
-        REV_THUMB16 = REV_THUMB16 | val
-#Added thumbs to dictionary
-ARCH_REVS['thumb16'] = REV_THUMB16
-ARCH_REVS['thumb'] = REV_THUMB2
-ARCH_REVS['thumbee'] = REV_THUMBEE
-ARCH_REVSLEN = len(ARCH_REVS)
 
 #IFLAGS - keep bottom 8-bits for cross-platform flags like envi.IF_NOFALL and envi.IF_BRFALL
 IF_PSR_S     = 1<<32     # This DP instruciton can update CPSR
 IF_B         = 1<<33     # Byte
 IF_H         = 1<<35    # HalfWord
-IF_S         = 1<<36    # Signed    #(not to be confused with IF_PSR_S which is the "update status" flag.
+IF_S         = 1<<36    # Signed
 IF_D         = 1<<37    # Dword
 IF_L         = 1<<38    # Long-store (eg. Dblword Precision) for STC
-IF_T         = 1<<39    # Translate for strbt - denotes ldr/str command runs in user mode
+IF_T         = 1<<39    # Translate for strCCbt
 IF_W         = 1<<40    # Write Back for STM/LDM (!)
 IF_UM        = 1<<41    # User Mode Registers for STM/LDM (^) (obviously no R15)
-IF_PSR_S_SIL = 1<<42    # Flag for Silent S. Related to IF_PSR_S and will prevent S from being rendered. TST, TEQ, CMN, CMP commands.
 
 IF_DAIB_SHFT = 56       # shift-bits to get DAIB bits down to 0.  this chops off the "is DAIB present" bit that the following store.
 IF_DAIB_MASK = 7<<(IF_DAIB_SHFT-1)
@@ -82,28 +19,14 @@ IF_DA        = 1<<(IF_DAIB_SHFT-1)  # Decrement After
 IF_IA        = 3<<(IF_DAIB_SHFT-1)  # Increment After
 IF_DB        = 5<<(IF_DAIB_SHFT-1)  # Decrement Before
 IF_IB        = 7<<(IF_DAIB_SHFT-1)  # Increment Before
-IF_DAIB_B    = 5<<(IF_DAIB_SHFT-1)  # Before mask
-IF_DAIB_I    = 3<<(IF_DAIB_SHFT-1)  # Before mask
+IF_DAIB_B    = 5<<(IF_DAIB_SHFT-1)  # Before mask 
+IF_DAIB_I    = 3<<(IF_DAIB_SHFT-1)  # Before mask 
 IF_THUMB32   = 1<<50    # thumb32
 IF_VQ        = 1<<51    # Adv SIMD: operation uses saturating arithmetic
 IF_VR        = 1<<52    # Adv SIMD: operation performs rounding
 IF_VD        = 1<<53    # Adv SIMD: operation doubles the result
 IF_VH        = 1<<54    # Adv SIMD: operation halves the result
 IF_SYS_MODE  = 1<<58    # instruction is encoded to be executed in SYSTEM mode, not USER mode
-IF_F32       = 1<<59    # F64 SIMD
-IF_F64       = 1<<60    # F64 SIMD
-IF_F32S32    = 1<<61    # F64 SIMD
-IF_F64S32    = 1<<62    # F64 SIMD
-IF_F32U32    = 1<<63    # F64 SIMD
-IF_F64U32    = 1<<64    # F64 SIMD
-IF_F3264     = 1<<65    # F64 SIMD
-IF_F6432     = 1<<66    # F64 SIMD
-IF_F3216     = 1<<67    # F64 SIMD
-IF_F1632     = 1<<68    # F64 SIMD
-IF_S32F64    = 1<<69    # F64 SIMD
-IF_S32F32    = 1<<70    # F64 SIMD
-IF_U32F64    = 1<<71    # F64 SIMD
-IF_U32F32    = 1<<72    # F64 SIMD
 
 OF_W         = 1<<8     # Write back to 
 OF_UM        = 1<<9     # Usermode, or if r15 included set current SPSR -> CPSR
@@ -151,7 +74,7 @@ COND_LT:"lt", # Signed less than N set and V clear, or N clear and V set (N!= V)
 COND_GT:"gt", # Signed greater than Z clear, and either N set and V set, or N clear and V clear (Z == 0,N == V) 
 COND_LE:"le", # Signed less than or equal Z set, or N set and V clear, or N clear and V set (Z == 1 or N!= V) 
 COND_AL:"", # Always (unconditional) - could be "al" but "" seems better...
-COND_EXTENDED:"", # See extended opcode table
+COND_EXTENDED:"2", # See extended opcode table
 }
 cond_map = {
 COND_EQ:0,      # Equal Z set 
@@ -208,15 +131,10 @@ REG_SPSR_und = REG_OFFSET_UND + 17
 REG_SPSR_sys = REG_OFFSET_SYS + 17
 
 REG_PC = 0xf
-REG_LR = 0xe
 REG_SP = 0xd
 REG_BP = None
 REG_CPSR = REG_OFFSET_CPSR
 REG_FLAGS = REG_OFFSET_CPSR    #same location, backward-compat name
-REG_EXT_S_FLAG = 0x200000
-REG_EXT_D_FLAG = 0x400000
-
-VFP_QWORD_REG_COUNT = 16    # VFPv4-D32
 
 proc_modes = { # mode_name, short_name, description, offset, mode_reg_count, PSR_offset, privilege_level
     PM_usr: ("User Processor Mode", "usr", "Normal program execution mode", REG_OFFSET_USR, 15, REG_SPSR_usr, 0),
@@ -234,13 +152,8 @@ PM_LNAME =  0
 PM_SNAME =  1
 PM_DESC =   2
 PM_REGOFF = 3
-PM_REGCNT = 4
-PM_PSROFF   = 5
-PM_PRIVLVL  = 6
-
-PSR_APSR    = 2
-PSR_SPSR    = 1
-PSR_CPSR    = 0
+PM_BANKED = 4
+PM_SPSR =   5
 
 INST_ENC_DP_IMM = 0 # Data Processing Immediate Shift
 INST_ENC_MISC   = 1 # Misc Instructions
@@ -267,12 +180,9 @@ IENC_COPROC_REG_XFER = 17 # Coprocessor register transfers
 IENC_SWINT        = 18 # Sofware interrupts
 IENC_UNCOND       = 19 # unconditional wacko instructions
 IENC_EXTRA_LOAD   = 20 # extra load/store (swp)
-IENC_DP_MOVW      = 21 # Not sure it exists?
-IENC_DP_MOVT      = 22 # move top
+IENC_DP_MOVW      = 21 # 
+IENC_DP_MOVT      = 22 # 
 IENC_DP_MSR_IMM   = 23 # 
-IENC_LOAD_STORE_WORD_UBYTE = 24
-
-IENC_MAX        = 25
 
 # offchutes
 IENC_MEDIA_PARALLEL = ((IENC_MEDIA << 8) + 1) << 8
@@ -301,8 +211,8 @@ shift_names = ("lsl", "lsr", "asr", "ror", "rrx")
 
 SOT_REG = 0
 SOT_IMM = 1
-#ia was removed as it is not UAL
-daib = ("da", "", "db", "ib")
+
+daib = ("da", "ia", "db", "ib")
 
 
 def instrenc(encoding, index):
@@ -335,7 +245,9 @@ INS_BX      = instrenc(IENC_MISC, 3)
 INS_BXJ     = instrenc(IENC_MISC, 5)
 INS_BLX     = IENC_UNCOND_BLX
 
+
 INS_SWI     = IENC_SWINT
+
 
 # FIXME: must fit these into the numbering scheme
 INS_TB = 85
@@ -347,12 +259,6 @@ INS_LSR = 85
 INS_ASR = 85
 INS_ROR = 85
 INS_RRX = 85
-#New commands for ARMV7
-INS_CLREX = 85
-INS_DMB = 85
-INS_DSB = 85
-INS_ISB = 85
-
 
 INS_LDR = instrenc(IENC_LOAD_IMM_OFF,  0)
 INS_STR = instrenc(IENC_LOAD_IMM_OFF,  1)

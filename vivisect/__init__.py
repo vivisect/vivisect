@@ -717,7 +717,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         """
         Add an already created export object.
         """
-        rname = "%s.%s_%x" % (filename,name,va)
+        rname = "%s.%s" % (filename,name)
         if self.vaByName(rname) != None:
             raise Exception("Duplicate Name: %s" % rname)
         self._fireEvent(VWE_ADDEXPORT, (va,etype,name,filename))

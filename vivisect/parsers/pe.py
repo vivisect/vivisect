@@ -53,7 +53,6 @@ arch_names = {
 defcalls = {
     'i386':'cdecl',
     'amd64':'msx64call',
-    'arm':'armcall',
 }
 
 # map PE relocation types to vivisect types where possible
@@ -82,7 +81,8 @@ def loadPeIntoWorkspace(vw, pe, filename=None):
     vw.setMeta('Platform', platform)
 
     defcall = defcalls.get(arch)
-    vw.setMeta('DefaultCall', defcalls.get(arch,'unknown'))
+    if defcall:
+        vw.setMeta("DefaultCall", defcall)
 
     # Set ourselvs up for extended windows binary analysis
 

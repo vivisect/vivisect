@@ -32,13 +32,6 @@ arm_regs = (
 )
 MAX_REGS = 17
 
-arm_metas = [
-        ("R13", REG_SP, 0, 32),
-        ("R14", REG_LR, 0, 32),
-        ("R15", REG_PC, 0, 32),
-        ]
-
-
 # build a translation table to allow for fast access of banked registers
 modes = proc_modes.keys()
 modes.sort()
@@ -69,32 +62,6 @@ for modenum in modes[1:]:       # skip first since we're already done
 
 # done with banked register translation table
 
-# VFP Registers
-#    VFPv2 consists of 16 doubleword registers
-#    VFPv3 either 32 or 16 doubleword registers
-#       VFPv3-D32 - implementation with 32 doubleword regs
-#       VFPv3-D16 - implementation with 16 doubleword regs
-#    VFPv4 - same as VFPv3
-# Advanced SIMD and Floating point views are *not* identical
-#
-# we implement VFPv4-D32 since it should be backwards-compatible with all others
-#  the largest accessor of this extended register bank is 128bits so we'll go with that.
-
-REGS_VECTOR_BASE_IDX = len(reg_data)
-for simdreg in range(VFP_QWORD_REG_COUNT):
-    simd_idx = REGS_VECTOR_BASE_IDX + simdreg
-    d = simdreg * 2
-    s = d * 2
-    reg_data.append(("Q%d" % simdreg, 128))
-    if simdreg < 8: # VFPv4 only allows S# indexing up to S31
-        arm_metas.append(("S%d" % (s),   simd_idx, 0, 32))
-        arm_metas.append(("S%d" % (s+1), simd_idx, 32, 32))
-        arm_metas.append(("S%d" % (s+2), simd_idx, 64, 32))
-        arm_metas.append(("S%d" % (s+3), simd_idx, 96, 32))
-    arm_metas.append(("D%d" % (d),   simd_idx, 0, 64))
-    arm_metas.append(("D%d" % (d+1), simd_idx, 32, 64))
-
-
 l = locals()
 e_reg.addLocalEnums(l, arm_regs)
 
@@ -122,8 +89,6 @@ PSR_C_bit  = 1 << PSR_C
 PSR_C_mask = 0xffffffff ^ PSR_C_bit
 PSR_V_bit  = 1 << PSR_V
 PSR_V_mask = 0xffffffff ^ PSR_V_bit
-PSR_T_bit  = 1 << PSR_T
-PSR_T_mask = 0xffffffff ^ PSR_T_bit
 
 psr_fields = [None for x in xrange(32)]
 psr_fields[PSR_M] = "M"
@@ -180,6 +145,12 @@ arm_status_metas = [
         ("M", REG_FLAGS, PSR_M, 5, "Processor Mode"),
         ]
 
+arm_metas = [
+        ("R13", REG_SP, 0, 32),
+        ("R14", REG_LR, 0, 32),
+        ("R15", REG_PC, 0, 32),
+        ]
+
 e_reg.addLocalStatusMetas(l, arm_metas, arm_status_metas, "CPSC")
 e_reg.addLocalMetas(l, arm_metas)
 
@@ -191,4 +162,3 @@ class ArmRegisterContext(e_reg.RegisterContext):
         self.loadRegMetas(arm_metas, statmetas=arm_status_metas)
         self.setRegisterIndexes(REG_PC, REG_SP)
 
-rctx = ArmRegisterContext()
