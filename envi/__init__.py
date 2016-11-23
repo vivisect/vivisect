@@ -78,6 +78,7 @@ class ArchitectureModule:
         self._arch_id = getArchByName(archname)
         self._arch_name = archname
         self._arch_maxinst = maxinst
+        self._endian = ENDIAN_LSB
 
     def getArchId(self):
         '''
@@ -91,6 +92,21 @@ class ArchitectureModule:
         in this module.
         '''
         return self._arch_name
+
+    def getEndian(self):
+        '''
+        Every architecture stores numbers either Most-Significant-Byte-first (MSB)
+        or Least-Significant-Byte-first (LSB).  Most modern architectures are 
+        LSB, however many legacy systems still use MSB architectures.
+        '''
+        return self._endian
+
+    def setEndian(self, endian):
+        '''
+        Set the architecture endianness.  Subclasses should make sure this is handled
+        correctly in any Disasm object(s)
+        '''
+        self._endian = endian
 
     def archGetBreakInstr(self):
         """
@@ -576,6 +592,20 @@ class Emulator(e_reg.RegisterContext, e_mem.MemoryObject):
         if not self._emu_opts.has_key(opt):
             raise Exception('Unknown Emu Opt: %s' % opt)
         return self._emu_opts.get(opt)
+    
+    def setEndian(self, endian):
+        '''
+        Sets Endianness for the Emulator.
+        '''
+        for arch in self.imem_archs:
+            arch.setEndian(endian)
+
+    def getEndian(self):
+        '''
+        Returns the current Endianness for the emulator
+        '''
+        return self.imem_archs[0].getEndian()
+
 
     def getArchModule(self):
         raise Exception('Emulators *must* implement getArchModule()!')

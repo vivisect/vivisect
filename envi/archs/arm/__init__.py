@@ -45,6 +45,11 @@ class ArmModule(envi.ArchitectureModule):
     def getEmulator(self):
         return ArmEmulator()
 
+    def setEndian(self, endian):
+        self._endian = endian
+        self._arch_dis.setEndian(endian)
+        self._arch_thumb_dis.setEndian(endian)
+
 class ThumbModule(envi.ArchitectureModule):
     '''
     This architecture module will *not* shift to ARM mode.  Evar.
@@ -82,5 +87,10 @@ class ThumbModule(envi.ArchitectureModule):
 
     def getEmulator(self):
         return ArmEmulator()
+
+    def setEndian(self, endian):
+        self._endian = endian
+        self._arch_dis.setEndian(endian)
+        self._arch_thumb_dis.setEndian(endian)
 
 from envi.archs.arm.emu import *
