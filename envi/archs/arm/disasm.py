@@ -1627,6 +1627,77 @@ def p_uncond(opval, va):
                     mesg="p_uncond (ontop=3): invalid instruction",
                     bytez=struct.pack("<I", opval), va=va)
     
+
+def adv_simd_32(val, va):
+    # aside from u and the first 8 bits, ARM and Thumb2 decode identically (A7-259)
+    u = (val>>28) & 1
+    a = (val>>19) & 0x1f
+    b = (val>>8) & 0xf
+    c = (val>>4) & 0xf
+
+    if not (a & 0x10):
+        # three registers of the same length
+        a = (val>>8) & 0xf
+        b = (val>>4) & 1
+        c = (val>>20) & 3
+        if a == 0:
+            if b==0:
+                # vhadd/vhsub
+                size = (val>>20) & 3
+
+                d = (val >> 18) & 0x10
+                d |= ((val2 >> 12) & 0xf)
+
+                n = (val >> 3) & 0x10
+                n |= ((val >> 16) & 0xf)
+
+                m = (val >> 1) & 0x10
+                m |= (val & 0xf)
+
+                q = (val >> 2) & 0x10
+
+                op = (val >> 9) & 1
+
+                opcode, mnem = ( (INS_VHADD,'vhadd'), (INS_VHSUB,'vhsub') )[op]
+                flags = (IF_S8, IF_S16, IF_S32, 0, IF_U8, IF_U16, IF_U32)[(u<<2)|size]
+                opers = ()
+                return opcode, mnem, opers, flags
+
+        elif a==1:
+            raise Exception("Advanced SIMD instructions not all implemented")
+        elif a==2:
+            raise Exception("Advanced SIMD instructions not all implemented")
+        elif a==3:
+            raise Exception("Advanced SIMD instructions not all implemented")
+        elif a==4:
+            raise Exception("Advanced SIMD instructions not all implemented")
+        elif a==5:
+            raise Exception("Advanced SIMD instructions not all implemented")
+        elif a==6:
+            raise Exception("Advanced SIMD instructions not all implemented")
+        elif a==7:
+            raise Exception("Advanced SIMD instructions not all implemented")
+        elif a==8:
+            raise Exception("Advanced SIMD instructions not all implemented")
+            midx = (b<<1) | u
+            opcode, mnem = ( (INS_VADD,'vadd'), (INS_VSUB,'vsub'), (INS_VTST,'vtst'), (INS_VCEQ,'vceq') )[midx]
+        elif a==9:
+            raise Exception("Advanced SIMD instructions not all implemented")
+        elif a==10:
+            raise Exception("Advanced SIMD instructions not all implemented")
+        elif a==11:
+            raise Exception("Advanced SIMD instructions not all implemented")
+        elif a==12:
+            raise Exception("Advanced SIMD instructions not all implemented")
+        elif a==13:
+            raise Exception("Advanced SIMD instructions not all implemented")
+        elif a==14:
+            raise Exception("Advanced SIMD instructions not all implemented")
+        elif a==15:
+            raise Exception("Advanced SIMD instructions not all implemented")
+
+
+
 ####################################################################
 # Table of the parser functions
 ienc_parsers_tmp = [None for x in range(IENC_MAX)]
