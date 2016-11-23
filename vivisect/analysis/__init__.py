@@ -31,6 +31,9 @@ def addAnalysisModules(vw):
             vw.addImpApi('windows','amd64')
             vw.addStructureModule('ntdll', 'vstruct.defs.windows.win_6_1_amd64.ntdll')
 
+        elif arch == 'arm':
+            vw.addImpApi('windows','arm')
+
         vw.addConstModule('vstruct.constants.ntstatus')
 
         vw.addAnalysisModule("vivisect.analysis.generic.relocations")
@@ -54,6 +57,9 @@ def addAnalysisModules(vw):
         elif arch == 'amd64':
             vw.addFuncAnalysisModule("vivisect.analysis.amd64.emulation")
 
+        elif arch == 'arm':
+            vw.addFuncAnalysisModule("vivisect.analysis.arm.emulation")
+
         # See if we got lucky and got arg/local hints from symbols
         vw.addAnalysisModule('vivisect.analysis.ms.localhints')
         # Find import thunks
@@ -73,6 +79,9 @@ def addAnalysisModules(vw):
             # add va set for tracking thunk_bx function(s)
             vw.addVaSet('thunk_bx', ( ('fva', vivisect.VASET_ADDRESS), ) )
             vw.addFuncAnalysisModule("vivisect.analysis.i386.thunk_bx")
+        elif arch == 'arm':
+            vw.addVaSet('thunk_reg', ( ('fva', vivisect.VASET_ADDRESS), ('reg', vivisect.VASET_INTEGER), ))
+            vw.addFuncAnalysisModule('vivisect.analysis.arm.thunk_reg')
 
         vw.addAnalysisModule("vivisect.analysis.generic.funcentries")
         vw.addAnalysisModule("vivisect.analysis.generic.relocations")
@@ -90,6 +99,8 @@ def addAnalysisModules(vw):
             vw.addFuncAnalysisModule("vivisect.analysis.i386.calling")
         elif arch == 'amd64':
             vw.addFuncAnalysisModule("vivisect.analysis.amd64.emulation")
+        elif arch == 'arm':
+            vw.addFuncAnalysisModule("vivisect.analysis.arm.emulation")
 
         # Find import thunks
         vw.addFuncAnalysisModule("vivisect.analysis.generic.thunks")
@@ -115,6 +126,9 @@ def addAnalysisModules(vw):
 
         elif arch == 'amd64':
             vw.addFuncAnalysisModule("vivisect.analysis.amd64.emulation")
+
+        elif arch == 'arm':
+            vw.addFuncAnalysisModule("vivisect.analysis.arm.emulation")
 
         vw.addFuncAnalysisModule("vivisect.analysis.generic.thunks")
         vw.addAnalysisModule("vivisect.analysis.generic.pointers")

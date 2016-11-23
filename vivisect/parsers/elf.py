@@ -82,6 +82,7 @@ arch_names = {
 archcalls = {
     'i386':'cdecl',
     'amd64':'sysvamd64call',
+    'arm':'armcall',
 }
 
 def loadElfIntoWorkspace(vw, elf, filename=None):
@@ -324,7 +325,7 @@ def loadElfIntoWorkspace(vw, elf, filename=None):
         if addbase: sva += baseaddr
         if vw.isValidPointer(sva) and len(s.name):
             try:
-                vw.makeName(sva, s.name, filelocal=True)
+                vw.makeName(sva, "%s_%x" % (s.name,sva), filelocal=True)
             except Exception, e:
                 print "WARNING:",e
 

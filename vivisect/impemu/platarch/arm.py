@@ -1,5 +1,9 @@
+import envi
 import envi.archs.arm as e_arm
 import vivisect.impemu.emulator as v_i_emulator
+
+import visgraph.pathcore as vg_path
+from envi.archs.arm.regs import *
 
 class ArmWorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_arm.ArmEmulator):
 
@@ -8,6 +12,125 @@ class ArmWorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_arm.ArmEmulator):
     def __init__(self, vw, logwrite=False, logread=False):
         e_arm.ArmEmulator.__init__(self)
         v_i_emulator.WorkspaceEmulator.__init__(self, vw, logwrite=logwrite, logread=logread)
+        self.setMemArchitecture(envi.ARCH_ARMV7)
+
+    def runFunction(self, funcva, stopva=None, maxhit=None, maxloop=None, tmode=None):
+        """
+        This is a utility function specific to WorkspaceEmulation (and impemu) that
+        will emulate, but only inside the given function.  You may specify a stopva
+        to return once that location is hit.
+        """
+
+        if tmode != None:
+            # we're forcing thumb or arm mode... update the flag
+            self.setFlag(PSR_T_bit, tmode)
+
+        self.funcva = funcva
+
+        # Let the current (should be base also) path know where we are starting
+        vg_path.setNodeProp(self.curpath, 'bva', funcva)
+
+        hits = {}
+        todo = [(funcva,self.getEmuSnap(),self.path),]
+        vw = self.vw # Save a dereference many many times
+
+        while len(todo):
+          #try:  
+
+            va,esnap,self.curpath = todo.pop()
+
+            self.setEmuSnap(esnap)
+
+            self.setProgramCounter(va)
+
+            # Check if we are beyond our loop max...
+            if maxloop != None:
+                lcount = vg_path.getPathLoopCount(self.curpath, 'bva', va)
+                if lcount > maxloop:
+                    continue
+
+            while True:
+
+                starteip = self.getProgramCounter()
+
+                if not vw.isValidPointer(starteip):
+                    break
+
+                if starteip == stopva:
+                    return
+
+                # Check straight hit count...
+                if maxhit != None:
+                    h = hits.get(starteip, 0)
+                    h += 1
+                    if h > maxhit:
+                        break
+                    hits[starteip] = h
+
+                # If we ran out of path (branches that went
+                # somewhere that we couldn't follow?
+                if self.curpath == None:
+                    break
+
+                try:
+
+                    tmode = self.getFlag(PSR_T_bit)
+                    # FIXME unify with stepi code...
+                    op = self.parseOpcode(starteip | tmode)
+
+                    self.op = op
+                    if self.emumon:
+
+                        self.emumon.prehook(self, op, starteip)
+
+                        if self.emustop:
+                            return 
+
+                    # Execute the opcode
+                    self.executeOpcode(op)
+                    vg_path.getNodeProp(self.curpath, 'valist').append(starteip)
+
+                    endeip = self.getProgramCounter()
+
+                    if self.emumon:
+                        self.emumon.posthook(self, op, endeip)
+                        if self.emustop:
+                            return 
+
+                    iscall = self.checkCall(starteip, endeip, op)
+                    if self.emustop:
+                        return
+
+                    # If it wasn't a call, check for branches, if so, add them to
+                    # the todo list and go around again...
+                    if not iscall:
+                        blist = self.checkBranches(starteip, endeip, op)
+                        if len(blist):
+                            # pc in the snap will be wrong, but over-ridden at restore
+                            esnap = self.getEmuSnap()
+                            for bva,bpath in blist:
+                                todo.append((bva, esnap, bpath))
+                            break
+
+                    # If we enounter a procedure exit, it doesn't
+                    # matter what EIP is, we're done here.
+                    if op.iflags & envi.IF_RET:
+                        vg_path.setNodeProp(self.curpath, 'cleanret', True)
+                        break
+                except envi.UnsupportedInstruction, e:
+                    if self.strictops:
+                        break
+                    else:
+                        print 'runFunction continuing after unsupported instruction: 0x%08x %s' % (e.op.va, e.op.mnem)
+                        self.setProgramCounter(e.op.va+ e.op.size)
+                except Exception, e:
+                    #traceback.print_exc()
+                    if self.emumon != None:
+                        self.emumon.logAnomaly(self, starteip, str(e))
+
+                    break # If we exc during execution, this branch is dead.
+          #except:
+          #    sys.excepthook(*sys.exc_info())
 
 '''
 st0len gratuitously from wikipedia:
