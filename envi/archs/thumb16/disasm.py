@@ -1592,7 +1592,7 @@ thumb_base = [
     ('11011110',    (INS_B,'b',       pc_imm8,       envi.IF_NOFALL)),
     ('11011111',    (INS_BCC,'bfukt',   pc_imm8,       0)),
     # Software Interru2t
-    ('11011111',    (INS_SWI,'swi',     imm8,       0)), # SWI <blahblah>
+    ('11011111',    (INS_SWI,'svc',     imm8,       0)), # SWI <blahblah>
     ('1011111100000000',    (89,'nopHint',    imm8,       0)), #unnecessary instruction
     ('1011111100010000',    (90,'yieldHint',  imm8,       0)), #unnecessary instruction
     ('1011111100100000',    (91,'wfrHint',    imm8,       0)), #unnecessary instruction
