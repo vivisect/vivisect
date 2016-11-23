@@ -762,12 +762,23 @@ def p_undef(opval, va):
         
     return (opcode, mnem, olist, 0)
 
+def p_dp_movw(opval, va):
+    iflags = 0
+    imm =  ((opval >>4) &0xf000) + (opval & 0xfff)
+    Rd = (opval >> 12) & 0xf
+    opcode = INS_MOV
+    olist = (
+        ArmRegOper(Rd, va=va),
+        ArmImmOper(imm),
+    )
+    return(opcode, "movw", olist, iflags)
+
 def p_dp_movt(opval, va):
     #fix opcode
     iflags = 0
     imm =  ((opval >>4) &0xf000) + (opval & 0xfff)
     Rd = (opval >> 12) & 0xf
-    opcode = (IENC_MOV_IMM_STAT << 16)
+    opcode = INS_MOV
     olist = (
         ArmRegOper(Rd, va=va),
         ArmImmOper(imm),
@@ -1643,6 +1654,7 @@ ienc_parsers_tmp[IENC_COPROC_REG_XFER] =   p_coproc_reg_xfer
 ienc_parsers_tmp[IENC_SWINT] =    p_swint
 ienc_parsers_tmp[IENC_UNCOND] = p_uncond
 ienc_parsers_tmp[IENC_DP_MOVT] = p_dp_movt
+ienc_parsers_tmp[IENC_DP_MOVW] = p_dp_movw
 
 ienc_parsers = tuple(ienc_parsers_tmp)
 
