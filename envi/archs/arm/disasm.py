@@ -933,7 +933,7 @@ def p_media(opval, va):
         raise envi.InvalidInstruction(
         mesg="p_media: can not find command! Definer = "+str(definer),
         bytez=struct.pack("<I", opval), va=va)
-    print media_parsers
+    #print media_parsers
     return media_parsers[p_routine](opval, va)
     ''' Prototype stops here. From here to end of comment is original code
     if   (definer & 0xf8) == 0x60:
@@ -1775,7 +1775,7 @@ class ArmOpcode(envi.Opcode):
                 if operval & 3:
                     flags |= envi.ARCH_THUMB16
                 else:
-                    flags |= envi.ARCH_ARM
+                    flags |= envi.ARCH_ARMV7
 
             # if we don't know that it's thumb, default to "ARCH_DEFAULT"
             else:
@@ -2358,6 +2358,10 @@ class ArmImmOffsetOper(ArmOperand):
     if the base_reg is PC, we'll dig in and hopefully grab the data being referenced.
     '''
     def __init__(self, base_reg, offset, va, pubwl=8, psize=4):
+        '''
+        psize is pointer-size, since we want to increment base_reg that size when indexing
+        tsize is the target size (4 or 1 bytes)
+        '''
         self.base_reg = base_reg
         self.offset = offset
         self.pubwl = pubwl
