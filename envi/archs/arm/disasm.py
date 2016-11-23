@@ -1293,7 +1293,8 @@ def p_branch(opval, va):        # primary branch encoding.  others were added la
 
     #FIXME this assumes A1 branch encoding.
     
-    olist = ( ArmPcOffsetOper(off, va),)
+    olist = ( ArmPcOffsetOper(off, va), )
+
     if link:
         flags = envi.IF_CALL
     else:
@@ -1713,24 +1714,7 @@ inittable = [
     (IENC_UNCOND, None),
 ]
 
-# FIXME for emulation...
-#def s_lsl(val, shval):
-    #pass
-
-#def s_lsr(val, shval):
-    #pass
-
-# These are indexed by the 2 bit "shift" value in some DP encodings
-#shift_handlers = (
-    #s_lsl,
-    #s_lsr,
-    #s_asr,
-    #s_ror,
-#)
-
 endian_names = ("le","be")
-
-#FIXME IF_NOFALL (and other envi flags)
 
 class ArmOpcode(envi.Opcode):
     _def_arch = envi.ARCH_ARMV7
@@ -2970,7 +2954,11 @@ class ArmDisasm:
         return self._archVersionMask
 
     def setEndian(self, endian):
+        self.endian = endian
         self.fmt = ("<I", ">I")[endian]
+
+    def getEndian(self):
+        return self.endian
 
     def disasm(self, bytez, offset, va):
         """
@@ -2980,8 +2968,10 @@ class ArmDisasm:
         opval, = struct.unpack(self.fmt, opbytes)
 
         cond = opval >> 28
+
         #Get opcode, base mnem, operator list and flags
         opcode, mnem, olist, flags = self.doDecode(va, opval, bytez, offset)
+
         # since our flags determine how the instruction is decoded later....  
         # performance-wise this should be set as the default value instead of 0, but this is cleaner
         #flags |= envi.ARCH_ARMV7
@@ -3001,8 +2991,8 @@ class ArmDisasm:
 
         else:
             flags |= envi.IF_COND
+
         # FIXME conditionals are currently plumbed as "prefixes".  Perhaps normalize to that...
-        #op = stemCell(va, opcode, mnem, cond, 4, olist, flags)
         op = ArmOpcode(va, opcode, mnem, cond, 4, olist, flags)
         return op
         

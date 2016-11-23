@@ -534,7 +534,7 @@ def thumb32_11(va, val, val2):
     if (op2 & 0x40) == 0x40:
         raise Exception('# Coprocessor, Advanced SIMD, Floating Point instrs')
 
-    return ( olist, mnem, opcode, flags )
+    return ( opcode, mnem, olist, flags )
 
 def ROR_C(imm, bitcount, shift):
     m = shift % bitcount
@@ -1838,12 +1838,21 @@ class ThumbDisasm:
     def __init__(self, doModeSwitch=True):
         self._doModeSwitch = doModeSwitch
 
+    def setEndian(self, endian):
+        self.endian = endian
+        self.hfmt = ("<H", ">H")[endian]
+
+    def getEndian(self):
+        return self.endian
+
+
     def disasm(self, bytez, offset, va, trackMode=True):
         oplen = None
         flags = 0
         va &= -2
         offset &= -2
-        val, = struct.unpack_from("<H", bytez, offset)
+        val, = struct.unpack_from(self.hfmt, bytez, offset)
+
         try:
             opcode, mnem, opermkr, flags = self._tree.getInt(val, 16)
             #print opcode, mnem, opermkr, flags
@@ -1854,10 +1863,9 @@ class ThumbDisasm:
 
         #print "FLAGS: ", hex(va),hex(flags)
         if flags & IF_THUMB32:
-            val2, = struct.unpack_from("<H", bytez, offset+2)
-            #print "============" + repr( opermkr(va+4, val, val2) )
-            #print opermkr
+            val2, = struct.unpack_from(self.hfmt, bytez, offset+2)
             nopcode, nmnem, olist, nflags = opermkr(va+4, val, val2)
+
             if nmnem != None:   # allow opermkr to set the mnem
                 mnem = nmnem
                 opcode = nopcode
@@ -1865,6 +1873,7 @@ class ThumbDisasm:
                 flags = nflags
             oplen = 4
             #print "OPLEN: ", oplen
+
         else:
             olist = opermkr(va+4, val)
             oplen = 2
@@ -1875,6 +1884,8 @@ class ThumbDisasm:
         flags |= self._optype
 
         #print opcode, mnem, olist, flags
+        if olist == None or type(olist) == int:
+            print "wtf?  0x%x %s (%s)" % (va, mnem, olist)
         if (olist != None and 
                 len(olist) and 
                 isinstance(olist[0], ArmRegOper) and
