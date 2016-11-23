@@ -233,12 +233,6 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
         return emu
 
-    def getEndian(self):
-        return self.getMeta("bigend")
-
-    def setEndian(self, endian):
-        self.setMeta('bigend', endian)
-
     def getCachedEmu(self, emuname):
         """
         Get a cached emulator by name. If one doesn't exist it is
