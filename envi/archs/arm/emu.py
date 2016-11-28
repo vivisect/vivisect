@@ -1036,18 +1036,18 @@ class ArmEmulator(ArmModule, ArmRegisterContext, envi.Emulator):
             return imm32
 
     def i_umull(self, op):
-        print("FIXME: 0x%x: %s" % (op.va, op))
+        print("FIXME: 0x%x: %s - in emu" % (op.va, op))
     def i_umlal(self, op):
-        print("FIXME: 0x%x: %s" % (op.va, op))
+        print("FIXME: 0x%x: %s - in emu" % (op.va, op))
     def i_smull(self, op):
-        print("FIXME: 0x%x: %s" % (op.va, op))
+        print("FIXME: 0x%x: %s - in emu" % (op.va, op))
     def i_umull(self, op):
-        print("FIXME: 0x%x: %s" % (op.va, op))
+        print("FIXME: 0x%x: %s - in emu" % (op.va, op))
     def i_umull(self, op):
-        print("FIXME: 0x%x: %s" % (op.va, op))
+        print("FIXME: 0x%x: %s - in emu" % (op.va, op))
 
     def i_pld2(self, op):
-        print("FIXME: 0x%x: %s" % (op.va, op))
+        print("FIXME: 0x%x: %s - in emu" % (op.va, op))
 
     def _getCoProc(self, cpnum):
         if cpnum > 15:
