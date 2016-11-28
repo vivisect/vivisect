@@ -696,13 +696,10 @@ instrs = [
         (REV_ALL_ARM, '1734e4e6', 0x4560, 'usat r3, #0x04, r7, lsl #8', 0, ()),
         (REV_ALL_ARM, '940001e9', 0x4560, 'stmdb r1, {r2, r4, r7}', 0, ()),
         (REV_ALL_ARM, '940021e9', 0x4560, 'stmdb r1!, {r2, r4, r7}', 0, ()),
-        #Not yet implimented (Some look like they may have been started)
-        #(REV_ALL_ARM, 'dc3c5fe1', 0x4560, 'ldrh  r3, [#0x449c]', 0, ()),
-        #(REV_ALL_ARM, 'dc3cdfe1', 0x4560, 'ldrh  r3, [#0x4634]', 0, ()),
+        (REV_ALL_ARM, 'dc3c5fe1', 0x4560, 'ldrsb  r3, [#0x449c]', 0, ()),
+        (REV_ALL_ARM, 'dc3cdfe1', 0x4560, 'ldrsb  r3, [#0x4634]', 0, ()),
         (REV_ALL_ARM, 'ff3f0fe3', 0x4560, 'movw r3, #0xffff', 0, ()),
         (REV_ALL_ARM, 'ff3f4fe3', 0x4560, 'movt r3, #0xffff', 0, ()),
-        #(REV_ALL_ARM, '940001e9', 0x4560, 'stmdb r1, {r2, r4, r7}', 0, ()),
-        #(REV_ALL_ARM, '940021e0', 0x4560, 'stmdb r1!, {r2, r4, r7}', 0, ()),
 
         #all v codes are suspect at this time - not implimented but may not be correct here either
         #(REV_ALL_ARM, '173704f2', 0x4560, 'vaba.s8 d3, d4, d7', 0, ()),
@@ -1048,16 +1045,15 @@ instrs = [
         (REV_ALL_ARM, '373f34e6', 0x4560, 'shasx r3, r4, r7', 0, ()),
         (REV_ALL_ARM, '573f34e6', 0x4560, 'shsax r3, r4, r7', 0, ()),
         (REV_ALL_ARM, '00ff00ef', 0x4560, 'svc #0xff00', 0, ()),
-        #(REV_ALL_ARM, '04609de4', 0x4560, 'pop r6', 0, ()),
         #need [] around last entry. Not sure how to accomplish yet for ldrex and strex
         (REV_ALL_ARM, '9f3f94e1', 0x4560, 'ldrex  r3, r4', 0, ()), 
-        #(REV_ALL_ARM, '9f3fd4e1', 0x4560, 'ldrexb  r3, r4', 0, ()),
-        #(REV_ALL_ARM, '9f4fb6e1', 0x4560, 'ldrexd  r4, r5, r6', 0, ()),
-        #(REV_ALL_ARM, '9f3ff4e1', 0x4560, 'ldrexh  r3, r4', 0, ()),
+        (REV_ALL_ARM, '9f3fd4e1', 0x4560, 'ldrexb  r3, r4', 0, ()),
+        (REV_ALL_ARM, '9f4fb6e1', 0x4560, 'ldrexd  r4, r5, r6', 0, ()),
+        (REV_ALL_ARM, '9f3ff4e1', 0x4560, 'ldrexh  r3, r4', 0, ()),
         (REV_ALL_ARM, '943f87e1', 0x4560, 'strex r3, r4, r7', 0, ()),
-        #(REV_ALL_ARM, '943fc7e1', 0x4560, 'strexb r3, r4, r7', 0, ()),
-        #(REV_ALL_ARM, '943fa7e1', 0x4560, 'strexd r3, r4, r5, r7', 0, ()),
-        #(REV_ALL_ARM, '943fe7e1', 0x4560, 'strexh r3, r4, r7', 0, ()),
+        (REV_ALL_ARM, '943fc7e1', 0x4560, 'strexb r3, r4, r7', 0, ()),
+        (REV_ALL_ARM, '943fa7e1', 0x4560, 'strexd r3, r4, r5, r7', 0, ()),
+        (REV_ALL_ARM, '943fe7e1', 0x4560, 'strexh r3, r4, r7', 0, ()),
         #not sure if these msr are correct? Left here to be sorted out in emu. Disassembles correctly
         #fails in emu.getSPSR
         (REV_ALL_ARM, 'd3f061e3', 0x4560, 'msr spsr_c, #0xd3', 0, ()),
@@ -1213,8 +1209,10 @@ instrs = [
         (REV_ALL_ARM, '53f07ff5', 0x4560, 'dmb osh', 0, ()),
         (REV_ALL_ARM, '42f07ff5', 0x4560, 'dsb oshst', 0, ()),
         (REV_ALL_ARM, '6ff07ff5', 0x4560, 'isb sy', 0, ()),
+        (REV_ALL_ARM, '1600bde8', 0x4560, 'pop {r1, r2, r4}', 0, ()),
+        (REV_ALL_ARM, '04609de4', 0x4560, 'pop r6', 0, ()),
         (REV_ALL_ARM, '16002de9', 0x4560, 'push {r1, r2, r4}', 0, ()),
-        #(REV_ALL_ARM, '04102de5', 0x4560, 'push r1', 0, ()),
+        (REV_ALL_ARM, '04102de5', 0x4560, 'push r1', 0, ()),
         #(REV_ALL_ARM, '343fffe6', 0x4560, 'rbit r3, r4', 0, ()),
         (REV_ALL_ARM, '5434a3e7', 0x4560, 'sbfx r3, r4, #0x08, #0x03', 0, ()),
         (REV_ALL_ARM, '14f713e7', 0x4560, 'sdiv r3, r4, r7', 0, ()),
@@ -1619,10 +1617,10 @@ class ArmInstructionSet(unittest.TestCase):
                             else:
                                 badcount += 1
                         except envi.UnsupportedInstruction:
-                            print "UnsupportedInstruction - ", repr(op)
+                            print "Instruction not in Emulator - ", repr(op)
                             badcount += 1
                         except Exception as exp:
-                            print exp , " - " , repr(op)
+                            print "Exception in Emulator - ",exp , " - " , repr(op)
                             badcount += 1
                     else:
                         # if we have a special test lets run it
