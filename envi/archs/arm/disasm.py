@@ -406,7 +406,7 @@ def p_misc1(opval, va): #
         )
     elif opval & 0x0ff000f0 == 0x01200030:
         #opcode = (IENC_MISC << 16) + 6
-        opcode = IENC_UNCOND_BLX
+        opcode = INS_BLX
         mnem = 'blx'
         Rm = opval & 0xf
         olist = ( ArmRegOper(Rm, va=va), )
@@ -431,7 +431,7 @@ def p_misc1(opval, va): #
         immed = ((opval>>4)&0xfff0) + (opval&0xf)
         olist = ( ArmImmOper(immed), )
     elif opval & 0xfff00f0 == 0x32000f0:
-        opcode = (IENC_MISC << 16) + 8 #FIXME - needs opcode
+        opcode = (IENC_MISC << 16) + 8 #FIXME - Done in CM.4
         mnem = "dbg"
         immed = opval & 0xf
         olist = (ArmImmOper(immed),)
@@ -765,7 +765,7 @@ def p_dp_movw(opval, va):
     iflags = 0
     imm =  ((opval >>4) &0xf000) + (opval & 0xfff)
     Rd = (opval >> 12) & 0xf
-    opcode = INS_MOV #FIXME
+    opcode = INS_MOV
     olist = (
         ArmRegOper(Rd, va=va),
         ArmImmOper(imm),
@@ -776,7 +776,7 @@ def p_dp_movt(opval, va):
     iflags = 0
     imm =  ((opval >>4) &0xf000) + (opval & 0xfff)
     Rd = (opval >> 12) & 0xf
-    opcode = INS_MOV #FIXME
+    opcode = INS_MOV
     olist = (
         ArmRegOper(Rd, va=va),
         ArmImmOper(imm),
@@ -1470,17 +1470,17 @@ def p_uncond(opval, va, psize = 4):
             #clrex
             mnem = "clrex"
             olist =()
-            opcode = IENC_UNCOND_CLREX
+            opcode = INS_CLREX
             return (opcode, mnem, olist, 0)
         elif (opval & 0xff000e0) == 0x5700040:
             #dmb/dsb
             option = opval & 0xf
             if (opval & 0x10 )== 0x10:
                 mnem = 'dmb'
-                opcode = IENC_UNCOND_DMB
+                opcode = INS_DMB
             else:
                 mnem = 'dsb'
-                opcode = IENC_UNCOND_DSB
+                opcode = INS_DSB
             olist = (ArmBarrierOption(option),)
             return (opcode, mnem, olist, 0)
         elif (opval & 0xff000f0) == 0x5700060:
@@ -1488,7 +1488,7 @@ def p_uncond(opval, va, psize = 4):
             option = opval & 0xf
             mnem = 'isb'
             olist = (ArmBarrierOption(option),)
-            opcode = IENC_UNCOND_ISB
+            opcode = INS_ISB
             return (opcode, mnem, olist, 0)
         else:
             raise envi.InvalidInstruction(
@@ -1537,7 +1537,7 @@ def p_uncond(opval, va, psize = 4):
                 ArmPcOffsetOper(imm_offset, va),
             )
             
-            opcode = IENC_UNCOND_BLX
+            opcode = INS_BLX
             return (opcode, mnem, olist, 0)
         else:
             raise envi.InvalidInstruction(
@@ -1816,7 +1816,7 @@ class ArmOpcode(envi.Opcode):
         if self.prefixes != COND_AL:
             flags |= envi.BR_COND
 
-        if self.opcode in ( INS_B, INS_BX, INS_BL, IENC_UNCOND_BLX, INS_BCC ):
+        if self.opcode in ( INS_B, INS_BX, INS_BL, INS_BLX, INS_BCC ):
             oper = self.opers[0]
 
             # check for location being ODD
@@ -1825,7 +1825,7 @@ class ArmOpcode(envi.Opcode):
                 # probably a branch to a register.  just return.
                 return ret
 
-            if self.opcode in (IENC_UNCOND_BLX, INS_BX):
+            if self.opcode in (INS_BLX, INS_BX):
                 if operval & 3:
                     flags |= envi.ARCH_THUMB16
                 else:
