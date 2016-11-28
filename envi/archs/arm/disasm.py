@@ -2937,7 +2937,6 @@ class ArmCoprocRegOper(ArmOperand):
     def repr(self, op):
         return "c%d"%self.val
 
-#copied code from ArmImmOffsetOper - works but render is not correct. Not sure if can delete commented code yet
 class ArmCoprocOption(ArmImmOffsetOper):
     def __init__(self, base_reg, offset, va, pubwl=8):
         self.base_reg = base_reg
