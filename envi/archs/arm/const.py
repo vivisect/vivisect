@@ -283,11 +283,18 @@ IENC_MEDIA_USAD8    = ((IENC_MEDIA << 8) + 5) << 8
 IENC_MEDIA_USADA8   = ((IENC_MEDIA << 8) + 6) << 8
 IENC_MEDIA_EXTEND   = ((IENC_MEDIA << 8) + 7) << 8
 IENC_MEDIA_PACK     = ((IENC_MEDIA << 8) + 8) << 8
+IENC_MEDIA_SBFX     = IENC_MEDIA_PACK #FIXME
+IENC_MEDIA_PDIV     = IENC_MEDIA_PACK #FIXME
 IENC_UNCOND_CPS     = ((IENC_UNCOND << 8) + 1) << 8
 IENC_UNCOND_SETEND  = ((IENC_UNCOND << 8) + 2) << 8
 IENC_UNCOND_PLD     = ((IENC_UNCOND << 8) + 3) << 8
+IENC_UNCOND_PLI     = IENC_UNCOND_PLD #FIXME
 IENC_UNCOND_BLX     = ((IENC_UNCOND << 8) + 4) << 8
 IENC_UNCOND_RFE     = ((IENC_UNCOND << 8) + 5) << 8
+IENC_UNCOND_CLREX   = IENC_UNCOND_PLD #FIXME
+IENC_UNCOND_DMB     = IENC_UNCOND_PLD #FIXME
+IENC_UNCOND_DSB     = IENC_UNCOND_PLD #FIXME
+IENC_UNCOND_ISB     = IENC_UNCOND_PLD #FIXME
 
 
 # The supported types of operand shifts (by the 2 bit field)
@@ -333,10 +340,10 @@ INS_BL      = instrenc(IENC_BRANCH, 1)
 INS_BCC     = instrenc(IENC_BRANCH, 2)
 INS_BX      = instrenc(IENC_MISC, 3)
 INS_BXJ     = instrenc(IENC_MISC, 5)
-INS_BLX     = IENC_UNCOND_BLX
+#INS_BLX     = IENC_UNCOND_BLX
 
 INS_SWI     = IENC_SWINT
-
+ 
 # FIXME: must fit these into the numbering scheme
 INS_TB = 85
 INS_LDREX = 85
@@ -347,11 +354,11 @@ INS_LSR = 85
 INS_ASR = 85
 INS_ROR = 85
 INS_RRX = 85
-#New commands for ARMV7
-INS_CLREX = 85
-INS_DMB = 85
-INS_DSB = 85
-INS_ISB = 85
+#New commands for ARMV7 - need to be fitted too.
+INS_DBG = 85
+INS_BF  = 85
+#Opcodes still needed - put here as todo with others
+#dbg, movt, movw
 
 
 INS_LDR = instrenc(IENC_LOAD_IMM_OFF,  0)

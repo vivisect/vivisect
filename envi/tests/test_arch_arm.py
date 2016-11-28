@@ -1040,7 +1040,7 @@ instrs = [
         (REV_ALL_ARM, '973f64e6', 0x4560, 'uqadd8 r3, r4, r7', 0, ()),
         (REV_ALL_ARM, '773f64e6', 0x4560, 'uqsub16 r3, r4, r7', 0, ()),
         (REV_ALL_ARM, '148783e7', 0x4560, 'usada8 r3, r4, r7, r8', 0, ()),
-        #(REV_ALL_ARM, '373fe4e6', 0x4560, 'usat16 r3, #4, r7', 0, ()),
+        (REV_ALL_ARM, '373fe4e6', 0x4560, 'usat16 r3, #0x04, r7', 0, ()),
         (REV_ALL_ARM, '773f54e6', 0x4560, 'usub16 r3, r4, r7', 0, ()),
         (REV_ALL_ARM, '373f24e6', 0x4560, 'qasx r3, r4, r7', 0, ()),
         (REV_ALL_ARM, '573f24e6', 0x4560, 'qsax r3, r4, r7', 0, ()),
@@ -1048,13 +1048,13 @@ instrs = [
         (REV_ALL_ARM, '373f34e6', 0x4560, 'shasx r3, r4, r7', 0, ()),
         (REV_ALL_ARM, '573f34e6', 0x4560, 'shsax r3, r4, r7', 0, ()),
         (REV_ALL_ARM, '00ff00ef', 0x4560, 'svc #0xff00', 0, ()),
-        (REV_ALL_ARM, '04609de4', 0x4560, 'pop r6', 0, ()),
+        #(REV_ALL_ARM, '04609de4', 0x4560, 'pop r6', 0, ()),
         #need [] around last entry. Not sure how to accomplish yet for ldrex and strex
-        #(REV_ALL_ARM, '9f3f94e1', 0x4560, 'ldrex  r3, r4', 0, ()), 
+        (REV_ALL_ARM, '9f3f94e1', 0x4560, 'ldrex  r3, r4', 0, ()), 
         #(REV_ALL_ARM, '9f3fd4e1', 0x4560, 'ldrexb  r3, r4', 0, ()),
         #(REV_ALL_ARM, '9f4fb6e1', 0x4560, 'ldrexd  r4, r5, r6', 0, ()),
         #(REV_ALL_ARM, '9f3ff4e1', 0x4560, 'ldrexh  r3, r4', 0, ()),
-        #(REV_ALL_ARM, '943f87e1', 0x4560, 'strex r3, r4, r7', 0, ()),
+        (REV_ALL_ARM, '943f87e1', 0x4560, 'strex r3, r4, r7', 0, ()),
         #(REV_ALL_ARM, '943fc7e1', 0x4560, 'strexb r3, r4, r7', 0, ()),
         #(REV_ALL_ARM, '943fa7e1', 0x4560, 'strexd r3, r4, r5, r7', 0, ()),
         #(REV_ALL_ARM, '943fe7e1', 0x4560, 'strexh r3, r4, r7', 0, ()),
@@ -1141,8 +1141,8 @@ instrs = [
         (REV_ALL_ARM, '343fa6e6', 0x4560, 'ssat16 r3, #0x06, r4', 0, ()),
         (REV_ALL_ARM, '563f14e6', 0x4560, 'ssax r3, r4, r6', 0, ()),
         (REV_ALL_ARM, 'f63f14e6', 0x4560, 'ssub8 r3, r4, r6', 0, ()),
-        #(REV_ALL_ARM, '1730e4e6', 0x4560, 'usat r3, #0x04, r7', 0, ()),
-        #(REV_ALL_ARM, '1734e4e6', 0x4560, 'usat r3, #0x04, r7, lsl #8', 0, ()),
+        (REV_ALL_ARM, '1730e4e6', 0x4560, 'usat r3, #0x04, r7', 0, ()),
+        (REV_ALL_ARM, '1734e4e6', 0x4560, 'usat r3, #0x04, r7, lsl #8', 0, ()),
         (REV_ALL_ARM, '7730a4e6', 0x4560, 'sxtab r3, r4, r7', 0, ()),
         (REV_ALL_ARM, '7734a4e6', 0x4560, 'sxtab r3, r4, r7, ror #8', 0, ()),
         (REV_ALL_ARM, '7738a4e6', 0x4560, 'sxtab r3, r4, r7, ror #16', 0, ()),
@@ -1201,7 +1201,7 @@ instrs = [
         (REV_ALL_ARM, '7434ffe6', 0x4560, 'uxth r3, r4, ror #8', 0, ()),
         (REV_ALL_ARM, '7438ffe6', 0x4560, 'uxth r3, r4, ror #16', 0, ()),
         (REV_ALL_ARM, '743cffe6', 0x4560, 'uxth r3, r4, ror #24', 0, ()),
-        #(REV_ALL_ARM, 'f000f0e7', 0x4560, 'udf #0', 0, ()), #This forces an undefined instruction. Think will delete this one see A8.8.247 Rev 7 docs
+
         (REV_ALL_ARM, '1ff07ff5', 0x4560, 'clrex', 0, ()),
         (REV_ALL_ARM, 'f3f020e3', 0x4560, 'dbg  #0x03', 0, ()),
         (REV_ALL_ARM, '5ff07ff5', 0x4560, 'dmb sy', 0, ()),
@@ -1219,6 +1219,7 @@ instrs = [
         (REV_ALL_ARM, '5434a3e7', 0x4560, 'sbfx r3, r4, #0x08, #0x03', 0, ()),
         (REV_ALL_ARM, '14f713e7', 0x4560, 'sdiv r3, r4, r7', 0, ()),
         (REV_ALL_ARM, '14f733e7', 0x4560, 'udiv r3, r4, r7', 0, ()),
+        #(REV_ALL_ARM, 'f000f0e7', 0x4560, 'udf #0', 0, ()), #This forces an undefined instruction. Commented out normally.
         ]
 
 
@@ -1580,7 +1581,6 @@ class ArmInstructionSet(unittest.TestCase):
                     #num, = struct.unpack("<I", bytez.decode('hex'))
                     #bs = bin(num)[2:].zfill(32)
                     #print bytez, bs
-                    #in arm/init.py
                     op = vw.arch.archParseOpcode(bytez.decode('hex'), 0, va)
                     redoprepr = repr(op).replace(' ','').lower()
                     redgoodop = reprOp.replace(' ','')
@@ -1686,9 +1686,6 @@ class ArmInstructionSet(unittest.TestCase):
                 else:
                     raise Exception( "Funkt up Setting:  %s = 0x%x" % (tgt, val) )
         emu.executeOpcode(op)
-        ## Special cases
-        # do tests
-        #FIXME: If test is not correct for instruction the test will exit without warning or error
         if not len(tests):
             success = 0
         else:

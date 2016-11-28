@@ -406,7 +406,7 @@ def p_misc1(opval, va): #
         )
     elif opval & 0x0ff000f0 == 0x01200030:
         #opcode = (IENC_MISC << 16) + 6
-        opcode = INS_BLX
+        opcode = IENC_UNCOND_BLX
         mnem = 'blx'
         Rm = opval & 0xf
         olist = ( ArmRegOper(Rm, va=va), )
@@ -430,10 +430,8 @@ def p_misc1(opval, va): #
         mnem = 'bkpt'
         immed = ((opval>>4)&0xfff0) + (opval&0xf)
         olist = ( ArmImmOper(immed), )
-    #dbg - not sure where to put this
     elif opval & 0xfff00f0 == 0x32000f0:
-        #need opcode
-        opcode = (IENC_MISC << 16) + 8
+        opcode = (IENC_MISC << 16) + 8 #FIXME - needs opcode
         mnem = "dbg"
         immed = opval & 0xf
         olist = (ArmImmOper(immed),)
@@ -459,7 +457,8 @@ STRH (imm) & (reg)
 
 '''
 swap_mnem = ("swp","swpb",)
-strex_mnem = ("strex","ldrex",)  # actual full instructions
+#strex_mnem = ("strex","ldrex",)  # actual full instructions - keeping in case was mistake
+strex_mnem = ("strex","ldrex","","d","b","h")  # full instruction then suffix - missed in merge?
 strh_mnem = (("str",IF_H,2),("ldr",IF_H,2),)          # IF_H
 ldrs_mnem = (("ldr",IF_S|IF_B,1),("ldr",IF_S|IF_H,2),)      # IF_SH, IF_SB
 ldrd_mnem = (("ldr",IF_D),("str",IF_D),)        # IF_D
@@ -637,8 +636,6 @@ def p_dp_reg_shift(opval, va):
                 ArmRegOper(Rd, va=va),
                 ArmRegOper(Rm, va=va),
                 ArmRegOper(Rs, va=va),
-                
-                #ArmRegShiftRegOperMov(Rm, shtype, Rs),
             )
         else:
             olist = (
@@ -766,7 +763,7 @@ def p_dp_movw(opval, va):
     iflags = 0
     imm =  ((opval >>4) &0xf000) + (opval & 0xfff)
     Rd = (opval >> 12) & 0xf
-    opcode = INS_MOV
+    opcode = INS_MOV #FIXME
     olist = (
         ArmRegOper(Rd, va=va),
         ArmImmOper(imm),
@@ -774,11 +771,10 @@ def p_dp_movw(opval, va):
     return(opcode, "movw", olist, iflags)
 
 def p_dp_movt(opval, va):
-    #fix opcode
     iflags = 0
     imm =  ((opval >>4) &0xf000) + (opval & 0xfff)
     Rd = (opval >> 12) & 0xf
-    opcode = INS_MOV
+    opcode = INS_MOV #FIXME
     olist = (
         ArmRegOper(Rd, va=va),
         ArmImmOper(imm),
@@ -1179,7 +1175,7 @@ def p_media_bf(opval, va):
             ArmImmOper(lsb),
             ArmImmOper(width)
         )
-    opcode = IENC_MEDIA_USAD8 #FIXME
+    opcode = INS_BF
     mnem = bf_mnem[idx]
     return (opcode, mnem, olist, 0)
 
@@ -1220,8 +1216,7 @@ def p_media_sbfx(opval, va):
         ArmImmOper(lsb, 0, va=va),
         ArmImmOper(width, 0, va=va),
     )
-    #fixme opcode
-    opcode = IENC_MEDIA_USADA8
+    opcode = IENC_MEDIA_SBFX
     return (opcode, mnem, olist, 0)
 
 div_mnem= ("sdiv","udiv")
@@ -1235,8 +1230,7 @@ def p_div(opval, va):
         ArmRegOper(Rn, va=va),
         ArmRegOper(Rm, va=va),
     )
-    #fixme opcode
-    opcode = IENC_MEDIA_USADA8
+    opcode = IENC_MEDIA_PDIV
     return (opcode, mnem, olist, 0)
 
 def p_arch_undef(opval, va):
@@ -1304,8 +1298,7 @@ def p_branch(opval, va):        # primary branch encoding.  others were added la
 
     #FIXME this assumes A1 branch encoding.
     
-    olist = ( ArmPcOffsetOper(off, va), )
-
+    olist = ( ArmPcOffsetOper(off, va),)
     if link:
         flags = envi.IF_CALL
     else:
@@ -1420,9 +1413,8 @@ mcrr2_mnem = ("mcrr2", "mrrc2")
 ldc2_mnem = ("stc2", "ldc2",)
 mcr2_mnem = ("mcr2", "mrc2")
 pl_mnem = ("pli", "pld")
-pl_opcode = (IENC_UNCOND_PLD, IENC_UNCOND_PLD) # needs to be fixed 0 = pli
+pl_opcode = (IENC_UNCOND_PLI, IENC_UNCOND_PLD)
 def p_uncond(opval, va):
-
     if opval & 0x0f000000 == 0x0f000000:
         # FIXME THIS IS HORKED
         opcode = IENC_SWINT << 16 + 2
@@ -1482,26 +1474,25 @@ def p_uncond(opval, va):
             #clrex
             mnem = "clrex"
             olist =()
-            opcode = INS_CLREX
+            opcode = IENC_UNCOND_CLREX
             return (opcode, mnem, olist, 0)
         elif (opval & 0xff000e0) == 0x5700040:
             #dmb/dsb
             option = opval & 0xf
             if (opval & 0x10 )== 0x10:
                 mnem = 'dmb'
-                opcode = INS_DMB
+                opcode = IENC_UNCOND_DMB
             else:
                 mnem = 'dsb'
-                opcode = INS_DSB
+                opcode = IENC_UNCOND_DSB
             olist = (ArmBarrierOption(option),)
-            
             return (opcode, mnem, olist, 0)
         elif (opval & 0xff000f0) == 0x5700060:
             #isb
             option = opval & 0xf
             mnem = 'isb'
             olist = (ArmBarrierOption(option),)
-            opcode = INS_ISB
+            opcode = IENC_UNCOND_ISB
             return (opcode, mnem, olist, 0)
         else:
             raise envi.InvalidInstruction(
@@ -1550,7 +1541,7 @@ def p_uncond(opval, va):
                 ArmPcOffsetOper(imm_offset, va),
             )
             
-            opcode = INS_BLX           #should this be IENC_UNCOND_BLX?
+            opcode = IENC_UNCOND_BLX
             return (opcode, mnem, olist, 0)
         else:
             raise envi.InvalidInstruction(
@@ -1829,7 +1820,7 @@ class ArmOpcode(envi.Opcode):
         if self.prefixes != COND_AL:
             flags |= envi.BR_COND
 
-        if self.opcode in ( INS_B, INS_BX, INS_BL, INS_BLX, INS_BCC ):
+        if self.opcode in ( INS_B, INS_BX, INS_BL, IENC_UNCOND_BLX, INS_BCC ):
             oper = self.opers[0]
 
             # check for location being ODD
@@ -1838,7 +1829,7 @@ class ArmOpcode(envi.Opcode):
                 # probably a branch to a register.  just return.
                 return ret
 
-            if self.opcode in (INS_BLX, INS_BX):
+            if self.opcode in (IENC_UNCOND_BLX, INS_BX):
                 if operval & 3:
                     flags |= envi.ARCH_THUMB16
                 else:
@@ -2534,7 +2525,7 @@ class ArmImmOffsetOper(ArmOperand):
             # FIXME: is there any chance of us doing indexing on PC?!?
             # ldcl literal trips this in some cases - leaving for now
             if idxing != 0x10:
-                print "OMJ! indexing on the program counter!"
+                print "OMJ! indexing on the program counter! -1"
         else:
             pom = ('-','')[u]
             mcanv.addText('[')
@@ -2562,9 +2553,9 @@ class ArmImmOffsetOper(ArmOperand):
             addr = self.getOperAddr(op)    # only works without an emulator because we've already verified base_reg is PC
             tname = "[#0x%x]" % addr
             # FIXME: is there any chance of us doing indexing on PC?!?
-            # ldcl literal trips this in some cases - leaving for now - to check for other instances
-            if idxing != 0x10:
-                print "OMJ! indexing on the program counter!"
+            # ldcl literal trips this in some cases
+            #if idxing != 0x10:
+            #    print "OMJ! indexing on the program counter!"
         else:
             pom = ('-','')[u]
             if self.offset != 0:
