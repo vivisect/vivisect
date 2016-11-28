@@ -340,7 +340,7 @@ INS_BL      = instrenc(IENC_BRANCH, 1)
 INS_BCC     = instrenc(IENC_BRANCH, 2)
 INS_BX      = instrenc(IENC_MISC, 3)
 INS_BXJ     = instrenc(IENC_MISC, 5)
-#INS_BLX     = IENC_UNCOND_BLX
+INS_BLX     = IENC_UNCOND_BLX
 
 INS_SWI     = IENC_SWINT
  
@@ -357,6 +357,11 @@ INS_RRX = 85
 #New commands for ARMV7 - need to be fitted too.
 INS_DBG = 85
 INS_BF  = 85
+INS_CLREX   = IENC_UNCOND_PLD #FIXME
+INS_DMB     = IENC_UNCOND_PLD #FIXME
+INS_DSB     = IENC_UNCOND_PLD #FIXME
+INS_ISB     = IENC_UNCOND_PLD #FIXME
+
 #Opcodes still needed - put here as todo with others
 #dbg, movt, movw
 
