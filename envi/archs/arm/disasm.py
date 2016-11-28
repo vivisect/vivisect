@@ -673,10 +673,12 @@ iencmul_r15_codes = {
     binary("011101010011"): ("smmulr", (0,4,2), 0),
     binary("011100000001"): ("smuad", (0,4,2), 0),
     binary("011100000011"): ("smuadx", (0,4,2), 0),
+    binary("011100000101"): ("smusd", (0,4,2), 0),
+    binary("011100000111"): ("smusdx", (0,4,2), 0),
 }
 
 def p_mult(opval, va):
-    ocode, vals = chopmul(opval)                         
+    ocode, vals = chopmul(opval)
     mnem, opindexes, flags = iencmul_codes.get(ocode, multfail)
     #work around because masks match up - should be a cleaner way to do this?
     #if Ra = 15 then smmul
@@ -912,21 +914,25 @@ def p_media(opval, va):
 
     media_parsers_tmp[0] = p_media_parallel
     media_parsers_tmp[1] = p_media_pack_sat_rev_extend
-    media_parsers_tmp[2] = p_mult
-    media_parsers_tmp[3] = p_div
+    media_parsers_tmp[2] = p_div
+    media_parsers_tmp[3] = p_mult
     media_parsers_tmp[4] = p_media_usada
     media_parsers_tmp[5] = p_media_sbfx
+    media_parsers_tmp[6] = p_media_bf
+    media_parsers_tmp[7] = p_media_smul
     media_parsers = tuple(media_parsers_tmp)
 
     media_codes = (
         (0b11111000, 0b01100000, 0),
         (0b11111000, 0b01101000, 1),
-        (0b11111011, 0b01110000, 2),
-        (0b01110001, 0b01110001, 3),
+        (0b01111111, 0b01110001, 2),
+        (0b01111111, 0b01110011, 2),
+        (0b11111010, 0b01110000, 3),
         (0b11111110, 0b01111000, 4),
         (0b11111110, 0b01111010, 5),
+        (0b11111100, 0b01111100, 6),
     )
-
+    p_routine = None
     definer = (opval>>20) & 0xff
     for mask,val,idx in media_codes:
         if (definer & mask) == val:
@@ -934,9 +940,8 @@ def p_media(opval, va):
             break
     if p_routine == None:
         raise envi.InvalidInstruction(
-        mesg="p_media: can not find command! Definer = "+str(definer),
+        mesg="p_media: can not find command! Definer = "+str(definer)+ " op = " +str(opval),
         bytez=struct.pack("<I", opval), va=va)
-    #print media_parsers
     return media_parsers[p_routine](opval, va)
     ''' Prototype stops here. From here to end of comment is original code
     if   (definer & 0xf8) == 0x60:
@@ -999,7 +1004,7 @@ xtnd_mnem = tuple(xtnd_mnem)
 pkh_mnem = ('pkhbt', 'pkhtb',)
 sat_mnem = ('ssat','usat')
 sat16_mnem = ('ssat16','usat16')    
-rev_mnem = ('rev','rev16',None,'revsh',)
+rev_mnem = ('rev','rev16','rbit','revsh',)
 
 #Routine is too complicated, needs to be redone
 def p_media_pack_sat_rev_extend(opval, va):
@@ -1237,54 +1242,6 @@ def p_arch_undef(opval, va):
     return (IENC_ARCH_UNDEF, 'arch undefined', (ArmImmOper(opval),), 0)
 
 ldm_mnem = ("stm", "ldm")
-
-def p_load_mult(opval, va):
-    puswl = (opval>>20) & 0x1f
-    mnem_idx = puswl & 1
-    mnem = ldm_mnem[(mnem_idx)]
-    flags = ((puswl>>3)<<(IF_DAIB_SHFT)) | IF_DA     # store bits for decoding whether to dec/inc before/after between ldr/str.  IF_DA tells the repr to print the the DAIB extension after the conditional.  right shift necessary to clear lower three bits, and align us with IF_DAIB_SHFT
-    Rn = (opval>>16) & 0xf
-    reg_list = opval & 0xffff
-    if (opval&0xfff0000) == 0x8bd0000:
-        mnem = "pop"
-        olist = (
-            ArmRegListOper(reg_list, puswl),
-        )
-    else:
-        olist = (
-            ArmRegOper(Rn, va=va),
-            ArmRegListOper(reg_list, puswl),
-        )
-    if  (mnem_idx == 0) &(Rn == REG_SP) & ((puswl & 2)==2) & (bin(reg_list).count("1") > 1):
-        #push
-        mnem = "push"
-        olist = (
-            ArmRegListOper(reg_list, puswl),
-        )
-        
-    else:     
-        olist = (
-            ArmRegOper(Rn, va=va),
-            ArmRegListOper(reg_list, puswl),
-        )
-
-    # If we are a load multi (ldm), and we load PC, we are NOFALL
-    # (FIXME unless we are conditional... ung...)
-    if mnem_idx == 1 and reg_list & (1 << REG_PC):
-        flags |= envi.IF_NOFALL
-        # If the load is from the stack, call it a "return"
-        if Rn == REG_SP:
-            flags |= envi.IF_RET
-    if puswl & 2:       # W (mnemonic: "!")
-        flags |= IF_W
-        olist[0].oflags |= OF_W
-
-    if puswl & 4:       # UM - usermode, or mov current SPSR -> CPSR if r15 included
-        flags |= IF_UM
-        olist[1].oflags |= OF_UM
-    print "load mult -", mnem
-    opcode = (IENC_LOAD_MULT << 16)
-    return (opcode, mnem, olist, flags)
 
 def p_load_mult(opval, va):
     puswl = (opval>>20) & 0x1f
