@@ -1245,54 +1245,6 @@ def p_load_mult(opval, va):
     flags = ((puswl>>3)<<(IF_DAIB_SHFT)) | IF_DA     # store bits for decoding whether to dec/inc before/after between ldr/str.  IF_DA tells the repr to print the the DAIB extension after the conditional.  right shift necessary to clear lower three bits, and align us with IF_DAIB_SHFT
     Rn = (opval>>16) & 0xf
     reg_list = opval & 0xffff
-    if (opval&0xfff0000) == 0x8bd0000:
-        mnem = "pop"
-        olist = (
-            ArmRegListOper(reg_list, puswl),
-        )
-    else:
-        olist = (
-            ArmRegOper(Rn, va=va),
-            ArmRegListOper(reg_list, puswl),
-        )
-    if  (mnem_idx == 0) &(Rn == REG_SP) & ((puswl & 2)==2) & (bin(reg_list).count("1") > 1):
-        #push
-        mnem = "push"
-        olist = (
-            ArmRegListOper(reg_list, puswl),
-        )
-        
-    else:     
-        olist = (
-            ArmRegOper(Rn, va=va),
-            ArmRegListOper(reg_list, puswl),
-        )
-
-    # If we are a load multi (ldm), and we load PC, we are NOFALL
-    # (FIXME unless we are conditional... ung...)
-    if mnem_idx == 1 and reg_list & (1 << REG_PC):
-        flags |= envi.IF_NOFALL
-        # If the load is from the stack, call it a "return"
-        if Rn == REG_SP:
-            flags |= envi.IF_RET
-    if puswl & 2:       # W (mnemonic: "!")
-        flags |= IF_W
-        olist[0].oflags |= OF_W
-
-    if puswl & 4:       # UM - usermode, or mov current SPSR -> CPSR if r15 included
-        flags |= IF_UM
-        olist[1].oflags |= OF_UM
-    print "load mult -", mnem
-    opcode = (IENC_LOAD_MULT << 16)
-    return (opcode, mnem, olist, flags)
-
-def p_load_mult(opval, va):
-    puswl = (opval>>20) & 0x1f
-    mnem_idx = puswl & 1
-    mnem = ldm_mnem[(mnem_idx)]
-    flags = ((puswl>>3)<<(IF_DAIB_SHFT)) | IF_DA     # store bits for decoding whether to dec/inc before/after between ldr/str.  IF_DA tells the repr to print the the DAIB extension after the conditional.  right shift necessary to clear lower three bits, and align us with IF_DAIB_SHFT
-    Rn = (opval>>16) & 0xf
-    reg_list = opval & 0xffff
     if (opval&0x0fff0000) == 0x8bd0000:
         mnem = "pop"
         olist = (
@@ -1325,6 +1277,7 @@ def p_load_mult(opval, va):
         olist[1].oflags |= OF_UM
     opcode = (IENC_LOAD_MULT << 16)
     return (opcode, mnem, olist, flags)
+
 b_mnem = ("b", "bl",)
 def p_branch(opval, va):        # primary branch encoding.  others were added later in the media section
     off = e_bits.signed(opval, 3)
