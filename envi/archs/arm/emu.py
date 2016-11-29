@@ -261,14 +261,14 @@ class ArmEmulator(ArmModule, ArmRegisterContext, envi.Emulator):
         '''
         get the SPSR for the given ARM processor mode
         '''
-        ridx = _getRegIdx(PSR_Offset, mode)
+        ridx = _getRegIdx(REG_OFFSET_CPSR, mode)
         return self._rctx_vals[ridx]
 
     def setSPSR(self, mode, psr, mask=0xffffffff):
         '''
         set the SPSR for the given ARM processor mode
         '''
-        ridx = _getRegIdx(PSR_Offset, mode)
+        ridx = _getRegIdx(REG_OFFSET_CPSR, mode)
         psr = self._rctx_vals[REG_CPSR] & (~mask) | (psr & mask)
         self._rctx_vals[ridx] = psr
 
