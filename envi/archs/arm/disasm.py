@@ -481,7 +481,7 @@ def p_extra_load_store(opval, va, psize=4):
             ArmRegOper(Rm, va=va),
             ArmImmOffsetOper(Rn, 0, va, pubwl, psize=psize),
         )
-    elif opval&0x0fe000f0==0x01800090:# strex/ldrex
+    elif opval&0x0f800ff0==0x01800f90:# strex/ldrex
         idx = pubwl&1
         opcode = (IENC_EXTRA_LOAD << 16) + 2 + idx
         itype = (opval >> 21) & 3
@@ -855,19 +855,15 @@ def p_load_imm_off(opval, va, psize=4):
         olist = (
             ArmRegOper(Rd, va=va),
         )
+    elif (opval & 0xfff0fff) == 0x49d0004:
+        mnem = "pop"
+        olist = (
+            ArmRegOper(Rd, va=va),
+        )
     else: 
         olist = (
             ArmRegOper(Rd, va=va),
             ArmImmOffsetOper(Rn, imm, va, pubwl=pubwl, psize=psize)    # u=-/+, b=word/byte
-        )
-    olist = (
-        ArmRegOper(Rd, va=va),
-        ArmImmOffsetOper(Rn, imm, va, pubwl=pubwl, psize=psize)    # u=-/+, b=word/byte
-    )
-    if (opval & 0xfff0fff) == 0x49d0004:
-        mnem = "pop"
-        olist = (
-            ArmRegOper(Rd, va=va),
         )
     opcode = (IENC_LOAD_IMM_OFF << 16)
     return (opcode, mnem, olist, iflags)
@@ -1249,23 +1245,16 @@ def p_load_mult(opval, va):
     flags = ((puswl>>3)<<(IF_DAIB_SHFT)) | IF_DA     # store bits for decoding whether to dec/inc before/after between ldr/str.  IF_DA tells the repr to print the the DAIB extension after the conditional.  right shift necessary to clear lower three bits, and align us with IF_DAIB_SHFT
     Rn = (opval>>16) & 0xf
     reg_list = opval & 0xffff
-    if (opval&0xfff0000) == 0x8bd0000:
+    if (opval&0x0fff0000) == 0x8bd0000:
         mnem = "pop"
         olist = (
             ArmRegListOper(reg_list, puswl),
         )
-    else:
-        olist = (
-            ArmRegOper(Rn, va=va),
-            ArmRegListOper(reg_list, puswl),
-        )
-    if  (mnem_idx == 0) &(Rn == REG_SP) & ((puswl & 2)==2) & (bin(reg_list).count("1") > 1):
-        #push
+    elif (opval&0x0fff0000) == 0x92d0000:
         mnem = "push"
         olist = (
             ArmRegListOper(reg_list, puswl),
         )
-        
     else:     
         olist = (
             ArmRegOper(Rn, va=va),
@@ -1286,7 +1275,6 @@ def p_load_mult(opval, va):
     if puswl & 4:       # UM - usermode, or mov current SPSR -> CPSR if r15 included
         flags |= IF_UM
         olist[1].oflags |= OF_UM
-
     opcode = (IENC_LOAD_MULT << 16)
     return (opcode, mnem, olist, flags)
 
