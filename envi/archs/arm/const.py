@@ -90,6 +90,8 @@ IF_VR        = 1<<52    # Adv SIMD: operation performs rounding
 IF_VD        = 1<<53    # Adv SIMD: operation doubles the result
 IF_VH        = 1<<54    # Adv SIMD: operation halves the result
 IF_SYS_MODE  = 1<<58    # instruction is encoded to be executed in SYSTEM mode, not USER mode
+
+IF_SFUI_START = 59
 IF_F32       = 1<<59    # F64 SIMD
 IF_F64       = 1<<60    # F64 SIMD
 IF_F32S32    = 1<<61    # F64 SIMD
@@ -104,6 +106,25 @@ IF_S32F64    = 1<<69    # F64 SIMD
 IF_S32F32    = 1<<70    # F64 SIMD
 IF_U32F64    = 1<<71    # F64 SIMD
 IF_U32F32    = 1<<72    # F64 SIMD
+IF_S8        = 1<<73    # F64 SIMD
+IF_S16       = 1<<74    # F64 SIMD
+IF_S32       = 1<<75    # F64 SIMD
+IF_S64       = 1<<76    # F64 SIMD
+IF_U8        = 1<<77    # F64 SIMD
+IF_U16       = 1<<78    # F64 SIMD
+IF_U32       = 1<<79    # F64 SIMD
+IF_U64       = 1<<80    # F64 SIMD
+IF_I8        = 1<<81    # F64 SIMD
+IF_I16       = 1<<82    # F64 SIMD
+IF_I32       = 1<<83    # F64 SIMD
+IF_I64       = 1<<84    # F64 SIMD
+IF_SFUI_STOP = 85
+
+IF_SFUI_MASK = 0
+for x in range(IF_SFUI_START, IF_SFUI_STOP):
+    IF_SFUI_MASK |= (1<<x)
+
+IF_SFUI_MASK << IF_SFUI_START
 
 OF_W         = 1<<8     # Write back to 
 OF_UM        = 1<<9     # Usermode, or if r15 included set current SPSR -> CPSR
@@ -372,3 +393,53 @@ INS_STR = instrenc(IENC_LOAD_IMM_OFF,  1)
 
 no_update_Rd = (INS_TST, INS_TEQ, INS_CMP, INS_CMN, )
 
+instrnames = [
+        'INS_VHADD',
+        'INS_VQADD',
+        'INS_VRHADD',
+        'INS_VAND',
+        'INS_VBIC',
+        'INS_VORR',
+        'INS_VORN',
+        'INS_VEOR',
+        'INS_VBIF',
+        'INS_VBIT',
+        'INS_VBSL',
+        'INS_VHSUB',
+        'INS_VQSUB',
+        'INS_VCGT',
+        'INS_VCGE',
+        'INS_VCEQ',
+        'INS_VSHL',
+        'INS_VQSHL',
+        'INS_VRSHL',
+        'INS_VQRSHL',
+        'INS_VMAX',
+        'INS_VMIN',
+        'INS_VABD',
+        'INS_VABA',
+        'INS_VADD',
+        'INS_VSUB',
+        'INS_VTST',
+        'INS_VMLA',
+        'INS_VMLS',
+        'INS_VMUL',
+        'INS_VPMAX',
+        'INS_VPMIN',
+        'INS_VQMULH',
+        'INS_VQDMULH',
+        'INS_VQRDMULH',
+        'INS_VPADD',
+        'INS_VPSUB',
+        'INS_VFMA',
+        'INS_VFMS',
+        'INS_VACGE',
+        'INS_VACGT',
+        'INS_VRECPS',
+        'INS_VRSQRTS',
+        ]
+
+ins_index = 85
+for instr in instrnames:
+    globals()[instr] = ins_index
+    ins_index += 1

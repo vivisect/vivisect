@@ -1260,20 +1260,21 @@ class ArmInstructionSet(unittest.TestCase):
     armTestOnce = True
 
     def test_msr(self):
-        #print "\n\n\nstart of test_msr"
         # test the MSR instruction
-        import envi.archs.arm as e_arm;reload(e_arm)
-        am=e_arm.ArmModule()
+        am = arm.ArmModule()
         op = am.archParseOpcode('d3f021e3'.decode('hex'))
         self.assertEqual('msr CPSR_c, #0xd3', repr(op))
 
+    def test_BigEndian(self):
+        am = arm.ArmModule()
+        am.setEndian(ENDIAN_MSB)
+        op = am.archParseOpcode('e321f0d3'.decode('hex'))
+        self.assertEqual('msr CPSR_c, #0xd3', repr(op))
 
     def test_envi_arm_operands(self):
-        #print "\n\n\nstart of test_envi_arm_operands"
         vw = vivisect.VivWorkspace()
         vw.setMeta("Architecture", "arm")
         vw.addMemoryMap(0, 7, 'firmware', '\xff' * 16384*1024)
-        #vw.addMemoryMap(0x400000, 7, 'firmware', '\xff' * 16384*1024)
         vw.addMemoryMap(0xbfb00000, 7, 'firmware', '\xfe' * 16384*1024)
 
 
@@ -1287,7 +1288,6 @@ class ArmInstructionSet(unittest.TestCase):
 
         opstr = struct.pack('<I', 0xe59f3008)
         op = vw.arch.archParseOpcode(opstr, va=0xbfb00000)
-
         #print repr(op)
         #print hex(op.getOperValue(1, emu))
 
@@ -1557,7 +1557,7 @@ class ArmInstructionSet(unittest.TestCase):
 
         
     def test_envi_arm_assorted_instrs(self):
-        print "\n\n\nstart of test_envi_arm_assorted_instrs"
+        #print "\n\n\nstart of test_envi_arm_assorted_instrs"
         #setup initial work space for test
         vw = vivisect.VivWorkspace()
         vw.setMeta("Architecture", "arm")

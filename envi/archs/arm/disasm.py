@@ -870,7 +870,7 @@ def p_load_imm_off(opval, va, psize=4):
     opcode = (IENC_LOAD_IMM_OFF << 16)
     return (opcode, mnem, olist, iflags)
 
-def p_load_reg_off(opval, va):
+def p_load_reg_off(opval, va, psize=4):
     pubwl = (opval>>20) & 0x1f
     Rd = (opval>>12) & 0xf
     Rn = (opval>>16) & 0xf
@@ -1442,6 +1442,10 @@ def p_uncond(opval, va, psize = 4):
             olist = ( ArmEndianOper(e), )
             opcode = IENC_UNCOND_SETEND
             return (opcode, mnem, olist, 0)
+
+        elif (opval & 0xfe000000 == 0xf2000000):
+            return adv_simd_32(opval, va)
+            
         else:
             raise envi.InvalidInstruction(
                     mesg="p_uncond (ontop=0): invalid instruction",
@@ -1616,9 +1620,383 @@ def p_uncond(opval, va, psize = 4):
                     bytez=struct.pack("<I", opval), va=va)
     
 
+
+def p_advsimd_secondary(val, va, mnem, opcode, flags, opers):
+
+    if opcode == INS_VORR:
+        pass
+
+
+adv_simd_3_regs = (  # ABUC fields slammed together
+        # a=0000 b=0
+        ('vhadd', INS_VHADD, IF_S8, None),
+        ('vhadd', INS_VHADD, IF_S16, None),
+        ('vhadd', INS_VHADD, IF_S32, None),
+        (None, INS_VHADD, 0, None),
+        ('vhadd', INS_VHADD, IF_U8, None),
+        ('vhadd', INS_VHADD, IF_U16, None),
+        ('vhadd', INS_VHADD, IF_U32, None),
+        (None, INS_VHADD, 0, None),
+
+        # a=0000 b=1
+        ('vqadd', INS_VQADD, IF_S8, None),
+        ('vqadd', INS_VQADD, IF_S16, None),
+        ('vqadd', INS_VQADD, IF_S32, None),
+        ('vqadd', INS_VQADD, IF_S64, None),
+        ('vqadd', INS_VQADD, IF_U8, None),
+        ('vqadd', INS_VQADD, IF_U16, None),
+        ('vqadd', INS_VQADD, IF_U32, None),
+        ('vqadd', INS_VQADD, IF_U64, None),
+
+        # a=0001 b=0
+        ('vrhadd', INS_VRHADD, IF_S8, None),
+        ('vrhadd', INS_VRHADD, IF_S16, None),
+        ('vrhadd', INS_VRHADD, IF_S32, None),
+        (None, INS_VRHADD, 0, None),
+        ('vrhadd', INS_VRHADD, IF_U8, None),
+        ('vrhadd', INS_VRHADD, IF_U16, None),
+        ('vrhadd', INS_VRHADD, IF_U32, None),
+        (None, INS_VRHADD, 0, None),
+
+        # a=0001 b=1
+        ('vand', INS_VAND, 0, None),
+        ('vbic', INS_VBIC, 0, None),
+        ('vorr', INS_VORR, 0, p_advsimd_secondary),    # vmov if source registers identical
+        ('vorn', INS_VORN, 0, None),
+        ('veor', INS_VEOR, 0, None),
+        ('vbif', INS_VBIF, 0, None),
+        ('vbit', INS_VBIT, 0, None),
+        ('vbsl', INS_VBSL, 0, None),
+
+        # a=0010 b=0
+        ('vhsub', INS_VHSUB, IF_S8, None),
+        ('vhsub', INS_VHSUB, IF_S16, None),
+        ('vhsub', INS_VHSUB, IF_S32, None),
+        (None, INS_VHSUB, 0, None),
+        ('vhsub', INS_VHSUB, IF_U8, None),
+        ('vhsub', INS_VHSUB, IF_U16, None),
+        ('vhsub', INS_VHSUB, IF_U32, None),
+        (None, INS_VHSUB, 0, None),
+
+        # a=0010 b=1
+        ('vqsub', INS_VQSUB, IF_S8, None),
+        ('vqsub', INS_VQSUB, IF_S16, None),
+        ('vqsub', INS_VQSUB, IF_S32, None),
+        ('vqsub', INS_VQSUB, IF_S64, None),
+        ('vqsub', INS_VQSUB, IF_U8, None),
+        ('vqsub', INS_VQSUB, IF_U16, None),
+        ('vqsub', INS_VQSUB, IF_U32, None),
+        ('vqsub', INS_VQSUB, IF_U64, None),
+
+        # a=0011 b=0
+        ('vcgt', INS_VCGT, IF_S8, None),
+        ('vcgt', INS_VCGT, IF_S16, None),
+        ('vcgt', INS_VCGT, IF_S32, None),
+        (None, INS_VCGT, 0, None),
+        ('vcgt', INS_VCGT, IF_U8, None),
+        ('vcgt', INS_VCGT, IF_U16, None),
+        ('vcgt', INS_VCGT, IF_U32, None),
+        (None, INS_VCGT, 0, None),
+
+        # a=0011 b=1
+        ('vcge', INS_VCGE, IF_S8, None),
+        ('vcge', INS_VCGE, IF_S16, None),
+        ('vcge', INS_VCGE, IF_S32, None),
+        (None, INS_VCGE, 0, None),
+        ('vcge', INS_VCGE, IF_U8, None),
+        ('vcge', INS_VCGE, IF_U16, None),
+        ('vcge', INS_VCGE, IF_U32, None),
+        (None, INS_VCGE, 0, None),
+
+        # a=0100 b=0
+        ('vshl', INS_VSHL, IF_S8, None),
+        ('vshl', INS_VSHL, IF_S16, None),
+        ('vshl', INS_VSHL, IF_S32, None),
+        ('vshl', INS_VSHL, IF_S64, None),
+        ('vshl', INS_VSHL, IF_U8, None),
+        ('vshl', INS_VSHL, IF_U16, None),
+        ('vshl', INS_VSHL, IF_U32, None),
+        ('vshl', INS_VSHL, IF_U64, None),
+
+        # a=0100 b=1
+        ('vqshl', INS_VQSHL, IF_S8, None),
+        ('vqshl', INS_VQSHL, IF_S16, None),
+        ('vqshl', INS_VQSHL, IF_S32, None),
+        ('vqshl', INS_VQSHL, IF_S64, None),
+        ('vqshl', INS_VQSHL, IF_U8, None),
+        ('vqshl', INS_VQSHL, IF_U16, None),
+        ('vqshl', INS_VQSHL, IF_U32, None),
+        ('vqshl', INS_VQSHL, IF_U64, None),
+
+        # a=0101 b=0
+        ('vrshl', INS_VRSHL, IF_S8, None),
+        ('vrshl', INS_VRSHL, IF_S16, None),
+        ('vrshl', INS_VRSHL, IF_S32, None),
+        ('vrshl', INS_VRSHL, IF_S64, None),
+        ('vrshl', INS_VRSHL, IF_U8, None),
+        ('vrshl', INS_VRSHL, IF_U16, None),
+        ('vrshl', INS_VRSHL, IF_U32, None),
+        ('vrshl', INS_VRSHL, IF_U64, None),
+
+        # a=0101 b=1
+        ('vqrshl', INS_VQRSHL, IF_S8, None),
+        ('vqrshl', INS_VQRSHL, IF_S16, None),
+        ('vqrshl', INS_VQRSHL, IF_S32, None),
+        ('vqrshl', INS_VQRSHL, IF_S64, None),
+        ('vqrshl', INS_VQRSHL, IF_U8, None),
+        ('vqrshl', INS_VQRSHL, IF_U16, None),
+        ('vqrshl', INS_VQRSHL, IF_U32, None),
+        ('vqrshl', INS_VQRSHL, IF_U64, None),
+
+        # a=0110 b=0
+        ('vmax', INS_VMAX, IF_S8, None),
+        ('vmax', INS_VMAX, IF_S16, None),
+        ('vmax', INS_VMAX, IF_S32, None),
+        (None, INS_VMAX, 0, None),
+        ('vmax', INS_VMAX, IF_U8, None),
+        ('vmax', INS_VMAX, IF_U16, None),
+        ('vmax', INS_VMAX, IF_U32, None),
+        (None, INS_VMAX, 0, None),
+
+        # a=0110 b=1
+        ('vmin', INS_VMIN, IF_S8, None),
+        ('vmin', INS_VMIN, IF_S16, None),
+        ('vmin', INS_VMIN, IF_S32, None),
+        (None, INS_VMIN, 0, None),
+        ('vmin', INS_VMIN, IF_U8, None),
+        ('vmin', INS_VMIN, IF_U16, None),
+        ('vmin', INS_VMIN, IF_U32, None),
+        (None, INS_VMIN, 0, None),
+
+        # a=0111 b=0
+        ('vabd', INS_VABD, IF_S8, None),
+        ('vabd', INS_VABD, IF_S16, None),
+        ('vabd', INS_VABD, IF_S32, None),
+        (None, INS_VABD, 0, None),
+        ('vabd', INS_VABD, IF_U8, None),
+        ('vabd', INS_VABD, IF_U16, None),
+        ('vabd', INS_VABD, IF_U32, None),
+        (None, INS_VABD, 0, None),
+
+        # a=0111 b=1
+        ('vaba', INS_VABA, IF_S8, None),
+        ('vaba', INS_VABA, IF_S16, None),
+        ('vaba', INS_VABA, IF_S32, None),
+        (None, INS_VABA, 0, None),
+        ('vaba', INS_VABA, IF_U8, None),
+        ('vaba', INS_VABA, IF_U16, None),
+        ('vaba', INS_VABA, IF_U32, None),
+        (None, INS_VABA, 0, None),
+
+        # a=1000 b=0
+        ('vadd', INS_VADD, IF_I8, None),
+        ('vadd', INS_VADD, IF_I16, None),
+        ('vadd', INS_VADD, IF_I32, None),
+        (None, INS_VADD, 0, None),
+        ('vsub', INS_VSUB, IF_I8, None),
+        ('vsub', INS_VSUB, IF_I16, None),
+        ('vsub', INS_VSUB, IF_I32, None),
+        (None, INS_VSUB, 0, None),
+
+        # a=1000 b=1
+        ('vtst', INS_VTST, IF_I8, None),
+        ('vtst', INS_VTST, IF_I16, None),
+        ('vtst', INS_VTST, IF_I32, None),
+        (None, INS_VTST, 0, None),
+        ('vceq', INS_VCEQ, IF_I8, None),
+        ('vceq', INS_VCEQ, IF_I16, None),
+        ('vceq', INS_VCEQ, IF_I32, None),
+        (None, INS_VCEQ, 0, None),
+
+        # a=1001 b=0        # DOUBLECHECK THIS!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        ('vmla', INS_VMLA, IF_I8, None),
+        ('vmla', INS_VMLA, IF_I16, None),
+        ('vmla', INS_VMLA, IF_I32, None),
+        (None, INS_VMLA, 0, None),
+        ('vmls', INS_VMLS, IF_I8, None),
+        ('vmls', INS_VMLS, IF_I16, None),
+        ('vmls', INS_VMLS, IF_I32, None),
+        (None, INS_VMLS, 0, None),
+
+        # a=1001 b=1
+        ('vmul', INS_VMUL, IF_S8, None),
+        ('vmul', INS_VMUL, IF_S16, None),
+        ('vmul', INS_VMUL, IF_S32, None),
+        (None, INS_VMUL, 0, None),
+        ('vmul', INS_VMUL, IF_U8, None),
+        ('vmul', INS_VMUL, IF_U16, None),
+        ('vmul', INS_VMUL, IF_U32, None),
+        (None, INS_VMUL, 0, None),
+
+        # a=1010 b=0
+        ('vpmax', INS_VPMAX, IF_S8, None),
+        ('vpmax', INS_VPMAX, IF_S16, None),
+        ('vpmax', INS_VPMAX, IF_S32, None),
+        (None, INS_VPMAX, 0, None),
+        ('vpmax', INS_VPMAX, IF_U8, None),
+        ('vpmax', INS_VPMAX, IF_U16, None),
+        ('vpmax', INS_VPMAX, IF_U32, None),
+        (None, INS_VPMAX, 0, None),
+
+        # a=1010 b=1
+        ('vpmin', INS_VPMIN, IF_S8, None),
+        ('vpmin', INS_VPMIN, IF_S16, None),
+        ('vpmin', INS_VPMIN, IF_S32, None),
+        (None, INS_VPMIN, 0, None),
+        ('vpmin', INS_VPMIN, IF_U8, None),
+        ('vpmin', INS_VPMIN, IF_U16, None),
+        ('vpmin', INS_VPMIN, IF_U32, None),
+        (None, INS_VPMIN, 0, None),
+
+        # a=1011 b=0
+        ('vqdmulh', INS_VQDMULH, IF_S16, None),
+        ('vqdmulh', INS_VQDMULH, IF_S32, None),
+        ('vqrdmulh', INS_VQRDMULH, IF_S16, None),
+        ('vqrdmulh', INS_VQRDMULH, IF_S32, None),
+
+        # a=1011 b=1
+        ('vpadd', INS_VPADD, IF_I8, None),
+        ('vpadd', INS_VPADD, IF_I16, None),
+        ('vpadd', INS_VPADD, IF_I32, None),
+        (None, INS_VHADD, 0, None),
+        (None, INS_VHADD, 0, None),
+        (None, INS_VHADD, 0, None),
+        (None, INS_VHADD, 0, None),
+        (None, INS_VHADD, 0, None),
+
+        # a=1100 b=0
+        (None, INS_VHADD, 0, None),
+        (None, INS_VHADD, 0, None),
+        (None, INS_VHADD, 0, None),
+        (None, INS_VHADD, 0, None),
+        (None, INS_VHADD, 0, None),
+        (None, INS_VHADD, 0, None),
+        (None, INS_VHADD, 0, None),
+        (None, INS_VHADD, 0, None),
+
+        # a=1100 b=1
+        ('vfma', INS_VFMA, IF_F32, None),
+        (None, INS_VHADD, 0, None),
+        ('vfms', INS_VFMS, IF_F32, None),
+        (None, INS_VHADD, 0, None),
+        (None, INS_VHADD, 0, None),
+        (None, INS_VHADD, 0, None),
+        (None, INS_VHADD, 0, None),
+        (None, INS_VHADD, 0, None),
+
+        # a=1101 b=0
+        ('vadd', INS_VADD, IF_F32, None),
+        (None, INS_VHADD, 0, None),
+        ('vsub', INS_VSUB, IF_F32, None),
+        (None, INS_VHADD, 0, None),
+        ('vpadd', INS_VPADD, IF_F32, None),
+        (None, INS_VHADD, 0, None),
+        ('vabd', INS_VABD, IF_F32, None),
+        (None, INS_VHADD, 0, None),
+
+        # a=1101 b=1
+        ('vmla', INS_VMLA, IF_F32, None),
+        (None, INS_VHADD, 0, None),
+        ('vmls', INS_VMLS, IF_F32, None),
+        (None, INS_VHADD, 0, None),
+        ('vmul', INS_VMUL, IF_F32, None),
+        (None, INS_VHADD, 0, None),
+        (None, INS_VHADD, 0, None),
+        (None, INS_VHADD, 0, None),
+
+        # a=1110 b=0
+        ('vceq', INS_VCEQ, IF_F32, None),
+        (None, INS_VHADD, 0, None),
+        (None, INS_VHADD, 0, None),
+        (None, INS_VHADD, 0, None),
+        ('vcge', INS_VCGE, IF_F32, None),
+        (None, INS_VHADD, 0, None),
+        ('vcgt', INS_VCGT, IF_F32, None),
+        (None, INS_VHADD, 0, None),
+
+        # a=1110 b=1
+        (None, INS_VHADD, 0, None),
+        (None, INS_VHADD, 0, None),
+        (None, INS_VHADD, 0, None),
+        (None, INS_VHADD, 0, None),
+        ('vacge', INS_VACGE, IF_F32, None), # check if all instructions code this way: Q==0 means Dx Regs, Q==1 means Qx Regs
+        (None, INS_VHADD, 0, None),
+        ('vacgt', INS_VACGT, IF_F32, None),
+        (None, INS_VHADD, 0, None),
+
+        # a=1111 b=0
+        ('vmax', INS_VMAX, IF_F32, None),
+        (None, INS_VHADD, 0, None),
+        ('vmin', INS_VMIN, IF_F32, None),
+        (None, INS_VHADD, 0, None),
+        ('vpmax', INS_VPMAX, IF_F32, None),
+        (None, INS_VHADD, 0, None),
+        ('vpmin', INS_VPMIN, IF_F32, None),
+        (None, INS_VHADD, 0, None),
+
+        # a=1111 b=1
+        ('vrecps', INS_VRECPS, IF_F32, None),
+        (None, INS_VHADD, 0, None),
+        ('vrsqrts', INS_VRSQRTS, IF_F32, None),
+        (None, INS_VHADD, 0, None),
+        (None, INS_VHADD, 0, None),
+        (None, INS_VHADD, 0, None),
+        (None, INS_VHADD, 0, None),
+        (None, INS_VHADD, 0, None),
+
+    )
+
 def adv_simd_32(val, va):
     # aside from u and the first 8 bits, ARM and Thumb2 decode identically (A7-259)
-    u = (val>>28) & 1
+    u = (val>>24) & 1
+    a = (val>>19) & 0x1f
+    b = (val>>8) & 0xf
+    c = (val>>4) & 0xf
+
+    if not (a & 0x10):
+        # three registers of the same length
+        a = (val>>8) & 0xf
+        b = (val>>4) & 1
+        c = (val>>20) & 3
+
+        index = c | (u<<2) | (b<<3) | (a<<4)
+        mnem, opcode, flags, handler = adv_simd_3_regs[index]
+
+        d = (val >> 18) & 0x10
+        d |= ((val >> 12) & 0xf)
+
+        n = (val >> 3) & 0x10
+        n |= ((val >> 16) & 0xf)
+
+        m = (val >> 1) & 0x10
+        m |= (val & 0xf)
+
+        q = (val >> 6) & 0x1
+
+        rbase = ('D%d', 'Q%d')[q]
+
+        opers = (
+            ArmRegOper(rctx.getRegisterIndex(rbase%d)),
+            ArmRegOper(rctx.getRegisterIndex(rbase%n)),
+            ArmRegOper(rctx.getRegisterIndex(rbase%m)),
+            )
+
+        if handler != None:
+            nmnem, nopcode, nflags, nopers = handler(val, va, mnem, opcode, flags, opers)
+            if nmnem != None:
+                mnem = nmnem
+                opcode = nopcode
+            if nflags != None:
+                flags = nflags
+            if nopers != None:
+                opers = nopers
+
+        return opcode, mnem, opers, flags
+'''
+def old_adv_simd_32(val, va):
+    # aside from u and the first 8 bits, ARM and Thumb2 decode identically (A7-259)
+    #u = (val>>28) & 1	# this is thumb...
+    u = (val>>24) & 1
     a = (val>>19) & 0x1f
     b = (val>>8) & 0xf
     c = (val>>4) & 0xf
@@ -1642,30 +2020,88 @@ def adv_simd_32(val, va):
                 m = (val >> 1) & 0x10
                 m |= (val & 0xf)
 
-                q = (val >> 2) & 0x10
+                q = (val >> 6) & 0x1
 
                 op = (val >> 9) & 1
 
                 opcode, mnem = ( (INS_VHADD,'vhadd'), (INS_VHSUB,'vhsub') )[op]
                 flags = (IF_S8, IF_S16, IF_S32, 0, IF_U8, IF_U16, IF_U32)[(u<<2)|size]
-                opers = ()
+
+		rbase = ('D%d', 'Q%d')[q]
+
+		opers = (
+		    ArmRegOper(rctx.getRegisterIndex(rbase%d)),
+		    ArmRegOper(rctx.getRegisterIndex(rbase%n)),
+		    ArmRegOper(rctx.getRegisterIndex(rbase%m)),
+		    )
+
                 return opcode, mnem, opers, flags
 
         elif a==1:
+            if b:
+                if u:
+                    if c == 0:
+                        # veor
+                    else:
+                        # vbif, vbit, vbsl
+                else:
+                    if c == 0:
+                        # vand
+                    elif c == 1:
+                        # vbic
+                    elif c == 2:
+                        # vorr
+                        # vmov if source and dest are the same
+                    elif c == 3:
+                        # vorn
+            else:
+                # vrhadd
+                    
             raise Exception("Advanced SIMD instructions not all implemented")
         elif a==2:
+            if b:
+                # vqsub
+            else:
+                # vhadd, vhsub
             raise Exception("Advanced SIMD instructions not all implemented")
         elif a==3:
+            if b:
+                # vcgt
+            else:
+                # vcge
             raise Exception("Advanced SIMD instructions not all implemented")
         elif a==4:
+            if b:
+                # vqshl
+            else:
+                # vshl
             raise Exception("Advanced SIMD instructions not all implemented")
         elif a==5:
+            if b:
+                # vqrshl
+            else:
+                # vrshl
             raise Exception("Advanced SIMD instructions not all implemented")
         elif a==6:
+            # vmax, vmin
             raise Exception("Advanced SIMD instructions not all implemented")
         elif a==7:
+            if b:
+                # vaba, vabal
+            else:
+                # vadb, vabdl
             raise Exception("Advanced SIMD instructions not all implemented")
         elif a==8:
+            if b:
+                if u:
+                    # vceq(reg)
+                else:
+                    # vtst
+            else:
+                if u:
+                    # vsub
+                else:
+                    # vadd
             raise Exception("Advanced SIMD instructions not all implemented")
             midx = (b<<1) | u
             opcode, mnem = ( (INS_VADD,'vadd'), (INS_VSUB,'vsub'), (INS_VTST,'vtst'), (INS_VCEQ,'vceq') )[midx]
@@ -1684,6 +2120,7 @@ def adv_simd_32(val, va):
         elif a==15:
             raise Exception("Advanced SIMD instructions not all implemented")
 
+'''
 
 
 ####################################################################
@@ -1782,7 +2219,7 @@ inittable = [
     (IENC_BRANCH, None),
     (None, s_6_table),
     (None, s_7_table),
-    (IENC_UNCOND, None),
+    (IENC_UNCOND, None), # may wish to make this it's own table...
 ]
 
 endian_names = ("le","be")
@@ -1875,34 +2312,64 @@ class ArmOpcode(envi.Opcode):
             if self.iflags & IF_T: # removed el
                 mnem += 't'
 
-            if self.iflags & IF_S32F64:
-                mnem += '.s32.f64'
-            elif self.iflags & IF_S32F32:
-                mnem += '.s32.f32'
-            elif self.iflags & IF_U32F64:
-                mnem += '.u32.f64'
-            elif self.iflags & IF_U32F32:
-                mnem += '.u32.f32'
-            elif self.iflags & IF_F64S32:
-                mnem += '.f64.s32'
-            elif self.iflags & IF_F64U32:
-                mnem += '.f64.u32'
-            elif self.iflags & IF_F32S32:
-                mnem += '.f32.s32'
-            elif self.iflags & IF_F32U32:
-                mnem += '.f32.u32'
-            elif self.iflags & IF_F3264:
-                mnem += '.f32.f64'
-            elif self.iflags & IF_F6432:
-                mnem += '.f64.f32'
-            elif self.iflags & IF_F1632:
-                mnem += '.f16.f32'
-            elif self.iflags & IF_F3216:
-                mnem += '.f32.f16'
-            elif self.iflags & IF_F32:
-                mnem += '.f32'
-            elif self.iflags & IF_F64:
-                mnem += '.f64'
+            if self.iflags & IF_SFUI_MASK:
+                if self.iflags & IF_S32F64:
+                    mnem += '.s32.f64'
+                elif self.iflags & IF_S32F32:
+                    mnem += '.s32.f32'
+                elif self.iflags & IF_U32F64:
+                    mnem += '.u32.f64'
+                elif self.iflags & IF_U32F32:
+                    mnem += '.u32.f32'
+                elif self.iflags & IF_F64S32:
+                    mnem += '.f64.s32'
+                elif self.iflags & IF_F64U32:
+                    mnem += '.f64.u32'
+                elif self.iflags & IF_F32S32:
+                    mnem += '.f32.s32'
+                elif self.iflags & IF_F32U32:
+                    mnem += '.f32.u32'
+                elif self.iflags & IF_F3264:
+                    mnem += '.f32.f64'
+                elif self.iflags & IF_F6432:
+                    mnem += '.f64.f32'
+                elif self.iflags & IF_F1632:
+                    mnem += '.f16.f32'
+                elif self.iflags & IF_F3216:
+                    mnem += '.f32.f16'
+                elif self.iflags & IF_F64:
+                    mnem += '.f64'
+                elif self.iflags & IF_S64:
+                    mnem += '.s64'
+                elif self.iflags & IF_U64:
+                    mnem += '.u64'
+                elif self.iflags & IF_I64:
+                    mnem += '.i64'
+                elif self.iflags & IF_F32:
+                    mnem += '.f32'
+                elif self.iflags & IF_S32:
+                    mnem += '.s32'
+                elif self.iflags & IF_U32:
+                    mnem += '.u32'
+                elif self.iflags & IF_I32:
+                    mnem += '.i32'
+                elif self.iflags & IF_F16:
+                    mnem += '.f16'
+                elif self.iflags & IF_S16:
+                    mnem += '.s16'
+                elif self.iflags & IF_U16:
+                    mnem += '.u16'
+                elif self.iflags & IF_I16:
+                    mnem += '.i16'
+                elif self.iflags & IF_F8:
+                    mnem += '.f8'
+                elif self.iflags & IF_S8:
+                    mnem += '.s8'
+                elif self.iflags & IF_U8:
+                    mnem += '.u8'
+                elif self.iflags & IF_I8:
+                    mnem += '.i8'
+
         #FIXME: Advanced SIMD modifiers (IF_V*)
         if self.iflags & IF_THUMB32:
             mnem += ".w"
