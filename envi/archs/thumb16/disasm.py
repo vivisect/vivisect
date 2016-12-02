@@ -1894,6 +1894,7 @@ class ThumbDisasm:
 
 
     def disasm(self, bytez, offset, va, trackMode=True):
+        print "THUMB: %x" % va
         oplen = None
         flags = 0
         va &= -2
@@ -1928,7 +1929,8 @@ class ThumbDisasm:
 
         # since our flags determine how the instruction is decoded later....  
         # performance-wise this should be set as the default value instead of 0, but this is cleaner
-        flags |= self._optype
+        if not (flags & envi.ARCH_MASK):
+            flags |= self._optype
 
         #print opcode, mnem, olist, flags
         if olist == None or type(olist) == int:

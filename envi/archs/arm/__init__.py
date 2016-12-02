@@ -40,7 +40,10 @@ class ArmModule(envi.ArchitectureModule):
         Parse a sequence of bytes out into an envi.Opcode instance.
         """
         if va & 3:
-            return self._arch_thumb_dis.disasm(bytes, offset-1, va-1)
+            offset &= -2
+            va &= -2
+
+            return self._arch_thumb_dis.disasm(bytes, offset, va)
 
         return self._arch_dis.disasm(bytes, offset, va)
 
@@ -57,7 +60,7 @@ class ThumbModule(envi.ArchitectureModule):
     This architecture module will *not* shift to ARM mode.  Evar.
     '''
 
-    def __init__(self, name='ARMv7A'):
+    def __init__(self, name='thumb'):
         import envi.archs.thumb16.disasm as eatd
         # this is required for setEndian() which is called from ArchitectureModule.__init__()
         self._arch_dis = eatd.ThumbDisasm(doModeSwitch=False)

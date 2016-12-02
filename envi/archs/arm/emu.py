@@ -11,6 +11,7 @@ import envi.bits as e_bits
 from envi.const import *
 from envi.archs.arm.regs import *
 from envi.archs.arm import ArmModule
+from envi.archs.arm.disasm import ArmRegOper
 
 logger = logging.getLogger(__name__)
 
@@ -501,14 +502,18 @@ class ArmEmulator(ArmModule, ArmRegisterContext, envi.Emulator):
             srcreg = op.opers[0].reg
             addr = self.getOperValue(op,0)
             regvals = self.getOperValue(op, 1)
-            regmask = op.opers[1].val
+            #regmask = op.opers[1].val
             updatereg = op.opers[0].oflags & OF_W
             flags = op.iflags
         else:
             srcreg = REG_SP
             addr = self.getStackCounter()
-            regvals = self.getOperValue(op, 0)
-            regmask = op.opers[0].val
+            oper = op.opers[0]
+            if isinstance(oper, ArmRegOper):
+                regvals = [ self.getOperValue(op, 0) ]
+            else:
+                regvals = self.getOperValue(op, 0)
+
             updatereg = 1
             flags = IF_DAIB_B
 
@@ -594,8 +599,12 @@ class ArmEmulator(ArmModule, ArmRegisterContext, envi.Emulator):
         else:
             srcreg = REG_SP
             addr = self.getStackCounter()
-            #regmask = self.getOperValue(op,1)
-            regmask = op.opers[0].val
+            oper = op.opers[0]
+            if isinstance(oper, ArmRegOper):
+                regmask = (1<<oper.reg)
+
+            else:
+                regmask = op.opers[0].val
             updatereg = 1
             flags = IF_DAIB_I
 

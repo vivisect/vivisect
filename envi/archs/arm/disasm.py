@@ -3475,6 +3475,8 @@ ENDIAN_LSB = 0
 ENDIAN_MSB = 1
 
 class ArmDisasm:
+    _optype = envi.ARCH_ARMV7
+    _opclass = ArmOpcode
     fmt = None
     #This holds the current running Arm instruction version and mask
     _archVersionMask = ARCH_REVS['ARMv7A']
@@ -3530,6 +3532,9 @@ class ArmDisasm:
             flags |= envi.IF_COND
 
         # FIXME conditionals are currently plumbed as "prefixes".  Perhaps normalize to that...
+        if not (flags & envi.ARCH_MASK):
+            flags |= self._optype
+
         op = ArmOpcode(va, opcode, mnem, cond, 4, olist, flags)
         return op
         
