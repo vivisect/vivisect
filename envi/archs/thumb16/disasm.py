@@ -376,6 +376,7 @@ def branch_misc(va, val, val2): # bl and misc control
             imm |= 0xff000000
 
         oper0 = ArmPcOffsetOper(e_bits.signed(imm,4), va=va)
+
         return opcode, mnem, (oper0, ), flags
         
 
@@ -1894,7 +1895,6 @@ class ThumbDisasm:
 
 
     def disasm(self, bytez, offset, va, trackMode=True):
-        print "THUMB: %x" % va
         oplen = None
         flags = 0
         va &= -2
