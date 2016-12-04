@@ -136,7 +136,6 @@ class ArmEmulator(ArmModule, ArmRegisterContext, envi.Emulator):
         ArmRegisterContext.__init__(self)
 
         self.addCallingConvention("armcall", aapcs)
-        self._forrealz = False  # this tells the indexed operands whether to update registers on access
 
     def undefFlags(self):
         """
@@ -209,7 +208,7 @@ class ArmEmulator(ArmModule, ArmRegisterContext, envi.Emulator):
         # NOTE: If an opcode method returns
         #       other than None, that is the new eip
         try:
-            self._forrealz = True
+            self.setMeta('forrealz', True)
             x = None
             if op.prefixes >= 0xe or conditionals[op.prefixes](self.getRegister(REG_FLAGS)>>28):
                 meth = self.op_methods.get(op.mnem, None)
@@ -225,7 +224,7 @@ class ArmEmulator(ArmModule, ArmRegisterContext, envi.Emulator):
             # should we set this to the odd address or even during thumb?  (debugger)
             self.setProgramCounter(x)
         finally:
-            self._forrealz = False
+            self.setMeta('forrealz', False)
 
     def doPush(self, val):
         esp = self.getRegister(REG_SP)

@@ -2711,14 +2711,14 @@ class ArmScaledOffsetOper(ArmOperand):
         addr = (Rn + addval) & e_bits.u_maxes[self.psize]
 
         # if pre-indexed, we incremement/decrement the register before determining the OperAddr
-        if (self.pubwl & 0x12 == 0x12):
+        if (self.pubwl & 0x12 == PUxWL_PRE_Idx):
             # pre-indexed...
-            if emu._forrealz: emu.setRegister( self.base_reg, addr )
+            if emu.getMeta('forrealz', False): emu.setRegister( self.base_reg, addr )
             return addr
 
-        elif (self.pubwl & 0x12 == 0):
+        elif (self.pubwl & 0x10 == PUxWL_POST_Idx):
             # post-indexed... still write it but return the original value
-            if emu._forrealz: emu.setRegister( self.base_reg, addr )
+            if emu.getMeta('forrealz', False): emu.setRegister( self.base_reg, addr )
             return Rn
 
         # non-indexed...  just return the addr, update nothing
@@ -2828,12 +2828,12 @@ class ArmRegOffsetOper(ArmOperand):
         addr = rn + (pom*rm) & e_bits.u_maxes[self.psize]
 
         # if pre-indexed, we incremement/decrement the register before determining the OperAddr
-        if (self.pubwl & 0x12 == 0x12):     # pre-indexed...
-            if emu._forrealz: emu.setRegister( self.base_reg, addr)
+        if (self.pubwl & 0x12) == PUxWL_PRE_Idx:    # pre-indexed...
+            if emu.getMeta('forrealz', False): emu.setRegister( self.base_reg, addr)
             return addr
 
-        elif (self.pubwl & 0x12 == 0):      # post-indexed... still write it but return the original value
-            if emu._forrealz: emu.setRegister( self.base_reg, addr )
+        elif (self.pubwl & 0x10) == PUxWL_POST_Idx: # post-indexed... still write it but return the original value
+            if emu.getMeta('forrealz', False): emu.setRegister( self.base_reg, addr )
             return rn
 
         # plain jane just return the calculated address... no updates are necessary
@@ -2879,7 +2879,7 @@ class ArmImmOffsetOper(ArmOperand):
     possibly with indexing, pre/post for faster rolling through arrays and such
     if the base_reg is PC, we'll dig in and hopefully grab the data being referenced.
     '''
-    def __init__(self, base_reg, offset, va, pubwl=8, psize=4):
+    def __init__(self, base_reg, offset, va, pubwl=PUxWL_DFLT, psize=4):
         '''
         psize is pointer-size, since we want to increment base_reg that size when indexing
         tsize is the target size (4 or 1 bytes)
@@ -2949,15 +2949,15 @@ class ArmImmOffsetOper(ArmOperand):
         else:
             addr = (base - self.offset) & e_bits.u_maxes[self.psize]
 
-        
-        if (self.pubwl & 0x12) == 0x12:    # pre-indexed
-            if (emu != None) and (emu._forrealz): emu.setRegister( self.base_reg, addr)
+        if (self.pubwl & 0x12) == PUxWL_PRE_Idx:    # pre-indexed   p=1, w=1
+            if (emu != None) and (emu.getMeta('forrealz', False)): emu.setRegister( self.base_reg, addr)
             return addr
 
-        elif (self.pubwl & 0x12) == 0:     # post-indexed
-            if (emu != None) and (emu._forrealz): emu.setRegister( self.base_reg, addr )
+        if (self.pubwl & 0x10) == PUxWL_POST_Idx:   # post-indexed  p=0
+            if (emu != None) and (emu.getMeta('forrealz', False)): emu.setRegister( self.base_reg, addr )
             return base
 
+        # offset addressing     p=1, w=0
         return addr
 
     def render(self, mcanv, op, idx):

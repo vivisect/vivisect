@@ -193,6 +193,15 @@ COND_AL:"", # Always (unconditional) - could be "al" but "" seems better...
 COND_EXTENDED:"2", # See extended opcode table
 }
 
+PUxWL_SUB   = 0x00
+PUxWL_ADD   = 0x08
+
+PUxWL_POST_Idx  = 0x00
+PUxWL_PRE_Idx   = 0x12
+PUxWL_OFFSET    = 0x10
+
+PUxWL_DFLT  = PUxWL_OFFSET | PUxWL_ADD
+
 PM_usr = 0b10000
 PM_fiq = 0b10001
 PM_irq = 0b10010
