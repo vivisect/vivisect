@@ -85,46 +85,46 @@ IF_IB        = 7<<(IF_DAIB_SHFT-1)  # Increment Before
 IF_DAIB_B    = 5<<(IF_DAIB_SHFT-1)  # Before mask
 IF_DAIB_I    = 3<<(IF_DAIB_SHFT-1)  # Before mask
 IF_THUMB32   = 1<<50    # thumb32
-IF_VQ        = 1<<51    # Adv SIMD: operation uses saturating arithmetic
-IF_VR        = 1<<52    # Adv SIMD: operation performs rounding
-IF_VD        = 1<<53    # Adv SIMD: operation doubles the result
-IF_VH        = 1<<54    # Adv SIMD: operation halves the result
-IF_SYS_MODE  = 1<<58    # instruction is encoded to be executed in SYSTEM mode, not USER mode
+IFS_VQ        = 1<<1    # Adv SIMD: operation uses saturating arithmetic
+IFS_VR        = 1<<2    # Adv SIMD: operation performs rounding
+IFS_VD        = 1<<3    # Adv SIMD: operation doubles the result
+IFS_VH        = 1<<4    # Adv SIMD: operation halves the result
+IFS_SYS_MODE  = 1<<8    # instruction is encoded to be executed in SYSTEM mode, not USER mode
 
-IF_SFUI_START = 59
-IF_F32       = 1<<59    # F64 SIMD
-IF_F64       = 1<<60    # F64 SIMD
-IF_F32S32    = 1<<61    # F64 SIMD
-IF_F64S32    = 1<<62    # F64 SIMD
-IF_F32U32    = 1<<63    # F64 SIMD
-IF_F64U32    = 1<<64    # F64 SIMD
-IF_F3264     = 1<<65    # F64 SIMD
-IF_F6432     = 1<<66    # F64 SIMD
-IF_F3216     = 1<<67    # F64 SIMD
-IF_F1632     = 1<<68    # F64 SIMD
-IF_S32F64    = 1<<69    # F64 SIMD
-IF_S32F32    = 1<<70    # F64 SIMD
-IF_U32F64    = 1<<71    # F64 SIMD
-IF_U32F32    = 1<<72    # F64 SIMD
-IF_S8        = 1<<73    # F64 SIMD
-IF_S16       = 1<<74    # F64 SIMD
-IF_S32       = 1<<75    # F64 SIMD
-IF_S64       = 1<<76    # F64 SIMD
-IF_U8        = 1<<77    # F64 SIMD
-IF_U16       = 1<<78    # F64 SIMD
-IF_U32       = 1<<79    # F64 SIMD
-IF_U64       = 1<<80    # F64 SIMD
-IF_I8        = 1<<81    # F64 SIMD
-IF_I16       = 1<<82    # F64 SIMD
-IF_I32       = 1<<83    # F64 SIMD
-IF_I64       = 1<<84    # F64 SIMD
-IF_SFUI_STOP = 85
+IFS_SFUI_START = 9
+IFS_F32       = 1<<9    # F64 SIMD
+IFS_F64       = 1<<10    # F64 SIMD
+IFS_F32S32    = 1<<11    # F64 SIMD
+IFS_F64S32    = 1<<12    # F64 SIMD
+IFS_F32U32    = 1<<13    # F64 SIMD
+IFS_F64U32    = 1<<14    # F64 SIMD
+IFS_F3264     = 1<<15    # F64 SIMD
+IFS_F6432     = 1<<16    # F64 SIMD
+IFS_F3216     = 1<<17    # F64 SIMD
+IFS_F1632     = 1<<18    # F64 SIMD
+IFS_S32F64    = 1<<19    # F64 SIMD
+IFS_S32F32    = 1<<20    # F64 SIMD
+IFS_U32F64    = 1<<21    # F64 SIMD
+IFS_U32F32    = 1<<22    # F64 SIMD
+IFS_S8        = 1<<23    # F64 SIMD
+IFS_S16       = 1<<24    # F64 SIMD
+IFS_S32       = 1<<25    # F64 SIMD
+IFS_S64       = 1<<26    # F64 SIMD
+IFS_U8        = 1<<27    # F64 SIMD
+IFS_U16       = 1<<28    # F64 SIMD
+IFS_U32       = 1<<29    # F64 SIMD
+IFS_U64       = 1<<30    # F64 SIMD
+IFS_I8        = 1<<81    # F64 SIMD
+IFS_I16       = 1<<32    # F64 SIMD
+IFS_I32       = 1<<33    # F64 SIMD
+IFS_I64       = 1<<34    # F64 SIMD
+IFS_SFUI_STOP = 35
 
-IF_SFUI_MASK = 0
-for x in range(IF_SFUI_START, IF_SFUI_STOP):
-    IF_SFUI_MASK |= (1<<x)
+IFS_SFUI_MASK = 0
+for x in range(IFS_SFUI_START, IFS_SFUI_STOP):
+    IFS_SFUI_MASK |= (1<<x)
 
-IF_SFUI_MASK << IF_SFUI_START
+IFS_SFUI_MASK << IFS_SFUI_START
 
 OF_W         = 1<<8     # Write back to 
 OF_UM        = 1<<9     # Usermode, or if r15 included set current SPSR -> CPSR
