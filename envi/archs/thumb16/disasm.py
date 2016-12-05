@@ -334,7 +334,7 @@ def branch_misc(va, val, val2): # bl and misc control
 
     elif op1 & 0b101 == 1:  # T4 encoding
         opcode = INS_B
-        flags = envi.IF_CALL | IF_W
+        flags = envi.IF_BRANCH | IF_W
 
         # need next two bytes
         S = (val>>10)&1
@@ -358,6 +358,7 @@ def branch_misc(va, val, val2): # bl and misc control
             bytez=struct.pack("<H", val)+struct.pack("<H", val2), va=va-4)
 
     elif op1 & 0b100:
+        # bl/blx
         x = (val2>>12) & 1
         s = (val>>10) & 1
         mnem = ('blx','bl')[x]
@@ -1413,7 +1414,7 @@ def adv_simd_32(va, val1, val2):
         c = (val1>>4) & 3
 
         index = c | (u<<2) | (b<<3) | (a<<4)
-        mnem, opcode, flags, handler = adv_simd_3_regs[index]
+        mnem, opcode, simdflags, handler = adv_simd_3_regs[index]
 
         d = (val1 >> 2) & 0x10
         d |= ((val2 >> 12) & 0xf)
@@ -1435,16 +1436,16 @@ def adv_simd_32(va, val1, val2):
             )
 
         if handler != None:
-            nmnem, nopcode, nflags, nopers = handler(val, va, mnem, opcode, flags, opers)
+            nmnem, nopcode, nflags, nopers = handler(val, va, mnem, opcode, simdflags, opers)
             if nmnem != None:
                 mnem = nmnem
                 opcode = nopcode
             if nflags != None:
-                flags = nflags
+                simdflags = nflags
             if nopers != None:
                 opers = nopers
 
-        return opcode, mnem, opers, flags, simdflags
+        return opcode, mnem, opers, 0, simdflags
 
 def old_adv_simd_32(va, val1, val2):
     # aside from u and the first 8 bits, ARM and Thumb2 decode identically (A7-259)
@@ -1578,7 +1579,7 @@ thumb_base = [
     ('010001011',   (31,'cmp',     d1_rm4_rd3, 0)), # CMP<c> <Rn>,<Rm>
     ('01000110',    (34,'mov',     d1_rm4_rd3, 0)), # MOV<c> <Rd>,<Rm>
     ('010001110',   (35,'bx',      rm4_shift3, envi.IF_NOFALL)), # BX<c> <Rm>
-    ('010001111',   (36,'blx',     rm4_shift3, 0)), # BLX<c> <Rm>
+    ('010001111',   (36,'blx',     rm4_shift3, envi.IF_CALL)), # BLX<c> <Rm>
     # Load from Litera7 Pool
     ('01001',       (37,'ldr',     rt_pc_imm8, 0)), # LDR<c> <Rt>,<label>
     # Load/Stor single data item
@@ -1625,22 +1626,22 @@ thumb_base = [
     ('11000',       (68,'stm',   rm_reglist, IF_IA|IF_W)), # LDMIA Rd!, reg_list
     ('11001',       (69,'ldm',   rm_reglist, IF_IA|IF_W)), # STMIA Rd!, reg_list
     # Conditional Bran6hes
-    ('11010000',    (INS_BCC,'beq',     pc_imm8,       envi.IF_COND)),
-    ('11010001',    (INS_BCC,'bn',      pc_imm8,       envi.IF_COND)),
-    ('11010010',    (INS_BCC,'bhs',     pc_imm8,       envi.IF_COND)),
-    ('11010011',    (INS_BCC,'blo',     pc_imm8,       envi.IF_COND)),
-    ('11010100',    (INS_BCC,'bmi',     pc_imm8,       envi.IF_COND)),
-    ('11010101',    (INS_BCC,'bpl',     pc_imm8,       envi.IF_COND)),
-    ('11010110',    (INS_BCC,'bvs',     pc_imm8,       envi.IF_COND)),
-    ('11010111',    (INS_BCC,'bvc',     pc_imm8,       envi.IF_COND)),
-    ('11011000',    (INS_BCC,'bhi',     pc_imm8,       envi.IF_COND)),
-    ('11011001',    (INS_BCC,'bls',     pc_imm8,       envi.IF_COND)),
-    ('11011010',    (INS_BCC,'bge',     pc_imm8,       envi.IF_COND)),
-    ('11011011',    (INS_BCC,'blt',     pc_imm8,       envi.IF_COND)),
-    ('11011100',    (INS_BCC,'bgt',     pc_imm8,       envi.IF_COND)),
-    ('11011101',    (INS_BCC,'ble',     pc_imm8,       envi.IF_COND)),
-    ('11011110',    (INS_B,'b',       pc_imm8,       envi.IF_NOFALL)),
-    ('11011111',    (INS_BCC,'bfukt',   pc_imm8,       0)),
+    ('11010000',    (INS_BCC,'beq',     pc_imm8,       envi.IF_BRANCH|envi.IF_COND)),
+    ('11010001',    (INS_BCC,'bn',      pc_imm8,       envi.IF_BRANCH|envi.IF_COND)),
+    ('11010010',    (INS_BCC,'bhs',     pc_imm8,       envi.IF_BRANCH|envi.IF_COND)),
+    ('11010011',    (INS_BCC,'blo',     pc_imm8,       envi.IF_BRANCH|envi.IF_COND)),
+    ('11010100',    (INS_BCC,'bmi',     pc_imm8,       envi.IF_BRANCH|envi.IF_COND)),
+    ('11010101',    (INS_BCC,'bpl',     pc_imm8,       envi.IF_BRANCH|envi.IF_COND)),
+    ('11010110',    (INS_BCC,'bvs',     pc_imm8,       envi.IF_BRANCH|envi.IF_COND)),
+    ('11010111',    (INS_BCC,'bvc',     pc_imm8,       envi.IF_BRANCH|envi.IF_COND)),
+    ('11011000',    (INS_BCC,'bhi',     pc_imm8,       envi.IF_BRANCH|envi.IF_COND)),
+    ('11011001',    (INS_BCC,'bls',     pc_imm8,       envi.IF_BRANCH|envi.IF_COND)),
+    ('11011010',    (INS_BCC,'bge',     pc_imm8,       envi.IF_BRANCH|envi.IF_COND)),
+    ('11011011',    (INS_BCC,'blt',     pc_imm8,       envi.IF_BRANCH|envi.IF_COND)),
+    ('11011100',    (INS_BCC,'bgt',     pc_imm8,       envi.IF_BRANCH|envi.IF_COND)),
+    ('11011101',    (INS_BCC,'ble',     pc_imm8,       envi.IF_BRANCH|envi.IF_COND)),
+    ('11011110',    (INS_B,'b',       pc_imm8,       envi.IF_BRANCH|envi.IF_NOFALL)),
+    ('11011111',    (INS_BCC,'bfukt',   pc_imm8,       envi.IF_BRANCH|0)),
     # Software Interru2t
     ('11011111',    (INS_SWI,'svc',     imm8,       0)), # SWI <blahblah>
     ('1011111100000000',    (89,'nopHint',    imm8,       0)), #unnecessary instruction
@@ -1667,7 +1668,7 @@ thumb_base = [
     ]
 
 thumb1_extension = [
-    ('11100',       (INS_B,  'b',       pc_imm11,           envi.IF_NOFALL)),        # B <imm11>
+    ('11100',       (INS_B,  'b',       pc_imm11,           envi.IF_BRANCH|envi.IF_NOFALL)),        # B <imm11>
     ('1111',        (INS_BL, 'bl',      branch_misc,       envi.IF_CALL | IF_THUMB32)),   # BL/BLX <addr25> 
 ]
 
@@ -1815,7 +1816,7 @@ thumb2_extension = [
     ('11111',               (85,'branchmisc', branch_misc,            IF_THUMB32)),
     #('11111',         (85,'SOMETHING WICKED THIS WAY',      dp_bin_imm_32,         IF_THUMB32)),
 
-    ('11100',       (INS_B,  'b',       pc_imm11,           envi.IF_NOFALL)),        # B <imm11>
+    ('11100',       (INS_B,  'b',       pc_imm11,           envi.IF_BRANCH|envi.IF_NOFALL)),        # B <imm11>
     # blx is covered by special exceptions in dp_bin_imm_32 and dp_mod_imm_32
     #('11110',       (INS_BL, 'bl',      branch_misc,       envi.IF_CALL | IF_THUMB32)),   # BL/BLX <addr25>
     ]
