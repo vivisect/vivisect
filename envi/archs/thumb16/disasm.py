@@ -1407,13 +1407,16 @@ def adv_simd_32(va, val1, val2):
     b = (val2>>8) & 0xf
     c = (val2>>4) & 0xf
 
+    print "a=%x\tb=%x\tu=%x\tc=%x" % (a, b, u, c)
     if not (a & 0x10):
         # three registers of the same length
         a = (val2>>8) & 0xf
         b = (val2>>4) & 1
         c = (val1>>4) & 3
 
+        #print " adv simd: 3 same: a=%x\tb=%x\tu=%x\tc=%x" % (a, b, u, c)
         index = c | (u<<2) | (b<<3) | (a<<4)
+        #print " adv simd: 3 same: %x" % index
         mnem, opcode, simdflags, handler = adv_simd_3_regs[index]
 
         d = (val1 >> 2) & 0x10
@@ -1446,75 +1449,6 @@ def adv_simd_32(va, val1, val2):
                 opers = nopers
 
         return opcode, mnem, opers, 0, simdflags
-
-def old_adv_simd_32(va, val1, val2):
-    # aside from u and the first 8 bits, ARM and Thumb2 decode identically (A7-259)
-    u = (val1>>12) & 1
-    a = (val1>>3) & 0x1f
-    b = (val2>>8) & 0xf
-    c = (val2>>4) & 0xf
-
-    if not (a & 0x10):
-        # three registers of the same length
-        a = (val2>>8) & 0xf
-        b = (val2>>4) & 1
-        c = (val1>>4) & 3
-        if a == 0:
-            if b==0:
-                # vhadd/vhsub
-                size = (val1>>4) & 3
-
-                d = (val1 >> 2) & 0x10
-                d |= ((val2 >> 12) & 0xf)
-
-                n = (val2 >> 3) & 0x10
-                n |= (val1 & 0xf)
-
-                m = (val2 >> 1) & 0x10
-                m |= (val2 & 0xf)
-
-                q = (val2 >> 2) & 0x10
-
-                op = (val2 >> 9) & 1
-
-                opcode, mnem = ( (INS_VHADD,'vhadd'), (INS_VHSUB,'vhsub') )[op]
-                simdlags = (IFS_S8, IFS_S16, IFS_S32, 0, IFS_U8, IFS_U16, IFS_U32)[(u<<2)|size]
-                opers = ()
-                return opcode, mnem, opers, flags, simdflags
-
-        elif a==1:
-            raise Exception("Advanced SIMD instructions not all implemented")
-        elif a==2:
-            raise Exception("Advanced SIMD instructions not all implemented")
-        elif a==3:
-            raise Exception("Advanced SIMD instructions not all implemented")
-        elif a==4:
-            raise Exception("Advanced SIMD instructions not all implemented")
-        elif a==5:
-            raise Exception("Advanced SIMD instructions not all implemented")
-        elif a==6:
-            raise Exception("Advanced SIMD instructions not all implemented")
-        elif a==7:
-            raise Exception("Advanced SIMD instructions not all implemented")
-        elif a==8:
-            raise Exception("Advanced SIMD instructions not all implemented")
-            midx = (b<<1) | u
-            opcode, mnem = ( (INS_VADD,'vadd'), (INS_VSUB,'vsub'), (INS_VTST,'vtst'), (INS_VCEQ,'vceq') )[midx]
-        elif a==9:
-            raise Exception("Advanced SIMD instructions not all implemented")
-        elif a==10:
-            raise Exception("Advanced SIMD instructions not all implemented")
-        elif a==11:
-            raise Exception("Advanced SIMD instructions not all implemented")
-        elif a==12:
-            raise Exception("Advanced SIMD instructions not all implemented")
-        elif a==13:
-            raise Exception("Advanced SIMD instructions not all implemented")
-        elif a==14:
-            raise Exception("Advanced SIMD instructions not all implemented")
-        elif a==15:
-            raise Exception("Advanced SIMD instructions not all implemented")
-
 
 
 bcc_ops = {

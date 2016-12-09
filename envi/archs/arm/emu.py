@@ -121,6 +121,12 @@ conditionals = [
         c1101,
         ]
 
+
+LSB_FMT = [0, 'B', '<H', 0, '<I', 0, 0, 0, '<Q',]
+MSB_FMT = [0, 'B', '>H', 0, '>I', 0, 0, 0, '>Q',]
+LSB_FMT_SIGNED = [0, 'b', '<h', 0, '<i', 0, 0, 0, '<q',]
+MSB_FMT_SIGNED = [0, 'b', '>h', 0, '>i', 0, 0, 0, '>q',]
+
 class ArmEmulator(ArmModule, ArmRegisterContext, envi.Emulator):
 
     def __init__(self):
@@ -166,43 +172,27 @@ class ArmEmulator(ArmModule, ArmRegisterContext, envi.Emulator):
         bytes = self.readMemory(addr, size)
         if bytes == None:
             return None
-        #FIXME change this (and all uses of it) to passing in format...
-        #FIXME: Remove byte check and possibly half-word check.  (possibly all but word?)
         if len(bytes) != size:
             raise Exception("Read Gave Wrong Length At 0x%.8x (va: 0x%.8x wanted %d got %d)" % (self.getProgramCounter(),addr, size, len(bytes)))
-        if size == 1:
-            return struct.unpack("B", bytes)[0]
-        elif size == 2:
-            return struct.unpack("<H", bytes)[0]
-        elif size == 4:
-            return struct.unpack("<I", bytes)[0]
-        elif size == 8:
-            return struct.unpack("<Q", bytes)[0]
+
+        endian_fmt = (LSB_FMT, MSB_FMT)[self.getEndian()]
+        return struct.unpack(endian_fmt[size], bytes)[0]
 
     def writeMemValue(self, addr, value, size):
-        #FIXME change this (and all uses of it) to passing in format...
-        #FIXME: Remove byte check and possibly half-word check.  (possibly all but word?)
-        if size == 1:
-            bytes = struct.pack("B",value & 0xff)
-        elif size == 2:
-            bytes = struct.pack("<H",value & 0xffff)
-        elif size == 4:
-            bytes = struct.pack("<I", value & 0xffffffff)
-        elif size == 8:
-            bytes = struct.pack("<Q", value & 0xffffffffffffffff)
+        endian_fmt = (LSB_FMT, MSB_FMT)[self.getEndian()]
+        mask = e_bits.u_maxes[size]
+        bytes = struct.pack(endian_fmt[size], (value & mask))
         self.writeMemory(addr, bytes)
 
     def readMemSignedValue(self, addr, size):
-        #FIXME: Remove byte check and possibly half-word check.  (possibly all but word?)
         bytes = self.readMemory(addr, size)
         if bytes == None:
             return None
-        if size == 1:
-            return struct.unpack("b", bytes)[0]
-        elif size == 2:
-            return struct.unpack("<h", bytes)[0]
-        elif size == 4:
-            return struct.unpack("<l", bytes)[0]
+        if len(bytes) != size:
+            raise Exception("Read Gave Wrong Length At 0x%.8x (va: 0x%.8x wanted %d got %d)" % (self.getProgramCounter(),addr, size, len(bytes)))
+
+        endian_fmt = (LSB_FMT_SIGNED, MSB_FMT_SIGNED)[self.getEndian()]
+        return struct.unpack(endian_fmt[size], bytes)[0]
 
     def executeOpcode(self, op):
         # NOTE: If an opcode method returns

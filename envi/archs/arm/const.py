@@ -446,6 +446,8 @@ instrnames = [
         'INS_VACGT',
         'INS_VRECPS',
         'INS_VRSQRTS',
+        'INS_VMOV',
+        'INS_VMVN',
         ]
 
 ins_index = 85
