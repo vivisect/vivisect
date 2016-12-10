@@ -448,6 +448,13 @@ instrnames = [
         'INS_VRSQRTS',
         'INS_VMOV',
         'INS_VMVN',
+        'INS_VSHR',
+        'INS_VSRA',
+        'INS_VRSHR',
+        'INS_VRSRA',
+        'INS_VSLI',
+        'INS_VSRI',
+        'INS_VQSHLU',
         ]
 
 ins_index = 85

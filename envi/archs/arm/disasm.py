@@ -2062,12 +2062,79 @@ def adv_simd_32(val, va):
             )
 
         return opcode, mnem, opers, 0, dt    # no iflags, only simdflags for this one
-
+    ################################################### CONTINUE WORKING HERE #####################3
         # must be ordered after previous, since this mask collides
     elif ((a & 0x10) == 0x10 and (c & 0x9 == 1)) \
             or (c & 0x9) == 0x9:
         # two registers and a shift amount
-        pass
+        a = (val>>8) & 0xf
+        b = (val>>6) & 1
+        l = (val>>7) & 1
+        
+        index = (a<<3) | (u<<2) | (b<<1) | l
+
+        mnem, opcode, enctype = adv_2regs[index]
+
+        m = (val>>1) & 1   # bit 5 but wants to be bit 4
+        Vm = (val & 0xf) | m
+
+        imm = (val >> 16) & 0x3f
+
+
+        if enctype == 0:    # VSHR used as test
+            limm = (l<<6) | imm
+            if limm & 0b1000000:
+                esize = 64
+                elements = 1
+                shift_amount = 64-imm
+            elif limm & 0b0100000:
+                esize = 32
+                elements = 2
+                shift_amount = 64-imm
+            elif limm & 0b0010000:
+                esize = 16
+                elements = 4
+                shift_amount = 32-imm
+            elif limm & 0b0001000:
+                esize = 8
+                elements = 8
+                shift_amount = 16-imm
+
+            simdflags = adv_2_vqshl_typesize.get(esize)[u+2]
+
+        if enctype == 4:    # VQSHLU used as test
+            limm = (l<<6) | imm
+
+            op = a & 1
+
+            if limm & 0b1000000:
+                esize = 64
+                elements = 1
+                shift_amount = imm
+            elif limm & 0b0100000:
+                esize = 32
+                elements = 2
+                shift_amount = imm-32
+            elif limm & 0b0010000:
+                esize = 16
+                elements = 4
+                shift_amount = imm-16
+            elif limm & 0b0001000:
+                esize = 8
+                elements = 8
+                shift_amount = imm-8
+
+            uop = (u<<1) | op
+            simdflags = adv_2_vqshl_typesize.get(esize)[uop]
+
+        opers = (
+            ArmRegOper(rctx.getRegisterIndex(rbase%d)),
+            ArmRegOper(rctx.getRegisterIndex(rbase%m)),
+            ArmImmOper(imm),
+            )
+
+        print "ADV SIMD 2 Register and Shift... Did we get it right?  Shift Amount is currently just hangin."
+        return opcode, mnem, opers, 0, simdflags
 
     elif (a < 0x16):
         if (c & 0x5) == 0:
@@ -2097,7 +2164,12 @@ def adv_simd_32(val, va):
                     # vector duplicate VDUP (scalar)
                     pass
 ################### FIXME ABOVE: NOT COMPLETE DECODING  #######################
-
+adv_2_vqshl_typesize = {
+    8: ( None, IFS_S8, IFS_S8, IFS_U8),
+    16: ( None, IFS_S16, IFS_S16, IFS_U16),
+    32: ( None, IFS_S32, IFS_S32, IFS_U32),
+    64: ( None, IFS_S64, IFS_S64, IFS_U64),
+    }
 
 # one register and modified immediate modifiers...
 def adv_simd_mod_000x(abcdefgh):
@@ -2191,6 +2263,81 @@ adv_simd_modifiers = (
         adv_simd_mod_1_1110,
     )
 
+adv_2regs = (
+    # 0000
+    ('vshr', INS_VSHR, 0),
+    ('vshr', INS_VSHR, 0),
+    ('vshr', INS_VSHR, 0),
+    ('vshr', INS_VSHR, 0),
+    ('vshr', INS_VSHR, 0),
+    ('vshr', INS_VSHR, 0),
+    ('vshr', INS_VSHR, 0),
+    ('vshr', INS_VSHR, 0),
+    # 0001
+    ('vsra', INS_VSRA, 0),
+    ('vsra', INS_VSRA, 0),
+    ('vsra', INS_VSRA, 0),
+    ('vsra', INS_VSRA, 0),
+    ('vsra', INS_VSRA, 0),
+    ('vsra', INS_VSRA, 0),
+    ('vsra', INS_VSRA, 0),
+    ('vsra', INS_VSRA, 0),
+    # 0010
+    ('vrshr', INS_VRSHR, 0),
+    ('vrshr', INS_VRSHR, 0),
+    ('vrshr', INS_VRSHR, 0),
+    ('vrshr', INS_VRSHR, 0),
+    ('vrshr', INS_VRSHR, 0),
+    ('vrshr', INS_VRSHR, 0),
+    ('vrshr', INS_VRSHR, 0),
+    ('vrshr', INS_VRSHR, 0),
+    # 0011
+    ('vrsra', INS_VRSRA, 0),
+    ('vrsra', INS_VRSRA, 0),
+    ('vrsra', INS_VRSRA, 0),
+    ('vrsra', INS_VRSRA, 0),
+    ('vrsra', INS_VRSRA, 0),
+    ('vrsra', INS_VRSRA, 0),
+    ('vrsra', INS_VRSRA, 0),
+    ('vrsra', INS_VRSRA, 0),
+    # 0100
+    ('ERROR vsri', INS_VSRI, 2),
+    ('ERROR vsri', INS_VSRI, 2),
+    ('ERROR vsri', INS_VSRI, 2),
+    ('ERROR vsri', INS_VSRI, 2),
+    ('vsri', INS_VSRI, 2),
+    ('vsri', INS_VSRI, 2),
+    ('vsri', INS_VSRI, 2),
+    ('vsri', INS_VSRI, 2),
+    # 0101
+    ('vshl', INS_VSHL, 2),
+    ('vshl', INS_VSHL, 2),
+    ('vshl', INS_VSHL, 2),
+    ('vshl', INS_VSHL, 2),
+    ('vsli', INS_VSLI, 2),
+    ('vsli', INS_VSLI, 2),
+    ('vsli', INS_VSLI, 2),
+    ('vsli', INS_VSLI, 2),
+    # 0110
+    ('ERROR vqshl', INS_VQSHL, 4), # U=0, op=0
+    ('ERROR vqshl', INS_VQSHL, 4), # U=0, op=0
+    ('ERROR vqshl', INS_VQSHL, 4), # U=0, op=0
+    ('ERROR vqshl', INS_VQSHL, 4), # U=0, op=0
+    ('vqshlu', INS_VQSHLU, 4), # U=1, op=0
+    ('vqshlu', INS_VQSHLU, 4), # U=1, op=0
+    ('vqshlu', INS_VQSHLU, 4), # U=1, op=0
+    ('vqshlu', INS_VQSHLU, 4), # U=1, op=0
+    # 0111
+    ('vqshl', INS_VQSHL, 4), # U=0, op=1
+    ('vqshl', INS_VQSHL, 4), # U=0, op=1
+    ('vqshl', INS_VQSHL, 4), # U=0, op=1
+    ('vqshl', INS_VQSHL, 4), # U=0, op=1
+    ('vqshl', INS_VQSHL, 4), # U=1, op=1
+    ('vqshl', INS_VQSHL, 4), # U=1, op=1
+    ('vqshl', INS_VQSHL, 4), # U=1, op=1
+    ('vqshl', INS_VQSHL, 4), # U=1, op=1
+
+    )
 
 ####################################################################
 # Table of the parser functions
