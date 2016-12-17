@@ -820,8 +820,8 @@ def p_mov_imm_stat(opval, va):      # only one instruction: "msr"
         mnem = 'msr'
         immed = ((imm>>rot) + (imm<<(32-rot))) & 0xffffffff
 
-        if mask & 3:    # USER mode these will be 0
-            iflags |= IF_SYS_MODE
+        #if mask & 3:    # USER mode these will be 0
+        #    iflags |= IF_SYS_MODE  - only mention of IF_SYS_MODE, causing errors.  does need fixing?
         
         olist = (
             ArmPgmStatRegOper(r, mask),
@@ -1313,6 +1313,7 @@ def p_coproc_load(opval, va):
     else:
         iflags = 0
     #check for index. Non-index is option
+    print "punwl: 0x%x" % punwl
     if (punwl & 0x1a) != 8:
         olist = (
             ArmCoprocOper(cp_num),
@@ -2102,7 +2103,28 @@ def adv_simd_32(val, va):
 
             simdflags = adv_2_vqshl_typesize.get(esize)[u+2]
 
-        if enctype == 4:    # VQSHLU used as test
+        elif enctype == 1:  # VSRI
+            limm = (l<<6) | imm
+            if limm & 0b1000000:
+                esize = 64
+                elements = 1
+                shift_amount = 64-imm
+            elif limm & 0b0100000:
+                esize = 32
+                elements = 2
+                shift_amount = 64-imm
+            elif limm & 0b0010000:
+                esize = 16
+                elements = 4
+                shift_amount = 32-imm
+            elif limm & 0b0001000:
+                esize = 8
+                elements = 8
+                shift_amount = 16-imm
+
+            simdflags = { 8: IFS_8, 16: IFS_16, 32: IFS_32, 64: IFS_64 }[esize]
+
+        if enctype == 2:    # VQSHLU used as test
             limm = (l<<6) | imm
 
             op = a & 1
@@ -2301,41 +2323,66 @@ adv_2regs = (
     ('vrsra', INS_VRSRA, 0),
     ('vrsra', INS_VRSRA, 0),
     # 0100
-    ('ERROR vsri', INS_VSRI, 2),
-    ('ERROR vsri', INS_VSRI, 2),
-    ('ERROR vsri', INS_VSRI, 2),
-    ('ERROR vsri', INS_VSRI, 2),
-    ('vsri', INS_VSRI, 2),
-    ('vsri', INS_VSRI, 2),
-    ('vsri', INS_VSRI, 2),
-    ('vsri', INS_VSRI, 2),
+    ('ERROR vsri', INS_VSRI, 1),
+    ('ERROR vsri', INS_VSRI, 1),
+    ('ERROR vsri', INS_VSRI, 1),
+    ('ERROR vsri', INS_VSRI, 1),
+    ('vsri', INS_VSRI, 1),
+    ('vsri', INS_VSRI, 1),
+    ('vsri', INS_VSRI, 1),
+    ('vsri', INS_VSRI, 1),
     # 0101
-    ('vshl', INS_VSHL, 2),
-    ('vshl', INS_VSHL, 2),
-    ('vshl', INS_VSHL, 2),
-    ('vshl', INS_VSHL, 2),
-    ('vsli', INS_VSLI, 2),
-    ('vsli', INS_VSLI, 2),
-    ('vsli', INS_VSLI, 2),
-    ('vsli', INS_VSLI, 2),
+    ('vshl', INS_VSHL, 1),
+    ('vshl', INS_VSHL, 1),
+    ('vshl', INS_VSHL, 1),
+    ('vshl', INS_VSHL, 1),
+    ('vsli', INS_VSLI, 1),
+    ('vsli', INS_VSLI, 1),
+    ('vsli', INS_VSLI, 1),
+    ('vsli', INS_VSLI, 1),
     # 0110
-    ('ERROR vqshl', INS_VQSHL, 4), # U=0, op=0
-    ('ERROR vqshl', INS_VQSHL, 4), # U=0, op=0
-    ('ERROR vqshl', INS_VQSHL, 4), # U=0, op=0
-    ('ERROR vqshl', INS_VQSHL, 4), # U=0, op=0
-    ('vqshlu', INS_VQSHLU, 4), # U=1, op=0
-    ('vqshlu', INS_VQSHLU, 4), # U=1, op=0
-    ('vqshlu', INS_VQSHLU, 4), # U=1, op=0
-    ('vqshlu', INS_VQSHLU, 4), # U=1, op=0
+    ('ERROR vqshl', INS_VQSHL, 2), # U=0, op=0
+    ('ERROR vqshl', INS_VQSHL, 2), # U=0, op=0
+    ('ERROR vqshl', INS_VQSHL, 2), # U=0, op=0
+    ('ERROR vqshl', INS_VQSHL, 2), # U=0, op=0
+    ('vqshlu', INS_VQSHLU, 2), # U=1, op=0
+    ('vqshlu', INS_VQSHLU, 2), # U=1, op=0
+    ('vqshlu', INS_VQSHLU, 2), # U=1, op=0
+    ('vqshlu', INS_VQSHLU, 2), # U=1, op=0
     # 0111
-    ('vqshl', INS_VQSHL, 4), # U=0, op=1
-    ('vqshl', INS_VQSHL, 4), # U=0, op=1
-    ('vqshl', INS_VQSHL, 4), # U=0, op=1
-    ('vqshl', INS_VQSHL, 4), # U=0, op=1
-    ('vqshl', INS_VQSHL, 4), # U=1, op=1
-    ('vqshl', INS_VQSHL, 4), # U=1, op=1
-    ('vqshl', INS_VQSHL, 4), # U=1, op=1
-    ('vqshl', INS_VQSHL, 4), # U=1, op=1
+    ('vqshl', INS_VQSHL, 2), # U=0, op=1
+    ('vqshl', INS_VQSHL, 2), # U=0, op=1
+    ('vqshl', INS_VQSHL, 2), # U=0, op=1
+    ('vqshl', INS_VQSHL, 2), # U=0, op=1
+    ('vqshl', INS_VQSHL, 2), # U=1, op=1
+    ('vqshl', INS_VQSHL, 2), # U=1, op=1
+    ('vqshl', INS_VQSHL, 2), # U=1, op=1
+    ('vqshl', INS_VQSHL, 2), # U=1, op=1
+    # 1000
+    ('vshrn', INS_VSHRN, 3),        # I16-64
+    ('vshrn', INS_VSHRN, 3),        # None
+    ('vrshrn', INS_VRSHRN, 3),      # I16-64
+    ('vrshrn', INS_VRSHRN, 3),      # None
+    ('vqshrn', INS_VQSHRN, 3),
+    ('vqshrun', INS_VQSHRUN, 3),
+    ('vqrshrn', INS_VQRSHRN, 3),
+    ('vqrshrun', INS_VQRSHRUN, 3),
+    # 1001
+    ('vqshrn', INS_VQSHRN, 3),  # hold on, u is not specified... does it parse correctly with 3?
+    ('ERROR vqshrn', INS_VQSHRN, 3),  # hold on, u is not specified...
+    ('vqrshrn', INS_VQRSHRN, 3),  # hold on, u is not specified...
+    ('ERROR vqrshrn', INS_VQRSHRN, 3),  # hold on, u is not specified...
+    ('vqshrn', INS_VQSHRN, 3),  # hold on, u is not specified...
+    ('ERROR vqshrn', INS_VQSHRN, 3),  # hold on, u is not specified...
+    ('vqrshrn', INS_VQRSHRN, 3),  # hold on, u is not specified...
+    ('ERROR vqrshrn', INS_VQRSHRN, 3),  # hold on, u is not specified...
+    # 1010
+    # 1011
+    # 1100
+    # 1101
+    # 1110
+    # 1111
+
 
     )
 
@@ -2611,6 +2658,14 @@ class ArmOpcode(envi.Opcode):
                     mnem += '.u8'
                 elif self.simdflags & IFS_I8:
                     mnem += '.i8'
+                elif self.simdflags & IFS_8:
+                    mnem += '.8'
+                elif self.simdflags & IFS_16:
+                    mnem += '.16'
+                elif self.simdflags & IFS_32:
+                    mnem += '.32'
+                elif self.simdflags & IFS_64:
+                    mnem += '.64'
 
         #FIXME: Advanced SIMD modifiers (IF_V*)
         if self.iflags & IF_THUMB32:
@@ -2709,6 +2764,14 @@ class ArmOpcode(envi.Opcode):
                     mnem += '.u8'
                 elif self.simdflags & IFS_I8:
                     mnem += '.i8'
+                elif self.simdflags & IFS_8:
+                    mnem += '.8'
+                elif self.simdflags & IFS_16:
+                    mnem += '.16'
+                elif self.simdflags & IFS_32:
+                    mnem += '.32'
+                elif self.simdflags & IFS_64:
+                    mnem += '.64'
 
         if self.iflags & IF_THUMB32:
             mnem += ".w"
@@ -2998,27 +3061,31 @@ class ArmScaledOffsetOper(ArmOperand):
         if emu == None:
             return None
 
-        Rn = emu.getRegister(self.base_reg)
+        base = emu.getRegister(self.base_reg)
 
         pom = (-1, 1)[(self.pubwl>>3)&1]
         addval = shifters[self.shtype]( emu.getRegister( self.offset_reg ), self.shval )
         # if U==0, subtract
         addval *= pom
 
-        addr = (Rn + addval) & e_bits.u_maxes[self.psize]
+        addr = (base + addval) & e_bits.u_maxes[self.psize]
 
-        # if pre-indexed, we incremement/decrement the register before determining the OperAddr
-        if (self.pubwl & 0x12 == PUxWL_PRE_Idx):
-            # pre-indexed...
-            if emu.getMeta('forrealz', False): emu.setRegister( self.base_reg, addr )
-            return addr
 
-        elif (self.pubwl & 0x10 == PUxWL_POST_Idx):
-            # post-indexed... still write it but return the original value
-            if emu.getMeta('forrealz', False): emu.setRegister( self.base_reg, addr )
-            return Rn
+        # unindexed = 0
+        # offset = 0x2
+        # postindexed = 0x10
+        # preindexed = 0x12
 
-        # non-indexed...  just return the addr, update nothing
+        # w = write-back
+        # p = indexed
+        # u = add
+
+        if (self.pubwl & 0x2):  # write-back
+            if (emu != None) and (emu.getMeta('forrealz', False)): emu.setRegister( self.base_reg, addr)
+
+        if (self.pubwl & 0x10 == 0): # not indexed
+            return base
+
         return addr
 
     def render(self, mcanv, op, idx):
@@ -3030,7 +3097,7 @@ class ArmScaledOffsetOper(ArmOperand):
 
         mcanv.addText('[')
         mcanv.addNameText(basereg, typename='registers')
-        if (idxing&0x10) == 0:
+        if (idxing&0x10) == 0:  # indexing
             mcanv.addText('], ')
         else:
             mcanv.addText(', ')
@@ -3041,9 +3108,9 @@ class ArmScaledOffsetOper(ArmOperand):
             mcanv.addNameText(shname)
             mcanv.addText(' ')
             mcanv.addNameText('#%d' % self.shval)
-        if idxing == 0x10:
+        if idxing == 0x10:      # no write-back
             mcanv.addText(']')
-        elif idxing != 0:
+        elif idxing != 0:       # pre-indexing (with write-back)
             mcanv.addText(']!')
 
     def repr(self, op):
@@ -3119,21 +3186,17 @@ class ArmRegOffsetOper(ArmOperand):
             return None
 
         pom = (-1, 1)[(self.pubwl>>3)&1]
-        rn = emu.getRegister( self.base_reg )
+        base = emu.getRegister( self.base_reg )
         rm = emu.getRegister( self.offset_reg )
 
-        addr = rn + (pom*rm) & e_bits.u_maxes[self.psize]
+        addr = base + (pom*rm) & e_bits.u_maxes[self.psize]
 
-        # if pre-indexed, we incremement/decrement the register before determining the OperAddr
-        if (self.pubwl & 0x12) == PUxWL_PRE_Idx:    # pre-indexed...
-            if emu.getMeta('forrealz', False): emu.setRegister( self.base_reg, addr)
-            return addr
+        if (self.pubwl & 0x2):  # write-back
+            if (emu != None) and (emu.getMeta('forrealz', False)): emu.setRegister( self.base_reg, addr)
 
-        elif (self.pubwl & 0x10) == PUxWL_POST_Idx: # post-indexed... still write it but return the original value
-            if emu.getMeta('forrealz', False): emu.setRegister( self.base_reg, addr )
-            return rn
+        if (self.pubwl & 0x10 == 0): # not indexed
+            return base
 
-        # plain jane just return the calculated address... no updates are necessary
         return addr
 
     def render(self, mcanv, op, idx):
@@ -3246,15 +3309,13 @@ class ArmImmOffsetOper(ArmOperand):
         else:
             addr = (base - self.offset) & e_bits.u_maxes[self.psize]
 
-        if (self.pubwl & 0x12) == PUxWL_PRE_Idx:    # pre-indexed   p=1, w=1
-            if (emu != None) and (emu.getMeta('forrealz', False)): emu.setRegister( self.base_reg, addr)
-            return addr
 
-        if (self.pubwl & 0x10) == PUxWL_POST_Idx:   # post-indexed  p=0
-            if (emu != None) and (emu.getMeta('forrealz', False)): emu.setRegister( self.base_reg, addr )
+        if (self.pubwl & 0x2):  # write-back
+            if (emu != None) and (emu.getMeta('forrealz', False)): emu.setRegister( self.base_reg, addr)
+
+        if (self.pubwl & 0x10 == 0): # not indexed
             return base
 
-        # offset addressing     p=1, w=0
         return addr
 
     def render(self, mcanv, op, idx):
@@ -3687,7 +3748,7 @@ class ArmCoprocRegOper(ArmOperand):
         return None # FIXME
 
     def repr(self, op):
-        return "c%d"%self.val
+        return "cr%d"%self.val
 
 class ArmCoprocOption(ArmImmOffsetOper):
     def __init__(self, base_reg, offset, va, pubwl=8):

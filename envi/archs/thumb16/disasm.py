@@ -1820,8 +1820,9 @@ class ThumbDisasm:
     _tree = ttree2
     _optype = envi.ARCH_THUMB
     _opclass = ThumbOpcode
-    def __init__(self, doModeSwitch=True):
+    def __init__(self, doModeSwitch=True, endian=ENDIAN_LSB):
         self._doModeSwitch = doModeSwitch
+        self.setEndian(endian)
 
     def setEndian(self, endian):
         self.endian = endian

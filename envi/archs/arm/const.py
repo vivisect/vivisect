@@ -118,7 +118,11 @@ IFS_I8        = 1<<81    # F64 SIMD
 IFS_I16       = 1<<32    # F64 SIMD
 IFS_I32       = 1<<33    # F64 SIMD
 IFS_I64       = 1<<34    # F64 SIMD
-IFS_SFUI_STOP = 35
+IFS_8         = 1<<35    # F64 SIMD
+IFS_16        = 1<<36    # F64 SIMD
+IFS_32        = 1<<37    # F64 SIMD
+IFS_64        = 1<<38    # F64 SIMD
+IFS_SFUI_STOP = 39
 
 IFS_SFUI_MASK = 0
 for x in range(IFS_SFUI_START, IFS_SFUI_STOP):
@@ -196,9 +200,10 @@ COND_EXTENDED:"2", # See extended opcode table
 PUxWL_SUB   = 0x00
 PUxWL_ADD   = 0x08
 
-PUxWL_POST_Idx  = 0x00
-PUxWL_PRE_Idx   = 0x12
+PUxWL_UNIdx     = 0x00
+PUxWL_POST_Idx  = 0x02
 PUxWL_OFFSET    = 0x10
+PUxWL_PRE_Idx   = 0x12
 
 PUxWL_DFLT  = PUxWL_OFFSET | PUxWL_ADD
 
@@ -455,6 +460,12 @@ instrnames = [
         'INS_VSLI',
         'INS_VSRI',
         'INS_VQSHLU',
+        'INS_VSHRN',
+        'INS_VRSHRN',
+        'INS_VQSHRN',
+        'INS_VQSHRUN',
+        'INS_VQRSHRN',
+        'INS_VQRSHRUN',
         ]
 
 ins_index = 85
