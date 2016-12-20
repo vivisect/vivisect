@@ -1997,10 +1997,13 @@ adv_simd_1modimm = (
     )
 
 def adv_simd_32(val, va):
+    u = (val>>24) & 1
+    return _do_adv_simd_32(val, va, u)
+
+def _do_adv_simd_32(val, va, u):
     # aside from u and the first 8 bits, ARM and Thumb2 decode identically (A7-259)
 
     # initial breakdown (to find the right type of instruction)
-    u = (val>>24) & 1
     a = (val>>19) & 0x1f
     b = (val>>8) & 0xf
     c = (val>>4) & 0xf

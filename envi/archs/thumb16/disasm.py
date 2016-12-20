@@ -1397,9 +1397,14 @@ def fp_dp(va, val1, val2):
 
     return (opcode, mnem, opers, iflags, simdflags)
 
-
+from envi.archs.arm.disasm import _do_adv_simd_32
 
 def adv_simd_32(va, val1, val2):
+    val = (val1 << 16) | val2
+    u = (val1 >> 12) & 1
+    return _do_adv_simd_32(val, va, u)
+
+def _adv_simd_32(va, val1, val2):
     # aside from u and the first 8 bits, ARM and Thumb2 decode identically (A7-259)
     u = (val1>>12) & 1
     a = (val1>>3) & 0x1f
@@ -1746,7 +1751,7 @@ thumb2_extension = [
     ('11110111101',         (85,'usat',     dp_bin_imm_32,        IF_W | IF_THUMB32)),  # usat16 if val2=0000xxxx00xxxxxx
     ('11110111110',         (85,'ubfx',     dp_bin_imm_32,        IF_W | IF_THUMB32)),
     ('11110111111',         (85,'branchmisc', branch_misc,            IF_THUMB32)),
-    ('11111',               (85,'branchmisc', branch_misc,            IF_THUMB32)),
+    #('11111',               (85,'branchmisc', branch_misc,            IF_THUMB32)),
     #('11111',         (85,'SOMETHING WICKED THIS WAY',      dp_bin_imm_32,         IF_THUMB32)),
 
     ('11100',       (INS_B,  'b',       pc_imm11,           envi.IF_BRANCH|envi.IF_NOFALL)),        # B <imm11>

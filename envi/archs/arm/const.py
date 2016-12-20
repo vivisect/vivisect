@@ -122,6 +122,11 @@ IFS_8         = 1<<35    # F64 SIMD
 IFS_16        = 1<<36    # F64 SIMD
 IFS_32        = 1<<37    # F64 SIMD
 IFS_64        = 1<<38    # F64 SIMD
+IFS_F8        = 1<<39
+IFS_F16       = 1<<40
+IFS_F32       = 1<<41
+IFS_F64       = 1<<42
+
 IFS_SFUI_STOP = 39
 
 IFS_SFUI_MASK = 0
