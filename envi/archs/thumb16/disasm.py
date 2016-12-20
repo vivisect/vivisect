@@ -366,14 +366,13 @@ def branch_misc(va, val, val2): # bl and misc control
         flags = envi.IF_CALL | IF_W
 
         # need next two bytes
-        S = (val>>10)&1
-        j1 = (val2>>13)&1
-        j2 = (val2>>11)&1
+        j1 = not ((val2>>13)&1 ^ s)
+        j2 = not ((val2>>11)&1 ^ s)
 
-        imm = (S<<20) | (j1<<18) | (j2<<19) | ((val&0x3f) << 12) | ((val2&0x7ff) << 1)
+        imm = (s<<24) | (j1<<23) | (j2<<22) | ((val&0x3ff) << 12) | ((val2&0x7ff) << 1)
 
         #sign extend a 23-bit number
-        if S:
+        if s:
             imm |= 0xff000000
 
         oper0 = ArmPcOffsetOper(e_bits.signed(imm,4), va=va)
@@ -1842,7 +1841,7 @@ class ThumbDisasm:
 
         try:
             opcode, mnem, opermkr, flags = self._tree.getInt(val, 16)
-            #print opcode, mnem, opermkr, flags
+            print opcode, mnem, opermkr, flags
         except TypeError:
             raise envi.InvalidInstruction(
                     mesg="disasm parser cannot find instruction",
@@ -1859,12 +1858,12 @@ class ThumbDisasm:
             if nflags != None:
                 flags = nflags
             oplen = 4
-            #print "OPLEN: ", oplen
+            print "OPLEN: ", oplen
 
         else:
             olist = opermkr(va+4, val)
             oplen = 2
-            #print "OPLEN (16bit): ", oplen
+            print "OPLEN (16bit): ", oplen
 
         # since our flags determine how the instruction is decoded later....  
         # performance-wise this should be set as the default value instead of 0, but this is cleaner
