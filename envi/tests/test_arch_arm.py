@@ -1217,7 +1217,8 @@ instrs = [
         #(REV_ALL_ARM, 'e41afbee', 0x4560, 'vcvt.f32.u32 s3, s4, #23',0, ()),
 
         # Following commands are THUMB commands
-        (REV_ALL_ARM, 'f3ff3540', 0x4561, 'vshr.u32 d20, d21, #13', 0, ()),
+        (REV_ALL_ARM, '3540f3f3', 0x4560, 'vshr.u32 d20, d21, #0x0d', 0, ()),
+        (REV_ALL_ARM, 'f3ff3540', 0x4561, 'vshr.u32 d20, d21, #0x0d', 0, ()),
         ]
 
 

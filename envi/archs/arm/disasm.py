@@ -2063,7 +2063,7 @@ def adv_simd_32(val, va):
             )
 
         return opcode, mnem, opers, 0, dt    # no iflags, only simdflags for this one
-    ################################################### CONTINUE WORKING HERE #####################3
+
         # must be ordered after previous, since this mask collides
     elif ((a & 0x10) == 0x10 and (c & 0x9 == 1)) \
             or (c & 0x9) == 0x9:
@@ -2076,8 +2076,8 @@ def adv_simd_32(val, va):
 
         mnem, opcode, enctype = adv_2regs[index]
 
-        m = (val>>1) & 1   # bit 5 but wants to be bit 4
-        Vm = (val & 0xf) | m
+        m = (val>>1) & 0x10   # bit 5 but wants to be bit 4
+        m |= (val & 0xf)
 
         imm = (val >> 16) & 0x3f
 
@@ -2152,7 +2152,7 @@ def adv_simd_32(val, va):
         opers = (
             ArmRegOper(rctx.getRegisterIndex(rbase%d)),
             ArmRegOper(rctx.getRegisterIndex(rbase%m)),
-            ArmImmOper(imm),
+            ArmImmOper(shift_amount),
             )
 
         print "ADV SIMD 2 Register and Shift... Did we get it right?  Shift Amount is currently just hangin."
@@ -2185,7 +2185,9 @@ def adv_simd_32(val, va):
                 elif (b == 0xc):
                     # vector duplicate VDUP (scalar)
                     pass
+
 ################### FIXME ABOVE: NOT COMPLETE DECODING  #######################
+
 adv_2_vqshl_typesize = {
     8: ( None, IFS_S8, IFS_S8, IFS_U8),
     16: ( None, IFS_S16, IFS_S16, IFS_U16),
