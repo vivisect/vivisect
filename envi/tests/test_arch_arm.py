@@ -1284,14 +1284,15 @@ class ArmInstructionSet(unittest.TestCase):
 
         # ldr r3, [#0xbfb00010]
         emu = vw.getEmulator()
+        emu.setMeta('forrealz', True)
         emu._forrealz = True    # cause base_reg updates on certain Operands.
 
         emu.writeMemory(0xbfb00010, "abcdef98".decode('hex'))
 
         opstr = struct.pack('<I', 0xe59f3008)
         op = vw.arch.archParseOpcode(opstr, va=0xbfb00000)
-        print repr(op)
-        print hex(op.getOperValue(1, emu))
+        #print repr(op)
+        #print hex(op.getOperValue(1, emu))
 
         self.assertEqual(hex(0x98efcdab), hex(op.getOperValue(1, emu)))
 
@@ -1317,7 +1318,7 @@ class ArmInstructionSet(unittest.TestCase):
         emu.writeMemory(0xbfb00010, "ABCDEF10".decode('hex'))
         emu.setRegister(11, 0xbfb00010)
         
-        opstr = struct.pack('<I', 0xe49b3008)
+        opstr = struct.pack('<I', 0xe4bb3008)
         op = vw.arch.archParseOpcode(opstr, va=0xbfb00000)
         
         value = op.getOperValue(1, emu)
@@ -1333,7 +1334,7 @@ class ArmInstructionSet(unittest.TestCase):
         emu.writeMemory(0xbfb00010, "ABCDEF10".decode('hex'))
         emu.setRegister(11, 0xbfb00010)
         
-        opstr = struct.pack('<I', 0xe41b3008)
+        opstr = struct.pack('<I', 0xe43b3008)
         op = vw.arch.archParseOpcode(opstr, va=0xbfb00000)
         
         value = op.getOperValue(1, emu)
@@ -1349,6 +1350,7 @@ class ArmInstructionSet(unittest.TestCase):
         
         # ldr r2, [r10, r2 ]
         emu = vw.getEmulator()
+        emu.setMeta('forrealz', True)
         emu._forrealz = True
         
         opstr = struct.pack('<I', 0xe79a2002)
@@ -1366,12 +1368,12 @@ class ArmInstructionSet(unittest.TestCase):
 
 
 
-        # ldr r2, [r10], r2 
+        # ldrt r2, [r10], r2 
         emu.setRegister(10, 0xbfb00008)
         emu.setRegister(2,  8)
         emu.writeMemory(0xbfb00008, "ABCDEF10".decode('hex'))
         
-        opstr = struct.pack('<I', 0xe69a2002)
+        opstr = struct.pack('<I', 0xe6ba2002)
         op = vw.arch.archParseOpcode(opstr, va=0xbfb00000)
         
         value = op.getOperValue(1, emu)
@@ -1426,6 +1428,7 @@ class ArmInstructionSet(unittest.TestCase):
         # Scaled with shifts/roll
         # ldr r3, [r10, r2 lsr #2]
         emu = vw.getEmulator()
+        emu.setMeta('forrealz', True)
         emu._forrealz = True
         
         opstr = struct.pack('<I', 0xe79a3122)
@@ -1477,9 +1480,10 @@ class ArmInstructionSet(unittest.TestCase):
         # ldrh r3, [r10], -r2 
         #b2451ae0 
         emu = vw.getEmulator()
+        emu.setMeta('forrealz', True)
         emu._forrealz = True
 
-        opstr = struct.pack('<I', 0xe01a30b2)
+        opstr = struct.pack('<I', 0xe03a30b2)
         op = vw.arch.archParseOpcode(opstr, va=0xbfb00000)
 
         emu.setRegister(10, 0xbfb00008)
@@ -1502,7 +1506,7 @@ class ArmInstructionSet(unittest.TestCase):
         emu.setRegister(2,  8)
         emu.writeMemory(0xbfb00008, "ABCDEF10".decode('hex'))
 
-        opstr = struct.pack('<I', 0xe09a35b2)
+        opstr = struct.pack('<I', 0xe0ba35b2)
         op = vw.arch.archParseOpcode(opstr, va=0xbfb00000)
         
         value = op.getOperValue(1, emu)
@@ -1566,6 +1570,7 @@ class ArmInstructionSet(unittest.TestCase):
         vw.addMemoryMap(0, 7, 'firmware', '\xff' * 16384*1024)
         vw.addMemoryMap(0x400000, 7, 'firmware', '\xff' * 16384*1024)
         emu = vw.getEmulator()
+        emu.setMeta('forrealz', True)
         emu._forrealz = True
         emu.logread = emu.logwrite = True
         badcount = 0  # Note: doesn't really do anything since we error out right away
