@@ -119,13 +119,5 @@ def main():
         viv_qt_main.main(vw)
 
 if __name__ == '__main__':
-    try:
-        # psyco makes disasm much faster (2-3X)
-        import psyco
-        #psyco.log()
-        psyco.full()
-    except ImportError:
-        pass
-
     main()
 
