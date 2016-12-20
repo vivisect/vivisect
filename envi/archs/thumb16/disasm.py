@@ -1846,7 +1846,7 @@ class ThumbDisasm:
 
         try:
             opcode, mnem, opermkr, flags = self._tree.getInt(val, 16)
-            print opcode, mnem, opermkr, flags
+            # print opcode, mnem, opermkr, flags
         except TypeError:
             raise envi.InvalidInstruction(
                     mesg="disasm parser cannot find instruction",
@@ -1863,12 +1863,12 @@ class ThumbDisasm:
             if nflags != None:
                 flags = nflags
             oplen = 4
-            print "OPLEN: ", oplen
+            # print "OPLEN: ", oplen
 
         else:
             olist = opermkr(va+4, val)
             oplen = 2
-            print "OPLEN (16bit): ", oplen
+            # print "OPLEN (16bit): ", oplen
 
         # since our flags determine how the instruction is decoded later....  
         # performance-wise this should be set as the default value instead of 0, but this is cleaner

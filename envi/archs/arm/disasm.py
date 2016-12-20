@@ -2158,7 +2158,6 @@ def _do_adv_simd_32(val, va, u):
             ArmImmOper(shift_amount),
             )
 
-        print "ADV SIMD 2 Register and Shift... Did we get it right?  Shift Amount is currently just hangin."
         return opcode, mnem, opers, 0, simdflags
 
     elif (a < 0x16):
