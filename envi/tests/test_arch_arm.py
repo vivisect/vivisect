@@ -988,17 +988,17 @@ instrs = [
         (REV_ALL_ARM, '14f733e7', 0x4560, 'udiv r3, r4, r7', 0, ()),
         #(REV_ALL_ARM, 'f000f0e7', 0x4560, 'udf #0', 0, ()), #This forces an undefined instruction. Commented out normally.
         #all v codes are suspect at this time - not implimented but may not be correct here either
-        #(REV_ALL_ARM, '173704f2', 0x4560, 'vaba.s8 d3, d4, d7', 0, ()),
-        #(REV_ALL_ARM, '173714f2', 0x4560, 'vaba.s16 d3, d4, d7', 0, ()),
-        #(REV_ALL_ARM, '173724f2', 0x4560, 'vaba.s32 d3, d4, d7', 0, ()),
-        #(REV_ALL_ARM, '173704f3', 0x4560, 'vaba.u8 d3, d4, d7', 0, ()),
-        #(REV_ALL_ARM, '173714f3', 0x4560, 'vaba.u16 d3, d4, d7', 0, ()),
-        #(REV_ALL_ARM, '173724f3', 0x4560, 'vaba.u32 d3, d4, d7', 0, ()),
-        #(REV_ALL_ARM, '5e6708f2', 0x4560, 'vaba.s8 q3, q4, q7', 0, ()),
-        #(REV_ALL_ARM, '5e6718f2', 0x4560, 'vaba.s16 q3, q4, q7', 0, ()),
-        #(REV_ALL_ARM, '5e6728f2', 0x4560, 'vaba.s32 q3, q4, q7', 0, ()),
-        #(REV_ALL_ARM, '5e6708f3', 0x4560, 'vaba.u8 q3, q4, q7', 0, ()),
-        #(REV_ALL_ARM, '5e6718f3', 0x4560, 'vaba.u16 q3, q4, q7', 0, ()),
+        (REV_ALL_ARM, '173704f2', 0x4560, 'vaba.s8 d3, d4, d7', 0, ()),
+        (REV_ALL_ARM, '173714f2', 0x4560, 'vaba.s16 d3, d4, d7', 0, ()),
+        (REV_ALL_ARM, '173724f2', 0x4560, 'vaba.s32 d3, d4, d7', 0, ()),
+        (REV_ALL_ARM, '173704f3', 0x4560, 'vaba.u8 d3, d4, d7', 0, ()),
+        (REV_ALL_ARM, '173714f3', 0x4560, 'vaba.u16 d3, d4, d7', 0, ()),
+        (REV_ALL_ARM, '173724f3', 0x4560, 'vaba.u32 d3, d4, d7', 0, ()),
+        (REV_ALL_ARM, '5e6708f2', 0x4560, 'vaba.s8 q3, q4, q7', 0, ()),
+        (REV_ALL_ARM, '5e6718f2', 0x4560, 'vaba.s16 q3, q4, q7', 0, ()),
+        (REV_ALL_ARM, '5e6728f2', 0x4560, 'vaba.s32 q3, q4, q7', 0, ()),
+        (REV_ALL_ARM, '5e6708f3', 0x4560, 'vaba.u8 q3, q4, q7', 0, ()),
+        (REV_ALL_ARM, '5e6718f3', 0x4560, 'vaba.u16 q3, q4, q7', 0, ()),
         #(REV_ALL_ARM, '5e6728f3', 0x4560, 'vaba.u32 q3, q4, q7', 0, ()),
         #(REV_ALL_ARM, '076584f2', 0x4560, 'vabal.s8 q3, d4, d7', 0, ()),
         #(REV_ALL_ARM, '076594f2', 0x4560, 'vabal.s16 q3, d4, d7', 0, ()),
@@ -1060,7 +1060,7 @@ instrs = [
         #(REV_ALL_ARM, '0760a4f2', 0x4560, 'vaddl.s32 q3, d4, d7', 0, ()),
         #(REV_ALL_ARM, '076084f3', 0x4560, 'vaddl.u8 q3, d4, d7', 0, ()),
         #(REV_ALL_ARM, '076094f3', 0x4560, 'vaddl.u16 q3, d4, d7', 0, ()),
-        #(REV_ALL_ARM, '0760a4f3', 0x4560, 'vaddl.u32 q3, d4, d7', 0, ()),0
+        #(REV_ALL_ARM, '0760a4f3', 0x4560, 'vaddl.u32 q3, d4, d7', 0, ()),
         #(REV_ALL_ARM, '076188f2', 0x4560, 'vaddw.s8 q3, q4, d7', 0, ()),
         #(REV_ALL_ARM, '076198f2', 0x4560, 'vaddw.s16 q3, q4, d7', 0, ()),
         #(REV_ALL_ARM, '0761a8f2', 0x4560, 'vaddw.s32 q3, q4, d7', 0, ()),
@@ -1215,10 +1215,13 @@ instrs = [
         #(REV_ALL_ARM, '611afbee', 0x4560, 'vcvt.f32.u16 s3, s4, #13',0, ()),
         #(REV_ALL_ARM, 'e81afaee', 0x4560, 'vcvt.f32.s32 s3, s4, #15',0, ()),
         #(REV_ALL_ARM, 'e41afbee', 0x4560, 'vcvt.f32.u32 s3, s4, #23',0, ()),
-
-        # Following commands are THUMB commands
+        # Following commands are VECTOR Instructions
         (REV_ALL_ARM, '3540f3f3', 0x4560, 'vshr.u32 d20, d21, #0x0d', 0, ()),
         (REV_ALL_ARM, 'f3ff3540', 0x4561, 'vshr.u32 d20, d21, #0x0d', 0, ()),
+        (REV_ALL_ARM, '3544f3f3', 0x4560, 'vsri.32 d20, d21, #0x0d', 0, ()),
+        (REV_ALL_ARM, 'f3ff3544', 0x4561, 'vsri.32 d20, d21, #0x0d', 0, ()),
+        (REV_ALL_ARM, 'f3ff3546', 0x4561, 'vqshlu.s32 d20, d21, #0x13', 0, ()), # from ODAWEB
+        # Following commands are THUMB commands
         ]
 
 

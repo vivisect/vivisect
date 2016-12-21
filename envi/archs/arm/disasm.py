@@ -2072,8 +2072,7 @@ def _do_adv_simd_32(val, va, u):
         return opcode, mnem, opers, 0, dt    # no iflags, only simdflags for this one
 
         # must be ordered after previous, since this mask collides
-    elif ((a & 0x10) == 0x10 and (c & 0x9 == 1)) \
-            or (c & 0x9) == 0x9:
+    elif ((a & 0x10) == 0x10 and (c & 0x9) in (1, 9)):
         # two registers and a shift amount
         a = (val>>8) & 0xf
         b = (val>>6) & 1
@@ -2164,8 +2163,10 @@ def _do_adv_simd_32(val, va, u):
             )
 
         return opcode, mnem, opers, 0, simdflags
+
 ################################ FIXME: CONTINUE WORKING AdvSIMD HERE #######################3
     elif (a < 0x16):
+        print "AdvSIMD: HIT a<0x16"
         if (c & 0x5) == 0:
             # three registers of different lengths
             pass
@@ -2175,6 +2176,7 @@ def _do_adv_simd_32(val, va, u):
             pass
 
     elif (a & 0x16) == 0x16:
+        print "AdvSIMD: HIT a & 0x16 == 0x16"
         if u == 0:
             # vector extract VEXT
             pass
@@ -2192,6 +2194,7 @@ def _do_adv_simd_32(val, va, u):
                 elif (b == 0xc):
                     # vector duplicate VDUP (scalar)
                     pass
+    return 0, 'NO VECTOR ENCODING COMPLETED', (), 0, 0
 
 ################### FIXME ABOVE: NOT COMPLETE DECODING  #######################
 
@@ -3911,7 +3914,7 @@ class ArmDisasm:
 
         # Begin the table lookup sequence with the first 3 non-cond bits
         encfam = (opval >> 25) & 0x7
-        #print "encode family =", encfam
+        print "encode family = %s  (0x%x)" % (encfam, opval)
         if cond == COND_EXTENDED:
             enc = IENC_UNCOND
 
@@ -3920,7 +3923,7 @@ class ArmDisasm:
             enc,nexttab = inittable[encfam]
             if nexttab != None: # we have to sub-parse...
                 for mask,val,penc in nexttab:
-                    #print "penc", penc
+                    print "penc", penc
                     if (opval & mask) == val:
                         enc = penc
                         break
@@ -3930,7 +3933,7 @@ class ArmDisasm:
             raise envi.InvalidInstruction(mesg="No encoding found!",
                     bytez=bytez[offset:offset+4], va=va)
 
-        #print "ienc_parser index, routine: %d, %s" % (enc, ienc_parsers[enc])
+        print "ienc_parser index, routine: %d, %s" % (enc, ienc_parsers[enc])
         opcode, mnem, olist, flags, simdflags = ienc_parsers[enc](opval, va+8)
         return opcode, mnem, olist, flags, simdflags
 
