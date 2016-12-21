@@ -1444,6 +1444,7 @@ def p_uncond(opval, va, psize = 4):
             return (opcode, mnem, olist, 0, 0)
 
         elif (opval & 0xfe000000 == 0xf2000000):
+            #print "handing off to adv_simd_32"
             return adv_simd_32(opval, va)
             
         else:
@@ -2010,10 +2011,11 @@ def _do_adv_simd_32(val, va, u):
 
     # shared 
     q = (val >> 6) & 0x1
-    rbase = ('D%d', 'Q%d')[q]
+    rbase = ('d%d', 'q%d')[q]
 
     d = (val >> 18) & 0x10
     d |= ((val >> 12) & 0xf)
+    d >>= q
 
     if not (a & 0x10):
         # three registers of the same length
@@ -2026,9 +2028,11 @@ def _do_adv_simd_32(val, va, u):
 
         n = (val >> 3) & 0x10
         n |= ((val >> 16) & 0xf)
+        n >>= q
 
         m = (val >> 1) & 0x10
         m |= (val & 0xf)
+        m >>= q
 
         opers = (
             ArmRegOper(rctx.getRegisterIndex(rbase%d)),
@@ -2081,6 +2085,7 @@ def _do_adv_simd_32(val, va, u):
 
         m = (val>>1) & 0x10   # bit 5 but wants to be bit 4
         m |= (val & 0xf)
+        m >>= q
 
         imm = (val >> 16) & 0x3f
 
@@ -2159,7 +2164,7 @@ def _do_adv_simd_32(val, va, u):
             )
 
         return opcode, mnem, opers, 0, simdflags
-
+################################ FIXME: CONTINUE WORKING AdvSIMD HERE #######################3
     elif (a < 0x16):
         if (c & 0x5) == 0:
             # three registers of different lengths
@@ -3348,10 +3353,8 @@ class ArmImmOffsetOper(ArmOperand):
                 else:
                     mcanv.addNameText("0x%x" % value)
 
-            # FIXME: is there any chance of us doing indexing on PC?!?
-            # ldcl literal trips this in some cases - leaving for now
-            if idxing != 0x10:
-                print "OMJ! indexing on the program counter! -1"
+            if idxing != 0x2:
+                print "OMJ! WRITING to program counter! -1"
         else:
             pom = ('-','')[u]
             mcanv.addText('[')
@@ -3380,8 +3383,8 @@ class ArmImmOffsetOper(ArmOperand):
             tname = "[#0x%x]" % addr
             # FIXME: is there any chance of us doing indexing on PC?!?
             # ldcl literal trips this in some cases
-            #if idxing != 0x10:
-            #    print "OMJ! indexing on the program counter!"
+            if idxing != 0x2:
+                print "OMJ! WRITING to the program counter!"
         else:
             pom = ('-','')[u]
             if self.offset != 0:

@@ -85,14 +85,14 @@ for simdreg in range(VFP_QWORD_REG_COUNT):
     simd_idx = REGS_VECTOR_BASE_IDX + simdreg
     d = simdreg * 2
     s = d * 2
-    reg_data.append(("Q%d" % simdreg, 128))
+    reg_data.append(("q%d" % simdreg, 128))
     if simdreg < 8: # VFPv4 only allows S# indexing up to S31
-        arm_metas.append(("S%d" % (s),   simd_idx, 0, 32))
-        arm_metas.append(("S%d" % (s+1), simd_idx, 32, 32))
-        arm_metas.append(("S%d" % (s+2), simd_idx, 64, 32))
-        arm_metas.append(("S%d" % (s+3), simd_idx, 96, 32))
-    arm_metas.append(("D%d" % (d),   simd_idx, 0, 64))
-    arm_metas.append(("D%d" % (d+1), simd_idx, 32, 64))
+        arm_metas.append(("s%d" % (s),   simd_idx, 0, 32))
+        arm_metas.append(("s%d" % (s+1), simd_idx, 32, 32))
+        arm_metas.append(("s%d" % (s+2), simd_idx, 64, 32))
+        arm_metas.append(("s%d" % (s+3), simd_idx, 96, 32))
+    arm_metas.append(("d%d" % (d),   simd_idx, 0, 64))
+    arm_metas.append(("d%d" % (d+1), simd_idx, 32, 64))
 
 
 l = locals()
