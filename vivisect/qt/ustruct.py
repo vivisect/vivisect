@@ -59,7 +59,7 @@ class UserStructEditor(QtGui.QWidget):
             self._v_sname = self._v_vw.setUserStructSource( ssrc )
             self._v_changed = False
             self._set_title()
-        except Exception, e:
+        except Exception as e:
             QtGui.QMessageBox.warning(self, 'Syntax Error', str(e), QtGui.QMessageBox.Ok )
 
 

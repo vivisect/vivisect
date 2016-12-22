@@ -14,8 +14,8 @@ class PoolMethod(cobra.CobraMethod):
         while True:
             try:
                 return getattr(proxy,self.methname)(*args,**kwargs)
-            except cobra.CobraException, e:
-                print('CobraPool Method Failure: %s %s' % (proxy._cobra_uri,e))
+            except cobra.CobraException as e:
+                print(('CobraPool Method Failure: %s %s' % (proxy._cobra_uri,e)))
                 proxy = self._cobra_pool.cobraPoolGetProxy(rotate=True)
 
 class CobraPool:
@@ -60,8 +60,8 @@ class CobraPool:
                     self.proxycache[uri] = proxy
                 return proxy
 
-            except Exception, e: # proxy construction error!
+            except Exception as e: # proxy construction error!
                 self.uris.rotate(1)
                 traceback.print_exc()
-                print('CobraPool Proxy Failure: %s %s' % (uri,e))
+                print(('CobraPool Proxy Failure: %s %s' % (uri,e)))
                 time.sleep(self.faildelay) # FIXME track per?

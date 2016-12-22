@@ -5,10 +5,11 @@ from vivisect.symboliks.constraints import *
 
 from vivisect.const import *
 
+
 class SymbolikEffect:
-    '''
+    """
     A single symbolik effect...
-    '''
+    """
     efftype = None
 
     def __init__(self, va):
@@ -30,15 +31,16 @@ class SymbolikEffect:
         raise Exception('%s must implement applyEffect!' % (self.__class__.__name__,))
 
     def render(self, canvas, vw):
-        canvas.addText( str(self) )
+        canvas.addText(str(self))
+
 
 class DebugEffect(SymbolikEffect):
-    '''
+    """
     DebugEffect is used to represent an NOP effect that we want logged.
     Example: DebugEffect is created for instructions that are unsupported.
 
         return DebugEffect(op.va, "%s Needs %s" % (self.__class__.__name__, repr(op)))
-    '''
+    """
     efftype = EFFTYPE_DEBUG
 
     def __init__(self, va, msg):
@@ -46,13 +48,13 @@ class DebugEffect(SymbolikEffect):
         self.msg = msg
 
     def __repr__(self):
-        return 'DebugEffect(0x%.8x, %s)' % (self.va, self.msg) 
+        return 'DebugEffect(0x%.8x, %s)' % (self.va, self.msg)
 
     def __str__(self):
-        return '%s' % self.msg 
+        return '%s' % self.msg
 
     def __eq__(self, other):
-        if other == None:
+        if other is None:
             return False
         if self.__class__ != other.__class__:
             return False
@@ -70,8 +72,8 @@ class DebugEffect(SymbolikEffect):
     def applyEffect(self, emu):
         return self
 
-class SetVariable(SymbolikEffect):
 
+class SetVariable(SymbolikEffect):
     efftype = EFFTYPE_SETVAR
 
     def __init__(self, va, varname, symobj):
@@ -91,7 +93,7 @@ class SetVariable(SymbolikEffect):
         self.symobj.render(canvas, vw)
 
     def __eq__(self, other):
-        if other == None:
+        if other is None:
             return False
         if self.__class__ != other.__class__:
             return False
@@ -118,8 +120,8 @@ class SetVariable(SymbolikEffect):
         canvas.addNameText(str(self.varname), name=rname, typename="registers")
         canvas.addText(" = %s" % str(self.symobj))
 
-class ReadMemory(SymbolikEffect):
 
+class ReadMemory(SymbolikEffect):
     efftype = EFFTYPE_READMEM
 
     def __init__(self, va, symaddr, symsize):
@@ -135,7 +137,7 @@ class ReadMemory(SymbolikEffect):
         return '[ %s : %s ]' % (str(self.symaddr), str(self.symsize))
 
     def __eq__(self, other):
-        if other == None:
+        if other is None:
             return False
         if self.__class__ != other.__class__:
             return False
@@ -159,8 +161,8 @@ class ReadMemory(SymbolikEffect):
         symsize = self.symsize.update(emu)
         return ReadMemory(self.va, symaddr, symsize)
 
-class WriteMemory(SymbolikEffect):
 
+class WriteMemory(SymbolikEffect):
     efftype = EFFTYPE_WRITEMEM
 
     def __init__(self, va, symaddr, symsize, symval):
@@ -178,7 +180,7 @@ class WriteMemory(SymbolikEffect):
         return '[ %s : %s ] = %s' % t
 
     def __eq__(self, other):
-        if other == None:
+        if other is None:
             return False
         if self.__class__ != other.__class__:
             return False
@@ -199,7 +201,7 @@ class WriteMemory(SymbolikEffect):
     def reduce(self, emu=None):
         self.symaddr = self.symaddr.reduce(emu=emu)
         self.symsize = self.symsize.reduce(emu=emu)
-        self.symval  = self.symval.reduce(emu=emu)
+        self.symval = self.symval.reduce(emu=emu)
 
     def applyEffect(self, emu):
         symaddr = self.symaddr.update(emu)
@@ -208,14 +210,15 @@ class WriteMemory(SymbolikEffect):
         emu.writeSymMemory(symaddr, symval)
         return WriteMemory(self.va, symaddr, symsize, symval)
 
+
 class CallFunction(SymbolikEffect):
-    '''
+    """
     This effect represents a procedural branch.  They are recorded specially
     because they may have effect on the overall system even though their
     outputs are not stored.
 
     NOTE: argsyms will be None while we haven't had a definition to use..
-    '''
+    """
 
     efftype = EFFTYPE_CALLFUNC
 
@@ -229,12 +232,12 @@ class CallFunction(SymbolikEffect):
 
     def __str__(self):
         argstr = '?'
-        if self.argsyms != None:
-            argstr = ','.join( str(x) for x in self.argsyms )
+        if self.argsyms is not None:
+            argstr = ','.join(str(x) for x in self.argsyms)
         return '%s(%s)' % (self.funcsym, argstr)
 
     def __eq__(self, other):
-        if other == None:
+        if other is None:
             return False
         if self.__class__ != other.__class__:
             return False
@@ -247,13 +250,13 @@ class CallFunction(SymbolikEffect):
 
     def walkTree(self, cb, ctx=None):
         self.funcsym = self.funcsym.walkTree(cb, ctx=ctx)
-        if self.argsyms != None:
-            self.argsyms = [ a.walkTree(cb,ctx=ctx) for a in self.argsyms ]
+        if self.argsyms is not None:
+            self.argsyms = [a.walkTree(cb, ctx=ctx) for a in self.argsyms]
 
     def reduce(self, emu=None):
         self.funcsym = self.funcsym.reduce(emu=emu)
-        if self.argsyms != None:
-            self.argsyms = [ x.reduce(emu=emu) for x in self.argsyms ]
+        if self.argsyms is not None:
+            self.argsyms = [x.reduce(emu=emu) for x in self.argsyms]
 
     def applyEffect(self, emu):
         emu.setMeta('calling_va', self.va)
@@ -261,8 +264,8 @@ class CallFunction(SymbolikEffect):
 
         # If we have argsyms, the function's work has been broken out
         # already (probably by applying effects once already...)
-        if self.argsyms != None:
-            argsyms = [ x.update(emu) for x in self.argsyms ]
+        if self.argsyms is not None:
+            argsyms = [x.update(emu) for x in self.argsyms]
             return CallFunction(self.va, funcsym, argsyms)
 
         # Without argsyms, we are probably a call who is being applied to
@@ -276,14 +279,14 @@ class CallFunction(SymbolikEffect):
         self.funcsym.render(canvas, vw)
         canvas.addText('(')
 
-        if self.argsyms == None:
+        if self.argsyms is None:
             canvas.addText('?')
 
         else:
 
             argmax = len(self.argsyms) - 1
 
-            for i,argsym in enumerate(self.argsyms):
+            for i, argsym in enumerate(self.argsyms):
                 argsym.render(canvas, vw)
 
                 if i < argmax:
@@ -291,8 +294,8 @@ class CallFunction(SymbolikEffect):
 
         canvas.addText(')')
 
-class ConstrainPath(SymbolikEffect):
 
+class ConstrainPath(SymbolikEffect):
     efftype = EFFTYPE_CONSTRAIN
 
     def __init__(self, va, addrsym, cons):
@@ -319,7 +322,7 @@ class ConstrainPath(SymbolikEffect):
         canvas.addText(')')
 
     def __eq__(self, other):
-        if other == None:
+        if other is None:
             return False
         if self.__class__ != other.__class__:
             return False
@@ -334,4 +337,3 @@ class ConstrainPath(SymbolikEffect):
         addrsym = self.addrsym.update(emu)
         cons = self.cons.update(emu)
         return ConstrainPath(self.va, addrsym, cons)
-

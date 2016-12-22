@@ -8,7 +8,7 @@ from vivisect.const import *
 def ffTermFptrArray(vw, va, max=100):
     ret = []
     ffterm = e_bits.u_maxes[vw.psize]
-    for i in xrange(max):
+    for i in range(max):
 
         ltup = vw.makeNumber(va, vw.psize)
 
@@ -19,8 +19,8 @@ def ffTermFptrArray(vw, va, max=100):
         try:
             vw.makeFunction(val)
             ret.append(val)
-        except Exception, e:
-            print "FIXME (ffTermFptrArray): ",e
+        except Exception as e:
+            print("FIXME (ffTermFptrArray): ",e)
         va += vw.psize
     return ret
 

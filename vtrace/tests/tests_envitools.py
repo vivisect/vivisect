@@ -2,8 +2,10 @@ import unittest
 
 import vtrace
 import vtrace.envitools
+from vtrace.tests import VtraceProcessTest
 
-class EnvitoolsTests(vtrace.tests.VtraceProcessTest):
+
+class EnvitoolsTests(VtraceProcessTest):
     def test_emulatorFromTrace(self):
         emu = vtrace.envitools.emuFromTrace(self.trace)
 

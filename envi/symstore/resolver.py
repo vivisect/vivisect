@@ -20,25 +20,25 @@ class Symbol:
     def __eq__(self, other):
         if not isinstance(other, Symbol):
             return False
-        return long(self) == long(other)
+        return int(self) == int(other)
 
     def __coerce__(self, value):
         t = type(value)
 
-        if t == types.NoneType:
+        if t == type(None):
             return (True, False)
 
-        if t in (int,long):
+        if t in (int,int):
             return (t(self.value), value)
 
         if isinstance( value, Symbol ):
-            return ( long(self.value), long(value.value) )
+            return ( int(self.value), int(value.value) )
 
     def __hash__(self):
-        return hash(long(self))
+        return hash(int(self))
 
     def __long__(self):
-        return long(self.value)
+        return int(self.value)
 
     def __int__(self):
         return int(self.value)
@@ -100,7 +100,7 @@ class SymbolResolver:
         """
         Delete a symbol from the resolver's namespace
         """
-        symval = long(sym)
+        symval = int(sym)
         self.symaddrs.pop(symval, None)
 
         bbase = symval & self.bucketmask
@@ -234,7 +234,7 @@ class SymbolResolver:
         """
         Return a list of the symbols which are contained in this resolver.
         """
-        names = self.symnames.keys()
+        names = list(self.symnames.keys())
         return [ self.getSymByName(name) for name in names ]
 
     def getSymHint(self, va, hidx):
@@ -354,7 +354,7 @@ class FileSymbol(Symbol, SymbolResolver):
     def __hash__(self):
         return Symbol.__hash__(self)
 
-    def __nonzero__(self):
+    def __bool__(self):
         return True
 
     def __unicode__(self):

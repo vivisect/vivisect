@@ -9,8 +9,8 @@ import vqt.saveable as vq_save
 import vqt.hotkeys as vq_hotkeys
 import vqt.menubuilder as vq_menu
 
-class VQDockWidget(vq_hotkeys.HotKeyMixin, QtGui.QDockWidget):
 
+class VQDockWidget(vq_hotkeys.HotKeyMixin, QtGui.QDockWidget):
     def __init__(self, parent):
         QtGui.QDockWidget.__init__(self, parent)
         vq_hotkeys.HotKeyMixin.__init__(self)
@@ -65,7 +65,9 @@ class VQDockWidget(vq_hotkeys.HotKeyMixin, QtGui.QDockWidget):
         self.show()
         self.raise_()
 
+
 import vqt.hotkeys as vq_hotkey
+
 
 class VQMainCmdWindow(vq_hotkey.HotKeyMixin, QtGui.QMainWindow):
     '''
@@ -83,7 +85,7 @@ class VQMainCmdWindow(vq_hotkey.HotKeyMixin, QtGui.QMainWindow):
         self._vq_dockwidgets = []
 
         self._vq_settings = QtCore.QSettings('invisigoth', application=appname, parent=self)
-        self._vq_histfile = os.path.join( os.path.expanduser('~'), '.%s_history' % appname)
+        self._vq_histfile = os.path.join(os.path.expanduser('~'), '.%s_history' % appname)
 
         self._dock_classes = {}
 
@@ -97,7 +99,7 @@ class VQMainCmdWindow(vq_hotkey.HotKeyMixin, QtGui.QMainWindow):
 
         self._vq_cli = self.__cli_widget_class__(cmd)
         self._vq_cli.input.loadHistory(self._vq_histfile)
-        self._vq_cli.sigCliQuit.connect( self.close )
+        self._vq_cli.sigCliQuit.connect(self.close)
 
         self.setCentralWidget(self._vq_cli)
         self.vqRestoreGuiSettings(self._vq_settings)
@@ -113,12 +115,12 @@ class VQMainCmdWindow(vq_hotkey.HotKeyMixin, QtGui.QMainWindow):
         pass
 
     def vqAddDockWidgetClass(self, cls, args=()):
-        self._dock_classes[cls.__name__] = (cls,args)
+        self._dock_classes[cls.__name__] = (cls, args)
 
     def vqBuildDockWidget(self, clsname, floating=False, area=QtCore.Qt.TopDockWidgetArea):
         res = self._dock_classes.get(clsname)
         if res == None:
-            print('vqBuildDockWidget Failed For: %s' % clsname)
+            print(('vqBuildDockWidget Failed For: %s' % clsname))
             return
         cls, args = res
         obj = cls(*args)
@@ -127,28 +129,28 @@ class VQMainCmdWindow(vq_hotkey.HotKeyMixin, QtGui.QMainWindow):
     def vqRestoreGuiSettings(self, settings):
 
         dwcls = settings.value('DockClasses')
-        if not dwcls.isNull():
+        if dwcls is not None:
 
-            for i, clsname in enumerate(dwcls.toStringList()):
-                name = 'VQDockWidget%d'  % i
+            for i, clsname in enumerate(dwcls):
+                name = 'VQDockWidget%d' % i
                 try:
                     tup = self.vqBuildDockWidget(str(clsname), floating=True)
-                    if tup != None:
+                    if tup is not None:
                         d, obj = tup
                         d.setObjectName(name)
-                        d.vqRestoreState(settings,name)
+                        d.vqRestoreState(settings, name)
                         d.show()
-                except Exception, e:
-                    print('Error Building: %s: %s'  % (clsname,e))
+                except Exception as e:
+                    print(('Error Building: %s: %s' % (clsname, e)))
 
         # Once dock widgets are loaded, we can restoreState
         state = settings.value('DockState')
-        if not state.isNull():
-            self.restoreState(state.toByteArray())
+        if state is not None:
+            self.restoreState(state)
 
         geom = settings.value('DockGeometry')
-        if not geom.isNull():
-            self.restoreGeometry(geom.toByteArray())
+        if geom is not None:
+            self.restoreGeometry(geom)
 
         # Just get all the resize activities done...
         vq_main.eatevents()
@@ -168,7 +170,7 @@ class VQMainCmdWindow(vq_hotkey.HotKeyMixin, QtGui.QMainWindow):
             dock_classes.append(widget.__class__.__name__)
             name = 'VQDockWidget%d' % i
             w.setObjectName(name)
-            w.vqSaveState(settings,name)
+            w.vqSaveState(settings, name)
 
         settings.setValue('DockClasses', dock_classes)
         settings.setValue('DockGeometry', self.saveGeometry())
@@ -199,4 +201,3 @@ class VQMainCmdWindow(vq_hotkey.HotKeyMixin, QtGui.QMainWindow):
         self.restoreDockWidget(d)
         d.show()
         return d
-

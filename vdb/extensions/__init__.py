@@ -51,11 +51,11 @@ def loadExtensions(vdb, trace):
             mod = imp.new_module('vdb.ext.%s' % modname)
             sys.modules['vdb.ext.%s' % modname] = mod
             filepath = os.path.join(dirname, fname)
-            filebytes = file(filepath, 'r').read()
+            filebytes = open(filepath, 'r').read()
             mod.__file__ = filepath
             try:
-                exec filebytes in mod.__dict__
+                exec(filebytes, mod.__dict__)
                 mod.vdbExtension(vdb, trace)
-            except Exception, e:
+            except Exception as e:
                 vdb.vprint( traceback.format_exc() )
                 vdb.vprint('Extension Error: %s' % filepath)

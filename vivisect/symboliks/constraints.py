@@ -1,5 +1,5 @@
-
 from vivisect.symboliks.common import *
+
 
 class Constraint:
     '''
@@ -90,62 +90,78 @@ class Constraint:
         v2 = self._v2.clone()
         return self.__class__(v1, v2)
 
-    def prove(self, emu=None,vals=None):
-        v1 = self._v1.solve(emu=emu,vals=vals)
-        v2 = self._v2.solve(emu=emu,vals=vals)
+    def prove(self, emu=None, vals=None):
+        v1 = self._v1.solve(emu=emu, vals=vals)
+        v2 = self._v2.solve(emu=emu, vals=vals)
         return self.testTruth(v1, v2)
 
     def solve(self, emu=None, vals=None):
         # A "solution" for a condition is it's boolean state as int...
-        return int(self.prove(emu=emu,vals=vals))
+        return int(self.prove(emu=emu, vals=vals))
 
     def testTruth(self, v1, v2):
-        #raise Exception('Constraint %s must implement testTruth!' % self.__class__.__name__)
+        # raise Exception('Constraint %s must implement testTruth!' % self.__class__.__name__)
         return True
 
     def isDiscrete(self, emu=None):
         return self._v1.isDiscrete(emu=emu) and self._v2.isDiscrete(emu=emu)
 
+
 def opose(c1, c2):
     c1.revclass = c2
     c2.revclass = c1
 
+
 class eq(Constraint):
     operstr = '=='
+
     def testTruth(self, v1, v2):
         return v1 == v2
 
+
 class ne(Constraint):
     operstr = '!='
+
     def testTruth(self, v1, v2):
         return v1 != v2
 
+
 class le(Constraint):
     operstr = '<='
+
     def testTruth(self, v1, v2):
         return v1 <= v2
 
+
 class gt(Constraint):
     operstr = '>'
+
     def testTruth(self, v1, v2):
         return v1 > v2
 
+
 class lt(Constraint):
     operstr = '<'
+
     def testTruth(self, v1, v2):
         return v1 < v2
 
+
 class ge(Constraint):
     operstr = '>='
+
     def testTruth(self, v1, v2):
         return v1 >= v2
 
+
 class UNK(Constraint): operstr = 'UNK'
+
+
 class NOTUNK(Constraint): operstr = '!UNK'
+
 
 # Create our oposing constraints
 opose(ne, eq)
 opose(le, gt)
 opose(lt, ge)
 opose(UNK, NOTUNK)
-

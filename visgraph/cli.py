@@ -24,7 +24,7 @@ class GraphCli(cmd.Cmd):
         (the property nid is special and MUST be an integer)
         '''
         nid = self.graph.addNode()
-        print 'Node %d added!' % nid
+        print('Node %d added!' % nid)
 
     def do_quit(self, line):
         '''

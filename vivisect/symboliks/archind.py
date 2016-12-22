@@ -133,7 +133,7 @@ def wipeAstArch(symctx, symobjs, emu=None, wipeva=False):
             return Var(indregs.get(oldsym.name), 4)
 
         oldsym = idtova.get(symobj._sym_id)
-        if oldsym != None:
+        if oldsym is not None:
             obj = Var(indvas.get(oldsym.value), 4)
             ploc = symctx.vw.getLocation(oldsym.value)
             if ploc:
@@ -178,33 +178,33 @@ if __name__ == '__main__':
     symctx = v_sym_analysis.getSymbolikAnalysisContext(vw)
 
     print('Before...')
-    print('BASE: %s' % str(base))
+    print(('BASE: %s' % str(base)))
 
-    for i in xrange(len(eqs)):
-        print('EQ%d: %s' % (i,str(eqs[i])))
+    for i in range(len(eqs)):
+        print(('EQ%d: %s' % (i,str(eqs[i]))))
 
-    for i in xrange(len(nes)):
-        print('NE%d: %s' % (i,str(nes[i])))
+    for i in range(len(nes)):
+        print(('NE%d: %s' % (i,str(nes[i]))))
 
     base = wipeAstArch(symctx, [base,], wipeva=True)[0]
-    eqs = [ wipeAstArch(symctx, [eqs[i],], wipeva=True)[0] for i in xrange(len(eqs)) ]
-    nes = [ wipeAstArch(symctx, [nes[i],], wipeva=True)[0] for i in xrange(len(nes)) ]
+    eqs = [ wipeAstArch(symctx, [eqs[i],], wipeva=True)[0] for i in range(len(eqs)) ]
+    nes = [ wipeAstArch(symctx, [nes[i],], wipeva=True)[0] for i in range(len(nes)) ]
 
     print('After...')
-    print('BASE: %s' % str(base))
+    print(('BASE: %s' % str(base)))
 
-    for i in xrange(len(eqs)):
-        print('EQ%d: %s' % (i,str(eqs[i])))
+    for i in range(len(eqs)):
+        print(('EQ%d: %s' % (i,str(eqs[i]))))
 
-    for i in xrange(len(nes)):
-        print('NE%d: %s' % (i,str(nes[i])))
+    for i in range(len(nes)):
+        print(('NE%d: %s' % (i,str(nes[i]))))
 
     emu = None
 
     baseval = base.solve(emu=emu)
-    for i in xrange(len(eqs)):
-        print('BASE == EQ%d: %s' % (i, eqs[i].solve() == baseval))
+    for i in range(len(eqs)):
+        print(('BASE == EQ%d: %s' % (i, eqs[i].solve() == baseval)))
 
-    for i in xrange(len(nes)):
-        print('BASE == NE%d: %s' % (i, nes[i].solve() == baseval))
+    for i in range(len(nes)):
+        print(('BASE == NE%d: %s' % (i, nes[i].solve() == baseval)))
 

@@ -27,7 +27,7 @@ class DcodeServer:
 
         try:
             fobj, filename, typeinfo = imp.find_module(fullname, path)
-        except ImportError, e:
+        except ImportError as e:
             return None
 
         if os.path.isdir(filename):
@@ -41,13 +41,13 @@ class DcodeServer:
             return None
 
         path = os.path.dirname(filename)
-        fbytes = file(filename, "rU").read()
+        fbytes = open(filename, "rU").read()
         return (fbytes,filename,path)
 
         #return DcodeLoader(fbytes, filename, path)
 
 def toutf8(s):
-    if type(s) == unicode:
+    if type(s) == str:
         s = s.encode('utf8')
     return s
 
@@ -76,7 +76,7 @@ class DcodeLoader(object):
             if self.path != None:
                 mod.__path__ = [self.path]
 
-            exec toutf8(self.fbytes) in mod.__dict__
+            exec(toutf8(self.fbytes), mod.__dict__)
 
         return mod
 
@@ -100,10 +100,10 @@ class DcodeFinder(object):
 
         except ImportError:
 
-            if verbose: print('Dcode Searching: %s (%s)' % (name,path))
+            if verbose: print(('Dcode Searching: %s (%s)' % (name,path)))
             pymod = self.proxy.getPythonModule(fullname,path)
             if pymod:
-                if verbose: print('Dcode Loaded: %s' % fullname)
+                if verbose: print(('Dcode Loaded: %s' % fullname))
                 return DcodeLoader(*pymod)
 
 def addDcodeProxy(proxy):

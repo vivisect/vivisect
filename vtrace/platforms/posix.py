@@ -88,7 +88,7 @@ class PosixMixin:
             self.handlePosixSignal(sig)
 
         else:
-            print "OMG WTF JUST HAPPENED??!?11/!?1?>!"
+            print("OMG WTF JUST HAPPENED??!?11/!?1?>!")
 
     def handlePosixSignal(self, sig):
         """
@@ -243,7 +243,7 @@ class PtraceMixin:
         for i in range(len(bytes)/wordsize):
             offset = wordsize*i
             dword = struct.unpack("L",bytes[offset:offset+wordsize])[0]
-            if ptrace(PT_WRITE_D, self.pid, long(address+offset), long(dword)) != 0:
+            if ptrace(PT_WRITE_D, self.pid, int(address+offset), int(dword)) != 0:
                 raise Exception("ERROR ptrace PT_WRITE_D failed!")
 
 

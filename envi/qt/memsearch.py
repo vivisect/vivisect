@@ -6,15 +6,16 @@ import envi.memcanvas.renderers as e_render
 
 from PyQt4 import QtGui, QtCore
 
+
 class MemSearchDialog(QtGui.QDialog):
-    '''
+    """
     gui for search cli command.
-    '''
+    """
+
     def __init__(self):
         QtGui.QDialog.__init__(self)
 
-        self.modes = ['ascii', 'hex', 'regex', 'utf-8', 'utf-16-le',
-                        'utf-16-be']
+        self.modes = ['ascii', 'hex', 'regex', 'utf-8', 'utf-16-le', 'utf-16-be']
         self.pattern = None
         self.filename = None
 
@@ -45,12 +46,12 @@ class MemSearchDialog(QtGui.QDialog):
         gbox1.setLayout(vbox1)
 
         hbox3 = QtGui.QHBoxLayout()
-        vbox_hex_label = QtGui.QVBoxLayout() # for align to top.
+        vbox_hex_label = QtGui.QVBoxLayout()  # for align to top.
         hex_label = QtGui.QLabel('Hex:   ')
         vbox_hex_label.addWidget(hex_label, alignment=QtCore.Qt.AlignTop)
         self.hex_edit = QtGui.QPlainTextEdit()
         self.hex_edit.setReadOnly(True)
-        font = QtGui.QFont('Courier') # should use actual memcanvas.
+        font = QtGui.QFont('Courier')  # should use actual memcanvas.
         self.hex_edit.setFont(font)
         hbox3.addLayout(vbox_hex_label)
         hbox3.addWidget(self.hex_edit)
@@ -116,7 +117,7 @@ class MemSearchDialog(QtGui.QDialog):
 
     def encodeData(self, txt, encoding):
         if encoding == 'hex' and (len(txt) % 2) != 0:
-            txt = txt[:-1] # trim last if odd length
+            txt = txt[:-1]  # trim last if odd length
 
         if encoding == 'hex':
             if not all(c in string.hexdigits for c in txt):
@@ -158,14 +159,16 @@ class MemSearchDialog(QtGui.QDialog):
     def getResults(self):
         return self.pattern, self.filename
 
+
 def main():
     app = QtGui.QApplication([])
     dlg = MemSearchDialog()
-    font = QtGui.QFont('Courier')#'Consolas', 10)#'Courier New', 10)
+    font = QtGui.QFont('Courier')  # 'Consolas', 10)#'Courier New', 10)
     dlg.hex_edit.setFont(font)
     if dlg.exec_() == QtGui.QDialog.Accepted:
-        print(dlg.pattern)
-        print(dlg.filename)
+        print((dlg.pattern))
+        print((dlg.filename))
+
 
 if __name__ == '__main__':
     main()

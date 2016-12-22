@@ -1,14 +1,14 @@
-'''
+"""
 Some of the basic/universal memory renderers.
-'''
+"""
 
 import struct
 
 import envi.memory as e_mem
 import envi.memcanvas as e_canvas
 
-class ByteRend(e_canvas.MemoryRenderer):
 
+class ByteRend(e_canvas.MemoryRenderer):
     __fmt_char__ = 'B'
     __pad__ = False
 
@@ -18,19 +18,19 @@ class ByteRend(e_canvas.MemoryRenderer):
         if bigend:
             self.fmtbase = '>'
 
-        self.width = struct.calcsize('%s%s' % (self.fmtbase,self.__class__.__fmt_char__))
+        self.width = struct.calcsize('%s%s' % (self.fmtbase, self.__class__.__fmt_char__))
         self.bformat = '%%.%dx' % (self.width * 2)
         self.pformat = '0x%s' % self.bformat
 
     def render(self, mcanv, va, numbytes=16):
         bytez = mcanv.mem.readMemory(va, numbytes)
         if self.__pad__:
-            bytez = bytez.ljust(numbytes, '\x00')
+            bytez = bytez.ljust(numbytes, b'\x00')
 
         mcanv.addVaText(self.pformat % va, va)
         mcanv.addText('  ')
 
-        cnt = len(bytez) / self.width
+        cnt = len(bytez) // self.width
         packfmt = self.fmtbase + (self.__class__.__fmt_char__ * cnt)
         for val in struct.unpack(packfmt, bytez):
             bstr = self.bformat % val
@@ -44,29 +44,31 @@ class ByteRend(e_canvas.MemoryRenderer):
         # add padding space for anything less than 16.
         # this only 'works' if your display font is monospaced.
         diff = numbytes - len(bytez)
-        mcanv.addText(' ' * 3 * diff) # 2 hex chars + space
+        mcanv.addText(' ' * 3 * diff)  # 2 hex chars + space
         mcanv.addText('  ')
         self.rendChars(mcanv, bytez)
         mcanv.addText('\n')
 
         return len(bytez)
 
-class ShortRend(ByteRend):
 
+class ShortRend(ByteRend):
     __fmt_char__ = 'H'
     __pad__ = True
 
-class LongRend(ByteRend):
 
+class LongRend(ByteRend):
     __fmt_char__ = 'I'
     __pad__ = True
+
 
 class QuadRend(ByteRend):
     __fmt_char__ = 'Q'
     __pad__ = True
 
+
 def isAscii(bytez):
-    bytez = bytez.split('\x00')[0]
+    bytez = bytez.split(b'\x00')[0]
     if len(bytez) < 4:
         return False, None
     for i in range(len(bytez)):
@@ -75,32 +77,37 @@ def isAscii(bytez):
             return False, None
     return True, bytez
 
+
 def isBasicUnicode(bytez):
-    bytez = bytez.split('\x00\x00')[0]
+    bytez = bytez.split(b'\x00\x00')[0]
     if len(bytez) < 8:
         return False, None
-    nonull = bytez.replace('\x00', '')
+    nonull = bytez.replace(b'\x00', '')
     if (len(bytez) / 2) != len(nonull):
         return False, None
     return isAscii(nonull)
 
+
 def getAsciiFormatted(bytez):
     is_ascii, bytez = isAscii(bytez)
-    if bytez != None:
+    if bytez is not None:
         bytez = "'%s'" % bytez
     return bytez
 
+
 def getBasicUnicodeFormatted(bytez):
     is_uni, bytez = isBasicUnicode(bytez)
-    if bytez != None:
+    if bytez is not None:
         bytez = "u'%s'" % bytez
     return bytez
 
+
 def getSymByAddrFormatted(trace, va):
     sym = trace.getSymByAddr(va, exact=False)
-    if sym != None:
-        return '%s + %d' % (repr(sym), va-long(sym))
+    if sym is not None:
+        return '%s + %d' % (repr(sym), va - int(sym))
     return sym
+
 
 def getFilenameFromFdFormatted(trace, va):
     for fd, ttype, bestname in trace.getFds():
@@ -108,8 +115,8 @@ def getFilenameFromFdFormatted(trace, va):
             return 'HANDLE/FD?: %s' % bestname
     return None
 
-class AutoBytesRenderer(e_canvas.MemoryRenderer):
 
+class AutoBytesRenderer(e_canvas.MemoryRenderer):
     def __init__(self, maxrend=32, readsize=64):
         self.maxrend = maxrend
         self.readsize = readsize
@@ -124,7 +131,7 @@ class AutoBytesRenderer(e_canvas.MemoryRenderer):
 
         prettyperm = ''
         mmap = trace.getMemoryMap(va)
-        if mmap != None:
+        if mmap is not None:
             addr, size, perm, fname = mmap
             prettyperm = e_mem.reprPerms(perm)
 

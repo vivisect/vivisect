@@ -126,7 +126,7 @@ class VivCli(e_cli.EnviCli, vivisect.VivWorkspace):
         argv = e_cli.splitargs(line)
         try:
             opts,argv = getopt(argv, 'A:')
-        except Exception, e:
+        except Exception as e:
             return self.do_help('symboliks')
 
         for opt,optarg in opts:
@@ -169,7 +169,7 @@ class VivCli(e_cli.EnviCli, vivisect.VivWorkspace):
                     #continue
                 #self.vprint('%s: %s 0x%.8x' % (reg, regobj.reduce(), regobj.solve(emu)))
 
-            for addrsym,valsym in emu._sym_mem.values():
+            for addrsym,valsym in list(emu._sym_mem.values()):
                 addrsym = addrsym.reduce(emu=emu)
                 valsym = valsym.reduce(emu=emu)
                 if emu.isLocalMemory(addrsym):
@@ -254,7 +254,7 @@ class VivCli(e_cli.EnviCli, vivisect.VivWorkspace):
         argv = e_cli.splitargs(line)
         try:
             opts,args = getopt(argv, 'IS')
-        except Exception, e:
+        except Exception as e:
             return self.do_help('fscope')
 
         if not len(args) or not len(opts):
@@ -306,7 +306,7 @@ class VivCli(e_cli.EnviCli, vivisect.VivWorkspace):
                 return
             edict = {line:x}
 
-        fnames = edict.keys()
+        fnames = list(edict.keys())
         fnames.sort()
         for fname in fnames:
             self.canvas.addNameText(fname, fname)
@@ -407,7 +407,7 @@ class VivCli(e_cli.EnviCli, vivisect.VivWorkspace):
         argv = e_cli.splitargs(line)
         try:
             opts,args = getopt(argv, "csup:S:")
-        except Exception, e:
+        except Exception as e:
             return self.do_help("make")
 
         if len(args) != 1 or len(opts) != 1:
@@ -478,13 +478,13 @@ class VivCli(e_cli.EnviCli, vivisect.VivWorkspace):
 
         try:
             fva = self.parseExpression(argv[0])
-        except Exception, e:
+        except Exception as e:
             self.vprint("Invalid Address Expression: %s" % argv[0])
             return
 
         try:
             idx = self.parseExpression(argv[1])
-        except Exception, e:
+        except Exception as e:
             self.vprint("Invalid Index Expression: %s" % argv[1])
             return
 
@@ -540,13 +540,13 @@ class VivCli(e_cli.EnviCli, vivisect.VivWorkspace):
 
         try:
             frva = self.parseExpression(argv[0])
-        except Exception, e:
+        except Exception as e:
             self.vprint("Invalid From Va: %s" % argv[0])
             return
 
         try:
             tova = self.parseExpression(argv[1])
-        except Exception, e:
+        except Exception as e:
             self.vprint("Invalid To Va: %s" % argv[1])
             return
 
@@ -593,7 +593,7 @@ class VivCli(e_cli.EnviCli, vivisect.VivWorkspace):
         if line:
             try:
                 socket.gethostbyname(line)
-            except Exception, e:
+            except Exception as e:
                 self.vprint('Invalid Remote Host: %s' % line)
 
             vtrace.remote = line

@@ -77,7 +77,7 @@ class StructParser:
         if cls == vs_prim.v_int8:
             return lambda: vs_prim.v_str(size=size)
 
-        return lambda: vstruct.VArray( [ cls() for i in xrange(size) ] )
+        return lambda: vstruct.VArray( [ cls() for i in range(size) ] )
         #return [ cls() for i in xrange(size) ]
 
     def c_getIdentType(self, itelem):
@@ -114,7 +114,7 @@ class StructParser:
         return int(celem[1].value)
 
     def c_getFuncDecl(self, felem):
-        print 'WOO'*300
+        print('WOO'*300)
 
     def parseStructSource(self, src):
         src = preProcessSource( src )
@@ -180,5 +180,5 @@ if __name__ == '__main__':
 
     a = awesome()
     a.vsParse('XXXXZZZZhow cool is this?\x00\x00\x00YYYYblahQQQQ')
-    print a.tree()
+    print(a.tree())
 

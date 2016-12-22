@@ -50,7 +50,7 @@ class LockStepper:
         self.emu.setRegisterSnap( regctx.getRegisterSnap() )
 
     def stepi(self, count=1):
-        for i in xrange(count):
+        for i in range(count):
             emupc = self.emu.getProgramCounter()
             tracepc = self.trace.getProgramCounter()
             #print('pc: 0x%.8x' % emupc)
@@ -66,12 +66,12 @@ class LockStepper:
 
             try:
                 self.emu.stepi()
-            except Exception, e:
+            except Exception as e:
                 raise Exception('Emu Exception: %s on %s' % (e,repr(op1)))
 
             try:
                 self.trace.stepi()
-            except Exception, e:
+            except Exception as e:
                 raise Exception('Trace Exception: %s on %s' % (e,repr(op2)))
 
             self.cmpregs( op1, op2 )
@@ -80,7 +80,7 @@ class LockStepper:
     def cmpregs(self, emuop, traceop):
         emuregs = self.emu.getRegisters()
         traceregs = self.trace.getRegisters()
-        for regname,regval in emuregs.items():
+        for regname,regval in list(emuregs.items()):
             traceval = traceregs.get(regname)
             mask = undefs.get(self.archname).get( (emuop.mnem,regname) )
             if mask != None:

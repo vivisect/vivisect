@@ -75,7 +75,7 @@ class VMWare32WindowsTrace(
         fs_fields = self.readMemoryFormat(fsbase, '<8I')
         # Windows has a self reference in the KPCR...
         if fs_fields[7] != fsbase:
-            print [ hex(x) for x in fs_fields ]
+            print([ hex(x) for x in fs_fields ])
             raise Exception('poi(fsbase+(ptr*7)) != fsbase! ( not actually windows? )')
 
         vt_winkern.initWinkernTrace(self,fsbase)
@@ -98,9 +98,9 @@ class VMWare32WindowsTrace(
 
             self.impSymCache( symcache, symfname=normname, baseaddr=baseaddr )
 
-        except Exception, e:
+        except Exception as e:
             import traceback;traceback.print_exc()
-            print('Error Parsing Binary (%s): %s' % (normname, e))
+            print(('Error Parsing Binary (%s): %s' % (normname, e)))
 
 
     def buildNewTrace(self):

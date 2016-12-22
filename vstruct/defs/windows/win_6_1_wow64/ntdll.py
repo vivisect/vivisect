@@ -5087,7 +5087,7 @@ class RTL_USER_PROCESS_PARAMETERS(vstruct.VStruct):
         self.ConsoleFlags = v_uint32()
         self.StandardInput = v_ptr32()
         self.StandardOutput = v_ptr32()
-        self.StandardError = v_ptr32()
+        self.Exception = v_ptr32()
         self.CurrentDirectory = CURDIR()
         self.DllPath = UNICODE_STRING()
         self.ImagePathName = UNICODE_STRING()

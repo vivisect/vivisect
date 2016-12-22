@@ -42,7 +42,7 @@ class VivGraphTest(unittest.TestCase):
         self.codepathsfrom = paths
         self.assertGreater(len(self.codepaths), 150)
 
-        paths = [ path for path in graph.getHierPathsFrom,((cbva,)) ]
+        paths = [ path for path in (graph.getHierPathsFrom,((cbva,))) ]
         self.hierpathsfrom = paths
         self.assertGreater(len(self.codepaths), len(self.hierpathsfrom))
 

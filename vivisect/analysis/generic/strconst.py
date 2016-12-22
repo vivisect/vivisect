@@ -14,7 +14,7 @@ def analyze(vw):
 
     for fva in vw.getFunctions():
         for va, size, funcva in vw.getFunctionBlocks(fva):
-            maxva = va+size
+            maxva = va + size
             while va < maxva:
                 op = vw.parseOpcode(va)
                 for o in op.opers:

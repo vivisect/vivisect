@@ -2,8 +2,10 @@
 Unified expression helpers.
 """
 
+
 def evaluate(pycode, locals):
     return eval(pycode, {}, locals)
+
 
 class ExpressionLocals(dict):
     """
@@ -11,28 +13,29 @@ class ExpressionLocals(dict):
     of envi expressions.  You may pass in an envi.symstore.resolver.SymbolResolver
     object to automagically use symbols in your expressions.
     """
+
     def __init__(self, symobj=None):
         dict.__init__(self)
         self.symobj = symobj
 
     def __getitem__(self, name):
-        if self.symobj != None:
+        if self.symobj is not None:
             ret = self.symobj.getSymByName(name)
-            if ret != None: return ret
+            if ret is not None: return ret
         return dict.__getitem__(self, name)
 
-class MemoryExpressionLocals(ExpressionLocals):
 
+class MemoryExpressionLocals(ExpressionLocals):
     def __init__(self, memobj, symobj=None):
         ExpressionLocals.__init__(self, symobj=symobj)
         self.memobj = memobj
         self.update({
-            'mapbase':self.mapbase,
-            'maplen':self.maplen,
-            'ispoi':self.ispoi,
-            'mem':self.mem,
-            'poi':self.poi,
-            'sym':self.sym,
+            'mapbase': self.mapbase,
+            'maplen': self.maplen,
+            'ispoi': self.ispoi,
+            'mem': self.mem,
+            'poi': self.poi,
+            'sym': self.sym,
         })
 
     def sym(self, symstr):
@@ -41,7 +44,7 @@ class MemoryExpressionLocals(ExpressionLocals):
 
         Example x = sym('kernel32.??2@$$FYAPAXI@Z')
         '''
-        return long(evaluate(symstr, self))
+        return int(evaluate(symstr, self))
 
     def mapbase(self, address):
         """
@@ -84,4 +87,3 @@ class MemoryExpressionLocals(ExpressionLocals):
         the address pointed to by addr.
         """
         return self.memobj.readMemoryPtr(address)
-

@@ -22,9 +22,9 @@ def auditTracer(trace):
         if "__" in mname:
             continue
         if getattr(trace.__class__, mname) == getattr(v_base.BasePlatformMixin, mname):
-            print "LACKS:",mname
+            print("LACKS:",mname)
         else:
-            print "HAS:",mname
+            print("HAS:",mname)
 
 if __name__ == "__main__":
     trace = vtrace.getTrace()

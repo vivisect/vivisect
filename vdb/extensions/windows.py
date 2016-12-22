@@ -85,7 +85,7 @@ def einfo(vdb, line):
 
     try:
         opts,args = getopt.getopt(argv, 'P')
-    except Exception, e:
+    except Exception as e:
         return vdb.do_help('einfo')
 
     for opt,optarg in opts:
@@ -133,13 +133,13 @@ def seh(vdb, line):
         vdb.vprint("Unknown Thread Id: %d" % tid)
         return
     teb = t.getStruct("ntdll.TEB", tinfo)
-    addr = long(teb.NtTib.ExceptionList)
+    addr = int(teb.NtTib.ExceptionList)
     vdb.vprint("REG        HANDLER")
     while addr != 0xffffffff:
         #FIXME print out which frame these are in
         er = t.getStruct("ntdll.EXCEPTION_REGISTRATION_RECORD", addr)
         vdb.vprint("0x%.8x 0x%.8x" % (addr, er.Handler))
-        addr = long(er.Next)
+        addr = int(er.Next)
 
 def safeseh(vdb, line):
     """
@@ -160,7 +160,7 @@ def safeseh(vdb, line):
 
         try:
             p = PE.peFromMemoryObject(t, base)
-        except Exception, e:
+        except Exception as e:
             vdb.vprint('Error: %s (0x%.8x) %s' % (line, base, e))
             return
 
@@ -174,13 +174,13 @@ def safeseh(vdb, line):
         vdb.vprint("None...")
 
     else:
-        lnames = libs.keys()
+        lnames = list(libs.keys())
         lnames.sort()
         for name in lnames:
             base = libs.get(name)
             try:
                 p = PE.peFromMemoryObject(t, base)
-            except Exception, e:
+            except Exception as e:
                 vdb.vprint('Error: %s (0x%.8x) %s' % (name, base, e))
                 continue
 
@@ -205,7 +205,7 @@ def validate_heaps(db):
 
         try:
             f = heap.getFreeLists()
-        except Exception, e:
+        except Exception as e:
             #import traceback
             #traceback.print_exc()
             db.vprint("%s: %s" % (e.__class__.__name__,e))
@@ -225,7 +225,7 @@ def validate_heaps(db):
                                   (pchunk.address, pchunk.chunk.Size, chunk.address, chunk.chunk.PreviousSize))
                         break
 
-            except Exception, e:
+            except Exception as e:
                 db.vprint("%s: %s" % (e.__class__.__name__,e))
 
 def heaps(vdb, line):
@@ -260,7 +260,7 @@ def heaps(vdb, line):
 
     try:
         opts,args = getopt.getopt(argv, "F:C:S:L:l:U:V:b:")
-    except Exception, e:
+    except Exception as e:
         return vdb.do_help('heaps')
 
     for opt,optarg in opts:
@@ -306,7 +306,7 @@ def heaps(vdb, line):
 
         heap = win32heap.Win32Heap(t, uncommit_heap)
         ucrdict = heap.getUCRDict()
-        addrs = ucrdict.keys()
+        addrs = list(ucrdict.keys())
         addrs.sort()
         if len(addrs) == 0:
             vdb.vprint('Heap 0x%.8x has 0 uncommited-ranges!' % uncommit_heap)
@@ -410,7 +410,7 @@ def showaslr(vdb, base, libname):
     t = vdb.getTrace()
     try:
         p = PE.peFromMemoryObject(t, base)
-    except Exception, e:
+    except Exception as e:
         vdb.vprint('Error: %s (0x%.8x) %s' % (libname, base, e))
         return
     enabled = False
@@ -437,7 +437,7 @@ def aslr(vdb, line):
             return
         showaslr(vdb, base, line)
     else:
-        lnames = libs.keys()
+        lnames = list(libs.keys())
         lnames.sort()
         for name in lnames:
             base = libs.get(name)
@@ -490,7 +490,7 @@ def pagewatch(vdb, line):
     argv = e_cli.splitargs(line)
     try:
         opts,args = getopt.getopt(argv, "CFLMP:RS:u")
-    except Exception, e:
+    except Exception as e:
         return vdb.do_help('pagewatch')
 
     if vdb.trace.getMeta('pagewatch') == None:
@@ -675,7 +675,7 @@ def gflags(vdb, line):
                     else:
                         newval = offval
                     vdb.trace.writeMemoryFormat(addr, fmt, newval)
-                except Exception, e:
+                except Exception as e:
                     vdb.vprint('Symbol Failure: %s' % symname)
                 break
 
@@ -688,7 +688,7 @@ def gflags(vdb, line):
                 status = 'Off'
             elif val == onval:
                 status = 'On'
-        except Exception, e:
+        except Exception as e:
             pass
         vdb.vprint('%s : %s' % (hname.rjust(20), status))
 
@@ -725,7 +725,7 @@ def pe(vdb, line):
     argv = e_cli.splitargs(line)
     try:
         opts,args = getopt.getopt(argv, "EImNStvV")
-    except Exception, e:
+    except Exception as e:
         return vdb.do_help('pe')
 
     inmem = True
@@ -773,7 +773,7 @@ def pe(vdb, line):
 
         try:
             pobj = PE.peFromMemoryObject(t, base)
-        except Exception, e:
+        except Exception as e:
             vdb.vprint('Error: %s (0x%.8x) %s' % (libname, base, e))
             continue
 
@@ -782,12 +782,12 @@ def pe(vdb, line):
             try:
                 for rva,lname,fname in pobj.getImports():
                     ldeps[lname.lower()] = True
-                lnames = ldeps.keys()
+                lnames = list(ldeps.keys())
                 lnames.sort()
                 vdb.vprint('0x%.8x - %.30s' % (base, libname))
                 for lname in lnames:
                     vdb.vprint('    %s' % lname)
-            except Exception, e:
+            except Exception as e:
                 vdb.vprint('Import Parser Error On %s: %s' % (libname, e))
 
         elif showvers:
@@ -887,15 +887,15 @@ def hooks(vdb, line):
     bases = t.getMeta("LibraryBases")
     paths = t.getMeta("LibraryPaths")
     found = False
-    for bname in bases.keys():
+    for bname in list(bases.keys()):
         base = bases.get(bname)
         fpath = paths.get(base)
-        pobj = PE.PE(file(fpath,'rb'))
+        pobj = PE.PE(open(fpath, 'rb'))
         filebase = pobj.IMAGE_NT_HEADERS.OptionalHeader.ImageBase
 
         skips = {}
         # Get relocations for skipping
-        r = range( t.getPointerSize() )
+        r = list(range( t.getPointerSize()))
         for relrva, reltype in pobj.getRelocations():
             for i in r:
                 skips[base+relrva+i] = True
@@ -932,7 +932,7 @@ def hooks(vdb, line):
                     sym = vdb.symobj.getSymByAddr(difva, exact=False)
                     if sym != None:
                         vdb.canvas.addText(' ')
-                        vdb.canvas.addVaText('%s + %d' % (repr(sym),difva-long(sym)), difva)
+                        vdb.canvas.addVaText('%s + %d' % (repr(sym),difva-int(sym)), difva)
                     vdb.canvas.addText('\n')
 
     if not found: vdb.canvas.addText('No Hooks Found!\n')
@@ -949,26 +949,26 @@ def jit(vdb, line):
     argv = e_cli.splitargs(line)
     try:
         opts,args = getopt.getopt(argv, "ED")
-    except Exception, e:
+    except Exception as e:
         return vdb.do_help('jit')
 
     try:
-        import _winreg
-    except Exception, e:
+        import winreg
+    except Exception as e:
         vdb.vprint('Error Importing _winreg: %s' % e)
         return
 
-    HKLM = _winreg.HKEY_LOCAL_MACHINE
-    HKCU = _winreg.HKEY_CURRENT_USER
-    REG_SZ = _winreg.REG_SZ
+    HKLM = winreg.HKEY_LOCAL_MACHINE
+    HKCU = winreg.HKEY_CURRENT_USER
+    REG_SZ = winreg.REG_SZ
 
     regpath = r'SOFTWARE\Microsoft\Windows NT\CurrentVersion\AeDebug'
     #wow64path = r'SOFTWARE\Wow6432Node\Microsoft\Windows NT\CurrentVersion\AeDebug'
 
     #regkey = _winreg.CreateKey(HKLM, regpath)
-    regkey = _winreg.CreateKey(HKLM, regpath)
+    regkey = winreg.CreateKey(HKLM, regpath)
 
-    vdb.vprint('JIT Currently: %s' % _winreg.QueryValueEx(regkey, 'Debugger')[0])
+    vdb.vprint('JIT Currently: %s' % winreg.QueryValueEx(regkey, 'Debugger')[0])
 
     setval = None
     for opt,optarg in opts:
@@ -983,7 +983,7 @@ def jit(vdb, line):
 
     if setval != None:
         vdb.vprint('Setting JIT: %s' % (setval,))
-        _winreg.SetValueEx(regkey, 'Debugger', None, REG_SZ, setval)
+        winreg.SetValueEx(regkey, 'Debugger', None, REG_SZ, setval)
 
 def svclist(vdb, line):
     '''
@@ -1002,7 +1002,7 @@ def svclist(vdb, line):
 
     names = e_cli.columnstr(names)
 
-    for i in xrange(len(pids)):
+    for i in range(len(pids)):
         vdb.vprint('%8s %s %s' % (pids[i], names[i], descrs[i]))
 
 def injectso(vdb, line):

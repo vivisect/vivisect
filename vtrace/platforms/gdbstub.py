@@ -207,13 +207,13 @@ class GdbStubMixin:
                     self._gdb_sock.recv(1)
                     self._gdb_sock.sendall('+')
 
-                except socket.timeout, t:
+                except socket.timeout as t:
                     pass
 
                 self._gdb_sock.settimeout(None)
                 break
 
-            except Exception, e:
+            except Exception as e:
                 time.sleep(0.2)
                 tries += 1
 
@@ -280,7 +280,7 @@ class GdbStubMixin:
         while True:
             pkt = self._recvPkt()
             if pkt.startswith('O'):
-                print 'GDBSTUB SAID: %s' % pkt[1:].decode('hex')
+                print('GDBSTUB SAID: %s' % pkt[1:].decode('hex'))
                 continue
             break
         return pkt
@@ -340,7 +340,7 @@ class GdbStubMixin:
             return
 
         else:
-            print 'Unhandled Gdb Server Event: %s' % event
+            print('Unhandled Gdb Server Event: %s' % event)
 
         #if self.attaching and signo in trap_sigs:
         if self.attaching:
@@ -578,7 +578,7 @@ class GdbStubMixin_old(e_registers.RegisterContext):
         return basename.split(".")[0].split("-")[0].lower()
 
     def platformParseBinary(self, filename, baseaddr, normname):
-        print 'platformParseBinary: 0x%.8x %s' % (baseaddr, normname)
+        print('platformParseBinary: 0x%.8x %s' % (baseaddr, normname))
 
     def platformParseBinaryPe(self, filename, baseaddr, normname):
 
@@ -601,8 +601,8 @@ class GdbStubMixin_old(e_registers.RegisterContext):
                     parser.loadSymsIntoTrace(self, normname)
                 finally:
                     os.unlink(tfilename)
-            except Exception, e:
-                print e
+            except Exception as e:
+                print(e)
 
         else:
             pe = PE.peFromMemoryObject(self, baseaddr)
@@ -625,7 +625,7 @@ class GdbStubMixin_old(e_registers.RegisterContext):
     def _getVmwareIdtr(self):
         istr = self._monitorCommand('r idtr')
         m = re.match('.* base=(0x\w+) .*', istr)
-        idtr = long(m.groups()[0], 0)
+        idtr = int(m.groups()[0], 0)
         return idtr
 
     def _getNtOsKrnl(self, idtr):
@@ -635,7 +635,7 @@ class GdbStubMixin_old(e_registers.RegisterContext):
             while not self.readMemory(kptr, 16).startswith('MZ\x90\x00'):
                 kptr -= 4096
             return kptr
-        except Exception, e:
+        except Exception as e:
             return None
 
     def _enumTargetOs(self, fsbase):
@@ -727,8 +727,8 @@ class GdbStubMixin_old(e_registers.RegisterContext):
                 fields = [-1,]
                 try:
                     fields = self.readMemoryFormat(win_kpcr, '<7Q')
-                except Exception, e:
-                    print 'Exception:',e
+                except Exception as e:
+                    print('Exception:',e)
 
                 # FIXME other heuristics for linux/bsd/etc...
                 if fields[-1] == win_kpcr:
@@ -760,7 +760,7 @@ class GdbStubMixin_old(e_registers.RegisterContext):
             self.fireNotifiers(vtrace.NOTIFY_ATTACH)
 
         else:
-            print 'Unidentified gdbstub: %s' % vercmd
+            print('Unidentified gdbstub: %s' % vercmd)
             self.fireNotifiers(vtrace.NOTIFY_ATTACH)
 
 
@@ -810,13 +810,13 @@ class GdbStubMixin_old(e_registers.RegisterContext):
 
         try:
             self.addBreakpoint(KeBugCheckBreak('nt.KeBugCheck'))
-        except Exception, e:
-            print 'Error Seting KeBugCheck Bp: %s' % e
+        except Exception as e:
+            print('Error Seting KeBugCheck Bp: %s' % e)
 
         try:
             self.addBreakpoint(KeBugCheckBreak('nt.KeBugCheckEx'))
-        except Exception, e:
-            print 'Error Seting KeBugCheck Bp: %s' % e
+        except Exception as e:
+            print('Error Seting KeBugCheck Bp: %s' % e)
 
 
 GDB_BP_SOFTWARE     = 0

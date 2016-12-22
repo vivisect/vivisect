@@ -2,7 +2,7 @@ import struct
 
 from copy import deepcopy
 from inspect import isclass
-from StringIO import StringIO
+from io import StringIO
 
 import vstruct.primitives as vs_prims
 
@@ -41,7 +41,7 @@ class VStruct(vs_prims.v_base):
 
     def __mul__(self, x):
         # build a list of instances of this vstruct
-        return [ deepcopy(self) for i in xrange(x) ]
+        return [ deepcopy(self) for i in range(x) ]
 
     def vsAddParseCallback(self, fieldname, callback):
         '''
@@ -135,7 +135,7 @@ class VStruct(vs_prims.v_base):
                 self._vsInitFastFields()
             values = struct.unpack_from( self._vs_fastfmt, sbytes, offset )
             # Ephemeral list comprehension for speed
-            [ self._vs_fastfields[i].vsSetValue( values[i] ) for i in xrange(len(values)) ]
+            [ self._vs_fastfields[i].vsSetValue( values[i] ) for i in range(len(values)) ]
             return offset + self._vs_fastlen
 
         # In order for callbacks to change fields, we can't use vsGetFields()
@@ -229,7 +229,7 @@ class VStruct(vs_prims.v_base):
 
     # FIXME implement more arithmetic for structs...
     def __ixor__(self, other):
-        for name,value in other._vs_values.items():
+        for name,value in list(other._vs_values.items()):
             self._vs_values[name] ^= value
         return self
 
@@ -456,7 +456,7 @@ class VArray(VStruct):
         self.vsAddField("%d" % idx, elem)
 
     def vsAddElements(self, count, eclass):
-        for i in xrange( count ):
+        for i in range( count ):
             self.vsAddElement( eclass() )
 
     def __getitem__(self, index):

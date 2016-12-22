@@ -61,11 +61,11 @@ def vdbEpydoc():
     options, names = epydoc.cli.parse_arguments()
 
     # rename the output directory if it exists to give clean output
-    print(options.target)
+    print((options.target))
     if os.path.exists(options.target):
         # path exists, verify it is a directory
         if not os.path.isdir(options.target):
-            print('%s exists but is not a directory, exiting', options.target)
+            print(('%s exists but is not a directory, exiting', options.target))
             return
 
         # if dir is not empty, rename it.
@@ -73,7 +73,7 @@ def vdbEpydoc():
             now = datetime.datetime.now()
             targetdirname = os.path.join(options.target, '-pre-' + now.strftime('%Y-%m-%d_%H%M%S'))
 
-            print('output dir: %s exists and is not empty. moving old dir to name %s' % (options.target, targetdirname))
+            print(('output dir: %s exists and is not empty. moving old dir to name %s' % (options.target, targetdirname)))
             os.rename(options.target, targetdirname)
 
     epydoc.cli.main(options, names)

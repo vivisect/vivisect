@@ -5,10 +5,12 @@ to the i386 page table lookups...
 '''
 import collections
 
+
 # FIXME move functions in here too so there is procedural "speed" way
 # and objecty pythonic way...
 def pagedict():
-    return collections.defaultdict( lambda: [None] * 0xffff )
+    return collections.defaultdict(lambda: [None] * 0xffff)
+
 
 class PageLookup:
     '''
@@ -18,28 +20,28 @@ class PageLookup:
     '''
 
     def __init__(self):
-        #self._page_dict = {}
+        # self._page_dict = {}
         self._page_dict = pagedict()
 
     def getPageLookup(self, va):
-        page = self._page_dict.get( va >> 16 )
-        if page == None:
+        page = self._page_dict.get(va >> 16)
+        if page is None:
             return None
-        return page[ va & 0xffff ]
+        return page[va & 0xffff]
 
     def setPageLookup(self, va, size, obj):
-        vamax = va+size
+        vamax = va + size
 
         p = self._page_dict
         # Super ugly, *very* fast speed hack
-        [ p[ va >> 16 ].__setitem__( va & 0xffff, obj ) for va in range(va, vamax) ]
+        [p[va >> 16].__setitem__(va & 0xffff, obj) for va in range(va, vamax)]
 
-    # __getitem__
-    # __getslice__
-    # __setslice__
+        # __getitem__
+        # __getslice__
+        # __setslice__
+
 
 class MapLookup:
-
     '''
     A specialized lookup object for large densely populated ranges
     which are layed out in a sparse field space themselves...
@@ -51,22 +53,22 @@ class MapLookup:
     def initMapLookup(self, va, size, obj=None):
         marray = [obj] * size
         # FIXME optimize by size!
-        self._maps_list.append((va, va+size, marray))
+        self._maps_list.append((va, va + size, marray))
 
     def setMapLookup(self, va, size, obj):
         for mva, mvamax, marray in self._maps_list:
-            if va >= mva and va < mvamax:
+            if mva <= va < mvamax:
                 off = va - mva
-                marray[off:off+size] = [obj] * size
+                marray[off:off + size] = [obj] * size
                 return
         raise Exception('Address (0x%.8x) not in maps!' % va)
 
     def getMapLookup(self, va):
-        for mva, mvamax, marray in self._maps_list:
-            if va >= mva and va < mvamax:
-                return marray[ va - mva ]
+        if va is not None:
+            for mva, mvamax, marray in self._maps_list:
+                if mva <= va < mvamax:
+                    return marray[va - mva]
         return None
 
     def __getslice__(self, start, end):
-        print 'GET SLICE'
-
+        print('GET SLICE')

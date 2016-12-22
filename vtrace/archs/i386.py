@@ -63,7 +63,7 @@ class i386WatchMixin:
         ctrl |= (mask << (16+(4*idx)))
         #ctrl |= 0x100 # Local exact (ignored by p6+ for read)
 
-        for tid in self.getThreads().keys():
+        for tid in list(self.getThreads().keys()):
             ctx = self.getRegisterContext(tid)
             ctrl_orig = ctx.getRegister(e_i386.REG_DEBUG7)
             #print "debug%d: %.8x debug7: %.8x" % (idx,address,ctrl|ctrl_orig)
@@ -87,7 +87,7 @@ class i386WatchMixin:
         ctrl_disperm = ~(0xf << (16+(4*idx))) # mask off the rwx stuff
         ctrl_mask = ctrl_disable & ctrl_disperm
 
-        for tid in self.getThreads().keys():
+        for tid in list(self.getThreads().keys()):
             ctx = self.getRegisterContext(tid)
             ctrl = ctx.getRegister(e_i386.REG_DEBUG7)
             ctrl &= ctrl_mask
@@ -157,7 +157,7 @@ class i386Mixin(e_i386.i386Module, e_i386.i386RegisterContext, i386WatchMixin):
         pc = self.getProgramCounter()
 
         for arg in args:
-            if type(arg) == types.StringType: # Nicly map strings into mem
+            if type(arg) == bytes: # Nicly map strings into mem
                 buf = arg+"\x00\x00"+buf    # Pad with a null for convenience
                 finalargs.append(sp - len(buf))
             else:

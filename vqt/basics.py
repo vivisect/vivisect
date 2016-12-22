@@ -1,25 +1,26 @@
 '''
 A place for some no-brainer basics :)
 '''
+
 from PyQt4 import QtCore, QtGui
 
-class BasicTreeView(QtGui.QTreeView):
 
+class BasicTreeView(QtGui.QTreeView):
     def __init__(self, parent=None):
         QtGui.QTreeView.__init__(self, parent=parent)
-        self.setAlternatingRowColors( True )
-        self.setSortingEnabled( True )
+        self.setAlternatingRowColors(True)
+        self.setSortingEnabled(True)
 
     def setModel(self, model):
         ret = QtGui.QTreeView.setModel(self, model)
         c = len(model.columns)
-        for i in xrange(c):
+        for i in range(c):
             self.resizeColumnToContents(i)
         return ret
 
-class BasicModel(QtCore.QAbstractItemModel):
 
-    columns = ('one','two')
+class BasicModel(QtCore.QAbstractItemModel):
+    columns = ('one', 'two')
 
     def __init__(self, rows=()):
         QtCore.QAbstractItemModel.__init__(self)
@@ -47,7 +48,7 @@ class BasicModel(QtCore.QAbstractItemModel):
 
     def sort(self, col, order=QtCore.Qt.AscendingOrder):
         self.layoutAboutToBeChanged.emit()
-        self.rows.sort( cmp=lambda x,y: cmp(x[col],y[col]) )
+        self.rows.sort(cmp=lambda x, y: cmp(x[col], y[col]))
         if order == QtCore.Qt.DescendingOrder:
             self.rows.reverse()
         self.layoutChanged.emit()
@@ -57,15 +58,14 @@ class BasicModel(QtCore.QAbstractItemModel):
 
     def headerData(self, column, orientation, role):
 
-        if ( orientation == QtCore.Qt.Horizontal and
-             role == QtCore.Qt.DisplayRole):
-
+        if (orientation == QtCore.Qt.Horizontal and
+                    role == QtCore.Qt.DisplayRole):
             return self.columns[column]
 
         return None
 
-class VBox( QtGui.QVBoxLayout ):
 
+class VBox(QtGui.QVBoxLayout):
     def __init__(self, *widgets):
         QtGui.QVBoxLayout.__init__(self)
         self.setMargin(2)
@@ -74,10 +74,10 @@ class VBox( QtGui.QVBoxLayout ):
             if w == None:
                 self.addStretch()
                 continue
-            self.addWidget( w )
+            self.addWidget(w)
 
-class HBox( QtGui.QHBoxLayout ):
 
+class HBox(QtGui.QHBoxLayout):
     def __init__(self, *widgets):
         QtGui.QHBoxLayout.__init__(self)
         self.setMargin(2)
@@ -86,7 +86,8 @@ class HBox( QtGui.QHBoxLayout ):
             if w == None:
                 self.addStretch()
                 continue
-            self.addWidget( w )
+            self.addWidget(w)
+
 
 class ACT:
     def __init__(self, meth, *args, **kwargs):
@@ -95,5 +96,4 @@ class ACT:
         self.kwargs = kwargs
 
     def __call__(self):
-        return self.meth( *self.args, **self.kwargs )
-
+        return self.meth(*self.args, **self.kwargs)

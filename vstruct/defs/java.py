@@ -148,7 +148,7 @@ class JavaClass(vstruct.VStruct):
         self.const_pool.vsAddElements( self.const_pool_cnt - 1, ConstPoolInfo )
 
     def pcb_interface_cnt(self):
-        for i in xrange( self.interface_cnt ):
+        for i in range( self.interface_cnt ):
             self.interfaces.vsAddElement( v_uint16( bigend=True ) )
 
     def pcb_fields_cnt(self):
@@ -208,28 +208,28 @@ if __name__ == '__main__':
     import traceback
 
     for fname in sys.argv[1:]:
-        fbytes = file(fname,'rb').read()
+        fbytes = open(fname,'rb').read()
         c = JavaClass()
         try:
             c.vsParse( fbytes )
-            print c.tree()
+            print(c.tree())
 
             cname = c.getClassName() 
             sname = c.getSuperClassName()
-            print('Java Class: %s (inherits: %s)' % ( cname, sname ))
+            print(('Java Class: %s (inherits: %s)' % ( cname, sname )))
 
             for fname,descname,attrs in c.getClassFields():
-                print('Field: %s (%s) (attrs: %r)' % ( fname, descname, attrs.keys()) )
+                print(('Field: %s (%s) (attrs: %r)' % ( fname, descname, list(attrs.keys())) ))
 
             for methname,attrs in c.getClassMethods():
-                print('Method: %s (attrs: %r)' % (methname, attrs.keys()))
+                print(('Method: %s (attrs: %r)' % (methname, list(attrs.keys()))))
 
             print('Constants:')
             for fname,const in c.const_pool:
-                print const.tag,const.data.tree()
+                print(const.tag,const.data.tree())
 
-            print c.getClassAttributes().keys()
+            print(list(c.getClassAttributes().keys()))
 
-        except Exception, e:
-            print c.tree()
+        except Exception as e:
+            print(c.tree())
             traceback.print_exc()

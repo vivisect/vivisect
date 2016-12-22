@@ -1,4 +1,3 @@
-
 import vqt.tree as vq_tree
 import vivisect.base as viv_base
 import envi.qt.memory as e_q_memory
@@ -6,20 +5,23 @@ import visgraph.pathcore as vg_path
 import envi.qt.memcanvas as e_q_memcanvas
 import vivisect.qt.ctxmenu as v_q_ctxmenu
 
-from PyQt4 import QtGui,QtCore
+from PyQt4 import QtGui, QtCore
 
 from vqt.main import *
 from vqt.common import *
 from vivisect.const import *
 
+
 class VivNavModel(e_q_memory.EnviNavModel):
     pass
+
 
 class VivView(VqtView, viv_base.VivEventCore):
     '''
     In any vivisect list/tree view, the first column will be
     an address expression.  Other than that, all bets are off.
     '''
+
     def __init__(self, vw, parent=None):
         VqtView.__init__(self, parent=parent)
         viv_base.VivEventCore.__init__(self, vw)
@@ -27,20 +29,21 @@ class VivView(VqtView, viv_base.VivEventCore):
         self.vivgui = vw.getVivGui()
         self.vivgui.addEventCore(self)
 
+
 class VivLocModel(VqtModel):
-    columns = ('Address','Location')
+    columns = ('Address', 'Location')
+
 
 class VivLocView(VivView):
-
     def __init__(self, vw, loctypes, parent=None):
         VivView.__init__(self, vw, parent=parent)
         self.loctypes = loctypes
 
         locs = []
         for ltype in self.loctypes:
-            locs.extend( vw.getLocations(ltype) )
+            locs.extend(vw.getLocations(ltype))
 
-        rows = [ ('0x%.8x' % loc[0], vw.reprLocation(loc), loc) for loc in locs ]
+        rows = [('0x%.8x' % loc[0], vw.reprLocation(loc), loc) for loc in locs]
 
         model = VivLocModel(rows=rows)
         self.setModel(model)
@@ -48,20 +51,21 @@ class VivLocView(VivView):
     def VWE_ADDLOCATION(self, vw, event, loc):
         lva, lsize, ltype, linfo = loc
         if ltype in self.loctypes:
-            self.model().sourceModel().append( ('0x%.8x' % lva, self.vw.reprLocation(loc), loc) )
+            self.model().sourceModel().append(('0x%.8x' % lva, self.vw.reprLocation(loc), loc))
 
     def VWE_DELLOCATION(self, vw, event, einfo):
         lva, lsize, ltype, linfo = einfo
         if ltype in self.loctypes:
-            print 'DEL ONE!'
+            print('DEL ONE!')
+
 
 def getLocView(vw, loctypes, title, parent=None):
-    view = VivLocView( vw, loctypes, parent=parent)
+    view = VivLocView(vw, loctypes, parent=parent)
     view.setWindowTitle(title)
-    return vw.getVivGui().vqDockWidget( view, floating=True )
+    return vw.getVivGui().vqDockWidget(view, floating=True)
+
 
 class VQVivTreeView(vq_tree.VQTreeView, viv_base.VivEventCore):
-
     window_title = "VivTreeView"
     _viv_navcol = 0
 
@@ -77,15 +81,15 @@ class VQVivTreeView(vq_tree.VQTreeView, viv_base.VivEventCore):
 
         self.setWindowTitle(self.window_title)
         self.setSortingEnabled(True)
-        self.setDragEnabled( True )
+        self.setDragEnabled(True)
 
-        self.doubleClicked.connect( self.doubleClickedSignal )
+        self.doubleClicked.connect(self.doubleClickedSignal)
 
     def doubleClickedSignal(self, idx):
-        if idx.isValid() and self._viv_navcol != None:
+        if idx.isValid() and self._viv_navcol is not None:
             pnode = idx.internalPointer()
             expr = pnode.rowdata[self._viv_navcol]
-            vqtevent('envi:nav:expr', ('viv',expr,None))
+            vqtevent('envi:nav:expr', ('viv', expr, None))
             return True
 
     def contextMenuEvent(self, event):
@@ -95,7 +99,7 @@ class VQVivTreeView(vq_tree.VQTreeView, viv_base.VivEventCore):
             return
 
         idx = idxlist[0]
-        if idx.isValid() and self._viv_navcol != None:
+        if idx.isValid() and self._viv_navcol is not None:
             pnode = idx.internalPointer()
             expr = pnode.rowdata[self._viv_navcol]
             v_q_ctxmenu.buildContextMenu(self.vw, expr=expr, menu=menu)
@@ -137,8 +141,8 @@ class VQVivTreeView(vq_tree.VQTreeView, viv_base.VivEventCore):
             return None
         return pnode.rowdata[col]
 
-class VQVivLocView(VQVivTreeView):
 
+class VQVivLocView(VQVivTreeView):
     loctypes = ()
 
     def __init__(self, vw, vwqgui):
@@ -164,11 +168,11 @@ class VQVivLocView(VQVivTreeView):
             self.vivAddLocation(lva, lsize, ltype, linfo)
 
     def vivAddLocation(self, lva, lsize, ltype, linfo):
-        print "FIXME OVERRIDE"
+        print("FIXME OVERRIDE")
+
 
 class VQVivStringsView(VQVivLocView):
-
-    columns = ('Address','String')
+    columns = ('Address', 'String')
     loctypes = (LOC_STRING, LOC_UNI)
     window_title = 'Strings'
 
@@ -176,10 +180,12 @@ class VQVivStringsView(VQVivLocView):
         s = self.vw.readMemory(lva, lsize)
         if ltype == LOC_UNI:
             s = s.decode('utf-16le', 'ignore')
+        else:
+            s = s.decode('utf-8', 'ignore')
         self.vivAddRow(lva, '0x%.8x' % lva, repr(s))
 
-class VQVivImportsView(VQVivLocView):
 
+class VQVivImportsView(VQVivLocView):
     columns = ('Address', 'Library', 'Function')
     loctypes = (LOC_IMPORT,)
     window_title = 'Imports'
@@ -187,6 +193,7 @@ class VQVivImportsView(VQVivLocView):
     def vivAddLocation(self, lva, lsize, ltype, linfo):
         libname, funcname = linfo.split('.', 1)
         self.vivAddRow(lva, '0x%.8x' % lva, libname, funcname)
+
 
 class VQVivStructsView(VQVivLocView):
     columns = ('Address', 'Structure', 'Loc Name')
@@ -197,14 +204,14 @@ class VQVivStructsView(VQVivLocView):
         sym = self.vw.getSymByAddr(lva)
         self.vivAddRow(lva, '0x%.8x' % lva, linfo, str(sym))
 
-class VQVivExportsView(VQVivTreeView):
 
+class VQVivExportsView(VQVivTreeView):
     window_title = 'Exports'
     columns = ('Address', 'File', 'Export')
 
     def __init__(self, vw, vwqgui):
         VQVivTreeView.__init__(self, vw, vwqgui)
-        self.setModel( VivNavModel(self._viv_navcol, self, columns=self.columns) )
+        self.setModel(VivNavModel(self._viv_navcol, self, columns=self.columns))
         self.vqLoad()
         self.vqSizeColumns()
 
@@ -219,15 +226,15 @@ class VQVivExportsView(VQVivTreeView):
         va, etype, ename, fname = einfo
         self.vivAddExport(va, etype, ename, fname)
 
-class VQVivSegmentsView(VQVivTreeView):
 
+class VQVivSegmentsView(VQVivTreeView):
     _viv_navcol = 2
     window_title = 'Segments'
-    columns = ('Module','Section', 'Address', 'Size')
+    columns = ('Module', 'Section', 'Address', 'Size')
 
     def __init__(self, vw, vwqgui):
         VQVivTreeView.__init__(self, vw, vwqgui)
-        self.setModel( VivNavModel(self._viv_navcol, self, columns=self.columns) )
+        self.setModel(VivNavModel(self._viv_navcol, self, columns=self.columns))
         self.vqLoad()
         self.vqSizeColumns()
 
@@ -235,15 +242,15 @@ class VQVivSegmentsView(VQVivTreeView):
         for va, size, sname, fname in self.vw.getSegments():
             self.vivAddRow(va, fname, sname, '0x%.8x' % va, str(size))
 
-class VQVivFunctionsView(VQVivTreeView):
 
+class VQVivFunctionsView(VQVivTreeView):
     _viv_navcol = 0
     window_title = 'Functions'
-    columns = ('Name','Address', 'Size', 'Ref Count')
+    columns = ('Name', 'Address', 'Size', 'Ref Count')
 
     def __init__(self, vw, vwqgui):
         VQVivTreeView.__init__(self, vw, vwqgui)
-        self.setModel( VivNavModel(self._viv_navcol, self, columns=self.columns) )
+        self.setModel(VivNavModel(self._viv_navcol, self, columns=self.columns))
         self.vqLoad()
         self.vqSizeColumns()
 
@@ -265,22 +272,22 @@ class VQVivFunctionsView(VQVivTreeView):
 
     def vivAddFunction(self, fva):
 
-        size   = self.vw.getFunctionMeta(fva, "Size", -1)
-        fname  = self.vw.getName(fva)
+        size = self.vw.getFunctionMeta(fva, "Size", -1)
+        fname = self.vw.getName(fva)
         xcount = len(self.vw.getXrefsTo(fva))
         self.vivAddRow(fva, fname, '0x%.8x' % fva, size, xcount)
 
     def VWE_ADDXREF(self, vw, event, einfo):
         fromva, tova, rtype, rflag = einfo
         cnt = self.vivGetData(tova, 3)
-        if cnt == None:
+        if cnt is None:
             return
         self.vivSetData(tova, 3, cnt + 1)
 
     def VWE_DELXREF(self, vw, event, einfo):
         fromva, tova, rtype, rflag = einfo
         cnt = self.vivGetData(tova, 3)
-        if cnt == None:
+        if cnt is None:
             return
         self.vivSetData(tova, 3, cnt - 1)
 
@@ -289,25 +296,26 @@ class VQVivFunctionsView(VQVivTreeView):
         if key == "Size":
             self.vivSetData(funcva, 2, value)
 
+
 vaset_coltypes = {
-    VASET_STRING:str,
-    VASET_ADDRESS:long,
-    VASET_INTEGER:long,
+    VASET_STRING: str,
+    VASET_ADDRESS: int,
+    VASET_INTEGER: int,
 }
 
-class VQVivVaSetView(VQVivTreeView):
 
+class VQVivVaSetView(VQVivTreeView):
     _viv_navcol = 0
 
     def __init__(self, vw, vwqgui, setname):
         self._va_setname = setname
 
-        setdef = vw.getVaSetDef( setname )
-        cols = [ cname for (cname,ctype) in setdef ]
+        setdef = vw.getVaSetDef(setname)
+        cols = [cname for (cname, ctype) in setdef]
 
         VQVivTreeView.__init__(self, vw, vwqgui)
 
-        self.setModel( VivNavModel(self._viv_navcol, self, columns=cols) )
+        self.setModel(VivNavModel(self._viv_navcol, self, columns=cols))
         self.vqLoad()
         self.vqSizeColumns()
         self.setWindowTitle('Va Set: %s' % setname)
@@ -318,19 +326,19 @@ class VQVivVaSetView(VQVivTreeView):
             va = row[0]
             row = list(row)
             row[0] = '0x%.8x' % va
-            self.vivAddRow( va, *row )
+            self.vivAddRow(va, *row)
 
     def vqLoad(self):
-        setdef = self.vw.getVaSetDef( self._va_setname )
-        rows = self.vw.getVaSetRows( self._va_setname )
+        setdef = self.vw.getVaSetDef(self._va_setname)
+        rows = self.vw.getVaSetRows(self._va_setname)
         for row in rows:
             va = row[0]
             row = list(row)
             row[0] = '0x%.8x' % va
             self.vivAddRow(va, *row)
 
-class VQXrefView(VQVivTreeView):
 
+class VQXrefView(VQVivTreeView):
     _viv_navcol = 0
 
     def __init__(self, vw, vwqgui, xrefs=(), title='Xrefs'):
@@ -350,15 +358,15 @@ class VQXrefView(VQVivTreeView):
 
         self.vqSizeColumns()
 
-class VQVivNamesView(VQVivTreeView):
 
+class VQVivNamesView(VQVivTreeView):
     _viv_navcol = 0
     window_title = 'Workspace Names'
     columns = ('Address', 'Name')
 
     def __init__(self, vw, vwqgui):
         VQVivTreeView.__init__(self, vw, vwqgui)
-        self.setModel( VivNavModel(self._viv_navcol, self, columns=self.columns) )
+        self.setModel(VivNavModel(self._viv_navcol, self, columns=self.columns))
         self.vqLoad()
         self.vqSizeColumns()
 
@@ -368,13 +376,12 @@ class VQVivNamesView(VQVivTreeView):
 
     def VWE_SETNAME(self, vw, event, einfo):
         va, name = einfo
-        #self.vivSetData(va, 1, name)
+        # self.vivSetData(va, 1, name)
         self.vivAddName(einfo)
 
     def vivAddName(self, nifo):
         va, name = nifo
-        if self.vivGetData(va, 0) == None:
+        if self.vivGetData(va, 0) is None:
             self.vivAddRow(va, '0x%.8x' % va, name)
         else:
             self.vivSetData(va, 1, name)
-

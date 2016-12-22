@@ -256,7 +256,7 @@ class FreeBSDMixin:
             raise Exception("VDB needs /proc! (use: mount -t procfs procfs /proc)")
 
     def finiMixin(self):
-        print "FIXME I DON'T THINK THIS IS BEING CALLED"
+        print("FIXME I DON'T THINK THIS IS BEING CALLED")
         if self.kvmh != None:
             libkvm.kvm_close(self.kvmh)
 
@@ -355,7 +355,7 @@ class FreeBSDMixin:
             self.handlePosixSignal(sig)
 
         else:
-            print "OMG WTF JUST HAPPENED??!?11/!?1?>!"
+            print("OMG WTF JUST HAPPENED??!?11/!?1?>!")
 
 
     @v_base.threadwrap
@@ -418,7 +418,7 @@ class FreeBSDMixin:
         ret = []
         mpath = "/proc/%d/map" % self.pid
 
-        mapfile = file(mpath, "rb")
+        mapfile = open(mpath, "rb")
         for line in mapfile:
             perms = 0
             fname = ""
@@ -448,10 +448,10 @@ class FreeBSDMixin:
         cnt = ctypes.c_uint(0)
 
         p = libkvm.kvm_getprocs(self.kvmh, KERN_PROC_PROC, 0, ctypes.addressof(cnt))
-        for i in xrange(cnt.value):
+        for i in range(cnt.value):
             kinfo = p[i]
             if kinfo.ki_structsize != ctypes.sizeof(KINFO_PROC):
-                print "WARNING: KINFO_PROC CHANGED SIZE, Trying to account for it... good luck"
+                print("WARNING: KINFO_PROC CHANGED SIZE, Trying to account for it... good luck")
             ret.append((kinfo.ki_pid, kinfo.ki_comm))
 
         ret.reverse()

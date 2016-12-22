@@ -6,7 +6,7 @@ import envi
 import envi.bits as e_bits
 
 from envi.bits import binary
-from const import *
+from .const import *
 from envi.archs.h8.regs import *
 
 '''
@@ -157,7 +157,7 @@ class H8Opcode(envi.Opcode):
         # Allow each of our operands to render
         imax = len(self.opers)
         lasti = imax - 1
-        for i in xrange(imax):
+        for i in range(imax):
             oper = self.opers[i]
             oper.render(mcanv, self, i)
             if i != lasti:
@@ -568,7 +568,7 @@ class H8PcOffsetOper(H8Operand):
         return tname
 
 
-from optables import main_table
+from .optables import main_table
 class H8Disasm:
     fmt = '>H'
 

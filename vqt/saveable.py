@@ -1,4 +1,6 @@
 import json
+import traceback
+
 
 class SaveableWidget(object):
     '''
@@ -6,24 +8,25 @@ class SaveableWidget(object):
 
     Implement vqGetSaveState/vqSetSaveState.
     '''
+
     def vqSaveState(self, settings, name):
         state = self.vqGetSaveState()
         settings.setValue(name, json.dumps(state))
 
     def vqRestoreState(self, settings, name):
         qstate = settings.value(name)
-        if qstate.isNull():
+        if qstate is None:
             return
 
         try:
-            state = json.loads(str(qstate.toString()))
+            state = json.loads(str(qstate))
             self.vqSetSaveState(state)
-        except Exception, e:
-            print('failed to restore %s: %s' % (name,e))
+        except Exception as e:
+            traceback.print_exc()
+            print(('failed to restore %s: %s' % (name, e)))
 
     def vqGetSaveState(self):
         return None
 
     def vqSetSaveState(self, state):
         return None
-

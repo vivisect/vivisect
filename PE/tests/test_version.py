@@ -5,14 +5,14 @@ import PE
 import vivisect.tests.vivbins as vivbins
 
 vs_version = {
-'CompanyName': u'Microsoft Corporation',
-'FileDescription': u'Windows NET Device Class Co-Installer for Wireless WAN',
-'FileVersion': u'08.01.02.00 (win7_rtm.090713-1255)',
-'InternalName': u'wwaninst.dll',
-'LegalCopyright': u'\xa9 Microsoft Corporation. All rights reserved.',
-'OriginalFilename': u'wwaninst.dll',
-'ProductName': u'Microsoft\xae Windows\xae Operating System',
-'ProductVersion': u'08.01.02.00',
+'CompanyName': 'Microsoft Corporation',
+'FileDescription': 'Windows NET Device Class Co-Installer for Wireless WAN',
+'FileVersion': '08.01.02.00 (win7_rtm.090713-1255)',
+'InternalName': 'wwaninst.dll',
+'LegalCopyright': '\xa9 Microsoft Corporation. All rights reserved.',
+'OriginalFilename': 'wwaninst.dll',
+'ProductName': 'Microsoft\xae Windows\xae Operating System',
+'ProductVersion': '08.01.02.00',
 'Translation': 78644233,
 }
 

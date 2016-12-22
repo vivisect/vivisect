@@ -38,14 +38,14 @@ class VivNotif(vtrace.Notifier):
                     for hit in shits:
                         try:
                             cmap.colorBlock(hit, 'yellow')
-                        except Exception, e:
+                        except Exception as e:
                             self.vivgui.vw.vprint('WARNING: stalker color map: %s' % e)
 
                     #self.vivgui.setColorMap(cmap.getColorDict())
                     #cmap.saveAs('stalker')
                     cmap.setGuiMap()
 
-        except Exception, e:
+        except Exception as e:
 
             traceback.print_exc()
 
@@ -71,7 +71,7 @@ def vivimport(db, line):
 
     try:
         base = db.parseExpression(line)
-    except Exception, e:
+    except Exception as e:
         db.vprint("Invalid Address Expression: %s" % argv[0])
         return
 
@@ -100,7 +100,7 @@ def runVdb(vivgui, pid=None):
         vgui.show()
         if pid != None:
             fireattach(db.trace, pid)
-    except Exception, e:
+    except Exception as e:
         vivgui.vw.vprint('Error Running VDB: %s' % e)
 
 

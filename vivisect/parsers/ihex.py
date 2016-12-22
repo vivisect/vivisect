@@ -5,8 +5,8 @@ import vivisect.parsers as v_parsers
 
 from vivisect.const import *
 
-def parseFile(vw, filename):
 
+def parseFile(vw, filename):
     arch = vw.config.viv.parsers.ihex.arch
     if not arch:
         raise Exception('IHex loader *requires* arch option (-O viv.parsers.ihex.arch=\\"<archname>\\")')
@@ -14,17 +14,18 @@ def parseFile(vw, filename):
     envi.getArchModule(arch)
 
     vw.setMeta('Architecture', arch)
-    vw.setMeta('Platform','Unknown')
-    vw.setMeta('Format','ihex')
+    vw.setMeta('Platform', 'Unknown')
+    vw.setMeta('Format', 'ihex')
 
     fname = vw.addFile(filename, 0, v_parsers.md5File(filename))
 
     ihex = v_ihex.IHexFile()
-    ihex.vsParse( file(filename, 'rb').read() )
+    ihex.vsParse(open(filename, 'rb').read())
 
     for addr, perms, notused, bytes in ihex.getMemoryMaps():
-        vw.addMemoryMap( addr, perms, fname, bytes )
-        vw.addSegment( addr, len(bytes), '%.8x' % addr, fname )
+        vw.addMemoryMap(addr, perms, fname, bytes)
+        vw.addSegment(addr, len(bytes), '%.8x' % addr, fname)
+
 
 def parseMemory(vw, memobj, baseaddr):
     raise Exception('ihex loader cannot parse memory!')

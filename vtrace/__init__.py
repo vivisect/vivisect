@@ -2,10 +2,10 @@
 Vtrace Debugger Framework
 
 Vtrace is a *mostly* native python debugging framework which
-can be used to quickly write programatic debuggers and research
+can be used to quickly write programmatic debuggers and research
 tools.
 
-I'm not known for writting great docs...  but the code should
+I'm not known for writing great docs...  but the code should
 be pretty straight forward...
 
 This has been in use for many years privately, but is nowhere
@@ -41,7 +41,7 @@ import inspect
 import platform
 import traceback
 
-import cPickle as pickle
+import pickle as pickle
 
 import envi
 import envi.bits as e_bits
@@ -187,7 +187,7 @@ class Trace(e_mem.IMemory, e_reg.RegisterContext, e_resolv.SymbolResolver, objec
             va = self.getProgramCounter()
 
         ops = []
-        for i in xrange(0, num):
+        for i in range(0, num):
             op = self.parseOpcode(va)
             ops.append(op)
             va += op.size
@@ -245,7 +245,7 @@ class Trace(e_mem.IMemory, e_reg.RegisterContext, e_resolv.SymbolResolver, objec
             self.platformAttach(pid)
             self._justAttached(pid)
             self.wait()
-        except Exception, msg:
+        except Exception as msg:
             raise PlatformException(str(msg))
 
     def stepi(self):
@@ -346,7 +346,7 @@ class Trace(e_mem.IMemory, e_reg.RegisterContext, e_resolv.SymbolResolver, objec
 
         (probably only useful for writting symbol browsers...)
         """
-        return self.getMeta("LibraryBases").keys()
+        return list(self.getMeta("LibraryBases").keys())
 
     def getSymsForFile(self, libname):
         """
@@ -412,7 +412,7 @@ class Trace(e_mem.IMemory, e_reg.RegisterContext, e_resolv.SymbolResolver, objec
 
         except Exception as e:
             # getTargets->readMemory error on bva
-            print('getSymByAddrThunkAware: %s' % repr(e))
+            print(('getSymByAddrThunkAware: %s' % repr(e)))
 
         return None, False
 
@@ -514,14 +514,14 @@ class Trace(e_mem.IMemory, e_reg.RegisterContext, e_resolv.SymbolResolver, objec
         back as \x00s (this probably goes in a mixin soon)
         """
         self.requireNotRunning()
-        return self.platformReadMemory(long(address), long(size))
+        return self.platformReadMemory(int(address), int(size))
 
     def writeMemory(self, address, bytez):
         """
         Write the given bytes to the address in the current trace.
         """
         self.requireNotRunning()
-        self.platformWriteMemory(long(address), bytez)
+        self.platformWriteMemory(int(address), bytez)
 
     def searchMemory(self, needle, regex=False):
         """
@@ -569,7 +569,7 @@ class Trace(e_mem.IMemory, e_reg.RegisterContext, e_resolv.SymbolResolver, objec
         be set to the default specified.
         """
         if default != None:
-            if not self.metadata.has_key(name):
+            if name not in self.metadata:
                 self.metadata[name] = default
         return self.metadata.get(name, None)
 
@@ -579,7 +579,7 @@ class Trace(e_mem.IMemory, e_reg.RegisterContext, e_resolv.SymbolResolver, objec
         as getMeta() with a default will set the key to the default
         if non-existant.
         """
-        return self.metadata.has_key(name)
+        return name in self.metadata
 
     def getMode(self, name, default=False):
         """
@@ -597,7 +597,7 @@ class Trace(e_mem.IMemory, e_reg.RegisterContext, e_resolv.SymbolResolver, objec
         This way, platform sections can cleanly setmodes
         and such.
         """
-        if not self.modes.has_key(name):
+        if name not in self.modes:
             raise Exception("Mode %s not supported on this platform" % name)
         self.modes[name] = bool(value)
 
@@ -674,7 +674,7 @@ class Trace(e_mem.IMemory, e_reg.RegisterContext, e_resolv.SymbolResolver, objec
             self.deferred.append(breakpoint)
             return breakpoint.id
 
-        if self.breakpoints.has_key(addr):
+        if addr in self.breakpoints:
             raise Exception("ERROR: Duplicate break for address 0x%.8x" % addr)
 
         self.bpbyid[breakpoint.id] = breakpoint
@@ -733,7 +733,7 @@ class Trace(e_mem.IMemory, e_reg.RegisterContext, e_resolv.SymbolResolver, objec
         """
         Return a list of the current breakpoints.
         """
-        return self.bpbyid.values()
+        return list(self.bpbyid.values())
 
     def getBreakpointEnabled(self, bpid):
         """
@@ -934,7 +934,7 @@ class Trace(e_mem.IMemory, e_reg.RegisterContext, e_resolv.SymbolResolver, objec
         Example: trace.parseExpression("ispoi(ecx+ntdll.RtlAllocateHeap)")
         """
         locs = VtraceExpressionLocals(self)
-        return long(e_expr.evaluate(expression, locs))
+        return int(e_expr.evaluate(expression, locs))
 
     def sendBreak(self):
         """
@@ -1005,7 +1005,7 @@ class Trace(e_mem.IMemory, e_reg.RegisterContext, e_resolv.SymbolResolver, objec
         self.requireNotRunning()
         if self.sus_threads.get(threadid):
             raise Exception("The specified thread is already suspended")
-        if threadid not in self.getThreads().keys():
+        if threadid not in list(self.getThreads().keys()):
             raise Exception("There is no thread %d!" % threadid)
         self.platformSuspendThread(threadid)
         self.sus_threads[threadid] = True
@@ -1148,7 +1148,7 @@ class TraceGroup(Notifier, v_util.TraceManager):
         to get the update as well....
         """
         v_util.TraceManager.setMeta(self, name, value)
-        for trace in self.traces.values():
+        for trace in list(self.traces.values()):
             trace.setMeta(name, value)
 
     def setMode(self, name, value):
@@ -1160,7 +1160,7 @@ class TraceGroup(Notifier, v_util.TraceManager):
         """
         Detach from ALL the currently targetd processes
         """
-        for trace in self.traces.values():
+        for trace in list(self.traces.values()):
             try:
                 if trace.isRunning():
                     trace.sendBreak()
@@ -1173,10 +1173,10 @@ class TraceGroup(Notifier, v_util.TraceManager):
         Our run method  is a little different than a traditional
         trace. It will *never* block.
         """
-        if len(self.traces.keys()) == 0:
+        if len(list(self.traces.keys())) == 0:
             raise Exception("ERROR - can't run() with no traces!")
 
-        for trace in self.traces.values():
+        for trace in list(self.traces.values()):
 
             if trace.exited:
                 self.traces.pop(trace.pid)
@@ -1200,8 +1200,8 @@ class TraceGroup(Notifier, v_util.TraceManager):
         to) or an already attached (and broken) tracer object.
         """
 
-        if (type(proc) == types.IntType or
-            type(proc) == types.LongType):
+        if (type(proc) == int or
+            type(proc) == int):
             trace = getTrace()
             self._initTrace(trace)
             self.traces[proc] = trace
@@ -1252,7 +1252,7 @@ class TraceGroup(Notifier, v_util.TraceManager):
         """
         Return a list of the current traces
         """
-        return self.traces.values()
+        return list(self.traces.values())
 
     def getTraceByPid(self, pid):
         """
@@ -1486,10 +1486,10 @@ def getTrace(target=None, **kwargs):
             #print '(put your username in there unless you want to put me in too... ;)'
             #raise Exception('procmod group membership required')
         if os.getuid() != 0:
-            print 'For NOW you *must* be root.  There are some crazy MACH perms...'
+            print('For NOW you *must* be root.  There are some crazy MACH perms...')
             raise Exception('You must be root for now (on OSX)....')
 
-        print 'Also... the darwin port is not even REMOTELY working yet.  Solid progress though...'
+        print('Also... the darwin port is not even REMOTELY working yet.  Solid progress though...')
 
         #'sudo dscl . append /Groups/procmod GroupMembership invisigoth'
         #'sudo dscl . read /Groups/procmod GroupMembership'

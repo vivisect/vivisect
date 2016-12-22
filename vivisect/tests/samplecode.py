@@ -1,4 +1,4 @@
-'''
+"""
 bits 32
 
 foo:
@@ -18,6 +18,6 @@ baz:
     mov esp, ebp
     pop ebp
     ret
-'''
-func1 = '5589e58b4d0831d239d17405b801000000b80200000089ec5dc3'.decode('hex')
+"""
 
+func1 = bytearray.fromhex('5589e58b4d0831d239d17405b801000000b80200000089ec5dc3')

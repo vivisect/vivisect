@@ -7,7 +7,7 @@ def analyze(vw):
         if h == None:
             continue
 
-        for fva, hints in h.items():
+        for fva, hints in list(h.items()):
             if not vw.isFunction(fva):
                 vw.makeFunction(fva)
 
@@ -21,7 +21,7 @@ def analyze(vw):
                     if idx > 100:
                         continue
 
-                    print('FIXME: %d %s' % (name,offset))
+                    print(('FIXME: %d %s' % (name,offset)))
 
                     #atype, aname = vw.getFunctionArg(fva, idx)
                     #if atype == None:

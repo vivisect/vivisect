@@ -14,7 +14,7 @@ class VtraceWritememTest(vt_tests.VtraceProcessTest):
         self.runProcess()
 
         addrstr = self.proc.stdout.readline()
-        addr = long( addrstr, 16 )
+        addr = int( addrstr, 16 )
 
         testbuf = os.urandom( 10 ).encode('hex')
 

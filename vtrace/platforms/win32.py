@@ -110,64 +110,64 @@ SYMOPT_OVERWRITE                = 0x00100000
 SYMOPT_DEBUG                    = 0x80000000
 
 # Exception Types
-EXCEPTION_WAIT_0                     = 0x00000000L    
-EXCEPTION_ABANDONED_WAIT_0           = 0x00000080L    
-EXCEPTION_USER_APC                   = 0x000000C0L    
-EXCEPTION_TIMEOUT                    = 0x00000102L    
-EXCEPTION_PENDING                    = 0x00000103L    
-DBG_EXCEPTION_HANDLED             = 0x00010001L    
-DBG_CONTINUE                      = 0x00010002L    
-EXCEPTION_SEGMENT_NOTIFICATION       = 0x40000005L    
-DBG_TERMINATE_THREAD              = 0x40010003L    
-DBG_TERMINATE_PROCESS             = 0x40010004L    
-DBG_CONTROL_C                     = 0x40010005L    
-DBG_CONTROL_BREAK                 = 0x40010008L    
-DBG_COMMAND_EXCEPTION             = 0x40010009L    
-EXCEPTION_GUARD_PAGE_VIOLATION       = 0x80000001L    
-EXCEPTION_DATATYPE_MISALIGNMENT      = 0x80000002L    
-EXCEPTION_BREAKPOINT                 = 0x80000003L    
-STATUS_WX86_BREAKPOINT            = 0x4000001fL
-EXCEPTION_SINGLE_STEP                = 0x80000004L    
-STATUS_WX86_SINGLE_STEP           = 0x4000001eL
-DBG_EXCEPTION_NOT_HANDLED         = 0x80010001L    
-STATUS_BUFFER_OVERFLOW               = 0x80000005L
-STATUS_SUCCESS                       = 0x00000000L
-STATUS_INFO_LENGTH_MISMATCH          = 0xC0000004L
-EXCEPTION_ACCESS_VIOLATION           = 0xC0000005L    
-EXCEPTION_IN_PAGE_ERROR              = 0xC0000006L    
-EXCEPTION_INVALID_HANDLE             = 0xC0000008L    
-EXCEPTION_NO_MEMORY                  = 0xC0000017L    
-EXCEPTION_ILLEGAL_INSTRUCTION        = 0xC000001DL    
-EXCEPTION_NONCONTINUABLE_EXCEPTION   = 0xC0000025L    
-EXCEPTION_INVALID_DISPOSITION        = 0xC0000026L    
-EXCEPTION_ARRAY_BOUNDS_EXCEEDED      = 0xC000008CL    
-EXCEPTION_FLOAT_DENORMAL_OPERAND     = 0xC000008DL    
-EXCEPTION_FLOAT_DIVIDE_BY_ZERO       = 0xC000008EL    
-EXCEPTION_FLOAT_INEXACT_RESULT       = 0xC000008FL    
-EXCEPTION_FLOAT_INVALID_OPERATION    = 0xC0000090L    
-EXCEPTION_FLOAT_OVERFLOW             = 0xC0000091L    
-EXCEPTION_FLOAT_STACK_CHECK          = 0xC0000092L    
-EXCEPTION_FLOAT_UNDERFLOW            = 0xC0000093L    
-EXCEPTION_INTEGER_DIVIDE_BY_ZERO     = 0xC0000094L    
-EXCEPTION_INTEGER_OVERFLOW           = 0xC0000095L    
-EXCEPTION_PRIVILEGED_INSTRUCTION     = 0xC0000096L    
-EXCEPTION_STACK_OVERFLOW             = 0xC00000FDL    
-EXCEPTION_CONTROL_C_EXIT             = 0xC000013AL    
-EXCEPTION_FLOAT_MULTIPLE_FAULTS      = 0xC00002B4L    
-EXCEPTION_FLOAT_MULTIPLE_TRAPS       = 0xC00002B5L    
-EXCEPTION_REG_NAT_CONSUMPTION        = 0xC00002C9L    
+EXCEPTION_WAIT_0                     = 0x00000000    
+EXCEPTION_ABANDONED_WAIT_0           = 0x00000080    
+EXCEPTION_USER_APC                   = 0x000000C0    
+EXCEPTION_TIMEOUT                    = 0x00000102    
+EXCEPTION_PENDING                    = 0x00000103    
+DBG_EXCEPTION_HANDLED             = 0x00010001    
+DBG_CONTINUE                      = 0x00010002    
+EXCEPTION_SEGMENT_NOTIFICATION       = 0x40000005    
+DBG_TERMINATE_THREAD              = 0x40010003    
+DBG_TERMINATE_PROCESS             = 0x40010004    
+DBG_CONTROL_C                     = 0x40010005    
+DBG_CONTROL_BREAK                 = 0x40010008    
+DBG_COMMAND_EXCEPTION             = 0x40010009    
+EXCEPTION_GUARD_PAGE_VIOLATION       = 0x80000001    
+EXCEPTION_DATATYPE_MISALIGNMENT      = 0x80000002    
+EXCEPTION_BREAKPOINT                 = 0x80000003    
+STATUS_WX86_BREAKPOINT            = 0x4000001f
+EXCEPTION_SINGLE_STEP                = 0x80000004    
+STATUS_WX86_SINGLE_STEP           = 0x4000001e
+DBG_EXCEPTION_NOT_HANDLED         = 0x80010001    
+STATUS_BUFFER_OVERFLOW               = 0x80000005
+STATUS_SUCCESS                       = 0x00000000
+STATUS_INFO_LENGTH_MISMATCH          = 0xC0000004
+EXCEPTION_ACCESS_VIOLATION           = 0xC0000005    
+EXCEPTION_IN_PAGE_ERROR              = 0xC0000006    
+EXCEPTION_INVALID_HANDLE             = 0xC0000008    
+EXCEPTION_NO_MEMORY                  = 0xC0000017    
+EXCEPTION_ILLEGAL_INSTRUCTION        = 0xC000001D    
+EXCEPTION_NONCONTINUABLE_EXCEPTION   = 0xC0000025    
+EXCEPTION_INVALID_DISPOSITION        = 0xC0000026    
+EXCEPTION_ARRAY_BOUNDS_EXCEEDED      = 0xC000008C    
+EXCEPTION_FLOAT_DENORMAL_OPERAND     = 0xC000008D    
+EXCEPTION_FLOAT_DIVIDE_BY_ZERO       = 0xC000008E    
+EXCEPTION_FLOAT_INEXACT_RESULT       = 0xC000008F    
+EXCEPTION_FLOAT_INVALID_OPERATION    = 0xC0000090    
+EXCEPTION_FLOAT_OVERFLOW             = 0xC0000091    
+EXCEPTION_FLOAT_STACK_CHECK          = 0xC0000092    
+EXCEPTION_FLOAT_UNDERFLOW            = 0xC0000093    
+EXCEPTION_INTEGER_DIVIDE_BY_ZERO     = 0xC0000094    
+EXCEPTION_INTEGER_OVERFLOW           = 0xC0000095    
+EXCEPTION_PRIVILEGED_INSTRUCTION     = 0xC0000096    
+EXCEPTION_STACK_OVERFLOW             = 0xC00000FD    
+EXCEPTION_CONTROL_C_EXIT             = 0xC000013A    
+EXCEPTION_FLOAT_MULTIPLE_FAULTS      = 0xC00002B4    
+EXCEPTION_FLOAT_MULTIPLE_TRAPS       = 0xC00002B5    
+EXCEPTION_REG_NAT_CONSUMPTION        = 0xC00002C9    
 
 # Context Info
 CONTEXT_i386    = 0x00010000    # this assumes that i386 and
 CONTEXT_i486    = 0x00010000    # i486 have identical context records
 CONTEXT_AMD64   = 0x00100000    # For amd x64...
 
-CONTEXT_CONTROL         = 0x00000001L # SS:SP, CS:IP, FLAGS, BP
-CONTEXT_INTEGER         = 0x00000002L # AX, BX, CX, DX, SI, DI
-CONTEXT_SEGMENTS        = 0x00000004L # DS, ES, FS, GS
-CONTEXT_FLOATING_POINT  = 0x00000008L # 387 state
-CONTEXT_DEBUG_REGISTERS = 0x00000010L # DB 0-3,6,7
-CONTEXT_EXTENDED_REGISTERS  = 0x00000020L # cpu specific extensions
+CONTEXT_CONTROL         = 0x00000001 # SS:SP, CS:IP, FLAGS, BP
+CONTEXT_INTEGER         = 0x00000002 # AX, BX, CX, DX, SI, DI
+CONTEXT_SEGMENTS        = 0x00000004 # DS, ES, FS, GS
+CONTEXT_FLOATING_POINT  = 0x00000008 # 387 state
+CONTEXT_DEBUG_REGISTERS = 0x00000010 # DB 0-3,6,7
+CONTEXT_EXTENDED_REGISTERS  = 0x00000020 # cpu specific extensions
 CONTEXT_FULL = (CONTEXT_CONTROL | CONTEXT_INTEGER | CONTEXT_SEGMENTS)
 CONTEXT_ALL = (CONTEXT_CONTROL | CONTEXT_INTEGER | CONTEXT_SEGMENTS | CONTEXT_FLOATING_POINT | CONTEXT_DEBUG_REGISTERS | CONTEXT_EXTENDED_REGISTERS)
 
@@ -1055,7 +1055,7 @@ def getServicesList():
         #p = POINTER(ENUM_SERVICE_STATUS_PROCESS)(addressof(buf))
         p = cast(buf, POINTER(ENUM_SERVICE_STATUS_PROCESS))
 
-        for i in xrange(dwSvcCount.value):
+        for i in range(dwSvcCount.value):
             pid = p[i].ServiceStatusProcess.dwProcessId
             name = p[i].lpServiceName
             descr = p[i].lpDisplayName
@@ -1135,7 +1135,7 @@ def getTokenElevationType(handle=-1):
     return etype.value
 
 if __name__ == '__main__':
-    print getTokenElevationType()
+    print(getTokenElevationType())
 
 def getDebugPrivileges():
     tokprivs = TOKEN_PRIVILEGES()
@@ -1143,11 +1143,11 @@ def getDebugPrivileges():
     token = HANDLE(0)
 
     if not advapi32.LookupPrivilegeValueA(0, "seDebugPrivilege", addressof(dbgluid)):
-        print "LookupPrivilegeValue Failed: %d" % kernel32.GetLastError()
+        print("LookupPrivilegeValue Failed: %d" % kernel32.GetLastError())
         return False
 
     if not advapi32.OpenProcessToken(-1, TOKEN_ADJUST_PRIVILEGES, addressof(token)):
-        print "kernel32.OpenProcessToken Failed: %d" % kernel32.GetLastError()
+        print("kernel32.OpenProcessToken Failed: %d" % kernel32.GetLastError())
         return False
 
     tokprivs.PrivilegeCount = 1
@@ -1156,7 +1156,7 @@ def getDebugPrivileges():
 
     if not advapi32.AdjustTokenPrivileges(token, 0, addressof(tokprivs), 0, 0, 0):
         kernel32.CloseHandle(token)
-        print "AdjustTokenPrivileges Failed: %d" % kernel32.GetLastError()
+        print("AdjustTokenPrivileges Failed: %d" % kernel32.GetLastError())
         return False
 
     kernel32.CloseHandle(token)
@@ -1444,7 +1444,7 @@ class WindowsMixin:
         self._syncRegs()
 
         # For single step, suspend all the threads except the current
-        for thrid in self.getThreads().keys():
+        for thrid in list(self.getThreads().keys()):
 
             # If this thread is the "current thread" don't suspend it
             if thrid == self.getCurrentThread():
@@ -1586,7 +1586,7 @@ class WindowsMixin:
 
             plist = []
             for i in range(exparam):
-                plist.append(long(event.u.Exception.ExceptionRecord.ExceptionInformation[i]))
+                plist.append(int(event.u.Exception.ExceptionRecord.ExceptionInformation[i]))
 
             eventdict["ExceptionCode"] = excode
             eventdict["ExceptionFlags"] = exflags
@@ -1664,7 +1664,7 @@ class WindowsMixin:
             self.fireNotifiers(vtrace.NOTIFY_DEBUG_PRINT)
 
         else:
-            print "Currently unhandled event",code
+            print("Currently unhandled event",code)
 
         # NOTE: Not everbody falls through to here
 
@@ -1909,7 +1909,7 @@ class Win32SymbolParser:
     def printSymbolInfo(self, info):
         # Just a helper function for "reversing" how dbghelp works
         for n,t in info.__class__._fields_:
-            print n,repr(getattr(info, n))
+            print(n,repr(getattr(info, n)))
 
     def symGetTypeInfo(self, tindex, tinfo, tparam):
         x = dbghelp.SymGetTypeInfo(self.phandle, self.loadbase,
@@ -2174,7 +2174,7 @@ class Win32SymbolParser:
 
             self.symCleanup()
 
-        except Exception, e:
+        except Exception as e:
             traceback.print_exc()
             raise
 
@@ -2189,8 +2189,8 @@ class Win32SymbolParser:
         #self.symCleanup()
 
     def loadStructsIntoTrace(self, trace, normname):
-        t = self._sym_types.values()
-        e = self._sym_enums.values()
+        t = list(self._sym_types.values())
+        e = list(self._sym_enums.values())
 
         # Only add the namespace if we have values...
         if len(t):

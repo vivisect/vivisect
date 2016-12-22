@@ -1,19 +1,23 @@
-
 qt_matrix = '''
 
 QWidget {
     background-color: #000000;
     color: #00ff00;
-    font: Courier;
+    font-family: "monospace";
+    font-size: 14px
 }
 
 QTextEdit {
     border: 2px solid #00802b;
+    font-family: monospace;
+    font-size: 14px
 }
 
 QDockWidget::title {
     background: #000000;
     text-align: center;
+    font-family: monospace;
+    font-size: 14px
 }
 
 QDockWidget::close-button, QDockWidget::float-button {
@@ -39,29 +43,40 @@ QTabBar::tab {
     border-top-right-radius: 4px;
     min-width: 8ex;
     padding: 2px;
+    font-family: monospace;
+    font-size: 14px
+
 }
 
 QTabBar::tab:selected {
     border: 3px solid #00ff00;
     /* border-bottom-color: #00ff00; */
+    font-family: monospace;
+    font-size: 14px
 }
 
 QTreeView::item:selected {
      /* border: 1px solid #567dbc; */
     color: #000000;
     background: #00802b;
+    font-family: monospace;
+    font-size: 14px
 }
 
 QMainWindow::seperator {
     width: 4px;
     height: 4px;
     background: #00802b;
+    font-family: monospace;
+    font-size: 14px
 }
 
 QMainWindow::seperator:hover {
     width: 4px;
     height: 4px;
     background: #00ff00;
+    font-family: monospace;
+    font-size: 14px
 }
 
 QMenu {
@@ -72,6 +87,8 @@ QMenu {
 
     selection-color: #000000;
     selection-background-color: #00ff00;
+    font-family: monospace;
+    font-size: 14px
 }
 
 QLineEdit {
@@ -82,11 +99,15 @@ QLineEdit {
     /* color: #00ff00; */
     /* background: #000000; */
     selection-background-color: darkgray;
+    font-family: monospace;
+    font-size: 14px
 }
 
 QTreeView {
     border: 2px solid #00802b;
     alternate-background-color: #0f0f0f;
+    font-family: monospace;
+    font-size: 14px
 }
 
 QHeaderView::section {
@@ -94,6 +115,8 @@ QHeaderView::section {
      padding-left: 4px;
      background-color: #000000;
      border: 1px solid #00802b;
+    font-family: monospace;
+    font-size: 14px
 }
 
 QPushButton {
@@ -102,6 +125,8 @@ QPushButton {
      border-style: outset;
      border-color: #00802b;
      padding: 1px;
+    font-family: monospace;
+    font-size: 14px
 }
 
 QComboBox {
@@ -112,6 +137,8 @@ QComboBox {
     border: 2px solid #00802b;
     selection-color: #000000;
     selection-background-color: #00ff00;
+    font-family: monospace;
+    font-size: 14px
 }
 
 QMenuBar {
@@ -120,56 +147,76 @@ QMenuBar {
     selection-color: #000000;
     selection-background-color: #00ff00;
     border: 2px solid #00802b;
+    font-family: monospace;
+    font-size: 14px
 }
 
 QMenuBar::item {
     color: #00ff00;
     background-color: #000000;
+    font-family: monospace;
+    font-size: 14px
 }
 
 QMenuBar::item:selected {
     color: #00ff00;
     background-color: #000000;
+    font-family: monospace;
+    font-size: 14px
 }
 
 QMainWindow::separator {
      width: 4px;
      height: 4px;
      background: #00802b;
+    font-family: monospace;
+    font-size: 14px
 }
 
 QMainWindow::separator:hover {
      background: #00ff00;
+    font-family: monospace;
+    font-size: 14px
 }
 
 QSplitter::handle {
      width: 6px;
      height: 6px;
      background: #000000;
+    font-family: monospace;
+    font-size: 14px
 }
 
 QSplitter::handle:hover {
      background: #00ff00;
+    font-family: monospace;
+    font-size: 14px;
 }
 
 QToolButton:disabled {
     color: #606060;
+    font-family: monospace;
+    font-size: 14px
 }
 
 QToolButton { /* all types of tool button */
     border: 2px solid #8f8f91;
     border-radius: 6px;
+    font-family: monospace;
+    font-size: 14px
 }
 
 QToolBar {
     background: #101010;
     border: 2px solid #00802b;
     spacing: 3px; /* spacing between items in toolbar */
+    font-family: monospace;
+    font-size: 14px
 }
 '''
 
 defcolors = qt_matrix
 
+
 def getDefaultColors():
     return qt_matrix
-

@@ -159,7 +159,7 @@ def connServerAndWorkspace(vw, host,parent=None):
         server = viv_server.connectToServer(host)
         wslist = server.listWorkspaces()
         selectServerWorkspace(vw, server, wslist, parent=parent)
-    except Exception, e:
+    except Exception as e:
         vw.vprint('Server Error: %s' % e)
         return
 
@@ -192,7 +192,7 @@ def sendServerWorkspace(vw, wsname, wsserver):
         events = vw.exportWorkspace()
         server = viv_server.connectToServer(wsserver)
         server.addNewWorkspace(wsname, events)
-    except Exception, e:
+    except Exception as e:
         vw.vprint('Workspace Server Error: %s' % e)
         return
 

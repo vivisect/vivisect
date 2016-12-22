@@ -216,7 +216,7 @@ class CGenerator(object):
         s += ';'
         if n.cond: s += ' ' + self.visit(n.cond)
         s += ';'
-        if n.next: s += ' ' + self.visit(n.next)
+        if n.__next__: s += ' ' + self.visit(n.next)
         s += ')\n'
         s += self._generate_stmt(n.stmt, add_indent=True)
         return s

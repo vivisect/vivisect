@@ -126,9 +126,9 @@ class ArmEmulator(ArmModule, ArmRegisterContext, envi.Emulator):
         ArmModule.__init__(self)
 
         # FIXME: this should be None's, and added in for each real coproc... but this will work for now.
-        self.coprocs = [CoProcEmulator() for x in xrange(16)]       
+        self.coprocs = [CoProcEmulator() for x in range(16)]       
 
-        seglist = [ (0,0xffffffff) for x in xrange(6) ]
+        seglist = [ (0,0xffffffff) for x in range(6) ]
         envi.Emulator.__init__(self, ArmModule())
 
         ArmRegisterContext.__init__(self)
@@ -445,7 +445,7 @@ class ArmEmulator(ArmModule, ArmRegisterContext, envi.Emulator):
         regmask = op.opers[1].val
         pc = self.getRegister(REG_PC)       # store for later check
 
-        for reg in xrange(16):
+        for reg in range(16):
             if (1<<reg) & regmask:
                 if op.iflags & IF_DAIB_B == IF_DAIB_B:
                     if op.iflags & IF_DAIB_I == IF_DAIB_I:

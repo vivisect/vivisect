@@ -1,4 +1,3 @@
-
 """
 The analysis package.  Modules in this directory are responsible
 for different phases of analysis on different platforms.
@@ -6,12 +5,11 @@ for different phases of analysis on different platforms.
 
 
 def addAnalysisModules(vw):
-
     import vivisect
     import vivisect.analysis.i386 as viv_analysis_i386
 
     arch = vw.getMeta('Architecture')
-    fmt  = vw.getMeta('Format')
+    fmt = vw.getMeta('Format')
     plat = vw.getMeta('Platform')
 
     if fmt == 'pe':
@@ -20,7 +18,7 @@ def addAnalysisModules(vw):
 
         if arch == 'i386':
 
-            vw.addImpApi('windows','i386')
+            vw.addImpApi('windows', 'i386')
 
             viv_analysis_i386.addEntrySigs(vw)
             vw.addStructureModule('win32', 'vstruct.defs.win32')
@@ -28,15 +26,15 @@ def addAnalysisModules(vw):
 
         elif arch == 'amd64':
 
-            vw.addImpApi('windows','amd64')
+            vw.addImpApi('windows', 'amd64')
             vw.addStructureModule('ntdll', 'vstruct.defs.windows.win_6_1_amd64.ntdll')
 
         vw.addConstModule('vstruct.constants.ntstatus')
 
         vw.addAnalysisModule("vivisect.analysis.generic.relocations")
 
-        vw.addAnalysisModule("vivisect.analysis.ms.vftables") # RELIES ON LOC_POINTER
-        vw.addAnalysisModule("vivisect.analysis.generic.emucode") # RELIES ON LOC_POINTER
+        vw.addAnalysisModule("vivisect.analysis.ms.vftables")  # RELIES ON LOC_POINTER
+        vw.addAnalysisModule("vivisect.analysis.generic.emucode")  # RELIES ON LOC_POINTER
 
         # run imports after emucode
         if arch == 'i386':
@@ -63,7 +61,7 @@ def addAnalysisModules(vw):
 
         vw.addAnalysisModule('vivisect.analysis.generic.strconst')
 
-    elif fmt == 'elf': # ELF ########################################################
+    elif fmt == 'elf':  # ELF ########################################################
 
         vw.addAnalysisModule("vivisect.analysis.elf")
 
@@ -71,7 +69,7 @@ def addAnalysisModules(vw):
             viv_analysis_i386.addEntrySigs(vw)
             vw.addAnalysisModule("vivisect.analysis.i386.importcalls")
             # add va set for tracking thunk_bx function(s)
-            vw.addVaSet('thunk_bx', ( ('fva', vivisect.VASET_ADDRESS), ) )
+            vw.addVaSet('thunk_bx', (('fva', vivisect.VASET_ADDRESS),))
             vw.addFuncAnalysisModule("vivisect.analysis.i386.thunk_bx")
 
         vw.addAnalysisModule("vivisect.analysis.generic.funcentries")
@@ -95,7 +93,7 @@ def addAnalysisModules(vw):
         vw.addFuncAnalysisModule("vivisect.analysis.generic.thunks")
         vw.addAnalysisModule("vivisect.analysis.generic.pointers")
 
-    elif fmt == 'macho': # MACH-O ###################################################
+    elif fmt == 'macho':  # MACH-O ###################################################
 
         if arch == 'i386':
             viv_analysis_i386.addEntrySigs(vw)
@@ -119,7 +117,7 @@ def addAnalysisModules(vw):
         vw.addFuncAnalysisModule("vivisect.analysis.generic.thunks")
         vw.addAnalysisModule("vivisect.analysis.generic.pointers")
 
-    elif fmt == 'blob': # BLOB ######################################################
+    elif fmt == 'blob':  # BLOB ######################################################
 
         vw.addAnalysisModule("vivisect.analysis.generic.funcentries")
         vw.addAnalysisModule("vivisect.analysis.generic.relocations")
@@ -130,11 +128,11 @@ def addAnalysisModules(vw):
         vw.addFuncAnalysisModule("vivisect.analysis.generic.impapi")
         vw.addFuncAnalysisModule("vivisect.analysis.generic.thunks")
 
-    elif fmt == 'ihex': # BLOB ######################################################
+    elif fmt == 'ihex':  # BLOB ######################################################
 
         vw.addAnalysisModule("vivisect.analysis.generic.funcentries")
         vw.addAnalysisModule("vivisect.analysis.generic.relocations")
-        #vw.addAnalysisModule("vivisect.analysis.generic.pointertables")
+        # vw.addAnalysisModule("vivisect.analysis.generic.pointertables")
         vw.addAnalysisModule("vivisect.analysis.generic.emucode")
 
         vw.addFuncAnalysisModule("vivisect.analysis.generic.codeblocks")
@@ -144,4 +142,3 @@ def addAnalysisModules(vw):
     else:
 
         raise Exception('Analysis modules unknown for format: %s' % fmt)
-

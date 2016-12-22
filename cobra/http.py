@@ -8,21 +8,21 @@ import json
 import time
 import errno
 import types
-import urllib
+import urllib.request, urllib.parse, urllib.error
 import base64
-import Cookie
+import http.cookies
 import socket
 import struct
-import httplib
-import urlparse
+import http.client
+import urllib.parse
 import traceback
-import BaseHTTPServer
+import http.server
 
 import cobra as c_cobra
-import cPickle as pickle
+import pickle as pickle
 
 from threading import currentThread,Thread,RLock
-from SocketServer import ThreadingTCPServer, BaseRequestHandler
+from socketserver import ThreadingTCPServer, BaseRequestHandler
 
 daemon = None
 verbose = False
@@ -49,13 +49,13 @@ def chopCobraHttpUri(uri):
     url = uri
     if uri.startswith('/'):
         # get rid of starting /
-        url = urlparse.urlsplit(uri[1:])
+        url = urllib.parse.urlsplit(uri[1:])
 
     objname, methname = url.path.split('/', 1)
 
     # Do we have any URL options?
     urlparams = {}
-    for urlopt in urllib.unquote( url.query ).split('&'):
+    for urlopt in urllib.parse.unquote( url.query ).split('&'):
         urlval = '1'
         if urlopt.find('=') != -1:
             urlopt,urlval = urlopt.split('=',1)
@@ -65,7 +65,7 @@ def chopCobraHttpUri(uri):
 
     return objname, methname, urlparams.get('args', ()), urlparams.get('kwargs', {}) 
 
-class CobraHttpRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
+class CobraHttpRequestHandler(http.server.BaseHTTPRequestHandler):
     '''
     Request handler for HTTP cobra
     '''
@@ -76,11 +76,11 @@ class CobraHttpRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
                 '__cobra_setattr' : self.handleSetAttr,
                 '__cobra_login'   : self.handleLogin
             }
-        BaseHTTPServer.BaseHTTPRequestHandler.__init__(self, *args, **kwargs)
+        http.server.BaseHTTPRequestHandler.__init__(self, *args, **kwargs)
 
     def do_POST(self):
         # this is a json posted data list (args, kwargs)
-        body =  json.loads(urllib.unquote(self.rfile.read( int(self.headers['Content-Length'])) ))
+        body =  json.loads(urllib.parse.unquote(self.rfile.read( int(self.headers['Content-Length'])) ))
 
         #self.handleClient(s.server, s, s.path, body=body)
         self.handleClient(body=body)
@@ -104,7 +104,7 @@ class CobraHttpRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
                                      keyfile=keyfile, certfile=certfile,
                                      ca_certs=sslca, cert_reqs=sslreq,
                                      server_side=True)
-        BaseHTTPServer.BaseHTTPRequestHandler.setup(self)
+        http.server.BaseHTTPRequestHandler.setup(self)
 
     def handleClient(self, body=None): 
         # validate authentication
@@ -112,7 +112,7 @@ class CobraHttpRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             objname, methname, args, kwargs = chopCobraHttpUri(self.path)
         except:
             # If we had an exception its a malformed request..
-            self.request.send_response(httplib.INTERNAL_SERVER_ERROR)
+            self.request.send_response(http.client.INTERNAL_SERVER_ERROR)
             self.request.end_headers()
             excinfo = "%s" % traceback.format_exc()
             self.request.wfile.write(json.dumps(excinfo))
@@ -130,7 +130,7 @@ class CobraHttpRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             authinfo = None
             if not self.headers.getheader('Cookie'):
                 # user not authenticated
-                self.request.send_response(httplib.UNAUTHORIZED)
+                self.request.send_response(http.client.UNAUTHORIZED)
                 self.request.end_headers()
                 return
 
@@ -139,7 +139,7 @@ class CobraHttpRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             sessid = cookie.split('=',1)[1].replace("\"", "")
             # Invalid session!
             if not self.server.sessions.get(sessid):
-                self.request.send_response(httplib.UNAUTHORIZED)
+                self.request.send_response(http.client.UNAUTHORIZED)
                 self.request.end_headers()
                 return
 
@@ -147,7 +147,7 @@ class CobraHttpRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
             # Ensure user cna access our object
             if not authinfo or not self.server.authmod.checkUserAccess( authinfo['user'], methname):
-                self.request.send_response(httplib.UNAUTHORIZED)
+                self.request.send_response(http.client.UNAUTHORIZED)
                 self.request.end_headers()
                 return
 
@@ -160,18 +160,18 @@ class CobraHttpRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             meth = getattr(obj, methname)
             try:
                 ret = meth(*args, **kwargs)
-                self.send_response(httplib.OK)
+                self.send_response(http.client.OK)
                 self.end_headers()
                 self.wfile.write(json.dumps(ret)) 
-            except Exception, e:
-                self.send_response(httplib.INTERNAL_SERVER_ERROR)
+            except Exception as e:
+                self.send_response(http.client.INTERNAL_SERVER_ERROR)
                 self.end_headers()
                 excinfo = "%s" % traceback.format_exc()
                 self.wfile.write(json.dumps(excinfo))
 
             return
 
-        self.send_response(httplib.BAD_REQUEST)
+        self.send_response(http.client.BAD_REQUEST)
         self.end_headers()
         excinfo = "Bad Request: No function named '%s'" % methname
         self.wfile.write(json.dumps(excinfo))
@@ -183,21 +183,21 @@ class CobraHttpRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
         if self.server.authmod:
             if not authinfo or not self.server.authmod.authCobraUser(authinfo):
-                self.send_response(httplib.UNAUTHORIZED)
+                self.send_response(http.client.UNAUTHORIZED)
                 self.end_headers()
             else:
                 sesskey = base64.b64encode( os.urandom(32) )
                 self.server.sessions[ sesskey ] = (authinfo, time.time())
-                c = Cookie.SimpleCookie()
+                c = http.cookies.SimpleCookie()
                 c['SessionId'] = sesskey
                 # set morsel
-                self.send_response(httplib.OK)
-                self.send_header('Set-Cookie', c.values()[0].output(header=''))
+                self.send_response(http.client.OK)
+                self.send_header('Set-Cookie', list(c.values())[0].output(header=''))
                 self.send_header("Content-type", "text/html")
                 self.end_headers()
             return
 
-        self.send_response(httplib.OK)
+        self.send_response(http.client.OK)
         self.end_headers()
 
     def handleHello(self, objname): 
@@ -205,48 +205,48 @@ class CobraHttpRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         Hello messages are used to get the initial cache of
         method names for the newly connected object.
         '''
-        if verbose: print "GOT A HELLO"
+        if verbose: print("GOT A HELLO")
         obj = self.server.getSharedObject(objname)
         ret = {}
         for name in dir(obj):
             if type(getattr(obj,name)) in (types.MethodType, types.BuiltinMethodType):
                 ret[name] = True
-        self.send_response(httplib.OK)
+        self.send_response(http.client.OK)
         self.end_headers()
         self.wfile.write(json.dumps(ret))
         return
 
     def handleGetAttr(self, objname, attr): 
         if not self.server.attr:
-            self.send_response(httplib.FORBIDDEN)
+            self.send_response(http.client.FORBIDDEN)
             self.end_headers()
             excinfo = "__getattr__ disabled"
             self.wfile.write(json.dumps(excinfo))
             return
-        if verbose: print "GETTING ATTRIBUTE:", attr 
+        if verbose: print("GETTING ATTRIBUTE:", attr) 
         obj = self.server.getSharedObject(objname)
         try:
             val = getattr(obj, attr)
-            self.send_response(httplib.OK)
+            self.send_response(http.client.OK)
             self.end_headers()
             self.wfile.write(json.dumps(val)) 
-        except Exception, e:
-            self.send_response(httplib.NOT_FOUND)
+        except Exception as e:
+            self.send_response(http.client.NOT_FOUND)
             self.end_headers()
             excinfo = "%s" % traceback.format_exc()
             self.wfile.write(json.dumps(excinfo))
 
     def handleSetAttr(self, objname, name, value): 
         if not self.server.attr:
-            self.send_response(httplib.FORBIDDEN)
+            self.send_response(http.client.FORBIDDEN)
             self.end_headers()
             excinfo = "__setattr__ disabled"
             self.wfile.write(json.dumps(excinfo))
             return
         obj = self.server.getSharedObject(objname)
-        if verbose: print "SETTING ATTRIBUTE:", urlparams['args']
+        if verbose: print("SETTING ATTRIBUTE:", urlparams['args'])
         setattr(obj, name, value) 
-        self.send_response(httplib.OK)
+        self.send_response(http.client.OK)
         self.end_headers()
 
 class CobraHttpDaemon(ThreadingTCPServer):
@@ -308,7 +308,7 @@ class CobraHttpDaemon(ThreadingTCPServer):
     def _timeoutSessions(self):
         while True:
             time.sleep( self.sess_timeout  )
-            for key, (authinfo, tstamp) in self.sessions.items():
+            for key, (authinfo, tstamp) in list(self.sessions.items()):
                 if time.time()-tstamp > self.sess_timeout:
                     self.sessions.pop(key)
 
@@ -380,7 +380,7 @@ class CobraHttpProxy:
     def __init__(self, URI, retrymax=None, timeout=None, **kwargs):
 
         scheme, host, port, name, urlparams = c_cobra.chopCobraUri( URI )
-        if verbose: print "HOST",host,"PORT",port,"OBJ",name
+        if verbose: print("HOST",host,"PORT",port,"OBJ",name)
 
         self._cobra_uri = URI
         self._cobra_scheme = scheme
@@ -431,7 +431,7 @@ class CobraHttpProxy:
         return sock
 
     def __getattr__(self, name):
-        if verbose: print "GETATTR",name
+        if verbose: print("GETATTR",name)
 
         if name == "__getinitargs__":
             raise AttributeError()
@@ -442,7 +442,7 @@ class CobraHttpProxy:
         return CobraHttpMethod(self, '__cobra_getattr')(name)
 
     def __setattr__(self, name, value):
-        if verbose: print "SETATTR %s %s" % (name, repr(value)[:20])
+        if verbose: print("SETATTR %s %s" % (name, repr(value)[:20]))
 
         if name.startswith('_cobra_'):
             self.__dict__[name] = value
@@ -456,9 +456,9 @@ class CobraHttpProxy:
         """
         
         if self._cobra_scheme == 'http':
-            return CobraHttpClient( CobraHttpFactory(host=self._cobra_host, port=self._cobra_port, timeout=self._cobra_timeout, factory=httplib.HTTPConnection), _cobra_name=self._cobra_name )
+            return CobraHttpClient( CobraHttpFactory(host=self._cobra_host, port=self._cobra_port, timeout=self._cobra_timeout, factory=http.client.HTTPConnection), _cobra_name=self._cobra_name )
         else:
-            return CobraHttpClient( CobraHttpFactory(host=self._cobra_host, port=self._cobra_port, timeout=self._cobra_timeout, key_file=self._cobra_kwargs.get('sslkey'), cert_file=self._cobra_kwargs.get('sslcrt'), factory=httplib.HTTPSConnection), _cobra_name=self._cobra_name )
+            return CobraHttpClient( CobraHttpFactory(host=self._cobra_host, port=self._cobra_port, timeout=self._cobra_timeout, key_file=self._cobra_kwargs.get('sslkey'), cert_file=self._cobra_kwargs.get('sslcrt'), factory=http.client.HTTPSConnection), _cobra_name=self._cobra_name )
 
 class CobraHttpFactory:
     '''
@@ -490,11 +490,11 @@ class CobraHttpClient:
         self.connected = True 
 
     def authUser(self, authinfo):
-        body = urllib.quote(json.dumps({'kwargs':authinfo}) )
+        body = urllib.parse.quote(json.dumps({'kwargs':authinfo}) )
         self.conn.request("POST", "/%s/__cobra_login" %  self._cobra_name, body) 
 
         resp = self.conn.getresponse()
-        if resp.status != httplib.OK:
+        if resp.status != http.client.OK:
             raise CobraHttpException("Access Denied")
 
         cookie = resp.getheader('set-cookie')
@@ -503,9 +503,9 @@ class CobraHttpClient:
             self.authinfo = authinfo
         
     def _cobra_http_geturi(self, methname, *args, **kwargs):
-        uri = "/%s/%s?args=%s" % (self._cobra_name, methname, urllib.quote(json.dumps(args)))
+        uri = "/%s/%s?args=%s" % (self._cobra_name, methname, urllib.parse.quote(json.dumps(args)))
         if kwargs:
-            uri += "&kwargs=%s" % urllib.quote(json.dumps(kwargs))
+            uri += "&kwargs=%s" % urllib.parse.quote(json.dumps(kwargs))
         return uri
 
     def reConnect(self):
@@ -517,7 +517,7 @@ class CobraHttpClient:
                     self.authUser(self.authinfo)
                 self.retries = 0
                 return
-            except Exception, e:
+            except Exception as e:
                 time.sleep(2 ** self.retries)
                 self.retries += 1
         self.trashed = True
@@ -537,23 +537,23 @@ class CobraHttpClient:
             self.conn.request("GET", url, headers=headers)
             resp = self.conn.getresponse()
 
-            if resp.status == httplib.NOT_FOUND: 
+            if resp.status == http.client.NOT_FOUND: 
                 exc = json.loads( resp.read())
                 raise CobraHttpException(exc)
 
-            if resp.status == httplib.UNAUTHORIZED and self._cobra_sessid:
+            if resp.status == http.client.UNAUTHORIZED and self._cobra_sessid:
                 self.reConnect()
                 continue
-            if resp.status == httplib.UNAUTHORIZED:
+            if resp.status == http.client.UNAUTHORIZED:
                 self.trashed = True
                 raise CobraHttpException("Access Denied")
-            if resp.status == httplib.INTERNAL_SERVER_ERROR:
+            if resp.status == http.client.INTERNAL_SERVER_ERROR:
                 exc = json.loads( resp.read())
                 raise CobraHttpException(exc)
-            if resp.status == httplib.BAD_REQUEST:
+            if resp.status == http.client.BAD_REQUEST:
                 exc = json.loads( resp.read())
                 raise CobraHttpException(exc)
-            if resp.status == httplib.FORBIDDEN:
+            if resp.status == http.client.FORBIDDEN:
                 exc = json.loads( resp.read())
                 raise CobraHttpException(exc)
 
@@ -569,6 +569,6 @@ class CobraHttpMethod:
 
     def __call__(self, *args, **kwargs):
         name = self.proxy._cobra_name
-        if verbose: print "CALLING:",name,self.methname,repr(args)[:20],repr(kwargs)[:20]
+        if verbose: print("CALLING:",name,self.methname,repr(args)[:20],repr(kwargs)[:20])
         sock = self.proxy._cobra_http_getsock()
         return sock.cobraHttpTransaction(self.methname, (args,kwargs))

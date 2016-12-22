@@ -48,7 +48,7 @@ def analyzeFunction(vw, funcva):
     elif isinstance(oper0, e_i386.i386RegMemOper):
         # FIXME this is i386 elf only!
         if oper0.reg != e_i386.REG_EBX:
-            print "UNKNOWN PLT CALL",hex(funcva)
+            print("UNKNOWN PLT CALL",hex(funcva))
         got = vw.vaByName("%s._GLOBAL_OFFSET_TABLE_" % segfname)
 
         #FIXME this totally sucks

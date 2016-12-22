@@ -61,11 +61,11 @@ class SubState:
         return d
 
     def __iter__(self):
-        for i in xrange(len(self)):
+        for i in range(len(self)):
             yield self.getCombState(i)
 
     def __getslice__(self, x, y):
-        for i in xrange(x,y+1):
+        for i in range(x,y+1):
             yield self.getCombState(i)
 
     def __add__(self, x):
@@ -179,16 +179,16 @@ if __name__ == '__main__':
     from vivisect.symboliks.common import *
 
     symobj = (Var('x',4) * Const(3, 4) ) + Var('y',4)
-    print str(symobj)
+    print(str(symobj))
 
     x = srange('x', 3)
     y = sset('y', [1,9,0xffffffff])
 
     print('added:')
     for i in (x+y):
-        print ('solved: %s %d' % (repr(i),symobj.solve(vals=i),))
+        print(('solved: %s %d' % (repr(i),symobj.solve(vals=i),)))
 
     print('multiplied:')
     for i in (x*y):
-        print ('solved: %s %d' % (repr(i),symobj.solve(vals=i),))
+        print(('solved: %s %d' % (repr(i),symobj.solve(vals=i),)))
 
