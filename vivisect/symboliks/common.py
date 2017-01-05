@@ -202,28 +202,6 @@ class SymbolikBase:
         '''
         raise Exception('%s *must* implement solve(emu=emu)!' % self.__class__.__name__)
 
-    def reduce2(self, emu=None, foo=False):
-        '''
-        Algebraic reduction and operator folding where possible.
-
-        Example:
-            symobj = symobj.reduce()
-        '''
-        def doreduce(path,oldkid,ctx):
-            return oldkid._reduce(emu=emu)
-        
-        sym = self.walkTree7(doreduce, once=True)
-        if foo:
-            symstr = str(sym)
-            while True:
-                sym = sym.walkTree7(doreduce)
-                s1str = str(sym)
-                if s1str == symstr:
-                    break
-                symstr = s1str
-
-        return sym
-
     def reduce(self, emu=None, foo=False):
         '''
         Algebraic reduction and operator folding where possible.
@@ -234,11 +212,33 @@ class SymbolikBase:
         def doreduce(path,oldkid,ctx):
             return oldkid._reduce(emu=emu)
         
-        sym = self.walkTree(doreduce)
+        sym = self.walkTree(doreduce, once=True)
         if foo:
             symstr = str(sym)
             while True:
                 sym = sym.walkTree(doreduce)
+                s1str = str(sym)
+                if s1str == symstr:
+                    break
+                symstr = s1str
+
+        return sym
+
+    def reduce_orig(self, emu=None, foo=False):
+        '''
+        Algebraic reduction and operator folding where possible.
+
+        Example:
+            symobj = symobj.reduce()
+        '''
+        def doreduce(path,oldkid,ctx):
+            return oldkid._reduce(emu=emu)
+        
+        sym = self.walkTree_orig(doreduce)
+        if foo:
+            symstr = str(sym)
+            while True:
+                sym = sym.walkTree_orig(doreduce)
                 s1str = str(sym)
                 if s1str == symstr:
                     break
@@ -313,7 +313,7 @@ class SymbolikBase:
 
         return False
 
-    def walkTree(self, cb, ctx=None):
+    def walkTree_orig(self, cb, ctx=None):
         '''
         Walk the tree of symbolik objects. (depth first)
 
@@ -349,170 +349,7 @@ class SymbolikBase:
         path.pop()
         return newkid
 
-    def _walkTree2Impl(self, path, cb, ctx=None):
-        '''
-        clean self up.
-        AST ENDPOINTS:
-        ==============
-        cnot,
-        Call,
-        Arg,
-        Var, LookupVar,
-        Const,
-
-        AST PARENTS:
-        ============
-        Mem,
-        Operators
-        '''
-        path.append( self )
-        # when kids[i] is a list of tupes then we need to call into it!
-        for i in range(len(self.kids)):
-            oldkid = self.kids[i]
-            newkid = oldkid._walkTreeImpl(path,cb,ctx=ctx)
-            if newkid._sym_id != oldkid._sym_id:
-                self.setSymKid(i, newkid)
-
-        newkid = cb(path,self,ctx)
-        if newkid == None:
-            newkid = self
-
-        # lifo like a stack ( and like a baws )
-        path.pop()
-        return newkid
-
-    def walkTree2(self, cb, ctx=None):
-        '''
-        depth-first is key.
-        all the walking is done here.  _walkTreeImpl2 only cleans itself up.
-        '''
-
-        '''
-        path = vg_path.newPathNode()    
-        todo = [ (path, self) ]
-        
-        for i in range(len(self.kids)):
-            oldkid = self.kids[i]
-            cpath = vg_path.newPathNode(oldkid)
-            
-        #newkid = oldkid._walkTreeImpl(path,cb,ctx=ctx)
-
-        ##########################3
-        todo = [ [nid, kids, idx=0] ]
-        while todo:
-            nid, kids, idx = todo.pop()
-            kid = kid[idx]
-            if len(kid.kids):
-                todo.append(
-        
-        ##### NOPE  ######'''
-        # do stack-recursion throughout the AST tree.
-        cur = self
-        idx = 0
-        path = [ [cur, idx] ]
-
-        while len(path):
-            # operate on the most recent path entry
-            cur, idx = path[-1]
-            print len(path), idx
-
-            # if the current idx is past the end, backup
-            if idx == len(cur.kids):
-                print "END OF KID at level %d" % (len(path))
-                cb(path, cur, ctx)
-                path.pop()
-                # do thing for cur
-                continue
-
-            # otherwise, let's pick on the next kid
-            kid = cur.kids[idx]
-            idx += 1
-            path[-1][1] = idx
-
-            # if this kid has other kids, add him to the stack and keep diving
-            if len(kid.kids):
-                print "DIVING DEEPER %d" % (len(path))
-                path.append([kid, 0])
-
-    def walkTree3(self, cb, ctx=None):
-        stack = []
-
-        cur = self
-        idx = 0
-
-        while True:     #break out when we reach the end of self.kids
-            if idx == len(cur.kids):
-                print "END OF KID at level %d" % (len(stack))
-
-                # do thing for cur
-                cb(stack, cur, ctx)
-
-                if not len(stack):
-                    return
-
-                cur, idx = stack.pop()
-                continue
-
-            # otherwise, let's pick on the next kid
-            kid = cur.kids[idx]
-            idx += 1
-
-            stack.append( (cur, idx) )
-            if len(kid.kids):
-                print "DIVING DEEPER %d" % (len(stack))
-                cur = kid
-                idx = 0
-                continue
-
-            else:
-                cb(stack, kid, ctx)
-                stack.pop()
-
-    def walkTree4(self, cb, ctx=None):
-        ''' 
-        this version basically mirrors the original walkTree/_walkTreeImpl combination
-        not sure about the stack usage.
-        probably want to track index separately so we can just hand stack in as the path (and have it be correct)
-        '''
-        stack = []
-
-        cur = self
-        idx = 0
-
-        while True:     #break out when we reach the end of self.kids
-            if idx == len(cur.kids):
-                print "END OF KID at level %d" % (len(stack))
-
-                # do thing for cur
-                stack.append((cur, 0))
-                cb(stack, cur, ctx)
-                stack.pop()
-
-                if not len(stack):
-                    return
-
-                cur, idx = stack.pop()
-                continue
-
-            # otherwise, let's pick on the next kid
-            kid = cur.kids[idx]
-            idx += 1
-
-            stack.append( (cur, idx) )
-
-            if len(kid.kids):
-                print "DIVING DEEPER %d" % (len(stack))
-                cur = kid
-                idx = 0
-                continue
-
-            else:
-                stack.append((kid, 0))
-                cb(stack, kid, ctx)
-                stack.pop()
-                stack.pop()
-
-    def walkTree5(self, cb, ctx=None, once=True):
+    def walkTree(self, cb, ctx=None, once=True):
         ''' 
         this version basically mirrors the original walkTree/_walkTreeImpl combination
         not sure about the stack usage.
@@ -524,145 +361,6 @@ class SymbolikBase:
 
         cur = self
         idx = 0
-
-        while True:
-            if once and cur in done:
-                if not len(path):
-                    return cur
-
-                cur= path.pop()
-                idx = idxs.pop()
-                continue
-
-            if idx == len(cur.kids):
-                print "END OF KID at level %d" % (len(path))
-
-                # do thing for cur
-                path.append(cur)
-                newb = cb(path, cur, ctx)
-                done.append(cur)
-                path.pop()
-
-                if not len(path):
-                    if newb != None:
-                        return newb
-                    return cur
-
-                cur = path.pop()
-                idx = idxs.pop()
-                if newb != None:
-                    if newb._sym_id == cur._sym_id:
-                        print "YUP!  cb returns the same sometimes!"
-                    self.setSymKid(idx, newb)
-                continue
-
-            # otherwise, let's pick on the next kid
-            kid = cur.kids[idx]
-            idx += 1
-
-            path.append(cur)
-            idxs.append(idx)
-
-            if len(kid.kids):
-                print "DIVING DEEPER %d" % (len(path))
-                cur = kid
-                idx = 0
-                continue
-
-            else:
-
-                path.append(kid)
-                newb = cb(path, kid, ctx)
-                if newb != None:
-                    if newb._sym_id == kid._sym_id:
-                        print "YUP!  cb returns the same sometimes!"
-                    self.setSymKid(idx, newb)
-                done.append(kid)
-                path.pop()
-
-                path.pop()
-                idxs.pop()
-
-    def walkTree6(self, cb, ctx=None, once=True):
-        ''' 
-        this version basically mirrors the original walkTree/_walkTreeImpl combination
-        not sure about the stack usage.
-        probably want to track index separately so we can just hand stack in as the path (and have it be correct)
-        '''
-        path = []
-        idxs = []
-        done = []
-
-        cur = self
-        idx = 0
-
-        while True:
-
-            # if we only hit the same thing once, and we've already done it, skip this one
-            if once and cur in done:
-                print "cur in done..."
-                if not len(path):
-                    return cur
-
-                cur = path.pop()
-                idx = idxs.pop()
-                continue
-
-            # let's pick on the next kid
-            kid = cur.kids[idx]
-            idx += 1
-
-            # add our current node to the path (and save our index)
-            path.append(cur)
-            idxs.append(idx)
-
-
-            # depth first...
-            if len(kid.kids):
-                print "DIVING DEEPER %d" % (len(path))
-                cur = kid
-                idx = 0
-                continue
-
-            # if current level of kids index is at the end, bail out
-            if idx == len(cur.kids):
-                print "END OF KID at level %d" % (len(path))
-
-                # do thing for cur
-                newb = cb(path, cur, ctx)
-                done.append(cur)
-                cur = path.pop()
-                idx = idxs.pop()
-
-                # are we at the end of our analysis?
-                if not len(path):
-                    if newb != None:
-                        return newb
-                    return cur
-
-                # otherwise...  move up a level
-                cur = path.pop()
-                idx = idxs.pop()
-
-                if newb != None:
-                    if newb._sym_id == cur._sym_id:
-                        print "YUP!  cb returns the same sometimes!"
-                    self.setSymKid(idx, newb)
-                continue
-
-    def walkTree7(self, cb, ctx=None, once=True):
-        ''' 
-        this version basically mirrors the original walkTree/_walkTreeImpl combination
-        not sure about the stack usage.
-        probably want to track index separately so we can just hand stack in as the path (and have it be correct)
-        '''
-        path = []
-        idxs = []
-        done = []
-
-        cur = self
-        idx = 0
-        
 
         while True:
             # follow kids if there are any left...
@@ -673,26 +371,22 @@ class SymbolikBase:
                     idx += 1
                     continue
 
+                # store current info for this level
                 path.append(cur)
                 idxs.append(idx)
 
+                # let's get into the minds of our kids...
                 cur = kid
                 idx = 0
-            else:
-                sys.stdout.write('.')
+            #else:
+            #    sys.stdout.write('.')
 
             # do self
-            path.append(cur)
-            #sys.stdout.write(' >> ')
+            #sys.stdout.write(' >> %r' % cur.__class__)
+            path.append(cur)    # old walkTree expects cur to be on the top of the stack
             newb = cb(path, cur, ctx)
+            path.pop()          # clean up, since our algorithm doesn't expect cur on the top...
             #sys.stdout.write(' << ')
-            if newb != None:
-                if newb._sym_id == cur._sym_id:
-                    print "YUP!  cb returns the same sometimes!"
-                #print "setSymKid: %s :: %d" % (len(path), idx)
-                cur.setSymKid(idx, newb)
-            path.pop()
-            # tie newb in
 
             done.append(cur)
 
@@ -702,9 +396,18 @@ class SymbolikBase:
                     return newb
                 return cur
 
+            # pop back up a level
             cur = path.pop()
-            idx = idxs.pop() + 1
+            idx = idxs.pop()
+
+            # tie newb in
+            if newb != None:
+                #print "setSymKid: %s :: %d" % (len(path), idx)
+                cur.setSymKid(idx, newb)
+
             #sys.stdout.write('-')
+
+            idx += 1
 
 
 
