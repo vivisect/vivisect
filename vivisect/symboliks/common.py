@@ -201,6 +201,28 @@ class SymbolikBase:
         '''
         raise Exception('%s *must* implement solve(emu=emu)!' % self.__class__.__name__)
 
+    def reduce2(self, emu=None, foo=False):
+        '''
+        Algebraic reduction and operator folding where possible.
+
+        Example:
+            symobj = symobj.reduce()
+        '''
+        def doreduce(path,oldkid,ctx):
+            return oldkid._reduce(emu=emu)
+        
+        sym = self.walkTree7(doreduce, once=True)
+        if foo:
+            symstr = str(sym)
+            while True:
+                sym = sym.walkTree7(doreduce)
+                s1str = str(sym)
+                if s1str == symstr:
+                    break
+                symstr = s1str
+
+        return sym
+
     def reduce(self, emu=None, foo=False):
         '''
         Algebraic reduction and operator folding where possible.
@@ -489,7 +511,7 @@ class SymbolikBase:
                 stack.pop()
                 stack.pop()
 
-    def walkTree5(self, cb, ctx=None):
+    def walkTree5(self, cb, ctx=None, once=True):
         ''' 
         this version basically mirrors the original walkTree/_walkTreeImpl combination
         not sure about the stack usage.
@@ -497,26 +519,40 @@ class SymbolikBase:
         '''
         path = []
         idxs = []
+        done = []
 
         cur = self
         idx = 0
 
         while True:
-            if idx == len(cur.kids):
-                #print "END OF KID at level %d" % (len(path))
-
-                # do thing for cur
-                path.append(cur)
-                #idxs.append(0)
-                cb(path, cur, ctx)
-                path.pop()
-                #idxs.pop()
-
+            if once and cur in done:
                 if not len(path):
-                    return
+                    return cur
 
                 cur= path.pop()
                 idx = idxs.pop()
+                continue
+
+            if idx == len(cur.kids):
+                print "END OF KID at level %d" % (len(path))
+
+                # do thing for cur
+                path.append(cur)
+                newb = cb(path, cur, ctx)
+                done.append(cur)
+                path.pop()
+
+                if not len(path):
+                    if newb != None:
+                        return newb
+                    return cur
+
+                cur = path.pop()
+                idx = idxs.pop()
+                if newb != None:
+                    if newb._sym_id == cur._sym_id:
+                        print "YUP!  cb returns the same sometimes!"
+                    self.setSymKid(idx, newb)
                 continue
 
             # otherwise, let's pick on the next kid
@@ -527,18 +563,142 @@ class SymbolikBase:
             idxs.append(idx)
 
             if len(kid.kids):
-                #print "DIVING DEEPER %d" % (len(path))
+                print "DIVING DEEPER %d" % (len(path))
                 cur = kid
                 idx = 0
                 continue
 
             else:
+
                 path.append(kid)
-                cb(path, kid, ctx)
+                newb = cb(path, kid, ctx)
+                if newb != None:
+                    if newb._sym_id == kid._sym_id:
+                        print "YUP!  cb returns the same sometimes!"
+                    self.setSymKid(idx, newb)
+                done.append(kid)
                 path.pop()
 
                 path.pop()
                 idxs.pop()
+
+    def walkTree6(self, cb, ctx=None, once=True):
+        ''' 
+        this version basically mirrors the original walkTree/_walkTreeImpl combination
+        not sure about the stack usage.
+        probably want to track index separately so we can just hand stack in as the path (and have it be correct)
+        '''
+        path = []
+        idxs = []
+        done = []
+
+        cur = self
+        idx = 0
+
+        while True:
+
+            # if we only hit the same thing once, and we've already done it, skip this one
+            if once and cur in done:
+                print "cur in done..."
+                if not len(path):
+                    return cur
+
+                cur = path.pop()
+                idx = idxs.pop()
+                continue
+
+            # let's pick on the next kid
+            kid = cur.kids[idx]
+            idx += 1
+
+            # add our current node to the path (and save our index)
+            path.append(cur)
+            idxs.append(idx)
+
+
+            # depth first...
+            if len(kid.kids):
+                print "DIVING DEEPER %d" % (len(path))
+                cur = kid
+                idx = 0
+                continue
+
+            # if current level of kids index is at the end, bail out
+            if idx == len(cur.kids):
+                print "END OF KID at level %d" % (len(path))
+
+                # do thing for cur
+                newb = cb(path, cur, ctx)
+                done.append(cur)
+                cur = path.pop()
+                idx = idxs.pop()
+
+                # are we at the end of our analysis?
+                if not len(path):
+                    if newb != None:
+                        return newb
+                    return cur
+
+                # otherwise...  move up a level
+                cur = path.pop()
+                idx = idxs.pop()
+
+                if newb != None:
+                    if newb._sym_id == cur._sym_id:
+                        print "YUP!  cb returns the same sometimes!"
+                    self.setSymKid(idx, newb)
+                continue
+
+    def walkTree7(self, cb, ctx=None, once=True):
+        ''' 
+        this version basically mirrors the original walkTree/_walkTreeImpl combination
+        not sure about the stack usage.
+        probably want to track index separately so we can just hand stack in as the path (and have it be correct)
+        '''
+        path = []
+        idxs = []
+        done = []
+
+        cur = self
+        idx = 0
+        
+
+        while True:
+            # follow kids if there are any left...
+            if idx < len(cur.kids):
+                kid = cur.kids[idx]
+                if once and kid in done:
+                    idx += 1
+                    continue
+
+                path.append(cur)
+                idxs.append(idx+1)
+
+                cur = kid
+                idx = 0
+
+            # do self
+            path.append(cur)
+            newb = cb(path, cur, ctx)
+            if newb != None:
+                if newb._sym_id == cur._sym_id:
+                    print "YUP!  cb returns the same sometimes!"
+                self.setSymKid(idx, newb)
+            path.pop()
+            # tie newb in
+
+            done.append(cur)
+
+            if not len(path):
+                if newb:
+                    return newb
+                return cur
+
+            cur = path.pop()
+            idx = idxs.pop()
+
+
+
 
 
     def render(self, canvas, vw):
