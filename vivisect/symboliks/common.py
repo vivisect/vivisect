@@ -1,3 +1,4 @@
+import sys
 import hashlib
 import operator
 import functools
@@ -666,36 +667,44 @@ class SymbolikBase:
         while True:
             # follow kids if there are any left...
             if idx < len(cur.kids):
+                #sys.stdout.write('+')
                 kid = cur.kids[idx]
                 if once and kid in done:
                     idx += 1
                     continue
 
                 path.append(cur)
-                idxs.append(idx+1)
+                idxs.append(idx)
 
                 cur = kid
                 idx = 0
+            else:
+                sys.stdout.write('.')
 
             # do self
             path.append(cur)
+            #sys.stdout.write(' >> ')
             newb = cb(path, cur, ctx)
+            #sys.stdout.write(' << ')
             if newb != None:
                 if newb._sym_id == cur._sym_id:
                     print "YUP!  cb returns the same sometimes!"
-                self.setSymKid(idx, newb)
+                #print "setSymKid: %s :: %d" % (len(path), idx)
+                cur.setSymKid(idx, newb)
             path.pop()
             # tie newb in
 
             done.append(cur)
 
             if not len(path):
+                #sys.stdout.write('=')
                 if newb:
                     return newb
                 return cur
 
             cur = path.pop()
-            idx = idxs.pop()
+            idx = idxs.pop() + 1
+            #sys.stdout.write('-')
 
 
 
