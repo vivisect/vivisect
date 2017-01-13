@@ -1544,8 +1544,8 @@ thumb_base = [
     # Miscellaneous in6tructions
     ('1011001000',  (561,'sxth',    rm_rd,      0)), # SXTH<c> <Rd>, <Rm>
     ('1011001001',  (561,'sxtb',    rm_rd,      0)), # SXTB<c> <Rd>, <Rm>
-    ('1011001000',  (561,'uxth',    rm_rd,      0)), # UXTH<c> <Rd>, <Rm>
-    ('1011001001',  (561,'uxtb',    rm_rd,      0)), # UXTB<c> <Rd>, <Rm>
+    ('1011001010',  (561,'uxth',    rm_rd,      0)), # UXTH<c> <Rd>, <Rm>
+    ('1011001011',  (561,'uxtb',    rm_rd,      0)), # UXTB<c> <Rd>, <Rm>
     ('1011010',     (56,'push',    push_reglist,    0)), # PUSH <reglist>
     ('10110110010', (57,'setend',  sh4_imm1,   0)), # SETEND <endian_specifier>
     ('10110110011', (58,'cps',     simpleops(),0)), # CPS<effect> <iflags> FIXME
