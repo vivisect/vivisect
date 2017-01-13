@@ -471,6 +471,8 @@ instrnames = [
         'INS_VQSHRUN',
         'INS_VQRSHRN',
         'INS_VQRSHRUN',
+        'INS_VSHLL',
+        'INS_VCVT',
         ]
 
 ins_index = 85
