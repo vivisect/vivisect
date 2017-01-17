@@ -82,7 +82,6 @@ class SymbolikBase:
         self.kids          = []
         self.parents       = []
         self.cache         = {}
-        self._reduced       = False
     
     def __add__(self, other):
         return o_add(self, other, self.getWidth())
