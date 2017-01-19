@@ -535,6 +535,7 @@ class Emulator(e_reg.RegisterContext, e_mem.MemoryObject):
     """
     def __init__(self, archmod=None):
 
+        self.metadata = {}
         e_mem.MemoryObject.__init__(self, arch=archmod._arch_id)
         e_reg.RegisterContext.__init__(self)
 
@@ -576,6 +577,15 @@ class Emulator(e_reg.RegisterContext, e_mem.MemoryObject):
         if not self._emu_opts.has_key(opt):
             raise Exception('Unknown Emu Opt: %s' % opt)
         return self._emu_opts.get(opt)
+
+    def getMeta(self, name, default=None):
+        return self.metadata.get(name, default)
+
+    def setMeta(self, name, value):
+        """
+        Set a meta key,value pair for this workspace.
+        """
+        self.metadata[name] = value
 
     def getArchModule(self):
         raise Exception('Emulators *must* implement getArchModule()!')
