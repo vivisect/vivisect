@@ -47,7 +47,7 @@ def cb_astNodeCount(path,obj,ctx):
     ctx['count'] += 1
     if len(path) > ctx['depth']:
         ctx['depth'] = len(path)
-    print "\n\t%r\n\t\t%s" % (obj, '\n\t\t'.join([repr(x) for x in path]))
+    #print "\n\t%r\n\t\t%s" % (obj, '\n\t\t'.join([repr(x) for x in path]))
 
 
 class WalkTreeTest(unittest.TestCase):
@@ -70,14 +70,12 @@ class WalkTreeTest(unittest.TestCase):
         
 def walkTreeDoer(vw):
     sctx = vsym_analysis.getSymbolikAnalysisContext(vw)
-    print sctx
-
 
     count = 0
     for fva in vw.getFunctions():
         ctx = {'depth':0, 'count':0}
         count += 1
-        print "(%d) 0x%x done" % (count, fva)
+        #print "(%d) 0x%x done" % (count, fva)
         #raw_input("============================================================")
 
         for spath in sctx.getSymbolikPaths(fva, maxpath=1):
@@ -86,7 +84,7 @@ def walkTreeDoer(vw):
                 continue
             eff = effs[-1]
 
-            print "=====\n %r \n=====" % (eff)
+            #print "=====\n %r \n=====" % (eff)
             # this is ugly
             symast = getattr(eff, 'symobj', None)
 
@@ -108,7 +106,7 @@ def walkTreeDoer(vw):
 
 
             if symast == None:
-                print "CRAP!  skipping"
+                #print "CRAP!  skipping"
                 continue
 
             eff.walkTree(cb_astNodeCount, ctx); ctx

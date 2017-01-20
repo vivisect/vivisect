@@ -223,28 +223,6 @@ class SymbolikBase:
 
         return sym
 
-    def reduce_orig(self, emu=None, foo=False):
-        '''
-        Algebraic reduction and operator folding where possible.
-
-        Example:
-            symobj = symobj.reduce()
-        '''
-        def doreduce(path,oldkid,ctx):
-            return oldkid._reduce(emu=emu)
-        
-        sym = self.walkTree_orig(doreduce)
-        if foo:
-            symstr = str(sym)
-            while True:
-                sym = sym.walkTree_orig(doreduce)
-                s1str = str(sym)
-                if s1str == symstr:
-                    break
-                symstr = s1str
-
-        return sym
-
     def _reduce(self, emu=None):
         '''
         Algebraic reduction and operator folding where possible.
@@ -312,42 +290,6 @@ class SymbolikBase:
 
         return False
 
-    def walkTree_orig(self, cb, ctx=None):
-        '''
-        Walk the tree of symbolik objects. (depth first)
-
-        The callback is expected to have the following
-        convention:
-            newobj = callback(path,oldkid,ctx)
-
-        NOTE: because the callback may completely replace
-              the symbolik object, walkTree() returns the
-              (potentially new) "self" and should be used
-              similarly to "reduce()":
-
-              symobj = symbobj.walkTree(callback)
-
-        '''
-        return self._walkTreeImpl([],cb,ctx=ctx)
-
-    def _walkTreeImpl(self, path, cb, ctx=None):
-        # the internal version of walk tree ( which is also the recursive one )
-        path.append( self )
-        # when kids[i] is a list of tupes then we need to call into it!
-        for i in range(len(self.kids)):
-            oldkid = self.kids[i]
-            newkid = oldkid._walkTreeImpl(path,cb,ctx=ctx)
-            if newkid._sym_id != oldkid._sym_id:
-                self.setSymKid(i, newkid)
-
-        newkid = cb(path,self,ctx)
-        if newkid == None:
-            newkid = self
-
-        # lifo like a stack ( and like a baws )
-        path.pop()
-        return newkid
-
     def walkTree(self, cb, ctx=None, once=True):
         ''' 
         this version basically mirrors the original walkTree/_walkTreeImpl combination
@@ -407,10 +349,6 @@ class SymbolikBase:
             #sys.stdout.write('-')
 
             idx += 1
-
-
-
-
 
     def render(self, canvas, vw):
         canvas.addText( str(self) )
