@@ -37,7 +37,7 @@ class simpleops:
             oval = shmaskval(value, shval, mask)
             oper = OperType[otype]((value >> shval) & mask, va=va)
             ret.append( oper )
-        return ret
+        return (ret), None
 
 #imm5_rm_rd  = simpleops((O_REG, 0, 0x7), (O_REG, 3, 0x7), (O_IMM, 6, 0x1f))
 rm_rn_rd    = simpleops((O_REG, 0, 0x7), (O_REG, 3, 0x7), (O_REG, 6, 0x7))
@@ -59,7 +59,7 @@ def d1_rm4_rd3(va, value):
     rdbit = shmaskval(value, 4, 0x8)
     rd = shmaskval(value, 0, 0x7) + rdbit
     rm = shmaskval(value, 3, 0xf)
-    return ArmRegOper(rd, va=va),ArmRegOper(rm, va=va)
+    return (ArmRegOper(rd, va=va),ArmRegOper(rm, va=va)), None
 
 def rm_rn_rt(va, value):
     rt = shmaskval(value, 0, 0x7) # target
@@ -67,7 +67,7 @@ def rm_rn_rt(va, value):
     rm = shmaskval(value, 6, 0x7) # offset
     oper0 = ArmRegOper(rt, va=va)
     oper1 = ArmRegOffsetOper(rn, rm, va, pubwl=0x18)
-    return oper0,oper1
+    return (oper0,oper1), None
 
 def imm54_rn_rt(va, value):
     imm = shmaskval(value, 4, 0x7c)
@@ -75,7 +75,7 @@ def imm54_rn_rt(va, value):
     rt = shmaskval(value, 0, 0x7)
     oper0 = ArmRegOper(rt, va=va)
     oper1 = ArmImmOffsetOper(rn, imm, (va&0xfffffffc)+4, pubwl=0x18)
-    return oper0,oper1
+    return (oper0,oper1), None
 
 def imm55_rn_rt(va, value):
     imm = shmaskval(value, 5, 0x3e)
@@ -83,7 +83,7 @@ def imm55_rn_rt(va, value):
     rt = shmaskval(value, 0, 0x7)
     oper0 = ArmRegOper(rt, va=va)
     oper1 = ArmImmOffsetOper(rn, imm, (va&0xfffffffc)+4, pubwl=0x18)
-    return oper0,oper1
+    return (oper0,oper1), None
 
 def imm56_rn_rt(va, value):
     imm = shmaskval(value, 6, 0x1f)
@@ -91,7 +91,7 @@ def imm56_rn_rt(va, value):
     rt = shmaskval(value, 0, 0x7)
     oper0 = ArmRegOper(rt, va=va)
     oper1 = ArmImmOffsetOper(rn, imm, (va&0xfffffffc)+4, pubwl=0x18)
-    return oper0,oper1
+    return (oper0,oper1), None
 
 def rd_sp_imm8(va, value): # add
     rd = shmaskval(value, 8, 0x7)
@@ -99,7 +99,7 @@ def rd_sp_imm8(va, value): # add
     oper0 = ArmRegOper(rd, va=va)
     # pre-compute PC relative addr
     oper1 = ArmImmOffsetOper(REG_SP, imm, (va&0xfffffffc)+4, pubwl=0x18)
-    return oper0,oper1
+    return (oper0,oper1), None
 
 def rd_pc_imm8(va, value):  # add
     rd = shmaskval(value, 8, 0x7)
@@ -107,14 +107,14 @@ def rd_pc_imm8(va, value):  # add
     oper0 = ArmRegOper(rd, va=va)
     # pre-compute PC relative addr
     oper1 = ArmImmOper((va&0xfffffffc) + 4 + imm)
-    return oper0,oper1
+    return (oper0,oper1), None
 
 def rt_pc_imm8(va, value): # ldr
     rt = shmaskval(value, 8, 0x7)
     imm = e_bits.signed((value & 0xff), 1) << 2
     oper0 = ArmRegOper(rt, va=va)
     oper1 = ArmImmOffsetOper(REG_PC, imm, (va&0xfffffffc))
-    return oper0,oper1
+    return (oper0,oper1), None
 
 
 banked_regs = (
@@ -392,12 +392,12 @@ def branch_misc(va, val, val2): # bl and misc control
 def pc_imm11(va, value): # b
     imm = e_bits.signed(((value & 0x7ff)<<1), 3)
     oper0 = ArmPcOffsetOper(imm, va=va)
-    return oper0,
+    return (oper0,), None
 
 def pc_imm8(va, value): # b
     imm = e_bits.signed(shmaskval(value, 0, 0xff), 1) * 2
     oper0 = ArmPcOffsetOper(imm, va=va)
-    return oper0,
+    return (oper0,), None
 
 def ldmia(va, value): 
     rd = shmaskval(value, 8, 0x7)
@@ -405,14 +405,14 @@ def ldmia(va, value):
     oper0 = ArmRegOper(rd, va=va)
     oper1 = ArmRegListOper(reg_list)
     oper0.oflags |= OF_W
-    return oper0,oper1
+    return (oper0,oper1), None
 
 def sp_sp_imm7(va, value):
     imm = shmaskval(value, 0, 0x7f)
     o0 = ArmRegOper(REG_SP)
     o1 = ArmRegOper(REG_SP)
     o2 = ArmImmOper(imm*4)
-    return o0,o1,o2
+    return (o0,o1,o2), None
 
 def rm_reglist(va, value):
     rm = shmaskval(value, 8, 0x7)
@@ -420,21 +420,21 @@ def rm_reglist(va, value):
     oper0 = ArmRegOper(rm, va=va)
     oper1 = ArmRegListOper(reglist)
     oper0.oflags |= OF_W
-    return oper0,oper1
+    return (oper0,oper1), None
 
-def pop_reglist_32(va, value, val2):
+def pop_reglist(va, value):
     flags = 0
     reglist = (value & 0xff) | ((value & 0x100)<<7)
     oper0 = ArmRegListOper(reglist)
     if reglist & 0x8000:
         flags |= envi.IF_NOFALL
     
-    return None, None, (oper0,), flags, 0
+    return (oper0,), flags
 
 def push_reglist(va, value):
     reglist = (value & 0xff) | ((value & 0x100)<<6)
     oper0 = ArmRegListOper(reglist)
-    return (oper0,)
+    return (oper0,), None
 
 def imm5_rm_rd(va, value):
     rd = value & 0x7
@@ -445,7 +445,7 @@ def imm5_rm_rd(va, value):
 
     oper0 = ArmRegOper(rd, va)
     oper1 = ArmRegShiftImmOper(rm, stype, imm5, va)
-    return (oper0, oper1,)
+    return (oper0, oper1,), None
 
 
 def i_imm5_rn(va, value):
@@ -453,7 +453,7 @@ def i_imm5_rn(va, value):
     rn = value & 0x7
     oper0 = ArmRegOper(rn, va)
     oper1 = ArmPcOffsetOper(imm5, va)
-    return (oper0, oper1,)
+    return (oper0, oper1,), None
 
 def ldm16(va, value):
     raise Exception("32bit wrapping of 16bit instruction... and it's not implemented")
@@ -1611,7 +1611,7 @@ thumb_base = [
     ('1011101011',  (63,'revsh',   rn_rdm,     0)), # REVSH Rd, Rn
     ('101100000',   (INS_ADD,'add',     sp_sp_imm7, 0)), # ADD<c> SP,SP,#<imm>
     ('101100001',   (INS_SUB,'sub',     sp_sp_imm7, 0)), # SUB<c> SP,SP,#<imm>
-    ('1011110',     (66,'pop',     pop_reglist_32,    IF_THUMB32)), # POP<c> <registers>
+    ('1011110',     (66,'pop',     pop_reglist,  0)), # POP<c> <registers>
     ('10111110',    (67,'bkpt',    imm8,       0)), # BKPT <blahblah>
     # Load / Store Mu64iple
     ('11000',       (68,'stm',   rm_reglist, IF_IA|IF_W)), # LDMIA Rd!, reg_list
@@ -1932,7 +1932,10 @@ class ThumbDisasm:
             # print "OPLEN: ", oplen
 
         else:
-            olist = opermkr(va+4, val)
+            olist, nflags = opermkr(va+4, val)
+            if nflags != None:
+                flags = nflags
+                print "FLAGS: ", repr(olist), repr(flags)
             oplen = 2
             # print "OPLEN (16bit): ", oplen
 
