@@ -340,8 +340,10 @@ def branch_misc(va, val, val2): # bl and misc control
         S = (val>>10)&1
         j1 = (val2>>13)&1
         j2 = (val2>>11)&1
+        i1 = not (j1 ^ S)
+        i2 = not (j2 ^ S)
 
-        imm = (S<<20) | (j1<<18) | (j2<<19) | ((val&0x3f) << 12) | ((val2&0x7ff) << 1)
+        imm = (S<<20) | (i1<<18) | (i2<<19) | ((val&0x3f) << 12) | ((val2&0x7ff) << 1)
 
         #sign extend a 20-bit number
         if S:
