@@ -477,6 +477,12 @@ instrnames = [
         'INS_LDRB',
         'INS_STRB',
         'INS_SMUL',
+        'INS_UADD16',
+        'INS_UADD8',
+        'INS_USUB16',
+        'INS_USUB8',
+        'INS_UASX',
+        'INS_USAX',
         ]
 
 ins_index = 85

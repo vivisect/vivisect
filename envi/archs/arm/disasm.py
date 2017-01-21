@@ -1537,7 +1537,7 @@ def p_uncond(opval, va, psize = 4):
             #blx
             mnem = "blx"
             h = (opval>>23) & 2
-            imm_offset = e_bits.signed(opval, 3) + h
+            imm_offset = (e_bits.signed(opval, 3) << 2) | h
             
             olist = (
                 ArmPcOffsetOper(imm_offset, va),
@@ -2090,6 +2090,8 @@ def _do_adv_simd_32(val, va, u):
 
         #### REMOVE WHEN COMPLETE WITH DECODING
         shift_amount = 0
+        simdflags = 0
+        ####
 
         if enctype == 0:    # VSHR used as test
             limm = (l<<6) | imm

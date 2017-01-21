@@ -617,11 +617,14 @@ def dp_mod_imm_32(va, val1, val2):
     return None, None, opers, flags, 0
 
 
+def pdp_32(va, val1, val2):
+    return None, None, None, None, None
+
 def dp_bin_imm_32(va, val1, val2):
     if val2 & 0x8000:
         return branch_misc(va, val1,val2)
 
-    flags = 0
+    flags = IF_THUMB32
     # FIXME: decoding incorrectly
     Rd = (val2 >> 8) & 0xf
 
@@ -1802,6 +1805,17 @@ thumb2_extension = [
     ('111110001001',        (INS_LDRB, 'ldrb', ldr_32,          IF_THUMB32)),
     ('111110001000',        (INS_STRB, 'strb', ldr_32,          IF_THUMB32)),
     ('111110000000',        (INS_STRB, 'strb', ldr_puw_32,      IF_THUMB32)),
+    ('111110101001',        (INS_UADD16, 'uadd16', pdp_32,         IF_THUMB32)),    # FIXME: overlapping with saturating instructions
+    ('111110101010',        (INS_UASX, 'uasx', pdp_32,         IF_THUMB32)),
+    ('111110101110',        (INS_USAX, 'usax', pdp_32,         IF_THUMB32)),
+    ('111110101101',        (INS_USUB16, 'usub16', pdp_32,         IF_THUMB32)),
+    ('111110101000',        (INS_UADD8, 'uadd8', pdp_32,         IF_THUMB32)),
+    ('111110101100',        (INS_USUB8, 'usub8', pdp_32,         IF_THUMB32)),
+    ('111110101001',        (INS_UADD16, 'uadd16', pdp_32,         IF_THUMB32)),
+    ('111110101001',        (INS_UADD16, 'uadd16', pdp_32,         IF_THUMB32)),
+    ('111110101001',        (INS_UADD16, 'uadd16', pdp_32,         IF_THUMB32)),
+    ('111110101001',        (INS_UADD16, 'uadd16', pdp_32,         IF_THUMB32)),
+    ('111110101001',        (INS_UADD16, 'uadd16', pdp_32,         IF_THUMB32)),
     ('111110110001',        (INS_SMUL, 'smul', smul_32,         IF_THUMB32)),
     #('11111',               (85,'branchmisc', branch_misc,            IF_THUMB32)),
     #('11111',         (85,'SOMETHING WICKED THIS WAY',      dp_bin_imm_32,         IF_THUMB32)),
