@@ -137,8 +137,18 @@ def is_aux_carry(src, dst):
 def is_aux_carry_sub(src, dst):
     return src & 0xf > dst & 0xf
 
+# set of format lists which make size, endianness, and signedness fast and easy
 le_fmt_chars = (None,"B","<H",None,"<I",None,None,None,"<Q")
 be_fmt_chars = (None,"B",">H",None,">I",None,None,None,">Q")
+
+fmt_chars = (le_fmt_chars, be_fmt_chars)
+
+le_fmt_schars = (None,"b","<h",None,"<i",None,None,None,"<q")
+be_fmt_schars = (None,"b",">h",None,">i",None,None,None,">q")
+
+fmt_schars = (le_fmt_schars, be_fmt_schars)
+
+
 def parsebytes(bytes, offset, size, sign=False, bigend=False):
     """
     Mostly for pulling immediates out of strings...

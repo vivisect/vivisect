@@ -3,6 +3,7 @@ import struct
 import collections
 
 import envi
+import envi.bits as e_bits
 
 """
 A module containing memory utilities and the definition of the
@@ -164,17 +165,13 @@ class IMemory:
         bytes = self.readMemory(addr, size)
         if bytes == None:
             return None
+
         #FIXME change this (and all uses of it) to passing in format...
         if len(bytes) != size:
             raise Exception("Read Gave Wrong Length At 0x%.8x (va: 0x%.8x wanted %d got %d)" % (self.getProgramCounter(),addr, size, len(bytes)))
-        if size == 1:
-            return struct.unpack("B", bytes)[0]
-        elif size == 2:
-            return struct.unpack("<H", bytes)[0]
-        elif size == 4:
-            return struct.unpack("<I", bytes)[0]
-        elif size == 8:
-            return struct.unpack("<Q", bytes)[0]
+
+        fmttbl = (e_bits.le_fmt_chars, e_bits.be_fmt_chars)[self.getEndian()]
+        return struct.unpack(fmttbl[size], bytes)[0]
 
     def readMemoryPtr(self, va):
         '''
