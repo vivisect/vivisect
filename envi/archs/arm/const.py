@@ -85,6 +85,7 @@ IF_IB        = 7<<(IF_DAIB_SHFT-1)  # Increment Before
 IF_DAIB_B    = 5<<(IF_DAIB_SHFT-1)  # Before mask
 IF_DAIB_I    = 3<<(IF_DAIB_SHFT-1)  # Before mask
 IF_THUMB32   = 1<<50    # thumb32
+
 IFS_VQ        = 1<<1    # Adv SIMD: operation uses saturating arithmetic
 IFS_VR        = 1<<2    # Adv SIMD: operation performs rounding
 IFS_VD        = 1<<3    # Adv SIMD: operation doubles the result
@@ -473,6 +474,9 @@ instrnames = [
         'INS_VQRSHRUN',
         'INS_VSHLL',
         'INS_VCVT',
+        'INS_LDRB',
+        'INS_STRB',
+        'INS_SMUL',
         ]
 
 ins_index = 85

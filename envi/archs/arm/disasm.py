@@ -1313,7 +1313,7 @@ def p_coproc_load(opval, va):
     else:
         iflags = 0
     #check for index. Non-index is option
-    print "punwl: 0x%x" % punwl
+    #print "punwl: 0x%x" % punwl
     if (punwl & 0x1a) != 8:
         olist = (
             ArmCoprocOper(cp_num),
@@ -1544,7 +1544,7 @@ def p_uncond(opval, va, psize = 4):
             )
             
             opcode = INS_BLX
-            return (opcode, mnem, olist, 0, 0)
+            return (opcode, mnem, olist, envi.IF_CALL, 0)
         else:
             raise envi.InvalidInstruction(
                     mesg="p_uncond (ontop=2): invalid instruction",
@@ -2088,6 +2088,8 @@ def _do_adv_simd_32(val, va, u):
 
         imm = (val >> 16) & 0x3f
 
+        #### REMOVE WHEN COMPLETE WITH DECODING
+        shift_amount = 0
 
         if enctype == 0:    # VSHR used as test
             limm = (l<<6) | imm
@@ -3606,7 +3608,7 @@ class ArmRegListOper(ArmOperand):
         return True
 
     def involvesPC(self):
-        return self.val & 0x80 == 0x80
+        return self.val & 0x8000 == 0x8000
 
     def isDeref(self):
         return False
@@ -3969,7 +3971,7 @@ class ArmDisasm:
 
         # Begin the table lookup sequence with the first 3 non-cond bits
         encfam = (opval >> 25) & 0x7
-        print "encode family = %s  (0x%x)" % (encfam, opval)
+        #print "encode family = %s  (0x%x)" % (encfam, opval)
         if cond == COND_EXTENDED:
             enc = IENC_UNCOND
 
@@ -3978,7 +3980,7 @@ class ArmDisasm:
             enc,nexttab = inittable[encfam]
             if nexttab != None: # we have to sub-parse...
                 for mask,val,penc in nexttab:
-                    print "penc", penc
+                    #print "penc", penc
                     if (opval & mask) == val:
                         enc = penc
                         break
@@ -3988,7 +3990,7 @@ class ArmDisasm:
             raise envi.InvalidInstruction(mesg="No encoding found!",
                     bytez=bytez[offset:offset+4], va=va)
 
-        print "ienc_parser index, routine: %d, %s" % (enc, ienc_parsers[enc])
+        #print "ienc_parser index, routine: %d, %s" % (enc, ienc_parsers[enc])
         opcode, mnem, olist, flags, simdflags = ienc_parsers[enc](opval, va+8)
         return opcode, mnem, olist, flags, simdflags
 
