@@ -468,7 +468,12 @@ def buildFunctionGraph(vw, fva, revloop=False, g=None):
             g.addNode(nid=cbva, cbva=cbva, cbsize=cbsize, color=bcolor)
 
         # Grab the location for the last instruction in the block
-        lva, lsize, ltype, linfo = vw.getLocation(cbva+cbsize-1)
+        nextva = cbva+cbsize-1
+        loc = vw.getLocation(nextva)
+        if loc == None:
+            raise Exception("buildFunctionGraph: Attempt to get location at 0x%x" % nextva)
+
+        lva, lsize, ltype, linfo = loc
 
         for xrfrom, xrto, xrtype, xrflags in vw.getXrefsFrom(lva, vivisect.REF_CODE):
 
