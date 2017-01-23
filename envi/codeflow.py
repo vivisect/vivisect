@@ -177,10 +177,11 @@ class CodeFlowContext(object):
 
                 try:
                     # Handle a table branch by adding more branches...
+                    ptrfmt = ('<P', '>P')[self._mem.getEndian()]
                     if bflags & envi.BR_TABLE:
                         if self._cf_exptable:
                             ptrbase = bva
-                            bdest = self._mem.readMemoryFormat(ptrbase, '<P')[0]
+                            bdest = self._mem.readMemoryFormat(ptrbase, ptrfmt)[0]
                             tabdone = {}
                             while self._mem.isValidPointer(bdest):
 
@@ -192,7 +193,7 @@ class CodeFlowContext(object):
                                     branches.append((bdest, envi.BR_COND))
 
                                 ptrbase += self._mem.psize
-                                bdest = self._mem.readMemoryFormat(ptrbase, '<P')[0]
+                                bdest = self._mem.readMemoryFormat(ptrbase, ptrfmt)[0]
                         continue
 
                     if bflags & envi.BR_DEREF:
@@ -204,7 +205,7 @@ class CodeFlowContext(object):
                         if self._cf_noret.get( bva ):
                             self.addNoFlow( va, va + len(op) )
 
-                        bva = self._mem.readMemoryFormat(bva, '<P')[0]
+                        bva = self._mem.readMemoryFormat(bva, ptrfmt)[0]
 
                     if not self._mem.probeMemory(bva, 1, e_mem.MM_EXEC):
                         continue
