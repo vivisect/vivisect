@@ -578,8 +578,11 @@ dp_secondary = (
             'cmn', #add
             None, # adc
             None, # sbc
+            None,
+            None,
             'cmp', #sub
-            None
+            None,
+            None,
             )
 def dp_mod_imm_32(va, val1, val2):
     if val2 & 0x8000:
@@ -604,13 +607,14 @@ def dp_mod_imm_32(va, val1, val2):
     if Rd==15 and S:
         #raise Exception("dp_mod_imm_32 - FIXME: secondary dp encoding")
         dpop = (val1>>5) & 0xf
-        if dp_secondary[dpop] == None:
+        mnem = dp_secondary[dpop]
+        if mnem == None:
             raise Exception("dp_mod_imm_32: Rd==15, S, but dpop doesn't have a secondary! va:%x, %x%x" % (va, val1, val2))
 
         oper1 = ArmRegOper(Rn)
         oper2 = ArmImmOper(const)
         opers = (oper1, oper2)
-        return 0, None, opers, flags, 0
+        return 0, mnem, opers, flags, 0
 
     oper0 = ArmRegOper(Rd)
     oper1 = ArmRegOper(Rn)
