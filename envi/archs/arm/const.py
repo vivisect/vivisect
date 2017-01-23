@@ -65,7 +65,7 @@ ARCH_REVS['thumbee'] = REV_THUMBEE
 ARCH_REVSLEN = len(ARCH_REVS)
 
 #IFLAGS - keep bottom 8-bits for cross-platform flags like envi.IF_NOFALL and envi.IF_BRFALL
-IF_PSR_S     = 1<<32     # This DP instruciton can update CPSR
+IF_PSR_S     = 1<<32     # This DP instruciton can update CPSR  (as in, add vs. adds)
 IF_B         = 1<<33     # Byte
 IF_H         = 1<<35    # HalfWord
 IF_S         = 1<<36    # Signed    #(not to be confused with IF_PSR_S which is the "update status" flag.
@@ -483,6 +483,12 @@ instrnames = [
         'INS_USUB8',
         'INS_UASX',
         'INS_USAX',
+        'INS_NOP',
+        'INS_YIELD',
+        'INS_WFE',
+        'INS_WFI',
+        'INS_SEV',
+        'INS_CPS',
         ]
 
 ins_index = 85

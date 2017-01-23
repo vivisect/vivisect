@@ -152,11 +152,21 @@ banked_regs = (
         ( REG_OFFSET_HYP + 13,),
         )
 
+cpsh_mnems = {
+        0: (INS_NOP, 'nop',),
+        1: (INS_YIELD, 'yielD',),
+        2: (INS_WFE, 'wfe',),
+        3: (INS_WFI, 'wfi',),
+        4: (INS_SEV, 'sev',),
+        }
+
 def branch_misc(va, val, val2): # bl and misc control
     op = (val >> 4) & 0b1111111
     op1 = (val2 >> 12) & 0b111
     op2 = (val2 >> 8) & 0b1111
     imm8 = val2 & 0b1111
+
+    print hex(va), hex(val), hex(val2), bin(op), bin(op1), bin(op2)
 
     if (op1 & 0b101 == 0):
         if not (op & 0b111000) == 0b111000: # T3 encoding - conditional
@@ -236,7 +246,7 @@ def branch_misc(va, val, val2): # bl and misc control
                             ArmRegOper(REG_LR),
                             ArmImmOper(imm8),
                             )
-                    return None, 'sub', opers, IF_S, 0
+                    return None, 'sub', opers, IF_PSR_S, 0
 
                 return None, 'eret', tuple(), IF_RET, 0    # should this have some other flag?
             print "TEST ME: branch_misc subsection 3"
@@ -272,7 +282,44 @@ def branch_misc(va, val, val2): # bl and misc control
                 raise Exception("FIXME:  MSR(register) p B9-1968")
 
             elif op == 0b0111010:
-                raise Exception("FIXME:  Change processor state ad hints p A6-234")
+                flags = 0
+
+                op1 = (val2>>8) & 7
+                op2 = val2 & 0xff
+                if op1:
+                    opcode = INS_CPS
+                    mnem = 'cps'
+
+                    imod = (val2>>9) & 3    # enable = 0b10, disable = 0b11
+                    m = (val2>>8) & 1   # change mode
+                    aif = (val2>>5) & 7
+                    mode = val2 & 0x1f
+
+                    if (mode and m==0):
+                            raise Exception("CPS with invalid flags set:  UNPREDICTABLE (mode and not m)")
+
+                    if ((imod & 2) and not (aif)) or \
+                        (not (imod & 2) and (aif)):
+                            raise Exception("CPS with invalid flags set:  UNPREDICTABLE imod enable but not a/i/f")
+
+                    if not (imod or m):
+                        # hint
+                        mnem = "CPS Hint...  no clue yet.  fix me"
+                        
+                    if imod & 2:
+                        opers = [
+                            ArmCPSFlagsOper(aif)    # if mode is set...
+                        ]
+                    else:
+                        opers = []
+                    if m:
+                        opers.append(ArmImmOper(mode))
+
+                else:
+                    opcode, mnem = cpsh_mnems.get(op2, (INS_DEBUGHINT, 'dbg'))
+
+                #raise Exception("FIXME:  Change processor state ad hints p A6-234")
+                return opcode, mnem, opers, flags, 0
 
             elif op == 0b0111011:
                 raise Exception("FIXME:  Misc control instrs p A6-235")
@@ -287,7 +334,7 @@ def branch_misc(va, val, val2): # bl and misc control
                         ArmRegOper(REG_LR),
                         ArmImmOper(imm8),
                         )
-                return None, 'sub', opers, IF_S, 0
+                return None, 'sub', opers, IF_PSR_S, 0
 
             elif op == 0b0111110:
                 Rd = (val2 >> 8) & 0xf
@@ -600,7 +647,7 @@ def dp_mod_imm_32(va, val1, val2):
     const = val2 & 0xff
 
     if S:
-        flags |= IF_S
+        flags |= IF_PSR_S
 
     const,carry = ThumbExpandImm_C(imm4, const, 0)
     
@@ -622,8 +669,41 @@ def dp_mod_imm_32(va, val1, val2):
     opers = (oper0, oper1, oper2)
     return None, None, opers, flags, 0
 
+def shift_or_ext_32(va, val1, val2):
+    if (val2 & 0xf000) != 0xf000:
+        raise Exception("pdp_32 needs to hand off for val2 & 0xf000 != 0xf000 at va 0x%x: val1:%.4x val2:%.4x" % (va, val1, val2))
+
+    op2 = (val2>>4) & 0xf
+    if (op2):
+        raise Exception("Implement Me: Extended and Add stuff")
+
+    else:
+        # lsl/lsr/asr/ror
+        flags = 0
+        op1 = (val1>>4) & 0xf
+        opcode, mnem, nothing = mov_ris_ops[op1>>1]
+
+        rn = (val1 & 0xf)
+        rd = (val2 >> 8) & 0xf
+        rm = (val2 & 0xf)
+
+        opers = (
+                ArmRegOper(rd),
+                ArmRegOper(rn),
+                ArmRegOper(rm),
+                )
+
+        if (op1 & 1):
+            flags |= IF_PSR_S
+        return opcode, mnem, opers, flags, 0
+
+
 
 def pdp_32(va, val1, val2):
+    # saturated instructions
+    raise Exception("Implement Me: pdp32: Saturated Instrs")
+    pass
+
     return None, None, None, None, None
 
 def dp_bin_imm_32(va, val1, val2):
@@ -850,7 +930,7 @@ def mov_reg_imm_shift_32(va, val1, val2):
     else:
         opcode, mnem, opcnt = mov_ris_ops[optype]
     if s:
-        flags = IF_S
+        flags = IF_PSR_S
     else:
         flags = 0
 
@@ -947,7 +1027,7 @@ def dp_shift_32(va, val1, val2):
         opers = (oper0, oper1, oper2)
 
         if s:
-            flags = IF_S
+            flags = IF_PSR_S
 
     return opcode, mnem, opers, flags, 0
 
@@ -985,7 +1065,7 @@ def dp_mod_imm_32_deprecated(va, val1, val2):
         opers = (oper0, oper1, oper2)
 
     if s:
-        flags = IF_S
+        flags = IF_PSR_S
     else:
         flags = 0
 
@@ -1811,6 +1891,10 @@ thumb2_extension = [
     ('111110001001',        (INS_LDRB, 'ldrb', ldr_32,          IF_THUMB32)),
     ('111110001000',        (INS_STRB, 'strb', ldr_32,          IF_THUMB32)),
     ('111110000000',        (INS_STRB, 'strb', ldr_puw_32,      IF_THUMB32)),
+    ('11111010001',         (INS_LSL, 'lsl', shift_or_ext_32,      IF_THUMB32)),
+    ('11111010010',         (INS_LSR, 'lsr', shift_or_ext_32,      IF_THUMB32)),
+    ('11111010011',         (INS_ASR, 'asr', shift_or_ext_32,      IF_THUMB32)),
+    ('11111010100',         (INS_ROR, 'ror', shift_or_ext_32,      IF_THUMB32)),
     ('111110101001',        (INS_UADD16, 'uadd16', pdp_32,         IF_THUMB32)),    # FIXME: overlapping with saturating instructions
     ('111110101010',        (INS_UASX, 'uasx', pdp_32,         IF_THUMB32)),
     ('111110101110',        (INS_USAX, 'usax', pdp_32,         IF_THUMB32)),
