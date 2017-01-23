@@ -743,33 +743,23 @@ class Emulator(e_reg.RegisterContext, e_mem.MemoryObject):
         """
         Returns the value of the bytes at the "addr" address, given the size (currently, power of 2 only)
         """
-        #FIXME: Handle endianness
         bytes = self.readMemory(addr, size)
         if bytes == None:
             return None
         if len(bytes) != size:
             raise Exception("Read Gave Wrong Length At 0x%.8x (va: 0x%.8x wanted %d got %d)" % (self.getProgramCounter(),addr, size, len(bytes)))
-        if size == 1:
-            return struct.unpack("B", bytes)[0]
-        elif size == 2:
-            return struct.unpack(">H", bytes)[0]
-        elif size == 4:
-            return struct.unpack(">L", bytes)[0]
-        elif size == 8:
-            return struct.unpack(">Q", bytes)[0]
+        
+        fmttbl = e_bits.fmt_chars[self.getEndian()]
+        return struct.unpack(fmttbl[size], bytes)[0]
 
     def writeMemValue(self, addr, value, size):
         #FIXME change this (and all uses of it) to passing in format...
         #FIXME: Remove byte check and possibly half-word check.  (possibly all but word?)
-        #FIXME: Handle endianness
-        if size == 1:
-            bytes = struct.pack("B",value & 0xff)
-        elif size == 2:
-            bytes = struct.pack(">H",value & 0xffff)
-        elif size == 4:
-            bytes = struct.pack(">L", value & 0xffffffff)
-        elif size == 8:
-            bytes = struct.pack(">Q", value & 0xffffffffffffffff)
+        mask = e_bits.umaxes[size]
+        fmttbl = e_bits.fmt_chars[self.getEndian()]
+        
+        bytes = struct.pack(fmttbl[size], value & mask)
+
         self.writeMemory(addr, bytes)
 
     def readMemSignedValue(self, addr, size):
@@ -778,12 +768,8 @@ class Emulator(e_reg.RegisterContext, e_mem.MemoryObject):
         bytes = self.readMemory(addr, size)
         if bytes == None:
             return None
-        if size == 1:
-            return struct.unpack("b", bytes)[0]
-        elif size == 2:
-            return struct.unpack(">h", bytes)[0]
-        elif size == 4:
-            return struct.unpack(">l", bytes)[0]
+        fmttbl = e_bits.fmt_schars[self.getEndian()]
+        return struct.unpack(fmttbl[size], bytes)[0]
 
     def integerSubtraction(self, op, sidx=0, midx=1):
         """
