@@ -616,6 +616,15 @@ class Emulator(e_reg.RegisterContext, e_mem.MemoryObject):
         """
         self.metadata[name] = value
 
+    def getMeta(self, name, default=None):
+        return self.metadata.get(name, default)
+
+    def setMeta(self, name, value):
+        """
+        Set a meta key,value pair for this workspace.
+        """
+        self.metadata[name] = value
+
     def getArchModule(self):
         raise Exception('Emulators *must* implement getArchModule()!')
 
