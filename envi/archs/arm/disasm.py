@@ -1411,7 +1411,7 @@ def p_uncond(opval, va, psize = 4):
         # FIXME THIS IS HORKED
         opcode = IENC_SWINT << 16 + 2
         immval = opval & 0x00ffffff
-        return (opcode, 'swi', (ArmImmOper(immval),), 0, 0)
+        return (opcode, 'svc', (ArmImmOper(immval),), 0, 0)
 
     optop = ( opval >> 26 ) & 0x3
     if optop == 0:
@@ -1546,7 +1546,7 @@ def p_uncond(opval, va, psize = 4):
             #blx
             mnem = "blx"
             h = (opval>>23) & 2
-            imm_offset = (e_bits.signed(opval, 3) << 2) | h
+            imm_offset = (e_bits.signed(opval, 3) << 2) | h | 1 #this encoding forces THUMB
             
             olist = (
                 ArmPcOffsetOper(imm_offset, va),
