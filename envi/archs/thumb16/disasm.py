@@ -166,8 +166,6 @@ def branch_misc(va, val, val2): # bl and misc control
     op2 = (val2 >> 8) & 0b1111
     imm8 = val2 & 0b1111
 
-    print hex(va), hex(val), hex(val2), bin(op), bin(op1), bin(op2)
-
     if (op1 & 0b101 == 0):
         if not (op & 0b111000) == 0b111000: # T3 encoding - conditional
             cond = (val>>6) & 0xf
