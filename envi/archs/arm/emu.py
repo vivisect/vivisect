@@ -1033,6 +1033,12 @@ class ArmEmulator(ArmModule, ArmRegisterContext, envi.Emulator):
         if regval:
             return imm32
 
+    def i_tb(self, op):
+        # TBB and TBH both come here.
+        tblbase = op.getOperValue(0)
+        off = op.getOperValue(1)
+        return tblbase + (2*off)
+
     def i_umull(self, op):
         print("FIXME: 0x%x: %s - in emu" % (op.va, op))
     def i_umlal(self, op):

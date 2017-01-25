@@ -505,7 +505,7 @@ instrs = [
         (REV_ALL_ARM, '001000ea', 0x4560, 'b 0x00008568', 0, ()),
         (REV_ALL_ARM, 'ff4cc3e3', 0x4560, 'bic  r4, r3, #0xff00', 0, ()),
         (REV_ALL_ARM, '001000eb', 0x4560, 'bl  0x00008568', 0, ()),
-        (REV_ALL_ARM, '001000fa', 0x4560, 'blx  0x00005568', 0, ()),
+        (REV_ALL_ARM, '001000fa', 0x4560, 'blx  0x00008568', 0, ()),
         (REV_ALL_ARM, '273764ee', 0x4560, 'cdp  p7, 6, cr3, cr4, cr7, 1', 0, ()),
         (REV_ALL_ARM, '473b34ee', 0x4560, 'cdp  p11, 3, cr3, cr4, cr7, 2', 0, ()),
         (REV_ALL_ARM, 'ff0c74e3', 0x4560, 'cmn  r4, #0xff00', 0, ()),
@@ -1221,7 +1221,19 @@ instrs = [
         (REV_ALL_ARM, '3544f3f3', 0x4560, 'vsri.32 d20, d21, #0x0d', 0, ()),
         (REV_ALL_ARM, 'f3ff3544', 0x4561, 'vsri.32 d20, d21, #0x0d', 0, ()),
         (REV_ALL_ARM, 'f3ff3546', 0x4561, 'vqshlu.s32 d20, d21, #0x13', 0, ()), # from ODAWEB
+        # 
+        (REV_ALL_ARM, '800008f1', 0x4560, 'cpsie i', IF_IE, ()),
+        (REV_ALL_ARM, '00010cf1', 0x4560, 'cpsid a', IF_ID, ()),
+        (REV_ALL_ARM, '1a010ef1', 0x4560, 'cpsid a, #0x1a', IF_ID, ()),
+        (REV_ALL_ARM, '1a0002f1', 0x4560, 'cps #0x1a', 0, ()),
         # Following commands are THUMB commands
+        (REV_ALL_ARM, '62b6', 0x4561, 'cpsie i', IF_IE, ()),
+        (REV_ALL_ARM, '72b6', 0x4561, 'cpsid i', IF_IE, ()),
+        (REV_ALL_ARM, 'aff34084', 0x4561, 'cpsie i', IF_IE, ()),
+        (REV_ALL_ARM, 'aff38086', 0x4561, 'cpsid a', IF_ID, ()),
+        (REV_ALL_ARM, 'aff39a87', 0x4561, 'cpsid a, #0x1a', IF_ID, ()),
+        (REV_ALL_ARM, 'aff31a81', 0x4561, 'cps #0x1a', 0, ()),
+
         ]
 
 

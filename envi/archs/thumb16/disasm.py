@@ -154,7 +154,7 @@ banked_regs = (
 
 cpsh_mnems = {
         0: (INS_NOP, 'nop',),
-        1: (INS_YIELD, 'yielD',),
+        1: (INS_YIELD, 'yield',),
         2: (INS_WFE, 'wfe',),
         3: (INS_WFI, 'wfi',),
         4: (INS_SEV, 'sev',),
@@ -304,12 +304,14 @@ def branch_misc(va, val, val2): # bl and misc control
 
                     if not (imod or m):
                         # hint
-                        mnem = "CPS Hint...  no clue yet.  fix me"
+                        mnem = "CPS Hint...  fix me"
                         
                     if imod & 2:
                         opers = [
                             ArmCPSFlagsOper(aif)    # if mode is set...
                         ]
+                        flags |= (IF_IE, IF_ID)[imod&1]
+
                     else:
                         opers = []
                     if m:
@@ -504,6 +506,16 @@ def i_imm5_rn(va, value):
 
 def ldm16(va, value):
     raise Exception("32bit wrapping of 16bit instruction... and it's not implemented")
+
+def cps16(va, value):
+    im = (value>>4) & 1
+    aif = value & 0x7
+    
+    opers = (
+            ArmCPSFlagsOper(aif),
+            )
+    return opers, (IF_IE, IF_ID)[im]
+
 
 def thumb32_01(va, val, val2):
     op =  (val2>>15)&1
@@ -899,10 +911,11 @@ def tb_ldrex_32(va, val1, val2):
     else:       # tbb/tbh
         mnem = 'tb'
         opcode = INS_TB
+        isH = op3 & 1
+        flags |= envi.IF_BRANCH
 
-        oper0 = ArmRegOper(rn, va=va)
-        oper1 = ArmRegOper(rm, va=va)
-        opers = (oper0, oper1)
+        oper0 = ArmScaledOffsetOper(rn, rm, S_LSL, isH, va, pubwl=0x18)
+        opers = (oper0,)
 
     return opcode, mnem, opers, flags, 0
 
@@ -1685,11 +1698,11 @@ thumb_base = [
     ('1011001011',  (561,'uxtb',    rm_rd,      0)), # UXTB<c> <Rd>, <Rm>
     ('1011010',     (56,'push',    push_reglist,    0)), # PUSH <reglist>
     ('10110110010', (57,'setend',  sh4_imm1,   0)), # SETEND <endian_specifier>
-    ('10110110011', (58,'cps',     simpleops(),0)), # CPS<effect> <iflags> FIXME
-    ('10110001',    (59,'cbz',     i_imm5_rn,  0)), # CBZ{<q>} <Rn>, <label>    # label must be positive, even offset from PC
-    ('10111001',    (60,'cbnz',    i_imm5_rn,  0)), # CBNZ{<q>} <Rn>, <label>   # label must be positive, even offset from PC
-    ('10110011',    (59,'cbz',     i_imm5_rn,  0)), # CBZ{<q>} <Rn>, <label>    # label must be positive, even offset from PC
-    ('10111011',    (60,'cbnz',    i_imm5_rn,  0)), # CBNZ{<q>} <Rn>, <label>   # label must be positive, even offset from PC
+    ('10110110011', (58,'cps',     cps16,0)), # CPS<effect> <iflags>
+    ('10110001',    (INS_CBZ,'cbz',     i_imm5_rn,  envi.IF_COND | envi.IF_BRANCH)), # CBZ{<q>} <Rn>, <label>    # label must be positive, even offset from PC
+    ('10111001',    (INS_CBNZ,'cbnz',    i_imm5_rn,  envi.IF_COND | envi.IF_BRANCH)), # CBNZ{<q>} <Rn>, <label>   # label must be positive, even offset from PC
+    ('10110011',    (INS_CBZ,'cbz',     i_imm5_rn,  envi.IF_COND | envi.IF_BRANCH)), # CBZ{<q>} <Rn>, <label>    # label must be positive, even offset from PC
+    ('10111011',    (INS_CBNZ,'cbnz',    i_imm5_rn,  envi.IF_COND | envi.IF_BRANCH)), # CBNZ{<q>} <Rn>, <label>   # label must be positive, even offset from PC
     ('1011101000',  (61,'rev',     rn_rdm,     0)), # REV Rd, Rn
     ('1011101001',  (62,'rev16',   rn_rdm,     0)), # REV16 Rd, Rn
     ('1011101011',  (63,'revsh',   rn_rdm,     0)), # REVSH Rd, Rn
@@ -1841,6 +1854,7 @@ thumb2_extension = [
     ('11101101',            (85,'coproc simd', coproc_simd_32,  IF_THUMB32)),   # FIXME: not fully implemented
     ('11101110',            (85,'coproc simd', coproc_simd_32,  IF_THUMB32)),   # FIXME: not fully implemented
     ('11101111',            (85,'adv simd', adv_simd_32,        IF_THUMB32)),   # FIXME: not fully implemented
+    ('1111110',             (85,'coproc simd', coproc_simd_32,  IF_THUMB32)),   # FIXME: not fully implemented
     ('11111110',            (85,'coproc simd', coproc_simd_32,  IF_THUMB32)),   # FIXME: not fully implemented
     ('11111111',            (85,'adv simd', adv_simd_32,        IF_THUMB32)),   # FIXME: not fully implemented
 
@@ -1889,6 +1903,7 @@ thumb2_extension = [
     ('11110111110',         (85,'ubfx',     dp_bin_imm_32,      IF_W | IF_THUMB32)),
     ('11110111111',         (85,'branchmisc', branch_misc,      IF_THUMB32)),
     ('111110001001',        (INS_LDRB, 'ldrb', ldr_32,          IF_THUMB32)),
+    ('111110001100',        (INS_STR, 'str', ldr_32,          IF_THUMB32)),
     ('111110001000',        (INS_STRB, 'strb', ldr_32,          IF_THUMB32)),
     ('111110000000',        (INS_STRB, 'strb', ldr_puw_32,      IF_THUMB32)),
     ('11111010001',         (INS_LSL, 'lsl', shift_or_ext_32,      IF_THUMB32)),

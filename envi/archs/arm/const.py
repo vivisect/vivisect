@@ -75,6 +75,10 @@ IF_T         = 1<<39    # Translate for strbt - denotes ldr/str command runs in 
 IF_W         = 1<<40    # Write Back for STM/LDM (!)
 IF_UM        = 1<<41    # User Mode Registers for STM/LDM (^) (obviously no R15)
 IF_PSR_S_SIL = 1<<42    # Flag for Silent S. Related to IF_PSR_S and will prevent S from being rendered. TST, TEQ, CMN, CMP commands.
+IF_IE        = 1<<43    # Interrupt Enable flag (used for CPS instruction)
+IF_ID        = 1<<44    # Interrupt Disable flag (used for CPS instruction)
+
+IF_THUMB32   = 1<<50    # thumb32
 
 IF_DAIB_SHFT = 56       # shift-bits to get DAIB bits down to 0.  this chops off the "is DAIB present" bit that the following store.
 IF_DAIB_MASK = 7<<(IF_DAIB_SHFT-1)
@@ -84,7 +88,6 @@ IF_DB        = 5<<(IF_DAIB_SHFT-1)  # Decrement Before
 IF_IB        = 7<<(IF_DAIB_SHFT-1)  # Increment Before
 IF_DAIB_B    = 5<<(IF_DAIB_SHFT-1)  # Before mask
 IF_DAIB_I    = 3<<(IF_DAIB_SHFT-1)  # Before mask
-IF_THUMB32   = 1<<50    # thumb32
 
 IFS_VQ        = 1<<1    # Adv SIMD: operation uses saturating arithmetic
 IFS_VR        = 1<<2    # Adv SIMD: operation performs rounding
@@ -489,6 +492,8 @@ instrnames = [
         'INS_WFI',
         'INS_SEV',
         'INS_CPS',
+        'INS_CBZ',
+        'INS_CBNZ',
         ]
 
 ins_index = 85

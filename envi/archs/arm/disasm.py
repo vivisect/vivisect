@@ -1401,7 +1401,6 @@ def p_swint(opval, va):
     opcode = IENC_SWINT << 16 + 1
     return (opcode, "svc", olist, 0, 0)
 
-cps_mnem = ("cps","cps FAIL-bad encoding","cpsie","cpsid")
 mcrr2_mnem = ("mcrr2", "mrrc2")
 ldc2_mnem = ("stc2", "ldc2",)
 mcr2_mnem = ("mcr2", "mrc2")
@@ -1418,23 +1417,33 @@ def p_uncond(opval, va, psize = 4):
     if optop == 0:
         if opval & 0xfff10020 == 0xf1000000:
             #cps
+            iflags = 0
+            mnem = 'cps'
+            opcode = INS_CPS
+
             imod = (opval>>18)&3
             mmod = (opval>>17)&1
-            aif = (opval>>5)&7
+            aif = (opval>>6)&7
             mode = opval&0x1f
-            mnem = cps_mnem[imod]
-            
+
             if imod & 2:
                 olist = [
                     ArmCPSFlagsOper(aif)    # if mode is set...
                 ]
+
+                if imod & 1:    # interrupt disable
+                    iflags |= IF_ID
+
+                else:           # interrupt enable
+                    iflags |= IF_IE
+
             else:
                 olist = []
+
             if mmod:
                 olist.append(ArmImmOper(mode))
             
-            opcode = IENC_UNCOND_CPS + imod
-            return (opcode, mnem, olist, 0, 0)
+            return (opcode, mnem, olist, iflags, 0)
         elif (opval & 0xffff00f0) == 0xf1010000:
             #setend
             e = (opval>>9) & 1
@@ -2614,11 +2623,11 @@ class ArmOpcode(envi.Opcode):
         if self.prefixes != COND_AL:
             flags |= envi.BR_COND
 
-        if self.opcode in ( INS_B, INS_BX, INS_BL, INS_BLX, INS_BCC ):
+        if self.opcode in ( INS_B, INS_BX, INS_BL, INS_BLX, INS_BCC, INS_CBZ, INS_CBNZ ):
             oper = self.opers[0]
 
             # check for location being ODD
-            operval = oper.getOperValue(self)
+            operval = oper.getOperValue(self, emu)
             if operval == None:
                 # probably a branch to a register.  just return.
                 return ret
@@ -2671,6 +2680,10 @@ class ArmOpcode(envi.Opcode):
                 mnem += 'h'
             if self.iflags & IF_T: # removed el
                 mnem += 't'
+            if self.iflags & IF_IE:
+                mnem += 'ie'
+            elif self.iflags & IF_ID:
+                mnem += 'id'
 
             if self.simdflags:
                 if self.simdflags & IFS_S32F64:
@@ -2777,6 +2790,10 @@ class ArmOpcode(envi.Opcode):
                 mnem += 'h'
             if self.iflags & IF_T: #removed el
                 mnem += 't'
+            if self.iflags & IF_IE:
+                mnem += 'ie'
+            elif self.iflags & IF_ID:
+                mnem += 'id'
 
             if self.simdflags:
                 if self.simdflags & IFS_S32F64:
@@ -3896,7 +3913,15 @@ class ArmBarrierOption(ArmOperand):
     def repr(self, op):
         return self.retOption()
         
+class ArmCPSFlagsOper(ArmOperand):
+    def __init__(self, flags):
+        self.flags = flags
 
+    def repr(self, op):
+        flags = [AIF_FLAGS[x] for x in range(3) if self.flags & (1<<x)]
+        return ','.join(flags)
+
+AIF_FLAGS = ('a','i','f')[::-1]
 
 ENDIAN_LSB = 0
 ENDIAN_MSB = 1
