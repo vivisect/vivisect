@@ -388,23 +388,6 @@ INS_BLX     = IENC_UNCOND_BLX
 
 INS_SWI     = IENC_SWINT
  
-# FIXME: must fit these into the numbering scheme
-INS_TB = 85
-INS_LDREX = 85
-INS_ORN = 85
-INS_PKH = 85
-INS_LSL = 85
-INS_LSR = 85
-INS_ASR = 85
-INS_ROR = 85
-INS_RRX = 85
-#New commands for ARMV7 - need to be fitted too.
-INS_DBG = 85
-INS_BF  = 85
-INS_CLREX   = IENC_UNCOND_PLD #FIXME
-INS_DMB     = IENC_UNCOND_PLD #FIXME
-INS_DSB     = IENC_UNCOND_PLD #FIXME
-INS_ISB     = IENC_UNCOND_PLD #FIXME
 
 #Opcodes still needed - put here as todo with others
 #dbg, movt, movw
@@ -494,7 +477,25 @@ instrnames = [
         'INS_CPS',
         'INS_CBZ',
         'INS_CBNZ',
-        ]
+        'INS_STRH',
+        'INS_LEAVEX',
+        'INS_ENTERX',
+        'INS_TB',
+        'INS_LDREX',
+        'INS_ORN',
+        'INS_PKH',
+        'INS_LSL',
+        'INS_LSR',
+        'INS_ASR',
+        'INS_ROR',
+        'INS_RRX',
+        'INS_DBG',
+        'INS_BF',
+        'INS_CLREX',
+        'INS_DMB',
+        'INS_DSB',
+        'INS_ISB',
+]
 
 ins_index = 85
 for instr in instrnames:

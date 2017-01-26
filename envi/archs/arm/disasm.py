@@ -405,7 +405,7 @@ def p_misc1(opval, va): #
             ArmRegOper(Rm, va=va),
         )
     elif opval & 0x0ff000f0 == 0x01200030:
-        #opcode = (IENC_MISC << 16) + 6
+        # blx
         opcode = INS_BLX
         mnem = 'blx'
         Rm = opval & 0xf
@@ -1544,6 +1544,7 @@ def p_uncond(opval, va, psize = 4):
 
         elif (opval & 0xfe000000) == 0xfa000000:
             #blx
+            opcode = INS_BLX
             mnem = "blx"
             h = (opval>>23) & 2
             imm_offset = (e_bits.signed(opval, 3) << 2) | h | 1 #this encoding forces THUMB
@@ -1552,7 +1553,6 @@ def p_uncond(opval, va, psize = 4):
                 ArmPcOffsetOper(imm_offset, va),
             )
             
-            opcode = INS_BLX
             return (opcode, mnem, olist, envi.IF_CALL, 0)
         else:
             raise envi.InvalidInstruction(
@@ -3838,6 +3838,7 @@ class ArmCoprocRegOper(ArmOperand):
 
 class ArmCoprocOption(ArmImmOffsetOper):
     def __init__(self, base_reg, offset, va, pubwl=8):
+        ArmImmOffsetOper.__init__(self, base_reg, offset, va, pubwl)
         self.base_reg = base_reg
         self.offset = offset
         self.pubwl = pubwl

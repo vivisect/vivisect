@@ -160,14 +160,26 @@ cpsh_mnems = {
         4: (INS_SEV, 'sev',),
         }
 
+misc_ctl_instrs = (
+        (INS_LEAVEX, 'leavex', False),
+        (INS_ENTERX, 'enterx', False),
+        (INS_CLREX, 'clrex', False),
+        None,
+        (INS_DSB, 'dsb', True),
+        (INS_DMB, 'dmb', True),
+        (INS_ISB, 'isb', True),
+        None,
+)
+
+
 def branch_misc(va, val, val2): # bl and misc control
     op = (val >> 4) & 0b1111111
     op1 = (val2 >> 12) & 0b111
     op2 = (val2 >> 8) & 0b1111
     imm8 = val2 & 0b1111
-
+    
     if (op1 & 0b101 == 0):
-        if not (op & 0b111000) == 0b111000: # T3 encoding - conditional
+        if not (op & 0b0111000) == 0b0111000: # T3 encoding - conditional
             cond = (val>>6) & 0xf
             opcode, mnem, nflags = bcc_ops.get(cond)
             flags = envi.IF_BRANCH | nflags
@@ -187,6 +199,21 @@ def branch_misc(va, val, val2): # bl and misc control
 
             oper0 = ArmPcOffsetOper(e_bits.signed(imm,4), va=va)
             return opcode, mnem, (oper0, ), flags, 0
+
+        if op & 0b111 == 0b011:
+            # miscellaneous control instructions
+            opcode, mnem, barrier = misc_ctl_instrs[op]
+
+            if barrier:
+                option = val2 & 0xf
+                opers = (
+                        ArmBarrierOption(option),
+                        )
+
+            else:
+                opers = ()
+
+            return opcode, mnem, opers, None, 0
 
         if imm8 & 0b100000:     # xx1xxxxx
             if (op & 0b1111110) == 0b0111000:   # MSR (banked)
@@ -407,11 +434,11 @@ def branch_misc(va, val, val2): # bl and misc control
             bytez=struct.pack("<H", val)+struct.pack("<H", val2), va=va-4)
 
     elif op1 & 0b100:
-        # bl/blx
-        x = (val2>>12) & 1
+        # bl/lx
+        notx = (val2>>12) & 1
         s = (val>>10) & 1
-        mnem = ('blx','bl')[x]
-        opcode = (INS_BLX,INS_BL)[x]
+        mnem = ('blx','bl')[notx]
+        opcode = (INS_BLX,INS_BL)[notx]
         flags = envi.IF_CALL | IF_W
 
         # need next two bytes
@@ -916,6 +943,7 @@ def tb_ldrex_32(va, val1, val2):
         opers = (oper0,)
 
     return opcode, mnem, opers, flags, 0
+
 
 mov_ris_ops = (
                 (INS_LSL, 'lsl',3),
@@ -1877,48 +1905,52 @@ thumb2_extension = [
     ('11110101011',         (85,'sbc',      dp_mod_imm_32,      IF_THUMB32)),
     ('11110101101',         (85,'sub',      dp_mod_imm_32,      IF_THUMB32)),  # cmp if rd=1111 and s=1
     ('11110101110',         (85,'rsb',      dp_mod_imm_32,      IF_THUMB32)),
-    ('1111001000',          (85,'add',      dp_bin_imm_32,      IF_W | IF_THUMB32)),  # adr if rn=1111
-    ('1111001001',          (85,'mov',      dp_bin_imm_32,      IF_W | IF_THUMB32)),
-    ('1111001010',          (85,'sub',      dp_bin_imm_32,      IF_W | IF_THUMB32)),  # adr if rn=1111
-    ('1111001011',          (85,'movt',     dp_bin_imm_32,      IF_W | IF_THUMB32)),
-    ('11110011000',         (85,'ssat',     dp_bin_imm_32,      IF_W | IF_THUMB32)),
-    ('11110011001',         (85,'ssat16',   dp_bin_imm_32,      IF_W | IF_THUMB32)),
-    ('11110011010',         (85,'sbfx',     dp_bin_imm_32,      IF_W | IF_THUMB32)),
-    ('11110011011',         (85,'bfi',      dp_bin_imm_32,      IF_W | IF_THUMB32)),  # bfc if rn=1111
-    ('11110011100',         (85,'usat',     dp_bin_imm_32,      IF_W | IF_THUMB32)),
-    ('11110011101',         (85,'usat',     dp_bin_imm_32,      IF_W | IF_THUMB32)),  # usat16 if val2=0000xxxx00xxxxxx
-    ('1111001111',          (85,'ubfx',     dp_bin_imm_32,      IF_W | IF_THUMB32)),
-    ('1111011000',          (85,'add',      dp_bin_imm_32,      IF_W | IF_THUMB32)),  # adr if rn=1111
-    ('1111011001',          (85,'mov',      dp_bin_imm_32,      IF_W | IF_THUMB32)),
-    ('1111011010',          (85,'sub',      dp_bin_imm_32,      IF_W | IF_THUMB32)),  # adr if rn=1111
-    ('1111011011',          (85,'movt',     dp_bin_imm_32,      IF_W | IF_THUMB32)),
-    ('11110111000',         (85,'ssat',     dp_bin_imm_32,      IF_W | IF_THUMB32)),
-    ('11110111001',         (85,'ssat16',   dp_bin_imm_32,      IF_W | IF_THUMB32)),
-    ('11110111010',         (85,'sbfx',     dp_bin_imm_32,      IF_W | IF_THUMB32)),
-    ('11110111011',         (85,'bfi',      dp_bin_imm_32,      IF_W | IF_THUMB32)),  # bfc if rn=1111
-    ('11110111100',         (85,'usat',     dp_bin_imm_32,      IF_W | IF_THUMB32)),
-    ('11110111101',         (85,'usat',     dp_bin_imm_32,      IF_W | IF_THUMB32)),  # usat16 if val2=0000xxxx00xxxxxx
-    ('11110111110',         (85,'ubfx',     dp_bin_imm_32,      IF_W | IF_THUMB32)),
+    ('1111001000',          (85,'add',      dp_bin_imm_32,      IF_THUMB32)),  # adr if rn=1111
+    ('1111001001',          (85,'mov',      dp_bin_imm_32,      IF_THUMB32)),
+    ('1111001010',          (85,'sub',      dp_bin_imm_32,      IF_THUMB32)),  # adr if rn=1111
+    ('1111001011',          (85,'movt',     dp_bin_imm_32,      IF_THUMB32)),
+    ('11110011000',         (85,'ssat',     dp_bin_imm_32,      IF_THUMB32)),
+    ('11110011001',         (85,'ssat16',   dp_bin_imm_32,      IF_THUMB32)),
+    ('11110011010',         (85,'sbfx',     dp_bin_imm_32,      IF_THUMB32)),
+    ('11110011011',         (85,'bfi',      dp_bin_imm_32,      IF_THUMB32)),  # bfc if rn=1111
+    ('11110011100',         (85,'usat',     dp_bin_imm_32,      IF_THUMB32)),
+    ('111100111010',        (85,'usat',     dp_bin_imm_32,      IF_THUMB32)),  # usat16 if val2=0000xxxx00xxxxxx
+    ('111100111011',        (85,'usat',     dp_bin_imm_32,      IF_THUMB32)),  # usat16 if val2=0000xxxx00xxxxxx
+    ('1111001111',          (85,'ubfx',     dp_bin_imm_32,      IF_THUMB32)),
+    ('1111011000',          (85,'add',      dp_bin_imm_32,      IF_THUMB32)),  # adr if rn=1111
+    ('1111011001',          (85,'mov',      dp_bin_imm_32,      IF_THUMB32)),
+    ('1111011010',          (85,'sub',      dp_bin_imm_32,      IF_THUMB32)),  # adr if rn=1111
+    ('1111011011',          (85,'movt',     dp_bin_imm_32,      IF_THUMB32)),
+    ('11110111000',         (85,'ssat',     dp_bin_imm_32,      IF_THUMB32)),
+    ('11110111001',         (85,'ssat16',   dp_bin_imm_32,      IF_THUMB32)),
+    ('11110111010',         (85,'sbfx',     dp_bin_imm_32,      IF_THUMB32)),
+    ('11110111011',         (85,'bfi',      dp_bin_imm_32,      IF_THUMB32)),  # bfc if rn=1111
+    ('11110111100',         (85,'usat',     dp_bin_imm_32,      IF_THUMB32)),
+    ('11110111101',         (85,'usat',     dp_bin_imm_32,      IF_THUMB32)),  # usat16 if val2=0000xxxx00xxxxxx
+    ('11110111110',         (85,'ubfx',     dp_bin_imm_32,      IF_THUMB32)),
     ('11110111111',         (85,'branchmisc', branch_misc,      IF_THUMB32)),
+    ('111110000010',        (INS_STRH, 'strh', ldr_puw_32,      IF_THUMB32)),
+    ('111110000100',        (INS_STR,  'str',  ldr_puw_32,      IF_THUMB32)),   # T4 encoding
     ('111110001001',        (INS_LDRB, 'ldrb', ldr_32,          IF_THUMB32)),
-    ('111110001100',        (INS_STR, 'str', ldr_32,          IF_THUMB32)),
+    ('111110001010',        (INS_STRH, 'strh', ldr_32,          IF_THUMB32)),
+    ('111110001100',        (INS_STR,  'str',  ldr_puw_32,      IF_THUMB32)),
     ('111110001000',        (INS_STRB, 'strb', ldr_32,          IF_THUMB32)),
     ('111110000000',        (INS_STRB, 'strb', ldr_puw_32,      IF_THUMB32)),
-    ('11111010001',         (INS_LSL, 'lsl', shift_or_ext_32,      IF_THUMB32)),
-    ('11111010010',         (INS_LSR, 'lsr', shift_or_ext_32,      IF_THUMB32)),
-    ('11111010011',         (INS_ASR, 'asr', shift_or_ext_32,      IF_THUMB32)),
-    ('11111010100',         (INS_ROR, 'ror', shift_or_ext_32,      IF_THUMB32)),
-    ('111110101001',        (INS_UADD16, 'uadd16', pdp_32,         IF_THUMB32)),    # FIXME: overlapping with saturating instructions
-    ('111110101010',        (INS_UASX, 'uasx', pdp_32,         IF_THUMB32)),
-    ('111110101110',        (INS_USAX, 'usax', pdp_32,         IF_THUMB32)),
-    ('111110101101',        (INS_USUB16, 'usub16', pdp_32,         IF_THUMB32)),
-    ('111110101000',        (INS_UADD8, 'uadd8', pdp_32,         IF_THUMB32)),
-    ('111110101100',        (INS_USUB8, 'usub8', pdp_32,         IF_THUMB32)),
-    ('111110101001',        (INS_UADD16, 'uadd16', pdp_32,         IF_THUMB32)),
-    ('111110101001',        (INS_UADD16, 'uadd16', pdp_32,         IF_THUMB32)),
-    ('111110101001',        (INS_UADD16, 'uadd16', pdp_32,         IF_THUMB32)),
-    ('111110101001',        (INS_UADD16, 'uadd16', pdp_32,         IF_THUMB32)),
-    ('111110101001',        (INS_UADD16, 'uadd16', pdp_32,         IF_THUMB32)),
+    ('11111010001',         (INS_LSL, 'lsl', shift_or_ext_32,   IF_THUMB32)),
+    ('11111010010',         (INS_LSR, 'lsr', shift_or_ext_32,   IF_THUMB32)),
+    ('11111010011',         (INS_ASR, 'asr', shift_or_ext_32,   IF_THUMB32)),
+    ('11111010100',         (INS_ROR, 'ror', shift_or_ext_32,   IF_THUMB32)),
+    ('111110101001',        (INS_UADD16, 'uadd16', pdp_32,      IF_THUMB32)),    # FIXME: overlapping with saturating instructions
+    ('111110101010',        (INS_UASX, 'uasx', pdp_32,          IF_THUMB32)),
+    ('111110101110',        (INS_USAX, 'usax', pdp_32,          IF_THUMB32)),
+    ('111110101101',        (INS_USUB16, 'usub16', pdp_32,      IF_THUMB32)),
+    ('111110101000',        (INS_UADD8, 'uadd8', pdp_32,        IF_THUMB32)),
+    ('111110101100',        (INS_USUB8, 'usub8', pdp_32,        IF_THUMB32)),
+    ('111110101001',        (INS_UADD16, 'uadd16', pdp_32,      IF_THUMB32)),
+    ('111110101001',        (INS_UADD16, 'uadd16', pdp_32,      IF_THUMB32)),
+    ('111110101001',        (INS_UADD16, 'uadd16', pdp_32,      IF_THUMB32)),
+    ('111110101001',        (INS_UADD16, 'uadd16', pdp_32,      IF_THUMB32)),
+    ('111110101001',        (INS_UADD16, 'uadd16', pdp_32,      IF_THUMB32)),
     ('111110110001',        (INS_SMUL, 'smul', smul_32,         IF_THUMB32)),
     #('11111',               (85,'branchmisc', branch_misc,            IF_THUMB32)),
     #('11111',         (85,'SOMETHING WICKED THIS WAY',      dp_bin_imm_32,         IF_THUMB32)),
