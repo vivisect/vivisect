@@ -1,4 +1,3 @@
-
 import envi.bits as e_bits
 import envi.bintree as e_btree
 
@@ -13,6 +12,9 @@ armd = ArmDisasm()
         #binary('11110'),
         #binary('11111'),
 #]
+
+#FIXME: check to make sure ldrb/ldrh are handled consistently, wrt: IF_B and IF_H.  emulation would like all the same.
+
 
 
 O_REG = 0
@@ -541,6 +543,63 @@ def cps16(va, value):
             )
     return opers, (IF_IE, IF_ID)[im]
 
+def itblock(va, val):
+    mask = val & 0xf
+    firstcond = (val>>4) & 0xf
+    return (ThumbITOper(mask, firstcond),), None
+
+class ThumbITOper(ArmOperand):
+    def __init__(self, mask, firstcond):
+        self.mask = mask
+        self.firstcond = firstcond
+
+    def repr(self, op):
+        mask = self.mask
+        cond = self.firstcond
+
+        fcond = cond_codes.get(cond)
+
+        itbytes = []
+
+        go = 0
+        cond0 = cond & 1
+        for idx in range(4):
+            mbit = (mask>>idx) & 1
+            if go:
+                if mbit == cond0:
+                    itbytes.append('t')
+                else:
+                    itbytes.append('e')
+
+            if mbit: 
+                go = 1
+        nextfew = ''.join(itbytes)
+        return "%s %s" % (nextfew, fcond)
+
+    def render(self, mcanv, op, idx):
+        mask = self.mask
+        cond = self.firstcond
+
+        fcond = cond_codes.get(cond)
+
+        itbytes = []
+
+        go = 0
+        cond0 = cond & 1
+        for idx in range(4):
+            mbit = (mask>>idx) & 1
+            if go:
+                if mbit == cond0:
+                    itbytes.append('t')
+                else:
+                    itbytes.append('e')
+
+            if mbit: 
+                go = 1
+
+        nextfew = ''.join(itbytes)
+        mcanv.addText("%s %s" % (nextfew, fcond))
+
 
 def thumb32_01(va, val, val2):
     op =  (val2>>15)&1
@@ -743,31 +802,54 @@ def pdp_32(va, val1, val2):
 
     return None, None, None, None, None
 
-def dp_bin_imm_32(va, val1, val2):
+def ubfx_32(va, val1, val2):
+    rd = (val2>>8) & 0xf
+    rn = val1 & 0xf
+    imm3 = (val2>>12) & 0x7
+    imm2 = (val2>>6) & 0x3
+    widthm1 = val2 & 0x1f
+    lsbit = (imm3 << 2) | imm2
+
+    opers = (
+            ArmRegOper(rd),
+            ArmRegOper(rn),
+            ArmImmOper(lsbit),
+            ArmImmOper(widthm1 + 1),
+            )
+    return None, None, opers, None, 0
+
+def dp_bin_imm_32(va, val1, val2):  # p232
+    flags = IF_THUMB32
     if val2 & 0x8000:
         return branch_misc(va, val1,val2)
 
-    flags = IF_THUMB32
-    # FIXME: decoding incorrectly
     Rd = (val2 >> 8) & 0xf
 
-    Rn = val1 & 0xf
     imm4 = val1 & 0xf
     i = (val1 >> 10) & 1
     imm3 = (val2 >> 12) & 0x7
     const = val2 & 0xff
-    if Rn==15 and (val1 & 0b111110000) in (0,0b1010):   # add/sub
+
+    op = (val1>>4) & 0x1f
+    const |= (imm4 << 12) | (i << 11) | (imm3 << 8)
+
+    oper0 = ArmRegOper(Rd)
+    oper2 = ArmImmOper(const)
+    opers = [oper0, oper2]
+
+    if op in (0b00100, 0b01100):    # movw, movt
+        return None, None, opers, 0, 0
+
+    Rn = val1 & 0xf
+    if Rn==15 and op in (0,0b1010):   # add/sub
         # adr
         return None, 'adr', opers, None, 0
 
+    oper1 = ArmRegOper(Rn)
+    opers.insert(1, oper1)
 
-    const |= (imm4 << 12) | (i << 11) | (imm3 << 8)
-    
-    oper0 = ArmRegOper(Rd)
-    oper1 = ArmRegOper(Rd)
-    oper2 = ArmImmOper(const)
-    opers = (oper0, oper1, oper2)
     return None, None, opers, flags, 0
+
 
 def ldm_reg_mode_32(va, val1, val2):
     rn = val1 & 0xf
@@ -839,10 +921,84 @@ def ldr_32(va, val1, val2):
     opers = (oper0, oper1)
     return None, None, opers, None, 0
 
+ldrb_instrs = (
+        (INS_LDR, 'ldr', IF_B|IF_THUMB32),
+        (INS_LDR, 'ldr', IF_B|IF_S|IF_THUMB32),
+        )
+memh_instrs = (
+        (INS_PLD, 'pld', IF_THUMB32),
+        (INS_PLI, 'pli', IF_THUMB32),
+        )
+
+def ldrb_memhints_32(va, val1, val2):
+    op1 = (val1>>7) & 3
+    op2 = (val2>>6) & 0x3f
+    rn = val1 & 0xf
+    rt = (val2>>12) & 0xf
+
+    Sbit = op1>>1
+
+
+    if rn == 0xf:
+        if rt == 0xf:
+            # PLD(literal)
+            opcode, mnem, flags = memh_instrs[Sbit]
+            rm = val2 & 0xf
+            imm2 = (val2>>4) & 3
+            opers = (
+                    ArmScaledOffsetOper(rn, rm, S_LSL, imm2, va),
+                    )
+        else:
+            # LDRB (literal)
+            opcode, mnem, flags = ldrb_instrs[Sbit]
+            imm12 = val2 & 0xfff
+            opers = (
+                    ArmRegOper(rt),
+                    ArmPcOffsetOper(imm12, va),
+                    )
+
+    else:
+        if op1&1:
+            # ldrb (immediate):T2, ldrsb:T1
+            opcode, mnem, flags = ldrb_instrs[Sbit]
+            imm12 = val2 & 0xfff
+            opers = (
+                    ArmRegOper(rt),
+                    ArmImmOffsetOper(rn, imm12, va),
+                    )
+
+        elif not op1 and not op2:
+            if rt == 0xf:
+                # pld/pldw (p526)
+                opcode, mnem, flags = memh_instrs[Sbit]
+                rm = val2 & 0xf
+                imm2 = (val2>>4) & 3
+                opers = (
+                        ArmScaledOffsetOper(rn, rm, S_LSL, imm2, va),
+                        )
+
+            else:
+                # LDRB (register)
+                opcode, mnem, flags = ldrb_instrs[Sbit]
+                rm = val2 & 0xf
+                imm2 = (val2>>4) & 3
+                opers = (
+                        ArmRegOper(rt),
+                        ArmScaledOffsetOper(rn, rm, S_LSL, imm2, va),
+                        )
+
+        else:
+            raise envi.InvalidInstruction(
+                    mesg="ldrb_memhints_32: fall 1", va=va)
+
+
+    return opcode, mnem, opers, flags, 0
+
+
 def ldr_puw_32(va, val1, val2):
-    b11 = (val2>>11) & 1
-    if not b11:
-        raise Exception("ldr_puw_32 parsing non-ldrb")
+    #b11 = (val2>>11) & 1
+    #if not b11:
+    #    raise Exception("ldr_puw_32 parsing non-ldrb")
 
     rn = val1 & 0xf
     rt = (val2 >> 12) & 0xf
@@ -1030,7 +1186,7 @@ dp_shift_alt2= ((INS_AND, 'and', 3),
                 (INS_RSB, 'rsb', 3),
                 )
 def dp_shift_32(va, val1, val2):
-    flags = 0
+    flags = IF_THUMB32
     op = (val1 >> 5) & 0xf
     rn = val1 & 0xf
     rd = (val2 >> 8) & 0xf
@@ -1247,7 +1403,6 @@ def coproc_simd_32(va, val1, val2):
             # adv simd fp (a7-272)
             tmop1 = op1 & 0b11011
             
-            # FIXME: DO WE WANT ALL adv_simd to be decoded in the adv_simd_32 function?  or individual functions?  not here.
             if op1 & 0b11110 == 0b00100:
                 # 64 bit transverse between ARM core and extension registers (a7-277)
                 raise envi.InvalidInstruction(      #FIXME!!!!
@@ -1262,7 +1417,8 @@ def coproc_simd_32(va, val1, val2):
             l = op1 & 1 # vldm or vstm
             indiv = (op1 & 0b10010) == 0b10000
             # writeback should be handled by operand
-            imm32 = (val2 & 0xff) << 2
+            imm8 = (val2 & 0xff) >>1
+            imm32 = imm8 <<3
 
             # size = 0/1 for 32-bit and 64-bit accordingly
             size = (val2>>8) & 1    # TODO: Check next three bits must be 0b101
@@ -1278,7 +1434,7 @@ def coproc_simd_32(va, val1, val2):
             if (op1 & 0b11011) in (0b01011, 0b10010) and Rn == REG_SP:
                 mnem = ('vpush', 'vpop')[l]
                 opers = (
-                        ArmExtRegListOper(d, imm32, size),
+                        ArmExtRegListOper(d>>size, imm8, size),
                         )
 
             else:
@@ -1308,7 +1464,7 @@ def coproc_simd_32(va, val1, val2):
                 else:
                     opers = (
                             ArmRegOper(Rn, va=va, oflags=oflags),
-                            ArmExtRegListOper(d, imm32, size),
+                            ArmExtRegListOper(d, imm32>>size, size),
                             )
 
         elif op1 & 0b110000 == 0b100000:
@@ -1631,6 +1787,8 @@ def _adv_simd_32(va, val1, val2):
         return opcode, mnem, opers, 0, simdflags
 
 
+
+
 bcc_ops = {
     0b0000:    (INS_BCC,'beq',  envi.IF_COND),
     0b0001:    (INS_BCC,'bn',   envi.IF_COND),
@@ -1756,29 +1914,14 @@ thumb_base = [
     ('11011101',    (INS_BCC,'ble',     pc_imm8,       envi.IF_BRANCH|envi.IF_COND)),
     ('11011110',    (INS_B,'b',       pc_imm8,       envi.IF_BRANCH|envi.IF_NOFALL)),
     ('11011111',    (INS_BCC,'bfukt',   pc_imm8,       envi.IF_BRANCH|0)),
-    # Software Interru2t
+    # Software Interrupt
     ('11011111',    (INS_SWI,'svc',     imm8,       0)), # SWI <blahblah>
-    ('1011111100000000',    (89,'nopHint',    imm8,       0)), #unnecessary instruction
-    ('1011111100010000',    (90,'yieldHint',  imm8,       0)), #unnecessary instruction
-    ('1011111100100000',    (91,'wfrHint',    imm8,       0)), #unnecessary instruction
-    ('1011111100110000',    (92,'wfiHint',    imm8,       0)), #unnecessary instruction
-    ('1011111101000000',    (93,'sevHint',    imm8,       0)), #unnecessary instruction
-    ('101111110000',       (94,'if-then-Hint',    imm8,       0)), #unnecessary instruction
-    ('101111110001',       (94,'if-then-Hint',    imm8,       0)), #unnecessary instruction
-    ('101111110010',       (94,'if-then-Hint',    imm8,       0)), #unnecessary instruction
-    ('101111110011',       (94,'if-then-Hint',    imm8,       0)), #unnecessary instruction
-    ('101111110100',       (94,'if-then-Hint',    imm8,       0)), #unnecessary instruction
-    ('101111110101',       (94,'if-then-Hint',    imm8,       0)), #unnecessary instruction
-    ('101111110110',       (94,'if-then-Hint',    imm8,       0)), #unnecessary instruction
-    ('101111110111',       (94,'if-then-Hint',    imm8,       0)), #unnecessary instruction
-    ('101111111000',       (94,'if-then-Hint',    imm8,       0)), #unnecessary instruction
-    ('101111111001',       (94,'if-then-Hint',    imm8,       0)), #unnecessary instruction
-    ('101111111010',       (94,'if-then-Hint',    imm8,       0)), #unnecessary instruction
-    ('101111111011',       (94,'if-then-Hint',    imm8,       0)), #unnecessary instruction
-    ('101111111100',       (94,'if-then-Hint',    imm8,       0)), #unnecessary instruction
-    ('101111111101',       (94,'if-then-Hint',    imm8,       0)), #unnecessary instruction
-    ('101111111110',       (94,'if-then-Hint',    imm8,       0)), #unnecessary instruction
-    ('101111111111',       (94,'if-then-Hint',    imm8,       0)), #unnecessary instruction
+    ('1011111100000000',    (89,'nopHint',    imm8,       0)),
+    ('1011111100010000',    (90,'yieldHint',  imm8,       0)),
+    ('1011111100100000',    (91,'wfrHint',    imm8,       0)),
+    ('1011111100110000',    (92,'wfiHint',    imm8,       0)),
+    ('1011111101000000',    (93,'sevHint',    imm8,       0)),
+    ('10111111',       (INS_IT, 'it',    itblock,       envi.IF_COND)),
     ]
 
 thumb1_extension = [
@@ -1786,7 +1929,6 @@ thumb1_extension = [
     ('1111',        (INS_BL, 'bl',      branch_misc,       envi.IF_CALL | IF_THUMB32)),   # BL/BLX <addr25> 
 ]
 
-###  holy crap, this is so wrong and imcomplete....
 # FIXME: need to take into account ThumbEE 
 # 32-bit Thumb instructions start with:
 # 0b11101
@@ -1794,11 +1936,6 @@ thumb1_extension = [
 # 0b11111
 thumb2_extension = [
     ('11100',       (85,'ldm',      ldm16,     0)),     # 16-bit instructions
-    #('11101',       (86,'blah32',   thumb32_01,   IF_THUMB32)),         # can't do thumb32 in tree-fashion
-    #('11110',       (86,'blah32',   thumb32_10,   IF_THUMB32)),         # op2 is sparse and op is part of 
-    #('11111',       (86,'blah32',   thumb32_11,   IF_THUMB32)),         # second halfword
-    # awww heck, let's use the tree for as much as possible.
-
     # load/store multiple (A6-235 in ARM DDI 0406C)
 
     ('111010000000',    (85,'srs',    ldm_reg_mode_32,    IF_THUMB32|IF_DB)), # next bits shoud be: 110111000000000mode
@@ -1906,7 +2043,7 @@ thumb2_extension = [
     ('11110101101',         (85,'sub',      dp_mod_imm_32,      IF_THUMB32)),  # cmp if rd=1111 and s=1
     ('11110101110',         (85,'rsb',      dp_mod_imm_32,      IF_THUMB32)),
     ('1111001000',          (85,'add',      dp_bin_imm_32,      IF_THUMB32)),  # adr if rn=1111
-    ('1111001001',          (85,'mov',      dp_bin_imm_32,      IF_THUMB32)),
+    ('1111001001',          (85,'movw',     dp_bin_imm_32,      IF_THUMB32)),
     ('1111001010',          (85,'sub',      dp_bin_imm_32,      IF_THUMB32)),  # adr if rn=1111
     ('1111001011',          (85,'movt',     dp_bin_imm_32,      IF_THUMB32)),
     ('11110011000',         (85,'ssat',     dp_bin_imm_32,      IF_THUMB32)),
@@ -1916,9 +2053,9 @@ thumb2_extension = [
     ('11110011100',         (85,'usat',     dp_bin_imm_32,      IF_THUMB32)),
     ('111100111010',        (85,'usat',     dp_bin_imm_32,      IF_THUMB32)),  # usat16 if val2=0000xxxx00xxxxxx
     ('111100111011',        (85,'usat',     dp_bin_imm_32,      IF_THUMB32)),  # usat16 if val2=0000xxxx00xxxxxx
-    ('1111001111',          (85,'ubfx',     dp_bin_imm_32,      IF_THUMB32)),
+    ('1111001111',          (85,'ubfx',     ubfx_32,      IF_THUMB32)),
     ('1111011000',          (85,'add',      dp_bin_imm_32,      IF_THUMB32)),  # adr if rn=1111
-    ('1111011001',          (85,'mov',      dp_bin_imm_32,      IF_THUMB32)),
+    ('1111011001',          (85,'movw',     dp_bin_imm_32,      IF_THUMB32)),
     ('1111011010',          (85,'sub',      dp_bin_imm_32,      IF_THUMB32)),  # adr if rn=1111
     ('1111011011',          (85,'movt',     dp_bin_imm_32,      IF_THUMB32)),
     ('11110111000',         (85,'ssat',     dp_bin_imm_32,      IF_THUMB32)),
@@ -1927,20 +2064,27 @@ thumb2_extension = [
     ('11110111011',         (85,'bfi',      dp_bin_imm_32,      IF_THUMB32)),  # bfc if rn=1111
     ('11110111100',         (85,'usat',     dp_bin_imm_32,      IF_THUMB32)),
     ('11110111101',         (85,'usat',     dp_bin_imm_32,      IF_THUMB32)),  # usat16 if val2=0000xxxx00xxxxxx
-    ('11110111110',         (85,'ubfx',     dp_bin_imm_32,      IF_THUMB32)),
+    ('11110111110',         (85,'ubfx',     ubfx_32,      IF_THUMB32)),
     ('11110111111',         (85,'branchmisc', branch_misc,      IF_THUMB32)),
-    ('111110000010',        (INS_STRH, 'strh', ldr_puw_32,      IF_THUMB32)),
+    ('111110000001',        (None, 'ldrb_memhints32', ldrb_memhints_32,  IF_THUMB32)),
+    ('111110000010',        (INS_STR,  'str',  ldr_puw_32,      IF_H | IF_THUMB32)),
     ('111110000100',        (INS_STR,  'str',  ldr_puw_32,      IF_THUMB32)),   # T4 encoding
-    ('111110001001',        (INS_LDRB, 'ldrb', ldr_32,          IF_THUMB32)),
-    ('111110001010',        (INS_STRH, 'strh', ldr_32,          IF_THUMB32)),
+    ('111110000101',        (INS_LDR,  'ldr',  ldr_puw_32,      IF_THUMB32)),   # T4 encoding
+    ('111110001001',        (None, 'ldrb_memhints32', ldrb_memhints_32,  IF_THUMB32)),
+    ('111110010001',        (None, 'ldrb_memhints32', ldrb_memhints_32,  IF_THUMB32)),
+    ('111110011001',        (None, 'ldrb_memhints32', ldrb_memhints_32,  IF_THUMB32)),
+    #('111110001001',        (INS_LDRB, 'ldrb', ldr_32,          IF_THUMB32)),
+    ('111110001010',        (INS_STR, 'str', ldr_32,            IF_H | IF_THUMB32)),
+    ('111110001011',        (INS_LDR, 'ldr', ldr_32,            IF_H | IF_THUMB32)),
     ('111110001100',        (INS_STR,  'str',  ldr_puw_32,      IF_THUMB32)),
-    ('111110001000',        (INS_STRB, 'strb', ldr_32,          IF_THUMB32)),
-    ('111110000000',        (INS_STRB, 'strb', ldr_puw_32,      IF_THUMB32)),
-    ('11111010001',         (INS_LSL, 'lsl', shift_or_ext_32,   IF_THUMB32)),
+    ('111110001101',        (INS_LDR,  'ldr',  ldr_32,          IF_THUMB32)), # T3
+    ('111110001000',        (INS_STR, 'str', ldr_32,            IF_B | IF_THUMB32)),
+    ('111110000000',        (INS_STR, 'str', ldr_puw_32,        IF_B | IF_THUMB32)),
+    ('11111010001',         (INS_LSL, 'lsl', shift_or_ext_32,   IF_THUMB32)),    # FIXME: overlapping with saturating instructions
     ('11111010010',         (INS_LSR, 'lsr', shift_or_ext_32,   IF_THUMB32)),
     ('11111010011',         (INS_ASR, 'asr', shift_or_ext_32,   IF_THUMB32)),
     ('11111010100',         (INS_ROR, 'ror', shift_or_ext_32,   IF_THUMB32)),
-    ('111110101001',        (INS_UADD16, 'uadd16', pdp_32,      IF_THUMB32)),    # FIXME: overlapping with saturating instructions
+    ('111110101001',        (INS_UADD16, 'uadd16', pdp_32,      IF_THUMB32)),   # or these?
     ('111110101010',        (INS_UASX, 'uasx', pdp_32,          IF_THUMB32)),
     ('111110101110',        (INS_USAX, 'usax', pdp_32,          IF_THUMB32)),
     ('111110101101',        (INS_USUB16, 'usub16', pdp_32,      IF_THUMB32)),

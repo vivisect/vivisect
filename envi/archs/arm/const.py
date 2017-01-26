@@ -460,8 +460,8 @@ instrnames = [
         'INS_VQRSHRUN',
         'INS_VSHLL',
         'INS_VCVT',
-        'INS_LDRB',
-        'INS_STRB',
+        #'INS_LDRB',
+        #'INS_STRB',
         'INS_SMUL',
         'INS_UADD16',
         'INS_UADD8',
@@ -478,6 +478,7 @@ instrnames = [
         'INS_CBZ',
         'INS_CBNZ',
         'INS_STRH',
+        #'INS_LDRH',
         'INS_LEAVEX',
         'INS_ENTERX',
         'INS_TB',
@@ -495,6 +496,10 @@ instrnames = [
         'INS_DMB',
         'INS_DSB',
         'INS_ISB',
+        #'INS_LDRSB',
+        'INS_PLD',
+        'INS_PLI',
+        'INS_IT',
 ]
 
 ins_index = 85

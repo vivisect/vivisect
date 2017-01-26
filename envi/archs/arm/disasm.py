@@ -3089,7 +3089,7 @@ class ArmImmFPOper(ArmImmOper):
 
 class ArmScaledOffsetOper(ArmOperand):
     ''' scaled offset operand.  see "addressing mode 2 - load and store word or unsigned byte - scaled register *" '''
-    def __init__(self, base_reg, offset_reg, shtype, shval, va, pubwl=0, psize=4):
+    def __init__(self, base_reg, offset_reg, shtype, shval, va, pubwl=PUxWL_DFLT, psize=4):
         if shval == 0:
             if shtype == S_ROR:
                 shtype = S_RRX
@@ -3224,7 +3224,7 @@ class ArmScaledOffsetOper(ArmOperand):
 class ArmRegOffsetOper(ArmOperand):
     ''' register offset operand.  see "addressing mode 2 - load and store word or unsigned byte - register *" 
     dereference address mode using the combination of two register values '''
-    def __init__(self, base_reg, offset_reg, va, pubwl=0, psize=4, force_tsize=None):
+    def __init__(self, base_reg, offset_reg, va, pubwl=PUxWL_DFLT, psize=4, force_tsize=None):
         self.base_reg = base_reg
         self.offset_reg = offset_reg
         self.pubwl = pubwl
@@ -3921,6 +3921,7 @@ class ArmCPSFlagsOper(ArmOperand):
     def repr(self, op):
         flags = [AIF_FLAGS[x] for x in range(3) if self.flags & (1<<x)]
         return ','.join(flags)
+
 
 AIF_FLAGS = ('a','i','f')[::-1]
 
