@@ -6,7 +6,10 @@ import vivisect.impemu.monitor as viv_monitor
 
 import envi
 import envi.archs.arm as e_arm
+
+from envi.archs.arm.regs import *
 from envi.registers import RMETA_NMASK
+from envi.archs.arm.const import *
 
 from vivisect.const import *
 
@@ -16,6 +19,7 @@ class AnalysisMonitor(viv_monitor.AnalysisMonitor):
         viv_monitor.AnalysisMonitor.__init__(self, vw, fva)
         self.retbytes = None
         self.badop = vw.arch.archParseOpcode("\x00\x00\x00\x00\x00")
+        self.last_lr_pc = 0
 
     def prehook(self, emu, op, starteip):
 
@@ -28,6 +32,29 @@ class AnalysisMonitor(viv_monitor.AnalysisMonitor):
             if len(op.opers):
                 if hasattr(op.opers, 'imm'):
                     self.retbytes = op.opers[0].imm
+
+        if op.opcode == INS_TB:
+            analyzeTB(emu, op, starteip, self)
+
+        if op.opcode == INS_MOV:
+            if len(op.opers) >= 2:
+                oper0 = op.opers[0]
+                oper1 = op.opers[1]
+
+                if isinstance(oper0, e_arm.ArmRegOper) and oper0.reg == REG_LR:
+                    if isinstance(oper1, e_arm.ArmRegOper) and oper1.reg == REG_PC:
+                        self.last_lr_pc = starteip
+
+        if op.opcode == INS_BX:
+            if starteip - self.last_lr_pc <= 4:
+                # this is a call.  the compiler updated lr
+                print "CALL by mov lr, pc; bx <foo> at 0x%x" % starteip
+
+
+
+def analyzeTB(emu, op, starteip, amon):
+    print "TB at 0x%x" % starteip
+
 argnames = {
     0: ('r0', 0),
     1: ('r1', 1),
@@ -87,6 +114,9 @@ def analyzeFunction(vw, fva):
 
     argc = len(callargs)
     cc = emu.getCallingConvention(callconv)
+    if cc == None:
+        return
+
     stcount = cc.getNumStackArgs(emu, argc)
     stackidx = argc - stcount
     baseoff = cc.getStackArgOffset(emu, argc)
