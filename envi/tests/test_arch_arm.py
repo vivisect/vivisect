@@ -505,7 +505,7 @@ instrs = [
         (REV_ALL_ARM, '001000ea', 0x4560, 'b 0x00008568', 0, ()),
         (REV_ALL_ARM, 'ff4cc3e3', 0x4560, 'bic  r4, r3, #0xff00', 0, ()),
         (REV_ALL_ARM, '001000eb', 0x4560, 'bl  0x00008568', 0, ()),
-        (REV_ALL_ARM, '001000fa', 0x4560, 'blx  0x00008568', 0, ()),
+        (REV_ALL_ARM, '001000fa', 0x4560, 'blx  0x00008569', 0, ()),
         (REV_ALL_ARM, '273764ee', 0x4560, 'cdp  p7, 6, cr3, cr4, cr7, 1', 0, ()),
         (REV_ALL_ARM, '473b34ee', 0x4560, 'cdp  p11, 3, cr3, cr4, cr7, 2', 0, ()),
         (REV_ALL_ARM, 'ff0c74e3', 0x4560, 'cmn  r4, #0xff00', 0, ()),
