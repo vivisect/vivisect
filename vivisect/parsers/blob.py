@@ -3,6 +3,13 @@ import vivisect
 import vivisect.parsers as v_parsers
 from vivisect.const import *
 
+
+archcalls = {
+    'i386':'cdecl',
+    'amd64':'sysvamd64call',
+    'arm':'armcall',
+    }
+
 def parseFd(vw, fd, filename=None):
     fd.seek(0)
     arch = vw.config.viv.parsers.blob.arch
@@ -18,6 +25,7 @@ def parseFd(vw, fd, filename=None):
     vw.setMeta('Format','blob')
 
     vw.setMeta('bigend', bigend)
+    vw.setMeta('DefaultCall', archcalls.get(arch,'unknown'))
 
     bytez =  fd.read() 
     vw.addMemoryMap(baseaddr, 7, filename, bytez)
@@ -40,6 +48,7 @@ def parseFile(vw, filename):
     vw.setMeta('Format','blob')
 
     vw.setMeta('bigend', bigend)
+    vw.setMeta('DefaultCall', archcalls.get(arch,'unknown'))
 
     fname = vw.addFile(filename, baseaddr, v_parsers.md5File(filename))
     bytez =  file(filename, "rb").read()
@@ -54,4 +63,5 @@ def parseMemory(vw, memobj, baseaddr):
     bytes = memobj.readMemory(va, size)
     fname = vw.addFile(fname, baseaddr, v_parsers.md5Bytes(bytes))
     vw.addMemoryMap(va, perms, fname, bytes)
+    vw.setMeta('DefaultCall', archcalls.get(arch,'unknown'))
 
