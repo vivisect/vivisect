@@ -600,7 +600,6 @@ class ThumbITOper(ArmOperand):
         nextfew = ''.join(itbytes)
         mcanv.addText("%s %s" % (nextfew, fcond))
 
-
 def thumb32_01(va, val, val2):
     op =  (val2>>15)&1
     op2 = (val>>4) & 0x7f
@@ -765,23 +764,78 @@ def dp_mod_imm_32(va, val1, val2):
     opers = (oper0, oper1, oper2)
     return None, None, opers, flags, 0
 
+sxt_mnem = (
+        (INS_SXTAH, 'sxtah',),
+        (INS_UXTAH, 'uxtah',),
+        (INS_SXTAB16, 'sxtab16',),
+        (INS_UXTAB16, 'uxtab16',),
+        (INS_SXTAB, 'sxtab',),
+        (INS_UXTAB, 'uxtab',),
+        )
+
+sxt_mnem_2 = (
+        (INS_SXTH, 'sxth',),
+        (INS_UXTH, 'uxth',),
+        (INS_SXTB16, 'sxtb16',),
+        (INS_UXTB16, 'uxtb16',),
+        (INS_SXTB, 'sxtb',),
+        (INS_UXTB, 'uxtb',),
+        )
+
 def shift_or_ext_32(va, val1, val2):
     if (val2 & 0xf000) != 0xf000:
-        raise Exception("pdp_32 needs to hand off for val2 & 0xf000 != 0xf000 at va 0x%x: val1:%.4x val2:%.4x" % (va, val1, val2))
+        raise InvalidInstruction(mesg="shift_or_ext_32 needs to hand off for val2 & 0xf000 != 0xf000 at va 0x%x: val1:%.4x val2:%.4x" % (va, val1, val2), va=va)
+
 
     op2 = (val2>>4) & 0xf
+    rn = (val1 & 0xf)
+    rd = (val2 >> 8) & 0xf
+    rm = (val2 & 0xf)
+
     if (op2):
-        raise Exception("Implement Me: Extended and Add stuff")
+        if op1 > 6:
+            raise InvalidInstruction(
+                    mesg="shift_or_ext_32 parsing an unsupported instruction encoding",
+                    bytez=struct.pack("<H", val1)+struct.pack("<H", val2), va=va)
+
+        rotate = (val2>>4) & 0x3
+
+        if rn == 0xf:
+            # sxth and the like
+            opcode, mnem, = sxt_mnem_2[op1]
+            if rotate == 0:
+                opers = (
+                        ArmRegOper(rd),
+                        ArmRegOper(rm),
+                        )
+            else:
+                opers = (
+                        ArmRegOper(rd),
+                        ArmRegOper(rm),
+                        ArmImmOper(rotate),
+                        )
+        else:
+            # sxtah and the like
+            opcode, mnem, = sxt_mnem[op1]
+            if rotate == 0:
+                opers = (
+                        ArmRegOper(rd),
+                        ArmRegOper(rm),
+                        )
+            else:
+                opers = (
+                        ArmRegOper(rd),
+                        ArmRegOper(rn),
+                        ArmRegOper(rm),
+                        ArmImmOper(rotate),
+                        )
+
 
     else:
         # lsl/lsr/asr/ror
         flags = 0
         op1 = (val1>>4) & 0xf
         opcode, mnem, nothing = mov_ris_ops[op1>>1]
-
-        rn = (val1 & 0xf)
-        rd = (val2 >> 8) & 0xf
-        rm = (val2 & 0xf)
 
         opers = (
                 ArmRegOper(rd),
@@ -1058,6 +1112,24 @@ def strexn_32(va, val1, val2):
     olist = (oper0, oper1, oper2)
     flags = 0
     return 0, mnem, opers, flags, 0
+
+def mla_32(va, val1, val2):
+    rn = val1 & 0xf
+    rm = val2 & 0xf
+    rd = (val2 >> 8) & 0xf
+    ra = (val2 >> 12) & 0xf
+
+    mnem = 'mla'
+    opcode = INS_MLA
+
+    opers = (
+            ArmRegOper(rd, va=va),
+            ArmRegOper(rn, va=va),
+            ArmRegOper(rm, va=va),
+            ArmRegOper(ra, va=va),
+            )
+
+    return None, mnem, opers, None, 0
 
 def smul_32(va, val1, val2):
     rn = val1 & 0xf
@@ -1454,7 +1526,7 @@ def coproc_simd_32(va, val1, val2):
                     oflags |= OF_W   # writeback flag for ArmRegOper
 
                 if indiv:
-                    rbase = ('S%d', 'D%d')[size]
+                    rbase = ('s%d', 'd%d')[size]
                     VRd = rctx.getRegisterIndex(rbase % d)
                     opers = (
                             ArmRegOper(VRd, va=va, oflags=oflags),
@@ -1501,6 +1573,9 @@ def fp_dp(va, val1, val2):
 
     sz = (val2 >> 8) & 1
 
+    # D and S, depending on sz
+    rbase = ("s%d","d%d")[sz]
+
     if opc1sub != 0b1011:
         op = (opc1sub & 0b1000) | ((opc1sub & 0b11)<<1) | (opc3 & 1)
         mnem = ('vmla','vmls','vnmla','vnmls','vnmul','vmul','vadd','vsub','vdiv','vfnms','vfnma','vfms','vfma',)[op]
@@ -1516,8 +1591,6 @@ def fp_dp(va, val1, val2):
             m = (Vm<<1) | M
             n = (opc2<<1) | N
 
-        # D and S, depending on sz
-        rbase = ("S%d","D%d")[sz]
         simdflags |= (IFS_F32, IFS_F64)[sz]
 
         # VMLA, VMLS p930
@@ -1546,13 +1619,13 @@ def fp_dp(va, val1, val2):
             m = (M<<4) | Vm
             imm = imm4h<<4 | imm4l
             simdflags |= IFS_F64
-            rbase = "D%d"
+            rbase = "d%d"
         else:
             d = (Vd<<1) | D
             m = (Vm<<1) | M
             imm = imm4h<<4 | imm4l
             simdflags |= IFS_F32
-            rbase = "S%d"
+            rbase = "s%d"
 
         if opc3 & 1 == 0:
             mnem = 'vmov'
@@ -1623,14 +1696,14 @@ def fp_dp(va, val1, val2):
                 d = (Vd<<1) | D
                 m = (M<<4) | Vm
                 simdflags |= IFS_F32F64
-                rbase1 = "S%d"
-                rbase2 = "D%d"
+                rbase1 = "s%d"
+                rbase2 = "d%d"
             else:
                 d = (D<<4) | Vd
                 m = (Vm<<1) | M
                 simdflags |= IFS_F64F32
-                rbase1 = "D%d"
-                rbase2 = "S%d"
+                rbase1 = "d%d"
+                rbase2 = "s%d"
 
             opers = (
                     ArmRegOper(rctx.getRegisterIndex(rbase1%d)),
@@ -1651,13 +1724,13 @@ def fp_dp(va, val1, val2):
                 if sz:
                     m = (M<<4) | Vm
                     simdflags |= (IFS_U32F64, IFS_S32F64)[signed]
-                    rbase1 = "S%d"
-                    rbase2 = "D%d"
+                    rbase1 = "s%d"
+                    rbase2 = "d%d"
                 else:
                     m = (Vm<<1) | M
                     simdflags |= (IFS_U32F32, IFS_S32F32)[signed]
-                    rbase1 = "S%d"
-                    rbase2 = "S%d"
+                    rbase1 = "s%d"
+                    rbase2 = "s%d"
 
             else:
                 mnem = 'vcvt'
@@ -1667,13 +1740,13 @@ def fp_dp(va, val1, val2):
                 if sz:
                     d = (D<<4) | Vd
                     simdflags |= (IFS_F64U32, IFS_F64S32)[signed]
-                    rbase1 = "D%d"
-                    rbase2 = "S%d"
+                    rbase1 = "d%d"
+                    rbase2 = "s%d"
                 else:
                     d = (Vd<<1) | D
                     simdflags |= (IFS_F32U32, IFS_F32S32)[signed]
-                    rbase1 = "S%d"
-                    rbase2 = "S%d"
+                    rbase1 = "s%d"
+                    rbase2 = "s%d"
 
             opers = (
                     ArmRegOper(rctx.getRegisterIndex(rbase1%d)),
@@ -1714,9 +1787,9 @@ def fp_dp(va, val1, val2):
             m = (M<<4) | Vm
 
             if Q:
-                rbase = "Q%d"
+                rbase = "q%d"
             else:
-                rbase = "D%d"
+                rbase = "d%d"
 
             #regs = Q + 1
 
@@ -1766,7 +1839,7 @@ def _adv_simd_32(va, val1, val2):
 
         q = (val2 >> 2) & 0x10
 
-        rbase = ('D%d', 'Q%d')[q]
+        rbase = ('d%d', 'q%d')[q]
 
         opers = (
             ArmRegOper(rctx.getRegisterIndex(rbase%d)),
@@ -2080,11 +2153,10 @@ thumb2_extension = [
     ('111110001101',        (INS_LDR,  'ldr',  ldr_32,          IF_THUMB32)), # T3
     ('111110001000',        (INS_STR, 'str', ldr_32,            IF_B | IF_THUMB32)),
     ('111110000000',        (INS_STR, 'str', ldr_puw_32,        IF_B | IF_THUMB32)),
-    ('11111010001',         (INS_LSL, 'lsl', shift_or_ext_32,   IF_THUMB32)),    # FIXME: overlapping with saturating instructions
-    ('11111010010',         (INS_LSR, 'lsr', shift_or_ext_32,   IF_THUMB32)),
-    ('11111010011',         (INS_ASR, 'asr', shift_or_ext_32,   IF_THUMB32)),
-    ('11111010100',         (INS_ROR, 'ror', shift_or_ext_32,   IF_THUMB32)),
-    ('111110101001',        (INS_UADD16, 'uadd16', pdp_32,      IF_THUMB32)),   # or these?
+    # data-processing (register)
+    ('111110100',           (None, 'shift_or_extend', shift_or_ext_32,   IF_THUMB32)),
+    #('111110101',           (None, 'parallel_misc', parallel_misc_32,   IF_THUMB32)),
+    ('111110101001',        (INS_UADD16, 'uadd16', pdp_32,      IF_THUMB32)),
     ('111110101010',        (INS_UASX, 'uasx', pdp_32,          IF_THUMB32)),
     ('111110101110',        (INS_USAX, 'usax', pdp_32,          IF_THUMB32)),
     ('111110101101',        (INS_USUB16, 'usub16', pdp_32,      IF_THUMB32)),
@@ -2095,6 +2167,7 @@ thumb2_extension = [
     ('111110101001',        (INS_UADD16, 'uadd16', pdp_32,      IF_THUMB32)),
     ('111110101001',        (INS_UADD16, 'uadd16', pdp_32,      IF_THUMB32)),
     ('111110101001',        (INS_UADD16, 'uadd16', pdp_32,      IF_THUMB32)),
+    ('111110110000',        (INS_MLA,  'mla',  mla_32,          IF_THUMB32)),
     ('111110110001',        (INS_SMUL, 'smul', smul_32,         IF_THUMB32)),
     #('11111',               (85,'branchmisc', branch_misc,            IF_THUMB32)),
     #('11111',         (85,'SOMETHING WICKED THIS WAY',      dp_bin_imm_32,         IF_THUMB32)),

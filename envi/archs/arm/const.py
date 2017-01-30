@@ -500,6 +500,19 @@ instrnames = [
         'INS_PLD',
         'INS_PLI',
         'INS_IT',
+        'INS_MLA',
+        'INS_SXTAH',
+        'INS_SXTH',
+        'INS_SXTAB16',
+        'INS_SXTAB',
+        'INS_SXTB16',
+        'INS_SXTB',
+        'INS_UXTAH',
+        'INS_UXTH',
+        'INS_UXTAB16',
+        'INS_UXTAB',
+        'INS_UXTB16',
+        'INS_UXTB',
 ]
 
 ins_index = 85
