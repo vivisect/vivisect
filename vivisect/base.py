@@ -247,7 +247,8 @@ class VivWorkspaceCore(object,viv_impapi.ImportApi):
 
     def _handleDELFUNCTION(self, einfo):
         self.funcmeta.pop(einfo)
-        self.func_args.pop(einfo)
+        if self.func_args.has_key(einfo):
+            self.func_args.pop(einfo)
         self.codeblocks_by_funcva.pop(einfo)
         node = self._call_graph.getNode(einfo)
         self._call_graph.delNode(node)
