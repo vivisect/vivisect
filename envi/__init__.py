@@ -155,6 +155,12 @@ class ArchitectureModule:
         allr = [rname for rname in regctx.getRegisterNames()]
         return [ ('all', allr), ]
 
+    def archModifyFuncAddr(self, va, arch):
+        return None, None
+
+    def archModifyXrefAddr(self, va):
+        return None
+
     def getEmulator(self):
         """
         Return a default instance of an emulator for the given arch.

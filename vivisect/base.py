@@ -706,3 +706,31 @@ class VivCodeFlowContext(e_codeflow.CodeFlowContext):
     
         return True
 
+    def addEntryPoint(self, va, arch=envi.ARCH_DEFAULT):
+        '''
+        Analyze the given procedure entry point and flow downward
+        to find all subsequent code blocks and procedure edges.
+
+        Example:
+            cf.addEntryPoint( 0x77c70308 )
+            ... callbacks flow along ...
+        '''
+        # Architecture gets to decide on actual final VA and Architecture (ARM/THUMB/etc...)
+        modva, modarch = self._mem.arch.archModifyFuncAddr(va, arch)
+        if modva != None:
+            va = modva
+        if modarch != None:
+            arch = modarch
+
+        # Check if this is already a known function.
+        if self._funcs.get(va) != None:
+            return
+
+        # Add this function to known functions
+        self._funcs[va] = True
+        calls_from = self.addCodeFlow(va, arch=arch)
+        self._fcalls[va] = calls_from
+        
+        # Finally, notify the callback of a new function
+        self._cb_function(va, {'CallsFrom':calls_from})
+

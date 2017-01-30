@@ -273,6 +273,7 @@ class CodeFlowContext(object):
         
         # Finally, notify the callback of a new function
         self._cb_function(va, {'CallsFrom':calls_from})
+
     def addDynamicBranchHandler(self, cb):
         '''
         Add a callback handler for dynamic branches the code-flow resolver 

@@ -55,6 +55,19 @@ class ArmModule(envi.ArchitectureModule):
         self._arch_dis.setEndian(endian)
         self._arch_thumb_dis.setEndian(endian)
 
+    def archModifyFuncAddr(self, va, arch):
+        if va & 1:
+            print "THUMB function address being fixed"
+            return va & -2, envi.ARCH_THUMB
+        return None, None
+
+    def archModifyXrefAddr(self, va):
+        if va & 1:
+            print "THUMB function address being fixed"
+            return va & -2
+        return None
+
+
 class ThumbModule(envi.ArchitectureModule):
     '''
     This architecture module will *not* shift to ARM mode.  Evar.
@@ -98,5 +111,17 @@ class ThumbModule(envi.ArchitectureModule):
     def setEndian(self, endian):
         self._endian = endian
         self._arch_dis.setEndian(endian)
+
+    def archModifyFuncAddr(self, va, arch):
+        if va & 1:
+            print "THUMB function address being fixed"
+            return va & -2, envi.ARCH_THUMB
+        return None, None
+
+    def archModifyXrefAddr(self, va):
+        if va & 1:
+            print "THUMB function address being fixed"
+            return va & -2
+        return None
 
 from envi.archs.arm.emu import *
