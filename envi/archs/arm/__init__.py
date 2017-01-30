@@ -57,13 +57,11 @@ class ArmModule(envi.ArchitectureModule):
 
     def archModifyFuncAddr(self, va, arch):
         if va & 1:
-            print "THUMB function address being fixed"
             return va & -2, envi.ARCH_THUMB
         return None, None
 
     def archModifyXrefAddr(self, va):
         if va & 1:
-            print "THUMB function address being fixed"
             return va & -2
         return None
 
@@ -114,13 +112,11 @@ class ThumbModule(envi.ArchitectureModule):
 
     def archModifyFuncAddr(self, va, arch):
         if va & 1:
-            print "THUMB function address being fixed"
             return va & -2, envi.ARCH_THUMB
         return None, None
 
     def archModifyXrefAddr(self, va):
         if va & 1:
-            print "THUMB function address being fixed"
             return va & -2
         return None
 
