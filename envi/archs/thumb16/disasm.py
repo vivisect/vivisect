@@ -410,7 +410,7 @@ def branch_misc(va, val, val2): # bl and misc control
 
     elif op1 & 0b101 == 1:  # T4 encoding
         opcode = INS_B
-        flags = envi.IF_BRANCH | IF_W
+        flags = envi.IF_BRANCH | IF_THUMB32 | envi.IF_NOFALL
 
         # need next two bytes
         S = (val>>10)&1
