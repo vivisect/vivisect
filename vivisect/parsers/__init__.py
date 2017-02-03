@@ -17,14 +17,16 @@ import struct
 
 import vstruct.defs.macho as vs_macho
 
+
 def md5File(filename):
     d = md5.md5()
-    f = file(filename,"rb")
+    f = open(filename, "rb")
     bytes = f.read(4096)
     while len(bytes):
         d.update(bytes)
         bytes = f.read(4096)
     return d.hexdigest()
+
 
 def md5Bytes(bytes):
     d = md5.md5()
@@ -39,6 +41,7 @@ macho_magics = (
     vs_macho.FAT_MAGIC,
     vs_macho.FAT_CIGAM,
 )
+
 
 def guessFormat(bytes):
     if bytes.startswith('VIV'):
@@ -60,11 +63,18 @@ def guessFormat(bytes):
     if bytes[0] == ':':
         return 'ihex'
 
+    # check for coff x86, x86-64, arm, arm64, arm thumb-2 (in that order)
+    if bytes[:2] in ('\x4c\x01', '\x64\x86'):  # , '\xc0\x01',
+                     # '\x64\xaa', '\xc4\x01'):
+        return 'coff'
+
     return 'blob'
 
+
 def guessFormatFilename(filename):
-    bytez = file(filename, "rb").read(32)
+    bytez = open(filename, "rb").read(32)
     return guessFormat(bytez)
+
 
 def getParserModule(fmt):
     mname = "vivisect.parsers.%s" % fmt
@@ -73,4 +83,3 @@ def getParserModule(fmt):
         __import__(mname)
         mod = sys.modules[mname]
     return mod
-
