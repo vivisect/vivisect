@@ -204,6 +204,7 @@ def branch_misc(va, val, val2): # bl and misc control
 
         if op & 0b111 == 0b011:
             # miscellaneous control instructions
+            op = (val2>>4) & 0xf
             opcode, mnem, barrier = misc_ctl_instrs[op]
 
             if barrier:
