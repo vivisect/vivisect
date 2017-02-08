@@ -601,6 +601,9 @@ class ThumbITOper(ArmOperand):
         nextfew = ''.join(itbytes)
         mcanv.addText("%s %s" % (nextfew, fcond))
 
+    def getOperValue(self, idx, emu=None):
+        return None
+
 def thumb32_01(va, val, val2):
     op =  (val2>>15)&1
     op2 = (val>>4) & 0x7f
@@ -1092,6 +1095,7 @@ def ldrd_imm_32(va, val1, val2):
     oper2 = ArmImmOffsetOper(rn, imm8<<2, va=va, pubwl=pubwl)
 
     opers = (oper0, oper1, oper2)
+    flags = 0
     return None, None, opers, flags, 0
 
 def strexn_32(va, val1, val2):
@@ -2286,7 +2290,7 @@ class ThumbDisasm:
             olist, nflags = opermkr(va+4, val)
             if nflags != None:
                 flags = nflags
-                print "FLAGS: ", repr(olist), repr(flags)
+                #print "FLAGS: ", repr(olist), repr(flags)
             oplen = 2
             # print "OPLEN (16bit): ", oplen
 

@@ -3913,6 +3913,9 @@ class ArmBarrierOption(ArmOperand):
 
     def repr(self, op):
         return self.retOption()
+
+    def getOperValue(self, idx, emu=None):
+        return None
         
 class ArmCPSFlagsOper(ArmOperand):
     def __init__(self, flags):
@@ -3922,6 +3925,9 @@ class ArmCPSFlagsOper(ArmOperand):
         flags = [AIF_FLAGS[x] for x in range(3) if self.flags & (1<<x)]
         return ','.join(flags)
 
+    def getOperValue(self, idx, emu=None):
+        return None
+        
 
 AIF_FLAGS = ('a','i','f')[::-1]
 
