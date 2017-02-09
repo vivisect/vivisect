@@ -1,3 +1,4 @@
+import sys
 import hashlib
 import operator
 import functools
@@ -210,7 +211,7 @@ class SymbolikBase:
         def doreduce(path,oldkid,ctx):
             return oldkid._reduce(emu=emu)
         
-        sym = self.walkTree(doreduce)
+        sym = self.walkTree(doreduce, once=True)
         if foo:
             symstr = str(sym)
             while True:
@@ -289,41 +290,65 @@ class SymbolikBase:
 
         return False
 
-    def walkTree(self, cb, ctx=None):
+    def walkTree(self, cb, ctx=None, once=True):
+        ''' 
+        this version basically mirrors the original walkTree/_walkTreeImpl combination
+        not sure about the stack usage.
+        probably want to track index separately so we can just hand stack in as the path (and have it be correct)
         '''
-        Walk the tree of symbolik objects. (depth first)
+        path = []
+        idxs = []
+        done = []
 
-        The callback is expected to have the following
-        convention:
-            newobj = callback(path,oldkid,ctx)
+        cur = self
+        idx = 0
 
-        NOTE: because the callback may completely replace
-              the symbolik object, walkTree() returns the
-              (potentially new) "self" and should be used
-              similarly to "reduce()":
+        while True:
+            # follow kids if there are any left...
+            if idx < len(cur.kids):
+                #sys.stdout.write('+')
+                kid = cur.kids[idx]
+                if once and kid in done:
+                    idx += 1
+                    continue
 
-              symobj = symbobj.walkTree(callback)
+                # store current info for this level
+                path.append(cur)
+                idxs.append(idx)
 
-        '''
-        return self._walkTreeImpl([],cb,ctx=ctx)
+                # let's get into the minds of our kids...
+                cur = kid
+                idx = 0
+            #else:
+            #    sys.stdout.write('.')
 
-    def _walkTreeImpl(self, path, cb, ctx=None):
-        # the internal version of walk tree ( which is also the recursive one )
-        path.append( self )
-        # when kids[i] is a list of tupes then we need to call into it!
-        for i in range(len(self.kids)):
-            oldkid = self.kids[i]
-            newkid = oldkid._walkTreeImpl(path,cb,ctx=ctx)
-            if newkid._sym_id != oldkid._sym_id:
-                self.setSymKid(i, newkid)
+            # do self
+            #sys.stdout.write(' >> %r' % cur.__class__)
+            path.append(cur)    # old walkTree expects cur to be on the top of the stack
+            newb = cb(path, cur, ctx)
+            path.pop()          # clean up, since our algorithm doesn't expect cur on the top...
+            #sys.stdout.write(' << ')
 
-        newkid = cb(path,self,ctx)
-        if newkid == None:
-            newkid = self
+            done.append(cur)
 
-        # lifo like a stack ( and like a baws )
-        path.pop()
-        return newkid
+            if not len(path):
+                #sys.stdout.write('=')
+                if newb:
+                    return newb
+                return cur
+
+            # pop back up a level
+            cur = path.pop()
+            idx = idxs.pop()
+
+            # tie newb in
+            if newb != None:
+                #print "setSymKid: %s :: %d" % (len(path), idx)
+                cur.setSymKid(idx, newb)
+
+            #sys.stdout.write('-')
+
+            idx += 1
 
     def render(self, canvas, vw):
         canvas.addText( str(self) )
@@ -366,6 +391,14 @@ class cnot(SymbolikBase):
         return cnot(v1)
 
     def _reduce(self, emu=None):
+        '''
+        # FIXME dependancy loop...
+        from vivisect.symboliks.constraints import Constraint
+        if self._reduced:
+            return self
+
+        self._reduced = True
+        '''
         #self.kids[0] = self.kids[0].reduce(emu=emu)
 
         kidzero = self.kids[0]

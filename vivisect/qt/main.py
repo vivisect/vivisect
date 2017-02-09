@@ -157,6 +157,7 @@ class VQVivMainWindow(vq_app.VQMainCmdWindow, viv_base.VivEventDist):
         sname = vs_qt.selectStructure(self.vw.vsbuilder, parent=parent)
         if sname != None:
             self.vw.makeStructure(va, sname)
+        return sname
 
     def addBookmark(self, va, parent=None):
         if parent == None:

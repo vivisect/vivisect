@@ -43,7 +43,6 @@ class AnalysisTests(unittest.TestCase):
 import sys
 import vivisect.tests.vivbins as vivbins
 from vivisect.tests.vivbins import getTestWorkspace, getAnsWorkspace
-
 def cb_astNodeCount(path,obj,ctx):
     ctx['count'] += 1
     if len(path) > ctx['depth']:
@@ -55,7 +54,6 @@ class WalkTreeTest(unittest.TestCase):
 
     @vivbins.require
     def test_symbolik_maneuvers(self):
-        #print vars(self).keys()
         try:
             vw = getAnsWorkspace('test_kernel32_32bit-5.1.2600.5781.dll')
             walkTreeDoer(vw)
@@ -80,6 +78,7 @@ def walkTreeDoer(vw):
     for fva in vw.getFunctions():
         ctx = {'depth':0, 'count':0}
         count += 1
+        #print "(%d) 0x%x done" % (count, fva)
         #raw_input("============================================================")
 
         for spath in sctx.getSymbolikPaths(fva, maxpath=1):

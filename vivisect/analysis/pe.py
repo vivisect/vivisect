@@ -30,6 +30,8 @@ def analyze(vw):
             vw.makeName(vaoff, "reloc_chunk_%.8x" % vaoff)
 
             recsize = e_bits.parsebytes(bytes, offset+4, 4)
+            if offset + recsize > segsize:
+                break
             vw.makeNumber(segva+offset+4, 4)
 
             ioff = offset + 8

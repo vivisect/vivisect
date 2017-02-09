@@ -295,6 +295,56 @@ vaset_coltypes = {
     VASET_INTEGER:long,
 }
 
+
+def reprAddress(vw, item):
+    return "0x%x (%s)" % (item, vw.reprPointer(item))
+
+def reprString(vw, item):
+    return item
+
+def reprIntLong(vw, item):
+    if item > 1024:
+        return hex(item)
+    return item
+
+def reprHextup(vw, item):
+    return [hex(x) for x in item]
+
+def reprSmart(vw, item):
+    ptype = type(item)
+    if ptype in (int, long):
+        if -1024 < item < 1024 :
+            return str(item)
+        elif vw.isValidPointer(item):
+            return vw.reprPointer(item)
+        else:
+            return hex(item)
+
+    elif ptype in (list, tuple):
+        return reprComplex(vw, item) # recurse
+
+    elif ptype == dict:
+        return '{%s}' % ','.join(["%s:%s" % (reprSmart(vw,k), reprSmart(vw,v)) for k,v in item.items()])
+
+    else:
+        return repr(item)
+
+def reprComplex(vw, item):
+    retval = []
+    for part in item:
+        retval.append(reprSmart(vw, part))
+
+    return ', '.join(retval)
+
+
+vaset_reprHandlers = {
+    VASET_ADDRESS:  reprAddress,
+    VASET_STRING:   reprString,
+    VASET_INTEGER:  reprIntLong,
+    VASET_HEXTUP:   reprHextup,
+    VASET_COMPLEX:  reprComplex,
+}
+
 class VQVivVaSetView(VQVivTreeView):
 
     _viv_navcol = 0
@@ -316,18 +366,32 @@ class VQVivVaSetView(VQVivTreeView):
         setname, row = einfo
         if setname == self._va_setname:
             va = row[0]
-            row = list(row)
-            row[0] = '0x%.8x' % va
-            self.vivAddRow( va, *row )
+            self.vivAddRow( va, *self.reprRow(row) )
 
     def vqLoad(self):
         setdef = self.vw.getVaSetDef( self._va_setname )
         rows = self.vw.getVaSetRows( self._va_setname )
         for row in rows:
             va = row[0]
-            row = list(row)
-            row[0] = '0x%.8x' % va
-            self.vivAddRow(va, *row)
+            self.vivAddRow(va, *self.reprRow(row))
+
+    def reprRow(self, row):
+        row = [item for item in row]
+        setdef = self.vw.getVaSetDef( self._va_setname )
+        
+        row[0] = hex(row[0])
+        for idx in range(1,len(row)):
+            item = row[idx]
+            itype = setdef[idx][1]
+
+            handler = vaset_reprHandlers.get(itype)
+
+            if handler == None:
+                row[idx] = repr(row[idx])
+            else:
+                row[idx] = handler(self.vw, item)
+
+        return row
 
 class VQXrefView(VQVivTreeView):
 

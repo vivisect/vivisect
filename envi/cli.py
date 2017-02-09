@@ -91,7 +91,7 @@ def getRelScriptsFromPath(scriptpaths):
                 subpath = os.path.join(dirname,subfile)
                 if isValidScript(subpath):
                     script = subpath[baselen:]
-                    if script.startswith('/'):
+                    if script.startswith(os.sep):
                         script = script[1:]
                     scripts.append(script)
 
