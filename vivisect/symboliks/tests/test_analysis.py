@@ -109,7 +109,7 @@ def walkTreeDoer(vw):
 
 
             if symast == None:
-                print("CRAP!  skipping")
+                #print("CRAP!  skipping")
                 continue
 
             eff.walkTree(cb_astNodeCount, ctx); ctx
