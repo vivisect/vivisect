@@ -454,7 +454,7 @@ def branch_misc(va, val, val2): # bl and misc control
         if s:
             imm |= 0xff000000
 
-        oper0 = ArmPcOffsetOper(e_bits.signed(imm,4), va=va)
+        oper0 = ArmPcOffsetOper(e_bits.signed(imm,4), va=va&0xfffffffc)
 
         return opcode, mnem, (oper0, ), flags, 0
         
@@ -504,7 +504,7 @@ def pop_reglist(va, value):
     reglist = (value & 0xff) | ((value & 0x100)<<7)
     oper0 = ArmRegListOper(reglist)
     if reglist & 0x8000:
-        flags |= envi.IF_NOFALL
+        flags |= envi.IF_NOFALL | envi.IF_RET
     
     return (oper0,), flags
 
@@ -947,6 +947,18 @@ def ldm_32(va, val1, val2):
     return None, None, opers, None, 0
 
 def pop_32(va, val1, val2):
+    if val2 & 0x2000:
+        raise InvalidInstruction("LDM instruction with stack indicated: 0x%x: 0x%x, 0x%x" % (va, val1, val2))
+        # PC not ok on some instructions...  
+    oper0 = ArmRegListOper(val2)
+    opers = (oper0, )
+    flags = IF_THUMB32
+    if val2 & 0x8000:
+        flags |= envi.IF_NOFALL | envi.IF_RET
+
+    return None, None, opers, flags, 0
+
+def push_32(va, val1, val2):
     if val2 & 0x2000:
         raise InvalidInstruction("LDM instruction with stack indicated: 0x%x: 0x%x, 0x%x" % (va, val1, val2))
         # PC not ok on some instructions...  
@@ -1928,7 +1940,7 @@ thumb_base = [
     ('010001010',   (30,'cmp',     d1_rm4_rd3, 0)), # CMP<c> <Rn>,<Rm>
     ('010001011',   (31,'cmp',     d1_rm4_rd3, 0)), # CMP<c> <Rn>,<Rm>
     ('01000110',    (34,'mov',     d1_rm4_rd3, 0)), # MOV<c> <Rd>,<Rm>
-    ('010001110',   (35,'bx',      rm4_shift3, envi.IF_NOFALL)), # BX<c> <Rm>
+    ('010001110',   (35,'bx',      rm4_shift3, envi.IF_NOFALL)), # BX<c> <Rm>       # FIXME: check for IF_RET
     ('010001111',   (36,'blx',     rm4_shift3, envi.IF_CALL)), # BLX<c> <Rm>
     # Load from Litera7 Pool
     ('01001',       (37,'ldr',     rt_pc_imm8, 0)), # LDR<c> <Rt>,<label>
@@ -2028,7 +2040,7 @@ thumb2_extension = [
     ('11101000101110',  (85,'ldm',  ldm_32,     IF_THUMB32|IF_W|IF_IA)), # not 111101
     ('111010001011111', (85,'ldm',  ldm_32,     IF_THUMB32|IF_W|IF_IA)), # not 111101
     ('1110100010111100',(85,'ldm',  ldm_32,     IF_THUMB32|IF_W|IF_IA)), # not 111101
-    ('1110100010111101',(85,'pop',      pop_32,     IF_THUMB32|IF_W)), # 111101 - pop
+    ('1110100010111101',(85,'pop',  pop_32,     IF_THUMB32|IF_W)), # 111101 - pop
 
     ('111010010000',    (85,'stm',  ldm_32,     IF_THUMB32)),   # stmdb/stmfd
     ('111010010001',    (85,'ldm',  ldm_32,     IF_THUMB32)),   # ldmdb/ldmea
@@ -2036,7 +2048,7 @@ thumb2_extension = [
     ('11101001001010',  (85,'stm',  ldm_32,     IF_THUMB32|IF_W|IF_DB)), # not 101101
     ('111010010010111', (85,'stm',  ldm_32,     IF_THUMB32|IF_W|IF_DB)), # not 101101
     ('1110100100101100',(85,'stm',  ldm_32,     IF_THUMB32|IF_W|IF_DB)), # not 101101
-    ('1110100100101101',(85,'push',     pop_32,     IF_THUMB32|IF_W)), # 101101 - push
+    ('1110100100101101',(85,'push', push_32,    IF_THUMB32|IF_W)), # 101101 - push
     ('111010010011',    (85,'ldm',  ldm_32,     IF_THUMB32|IF_W|IF_DB)),   # ldmdb/ldmea
 
     ('111010011000',    (85,'srs',    ldm_reg_mode_32,    IF_THUMB32|IF_IA)),
@@ -2146,6 +2158,7 @@ thumb2_extension = [
     ('11110111111',         (85,'branchmisc', branch_misc,      IF_THUMB32)),
     ('111110000001',        (None, 'ldrb_memhints32', ldrb_memhints_32,  IF_THUMB32)),
     ('111110000010',        (INS_STR,  'str',  ldr_puw_32,      IF_H | IF_THUMB32)),
+    ('111110000011',        (INS_LDR,  'ldr',  ldr_puw_32,      IF_H | IF_THUMB32)),
     ('111110000100',        (INS_STR,  'str',  ldr_puw_32,      IF_THUMB32)),   # T4 encoding
     ('111110000101',        (INS_LDR,  'ldr',  ldr_puw_32,      IF_THUMB32)),   # T4 encoding
     ('111110001001',        (None, 'ldrb_memhints32', ldrb_memhints_32,  IF_THUMB32)),
@@ -2283,6 +2296,7 @@ class ThumbDisasm:
                 opcode = nopcode
             if nflags != None:
                 flags = nflags
+                #print "FLAGS: ", repr(olist), repr(flags)
             oplen = 4
             # print "OPLEN: ", oplen
 
@@ -2310,7 +2324,7 @@ class ThumbDisasm:
             flags |= envi.IF_NOFALL
 
         op = ThumbOpcode(va, opcode, mnem, 0xe, oplen, olist, flags, simdflags)
-        #print hex(va), oplen, len(op), op.size
+        #print hex(va), oplen, len(op), op.size, hex(op.iflags)
         return op
 
 class Thumb16Disasm ( ThumbDisasm ):

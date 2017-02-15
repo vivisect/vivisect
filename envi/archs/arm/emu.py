@@ -211,7 +211,7 @@ class ArmEmulator(ArmModule, ArmRegisterContext, envi.Emulator):
                 pc = self.getProgramCounter()
                 x = pc+op.size
 
-            # should we set this to the odd address or even during thumb?  (debugger)
+            # should we set this to the odd address or even during thumb?  (debugger).  ANS: Even.  All addresses are Even.  Track Mode elsewhere.
             self.setProgramCounter(x)
         finally:
             self.setMeta('forrealz', False)
@@ -1032,6 +1032,50 @@ class ArmEmulator(ArmModule, ArmRegisterContext, envi.Emulator):
         imm32 = op.getOperValue(1)
         if regval:
             return imm32
+
+    def i_smulbb(self, op):
+        oper1 = op.getOperValue(1) & 0xffff
+        oper2 = op.getOperValue(2) & 0xffff
+
+        s1 = e_bits.signed(oper1 & 0xffff, 2)
+        s2 = e_bits.signed(oper2 & 0xffff, 2)
+
+        result = s1 * s2
+
+        op.setOperValue(0, result)
+
+    def i_smultb(self, op):
+        oper1 = op.getOperValue(1) & 0xffff
+        oper2 = op.getOperValue(2) & 0xffff
+
+        s1 = e_bits.signed(oper1 >> 16, 2)
+        s2 = e_bits.signed(oper2 & 0xffff, 2)
+
+        result = s1 * s2
+
+        op.setOperValue(0, result)
+
+    def i_smulbt(self, op):
+        oper1 = op.getOperValue(1) & 0xffff
+        oper2 = op.getOperValue(2) & 0xffff
+
+        s1 = e_bits.signed(oper1 & 0xffff, 2)
+        s2 = e_bits.signed(oper2 >> 16, 2)
+
+        result = s1 * s2
+
+        op.setOperValue(0, result)
+
+    def i_smultt(self, op):
+        oper1 = op.getOperValue(1) & 0xffff
+        oper2 = op.getOperValue(2) & 0xffff
+
+        s1 = e_bits.signed(oper1 >>16, 2)
+        s2 = e_bits.signed(oper2 >>16, 2)
+
+        result = s1 * s2
+
+        op.setOperValue(0, result)
 
     def i_tb(self, op):
         # TBB and TBH both come here.
