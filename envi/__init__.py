@@ -78,6 +78,7 @@ class ArchitectureModule:
         self._arch_id = getArchByName(archname)
         self._arch_name = archname
         self._arch_maxinst = maxinst
+        self._arch_badopbytes = ['\x00\x00\x00\x00\x00']
         self.setEndian(endian)
 
     def getArchId(self):
@@ -160,6 +161,23 @@ class ArchitectureModule:
 
     def archModifyXrefAddr(self, va):
         return None
+
+    def archGetBadOps(self, byteslist=None):
+        '''
+        Returns a list of opcodes which are indicators of wrong disassembly.
+        byteslist is None to use the architecture default, or can be a custom list.
+        '''
+        if byteslist == None:
+            byteslist = self._arch_badopbytes
+
+        badops = []
+        for badbytes in byteslist:
+            try:
+                self.badops.append(self.archParseOpcode(badbytes))
+            except:
+                pass
+
+        return badops
 
     def getEmulator(self):
         """

@@ -20,11 +20,11 @@ class AnalysisMonitor(viv_monitor.AnalysisMonitor):
         viv_monitor.AnalysisMonitor.__init__(self, vw, fva)
         self.addDynamicBranchHandler(vag_switch.analyzeJmp)
         self.retbytes = None
-        self.badop = vw.arch.archParseOpcode("\x00\x00\x00\x00\x00")
+        self.badops = vw.arch.archGetBadOps()
 
     def prehook(self, emu, op, starteip):
 
-        if op == self.badop:
+        if op in self.badops:
             raise Exception("Hit known BADOP at 0x%.8x %s" % (starteip, repr(op) ))
 
         viv_monitor.AnalysisMonitor.prehook(self, emu, op, starteip)
