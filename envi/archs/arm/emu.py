@@ -699,6 +699,10 @@ class ArmEmulator(ArmModule, ArmRegisterContext, envi.Emulator):
         val = self.getOperValue(op, 1) << 16
         self.setOperValue(op, 0, val)
 
+    def i_movw(self, op):
+        val = self.getOperValue(op, 1)
+        self.setOperValue(op, 0, val)
+
     '''def i_adr(self, op):
         val = self.getOperValue(op, 1)
         self.setOperValue(op, 0, val)
@@ -1083,6 +1087,17 @@ class ArmEmulator(ArmModule, ArmRegisterContext, envi.Emulator):
         off = op.getOperValue(1)
         return tblbase + (2*off)
 
+    def i_ubfx(self, op):
+        src = self.getOperValue(op, 1)
+        lsb = self.getOperValue(op, 2)
+        width = self.getOperValue(op, 3)
+        mask = (1 << width) - 1
+
+        val = (src>>lsb) & mask
+
+        self.setOperValue(op, 0, val)
+
+
     def i_umull(self, op):
         print("FIXME: 0x%x: %s - in emu" % (op.va, op))
     def i_umlal(self, op):
@@ -1093,6 +1108,9 @@ class ArmEmulator(ArmModule, ArmRegisterContext, envi.Emulator):
         print("FIXME: 0x%x: %s - in emu" % (op.va, op))
     def i_umull(self, op):
         print("FIXME: 0x%x: %s - in emu" % (op.va, op))
+
+
+
 
     def i_pld2(self, op):
         print("FIXME: 0x%x: %s - in emu" % (op.va, op))
