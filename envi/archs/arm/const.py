@@ -96,40 +96,44 @@ IFS_VH        = 1<<4    # Adv SIMD: operation halves the result
 IFS_SYS_MODE  = 1<<8    # instruction is encoded to be executed in SYSTEM mode, not USER mode
 
 IFS_SFUI_START = 9
-IFS_F32       = 1<<9    # F64 SIMD
-IFS_F64       = 1<<10    # F64 SIMD
-IFS_F32S32    = 1<<11    # F64 SIMD
-IFS_F64S32    = 1<<12    # F64 SIMD
-IFS_F32U32    = 1<<13    # F64 SIMD
-IFS_F64U32    = 1<<14    # F64 SIMD
-IFS_F3264     = 1<<15    # F64 SIMD
-IFS_F6432     = 1<<16    # F64 SIMD
-IFS_F3216     = 1<<17    # F64 SIMD
-IFS_F1632     = 1<<18    # F64 SIMD
-IFS_S32F64    = 1<<19    # F64 SIMD
-IFS_S32F32    = 1<<20    # F64 SIMD
-IFS_U32F64    = 1<<21    # F64 SIMD
-IFS_U32F32    = 1<<22    # F64 SIMD
-IFS_S8        = 1<<23    # F64 SIMD
-IFS_S16       = 1<<24    # F64 SIMD
-IFS_S32       = 1<<25    # F64 SIMD
-IFS_S64       = 1<<26    # F64 SIMD
-IFS_U8        = 1<<27    # F64 SIMD
-IFS_U16       = 1<<28    # F64 SIMD
-IFS_U32       = 1<<29    # F64 SIMD
-IFS_U64       = 1<<30    # F64 SIMD
-IFS_I8        = 1<<81    # F64 SIMD
-IFS_I16       = 1<<32    # F64 SIMD
-IFS_I32       = 1<<33    # F64 SIMD
-IFS_I64       = 1<<34    # F64 SIMD
-IFS_8         = 1<<35    # F64 SIMD
-IFS_16        = 1<<36    # F64 SIMD
-IFS_32        = 1<<37    # F64 SIMD
-IFS_64        = 1<<38    # F64 SIMD
+IFS_F32       = 1<<9
+IFS_F64       = 1<<10
+IFS_F32S32    = 1<<11
+IFS_F64S32    = 1<<12
+IFS_F32U32    = 1<<13
+IFS_F64U32    = 1<<14
+IFS_F3264     = 1<<15
+IFS_F6432     = 1<<16
+IFS_F3216     = 1<<17
+IFS_F1632     = 1<<18
+IFS_S32F64    = 1<<19
+IFS_S32F32    = 1<<20
+IFS_U32F64    = 1<<21
+IFS_U32F32    = 1<<22
+IFS_S8        = 1<<23
+IFS_S16       = 1<<24
+IFS_S32       = 1<<25
+IFS_S64       = 1<<26
+IFS_U8        = 1<<27
+IFS_U16       = 1<<28
+IFS_U32       = 1<<29
+IFS_U64       = 1<<30
+IFS_I8        = 1<<31
+IFS_I16       = 1<<32
+IFS_I32       = 1<<33
+IFS_I64       = 1<<34
+IFS_8         = 1<<35
+IFS_16        = 1<<36
+IFS_32        = 1<<37
+IFS_64        = 1<<38
 IFS_F8        = 1<<39
 IFS_F16       = 1<<40
 IFS_F32       = 1<<41
 IFS_F64       = 1<<42
+IFS_P8        = 1<<43
+IFS_P16       = 1<<44
+IFS_P32       = 1<<45
+IFS_P64       = 1<<46
 
 IFS_SFUI_STOP = 39
 
@@ -400,122 +404,139 @@ INS_STR = instrenc(IENC_LOAD_IMM_OFF,  1)
 no_update_Rd = (INS_TST, INS_TEQ, INS_CMP, INS_CMN, )
 
 instrnames = [
-        'INS_VHADD',
-        'INS_VQADD',
-        'INS_VRHADD',
-        'INS_VAND',
-        'INS_VBIC',
-        'INS_VORR',
-        'INS_VORN',
-        'INS_VEOR',
-        'INS_VBIF',
-        'INS_VBIT',
-        'INS_VBSL',
-        'INS_VHSUB',
-        'INS_VQSUB',
-        'INS_VCGT',
-        'INS_VCGE',
-        'INS_VCEQ',
-        'INS_VSHL',
-        'INS_VQSHL',
-        'INS_VRSHL',
-        'INS_VQRSHL',
-        'INS_VMAX',
-        'INS_VMIN',
-        'INS_VABD',
-        'INS_VABA',
-        'INS_VADD',
-        'INS_VSUB',
-        'INS_VTST',
-        'INS_VMLA',
-        'INS_VMLS',
-        'INS_VMUL',
-        'INS_VPMAX',
-        'INS_VPMIN',
-        'INS_VQMULH',
-        'INS_VQDMULH',
-        'INS_VQRDMULH',
-        'INS_VPADD',
-        'INS_VPSUB',
-        'INS_VFMA',
-        'INS_VFMS',
-        'INS_VACGE',
-        'INS_VACGT',
-        'INS_VRECPS',
-        'INS_VRSQRTS',
-        'INS_VMOV',
-        'INS_VMVN',
-        'INS_VSHR',
-        'INS_VSRA',
-        'INS_VRSHR',
-        'INS_VRSRA',
-        'INS_VSLI',
-        'INS_VSRI',
-        'INS_VQSHLU',
-        'INS_VSHRN',
-        'INS_VRSHRN',
-        'INS_VQSHRN',
-        'INS_VQSHRUN',
-        'INS_VQRSHRN',
-        'INS_VQRSHRUN',
-        'INS_VSHLL',
-        'INS_VCVT',
-        #'INS_LDRB',
-        #'INS_STRB',
-        'INS_SMUL',
-        'INS_UADD16',
-        'INS_UADD8',
-        'INS_USUB16',
-        'INS_USUB8',
-        'INS_UASX',
-        'INS_USAX',
-        'INS_NOP',
-        'INS_YIELD',
-        'INS_WFE',
-        'INS_WFI',
-        'INS_SEV',
-        'INS_CPS',
-        'INS_CBZ',
-        'INS_CBNZ',
-        'INS_STRH',
-        #'INS_LDRH',
-        'INS_LEAVEX',
-        'INS_ENTERX',
-        'INS_TB',
-        'INS_LDREX',
-        'INS_ORN',
-        'INS_PKH',
-        'INS_LSL',
-        'INS_LSR',
-        'INS_ASR',
-        'INS_ROR',
-        'INS_RRX',
-        'INS_DBG',
-        'INS_BF',
-        'INS_CLREX',
-        'INS_DMB',
-        'INS_DSB',
-        'INS_ISB',
-        #'INS_LDRSB',
-        'INS_PLD',
-        'INS_PLI',
-        'INS_IT',
-        'INS_MLA',
-        'INS_SXTAH',
-        'INS_SXTH',
-        'INS_SXTAB16',
-        'INS_SXTAB',
-        'INS_SXTB16',
-        'INS_SXTB',
-        'INS_UXTAH',
-        'INS_UXTH',
-        'INS_UXTAB16',
-        'INS_UXTAB',
-        'INS_UXTB16',
-        'INS_UXTB',
+        'VHADD',
+        'VQADD',
+        'VRHADD',
+        'VAND',
+        'VBIC',
+        'VORR',
+        'VORN',
+        'VEOR',
+        'VBIF',
+        'VBIT',
+        'VBSL',
+        'VHSUB',
+        'VQSUB',
+        'VCGT',
+        'VCGE',
+        'VCEQ',
+        'VSHL',
+        'VQSHL',
+        'VRSHL',
+        'VQRSHL',
+        'VMAX',
+        'VMIN',
+        'VABD',
+        'VABA',
+        'VADD',
+        'VSUB',
+        'VTST',
+        'VMLA',
+        'VMLS',
+        'VMUL',
+        'VPMAX',
+        'VPMIN',
+        'VQMULH',
+        'VQDMULH',
+        'VQRDMULH',
+        'VPADD',
+        'VPSUB',
+        'VFMA',
+        'VFMS',
+        'VACGE',
+        'VACGT',
+        'VRECPS',
+        'VRSQRTS',
+        'VMOV',
+        'VMVN',
+        'VSHR',
+        'VSRA',
+        'VRSHR',
+        'VRSRA',
+        'VSLI',
+        'VSRI',
+        'VQSHLU',
+        'VSHRN',
+        'VRSHRN',
+        'VQSHRN',
+        'VQSHRUN',
+        'VQRSHRN',
+        'VQRSHRUN',
+        'VSHLL',
+        'VCVT',
+        #'LDRB',
+        #'STRB',
+        'SMUL',
+        'UADD16',
+        'UADD8',
+        'USUB16',
+        'USUB8',
+        'UASX',
+        'USAX',
+        'NOP',
+        'YIELD',
+        'WFE',
+        'WFI',
+        'SEV',
+        'CPS',
+        'CBZ',
+        'CBNZ',
+        'STRH',
+        #'LDRH',
+        'LEAVEX',
+        'ENTERX',
+        'TB',
+        'LDREX',
+        'ORN',
+        'PKH',
+        'LSL',
+        'LSR',
+        'ASR',
+        'ROR',
+        'RRX',
+        'DBG',
+        'BF',
+        'CLREX',
+        'DMB',
+        'DSB',
+        'ISB',
+        #'LDRSB',
+        'PLD',
+        'PLI',
+        'IT',
+        'MLA',
+        'SXTAH',
+        'SXTH',
+        'SXTAB16',
+        'SXTAB',
+        'SXTB16',
+        'SXTB',
+        'UXTAH',
+        'UXTH',
+        'UXTAB16',
+        'UXTAB',
+        'UXTB16',
+        'UXTB',
+        'VADDL',
+        'VADDW',
+        'VSUBL',
+        'VSUBW',
+        'VADDHN',
+        'VRADDHN',
+        'VSUBHN',
+        'VRSUBHN',
+        'VABAL',
+        'VABDL',
+        'VMLAL',
+        'VMLSL',
+        'VQDMLAL',
+        'VQDMLSL',
+        'VMULL',
+        'VQDMULL',
+        
 ]
 
 ins_index = 85
 for instr in instrnames:
-    globals()[instr] = ins_index
+    globals()['INS_' + instr] = ins_index
     ins_index += 1

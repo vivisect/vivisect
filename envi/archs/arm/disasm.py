@@ -2006,6 +2006,56 @@ adv_simd_1modimm = (
         ('vector UNDEF', None, 0, None),
     )
 
+adv_simd_3diffregs = (
+        # a=0, u=0
+        ('vaddl', INS_VADDL, 0, 1, 0, 0),
+        ('vaddl', INS_VADDL, 4, 1, 0, 0),
+        ('vaddw', INS_VADDW, 0, 1, 1, 0),
+        ('vaddw', INS_VADDW, 4, 1, 1, 0),
+        ('vsubl', INS_VSUBL, 0, 1, 0, 0),
+        ('vsubl', INS_VSUBL, 4, 1, 0, 0),
+        ('vsubw', INS_VSUBW, 0, 1, 1, 0),
+        ('vsubw', INS_VSUBW, 4, 1, 1, 0),
+        # a=4, u=0/1
+        ('vaddhn', INS_VADDHN, 8, 0, 1, 1),
+        ('vraddhn', INS_VRADDHN, 8, 0, 1, 1),
+        # a=5, u=0/1
+        ('vaba', INS_VABA, 0, 1, 0, 0),
+        ('vabal', INS_VABAL, 4, 1, 0, 0),
+        # a=6
+        ('vsubhn', INS_VSUBHN, 8, 0, 1, 1),
+        ('vrsubhn', INS_VRSUBHN, 8,0, 1, 1),
+        # a=7
+        ('vabd', INS_VABD, 0, 1, 0, 0),
+        ('vabdl', INS_VABDL, 4, 1, 0, 0),
+        # a=8
+        ('vmlal', INS_VMLAL, 0, 1, 0, 0),
+        ('vmlal', INS_VMLAL, 4, 1, 0, 0),
+        # a=9
+        ('vqdmlal', INS_VQDMLAL, 0, 1, 0, 0),
+        ('ERROR_vqdmlal', INS_VQDMLAL, 4, 1, 0, 0),
+        # a=0xa
+        ('vmlsl', INS_VMLSL, 0, 1, 0, 0),
+        ('vmlsl', INS_VMLSL, 4, 1, 0, 0),
+        # a=0xb
+        ('vqdmlsl', INS_VQDMLSL, 0, 1, 0, 0),       # FIXME: TESTME thumb: 0xef9349a5, 0xefe34ba5
+        ('ERROR_vqdmlsl', INS_VQDMLSL, 0, 1, 0, 0),
+        # a=0xc
+        ('vmull', INS_VMULL, 0, 1, 0, 0),
+        ('vmull', INS_VMULL, 4, 1, 0, 0),
+        # a=0xd
+        ('vqdmull', INS_VQDMULL, 0, 1, 0, 0),
+        ('ERROR_vqdmull', INS_VQDMULL, 0, 1, 0, 0),
+        # a=0xe
+        ('vmull', INS_VMULL, 12,1, 0, 0),
+        ('vmull', INS_VMULL, 12,1, 0, 0),
+        )
+
+adv_simd_dts = (IFS_S8, IFS_S16, IFS_S32, IFS_S64, 
+                IFS_U8, IFS_U16, IFS_U32, IFS_U64, 
+                IFS_I8, IFS_I16, IFS_I32, IFS_I64,
+                IFS_P8, IFS_P16, IFS_P32, IFS_P64)
+
 def adv_simd_32(val, va):
     u = (val>>24) & 1
     return _do_adv_simd_32(val, va, u)
@@ -2020,11 +2070,15 @@ def _do_adv_simd_32(val, va, u):
 
     # shared 
     q = (val >> 6) & 0x1
-    rbase = ('d%d', 'q%d')[q]
 
     d = (val >> 18) & 0x10
     d |= ((val >> 12) & 0xf)
-    d >>= q
+
+    n = (val >> 3) & 0x10
+    n |= ((val >> 16) & 0xf)
+    
+    m = (val >> 1) & 0x10
+    m |= (val & 0xf)
 
     if not (a & 0x10):
         # three registers of the same length
@@ -2032,15 +2086,12 @@ def _do_adv_simd_32(val, va, u):
         b = (val>>4) & 1
         c = (val>>20) & 3
 
+        rbase = ('d%d', 'q%d')[q]
         index = c | (u<<2) | (b<<3) | (a<<4)
         mnem, opcode, simdflags, handler = adv_simd_3_regs[index]
 
-        n = (val >> 3) & 0x10
-        n |= ((val >> 16) & 0xf)
+        d >>= q
         n >>= q
-
-        m = (val >> 1) & 0x10
-        m |= (val & 0xf)
         m >>= q
 
         opers = (
@@ -2065,14 +2116,16 @@ def _do_adv_simd_32(val, va, u):
         # one register and modified immediate
         op = (c>>1) & 1
         cmode = b
-        index = (op<<4) | cmode
 
+        rbase = ('d%d', 'q%d')[q]
+        index = (op<<4) | cmode
         mnem, opcode, simdflags, handler = adv_simd_1modimm[index]
 
         abcdefgh = (u<<7) | ((val>>12) & 0x70) | (val & 0xf)
 
         dt, val = adv_simd_modifiers[index](abcdefgh)
 
+        d >>= q
         opers = (
             ArmRegOper(rctx.getRegisterIndex(rbase%d)),
             ArmImmOper(val),
@@ -2087,12 +2140,10 @@ def _do_adv_simd_32(val, va, u):
         b = (val>>6) & 1
         l = (val>>7) & 1
         
+        rbase = ('d%d', 'q%d')[q]
         index = (a<<3) | (u<<2) | (b<<1) | l
-
         mnem, opcode, enctype = adv_2regs[index]
 
-        m = (val>>1) & 0x10   # bit 5 but wants to be bit 4
-        m |= (val & 0xf)
         m >>= q
 
         imm = (val >> 16) & 0x3f
@@ -2156,41 +2207,124 @@ def _do_adv_simd_32(val, va, u):
             elif limm & 0b0100000:
                 esize = 32
                 elements = 2
-                shift_amount = imm-32
+                shift_amount = imm - 32
             elif limm & 0b0010000:
                 esize = 16
                 elements = 4
-                shift_amount = imm-16
+                shift_amount = imm - 16
             elif limm & 0b0001000:
                 esize = 8
                 elements = 8
-                shift_amount = imm-8
+                shift_amount = imm - 8
 
             uop = (u<<1) | op
             simdflags = adv_2_vqshl_typesize.get(esize)[uop]
 
         elif enctype == 3:
-            raise Exception('adv_simd 2 reg shift imm, enctype:3 NOT IMPLEMENTED!')
+            limm = (l<<6) | imm
+            if limm & 0b1000000:
+                esize = 64
+                elements = 1
+                shift_amount = 64-imm
+            elif limm & 0b0100000:
+                esize = 32
+                elements = 2
+                shift_amount = 64-imm
+            elif limm & 0b0010000:
+                esize = 16
+                elements = 4
+                shift_amount = 32-imm
+            elif limm & 0b0001000:
+                esize = 8
+                elements = 8
+                shift_amount = 16-imm
+
+            simdflags = { 8: IFS_I8, 16: IFS_I16, 32: IFS_I32, 64: IFS_I64 }[esize]
+
         elif enctype == 4:
-            pass
-        elif enctype == 5:
-            pass
+            limm = (l<<6) | imm
+
+            if not (limm & 0b111):
+                raise Exception("MUST MAKE THIS DO vmovl ENCODING")
+
+            op = a & 1
+
+            if limm & 0b1000000:
+                esize = 64
+                elements = 1
+                shift_amount = imm
+            elif limm & 0b0100000:
+                esize = 32
+                elements = 2
+                shift_amount = imm - 32
+            elif limm & 0b0010000:
+                esize = 16
+                elements = 4
+                shift_amount = imm - 16
+            elif limm & 0b0001000:
+                esize = 8
+                elements = 8
+                shift_amount = imm - 8
+
+            uop = (u<<1) | op
+            simdflags = adv_2_vqshl_typesize.get(esize)[uop]
+
+        elif enctype == 5: # VCVT
+            limm = (l<<6) | imm
+
+            if not (limm & 0b111000):
+                raise Exception("VCVT but should be decoding as oneRegModImm")
+
+            op = a & 1
+            uop = (u<<1) | op
+            simdflags = (IF_F32_S32, IF_S32_F32, IF_F32_U32, IF_U32_F32)[uop]
+
+            # fbits 
+            shift_amount = imm + 64
 
         opers = (
             ArmRegOper(rctx.getRegisterIndex(rbase%d)),
             ArmRegOper(rctx.getRegisterIndex(rbase%m)),
             ArmImmOper(shift_amount),
-            )
+        )
 
         return opcode, mnem, opers, 0, simdflags
 
-################################ FIXME: CONTINUE WORKING AdvSIMD HERE #######################3
-    elif (a < 0x16):
-        print "AdvSIMD: HIT a<0x16"
+    elif ((a & 0x16) < 0x16):
         if (c & 0x5) == 0:
             # three registers of different lengths
-            pass
+            a = (val >> 8) & 0xf
+            b = (val >> 20) & 0x3
+            size = b
 
+            idx = (a<<1) | u
+
+            mnem, opcode, flagoff, dt, nt, mt = adv_simd_3diffregs[idx]
+
+            op = a & 1
+
+            d >>= dt
+            n >>= nt
+            m >>= mt
+
+            rbase = ('d%d', 'q%d')
+            dbase = rbase[dt]
+            mbase = rbase[mt]
+            nbase = rbase[nt]
+
+            opers = (
+                ArmRegOper(rctx.getRegisterIndex(dbase%d)),
+                ArmRegOper(rctx.getRegisterIndex(nbase%n)),
+                ArmRegOper(rctx.getRegisterIndex(mbase%m)),
+            )
+
+            szu = size + flagoff
+            simdflags = adv_simd_dts[szu]
+
+            return opcode, mnem, opers, 0, simdflags
+
+
+################################ FIXME: CONTINUE WORKING AdvSIMD HERE #######################3
         elif (c & 0x5) == 0x4:
             # two registers and a scalar
             pass

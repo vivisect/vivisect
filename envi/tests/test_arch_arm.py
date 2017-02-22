@@ -1234,6 +1234,9 @@ instrs = [
         (REV_ALL_ARM, 'aff39a87', 0x4561, 'cpsid a, #0x1a', IF_ID, ()),
         (REV_ALL_ARM, 'aff31a81', 0x4561, 'cps #0x1a', 0, ()),
 
+        (REV_ALL_ARM, 'efe34ba5', 0x4561, 'vqdmlsl.s32 q10, d19, d21', 0, ()),
+        (REV_ALL_ARM, 'ef9349a5', 0x4561, 'vqdmlal.s16 q2, d19, d21', 0, ()),
+
         ]
 
 
