@@ -360,8 +360,10 @@ class WorkspaceEmulator:
                     if op.iflags & envi.IF_RET:
                         vg_path.setNodeProp(self.curpath, 'cleanret', True)
                         break
+
                 except envi.UnsupportedInstruction, e:
                     if self.strictops:
+                        print "STRICTOPS: BREAK!"
                         break
                     else:
                         print 'runFunction continuing after unsupported instruction: 0x%08x %s' % (e.op.va, e.op.mnem)
