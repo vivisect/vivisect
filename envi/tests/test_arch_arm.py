@@ -1863,17 +1863,20 @@ def genAdvSIMD():
     out.extend(outthumb)
     file('advSIMD', 'wb').write(''.join(out))
 
-def genAdvSIMD():
+def genAdvSIMDtests():
     import envi.archs.arm as eaa
     am = eaa.ArmModule()
 
     # thumb
     outthumb = []
     outarm = []
+    abytez = []
+    tbytez = []
     armbase = 0xf2043002 # generic Adv SIMD with Vn=8, Vd=6, Vm=4 (or 4,3,2, depending)
     thmbase = 0xef043002 # generic Adv SIMD with Vn=8, Vd=6, Vm=4 (or 4,3,2, depending)
     # thumb dp, arm dp (with both 0/1 for U)
     #for option in (0xf000000, 0x2000000, 0x3000000, 0x1f000000):
+    bad = 0
     for u in range(2):
         for A in range(32): # three registers of same length
             for B in range(16): # three registers of same length
@@ -1882,21 +1885,35 @@ def genAdvSIMD():
                         armval = armbase | (u<<24) | (A<<19) | (B<<8) | (C<<4)
                         thmval = thmbase | (u<<28) | (A<<19) | (B<<8) | (C<<4)
                         bytezarm = struct.pack("<I", armval)
+                        abytez.append(bytezarm)
                         oparm = am.archParseOpcode(bytezarm, 0, 0x4560)
                         #outarm.append(bytezarm)
 
                         bytezthumb = struct.pack("<HH", thmval>>16, thmval&0xffff)
+                        tbytez.append(bytezthumb)
                         opthumb = am.archParseOpcode(bytezthumb, 0, 0x4561)
                         #outthumb.append(bytezthumb)
 
                         outarm.append("        (REV_ALL_ARM, '%s', 0x%x, '%s', 0, ())," % (bytezarm.encode('hex'), 0x4560, oparm))
                         outthumb.append("        (REV_ALL_ARM, '%s', 0x%x, '%s', 0, ())," % (bytezthumb.encode('hex'), 0x4561, opthumb))
 
-                    except Exception, e:
+                    except envi.InvalidInstruction, e:
                         print e
+                        bad += 1
+                        if bad % 25 == 0:
+                            raw_input("PRESS ENTER")
 
 
-    return outthumb, outarm
+                    except Exception, e:
+                        sys.excepthook(*sys.exc_info())
+                        bad += 1
+                        if bad % 2 == 0:
+                            raw_input("PRESS ENTER")
+
+
+
+    abytez.extend(tbytez)
+    return outthumb, outarm, abytez
 # thumb 16bit IT, CNBZ, CBZ
 
 

@@ -1632,10 +1632,17 @@ def p_uncond(opval, va, psize = 4):
 
 
 def p_advsimd_secondary(val, va, mnem, opcode, flags, opers):
-
     if opcode == INS_VORR:
-        pass
+        src1 = (val>>16) & 0xf
+        src2 = (val) & 0xf
 
+        if src1 == src2:
+            opers = (
+                ArmRegOper(rctx.getRegisterIndex(rbase%d)),
+                ArmRegOper(rctx.getRegisterIndex(rbase%n)),
+            )
+            return 'vmov', INS_VMOV, None, opers
+    return None, None, None, None
 
 adv_simd_3_regs = (  # ABUC fields slammed together
         # a=0000 b=0
@@ -2033,25 +2040,25 @@ adv_simd_3diffregs = (
         ('vmlal', INS_VMLAL, 4, 1, 0, 0),
         # a=9
         ('vqdmlal', INS_VQDMLAL, 0, 1, 0, 0),
-        ('ERROR_vqdmlal', INS_VQDMLAL, 4, 1, 0, 0),
+        (None, INS_VQDMLAL, 4, 1, 0, 0),
         # a=0xa
         ('vmlsl', INS_VMLSL, 0, 1, 0, 0),
         ('vmlsl', INS_VMLSL, 4, 1, 0, 0),
         # a=0xb
         ('vqdmlsl', INS_VQDMLSL, 0, 1, 0, 0),       # FIXME: TESTME thumb: 0xef9349a5, 0xefe34ba5
-        ('ERROR_vqdmlsl', INS_VQDMLSL, 0, 1, 0, 0),
+        (None, INS_VQDMLSL, 0, 1, 0, 0),
         # a=0xc
         ('vmull', INS_VMULL, 0, 1, 0, 0),
         ('vmull', INS_VMULL, 4, 1, 0, 0),
         # a=0xd
         ('vqdmull', INS_VQDMULL, 0, 1, 0, 0),
-        ('ERROR_vqdmull', INS_VQDMULL, 0, 1, 0, 0),
+        (None, INS_VQDMULL, 0, 1, 0, 0),
         # a=0xe
         ('vmull', INS_VMULL, 12,1, 0, 0),
         ('vmull', INS_VMULL, 12,1, 0, 0),
         # a=0xf  - nothing...
-        ('ERROR', 0, 0,0,0,0),
-        ('ERROR', 0, 0,0,0,0),
+        (None, 0, 0,0,0,0),
+        (None, 0, 0,0,0,0),
         )
 
 adv_simd_dts = (IFS_S8, IFS_S16, IFS_S32, IFS_S64, 
@@ -2074,8 +2081,7 @@ adv_simd_2regs_scalar = (
         ('vmlal', INS_VMLAL, 4, 1,0,0),     
         # a=3
         ('vqdmlal', INS_VQDMLAL, 0, 1,0,0),
-        #('vqdmlal', INS_VQDMLAL, 0, 1,0,0),    # not defined
-        (),
+        (None, None, None, None, None, None),
         # a=4
         ('vmls', INS_VMLS, 8, 0,0,0),    # enc t1/a1
         ('vmls', INS_VMLS, 8, 1,1,0),
@@ -2087,8 +2093,7 @@ adv_simd_2regs_scalar = (
         ('vmlsl', INS_VMLSL, 4, 1,0,0),
         # a=7
         ('vqdmlsl', INS_VQDMLSL, 0, 1,0,0),
-        #('vqdmlsl', INS_VQDMLSL, 0, 1,0,0),    # not defined
-        (),
+        (None, None, None, None, None, None),
         # a=8
         ('vmul', INS_VMUL, 8, 0,0,0),     # enc t1/a1
         ('vmul', INS_VMUL, 8, 1,1,0),
@@ -2100,8 +2105,7 @@ adv_simd_2regs_scalar = (
         ('vmull', INS_VMULL, 4, 1,0,0),
         # a=0xb
         ('vqdmull', INS_VQDMULL, 0, 1,0,0),  # enc t2/a2
-        #('vqdmull', INS_VQDMULL, 0, 1,0,0),    # not defined
-        (),
+        (None, None, None, None, None, None),
         # a=0xc
         ('vqdmulh', INS_VQDMULH, 0, 0,0,0),  # enc t2/a2
         ('vqdmulh', INS_VQDMULH, 0, 1,1,0),
@@ -2109,7 +2113,11 @@ adv_simd_2regs_scalar = (
         ('vqrdmulh', INS_VQRDMULH, 0, 0,0,0),   # enc t2/a2
         ('vqrdmulh', INS_VQRDMULH, 0, 1,1,0),
         # a=0xe
+        (None, None, None, None, None, None),
+        (None, None, None, None, None, None),
         # a=0xf
+        (None, None, None, None, None, None),
+        (None, None, None, None, None, None),
 )
 
 adv_simd_2regs_misc = (
@@ -2221,13 +2229,14 @@ def _do_adv_simd_32(val, va, u):
     m = (val >> 1) & 0x10
     m |= (val & 0xf)
 
+    rbase = ('d%d', 'q%d')[q]
+
     if not (a & 0x10):
         # three registers of the same length
         a = (val>>8) & 0xf
         b = (val>>4) & 1
         c = (val>>20) & 3
 
-        rbase = ('d%d', 'q%d')[q]
         index = c | (u<<2) | (b<<3) | (a<<4)
         mnem, opcode, simdflags, handler = adv_simd_3_regs[index]
 
@@ -2242,14 +2251,18 @@ def _do_adv_simd_32(val, va, u):
             )
 
         if handler != None:
-            nmnem, nopcode, nflags, nopers = handler(val, va, mnem, opcode, flags, opers)
+            nmnem, nopcode, nflags, nopers = handler(val, va, mnem, opcode, simdflags, opers)
             if nmnem != None:
                 mnem = nmnem
                 opcode = nopcode
             if nflags != None:
-                flags = nflags
+                simdflags = nflags
             if nopers != None:
                 opers = nopers
+
+        if mnem == None:
+            raise envi.InvalidInstruction(mesg="Invalid AdvSIMD Opcode Encoding",
+                    bytez=struct.pack('<L', val), va=va)
 
         return opcode, mnem, opers, 0, simdflags    # no iflags, only simdflags for this one
 
@@ -2258,13 +2271,19 @@ def _do_adv_simd_32(val, va, u):
         op = (c>>1) & 1
         cmode = b
 
-        rbase = ('d%d', 'q%d')[q]
         index = (op<<4) | cmode
         mnem, opcode, simdflags, handler = adv_simd_1modimm[index]
+        if mnem == None:
+            raise envi.InvalidInstruction(mesg="Invalid AdvSIMD Opcode Encoding",
+                    bytez=struct.pack('<L', val), va=va)
 
         abcdefgh = (u<<7) | ((val>>12) & 0x70) | (val & 0xf)
 
-        dt, val = adv_simd_modifiers[index](abcdefgh)
+        handler = adv_simd_modifiers[index]
+        if handler == None:
+            raise envi.InvalidInstruction(mesg="Invalid AdvSIMD Opcode Encoding: modified immediate out of range",
+                    bytez=struct.pack('<L', val), va=va)
+        dt, val = handler(abcdefgh)
 
         d >>= q
         opers = (
@@ -2281,10 +2300,13 @@ def _do_adv_simd_32(val, va, u):
         b = (val>>6) & 1
         l = (val>>7) & 1
         
-        rbase = ('d%d', 'q%d')[q]
         index = (a<<3) | (u<<2) | (b<<1) | l
         mnem, opcode, enctype = adv_2regs[index]
+        if mnem == None:
+            raise envi.InvalidInstruction(mesg="Invalid AdvSIMD Opcode Encoding",
+                    bytez=struct.pack('<L', val), va=va)
 
+        d >>= q
         m >>= q
 
         imm = (val >> 16) & 0x3f
@@ -2439,6 +2461,9 @@ def _do_adv_simd_32(val, va, u):
 
             idx = (a<<1) | u
             mnem, opcode, flagoff, dt, nt, mt = adv_simd_3diffregs[idx]
+            if mnem == None:
+                raise envi.InvalidInstruction(mesg="Invalid AdvSIMD Opcode Encoding",
+                        bytez=struct.pack('<L', val), va=va)
 
             op = a & 1
 
@@ -2446,10 +2471,10 @@ def _do_adv_simd_32(val, va, u):
             n >>= nt
             m >>= mt
 
-            rbase = ('d%d', 'q%d')
-            dbase = rbase[dt]
-            mbase = rbase[mt]
-            nbase = rbase[nt]
+            base = ('d%d', 'q%d')
+            dbase = base[dt]
+            mbase = base[mt]
+            nbase = base[nt]
 
             opers = (
                 ArmRegOper(rctx.getRegisterIndex(dbase%d)),
@@ -2467,6 +2492,9 @@ def _do_adv_simd_32(val, va, u):
             # two registers and a scalar
             idx = (a<<1) | u
             mnem, opcode, flagoff, dt, nt, mt = adv_simd_2regs_scalar[idx]
+            if mnem == None:
+                raise envi.InvalidInstruction(mesg="Invalid AdvSIMD Opcode Encoding",
+                        bytez=struct.pack('<L', val), va=va)
 
             if sz == 1:
                 index = m >> 3
@@ -2474,15 +2502,18 @@ def _do_adv_simd_32(val, va, u):
             elif sz == 2:
                 index = m >> 4
                 m &= 0xf
+            else:
+                raise envi.InvalidInstruction(mesg="%s with invalid size!" % mnem,
+                        bytez=struct.pack('<L', val), va=va)
 
             d >>= dt
             n >>= nt
             m >>= mt
 
-            rbase = ('d%d', 'q%d')
-            dbase = rbase[dt]
-            mbase = rbase[mt]
-            nbase = rbase[nt]
+            base = ('d%d', 'q%d')
+            dbase = base[dt]
+            nbase = base[nt]
+            mbase = base[mt]
 
             opers = (
                 ArmRegOper(rctx.getRegisterIndex(dbase%d)),
@@ -2504,7 +2535,6 @@ def _do_adv_simd_32(val, va, u):
 
             imm4 = (val >> 8) & 0xf
 
-            rbase = ('d%d', 'q%d')[q]
             d >>= q
             n >>= q
             m >>= q
@@ -2528,8 +2558,10 @@ def _do_adv_simd_32(val, va, u):
 
                     idx = (a<<5) | b
                     mnem, opcode, flagoff, dt, nt = adv_simd_2regs_misc[idx]
+                    if mnem == None:
+                        raise envi.InvalidInstruction(mesg="Invalid AdvSIMD Opcode Encoding",
+                                bytez=struct.pack('<L', val), va=va)
 
-                    rbase = ('d%d', 'q%d')[q]
                     d >>= q
                     n >>= q
 
@@ -2560,22 +2592,43 @@ def _do_adv_simd_32(val, va, u):
 
                     opers = (
                             ArmRegOper(rctx.getRegisterIndex(rbase%d)),
-                            ArmExtRegListOper(n, ln+1, 1)
+                            ArmExtRegListOper(n, ln+1, 1),
                             ArmRegOper(rctx.getRegisterIndex(rbase%n)),
                             )
 
                     simdflags = IFS_8
 
                     return opcode, mnem, opers, 0, simdflags
-################################ FIXME: CONTINUE WORKING AdvSIMD HERE #######################3
-                    
 
                 elif (b == 0xc):
                     # vector duplicate VDUP (scalar)
-                    pass
-    return 0, 'NO VECTOR ENCODING COMPLETED', (), 0, 0
+                    opcode = INS_VDUP
+                    mnem = 'vdup'
+                    imm4 = n
 
-################### FIXME ABOVE: NOT COMPLETE DECODING  #######################
+                    d >>= q
+
+                    if imm4 & 1:
+                        index = imm4 >> 1
+                        simdflags = IFS_8
+                    elif imm4 & 2:
+                        index = imm4 >> 2
+                        simdflags = IFS_16
+                    elif imm4 & 4:
+                        index = imm4 >> 3
+                        simdflags = IFS_32
+                    else:
+                        raise envi.InvalidInstruction(mesg="VDUP with invalid imm4!",
+                                bytez=struct.pack('<L', val), va=va)
+
+                    opers = (
+                        ArmRegOper(rctx.getRegisterIndex(rbase%d)),
+                        ArmRegScalarOper(rctx.getRegisterIndex('d%d'%m), index),
+                    )
+
+                    return opcode, mnem, opers, 0, simdflags
+
+    return 0, 'NO VECTOR ENCODING COMPLETED', (), 0, 0
 
 adv_2_vqshl_typesize = {
     8: ( None, IFS_S8, IFS_S8, IFS_U8),
@@ -2674,6 +2727,8 @@ adv_simd_modifiers = (
         adv_simd_mod_1100,
         adv_simd_mod_1101,
         adv_simd_mod_1_1110,
+        None,
+        None,
     )
 
 adv_2regs = (
@@ -3241,6 +3296,10 @@ class ArmRegOper(ArmOperand):
     ''' register operand.  see "addressing mode 1 - data processing operands - register" '''
 
     def __init__(self, reg, va=0, oflags=0):
+        if reg == None:
+            raise Exception("ArmRegOper: None Reg Type!")
+            raise envi.InvalidInstruction(mesg="None Reg Type!",
+                    bytez='f00!', va=va)
         self.va = va
         self.reg = reg
         self.oflags = oflags
