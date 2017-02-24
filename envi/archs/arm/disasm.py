@@ -2320,19 +2320,15 @@ def _do_adv_simd_32(val, va, u):
             limm = (l<<6) | imm
             if limm & 0b1000000:
                 esize = 64
-                elements = 1
                 shift_amount = 64-imm
             elif limm & 0b0100000:
                 esize = 32
-                elements = 2
                 shift_amount = 64-imm
             elif limm & 0b0010000:
                 esize = 16
-                elements = 4
                 shift_amount = 32-imm
             elif limm & 0b0001000:
                 esize = 8
-                elements = 8
                 shift_amount = 16-imm
 
             simdflags = adv_2_vqshl_typesize.get(esize)[u+2]
@@ -2341,19 +2337,15 @@ def _do_adv_simd_32(val, va, u):
             limm = (l<<6) | imm
             if limm & 0b1000000:
                 esize = 64
-                elements = 1
                 shift_amount = 64-imm
             elif limm & 0b0100000:
                 esize = 32
-                elements = 2
                 shift_amount = 64-imm
             elif limm & 0b0010000:
                 esize = 16
-                elements = 4
                 shift_amount = 32-imm
             elif limm & 0b0001000:
                 esize = 8
-                elements = 8
                 shift_amount = 16-imm
 
             simdflags = { 8: IFS_8, 16: IFS_16, 32: IFS_32, 64: IFS_64 }[esize]
@@ -2365,19 +2357,15 @@ def _do_adv_simd_32(val, va, u):
 
             if limm & 0b1000000:
                 esize = 64
-                elements = 1
                 shift_amount = imm
             elif limm & 0b0100000:
                 esize = 32
-                elements = 2
                 shift_amount = imm - 32
             elif limm & 0b0010000:
                 esize = 16
-                elements = 4
                 shift_amount = imm - 16
             elif limm & 0b0001000:
                 esize = 8
-                elements = 8
                 shift_amount = imm - 8
 
             uop = (u<<1) | op
@@ -2387,19 +2375,15 @@ def _do_adv_simd_32(val, va, u):
             limm = (l<<6) | imm
             if limm & 0b1000000:
                 esize = 64
-                elements = 1
                 shift_amount = 64-imm
             elif limm & 0b0100000:
                 esize = 32
-                elements = 2
                 shift_amount = 64-imm
             elif limm & 0b0010000:
                 esize = 16
-                elements = 4
                 shift_amount = 32-imm
             elif limm & 0b0001000:
                 esize = 8
-                elements = 8
                 shift_amount = 16-imm
 
             simdflags = { 8: IFS_I8, 16: IFS_I16, 32: IFS_I32, 64: IFS_I64 }[esize]
@@ -2414,19 +2398,15 @@ def _do_adv_simd_32(val, va, u):
 
             if limm & 0b1000000:
                 esize = 64
-                elements = 1
                 shift_amount = imm
             elif limm & 0b0100000:
                 esize = 32
-                elements = 2
                 shift_amount = imm - 32
             elif limm & 0b0010000:
                 esize = 16
-                elements = 4
                 shift_amount = imm - 16
             elif limm & 0b0001000:
                 esize = 8
-                elements = 8
                 shift_amount = imm - 8
 
             uop = (u<<1) | op
