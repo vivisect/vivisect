@@ -33,9 +33,9 @@ arm_regs = (
 MAX_REGS = 17
 
 arm_metas = [
-        ("R13", REG_SP, 0, 32),
-        ("R14", REG_LR, 0, 32),
-        ("R15", REG_PC, 0, 32),
+        ("r13", REG_SP, 0, 32),
+        ("r14", REG_LR, 0, 32),
+        ("r15", REG_PC, 0, 32),
         ]
 
 

@@ -2049,12 +2049,153 @@ adv_simd_3diffregs = (
         # a=0xe
         ('vmull', INS_VMULL, 12,1, 0, 0),
         ('vmull', INS_VMULL, 12,1, 0, 0),
+        # a=0xf  - nothing...
+        ('ERROR', 0, 0,0,0,0),
+        ('ERROR', 0, 0,0,0,0),
         )
 
 adv_simd_dts = (IFS_S8, IFS_S16, IFS_S32, IFS_S64, 
                 IFS_U8, IFS_U16, IFS_U32, IFS_U64, 
                 IFS_I8, IFS_I16, IFS_I32, IFS_I64,
-                IFS_P8, IFS_P16, IFS_P32, IFS_P64)
+                IFS_P8, IFS_P16, IFS_P32, IFS_P64,
+                IFS_F8, IFS_F16, IFS_F32, IFS_F64,
+                IFS_8,  IFS_16,  IFS_32,  IFS_64,
+                0,0,0,0)
+
+adv_simd_2regs_scalar = (
+        # a=0
+        ('vmla', INS_VMLA, 8, 0,0,0),    # enc t1/a1
+        ('vmla', INS_VMLA, 8, 1,1,0),   
+        # a=1
+        ('vmla', INS_VMLA, 16, 0,0,0),    # enc t1/a1 fp
+        ('vmla', INS_VMLA, 16, 1,1,0),    # fp
+        # a=2
+        ('vmlal', INS_VMLAL, 0, 1,0,0),     # enc t2/a2
+        ('vmlal', INS_VMLAL, 4, 1,0,0),     
+        # a=3
+        ('vqdmlal', INS_VQDMLAL, 0, 1,0,0),
+        #('vqdmlal', INS_VQDMLAL, 0, 1,0,0),    # not defined
+        (),
+        # a=4
+        ('vmls', INS_VMLS, 8, 0,0,0),    # enc t1/a1
+        ('vmls', INS_VMLS, 8, 1,1,0),
+        # a=5
+        ('vmls', INS_VMLS, 16, 0,0,0),   # enc t1/a1
+        ('vmls', INS_VMLS, 16, 1,1,0),
+        # a=6
+        ('vmlsl', INS_VMLSL, 0, 1,0,0),  # enc t2/a2
+        ('vmlsl', INS_VMLSL, 4, 1,0,0),
+        # a=7
+        ('vqdmlsl', INS_VQDMLSL, 0, 1,0,0),
+        #('vqdmlsl', INS_VQDMLSL, 0, 1,0,0),    # not defined
+        (),
+        # a=8
+        ('vmul', INS_VMUL, 8, 0,0,0),     # enc t1/a1
+        ('vmul', INS_VMUL, 8, 1,1,0),
+        # a=9
+        ('vmul', INS_VMUL, 16, 0,0,0),
+        ('vmul', INS_VMUL, 16, 1,1,0),
+        # a=0xa
+        ('vmull', INS_VMULL, 0, 1,0,0),
+        ('vmull', INS_VMULL, 4, 1,0,0),
+        # a=0xb
+        ('vqdmull', INS_VQDMULL, 0, 1,0,0),  # enc t2/a2
+        #('vqdmull', INS_VQDMULL, 0, 1,0,0),    # not defined
+        (),
+        # a=0xc
+        ('vqdmulh', INS_VQDMULH, 0, 0,0,0),  # enc t2/a2
+        ('vqdmulh', INS_VQDMULH, 0, 1,1,0),
+        # a=0xd
+        ('vqrdmulh', INS_VQRDMULH, 0, 0,0,0),   # enc t2/a2
+        ('vqrdmulh', INS_VQRDMULH, 0, 1,1,0),
+        # a=0xe
+        # a=0xf
+)
+
+adv_simd_2regs_misc = (
+        # a=0 b=000xx
+        ('vrev64', INS_VREV64, 20, 0,0),
+        ('vrev64', INS_VREV64, 20, 1,1),
+        ('vrev32', INS_VREV32, 20, 0,0),
+        ('vrev32', INS_VREV32, 20, 1,1),
+        # a=0 b=001xx
+        ('vrev16', INS_VREV16, 20, 0,0),
+        ('vrev16', INS_VREV16, 20, 1,1),
+        ('error', INS_VREV16, 0, 0,0),
+        ('error', INS_VREV16, 0, 1,1),
+        # a=0 b=010xx
+        ('vpaddl', INS_VPADDL, 0, 0,0),
+        ('vpaddl', INS_VPADDL, 0, 1,1),
+        ('vpaddl', INS_VPADDL, 4, 0,0),
+        ('vpaddl', INS_VPADDL, 4, 1,1),
+        # a=0 b=011xx
+        ('error',  INS_VPADDL, 0, 0,0),
+        ('error',  INS_VPADDL, 0, 0,0),
+        ('error',  INS_VPADDL, 0, 0,0),
+        ('error',  INS_VPADDL, 0, 0,0),
+        # a=0 b=100xx
+        ('vcls',  INS_VCLS, 0, 0,0),
+        ('vcls',  INS_VCLS, 0, 1,1),
+        ('vclz',  INS_VCLZ, 8, 0,0),
+        ('vclz',  INS_VCLZ, 8, 1,1),
+        # a=0 b=1010x
+        ('vcnt',  INS_VCNT, 20, 0,0),
+        ('vcnt',  INS_VCNT, 20, 1,1),
+        ('vmvn',  INS_VMVN, 24, 0,0),
+        ('vmvn',  INS_VMVN, 24, 1,1),
+        # a=0 b=110xx
+        ('vpadal',  INS_VPADAL, 0, 0,0),
+        ('vpadal',  INS_VPADAL, 0, 1,1),
+        ('vpadal',  INS_VPADAL, 4, 0,0),
+        ('vpadal',  INS_VPADAL, 4, 1,1),
+        # a=0 b=1110x
+        ('vqabs',   INS_VQABS, 0, 0,0),
+        ('vqabs',   INS_VQABS, 0, 1,1),
+        # a=0 b=1111x
+        ('vqneg',   INS_VQNEG, 0, 0,0),
+        ('vqneg',   INS_VQNEG, 0, 1,1),
+        # a=1 b=000xx
+        ('vcgt',   INS_VCGT, 0, 0,0),
+        ('vcgt',   INS_VCGT, 0, 1,1),
+        ('vcge',   INS_VCGE, 0, 0,0),
+        ('vcge',   INS_VCGE, 0, 1,1),
+        # a=1 b=001xx
+        ('vceq',   INS_VCEQ, 0, 0,0),
+        ('vceq',   INS_VCEQ, 0, 1,1),
+        ('vcle',   INS_VCLE, 0, 0,0),
+        ('vcle',   INS_VCLE, 0, 1,1),
+        # a=1 b=010xx
+        ('vclt',   INS_VCLT, 0, 0,0),
+        ('vclt',   INS_VCLT, 0, 1,1),
+        ('error',  INS_VCLE, 0, 0,0),
+        ('error',  INS_VCLE, 0, 1,1),
+        # a=1 b=011xx
+        ('vabs',   INS_VABS, 0, 0,0),
+        ('vabs',   INS_VABS, 0, 1,1),
+        ('vneg',   INS_VNEG, 0, 0,0),
+        ('vneg',   INS_VNEG, 0, 1,1),
+        # a=1 b=100xx
+        ('vcgt',   INS_VCGT, 16, 0,0),
+        ('vcgt',   INS_VCGT, 16, 1,1),
+        ('vcge',   INS_VCGE, 16, 0,0),
+        ('vcge',   INS_VCGE, 16, 1,1),
+        # a=1 b=101xx
+        ('vceq',   INS_VCEQ, 16, 0,0),
+        ('vceq',   INS_VCEQ, 16, 1,1),
+        ('vcle',   INS_VCLE, 16, 0,0),
+        ('vcle',   INS_VCLE, 16, 1,1),
+        # a=1 b=110xx
+        ('vclt',   INS_VCLT, 16, 0,0),
+        ('vclt',   INS_VCLT, 16, 1,1),
+        ('error',  INS_VCLE, 16, 0,0),
+        ('error',  INS_VCLE, 16, 1,1),
+        # a=1 b=111xx
+        ('vabs',   INS_VABS, 16, 0,0),
+        ('vabs',   INS_VABS, 16, 1,1),
+        ('vneg',   INS_VNEG, 16, 0,0),
+        ('vneg',   INS_VNEG, 16, 1,1),
+
+)
 
 def adv_simd_32(val, va):
     u = (val>>24) & 1
@@ -2277,7 +2418,7 @@ def _do_adv_simd_32(val, va, u):
 
             op = a & 1
             uop = (u<<1) | op
-            simdflags = (IF_F32_S32, IF_S32_F32, IF_F32_U32, IF_U32_F32)[uop]
+            simdflags = (IFS_F32S32, IFS_S32F32, IFS_F32U32, IFS_U32F32)[uop]
 
             # fbits 
             shift_amount = imm + 64
@@ -2291,14 +2432,12 @@ def _do_adv_simd_32(val, va, u):
         return opcode, mnem, opers, 0, simdflags
 
     elif ((a & 0x16) < 0x16):
+        a = (val >> 8) & 0xf
+        sz = (val >> 20) & 0x3
         if (c & 0x5) == 0:
             # three registers of different lengths
-            a = (val >> 8) & 0xf
-            b = (val >> 20) & 0x3
-            size = b
 
             idx = (a<<1) | u
-
             mnem, opcode, flagoff, dt, nt, mt = adv_simd_3diffregs[idx]
 
             op = a & 1
@@ -2318,32 +2457,118 @@ def _do_adv_simd_32(val, va, u):
                 ArmRegOper(rctx.getRegisterIndex(mbase%m)),
             )
 
-            szu = size + flagoff
+            szu = sz + flagoff
             simdflags = adv_simd_dts[szu]
 
             return opcode, mnem, opers, 0, simdflags
 
 
-################################ FIXME: CONTINUE WORKING AdvSIMD HERE #######################3
         elif (c & 0x5) == 0x4:
             # two registers and a scalar
-            pass
+            idx = (a<<1) | u
+            mnem, opcode, flagoff, dt, nt, mt = adv_simd_2regs_scalar[idx]
+
+            if sz == 1:
+                index = m >> 3
+                m &= 7
+            elif sz == 2:
+                index = m >> 4
+                m &= 0xf
+
+            d >>= dt
+            n >>= nt
+            m >>= mt
+
+            rbase = ('d%d', 'q%d')
+            dbase = rbase[dt]
+            mbase = rbase[mt]
+            nbase = rbase[nt]
+
+            opers = (
+                ArmRegOper(rctx.getRegisterIndex(dbase%d)),
+                ArmRegOper(rctx.getRegisterIndex(nbase%n)),
+                ArmRegScalarOper(rctx.getRegisterIndex(mbase%m), index),
+            )
+
+            szu = sz + flagoff
+            simdflags = adv_simd_dts[szu]
+
+            return opcode, mnem, opers, 0, simdflags
+
 
     elif (a & 0x16) == 0x16:
-        print "AdvSIMD: HIT a & 0x16 == 0x16"
         if u == 0:
             # vector extract VEXT
-            pass
+            mnem = 'vext'
+            opcode = INS_VEXT
+
+            imm4 = (val >> 8) & 0xf
+
+            rbase = ('d%d', 'q%d')[q]
+            d >>= q
+            n >>= q
+            m >>= q
+
+            opers = (
+                ArmRegOper(rctx.getRegisterIndex(rbase%d)),
+                ArmRegOper(rctx.getRegisterIndex(rbase%n)),
+                ArmRegOper(rctx.getRegisterIndex(rbase%m)),
+                ArmImmOper(imm4),
+            )
+
+            simdflags = IFS_8
+            return opcode, mnem, opers, 0, simdflags
 
         else:
             if (c & 1) == 0:
                 if (b & 0x8) == 0:
                     # two registers, miscellaneous
-                    pass
+                    a = (val>>16) & 0x3
+                    b = (val>>6) & 0x1f
+
+                    idx = (a<<5) | b
+                    mnem, opcode, flagoff, dt, nt = adv_simd_2regs_misc[idx]
+
+                    rbase = ('d%d', 'q%d')[q]
+                    d >>= q
+                    n >>= q
+
+                    if a and ((b&0b1100) != 0b1100):
+                        opers = (
+                            ArmRegOper(rctx.getRegisterIndex(rbase%d)),
+                            ArmRegOper(rctx.getRegisterIndex(rbase%n)),
+                            ArmImmOper(0),
+                        )
+                    else:
+                        opers = (
+                            ArmRegOper(rctx.getRegisterIndex(rbase%d)),
+                            ArmRegOper(rctx.getRegisterIndex(rbase%n)),
+                        )
+
+                    sz = (val>>8) & 0x3
+                    szu = sz + flagoff
+                    simdflags = adv_simd_dts[szu]
+
+                    return opcode, mnem, opers, 0, simdflags
 
                 elif (b & 0xc) == 8:
                     # vector table lookup VTBL, VTBX
-                    pass
+                    ln = (val>>8) & 3
+                    op = (val>>7) & 1
+
+                    opcode, mnem = (('vtbl', INS_VTBL),('vtbx', INS_VTBX))[op]
+
+                    opers = (
+                            ArmRegOper(rctx.getRegisterIndex(rbase%d)),
+                            ArmExtRegListOper(n, ln+1, 1)
+                            ArmRegOper(rctx.getRegisterIndex(rbase%n)),
+                            )
+
+                    simdflags = IFS_8
+
+                    return opcode, mnem, opers, 0, simdflags
+################################ FIXME: CONTINUE WORKING AdvSIMD HERE #######################3
+                    
 
                 elif (b == 0xc):
                     # vector duplicate VDUP (scalar)
@@ -3059,6 +3284,52 @@ class ArmRegOper(ArmOperand):
         rname = rctx.getRegisterName(self.reg)
         if self.oflags & OF_W:
             rname += "!"
+        return rname
+
+class ArmRegScalarOper(ArmRegOper):
+    def __init__(self, reg, index, va=0, oflags=0):
+        self.index = index
+        ArmRegOper.__init__(self, reg, va, oflags)
+
+    def __eq__(self, oper):
+        if not isinstance(oper, self.__class__):
+            return False
+        if self.reg != oper.reg:
+            return False
+        if self.oflags != oper.oflags:
+            return False
+        if self.index != oper.index:
+            return False
+        return True
+    
+    def involvesPC(self):
+        return False
+
+    def isDeref(self):
+        return False
+
+    def getOperValue(self, op, emu=None):
+        if emu == None:
+            return None
+
+        raise Exception("Scalar Accessors Not Implemented")
+        return emu.getRegister(self.reg)
+
+    def setOperValue(self, op, emu=None, val=None):
+        if emu == None:
+            return None
+
+        raise Exception("Scalar Accessors Not Implemented")
+        emu.setRegister(self.reg, val)
+
+    def render(self, mcanv, op, idx):
+        rname = rctx.getRegisterName(self.reg)
+        mcanv.addNameText(rname, typename='registers')
+        mcanv.addNameText('[%d]' % self.index, typename='scalars')
+
+    def repr(self, op):
+        rname = rctx.getRegisterName(self.reg)
+        rname += '[%d]' % self.index
         return rname
 
 class ArmRegShiftRegOper(ArmOperand):

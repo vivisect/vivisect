@@ -533,7 +533,24 @@ instrnames = [
         'VQDMLSL',
         'VMULL',
         'VQDMULL',
-        
+        'VEXT',
+        'VREV16',
+        'VREV32',
+        'VREV64',
+        'VPADDL',
+        'VCLS',
+        'VCLZ',
+        'VCNT',
+        'VPADAL',
+        'VQABS',
+        'VQNEG',
+        'VCLE',
+        'VCLT',
+        'VABS',
+        'VNEG',
+        'VDUP',
+        'VTBL',
+        'VTBX',
 ]
 
 ins_index = 85

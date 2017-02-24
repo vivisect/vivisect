@@ -1234,8 +1234,37 @@ instrs = [
         (REV_ALL_ARM, 'aff39a87', 0x4561, 'cpsid a, #0x1a', IF_ID, ()),
         (REV_ALL_ARM, 'aff31a81', 0x4561, 'cps #0x1a', 0, ()),
 
-        (REV_ALL_ARM, 'efe34ba5', 0x4561, 'vqdmlsl.s32 q10, d19, d21', 0, ()),
-        (REV_ALL_ARM, 'ef9349a5', 0x4561, 'vqdmlal.s16 q2, d19, d21', 0, ()),
+        #(REV_ALL_ARM, 'a54be3ef', 0x4561, 'vqdmlsl.s32 q10, d19, d21', 0, ()),
+        #(REV_ALL_ARM, 'a54993ef', 0x4561, 'vqdmlal.s16 q2, d19, d21', 0, ()),
+
+        (REV_ALL_ARM, 'aaefe440', 0x4561, 'vmla.i32 d4, d26, d4[1]', 0, ()),
+        (REV_ALL_ARM, 'aaefe441', 0x4561, 'vmla.f32 d4, d26, d4[1]', 0, ()),
+        (REV_ALL_ARM, 'aaefe442', 0x4561, 'vmlal.s32 q2, d26, d4[1]', 0, ()),
+        (REV_ALL_ARM, 'aaefe443', 0x4561, 'vqdmlal.s32 q2, d26, d4[1]', 0, ()),
+        (REV_ALL_ARM, 'aaefe444', 0x4561, 'vmls.i32 d4, d26, d4[1]', 0, ()),
+        (REV_ALL_ARM, 'aaefe445', 0x4561, 'vmls.f32 d4, d26, d4[1]', 0, ()),
+        (REV_ALL_ARM, 'aaefe446', 0x4561, 'vmlsl.s32 q2, d26, d4[1]', 0, ()),
+        (REV_ALL_ARM, 'aaefe447', 0x4561, 'vqdmlsl.s32 q2, d26, d4[1]', 0, ()),
+        (REV_ALL_ARM, 'aaefe448', 0x4561, 'vmul.i32 d4, d26, d4[1]', 0, ()),
+        (REV_ALL_ARM, 'aaefe449', 0x4561, 'vmul.f32 d4, d26, d4[1]', 0, ()),
+        (REV_ALL_ARM, 'aaefe44a', 0x4561, 'vmull.s32 q2, d26, d4[1]', 0, ()),
+        (REV_ALL_ARM, 'aaefe44b', 0x4561, 'vqdmull.s32 q2, d26, d4[1]', 0, ()),
+        (REV_ALL_ARM, 'aaefe44c', 0x4561, 'vqdmulh.s32 d4, d26, d4[1]', 0, ()),
+        (REV_ALL_ARM, 'aaefe44d', 0x4561, 'vqrdmulh.s32 d4, d26, d4[1]', 0, ()),
+        (REV_ALL_ARM, 'aaffe440', 0x4561, 'vmla.i32 q2, q13, d4[1]', 0, ()),
+        (REV_ALL_ARM, 'aaffe441', 0x4561, 'vmla.f32 q2, q13, d4[1]', 0, ()),
+        (REV_ALL_ARM, 'aaffe442', 0x4561, 'vmlal.u32 q2, d26, d4[1]', 0, ()),
+        (REV_ALL_ARM, 'aaffe444', 0x4561, 'vmls.i32 q2, q13, d4[1]', 0, ()),
+        (REV_ALL_ARM, 'aaffe445', 0x4561, 'vmls.f32 q2, q13, d4[1]', 0, ()),
+        (REV_ALL_ARM, 'aaffe446', 0x4561, 'vmlsl.u32 q2, d26, d4[1]', 0, ()),
+        (REV_ALL_ARM, 'aaffe448', 0x4561, 'vmul.i32 q2, q13, d4[1]', 0, ()),
+        (REV_ALL_ARM, 'aaffe449', 0x4561, 'vmul.f32 q2, q13, d4[1]', 0, ()),
+        (REV_ALL_ARM, 'aaffe44a', 0x4561, 'vmull.u32 q2, d26, d4[1]', 0, ()),
+        (REV_ALL_ARM, 'aaffe44c', 0x4561, 'vqdmulh.s32 q2, q13, d4[1]', 0, ()),
+        (REV_ALL_ARM, 'aaffe44d', 0x4561, 'vqrdmulh.s32 q2, q13, d4[1]', 0, ()),
+
+        (REV_ALL_ARM, 'f4efec2f', 0x4561, 'vext.8 q9, q10, q14, #0x0f', 0, ()),
+
 
         ]
 
@@ -1833,7 +1862,42 @@ def genAdvSIMD():
     out = outarm
     out.extend(outthumb)
     file('advSIMD', 'wb').write(''.join(out))
-   
+
+def genAdvSIMD():
+    import envi.archs.arm as eaa
+    am = eaa.ArmModule()
+
+    # thumb
+    outthumb = []
+    outarm = []
+    armbase = 0xf2043002 # generic Adv SIMD with Vn=8, Vd=6, Vm=4 (or 4,3,2, depending)
+    thmbase = 0xef043002 # generic Adv SIMD with Vn=8, Vd=6, Vm=4 (or 4,3,2, depending)
+    # thumb dp, arm dp (with both 0/1 for U)
+    #for option in (0xf000000, 0x2000000, 0x3000000, 0x1f000000):
+    for u in range(2):
+        for A in range(32): # three registers of same length
+            for B in range(16): # three registers of same length
+                for C in range(16):
+                    try:
+                        armval = armbase | (u<<24) | (A<<19) | (B<<8) | (C<<4)
+                        thmval = thmbase | (u<<28) | (A<<19) | (B<<8) | (C<<4)
+                        bytezarm = struct.pack("<I", armval)
+                        oparm = am.archParseOpcode(bytezarm, 0, 0x4560)
+                        #outarm.append(bytezarm)
+
+                        bytezthumb = struct.pack("<HH", thmval>>16, thmval&0xffff)
+                        opthumb = am.archParseOpcode(bytezthumb, 0, 0x4561)
+                        #outthumb.append(bytezthumb)
+
+                        outarm.append("        (REV_ALL_ARM, '%s', 0x%x, '%s', 0, ())," % (bytezarm.encode('hex'), 0x4560, oparm))
+                        outthumb.append("        (REV_ALL_ARM, '%s', 0x%x, '%s', 0, ())," % (bytezthumb.encode('hex'), 0x4561, opthumb))
+
+                    except Exception, e:
+                        print e
 
 
+    return outthumb, outarm
 # thumb 16bit IT, CNBZ, CBZ
+
+
+
