@@ -2301,7 +2301,7 @@ def _do_adv_simd_32(val, va, u):
         l = (val>>7) & 1
         
         index = (a<<3) | (u<<2) | (b<<1) | l
-        mnem, opcode, enctype = adv_2regs[index]
+        mnem, opcode, enctype = adv_2regs_shift[index]
         if mnem == None:
             raise envi.InvalidInstruction(mesg="Invalid AdvSIMD Opcode Encoding",
                     bytez=struct.pack('<L', val), va=va)
@@ -2310,6 +2310,8 @@ def _do_adv_simd_32(val, va, u):
         m >>= q
 
         imm = (val >> 16) & 0x3f
+        if not (imm & 0b111000) and not l:
+            raise Exception("AdvSIMD: decoding as 2reg_shift and should be 1regModImm")
 
         #### REMOVE WHEN COMPLETE WITH DECODING
         shift_amount = 0
@@ -2415,8 +2417,8 @@ def _do_adv_simd_32(val, va, u):
         elif enctype == 5: # VCVT
             limm = (l<<6) | imm
 
-            if not (limm & 0b111000):
-                raise Exception("VCVT but should be decoding as oneRegModImm")
+            if not (limm & 0b1111000):
+                raise Exception("2reg_shift/enc==5 but should be decoding as oneRegModImm 0x%x" % val)
 
             op = a & 1
             uop = (u<<1) | op
@@ -2711,7 +2713,7 @@ adv_simd_modifiers = (
         None,
     )
 
-adv_2regs = (
+adv_2regs_shift = (
     # 0000
     ('vshr', INS_VSHR, 0),
     ('vshr', INS_VSHR, 0),
@@ -4414,6 +4416,8 @@ class ArmDisasm:
 
         #Get opcode, base mnem, operator list and flags
         opcode, mnem, olist, flags, simdflags = self.doDecode(va, opval, bytez, offset)
+        if mnem == None or type(mnem) == int:
+            raise Exception("mnem == %r!  0x%x" % (mnem, opval))
 
         # since our flags determine how the instruction is decoded later....  
         # performance-wise this should be set as the default value instead of 0, but this is cleaner

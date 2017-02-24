@@ -2323,6 +2323,9 @@ class ThumbDisasm:
             showop = True
             flags |= envi.IF_NOFALL
 
+        if mnem == None or type(mnem) == int:
+            raise Exception("mnem == %r!  0x%xi (thumb)" % (mnem, opval))
+
         op = ThumbOpcode(va, opcode, mnem, 0xe, oplen, olist, flags, simdflags)
         #print hex(va), oplen, len(op), op.size, hex(op.iflags)
         return op

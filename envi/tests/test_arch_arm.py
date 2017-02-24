@@ -1901,7 +1901,8 @@ def genAdvSIMDtests():
                         print e
                         bad += 1
                         if bad % 25 == 0:
-                            raw_input("PRESS ENTER")
+                            #raw_input("PRESS ENTER")
+                            pass
 
 
                     except Exception, e:
