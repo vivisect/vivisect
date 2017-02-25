@@ -2570,7 +2570,7 @@ def _do_adv_simd_32(val, va, u):
                     ln = (val>>8) & 3
                     op = (val>>7) & 1
 
-                    opcode, mnem = (('vtbl', INS_VTBL),('vtbx', INS_VTBX))[op]
+                    mnem, opcode = (('vtbl', INS_VTBL),('vtbx', INS_VTBX))[op]
 
                     opers = (
                             ArmRegOper(rctx.getRegisterIndex(rbase%d)),
