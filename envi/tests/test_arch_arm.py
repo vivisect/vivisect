@@ -14,6 +14,8 @@ from envi.archs.arm.regs import *
 from envi.archs.arm.const import *
 from envi.archs.arm.disasm import *
 
+from envi.tests.armthumb_tests import advsimdtests
+
 ''' 
   This dictionary will contain all instructions supported by ARM to test
   Fields will contain following information:
@@ -999,222 +1001,222 @@ instrs = [
         (REV_ALL_ARM, '5e6728f2', 0x4560, 'vaba.s32 q3, q4, q7', 0, ()),
         (REV_ALL_ARM, '5e6708f3', 0x4560, 'vaba.u8 q3, q4, q7', 0, ()),
         (REV_ALL_ARM, '5e6718f3', 0x4560, 'vaba.u16 q3, q4, q7', 0, ()),
-        #(REV_ALL_ARM, '5e6728f3', 0x4560, 'vaba.u32 q3, q4, q7', 0, ()),
-        #(REV_ALL_ARM, '076584f2', 0x4560, 'vabal.s8 q3, d4, d7', 0, ()),
-        #(REV_ALL_ARM, '076594f2', 0x4560, 'vabal.s16 q3, d4, d7', 0, ()),
-        #(REV_ALL_ARM, '0765a4f2', 0x4560, 'vabal.s32 q3, d4, d7', 0, ()),
-        #(REV_ALL_ARM, '076584f3', 0x4560, 'vabal.u8 q3, d4, d7', 0, ()),
-        #(REV_ALL_ARM, '076594f3', 0x4560, 'vabal.u16 q3, d4, d7', 0, ()),
-        #(REV_ALL_ARM, '0765a4f3', 0x4560, 'vabal.u32 q3, d4, d7', 0, ()),
-        #(REV_ALL_ARM, '073704f2', 0x4560, 'vabd.s8 d3, d4, d7', 0, ()),
-        #(REV_ALL_ARM, '073714f2', 0x4560, 'vabd.s16 d3, d4, d7', 0, ()),
-        #(REV_ALL_ARM, '073724f2', 0x4560, 'vabd.s32 d3, d4, d7', 0, ()),
-        #(REV_ALL_ARM, '073704f3', 0x4560, 'vabd.u8 d3, d4, d7', 0, ()),
-        #(REV_ALL_ARM, '073714f3', 0x4560, 'vabd.u16 d3, d4, d7', 0, ()),
-        #(REV_ALL_ARM, '073724f3', 0x4560, 'vabd.u32 d3, d4, d7', 0, ()),
-        #(REV_ALL_ARM, '4e6708f2', 0x4560, 'vabd.s8 q3, q4, q7', 0, ()),
-        #(REV_ALL_ARM, '4e6718f2', 0x4560, 'vabd.s16 q3, q4, q7', 0, ()),
-        #(REV_ALL_ARM, '4e6728f2', 0x4560, 'vabd.s32 q3, q4, q7', 0, ()),
-        #(REV_ALL_ARM, '4e6708f3', 0x4560, 'vabd.u8 q3, q4, q7', 0, ()),
-        #(REV_ALL_ARM, '4e6718f3', 0x4560, 'vabd.u16 q3, q4, q7', 0, ()),
-        #(REV_ALL_ARM, '4e6728f3', 0x4560, 'vabd.u32 q3, q4, q7', 0, ()),
-        #(REV_ALL_ARM, '076784f2', 0x4560, 'vabdl.s8 q3, d4, d7', 0, ()),
-        #(REV_ALL_ARM, '076794f2', 0x4560, 'vabdl.s16 q3, d4, d7', 0, ()),
-        #(REV_ALL_ARM, '0767a4f2', 0x4560, 'vabdl.s32 q3, d4, d7', 0, ()),
-        #(REV_ALL_ARM, '076784f3', 0x4560, 'vabdl.u8 q3, d4, d7', 0, ()),
-        #(REV_ALL_ARM, '076794f3', 0x4560, 'vabdl.u16 q3, d4, d7', 0, ()),
-        #(REV_ALL_ARM, '0767a4f3', 0x4560, 'vabdl.u32 q3, d4, d7', 0, ()),
-        #(REV_ALL_ARM, '4E6d28f3', 0x4560, 'vabd.f32 q3, q4, q7', 0, ()),
-        #(REV_ALL_ARM, '073d24f3', 0x4560, 'vabd.f32 d3, d4, d7', 0, ()),
-        #(REV_ALL_ARM, '0433b1f3', 0x4560, 'vabs.s8 d3, d4', 0, ()),
-        #(REV_ALL_ARM, '0433b5f3', 0x4560, 'vabs.s16 d3, d4', 0, ()),
-        #(REV_ALL_ARM, '0433b9f3', 0x4560, 'vabs.s32 d3, d4', 0, ()),
-        #(REV_ALL_ARM, '0437b9f3', 0x4560, 'vabs.f32 d3, d4', 0, ()),
-        #(REV_ALL_ARM, 'c21af0ee', 0x4560, 'vabs.f32 s3, s4', 0, ()),
-        #(REV_ALL_ARM, 'c43bb0ee', 0x4560, 'vabs.f64 d3, d4', 0, ()),
-        #(REV_ALL_ARM, '173e04f3', 0x4560, 'vacge.f32 d3, d4, d7', 0, ()),
-        #(REV_ALL_ARM, '173e24f3', 0x4560, 'vacgt.f32 d3, d4, d7', 0, ()),
-        #(REV_ALL_ARM, '143e07f3', 0x4560, 'vacle.f32 d3, d4, d7', 0, ()),
-        #(REV_ALL_ARM, '143e27f3', 0x4560, 'vacle.f32 d3, d4, d7', 0, ()),
-        #(REV_ALL_ARM, '5e6e08f3', 0x4560, 'vacge.f32 q3, q4, q7', 0, ()),
-        #(REV_ALL_ARM, '5e6e28f3', 0x4560, 'vacgt.f32 q3, q4, q7', 0, ()),
-        #(REV_ALL_ARM, '586e0ff3', 0x4560, 'vacle.f32 q3, q4, q7', 0, ()),
-        #(REV_ALL_ARM, '586e2ff3', 0x4560, 'vacle.f32 q3, q4, q7', 0, ()),
-        #(REV_ALL_ARM, '4E6808F2', 0x4560, 'vadd.i8  q3, q4, q7', 0, ()),
-        #(REV_ALL_ARM, '4E6818F2', 0x4560, 'vadd.i16 q3, q4, q7', 0, ()),
-        #(REV_ALL_ARM, '4E6828F2', 0x4560, 'vadd.i32 q3, q4, q7', 0, ()),
-        #(REV_ALL_ARM, '4E6838F2', 0x4560, 'vadd.i64 q3, q4, q7', 0, ()),
-        #(REV_ALL_ARM, '073804f2', 0x4560, 'vadd.i8  d3, d4, d7', 0, ()),
-        #(REV_ALL_ARM, '073814f2', 0x4560, 'vadd.i16 d3, d4, d7', 0, ()),
-        #(REV_ALL_ARM, '073824f2', 0x4560, 'vadd.i32 d3, d4, d7', 0, ()),
-        #(REV_ALL_ARM, '073834f2', 0x4560, 'vadd.i64 d3, d4, d7', 0, ()),
-        #(REV_ALL_ARM, '4e6d08f2', 0x4560, 'vadd.f32 q3, q4, q7', 0, ()),
-        #(REV_ALL_ARM, '073d04f2', 0x4560, 'vadd.f32 d3, d4, d7', 0, ()),
-        #(REV_ALL_ARM, '231a72ee', 0x4560, 'vadd.f32 s3, s4, s7', 0, ()),
-        #(REV_ALL_ARM, '073b34ee', 0x4560, 'vadd.f64 d3, d4, d7', 0, ()),
-        #(REV_ALL_ARM, '0e3488f2', 0x4560, 'vaddhn.i16 d3, q4, q7', 0, ()),
-        #(REV_ALL_ARM, '0e3498f2', 0x4560, 'vaddhn.i32 d3, q4, q7', 0, ()),
-        #(REV_ALL_ARM, '0e34a8f2', 0x4560, 'vaddhn.i64 d3, q4, q7', 0, ()),
-        #(REV_ALL_ARM, '076084f2', 0x4560, 'vaddl.s8 q3, d4, d7', 0, ()),
-        #(REV_ALL_ARM, '076094f2', 0x4560, 'vaddl.s16 q3, d4, d7', 0, ()),
-        #(REV_ALL_ARM, '0760a4f2', 0x4560, 'vaddl.s32 q3, d4, d7', 0, ()),
-        #(REV_ALL_ARM, '076084f3', 0x4560, 'vaddl.u8 q3, d4, d7', 0, ()),
-        #(REV_ALL_ARM, '076094f3', 0x4560, 'vaddl.u16 q3, d4, d7', 0, ()),
-        #(REV_ALL_ARM, '0760a4f3', 0x4560, 'vaddl.u32 q3, d4, d7', 0, ()),
-        #(REV_ALL_ARM, '076188f2', 0x4560, 'vaddw.s8 q3, q4, d7', 0, ()),
-        #(REV_ALL_ARM, '076198f2', 0x4560, 'vaddw.s16 q3, q4, d7', 0, ()),
-        #(REV_ALL_ARM, '0761a8f2', 0x4560, 'vaddw.s32 q3, q4, d7', 0, ()),
-        #(REV_ALL_ARM, '076188f2', 0x4560, 'vaddw.u8 q3, q4, d7', 0, ()),
-        #(REV_ALL_ARM, '076198f3', 0x4560, 'vaddw.u16 q3, q4, d7', 0, ()),
-        #(REV_ALL_ARM, '0761a8f3', 0x4560, 'vaddw.u32 q3, q4, d7', 0, ()),
-        #(REV_ALL_ARM, '5e6108f2', 0x4560, 'vand q3, q4, q7', 0, ()),
-        #(REV_ALL_ARM, '173104f2', 0x4560, 'vand d3, d4, d7', 0, ()),
-        #(REV_ALL_ARM, '7a6980f2', 0x4560, 'vbic.i16 q3, #10', 0, ()),
-        #(REV_ALL_ARM, '7a6180f2', 0x4560, 'vbic.i32 q3, #10', 0, ()),
-        #(REV_ALL_ARM, '3a3980f2', 0x4560, 'vbic.i16 d3, #10', 0, ()),
-        #(REV_ALL_ARM, '3a3180f2', 0x4560, 'vbic.i32 d3, #10', 0, ()),
-        #(REV_ALL_ARM, '5e6118f2', 0x4560, 'vbic q3, q4, q7', 0, ()),
-        #(REV_ALL_ARM, '173114f2', 0x4560, 'vbic d3, d4, d7', 0, ()),
-        #(REV_ALL_ARM, '173134f3', 0x4560, 'vbif d3, d4, d7', 0, ()),
-        #(REV_ALL_ARM, '173124f3', 0x4560, 'vbit d3, d4, d7', 0, ()),
-        #(REV_ALL_ARM, '173114f3', 0x4560, 'vbsl d3, d4, d7', 0, ()),
-        #(REV_ALL_ARM, '5e6138f3', 0x4560, 'vbif q3, q4, q7', 0, ()),
-        #(REV_ALL_ARM, '5e6128f3', 0x4560, 'vbit q3, q4, q7', 0, ()),
-        #(REV_ALL_ARM, '5e6118f3', 0x4560, 'vbsl q3, q4, q7', 0, ()),
-        #(REV_ALL_ARM, '5e6808f3', 0x4560, 'vceq.i8 q3, q4, q7', 0, ()),
-        #(REV_ALL_ARM, '5e6818f3', 0x4560, 'vceq.i16 q3, q4, q7', 0, ()),
-        #(REV_ALL_ARM, '5e6828f3', 0x4560, 'vceq.i32 q3, q4, q7', 0, ()),
-        #(REV_ALL_ARM, '4e6e08f2', 0x4560, 'vceq.f32 q3, q4, q7', 0, ()),
-        #(REV_ALL_ARM, '173804f3', 0x4560, 'vceq.i8 d3, d4, d7', 0, ()),
-        #(REV_ALL_ARM, '173814f3', 0x4560, 'vceq.i16 d3, d4, d7', 0, ()),
-        #(REV_ALL_ARM, '173824f3', 0x4560, 'vceq.i32 d3, d4, d7', 0, ()),
-        #(REV_ALL_ARM, '073e04f2', 0x4560, 'vceq.f32 d3, d4, d7', 0, ()),
-        #(REV_ALL_ARM, '4861b1f3', 0x4560, 'vceq.i8 q3, q4, #0', 0, ()),
-        #(REV_ALL_ARM, '4861b5f3', 0x4560, 'vceq.i16 q3, q4, #0', 0, ()),
-        #(REV_ALL_ARM, '4861b9f3', 0x4560, 'vceq.i32 q3, q4, #0', 0, ()),
-        #(REV_ALL_ARM, '4865b9f3', 0x4560, 'vceq.f32 q3, q4, #0', 0, ()),
-        #(REV_ALL_ARM, '0431b1f3', 0x4560, 'vceq.i8 d3, d4, #0', 0, ()),
-        #(REV_ALL_ARM, '0431b5f3', 0x4560, 'vceq.i16 d3, d4, #0', 0, ()),
-        #(REV_ALL_ARM, '0431b9f3', 0x4560, 'vceq.i32 d3, d4, #0', 0, ()),
-        #(REV_ALL_ARM, '0435b9f3', 0x4560, 'vceq.f32 d3, d4, #0', 0, ()),
-        #(REV_ALL_ARM, '5e6308f2', 0x4560, 'vcge.s8  q3, q4, q7', 0, ()),
-        #(REV_ALL_ARM, '5e6318f2', 0x4560, 'vcge.s16 q3, q4, q7', 0, ()),
-        #(REV_ALL_ARM, '5e6328f2', 0x4560, 'vcge.s32 q3, q4, q7', 0, ()),
-        #(REV_ALL_ARM, '5e6308f3', 0x4560, 'vcge.u8  q3, q4, q7', 0, ()),
-        #(REV_ALL_ARM, '5e6318f3', 0x4560, 'vcge.u16 q3, q4, q7', 0, ()),
-        #(REV_ALL_ARM, '5e6328f3', 0x4560, 'vcge.u32 q3, q4, q7', 0, ()),
-        #(REV_ALL_ARM, '4e6e08f3', 0x4560, 'vcge.f32 q3, q4, q7', 0, ()),
-        #(REV_ALL_ARM, '173304f2', 0x4560, 'vcge.s8  d3, d4, d7', 0, ()),
-        #(REV_ALL_ARM, '173314f2', 0x4560, 'vcge.s16 d3, d4, d7', 0, ()),
-        #(REV_ALL_ARM, '173324f2', 0x4560, 'vcge.s32 d3, d4, d7', 0, ()),
-        #(REV_ALL_ARM, '173304f3', 0x4560, 'vcge.u8  d3, d4, d7', 0, ()),
-        #(REV_ALL_ARM, '173314f3', 0x4560, 'vcge.u16 d3, d4, d7', 0, ()),
-        #(REV_ALL_ARM, '173324f3', 0x4560, 'vcge.u32 d3, d4, d7', 0, ()),
-        #(REV_ALL_ARM, '073e04f3', 0x4560, 'vcge.f32 d3, d4, d7', 0, ()),
-        #(REV_ALL_ARM, '8430b1f3', 0x4560, 'vcge.s8  d3, d4, #0', 0, ()),
-        #(REV_ALL_ARM, '8430b5f3', 0x4560, 'vcge.s16 d3, d4, #0', 0, ()),
-        #(REV_ALL_ARM, '8430b9f3', 0x4560, 'vcge.s32 d3, d4, #0', 0, ()),
-        #(REV_ALL_ARM, '8434b9f3', 0x4560, 'vcge.f32 d3, d4, #0', 0, ()),
-        #(REV_ALL_ARM, 'c860b1f3', 0x4560, 'vcge.s8  q3, q4, #0', 0, ()),
-        #(REV_ALL_ARM, 'c860b5f3', 0x4560, 'vcge.s16 q3, q4, #0', 0, ()),
-        #(REV_ALL_ARM, 'c860b9f3', 0x4560, 'vcge.s32 q3, q4, #0', 0, ()),
-        #(REV_ALL_ARM, 'c864b9f3', 0x4560, 'vcge.f32 q3, q4, #0', 0, ()),
-        #(REV_ALL_ARM, '4e6308f2', 0x4560, 'vcgt.s8  q3, q4, q7', 0, ()),
-        #(REV_ALL_ARM, '4e6318f2', 0x4560, 'vcge.s16 q3, q4, q7', 0, ()),
-        #(REV_ALL_ARM, '4e6328f2', 0x4560, 'vcgt.s32 q3, q4, q7', 0, ()),
-        #(REV_ALL_ARM, '4e6308f3', 0x4560, 'vcgt.u8  q3, q4, q7', 0, ()),
-        #(REV_ALL_ARM, '4e6318f3', 0x4560, 'vcgt.u16 q3, q4, q7', 0, ()),
-        #(REV_ALL_ARM, '4e6328f3', 0x4560, 'vcgt.u32 q3, q4, q7', 0, ()),
-        #(REV_ALL_ARM, '4e6e08f3', 0x4560, 'vcgt.f32 q3, q4, q7', 0, ()),
-        #(REV_ALL_ARM, '073304f2', 0x4560, 'vcgt.s8  d3, d4, d7', 0, ()),
-        #(REV_ALL_ARM, '073314f2', 0x4560, 'vcgt.s16 d3, d4, d7', 0, ()),
-        #(REV_ALL_ARM, '073324f2', 0x4560, 'vcgt.s32 d3, d4, d7', 0, ()),
-        #(REV_ALL_ARM, '073304f3', 0x4560, 'vcgt.u8  d3, d4, d7', 0, ()),
-        #(REV_ALL_ARM, '073314f3', 0x4560, 'vcgt.u16 d3, d4, d7', 0, ()),
-        #(REV_ALL_ARM, '073324f3', 0x4560, 'vcgt.u32 d3, d4, d7', 0, ()),
-        #(REV_ALL_ARM, '073e24f3', 0x4560, 'vcgt.f32 d3, d4, d7', 0, ()),
-        #(REV_ALL_ARM, '0430b1f3', 0x4560, 'vcgt.s8  d3, d4, #0', 0, ()),
-        #(REV_ALL_ARM, '0430b5f3', 0x4560, 'vcgt.s16 d3, d4, #0', 0, ()),
-        #(REV_ALL_ARM, '0430b9f3', 0x4560, 'vcgt.s32 d3, d4, #0', 0, ()),
-        #(REV_ALL_ARM, '0434b9f3', 0x4560, 'vcgt.f32 d3, d4, #0', 0, ()),
-        #(REV_ALL_ARM, '4860b1f3', 0x4560, 'vcgt.s8  q3, q4, #0', 0, ()),
-        #(REV_ALL_ARM, '4860b5f3', 0x4560, 'vcgt.s16 q3, q4, #0', 0, ()),
-        #(REV_ALL_ARM, '4860b9f3', 0x4560, 'vcgt.s32 q3, q4, #0', 0, ()),
-        #(REV_ALL_ARM, '4864b9f3', 0x4560, 'vcgt.f32 q3, q4, #0', 0, ()),
-        #(REV_ALL_ARM, '0434b0f3', 0x4560, 'vcls.s8  d3, d4', 0, ()),
-        #(REV_ALL_ARM, '0434b4f3', 0x4560, 'vcls.s16 d3, d4', 0, ()),
-        #(REV_ALL_ARM, '0434b8f3', 0x4560, 'vcls.s32 d3, d4', 0, ()),
-        #(REV_ALL_ARM, '4864b0f3', 0x4560, 'vcls.s8  q3, q4', 0, ()),
-        #(REV_ALL_ARM, '4864b4f3', 0x4560, 'vcls.s16 q3, q4', 0, ()),
-        #(REV_ALL_ARM, '4864b8f3', 0x4560, 'vcls.s32 q3, q4', 0, ()),
-        #(REV_ALL_ARM, '0432b1f3', 0x4560, 'vclt.s8  d3, d4, #0', 0, ()),
-        #(REV_ALL_ARM, '0432b5f3', 0x4560, 'vclt.s16 d3, d4, #0', 0, ()),
-        #(REV_ALL_ARM, '0432b9f3', 0x4560, 'vclt.s32 d3, d4, #0', 0, ()),
-        #(REV_ALL_ARM, '0436b9f3', 0x4560, 'vclt.f32 d3, d4, #0', 0, ()),
-        #(REV_ALL_ARM, '4862b1f3', 0x4560, 'vclt.s8  q3, q4, #0', 0, ()),
-        #(REV_ALL_ARM, '4862b5f3', 0x4560, 'vclt.s16 q3, q4, #0', 0, ()),
-        #(REV_ALL_ARM, '4862b9f3', 0x4560, 'vclt.s32 q3, q4, #0', 0, ()),
-        #(REV_ALL_ARM, '4866b9f3', 0x4560, 'vclt.f32 q3, q4, #0', 0, ()),
-        #(REV_ALL_ARM, 'c864b0f3', 0x4560, 'vclz.i8 q3, q4', 0, ()),
-        #(REV_ALL_ARM, 'c864b4f3', 0x4560, 'vclz.i16 q3, q4', 0, ()),
-        #(REV_ALL_ARM, 'c864b8f3', 0x4560, 'vclz.i32 q3, q4', 0, ()),
-        #(REV_ALL_ARM, '8434b0f3', 0x4560, 'vclz.i8  d3, d4', 0, ()),
-        #(REV_ALL_ARM, '8434b4f3', 0x4560, 'vclz.i16 d3, d4', 0, ()),
-        #(REV_ALL_ARM, '8434b8f3', 0x4560, 'vclz.i32 d3, d4', 0, ()),
-        #(REV_ALL_ARM, '443bb4ee', 0x4560, 'vcmp.f64 d3, d4', 0, ()),
-        #(REV_ALL_ARM, '421af4ee', 0x4560, 'vcmp.f32 s3, s4', 0, ()),
-        #(REV_ALL_ARM, 'c43bb4ee', 0x4560, 'vcmpe.f64 d3, d4', 0, ()),
-        #(REV_ALL_ARM, 'c21af4ee', 0x4560, 'vcmpe.f32 s3, s4', 0, ()),
-        #(REV_ALL_ARM, '403bb5ee', 0x4560, 'vcmp.f64 d3, #0.0', 0, ()),
-        #(REV_ALL_ARM, '401af5ee', 0x4560, 'vcmp.f32 s3, #0.0', 0, ()),
-        #(REV_ALL_ARM, 'c03bb5ee', 0x4560, 'vcmpe.f64 d3, #0.0', 0, ()),
-        #(REV_ALL_ARM, 'c01af5ee', 0x4560, 'vcmpe.f32 s3, #0.0', 0, ()),
-        #(REV_ALL_ARM, '4865b0f3', 0x4560, 'vcnt.8 q3, q4',0, ()),
-        #(REV_ALL_ARM, '0435b0f3', 0x4560, 'vcnt.8 d3, d4',0, ()),
-        #(REV_ALL_ARM, '4867bbf3', 0x4560, 'vcvt.s32.f32 q3, q4',0, ()),
-        #(REV_ALL_ARM, '0437bbf3', 0x4560, 'vcvt.s32.f32 d3, d4',0, ()),
-        #(REV_ALL_ARM, 'c867bbf3', 0x4560, 'vcvt.u32.f32 q3, q4',0, ()),
-        #(REV_ALL_ARM, '8437bbf3', 0x4560, 'vcvt.u32.f32 d3, d4',0, ()),
-        #(REV_ALL_ARM, '4866bbf3', 0x4560, 'vcvt.f32.s32 q3, q4',0, ()),
-        #(REV_ALL_ARM, '0436bbf3', 0x4560, 'vcvt.f32.s32 d3, d4',0, ()),
-        #(REV_ALL_ARM, 'c866bbf3', 0x4560, 'vcvt.f32.u32 q3, q4',0, ()),
-        #(REV_ALL_ARM, '8436bbf3', 0x4560, 'vcvt.f32.u32 d3, d4',0, ()),
-        #(REV_ALL_ARM, 'c41bfdee', 0x4560, 'vcvt.s32.f64 s3, d4',0, ()),
-        #(REV_ALL_ARM, '441bfdee', 0x4560, 'vcvtr.s32.f64 s3, d4',0, ()),
-        #(REV_ALL_ARM, 'C21afdee', 0x4560, 'vcvt.s32.f32 s3, s4',0, ()),
-        #(REV_ALL_ARM, '421afdee', 0x4560, 'vcvtr.s32.f32 s3, s4',0, ()),
-        #(REV_ALL_ARM, 'c41bfcee', 0x4560, 'vcvt.u32.f64 s3, d4',0, ()),
-        #(REV_ALL_ARM, '441bfcee', 0x4560, 'vcvtr.u32.f64 s3, d4',0, ()),
-        #(REV_ALL_ARM, 'c21afcee', 0x4560, 'vcvt.u32.f32 s3, s4',0, ()),
-        #(REV_ALL_ARM, '421afcee', 0x4560, 'vcvtf.u32.f32 s3, s4',0, ()),
-        #(REV_ALL_ARM, 'c23bb8ee', 0x4560, 'vcvt.f64.s32 d3, s4',0, ()),
-        #(REV_ALL_ARM, '423bb8ee', 0x4560, 'vcvt.f64.u32 d3, s4',0, ()),
-        #(REV_ALL_ARM, 'c21af8ee', 0x4560, 'vcvt.f32.s32 s3, s4',0, ()),
-        #(REV_ALL_ARM, '421af8ee', 0x4560, 'vcvt.f32.u32 s3, s4',0, ()),
-        #(REV_ALL_ARM, '586fb4f2', 0x4560, 'vcvt.s32.f32 q3, q4, #12',0, ()),
-        #(REV_ALL_ARM, '586fb4f3', 0x4560, 'vcvt.u32.f32 q3, q4, #12',0, ()),
-        #(REV_ALL_ARM, '586eaef2', 0x4560, 'vcvt.f32.s32 q3, q4, #18',0, ()),
-        #(REV_ALL_ARM, '586eb3f3', 0x4560, 'vcvt.f32.u32 q3, q4, #13',0, ()),
-        #(REV_ALL_ARM, '143fbdf2', 0x4560, 'vcvt.s32.f32 d3, d4, #3',0, ()),
-        #(REV_ALL_ARM, '143fa8f3', 0x4560, 'vcvt.u32.f32 d3, d4, #24',0, ()),
-        #(REV_ALL_ARM, '143ea2f2', 0x4560, 'vcvt.f32.s32 d3, d4, #30',0, ()),
-        #(REV_ALL_ARM, '143eb9f3', 0x4560, 'vcvt.f32.u32 d3, d4, #7',0, ()),
-        #(REV_ALL_ARM, '643bbeee', 0x4560, 'vcvt.s16.f64 d3, d4, #7',0, ()),
-        #(REV_ALL_ARM, '613bbfee', 0x4560, 'vcvt.u16.f64 d3, d4, #13',0, ()),
-        #(REV_ALL_ARM, 'e83bbeee', 0x4560, 'vcvt.s32.f64 d3, d4, #15',0, ()),
-        #(REV_ALL_ARM, 'e43bbfee', 0x4560, 'vcvt.u32.f64 d3, d4, #23',0, ()),
-        #(REV_ALL_ARM, '641afeee', 0x4560, 'vcvt.s16.f32 s3, s4, #7',0, ()),
-        #(REV_ALL_ARM, '611affee', 0x4560, 'vcvt.u16.f32 s3, s4, #13',0, ()),
-        #(REV_ALL_ARM, 'e81afeee', 0x4560, 'vcvt.s32.f32 s3, s4, #15',0, ()),
-        #(REV_ALL_ARM, 'e41affee', 0x4560, 'vcvt.u32.f32 s3, s4, #23',0, ()),
-        #(REV_ALL_ARM, '643bbaee', 0x4560, 'vcvt.f64.s16 d3, d4, #7',0, ()),
-        #(REV_ALL_ARM, '613bbbee', 0x4560, 'vcvt.f64.u16 d3, d4, #13',0, ()),
-        #(REV_ALL_ARM, 'e83bbaee', 0x4560, 'vcvt.f64.s32 d3, d4, #15',0, ()),
-        #(REV_ALL_ARM, 'e43bbbee', 0x4560, 'vcvt.f64.u32 d3, d4, #23',0, ()),
-        #(REV_ALL_ARM, '641afaee', 0x4560, 'vcvt.f32.s16 s3, s4, #7',0, ()),
-        #(REV_ALL_ARM, '611afbee', 0x4560, 'vcvt.f32.u16 s3, s4, #13',0, ()),
-        #(REV_ALL_ARM, 'e81afaee', 0x4560, 'vcvt.f32.s32 s3, s4, #15',0, ()),
-        #(REV_ALL_ARM, 'e41afbee', 0x4560, 'vcvt.f32.u32 s3, s4, #23',0, ()),
+        (REV_ALL_ARM, '5e6728f3', 0x4560, 'vaba.u32 q3, q4, q7', 0, ()),
+        (REV_ALL_ARM, '076584f2', 0x4560, 'vabal.s8 q3, d4, d7', 0, ()),
+        (REV_ALL_ARM, '076594f2', 0x4560, 'vabal.s16 q3, d4, d7', 0, ()),
+        (REV_ALL_ARM, '0765a4f2', 0x4560, 'vabal.s32 q3, d4, d7', 0, ()),
+        (REV_ALL_ARM, '076584f3', 0x4560, 'vabal.u8 q3, d4, d7', 0, ()),
+        (REV_ALL_ARM, '076594f3', 0x4560, 'vabal.u16 q3, d4, d7', 0, ()),
+        (REV_ALL_ARM, '0765a4f3', 0x4560, 'vabal.u32 q3, d4, d7', 0, ()),
+        (REV_ALL_ARM, '073704f2', 0x4560, 'vabd.s8 d3, d4, d7', 0, ()),
+        (REV_ALL_ARM, '073714f2', 0x4560, 'vabd.s16 d3, d4, d7', 0, ()),
+        (REV_ALL_ARM, '073724f2', 0x4560, 'vabd.s32 d3, d4, d7', 0, ()),
+        (REV_ALL_ARM, '073704f3', 0x4560, 'vabd.u8 d3, d4, d7', 0, ()),
+        (REV_ALL_ARM, '073714f3', 0x4560, 'vabd.u16 d3, d4, d7', 0, ()),
+        (REV_ALL_ARM, '073724f3', 0x4560, 'vabd.u32 d3, d4, d7', 0, ()),
+        (REV_ALL_ARM, '4e6708f2', 0x4560, 'vabd.s8 q3, q4, q7', 0, ()),
+        (REV_ALL_ARM, '4e6718f2', 0x4560, 'vabd.s16 q3, q4, q7', 0, ()),
+        (REV_ALL_ARM, '4e6728f2', 0x4560, 'vabd.s32 q3, q4, q7', 0, ()),
+        (REV_ALL_ARM, '4e6708f3', 0x4560, 'vabd.u8 q3, q4, q7', 0, ()),
+        (REV_ALL_ARM, '4e6718f3', 0x4560, 'vabd.u16 q3, q4, q7', 0, ()),
+        (REV_ALL_ARM, '4e6728f3', 0x4560, 'vabd.u32 q3, q4, q7', 0, ()),
+        (REV_ALL_ARM, '076784f2', 0x4560, 'vabdl.s8 q3, d4, d7', 0, ()),
+        (REV_ALL_ARM, '076794f2', 0x4560, 'vabdl.s16 q3, d4, d7', 0, ()),
+        (REV_ALL_ARM, '0767a4f2', 0x4560, 'vabdl.s32 q3, d4, d7', 0, ()),
+        (REV_ALL_ARM, '076784f3', 0x4560, 'vabdl.u8 q3, d4, d7', 0, ()),
+        (REV_ALL_ARM, '076794f3', 0x4560, 'vabdl.u16 q3, d4, d7', 0, ()),
+        (REV_ALL_ARM, '0767a4f3', 0x4560, 'vabdl.u32 q3, d4, d7', 0, ()),
+        (REV_ALL_ARM, '4E6d28f3', 0x4560, 'vabd.f32 q3, q4, q7', 0, ()),
+        (REV_ALL_ARM, '073d24f3', 0x4560, 'vabd.f32 d3, d4, d7', 0, ()),
+        (REV_ALL_ARM, '0433b1f3', 0x4560, 'vabs.s8 d3, d4', 0, ()),
+        (REV_ALL_ARM, '0433b5f3', 0x4560, 'vabs.s16 d3, d4', 0, ()),
+        (REV_ALL_ARM, '0433b9f3', 0x4560, 'vabs.s32 d3, d4', 0, ()),
+        (REV_ALL_ARM, '0437b9f3', 0x4560, 'vabs.f32 d3, d4', 0, ()),
+        (REV_ALL_ARM, 'c21af0ee', 0x4560, 'vabs.f32 s3, s4', 0, ()),
+        (REV_ALL_ARM, 'c43bb0ee', 0x4560, 'vabs.f64 d3, d4', 0, ()),
+        (REV_ALL_ARM, '173e04f3', 0x4560, 'vacge.f32 d3, d4, d7', 0, ()),
+        (REV_ALL_ARM, '173e24f3', 0x4560, 'vacgt.f32 d3, d4, d7', 0, ()),
+        (REV_ALL_ARM, '143e07f3', 0x4560, 'vacle.f32 d3, d4, d7', 0, ()),
+        (REV_ALL_ARM, '143e27f3', 0x4560, 'vacle.f32 d3, d4, d7', 0, ()),
+        (REV_ALL_ARM, '5e6e08f3', 0x4560, 'vacge.f32 q3, q4, q7', 0, ()),
+        (REV_ALL_ARM, '5e6e28f3', 0x4560, 'vacgt.f32 q3, q4, q7', 0, ()),
+        (REV_ALL_ARM, '586e0ff3', 0x4560, 'vacle.f32 q3, q4, q7', 0, ()),
+        (REV_ALL_ARM, '586e2ff3', 0x4560, 'vacle.f32 q3, q4, q7', 0, ()),
+        (REV_ALL_ARM, '4E6808F2', 0x4560, 'vadd.i8  q3, q4, q7', 0, ()),
+        (REV_ALL_ARM, '4E6818F2', 0x4560, 'vadd.i16 q3, q4, q7', 0, ()),
+        (REV_ALL_ARM, '4E6828F2', 0x4560, 'vadd.i32 q3, q4, q7', 0, ()),
+        (REV_ALL_ARM, '4E6838F2', 0x4560, 'vadd.i64 q3, q4, q7', 0, ()),
+        (REV_ALL_ARM, '073804f2', 0x4560, 'vadd.i8  d3, d4, d7', 0, ()),
+        (REV_ALL_ARM, '073814f2', 0x4560, 'vadd.i16 d3, d4, d7', 0, ()),
+        (REV_ALL_ARM, '073824f2', 0x4560, 'vadd.i32 d3, d4, d7', 0, ()),
+        (REV_ALL_ARM, '073834f2', 0x4560, 'vadd.i64 d3, d4, d7', 0, ()),
+        (REV_ALL_ARM, '4e6d08f2', 0x4560, 'vadd.f32 q3, q4, q7', 0, ()),
+        (REV_ALL_ARM, '073d04f2', 0x4560, 'vadd.f32 d3, d4, d7', 0, ()),
+        (REV_ALL_ARM, '231a72ee', 0x4560, 'vadd.f32 s3, s4, s7', 0, ()),
+        (REV_ALL_ARM, '073b34ee', 0x4560, 'vadd.f64 d3, d4, d7', 0, ()),
+        (REV_ALL_ARM, '0e3488f2', 0x4560, 'vaddhn.i16 d3, q4, q7', 0, ()),
+        (REV_ALL_ARM, '0e3498f2', 0x4560, 'vaddhn.i32 d3, q4, q7', 0, ()),
+        (REV_ALL_ARM, '0e34a8f2', 0x4560, 'vaddhn.i64 d3, q4, q7', 0, ()),
+        (REV_ALL_ARM, '076084f2', 0x4560, 'vaddl.s8 q3, d4, d7', 0, ()),
+        (REV_ALL_ARM, '076094f2', 0x4560, 'vaddl.s16 q3, d4, d7', 0, ()),
+        (REV_ALL_ARM, '0760a4f2', 0x4560, 'vaddl.s32 q3, d4, d7', 0, ()),
+        (REV_ALL_ARM, '076084f3', 0x4560, 'vaddl.u8 q3, d4, d7', 0, ()),
+        (REV_ALL_ARM, '076094f3', 0x4560, 'vaddl.u16 q3, d4, d7', 0, ()),
+        (REV_ALL_ARM, '0760a4f3', 0x4560, 'vaddl.u32 q3, d4, d7', 0, ()),
+        (REV_ALL_ARM, '076188f2', 0x4560, 'vaddw.s8 q3, q4, d7', 0, ()),
+        (REV_ALL_ARM, '076198f2', 0x4560, 'vaddw.s16 q3, q4, d7', 0, ()),
+        (REV_ALL_ARM, '0761a8f2', 0x4560, 'vaddw.s32 q3, q4, d7', 0, ()),
+        (REV_ALL_ARM, '076188f2', 0x4560, 'vaddw.u8 q3, q4, d7', 0, ()),
+        (REV_ALL_ARM, '076198f3', 0x4560, 'vaddw.u16 q3, q4, d7', 0, ()),
+        (REV_ALL_ARM, '0761a8f3', 0x4560, 'vaddw.u32 q3, q4, d7', 0, ()),
+        (REV_ALL_ARM, '5e6108f2', 0x4560, 'vand q3, q4, q7', 0, ()),
+        (REV_ALL_ARM, '173104f2', 0x4560, 'vand d3, d4, d7', 0, ()),
+        (REV_ALL_ARM, '7a6980f2', 0x4560, 'vbic.i16 q3, #10', 0, ()),
+        (REV_ALL_ARM, '7a6180f2', 0x4560, 'vbic.i32 q3, #10', 0, ()),
+        (REV_ALL_ARM, '3a3980f2', 0x4560, 'vbic.i16 d3, 10', 0, ()),
+        (REV_ALL_ARM, '3a3180f2', 0x4560, 'vbic.i32 d3, #10', 0, ()),
+        (REV_ALL_ARM, '5e6118f2', 0x4560, 'vbic q3, q4, q7', 0, ()),
+        (REV_ALL_ARM, '173114f2', 0x4560, 'vbic d3, d4, d7', 0, ()),
+        (REV_ALL_ARM, '173134f3', 0x4560, 'vbif d3, d4, d7', 0, ()),
+        (REV_ALL_ARM, '173124f3', 0x4560, 'vbit d3, d4, d7', 0, ()),
+        (REV_ALL_ARM, '173114f3', 0x4560, 'vbsl d3, d4, d7', 0, ()),
+        (REV_ALL_ARM, '5e6138f3', 0x4560, 'vbif q3, q4, q7', 0, ()),
+        (REV_ALL_ARM, '5e6128f3', 0x4560, 'vbit q3, q4, q7', 0, ()),
+        (REV_ALL_ARM, '5e6118f3', 0x4560, 'vbsl q3, q4, q7', 0, ()),
+        (REV_ALL_ARM, '5e6808f3', 0x4560, 'vceq.i8 q3, q4, q7', 0, ()),
+        (REV_ALL_ARM, '5e6818f3', 0x4560, 'vceq.i16 q3, q4, q7', 0, ()),
+        (REV_ALL_ARM, '5e6828f3', 0x4560, 'vceq.i32 q3, q4, q7', 0, ()),
+        (REV_ALL_ARM, '4e6e08f2', 0x4560, 'vceq.f32 q3, q4, q7', 0, ()),
+        (REV_ALL_ARM, '173804f3', 0x4560, 'vceq.i8 d3, d4, d7', 0, ()),
+        (REV_ALL_ARM, '173814f3', 0x4560, 'vceq.i16 d3, d4, d7', 0, ()),
+        (REV_ALL_ARM, '173824f3', 0x4560, 'vceq.i32 d3, d4, d7', 0, ()),
+        (REV_ALL_ARM, '073e04f2', 0x4560, 'vceq.f32 d3, d4, d7', 0, ()),
+        (REV_ALL_ARM, '4861b1f3', 0x4560, 'vceq.i8 q3, q4, #0', 0, ()),
+        (REV_ALL_ARM, '4861b5f3', 0x4560, 'vceq.i16 q3, q4, #0', 0, ()),
+        (REV_ALL_ARM, '4861b9f3', 0x4560, 'vceq.i32 q3, q4, #0', 0, ()),
+        (REV_ALL_ARM, '4865b9f3', 0x4560, 'vceq.f32 q3, q4, #0', 0, ()),
+        (REV_ALL_ARM, '0431b1f3', 0x4560, 'vceq.i8 d3, d4, #0', 0, ()),
+        (REV_ALL_ARM, '0431b5f3', 0x4560, 'vceq.i16 d3, d4, #0', 0, ()),
+        (REV_ALL_ARM, '0431b9f3', 0x4560, 'vceq.i32 d3, d4, #0', 0, ()),
+        (REV_ALL_ARM, '0435b9f3', 0x4560, 'vceq.f32 d3, d4, #0', 0, ()),
+        (REV_ALL_ARM, '5e6308f2', 0x4560, 'vcge.s8  q3, q4, q7', 0, ()),
+        (REV_ALL_ARM, '5e6318f2', 0x4560, 'vcge.s16 q3, q4, q7', 0, ()),
+        (REV_ALL_ARM, '5e6328f2', 0x4560, 'vcge.s32 q3, q4, q7', 0, ()),
+        (REV_ALL_ARM, '5e6308f3', 0x4560, 'vcge.u8  q3, q4, q7', 0, ()),
+        (REV_ALL_ARM, '5e6318f3', 0x4560, 'vcge.u16 q3, q4, q7', 0, ()),
+        (REV_ALL_ARM, '5e6328f3', 0x4560, 'vcge.u32 q3, q4, q7', 0, ()),
+        (REV_ALL_ARM, '4e6e08f3', 0x4560, 'vcge.f32 q3, q4, q7', 0, ()),
+        (REV_ALL_ARM, '173304f2', 0x4560, 'vcge.s8  d3, d4, d7', 0, ()),
+        (REV_ALL_ARM, '173314f2', 0x4560, 'vcge.s16 d3, d4, d7', 0, ()),
+        (REV_ALL_ARM, '173324f2', 0x4560, 'vcge.s32 d3, d4, d7', 0, ()),
+        (REV_ALL_ARM, '173304f3', 0x4560, 'vcge.u8  d3, d4, d7', 0, ()),
+        (REV_ALL_ARM, '173314f3', 0x4560, 'vcge.u16 d3, d4, d7', 0, ()),
+        (REV_ALL_ARM, '173324f3', 0x4560, 'vcge.u32 d3, d4, d7', 0, ()),
+        (REV_ALL_ARM, '073e04f3', 0x4560, 'vcge.f32 d3, d4, d7', 0, ()),
+        (REV_ALL_ARM, '8430b1f3', 0x4560, 'vcge.s8  d3, d4, #0', 0, ()),
+        (REV_ALL_ARM, '8430b5f3', 0x4560, 'vcge.s16 d3, d4, #0', 0, ()),
+        (REV_ALL_ARM, '8430b9f3', 0x4560, 'vcge.s32 d3, d4, #0', 0, ()),
+        (REV_ALL_ARM, '8434b9f3', 0x4560, 'vcge.f32 d3, d4, #0', 0, ()),
+        (REV_ALL_ARM, 'c860b1f3', 0x4560, 'vcge.s8  q3, q4, #0', 0, ()),
+        (REV_ALL_ARM, 'c860b5f3', 0x4560, 'vcge.s16 q3, q4, #0', 0, ()),
+        (REV_ALL_ARM, 'c860b9f3', 0x4560, 'vcge.s32 q3, q4, #0', 0, ()),
+        (REV_ALL_ARM, 'c864b9f3', 0x4560, 'vcge.f32 q3, q4, #0', 0, ()),
+        (REV_ALL_ARM, '4e6308f2', 0x4560, 'vcgt.s8  q3, q4, q7', 0, ()),
+        (REV_ALL_ARM, '4e6318f2', 0x4560, 'vcge.s16 q3, q4, q7', 0, ()),
+        (REV_ALL_ARM, '4e6328f2', 0x4560, 'vcgt.s32 q3, q4, q7', 0, ()),
+        (REV_ALL_ARM, '4e6308f3', 0x4560, 'vcgt.u8  q3, q4, q7', 0, ()),
+        (REV_ALL_ARM, '4e6318f3', 0x4560, 'vcgt.u16 q3, q4, q7', 0, ()),
+        (REV_ALL_ARM, '4e6328f3', 0x4560, 'vcgt.u32 q3, q4, q7', 0, ()),
+        (REV_ALL_ARM, '4e6e08f3', 0x4560, 'vcgt.f32 q3, q4, q7', 0, ()),
+        (REV_ALL_ARM, '073304f2', 0x4560, 'vcgt.s8  d3, d4, d7', 0, ()),
+        (REV_ALL_ARM, '073314f2', 0x4560, 'vcgt.s16 d3, d4, d7', 0, ()),
+        (REV_ALL_ARM, '073324f2', 0x4560, 'vcgt.s32 d3, d4, d7', 0, ()),
+        (REV_ALL_ARM, '073304f3', 0x4560, 'vcgt.u8  d3, d4, d7', 0, ()),
+        (REV_ALL_ARM, '073314f3', 0x4560, 'vcgt.u16 d3, d4, d7', 0, ()),
+        (REV_ALL_ARM, '073324f3', 0x4560, 'vcgt.u32 d3, d4, d7', 0, ()),
+        (REV_ALL_ARM, '073e24f3', 0x4560, 'vcgt.f32 d3, d4, d7', 0, ()),
+        (REV_ALL_ARM, '0430b1f3', 0x4560, 'vcgt.s8  d3, d4, #0', 0, ()),
+        (REV_ALL_ARM, '0430b5f3', 0x4560, 'vcgt.s16 d3, d4, #0', 0, ()),
+        (REV_ALL_ARM, '0430b9f3', 0x4560, 'vcgt.s32 d3, d4, #0', 0, ()),
+        (REV_ALL_ARM, '0434b9f3', 0x4560, 'vcgt.f32 d3, d4, #0', 0, ()),
+        (REV_ALL_ARM, '4860b1f3', 0x4560, 'vcgt.s8  q3, q4, #0', 0, ()),
+        (REV_ALL_ARM, '4860b5f3', 0x4560, 'vcgt.s16 q3, q4, #0', 0, ()),
+        (REV_ALL_ARM, '4860b9f3', 0x4560, 'vcgt.s32 q3, q4, #0', 0, ()),
+        (REV_ALL_ARM, '4864b9f3', 0x4560, 'vcgt.f32 q3, q4, #0', 0, ()),
+        (REV_ALL_ARM, '0434b0f3', 0x4560, 'vcls.s8  d3, d4', 0, ()),
+        (REV_ALL_ARM, '0434b4f3', 0x4560, 'vcls.s16 d3, d4', 0, ()),
+        (REV_ALL_ARM, '0434b8f3', 0x4560, 'vcls.s32 d3, d4', 0, ()),
+        (REV_ALL_ARM, '4864b0f3', 0x4560, 'vcls.s8  q3, q4', 0, ()),
+        (REV_ALL_ARM, '4864b4f3', 0x4560, 'vcls.s16 q3, q4', 0, ()),
+        (REV_ALL_ARM, '4864b8f3', 0x4560, 'vcls.s32 q3, q4', 0, ()),
+        (REV_ALL_ARM, '0432b1f3', 0x4560, 'vclt.s8  d3, d4, #0', 0, ()),
+        (REV_ALL_ARM, '0432b5f3', 0x4560, 'vclt.s16 d3, d4, #0', 0, ()),
+        (REV_ALL_ARM, '0432b9f3', 0x4560, 'vclt.s32 d3, d4, #0', 0, ()),
+        (REV_ALL_ARM, '0436b9f3', 0x4560, 'vclt.f32 d3, d4, #0', 0, ()),
+        (REV_ALL_ARM, '4862b1f3', 0x4560, 'vclt.s8  q3, q4, #0', 0, ()),
+        (REV_ALL_ARM, '4862b5f3', 0x4560, 'vclt.s16 q3, q4, #0', 0, ()),
+        (REV_ALL_ARM, '4862b9f3', 0x4560, 'vclt.s32 q3, q4, #0', 0, ()),
+        (REV_ALL_ARM, '4866b9f3', 0x4560, 'vclt.f32 q3, q4, #0', 0, ()),
+        (REV_ALL_ARM, 'c864b0f3', 0x4560, 'vclz.i8 q3, q4', 0, ()),
+        (REV_ALL_ARM, 'c864b4f3', 0x4560, 'vclz.i16 q3, q4', 0, ()),
+        (REV_ALL_ARM, 'c864b8f3', 0x4560, 'vclz.i32 q3, q4', 0, ()),
+        (REV_ALL_ARM, '8434b0f3', 0x4560, 'vclz.i8  d3, d4', 0, ()),
+        (REV_ALL_ARM, '8434b4f3', 0x4560, 'vclz.i16 d3, d4', 0, ()),
+        (REV_ALL_ARM, '8434b8f3', 0x4560, 'vclz.i32 d3, d4', 0, ()),
+        (REV_ALL_ARM, '443bb4ee', 0x4560, 'vcmp.f64 d3, d4', 0, ()),
+        (REV_ALL_ARM, '421af4ee', 0x4560, 'vcmp.f32 s3, s4', 0, ()),
+        (REV_ALL_ARM, 'c43bb4ee', 0x4560, 'vcmpe.f64 d3, d4', 0, ()),
+        (REV_ALL_ARM, 'c21af4ee', 0x4560, 'vcmpe.f32 s3, s4', 0, ()),
+        (REV_ALL_ARM, '403bb5ee', 0x4560, 'vcmp.f64 d3, #0.0', 0, ()),
+        (REV_ALL_ARM, '401af5ee', 0x4560, 'vcmp.f32 s3, #0.0', 0, ()),
+        (REV_ALL_ARM, 'c03bb5ee', 0x4560, 'vcmpe.f64 d3, #0.0', 0, ()),
+        (REV_ALL_ARM, 'c01af5ee', 0x4560, 'vcmpe.f32 s3, #0.0', 0, ()),
+        (REV_ALL_ARM, '4865b0f3', 0x4560, 'vcnt.8 q3, q4',0, ()),
+        (REV_ALL_ARM, '0435b0f3', 0x4560, 'vcnt.8 d3, d4',0, ()),
+        (REV_ALL_ARM, '4867bbf3', 0x4560, 'vcvt.s32.f32 q3, q4',0, ()),
+        (REV_ALL_ARM, '0437bbf3', 0x4560, 'vcvt.s32.f32 d3, d4',0, ()),
+        (REV_ALL_ARM, 'c867bbf3', 0x4560, 'vcvt.u32.f32 q3, q4',0, ()),
+        (REV_ALL_ARM, '8437bbf3', 0x4560, 'vcvt.u32.f32 d3, d4',0, ()),
+        (REV_ALL_ARM, '4866bbf3', 0x4560, 'vcvt.f32.s32 q3, q4',0, ()),
+        (REV_ALL_ARM, '0436bbf3', 0x4560, 'vcvt.f32.s32 d3, d4',0, ()),
+        (REV_ALL_ARM, 'c866bbf3', 0x4560, 'vcvt.f32.u32 q3, q4',0, ()),
+        (REV_ALL_ARM, '8436bbf3', 0x4560, 'vcvt.f32.u32 d3, d4',0, ()),
+        (REV_ALL_ARM, 'c41bfdee', 0x4560, 'vcvt.s32.f64 s3, d4',0, ()),
+        (REV_ALL_ARM, '441bfdee', 0x4560, 'vcvtr.s32.f64 s3, d4',0, ()),
+        (REV_ALL_ARM, 'C21afdee', 0x4560, 'vcvt.s32.f32 s3, s4',0, ()),
+        (REV_ALL_ARM, '421afdee', 0x4560, 'vcvtr.s32.f32 s3, s4',0, ()),
+        (REV_ALL_ARM, 'c41bfcee', 0x4560, 'vcvt.u32.f64 s3, d4',0, ()),
+        (REV_ALL_ARM, '441bfcee', 0x4560, 'vcvtr.u32.f64 s3, d4',0, ()),
+        (REV_ALL_ARM, 'c21afcee', 0x4560, 'vcvt.u32.f32 s3, s4',0, ()),
+        (REV_ALL_ARM, '421afcee', 0x4560, 'vcvtf.u32.f32 s3, s4',0, ()),
+        (REV_ALL_ARM, 'c23bb8ee', 0x4560, 'vcvt.f64.s32 d3, s4',0, ()),
+        (REV_ALL_ARM, '423bb8ee', 0x4560, 'vcvt.f64.u32 d3, s4',0, ()),
+        (REV_ALL_ARM, 'c21af8ee', 0x4560, 'vcvt.f32.s32 s3, s4',0, ()),
+        (REV_ALL_ARM, '421af8ee', 0x4560, 'vcvt.f32.u32 s3, s4',0, ()),
+        (REV_ALL_ARM, '586fb4f2', 0x4560, 'vcvt.s32.f32 q3, q4, #12',0, ()),
+        (REV_ALL_ARM, '586fb4f3', 0x4560, 'vcvt.u32.f32 q3, q4, #12',0, ()),
+        (REV_ALL_ARM, '586eaef2', 0x4560, 'vcvt.f32.s32 q3, q4, #18',0, ()),
+        (REV_ALL_ARM, '586eb3f3', 0x4560, 'vcvt.f32.u32 q3, q4, #13',0, ()),
+        (REV_ALL_ARM, '143fbdf2', 0x4560, 'vcvt.s32.f32 d3, d4, #3',0, ()),
+        (REV_ALL_ARM, '143fa8f3', 0x4560, 'vcvt.u32.f32 d3, d4, #24',0, ()),
+        (REV_ALL_ARM, '143ea2f2', 0x4560, 'vcvt.f32.s32 d3, d4, #30',0, ()),
+        (REV_ALL_ARM, '143eb9f3', 0x4560, 'vcvt.f32.u32 d3, d4, #7',0, ()),
+        (REV_ALL_ARM, '643bbeee', 0x4560, 'vcvt.s16.f64 d3, d4, #7',0, ()),
+        (REV_ALL_ARM, '613bbfee', 0x4560, 'vcvt.u16.f64 d3, d4, #13',0, ()),
+        (REV_ALL_ARM, 'e83bbeee', 0x4560, 'vcvt.s32.f64 d3, d4, #15',0, ()),
+        (REV_ALL_ARM, 'e43bbfee', 0x4560, 'vcvt.u32.f64 d3, d4, #23',0, ()),
+        (REV_ALL_ARM, '641afeee', 0x4560, 'vcvt.s16.f32 s3, s4, #7',0, ()),
+        (REV_ALL_ARM, '611affee', 0x4560, 'vcvt.u16.f32 s3, s4, #13',0, ()),
+        (REV_ALL_ARM, 'e81afeee', 0x4560, 'vcvt.s32.f32 s3, s4, #15',0, ()),
+        (REV_ALL_ARM, 'e41affee', 0x4560, 'vcvt.u32.f32 s3, s4, #23',0, ()),
+        (REV_ALL_ARM, '643bbaee', 0x4560, 'vcvt.f64.s16 d3, d4, #7',0, ()),
+        (REV_ALL_ARM, '613bbbee', 0x4560, 'vcvt.f64.u16 d3, d4, #13',0, ()),
+        (REV_ALL_ARM, 'e83bbaee', 0x4560, 'vcvt.f64.s32 d3, d4, #15',0, ()),
+        (REV_ALL_ARM, 'e43bbbee', 0x4560, 'vcvt.f64.u32 d3, d4, #23',0, ()),
+        (REV_ALL_ARM, '641afaee', 0x4560, 'vcvt.f32.s16 s3, s4, #7',0, ()),
+        (REV_ALL_ARM, '611afbee', 0x4560, 'vcvt.f32.u16 s3, s4, #13',0, ()),
+        (REV_ALL_ARM, 'e81afaee', 0x4560, 'vcvt.f32.s32 s3, s4, #15',0, ()),
+        (REV_ALL_ARM, 'e41afbee', 0x4560, 'vcvt.f32.u32 s3, s4, #23',0, ()),
         # Following commands are VECTOR Instructions
         (REV_ALL_ARM, '3540f3f3', 0x4560, 'vshr.u32 d20, d21, #0x0d', 0, ()),
         (REV_ALL_ARM, 'f3ff3540', 0x4561, 'vshr.u32 d20, d21, #0x0d', 0, ()),
@@ -1264,10 +1266,8 @@ instrs = [
         (REV_ALL_ARM, 'aaffe44d', 0x4561, 'vqrdmulh.s32 q2, q13, d4[1]', 0, ()),
 
         (REV_ALL_ARM, 'f4efec2f', 0x4561, 'vext.8 q9, q10, q14, #0x0f', 0, ()),
-
-
         ]
-
+instrs.extend(advsimdtests)
 
 # temp scratch: generated these while testing
 ['0de803c0','8de903c0','ade903c0','2de803c0','1de803c0','3de803c0','9de903c0','bde903c0',]
@@ -1651,7 +1651,7 @@ class ArmInstructionSet(unittest.TestCase):
                         
                         raise Exception("FAILED to decode instr:  %.8x %s - should be: %s  - is: %s" % \
                                 ( va, bytez, reprOp, repr(op) ) )
-                        self.assertEqual((bytez, redoprepr), (bytez, redgoodop))
+                        self.assertEqual((goodcount, bytez, redoprepr), (goodcount, bytez, redgoodop))
                     #print bytez, op
                     if not len(emutests):
                         try:
@@ -1901,7 +1901,7 @@ def genAdvSIMDtests():
                         print e
                         bad += 1
                         if bad % 25 == 0:
-                            #raw_input("PRESS ENTER")
+                            raw_input("PRESS ENTER")
                             pass
 
 
@@ -1915,6 +1915,105 @@ def genAdvSIMDtests():
 
     abytez.extend(tbytez)
     return outthumb, outarm, abytez
+
+def genTestsODA(abytez, tbytez):
+    '''
+    generate test cases for arm and thumb for the given sets of bytes
+    '''
+    import oda_api;reload(oda_api)
+    oda = oda_api.OdaSession()
+    oda.setArch('arm', oda_api.ENDIAN_LITTLE)
+
+    for bytez in abytez:
+        oparmjson = oda.disassembleOpcode(bytez, 0, 0x4560)
+        #yield oparmjson[0]
+
+        if len(oparmjson) == 0 or not len(oparmjson[0].get('opcode')):
+            print "ARM code error for val: 0x%s" % bytez.encode('hex')
+            continue
+
+        oparm = oparmjson[0].get('opcode') + " " + oparmjson[0].get('operands')
+        #oparm = am.archParseOpcode(bytezarm, 0, 0x4560)
+        #outarm.append(bytezarm)
+        yield ("        (REV_ALL_ARM, '%s', 0x%x, '%s', 0, ())," % (bytez.encode('hex'), 0x4560, oparm))
+
+
+    for bytez in tbytez:
+        opthumbjson = oda.disassembleOpcode(bytez, 0, 0x4561)
+        if len(opthumbjson) == 0 or not len(opthumbjson[0].get('opcode')):
+            print "THUMB code error for val: 0x%s" % bytez.encode('hex')
+            continue
+
+        opthumb = opthumbjson[0].get('opcode') + " " + oparmjson[0].get('operands')
+
+        #outthumb.append(bytezthumb)
+
+        yield ("        (REV_ALL_ARM, '%s', 0x%x, '%s', 0, ())," % (bytez.encode('hex'), 0x4561, opthumb))
+
+def genTestsObjdump(abytez, tbytez):
+    '''
+    abytez, tbytez = genAdvSIMDtests()
+    tests = genTestsObjdump(abytez, tbytez)
+    file('armthumb_tests.py', 'wb').write('\n'.join(tests))
+    '''
+    global data
+    import subprocess
+    from subprocess import PIPE
+
+    file('/tmp/armbytez', 'wb').write(''.join(abytez))
+    proc = subprocess.Popen(['/usr/bin/arm-linux-gnueabi-objdump', '-D','/tmp/armbytez', '-b', 'binary', '-m', 'arm'], stdin=PIPE, stdout=PIPE, stderr=PIPE)
+    data = proc.stdout.readlines()
+    data = [x.strip() for x in data]
+    data = [x.split('\t') for x in data]
+    for parts in data:
+        if len(parts) < 4:
+            print parts
+            continue
+        ova, bytez, op, opers = parts[:4]
+        ova = ova[:-1]
+        bytez = bytez[6:8] + bytez[4:6] + bytez[2:4] + bytez[:2]
+        yield ("        (REV_ALL_ARM, '%s', 0x%s, '%s %s', 0, ())," % (bytez, ova, op, opers))
+
+
+    file('/tmp/thmbytez', 'wb').write(''.join(tbytez))
+    proc = subprocess.Popen(['/usr/bin/arm-linux-gnueabi-objdump', '-D','/tmp/thmbytez', '-b', 'binary', '-m', 'arm', '-M', 'force-thumb'], stdin=PIPE, stdout=PIPE, stderr=PIPE)
+    data = proc.stdout.readlines()
+    data = [x.strip() for x in data]
+    data = [x.split('\t') for x in data]
+    for parts in data:
+        if len(parts) < 4:
+            print parts
+            continue
+        ova, bytez, op, opers = parts[:4]
+        ova = ova[:-1]
+        bytez = bytez[6:8] + bytez[4:6] + bytez[2:4] + bytez[:2]
+        yield ("        (REV_ALL_ARM, '%s', 0x%s, '%s %s', 0, ())," % (bytez, ova, op, opers))
+
+
+def genAdvSIMDtestBytez():
+    # thumb
+    outthumb = []
+    outarm = []
+    abytez = []
+    tbytez = []
+    armbase = 0xf2043002 # generic Adv SIMD with Vn=8, Vd=6, Vm=4 (or 4,3,2, depending)
+    thmbase = 0xef043002 # generic Adv SIMD with Vn=8, Vd=6, Vm=4 (or 4,3,2, depending)
+    # thumb dp, arm dp (with both 0/1 for U)
+    #for option in (0xf000000, 0x2000000, 0x3000000, 0x1f000000):
+    bad = 0
+    for u in range(2):
+        for A in range(32): # three registers of same length
+            for B in range(16): # three registers of same length
+                for C in range(2):
+                    for D in range(4):
+                        armval = armbase | (u<<24) | (A<<19) | (B<<8) | (C<<7) | (D<<4)
+                        thmval = thmbase | (u<<28) | (A<<19) | (B<<8) | (C<<7) | (D<<4)
+                        bytezarm = struct.pack("<I", armval)
+                        abytez.append(bytezarm)
+                        bytezthumb = struct.pack("<HH", thmval>>16, thmval&0xffff)
+                        tbytez.append(bytezthumb)
+
+    return abytez, tbytez
 # thumb 16bit IT, CNBZ, CBZ
 
 

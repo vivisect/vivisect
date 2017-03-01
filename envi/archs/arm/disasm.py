@@ -1358,7 +1358,12 @@ def p_coproc_dp(opval, va):
     cp_num = (opval>>8) & 0xf
     opcode2 = (opval>>5) & 0x7
     CRm = opval & 0xf
-    mnem = cdp_mnem[(opval>>28)&1]
+
+    cdp2bit = (opval>>28)&1
+    mnem = cdp_mnem[cdp2bit]
+
+    if cdp2bit == 0 and (cp_num & 0b1110) == 0b1010:
+        return p_fp_dp(opval, va)
 
     olist = (
         ArmCoprocOper(cp_num),
@@ -1371,6 +1376,7 @@ def p_coproc_dp(opval, va):
     
     opcode = (IENC_COPROC_DP << 16)
     return (opcode, mnem, olist, 0, 0)
+
 mcr_mnem = ("mcr", "mrc")
 def p_coproc_reg_xfer(opval, va):
     opcode1 = (opval>>21) & 0x7
@@ -1629,6 +1635,261 @@ def p_uncond(opval, va, psize = 4):
                     mesg="p_uncond (ontop=3): invalid instruction",
                     bytez=struct.pack("<I", opval), va=va)
     
+   
+def p_fp_dp(opval, va):
+    val1 = opval >> 16
+    val2 = opval & 0xffff
+    return _do_fp_dp(va, val1, val2)
+
+def _do_fp_dp(va, val1, val2):
+    opcode = 0
+    iflags = 0
+    simdflags = 0
+
+    opc1 = (val1>>4) & 0xf
+    opc2 = val1 & 0xf
+    opc3 = (val2>>6) & 3
+    opc4 = val2 & 0xf
+
+    opc1sub = opc1 & 0b1011
+
+    D = (val1 >> 6) & 1
+    N = (val2 >> 7) & 1
+    M = (val2 >> 5) & 1
+    Vd = (val2 >> 12) & 0xf
+    Vn = opc2 #val1 & 0xf
+    Vm = opc4 #val2 & 0xf
+
+    sz = (val2 >> 8) & 1
+
+    # D and S, depending on sz
+    rbase = ("s%d","d%d")[sz]
+
+    if opc1sub != 0b1011:
+        op = (opc1sub & 0b1000) | ((opc1sub & 0b11)<<1) | (opc3 & 1)
+        mnem = ('vmla','vmls','vnmla','vnmls','vnmul','vmul','vadd','vsub','vdiv','vfnms','vfnma','vfms','vfma',)[op]
+
+        
+
+        if sz:
+            d = (D<<4) | Vd
+            m = (M<<4) | Vm
+            n = (N<<4) | opc2 #Vn
+        else:
+            d = (Vd<<1) | D
+            m = (Vm<<1) | M
+            n = (opc2<<1) | N
+
+        simdflags |= (IFS_F32, IFS_F64)[sz]
+
+        # VMLA, VMLS p930
+        # VNMLA, VNMLS T1/A1, VNMUL T2/A2, p 968
+        # VMUL p958 - T2/A2 encoding
+        # VADD p 828
+        # VSUB p1084
+        # VDIV p880
+        # VFNMA, VFNMS p892
+        # VFMA, VFMS p890
+        opers = (   
+                ArmRegOper(rctx.getRegisterIndex(rbase%d)),
+                ArmRegOper(rctx.getRegisterIndex(rbase%n)),
+                ArmRegOper(rctx.getRegisterIndex(rbase%m)),
+                )
+
+    else:
+        # VMOV p934
+        D = (val1 >> 6) & 1
+        Vd = (val2 >> 12) & 0xf
+        imm4h = val1 & 0xf
+        imm4l = val2 & 0xf
+
+        if sz:
+            d = (D<<4) | Vd
+            m = (M<<4) | Vm
+            imm = imm4h<<4 | imm4l
+            simdflags |= IFS_F64
+            rbase = "d%d"
+        else:
+            d = (Vd<<1) | D
+            m = (Vm<<1) | M
+            imm = imm4h<<4 | imm4l
+            simdflags |= IFS_F32
+            rbase = "s%d"
+
+        if opc3 & 1 == 0:
+            mnem = 'vmov'
+            opers = (
+                    ArmRegOper(rctx.getRegisterIndex(rbase%d)),
+                    ArmImmOper(imm),
+                    )
+
+        elif opc2 == 0:
+            # VMOV p935 with reg/reg
+            if opc3 & 1:
+                mnem = 'vmov'
+
+            # VABS p822 T2/A2
+            elif opc3 == 3:
+                mnem = 'vabs'
+
+            opers = (
+                    ArmRegOper(rctx.getRegisterIndex(rbase%d)),
+                    ArmRegOper(rctx.getRegisterIndex(rbase%m)),
+                    )
+
+        elif opc2 == 1:
+            # VNEG p966 T2/A2
+            if opc3 == 0x1:
+                mnem = 'vneg'
+
+            # VSQRT p1056
+            elif opc3 == 0x3:
+                mnem = 'vsqrt'
+
+            opers = (
+                    ArmRegOper(rctx.getRegisterIndex(rbase%d)),
+                    ArmRegOper(rctx.getRegisterIndex(rbase%m)),
+                    )
+
+        # VCVTB, VCVTT p878
+        elif opc2 in (2,3) and opc3 in (1,3):
+            T = N
+            simdflags |= (IFS_F1632, IFS_F3216)[val1&1]
+            mnem = ('vcvtb','vcvtt')[T]
+
+            opers = (
+                    ArmRegOper(rctx.getRegisterIndex(rbase%d)),
+                    ArmRegOper(rctx.getRegisterIndex(rbase%m)),
+                    )
+
+        # VCMP, VCMPE p862
+        elif opc2 in (4,5) and opc3 in (1,3):
+            E = N
+            mnem = ('vcmp','vcmpe')[E]
+            
+            if opc2 == 4:
+                opers = (
+                        ArmRegOper(rctx.getRegisterIndex(rbase%d)),
+                        ArmRegOper(rctx.getRegisterIndex(rbase%m)),
+                        )
+            else:
+                opers = (
+                        ArmRegOper(rctx.getRegisterIndex(rbase%d)),
+                        ArmImmFPOper(0.0),
+                        )
+
+        # VCVT p874
+        elif opc2 == 7 and opc3 == 3:
+            mnem = 'vcvt'
+            if sz:
+                d = (Vd<<1) | D
+                m = (M<<4) | Vm
+                simdflags |= IFS_F32F64
+                rbase1 = "s%d"
+                rbase2 = "d%d"
+            else:
+                d = (D<<4) | Vd
+                m = (Vm<<1) | M
+                simdflags |= IFS_F64F32
+                rbase1 = "d%d"
+                rbase2 = "s%d"
+
+            opers = (
+                    ArmRegOper(rctx.getRegisterIndex(rbase1%d)),
+                    ArmRegOper(rctx.getRegisterIndex(rbase2%m)),
+                    )
+
+        # VCVT, VCVTR p868
+        elif opc2 in (0b1000,0b1100,0b1101) and opc3 & 1:
+            op = opc3>>1
+            # S32F64, S32F32, U32F64, U32F32, F64TM, F32TM??
+            to_int = opc2 & 0b100
+            if to_int:
+                mnem = 'vcvtr'
+                signed = opc2&1
+                round_zero = op
+
+                d = (Vd<<1) | D
+                if sz:
+                    m = (M<<4) | Vm
+                    simdflags |= (IFS_U32F64, IFS_S32F64)[signed]
+                    rbase1 = "s%d"
+                    rbase2 = "d%d"
+                else:
+                    m = (Vm<<1) | M
+                    simdflags |= (IFS_U32F32, IFS_S32F32)[signed]
+                    rbase1 = "s%d"
+                    rbase2 = "s%d"
+
+            else:
+                mnem = 'vcvt'
+                signed = op
+                round_nearest = False
+                m = (Vm<<1) | M
+                if sz:
+                    d = (D<<4) | Vd
+                    simdflags |= (IFS_F64U32, IFS_F64S32)[signed]
+                    rbase1 = "d%d"
+                    rbase2 = "s%d"
+                else:
+                    d = (Vd<<1) | D
+                    simdflags |= (IFS_F32U32, IFS_F32S32)[signed]
+                    rbase1 = "s%d"
+                    rbase2 = "s%d"
+
+            opers = (
+                    ArmRegOper(rctx.getRegisterIndex(rbase1%d)),
+                    ArmRegOper(rctx.getRegisterIndex(rbase2%m)),
+                    )
+
+        # VCVT p872
+        elif opc2 in (0b1010,0b1011,0b1110,0b1111) and opc3&1:
+            mnem = 'vcvt'
+            U = (val1>>12) & 1 # thumb only.  arm gets U from bit 22
+            imm6 = val1 & 0x3f
+            op = sz
+            Q = opc3
+
+            if imm6 & 0b000111:
+                raise InvalidInstruction('fp/adv simd parsing error.  alternate encoding p267.',va=va, bytez=bytez)
+            if imm6 & 0b011111:
+                raise InvalidInstruction('fp/adv simd parsing error.  undefined behavior.',va=va, bytez=bytez)
+
+            if op:      # FIXME: not sure what to do with these.
+                #round_zero = True  - like, what does this mean?
+                if U:
+                    simdflags |= IFS_U32F32
+                else:
+                    simdflags |= IFS_S32F32
+            else:
+                #round_nearest = True
+                if U:
+                    simdflags |= IFS_F32U32
+                else:
+                    simdflags |= IFS_F32S32
+
+            #esize = 32
+            frac_bits = 64 - imm6
+            #elements = 2
+
+            d = (D<<4) | Vd
+            m = (M<<4) | Vm
+
+            if Q:
+                rbase = "q%d"
+            else:
+                rbase = "d%d"
+
+            #regs = Q + 1
+
+
+            opers = (
+                    ArmRegOper(rctx.getRegisterIndex(rbase%d)),
+                    ArmRegOper(rctx.getRegisterIndex(rbase%m)),
+                    ArmImmOper(frac_bits),
+                    )
+
+    return (opcode, mnem, opers, iflags, simdflags)
 
 
 def p_advsimd_secondary(val, va, mnem, opcode, flags, opers):
@@ -2027,13 +2288,13 @@ adv_simd_3diffregs = (
         ('vaddhn', INS_VADDHN, 8, 0, 1, 1),
         ('vraddhn', INS_VRADDHN, 8, 0, 1, 1),
         # a=5, u=0/1
-        ('vaba', INS_VABA, 0, 1, 0, 0),
+        ('vabal', INS_VABAL, 0, 1, 0, 0),
         ('vabal', INS_VABAL, 4, 1, 0, 0),
         # a=6
         ('vsubhn', INS_VSUBHN, 8, 0, 1, 1),
         ('vrsubhn', INS_VRSUBHN, 8,0, 1, 1),
         # a=7
-        ('vabd', INS_VABD, 0, 1, 0, 0),
+        ('vabdl', INS_VABDL, 0, 1, 0, 0),
         ('vabdl', INS_VABDL, 4, 1, 0, 0),
         # a=8
         ('vmlal', INS_VMLAL, 0, 1, 0, 0),
@@ -2535,7 +2796,7 @@ def _do_adv_simd_32(val, va, u):
             if (c & 1) == 0:
                 if (b & 0x8) == 0:
                     # two registers, miscellaneous
-                    a = (val>>16) & 0x3
+                    a = (val>>16) & 0x3     # size
                     b = (val>>6) & 0x1f
 
                     idx = (a<<5) | b
@@ -2545,21 +2806,22 @@ def _do_adv_simd_32(val, va, u):
                                 bytez=struct.pack('<L', val), va=va)
 
                     d >>= q
-                    n >>= q
+                    m >>= q
 
                     if a and ((b&0b1100) != 0b1100):
                         opers = (
                             ArmRegOper(rctx.getRegisterIndex(rbase%d)),
-                            ArmRegOper(rctx.getRegisterIndex(rbase%n)),
+                            ArmRegOper(rctx.getRegisterIndex(rbase%m)),
                             ArmImmOper(0),
                         )
                     else:
                         opers = (
                             ArmRegOper(rctx.getRegisterIndex(rbase%d)),
-                            ArmRegOper(rctx.getRegisterIndex(rbase%n)),
+                            ArmRegOper(rctx.getRegisterIndex(rbase%m)),
                         )
 
-                    sz = (val>>8) & 0x3
+                    #sz = (val>>8) & 0x3     # vabs needs sz to be bits 18-19
+                    sz = (val>>18) & 0x3     # vabs needs sz to be bits 18-19
                     szu = sz + flagoff
                     simdflags = adv_simd_dts[szu]
 
@@ -2573,9 +2835,9 @@ def _do_adv_simd_32(val, va, u):
                     mnem, opcode = (('vtbl', INS_VTBL),('vtbx', INS_VTBX))[op]
 
                     opers = (
-                            ArmRegOper(rctx.getRegisterIndex(rbase%d)),
+                            ArmRegOper(rctx.getRegisterIndex('d%d'%d)),
                             ArmExtRegListOper(n, ln+1, 1),
-                            ArmRegOper(rctx.getRegisterIndex(rbase%n)),
+                            ArmRegOper(rctx.getRegisterIndex('d%d'%m)),
                             )
 
                     simdflags = IFS_8
@@ -2611,6 +2873,7 @@ def _do_adv_simd_32(val, va, u):
                     return opcode, mnem, opers, 0, simdflags
 
     return 0, 'NO VECTOR ENCODING COMPLETED', (), 0, 0
+
 
 adv_2_vqshl_typesize = {
     8: ( None, IFS_S8, IFS_S8, IFS_U8),
@@ -2886,8 +3149,10 @@ ienc_parsers_tmp[IENC_COPROC_RREG_XFER] = p_coproc_dbl_reg_xfer
 ienc_parsers_tmp[IENC_COPROC_LOAD] =   p_coproc_load
 ienc_parsers_tmp[IENC_COPROC_DP] =   p_coproc_dp
 ienc_parsers_tmp[IENC_COPROC_REG_XFER] =   p_coproc_reg_xfer
-ienc_parsers_tmp[IENC_SWINT] =    p_swint
-ienc_parsers_tmp[IENC_UNCOND] = p_uncond
+ienc_parsers_tmp[IENC_FP_DP] =   p_fp_dp
+ienc_parsers_tmp[IENC_ADVSIMD] = adv_simd_32
+ienc_parsers_tmp[IENC_SWINT] =   p_swint
+ienc_parsers_tmp[IENC_UNCOND] =  p_uncond
 ienc_parsers_tmp[IENC_DP_MOVT] = p_dp_movt
 ienc_parsers_tmp[IENC_DP_MOVW] = p_dp_movw
 

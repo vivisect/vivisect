@@ -319,8 +319,10 @@ IENC_DP_MOVW      = 21 # Not sure it exists?
 IENC_DP_MOVT      = 22 # move top
 IENC_DP_MSR_IMM   = 23 # 
 IENC_LOAD_STORE_WORD_UBYTE = 24
+IENC_FP_DP        = 25
+IENC_ADVSIMD      = 26
 
-IENC_MAX        = 25
+IENC_MAX        = 27
 
 # offchutes
 IENC_MEDIA_PARALLEL = ((IENC_MEDIA << 8) + 1) << 8
@@ -360,9 +362,10 @@ SOT_IMM = 1
 daib = ("da", "", "db", "ib")
 
 
+
+'''
 def instrenc(encoding, index):
     return (encoding << 16) + index
-
 INS_AND = IENC_DP_IMM_SHIFT << 16
 INS_EOR = (IENC_DP_IMM_SHIFT << 16) + 1
 INS_SUB = (IENC_DP_IMM_SHIFT << 16) + 2
@@ -399,11 +402,39 @@ INS_SWI     = IENC_SWINT
 
 INS_LDR = instrenc(IENC_LOAD_IMM_OFF,  0)
 INS_STR = instrenc(IENC_LOAD_IMM_OFF,  1)
-
-
-no_update_Rd = (INS_TST, INS_TEQ, INS_CMP, INS_CMN, )
+'''
 
 instrnames = [
+        'AND',
+        'EOR',
+        'SUB',
+        'RSB',
+        'ADD',
+        'ADC',
+        'SBC',
+        'RSC',
+        'TST',
+        'TEQ',
+        'CMP',
+        'CMN',
+        'ORR',
+        'MOV',
+        'BIC',
+        'MVN',
+        'ORN',
+        'ADR',
+        'B',
+        'BL',
+        'BCC',
+        'BX',
+        'BXJ',
+        'BLX',
+        'SWI',
+        'DBG',
+        'MOVT',
+        'MOVW',
+        'LDR',
+        'STR',
         'VHADD',
         'VQADD',
         'VRHADD',
@@ -557,3 +588,7 @@ ins_index = 85
 for instr in instrnames:
     globals()['INS_' + instr] = ins_index
     ins_index += 1
+
+no_update_Rd = (INS_TST, INS_TEQ, INS_CMP, INS_CMN, )
+
+
