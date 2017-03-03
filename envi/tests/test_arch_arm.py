@@ -1649,8 +1649,8 @@ class ArmInstructionSet(unittest.TestCase):
                         
                         badcount += 1
                         
-                        raise Exception("FAILED to decode instr:  %.8x %s - should be: %s  - is: %s" % \
-                                ( va, bytez, reprOp, repr(op) ) )
+                        raise Exception("%d FAILED to decode instr:  %.8x %s - should be: %s  - is: %s" % \
+                                (goodcount, va, bytez, reprOp, repr(op) ) )
                         self.assertEqual((goodcount, bytez, redoprepr), (goodcount, bytez, redgoodop))
                     #print bytez, op
                     if not len(emutests):

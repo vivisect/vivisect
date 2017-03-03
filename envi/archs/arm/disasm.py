@@ -246,12 +246,12 @@ def p_dp_imm_shift(opval, va):
     return (opcode, mnem, olist, iflags, 0)
 
 # specialized mnemonics for p_misc
-qop_mnem = ('qadd','qsub','qdadd','qdsub') # used in misc1
-smla_mnem = ('smlabb','smlatb','smlabt','smlatt',)
-smlal_mnem = ('smlalbb','smlaltb','smlalbt','smlaltt',)
-smul_mnem = ('smulbb','smultb','smulbt','smultt',)
-smlaw_mnem = ('smlawb','smlawt',)
-smulw_mnem = ('smulwb','smulwt',)
+qop_mnem = (('qadd', INS_QADD),('qsub', INS_QSUB),('qdadd', INS_QDADD),('qdsub', INS_QDSUB)) # used in misc1
+smla_mnem = (('smlabb', INS_SMLABB),('smlatb', INS_SMLATB),('smlabt', INS_SMLATB),('smlatt', INS_SMLATB),)
+smlal_mnem = (('smlalbb', INS_SMLALBB),('smlaltb', INS_SMLALTB),('smlalbt', INS_SMLALTB),('smlaltt', INS_SMLALTB),)
+smul_mnem = (('smulbb', INS_SMULBB),('smultb', INS_SMULTB),('smulbt', INS_SMULTB),('smultt', INS_SMULTB),)
+smlaw_mnem = (('smlawb', INS_SMLAWB),('smlawt', INS_SMLAWT),)
+smulw_mnem = (('smulwb', INS_SMULWB),('smulwt', INS_SMULWT),)
 
 def p_misc(opval, va):  
     # 0x0f900000 = 0x01000000 or 0x01000010 (misc and misc1 are both parsed at the same time.  see the footnote [2] on dp instructions in the Atmel AT91SAM7 docs
@@ -261,14 +261,14 @@ def p_misc(opval, va):
     
     #if opval & 0x0ff000f0 == 0x01200020:
     if opval & 0x0FFFFFF0 == 0x012FFF20:  
-        opcode = (IENC_MISC << 16) + 5
+        opcode = INS_BXJ
         mnem = 'bxj'
         Rm = opval & 0xf
         olist = ( ArmRegOper(Rm, va=va), )
         
     #elif opval & 0x0fb002f0 == 0x01200000:
     elif opval & 0x0DB0F000 == 0x0120F000:
-        opcode = (IENC_MISC << 16) + 2
+        opcode = INS_MSR
         mnem = 'msr'        # register.   immediate has it's own parser in the 001 section
         r = (opval>>22) & 1
         Rn = (opval) & 0xf
@@ -281,9 +281,8 @@ def p_misc(opval, va):
     #smla 
     #Mask and value are OK
     elif opval & 0x0FF00090 == 0x01000080:
-        opcode = (IENC_MISC << 16) + 9
         mn = (opval>>5)&3
-        mnem = smla_mnem[mn]
+        mnem, opcode = smla_mnem[mn]
         Rd = (opval>>16) & 0xf
         Ra = (opval>>12) & 0xf 
         Rm = (opval>>8) & 0xf
@@ -297,9 +296,8 @@ def p_misc(opval, va):
     #smlaw
     #mask and value are OK
     elif opval & 0x0ff000b0 == 0x01200080:
-        opcode = (IENC_MISC << 16) + 10
         m = (opval>>6)&1
-        mnem = smlaw_mnem[m]
+        mnem, opcode = smlaw_mnem[m]
         Rd = (opval>>16) & 0xf
         Ra = (opval>>12) & 0xf 
         Rm = (opval>>8) & 0xf
@@ -313,9 +311,8 @@ def p_misc(opval, va):
     #smulw
     #mask and value are ok
     elif opval & 0x0ff000b0 == 0x012000a0:
-        opcode = (IENC_MISC << 16) + 11
         m = (opval>>6)&1
-        mnem = smulw_mnem[m]
+        mnem, opcode = smulw_mnem[m]
         Rd = (opval>>16) & 0xf
         Rm = (opval>>8) & 0xf
         Rn = opval & 0xf
@@ -327,9 +324,8 @@ def p_misc(opval, va):
     #smlal
     #mask and value are ok
     elif opval & 0x0ff00090 == 0x01400080:
-        opcode = (IENC_MISC << 16) + 12
         mn = (opval>>5)&3
-        mnem = smlal_mnem[mn]
+        mnem, opcode = smlal_mnem[mn]
         Rdhi = (opval>>16) & 0xf
         Rdlo = (opval>>12) & 0xf 
         Rm = (opval>>8) & 0xf
@@ -343,9 +339,8 @@ def p_misc(opval, va):
     #smul
     #elif opval & 0x0ff00090 == 0x01600080:
     elif opval & 0x0ff0f090 == 0x01600080:
-        opcode = (IENC_MISC << 16) + 13
         mn = (opval>>5)&3
-        mnem = smul_mnem[mn]
+        mnem, opcode = smul_mnem[mn]
         Rd = (opval>>16) & 0xf
         Rm = (opval>>8) & 0xf
         Rn = opval & 0xf
@@ -375,9 +370,6 @@ def p_misc(opval, va):
     return (opcode, mnem, olist, 0, 0)
 
 
-#### these actually belong to the media section, and already exist there. FIXME: DELETE
-#misc1_mnem = ("pkhbt", "pkhtb", "rev", "rev16", "revsh", "sel", "ssat", "ssat16", "usat", "usat16", )
-
 def p_misc1(opval, va): # 
     #R = (opval>>22) & 1
     #Rn = (opval>>16) & 0xf
@@ -396,7 +388,7 @@ def p_misc1(opval, va): #
             iflags |= envi.IF_RET
         
     elif opval & 0x0ff000f0 == 0x01600010:  
-        opcode = (IENC_MISC << 16) + 4
+        opcode = INS_CLZ
         mnem = 'clz'
         Rd = (opval>>12) & 0xf
         Rm = opval & 0xf
@@ -413,9 +405,8 @@ def p_misc1(opval, va): #
         iflags |= envi.IF_CALL
         
     elif opval & 0x0f9000f0 == 0x01000050:  #all qadd/qsub's
-        opcode = (IENC_MISC << 16) + 7
         qop = (opval>>21)&3
-        mnem = qop_mnem[qop]
+        mnem, opcode = qop_mnem[qop]
         Rn = (opval>>16) & 0xf
         Rd = (opval>>12) & 0xf
         Rm = opval & 0xf
@@ -458,8 +449,9 @@ STRH (imm) & (reg)
 '''
 swap_mnem = ("swp","swpb",)
 #strex_mnem = ("strex","ldrex",)  # actual full instructions - keeping in case was mistake
-strex_mnem = ("strex","ldrex","","d","b","h")  # full instruction then suffix - missed in merge?
-strh_mnem = (("str",IF_H,2),("ldr",IF_H,2),)          # IF_H
+strex_mnem = ("strex","ldrex")  # full instruction then suffix - missed in merge?
+strex_flags = (0, IF_D, IF_B, IF_H)
+strh_mnem = (("str",INS_STR, IF_H,2),("ldr",INS_LDR, IF_H,2),)          # IF_H
 ldrs_mnem = (("ldr",IF_S|IF_B,1),("ldr",IF_S|IF_H,2),)      # IF_SH, IF_SB
 ldrd_mnem = (("ldr",IF_D),("str",IF_D),)        # IF_D
 
@@ -474,7 +466,7 @@ def p_extra_load_store(opval, va, psize=4):
     tvariant = bool ((pubwl & 0x12)==2)
     if opval&0x0fb000f0==0x01000090:# swp/swpb
         idx = (pubwl>>2)&1
-        opcode = (IENC_EXTRA_LOAD << 16) + idx
+        opcode = INS_SWP
         mnem = swap_mnem[idx]
         olist = (
             ArmRegOper(Rd, va=va),
@@ -485,8 +477,9 @@ def p_extra_load_store(opval, va, psize=4):
         idx = pubwl&1
         opcode = (IENC_EXTRA_LOAD << 16) + 2 + idx
         itype = (opval >> 21) & 3
-        mnem = strex_mnem[idx]+strex_mnem[2+itype]
-        if (idx==0) & (itype !=1): #strex has 1 more entry than ldrex
+        mnem = strex_mnem[idx]
+        iflags |= strex_flags[itype]
+        if (idx==0) & (itype != 1): #strex has 1 more entry than ldrex
             olist = (
                 ArmRegOper(Rd, va=va),
                 ArmRegOper(Rm, va=va),
@@ -516,7 +509,7 @@ def p_extra_load_store(opval, va, psize=4):
         # 0000u110-Rn--Rt-imm41011imm4  - STRHT (v7+)
         idx = pubwl&1
         opcode = (IENC_EXTRA_LOAD << 16) + 4 + idx
-        mnem,iflags,tsize = strh_mnem[idx]
+        mnem, opcode, iflags, tsize = strh_mnem[idx]
         if tvariant:
             iflags |= IF_T
         olist = (
@@ -525,8 +518,7 @@ def p_extra_load_store(opval, va, psize=4):
         )
     elif opval&0x0e4000f0==0x004000b0:# strh/ldrh immoffset
         idx = pubwl&1
-        opcode = (IENC_EXTRA_LOAD << 16) + 6 + idx
-        mnem,iflags,tsize= strh_mnem[idx]
+        mnem, opcode, iflags, tsize= strh_mnem[idx]
         if tvariant:
             iflags |= IF_T
         olist = (
@@ -535,7 +527,7 @@ def p_extra_load_store(opval, va, psize=4):
         )
     elif opval&0x0e5000d0==0x005000d0:# ldrsh/b immoffset
         idx = (opval>>5)&1
-        opcode = (IENC_EXTRA_LOAD << 16) + 8 + idx
+        opcode = INS_LDR
         mnem,iflags,tsize = ldrs_mnem[idx]
         if tvariant:
             iflags |= IF_T
@@ -545,7 +537,7 @@ def p_extra_load_store(opval, va, psize=4):
         )
     elif opval&0x0e5000d0==0x001000d0:# ldrsh/b regoffset
         idx = (opval>>5)&1
-        opcode = (IENC_EXTRA_LOAD << 16) + 10 + idx
+        opcode = INS_LDR
         mnem,iflags,tsize = ldrs_mnem[idx]
         if tvariant:
             iflags |= IF_T
@@ -563,7 +555,7 @@ def p_extra_load_store(opval, va, psize=4):
                 mesg="extra_load_store: invalid Rt argument",
                 bytez=struct.pack("<I", opval), va=va)
         idx = (opval>>5)&1
-        opcode = (IENC_EXTRA_LOAD << 16) + 12 + idx
+        opcode = INS_LDR
         mnem,iflags = ldrd_mnem[idx]
         olist = (
             ArmRegOper(Rd, va=va),
@@ -576,7 +568,7 @@ def p_extra_load_store(opval, va, psize=4):
                 mesg="extra_load_store: invalid Rt argument",
                 bytez=struct.pack("<I", opval), va=va)
         idx = (opval>>5)&1
-        opcode = (IENC_EXTRA_LOAD << 16) + 14 + idx
+        opcode = INS_LDR
         mnem,iflags = ldrd_mnem[idx]
         olist = (
             ArmRegOper(Rd, va=va),
@@ -1330,23 +1322,22 @@ def p_coproc_load(opval, va):
     opcode = (IENC_COPROC_LOAD << 16)
     return (opcode, ldc_mnem[punwl&1], olist, iflags, 0)
 
-mcrr_mnem = ("mcrr", "mrrc")
+mcrr_mnem = (("mcrr", INS_MCRR), ("mrrc", INS_MRRC))
 def p_coproc_dbl_reg_xfer(opval, va):
     Rn = (opval>>16) & 0xf
     Rd = (opval>>12) & 0xf
     cp_num = (opval>>8) & 0xf
-    opcode = (opval>>4) & 0xf
+    copcode = (opval>>4) & 0xf
     CRm = opval & 0xf
-    mnem = mcrr_mnem[(opval>>20) & 1]
     
     olist = (
         ArmCoprocOper(cp_num),
-        ArmCoprocOpcodeOper(opcode),
+        ArmCoprocOpcodeOper(copcode),
         ArmRegOper(Rd, va=va),
         ArmRegOper(Rn, va=va),
         ArmCoprocRegOper(CRm),
     )
-    opcode = IENC_COPROC_RREG_XFER<<16
+    mnem, opcode = mcrr_mnem[(opval>>20) & 1]
     return (opcode, mnem, olist, 0, 0)
     
 cdp_mnem = ("cdp", "cdp2")
@@ -1406,6 +1397,266 @@ def p_swint(opval, va):
     olist = ( ArmImmOper(swint), )
     opcode = IENC_SWINT << 16 + 1
     return (opcode, "svc", olist, 0, 0)
+
+def p_vmov_single(opval, va): 
+    op = (val >> 20) & 1
+
+    n = (opval >> 7) & 1
+    vn = (opval >> 15) & 0x1e | n
+    
+    rt = (opval >> 12) & 0xf
+
+    if op:
+        opers = (
+            ArmRegOper(rt, va),
+            ArmRegOper(rctx.getRegisterIndex('s%d' % vn)),
+
+                )
+    else:
+        opers = (
+            ArmRegOper(rctx.getRegisterIndex('s%d' % vn)),
+            ArmRegOper(rt, va),
+                )
+    return opcode, mnem, opers, 0, 0
+
+def p_vmov_2single(opval, va):  # p944
+    op = (val >> 20) & 1
+
+    rt2 = (opval >> 16) & 0xf
+    rt = (opval >> 12) & 0xf
+
+    m = (opval >> 5) & 1
+    vm = ((opval << 1) & 0x1e) | m
+
+    if op:
+        opers = (
+            ArmRegOper(rt, va),
+            ArmRegOper(rt2, va),
+            ArmRegOper(rctx.getRegisterIndex('s%d' % vm)),
+            ArmRegOper(rctx.getRegisterIndex('s%d' % (vm+1))),
+
+                )
+    else:
+        opers = (
+            ArmRegOper(rctx.getRegisterIndex('s%d' % vm)),
+            ArmRegOper(rctx.getRegisterIndex('s%d' % (vm+1))),
+            ArmRegOper(rt, va),
+            ArmRegOper(rt2, va),
+                )
+    return opcode, mnem, opers, 0, 0
+
+def p_vmov_double(opval, va):
+    opcode = INS_VMOV
+    mnem = 'vmov'
+
+    op = (val >> 20) & 1
+
+    rt2 = (opval >> 16) & 0xf
+    rt = (opval >> 12) & 0xf
+
+    m = (opval >> 5) & 1
+    vm = ((opval << 1) & 0x1e) | m
+
+    if op:
+        opers = (
+            ArmRegOper(rt, va),
+            ArmRegOper(rt2, va),
+            ArmRegOper(rctx.getRegisterIndex('d%d' % vm)),
+
+                )
+    else:
+        opers = (
+            ArmRegOper(rctx.getRegisterIndex('d%d' % vm)),
+            ArmRegOper(rt, va),
+            ArmRegOper(rt2, va),
+                )
+
+    return opcode, mnem, opers, 0, 0
+
+def p_vmov_scalar(opval, va):
+    op = (val >> 20) & 1
+
+    opc1 = (opval >> 21) & 7
+    opc2 = (opval >> 5) & 3
+
+    rt = (opval >> 12) & 0xf
+
+    d = (opval >> 3) & 0x10
+    vd = ((opval >> 16) & 0xf) | d
+
+    if (opc1 & 2):  # 1xxx
+        index = ((opc1 & 1) << 2) | opc2
+        simdflags = IFS_8
+
+    elif (opc2 & 1):# 0xx1
+        index = ((opc1 & 1) << 1) | (opc2 >> 1)
+        simdflags = IFS_16
+
+    else:           # 0xx0
+        index = (opc1 & 1) << 1
+        simdflags = IFS_32
+
+    if op:
+        opers = (
+            ArmRegOper(rt, va),
+            ArmRegScalarOper(rctx.getRegisterIndex('d%d' % vm), index),
+            )
+    else:
+        opers = (
+            ArmRegScalarOper(rctx.getRegisterIndex('d%d' % vm), index),
+            ArmRegOper(rt, va),
+            )
+
+    return INS_VMOV, 'vmov', opers, 0, simdflags
+
+def p_vstm(opval, va):      #p1078
+    pudwl = (opval >> 20) & 0x1f
+    rn = (opval >> 16) & 0xf
+    vd = (opval >> 12) & 0xf
+    imm8 = (opval & 0xff)
+
+    flags = (0, IF_IA, IF_DB, 0)[pudwl>>3]
+
+    if pudwl & 2:   # W==1
+        oflags = OF_W
+    else:
+        oflags = 0
+
+    op = (opval>>8) & 1
+    regsize = imm8 >> op
+    simdflags = (IFS_32, IFS_64)[op]
+
+    opers = (
+            ArmRegOper(rn, va, oflags=oflags),
+            ArmExtRegListOper(vn, regsize, op),
+            )
+
+    return opcode, mnem, opers, flags, simdflags
+
+def p_vstr(opval, va):
+    pudwl = (opval >> 20) & 0x8
+    rn = (opval >> 16) & 0xf
+    vd = (opval >> 12) & 0xf
+    imm = (opval & 0xff) << 2
+
+    sz = (opval>>8) & 1
+    simdflags = (IFS_32, IFS_64)[sz]
+
+    rbase = ("s%d","d%d")[sz]
+    opers = (
+            ArmRegOper(rctx.getRegisterIndex(rbase % vd)),
+            ArmImmOffsetOper(rn, imm, va, pudwl=pudwl)
+            )
+
+    return INS_VSTR, 'vstr', opers, 0, 0
+
+
+def p_vpush(opval, va):
+    pudwl = (opval >> 20) & 0x1f
+    vd = (opval >> 12) & 0xf
+    imm8 = (opval & 0xff)
+
+    op = (opval>>8) & 1
+    regsize = imm8 >> op
+    simdflags = (IFS_32, IFS_64)[op]
+
+    opers = (
+            ArmExtRegListOper(vn, regsize, op),
+            )
+
+    return INS_VPUSH, 'vpush', opers, 0, simdflags
+
+def p_vldm(opval, va):      #p920
+    pudwl = (opval >> 20) & 0x1f
+    rn = (opval >> 16) & 0xf
+    vd = (opval >> 12) & 0xf
+    imm8 = (opval & 0xff)
+
+    flags = (0, IF_IA, IF_DB, 0)[pudwl>>3]
+
+    if pudwl & 2:   # W==1
+        oflags = OF_W
+    else:
+        oflags = 0
+
+    op = (opval>>8) & 1
+    regsize = imm8 >> op
+    simdflags = (IFS_32, IFS_64)[op]
+
+    opers = (
+            ArmRegOper(rn, oflag=oflags),
+            ArmExtRegListOper(vn, regsize, op),
+            )
+
+    return INS_VLDM, 'vldm', opers, flags, simdflags
+
+def p_vldr(opval, va):
+    pudwl = (opval >> 20) & 0x8
+    rn = (opval >> 16) & 0xf
+    vd = (opval >> 12) & 0xf
+    imm = (opval & 0xff) << 2
+
+    sz = (opval>>8) & 1
+    simdflags = (IFS_32, IFS_64)[sz]
+
+    rbase = ("s%d","d%d")[sz]
+    opers = (
+            ArmRegOper(rctx.getRegisterIndex(rbase % vd)),
+            ArmImmOffsetOper(rn, imm, va, pudwl=pudwl)
+            )
+
+    return INS_VLDR, 'vldr', opers, 0, simdflags
+
+def p_vpop(opval, va):
+    pudwl = (opval >> 20) & 0x1f
+    vd = (opval >> 12) & 0xf
+    imm8 = (opval & 0xff)
+
+    op = (opval>>8) & 1
+    regsize = imm8 >> op
+    simdflags = (IFS_32, IFS_64)[op]
+
+    opers = (
+            ArmExtRegListOper(vn, regsize, op),
+            )
+
+    return INS_VPUSH, 'vpush', opers, 0, simdflags
+
+def p_vdup(opval, va):
+    q = (opva >> 21) & 1
+    b = (opva >> 22) & 1
+    d = ((opva >> 3) & 0x10)
+    vd = (opva >> 16) & 0xf | d
+    rt = (opva >> 12) & 0xf
+    e = (opva >> 5) & 1
+
+
+    # q# regs are two d# regs
+    d >>= q
+    rbase = ("s%d","d%d")[q]
+
+    opers = (
+            ArmRegOper(rctx.getRegisterIndex(rbase % vd)),
+            ArmRegOper(rt, va=va),
+            )
+
+    be = (b<<1) | e
+    simdflags = (IFS_32, IFS_16, IFS_8, None)[be]
+
+    return INS_VDUP, 'vdup', opers, 0, simdflags
+
+def p_vmsr(opval, va):
+    # vmsr/vmrs
+    l = (opval >> 20) & 1
+    rt = (opval >> 12) & 0xf
+    opcode, mnem = ((INS_VMSR, 'vmsr'), (INS_VMRS, 'vmrs'))[l]
+
+    opers = (
+            ArmRegOper(rt, va=va),
+            )
+
+    return opcode, mnem, opers, 0, 0
+
 
 mcrr2_mnem = ("mcrr2", "mrrc2")
 ldc2_mnem = ("stc2", "ldc2",)
@@ -1635,7 +1886,7 @@ def p_uncond(opval, va, psize = 4):
                     mesg="p_uncond (ontop=3): invalid instruction",
                     bytez=struct.pack("<I", opval), va=va)
     
-   
+vmul_mnems = (('vmla', INS_VMLA),('vmls', INS_VMLS),('vnmla', INS_VNMLA),('vnmls', INS_VNMLS),('vnmul', INS_VNMUL),('vmul', INS_VMUL),('vadd', INS_VADD),('vsub', INS_VSUB),('vdiv', INS_VDIV),('vfnms', INS_VFNMS),('vfnma', INS_VFNMA),('vfms', INS_VFMS),('vfma', INS_VFMA),)
 def p_fp_dp(opval, va):
     val1 = opval >> 16
     val2 = opval & 0xffff
@@ -1667,9 +1918,7 @@ def _do_fp_dp(va, val1, val2):
 
     if opc1sub != 0b1011:
         op = (opc1sub & 0b1000) | ((opc1sub & 0b11)<<1) | (opc3 & 1)
-        mnem = ('vmla','vmls','vnmla','vnmls','vnmul','vmul','vadd','vsub','vdiv','vfnms','vfnma','vfms','vfma',)[op]
-
-        
+        mnem, opcode = vmul_mnems[op]
 
         if sz:
             d = (D<<4) | Vd
@@ -1697,7 +1946,7 @@ def _do_fp_dp(va, val1, val2):
                 )
 
     else:
-        # VMOV p934
+        # VMOV p934     Q#, D#, QQ, DD, DD, SS
         D = (val1 >> 6) & 1
         Vd = (val2 >> 12) & 0xf
         imm4h = val1 & 0xf
@@ -1716,21 +1965,24 @@ def _do_fp_dp(va, val1, val2):
             simdflags |= IFS_F32
             rbase = "s%d"
 
-        if opc3 & 1 == 0:
+        if opc3 & 1 == 0:   # p934
             mnem = 'vmov'
+            opcode = INS_VMOV
             opers = (
                     ArmRegOper(rctx.getRegisterIndex(rbase%d)),
                     ArmImmOper(imm),
                     )
 
         elif opc2 == 0:
-            # VMOV p935 with reg/reg
+            # VMOV p936 with reg/reg
             if opc3 & 1:
                 mnem = 'vmov'
+                opcode = INS_VMOV
 
             # VABS p822 T2/A2
             elif opc3 == 3:
                 mnem = 'vabs'
+                opcode = INS_VABS
 
             opers = (
                     ArmRegOper(rctx.getRegisterIndex(rbase%d)),
@@ -1741,10 +1993,12 @@ def _do_fp_dp(va, val1, val2):
             # VNEG p966 T2/A2
             if opc3 == 0x1:
                 mnem = 'vneg'
+                opcode = INS_VNEG
 
             # VSQRT p1056
             elif opc3 == 0x3:
                 mnem = 'vsqrt'
+                opcode = INS_VSQRT
 
             opers = (
                     ArmRegOper(rctx.getRegisterIndex(rbase%d)),
@@ -1765,7 +2019,7 @@ def _do_fp_dp(va, val1, val2):
         # VCMP, VCMPE p862
         elif opc2 in (4,5) and opc3 in (1,3):
             E = N
-            mnem = ('vcmp','vcmpe')[E]
+            mnem, opcode = (('vcmp', INS_VCMP),('vcmpe', INS_VCMPE))[E]
             
             if opc2 == 4:
                 opers = (
@@ -1781,6 +2035,7 @@ def _do_fp_dp(va, val1, val2):
         # VCVT p874
         elif opc2 == 7 and opc3 == 3:
             mnem = 'vcvt'
+            opcode = INS_VCVT
             if sz:
                 d = (Vd<<1) | D
                 m = (M<<4) | Vm
@@ -1806,6 +2061,7 @@ def _do_fp_dp(va, val1, val2):
             to_int = opc2 & 0b100
             if to_int:
                 mnem = 'vcvtr'
+                opcode = INS_VCVTR
                 signed = opc2&1
                 round_zero = op
 
@@ -1823,6 +2079,8 @@ def _do_fp_dp(va, val1, val2):
 
             else:
                 mnem = 'vcvt'
+                opcode = INS_VCVT
+
                 signed = op
                 round_nearest = False
                 m = (Vm<<1) | M
@@ -1845,6 +2103,7 @@ def _do_fp_dp(va, val1, val2):
         # VCVT p872
         elif opc2 in (0b1010,0b1011,0b1110,0b1111) and opc3&1:
             mnem = 'vcvt'
+            opcode = INS_VCVT
             U = (val1>>12) & 1 # thumb only.  arm gets U from bit 22
             imm6 = val1 & 0x3f
             op = sz
@@ -1890,7 +2149,6 @@ def _do_fp_dp(va, val1, val2):
                     )
 
     return (opcode, mnem, opers, iflags, simdflags)
-
 
 def p_advsimd_secondary(val, va, mnem, opcode, flags, opers):
     if opcode == INS_VORR:
@@ -2820,8 +3078,7 @@ def _do_adv_simd_32(val, va, u):
                             ArmRegOper(rctx.getRegisterIndex(rbase%m)),
                         )
 
-                    #sz = (val>>8) & 0x3     # vabs needs sz to be bits 18-19
-                    sz = (val>>18) & 0x3     # vabs needs sz to be bits 18-19
+                    sz = (val>>18) & 0x3
                     szu = sz + flagoff
                     simdflags = adv_simd_dts[szu]
 
@@ -3155,6 +3412,18 @@ ienc_parsers_tmp[IENC_SWINT] =   p_swint
 ienc_parsers_tmp[IENC_UNCOND] =  p_uncond
 ienc_parsers_tmp[IENC_DP_MOVT] = p_dp_movt
 ienc_parsers_tmp[IENC_DP_MOVW] = p_dp_movw
+ienc_parsers_tmp[IENC_VMOV_DOUBLE] = p_vmov_double
+ienc_parsers_tmp[IENC_VMOV_SINGLE] = p_vmov_single
+ienc_parsers_tmp[IENC_VMOV_2SINGLE] = p_vmov_2single
+ienc_parsers_tmp[IENC_VSTM] = p_vstm
+ienc_parsers_tmp[IENC_VSTR] = p_vstr
+ienc_parsers_tmp[IENC_VPUSH] = p_vpush
+ienc_parsers_tmp[IENC_VLDM] = p_vldm
+ienc_parsers_tmp[IENC_VLDR] = p_vldr
+ienc_parsers_tmp[IENC_VPOP] = p_vpop
+ienc_parsers_tmp[IENC_VMSR] = p_vmsr
+ienc_parsers_tmp[IENC_VMOV_SCALAR] = p_vmov_scalar
+ienc_parsers_tmp[IENC_VDUP] = p_vdup
 
 ienc_parsers = tuple(ienc_parsers_tmp)
 
@@ -3203,13 +3472,33 @@ s_3_table = (
 )
 
 s_6_table = (
+    (0b00001111111000000000111111010000, 0b00001100010000000000101000010000, IENC_VMOV_2SINGLE),
+    (0b00001111111000000000111111010000, 0b00001100010000000000101100010000, IENC_VMOV_DOUBLE),
+    (0b00001111100100000000111000000000, 0b00001100100000000000101000000000, IENC_VSTM),
+    (0b00001111101111110000111000000000, 0b00001101001011010000101000000000, IENC_VPUSH),
+    (0b00001111101100000000111000000000, 0b00001101001000000000101000000000, IENC_VSTM),
+    (0b00001111001100000000111000000000, 0b00001101000000000000101000000000, IENC_VSTR),
+    (0b00001111100100000000111000000000, 0b00001100100100000000101000000000, IENC_VLDM),
+    (0b00001111101111110000111000000000, 0b00001101001111010000101000000000, IENC_VPOP),
+    (0b00001111101100000000111000000000, 0b00001101001100000000101000000000, IENC_VLDM),
+    (0b00001111001100000000111000000000, 0b00001101000100000000101000000000, IENC_VLDR),
     (0b00001111111000000000000000000000, 0b00001100010000000000000000000000, IENC_COPROC_RREG_XFER),
     (0b00001110000000000000000000000000, 0b00001100000000000000000000000000, IENC_COPROC_LOAD),
+
 )
 
 s_7_table = (
     (0b00000001000000000000000000000000, 0b00000001000000000000000000000000, IENC_SWINT),
-    (0b00000001000000000000000000010000, 0b00000000000000000000000000010000, IENC_COPROC_REG_XFER),
+    (0b00001111111100000000111100010000, 0b00001110000000000000101000010000, IENC_VMOV_SINGLE),
+    (0b00001111111100000000111100010000, 0b00001110111000000000101000010000, IENC_VMSR),
+    (0b00001111100100000000111100010000, 0b00001110000000000000101100010000, IENC_VMOV_SCALAR),
+    (0b00001111100100000000111101010000, 0b00001110100000000000101100010000, IENC_VDUP),
+    (0b00001111111100000000111100010000, 0b00001110000100000000101000010000, IENC_VMOV_SINGLE),
+    (0b00001111111100000000111100010000, 0b00001110111100000000101000010000, IENC_VMSR),
+    (0b00001111000100000000111100010000, 0b00001110000100000000101100010000, IENC_VMOV_SCALAR),
+    (0b00000001000000000000111000010000, 0b00000000000000000000101000000000, IENC_FP_DP),
+    (0b00000001000000000000111000010000, 0b00000000000000000000101000010000, IENC_ADVSIMD),
+    (0b00001111000000000000000000010000, 0b00001000000000000000000000000000, IENC_COPROC_REG_XFER),
     (0, 0, IENC_COPROC_DP),
 )
 

@@ -294,35 +294,52 @@ INST_ENC_DP_IMM = 0 # Data Processing Immediate Shift
 INST_ENC_MISC   = 1 # Misc Instructions
 
 # Instruction encodings in arm v5
-IENC_DP_IMM_SHIFT = 0 # Data processing immediate shift
-IENC_MISC         = 1 # Miscellaneous instructions
-IENC_MISC1        = 2 # Miscellaneous instructions again
-IENC_DP_REG_SHIFT = 3 # Data processing register shift
-IENC_MULT         = 4 # Multiplies & Extra load/stores
-IENC_UNDEF        = 5 # Undefined instruction
-IENC_MOV_IMM_STAT = 6 # Move immediate to status register
-IENC_DP_IMM       = 7 # Data processing immediate
-IENC_LOAD_IMM_OFF = 8 # Load/Store immediate offset
-IENC_LOAD_REG_OFF = 9 # Load/Store register offset
-IENC_ARCH_UNDEF   = 10 # Architecturally undefined
-IENC_MEDIA        = 11 # Media instructions
-IENC_LOAD_MULT    = 12 # Load/Store Multiple
-IENC_BRANCH       = 13 # Branch
-IENC_COPROC_RREG_XFER = 14  # mrrc/mcrr
-IENC_COPROC_LOAD  = 15 # Coprocessor load/store and double reg xfers
-IENC_COPROC_DP    = 16 # Coprocessor data processing
-IENC_COPROC_REG_XFER = 17 # Coprocessor register transfers
-IENC_SWINT        = 18 # Sofware interrupts
-IENC_UNCOND       = 19 # unconditional wacko instructions
-IENC_EXTRA_LOAD   = 20 # extra load/store (swp)
-IENC_DP_MOVW      = 21 # Not sure it exists?
-IENC_DP_MOVT      = 22 # move top
-IENC_DP_MSR_IMM   = 23 # 
-IENC_LOAD_STORE_WORD_UBYTE = 24
-IENC_FP_DP        = 25
-IENC_ADVSIMD      = 26
+iencs = (\
+    'IENC_DP_IMM_SHIFT',    #   Data processing immediate shift
+    'IENC_MISC',            #   Miscellaneous instructions
+    'IENC_MISC1',           #   Miscellaneous instructions again
+    'IENC_DP_REG_SHIFT',    #   Data processing register shift
+    'IENC_MULT',            #   Multiplies & Extra load/stores
+    'IENC_UNDEF',           #   Undefined instruction
+    'IENC_MOV_IMM_STAT',    #   Move immediate to status register
+    'IENC_DP_IMM',          #   Data processing immediate
+    'IENC_LOAD_IMM_OFF',    #   Load/Store immediate offset
+    'IENC_LOAD_REG_OFF',    #   Load/Store register offset
+    'IENC_ARCH_UNDEF',      #   Architecturally undefined
+    'IENC_MEDIA',           #   Media instructions
+    'IENC_LOAD_MULT',       #   Load/Store Multiple
+    'IENC_BRANCH',          #   Branch
+    'IENC_COPROC_RREG_XFER',#   mrrc/mcrr
+    'IENC_COPROC_LOAD',     #   Coprocessor load/store and double reg xfers
+    'IENC_COPROC_DP',       #   Coprocessor data processing
+    'IENC_COPROC_REG_XFER', #   Coprocessor register transfers
+    'IENC_SWINT',           #   Sofware interrupts
+    'IENC_UNCOND',          #   unconditional wacko instructions
+    'IENC_EXTRA_LOAD',      #   extra load/store (swp)
+    'IENC_DP_MOVW',         #   move wide
+    'IENC_DP_MOVT',         #   move top
+    'IENC_DP_MSR_IMM',      #    
+    'IENC_LOAD_STORE_WORD_UBYTE',   #
+    'IENC_FP_DP',           #
+    'IENC_ADVSIMD',         #   
+    'IENC_64_EXT_XFERS',    #   
+    'IENC_VSTM',            #
+    'IENC_VSTR',            #
+    'IENC_VPUSH',           #
+    'IENC_VLDM',            #
+    'IENC_VLDR',            #
+    'IENC_VPOP',            #
+    'IENC_VMSR',            #
+    'IENC_VDUP',            #
+    'IENC_VMOV_DOUBLE',     #
+    'IENC_VMOV_SINGLE',     #
+    'IENC_VMOV_2SINGLE',    #
+    'IENC_VMOV_SCALAR',     #
+)
 
-IENC_MAX        = 27
+IENC_MAX        = len(iencs)
+for ieidx in range(IENC_MAX):
+    globals()[iencs[ieidx]] = ieidx
 
 # offchutes
 IENC_MEDIA_PARALLEL = ((IENC_MEDIA << 8) + 1) << 8
@@ -363,46 +380,6 @@ daib = ("da", "", "db", "ib")
 
 
 
-'''
-def instrenc(encoding, index):
-    return (encoding << 16) + index
-INS_AND = IENC_DP_IMM_SHIFT << 16
-INS_EOR = (IENC_DP_IMM_SHIFT << 16) + 1
-INS_SUB = (IENC_DP_IMM_SHIFT << 16) + 2
-INS_RSB = (IENC_DP_IMM_SHIFT << 16) + 3
-INS_ADD = (IENC_DP_IMM_SHIFT << 16) + 4
-INS_ADC = (IENC_DP_IMM_SHIFT << 16) + 5
-INS_SBC = (IENC_DP_IMM_SHIFT << 16) + 6
-INS_RSC = (IENC_DP_IMM_SHIFT << 16) + 7
-INS_TST = (IENC_DP_IMM_SHIFT << 16) + 8
-INS_TEQ = (IENC_DP_IMM_SHIFT << 16) + 9
-INS_CMP = (IENC_DP_IMM_SHIFT << 16) + 10
-INS_CMN = (IENC_DP_IMM_SHIFT << 16) + 11
-INS_ORR = (IENC_DP_IMM_SHIFT << 16) + 12
-INS_MOV = (IENC_DP_IMM_SHIFT << 16) + 13
-INS_BIC = (IENC_DP_IMM_SHIFT << 16) + 14
-INS_MVN = (IENC_DP_IMM_SHIFT << 16) + 15
-INS_ORN = (IENC_DP_IMM_SHIFT << 16) + 12
-INS_ADR = (IENC_DP_IMM_SHIFT << 16) + 16
-
-
-INS_B       = instrenc(IENC_BRANCH, 0)
-INS_BL      = instrenc(IENC_BRANCH, 1)
-INS_BCC     = instrenc(IENC_BRANCH, 2)
-INS_BX      = instrenc(IENC_MISC, 3)
-INS_BXJ     = instrenc(IENC_MISC, 5)
-INS_BLX     = IENC_UNCOND_BLX
-
-INS_SWI     = IENC_SWINT
- 
-
-#Opcodes still needed - put here as todo with others
-#dbg, movt, movw
-
-
-INS_LDR = instrenc(IENC_LOAD_IMM_OFF,  0)
-INS_STR = instrenc(IENC_LOAD_IMM_OFF,  1)
-'''
 
 instrnames = [
         'AND',
@@ -582,6 +559,39 @@ instrnames = [
         'VDUP',
         'VTBL',
         'VTBX',
+        'SMLABB',
+        'SMLABT',
+        'SMLATB',
+        'SMLATT',
+        'SMLALBB',
+        'SMLALBT',
+        'SMLALTB',
+        'SMLALTT',
+        'SMLAWB',
+        'SMLAWT',
+        'SMULBB',
+        'SMULBT',
+        'SMULTB',
+        'SMULTT',
+        'SMULWB',
+        'SMULWT',
+        'QADD',
+        'QSUB',
+        'QDADD',
+        'QDSUB',
+        'MCRR',
+        'MRRC',
+        'MCRR2',
+        'MRRC2',
+        'VNMLA',
+        'VNMLS',
+        'VNMUL',
+        'VDIV',
+        'VFNMS',
+        'VFNMA',
+
+
+
 ]
 
 ins_index = 85
