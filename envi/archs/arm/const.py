@@ -313,6 +313,7 @@ iencs = (\
     'IENC_COPROC_LOAD',     #   Coprocessor load/store and double reg xfers
     'IENC_COPROC_DP',       #   Coprocessor data processing
     'IENC_COPROC_REG_XFER', #   Coprocessor register transfers
+    'IENC_MCR',             #   Move to Corprocessor from ARM Regs and vice versa
     'IENC_SWINT',           #   Sofware interrupts
     'IENC_UNCOND',          #   unconditional wacko instructions
     'IENC_EXTRA_LOAD',      #   extra load/store (swp)
@@ -589,8 +590,19 @@ instrnames = [
         'VDIV',
         'VFNMS',
         'VFNMA',
-
-
+        'CDP',
+        'CDP2',
+        'MCR',
+        'MRC',
+        'MSR',
+        'MRS',
+        'CLZ',
+        'NOP',
+        'YIELD',
+        'WFE',
+        'WFI',
+        'SEV',
+        'SWP',
 
 ]
 

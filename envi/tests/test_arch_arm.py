@@ -509,7 +509,7 @@ instrs = [
         (REV_ALL_ARM, '001000eb', 0x4560, 'bl  0x00008568', 0, ()),
         (REV_ALL_ARM, '001000fa', 0x4560, 'blx  0x00008569', 0, ()),
         (REV_ALL_ARM, '273764ee', 0x4560, 'cdp  p7, 6, cr3, cr4, cr7, 1', 0, ()),
-        (REV_ALL_ARM, '473b34ee', 0x4560, 'cdp  p11, 3, cr3, cr4, cr7, 2', 0, ()),
+        (REV_ALL_ARM, '473b34ee', 0x4560, 'vsub.f64 d3, d4, d7', 0, ()),
         (REV_ALL_ARM, 'ff0c74e3', 0x4560, 'cmn  r4, #0xff00', 0, ()),
         (REV_ALL_ARM, 'ff0c54e3', 0x4560, 'cmp  r4, #0xff00', 0, ()),
         (REV_ALL_ARM, 'ff4c23e2', 0x4560, 'eor r4, r3, #0xff00', 0, ()),
@@ -1268,6 +1268,7 @@ instrs = [
         (REV_ALL_ARM, 'f4efec2f', 0x4561, 'vext.8 q9, q10, q14, #0x0f', 0, ()),
         ]
 instrs.extend(advsimdtests)
+instrs = advsimdtests
 
 # temp scratch: generated these while testing
 ['0de803c0','8de903c0','ade903c0','2de803c0','1de803c0','3de803c0','9de903c0','bde903c0',]

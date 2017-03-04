@@ -776,11 +776,11 @@ def p_dp_movt(opval, va):
     return(opcode, "movt", olist, iflags, 0)
 
 hint_mnem = {
-            0: 'Nop',
-            1: 'yield',
-            2: 'wfe',
-            3: 'wfi',
-            4: 'sev',
+            0: ('Nop',INS_NOP),
+            1: ('yield',INS_YIELD),
+            2: ('wfe',INS_WFE),
+            3: ('wfi',INS_WFI),
+            4: ('sev',INS_SEV),
             }
 
 def p_mov_imm_stat(opval, va):      # only one instruction: "msr"
@@ -789,27 +789,28 @@ def p_mov_imm_stat(opval, va):      # only one instruction: "msr"
     rot = (opval>>8) & 0xf
     r = (opval>>22) & 1
     mask = (opval>>16) & 0xf
-    opcode = (IENC_MOV_IMM_STAT << 16)
 
     if mask == 0:
-        opcode += 1
         # it's a NOP or some hint instruction
         if imm>>16:
             mnem = 'dbg'
+            opcode = INS_DBG
             option = opval & 0xf
             olist = ( ArmDbgHintOption(option), )
 
         else:
-            mnem = hint_mnem.get(imm)
-            if mnem == None:
+            stuff  = hint_mnem.get(imm)
+            if stuff == None:
                 raise envi.InvalidInstruction(
                         mesg="MSR/Hint illegal encoding",
                         bytez=struct.pack("<I", opval), va=va)
+            mnem, opcode = stuff
             olist = tuple()
 
     else:
         # it's an MSR <immediate>
         mnem = 'msr'
+        opcode = INS_MSR
         immed = ((imm>>rot) + (imm<<(32-rot))) & 0xffffffff
 
         #if mask & 3:    # USER mode these will be 0
@@ -822,6 +823,35 @@ def p_mov_imm_stat(opval, va):      # only one instruction: "msr"
     
     return (opcode, mnem, olist, iflags, 0)
     
+def p_mcr(opval, va):
+    op = (opval>>20) & 1
+    opcode, mnem = ((INS_MCR, 'mcr'), (INS_MRC, 'mrc'))[op]
+    opc1 = (opval>>21) & 7
+    opc2 = (opval>>5) & 7
+    coproc = (opval>>8) & 0xf
+    crn = (opval>>16) & 0xf
+    rt = (opval>>12) & 0xf
+    crm = (opval & 0xf)
+
+    if opc2:
+        opers = (
+            ArmCoprocOper(coproc),
+            ArmCoprocOpcodeOper(opc1),
+            ArmRegOper(rt, va=va),
+            ArmCoprocRegOper(crn),
+            ArmCoprocRegOper(crm),
+            ArmCoprocOpcodeOper(opc2),
+        )
+    else:
+        opers = (
+            ArmCoprocOper(coproc),
+            ArmCoprocOpcodeOper(opc1),
+            ArmRegOper(rt, va=va),
+            ArmCoprocRegOper(crn),
+            ArmCoprocRegOper(crm),
+        )
+    return (opcode, mnem, opers, 0, 0)
+
 ldr_mnem = ("str", "ldr")
 tsizes = (4, 1,)
 def p_load_imm_off(opval, va, psize=4):
@@ -1340,7 +1370,7 @@ def p_coproc_dbl_reg_xfer(opval, va):
     mnem, opcode = mcrr_mnem[(opval>>20) & 1]
     return (opcode, mnem, olist, 0, 0)
     
-cdp_mnem = ("cdp", "cdp2")
+cdp_mnem = (("cdp", INS_CDP), ("cdp2", INS_CDP2))
 
 def p_coproc_dp(opval, va):
     opcode1 = (opval>>20) & 0xf
@@ -1351,7 +1381,7 @@ def p_coproc_dp(opval, va):
     CRm = opval & 0xf
 
     cdp2bit = (opval>>28)&1
-    mnem = cdp_mnem[cdp2bit]
+    mnem, opcode = cdp_mnem[cdp2bit]
 
     if cdp2bit == 0 and (cp_num & 0b1110) == 0b1010:
         return p_fp_dp(opval, va)
@@ -2245,7 +2275,7 @@ adv_simd_3_regs = (  # ABUC fields slammed together
         (None, INS_VCGE, 0, None),
 
         # a=0100 b=0
-        ('vshl', INS_VSHL, IFS_S8, None),
+        ('vshl', INS_VSHL, IFS_S8, None),           # d, m, n, not d, n, m like all the others in this category
         ('vshl', INS_VSHL, IFS_S16, None),
         ('vshl', INS_VSHL, IFS_S32, None),
         ('vshl', INS_VSHL, IFS_S64, None),
@@ -2335,9 +2365,9 @@ adv_simd_3_regs = (  # ABUC fields slammed together
         (None, INS_VSUB, 0, None),
 
         # a=1000 b=1
-        ('vtst', INS_VTST, IFS_I8, None),
-        ('vtst', INS_VTST, IFS_I16, None),
-        ('vtst', INS_VTST, IFS_I32, None),
+        ('vtst', INS_VTST, IFS_8, None),
+        ('vtst', INS_VTST, IFS_16, None),
+        ('vtst', INS_VTST, IFS_32, None),
         (None, INS_VTST, 0, None),
         ('vceq', INS_VCEQ, IFS_I8, None),
         ('vceq', INS_VCEQ, IFS_I16, None),
@@ -2355,13 +2385,13 @@ adv_simd_3_regs = (  # ABUC fields slammed together
         (None, INS_VMLS, 0, None),
 
         # a=1001 b=1
-        ('vmul', INS_VMUL, IFS_S8, None),
-        ('vmul', INS_VMUL, IFS_S16, None),
-        ('vmul', INS_VMUL, IFS_S32, None),
+        ('vmul', INS_VMUL, IFS_I8, None),
+        ('vmul', INS_VMUL, IFS_I16, None),
+        ('vmul', INS_VMUL, IFS_I32, None),
         (None, INS_VMUL, 0, None),
-        ('vmul', INS_VMUL, IFS_U8, None),
-        ('vmul', INS_VMUL, IFS_U16, None),
-        ('vmul', INS_VMUL, IFS_U32, None),
+        ('vmul', INS_VMUL, IFS_P8, None),
+        ('vmul', INS_VMUL, IFS_P16, None),
+        ('vmul', INS_VMUL, IFS_P32, None),
         (None, INS_VMUL, 0, None),
 
         # a=1010 b=0
@@ -2763,11 +2793,18 @@ def _do_adv_simd_32(val, va, u):
         n >>= q
         m >>= q
 
-        opers = (
-            ArmRegOper(rctx.getRegisterIndex(rbase%d)),
-            ArmRegOper(rctx.getRegisterIndex(rbase%n)),
-            ArmRegOper(rctx.getRegisterIndex(rbase%m)),
-            )
+        if (a & 0xe) == 4:
+            opers = (
+                ArmRegOper(rctx.getRegisterIndex(rbase%d)),
+                ArmRegOper(rctx.getRegisterIndex(rbase%m)),
+                ArmRegOper(rctx.getRegisterIndex(rbase%n)),
+                )
+        else:
+            opers = (
+                ArmRegOper(rctx.getRegisterIndex(rbase%d)),
+                ArmRegOper(rctx.getRegisterIndex(rbase%n)),
+                ArmRegOper(rctx.getRegisterIndex(rbase%m)),
+                )
 
         if handler != None:
             nmnem, nopcode, nflags, nopers = handler(val, va, mnem, opcode, simdflags, opers)
@@ -3424,6 +3461,8 @@ ienc_parsers_tmp[IENC_VPOP] = p_vpop
 ienc_parsers_tmp[IENC_VMSR] = p_vmsr
 ienc_parsers_tmp[IENC_VMOV_SCALAR] = p_vmov_scalar
 ienc_parsers_tmp[IENC_VDUP] = p_vdup
+ienc_parsers_tmp[IENC_MCR] = p_mcr
+
 
 ienc_parsers = tuple(ienc_parsers_tmp)
 
@@ -3499,7 +3538,8 @@ s_7_table = (
     (0b00000001000000000000111000010000, 0b00000000000000000000101000000000, IENC_FP_DP),
     (0b00000001000000000000111000010000, 0b00000000000000000000101000010000, IENC_ADVSIMD),
     (0b00001111000000000000000000010000, 0b00001000000000000000000000000000, IENC_COPROC_REG_XFER),
-    (0, 0, IENC_COPROC_DP),
+    (0b00001111000000000000000000010000, 0b00001110000000000000000000010000, IENC_MCR),
+    (0b00001111000000000000000000010000, 0b00001110000000000000000000000000, IENC_COPROC_DP),
 )
 
 # Initial 3 (non conditional) primary table
