@@ -2358,11 +2358,11 @@ adv_simd_3_regs = (  # ABUC fields slammed together
         ('vadd', INS_VADD, IFS_I8, None),
         ('vadd', INS_VADD, IFS_I16, None),
         ('vadd', INS_VADD, IFS_I32, None),
-        (None, INS_VADD, 0, None),
+        ('vadd', INS_VADD, IFS_I64, None),
         ('vsub', INS_VSUB, IFS_I8, None),
         ('vsub', INS_VSUB, IFS_I16, None),
         ('vsub', INS_VSUB, IFS_I32, None),
-        (None, INS_VSUB, 0, None),
+        ('vsub', INS_VSUB, IFS_I64, None),
 
         # a=1000 b=1
         ('vtst', INS_VTST, IFS_8, None),
@@ -2573,7 +2573,7 @@ adv_simd_3diffregs = (
         ('vsubw', INS_VSUBW, 0, 1, 1, 0),
         ('vsubw', INS_VSUBW, 4, 1, 1, 0),
         # a=4, u=0/1
-        ('vaddhn', INS_VADDHN, 8, 0, 1, 1),
+        ('vaddhn', INS_VADDHN, 9, 0, 1, 1),     # THIS IS TROUBLE...  9 instead of 8?  i'm expecting a multiplicative problem
         ('vraddhn', INS_VRADDHN, 8, 0, 1, 1),
         # a=5, u=0/1
         ('vabal', INS_VABAL, 0, 1, 0, 0),
