@@ -118,20 +118,20 @@ iencmul_codes = {
     #binary("011101010011"): ("smmulr", (0,4,2), 0),
 }
 
-def sh_lsl(num, shval):
-    return (num&0xffffffff) << shval
+def sh_lsl(num, shval, size=4):
+    return (num&e_bits.u_maxes[size]) << shval
 
-def sh_lsr(num, shval):
-    return (num&0xffffffff) >> shval
+def sh_lsr(num, shval, size=4):
+    return (num&e_bits.u_maxes[size]) >> shval
 
-def sh_asr(num, shval):
+def sh_asr(num, shval, size=4):
     return num >> shval
 
-def sh_ror(num, shval):
-    return (((num&0xffffffff) >> shval) | (num<< (32-shval))) & 0xffffffff
+def sh_ror(num, shval, size=4):
+    return (((num&e_bits.u_maxes[size]) >> shval) | (num<< ((8*size)-shval))) & e_bits.u_maxes[size]
 
-def sh_rrx(num, shval, emu=None):
-    half1 = (num&0xffffffff) >> shval
+def sh_rrx(num, shval, size=4, emu=None):
+    half1 = (num&e_bits.u_maxes[size]) >> shval
     half2 = num<<(33-shval)
     newC = (num>>(shval-1)) & 1
     if emu != None:
@@ -140,7 +140,7 @@ def sh_rrx(num, shval, emu=None):
         emu.setFlags(flags & PSR_C_mask | newC)     #part of the change
     else:
         oldC = 0        # FIXME: 
-    retval = (half1 | half2 | (oldC << (32-shval))) & 0xffffffff
+    retval = (half1 | half2 | (oldC << (32-shval))) & e_bits.u_maxes[size]
     return retval
 
 shifters = (
@@ -2230,9 +2230,9 @@ adv_simd_3_regs = (  # ABUC fields slammed together
         ('vorr', INS_VORR, 0, p_advsimd_secondary),    # vmov if source registers identical
         ('vorn', INS_VORN, 0, None),
         ('veor', INS_VEOR, 0, None),
-        ('vbif', INS_VBIF, 0, None),
-        ('vbit', INS_VBIT, 0, None),
         ('vbsl', INS_VBSL, 0, None),
+        ('vbit', INS_VBIT, 0, None),
+        ('vbif', INS_VBIF, 0, None),
 
         # a=0010 b=0
         ('vhsub', INS_VHSUB, IFS_S8, None),
@@ -2574,13 +2574,13 @@ adv_simd_3diffregs = (
         ('vsubw', INS_VSUBW, 4, 1, 1, 0),
         # a=4, u=0/1
         ('vaddhn', INS_VADDHN, 9, 0, 1, 1),     # THIS IS TROUBLE...  9 instead of 8?  i'm expecting a multiplicative problem
-        ('vraddhn', INS_VRADDHN, 8, 0, 1, 1),
+        ('vraddhn', INS_VRADDHN, 9, 0, 1, 1),
         # a=5, u=0/1
         ('vabal', INS_VABAL, 0, 1, 0, 0),
         ('vabal', INS_VABAL, 4, 1, 0, 0),
         # a=6
-        ('vsubhn', INS_VSUBHN, 8, 0, 1, 1),
-        ('vrsubhn', INS_VRSUBHN, 8,0, 1, 1),
+        ('vsubhn', INS_VSUBHN, 9, 0, 1, 1),
+        ('vrsubhn', INS_VRSUBHN, 9,0, 1, 1),
         # a=7
         ('vabdl', INS_VABDL, 0, 1, 0, 0),
         ('vabdl', INS_VABDL, 4, 1, 0, 0),
@@ -2817,7 +2817,8 @@ def _do_adv_simd_32(val, va, u):
                 opers = nopers
 
         if mnem == None:
-            raise envi.InvalidInstruction(mesg="Invalid AdvSIMD Opcode Encoding",
+            raise envi.InvalidInstruction(mesg="Invalid AdvSIMD Opcode Encoding (3reg): a:%x b:%x u:%x c:%x" %\
+                    (a, b, u, c),
                     bytez=struct.pack('<L', val), va=va)
 
         return opcode, mnem, opers, 0, simdflags    # no iflags, only simdflags for this one
@@ -2839,13 +2840,20 @@ def _do_adv_simd_32(val, va, u):
         if handler == None:
             raise envi.InvalidInstruction(mesg="Invalid AdvSIMD Opcode Encoding: modified immediate out of range",
                     bytez=struct.pack('<L', val), va=va)
-        dt, val = handler(abcdefgh)
+        dt, size, val = handler(abcdefgh)
 
         d >>= q
-        opers = (
-            ArmRegOper(rctx.getRegisterIndex(rbase%d)),
-            ArmImmOper(val),
-            )
+
+        if dt in (IFS_F8, IFS_F16, IFS_F32, IFS_F64):
+            opers = (
+                ArmRegOper(rctx.getRegisterIndex(rbase%d)),
+                ArmFloatOper(val, size=size),
+                )
+        else:
+            opers = (
+                ArmRegOper(rctx.getRegisterIndex(rbase%d)),
+                ArmImmOper(val, size=size),
+                )
 
         return opcode, mnem, opers, 0, dt    # no iflags, only simdflags for this one
 
@@ -2857,9 +2865,9 @@ def _do_adv_simd_32(val, va, u):
         l = (val>>7) & 1
         
         index = (a<<3) | (u<<2) | (b<<1) | l
-        mnem, opcode, enctype = adv_2regs_shift[index]
+        mnem, opcode, enctype, foffset = adv_2regs_shift[index]
         if mnem == None:
-            raise envi.InvalidInstruction(mesg="Invalid AdvSIMD Opcode Encoding",
+            raise envi.InvalidInstruction(mesg="Invalid AdvSIMD Opcode Encoding (2reg_shift)",
                     bytez=struct.pack('<L', val), va=va)
 
         d >>= q
@@ -2929,7 +2937,7 @@ def _do_adv_simd_32(val, va, u):
             uop = (u<<1) | op
             simdflags = adv_2_vqshl_typesize.get(esize)[uop]
 
-        elif enctype == 3:
+        elif enctype == 3:      # VSHRN needs different simdflags...
             limm = (l<<6) | imm
             if limm & 0b1000000:
                 esize = 64
@@ -2944,7 +2952,8 @@ def _do_adv_simd_32(val, va, u):
                 esize = 8
                 shift_amount = 16-imm
 
-            simdflags = { 8: IFS_I8, 16: IFS_I16, 32: IFS_I32, 64: IFS_I64 }[esize]
+            idx = {8:1, 16:2, 32:3, 64:4}[esize]    # FIXME: coerce all this into a more simplified model
+            simdflags = adv_simd_dts[(idx) + foffset]
 
         elif enctype == 4:
             limm = (l<<6) | imm
@@ -2981,7 +2990,51 @@ def _do_adv_simd_32(val, va, u):
             simdflags = (IFS_F32S32, IFS_S32F32, IFS_F32U32, IFS_U32F32)[uop]
 
             # fbits 
-            shift_amount = imm + 64
+            shift_amount = 64 - imm
+
+        elif enctype == 6:    # VQSHLU used as test
+            limm = (l<<6) | imm
+
+            op = a & 1
+
+            if limm & 0b1000000:
+                esize = 64
+                shift_amount = imm
+            elif limm & 0b0100000:
+                esize = 32
+                shift_amount = imm - 32
+            elif limm & 0b0010000:
+                esize = 16
+                shift_amount = imm - 16
+            elif limm & 0b0001000:
+                esize = 8
+                shift_amount = imm - 8
+
+            #simdflags = { 8: IFS_8, 16: IFS_16, 32: IFS_32, 64: IFS_64 }[esize]
+            idx = {8:0, 16:1, 32:2, 64:3}[esize]    # FIXME: coerce all this into a more simplified model
+            simdflags = adv_simd_dts[20 + (idx) + foffset]
+
+        elif enctype == 7:      # VSHRN needs different simdflags...
+            limm = (l<<6) | imm
+            if limm & 0b1000000:
+                esize = 64
+                shift_amount = 64-imm
+            elif limm & 0b0100000:
+                esize = 32
+                shift_amount = 64-imm
+            elif limm & 0b0010000:
+                esize = 16
+                shift_amount = 32-imm
+            elif limm & 0b0001000:
+                esize = 8
+                shift_amount = 16-imm
+
+            if u:
+                foffset += 4
+
+            idx = {8:1, 16:2, 32:3, 64:4}[esize]    # FIXME: coerce all this into a more simplified model
+            simdflags = adv_simd_dts[(idx) + foffset]
+
 
         opers = (
             ArmRegOper(rctx.getRegisterIndex(rbase%d)),
@@ -3124,7 +3177,7 @@ def _do_adv_simd_32(val, va, u):
                 elif (b & 0xc) == 8:
                     # vector table lookup VTBL, VTBX
                     ln = (val>>8) & 3
-                    op = (val>>7) & 1
+                    op = (val>>6) & 1
 
                     mnem, opcode = (('vtbl', INS_VTBL),('vtbx', INS_VTBX))[op]
 
@@ -3178,43 +3231,54 @@ adv_2_vqshl_typesize = {
 
 # one register and modified immediate modifiers...
 def adv_simd_mod_000x(abcdefgh):
-    return IFS_I32, (abcdefgh << 32) | abcdefgh
+    return IFS_I32, 4, abcdefgh
+    #return IFS_I32, (abcdefgh << 32) | abcdefgh
 
 def adv_simd_mod_001x(abcdefgh):
-    return IFS_I32,(abcdefgh << 40) | (abcdefgh << 8)
+    return IFS_I32, 4, (abcdefgh << 8)
+    #return IFS_I32,(abcdefgh << 40) | (abcdefgh << 8)
 
 def adv_simd_mod_010x(abcdefgh):
-    return IFS_I32, (abcdefgh << 48) | (abcdefgh << 16)
+    return IFS_I32, 4, (abcdefgh << 16)
+    #return IFS_I32, (abcdefgh << 48) | (abcdefgh << 16)
 
 def adv_simd_mod_011x(abcdefgh):
-    return IFS_I32, (abcdefgh << 56) | (abcdefgh << 24)
+    return IFS_I32, 4, (abcdefgh << 24)
+    #return IFS_I32, (abcdefgh << 56) | (abcdefgh << 24)
 
 def adv_simd_mod_100x(abcdefgh):
-    return IFS_I16, (abcdefgh << 48) | (abcdefgh << 32) | (abcdefgh << 16) | abcdefgh
+    print hex(abcdefgh)
+    return IFS_I16, 2, abcdefgh
+    #return IFS_I16, (abcdefgh << 48) | (abcdefgh << 32) | (abcdefgh << 16) | abcdefgh
 
 def adv_simd_mod_101x(abcdefgh):
-    return IFS_I16, (abcdefgh << 56) | (abcdefgh << 40) | (abcdefgh << 24) | (abcdefgh << 8)
+    return IFS_I16, 2, (abcdefgh << 8)
+    #return IFS_I16, (abcdefgh << 56) | (abcdefgh << 40) | (abcdefgh << 24) | (abcdefgh << 8)
 
 def adv_simd_mod_1100(abcdefgh):
-    return IFS_I32, (abcdefgh << 40) | (abcdefgh << 8) | 0xf000f
+    return IFS_I32, 4, (abcdefgh << 8) | 0xff
+    #return IFS_I32, (abcdefgh << 40) | (abcdefgh << 8) | 0xf000f
 
 def adv_simd_mod_1101(abcdefgh):
-    return IFS_I32, (abcdefgh << 48) | (abcdefgh << 16) | 0xff00ff
+    return IFS_I32, 4, (abcdefgh << 16) | 0xffff
+    #return IFS_I32, (abcdefgh << 48) | (abcdefgh << 16) | 0xff00ff
 
 def adv_simd_mod_0_1110(abcdefgh):
-    return IFS_I8, (abcdefgh << 48) | (abcdefgh << 32) | (abcdefgh << 16) | abcdefgh | (abcdefgh << 56) | (abcdefgh << 40) | (abcdefgh << 24) | (abcdefgh << 8)
+    return IFS_I8, 1, abcdefgh
+    #return IFS_I8, (abcdefgh << 48) | (abcdefgh << 32) | (abcdefgh << 16) | abcdefgh | (abcdefgh << 56) | (abcdefgh << 40) | (abcdefgh << 24) | (abcdefgh << 8)
 
 def adv_simd_mod_0_1111(abcdefgh):
     a = (abcdefgh & 0b10000000) << 24
     b = (abcdefgh >> 6) & 1
-    B = (b | (b<<1) | (b<<2) | (b<<3) | (b<<4) | (b<<5)) <<25
+    B = (b | (b<<1) | (b<<2) | (b<<3) | (b<<4) | ((b^1)<<5)) <<25
     cdefgh = (abcdefgh << 19) & 0x1f80000
     single = a | B | cdefgh
-    full = (single << 32) | single
-    return IFS_F32, full
+    #full = (single << 32) | single
+    full = single
+    return IFS_F32, 4, full
 
 def adv_simd_mod_1_1110(abcdefgh):
-    a = abcdefgh >> 7
+    a = (abcdefgh >> 7) & 1
     b = (abcdefgh >> 6) & 1
     c = (abcdefgh >> 5) & 1
     d = (abcdefgh >> 4) & 1
@@ -3231,7 +3295,7 @@ def adv_simd_mod_1_1110(abcdefgh):
     G = g | (g<<1) | (g<<2) | (g<<3) | (g<<4) | (g<<5) | (g<<6) | (g<<7)
     H = h | (h<<1) | (h<<2) | (h<<3) | (h<<4) | (h<<5) | (h<<6) | (h<<7)
     ALL = (A<<56) | (B<<48) | (C<<40) | (D<<32) | (E<<24) | (F<<16) | (G<<8) | H
-    return IFS_I64, ALL
+    return IFS_I64, 8, ALL
 
 
 adv_simd_modifiers = (
@@ -3272,149 +3336,149 @@ adv_simd_modifiers = (
 
 adv_2regs_shift = (
     # 0000
-    ('vshr', INS_VSHR, 0),
-    ('vshr', INS_VSHR, 0),
-    ('vshr', INS_VSHR, 0),
-    ('vshr', INS_VSHR, 0),
-    ('vshr', INS_VSHR, 0),
-    ('vshr', INS_VSHR, 0),
-    ('vshr', INS_VSHR, 0),
-    ('vshr', INS_VSHR, 0),
+    ('vshr', INS_VSHR, 0, 0),
+    ('vshr', INS_VSHR, 0, 0),
+    ('vshr', INS_VSHR, 0, 0),
+    ('vshr', INS_VSHR, 0, 0),
+    ('vshr', INS_VSHR, 0, 0),
+    ('vshr', INS_VSHR, 0, 0),
+    ('vshr', INS_VSHR, 0, 0),
+    ('vshr', INS_VSHR, 0, 0),
     # 0001
-    ('vsra', INS_VSRA, 0),
-    ('vsra', INS_VSRA, 0),
-    ('vsra', INS_VSRA, 0),
-    ('vsra', INS_VSRA, 0),
-    ('vsra', INS_VSRA, 0),
-    ('vsra', INS_VSRA, 0),
-    ('vsra', INS_VSRA, 0),
-    ('vsra', INS_VSRA, 0),
+    ('vsra', INS_VSRA, 0, 0),
+    ('vsra', INS_VSRA, 0, 0),
+    ('vsra', INS_VSRA, 0, 0),
+    ('vsra', INS_VSRA, 0, 0),
+    ('vsra', INS_VSRA, 0, 0),
+    ('vsra', INS_VSRA, 0, 0),
+    ('vsra', INS_VSRA, 0, 0),
+    ('vsra', INS_VSRA, 0, 0),
     # 0010
-    ('vrshr', INS_VRSHR, 0),
-    ('vrshr', INS_VRSHR, 0),
-    ('vrshr', INS_VRSHR, 0),
-    ('vrshr', INS_VRSHR, 0),
-    ('vrshr', INS_VRSHR, 0),
-    ('vrshr', INS_VRSHR, 0),
-    ('vrshr', INS_VRSHR, 0),
-    ('vrshr', INS_VRSHR, 0),
+    ('vrshr', INS_VRSHR, 0, 0),
+    ('vrshr', INS_VRSHR, 0, 0),
+    ('vrshr', INS_VRSHR, 0, 0),
+    ('vrshr', INS_VRSHR, 0, 0),
+    ('vrshr', INS_VRSHR, 0, 0),
+    ('vrshr', INS_VRSHR, 0, 0),
+    ('vrshr', INS_VRSHR, 0, 0),
+    ('vrshr', INS_VRSHR, 0, 0),
     # 0011
-    ('vrsra', INS_VRSRA, 0),
-    ('vrsra', INS_VRSRA, 0),
-    ('vrsra', INS_VRSRA, 0),
-    ('vrsra', INS_VRSRA, 0),
-    ('vrsra', INS_VRSRA, 0),
-    ('vrsra', INS_VRSRA, 0),
-    ('vrsra', INS_VRSRA, 0),
-    ('vrsra', INS_VRSRA, 0),
+    ('vrsra', INS_VRSRA, 0, 0),
+    ('vrsra', INS_VRSRA, 0, 0),
+    ('vrsra', INS_VRSRA, 0, 0),
+    ('vrsra', INS_VRSRA, 0, 0),
+    ('vrsra', INS_VRSRA, 0, 0),
+    ('vrsra', INS_VRSRA, 0, 0),
+    ('vrsra', INS_VRSRA, 0, 0),
+    ('vrsra', INS_VRSRA, 0, 0),
     # 0100
-    ('ERROR vsri', INS_VSRI, 1),
-    ('ERROR vsri', INS_VSRI, 1),
-    ('ERROR vsri', INS_VSRI, 1),
-    ('ERROR vsri', INS_VSRI, 1),
-    ('vsri', INS_VSRI, 1),
-    ('vsri', INS_VSRI, 1),
-    ('vsri', INS_VSRI, 1),
-    ('vsri', INS_VSRI, 1),
+    ('ERROR vsri', INS_VSRI, 1, 0),
+    ('ERROR vsri', INS_VSRI, 1, 0),
+    ('ERROR vsri', INS_VSRI, 1, 0),
+    ('ERROR vsri', INS_VSRI, 1, 0),
+    ('vsri', INS_VSRI, 1, 0),
+    ('vsri', INS_VSRI, 1, 0),
+    ('vsri', INS_VSRI, 1, 0),
+    ('vsri', INS_VSRI, 1, 0),
     # 0101
-    ('vshl', INS_VSHL, 2),
-    ('vshl', INS_VSHL, 2),
-    ('vshl', INS_VSHL, 2),
-    ('vshl', INS_VSHL, 2),
-    ('vsli', INS_VSLI, 1),
-    ('vsli', INS_VSLI, 1),
-    ('vsli', INS_VSLI, 1),
-    ('vsli', INS_VSLI, 1),
+    ('vshl', INS_VSHL, 2, 0),
+    ('vshl', INS_VSHL, 2, 0),
+    ('vshl', INS_VSHL, 2, 0),
+    ('vshl', INS_VSHL, 2, 0),
+    ('vsli', INS_VSLI, 6, 0),
+    ('vsli', INS_VSLI, 6, 0),
+    ('vsli', INS_VSLI, 6, 0),
+    ('vsli', INS_VSLI, 6, 0),
     # 0110
-    ('ERROR vqshl', INS_VQSHL, 2), # U=0, op=0
-    ('ERROR vqshl', INS_VQSHL, 2), # U=0, op=0
-    ('ERROR vqshl', INS_VQSHL, 2), # U=0, op=0
-    ('ERROR vqshl', INS_VQSHL, 2), # U=0, op=0
-    ('vqshlu', INS_VQSHLU, 2), # U=1, op=0
-    ('vqshlu', INS_VQSHLU, 2), # U=1, op=0
-    ('vqshlu', INS_VQSHLU, 2), # U=1, op=0
-    ('vqshlu', INS_VQSHLU, 2), # U=1, op=0
+    ('ERROR vqshl', INS_VQSHL, 2, 0), # U=0, op=0
+    ('ERROR vqshl', INS_VQSHL, 2, 0), # U=0, op=0
+    ('ERROR vqshl', INS_VQSHL, 2, 0), # U=0, op=0
+    ('ERROR vqshl', INS_VQSHL, 2, 0), # U=0, op=0
+    ('vqshlu', INS_VQSHLU, 2, 0), # U=1, op=0
+    ('vqshlu', INS_VQSHLU, 2, 0), # U=1, op=0
+    ('vqshlu', INS_VQSHLU, 2, 0), # U=1, op=0
+    ('vqshlu', INS_VQSHLU, 2, 0), # U=1, op=0
     # 0111
-    ('vqshl', INS_VQSHL, 2), # U=0, op=1
-    ('vqshl', INS_VQSHL, 2), # U=0, op=1
-    ('vqshl', INS_VQSHL, 2), # U=0, op=1
-    ('vqshl', INS_VQSHL, 2), # U=0, op=1
-    ('vqshl', INS_VQSHL, 2), # U=1, op=1
-    ('vqshl', INS_VQSHL, 2), # U=1, op=1
-    ('vqshl', INS_VQSHL, 2), # U=1, op=1
-    ('vqshl', INS_VQSHL, 2), # U=1, op=1
+    ('vqshl', INS_VQSHL, 2, 0), # U=0, op=1
+    ('vqshl', INS_VQSHL, 2, 0), # U=0, op=1
+    ('vqshl', INS_VQSHL, 2, 0), # U=0, op=1
+    ('vqshl', INS_VQSHL, 2, 0), # U=0, op=1
+    ('vqshl', INS_VQSHL, 2, 16), # U=1, op=1
+    ('vqshl', INS_VQSHL, 2, 16), # U=1, op=1
+    ('vqshl', INS_VQSHL, 2, 16), # U=1, op=1
+    ('vqshl', INS_VQSHL, 2, 16), # U=1, op=1
     # 1000
-    ('vshrn', INS_VSHRN, 3),        # I16-64
-    ('vshrn', INS_VSHRN, 3),        # None
-    ('vrshrn', INS_VRSHRN, 3),      # I16-64
-    ('vrshrn', INS_VRSHRN, 3),      # None
-    ('vqshrn', INS_VQSHRN, 3),
-    ('vqshrun', INS_VQSHRUN, 3),
-    ('vqrshrn', INS_VQRSHRN, 3),
-    ('vqrshrun', INS_VQRSHRUN, 3),
+    ('vshrn', INS_VSHRN, 3, 8),        # I16-64
+    ('vshrn', INS_VSHRN, 3, 8),        # None
+    ('vrshrn', INS_VRSHRN, 3, 8),      # I16-64
+    ('vrshrn', INS_VRSHRN, 3, 8),      # None
+    ('vqshrun', INS_VQSHRUN, 3, 0),
+    ('vqshrun', INS_VQSHRUN, 3, 0),
+    ('vqrshrun', INS_VQRSHRUN, 3, 0),
+    ('vqrshrun', INS_VQRSHRUN, 3, 0),
     # 1001
-    ('vqshrn', INS_VQSHRN, 3),  # hold on, u is not specified... does it parse correctly with 3?
-    ('ERROR vqshrn', INS_VQSHRN, 3),  # hold on, u is not specified...
-    ('vqrshrn', INS_VQRSHRN, 3),  # hold on, u is not specified...
-    ('ERROR vqrshrn', INS_VQRSHRN, 3),  # hold on, u is not specified...
-    ('vqshrn', INS_VQSHRN, 3),  # hold on, u is not specified...
-    ('ERROR vqshrn', INS_VQSHRN, 3),  # hold on, u is not specified...
-    ('vqrshrn', INS_VQRSHRN, 3),  # hold on, u is not specified...
-    ('ERROR vqrshrn', INS_VQRSHRN, 3),  # hold on, u is not specified...
+    ('vqshrn', INS_VQSHRN, 7, 0),  # hold on, u is not specified... does it parse correctly with 3?
+    (None, INS_VQSHRN, 3, 0),  # hold on, u is not specified...
+    ('vqrshrn', INS_VQRSHRN, 7, 0),  # hold on, u is not specified...
+    (None, INS_VQRSHRN, 3, 0),  # hold on, u is not specified...
+    ('vqshrn', INS_VQSHRN, 7, 0),  # hold on, u is not specified...
+    (None, INS_VQSHRN, 3, 0),  # hold on, u is not specified...
+    ('vqrshrn', INS_VQRSHRN, 7, 0),  # hold on, u is not specified...
+    (None, INS_VQRSHRN, 3, 0),  # hold on, u is not specified...
     # 1010
-    ('vshll', INS_VSHLL, 4),    # vmovl if imm6 ends in 0b000
-    ('vshll', INS_VSHLL, 4),    # vmovl if imm6 ends in 0b000
-    ('vshll', INS_VSHLL, 4),    # vmovl if imm6 ends in 0b000
-    ('vshll', INS_VSHLL, 4),    # vmovl if imm6 ends in 0b000
-    ('vshll', INS_VSHLL, 4),    # vmovl if imm6 ends in 0b000
-    ('vshll', INS_VSHLL, 4),    # vmovl if imm6 ends in 0b000
-    ('vshll', INS_VSHLL, 4),    # vmovl if imm6 ends in 0b000
-    ('vshll', INS_VSHLL, 4),    # vmovl if imm6 ends in 0b000
+    ('vshll', INS_VSHLL, 4, 0),    # vmovl if imm6 ends in 0b000
+    ('vshll', INS_VSHLL, 4, 0),    # vmovl if imm6 ends in 0b000
+    ('vshll', INS_VSHLL, 4, 0),    # vmovl if imm6 ends in 0b000
+    ('vshll', INS_VSHLL, 4, 0),    # vmovl if imm6 ends in 0b000
+    ('vshll', INS_VSHLL, 4, 0),    # vmovl if imm6 ends in 0b000
+    ('vshll', INS_VSHLL, 4, 0),    # vmovl if imm6 ends in 0b000
+    ('vshll', INS_VSHLL, 4, 0),    # vmovl if imm6 ends in 0b000
+    ('vshll', INS_VSHLL, 4, 0),    # vmovl if imm6 ends in 0b000
     # 1011
-    ('ERROR advsimd-2rs-1011', INS_VQRSHRN, 3),  # hold on, u is not specified...
-    ('ERROR advsimd-2rs-1011', INS_VQRSHRN, 3),  # hold on, u is not specified...
-    ('ERROR advsimd-2rs-1011', INS_VQRSHRN, 3),  # hold on, u is not specified...
-    ('ERROR advsimd-2rs-1011', INS_VQRSHRN, 3),  # hold on, u is not specified...
-    ('ERROR advsimd-2rs-1011', INS_VQRSHRN, 3),  # hold on, u is not specified...
-    ('ERROR advsimd-2rs-1011', INS_VQRSHRN, 3),  # hold on, u is not specified...
-    ('ERROR advsimd-2rs-1011', INS_VQRSHRN, 3),  # hold on, u is not specified...
-    ('ERROR advsimd-2rs-1011', INS_VQRSHRN, 3),  # hold on, u is not specified...
+    ('ERROR advsimd-2rs-1011', INS_VQRSHRN, 3, 0),  # hold on, u is not specified...
+    ('ERROR advsimd-2rs-1011', INS_VQRSHRN, 3, 0),  # hold on, u is not specified...
+    ('ERROR advsimd-2rs-1011', INS_VQRSHRN, 3, 0),  # hold on, u is not specified...
+    ('ERROR advsimd-2rs-1011', INS_VQRSHRN, 3, 0),  # hold on, u is not specified...
+    ('ERROR advsimd-2rs-1011', INS_VQRSHRN, 3, 0),  # hold on, u is not specified...
+    ('ERROR advsimd-2rs-1011', INS_VQRSHRN, 3, 0),  # hold on, u is not specified...
+    ('ERROR advsimd-2rs-1011', INS_VQRSHRN, 3, 0),  # hold on, u is not specified...
+    ('ERROR advsimd-2rs-1011', INS_VQRSHRN, 3, 0),  # hold on, u is not specified...
     # 1100
-    ('ERROR advsimd-2rs-1100', INS_VQRSHRN, 3),  # hold on, u is not specified...
-    ('ERROR advsimd-2rs-1100', INS_VQRSHRN, 3),  # hold on, u is not specified...
-    ('ERROR advsimd-2rs-1100', INS_VQRSHRN, 3),  # hold on, u is not specified...
-    ('ERROR advsimd-2rs-1100', INS_VQRSHRN, 3),  # hold on, u is not specified...
-    ('ERROR advsimd-2rs-1100', INS_VQRSHRN, 3),  # hold on, u is not specified...
-    ('ERROR advsimd-2rs-1100', INS_VQRSHRN, 3),  # hold on, u is not specified...
-    ('ERROR advsimd-2rs-1100', INS_VQRSHRN, 3),  # hold on, u is not specified...
-    ('ERROR advsimd-2rs-1100', INS_VQRSHRN, 3),  # hold on, u is not specified...
+    ('ERROR advsimd-2rs-1100', INS_VQRSHRN, 3, 0),  # hold on, u is not specified...
+    ('ERROR advsimd-2rs-1100', INS_VQRSHRN, 3, 0),  # hold on, u is not specified...
+    ('ERROR advsimd-2rs-1100', INS_VQRSHRN, 3, 0),  # hold on, u is not specified...
+    ('ERROR advsimd-2rs-1100', INS_VQRSHRN, 3, 0),  # hold on, u is not specified...
+    ('ERROR advsimd-2rs-1100', INS_VQRSHRN, 3, 0),  # hold on, u is not specified...
+    ('ERROR advsimd-2rs-1100', INS_VQRSHRN, 3, 0),  # hold on, u is not specified...
+    ('ERROR advsimd-2rs-1100', INS_VQRSHRN, 3, 0),  # hold on, u is not specified...
+    ('ERROR advsimd-2rs-1100', INS_VQRSHRN, 3, 0),  # hold on, u is not specified...
     # 1101
-    ('ERROR advsimd-2rs-1101', INS_VQRSHRN, 3),  # hold on, u is not specified...
-    ('ERROR advsimd-2rs-1101', INS_VQRSHRN, 3),  # hold on, u is not specified...
-    ('ERROR advsimd-2rs-1101', INS_VQRSHRN, 3),  # hold on, u is not specified...
-    ('ERROR advsimd-2rs-1101', INS_VQRSHRN, 3),  # hold on, u is not specified...
-    ('ERROR advsimd-2rs-1101', INS_VQRSHRN, 3),  # hold on, u is not specified...
-    ('ERROR advsimd-2rs-1101', INS_VQRSHRN, 3),  # hold on, u is not specified...
-    ('ERROR advsimd-2rs-1101', INS_VQRSHRN, 3),  # hold on, u is not specified...
-    ('ERROR advsimd-2rs-1101', INS_VQRSHRN, 3),  # hold on, u is not specified...
+    ('ERROR advsimd-2rs-1101', INS_VQRSHRN, 3, 0),  # hold on, u is not specified...
+    ('ERROR advsimd-2rs-1101', INS_VQRSHRN, 3, 0),  # hold on, u is not specified...
+    ('ERROR advsimd-2rs-1101', INS_VQRSHRN, 3, 0),  # hold on, u is not specified...
+    ('ERROR advsimd-2rs-1101', INS_VQRSHRN, 3, 0),  # hold on, u is not specified...
+    ('ERROR advsimd-2rs-1101', INS_VQRSHRN, 3, 0),  # hold on, u is not specified...
+    ('ERROR advsimd-2rs-1101', INS_VQRSHRN, 3, 0),  # hold on, u is not specified...
+    ('ERROR advsimd-2rs-1101', INS_VQRSHRN, 3, 0),  # hold on, u is not specified...
+    ('ERROR advsimd-2rs-1101', INS_VQRSHRN, 3, 0),  # hold on, u is not specified...
     # 1110
-    ('vcvt', INS_VCVT, 5),
-    ('vcvt', INS_VCVT, 5),
-    ('vcvt', INS_VCVT, 5),
-    ('vcvt', INS_VCVT, 5),
-    ('vcvt', INS_VCVT, 5),
-    ('vcvt', INS_VCVT, 5),
-    ('vcvt', INS_VCVT, 5),
-    ('vcvt', INS_VCVT, 5),
+    ('vcvt', INS_VCVT, 5, 0),
+    ('vcvt', INS_VCVT, 5, 0),
+    ('vcvt', INS_VCVT, 5, 0),
+    ('vcvt', INS_VCVT, 5, 0),
+    ('vcvt', INS_VCVT, 5, 0),
+    ('vcvt', INS_VCVT, 5, 0),
+    ('vcvt', INS_VCVT, 5, 0),
+    ('vcvt', INS_VCVT, 5, 0),
     # 1111
-    ('vcvt', INS_VCVT, 5),
-    ('vcvt', INS_VCVT, 5),
-    ('vcvt', INS_VCVT, 5),
-    ('vcvt', INS_VCVT, 5),
-    ('vcvt', INS_VCVT, 5),
-    ('vcvt', INS_VCVT, 5),
-    ('vcvt', INS_VCVT, 5),
-    ('vcvt', INS_VCVT, 5),
+    ('vcvt', INS_VCVT, 5, 0),
+    ('vcvt', INS_VCVT, 5, 0),
+    ('vcvt', INS_VCVT, 5, 0),
+    ('vcvt', INS_VCVT, 5, 0),
+    ('vcvt', INS_VCVT, 5, 0),
+    ('vcvt', INS_VCVT, 5, 0),
+    ('vcvt', INS_VCVT, 5, 0),
+    ('vcvt', INS_VCVT, 5, 0),
 
 
     )
@@ -3732,6 +3796,14 @@ class ArmOpcode(envi.Opcode):
                     mnem += '.u8'
                 elif self.simdflags & IFS_I8:
                     mnem += '.i8'
+                elif self.simdflags & IFS_P8:
+                    mnem += '.p8'
+                elif self.simdflags & IFS_P16:
+                    mnem += '.p16'
+                elif self.simdflags & IFS_P32:
+                    mnem += '.p32'
+                elif self.simdflags & IFS_P64:
+                    mnem += '.p64'
                 elif self.simdflags & IFS_8:
                     mnem += '.8'
                 elif self.simdflags & IFS_16:
@@ -3842,6 +3914,14 @@ class ArmOpcode(envi.Opcode):
                     mnem += '.u8'
                 elif self.simdflags & IFS_I8:
                     mnem += '.i8'
+                elif self.simdflags & IFS_P8:
+                    mnem += '.p8'
+                elif self.simdflags & IFS_P16:
+                    mnem += '.p16'
+                elif self.simdflags & IFS_P32:
+                    mnem += '.p32'
+                elif self.simdflags & IFS_P64:
+                    mnem += '.p64'
                 elif self.simdflags & IFS_8:
                     mnem += '.8'
                 elif self.simdflags & IFS_16:
@@ -4076,10 +4156,11 @@ class ArmImmOper(ArmOperand):
     ''' register operand.  see "addressing mode 1 - data processing operands - immediate" '''
 
 
-    def __init__(self, val, shval=0, shtype=S_ROR, va=0):
+    def __init__(self, val, shval=0, shtype=S_ROR, va=0, size=4):
         self.val = val
         self.shval = shval
         self.shtype = shtype
+        self.size = size
 
     def __eq__(self, oper):
         if not isinstance(oper, self.__class__):
@@ -4100,7 +4181,7 @@ class ArmImmOper(ArmOperand):
         return True
 
     def getOperValue(self, op, emu=None):
-        return shifters[self.shtype](self.val, self.shval)
+        return shifters[self.shtype](self.val, self.shval, self.size)
 
     def render(self, mcanv, op, idx):
         val = self.getOperValue(op)
@@ -4109,6 +4190,26 @@ class ArmImmOper(ArmOperand):
     def repr(self, op):
         val = self.getOperValue(op)
         return '#0x%.2x' % (val)
+
+class ArmFloatOper(ArmImmOper):
+    def __init__(self, val, size=4):
+        self.val = val
+        self.size = size
+
+    def getOperValue(self, op, emu=None):
+        infmt = (0, 0, 0, 0, '<I', 0, 0, 0, '<Q')[self.size]
+        outfmt = (0, 0, 0, 0, '<f', 0, 0, 0, '<d')[self.size]
+        bytez = struct.pack(infmt, self.val)
+        retval = struct.unpack(outfmt, bytez)[0]
+        return retval
+
+    def render(self, mcanv, op, idx):
+        val = self.getOperValue(op)
+        mcanv.addNameText('#%f' % (val))
+
+    def repr(self, op):
+        val = self.getOperValue(op)
+        return '#%f' % (val)
 
 class ArmImmFPOper(ArmImmOper):
     def __init__(self, val, precision=0):
@@ -4726,14 +4827,16 @@ class ArmExtRegListOper(ArmOperand):
         return True
 
     def render(self, mcanv, op, idx):
-        regbase = ("S%d", "D%d")[self.size]
+        regbase = ("s%d", "d%d")[self.size]
         mcanv.addText('{')
+        top = self.count-1
         for l in xrange(self.count):
             #vreg = REGS_VECTOR_BASE_IDX + self.firstreg + l
             #mcanv.addNameText(arm_regs[l][0], typename='registers')
             vreg = self.firstreg + l
             mcanv.addNameText(regbase % vreg, typename='registers')
-            mcanv.addText(', ')
+            if l < top:
+                mcanv.addText(', ')
 
         mcanv.addText('}')
 
@@ -4761,15 +4864,18 @@ class ArmExtRegListOper(ArmOperand):
             emu.setRegister(base + vidx, vals[vidx])
 
     def repr(self, op):
-        regbase = ("S%d", "D%d")[self.size]
+        regbase = ("s%d", "d%d")[self.size]
         s = [ "{" ]
+        top = self.count - 1
+
         for l in xrange(self.count):
             vreg = self.firstreg + l
             s.append(regbase % vreg)
-            s.append(', ')
+            if l < top:
+                s.append(', ')
 
         s.append('}')
-        return " ".join(s)
+        return "".join(s)
     
 aif_flags = (None, 'f','i','if','a','af','ai','aif')
 class ArmPSRFlagsOper(ArmOperand):
