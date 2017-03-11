@@ -2004,15 +2004,15 @@ def _do_fp_dp(va, val1, val2):
                     )
 
         elif opc2 == 0:
-            # VMOV p936 with reg/reg
-            if opc3 & 1:
-                mnem = 'vmov'
-                opcode = INS_VMOV
-
             # VABS p822 T2/A2
-            elif opc3 == 3:
+            if opc3 == 3:
                 mnem = 'vabs'
                 opcode = INS_VABS
+
+            # VMOV p936 with reg/reg
+            elif opc3 & 1:
+                mnem = 'vmov'
+                opcode = INS_VMOV
 
             opers = (
                     ArmRegOper(rctx.getRegisterIndex(rbase%d)),
@@ -2717,10 +2717,10 @@ adv_simd_2regs_misc = (
         ('vcge',   INS_VCGE, 0, 0,0),
         ('vcge',   INS_VCGE, 0, 1,1),
         # a=1 b=001xx
-        ('vceq',   INS_VCEQ, 0, 0,0),
-        ('vceq',   INS_VCEQ, 0, 1,1),
-        ('vcle',   INS_VCLE, 0, 0,0),
-        ('vcle',   INS_VCLE, 0, 1,1),
+        ('vceq',   INS_VCEQ, 8, 0,0),
+        ('vceq',   INS_VCEQ, 8, 1,1),
+        ('vcle',   INS_VCLE, 8, 0,0),
+        ('vcle',   INS_VCLE, 8, 1,1),
         # a=1 b=010xx
         ('vclt',   INS_VCLT, 0, 0,0),
         ('vclt',   INS_VCLT, 0, 1,1),
