@@ -603,7 +603,17 @@ instrnames = [
         'WFI',
         'SEV',
         'SWP',
-
+        'VCMP',
+        'VCMPE',
+        'VSWP',
+        'VTRN',
+        'VUZP',
+        'VZIP',
+        'VMOVN',
+        'VQMOVN',
+        'VQMOVUN',
+        'VRECPE',
+        'VRSQRTE',
 ]
 
 ins_index = 85

@@ -2193,474 +2193,486 @@ def p_advsimd_secondary(val, va, mnem, opcode, flags, opers):
             return 'vmov', INS_VMOV, None, opers
     return None, None, None, None
 
-adv_simd_3_regs = (  # ABUC fields slammed together
-        # a=0000 b=0
-        ('vhadd', INS_VHADD, IFS_S8, None),
-        ('vhadd', INS_VHADD, IFS_S16, None),
-        ('vhadd', INS_VHADD, IFS_S32, None),
-        (None, INS_VHADD, 0, None),
-        ('vhadd', INS_VHADD, IFS_U8, None),
-        ('vhadd', INS_VHADD, IFS_U16, None),
-        ('vhadd', INS_VHADD, IFS_U32, None),
-        (None, INS_VHADD, 0, None),
-
-        # a=0000 b=1
-        ('vqadd', INS_VQADD, IFS_S8, None),
-        ('vqadd', INS_VQADD, IFS_S16, None),
-        ('vqadd', INS_VQADD, IFS_S32, None),
-        ('vqadd', INS_VQADD, IFS_S64, None),
-        ('vqadd', INS_VQADD, IFS_U8, None),
-        ('vqadd', INS_VQADD, IFS_U16, None),
-        ('vqadd', INS_VQADD, IFS_U32, None),
-        ('vqadd', INS_VQADD, IFS_U64, None),
-
-        # a=0001 b=0
-        ('vrhadd', INS_VRHADD, IFS_S8, None),
-        ('vrhadd', INS_VRHADD, IFS_S16, None),
-        ('vrhadd', INS_VRHADD, IFS_S32, None),
-        (None, INS_VRHADD, 0, None),
-        ('vrhadd', INS_VRHADD, IFS_U8, None),
-        ('vrhadd', INS_VRHADD, IFS_U16, None),
-        ('vrhadd', INS_VRHADD, IFS_U32, None),
-        (None, INS_VRHADD, 0, None),
-
-        # a=0001 b=1
-        ('vand', INS_VAND, 0, None),
-        ('vbic', INS_VBIC, 0, None),
-        ('vorr', INS_VORR, 0, p_advsimd_secondary),    # vmov if source registers identical
-        ('vorn', INS_VORN, 0, None),
-        ('veor', INS_VEOR, 0, None),
-        ('vbsl', INS_VBSL, 0, None),
-        ('vbit', INS_VBIT, 0, None),
-        ('vbif', INS_VBIF, 0, None),
-
-        # a=0010 b=0
-        ('vhsub', INS_VHSUB, IFS_S8, None),
-        ('vhsub', INS_VHSUB, IFS_S16, None),
-        ('vhsub', INS_VHSUB, IFS_S32, None),
-        (None, INS_VHSUB, 0, None),
-        ('vhsub', INS_VHSUB, IFS_U8, None),
-        ('vhsub', INS_VHSUB, IFS_U16, None),
-        ('vhsub', INS_VHSUB, IFS_U32, None),
-        (None, INS_VHSUB, 0, None),
-
-        # a=0010 b=1
-        ('vqsub', INS_VQSUB, IFS_S8, None),
-        ('vqsub', INS_VQSUB, IFS_S16, None),
-        ('vqsub', INS_VQSUB, IFS_S32, None),
-        ('vqsub', INS_VQSUB, IFS_S64, None),
-        ('vqsub', INS_VQSUB, IFS_U8, None),
-        ('vqsub', INS_VQSUB, IFS_U16, None),
-        ('vqsub', INS_VQSUB, IFS_U32, None),
-        ('vqsub', INS_VQSUB, IFS_U64, None),
-
-        # a=0011 b=0
-        ('vcgt', INS_VCGT, IFS_S8, None),
-        ('vcgt', INS_VCGT, IFS_S16, None),
-        ('vcgt', INS_VCGT, IFS_S32, None),
-        (None, INS_VCGT, 0, None),
-        ('vcgt', INS_VCGT, IFS_U8, None),
-        ('vcgt', INS_VCGT, IFS_U16, None),
-        ('vcgt', INS_VCGT, IFS_U32, None),
-        (None, INS_VCGT, 0, None),
-
-        # a=0011 b=1
-        ('vcge', INS_VCGE, IFS_S8, None),
-        ('vcge', INS_VCGE, IFS_S16, None),
-        ('vcge', INS_VCGE, IFS_S32, None),
-        (None, INS_VCGE, 0, None),
-        ('vcge', INS_VCGE, IFS_U8, None),
-        ('vcge', INS_VCGE, IFS_U16, None),
-        ('vcge', INS_VCGE, IFS_U32, None),
-        (None, INS_VCGE, 0, None),
-
-        # a=0100 b=0
-        ('vshl', INS_VSHL, IFS_S8, None),           # d, m, n, not d, n, m like all the others in this category
-        ('vshl', INS_VSHL, IFS_S16, None),
-        ('vshl', INS_VSHL, IFS_S32, None),
-        ('vshl', INS_VSHL, IFS_S64, None),
-        ('vshl', INS_VSHL, IFS_U8, None),
-        ('vshl', INS_VSHL, IFS_U16, None),
-        ('vshl', INS_VSHL, IFS_U32, None),
-        ('vshl', INS_VSHL, IFS_U64, None),
-
-        # a=0100 b=1
-        ('vqshl', INS_VQSHL, IFS_S8, None),
-        ('vqshl', INS_VQSHL, IFS_S16, None),
-        ('vqshl', INS_VQSHL, IFS_S32, None),
-        ('vqshl', INS_VQSHL, IFS_S64, None),
-        ('vqshl', INS_VQSHL, IFS_U8, None),
-        ('vqshl', INS_VQSHL, IFS_U16, None),
-        ('vqshl', INS_VQSHL, IFS_U32, None),
-        ('vqshl', INS_VQSHL, IFS_U64, None),
-
-        # a=0101 b=0
-        ('vrshl', INS_VRSHL, IFS_S8, None),
-        ('vrshl', INS_VRSHL, IFS_S16, None),
-        ('vrshl', INS_VRSHL, IFS_S32, None),
-        ('vrshl', INS_VRSHL, IFS_S64, None),
-        ('vrshl', INS_VRSHL, IFS_U8, None),
-        ('vrshl', INS_VRSHL, IFS_U16, None),
-        ('vrshl', INS_VRSHL, IFS_U32, None),
-        ('vrshl', INS_VRSHL, IFS_U64, None),
-
-        # a=0101 b=1
-        ('vqrshl', INS_VQRSHL, IFS_S8, None),
-        ('vqrshl', INS_VQRSHL, IFS_S16, None),
-        ('vqrshl', INS_VQRSHL, IFS_S32, None),
-        ('vqrshl', INS_VQRSHL, IFS_S64, None),
-        ('vqrshl', INS_VQRSHL, IFS_U8, None),
-        ('vqrshl', INS_VQRSHL, IFS_U16, None),
-        ('vqrshl', INS_VQRSHL, IFS_U32, None),
-        ('vqrshl', INS_VQRSHL, IFS_U64, None),
-
-        # a=0110 b=0
-        ('vmax', INS_VMAX, IFS_S8, None),
-        ('vmax', INS_VMAX, IFS_S16, None),
-        ('vmax', INS_VMAX, IFS_S32, None),
-        (None, INS_VMAX, 0, None),
-        ('vmax', INS_VMAX, IFS_U8, None),
-        ('vmax', INS_VMAX, IFS_U16, None),
-        ('vmax', INS_VMAX, IFS_U32, None),
-        (None, INS_VMAX, 0, None),
-
-        # a=0110 b=1
-        ('vmin', INS_VMIN, IFS_S8, None),
-        ('vmin', INS_VMIN, IFS_S16, None),
-        ('vmin', INS_VMIN, IFS_S32, None),
-        (None, INS_VMIN, 0, None),
-        ('vmin', INS_VMIN, IFS_U8, None),
-        ('vmin', INS_VMIN, IFS_U16, None),
-        ('vmin', INS_VMIN, IFS_U32, None),
-        (None, INS_VMIN, 0, None),
-
-        # a=0111 b=0
-        ('vabd', INS_VABD, IFS_S8, None),
-        ('vabd', INS_VABD, IFS_S16, None),
-        ('vabd', INS_VABD, IFS_S32, None),
-        (None, INS_VABD, 0, None),
-        ('vabd', INS_VABD, IFS_U8, None),
-        ('vabd', INS_VABD, IFS_U16, None),
-        ('vabd', INS_VABD, IFS_U32, None),
-        (None, INS_VABD, 0, None),
-
-        # a=0111 b=1
-        ('vaba', INS_VABA, IFS_S8, None),
-        ('vaba', INS_VABA, IFS_S16, None),
-        ('vaba', INS_VABA, IFS_S32, None),
-        (None, INS_VABA, 0, None),
-        ('vaba', INS_VABA, IFS_U8, None),
-        ('vaba', INS_VABA, IFS_U16, None),
-        ('vaba', INS_VABA, IFS_U32, None),
-        (None, INS_VABA, 0, None),
-
-        # a=1000 b=0
-        ('vadd', INS_VADD, IFS_I8, None),
-        ('vadd', INS_VADD, IFS_I16, None),
-        ('vadd', INS_VADD, IFS_I32, None),
-        ('vadd', INS_VADD, IFS_I64, None),
-        ('vsub', INS_VSUB, IFS_I8, None),
-        ('vsub', INS_VSUB, IFS_I16, None),
-        ('vsub', INS_VSUB, IFS_I32, None),
-        ('vsub', INS_VSUB, IFS_I64, None),
-
-        # a=1000 b=1
-        ('vtst', INS_VTST, IFS_8, None),
-        ('vtst', INS_VTST, IFS_16, None),
-        ('vtst', INS_VTST, IFS_32, None),
-        (None, INS_VTST, 0, None),
-        ('vceq', INS_VCEQ, IFS_I8, None),
-        ('vceq', INS_VCEQ, IFS_I16, None),
-        ('vceq', INS_VCEQ, IFS_I32, None),
-        (None, INS_VCEQ, 0, None),
-
-        # a=1001 b=0        # DOUBLECHECK THIS!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        ('vmla', INS_VMLA, IFS_I8, None),
-        ('vmla', INS_VMLA, IFS_I16, None),
-        ('vmla', INS_VMLA, IFS_I32, None),
-        (None, INS_VMLA, 0, None),
-        ('vmls', INS_VMLS, IFS_I8, None),
-        ('vmls', INS_VMLS, IFS_I16, None),
-        ('vmls', INS_VMLS, IFS_I32, None),
-        (None, INS_VMLS, 0, None),
-
-        # a=1001 b=1
-        ('vmul', INS_VMUL, IFS_I8, None),
-        ('vmul', INS_VMUL, IFS_I16, None),
-        ('vmul', INS_VMUL, IFS_I32, None),
-        (None, INS_VMUL, 0, None),
-        ('vmul', INS_VMUL, IFS_P8, None),
-        ('vmul', INS_VMUL, IFS_P16, None),
-        ('vmul', INS_VMUL, IFS_P32, None),
-        (None, INS_VMUL, 0, None),
-
-        # a=1010 b=0
-        ('vpmax', INS_VPMAX, IFS_S8, None),
-        ('vpmax', INS_VPMAX, IFS_S16, None),
-        ('vpmax', INS_VPMAX, IFS_S32, None),
-        (None, INS_VPMAX, 0, None),
-        ('vpmax', INS_VPMAX, IFS_U8, None),
-        ('vpmax', INS_VPMAX, IFS_U16, None),
-        ('vpmax', INS_VPMAX, IFS_U32, None),
-        (None, INS_VPMAX, 0, None),
-
-        # a=1010 b=1
-        ('vpmin', INS_VPMIN, IFS_S8, None),
-        ('vpmin', INS_VPMIN, IFS_S16, None),
-        ('vpmin', INS_VPMIN, IFS_S32, None),
-        (None, INS_VPMIN, 0, None),
-        ('vpmin', INS_VPMIN, IFS_U8, None),
-        ('vpmin', INS_VPMIN, IFS_U16, None),
-        ('vpmin', INS_VPMIN, IFS_U32, None),
-        (None, INS_VPMIN, 0, None),
-
-        # a=1011 b=0
-        (None, INS_VHADD, 0, None),
-        ('vqdmulh', INS_VQDMULH, IFS_S16, None),
-        ('vqdmulh', INS_VQDMULH, IFS_S32, None),
-        (None, INS_VHADD, 0, None),
-        (None, INS_VHADD, 0, None),
-        ('vqrdmulh', INS_VQRDMULH, IFS_S16, None),
-        ('vqrdmulh', INS_VQRDMULH, IFS_S32, None),
-        (None, INS_VHADD, 0, None),
-
-        # a=1011 b=1
-        ('vpadd', INS_VPADD, IFS_I8, None),
-        ('vpadd', INS_VPADD, IFS_I16, None),
-        ('vpadd', INS_VPADD, IFS_I32, None),
-        (None, INS_VHADD, 0, None),
-        (None, INS_VHADD, 0, None),
-        (None, INS_VHADD, 0, None),
-        (None, INS_VHADD, 0, None),
-        (None, INS_VHADD, 0, None),
-
-        # a=1100 b=0
-        (None, INS_VHADD, 0, None),
-        (None, INS_VHADD, 0, None),
-        (None, INS_VHADD, 0, None),
-        (None, INS_VHADD, 0, None),
-        (None, INS_VHADD, 0, None),
-        (None, INS_VHADD, 0, None),
-        (None, INS_VHADD, 0, None),
-        (None, INS_VHADD, 0, None),
-
-        # a=1100 b=1
-        ('vfma', INS_VFMA, IFS_F32, None),
-        (None, INS_VHADD, 0, None),
-        ('vfms', INS_VFMS, IFS_F32, None),
-        (None, INS_VHADD, 0, None),
-        (None, INS_VHADD, 0, None),
-        (None, INS_VHADD, 0, None),
-        (None, INS_VHADD, 0, None),
-        (None, INS_VHADD, 0, None),
-
-        # a=1101 b=0
-        ('vadd', INS_VADD, IFS_F32, None),
-        (None, INS_VHADD, 0, None),
-        ('vsub', INS_VSUB, IFS_F32, None),
-        (None, INS_VHADD, 0, None),
-        ('vpadd', INS_VPADD, IFS_F32, None),
-        (None, INS_VHADD, 0, None),
-        ('vabd', INS_VABD, IFS_F32, None),
-        (None, INS_VHADD, 0, None),
-
-        # a=1101 b=1
-        ('vmla', INS_VMLA, IFS_F32, None),
-        (None, INS_VHADD, 0, None),
-        ('vmls', INS_VMLS, IFS_F32, None),
-        (None, INS_VHADD, 0, None),
-        ('vmul', INS_VMUL, IFS_F32, None),
-        (None, INS_VHADD, 0, None),
-        (None, INS_VHADD, 0, None),
-        (None, INS_VHADD, 0, None),
-
-        # a=1110 b=0
-        ('vceq', INS_VCEQ, IFS_F32, None),
-        (None, INS_VHADD, 0, None),
-        (None, INS_VHADD, 0, None),
-        (None, INS_VHADD, 0, None),
-        ('vcge', INS_VCGE, IFS_F32, None),
-        (None, INS_VHADD, 0, None),
-        ('vcgt', INS_VCGT, IFS_F32, None),
-        (None, INS_VHADD, 0, None),
-
-        # a=1110 b=1
-        (None, INS_VHADD, 0, None),
-        (None, INS_VHADD, 0, None),
-        (None, INS_VHADD, 0, None),
-        (None, INS_VHADD, 0, None),
-        ('vacge', INS_VACGE, IFS_F32, None), # check if all instructions code this way: Q==0 means Dx Regs, Q==1 means Qx Regs
-        (None, INS_VHADD, 0, None),
-        ('vacgt', INS_VACGT, IFS_F32, None),
-        (None, INS_VHADD, 0, None),
-
-        # a=1111 b=0
-        ('vmax', INS_VMAX, IFS_F32, None),
-        (None, INS_VHADD, 0, None),
-        ('vmin', INS_VMIN, IFS_F32, None),
-        (None, INS_VHADD, 0, None),
-        ('vpmax', INS_VPMAX, IFS_F32, None),
-        (None, INS_VHADD, 0, None),
-        ('vpmin', INS_VPMIN, IFS_F32, None),
-        (None, INS_VHADD, 0, None),
-
-        # a=1111 b=1
-        ('vrecps', INS_VRECPS, IFS_F32, None),
-        (None, INS_VHADD, 0, None),
-        ('vrsqrts', INS_VRSQRTS, IFS_F32, None),
-        (None, INS_VHADD, 0, None),
-        (None, INS_VHADD, 0, None),
-        (None, INS_VHADD, 0, None),
-        (None, INS_VHADD, 0, None),
-        (None, INS_VHADD, 0, None),
-
-    )
-
-adv_simd_1modimm = (
-        # op = 0
-        # 0xx0 and 0xx1
-        ('vmov', INS_VMOV, 0, None),
-        ('vorr', INS_VORR, 0, None),
-        ('vmov', INS_VMOV, 0, None),
-        ('vorr', INS_VORR, 0, None),
-        ('vmov', INS_VMOV, 0, None),
-        ('vorr', INS_VORR, 0, None),
-        ('vmov', INS_VMOV, 0, None),
-        ('vorr', INS_VORR, 0, None),
-        # 10x0 and 10x1
-        ('vmov', INS_VMOV, 0, None),
-        ('vorr', INS_VORR, 0, None),
-        ('vmov', INS_VMOV, 0, None),
-        ('vorr', INS_VORR, 0, None),
-        # 11xx
-        ('vmov', INS_VMOV, 0, None),
-        ('vmov', INS_VMOV, 0, None),
-        ('vmov', INS_VMOV, 0, None),
-        ('vmov', INS_VMOV, 0, None),
-
-        # op = 1
-        # 0xx0 and 0xx1
-        ('vmvn', INS_VMVN, 0, None),
-        ('vbic', INS_VBIC, 0, None),
-        ('vmvn', INS_VMVN, 0, None),
-        ('vbic', INS_VBIC, 0, None),
-        ('vmvn', INS_VMVN, 0, None),
-        ('vbic', INS_VBIC, 0, None),
-        ('vmvn', INS_VMVN, 0, None),
-        ('vbic', INS_VBIC, 0, None),
-        # 10x0 and 10x1
-        ('vmvn', INS_VMVN, 0, None),
-        ('vbic', INS_VBIC, 0, None),
-        ('vmvn', INS_VMVN, 0, None),
-        ('vbic', INS_VBIC, 0, None),
-        # 110x
-        ('vmvn', INS_VMVN, 0, None),
-        ('vmvn', INS_VMVN, 0, None),
-        # 1110
-        ('vmov', INS_VMOV, 0, None),
-        # 1111 undef
-        ('vector UNDEF', None, 0, None),
-    )
-
-adv_simd_3diffregs = (
-        # a=0, u=0
-        ('vaddl', INS_VADDL, 0, 1, 0, 0),
-        ('vaddl', INS_VADDL, 4, 1, 0, 0),
-        ('vaddw', INS_VADDW, 0, 1, 1, 0),
-        ('vaddw', INS_VADDW, 4, 1, 1, 0),
-        ('vsubl', INS_VSUBL, 0, 1, 0, 0),
-        ('vsubl', INS_VSUBL, 4, 1, 0, 0),
-        ('vsubw', INS_VSUBW, 0, 1, 1, 0),
-        ('vsubw', INS_VSUBW, 4, 1, 1, 0),
-        # a=4, u=0/1
-        ('vaddhn', INS_VADDHN, 9, 0, 1, 1),     # THIS IS TROUBLE...  9 instead of 8?  i'm expecting a multiplicative problem
-        ('vraddhn', INS_VRADDHN, 9, 0, 1, 1),
-        # a=5, u=0/1
-        ('vabal', INS_VABAL, 0, 1, 0, 0),
-        ('vabal', INS_VABAL, 4, 1, 0, 0),
-        # a=6
-        ('vsubhn', INS_VSUBHN, 9, 0, 1, 1),
-        ('vrsubhn', INS_VRSUBHN, 9,0, 1, 1),
-        # a=7
-        ('vabdl', INS_VABDL, 0, 1, 0, 0),
-        ('vabdl', INS_VABDL, 4, 1, 0, 0),
-        # a=8
-        ('vmlal', INS_VMLAL, 0, 1, 0, 0),
-        ('vmlal', INS_VMLAL, 4, 1, 0, 0),
-        # a=9
-        ('vqdmlal', INS_VQDMLAL, 0, 1, 0, 0),
-        (None, INS_VQDMLAL, 4, 1, 0, 0),
-        # a=0xa
-        ('vmlsl', INS_VMLSL, 0, 1, 0, 0),
-        ('vmlsl', INS_VMLSL, 4, 1, 0, 0),
-        # a=0xb
-        ('vqdmlsl', INS_VQDMLSL, 0, 1, 0, 0),       # FIXME: TESTME thumb: 0xef9349a5, 0xefe34ba5
-        (None, INS_VQDMLSL, 0, 1, 0, 0),
-        # a=0xc
-        ('vmull', INS_VMULL, 0, 1, 0, 0),
-        ('vmull', INS_VMULL, 4, 1, 0, 0),
-        # a=0xd
-        ('vqdmull', INS_VQDMULL, 0, 1, 0, 0),
-        (None, INS_VQDMULL, 0, 1, 0, 0),
-        # a=0xe
-        ('vmull', INS_VMULL, 12,1, 0, 0),
-        ('vmull', INS_VMULL, 12,1, 0, 0),
-        # a=0xf  - nothing...
-        (None, 0, 0,0,0,0),
-        (None, 0, 0,0,0,0),
-        )
-
 adv_simd_dts = (IFS_S8, IFS_S16, IFS_S32, IFS_S64, 
                 IFS_U8, IFS_U16, IFS_U32, IFS_U64, 
                 IFS_I8, IFS_I16, IFS_I32, IFS_I64,
                 IFS_P8, IFS_P16, IFS_P32, IFS_P64,
                 IFS_F8, IFS_F16, IFS_F32, IFS_F64,
                 IFS_8,  IFS_16,  IFS_32,  IFS_64,
-                0,0,0,0)
+                0,0,0,0,
+                IFS_F1632, IFS_F3216, 0,0,
+                IFS_F32S32, IFS_F32U32, IFS_S32F32, IFS_U32F32,
+                )
+ADV_SIMD_S8     = 0
+ADV_SIMD_U8     = 4
+ADV_SIMD_I8     = 8
+ADV_SIMD_P8     = 12
+ADV_SIMD_F8     = 16
+ADV_SIMD_8      = 20
+ADV_SIMD_NONE   = 24
+ADV_SIMD_F16F32 = 28
+ADV_SIMD_F32S32 = 32
+
+adv_simd_3_regs = (  # ABUC fields slammed together
+        # a=0000 b=0
+        ('vhadd',       INS_VHADD, IFS_S8, None),
+        ('vhadd',       INS_VHADD, IFS_S16, None),
+        ('vhadd',       INS_VHADD, IFS_S32, None),
+        (None,          None, 0, None),
+        ('vhadd',       INS_VHADD, IFS_U8, None),
+        ('vhadd',       INS_VHADD, IFS_U16, None),
+        ('vhadd',       INS_VHADD, IFS_U32, None),
+        (None,          None, 0, None),
+
+        # a=0000 b=1
+        ('vqadd',       INS_VQADD, IFS_S8, None),
+        ('vqadd',       INS_VQADD, IFS_S16, None),
+        ('vqadd',       INS_VQADD, IFS_S32, None),
+        ('vqadd',       INS_VQADD, IFS_S64, None),
+        ('vqadd',       INS_VQADD, IFS_U8, None),
+        ('vqadd',       INS_VQADD, IFS_U16, None),
+        ('vqadd',       INS_VQADD, IFS_U32, None),
+        ('vqadd',       INS_VQADD, IFS_U64, None),
+
+        # a=0001 b=0
+        ('vrhadd',      INS_VRHADD, IFS_S8, None),
+        ('vrhadd',      INS_VRHADD, IFS_S16, None),
+        ('vrhadd',      INS_VRHADD, IFS_S32, None),
+        (None,          None, 0, None),
+        ('vrhadd',      INS_VRHADD, IFS_U8, None),
+        ('vrhadd',      INS_VRHADD, IFS_U16, None),
+        ('vrhadd',      INS_VRHADD, IFS_U32, None),
+        (None,          None, 0, None),
+
+        # a=0001 b=1
+        ('vand',        INS_VAND, 0, None),
+        ('vbic',        INS_VBIC, 0, None),
+        ('vorr',        INS_VORR, 0, p_advsimd_secondary),    # vmov if source registers identical
+        ('vorn',        INS_VORN, 0, None),
+        ('veor',        INS_VEOR, 0, None),
+        ('vbsl',        INS_VBSL, 0, None),
+        ('vbit',        INS_VBIT, 0, None),
+        ('vbif',        INS_VBIF, 0, None),
+
+        # a=0010 b=0
+        ('vhsub',       INS_VHSUB, IFS_S8, None),
+        ('vhsub',       INS_VHSUB, IFS_S16, None),
+        ('vhsub',       INS_VHSUB, IFS_S32, None),
+        (None,          None, 0, None),
+        ('vhsub',       INS_VHSUB, IFS_U8, None),
+        ('vhsub',       INS_VHSUB, IFS_U16, None),
+        ('vhsub',       INS_VHSUB, IFS_U32, None),
+        (None,          None, 0, None),
+
+        # a=0010 b=1
+        ('vqsub',       INS_VQSUB, IFS_S8, None),
+        ('vqsub',       INS_VQSUB, IFS_S16, None),
+        ('vqsub',       INS_VQSUB, IFS_S32, None),
+        ('vqsub',       INS_VQSUB, IFS_S64, None),
+        ('vqsub',       INS_VQSUB, IFS_U8, None),
+        ('vqsub',       INS_VQSUB, IFS_U16, None),
+        ('vqsub',       INS_VQSUB, IFS_U32, None),
+        ('vqsub',       INS_VQSUB, IFS_U64, None),
+
+        # a=0011 b=0
+        ('vcgt',        INS_VCGT, IFS_S8, None),
+        ('vcgt',        INS_VCGT, IFS_S16, None),
+        ('vcgt',        INS_VCGT, IFS_S32, None),
+        (None,          None, 0, None),
+        ('vcgt',        INS_VCGT, IFS_U8, None),
+        ('vcgt',        INS_VCGT, IFS_U16, None),
+        ('vcgt',        INS_VCGT, IFS_U32, None),
+        (None,          None, 0, None),
+
+        # a=0011 b=1
+        ('vcge',        INS_VCGE, IFS_S8, None),
+        ('vcge',        INS_VCGE, IFS_S16, None),
+        ('vcge',        INS_VCGE, IFS_S32, None),
+        (None,          None, 0, None),
+        ('vcge',        INS_VCGE, IFS_U8, None),
+        ('vcge',        INS_VCGE, IFS_U16, None),
+        ('vcge',        INS_VCGE, IFS_U32, None),
+        (None,          None, 0, None),
+
+        # a=0100 b=0
+        ('vshl',        INS_VSHL, IFS_S8, None),           # d, m, n, not d, n, m like all the others in this category
+        ('vshl',        INS_VSHL, IFS_S16, None),
+        ('vshl',        INS_VSHL, IFS_S32, None),
+        ('vshl',        INS_VSHL, IFS_S64, None),
+        ('vshl',        INS_VSHL, IFS_U8, None),
+        ('vshl',        INS_VSHL, IFS_U16, None),
+        ('vshl',        INS_VSHL, IFS_U32, None),
+        ('vshl',        INS_VSHL, IFS_U64, None),
+
+        # a=0100 b=1
+        ('vqshl',       INS_VQSHL, IFS_S8, None),
+        ('vqshl',       INS_VQSHL, IFS_S16, None),
+        ('vqshl',       INS_VQSHL, IFS_S32, None),
+        ('vqshl',       INS_VQSHL, IFS_S64, None),
+        ('vqshl',       INS_VQSHL, IFS_U8, None),
+        ('vqshl',       INS_VQSHL, IFS_U16, None),
+        ('vqshl',       INS_VQSHL, IFS_U32, None),
+        ('vqshl',       INS_VQSHL, IFS_U64, None),
+
+        # a=0101 b=0
+        ('vrshl',       INS_VRSHL, IFS_S8, None),
+        ('vrshl',       INS_VRSHL, IFS_S16, None),
+        ('vrshl',       INS_VRSHL, IFS_S32, None),
+        ('vrshl',       INS_VRSHL, IFS_S64, None),
+        ('vrshl',       INS_VRSHL, IFS_U8, None),
+        ('vrshl',       INS_VRSHL, IFS_U16, None),
+        ('vrshl',       INS_VRSHL, IFS_U32, None),
+        ('vrshl',       INS_VRSHL, IFS_U64, None),
+
+        # a=0101 b=1
+        ('vqrshl',      INS_VQRSHL, IFS_S8, None),
+        ('vqrshl',      INS_VQRSHL, IFS_S16, None),
+        ('vqrshl',      INS_VQRSHL, IFS_S32, None),
+        ('vqrshl',      INS_VQRSHL, IFS_S64, None),
+        ('vqrshl',      INS_VQRSHL, IFS_U8, None),
+        ('vqrshl',      INS_VQRSHL, IFS_U16, None),
+        ('vqrshl',      INS_VQRSHL, IFS_U32, None),
+        ('vqrshl',      INS_VQRSHL, IFS_U64, None),
+
+        # a=0110 b=0
+        ('vmax',        INS_VMAX, IFS_S8, None),
+        ('vmax',        INS_VMAX, IFS_S16, None),
+        ('vmax',        INS_VMAX, IFS_S32, None),
+        (None,          None, 0, None),
+        ('vmax',        INS_VMAX, IFS_U8, None),
+        ('vmax',        INS_VMAX, IFS_U16, None),
+        ('vmax',        INS_VMAX, IFS_U32, None),
+        (None,          None, 0, None),
+
+        # a=0110 b=1
+        ('vmin',        INS_VMIN, IFS_S8, None),
+        ('vmin',        INS_VMIN, IFS_S16, None),
+        ('vmin',        INS_VMIN, IFS_S32, None),
+        (None,          None, 0, None),
+        ('vmin',        INS_VMIN, IFS_U8, None),
+        ('vmin',        INS_VMIN, IFS_U16, None),
+        ('vmin',        INS_VMIN, IFS_U32, None),
+        (None,          None, 0, None),
+
+        # a=0111 b=0
+        ('vabd',        INS_VABD, IFS_S8, None),
+        ('vabd',        INS_VABD, IFS_S16, None),
+        ('vabd',        INS_VABD, IFS_S32, None),
+        (None,          None, 0, None),
+        ('vabd',        INS_VABD, IFS_U8, None),
+        ('vabd',        INS_VABD, IFS_U16, None),
+        ('vabd',        INS_VABD, IFS_U32, None),
+        (None,          None, 0, None),
+
+        # a=0111 b=1
+        ('vaba',        INS_VABA, IFS_S8, None),
+        ('vaba',        INS_VABA, IFS_S16, None),
+        ('vaba',        INS_VABA, IFS_S32, None),
+        (None,          None, 0, None),
+        ('vaba',        INS_VABA, IFS_U8, None),
+        ('vaba',        INS_VABA, IFS_U16, None),
+        ('vaba',        INS_VABA, IFS_U32, None),
+        (None,          None, 0, None),
+
+        # a=1000 b=0
+        ('vadd',        INS_VADD, IFS_I8, None),
+        ('vadd',        INS_VADD, IFS_I16, None),
+        ('vadd',        INS_VADD, IFS_I32, None),
+        ('vadd',        INS_VADD, IFS_I64, None),
+        ('vsub',        INS_VSUB, IFS_I8, None),
+        ('vsub',        INS_VSUB, IFS_I16, None),
+        ('vsub',        INS_VSUB, IFS_I32, None),
+        ('vsub',        INS_VSUB, IFS_I64, None),
+
+        # a=1000 b=1
+        ('vtst',        INS_VTST, IFS_8, None),
+        ('vtst',        INS_VTST, IFS_16, None),
+        ('vtst',        INS_VTST, IFS_32, None),
+        (None,          None, 0, None),
+        ('vceq',        INS_VCEQ, IFS_I8, None),
+        ('vceq',        INS_VCEQ, IFS_I16, None),
+        ('vceq',        INS_VCEQ, IFS_I32, None),
+        (None,          None, 0, None),
+
+        # a=1001 b=0        # DOUBLECHECK THIS!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        ('vmla',        INS_VMLA, IFS_I8, None),
+        ('vmla',        INS_VMLA, IFS_I16, None),
+        ('vmla',        INS_VMLA, IFS_I32, None),
+        (None,          None, 0, None),
+        ('vmls',        INS_VMLS, IFS_I8, None),
+        ('vmls',        INS_VMLS, IFS_I16, None),
+        ('vmls',        INS_VMLS, IFS_I32, None),
+        (None,          None, 0, None),
+
+        # a=1001 b=1
+        ('vmul',        INS_VMUL, IFS_I8, None),
+        ('vmul',        INS_VMUL, IFS_I16, None),
+        ('vmul',        INS_VMUL, IFS_I32, None),
+        (None,          None, 0, None),
+        ('vmul',        INS_VMUL, IFS_P8, None),
+        ('vmul',        INS_VMUL, IFS_P16, None),
+        ('vmul',        INS_VMUL, IFS_P32, None),
+        (None,          None, 0, None),
+
+        # a=1010 b=0
+        ('vpmax',       INS_VPMAX, IFS_S8, None),
+        ('vpmax',       INS_VPMAX, IFS_S16, None),
+        ('vpmax',       INS_VPMAX, IFS_S32, None),
+        (None,          None, 0, None),
+        ('vpmax',       INS_VPMAX, IFS_U8, None),
+        ('vpmax',       INS_VPMAX, IFS_U16, None),
+        ('vpmax',       INS_VPMAX, IFS_U32, None),
+        (None,          None, 0, None),
+
+        # a=1010 b=1
+        ('vpmin',       INS_VPMIN, IFS_S8, None),
+        ('vpmin',       INS_VPMIN, IFS_S16, None),
+        ('vpmin',       INS_VPMIN, IFS_S32, None),
+        (None,          None, 0, None),
+        ('vpmin',       INS_VPMIN, IFS_U8, None),
+        ('vpmin',       INS_VPMIN, IFS_U16, None),
+        ('vpmin',       INS_VPMIN, IFS_U32, None),
+        (None,          None, 0, None),
+
+        # a=1011 b=0
+        (None,          None, 0, None),
+        ('vqdmulh',     INS_VQDMULH, IFS_S16, None),
+        ('vqdmulh',     INS_VQDMULH, IFS_S32, None),
+        (None,          None, 0, None),
+        (None,          None, 0, None),
+        ('vqrdmulh',    INS_VQRDMULH, IFS_S16, None),
+        ('vqrdmulh',    INS_VQRDMULH, IFS_S32, None),
+        (None,          None, 0, None),
+
+        # a=1011 b=1
+        ('vpadd',       INS_VPADD, IFS_I8, None),
+        ('vpadd',       INS_VPADD, IFS_I16, None),
+        ('vpadd',       INS_VPADD, IFS_I32, None),
+        (None, None, 0, None),
+        (None, None, 0, None),
+        (None, None, 0, None),
+        (None, None, 0, None),
+        (None, None, 0, None),
+
+        # a=1100 b=0
+        (None, None, 0, None),
+        (None, None, 0, None),
+        (None, None, 0, None),
+        (None, None, 0, None),
+        (None, None, 0, None),
+        (None, None, 0, None),
+        (None, None, 0, None),
+        (None, None, 0, None),
+
+        # a=1100 b=1
+        ('vfma',        INS_VFMA, IFS_F32, None),
+        (None,          None, 0, None),
+        ('vfms',        INS_VFMS, IFS_F32, None),
+        (None,          None, 0, None),
+        (None,          None, 0, None),
+        (None,          None, 0, None),
+        (None,          None, 0, None),
+        (None,          None, 0, None),
+
+        # a=1101 b=0
+        ('vadd',        INS_VADD, IFS_F32, None),
+        (None,          None, 0, None),
+        ('vsub',        INS_VSUB, IFS_F32, None),
+        (None,          None, 0, None),
+        ('vpadd',       INS_VPADD, IFS_F32, None),
+        (None,          None, 0, None),
+        ('vabd',        INS_VABD, IFS_F32, None),
+        (None,          None, 0, None),
+
+        # a=1101 b=1
+        ('vmla',        INS_VMLA, IFS_F32, None),
+        (None,          None, 0, None),
+        ('vmls',        INS_VMLS, IFS_F32, None),
+        (None,          None, 0, None),
+        ('vmul',        INS_VMUL, IFS_F32, None),
+        (None,          None, 0, None),
+        (None,          None, 0, None),
+        (None,          None, 0, None),
+
+        # a=1110 b=0
+        ('vceq',        INS_VCEQ, IFS_F32, None),
+        (None,          None, 0, None),
+        (None,          None, 0, None),
+        (None,          None, 0, None),
+        ('vcge',        INS_VCGE, IFS_F32, None),
+        (None,          None, 0, None),
+        ('vcgt',        INS_VCGT, IFS_F32, None),
+        (None,          None, 0, None),
+
+        # a=1110 b=1
+        (None,          None, 0, None),
+        (None,          None, 0, None),
+        (None,          None, 0, None),
+        (None,          None, 0, None),
+        ('vacge',       INS_VACGE, IFS_F32, None), # check if all instructions code this way: Q==0 means Dx Regs, Q==1 means Qx Regs
+        (None,          None, 0, None),
+        ('vacgt',       INS_VACGT, IFS_F32, None),
+        (None,          None, 0, None),
+
+        # a=1111 b=0
+        ('vmax',        INS_VMAX, IFS_F32, None),
+        (None,          None, 0, None),
+        ('vmin',        INS_VMIN, IFS_F32, None),
+        (None,          None, 0, None),
+        ('vpmax',       INS_VPMAX, IFS_F32, None),
+        (None,          None, 0, None),
+        ('vpmin',       INS_VPMIN, IFS_F32, None),
+        (None,          None, 0, None),
+
+        # a=1111 b=1
+        ('vrecps',      INS_VRECPS, IFS_F32, None),
+        (None,          None, 0, None),
+        ('vrsqrts',     INS_VRSQRTS, IFS_F32, None),
+        (None,          None, 0, None),
+        (None,          None, 0, None),
+        (None,          None, 0, None),
+        (None,          None, 0, None),
+        (None,          None, 0, None),
+
+    )
+
+adv_simd_1modimm = (
+        # op = 0
+        # 0xx0 and 0xx1
+        ('vmov',        INS_VMOV, 0, None),
+        ('vorr',        INS_VORR, 0, None),
+        ('vmov',        INS_VMOV, 0, None),
+        ('vorr',        INS_VORR, 0, None),
+        ('vmov',        INS_VMOV, 0, None),
+        ('vorr',        INS_VORR, 0, None),
+        ('vmov',        INS_VMOV, 0, None),
+        ('vorr',        INS_VORR, 0, None),
+        # 10x0 and 10x1
+        ('vmov',        INS_VMOV, 0, None),
+        ('vorr',        INS_VORR, 0, None),
+        ('vmov',        INS_VMOV, 0, None),
+        ('vorr',        INS_VORR, 0, None),
+        # 11xx
+        ('vmov',        INS_VMOV, 0, None),
+        ('vmov',        INS_VMOV, 0, None),
+        ('vmov',        INS_VMOV, 0, None),
+        ('vmov',        INS_VMOV, 0, None),
+
+        # op = 1
+        # 0xx0 and 0xx1
+        ('vmvn',        INS_VMVN, 0, None),
+        ('vbic',        INS_VBIC, 0, None),
+        ('vmvn',        INS_VMVN, 0, None),
+        ('vbic',        INS_VBIC, 0, None),
+        ('vmvn',        INS_VMVN, 0, None),
+        ('vbic',        INS_VBIC, 0, None),
+        ('vmvn',        INS_VMVN, 0, None),
+        ('vbic',        INS_VBIC, 0, None),
+        # 10x0 and 10x1
+        ('vmvn',        INS_VMVN, 0, None),
+        ('vbic',        INS_VBIC, 0, None),
+        ('vmvn',        INS_VMVN, 0, None),
+        ('vbic',        INS_VBIC, 0, None),
+        # 110x
+        ('vmvn',        INS_VMVN, 0, None),
+        ('vmvn',        INS_VMVN, 0, None),
+        # 1110
+        ('vmov',        INS_VMOV, 0, None),
+        # 1111 undef
+        ('vector UNDEF', None, 0, None),
+    )
+
+adv_simd_3diffregs = (
+        # a=0, u=0
+        ('vaddl',       INS_VADDL, ADV_SIMD_S8, 1, 0, 0),
+        ('vaddl',       INS_VADDL, ADV_SIMD_U8, 1, 0, 0),
+        ('vaddw',       INS_VADDW, ADV_SIMD_S8, 1, 1, 0),
+        ('vaddw',       INS_VADDW, ADV_SIMD_U8, 1, 1, 0),
+        ('vsubl',       INS_VSUBL, ADV_SIMD_S8, 1, 0, 0),
+        ('vsubl',       INS_VSUBL, ADV_SIMD_U8, 1, 0, 0),
+        ('vsubw',       INS_VSUBW, ADV_SIMD_S8, 1, 1, 0),
+        ('vsubw',       INS_VSUBW, ADV_SIMD_U8, 1, 1, 0),
+        # a=4, u=0/1
+        ('vaddhn',      INS_VADDHN, ADV_SIMD_I8+1, 0, 1, 1),     # THIS IS TROUBLE...  9 instead of 8?  i'm expecting a multiplicative problem
+        ('vraddhn',     INS_VRADDHN, ADV_SIMD_I8+1, 0, 1, 1),
+        # a=5, u=0/1
+        ('vabal',       INS_VABAL, ADV_SIMD_S8, 1, 0, 0),
+        ('vabal',       INS_VABAL, ADV_SIMD_U8, 1, 0, 0),
+        # a=6
+        ('vsubhn',      INS_VSUBHN, ADV_SIMD_I8+1, 0, 1, 1),
+        ('vrsubhn',     INS_VRSUBHN, ADV_SIMD_I8+1,0, 1, 1),
+        # a=7
+        ('vabdl',       INS_VABDL, ADV_SIMD_S8, 1, 0, 0),
+        ('vabdl',       INS_VABDL, ADV_SIMD_U8, 1, 0, 0),
+        # a=8
+        ('vmlal',       INS_VMLAL, ADV_SIMD_S8, 1, 0, 0),
+        ('vmlal',       INS_VMLAL, ADV_SIMD_U8, 1, 0, 0),
+        # a=9
+        ('vqdmlal',     INS_VQDMLAL, ADV_SIMD_S8, 1, 0, 0),
+        (None, None, None, 1, 0, 0),
+        # a=0xa
+        ('vmlsl',       INS_VMLSL, ADV_SIMD_S8, 1, 0, 0),
+        ('vmlsl',       INS_VMLSL, ADV_SIMD_U8, 1, 0, 0),
+        # a=0xb
+        ('vqdmlsl',     INS_VQDMLSL, ADV_SIMD_S8, 1, 0, 0),       # FIXME: TESTME thumb: 0xef9349a5, 0xefe34ba5
+        (None, None, 0, 1, 0, 0),
+        # a=0xc
+        ('vmull',       INS_VMULL, ADV_SIMD_S8, 1, 0, 0),
+        ('vmull',       INS_VMULL, ADV_SIMD_U8, 1, 0, 0),
+        # a=0xd
+        ('vqdmull',     INS_VQDMULL, ADV_SIMD_S8, 1, 0, 0),
+        (None, None, 0, 1, 0, 0),
+        # a=0xe
+        ('vmull',       INS_VMULL, ADV_SIMD_P8,1, 0, 0),
+        ('vmull',       INS_VMULL, ADV_SIMD_P8,1, 0, 0),
+        # a=0xf  - nothing...
+        (None, 0, 0,0,0,0),
+        (None, 0, 0,0,0,0),
+        )
 
 adv_simd_2regs_scalar = (
         # a=0
-        ('vmla', INS_VMLA, 8, 0,0,0),    # enc t1/a1
-        ('vmla', INS_VMLA, 8, 1,1,0),   
+        ('vmla',        INS_VMLA, ADV_SIMD_I8, 0,0,0),    # enc t1/a1
+        ('vmla',        INS_VMLA, ADV_SIMD_I8, 1,1,0),   
         # a=1
-        ('vmla', INS_VMLA, 16, 0,0,0),    # enc t1/a1 fp
-        ('vmla', INS_VMLA, 16, 1,1,0),    # fp
+        ('vmla',        INS_VMLA, ADV_SIMD_F8, 0,0,0),    # enc t1/a1 fp
+        ('vmla',        INS_VMLA, ADV_SIMD_F8, 1,1,0),    # fp
         # a=2
-        ('vmlal', INS_VMLAL, 0, 1,0,0),     # enc t2/a2
-        ('vmlal', INS_VMLAL, 4, 1,0,0),     
+        ('vmlal',       INS_VMLAL, ADV_SIMD_S8, 1,0,0),     # enc t2/a2
+        ('vmlal',       INS_VMLAL, ADV_SIMD_U8, 1,0,0),     
         # a=3
-        ('vqdmlal', INS_VQDMLAL, 0, 1,0,0),
+        ('vqdmlal',     INS_VQDMLAL, 0, 1,0,0),
         (None, None, None, None, None, None),
         # a=4
-        ('vmls', INS_VMLS, 8, 0,0,0),    # enc t1/a1
-        ('vmls', INS_VMLS, 8, 1,1,0),
+        ('vmls',        INS_VMLS, ADV_SIMD_I8, 0,0,0),    # enc t1/a1
+        ('vmls',        INS_VMLS, ADV_SIMD_I8, 1,1,0),
         # a=5
-        ('vmls', INS_VMLS, 16, 0,0,0),   # enc t1/a1
-        ('vmls', INS_VMLS, 16, 1,1,0),
+        ('vmls',        INS_VMLS, ADV_SIMD_F8, 0,0,0),   # enc t1/a1
+        ('vmls',        INS_VMLS, ADV_SIMD_F8, 1,1,0),
         # a=6
-        ('vmlsl', INS_VMLSL, 0, 1,0,0),  # enc t2/a2
-        ('vmlsl', INS_VMLSL, 4, 1,0,0),
+        ('vmlsl',       INS_VMLSL, ADV_SIMD_S8, 1,0,0),  # enc t2/a2
+        ('vmlsl',       INS_VMLSL, ADV_SIMD_U8, 1,0,0),
         # a=7
-        ('vqdmlsl', INS_VQDMLSL, 0, 1,0,0),
+        ('vqdmlsl',     INS_VQDMLSL, ADV_SIMD_S8, 1,0,0),
         (None, None, None, None, None, None),
         # a=8
-        ('vmul', INS_VMUL, 8, 0,0,0),     # enc t1/a1
-        ('vmul', INS_VMUL, 8, 1,1,0),
+        ('vmul',        INS_VMUL, ADV_SIMD_I8, 0,0,0),     # enc t1/a1
+        ('vmul',        INS_VMUL, ADV_SIMD_I8, 1,1,0),
         # a=9
-        ('vmul', INS_VMUL, 16, 0,0,0),
-        ('vmul', INS_VMUL, 16, 1,1,0),
+        ('vmul',        INS_VMUL, ADV_SIMD_F8, 0,0,0),
+        ('vmul',        INS_VMUL, ADV_SIMD_F8, 1,1,0),
         # a=0xa
-        ('vmull', INS_VMULL, 0, 1,0,0),
-        ('vmull', INS_VMULL, 4, 1,0,0),
+        ('vmull',       INS_VMULL, ADV_SIMD_S8, 1,0,0),
+        ('vmull',       INS_VMULL, ADV_SIMD_U8, 1,0,0),
         # a=0xb
-        ('vqdmull', INS_VQDMULL, 0, 1,0,0),  # enc t2/a2
+        ('vqdmull',     INS_VQDMULL, ADV_SIMD_S8, 1,0,0),  # enc t2/a2
         (None, None, None, None, None, None),
         # a=0xc
-        ('vqdmulh', INS_VQDMULH, 0, 0,0,0),  # enc t2/a2
-        ('vqdmulh', INS_VQDMULH, 0, 1,1,0),
+        ('vqdmulh',     INS_VQDMULH, ADV_SIMD_S8, 0,0,0),  # enc t2/a2
+        ('vqdmulh',     INS_VQDMULH, ADV_SIMD_S8, 1,1,0),
         # a=0xd
-        ('vqrdmulh', INS_VQRDMULH, 0, 0,0,0),   # enc t2/a2
-        ('vqrdmulh', INS_VQRDMULH, 0, 1,1,0),
+        ('vqrdmulh',    INS_VQRDMULH, ADV_SIMD_S8, 0,0,0),   # enc t2/a2
+        ('vqrdmulh',    INS_VQRDMULH, ADV_SIMD_S8, 1,1,0),
         # a=0xe
         (None, None, None, None, None, None),
         (None, None, None, None, None, None),
@@ -2671,86 +2683,169 @@ adv_simd_2regs_scalar = (
 
 adv_simd_2regs_misc = (
         # a=0 b=000xx
-        ('vrev64', INS_VREV64, 20, 0,0),
-        ('vrev64', INS_VREV64, 20, 1,1),
-        ('vrev32', INS_VREV32, 20, 0,0),
-        ('vrev32', INS_VREV32, 20, 1,1),
+        ('vrev64',      INS_VREV64, ADV_SIMD_8, 0,0),
+        ('vrev64',      INS_VREV64, ADV_SIMD_8, 1,1),
+        ('vrev32',      INS_VREV32, ADV_SIMD_8, 0,0),
+        ('vrev32',      INS_VREV32, ADV_SIMD_8, 1,1),
         # a=0 b=001xx
-        ('vrev16', INS_VREV16, 20, 0,0),
-        ('vrev16', INS_VREV16, 20, 1,1),
-        ('error', INS_VREV16, 0, 0,0),
-        ('error', INS_VREV16, 0, 1,1),
+        ('vrev16',      INS_VREV16, ADV_SIMD_8, 0,0),
+        ('vrev16',      INS_VREV16, ADV_SIMD_8, 1,1),
+        (None, None, ADV_SIMD_S8, 0,0),
+        (None, None, ADV_SIMD_S8, 1,1),
         # a=0 b=010xx
-        ('vpaddl', INS_VPADDL, 0, 0,0),
-        ('vpaddl', INS_VPADDL, 0, 1,1),
-        ('vpaddl', INS_VPADDL, 4, 0,0),
-        ('vpaddl', INS_VPADDL, 4, 1,1),
+        ('vpaddl',      INS_VPADDL, ADV_SIMD_S8, 0,0),
+        ('vpaddl',      INS_VPADDL, ADV_SIMD_S8, 1,1),
+        ('vpaddl',      INS_VPADDL, ADV_SIMD_U8, 0,0),
+        ('vpaddl',      INS_VPADDL, ADV_SIMD_U8, 1,1),
         # a=0 b=011xx
-        ('error',  INS_VPADDL, 0, 0,0),
-        ('error',  INS_VPADDL, 0, 0,0),
-        ('error',  INS_VPADDL, 0, 0,0),
-        ('error',  INS_VPADDL, 0, 0,0),
+        (None,          None, 0, 0,0),
+        (None,          None, 0, 0,0),
+        (None,          None, 0, 0,0),
+        (None,          None, 0, 0,0),
         # a=0 b=100xx
-        ('vcls',  INS_VCLS, 0, 0,0),
-        ('vcls',  INS_VCLS, 0, 1,1),
-        ('vclz',  INS_VCLZ, 8, 0,0),
-        ('vclz',  INS_VCLZ, 8, 1,1),
+        ('vcls',        INS_VCLS, ADV_SIMD_S8, 0,0),
+        ('vcls',        INS_VCLS, ADV_SIMD_S8, 1,1),
+        ('vclz',        INS_VCLZ, ADV_SIMD_I8, 0,0),
+        ('vclz',        INS_VCLZ, ADV_SIMD_I8, 1,1),
         # a=0 b=1010x
-        ('vcnt',  INS_VCNT, 20, 0,0),
-        ('vcnt',  INS_VCNT, 20, 1,1),
-        ('vmvn',  INS_VMVN, 24, 0,0),
-        ('vmvn',  INS_VMVN, 24, 1,1),
+        ('vcnt',        INS_VCNT, ADV_SIMD_8, 0,0),
+        ('vcnt',        INS_VCNT, ADV_SIMD_8, 1,1),
+        ('vmvn',        INS_VMVN, ADV_SIMD_NONE, 0,0),
+        ('vmvn',        INS_VMVN, ADV_SIMD_NONE, 1,1),
         # a=0 b=110xx
-        ('vpadal',  INS_VPADAL, 0, 0,0),
-        ('vpadal',  INS_VPADAL, 0, 1,1),
-        ('vpadal',  INS_VPADAL, 4, 0,0),
-        ('vpadal',  INS_VPADAL, 4, 1,1),
+        ('vpadal',      INS_VPADAL, ADV_SIMD_S8, 0,0),
+        ('vpadal',      INS_VPADAL, ADV_SIMD_S8, 1,1),
+        ('vpadal',      INS_VPADAL, ADV_SIMD_U8, 0,0),
+        ('vpadal',      INS_VPADAL, ADV_SIMD_U8, 1,1),
         # a=0 b=1110x
-        ('vqabs',   INS_VQABS, 0, 0,0),
-        ('vqabs',   INS_VQABS, 0, 1,1),
+        ('vqabs',       INS_VQABS, ADV_SIMD_S8, 0,0),
+        ('vqabs',       INS_VQABS, ADV_SIMD_S8, 1,1),
         # a=0 b=1111x
-        ('vqneg',   INS_VQNEG, 0, 0,0),
-        ('vqneg',   INS_VQNEG, 0, 1,1),
+        ('vqneg',       INS_VQNEG, ADV_SIMD_S8, 0,0),
+        ('vqneg',       INS_VQNEG, ADV_SIMD_S8, 1,1),
         # a=1 b=000xx
-        ('vcgt',   INS_VCGT, 0, 0,0),
-        ('vcgt',   INS_VCGT, 0, 1,1),
-        ('vcge',   INS_VCGE, 0, 0,0),
-        ('vcge',   INS_VCGE, 0, 1,1),
+        ('vcgt',        INS_VCGT, ADV_SIMD_S8, 0,0),
+        ('vcgt',        INS_VCGT, ADV_SIMD_S8, 1,1),
+        ('vcge',        INS_VCGE, ADV_SIMD_S8, 0,0),
+        ('vcge',        INS_VCGE, ADV_SIMD_S8, 1,1),
         # a=1 b=001xx
-        ('vceq',   INS_VCEQ, 8, 0,0),
-        ('vceq',   INS_VCEQ, 8, 1,1),
-        ('vcle',   INS_VCLE, 8, 0,0),
-        ('vcle',   INS_VCLE, 8, 1,1),
+        ('vceq',        INS_VCEQ, ADV_SIMD_I8, 0,0),
+        ('vceq',        INS_VCEQ, ADV_SIMD_I8, 1,1),
+        ('vcle',        INS_VCLE, ADV_SIMD_I8, 0,0),
+        ('vcle',        INS_VCLE, ADV_SIMD_I8, 1,1),
         # a=1 b=010xx
-        ('vclt',   INS_VCLT, 0, 0,0),
-        ('vclt',   INS_VCLT, 0, 1,1),
-        ('error',  INS_VCLE, 0, 0,0),
-        ('error',  INS_VCLE, 0, 1,1),
+        ('vclt',        INS_VCLT, ADV_SIMD_S8, 0,0),
+        ('vclt',        INS_VCLT, ADV_SIMD_S8, 1,1),
+        (None,  None, ADV_SIMD_S8, 0,0),
+        (None,  None, ADV_SIMD_S8, 1,1),
         # a=1 b=011xx
-        ('vabs',   INS_VABS, 0, 0,0),
-        ('vabs',   INS_VABS, 0, 1,1),
-        ('vneg',   INS_VNEG, 0, 0,0),
-        ('vneg',   INS_VNEG, 0, 1,1),
+        ('vabs',        INS_VABS, ADV_SIMD_S8, 0,0),
+        ('vabs',        INS_VABS, ADV_SIMD_S8, 1,1),
+        ('vneg',        INS_VNEG, ADV_SIMD_S8, 0,0),
+        ('vneg',        INS_VNEG, ADV_SIMD_S8, 1,1),
         # a=1 b=100xx
-        ('vcgt',   INS_VCGT, 16, 0,0),
-        ('vcgt',   INS_VCGT, 16, 1,1),
-        ('vcge',   INS_VCGE, 16, 0,0),
-        ('vcge',   INS_VCGE, 16, 1,1),
+        ('vcgt',        INS_VCGT, ADV_SIMD_F8, 0,0), # , #0
+        ('vcgt',        INS_VCGT, ADV_SIMD_F8, 1,1), # , #0
+        ('vcge',        INS_VCGE, ADV_SIMD_F8, 0,0), # , #0
+        ('vcge',        INS_VCGE, ADV_SIMD_F8, 1,1), # , #0
         # a=1 b=101xx
-        ('vceq',   INS_VCEQ, 16, 0,0),
-        ('vceq',   INS_VCEQ, 16, 1,1),
-        ('vcle',   INS_VCLE, 16, 0,0),
-        ('vcle',   INS_VCLE, 16, 1,1),
+        ('vceq',        INS_VCEQ, ADV_SIMD_F8, 0,0), # , #0
+        ('vceq',        INS_VCEQ, ADV_SIMD_F8, 1,1), # , #0
+        ('vcle',        INS_VCLE, ADV_SIMD_F8, 0,0), # , #0
+        ('vcle',        INS_VCLE, ADV_SIMD_F8, 1,1), # , #0
         # a=1 b=110xx
-        ('vclt',   INS_VCLT, 16, 0,0),
-        ('vclt',   INS_VCLT, 16, 1,1),
-        ('error',  INS_VCLE, 16, 0,0),
-        ('error',  INS_VCLE, 16, 1,1),
+        ('vclt',        INS_VCLT, ADV_SIMD_F8, 0,0),
+        ('vclt',        INS_VCLT, ADV_SIMD_F8, 1,1),
+        (None,  None, ADV_SIMD_F8, 0,0),
+        (None,  None, ADV_SIMD_F8, 1,1),
         # a=1 b=111xx
-        ('vabs',   INS_VABS, 16, 0,0),
-        ('vabs',   INS_VABS, 16, 1,1),
-        ('vneg',   INS_VNEG, 16, 0,0),
-        ('vneg',   INS_VNEG, 16, 1,1),
+        ('vabs',        INS_VABS, ADV_SIMD_F8, 0,0),
+        ('vabs',        INS_VABS, ADV_SIMD_F8, 1,1),
+        ('vneg',        INS_VNEG, ADV_SIMD_F8, 0,0),
+        ('vneg',        INS_VNEG, ADV_SIMD_F8, 1,1),
+
+        ############## HALF WAY DONE!  MAKE COMPLETE
+        # a=10 b=0000x
+        ('vswp',        INS_VSWP, ADV_SIMD_NONE, 0,0),
+        ('vswp',        INS_VSWP, ADV_SIMD_NONE, 1,1),
+        ('vtrn',        INS_VTRN, ADV_SIMD_8, 0,0),
+        ('vtrn',        INS_VTRN, ADV_SIMD_8, 1,1),
+        # a=10 b=001xx
+        ('vuzp',        INS_VUZP, ADV_SIMD_8, 0,0),
+        ('vuzp',        INS_VUZP, ADV_SIMD_8, 1,1),
+        ('vzip',        INS_VZIP, ADV_SIMD_8, 0,0),
+        ('vzip',        INS_VZIP, ADV_SIMD_8, 1,1),
+        # a=10 b=010xx
+        ('vmovn',       INS_VMOVN, ADV_SIMD_I8+1, 0,1),
+        ('vqmovun',         INS_VQMOVUN, ADV_SIMD_S8+1, 0,1),
+        ('vqmovn',      INS_VQMOVN, ADV_SIMD_S8+1, 0,1),
+        ('vqmovn',      INS_VQMOVN, ADV_SIMD_U8+1, 0,1),
+        # a=10 b=011xx
+        ('vshll',       INS_VSHLL, ADV_SIMD_I8, 1,0),      # Qd, Dm, #imm.... one of these is not like the others...
+        (None,  0, 0, 0,0),
+        (None,  0, 0, 0,0),
+        (None,  0, 0, 0,0),
+        # a=10 b=100xx
+        (None,  0, 0, 0,0),
+        (None,  0, 0, 0,0),
+        (None,  0, 0, 0,0),
+        (None,  0, 0, 0,0),
+        # a=10 b=1010x
+        (None,  0, 0, 0,0),
+        (None,  0, 0, 0,0),
+        (None,  0, 0, 0,0),
+        (None,  0, 0, 0,0),
+        # a=10 b=110xx
+        ('vcvt',        INS_VCVT, ADV_SIMD_F16F32-1, 0,1),
+        (None,  0, 0, 0,0),
+        (None,  0, 0, 0,0),
+        (None,  0, 0, 0,0),
+        # a=10 b=111xx
+        ('vcvt',        INS_VCVT, ADV_SIMD_F16F32, 1,0),
+        (None,  0, 0, 0,0),
+        (None,  0, 0, 0,0),
+        (None,  0, 0, 0,0),
+        # a=11 b=000xx
+        (None,  0, 0, 0,0),
+        (None,  0, 0, 0,0),
+        (None,  0, 0, 0,0),
+        (None,  0, 0, 0,0),
+        # a=11 b=001xx
+        (None,  0, 0, 0,0),
+        (None,  0, 0, 0,0),
+        (None,  0, 0, 0,0),
+        (None,  0, 0, 0,0),
+        # a=11 b=010xx
+        (None,  0, 0, 0,0),
+        (None,  0, 0, 0,0),
+        (None,  0, 0, 0,0),
+        (None,  0, 0, 0,0),
+        # a=11 b=011xx
+        (None,  0, 0, 0,0),
+        (None,  0, 0, 0,0),
+        (None,  0, 0, 0,0),
+        (None,  0, 0, 0,0),
+        # a=11 b=100xx
+        ('vrecpe',      INS_VRECPE, ADV_SIMD_S8, 0,0),
+        ('vrecpe',      INS_VRECPE, ADV_SIMD_S8, 0,0),
+        ('vrsqrte',     INS_VRSQRTE, ADV_SIMD_S8, 0,0),
+        ('vrsqrte',     INS_VRSQRTE, ADV_SIMD_S8, 0,0),
+        # a=11 b=101xx
+        ('vrecpe',      INS_VRECPE, ADV_SIMD_S8, 0,0),
+        ('vrecpe',      INS_VRECPE, ADV_SIMD_S8, 0,0),
+        ('vrsqrte',     INS_VRSQRTE, ADV_SIMD_S8, 0,0),
+        ('vrsqrte',     INS_VRSQRTE, ADV_SIMD_S8, 0,0),
+        # a=11 b=110xx
+        ('vcvt',        INS_VCVT, ADV_SIMD_F32S32-2, 0,0),
+        ('vcvt',        INS_VCVT, ADV_SIMD_F32S32-2, 0,0),
+        ('vcvt',        INS_VCVT, ADV_SIMD_F32S32-1, 0,0),
+        ('vcvt',        INS_VCVT, ADV_SIMD_F32S32-1, 0,0),
+        # a=11 b=111xx
+        ('vcvt',        INS_VCVT, ADV_SIMD_F32S32, 0,0),
+        ('vcvt',        INS_VCVT, ADV_SIMD_F32S32, 0,0),
+        ('vcvt',        INS_VCVT, ADV_SIMD_F32S32+1, 0,0),
+        ('vcvt',        INS_VCVT, ADV_SIMD_F32S32+1, 0,0),
+
 
 )
 
@@ -3148,7 +3243,8 @@ def _do_adv_simd_32(val, va, u):
                     b = (val>>6) & 0x1f
 
                     idx = (a<<5) | b
-                    mnem, opcode, flagoff, dt, nt = adv_simd_2regs_misc[idx]
+                    datatup = adv_simd_2regs_misc[idx]
+                    mnem, opcode, flagoff, dt, nt = datatup
                     if mnem == None:
                         raise envi.InvalidInstruction(mesg="Invalid AdvSIMD Opcode Encoding",
                                 bytez=struct.pack('<L', val), va=va)
@@ -3170,6 +3266,7 @@ def _do_adv_simd_32(val, va, u):
 
                     sz = (val>>18) & 0x3
                     szu = sz + flagoff
+                    print "2reg_misc: 0x%x  (a: 0x%x  b: 0x%x  idx: %d)" % (val, a,b,szu)
                     simdflags = adv_simd_dts[szu]
 
                     return opcode, mnem, opers, 0, simdflags
@@ -3418,13 +3515,13 @@ adv_2regs_shift = (
     ('vqrshrun', INS_VQRSHRUN, 3, 0),
     # 1001
     ('vqshrn', INS_VQSHRN, 7, 0),  # hold on, u is not specified... does it parse correctly with 3?
-    (None, INS_VQSHRN, 3, 0),  # hold on, u is not specified...
+    (None,      None, 3, 0),  # hold on, u is not specified...
     ('vqrshrn', INS_VQRSHRN, 7, 0),  # hold on, u is not specified...
-    (None, INS_VQRSHRN, 3, 0),  # hold on, u is not specified...
+    (None,      None, 3, 0),  # hold on, u is not specified...
     ('vqshrn', INS_VQSHRN, 7, 0),  # hold on, u is not specified...
-    (None, INS_VQSHRN, 3, 0),  # hold on, u is not specified...
+    (None,      None, 3, 0),  # hold on, u is not specified...
     ('vqrshrn', INS_VQRSHRN, 7, 0),  # hold on, u is not specified...
-    (None, INS_VQRSHRN, 3, 0),  # hold on, u is not specified...
+    (None,      None, 3, 0),  # hold on, u is not specified...
     # 1010
     ('vshll', INS_VSHLL, 4, 0),    # vmovl if imm6 ends in 0b000
     ('vshll', INS_VSHLL, 4, 0),    # vmovl if imm6 ends in 0b000
