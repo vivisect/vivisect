@@ -329,6 +329,11 @@ class VQVivMemoryCanvas(VivCanvasBase):
         nva, nvsz, nvt, nvti = nloc
         return (nva, va-nva)
         
+    def getVaTag(self, va):
+        loc = self.mem.getLocation(va)
+        if loc != None:
+            va = loc[L_VA]
+        return VivCanvasBase.getVaTag(self, va)
 
 class VQVivMemoryView(e_mem_qt.VQMemoryWindow, viv_base.VivEventCore):
 
