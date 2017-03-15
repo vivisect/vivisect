@@ -988,7 +988,7 @@ instrs = [
         (REV_ALL_ARM, '5434a3e7', 0x4560, 'sbfx r3, r4, #0x08, #0x03', 0, ()),
         (REV_ALL_ARM, '14f713e7', 0x4560, 'sdiv r3, r4, r7', 0, ()),
         (REV_ALL_ARM, '14f733e7', 0x4560, 'udiv r3, r4, r7', 0, ()),
-        #(REV_ALL_ARM, 'f000f0e7', 0x4560, 'udf #0', 0, ()), #This forces an undefined instruction. Commented out normally.
+        #(REV_ALL_ARM, 'f000f0e7', 0x4560, 'udf #0x00', 0, ()), #This forces an undefined instruction. Commented out normally.
         #all v codes are suspect at this time - not implimented but may not be correct here either
         (REV_ALL_ARM, '173704f2', 0x4560, 'vaba.s8 d3, d4, d7', 0, ()),
         (REV_ALL_ARM, '173714f2', 0x4560, 'vaba.s16 d3, d4, d7', 0, ()),
@@ -1188,41 +1188,41 @@ instrs = [
         (REV_ALL_ARM, 'c41bfcee', 0x4560, 'vcvt.u32.f64 s3, d4',0, ()),
         (REV_ALL_ARM, '441bfcee', 0x4560, 'vcvtr.u32.f64 s3, d4',0, ()),
         (REV_ALL_ARM, 'c21afcee', 0x4560, 'vcvt.u32.f32 s3, s4',0, ()),
-        (REV_ALL_ARM, '421afcee', 0x4560, 'vcvtf.u32.f32 s3, s4',0, ()),
+        (REV_ALL_ARM, '421afcee', 0x4560, 'vcvtr.u32.f32 s3, s4',0, ()),
         (REV_ALL_ARM, 'c23bb8ee', 0x4560, 'vcvt.f64.s32 d3, s4',0, ()),
-        (REV_ALL_ARM, '423bb8ee', 0x4560, 'vcvt.f64.u32 d3, s4',0, ()),
+        (REV_ALL_ARM, '423bb8ee', 0x4560, 'vcvtr.f64.u32 d3, s4',0, ()),
         (REV_ALL_ARM, 'c21af8ee', 0x4560, 'vcvt.f32.s32 s3, s4',0, ()),
-        (REV_ALL_ARM, '421af8ee', 0x4560, 'vcvt.f32.u32 s3, s4',0, ()),
-        (REV_ALL_ARM, '586fb4f2', 0x4560, 'vcvt.s32.f32 q3, q4, #12',0, ()),
-        (REV_ALL_ARM, '586fb4f3', 0x4560, 'vcvt.u32.f32 q3, q4, #12',0, ()),
-        (REV_ALL_ARM, '586eaef2', 0x4560, 'vcvt.f32.s32 q3, q4, #18',0, ()),
-        (REV_ALL_ARM, '586eb3f3', 0x4560, 'vcvt.f32.u32 q3, q4, #13',0, ()),
-        (REV_ALL_ARM, '143fbdf2', 0x4560, 'vcvt.s32.f32 d3, d4, #3',0, ()),
-        (REV_ALL_ARM, '143fa8f3', 0x4560, 'vcvt.u32.f32 d3, d4, #24',0, ()),
-        (REV_ALL_ARM, '143ea2f2', 0x4560, 'vcvt.f32.s32 d3, d4, #30',0, ()),
-        (REV_ALL_ARM, '143eb9f3', 0x4560, 'vcvt.f32.u32 d3, d4, #7',0, ()),
-        (REV_ALL_ARM, '643bbeee', 0x4560, 'vcvt.s16.f64 d3, d4, #7',0, ()),
-        (REV_ALL_ARM, '613bbfee', 0x4560, 'vcvt.u16.f64 d3, d4, #13',0, ()),
-        (REV_ALL_ARM, 'e83bbeee', 0x4560, 'vcvt.s32.f64 d3, d4, #15',0, ()),
-        (REV_ALL_ARM, 'e43bbfee', 0x4560, 'vcvt.u32.f64 d3, d4, #23',0, ()),
-        (REV_ALL_ARM, '641afeee', 0x4560, 'vcvt.s16.f32 s3, s4, #7',0, ()),
-        (REV_ALL_ARM, '611affee', 0x4560, 'vcvt.u16.f32 s3, s4, #13',0, ()),
-        (REV_ALL_ARM, 'e81afeee', 0x4560, 'vcvt.s32.f32 s3, s4, #15',0, ()),
-        (REV_ALL_ARM, 'e41affee', 0x4560, 'vcvt.u32.f32 s3, s4, #23',0, ()),
-        (REV_ALL_ARM, '643bbaee', 0x4560, 'vcvt.f64.s16 d3, d4, #7',0, ()),
-        (REV_ALL_ARM, '613bbbee', 0x4560, 'vcvt.f64.u16 d3, d4, #13',0, ()),
-        (REV_ALL_ARM, 'e83bbaee', 0x4560, 'vcvt.f64.s32 d3, d4, #15',0, ()),
-        (REV_ALL_ARM, 'e43bbbee', 0x4560, 'vcvt.f64.u32 d3, d4, #23',0, ()),
-        (REV_ALL_ARM, '641afaee', 0x4560, 'vcvt.f32.s16 s3, s4, #7',0, ()),
-        (REV_ALL_ARM, '611afbee', 0x4560, 'vcvt.f32.u16 s3, s4, #13',0, ()),
-        (REV_ALL_ARM, 'e81afaee', 0x4560, 'vcvt.f32.s32 s3, s4, #15',0, ()),
-        (REV_ALL_ARM, 'e41afbee', 0x4560, 'vcvt.f32.u32 s3, s4, #23',0, ()),
+        (REV_ALL_ARM, '421af8ee', 0x4560, 'vcvtr.f32.u32 s3, s4',0, ()),
+        (REV_ALL_ARM, '586fb4f2', 0x4560, 'vcvt.s32.f32 q3, q4, #0x0c',0, ()),
+        (REV_ALL_ARM, '586fb4f3', 0x4560, 'vcvt.u32.f32 q3, q4, #0x0c',0, ()),
+        (REV_ALL_ARM, '586eaef2', 0x4560, 'vcvt.f32.s32 q3, q4, #0x12',0, ()),
+        (REV_ALL_ARM, '586eb3f3', 0x4560, 'vcvt.f32.u32 q3, q4, #0x0d',0, ()),
+        (REV_ALL_ARM, '143fbdf2', 0x4560, 'vcvt.s32.f32 d3, d4, #0x03',0, ()),
+        (REV_ALL_ARM, '143fa8f3', 0x4560, 'vcvt.u32.f32 d3, d4, #0x18',0, ()),
+        (REV_ALL_ARM, '143ea2f2', 0x4560, 'vcvt.f32.s32 d3, d4, #0x1e',0, ()),
+        (REV_ALL_ARM, '143eb9f3', 0x4560, 'vcvt.f32.u32 d3, d4, #0x07',0, ()),
+        (REV_ALL_ARM, '643bbeee', 0x4560, 'vcvt.s16.f64 d3, d3, #0x07',0, ()),
+        (REV_ALL_ARM, '613bbfee', 0x4560, 'vcvt.u16.f64 d3, d3, #0x0d',0, ()),
+        (REV_ALL_ARM, 'e83bbeee', 0x4560, 'vcvt.s32.f64 d3, d3, #0x0f',0, ()),
+        (REV_ALL_ARM, 'e43bbfee', 0x4560, 'vcvt.u32.f64 d3, d3, #0x17',0, ()),
+        (REV_ALL_ARM, '641afeee', 0x4560, 'vcvt.s16.f32 s3, s3, #0x07',0, ()),
+        (REV_ALL_ARM, '611affee', 0x4560, 'vcvt.u16.f32 s3, s3, #0x0d',0, ()),
+        (REV_ALL_ARM, 'e81afeee', 0x4560, 'vcvt.s32.f32 s3, s3, #0x0f',0, ()),
+        (REV_ALL_ARM, 'e41affee', 0x4560, 'vcvt.u32.f32 s3, s3, #0x17',0, ()),
+        (REV_ALL_ARM, '643bbaee', 0x4560, 'vcvt.f64.s16 d3, d3, #0x07',0, ()),
+        (REV_ALL_ARM, '613bbbee', 0x4560, 'vcvt.f64.u16 d3, d3, #0x0d',0, ()),
+        (REV_ALL_ARM, 'e83bbaee', 0x4560, 'vcvt.f64.s32 d3, d3, #0x0f',0, ()),
+        (REV_ALL_ARM, 'e43bbbee', 0x4560, 'vcvt.f64.u32 d3, d3, #0x17',0, ()),
+        (REV_ALL_ARM, '641afaee', 0x4560, 'vcvt.f32.s16 s3, s3, #0x07',0, ()),
+        (REV_ALL_ARM, '611afbee', 0x4560, 'vcvt.f32.u16 s3, s3, #0x0d',0, ()),
+        (REV_ALL_ARM, 'e81afaee', 0x4560, 'vcvt.f32.s32 s3, s3, #0x0f',0, ()),
+        (REV_ALL_ARM, 'e41afbee', 0x4560, 'vcvt.f32.u32 s3, s3, #0x17',0, ()),
         # Following commands are VECTOR Instructions
         (REV_ALL_ARM, '3540f3f3', 0x4560, 'vshr.u32 d20, d21, #0x0d', 0, ()),
         (REV_ALL_ARM, 'f3ff3540', 0x4561, 'vshr.u32 d20, d21, #0x0d', 0, ()),
         (REV_ALL_ARM, '3544f3f3', 0x4560, 'vsri.32 d20, d21, #0x0d', 0, ()),
         (REV_ALL_ARM, 'f3ff3544', 0x4561, 'vsri.32 d20, d21, #0x0d', 0, ()),
-        (REV_ALL_ARM, 'f3ff3546', 0x4561, 'vqshlu.s32 d20, d21, #0x13', 0, ()), # from ODAWEB
+        (REV_ALL_ARM, 'f3ff3546', 0x4561, 'vqshlu.s32 d20, d21, #0x13', 0, ()),
         # 
         (REV_ALL_ARM, '800008f1', 0x4560, 'cpsie i', IF_IE, ()),
         (REV_ALL_ARM, '00010cf1', 0x4560, 'cpsid a', IF_ID, ()),
@@ -1621,8 +1621,10 @@ class ArmInstructionSet(unittest.TestCase):
         emu.setMeta('forrealz', True)
         emu._forrealz = True
         emu.logread = emu.logwrite = True
-        badcount = 0  # Note: doesn't really do anything since we error out right away
+        badcount = 0
         goodcount = 0
+        goodemu = 0
+        bademu = 0
         for archz, bytez, va, reprOp, iflags, emutests in instrs:
             ranAlready = False  # support for run once only
             #itterate through architectures 
@@ -1653,21 +1655,25 @@ class ArmInstructionSet(unittest.TestCase):
                         raise Exception("%d FAILED to decode instr:  %.8x %s - should be: %s  - is: %s" % \
                                 (goodcount, va, bytez, reprOp, repr(op) ) )
                         self.assertEqual((goodcount, bytez, redoprepr), (goodcount, bytez, redgoodop))
+
+                    else:
+                        goodcount += 1
+
                     #print bytez, op
                     if not len(emutests):
                         try:
                             # if we don't have special tests, let's just run it in the emulator anyway and see if things break
                             if not self.validateEmulation(emu, op, (), ()):
-                                goodcount += 1
+                                goodemu += 1
                             else:
-                                badcount += 1
+                                bademu += 1
                         except envi.UnsupportedInstruction:
                             #print "Instruction not in Emulator - ", repr(op)
-                            badcount += 1
+                            bademu += 1
                         except Exception as exp:
                             print "Exception in Emulator for command - ",repr(op)
                             print "  ",exp 
-                            badcount += 1
+                            bademu += 1
                     else:
                         # if we have a special test lets run it
                         for sCase in emutests:
@@ -1680,15 +1686,16 @@ class ArmInstructionSet(unittest.TestCase):
                                 if not self.validateEmulation(emu, op, (setters), (tests)):
                                     goodcount += 1
                                 else:
-                                    badcount += 1
+                                    bademu += 1
                                     raise Exception( "FAILED emulation (special case): %.8x %s - %s" % (va, bytez, op) )
 
                             else:
-                                badcount += 1
+                                bademu += 1
                                 raise Exception( "FAILED special case test format bad:  Instruction test does not have a 'tests' field: %.8x %s - %s" % (va, bytez, op))
 
         
-        print "Done with assorted instructions test. ", str(goodcount)+" tests passed. ", str(badcount) + " tests failed."
+        print "Done with assorted instructions test.  DISASM: %s tests passed.  %s tests failed.  EMU: %s tests passed.  %s tests failed" % \
+                (goodcount, badcount, goodemu, bademu)
         print "Total of ", str(goodcount + badcount) + " tests completed."
         
         #pending deletion of following comments. Please comment if they need to stay or I will delete in following commit

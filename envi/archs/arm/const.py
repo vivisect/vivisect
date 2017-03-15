@@ -95,53 +95,60 @@ IFS_VD        = 1<<3    # Adv SIMD: operation doubles the result
 IFS_VH        = 1<<4    # Adv SIMD: operation halves the result
 IFS_SYS_MODE  = 1<<8    # instruction is encoded to be executed in SYSTEM mode, not USER mode
 
-IFS_SFUI_START = 9
-IFS_F32       = 1<<9
-IFS_F64       = 1<<10
-IFS_F32S32    = 1<<11
-IFS_F64S32    = 1<<12
-IFS_F32U32    = 1<<13
-IFS_F64U32    = 1<<14
-IFS_F3264     = 1<<15
-IFS_F6432     = 1<<16
-IFS_F3216     = 1<<17
-IFS_F1632     = 1<<18
-IFS_S32F64    = 1<<19
-IFS_S32F32    = 1<<20
-IFS_U32F64    = 1<<21
-IFS_U32F32    = 1<<22
-IFS_S8        = 1<<23
-IFS_S16       = 1<<24
-IFS_S32       = 1<<25
-IFS_S64       = 1<<26
-IFS_U8        = 1<<27
-IFS_U16       = 1<<28
-IFS_U32       = 1<<29
-IFS_U64       = 1<<30
-IFS_I8        = 1<<31
-IFS_I16       = 1<<32
-IFS_I32       = 1<<33
-IFS_I64       = 1<<34
-IFS_8         = 1<<35
-IFS_16        = 1<<36
-IFS_32        = 1<<37
-IFS_64        = 1<<38
-IFS_F8        = 1<<39
-IFS_F16       = 1<<40
-IFS_F32       = 1<<41
-IFS_F64       = 1<<42
-IFS_P8        = 1<<43
-IFS_P16       = 1<<44
-IFS_P32       = 1<<45
-IFS_P64       = 1<<46
+IFS = [
+    None,
+    '.f32',
+    '.f64',
+    '.f32.s32',
+    '.f64.s32',
+    '.f32.u32',
+    '.f64.u32',
+    '.f32.64',
+    '.f64.32',
+    '.f32.16',
+    '.f16.32',
+    '.s32.f64',
+    '.s32.f32',
+    '.u32.f64',
+    '.u32.f32',
+    '.s8',
+    '.s16',
+    '.s32',
+    '.s64',
+    '.u8',
+    '.u16',
+    '.u32',
+    '.u64',
+    '.i8',
+    '.i16',
+    '.i32',
+    '.i64',
+    '.8',
+    '.16',
+    '.32',
+    '.64',
+    '.f8',
+    '.f16',
+    '.f32',
+    '.f64',
+    '.p8',
+    '.p16',
+    '.p32',
+    '.p64',
+    '.f32.s16',
+    '.f32.u16',
+    '.f64.s16',
+    '.f64.u16',
+    '.s16.f32',
+    '.u16.f32',
+    '.s16.f64',
+    '.u16.f64',
+    ]
 
-IFS_SFUI_STOP = 39
-
-IFS_SFUI_MASK = 0
-for x in range(IFS_SFUI_START, IFS_SFUI_STOP):
-    IFS_SFUI_MASK |= (1<<x)
-
-IFS_SFUI_MASK << IFS_SFUI_START
+for ifx in range(1, len(IFS)):
+    ifs = IFS[ifx]
+    gblname = "IFS" + ifs.upper().replace('.','_')
+    globals()[gblname] = ifx
 
 OF_W         = 1<<8     # Write back to 
 OF_UM        = 1<<9     # Usermode, or if r15 included set current SPSR -> CPSR
@@ -401,6 +408,7 @@ instrnames = [
         'MVN',
         'ORN',
         'ADR',
+        'MUL',
         'B',
         'BL',
         'BCC',
@@ -614,6 +622,15 @@ instrnames = [
         'VQMOVUN',
         'VRECPE',
         'VRSQRTE',
+        'VCVTR',
+        'VMSR',
+        'VMRS',
+        'VSTM',
+        'VSTR',
+        'VPUSH',
+        'VLDM',
+        'VLDR',
+        'VPOP',
 ]
 
 ins_index = 85

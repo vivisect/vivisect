@@ -385,7 +385,7 @@ def p_misc1(opval, va): #
         Rm = opval & 0xf
         olist = ( ArmRegOper(Rm, va=va), )
         if Rm == REG_LR:
-            iflags |= envi.IF_RET
+            iflags |= envi.IF_RET | envi.IF_NOFALL
         
     elif opval & 0x0ff000f0 == 0x01600010:  
         opcode = INS_CLZ
@@ -1294,7 +1294,7 @@ def p_load_mult(opval, va):
         flags |= envi.IF_NOFALL
         # If the load is from the stack, call it a "return"
         if Rn == REG_SP:
-            flags |= envi.IF_RET
+            flags |= envi.IF_RET | envi.IF_NOFALL
     if puswl & 2:       # W (mnemonic: "!")
         flags |= IF_W
         olist[0].oflags |= OF_W
@@ -1591,7 +1591,7 @@ def p_vpush(opval, va):
     simdflags = (IFS_32, IFS_64)[op]
 
     opers = (
-            ArmExtRegListOper(vn, regsize, op),
+            ArmExtRegListOper(vd, regsize, op),
             )
 
     return INS_VPUSH, 'vpush', opers, 0, simdflags
@@ -1615,7 +1615,7 @@ def p_vldm(opval, va):      #p920
 
     opers = (
             ArmRegOper(rn, oflag=oflags),
-            ArmExtRegListOper(vn, regsize, op),
+            ArmExtRegListOper(vd, regsize, op),
             )
 
     return INS_VLDM, 'vldm', opers, flags, simdflags
@@ -1959,7 +1959,7 @@ def _do_fp_dp(va, val1, val2):
             m = (Vm<<1) | M
             n = (opc2<<1) | N
 
-        simdflags |= (IFS_F32, IFS_F64)[sz]
+        simdflags = (IFS_F32, IFS_F64)[sz]
 
         # VMLA, VMLS p930
         # VNMLA, VNMLS T1/A1, VNMUL T2/A2, p 968
@@ -1986,13 +1986,13 @@ def _do_fp_dp(va, val1, val2):
             d = (D<<4) | Vd
             m = (M<<4) | Vm
             imm = imm4h<<4 | imm4l
-            simdflags |= IFS_F64
+            simdflags = IFS_F64
             rbase = "d%d"
         else:
             d = (Vd<<1) | D
             m = (Vm<<1) | M
             imm = imm4h<<4 | imm4l
-            simdflags |= IFS_F32
+            simdflags = IFS_F32
             rbase = "s%d"
 
         if opc3 & 1 == 0:   # p934
@@ -2038,7 +2038,7 @@ def _do_fp_dp(va, val1, val2):
         # VCVTB, VCVTT p878
         elif opc2 in (2,3) and opc3 in (1,3):
             T = N
-            simdflags |= (IFS_F1632, IFS_F3216)[val1&1]
+            simdflags = (IFS_F16_32, IFS_F32_16)[val1&1]
             mnem = ('vcvtb','vcvtt')[T]
 
             opers = (
@@ -2069,13 +2069,13 @@ def _do_fp_dp(va, val1, val2):
             if sz:
                 d = (Vd<<1) | D
                 m = (M<<4) | Vm
-                simdflags |= IFS_F32F64
+                simdflags = IFS_F32_F64
                 rbase1 = "s%d"
                 rbase2 = "d%d"
             else:
                 d = (D<<4) | Vd
                 m = (Vm<<1) | M
-                simdflags |= IFS_F64F32
+                simdflags = IFS_F64_F32
                 rbase1 = "d%d"
                 rbase2 = "s%d"
 
@@ -2088,40 +2088,43 @@ def _do_fp_dp(va, val1, val2):
         elif opc2 in (0b1000,0b1100,0b1101) and opc3 & 1:
             op = opc3>>1
             # S32F64, S32F32, U32F64, U32F32, F64TM, F32TM??
-            to_int = opc2 & 0b100
-            if to_int:
+            if op:
+                mnem = 'vcvt'
+                opcode = INS_VCVT
+            else:
                 mnem = 'vcvtr'
                 opcode = INS_VCVTR
+
+            to_int = opc2 & 0b100
+            if to_int:
                 signed = opc2&1
                 round_zero = op
 
                 d = (Vd<<1) | D
                 if sz:
                     m = (M<<4) | Vm
-                    simdflags |= (IFS_U32F64, IFS_S32F64)[signed]
+                    simdflags = (IFS_U32_F64, IFS_S32_F64)[signed]
                     rbase1 = "s%d"
                     rbase2 = "d%d"
                 else:
                     m = (Vm<<1) | M
-                    simdflags |= (IFS_U32F32, IFS_S32F32)[signed]
+                    simdflags = (IFS_U32_F32, IFS_S32_F32)[signed]
                     rbase1 = "s%d"
                     rbase2 = "s%d"
 
             else:
-                mnem = 'vcvt'
-                opcode = INS_VCVT
 
                 signed = op
                 round_nearest = False
                 m = (Vm<<1) | M
                 if sz:
                     d = (D<<4) | Vd
-                    simdflags |= (IFS_F64U32, IFS_F64S32)[signed]
+                    simdflags = (IFS_F64_U32, IFS_F64_S32)[signed]
                     rbase1 = "d%d"
                     rbase2 = "s%d"
                 else:
                     d = (Vd<<1) | D
-                    simdflags |= (IFS_F32U32, IFS_F32S32)[signed]
+                    simdflags = (IFS_F32_U32, IFS_F32_S32)[signed]
                     rbase1 = "s%d"
                     rbase2 = "s%d"
 
@@ -2134,47 +2137,40 @@ def _do_fp_dp(va, val1, val2):
         elif opc2 in (0b1010,0b1011,0b1110,0b1111) and opc3&1:
             mnem = 'vcvt'
             opcode = INS_VCVT
-            U = (val1>>12) & 1 # thumb only.  arm gets U from bit 22
-            imm6 = val1 & 0x3f
-            op = sz
+
+            U = val1 & 1
+            imm4 = val2 & 0xf
+            sf = (val2>>8) & 1
+            sx = (val2>>7) & 1
+            i = (val2>>5) & 1
+
+            dp_op = sf
+
+            op = (val1>>2) & 1
+
             Q = opc3
 
-            if imm6 & 0b000111:
-                raise InvalidInstruction('fp/adv simd parsing error.  alternate encoding p267.',va=va, bytez=bytez)
-            if imm6 & 0b011111:
-                raise InvalidInstruction('fp/adv simd parsing error.  undefined behavior.',va=va, bytez=bytez)
+            sfidx = (op << 3) | (sf << 2) | (sx << 1) | U
+            simdflags = (
+                    IFS_F32_S16, IFS_F32_U16, IFS_F32_S32, IFS_F32_U32,
+                    IFS_F64_S16, IFS_F64_U16, IFS_F64_S32, IFS_F64_U32,
+                    IFS_S16_F32, IFS_U16_F32, IFS_S32_F32, IFS_U32_F32,
+                    IFS_S16_F64, IFS_U16_F64, IFS_S32_F64, IFS_U32_F64,
+                    ) [sfidx]
 
-            if op:      # FIXME: not sure what to do with these.
-                #round_zero = True  - like, what does this mean?
-                if U:
-                    simdflags |= IFS_U32F32
-                else:
-                    simdflags |= IFS_S32F32
+            size = (16, 32)[sx]
+            frac_bits = size - ((imm4<<1) | i)
+
+            if dp_op:
+                d = (D<<4) | Vd
             else:
-                #round_nearest = True
-                if U:
-                    simdflags |= IFS_F32U32
-                else:
-                    simdflags |= IFS_F32S32
+                d = D | (Vd << 1)
 
-            #esize = 32
-            frac_bits = 64 - imm6
-            #elements = 2
-
-            d = (D<<4) | Vd
-            m = (M<<4) | Vm
-
-            if Q:
-                rbase = "q%d"
-            else:
-                rbase = "d%d"
-
-            #regs = Q + 1
-
+            rbase = ('s%d', 'd%d')[sf]
 
             opers = (
                     ArmRegOper(rctx.getRegisterIndex(rbase%d)),
-                    ArmRegOper(rctx.getRegisterIndex(rbase%m)),
+                    ArmRegOper(rctx.getRegisterIndex(rbase%d)),
                     ArmImmOper(frac_bits),
                     )
 
@@ -2200,8 +2196,8 @@ adv_simd_dts = (IFS_S8, IFS_S16, IFS_S32, IFS_S64,
                 IFS_F8, IFS_F16, IFS_F32, IFS_F64,
                 IFS_8,  IFS_16,  IFS_32,  IFS_64,
                 0,0,0,0,
-                IFS_F1632, IFS_F3216, 0,0,
-                IFS_F32S32, IFS_F32U32, IFS_S32F32, IFS_U32F32,
+                IFS_F16_32, IFS_F32_16, 0,0,
+                IFS_F32_S32, IFS_F32_U32, IFS_S32_F32, IFS_U32_F32,
                 )
 ADV_SIMD_S8     = 0
 ADV_SIMD_U8     = 4
@@ -2683,168 +2679,168 @@ adv_simd_2regs_scalar = (
 
 adv_simd_2regs_misc = (
         # a=0 b=000xx
-        ('vrev64',      INS_VREV64, ADV_SIMD_8, 0,0),
-        ('vrev64',      INS_VREV64, ADV_SIMD_8, 1,1),
-        ('vrev32',      INS_VREV32, ADV_SIMD_8, 0,0),
-        ('vrev32',      INS_VREV32, ADV_SIMD_8, 1,1),
+        ('vrev64',      INS_VREV64, ADV_SIMD_8, 0,0, 0),
+        ('vrev64',      INS_VREV64, ADV_SIMD_8, 1,1, 0),
+        ('vrev32',      INS_VREV32, ADV_SIMD_8, 0,0, 0),
+        ('vrev32',      INS_VREV32, ADV_SIMD_8, 1,1, 0),
         # a=0 b=001xx
-        ('vrev16',      INS_VREV16, ADV_SIMD_8, 0,0),
-        ('vrev16',      INS_VREV16, ADV_SIMD_8, 1,1),
-        (None, None, ADV_SIMD_S8, 0,0),
-        (None, None, ADV_SIMD_S8, 1,1),
+        ('vrev16',      INS_VREV16, ADV_SIMD_8, 0,0, 0),
+        ('vrev16',      INS_VREV16, ADV_SIMD_8, 1,1, 0),
+        (None, None, ADV_SIMD_S8, 0,0, 0),
+        (None, None, ADV_SIMD_S8, 1,1, 0),
         # a=0 b=010xx
-        ('vpaddl',      INS_VPADDL, ADV_SIMD_S8, 0,0),
-        ('vpaddl',      INS_VPADDL, ADV_SIMD_S8, 1,1),
-        ('vpaddl',      INS_VPADDL, ADV_SIMD_U8, 0,0),
-        ('vpaddl',      INS_VPADDL, ADV_SIMD_U8, 1,1),
+        ('vpaddl',      INS_VPADDL, ADV_SIMD_S8, 0,0, 0),
+        ('vpaddl',      INS_VPADDL, ADV_SIMD_S8, 1,1, 0),
+        ('vpaddl',      INS_VPADDL, ADV_SIMD_U8, 0,0, 0),
+        ('vpaddl',      INS_VPADDL, ADV_SIMD_U8, 1,1, 0),
         # a=0 b=011xx
-        (None,          None, 0, 0,0),
-        (None,          None, 0, 0,0),
-        (None,          None, 0, 0,0),
-        (None,          None, 0, 0,0),
+        (None,          None, 0, 0,0, 0),
+        (None,          None, 0, 0,0, 0),
+        (None,          None, 0, 0,0, 0),
+        (None,          None, 0, 0,0, 0),
         # a=0 b=100xx
-        ('vcls',        INS_VCLS, ADV_SIMD_S8, 0,0),
-        ('vcls',        INS_VCLS, ADV_SIMD_S8, 1,1),
-        ('vclz',        INS_VCLZ, ADV_SIMD_I8, 0,0),
-        ('vclz',        INS_VCLZ, ADV_SIMD_I8, 1,1),
+        ('vcls',        INS_VCLS, ADV_SIMD_S8, 0,0, 0),
+        ('vcls',        INS_VCLS, ADV_SIMD_S8, 1,1, 0),
+        ('vclz',        INS_VCLZ, ADV_SIMD_I8, 0,0, 0),
+        ('vclz',        INS_VCLZ, ADV_SIMD_I8, 1,1, 0),
         # a=0 b=1010x
-        ('vcnt',        INS_VCNT, ADV_SIMD_8, 0,0),
-        ('vcnt',        INS_VCNT, ADV_SIMD_8, 1,1),
-        ('vmvn',        INS_VMVN, ADV_SIMD_NONE, 0,0),
-        ('vmvn',        INS_VMVN, ADV_SIMD_NONE, 1,1),
+        ('vcnt',        INS_VCNT, ADV_SIMD_8, 0,0, 0),
+        ('vcnt',        INS_VCNT, ADV_SIMD_8, 1,1, 0),
+        ('vmvn',        INS_VMVN, ADV_SIMD_NONE, 0,0, 0),
+        ('vmvn',        INS_VMVN, ADV_SIMD_NONE, 1,1, 0),
         # a=0 b=110xx
-        ('vpadal',      INS_VPADAL, ADV_SIMD_S8, 0,0),
-        ('vpadal',      INS_VPADAL, ADV_SIMD_S8, 1,1),
-        ('vpadal',      INS_VPADAL, ADV_SIMD_U8, 0,0),
-        ('vpadal',      INS_VPADAL, ADV_SIMD_U8, 1,1),
+        ('vpadal',      INS_VPADAL, ADV_SIMD_S8, 0,0, 0),
+        ('vpadal',      INS_VPADAL, ADV_SIMD_S8, 1,1, 0),
+        ('vpadal',      INS_VPADAL, ADV_SIMD_U8, 0,0, 0),
+        ('vpadal',      INS_VPADAL, ADV_SIMD_U8, 1,1, 0),
         # a=0 b=1110x
-        ('vqabs',       INS_VQABS, ADV_SIMD_S8, 0,0),
-        ('vqabs',       INS_VQABS, ADV_SIMD_S8, 1,1),
+        ('vqabs',       INS_VQABS, ADV_SIMD_S8, 0,0, 0),
+        ('vqabs',       INS_VQABS, ADV_SIMD_S8, 1,1, 0),
         # a=0 b=1111x
-        ('vqneg',       INS_VQNEG, ADV_SIMD_S8, 0,0),
-        ('vqneg',       INS_VQNEG, ADV_SIMD_S8, 1,1),
+        ('vqneg',       INS_VQNEG, ADV_SIMD_S8, 0,0, 0),
+        ('vqneg',       INS_VQNEG, ADV_SIMD_S8, 1,1, 0),
         # a=1 b=000xx
-        ('vcgt',        INS_VCGT, ADV_SIMD_S8, 0,0),
-        ('vcgt',        INS_VCGT, ADV_SIMD_S8, 1,1),
-        ('vcge',        INS_VCGE, ADV_SIMD_S8, 0,0),
-        ('vcge',        INS_VCGE, ADV_SIMD_S8, 1,1),
+        ('vcgt',        INS_VCGT, ADV_SIMD_S8, 0,0, 0), # , #0
+        ('vcgt',        INS_VCGT, ADV_SIMD_S8, 1,1, 0), # , #0
+        ('vcge',        INS_VCGE, ADV_SIMD_S8, 0,0, 0), # , #0
+        ('vcge',        INS_VCGE, ADV_SIMD_S8, 1,1, 0), # , #0
         # a=1 b=001xx
-        ('vceq',        INS_VCEQ, ADV_SIMD_I8, 0,0),
-        ('vceq',        INS_VCEQ, ADV_SIMD_I8, 1,1),
-        ('vcle',        INS_VCLE, ADV_SIMD_I8, 0,0),
-        ('vcle',        INS_VCLE, ADV_SIMD_I8, 1,1),
+        ('vceq',        INS_VCEQ, ADV_SIMD_I8, 0,0, 0), # , #0
+        ('vceq',        INS_VCEQ, ADV_SIMD_I8, 1,1, 0), # , #0
+        ('vcle',        INS_VCLE, ADV_SIMD_I8, 0,0, 0), # , #0
+        ('vcle',        INS_VCLE, ADV_SIMD_I8, 1,1, 0), # , #0
         # a=1 b=010xx
-        ('vclt',        INS_VCLT, ADV_SIMD_S8, 0,0),
-        ('vclt',        INS_VCLT, ADV_SIMD_S8, 1,1),
-        (None,  None, ADV_SIMD_S8, 0,0),
-        (None,  None, ADV_SIMD_S8, 1,1),
+        ('vclt',        INS_VCLT, ADV_SIMD_S8, 0,0, 0), # , #0
+        ('vclt',        INS_VCLT, ADV_SIMD_S8, 1,1, 0), # , #0
+        (None,  None, ADV_SIMD_S8, 0,0, 0),
+        (None,  None, ADV_SIMD_S8, 1,1, 0),
         # a=1 b=011xx
-        ('vabs',        INS_VABS, ADV_SIMD_S8, 0,0),
-        ('vabs',        INS_VABS, ADV_SIMD_S8, 1,1),
-        ('vneg',        INS_VNEG, ADV_SIMD_S8, 0,0),
-        ('vneg',        INS_VNEG, ADV_SIMD_S8, 1,1),
+        ('vabs',        INS_VABS, ADV_SIMD_S8, 0,0, 0),
+        ('vabs',        INS_VABS, ADV_SIMD_S8, 1,1, 0),
+        ('vneg',        INS_VNEG, ADV_SIMD_S8, 0,0, 0),
+        ('vneg',        INS_VNEG, ADV_SIMD_S8, 1,1, 0),
         # a=1 b=100xx
-        ('vcgt',        INS_VCGT, ADV_SIMD_F8, 0,0), # , #0
-        ('vcgt',        INS_VCGT, ADV_SIMD_F8, 1,1), # , #0
-        ('vcge',        INS_VCGE, ADV_SIMD_F8, 0,0), # , #0
-        ('vcge',        INS_VCGE, ADV_SIMD_F8, 1,1), # , #0
+        ('vcgt',        INS_VCGT, ADV_SIMD_F8, 0,0, 0), # , #0
+        ('vcgt',        INS_VCGT, ADV_SIMD_F8, 1,1, 0), # , #0
+        ('vcge',        INS_VCGE, ADV_SIMD_F8, 0,0, 0), # , #0
+        ('vcge',        INS_VCGE, ADV_SIMD_F8, 1,1, 0), # , #0
         # a=1 b=101xx
-        ('vceq',        INS_VCEQ, ADV_SIMD_F8, 0,0), # , #0
-        ('vceq',        INS_VCEQ, ADV_SIMD_F8, 1,1), # , #0
-        ('vcle',        INS_VCLE, ADV_SIMD_F8, 0,0), # , #0
-        ('vcle',        INS_VCLE, ADV_SIMD_F8, 1,1), # , #0
+        ('vceq',        INS_VCEQ, ADV_SIMD_F8, 0,0, 0), # , #0
+        ('vceq',        INS_VCEQ, ADV_SIMD_F8, 1,1, 0), # , #0
+        ('vcle',        INS_VCLE, ADV_SIMD_F8, 0,0, 0), # , #0
+        ('vcle',        INS_VCLE, ADV_SIMD_F8, 1,1, 0), # , #0
         # a=1 b=110xx
-        ('vclt',        INS_VCLT, ADV_SIMD_F8, 0,0),
-        ('vclt',        INS_VCLT, ADV_SIMD_F8, 1,1),
-        (None,  None, ADV_SIMD_F8, 0,0),
-        (None,  None, ADV_SIMD_F8, 1,1),
+        ('vclt',        INS_VCLT, ADV_SIMD_F8, 0,0, 0),
+        ('vclt',        INS_VCLT, ADV_SIMD_F8, 1,1, 0),
+        (None,  None, ADV_SIMD_F8, 0,0, 0),
+        (None,  None, ADV_SIMD_F8, 1,1, 0),
         # a=1 b=111xx
-        ('vabs',        INS_VABS, ADV_SIMD_F8, 0,0),
-        ('vabs',        INS_VABS, ADV_SIMD_F8, 1,1),
-        ('vneg',        INS_VNEG, ADV_SIMD_F8, 0,0),
-        ('vneg',        INS_VNEG, ADV_SIMD_F8, 1,1),
+        ('vabs',        INS_VABS, ADV_SIMD_F8, 0,0, 0),
+        ('vabs',        INS_VABS, ADV_SIMD_F8, 1,1, 0),
+        ('vneg',        INS_VNEG, ADV_SIMD_F8, 0,0, 0),
+        ('vneg',        INS_VNEG, ADV_SIMD_F8, 1,1, 0),
 
         ############## HALF WAY DONE!  MAKE COMPLETE
         # a=10 b=0000x
-        ('vswp',        INS_VSWP, ADV_SIMD_NONE, 0,0),
-        ('vswp',        INS_VSWP, ADV_SIMD_NONE, 1,1),
-        ('vtrn',        INS_VTRN, ADV_SIMD_8, 0,0),
-        ('vtrn',        INS_VTRN, ADV_SIMD_8, 1,1),
+        ('vswp',        INS_VSWP, ADV_SIMD_NONE, 0,0, 0),
+        ('vswp',        INS_VSWP, ADV_SIMD_NONE, 1,1, 0),
+        ('vtrn',        INS_VTRN, ADV_SIMD_8, 0,0, 0),
+        ('vtrn',        INS_VTRN, ADV_SIMD_8, 1,1, 0),
         # a=10 b=001xx
-        ('vuzp',        INS_VUZP, ADV_SIMD_8, 0,0),
-        ('vuzp',        INS_VUZP, ADV_SIMD_8, 1,1),
-        ('vzip',        INS_VZIP, ADV_SIMD_8, 0,0),
-        ('vzip',        INS_VZIP, ADV_SIMD_8, 1,1),
+        ('vuzp',        INS_VUZP, ADV_SIMD_8, 0,0, 0),
+        ('vuzp',        INS_VUZP, ADV_SIMD_8, 1,1, 0),
+        ('vzip',        INS_VZIP, ADV_SIMD_8, 0,0, 0),
+        ('vzip',        INS_VZIP, ADV_SIMD_8, 1,1, 0),
         # a=10 b=010xx
-        ('vmovn',       INS_VMOVN, ADV_SIMD_I8+1, 0,1),
-        ('vqmovun',         INS_VQMOVUN, ADV_SIMD_S8+1, 0,1),
-        ('vqmovn',      INS_VQMOVN, ADV_SIMD_S8+1, 0,1),
-        ('vqmovn',      INS_VQMOVN, ADV_SIMD_U8+1, 0,1),
+        ('vmovn',       INS_VMOVN, ADV_SIMD_I8+1, 0,1, 0),
+        ('vqmovun',         INS_VQMOVUN, ADV_SIMD_S8+1, 0,1, 0),
+        ('vqmovn',      INS_VQMOVN, ADV_SIMD_S8+1, 0,1, 0),
+        ('vqmovn',      INS_VQMOVN, ADV_SIMD_U8+1, 0,1, 0),
         # a=10 b=011xx
-        ('vshll',       INS_VSHLL, ADV_SIMD_I8, 1,0),      # Qd, Dm, #imm.... one of these is not like the others...
-        (None,  0, 0, 0,0),
-        (None,  0, 0, 0,0),
-        (None,  0, 0, 0,0),
+        ('vshll',       INS_VSHLL, ADV_SIMD_I8, 1,0, 0),      # Qd, Dm, #imm.... one of these is not like the others...
+        (None,  0, 0, 0,0, 0),
+        (None,  0, 0, 0,0, 0),
+        (None,  0, 0, 0,0, 0),
         # a=10 b=100xx
-        (None,  0, 0, 0,0),
-        (None,  0, 0, 0,0),
-        (None,  0, 0, 0,0),
-        (None,  0, 0, 0,0),
+        (None,  0, 0, 0,0, 0),
+        (None,  0, 0, 0,0, 0),
+        (None,  0, 0, 0,0, 0),
+        (None,  0, 0, 0,0, 0),
         # a=10 b=1010x
-        (None,  0, 0, 0,0),
-        (None,  0, 0, 0,0),
-        (None,  0, 0, 0,0),
-        (None,  0, 0, 0,0),
+        (None,  0, 0, 0,0, 0),
+        (None,  0, 0, 0,0, 0),
+        (None,  0, 0, 0,0, 0),
+        (None,  0, 0, 0,0, 0),
         # a=10 b=110xx
-        ('vcvt',        INS_VCVT, ADV_SIMD_F16F32-1, 0,1),
-        (None,  0, 0, 0,0),
-        (None,  0, 0, 0,0),
-        (None,  0, 0, 0,0),
+        ('vcvt',        INS_VCVT, ADV_SIMD_F16F32-1, 0,1, 0),
+        (None,  0, 0, 0,0, 0),
+        (None,  0, 0, 0,0, 0),
+        (None,  0, 0, 0,0, 0),
         # a=10 b=111xx
-        ('vcvt',        INS_VCVT, ADV_SIMD_F16F32, 1,0),
-        (None,  0, 0, 0,0),
-        (None,  0, 0, 0,0),
-        (None,  0, 0, 0,0),
+        ('vcvt',        INS_VCVT, ADV_SIMD_F16F32, 1,0, 0),
+        (None,  0, 0, 0,0, 0),
+        (None,  0, 0, 0,0, 0),
+        (None,  0, 0, 0,0, 0),
         # a=11 b=000xx
-        (None,  0, 0, 0,0),
-        (None,  0, 0, 0,0),
-        (None,  0, 0, 0,0),
-        (None,  0, 0, 0,0),
+        (None,  0, 0, 0,0, 0),
+        (None,  0, 0, 0,0, 0),
+        (None,  0, 0, 0,0, 0),
+        (None,  0, 0, 0,0, 0),
         # a=11 b=001xx
-        (None,  0, 0, 0,0),
-        (None,  0, 0, 0,0),
-        (None,  0, 0, 0,0),
-        (None,  0, 0, 0,0),
+        (None,  0, 0, 0,0, 0),
+        (None,  0, 0, 0,0, 0),
+        (None,  0, 0, 0,0, 0),
+        (None,  0, 0, 0,0, 0),
         # a=11 b=010xx
-        (None,  0, 0, 0,0),
-        (None,  0, 0, 0,0),
-        (None,  0, 0, 0,0),
-        (None,  0, 0, 0,0),
+        (None,  0, 0, 0,0, 0),
+        (None,  0, 0, 0,0, 0),
+        (None,  0, 0, 0,0, 0),
+        (None,  0, 0, 0,0, 0),
         # a=11 b=011xx
-        (None,  0, 0, 0,0),
-        (None,  0, 0, 0,0),
-        (None,  0, 0, 0,0),
-        (None,  0, 0, 0,0),
+        (None,  0, 0, 0,0, 0),
+        (None,  0, 0, 0,0, 0),
+        (None,  0, 0, 0,0, 0),
+        (None,  0, 0, 0,0, 0),
         # a=11 b=100xx
-        ('vrecpe',      INS_VRECPE, ADV_SIMD_S8, 0,0),
-        ('vrecpe',      INS_VRECPE, ADV_SIMD_S8, 0,0),
-        ('vrsqrte',     INS_VRSQRTE, ADV_SIMD_S8, 0,0),
-        ('vrsqrte',     INS_VRSQRTE, ADV_SIMD_S8, 0,0),
+        ('vrecpe',      INS_VRECPE, ADV_SIMD_S8, 0,0, 0),
+        ('vrecpe',      INS_VRECPE, ADV_SIMD_S8, 0,0, 0),
+        ('vrsqrte',     INS_VRSQRTE, ADV_SIMD_S8, 0,0, 0),
+        ('vrsqrte',     INS_VRSQRTE, ADV_SIMD_S8, 0,0, 0),
         # a=11 b=101xx
-        ('vrecpe',      INS_VRECPE, ADV_SIMD_S8, 0,0),
-        ('vrecpe',      INS_VRECPE, ADV_SIMD_S8, 0,0),
-        ('vrsqrte',     INS_VRSQRTE, ADV_SIMD_S8, 0,0),
-        ('vrsqrte',     INS_VRSQRTE, ADV_SIMD_S8, 0,0),
+        ('vrecpe',      INS_VRECPE, ADV_SIMD_S8, 0,0, 0),
+        ('vrecpe',      INS_VRECPE, ADV_SIMD_S8, 0,0, 0),
+        ('vrsqrte',     INS_VRSQRTE, ADV_SIMD_S8, 0,0, 0),
+        ('vrsqrte',     INS_VRSQRTE, ADV_SIMD_S8, 0,0, 0),
         # a=11 b=110xx
-        ('vcvt',        INS_VCVT, ADV_SIMD_F32S32-2, 0,0),
-        ('vcvt',        INS_VCVT, ADV_SIMD_F32S32-2, 0,0),
-        ('vcvt',        INS_VCVT, ADV_SIMD_F32S32-1, 0,0),
-        ('vcvt',        INS_VCVT, ADV_SIMD_F32S32-1, 0,0),
+        ('vcvt',        INS_VCVT, ADV_SIMD_F32S32-2, 0,0, 0),
+        ('vcvt',        INS_VCVT, ADV_SIMD_F32S32-2, 0,0, 0),
+        ('vcvt',        INS_VCVT, ADV_SIMD_F32S32-1, 0,0, 0),
+        ('vcvt',        INS_VCVT, ADV_SIMD_F32S32-1, 0,0, 0),
         # a=11 b=111xx
-        ('vcvt',        INS_VCVT, ADV_SIMD_F32S32, 0,0),
-        ('vcvt',        INS_VCVT, ADV_SIMD_F32S32, 0,0),
-        ('vcvt',        INS_VCVT, ADV_SIMD_F32S32+1, 0,0),
-        ('vcvt',        INS_VCVT, ADV_SIMD_F32S32+1, 0,0),
+        ('vcvt',        INS_VCVT, ADV_SIMD_F32S32, 0,0, 0),
+        ('vcvt',        INS_VCVT, ADV_SIMD_F32S32, 0,0, 0),
+        ('vcvt',        INS_VCVT, ADV_SIMD_F32S32+1, 0,0, 0),
+        ('vcvt',        INS_VCVT, ADV_SIMD_F32S32+1, 0,0, 0),
 
 
 )
@@ -3082,7 +3078,7 @@ def _do_adv_simd_32(val, va, u):
 
             op = a & 1
             uop = (u<<1) | op
-            simdflags = (IFS_F32S32, IFS_S32F32, IFS_F32U32, IFS_U32F32)[uop]
+            simdflags = (IFS_F32_S32, IFS_S32_F32, IFS_F32_U32, IFS_U32_F32)[uop]
 
             # fbits 
             shift_amount = 64 - imm
@@ -3244,7 +3240,7 @@ def _do_adv_simd_32(val, va, u):
 
                     idx = (a<<5) | b
                     datatup = adv_simd_2regs_misc[idx]
-                    mnem, opcode, flagoff, dt, nt = datatup
+                    mnem, opcode, flagoff, dt, nt, mod = datatup
                     if mnem == None:
                         raise envi.InvalidInstruction(mesg="Invalid AdvSIMD Opcode Encoding",
                                 bytez=struct.pack('<L', val), va=va)
@@ -3252,7 +3248,7 @@ def _do_adv_simd_32(val, va, u):
                     d >>= q
                     m >>= q
 
-                    if a and ((b&0b1100) != 0b1100):
+                    if (a==1) and ((b&0b1100) != 0b1100):
                         opers = (
                             ArmRegOper(rctx.getRegisterIndex(rbase%d)),
                             ArmRegOper(rctx.getRegisterIndex(rbase%m)),
@@ -3266,7 +3262,7 @@ def _do_adv_simd_32(val, va, u):
 
                     sz = (val>>18) & 0x3
                     szu = sz + flagoff
-                    print "2reg_misc: 0x%x  (a: 0x%x  b: 0x%x  idx: %d)" % (val, a,b,szu)
+                    #print "2reg_misc: 0x%x  (a: 0x%x  b: 0x%x  idx: %d)" % (val, a,b,szu)
                     simdflags = adv_simd_dts[szu]
 
                     return opcode, mnem, opers, 0, simdflags
@@ -3344,7 +3340,7 @@ def adv_simd_mod_011x(abcdefgh):
     #return IFS_I32, (abcdefgh << 56) | (abcdefgh << 24)
 
 def adv_simd_mod_100x(abcdefgh):
-    print hex(abcdefgh)
+    #print hex(abcdefgh)
     return IFS_I16, 2, abcdefgh
     #return IFS_I16, (abcdefgh << 48) | (abcdefgh << 32) | (abcdefgh << 16) | abcdefgh
 
@@ -3837,29 +3833,29 @@ class ArmOpcode(envi.Opcode):
                 mnem += 'id'
 
             if self.simdflags:
-                if self.simdflags & IFS_S32F64:
+                if self.simdflags & IFS_S32_F64:
                     mnem += '.s32.f64'
-                elif self.simdflags & IFS_S32F32:
+                elif self.simdflags & IFS_S32_F32:
                     mnem += '.s32.f32'
-                elif self.simdflags & IFS_U32F64:
+                elif self.simdflags & IFS_U32_F64:
                     mnem += '.u32.f64'
-                elif self.simdflags & IFS_U32F32:
+                elif self.simdflags & IFS_U32_F32:
                     mnem += '.u32.f32'
-                elif self.simdflags & IFS_F64S32:
+                elif self.simdflags & IFS_F64_S32:
                     mnem += '.f64.s32'
-                elif self.simdflags & IFS_F64U32:
+                elif self.simdflags & IFS_F64_U32:
                     mnem += '.f64.u32'
-                elif self.simdflags & IFS_F32S32:
+                elif self.simdflags & IFS_F32_S32:
                     mnem += '.f32.s32'
-                elif self.simdflags & IFS_F32U32:
+                elif self.simdflags & IFS_F32_U32:
                     mnem += '.f32.u32'
-                elif self.simdflags & IFS_F3264:
+                elif self.simdflags & IFS_F32_64:
                     mnem += '.f32.f64'
-                elif self.simdflags & IFS_F6432:
+                elif self.simdflags & IFS_F64_32:
                     mnem += '.f64.f32'
-                elif self.simdflags & IFS_F1632:
+                elif self.simdflags & IFS_F16_32:
                     mnem += '.f16.f32'
-                elif self.simdflags & IFS_F3216:
+                elif self.simdflags & IFS_F32_16:
                     mnem += '.f32.f16'
                 elif self.simdflags & IFS_F64:
                     mnem += '.f64'
@@ -3955,29 +3951,30 @@ class ArmOpcode(envi.Opcode):
                 mnem += 'id'
 
             if self.simdflags:
-                if self.simdflags & IFS_S32F64:
+                '''
+                if self.simdflags & IFS_S32_F64:
                     mnem += '.s32.f64'
-                elif self.simdflags & IFS_S32F32:
+                elif self.simdflags & IFS_S32_F32:
                     mnem += '.s32.f32'
-                elif self.simdflags & IFS_U32F64:
+                elif self.simdflags & IFS_U32_F64:
                     mnem += '.u32.f64'
-                elif self.simdflags & IFS_U32F32:
+                elif self.simdflags & IFS_U32_F32:
                     mnem += '.u32.f32'
-                elif self.simdflags & IFS_F64S32:
+                elif self.simdflags & IFS_F64_S32:
                     mnem += '.f64.s32'
-                elif self.simdflags & IFS_F64U32:
+                elif self.simdflags & IFS_F64_U32:
                     mnem += '.f64.u32'
-                elif self.simdflags & IFS_F32S32:
+                elif self.simdflags & IFS_F32_S32:
                     mnem += '.f32.s32'
-                elif self.simdflags & IFS_F32U32:
+                elif self.simdflags & IFS_F32_U32:
                     mnem += '.f32.u32'
-                elif self.simdflags & IFS_F3264:
+                elif self.simdflags & IFS_F32_64:
                     mnem += '.f32.f64'
-                elif self.simdflags & IFS_F6432:
+                elif self.simdflags & IFS_F64_32:
                     mnem += '.f64.f32'
-                elif self.simdflags & IFS_F1632:
+                elif self.simdflags & IFS_F16_32:
                     mnem += '.f16.f32'
-                elif self.simdflags & IFS_F3216:
+                elif self.simdflags & IFS_F32_16:
                     mnem += '.f32.f16'
                 elif self.simdflags & IFS_F64:
                     mnem += '.f64'
@@ -4027,6 +4024,8 @@ class ArmOpcode(envi.Opcode):
                     mnem += '.32'
                 elif self.simdflags & IFS_64:
                     mnem += '.64'
+                    '''
+                mnem += IFS[self.simdflags]
 
         if self.iflags & IF_THUMB32:
             mnem += ".w"
@@ -4670,8 +4669,8 @@ class ArmImmOffsetOper(ArmOperand):
                 else:
                     mcanv.addNameText("0x%x" % value)
 
-            if idxing != 0x2:
-                print "OMJ! WRITING to program counter! -1"
+            #if idxing != 0x2:
+                #print "OMJ! WRITING to program counter! -1"
         else:
             pom = ('-','')[u]
             mcanv.addText('[')
@@ -4700,8 +4699,8 @@ class ArmImmOffsetOper(ArmOperand):
             tname = "[#0x%x]" % addr
             # FIXME: is there any chance of us doing indexing on PC?!?
             # ldcl literal trips this in some cases
-            if idxing != 0x2:
-                print "OMJ! WRITING to the program counter!"
+            #if idxing != 0x2:
+                #print "OMJ! WRITING to the program counter!"
         else:
             pom = ('-','')[u]
             if self.offset != 0:
