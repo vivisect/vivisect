@@ -282,7 +282,7 @@ class VivCanvasBase(vq_hotkey.HotKeyMixin, e_mem_canvas.VQMemoryCanvas):
         loc = self.mem.getLocation(va)
         if loc != None:
             va = loc[L_VA]
-        return VivCanvasBase.getVaTag(self, va)
+        return e_mem_canvas.VQMemoryCanvas.getVaTag(self, va)
 
 
 class VQVivMemoryCanvas(VivCanvasBase):
