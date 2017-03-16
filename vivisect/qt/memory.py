@@ -334,7 +334,8 @@ class VQVivMemoryCanvas(VivCanvasBase):
 
         nva, nvsz, nvt, nvti = nloc
         return (nva, va-nva)
-        
+
+
 class VQVivMemoryView(e_mem_qt.VQMemoryWindow, viv_base.VivEventCore):
 
     def __init__(self, vw, vwqgui):
