@@ -14,16 +14,56 @@ class ArmWorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_arm.ArmEmulator):
         v_i_emulator.WorkspaceEmulator.__init__(self, vw, logwrite=logwrite, logread=logread)
         self.setMemArchitecture(envi.ARCH_ARMV7)
 
+    def stepi(self):
+        # NOTE: when we step, we *always* want to be stepping over calls
+        # (and possibly import emulate them)
+        starteip = self.getProgramCounter()
+
+        # parse out an opcode
+        tmode = self.getFlag(PSR_T_bit)
+        print "tmode: %x" % tmode
+        op = self.parseOpcode(starteip | tmode)
+        if self.emumon:
+            self.emumon.prehook(self, op, starteip)
+
+        # Execute the opcode
+        self.executeOpcode(op)
+        vg_path.getNodeProp(self.curpath, 'valist').append(starteip)
+
+        endeip = self.getProgramCounter()
+
+        if self.emumon:
+            self.emumon.posthook(self, op, endeip)
+
+        if not self.checkCall(starteip, endeip, op):
+            self.checkBranches(starteip, endeip, op)
+
     def runFunction(self, funcva, stopva=None, maxhit=None, maxloop=None, tmode=None):
         """
         This is a utility function specific to WorkspaceEmulation (and impemu) that
         will emulate, but only inside the given function.  You may specify a stopva
         to return once that location is hit.
         """
-
+        
         if tmode != None:
             # we're forcing thumb or arm mode... update the flag
             self.setFlag(PSR_T_bit, tmode)
+
+        elif funcva & 3:
+            self.setFlag(PSR_T_bit, 1)
+            funcva &= -2
+            print "funcva is THUMB:  0x%x" % funcva
+
+        else:
+            loc = self.vw.getLocation(funcva)
+            if loc != None:
+                lva, lsz, lt, lti = loc
+                if (lti & envi.ARCH_MASK) == envi.ARCH_THUMB:
+                    self.setFlag(PSR_T_bit, 1)
+
+            else:
+                print "ArmWorkspaceEmulator: Nothing specified, defaulting to ARM"
+
 
         self.funcva = funcva
 
@@ -75,8 +115,10 @@ class ArmWorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_arm.ArmEmulator):
                 try:
 
                     tmode = self.getFlag(PSR_T_bit)
+                    print "tmode: %x" % tmode
                     # FIXME unify with stepi code...
                     op = self.parseOpcode(starteip | tmode)
+                    print "emu:  0x%x   flags: 0x%x \t %r" % (starteip, op.iflags, op)
 
                     self.op = op
                     if self.emumon:
@@ -117,6 +159,7 @@ class ArmWorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_arm.ArmEmulator):
                     if op.iflags & envi.IF_RET:
                         vg_path.setNodeProp(self.curpath, 'cleanret', True)
                         break
+
                 except envi.UnsupportedInstruction, e:
                     if self.strictops:
                         break
