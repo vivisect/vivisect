@@ -278,6 +278,12 @@ class VivCanvasBase(vq_hotkey.HotKeyMixin, e_mem_canvas.VQMemoryCanvas):
         self.vw.saveWorkspace(fullsave=fullsave)
         self.vw.vprint('complete!')
 
+    def getVaTag(self, va):
+        loc = self.mem.getLocation(va)
+        if loc != None:
+            va = loc[L_VA]
+        return VivCanvasBase.getVaTag(self, va)
+
 
 class VQVivMemoryCanvas(VivCanvasBase):
 
@@ -329,12 +335,6 @@ class VQVivMemoryCanvas(VivCanvasBase):
         nva, nvsz, nvt, nvti = nloc
         return (nva, va-nva)
         
-    def getVaTag(self, va):
-        loc = self.mem.getLocation(va)
-        if loc != None:
-            va = loc[L_VA]
-        return VivCanvasBase.getVaTag(self, va)
-
 class VQVivMemoryView(e_mem_qt.VQMemoryWindow, viv_base.VivEventCore):
 
     def __init__(self, vw, vwqgui):
