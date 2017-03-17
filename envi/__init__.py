@@ -605,6 +605,15 @@ class Emulator(e_reg.RegisterContext, e_mem.MemoryObject):
         self.setRegisterSnap(regs)
         self.setMemorySnap(mem)
 
+    def parseOpcode(self, va, arch=ARCH_DEFAULT):
+        '''
+        Parse an opcode from the specified virtual address.
+
+        Example: op = m.parseOpcode(0x7c773803)
+        '''
+        off, b = self.getByteDef(va)
+        return self.imem_archs[ (arch & ARCH_MASK) >> 16 ].archParseOpcode(b, off, va)
+
     def executeOpcode(self, opobj):
         """
         This is the core method for the 
