@@ -797,7 +797,7 @@ class Emulator(e_reg.RegisterContext, e_mem.MemoryObject):
     def writeMemValue(self, addr, value, size):
         #FIXME change this (and all uses of it) to passing in format...
         #FIXME: Remove byte check and possibly half-word check.  (possibly all but word?)
-        mask = e_bits.umaxes[size]
+        mask = e_bits.u_maxes[size]
         fmttbl = e_bits.fmt_chars[self.getEndian()]
         
         bytes = struct.pack(fmttbl[size], value & mask)
