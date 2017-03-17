@@ -441,12 +441,12 @@ class MemoryObject(IMemory):
                 return mbytes[offset:offset+size]
         raise envi.SegmentationViolation(va)
 
-    def writeMemory(self, va, bytes):
+    def writeMemory(self, va, bytes, check_perms=True):
         for mapdef in self._map_defs:
             mva, mmaxva, mmap, mbytes = mapdef
             if va >= mva and va < mmaxva:
                 mva, msize, mperms, mfname = mmap
-                if not mperms & MM_WRITE:
+                if check_perms and not mperms & MM_WRITE:
                     raise envi.SegmentationViolation(va)
                 offset = va - mva
                 mapdef[3] = mbytes[:offset] + bytes + mbytes[offset+len(bytes):]
