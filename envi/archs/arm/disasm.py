@@ -3783,11 +3783,12 @@ class ArmOpcode(envi.Opcode):
         if self.prefixes != COND_AL:
             flags |= envi.BR_COND
 
-        if self.opcode in ( INS_B, INS_BX, INS_BL, INS_BLX, INS_BCC, INS_CBZ, INS_CBNZ ):
-            oper = self.opers[0]
+        if self.iflags & (envi.IF_BRANCH | envi.IF_CALL):
+            oper = self.opers[-1]
 
             # check for location being ODD
             operval = oper.getOperValue(self, emu)
+
             if operval == None:
                 # probably a branch to a register.  just return.
                 return ret
@@ -3795,6 +3796,7 @@ class ArmOpcode(envi.Opcode):
             if self.opcode in (INS_BLX, INS_BX):
                 if operval & 3:
                     flags |= envi.ARCH_THUMB16
+                    operval &= -2
                 else:
                     flags |= envi.ARCH_ARMV7
 
@@ -3846,6 +3848,7 @@ class ArmOpcode(envi.Opcode):
                 mnem += 'id'
 
             if self.simdflags:
+                '''
                 if self.simdflags & IFS_S32_F64:
                     mnem += '.s32.f64'
                 elif self.simdflags & IFS_S32_F32:
@@ -3918,6 +3921,8 @@ class ArmOpcode(envi.Opcode):
                     mnem += '.32'
                 elif self.simdflags & IFS_64:
                     mnem += '.64'
+                '''
+                mnem += IFS[self.simdflags]
 
         #FIXME: Advanced SIMD modifiers (IF_V*)
         if self.iflags & IF_THUMB32:

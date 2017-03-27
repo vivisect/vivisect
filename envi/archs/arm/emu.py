@@ -121,17 +121,16 @@ conditionals = [
         c1101,
         ]
 
+top_bits_32 = [(e_bits.u_maxes[4] ^ ((e_bits.u_maxes[4]>>x))) for x in range(4*8)]
 
 LSB_FMT = [0, 'B', '<H', 0, '<I', 0, 0, 0, '<Q',]
 MSB_FMT = [0, 'B', '>H', 0, '>I', 0, 0, 0, '>Q',]
 LSB_FMT_SIGNED = [0, 'b', '<h', 0, '<i', 0, 0, 0, '<q',]
 MSB_FMT_SIGNED = [0, 'b', '>h', 0, '>i', 0, 0, 0, '>q',]
 
-class ArmEmulator(ArmModule, ArmRegisterContext, envi.Emulator):
+class ArmEmulator(ArmRegisterContext, envi.Emulator):
 
     def __init__(self):
-        ArmModule.__init__(self)
-
         # FIXME: this should be None's, and added in for each real coproc... but this will work for now.
         self.coprocs = [CoProcEmulator(x) for x in xrange(16)]       
         self.int_handlers = [self.default_int_handler for x in range(100)]
@@ -193,6 +192,17 @@ class ArmEmulator(ArmModule, ArmRegisterContext, envi.Emulator):
 
         endian_fmt = (LSB_FMT_SIGNED, MSB_FMT_SIGNED)[self.getEndian()]
         return struct.unpack(endian_fmt[size], bytes)[0]
+
+    def parseOpcode(self, va, arch=envi.ARCH_DEFAULT):
+        '''
+        Parse an opcode from the specified virtual address.
+
+        Example: op = m.parseOpcode(0x7c773803)
+
+        note: differs from the IMemory interface by checking loclist
+        '''
+        off, b = self.getByteDef(va)
+        return self.imem_archs[ (arch & envi.ARCH_MASK) >> 16 ].archParseOpcode(b, off, va)
 
     def executeOpcode(self, op):
         # NOTE: If an opcode method returns
@@ -479,7 +489,7 @@ class ArmEmulator(ArmModule, ArmRegisterContext, envi.Emulator):
         val = val1 | val2
         self.setOperValue(op, 0, val)
 
-        Sflag = op.iflags & IF_S # FIXME: IF_PSR_S???
+        Sflag = op.iflags & IF_PSR_S # FIXME: IF_PSR_S???
         if Sflag:
             self.setFlag(PSR_N_bit, e_bits.is_signed(val, 4))
             self.setFlag(PSR_Z_bit, not val)
@@ -1024,6 +1034,114 @@ class ArmEmulator(ArmModule, ArmRegisterContext, envi.Emulator):
             self.setFlag(PSR_C_bit, e_bits.is_unsigned_carry(val, 4))
             self.setFlag(PSR_V_bit, e_bits.is_signed_overflow(val, 4))
 
+    def i_lsl(self, op):
+        if len(op.opers) == 3:
+            src = self.getOperValue(op, 1)
+            imm5 = self.getOperValue(op, 2)
+
+        else:
+            src = self.getOperValue(op, 0)
+            imm5 = self.getOperValue(op, 1)
+
+        val = src << imm5
+        carry = (val >> 32) & 1
+        self.setOperValue(op, 0, val)
+
+        Sflag = op.iflags & IF_S
+        if Sflag:
+            self.setFlag(PSR_N_bit, e_bits.is_signed(val, 4))
+            self.setFlag(PSR_Z_bit, not val)
+            self.setFlag(PSR_C_bit, carry)
+            #self.setFlag(PSR_V_bit, e_bits.is_signed_overflow(val, 4))
+
+    def i_lsr(self, op):
+        if len(op.opers) == 3:
+            src = self.getOperValue(op, 1)
+            imm5 = self.getOperValue(op, 2)
+
+        else:
+            src = self.getOperValue(op, 0)
+            imm5 = self.getOperValue(op, 1)
+
+        val = src >> imm5
+        carry = (src >> (imm5-1)) & 1
+        self.setOperValue(op, 0, val)
+
+        Sflag = op.iflags & IF_S
+        if Sflag:
+            self.setFlag(PSR_N_bit, e_bits.is_signed(val, 4))
+            self.setFlag(PSR_Z_bit, not val)
+            self.setFlag(PSR_C_bit, carry)
+            #self.setFlag(PSR_V_bit, e_bits.is_signed_overflow(val, 4))
+
+    def i_asr(self, op):
+        if len(op.opers) == 3:
+            src = self.getOperValue(op, 1)
+            srclen = op.opers[1].tsize
+            imm5 = self.getOperValue(op, 2)
+
+        else:
+            src = self.getOperValue(op, 0)
+            srclen = op.opers[0].tsize
+            imm5 = self.getOperValue(op, 1)
+
+        if e_bits.is_signed(src, srclen):
+            val = (src >> imm5) | top_bits_32[imm5]
+        else:
+            val = (src >> imm5)
+
+        carry = (src >> (imm5-1)) & 1
+        self.setOperValue(op, 0, val)
+
+        Sflag = op.iflags & IF_S
+        if Sflag:
+            self.setFlag(PSR_N_bit, e_bits.is_signed(val, 4))
+            self.setFlag(PSR_Z_bit, not val)
+            self.setFlag(PSR_C_bit, carry)
+            #self.setFlag(PSR_V_bit, e_bits.is_signed_overflow(val, 4))
+
+    def i_ror(self, op):
+        if len(op.opers) == 3:
+            src = self.getOperValue(op, 1)
+            imm5 = self.getOperValue(op, 2)
+
+        else:
+            src = self.getOperValue(op, 0)
+            imm5 = self.getOperValue(op, 1)
+
+        val = ((src >> imm5) | (src << 32-imm5)) & 0xffffffff
+        carry = (val >> 31) & 1
+        self.setOperValue(op, 0, val)
+
+        Sflag = op.iflags & IF_S
+        if Sflag:
+            self.setFlag(PSR_N_bit, e_bits.is_signed(val, 4))
+            self.setFlag(PSR_Z_bit, not val)
+            self.setFlag(PSR_C_bit, carry)
+            #self.setFlag(PSR_V_bit, e_bits.is_signed_overflow(val, 4))
+
+    def i_rrx(self, op):
+        if len(op.opers) == 3:
+            src = self.getOperValue(op, 1)
+            imm5 = self.getOperValue(op, 2)
+
+        else:
+            src = self.getOperValue(op, 0)
+            imm5 = self.getOperValue(op, 1)
+
+        carry_in = self.getFlag(PSR_C_bit)
+
+        val = (carry_in<<31) | (src >> 1)
+        carry = src & 1
+        self.setOperValue(op, 0, val)
+
+        Sflag = op.iflags & IF_S
+        if Sflag:
+            self.setFlag(PSR_N_bit, e_bits.is_signed(val, 4))
+            self.setFlag(PSR_Z_bit, not val)
+            self.setFlag(PSR_C_bit, carry)
+            #self.setFlag(PSR_V_bit, e_bits.is_signed_overflow(val, 4))
+
 
     def i_cbz(self, op):
         regval = op.getOperValue(0)
@@ -1159,7 +1277,12 @@ class ArmEmulator(ArmModule, ArmRegisterContext, envi.Emulator):
         coproc = self._getCoProc(cpnum)
         coproc.mcrr(op.opers)
 
+    def i_nop(self, op):
+        pass
 
+    i_dmb = i_nop
+    i_dsb = i_nop
+    i_isb = i_nop
 
 
 opcode_dist = \
