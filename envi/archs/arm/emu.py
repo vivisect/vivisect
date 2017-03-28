@@ -201,6 +201,9 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
 
         note: differs from the IMemory interface by checking loclist
         '''
+        if arch == envi.ARCH_DEFAULT:
+            arch = (envi.ARCH_ARMV7, envi.ARCH_THUMB)[self.getFlag(PSR_T_bit)]
+
         off, b = self.getByteDef(va)
         return self.imem_archs[ (arch & envi.ARCH_MASK) >> 16 ].archParseOpcode(b, off, va)
 
@@ -655,10 +658,19 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
         # is the following necessary?  
         newpc = self.getRegister(REG_PC)    # check whether pc has changed
         if pc != newpc:
+            self.setThumbMode(newpc & 1)
             return newpc
 
     i_ldmia = i_ldm
     i_pop = i_ldmia
+
+
+    def setThumbMode(self, thumb=1):
+        self.setFlag(PSR_T_bit, thumb)
+
+    def setArmMode(self, arm=1):
+        self.setFlag(PSR_T_bit, not thumb)
+
 
     '''
     def i_pop(self, op):
@@ -699,6 +711,7 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
         val = self.getOperValue(op, 1)
         self.setOperValue(op, 0, val)
         if op.opers[0].reg == REG_PC:
+            self.setThumbMode(val & 1)
             return val
 
     def i_mov(self, op):
@@ -800,7 +813,7 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
 
     def i_b(self, op):
         '''
-        conditional branches (eg. bne) will be handled here
+        conditional branches (eg. bne) will be handled here. they are all CONDITIONAL 'b'
         '''
         return self.getOperValue(op, 0)
 

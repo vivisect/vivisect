@@ -172,7 +172,7 @@ COND_PL     = 0x5        # n==0  (plus/positive or zero)
 COND_VS     = 0x6        # v==1  (overflow)
 COND_VC     = 0x7        # v==0  (no overflow)
 COND_HI     = 0x8        # c==1 and z==0  (unsigned higher)
-COND_LO     = 0x9        # c==0  or z==1  (unsigned lower or same)
+COND_LS     = 0x9        # c==0  or z==1  (unsigned lower or same)
 COND_GE     = 0xA        # n==v  (signed greater than or equal)  (n==1 and v==1) or (n==0 and v==0)
 COND_LT     = 0xB        # n!=v  (signed less than)  (n==1 and v==0) or (n==0 and v==1)
 COND_GT     = 0xC        # z==0 and n==v (signed greater than)
@@ -181,40 +181,40 @@ COND_AL     = 0xE        # always
 COND_EXTENDED = 0xF        # special case - see conditional 0b1111
 
 cond_codes = {
-COND_EQ:"eq", # Equal Z set 
-COND_NE:"ne", # Not equal Z clear 
-COND_CS:"cs", #/HS Carry set/unsigned higher or same C set 
-COND_CC:"cc", #/LO Carry clear/unsigned lower C clear 
-COND_MI:"mi", # Minus/negative N set 
-COND_PL:"pl", # Plus/positive or zero N clear 
-COND_VS:"vs", # Overflow V set 
-COND_VC:"vc", # No overflow V clear 
-COND_HI:"hi", # Unsigned higher C set and Z clear 
-COND_LO:"lo", # Unsigned lower or same C clear or Z set 
-COND_GE:"ge", # Signed greater than or equal N set and V set, or N clear and V clear (N == V) 
-COND_LT:"lt", # Signed less than N set and V clear, or N clear and V set (N!= V) 
-COND_GT:"gt", # Signed greater than Z clear, and either N set and V set, or N clear and V clear (Z == 0,N == V) 
-COND_LE:"le", # Signed less than or equal Z set, or N set and V clear, or N clear and V set (Z == 1 or N!= V) 
-COND_AL:"", # Always (unconditional) - could be "al" but "" seems better...
-COND_EXTENDED:"", # See extended opcode table
+    COND_EQ:"eq", # Equal Z set 
+    COND_NE:"ne", # Not equal Z clear 
+    COND_CS:"cs", #/HS Carry set/unsigned higher or same C set 
+    COND_CC:"cc", #/LO Carry clear/unsigned lower C clear 
+    COND_MI:"mi", # Minus/negative N set 
+    COND_PL:"pl", # Plus/positive or zero N clear 
+    COND_VS:"vs", # Overflow V set 
+    COND_VC:"vc", # No overflow V clear 
+    COND_HI:"hi", # Unsigned higher C set and Z clear 
+    COND_LS:"ls", # Unsigned lower or same C clear or Z set 
+    COND_GE:"ge", # Signed greater than or equal N set and V set, or N clear and V clear (N == V) 
+    COND_LT:"lt", # Signed less than N set and V clear, or N clear and V set (N!= V) 
+    COND_GT:"gt", # Signed greater than Z clear, and either N set and V set, or N clear and V clear (Z == 0,N == V) 
+    COND_LE:"le", # Signed less than or equal Z set, or N set and V clear, or N clear and V set (Z == 1 or N!= V) 
+    COND_AL:"", # Always (unconditional) - could be "al" but "" seems better...
+    COND_EXTENDED:"", # See extended opcode table
 }
 cond_map = {
-COND_EQ:0,      # Equal Z set 
-COND_NE:1, # Not equal Z clear 
-COND_CS:2, #/HS Carry set/unsigned higher or same C set 
-COND_CC:3, #/LO Carry clear/unsigned lower C clear 
-COND_MI:4, # Minus/negative N set 
-COND_PL:5, # Plus/positive or zero N clear 
-COND_VS:6, # Overflow V set 
-COND_VC:7, # No overflow V clear 
-COND_HI:8, # Unsigned higher C set and Z clear 
-COND_LO:9, # Unsigned lower or same C clear or Z set 
-COND_GE:10, # Signed greater than or equal N set and V set, or N clear and V clear (N == V) 
-COND_LT:11, # Signed less than N set and V clear, or N clear and V set (N!= V) 
-COND_GT:12, # Signed greater than Z clear, and either N set and V set, or N clear and V clear (Z == 0,N == V) 
-COND_LE:13, # Signed less than or equal Z set, or N set and V clear, or N clear and V set (Z == 1 or N!= V) 
-COND_AL:"", # Always (unconditional) - could be "al" but "" seems better...
-COND_EXTENDED:"2", # See extended opcode table
+    COND_EQ:0,      # Equal Z set 
+    COND_NE:1, # Not equal Z clear 
+    COND_CS:2, #/HS Carry set/unsigned higher or same C set 
+    COND_CC:3, #/LO Carry clear/unsigned lower C clear 
+    COND_MI:4, # Minus/negative N set 
+    COND_PL:5, # Plus/positive or zero N clear 
+    COND_VS:6, # Overflow V set 
+    COND_VC:7, # No overflow V clear 
+    COND_HI:8, # Unsigned higher C set and Z clear 
+    COND_LS:9, # Unsigned lower or same C clear or Z set 
+    COND_GE:10, # Signed greater than or equal N set and V set, or N clear and V clear (N == V) 
+    COND_LT:11, # Signed less than N set and V clear, or N clear and V set (N!= V) 
+    COND_GT:12, # Signed greater than Z clear, and either N set and V set, or N clear and V clear (Z == 0,N == V) 
+    COND_LE:13, # Signed less than or equal Z set, or N set and V clear, or N clear and V set (Z == 1 or N!= V) 
+    COND_AL:"", # Always (unconditional) - could be "al" but "" seems better...
+    COND_EXTENDED:"2", # See extended opcode table
 }
 
 PUxWL_SUB   = 0x00
