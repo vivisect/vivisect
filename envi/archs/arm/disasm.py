@@ -3809,7 +3809,7 @@ class ArmOpcode(envi.Opcode):
             if self.iflags & envi.IF_CALL:
                 flags |= envi.BR_PROC
             ret.append((operval, flags))
-            print "getBranches: add  0x%x   %x"% (operval, flags)
+            print "getBranches: (0x%x) add  0x%x   %x"% (self.va, operval, flags)
 
         return ret
 
