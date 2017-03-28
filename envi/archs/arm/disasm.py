@@ -3795,7 +3795,7 @@ class ArmOpcode(envi.Opcode):
 
             if self.opcode in (INS_BLX, INS_BX):
                 if operval & 3:
-                    flags |= envi.ARCH_THUMB16
+                    flags |= envi.ARCH_THUMB
                     operval &= -2
                 else:
                     flags |= envi.ARCH_ARMV7
@@ -3809,6 +3809,7 @@ class ArmOpcode(envi.Opcode):
             if self.iflags & envi.IF_CALL:
                 flags |= envi.BR_PROC
             ret.append((operval, flags))
+            print "getBranches: add  0x%x   %x"% (operval, flags)
 
         return ret
 
@@ -4962,7 +4963,7 @@ class ArmCoprocOption(ArmImmOffsetOper):
         basereg = arm_regs[self.base_reg][0]
         mcanv.addText('[')
         mcanv.addNameText(basereg, typename='registers')
-        mcanv.addVaText('], {%s}' % self.offset)
+        mcanv.addText('], {%s}' % self.offset)
     def repr(self, op):
         return '[%s], {%s}' % (arm_regs[self.base_reg][0],self.offset)
 

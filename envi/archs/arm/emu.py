@@ -706,8 +706,9 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
         self.setOperValue(op, 0, val)
 
     def i_movt(self, op):
+        base = self.getOperValue(op, 0) & 0xffff
         val = self.getOperValue(op, 1) << 16
-        self.setOperValue(op, 0, val)
+        self.setOperValue(op, 0, base | val)
 
     def i_movw(self, op):
         val = self.getOperValue(op, 1)
