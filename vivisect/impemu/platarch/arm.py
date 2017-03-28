@@ -14,6 +14,21 @@ class ArmWorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_arm.ArmEmulator):
         v_i_emulator.WorkspaceEmulator.__init__(self, vw, logwrite=logwrite, logread=logread)
         self.setMemArchitecture(envi.ARCH_ARMV7)
 
+    def parseOpcode(self, va, arch=envi.ARCH_DEFAULT):
+        '''
+        Caching version.  
+        
+        We can make an opcode *faster* with the workspace because of
+        getByteDef etc... use it.
+
+        Made for ARM, because envi.Emulator doesn't understand the Thumb flag
+        '''
+        op = self.opcache.get(va)
+        if op == None:
+            op = envi.archs.arm.emu.ArmEmulator.parseOpcode(self, va, arch=arch)
+            self.opcache[va] = op
+        return op
+
     def stepi(self):
         # NOTE: when we step, we *always* want to be stepping over calls
         # (and possibly import emulate them)
