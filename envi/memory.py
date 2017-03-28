@@ -295,8 +295,8 @@ class IMemory:
 
         Example: op = m.parseOpcode(0x7c773803)
         '''
-        b = self.readMemory(va, 16)
-        return self.imem_archs[ arch >> 16 ].archParseOpcode(b, 0, va)
+        off, b = self.getByteDef(va)
+        return self.imem_archs[ (arch & envi.ARCH_MASK) >> 16 ].archParseOpcode(b, off, va)
 
 class MemoryCache(IMemory):
     '''
