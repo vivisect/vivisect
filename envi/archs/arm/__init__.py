@@ -4,6 +4,7 @@ The initial arm module.
 """
 
 import envi
+
 from envi.archs.arm.regs import *
 from envi.archs.arm.disasm import *
 
