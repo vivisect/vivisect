@@ -162,6 +162,7 @@ class IMemory:
         return (0,0xffffffff)
 
     def readMemValue(self, addr, size):
+        #FIXME: use getBytesDef (and implement a dummy wrapper in VTrace for getBytesDef)
         bytes = self.readMemory(addr, size)
         if bytes == None:
             return None
@@ -170,8 +171,7 @@ class IMemory:
         if len(bytes) != size:
             raise Exception("Read Gave Wrong Length At 0x%.8x (va: 0x%.8x wanted %d got %d)" % (self.getProgramCounter(),addr, size, len(bytes)))
 
-        fmttbl = (e_bits.le_fmt_chars, e_bits.be_fmt_chars)[self.getEndian()]
-        return struct.unpack(fmttbl[size], bytes)[0]
+        return e_bits.parsebytes(bytes, 0, size, False, self.getEndian())
 
     def readMemoryPtr(self, va):
         '''

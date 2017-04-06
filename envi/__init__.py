@@ -775,16 +775,12 @@ class Emulator(e_reg.RegisterContext, e_mem.MemoryObject):
         if len(bytes) != size:
             raise Exception("Read Gave Wrong Length At 0x%.8x (va: 0x%.8x wanted %d got %d)" % (self.getProgramCounter(),addr, size, len(bytes)))
         
-        fmttbl = e_bits.fmt_chars[self.getEndian()]
-        return struct.unpack(fmttbl[size], bytes)[0]
+        return e_bits.parsebytes(bytes, 0, size, False, self.getEndian())
 
     def writeMemValue(self, addr, value, size):
         #FIXME change this (and all uses of it) to passing in format...
         #FIXME: Remove byte check and possibly half-word check.  (possibly all but word?)
-        mask = e_bits.u_maxes[size]
-        fmttbl = e_bits.fmt_chars[self.getEndian()]
-        
-        bytes = struct.pack(fmttbl[size], value & mask)
+        bytes = e_bits.buildbytes(value, size, self.getEndian())
 
         self.writeMemory(addr, bytes)
 
