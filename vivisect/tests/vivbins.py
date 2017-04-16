@@ -1,18 +1,20 @@
 import os
 import unittest
 import vivisect
+import helpers
 
 def require(f):
     def skipit(*args, **kwargs):
-        raise unittest.SkipTest('VIVBINS env var...')
+        raise unittest.SkipTest('VIVTESTFILES env var...')
 
-    if os.getenv('VIVBINS') == None:
+    if os.getenv('VIVTESTFILES') == None:
         return skipit
 
     return f
 
 def getTestWorkspace(fname, analyze=True):
-    fpath = os.path.join('test_vivisect','bins',fname)
+    fpath = helpers.getTestPath(fname)
+
     vw = vivisect.VivWorkspace()
     vw.loadFromFile(fpath)
     if analyze:
@@ -20,7 +22,8 @@ def getTestWorkspace(fname, analyze=True):
     return vw
 
 def getAnsWorkspace(fname):
-    fpath = os.path.join('test_vivisect','bins','%s.viv' % fname)
+    fpath = helpers.getTestPath("%s.viv" % fname)
+
     vw = vivisect.VivWorkspace()
     vw.loadWorkspace(fpath)
     return vw

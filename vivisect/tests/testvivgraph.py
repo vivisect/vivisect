@@ -3,6 +3,7 @@ import unittest
 import vivisect
 import vivisect.tests.vivbins as vivbins
 import vivisect.tools.graphutil as viv_graph
+from vivisect.tests.vivbins import getTestWorkspace, getAnsWorkspace
 
 class VivGraphTest(unittest.TestCase):
 
@@ -86,7 +87,7 @@ class VivGraphTest(unittest.TestCase):
         fname = 'testexe_amd64.exe'
         fva = 0x1400060ac
         cbva = 0x1400061bf
-        vw = self.getAnsWorkspace(fname)
+        vw = getAnsWorkspace(fname)
 
         self.checkGetCodePaths(vw, fva)
         self.checkGetCodePathsThru(vw, fva, cbva)
