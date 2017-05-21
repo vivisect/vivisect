@@ -749,6 +749,8 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
         val = self.getOperValue(op, 0)
         self.setOperValue(op, 1, val)
 
+    i_strh = i_str
+
     def i_add(self, op):
         if len(op.opers) == 3:
             src1 = self.getOperValue(op, 1)
@@ -831,6 +833,10 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
         target = self.getOperValue(op, 0)
         self.setFlag(PSR_T_bit, target & 1)
         return target
+
+    def i_svc(self, op):
+        svc = self.getOperValue(op, 0)
+        print("Service 0x%x called at 0x%x" % (svc, op.va))
 
     def i_tst(self, op):
         src1 = self.getOperValue(op, 0)
@@ -1297,6 +1303,16 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
     i_dmb = i_nop
     i_dsb = i_nop
     i_isb = i_nop
+
+    def i_vmrs(self, op):
+        src = self.getRegister(REG_FPSCR)
+        if op.opers[0].reg != 15:
+            self.setOperValue(op, 0, src)
+        else:
+            apsr = self.getCPSR() & 0x0fffffff
+            apsr |= (src | 0xf0000000)
+            self.setOperValue(op, 0, apsr)
+
 
 
 opcode_dist = \
