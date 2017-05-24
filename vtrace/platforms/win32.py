@@ -2270,17 +2270,17 @@ class Win32SymbolParser:
         self._bgEnumThread = threading.Thread(target=self._do_SymEnumSymbols)
         self._bgEnumThread.setDaemon(True)
         self._bgEnumThread.start()
-        print("kick_do_SymEnumSymbols: setting up locks")
+        #print("kick_do_SymEnumSymbols: setting up locks")
         self._symEnumLock.acquire()
 
 
     def _do_SymEnumSymbols(self):
         try:
             self.symbol = None
-            print("_do_SymEnumSymbols: symInit")
+            #print("_do_SymEnumSymbols: symInit")
             self.symInit()
 
-            print("_do_SymEnumSymbols: SymEnumSymbols")
+            #print("_do_SymEnumSymbols: SymEnumSymbols")
             dbghelp.SymEnumSymbols(self.phandle,
                         self.loadbase,
                         None,
@@ -2296,7 +2296,7 @@ class Win32SymbolParser:
 
         finally:
             self.symbol = -1
-        print "_do_SymEnumSymbols: DONE"
+        #print "_do_SymEnumSymbols: DONE"
         self._symEnumLock.release()
 
 
@@ -2308,17 +2308,17 @@ class Win32SymbolParser:
         self._bgTypeThread = threading.Thread(target=self._do_SymEnumTypes)
         self._bgTypeThread.setDaemon(True)
         self._bgTypeThread.start()
-        print("kick_do_SymEnumTypes: setting up locks")
+        #print("kick_do_SymEnumTypes: setting up locks")
         self._typeEnumLock.acquire()
 
 
     def _do_SymEnumTypes(self):
         try:
             self._sym_type = None
-            print("_do_SymEnumTypes: symInit")
+            #print("_do_SymEnumTypes: symInit")
             self.symInit()
 
-            print("_do_SymEnumTypes: SymEnumTypes")
+            #print("_do_SymEnumTypes: SymEnumTypes")
             dbghelp.SymEnumTypes(self.phandle,
                         self.loadbase,
                         SYMCALLBACK(self.typeEnumCallback),
@@ -2333,6 +2333,6 @@ class Win32SymbolParser:
 
         finally:
             self._sym_type = -1
-        print "_do_SymEnumTypes: DONE"
+        #print "_do_SymEnumTypes: DONE"
         self._typeEnumLock.release()
 
