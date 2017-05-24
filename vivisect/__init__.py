@@ -228,7 +228,10 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         if eclass == None:
             raise Exception("WorkspaceEmulation not supported on %s yet!" % arch)
 
-        return eclass(self, logwrite=logwrite, logread=logread)
+        emu = eclass(self, logwrite=logwrite, logread=logread)
+        emu.setEndian(self.getEndian())
+
+        return emu
 
     def getCachedEmu(self, emuname):
         """

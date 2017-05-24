@@ -74,11 +74,12 @@ class ArchitectureModule:
     """
     _default_call = None
     _plat_def_calls = {}
-    def __init__(self, archname, maxinst=32):
+    def __init__(self, archname, maxinst=32, endian=ENDIAN_LSB):
         self._arch_id = getArchByName(archname)
         self._arch_name = archname
         self._arch_maxinst = maxinst
         self._arch_badopbytes = ['\x00\x00\x00\x00\x00']
+        self.setEndian(endian)
 
     def getArchId(self):
         '''
@@ -92,6 +93,21 @@ class ArchitectureModule:
         in this module.
         '''
         return self._arch_name
+
+    def getEndian(self):
+        '''
+        Every architecture stores numbers either Most-Significant-Byte-first (MSB)
+        or Least-Significant-Byte-first (LSB).  Most modern architectures are 
+        LSB, however many legacy systems still use MSB architectures.
+        '''
+        return self._endian
+
+    def setEndian(self, endian):
+        '''
+        Set the architecture endianness.  Subclasses should make sure this is handled
+        correctly in any Disasm object(s)
+        '''
+        self._endian = endian
 
     def archGetBreakInstr(self):
         """
@@ -594,6 +610,20 @@ class Emulator(e_reg.RegisterContext, e_mem.MemoryObject):
         if not self._emu_opts.has_key(opt):
             raise Exception('Unknown Emu Opt: %s' % opt)
         return self._emu_opts.get(opt)
+    
+    def setEndian(self, endian):
+        '''
+        Sets Endianness for the Emulator.
+        '''
+        for arch in self.imem_archs:
+            arch.setEndian(endian)
+
+    def getEndian(self):
+        '''
+        Returns the current Endianness for the emulator
+        '''
+        return self.imem_archs[0].getEndian()
+
 
     def getMeta(self, name, default=None):
         return self.metadata.get(name, default)
@@ -740,33 +770,19 @@ class Emulator(e_reg.RegisterContext, e_mem.MemoryObject):
         """
         Returns the value of the bytes at the "addr" address, given the size (currently, power of 2 only)
         """
-        #FIXME: Handle endianness
         bytes = self.readMemory(addr, size)
         if bytes == None:
             return None
         if len(bytes) != size:
             raise Exception("Read Gave Wrong Length At 0x%.8x (va: 0x%.8x wanted %d got %d)" % (self.getProgramCounter(),addr, size, len(bytes)))
-        if size == 1:
-            return struct.unpack("B", bytes)[0]
-        elif size == 2:
-            return struct.unpack(">H", bytes)[0]
-        elif size == 4:
-            return struct.unpack(">L", bytes)[0]
-        elif size == 8:
-            return struct.unpack(">Q", bytes)[0]
+        
+        return e_bits.parsebytes(bytes, 0, size, False, self.getEndian())
 
     def writeMemValue(self, addr, value, size):
         #FIXME change this (and all uses of it) to passing in format...
         #FIXME: Remove byte check and possibly half-word check.  (possibly all but word?)
-        #FIXME: Handle endianness
-        if size == 1:
-            bytes = struct.pack("B",value & 0xff)
-        elif size == 2:
-            bytes = struct.pack(">H",value & 0xffff)
-        elif size == 4:
-            bytes = struct.pack(">L", value & 0xffffffff)
-        elif size == 8:
-            bytes = struct.pack(">Q", value & 0xffffffffffffffff)
+        bytes = e_bits.buildbytes(value, size, self.getEndian())
+
         self.writeMemory(addr, bytes)
 
     def readMemSignedValue(self, addr, size):
@@ -775,12 +791,8 @@ class Emulator(e_reg.RegisterContext, e_mem.MemoryObject):
         bytes = self.readMemory(addr, size)
         if bytes == None:
             return None
-        if size == 1:
-            return struct.unpack("b", bytes)[0]
-        elif size == 2:
-            return struct.unpack(">h", bytes)[0]
-        elif size == 4:
-            return struct.unpack(">l", bytes)[0]
+        fmttbl = e_bits.fmt_schars[self.getEndian()]
+        return struct.unpack(fmttbl[size], bytes)[0]
 
     def integerSubtraction(self, op, sidx=0, midx=1):
         """
