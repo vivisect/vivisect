@@ -78,6 +78,7 @@ class ArchitectureModule:
         self._arch_id = getArchByName(archname)
         self._arch_name = archname
         self._arch_maxinst = maxinst
+        self._arch_badopbytes = ['\x00\x00\x00\x00\x00']
         self.setEndian(endian)
 
     def getArchId(self):
