@@ -437,6 +437,8 @@ class PE(object):
     def rvaToOffset(self, rva):
         if self.inmem:
             return rva
+        if rva >= 0 and rva < self.IMAGE_NT_HEADERS.OptionalHeader.SizeOfHeaders:
+            return rva
         for s in self.sections:
             sbase = s.VirtualAddress
             ssize = max(s.SizeOfRawData, s.VirtualSize)
