@@ -885,6 +885,11 @@ class PE(object):
             return
     
         funcbytes = self.readAtOffset(funcoff, funcsize)
+
+        if not funcbytes:
+            self.IMAGE_EXPORT_DIRECTORY = None
+            return
+
         funclist = struct.unpack("%dI" % (len(funcbytes) / 4), funcbytes)
 
         # named function exports
