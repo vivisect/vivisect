@@ -6,8 +6,9 @@ import os
 import sys
 import struct
 import logging
-import traceback
 import platform
+import threading
+import traceback
 
 import PE
 
@@ -1900,11 +1901,19 @@ class Win32SymbolParser:
         self.filename = filename
         self.loadbase = loadbase
         self.sympath = sympath
-        self.symbols = []
+        self.symbol = None
         self.symopts = (SYMOPT_UNDNAME | SYMOPT_NO_PROMPTS | SYMOPT_NO_CPP)
+        self._sym_type = None
         self._sym_types = {}
         self._sym_enums = {}
         self._sym_locals = {}
+        self._typeEnumLock = threading.Lock()
+        self._typeEnumHandling = threading.Lock()
+        self._symEnumLock = threading.Lock()
+        self._symEnumHandling = threading.Lock()
+        self._initLock = threading.Lock()
+        self._symactive = 0
+
 
     def printSymbolInfo(self, info):
         # Just a helper function for "reversing" how dbghelp works
@@ -1961,9 +1970,11 @@ class Win32SymbolParser:
         if vt == VT_I1: return v.u.i1
         if vt == VT_I2: return v.u.i2
         if vt == VT_I4: return v.u.i4
+        if vt == VT_INT: return v.u.i4
         if vt == VT_UI1: return v.u.ui1
         if vt == VT_UI2: return v.u.ui2
         if vt == VT_UI4: return v.u.ui4
+        if vt == VT_UINT: return v.u.ui4
 
         raise Exception('Unhandled Variant Type: %d' % v.vt)
 
@@ -2003,7 +2014,7 @@ class Win32SymbolParser:
             kidname = self._fixKidName(kidname)
             kids.append((kidname, kidval))
 
-        self._sym_enums[name] = (name, size, kids)
+        self._sym_type = (0, name, size, kids)
 
     def _symTypeUserDefined(self, name, tidx):
         size = self.symGetTypeLength(tidx)
@@ -2062,7 +2073,7 @@ class Win32SymbolParser:
 
             kids.append((kidname, kidoff, ksize, ktypename, kflags, kcount))
 
-        self._sym_types[name] = (name, size, kids)
+        self._sym_type = (1, name, size, kids)
 
     def _symGetChildren(self, typeIndex):
 
@@ -2077,16 +2088,32 @@ class Win32SymbolParser:
     def typeEnumCallback(self, psym, size, ctx):
         sym = psym.contents
 
-        myname = self.symGetTypeName(sym.TypeIndex)
-        mytag = self.symGetTypeTag(sym.TypeIndex)
+        self._typeEnumHandling.acquire()
+        try:
+            myname = self.symGetTypeName(sym.TypeIndex)
+            mytag = self.symGetTypeTag(sym.TypeIndex)
 
-        if mytag == SymTagUDT:
-            self._symTypeUserDefined(myname, sym.TypeIndex)
-            return True
+            if mytag == SymTagUDT:
+                self._symTypeUserDefined(myname, sym.TypeIndex)
+                #print "typeEnumCallback: _typeEnumLock.release()"
+                self._typeEnumLock.release()
+                #print "typeEnumCallback: %s" % (repr(self._sym_type))
+                return True
 
-        if mytag == SymTagEnum:
-            self._symTypeEnum(myname, sym.TypeIndex)
-            return True
+            if mytag == SymTagEnum:
+                self._symTypeEnum(myname, sym.TypeIndex)
+                #print "typeEnumCallback: _typeEnumLock.release()"
+                self._typeEnumLock.release()
+                #print "typeEnumCallback: %s" % (repr(self._sym_type))
+                return True
+
+        except Exception, e:
+            print "ERROR: e"
+
+        #print "typeEnumCallback: _typeEnumLock.release()"
+        self._typeEnumLock.release()
+        #print "typeEnumCallback: %s" % (repr(self._sym_type))
+
 
         return True
 
@@ -2096,7 +2123,12 @@ class Win32SymbolParser:
         if sym.Tag == SymTagFunction:
             sym.Flags |= SYMFLAG_FUNCTION
 
-        self.symbols.append((sym.Name, int(sym.Address), int(sym.Size), sym.Flags))
+        #print "symEnumCallback: _symEnumHandling.acquire() (currently locked: %r)" % self._symEnumHandling.locked()
+        self._symEnumHandling.acquire()
+        self.symbol = (sym.Name, int(sym.Address), int(sym.Size), sym.Flags)
+        #print "symEnumCallback: _symEnumLock.release()"
+        self._symEnumLock.release()
+        #print "symEnumCallback: %s" % (repr(self.symbol))
         return True
 
     def symFromAddr(self, address):
@@ -2108,55 +2140,41 @@ class Win32SymbolParser:
         return si
 
     def symInit(self):
+        try:
+            self._initLock.acquire()
+            if self._symactive == 0:
+                dbghelp.SymInitialize(self.phandle, self.sympath, False)
+                dbghelp.SymSetOptions(self.symopts)
 
-            dbghelp.SymInitialize(self.phandle, self.sympath, False)
-            dbghelp.SymSetOptions(self.symopts)
-
-            x = dbghelp.SymLoadModule64(self.phandle,
-                        0, 
-                        self.filename,
-                        None,
-                        self.loadbase,
-                        os.path.getsize(self.filename))
+                x = dbghelp.SymLoadModule64(self.phandle,
+                            0, 
+                            self.filename,
+                            None,
+                            self.loadbase,
+                            os.path.getsize(self.filename))
 
 
-            # This is for debugging which pdb got loaded
-            #imghlp = IMAGEHLP_MODULE64()
-            #imghlp.SizeOfStruct = sizeof(imghlp)
-            #dbghelp.SymGetModuleInfo64(self.phandle, x, pointer(imghlp))
-            #print "PDB",repr(imghlp.LoadedPdbName)
+                # This is for debugging which pdb got loaded
+                #imghlp = IMAGEHLP_MODULE64()
+                #imghlp.SizeOfStruct = sizeof(imghlp)
+                #dbghelp.SymGetModuleInfo64(self.phandle, x, pointer(imghlp))
+                #print "PDB",repr(imghlp.LoadedPdbName)
+
+            self._symactive += 1
+        finally:
+            self._initLock.release()
+
 
     def symCleanup(self):
-        dbghelp.SymCleanup(self.phandle)
+        try:
+            self._initLock.acquire()
+            self._symactive -= 1
 
-    def symLocalCallback(self, psym, size, ctx):
-        sym = psym.contents
-        address = c_int32(sym.Address).value
-        self._cur_locs.append( (sym.Name, address, sym.Size, sym.Flags) )
+            if not self._symactive:
+                dbghelp.SymCleanup(self.phandle)
 
-        return True
-
-    def parseArgs(self):
-
-        for name, addr, size, flags in self.symbols:
-
-            si = self.symFromAddr(addr)
-            if si.Tag != SymTagFunction:
-                continue
-
-            self._cur_locs = []
-
-            sframe = IMAGEHLP_STACK_FRAME()
-            sframe.InstructionOffset = addr
-            dbghelp.SymSetContext(self.phandle, pointer(sframe), 0)
-            dbghelp.SymEnumSymbols(self.phandle,
-                        0,
-                        None,
-                        SYMCALLBACK(self.symLocalCallback),
-                        0)
-
-            if len(self._cur_locs):
-                self._sym_locals[addr] = self._cur_locs
+        finally:
+            self._initLock.release()
 
     def parse(self):
         try:
@@ -2189,15 +2207,10 @@ class Win32SymbolParser:
         #self.symCleanup()
 
     def loadStructsIntoTrace(self, trace, normname):
-        t = self._sym_types.values()
-        e = self._sym_enums.values()
+        #FIXME: need to revamp VStructBuilder to handle a generator.
+        raise Exception("ummm..#FIXME: need to revamp VStructBuilder to handle a generator.")
 
-        # Only add the namespace if we have values...
-        if len(t):
-            builder = vs_builder.VStructBuilder(defs=t, enums=e)
-            trace.vsbuilder.addVStructNamespace(normname, builder)
-
-    def getCacheSyms(self):
+    def getCacheSyms_deprecated(self):
         '''
         Get the parsed symbols as a list of envi SymbolCache tuples.
         '''
@@ -2209,4 +2222,117 @@ class Win32SymbolParser:
                 stype = e_resolv.SYMSTOR_SYM_FUNCTION
             ret.append( (addr-self.loadbase, size, name, stype) )
         return ret
+
+    def genSymbols(self, symopts=None, symtypes=None):
+        '''
+        Generator of symbols... does not cache symbols.  This is good for PDBs of unusual size (POUSes).
+        '''
+        oldsymopts = self.symopts
+        if symopts != None:
+            self.symopts = symopts
+        
+        self.kickOffSymEnumSymbols()
+        self._symEnumLock.acquire()
+
+        while self.symbol != -1:
+            #print 'genSymbols: _symEnumLock.acquire()'
+            yield self.symbol
+            #print 'genSymbols: _symEnumHandling.release()'
+            self._symEnumHandling.release()
+            self._symEnumLock.acquire()
+
+        self.symopts = oldsymopts
+
+    def genTypes(self, symopts=None, symtypes=None):
+        '''
+        Generator of Types
+        '''
+        oldsymopts = self.symopts
+        if symopts != None:
+            self.symopts = symopts
+    
+        self.kickOffSymEnumTypes()
+
+        self._typeEnumLock.acquire()
+
+        while self._sym_type != -1:
+            yield self._sym_type
+            self._typeEnumHandling.release()
+            self._typeEnumLock.acquire()
+
+        self.symopts = oldsymopts
+
+    def kickOffSymEnumSymbols(self):
+        '''
+        Start a thread which will enumerate symbols.  This will use a Lock to allow a generator to send the data to the calling func
+        '''
+        #FIXME: make this so it can reuse the same thread...
+        self._bgEnumThread = threading.Thread(target=self._do_SymEnumSymbols)
+        self._bgEnumThread.setDaemon(True)
+        self._bgEnumThread.start()
+        print("kick_do_SymEnumSymbols: setting up locks")
+        self._symEnumLock.acquire()
+
+
+    def _do_SymEnumSymbols(self):
+        try:
+            self.symbol = None
+            print("_do_SymEnumSymbols: symInit")
+            self.symInit()
+
+            print("_do_SymEnumSymbols: SymEnumSymbols")
+            dbghelp.SymEnumSymbols(self.phandle,
+                        self.loadbase,
+                        None,
+                        SYMCALLBACK(self.symEnumCallback),
+                        NULL)
+
+            self.symCleanup()
+
+        except Exception, e:
+            traceback.print_exc()
+            self.symbol = -1
+            raise
+
+        finally:
+            self.symbol = -1
+        print "_do_SymEnumSymbols: DONE"
+        self._symEnumLock.release()
+
+
+    def kickOffSymEnumTypes(self):
+        '''
+        Start a thread which will enumerate symbols.  This will use a Lock to allow a generator to send the data to the calling func
+        '''
+        #FIXME: make this so it can reuse the same thread...
+        self._bgTypeThread = threading.Thread(target=self._do_SymEnumTypes)
+        self._bgTypeThread.setDaemon(True)
+        self._bgTypeThread.start()
+        print("kick_do_SymEnumTypes: setting up locks")
+        self._typeEnumLock.acquire()
+
+
+    def _do_SymEnumTypes(self):
+        try:
+            self._sym_type = None
+            print("_do_SymEnumTypes: symInit")
+            self.symInit()
+
+            print("_do_SymEnumTypes: SymEnumTypes")
+            dbghelp.SymEnumTypes(self.phandle,
+                        self.loadbase,
+                        SYMCALLBACK(self.typeEnumCallback),
+                        NULL)
+
+            self.symCleanup()
+
+        except Exception, e:
+            traceback.print_exc()
+            self._sym_type = -1
+            raise
+
+        finally:
+            self._sym_type = -1
+        print "_do_SymEnumTypes: DONE"
+        self._typeEnumLock.release()
 

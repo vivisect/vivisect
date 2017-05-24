@@ -372,12 +372,11 @@ def loadPeIntoWorkspace(vw, pe, filename=None):
 
         s = vt_win32.Win32SymbolParser(-1, filename, baseaddr)
 
-        # We don't want exports or whatever because we already have them
-        s.symopts |= vt_win32.SYMOPT_EXACT_SYMBOLS
-        s.parse()
+        # We don't want exports or whatever because we already have them... actually, fails on Chrome pdbs
+        #s.symopts |= vt_win32.SYMOPT_EXACT_SYMBOLS
 
         # Add names for any symbols which are missing them
-        for symname, symva, size, flags in s.symbols:
+        for symname, symva, size, flags in s.genSymbols():
 
             if not vw.isValidPointer(symva):
                 continue
