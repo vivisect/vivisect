@@ -466,6 +466,15 @@ class MemoryObject(IMemory):
                 return (offset, mbytes)
         raise envi.SegmentationViolation(va)
 
+    def parseOpcode(self, va, arch=envi.ARCH_DEFAULT):
+        '''
+        Parse an opcode from the specified virtual address.
+
+        Example: op = m.parseOpcode(0x7c773803)
+        '''
+        off, b = self.getByteDef(va)
+        return self.imem_archs[ (arch & envi.ARCH_MASK) >> 16 ].archParseOpcode(b, off, va)
+
 class MemoryFile:
     '''
     A file like object to wrap around a memory object.
