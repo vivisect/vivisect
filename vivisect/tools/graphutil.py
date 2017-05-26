@@ -691,6 +691,7 @@ class PathGenerator:
     __steplock = threading.Lock()
 
     def __init__(self, graph):
+        self.wdt = None
         self.graph = graph
 
     def stop(self):
@@ -700,31 +701,36 @@ class PathGenerator:
         self.__go__ = False
 
     def watchdog(self, time):
-        # FIXME: make this use one thread, not N
         '''
         set a watchdog timer for path generation (if it takes too long to get another path)
         '''
-        self.wdt = threading.Thread(target=self.__wd, args=[time])
-        self.wdt.setDaemon = True
-        self.wdt.start()
+        self._wd_maxsec = time
+        self._wd_count = 0
+        if self.wdt == None:
+            self.wdt = threading.Thread(target=self.__wd)
+            self.wdt.setDaemon = True
+            self.wdt.start()
 
-    def __wd(self, maxsec):
-        # FIXME: make this use one thread, not N
-        maxsec *=10
-        count = 0
-        while self.__go__:
-            time.sleep(.1)
-            self.__steplock.acquire()
+    def __wd(self):
+        while True:
             try:
-                if not self.__update:
-                    count += 1
-                    if count > maxsec:
-                        self.stop()
-                        break
-            finally:
-                self.__steplock.release()
+                while self.__go__:
+                    time.sleep(.1)
+                    self.__steplock.acquire()
+                    try:
+                        if not self.__update:
+                            self._wd_count += 1
+                            if self._wd_count > (self._wd_maxsec * 10):
+                                self.stop()
+                                break
+                    finally:
+                        self.__steplock.release()
 
-            self.__update = False
+                    self.__update = False
+            except:
+                sys.excepthook(*sys.exc_info())
+
+            time.sleep(1)
                 
 
     def getFuncCbRoutedPaths_genback(self, fromva, tova, loopcnt=0, maxpath=None, maxsec=None):
