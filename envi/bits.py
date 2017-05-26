@@ -140,11 +140,16 @@ def is_aux_carry_sub(src, dst):
 # set of format lists which make size, endianness, and signedness fast and easy
 le_fmt_chars = (None,"B","<H",None,"<I",None,None,None,"<Q")
 be_fmt_chars = (None,"B",">H",None,">I",None,None,None,">Q")
-
 fmt_chars = (le_fmt_chars, be_fmt_chars)
 
 le_fmt_schars = (None,"b","<h",None,"<i",None,None,None,"<q")
 be_fmt_schars = (None,"b",">h",None,">i",None,None,None,">q")
+fmt_schars = (le_fmt_schars, be_fmt_schars)
+
+master_fmts = (fmt_chars, fmt_schars)
+
+fmt_sizes =  (None,1,2,4,4,8,8,8,8)
+
 
 fmt_schars = (le_fmt_schars, be_fmt_schars)
 
