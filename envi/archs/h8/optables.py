@@ -98,11 +98,11 @@ main_table[0x55] = (False, 'bsr', p_disp8, 0, IF_CALL)
 main_table[0x56] = (False, 'rte', None, 0, IF_RET | IF_NOFALL)   # 5670
 main_table[0x57] = (False, 'trapa', p_i2, 0, IF_NOFALL)
 main_table[0x58] = (False, 'error', p_disp16, 2, 0)
-main_table[0x59] = (False, 'jmp', p_aERn,  0, IF_BRANCH | IF_NOFALL)
+main_table[0x59] = (False, 'jmp', p_aERn,  3, IF_BRANCH | IF_NOFALL)
 main_table[0x5a] = (False, 'jmp', p_aAA24, 0, IF_BRANCH | IF_NOFALL)
 main_table[0x5b] = (False, 'jmp', p_aaAA8, 0, IF_BRANCH | IF_NOFALL)
 main_table[0x5c] = (False, 'bsr', p_disp16, 0, IF_CALL)
-main_table[0x5d] = (False, 'jsr', p_aERn, 0, IF_CALL)
+main_table[0x5d] = (False, 'jsr', p_aERn, 3, IF_CALL)
 main_table[0x5e] = (False, 'jsr', p_aAA24, 0, IF_CALL)
 main_table[0x5f] = (False, 'jsr', p_aaAA8, 0, IF_CALL)
 

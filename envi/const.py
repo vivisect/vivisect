@@ -8,3 +8,6 @@ CC_CALLER_CLEANUP   = 1 << 4    # caller cleans up the stack
 # meta-register constants
 RMETA_MASK  = 0xffff0000
 RMETA_NMASK = 0x0000ffff
+
+ENDIAN_LSB = 0
+ENDIAN_MSB = 1

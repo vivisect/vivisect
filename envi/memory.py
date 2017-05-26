@@ -3,6 +3,7 @@ import struct
 import collections
 
 import envi
+import envi.bits as e_bits
 
 """
 A module containing memory utilities and the definition of the
@@ -161,20 +162,16 @@ class IMemory:
         return (0,0xffffffff)
 
     def readMemValue(self, addr, size):
+        #FIXME: use getBytesDef (and implement a dummy wrapper in VTrace for getBytesDef)
         bytes = self.readMemory(addr, size)
         if bytes == None:
             return None
+
         #FIXME change this (and all uses of it) to passing in format...
         if len(bytes) != size:
             raise Exception("Read Gave Wrong Length At 0x%.8x (va: 0x%.8x wanted %d got %d)" % (self.getProgramCounter(),addr, size, len(bytes)))
-        if size == 1:
-            return struct.unpack("B", bytes)[0]
-        elif size == 2:
-            return struct.unpack("<H", bytes)[0]
-        elif size == 4:
-            return struct.unpack("<I", bytes)[0]
-        elif size == 8:
-            return struct.unpack("<Q", bytes)[0]
+
+        return e_bits.parsebytes(bytes, 0, size, False, self.getEndian())
 
     def readMemoryPtr(self, va):
         '''
@@ -468,6 +465,15 @@ class MemoryObject(IMemory):
                 offset = va - mva
                 return (offset, mbytes)
         raise envi.SegmentationViolation(va)
+
+    def parseOpcode(self, va, arch=envi.ARCH_DEFAULT):
+        '''
+        Parse an opcode from the specified virtual address.
+
+        Example: op = m.parseOpcode(0x7c773803)
+        '''
+        off, b = self.getByteDef(va)
+        return self.imem_archs[ (arch & envi.ARCH_MASK) >> 16 ].archParseOpcode(b, off, va)
 
 class MemoryFile:
     '''
