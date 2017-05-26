@@ -330,7 +330,7 @@ def getCodePaths(fgraph, loopcnt=0, maxpath=None):
                 tonode = fgraph.getNode(toid)
                 todo.append((tonode,npath))
 
-def walkCodePaths(fgraph, callback, maxpath=None, loopcnt=0):
+def walkCodePaths(fgraph, callback, loopcnt=0, maxpath=None):
     '''
     walkCodePaths is a path generator which uses a callback function to determine the 
     viability of each particular path.  This approach allows the calling function 
@@ -731,7 +731,7 @@ class PathGenerator:
         '''
         set a watchdog timer for path generation (if it takes too long to get another path)
         '''
-        self._wd_maxsec = time * 10
+        self._wd_maxsec = time
         self._wd_count = 0
         if self.wdt == None:
             self.wdt = threading.Thread(target=self.__wd)
@@ -747,7 +747,7 @@ class PathGenerator:
                     try:
                         if not self.__update:
                             self._wd_count += 1
-                            if self._wd_count > self._wd_maxsec:
+                            if self._wd_count > (self._wd_maxsec * 10):
                                 self.stop()
                                 break
                     finally:
