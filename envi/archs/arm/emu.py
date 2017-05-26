@@ -133,7 +133,7 @@ class ArmEmulator(ArmModule, ArmRegisterContext, envi.Emulator):
 
         ArmRegisterContext.__init__(self)
 
-        self.addCallingConvention("Arm Arch Procedure Call", aapcs)
+        self.addCallingConvention("armcall", aapcs)
 
     def undefFlags(self):
         """
