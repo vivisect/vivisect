@@ -706,6 +706,7 @@ class VivCodeFlowContext(e_codeflow.CodeFlowContext):
     
         return True
 
+    """
     def addEntryPoint(self, va, arch=envi.ARCH_DEFAULT):
         '''
         Analyze the given procedure entry point and flow downward
@@ -733,4 +734,4 @@ class VivCodeFlowContext(e_codeflow.CodeFlowContext):
         
         # Finally, notify the callback of a new function
         self._cb_function(va, {'CallsFrom':calls_from})
-
+    """
