@@ -156,6 +156,26 @@ class ArchitectureModule:
         allr = [rname for rname in regctx.getRegisterNames()]
         return [ ('all', allr), ]
 
+    def archModifyFuncAddr(self, va, arch):
+        '''
+        Returns a potentially modified set of (va, arch).
+        Default: return the same va, arch
+
+        This hook allows an architecture to correct VA and Architecture, such 
+        as is necessary for ARM/Thumb.
+        '''
+        return va, arch
+
+    def archModifyXrefAddr(self, tova, reftype, rflags):
+        '''
+        Returns a potentially modified set of (tova, reftype, rflags).
+        Default: return the same tova, reftype, rflags
+
+        This hook allows an architecture to modify an Xref before it's set, 
+        which can be helpful for ARM/Thumb.
+        '''
+        return tova, reftype, rflags
+
     def archGetBadOps(self, byteslist=None):
         '''
         Returns a list of opcodes which are indicators of wrong disassembly.

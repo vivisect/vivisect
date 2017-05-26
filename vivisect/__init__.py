@@ -1475,7 +1475,10 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         (see REF_ macros).  This will *not* trigger any analysis.
         Callers are expected to do their own xref analysis (ie, makeCode() etc)
         """
-        ref = (fromva,tova,reftype,rflags)
+        # Architecture gets to decide on actual final VA (ARM/THUMB/etc...)
+        va, reftype, rflags = self.arch.archModifyXrefAddr(tova, reftype, rflags)
+
+        ref = (fromva, tova, reftype, rflags)
         if ref in self.getXrefsFrom(fromva):
             return
         self._fireEvent(VWE_ADDXREF, (fromva, tova, reftype, rflags))
