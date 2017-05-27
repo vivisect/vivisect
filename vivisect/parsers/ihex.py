@@ -5,6 +5,12 @@ import vivisect.parsers as v_parsers
 
 from vivisect.const import *
 
+archcalls = {
+    'i386':'cdecl',
+    'amd64':'sysvamd64call',
+    'arm':'armcall',
+}
+
 def parseFile(vw, filename):
 
     arch = vw.config.viv.parsers.ihex.arch
@@ -16,6 +22,8 @@ def parseFile(vw, filename):
     vw.setMeta('Architecture', arch)
     vw.setMeta('Platform','Unknown')
     vw.setMeta('Format','ihex')
+
+    vw.setMeta('DefaultCall', archcalls.get(arch,'unknown'))
 
     fname = vw.addFile(filename, 0, v_parsers.md5File(filename))
 
