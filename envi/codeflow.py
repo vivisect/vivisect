@@ -224,9 +224,9 @@ class CodeFlowContext(object):
                                     # the function that we want to make prodcedural
                                     # called us so we can't call to make it procedural
                                     # until its done
-                                    cf_eps.add(bva)
+                                    cf_eps.add((bva, bflags))
                                 else:
-                                    self.addEntryPoint( bva )
+                                    self.addEntryPoint( bva, arch=bflags )
 
                             if self._cf_noret.get( bva ):
                                 # then our next va is noflow!
@@ -246,7 +246,7 @@ class CodeFlowContext(object):
         # remove our local blocks from global block stack
         self._cf_blocks.pop()
         while cf_eps:
-            fva = cf_eps.pop()
+            fva, arch = cf_eps.pop()
             if not self._mem.isFunction(fva):
                 self.addEntryPoint(fva, arch=arch)
 
@@ -272,6 +272,7 @@ class CodeFlowContext(object):
         
         # Finally, notify the callback of a new function
         self._cb_function(va, {'CallsFrom':calls_from})
+
     def addDynamicBranchHandler(self, cb):
         '''
         Add a callback handler for dynamic branches the code-flow resolver 
