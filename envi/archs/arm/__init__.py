@@ -54,7 +54,7 @@ class ArmModule(envi.ArchitectureModule):
 
     def archModifyFuncAddr(self, va, info):
         if va & 1:
-            info['arch'] = envi.ARCH_THUMB
+            info['arch'] = envi.ARCH_THUMB2
             return va & -2, info
         return va, info
 
