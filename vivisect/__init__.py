@@ -1476,7 +1476,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         Callers are expected to do their own xref analysis (ie, makeCode() etc)
         """
         # Architecture gets to decide on actual final VA (ARM/THUMB/etc...)
-        va, reftype, rflags = self.arch.archModifyXrefAddr(tova, reftype, rflags)
+        tova, reftype, rflags = self.arch.archModifyXrefAddr(tova, reftype, rflags)
 
         ref = (fromva, tova, reftype, rflags)
         if ref in self.getXrefsFrom(fromva):
