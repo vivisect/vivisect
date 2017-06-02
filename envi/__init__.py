@@ -156,15 +156,15 @@ class ArchitectureModule:
         allr = [rname for rname in regctx.getRegisterNames()]
         return [ ('all', allr), ]
 
-    def archModifyFuncAddr(self, va, arch):
+    def archModifyFuncAddr(self, va, info):
         '''
-        Returns a potentially modified set of (va, arch).
-        Default: return the same va, arch
+        Can modify the VA and context based on architecture-specific info.
+        Default: return the same va, info
 
         This hook allows an architecture to correct VA and Architecture, such 
         as is necessary for ARM/Thumb.
         '''
-        return va, arch
+        return va, info
 
     def archModifyXrefAddr(self, tova, reftype, rflags):
         '''

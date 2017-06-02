@@ -262,7 +262,8 @@ class CodeFlowContext(object):
             ... callbacks flow along ...
         '''
         # Architecture gets to decide on actual final VA and Architecture (ARM/THUMB/etc...)
-        va, arch = self._mem.arch.archModifyFuncAddr(va, arch)
+        info = { 'arch' : arch }
+        va, arch = self._mem.arch.archModifyFuncAddr(va, info)
 
         # Check if this is already a known function.
         if self._funcs.get(va) != None:
