@@ -542,7 +542,7 @@ class SymbolikAnalysisContext:
             patheffs.extend(neweffs)
             return True
 
-        for pathnode in viv_graph.walkCodePaths(graph, codewalker, maxpath=maxpath, loopcnt=loopcnt):
+        for pathnode in viv_graph.walkCodePaths(graph, codewalker, loopcnt=loopcnt, maxpath=maxpath):
             emu = vg_pathcore.getNodeProp(pathnode, 'pathemu')
             patheffs = vg_pathcore.getNodeProp(pathnode, 'patheffs')
             yield emu, patheffs
