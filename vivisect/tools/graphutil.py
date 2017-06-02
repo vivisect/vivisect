@@ -687,12 +687,14 @@ class PathForceQuitException(Exception):
 eventually, routing will include the ability to 'source-route', picking N specific points a path must go through
 '''
 class PathGenerator:
-    __go__ = None
-    __steplock = threading.Lock()
 
     def __init__(self, graph):
         self.wdt = None
         self.graph = graph
+        self._wd_maxdsec = 0
+
+        self.__go__ = False
+        self.__steplock = threading.Lock()
 
     def stop(self):
         '''
@@ -700,37 +702,46 @@ class PathGenerator:
         '''
         self.__go__ = False
 
-    def watchdog(self, time):
+    def watchdog(self, maxsec=20):
         '''
         set a watchdog timer for path generation (if it takes too long to get another path)
+        maxsec is in seconds, and accepts floats, but only has granularity up to the 1/10th second.
         '''
-        self._wd_maxsec = time
+        self._wd_maxdsec = maxsec * 10
         self._wd_count = 0
+        self.__active__ = True
+
         if self.wdt == None:
             self.wdt = threading.Thread(target=self.__wd)
-            self.wdt.setDaemon = True
+            self.wdt.setDaemon(True)
             self.wdt.start()
 
+    def kill(self):
+        '''
+        PathGenerator spins up a thread, and uses it until kill() is called
+        kill() tells the thread that we're done
+        '''
+        self.__go__ = False
+        self.__active__ = False
+        self.wdt.join()
+
     def __wd(self):
-        while True:
+        while self.__active__:
             try:
                 while self.__go__:
                     time.sleep(.1)
-                    self.__steplock.acquire()
-                    try:
+                    with self.__steplock:
                         if not self.__update:
                             self._wd_count += 1
-                            if self._wd_count > (self._wd_maxsec * 10):
+                            if self._wd_count > (self._wd_maxdsec * 10):
                                 self.stop()
                                 break
-                    finally:
-                        self.__steplock.release()
 
                     self.__update = False
             except:
                 sys.excepthook(*sys.exc_info())
 
-            time.sleep(1)
+            time.sleep(.4)
                 
 
     def getFuncCbRoutedPaths_genback(self, fromva, tova, loopcnt=0, maxpath=None, maxsec=None):
@@ -796,6 +807,8 @@ class PathGenerator:
                 vg_pathcore.setNodeProp(cpath, 'eid', eid)
                 npath = vg_pathcore.newPathNode(parent=cpath, nid=fromid, eid=None)
                 todo.append((fromid,npath))
+
+        self.__go__ = False
 
     def getFuncCbRoutedPaths(self, fromva, tova, loopcnt=0, maxpath=None, maxsec=None):
         '''
@@ -864,3 +877,5 @@ class PathGenerator:
                 todo.append((toid,npath))
 
             vg_pathcore.trimPath(cpath)
+
+        self.__go__ = False
