@@ -81,7 +81,6 @@ def loadPeIntoWorkspace(vw, pe, filename=None):
 
     vw.setMeta('Platform', platform)
 
-    defcall = defcalls.get(arch)
     vw.setMeta('DefaultCall', defcalls.get(arch,'unknown'))
 
     # Set ourselvs up for extended windows binary analysis
