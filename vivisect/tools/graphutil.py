@@ -689,60 +689,15 @@ eventually, routing will include the ability to 'source-route', picking N specif
 class PathGenerator:
 
     def __init__(self, graph):
-        self.wdt = None
         self.graph = graph
         self._wd_maxdsec = 0
-
         self.__go__ = False
-        self.__steplock = threading.Lock()
 
     def stop(self):
         '''
-        stops path generation.  used by watchdog, but could be used by path processing code
+        stops path generation.
         '''
         self.__go__ = False
-
-    def watchdog(self, maxsec=20):
-        '''
-        set a watchdog timer for path generation (if it takes too long to get another path)
-        maxsec is in seconds, and accepts floats, but only has granularity up to the 1/10th second.
-        '''
-        self._wd_maxdsec = maxsec * 10
-        self._wd_count = 0
-        self.__active__ = True
-
-        if self.wdt == None:
-            self.wdt = threading.Thread(target=self.__wd)
-            self.wdt.setDaemon(True)
-            self.wdt.start()
-
-    def kill(self):
-        '''
-        PathGenerator spins up a thread, and uses it until kill() is called
-        kill() tells the thread that we're done
-        '''
-        self.__go__ = False
-        self.__active__ = False
-        self.wdt.join()
-
-    def __wd(self):
-        while self.__active__:
-            try:
-                while self.__go__:
-                    time.sleep(.1)
-                    with self.__steplock:
-                        if not self.__update:
-                            self._wd_count += 1
-                            if self._wd_count > (self._wd_maxdsec * 10):
-                                self.stop()
-                                break
-
-                    self.__update = False
-            except:
-                sys.excepthook(*sys.exc_info())
-
-            time.sleep(.4)
-                
 
     def getFuncCbRoutedPaths_genback(self, fromva, tova, loopcnt=0, maxpath=None, maxsec=None):
         '''
@@ -768,10 +723,11 @@ class PathGenerator:
 
         todo = [(tocbva,pnode), ]
 
-        if maxsec:
-            self.watchdog(maxsec)
-
+        starttime = time.time()
         while todo:
+            if maxsec and (time.time() - starttime > maxsec):
+                raise PathForceQuitException()
+
             if not self.__go__:
                 raise PathForceQuitException()
 
@@ -834,10 +790,11 @@ class PathGenerator:
 
         todo = [(frcbva, pnode), ]
 
-        if maxsec:
-            self.watchdog(maxsec)
-
+        starttime = time.time()
         while todo:
+            if maxsec and (time.time() - starttime > maxsec):
+                raise PathForceQuitException()
+
             if not self.__go__:
                 raise PathForceQuitException()
 
