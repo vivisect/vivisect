@@ -690,7 +690,6 @@ class PathGenerator:
 
     def __init__(self, graph):
         self.graph = graph
-        self._wd_maxdsec = 0
         self.__go__ = False
 
     def stop(self):
