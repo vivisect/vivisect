@@ -54,8 +54,9 @@ class ArmModule(envi.ArchitectureModule):
 
     def archModifyFuncAddr(self, va, info):
         if va & 1:
-            info['arch'] = envi.ARCH_THUMB2
-            return va & -2, info
+            retval = dict(info)
+            retval['arch'] = envi.ARCH_THUMB2
+            return va & -2, retval
         return va, info
 
     def archModifyXrefAddr(self, tova, reftype, rflags):
