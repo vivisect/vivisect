@@ -164,7 +164,7 @@ class ArchitectureModule:
         This hook allows an architecture to correct VA and Architecture, such 
         as is necessary for ARM/Thumb.
         '''
-        return va, info
+        return va, {}
 
     def archModifyXrefAddr(self, tova, reftype, rflags):
         '''
