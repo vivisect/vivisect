@@ -714,47 +714,27 @@ class PathForceQuitException(Exception):
 eventually, routing will include the ability to 'source-route', picking N specific points a path must go through
 '''
 class PathGenerator:
-    __go__ = None
-    __steplock = threading.Lock()
+    '''
+    PathGenerator provides routed paths using yield generators, with some external 
+    control.  Because these generators are typically layered with other API's 
+    (ie. Symboliks subsystem calls) on top, PathGenerator provides a timeout and 
+    some external control.
+
+    PathGenerator should be used one per thread, not shared between threads.  The stop() 
+    method is good for use by a single management thread.
+    '''
 
     def __init__(self, graph):
         self.graph = graph
+        self.__go__ = False
 
     def stop(self):
         '''
-        stops path generation.  used by watchdog, but could be used by path processing code
+        stops path generation.
         '''
         self.__go__ = False
 
-    def watchdog(self, time):
-        # FIXME: make this use one thread, not N
-        '''
-        set a watchdog timer for path generation (if it takes too long to get another path)
-        '''
-        self.wdt = threading.Thread(target=self.__wd, args=[time])
-        self.wdt.setDaemon = True
-        self.wdt.start()
-
-    def __wd(self, maxsec):
-        # FIXME: make this use one thread, not N
-        maxsec *=10
-        count = 0
-        while self.__go__:
-            time.sleep(.1)
-            self.__steplock.acquire()
-            try:
-                if not self.__update:
-                    count += 1
-                    if count > maxsec:
-                        self.stop()
-                        break
-            finally:
-                self.__steplock.release()
-
-            self.__update = False
-                
-
-    def getFuncCbRoutedPaths_genback(self, fromva, tova, loopcnt=0, maxpath=None, maxsec=None):
+    def getFuncCbRoutedPaths_genback(self, fromva, tova, loopcnt=0, maxpath=None, timeout=None):
         '''
         Yields all the paths through the hierarchical graph starting at the 
         "root nodes" and ending at tocbva.  Specify a loopcnt to allow loop 
@@ -778,10 +758,14 @@ class PathGenerator:
 
         todo = [(tocbva,pnode), ]
 
-        if maxsec:
-            self.watchdog(maxsec)
+        maxtime = None
+        if timeout:
+            maxtime = time.time() + timeout
 
         while todo:
+            if maxtime and time.time() > maxtime:
+                raise PathForceQuitException()
+
             if not self.__go__:
                 raise PathForceQuitException()
 
@@ -818,7 +802,9 @@ class PathGenerator:
                 npath = vg_pathcore.newPathNode(parent=cpath, nid=fromid, eid=None)
                 todo.append((fromid,npath))
 
-    def getFuncCbRoutedPaths(self, fromva, tova, loopcnt=0, maxpath=None, maxsec=None):
+        self.__go__ = False
+
+    def getFuncCbRoutedPaths(self, fromva, tova, loopcnt=0, maxpath=None, timeout=None):
         '''
         Yields all the paths through the hierarchical graph starting at the 
         "root nodes" and ending at tocbva.  Specify a loopcnt to allow loop 
@@ -840,12 +826,16 @@ class PathGenerator:
         
         pnode = vg_pathcore.newPathNode(nid=frcbva, eid=None)
 
-        todo = [(frcbva, pnode), ]
+        todo = [(frcbva,pnode), ]
 
-        if maxsec:
-            self.watchdog(maxsec)
+        maxtime = None
+        if timeout:
+            maxtime = time.time() + timeout
 
         while todo:
+            if maxtime and time.time() > maxtime:
+                raise PathForceQuitException()
+
             if not self.__go__:
                 raise PathForceQuitException()
 
@@ -885,3 +875,5 @@ class PathGenerator:
                 todo.append((toid,npath))
 
             vg_pathcore.trimPath(cpath)
+
+        self.__go__ = False
