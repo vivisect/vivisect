@@ -416,7 +416,7 @@ tbl32_0F = [
 ( 0, INS_SYSTEM, 0, 0, 0, ARG_NONE, cpu_80486, "invd", 0, 0, 0),  
 ( 0, INS_SYSTEM, 0, 0, 0, ARG_NONE, cpu_80486, "wbinvd", 0, 0, 0),  
 ( 0, 0, 0, 0, 0, ARG_NONE, cpu_80386, 0, 0, 0, 0),  
-( 0, 0, 0, 0, 0, ARG_NONE, cpu_80386, "ud2", 0, 0, 0),  
+( 0, INS_HALT, 0, 0, 0, ARG_NONE, cpu_80386, "ud2", 0, 0, 0),  
 ( 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),  
 ( 0, INS_OTHER, ADDRMETH_E | OPTYPE_v, ARG_NONE, ARG_NONE, ARG_NONE, cpu_80386, "prefetchw", 0, 0, 0),  
 ( 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),  
@@ -1065,8 +1065,8 @@ tbl32_660F38[0xe] = ( 0, INS_OTHER, ADDRMETH_V | OPTYPE_x | OP_W, ADDRMETH_H | O
 tbl32_660F38[0xf] = ( 0, INS_OTHER, ADDRMETH_V | OPTYPE_x | OP_W, ADDRMETH_H | OPTYPE_x | OP_R, ADDRMETH_W | OPTYPE_x | OP_R, cpu_AMD64, "testpd", 0, 0, 0)
 tbl32_660F38[0x10] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_dq | OP_W, ADDRMETH_W | OPTYPE_dq | OP_R, ARG_NONE, cpu_AMD64, "pblendvb", 0, 0, 0)
 tbl32_660F38[0x13] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_x  | OP_W, ADDRMETH_W | OPTYPE_x  | OP_R, ADDRMETH_I | OPTYPE_b  | OP_R, cpu_AMD64, "cvtph2ps", 0, 0, 0)
-tbl32_660F38[0x14] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_dq | OP_W, ADDRMETH_W | OPTYPE_dq | OP_R, ARG_NONE, cpu_AMD64, "blendvps", 0, 0, 0)
-tbl32_660F38[0x15] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_dq | OP_W, ADDRMETH_W | OPTYPE_dq | OP_R, ARG_NONE, cpu_AMD64, "blendvpd", 0, 0, 0)
+tbl32_660F38[0x14] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_dq | OP_W, ADDRMETH_W | OPTYPE_dq | OP_R, ARG_NONE, cpu_AMD64, "blendps", 0, 0, 0)
+tbl32_660F38[0x15] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_dq | OP_W, ADDRMETH_W | OPTYPE_dq | OP_R, ARG_NONE, cpu_AMD64, "blendpd", 0, 0, 0)
 tbl32_660F38[0x16] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_qq | OP_W, ADDRMETH_H | OPTYPE_qq | OP_R, ADDRMETH_W | OPTYPE_qq | OP_R, cpu_AMD64, "permps", 0, 0, 0)
 tbl32_660F38[0x17] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_x  | OP_W, ADDRMETH_W | OPTYPE_x  | OP_R, ARG_NONE, cpu_AMD64, "ptest", 0, 0, 0)
 tbl32_660F38[0x18] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_x  | OP_W, ADDRMETH_W | OPTYPE_d  | OP_R, ARG_NONE, cpu_AMD64, "broadcastss", 0, 0, 0)
@@ -1075,7 +1075,95 @@ tbl32_660F38[0x1a] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_qq | OP_W, ADDRMETH_M | 
 tbl32_660F38[0x1c] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_x  | OP_W, ADDRMETH_W | OPTYPE_x  | OP_R, ARG_NONE, cpu_AMD64, "pabsb", 0, 0, 0)
 tbl32_660F38[0x1d] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_x  | OP_W, ADDRMETH_W | OPTYPE_x  | OP_R, ARG_NONE, cpu_AMD64, "pabsw", 0, 0, 0)
 tbl32_660F38[0x1e] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_x  | OP_W, ADDRMETH_W | OPTYPE_x  | OP_R, ARG_NONE, cpu_AMD64, "pabsd", 0, 0, 0)
-# more here necessary....
+
+tbl32_660F38[0x20] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_x  | OP_W, ADDRMETH_U | OPTYPE_x  | OP_R, ARG_NONE, cpu_AMD64, "pmovsxbw", 0, 0, 0)
+tbl32_660F38[0x21] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_x  | OP_W, ADDRMETH_U | OPTYPE_x  | OP_R, ARG_NONE, cpu_AMD64, "pmovsxbd", 0, 0, 0)
+tbl32_660F38[0x22] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_x  | OP_W, ADDRMETH_U | OPTYPE_x  | OP_R, ARG_NONE, cpu_AMD64, "pmovsxbq", 0, 0, 0)
+tbl32_660F38[0x23] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_x  | OP_W, ADDRMETH_U | OPTYPE_x  | OP_R, ARG_NONE, cpu_AMD64, "pmovsxwd", 0, 0, 0)
+tbl32_660F38[0x24] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_x  | OP_W, ADDRMETH_U | OPTYPE_x  | OP_R, ARG_NONE, cpu_AMD64, "pmovsxwq", 0, 0, 0)
+tbl32_660F38[0x25] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_x  | OP_W, ADDRMETH_U | OPTYPE_x  | OP_R, ARG_NONE, cpu_AMD64, "pmovsxdq", 0, 0, 0)
+tbl32_660F38[0x28] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_x  | OP_W, ADDRMETH_H | OPTYPE_x  | OP_R, ADDRMETH_W | OPTYPE_x , cpu_AMD64, "pmuldq", 0, 0, 0)
+tbl32_660F38[0x29] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_x  | OP_W, ADDRMETH_H | OPTYPE_x  | OP_R, ADDRMETH_W | OPTYPE_x , cpu_AMD64, "pcmpeqq", 0, 0, 0)
+tbl32_660F38[0x2a] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_x  | OP_W, ADDRMETH_M | OPTYPE_x  | OP_R, ARG_NONE, cpu_AMD64, "movntdqa", 0, 0, 0)
+tbl32_660F38[0x2b] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_x  | OP_W, ADDRMETH_H | OPTYPE_x  | OP_R, ADDRMETH_W | OPTYPE_x , cpu_AMD64, "packusdw", 0, 0, 0)
+tbl32_660F38[0x2c] = (0, INS_OTHER, ADDRMETH_M | OPTYPE_x  | OP_W, ADDRMETH_H | OPTYPE_x  | OP_R, ADDRMETH_M | OPTYPE_x , cpu_AMD64, "maskmovps", 0, 0, 0)
+tbl32_660F38[0x2d] = (0, INS_OTHER, ADDRMETH_M | OPTYPE_x  | OP_W, ADDRMETH_H | OPTYPE_x  | OP_R, ADDRMETH_M | OPTYPE_x , cpu_AMD64, "maskmovpd", 0, 0, 0)
+tbl32_660F38[0x2e] = (0, INS_OTHER, ADDRMETH_W | OPTYPE_x  | OP_W, ADDRMETH_H | OPTYPE_x  | OP_R, ADDRMETH_V | OPTYPE_x , cpu_AMD64, "maskmovps", 0, 0, 0)
+tbl32_660F38[0x2f] = (0, INS_OTHER, ADDRMETH_W | OPTYPE_x  | OP_W, ADDRMETH_H | OPTYPE_x  | OP_R, ADDRMETH_V | OPTYPE_x , cpu_AMD64, "maskmovpd", 0, 0, 0)
+
+tbl32_660F38[0x30] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_x  | OP_W, ADDRMETH_U | OPTYPE_x  | OP_R, ARG_NONE, cpu_AMD64, "pmovzxbw", 0, 0, 0)
+tbl32_660F38[0x31] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_x  | OP_W, ADDRMETH_U | OPTYPE_x  | OP_R, ARG_NONE, cpu_AMD64, "pmovzxbd", 0, 0, 0)
+tbl32_660F38[0x32] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_x  | OP_W, ADDRMETH_U | OPTYPE_x  | OP_R, ARG_NONE, cpu_AMD64, "pmovzxbq", 0, 0, 0)
+tbl32_660F38[0x33] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_x  | OP_W, ADDRMETH_U | OPTYPE_x  | OP_R, ARG_NONE, cpu_AMD64, "pmovzxwd", 0, 0, 0)
+tbl32_660F38[0x34] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_x  | OP_W, ADDRMETH_U | OPTYPE_x  | OP_R, ARG_NONE, cpu_AMD64, "pmovzxwq", 0, 0, 0)
+tbl32_660F38[0x35] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_x  | OP_W, ADDRMETH_U | OPTYPE_x  | OP_R, ARG_NONE, cpu_AMD64, "pmovzxdq", 0, 0, 0)
+tbl32_660F38[0x38] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_x  | OP_W, ADDRMETH_H | OPTYPE_x  | OP_R, ADDRMETH_W | OPTYPE_x , cpu_AMD64, "pminsb", 0, 0, 0)
+tbl32_660F38[0x39] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_x  | OP_W, ADDRMETH_H | OPTYPE_x  | OP_R, ADDRMETH_W | OPTYPE_x , cpu_AMD64, "pminsd", 0, 0, 0)
+tbl32_660F38[0x3a] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_x  | OP_W, ADDRMETH_H | OPTYPE_x  | OP_R, ADDRMETH_W | OPTYPE_x , cpu_AMD64, "pminuw", 0, 0, 0)
+tbl32_660F38[0x3b] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_x  | OP_W, ADDRMETH_H | OPTYPE_x  | OP_R, ADDRMETH_W | OPTYPE_x , cpu_AMD64, "pminud", 0, 0, 0)
+tbl32_660F38[0x3c] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_x  | OP_W, ADDRMETH_H | OPTYPE_x  | OP_R, ADDRMETH_W | OPTYPE_x , cpu_AMD64, "pmaxsb", 0, 0, 0)
+tbl32_660F38[0x3d] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_x  | OP_W, ADDRMETH_H | OPTYPE_x  | OP_R, ADDRMETH_W | OPTYPE_x , cpu_AMD64, "pmaxsd", 0, 0, 0)
+tbl32_660F38[0x3e] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_x  | OP_W, ADDRMETH_H | OPTYPE_x  | OP_R, ADDRMETH_W | OPTYPE_x , cpu_AMD64, "pmaxuw", 0, 0, 0)
+tbl32_660F38[0x3f] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_x  | OP_W, ADDRMETH_H | OPTYPE_x  | OP_R, ADDRMETH_W | OPTYPE_x , cpu_AMD64, "pmaxud", 0, 0, 0)
+
+tbl32_660F38[0x36] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_qq | OP_W, ADDRMETH_H | OPTYPE_qq | OP_R, ADDRMETH_W | OPTYPE_qq, cpu_AMD64, "permd", 0, 0, 0)
+tbl32_660F38[0x37] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_x  | OP_W, ADDRMETH_H | OPTYPE_x  | OP_R, ADDRMETH_W | OPTYPE_x , cpu_AMD64, "pcmpgtq", 0, 0, 0)
+
+tbl32_660F38[0x40] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_x  | OP_W, ADDRMETH_H | OPTYPE_x  | OP_R, ADDRMETH_W | OPTYPE_x , cpu_AMD64, "pmulld", 0, 0, 0)
+tbl32_660F38[0x41] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_dq | OP_W, ADDRMETH_W | OPTYPE_dq | OP_R, ARG_NONE, cpu_AMD64, "phminposuw", 0, 0, 0)
+tbl32_660F38[0x45] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_x  | OP_W, ADDRMETH_H | OPTYPE_x  | OP_R, ADDRMETH_W | OPTYPE_x , cpu_AMD64, "psrlvd", 0, 0, 0)
+tbl32_660F38[0x46] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_x  | OP_W, ADDRMETH_H | OPTYPE_x  | OP_R, ADDRMETH_W | OPTYPE_x , cpu_AMD64, "psravd", 0, 0, 0)
+tbl32_660F38[0x47] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_x  | OP_W, ADDRMETH_H | OPTYPE_x  | OP_R, ADDRMETH_W | OPTYPE_x , cpu_AMD64, "psllvd", 0, 0, 0)
+
+tbl32_660F38[0x58] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_x  | OP_W, ADDRMETH_W | OPTYPE_x  | OP_R, ARG_NONE, cpu_AMD64, "pbroadcastd", 0, 0, 0)
+tbl32_660F38[0x59] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_x  | OP_W, ADDRMETH_W | OPTYPE_x  | OP_R, ARG_NONE, cpu_AMD64, "pbroadcastq", 0, 0, 0)
+tbl32_660F38[0x5a] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_qq | OP_W, ADDRMETH_W | OPTYPE_dq | OP_R, ARG_NONE, cpu_AMD64, "pbroadcasti128", 0, 0, 0)
+
+tbl32_660F38[0x78] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_x  | OP_W, ADDRMETH_W | OPTYPE_x  | OP_R, ARG_NONE, cpu_AMD64, "pbroadcastb", 0, 0, 0)
+tbl32_660F38[0x79] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_x  | OP_W, ADDRMETH_W | OPTYPE_x  | OP_R, ARG_NONE, cpu_AMD64, "pbroadcastw", 0, 0, 0)
+
+tbl32_660F38[0x8c] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_x  | OP_W, ADDRMETH_H | OPTYPE_x  | OP_R, ADDRMETH_M | OPTYPE_x, cpu_AMD64, "pbroadcastd", 0, 0, 0)
+tbl32_660F38[0x8e] = (0, INS_OTHER, ADDRMETH_M | OPTYPE_x  | OP_W, ADDRMETH_H | OPTYPE_x  | OP_R, ADDRMETH_V | OPTYPE_x, cpu_AMD64, "pbroadcastd", 0, 0, 0)
+
+tbl32_660F38[0x80] = (0, INS_SYSTEM, ADDRMETH_G | OPTYPE_y | OP_W, ADDRMETH_M | OPTYPE_dq| OP_R, ARG_NONE, cpu_AMD64, "invept", 0, 0, 0)
+tbl32_660F38[0x81] = (0, INS_SYSTEM, ADDRMETH_G | OPTYPE_y | OP_W, ADDRMETH_M | OPTYPE_dq| OP_R, ARG_NONE, cpu_AMD64, "invvpid", 0, 0, 0)
+tbl32_660F38[0x82] = (0, INS_SYSTEM, ADDRMETH_G | OPTYPE_y | OP_W, ADDRMETH_M | OPTYPE_dq| OP_R, ARG_NONE, cpu_AMD64, "invpcid", 0, 0, 0)
+
+tbl32_660F38[0x90] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_x  | OP_W, ADDRMETH_H | OPTYPE_x  | OP_R, ADDRMETH_W | OPTYPE_x , cpu_AMD64, "gatherdd", 0, 0, 0)
+tbl32_660F38[0x91] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_x  | OP_W, ADDRMETH_H | OPTYPE_x  | OP_R, ADDRMETH_W | OPTYPE_x , cpu_AMD64, "gatherqd", 0, 0, 0)
+tbl32_660F38[0x92] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_x  | OP_W, ADDRMETH_H | OPTYPE_x  | OP_R, ADDRMETH_W | OPTYPE_x , cpu_AMD64, "gatherdps", 0, 0, 0)
+tbl32_660F38[0x93] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_x  | OP_W, ADDRMETH_H | OPTYPE_x  | OP_R, ADDRMETH_W | OPTYPE_x , cpu_AMD64, "gatherqps", 0, 0, 0)
+tbl32_660F38[0x96] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_x  | OP_W, ADDRMETH_H | OPTYPE_x  | OP_R, ADDRMETH_W | OPTYPE_x , cpu_AMD64, "fmaddsub132ps", 0, 0, 0)
+tbl32_660F38[0x97] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_x  | OP_W, ADDRMETH_H | OPTYPE_x  | OP_R, ADDRMETH_W | OPTYPE_x , cpu_AMD64, "fmsubadd132ps", 0, 0, 0)
+tbl32_660F38[0x98] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_x  | OP_W, ADDRMETH_H | OPTYPE_x  | OP_R, ADDRMETH_W | OPTYPE_x , cpu_AMD64, "fmadd132ps", 0, 0, 0)
+tbl32_660F38[0x99] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_x  | OP_W, ADDRMETH_H | OPTYPE_x  | OP_R, ADDRMETH_W | OPTYPE_x , cpu_AMD64, "fmadd132ss", 0, 0, 0)
+tbl32_660F38[0x9a] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_x  | OP_W, ADDRMETH_H | OPTYPE_x  | OP_R, ADDRMETH_W | OPTYPE_x , cpu_AMD64, "fmsub132ps", 0, 0, 0)
+tbl32_660F38[0x9b] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_x  | OP_W, ADDRMETH_H | OPTYPE_x  | OP_R, ADDRMETH_W | OPTYPE_x , cpu_AMD64, "fmsub132ss", 0, 0, 0)
+tbl32_660F38[0x9c] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_x  | OP_W, ADDRMETH_H | OPTYPE_x  | OP_R, ADDRMETH_W | OPTYPE_x , cpu_AMD64, "fnadd132ps", 0, 0, 0)
+tbl32_660F38[0x9d] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_x  | OP_W, ADDRMETH_H | OPTYPE_x  | OP_R, ADDRMETH_W | OPTYPE_x , cpu_AMD64, "fnadd132ss", 0, 0, 0)
+tbl32_660F38[0x9e] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_x  | OP_W, ADDRMETH_H | OPTYPE_x  | OP_R, ADDRMETH_W | OPTYPE_x , cpu_AMD64, "fnsub132ps", 0, 0, 0)
+tbl32_660F38[0x9f] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_x  | OP_W, ADDRMETH_H | OPTYPE_x  | OP_R, ADDRMETH_W | OPTYPE_x , cpu_AMD64, "fnsub132ss", 0, 0, 0)
+
+tbl32_660F38[0xa6] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_x  | OP_W, ADDRMETH_H | OPTYPE_x  | OP_R, ADDRMETH_W | OPTYPE_x , cpu_AMD64, "fmaddsub132ps", 0, 0, 0)
+tbl32_660F38[0xa8] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_x  | OP_W, ADDRMETH_H | OPTYPE_x  | OP_R, ADDRMETH_W | OPTYPE_x , cpu_AMD64, "fmadd213ps", 0, 0, 0)
+tbl32_660F38[0xa9] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_x  | OP_W, ADDRMETH_H | OPTYPE_x  | OP_R, ADDRMETH_W | OPTYPE_x , cpu_AMD64, "fmadd213ss", 0, 0, 0)
+tbl32_660F38[0xaa] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_x  | OP_W, ADDRMETH_H | OPTYPE_x  | OP_R, ADDRMETH_W | OPTYPE_x , cpu_AMD64, "fmsub213ps", 0, 0, 0)
+tbl32_660F38[0xab] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_x  | OP_W, ADDRMETH_H | OPTYPE_x  | OP_R, ADDRMETH_W | OPTYPE_x , cpu_AMD64, "fmsub213ss", 0, 0, 0)
+tbl32_660F38[0xac] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_x  | OP_W, ADDRMETH_H | OPTYPE_x  | OP_R, ADDRMETH_W | OPTYPE_x , cpu_AMD64, "fnadd213ps", 0, 0, 0)
+tbl32_660F38[0xad] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_x  | OP_W, ADDRMETH_H | OPTYPE_x  | OP_R, ADDRMETH_W | OPTYPE_x , cpu_AMD64, "fnadd213ss", 0, 0, 0)
+tbl32_660F38[0xae] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_x  | OP_W, ADDRMETH_H | OPTYPE_x  | OP_R, ADDRMETH_W | OPTYPE_x , cpu_AMD64, "fnsub213ps", 0, 0, 0)
+tbl32_660F38[0xaf] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_x  | OP_W, ADDRMETH_H | OPTYPE_x  | OP_R, ADDRMETH_W | OPTYPE_x , cpu_AMD64, "fnsub213ss", 0, 0, 0)
+
+tbl32_660F38[0xb7] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_x  | OP_W, ADDRMETH_H | OPTYPE_x  | OP_R, ADDRMETH_W | OPTYPE_x , cpu_AMD64, "fmsubadd132ps", 0, 0, 0)
+tbl32_660F38[0xb8] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_x  | OP_W, ADDRMETH_H | OPTYPE_x  | OP_R, ADDRMETH_W | OPTYPE_x , cpu_AMD64, "fmadd231ps", 0, 0, 0)
+tbl32_660F38[0xb9] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_x  | OP_W, ADDRMETH_H | OPTYPE_x  | OP_R, ADDRMETH_W | OPTYPE_x , cpu_AMD64, "fmadd231ss", 0, 0, 0)
+tbl32_660F38[0xba] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_x  | OP_W, ADDRMETH_H | OPTYPE_x  | OP_R, ADDRMETH_W | OPTYPE_x , cpu_AMD64, "fmsub231ps", 0, 0, 0)
+tbl32_660F38[0xbb] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_x  | OP_W, ADDRMETH_H | OPTYPE_x  | OP_R, ADDRMETH_W | OPTYPE_x , cpu_AMD64, "fmsub231ss", 0, 0, 0)
+tbl32_660F38[0xbc] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_x  | OP_W, ADDRMETH_H | OPTYPE_x  | OP_R, ADDRMETH_W | OPTYPE_x , cpu_AMD64, "fnadd231ps", 0, 0, 0)
+tbl32_660F38[0xbd] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_x  | OP_W, ADDRMETH_H | OPTYPE_x  | OP_R, ADDRMETH_W | OPTYPE_x , cpu_AMD64, "fnadd231ss", 0, 0, 0)
+tbl32_660F38[0xbe] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_x  | OP_W, ADDRMETH_H | OPTYPE_x  | OP_R, ADDRMETH_W | OPTYPE_x , cpu_AMD64, "fnsub231ps", 0, 0, 0)
+tbl32_660F38[0xbf] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_x  | OP_W, ADDRMETH_H | OPTYPE_x  | OP_R, ADDRMETH_W | OPTYPE_x , cpu_AMD64, "fnsub231ss", 0, 0, 0)
+
 tbl32_660F38[0xdc] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_dq | OP_W, ADDRMETH_H | OPTYPE_dq | OP_R, ADDRMETH_W | OPTYPE_dq | OP_R, cpu_AMD64, "aesenc", 0, 0, 0)  # only in 66 table?!
 tbl32_660F38[0xdd] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_dq | OP_W, ADDRMETH_H | OPTYPE_dq | OP_R, ADDRMETH_W | OPTYPE_dq | OP_R, cpu_AMD64, "aesenclast", 0, 0, 0)  # only in 66 table?!
 tbl32_660F38[0xde] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_dq | OP_W, ADDRMETH_H | OPTYPE_dq | OP_R, ADDRMETH_W | OPTYPE_dq | OP_R, cpu_AMD64, "aesdec", 0, 0, 0)  # only in 66 table?!
@@ -1209,9 +1297,10 @@ tbl32_0F73[2] =     ( 0, INS_OTHER, ADDRMETH_N | OPTYPE_q | OP_W, ADDRMETH_I | O
 tbl32_0F73[6] =     ( 0, INS_OTHER, ADDRMETH_N | OPTYPE_q | OP_W, ADDRMETH_I | OPTYPE_b | OP_R, ARG_NONE, cpu_PENTMMX, "psllq", 0, 0, 0)
 
 tbl32_660F73 =  [ ( 0, 0, 0, 0, 0, 0, 0, 0, 0, 0) for x in range(8) ] 
-tbl32_660F73[2] =   ( 0, INS_OTHER, ADDRMETH_V | OPTYPE_dq | OP_W, ADDRMETH_I | OPTYPE_b | OP_R, ARG_NONE, cpu_PENTMMX, "psrlq", 0, 0, 0)
-tbl32_660F73[6] =   ( 0, INS_OTHER, ADDRMETH_V | OPTYPE_dq | OP_W, ADDRMETH_I | OPTYPE_b | OP_R, ARG_NONE, cpu_PENTMMX, "psllq", 0, 0, 0)
-tbl32_660F73[7] =   ( 0, INS_OTHER, ADDRMETH_V | OPTYPE_dq | OP_W, ADDRMETH_I | OPTYPE_b | OP_R, ARG_NONE, cpu_PENTMMX, "psldq", 0, 0, 0)
+tbl32_660F73[2] =   ( 0, INS_OTHER, ADDRMETH_H | OPTYPE_x  | OP_W, ADDRMETH_U | OPTYPE_x | OP_R, ADDRMETH_I | OPTYPE_b | OP_R, cpu_PENTMMX, "vpsrlq", 0, 0, 0)
+tbl32_660F73[3] =   ( 0, INS_OTHER, ADDRMETH_H | OPTYPE_x  | OP_W, ADDRMETH_U | OPTYPE_x | OP_R, ADDRMETH_I | OPTYPE_b | OP_R, cpu_PENTMMX, "vpsrdq", 0, 0, 0)
+tbl32_660F73[6] =   ( 0, INS_OTHER, ADDRMETH_H | OPTYPE_x  | OP_W, ADDRMETH_U | OPTYPE_x | OP_R, ADDRMETH_I | OPTYPE_b | OP_R, cpu_PENTMMX, "vpsllq", 0, 0, 0)
+tbl32_660F73[7] =   ( 0, INS_OTHER, ADDRMETH_H | OPTYPE_x  | OP_W, ADDRMETH_U | OPTYPE_x | OP_R, ADDRMETH_I | OPTYPE_b | OP_R, cpu_PENTMMX, "vpsldq", 0, 0, 0)
 
 desc_0F73           = (tbl32_0F73,3,3,0x07,0,0xff)
 desc_660F73         = (tbl32_660F73,3,3,0x07,0,0xff)
