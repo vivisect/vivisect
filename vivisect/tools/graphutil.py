@@ -698,7 +698,7 @@ class PathGenerator:
         '''
         self.__go__ = False
 
-    def getFuncCbRoutedPaths_genback(self, fromva, tova, loopcnt=0, maxpath=None, maxsec=None):
+    def getFuncCbRoutedPaths_genback(self, fromva, tova, loopcnt=0, maxpath=None, timeout=None):
         '''
         Yields all the paths through the hierarchical graph starting at the 
         "root nodes" and ending at tocbva.  Specify a loopcnt to allow loop 
@@ -722,9 +722,12 @@ class PathGenerator:
 
         todo = [(tocbva,pnode), ]
 
-        starttime = time.time()
+        maxtime = None
+        if timeout:
+                maxtime = time.time() + timeout
+
         while todo:
-            if maxsec and (time.time() - starttime > maxsec):
+            if maxtime and time.time() > maxtime:
                 raise PathForceQuitException()
 
             if not self.__go__:
@@ -765,7 +768,7 @@ class PathGenerator:
 
         self.__go__ = False
 
-    def getFuncCbRoutedPaths(self, fromva, tova, loopcnt=0, maxpath=None, maxsec=None):
+    def getFuncCbRoutedPaths(self, fromva, tova, loopcnt=0, maxpath=None, timeout=None):
         '''
         Yields all the paths through the hierarchical graph starting at the 
         "root nodes" and ending at tocbva.  Specify a loopcnt to allow loop 
@@ -789,9 +792,12 @@ class PathGenerator:
 
         todo = [(frcbva, pnode), ]
 
-        starttime = time.time()
+        maxtime = None
+        if timeout:
+            maxtime = time.time() + timeout
+
         while todo:
-            if maxsec and (time.time() - starttime > maxsec):
+            if maxtime and time.time() > maxtime:
                 raise PathForceQuitException()
 
             if not self.__go__:
