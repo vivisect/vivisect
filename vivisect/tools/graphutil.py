@@ -687,6 +687,15 @@ class PathForceQuitException(Exception):
 eventually, routing will include the ability to 'source-route', picking N specific points a path must go through
 '''
 class PathGenerator:
+    '''
+    PathGenerator provides routed paths using yield generators, with some external 
+    control.  Because these generators are typically layered with other API's 
+    (ie. Symboliks subsystem calls) on top, PathGenerator provides a timeout and 
+    some external control.
+
+    PathGenerator should be used one per thread, not shared between threads.  The stop() 
+    method is good for use by a single management thread.
+    '''
 
     def __init__(self, graph):
         self.graph = graph
@@ -724,7 +733,7 @@ class PathGenerator:
 
         maxtime = None
         if timeout:
-                maxtime = time.time() + timeout
+            maxtime = time.time() + timeout
 
         while todo:
             if maxtime and time.time() > maxtime:
@@ -790,7 +799,7 @@ class PathGenerator:
         
         pnode = vg_pathcore.newPathNode(nid=frcbva, eid=None)
 
-        todo = [(frcbva, pnode), ]
+        todo = [(frcbva,pnode), ]
 
         maxtime = None
         if timeout:
