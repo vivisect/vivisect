@@ -1968,34 +1968,36 @@ def genTestsObjdump(abytez, tbytez):
     import subprocess
     from subprocess import PIPE
 
-    file('/tmp/armbytez', 'wb').write(''.join(abytez))
-    proc = subprocess.Popen(['/usr/bin/arm-linux-gnueabi-objdump', '-D','/tmp/armbytez', '-b', 'binary', '-m', 'arm'], stdin=PIPE, stdout=PIPE, stderr=PIPE)
-    data = proc.stdout.readlines()
-    data = [x.strip() for x in data]
-    data = [x.split('\t') for x in data]
-    for parts in data:
-        if len(parts) < 4:
-            print parts
-            continue
-        ova, bytez, op, opers = parts[:4]
-        ova = ova[:-1]
-        bytez = bytez[6:8] + bytez[4:6] + bytez[2:4] + bytez[:2]
-        yield ("        (REV_ALL_ARM, '%s', 0x%s, '%s %s', 0, ())," % (bytez, ova, op, opers))
+    if len(abytes:
+        file('/tmp/armbytez', 'wb').write(''.join(abytez))
+        proc = subprocess.Popen(['/usr/bin/arm-linux-gnueabi-objdump', '-D','/tmp/armbytez', '-b', 'binary', '-m', 'arm'], stdin=PIPE, stdout=PIPE, stderr=PIPE)
+        data = proc.stdout.readlines()
+        data = [x.strip() for x in data]
+        data = [x.split('\t') for x in data]
+        for parts in data:
+            if len(parts) < 4:
+                print parts
+                continue
+            ova, bytez, op, opers = parts[:4]
+            ova = ova[:-1]
+            bytez = bytez[6:8] + bytez[4:6] + bytez[2:4] + bytez[:2]
+            yield ("        (REV_ALL_ARM, '%s', 0x%s, '%s %s', 0, ())," % (bytez, ova, op, opers))
 
 
-    file('/tmp/thmbytez', 'wb').write(''.join(tbytez))
-    proc = subprocess.Popen(['/usr/bin/arm-linux-gnueabi-objdump', '-D','/tmp/thmbytez', '-b', 'binary', '-m', 'arm', '-M', 'force-thumb'], stdin=PIPE, stdout=PIPE, stderr=PIPE)
-    data = proc.stdout.readlines()
-    data = [x.strip() for x in data]
-    data = [x.split('\t') for x in data]
-    for parts in data:
-        if len(parts) < 4:
-            print parts
-            continue
-        ova, bytez, op, opers = parts[:4]
-        ova = ova[:-1]
-        bytez = bytez[6:8] + bytez[4:6] + bytez[2:4] + bytez[:2]
-        yield ("        (REV_ALL_ARM, '%s', 0x%s, '%s %s', 0, ())," % (bytez, ova, op, opers))
+    if len(tbytes):
+        file('/tmp/thmbytez', 'wb').write(''.join(tbytez))
+        proc = subprocess.Popen(['/usr/bin/arm-linux-gnueabi-objdump', '-D','/tmp/thmbytez', '-b', 'binary', '-m', 'arm', '-M', 'force-thumb'], stdin=PIPE, stdout=PIPE, stderr=PIPE)
+        data = proc.stdout.readlines()
+        data = [x.strip() for x in data]
+        data = [x.split('\t') for x in data]
+        for parts in data:
+            if len(parts) < 4:
+                print parts
+                continue
+            ova, bytez, op, opers = parts[:4]
+            ova = ova[:-1]
+            bytez = bytez[6:8] + bytez[4:6] + bytez[2:4] + bytez[:2]
+            yield ("        (REV_ALL_ARM, '%s', 0x%s, '%s %s', 0, ())," % (bytez, ova, op, opers))
 
 
 def genAdvSIMDtestBytez():
