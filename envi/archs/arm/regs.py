@@ -94,6 +94,8 @@ for simdreg in range(VFP_QWORD_REG_COUNT):
     arm_metas.append(("d%d" % (d),   simd_idx, 0, 64))
     arm_metas.append(("d%d" % (d+1), simd_idx, 32, 64))
 
+REG_FPSCR = len(reg_data)
+reg_data.append(('fpscr', 32))
 
 l = locals()
 e_reg.addLocalEnums(l, arm_regs)
