@@ -4,3 +4,4 @@
 *.py~
 .hg*
 .idea
+.DS_Store
