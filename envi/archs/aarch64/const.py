@@ -64,24 +64,118 @@ ARCH_REVS['thumb'] = REV_THUMB2
 ARCH_REVS['thumbee'] = REV_THUMBEE
 ARCH_REVSLEN = len(ARCH_REVS)
 
-iencs = (\
-    'IENC_DATA_PROC',
-    'IENC_DATA_SIMD',
-    'IENC_BRANCH_EXC',
-    'IENC_PC_ADDR',
-    'IENC_ADD_SUB',
-    'IENC_LOG_IMM',
-    'IENC_MOVE_WIDE',
-    'IENC_BITFIELD',
-    'IENC_EXTRACT'
-    'IENC_UNDEF'
-)
-
-IENC_MAX = len(iencs)
-
 # The supported types of operand shifts (by the 2 bit field)
 S_LSL = 0
 S_LSR = 1
 S_ASR = 2
 S_ROR = 3
 S_RRX = 4 # FIXME HACK XXX add this
+
+iencs = (\
+    'IENC_DATA_SIMD',
+    'IENC_LS_EXCL',
+    'IENC_LS_NAPAIR_OFFSET',
+    'IENC_LS_REGPAIR_POSTI',
+    'IENC_LS_REGPAIR_OFFSET',
+    'IENC_LS_REGPAIR_PREI',
+    'IENC_LOG_SHFT_REG',
+    'IENC_ADDSUB_SHFT_REG',
+    'IENC_ADDSUB_EXT_REG',
+    'IENC_SIMD_LS_MULTISTRUCT',
+    'IENC_SIMD_LS_MULTISTRUCT_POSTI',
+    'IENC_SIMD_LS_ONESTRUCT',
+    'IENC_SIMD_LS_ONESTRUCT_POSTI',
+    'IENC_PC_ADDR',
+    'IENC_ADDSUB_IMM',
+    'IENC_LOG_IMM',
+    'IENC_MOV_WIDE_IMM',
+    'IENC_BITFIELD',
+    'IENC_EXTRACT',
+    'IENC_CMP_BRANCH_IMM',
+    'IENC_BRANCH_UNCOND_IMM',
+    'IENC_BRANCH_COND_IMM',
+    'IENC_EXCP_GEN',
+    'IENC_SYS',
+    'IENC_TEST_BRANCH_IMM',
+    'IENC_BRANCH_UNCOND_REG',
+    'IENC_LOAD_REG_LIT',
+    'IENC_LS_REG_US_IMM',
+    'IENC_LS_REG_UNSC_IMM',
+    'IENC_LS_REG_UNPRIV',
+    'IENC_LS_REG_IMM_PREI'
+    'IENC_LS_REG_OFFSET',
+    'IENC_ADDSUB_CARRY',
+    'IENC_COND_CMP_REG',
+    'IENC_COND_CMP_IMM',
+    'IENC_COND_SEL',
+    'IENC_DATA_PROC_3',
+    'IENC_DATA_PROC_2',
+    'IENC_DATA_PROC_1',
+    'IENC_UNDEF'
+)
+
+IENC_MAX = len(iencs)
+
+instrnames = [
+    'ADR'
+    'ADRP'
+    'ADD'
+    'ADDS'
+    'SUB'
+    'SUBS'
+    'AND'
+    'ORR'
+    'EOR'
+    'ANDS'
+    'MOVN'
+    'MOVZ'
+    'MOVK'
+    'SBFM'
+    'BFM'
+    'UBFM'
+    'EXTR'
+    'B'
+    'BL'
+    'SBC'
+    'HVC'
+    'SMC'
+    'BRK'
+    'HLT'
+    'DCPS1'
+    'DCPS2'
+    'DCPS3'
+    'MSRI'
+    'HINT'
+    'CLREX'
+    'DSB'
+    'DMB'
+    'ISB'
+    'SYS'
+    'MSR'
+    'SYSL'
+    'MRS'
+    'BR'
+    'BLR'
+    'RET'
+    'ERET'
+    'DRPS'
+    'STXRB'
+    'STLXRB'
+    'LDXRB'
+    'LDAXRB'
+    'STLRB'
+    'LDARB'
+    'STXRH'
+    'STLXRH'
+    'LDXRH'
+    'LDAXRH'
+    'STLRH'
+    'LDARH'
+]
+
+ins_index = 85
+for instr in instrnames:
+    globals()['INS_' + instr] = ins_index
+    ins_index += 1
+
+
