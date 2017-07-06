@@ -1,6 +1,15 @@
+'''
+A disasm file for the AArch64 Architecture, ARMv8.
+'''
+
+from envi.archs.aarch64.const import *
+from envi.archs.aarch64.regs import *
+
+#-----------------------------data-----------------------------------------|
+
 
 #Init table to help us find encfam. Either returns an enc, or a mask-val table with an enc
-inittable = [
+inittable = (
     ( None, None ), #0
     ( None, None ), #1
     ( None, None ), #2
@@ -17,29 +26,28 @@ inittable = [
     ( None, s_d_table ), #d
     ( None, s_ce_table ), #e
     (IENC_DATA_SIMD, None) #f
-]
+)
 
 '''
 All the various tables inittable references
 '''
-s_4_table = [
+s_4_table = (
     (0b00100001000000000000000000000000, 0b00000000000000000000000000000000, IENC_LS_EXCL),
     (0b00100001100000000000000000000000, 0b00100000000000000000000000000000, IENC_LS_NAPAIR_OFFSET),
     (0b00100001100000000000000000000000, 0b00100000100000000000000000000000, IENC_LS_REGPAIR_POSTI),
     (0b00100001100000000000000000000000, 0b00100001000000000000000000000000, IENC_LS_REGPAIR_OFFSET),
     (0b00100001100000000000000000000000, 0b00100001100000000000000000000000, IENC_LS_REGPAIR_PREI),
     (0,0,IENC_UNDEF)#catch-all
-]
+)
 
-s_5_table = [
+s_5_table = (
     (0b00000001000000000000000000000000, 0b00000000000000000000000000000000, IENC_LOG_SHFT_REG),
     (0b00000001001000000000000000000000, 0b00000001000000000000000000000000, IENC_ADDSUB_SHFT_REG),
     (0b00000001001000000000000000000000, 0b00000001001000000000000000000000, IENC_ADDSUB_EXT_REG),
     (0,0, IENC_UNDEF)#catch-all
-    
-]
+)
 
-s_6_table = [
+s_6_table = (
     (0b10100001101111110000000000000000, 0b00000000000000000000000000000000, IENC_SIMD_LS_MULTISTRUCT)
     (0b10100001101000000000000000000000, 0b00000000100000000000000000000000, IENC_SIMD_LS_MULTISTRUCT_POSTI),
     (0b10100001100111110000000000000000, 0b00000000000000000000000000000000, IENC_SIMD_LS_ONESTRUCT),
@@ -49,39 +57,39 @@ s_6_table = [
     (0b00100001100000000000000000000000, 0b00100001000000000000000000000000, IENC_LS_REGPAIR_OFFSET),
     (0b00100001100000000000000000000000, 0b00100001100000000000000000000000, IENC_LS_REGPAIR_PREI),
     (0,0,IENC_UNDEF) #catch-all
-]
+)
 
-s_8_table = [
+s_8_table = (
     (0b00000011000000000000000000000000, 0b00000000000000000000000000000000, IENC_PC_ADDR),
     (0b00000011000000000000000000000000, 0b00000001000000000000000000000000, IENC_ADDSUB),
     (0,0,IENC_UNDEF) #catch-all
-]
+)
 
-s_9_table = [
+s_9_table = (
     (0b00000011100000000000000000000000, 0b00000010000000000000000000000000, IENC_LOG_IMM),
     (0b00000011100000000000000000000000, 0b00000010100000000000000000000000, IENC_MOV_WIDE),
     (0b00000011100000000000000000000000, 0b00000011000000000000000000000000, IENC_BITFIELD),
     (0b00000011100000000000000000000000, 0b00000011100000000000000000000000, IENC_EXTRACT),
     (0,0,IENC_UNDEF)#catch-all
-]
+)
 
-s_a_table = [
+s_a_table = (
     (0b01100000000000000000000000000000, 0b00100000000000000000000000000000, IENC_CMP_BRANCH_IMM),
     (0b01100000000000000000000000000000, 0b00000000000000000000000000000000, IENC_BRANCH_UNCOND_IMM),
     (0b11100000000000000000000000000000, 0b01000000000000000000000000000000, IENC_BRANCH_COND_IMM),
     (0b11100001000000000000000000000000, 0b11000000000000000000000000000000, IENC_EXCP_GEN),
     (0b11100001110000000000000000000000, 0b11000001000000000000000000000000, IENC_SYS)
     (0,0,IENC_UNDEF)#catch-all
-]
+)
 
-s_b_table = [
+s_b_table = (
     (0b01100000000000000000000000000000, 0b00100000000000000000000000000000, IENC_TEST_BRANCH_IMM),
     (0b11100000000000000000000000000000, 0b11000000000000000000000000000000, IENC_BRANCH_UNCOND_REG),
     (0b01100000000000000000000000000000, 0b00000000000000000000000000000000, IENC_BRANCH_UNCOND_IMM),
     (0,0,IENC_UNDEF)#catch-all
-]
+)
 
-s_ce_table = [
+s_ce_table = (
     (0b00100001000000000000000000000000, 0b00000000000000000000000000000000, IENC_LOAD_REG_LIT),
     (0b00100001000000000000000000000000, 0b00100001000000000000000000000000, IENC_LS_REG_US_IMM),
     (0b00100001001000000000110000000000, 0b00100000000000000000000000000000, IENC_LS_REG_UNSC_IMM),
@@ -90,9 +98,9 @@ s_ce_table = [
     (0b00100001001000000000110000000000, 0b00100000000000000000110000000000, IENC_LS_REG_IMM_PREI),
     (0b00100001001000000000110000000000, 0b00100000001000000000100000000000, IENC_LS_REG_OFFSET),
     (0,0,IENC_UNDEF)#catch-all
-]
+)
 
-s_d_table = [
+s_d_table = (
     (0b00000001111000000000000000000000, 0b00000000000000000000000000000000, IENC_ADDSUB_CARRY),
     (0b00000001111000000000100000000000, 0b00000000010000000000000000000000, IENC_COND_CMP_REG),
     (0b00000001111000000000100000000000, 0b00000000010000000000100000000000, IENC_COND_CMP_IMM),
@@ -101,7 +109,7 @@ s_d_table = [
     (0b01000001111000000000000000000000, 0b00000000110000000000000000000000, IENC_DATA_PROC_2),
     (0b01000001111000000000000000000000, 0b01000000110000000000000000000000, IENC_DATA_PROC_1),
     (0,0,IENC_UNDEF)#catch-all
-]
+)
 
 
 '''
@@ -112,9 +120,9 @@ ienc_parsers_tmp = [None for x in range(IENC_MAX)]
 ienc_parsers_tmp[IENC_DATA_SIMD] = p_data_simd
 ienc_parsers_tmp[IENC_LS_EXCL] = p_ls_excl
 ienc_parsers_tmp[IENC_LS_NAPAIR_OFFSET] = p_ls_napair_offset
-ienc_parsers_tmp[IENC_LS_REGPAIR_POSTI] = p_ls_regpair_posti
-ienc_parsers_tmp[IENC_LS_REGPAIR_OFFSET] = p_ls_regpair_offset
-ienc_parsers_tmp[IENC_LS_REGPAIR_PREI] = p_ls_regpair_prei
+ienc_parsers_tmp[IENC_LS_REGPAIR_POSTI] = p_ls_regpair
+ienc_parsers_tmp[IENC_LS_REGPAIR_OFFSET] = p_ls_regpair
+ienc_parsers_tmp[IENC_LS_REGPAIR_PREI] = p_ls_regpair
 ienc_parsers_tmp[IENC_LOG_SHFT_REG] = p_log_shft_reg
 ienc_parsers_tmp[IENC_ADDSUB_SHFT_REG] = p_addsub_shft_reg
 ienc_parsers_tmp[IENC_ADDSUB_EXT_REG] = p_addsub_ext_reg
@@ -138,8 +146,9 @@ ienc_parsers_tmp[IENC_BRANCH_UNCOND_REG] = p_branch_uncond_reg
 ienc_parsers_tmp[IENC_LOAD_REG_LIT] = p_load_reg_lit
 ienc_parsers_tmp[IENC_LS_REG_US_IMM] = p_ls_reg_us_imm
 ienc_parsers_tmp[IENC_LS_REG_UNSC_IMM] = p_ls_reg_unsc_imm
+ienc_parsers_tmp[IENC_LS_REG_IMM_POSTI] = p_ls_reg_imm
 ienc_parsers_tmp[IENC_LS_REG_UNPRIV] = p_ls_reg_unpriv
-ienc_parsers_tmp[IENC_LS_REG_IMM_PREI] = p_ls_reg_imm_prei
+ienc_parsers_tmp[IENC_LS_REG_IMM_PREI] = p_ls_reg_imm
 ienc_parsers_tmp[IENC_LS_REG_OFFSET] = p_ls_reg_offset
 ienc_parsers_tmp[IENC_ADDSUB_CARRY] = p_addsub_carry
 ienc_parsers_tmp[IENC_COND_CMP_REG] = p_cond_cmp_reg
@@ -153,6 +162,9 @@ ienc_parsers_tmp[IENC_UNDEF] = p_undef
 ienc_parsers = tuple(ienc_parsers_tmp)
 
 
+#--------------------instruction parsing functions----------------------------|
+
+
 def p_pc_addr(opval,va):
     '''
     Get the A64Opcode parameters for a PC release address instruction
@@ -161,45 +173,57 @@ def p_pc_addr(opval,va):
     rd = opval & 0xf
     immhi = opval >> 5 & 0x3ffff
     immlo = opval >> 29 & 0x3
+    mnem = 'adr'
+    opcode = INS_ADR
+    olist = (
+        A64RegOper(rd, va=va, size=64),
+        A64ImmOper((immhi + immlo), va=va)
+    )
     if op == 1:
-        mnem = 'adrp'
-        opcode = INS_ADRP
-        olist = [
-            A64RegOper(rd, va),
-            A64ImmOper((immhi + immlo)*0x1000, 0, S_LSL, va)
-        ]
+        iflag = IF_P
     else:
-        mnem = 'adr'
-        opcode = INS_ADR
-        olist = [
-            A64RegOper(rd, va=va),
-            A64ImmOper((immhi + immlo), 0, S_LSL, va)
-        ]
+        iflag = 0
 
-    return opcode, mnem, olist, 0, 0
+    return opcode, mnem, olist, iflag, 0
 
 def p_addsub_imm(opval, va):
     '''
     Get the A64Opcode parameters for an Add/Subtract (immediate) instruction
     '''
-    cond = opval >> 29
-    mnem, opcode = addsub_table[cond]
+    sf = opval >> 31 & 0x1
+    op = opval >> 30 & 0x1
+    S = opval >> 29 & 0x1
     shift = opval >> 22 & 0x3
     rn = opval >> 5 & 0x1f
     rd = opval & 0x1f
     imm = opval >> 10 & 0xfff
-    if shift == 0x00:
-        olist = [
-            A64RegOper(rd, va=va),
-            A64RegOper(rn, va=va),
-            A64ImmOper(imm, 0, S_LSL, va)
-        ]
-    elif shift == 0x01:
-        olist = [
-            A64RegOper(rd, va=va),
-            A64RegOper(rn, va=va),
-            A64ImmOper(imm, 12, S_LSL, va)
-        ]
+    if op == 0b0:
+        mnem = 'add'
+        opcode = INS_ADD
+    else:
+        mnem = 'sub'
+        opcode = INS_SUB
+    if S == 0b0:
+        iflag = 0
+    else:
+        iflag = IF_PSR_S       
+    if shift == 0b00:
+        shiftX = 0
+    elif shift == 0b01:
+        shiftX = 12
+    if sf == 0b0:
+        olist = (
+            A64RegOper(rd, va=va, size=32),
+            A64RegOper(rn, va=va, size=32),
+            A64ImmOper(imm, shiftX, S_LSL, va)
+        )
+    else:
+        olist = (
+            A64RegOper(rd, va=va, size=64),
+            A64RegOper(rn, va=va, size=64),
+            A64ImmOper(imm, shiftX, S_LSL, va)
+        )
+
     else:
         raise envi.InvalidInstruction(
             mesg="p_undef: invalid instruction (by definition in ARM spec)",
@@ -210,18 +234,7 @@ def p_addsub_imm(opval, va):
             A64ImmOper(opval)
         )
         
-    return opcode, mnem, olist, 0, 0
-
-addsub_imm_table = [
-    ('add', INS_ADD),
-    ('adds', INS_ADDS),
-    ('sub', INS_SUB),
-    ('subs', INS_SUBS),
-    ('add', INS_ADD),
-    ('adds', INS_ADDS),
-    ('sub', INS_SUB),
-    ('subs', INS_SUBS)
-]
+    return opcode, mnem, olist, iflag, 0
 
 def p_log_imm(opval, va):
     '''
@@ -235,7 +248,7 @@ def p_log_imm(opval, va):
     rn = opval >> 5 & 0x1f
     rd = opval & 0x1f
 
-    flags = 0
+    iflags = 0
     
     if opc == 0x00:
         mnem = 'and'
@@ -247,18 +260,24 @@ def p_log_imm(opval, va):
         mnem = 'eor'
         opcode = INS_EOR
     else:
-        mnem = 'ands'
-        opcode = INS_ANDS
-        #FIXME flags
-
-    olist = [
-        A64RegOper(rn, va),
-        A64RegOper(rd, va),
-        A64ImmOper((N + imms + immr), 0, S_LSL, va)
+        mnem = 'and'
+        opcode = INS_AND
+        iflags = IF_PSR_S
         
-    ]
+    if sf == 0b0 && N == 0b0:
+        olist = (
+            A64RegOper(rn, va, size=32),
+            A64RegOper(rd, va, size=32),
+            A64ImmOper((N + imms + immr), 0, S_LSL, va),
+        )
+    elif sf == 0b1:
+        olist = (
+            A64RegOper(rn, va, size=64),
+            A64RegOper(rd, va, size=64),
+            A64ImmOper((N + imms + immr), 0, S_LSL, va),
+        )        
 
-    return opcode, mnem, olist, flags, 0
+    return opcode, mnem, olist, iflags, 0
 
 def p_mov_wide_imm(opval, va):
     '''
@@ -270,20 +289,24 @@ def p_mov_wide_imm(opval, va):
     imm16 = opval >> 5 & 0xffff
     rd = opval & 0x1f
 
-    olist = [
-        A64RegOper(rd, va),
-        A64ImmOper(imm16, hw*0xf, S_LSL, va)
-    ]
-
+    if sf == 0b0:
+        olist = (
+            A64RegOper(rd, va, size=32),
+            A64ImmOper(imm16, hw*0b10000, S_LSL, va),
+        )
+    else:
+        olist = (
+            A64RegOper(rd, va, size=64),
+            A64ImmOper(imm16, hw*0b10000, S_LSL, va),
+        )        
+    mnem = 'mov'
+    opcode = INS_MOV
     if opc == 0x00:
-        mnem = 'movn'
-        opcode = INS_MOVN
+        iflag = IF_N
     elif opc == 0x10:
-        mnem = 'movz'
-        opcode = INS_MOVZ
+        iflag = IF_Z
     elif opc == 0x11:
-        mnem = 'movk'
-        opcode = INS_MOVK
+        iflag = IF_K
     else:
         raise envi.InvalidInstruction(
             mesg="p_undef: invalid instruction (by definition in ARM spec)",
@@ -291,11 +314,13 @@ def p_mov_wide_imm(opval, va):
         opcode = IENC_UNDEF
         mnem = "undefined instruction"
         olist = (
-            A64ImmOper(opval)
+            A64ImmOper(opval),
         )        
 
     return opcode, mnem, olist, 0,0
 
+
+#flags before mnemonic?
 def p_bitfield(opval, va):
     '''
     Get the parameters for an A64Opcode for a bitfield instruction
@@ -307,33 +332,42 @@ def p_bitfield(opval, va):
     imms = opval >> 10 & 0x3f
     rn = opval >> 5 & 0x1f
     rd = opval >> 5 & 0x1f
-    olist = [
-        A64ImmOper(opval)
-    ]
+    olist = (
+        A64ImmOper(opval),
+    )
     mnem, opcode, flags = bitfield_table[opc]
     if opcode != IENC_UNDEF:
-        olist = [
-            A64RegOper(rd, va),
-            A64RegOper(rn, va),
-            A64ImmOper(immr, 0, S_LSL, va),
-            A64ImmOper(imms, 0, S_LSL, va)
-        ]
+        if sf == 0b0 && N == 0b0:
+            olist = (
+                A64RegOper(rd, va, size=32),
+                A64RegOper(rn, va. size=32),
+                A64ImmOper(immr, va=va),
+                A64ImmOper(imms, va=va),
+            )
+        elif sf == 0b1 && N == 0b1:
+            olist = (
+                A64RegOper(rd, va, size=64),
+                A64RegOper(rn, va, size=64),
+                A64ImmOper(immr, va=va),
+                A64ImmOper(imms, va=va),
+            )    
 
     return opcode, mnem, olist, flags, 0
 
 
-bitfield_table = [
+bitfield_table = (
     ('sbfm', INS_SBFM, (1,1)),
     ('bfm', INS_BFM, (0,0)),
     ('ubfm', INS_UBFM, (1,0))
-    ('undefined instruction', IENC_UNDEF, (0,0))
-]
+    ('undefined instruction', IENC_UNDEF, 0)
+)
 
 def p_extract(opval, va):
     '''
     Get the parameters for an A64Opcode for a extract instruction
     '''
     sf = opval >> 31
+    N = opval >> 22 & 0x1
     rm = opval >> 16 & 0x1f
     imms = opval >> 10 & 0x3f
     rn = opval >> 5 & 0x1f
@@ -341,12 +375,20 @@ def p_extract(opval, va):
 
     mnem = 'extr'
     opcode = INS_EXTR
-    olist = [
-        A64RegOper(rd, va),
-        A64RegOper(rn, va),
-        A64RegOper(rm, va),
-        A64ImmOper(imms, 0, S_LSL, va)
-    ]
+    if sf == 0b0 && N == 0b0 && imms & 0x100000 == 0x000000:
+        olist = (
+            A64RegOper(rd, va, size=32),
+            A64RegOper(rn, va, size=32),
+            A64RegOper(rm, va, size=32),
+            A64ImmOper(imms, 0, S_LSL, va),
+        )
+    elif sf == 0b0 && N == 0b1:
+        olist = (
+            A64RegOper(rd, va, size=64),
+            A64RegOper(rn, va, size=64),
+            A64RegOper(rm, va, size=64),
+            A64ImmOper(imms, 0, S_LSL, va),
+        )
 
     return opcode, mnem, olist, 0, 0
 
@@ -356,18 +398,18 @@ def p_branch_uncond_imm(opval, va):
     '''
     op = opval >> 31
     imm26 = opval & 0x3ffffffff
+    mnem = 'b'
+    opcode = INS_B
     if op == 0:
-        mnem = 'b'
-        opcode = INS_B
+        iflag = 0
     else:
-        mnem = 'bl'
-        opcode = INS_BL
+        iflag = IF_L
 
-    olist = [
-        A64ImmOper(imm26*0x100, 0, S_LSL, va)
-    ]
+    olist = (
+        A64ImmOper(imm26*0x100, va=va),
+    )
 
-    return opcode, mnem, olist, 0, 0
+    return opcode, mnem, olist, iflag, 0
 
 def p_cmp_branch_imm(opval, va):
     '''
@@ -384,11 +426,16 @@ def p_cmp_branch_imm(opval, va):
     else:
         mnem = 'cbnz'
         opcode = INS_CBNZ
-
-    olist = [
-        A64RegOper(rt, va),
-        A64ImmOper(imm19*0x100, 0, S_LSL, va)
-    ]
+    if sf == 0b0:
+        olist = (
+            A64RegOper(rt, va, size=32),
+            A64Imm32Oper(imm19*0b100, 0, S_LSL, va),
+        )
+    else:
+        olist = (
+            A64RegOper(rt, va, size=64),
+            A64ImmOper(imm19*0b100, 0, S_LSL, va),
+        )
 
     return opcode, mnem, olist, 0, 0
 
@@ -396,13 +443,13 @@ def p_test_branch_imm(opval, va):
     '''
     Test branch (immediate) instruction
     '''
-    #FIXME
+    pass #FIXME
 
 def p_branch_cond_imm(opval, va):
     '''
     Conditional branch (immediate) instruction
     '''
-    #FIXME
+    pass #FIXME
 
 def p_excp_gen(opval, va):
     '''
@@ -413,9 +460,9 @@ def p_excp_gen(opval, va):
     op2 = opval >> 2 & 0x7
     LL = opval & 0x3
 
-    olist = [
-        A64ImmOper(imm16, 0, S_LSL, va)
-    ]
+    olist = (
+        A64ImmOper(imm16, 0, S_LSL, va),
+    )
     
     if opc == 0x000:
         if LL == 0x01:
@@ -488,100 +535,100 @@ def p_sys(opval, va):
     if relevant & 0b1110001111000000011111 == 0b0000000100000000011111:
         opcode = INS_MSRI
         mnem = 'msr'
-        olist = [
+        olist = (
             #FIXME
-        ]
+        )
         #FIXME flags =
         #FIXME simdflags =
         
     elif relevant & 0b1111111111000000011111 == 0b00001100100000000011111:
         opcode = INS_HINT
         mnem = 'hint'
-        olist = [
+        olist = (
             A64ImmOper(crm + op2, 0, S_LSL, va)
-        ]
+        )
         flags = 0
         simdflags = 0
         
     elif relevant & 0b1111111111000011111111 == 0b00001100110000001011111:
         opcode = INS_CLREX
         mnem = 'clrex'
-        olist = [
+        olist = (
             A64ImmOper(crm, 0, S_LSL, va)
-        ]
+        )
         flags = 0
         simdflags = 0
 
     elif relevant & 0b1111111111000011111111 == 0b00001100110000010011111:
         opcode = INS_DSB
         mnem = 'dsb'
-        olist = [
+        olist = (
             #FIXME
-        ]
+        )
         #FIXME flags
         #FIXME simdflags
 
     elif relevant & 0b1111111111000011111111 == 0b00001100110000010111111:
         opcode = INS_DMB
         mnem = 'dmb'
-        olist = [
+        olist = (
             #FIXME
-        ]
+        )
         #FIXME flags
         #FIXME simdflags
 
     elif relevant & 0b1111111111000011111111 == 0b00001100110000011011111:
         opcode = INS_ISB
         mnem = 'isb'
-        olist = [
+        olist = (
             #FIXME
-        ]
+        )
         #FIXME flags
         #FIXME simdflags
 
     elif (L + op0) == 0x001:
         opcode = INS_SYS
         mnem = 'sys'
-        olist = [
+        olist = (
             A64ImmOper(op1, 0, S_LSL, va),
             #FIXME cn name oper?
             #FIXME cm name oper?
             A64ImmOper(0p2, 0, S_LSL, va),
-            A64RegOper(rt, va) #optional operand
-        ]
+            A64RegOper(rt, va, size=64) #optional operand
+        )
         flags = 0
         simdflags = 0
 
     elif (L + op0) & 0b110 == 0b010:
         opcode = INS_MSRR
         mnem = 'msr'
-        olist = [
-            A64RegOper(opval >> 5 & 0x7fff, va),
-            A64RegOper(rt, va)
-        ]
+        olist = (
+            #A64RegOper(opval >> 5 & 0x7fff, va), system register?
+            A64RegOper(rt, va, size=64)
+        )
         flags = 0
         simdflags = 0
 
     elif (L + op0) & 0b111 == 0b101:
         opcode = INS_SYSL
         mnem = 'sysl'
-        olist = [
-            A64RegOper(rt, va),
+        olist = (
+            A64RegOper(rt, va, size=64),
             A64ImmOper(op1, 0, S_LSL, va),
             #FIXME name oper?
             #FIXME name oper?
             A64ImmOper(op2, 0 S_LSL, va)
-        ]
+        )
         flags = 0
         simdflags = 0
 
     elif (L + op0) & 0b110 == 0b110:
         opcode = INS_MRS
         mnem = 'mrs'
-        olist = [
-            A64RegOper(rt, va),
-            A64RegOper(opval >> 5 & 0x7fff, va)
-        ]
+        olist = (
+            A64RegOper(rt, va, size=64),
+            #A64RegOper(opval >> 5 & 0x7fff, va) system register? see msrr
+        )
         flags = 0
         simdflags = 0
 
@@ -599,7 +646,7 @@ def p_sys(opval, va):
     
     return opcode, mnem, olist, flags, simdflags
 
-p_branch_uncond_reg(opval, va):
+def p_branch_uncond_reg(opval, va):
     '''
     Return A64Opcode parameters for an Unconditional Branch (register) instruction
     '''
@@ -609,32 +656,26 @@ p_branch_uncond_reg(opval, va):
     rn = opval >> 5 & 0x1f
     op4 = opval & 0x1f
     if op2 == 0b11111 && op3 == 0b000000 && op4 == 0b00000:
+        olist = (
+            A64RegOper(rn, va, size=64),
+        )
         if opc == 0b0000:
             opcode = INS_BR
             mnem = 'br'
-            olist = [
-                A64RegOper(rn, va)
-            ]
         elif opc == 0b0001:
             opcode = INS_BLR
             mnem = 'blr'
-            olist = [
-                A64RegOper(rn, va)
-            ]
         elif opc == 0b0010:
             opcode = INS_RET
             mnem = 'ret'
-            olist = [
-                A64RegOper(rn, va)
-            ]
         elif opc == 0b0100 && rn == 0b11111:
             opcode = INS_ERET
             mnem = 'eret'
-            olist = [] #NOT A FIXME, EMPTY LIST
+            olist = () #NOT A FIXME, EMPTY LIST
         elif opc == 0b0101 && rn == 0b11111:
             opcode = INS_DRPS
             mnem = 'drps'
-            olist = [] #NOT A FIXME
+            olist = () #NOT A FIXME
         else:
             raise envi.InvalidInstruction(
             mesg="p_undef: invalid instruction (by definition in ARM spec)",
@@ -642,7 +683,7 @@ p_branch_uncond_reg(opval, va):
                 opcode = IENC_UNDEF
                 mnem = "undefined instruction"
             olist = (
-                A64ImmOper(opval)
+                A64ImmOper(opval),
             )           
     else:
         raise envi.InvalidInstruction(
@@ -651,7 +692,7 @@ p_branch_uncond_reg(opval, va):
         opcode = IENC_UNDEF
         mnem = "undefined instruction"
         olist = (
-            A64ImmOper(opval)
+            A64ImmOper(opval),
         )
 
     return opcode, mnem, olist, 0,0   
@@ -670,85 +711,1161 @@ def p_ls_excl(opval, va):
     rn = opval >> 5 & 0x1f
     rt = opval & 0x1f
 
+    if L == 0b0:
+        mnem = 'st'
+        opcode = INS_ST
+        optional_iflag = IF_L
+    else:
+        mnem = 'ld'
+        opcode = INS_LD
+        optional_iflag = IF_A
+    if o0 == 0b1:
+        iflag |= optional_iflag
+    if o2 == 0b0:
+        iflag |= IF_X
+    if o1 == 0b0:
+        iflag |= IF_R
+    else:
+        iflag |= IF_P
+    if size == 0b00:
+        iflag |= IF_B
+    elif size == 0b01:
+        iflag |= IF_H
+    
     if size == 0b00 || size == 0b01:
         if o2 == 0b0:
+            o10 = o1 + o0
             if L == 0b0:
-                olist = [
-                    A64RegOper(rs, va),
-                    A64RegOper(rt, va),
-                    A64RegOper(rn, va) #FIXME 64-bit
-                ]
-                if (o1 + o0) == 0b00:
-                    opcode = INS_STXRB
-                    mnem = 'stxr'
-                elif (o1 + o0) == 0b01:
-                    opcode = INS_STLXRB
-                    mnem = 'stlxr'
+                olist = (
+                    A64RegOper(rs, va, size=32),
+                    A64RegOper(rt, va, size=32),
+                    A64RegOper(rn, va, size=64),
+                )
+            else: #L == 1
+                olist = (
+                    A64RegOper(rt, va, size=32),
+                    A64RegOper(rn, va, size=64),
+                )
+        else: #o2 == 1
+            Lo1o0 = L + o1 + o0
+            olist = (
+                A64RegOper(rt, va, size=32),
+                A64RegOper(rn, va, size=64),
+            )
+    else:  #size == 10 or 11
+        if o2 == 0b0:
+            if L == 0b0:
+                if o1 == 0b0:
+                    if size == 0b10:
+                        olist = (
+                            A64RegOper(rs, va, size=32),
+                            A64RegOper(rt, va, size=32),
+                            A64RegOper(rn, va, size=64),
+                        )
+                    else:
+                        olist = (
+                            A64RegOper(rs, va, size=32),
+                            A64RegOper(rt, va, size=64),
+                            A64RegOper(rn, va, size=64),
+                        )                        
                 else:
-                    raise envi.InvalidInstruction(
-                        mesg="p_undef: invalid instruction (by definition in ARM spec)",
-                        bytez=struct.pack("<I", opval), va=va)
-                    opcode = IENC_UNDEF
-                    mnem = "undefined instruction"
-                    olist = (
-                        A64ImmOper(opval),
-                    )
-                    return opcode, mnem, olist, 0,0
+                    if size == 0b10:
+                        olist = (
+                            A64RegOper(rs, va, size=32),
+                            A64RegOper(rt, va, size=32),
+                            A64RegOper(rt2, va, size=32),
+                            A64RegOper(rn, va, size=64),
+                        )
+                    else:
+                        olist = (
+                            A64RegOper(rs, va, size=32),
+                            A64RegOper(rt, va, size=64),
+                            A64RegOper(rt2, va, size=64),
+                            A64RegOper(rn, va, size=64),
+                        )                     
+            else: #L == 1
+                if o1 == 0b0:
+                    if size == 0b10:
+                        olist = (
+                            A64RegOper(rt, va, size=32),
+                            A64RegOper(rn, va, size=64),
+                        )
+                    else:
+                        olist = (
+                            A64RegOper(rt, va, size=64),
+                            A64RegOper(rn, va, size=64),
+                        ) 
+                else: #o1 == 1x0110
+                    if size == 0b10:
+                        olist = (
+                            A64RegOper(rt, va, size=32),
+                            A64RegOper(rt2, va, size=32),
+                            A64RegOper(rn, va, size=64),
+                        )
+                    else:
+                        olist = (
+                            A64RegOper(rt, va, size=64),
+                            A64RegOper(rt2, va, size=64),
+                            A64RegOper(rn, va, size=64),
+                        )                                       
+        else: #o2 == 1
+            if size = 0b10:
+                olist = (
+                    A64RegOper(rt, va, size=32),
+                    A64RegOper(rn, va, size=64),
+                )
             else:
-                olist = [
-                    A64RegOper(rt, va),
-                    A64RegOper(rn, va) #FIXME 64-bit
-                ]
-                if (o1 + o0) == 0b00:
-                    opcode = INS_LDXRB
-                    mnem = 'ldxr'
-                elif (o1 + o0) == 0b01:
-                    opcode = INS_LDAXRB
-                    mnem = 'ldaxr'
-                else:
-                    raise envi.InvalidInstruction(
-                        mesg="p_undef: invalid instruction (by definition in ARM spec)",
-                        bytez=struct.pack("<I", opval), va=va)
-                    opcode = IENC_UNDEF
-                    mnem = "undefined instruction"
-                    olist = (
-                        A64ImmOper(opval),
-                    )
-                    return opcode, mnem, olist, 0,0
+                olist = (
+                    A64RegOper(rt, va, size=64),
+                    A64RegOper(rn, va, size=64),
+                )
+
+    return opcode, mnem, olist, iflags, 0
+
+def p_load_reg_lit(opval, va):
+    '''
+    Load register (literal) instruction
+    '''
+    opc = opval >> 30 & 0x3
+    V = opval >> 26 & 0x1
+    imm19 = opval >> 5 & 0x7ffff
+    rt = opval & 0x1f
+    opcode = INS_LDR
+    mnem = 'ldr'
+    iflags = 0
+    if opc == 0b00:
+        olist = (
+            A64RegOper(rt, va, size=32)
+            A64ImmOper(imm19*0b100, 0, S_LSL, va),
+        )
+    elif opc == 0b01:
+        olist = (
+            A64RegOper(rt, va, size=64)
+            A64ImmOper(imm19*0b100, 0, S_LSL, va),
+        )
+    elif opc = 0b10:
+        if V == 0b0:
+            iflag = IF_SW
+            olist = (
+                A64RegOper(rt, va, size=64)
+                A64ImmOper(imm19*0b100, 0, S_LSL, va),
+            )
         else:
-            olist = [
-                A64RegOper(rt, va),
-                A64RegOper(rn, va) #FIXME 64-bit
-            ]
-            if (L + o1 + o0) == 0b001:
-                opcode = INS_STLRB
-                mnem = 'stlr'
-            elif (L + o1 + o0) == 0b101:
-                opcode = INS_LDARB
-                mnem = 'ldar'
+            olist = (
+                A64RegOper(rt, va size=128)
+                A64ImmOper(imm19*0b100, 0, S_LSL, va),
+            )
+    else:
+        if V == 0b0:
+            mnem = 'prfm'
+            opcode = INS_PRFM
+            olist = (
+                prfop[rt],
+                A64ImmOper(imm19*0b100, 0, S_LSL, va),
+            )
+        else:
+            raise envi.InvalidInstruction(
+                mesg="p_undef: invalid instruction (by definition in ARM spec)",
+                bytez=struct.pack("<I", opval), va=va)
+            opcode = IENC_UNDEF
+            mnem = "undefined instruction"
+            olist = (
+                A64ImmOper(opval),
+            )
+    return opcode, mnem, olist, 0, 0
+
+def p_ls_napair_offset(opval, va):
+    '''
+    Load/store no-allocate pair (offset)
+    '''
+    opc = opval >> 30 & 0x3
+    V = opval >> 26 & 0x1
+    L = opval >> 22 & 0x1
+    imm7 = opval >> 15 & 0x7f
+    rt2 = opval >> 10 & 0x1f
+    rn = opval >> 5 & 0x1f
+    rt = opval & 0x1f
+
+    if L == 0b0:
+        mnem = 'stnp'
+        opcode = INS_STNP
+    else:
+        mnem = 'ldnp'
+        opcode = INS_LDNP
+    if V == 0b1:
+        if opc == 0b00:
+            olist = (
+                A64RegOper(rt, va, size=32),
+                A64RegOper(rt2, va, size=32),
+                A64RegOper(rn, va, size=64),
+                A64ImmOper(imm7*0b100, 0, S_LSL, va),
+            )
+        elif opc == 0b01:
+            olist = (
+                A64RegOper(rt, va, size=64),
+                A64RegOper(rt2, va, size=64),
+                A64RegOper(rn, va, size=64),
+                A64ImmOper(imm7*0b1000, 0, S_LSL, va),
+            )
+        elif opc == 0b10:
+            olist = (
+                A64RegOper(rt, va, size=128),
+                A64RegOper(rt2, va, size=128),                
+                A64RegOper(rn, va, size=64),
+                A64ImmOper(imm7*0b10000, 0, S_LSL, va),
+            )
+        else:
+            raise envi.InvalidInstruction(
+                mesg="p_undef: invalid instruction (by definition in ARM spec)",
+                bytez=struct.pack("<I", opval), va=va)
+            opcode = IENC_UNDEF
+            mnem = "undefined instruction"
+            olist = (
+                A64ImmOper(opval),
+            )
+            
+    else:
+        if opc == 0b00:
+            olist = (
+                A64RegOper(rt, va, size=32),
+                A64RegOper(rt2, va, size=32),
+                A64ImmOper(imm7*0b100, 0, S_LSL, va),
+            )
+        elif opc == 0b10:
+            olist = (
+                A64RegOper(rt, va, size=64),
+                A64RegOper(rt2, va, size=64),
+                A64ImmOper(imm7*0b1000, 0, S_LSL, va),
+            )
+        else:
+            raise envi.InvalidInstruction(
+                mesg="p_undef: invalid instruction (by definition in ARM spec)",
+                bytez=struct.pack("<I", opval), va=va)
+            opcode = IENC_UNDEF
+            mnem = "undefined instruction"
+            olist = (
+                A64ImmOper(opval),
+            )
+    return opcode, mnem, olist, 0, 0
+
+
+def p_ls_regpair(opval, va):
+    '''
+    Load/store register pair (pre-indexed, post-indexed or offset)
+    '''
+    opc = opval >> 30 & 0x3
+    V = opval >> 26 & 0x1
+    L = opval >> 22 & 0x1
+    imm7 = opval >> 15 & 0x7f
+    rt2 = opval >> 10 & 0x1f
+    rn = opval >> 5 & 0x1f
+    rt = opval & 0x1f
+
+    VL = V + L
+    if opc == 0b00: #32-bit variant
+        mnem, opcode = ls_regpair_table[VL]
+        olist = (
+            A64RegOper(rt, va, size=32),
+            A64RegOper(rt2,va, size=32),
+            A64RegOper(rn, va, size=),
+            A64ImmOper(imm7*0b100),
+        )
+    elif opc == 0b01:
+        if VL == 0b00:
+            raise envi.InvalidInstruction(
+                mesg="p_undef: invalid instruction (by definition in ARM spec)",
+                bytez=struct.pack("<I", opval), va=va)
+            opcode = IENC_UNDEF
+            mnem = "undefined instruction"
+            olist = (
+                A64ImmOper(opval),
+            )           
+        elif VL == 0b01:
+            mnem = 'ldpsw'
+            opcode = INS_LDPSW
+            olist = (
+                A64RegOper(rt, va, size=64),
+                A64RegOper(rt2,va, size=64),
+                A64RegOper(rn, va, size=64),
+                A64ImmOper(imm7*0b100),
+            )
+        else:
+            mnem, opcode = ls_regpair_table[VL]
+            olist = (
+                A64RegOper(rt, va, size=64),
+                A64RegOper(rt2,va, size=64),
+                A64RegOper(rn, va, size=64),
+                A64ImmOper(imm7*0b1000),
+            )            
+    elif opc == 0b10:
+        mnem, opcode = ls_regpair_table[VL]
+        if V == 0b0:
+            olist = (
+                A64RegOper(rt, va, size=64),
+                A64RegOper(rt2,va, size=64),
+                A64RegOper(rn, va, size=64),
+                A64ImmOper(imm7*0b1000),
+            ) 
+        else:
+            olist = (
+                A64RegOper(rt, va, size=128),
+                A64RegOper(rt2, va, size=128),
+                A64RegOper(rn, va, size=64),
+                A64ImmOper(imm7*0b10000),
+            )
+    else:
+        raise envi.InvalidInstruction(
+            mesg="p_undef: invalid instruction (by definition in ARM spec)",
+            bytez=struct.pack("<I", opval), va=va)
+        opcode = IENC_UNDEF
+        mnem = "undefined instruction"
+        olist = (
+            A64ImmOper(opval),
+        )
+    
+
+
+ls_regpair_table = (
+    ('stp', INS_STP),
+    ('ldp', INS_LDP),
+    ('stp', INS_STP),
+    ('ldp', INS_LDP),    
+)
+
+
+def p_ls_reg_unsc_imm(opval, va):
+    '''
+    Load/store register (unscaled immediate)
+    '''
+    size = opval >> 30 & 0x3
+    V = opval >> 26 & 0x1
+    opc = opval >> 22 & 0x3
+    imm9 = opval >> 12 & 0x1ff
+    rn = opval >> 5 & 0x1f
+    rt = opval & 0x1f
+       
+    if opc == 0b00 || opc == 0b01:
+        if opc == 0b01:
+            opcode = INS_LDUR
+            mnem = 'ldur'
+        else:
+            opcode = INS_STUR
+            mnem = 'stur'
+        if V == 0b0:
+            if size == 0b11:
+                olist = (
+                    A64RegOper(rt, va, size=64),
+                    A64RegOper(rn, va, size=64),
+                    A64ImmOper(imm9, va=va),
+                )
             else:
-                raise envi.InvalidInstruction(
+                olist = (
+                    A64RegOper(rt, va, size=32),
+                    A64RegOper(rn, va, size=64),
+                    A64ImmOper(imm9, va=va),
+                )
+                if size == 0b00:
+                    iflag |= IF_B
+                elif size == 0b01:
+                    iflag |= IF_H                             
+        else:
+            if size == 0b00:
+                olist = (
+                    A64RegOper(rt, va, size=8),
+                    A64RegOper(rn, va, size=64),
+                    A64ImmOper(imm9, va=va),
+                )
+            elif size == 0b01:
+                olist = (
+                    A64RegOper(rt, va, size=16),
+                    A64RegOper(rn, va, size=64),
+                    A64ImmOper(imm9, va=va),
+                )
+            elif size == 0b10:
+                olist = (
+                    A64RegOper(rt, va, size=32),
+                    A64RegOper(rn, va, size=64),
+                    A64ImmOper(imm9, va=va),
+                )
+            else:
+                olist = (
+                    A64RegOper(rt, va, size=64),
+                    A64RegOper(rn, va, size=64),
+                    A64ImmOper(imm9, va=va),
+                )
+    else:
+        if V == 0b1:
+            if opc == 0b10:
+                opcode = INS_STUR
+                mnem = 'stur'
+            else:
+                opcode = INS_LDUR
+                mnem = 'ldur'
+            olist = (
+                A64RegOper(rt, va, size=128),
+                A64RegOper(rn, va, size=64),
+                A64ImmOper(imm9, va=va),
+            )
+        else:
+            if size == 0b11:
+                mnem == 'prfum'
+                opcode = INS_PRFUM
+                olist = (
+                    prfop[rt],
+                    A64RegOper(rn, va, size=64),
+                    A64ImmOper(imm9, va=va),
+                )
+            else:
+                if opc == 0b10:
+                    olist = (
+                        A64RegOper(rt, va, size=64),
+                        A64RegOper(rn, va, size=64),
+                        A64ImmOper(imm9, va=va),
+                    )
+                else:
+                    olist = (
+                        A64RegOper(rt, va, size=32),
+                        A64RegOper(rn, va, size=64),
+                        A64ImmOper(imm9, va=va),
+                    )
+                mnem = 'ldur'
+                opcode = INS_LDUR
+                iflag |= IF_S
+                if size == 0b00:
+                    iflag |= IF_B
+                elif size == 0b01:
+                    iflag |= IF_H
+                else size == 0b10:
+                    iflag |= IF_W
+
+    return opcode, mnem, olist, flags, 0
+
+def p_ls_reg_unpriv(opval, va):
+    '''
+    Load/store register (unprivileged)
+    '''
+    size = opval >> 30 & 0x3
+    V = opval >> 26 & 0x1
+    opc = opval >> 22 & 0x3
+    imm9 = opval >> 12 & 0x1ff
+    rn = opval >> 5 & 0x1f
+    rt = opval & 0x1f
+    if V == 0b0:
+        if opc == 0b00:
+            mnem = 'sttr'
+            opcode = INS_STTR
+        else:
+            mnem = 'ldtr'
+            opcode = INS_LDTR
+            if opc == 0b10 || opc == 0b11:
+                iflag |= IF_S
+                if size == 10:
+                    iflag |= IF_W
+        if size == 0b00:
+            iflag |= IF_B
+        elif size == 0b01:
+            iflag |= IF_H
+        if size != 0b11 && opc != 0b10:
+            olist = (
+                A64RegOper(rt, va, size=32),
+                A64RegOper(rn, va, size=64),
+                A64ImmOper(imm9, va),
+            )
+        else:
+            olist = (
+                A64RegOper(rt, va, size=64),
+                A64RegOper(rn, va, size=64),
+                A64ImmOper(imm9, va),
+            )
+    else:
+        raise envi.InvalidInstruction(
+                mesg="p_undef: invalid instruction (by definition in ARM spec)",
+                bytez=struct.pack("<I", opval), va=va)
+        opcode = IENC_UNDEF
+        mnem = "undefined instruction"
+        olist = (
+            A64ImmOper(opval),
+        )
+        iflag = 0
+        
+    return (opcode, mnem, olist, iflag, 0)        
+            
+def p_ls_reg_imm(opval, va):
+    '''
+    Load/store register (immediate post and pre-indexed)
+    '''
+    size = opval >> 30 & 0x3
+    V = opval >> 26 & 0x1
+    opc = opval >> 22 & 0x3
+    imm9 = opval >> 12 & & 0x1ff
+    rn = opval >> 5 & 0x1f
+    rt = opval & 0x1f
+    if V == 0b0:
+        if opc == 0b00:
+            mnem = 'str'
+            opcode = INS_STR
+        else:
+            mnem = 'ldr'
+            opcode = INS_LDR
+        if opc == 0b10 || opc == 0b11:
+            iflag |= IF_S
+            if size == 0b10:
+                iflag |= IF_W
+        if size == 0b00:
+            iflag |= IF_B
+        elif size == 0b01:
+            iflag |= IF_H
+        if opc == 0b10 || size == 0b11:
+            olist = (
+                A64RegOper(rt, va, size=64),
+                A64RegOper(rn, va, size=64),
+                A64ImmOper(imm9, va=va),
+            )
+        else:
+            olist = (
+                A64RegOper(rt, va, size=32),
+                A64RegOper(rn, va, size=64),
+                A64ImmOper(imm9, va=va),
+            )
+    else:
+        if opc == 0b00 || opc == 0b10:
+            mnem = 'str'
+            opcode = INS_STR
+        else:
+            mnem = 'ldr'
+            opcode = INS_LDR
+        if size == 0b00:
+            if opc == 0b00 || opc == 0b01:
+                olist = (
+                    A64RegOper(rt, va, size=8),
+                    A64RegOper(rn, va, size=64),
+                    A64ImmOper(imm9, va=va),
+                )
+            else:
+                olist = (
+                    A64RegOper(rt, va, size=128),
+                    A64RegOper(rn, va, size=64),
+                    A64ImmOper(imm9, va=va),
+                )
+        elif size == 0b01:
+            olist = (
+                A64RegOper(rt, va, size=16),
+                A64RegOper(rn, va, size=64),
+                A64ImmOper(imm9, va=va),
+            )
+        elif size == 0b10:
+            olist = (
+                A64RegOper(rt, va, size=32),
+                A64RegOper(rn, va, size=64),
+                A64ImmOper(imm9, va=va),
+            )
+        else:
+            olist = (
+                A64RegOper(rt, va, size=64),
+                A64RegOper(rn, va, size=64),
+                A64ImmOper(imm9, va=va),
+            )
+
+    return opcode, mnem, olist, iflag, 0
+        
+
+
+def p_ls_reg_offset(opval, va):
+    '''
+    Load/store register (register offset)
+    '''
+    size = opval >> 30 & 0x3
+    V = opval >> 26 & 0x1
+    opc = opval >> 22 & 0x3
+    rm = opval >> 16 & 0x1f
+    option = opval >> 13 & 0x7
+    S = opval >> 12 & 0x1
+    rn = opval >> 5 & 0x1f
+    rt = opval & 0x1f
+
+    if V == 0b0:
+        if opc == 0b00:
+            mnem = 'str'
+            opcode = INS_STR
+        else:
+            if size == 0b11 && opc == 0b10:
+                mnem =  'prfm'
+                opcode = INS_PRFM
+                olist = (
+                    #FIXME
+                )
+                return opcode, mnem, olist, 0, 0
+            else:
+                mnem = 'ldr'
+                opcode = INS_LDR
+        if opc == 0b10 || opc == 0b11:
+            iflag |= IF_S
+            if size == 0b10:
+                iflag |= IF_W
+        if size == 0b00:
+            iflag |= IF_B
+        elif size == 0b01:
+            iflag |= IF_H
+        if opc == 0b10 || size == 0b11:
+            #64-bit variant
+        else:
+            #32-bit variant
+        
+    else:
+        if opc == 0b10 || opc == 0b00:
+            mnem = 'str'
+            opcode = INS_STR
+        else:
+            mnem = 'ldr'
+            opcode = INS_LDR
+        if size == 0b00:
+            if opc == 0b00 || opc == 0b01:
+                olist = (
+                    #FIXME 8-bit
+                )
+            else:
+                olist = (
+                    #FIXME 128-bit
+                )
+        elif size == 0b01:
+            olist = (
+                #FIXME 16-bit
+            )
+        elif size == 0b10:
+            olist = (
+                #FIXME 32-bit
+            )
+        else:
+            olist = (
+                #FIXME 64-bit
+            )
+
+    return opcode, mnem, olist, iflag, 0
+
+def p_ls_reg_us_imm(opval, va):
+    '''
+    Load/store register (unsigned immediate)
+    '''
+    size = opval >> 30 & 0x3
+    V = opval >> 26 & 0x1
+    opc = opval >> 22 & 0x3
+    imm12 = opval >> 10 & 0xfff
+    rn = opval >> 5 & 0x1f
+    rt = opval & 0x1f
+    if V == 0b0:
+        if opc == 0b00:
+            mnem = 'str'
+            opcode = INS_STR
+        else:
+            if size == 0b11 && opc == 0b10:
+                mnem =  'prfm'
+                opcode = INS_PRFM
+                olist = (
+                    prfop[rt],
+                    A64RegOper(rn, va, size=64),
+                    A64ImmOper(imm12*0b1000, va=va),
+                )
+                return opcode, mnem, olist, 0, 0
+            else:
+                mnem = 'ldr'
+                opcode = INS_LDR
+        if opc == 0b10 || opc == 0b11:
+            iflag |= IF_S
+            if size == 0b10:
+                iflag |= IF_W
+        if size == 0b00:
+            iflag |= IF_B
+        elif size == 0b01:
+            iflag |= IF_H
+        if opc == 0b10 || size == 0b11:
+            A64RegOper(rt, va, size=64),
+            A64RegOper(rn, va, size=64),
+            A64ImmOper(imm12, va=va),
+        else:
+            A64RegOper(rt, va, size=32),
+            A64RegOper(rn, va, size=64),
+            A64ImmOper(imm12, va=va),
+        
+    else:
+        if opc == 0b10 || opc == 0b00:
+            mnem = 'str'
+            opcode = INS_STR
+        else:
+            mnem = 'ldr'
+            opcode = INS_LDR
+        if size == 0b00:
+            if opc == 0b00 || opc == 0b01:
+                olist = (
+                    A64RegOper(rt, va, size=8),
+                    A64RegOper(rn, va, size=64),
+                    A64ImmOper(imm12, va=va),
+                )
+            else:
+                olist = (
+                    A64RegOper(rt, va, size=128),
+                    A64RegOper(rn, va, size=64),
+                    A64ImmOper(imm12*0b10000, va=va),
+                )
+        elif size == 0b01:
+            olist = (
+                A64RegOper(rt, va, size=16),
+                A64RegOper(rn, va, size=64),
+                A64ImmOper(imm12*0b10, va=va),
+            )
+        elif size == 0b10:
+            olist = (
+                A64RegOper(rt, va, size=32),
+                A64RegOper(rn, va, size=64),
+                A64ImmOper(imm12*0b100, va=va),
+            )
+        else:
+            olist = (
+                A64RegOper(rt, va, size=64),
+                A64RegOper(rn, va, size=64),
+                A64ImmOper(imm12*0b1000, va=va),
+            )
+
+    return opcode, mnem, olist, iflag, 0
+
+def p_simd_ls_multistruct(opval, va):
+    '''
+    AdvSIMD Load/store multiple structures
+    '''
+    #FIXME olists
+    Q = opval >> 30 & 0x1
+    L = opval >> 22 & 0x1
+    opc = opval >> 12 & 0xf
+    size = opval >> 10 & 0x3
+    rn = opval >> 5 & 0x1f
+    rt = opval & 0x1f
+    if opc == 0b0000 || opc == 0b0010:
+        olist = (
+            #4
+        )
+        if L == 0b0:
+            if opc == 0b0000:
+                mnem = 'st4'
+                opcode = INS_ST4
+            else:
+                mnem = 'st1'
+                opcode = INS_ST1
+        else:
+            if opc == 0b0000:
+                mnem = 'ld4'
+                opcode = INS_LD4
+            else:
+                mnem = 'ld1'
+                opcode = INS_LD1
+    elif opc == 0b0100 || opc == 0b0110:
+        olist = (
+            #3
+        )
+        if L == 0b0:
+            if opc == 0b0100:
+                mnem = 'st3'
+                opcode = INS_ST3
+            else:
+                mnem = 'st1'
+                opcode = INS_ST1
+        else:
+            if opc == 0b0100:
+                mnem = 'ld3'
+                opcode = INS_LD3
+            else:
+                mnem = 'ld1'
+                opcode = INS_LD1
+    elif opc == 0b0111:
+        olist = (
+            #1
+        )
+        if L == 0b0:
+            mnem = 'st1'
+            opcode = INS_ST1            
+        else:
+            mnem = 'ld1'
+            opcode = INS_LD1
+
+    elif opc == 0b1000 || opc == 0b1010:
+        olist = (
+            #2
+        )
+        if L == 0b0:
+            if opc == 0b1000:
+                mnem = 'st2'
+                opcode = INS_ST2
+            else:
+                mnem = 'st1'
+                opcode = INS_ST1
+        else:
+            if opc == 0b1000:
+                mnem = 'ld2'
+                opcode = INS_LD2
+            else:
+                mnem = 'ld1'
+                opcode = INS_LD1
+    else:
+        raise envi.InvalidInstruction(
+                mesg="p_undef: invalid instruction (by definition in ARM spec)",
+                bytez=struct.pack("<I", opval), va=va)
+        opcode = IENC_UNDEF
+        mnem = "undefined instruction"
+        olist = (
+            A64ImmOper(opval),
+        )
+        
+    return (opcode, mnem, olist, 0, 0)
+
+t_table = (
+    '8B'
+    '16B'
+    '4H'
+    '8H'
+    '2S'
+    '4S'
+    'RESERVED'
+    '2D'
+)
+
+def p_simd_ls_multistruct_posti(opval, va):
+    '''
+    AdvSIMD load/store multiple structures (post-indexed)
+    '''
+    #FIXME olists
+    Q = opval >> 30 & 0x1
+    L = opval >> 22 & 0x1
+    rm = opval >> 16 & 0x1f
+    opc = opval >> 12 & 0xf
+    size = opval >> 10 & 0x3
+    rn = opval >> 5 & 0x1f
+    rt = opval & 0x1f
+    if opc & 0b0010 == 0b0010:
+        if L == 0b0:
+            mnem = 'st1'
+            opcode = INS_ST1
+        else:
+            mnem = 'ld1'
+            opcode = INS_LD1
+    if L == 0b0:
+        if opc == 0b0000:
+            mnem = 'st4'
+            opcode = INS_ST4
+        elif opc == 0b0100:
+            mnem = 'st3'
+            opcode = INS_ST3
+        elif opc == 0b1000:
+            mnem = 'st2'
+            opcode = INS_ST2
+    else:
+        if opc == 0b0000:
+            mnem = 'ld4'
+            opcode = INS_LD4
+        elif opc == 0b0100:
+            mnem = 'ld3'
+            opcode = INS_LD3
+        elif opc == 0b1000:
+            mnem = 'ld2'
+            opcode = INS_LD2
+    if rm != 0b11111:
+        if opc == 0b0000 || opc == 0b0010:
+            olist = (
+
+            )
+        elif opc == 0b0100 || opc == 0110:
+            olist = (
+
+            )
+        elif opc == 0b0111:
+            olist = (
+
+            )
+        elif opc == 0b1000 || opc == 0b1010:
+            olist = (
+
+            )
+        else:
+            raise envi.InvalidInstruction(
                     mesg="p_undef: invalid instruction (by definition in ARM spec)",
                     bytez=struct.pack("<I", opval), va=va)
-                opcode = IENC_UNDEF
-                mnem = "undefined instruction"
-                olist = (
-                    A64ImmOper(opval),
-                )
-                return opcode, mnem, olist, 0,0
-        if size == 0b00:
-            mnem = mnem + 'b'
-            opcode = opcode + 'B'
-        else:
-            mnem = mnem + 'h'
-            opcode = opcode + 'H'
-    elif size == 0b10:
-
+            opcode = IENC_UNDEF
+            mnem = "undefined instruction"
+            olist = (
+                A64ImmOper(opval),
+            )
     else:
+        if opc == 0b0000 || opc == 0b0010:
+            olist = (
 
-    return opcode, mnem, olist, #FIXME flags?
+            )
+        elif opc == 0b0100 || opc == 0110:
+            olist = (
+
+            )
+        elif opc == 0b0111:
+            olist = (
+
+            )
+        elif opc == 0b1000 || opc == 0b1010:
+            olist = (
+
+            )
+        else:
+            raise envi.InvalidInstruction(
+                    mesg="p_undef: invalid instruction (by definition in ARM spec)",
+                    bytez=struct.pack("<I", opval), va=va)
+            opcode = IENC_UNDEF
+            mnem = "undefined instruction"
+            olist = (
+                A64ImmOper(opval),
+            )
+
+    return opcode, mnem, olist, 0, 0
+
+def p_simd_ls_onestruct(opval, va):
+    '''
+    AdvSIMD load/store one structure
+    '''
+
+def p_simd_ls_onestruct_posti(opval, va):
+    '''
+    AdvSIMD load/store one structure (post-indexed)
+    '''
+
+def p_log_shft_reg(opval, va):
+    '''
+    Logical (shifted register)
+    '''
+    sf = opval >> 31 & 0x1
+    opc = opval >> 29 & 0x3
+    shift = opval >> 22 & 0x3
+    N = opval >> 21 & 0x1
+    rm = opval >> 16 & 0x1f
+    imm6 = opval >> 10 & 0x3f
+    rn = opval >> 5 & 0x1f
+    rd = opval & 0x1f
+    if sf == 0b0:
+        olist = (
+            A64RegOper(rd, va, size=32),
+            A64RegOper(rn, va, size=32),
+            A64RegOper(rm, va, size=32),
+            #FIXME
+        )
+    else:
+        olist = (
+            A64RegOper(rd, va, size=64),
+            A64RegOper(rn, va, size=64),
+            A64RegOper(rm, va, size=64),
+            #FIXME
+        )
+    if opc == 0b00 || opc == 0b11:
+        if N == 0b0:
+            mnem = 'and'
+            opcode = INS_AND
+        else:
+            mnem = 'bic'
+            opcode = INS_BIC
+        if opc == 0b11:
+            iflag |= IF_S
+    elif opc == 0b01:
+        mnem = 'or'
+        opcode = INS_OR
+        if N = 0b0:
+            iflag |= IF_R
+        else:
+            iflag |= IF_N
+    else:
+        mnem = 'eo'
+        opcode = IF_EO
+        if N = 0b0:
+            iflag |= IF_R
+        else:
+            iflag |= IF_N
+
+def p_addsub_shft_reg(opval, va):
+    '''
+    Add/sub (shifted register)
+    '''
+    sf = opval >> 31 & 0x1
+    op = opval >> 30 & 0x1
+    S = opval >> 29 & 0x1
+    shift = opval >> 22 & 0x3
+    rm = opval >> 16 & 0x1f
+    imm6 = opval >> 10 & 0x3f
+    rn = opval >> 5 & 0x1f
+    rd = opval & 0x1f
+
+    if op ==  0b0:
+        mnem = 'add'
+        opcode = INS_ADD
+    else:
+        mnem = 'sub'
+        opcode = INS_SUB
+    if S == 0b1:
+        iflag |= IF_S
+    if shift == 0b00:
+        shtype = S_LSL
+    elif shift == 0b01:
+        shtype = S_LSR
+    elif shift == 0b10:
+        shtype = S_ASR
+    else:
+        #FIXME
+        shtype = 0
         
+    if sf == 0b0:
+        olist = (
+            A64RegOper(rd, va, size=32),
+            A64RegOper(rn, va, size=32),
+            A64RegOper(rm, va, size=32),
+            A64ShiftOper(rm, shtype, imm6),
+        )
+    else:
+        olist = (
+            A64RegOper(rd, va, size=64),
+            A64RegOper(rn, va, size=64),
+            A64RegOper(rm, va, size=64),
+            A64ShiftOper(rm, shtype, imm6),
+        )
+
+    return opcode, mnem, olist, iflag, 0
+
+def p_addsub_ext_reg(opval, va):
+    '''
+    Add/sub (extended register)
+    '''
+    #FIXME this is unclear and almost certainly wrong
+    sf = opval >> 31 & 0x1
+    op = opval >> 30 & 0x1
+    S = opval >> 29 & 0x1
+    opt = opval >> 22 & 0x3
+    rm = opval >> 16 & 0x1f
+    option = opval >> 13 & 0x7
+    imm3 = opval >> 10 & 0x7
+    rn = opval >> 5 & 0x1f
+    rd = opval & 0x1f
     
+    if op ==  0b0:
+        mnem = 'add'
+        opcode = INS_ADD
+    else:
+        mnem = 'sub'
+        opcode = INS_SUB
+    if S == 0b1:
+        iflag |= IF_S
+    if option & 0b011 == 0b011:
+        sizeRM = 64
+    else:
+        sizeRM = 32
+    if rd == 0b11111 || rn ==  0b11111:
+        if option = 0b010:
+            extoper = 'LSL'
+    else:
+        extoper = exttable[option]
+
+    if sf == 0b0:
+        olist = (
+            A64RegOper(rd, va, size=32),
+            A64RegOper(rn, va, size=32),
+            A64RegOper(rm, va, size=32),
+            A64ExtendOper(rm, extoper, imm3),
+        )
+    else:
+        olist = (
+            A64RegOper(rd, va, size=64),
+            A64RegOper(rn, va, size=64),
+            A64RegOper(rm, va, size=sizeRM),
+            
+        )
+
+    return opcode, mnem, olist, iflag, 0
+
+exttable = (
+    'UXTB',
+    'UXTH',
+    'UXTW',
+    'UXTX',
+    'SXTB',
+    'SXTH',
+    'SXTW',
+    'SXTX',
+)
+
+
+        
+def p_addsub_carry(opval, va):
+    '''
+    Add/sub (with carry)
+    '''
+    sf = opval >> 31 & 0x1
+    op = opval >> 30 & 0x1
+    S = opval >> 29 & 0x1
+    rm = opval >> 16 & 0x1f
+    opcode2 = opval >> 10 & 0x3f
+    rn = opval >> 5 & 0x1f
+    rd = opval & 0x1f
+    if opcode2 == 0b000000:
+        if op ==  0b0:
+            mnem = 'adc'
+            opcode = INS_ADC
+        else:
+            mnem = 'sbc'
+            opcode = INS_SBC
+        if S == 0b1:
+            iflag |= IF_S
+        if sf == 0b0:
+            olist = (
+                A64RegOper(rd, va, size=32),
+                A64RegOper(rn, va, size=32),
+                A64RegOper(rm, va, size=32),
+            )
+        else:
+            olist = (
+                A64RegOper(rd, va, size=64),
+                A64RegOper(rn, va, size=64),
+                A64RegOper(rm, va, size=64),
+            )
+    else:
+        raise envi.InvalidInstruction(
+                mesg="p_undef: invalid instruction (by definition in ARM spec)",
+                bytez=struct.pack("<I", opval), va=va)
+        opcode = IENC_UNDEF
+        mnem = "undefined instruction"
+        olist = (
+            A64ImmOper(opval),
+        )
+        iflag = 0
+
+        
+    return opcode, mnem, olist, iflag, 0
+
+def p_cond_cmp_reg(opval, va):
+    '''
+    Conditional compare (register)
+    '''
+
+def p_cond_cmp_imm(opval, va):
+    '''
+    Conditional compare (immediate)
+    '''
+
+def p_cond_sel(opval, va):
+    '''
+    Conditional select
+    '''
+
+def p_data_proc_3(opval, va):
+    '''
+    Data processing (3 source)
+    '''
+
+def p_data_proc_2(opval, va):
+    '''
+    Data processing (2 source)
+    '''
+
+def p_data_proc_1(opval, va)
+    '''
+    Data processing (1 source)
+    '''
 
 def p_undef(opval, va):
     '''
@@ -766,6 +1883,15 @@ def p_undef(opval, va):
         
     return (opcode, mnem, olist, 0, 0)
 
+
+#------------------------------classes---------------------------------------|
+
+
+
+
+
+
+
 class A64Operand(envi.Operand):
     '''
     Superclass for all types of A64 instruction operands
@@ -779,9 +1905,9 @@ class A64Operand(envi.Operand):
 
 class A64RegOper(A64Operand):
     '''
-    Subclass of A64Operand. Register operand class
+    Subclass of A64Operand. X-bit Register operand class
     '''
-    def __init__(self, reg, va=0, oflags=0):
+    def __init__(self, reg, va=0, oflags=0, size=0):
         if reg == None:
             raise Exception("ArmRegOper: None Reg Type!")
             raise envi.InvalidInstruction(mesg="None Reg Type!",
@@ -794,12 +1920,41 @@ class A64ImmOper(A64Operand):
     '''
     Subclass of A64Operand. Immediate operand class
     '''
-    def __init__(self, val, shval=0, shtype=S_ROR, va=0, size=4):
+    def __init__(self, val=0, shval=0, shtype=S_ROR, va=0, size=4):
         self.val = val
         self.shval = shval
         self.shtype = shtype
         self.size = size
 
+class A64PreFetchOper(A64Operand):
+    '''
+    Subclass of A64Operand. prfop operand class (pre-fetch operation)
+    '''
+    def __init__(self, prfoptype, target, policy):
+        self.type = prfoptype
+        self.target = target
+        self.policy = policy
+
+class A64ShiftOper(A64Operand):
+    '''
+    Subclass of A64Operand. Shift applied to an operand/register
+    '''
+    def __init__(self, register, shtype, shval):
+        self.register = register
+        self.shtype = shtype
+        self.shval = shval
+
+class A64ExtendOper(A64Operand):
+    '''
+    Subclass of A64Operand. Extension applied to an operand/register
+    '''
+    def __init__(self, register, exttype, shval=0):
+        self.register = register
+        self.exttype = exttype
+        if exttype == 'LSL'
+            self.shval = shval
+        else:
+            self.shval = 0
          
 class A64Opcode(envi.Opcode):
     _def_arch = envi.ARCH_ARMV8

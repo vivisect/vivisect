@@ -1,3 +1,7 @@
+from envi.archs.aarch64.disasm import A64PreFetchOper
+
+
+
 MODE_ARM        = 0
 MODE_THUMB      = 1
 MODE_JAZELLE    = 2
@@ -71,6 +75,42 @@ S_ASR = 2
 S_ROR = 3
 S_RRX = 4 # FIXME HACK XXX add this
 
+#Supported PRFOP options
+prfop = (
+    A64PreFetchOper(PLD, L1, KEEP),
+    A64PreFetchOper(PLD, L1, STRM),
+    A64PreFetchOper(PLD, L2, KEEP),
+    A64PreFetchOper(PLD, L2, STRM),
+    A64PreFetchOper(PLD, L3, KEEP),
+    A64PreFetchOper(PLD, L3, STRM),
+    '#uimm5'
+    '#uimm5'
+    A64PreFetchOper(PLI, L1, KEEP),
+    A64PreFetchOper(PLI, L1, STRM),
+    A64PreFetchOper(PLI, L2, KEEP),
+    A64PreFetchOper(PLI, L2, STRM),
+    A64PreFetchOper(PLI, L3, KEEP),
+    A64PreFetchOper(PLI, L3, STRM),
+    '#uimm5'
+    '#uimm5'
+    A64PreFetchOper(PST, L1, KEEP),
+    A64PreFetchOper(PST, L1, STRM),
+    A64PreFetchOper(PST, L2, KEEP),
+    A64PreFetchOper(PST, L2, STRM),
+    A64PreFetchOper(PST, L3, KEEP),
+    A64PreFetchOper(PST, L3, STRM),
+    '#uimm5'
+    '#uimm5'
+    '#uimm5'
+    '#uimm5'
+    '#uimm5'
+    '#uimm5'
+    '#uimm5'
+    '#uimm5'
+    '#uimm5'
+    '#uimm5'
+)
+
 iencs = (\
     'IENC_DATA_SIMD',
     'IENC_LS_EXCL',
@@ -101,6 +141,7 @@ iencs = (\
     'IENC_LOAD_REG_LIT',
     'IENC_LS_REG_US_IMM',
     'IENC_LS_REG_UNSC_IMM',
+    'IENC_LS_REG_IMM_POSTI',
     'IENC_LS_REG_UNPRIV',
     'IENC_LS_REG_IMM_PREI'
     'IENC_LS_REG_OFFSET',
@@ -111,7 +152,7 @@ iencs = (\
     'IENC_DATA_PROC_3',
     'IENC_DATA_PROC_2',
     'IENC_DATA_PROC_1',
-    'IENC_UNDEF'
+    'IENC_UNDEF',
 )
 
 IENC_MAX = len(iencs)
@@ -144,14 +185,14 @@ instrnames = [
     'DCPS1'
     'DCPS2'
     'DCPS3'
-    'MSRI'
+    'MSRI' #possibly wrong
     'HINT'
     'CLREX'
     'DSB'
     'DMB'
     'ISB'
     'SYS'
-    'MSR'
+    'MSRR' #possibly wrong
     'SYSL'
     'MRS'
     'BR'
@@ -171,6 +212,21 @@ instrnames = [
     'LDAXRH'
     'STLRH'
     'LDARH'
+    'STXR'
+    'STLXR'
+    'STXP'
+    'STLXP'
+    'LDXR'
+    'LDAXR'
+    'LDXP'
+    'LDAXP'
+    'STLR'
+    'LDAR'
+    'LDR'
+    'LDRSW'
+    'PRFM'
+    'STNP'
+    'LDNP'
 ]
 
 ins_index = 85
