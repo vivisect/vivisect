@@ -1856,6 +1856,672 @@ def p_data_proc_1(opval, va):
 	Data processing (1 source)
 	'''
 
+datasimdtable = (
+	(0x5f200000, 0x1e000000, IENC_FP_FP_CONV), #p_fp_fp_conv
+	(0x5f200c00, 0x1e200400, IENC_FP_COND_COMPARE), #p_fp_cond_compare
+	(0x5f200c00, 0x1e200800, IENC_FP_DP2), #p_fp_dp2
+	(0x5f200c00, 0x1e200c00, IENC_FP_COND_SELECT), #p_fp_cond_select
+	(0x5f201c00, 0x1e201000, IENC_FP_IMMEDIATE), #p_fp_immediate
+	(0x5f203c00, 0x1e202000, IENC_FP_COMPARE), #p_fp_compare
+	(0x5f207c00, 0x1e204000, IENC_FP_DP1), #p_fp_dp1
+	(0x5f20fc00, 0x1e200000, IENC_FP_INT_CONV), #p_fp_int_conv
+	(0x5f000000, 0x1f000000, IENC_FP_DP3), #p_fp_dp3
+	(0x9f200400, 0x0e200400, IENC_SIMD_THREE_SAME), #p_simd_three_same
+	(0x9f200c00, 0x0e200000, IENC_SIMD_THREE_DIFF), #p_simd_three_diff
+	(0x9f3e0c00, 0x0e200800, IENC_SIMD_TWOREG_MISC), #p_simd_tworeg_misc
+	(0x9f3e0c00, 0x0e300800, IENC_SIMD_ACROSS_LANES), #p_simd_across_lanes
+	(0x9fe08400, 0x0e000400, IENC_SIMD_COPY), #p_simd_copy
+	(0x9f000400, 0x0f000000, IENC_SIMD_VECTOR_IE), #p_simd_vector_ie
+	(0x9f800400, 0x0f000400, IENC_SIMD_MOD_IMM), #p_simd_mod_imm (also shift_imm)
+	(0xbf208c00, 0x0e000000, IENC_SIMD_TBL_TBX), #p_simd_tbl_tbx
+	(0xbf208c00, 0x0e000800, IENC_SIMD_ZIP_UZP_TRN), #p_simd_zip_uzp_trn
+	(0xbf208400, 0x2e000000, IENC_SIMD_EXT), #p_simd_ext
+	(0xdf200400, 0x5e200400, IENC_SIMD_SCALAR_THREE_SAME), #p_simd_scalar_three_same
+	(0xdf200c00, 0x5e200000, IENC_SIMD_SCALAR_THREE_DIFF), #p_simd_scalar_three_diff
+	(0xdf3e0c00, 0x5e200800, IENC_SIMD_SCALAR_TWOREG_MISC), #p_simd_scalar_tworeg_misc
+	(0xdf3e0c00, 0x5e300800, IENC_SIMD_SCALAR_PAIRWISE), #p_simd_scalar_pairwise
+	(0xdfe08400, 0x5e300800, IENC_SIMD_SCALAR_COPY), #p_simd_scalar_copy
+	(0xdf000400, 0x5f000000, IENC_SIMD_SCALAR_IE), #p_simd_scalar_ie
+	(0xdf800400, 0x5f000400, IENC_SIMD_SCALAR_SHIFT_IMM), #p_simd_scalar_shift_imm
+	(0xff3e0c00, 0x4e280800, IENC_CRPYTO_AES), #p_crypto_aes
+	(0xff208c00, 0x5e000000, IENC_CRYPTO_THREE_SHA), #p_crypto_three_sha
+	(0xff3e0c00, 0x5e280800, IENC_CRYPTO_TWO_SHA), #p_crypto_two_sha
+)
+def p_data_simd(opval, va):
+	for mask,val,penc in datasimdtable:
+		if (opval & mask) == val:
+			enc = penc
+			break
+	opcode, mnem, olist, flags, simdflags = ienc_parsers[enc](opval, va)
+	return opcode, mnem, olist, flags, simdflags
+
+def p_fp_fp_conv(opval, va):
+	sf = opval >> 31
+	s = opval >> 29 & 0x1
+	typ = opval >> 22 & 0x3
+	mode = opval >> 19 & 0x3
+	opcode = opval >> 16 & 0x7
+	scale = opval >> 10 & 0x3f
+	rn = opval >> 5 & 0x1f
+	rd = opval & 0x1f
+	relevant = s + mode + opcode
+	#First get the mnem and opcode
+	if relevant == 0b00000010:
+		mnem = 'scvtf'
+		opcode = INS_SCVTF
+	elif relevant == 0b00000011:
+		mnem = 'ucvtf'
+		opcode = INS_UCVTF
+	elif relevant == 0b00011000:
+		mnem = 'fcvtzs'
+		opcode = INS_FCVTZS
+	elif relevant == 0b00011001:
+		mnem = 'fcvtzu'
+		opcode = INS_FCVTZU
+	else:
+		raise envi.InvalidInstruction(
+		mesg="p_undef: invalid instruction (by definition in ARM spec)",
+		bytez=struct.pack("<I", opval), va=va)
+		opcode = IENC_UNDEF
+		mnem = "undefined instruction"
+		olist = (
+			A64ImmOper(opval),
+		)
+		return opcode, mnem, olist, 0,0
+
+	if sf == 0 and typ == 0b00:
+		olist = (
+			A64RegOper(rd, va, size=32),
+			A64RegOper(rn, va, size=32),
+			A64ImmOper(64-scale),
+		)
+	elif sf == 0 and typ == 0b01:
+		olist = (
+			A64RegOper(rd, va, size=64),
+			A64RegOper(rn, va, size=32),
+			A64ImmOper(64-scale),
+		)
+	elif sf == 1 and typ == 0b00:
+		olist = (
+			A64RegOper(rd, va, size=32),
+			A64RegOper(rn, va, size=64),
+			A64ImmOper(64-scale),
+		)
+	elif sf == 1 and typ == 0b01:
+		olist = (
+			A64RegOper(rd, va, size=64),
+			A64RegOper(rn, va, size=64),
+			A64ImmOper(64-scale),
+		)
+	else:
+		raise envi.InvalidInstruction(
+		mesg="p_undef: invalid instruction (by definition in ARM spec)",
+		bytez=struct.pack("<I", opval), va=va)
+		opcode = IENC_UNDEF
+		mnem = "undefined instruction"
+		olist = (
+			A64ImmOper(opval),
+		)
+		return opcode, mnem, olist, 0,0
+	return opcode, mnem, olist, 0, 0
+
+def p_fp_cond_compare(opval, va):
+	m = opval >> 31 & 0x1
+	s = opval >> 29 & 0x1
+	typ = opval >> 22 & 0x3
+	rm = opval >> 16 & 0x1f
+	cond = opval >> 12 & 0xf
+	rn = opval >> 5 & 0x1f
+	op = opval >> 4 & 0x1
+	nzcv = opval & 0xf
+	mnem = 'fccmp'
+	opcode = INS_FCCMP
+	if m == 0 and s == 0 and op == 0:
+		iflags |= 0
+	elif m == 0 and s == 0 and op == 1:
+		iflags |= IF_E
+	else:
+		raise envi.InvalidInstruction(
+		mesg="p_undef: invalid instruction (by definition in ARM spec)",
+		bytez=struct.pack("<I", opval), va=va)
+		opcode = IENC_UNDEF
+		mnem = "undefined instruction"
+		olist = (
+			A64ImmOper(opval),
+		)
+		return opcode, mnem, olist, 0,0
+	if typ == 0b00:
+		olist = (
+			A64RegOper(rn, va, size=32),
+			A64RegOper(rm, va, size=32),
+			A64ImmOper(nzcv),
+			#ConditionOper
+		)
+	elif typ == 0b01:
+		olist = (
+			A64RegOper(rn, va, size=64),
+			A64RegOper(rm, va, size=64),
+			A64ImmOper(nzcv),
+			#ConditionOper
+		)
+	else:
+		raise envi.InvalidInstruction(
+		mesg="p_undef: invalid instruction (by definition in ARM spec)",
+		bytez=struct.pack("<I", opval), va=va)
+		opcode = IENC_UNDEF
+		mnem = "undefined instruction"
+		olist = (
+			A64ImmOper(opval),
+		)
+		return opcode, mnem, olist, 0,0
+
+	return opcode, mnem, olist, iflags, 0
+
+fp_dp2_table = (
+	(INS_FMUL, 'fmul'),
+	(INS_FDIV, 'fdiv'),
+	(INS_FADD, 'fadd'),
+	(INS_FSUB, 'fsub'),
+	(INS_FMAX, 'fmax'),
+	(INS_FMIN, 'fmin'),
+	(INS_MAXNM, 'fmaxnm'),
+	(INS_MINNM, 'fminnm'),
+	(INS_FNMUL, 'fnmul'),
+	(0, 0),
+)
+def p_fp_dp2(opval, va):
+	m = opval >> 31
+	s = opval >> 29 & 0x1
+	typ = opval >> 22 & 0x3
+	rm = opval >> 16 & 0x1f
+	opc = opval >> 12 & 0xf
+	rn = opval >> 5 & 0x1f
+	rd = opval & 0x1f
+	if m + s == 0:
+		opcode, mnem = fp_dp2_table[opc]
+		if typ == 0b00:
+			olist = (
+				A64RegOper(rd, va, size=32),
+				A64RegOper(rn, va, size=32),
+				A64RegOper(rm, va, size=32),
+			)
+		elif typ == 0b01:
+			olist = (
+				A64RegOper(rd, va, size=64),
+				A64RegOper(rn, va, size=64),
+				A64RegOper(rm, va, size=64),
+			)
+		else:
+			raise envi.InvalidInstruction(
+			mesg="p_undef: invalid instruction (by definition in ARM spec)",
+			bytez=struct.pack("<I", opval), va=va)
+		return opcode, mnem, olist, 0,0
+	else:
+		raise envi.InvalidInstruction(
+		mesg="p_undef: invalid instruction (by definition in ARM spec)",
+		bytez=struct.pack("<I", opval), va=va)
+		opcode = IENC_UNDEF
+		mnem = "undefined instruction"
+		olist = (
+			A64ImmOper(opval),
+		)
+		return opcode, mnem, olist, 0,0
+	return opcode, mnem, olist, 0, 0
+
+def p_fp_cond_select(opval, va):
+	m = opval >> 31
+	s = opval >> 29 & 0x1
+	typ = opval >> 22 & 0x3
+	rm = opval >> 16 & 0x1f
+	cond = opval >> 12 & 0xf
+	rn = opval >> 5 & 0x1f
+	rd = opval & 0x1f
+	mnem = 'fcsel'
+	opcode = INS_FCSEL
+	if m == 0 and s == 0:
+		if typ == 0b00:
+			olist = (
+				A64RegOper(rd, va, size=32),
+				A64RegOper(rn, va, size=32),
+				A64RegOper(rm, va, size=32),
+				#cond
+			)
+		elif typ == 0b01:
+			olist = (
+				A64RegOper(rd, va, size=64),
+				A64RegOper(rn, va, size=64),
+				A64RegOper(rm, va, size=64),
+				#cond
+			)
+		else:
+			raise envi.InvalidInstruction(
+			mesg="p_undef: invalid instruction (by definition in ARM spec)",
+			bytez=struct.pack("<I", opval), va=va)return opcode, mnem, olist, 0,0
+	else:
+		raise envi.InvalidInstruction(
+		mesg="p_undef: invalid instruction (by definition in ARM spec)",
+		bytez=struct.pack("<I", opval), va=va)
+		opcode = IENC_UNDEF
+		mnem = "undefined instruction"
+		olist = (
+			A64ImmOper(opval),
+		)
+		return opcode, mnem, olist, 0,0
+	return opcode, mnem, olist, 0, 0
+
+def p_fp_immediate(opval, va):
+	m = opval >> 31
+	s = opval >> 29 & 0x1
+	typ = opval >> 22 & 0x3
+	o1 = opval >> 21 & 0x1
+	rm = opval >> 16 & 0x1f
+	o0 = opval >> 15 & 0x1
+	ra = opval >> 10 & 0x1f
+	rn = opval >> 5 & 0x1f
+	rd = opval & 0x1f
+	if o0 == 0:
+		if o1 == 0:
+			mnem = 'fmadd'
+			opcode = INS_FMADD
+		else:
+			mnem = 'fnmadd'
+			opcode = INS_FNMADD
+	else:
+		if o1 == 0:
+			mnem = 'fmsub'
+			opcode = INS_FMSUB
+		else:
+			mnem = 'fnmsub'
+			opcode = INS_FNMSUB
+	if m == 0 and s == 0:
+		if typ == 0b00:
+			olist = (
+				A64RegOper(rd, va, size=32),
+				A64RegOper(rn, va, size=32),
+				A64RegOper(rm, va, size=32),
+				A64RegOper(ra, va, size=32),
+			)
+		elif typ == 0b01:
+			olist = (
+				A64RegOper(rd, va, size=64),
+				A64RegOper(rn, va, size=64),
+				A64RegOper(rm, va, size=64),
+				A64RegOper(ra, va, size=64),
+			)
+		else:
+			raise envi.InvalidInstruction(
+			mesg="p_undef: invalid instruction (by definition in ARM spec)",
+			bytez=struct.pack("<I", opval), va=va)
+			)
+			return opcode, mnem, olist, 0,0
+	else:
+		raise envi.InvalidInstruction(
+		mesg="p_undef: invalid instruction (by definition in ARM spec)",
+		bytez=struct.pack("<I", opval), va=va)
+return opcode, mnem, olist, 0,0
+	return opcode, mnem, olist, 0, 0
+
+def p_fp_compare(opval, va):
+	m = opval >> 31
+	s = opval >> 29 & 0x1
+	typ = opval >> 22 & 0x3
+	rm = opval >> 16 & 0x1f
+	op = opval >> 14 & 0x3
+	rn = opval >> 5 & 0x1f
+	opcode2 = opval & 0x1f
+	mnem = 'fcmp'
+	opcode = INS_FCMP
+	if m == 0 and s == 0 and op == 0b00:
+		if typ == 0b00:
+			if opcode2 == 0b00000 or opcode2 == 0b10000:
+				olist = (
+					A64RegOper(rn, va, size=32),
+					A64RegOper(rm, va, size=32),
+				)
+			elif opcode2 == 0b01000 or opcode2 == 0b11000:
+				olist = (
+					A64RegOper(rn, va, size=32),
+					A64ImmOper(0, va=va),
+				)
+			else:
+				raise envi.InvalidInstruction(
+				mesg="p_undef: invalid instruction (by definition in ARM spec)",
+				bytez=struct.pack("<I", opval), va=va)
+				opcode = IENC_UNDEF
+				mnem = "undefined instruction"
+				olist = (
+					A64ImmOper(opval),
+				)
+				return opcode, mnem, olist, 0,0
+		elif typ == 0b01:
+			if opcode2 == 0b00000 or opcode2 == 0b10000:
+				olist = (
+					A64RegOper(rn, va, size=64),
+					A64RegOper(rm, va, size=64),
+				)
+			elif opcode2 == 0b01000 or opcode2 == 0b11000:
+				olist = (
+					A64RegOper(rn, va, size=64),
+					A64ImmOper(0, va=va),
+				)
+			else:
+				raise envi.InvalidInstruction(
+				mesg="p_undef: invalid instruction (by definition in ARM spec)",
+				bytez=struct.pack("<I", opval), va=va)
+				opcode = IENC_UNDEF
+				mnem = "undefined instruction"
+				olist = (
+					A64ImmOper(opval),
+				)
+				return opcode, mnem, olist, 0,0
+		else:
+			raise envi.InvalidInstruction(
+			mesg="p_undef: invalid instruction (by definition in ARM spec)",
+			bytez=struct.pack("<I", opval), va=va)
+			opcode = IENC_UNDEF
+			mnem = "undefined instruction"
+			olist = (
+				A64ImmOper(opval),
+			)
+			return opcode, mnem, olist, 0,0
+	else:
+		raise envi.InvalidInstruction(
+		mesg="p_undef: invalid instruction (by definition in ARM spec)",
+		bytez=struct.pack("<I", opval), va=va)
+return opcode, mnem, olist, 0,0
+	if opcode2 >> 4 == 1:
+		iflags |= IF_E
+	return opcode, mnem, olist, iflags, 0
+
+fp_dp1_table = (
+	('fmov', INS_FMOV, 0),
+	('fabs', INS_FABS, 0),
+	('fneg', INS_FNEG, 0),
+	('fsqrt', INS_FSQRT, 0),
+	(0, 0, 0), #Missing instr
+	('fcvt', INS_FCVT, 0),
+	(0, 0, 0), #Missing instr
+	('fcvt', INS_FCVT, 0),
+	('frint', INS_FRINT, IF_N),
+	('frint', INS_FRINT, IF_P),
+	('frint', INS_FRINT, IF_M),
+	('frint', INS_FRINT, IF_Z),
+	('frint', INS_FRINT, IF_A),
+	('frint', INS_FRINT, IF_X),
+	(0, 0, 0), #Missing instr
+	('frint', INS_FRINT, IF_I),
+	(0, 0, 0), #Catch-all
+)
+def p_fp_dp1(opval, va):
+	m = opval >> 31
+	s = opval >> 29 & 0x1
+	typ = opval >> 22 & 0x3
+	opc = opval >> 15 & 0x3f
+	rn = opval >> 5 & 0x1f
+	rd = opval & 0x1f
+	mnem, opcode, iflags = fp_dp1_table[opc]
+	if mnem == 0:
+		raise envi.InvalidInstruction(
+		mesg="p_undef: invalid instruction (by definition in ARM spec)",
+		bytez=struct.pack("<I", opval), va=va)
+		opcode = IENC_UNDEF
+		mnem = "undefined instruction"
+		olist = (
+			A64ImmOper(opval),
+		)
+		return opcode, mnem, olist, 0,0
+	elif m == 0 and s == 0:
+		if typ == 0b00:
+			if opc == 0b000101:
+				olist = (
+					A64RegOper(rd, va, size=64),
+					A64RegOper(rn, va, size=32),
+				)
+			elif opc == 0b000111:
+				olist = (
+					#16 Register (rd)
+					A64RegOper(rn, va, size=32)
+				)
+			else:
+				olist = (
+					A64RegOper(rd, va, size=32),
+					A64RegOper(rn, va, size=32),
+				)
+		elif typ == 0b01:
+			if opc == 0b000100:
+				olist = (
+					A64RegOper(rd, va, size=32),
+					A64RegOper(rn, va, size=64),
+				)
+			elif opc == 0b000111:
+				olist = (
+					#16 Register (rd)
+					A64RegOper(rn, va, size=64),
+				)
+			else:
+				olist = (
+					A64RegOper(rd, va, size=64),
+					A64RegOper(rn, va, size=64),
+				)
+		elif typ == 0b11:
+			if opc == 0b000100:
+				olist = (
+					A64RegOper(rd, va, size=32),
+					A64RegOper(rn, va, size=16),
+				)
+			elif opc == 0b000111:
+				olist = (
+					A64RegOper(rd, va, size=64),
+					A64RegOper(rn, va, size=16),
+				)
+			else:
+				raise envi.InvalidInstruction(
+				mesg="p_undef: invalid instruction (by definition in ARM spec)",
+				bytez=struct.pack("<I", opval), va=va)
+				opcode = IENC_UNDEF
+				mnem = "undefined instruction"
+				olist = (
+					A64ImmOper(opval),
+				)
+				return opcode, mnem, olist, 0,0
+		else:
+			raise envi.InvalidInstruction(
+			mesg="p_undef: invalid instruction (by definition in ARM spec)",
+			bytez=struct.pack("<I", opval), va=va)
+			opcode = IENC_UNDEF
+			mnem = "undefined instruction"
+			olist = (
+				A64ImmOper(opval),
+			)
+			return opcode, mnem, olist, 0,0
+	else:
+		raise envi.InvalidInstruction(
+		mesg="p_undef: invalid instruction (by definition in ARM spec)",
+		bytez=struct.pack("<I", opval), va=va)
+		return opcode, mnem, olist, 0,0
+
+	return opcode, mnem, olist, iflags, 0
+
+def p_fp_int_conv(opval, va):
+	sf = opval >> 31
+	s = opval >> 29 & 0x1
+	typ = opval >> 22 & 0x3
+	rmode = opval >> 19 & 0x3
+	opc = opval >> 16 & 0x7
+	rn = opval >> 5 & 0x1f
+	rd = opval & 0x1f
+	if opc >> 1 & 0x1 == 0:
+		mnem = 'fcvt'
+		opcode = INS_FCVT
+		if rmode == 0b00:
+			if opc >> 2 & 0x1 == 0:
+				iflags |= IF_N
+			else:
+				iflags |= IF_A
+		elif rmode == 0b01:
+			iflags |= IF_P
+		elif rmode == 0b10:
+			iflags |= IF_M
+		else:
+			iflags |= IF_Z
+		if opc >> 0 & 0x1 == 0:
+			iflags |= IF_S
+		else:
+			iflags |= IF_U
+		
+		if sf == 0 and typ == 0b00:
+			olist = (
+				A64RegOper(rd, va, size=32),
+				A64RegOper(rn, va, size=32),
+			)
+		elif sf == 0 and typ == 0b01:
+			olist = (
+				A64RegOper(rd, va, size=32),
+				A64RegOper(rn, va, size=64),
+			)
+		elif sf == 1 and typ == 0b00:
+			olist = (
+				A64RegOper(rd, va, size=64),
+				A64RegOper(rn, va, size=32),
+			)
+		elif sf == 1 and typ == 0b01:
+			olist = (
+				A64RegOper(rd, va, size=64),
+				A64RegOper(rn, va, size=64),
+			)
+		else:
+			raise envi.InvalidInstruction(
+			mesg="p_undef: invalid instruction (by definition in ARM spec)",
+			bytez=struct.pack("<I", opval), va=va)
+			return opcode, mnem, olist, 0,0
+	else:
+		if opc >> 2 & 0x1 == 0:
+			if opc >> 0 & 0x1 == 0:
+				mnem = 'scvtf'
+				opcode = INS_SCVTF
+				iflags = 0
+			else:
+				mnem = 'ucvtf'
+				opcode = INS_UCVTF
+				iflags = 0
+			if sf == 0 and typ == 0b00:
+				olist = (
+					A64RegOper(rd, va, size=32),
+					A64RegOper(rn, va, size=32),
+				)
+			elif sf == 0 and typ == 0b01:
+				olist = (
+					A64RegOper(rd, va, size=64),
+					A64RegOper(rn, va, size=32),
+				)
+			elif sf == 1 and typ == 0b00:
+				olist = (
+					A64RegOper(rd, va, size=32),
+					A64RegOper(rn, va, size=64),
+				)
+			elif sf == 1 and typ == 0b01:
+				olist = (
+					A64RegOper(rd, va, size=64),
+					A64RegOper(rn, va, size=64),
+				)
+		else:
+			mnem = 'fmov'
+			opcode = INS_FMOV
+			iflags = 0
+			if sf == 0 and typ == 0b00 and rmode == 0b00 and opc & 0x1 == 1:
+				olist = (
+					A64RegOper(rd, va, size=32),
+					A64RegOper(rd, va, size=32),
+				)
+			elif sf == 0 and typ == 0b00 and rmode == 0b00 and opc & 0x1 == 0:
+				olist = (
+					A64RegOper(rd, va, size=32),
+					A64RegOper(rd, va, size=32),
+				)
+			elif sf == 1 and typ == 0b01 and rmode == 0b00 and opc & 0x1 == 1:
+				olist = (
+					A64RegOper(rd, va, size=64),
+					A64RegOper(rn, va, size=64),
+				)
+			elif sf == 1 and typ == 0b10 and rmode == 0b01 and opc & 0x1 == 1:
+				olist = (
+					#top half of 128-bit reg (rd)
+					A64RegOper(rn, va, size=64),
+				)
+			elif sf == 1 and typ == 0b01 and rmode == 0b00 and opc & 0x1 == 0:
+				olist = (
+					A64RegOper(rd, va, size=64),
+					A64RegOper(rn, va, size=64),
+				)
+			elif sf == 1 and typ == 0b10 and rmode == 0b01 and opc & 0x1 == 1:
+				olist = (
+					A64RegOper(rd, va, size=64),
+					#top half of 128-bit reg (rn)
+				)
+			else:
+				raise envi.InvalidInstruction(
+				mesg="p_undef: invalid instruction (by definition in ARM spec)",
+				bytez=struct.pack("<I", opval), va=va)
+				opcode = IENC_UNDEF
+				mnem = "undefined instruction"
+				olist = (
+					A64ImmOper(opval),
+				)
+				return opcode, mnem, olist, 0,0
+	return opcode, mnem, olist, iflags, 0
+
+def p_fp_ds3(opval, va):
+	m = opval >> 31
+	s = opval >> 29 & 0x1
+	typ = opval >> 22 & 0x3
+	o1 = opval >> 21 & 0x1
+	rm = opval >> 16 & 0x1f
+	o0 = opval >> 15 & 0x1
+	ra = opval >> 10 & 0x1f
+	rn = opval >> 5 & 0x1f
+	rd = opval & 0x1f
+	if m == 0 and s == 0:
+		if o1 == 0 and o0 == 0:
+			mnem = 'fmadd'
+			opcode = INS_FMADD
+		elif o1 == 0 and o0 == 1:
+			mnem = 'fmsub'
+			opcode = INS_FMSUB
+		elif o1 == 1 and o0 == 0:
+			mnem = 'fnmadd'
+			opcode = INS_FNMADD
+		else:
+			mnem = 'fnmsub'
+			opcode = INS_FNMSUB
+		if typ == 0b00:
+			olist = (
+				A64RegOper(rd, va, size=32),
+				A64RegOper(rn, va, size=32),
+				A64RegOper(rm, va, size=32),
+				A64RegOper(ra, va, size=32),
+			)
+		elif typ == 0b01:
+			olist = (
+				A64RegOper(rd, va, size=32),
+				A64RegOper(rn, va, size=32),
+				A64RegOper(rm, va, size=32),
+				A64RegOper(ra, va, size=32),
+			)
+		else:
+			raise envi.InvalidInstruction(
+			mesg="p_undef: invalid instruction (by definition in ARM spec)",
+			bytez=struct.pack("<I", opval), va=va)
+			opcode = IENC_UNDEF
+			mnem = "undefined instruction"
+			olist = (
+				A64ImmOper(opval),
+			)
+			return opcode, mnem, olist, 0,0
+	else:
+		raise envi.InvalidInstruction(
+		mesg="p_undef: invalid instruction (by definition in ARM spec)",
+		bytez=struct.pack("<I", opval), va=va)
+
 def p_undef(opval, va):
 	'''
 	Undefined encoding family
