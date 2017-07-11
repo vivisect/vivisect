@@ -1,4 +1,3 @@
-from envi.archs.aarch64.disasm import A64PreFetchOper
 
 
 
@@ -47,6 +46,7 @@ REV_ALL_ARM = (REV_ALL_ARMv4 | REV_ALL_ARMv5 | REV_ALL_ARMv6 | REV_ALL_ARMv7 | R
 #Will be set below, THUMB16 up through v6 except v6T2, THUMB2 from v6T2 up, THUMBEE from v7 up.
 REV_THUMB16 = REV_THUMB2  = REV_THUMBEE = 0   
 
+'''
 ARCH_REVS = {}
 #Itterate through all REV_ARM values and setup related combo values 
 for name, val in globals().items():
@@ -67,6 +67,7 @@ ARCH_REVS['thumb16'] = REV_THUMB16
 ARCH_REVS['thumb'] = REV_THUMB2
 ARCH_REVS['thumbee'] = REV_THUMBEE
 ARCH_REVSLEN = len(ARCH_REVS)
+'''
 
 # The supported types of operand shifts (by the 2 bit field)
 S_LSL = 0
@@ -74,42 +75,6 @@ S_LSR = 1
 S_ASR = 2
 S_ROR = 3
 S_RRX = 4 # FIXME HACK XXX add this
-
-#Supported PRFOP options
-prfop = (
-    A64PreFetchOper(PLD, L1, KEEP),
-    A64PreFetchOper(PLD, L1, STRM),
-    A64PreFetchOper(PLD, L2, KEEP),
-    A64PreFetchOper(PLD, L2, STRM),
-    A64PreFetchOper(PLD, L3, KEEP),
-    A64PreFetchOper(PLD, L3, STRM),
-    '#uimm5'
-    '#uimm5'
-    A64PreFetchOper(PLI, L1, KEEP),
-    A64PreFetchOper(PLI, L1, STRM),
-    A64PreFetchOper(PLI, L2, KEEP),
-    A64PreFetchOper(PLI, L2, STRM),
-    A64PreFetchOper(PLI, L3, KEEP),
-    A64PreFetchOper(PLI, L3, STRM),
-    '#uimm5'
-    '#uimm5'
-    A64PreFetchOper(PST, L1, KEEP),
-    A64PreFetchOper(PST, L1, STRM),
-    A64PreFetchOper(PST, L2, KEEP),
-    A64PreFetchOper(PST, L2, STRM),
-    A64PreFetchOper(PST, L3, KEEP),
-    A64PreFetchOper(PST, L3, STRM),
-    '#uimm5'
-    '#uimm5'
-    '#uimm5'
-    '#uimm5'
-    '#uimm5'
-    '#uimm5'
-    '#uimm5'
-    '#uimm5'
-    '#uimm5'
-    '#uimm5'
-)
 
 iencs = (\
     'IENC_DATA_SIMD',
@@ -143,7 +108,7 @@ iencs = (\
     'IENC_LS_REG_UNSC_IMM',
     'IENC_LS_REG_IMM_POSTI',
     'IENC_LS_REG_UNPRIV',
-    'IENC_LS_REG_IMM_PREI'
+    'IENC_LS_REG_IMM_PREI',
     'IENC_LS_REG_OFFSET',
     'IENC_ADDSUB_CARRY',
     'IENC_COND_CMP_REG',
@@ -186,77 +151,146 @@ iencs = (\
 
 IENC_MAX = len(iencs)
 
+for ieidx in range(IENC_MAX):
+    globals()[iencs[ieidx]] = ieidx
+
 instrnames = [
-    'ADR'
-    'ADRP'
-    'ADD'
-    'ADDS'
-    'SUB'
-    'SUBS'
-    'AND'
-    'ORR'
-    'EOR'
-    'ANDS'
-    'MOVN'
-    'MOVZ'
-    'MOVK'
-    'SBFM'
-    'BFM'
-    'UBFM'
-    'EXTR'
-    'B'
-    'BL'
-    'SBC'
-    'HVC'
-    'SMC'
-    'BRK'
-    'HLT'
-    'DCPS1'
-    'DCPS2'
-    'DCPS3'
-    'MSRI' #possibly wrong
-    'HINT'
-    'CLREX'
-    'DSB'
-    'DMB'
-    'ISB'
-    'SYS'
-    'MSRR' #possibly wrong
-    'SYSL'
-    'MRS'
-    'BR'
-    'BLR'
-    'RET'
-    'ERET'
-    'DRPS'
-    'STXRB'
-    'STLXRB'
-    'LDXRB'
-    'LDAXRB'
-    'STLRB'
-    'LDARB'
-    'STXRH'
-    'STLXRH'
-    'LDXRH'
-    'LDAXRH'
-    'STLRH'
-    'LDARH'
-    'STXR'
-    'STLXR'
-    'STXP'
-    'STLXP'
-    'LDXR'
-    'LDAXR'
-    'LDXP'
-    'LDAXP'
-    'STLR'
-    'LDAR'
-    'LDR'
-    'LDRSW'
-    'PRFM'
-    'STNP'
-    'LDNP'
-	'
+    'ADR',
+    'ADRP',
+    'ADD',
+    'ADDS',
+    'SUB',
+    'SUBS',
+    'AND',
+    'ORR',
+    'EOR',
+    'ANDS',
+    'MOVN',
+    'MOVZ',
+    'MOVK',
+    'SBFM',
+    'BFM',
+    'UBFM',
+    'EXTR',
+    'B',
+    'BL',
+    'SBC',
+    'HVC',
+    'SMC',
+    'BRK',
+    'HLT',
+    'DCPS1',
+    'DCPS2',
+    'DCPS3',
+    'MSR',
+    'HINT',
+    'CLREX',
+    'DSB',
+    'DMB',
+    'ISB',
+    'SYS',
+    'MRS',
+    'BR',
+    'BLR',
+    'RET',
+    'ERET',
+    'DRPS',
+    'STXRB',
+    'STLXRB',
+    'LDXRB',
+    'LDAXRB',
+    'STLRB',
+    'LDARB',
+    'STXRH',
+    'STLXRH',
+    'LDXRH',
+    'LDAXRH',
+    'STLRH',
+    'LDARH',
+    'STXR',
+    'STLXR',
+    'STXP',
+    'STLXP',
+    'LDXR',
+    'LDAXR',
+    'LDXP',
+    'LDAXP',
+    'STLR',
+    'LDAR',
+    'LDR',
+    'LDRSW',
+    'PRFM',
+    'STNP',
+    'LDNP',
+    'STP',
+    'LDP',
+    'LDPSW',
+    'LDUR',
+    'STUR',
+    'PRFUM',
+    'STTR',
+    'LDTR',
+    'STR',
+    'LDR',
+    'ST4',
+    'ST1',
+    'LD4',
+    'LD1',
+    'ST3',
+    'LD3',
+    'ST2',
+    'LD2',
+    'BIC',
+    'EO',
+    'OR',
+    'ADC',
+    'SBC',
+    'CCM',
+    'CS',
+    'MADD',
+    'MSUB',
+    'SMADDL',
+    'SMSUBL',
+    'UMADDL',
+    'UMSUBL',
+    'SMULH',
+    'UMULH',
+    'UDIV',
+    'SDIV',
+    'LSLV',
+    'LSRV',
+    'ASRV',
+    'RORV',
+    'CRC32',
+    'RBIT',
+    'REV',
+    'CL',
+	'SCVTF',
+	'UCVTF',
+	'FCVTZS',
+	'FCVTZU',
+	'FCCMP',
+	'FMUL',
+	'FDIV',
+	'FADD',
+	'FSUB',
+	'FMAX',
+	'FMIN',
+	'FMAXNM',
+	'FMINNM',
+	'FNMUL',
+	'FCSEL',
+	'FMADD',
+	'FMSUB',
+	'FNMADD',
+	'FNMSUB',
+	'FCMP',
+	'FMOV',
+	'FABS',
+	'FNEG',
+	'FSQRT',
+	'FCVT',
+	'FRINT',
 ]
 
 ins_index = 85
@@ -264,4 +298,69 @@ for instr in instrnames:
     globals()['INS_' + instr] = ins_index
     ins_index += 1
 
+#IFLAGS
+IF_NEG = 1 << 24
+IF_INV = 1 << 23
+IF_INC = 1 << 22
+IF_EL = 1 << 21
+IF_32 = 1 << 20
+IF_16 = 1 << 19
+IF_P = 1 << 18
+IF_PSR_S = 1 << 17
+IF_N = 1 << 16
+IF_Z = 1 << 15
+IF_K = 1 << 14
+IF_L = 1 << 13
+IF_A = 1 << 12
+IF_X = 1 << 11
+IF_R = 1 << 10
+IF_P = 1 << 9
+IF_B = 1 << 8
+IF_H = 1 << 7
+IF_SW = 1 << 6
+IF_S = 1 << 5
+IF_W = 1 << 4
+IF_E = 1 << 3
+IF_M = 1 << 2
+IF_I = 1 << 1
+IF_U = 1 << 0
 
+
+#from envi.archs.aarch64.disasm import A64PreFetchOper
+from archs.aarch64.disasm import A64PreFetchOper
+
+#Supported PRFOP options
+prfop = (
+    A64PreFetchOper(PLD, L1, KEEP),
+    A64PreFetchOper(PLD, L1, STRM),
+    A64PreFetchOper(PLD, L2, KEEP),
+    A64PreFetchOper(PLD, L2, STRM),
+    A64PreFetchOper(PLD, L3, KEEP),
+    A64PreFetchOper(PLD, L3, STRM),
+    '#uimm5',
+    '#uimm5',
+    A64PreFetchOper(PLI, L1, KEEP),
+    A64PreFetchOper(PLI, L1, STRM),
+    A64PreFetchOper(PLI, L2, KEEP),
+    A64PreFetchOper(PLI, L2, STRM),
+    A64PreFetchOper(PLI, L3, KEEP),
+    A64PreFetchOper(PLI, L3, STRM),
+    '#uimm5',
+    '#uimm5',
+    A64PreFetchOper(PST, L1, KEEP),
+    A64PreFetchOper(PST, L1, STRM),
+    A64PreFetchOper(PST, L2, KEEP),
+    A64PreFetchOper(PST, L2, STRM),
+    A64PreFetchOper(PST, L3, KEEP),
+    A64PreFetchOper(PST, L3, STRM),
+    '#uimm5',
+    '#uimm5',
+    '#uimm5',
+    '#uimm5',
+    '#uimm5',
+    '#uimm5',
+    '#uimm5',
+    '#uimm5',
+    '#uimm5',
+    '#uimm5',
+)
