@@ -244,14 +244,7 @@ def p_mov_wide_imm(opval, va):
     elif opc == 0x11:
         iflag = IF_K
     else:
-        raise envi.InvalidInstruction(
-            mesg="p_undef: invalid instruction (by definition in ARM spec)",
-            bytez=struct.pack("<I", opval), va=va)
-        opcode = IENC_UNDEF
-        mnem = "undefined instruction"
-        olist = (
-            A64ImmOper(opval),
-        )        
+        return p_undef(opval, va)       
 
     return opcode, mnem, olist, 0,0
 
@@ -441,14 +434,7 @@ def p_excp_gen(opval, va):
             mnem = 'smc'
             opcode = INS_SMC
         else:
-            raise envi.InvalidInstruction(
-                mesg="p_undef: invalid instruction (by definition in ARM spec)",
-                bytez=struct.pack("<I", opval), va=va)
-            opcode = IENC_UNDEF
-            mnem = "undefined instruction"
-            olist = (
-                A64ImmOper(opval)
-            )
+            return p_undef(opval, va)
     elif opc == 0x001:
         mnem = 'brk'
         opcode = INS_BRK
@@ -466,23 +452,10 @@ def p_excp_gen(opval, va):
             mnem = 'dcps3'
             opcode = INS_DCPS3
         else:
-            raise envi.InvalidInstruction(
-                mesg="p_undef: invalid instruction (by definition in ARM spec)",
-                bytez=struct.pack("<I", opval), va=va)
-            opcode = IENC_UNDEF
-            mnem = "undefined instruction"
-            olist = (
-                A64ImmOper(opval)
-            )
+            return p_undef(opval, va)
     else:
-        raise envi.InvalidInstruction(
-            mesg="p_undef: invalid instruction (by definition in ARM spec)",
-            bytez=struct.pack("<I", opval), va=va)
-        opcode = IENC_UNDEF
-        mnem = "undefined instruction"
-        olist = (
-            A64ImmOper(opval)
-        )
+        return p_undef(opval, va)
+    
     return (opcode, mnem, olist, 0, 0)
 
 def p_sys(opval, va):
@@ -593,15 +566,7 @@ def p_sys(opval, va):
         iflag = 0
 
     else:
-        raise envi.InvalidInstruction(
-            mesg="p_undef: invalid instruction (by definition in ARM spec)",
-            bytez=struct.pack("<I", opval), va=va)
-        opcode = IENC_UNDEF
-        mnem = "undefined instruction"
-        olist = (
-            A64ImmOper(opval),
-        )
-        iflag = 0
+        return p_undef(opval, va)
     
     return opcode, mnem, olist, iflag, 0
 
@@ -636,23 +601,9 @@ def p_branch_uncond_reg(opval, va):
             mnem = 'drps'
             olist = () #NOT A FIXME
         else:
-            raise envi.InvalidInstruction(
-                mesg="p_undef: invalid instruction (by definition in ARM spec)",
-                bytez=struct.pack("<I", opval), va=va)
-            opcode = IENC_UNDEF
-            mnem = "undefined instruction"
-            olist = (
-                A64ImmOper(opval),
-            )           
+            return p_undef(opval, va)          
     else:
-        raise envi.InvalidInstruction(
-            mesg="p_undef: invalid instruction (by definition in ARM spec)",
-            bytez=struct.pack("<I", opval), va=va)
-        opcode = IENC_UNDEF
-        mnem = "undefined instruction"
-        olist = (
-            A64ImmOper(opval),
-        )
+        return p_undef(opval, va)
 
     return opcode, mnem, olist, 0,0   
 
@@ -789,14 +740,7 @@ def p_load_reg_lit(opval, va):
                 A64ImmOper(imm19*0b100, 0, S_LSL, va),
             )
         else:
-            raise envi.InvalidInstruction(
-                mesg="p_undef: invalid instruction (by definition in ARM spec)",
-                bytez=struct.pack("<I", opval), va=va)
-            opcode = IENC_UNDEF
-            mnem = "undefined instruction"
-            olist = (
-                A64ImmOper(opval),
-            )
+            return p_undef(opval, va)
     return opcode, mnem, olist, 0, 0
 
 def p_ls_napair_offset(opval, va):
@@ -828,15 +772,7 @@ def p_ls_napair_offset(opval, va):
             regsize = 128
             imm = imm7*0b10000
         else:
-            raise envi.InvalidInstruction(
-                mesg="p_undef: invalid instruction (by definition in ARM spec)",
-                bytez=struct.pack("<I", opval), va=va)
-            opcode = IENC_UNDEF
-            mnem = "undefined instruction"
-            olist = (
-                A64ImmOper(opval),
-            )
-            return opcode, mnem, olist, 0, 0
+            return p_undef(opval, va)
         olist = (
             A64RegOper(rt, va, size=regsize),
             A64RegOper(rt2, va, size=regsize),                
@@ -852,15 +788,7 @@ def p_ls_napair_offset(opval, va):
             regsize = 64
             imm = imm7*0b1000
         else:
-            raise envi.InvalidInstruction(
-                mesg="p_undef: invalid instruction (by definition in ARM spec)",
-                bytez=struct.pack("<I", opval), va=va)
-            opcode = IENC_UNDEF
-            mnem = "undefined instruction"
-            olist = (
-                A64ImmOper(opval),
-            )
-            return opcode, mnem, olist, 0, 0
+            return p_undef(opval, va)
         olist = (
             A64RegOper(rt, va, size=regsize),
             A64RegOper(rt2, va, size=regsize),
@@ -892,15 +820,7 @@ def p_ls_regpair(opval, va):
         )
     elif opc == 0b01:
         if vl == 0b00:
-            raise envi.InvalidInstruction(
-                mesg="p_undef: invalid instruction (by definition in ARM spec)",
-                bytez=struct.pack("<I", opval), va=va)
-            opcode = IENC_UNDEF
-            mnem = "undefined instruction"
-            olist = (
-                A64ImmOper(opval),
-            )
-            return opcode, mnem, olist, 0, 0
+            return p_undef(opval, va)
         elif vl == 0b01:
             mnem = 'ldpsw'
             opcode = INS_LDPSW
@@ -929,14 +849,7 @@ def p_ls_regpair(opval, va):
             A64ImmOper(imm, va=va),
         )
     else:
-        raise envi.InvalidInstruction(
-            mesg="p_undef: invalid instruction (by definition in ARM spec)",
-            bytez=struct.pack("<I", opval), va=va)
-        opcode = IENC_UNDEF
-        mnem = "undefined instruction"
-        olist = (
-            A64ImmOper(opval),
-        )
+        return p_undef(opval, va)
     
 
 
@@ -1074,14 +987,7 @@ def p_ls_reg_unpriv(opval, va):
             A64ImmOper(imm9, va),
         )
     else:
-        raise envi.InvalidInstruction(
-                mesg="p_undef: invalid instruction (by definition in ARM spec)",
-                bytez=struct.pack("<I", opval), va=va)
-        opcode = IENC_UNDEF
-        mnem = "undefined instruction"
-        olist = (
-            A64ImmOper(opval),
-        )
+        return p_undef(opval, va)
         
     return (opcode, mnem, olist, iflag, 0)        
             
@@ -1426,14 +1332,7 @@ def p_simd_ls_multistruct(opval, va):
                 A64RegOper(rn, va, size=64),
             )
     else:
-        raise envi.InvalidInstruction(
-                mesg="p_undef: invalid instruction (by definition in ARM spec)",
-                bytez=struct.pack("<I", opval), va=va)
-        opcode = IENC_UNDEF
-        mnem = "undefined instruction"
-        olist = (
-            A64ImmOper(opval),
-        )
+        return p_undef(opval, va)
         
     return (opcode, mnem, olist, 0, 0)
 
@@ -1512,14 +1411,7 @@ def p_simd_ls_multistruct_posti(opval, va):
                 A64RegOper(rm, va, size=64), #FIXME excluding XZR
             )
         else:
-            raise envi.InvalidInstruction(
-                    mesg="p_undef: invalid instruction (by definition in ARM spec)",
-                    bytez=struct.pack("<I", opval), va=va)
-            opcode = IENC_UNDEF
-            mnem = "undefined instruction"
-            olist = (
-                A64ImmOper(opval),
-            )
+            return p_undef(opval, va)
     else:
         if opc == 0b0000 or opc == 0b0010:
             olist = (
@@ -1552,14 +1444,7 @@ def p_simd_ls_multistruct_posti(opval, va):
                 A64ImmOper((0x8, 0x16)[q], va=va), #FIXME probably wrong
             )
         else:
-            raise envi.InvalidInstruction(
-                    mesg="p_undef: invalid instruction (by definition in ARM spec)",
-                    bytez=struct.pack("<I", opval), va=va)
-            opcode = IENC_UNDEF
-            mnem = "undefined instruction"
-            olist = (
-                A64ImmOper(opval),
-            )
+            return p_undef(opval, va)
 
     return opcode, mnem, olist, 0, 0
 
@@ -1854,14 +1739,7 @@ def p_simd_ls_onestruct_posti(opval, va):
                 opcode = INS_LD1
             if opc == 0b110:
                 if l == 0b0:
-                    raise envi.InvalidInstruction(
-                        mesg="p_undef: invalid instruction (by definition in ARM spec)",
-                        bytez=struct.pack("<I", opval), va=va)
-                    opcode = IENC_UNDEF
-                    mnem = "undefined instruction"
-                    olist = (
-                        A64ImmOper(opval),
-                    )
+                    return p_undef(opval, va)
                 else:
                     iflag |= IF_R
                     if rm != 0b11111:
@@ -1910,14 +1788,7 @@ def p_simd_ls_onestruct_posti(opval, va):
                 mnem = 'ld3'
             if opc == 0b111:
                 if l == 0b0:
-                    raise envi.InvalidInstruction(
-                        mesg="p_undef: invalid instruction (by definition in ARM spec)",
-                        bytez=struct.pack("<I", opval), va=va)
-                    opcode = IENC_UNDEF
-                    mnem = "undefined instruction"
-                    olist = (
-                        A64ImmOper(opval),
-                    )
+                    return p_undef(opval, va)
                 else:
                     iflag |= IF_R
                     if rm != 0b11111:
@@ -1975,14 +1846,7 @@ def p_simd_ls_onestruct_posti(opval, va):
                 opcode = INS_LD2
             if opc == 0b110:
                 if l == 0b0:
-                    raise envi.InvalidInstruction(
-                        mesg="p_undef: invalid instruction (by definition in ARM spec)",
-                        bytez=struct.pack("<I", opval), va=va)
-                    opcode = IENC_UNDEF
-                    mnem = "undefined instruction"
-                    olist = (
-                        A64ImmOper(opval),
-                    )
+                    return p_undef(opval, va)
                 else:
                     iflag |= IF_R
                     if rm != 0b11111:
@@ -2033,14 +1897,7 @@ def p_simd_ls_onestruct_posti(opval, va):
                 mnem = 'ld4'
             else:
                 if opcode == INS_ST4:
-                    raise envi.InvalidInstruction(
-                        mesg="p_undef: invalid instruction (by definition in ARM spec)",
-                        bytez=struct.pack("<I", opval), va=va)
-                    opcode = IENC_UNDEF
-                    mnem = "undefined instruction"
-                    olist = (
-                        A64ImmOper(opval),
-                    )
+                    return p_undef(opval, va)
                 else:
                     iflag |= IF_R
                     if rm != 0b11111:
@@ -2300,15 +2157,7 @@ def p_addsub_carry(opval, va):
                 A64RegOper(rm, va, size=64),
             )
     else:
-        raise envi.InvalidInstruction(
-                mesg="p_undef: invalid instruction (by definition in ARM spec)",
-                bytez=struct.pack("<I", opval), va=va)
-        opcode = IENC_UNDEF
-        mnem = "undefined instruction"
-        olist = (
-            A64ImmOper(opval),
-        )
-        iflag = 0
+        return p_undef(opval, va)
 
         
     return opcode, mnem, olist, iflag, 0
@@ -2395,28 +2244,14 @@ def p_cond_sel(opval, va):
         elif op2 == 0b01:
             iflag |= IF_INC
         else:
-            raise envi.InvalidInstruction(
-            mesg="p_undef: invalid instruction (by definition in ARM spec)",
-            bytez=struct.pack("<I", opval), va=va)
-            opcode = IENC_UNDEF
-            mnem = "undefined instruction"
-            olist = (
-                A64ImmOper(opval),
-            )
+            return p_undef(opval, va)
     else:
         if op2 == 0b00:
             iflag |= IF_INV
         elif op2 == 0b01:
             iflag |= IF_NEG
         else:
-            raise envi.InvalidInstruction(
-            mesg="p_undef: invalid instruction (by definition in ARM spec)",
-            bytez=struct.pack("<I", opval), va=va)
-            opcode = IENC_UNDEF
-            mnem = "undefined instruction"
-            olist = (
-                A64ImmOper(opval),
-            )
+            return p_undef(opval, va)
     #FIXME: cond opers
     if sf == 0b0:
         olist = (
@@ -2504,14 +2339,7 @@ def p_data_proc_3(opval, va):
                 mnem = 'umulh'
                 opcode = INS_UMULH
         else:
-            raise envi.InvalidInstruction(
-                mesg="p_undef: invalid instruction (by definition in ARM spec)",
-                bytez=struct.pack("<I", opval), va=va)
-            opcode = IENC_UNDEF
-            mnem = "undefined instruction"
-            olist = (
-                A64ImmOper(opval),
-            )
+            return p_undef(opval, va)
     return opcode, mnem, olist, 0, 0
             
 def p_data_proc_2(opval, va):
@@ -2608,14 +2436,7 @@ def p_data_proc_1(opval, va):
                     A64ImmOper(opval),
                 )
         else:
-            raise envi.InvalidInstruction(
-                    mesg="p_undef: invalid instruction (by definition in ARM spec)",
-                    bytez=struct.pack("<I", opval), va=va)
-            opcode = IENC_UNDEF
-            mnem = "undefined instruction"
-            olist = (
-                A64ImmOper(opval),
-            )
+            return p_undef(opval, va)
     else:
         if opc & 0b111000 == 0b000000:
             opcode, mnem, iflag = data_proc_1_table_b[opc]
@@ -2629,14 +2450,7 @@ def p_data_proc_1(opval, va):
                     A64ImmOper(opval),
                 )
         else:
-            raise envi.InvalidInstruction(
-                    mesg="p_undef: invalid instruction (by definition in ARM spec)",
-                    bytez=struct.pack("<I", opval), va=va)
-            opcode = IENC_UNDEF
-            mnem = "undefined instruction"
-            olist = (
-                A64ImmOper(opval),
-            )
+            return p_undef(opval, va)
     return opcode, mnem, olist, iflag, 0
 
 
@@ -2702,6 +2516,9 @@ def p_data_simd(opval, va):
     return opcode, mnem, olist, flags, simdflags
 
 def p_fp_fp_conv(opval, va):
+    '''
+    Floating-point<->fixed-point conversions
+    '''
     sf = opval >> 31
     s = opval >> 29 & 0x1
     typ = opval >> 22 & 0x3
@@ -2725,15 +2542,7 @@ def p_fp_fp_conv(opval, va):
         mnem = 'fcvtzu'
         opcode = INS_FCVTZU
     else:
-        raise envi.InvalidInstruction(
-        mesg="p_undef: invalid instruction (by definition in ARM spec)",
-        bytez=struct.pack("<I", opval), va=va)
-        opcode = IENC_UNDEF
-        mnem = "undefined instruction"
-        olist = (
-            A64ImmOper(opval),
-        )
-        return opcode, mnem, olist, 0,0
+        return p_undef(opval, va)
 
     if sf == 0 and typ == 0b00:
         olist = (
@@ -2760,18 +2569,13 @@ def p_fp_fp_conv(opval, va):
             A64ImmOper(64-scale),
         )
     else:
-        raise envi.InvalidInstruction(
-        mesg="p_undef: invalid instruction (by definition in ARM spec)",
-        bytez=struct.pack("<I", opval), va=va)
-        opcode = IENC_UNDEF
-        mnem = "undefined instruction"
-        olist = (
-            A64ImmOper(opval),
-        )
-        return opcode, mnem, olist, 0,0
+        return p_undef(opval, va)
     return opcode, mnem, olist, 0, 0
 
 def p_fp_cond_compare(opval, va):
+    '''
+    Floating-point conditional compare
+    '''
     m = opval >> 31 & 0x1
     s = opval >> 29 & 0x1
     typ = opval >> 22 & 0x3
@@ -2787,15 +2591,7 @@ def p_fp_cond_compare(opval, va):
     elif m == 0 and s == 0 and op == 1:
         iflags |= IF_E
     else:
-        raise envi.InvalidInstruction(
-        mesg="p_undef: invalid instruction (by definition in ARM spec)",
-        bytez=struct.pack("<I", opval), va=va)
-        opcode = IENC_UNDEF
-        mnem = "undefined instruction"
-        olist = (
-            A64ImmOper(opval),
-        )
-        return opcode, mnem, olist, 0,0
+        return p_undef(opval, va)
     if typ == 0b00:
         olist = (
             A64RegOper(rn, va, size=32),
@@ -2811,15 +2607,7 @@ def p_fp_cond_compare(opval, va):
             #ConditionOper
         )
     else:
-        raise envi.InvalidInstruction(
-        mesg="p_undef: invalid instruction (by definition in ARM spec)",
-        bytez=struct.pack("<I", opval), va=va)
-        opcode = IENC_UNDEF
-        mnem = "undefined instruction"
-        olist = (
-            A64ImmOper(opval),
-        )
-        return opcode, mnem, olist, 0,0
+        return p_undef(opval, va)
 
     return opcode, mnem, olist, iflags, 0
 
@@ -2836,6 +2624,9 @@ fp_dp2_table = (
     (0, 0),
 )
 def p_fp_dp2(opval, va):
+    '''
+    Floating-point data processing (2 source)
+    '''
     m = opval >> 31
     s = opval >> 29 & 0x1
     typ = opval >> 22 & 0x3
@@ -2858,23 +2649,15 @@ def p_fp_dp2(opval, va):
                 A64RegOper(rm, va, size=64),
             )
         else:
-            raise envi.InvalidInstruction(
-            mesg="p_undef: invalid instruction (by definition in ARM spec)",
-            bytez=struct.pack("<I", opval), va=va)
-        return opcode, mnem, olist, 0,0
+            return p_undef(opval, va)
     else:
-        raise envi.InvalidInstruction(
-        mesg="p_undef: invalid instruction (by definition in ARM spec)",
-        bytez=struct.pack("<I", opval), va=va)
-        opcode = IENC_UNDEF
-        mnem = "undefined instruction"
-        olist = (
-            A64ImmOper(opval),
-        )
-        return opcode, mnem, olist, 0,0
+        return p_undef(opval, va)
     return opcode, mnem, olist, 0, 0
 
 def p_fp_cond_select(opval, va):
+    '''
+    Floating-point conditional select
+    '''
     m = opval >> 31
     s = opval >> 29 & 0x1
     typ = opval >> 22 & 0x3
@@ -2900,23 +2683,15 @@ def p_fp_cond_select(opval, va):
                 #cond
             )
         else:
-            raise envi.InvalidInstruction(
-            mesg="p_undef: invalid instruction (by definition in ARM spec)",
-            bytez=struct.pack("<I", opval), va=va)
-            return opcode, mnem, olist, 0,0
+            return p_undef(opval, va)
     else:
-        raise envi.InvalidInstruction(
-        mesg="p_undef: invalid instruction (by definition in ARM spec)",
-        bytez=struct.pack("<I", opval), va=va)
-        opcode = IENC_UNDEF
-        mnem = "undefined instruction"
-        olist = (
-            A64ImmOper(opval),
-        )
-        return opcode, mnem, olist, 0,0
+        return p_undef(opval, va)
     return opcode, mnem, olist, 0, 0
 
 def p_fp_immediate(opval, va):
+    '''
+    Floating-point immediate
+    '''
     m = opval >> 31
     s = opval >> 29 & 0x1
     typ = opval >> 22 & 0x3
@@ -2956,18 +2731,16 @@ def p_fp_immediate(opval, va):
                 A64RegOper(ra, va, size=64),
             )
         else:
-            raise envi.InvalidInstruction(
-                mesg="p_undef: invalid instruction (by definition in ARM spec)",
-                bytez=struct.pack("<I", opval), va=va)
-            return opcode, mnem, olist, 0,0
+            return p_undef(opval, va)
     else:
-        raise envi.InvalidInstruction(
-            mesg="p_undef: invalid instruction (by definition in ARM spec)",
-            bytez=struct.pack("<I", opval), va=va)
-        return opcode, mnem, olist, 0,0
+        return p_undef(opval, va)
+    
     return opcode, mnem, olist, 0, 0
 
 def p_fp_compare(opval, va):
+    '''
+    Floating-point compare
+    '''
     m = opval >> 31
     s = opval >> 29 & 0x1
     typ = opval >> 22 & 0x3
@@ -2990,15 +2763,7 @@ def p_fp_compare(opval, va):
                     A64ImmOper(0, va=va),
                 )
             else:
-                raise envi.InvalidInstruction(
-                mesg="p_undef: invalid instruction (by definition in ARM spec)",
-                bytez=struct.pack("<I", opval), va=va)
-                opcode = IENC_UNDEF
-                mnem = "undefined instruction"
-                olist = (
-                    A64ImmOper(opval),
-                )
-                return opcode, mnem, olist, 0,0
+                return p_undef(opval, va)
         elif typ == 0b01:
             if opcode2 == 0b00000 or opcode2 == 0b10000:
                 olist = (
@@ -3011,30 +2776,11 @@ def p_fp_compare(opval, va):
                     A64ImmOper(0, va=va),
                 )
             else:
-                raise envi.InvalidInstruction(
-                mesg="p_undef: invalid instruction (by definition in ARM spec)",
-                bytez=struct.pack("<I", opval), va=va)
-                opcode = IENC_UNDEF
-                mnem = "undefined instruction"
-                olist = (
-                    A64ImmOper(opval),
-                )
-                return opcode, mnem, olist, 0,0
+                return p_undef(opval, va)
         else:
-            raise envi.InvalidInstruction(
-            mesg="p_undef: invalid instruction (by definition in ARM spec)",
-            bytez=struct.pack("<I", opval), va=va)
-            opcode = IENC_UNDEF
-            mnem = "undefined instruction"
-            olist = (
-                A64ImmOper(opval),
-            )
-            return opcode, mnem, olist, 0,0
+            return p_undef(opval, va)
     else:
-        raise envi.InvalidInstruction(
-            mesg="p_undef: invalid instruction (by definition in ARM spec)",
-            bytez=struct.pack("<I", opval), va=va)
-        return opcode, mnem, olist, 0,0
+        return p_undef(opval, va)
     if opcode2 >> 4 == 1:
         iflags |= IF_E
     return opcode, mnem, olist, iflags, 0
@@ -3059,6 +2805,9 @@ fp_dp1_table = (
     (0, 0, 0), #Catch-all
 )
 def p_fp_dp1(opval, va):
+    '''
+    Floating-point data processing (1 source)
+    '''
     m = opval >> 31
     s = opval >> 29 & 0x1
     typ = opval >> 22 & 0x3
@@ -3067,15 +2816,7 @@ def p_fp_dp1(opval, va):
     rd = opval & 0x1f
     mnem, opcode, iflags = fp_dp1_table[opc]
     if mnem == 0:
-        raise envi.InvalidInstruction(
-        mesg="p_undef: invalid instruction (by definition in ARM spec)",
-        bytez=struct.pack("<I", opval), va=va)
-        opcode = IENC_UNDEF
-        mnem = "undefined instruction"
-        olist = (
-            A64ImmOper(opval),
-        )
-        return opcode, mnem, olist, 0,0
+        return p_undef(opval, va)
     elif m == 0 and s == 0:
         if typ == 0b00:
             if opc == 0b000101:
@@ -3121,34 +2862,18 @@ def p_fp_dp1(opval, va):
                     A64RegOper(rn, va, size=16),
                 )
             else:
-                raise envi.InvalidInstruction(
-                mesg="p_undef: invalid instruction (by definition in ARM spec)",
-                bytez=struct.pack("<I", opval), va=va)
-                opcode = IENC_UNDEF
-                mnem = "undefined instruction"
-                olist = (
-                    A64ImmOper(opval),
-                )
-                return opcode, mnem, olist, 0,0
+                return p_undef(opval, va)
         else:
-            raise envi.InvalidInstruction(
-            mesg="p_undef: invalid instruction (by definition in ARM spec)",
-            bytez=struct.pack("<I", opval), va=va)
-            opcode = IENC_UNDEF
-            mnem = "undefined instruction"
-            olist = (
-                A64ImmOper(opval),
-            )
-            return opcode, mnem, olist, 0,0
+            return p_undef(opval, va)
     else:
-        raise envi.InvalidInstruction(
-        mesg="p_undef: invalid instruction (by definition in ARM spec)",
-        bytez=struct.pack("<I", opval), va=va)
-        return opcode, mnem, olist, 0,0
+        return p_undef(opval, va)
 
     return opcode, mnem, olist, iflags, 0
 
 def p_fp_int_conv(opval, va):
+    '''
+    Floating-point<->integer conversions
+    '''
     sf = opval >> 31
     s = opval >> 29 & 0x1
     typ = opval >> 22 & 0x3
@@ -3196,10 +2921,7 @@ def p_fp_int_conv(opval, va):
                 A64RegOper(rn, va, size=64),
             )
         else:
-            raise envi.InvalidInstruction(
-            mesg="p_undef: invalid instruction (by definition in ARM spec)",
-            bytez=struct.pack("<I", opval), va=va)
-            return opcode, mnem, olist, 0,0
+            return p_undef(opval, va)
     else:
         if opc >> 2 & 0x1 == 0:
             if opc >> 0 & 0x1 == 0:
@@ -3265,18 +2987,13 @@ def p_fp_int_conv(opval, va):
                     #top half of 128-bit reg (rn)
                 )
             else:
-                raise envi.InvalidInstruction(
-                mesg="p_undef: invalid instruction (by definition in ARM spec)",
-                bytez=struct.pack("<I", opval), va=va)
-                opcode = IENC_UNDEF
-                mnem = "undefined instruction"
-                olist = (
-                    A64ImmOper(opval),
-                )
-                return opcode, mnem, olist, 0,0
+                return p_undef(opval, va)
     return opcode, mnem, olist, iflags, 0
 
-def p_fp_ds3(opval, va):
+def p_fp_dp3(opval, va):
+    '''
+    Floating-point data processing (3 source)
+    '''
     m = opval >> 31
     s = opval >> 29 & 0x1
     typ = opval >> 22 & 0x3
@@ -3314,19 +3031,119 @@ def p_fp_ds3(opval, va):
                 A64RegOper(ra, va, size=32),
             )
         else:
-            raise envi.InvalidInstruction(
-            mesg="p_undef: invalid instruction (by definition in ARM spec)",
-            bytez=struct.pack("<I", opval), va=va)
-            opcode = IENC_UNDEF
-            mnem = "undefined instruction"
-            olist = (
-                A64ImmOper(opval),
-            )
-            return opcode, mnem, olist, 0,0
+            return p_undef(opval, va)
     else:
-        raise envi.InvalidInstruction(
-        mesg="p_undef: invalid instruction (by definition in ARM spec)",
-        bytez=struct.pack("<I", opval), va=va)
+        return p_undef(opval, va)
+
+    return opcode, mnem, olist, 0, 0
+
+def p_crypto_aes(opval, va):
+    '''
+    Crypto AES
+    '''
+    size = opval >> 22 & 0x3
+    opc = opval >> 12 & 0x1f
+    rn = opval >> 5 & 0x1f
+    rd = opval & 0x1f
+    opcode, mnem = aes_table[opc & 0x3]
+    olist = (
+        A64RegOper(rd, va, size=128),
+        A64RegOper(rn, va, size=128),
+    )
+    if size != 0b00 or opc & 0b11100 != 0b00100:
+        return p_undef(opval, va)
+
+    return opcode, mnem, olist, 0, 0
+
+aes_table = (
+    (INS_AESE, 'aese'),
+    (INS_AESD, 'aesd'),
+    (INS_AESMC, 'aesmc'),
+    (INS_AESIMC, 'aesimc'),
+)
+
+
+def p_crypto_three_sha(opval, va):
+    '''
+    Crypto three-reg SHA
+    '''
+    size = opval >> 22 & 0x3
+    rm = opval >> 16 & 0x1f
+    opc = opval >> 12 & 0x7
+    rn = opval >> 5 & 0x1f
+    rd = opval & 0x1f
+
+    opcode, mnem = crypto_3sha_table[opc]
+
+    if opc & 0b100 == 0b100 or opc == 0b011:
+        olist = (
+            A64RegOper(rd, va, size=128),
+            A64RegOper(rn, va, size=128),
+            A64RegOper(rm, va, size=128),
+        )
+    else:
+        olist = (
+            A64RegOper(rd, va, size=128),
+            A64RegOper(rn, va, size=32),
+            A64RegOper(rm, va, size=128),
+        )
+
+    if size != 0b00 or opc == 0b111:
+        return p_undef(opval, va)
+
+        
+    return opcode, mnem, olist, 0, 0
+
+
+crypto_3sha_table = (
+    (INS_SHA1C, 'sha1c'),
+    (INS_SHA1P, 'sha1p'),
+    (INS_SHA1M, 'sha1m'),
+    (INS_SHA1SU0, 'sha1su0'),
+    (INS_SHA256H, 'sha256h'),
+    (INS_SHA256H2, 'sha256h2'),
+    (INS_SHA256SU1, 'sha256su1'),
+)
+
+
+def p_crypto_two_sha(opval, va):
+    '''
+    Crypto two-reg SHA
+    '''
+    size = opval >> 22 & 0x3
+    opc = opval >> 12 & 0x1f
+    rn = opval >> 5 & 0x1f
+    rd = opval & 0x1f
+
+    if opc == 0b00000:
+        mnem = 'sha1h'
+        opcode = INS_SHA1H
+        olist = (
+            A64RegOper(rd, va, size=32),
+            A64RegOper(rn, va, size=32),
+        )
+    elif opc == 0b00001:
+        mnem = 'sha1su1'
+        opcode = INS_SHA1SU1
+        olist = (
+            A64RegOper(rd, va, size=128),
+            A64RegOper(rn, va, size=128),
+        )
+    elif opc == 0b00010:
+        mnem = 'sha256su0'
+        opcode = INS_SHA256SU0
+        olist = (
+            A64RegOper(rd, va, size=128),
+            A64RegOper(rn, va, size=128),
+        )
+    else:
+        return p_undef(opval, va)
+
+    if size != 0b00:
+        return p_undef(opval, va)
+
+    return opcode, mnem, olist, 0, 0
+    
 
 def p_undef(opval, va):
     '''
@@ -3390,7 +3207,37 @@ ienc_parsers_tmp[IENC_COND_SEL] = p_cond_sel
 ienc_parsers_tmp[IENC_DATA_PROC_3] = p_data_proc_3
 ienc_parsers_tmp[IENC_DATA_PROC_2] = p_data_proc_2
 ienc_parsers_tmp[IENC_DATA_PROC_1] = p_data_proc_1
+ienc_parsers_tmp[IENC_FP_FP_CONV] = p_fp_fp_conv
+ienc_parsers_tmp[IENC_FP_COND_COMPARE] = p_fp_cond_compare
+ienc_parsers_tmp[IENC_FP_DP2] = p_fp_dp2
+ienc_parsers_tmp[IENC_FP_COND_SELECT] = p_fp_cond_select
+ienc_parsers_tmp[IENC_FP_IMMEDIATE] = p_fp_immediate
+ienc_parsers_tmp[IENC_FP_COMPARE] = p_fp_compare
+ienc_parsers_tmp[IENC_FP_DP1] = p_fp_dp1
+ienc_parsers_tmp[IENC_FP_INT_CONV] = p_fp_int_conv
+ienc_parsers_tmp[IENC_FP_DP3] = p_fp_dp3
+ienc_parsers_tmp[IENC_SIMD_THREE_SAME] = p_simd_three_same
+ienc_parsers_tmp[IENC_SIMD_THREE_DIFF] = p_simd_three_diff
+ienc_parsers_tmp[IENC_SIMD_TWOREG_MISC] = p_simd_tworeg_misc
+ienc_parsers_tmp[IENC_SIMD_ACROSS_LANES] = p_simd_across_lanes
+ienc_parsers_tmp[IENC_SIMD_COPY] = p_simd_copy
+ienc_parsers_tmp[IENC_SIMD_VECTOR_IE] = p_simd_vector_ie
+ienc_parsers_tmp[IENC_SIMD_MOD_IMM] = p_simd_mod_imm
+ienc_parsers_tmp[IENC_SIMD_TBL_TBX] = p_simd_tbl_tbx
+ienc_parsers_tmp[IENC_SIMD_ZIP_UZP_TRN] = p_simd_zip_uzp_trn
+ienc_parsers_tmp[IENC_SIMD_EXT] = p_simd_ext
+ienc_parsers_tmp[IENC_SIMD_SCALAR_THREE_SAME] = p_simd_scalar_three_same
+ienc_parsers_tmp[IENC_SIMD_SCALAR_THREE_DIFF] = p_simd_scalar_three_diff
+ienc_parsers_tmp[IENC_SIMD_SCALAR_TWOREG_MISC] = p_simd_scalar_tworeg_misc
+ienc_parsers_tmp[IENC_SIMD_SCALAR_PAIRWISE] = p_simd_scalar_pairwise
+ienc_parsers_tmp[IENC_SIMD_SCALAR_COPY] = p_simd_scalar_copy
+ienc_parsers_tmp[IENC_SIMD_SCALAR_IE] = p_simd_scalar_ie
+ienc_parsers_tmp[IENC_SIMD_SCALAR_SHIFT_IMM] = p_simd_scalar_shift_imm
+ienc_parsers_tmp[IENC_CRPYTO_AES] = p_crypto_aes
+ienc_parsers_tmp[IENC_CRYPTO_THREE_SHA] = p_crypto_three_sha
+ienc_parsers_tmp[IENC_CRYPTO_TWO_SHA] = p_crypto_two_sha
 ienc_parsers_tmp[IENC_UNDEF] = p_undef
+
 
 ienc_parsers = tuple(ienc_parsers_tmp)
 
