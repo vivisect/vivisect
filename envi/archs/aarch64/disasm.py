@@ -2492,7 +2492,7 @@ datasimdtable = (
     (0x9f3e0c00, 0x0e300800, IENC_SIMD_ACROSS_LANES), #p_simd_across_lanes
     (0x9fe08400, 0x0e000400, IENC_SIMD_COPY), #p_simd_copy
     (0x9f000400, 0x0f000000, IENC_SIMD_VECTOR_IE), #p_simd_vector_ie
-    (0x9f800400, 0x0f000400, IENC_SIMD_MOD_IMM), #p_simd_mod_imm (also shift_imm)
+    (0x9f800400, 0x0f000400, IENC_SIMD_MOD_SHIFT_IMM), #p_simd_mod_shift_imm
     (0xbf208c00, 0x0e000000, IENC_SIMD_TBL_TBX), #p_simd_tbl_tbx
     (0xbf208c00, 0x0e000800, IENC_SIMD_ZIP_UZP_TRN), #p_simd_zip_uzp_trn
     (0xbf208400, 0x2e000000, IENC_SIMD_EXT), #p_simd_ext
@@ -3036,6 +3036,840 @@ def p_fp_dp3(opval, va):
         return p_undef(opval, va)
 
     return opcode, mnem, olist, 0, 0
+
+def p_simd_copy(opval, va):
+    '''
+    AdvSIMD copy
+    '''
+    q = opval >> 30 & 0x1
+    op = opval >> 29 & 0x1
+    imm5 = opval >> 16 & 0x1f
+    imm4 = opval >> 11 & 0xf
+    rn = opval >> 5 & 0x1f
+    rd = opval & 0x1f
+
+    iflag = 0
+
+    if op == 0b0:
+        if imm4 & 0b1110 == 0b0000:
+            mnem = 'dup'
+            opcode = INS_DUP
+            if imm5 & 0x0f == 0b00000:
+                width_spec1 = 'RESERVED'
+                width_spec2 = 'RESERVED'
+                index = 'RESERVED'
+            elif imm5 & 0b00001 == 0b00001:
+                width_spec2 = dup_table[0][imm4 & 0x1]
+                index = imm5[4:1]
+                if q == 0b0:
+                    width_spec1 = '8B'
+                else:
+                    width_spec1 = '16B'
+            elif imm5 & 0b00010 == 0b00010:
+                width_spec2 = dup_table[1][imm4 & 0x1]
+                index = imm5[4:2]
+                if q == 0b0:
+                    width_spec1 = '4H'
+                else:
+                    width_spec1 = '8H'
+            elif imm5 & 0b00100 == 0b00100:
+                width_spec2 = dup_table[2][imm4 & 0x1]
+                index = imm5[4:3]
+                if q == 0b0:
+                    width_spec1 = '2S'
+                else:
+                    width_spec1 = '4S'
+            else:
+                width_spec2 = dup_table[3][imm4 & 0x1]
+                index = imm5[4]
+                if q == 0b0:
+                    width_spec1 = 'RESERVED'
+                else:
+                    width_spec1 = '2D'
+            if imm4 & 0x1 == 0b0:
+                olist = (
+                    A64RegOper(rd, va, size=width_spec1),
+                    A64RegOper(rn, va, size=width_spec2),
+                    A64ImmOper(index, va=va),
+                )
+            else:
+                olist = (
+                    A64RegOper(rd, va, size=width_spec1),
+                    A64RegOper(rn, va, size=width_spec2),
+                )
+        elif imm4 == 0b0011:
+            mnem = 'ins'
+            opcode = INS_INS
+            if imm5 & 0x0f == 0b00000:
+                width_spec1 = 'RESERVED'
+                width_spec2 = 'RESERVED'
+                index = 'RESERVED'
+            elif imm5 & 0b00001 == 0b00001:
+                width_spec1 = dup_table[0][0]
+                width_spec2 = dup_table[0][1]
+                index = imm5[4:1]
+            elif imm5 & 0b00010 == 0b00010:
+                width_spec1 = dup_table[1][0]
+                width_spec2 = dup_table[1][1]
+                index = imm5[4:2]
+            elif imm5 & 0b00100 == 0b00100:
+                width_spec1 = dup_table[2][0]
+                width_spec2 = dup_table[2][1]
+                index = imm5[4:3]
+            else:
+                width_spec1 = dup_table[3][0]
+                width_spec2 = dup_table[3][1]
+                index = imm5[4]
+            olist = (
+                A64RegOper(rd, va, size=width_spec1),
+                A64ImmOper(index, va=va),
+                A64RegOper(rn, va, size=width_spec2),
+            )
+        elif imm4 & 0b1101 == 0b0101:
+            mnem = 'mov'
+            opcode = INS_MOV
+            if imm4 & 0b0010 == 0b0000:
+                iflag |= IFP_S
+                index32 = imm5 & 0x3
+                index64 = imm5 & 0x7
+                if q == 0b0:
+                    regsize = 32
+                    if index32 == 0b00:
+                        index = 'RESERVED'
+                        width_spec = 'RESERVED'
+                    elif index32 == 0b10:
+                        index = imm5[4:2]
+                        width_spec = 'H'
+                    else:
+                        index = imm5[4:1]
+                        width_spec = 'B'
+                else:
+                    regsize = 64
+                    if index64 == 0b000:
+                        width_spec = 'RESERVED'
+                        index = 'RESERVED'
+                    elif index64 == 0b100:
+                        width_spec = 'S'
+                        index = imm5[4:3]
+                    elif index64 & 0b010 == 0b010:
+                        width_spec = 'H'
+                        index = imm5[4:2]
+                    else:
+                        width_spec = 'B'
+                        index = imm5[4:1]
+            else:
+                iflag |= IFP_U
+                index32 = imm5 & 0x7
+                if q == 0b0:
+                    regsize = 32
+                    if index32 == 0b000:
+                        width_spec = 'RESERVED'
+                        index = 'RESERVED'
+                    elif index32 == 0b100:
+                        width_spec = 'S'
+                        index = imm5[4:3]
+                    elif index32 & 0b010 == 0b010:
+                        width_spec = 'H'
+                        index = imm5[4:2]
+                    else:
+                        width_spec = 'B'
+                        index = imm5[4:1]
+                else:
+                    regsize = 64
+                    index = imm5[4]
+                    if imm5 & 0b01000 == 0b01000:
+                        width_spec = 'D'
+                    else:
+                        width_spec = 'RESERVED'
+            olist = (
+                A64RegOper(rd, va, size=regsize),
+                A64RegOper(rn, va, size=width_spec),
+                A64ImmOper(index, va)
+            )
+    else:
+        mnem = 'ins'
+        opcode = INS_INS
+        if imm5 & 0x0f == 0b00000:
+            width_spec = 'RESERVED'
+            index1 = 'RESERVED'
+            index2 = 'RESERVED'
+        elif imm5 & 0b00001 == 0b00001:
+            width_spec = dup_table[0][0]
+            index1 = imm5[4:1]
+            index2 = imm5[3:0]
+        elif imm5 & 0b00010 == 0b00010:
+            width_spec = dup_table[1][0]
+            index1 = imm5[4:2]
+            index2 = imm5[3:1]
+        elif imm5 & 0b00100 == 0b00100:
+            width_spec = dup_table[2][0]
+            index1 = imm5[4:3]
+            index2 = imm5[3:2]
+        else:
+            width_spec = dup_table[3][0]
+            index = imm5[4]
+            index2 = imm5[3]
+        olist = (
+            A64RegOper(rd, va, size=width_spec),
+            A64ImmOper(index1, va=va),
+            A64RegOper(rn, va, size=width_spec),
+            A64ImmOper(index2, va=va),
+        )
+
+    return opcode, mnem, olist, iflag, 0
+
+dup_table = (
+    ( 'B', 'W'),
+    ( 'H', 'W'),
+    ( 'S', 'W'),
+    ( 'D', 'X'),
+)
+
+def p_simd_vector_ie(opval, va):
+    '''
+    AdvSIMD vector x indexed element
+    '''
+    q = opval >> 30 & 0x1
+    u = opval >> 29 & 0x1
+    size = opval >> 22 & 0x3
+    l = opval >> 21 & 0x1
+    m = opval >> 20 & 0x1
+    rm = opval >> 16 & 0xf
+    opc = opval >> 12 & 0xf
+    h = opval >> 11 & 0x1
+    rn = opval >> 5 & 0x1f
+    rd = opval & 0x1f
+    
+    if opc & 0b0010 == 0b0010: #any instruction with IF_L at the end (long flag)
+        iflag |= IF_L
+        if size == 0b00:
+            ta = 'RESERVED'
+            tb = 'RESERVED'
+            ts = 'RESERVED'
+            vm = 'RESERVED'
+            index = 'RESERVED'
+        elif size == 0b01:
+            ta = '4S'
+            ts = 'H'
+            vm = rm
+            index = h+l+m
+            if q == 0b0:
+                tb = '4H'
+            else:
+                tb = '8H'
+        elif size == 0b10:
+            ta = '2D'
+            ts = 'S'
+            vm = m+rm
+            index = h+l
+            if q == 0b0:
+                tb = '2S'
+            else:
+                tb = '4S'
+        else:
+            ta = 'RESERVED'
+            tb = 'RESERVED'
+            ts = 'RESERVED'
+            vm = 'RESERVED'
+            index = 'RESERVED'
+        olist = (
+            A64RegOper(rd, va, size=ta),
+            A64RegOper(rn, va, size=tb),
+            A64RegOper(vm, va, size=ts),
+            A64ImmOper(index, va=va),
+        )
+    else:
+        if opc & 0b0001 == 0b0000 or opc == 0b1101: #any remaining instruction without a floating point flag (IFP_F)
+            if size == 0b00:
+                t = 'RESERVED'
+                ts = 'RESERVED'
+                vm = 'RESERVED'
+                index = 'RESERVED'
+            elif size == 0b01:
+                ts = 'H'
+                vm = rm
+                index = h+l+m
+                if q == 0b0:
+                    t = '4H'
+                else:
+                    t = '8H'
+            elif size == 0b10:
+                ts = 'S'
+                vm = m+rm
+                index = h+l
+                if q == 0b0:
+                    t = '2S'
+                else:
+                    t = '4S'
+            else:
+                t = 'RESERVED'
+                ts = 'RESERVED'
+                vm = 'RESERVED'
+                index = 'RESERVED'
+        else: #instructions with a floating point flag
+            if size & 0b10 == 0b00:
+                return p_undef(opval, va)
+            if u == 0b1:
+                iflag |= IF_X
+            vm = m+rm
+            if size == 0b00:
+                t = '2S'
+                ts = 'S'
+                index = h+l
+            elif size == 0b01:
+                t = 'RESERVED'
+                ts = 'D'
+                if l == 0b0:
+                    index = h
+                else:
+                    index = 'RESERVED'
+            elif size == 0b10:
+                t = '4S'
+                ts = 'S'
+                index = h+l
+            else:
+                t = '2D'
+                ts = 'D'
+                if l == 0b0:
+                    index = h
+                else:
+                    index = 'RESERVED'
+        olist = (
+            A64RegOper(rd, va, size=t),
+            A64RegOper(rn, va, size=t),
+            A64RegOper(vm, va, size=ts),
+            A64ImmOper(index, va=va),
+        )
+    if opc & 0x3 == 0b10:
+        if u == 0b0:
+            iflag |= IFP_S
+        else:
+            iflag |= IFP_U
+    if u == 0b0 and opc & 0x3 == 0b11:
+        iflag |= IFP_SQ
+        iflag |= IFP_D
+    if opc & 0b1000 == 0b1000:
+        #all instructions with opc beginning with 1 have an opcode of MUL
+        mnem = 'mul'
+        opcode = INS_MUL
+        if opc & 0b0100 == 0b0100:
+            iflag |= IFP_SQ
+            iflag |= IFP_D
+            iflag |= IF_H
+            if opc & 0b0010 == 0b0010 or u == 0b1:
+                return p_undef(opval, va)
+            if opc & 0x1 == 0b0001:
+                iflag |= IFP_R
+    elif opc & 0b0100 == 0b0100:
+        #all other instructions with the second bit opc as 1 have an opcode of MLS
+        mnem = 'mls'
+        opcode = INS_MLS
+    else:
+        #all remaining instructions have an opcode of 'mla'
+        mnem = 'mla'
+        opcode = INS_MLA
+
+    return opcode, mnem, olist, iflag, 0
+
+def p_simd_mod_shift_imm(opval, va):
+    '''
+    Chooses between AdvSIMD modified immediate and shift by immediate
+    Modified immediate: bits 19-22 == 0b0000
+    Shift by immediate: bits 19-22 != 0b0000
+    '''
+    if opval >> 19 & 0xf == 0b0000:
+        return p_simd_mod_imm(opval, va)
+    else:
+        return p_simd_shift_imm(opval, va)
+
+def p_simd_mod_imm(opval, va):
+    '''
+    AdvSIMD modified immediate
+    '''
+    q = opval >> 30 & 0x1
+    op = opval >> 29 & 0x1
+    a = opval >> 18 & 0x1
+    b = opval >> 17 & 0x1
+    c = opval >> 16 & 0x1
+    cmode = opval >> 12 & 0xf
+    o2 = opval >> 11 & 0x1
+    d = opval >> 9 & 0x1
+    e = opval >> 8 & 0x1
+    f = opval >> 7 & 0x1
+    g = opval >> 6 & 0x1
+    h = opval >> 5 & 0x1
+    rd = opval & 0x1f
+
+    if o2 == 0b0:
+        if cmode & 0b1000 == 0b0000 or cmode & 0b0100 == 0b0000:
+            if cmode & 0b1000 == 0b0000:
+                shift = cmode[2:1]
+                if q == 0b0:
+                    width_spec = '2S'               
+                else:
+                    width_spec = '4S'
+            else:
+                shift = cmode[1]
+                if q == 0b0:
+                    width_spec = '4H'               
+                else:
+                    width_spec = '8H'
+            olist = (
+                A64RegOper(rd, va, size=width_spec),
+                A64ImmOper(a+b+c+d+e+f+g+h, va=va),
+                #shift equal to mod_imm_table[shift] LSL
+            )
+            if cmode & 0x1 == 0b0:
+                iflag |= IF_I
+                if op == 0b0:
+                    mnem = 'mov'
+                    opcode = INS_MOV
+                else:
+                    mnem = 'mv'
+                    opcode = INS_MV
+                    iflag |= IF_N                   
+            else:
+                if op == 0b0:
+                    mnem = 'orr'
+                    opcode = INS_ORR
+                else:
+                    mnem = 'bic'
+                    opcode = INS_BIC
+        elif cmode & 0b0010 == 0b0000:
+            iflag |= IF_I
+            if op == 0b0:
+                mnem = 'mov'
+                opcode = INS_MOV
+            else:
+                mnem = 'mv'
+                opcode = INS_MV
+                iflag |= IF_N
+            shift = (8,16)[cmode[0]]
+            if q == 0b0:
+                width_spec = '2S'               
+            else:
+                width_spec = '4S'
+            olist = (
+                A64RegOper(rd, va, size=width_spec),
+                A64ImmOper(a+b+c+d+e+f+g+h, va=va),
+                #shift amount MSL
+            )
+        elif cmode == 0b1111:
+            mnem = 'mov'
+            opcode = INS_MOV
+            iflag |= IFP_F
+            if op == 0b0:
+                width_spec = ('4S', '2S')[q]
+            elif q == 0b1:
+                width_spec = '2D'
+            else:
+                return p_undef(opval, va)
+            olist = (
+                A64RegOper(rd, va, size=width_spec),
+                A64ImmOper(a+b+c+d+e+f+g+h, va=va),
+            )
+        else:
+            mnem = 'mov'
+            opcode = INS_MOV
+            iflag |= IF_I
+            if op == 0b0:
+                olist = (
+                    A64RegOper(rd, va, size=('8B','16B')[q]),
+                    A64ImmOper(a+b+c+d+e+f+g+h, va=va),
+                    #FIXME shift == 0x0
+                )
+            else:
+                if q == 0b0:
+                    olist = (
+                        A64RegOper(rd, va, size=64),
+                        A64ImmOper(a+b+c+d+e+f+g+h, va=va),
+                    )
+                else:
+                    olist = (
+                        A64RegOper(rd, va, size='2D'),
+                        A64ImmOper(a+b+c+d+e+f+g+h, va=va),
+                    ) 
+    else:
+        return p_undef(opval, va)
+
+    return opcode, mnem, 
+
+mod_imm_table = (
+    0, 8, 16, 24,
+)
+
+
+def p_simd_shift_imm(opval, va):
+    '''
+    AdvSIMD shift by immediate
+    '''
+    q = opval >> 30 & 0x1
+    u = opval >> 29 & 0x1
+    immh = opval >> 19 & 0xf
+    immb = opval >> 16 & 0x7
+    opc = opval >> 11 & 0x1f
+    rn = opval >> 5 & 0x1f
+    rd = opval & 0x1f
+
+    if opc & 0b11000 == 0b00000:
+        if immh & 0b1000 == 0b1000:
+            shift = 16 - (immh+immb)
+            if q == 0b0:
+                width_spec = '8B'
+            else:
+                width_spec = '16B'
+        elif immh & 0b0100 == 0b0100:
+            shift = 32 - (immh+immb)
+            if q == 0b0:
+                 width_spec = '4H'
+            else:
+                width_spec = '8H'
+        elif immh & 0b0010 == 0b0010:
+            shift = 64 - (immh+immb)
+            if q == 0b0:
+                width_spec = '2S'
+            else:
+                width_spec = '4S'
+        elif immh == 0b0001:
+            shift = 128 - (immh+immb)
+            if q == 0b0:
+                width_spec = 'RESERVED'
+            else:
+                width_spec = '2D'
+        else:
+            #FIXME see modified immediate?
+        olist = (
+            A64RegOper(rd, va, size=width_spec),
+            A64RegOper(rn, va, size=width_spec),
+            #FIXME shift = variable shift specified above
+        )
+        if u == 0b0:
+            iflag |= IFP_S
+        else:
+            iflag |= IFP_U
+        if opc & 0b00011== 0b00000:
+            mnem = 'shr'
+            opcode = INS_SHR
+        else:
+            mnem = 'sra'
+            opcode = INS_SRA
+        if opcode & 0b00100 == 0b00100:
+            iflag |= IFP_R
+        
+    elif opc & 0b11000 == 0b01000:
+        if opc == 0b01000:
+            if u == 0b0:
+                return p_undef(opval, va)
+            else:
+                mnem = 'sri'
+                opcode = INS_SRI
+        elif opc == 0b01010:
+            if u == 0b0:
+                mnem = 'shl'
+                opcode = INS_SHL
+            else:
+                mnem = 'sli'
+                opcode = INS_SLI
+        elif opc == 0b01100:
+            if u == 0b0:
+                return p_undef(opval, va)
+            else:
+                mnem = 'shl'
+                opcode = INS_SHL
+                iflag |= IF_U
+                iflag |= IFP_SQ
+        elif opc == 0b01110:
+            mnem = 'shl'
+            opcode = INS_SHL
+            if u == 0b0:
+                iflag |= IFP_SQ
+            else:
+                iflag |= IFP_UQ
+        else:
+            return p_undef(opval, va)
+        if immh & 0b1000 == 0b1000:
+            if mnem != 'sri':
+                shift = (immh+immb) - 64
+            else:
+                shift = 128 - (immh+immb)
+            if q == 0b0:
+                width_spec = '8B'
+            else:
+                width_spec = '16B'
+        elif immh & 0b0100 == 0b0100:
+            if mnem != 'sri':
+                shift = (immh+immb) - 32
+            else:
+                shift = 64 - (immh+immb)
+            if q == 0b0:
+                 width_spec = '4H'
+            else:
+                width_spec = '8H'
+        elif immh & 0b0010 == 0b0010:
+            if mnem != 'sri':
+                shift = (immh+immb) - 16
+            else:
+                shift = 32 - (immh+immb)
+            if q == 0b0:
+                width_spec = '2S'
+            else:
+                width_spec = '4S'
+        elif immh == 0b0001:
+            if mnem != 'sri':
+                shift = (immh+immb) - 8
+            else:
+                shift = 16 - (immh+immb)
+            if q == 0b0:
+                width_spec = 'RESERVED'
+            else:
+                width_spec = '2D'
+        else:
+            #FIXME see modified immediate?
+        olist = (
+            A64RegOper(rd, va, size=width_spec),
+            A64RegOper(rn, va, size=width_spec),
+            #FIXME shift = variable shift specified above
+        )
+    elif opc & 0b11000 == 0b10000:
+        if immh & 0b1000 == 0b1000:
+            width_spec = 'RESERVED'
+            width_spec2 = 'RESERVED'
+            shift = 'RESERVED'
+        elif immh &0b0100 == 0b0100:
+            width_spec2 = '2D'
+            if opc & 0x4 == 0b00000:
+                shift = 64 - (immh+immb)
+            else:
+                shift = (immh+immb) - 32
+            if q == 0b0:
+                width_spec = '2S'
+            else:
+                width_spec = '4S'
+        elif immh & 0b0010 == 0b0010:
+            width_spec2 = '4S'
+            if opc & 0x4 == 0b00000:
+                shift = 32 - (immh+immb)
+            else:
+                shift = (immh+immb) - 16
+            if q == 0b0:
+                width_spec = '4H'
+            else:
+                width_spec = '8H'
+        elif immh == 0b0001:
+            width_spec2 = '8H'
+            if opc & 0x4 == 0b00000:
+                shift = 16 - (immh+immb)
+            else:
+                shift = (immh+immb) - 8
+            if q == 0b0:
+                width_spec = '8B'
+            else:
+                width_spec = '16B'
+        else:
+            #FIXME see AdvSIMD modified immediate?
+        if opc & 0x4 == 0b00000:
+            olist = (
+                A64RegOper(rd, va, size=width_spec),
+                A64RegOper(rn, va, size=width_spec2),
+                #FIXME shift, variable shift specified above
+            )
+            mnem = 'shr'
+            opcode = INS_SHR
+            iflag |= IF_N
+            if opc & 0x1 == 0b1:
+                iflag |= IFP_R
+            if u == 0b0:
+                if opc & 0x2 == 0b00010:
+                    iflag |= IFP_SQ
+            else:
+                if opc & 0x2 == 0b00010:
+                    iflag |= IFP_UQ
+                else:
+                    iflag |= IFP_SQ
+                    iflag |= IF_U
+        else:
+            olist = (
+                A64RegOper(rd, va, size=width_spec2),
+                A64RegOper(rn, va, size=width_spec),
+                #FIXME shift, variable shift specified above
+            )
+            mnem = 'shl'
+            opcode = INS_SHL
+            iflag |= IF_L
+            if u == 0b0:
+                iflag |= IFP_S
+            else:
+                iflag |= IFP_U
+    else:
+        mnem = 'cvt'
+        opcode = INS_CVT
+        #FIXME
+        if immh & 0b1000 == 0b1000:
+            fbits = 128 - (immh+immb)
+            if q == 0b0:
+                width_spec = 'RESERVED'
+            else:
+                width_spec = '2D'
+        elif immh & 0b0100 == 0b0100:
+            fbits = 64 - (immh+immb)
+            if q == 0b0:
+                width_spec = '2S'
+            else:
+                width_spec = '4S'
+        elif immh == 0b0000:
+            #FIXME see AdvSIMD modified immediate
+        else:
+            width_spec = 'RESERVED'
+            fbits = 128 - (immh + immb)
+        olist = (
+            A64RegOper(rd, va, size=width_spec),
+            A64RegOper(rn, va, size=width_spec),
+            #FIXME fractional bits?
+        )
+        if opc & 0x7 == 0b100:
+            iflag |= IF_F
+            if u == 0b0:
+                iflag |= IFP_S
+            else:
+                iflag |= IFP_U
+        elif opc & 0x7 == 0b111:
+            iflag |= IFP_F
+            iflag |= IF_Z
+            if u == 0b0:
+                iflag |= IF_S
+            else:
+                iflag |= IF_U
+        else:
+            return p_undef(opval, va)
+
+    return opcode, mnem, olist, iflag, 0
+        
+
+def p_simd_tbl_tbx(opval, va):
+    '''
+    AdvSIMD TBL/TBX
+    '''
+    q = opval >> 30 & 0x1
+    op2 = opval >> 22 & 0x3
+    rm = opval >> 16 & 0x1f
+    length = opval >> 13 & 0x3
+    op = opval >> 12 & 0x1
+    rn = opval >> 5 & 0x1f
+    rd = opval & 0x1f
+
+    if op2 == 0b00:
+        #FIXME mnem, opcode choices w/ iflags
+        if op == 0b0:
+            mnem = 'tbl'
+            opcode = INS_TBL
+        else:
+            mnem = 'tbx'
+            opcode = INS_TBX
+        if q == 0b0:
+            regsize = '8B'
+        else:
+            regsize = '16B'
+        if length == 0b00:
+            olist = (
+                A64RegOper(rd, va, size=regsize),
+                A64RegOper(rn, va, size='16B'),
+                A64RegOper(rm, va, size=regsize),
+            )
+        elif length == 0b01:
+            olist = (
+                A64RegOper(rd, va, size=regsize),
+                A64RegOper(rn, va, size='16B'),
+                A64RegOper((rn + 1) % 32, va, size='16B'),
+                A64RegOper(rm, va, size=regsize),
+            )            
+        elif length == 0b10:
+            olist = (
+                A64RegOper(rd, va, size=regsize),
+                A64RegOper(rn, va, size='16B'),
+                A64RegOper((rn + 1) % 32, va, size='16B'),
+                A64RegOper((rn + 2) % 32, va, size='16B'),
+                A64RegOper(rm, va, size=regsize),
+            ) 
+        else:
+            olist = (
+                A64RegOper(rd, va, size=regsize),
+                A64RegOper(rn, va, size='16B'),
+                A64RegOper((rn + 1) % 32, va, size='16B'),
+                A64RegOper((rn + 2) % 32, va, size='16B'),
+                A64RegOper((rn + 3) % 32, va, size='16B'),
+                A64RegOper(rm, va, size=regsize),
+            ) 
+    else:
+        return p_undef(opval, va)
+
+def p_simd_zip_uzp_trn(opval, va):
+    '''
+    AdvSIMD ZIP/UZP/TRN
+    '''
+    q = opval >> 30 & 0x1
+    size = opval >> 22 & 0x3
+    rm = opval >> 16 & 0x1f
+    opc = opval >> 12 & 0x7
+    rn = opval >> 5 & 0x1f
+    rd = opval & 0x1f
+
+    opcode, mnem = zip_uzp_trn_table[opc]
+    if opcode != IENC_UNDEF:
+        size1 = size+q
+        olist = (
+            A64RegOper(rd, va, size=t_table[sizeq]),
+            A64RegOper(rn, va, size=t_table[sizeq]),
+            A64RegOper(rm, va, size=t_table[sizeq]),
+        )
+    else:
+        olist = (
+            A64ImmOper(opval),
+        )
+
+    return opcode, mnem, olist, 0, 0
+
+
+zip_uzp_trn_table = (
+    (IENC_UNDEF, 'undefined instruction'),
+    (INS_UZP1, 'uzp1'),
+    (INS_TRN1, 'trn1'),
+    (INS_ZIP1, 'zip1'),
+    (IENC_UNDEF, 'undefined instruction'),
+    (INS_UZP2, 'uzp2'),
+    (INS_TRN2, 'trn2'),
+    (INS_ZIP2, 'zip2'),
+)
+
+def p_simd_ext(opval, va):
+    '''
+    AdvSIMD EXT
+    '''
+    q = opval >> 30 & 0x1
+    op2 = opval >> 22 & 0x3
+    rm = opval >> 16 & 0x1f
+    imm4 = opval >> 11 & 0xf
+    rn = opval >> 5 & 0x1f
+    rd = opval & 0x1f
+
+    if op2 == 0b00:
+        if q == 0b0:
+            regsize = '8B'
+            if imm4[3] == 0b0:
+                index = imm4[0:2]
+            else:
+                index = 'RESERVED'
+        else:
+            regsize = '16B'
+            index = imm4
+        olist = (
+            A64RegOper(rd, va, size=regsize),
+            A64RegOper(rn, va, size=regsize),
+            A64RegOper(rm, va, size=regsize),
+            A64ImmOper(index, va=va),
+        )
+        return INS_EXT, 'ext', olist, 0, 0
+    else:
+        return p_undef(opval, va)
 
 def p_simd_scalar_three_same(opval, va):
     '''
@@ -3668,17 +4502,18 @@ def p_simd_scalar_shift_imm(opval, va):
             iflag |= IFP_R
         
     elif opc & 0b11000 == 0b01000:
-        olist = (
-            A64RegOper(rd, va, size=width_spec),
-            A64RegOper(rn, va, size=width_spec),
-            #FIXME shift = variable shift specified above
-        )
         if opc == 0b01000:
             if u == 0b0:
                 return p_undef(opval, va)
             else:
                 mnem = 'sri'
                 opcode = INS_SRI
+                if immh & 0b1000 == 0b0:
+                    width_spec = 'RESERVED'
+                    shift = 'RESERVED'
+                else:
+                    width_spec = 64
+                    shift = 128-(immh+immb)
         elif opc == 0b01010:
             if u == 0b0:
                 mnem = 'shl'
@@ -3686,6 +4521,12 @@ def p_simd_scalar_shift_imm(opval, va):
             else:
                 mnem = 'sli'
                 opcode = INS_SLI
+            if immh & 0b1000 == 0b0:
+                width_spec = 'RESERVED'
+                shift = 'RESERVED'
+            else:
+                width_spec = 64
+                shift = (immh+immb) - 64
         elif opc == 0b01100:
             if u == 0b0:
                 return p_undef(opval, va)
@@ -3694,6 +4535,21 @@ def p_simd_scalar_shift_imm(opval, va):
                 opcode = INS_SHL
                 iflag |= IF_U
                 iflag |= IFP_SQ
+                if immh & 0b1000 == 0b1000:
+                    width_spec = 'D'
+                    shift = (immh+immb)-64
+                elif immh & 0b0100 == 0b0100:
+                    width_spec = 'S'
+                    shift = (immh+immb)-32
+                elif immh & 0b0010 == 0b0010:
+                    width_spec = 'H'
+                    shift = (immh+immb)-16
+                elif immh == 0b0001:
+                    width_spec = 'B'
+                    shift = (immh+immb)-8
+                else:
+                    width_spec = 'RESERVED'
+                    shift = 'RESERVED'
         elif opc == 0b01110:
             mnem = 'shl'
             opcode = INS_SHL
@@ -3701,8 +4557,28 @@ def p_simd_scalar_shift_imm(opval, va):
                 iflag |= IFP_SQ
             else:
                 iflag |= IFP_UQ
+            if immh & 0b1000 == 0b1000:
+                width_spec = 'D'
+                shift = (immh+immb)-64
+            elif immh & 0b0100 == 0b0100:
+                width_spec = 'S'
+                shift = (immh+immb)-32
+            elif immh & 0b0010 == 0b0010:
+                width_spec = 'H'
+                shift = (immh+immb)-16
+            elif immh == 0b0001:
+                width_spec = 'B'
+                shift = (immh+immb)-8
+            else:
+                width_spec = 'RESERVED'
+                shift = 'RESERVED'
         else:
             return p_undef(opval, va)
+        olist = (
+            A64RegOper(rd, va, size=width_spec),
+            A64RegOper(rn, va, size=width_spec),
+            #FIXME shift = variable shift specified above
+        )
     elif opc & 0b11000 == 0b10000:
         #FIXME
         if immh == 0b0000:
@@ -3762,6 +4638,7 @@ def p_simd_scalar_shift_imm(opval, va):
             #FIXME fractional bits?
         )
         if opc & 0x7 == 0b100:
+            iflag |= IF_F
             if u == 0b0:
                 iflag |= IFP_S
             else:
@@ -3963,7 +4840,7 @@ ienc_parsers_tmp[IENC_SIMD_TWOREG_MISC] = p_simd_tworeg_misc
 ienc_parsers_tmp[IENC_SIMD_ACROSS_LANES] = p_simd_across_lanes
 ienc_parsers_tmp[IENC_SIMD_COPY] = p_simd_copy
 ienc_parsers_tmp[IENC_SIMD_VECTOR_IE] = p_simd_vector_ie
-ienc_parsers_tmp[IENC_SIMD_MOD_IMM] = p_simd_mod_imm
+ienc_parsers_tmp[IENC_SIMD_MOD_SHIFT_IMM] = p_simd_mod_shift_imm
 ienc_parsers_tmp[IENC_SIMD_TBL_TBX] = p_simd_tbl_tbx
 ienc_parsers_tmp[IENC_SIMD_ZIP_UZP_TRN] = p_simd_zip_uzp_trn
 ienc_parsers_tmp[IENC_SIMD_EXT] = p_simd_ext
