@@ -48,7 +48,7 @@ REV_THUMB16 = REV_THUMB2  = REV_THUMBEE = 0
 
 '''
 ARCH_REVS = {}
-#Itterate through all REV_ARM values and setup related combo values 
+#Iterate through all REV_ARM values and setup related combo values 
 for name, val in globals().items():
     if (not name.startswith('REV_ARM')):
         continue
