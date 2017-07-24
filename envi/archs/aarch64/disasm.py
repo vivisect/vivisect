@@ -3,6 +3,7 @@ A disasm file for the AArch64 Architecture, ARMv8.
 '''
 from envi.archs.aarch64.const import *
 from envi.archs.aarch64.regs import *
+import envi
 
 #-----------------------------data-----------------------------------------|
 
@@ -1565,7 +1566,7 @@ def p_simd_ls_onestruct(opval, va):
                     A64RegOper(rn, va, size=64),
                 )
     else:
-       if r == 0b0:
+        if r == 0b0:
             if opc & 0b001 == 0b000:
                 mnem = 'ld1'
                 opcode = INS_LD1
@@ -1895,10 +1896,10 @@ def p_simd_ls_onestruct_posti(opval, va):
             else:
                 opcode = INS_LD4
                 mnem = 'ld4'
-            else:
+            if opc == 0b111:
                 if opcode == INS_ST4:
                     return p_undef(opval, va)
-                else:
+                else:   
                     iflag |= IF_R
                     if rm != 0b11111:
                         olist = (
@@ -1953,7 +1954,7 @@ def p_simd_ls_onestruct_posti(opval, va):
     return opcode, mnem, olist, iflag, 0
 
 unreserved_t_table = (
-    IFS8B,
+    IFS_8B,
     IFS_16B,
     IFS_4H,
     IFS_8H,
@@ -3037,6 +3038,1857 @@ def p_fp_dp3(opval, va):
 
     return opcode, mnem, olist, 0, 0
 
+def p_simd_three_same(opval, va):
+    q = opval >> 30 & 0x1
+    u = opval >> 29 & 0x1
+    size = opval >> 22 & 0x3
+    rm = opval >> 16 & 0x1f
+    opc = opval >> 11 & 0x1f
+    rn = opval >> 5 & 0x1f
+    rd = opval & 0x1f
+    if u == 0:
+        if opc == 0b00000:
+            mnem = 'shadd'
+            opcode = INS_SHADD
+            olist = (
+                #FIXME
+            )
+        elif opc == 0b00001:
+            mnem = 'sqadd'
+            opcode = INS_SQADD
+            olist = (
+                #FIXME
+            )
+        elif opc == 0b00010:
+            mnem = 'srhadd'
+            opcode = INS_SRHADD
+            olist = (
+                #FIXME
+            )
+        elif opc == 0b00100:
+            mnem = 'shsub'
+            opcode = INS_SHSUB
+            olist = (
+                #FIXME
+            )
+        elif opc == 0b00101:
+            mnem = 'sqsub'
+            opcode = INS_SQSUB
+            olist = (
+                #FIXME
+            )
+        elif opc == 0b00110:
+            mnem = 'cmgt'
+            opcode = INS_CMGT
+            olist = (
+                #FIXME
+            )
+        elif opc == 0b00111:
+            mnem = 'cmge'
+            opcode = INS_CMGE
+            olist = (
+                #FIXME
+            )
+        elif opc == 0b01000:
+            mnem = 'sshl'
+            opcode = INS_SSHL
+            olist = (
+                #FIXME
+            )
+        elif opc == 0b01001:
+            mnem = 'sqshl'
+            opcode = INS_SQSHL
+            olist = (
+                #FIXME
+            )
+        elif opc == 0b1010:
+            mnem = 'srshl'
+            opcode = INS_SRSHL
+            olist = (
+                #FIXME
+            )
+        elif opc == 0b01011:
+            mnem = 'sqrshl'
+            opcode = INS_SQRSHL
+            olist = (
+                #FIXME
+            )
+        elif opc == 0b01100:
+            mnem = 'smax'
+            opcode = INS_SMAX
+            olist = (
+                #FIXME
+            )
+        elif opc == 0b01101:
+            mnem = 'smin'
+            opcode = INS_SMIN
+            olist = (
+                #FIXME
+            )
+        elif opc == 0b01110:
+            mnem = 'sabd'
+            opcode = INS_SABD
+            olist = (
+                #FIXME
+            )
+        elif opc == 0b01111:
+            mnem = 'saba'
+            opcode = INS_SABA
+            olist = (
+                #FIXME
+            )
+        elif opc == 0b10000:
+            mnem = 'add'
+            opcode = INS_ADD
+            olist = (
+                #FIXME
+            )
+        elif opc == 0b10001:
+            mnem = 'cmtst'
+            opcode = INS_CMTST
+            olist = (
+                #FIXME
+            )
+        elif opc == 0b10010:
+            mnem = 'mla'
+            opcode = INS_MLA
+            olist = (
+                #FIXME
+            )
+        elif opc == 0b10011:
+            mnem = 'mul'
+            opcode = INS_MUL
+            olist = (
+                #FIXME
+            )
+        elif opc == 0b10100:
+            mnem = 'smaxp'
+            opcode = INS_SMAXP
+            olist = (
+                #FIXME
+            )
+        elif opc == 0b10101:
+            mnem = 'sminp'
+            opcode = INS_SMINP
+            olist = (
+                #FIXME
+            )
+        elif opc == 0b10110:
+            mnem = 'sqdmulh'
+            opcode = INS_SQDMULH
+            olist = (
+                #FIXME
+            )
+        elif opc == 0b10111:
+            mnem = 'addp'
+            opcode = INS_ADDP
+            olist = (
+                #FIXME
+            )
+        if size == 0b00 or size == 0b01:
+            if opc == 0b11000:
+                mnem = 'fmaxnm'
+                opcode = INS_FMAXNM
+                olist = (
+                    #FIXME
+                )
+            elif opc == 0b11001:
+                mnem = 'fmla'
+                opcode = INS_FMLA
+                olist = (
+                    #FIXME
+                )
+            elif opc == 0b11010:
+                mnem = 'fadd'
+                opcode = INS_FADD
+                olist = (
+                    #FIXME
+                )
+            elif opc == 0b11011:
+                mnem = 'fmulx'
+                opcode = INS_FMULX
+                olist = (
+                    #FIXME
+                )
+            elif opc == 0b11100:
+                mnem = 'fcmeq'
+                opcode = INS_FCMEQ
+                olist = (
+                    #FIXME
+                )
+            elif opc == 0b11110:
+                mnem = 'fmax'
+                opcode = INS_FMAX
+                olist = (
+                    #FIXME
+                )
+            elif opc == 0b11111:
+                mnem = 'frecps'
+                opcode = INS_FRECPS
+                olist = (
+                    #FIXME
+                )
+            if size == 0b00 and opc == 0b00011:
+                mnem = 'and'
+                opcode = INS_AND
+                olist = (
+                    #FIXME
+                )
+            elif size == 0b01 and opc == 0b00011:
+                mnem = 'bic'
+                opcode = INS_BIC
+                olist = (
+                    #FIXME
+                )
+        elif size == 0b10 or size == 0b11:
+            if opc == 0b11000:
+                mnem = 'fminnm'
+                opcode = INS_FMINNM
+                olist = (
+                    #FIXME
+                )
+            elif opc == 0b11001:
+                mnem = 'fmls'
+                opcode = INS_FMLS
+                olist = (
+                    #FIXME
+                )
+            elif opc == 0b11010:
+                mnem = 'fsub'
+                opcode = INS_FSUB
+                olist = (
+                    #FIXME
+                )
+            elif opc == 0b11110:
+                mnem = 'fmin'
+                opcode = INS_FMIN
+                olist = (
+                    #FIXME
+                )
+            elif opc == 0b11111:
+                mnem = 'frsqrts'
+                opcode = INS_FRSQRTS
+                olist = (
+                    #FIXME
+                )
+            if size == 0b10 and opc == 0b00011:
+                mnem = 'orr'
+                opcode = INS_ORR
+                olist = (
+                    #FIXME
+                )
+            elif size == 0b11 and opc == 0b00011:
+                mnem = 'orn'
+                opcode = INS_ORN
+                olist = (
+                    #FIXME
+                )
+    else:
+        if opc == 0b00000:
+            mnem = 'uhadd'
+            opcode = INS_UHADD
+            olist = (
+                #FIXME
+            )
+        elif opc == 0b00001:
+            mnem = 'uqadd'
+            opcode = INS_UQADD
+            olist = (
+                #FIXME
+            )
+        elif opc == 0b00010:
+            mnem = 'urhadd'
+            opcode = INS_URHADD
+            olist = (
+                #FIXME
+            )
+        elif opc == 0b00100:
+            mnem = 'uhsub'
+            opcode = INS_UHSUB
+            olist = (
+                #FIXME
+            )
+        elif opc == 0b00101:
+            mnem = 'uqsub'
+            opcode = INS_UQSUB
+            olist = (
+                #FIXME
+            )
+        elif opc == 0b00110:
+            mnem = 'cmhi'
+            opcode = INS_CMHI
+            olist = (
+                #FIXME
+            )
+        elif opc == 0b00111:
+            mnem = 'cmhs'
+            opcode = INS_CMHS
+            olist = (
+                #FIXME
+            )
+        elif opc == 0b01000:
+            mnem = 'uhsl'
+            opcode = INS_UHSL
+            olist = (
+                #FIXME
+            )
+        elif opc == 0b01001:
+            mnem = 'uqshl'
+            opcode = INS_UQSHL
+            olist = (
+                #FIXME
+            )
+        elif opc == 0b01010:
+            mnem = 'urshl'
+            opcode = INS_URSHL
+            olist = (
+                #FIXME
+            )
+        elif opc == 0b01011:
+            mnem = 'uqrshl'
+            opcode = INS_UQRSHL
+            olist = (
+                #FIXME
+            )
+        elif opc == 0b01100:
+            mnem = 'umax'
+            opcode = INS_UMAX
+            olist = (
+                #FIXME
+            )
+        elif opc == 0b01101:
+            mnem = 'umin'
+            opcode = INS_UMIN
+            olist = (
+                #FIXME
+            )
+        elif opc == 0b01110:
+            mnem = 'uabd'
+            opcode = INS_UABD
+            olist = (
+                #FIXME
+            )
+        elif opc == 0b01111:
+            mnem = 'uaba'
+            opcode = INS_UABA
+            olist = (
+                #FIXME
+            )
+        elif opc == 0b10000:
+            mnem = 'sub'
+            opcode = INS_SUB
+            olist = (
+                #FIXME
+            )
+        elif opc == 0b10001:
+            mnem = 'cmeq'
+            opcode = INS_CMEQ
+            olist = (
+                #FIXME
+            )
+        elif opc == 0b10010:
+            mnem = 'mls'
+            opcode = INS_MLS
+            olist = (
+                #FIXME
+            )
+        elif opc == 0b10011:
+            mnem = 'pmul'
+            opcode = INS_PMUL
+            olist = (
+                #FIXME
+            )
+        elif opc == 0b10100:
+            mnem = 'umaxp'
+            opcode = INS_UMAXP
+            olist = (
+                #FIXME
+            )
+        elif opc == 0b10101:
+            mnem = 'uminp'
+            opcode = INS_UMINP
+            olist = (
+                #FIXME
+            )
+        elif opc == 0b10110:
+            mnem = 'sqrdmulh'
+            opcode = INS_URHADD
+            olist = (
+                #FIXME
+            )
+        if size == 0b00 or size == 0b01:
+            if opc == 0b11000:
+                mnem = 'fmaxnmp'
+                opcode = INS_FMAXNMP
+                olist = (
+                    #FIXME
+                )
+            if opc == 0b11010:
+                mnem = 'faddp'
+                opcode = INS_FADDP
+                olist = (
+                    #FIXME
+                )
+            if opc == 0b11011:
+                mnem = 'fmul'
+                opcode = INS_FMUL
+                olist = (
+                    #FIXME
+                )
+            if opc == 0b11100:
+                mnem = 'fcmge'
+                opcode = INS_fcmge
+                olist = (
+                    #FIXME
+                )
+            if opc == 0b11101:
+                mnem = 'facge'
+                opcode = INS_FACGE
+                olist = (
+                    #FIXME
+                )
+            if opc == 0b11110:
+                mnem = 'fmaxp'
+                opcode = INS_FMAXP
+                olist = (
+                    #FIXME
+                )
+            if opc == 0b11111:
+                mnem = 'fdiv'
+                opcode = INS_FDIV
+                olist = (
+                    #FIXME
+                )
+            if opc == 0b11000:
+                mnem = 'fmaxnmp'
+                opcode = INS_FMAXNMP
+                olist = (
+                    #FIXME
+                )
+            if size == 0b00 and opc == 0b00011:
+                mnem = 'eor'
+                opcode = INS_EOR
+                olist = (
+                    #FIXME
+                )
+            if size == 0b01 and opc == 0b00011:
+                mnem = 'bsl'
+                opcode = INS_BSL
+                olist = (
+                    #FIXME
+                )
+        elif size == 0b10 or size == 0b11:
+            if opc == 0b11000:
+                mnem = 'fminnmp'
+                opcode = INS_FMINNMP
+                olist = (
+                    #FIXME
+                )
+            if opc == 0b11010:
+                mnem = 'fabd'
+                opcode = INS_FABD
+                olist = (
+                    #FIXME
+                )
+            if opc == 0b11100:
+                mnem = 'fcmgt'
+                opcode = INS_FMAXNMP
+                olist = (
+                    #FIXME
+                )
+            if opc == 0b11101:
+                mnem = 'facgt'
+                opcode = INS_FCMGT
+                olist = (
+                    #FIXME
+                )
+            if opc == 0b11110:
+                mnem = 'fminp'
+                opcode = INS_FMAXNMP
+                olist = (
+                    #FIXME
+                )
+            if size == 0b10 and opc == 0b00011:
+                mnem = 'bit'
+                opcode = INS_BIT
+                olist = (
+                    #FIXME
+                )
+            if size == 0b11 and opc == 0b00011:
+                mnem = 'bif'
+                opcode = INS_BIF
+                olist = (
+                    #FIXME
+                )
+    return opcode, mnem, olist, 0, 0
+
+simd_three_diff_table = (
+    (INS_ADD, 'add', (IF_L,), 'abb'),
+    (INS_ADD, 'add', (IF_W,), 'aab'),
+    (INS_SUB, 'sub', (IF_L,), 'abb'),
+    (INS_SUB, 'sub', (IF_W,), 'aab'),
+    (INS_ADDHN, 'addhn', (), 'baa'),
+    (INS_ABA, 'aba', (IF_L,), 'abb'),
+    (INS_SUBHN, 'subhn', (), 'baa'),
+    (INS_ABD, 'abd', (IF_L,), 'abb'),
+    (INS_MLA, 'mla', (IF_L,), 'abb'),
+    (INS_MLA, 'mla', (IFP_QD, IF_L,), 'abb'), 
+    (INS_MLS, 'mls', (IF_L,), 'abb'),
+    (INS_MLS, 'mls', (IFP_QD, IF_L,), 'abb'),
+    (INS_MUL, 'mul', (IF_L,), 'abb'),
+    (INS_MUL, 'mul', (IFP_QD, IF_L,), 'abb'),
+    (INS_MUL, 'mul', (IF_L,), 'abb'),
+    
+)
+def p_simd_three_diff(opval, va):
+    q = opval >> 30 & 0x1
+    u = opval >> 29 & 0x1
+    size = opval >> 22 & 0x3
+    rm = opval >> 16 & 0x1f
+    opc = opval >> 12 & 0xf
+    rn = opval >> 5 & 0x1f
+    rd = opval & 0x1f
+    if q == 1:
+        iflags |= IF_2
+    opcode, mnem, flags, pattern = simd_three_diff_table[opc]
+    for flag in flags:
+        iflags |= flag
+    if (opcode == INS_ADDHN or opcode == INS_SUBHN) and u == 1:
+        iflags |= IFP_R
+    elif opc == 0b1110:
+        iflags |= IFP_P
+    else:
+        if u == 0:
+            iflags |= IFP_S
+        else:
+            iflags |= IFP_U
+    ta = 0
+    tb = 0
+    if size == 0b00:
+        ta = IFS_8H
+        if q == 0:
+            tb = IFS_8B
+        else:
+            tb = IFS_16B
+    elif size == 0b01:
+        ta = IFS_4S
+        if q == 0:
+            tb = IFS_4H
+        else:
+            tb = IFS_8H
+    elif size == 0b10:
+        ta = IFS_2D
+        if q == 0:
+            tb = IFS_2S
+        else:
+            tb = IFS_4S
+    if pattern == 'abb':
+        olist = (
+            A64RegOper(rd, oflags=ta),
+            A64RegOper(rn, oflags=tb),
+            A64RegOper(rm, oflags=tb),
+        )
+    if pattern == 'aab':
+        olist = (
+            A64RegOper(rd, oflags=ta),
+            A64RegOper(rn, oflags=ta),
+            A64RegOper(rm, oflags=tb),
+        )
+    if pattern == 'baa':
+        olist = (
+            A64RegOper(rd, oflags=tb),
+            A64RegOper(rn, oflags=ta),
+            A64RegOper(rm, oflags=ta),
+        )
+    return opcode, mnem, olist, iflags, 0
+
+def p_simd_tworeg_misc(opval, va):
+    q = opval >> 30 & 0x1
+    u = opval >> 29 & 0x1
+    size = opval >> 22 & 0x3
+    opc = opval >> 12 & 0x1f
+    rn = opval >> 5 & 0x1f
+    rd = opval & 0x1f
+    if u == 0:
+        if opc == 0b00000: #1
+            opcode = INS_REV64
+            mnem = 'rev64'
+            if size == 0b00 and q == 0:
+                t = IFS_8B
+            elif size == 0b00 and q == 1:
+                t = IFS_16B
+            elif size == 0b01 and q == 0:
+                t = IFS_4H
+            elif size == 0b01 and q == 1:
+                t = IFS_8H
+            elif size == 0b10 and q == 0:
+                t = IFS_2S
+            elif size == 0b10 and q == 1:
+                t = IFS_4S
+            olist = (
+                A64RegOper(rd, oflags=t),
+                A64RegOper(rn, oflags=t),
+            )
+        elif opc == 0b00001: #2
+            opcode = INS_REV16
+            mnem = 'rev16'
+            if size == 0b00 and q == 0:
+                t = IFS_8B
+            elif size == 0b00 and q == 1:
+                t = IFS_16B
+            olist = (
+                A64RegOper(rd, oflags=t),
+                A64RegOper(rn, oflags=t),
+            )
+        elif opc == 0b00010: #3
+            if size == 0b00 and q == 0:
+                ta = IFS_4H
+                tb = IFS_8B
+            elif size == 0b00 and q == 1:
+                ta = IFS_8H
+                tb = IFS_16B
+            elif size == 0b01 and q == 0:
+                ta = IFS_2S
+                tb = IFS_4H
+            elif size == 0b01 and q == 1:
+                ta = IFS_4S
+                tb = IFS_8H
+            elif size == 0b10 and q == 0:
+                ta = IFS_1D
+                tb = IFS_2S
+            elif size == 0b10 and q == 1:
+                ta = IFS_2D
+                tb = IFS_4S
+            opcode = INS_ADDL
+            mnem = 'addl'
+            flags |= IFP_S
+            flags |= IF_P
+            olist = (
+                A64RegOper(rd, oflags=ta),
+                A64RegOper(rn, oflags=tb),
+            )
+        elif opc == 0b00011: #4
+            opcode = INS_UQADD
+            mnem = 'uqadd'
+            if size == 0b00 and q == 0:
+                t = IFS_8B
+            elif size == 0b00 and q == 1:
+                t = IFS_16B
+            elif size == 0b01 and q == 0:
+                t = IFS_4H
+            elif size == 0b01 and q == 1:
+                t = IFS_8H
+            elif size == 0b10 and q == 0:
+                t = IFS_2S
+            elif size == 0b10 and q == 1:
+                t = IFS_4S
+            elif size == 0b11 and q == 1:
+                t = IFS_2D
+            flags |= IFP_S
+            olist = (
+                A64RegOper(rd, oflags=t),
+                A64RegOper(rn, oflags=t),
+            )
+        elif opc == 0b00100: #1
+            opcode = INS_CLS
+            mnem = 'cls'
+            if size == 0b00 and q == 0:
+                t = IFS_8B
+            elif size == 0b00 and q == 1:
+                t = IFS_16B
+            elif size == 0b01 and q == 0:
+                t = IFS_4H
+            elif size == 0b01 and q == 1:
+                t = IFS_8H
+            elif size == 0b10 and q == 0:
+                t = IFS_2S
+            elif size == 0b10 and q == 1:
+                t = IFS_4S
+            olist = (
+                A64RegOper(rd, oflags=t),
+                A64RegOper(rn, oflags=t),
+            )
+        elif opc == 0b00101: #2
+            opcode = INS_CNT
+            mnem = 'cnt'
+            if size == 0b00 and q == 0:
+                t = IFS_8B
+            elif size == 0b00 and q == 1:
+                t = IFS_16B
+            olist = (
+                A64RegOper(rd, oflags=t),
+                A64RegOper(rn, oflags=t),
+            )
+        elif opc == 0b00110: #3
+            opcode = INS_CLS
+            mnem = 'cls'
+            if size == 0b00 and q == 0:
+                ta = IFS_4H
+                tb = IFS_8B
+            elif size == 0b00 and q == 1:
+                ta = IFS_8H
+                tb = IFS_16B
+            elif size == 0b01 and q == 0:
+                ta = IFS_2S
+                tb = IFS_4H
+            elif size == 0b01 and q == 1:
+                ta = IFS_4S
+                tb = IFS_8H
+            elif size == 0b10 and q == 0:
+                ta = IFS_1D
+                tb = IFS_2S
+            elif size == 0b10 and q == 1:
+                ta = IFS_2D
+                tb = IFS_4S
+            flags |= IF_P
+            flags |= IF_L
+            flags |= IFP_S
+            olist = (
+                A64RegOper(rd, oflags=ta),
+                A64RegOper(rn, oflags=tb),
+            )
+        elif opc == 0b00111: #4
+            opcode = INS_qabs
+            mnem = 'qabs'
+            if size == 0b00 and q == 0:
+                t = IFS_8B
+            elif size == 0b00 and q == 1:
+                t = IFS_16B
+            elif size == 0b01 and q == 0:
+                t = IFS_4H
+            elif size == 0b01 and q == 1:
+                t = IFS_8H
+            elif size == 0b10 and q == 0:
+                t = IFS_2S
+            elif size == 0b10 and q == 1:
+                t = IFS_4S
+            elif size == 0b11 and q == 1:
+                t = IFS_2D
+            flags |= IFP_S
+            olist = (
+                A64RegOper(rd, oflags=t),
+                A64RegOper(rn, oflags=t),
+            )
+        elif opc == 0b01000: #4
+            opcode = INS_CMGT
+            mnem = 'cmgt'
+            if size == 0b00 and q == 0:
+                t = IFS_8B
+            elif size == 0b00 and q == 1:
+                t = IFS_16B
+            elif size == 0b01 and q == 0:
+                t = IFS_4H
+            elif size == 0b01 and q == 1:
+                t = IFS_8H
+            elif size == 0b10 and q == 0:
+                t = IFS_2S
+            elif size == 0b10 and q == 1:
+                t = IFS_4S
+            elif size == 0b11 and q == 1:
+                t = IFS_2D
+            olist = (
+                A64RegOper(rd, oflags=t),
+                A64RegOper(rn, oflags=t),
+                A64ImmOper(0),
+            )
+        elif opc == 0b01001: #4
+            opcode = INS_CMEQ
+            mnem = 'cmeq'
+            if size == 0b00 and q == 0:
+                t = IFS_8B
+            elif size == 0b00 and q == 1:
+                t = IFS_16B
+            elif size == 0b01 and q == 0:
+                t = IFS_4H
+            elif size == 0b01 and q == 1:
+                t = IFS_8H
+            elif size == 0b10 and q == 0:
+                t = IFS_2S
+            elif size == 0b10 and q == 1:
+                t = IFS_4S
+            elif size == 0b11 and q == 1:
+                t = IFS_2D
+            olist = (
+                A64RegOper(rd, oflags=t),
+                A64RegOper(rn, oflags=t),
+                A64ImmOper(0),
+            )
+        elif opc == 0b01010: #4
+            opcode = INS_CMLT
+            mnem = 'cmlt'
+            if size == 0b00 and q == 0:
+                t = IFS_8B
+            elif size == 0b00 and q == 1:
+                t = IFS_16B
+            elif size == 0b01 and q == 0:
+                t = IFS_4H
+            elif size == 0b01 and q == 1:
+                t = IFS_8H
+            elif size == 0b10 and q == 0:
+                t = IFS_2S
+            elif size == 0b10 and q == 1:
+                t = IFS_4S
+            elif size == 0b11 and q == 1:
+                t = IFS_2D
+            olist = (
+                A64RegOper(rd, oflags=t),
+                A64RegOper(rn, oflags=t),
+                A64ImmOper(0),
+            )
+        elif opc == 0b01011: #4
+            opcode = INS_ABS
+            mnem = 'abs'
+            if size == 0b00 and q == 0:
+                t = IFS_8B
+            elif size == 0b00 and q == 1:
+                t = IFS_16B
+            elif size == 0b01 and q == 0:
+                t = IFS_4H
+            elif size == 0b01 and q == 1:
+                t = IFS_8H
+            elif size == 0b10 and q == 0:
+                t = IFS_2S
+            elif size == 0b10 and q == 1:
+                t = IFS_4S
+            elif size == 0b11 and q == 1:
+                t = IFS_2D
+            olist = (
+                A64RegOper(rd, oflags=t),
+                A64RegOper(rn, oflags=t),
+            )
+        elif opc == 0b10010: #5
+            if q == 1:
+                flags |= IF_2
+            opcode = INS_XTN
+            mnem = 'xtn'
+            if size == 0b00 and q == 0:
+                ta = IFS_8H
+                tb = IFS_8B
+            elif size == 0b00 and q == 1:
+                ta = IFS_8H
+                tb = IFS_16B
+            elif size == 0b01 and q == 0:
+                ta = IFS_4S
+                tb = IFS_4H
+            elif size == 0b01 and q == 1:
+                ta = IFS_4S
+                tb = IFS_8H
+            elif size == 0b10 and q == 0:
+                ta = IFS_2D
+                tb = IFS_2S
+            elif size == 0b10 and q == 1:
+                ta = IFS_2D
+                tb = IFS_4S
+            olist = (
+                A64RegOper(rd, oflags=ta),
+                A64RegOper(rn, oflags=tb),
+            )
+        elif opc == 0b10100: #5
+            if q == 1:
+                flags |= IF_2
+            flags |= IFP_S
+            opcode = INS_QXTN
+            mnem = 'qxtn'
+            if size == 0b00 and q == 0:
+                ta = IFS_8H
+                tb = IFS_8B
+            elif size == 0b00 and q == 1:
+                ta = IFS_8H
+                tb = IFS_16B
+            elif size == 0b01 and q == 0:
+                ta = IFS_4S
+                tb = IFS_4H
+            elif size == 0b01 and q == 1:
+                ta = IFS_4S
+                tb = IFS_8H
+            elif size == 0b10 and q == 0:
+                ta = IFS_2D
+                tb = IFS_2S
+            elif size == 0b10 and q == 1:
+                ta = IFS_2D
+                tb = IFS_4S
+            olist = (
+                A64RegOper(rd, oflags=ta),
+                A64RegOper(rn, oflags=tb),
+            )
+        elif size == 0b00 or size == 0b01: 
+            if opc == 0b10110: #6
+                if q == 1:
+                    flags |= IF_2
+                flags |= IF_N
+                flags |= IFP_F
+                opcode = INS_CVT
+                mnem = 'cvt'
+                if size == 0b00 and q == 0:
+                    ta = IFS_4S
+                    tb = IFS_4H
+                elif size == 0b00 and q == 1:
+                    ta = IFS_4S
+                    tb = IFS_8H
+                elif size == 0b01 and q == 0:
+                    ta = IFS_2D
+                    tb = IFS_2S
+                elif size == 0b01 and q == 1:
+                    ta = IFS_2D
+                    tb = IFS_4S
+                olist = (
+                    A64RegOper(rd, oflags=tb),
+                    A64RegOper(rn, oflags=ta),
+                )
+            elif opc == 0b10111: #6
+                if q == 1:
+                    flags |= IF_2
+                flags |= IFP_F
+                opcode = INS_CVT
+                mnem = 'cvt'
+                flags |= IF_L
+                if size == 0b00 and q == 0:
+                    ta = IFS_4S
+                    tb = IFS_4H
+                elif size == 0b00 and q == 1:
+                    ta = IFS_4S
+                    tb = IFS_8H
+                elif size == 0b01 and q == 0:
+                    ta = IFS_2D
+                    tb = IFS_2S
+                elif size == 0b01 and q == 1:
+                    ta = IFS_2D
+                    tb = IFS_4S
+                olist = (
+                    A64RegOper(rd, oflags=ta),
+                    A64RegOper(rn, oflags=tb),
+                )
+            elif opc == 0b11000: #7
+                opcode = INS_RINT
+                mnem = 'rint'
+                flags |= IFP_F
+                flags |= IF_N
+                if size == 0b00 and q == 0:
+                    t = IFS_2S
+                elif size == 0b00 and q == 1:
+                    t = IFS_4S
+                elif size == 0b01 and q == 1:
+                    t = IFS_2D
+                olist = (
+                    A64RegOper(rd, oflags=t),
+                    A64RegOper(rn, oflags=t),
+                )
+            elif opc == 0b11001: #7
+                opcode = INS_RINT
+                mnem = 'rint'
+                flags |= IFP_F
+                flags |= IF_M
+                if size == 0b00 and q == 0:
+                    t = IFS_2S
+                elif size == 0b00 and q == 1:
+                    t = IFS_4S
+                elif size == 0b01 and q == 1:
+                    t = IFS_2D
+                olist = (
+                    A64RegOper(rd, oflags=t),
+                    A64RegOper(rn, oflags=t),
+                )
+            elif opc == 0b11010: #7
+                opcode = INS_CVT
+                mnem = 'cvt'
+                flags |= IFP_F
+                flags |= IF_N
+                flags |= IF_S
+                if size == 0b00 and q == 0:
+                    t = IFS_2S
+                elif size == 0b00 and q == 1:
+                    t = IFS_4S
+                elif size == 0b01 and q == 1:
+                    t = IFS_2D
+                olist = (
+                    A64RegOper(rd, oflags=t),
+                    A64RegOper(rn, oflags=t),
+                )
+            elif opc == 0b11011: #7
+                opcode = INS_CVT
+                mnem = 'cvt'
+                flags |= IFP_F
+                flags |= IF_M
+                flags |= IF_S
+                if size == 0b00 and q == 0:
+                    t = IFS_2S
+                elif size == 0b00 and q == 1:
+                    t = IFS_4S
+                elif size == 0b01 and q == 1:
+                    t = IFS_2D
+                olist = (
+                    A64RegOper(rd, oflags=t),
+                    A64RegOper(rn, oflags=t),
+                )
+            elif opc == 0b11100: #7
+                opcode = INS_CVT
+                mnem = 'cvt'
+                flags |= IFP_F
+                flags |= IF_A
+                flags |= IF_S
+                if size == 0b00 and q == 0:
+                    t = IFS_2S
+                elif size == 0b00 and q == 1:
+                    t = IFS_4S
+                elif size == 0b01 and q == 1:
+                    t = IFS_2D
+                olist = (
+                    A64RegOper(rd, oflags=t),
+                    A64RegOper(rn, oflags=t),
+                )
+            elif opc == 0b11101: #7
+                opcode = INS_CVT
+                mnem = 'cvt'
+                flags |= IF_F
+                flags |= IFP_S
+                if size == 0b00 and q == 0:
+                    t = IFS_2S
+                elif size == 0b00 and q == 1:
+                    t = IFS_4S
+                elif size == 0b01 and q == 1:
+                    t = IFS_2D
+                olist = (
+                    A64RegOper(rd, oflags=t),
+                    A64RegOper(rn, oflags=t),
+                )
+        elif size == 0b10 or size == 0b11:
+            if opc == 0b01100: #7
+                opcode = INS_CMGT
+                mnem = 'cmgt'
+                flags |= IFP_F
+                if size == 0b10 and q == 0:
+                    t = IFS_2S
+                elif size == 0b10 and q == 1:
+                    t = IFS_4S
+                elif size == 0b11 and q == 1:
+                    t = IFS_2D
+                olist = (
+                    A64RegOper(rd, oflags=t),
+                    A64RegOper(rn, oflags=t),
+                    A64ImmOper(0),
+                )
+            elif opc == 0b01101: #7
+                opcode = INS_CMEQ
+                mnem = 'cmeq'
+                flags |= IFP_F
+                if size == 0b10 and q == 0:
+                    t = IFS_2S
+                elif size == 0b10 and q == 1:
+                    t = IFS_4S
+                elif size == 0b11 and q == 1:
+                    t = IFS_2D
+                olist = (
+                    A64RegOper(rd, oflags=t),
+                    A64RegOper(rn, oflags=t),
+                    A64ImmOper(0),
+                )
+            elif opc == 0b01110: #7
+                opcode = INS_CMLT
+                mnem = 'cmlt'
+                flags |= IFP_F
+                if size == 0b10 and q == 0:
+                    t = IFS_2S
+                elif size == 0b10 and q == 1:
+                    t = IFS_4S
+                elif size == 0b11 and q == 1:
+                    t = IFS_2D
+                olist = (
+                    A64RegOper(rd, oflags=t),
+                    A64RegOper(rn, oflags=t),
+                    A64ImmOper(0),
+                )
+            elif opc == 0b01111: #7
+                opcode = INS_ABS
+                mnem = 'abs'
+                flags |= IFP_F
+                if size == 0b10 and q == 0:
+                    t = IFS_2S
+                elif size == 0b10 and q == 1:
+                    t = IFS_4S
+                elif size == 0b11 and q == 1:
+                    t = IFS_2D
+                olist = (
+                    A64RegOper(rd, oflags=t),
+                    A64RegOper(rn, oflags=t),
+                )
+            elif opc == 0b11000: #7
+                opcode = INS_RINT
+                mnem = 'rint'
+                flags |= IFP_F
+                flags |= IF_P
+                if size == 0b10 and q == 0:
+                    t = IFS_2S
+                elif size == 0b10 and q == 1:
+                    t = IFS_4S
+                elif size == 0b11 and q == 1:
+                    t = IFS_2D
+                olist = (
+                    A64RegOper(rd, oflags=t),
+                    A64RegOper(rn, oflags=t),
+                )
+            elif opc == 0b11001: #7
+                opcode = INS_RINT
+                mnem = 'rint'
+                flags |= IFP_F
+                flags |= IF_Z
+                if size == 0b10 and q == 0:
+                    t = IFS_2S
+                elif size == 0b10 and q == 1:
+                    t = IFS_4S
+                elif size == 0b11 and q == 1:
+                    t = IFS_2D
+                olist = (
+                    A64RegOper(rd, oflags=t),
+                    A64RegOper(rn, oflags=t),
+                )
+            elif opc == 0b11010: #7
+                opcode = INS_CVT
+                mnem = 'cvt'
+                flags |= IFP_F
+                flags |= IF_P
+                flags |= IF_S
+                if size == 0b10 and q == 0:
+                    t = IFS_2S
+                elif size == 0b10 and q == 1:
+                    t = IFS_4S
+                elif size == 0b11 and q == 1:
+                    t = IFS_2D
+                olist = (
+                    A64RegOper(rd, oflags=t),
+                    A64RegOper(rn, oflags=t),
+                )
+            elif opc == 0b11011: #7
+                opcode = INS_CVT
+                mnem = 'cvt'
+                flags |= IFP_F
+                flags |= IF_P
+                flags |= IF_S
+                if size == 0b10 and q == 0:
+                    t = IFS_2S
+                elif size == 0b10 and q == 1:
+                    t = IFS_4S
+                elif size == 0b11 and q == 1:
+                    t = IFS_2D
+                olist = (
+                    A64RegOper(rd, oflags=t),
+                    A64RegOper(rn, oflags=t),
+                )
+            if opc == 0b11100: #8
+                opcode = INS_RECPE
+                mnem = 'recpe'
+                flags |= IFP_U
+                if size == 0b10 and q == 0:
+                    t = IFS_2S
+                elif size == 0b10 and q == 1:
+                    t = IFS_4S
+                olist = (
+                    A64RegOper(rd, oflags=t),
+                    A64RegOper(rn, oflags=t),
+                )
+            if opc == 0b11101: #7
+                opcode = INS_RECPE
+                mnem = 'recpe'
+                flags |= IFP_F
+                if size == 0b10 and q == 0:
+                    t = IFS_2S
+                elif size == 0b10 and q == 1:
+                    t = IFS_4S
+                elif size == 0b11 and q == 1:
+                    t = IFS_2D
+                olist = (
+                    A64RegOper(rd, oflags=t),
+                    A64RegOper(rn, oflags=t),
+                )
+    else: #u == 1
+        if opc == 0b00000: #9 
+            opcode = INS_REV32
+            mnem = 'rev32'
+            if size == 0b00 and q == 0:
+                t = IFS_8B
+            elif size == 0b00 and q == 1:
+                t = IFS_16B
+            elif size == 0b01 and q == 0:
+                t = IFS_4H
+            elif size == 0b01 and q == 1:
+                t = IFS_8H
+            olist = (
+                A64RegOper(rd, oflags=t),
+                A64RegOper(rn, oflags=t),
+            )
+        elif opc == 0b00010: #3
+            opcode = INS_ADDL
+            mnem = 'addl'
+            flags |= IFP_U
+            flags |= IF_P
+            if size == 0b00 and q == 0:
+                ta = IFS_4H
+                tb = IFS_8B
+            elif size == 0b00 and q == 1:
+                ta = IFS_8H
+                tb = IFS_16B
+            elif size == 0b01 and q == 0:
+                ta = IFS_2S
+                tb = IFS_4H
+            elif size == 0b01 and q == 1:
+                ta = IFS_4S
+                tb = IFS_8H
+            elif size == 0b10 and q == 0:
+                ta = IFS_1D
+                tb = IFS_2S
+            elif size == 0b10 and q == 1:
+                ta = IFS_2D
+                tb = IFS_4S
+            olist = (
+                A64RegOper(rd, oflags=ta),
+                A64RegOper(rn, oflags=tb),
+            )
+        elif opc == 0b00011: #4
+            opcode = INS_SQADD
+            mnem = 'sqadd'
+            if size == 0b00 and q == 0:
+                t = IFS_8B
+            elif size == 0b00 and q == 1:
+                t = IFS_16B
+            elif size == 0b01 and q == 0:
+                t = IFS_4H
+            elif size == 0b01 and q == 1:
+                t = IFS_8H
+            elif size == 0b10 and q == 0:
+                t = IFS_2S
+            elif size == 0b10 and q == 1:
+                t = IFS_4S
+            elif size == 0b11 and q == 1:
+                t = IFS_2D
+            flags |= IFP_U
+            olist = (
+                A64RegOper(rd, oflags=t),
+                A64RegOper(rn, oflags=t),
+            )
+        elif opc == 0b00100: #1
+            opcode = INS_CLZ
+            mnem = 'clz'
+            if size == 0b00 and q == 0:
+                t = IFS_8B
+            elif size == 0b00 and q == 1:
+                t = IFS_16B
+            elif size == 0b01 and q == 0:
+                t = IFS_4H
+            elif size == 0b01 and q == 1:
+                t = IFS_8H
+            elif size == 0b10 and q == 0:
+                t = IFS_2S
+            elif size == 0b10 and q == 1:
+                t = IFS_4S
+            flags |= IFP_U
+            olist = (
+                A64RegOper(rd, oflags=t),
+                A64RegOper(rn, oflags=t),
+            )
+        elif opc == 0b00110: #3
+            opcode = INS_ADAL
+            mnem = 'adal'
+            flags |= IFP_U
+            flags |= IF_P
+            if size == 0b00 and q == 0:
+                ta = IFS_4H
+                tb = IFS_8B
+            elif size == 0b00 and q == 1:
+                ta = IFS_8H
+                tb = IFS_16B
+            elif size == 0b01 and q == 0:
+                ta = IFS_2S
+                tb = IFS_4H
+            elif size == 0b01 and q == 1:
+                ta = IFS_4S
+                tb = IFS_8H
+            elif size == 0b10 and q == 0:
+                ta = IFS_1D
+                tb = IFS_2S
+            elif size == 0b10 and q == 1:
+                ta = IFS_2D
+                tb = IFS_4S
+            olist = (
+                A64RegOper(rd, oflags=ta),
+                A64RegOper(rn, oflags=tb),
+            )
+        elif opc == 0b00111: #4
+            opcode = INS_SQNEG
+            mnem = 'sqneg'
+            if size == 0b00 and q == 0:
+                t = IFS_8B
+            elif size == 0b00 and q == 1:
+                t = IFS_16B
+            elif size == 0b01 and q == 0:
+                t = IFS_4H
+            elif size == 0b01 and q == 1:
+                t = IFS_8H
+            elif size == 0b10 and q == 0:
+                t = IFS_2S
+            elif size == 0b10 and q == 1:
+                t = IFS_4S
+            elif size == 0b11 and q == 1:
+                t = IFS_2D
+            olist = (
+                A64RegOper(rd, oflags=t),
+                A64RegOper(rn, oflags=t),
+            )
+        elif opc == 0b01000: #4
+            opcode = INS_CMGE
+            mnem = 'cmge'
+            if size == 0b00 and q == 0:
+                t = IFS_8B
+            elif size == 0b00 and q == 1:
+                t = IFS_16B
+            elif size == 0b01 and q == 0:
+                t = IFS_4H
+            elif size == 0b01 and q == 1:
+                t = IFS_8H
+            elif size == 0b10 and q == 0:
+                t = IFS_2S
+            elif size == 0b10 and q == 1:
+                t = IFS_4S
+            elif size == 0b11 and q == 1:
+                t = IFS_2D
+            olist = (
+                A64RegOper(rd, oflags=t),
+                A64RegOper(rn, oflags=t),
+                A64ImmOper(0),
+            )
+        elif opc == 0b01001: #4
+            opcode = INS_CMLE
+            mnem = 'cmle'
+            if size == 0b00 and q == 0:
+                t = IFS_8B
+            elif size == 0b00 and q == 1:
+                t = IFS_16B
+            elif size == 0b01 and q == 0:
+                t = IFS_4H
+            elif size == 0b01 and q == 1:
+                t = IFS_8H
+            elif size == 0b10 and q == 0:
+                t = IFS_2S
+            elif size == 0b10 and q == 1:
+                t = IFS_4S
+            elif size == 0b11 and q == 1:
+                t = IFS_2D
+            olist = (
+                A64RegOper(rd, oflags=t),
+                A64RegOper(rn, oflags=t),
+                A64ImmOper(0),
+            )
+        elif opc == 0b01011: #4
+            opcode = INS_NEG
+            mnem = 'neg'
+            if size == 0b00 and q == 0:
+                t = IFS_8B
+            elif size == 0b00 and q == 1:
+                t = IFS_16B
+            elif size == 0b01 and q == 0:
+                t = IFS_4H
+            elif size == 0b01 and q == 1:
+                t = IFS_8H
+            elif size == 0b10 and q == 0:
+                t = IFS_2S
+            elif size == 0b10 and q == 1:
+                t = IFS_4S
+            elif size == 0b11 and q == 1:
+                t = IFS_2D
+            olist = (
+                A64RegOper(rd, oflags=t),
+                A64RegOper(rn, oflags=t),
+            )
+        elif opc == 0b10010: #5
+            opcode = INS_QXTUN
+            mnem = 'qxtun'
+            if q == 1:
+                flags |= IF_2
+            flags |= IFP_S
+            if size == 0b00 and q == 0:
+                ta = IFS_8H
+                tb = IFS_8B
+            elif size == 0b00 and q == 1:
+                ta = IFS_8H
+                tb = IFS_16B
+            elif size == 0b01 and q == 0:
+                ta = IFS_4S
+                tb = IFS_4H
+            elif size == 0b01 and q == 1:
+                ta = IFS_4S
+                tb = IFS_8H
+            elif size == 0b10 and q == 0:
+                ta = IFS_2D
+                tb = IFS_2S
+            elif size == 0b10 and q == 1:
+                ta = IFS_2D
+                tb = IFS_4S
+            olist = (
+                A64RegOper(rd, oflags=tb),
+                A64RegOper(rn, oflags=ta),
+            )
+        elif opc == 0b10011: #5 WITH EXTRA OLIST OPER
+            opcode = INS_SHL
+            mnem = 'shl'
+            if q == 1:
+                flags |= IF_2
+            flags |= IF_L
+            if size == 0b00 and q == 0:
+                ta = IFS_8H
+                tb = IFS_8B
+                shift = 8
+            elif size == 0b00 and q == 1:
+                ta = IFS_8H
+                tb = IFS_16B
+                shift = 8
+            elif size == 0b01 and q == 0:
+                ta = IFS_4S
+                tb = IFS_4H
+                shift = 16
+            elif size == 0b01 and q == 1:
+                ta = IFS_4S
+                tb = IFS_8H
+                shift = 16
+            elif size == 0b10 and q == 0:
+                ta = IFS_2D
+                tb = IFS_2S
+                shift = 32
+            elif size == 0b10 and q == 1:
+                ta = IFS_2D
+                tb = IFS_4S
+                shift = 32
+            olist = (
+                A64RegOper(rd, oflags=ta),
+                A64RegOper(rn, oflags=tb),
+                A64RegOper(shift),
+            )
+        elif opc == 0b10100: #5
+            opcode = INS_QXTN
+            mnem = 'qxtn'
+            if q == 1:
+                flags |= IF_2
+            flags |= IFP_U
+            if size == 0b00 and q == 0:
+                ta = IFS_8H
+                tb = IFS_8B
+            elif size == 0b00 and q == 1:
+                ta = IFS_8H
+                tb = IFS_16B
+            elif size == 0b01 and q == 0:
+                ta = IFS_4S
+                tb = IFS_4H
+            elif size == 0b01 and q == 1:
+                ta = IFS_4S
+                tb = IFS_8H
+            elif size == 0b10 and q == 0:
+                ta = IFS_2D
+                tb = IFS_2S
+            elif size == 0b10 and q == 1:
+                ta = IFS_2D
+                tb = IFS_4S
+            olist = (
+                A64RegOper(rd, oflags=tb),
+                A64RegOper(rn, oflags=ta),
+            )
+        elif size == 0b00 or size == 0b01:
+            if opc == 0b10110: #9
+                opcode = INS_CVT
+                mnem = 'cvt'
+                if q == 1:
+                    flags |= IF_2
+                flags |= IFP_F
+                flags |= IF_X
+                flags |= IF_N
+                if size == 0b01 and q == 0:
+                    tb = IFS_2S
+                    ta = IFS_2D
+                if size == 0b01 and q == 1:
+                    tb = IFS_4S
+                    ta = IFS_2D
+                olist = (
+                    A64RegOper(rd, oflags=tb),
+                    A64RegOper(rn, oflags=ta),
+                )
+            elif opc == 0b11000: #7
+                opcode = INS_RINT
+                mnem = 'rint'
+                flags |= IFP_F
+                flags |= IF_A
+                if size == 0b00 and q == 0:
+                    t = IFS_2S
+                elif size == 0b00 and q == 1:
+                    t = IFS_4S
+                elif size == 0b01 and q == 1:
+                    t = IFS_2D
+                olist = (
+                    A64RegOper(rd, oflags=t),
+                    A64RegOper(rn, oflags=t),
+                )
+            elif opc == 0b11001: #7
+                opcode = INS_RINT
+                mnem = 'rint'
+                flags |= IFP_F
+                flags |= IF_X
+                if size == 0b00 and q == 0:
+                    t = IFS_2S
+                elif size == 0b00 and q == 1:
+                    t = IFS_4S
+                elif size == 0b01 and q == 1:
+                    t = IFS_2D
+                olist = (
+                    A64RegOper(rd, oflags=t),
+                    A64RegOper(rn, oflags=t),
+                )
+            elif opc == 0b11010: #7
+                opcode = INS_CVT
+                mnem = 'cvt'
+                flags |= IFP_F
+                flags |= IF_N
+                flags |= IF_U
+                if size == 0b00 and q == 0:
+                    t = IFS_2S
+                elif size == 0b00 and q == 1:
+                    t = IFS_4S
+                elif size == 0b01 and q == 1:
+                    t = IFS_2D
+                olist = (
+                    A64RegOper(rd, oflags=t),
+                    A64RegOper(rn, oflags=t),
+                )
+            elif opc == 0b11011: #7
+                opcode = INS_CVT
+                mnem = 'cvt'
+                flags |= IFP_F
+                flags |= IF_M
+                flags |= IF_U
+                if size == 0b00 and q == 0:
+                    t = IFS_2S
+                elif size == 0b00 and q == 1:
+                    t = IFS_4S
+                elif size == 0b01 and q == 1:
+                    t = IFS_2D
+                olist = (
+                    A64RegOper(rd, oflags=t),
+                    A64RegOper(rn, oflags=t),
+                )
+            elif opc == 0b11100: #7
+                opcode = INS_CVT
+                mnem = 'cvt'
+                flags |= IFP_F
+                flags |= IF_A
+                flags |= IF_U
+                if size == 0b00 and q == 0:
+                    t = IFS_2S
+                elif size == 0b00 and q == 1:
+                    t = IFS_4S
+                elif size == 0b01 and q == 1:
+                    t = IFS_2D
+                olist = (
+                    A64RegOper(rd, oflags=t),
+                    A64RegOper(rn, oflags=t),
+                )
+            elif opc == 0b11101: #7
+                opcode = INS_CVT
+                mnem = 'cvt'
+                flags |= IFP_U
+                flags |= IF_F
+                if size == 0b00 and q == 0:
+                    t = IFS_2S
+                elif size == 0b00 and q == 1:
+                    t = IFS_4S
+                elif size == 0b01 and q == 1:
+                    t = IFS_2D
+                olist = (
+                    A64RegOper(rd, oflags=t),
+                    A64RegOper(rn, oflags=t),
+                )
+            elif opc == 0b00101 and size == 0b00: #10
+                opcode = INS_NOT
+                mnem = 'not'
+                if q == 0:
+                    t = IFS_8B
+                elif q == 1:
+                    t = IFS_16Bs
+                olist = (
+                    A64RegOper(rd, oflags=t),
+                    A64RegOper(rn, oflags=t),
+                )
+            elif opc == 0b00101 and size == 0b01: #10
+                opcode = INS_RBIT
+                mnem = 'rbit'
+                if q == 0:
+                    t = IFS_8B
+                elif q == 1:
+                    t = IFS_16Bs
+                olist = (
+                    A64RegOper(rd, oflags=t),
+                    A64RegOper(rn, oflags=t),
+                )
+        elif size == 0b10 or size == 0b11:
+            if opc == 0b01100: #7
+                opcode = INS_CMGE
+                mnem = 'cmge'
+                flags |= IFP_F
+                if size == 0b10 and q == 0:
+                    t = IFS_2S
+                elif size == 0b10 and q == 1:
+                    t = IFS_4S
+                elif size == 0b11 and q == 1:
+                    t = IFS_2D
+                olist = (
+                    A64RegOper(rd, oflags=t),
+                    A64RegOper(rn, oflags=t),
+                    A64ImmOper(0),
+                )
+            if opc == 0b01101: #7
+                opcode = INS_CMLE
+                mnem = 'cmle'
+                flags |= IFP_F
+                if size == 0b10 and q == 0:
+                    t = IFS_2S
+                elif size == 0b10 and q == 1:
+                    t = IFS_4S
+                elif size == 0b11 and q == 1:
+                    t = IFS_2D
+                olist = (
+                    A64RegOper(rd, oflags=t),
+                    A64RegOper(rn, oflags=t),
+                    A64ImmOper(0),
+                )
+            if opc == 0b01111: #7
+                opcode = INS_NEG
+                mnem = 'neg'
+                flags |= IFP_F
+                if size == 0b10 and q == 0:
+                    t = IFS_2S
+                elif size == 0b10 and q == 1:
+                    t = IFS_4S
+                elif size == 0b11 and q == 1:
+                    t = IFS_2D
+                olist = (
+                    A64RegOper(rd, oflags=t),
+                    A64RegOper(rn, oflags=t),
+                )
+            if opc == 0b11001: #7
+                opcode = INS_RINT
+                mnem = 'rint'
+                flags |= IFP_F
+                flags |= IF_I
+                if size == 0b10 and q == 0:
+                    t = IFS_2S
+                elif size == 0b10 and q == 1:
+                    t = IFS_4S
+                elif size == 0b11 and q == 1:
+                    t = IFS_2D
+                olist = (
+                    A64RegOper(rd, oflags=t),
+                    A64RegOper(rn, oflags=t),
+                )
+            if opc == 0b11010: #7
+                opcode = INS_CVT
+                mnem = 'cvt'
+                flags |= IFP_F
+                flags |= IF_P
+                flags |= IF_U
+                if size == 0b10 and q == 0:
+                    t = IFS_2S
+                elif size == 0b10 and q == 1:
+                    t = IFS_4S
+                elif size == 0b11 and q == 1:
+                    t = IFS_2D
+                olist = (
+                    A64RegOper(rd, oflags=t),
+                    A64RegOper(rn, oflags=t),
+                )
+            if opc == 0b11011: #7
+                opcode = INS_CVT
+                mnem = 'cvt'
+                flags |= IFP_F
+                flags |= IF_Z
+                flags |= IF_U
+                if size == 0b10 and q == 0:
+                    t = IFS_2S
+                elif size == 0b10 and q == 1:
+                    t = IFS_4S
+                elif size == 0b11 and q == 1:
+                    t = IFS_2D
+                olist = (
+                    A64RegOper(rd, oflags=t),
+                    A64RegOper(rn, oflags=t),
+                )
+            if opc == 0b11100: #11
+                opcode = INS_SQRT
+                mnem = 'sqrt'
+                flags |= IFP_U
+                flags |= IFP_R
+                flags |= IF_E
+                if size == 0b10 and q == 0:
+                    t = IFS_2S
+                elif size == 0b10 and q == 1:
+                    t = IFS_4S
+                olist = (
+                    A64RegOper(rd, oflags=t),
+                    A64RegOper(rn, oflags=t),
+                )
+            if opc == 0b11101: #7
+                opcode = INS_SQRT
+                mnem = 'sqrt'
+                flags |= IFP_F
+                flags |= IFP_R
+                flags |= IF_E
+                if size == 0b10 and q == 0:
+                    t = IFS_2S
+                elif size == 0b10 and q == 1:
+                    t = IFS_4S
+                elif size == 0b11 and q == 1:
+                    t = IFS_2D
+                olist = (
+                    A64RegOper(rd, oflags=t),
+                    A64RegOper(rn, oflags=t),
+                )
+            if opc == 0b11111: #7
+                opcode = INS_SQRT
+                mnem = 'sqrt'
+                flags |= IFP_F
+                if size == 0b10 and q == 0:
+                    t = IFS_2S
+                elif size == 0b10 and q == 1:
+                    t = IFS_4S
+                elif size == 0b11 and q == 1:
+                    t = IFS_2D
+                olist = (
+                    A64RegOper(rd, oflags=t),
+                    A64RegOper(rn, oflags=t),
+                )
+    return opcode, mnem, olist, flags, 0
+
+def p_simd_across_lanes(opval, va):
+    q = opval >> 30 & 0x1
+    u = opval >> 29 & 0x1
+    size = opval >> 22 & 0x3
+    opc = opval >> 12 & 0x1f
+    rn = opval >> 5 & 0x1f
+    rd = opval & 0x1f
+    if opc == 0b00011:
+        opcode = INS_ADDL
+        mnem = 'addl'
+        if u == 0:
+            flags |= IFP_S
+        else:
+            flags |= IFP_U
+        flags |= IF_V
+        if size == 0b00 and q == 0:
+            t = IFS_8B
+        elif size == 0b00 and q == 1:
+            t = IFS_16B
+        elif size == 0b01 and q == 0:
+            t = IFS_4H
+        elif size == 0b01 and q == 1:
+            t = IFS_8H
+        elif size == 0b10 and q == 1:
+            t = IFS_4S
+        olist = (
+            #FIXME <V><d>
+            A64RegOper(rn, oflags=t),
+        )
+    elif opc == 0b01010:
+        opcode = INS_MAX
+        mnem = 'max'
+        if u == 0:
+            flags |= IFP_S
+        else:
+            flags |= IFP_U
+        flags |= IF_V
+        if size == 0b00 and q == 0:
+            t = IFS_8B
+        elif size == 0b00 and q == 1:
+            t = IFS_16B
+        elif size == 0b01 and q == 0:
+            t = IFS_4H
+        elif size == 0b01 and q == 1:
+            t = IFS_8H
+        elif size == 0b10 and q == 1:
+            t = IFS_4S
+        olist = (
+            #FIXME <V><d>
+            A64RegOper(rn, oflags=t),
+        )
+    elif opc == 0b11010:
+        opcode = INS_MIN
+        mnem = 'min'
+        if u == 0:
+            flags |= IFP_S
+        else:
+            flags |= IFP_U
+        flags |= IF_V
+        if size == 0b00 and q == 0:
+            t = IFS_8B
+        elif size == 0b00 and q == 1:
+            t = IFS_16B
+        elif size == 0b01 and q == 0:
+            t = IFS_4H
+        elif size == 0b01 and q == 1:
+            t = IFS_8H
+        elif size == 0b10 and q == 1:
+            t = IFS_4S
+        olist = (
+            #FIXME <V><d>
+            A64RegOper(rn, oflags=t),
+        )
+    elif opc == 0b11011:
+        opcode = INS_ADD
+        mnem = 'add'
+        flags |= IF_V
+        if size == 0b00 and q == 0:
+            t = IFS_8B
+        elif size == 0b00 and q == 1:
+            t = IFS_16B
+        elif size == 0b01 and q == 0:
+            t = IFS_4H
+        elif size == 0b01 and q == 1:
+            t = IFS_8H
+        elif size == 0b10 and q == 1:
+            t = IFS_4S
+        olist = (
+            #FIXME <V><d>
+            A64RegOper(rn, oflags=t),
+        )
+    elif opc == 0b01100:
+        if size >> 1 & 0x1 == 0:
+            opcode = INS_MAX
+            mnem = 'max'
+        else:
+            opcocde = INS_MIN
+            mnem = 'min'
+        flags |= IFP_F
+        flags |= IF_N
+        flags |= IF_M
+        flags |= IF_V
+        if size >> 1 & 0x1f == 0 and q == 1:
+            t = IFS_4S
+        else:
+            t = 0
+        olist = (
+            #FIXME <V><d>
+            A64RegOper(rn, oflags=t),
+        )
+    elif opc == 0b01111:
+        if size >> 1 & 0x1 == 0:
+            opcode = INS_MAX
+            mnem = 'max'
+        else:
+            opcocde = INS_MIN
+            mnem = 'min'
+        flags |= IFP_F
+        flags |= IF_V
+        if size >> 1 & 0x1f == 0 and q == 1:
+            t = IFS_4S
+        else:
+            t = 0
+        olist = (
+            #FIXME <V><d>
+            A64RegOper(rn, oflags=t),
+        )
+    return opcode, mnem, olist, flags, 0
+
 def p_simd_copy(opval, va):
     '''
     AdvSIMD copy
@@ -3537,6 +5389,7 @@ def p_simd_shift_imm(opval, va):
             else:
                 width_spec = IFS_2D
         else:
+            pass
             #FIXME see modified immediate?
         olist = (
             A64RegOper(rd, va, oflag=width_spec),
@@ -3624,6 +5477,7 @@ def p_simd_shift_imm(opval, va):
             else:
                 width_spec = IFS_2D
         else:
+            pass
             #FIXME see modified immediate?
         olist = (
             A64RegOper(rd, va, oflag=width_spec),
@@ -3667,6 +5521,7 @@ def p_simd_shift_imm(opval, va):
                 width_spec = IFS_16B
         else:
             #FIXME see AdvSIMD modified immediate?
+            pass
         if opc & 0x4 == 0b00000:
             olist = (
                 A64RegOper(rd, va, oflag=width_spec),
@@ -3717,6 +5572,7 @@ def p_simd_shift_imm(opval, va):
             else:
                 width_spec = IFS_4S
         elif immh == 0b0000:
+            pass
             #FIXME see AdvSIMD modified immediate
         else:
             width_spec = 'RESERVED'
@@ -3897,7 +5753,6 @@ def p_simd_scalar_three_same(opval, va):
             else:
                 iflag |= IFP_UQ
             width_spec = bhsd_table[size]
-            olist = (
         else:
             mnem = 'cm'
             opcode = INS_CM
@@ -4185,7 +6040,7 @@ def p_simd_scalar_tworeg_misc(opval, va):
             )
             mnem = 'cvt'
             opcode = INS_CVT
-            if opc != 0b11101
+            if opc != 0b11101:
                 iflag |= IFP_F
                 if u == 0b0:
                     iflag |= IF_S
@@ -4222,7 +6077,7 @@ def p_simd_scalar_tworeg_misc(opval, va):
                     iflag |= IF_U
                 if opc & 0x3 == 0b10:
                     iflag |= IF_P
-                elif opc & 0x3 == 0b11
+                elif opc & 0x3 == 0b11:
                     iflag |= IF_Z
                 else:
                     return p_undef(opval, va)
@@ -4232,7 +6087,7 @@ def p_simd_scalar_tworeg_misc(opval, va):
                 if u == 0b0:
                     mnem = 'recp'
                     opcode = INS_RECP
-                    elif opc & 0x3 == 0b11
+                    if opc & 0x3 == 0b11:
                         iflag |= IF_X
                     elif opc & 0x3 != 0b01:
                         return p_undef(opval, va)                   
@@ -4424,7 +6279,7 @@ def p_simd_scalar_ie(opval, va):
             A64ImmOper(index, va), #FIXME probably wrong
         )
 
-    if u = 0b0:
+    if u == 0b0:
         subopc = opc & 0b1100
         if subopc != 0b1100:
             if opc & 0x3 == 0b01:
@@ -4450,7 +6305,7 @@ def p_simd_scalar_ie(opval, va):
             iflag |= IFP_SQ
             iflag |= IFP_D
             iflag |= IF_H
-            if opc & 0x3 = 0b01:
+            if opc & 0x3 == 0b01:
                 iflag |= IFP_R
     else:
         if opc == 0b1001 and size & 0b10 == 0b10:
@@ -4932,7 +6787,7 @@ class A64ExtendOper(A64Operand):
             self.shval = 0
          
 class A64Opcode(envi.Opcode):
-    _def_arch = envi.ARCH_ARMV8
+    #_def_arch = envi.ARCH_ARMV8
 
     def __init__(self, va, opcode, mnem, prefixes, size, operands, iflags=0, simdflags=0):
         """
@@ -4961,7 +6816,7 @@ class A64Opcode(envi.Opcode):
 
 class AArch64Disasm:
     #weird thing in envi/__init__. Figure out later
-    _optype = envi.ARCH_ARMV8
+    #_optype = envi.ARCH_ARMV8
     _opclass = A64Opcode
     fmt = None
     #This holds the current running Arm instruction version and mask
@@ -5045,5 +6900,5 @@ class AArch64Disasm:
 
 if __name__=="__main__":
     import envi.archs
-    envi.archs.dismain( AArch64Disasm() )
+    #envi.archs.dismain( AArch64Disasm() )
     

@@ -46,7 +46,6 @@ REV_ALL_ARM = (REV_ALL_ARMv4 | REV_ALL_ARMv5 | REV_ALL_ARMv6 | REV_ALL_ARMv7 | R
 #Will be set below, THUMB16 up through v6 except v6T2, THUMB2 from v6T2 up, THUMBEE from v7 up.
 REV_THUMB16 = REV_THUMB2  = REV_THUMBEE = 0   
 
-'''
 ARCH_REVS = {}
 #Iterate through all REV_ARM values and setup related combo values 
 for name, val in globals().items():
@@ -67,7 +66,6 @@ ARCH_REVS['thumb16'] = REV_THUMB16
 ARCH_REVS['thumb'] = REV_THUMB2
 ARCH_REVS['thumbee'] = REV_THUMBEE
 ARCH_REVSLEN = len(ARCH_REVS)
-'''
 
 # The supported types of operand shifts (by the 2 bit field)
 S_LSL = 0
@@ -75,6 +73,9 @@ S_LSR = 1
 S_ASR = 2
 S_ROR = 3
 S_RRX = 4 # FIXME HACK XXX add this
+
+ENDIAN_LSB = 0
+ENDIAN_MSB = 1
 
 iencs = (\
     'IENC_DATA_SIMD',
@@ -132,7 +133,7 @@ iencs = (\
     'IENC_SIMD_ACROSS_LANES',
     'IENC_SIMD_COPY',
     'IENC_SIMD_VECTOR_IE',
-    'IENC_SIMD_MOD_IMM',
+    'IENC_SIMD_MOD_SHIFT_IMM',
     'IENC_SIMD_TBL_TBX',
     'IENC_SIMD_ZIP_UZP_TRN',
     'IENC_SIMD_EXT',
@@ -326,6 +327,17 @@ instrnames = [
     'AESD',
     'AESMC',
     'AESIMC',
+    'ADDHN',
+    'SUBHN',
+    'MUL',
+    'ABA',
+    'ABD',
+    'UZP1',
+    'TRN1',
+    'ZIP1',
+    'UZP2',
+    'TRN2',
+    'ZIP2',
 ]
 
 ins_index = 85
@@ -334,6 +346,14 @@ for instr in instrnames:
     ins_index += 1
 
 #IFLAGS
+IF_LE = 1 << 37
+IF_HS = 1 << 36
+IF_GE = 1 << 35
+IF_HI = 1 << 34
+IF_EQ = 1 << 33
+IF_LT = 1 << 32
+IF_GT = 1 << 31
+IF_2 = 1 << 25
 IF_NEG = 1 << 24
 IF_INV = 1 << 23
 IF_INC = 1 << 22
@@ -360,10 +380,31 @@ IF_M = 1 << 2
 IF_I = 1 << 1
 IF_U = 1 << 0
 
+IFP_U = 1 << 26
+IFP_S = 1 << 27
+IFP_P = 1 << 28
+IFP_QD = 1 << 29
+IFP_R = 1 << 30
 
-#from envi.archs.aarch64.disasm import A64PreFetchOper
-from archs.aarch64.disasm import A64PreFetchOper
+IFS = (
+    None,
+    '.8b',
+    '.16b',
+    '.4h',
+    '.8h',
+    '.2s',
+    '.4s',
+    '.1d',
+    '.2d',
+)
 
+for ifx in range(1, len(IFS)):
+    ifs = IFS[ifx]
+    gblname = "IFS" + ifs.upper().replace('.', '_')
+    globals()[gblname] = ifx
+
+from envi.archs.aarch64.disasm import A64PreFetchOper
+'''
 #Supported PRFOP options
 prfop = (
     A64PreFetchOper(PLD, L1, KEEP),
@@ -399,3 +440,4 @@ prfop = (
     '#uimm5',
     '#uimm5',
 )
+'''
