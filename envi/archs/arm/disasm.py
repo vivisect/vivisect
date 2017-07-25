@@ -1491,7 +1491,7 @@ def p_vmov_double(opval, va):
     opcode = INS_VMOV
     mnem = 'vmov'
 
-    op = (val >> 20) & 1
+    op = (opval >> 20) & 1
 
     rt2 = (opval >> 16) & 0xf
     rt = (opval >> 12) & 0xf
@@ -3829,7 +3829,7 @@ class ArmOpcode(envi.Opcode):
             mnem += 'l'
         elif (self.iflags & self.S_FLAG_MASK) == IF_PSR_S:
             mnem += 's'
-        elif daib_flags > 0:
+        elif daib_flags > 0 and (mnem != "push"):
             idx = ((daib_flags)>>(IF_DAIB_SHFT)) 
             mnem += daib[idx]
         else:
@@ -3876,7 +3876,7 @@ class ArmOpcode(envi.Opcode):
             mnem += 'l'
         elif (self.iflags & self.S_FLAG_MASK) == IF_PSR_S:
             mnem += 's'
-        elif (daib_flags > 0) & (mnem != "push"):
+        elif (daib_flags > 0) and (mnem != "push"):
             idx = ((daib_flags)>>(IF_DAIB_SHFT)) 
             mnem += daib[idx]
         else:
