@@ -121,16 +121,19 @@ def p_pc_addr(opval,va):
     rd = opval & 0xf
     immhi = opval >> 5 & 0x3ffff
     immlo = opval >> 29 & 0x3
+    #Both instructions share the mnemonic 'adr', but if op == 1
+    #then mnemonic becomes 'adrp' via iflag IF_P
     mnem = 'adr'
     opcode = INS_ADR
-    olist = (
-        A64RegOper(rd, va=va, size=64),
-        A64ImmOper((immhi + immlo), va=va)
-    )
     if op == 1:
         iflag = IF_P
     else:
         iflag = 0
+    olist = (
+        A64RegOper(rd, va=va, size=64),
+        A64ImmOper((immhi + immlo), va=va)
+    )
+
 
     return opcode, mnem, olist, iflag, 0
 
@@ -145,32 +148,34 @@ def p_addsub_imm(opval, va):
     rn = opval >> 5 & 0x1f
     rd = opval & 0x1f
     imm = opval >> 10 & 0xfff
+    #all mnemonics are either add or sub, depending on op's value
     if op == 0b0:
         mnem = 'add'
         opcode = INS_ADD
     else:
         mnem = 'sub'
         opcode = INS_SUB
+    #if the value of s is 1, then the iflag should be set to PSR_S, becoming adds or subs
     if s == 0b0:
         iflag = 0
     else:
-        iflag = IF_PSR_S       
-    if shift == 0b00:
-        shiftX = 0
-    elif shift == 0b01:
+        iflag |= IF_PSR_S
+    #if shift's value is 01, set shift amount to 12. else, shift is either
+        #explicitly assigned to 0 (shift = 00) or defaults to 0 (shift = 1x)
+    if shift == 0b01:
         shiftX = 12
-    if sf == 0b0:
-        olist = (
-            A64RegOper(rd, va=va, size=32),
-            A64RegOper(rn, va=va, size=32),
-            A64ImmOper(imm, shiftX, S_LSL, va)
-        )
     else:
-        olist = (
-            A64RegOper(rd, va=va, size=64),
-            A64RegOper(rn, va=va, size=64),
-            A64ImmOper(imm, shiftX, S_LSL, va)
-        )        
+        shiftX = 0
+    #sf determines whether the register size corresponds to the 32 or 64-bit variant
+    if sf == 0b0:
+        width_spec = 32
+    else:
+        width_spec = 64
+    olist = (
+        A64RegOper(rd, va=va, size=width_spec),
+        A64RegOper(rn, va=va, size=width_spec),
+        A64ImmOper(imm, shiftX, S_LSL, va)
+    )        
     return opcode, mnem, olist, iflag, 0
 
 def p_log_imm(opval, va):
@@ -186,7 +191,8 @@ def p_log_imm(opval, va):
     rd = opval & 0x1f
 
     iflags = 0
-    
+
+    #depending on whether opc is equal to 0, 1, 2, or 3, mnem is set to and, orr, eor, or ands
     if opc == 0x00:
         mnem = 'and'
         opcode = INS_AND
@@ -200,20 +206,21 @@ def p_log_imm(opval, va):
         mnem = 'and'
         opcode = INS_AND
         iflags = IF_PSR_S
-        
-    if sf == 0b0 and n == 0b0:
-        olist = (
-            A64RegOper(rn, va, size=32),
-            A64RegOper(rd, va, size=32),
-            A64ImmOper((n + imms + immr), 0, S_LSL, va),
-        )
-    elif sf == 0b1:
-        olist = (
-            A64RegOper(rn, va, size=64),
-            A64RegOper(rd, va, size=64),
-            A64ImmOper((n + imms + immr), 0, S_LSL, va),
-        )        
 
+    #sf and n determine whether the register size corresponds to the 32 or 64-bit variant
+    if sf == 0b0 and n == 0b0:
+        width_spec = 32
+    elif sf == 0b1:
+        width_spec = 64
+    else:
+        return p_undef(opval, va)
+
+    olist = (
+        A64RegOper(rn, va, size=width_spec),
+        A64RegOper(rd, va, size=width_spec),
+        A64ImmOper((n + imms + immr), 0, S_LSL, va),
+    )
+    
     return opcode, mnem, olist, iflags, 0
 
 def p_mov_wide_imm(opval, va):
@@ -226,16 +233,17 @@ def p_mov_wide_imm(opval, va):
     imm16 = opval >> 5 & 0xffff
     rd = opval & 0x1f
 
+    #sf determines whether the register size corresponds to the 32 or 64-bit variant
     if sf == 0b0:
-        olist = (
-            A64RegOper(rd, va, size=32),
-            A64ImmOper(imm16, hw*0b10000, S_LSL, va),
-        )
+        width_spec = 32
     else:
-        olist = (
-            A64RegOper(rd, va, size=64),
-            A64ImmOper(imm16, hw*0b10000, S_LSL, va),
-        )        
+        width_spec = 64
+    olist = (
+        A64RegOper(rd, va, size=width_spec),
+        A64ImmOper(imm16, hw*0b10000, S_LSL, va),
+    )
+    #all instrs share the mnem 'mov', but have one of three potential flags set
+    #based on opc (00 -> IF_N, 01 -> undefined, 10 -> IF_Z, 11 -> IF_K)
     mnem = 'mov'
     opcode = INS_MOV
     if opc == 0x00:
@@ -250,7 +258,6 @@ def p_mov_wide_imm(opval, va):
     return opcode, mnem, olist, 0,0
 
 
-#flags before mnemonic?
 def p_bitfield(opval, va):
     '''
     Get the parameters for an A64Opcode for a bitfield instruction
@@ -262,35 +269,32 @@ def p_bitfield(opval, va):
     imms = opval >> 10 & 0x3f
     rn = opval >> 5 & 0x1f
     rd = opval >> 5 & 0x1f
-    olist = (
-        A64ImmOper(opval),
-    )
-    mnem, opcode, flags = bitfield_table[opc]
-    if opcode != IENC_UNDEF:
+    #all instrs share mnem 'bfm', but have different 
+    mnem = 'bfm'
+    opcode = INS_BFM
+    iflag = (IFP_S, 0, IFP_U, None)[opc]
+    #if iflag is none, the instruction is undefined. Otherwise, determine variant
+    #based on sf and n and assign olist
+    if iflag != None:
         if sf == 0b0 and n == 0b0:
-            olist = (
-                A64RegOper(rd, va, size=32),
-                A64RegOper(rn, va, size=32),
-                A64ImmOper(immr, va=va),
-                A64ImmOper(imms, va=va),
-            )
+            width_spec = 32
         elif sf == 0b1 and n == 0b1:
-            olist = (
-                A64RegOper(rd, va, size=64),
-                A64RegOper(rn, va, size=64),
-                A64ImmOper(immr, va=va),
-                A64ImmOper(imms, va=va),
-            )    
+            width_spec = 64
+        else:
+            return p_undef(opval, va)
+        olist = (
+            A64RegOper(rd, va, size=width_spec),
+            A64RegOper(rn, va, size=width_spec),
+            A64ImmOper(immr, va=va),
+            A64ImmOper(imms, va=va),
+        )
+    else:
+        return p_undef(opval, va)
 
-    return opcode, mnem, olist, flags, 0
+    return opcode, mnem, olist, iflag, 0
 
 
-bitfield_table = (
-    ('sbfm', INS_SBFM, (1,1)),
-    ('bfm', INS_BFM, (0,0)),
-    ('ubfm', INS_UBFM, (1,0)),
-    ('undefined instruction', IENC_UNDEF, 0),
-)
+
 
 def p_extract(opval, va):
     '''
@@ -303,23 +307,22 @@ def p_extract(opval, va):
     rn = opval >> 5 & 0x1f
     rd = opval & 0x1f
 
+    #both instrs have mnem 'extr'. the if-else just determines 32 or 64-bit variant
+    
     mnem = 'extr'
     opcode = INS_EXTR
     if sf == 0b0 and n == 0b0 and imms & 0x100000 == 0x000000:
-        olist = (
-            A64RegOper(rd, va, size=32),
-            A64RegOper(rn, va, size=32),
-            A64RegOper(rm, va, size=32),
-            A64ImmOper(imms, 0, S_LSL, va),
-        )
+        width_spec = 32
     elif sf == 0b0 and n == 0b1:
-        olist = (
-            A64RegOper(rd, va, size=64),
-            A64RegOper(rn, va, size=64),
-            A64RegOper(rm, va, size=64),
-            A64ImmOper(imms, 0, S_LSL, va),
-        )
-
+        width_spec = 64
+    else:
+        return p_undef(opval, va)
+    olist = (
+        A64RegOper(rd, va, size=width_spec),
+        A64RegOper(rn, va, size=width_spec),
+        A64RegOper(rm, va, size=width_spec),
+        A64ImmOper(imms, 0, S_LSL, va),
+    )
     return opcode, mnem, olist, 0, 0
 
 def p_branch_uncond_imm(opval, va):
@@ -328,18 +331,19 @@ def p_branch_uncond_imm(opval, va):
     '''
     op = opval >> 31
     imm26 = opval & 0x3ffffffff
-    mnem = 'b'
-    opcode = INS_B
+    #determines mnemonic
     if op == 0:
-        iflag = 0
+        mnem = 'b'
+        opcode = INS_B
     else:
-        iflag = IF_L
-
+        mnem = 'bl'
+        opcode = INS_BL
+        
     olist = (
         A64ImmOper(imm26*0x100, va=va),
     )
 
-    return opcode, mnem, olist, iflag, 0
+    return opcode, mnem, olist, 0, 0
 
 def p_cmp_branch_imm(opval, va):
     '''
@@ -350,6 +354,7 @@ def p_cmp_branch_imm(opval, va):
     imm19 = opval >> 5 & 0x7ffff
     rt = opval & 0x1f
 
+    #mnem is determined based on op, variant is determined based on sf
     if op == 0:
         mnem = 'cbz'
         opcode = INS_CBZ
@@ -357,15 +362,13 @@ def p_cmp_branch_imm(opval, va):
         mnem = 'cbnz'
         opcode = INS_CBNZ
     if sf == 0b0:
-        olist = (
-            A64RegOper(rt, va, size=32),
-            A64Imm32Oper(imm19*0b100, 0, S_LSL, va),
-        )
+        width_spec = 32
     else:
-        olist = (
-            A64RegOper(rt, va, size=64),
-            A64ImmOper(imm19*0b100, 0, S_LSL, va),
-        )
+        width_spec = 64
+    olist = (
+        A64RegOper(rt, va, size=width_spec),
+        A64ImmOper(imm19*0b100, 0, S_LSL, va),
+    )
 
     return opcode, mnem, olist, 0, 0
 
@@ -378,7 +381,8 @@ def p_test_branch_imm(opval, va):
     b40 = opval >> 20 & 0x1f
     imm14 = opval >> 5 & 0x3fff
     rt = opval & 0x1f
-    
+
+    #mnem is determined based on op, width_spec is based on b5
     if op == 0b0:
         mnem = 'tbz'
         opcode = INS_TBZ
@@ -386,11 +390,11 @@ def p_test_branch_imm(opval, va):
         mnem = 'tbnz'
         opcode = INS_TBNZ
     if b5 == 0b0:
-        regsize = 32
+        width_spec = 32
     else:
-        regsize = 64
+        width_spec = 64
     olist = (
-        A64RegOper(rt, va, size=regsize),
+        A64RegOper(rt, va, size=width_spec),
         A64ImmOper(b5+b40, va=va),
         A64ImmOper(imm14*0x100, va=va),
     )
@@ -423,33 +427,37 @@ def p_excp_gen(opval, va):
     olist = (
         A64ImmOper(imm16, 0, S_LSL, va),
     )
-    
-    if opc == 0x000:
-        if ll == 0x01:
+    if op2 != 0b000:
+        return p_undef(opval, va)
+
+    #parses mnem. Basically just making it slightly more efficient through
+    #a treeish structure
+    if opc == 0b000:
+        if ll == 0b01:
             mnem = 'sbc'
             opcode = INS_SVC
-        elif ll == 0x10:
+        elif ll == 0b10:
             mnem = 'hvc'
             opcode = INS_HVC
-        elif ll == 0x11:
+        elif ll == 0b11:
             mnem = 'smc'
             opcode = INS_SMC
         else:
             return p_undef(opval, va)
-    elif opc == 0x001:
+    elif opc == 0b001:
         mnem = 'brk'
         opcode = INS_BRK
-    elif opc == 0x010:
+    elif opc == 0b010:
         mnem = 'hlt'
         opcode = INS_HLT
     elif opc == 0x101:
-        if ll == 0x01:
+        if ll == 0b01:
             mnem = 'dcps1'
             opcode = INS_DCPS1
-        elif ll == 0x10:
+        elif ll == 0b10:
             mnem = 'dcps2'
             opcode = INS_DCPS2
-        elif ll == 0x11:
+        elif ll == 0b11:
             mnem = 'dcps3'
             opcode = INS_DCPS3
         else:
@@ -471,6 +479,9 @@ def p_sys(opval, va):
     op2 = opval >> 5 & 0x3
     rt = opval & 0x1f
     relevant = opval & 0x3fffff
+
+    #this is legitimately ugly as sin. hopefully can come back and fix, though
+    #since it has 6 relevant decode fields, it won't be that improvable
 
     if relevant & 0b1110001111000000011111 == 0b0000000100000000011111:
         opcode = INS_MSR
@@ -580,10 +591,14 @@ def p_branch_uncond_reg(opval, va):
     op3 = opval >> 10 & 0x3f
     rn = opval >> 5 & 0x1f
     op4 = opval & 0x1f
+    #all the defined instructions share ops 2, 3, and 4 being 11111, 000000, and 00000
     if op2 == 0b11111 and op3 == 0b000000 and op4 == 0b00000:
+        #the first 3 instructions share this olist. The last 2 have an empty olist,
+        #redefined when their mnemonics are determined
         olist = (
             A64RegOper(rn, va, size=64),
         )
+        #determine opcode/mnemonic
         if opc == 0b0000:
             opcode = INS_BR
             mnem = 'br'
@@ -596,11 +611,11 @@ def p_branch_uncond_reg(opval, va):
         elif opc == 0b0100 and rn == 0b11111:
             opcode = INS_ERET
             mnem = 'eret'
-            olist = () #NOT A FIXME, EMPTY LIST
+            olist = () #empty olist
         elif opc == 0b0101 and rn == 0b11111:
             opcode = INS_DRPS
             mnem = 'drps'
-            olist = () #NOT A FIXME
+            olist = () #empty olist
         else:
             return p_undef(opval, va)          
     else:
@@ -621,7 +636,9 @@ def p_ls_excl(opval, va):
     rt2 = opval >> 10 & 0x1f
     rn = opval >> 5 & 0x1f
     rt = opval & 0x1f
-
+    #all mnemonics are some variation on 'st' or 'ld'
+    #if l is 0, mnemonic is 'st' and it's possible the IF_L iflag could be assigned
+    #otherwise, mnemonic is 'ld' and it's possible the IF_A iflag could be assigned
     if l == 0b0:
         mnem = 'st'
         opcode = INS_ST
@@ -630,51 +647,62 @@ def p_ls_excl(opval, va):
         mnem = 'ld'
         opcode = INS_LD
         optional_iflag = IF_A
+    #all instructions with o0 equal to 1 have the optional iflag added to the mnem
     if o0 == 0b1:
         iflag |= optional_iflag
+    #all instructions with o2 equal to 0 have an X added to the mnem
     if o2 == 0b0:
         iflag |= IF_X
+    #all instructions with o1 equal to 0 have an R added to the mnem
+    #otherwise, p is added to the mnem
     if o1 == 0b0:
         iflag |= IF_R
     else:
         iflag |= IF_P
+    #all instructions with size equal to 0 have a B added to the mnem,
+    #otherwise, all instructions with size equal to 1 have a H added to mnem
+    #otherwise, nothing
     if size == 0b00:
         iflag |= IF_B
     elif size == 0b01:
         iflag |= IF_H
     
-    if size == 0b00 or size == 0b01:
-        if o2 == 0b0:
+    if size == 0b00 or size == 0b01: #instructions with IF_B or IF_H set
+        if o2 == 0b0: #instructions with IF_X set
             if l == 0b0:
                 olist = (
                     A64RegOper(rs, va, size=32),
                     A64RegOper(rt, va, size=32),
                     A64RegOper(rn, va, size=64),
+                    A64ImmOper(0, va=va),
                 )
             else: #L == 1
                 olist = (
                     A64RegOper(rt, va, size=32),
                     A64RegOper(rn, va, size=64),
+                    A64ImmOper(0, va=va),
                 )
-        else: #o2 == 1
+        else: #o2 == 1, or instructions without IF_X set
             olist = (
                 A64RegOper(rt, va, size=32),
                 A64RegOper(rn, va, size=64),
+                A64ImmOper(0, va=va),
             )
-    else:  #size == 10 or 11
+    else:  #size == 10 or 11, or instructions without IF_B or IF_H set
+        #determines 32 or 64-bit variant
         if size == 0b10:
             regsize = 32
         else:
             regsize = 64
-        if o2 == 0b0:
+        if o2 == 0b0: #IF_X set
             if l == 0b0:
-                if o1 == 0b0:
+                if o1 == 0b0: #IF_R set
                     olist = (
                         A64RegOper(rs, va, size=32),
                         A64RegOper(rt, va, size=regsize),
                         A64RegOper(rn, va, size=64),
                     )                        
-                else:
+                else: #IF_R not set
                     olist = (
                         A64RegOper(rs, va, size=32),
                         A64RegOper(rt, va, size=regsize),
@@ -682,18 +710,18 @@ def p_ls_excl(opval, va):
                         A64RegOper(rn, va, size=64),
                     )                     
             else: #L == 1
-                if o1 == 0b0:
+                if o1 == 0b0: #IF_R set
                     olist = (
                         A64RegOper(rt, va, size=regsize),
                         A64RegOper(rn, va, size=64),
                     ) 
-                else: #o1 == 1x0110
+                else: #o1 == 1x0110 IF_R not set
                     olist = (
                         A64RegOper(rt, va, size=regsize),
                         A64RegOper(rt2, va, size=regsize),
                         A64RegOper(rn, va, size=64),
                     )                                       
-        else: #o2 == 1
+        else: #o2 == 1 #IF_X not set
             olist = (
                 A64RegOper(rt, va, size=regsize),
                 A64RegOper(rn, va, size=64),
@@ -709,20 +737,22 @@ def p_load_reg_lit(opval, va):
     v = opval >> 26 & 0x1
     imm19 = opval >> 5 & 0x7ffff
     rt = opval & 0x1f
+    #all instructions but prfm have mnemonic 'ldr'
     opcode = INS_LDR
     mnem = 'ldr'
     iflags = 0
-    if opc == 0b00:
+    #determine if the instruction is actually an 'ldr' and if so, which variant
+    if opc == 0b00: #32-bit variants of normal and SIMD versions
         olist = (
             A64RegOper(rt, va, size=32),
             A64ImmOper(imm19*0b100, 0, S_LSL, va),
         )
-    elif opc == 0b01:
+    elif opc == 0b01: #64-bit variants of normal and SIMD versions
         olist = (
             A64RegOper(rt, va, size=64),
             A64ImmOper(imm19*0b100, 0, S_LSL, va),
         )
-    elif opc == 0b10:
+    elif opc == 0b10: #128-bit SIMD variant, and the unique 'ldrsw'
         if v == 0b0:
             iflag = IF_SW
             regsize = 64
@@ -732,7 +762,7 @@ def p_load_reg_lit(opval, va):
             A64RegOper(rt, va, size=regsize),
             A64ImmOper(imm19*0b100, 0, S_LSL, va),
         )
-    else:
+    else: #prfm and undefined instruction
         if v == 0b0:
             mnem = 'prfm'
             opcode = INS_PRFM
