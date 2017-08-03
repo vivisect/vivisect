@@ -399,8 +399,8 @@ for ifx in range(1, len(IFS)):
     gblname = "IFS" + ifs.upper().replace('.', '_')
     globals()[gblname] = ifx
 
-from envi.archs.aarch64.disasm import A64PreFetchOper
 '''
+from envi.archs.aarch64.disasm import A64PreFetchOper
 #Supported PRFOP options
 prfop = (
     A64PreFetchOper(PLD, L1, KEEP),
