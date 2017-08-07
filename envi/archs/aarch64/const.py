@@ -334,6 +334,10 @@ instrnames = [
     'UZP2',
     'TRN2',
     'ZIP2',
+    'CBZ',
+    'CBNZ',
+    'TBZ',
+    'TBNZ',
 ]
 
 ins_index = 85

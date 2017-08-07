@@ -4,6 +4,7 @@ A disasm file for the AArch64 Architecture, ARMv8.
 from envi.archs.aarch64.const import *
 from envi.archs.aarch64.regs import *
 import envi
+import struct
 
 #-----------------------------data-----------------------------------------|
 
@@ -148,6 +149,7 @@ def p_addsub_imm(opval, va):
     rn = opval >> 5 & 0x1f
     rd = opval & 0x1f
     imm = opval >> 10 & 0xfff
+    iflag = 0
     #all mnemonics are either add or sub, depending on op's value
     if op == 0b0:
         mnem = 'add'
@@ -6653,9 +6655,9 @@ def p_undef(opval, va):
     Undefined encoding family
     '''
     # FIXME: make this an actual opcode with the opval as an imm oper
-    raise envi.InvalidInstruction(
-            mesg="p_undef: invalid instruction (by definition in ARM spec)",
-            bytez=struct.pack("<I", opval), va=va)
+    #raise envi.InvalidInstruction(
+    #        mesg="p_undef: invalid instruction (by definition in ARM spec)",
+    #        bytez=struct.pack("<I", opval), va=va)
     opcode = IENC_UNDEF
     mnem = "undefined instruction"
     olist = (
@@ -6775,6 +6777,16 @@ class A64RegOper(A64Operand):
         self.va = va
         self.reg = reg
         self.oflags = oflags
+        self.size = size
+    
+    def repr(self, op):
+        if self.size == 32:
+            rname = "w" + str(self.reg)
+        elif self.size == 64:
+            rname = "x" + str(self.reg)
+        if self.oflags != 0:
+            rname += IFS[self.oflags]
+        return rname
 
 class A64ImmOper(A64Operand):
     '''
@@ -6785,6 +6797,9 @@ class A64ImmOper(A64Operand):
         self.shval = shval
         self.shtype = shtype
         self.size = size
+
+    def repr(self, op):
+        return str(self.val)
 
 class A64PreFetchOper(A64Operand):
     '''
@@ -6843,6 +6858,11 @@ class A64Opcode(envi.Opcode):
         self.simdflags = simdflags
         self.va = va
     
+    def __repr__(self):
+        x = []
+        for op in self.opers:
+            x.append(op.repr(self))
+        return self.mnem + " " + ", ".join(x)
 
 class AArch64Disasm:
     #weird thing in envi/__init__. Figure out later
@@ -6853,7 +6873,7 @@ class AArch64Disasm:
     #ARCH_REVS is a file containing all masks for various versions of ARM. In const.py
     _archVersionMask = ARCH_REVS['ARMv8A']
 
-    def __init__(self, endian=ENDIAN_LSB, mask = 'ARMv8A'):
+    def __init__(self, endian=ENDIAN_MSB, mask = 'ARMv8A'):
         self.setArchMask(mask)
         self.setEndian(endian)
 
@@ -6876,12 +6896,15 @@ class AArch64Disasm:
         '''
         Parse a series of bytes into an envi.Opcode instance
         ''' 
-        opbytes = bytez[offset:offset+4]
-        opval = struct.unpack(self.fmt, opbytes)
+        #print(self.fmt)
+        #opbytes = bytez[offset:offset+4]
+        #opval = struct.unpack(self.fmt, opbytes)
+        #opval, = struct.unpack(self.fmt, bytez[offset:offset+4])
 
-        cond = opval >> 29 & 0x7
+        #cond = opval >> 29 & 0x7
+        cond = 0
 
-        opcode, mnem, olist, flags, smdflags = self.doDecode(va, opval, bytez, offset)
+        opcode, mnem, olist, flags, simdflags = self.doDecode(va, int(bytez, 16), bytez, offset)
 
         if mnem == None or type(mnem) == int:
             raise Exception("mnem == %r!  0x%x" % (mnem, opval))
@@ -6921,14 +6944,13 @@ class AArch64Disasm:
         opcode, mnem, olist, flags, simdflags = ienc_parsers[enc](opval, va+8)
         return opcode, mnem, olist, flags, simdflags
 
-
-        
-
-
-        
-
-
 if __name__=="__main__":
     import envi.archs
+    from envi.tests.test_arch_aarch64 import instrs
     #envi.archs.dismain( AArch64Disasm() )
+    #for i in instrs:
+    #    op = AArch64Disasm().disasm(i[1], 0, 0)
+    #    print(op)
+    op = AArch64Disasm().disasm('54abcdef', 0, 0)
+    print(op)
     

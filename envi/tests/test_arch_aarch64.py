@@ -1,5 +1,7 @@
 import unittest
 
+REV_ALL_ARM = 0 #FIXME change once we know what this is/does
+
 class ArmInstructionSet(unittest.TestCase):
     def test_msr(self):
         # test the MSR instruction
@@ -13,14 +15,11 @@ instrs = [
 
 #Data processing immediate
 
-    '''
-    PC-release addressing
-    '''
+    # PC-release addressing
     (REV_ALL_ARM, '50abcd03', 'adr x3, [#0x1479a2]', 0, ()), #adr
     (REV_ALL_ARM, 'd0abcd03', 'adrp x3, [#0x1479a2000]', 0, ()), #adrp
-    '''
-    Add/sub (immediate)
-    '''
+    
+    # Add/sub (immediate)
     (REV_ALL_ARM, '113c15e3', 'add w3, w14, [#0xf05{, LSL #0}]', 0, ()), #add (shift=0b00, sf=0b0)
     (REV_ALL_ARM, '117c15e3', 'add w3, w14, [#0xf05{, LSL #12}]', 0, ()), #add (shift=0b01, sf=0b0)
     (REV_ALL_ARM, '913c15e3', 'add x3, x14, [#0xf05{, LSL #0}]', 0, ()), #add (shift=0b00, sf=0b1)
@@ -37,9 +36,9 @@ instrs = [
     (REV_ALL_ARM, '717c15e3', 'subs w3, w14, [#0xf05{, LSL #12}]', 0, ()), #adds (shift=0b01, sf=0b0)
     (REV_ALL_ARM, 'f13c15e3', 'subs x3, x14, [#0xf05{, LSL #0}]', 0, ()), #adds (shift=0b00, sf=0b1)
     (REV_ALL_ARM, 'f17c15e3', 'subs x3, x14, [#0xf05{, LSL #12}]', 0, ()), #adds (shift=0b01, sf=0b1)
-    '''
-    Logical (immediate)
-    '''
+    
+    # Logical (immediate)
+    
     (REV_ALL_ARM, '123bf5e3', 'and w3, w14, [#f7b]', 0, ()),    #and (32-bit variant)
     (REV_ALL_ARM, '323bf5e3', 'orr w3, w14, [#f7b]', 0, ()),    #orr (32-bit variant)
     (REV_ALL_ARM, '523bf5e3', 'eor w3, w14, [#f7b]', 0, ()),    #eor (32-bit variant)
@@ -48,59 +47,59 @@ instrs = [
     (REV_ALL_ARM, 'b23bf5e3', 'orr x3, x14, [#f7b]', 0, ()),    #orr (64-bit variant)
     (REV_ALL_ARM, 'd27bf5e3', 'eor x3, x14, [#1f7b]', 0, ()),   #eor (64-bit variant)
     (REV_ALL_ARM, 'f27bf5e3', 'ands x3, x14, [#1f7b]', 0, ()),  #ands (64-bit variant)
-    '''
-    Move wide (immediate)
-    '''
+    
+    # Move wide (immediate)
+    
     (REV_ALL_ARM, '12a8b7e3', 'movn w3, #45bf{, LSL #10}', 0, ()), #movn (32-bit variant)
     (REV_ALL_ARM, '52a8b7e3', 'movz w3, #45bf{, LSL #10}', 0, ()), #movz (32-bit variant)
     (REV_ALL_ARM, '72a8b7e3', 'movk w3, #45bf{, LSL #10}', 0, ()), #movk (32-bit variant)
     (REV_ALL_ARM, '92a8b7e3', 'movn x3, #45bf{, LSL #10}', 0, ()), #movn (64-bit variant)
     (REV_ALL_ARM, 'd2a8b7e3', 'movz x3, #45bf{, LSL #10}', 0, ()), #movz (64-bit variant)
     (REV_ALL_ARM, 'f2a8b7e3', 'movk w3, #45bf{, LSL #10}', 0, ()), #movk (64-bit variant)
-    '''
-    Bitfield
-    '''
+    
+    # Bitfield
+    
     (REV_ALL_ARM, '1338b5e3', 'sbfm w3, w14, #38, #2d', 0, ()), #sbfm (32-bit variant)
     (REV_ALL_ARM, '5338b5e3', 'bfm w3, w14, #38, #2d', 0, ()),  #bfm (32-bit variant)
     (REV_ALL_ARM, '7338b5e3', 'ubfm w3, w14, #38, #2d', 0, ()), #ubfm (32-bit variant)
     (REV_ALL_ARM, '9378b5e3', 'sbfm x3, x14, #38, #2d', 0, ()), #sbfm (64-bit variant)
     (REV_ALL_ARM, 'd378b5e3', 'bfm x3, x14, #38, #2d', 0, ()),  #bfm (64-bit variant)
     (REV_ALL_ARM, 'f378b5e3', 'ubfm w3, x14, #38, #2d', 0, ()), #ubfm (64-bit variant)
-    '''
-    Extract
-    '''
+    
+    # Extract
+    
     (REV_ALL_ARM, '138a75e3', 'extr w3, w14, w10, #1d', 0, ()), #extr (32-bit variant)
     (REV_ALL_ARM, '93ca75e3', 'extr w3, w14, w10, #1d', 0, ()), #extr (64-bit variant)
 
 #Branch, exception generation and system instructions
 
-    '''
-    Unconditional branch (immediate)
-    '''
+    
+    # Unconditional branch (immediate)
+    
     (REV_ALL_ARM, '15bf86a3', 'b 6fe1a8c', 0, ()), #b
     (REV_ALL_ARM, '95bf86a3', 'bl 6fe1a8c', 0, ()), #bl
-    '''
-    Compare and branch (immediate)
-    '''
+    
+    # Compare and branch (immediate)
+    
     (REV_ALL_ARM, '34f8b5e3', 'cbz w3, 1f16bc', 0, ()), #cbz (32-bit variant)
     (REV_ALL_ARM, '35f8b5e3', 'cbnz w3, 1f16bc', 0, ()),#cbnz (32-bit variant)
     (REV_ALL_ARM, 'b4f8b5e3', 'cbz x3, 1f16bc', 0, ()), #cbz (64-bit variant)
     (REV_ALL_ARM, 'b5f8b5e3', 'cbnz x3, 1f16bc', 0, ()),#cbnz (64-bit variant)
-    '''
-    Test & branch (immediate)
-    '''
+    
+    # Test & branch (immediate)
+    
     (REV_ALL_ARM, '368f42e3', 'tbz w3, #11, e85c', 0, ()),  #tbz (b5 = 0, width spec = w)
     (REV_ALL_ARM, 'b68f42e3', 'tbz x3, #31, e85c', 0, ()),  #tbz (b5 = 1, width spec = x)
     (REV_ALL_ARM, '378f42e3', 'tbnz w3, #11, e85c', 0, ()), #tbnz (b5 = 0, width spec = w)
     (REV_ALL_ARM, 'b78f42e3', 'tbnz x3, #31, e85c', 0, ()), #tbnz (b5 = 1, width spec = x)
-    '''
-    Conditional branch (immediate)
-    '''
+    
+    # Conditional branch (immediate)
+    
     #FIXME cond encoded in the standard way
     (REV_ALL_ARM, '54abcdef', 'b.cond 1579bc', 0, ()), #b.cond
-    '''
-    Exception generation
-    '''
+    
+    # Exception generation
+    
     (REV_ALL_ARM, 'd41bade1', 'svc #dd6f', 0, ()),
     (REV_ALL_ARM, 'd41bade2', 'hvc #dd6f', 0, ()),
     (REV_ALL_ARM, 'd41bade3', 'smc #dd6f', 0, ()),
@@ -109,9 +108,9 @@ instrs = [
     (REV_ALL_ARM, 'd4bbade1', 'dcps1 {#dd6f}', 0, ()),
     (REV_ALL_ARM, 'd4bbade2', 'dcps2 {#dd6f}', 0, ()),
     (REV_ALL_ARM, 'd4bbade3', 'dcps3 {#dd6f}', 0, ()),
-    '''
-    System
-    '''
+    
+    # System
+    
     (REV_ALL_ARM, 'd5004abf', 'msr SPSel, #a', 0, ()),  #msr (op1 = 000, op2 = 101)
     (REV_ALL_ARM, 'd5034adf', 'msr DAIFSet, #a', 0, ()),#msr (op1 = 011, op2 = 110)
     (REV_ALL_ARM, 'd5034aff', 'msr DAIFClr, #a', 0, ()),#msr (op1 = 011, op2 = 111)
@@ -146,9 +145,9 @@ instrs = [
     (REV_ALL_ARM, 'd5171ae3', 'msr r14551, x3', 0, ()), #msr (register) FIXME system register
     (REV_ALL_ARM, 'd52f1a63', 'sysl x3, #7, c1, ca, #3', 0, ()), #sysl FIXME name
     (REV_ALL_ARM, 'd5371ae3', 'mrs x3, r14551', 0, ()), #mrs FIXME system register
-    '''
-    Unconditional branch (register)
-    '''
+    
+    # Unconditional branch (register)
+    
     (REV_ALL_ARM, 'd61f0060', 'br x3', 0, ()),
     (REV_ALL_ARM, 'd63f0060', 'blr x3', 0, ()),
     (REV_ALL_ARM, 'd65f0060', 'ret {x3}', 0, ()),
@@ -157,9 +156,9 @@ instrs = [
 #Loads and stores
 
 #Data processing (register)
-    '''
-    Logical (shifted register)
-    '''
+    
+    # Logical (shifted register)
+    
     #every set of 4 tests has the same instruction 4x with a different shift value
     #this results in each result looking identical aside from LSL, LSR, ASR, ROR,
     #(which correspond to shift values of 00, 01, 10, and 11) and mnemonic/opcode
@@ -229,9 +228,9 @@ instrs = [
     (REV_ALL_ARM, 'ea6b3dc3', 'bics x3, x14, x11{, LSR #f}', 0, ()),
     (REV_ALL_ARM, 'eaab3dc3', 'bics x3, x14, x11{, ASR #f}', 0, ()),
     (REV_ALL_ARM, 'eaeb3dc3', 'bics x3, x14, x11{, ROR #f}', 0, ()),
-    '''
-    Add/sub (shifted register)
-    '''
+    
+    # Add/sub (shifted register)
+    
     #similar to logical (shifted register), these are sets of three tests for the
     #same instruction, where the only different thing is the shift value.
     #the main difference is that logical (shifted register) didn't have shift = 11 as reserved
@@ -260,9 +259,9 @@ instrs = [
     (REV_ALL_ARM, 'eb0b3dc3', 'subs x3, x14, x11{, LSL #f}', 0, ()),
     (REV_ALL_ARM, 'eb4b3dc3', 'subs x3, x14, x11{, LSR #f}', 0, ()),
     (REV_ALL_ARM, 'eb8b3dc3', 'subs x3, x14, x11{, ASR #f}', 0, ()),
-    '''
-    Add/subtract (extended register)
-    '''
+    
+    # Add/subtract (extended register)
+    
     #this time, there are 8 tests per instruction, each having a different extend
     #64-bit variants sometimes have the 11 register as a w. only x when option = x11
     (REV_ALL_ARM, '0b2b0dc3', 'add w3, w14, w11{, UXTB {#3}}', 0, ()),
@@ -330,9 +329,9 @@ instrs = [
     (REV_ALL_ARM, 'eb2badc3', 'subs x3, x14, w11{, SXTH {#3}}', 0, ()),
     (REV_ALL_ARM, 'eb2bcdc3', 'subs x3, x14, w11{, SXTW {#3}}', 0, ()),
     (REV_ALL_ARM, 'eb2bedc3', 'subs x3, x14, x11{, SXTX {#3}}', 0, ()),
-    '''
-    Add/subtract (with carry)
-    '''
+    
+    # Add/subtract (with carry)
+    
     (REV_ALL_ARM, '1a0b01c3', 'adc w3, w14, w11', 0, ()),
     (REV_ALL_ARM, '3a0b01c3', 'adcs w3, w14, w11', 0, ()),
     (REV_ALL_ARM, '5a0b01c3', 'sbc w3, w14, w11', 0, ()),
@@ -341,25 +340,25 @@ instrs = [
     (REV_ALL_ARM, 'ba0b01c3', 'adcs x3, x14, x11', 0, ()),
     (REV_ALL_ARM, 'da0b01c3', 'sbc x3, x14, x11', 0, ()),
     (REV_ALL_ARM, 'fa0b01c3', 'sbcs x3, x14, x11', 0, ()),
-    '''
-    Conditional compare (register)
-    '''
+    
+    # Conditional compare (register)
+    
     #FIXME X = cond, Y = nzcv, olist to match
     (REV_ALL_ARM, '3a4bX1cY', 'ccmn w14, w11, #nzcv, cond', 0, ()),
     (REV_ALL_ARM, '7a4bX1cY', 'ccmp w14, w11, #nzcv, cond', 0, ()),
     (REV_ALL_ARM, 'ba4bX1cY', 'ccmn x14, x11, #nzcv, cond', 0, ()),
     (REV_ALL_ARM, 'fa4bX1cY', 'ccmp x14, x11, #nzcv, cond', 0, ()),
-    '''
-    Conditional compare (immediate)
-    '''
+    
+    # Conditional compare (immediate)
+    
     #FIXME X = cond, Y = nzcv, olist to match
     (REV_ALL_ARM, '3a4bX9cY', 'ccmn w14, #11, #nzcv, cond', 0, ()),
     (REV_ALL_ARM, '7a4bX9cY', 'ccmp w14, #11, #nzcv, cond', 0, ()),
     (REV_ALL_ARM, 'ba4bX9cY', 'ccmn x14, #11, #nzcv, cond', 0, ()),
     (REV_ALL_ARM, 'fa4bX9cY', 'ccmp x14, #11, #nzcv, cond', 0, ()),
-    '''
-    Conditional select
-    '''
+    
+    # Conditional select
+    
     #FIXME X = cond, olist to match
     (REV_ALL_ARM, '1a8bX1c3', 'csel w3, w14, w11, cond', 0, ()),
     (REV_ALL_ARM, '1a8bX5c3', 'csinc w3, w14, w11, cond', 0, ()),
@@ -369,9 +368,9 @@ instrs = [
     (REV_ALL_ARM, '9a8bX5c3', 'csinc x3, x14, x11, cond', 0, ()),
     (REV_ALL_ARM, 'da8bX1c3', 'csinv x3, x14, x11, cond', 0, ()),
     (REV_ALL_ARM, 'da8bX5c3', 'csneg x3, x14, x11, cond', 0, ()),
-    '''
-    Data processing (3 source)
-    '''
+    
+    # Data processing (3 source)
+    
     (REV_ALL_ARM, '1b0b25c3', 'madd w3, w14, w11, w9', 0, ()),
     (REV_ALL_ARM, '1b0ba5c3', 'msub w3, w14, w11, w9', 0, ()),
     (REV_ALL_ARM, '9b0b25c3', 'madd x3, x14, x11, x9', 0, ()),
@@ -382,9 +381,9 @@ instrs = [
     (REV_ALL_ARM, '9bab25c3', 'umaddl x3, w14, w11, x9', 0, ()),
     (REV_ALL_ARM, '9baba5c3', 'umsubl x3, w14, w11, x9', 0, ()),
     (REV_ALL_ARM, '9bdb25c3', 'umulh x3, x14, x11', 0, ()),
-    '''
-    Data processing (2 source)
-    '''
+    
+    # Data processing (2 source)
+    
     (REV_ALL_ARM, '1acb09c3', 'udiv w3, w14, w11', 0, ()),
     (REV_ALL_ARM, '1acb0dc3', 'sdiv w3, w14, w11', 0, ()),
     (REV_ALL_ARM, '1acb21c3', 'lslv w3, w14, w11', 0, ()),
@@ -405,9 +404,9 @@ instrs = [
     (REV_ALL_ARM, '9acb2dc3', 'rorv x3, x14, x11', 0, ()),
     (REV_ALL_ARM, '9acb4dc3', 'crc32x w3, w14, w11', 0, ()),
     (REV_ALL_ARM, '9acb5dc3', 'crc32cx w3, w14, w11', 0, ()),
-    '''
-    Data processing (1 source)
-    '''
+    
+    # Data processing (1 source)
+    
     (REV_ALL_ARM, '5ac001c3', 'rbit w3, w14', 0, ()),
     (REV_ALL_ARM, '5ac005c3', 'rev16 w3, w14', 0, ()),
     (REV_ALL_ARM, '5ac009c3', 'rev w3, w14', 0, ()),
