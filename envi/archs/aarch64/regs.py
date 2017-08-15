@@ -1,6 +1,6 @@
 ### TEMPLATE TAKEN FROM ARM
 
-from envi.archs.arm.const import *
+from envi.archs.aarch64.const import *
 import envi.registers as e_reg
 
 '''
@@ -33,13 +33,6 @@ arm_regs = (
     # FIXME: need to deal with ELR_hyp
 )
 MAX_REGS = 17
-
-arm_metas = [
-        ("r13", REG_SP, 0, 32),
-        ("r14", REG_LR, 0, 32),
-        ("r15", REG_PC, 0, 32),
-        ]
-
 
 # build a translation table to allow for fast access of banked registers
 modes = proc_modes.keys()
@@ -101,6 +94,13 @@ reg_data.append(('fpscr', 32))
 
 l = locals()
 e_reg.addLocalEnums(l, arm_regs)
+
+arm_metas = [
+        ("r13", REG_SP, 0, 32),
+        ("r14", REG_LR, 0, 32),
+        ("r15", REG_PC, 0, 32),
+        ]
+
 
 PSR_N = 31  # negative
 PSR_Z = 30  # zero
