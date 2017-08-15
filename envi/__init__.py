@@ -1356,6 +1356,10 @@ def getArchModule(name=None):
         import envi.archs.h8 as e_h8
         return e_h8.H8Module()
 
+    elif name in ( 'aarch64', ):
+        import envi.archs.aarch64 as e_a64
+        return e_a64.Aarch64Module()
+
     else:
         raise ArchNotImplemented(name)
 
