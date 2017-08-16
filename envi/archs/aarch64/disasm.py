@@ -407,13 +407,12 @@ def p_branch_cond_imm(opval, va):
     '''
     Conditional branch (immediate) instruction
     '''
-    #FIXME mnem, opcode, cond
     imm19 = opval >> 5 & 0x7ffff
     cond = opval & 0xf
     mnem = 'B.'
-    opcode = INS_B
+    opcode = INS_B.
     olist = (
-        #FIXME cond encoded in the standard way?
+        A64CondOper(cond),
         A64ImmOper(imm19*0x100, va=va),
     )
 
@@ -514,7 +513,7 @@ def p_sys(opval, va):
         opcode = INS_DSB
         mnem = 'dsb'
         olist = (
-            #FIXME option
+            A64BarrierOptionOper(crm),
             A64ImmOper(crm, va=va),
         )
         iflag = 0
@@ -523,7 +522,7 @@ def p_sys(opval, va):
         opcode = INS_DMB
         mnem = 'dmb'
         olist = (
-            #FIXME option
+            A64BarrierOptionOper(crm),
             A64ImmOper(crm, va=va),
         )
         iflag = 0
@@ -532,7 +531,7 @@ def p_sys(opval, va):
         opcode = INS_ISB
         mnem = 'isb'
         olist = (
-            #FIXME option
+            A64BarrierOptionOper(crm),
             A64ImmOper(crm, va=va),
         )
         iflag = 0
@@ -540,10 +539,17 @@ def p_sys(opval, va):
     elif (l + op0) == 0x001:
         opcode = INS_SYS
         mnem = 'sys'
+        if crn == 0b0111 or crn == 0b1000:
+            sysop_concat = op1+crn+crm+op2
+            for bits, mnemonic, ocode in sys_op_table:
+                if sysop_concat == bits:
+                    mnem = mnemonic
+                    opcode = ocode
+                    break
         olist = (
             A64ImmOper(op1, 0, S_LSL, va),
-            #FIXME cn name oper?
-            #FIXME cm name oper?
+            A64NameOper(crn),
+            A64NameOper(crm),
             A64ImmOper(op2, 0, S_LSL, va),
             A64RegOper(rt, va, size=64), #optional operand
         )
@@ -564,8 +570,8 @@ def p_sys(opval, va):
         olist = (
             A64RegOper(rt, va, size=64),
             A64ImmOper(op1, 0, S_LSL, va),
-            #FIXME name oper?
-            #FIXME name oper?
+            A64NameOper(crn),
+            A64NameOper(crm),
             A64ImmOper(op2, 0, S_LSL, va),
         )
         iflag = IF_L
@@ -1107,8 +1113,7 @@ def p_ls_reg_offset(opval, va):
                 elif option & 0b011 == 0b010:
                     regsize = 64
                 else:
-                    pass
-                    #FIXME reserved
+                    return p_undef(opval)
                 olist = (
                     prfop[rt],
                     A64RegOper(rn, va, size=64),
@@ -2216,16 +2221,19 @@ def p_cond_cmp_imm(opval, va):
     else:
         iflag |= IF_P
 
-    #FIXME: nzcv and cond opers
     if sf == 0b0:
         olist = (
             A64RegOper(rn, va, size=32),
             A64ImmOper(imm5, va=va),
+            A64nzcvOper(nzcv),
+            A64CondOper(cond),
         )
     else:
         olist = (
             A64RegOper(rn, va, size=64),
             A64ImmOper(imm5, va=va),
+            A64nzcvOper(nzcv),
+            A64CondOper(cond),
         )
 
     return opcode, mnem, olist, iflag, 0
@@ -2251,16 +2259,19 @@ def p_cond_cmp_reg(opval, va):
     else:
         iflag |= IF_P
 
-    #FIXME: nzcv, cond opers
     if sf == 0b0:
         olist = (
             A64RegOper(rn, va, size=64),
             A64RegOper(rm, va, size=64),
+            A64nzcvOper(nzcv),
+            A64CondOper(cond),
         )
     else:
         olist = (
             A64RegOper(rn, va, size=64),
             A64RegOper(rm, va, size=64),
+            A64nzcvOper(nzcv),
+            A64CondOper(cond),
         )
     return opcode, mnem, olist, iflag, 0
 
@@ -2629,15 +2640,15 @@ def p_fp_cond_compare(opval, va):
         olist = (
             A64RegOper(rn, va, size=32),
             A64RegOper(rm, va, size=32),
-            A64ImmOper(nzcv),
-            #ConditionOper
+            A64nzcvOper(nzcv),
+            A64CondOper(cond),
         )
     elif typ == 0b01:
         olist = (
             A64RegOper(rn, va, size=64),
             A64RegOper(rm, va, size=64),
-            A64ImmOper(nzcv),
-            #ConditionOper
+            A64nzcvOper(nzcv),
+            A64CondOper(cond),
         )
     else:
         return p_undef(opval, va)
@@ -6800,6 +6811,36 @@ class A64ImmOper(A64Operand):
 
     def repr(self, op):
         return str(self.val)
+
+class A64BarrierOptionOper(A64Operand):
+    '''
+    Subclass of A64Operand. 4-bit immediate or barrier option
+    '''
+    def __init__(self, val=0):
+        self.val = val
+        self.option = barrier_option_table[val]
+
+class A64nzcvOper(A64Operand):
+    '''
+    Subclass of A64Operand. 4-bit immediate that sets N,Z,C, and V flags
+    '''
+    def __init__(self, val=0):
+        self.val = val
+
+class A64CondOper(A64Operand):
+    '''
+    Subclass of A64Operand. 4-bit cond encoding
+    '''
+    def __init__(self, val=0):
+        self.val = val
+        self.mnem = cond_table[val]
+
+class A64NameOper(A64Operand):
+    '''
+    Subclass of A64Operand. Name operand class
+    '''
+    def __init__(self, val=0):
+        self.val = val
 
 class A64PreFetchOper(A64Operand):
     '''

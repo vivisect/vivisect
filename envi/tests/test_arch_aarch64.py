@@ -1,3 +1,6 @@
+#this probably needs to be looked over once more to make sure all
+#assembler symbols are correctly represented
+
 import unittest
 
 class ArmInstructionSet(unittest.TestCase):
@@ -202,31 +205,44 @@ instrs = [
     
     #Load register (literal)
     
-    #FIXME prfm #uimm5
     (REV_ALL_ARM, '18abcde3', 'ldr w3 1579bc', 0, ()),
     (REV_ALL_ARM, '1cabcde3', 'ldr s3 1579bc', 0, ()),
     (REV_ALL_ARM, '58abcde3', 'ldr x3 1579bc', 0, ()),
     (REV_ALL_ARM, '5cabcde3', 'ldr d3 1579bc', 0, ()),
     (REV_ALL_ARM, '98abcde3', 'ldrsw x3 1579bc', 0, ()),
     (REV_ALL_ARM, '9cabcde3', 'ldr q3 1579bc', 0, ()),
-    (REV_ALL_ARM, 'd8abcde0', 'prfm PLDL1KEEP 1579bc', 0, ()),
-    (REV_ALL_ARM, 'd8abcde1', 'prfm PLDL1STRM 1579bc', 0, ()),
-    (REV_ALL_ARM, 'd8abcde2', 'prfm PLDL2KEEP 1579bc', 0, ()),
-    (REV_ALL_ARM, 'd8abcde3', 'prfm PLDL2STRM 1579bc', 0, ()),
-    (REV_ALL_ARM, 'd8abcde4', 'prfm PLDL3KEEP 1579bc', 0, ()),
-    (REV_ALL_ARM, 'd8abcde5', 'prfm PLDL3STRM 1579bc', 0, ()),
-    (REV_ALL_ARM, 'd8abcde8', 'prfm PLIL1KEEP 1579bc', 0, ()),
-    (REV_ALL_ARM, 'd8abcde9', 'prfm PLIL1STRM 1579bc', 0, ()),
-    (REV_ALL_ARM, 'd8abcdea', 'prfm PLIL2KEEP 1579bc', 0, ()),
-    (REV_ALL_ARM, 'd8abcdeb', 'prfm PLIL2STRM 1579bc', 0, ()),
-    (REV_ALL_ARM, 'd8abcdec', 'prfm PLIL3KEEP 1579bc', 0, ()),
-    (REV_ALL_ARM, 'd8abcded', 'prfm PLIL3STRM 1579bc', 0, ()),
-    (REV_ALL_ARM, 'd8abcdf0', 'prfm PSTL1KEEP 1579bc', 0, ()),
-    (REV_ALL_ARM, 'd8abcdf1', 'prfm PSTL1STRM 1579bc', 0, ()),
-    (REV_ALL_ARM, 'd8abcdf2', 'prfm PSTL2KEEP 1579bc', 0, ()),
-    (REV_ALL_ARM, 'd8abcdf3', 'prfm PSTL2STRM 1579bc', 0, ()),
-    (REV_ALL_ARM, 'd8abcdf4', 'prfm PSTL3KEEP 1579bc', 0, ()),
-    (REV_ALL_ARM, 'd8abcdf5', 'prfm PSTL3STRM 1579bc', 0, ()),
+    (REV_ALL_ARM, 'd8abcde0', 'prfm PLDL1KEEP, 1579bc', 0, ()),
+    (REV_ALL_ARM, 'd8abcde1', 'prfm PLDL1STRM, 1579bc', 0, ()),
+    (REV_ALL_ARM, 'd8abcde2', 'prfm PLDL2KEEP, 1579bc', 0, ()),
+    (REV_ALL_ARM, 'd8abcde3', 'prfm PLDL2STRM, 1579bc', 0, ()),
+    (REV_ALL_ARM, 'd8abcde4', 'prfm PLDL3KEEP, 1579bc', 0, ()),
+    (REV_ALL_ARM, 'd8abcde5', 'prfm PLDL3STRM, 1579bc', 0, ()),
+    (REV_ALL_ARM, 'd8abcde6', 'prfm #6, 1579bc', 0, ()),
+    (REV_ALL_ARM, 'd8abcde7', 'prfm #7, 1579bc', 0, ()),
+    (REV_ALL_ARM, 'd8abcde8', 'prfm PLIL1KEEP, 1579bc', 0, ()),
+    (REV_ALL_ARM, 'd8abcde9', 'prfm PLIL1STRM, 1579bc', 0, ()),
+    (REV_ALL_ARM, 'd8abcdea', 'prfm PLIL2KEEP, 1579bc', 0, ()),
+    (REV_ALL_ARM, 'd8abcdeb', 'prfm PLIL2STRM, 1579bc', 0, ()),
+    (REV_ALL_ARM, 'd8abcdec', 'prfm PLIL3KEEP, 1579bc', 0, ()),
+    (REV_ALL_ARM, 'd8abcded', 'prfm PLIL3STRM, 1579bc', 0, ()),
+    (REV_ALL_ARM, 'd8abcdee', 'prfm #14, 1579bc', 0, ()),
+    (REV_ALL_ARM, 'd8abcdef', 'prfm #15, 1579bc', 0, ()),
+    (REV_ALL_ARM, 'd8abcdf0', 'prfm PSTL1KEEP, 1579bc', 0, ()),
+    (REV_ALL_ARM, 'd8abcdf1', 'prfm PSTL1STRM, 1579bc', 0, ()),
+    (REV_ALL_ARM, 'd8abcdf2', 'prfm PSTL2KEEP, 1579bc', 0, ()),
+    (REV_ALL_ARM, 'd8abcdf3', 'prfm PSTL2STRM, 1579bc', 0, ()),
+    (REV_ALL_ARM, 'd8abcdf4', 'prfm PSTL3KEEP, 1579bc', 0, ()),
+    (REV_ALL_ARM, 'd8abcdf5', 'prfm PSTL3STRM, 1579bc', 0, ()),
+    (REV_ALL_ARM, 'd8abcdf6', 'prfm #22, 1579bc', 0, ()),
+    (REV_ALL_ARM, 'd8abcdf7', 'prfm #23, 1579bc', 0, ()),
+    (REV_ALL_ARM, 'd8abcdf8', 'prfm #24, 1579bc', 0, ()),
+    (REV_ALL_ARM, 'd8abcdf9', 'prfm #25, 1579bc', 0, ()),
+    (REV_ALL_ARM, 'd8abcdfa', 'prfm #26, 1579bc', 0, ()),
+    (REV_ALL_ARM, 'd8abcdfb', 'prfm #27, 1579bc', 0, ()),
+    (REV_ALL_ARM, 'd8abcdfc', 'prfm #28, 1579bc', 0, ()),
+    (REV_ALL_ARM, 'd8abcdfd', 'prfm #29, 1579bc', 0, ()),
+    (REV_ALL_ARM, 'd8abcdfe', 'prfm #30, 1579bc', 0, ()),
+    (REV_ALL_ARM, 'd8abcdff', 'prfm #31, 1579bc', 0, ()),
     
     #Load/store no-allocate pair (offset)
 
@@ -1000,7 +1016,6 @@ instrs = [
 
     #AdvSIMD Load/store single structure
     
-    #FIXME bitwise concatenation
     #all tests are for the no offset variants
     #st1 and st3
     (REV_ALL_ARM, '4d0019c3', 'st1 { v3.b }[#e], x14', 0, ()),
@@ -1427,23 +1442,40 @@ instrs = [
     
     #Conditional compare (immediate)
     
-    #FIXME X = cond, olist to match
-    (REV_ALL_ARM, '3a4bX9cb', 'ccmn w14, #11, #b, cond', 0, ()),
-    (REV_ALL_ARM, '7a4bX9ca', 'ccmp w14, #11, #a, cond', 0, ()),
-    (REV_ALL_ARM, 'ba4bX9c9', 'ccmn x14, #11, #9, cond', 0, ()),
-    (REV_ALL_ARM, 'fa4bX9c8', 'ccmp x14, #11, #8, cond', 0, ()),
+    (REV_ALL_ARM, '3a4b09cb', 'ccmn w14, #11, #b, EQ', 0, ()),
+    (REV_ALL_ARM, '7a4b19ca', 'ccmp w14, #11, #a, NE', 0, ()),
+    (REV_ALL_ARM, 'ba4b29c9', 'ccmn x14, #11, #9, CS', 0, ()),
+    (REV_ALL_ARM, 'fa4b39c8', 'ccmp x14, #11, #8, CC', 0, ())
+    (REV_ALL_ARM, '3a4b49cb', 'ccmn w14, #11, #b, MI', 0, ()),
+    (REV_ALL_ARM, '7a4b59ca', 'ccmp w14, #11, #a, PL', 0, ()),
+    (REV_ALL_ARM, 'ba4b69c9', 'ccmn x14, #11, #9, VS', 0, ()),
+    (REV_ALL_ARM, 'fa4b79c8', 'ccmp x14, #11, #8, VC', 0, ()),
+    (REV_ALL_ARM, '3a4b89cb', 'ccmn w14, #11, #b, HI', 0, ()),
+    (REV_ALL_ARM, '7a4b99ca', 'ccmp w14, #11, #a, LS', 0, ()),
+    (REV_ALL_ARM, 'ba4ba9c9', 'ccmn x14, #11, #9, GE', 0, ()),
+    (REV_ALL_ARM, 'fa4bb9c8', 'ccmp x14, #11, #8, LT', 0, ()),
+    (REV_ALL_ARM, '3a4bc9cb', 'ccmn w14, #11, #b, GT', 0, ()),
+    (REV_ALL_ARM, '7a4bd9ca', 'ccmp w14, #11, #a, LE', 0, ()),
+    (REV_ALL_ARM, 'ba4be9c9', 'ccmn x14, #11, #9, AL', 0, ()),
     
     #Conditional select
     
-    #FIXME X = cond, olist to match
-    (REV_ALL_ARM, '1a8bX1c3', 'csel w3, w14, w11, cond', 0, ()),
-    (REV_ALL_ARM, '1a8bX5c3', 'csinc w3, w14, w11, cond', 0, ()),
-    (REV_ALL_ARM, '5a8bX1c3', 'csinv w3, w14, w11, cond', 0, ()),
-    (REV_ALL_ARM, '5a8bX5c3', 'csneg w3, w14, w11, cond', 0, ()),
-    (REV_ALL_ARM, '9a8bX1c3', 'csel x3, x14, x11, cond', 0, ()),
-    (REV_ALL_ARM, '9a8bX5c3', 'csinc x3, x14, x11, cond', 0, ()),
-    (REV_ALL_ARM, 'da8bX1c3', 'csinv x3, x14, x11, cond', 0, ()),
-    (REV_ALL_ARM, 'da8bX5c3', 'csneg x3, x14, x11, cond', 0, ()),
+    (REV_ALL_ARM, '1a8b01c3', 'csel w3, w14, w11, EQ', 0, ()),
+    (REV_ALL_ARM, '1a8b15c3', 'csinc w3, w14, w11, NE', 0, ()),
+    (REV_ALL_ARM, '5a8b21c3', 'csinv w3, w14, w11, CS', 0, ()),
+    (REV_ALL_ARM, '5a8b35c3', 'csneg w3, w14, w11, CC', 0, ()),
+    (REV_ALL_ARM, '9a8b41c3', 'csel x3, x14, x11, MI', 0, ()),
+    (REV_ALL_ARM, '9a8b55c3', 'csinc x3, x14, x11, PL', 0, ()),
+    (REV_ALL_ARM, 'da8b61c3', 'csinv x3, x14, x11, VS', 0, ()),
+    (REV_ALL_ARM, 'da8b75c3', 'csneg x3, x14, x11, VC', 0, ()),
+    (REV_ALL_ARM, '1a8b81c3', 'csel w3, w14, w11, HI', 0, ()),
+    (REV_ALL_ARM, '1a8b95c3', 'csinc w3, w14, w11, LS', 0, ()),
+    (REV_ALL_ARM, '5a8ba1c3', 'csinv w3, w14, w11, GE', 0, ()),
+    (REV_ALL_ARM, '5a8bb5c3', 'csneg w3, w14, w11, LT', 0, ()),
+    (REV_ALL_ARM, '9a8bc1c3', 'csel x3, x14, x11, GT', 0, ()),
+    (REV_ALL_ARM, '9a8bd5c3', 'csinc x3, x14, x11, LE', 0, ()),
+    (REV_ALL_ARM, 'da8be1c3', 'csinv x3, x14, x11, AL', 0, ()),
+    (REV_ALL_ARM, 'da8b05c3', 'csneg x3, x14, x11, EQ', 0, ()),
     
     #Data processing (3 source)
     
@@ -1519,11 +1551,21 @@ instrs = [
 
     #Floating-point conditional compare
 
-    #FIXME X = cond, olist to match
-    (REV_ALL_ARM, '1e2bX5cf', 'fccmp s14, s11, #f, cond', 0, ()),
-    (REV_ALL_ARM, '1e2bX5de', 'fccmpe s14, s11, #e, cond', 0, ()),
-    (REV_ALL_ARM, '1e6bX5cd', 'fccmp d14, d11, #d, cond', 0, ()),
-    (REV_ALL_ARM, '1e6bX5dc', 'fccmpe d14, d11, #c, cond', 0, ()),
+    (REV_ALL_ARM, '1e2b05cf', 'fccmp s14, s11, #f, EQ', 0, ()),
+    (REV_ALL_ARM, '1e2b15de', 'fccmpe s14, s11, #e, NE', 0, ()),
+    (REV_ALL_ARM, '1e6b25cd', 'fccmp d14, d11, #d, CS', 0, ()),
+    (REV_ALL_ARM, '1e6b35dc', 'fccmpe d14, d11, #c, CC', 0, ()),
+    (REV_ALL_ARM, '1e2b45cf', 'fccmp s14, s11, #f, MI', 0, ()),
+    (REV_ALL_ARM, '1e2b55de', 'fccmpe s14, s11, #e, PL', 0, ()),
+    (REV_ALL_ARM, '1e6b65cd', 'fccmp d14, d11, #d, VS', 0, ()),
+    (REV_ALL_ARM, '1e6b75dc', 'fccmpe d14, d11, #c, VC', 0, ()),
+    (REV_ALL_ARM, '1e2b85cf', 'fccmp s14, s11, #f, HI', 0, ()),
+    (REV_ALL_ARM, '1e2b95de', 'fccmpe s14, s11, #e, LS', 0, ()),
+    (REV_ALL_ARM, '1e6ba5cd', 'fccmp d14, d11, #d, GE', 0, ()),
+    (REV_ALL_ARM, '1e6bb5dc', 'fccmpe d14, d11, #c, LT', 0, ()),
+    (REV_ALL_ARM, '1e2bc5cf', 'fccmp s14, s11, #f, GT', 0, ()),
+    (REV_ALL_ARM, '1e2bd5de', 'fccmpe s14, s11, #e, LE', 0, ()),
+    (REV_ALL_ARM, '1e6be5cd', 'fccmp d14, d11, #d, AL', 0, ()),
 
     #Floating-point data-processing (2 source)
 
@@ -1536,7 +1578,6 @@ instrs = [
     (REV_ALL_ARM, '1e2b69c3', 'fmaxnm s3, s14, s11', 0, ()),
     (REV_ALL_ARM, '1e2b79c3', 'fminnm s3, s14, s11', 0, ()),
     (REV_ALL_ARM, '1e2b89c3', 'fnmul s3, s14, s11', 0, ()),
-    
     (REV_ALL_ARM, '1e6b09c3', 'fmul d3, d14, d11', 0, ()),
     (REV_ALL_ARM, '1e6b19c3', 'fdiv d3, d14, d11', 0, ()),
     (REV_ALL_ARM, '1e6b29c3', 'fadd d3, d14, d11', 0, ()),
@@ -1549,9 +1590,21 @@ instrs = [
 
     #Floating-point conditional select
 
-    #FIXME X = cond, olist to match
-    (REV_ALL_ARM, '1e2bXdc3', 'fcsel s3, s14, s11, cond', 0, ()),
-    (REV_ALL_ARM, '1e6bXdc3', 'fcsel d3, d14, d11, cond', 0, ()),
+    (REV_ALL_ARM, '1e2b0dc3', 'fcsel s3, s14, s11, EQ', 0, ()),
+    (REV_ALL_ARM, '1e6b1dc3', 'fcsel d3, d14, d11, NE', 0, ()),
+    (REV_ALL_ARM, '1e2b2dc3', 'fcsel s3, s14, s11, CS', 0, ()),
+    (REV_ALL_ARM, '1e6b3dc3', 'fcsel d3, d14, d11, CC', 0, ()),
+    (REV_ALL_ARM, '1e2b4dc3', 'fcsel s3, s14, s11, MI', 0, ()),
+    (REV_ALL_ARM, '1e6b5dc3', 'fcsel d3, d14, d11, PL', 0, ()),
+    (REV_ALL_ARM, '1e2b6dc3', 'fcsel s3, s14, s11, VS', 0, ()),
+    (REV_ALL_ARM, '1e6b7dc3', 'fcsel d3, d14, d11, VC', 0, ()),
+    (REV_ALL_ARM, '1e2b8dc3', 'fcsel s3, s14, s11, HI', 0, ()),
+    (REV_ALL_ARM, '1e6b9dc3', 'fcsel d3, d14, d11, LS', 0, ()),
+    (REV_ALL_ARM, '1e2badc3', 'fcsel s3, s14, s11, GE', 0, ()),
+    (REV_ALL_ARM, '1e6bbdc3', 'fcsel d3, d14, d11, LT', 0, ()),
+    (REV_ALL_ARM, '1e2bcdc3', 'fcsel s3, s14, s11, GT', 0, ()),
+    (REV_ALL_ARM, '1e6bddc3', 'fcsel d3, d14, d11, LE', 0, ()),
+    (REV_ALL_ARM, '1e2bedc3', 'fcsel s3, s14, s11, AL', 0, ()),
 
     #Floating-point immediate
 
