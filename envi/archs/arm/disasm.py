@@ -220,6 +220,8 @@ def p_dp_imm_shift(opval, va):
     if (shtype==3) & (shval ==0): # is it an rrx?
         shtype = 4
     mnem, opcode = dp_mnem[ocode]
+
+    iflags = 0
     if ocode in dp_noRn:# FIXME: FUGLY (and slow...)
         #is it a mov? Only if shval is a 0, type is lsl, and ocode = 13
         if  (ocode == 13) and ((shval != 0) or (shtype != 0)):
@@ -235,12 +237,15 @@ def p_dp_imm_shift(opval, va):
                     ArmRegOper(Rd, va=va),
                     ArmRegOper(Rm, va=va),
                 )
-                
         else:
             olist = (
                 ArmRegOper(Rd, va=va),
                 ArmRegShiftImmOper(Rm, shtype, shval, va),
             )
+            # case: mov pc, lr
+            if Rd == REG_PC and Rm == REG_LR:
+                iflags |= envi.IF_RET
+
     elif ocode in dp_noRd:
         olist = (
             ArmRegOper(Rn, va=va),
@@ -256,11 +261,10 @@ def p_dp_imm_shift(opval, va):
     if sflag > 0:
         # IF_PSR_S_SIL is silent s for tst, teq, cmp cmn
         if ocode in dp_silS:
-            iflags = IF_PSR_S | IF_PSR_S_SIL
+            iflags |= IF_PSR_S | IF_PSR_S_SIL
         else:
-            iflags = IF_PSR_S
-    else:
-        iflags = 0
+            iflags |= IF_PSR_S
+
     return (opcode, mnem, olist, iflags, 0)
 
 # specialized mnemonics for p_misc
@@ -4870,6 +4874,7 @@ class ArmPSRFlagsOper(ArmOperand):
 
     def repr(self, op):
         return aif_flags[self.flags]
+    #FIXME: render?
 
 class ArmCoprocOpcodeOper(ArmOperand):
     def __init__(self, val):
