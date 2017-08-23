@@ -460,7 +460,7 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
 
         res = src1 & src2
 
-        if op.iflags & IF_S:
+        if op.iflags & IF_PSR_S:
             self.setFlag(PSR_N_bit, 0)
             self.setFlag(PSR_Z_bit, not res)
             self.setFlag(PSR_C_bit, 0)
@@ -492,7 +492,7 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
         val = val1 | val2
         self.setOperValue(op, 0, val)
 
-        Sflag = op.iflags & IF_PSR_S # FIXME: IF_PSR_S???
+        Sflag = op.iflags & IF_PSR_S
         if Sflag:
             self.setFlag(PSR_N_bit, e_bits.is_signed(val, 4))
             self.setFlag(PSR_Z_bit, not val)
@@ -712,11 +712,25 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
         self.setOperValue(op, 0, val)
         if op.opers[0].reg == REG_PC:
             self.setThumbMode(val & 1)
-            return val
+            return val & -2
 
     def i_mov(self, op):
         val = self.getOperValue(op, 1)
         self.setOperValue(op, 0, val)
+
+        if op.iflags & IF_PSR_S:
+            dsize = op.opers[0].tsize
+            self.setFlag(PSR_N_bit, e_bits.is_signed(val, dsize))
+            self.setFlag(PSR_Z_bit, not val)
+
+        if op.iflags & envi.IF_RET:
+            self.setThumbMode(val & 1)
+            return val & -2
+
+        dest = op.opers[0]
+        if isinstance(dest, ArmRegOper) and dest.reg == REG_PC:
+            self.setThumbMode(val & 1)
+            return val & -2
 
     def i_movt(self, op):
         base = self.getOperValue(op, 0) & 0xffff
@@ -780,7 +794,7 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
         self.setOperValue(op, 0, ures)
 
         curmode = self.getProcMode() 
-        if op.iflags & IF_S:
+        if op.iflags & IF_PSR_S:
             if op.opers[0].reg == 15 and (curmode != PM_sys and curmode != PM_usr):
                 self.setCPSR(self.getSPSR(curmode))
             else:
@@ -887,7 +901,7 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
         self.setOperValue(op, 0, ures)
 
         curmode = self.getProcMode() 
-        if op.iflags & IF_S:
+        if op.iflags & IF_PSR_S:
             if op.opers[0].reg == 15:
                 if (curmode != PM_sys and curmode != PM_usr):
                     self.setCPSR(self.getSPSR(curmode))
@@ -970,7 +984,7 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
         self.setOperValue(op, 0, ures)
 
         curmode = self.getProcMode() 
-        if op.iflags & IF_S:
+        if op.iflags & IF_PSR_S:
             if op.opers[0].reg == 15:
                 if (curmode != PM_sys and curmode != PM_usr):
                     self.setCPSR(self.getSPSR(curmode))
@@ -1027,7 +1041,7 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
         val &= ~const
         self.setOperValue(op, 0, val)
 
-        Sflag = op.iflags & IF_S # FIXME: IF_PSR_S???
+        Sflag = op.iflags & IF_PSR_S # FIXME: IF_PSR_S???
         if Sflag:
             self.setFlag(PSR_N_bit, e_bits.is_signed(val, 4))
             self.setFlag(PSR_Z_bit, not val)
@@ -1047,7 +1061,7 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
         val = Rn * Rm
         self.setOperValue(op, 0, val)
 
-        Sflag = op.iflags & IF_S
+        Sflag = op.iflags & IF_PSR_S
         if Sflag:
             self.setFlag(PSR_N_bit, e_bits.is_signed(val, 4))
             self.setFlag(PSR_Z_bit, not val)
@@ -1067,7 +1081,7 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
         carry = (val >> 32) & 1
         self.setOperValue(op, 0, val)
 
-        Sflag = op.iflags & IF_S
+        Sflag = op.iflags & IF_PSR_S
         if Sflag:
             self.setFlag(PSR_N_bit, e_bits.is_signed(val, 4))
             self.setFlag(PSR_Z_bit, not val)
@@ -1087,7 +1101,7 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
         carry = (src >> (imm5-1)) & 1
         self.setOperValue(op, 0, val)
 
-        Sflag = op.iflags & IF_S
+        Sflag = op.iflags & IF_PSR_S
         if Sflag:
             self.setFlag(PSR_N_bit, e_bits.is_signed(val, 4))
             self.setFlag(PSR_Z_bit, not val)
@@ -1113,7 +1127,7 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
         carry = (src >> (imm5-1)) & 1
         self.setOperValue(op, 0, val)
 
-        Sflag = op.iflags & IF_S
+        Sflag = op.iflags & IF_PSR_S
         if Sflag:
             self.setFlag(PSR_N_bit, e_bits.is_signed(val, 4))
             self.setFlag(PSR_Z_bit, not val)
@@ -1133,7 +1147,7 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
         carry = (val >> 31) & 1
         self.setOperValue(op, 0, val)
 
-        Sflag = op.iflags & IF_S
+        Sflag = op.iflags & IF_PSR_S
         if Sflag:
             self.setFlag(PSR_N_bit, e_bits.is_signed(val, 4))
             self.setFlag(PSR_Z_bit, not val)
@@ -1155,7 +1169,7 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
         carry = src & 1
         self.setOperValue(op, 0, val)
 
-        Sflag = op.iflags & IF_S
+        Sflag = op.iflags & IF_PSR_S
         if Sflag:
             self.setFlag(PSR_N_bit, e_bits.is_signed(val, 4))
             self.setFlag(PSR_Z_bit, not val)
@@ -1313,6 +1327,7 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
             apsr |= (src | 0xf0000000)
             self.setOperValue(op, 0, apsr)
 
+#TODO: IT EQ
 
 
 opcode_dist = \
