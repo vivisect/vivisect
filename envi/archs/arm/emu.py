@@ -556,40 +556,6 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
     i_stmia = i_stm
     i_push = i_stmia
 
-    '''
-    def i_push(self, op):
-        srcreg = op.opers[0].reg
-        addr = self.getOperValue(op,0)
-        regvals = self.getOperValue(op, 1)
-        regmask = op.opers[1].val
-        pc = self.getRegister(REG_PC)       # store for later check
-
-        addr = self.getRegister(srcreg)
-        for val in regvals:
-            if op.iflags & IF_DAIB_B == IF_DAIB_B:
-                if op.iflags & IF_DAIB_I == IF_DAIB_I:
-                    addr += 4
-                else:
-                    addr -= 4
-                self.writeMemValue(addr, val, 4)
-            else:
-                self.writeMemValue(addr, val, 4)
-                if op.iflags & IF_DAIB_I == IF_DAIB_I:
-                    addr += 4
-                else:
-                    addr -= 4
-
-        if op.opers[0].oflags & OF_W:
-            self.setRegister(srcreg,addr)
-        #FIXME: add "shared memory" functionality?  prolly just in strex which will be handled in i_strex
-        # is the following necessary?  
-        newpc = self.getRegister(REG_PC)    # check whether pc has changed
-        if pc != newpc:
-            return newpc
-'''
-
-
-
     def i_ldm(self, op):
         if len(op.opers) == 2:
             srcreg = op.opers[0].reg
@@ -634,24 +600,7 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
                         regval = self.readMemValue(addr, 4)
                         self.setRegister(reg, regval)
                         addr -= 4
-        '''
-        for reg in xrange(16):
-            if (1<<reg) & regmask:
-                if flags & IF_DAIB_B == IF_DAIB_B:
-                    if flags & IF_DAIB_I == IF_DAIB_I:
-                        addr += 4
-                    else:
-                        addr -= 4
-                    regval = self.readMemValue(addr, 4)
-                    self.setRegister(reg, regval)
-                else:
-                    regval = self.readMemValue(addr, 4)
-                    self.setRegister(reg, regval)
-                    if flags & IF_DAIB_I == IF_DAIB_I:
-                        addr += 4
-                    else:
-                        addr -= 4
-        '''
+
         if updatereg:
             self.setRegister(srcreg,addr)
         #FIXME: add "shared memory" functionality?  prolly just in ldrex which will be handled in i_ldrex
@@ -670,40 +619,6 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
 
     def setArmMode(self, arm=1):
         self.setFlag(PSR_T_bit, not thumb)
-
-
-    '''
-    def i_pop(self, op):
-        srcreg = op.opers[0].reg
-        addr = self.getOperValue(op,0)
-        #regmask = self.getOperValue(op,1)
-        regmask = op.opers[1].val
-        pc = self.getRegister(REG_PC)       # store for later check
-
-        for reg in xrange(16):
-            if (1<<reg) & regmask:
-                if op.iflags & IF_DAIB_B == IF_DAIB_B:
-                    if op.iflags & IF_DAIB_I == IF_DAIB_I:
-                        addr += 4
-                    else:
-                        addr -= 4
-                    regval = self.readMemValue(addr, 4)
-                    self.setRegister(reg, regval)
-                else:
-                    regval = self.readMemValue(addr, 4)
-                    self.setRegister(reg, regval)
-                    if op.iflags & IF_DAIB_I == IF_DAIB_I:
-                        addr += 4
-                    else:
-                        addr -= 4
-        if op.opers[0].oflags & OF_W:
-            self.setRegister(srcreg,addr)
-        #FIXME: add "shared memory" functionality?  prolly just in ldrex which will be handled in i_ldrex
-        # is the following necessary?  
-        newpc = self.getRegister(REG_PC)    # check whether pc has changed
-        if pc != newpc:
-            return newpc
-        '''
 
     def i_ldr(self, op):
         # hint: covers ldr, ldrb, ldrbt, ldrd, ldrh, ldrsh, ldrsb, ldrt   (any instr where the syntax is ldr{condition}stuff)
@@ -741,14 +656,6 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
         val = self.getOperValue(op, 1)
         self.setOperValue(op, 0, val)
 
-    '''def i_adr(self, op):
-        val = self.getOperValue(op, 1)
-        self.setOperValue(op, 0, val)
-
-    def i_msr(self, op):
-        val = self.getOperValue(op, 1)
-        self.setOperValue(op, 0, val)
-'''
     i_msr = i_mov
     i_adr = i_mov
 
