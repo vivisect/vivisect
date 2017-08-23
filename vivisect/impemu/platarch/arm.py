@@ -1,9 +1,14 @@
 import envi
 import envi.archs.arm as e_arm
+
+import vivisect
 import vivisect.impemu.emulator as v_i_emulator
 
 import visgraph.pathcore as vg_path
 from envi.archs.arm.regs import *
+
+
+verbose = True
 
 class ArmWorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_arm.ArmEmulator):
 
@@ -36,7 +41,7 @@ class ArmWorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_arm.ArmEmulator):
 
         # parse out an opcode
         tmode = self.getFlag(PSR_T_bit)
-        print "tmode: %x" % tmode
+        #print "tmode: %x" % tmode
         op = self.parseOpcode(starteip | tmode)
         if self.emumon:
             self.emumon.prehook(self, op, starteip)
@@ -67,7 +72,7 @@ class ArmWorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_arm.ArmEmulator):
         elif funcva & 3:
             self.setFlag(PSR_T_bit, 1)
             funcva &= -2
-            print "funcva is THUMB:  0x%x" % funcva
+            if verbose: print "funcva is THUMB:  0x%x" % funcva
 
         else:
             loc = self.vw.getLocation(funcva)
@@ -77,7 +82,7 @@ class ArmWorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_arm.ArmEmulator):
                     self.setFlag(PSR_T_bit, 1)
 
             else:
-                print "ArmWorkspaceEmulator: Nothing specified, defaulting to ARM"
+                if verbose: print "ArmWorkspaceEmulator: Nothing specified, defaulting to ARM"
 
 
         self.funcva = funcva
@@ -130,10 +135,9 @@ class ArmWorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_arm.ArmEmulator):
                 try:
 
                     tmode = self.getFlag(PSR_T_bit)
-                    print "tmode: %x" % tmode
+                    #print "tmode: %x" % tmode
                     # FIXME unify with stepi code...
                     op = self.parseOpcode(starteip | tmode)
-                    print "emu:  0x%x   flags: 0x%x \t %r" % (starteip, op.iflags, op)
 
                     self.op = op
                     if self.emumon:
@@ -177,15 +181,17 @@ class ArmWorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_arm.ArmEmulator):
 
                 except envi.UnsupportedInstruction, e:
                     if self.strictops:
+                        if verbose: print 'runFunction breaking after unsupported instruction: 0x%08x %s' % (e.op.va, e.op.mnem)
                         break
                     else:
-                        print 'runFunction continuing after unsupported instruction: 0x%08x %s' % (e.op.va, e.op.mnem)
+                        if verbose: print 'runFunction continuing after unsupported instruction: 0x%08x %s' % (e.op.va, e.op.mnem)
                         self.setProgramCounter(e.op.va+ e.op.size)
                 except Exception, e:
                     #traceback.print_exc()
                     if self.emumon != None:
                         self.emumon.logAnomaly(self, starteip, str(e))
 
+                    if verbose: print 'runFunction breaking after exception: %s' % ( e)
                     break # If we exc during execution, this branch is dead.
           #except:
           #    sys.excepthook(*sys.exc_info())
