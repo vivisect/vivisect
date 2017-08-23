@@ -187,7 +187,12 @@ dp_shift_mnem = (
 # FIXME: THIS IS FUGLY but sadly it works
 dp_noRn = (13,15)
 dp_noRd = (8,9,10,11)
-dp_silS = (8,9,10,11)
+dp_silS = dp_noRd
+
+# IF_PSR_S_SIL is silent s for tst, teq, cmp cmn
+DP_PSR_S = [IF_PSR_S for x in range(17)]
+for x in dp_silS:
+    DP_PSR_S[x] |= IF_PSR_S_SIL 
 
 # FIXME: dp_MOV was supposed to be a tuple of opcodes that could be converted to MOV's if offset from PC.
 # somehow this list has vanished into the ether.  add seems like the right one here.
@@ -259,11 +264,7 @@ def p_dp_imm_shift(opval, va):
         )
 
     if sflag > 0:
-        # IF_PSR_S_SIL is silent s for tst, teq, cmp cmn
-        if ocode in dp_silS:
-            iflags |= IF_PSR_S | IF_PSR_S_SIL
-        else:
-            iflags |= IF_PSR_S
+        iflags |= DP_PSR_S[ocode]
 
     return (opcode, mnem, olist, iflags, 0)
 
@@ -667,10 +668,8 @@ def p_dp_reg_shift(opval, va):
 
     if sflag > 0:
         # IF_PSR_S_SIL is silent s for tst, teq, cmp cmn
-        if ocode in dp_silS:
-            iflags = IF_PSR_S | IF_PSR_S_SIL
-        else:
-            iflags = IF_PSR_S
+        iflags = DP_PSR_S[ocode] 
+
     else:
         iflags = 0
     return (opcode, mnem, olist, iflags, 0)
@@ -747,11 +746,7 @@ def p_dp_imm(opval, va):
         )
 
     if sflag > 0:
-        # IF_PSR_S_SIL is silent s for tst, teq, cmp cmn
-        if ocode in dp_silS:
-            iflags = IF_PSR_S | IF_PSR_S_SIL
-        else:
-            iflags = IF_PSR_S
+        iflags |= DP_PSR_S[ocode]
     else:
         iflags = 0
 
