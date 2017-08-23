@@ -15,42 +15,84 @@ from vivisect.const import *
 
 class AnalysisMonitor(viv_monitor.AnalysisMonitor):
 
-    def __init__(self, vw, fva):
+    def __init__(self, vw, fva, verbose=True):
         viv_monitor.AnalysisMonitor.__init__(self, vw, fva)
+        self.verbose = verbose
         self.retbytes = None
-        self.badop = vw.arch.archParseOpcode("\x00\x00\x00\x00\x00")
+        self.badops = vw.arch.archGetBadOps()
         self.last_lr_pc = 0
+        self.strictops = False
+        self.returns = False
+        self.infloops = []
 
     def prehook(self, emu, op, starteip):
 
-        if op == self.badop:
-            raise Exception("Hit known BADOP at 0x%.8x %s" % (starteip, repr(op) ))
+        try:
+            tmode = emu.getFlag(PSR_T_bit)
+            self.last_tmode = tmode
+            if self.verbose: print "tmode: %x    emu:  0x%x   flags: 0x%x \t %r" % (tmode, starteip, op.iflags, op)
+            #if op == self.badop:
+            if op in self.badops:
+                raise Exception("Hit known BADOP at 0x%.8x %s" % (starteip, repr(op) ))
 
-        viv_monitor.AnalysisMonitor.prehook(self, emu, op, starteip)
+            viv_monitor.AnalysisMonitor.prehook(self, emu, op, starteip)
 
-        if op.iflags & envi.IF_RET:
-            if len(op.opers):
-                if hasattr(op.opers, 'imm'):
-                    self.retbytes = op.opers[0].imm
+            loctup = emu.vw.getLocation(starteip)
+            if loctup == None:
+                # do we want to hand this off to makeCode?
+                emu.vw.addLocation(starteip, len(op), vivisect.LOC_OP, op.iflags)
 
-        if op.opcode == INS_TB:
-            analyzeTB(emu, op, starteip, self)
+            elif loctup[0] != starteip:
+                if self.verbose: print "ARG! emulation found opcode in a location at the wrong address (0x%x):  0x%x: %s" % (loctup[0], op.va, op)
 
-        if op.opcode == INS_MOV:
-            if len(op.opers) >= 2:
-                oper0 = op.opers[0]
-                oper1 = op.opers[1]
+            if op.iflags & envi.IF_RET:
+                self.returns = True
+                if len(op.opers):
+                    if hasattr(op.opers, 'imm'):
+                        self.retbytes = op.opers[0].imm
 
-                if isinstance(oper0, e_arm.ArmRegOper) and oper0.reg == REG_LR:
-                    if isinstance(oper1, e_arm.ArmRegOper) and oper1.reg == REG_PC:
-                        self.last_lr_pc = starteip
+            if op.opcode == INS_TB:
+                analyzeTB(emu, op, starteip, self)
 
-        if op.opcode == INS_BX:
-            if starteip - self.last_lr_pc <= 4:
-                # this is a call.  the compiler updated lr
-                print "CALL by mov lr, pc; bx <foo> at 0x%x" % starteip
+            if op.opcode == INS_MOV:
+                if len(op.opers) >= 2:
+                    oper0 = op.opers[0]
+                    oper1 = op.opers[1]
+
+                    if isinstance(oper0, e_arm.ArmRegOper) and oper0.reg == REG_LR:
+                        if isinstance(oper1, e_arm.ArmRegOper) and oper1.reg == REG_PC:
+                            self.last_lr_pc = starteip
+
+            if op.opcode == INS_BX:
+                if starteip - self.last_lr_pc <= 4:
+                    # this is a call.  the compiler updated lr
+                    if self.verbose: print "CALL by mov lr, pc; bx <foo> at 0x%x" % starteip
+                    ### DO SOMETHING??  identify new function like emucode.
+
+            if op.iflags & envi.IF_BRANCH:
+                try:
+                    tgt = op.getOperValue(0, emu)
+
+                    if self.verbose: print "BRANCH: ", hex(tgt), hex(op.va), hex(op.va)
+
+                    if tgt == op.va:
+                        if self.verbose: print "+++++++++++++++ infinite loop +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
+                        if op.va not in self.infloops:
+                            self.infloops.append(op.va)
+
+                except Exception, e:
+                    # FIXME: make raise Exception?
+                    print "0x%x: ERROR: %s" % (op.va, e)
+
+        except Exception, e:
+            # FIXME: make raise Exception?
+            print "0x%x: ERROR: %s" % (op.va, e)
 
 
+    def posthook(self, emu, op, starteip):
+        if op.opcode == INS_BLX:
+            emu.setFlag(PSR_T_bit, self.tmode)
+            
 
 def analyzeTB(emu, op, starteip, amon):
     print "TB at 0x%x" % starteip
@@ -97,11 +139,24 @@ def buildFunctionApi(vw, fva, emu, emumon):
     return api
 
 def analyzeFunction(vw, fva):
+    #raw_input( "= 0x%x viv.analysis.arm.emulation... =" % (fva))
+    #print( "= 0x%x viv.analysis.arm.emulation... =" % (fva))
 
     emu = vw.getEmulator()
     emumon = AnalysisMonitor(vw, fva)
 
     emu.setEmulationMonitor(emumon)
+
+    loc = vw.getLocation(fva)
+
+    if loc != None:
+        lva, lsz, lt, lti = loc
+        if lt == LOC_OP:
+            if (lti & envi.ARCH_MASK) != envi.ARCH_ARMV7:
+                emu.setFlag(PSR_T_bit, 1)
+    else:
+        print "NO LOCATION at FVA: 0x%x" % fva
+
     emu.runFunction(fva, maxhit=1)
 
     # Do we already have API info in meta?
@@ -127,5 +182,8 @@ def analyzeFunction(vw, fva):
         vw.setFunctionLocal(fva, baseoff + ( i * 4 ), LSYM_FARG, i+stackidx)
 
     emumon.addAnalysisResults(vw, emu)
+
+    # handle infinite loops (actually, while 1;)
+
 
 # TODO: incorporate some of emucode's analysis but for function analysis... if it makes sense.
