@@ -61,47 +61,55 @@ def _getRegIdx(idx, mode):
     ridx = reg_table[ridx]  # magic pointers allowing overlapping banks of registers
     return ridx
 
-def c0000(flags):
-    return flags & 4
 
-def c0001(flags):
-    return flags & 4 == 0
+ZC_bits = PSR_Z_bit | PSR_C_bit
+NC_bits = PSR_N_bit | PSR_C_bit
+NZ_bits = PSR_N_bit | PSR_Z_bit
+NV_bits = PSR_N_bit | PSR_V_bit
 
-def c0010(flags):
-    return flags & 2
 
-def c0011(flags):
-    return flags & 2 == 0
+def c0000(flags):   # EQ
+    return flags & PSR_Z_bit
 
-def c0100(flags):
-    return flags & 8
+def c0001(flags):   # NE
+    return flags & PSR_Z_bit == 0
 
-def c0101(flags):
-    return flags & 8 == 0
+def c0010(flags):   # CS
+    return flags & PSR_C_bit
 
-def c0110(flags):
-    return flags & 1
+def c0011(flags):   # CC
+    return flags & PSR_C_bit == 0
 
-def c0111(flags):
-    return flags & 1 == 0
+def c0100(flags):   # MI
+    return flags & PSR_N_bit
 
-def c1000(flags):
-    return (flags & 6) == 2
+def c0101(flags):   # PL
+    return flags & PSR_N_bit == 0
 
-def c1001(flags):
-    return (flags & 0xc) in (0, 4, 6) # C clear or Z set
+def c0110(flags):   # VS
+    return flags & PSR_V_bit
 
-def c1010(flags):
-    return (flags & 9) in (0, 9)    # N == V
+def c0111(flags):   # VC
+    return flags & PSR_V_bit == 0
 
-def c1011(flags):
-    return (flags & 9) in (1, 8)    # N != V
+def c1000(flags):   # HI
+    return (flags & ZC_bits) == PSR_C_bit   # C set and Z clear
 
-def c1100(flags):
-    return (flags & 4) == 0 and (flags & 9) in (0, 9)   # Z==0, N==V
+def c1001(flags):   # LS
+    #return (flags & NZ_bits) in (0, PSR_Z_bit, ZC_bits) # C clear or Z set
+    return (flags & PSR_C_bit == 0) or (flags & PSR_Z_bit) # C clear or Z set
 
-def c1101(flags):
-    return (flags & 4) or (flags & 9) in (1, 8)         # Z==1 or N!=V (basically, "not c1100")
+def c1010(flags):   # GE
+    return (flags & NV_bits) in (0, NV_bits)    # N == V
+
+def c1011(flags):   # LT
+    return (flags & NV_bits) in (PSR_V_bit, PSR_N_bit)    # N != V
+
+def c1100(flags):   # GT
+    return (flags & PSR_Z_bit) == 0 and (flags & NV_bits) in (0, NV_bits)   # Z==0, N==V
+
+def c1101(flags):   # LE
+    return (flags & PSR_Z_bit) or (flags & NV_bits) in (PSR_V_bit, PSR_N_bit)         # Z==1 or N!=V (basically, "not c1100")
 
 
 conditionals = [
@@ -213,7 +221,8 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
         try:
             self.setMeta('forrealz', True)
             x = None
-            if op.prefixes >= 0xe or conditionals[op.prefixes](self.getRegister(REG_FLAGS)>>28):
+            #if op.prefixes >= 0xe or conditionals[op.prefixes](self.getRegister(REG_FLAGS)>>28):
+            if op.prefixes >= 0xe or conditionals[op.prefixes](self.getRegister(REG_FLAGS)):
                 meth = self.op_methods.get(op.mnem, None)
                 if meth == None:
                     raise envi.UnsupportedInstruction(self, op)
