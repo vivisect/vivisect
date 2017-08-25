@@ -746,7 +746,7 @@ def p_dp_imm(opval, va):
         )
 
     if sflag > 0:
-        iflags |= DP_PSR_S[ocode]
+        iflags = DP_PSR_S[ocode]
     else:
         iflags = 0
 
@@ -4275,7 +4275,7 @@ class ArmScaledOffsetOper(ArmOperand):
         # p = indexed
         # u = add
 
-        if (self.pubwl & 0x2):  # write-back
+        if (self.pubwl & 0x2 or not self.pubwl & 0x10):  # write-back if (P==0 || W==1)
             if (emu != None) and (emu.getMeta('forrealz', False)): emu.setRegister( self.base_reg, addr)
 
         if (self.pubwl & 0x10 == 0): # not indexed
@@ -4386,7 +4386,7 @@ class ArmRegOffsetOper(ArmOperand):
 
         addr = base + (pom*rm) & e_bits.u_maxes[self.psize]
 
-        if (self.pubwl & 0x2):  # write-back
+        if (self.pubwl & 0x2 or not self.pubwl & 0x10):  # write-back if (P==0 || W==1)
             if (emu != None) and (emu.getMeta('forrealz', False)): emu.setRegister( self.base_reg, addr)
 
         if (self.pubwl & 0x10 == 0): # not indexed
@@ -4505,7 +4505,7 @@ class ArmImmOffsetOper(ArmOperand):
             addr = (base - self.offset) & e_bits.u_maxes[self.psize]
 
 
-        if (self.pubwl & 0x2):  # write-back
+        if (self.pubwl & 0x2 or not self.pubwl & 0x10):  # write-back if (P==0 || W==1)
             if (emu != None) and (emu.getMeta('forrealz', False)): emu.setRegister( self.base_reg, addr)
 
         if (self.pubwl & 0x10 == 0): # not indexed
@@ -4547,13 +4547,12 @@ class ArmImmOffsetOper(ArmOperand):
             mcanv.addNameText(basereg, typename='registers')
             if self.offset == 0:
                 mcanv.addText(']')
+
             else:
                 if (idxing&0x10) == 0:
-                    mcanv.addText('] ')
-                else:
-                    mcanv.addText(', ')
+                    mcanv.addText(']')
 
-                mcanv.addNameText('#%s0x%x' % (pom,self.offset))
+                mcanv.addNameText(', #%s0x%x' % (pom,self.offset))
 
                 if idxing == 0x10:
                     mcanv.addText(']')
