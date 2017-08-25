@@ -190,7 +190,7 @@ class VQMemoryCanvas(QtWebKit.QWebView, e_memcanvas.MemoryCanvas):
 
         va = self._canv_curva
         menu = QtGui.QMenu()
-        if self._canv_curva:
+        if self._canv_curva != None:
             self.initMemWindowMenu(va, menu)
 
         viewmenu = menu.addMenu('view   ')
