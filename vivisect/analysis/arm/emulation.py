@@ -91,7 +91,7 @@ class AnalysisMonitor(viv_monitor.AnalysisMonitor):
 
     def posthook(self, emu, op, starteip):
         if op.opcode == INS_BLX:
-            emu.setFlag(PSR_T_bit, self.tmode)
+            emu.setFlag(PSR_T_bit, self.last_tmode)
             
 
 def analyzeTB(emu, op, starteip, amon):

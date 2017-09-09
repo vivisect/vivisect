@@ -11,7 +11,7 @@ import envi.bits as e_bits
 from envi.const import *
 from envi.archs.arm.regs import *
 from envi.archs.arm import ArmModule
-from envi.archs.arm.disasm import ArmRegOper
+from envi.archs.arm.disasm import ArmRegOper, ArmRegShiftImmOper
 
 logger = logging.getLogger(__name__)
 
@@ -795,8 +795,14 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
         ures = src1 ^ src2
 
         self.setFlag(PSR_N_bit, e_bits.is_signed(ures, dsize))
-        self.setFlag(PSR_Z_bit, (0,1)[ures==0])
-        self.setFlag(PSR_C_bit, e_bits.is_unsigned_carry(ures, dsize))
+        self.setFlag(PSR_Z_bit, not ures)
+        oper = op.opers[1]
+        if isinstance(oper, ArmRegShiftImmOper):
+            if oper.shimm == 0:
+                return
+            print('FIXME: TEQ - do different shift types for Carry flag')
+            # FIXME: make the operands handle a ThumbExpandImm_C (for immediate) or Shift_C (for RegShiftImm), etc...
+            self.setFlag(PSR_C_bit, e_bits.is_unsigned_carry(ures, dsize))
         #self.setFlag(PSR_V_bit, e_bits.is_signed_overflow(sres, dsize))
         
     def i_rsb(self, op):
