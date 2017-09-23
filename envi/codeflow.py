@@ -264,7 +264,7 @@ class CodeFlowContext(object):
         # Architecture gets to decide on actual final VA and Architecture (ARM/THUMB/etc...)
         info = { 'arch' : arch }
         va, info = self._mem.arch.archModifyFuncAddr(va, info)
-        arch = info.get('arch', envi.ARCH_DEFAULT)
+        arch = info.get('arch', arch)
 
         # Check if this is already a known function.
         if self._funcs.get(va) != None:
