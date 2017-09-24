@@ -870,8 +870,13 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
     def i_sub(self, op):
         # Src op gets sign extended to dst
         #FIXME account for same operand with zero result for PDE
-        src1 = self.getOperValue(op, 1)
-        src2 = self.getOperValue(op, 2)
+        if len(op.opers) > 2:
+            src1 = self.getOperValue(op, 1)
+            src2 = self.getOperValue(op, 2)
+        else:
+            src1 = self.getOperValue(op, 0)
+            src2 = self.getOperValue(op, 1)
+
         Sflag = op.iflags & IF_PSR_S
 
         if src1 == None or src2 == None:
@@ -885,8 +890,13 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
 
     def i_sbc(self, op):
         # Src op gets sign extended to dst
-        src1 = self.getOperValue(op, 1)
-        src2 = self.getOperValue(op, 2)
+        if len(op.opers) > 2:
+            src1 = self.getOperValue(op, 1)
+            src2 = self.getOperValue(op, 2)
+        else:
+            src1 = self.getOperValue(op, 0)
+            src2 = self.getOperValue(op, 1)
+
         Sflag = op.iflags & IF_PSR_S
         Carry = self.getFlag(PSR_C_bit)
 
