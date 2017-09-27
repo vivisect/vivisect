@@ -1947,7 +1947,7 @@ thumb2_extension = [
     #('111110001001',        (INS_LDRB, 'ldrb', ldr_32,          IF_THUMB32)),
     ('111110001010',        (INS_STR, 'str', ldr_32,            IF_H | IF_THUMB32)),
     ('111110001011',        (INS_LDR, 'ldr', ldr_32,            IF_H | IF_THUMB32)),
-    ('111110001100',        (INS_STR,  'str',  ldr_puw_32,      IF_THUMB32)),
+    ('111110001100',        (INS_STR,  'str',  ldr_32,      IF_THUMB32)),
     ('111110001101',        (INS_LDR,  'ldr',  ldr_32,          IF_THUMB32)), # T3
     ('111110001000',        (INS_STR, 'str', ldr_32,            IF_B | IF_THUMB32)),
     ('111110000000',        (INS_STR, 'str', ldr_puw_32,        IF_B | IF_THUMB32)),
