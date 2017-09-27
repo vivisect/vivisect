@@ -523,8 +523,9 @@ def imm5_rm_rd(va, value):
     stype = value >> 11
 
     oper0 = ArmRegOper(rd, va)
-    oper1 = ArmRegShiftImmOper(rm, stype, imm5, va)
-    return COND_AL,(oper0, oper1,), None
+    oper1 = ArmRegOper(rm, va)
+    oper2 = ArmImmOper(imm5)
+    return COND_AL,(oper0, oper1, oper2), None
 
 
 def i_imm5_rn(va, value):
@@ -719,7 +720,7 @@ def ThumbExpandImm_C(imm4, imm8, carry):
 dp_secondary = (
             'tst',# and
             None, # bic
-            None, # orr
+            'mov', # orr
             'mvn', # orn
             'teq', # eor
             None, #
@@ -734,6 +735,13 @@ dp_secondary = (
             None,
             None,
             )
+
+dp_sec_silS = (0,4,8,13)
+# IF_PSR_S_SIL is silent s for tst, teq, cmp cmn
+DP_SEC_PSR_S = [IF_PSR_S for x in range(17)]
+for x in dp_sec_silS:
+    DP_SEC_PSR_S[x] |= IF_PSR_S_SIL 
+
 def dp_mod_imm_32(va, val1, val2):
     if val2 & 0x8000:
         return branch_misc(va, val1,val2)
@@ -747,31 +755,37 @@ def dp_mod_imm_32(va, val1, val2):
     i = (val1 >> 10) & 1
     imm3 = (val2 >> 12) & 0x7
     imm4 = imm3 | (i<<3)
-    const = val2 & 0xff
+    const = (val2 & 0xff)
 
-    if S:
-        flags |= IF_PSR_S
+    dpop = (val1>>5) & 0xf
 
     const,carry = ThumbExpandImm_C(imm4, const, 0)
     
     if Rd==15 and S:
         #raise Exception("dp_mod_imm_32 - FIXME: secondary dp encoding")
-        dpop = (val1>>5) & 0xf
         mnem = dp_secondary[dpop]
         if mnem == None:
             raise Exception("dp_mod_imm_32: Rd==15, S, but dpop doesn't have a secondary! va:%x, %x%x" % (va, val1, val2))
 
+        if S:
+            flags |= DP_SEC_PSR_S[dpop]
         oper1 = ArmRegOper(Rn)
         oper2 = ArmImmOper(const)
         opers = (oper1, oper2)
         return COND_AL, None, mnem, opers, flags, 0
 
-    elif Rn == 15 and (val1 & 0xfbe0 == 0xf060):
-        mnem = 'mvn'
+    elif Rn == 15 and (val1 & 0xfbc0 == 0xf040):
+        dpop = (val1>>5) & 0xf
+        mnem = dp_secondary[dpop]
+        if S:
+            flags |= DP_SEC_PSR_S[dpop]
         oper1 = ArmRegOper(Rd)
-        oper2 = ArmImmOper((i<<11) | (imm3<<8) | const)
+        oper2 = ArmImmOper(const)
         opers = (oper1, oper2)
         return COND_AL, None, mnem, opers, flags, 0
+
+    if S:
+        flags |= IF_PSR_S
 
     oper0 = ArmRegOper(Rd)
     oper1 = ArmRegOper(Rn)
@@ -1671,9 +1685,9 @@ bcc_ops = {
 
 # FIXME: thumb and arm opcode numbers don't line up. - FIX
 thumb_base = [
-    ('00000',       ( INS_LSL,'lsl',     imm5_rm_rd, 0)), # LSL<c> <Rd>,<Rm>,#<imm5>
-    ('00001',       ( INS_LSR,'lsr',     imm5_rm_rd, 0)), # LSR<c> <Rd>,<Rm>,#<imm>
-    ('00010',       ( INS_ASR,'asr',     imm5_rm_rd, 0)), # ASR<c> <Rd>,<Rm>,#<imm>
+    ('00000',       ( INS_LSL,'lsl',     imm5_rm_rd, IF_PSR_S)), # LSL<c> <Rd>,<Rm>,#<imm5>
+    ('00001',       ( INS_LSR,'lsr',     imm5_rm_rd, IF_PSR_S)), # LSR<c> <Rd>,<Rm>,#<imm>
+    ('00010',       ( INS_ASR,'asr',     imm5_rm_rd, IF_PSR_S)), # ASR<c> <Rd>,<Rm>,#<imm>
     ('0001100',     ( INS_ADD,'add',     rm_rn_rd,   0)), # ADD<c> <Rd>,<Rn>,<Rm>
     ('0001101',     ( INS_SUB,'sub',     rm_rn_rd,   0)), # SUB<c> <Rd>,<Rn>,<Rm>
     ('0001110',     ( INS_ADD,'add',     imm3_rn_rd, 0)), # ADD<c> <Rd>,<Rn>,#<imm3>
