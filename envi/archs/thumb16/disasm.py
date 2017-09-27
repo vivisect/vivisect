@@ -113,7 +113,7 @@ def rd_pc_imm8(va, value):  # add
 
 def rt_pc_imm8(va, value): # ldr
     rt = shmaskval(value, 8, 0x7)
-    imm = e_bits.signed((value & 0xff), 1) << 2
+    imm = e_bits.unsigned((value & 0xff), 1) << 2
     oper0 = ArmRegOper(rt, va=va)
     oper1 = ArmImmOffsetOper(REG_PC, imm, (va&0xfffffffc))
     return COND_AL,(oper0,oper1), None
@@ -763,6 +763,13 @@ def dp_mod_imm_32(va, val1, val2):
 
         oper1 = ArmRegOper(Rn)
         oper2 = ArmImmOper(const)
+        opers = (oper1, oper2)
+        return COND_AL, None, mnem, opers, flags, 0
+
+    elif Rn == 15 and (val1 & 0xfbe0 == 0xf060):
+        mnem = 'mvn'
+        oper1 = ArmRegOper(Rd)
+        oper2 = ArmImmOper((i<<11) | (imm3<<8) | const)
         opers = (oper1, oper2)
         return COND_AL, None, mnem, opers, flags, 0
 
@@ -1862,13 +1869,13 @@ thumb2_extension = [
     ('11101011110',         (85,'rsb',      dp_shift_32,        IF_THUMB32)),
 
     # coproc, adv simd, fp-instrs #ed9f 5a31
-    ('11101100',            (85,'coproc simd', coproc_simd_32,  IF_THUMB32)),   # FIXME: not fully implemented
-    ('11101101',            (85,'coproc simd', coproc_simd_32,  IF_THUMB32)),   # FIXME: not fully implemented
-    ('11101110',            (85,'coproc simd', coproc_simd_32,  IF_THUMB32)),   # FIXME: not fully implemented
-    ('11101111',            (85,'adv simd', adv_simd_32,        IF_THUMB32)),   # FIXME: not fully implemented
-    ('1111110',             (85,'coproc simd', coproc_simd_32,  IF_THUMB32)),   # FIXME: not fully implemented
-    ('11111110',            (85,'coproc simd', coproc_simd_32,  IF_THUMB32)),   # FIXME: not fully implemented
-    ('11111111',            (85,'adv simd', adv_simd_32,        IF_THUMB32)),   # FIXME: not fully implemented
+    ('11101100',            (85,'coproc simd', coproc_simd_32,  IF_THUMB32)),
+    ('11101101',            (85,'coproc simd', coproc_simd_32,  IF_THUMB32)),
+    ('11101110',            (85,'coproc simd', coproc_simd_32,  IF_THUMB32)),
+    ('11101111',            (85,'adv simd', adv_simd_32,        IF_THUMB32)),
+    ('1111110',             (85,'coproc simd', coproc_simd_32,  IF_THUMB32)),
+    ('11111110',            (85,'coproc simd', coproc_simd_32,  IF_THUMB32)),
+    ('11111111',            (85,'adv simd', adv_simd_32,        IF_THUMB32)),
 
     # data-processing (modified immediate)
     ('11110000000',         (85,'and',      dp_mod_imm_32,      IF_THUMB32)),  # tst if rd=1111 and s=1
