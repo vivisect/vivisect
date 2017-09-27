@@ -1936,21 +1936,22 @@ thumb2_extension = [
     ('11110111101',         (85,'usat',     dp_bin_imm_32,      IF_THUMB32)),  # usat16 if val2=0000xxxx00xxxxxx
     ('11110111110',         (85,'ubfx',     ubfx_32,      IF_THUMB32)),
     ('11110111111',         (85,'branchmisc', branch_misc,      IF_THUMB32)),
+    ('111110000000',        (INS_STR, 'str', ldr_puw_32,        IF_B | IF_THUMB32)),
     ('111110000001',        (None, 'ldrb_memhints32', ldrb_memhints_32,  IF_THUMB32)),
     ('111110000010',        (INS_STR,  'str',  ldr_puw_32,      IF_H | IF_THUMB32)),
     ('111110000011',        (INS_LDR,  'ldr',  ldr_puw_32,      IF_H | IF_THUMB32)),
     ('111110000100',        (INS_STR,  'str',  ldr_puw_32,      IF_THUMB32)),   # T4 encoding
     ('111110000101',        (INS_LDR,  'ldr',  ldr_puw_32,      IF_THUMB32)),   # T4 encoding
-    ('111110001001',        (None, 'ldrb_memhints32', ldrb_memhints_32,  IF_THUMB32)),
-    ('111110010001',        (None, 'ldrb_memhints32', ldrb_memhints_32,  IF_THUMB32)),
-    ('111110011001',        (None, 'ldrb_memhints32', ldrb_memhints_32,  IF_THUMB32)),
     #('111110001001',        (INS_LDRB, 'ldrb', ldr_32,          IF_THUMB32)),
+    ('111110001001',        (None, 'ldrb_memhints32', ldrb_memhints_32,  IF_THUMB32)),
     ('111110001010',        (INS_STR, 'str', ldr_32,            IF_H | IF_THUMB32)),
     ('111110001011',        (INS_LDR, 'ldr', ldr_32,            IF_H | IF_THUMB32)),
     ('111110001100',        (INS_STR,  'str',  ldr_32,      IF_THUMB32)),
     ('111110001101',        (INS_LDR,  'ldr',  ldr_32,          IF_THUMB32)), # T3
     ('111110001000',        (INS_STR, 'str', ldr_32,            IF_B | IF_THUMB32)),
-    ('111110000000',        (INS_STR, 'str', ldr_puw_32,        IF_B | IF_THUMB32)),
+    ('111110010001',        (None, 'ldrb_memhints32', ldrb_memhints_32,  IF_THUMB32)),
+    ('111110011001',        (None, 'ldrb_memhints32', ldrb_memhints_32,  IF_THUMB32)),
+
     # data-processing (register)
     ('111110100',           (None, 'shift_or_extend', shift_or_ext_32,   IF_THUMB32)),
     #('111110101',           (None, 'parallel_misc', parallel_misc_32,   IF_THUMB32)),
