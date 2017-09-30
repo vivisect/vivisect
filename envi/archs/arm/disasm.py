@@ -4558,7 +4558,7 @@ class ArmImmOffsetOper(ArmOperand):
 
                 if idxing == 0x10:
                     mcanv.addText(']')
-                elif idxing != 0:
+                elif idxing &0x10 != 0:
                     mcanv.addText(']!')
 
     def repr(self, op):
@@ -4568,10 +4568,7 @@ class ArmImmOffsetOper(ArmOperand):
         if self.base_reg == REG_PC:
             addr = self.getOperAddr(op)    # only works without an emulator because we've already verified base_reg is PC
             tname = "[#0x%x]" % addr
-            # FIXME: is there any chance of us doing indexing on PC?!?
-            # ldcl literal trips this in some cases
-            #if idxing != 0x2:
-                #print "OMJ! WRITING to the program counter!"
+
         else:
             pom = ('-','')[u]
             if self.offset != 0:
