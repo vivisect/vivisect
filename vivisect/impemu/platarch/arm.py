@@ -191,7 +191,7 @@ class ArmWorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_arm.ArmEmulator):
                     if self.emumon != None:
                         self.emumon.logAnomaly(self, starteip, str(e))
 
-                    if verbose: print 'runFunction breaking after exception: %s' % ( e)
+                    if verbose: print 'runFunction breaking after exception (0x%x): %s' % (e.op.va, e)
                     break # If we exc during execution, this branch is dead.
           #except:
           #    sys.excepthook(*sys.exc_info())
