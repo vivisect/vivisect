@@ -4151,7 +4151,8 @@ class ArmImmOper(ArmOperand):
 
     def render(self, mcanv, op, idx):
         val = self.getOperValue(op)
-        mcanv.addNameText('#0x%.2x' % (val))
+        mcanv.addText('#')
+        mcanv.addNameText('0x%.2x' % (val))
 
     def repr(self, op):
         val = self.getOperValue(op)
@@ -4552,7 +4553,8 @@ class ArmImmOffsetOper(ArmOperand):
                 if (idxing&0x10) == 0:
                     mcanv.addText(']')
 
-                mcanv.addNameText(', #%s0x%x' % (pom,self.offset))
+                mcanv.addText(', #%s' % (pom))
+                mcanv.addNameText('0x%x' % (self.offset))
 
                 if idxing == 0x10:
                     mcanv.addText(']')
