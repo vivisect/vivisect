@@ -933,7 +933,7 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
             self.setFlag(PSR_C_bit, e_bits.is_unsigned_carry(ures, dsize))
             self.setFlag(PSR_Z_bit, not ures)
             self.setFlag(PSR_N_bit, e_bits.is_signed(ures, dsize))
-            self.setFlag(PSR_V_bit, e_bits.is_signed_overflow(sres, dsize))
+            self.setFlag(PSR_V_bit, e_bits.is_signed_overflow(ures, dsize))
 
     def i_cmp(self, op):
         # Src op gets sign extended to dst
