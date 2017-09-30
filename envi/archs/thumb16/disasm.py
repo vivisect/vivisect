@@ -437,7 +437,7 @@ def branch_misc(va, val, val2): # bl and misc control
             bytez=struct.pack("<H", val)+struct.pack("<H", val2), va=va-4)
 
     elif op1 & 0b100:
-        # bl/lx
+        # bl/blx
         notx = (val2>>12) & 1
         s = (val>>10) & 1
         mnem = ('blx','bl')[notx]
@@ -450,11 +450,11 @@ def branch_misc(va, val, val2): # bl and misc control
 
         imm = (s<<24) | (j1<<23) | (j2<<22) | ((val&0x3ff) << 12) | ((val2&0x7ff) << 1)
 
-        #sign extend a 23-bit number
+        #sign extend a 25-bit number
         if s:
             imm |= 0xff000000
 
-        oper0 = ArmPcOffsetOper(e_bits.signed(imm,4), va=va&0xfffffffc)
+        oper0 = ArmPcOffsetOper(e_bits.signed(imm,4), va=va&0xfffffffe)
 
         return COND_AL, opcode, mnem, (oper0, ), flags, 0
         
@@ -1484,7 +1484,7 @@ def coproc_simd_32(va, val1, val2):
             load =      (val1>>4) & 1
             two =       (val1>>11) & 2
             opc1 =      (val1>>5) & 0x7
-            CRn =       val2 & 0xf
+            CRn =       val1 & 0xf
             Rd =        (val2>>12) & 0xf
             opc2 =      (val2>>5) & 0x7
             CRm =       val2 & 0xf
@@ -1688,29 +1688,29 @@ thumb_base = [
     ('00000',       ( INS_LSL,'lsl',     imm5_rm_rd, IF_PSR_S)), # LSL<c> <Rd>,<Rm>,#<imm5>
     ('00001',       ( INS_LSR,'lsr',     imm5_rm_rd, IF_PSR_S)), # LSR<c> <Rd>,<Rm>,#<imm>
     ('00010',       ( INS_ASR,'asr',     imm5_rm_rd, IF_PSR_S)), # ASR<c> <Rd>,<Rm>,#<imm>
-    ('0001100',     ( INS_ADD,'add',     rm_rn_rd,   0)), # ADD<c> <Rd>,<Rn>,<Rm>
-    ('0001101',     ( INS_SUB,'sub',     rm_rn_rd,   0)), # SUB<c> <Rd>,<Rn>,<Rm>
-    ('0001110',     ( INS_ADD,'add',     imm3_rn_rd, 0)), # ADD<c> <Rd>,<Rn>,#<imm3>
-    ('0001111',     ( INS_SUB,'sub',     imm3_rn_rd, 0)), # SUB<c> <Rd>,<Rn>,#<imm3>
-    ('00100',       ( INS_MOV,'mov',     imm8_rd,    0)), # MOV<c> <Rd>,#<imm8>
+    ('0001100',     ( INS_ADD,'add',     rm_rn_rd,   IF_PSR_S)), # ADD<c> <Rd>,<Rn>,<Rm>
+    ('0001101',     ( INS_SUB,'sub',     rm_rn_rd,   IF_PSR_S)), # SUB<c> <Rd>,<Rn>,<Rm>
+    ('0001110',     ( INS_ADD,'add',     imm3_rn_rd, IF_PSR_S)), # ADD<c> <Rd>,<Rn>,#<imm3>
+    ('0001111',     ( INS_SUB,'sub',     imm3_rn_rd, IF_PSR_S)), # SUB<c> <Rd>,<Rn>,#<imm3>
+    ('00100',       ( INS_MOV,'mov',     imm8_rd,    IF_PSR_S)), # MOV<c> <Rd>,#<imm8>
     ('00101',       ( INS_CMP,'cmp',     imm8_rd,    0)), # CMP<c> <Rn>,#<imm8>
-    ('00110',       ( INS_ADD,'add',     imm8_rd,    0)), # ADD<c> <Rdn>,#<imm8>
-    ('00111',       (INS_SUB,'sub',     imm8_rd,    0)), # SUB<c> <Rdn>,#<imm8>
+    ('00110',       ( INS_ADD,'add',     imm8_rd,    IF_PSR_S)), # ADD<c> <Rdn>,#<imm8>
+    ('00111',       (INS_SUB,'sub',     imm8_rd,    IF_PSR_S)), # SUB<c> <Rdn>,#<imm8>
     # Data processing instructions
-    ('0100000000',  (INS_AND,'and',     rm_rdn,     0)), # AND<c> <Rdn>,<Rm>
-    ('0100000001',  (INS_EOR,'eor',     rm_rdn,     0)), # EOR<c> <Rdn>,<Rm>
-    ('0100000010',  (INS_LSL,'lsl',     rm_rdn,     0)), # LSL<c> <Rdn>,<Rm>
-    ('0100000011',  (INS_LSR,'lsr',     rm_rdn,     0)), # LSR<c> <Rdn>,<Rm>
-    ('0100000100',  (INS_ASR,'asr',     rm_rdn,     0)), # ASR<c> <Rdn>,<Rm>
-    ('0100000101',  (INS_ADC,'adc',     rm_rdn,     0)), # ADC<c> <Rdn>,<Rm>
-    ('0100000110',  (INS_SBC,'sbc',     rm_rdn,     0)), # SBC<c> <Rdn>,<Rm>
-    ('0100000111',  (INS_ROR,'ror',     rm_rdn,     0)), # ROR<c> <Rdn>,<Rm>
+    ('0100000000',  (INS_AND,'and',     rm_rdn,     IF_PSR_S)), # AND<c> <Rdn>,<Rm>
+    ('0100000001',  (INS_EOR,'eor',     rm_rdn,     IF_PSR_S)), # EOR<c> <Rdn>,<Rm>
+    ('0100000010',  (INS_LSL,'lsl',     rm_rdn,     IF_PSR_S)), # LSL<c> <Rdn>,<Rm>
+    ('0100000011',  (INS_LSR,'lsr',     rm_rdn,     IF_PSR_S)), # LSR<c> <Rdn>,<Rm>
+    ('0100000100',  (INS_ASR,'asr',     rm_rdn,     IF_PSR_S)), # ASR<c> <Rdn>,<Rm>
+    ('0100000101',  (INS_ADC,'adc',     rm_rdn,     IF_PSR_S)), # ADC<c> <Rdn>,<Rm>
+    ('0100000110',  (INS_SBC,'sbc',     rm_rdn,     IF_PSR_S)), # SBC<c> <Rdn>,<Rm>
+    ('0100000111',  (INS_ROR,'ror',     rm_rdn,     IF_PSR_S)), # ROR<c> <Rdn>,<Rm>
     ('0100001000',  (INS_TST,'tst',     rm_rd,      0)), # TST<c> <Rn>,<Rm>
-    ('0100001001',  (INS_RSB,'rsb',     rm_rd_imm0, 0)), # RSB<c> <Rd>,<Rn>,#0
+    ('0100001001',  (INS_RSB,'rsb',     rm_rd_imm0, IF_PSR_S)), # RSB<c> <Rd>,<Rn>,#0
     ('0100001010',  (INS_CMP,'cmp',     rm_rd,      0)), # CMP<c> <Rn>,<Rm>
     ('0100001011',  (INS_CMN,'cmn',     rm_rd,      0)), # CMN<c> <Rn>,<Rm>
-    ('0100001100',  (INS_ORR,'orr',     rm_rdn,     0)), # ORR<c> <Rdn>,<Rm>
-    ('0100001101',  (INS_MUL,'mul',     rn_rdm,     0)), # MUL<c> <Rdm>,<Rn>,<Rdm>
+    ('0100001100',  (INS_ORR,'orr',     rm_rdn,     IF_PSR_S)), # ORR<c> <Rdn>,<Rm>
+    ('0100001101',  (INS_MUL,'mul',     rn_rdm,     IF_PSR_S)), # MUL<c> <Rdm>,<Rn>,<Rdm>
     ('0100001110',  (INS_BIC,'bic',     rm_rdn,     0)), # BIC<c> <Rdn>,<Rm>
     ('0100001111',  (INS_MVN,'mvn',     rm_rd,      0)), # MVN<c> <Rd>,<Rm>
     # Special data in2tructions and branch and exchange
