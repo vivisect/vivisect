@@ -1,6 +1,18 @@
 
 """
 The initial arm module.
+
+
+FIXME:
+    00000000:0x00002494  f001ec3a         blx sub_00003d0c    ;sub_00003d0c()
+    00000000:0x00002498  f001ec44         blx sub_00003d24    ;UnknownApi()     ** Why doesn't this go?
+
+    Make infinite loop VASET
+
+    00000000:0x00002b64  fafffe4a         blx loc_00002495    ;UnknownApi()     ** Why doesn't this go?
+    00000000:0x00002b68  00    ;Emu Anomaly: InvalidInstruction("extra_load_store: invalid Rt argument 'f7ff0800' at 0x2b70",)
+
+
 """
 
 import envi

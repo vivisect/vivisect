@@ -1037,7 +1037,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
                 ref = o.getOperValue(op)
                 if brdone.get(ref, False):
                     continue
-                if ref != None and self.isValidPointer(ref):
+                if ref != None and type(ref) in (int, long) and self.isValidPointer(ref):
                     self.addXref(va, ref, REF_PTR)
 
         return loc

@@ -449,6 +449,7 @@ def branch_misc(va, val, val2): # bl and misc control
         j2 = not ((val2>>11)&1 ^ s)
 
         imm = (s<<24) | (j1<<23) | (j2<<22) | ((val&0x3ff) << 12) | ((val2&0x7ff) << 1)
+        #imm += 2    # why is this necessary?
 
         #sign extend a 25-bit number
         if s:
@@ -1062,8 +1063,8 @@ def ldrb_memhints_32(va, val1, val2):
                     ArmImmOffsetOper(rn, imm12, va),
                     )
 
-        elif not op1 and not op2:
-            if rt == 0xf:
+        elif not op1:
+            if not op2 and rt == 0xf:
                 # pld/pldw (p526)
                 opcode, mnem, flags = memh_instrs[Sbit]
                 rm = val2 & 0xf
@@ -1072,19 +1073,30 @@ def ldrb_memhints_32(va, val1, val2):
                         ArmScaledOffsetOper(rn, rm, S_LSL, imm2, va),
                         )
 
-            else:
+            elif (val2>>11) & 1:
                 # LDRB (register)
                 opcode, mnem, flags = ldrb_instrs[Sbit]
-                rm = val2 & 0xf
-                imm2 = (val2>>4) & 3
+                imm8 = val2 & 0xff
+                pubwl = ((val2 >> 6) & 0x18) | ((val2 >> 7) & 2)
                 opers = (
                         ArmRegOper(rt),
-                        ArmScaledOffsetOper(rn, rm, S_LSL, imm2, va),
+                        ArmImmOffsetOper(rn, imm8, va, pubwl)
                         )
 
+
         else:
-            raise envi.InvalidInstruction(
-                    mesg="ldrb_memhints_32: fall 1", va=va)
+            # LDRB (register)
+            opcode, mnem, flags = ldrb_instrs[Sbit]
+            rm = val2 & 0xf
+            imm2 = (val2>>4) & 3
+            opers = (
+                    ArmRegOper(rt),
+                    ArmScaledOffsetOper(rn, rm, S_LSL, imm2, va),
+                    )
+
+        #else:
+        #    raise envi.InvalidInstruction(
+        #            mesg="ldrb_memhints_32: fall 1", va=va)
 
 
     return COND_AL, opcode, mnem, opers, flags, 0
