@@ -1,5 +1,5 @@
 import os
-from PyQt4 import QtCore, QtGui
+from PyQt5 import QtCore, QtGui, QtWidgets
 
 import envi.cli as e_cli
 import envi.qt.memory as e_q_memory
@@ -14,10 +14,10 @@ import vqt.hotkeys as vq_hotkeys
 from vqt.basics import *
 from vqt.main import idlethread,workthread
 
-class VQInput(vq_hotkeys.HotKeyMixin, QtGui.QLineEdit):
+class VQInput(vq_hotkeys.HotKeyMixin, QtWidgets.QLineEdit):
 
     def __init__(self, parent=None):
-        QtGui.QLineEdit.__init__(self, parent=parent)
+        QtWidgets.QLineEdit.__init__(self, parent=parent)
         vq_hotkeys.HotKeyMixin.__init__(self)
 
         self.history = []
@@ -64,7 +64,7 @@ class VQInput(vq_hotkeys.HotKeyMixin, QtGui.QLineEdit):
         file(filename, 'w').write( histbuf )
 
 
-class VQCli(QtGui.QWidget):
+class VQCli(QtWidgets.QWidget):
     '''
     A Qt class to wrap and emulate a Cmd object.
     '''
@@ -72,13 +72,13 @@ class VQCli(QtGui.QWidget):
     sigCliQuit = QtCore.pyqtSignal()
 
     def __init__(self, cli, parent=None):
-        QtGui.QWidget.__init__(self, parent=parent)
+        QtWidgets.QWidget.__init__(self, parent=parent)
         self.cli = cli
 
         self.input = VQInput(self)
 
         # Create our output window...
-        self.output = QtGui.QTextEdit(self)
+        self.output = QtWidgets.QTextEdit(self)
         # If it's an EnviCli, let's over-ride the canvas right away.
         if isinstance(cli, e_cli.EnviCli):
             self.output.close()
@@ -90,7 +90,7 @@ class VQCli(QtGui.QWidget):
 
         self.setLayout( self.getCliLayout() )
 
-        self.connect(self.input,  QtCore.SIGNAL('returnPressed()'), self.returnPressedSlot)
+        self.input.returnPressed.connect(self.returnPressedSlot)
 
         #FIXME: these events should probably be made to work better with the new Qt Event model
         # perhaps this should inherit from HotKeyMixin as well?

@@ -12,7 +12,7 @@ class SaveableWidget(object):
 
     def vqRestoreState(self, settings, name):
         qstate = settings.value(name)
-        if qstate.isNull():
+        if qstate == None:
             return
 
         try:
