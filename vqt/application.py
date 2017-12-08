@@ -129,7 +129,7 @@ class VQMainCmdWindow(vq_hotkey.HotKeyMixin, QtWidgets.QMainWindow):
         dwcls = settings.value('DockClasses')
         if dwcls != None:
 
-            for i, clsname in enumerate(dwcls.toStringList()):
+            for i, clsname in enumerate(dwcls):
                 name = 'VQDockWidget%d'  % i
                 try:
                     tup = self.vqBuildDockWidget(str(clsname), floating=True)

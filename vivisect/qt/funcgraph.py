@@ -425,8 +425,14 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QtWidg
             cbva = nprops.get('cbva')
 
             cbname = 'codeblock_%.8x' % cbva
-            girth, ok = frame.evaluateJavaScript('document.getElementById("%s").offsetWidth;' % cbname).toInt()
-            height, ok = frame.evaluateJavaScript('document.getElementById("%s").offsetHeight;' % cbname).toInt()
+            w = frame.evaluateJavaScript('document.getElementById("%s").offsetWidth;' % cbname)
+            if w == None:
+                continue
+            girth, ok = w
+            h = frame.evaluateJavaScript('document.getElementById("%s").offsetHeight;' % cbname)
+            if h == None:
+                continue
+            height, ok = h
             self.graph.setNodeProp((nid,nprops), "size", (girth, height))
 
         self.dylayout = vg_dynadag.DynadagLayout(self.graph)
