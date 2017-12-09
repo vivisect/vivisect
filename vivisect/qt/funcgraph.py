@@ -1,5 +1,4 @@
 import vqt.hotkeys as vq_hotkey
-from PyQt5.QtWidgets import *
 import vqt.saveable as vq_save
 import envi.qt.memory as e_mem_qt
 import envi.memcanvas as e_memcanvas
@@ -72,7 +71,7 @@ class VQVivFuncgraphCanvas(vq_memory.VivCanvasBase):
         canvelem = frame.findFirstElement('#memcanvas')
 
         elem = frame.findFirstElement('#codeblock_%.8x' % va)
-        if elem == None:
+        if elem.isNull():
             # Lets add a codeblock element for this
             canvelem.appendInside('<div class="codeblock" id="codeblock_%.8x"></div>' % va)
 
