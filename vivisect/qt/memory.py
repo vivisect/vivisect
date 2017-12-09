@@ -18,7 +18,7 @@ import vivisect.qt.views as viv_q_views
 import vivisect.qt.ctxmenu as viv_q_ctxmenu
 import vivisect.qt.funcviews as viv_q_funcviews
 
-from PyQt5          import QtCore, QtGui, QtWebKit
+from PyQt5          import QtCore, QtGui, QtWidgets, QtWebKit
 from envi.threads   import firethread
 
 from vqt.main import *
@@ -295,7 +295,10 @@ class VQVivMemoryCanvas(VivCanvasBase):
         sbmin = frame.scrollBarMinimum(qt_vertical)
         sbmax = frame.scrollBarMaximum(qt_vertical)
 
-        if sbcur == sbmax:
+        if not len(self._canv_rendvas):
+            pass
+            
+        elif sbcur == sbmax:
 
             lastva, lastsize = self._canv_rendvas[-1]
             mapva, mapsize, mperm, mfname = self.vw.getMemoryMap(lastva)

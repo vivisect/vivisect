@@ -32,7 +32,8 @@ class VQTraceNotifier(vtrace.Notifier):
     def __init__(self, trace=None):
         self.trace = trace
         vtrace.Notifier.__init__(self)
-        self.trace.registerNotifier(NOTIFY_ALL, self)
+        if trace != None:
+            self.trace.registerNotifier(NOTIFY_ALL, self)
 
     @idlethreadsync
     # FIXME this should be part of a shared API!

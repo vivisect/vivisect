@@ -203,8 +203,8 @@ class VQMemoryCanvas(e_memcanvas.MemoryCanvas, QtWebKitWidgets.QWebView):
         initMemSendtoMenu('0x%.8x' % va, menu)
 
     def _menuSaveToHtml(self):
-        fname = QtWidgets.QFileDialog.getSaveFileName(self, 'Save As HTML...')[0]
-        if fname != None:
+        fname, ftype = QtWidgets.QFileDialog.getSaveFileName(self, 'Save As HTML...')
+        if fname != None and len(fname):
             html = self.page().mainFrame().toHtml()
             file(fname, 'w').write(html)
 

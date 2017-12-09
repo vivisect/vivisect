@@ -216,7 +216,7 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
         state = settings.value('%s/DockState' % guid)
         geom =  settings.value('%s/DockGeometry' % guid)
 
-        if dwcls == None:
+        if dwcls == None or not len(dwcls):
             names = self.vw.filemeta.keys()
             names.sort()
             name = '+'.join(names)
@@ -224,17 +224,17 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
             state = settings.value('%s/DockState' % name)
             geom =  settings.value('%s/DockGeometry' % name)
 
-        if dwcls == None:
+        if dwcls == None or not len(dwcls):
             dwcls = settings.value('DockClasses')
             state = settings.value('DockState')
             geom =  settings.value('DockGeometry')
 
 
-        if not dwcls == None:
+        if dwcls != None and len(dwcls):
             for i, clsname in enumerate(dwcls):
                 name = 'VQDockWidget%d'  % i
                 try:
-                    tup = self.vqBuildDockWidget(str(clsname), floating=True)
+                    tup = self.vqBuildDockWidget(str(clsname)) # FIXME:, floating=True)
                     if tup != None:
                         d, obj = tup
                         d.setObjectName(name)
@@ -302,7 +302,7 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
 
     def _menuFileSaveAs(self):
         fname = QtWidgets.QFileDialog.getSaveFileName(self, 'Save As...')[0]
-        if fname == None:
+        if fname == None or not len(fname):
             return
         self.vw.setMeta('StorageName', fname)
         self._menuFileSave(fullsave=True)
@@ -320,7 +320,7 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
 
     def _menuViewLayoutsSave(self):
         fname = QtWidgets.QFileDialog.getSaveFileName(self, 'Save Layout')[0]
-        if fname == None:
+        if fname == None or not len(fname):
             return
 
         settings = QtCore.QSettings(fname, QtCore.QSettings.IniFormat)

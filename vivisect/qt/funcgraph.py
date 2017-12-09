@@ -15,7 +15,7 @@ import vivisect.qt.ctxmenu as vq_ctxmenu
 import vivisect.tools.graphutil as viv_graphutil
 
 from PyQt5.QtCore   import pyqtSignal, QPoint
-from PyQt5          import QtCore, QtGui, QtWebKit
+from PyQt5          import QtCore, QtGui, QtWidgets, QtWebKit
 from vqt.main       import idlethread, idlethreadsync, eatevents, vqtconnect, workthread, vqtevent
 
 from vqt.common import *
@@ -91,7 +91,7 @@ class VQVivFuncgraphCanvas(vq_memory.VivCanvasBase):
             menu = QtWidgets.QMenu(parent=self)
 
         self.viewmenu = menu.addMenu('view   ')
-        self.viewmenu.addAction("Save frame to HTML", ACT(self._menuSaveToHtml))
+        #self.viewmenu.addAction("Save frame to HTML", ACT(self._menuSaveToHtml))
         self.viewmenu.addAction("Refresh", ACT(self.refresh))
         self.viewmenu.addAction("Paint Up", ACT(self.paintUp.emit))
         self.viewmenu.addAction("Paint Down", ACT(self.paintDown.emit))
@@ -425,14 +425,10 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QtWidg
             cbva = nprops.get('cbva')
 
             cbname = 'codeblock_%.8x' % cbva
-            w = frame.evaluateJavaScript('document.getElementById("%s").offsetWidth;' % cbname)
-            if w == None:
-                continue
-            girth, ok = w
-            h = frame.evaluateJavaScript('document.getElementById("%s").offsetHeight;' % cbname)
-            if h == None:
-                continue
-            height, ok = h
+            #girth, ok = frame.evaluateJavaScript('document.getElementById("%s").offsetWidth;' % cbname).toInt()
+            girth = int(frame.evaluateJavaScript('document.getElementById("%s").offsetWidth;' % cbname))
+            #height, ok = frame.evaluateJavaScript('document.getElementById("%s").offsetHeight;' % cbname).toInt()
+            height = frame.evaluateJavaScript('document.getElementById("%s").offsetHeight;' % cbname)
             self.graph.setNodeProp((nid,nprops), "size", (girth, height))
 
         self.dylayout = vg_dynadag.DynadagLayout(self.graph)
