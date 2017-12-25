@@ -255,8 +255,7 @@ class VQVivFunctionsView(VQVivTreeView):
         fva, fmeta = einfo
         self.vivAddFunction(fva)
 
-    def VWE_DELFUNCTION(self, vw, event, efino):
-        fva, fmeta = einfo
+    def VWE_DELFUNCTION(self, vw, event, fva):
         self.vivDelRow(fva)
 
     def VWE_SETNAME(self, vw, event, einfo):
