@@ -1,43 +1,43 @@
-from PyQt4 import QtGui, QtCore
+from PyQt5 import QtCore, QtGui, QtWidgets
 
-class MemDumpDialog(QtGui.QDialog):
+class MemDumpDialog(QtWidgets.QDialog):
     '''
     gui for memdump cli command.
     '''
     def __init__(self, va, filename='', size=256):
-        QtGui.QDialog.__init__(self)
+        QtWidgets.QDialog.__init__(self)
 
         self.va = va
         self.filename = filename
         self.size = size
 
-        hbox1 = QtGui.QHBoxLayout()
-        fname_label = QtGui.QLabel('Filename: ')
-        self.fname_edit = QtGui.QLineEdit()
+        hbox1 = QtWidgets.QHBoxLayout()
+        fname_label = QtWidgets.QLabel('Filename: ')
+        self.fname_edit = QtWidgets.QLineEdit()
         self.fname_edit.setText(self.filename)
-        browse_button = QtGui.QPushButton('...')
+        browse_button = QtWidgets.QPushButton('...')
         browse_button.clicked.connect(self.showSaveAsDialog)
         hbox1.addWidget(fname_label)
         hbox1.addWidget(self.fname_edit)
         hbox1.addWidget(browse_button)
 
-        hbox2 = QtGui.QHBoxLayout()
-        size_label = QtGui.QLabel('Size: ')
-        self.size_edit = QtGui.QLineEdit()
+        hbox2 = QtWidgets.QHBoxLayout()
+        size_label = QtWidgets.QLabel('Size: ')
+        self.size_edit = QtWidgets.QLineEdit()
         self.size_edit.setText(str(self.size))
         hbox2.addWidget(size_label)
         hbox2.addWidget(self.size_edit)
 
-        hbox3 = QtGui.QHBoxLayout()
-        ok_button = QtGui.QPushButton('&OK')
+        hbox3 = QtWidgets.QHBoxLayout()
+        ok_button = QtWidgets.QPushButton('&OK')
         ok_button.setDefault(True)
         ok_button.clicked.connect(self.okClicked)
-        cancel_button = QtGui.QPushButton('&Cancel')
+        cancel_button = QtWidgets.QPushButton('&Cancel')
         cancel_button.clicked.connect(self.cancelClicked)
         hbox3.addWidget(ok_button)
         hbox3.addWidget(cancel_button)
 
-        vbox = QtGui.QVBoxLayout()
+        vbox = QtWidgets.QVBoxLayout()
         vbox.addLayout(hbox1)
         vbox.addLayout(hbox2)
         vbox.addLayout(hbox3)
@@ -48,7 +48,7 @@ class MemDumpDialog(QtGui.QDialog):
         self.setWindowTitle(title)
 
     def showSaveAsDialog(self):
-        fname = str(QtGui.QFileDialog.getSaveFileName(caption='Select file to dump memory to'))
+        fname = str(QtWidgets.QFileDialog.getSaveFileName(caption='Select file to dump memory to'))[0]
         self.fname_edit.setText(fname)
 
     def cancelClicked(self):
@@ -65,9 +65,9 @@ class MemDumpDialog(QtGui.QDialog):
         return self.filename, self.size
 
 def main():
-    app = QtGui.QApplication([])
+    app = QtWidgets.QApplication([])
     dlg = MemDumpDialog(0x1234, '5678', 0x9ab)
-    if dlg.exec_() == QtGui.QDialog.Accepted:
+    if dlg.exec_() == QtWidgets.QDialog.Accepted:
         print(dlg.filename)
         print(dlg.size)
 

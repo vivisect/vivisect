@@ -13,8 +13,8 @@ import vivisect.qt.memory as vq_memory
 import vivisect.qt.ctxmenu as vq_ctxmenu
 import vivisect.tools.graphutil as viv_graphutil
 
-from PyQt4.QtCore   import pyqtSignal, QPoint
-from PyQt4          import QtCore, QtGui, QtWebKit
+from PyQt5.QtCore   import pyqtSignal, QPoint
+from PyQt5          import QtCore, QtGui, QtWidgets, QtWebKit
 from vqt.main       import idlethread, idlethreadsync, eatevents, vqtconnect, workthread, vqtevent
 
 from vqt.common import *
@@ -31,9 +31,9 @@ class VQVivFuncgraphCanvas(vq_memory.VivCanvasBase):
         self.curs = QtGui.QCursor()
 
     def wheelEvent(self, event):
-        mods = QtGui.QApplication.keyboardModifiers()
+        mods = QtWidgets.QApplication.keyboardModifiers()
         if mods == QtCore.Qt.ShiftModifier:
-            delta = event.delta()
+            delta = event.angleDelta().y()
             factord = delta / 1000.0
             self.setZoomFactor( self.zoomFactor() + factord )
             event.accept()
@@ -42,7 +42,7 @@ class VQVivFuncgraphCanvas(vq_memory.VivCanvasBase):
         return e_qt_memcanvas.VQMemoryCanvas.wheelEvent(self, event)
 
     def mouseMoveEvent (self, event):
-        mods = QtGui.QApplication.keyboardModifiers()
+        mods = QtWidgets.QApplication.keyboardModifiers()
         if mods == QtCore.Qt.ShiftModifier:
             x = event.globalX()
             y = event.globalY()
@@ -84,21 +84,17 @@ class VQVivFuncgraphCanvas(vq_memory.VivCanvasBase):
         return ret
 
     def contextMenuEvent(self, event):
-        if self._canv_curva:
+        if self._canv_curva != None:
             menu = vq_ctxmenu.buildContextMenu(self.vw, va=self._canv_curva, parent=self)
         else:
-            menu = QtGui.QMenu(parent=self)
+            menu = QtWidgets.QMenu(parent=self)
 
         self.viewmenu = menu.addMenu('view   ')
-        self.viewmenu.addAction("Save frame to HTML", ACT(self._menuSaveToHtml))
+        #self.viewmenu.addAction("Save frame to HTML", ACT(self._menuSaveToHtml))
         self.viewmenu.addAction("Refresh", ACT(self.refresh))
         self.viewmenu.addAction("Paint Up", ACT(self.paintUp.emit))
         self.viewmenu.addAction("Paint Down", ACT(self.paintDown.emit))
         self.viewmenu.addAction("Paint Down until remerge", ACT(self.paintMerge.emit))
-
-        viewmenu = menu.addMenu('view   ')
-        viewmenu.addAction("Save frame to HTML", ACT(self._menuSaveToHtml))
-        viewmenu.addAction("Refresh", ACT(self.refresh))
 
         menu.exec_(event.globalPos())
 
@@ -207,7 +203,7 @@ function drawSvgLine(svgid, lineid, points) {
 import itertools
 import collections
 
-class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QtGui.QWidget, vq_save.SaveableWidget, viv_base.VivEventCore):
+class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QtWidgets.QWidget, vq_save.SaveableWidget, viv_base.VivEventCore):
     _renderDoneSignal = pyqtSignal()
 
     viewidx = itertools.count()
@@ -220,7 +216,7 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QtGui.
         self._last_viewpt = None
         self.history = collections.deque((),100)
 
-        QtGui.QWidget.__init__(self, parent=vwqgui)
+        QtWidgets.QWidget.__init__(self, parent=vwqgui)
         vq_hotkey.HotKeyMixin.__init__(self)
         viv_base.VivEventCore.__init__(self, vw)
         e_qt_memory.EnviNavMixin.__init__(self)
@@ -228,18 +224,18 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QtGui.
 
         self._renderDoneSignal.connect(self._refresh_cb)
 
-        self.top_box = QtGui.QWidget(parent=self)
-        hbox = QtGui.QHBoxLayout(self.top_box)
-        hbox.setMargin(2)
+        self.top_box = QtWidgets.QWidget(parent=self)
+        hbox = QtWidgets.QHBoxLayout(self.top_box)
+        hbox.setContentsMargins(2, 2, 2, 2)
         hbox.setSpacing(4)
 
-        self.histmenu = QtGui.QMenu(parent=self)
+        self.histmenu = QtWidgets.QMenu(parent=self)
         self.histmenu.aboutToShow.connect( self._histSetupMenu )
 
-        self.hist_button = QtGui.QPushButton('History', parent=self.top_box)
+        self.hist_button = QtWidgets.QPushButton('History', parent=self.top_box)
         self.hist_button.setMenu(self.histmenu)
 
-        self.addr_entry  = QtGui.QLineEdit(parent=self.top_box)
+        self.addr_entry  = QtWidgets.QLineEdit(parent=self.top_box)
 
         self.mem_canvas = VQVivFuncgraphCanvas(vw, syms=vw, parent=self)
         self.mem_canvas.setNavCallback(self.enviNavGoto)
@@ -255,8 +251,8 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QtGui.
         hbox.addWidget(self.hist_button)
         hbox.addWidget(self.addr_entry)
 
-        vbox = QtGui.QVBoxLayout(self)
-        vbox.setMargin(4)
+        vbox = QtWidgets.QVBoxLayout(self)
+        vbox.setContentsMargins(4, 4, 4, 4)
         vbox.setSpacing(4)
         vbox.addWidget(self.top_box)
         vbox.addWidget(self.mem_canvas, stretch=100)
@@ -424,8 +420,10 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QtGui.
             cbva = nprops.get('cbva')
 
             cbname = 'codeblock_%.8x' % cbva
-            girth, ok = frame.evaluateJavaScript('document.getElementById("%s").offsetWidth;' % cbname).toInt()
-            height, ok = frame.evaluateJavaScript('document.getElementById("%s").offsetHeight;' % cbname).toInt()
+            #girth, ok = frame.evaluateJavaScript('document.getElementById("%s").offsetWidth;' % cbname).toInt()
+            girth = int(frame.evaluateJavaScript('document.getElementById("%s").offsetWidth;' % cbname))
+            #height, ok = frame.evaluateJavaScript('document.getElementById("%s").offsetHeight;' % cbname).toInt()
+            height = frame.evaluateJavaScript('document.getElementById("%s").offsetHeight;' % cbname)
             self.graph.setNodeProp((nid,nprops), "size", (girth, height))
 
         self.dylayout = vg_dynadag.DynadagLayout(self.graph)
@@ -505,7 +503,7 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QtGui.
     def clearText(self):
         # Pop the svg and reset #memcanvas
         frame = self.mem_canvas.page().mainFrame()
-        if self.fva:
+        if self.fva != None:
             svgid = '#funcgraph_%.8x' % self.fva
             svgelem = frame.findFirstElement(svgid)
             svgelem.removeFromDocument()

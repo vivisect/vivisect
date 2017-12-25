@@ -1,9 +1,10 @@
-from PyQt4 import QtCore, QtGui, QtWebKit
+from PyQt5 import QtCore, QtGui, QtWidgets
 
-class NodeColumn(QtGui.QGraphicsItem):
+class NodeColumn(QtWidgets.QGraphicsItem):
 
     def __init__(self, vg, nodes, scene, left=None, right=None):
-        QtGui.QGraphicsItem.__init__(self, scene=scene)
+        QtWidgets.QGraphicsItem.__init__(self)
+        if scene is not None: scene.addItem(self)
         self.setZValue( -100 ) # Get behind click events...
 
         self._v_vg = vg
@@ -158,10 +159,11 @@ class NodeColumn(QtGui.QGraphicsItem):
             col.drawLinesTo( colnode )
             self._v_right = col
 
-class QGraphNode(QtGui.QGraphicsSimpleTextItem):
+class QGraphNode(QtWidgets.QGraphicsSimpleTextItem):
 
     def __init__(self, vg, column, nid, nprops, scene=None):
-        QtGui.QGraphicsSimpleTextItem.__init__(self, nprops.get('repr', 'node:{}'.format(nid) ), scene=scene, parent=column)
+        QtWidgets.QGraphicsSimpleTextItem.__init__(self, nprops.get('repr', 'node:{}'.format(nid) ), parent=column)
+        if scene is not None: scene.addItem(self)
 
         self._v_vg = vg
         self._v_nid = nid
@@ -184,14 +186,14 @@ class QGraphNode(QtGui.QGraphicsSimpleTextItem):
         pos = event.screenPos()
         self.scene().parent()._sig_NodeContextMenu.emit(pos, self._v_nid, self._v_nprops)
 
-class QGraphTreeView(QtGui.QGraphicsView):
+class QGraphTreeView(QtWidgets.QGraphicsView):
 
     _sig_NodeSelected = QtCore.pyqtSignal(object, dict)
     _sig_NodeContextMenu = QtCore.pyqtSignal( object, object, dict ) # pos, nid, nprops
 
     def __init__(self, vg, nodes, parent=None):
-        QtGui.QGraphicsView.__init__(self, parent=parent)
-        scene = QtGui.QGraphicsScene(parent=self)
+        QtWidgets.QGraphicsView.__init__(self, parent=parent)
+        scene = QtWidgets.QGraphicsScene(parent=self)
 
         self.setScene( scene )
         self._v_nodecol = NodeColumn(vg, nodes, scene)
@@ -215,7 +217,7 @@ if __name__ == '__main__':
     import sys
     import visgraph.graphcore as vg_graphcore
 
-    app = QtGui.QApplication(sys.argv)
+    app = QtWidgets.QApplication(sys.argv)
     app.setFont( QtGui.QFont('Courier') )
 
     initnodes = [ (i, {'repr':'node%d' % i}) for i in xrange( 30 ) ]

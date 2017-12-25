@@ -1,7 +1,7 @@
 import cmd
 import collections
 
-from PyQt4 import QtCore, QtGui
+from PyQt5 import QtCore, QtGui, QtWidgets
 
 import envi.cli
 import vtrace.qt
@@ -53,7 +53,7 @@ class VdbCmdWidget(vqt.cli.VQCli, vtrace.qt.VQTraceNotifier):
             self.notify(NOTIFY_CONTINUE, None)
 
     def getCliLayout(self):
-        self.status = QtGui.QLabel(self)
+        self.status = QtWidgets.QLabel(self)
         self.status.setMinimumWidth(75)
         self.status.setMaximumWidth(75)
         self.status.setFrameStyle(1)
@@ -358,7 +358,7 @@ class VdbWindow(vq_app.VQMainCmdWindow):
         self.vqBuildDockWidget('VdbRegistersWindow', area=QtCore.Qt.RightDockWidgetArea)
 
     def menuViewLayoutsLoad(self):
-        fname = QtGui.QFileDialog.getOpenFileName(self, 'Load Layout')
+        fname = QtWidgets.QFileDialog.getOpenFileName(self, 'Load Layout')[0]
         if fname == None:
             return
 
@@ -368,7 +368,7 @@ class VdbWindow(vq_app.VQMainCmdWindow):
         self.vqRestoreGuiSettings(settings)
 
     def menuViewLayoutsSave(self):
-        fname = QtGui.QFileDialog.getSaveFileName(self, 'Save Layout')
+        fname = QtWidgets.QFileDialog.getSaveFileName(self, 'Save Layout')[0]
         if fname == None:
             return
 
@@ -379,7 +379,7 @@ class VdbWindow(vq_app.VQMainCmdWindow):
         self.vqClearDockWidgets()
 
     def menuFileOpen(self, *args, **kwargs):
-        fname = str(QtGui.QFileDialog.getOpenFileName(parent=self, caption='File to execute and attach to'))
+        fname = str(QtWidgets.QFileDialog.getOpenFileName(parent=self, caption='File to execute and attach to'))[0]
         if fname != '':
             self._vq_cli.onecmd('exec "%s"' % fname)
 

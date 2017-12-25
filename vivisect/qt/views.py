@@ -6,7 +6,7 @@ import visgraph.pathcore as vg_path
 import envi.qt.memcanvas as e_q_memcanvas
 import vivisect.qt.ctxmenu as v_q_ctxmenu
 
-from PyQt4 import QtGui,QtCore
+from PyQt5 import QtCore, QtGui, QtWidgets
 
 from vqt.main import *
 from vqt.common import *
@@ -65,8 +65,8 @@ class VQVivTreeView(vq_tree.VQTreeView, viv_base.VivEventCore):
     window_title = "VivTreeView"
     _viv_navcol = 0
 
-    def __init__(self, vw, vwqgui):
-        vq_tree.VQTreeView.__init__(self, parent=vwqgui)
+    def __init__(self, vw=None, vwqgui=None, **kwargs):
+        vq_tree.VQTreeView.__init__(self, parent=vwqgui, **kwargs)
         viv_base.VivEventCore.__init__(self, vw)
 
         self.vw = vw
@@ -89,7 +89,7 @@ class VQVivTreeView(vq_tree.VQTreeView, viv_base.VivEventCore):
             return True
 
     def contextMenuEvent(self, event):
-        menu = QtGui.QMenu(parent=self)
+        menu = QtWidgets.QMenu(parent=self)
         idxlist = self.selectedIndexes()
         if not idxlist:
             return
@@ -408,7 +408,7 @@ class VQXrefView(VQVivTreeView):
         for fromva, tova, rtype, rflags in xrefs:
             fva = vw.getFunction(fromva)
             funcname = ''
-            if fva:
+            if fva != None:
                 funcname = vw.getName(fva)
             self.vivAddRow(fromva, '0x%.8x' % fromva, rtype, rflags, funcname)
 

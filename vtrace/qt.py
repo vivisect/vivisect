@@ -1,4 +1,4 @@
-from PyQt4 import Qt, QtCore, QtGui
+from PyQt5 import Qt, QtCore, QtGui, QtWidgets
 
 import vtrace
 from vtrace.const import *
@@ -18,6 +18,12 @@ from vqt.main import workthread, idlethread, idlethreadsync
 QtGui objects which assist in GUIs which use vtrace parts.
 '''
 
+try:
+    QString = unicode
+except NameError:
+    # Python 3
+    QString = str
+
 class VQTraceNotifier(vtrace.Notifier):
     '''
     A bit of shared mixin code for the handling of vtrace
@@ -26,7 +32,8 @@ class VQTraceNotifier(vtrace.Notifier):
     def __init__(self, trace=None):
         self.trace = trace
         vtrace.Notifier.__init__(self)
-        self.trace.registerNotifier(NOTIFY_ALL, self)
+        if trace != None:
+            self.trace.registerNotifier(NOTIFY_ALL, self)
 
     @idlethreadsync
     # FIXME this should be part of a shared API!
@@ -119,7 +126,7 @@ class RegistersListView(vq_tree.VQTreeView, VQTraceNotifier):
         model.dataChanged.connect(self.dataChanged)
         model.rowsInserted.connect(self.rowsInserted)
         model.register_edited.connect(self.regEdited)
-        return QtGui.QTreeView.setModel(self, model)
+        return QtWidgets.QTreeView.setModel(self, model)
 
     def vqLoad(self):
         self.lastregs = self.regvals.copy()
@@ -148,10 +155,10 @@ class RegistersListView(vq_tree.VQTreeView, VQTraceNotifier):
             finally:
                 model.append((rname, hexva, rval, str(smc)))
 
-class RegColorDelegate(QtGui.QStyledItemDelegate):
+class RegColorDelegate(QtWidgets.QStyledItemDelegate):
 
     def __init__(self, parent):
-        QtGui.QStyledItemDelegate.__init__(self, parent)
+        QtWidgets.QStyledItemDelegate.__init__(self, parent)
         self.reglist = parent
 
     def paint(self, painter, option, index):
@@ -160,23 +167,23 @@ class RegColorDelegate(QtGui.QStyledItemDelegate):
         if self.reglist.lastregs.get(node.rowdata[0]) != node.rowdata[2]:
             weight = QtGui.QFont.Bold
         option.font.setWeight(weight)
-        return QtGui.QStyledItemDelegate.paint(self, painter, option, index)
+        return QtWidgets.QStyledItemDelegate.paint(self, painter, option, index)
 
-class RegistersView(QtGui.QWidget):
+class RegistersView(QtWidgets.QWidget):
     '''
     A register view which includes the idea of "sub views" for particular
     sets of registers per-architecture.
     '''
 
     def __init__(self, trace=None, parent=None):
-        QtGui.QWidget.__init__(self, parent=parent)
+        QtWidgets.QWidget.__init__(self, parent=parent)
         self.setWindowTitle('Registers')
 
-        vbox = QtGui.QVBoxLayout(self)
-        vbox.setMargin(2)
+        vbox = QtWidgets.QVBoxLayout(self)
+        vbox.setContentsMargins(2, 2, 2, 2)
         vbox.setSpacing(4)
 
-        self.viewnames = QtGui.QComboBox(self)
+        self.viewnames = QtWidgets.QComboBox(self)
         self.regviews = {}
         self.flagviews = {}
 
@@ -209,7 +216,7 @@ class RegistersView(QtGui.QWidget):
         statusreg_widget.setMaximumHeight(60)
         statusreg_widget.hide()
 
-        splitview = QtGui.QSplitter(QtCore.Qt.Vertical)
+        splitview = QtWidgets.QSplitter(QtCore.Qt.Vertical)
         splitview.addWidget(self.reglist)
         splitview.addWidget(statusreg_widget)
         vbox.addWidget(splitview)
@@ -223,15 +230,15 @@ class RegistersView(QtGui.QWidget):
         self.reglist.regnames = self.regviews.get(str(name), None)
         self.reglist.vqLoad()
 
-class VQFlagsGridView(QtGui.QWidget, VQTraceNotifier):
+class VQFlagsGridView(QtWidgets.QWidget, VQTraceNotifier):
     '''
     Show the state of the status register (if available).
     '''
     def __init__(self, trace=None, parent=None):
-        QtGui.QWidget.__init__(self, parent=parent)
+        QtWidgets.QWidget.__init__(self, parent=parent)
         VQTraceNotifier.__init__(self, trace)
 
-        self.grid = QtGui.QGridLayout()
+        self.grid = QtWidgets.QGridLayout()
         if not trace.hasStatusRegister():
             return
 
@@ -239,11 +246,11 @@ class VQFlagsGridView(QtGui.QWidget, VQTraceNotifier):
         self.flags = {}
         self.flag_labels = {}
         for idx, (name, desc) in enumerate(self.flags_def):
-            flag_button = QtGui.QPushButton(name)
+            flag_button = QtWidgets.QPushButton(name)
             flag_button.clicked.connect(self.buttonClicked)
             flag_button.setToolTip(desc)
 
-            flag_label = QtGui.QLabel('0', self)
+            flag_label = QtWidgets.QLabel('0', self)
             flag_label.setAlignment(QtCore.Qt.AlignCenter)
             self.flag_labels[name] = flag_label
 
@@ -303,24 +310,24 @@ class VQProcessListView(vq_tree.VQTreeView):
         for pid,name in self.trace.ps():
             model.append((pid,name))
 
-class VQProcessSelectDialog(QtGui.QDialog):
+class VQProcessSelectDialog(QtWidgets.QDialog):
 
     def __init__(self, trace=None, parent=None):
-        QtGui.QDialog.__init__(self, parent=parent)
+        QtWidgets.QDialog.__init__(self, parent=parent)
 
         self.pid = None
 
         self.setWindowTitle('Select a process...')
 
-        vlyt = QtGui.QVBoxLayout()
-        hlyt = QtGui.QHBoxLayout()
+        vlyt = QtWidgets.QVBoxLayout()
+        hlyt = QtWidgets.QHBoxLayout()
 
         self.plisttree = VQProcessListView(trace=trace, parent=self)
 
-        hbox = QtGui.QWidget(parent=self)
+        hbox = QtWidgets.QWidget(parent=self)
 
-        ok = QtGui.QPushButton("Ok", parent=hbox)
-        cancel = QtGui.QPushButton("Cancel", parent=hbox)
+        ok = QtWidgets.QPushButton("Ok", parent=hbox)
+        cancel = QtWidgets.QPushButton("Cancel", parent=hbox)
 
         self.plisttree.doubleClicked.connect( self.dialog_activated )
 
@@ -388,10 +395,10 @@ class VQFileDescView(vq_tree.VQTreeView, VQTraceNotifier):
             model.append((fd, fdtype, bestname))
         self.setModel(model)
 
-class VQTraceToolBar(QtGui.QToolBar, vtrace.Notifier):
+class VQTraceToolBar(QtWidgets.QToolBar, vtrace.Notifier):
 
     def __init__(self, trace, parent=None):
-        QtGui.QToolBar.__init__(self, parent=parent)
+        QtWidgets.QToolBar.__init__(self, parent=parent)
         vtrace.Notifier.__init__(self)
         self.trace = trace
 

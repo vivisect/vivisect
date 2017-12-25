@@ -1,15 +1,15 @@
 
-from PyQt4 import QtCore, QtGui
+from PyQt5 import QtCore, QtGui, QtWidgets
 
 import visgraph.renderers as vg_render
 
-class QtGraphRenderer(vg_render.GraphRenderer, QtGui.QGraphicsView):
+class QtGraphRenderer(vg_render.GraphRenderer, QtWidgets.QGraphicsView):
 
     def __init__(self, graph, parent=None):
-        QtGui.QGraphicsView.__init__(self, parent=parent)
+        QtWidgets.QGraphicsView.__init__(self, parent=parent)
         vg_render.GraphRenderer.__init__(self, graph)
 
-        scene = QtGui.QGraphicsScene(parent=self)
+        scene = QtWidgets.QGraphicsScene(parent=self)
         self.setScene( scene )
 
     def delNode(self, nid, ninfo):
@@ -32,7 +32,7 @@ class QtGraphRenderer(vg_render.GraphRenderer, QtGui.QGraphicsView):
             if rep == None:
                 rep = 'node: %s' % nid
 
-            wid = QtGui.QLabel( rep )
+            wid = QtWidgets.QLabel( rep )
             ninfo['widget'] = wid
 
         gproxy = ninfo.get('gproxy')
@@ -149,7 +149,7 @@ if __name__ == '__main__':
         n2id = xr.next()
         g.addNode( n2id )
         n2props = g.getNodeProps( n2id )
-        n2props['widget'] = QtGui.QPushButton('new: %s' % n2id)
+        n2props['widget'] = QtWidgets.QPushButton('new: %s' % n2id)
         #x,y = nprops['position']
         #n2props['position'] = (x+30, y+30)
         g.addEdgeByNids(nid, n2id)
@@ -158,7 +158,7 @@ if __name__ == '__main__':
         layout.renderGraph(rend)
 
     for nid,nprops in g.getNodes():
-        b = QtGui.QPushButton('N: %s' % nid)
+        b = QtWidgets.QPushButton('N: %s' % nid)
         b.clicked.connect( vqt.basics.ACT( delNode, nid, nprops ) )
         b.setToolTip( pprint.pformat( nprops ) )
         nprops['widget'] = b
