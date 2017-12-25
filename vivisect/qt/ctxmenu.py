@@ -1,7 +1,7 @@
 '''
 A unified context menu builder for all address context clicks.
 '''
-from PyQt4 import QtGui,QtCore
+from PyQt5 import QtCore, QtGui, QtWidgets
 
 import envi
 import envi.bits as e_bits
@@ -73,7 +73,7 @@ def buildContextMenu(vw, va=None, expr=None, menu=None, parent=None, nav=None):
         expr = '0x%.8x' % va
 
     if menu == None:
-        menu = QtGui.QMenu(parent=parent)
+        menu = QtWidgets.QMenu(parent=parent)
 
     menu.addAction('rename (n)', ACT(vw.getVivGui().setVaName, va))
     menu.addAction('comment (;)', ACT(vw.getVivGui().setVaComment, va))

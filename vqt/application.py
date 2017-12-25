@@ -1,7 +1,7 @@
 import os
 import json
 
-from PyQt4 import QtCore, QtGui
+from PyQt5 import QtCore, QtGui, QtWidgets
 
 import vqt.cli as vq_cli
 import vqt.main as vq_main
@@ -9,10 +9,10 @@ import vqt.saveable as vq_save
 import vqt.hotkeys as vq_hotkeys
 import vqt.menubuilder as vq_menu
 
-class VQDockWidget(vq_hotkeys.HotKeyMixin, QtGui.QDockWidget):
+class VQDockWidget(vq_hotkeys.HotKeyMixin, QtWidgets.QDockWidget):
 
     def __init__(self, parent):
-        QtGui.QDockWidget.__init__(self, parent)
+        QtWidgets.QDockWidget.__init__(self, parent)
         vq_hotkeys.HotKeyMixin.__init__(self)
         self.addHotKey('ctrl+enter', 'mem:undockmaximize')
         self.addHotKeyTarget('mem:undockmaximize', self._hotkey_undock_maximize)
@@ -32,7 +32,7 @@ class VQDockWidget(vq_hotkeys.HotKeyMixin, QtGui.QDockWidget):
         # If he sets his window title, we want to...
         self.setWindowTitle(widget.windowTitle())
         widget.setWindowTitle = self.setWindowTitle
-        QtGui.QDockWidget.setWidget(self, widget)
+        QtWidgets.QDockWidget.setWidget(self, widget)
 
     def closeEvent(self, event):
 
@@ -67,16 +67,16 @@ class VQDockWidget(vq_hotkeys.HotKeyMixin, QtGui.QDockWidget):
 
 import vqt.hotkeys as vq_hotkey
 
-class VQMainCmdWindow(vq_hotkey.HotKeyMixin, QtGui.QMainWindow):
+class VQMainCmdWindow(vq_hotkey.HotKeyMixin, QtWidgets.QMainWindow):
     '''
     A base class for application window's to inherit from.
     '''
 
     __cli_widget_class__ = vq_cli.VQCli
 
-    def __init__(self, appname, cmd):
+    def __init__(self, appname, cmd, **kwargs):
 
-        QtGui.QMainWindow.__init__(self)
+        super(QtWidgets.QMainWindow, self).__init__(**kwargs)
         vq_hotkey.HotKeyMixin.__init__(self)
 
         self._vq_appname = appname
@@ -127,9 +127,9 @@ class VQMainCmdWindow(vq_hotkey.HotKeyMixin, QtGui.QMainWindow):
     def vqRestoreGuiSettings(self, settings):
 
         dwcls = settings.value('DockClasses')
-        if not dwcls.isNull():
+        if dwcls != None:
 
-            for i, clsname in enumerate(dwcls.toStringList()):
+            for i, clsname in enumerate(dwcls):
                 name = 'VQDockWidget%d'  % i
                 try:
                     tup = self.vqBuildDockWidget(str(clsname), floating=True)
@@ -143,12 +143,12 @@ class VQMainCmdWindow(vq_hotkey.HotKeyMixin, QtGui.QMainWindow):
 
         # Once dock widgets are loaded, we can restoreState
         state = settings.value('DockState')
-        if not state.isNull():
-            self.restoreState(state.toByteArray())
+        if state != None:
+            self.restoreState(state)
 
         geom = settings.value('DockGeometry')
-        if not geom.isNull():
-            self.restoreGeometry(geom.toByteArray())
+        if geom != None:
+            self.restoreGeometry(geom)
 
         # Just get all the resize activities done...
         vq_main.eatevents()
@@ -177,7 +177,7 @@ class VQMainCmdWindow(vq_hotkey.HotKeyMixin, QtGui.QMainWindow):
     def closeEvent(self, event):
         self.vqSaveGuiSettings(self._vq_settings)
         self._vq_cli.input.saveHistory(self._vq_histfile)
-        QtGui.QMainWindow.closeEvent(self, event)
+        QtWidgets.QMainWindow.closeEvent(self, event)
 
     def vqGetDockWidgets(self):
         return list(self._vq_dockwidgets)

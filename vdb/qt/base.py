@@ -1,10 +1,10 @@
-from PyQt4 import QtGui
+from PyQt5 import QtGui, QtWidgets
 
 import vqt.saveable as vq_save
 
 import vtrace.qt
 
-class VdbWidgetWindow(QtGui.QWidget, vq_save.SaveableWidget, vtrace.qt.VQTraceNotifier):
+class VdbWidgetWindow(QtWidgets.QWidget, vq_save.SaveableWidget, vtrace.qt.VQTraceNotifier):
     '''
     a base window class for widgets to inherit from for vdb.
     this gives your window/widget access to the vdb instance (self.db), the gui
@@ -15,7 +15,7 @@ class VdbWidgetWindow(QtGui.QWidget, vq_save.SaveableWidget, vtrace.qt.VQTraceNo
     state between runs of the debugger.
     '''
     def __init__(self, db, dbt, parent=None):
-        QtGui.QWidget.__init__(self, parent=parent)
+        QtWidgets.QWidget.__init__(self, parent=parent)
         vq_save.SaveableWidget.__init__(self)
         vtrace.qt.VQTraceNotifier.__init__(self, trace=dbt)
 

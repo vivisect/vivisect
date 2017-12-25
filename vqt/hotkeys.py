@@ -1,4 +1,5 @@
-from PyQt4 import QtCore, QtGui
+from PyQt5 import QtCore
+from PyQt5.QtWidgets import *
 
 QMOD_META   = 0x08000000
 QMOD_CTRL   = 0x04000000
@@ -95,7 +96,7 @@ class HotKeyMixin(object):
 
             keyobj = settings.value('hotkey:%s' % tname)
 
-            if not keyobj.isNull():
+            if keyobj != None:
                 self.addHotKey(keyobj.toString(),tname)
 
     def getHotKeyFromEvent(self, event):
@@ -146,7 +147,10 @@ class HotKeyMixin(object):
 
     def keyPressEvent(self, event):
         if not self.eatKeyPressEvent(event):
-            return super(HotKeyMixin, self).keyPressEvent(event)
+            return super(HotKeyMixin, self).keyPressEvent(event)       # FIXME: is this the correct functionality?? the old way no longer works
+            parent = self.parent()
+            if parent != None:
+                return parent.keyPressEvent(event)
 
 import vqt.tree
 

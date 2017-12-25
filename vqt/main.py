@@ -5,7 +5,7 @@ import traceback
 from Queue import Queue
 from threading import currentThread
 
-from PyQt4 import QtCore, QtGui
+from PyQt5 import QtCore, QtGui, QtWidgets
 
 import envi.threads as e_threads
 
@@ -131,12 +131,12 @@ class QEventThread(QtCore.QThread):
             except Exception, e:
                 print('vqt event thread: %s' % e)
 
-class VQApplication(QtGui.QApplication):
+class VQApplication(QtWidgets.QApplication):
 
     guievents = QtCore.pyqtSignal(str,object)
 
     def __init__(self, *args, **kwargs):
-        QtGui.QApplication.__init__(self, *args, **kwargs)
+        QtWidgets.QApplication.__init__(self, *args, **kwargs)
         self.vqtchans = {}
 
     def callFromQtLoop(self, callback, args, kwargs):

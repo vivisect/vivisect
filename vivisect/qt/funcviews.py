@@ -1,7 +1,7 @@
 '''
 Views related to information about a given function.
 '''
-from PyQt4 import QtCore,QtGui
+from PyQt5 import QtCore, QtGui, QtWidgets
 
 import envi.qt.memcanvas as e_q_memcanvas
 import vivisect.qt.ctxmenu as viv_q_ctxmenu
@@ -59,11 +59,11 @@ class FunctionBlocksView(BasicTreeView):
         self.setModel( model )
         self.sortByColumn( 0, QtCore.Qt.AscendingOrder )
 
-class FuncCallsView(QtGui.QWidget):
+class FuncCallsView(QtWidgets.QWidget):
 
     def __init__(self, vw, parent=None):
         self.vw = vw
-        QtGui.QWidget.__init__(self, parent=parent)
+        QtWidgets.QWidget.__init__(self, parent=parent)
 
         self.graphview = vg_qgraphtree.QGraphTreeView( None, (), parent=self)
         self.graphview._sig_NodeContextMenu.connect( self.nodeContextMenu )
@@ -75,7 +75,7 @@ class FuncCallsView(QtGui.QWidget):
         self.graphview.loadNewGraph( self.vw._call_graph, ( (fva,nprops), ) )
 
     def nodeContextMenu(self, pos, nid, nprops):
-        menu = QtGui.QMenu(parent=self)
+        menu = QtWidgets.QMenu(parent=self)
         viv_q_ctxmenu.buildContextMenu(self.vw, va=nid, menu=menu)
         menu.exec_(pos)
 
