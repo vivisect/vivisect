@@ -449,13 +449,19 @@ def branch_misc(va, val, val2): # bl and misc control
         j2 = not ((val2>>11)&1 ^ s)
 
         imm = (s<<24) | (j1<<23) | (j2<<22) | ((val&0x3ff) << 12) | ((val2&0x7ff) << 1)
-        #imm += 2    # why is this necessary?
 
         #sign extend a 25-bit number
         if s:
             imm |= 0xff000000
 
-        oper0 = ArmPcOffsetOper(e_bits.signed(imm,4), va=va&0xfffffffe)
+        vamask = (
+                0xfffffffc,
+                0xfffffffe
+                )
+
+        va &= vamask[notx]
+
+        oper0 = ArmPcOffsetOper(e_bits.signed(imm,4), va=va)
 
         return COND_AL, opcode, mnem, (oper0, ), flags, 0
         
