@@ -90,7 +90,7 @@ class EnviNavModel(vq_tree.VQTreeModel):
         pnode = idx[0].internalPointer()
         expr = pnode.rowdata[self.navcol]
         mdata = QtCore.QMimeData()
-        mdata.setData('envi/expression',expr)
+        mdata.setData('envi/expression',str(expr))
         return mdata
 
 class VQMemoryWindow(vq_hotkey.HotKeyMixin, EnviNavMixin, vq_save.SaveableWidget, QtWidgets.QWidget):

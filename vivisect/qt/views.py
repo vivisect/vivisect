@@ -255,8 +255,7 @@ class VQVivFunctionsView(VQVivTreeView):
         fva, fmeta = einfo
         self.vivAddFunction(fva)
 
-    def VWE_DELFUNCTION(self, vw, event, efino):
-        fva, fmeta = einfo
+    def VWE_DELFUNCTION(self, vw, event, fva):
         self.vivDelRow(fva)
 
     def VWE_SETNAME(self, vw, event, einfo):
@@ -408,7 +407,7 @@ class VQXrefView(VQVivTreeView):
         for fromva, tova, rtype, rflags in xrefs:
             fva = vw.getFunction(fromva)
             funcname = ''
-            if fva:
+            if fva != None:
                 funcname = vw.getName(fva)
             self.vivAddRow(fromva, '0x%.8x' % fromva, rtype, rflags, funcname)
 

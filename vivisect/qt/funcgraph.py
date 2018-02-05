@@ -84,7 +84,7 @@ class VQVivFuncgraphCanvas(vq_memory.VivCanvasBase):
         return ret
 
     def contextMenuEvent(self, event):
-        if self._canv_curva:
+        if self._canv_curva != None:
             menu = vq_ctxmenu.buildContextMenu(self.vw, va=self._canv_curva, parent=self)
         else:
             menu = QtWidgets.QMenu(parent=self)
@@ -95,10 +95,6 @@ class VQVivFuncgraphCanvas(vq_memory.VivCanvasBase):
         self.viewmenu.addAction("Paint Up", ACT(self.paintUp.emit))
         self.viewmenu.addAction("Paint Down", ACT(self.paintDown.emit))
         self.viewmenu.addAction("Paint Down until remerge", ACT(self.paintMerge.emit))
-
-        viewmenu = menu.addMenu('view   ')
-        viewmenu.addAction("Save frame to HTML", ACT(self._menuSaveToHtml))
-        viewmenu.addAction("Refresh", ACT(self.refresh))
 
         menu.exec_(event.globalPos())
 
@@ -403,7 +399,12 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QtWidg
         self.fva = fva
         #self.graph = self.vw.getFunctionGraph(fva)
         if graph == None:
-            graph = viv_graphutil.buildFunctionGraph(self.vw, fva, revloop=True)
+            try:
+                graph = viv_graphutil.buildFunctionGraph(self.vw, fva, revloop=True)
+            except Exception, e:
+                import sys
+                sys.excepthook(*sys.exc_info())
+                return
 
         self.graph = graph
 
@@ -507,7 +508,7 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QtWidg
     def clearText(self):
         # Pop the svg and reset #memcanvas
         frame = self.mem_canvas.page().mainFrame()
-        if self.fva:
+        if self.fva != None:
             svgid = '#funcgraph_%.8x' % self.fva
             svgelem = frame.findFirstElement(svgid)
             svgelem.removeFromDocument()

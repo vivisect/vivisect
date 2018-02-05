@@ -32,6 +32,14 @@ class VQTreeItem(object):
         self.children.append(child)
         return child
 
+    def delete(self, rowdata):
+        idx = 0
+        for child in self.children:
+            if child.rowdata == rowdata:
+                return self.children.pop(idx)
+
+            idx += 1
+
     def child(self, row):
         return self.children[row]
 
