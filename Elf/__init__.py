@@ -523,17 +523,20 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
             if sec.sh_type != SHT_NOTE:
                 continue
 
-            notebytes =  self.readAtOffset(sec.sh_offset, sec.sh_size)
-            offset = 0
-            notebyteslen = len(notebytes)
-            while offset < notebyteslen:
-                note = vs_elf.ElfNote()
-                if notebyteslen - offset < len(note):
-                    #print ("\nNOTES section length mismatch!\n\t%s\n\tSection Bytes: %s\n\tStranded bytes: %s\n" % (sec, repr(notebytes), repr(notebytes[offset:])))
-                    break
+            try:
+                notebytes =  self.readAtOffset(sec.sh_offset, sec.sh_size)
+                offset = 0
+                notebyteslen = len(notebytes)
+                while offset < notebyteslen:
+                    note = vs_elf.ElfNote()
+                    if notebyteslen - offset < len(note):
+                        #print ("\nNOTES section length mismatch!\n\t%s\n\tSection Bytes: %s\n\tStranded bytes: %s\n" % (sec, repr(notebytes), repr(notebytes[offset:])))
+                        break
 
-                offset = note.vsParse(notebytes,offset=offset)
-                yield note
+                    offset = note.vsParse(notebytes,offset=offset)
+                    yield note
+            except Exception, e:
+                print "Elf.getNotes() Exception: %r" % e
 
     def getPlatform(self):
         '''

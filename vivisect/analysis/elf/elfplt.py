@@ -23,24 +23,23 @@ def analyze(vw):
             sva += ltup[vivisect.L_SIZE]
 
 def analyzeFunction(vw, funcva):
-
     seg = vw.getSegment(funcva)
     if seg == None:
         return
 
     segva, segsize, segname, segfname = seg
 
-    if segname != ".plt":
+    if segname not in (".plt", ".plt.got"):
         return
 
-    #FIXME check for i386
     op = vw.parseOpcode(funcva)
-    if op.opcode != opcode86.INS_BRANCH:
+    if op.iflags & envi.IF_BRANCH == 0:
         return
 
     loctup = None
     oper0 = op.opers[0]
-
+    opval = oper0.getOperAddr(op)
+    """
     if isinstance(oper0, e_i386.i386ImmMemOper):
         
         loctup = vw.getLocation(oper0.getOperAddr(op))
@@ -60,15 +59,19 @@ def analyzeFunction(vw, funcva):
 
         if got != None:
             loctup = vw.getLocation(got+oper0.disp)
+    """
+
+    loctup = vw.getLocation(opval)
 
     if loctup == None:
         return
 
-    if loctup[vivisect.L_LTYPE] != vivisect.LOC_IMPORT:
-        return
+    if loctup[vivisect.L_LTYPE] != vivisect.LOC_IMPORT: # FIXME: Why are AMD64 IMPORTS showing up as POINTERs?
+        print "0x%x: " % funcva, loctup[vivisect.L_LTYPE], ' != ', vivisect.LOC_IMPORT
+        #return
 
-    tinfo = loctup[vivisect.L_TINFO]
-    lname,fname = tinfo.split(".")
+    gotname = vw.getName(opval)
+    tinfo = gotname
     #vw.makeName(funcva, "plt_%s" % fname, filelocal=True)
     vw.makeFunctionThunk(funcva, tinfo)
 
