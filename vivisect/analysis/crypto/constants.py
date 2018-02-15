@@ -1,4 +1,8 @@
 import envi
+import logging
+logger = logging.getLogger(__name__)
+#logger.setLevel(logging.DEBUG)
+
 from vivisect.const import *
 
 """Locate the basic use of known crypto constants"""
@@ -36,7 +40,7 @@ def analyze(vw):
             while va < maxva:
                 loctup = vw.getLocation(va)
                 if loctup == None:
-                    print "error parsing through function 0x%x at 0x%x" % (fva, va)
+                    logger.error("error parsing through function 0x%x at 0x%x" % (fva, va))
                     va += 1
                     continue
                 lva,lsize,ltype,tinfo = loctup
