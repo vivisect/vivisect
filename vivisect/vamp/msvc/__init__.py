@@ -1,32 +1,78 @@
 """
-envi.bytesig signature stuff for Microsoft Visual Studio
+envi.bytesig signatures for Microsoft Visual Studio
 """
 
 import envi.bytesig as e_bytesig
 
-sigs = [
-    ('680000000064a10000000050', 'ff00000000ffffffffffffff','ntdll.seh3_prolog'),
-    ('8b4df064890d00000000595f5e5bc951c3', None, 'ntdll.seh3_epilog'),
-    ('8b4df064890d00000000595f5f5e5b8be55d51c3', None, 'ntdll.seh4_epilog'),
-    ('680000000064ff35000000008b442410', 'ff00000000ffffffffffffffffffffff', 'ntdll.seh4_prolog'),
-    ('a10000000033c58945fc','ff00000000ffffffffff','ntdll.gs_prolog'),
-    ('518d4c24042bc81bc0f7d023c88bc42500f0ffff3bc8720a8bc159948b00890424c32d001000008500ebe9', None, 'ntdll.gs_prolog'), # takes only stack delta!
-    ('3b0d000000000f85afdc0200c3', 'ffff00000000ffffffffffffff', 'ntdll.security_check_cookie'),
-    ('8bff558bec5151a300000000890d00000000891500000000891d00000000893500000000893d000000008c15000000008c0d000000008c1d000000008c05000000008c25000000008c2d000000009c',
-     'ffffffffffffffff00000000ffff00000000ffff00000000ffff00000000ffff00000000ffff00000000ffff00000000ffff00000000ffff00000000ffff00000000ffff00000000ffff00000000ff',
-     'ntdll.report_gsfailure',
-    ),
+# Seen in 32-bit samples.
+_sigA1 = ('680000000064a10000000050',
+          'ff00000000ffffffffffffff',
+          'ntdll.seh3_prolog')
+_sigA2 = ('8b4df064890d00000000595f5e5bc951c3',
+          None,
+          'ntdll.seh3_epilog')
+# Seen in 32-bit samples.
+_sigA3 = ('680000000064ff35000000008b442410',
+          'ff00000000ffffffffffffffffffffff',
+          'ntdll.seh4_prolog')
+# Seen in 32-bit samples using VS 2005, 2008, 2010, 2012, 2013.
+_sigA4 = ('8b4df064890d00000000595f5f5e5b8be55d51c3',
+          None,
+          'ntdll.seh4_epilog')
+# Seen in 32-bit samples using VS 2015, 2017 15.0.
+_sigA5 = ('8b4df064890d00000000595f5f5e5b8be55d51f2c3',
+          None,
+          'ntdll.seh4_epilog')
+# Seen in 32-bit samples using VS 6.0.
+_sigA6 = ('6aff5064a100000000508b44240c64892500000000896c240c8d6c240c50c3',
+          None,
+          'ntdll.eh_prolog')
 
-    ('8bff558bec81ec28030000a300000000890d00000000891500000000891d00000000893500000000893d00000000668c1500000000668c0d00000000668c1d00000000668c0500000000668c2500000000668c2d000000009c',
-     'ffffffffffffffffffffffff00000000ffff00000000ffff00000000ffff00000000ffff00000000ffff00000000ffffff00000000ffffff00000000ffffff00000000ffffff00000000ffffff00000000ffffff00000000ff',
-     'ntdll.report_gsfailure',
-    ),
+# Seen in 32-bit samples using VS 6.0.
+_sigB1 = ('513d001000008d4c2408721481e9001000002d0010000085013d0010000073ec2bc88bc485018be18b088b400450c3',
+          None,
+          'ntdll._alloca_probe')
+# Seen in 32-bit samples using VS 2005, 2008, 2010, 2012, 2013.
+_sigB2 = ('518d4c24042bc81bc0f7d023c88bc42500f0ffff3bc8720a8bc159948b00890424c32d001000008500ebe9',
+          None,
+          'ntdll._alloca_probe')
+# Perhaps never used.
+_sigB3 = ('a10000000033c58945fc',
+          'ff00000000ffffffffff',
+          'ntdll.gs_prolog')
 
-    ('3b0d000000007502f3c3e9', 'ffff00000000ffffffffff','ntdll.security_check_cookie'),
-    ('6aff5064a100000000508b44240c64892500000000896c240c8d6c240c50c3',None, 'ntdll.eh_prolog'),
-    ('513d001000008d4c2408721481e9001000002d0010000085013d0010000073ec2bc88bc485018be18b088b400450c3', None, 'ntdll._alloca_probe')
+# 32-bit assembly used in VS 2005, 2008, 2010, 2012, 2013.
+_sigC1 = ('3b0d000000007502f3c3e9',
+          'ffff00000000ffffffffff',
+          'ntdll.security_check_cookie')
+# 32-bit assembly used in VS 2015, 2017 (includes bnd opcodes).
+_sigC2 = ('3b0d00000000f27502f2c3f2e9',
+          'ffff00000000ffffffffffffff',
+          'ntdll.security_check_cookie')
+# 64-bit assembly used in VS 2005, 2008, 2010, 2012, 2013.
+_sigC3 = ('483b0d00000000751148c1c11066f7c1ffff7502f3c348c1c910e9',
+          'ffffff00000000ffffffffffffffffffffffffffffffffffffffff',
+          'ntdll.security_check_cookie_64')
+# 64-bit assembly used in VS 2015.
+_sigC4 = ('483b0d00000000f2751148c1c11066f7c1fffff27502f2c348c1c910e9',
+          'ffffff00000000ffffffffffffffffffffffffffffffffffffffffffff',
+          'ntdll.security_check_cookie_64')
 
-]
+# 32-bit assembly used in VS 2008
+# Often only called by security_check_cookie and therefore not analyzed.
+_sigD1 = ('8bff558bec81ec28030000a300000000890d00000000891500000000891d00000000893500000000893d00000000668c1500000000668c0d00000000668c1d00000000668c0500000000668c2500000000668c2d000000009c',
+          'ffffffffffffffffffffffff00000000ffff00000000ffff00000000ffff00000000ffff00000000ffff00000000ffffff00000000ffffff00000000ffffff00000000ffffff00000000ffffff00000000ffffff00000000ff',
+          'ntdll.report_gsfailure')
+# Perhaps never used.
+_sigD2 = ('8bff558bec5151a300000000890d00000000891500000000891d00000000893500000000893d000000008c15000000008c0d000000008c1d000000008c05000000008c25000000008c2d000000009c',
+          'ffffffffffffffff00000000ffff00000000ffff00000000ffff00000000ffff00000000ffff00000000ffff00000000ffff00000000ffff00000000ffff00000000ffff00000000ffff00000000ff',
+          'ntdll.report_gsfailure')
+
+sigs = [ _sigA1, _sigA2, _sigA3, _sigA4, _sigA5, _sigA6,
+         _sigB1, _sigB2, _sigB3,
+         _sigC1, _sigC2, _sigC3, _sigC4,
+         _sigD1, _sigD2 ]
+
 
 class VisualStudioVamp(e_bytesig.SignatureTree):
 
@@ -134,5 +180,3 @@ class VisualStudioVamp(e_bytesig.SignatureTree):
 #8d6c240c         lea ebp,dword [esp + local_1]     ; Make ebp point to itself
 #50               push eax
 #c3               ret 
-
-
