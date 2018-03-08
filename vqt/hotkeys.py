@@ -1,3 +1,12 @@
+import sys
+import logging
+import traceback
+
+logger = logging.getLogger(__name__)
+#logger.setLevel(logging.INFO)
+if not len(logger.handlers):
+    logger.addHandler(logging.StreamHandler())
+
 from PyQt5 import QtCore
 from PyQt5.QtWidgets import *
 
@@ -139,7 +148,12 @@ class HotKeyMixin(object):
         target = self._vq_hotkeys.get( hotkey )
         if target != None:
             callback, args, kwargs = self._vq_hotkey_targets.get( target )
-            callback(*args,**kwargs)
+            try:
+                callback(*args,**kwargs)
+            except:
+                logger.warn("error in eatKeyPressEvent(%r, %r, %r)" % (event, args, kwargs))
+                logger.debug(''.join(traceback.format_exception(*sys.exc_info())))
+
             event.accept()
             return True
 

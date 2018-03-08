@@ -1,5 +1,16 @@
+import sys
+import logging
+import traceback
+
 # Some common GUI helpers
 from PyQt5 import QtCore, QtGui, QtWidgets
+
+logger = logging.getLogger(__name__)
+#logger.setLevel(logging.DEBUG)
+if not len(logger.handlers):
+    logger.addHandler(logging.StreamHandler())
+
+
 
 class ACT:
     def __init__(self, meth, *args, **kwargs):
@@ -8,7 +19,12 @@ class ACT:
         self.kwargs = kwargs
 
     def __call__(self):
-        return self.meth( *self.args, **self.kwargs )
+        try:
+            return self.meth( *self.args, **self.kwargs )
+        except:
+            logger.warn("error in ACT(%r, %r, %r)" % (self.meth, self.args, self.kwargs))
+            logger.debug(''.join(traceback.format_exception(*sys.exc_info())))
+
 
 class VqtModel(QtCore.QAbstractItemModel):
 
