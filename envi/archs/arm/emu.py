@@ -741,10 +741,12 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
 
         curmode = self.getProcMode() 
         if op.iflags & IF_PSR_S:
-            if op.opers[0].reg == 15 and (curmode != PM_sys and curmode != PM_usr):
-                self.setCPSR(self.getSPSR(curmode))
-            else:
-                raise Exception("Messed up opcode...  adding to r15 from PM_usr or PM_sys")
+            if op.opers[0].reg == 15:
+                if (curmode != PM_sys and curmode != PM_usr):
+                    self.setCPSR(self.getSPSR(curmode))
+                else:
+                    raise Exception("Messed up opcode...  adding to r15 from PM_usr or PM_sys")
+
             self.setFlag(PSR_N_bit, e_bits.is_signed(ures, dsize))
             self.setFlag(PSR_Z_bit, not ures)
             self.setFlag(PSR_C_bit, e_bits.is_unsigned_carry(ures, dsize))
@@ -1028,8 +1030,13 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
 
     def i_bic(self, op):
         dsize = op.opers[0].tsize
-        val = self.getOperValue(op, 1)
-        const = self.getOperValue(op, 2)
+        if len(op.opers) == 3:
+            val = self.getOperValue(op, 1)
+            const = self.getOperValue(op, 2)
+        else:
+            val = self.getOperValue(op, 0)
+            const = self.getOperValue(op, 1)
+
         val &= ~const
         self.setOperValue(op, 0, val)
 
@@ -1188,48 +1195,48 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
             return imm32
 
     def i_smulbb(self, op):
-        oper1 = op.getOperValue(1) & 0xffff
-        oper2 = op.getOperValue(2) & 0xffff
+        oper1 = self.getOperValue(op, 1) & 0xffff
+        oper2 = self.getOperValue(op, 2) & 0xffff
 
         s1 = e_bits.signed(oper1 & 0xffff, 2)
         s2 = e_bits.signed(oper2 & 0xffff, 2)
 
         result = s1 * s2
 
-        op.setOperValue(0, result)
+        self.setOperValue(op, 0, result)
 
     def i_smultb(self, op):
-        oper1 = op.getOperValue(1) & 0xffff
-        oper2 = op.getOperValue(2) & 0xffff
+        oper1 = self.getOperValue(op, 1) & 0xffff
+        oper2 = self.getOperValue(op, 2) & 0xffff
 
         s1 = e_bits.signed(oper1 >> 16, 2)
         s2 = e_bits.signed(oper2 & 0xffff, 2)
 
         result = s1 * s2
 
-        op.setOperValue(0, result)
+        self.setOperValue(op, 0, result)
 
     def i_smulbt(self, op):
-        oper1 = op.getOperValue(1) & 0xffff
-        oper2 = op.getOperValue(2) & 0xffff
+        oper1 = self.getOperValue(op, 1) & 0xffff
+        oper2 = self.getOperValue(op, 2) & 0xffff
 
         s1 = e_bits.signed(oper1 & 0xffff, 2)
         s2 = e_bits.signed(oper2 >> 16, 2)
 
         result = s1 * s2
 
-        op.setOperValue(0, result)
+        self.setOperValue(op, 0, result)
 
     def i_smultt(self, op):
-        oper1 = op.getOperValue(1) & 0xffff
-        oper2 = op.getOperValue(2) & 0xffff
+        oper1 = self.getOperValue(op, 1) & 0xffff
+        oper2 = self.getOperValue(op, 2) & 0xffff
 
         s1 = e_bits.signed(oper1 >>16, 2)
         s2 = e_bits.signed(oper2 >>16, 2)
 
         result = s1 * s2
 
-        op.setOperValue(0, result)
+        self.setOperValue(op, 0, result)
 
     def i_tb(self, op):
         # TBB and TBH both come here.
