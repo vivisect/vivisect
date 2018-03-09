@@ -51,6 +51,7 @@ class VivCanvasBase(vq_hotkey.HotKeyMixin, e_mem_canvas.VQMemoryCanvas):
         self.addHotKey('ctrl+S','viv:make:struct:again')
         self.addHotKey('ctrl+meta+S','viv:make:struct:multi')
         self.addHotKey('U','viv:undefine')
+        self.addHotKey('ctrl+p','viv:preview:instr')
         self.addHotKey('ctrl+s','viv:save')
         self.addHotKey('B', 'viv:bookmark')
         self.addHotKey('ctrl+1', 'viv:make:number:one')
@@ -270,6 +271,11 @@ class VivCanvasBase(vq_hotkey.HotKeyMixin, e_mem_canvas.VQMemoryCanvas):
     def _hotkey_make_number_sixteen(self):
         if self._canv_curva:
             self.vw.makeNumber(self._canv_curva, 16)
+
+    @vq_hotkey.hotkey('viv:preview:instr')
+    def _hotkey_preview_instr(self):
+        if self._canv_curva != None:
+            self.vw.previewCode(self._canv_curva)
 
     @firethread
     @vq_hotkey.hotkey('viv:save')
