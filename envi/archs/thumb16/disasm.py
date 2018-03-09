@@ -1052,6 +1052,8 @@ def ldrb_memhints_32(va, val1, val2):
             opers = (
                     ArmScaledOffsetOper(rn, rm, S_LSL, imm2, va),
                     )
+            return COND_AL, opcode, mnem, opers, flags, 0
+
         else:
             # LDRB (literal)
             opcode, mnem, flags = ldrb_instrs[Sbit]
@@ -1060,6 +1062,7 @@ def ldrb_memhints_32(va, val1, val2):
                     ArmRegOper(rt),
                     ArmPcOffsetOper(imm12, va),
                     )
+            return COND_AL, opcode, mnem, opers, flags, 0
 
     else:
         if op1&1:
@@ -1070,6 +1073,7 @@ def ldrb_memhints_32(va, val1, val2):
                     ArmRegOper(rt),
                     ArmImmOffsetOper(rn, imm12, va),
                     )
+            return COND_AL, opcode, mnem, opers, flags, 0
 
         elif not op1:
             if not op2 and rt == 0xf:
@@ -1080,6 +1084,7 @@ def ldrb_memhints_32(va, val1, val2):
                 opers = (
                         ArmScaledOffsetOper(rn, rm, S_LSL, imm2, va),
                         )
+                return COND_AL, opcode, mnem, opers, flags, 0
 
             elif (val2>>11) & 1:
                 # LDRB (register)
@@ -1090,21 +1095,21 @@ def ldrb_memhints_32(va, val1, val2):
                         ArmRegOper(rt),
                         ArmImmOffsetOper(rn, imm8, va, pubwl)
                         )
+                return COND_AL, opcode, mnem, opers, flags, 0
 
+            else:
+                # LDRB (register)
+                opcode, mnem, flags = ldrb_instrs[Sbit]
+                rm = val2 & 0xf
+                imm2 = (val2>>4) & 3
+                opers = (
+                        ArmRegOper(rt),
+                        ArmScaledOffsetOper(rn, rm, S_LSL, imm2, va),
+                        )
+                return COND_AL, opcode, mnem, opers, flags, 0
 
-        else:
-            # LDRB (register)
-            opcode, mnem, flags = ldrb_instrs[Sbit]
-            rm = val2 & 0xf
-            imm2 = (val2>>4) & 3
-            opers = (
-                    ArmRegOper(rt),
-                    ArmScaledOffsetOper(rn, rm, S_LSL, imm2, va),
-                    )
-
-        #else:
-        #    raise envi.InvalidInstruction(
-        #            mesg="ldrb_memhints_32: fall 1", va=va)
+        raise envi.InvalidInstruction(
+                mesg="ldrb_memhints_32: fall 1", va=va)
 
 
     return COND_AL, opcode, mnem, opers, flags, 0
@@ -1731,7 +1736,7 @@ thumb_base = [
     ('0100001011',  (INS_CMN,'cmn',     rm_rd,      0)), # CMN<c> <Rn>,<Rm>
     ('0100001100',  (INS_ORR,'orr',     rm_rdn,     IF_PSR_S)), # ORR<c> <Rdn>,<Rm>
     ('0100001101',  (INS_MUL,'mul',     rn_rdm,     IF_PSR_S)), # MUL<c> <Rdm>,<Rn>,<Rdm>
-    ('0100001110',  (INS_BIC,'bic',     rm_rdn,     0)), # BIC<c> <Rdn>,<Rm>
+    ('0100001110',  (INS_BIC,'bic',     rm_rdn,     IF_PSR_S)), # BIC<c> <Rdn>,<Rm>
     ('0100001111',  (INS_MVN,'mvn',     rm_rd,      0)), # MVN<c> <Rd>,<Rm>
     # Special data in2tructions and branch and exchange
     ('0100010000',  (INS_ADD,'add',     d1_rm4_rd3, 0)), # ADD<c> <Rdn>,<Rm>
