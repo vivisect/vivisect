@@ -645,6 +645,15 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
             self.setThumbMode(val & 1)
             return val & -2
 
+    i_ldrb = i_ldr
+    i_ldrbt = i_ldr
+    i_ldrd = i_ldr
+    i_ldrh = i_ldr
+    i_ldrht = i_ldr
+    i_ldrsh = i_ldr
+    i_ldrsb = i_ldr
+    i_ldrt = i_ldr
+
     def i_mov(self, op):
         val = self.getOperValue(op, 1)
         self.setOperValue(op, 0, val)
@@ -687,6 +696,14 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
         self.setOperValue(op, 1, val)
 
     i_strh = i_str
+    i_strb = i_str
+    i_strbt = i_str
+    i_strd = i_str
+    i_strh = i_str
+    i_strsh = i_str
+    i_strsb = i_str
+    i_strt = i_str
+
 
     def i_add(self, op):
         if len(op.opers) == 3:
@@ -763,13 +780,13 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
     def i_bx(self, op):
         target = self.getOperValue(op, 0)
         self.setFlag(PSR_T_bit, target & 1)
-        return target
+        return target & -2
 
     def i_blx(self, op):
         self.setRegister(REG_LR, self.getRegister(REG_PC) + len(op))
         target = self.getOperValue(op, 0)
         self.setFlag(PSR_T_bit, target & 1)
-        return target
+        return target & -2
 
     def i_svc(self, op):
         svc = self.getOperValue(op, 0)
@@ -974,6 +991,34 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
         #            (op.va, op, res, res2, origeflags, eflags1, eflags2)
 
     i_cmps = i_cmp
+
+    def i_uxth(self, op):
+        val = self.getOperValue(op, 1)
+        self.setOperValue(op, 0, val)
+
+    def i_uxtah(self, op):
+        val = self.getOperValue(op, 2)
+        val += self.getOperValue(op, 1)
+
+        self.setOperValue(op, 0, val)
+
+    def i_sxth(self, op):
+        slen = op.opers[1].tsize
+        dlen = op.opers[0].tsize
+
+        val = self.getOperValue(op, 1)
+        val = ebits.sign_extend(val, slen, dlen)
+        self.setOperValue(op, 0, val)
+
+    def i_sxtah(self, op):
+        slen = op.opers[2].tsize
+        dlen = op.opers[0].tsize
+
+        val = self.getOperValue(op, 2)
+        val = ebits.sign_extend(val, slen, dlen)
+        val += self.getOperValue(op, 1)
+
+        self.setOperValue(op, 0, val)
 
     def i_bic(self, op):
         dsize = op.opers[0].tsize
@@ -1210,6 +1255,8 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
 
 
 
+    def i_cps(self, op):
+        print("CPS: 0x%x  %r" % (op.va, op))
 
     def i_pld2(self, op):
         print("FIXME: 0x%x: %s - in emu" % (op.va, op))

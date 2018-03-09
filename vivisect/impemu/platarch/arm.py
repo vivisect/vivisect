@@ -172,6 +172,12 @@ class ArmWorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_arm.ArmEmulator):
                             for bva,bpath in blist:
                                 todo.append((bva, esnap, bpath))
                             break
+                    else:
+                        # check if we've blx'd to a different thumb state.  if so,
+                        # be sure to return to the original tmode before continuing emulation pass
+                        newtmode = self.getFlag(PSR_T_bit)
+                        if newtmode != tmode:
+                            self.setFlag(PSR_T_bit, tmode)
 
                     # If we enounter a procedure exit, it doesn't
                     # matter what EIP is, we're done here.
@@ -182,7 +188,7 @@ class ArmWorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_arm.ArmEmulator):
                 except envi.UnsupportedInstruction, e:
                     if self.strictops:
                         if verbose: print 'runFunction breaking after unsupported instruction: 0x%08x %s' % (e.op.va, e.op.mnem)
-                        break
+                        raise e
                     else:
                         if verbose: print 'runFunction continuing after unsupported instruction: 0x%08x %s' % (e.op.va, e.op.mnem)
                         self.setProgramCounter(e.op.va+ e.op.size)
@@ -191,7 +197,7 @@ class ArmWorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_arm.ArmEmulator):
                     if self.emumon != None:
                         self.emumon.logAnomaly(self, starteip, str(e))
 
-                    if verbose: print 'runFunction breaking after exception (0x%x): %s' % (e.op.va, e)
+                    if verbose: print 'runFunction breaking after exception (fva: 0x%x): %s' % (funcva, e)
                     break # If we exc during execution, this branch is dead.
           #except:
           #    sys.excepthook(*sys.exc_info())
