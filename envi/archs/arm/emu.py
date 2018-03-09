@@ -464,8 +464,14 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
         return ures
 
     def logicalAnd(self, op):
-        src1 = self.getOperValue(op, 1)
-        src2 = self.getOperValue(op, 2)
+        opercnt = len(op.opers)
+
+        if opercnt == 3:
+            src1 = self.getOperValue(op, 1)
+            src2 = self.getOperValue(op, 2)
+        else:
+            src1 = self.getOperValue(op, 0)
+            src2 = self.getOperValue(op, 1)
 
         # PDE
         if src1 == None or src2 == None:

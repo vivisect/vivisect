@@ -823,11 +823,12 @@ def shift_or_ext_32(va, val1, val2):
         raise InvalidInstruction(mesg="shift_or_ext_32 needs to hand off for val2 & 0xf000 != 0xf000 at va 0x%x: val1:%.4x val2:%.4x" % (va, val1, val2), va=va)
 
 
-    op1 = (val>>4) & 0xf
+    op1 = (val1>>4) & 0xf
     op2 = (val2>>4) & 0xf
     rn = (val1 & 0xf)
     rd = (val2 >> 8) & 0xf
     rm = (val2 & 0xf)
+    flags = 0
 
     if (op2):
         if op1 > 5:
@@ -870,7 +871,6 @@ def shift_or_ext_32(va, val1, val2):
 
     else:
         # lsl/lsr/asr/ror
-        flags = 0
         op1 = (val1>>4) & 0xf
         opcode, mnem, nothing = mov_ris_ops[op1>>1]
 
@@ -882,7 +882,8 @@ def shift_or_ext_32(va, val1, val2):
 
         if (op1 & 1):
             flags |= IF_PSR_S
-        return COND_AL, opcode, mnem, opers, flags, 0
+
+    return COND_AL, opcode, mnem, opers, flags, 0
 
 
 
