@@ -1540,11 +1540,11 @@ def p_vmov_scalar(opval, va):
     if op:
         opers = (
             ArmRegOper(rt, va),
-            ArmRegScalarOper(rctx.getRegisterIndex('d%d' % vm), index),
+            ArmRegScalarOper(rctx.getRegisterIndex('d%d' % vd), index),
             )
     else:
         opers = (
-            ArmRegScalarOper(rctx.getRegisterIndex('d%d' % vm), index),
+            ArmRegScalarOper(rctx.getRegisterIndex('d%d' % vd), index),
             ArmRegOper(rt, va),
             )
 
@@ -1569,7 +1569,7 @@ def p_vstm(opval, va):      #p1078
 
     opers = (
             ArmRegOper(rn, va, oflags=oflags),
-            ArmExtRegListOper(vn, regsize, op),
+            ArmExtRegListOper(vd, regsize, op),
             )
 
     return opcode, mnem, opers, flags, simdflags
@@ -4618,11 +4618,12 @@ class ArmPcOffsetOper(ArmOperand):
 
     def render(self, mcanv, op, idx):
         value = self.getOperValue(op)
-        if mcanv.mem.isValidPointer(value):
-            name = addrToName(mcanv, value)
-            mcanv.addVaText(name, value)
+        va = value & -2
+        if mcanv.mem.isValidPointer(va):
+            name = addrToName(mcanv, va)
+            mcanv.addVaText(name, va)
         else:
-            mcanv.addVaText('0x%.8x' % value, value)
+            mcanv.addVaText('0x%.8x' % va, va)
 
     def repr(self, op):
         targ = self.getOperValue(op)

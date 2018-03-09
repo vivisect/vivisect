@@ -823,13 +823,14 @@ def shift_or_ext_32(va, val1, val2):
         raise InvalidInstruction(mesg="shift_or_ext_32 needs to hand off for val2 & 0xf000 != 0xf000 at va 0x%x: val1:%.4x val2:%.4x" % (va, val1, val2), va=va)
 
 
+    op1 = (val>>4) & 0xf
     op2 = (val2>>4) & 0xf
     rn = (val1 & 0xf)
     rd = (val2 >> 8) & 0xf
     rm = (val2 & 0xf)
 
     if (op2):
-        if op1 > 6:
+        if op1 > 5:
             raise InvalidInstruction(
                     mesg="shift_or_ext_32 parsing an unsupported instruction encoding",
                     bytez=struct.pack("<H", val1)+struct.pack("<H", val2), va=va)
