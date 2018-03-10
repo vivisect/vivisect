@@ -1004,11 +1004,15 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
         val = self.getOperValue(op, 1)
         self.setOperValue(op, 0, val)
 
+    i_ustb = i_uxth
+
     def i_uxtah(self, op):
         val = self.getOperValue(op, 2)
         val += self.getOperValue(op, 1)
 
         self.setOperValue(op, 0, val)
+
+    i_ustab = i_uxtah
 
     def i_sxth(self, op):
         slen = op.opers[1].tsize
@@ -1017,6 +1021,8 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
         val = self.getOperValue(op, 1)
         val = e_bits.sign_extend(val, slen, dlen)
         self.setOperValue(op, 0, val)
+
+    i_sxtb = i_sxth
 
     def i_sxtah(self, op):
         slen = op.opers[2].tsize
@@ -1027,6 +1033,8 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
         val += self.getOperValue(op, 1)
 
         self.setOperValue(op, 0, val)
+
+    i_sxtab = i_sxtah
 
     def i_bic(self, op):
         dsize = op.opers[0].tsize
