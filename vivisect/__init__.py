@@ -667,8 +667,10 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         return stats
 
     def printDiscoveredStats(self):
-        disc, undisc = self.getDiscoveredInfo()
+        disc, undisc, numXrefs, numLocs, numFuncs, numBlocks, numOps, numUnis, numStrings, numNumbers, numPointers, numVtables = self.getDiscoveredInfo()
         self.vprint("Percentage of discovered executable surface area: %.1f%% (%s / %s)" % (disc*100.0/(disc+undisc), disc, disc+undisc))
+        self.vprint("   Xrefs/Blocks/Funcs:                             (%s / %s / %s)" % (numXrefs, numBlocks, numFuncs))
+        self.vprint("   Locs,  Ops/Strings/Unicode/Nums/Ptrs/Vtables:   (%s:  %s / %s / %s / %s / %s / %s)" % (numLocs, numOps, numStrings, numUnis, numNumbers, numPointers, numVtables))
 
     def getDiscoveredInfo(self):
         """
@@ -689,7 +691,19 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
                 else:
                     off += loc[L_SIZE]
                     disc += loc[L_SIZE]
-        return disc, undisc
+
+        numXrefs = len(self.getXrefs())
+        numLocs = len(self.getLocations())
+        numFuncs = len(self.getFunctions())
+        numBlocks = len(self.getCodeBlocks())
+        numOps = len(self.getLocations(LOC_OP))
+        numUnis = len(self.getLocations(LOC_UNI))
+        numStrings = len(self.getLocations(LOC_STRING))
+        numNumbers = len(self.getLocations(LOC_NUMBER))
+        numPointers = len(self.getLocations(LOC_POINTER))
+        numVtables = len(self.getLocations(LOC_VFTABLE))
+
+        return disc, undisc, numXrefs, numLocs, numFuncs, numBlocks, numOps, numUnis, numStrings, numNumbers, numPointers, numVtables
 
     def getImports(self):
         """
