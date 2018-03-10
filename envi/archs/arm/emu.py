@@ -1015,7 +1015,7 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
         dlen = op.opers[0].tsize
 
         val = self.getOperValue(op, 1)
-        val = ebits.sign_extend(val, slen, dlen)
+        val = e_bits.sign_extend(val, slen, dlen)
         self.setOperValue(op, 0, val)
 
     def i_sxtah(self, op):
@@ -1023,7 +1023,7 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
         dlen = op.opers[0].tsize
 
         val = self.getOperValue(op, 2)
-        val = ebits.sign_extend(val, slen, dlen)
+        val = e_bits.sign_extend(val, slen, dlen)
         val += self.getOperValue(op, 1)
 
         self.setOperValue(op, 0, val)
