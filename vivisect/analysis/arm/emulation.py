@@ -86,7 +86,8 @@ class AnalysisMonitor(viv_monitor.AnalysisMonitor):
 
         except Exception, e:
             # FIXME: make raise Exception?
-            print "0x%x: ERROR: %s" % (op.va, e)
+            print "0x%x: (%r)  ERROR: %s" % (op.va, op, e)
+            sys.excepthook(*sys.exc_info())
 
 
     def posthook(self, emu, op, starteip):

@@ -1439,7 +1439,7 @@ def p_swint(opval, va):
     opcode = INS_SVC
     return (opcode, "svc", olist, 0, 0)
 
-def p_vmov_single(opval, va): 
+def p_vmov_single(opval, va):   # p944
     op = (val >> 20) & 1
 
     n = (opval >> 7) & 1
@@ -1460,7 +1460,7 @@ def p_vmov_single(opval, va):
                 )
     return opcode, mnem, opers, 0, 0
 
-def p_vmov_2single(opval, va):  # p944
+def p_vmov_2single(opval, va):  # p944 (946?)
     op = (val >> 20) & 1
 
     rt2 = (opval >> 16) & 0xf
@@ -4789,7 +4789,7 @@ class ArmExtRegListOper(ArmOperand):
         return True
 
     def isDeref(self):
-        return True
+        return False
 
     def render(self, mcanv, op, idx):
         regbase = ("s%d", "d%d")[self.size]
@@ -4841,6 +4841,12 @@ class ArmExtRegListOper(ArmOperand):
 
         s.append('}')
         return "".join(s)
+
+    def getRegCount(self):
+        return self.count
+
+    def getRegSize(self):
+        return (4, 8)[self.size]
     
 aif_flags = (None, 'f','i','if','a','af','ai','aif')
 class ArmPSRFlagsOper(ArmOperand):

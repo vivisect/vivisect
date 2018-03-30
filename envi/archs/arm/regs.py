@@ -38,6 +38,7 @@ arm_metas = [
         ("r15", REG_PC, 0, 32),
         ]
 
+REG_APSR_MASK = 0xffff0000
 
 # build a translation table to allow for fast access of banked registers
 modes = proc_modes.keys()

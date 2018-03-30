@@ -139,6 +139,11 @@ MSB_FMT_SIGNED = [0, 'b', '>h', 0, '>i', 0, 0, 0, '>q',]
 class ArmEmulator(ArmRegisterContext, envi.Emulator):
 
     def __init__(self):
+        # if-then placeholders
+        self.itva = None
+        self.itflags = None
+        self.itcount = None
+
         # FIXME: this should be None's, and added in for each real coproc... but this will work for now.
         self.coprocs = [CoProcEmulator(x) for x in xrange(16)]       
         self.int_handlers = [self.default_int_handler for x in range(100)]
@@ -221,14 +226,22 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
         try:
             self.setMeta('forrealz', True)
             x = None
-            #if op.prefixes >= 0xe or conditionals[op.prefixes](self.getRegister(REG_FLAGS)>>28):
-            
+            skip = False
+        
+            # IT block handling
+            if self.itcount:
+                self.itcount -= 1
+                print "untested IT functionality"
+                if not (self.itflags & 1):
+                    skip = True
+
+            # standard conditional handling
             condval = (op.prefixes >= 0xe)
             if not condval:
                 condcheck = conditionals[op.prefixes]
                 condval = condcheck(self.getRegister(REG_FLAGS))
 
-            if condval:
+            if condval and not skip:
                 meth = self.op_methods.get(op.mnem, None)
                 if meth == None:
                     raise envi.UnsupportedInstruction(self, op)
@@ -268,12 +281,25 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
         '''
         return self._rctx_vals[REG_CPSR]
 
+    def getAPSR(self):
+        '''
+        return the Current Program Status Register.
+        '''
+        apsr = self.getCPSR() & REG_APSR_MASK
+        return apsr
+
     def setCPSR(self, psr, mask=0xffffffff):
         '''
         set the CPSR for the current ARM processor mode
         '''
         psr = self._rctx_vals[REG_CPSR] & (~mask) | (psr & mask)
         self._rctx_vals[REG_CPSR] = psr
+
+    def setAPSR(self, psr):
+        '''
+        set the CPSR for the current ARM processor mode
+        '''
+        self.setCPSR(psr, mask=0xffff0000)
 
     def getSPSR(self, mode):
         '''
@@ -578,6 +604,92 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
     i_stmia = i_stm
     i_push = i_stmia
 
+    def i_vpush(self, op):
+        oper = op.opers[0]
+        tsize = oper.getRegSize()
+        reglist = oper.getOperValue(op, self)
+
+        for reg in reglist:
+            sp = self.getRegister(REG_SP)
+            sp -= tsize
+            self.writeMemValue(sp, reg, tsize)
+            self.setRegister(REG_SP, sp)
+
+    def i_vpop(self, op):
+        oper = op.opers[0]
+        tsize = oper.getRegSize()
+
+        reglist = []
+        for ridx in range(oper.getRegCount()):
+            sp = self.getRegister(REG_SP)
+            val = self.readMemValue(sp, 4)
+            reglist.append(val)
+            self.setRegister(REG_SP, sp+4)
+
+        oper.setOperValue(op, reglist, self)
+
+    def i_vldm(self, op):
+        if len(op.opers) == 2:
+            srcreg = op.opers[0].reg
+            updatereg = op.opers[0].oflags & OF_W
+            addr = self.getOperValue(op,0)
+            flags = op.iflags
+        else:
+            srcreg = REG_SP
+            updatereg = 1
+            addr = self.getStackCounter()
+            flags = IF_DAIB_I
+
+        pc = self.getRegister(REG_PC)       # store for later check
+        
+        # set up 
+        reglistoper = op.opers[1]
+        count = reglistoper.getRegCount()
+        size  = reglistoper.getRegSize()
+
+        # do multiples based on base and count.  unlike ldm, these must be consecutive
+        if flags & IF_DAIB_I == IF_DAIB_I:
+            for reg in xrange(count):
+                regval = self.readMemValue(addr, size)
+                self.setRegister(reg, regval)
+                addr += size
+        else:
+            for reg in xrange(count-1, -1, -1):
+                addr -= size
+                regval = self.readMemValue(addr, size)
+                self.setRegister(reg, regval)
+
+        if updatereg:
+            self.setRegister(srcreg,addr)
+        #FIXME: add "shared memory" functionality?  prolly just in ldrex which will be handled in i_ldrex
+        # is the following necessary?  
+        newpc = self.getRegister(REG_PC)    # check whether pc has changed
+        if pc != newpc:
+            self.setThumbMode(newpc & 1)
+            return newpc
+
+    def i_vmov(self, op):
+        if len(op.opers) == 2:
+            if isinstance(ArmImmOper, op.opers[1]):
+                # immediate version copies immediate into each element (Q=2 elements, D=1)
+                print "vmov: immediate"
+
+        # vreg to vreg: 1 to 1 copy
+        # core reg to vreg
+        # vret to core reg
+        # core reg to single
+        # 2 core reg to 2 singles
+        elif len(op.opers) == 4:
+            src1 = self.getOperValue(op, 2)
+            src2 = self.getOperValue(op, 3)
+            self.setOperValue(op, 0, src1)
+            self.setOperValue(op, 1, src2)
+
+        # 2 core reg to double
+        # 
+        raise Exception("implement me: vmov")
+
+
     def i_ldm(self, op):
         if len(op.opers) == 2:
             srcreg = op.opers[0].reg
@@ -603,30 +715,20 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
         if flags & IF_DAIB_I == IF_DAIB_I:
             for reg in xrange(16):
                 if (1<<reg) & regmask:
-                    if flags & IF_DAIB_B == IF_DAIB_B:
-                        addr += 4
-                        regval = self.readMemValue(addr, 4)
-                        self.setRegister(reg, regval)
-                    else:
-                        regval = self.readMemValue(addr, 4)
-                        self.setRegister(reg, regval)
-                        addr += 4
+                    regval = self.readMemValue(addr, 4)
+                    self.setRegister(reg, regval)
+                    addr += 4
         else:
             for reg in xrange(15, -1, -1):
                 if (1<<reg) & regmask:
-                    if flags & IF_DAIB_B == IF_DAIB_B:
-                        addr -= 4
-                        regval = self.readMemValue(addr, 4)
-                        self.setRegister(reg, regval)
-                    else:
-                        regval = self.readMemValue(addr, 4)
-                        self.setRegister(reg, regval)
-                        addr -= 4
+                    addr -= 4
+                    regval = self.readMemValue(addr, 4)
+                    self.setRegister(reg, regval)
 
         if updatereg:
             self.setRegister(srcreg,addr)
         #FIXME: add "shared memory" functionality?  prolly just in ldrex which will be handled in i_ldrex
-        # is the following necessary?  
+        # is t  he following necessary?  
         newpc = self.getRegister(REG_PC)    # check whether pc has changed
         if pc != newpc:
             self.setThumbMode(newpc & 1)
@@ -689,6 +791,86 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
 
     i_msr = i_mov
     i_adr = i_mov
+
+    def i_vmsr(self, op):
+        if len(op.opers) == 1:
+            val = self.getOperValue(op, 0)
+        else:
+            val = self.getOperValue(op, 1)
+
+        self.setRegister(REG_FPSCR, val)
+            
+    #def i_vmrs(self, op):
+        #val = self.getRegister(REG_FPSCR)
+        #
+        #if len(op.opers) == 1:
+            #self.setOperValue(op, 0, val)
+        #else:
+            #self.setOperValue(op, 1, val)
+
+    def i_mrs(self, op):
+        val = self.getAPSR()
+        self.setOperValue(op, 0, val)
+
+    def i_vmrs(self, op):
+        src = self.getRegister(REG_FPSCR)
+
+        if op.opers[0].reg != 15:
+            self.setOperValue(op, 0, src)
+        else:
+            apsr = self.getAPSR() & 0x0fffffff
+            apsr |= (src | 0xf0000000)
+            self.setOperValue(op, 0, apsr)
+
+    def i_it(self, op):
+        if self.itcount:
+            raise Exception("IT block within an IT block!")
+
+        oper = op.opers[0]
+        self.itva = op.va
+        self.itcount = oper.getCondInstrCount()
+        self.itflags = oper.getFlags()
+        print "IT flags need to be set such that each bit means YES or NO"
+        
+           
+    def i_bfi(self, op):
+        lsb = self.getOperValue(op, 2)
+        width = self.getOperValue(op, 3)
+        mask = e_bits.b_masks[width]
+
+        addit = self.getOperValue(op, 1) & mask
+        print lsb, width, bin(mask), bin(addit)
+
+        mask <<= lsb
+        val = self.getOperValue(op, 0) & ~mask
+        val |= addit
+        print bin(mask), bin(val)
+
+        self.setOperValue(op, 0, val)
+
+    def i_bfc(self, op):
+        lsb = self.getOperValue(op, 1)
+        width = self.getOperValue(op, 2)
+        mask = e_bits.b_masks[width] << lsb
+        mask ^= 0xffffffff
+        print lsb, width, bin(mask)
+
+        val = self.getOperValue(op, 0) & mask
+        print bin(mask), bin(val)
+
+        self.setOperValue(op, 0, val)
+
+
+    def i_clz(self, op):
+        oper = self.getOperValue(op, 1)
+        bsize = op.opers[1].tsize * 8
+        lzcnt = 0
+        for x in range(tsize):
+            if oper & 0x80000000:
+                break
+            lzcnt += 1
+
+        self.setOperValue(op, 0, lzcnt)
 
     def i_mvn(self, op):
         val = self.getOperValue(op, 1)
@@ -1004,7 +1186,7 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
         val = self.getOperValue(op, 1)
         self.setOperValue(op, 0, val)
 
-    i_ustb = i_uxth
+    i_uxtb = i_uxth
 
     def i_uxtah(self, op):
         val = self.getOperValue(op, 2)
@@ -1012,7 +1194,7 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
 
         self.setOperValue(op, 0, val)
 
-    i_ustab = i_uxtah
+    i_uxtab = i_uxtah
 
     def i_sxth(self, op):
         slen = op.opers[1].tsize
@@ -1333,14 +1515,6 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
     i_dsb = i_nop
     i_isb = i_nop
 
-    def i_vmrs(self, op):
-        src = self.getRegister(REG_FPSCR)
-        if op.opers[0].reg != 15:
-            self.setOperValue(op, 0, src)
-        else:
-            apsr = self.getCPSR() & 0x0fffffff
-            apsr |= (src | 0xf0000000)
-            self.setOperValue(op, 0, apsr)
 
 #TODO: IT EQ
 

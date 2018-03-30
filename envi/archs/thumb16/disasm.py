@@ -564,6 +564,24 @@ class ThumbITOper(ArmOperand):
         self.mask = mask
         self.firstcond = firstcond
 
+    def getCondInstrCount(self):
+        mask = self.mask
+        for x in range(4, 0, -1):
+            if mask & 1:
+                break
+            mask >>= 1
+        return x
+
+    def getFlags(self):
+        fiz = self.firstcond & 1
+        flags = 1
+        count = self.getCondInstrCount()
+        for x in range(1, count):
+            print x, bin(flags)
+            flags |= ((((self.mask>>(4-x))&1) == fiz) << (x+1))
+
+        return flags
+
     def repr(self, op):
         mask = self.mask
         cond = self.firstcond
@@ -941,6 +959,54 @@ def dp_bin_imm_32(va, val1, val2):  # p232
     opers.insert(1, oper1)
 
     return COND_AL, None, None, opers, flags, 0
+
+def dp_bfi_imm_32(va, val1, val2):  # p232
+    flags = IF_THUMB32
+    if val2 & 0x8000:
+        return branch_misc(va, val1,val2)
+
+    Rd = (val2 >> 8) & 0xf
+
+    imm4 = val1 & 0xf
+    i = (val1 >> 10) & 1
+    imm3 = (val2 >> 12) & 0x7
+    const = val2 & 0xff
+
+    op = (val1>>4) & 0x1f
+    const |= (imm4 << 12) | (i << 11) | (imm3 << 8)
+
+    oper0 = ArmRegOper(Rd)
+    oper2 = ArmImmOper(const)
+
+    if op in (0b00100, 0b01100):    # movw, movt
+        return COND_AL, None, None, (oper0, oper2), 0, 0
+
+    Rn = val1 & 0xf
+    if Rn==15:
+        if op in (0,0b1010):   # add/sub
+            # adr
+            return COND_AL, None, 'adr', (oper0, oper2), None, 0
+
+    oper1 = ArmRegOper(Rn)
+
+    if op == 0b10110:
+        imm2 = (val2>>6) & 0x3
+        msb = val2 & 0x1f
+        lsb = (imm3<<2) | imm2
+        width = msb - lsb + 1
+
+        if Rn == 15:
+            # bfc
+            mnem = 'bfc'
+            opers = (oper0, ArmImmOper(lsb), ArmImmOper(width))
+        else:
+            # bfi
+            mnem = 'bfi'
+            opers = (oper0, oper1, ArmImmOper(lsb), ArmImmOper(width))
+
+        return COND_AL, None, mnem, opers, None, 0
+
+    return COND_AL, None, None, (oper0, oper1, oper2), flags, 0
 
 
 def ldm_reg_mode_32(va, val1, val2):
@@ -1944,7 +2010,7 @@ thumb2_extension = [
     ('11110011000',         (85,'ssat',     dp_bin_imm_32,      IF_THUMB32)),
     ('11110011001',         (85,'ssat16',   dp_bin_imm_32,      IF_THUMB32)),
     ('11110011010',         (85,'sbfx',     dp_bin_imm_32,      IF_THUMB32)),
-    ('11110011011',         (85,'bfi',      dp_bin_imm_32,      IF_THUMB32)),  # bfc if rn=1111
+    ('11110011011',         (85,'bfi',      dp_bfi_imm_32,      IF_THUMB32)),  # bfc if rn=1111
     ('11110011100',         (85,'usat',     dp_bin_imm_32,      IF_THUMB32)),
     ('111100111010',        (85,'usat',     dp_bin_imm_32,      IF_THUMB32)),  # usat16 if val2=0000xxxx00xxxxxx
     ('111100111011',        (85,'usat',     dp_bin_imm_32,      IF_THUMB32)),  # usat16 if val2=0000xxxx00xxxxxx
@@ -1956,7 +2022,7 @@ thumb2_extension = [
     ('11110111000',         (85,'ssat',     dp_bin_imm_32,      IF_THUMB32)),
     ('11110111001',         (85,'ssat16',   dp_bin_imm_32,      IF_THUMB32)),
     ('11110111010',         (85,'sbfx',     dp_bin_imm_32,      IF_THUMB32)),
-    ('11110111011',         (85,'bfi',      dp_bin_imm_32,      IF_THUMB32)),  # bfc if rn=1111
+    ('11110111011',         (85,'bfi',      dp_bfi_imm_32,      IF_THUMB32)),  # bfc if rn=1111
     ('11110111100',         (85,'usat',     dp_bin_imm_32,      IF_THUMB32)),
     ('11110111101',         (85,'usat',     dp_bin_imm_32,      IF_THUMB32)),  # usat16 if val2=0000xxxx00xxxxxx
     ('11110111110',         (85,'ubfx',     ubfx_32,      IF_THUMB32)),
