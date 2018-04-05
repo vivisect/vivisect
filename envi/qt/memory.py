@@ -2,7 +2,12 @@ import re
 import traceback
 from collections import deque
 
-from PyQt5 import QtCore, QtGui, QtWidgets
+try:
+    from PyQt5 import QtCore
+    from PyQt5.QtWidgets import *
+except:
+    from PyQt4 import QtCore
+    from PyQt4.QtGui import *
 
 import envi
 import envi.memcanvas as e_memcanvas
@@ -93,11 +98,11 @@ class EnviNavModel(vq_tree.VQTreeModel):
         mdata.setData('envi/expression',str(expr))
         return mdata
 
-class VQMemoryWindow(vq_hotkey.HotKeyMixin, EnviNavMixin, vq_save.SaveableWidget, QtWidgets.QWidget):
+class VQMemoryWindow(vq_hotkey.HotKeyMixin, EnviNavMixin, vq_save.SaveableWidget, QWidget):
 
     def __init__(self, memobj, syms=None, parent=None, mwname='mem'):
 
-        QtWidgets.QWidget.__init__(self, parent=parent)
+        QWidget.__init__(self, parent=parent)
         vq_hotkey.HotKeyMixin.__init__(self)
         vq_save.SaveableWidget.__init__(self)
         EnviNavMixin.__init__(self)
@@ -107,23 +112,23 @@ class VQMemoryWindow(vq_hotkey.HotKeyMixin, EnviNavMixin, vq_save.SaveableWidget
         self.mwname = mwname
         self.mwlocked = False
 
-        self.top_box = QtWidgets.QWidget(parent=self)
-        hbox = QtWidgets.QHBoxLayout(self.top_box)
+        self.top_box = QWidget(parent=self)
+        hbox = QHBoxLayout(self.top_box)
         hbox.setContentsMargins(2, 2, 2, 2)
         hbox.setSpacing(4)
 
-        self.histmenu = QtWidgets.QMenu(parent=self)
+        self.histmenu = QMenu(parent=self)
         self.histmenu.aboutToShow.connect( self.setupMemHistMenu )
 
-        self.hist_button = QtWidgets.QPushButton('History', parent=self.top_box)
+        self.hist_button = QPushButton('History', parent=self.top_box)
         self.hist_button.setMenu(self.histmenu)
 
-        self.addr_entry  = QtWidgets.QLineEdit(parent=self.top_box)
-        self.size_entry  = QtWidgets.QLineEdit(parent=self.top_box)
+        self.addr_entry  = QLineEdit(parent=self.top_box)
+        self.size_entry  = QLineEdit(parent=self.top_box)
         self.size_entry.setText('256')
-        self.rend_select = QtWidgets.QComboBox(parent=self.top_box)
+        self.rend_select = QComboBox(parent=self.top_box)
 
-        self.rend_tools = QtWidgets.QPushButton('Opts', parent=self.top_box)
+        self.rend_tools = QPushButton('Opts', parent=self.top_box)
         self.rend_tools.setMenu( self.getRendToolsMenu() )
 
         self.mem_history = deque()
@@ -147,7 +152,7 @@ class VQMemoryWindow(vq_hotkey.HotKeyMixin, EnviNavMixin, vq_save.SaveableWidget
         hbox.addWidget(self.rend_select)
         hbox.addWidget(self.rend_tools)
 
-        vbox = QtWidgets.QVBoxLayout(self)
+        vbox = QVBoxLayout(self)
         vbox.setContentsMargins(4, 4, 4, 4)
         vbox.setSpacing(4)
         vbox.addWidget(self.top_box)
@@ -185,10 +190,10 @@ class VQMemoryWindow(vq_hotkey.HotKeyMixin, EnviNavMixin, vq_save.SaveableWidget
         self.setWindowTitle(title)
 
     def getRendToolsMenu(self):
-        menu = QtWidgets.QMenu(parent=self.rend_tools)
+        menu = QMenu(parent=self.rend_tools)
         menu.addAction('set name', self.rendToolsSetName)
 
-        lockact = QtWidgets.QAction('locked', menu, checkable=True)
+        lockact = QAction('locked', menu, checkable=True)
         lockact.setChecked(self.mwlocked)
 
         def lockToggle():
@@ -201,7 +206,7 @@ class VQMemoryWindow(vq_hotkey.HotKeyMixin, EnviNavMixin, vq_save.SaveableWidget
         return menu
 
     def rendToolsSetName(self):
-        mwname, ok = QtWidgets.QInputDialog.getText(self, 'Set Mem Window Name', 'Name')
+        mwname, ok = QInputDialog.getText(self, 'Set Mem Window Name', 'Name')
         if ok:
             self.setMemWindowName(str(mwname))
 

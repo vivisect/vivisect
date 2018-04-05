@@ -25,7 +25,13 @@ import vivisect.qt.symboliks as viv_q_symboliks
 import vivisect.remote.share as viv_share
 import vivisect.remote.server as viv_server
 
-from PyQt5 import QtCore, QtGui, QtWidgets
+try:
+    from PyQt5 import QtCore
+    from PyQt5.QtWidgets import QInputDialog, QFileDialog
+except:
+    from PyQt4 import QtCore
+    from PyQt4.QtGui import QInputDialog, QFileDialog
+
 from vqt.common import *
 from vivisect.const import *
 
@@ -101,7 +107,7 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
         if curname == None:
             curname = ''
 
-        name, ok = QtWidgets.QInputDialog.getText(parent, 'Enter...', 'Name', text=curname)
+        name, ok = QInputDialog.getText(parent, 'Enter...', 'Name', text=curname)
         if ok:
             name = str(name)
             if self.vw.vaByName(name):
@@ -117,14 +123,14 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
         if curcomment == None:
             curcomment = ''
 
-        comment, ok = QtWidgets.QInputDialog.getText(parent, 'Enter...', 'Comment', text=curcomment)
+        comment, ok = QInputDialog.getText(parent, 'Enter...', 'Comment', text=curcomment)
         if ok:
             self.vw.setComment(va, str(comment))
 
     def addVaXref(self, va, parent=None):
         if parent == None:
             parent = self
-        xtova, ok = QtWidgets.QInputDialog.getText(parent, 'Enter...', 'Make Code Xref 0x%x -> '% va)
+        xtova, ok = QInputDialog.getText(parent, 'Enter...', 'Make Code Xref 0x%x -> '% va)
         if ok:
             try:
                 val = self.vw.parseExpression(str(xtova))
@@ -136,12 +142,12 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
                 self.vw.vprint(repr(e))
 
     def setFuncLocalName(self, fva, offset, atype, aname):
-        newname, ok = QtWidgets.QInputDialog.getText(self, 'Enter...', 'Local Name')
+        newname, ok = QInputDialog.getText(self, 'Enter...', 'Local Name')
         if ok:
             self.vw.setFunctionLocal(fva, offset, LSYM_NAME, (atype,str(newname)))
 
     def setFuncArgName(self, fva, idx, atype, aname):
-        newname, ok = QtWidgets.QInputDialog.getText(self, 'Enter...', 'Argument Name')
+        newname, ok = QInputDialog.getText(self, 'Enter...', 'Argument Name')
         if ok:
             self.vw.setFunctionArg(fva, idx, atype, str(newname))
 
@@ -162,7 +168,7 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
     def addBookmark(self, va, parent=None):
         if parent == None:
             parent = self
-        bname, ok = QtWidgets.QInputDialog.getText(parent, 'Enter...', 'Bookmark Name')
+        bname, ok = QInputDialog.getText(parent, 'Enter...', 'Bookmark Name')
         if ok:
             self.vw.setVaSetRow('Bookmarks', (va, str(bname)))
 
@@ -301,7 +307,7 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
         self.vw.vprint('complete!')
 
     def _menuFileSaveAs(self):
-        fname = QtWidgets.QFileDialog.getSaveFileName(self, 'Save As...')[0]
+        fname = QFileDialog.getSaveFileName(self, 'Save As...')[0]
         if fname == None or not len(fname):
             return
         self.vw.setMeta('StorageName', fname)
@@ -311,7 +317,7 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
         viv_q_remote.saveToServer(self.vw, parent=self)
 
     def _menuViewLayoutsLoad(self):
-        fname = QtWidgets.QFileDialog.getOpenFileName(self, 'Load Layout')[0]
+        fname = QFileDialog.getOpenFileName(self, 'Load Layout')[0]
         if fname == None:
             return
 
@@ -319,7 +325,7 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
         self.vqRestoreGuiSettings(settings)
 
     def _menuViewLayoutsSave(self):
-        fname = QtWidgets.QFileDialog.getSaveFileName(self, 'Save Layout')[0]
+        fname = QFileDialog.getSaveFileName(self, 'Save Layout')[0]
         if fname == None or not len(fname):
             return
 

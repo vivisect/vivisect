@@ -1,4 +1,7 @@
-from PyQt5 import QtCore, QtGui, QtWidgets
+try:
+    from PyQt5.QtWidgets import QVBoxLayout
+except:
+    from PyQt4.QtGui import QVBoxLayout
 
 import vtrace.qt
 import vdb.qt.base
@@ -11,7 +14,7 @@ class VdbRegistersWindow(vdb.qt.base.VdbWidgetWindow):
 
         self.regsWidget = vtrace.qt.RegistersView(trace=dbt, parent=parent)
 
-        vbox = QtWidgets.QVBoxLayout()
+        vbox = QVBoxLayout()
         vbox.addWidget(self.regsWidget)
         self.setLayout(vbox)
 

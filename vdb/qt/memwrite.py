@@ -1,4 +1,8 @@
-from PyQt5 import QtGui, QtWidgets
+try:
+    from PyQt5.QtWidgets import QVBoxLayout
+except:
+    from PyQt4.QtGui import QVBoxLayout
+
 
 import vdb.qt.base
 import envi.qt.memwrite as e_qt_mw
@@ -11,7 +15,7 @@ class VdbMemWriteWindow(vdb.qt.base.VdbWidgetWindow):
         vdb.qt.base.VdbWidgetWindow.__init__(self, db, dbt, parent=parent)
 
         self.memWriteWidget = e_qt_mw.MemWriteWindow(expr=expr, esize=esize, emu=dbt, parent=parent)
-        vbox = QtWidgets.QVBoxLayout()
+        vbox = QVBoxLayout()
         vbox.addWidget(self.memWriteWidget)
         self.setLayout(vbox)
 

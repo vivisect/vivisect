@@ -1,5 +1,7 @@
-
-from PyQt5 import QtCore, QtGui, QtWidgets
+try:
+    from PyQt5.QtWidgets import *
+except:
+    from PyQt4.QtGui import *
 
 class FieldAdder:
 
@@ -24,7 +26,7 @@ class FieldAdder:
     def _addDynActions(self):
         self.clear()
         for name in self._dyn_callback():
-            act = QtWidgets.QAction(name, self)
+            act = QAction(name, self)
             cb = ActionCall(self._dyn_callback, name)
             act.triggered.connect(cb)
             self.addAction(act)
@@ -54,7 +56,7 @@ class FieldAdder:
         kid = self._addMenuFields(plist[:-1])
 
         acall = ActionCall( callback, *args )
-        action = QtWidgets.QAction(plist[-1], kid)
+        action = QAction(plist[-1], kid)
         action.triggered.connect(acall)
 
         if tip: action.setStatusTip(tip)
@@ -63,15 +65,15 @@ class FieldAdder:
 
         return kid
 
-class VQMenuBar(FieldAdder, QtWidgets.QMenuBar):
+class VQMenuBar(FieldAdder, QMenuBar):
     def __init__(self, parent=None, splitchar='.'):
-        QtWidgets.QMenuBar.__init__(self, parent=parent)
+        QMenuBar.__init__(self, parent=parent)
         FieldAdder.__init__(self, splitchar=splitchar)
 
-class VQMenu(FieldAdder, QtWidgets.QMenu):
+class VQMenu(FieldAdder, QMenu):
 
     def __init__(self, name, parent=None, splitchar='.'):
-        QtWidgets.QMenu.__init__(self, name, parent=parent)
+        QMenu.__init__(self, name, parent=parent)
         FieldAdder.__init__(self, splitchar=splitchar)
 
 class ActionCall:

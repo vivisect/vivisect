@@ -1,7 +1,11 @@
 '''
 '''
-
-from PyQt5 import QtCore, QtGui, QtWidgets
+try:
+    from PyQt5 import QtCore
+    from PyQt5.QtWidgets import QTreeView
+except:
+    from PyQt4 import QtCore
+    from PyQt4.QtGui import QTreeView
 
 import vqt.colors as vq_colors
 import visgraph.pathcore as vg_path
@@ -201,10 +205,10 @@ class VQTreeModel(QtCore.QAbstractItemModel):
 
         return len(pitem.children)
 
-class VQTreeView(QtWidgets.QTreeView):
+class VQTreeView(QTreeView):
 
     def __init__(self, parent=None, cols=None, **kwargs):
-        QtWidgets.QTreeView.__init__(self, parent=parent, **kwargs)
+        QTreeView.__init__(self, parent=parent, **kwargs)
         self.setSortingEnabled(True)
         self.setAlternatingRowColors(True)
 
@@ -220,5 +224,5 @@ class VQTreeView(QtWidgets.QTreeView):
     def setModel(self, model):
         model.dataChanged.connect( self.dataChanged )
         model.rowsInserted.connect( self.rowsInserted )
-        return QtWidgets.QTreeView.setModel(self, model)
+        return QTreeView.setModel(self, model)
 

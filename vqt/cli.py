@@ -1,5 +1,10 @@
 import os
-from PyQt5 import QtCore, QtGui, QtWidgets
+try:
+    from PyQt5 import QtCore
+    from PyQt5.QtWidgets import *
+except:
+    from PyQt4 import QtCore
+    from PyQt4.QtGui import *
 
 import envi.cli as e_cli
 import envi.qt.memory as e_q_memory
@@ -14,10 +19,10 @@ import vqt.hotkeys as vq_hotkeys
 from vqt.basics import *
 from vqt.main import idlethread,workthread
 
-class VQInput(vq_hotkeys.HotKeyMixin, QtWidgets.QLineEdit):
+class VQInput(vq_hotkeys.HotKeyMixin, QLineEdit):
 
     def __init__(self, parent=None):
-        QtWidgets.QLineEdit.__init__(self, parent=parent)
+        QLineEdit.__init__(self, parent=parent)
         vq_hotkeys.HotKeyMixin.__init__(self)
 
         self.history = []
@@ -64,7 +69,7 @@ class VQInput(vq_hotkeys.HotKeyMixin, QtWidgets.QLineEdit):
         file(filename, 'w').write( histbuf )
 
 
-class VQCli(QtWidgets.QWidget):
+class VQCli(QWidget):
     '''
     A Qt class to wrap and emulate a Cmd object.
     '''
@@ -72,13 +77,13 @@ class VQCli(QtWidgets.QWidget):
     sigCliQuit = QtCore.pyqtSignal()
 
     def __init__(self, cli, parent=None):
-        QtWidgets.QWidget.__init__(self, parent=parent)
+        QWidget.__init__(self, parent=parent)
         self.cli = cli
 
         self.input = VQInput(self)
 
         # Create our output window...
-        self.output = QtWidgets.QTextEdit(self)
+        self.output = QTextEdit(self)
         # If it's an EnviCli, let's over-ride the canvas right away.
         if isinstance(cli, e_cli.EnviCli):
             self.output.close()

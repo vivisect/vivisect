@@ -1,4 +1,9 @@
-from PyQt5 import Qt, QtCore, QtGui, QtWidgets
+try:
+    from PyQt5 import QtCore, QtGui
+    from PyQt5.QtWidgets import *
+except:
+    from PyQt4 import QtCore, QtGui
+    from PyQt4.QtGui import *
 
 import vtrace
 from vtrace.const import *
@@ -126,7 +131,7 @@ class RegistersListView(vq_tree.VQTreeView, VQTraceNotifier):
         model.dataChanged.connect(self.dataChanged)
         model.rowsInserted.connect(self.rowsInserted)
         model.register_edited.connect(self.regEdited)
-        return QtWidgets.QTreeView.setModel(self, model)
+        return QTreeView.setModel(self, model)
 
     def vqLoad(self):
         self.lastregs = self.regvals.copy()
@@ -155,10 +160,10 @@ class RegistersListView(vq_tree.VQTreeView, VQTraceNotifier):
             finally:
                 model.append((rname, hexva, rval, str(smc)))
 
-class RegColorDelegate(QtWidgets.QStyledItemDelegate):
+class RegColorDelegate(QStyledItemDelegate):
 
     def __init__(self, parent):
-        QtWidgets.QStyledItemDelegate.__init__(self, parent)
+        QStyledItemDelegate.__init__(self, parent)
         self.reglist = parent
 
     def paint(self, painter, option, index):
@@ -167,23 +172,23 @@ class RegColorDelegate(QtWidgets.QStyledItemDelegate):
         if self.reglist.lastregs.get(node.rowdata[0]) != node.rowdata[2]:
             weight = QtGui.QFont.Bold
         option.font.setWeight(weight)
-        return QtWidgets.QStyledItemDelegate.paint(self, painter, option, index)
+        return QStyledItemDelegate.paint(self, painter, option, index)
 
-class RegistersView(QtWidgets.QWidget):
+class RegistersView(QWidget):
     '''
     A register view which includes the idea of "sub views" for particular
     sets of registers per-architecture.
     '''
 
     def __init__(self, trace=None, parent=None):
-        QtWidgets.QWidget.__init__(self, parent=parent)
+        QWidget.__init__(self, parent=parent)
         self.setWindowTitle('Registers')
 
-        vbox = QtWidgets.QVBoxLayout(self)
+        vbox = QVBoxLayout(self)
         vbox.setContentsMargins(2, 2, 2, 2)
         vbox.setSpacing(4)
 
-        self.viewnames = QtWidgets.QComboBox(self)
+        self.viewnames = QComboBox(self)
         self.regviews = {}
         self.flagviews = {}
 
@@ -216,7 +221,7 @@ class RegistersView(QtWidgets.QWidget):
         statusreg_widget.setMaximumHeight(60)
         statusreg_widget.hide()
 
-        splitview = QtWidgets.QSplitter(QtCore.Qt.Vertical)
+        splitview = QSplitter(QtCore.Qt.Vertical)
         splitview.addWidget(self.reglist)
         splitview.addWidget(statusreg_widget)
         vbox.addWidget(splitview)
@@ -230,15 +235,15 @@ class RegistersView(QtWidgets.QWidget):
         self.reglist.regnames = self.regviews.get(str(name), None)
         self.reglist.vqLoad()
 
-class VQFlagsGridView(QtWidgets.QWidget, VQTraceNotifier):
+class VQFlagsGridView(QWidget, VQTraceNotifier):
     '''
     Show the state of the status register (if available).
     '''
     def __init__(self, trace=None, parent=None):
-        QtWidgets.QWidget.__init__(self, parent=parent)
+        QWidget.__init__(self, parent=parent)
         VQTraceNotifier.__init__(self, trace)
 
-        self.grid = QtWidgets.QGridLayout()
+        self.grid = QGridLayout()
         if not trace.hasStatusRegister():
             return
 
@@ -246,11 +251,11 @@ class VQFlagsGridView(QtWidgets.QWidget, VQTraceNotifier):
         self.flags = {}
         self.flag_labels = {}
         for idx, (name, desc) in enumerate(self.flags_def):
-            flag_button = QtWidgets.QPushButton(name)
+            flag_button = QPushButton(name)
             flag_button.clicked.connect(self.buttonClicked)
             flag_button.setToolTip(desc)
 
-            flag_label = QtWidgets.QLabel('0', self)
+            flag_label = QLabel('0', self)
             flag_label.setAlignment(QtCore.Qt.AlignCenter)
             self.flag_labels[name] = flag_label
 
@@ -310,24 +315,24 @@ class VQProcessListView(vq_tree.VQTreeView):
         for pid,name in self.trace.ps():
             model.append((pid,name))
 
-class VQProcessSelectDialog(QtWidgets.QDialog):
+class VQProcessSelectDialog(QDialog):
 
     def __init__(self, trace=None, parent=None):
-        QtWidgets.QDialog.__init__(self, parent=parent)
+        QDialog.__init__(self, parent=parent)
 
         self.pid = None
 
         self.setWindowTitle('Select a process...')
 
-        vlyt = QtWidgets.QVBoxLayout()
-        hlyt = QtWidgets.QHBoxLayout()
+        vlyt = QVBoxLayout()
+        hlyt = QHBoxLayout()
 
         self.plisttree = VQProcessListView(trace=trace, parent=self)
 
-        hbox = QtWidgets.QWidget(parent=self)
+        hbox = QWidget(parent=self)
 
-        ok = QtWidgets.QPushButton("Ok", parent=hbox)
-        cancel = QtWidgets.QPushButton("Cancel", parent=hbox)
+        ok = QPushButton("Ok", parent=hbox)
+        cancel = QPushButton("Cancel", parent=hbox)
 
         self.plisttree.doubleClicked.connect( self.dialog_activated )
 
@@ -395,10 +400,10 @@ class VQFileDescView(vq_tree.VQTreeView, VQTraceNotifier):
             model.append((fd, fdtype, bestname))
         self.setModel(model)
 
-class VQTraceToolBar(QtWidgets.QToolBar, vtrace.Notifier):
+class VQTraceToolBar(QToolBar, vtrace.Notifier):
 
     def __init__(self, trace, parent=None):
-        QtWidgets.QToolBar.__init__(self, parent=parent)
+        QToolBar.__init__(self, parent=parent)
         vtrace.Notifier.__init__(self)
         self.trace = trace
 

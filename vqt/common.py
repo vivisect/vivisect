@@ -3,7 +3,12 @@ import logging
 import traceback
 
 # Some common GUI helpers
-from PyQt5 import QtCore, QtGui, QtWidgets
+try:
+    from PyQt5 import QtCore
+    from PyQt5.QtWidgets import QTreeView
+except:
+    from PyQt4 import QtCore
+    from PyQt4.QtGui import QTreeView
 
 logger = logging.getLogger(__name__)
 #logger.setLevel(logging.DEBUG)
@@ -144,10 +149,10 @@ class VqtModel(QtCore.QAbstractItemModel):
         #mdata.setData('vqt/rows',json.dumps(nodes))
         #return mdata
 
-class VqtView(QtWidgets.QTreeView):
+class VqtView(QTreeView):
 
     def __init__(self, parent=None):
-        QtWidgets.QTreeView.__init__(self, parent=parent)
+        QTreeView.__init__(self, parent=parent)
         self.setAlternatingRowColors( True )
         self.setSortingEnabled( True )
 
@@ -168,7 +173,7 @@ class VqtView(QtWidgets.QTreeView):
     def setModel(self, model):
         smodel = QtCore.QSortFilterProxyModel(parent=self)
         smodel.setSourceModel(model)
-        ret = QtWidgets.QTreeView.setModel(self, smodel)
+        ret = QTreeView.setModel(self, smodel)
         c = len(model.columns)
         for i in xrange(c):
             self.resizeColumnToContents(i)

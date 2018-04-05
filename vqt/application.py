@@ -1,7 +1,12 @@
 import os
 import json
 
-from PyQt5 import QtCore, QtGui, QtWidgets
+try:
+    from PyQt5 import QtCore
+    from PyQt5.QtWidgets import *
+except:
+    from PyQt4 import QtCore
+    from PyQt4.QtGui import *
 
 import vqt.cli as vq_cli
 import vqt.main as vq_main
@@ -9,10 +14,10 @@ import vqt.saveable as vq_save
 import vqt.hotkeys as vq_hotkeys
 import vqt.menubuilder as vq_menu
 
-class VQDockWidget(vq_hotkeys.HotKeyMixin, QtWidgets.QDockWidget):
+class VQDockWidget(vq_hotkeys.HotKeyMixin, QDockWidget):
 
     def __init__(self, parent):
-        QtWidgets.QDockWidget.__init__(self, parent)
+        QDockWidget.__init__(self, parent)
         vq_hotkeys.HotKeyMixin.__init__(self)
         self.addHotKey('ctrl+enter', 'mem:undockmaximize')
         self.addHotKeyTarget('mem:undockmaximize', self._hotkey_undock_maximize)
@@ -32,7 +37,7 @@ class VQDockWidget(vq_hotkeys.HotKeyMixin, QtWidgets.QDockWidget):
         # If he sets his window title, we want to...
         self.setWindowTitle(widget.windowTitle())
         widget.setWindowTitle = self.setWindowTitle
-        QtWidgets.QDockWidget.setWidget(self, widget)
+        QDockWidget.setWidget(self, widget)
 
     def closeEvent(self, event):
 
@@ -67,7 +72,7 @@ class VQDockWidget(vq_hotkeys.HotKeyMixin, QtWidgets.QDockWidget):
 
 import vqt.hotkeys as vq_hotkey
 
-class VQMainCmdWindow(vq_hotkey.HotKeyMixin, QtWidgets.QMainWindow):
+class VQMainCmdWindow(vq_hotkey.HotKeyMixin, QMainWindow):
     '''
     A base class for application window's to inherit from.
     '''
@@ -76,7 +81,7 @@ class VQMainCmdWindow(vq_hotkey.HotKeyMixin, QtWidgets.QMainWindow):
 
     def __init__(self, appname, cmd, **kwargs):
 
-        super(QtWidgets.QMainWindow, self).__init__(**kwargs)
+        super(QMainWindow, self).__init__(**kwargs)
         vq_hotkey.HotKeyMixin.__init__(self)
 
         self._vq_appname = appname
@@ -177,7 +182,7 @@ class VQMainCmdWindow(vq_hotkey.HotKeyMixin, QtWidgets.QMainWindow):
     def closeEvent(self, event):
         self.vqSaveGuiSettings(self._vq_settings)
         self._vq_cli.input.saveHistory(self._vq_histfile)
-        QtWidgets.QMainWindow.closeEvent(self, event)
+        QMainWindow.closeEvent(self, event)
 
     def vqGetDockWidgets(self):
         return list(self._vq_dockwidgets)

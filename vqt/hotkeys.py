@@ -7,8 +7,10 @@ logger = logging.getLogger(__name__)
 if not len(logger.handlers):
     logger.addHandler(logging.StreamHandler())
 
-from PyQt5 import QtCore
-from PyQt5.QtWidgets import *
+try:
+    from PyQt5.QtWidgets import *
+except:
+    from PyQt4.QtGui import *
 
 QMOD_META   = 0x08000000
 QMOD_CTRL   = 0x04000000
