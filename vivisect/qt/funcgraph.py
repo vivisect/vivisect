@@ -14,11 +14,11 @@ import vivisect.qt.ctxmenu as vq_ctxmenu
 import vivisect.tools.graphutil as viv_graphutil
 
 try:
-    from PyQt5.QtCore   import pyqtSignal, QPoint
+    from PyQt5.QtCore   import pyqtSignal, QPoint, PYQT_VERSION_STR
     from PyQt5          import QtCore, QtGui, QtWebKit
     from PyQt5.QtWidgets import *
 except:
-    from PyQt4.QtCore   import pyqtSignal, QPoint
+    from PyQt4.QtCore   import pyqtSignal, QPoint, PYQT_VERSION_STR
     from PyQt4          import QtCore, QtGui, QtWebKit
     from PyQt4.QtGui    import *
 
@@ -206,6 +206,16 @@ function drawSvgLine(svgid, lineid, points) {
     svgelem.appendChild(lelem);
 }
 '''
+
+def compat_getFrameDimensions(frame, cbname):
+    if PYQT_VERSION_STR.startswith('4'):
+        girth, ok = frame.evaluateJavaScript('document.getElementById("%s").offsetWidth;' % cbname).toInt()
+        height, ok = frame.evaluateJavaScript('document.getElementById("%s").offsetHeight;' % cbname).toInt()
+    else:
+        girth = int(frame.evaluateJavaScript('document.getElementById("%s").offsetWidth;' % cbname))
+        height = frame.evaluateJavaScript('document.getElementById("%s").offsetHeight;' % cbname)
+    return girth, height
+
 
 import itertools
 import collections
@@ -433,9 +443,10 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
 
             cbname = 'codeblock_%.8x' % cbva
             #girth, ok = frame.evaluateJavaScript('document.getElementById("%s").offsetWidth;' % cbname).toInt()
-            girth = int(frame.evaluateJavaScript('document.getElementById("%s").offsetWidth;' % cbname))
+            #girth = int(frame.evaluateJavaScript('document.getElementById("%s").offsetWidth;' % cbname))
             #height, ok = frame.evaluateJavaScript('document.getElementById("%s").offsetHeight;' % cbname).toInt()
-            height = frame.evaluateJavaScript('document.getElementById("%s").offsetHeight;' % cbname)
+            #height = frame.evaluateJavaScript('document.getElementById("%s").offsetHeight;' % cbname)
+            girth, height = compat_getFrameDimensions(frame, cbname)
             self.graph.setNodeProp((nid,nprops), "size", (girth, height))
 
         self.dylayout = vg_dynadag.DynadagLayout(self.graph)

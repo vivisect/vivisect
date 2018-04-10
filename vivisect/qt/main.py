@@ -252,7 +252,7 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
             for i, clsname in enumerate(compat_strList(dwcls)):
                 name = 'VQDockWidget%d'  % i
                 try:
-                    tup = self.vqBuildDockWidget(str(clsname), floating=True)
+                    tup = self.vqBuildDockWidget(str(clsname), floating=False)
                     if tup != None:
                         d, obj = tup
                         d.setObjectName(name)
