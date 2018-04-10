@@ -363,28 +363,28 @@ class VdbWindow(vq_app.VQMainCmdWindow):
         self.vqBuildDockWidget('VdbRegistersWindow', area=QtCore.Qt.RightDockWidgetArea)
 
     def menuViewLayoutsLoad(self):
-        fname = QFileDialog.getOpenFileName(self, 'Load Layout')[0]
+        fname = getOpenFileName(self, 'Load Layout')
         if fname == None:
             return
 
         self.vqClearDockWidgets()
 
-        settings = QtCore.QSettings(fname, QtCore.QSettings.IniFormat)
+        settings = QtCore.QSettings(str(fname), QtCore.QSettings.IniFormat)
         self.vqRestoreGuiSettings(settings)
 
     def menuViewLayoutsSave(self):
-        fname = QFileDialog.getSaveFileName(self, 'Save Layout')[0]
+        fname = getSaveFileName(self, 'Save Layout')
         if fname == None:
             return
 
-        settings = QtCore.QSettings(fname, QtCore.QSettings.IniFormat)
+        settings = QtCore.QSettings(str(fname), QtCore.QSettings.IniFormat)
         self.vqSaveGuiSettings(settings)
 
     def menuViewLayoutsClear(self):
         self.vqClearDockWidgets()
 
     def menuFileOpen(self, *args, **kwargs):
-        fname = str(QFileDialog.getOpenFileName(parent=self, caption='File to execute and attach to'))[0]
+        fname = str(getOpenFileName(parent=self, caption='File to execute and attach to'))
         if fname != '':
             self._vq_cli.onecmd('exec "%s"' % fname)
 

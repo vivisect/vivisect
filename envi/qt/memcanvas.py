@@ -2,9 +2,11 @@ import cgi
 try:
     from PyQt5    import QtCore, QtGui, QtWebKit, QtWebKitWidgets
     from PyQt5.QtWebKitWidgets import *
+    from PyQt5.QtWidgets import *
 except:
     from PyQt4    import QtCore, QtGui, QtWebKit
     from PyQt4.QtWebKit import *
+    from PyQt4.QtGui import *
 
 
 import vqt.main as vq_main
@@ -194,7 +196,7 @@ class VQMemoryCanvas(e_memcanvas.MemoryCanvas, QWebView):
     def contextMenuEvent(self, event):
 
         va = self._canv_curva
-        menu = QtWidgets.QMenu()
+        menu = QMenu()
         if self._canv_curva != None:
             self.initMemWindowMenu(va, menu)
 
@@ -207,10 +209,12 @@ class VQMemoryCanvas(e_memcanvas.MemoryCanvas, QWebView):
         initMemSendtoMenu('0x%.8x' % va, menu)
 
     def _menuSaveToHtml(self):
-        fname, ftype = QtWidgets.QFileDialog.getSaveFileName(self, 'Save As HTML...')
-        if fname != None and len(fname):
-            html = self.page().mainFrame().toHtml()
-            file(fname, 'w').write(html)
+        fname = getSaveFileName(self, 'Save As HTML...')
+        if fname != None:
+            fname = str(fname)
+            if len(fname):
+                html = self.page().mainFrame().toHtml()
+                file(fname, 'w').write(html)
 
 
 def getNavTargetNames():

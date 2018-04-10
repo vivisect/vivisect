@@ -3,7 +3,7 @@ try:
     from PyQt5.QtWidgets import QApplication
 except:
     from PyQt4 import QtCore
-    from PyQt5.QtGui import QApplication
+    from PyQt4.QtGui import QApplication
 
 import vtrace.qt
 import envi.qt.memory

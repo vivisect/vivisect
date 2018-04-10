@@ -28,15 +28,25 @@ import vivisect.remote.server as viv_server
 try:
     from PyQt5 import QtCore
     from PyQt5.QtWidgets import QInputDialog, QFileDialog
+    from PyQt5.QtCore import PYQT_VERSION_STR
 except:
     from PyQt4 import QtCore
     from PyQt4.QtGui import QInputDialog, QFileDialog
+    from PyQt4.QtCore import PYQT_VERSION_STR
 
 from vqt.common import *
 from vivisect.const import *
+from vqt.main import getOpenFileName, getSaveFileName
+from vqt.saveable import compat_isNone, compat_toByteArray
 
 dock_top   = QtCore.Qt.TopDockWidgetArea
 dock_right = QtCore.Qt.RightDockWidgetArea
+
+def compat_strList(dwcls):
+    if PYQT_VERSION_STR.startswith('4'):
+        return dwcls.toStringList()
+    return dwcls
+    
 
 class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
 
@@ -222,6 +232,50 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
         state = settings.value('%s/DockState' % guid)
         geom =  settings.value('%s/DockGeometry' % guid)
 
+        # PyQt4 is very different here
+        if compat_isNone(dwcls):
+            names = self.vw.filemeta.keys()
+            names.sort()
+            name = '+'.join(names)
+            dwcls = settings.value('%s/DockClasses' % name)
+            state = settings.value('%s/DockState' % name)
+            geom =  settings.value('%s/DockGeometry' % name)
+
+        if compat_isNone(dwcls):
+            dwcls = settings.value('DockClasses')
+            state = settings.value('DockState')
+            geom =  settings.value('DockGeometry')
+
+
+        if not compat_isNone(dwcls):
+            print repr(dwcls)
+            for i, clsname in enumerate(compat_strList(dwcls)):
+                name = 'VQDockWidget%d'  % i
+                try:
+                    tup = self.vqBuildDockWidget(str(clsname), floating=True)
+                    if tup != None:
+                        d, obj = tup
+                        d.setObjectName(name)
+                        d.vqRestoreState(settings,name)
+                        d.show()
+                except Exception, e:
+                    print('Error Building: %s: %s'  % (clsname,e))
+
+        # Once dock widgets are loaded, we can restoreState
+        if not compat_isNone(state):
+            self.restoreState(compat_toByteArray(state))
+
+        if not compat_isNone(geom):
+            self.restoreGeometry(compat_toByteArray(geom))
+
+        # Just get all the resize activities done...
+        vq_main.eatevents()
+        for w in self.vqGetDockWidgets():
+            w.show()
+
+        return True
+
+        # or it's Qt5
         if dwcls == None or not len(dwcls):
             names = self.vw.filemeta.keys()
             names.sort()
@@ -240,7 +294,8 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
             for i, clsname in enumerate(dwcls):
                 name = 'VQDockWidget%d'  % i
                 try:
-                    tup = self.vqBuildDockWidget(str(clsname)) # FIXME:, floating=True)
+                    #tup = self.vqBuildDockWidget(str(clsname)) # FIXME:, floating=True)
+                    tup = self.vqBuildDockWidget(str(clsname), floating=True)
                     if tup != None:
                         d, obj = tup
                         d.setObjectName(name)
@@ -307,7 +362,7 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
         self.vw.vprint('complete!')
 
     def _menuFileSaveAs(self):
-        fname = QFileDialog.getSaveFileName(self, 'Save As...')[0]
+        fname = getSaveFileName(self, 'Save As...')
         if fname == None or not len(fname):
             return
         self.vw.setMeta('StorageName', fname)
@@ -317,7 +372,7 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
         viv_q_remote.saveToServer(self.vw, parent=self)
 
     def _menuViewLayoutsLoad(self):
-        fname = QFileDialog.getOpenFileName(self, 'Load Layout')[0]
+        fname = getOpenFileName(self, 'Load Layout')
         if fname == None:
             return
 
@@ -325,7 +380,7 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
         self.vqRestoreGuiSettings(settings)
 
     def _menuViewLayoutsSave(self):
-        fname = QFileDialog.getSaveFileName(self, 'Save Layout')[0]
+        fname = getSaveFileName(self, 'Save Layout')
         if fname == None or not len(fname):
             return
 

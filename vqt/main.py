@@ -252,3 +252,16 @@ def vqtdisconnect(callback, event=None):
     if chan != None:
         chan.guievents.disconnect(callback)
 
+def getOpenFileName(*args, **kwargs):
+        fname = QFileDialog.getOpenFileName(*args, **kwargs)
+        if type(fname) == tuple:
+            return fname[0]
+        return fname
+
+def getSaveFileName(*args, **kwargs):
+        fname = QFileDialog.getSaveFileName(*args, **kwargs)
+        if type(fname) == tuple:
+            return fname[0]
+        return fname
+
+

@@ -3,6 +3,7 @@ import string
 import envi.memory as e_mem
 import envi.memcanvas as e_canvas
 import envi.memcanvas.renderers as e_render
+from vqt.main import getOpenFileName, getSaveFileName
 
 try:
     from PyQt5 import QtCore, QtGui
@@ -147,7 +148,7 @@ class MemSearchDialog(QDialog):
         self.hex_edit.setPlainText(str(self.canvas))
 
     def showSaveAsDialog(self):
-        fname = str(QFileDialog.getSaveFileName(caption='Select file to save results to'))[0]
+        fname = str(getSaveFileName(caption='Select file to save results to'))
         self.fname_label.setText(fname)
 
     def cancelClicked(self):

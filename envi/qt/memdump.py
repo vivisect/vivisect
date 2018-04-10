@@ -3,6 +3,8 @@ try:
 except:
     from PyQt4.QtGui import *
 
+from vqt.main import getOpenFileName, getSaveFileName
+
 class MemDumpDialog(QDialog):
     '''
     gui for memdump cli command.
@@ -51,7 +53,7 @@ class MemDumpDialog(QDialog):
         self.setWindowTitle(title)
 
     def showSaveAsDialog(self):
-        fname = str(QFileDialog.getSaveFileName(caption='Select file to dump memory to'))[0]
+        fname = str(getSaveFileName(caption='Select file to dump memory to'))
         self.fname_edit.setText(fname)
 
     def cancelClicked(self):
