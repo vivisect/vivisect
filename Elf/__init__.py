@@ -536,7 +536,7 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
                     offset = note.vsParse(notebytes,offset=offset)
                     yield note
             except Exception, e:
-                print "Elf.getNotes() Exception: %r" % e
+                print("Elf.getNotes() Exception: %r" % e)
 
     def getPlatform(self):
         '''
