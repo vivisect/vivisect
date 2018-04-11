@@ -36,39 +36,17 @@ def analyzeFunction(vw, funcva):
     if op.iflags & envi.IF_BRANCH == 0:
         return
 
-    loctup = None
     oper0 = op.opers[0]
     opval = oper0.getOperAddr(op)
-    """
-    if isinstance(oper0, e_i386.i386ImmMemOper):
-        
-        loctup = vw.getLocation(oper0.getOperAddr(op))
-
-    elif isinstance(oper0, e_i386.i386RegMemOper):
-        # FIXME this is i386 elf only!
-        if oper0.reg != e_i386.REG_EBX:
-            print "UNKNOWN PLT CALL",hex(funcva)
-        got = vw.vaByName("%s._GLOBAL_OFFSET_TABLE_" % segfname)
-
-        #FIXME this totally sucks
-        if got == None:
-            for va,size,name,fname in vw.getSegments():
-                if name == ".got.plt":
-                    got = va
-                    break
-
-        if got != None:
-            loctup = vw.getLocation(got+oper0.disp)
-    """
 
     loctup = vw.getLocation(opval)
 
     if loctup == None:
         return
 
-    if loctup[vivisect.L_LTYPE] != vivisect.LOC_IMPORT: # FIXME: Why are AMD64 IMPORTS showing up as POINTERs?
-        print "0x%x: " % funcva, loctup[vivisect.L_LTYPE], ' != ', vivisect.LOC_IMPORT
-        #return
+    if loctup[vivisect.L_LTYPE] != vivisect.LOC_IMPORT: # FIXME: Why are some AMD64 IMPORTS showing up as LOC_POINTERs?
+        vw.vprint("0x%x: %r != %r" % (funcva, loctup[vivisect.L_LTYPE], vivisect.LOC_IMPORT))
+        return
 
     gotname = vw.getName(opval)
     tinfo = gotname
