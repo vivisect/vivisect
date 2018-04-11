@@ -25,6 +25,11 @@ def compat_toByteArray(strobj):
         return strobj.toByteArray()
     return strobj
 
+def compat_strList(dwcls):
+    if PYQT_VERSION_STR.startswith('4'):
+        return dwcls.toStringList()
+    return dwcls
+    
 class SaveableWidget(object):
     '''
     Inherited by widgets that want to save and restore settings.

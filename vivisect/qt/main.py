@@ -37,16 +37,11 @@ except:
 from vqt.common import *
 from vivisect.const import *
 from vqt.main import getOpenFileName, getSaveFileName
-from vqt.saveable import compat_isNone, compat_toByteArray
+from vqt.saveable import compat_isNone, compat_toByteArray, compat_strList
 
 dock_top   = QtCore.Qt.TopDockWidgetArea
 dock_right = QtCore.Qt.RightDockWidgetArea
 
-def compat_strList(dwcls):
-    if PYQT_VERSION_STR.startswith('4'):
-        return dwcls.toStringList()
-    return dwcls
-    
 
 class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
 

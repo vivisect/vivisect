@@ -13,6 +13,7 @@ import vqt.main as vq_main
 import vqt.saveable as vq_save
 import vqt.hotkeys as vq_hotkeys
 import vqt.menubuilder as vq_menu
+from vqt.saveable import compat_isNone, compat_toByteArray, compat_strList
 
 class VQDockWidget(vq_hotkeys.HotKeyMixin, QDockWidget):
 
@@ -129,31 +130,30 @@ class VQMainCmdWindow(vq_hotkey.HotKeyMixin, QMainWindow):
         obj = cls(*args)
         return self.vqDockWidget(obj, area, floating=floating), obj
 
-    def vqRestoreGuiSettings(self, settings):
-
+    def vqRestoreGuiSettings(self, settings, stub=''):
         dwcls = settings.value('DockClasses')
-        if dwcls != None:
 
-            for i, clsname in enumerate(dwcls):
-                name = 'VQDockWidget%d'  % i
+        if not compat_isNone(dwcls):
+            for i, clsname in enumerate(compat_strList(dwcls)):
+                name = 'VQDockWidget%d' % i
                 try:
-                    tup = self.vqBuildDockWidget(str(clsname), floating=True)
+                    tup = self.vqBuildDockWidget(str(clsname), floating=False)
                     if tup != None:
                         d, obj = tup
                         d.setObjectName(name)
-                        d.vqRestoreState(settings,name,stub='')
+                        d.vqRestoreState(settings,name,stub)
                         d.show()
                 except Exception, e:
                     print('Error Building: %s: %s'  % (clsname,e))
 
         # Once dock widgets are loaded, we can restoreState
         state = settings.value('DockState')
-        if state != None:
-            self.restoreState(state)
+        if not compat_isNone(state):
+            self.restoreState(compat_toByteArray(state))
 
         geom = settings.value('DockGeometry')
-        if geom != None:
-            self.restoreGeometry(geom)
+        if not compat_isNone(geom):
+            self.restoreGeometry(compat_toByteArray(geom))
 
         # Just get all the resize activities done...
         vq_main.eatevents()
@@ -162,7 +162,7 @@ class VQMainCmdWindow(vq_hotkey.HotKeyMixin, QMainWindow):
 
         return True
 
-    def vqSaveGuiSettings(self, settings):
+    def vqSaveGuiSettings(self, settings, stub=''):
 
         dock_classes = []
 
@@ -173,7 +173,7 @@ class VQMainCmdWindow(vq_hotkey.HotKeyMixin, QMainWindow):
             dock_classes.append(widget.__class__.__name__)
             name = 'VQDockWidget%d' % i
             w.setObjectName(name)
-            w.vqSaveState(settings,name)
+            w.vqSaveState(settings,name,stub)
 
         settings.setValue('DockClasses', dock_classes)
         settings.setValue('DockGeometry', self.saveGeometry())
