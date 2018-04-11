@@ -8,7 +8,12 @@ except:
 def compat_isNone(state):
     if PYQT_VERSION_STR.startswith('4'):
         return state.isNull()
-    return state == None or not len(state)
+
+    # WTF! (QByteArray == None) is True!
+    if state is None: 
+        return True
+
+    return not len(state)
 
 def compat_toStr(qstate):
     if PYQT_VERSION_STR.startswith('4'):
@@ -26,12 +31,12 @@ class SaveableWidget(object):
 
     Implement vqGetSaveState/vqSetSaveState.
     '''
-    def vqSaveState(self, settings, name):
+    def vqSaveState(self, settings, name, stub=''):
         state = self.vqGetSaveState()
-        settings.setValue(name, json.dumps(state))
+        settings.setValue(stub+name, json.dumps(state))
 
-    def vqRestoreState(self, settings, name):
-        qstate = settings.value(name)
+    def vqRestoreState(self, settings, name, stub=''):
+        qstate = settings.value(stub+name)
         if qstate == None:
             return
 

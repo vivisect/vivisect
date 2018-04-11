@@ -231,7 +231,7 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
         dwcls = settings.value('%s/DockClasses' % guid)
         state = settings.value('%s/DockState' % guid)
         geom =  settings.value('%s/DockGeometry' % guid)
-        basename = '%s/VQDockWidget%%d' % guid
+        stub = '%s/' % guid
 
         if compat_isNone(dwcls):
             names = self.vw.filemeta.keys()
@@ -240,24 +240,24 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
             dwcls = settings.value('%s/DockClasses' % name)
             state = settings.value('%s/DockState' % name)
             geom =  settings.value('%s/DockGeometry' % name)
-            basename = '%s/VQDockWidget%%d' % name
+            stub = '%s/' % name
 
         if compat_isNone(dwcls):
             dwcls = settings.value('DockClasses')
             state = settings.value('DockState')
             geom =  settings.value('DockGeometry')
-            basename = 'VQDockWidget%d'
+            stub = ''
 
 
         if not compat_isNone(dwcls):
             for i, clsname in enumerate(compat_strList(dwcls)):
-                name = basename % i
+                name = 'VQDockWidget%d' % i
                 try:
                     tup = self.vqBuildDockWidget(str(clsname), floating=False)
                     if tup != None:
                         d, obj = tup
                         d.setObjectName(name)
-                        d.vqRestoreState(settings,name)
+                        d.vqRestoreState(settings,name,stub)
                         d.show()
                 except Exception, e:
                     print('Error Building: %s: %s'  % (clsname,e))
@@ -279,6 +279,10 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
     def vqSaveGuiSettings(self, settings):
 
         dock_classes = []
+        guid = self.vw.getVivGuid()
+        names = self.vw.filemeta.keys()
+        names.sort()
+        vivname = '+'.join(names)
 
         # Enumerate the current dock windows and set
         # their names by their list order...
@@ -287,21 +291,21 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
             dock_classes.append(widget.__class__.__name__)
             name = 'VQDockWidget%d' % i
             w.setObjectName(name)
-            w.vqSaveState(settings,name)
+            w.vqSaveState(settings,'%s/%s' % (guid, name))
+            w.vqSaveState(settings,'%s/%s' % (vivname, name))
+
+        geom = self.saveGeometry()
+        state = self.saveState()
 
         # first store for this specific workspace
-        guid = self.vw.getVivGuid()
         settings.setValue('%s/DockClasses' % guid, dock_classes)
-        settings.setValue('%s/DockGeometry' % guid, self.saveGeometry())
-        settings.setValue('%s/DockState' % guid, self.saveState())
+        settings.setValue('%s/DockGeometry' % guid, geom)
+        settings.setValue('%s/DockState' % guid, state)
 
         # next store for this filename
-        names = self.vw.filemeta.keys()
-        names.sort()
-        name = '+'.join(names)
-        settings.setValue('%s/DockClasses' % name, dock_classes)
-        settings.setValue('%s/DockGeometry' % name, self.saveGeometry())
-        settings.setValue('%s/DockState' % name, self.saveState())
+        settings.setValue('%s/DockClasses' % vivname, dock_classes)
+        settings.setValue('%s/DockGeometry' % vivname, geom)
+        settings.setValue('%s/DockState' % vivname, state)
         # don't store the default.  that should be saved manually
 
     def _menuToolsDebug(self):

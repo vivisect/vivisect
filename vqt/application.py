@@ -23,15 +23,15 @@ class VQDockWidget(vq_hotkeys.HotKeyMixin, QDockWidget):
         self.addHotKeyTarget('mem:undockmaximize', self._hotkey_undock_maximize)
         self.setAllowedAreas(QtCore.Qt.AllDockWidgetAreas)
 
-    def vqSaveState(self, settings, name):
+    def vqSaveState(self, settings, name, stub=''):
         wid = self.widget()
         if isinstance(wid, vq_save.SaveableWidget):
-            return wid.vqSaveState(settings, name)
+            return wid.vqSaveState(settings, name, stub)
 
-    def vqRestoreState(self, settings, name):
+    def vqRestoreState(self, settings, name, stub=''):
         wid = self.widget()
         if isinstance(wid, vq_save.SaveableWidget):
-            return wid.vqRestoreState(settings, name)
+            return wid.vqRestoreState(settings, name, stub)
 
     def setWidget(self, widget):
         # If he sets his window title, we want to...
@@ -141,7 +141,7 @@ class VQMainCmdWindow(vq_hotkey.HotKeyMixin, QMainWindow):
                     if tup != None:
                         d, obj = tup
                         d.setObjectName(name)
-                        d.vqRestoreState(settings,name)
+                        d.vqRestoreState(settings,name,stub='')
                         d.show()
                 except Exception, e:
                     print('Error Building: %s: %s'  % (clsname,e))
