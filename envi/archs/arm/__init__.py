@@ -28,7 +28,7 @@ class ArmModule(envi.ArchitectureModule):
         return
 
     def archGetNopInstr(self):
-        return '\x00'
+        return ('\x00\x00\x60\xe3', '\xe3\x60\x00\x00')[self._endian]   #FIXME: this is only ARM mode.  this arch mod should cover both.  the ENVI architecture doesn't support this model yet.
 
     def archGetBadOps(self):
         oplist = [ self.archParseOpcode(badop,0,0) for badop in self._arch_badopbytes ]
@@ -93,7 +93,7 @@ class ThumbModule(envi.ArchitectureModule):
         return
 
     def archGetNopInstr(self):
-        return '\x00'
+        return ('\xc0\x46', '\x46\xc0')[self._endian]
  
     def archGetBadOps(self):
         oplist = [ self.archParseOpcode(badop,0,0) for badop in self._arch_badopbytes ]
