@@ -1,4 +1,7 @@
-from PyQt5 import Qt, QtCore, QtGui, QtWidgets
+try:
+    from PyQt5.QtWidgets import *
+except:
+    from PyQt4.QtGui import *
 
 import vqt.main as vq_main
 import vqt.tree as vq_tree
@@ -20,16 +23,16 @@ class WorkspaceListView(vq_tree.VQTreeView):
         for wsname in workspaces:
             model.append((wsname,))
 
-class VivServerDialog(QtWidgets.QDialog):
+class VivServerDialog(QDialog):
 
     def __init__(self, workspaces, parent=None):
-        QtWidgets.QDialog.__init__(self, parent=parent)
+        QDialog.__init__(self, parent=parent)
         self.setWindowTitle('Select a workspace...')
 
         self.wsname = None
         self.wslist = WorkspaceListView(workspaces, parent=self)
 
-        self.buttons = QtWidgets.QDialogButtonBox(QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel)
+        self.buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
         self.buttons.accepted.connect( self.accept )
         self.buttons.rejected.connect( self.reject )
 
@@ -54,12 +57,12 @@ class VivServerDialog(QtWidgets.QDialog):
                 self.wsname = row.rowdata[0]
                 break
 
-        return QtWidgets.QDialog.accept(self)
+        return QDialog.accept(self)
 
-class VivSaveServerDialog(QtWidgets.QDialog):
+class VivSaveServerDialog(QDialog):
 
     def __init__(self, vw, parent=None):
-        QtWidgets.QDialog.__init__(self, parent=parent)
+        QDialog.__init__(self, parent=parent)
         self.setWindowTitle('Save to Workspace Server...')
         self.vw = vw
         try:
@@ -67,20 +70,20 @@ class VivSaveServerDialog(QtWidgets.QDialog):
         except AttributeError:
             server = "visi.kenshoto.com"
 
-        self.wsname = QtWidgets.QLineEdit(vw.getMeta('StorageName',''), parent=self)
-        self.wsserver = QtWidgets.QLineEdit(server, parent=self)
-        self.setdef = QtWidgets.QCheckBox(parent=self)
+        self.wsname = QLineEdit(vw.getMeta('StorageName',''), parent=self)
+        self.wsserver = QLineEdit(server, parent=self)
+        self.setdef = QCheckBox(parent=self)
 
-        self.buttons = QtWidgets.QDialogButtonBox(QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel)
+        self.buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
         self.buttons.accepted.connect( self.accept )
         self.buttons.rejected.connect( self.reject )
 
-        serverlayout = QtWidgets.QHBoxLayout()
+        serverlayout = QHBoxLayout()
         serverlayout.addWidget(self.wsserver)
-        serverlayout.addWidget(QtWidgets.QLabel('Make Default:'))
+        serverlayout.addWidget(QLabel('Make Default:'))
         serverlayout.addWidget(self.setdef)
 
-        layout = QtWidgets.QFormLayout()
+        layout = QFormLayout()
         layout.addRow('Workspace Name', self.wsname)
         layout.addRow('Workspace Server', serverlayout)
         layout.addWidget(self.buttons)
@@ -94,17 +97,17 @@ class VivSaveServerDialog(QtWidgets.QDialog):
         return (wsname,wsserver)
 
     def accept(self, *args, **kwargs):
-        QtWidgets.QDialog.accept(self, *args, **kwargs)
+        QDialog.accept(self, *args, **kwargs)
         if self.setdef.isChecked():
             cfg = self.vw.config.getSubConfig("remote")
             cfg['server'] = str(self.wsserver.text())
             self.vw.config.saveConfigFile()
 
 # FIXME: should we combine the VivConnectServerDialog with the VivSaveServerDialog?  there are like 10 lines different.
-class VivConnectServerDialog(QtWidgets.QDialog):
+class VivConnectServerDialog(QDialog):
 
     def __init__(self, vw, parent=None):
-        QtWidgets.QDialog.__init__(self, parent=parent)
+        QDialog.__init__(self, parent=parent)
         self.setWindowTitle('Workspace Server...')
         self.vw = vw
         try:
@@ -112,19 +115,19 @@ class VivConnectServerDialog(QtWidgets.QDialog):
         except AttributeError:
             server = "visi.kenshoto.com"
 
-        self.wsserver = QtWidgets.QLineEdit(server, parent=self)
-        self.setdef = QtWidgets.QCheckBox(parent=self)
+        self.wsserver = QLineEdit(server, parent=self)
+        self.setdef = QCheckBox(parent=self)
 
-        self.buttons = QtWidgets.QDialogButtonBox(QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel)
+        self.buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
         self.buttons.accepted.connect( self.accept )
         self.buttons.rejected.connect( self.reject )
 
-        serverlayout = QtWidgets.QHBoxLayout()
+        serverlayout = QHBoxLayout()
         serverlayout.addWidget(self.wsserver)
-        serverlayout.addWidget(QtWidgets.QLabel('Make Default:'))
+        serverlayout.addWidget(QLabel('Make Default:'))
         serverlayout.addWidget(self.setdef)
 
-        layout = QtWidgets.QFormLayout()
+        layout = QFormLayout()
         layout.addRow('Workspace Server', serverlayout)
         layout.addWidget(self.buttons)
         self.setLayout(layout)
@@ -136,7 +139,7 @@ class VivConnectServerDialog(QtWidgets.QDialog):
         return wsserver
 
     def accept(self, *args, **kwargs):
-        QtWidgets.QDialog.accept(self, *args, **kwargs)
+        QDialog.accept(self, *args, **kwargs)
         if self.setdef.isChecked():
             cfg = self.vw.config.getSubConfig("remote")
             cfg['server'] = str(self.wsserver.text())
@@ -202,7 +205,7 @@ def openSharedWorkspace(vw, parent=None):
     '''
     Open a workspace shared by a vivisect peer.
     '''
-    hostport, ok = QtWidgets.QInputDialog.getText(parent, 'Shared Workspace...', 'host:port')
+    hostport, ok = QInputDialog.getText(parent, 'Shared Workspace...', 'host:port')
     if not ok:
         return
 

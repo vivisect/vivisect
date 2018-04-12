@@ -13,7 +13,12 @@ import vivisect.symboliks.analysis as viv_sym_analysis
 import vivisect.symboliks.expression as viv_sym_expression
 import vivisect.symboliks.constraints as viv_sym_constraints
 
-from PyQt5 import QtCore, QtGui, QtWidgets
+try:
+    from PyQt5 import QtCore
+    from PyQt5.QtWidgets import *
+except:
+    from PyQt4 import QtCore
+    from PyQt4.QtGui import *
 
 from vqt.main import *
 from vqt.basics import *
@@ -52,7 +57,7 @@ class VivSymbolikPathsView(vq_tree.VQTreeView):
             path = rowdata[-1]
             self.pathSelected.emit(emu,path)
 
-class VivSymbolikFuncPane(e_q_memory.EnviNavMixin, vq_save.SaveableWidget, QtWidgets.QWidget):
+class VivSymbolikFuncPane(e_q_memory.EnviNavMixin, vq_save.SaveableWidget, QWidget):
 
     viewidx = itertools.count()
 
@@ -72,17 +77,17 @@ class VivSymbolikFuncPane(e_q_memory.EnviNavMixin, vq_save.SaveableWidget, QtWid
 
         self.symctx.consolve = True
 
-        QtWidgets.QWidget.__init__(self, parent=parent)
+        QWidget.__init__(self, parent=parent)
         e_q_memory.EnviNavMixin.__init__(self)
         self.setEnviNavName('Symboliks%d' % self.viewidx.next())
 
-        self.exprtext = QtWidgets.QLineEdit(parent=self)
-        self.constraintext = QtWidgets.QLineEdit(parent=self)
-        self.alleffs = QtWidgets.QCheckBox('all effects', parent=self)
+        self.exprtext = QLineEdit(parent=self)
+        self.constraintext = QLineEdit(parent=self)
+        self.alleffs = QCheckBox('all effects', parent=self)
         self.alleffs.stateChanged.connect(self.rendSymbolikPath)
 
-        self.loop_count  = QtWidgets.QSpinBox(parent=self)
-        looplabel = QtWidgets.QLabel(QString("Max Loops:"), parent=self)
+        self.loop_count  = QSpinBox(parent=self)
+        looplabel = QLabel(QString("Max Loops:"), parent=self)
         
         self.pathview = VivSymbolikPathsView(vw, parent=self)
         self.memcanvas = e_q_memcanvas.VQMemoryCanvas(vw, syms=vw, parent=self)
@@ -91,8 +96,8 @@ class VivSymbolikFuncPane(e_q_memory.EnviNavMixin, vq_save.SaveableWidget, QtWid
         self.exprtext.returnPressed.connect(self.renderSymbolikPaths)
         self.constraintext.returnPressed.connect(self.renderSymbolikPaths)
 
-        fvalabel = QtWidgets.QLabel(QString("Function VA:"), parent=self)
-        inccblabel = QtWidgets.QLabel(QString("Must Include VA:"), parent=self)
+        fvalabel = QLabel(QString("Function VA:"), parent=self)
+        inccblabel = QLabel(QString("Must Include VA:"), parent=self)
         navbox = HBox(fvalabel, self.exprtext, inccblabel, self.constraintext, looplabel, self.loop_count, self.alleffs)
 
         mainbox = VBox()

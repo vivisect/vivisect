@@ -1,5 +1,16 @@
-from PyQt5 import QtCore
-from PyQt5.QtWidgets import *
+import sys
+import logging
+import traceback
+
+logger = logging.getLogger(__name__)
+#logger.setLevel(logging.INFO)
+if not len(logger.handlers):
+    logger.addHandler(logging.StreamHandler())
+
+try:
+    from PyQt5.QtWidgets import *
+except:
+    from PyQt4.QtGui import *
 
 QMOD_META   = 0x08000000
 QMOD_CTRL   = 0x04000000
@@ -139,7 +150,12 @@ class HotKeyMixin(object):
         target = self._vq_hotkeys.get( hotkey )
         if target != None:
             callback, args, kwargs = self._vq_hotkey_targets.get( target )
-            callback(*args,**kwargs)
+            try:
+                callback(*args,**kwargs)
+            except:
+                logger.warn("error in eatKeyPressEvent(%r, %r, %r)" % (event, args, kwargs))
+                logger.debug(''.join(traceback.format_exception(*sys.exc_info())))
+
             event.accept()
             return True
 

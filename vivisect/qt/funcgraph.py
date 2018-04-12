@@ -13,8 +13,15 @@ import vivisect.qt.memory as vq_memory
 import vivisect.qt.ctxmenu as vq_ctxmenu
 import vivisect.tools.graphutil as viv_graphutil
 
-from PyQt5.QtCore   import pyqtSignal, QPoint
-from PyQt5          import QtCore, QtGui, QtWidgets, QtWebKit
+try:
+    from PyQt5.QtCore   import pyqtSignal, QPoint, PYQT_VERSION_STR
+    from PyQt5          import QtCore, QtGui, QtWebKit
+    from PyQt5.QtWidgets import *
+except:
+    from PyQt4.QtCore   import pyqtSignal, QPoint, PYQT_VERSION_STR
+    from PyQt4          import QtCore, QtGui, QtWebKit
+    from PyQt4.QtGui    import *
+
 from vqt.main       import idlethread, idlethreadsync, eatevents, vqtconnect, workthread, vqtevent
 
 from vqt.common import *
@@ -31,7 +38,7 @@ class VQVivFuncgraphCanvas(vq_memory.VivCanvasBase):
         self.curs = QtGui.QCursor()
 
     def wheelEvent(self, event):
-        mods = QtWidgets.QApplication.keyboardModifiers()
+        mods = QApplication.keyboardModifiers()
         if mods == QtCore.Qt.ShiftModifier:
             delta = event.angleDelta().y()
             factord = delta / 1000.0
@@ -42,7 +49,7 @@ class VQVivFuncgraphCanvas(vq_memory.VivCanvasBase):
         return e_qt_memcanvas.VQMemoryCanvas.wheelEvent(self, event)
 
     def mouseMoveEvent (self, event):
-        mods = QtWidgets.QApplication.keyboardModifiers()
+        mods = QApplication.keyboardModifiers()
         if mods == QtCore.Qt.ShiftModifier:
             x = event.globalX()
             y = event.globalY()
@@ -87,7 +94,7 @@ class VQVivFuncgraphCanvas(vq_memory.VivCanvasBase):
         if self._canv_curva != None:
             menu = vq_ctxmenu.buildContextMenu(self.vw, va=self._canv_curva, parent=self)
         else:
-            menu = QtWidgets.QMenu(parent=self)
+            menu = QMenu(parent=self)
 
         self.viewmenu = menu.addMenu('view   ')
         #self.viewmenu.addAction("Save frame to HTML", ACT(self._menuSaveToHtml))
@@ -200,10 +207,20 @@ function drawSvgLine(svgid, lineid, points) {
 }
 '''
 
+def compat_getFrameDimensions(frame, cbname):
+    if PYQT_VERSION_STR.startswith('4'):
+        girth, ok = frame.evaluateJavaScript('document.getElementById("%s").offsetWidth;' % cbname).toInt()
+        height, ok = frame.evaluateJavaScript('document.getElementById("%s").offsetHeight;' % cbname).toInt()
+    else:
+        girth = int(frame.evaluateJavaScript('document.getElementById("%s").offsetWidth;' % cbname))
+        height = frame.evaluateJavaScript('document.getElementById("%s").offsetHeight;' % cbname)
+    return girth, height
+
+
 import itertools
 import collections
 
-class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QtWidgets.QWidget, vq_save.SaveableWidget, viv_base.VivEventCore):
+class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidget, vq_save.SaveableWidget, viv_base.VivEventCore):
     _renderDoneSignal = pyqtSignal()
 
     viewidx = itertools.count()
@@ -216,7 +233,7 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QtWidg
         self._last_viewpt = None
         self.history = collections.deque((),100)
 
-        QtWidgets.QWidget.__init__(self, parent=vwqgui)
+        QWidget.__init__(self, parent=vwqgui)
         vq_hotkey.HotKeyMixin.__init__(self)
         viv_base.VivEventCore.__init__(self, vw)
         e_qt_memory.EnviNavMixin.__init__(self)
@@ -224,18 +241,18 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QtWidg
 
         self._renderDoneSignal.connect(self._refresh_cb)
 
-        self.top_box = QtWidgets.QWidget(parent=self)
-        hbox = QtWidgets.QHBoxLayout(self.top_box)
+        self.top_box = QWidget(parent=self)
+        hbox = QHBoxLayout(self.top_box)
         hbox.setContentsMargins(2, 2, 2, 2)
         hbox.setSpacing(4)
 
-        self.histmenu = QtWidgets.QMenu(parent=self)
+        self.histmenu = QMenu(parent=self)
         self.histmenu.aboutToShow.connect( self._histSetupMenu )
 
-        self.hist_button = QtWidgets.QPushButton('History', parent=self.top_box)
+        self.hist_button = QPushButton('History', parent=self.top_box)
         self.hist_button.setMenu(self.histmenu)
 
-        self.addr_entry  = QtWidgets.QLineEdit(parent=self.top_box)
+        self.addr_entry  = QLineEdit(parent=self.top_box)
 
         self.mem_canvas = VQVivFuncgraphCanvas(vw, syms=vw, parent=self)
         self.mem_canvas.setNavCallback(self.enviNavGoto)
@@ -251,7 +268,7 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QtWidg
         hbox.addWidget(self.hist_button)
         hbox.addWidget(self.addr_entry)
 
-        vbox = QtWidgets.QVBoxLayout(self)
+        vbox = QVBoxLayout(self)
         vbox.setContentsMargins(4, 4, 4, 4)
         vbox.setSpacing(4)
         vbox.addWidget(self.top_box)
@@ -399,7 +416,12 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QtWidg
         self.fva = fva
         #self.graph = self.vw.getFunctionGraph(fva)
         if graph == None:
-            graph = viv_graphutil.buildFunctionGraph(self.vw, fva, revloop=True)
+            try:
+                graph = viv_graphutil.buildFunctionGraph(self.vw, fva, revloop=True)
+            except Exception, e:
+                import sys
+                sys.excepthook(*sys.exc_info())
+                return
 
         self.graph = graph
 
@@ -421,9 +443,10 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QtWidg
 
             cbname = 'codeblock_%.8x' % cbva
             #girth, ok = frame.evaluateJavaScript('document.getElementById("%s").offsetWidth;' % cbname).toInt()
-            girth = int(frame.evaluateJavaScript('document.getElementById("%s").offsetWidth;' % cbname))
+            #girth = int(frame.evaluateJavaScript('document.getElementById("%s").offsetWidth;' % cbname))
             #height, ok = frame.evaluateJavaScript('document.getElementById("%s").offsetHeight;' % cbname).toInt()
-            height = frame.evaluateJavaScript('document.getElementById("%s").offsetHeight;' % cbname)
+            #height = frame.evaluateJavaScript('document.getElementById("%s").offsetHeight;' % cbname)
+            girth, height = compat_getFrameDimensions(frame, cbname)
             self.graph.setNodeProp((nid,nprops), "size", (girth, height))
 
         self.dylayout = vg_dynadag.DynadagLayout(self.graph)

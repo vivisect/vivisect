@@ -1,4 +1,9 @@
-from PyQt5 import QtCore, QtGui, QtWidgets
+try:
+    from PyQt5 import QtCore
+    from PyQt5.QtWidgets import QApplication
+except:
+    from PyQt4 import QtCore
+    from PyQt4.QtGui import QApplication
 
 import vtrace.qt
 import envi.qt.memory
@@ -72,7 +77,7 @@ class VdbMemoryCanvas(envi.qt.memcanvas.VQMemoryCanvas):
             return
 
         self._menuFollow(self._canv_curva)
-        clipboard = QtWidgets.QApplication.clipboard()
+        clipboard = QApplication.clipboard()
         clipboard.setText(hex(self._canv_curva))
 
     def _menuSetOpTo(self, va, byte):
@@ -103,7 +108,7 @@ class VdbMemoryCanvas(envi.qt.memcanvas.VQMemoryCanvas):
 
         bytez = t.readMemory(va, size)
 
-        clipboard = QtWidgets.QApplication.clipboard()
+        clipboard = QApplication.clipboard()
         clipboard.setText(bytez.encode('hex'))
 
     def _menuFollow(self, va, rend='', newWindow=False):
