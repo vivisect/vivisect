@@ -351,29 +351,6 @@ IENC_MAX        = len(iencs)
 for ieidx in range(IENC_MAX):
     globals()[iencs[ieidx]] = ieidx
 
-# offchutes
-IENC_MEDIA_PARALLEL = ((IENC_MEDIA << 8) + 1) << 8
-IENC_MEDIA_SAT      = ((IENC_MEDIA << 8) + 2) << 8
-IENC_MEDIA_REV      = ((IENC_MEDIA << 8) + 3) << 8
-IENC_MEDIA_SEL      = ((IENC_MEDIA << 8) + 4) << 8
-IENC_MEDIA_USAD8    = ((IENC_MEDIA << 8) + 5) << 8
-IENC_MEDIA_USADA8   = ((IENC_MEDIA << 8) + 6) << 8
-IENC_MEDIA_EXTEND   = ((IENC_MEDIA << 8) + 7) << 8
-IENC_MEDIA_PACK     = ((IENC_MEDIA << 8) + 8) << 8
-IENC_MEDIA_SBFX     = IENC_MEDIA_PACK #FIXME
-IENC_MEDIA_PDIV     = IENC_MEDIA_PACK #FIXME
-IENC_UNCOND_CPS     = ((IENC_UNCOND << 8) + 1) << 8
-IENC_UNCOND_SETEND  = ((IENC_UNCOND << 8) + 2) << 8
-IENC_UNCOND_PLD     = ((IENC_UNCOND << 8) + 3) << 8
-IENC_UNCOND_PLI     = IENC_UNCOND_PLD #FIXME
-IENC_UNCOND_BLX     = ((IENC_UNCOND << 8) + 4) << 8
-IENC_UNCOND_RFE     = ((IENC_UNCOND << 8) + 5) << 8
-IENC_UNCOND_CLREX   = IENC_UNCOND_PLD #FIXME
-IENC_UNCOND_DMB     = IENC_UNCOND_PLD #FIXME
-IENC_UNCOND_DSB     = IENC_UNCOND_PLD #FIXME
-IENC_UNCOND_ISB     = IENC_UNCOND_PLD #FIXME
-
-
 # The supported types of operand shifts (by the 2 bit field)
 S_LSL = 0
 S_LSR = 1
@@ -387,9 +364,6 @@ SOT_REG = 0
 SOT_IMM = 1
 #ia was removed as it is not UAL
 daib = ("da", "", "db", "ib")
-
-
-
 
 instrnames = [
         'AND',
@@ -432,7 +406,6 @@ instrnames = [
         'STC2',
         'LDC',
         'LDC2',
-
         'VHADD',
         'VQADD',
         'VRHADD',
