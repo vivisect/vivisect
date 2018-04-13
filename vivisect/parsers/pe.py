@@ -53,6 +53,7 @@ arch_names = {
 defcalls = {
     'i386':'cdecl',
     'amd64':'msx64call',
+    'arm':'armcall',
 }
 
 # map PE relocation types to vivisect types where possible
@@ -80,9 +81,7 @@ def loadPeIntoWorkspace(vw, pe, filename=None):
 
     vw.setMeta('Platform', platform)
 
-    defcall = defcalls.get(arch)
-    if defcall:
-        vw.setMeta("DefaultCall", defcall)
+    vw.setMeta('DefaultCall', defcalls.get(arch,'unknown'))
 
     # Set ourselvs up for extended windows binary analysis
 
@@ -369,15 +368,7 @@ def loadPeIntoWorkspace(vw, pe, filename=None):
 
     # Last but not least, see if we have symbol support and use it if we do
     if vt_win32.dbghelp:
-
-        s = vt_win32.Win32SymbolParser(-1, filename, baseaddr)
-
-        # We don't want exports or whatever because we already have them... actually, fails on Chrome pdbs
-        #s.symopts |= vt_win32.SYMOPT_EXACT_SYMBOLS
-
-        # Add names for any symbols which are missing them
-        for symname, symva, size, flags in s.genSymbols():
-
+        def vivSymCallback(symname, symva, size, flags):
             if not vw.isValidPointer(symva):
                 continue
 
@@ -388,6 +379,15 @@ def loadPeIntoWorkspace(vw, pe, filename=None):
 
             except Exception, e:
                 vw.vprint("Symbol Load Error: %s" % e)
+
+        s = vt_win32.Win32SymbolParser(-1, filename, baseaddr)
+
+        # We don't want exports or whatever because we already have them... actually, fails on Chrome pdbs
+        #s.symopts |= vt_win32.SYMOPT_EXACT_SYMBOLS
+
+        # Add names for any symbols which are missing them
+        #for symname, symva, size, flags in s.parseSymbols(vivSymCallback):
+        s.parseSymbols(vivSymCallback):
 
         # Also, lets set the locals/args name hints if we found any
         vw.setFileMeta(fname, 'PELocalHints', s._sym_locals)
