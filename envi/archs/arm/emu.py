@@ -992,7 +992,6 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
         self.setFlag(PSR_N_bit, e_bits.is_signed(ures, dsize))
         self.setFlag(PSR_Z_bit, (0,1)[ures==0])
         self.setFlag(PSR_C_bit, e_bits.is_unsigned_carry(ures, dsize))
-        #self.setFlag(PSR_V_bit, e_bits.is_signed_overflow(sres, dsize))
         
     def i_teq(self, op):
         src1 = self.getOperValue(op, 0)
@@ -1010,7 +1009,6 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
             print('FIXME: TEQ - do different shift types for Carry flag')
             # FIXME: make the operands handle a ThumbExpandImm_C (for immediate) or Shift_C (for RegShiftImm), etc...
             self.setFlag(PSR_C_bit, e_bits.is_unsigned_carry(ures, dsize))
-        #self.setFlag(PSR_V_bit, e_bits.is_signed_overflow(sres, dsize))
         
     def i_rsb(self, op):
         src1 = self.getOperValue(op, 1)
@@ -1151,7 +1149,7 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
         origeflags = self.getRegister(REG_CPSR)
 
         res2 = self.AddWithCarry(src1, 0xffffffff^src2, 1, Sflag, op.opers[0].reg)
-        eflags2 = self.getRegister(REG_CPSR)
+        #eflags2 = self.getRegister(REG_CPSR)
 
         #self.setRegister(REG_CPSR, origeflags)
         #res = self.intSubBase(src1, src2, Sflag, op.opers[0].reg)
@@ -1174,7 +1172,7 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
 
         self.setRegister(REG_CPSR, origeflags)
         res = self.intSubBase(src1, src2, Sflag, op.opers[0].reg)
-        eflags1 = self.getRegister(REG_CPSR)
+        #eflags1 = self.getRegister(REG_CPSR)
 
         #if res != res2 or eflags1 != eflags2:
         #    print "==== uhoh: intSubBase and AddWithCarry methods differ!: 0x%x:  %s    %x ? %x  (%x / %x ? %x) "  %\
@@ -1277,7 +1275,6 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
             self.setFlag(PSR_N_bit, e_bits.is_signed(val, dsize))
             self.setFlag(PSR_Z_bit, not val)
             self.setFlag(PSR_C_bit, carry)
-            #self.setFlag(PSR_V_bit, e_bits.is_signed_overflow(val, dsize))
 
     def i_lsr(self, op):
         dsize = op.opers[0].tsize
@@ -1298,7 +1295,6 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
             self.setFlag(PSR_N_bit, e_bits.is_signed(val, dsize))
             self.setFlag(PSR_Z_bit, not val)
             self.setFlag(PSR_C_bit, carry)
-            #self.setFlag(PSR_V_bit, e_bits.is_signed_overflow(val, dsize))
 
     def i_asr(self, op):
         dsize = op.opers[0].tsize
@@ -1325,7 +1321,6 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
             self.setFlag(PSR_N_bit, e_bits.is_signed(val, dsize))
             self.setFlag(PSR_Z_bit, not val)
             self.setFlag(PSR_C_bit, carry)
-            #self.setFlag(PSR_V_bit, e_bits.is_signed_overflow(val, dsize))
 
     def i_ror(self, op):
         dsize = op.opers[0].tsize
@@ -1346,7 +1341,6 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
             self.setFlag(PSR_N_bit, e_bits.is_signed(val, dsize))
             self.setFlag(PSR_Z_bit, not val)
             self.setFlag(PSR_C_bit, carry)
-            #self.setFlag(PSR_V_bit, e_bits.is_signed_overflow(val, dsize))
 
     def i_rrx(self, op):
         dsize = op.opers[0].tsize
@@ -1369,7 +1363,6 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
             self.setFlag(PSR_N_bit, e_bits.is_signed(val, dsize))
             self.setFlag(PSR_Z_bit, not val)
             self.setFlag(PSR_C_bit, carry)
-            #self.setFlag(PSR_V_bit, e_bits.is_signed_overflow(val, dsize))
 
 
     def i_cbz(self, op):
