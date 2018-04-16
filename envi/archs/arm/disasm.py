@@ -1907,7 +1907,11 @@ def p_uncond(opval, va, psize = 4):
                     mesg="p_uncond (ontop=3): invalid instruction",
                     bytez=struct.pack("<I", opval), va=va)
     
-vmul_mnems = (('vmla', INS_VMLA),('vmls', INS_VMLS),('vnmla', INS_VNMLA),('vnmls', INS_VNMLS),('vnmul', INS_VNMUL),('vmul', INS_VMUL),('vadd', INS_VADD),('vsub', INS_VSUB),('vdiv', INS_VDIV),('vfnms', INS_VFNMS),('vfnma', INS_VFNMA),('vfms', INS_VFMS),('vfma', INS_VFMA),)
+vmul_mnems = (
+            ('vmla', INS_VMLA),('vmls', INS_VMLS),('vnmla', INS_VNMLA),('vnmls', INS_VNMLS),
+            ('vnmul', INS_VNMUL),('vmul', INS_VMUL),('vadd', INS_VADD),('vsub', INS_VSUB),
+            ('vdiv', INS_VDIV),('vfnms', INS_VFNMS),('vfnma', INS_VFNMA),('vfms', INS_VFMS),('vfma', INS_VFMA),
+            )
 def p_fp_dp(opval, va):
     val1 = opval >> 16
     val2 = opval & 0xffff
@@ -2832,8 +2836,6 @@ adv_simd_2regs_misc = (
         ('vcvt',        INS_VCVT, ADV_SIMD_F32S32, 0,0, 0),
         ('vcvt',        INS_VCVT, ADV_SIMD_F32S32+1, 0,0, 0),
         ('vcvt',        INS_VCVT, ADV_SIMD_F32S32+1, 0,0, 0),
-
-
 )
 
 def adv_simd_32(val, va):
@@ -3093,7 +3095,7 @@ def _do_adv_simd_32(val, va, u):
                 shift_amount = imm - 8
 
             #simdflags = { 8: IFS_8, 16: IFS_16, 32: IFS_32, 64: IFS_64 }[esize]
-            idx = {8:0, 16:1, 32:2, 64:3}[esize]    # FIXME: coerce all this into a more simplified model
+            idx = {8:0, 16:1, 32:2, 64:3}[esize]
             simdflags = adv_simd_dts[20 + (idx) + foffset]
 
         elif enctype == 7:      # VSHRN needs different simdflags...
@@ -3114,7 +3116,7 @@ def _do_adv_simd_32(val, va, u):
             if u:
                 foffset += 4
 
-            idx = {8:1, 16:2, 32:3, 64:4}[esize]    # FIXME: coerce all this into a more simplified model
+            idx = {8:1, 16:2, 32:3, 64:4}[esize]
             simdflags = adv_simd_dts[(idx) + foffset]
 
 
@@ -3922,7 +3924,7 @@ class ArmRegOper(ArmOperand):
 
     def getOperValue(self, op, emu=None):
         if self.reg == REG_PC:
-            return self.va  # FIXME: is this modified?  or do we need to att # to this?
+            return self.va  # FIXME: is this modified?  or do we need to add # to this?
 
         if emu == None:
             return None
