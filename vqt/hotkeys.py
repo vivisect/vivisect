@@ -1,16 +1,4 @@
-import sys
-import logging
-import traceback
-
-logger = logging.getLogger(__name__)
-#logger.setLevel(logging.INFO)
-if not len(logger.handlers):
-    logger.addHandler(logging.StreamHandler())
-
-try:
-    from PyQt5.QtWidgets import *
-except:
-    from PyQt4.QtGui import *
+from PyQt4 import QtCore, QtGui
 
 QMOD_META   = 0x08000000
 QMOD_CTRL   = 0x04000000
@@ -107,7 +95,7 @@ class HotKeyMixin(object):
 
             keyobj = settings.value('hotkey:%s' % tname)
 
-            if keyobj != None:
+            if not keyobj.isNull():
                 self.addHotKey(keyobj.toString(),tname)
 
     def getHotKeyFromEvent(self, event):
@@ -150,12 +138,7 @@ class HotKeyMixin(object):
         target = self._vq_hotkeys.get( hotkey )
         if target != None:
             callback, args, kwargs = self._vq_hotkey_targets.get( target )
-            try:
-                callback(*args,**kwargs)
-            except:
-                logger.warn("error in eatKeyPressEvent(%r, %r, %r)" % (event, args, kwargs))
-                logger.debug(''.join(traceback.format_exception(*sys.exc_info())))
-
+            callback(*args,**kwargs)
             event.accept()
             return True
 
@@ -163,10 +146,7 @@ class HotKeyMixin(object):
 
     def keyPressEvent(self, event):
         if not self.eatKeyPressEvent(event):
-            return super(HotKeyMixin, self).keyPressEvent(event)       # FIXME: is this the correct functionality?? the old way no longer works
-            parent = self.parent()
-            if parent != None:
-                return parent.keyPressEvent(event)
+            return super(HotKeyMixin, self).keyPressEvent(event)
 
 import vqt.tree
 

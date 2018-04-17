@@ -3,21 +3,15 @@ import string
 import envi.memory as e_mem
 import envi.memcanvas as e_canvas
 import envi.memcanvas.renderers as e_render
-from vqt.main import getOpenFileName, getSaveFileName
 
-try:
-    from PyQt5 import QtCore, QtGui
-    from PyQt5.QtWidgets import *
-except:
-    from PyQt4 import QtCore, QtGui
-    from PyQt4.QtGui import *
+from PyQt4 import QtGui, QtCore
 
-class MemSearchDialog(QDialog):
+class MemSearchDialog(QtGui.QDialog):
     '''
     gui for search cli command.
     '''
     def __init__(self):
-        QDialog.__init__(self)
+        QtGui.QDialog.__init__(self)
 
         self.modes = ['ascii', 'hex', 'regex', 'utf-8', 'utf-16-le',
                         'utf-16-be']
@@ -28,58 +22,58 @@ class MemSearchDialog(QDialog):
         self.canvas = e_canvas.StringMemoryCanvas(None)
         self.canvas.addRenderer('bytes', rend)
 
-        hbox1 = QHBoxLayout()
-        mode_label = QLabel('Input: ')
-        self.mode_combo = QComboBox()
+        hbox1 = QtGui.QHBoxLayout()
+        mode_label = QtGui.QLabel('Input: ')
+        self.mode_combo = QtGui.QComboBox()
         self.mode_combo.addItems(self.modes)
         self.mode_combo.currentIndexChanged.connect(self.encodingChanged)
         hbox1.addWidget(mode_label)
         hbox1.addWidget(self.mode_combo, alignment=QtCore.Qt.AlignLeft)
         hbox1.addStretch(1)
 
-        hbox2 = QHBoxLayout()
-        data_label = QLabel('Bytes: ')
-        self.data_edit = QLineEdit()
+        hbox2 = QtGui.QHBoxLayout()
+        data_label = QtGui.QLabel('Bytes: ')
+        self.data_edit = QtGui.QLineEdit()
         hbox2.addWidget(data_label)
         hbox2.addWidget(self.data_edit)
 
-        vbox1 = QVBoxLayout()
+        vbox1 = QtGui.QVBoxLayout()
         vbox1.addLayout(hbox1)
         vbox1.addLayout(hbox2)
 
-        gbox1 = QGroupBox('Search Criteria')
+        gbox1 = QtGui.QGroupBox('Search Criteria')
         gbox1.setLayout(vbox1)
 
-        hbox3 = QHBoxLayout()
-        vbox_hex_label = QVBoxLayout() # for align to top.
-        hex_label = QLabel('Hex:   ')
+        hbox3 = QtGui.QHBoxLayout()
+        vbox_hex_label = QtGui.QVBoxLayout() # for align to top.
+        hex_label = QtGui.QLabel('Hex:   ')
         vbox_hex_label.addWidget(hex_label, alignment=QtCore.Qt.AlignTop)
-        self.hex_edit = QPlainTextEdit()
+        self.hex_edit = QtGui.QPlainTextEdit()
         self.hex_edit.setReadOnly(True)
         font = QtGui.QFont('Courier') # should use actual memcanvas.
         self.hex_edit.setFont(font)
         hbox3.addLayout(vbox_hex_label)
         hbox3.addWidget(self.hex_edit)
 
-        vbox2 = QVBoxLayout()
+        vbox2 = QtGui.QVBoxLayout()
         vbox2.addLayout(hbox3)
 
-        gbox2 = QGroupBox('Bytes to Search For')
+        gbox2 = QtGui.QGroupBox('Bytes to Search For')
         gbox2.setLayout(vbox2)
 
-        hbox4 = QHBoxLayout()
-        save_check = QCheckBox('Save Search Results')
+        hbox4 = QtGui.QHBoxLayout()
+        save_check = QtGui.QCheckBox('Save Search Results')
         save_check.stateChanged.connect(self.checkChanged)
-        self.fname_label = QLabel('')
-        buttons = QDialogButtonBox()
-        buttons.setStandardButtons(QDialogButtonBox.Cancel | QDialogButtonBox.Ok)
+        self.fname_label = QtGui.QLabel('')
+        buttons = QtGui.QDialogButtonBox()
+        buttons.setStandardButtons(QtGui.QDialogButtonBox.Cancel | QtGui.QDialogButtonBox.Ok)
         buttons.accepted.connect(self.okClicked)
         buttons.rejected.connect(self.cancelClicked)
         hbox4.addWidget(save_check)
         hbox4.addWidget(self.fname_label)
         hbox4.addWidget(buttons)
 
-        vbox = QVBoxLayout()
+        vbox = QtGui.QVBoxLayout()
         vbox.addWidget(gbox1)
         vbox.addWidget(gbox2)
         vbox.addLayout(hbox4)
@@ -148,7 +142,7 @@ class MemSearchDialog(QDialog):
         self.hex_edit.setPlainText(str(self.canvas))
 
     def showSaveAsDialog(self):
-        fname = str(getSaveFileName(caption='Select file to save results to'))
+        fname = str(QtGui.QFileDialog.getSaveFileName(caption='Select file to save results to'))
         self.fname_label.setText(fname)
 
     def cancelClicked(self):
@@ -165,11 +159,11 @@ class MemSearchDialog(QDialog):
         return self.pattern, self.filename
 
 def main():
-    app = QApplication([])
+    app = QtGui.QApplication([])
     dlg = MemSearchDialog()
     font = QtGui.QFont('Courier')#'Consolas', 10)#'Courier New', 10)
     dlg.hex_edit.setFont(font)
-    if dlg.exec_() == QDialog.Accepted:
+    if dlg.exec_() == QtGui.QDialog.Accepted:
         print(dlg.pattern)
         print(dlg.filename)
 

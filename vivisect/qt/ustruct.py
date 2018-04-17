@@ -1,7 +1,4 @@
-try:
-    from PyQt5.QtWidgets import QWidget, QTextEdit, QDialogButtonBox, QMessageBox
-except:
-    from PyQt4.QtGui import QWidget, QTextEdit, QDialogButtonBox, QMessageBox
+from PyQt4 import QtCore, QtGui
 
 from vqt.basics import *
 
@@ -15,14 +12,14 @@ struct example {
 
 '''
 
-class UserStructEditor(QWidget):
+class UserStructEditor(QtGui.QWidget):
 
     def __init__(self, vw, name=None, parent=None):
         '''
         Open a view to edit/create user structure defs.
         If "name" is none, we assume they are creating one.
         '''
-        QWidget.__init__(self, parent=parent)
+        QtGui.QWidget.__init__(self, parent=parent)
         self._v_vw = vw
         self._v_sname = name
         self._v_changed = True
@@ -32,11 +29,11 @@ class UserStructEditor(QWidget):
             ssrc = vw.getUserStructSource( name )
             self._v_changed = False
 
-        self.srcedit = QTextEdit(parent=self)
+        self.srcedit = QtGui.QTextEdit(parent=self)
         self.srcedit.setText( ssrc )
         self.srcedit.textChanged.connect( self._text_changed )
 
-        buttons = QDialogButtonBox( QDialogButtonBox.Save, parent=self)
+        buttons = QtGui.QDialogButtonBox( QtGui.QDialogButtonBox.Save, parent=self)
         buttons.accepted.connect( self._save_event )
 
         self._set_title()
@@ -63,7 +60,7 @@ class UserStructEditor(QWidget):
             self._v_changed = False
             self._set_title()
         except Exception, e:
-            QMessageBox.warning(self, 'Syntax Error', str(e), QMessageBox.Ok )
+            QtGui.QMessageBox.warning(self, 'Syntax Error', str(e), QtGui.QMessageBox.Ok )
 
 
     def _text_changed(self):

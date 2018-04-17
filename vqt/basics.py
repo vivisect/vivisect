@@ -1,22 +1,17 @@
 '''
 A place for some no-brainer basics :)
 '''
-try:
-    from PyQt5 import QtCore
-    from PyQt5.QtWidgets import *
-except:
-    from PyQt4 import QtCore
-    from PyQt4.QtGui import *
+from PyQt4 import QtCore, QtGui
 
-class BasicTreeView(QTreeView):
+class BasicTreeView(QtGui.QTreeView):
 
     def __init__(self, parent=None):
-        QTreeView.__init__(self, parent=parent)
+        QtGui.QTreeView.__init__(self, parent=parent)
         self.setAlternatingRowColors( True )
         self.setSortingEnabled( True )
 
     def setModel(self, model):
-        ret = QTreeView.setModel(self, model)
+        ret = QtGui.QTreeView.setModel(self, model)
         c = len(model.columns)
         for i in xrange(c):
             self.resizeColumnToContents(i)
@@ -69,11 +64,11 @@ class BasicModel(QtCore.QAbstractItemModel):
 
         return None
 
-class VBox( QVBoxLayout ):
+class VBox( QtGui.QVBoxLayout ):
 
     def __init__(self, *widgets):
-        QVBoxLayout.__init__(self)
-        self.setContentsMargins(2,2,2,2)
+        QtGui.QVBoxLayout.__init__(self)
+        self.setMargin(2)
         self.setSpacing(4)
         for w in widgets:
             if w == None:
@@ -81,11 +76,11 @@ class VBox( QVBoxLayout ):
                 continue
             self.addWidget( w )
 
-class HBox( QHBoxLayout ):
+class HBox( QtGui.QHBoxLayout ):
 
     def __init__(self, *widgets):
-        QHBoxLayout.__init__(self)
-        self.setContentsMargins(2,2,2,2)
+        QtGui.QHBoxLayout.__init__(self)
+        self.setMargin(2)
         self.setSpacing(4)
         for w in widgets:
             if w == None:

@@ -4,14 +4,9 @@ import envi.memory as e_mem
 import envi.memcanvas as e_canvas
 import envi.memcanvas.renderers as e_render
 
-try:
-    from PyQt5 import QtCore, QtGui
-    from PyQt5.QtWidgets import *
-except:
-    from PyQt4 import QtCore, QtGui
-    from PyQt4.QtGui import *
+from PyQt4 import QtGui, QtCore
 
-class VQLineEdit(QLineEdit):
+class VQLineEdit(QtGui.QLineEdit):
     '''
     Has an additional signal to emit a signal on release of every keypress.
     '''
@@ -19,19 +14,19 @@ class VQLineEdit(QLineEdit):
 
     def keyReleaseEvent(self, event):
         self.keyReleased.emit(event)
-        QLineEdit.keyReleaseEvent(self, event)
+        QtGui.QLineEdit.keyReleaseEvent(self, event)
 
-class MemNavWidget(QWidget):
+class MemNavWidget(QtGui.QWidget):
     userChanged = QtCore.pyqtSignal(str, str)
 
     def __init__(self):
-        QWidget.__init__(self)
+        QtGui.QWidget.__init__(self)
 
-        self.expr_entry = QLineEdit()
-        self.esize_entry = QLineEdit()
+        self.expr_entry = QtGui.QLineEdit()
+        self.esize_entry = QtGui.QLineEdit()
 
-        hbox1 = QHBoxLayout()
-        hbox1.setContentsMargins(2, 2, 2, 2)
+        hbox1 = QtGui.QHBoxLayout()
+        hbox1.setMargin(2)
         hbox1.setSpacing(4)
         hbox1.addWidget(self.expr_entry)
         hbox1.addWidget(self.esize_entry)
@@ -61,7 +56,7 @@ class MemNavWidget(QWidget):
     def getValues(self):
         return str(self.expr_entry.text()), str(self.esize_entry.text())
 
-class MemWriteWindow(QWidget):
+class MemWriteWindow(QtGui.QWidget):
     '''
     gui for writemem cli command.
     '''
@@ -71,7 +66,7 @@ class MemWriteWindow(QWidget):
     writeToMemory = QtCore.pyqtSignal(str, str)
 
     def __init__(self, expr='', esize='', emu=None, parent=None):
-        QWidget.__init__(self, parent=parent)
+        QtGui.QWidget.__init__(self, parent=parent)
 
         self.modes = ['ascii', 'hex', 'regex', 'utf-8', 'utf-16-le',
                         'utf-16-be']
@@ -84,66 +79,66 @@ class MemWriteWindow(QWidget):
         self.canvas_new = e_canvas.StringMemoryCanvas(None)
         self.canvas_new.addRenderer('bytes', rend_new)
 
-        hbox1 = QHBoxLayout()
+        hbox1 = QtGui.QHBoxLayout()
         self.nav = MemNavWidget()
         self.nav.userChanged.connect(self.renderMemory)
         self.renderRequest.connect(self.nav.setValues)
         hbox1.addWidget(self.nav)
 
-        hbox2 = QHBoxLayout()
-        self.hex_edit = QPlainTextEdit()
+        hbox2 = QtGui.QHBoxLayout()
+        self.hex_edit = QtGui.QPlainTextEdit()
         self.hex_edit.setWordWrapMode(QtGui.QTextOption.NoWrap)
         self.hex_edit.setReadOnly(True)
         font = QtGui.QFont('Courier') # should use actual memcanvas
         self.hex_edit.setFont(font)
         hbox2.addWidget(self.hex_edit)
 
-        vbox1 = QVBoxLayout()
+        vbox1 = QtGui.QVBoxLayout()
         vbox1.addLayout(hbox1)
         vbox1.addLayout(hbox2)
-        gbox1 = QGroupBox('Original Bytes')
+        gbox1 = QtGui.QGroupBox('Original Bytes')
         gbox1.setLayout(vbox1)
 
-        hbox3 = QHBoxLayout()
-        mode_label = QLabel('Input:')
-        self.mode_combo = QComboBox()
+        hbox3 = QtGui.QHBoxLayout()
+        mode_label = QtGui.QLabel('Input:')
+        self.mode_combo = QtGui.QComboBox()
         self.mode_combo.addItems(self.modes)
         self.mode_combo.currentIndexChanged.connect(self.encodingChanged)
         hbox3.addWidget(mode_label)
         hbox3.addWidget(self.mode_combo, alignment=QtCore.Qt.AlignLeft)
         hbox3.addStretch(1)
 
-        hbox4 = QHBoxLayout()
-        data_label = QLabel('Bytes:')
+        hbox4 = QtGui.QHBoxLayout()
+        data_label = QtGui.QLabel('Bytes:')
         self.data_edit = VQLineEdit()
         self.data_edit.keyReleased.connect(self.keyReleasedSlot)
         hbox4.addWidget(data_label)
         hbox4.addWidget(self.data_edit)
 
-        vbox2 = QVBoxLayout()
+        vbox2 = QtGui.QVBoxLayout()
         vbox2.addLayout(hbox3)
         vbox2.addLayout(hbox4)
-        gbox2 = QGroupBox('New Bytes')
+        gbox2 = QtGui.QGroupBox('New Bytes')
         gbox2.setLayout(vbox2)
 
-        hbox5 = QHBoxLayout()
-        self.hex_preview = QPlainTextEdit()
+        hbox5 = QtGui.QHBoxLayout()
+        self.hex_preview = QtGui.QPlainTextEdit()
         self.hex_preview.setWordWrapMode(QtGui.QTextOption.NoWrap)
         self.hex_preview.setReadOnly(True)
         self.hex_preview.setFont(font)
         hbox5.addWidget(self.hex_preview)
 
-        vbox3 = QVBoxLayout()
+        vbox3 = QtGui.QVBoxLayout()
         vbox3.addLayout(hbox5)
-        gbox3 = QGroupBox('Result Preview')
+        gbox3 = QtGui.QGroupBox('Result Preview')
         gbox3.setLayout(vbox3)
 
-        hbox6 = QHBoxLayout()
-        button = QPushButton('Write Memory')
+        hbox6 = QtGui.QHBoxLayout()
+        button = QtGui.QPushButton('Write Memory')
         button.clicked.connect(self.buttonClicked)
         hbox6.addWidget(button)
 
-        vbox = QVBoxLayout()
+        vbox = QtGui.QVBoxLayout()
         vbox.addWidget(gbox1)
         vbox.addWidget(gbox2)
         vbox.addWidget(gbox3)
@@ -276,7 +271,7 @@ class MockEmu(object):
 def main():
     import sys
 
-    app = QApplication([])
+    app = QtGui.QApplication([])
     w = MemWriteWindow('0x1234', '0xff', emu=MockEmu())
     w.show()
 

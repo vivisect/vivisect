@@ -277,7 +277,7 @@ def branch_misc(va, val, val2): # bl and misc control
                     return COND_AL, None, 'sub', opers, IF_PSR_S, 0
 
                 return COND_AL, None, 'eret', tuple(), envi.IF_RET | envi.IF_NOFALL, 0
-            print "TEST ME: branch_misc subsection 3"
+            print("TEST ME: branch_misc subsection 3")
 ##### FIXME!  THIS NEEDS TO ALSO HIT MSR BELOW....
             #raise InvalidInstruction(
             #    mesg="branch_misc subsection 3",
@@ -285,7 +285,6 @@ def branch_misc(va, val, val2): # bl and misc control
 
             # xx0xxxxx and others
             if op == 0b0111000:
-                print "HIT"
                 tmp = op2 & 3
 
                 Rn = val & 0xf
@@ -296,8 +295,8 @@ def branch_misc(va, val, val2): # bl and misc control
 
                 else:
                     R = (val >> 4) & 1
-
                     #raise Exception("FIXME:  MSR(register) p B9-1968")
+
                 opers = (
                         ArmPgmStatRegOper(R, mask),
                         ArmRegOper(Rn)
@@ -308,6 +307,7 @@ def branch_misc(va, val, val2): # bl and misc control
             elif op == 0b0111001:
                 # coalesce with previous
                 raise Exception("FIXME:  MSR(register) p B9-1968")
+
 
             elif op == 0b0111010:
                 flags = 0

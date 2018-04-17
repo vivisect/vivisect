@@ -1,13 +1,4 @@
 import cgi
-try:
-    from PyQt5    import QtCore, QtGui, QtWebKit, QtWebKitWidgets
-    from PyQt5.QtWebKitWidgets import *
-    from PyQt5.QtWidgets import *
-except:
-    from PyQt4    import QtCore, QtGui, QtWebKit
-    from PyQt4.QtWebKit import *
-    from PyQt4.QtGui import *
-
 
 import vqt.main as vq_main
 import vqt.colors as vq_colors
@@ -19,18 +10,20 @@ import envi.memcanvas as e_memcanvas
 qt_horizontal   = 1
 qt_vertical     = 2
 
+from PyQt4    import QtCore, QtGui, QtWebKit
+
 from vqt.main import *
 from vqt.common import *
 
-class LoggerPage(QWebPage):
+class LoggerPage(QtWebKit.QWebPage):
     def javaScriptConsoleMessage(self, msg, line, source):
         print '%s line %d: %s' % (source, line, msg)
 
-class VQMemoryCanvas(e_memcanvas.MemoryCanvas, QWebView):
+class VQMemoryCanvas(QtWebKit.QWebView, e_memcanvas.MemoryCanvas):
 
-    def __init__(self, mem, syms=None, parent=None, **kwargs):
-        e_memcanvas.MemoryCanvas.__init__(self, mem=mem, syms=syms)
-        QWebView.__init__(self, parent=parent, **kwargs)
+    def __init__(self, mem, syms=None, parent=None):
+        QtWebKit.QWebView.__init__(self, parent=parent)
+        e_memcanvas.MemoryCanvas.__init__(self, mem, syms=syms)
 
         self._canv_cache = None
         self._canv_curva = None
@@ -196,8 +189,8 @@ class VQMemoryCanvas(e_memcanvas.MemoryCanvas, QWebView):
     def contextMenuEvent(self, event):
 
         va = self._canv_curva
-        menu = QMenu()
-        if self._canv_curva != None:
+        menu = QtGui.QMenu()
+        if self._canv_curva:
             self.initMemWindowMenu(va, menu)
 
         viewmenu = menu.addMenu('view   ')
@@ -209,12 +202,10 @@ class VQMemoryCanvas(e_memcanvas.MemoryCanvas, QWebView):
         initMemSendtoMenu('0x%.8x' % va, menu)
 
     def _menuSaveToHtml(self):
-        fname = getSaveFileName(self, 'Save As HTML...')
+        fname = QtGui.QFileDialog.getSaveFileName(self, 'Save As HTML...')
         if fname != None:
-            fname = str(fname)
-            if len(fname):
-                html = self.page().mainFrame().toHtml()
-                file(fname, 'w').write(html)
+            html = self.page().mainFrame().toHtml()
+            file(fname, 'w').write(html)
 
 
 def getNavTargetNames():

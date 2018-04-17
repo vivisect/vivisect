@@ -1,12 +1,7 @@
 '''
 A widget for editing EnviConfig options.
 '''
-try:
-    from PyQt4 import QtCore, QtGui
-    from PyQt4.QtGui import *
-except:
-    from PyQt5 import QtCore, QtGui, QtWidgets
-    from PyQt5.QtWidgets import *
+from PyQt4 import QtCore, QtGui
 
 class EnviConfigOption:
 
@@ -19,10 +14,10 @@ class EnviConfigOption:
         self.evalue = evalue
         self.econfig[self.ename] = evalue
 
-class EnviConfigBool(EnviConfigOption,QCheckBox):
+class EnviConfigBool(EnviConfigOption,QtGui.QCheckBox):
 
     def __init__(self, config, name, value, parent=None):
-        QCheckBox.__init__(self, parent=parent)
+        QtGui.QCheckBox.__init__(self, parent=parent)
         EnviConfigOption.__init__(self, config, name, value)
         self.toggled.connect( self.setEnviValue )
         self.setChecked(value)
@@ -30,10 +25,10 @@ class EnviConfigBool(EnviConfigOption,QCheckBox):
     def parseEnviValue(self):
         self.setEnviValue( self.isChecked() )
 
-class EnviConfigInt(EnviConfigOption,QLineEdit):
+class EnviConfigInt(EnviConfigOption,QtGui.QLineEdit):
 
     def __init__(self, config, name, value, parent=None):
-        QLineEdit.__init__(self, parent=parent)
+        QtGui.QLineEdit.__init__(self, parent=parent)
         EnviConfigOption.__init__(self, config, name, value)
         self.editingFinished.connect( self.parseEnviValue )
 
@@ -45,9 +40,9 @@ class EnviConfigInt(EnviConfigOption,QLineEdit):
     def parseEnviValue(self):
         self.setEnviValue(int(str(self.text()),0))
 
-class EnviConfigString(EnviConfigOption,QLineEdit):
+class EnviConfigString(EnviConfigOption,QtGui.QLineEdit):
     def __init__(self, config, name, value, parent=None):
-        QLineEdit.__init__(self, parent=parent)
+        QtGui.QLineEdit.__init__(self, parent=parent)
         EnviConfigOption.__init__(self, config, name, value)
         self.editingFinished.connect( self.parseEnviValue )
         self.setText(value)
@@ -63,13 +58,13 @@ cfgtypes = {
     bool:EnviConfigBool,
 }
 
-class EnviConfigEditor(QWidget):
+class EnviConfigEditor(QtGui.QWidget):
 
     def __init__(self, config, parent=None):
-        QWidget.__init__(self, parent=parent)
+        QtGui.QWidget.__init__(self, parent=parent)
         self.enviconfig = config
 
-        lyt = QFormLayout()
+        lyt = QtGui.QFormLayout()
 
         optnames = config.keys()
         optnames.sort()
@@ -81,7 +76,7 @@ class EnviConfigEditor(QWidget):
                 #print('no class: %r' % val)
                 continue
 
-            label = QLabel(optname)
+            label = QtGui.QLabel(optname)
             clsobj = cls(config, optname, optval, parent=self)
             doc = config.getOptionDoc(optname)
             if doc != None:
@@ -90,7 +85,7 @@ class EnviConfigEditor(QWidget):
 
         self.setLayout(lyt)
 
-class EnviConfigTabs(QTabWidget):
+class EnviConfigTabs(QtGui.QTabWidget):
     '''
     A widget for a multi-tab multi-config
     editor view. Specify a list of (name,config)
@@ -98,7 +93,7 @@ class EnviConfigTabs(QTabWidget):
     '''
 
     def __init__(self, configs, parent=None):
-        QTabWidget.__init__(self, parent=parent)
+        QtGui.QTabWidget.__init__(self, parent=parent)
 
         for name,config in configs:
             editor = EnviConfigEditor(config, parent=self)

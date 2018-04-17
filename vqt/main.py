@@ -5,12 +5,7 @@ import traceback
 from Queue import Queue
 from threading import currentThread
 
-try:
-    from PyQt5 import QtCore
-    from PyQt5.QtWidgets import *
-except:
-    from PyQt4 import QtCore
-    from PyQt4.QtGui import *
+from PyQt4 import QtCore, QtGui
 
 import envi.threads as e_threads
 
@@ -136,12 +131,12 @@ class QEventThread(QtCore.QThread):
             except Exception, e:
                 print('vqt event thread: %s' % e)
 
-class VQApplication(QApplication):
+class VQApplication(QtGui.QApplication):
 
     guievents = QtCore.pyqtSignal(str,object)
 
     def __init__(self, *args, **kwargs):
-        QApplication.__init__(self, *args, **kwargs)
+        QtGui.QApplication.__init__(self, *args, **kwargs)
         self.vqtchans = {}
 
     def callFromQtLoop(self, callback, args, kwargs):
@@ -251,17 +246,4 @@ def vqtdisconnect(callback, event=None):
     chan = qapp.vqtchans.get(event)
     if chan != None:
         chan.guievents.disconnect(callback)
-
-def getOpenFileName(*args, **kwargs):
-        fname = QFileDialog.getOpenFileName(*args, **kwargs)
-        if type(fname) == tuple:
-            return fname[0]
-        return fname
-
-def getSaveFileName(*args, **kwargs):
-        fname = QFileDialog.getSaveFileName(*args, **kwargs)
-        if type(fname) == tuple:
-            return fname[0]
-        return fname
-
 

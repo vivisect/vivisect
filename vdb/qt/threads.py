@@ -1,7 +1,4 @@
-try:
-    from PyQt5.QtWidgets import QVBoxLayout
-except:
-    from PyQt4.QtGui import QVBoxLayout
+from PyQt4 import QtCore, QtGui
 
 import vtrace.qt
 import vdb.qt.base
@@ -12,7 +9,7 @@ class VdbThreadsWindow(vdb.qt.base.VdbWidgetWindow):
 
         self.threadWidget = vtrace.qt.VQThreadsView(trace=dbt, parent=parent)
 
-        vbox = QVBoxLayout()
+        vbox = QtGui.QVBoxLayout()
         vbox.addWidget(self.threadWidget)
         self.setLayout(vbox)
 

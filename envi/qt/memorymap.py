@@ -1,9 +1,4 @@
-try:
-    from PyQt5 import QtCore
-    from PyQt5.QtWidgets import *
-except:
-    from PyQt4 import QtCore
-    from PyQt4.QtGui import *
+from PyQt4 import QtCore, QtGui
 
 import envi.memcanvas
 import envi.qt.memdump
@@ -32,7 +27,7 @@ class VQMemoryMapView(vq_tree.VQTreeView):
         self.setWindowTitle('Memory Maps')
 
     def buildContextMenu(self, va, size):
-        menu = QMenu()
+        menu = QtGui.QMenu()
         menu.addAction('Copy Bytes To Clipboard', ACT(self.menuCopyBytesToClipboard, va, size))
         menu.addAction('Save Bytes To File', ACT(self.menuSaveBytesToFile, va, size))
         menu.addAction('Search Selected Memory Map', ACT(self.menuSearchMaps, va, size, allmaps=False))
@@ -66,12 +61,12 @@ class VQMemoryMapView(vq_tree.VQTreeView):
     def menuCopyBytesToClipboard(self, va, size):
         bytez = self.mem.readMemory(va, size)
 
-        clipboard = QApplication.clipboard()
+        clipboard = QtGui.QApplication.clipboard()
         clipboard.setText(bytez.encode('hex'))
 
     def menuSaveBytesToFile(self, va, size):
         dlg = envi.qt.memdump.MemDumpDialog(va, size=size)
-        if dlg.exec_() != QDialog.Accepted:
+        if dlg.exec_() != QtGui.QDialog.Accepted:
             return
 
         filename, size = dlg.getResults()
@@ -81,7 +76,7 @@ class VQMemoryMapView(vq_tree.VQTreeView):
 
     def menuSearchMaps(self, va, size, allmaps=False):
         dlg = envi.qt.memsearch.MemSearchDialog()
-        if dlg.exec_() != QDialog.Accepted:
+        if dlg.exec_() != QtGui.QDialog.Accepted:
             return
 
         pattern, fname = dlg.getResults()
