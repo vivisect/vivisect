@@ -148,13 +148,13 @@ class WorkspaceEmulator:
         """
         self.emumon = emumon
 
-    def parseOpcode(self, pc):
+    def parseOpcode(self, va, arch=envi.ARCH_DEFAULT):
         # We can make an opcode *faster* with the workspace because of
         # getByteDef etc... use it.
-        op = self.opcache.get(pc)
+        op = self.opcache.get(va)
         if op == None:
-            op = envi.Emulator.parseOpcode(self, pc)
-            self.opcache[pc] = op
+            op = envi.Emulator.parseOpcode(self, va, arch=arch)
+            self.opcache[va] = op
         return op
 
     def checkCall(self, starteip, endeip, op):

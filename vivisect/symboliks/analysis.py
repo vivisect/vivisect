@@ -469,7 +469,7 @@ class SymbolikAnalysisContext:
             effs.extend(emu.applyEffects(seffs[:idx+1]))
             yield emu,effs
 
-    def walkSymbolikPaths(self, fva, graph=None, maxpath=1000):
+    def walkSymbolikPaths(self, fva, graph=None, maxpath=1000, loopcnt=0):
         '''
         walkSymbolikPaths is a function-focused symbolik path generator, using the 
         walkCodePaths generator foundation.  Symbolik effects are dragged through
@@ -544,7 +544,7 @@ class SymbolikAnalysisContext:
             patheffs.extend(neweffs)
             return True
 
-        for pathnode in viv_graph.walkCodePaths(graph, codewalker, maxpath=maxpath):
+        for pathnode in viv_graph.walkCodePaths(graph, codewalker, loopcnt=loopcnt, maxpath=maxpath):
             emu = vg_pathcore.getNodeProp(pathnode, 'pathemu')
             patheffs = vg_pathcore.getNodeProp(pathnode, 'patheffs')
             yield emu, patheffs

@@ -229,7 +229,10 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         if eclass == None:
             raise Exception("WorkspaceEmulation not supported on %s yet!" % arch)
 
-        return eclass(self, logwrite=logwrite, logread=logread)
+        emu = eclass(self, logwrite=logwrite, logread=logread)
+        emu.setEndian(self.getEndian())
+
+        return emu
 
     def getCachedEmu(self, emuname):
         """
@@ -1473,7 +1476,10 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         (see REF_ macros).  This will *not* trigger any analysis.
         Callers are expected to do their own xref analysis (ie, makeCode() etc)
         """
-        ref = (fromva,tova,reftype,rflags)
+        # Architecture gets to decide on actual final VA (ARM/THUMB/etc...)
+        tova, reftype, rflags = self.arch.archModifyXrefAddr(tova, reftype, rflags)
+
+        ref = (fromva, tova, reftype, rflags)
         if ref in self.getXrefsFrom(fromva):
             return
         self._fireEvent(VWE_ADDXREF, (fromva, tova, reftype, rflags))

@@ -175,6 +175,8 @@ LSYM_FARG   = 1 # syminfo is an argument index
 VASET_ADDRESS   = 0
 VASET_INTEGER   = 1
 VASET_STRING    = 2
+VASET_HEXTUP    = 3
+VASET_COMPLEX   = 4
 
 # Symboliks effect types
 EFFTYPE_DEBUG        = 0
@@ -192,6 +194,7 @@ SYMT_MEM            = 3
 SYMT_SEXT           = 4
 SYMT_CONST          = 5
 SYMT_LOOKUP         = 6
+SYMT_NOT            = 7
 
 SYMT_OPER           = 0x00010000
 SYMT_OPER_ADD       = SYMT_OPER | 1

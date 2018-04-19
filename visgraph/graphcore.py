@@ -452,6 +452,17 @@ class Graph:
                 self.edgeprops[prop].pop(v,None)
         return v
 
+    def delEdgesProps(self, props):
+        '''
+        Delete all listed properties from all edges in the graph.
+
+        Example:
+            g.delEdgesProps(('foo', 'bar'))
+        '''
+        for prop in props:
+            for edge in self.getEdgesByProp(prop):
+                self.delEdgeProp(edge, prop)
+
     def getRefsFrom(self, node):
         '''
         Return a list of edges which originate with us.

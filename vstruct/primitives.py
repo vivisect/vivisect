@@ -196,7 +196,7 @@ class v_number(v_prim):
     def __str__(self):
         v = self.vsGetValue()
         if self._vs_enum is not None:
-            return self._vs_enum.vsReverseMapping(v, default=str(v))
+            return str(self._vs_enum.vsReverseMapping(v, default=str(v)))
         return str(v)
 
     ##################################################################

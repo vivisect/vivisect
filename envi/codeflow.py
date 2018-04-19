@@ -177,10 +177,11 @@ class CodeFlowContext(object):
 
                 try:
                     # Handle a table branch by adding more branches...
+                    ptrfmt = ('<P', '>P')[self._mem.getEndian()]
                     if bflags & envi.BR_TABLE:
                         if self._cf_exptable:
                             ptrbase = bva
-                            bdest = self._mem.readMemoryFormat(ptrbase, '<P')[0]
+                            bdest = self._mem.readMemoryFormat(ptrbase, ptrfmt)[0]
                             tabdone = {}
                             while self._mem.isValidPointer(bdest):
 
@@ -192,7 +193,7 @@ class CodeFlowContext(object):
                                     branches.append((bdest, envi.BR_COND))
 
                                 ptrbase += self._mem.psize
-                                bdest = self._mem.readMemoryFormat(ptrbase, '<P')[0]
+                                bdest = self._mem.readMemoryFormat(ptrbase, ptrfmt)[0]
                         continue
 
                     if bflags & envi.BR_DEREF:
@@ -204,7 +205,7 @@ class CodeFlowContext(object):
                         if self._cf_noret.get( bva ):
                             self.addNoFlow( va, va + len(op) )
 
-                        bva = self._mem.readMemoryFormat(bva, '<P')[0]
+                        bva = self._mem.readMemoryFormat(bva, ptrfmt)[0]
 
                     if not self._mem.probeMemory(bva, 1, e_mem.MM_EXEC):
                         continue
@@ -223,9 +224,9 @@ class CodeFlowContext(object):
                                     # the function that we want to make prodcedural
                                     # called us so we can't call to make it procedural
                                     # until its done
-                                    cf_eps.add(bva)
+                                    cf_eps.add((bva, bflags))
                                 else:
-                                    self.addEntryPoint( bva )
+                                    self.addEntryPoint( bva, arch=bflags )
 
                             if self._cf_noret.get( bva ):
                                 # then our next va is noflow!
@@ -245,7 +246,7 @@ class CodeFlowContext(object):
         # remove our local blocks from global block stack
         self._cf_blocks.pop()
         while cf_eps:
-            fva = cf_eps.pop()
+            fva, arch = cf_eps.pop()
             if not self._mem.isFunction(fva):
                 self.addEntryPoint(fva, arch=arch)
 
@@ -260,6 +261,11 @@ class CodeFlowContext(object):
             cf.addEntryPoint( 0x77c70308 )
             ... callbacks flow along ...
         '''
+        # Architecture gets to decide on actual final VA and Architecture (ARM/THUMB/etc...)
+        info = { 'arch' : arch }
+        va, info = self._mem.arch.archModifyFuncAddr(va, info)
+        arch = info.get('arch', envi.ARCH_DEFAULT)
+
         # Check if this is already a known function.
         if self._funcs.get(va) != None:
             return
@@ -271,6 +277,7 @@ class CodeFlowContext(object):
         
         # Finally, notify the callback of a new function
         self._cb_function(va, {'CallsFrom':calls_from})
+
     def addDynamicBranchHandler(self, cb):
         '''
         Add a callback handler for dynamic branches the code-flow resolver 
