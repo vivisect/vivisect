@@ -105,7 +105,6 @@ class TrackingSymbolikEmulator(vs_anal.SymbolikFunctionEmulator):
         if symmem != None:
             symaddr, symval = symmem
             self.track(self.getMeta('va'), symaddr, symval)
-            print 1
             return symval
 
         # If we have a workspace, check it for meaningful symbols etc...
@@ -118,7 +117,6 @@ class TrackingSymbolikEmulator(vs_anal.SymbolikFunctionEmulator):
                     # return name of import
                     symval = Var(linfo, self.__width__)
                     self.track(self.getMeta('va'), symaddr, symval)
-                    print 2
                     return symval
             
             if self._sym_vw.isValidPointer(addrval):        
@@ -131,16 +129,13 @@ class TrackingSymbolikEmulator(vs_anal.SymbolikFunctionEmulator):
                     # return real number from memory
                     val, = self._sym_vw.readMemoryFormat(addrval, signed_fmts[size])
                     self.track(self.getMeta('va'), symaddr, val)
-                    #print 3
                     return Const(val, size)
                 
                 # return string  (really?)
                 symval = self._sym_vw.readMemory(addrval, size)
                 self.track(self.getMeta('va'), symaddr, symval)
-                print 4, size
                 return symval
 
-        print 5
         return Mem(symaddr, symsize)
 
 def contains(symobj, subobj):
@@ -604,7 +599,6 @@ def iterCases(vw, satvals, jmpva, jmpreg, rname, count, special_vals):
         logger.debug("Register Index is incremental")
     else:
         logger.critical("REGISTER INDEX increments by ptrsize/2??!?")
-        print repr(testaddrs)
     #FIXME: does this ever end up being psize/2?  (ie.  4-bytes on a 64-bin binary?)  if so, then what?
 
     logger.debug("== %s / %s means interval of %s ", repr(vw.psize), repr(delta), repr(interval))
@@ -777,7 +771,7 @@ def determineCountOffset(vw, jmpva):
 
     pathGenFactory = viv_graph.PathGenerator(graph)
 
-    pathGen=pathGenFactory.getFuncCbRoutedPaths(funcva, jmpcb[0], 1, maxsec=20)
+    pathGen=pathGenFactory.getFuncCbRoutedPaths(funcva, jmpcb[0], 1, timeout=20)
 
     # get symbolik paths
     spaths = sctx.getSymbolikPaths(funcva, pathGen, graph=graph)
@@ -1037,6 +1031,7 @@ def analyzeFunction_new(vw, fva):
             sc = SwitchCase(vw, jmpva)
             sc.analyze()
             
+            '''
             inp = raw_input("PRESS ENTER TO CONTINUE...")
             while len(inp):
                 try:
@@ -1045,7 +1040,7 @@ def analyzeFunction_new(vw, fva):
                     sys.excepthook(*sys.exc_info())
 
                 inp = raw_input("PRESS ENTER TO CONTINUE...")
-
+            '''
         dynbranches = vw.getVaSet('DynamicBranches')
 
 def analyzeFunction_pass(vw, fva):
@@ -1133,7 +1128,6 @@ def thunk_bx(emu, fname, symargs):
 
     ebx = Const(ebxval, vw.psize)
     reg = rctx.getRealRegisterName('ebx')
-    #raw_input("YAY!  Thunk_bx is being called! %s\t%s\t%s\t%s" % (emu, symargs, reg, ebx))
     logger.info("YAY!  Thunk_bx is being called! %s\t%s\t%s\t%s", emu, symargs, reg, ebx)
     emu.setSymVariable(reg, ebx)
 
@@ -1234,13 +1228,14 @@ class SwitchCase:
 
         potentials = []
         for unk in unks:
-            if cspath[0].getSymVariable(unk).isDiscrete():
+            unkvar = cspath[0].getSymVariable(unk)
+            if unkvar.isDiscrete():
                 continue
             potentials.append(unk)
 
         if not len(potentials):
-            logger.critical('=-=-=-= failed to getSymIdx: unks: %r\n\nCSPATH:\n%r\n\nASPATH:\n%r\n\n',
-                    unks, cspath, aspath)
+            logger.critical('=-=-=-= failed to getSymIdx: unks: %r\n\nCSPATH:\n%s\n\nASPATH:\n%s\n\n',
+                    unks, '\n'.join(cspath[1]), '\n'.join(aspath[1]))
             
         return potentials[0]
 
@@ -1269,7 +1264,9 @@ class SwitchCase:
         cspath = (emu, effs) for the "context" path (from function start)
         aspath = (emu, effs) for the last codeblock
 
-        FIXME: this needs to be able to handle things like "thunk_bx" calls.
+        if "next" isn't False, the next iteration is returned.  otherwise, the current iteration is (same as last call).
+        this allows the Symbolik Parts to be easily accessible from various parts of the algorithm without handing around
+        a lot of state as function args.
         '''
         if not next and self.cspath != None and self.aspath != None and self.fullpath != None:
             return self.cspath, self.aspath, self.fullpath
@@ -1284,7 +1281,6 @@ class SwitchCase:
         cb = vw.getCodeBlock(jmpva)
         if cb == None:
             raise Exception("Dynamic Branch is not currently part of a CodeBlock!")
-            return None
         cbva, cbsz, cbfva = cb
 
         if self._sgraph == None:
@@ -1293,7 +1289,7 @@ class SwitchCase:
         if self._codepathgen == None:
             #self._codepathgen = viv_graph.getCodePathsTo(self._sgraph, cbva)
             pathGenFactory = viv_graph.PathGenerator(self._sgraph)
-            self._codepathgen = pathGenFactory.getFuncCbRoutedPaths(fva, cbva, 1, maxsec=20)
+            self._codepathgen = pathGenFactory.getFuncCbRoutedPaths(fva, cbva, 1, timeout=20)
 
         self._codepath = self._codepathgen.next()
         contextpath = self._codepath[:-1]
@@ -1359,7 +1355,8 @@ class SwitchCase:
             conthing, consoff = peelIdxOffset(symvar)
 
             if conthing != baseIdx:
-                raw_input("FAIL: %r  != %r" % (conthing, baseIdx))
+                print("FAIL: %r  != %r" % (conthing, baseIdx))
+                #raw_input("FAIL: %r  != %r" % (conthing, baseIdx))
                 continue
 
             logger.debug("GOOD: %r\n\t%r\n\t%r\t%r + %r" % (cons, symvar, conthing, consoff, symcmp))
@@ -1379,6 +1376,7 @@ class SwitchCase:
         lower = 0       # the smallest index used.  most often wants to be 0
         upper = None    # the largest index used.  max=MAX_CASES
         count = 0
+        baseoff = None
        
         try:
             while lower == None or (lower == 0 and upper == None) or upper <= lower: # FIXME: this will fail badly when it fails.  make this dependent on the codepathgen

@@ -21,9 +21,9 @@ class Constraint:
         self._v1.clearCache()
         self._v2.clearCache()
 
-    def walkTree(self, cb, ctx=None):
-        self._v1 = self._v1.walkTree(cb, ctx=ctx)
-        self._v2 = self._v2.walkTree(cb, ctx=ctx)
+    def walkTree(self, cb, ctx=None, once=True):
+        self._v1 = self._v1.walkTree(cb, ctx=ctx, once=once)
+        self._v2 = self._v2.walkTree(cb, ctx=ctx, once=once)
 
     def getWidth(self):
         return self._v1.getWidth()
