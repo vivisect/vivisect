@@ -1186,13 +1186,14 @@ class CallingConvention(object):
         self.setupCall(emu, args=args, ra=ra)
         emu.setProgramCounter(va)
 
-    def execCallReturn(self, emu, value, argc):
+    def execCallReturn(self, emu, value, argc, apiReturnsVoid=False):
         '''
         Forces a function to return the specified value.
 
         Reads the return address from the stack, deallocates the stack space
-        allocated for the call, sets the return value, and sets the program
-        counter to the previously read return address.
+        allocated for the call, sets the return value (unless apiReturnsVoid
+        is True), and sets the program counter to the previously read
+        return address.
 
         Expects to be called at the function entrypoint.
         '''
@@ -1200,7 +1201,8 @@ class CallingConvention(object):
         ip = self.getReturnAddress(emu)
         self.deallocateCallSpace(emu, argc)
 
-        self.setReturnValue(emu, value)
+        if not apiReturnsVoid:
+            self.setReturnValue(emu, value)
         emu.setProgramCounter(ip)
 
 # NOTE: This mapping is needed because of inconsistancies

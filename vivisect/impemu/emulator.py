@@ -182,10 +182,12 @@ class WorkspaceEmulator:
 
             else:
 
+                apiRetVoid = (ret == None) and (callname != None) \
+                             and (rtype == 'void')
                 if ret == None:
                     ret = self.setVivTaint('apicall', (op,endeip,api,argv))
 
-                callconv.execCallReturn( self, ret, len(funcargs) )
+                callconv.execCallReturn(self, ret, len(funcargs), apiRetVoid)
 
             # Either way, if it's a call PC goes to next instruction
             if self._func_only:
