@@ -559,6 +559,14 @@ def itblock(va, val):
     firstcond = (val>>4) & 0xf
     return COND_AL,(ThumbITOper(mask, firstcond),), None
 
+
+
+it_strs_0 = ['']
+it_strs_1 = ['e', 't']
+it_strs_2 = ['ee','et','te','tt']
+it_strs_3 = ['eee','tee','ete','tte','eet','tet','ett','ttt']
+it_strs = (it_strs_0, it_strs_1, it_strs_2, it_strs_3)
+
 class ThumbITOper(ArmOperand):
     def __init__(self, mask, firstcond):
         self.mask = mask
@@ -570,63 +578,56 @@ class ThumbITOper(ArmOperand):
             if mask & 1:
                 break
             mask >>= 1
-        return x
+        return x - 1
 
     def getFlags(self):
         fiz = self.firstcond & 1
         flags = 1
         count = self.getCondInstrCount()
-        for x in range(1, count):
-            print x, bin(flags)
-            flags |= ((((self.mask>>(4-x))&1) == fiz) << (x+1))
+        print bin(fiz), bin(self.mask)
+        for x in range(count):
+            bit = bool(((self.mask>>(3-x))&1) == fiz)
+            print x, bit, bin(flags)
+            flags |= (bit << (x+1))
 
         return flags
 
-    def repr(self, op):
+    def getCondData(self):
         mask = self.mask
         cond = self.firstcond
-
-        fcond = cond_codes.get(cond)
-
-        itbytes = []
-
+        count = 0
         go = 0
         cond0 = cond & 1
+        data = 0
+
         for idx in range(4):
             mbit = (mask>>idx) & 1
             if go:
-                if mbit == cond0:
-                    itbytes.append('t')
-                else:
-                    itbytes.append('e')
+                bit = bool(mbit == cond0)
+                data <<= 1
+                data |= bit
+                count += 1
 
             if mbit: 
                 go = 1
-        nextfew = ''.join(itbytes)
+
+        return count, self.firstcond, data
+
+    def repr(self, op):
+        mask = self.mask
+
+        count, cond, data = self.getCondData()
+
+        fcond = cond_codes.get(cond)
+        nextfew = it_strs[count][data]
         return "%s %s" % (nextfew, fcond)
 
     def render(self, mcanv, op, idx):
         mask = self.mask
-        cond = self.firstcond
+
+        count, cond, data = self.getCondData()
 
         fcond = cond_codes.get(cond)
-
-        itbytes = []
-
-        go = 0
-        cond0 = cond & 1
-        for idx in range(4):
-            mbit = (mask>>idx) & 1
-            if go:
-                if mbit == cond0:
-                    itbytes.append('t')
-                else:
-                    itbytes.append('e')
-
-            if mbit: 
-                go = 1
-
-        nextfew = ''.join(itbytes)
         mcanv.addText("%s %s" % (nextfew, fcond))
 
     def getOperValue(self, idx, emu=None):

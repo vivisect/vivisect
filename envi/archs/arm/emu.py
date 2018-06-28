@@ -232,22 +232,27 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
             if self.itcount:
                 self.itcount -= 1
                 print "untested IT functionality"
-                if not (self.itflags & 1):
+                if not (self.itmask & 1):
                     skip = True
+                self.itmask >>= 1
 
             # standard conditional handling
             condval = (op.prefixes >= 0xe)
+
             if not condval:
                 condcheck = conditionals[op.prefixes]
                 condval = condcheck(self.getRegister(REG_FLAGS))
 
+            # the actual execution... if we're supposed to.
             if condval and not skip:
                 meth = self.op_methods.get(op.mnem, None)
                 if meth == None:
                     raise envi.UnsupportedInstruction(self, op)
+
+                # executing opcode now...
                 x = meth(op)
 
-            
+            # returned None, so the instruction hasn't directly changed PC
             if x == None:
                 pc = self.getProgramCounter()
                 x = pc+op.size
@@ -1510,6 +1515,10 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
 
 
 #TODO: IT EQ
+    def i_it(self, op):
+        self.itcount, self.ittype, self.itmask = op.opers[0].getCondData()
+        condcheck = conditionals[self.ittype]
+        self.itva = op.va
 
 
 opcode_dist = \

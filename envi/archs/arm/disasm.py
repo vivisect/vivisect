@@ -788,7 +788,7 @@ def p_dp_movt(opval, va):
     return(opcode, "movt", olist, iflags, 0)
 
 hint_mnem = {
-            0: ('Nop',INS_NOP),
+            0: ('nop',INS_NOP),
             1: ('yield',INS_YIELD),
             2: ('wfe',INS_WFE),
             3: ('wfi',INS_WFI),
