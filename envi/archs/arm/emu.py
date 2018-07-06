@@ -11,7 +11,7 @@ import envi.bits as e_bits
 from envi.const import *
 from envi.archs.arm.regs import *
 from envi.archs.arm import ArmModule
-from envi.archs.arm.disasm import ArmRegOper, ArmRegShiftImmOper
+from envi.archs.arm.disasm import ArmRegOper, ArmRegShiftImmOper, ArmImmOper
 
 logger = logging.getLogger(__name__)
 
@@ -540,8 +540,12 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
         
     def i_orr(self, op):
         tsize = op.opers[0].tsize
-        val1 = self.getOperValue(op, 1)
-        val2 = self.getOperValue(op, 2)
+        if len(op.opers) == 3:
+            val1 = self.getOperValue(op, 1)
+            val2 = self.getOperValue(op, 2)
+        else:
+            val1 = self.getOperValue(op, 0)
+            val2 = self.getOperValue(op, 1)
         val = val1 | val2
         self.setOperValue(op, 0, val)
 
@@ -747,7 +751,7 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
         self.setFlag(PSR_T_bit, thumb)
 
     def setArmMode(self, arm=1):
-        self.setFlag(PSR_T_bit, not thumb)
+        self.setFlag(PSR_T_bit, not arm)
 
     def i_ldr(self, op):
         # hint: covers ldr, ldrb, ldrbt, ldrd, ldrh, ldrsh, ldrsb, ldrt   (any instr where the syntax is ldr{condition}stuff)
@@ -1117,8 +1121,12 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
 
     def i_eor(self, op):
         dsize = op.opers[0].tsize
-        src1 = self.getOperValue(op, 1)
-        src2 = self.getOperValue(op, 2)
+        if len(op.opers) == 3:
+            src1 = self.getOperValue(op, 1)
+            src2 = self.getOperValue(op, 2)
+        else:
+            src1 = self.getOperValue(op, 0)
+            src2 = self.getOperValue(op, 1)
         
         #FIXME PDE and flags
         if src1 == None or src2 == None:
@@ -1453,6 +1461,22 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
         print("FIXME: 0x%x: %s - in emu" % (op.va, op))
     def i_umull(self, op):
         print("FIXME: 0x%x: %s - in emu" % (op.va, op))
+
+    def i_mla(self, op):
+        src1 = self.getOperValue(op, 1)
+        src2 = self.getOperValue(op, 2)
+        src3 = self.getOperValue(op, 3)
+
+        val = (src1 * src2 + src3) & 0xffffffff
+
+        self.setOperValue(op, 0, val)
+
+        Sflag = op.iflags & IF_PSR_S
+        if Sflag:
+            self.setFlag(PSR_N_bit, e_bits.is_signed(val, 4))
+            self.setFlag(PSR_Z_bit, not val)
+
+
 
 
 

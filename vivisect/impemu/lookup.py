@@ -7,6 +7,7 @@ import vivisect.impemu.platarch.i386 as v_i_i386
 import vivisect.impemu.platarch.amd64 as v_i_amd64
 import vivisect.impemu.platarch.msp430 as v_i_msp430
 import vivisect.impemu.platarch.windows as v_i_windows
+import vivisect.impemu.platarch.decree as v_i_decree
 
 workspace_emus  = {
     'h8' :v_i_h8.H8WorkspaceEmulator,
@@ -14,5 +15,7 @@ workspace_emus  = {
     'i386'  :v_i_i386.i386WorkspaceEmulator,
     'amd64' :v_i_amd64.Amd64WorkspaceEmulator,
     'msp430' :v_i_msp430.Msp430WorkspaceEmulator,
+    'thumb2' :v_i_arm.ThumbWorkspaceEmulator,
     ('windows','i386'):v_i_windows.Windowsi386Emulator,
+    ('decree','i386'):v_i_decree.Decreei386WorkspaceEmulator,
 }

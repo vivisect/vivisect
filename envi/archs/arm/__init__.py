@@ -114,7 +114,9 @@ class ThumbModule(envi.ArchitectureModule):
         return self._arch_dis.disasm(bytes, offset, va)
 
     def getEmulator(self):
-        return ArmEmulator()
+        emu = ArmEmulator()
+        emu.setThumbMode()
+        return emu
 
     def setEndian(self, endian):
         self._endian = endian

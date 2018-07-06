@@ -1,3 +1,4 @@
+import sys
 import envi
 import envi.archs.arm as e_arm
 
@@ -19,6 +20,14 @@ class ArmWorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_arm.ArmEmulator):
         v_i_emulator.WorkspaceEmulator.__init__(self, vw, logwrite=logwrite, logread=logread)
         self.setMemArchitecture(envi.ARCH_ARMV7)
 
+    def setThumbMode(self, thumb=1):
+        self.opcache = {}
+        e_arm.ArmEmulator.setThumbMode(self, thumb)
+
+    def setArmMode(self, arm=1):
+        self.opcache = {}
+        e_arm.ArmEmulator.setArmMode(self, arm)
+
     def parseOpcode(self, va, arch=envi.ARCH_DEFAULT):
         '''
         Caching version.  
@@ -29,6 +38,11 @@ class ArmWorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_arm.ArmEmulator):
         Made for ARM, because envi.Emulator doesn't understand the Thumb flag
         '''
         op = self.opcache.get(va)
+
+        tmode = self.getFlag(PSR_T_bit)
+        if arch == envi.ARCH_DEFAULT:
+            arch = (envi.ARCH_ARMV7, envi.ARCH_THUMB)[tmode]
+
         if op == None:
             op = envi.archs.arm.emu.ArmEmulator.parseOpcode(self, va, arch=arch)
             self.opcache[va] = op
@@ -198,10 +212,19 @@ class ArmWorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_arm.ArmEmulator):
                         self.emumon.logAnomaly(self, starteip, str(e))
 
                     if verbose: print 'runFunction breaking after exception (fva: 0x%x): %s' % (funcva, e)
+                    if verbose: sys.excepthook(*sys.exc_info())
                     break # If we exc during execution, this branch is dead.
           #except:
           #    sys.excepthook(*sys.exc_info())
 
+
+class ThumbWorkspaceEmulator(ArmWorkspaceEmulator):
+    def __init__(self, vw, logwrite=False, logread=False):
+        ArmWorkspaceEmulator.__init__(self, vw, logwrite, logread)
+        self.setThumbMode()
+
+    def runFunction(self, funcva, stopva=None, maxhit=None, maxloop=None, tmode=None):
+        return ArmWorkspaceEmulator.runFunction(self, funcva, stopva, maxhit, maxloop, tmode=1)
 '''
 st0len gratuitously from wikipedia:
 

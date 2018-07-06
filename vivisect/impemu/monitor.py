@@ -205,6 +205,6 @@ class AnalysisMonitor(EmulationMonitor):
 
         # WOOT - we have found a runtime resolved function!
         self.vw.verbprint('0x%.8x: Emulation Found 0x%.8x (from func: 0x%.8x) via %s' % (op.va, pc, self.fva, repr(op)))
-        self.vw.makeFunction(pc)
+        self.vw.makeFunction(pc, arch=op.iflags)
         self.vw.addXref(op.va, pc, REF_CODE, envi.BR_PROC)
 

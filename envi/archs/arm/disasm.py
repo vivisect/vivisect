@@ -3061,7 +3061,9 @@ def _do_adv_simd_32(val, va, u):
                 shift_amount = imm - 8
 
             uop = (u<<1) | op
+            #print "uop: %x" % uop
             simdflags = adv_2_vqshl_typesize.get(esize)[uop]
+            #print "enctype4: simdflags: %r" % simdflags
 
         elif enctype == 5: # VCVT
             limm = (l<<6) | imm
@@ -3097,6 +3099,7 @@ def _do_adv_simd_32(val, va, u):
             #simdflags = { 8: IFS_8, 16: IFS_16, 32: IFS_32, 64: IFS_64 }[esize]
             idx = {8:0, 16:1, 32:2, 64:3}[esize]
             simdflags = adv_simd_dts[20 + (idx) + foffset]
+            #print "simdflags: %r" % simdflags
 
         elif enctype == 7:      # VSHRN needs different simdflags...
             limm = (l<<6) | imm
@@ -3769,10 +3772,6 @@ class ArmOpcode(envi.Opcode):
             # check for location being ODD
             operval = oper.getOperValue(self, emu)
 
-            if operval == None:
-                # probably a branch to a register.  just return.
-                return ret
-
             if self.opcode in (INS_BLX, INS_BX):
                 if operval & 3:
                     flags |= envi.ARCH_THUMB
@@ -3784,10 +3783,15 @@ class ArmOpcode(envi.Opcode):
             else:
                 flags |= self._def_arch
 
+            # if branch to register, let's return an entry for the DynamicBranch handler
+            #if operval == None:
+                # probably a branch to a register.  just return.
+                #ret.append((None, flags))
 
             #operval &= 0xfffffffe           # this has to work for both arm and thumb
             if self.iflags & envi.IF_CALL:
                 flags |= envi.BR_PROC
+
             ret.append((operval, flags))
             #print "getBranches: (0x%x) add  0x%x   %x"% (self.va, operval, flags)
 

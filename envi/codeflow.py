@@ -164,6 +164,10 @@ class CodeFlowContext(object):
             # The opcode callback may filter branches...
             branches = self._cb_opcode(va, op, branches)
 
+            # FIXME: if IF_BRANCH: if IF_COND and len(branches)<2: _cb_dynamic_branch()
+            # FIXME: if IF_BRANCH and not IF_COND and len(branches)<1: _cb_dynamic_branch()
+            # FIXME: if IF_CALL and len(branches)<2: _cb_dynamic_branch()
+
             while len(branches):
 
                 bva, bflags = branches.pop()

@@ -30,7 +30,7 @@ class AnalysisMonitor(viv_monitor.AnalysisMonitor):
         try:
             tmode = emu.getFlag(PSR_T_bit)
             self.last_tmode = tmode
-            if self.verbose: print "tmode: %x    emu:  0x%x   flags: 0x%x \t %r" % (tmode, starteip, op.iflags, op)
+            #if self.verbose: print "tmode: %x    emu:  0x%x   flags: 0x%x \t %r" % (tmode, starteip, op.iflags, op)
             #if op == self.badop:
             if op in self.badops:
                 raise Exception("Hit known BADOP at 0x%.8x %s" % (starteip, repr(op) ))

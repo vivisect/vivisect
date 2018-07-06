@@ -36,7 +36,7 @@ class simpleops:
     def __call__(self, va, value):
         ret = []
         for otype, shval, mask in self.operdef:
-            oval = shmaskval(value, shval, mask)
+            #oval = shmaskval(value, shval, mask)
             oper = OperType[otype]((value >> shval) & mask, va=va)
             ret.append( oper )
         return COND_AL, (ret), None
@@ -49,7 +49,6 @@ rm_rd       = simpleops((O_REG, 0, 0x7), (O_REG, 3, 0x7))
 rn_rdm      = simpleops((O_REG, 0, 0x7), (O_REG, 3, 0x7))
 rm_rdn      = simpleops((O_REG, 0, 0x7), (O_REG, 3, 0x7))
 rm_rd_imm0  = simpleops((O_REG, 0, 0x7), (O_REG, 3, 0x7), (O_IMM, 0, 0))
-rm4_shift3  = simpleops((O_REG, 3, 0xf))
 rm_rn_rt    = simpleops((O_REG, 0, 0x7), (O_REG, 3, 0x7), (O_REG, 6, 0x7))
 imm8        = simpleops((O_IMM, 8, 0xff))
 #imm11       = simpleops((O_IMM, 11, 0x7ff))
@@ -118,6 +117,15 @@ def rt_pc_imm8(va, value): # ldr
     oper1 = ArmImmOffsetOper(REG_PC, imm, (va&0xfffffffc))
     return COND_AL,(oper0,oper1), None
 
+def rm4_shift3(va, value): #bx/blx
+    iflags = None
+    otype, shval, mask = O_REG, 3, 0xf
+    oval = shmaskval(value, shval, mask)
+    oper = ArmRegOper((value >> shval) & mask, va=va)
+    if oval == REG_LR:
+        l = bool(value & 0b0000000010000000)
+        iflags = envi.IF_RET | (envi.IF_NOFALL, envi.IF_CALL)[l]
+    return COND_AL, (oper,), iflags
 
 banked_regs = (
         ( REG_OFFSET_USR + 8, ),
@@ -347,8 +355,8 @@ def branch_misc(va, val, val2): # bl and misc control
 
                 else:
                     opcode, mnem = cpsh_mnems.get(op2, (INS_DEBUGHINT, 'dbg'))
+                    opers = []
 
-                #raise Exception("FIXME:  Change processor state ad hints p A6-234")
                 return COND_AL, opcode, mnem, opers, flags, 0
 
             elif op == 0b0111011:
@@ -628,6 +636,7 @@ class ThumbITOper(ArmOperand):
         count, cond, data = self.getCondData()
 
         fcond = cond_codes.get(cond)
+        nextfew = it_strs[count][data]
         mcanv.addText("%s %s" % (nextfew, fcond))
 
     def getOperValue(self, idx, emu=None):
@@ -1432,47 +1441,8 @@ def dp_shift_32(va, val1, val2):
 
     return COND_AL, opcode, mnem, opers, flags, 0
 
-def dp_mod_imm_32_deprecated(va, val1, val2):
-    op = (val1 >> 5) & 0xf
-    rn = val1 & 0xf
-    rd = (val2 >> 8) & 0xf
-    imm = ((val1 >> 10) & 1) | ((val2 >> 4) & 0xf00) | (val2 & 0xff)
-    s = (val1 >> 4) & 1
-
-    oper2 = ArmImmOper(imm)
-
-    if rd == 0xf and s:
-        opcode, mnem, opcnt = dp_shift_alt1[op]
-        oper1 = ArmRegOper(rn, va=va)
-        if opcnt == 3:
-            oper0 = ArmRegOper(rd, va=va)
-            opers = (oper0, oper1, oper2)
-        else:
-            opers = (oper1, oper2)
-
-    elif rn == 0xf:
-        opcode, mnem, opcnt = dp_shift_alt2[op]
-        oper0 = ArmRegOper(rd, va=va)
-        if opcnt == 3:
-            oper1 = ArmRegOper(rn, va=va)
-            opers = (oper0, oper1, oper2)
-        else:
-            opers = (oper0, oper2)
-
-    else:
-        opcode, mnem, opcnt = dp_shift_ops[op]
-        oper0 = ArmRegOper(rd, va=va)
-        oper1 = ArmRegOper(rn, va=va)
-        opers = (oper0, oper1, oper2)
-
-    if s:
-        flags = IF_PSR_S
-    else:
-        flags = 0
-
-    return COND_AL, opcode, mnem, opers, flags, 0
-
 def coproc_simd_32(va, val1, val2):
+    #print "coproc_simd_32"
     # p249 of ARMv7-A and ARMv7-R arch ref manual, parts 2 and 3 (not top section)
 
     val32 = (val1 << 16) | val2
@@ -1487,6 +1457,7 @@ def coproc_simd_32(va, val1, val2):
     iflags = 0
     simdflags = 0
 
+    #print bin(coproc), bin(op1),bin(op)
     if op1 & 0b110000 == 0b110000:
         return adv_simd_32(va, val1, val2)
 
@@ -1557,7 +1528,7 @@ def coproc_simd_32(va, val1, val2):
             CRd =       (val2>>12) & 0xf
             opc2 =      (val2>>5) & 0x7
             CRm =       val2 & 0xf
-            mnem =      cdp_mnem[(val1>>12)&1]
+            mnem, opcode =      cdp_mnem[(val1>>12)&1]
 
             opers = (
                 ArmCoprocOper(coproc),
@@ -1568,8 +1539,6 @@ def coproc_simd_32(va, val1, val2):
                 ArmCoprocOpcodeOper(opc2),
             )
             
-            opcode = (IENC_COPROC_DP << 16)
-
         elif op1 & 0b110000 == 0b100000 and op == 1:    # 10xxx0 and 10xxx1
             # mcr/mcr2 (a8-474)
             # mrc/mrc2 (a8-490)
@@ -1594,6 +1563,7 @@ def coproc_simd_32(va, val1, val2):
             opcode = (IENC_COPROC_REG_XFER << 16)
 
     else:
+        # coproc = 0b101x
         # FIXME: REMOVE WHEN DONE IMPLEMENTING
         opcode = 0
         iflags = 0
@@ -1682,7 +1652,9 @@ def coproc_simd_32(va, val1, val2):
             else:
                 # adv simd fp (a7-276)
                 mnem = 'UNIMPL: adv simd'       # FIXME
-                return adv_simd_32(va, val1, val2)
+                #print "->adv_xfer_arm_ext_32"
+                return adv_xfer_arm_ext_32(va, val1, val2)
+                #return adv_simd_32(va, val1, val2)
 
     return COND_AL, opcode, mnem, opers, iflags, simdflags
 
@@ -1696,59 +1668,62 @@ def adv_simd_32(va, val1, val2):
     val = (val1 << 16) | val2
     u = (val1 >> 12) & 1
     opcode, mnem, opers, iflags, simdflags = _do_adv_simd_32(val, va, u)
+    #print "simdflags: %r" % simdflags
     return COND_AL, opcode, mnem, opers, iflags, simdflags
 
-def _adv_simd_32(va, val1, val2):
-    # aside from u and the first 8 bits, ARM and Thumb2 decode identically (A7-259)
-    u = (val1>>12) & 1
-    a = (val1>>3) & 0x1f
-    b = (val2>>8) & 0xf
-    c = (val2>>4) & 0xf
 
-    print "a=%x\tb=%x\tu=%x\tc=%x" % (a, b, u, c)
-    if not (a & 0x10):
-        # three registers of the same length
-        a = (val2>>8) & 0xf
-        b = (val2>>4) & 1
-        c = (val1>>4) & 3
+def adv_xfer_arm_ext_32(va, val1, val2):
+    val = (val1 << 16) | val2
+    if val & 0x0f000e10 != 0x0e000a10:
+        bytez = struct.pack("<I", val)
+        raise InvalidInstruction(mesg="INVALID ENCODING: adv_xfer_arm_ext_32", bytez=bytez, va=va)
 
-        #print " adv simd: 3 same: a=%x\tb=%x\tu=%x\tc=%x" % (a, b, u, c)
-        index = c | (u<<2) | (b<<3) | (a<<4)
-        #print " adv simd: 3 same: %x" % index
-        mnem, opcode, simdflags, handler = adv_simd_3_regs[index]
+    a = (val>>21) & 7
+    l = (val>>20) & 1
+    c = (val>>8) & 1
+    b = (val>>5) & 3
 
-        d = (val1 >> 2) & 0x10
-        d |= ((val2 >> 12) & 0xf)
+    iflags = 0
+    simdflags = 0
+    opers = None
 
-        n = (val2 >> 3) & 0x10
-        n |= (val1 & 0xf)
+    if l == 0:
+        if c == 0:
+            if a == 0:
+                # p.A8-944
+                mnem, opcode = 'vmov', INS_VMOV
+                opers = ()
+            elif a == 7:
+                # p.A8-956
+                mnem, opcode = 'vmsr', INS_VMSR
+                opers = ()
+        else:   # c == 1
+            if (a & 0b100) == 0:
+                # p.A8-940
+                mnem, opcode = 'vmov', INS_VMOV
+                opers = ()
+            else:
+                if b & 2:
+                    raise InvalidInstruction(mesg="INVALID ENCODING: adv_xfer_arm_ext_32: b & 2", bytez=bytez, va=va)
+                # p.A8-886
+                mnem, opcode = 'vdup', INS_VDUP
+                opers = ()
+    else:   # l == 1
+        if c == 0:
+            if a == 0:
+                # p.A8-944
+                mnem, opcode = 'vmov', INS_VMOV
+                opers = ()
+            elif a == 7:
+                # p.A8-954 & B9-2012
+                mnem, opcode = 'vmrs', INS_VMRS
+                opers = ()
+        else:   # c == 1
+            # p.A8-942
+            mnem, opcode = 'vmov', INS_VMOV
+            opers = ()
 
-        m = (val2 >> 1) & 0x10
-        m |= (val2 & 0xf)
-
-        q = (val2 >> 2) & 0x10
-
-        rbase = ('d%d', 'q%d')[q]
-
-        opers = (
-            ArmRegOper(rctx.getRegisterIndex(rbase%d)),
-            ArmRegOper(rctx.getRegisterIndex(rbase%n)),
-            ArmRegOper(rctx.getRegisterIndex(rbase%m)),
-            )
-
-        if handler != None:
-            nmnem, nopcode, nflags, nopers = handler(val, va, mnem, opcode, simdflags, opers)
-            if nmnem != None:
-                mnem = nmnem
-                opcode = nopcode
-            if nflags != None:
-                simdflags = nflags
-            if nopers != None:
-                opers = nopers
-
-        return COND_AL, opcode, mnem, opers, 0, simdflags
-
-
+    return COND_AL, opcode, mnem, opers, iflags, simdflags
 
 
 bcc_ops = {
@@ -1988,6 +1963,7 @@ thumb2_extension = [
     ('11110000001',         (85,'bic',      dp_mod_imm_32,      IF_THUMB32)),
     ('11110000010',         (85,'orr',      dp_mod_imm_32,      IF_THUMB32)),
     ('11110000011',         (85,'orn',      dp_mod_imm_32,      IF_THUMB32)),  # mvn if rn=1111
+    ('11110000110',         (85,'blx',      branch_misc,        IF_THUMB32)),
     ('11110000100',         (85,'eor',      dp_mod_imm_32,      IF_THUMB32)),  # teq if rd=1111 and s=1
     ('11110001000',         (85,'add',      dp_mod_imm_32,      IF_THUMB32)),  # cmn if rd=1111 and s=1
     ('11110001010',         (85,'adc',      dp_mod_imm_32,      IF_THUMB32)),
@@ -2163,6 +2139,7 @@ class ThumbDisasm:
         if flags & IF_THUMB32:
             val2, = struct.unpack_from(self.hfmt, bytez, offset+2)
             cond, nopcode, nmnem, olist, nflags, simdflags = opermkr(va+4, val, val2)
+            #print "simdflags: %r" % simdflags
 
             if nmnem != None:   # allow opermkr to set the mnem
                 mnem = nmnem
@@ -2199,6 +2176,7 @@ class ThumbDisasm:
         if mnem == None or type(mnem) == int:
             raise Exception("mnem == %r!  0x%xi (thumb)" % (mnem, opval))
 
+        #print "simdflags: %r" % simdflags
         op = ThumbOpcode(va, opcode, mnem, cond, oplen, olist, flags, simdflags)
         #print hex(va), oplen, len(op), op.size, hex(op.iflags)
         return op
