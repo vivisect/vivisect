@@ -83,7 +83,7 @@ class PpcImmOper(envi.ImmedOper):
 
     def repr(self, op):
         val = self.getOperValue(op)
-        return '0x%.2x' % (val)
+        return '0x%x' % (val)
 
 
 
@@ -274,7 +274,7 @@ class PpcCrOper(envi.RegisterOper):
 
     def repr(self, op):
         #return "cr_" + fields[self.val]
-        return "cr%x" % self.val
+        return "cr%u" % self.val
 
     def render(self, mcanv, op, idx):
         name = "cr%u" % self.val
@@ -661,6 +661,7 @@ e_handlers = {
         E_D: case_E_D,
         E_D8: case_E_D8,
         E_I16A: case_E_I16A,
+        E_IA16: case_E_IA16,
         E_SCI8: case_E_SCI8,
         E_SCI8I: case_E_SCI8I,
         E_I16L: case_E_I16L,
@@ -790,7 +791,7 @@ def find_e(buf, offset, endian=True, va=0):
         iflags = 0  # FIXME: this should be put into the table
         #print mnem, op, mask, type
         if (op & data) == op and (mask & data) == data:
-            print mnem, otype, types, hex(data)
+            #print mnem, otype, types, hex(data)
             size = 4
 
             opers = set_e_fields(data, otype, types, va)
@@ -828,17 +829,17 @@ def find_se(buf, offset, endian=True, va=0):
     for mnem, op, mask, n, fields in se_ops:
         #print mnem, op, mask, type
         if (op & data) == op and (mask & data) == data:
-            print "LOCK: ", mnem, op, hex(mask), fields, hex(data), n
+            #print "LOCK: ", mnem, op, hex(mask), fields, hex(data), n
             # prefill the array since this wonky thing likes to build backwards?
             opieces = [None for x in range(n)]
 
             skip = 0
             for k in range(n):
-                print "field: ", fields[k]
+                #print "field: ", fields[k]
                 mask, shr, shl, add, idx, ftype = fields[k]
-                print(repr(opieces))
+                #print(repr(opieces))
                 #raw_input("k: %x   " % (k) +  "mask: %x  shr: %x  shl: %x  add: %x  idx: %x, ftype: %x" % fields[k])
-                print("k: %x   " % (k) +  "mask: %x  shr: %x  shl: %x  add: %x  idx: %x, ftype: %x" % fields[k])
+                #print("k: %x   " % (k) +  "mask: %x  shr: %x  shl: %x  add: %x  idx: %x, ftype: %x" % fields[k])
                 value = (data & mask)
                 value >>= shr
                 value <<= shl
@@ -862,11 +863,11 @@ def find_se(buf, offset, endian=True, va=0):
 
                 if ftype == TYPE_MEM:
                     k += 1
-                    ft2, reg = opieces[k]
+                    ft2, val2 = opieces[k]
                     if ft2 != TYPE_MEM:
                         print "PROBLEM! ft2 is not TYPE_MEM!"
 
-                    opers.append(handler(reg, value, va))
+                    opers.append(handler(value, val2, va))
                 else:
                     opers.append(handler(value, va))
 
@@ -1078,14 +1079,21 @@ testcase_9  =''.join(['%c'%x for x in (
 )])
 
 
-def TEST(tbytez,z):                                  
-    x = 0                
-    print "\n\n\n ==== %s ====" % (tbytez.encode('hex'))
-    while x < len(tbytez):                
+def TEST(tbytez,z):
+    count = 0
+    x = 0
+    print " ==== %s ====" % (tbytez.encode('hex'))
+    while x < len(tbytez):
         d = PpcDisasm()
         op = d.disasm(tbytez, x, x)
-        print '%r\n\n' % op
+        if len(op) == 2:
+            print '%.2X %.2X\t\t%r' % (ord(tbytez[x]), ord(tbytez[x+1]), op)
+        else:
+            print '%.2X %.2X %.2X %.2X\t%r' % (ord(tbytez[x]), ord(tbytez[x+1]), ord(tbytez[x+2]), ord(tbytez[x+3]), op)
         x += len(op)
+        count += 1
+
+    print "Decoded Opcodes: %d" % count
 
 def doTests():
     TEST(example_1,9);                          
@@ -1103,3 +1111,5 @@ def doTests():
     TEST(testcase_8, 5);
     TEST(testcase_9, 2);
 
+if __name__ == '__main__':
+    doTests()
