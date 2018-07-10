@@ -694,69 +694,24 @@ ppc_handlers = {
         }
 
 
-def set_e_fields(data, ptype, types, va):
-    handler = e_handlers[ptype]
-    if handler == None:
-        raise Exception("Unknown PTYPE handler: %x" % ptype)
-
-    opers = handler(types, data, va)
-    return opers
-   
-
-
-def set_ppc_fields(data, ptype, types, va):
-    handler = ppc_handlers[ptype]
-    if handler == None:
-        raise Exception("Unknown PTYPE handler: %x" % ptype)
-
-    opers = handler(types, data, va)
-    return opers
-   
-
-
-
-
 def find_ppc(buf, offset, endian=True, va=0):
     fmt = ('<I', '>I')[endian]
     data, = struct.unpack_from(fmt, buf, offset)
 
-    for mnem, op, mask, form, opcode, cond, types in ppc_ops:
-        iflags = 0  # FIXME: this should be put into the table
+    for mnem, op, mask, form, opcode, cond, types, iflags in ppc_ops:
         #print mnem, op, mask, type
         if (op & data) == op and (mask & data) == data:
             #print mnem, form, opcode, types, hex(data)
             size = 4
-            opers = set_ppc_fields(data, form, types, va)
+
+            handler = ppc_handlers[form]
+            if handler == None:
+                raise Exception("Unknown FORM handler: %x" % form)
+
+            opers = handler(types, data, va)
 
             return PpcOpcode(va, 0, mnem, size=size, operands=opers, iflags=iflags)
 
-
-
-class PpcDisasm:
-    def __init__(self, endian=True):
-        # any speedy stuff here
-        self._dis_regctx = PpcRegisterContext()
-        self.endian = endian
-        #self.setEndian(endian)  # FIXME: when Endianness is dragged through Viv.
-
-
-    def disasm(self, bytes, offset, va):
-        '''
-        straw man.  make all in one from the ppc, e, se decodings..
-        '''
-        op = None
-
-        bytelen = len(bytes)
-        if bytelen >= offset + 4:
-            op = find_ppc(bytes, offset, self.endian, va)
-
-            if op == None:
-                op = find_e(bytes, offset, self.endian, va)
-
-        if op == None and bytelen >= offset + 2:
-            op = find_se(bytes, offset, self.endian, va)
-
-        return op
 
 
 def find_e(buf, offset, endian=True, va=0):
@@ -764,24 +719,26 @@ def find_e(buf, offset, endian=True, va=0):
     data, = struct.unpack_from(fmt, buf, offset)
 
 
-    for mnem, op, mask, form, opcode, cond, types in e_ops:
-        iflags = 0  # FIXME: this should be put into the table
+    for mnem, op, mask, form, opcode, cond, types, iflags in e_ops:
         #print mnem, op, mask, type
         if (op & data) == op and (mask & data) == data:
             #print mnem, form, opcode, types, hex(data)
             size = 4
 
-            opers = set_e_fields(data, form, types, va)
+            handler = e_handlers[form]
+            if handler == None:
+                raise Exception("Unknown FORM handler: %x" % form)
+
+            opers = handler(types, data, va)
             return PpcOpcode(va, 0, mnem, size=size, operands=opers, iflags=iflags)
 
 
 def find_se(buf, offset, endian=True, va=0):
     fmt = ('<H', '>H')[endian]
     data, = struct.unpack_from(fmt, buf, offset)
-    iflags = 0      # FIXME: make this part of the table
 
     opers = None
-    for mnem, op, mask, n, opcode, cond, fields in se_ops:
+    for mnem, op, mask, n, opcode, cond, fields, iflags in se_ops:
         #print mnem, op, mask, type
         if (op & data) == op and (mask & data) == data:
             #print "LOCK: ", mnem, op, hex(mask), fields, hex(data), n
@@ -829,6 +786,33 @@ def find_se(buf, offset, endian=True, va=0):
                 k += 1
 
             return PpcOpcode(va, 0, mnem, size=2, operands=opers, iflags=iflags)
+
+class PpcDisasm:
+    def __init__(self, endian=True):
+        # any speedy stuff here
+        self._dis_regctx = PpcRegisterContext()
+        self.endian = endian
+        #self.setEndian(endian)  # FIXME: when Endianness is dragged through Viv.
+
+
+    def disasm(self, bytes, offset, va):
+        '''
+        straw man.  make all in one from the ppc, e, se decodings..
+        '''
+        op = None
+
+        bytelen = len(bytes)
+        if bytelen >= offset + 4:
+            op = find_ppc(bytes, offset, self.endian, va)
+
+            if op == None:
+                op = find_e(bytes, offset, self.endian, va)
+
+        if op == None and bytelen >= offset + 2:
+            op = find_se(bytes, offset, self.endian, va)
+
+        return op
+
 
 
 

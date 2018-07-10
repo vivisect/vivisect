@@ -77,6 +77,7 @@ COND_EQ = 7
 COND_VS = 8
 COND_NV = 9
 
+IFLAGS_NONE = 0
 
 opcodetypes = (
     'ILL',
