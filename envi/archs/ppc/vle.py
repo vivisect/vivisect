@@ -13,6 +13,7 @@ class PpcRegOper(envi.RegisterOper):
     def __init__(self, reg, va=0):
         self.va = va
         self.reg = reg
+        
 
     def __eq__(self, oper):
         if not isinstance(oper, self.__class__):
@@ -179,7 +180,7 @@ class PpcMemOper(envi.DerefOper):
             mcanv.addText(')')
 
     def repr(self, op):
-        basereg = arm_regs[self.base_reg][0]
+        basereg = ppc_regs[self.base_reg][0]
         if self.base_reg == REG_PC:
             addr = self.getOperAddr(op)    # only works without an emulator because we've already verified base_reg is PC
 
@@ -188,6 +189,8 @@ class PpcMemOper(envi.DerefOper):
             tname = '0x%x(%s)' % (self.offset, basereg)
         return tname
 
+import envi.bits as e_bits
+
 class PpcJmpOper(envi.RegisterOper):
     '''
     PC + imm_offset
@@ -195,8 +198,8 @@ class PpcJmpOper(envi.RegisterOper):
     PpcImmOper but for Branches, not a dereference. 
     '''
     def __init__(self, val, va):
-        self.val = val # depending on mode, this is reg/imm
         self.va = va
+        self.val = val
 
     def __eq__(self, oper):
         if not isinstance(oper, self.__class__):
@@ -287,17 +290,18 @@ operands = (
         PpcCrOper,
         )
 
-def case_E_X(types, data):
+def case_E_X(types, data, va):
     val0 = (data & 0x3E00000) >> 24;
     op0 = operands[types[0]]
     val1 = (data & 0x1F0000) >> 16;
     op1 = operands[types[1]]
     val2 = (data & 0xF800) >> 11;
     op2 = operands[types[2]]
-    opers = ( op0(val0), op1(val1), op2(val2) )
+    opers = ( op0(val0, va), op1(val1, va), op2(val2, va) )
     return opers
 
-def case_E_XL(types, data):
+def case_E_XL(types, data, va):
+    #print types, hex(data)
     val0 = (data & 0x3E00000) >> 21;
     op0 = operands[types[0]]
     val1 = (data & 0x1F0000) >> 16;
@@ -305,11 +309,11 @@ def case_E_XL(types, data):
     val2 = (data & 0xF800) >> 11;
     op2 = operands[types[2]]
 
-    print op0, val0, op1, val1, op2, val2
-    opers = ( op0(val0), op1(val1), op2(val2) )
+    #print "E_XL", op0, val0, op1, val1, op2, val2
+    opers = ( op0(val0, va), op1(val1, va), op2(val2, va) )
     return opers
 
-def case_E_D(types, data):
+def case_E_D(types, data, va):
     val0 = (data & 0x3E00000) >> 21;
     op0 = operands[types[0]]
     val1 = (data & 0x1F0000) >> 16;
@@ -318,25 +322,29 @@ def case_E_D(types, data):
     if (val2 & 0x8000) :
         val2 = 0xFFFF0000 | val2;
     
-    op2 = operands[types[2]]
-    opers = ( op0(val0), op1(val1), op2(val2) )
+    if types[1] == TYPE_MEM:
+        opers = ( op0(val0, va), op1(val1, val2, va) )  # holy crap, this table is a mess.  too C-ish, not Pythonic.
+    else:
+        op2 = operands[types[2]]
+        opers = ( op0(val0, va), op1(val1, va), op2(val2, va) )  # holy crap, this table is a mess.  too C-ish, not Pythonic.
+
     return opers
 
-def case_E_D8(types, data):
+def case_E_D8(types, data, va):
     val0 = (data & 0x3E00000) >> 21;
     op0 = operands[types[0]]
+
     val1 = (data & 0x1F0000) >> 16;
     op1 = operands[types[1]]
+
     val2 = data & 0xFF;
     if (val2 & 0x80):
             val2 = 0xFFFFFF00 | val2;
     
-    op2 = operands[types[2]]
-
-    opers = ( op0(val0), op1(val1), op2(val2) )
+    opers = ( op0(val0, va), op1(val1, val2, va) )
     return opers
 
-def case_E_I16A(types, data):
+def case_E_I16A(types, data, va):
     val1 = (data & 0x3E00000) >> 10;
     op1 = operands[types[0]]
     val0 = (data & 0x1F0000) >> 16;
@@ -346,15 +354,15 @@ def case_E_I16A(types, data):
         val1 = 0xFFFF0000 | val1;
     
 
-    opers = ( op0(val0), op1(val1) )
-    print "E_I16/A", opers
+    opers = ( op0(val0, va), op1(val1, va) )
+    #print "E_I16/A", opers
     return opers
 
 case_E_IA16 = case_E_I16A
 
 
 SCI_mask = (0xffffff00, 0xffff00ff, 0xff00ffff, 0x00ffffff)
-def case_E_SCI8(types, data):
+def case_E_SCI8(types, data, va):
     val0 = (data & 0x3E00000) >> 21;
     op0 = operands[types[0]]
     val1 = (data & 0x1F0000) >> 16;
@@ -377,10 +385,10 @@ def case_E_SCI8(types, data):
 
     op2 = operands[types[2]]
 
-    opers = ( op0(val0), op1(val1), op2(val2) )
+    opers = ( op0(val0, va), op1(val1, va), op2(val2, va) )
     return opers
 
-def case_E_SCI8I(types, data):
+def case_E_SCI8I(types, data, va):
     val1 = (data & 0x3E00000) >> 21;
     op1 = operands[types[0]]
     val0 = (data & 0x1F0000) >> 16;
@@ -408,10 +416,10 @@ def case_E_SCI8I(types, data):
     '''
     op2 = operands[types[2]]
 
-    opers = ( op0(val0), op1(val1), op2(val2) )
+    opers = ( op0(val0, va), op1(val1, va), op2(val2, va) )
     return opers
 
-def case_E_I16L(types, data):
+def case_E_I16L(types, data, va):
     val0 = (data & 0x3E00000) >> 21;
     op0 = operands[types[0]]
     val1 = (data & 0x1F0000) >> 5;
@@ -421,10 +429,10 @@ def case_E_I16L(types, data):
 
     op1 = operands[types[1]]
 
-    opers = ( op0(val0), op1(val1) )
+    opers = ( op0(val0, va), op1(val1, va) )
     return opers
 
-def case_E_I16LS(types, data):
+def case_E_I16LS(types, data, va):
     val0 = (data & 0x3E00000) >> 21;
     op0 = operands[types[0]]
     val1 = (data & 0x1F0000) >> 5;
@@ -434,10 +442,10 @@ def case_E_I16LS(types, data):
     
     op1 = operands[types[1]]
 
-    opers = ( op0(val0), op1(val1) )
+    opers = ( op0(val0, va), op1(val1, va) )
     return opers
 
-def case_E_BD24(types, data):
+def case_E_BD24(types, data, va):
     val0 = data & 0x3FFFFFE;
     if (val0 & 0x3000000):
         val0 |= 0xFC000000;
@@ -447,7 +455,7 @@ def case_E_BD24(types, data):
     opers = ( op0(val0), )
     return opers
 
-def case_E_BD15(types, data):
+def case_E_BD15(types, data, va):
     val0 = (data & 0xC0000) >> 18;
     op0 = operands[types[0]]
     val1 = data & 0xFFE;
@@ -456,10 +464,10 @@ def case_E_BD15(types, data):
     
     op1 = operands[types[1]]
 
-    opers = ( op0(val0), op1(val1) )
+    opers = ( op0(val0, va), op1(val1, va) )
     return opers
 
-def case_E_LI20(types, data):
+def case_E_LI20(types, data, va):
     val0 = (data & 0x3E00000) >> 21;
     op0 = operands[types[0]]
     val1 = ((data & 0x1F0000) >> 5);
@@ -469,10 +477,10 @@ def case_E_LI20(types, data):
     if (val1 & 0x80000) :
             val1 = 0xFFF00000 | val1;
     
-    opers = ( op0(val0), op1(val1), op2(val2) )
+    opers = ( op0(val0, va), op1(val1, va) )
     return opers
 
-def case_E_M(types, data):
+def case_E_M(types, data, va):
     val1 = (data & 0x3E00000) >> 21;
     op1 = operands[types[1]]
     val0 = (data & 0x1F0000) >> 16;
@@ -484,10 +492,10 @@ def case_E_M(types, data):
     val4 = (data & 0x3E) >> 1;
     op4 = operands[types[4]]
 
-    opers = ( op0(val0), op1(val1), op2(val2), op3(val3), op4(val4) )
+    opers = ( op0(val0, va), op1(val1, va), op2(val2, va), op3(val3, va), op4(val4, va) )
     return opers
 
-def case_E_XCR(types, data):
+def case_E_XCR(types, data, va):
     val0 = (data & 0x3000000) >> 24;
     op0 = operands[types[0]]
     val1 = (data & 0x1F0000) >> 16;
@@ -495,47 +503,48 @@ def case_E_XCR(types, data):
     val2 = (data & 0xF800) >> 11;
     op2 = operands[types[2]]
 
-    opers = ( op0(val0), op1(val1), op2(val2) )
+    opers = ( op0(val0, va), op1(val1, va), op2(val2, va) )
     return opers
 
-def case_E_XLSP(types, data):
+def case_E_XLSP(types, data, va):
     val0 = (data & 0x3800000) >> 23;
     op0 = operands[types[0]]
     val1 = (data & 0x1C0000) >> 18;
     op1 = operands[types[1]]
 
-    opers = ( op0(val0), op1(val1) )
+    opers = ( op0(val0, va), op1(val1, va) )
     return opers
 
-def case_E_NONE(types, data):
+def case_E_NONE(types, data, va):
     opers = tuple()
     return opers
 
 
 
-def case_F_EVX(types, data):
+def case_F_EVX(types, data, va):
     opers = []
     if (types[0] != TYPE_NONE):
-            val0 = (data & 0x3E00000) >> 21;
-            op0 = operands[types[0]]
-            opers.append(op0)
+        val0 = (data & 0x3E00000) >> 21;
+        op0 = operands[types[0]]
+        opers.append(op0(val0))
 
     if (types[1] != TYPE_NONE):
-            val1 = (data & 0x1F0000) >> 16;
-            op1 = operands[types[1]]
-            opers.append(op1)
+        #print types[1]
+        val1 = (data & 0x1F0000) >> 16;
+        op1 = operands[types[1]]
+        opers.append(op1(val1, va))
 
     if (types[2] != TYPE_NONE):
-            val2 = (data & 0xF800) >> 11;
-            op2 = operands[types[2]]
-            opers.append(op2)
+        val2 = (data & 0xF800) >> 11;
+        op2 = operands[types[2]]
+        opers.append(op2(val2, va))
 
     return opers
 
 case_F_X    = case_F_EVX
 case_F_XO   = case_F_EVX
 
-def case_F_CMP(types, data):
+def case_F_CMP(types, data, va):
     val0 = (data & 0x3800000) >> 23;
     op0 = operands[types[0]]
     val1 = (data & 0x1F0000) >> 16;
@@ -543,10 +552,10 @@ def case_F_CMP(types, data):
     val2 = (data & 0xF800) >> 11;
     op2 = operands[types[2]]
     
-    opers = ( op0(val0), op1(val1), op2(val2) )
+    opers = ( op0(val0, va), op1(val1, va), op2(val2, va) )
     return opers
 
-def case_F_DCBF(types, data):
+def case_F_DCBF(types, data, va):
     val0 = (data & 0x0E00000) >> 21;
     op0 = operands[types[0]]
     val1 = (data & 0x1F0000) >> 16;
@@ -554,10 +563,10 @@ def case_F_DCBF(types, data):
     val2 = (data & 0xF800) >> 11;
     op2 = operands[types[2]]
 
-    opers = ( op0(val0), op1(val1), op2(val2) )
+    opers = ( op0(val0, va), op1(val1, va), op2(val2, va) )
     return opers
 
-def case_F_DCBL(types, data):
+def case_F_DCBL(types, data, va):
     val0 = (data & 0x1E00000) >> 21;
     op0 = operands[types[0]]
     val1 = (data & 0x1F0000) >> 16;
@@ -565,72 +574,83 @@ def case_F_DCBL(types, data):
     val2 = (data & 0xF800) >> 11;
     op2 = operands[types[2]]
 
-    opers = ( op0(val0), op1(val1), op2(val2) )
+    opers = ( op0(val0, va), op1(val1, va), op2(val2, va) )
     return opers
 
-def case_F_DCI(types, data):
+def case_F_DCI(types, data, va):
     val0 = (data & 0xE00000) >> 21;
     op0 = operands[types[0]]
 
     opers = ( op0(val0), )
     return opers
 
-def case_F_EXT(types, data):
+def case_F_EXT(types, data, va):
     val0 = (data & 0x3E00000) >> 21;
     op0 = operands[types[0]]
     val1 = (data & 0x1F0000) >> 16;
     op1 = operands[types[1]]
 
-    opers = ( op0(val0), op1(val1), )
+    opers = ( op0(val0, va), op1(val1, va), )
     return opers
 
-def case_F_A(types, data):
-    val0 = (data & 0x1E00000) >> 21;
-    op0 = operands[types[0]]
-    val1 = (data & 0x1F0000) >> 16;
-    op1 = operands[types[1]]
-    val2 = (data & 0xF800) >> 11;
-    op2 = operands[types[2]]
-    val3 = (data & 0x7C0) >> 6;
-    op3 = operands[types[3]]
+def case_F_A(types, data, va):
+    opers = []
+    if types[0] != TYPE_NONE:
+        val0 = (data & 0x1E00000) >> 21;
+        op0 = operands[types[0]]
+        opers.append(op0(val0))
 
-    opers = ( op0(val0), op1(val1), op2(val2) )
+    if types[1] != TYPE_NONE:
+        val1 = (data & 0x1F0000) >> 16;
+        op1 = operands[types[1]]
+        opers.append(op1(val1, va))
+
+    if types[2] != TYPE_NONE:
+        val2 = (data & 0xF800) >> 11;
+        op2 = operands[types[2]]
+        opers.append(op2(val2, va))
+
+    if types[3] != TYPE_NONE:
+        val3 = (data & 0x7C0) >> 6;
+        op3 = operands[types[3]]
+        opers.append(op3(val3, va))
+
     return opers
 
-def case_F_XFX(types, data):
+def case_F_XFX(types, data, va):
     val0 = (data & 0x3E00000) >> 21;
     op0 = operands[types[0]]
 
     opers = ( op0(val0), )
     return opers
 
-def case_F_XER(types, data):
+def case_F_XER(types, data, va):
     val0 = (data & 0x3800000) >> 23;
     op0 = operands[types[0]]
 
-    opers = ( op0(val0), op1(val1), op2(val2) )
+    opers = ( op0(val0, va), op1(val1, va), op2(val2, va) )
     return opers
 
-def case_F_MFPR(types, data):
+def case_F_MFPR(types, data, va):
     val0 = (data & 0x1E00000) >> 21;
     op0 = operands[types[0]]
     val1 = (data & 0x1FF800) >> 11;
     op1 = operands[types[1]]
-    print op0, val0, op1, val1
-    opers = ( op0(val0), op1(val1))
+    #print op0, val0, op1, val1
+    opers = ( op0(val0, va), op1(val1, va))
     return opers
 
-def case_F_MTPR(types, data):
+def case_F_MTPR(types, data, va):
     #inverted
     val1 = (data & 0x1E00000) >> 21;
     op1 = operands[types[1]]
     val0 = (data & 0x1FF800) >> 11;
     op0 = operands[types[0]]
 
-    opers = ( op0(val0), op1(val1), )
+    opers = ( op0(val0, va), op1(val1, va), )
     return opers
 
-def case_E_NONE(types, data):
+def case_F_NONE(types, data, va):
     opers = tuple()
     return opers
 
@@ -655,6 +675,8 @@ e_handlers = {
         }
 
 ppc_handlers = {
+        F_X: case_F_X,
+        F_XO: case_F_XO,
         F_EVX: case_F_EVX,
         F_CMP: case_F_CMP,
         F_DCBF: case_F_DCBF,
@@ -666,27 +688,26 @@ ppc_handlers = {
         F_XER: case_F_XER,
         F_MFPR: case_F_MFPR,
         F_MTPR: case_F_MTPR,
-        E_XL: case_E_XL,
-        E_NONE: case_E_NONE,
+        F_NONE: case_F_NONE,
         }
 
 
-def set_e_fields(data, ptype, types):
+def set_e_fields(data, ptype, types, va):
     handler = e_handlers[ptype]
     if handler == None:
         raise Exception("Unknown PTYPE handler: %x" % ptype)
 
-    opers = handler(types, data)
+    opers = handler(types, data, va)
     return opers
    
 
 
-def set_ppc_fields(data, ptype, types):
+def set_ppc_fields(data, ptype, types, va):
     handler = ppc_handlers[ptype]
     if handler == None:
         raise Exception("Unknown PTYPE handler: %x" % ptype)
 
-    opers = handler(types, data)
+    opers = handler(types, data, va)
     return opers
    
 
@@ -702,11 +723,39 @@ def find_ppc(buf, offset, endian=True, va=0):
         iflags = 0  # FIXME: this should be put into the table
         #print mnem, op, mask, type
         if (op & data) == op and (mask & data) == data:
-            print mnem, otype, types, hex(data)
+            #print mnem, otype, types, hex(data)
             size = 4
-            opers = set_ppc_fields(data, otype, types)
+            opers = set_ppc_fields(data, otype, types, va)
 
             return PpcOpcode(va, 0, mnem, size=size, operands=opers, iflags=iflags)
+
+
+
+class PpcDisasm:
+    def __init__(self, endian=True):
+        # any speedy stuff here
+        self._dis_regctx = PpcRegisterContext()
+        self.endian = endian
+        #self.setEndian(endian)  # FIXME: when Endianness is dragged through Viv.
+
+
+    def disasm(self, bytes, offset, va):
+        '''
+        straw man.  make all in one from the ppc, e, se decodings..
+        '''
+        op = None
+
+        bytelen = len(bytes)
+        if bytelen >= offset + 4:
+            op = find_ppc(bytes, offset, self.endian, va)
+
+            if op == None:
+                op = find_e(bytes, offset, self.endian, va)
+
+        if op == None and bytelen >= offset + 2:
+            op = find_se(bytes, offset, self.endian, va)
+
+        return op
 
 '''
 
@@ -744,7 +793,7 @@ def find_e(buf, offset, endian=True, va=0):
             print mnem, otype, types, hex(data)
             size = 4
 
-            opers = set_e_fields(data, otype, types)
+            opers = set_e_fields(data, otype, types, va)
             return PpcOpcode(va, 0, mnem, size=size, operands=opers, iflags=iflags)
 '''
 
@@ -773,17 +822,60 @@ static vle_t *find_e(const ut8* buffer) {
 def find_se(buf, offset, endian=True, va=0):
     fmt = ('<H', '>H')[endian]
     data, = struct.unpack_from(fmt, buf, offset)
+    iflags = 0      # FIXME: make this part of the table
 
-    #for mnem, op, mask, n, otype, (t0, t1, t2, t3, t4) in se_ops:
-    for mnem, op, mask, n, otype, types in se_ops:
+    opers = None
+    for mnem, op, mask, n, fields in se_ops:
         #print mnem, op, mask, type
         if (op & data) == op and (mask & data) == data:
-            print mnem, otype, types, hex(data)
-            size = 2
-            for j in range(n):
-                for k in range(n):
-                    #if 
-                    pass
+            print "LOCK: ", mnem, op, hex(mask), fields, hex(data), n
+            # prefill the array since this wonky thing likes to build backwards?
+            opieces = [None for x in range(n)]
+
+            skip = 0
+            for k in range(n):
+                print "field: ", fields[k]
+                mask, shr, shl, add, idx, ftype = fields[k]
+                print(repr(opieces))
+                #raw_input("k: %x   " % (k) +  "mask: %x  shr: %x  shl: %x  add: %x  idx: %x, ftype: %x" % fields[k])
+                print("k: %x   " % (k) +  "mask: %x  shr: %x  shl: %x  add: %x  idx: %x, ftype: %x" % fields[k])
+                value = (data & mask)
+                value >>= shr
+                value <<= shl
+                value += add
+
+                handler = operands[ftype]
+                if ftype == TYPE_JMP and value & 0x100:
+                    value = e_bits.signed(value | 0xfffffe00, 4)
+                elif ftype == TYPE_REG and value & 8:
+                    value = (value & 0x7) + 24
+
+                opieces[idx] = (ftype, value)
+                k += 1
+
+            k = 0
+            skip = 0
+            opers = []
+            while k < n:
+                ftype, value = opieces[k]
+                handler = operands[ftype]
+
+                if ftype == TYPE_MEM:
+                    k += 1
+                    ft2, reg = opieces[k]
+                    if ft2 != TYPE_MEM:
+                        print "PROBLEM! ft2 is not TYPE_MEM!"
+
+                    opers.append(handler(reg, value, va))
+                else:
+                    opers.append(handler(value, va))
+
+                k += 1
+
+            return PpcOpcode(va, 0, mnem, size=2, operands=opers, iflags=iflags)
+
+
+
             ''' wtfo?
 			for (j = 0; j < p->n; ++j) {
 				for (k = 0; k < p->n; ++k) {
@@ -806,7 +898,6 @@ def find_se(buf, offset, endian=True, va=0):
 			ret->n = p->n;
                         '''
 
-    return []
 '''
 static vle_t *find_se(const ut8* buffer) {
 	ut32 i, j, k;
@@ -985,4 +1076,30 @@ testcase_9  =''.join(['%c'%x for x in (
 # 0x7C,0x00,0x81,0x46, #  ?? 5000011e
 # 0x55,0x0d #  ?? 40001396
 )])
+
+
+def TEST(tbytez,z):                                  
+    x = 0                
+    print "\n\n\n ==== %s ====" % (tbytez.encode('hex'))
+    while x < len(tbytez):                
+        d = PpcDisasm()
+        op = d.disasm(tbytez, x, x)
+        print '%r\n\n' % op
+        x += len(op)
+
+def doTests():
+    TEST(example_1,9);                          
+    TEST(example_2, 14);
+    TEST(se_only, 63);             
+    TEST(e_only, 72);
+                                       
+    TEST(testcase_1, 2);
+    TEST(testcase_2, 1);
+    TEST(testcase_3, 1);
+    TEST(testcase_4, 2);
+    TEST(testcase_5, 8);
+    TEST(testcase_6, 3);
+    TEST(testcase_7, 18);
+    TEST(testcase_8, 5);
+    TEST(testcase_9, 2);
 

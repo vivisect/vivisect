@@ -11,7 +11,12 @@ sysregs = (
         ('xer', 64),
         ('acc', 64), 
         ('fpscr', 64),
+        ('lr', 64),
         ('cr', 32),
+        ('msr', 64),
+        ('bucsr', 64),
+        ('ctr', 64), 
+        ('pc', 32),
 
         )
 
@@ -24,28 +29,11 @@ ppc_regs.extend(floats)
 l = locals()
 e_reg.addLocalEnums(l, ppc_regs)
 
-ppc_meta = [    # FIXME
-        '''
-    ("ax", REG_EAX, 0, 16),
-    ("cx", REG_ECX, 0, 16),
-    ("dx", REG_EDX, 0, 16),
-    ("bx", REG_EBX, 0, 16),
-    ("sp", REG_ESP, 0, 16),
-    ("bp", REG_EBP, 0, 16),
-    ("si", REG_ESI, 0, 16),
-    ("di", REG_EDI, 0, 16),
-
-    ("al", REG_EAX, 0, 8),
-    ("cl", REG_ECX, 0, 8),
-    ("dl", REG_EDX, 0, 8),
-    ("bl", REG_EBX, 0, 8),
-
-    ("ah", REG_EAX, 8, 8),
-    ("ch", REG_ECX, 8, 8),
-    ("dh", REG_EDX, 8, 8),
-    ("bh", REG_EBX, 8, 8),
-    '''
+ppc_meta = [ 
+        ('sp', REG_R1, 0, 32),
+        ('toc', REG_R2, 0, 32),
 ]
+REG_SP = REG_R1
 
 
 statmetas = [   # FIXME
