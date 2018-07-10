@@ -1,5 +1,10 @@
 
 import envi
+try:
+    from PyQt5.QtWidgets import *
+except:
+    from PyQt4.QtGui import *
+
 import envi.qt as envi_qt
 import envi.bits as e_bits
 import envi.qt.memory as e_mem_qt
@@ -17,7 +22,6 @@ import vivisect.qt.views as viv_q_views
 import vivisect.qt.ctxmenu as viv_q_ctxmenu
 import vivisect.qt.funcviews as viv_q_funcviews
 
-from PyQt4          import QtCore, QtGui, QtWebKit
 from envi.threads   import firethread
 
 from vqt.main import *
@@ -49,6 +53,7 @@ class VivCanvasBase(vq_hotkey.HotKeyMixin, e_mem_canvas.VQMemoryCanvas):
         self.addHotKey(';','viv:comment')
         self.addHotKey('S','viv:make:struct')
         self.addHotKey('ctrl+S','viv:make:struct:again')
+        self.addHotKey('ctrl+meta+S','viv:make:struct:multi')
         self.addHotKey('U','viv:undefine')
         self.addHotKey('ctrl+s','viv:save')
         self.addHotKey('B', 'viv:bookmark')
@@ -84,7 +89,7 @@ class VivCanvasBase(vq_hotkey.HotKeyMixin, e_mem_canvas.VQMemoryCanvas):
 
     @vq_hotkey.hotkey('viv:nav:nextva')
     def _hotkey_nav_nextva(self):
-        if not self._canv_curva:
+        if self._canv_curva == None:
             return
 
         loc = self.vw.getLocation(self._canv_curva)
@@ -96,7 +101,7 @@ class VivCanvasBase(vq_hotkey.HotKeyMixin, e_mem_canvas.VQMemoryCanvas):
 
     @vq_hotkey.hotkey('viv:nav:prevva')
     def _hotkey_nav_prevva(self):
-        if not self._canv_curva:
+        if self._canv_curva == None:
             return
 
         loc = self.vw.getPrevLocation(self._canv_curva)
@@ -107,7 +112,7 @@ class VivCanvasBase(vq_hotkey.HotKeyMixin, e_mem_canvas.VQMemoryCanvas):
 
     @vq_hotkey.hotkey('viv:nav:nextundef')
     def _hotkey_nav_nextundef(self):
-        if not self._canv_curva:
+        if self._canv_curva == None:
             return
 
         vw = self.vw
@@ -136,7 +141,7 @@ class VivCanvasBase(vq_hotkey.HotKeyMixin, e_mem_canvas.VQMemoryCanvas):
 
     @vq_hotkey.hotkey('viv:nav:prevundef')
     def _hotkey_nav_prevundef(self):
-        if not self._canv_curva:
+        if self._canv_curva == None:
             return
 
         vw = self.vw
@@ -165,83 +170,109 @@ class VivCanvasBase(vq_hotkey.HotKeyMixin, e_mem_canvas.VQMemoryCanvas):
 
     @vq_hotkey.hotkey('viv:make:code')
     def _hotkey_make_code(self):
-        if self._canv_curva:
+        if self._canv_curva != None:
             self.vw.makeCode(self._canv_curva)
 
     @vq_hotkey.hotkey('viv:make:function')
     def _hotkey_make_function(self):
-        if self._canv_curva:
+        if self._canv_curva != None:
             self.vw.makeFunction(self._canv_curva)
 
     @vq_hotkey.hotkey('viv:make:string')
     def _hotkey_make_string(self):
-        if self._canv_curva:
+        if self._canv_curva != None:
             self.vw.makeString(self._canv_curva)
 
     @vq_hotkey.hotkey('viv:make:pointer')
     def _hotkey_make_pointer(self):
-        if self._canv_curva:
+        if self._canv_curva != None:
             self.vw.makePointer(self._canv_curva)
 
     @vq_hotkey.hotkey('viv:make:unicode')
     def _hotkey_make_unicode(self):
-        if self._canv_curva:
+        if self._canv_curva != None:
             self.vw.makeUnicode(self._canv_curva)
 
     @vq_hotkey.hotkey('viv:undefine')
     def _hotkey_undefine(self):
-        if self._canv_curva:
+        if self._canv_curva != None:
             self.vw.delLocation(self._canv_curva)
 
     @vq_hotkey.hotkey('viv:setname')
     def _hotkey_setname(self):
-        if self._canv_curva:
+        if self._canv_curva != None:
             self.vw.getVivGui().setVaName( self._canv_curva, parent=self )
 
     @vq_hotkey.hotkey('viv:bookmark')
     def _hotkey_bookmark(self):
-        if self._canv_curva:
+        if self._canv_curva != None:
             self.vw.getVivGui().addBookmark( self._canv_curva, parent=self )
 
     @vq_hotkey.hotkey('viv:comment')
     def _hotkey_comment(self):
-        if self._canv_curva:
+        if self._canv_curva != None:
             self.vw.getVivGui().setVaComment( self._canv_curva, parent=self )
 
     @vq_hotkey.hotkey('viv:make:struct')
     def _hotkey_make_struct(self):
-        if self._canv_curva:
-            self._menuMakeStruct(self._canv_curva)
+        if self._canv_curva != None:
+            sname = self.vw.getVivGui().makeStruct(self._canv_curva)
+            if sname != None:
+                self._last_sname = sname
 
     @vq_hotkey.hotkey('viv:make:struct:again')
     def _hotkey_make_struct_again(self):
-        if self._canv_curva:
+        if self._canv_curva != None:
             if self._last_sname != None:
                 self.vw.makeStructure(self._canv_curva, self._last_sname)
 
+    @vq_hotkey.hotkey('viv:make:struct:multi')
+    def _hotkey_make_struct_multi(self, parent=None):
+        if self._canv_curva != None:
+            if self._last_sname != None:
+                number, ok = QInputDialog.getText(parent, 'Make Multiple Consecutive Structs', 'Number of Structures')
+                if ok:
+                    curva = self._canv_curva
+                    number = int(str(number), 0)
+                    for count in range(number):
+                        vs = self.vw.makeStructure(curva, self._last_sname)
+                        curva += len(vs)
+
+    def makeStructAgainMulti(self, va, parent=None):
+        if parent == None:
+            parent = self
+
+        curcomment = self.vw.getComment(va)
+        if curcomment == None:
+            curcomment = ''
+
+        comment, ok = QInputDialog.getText(parent, 'Enter...', 'Comment', text=curcomment)
+        if ok:
+            self.vw.setComment(va, str(comment))
+
     @vq_hotkey.hotkey('viv:make:number:one')
     def _hotkey_make_number_one(self):
-        if self._canv_curva:
+        if self._canv_curva != None:
             self.vw.makeNumber(self._canv_curva, 1)
 
     @vq_hotkey.hotkey('viv:make:number:two')
     def _hotkey_make_number_two(self):
-        if self._canv_curva:
+        if self._canv_curva != None:
             self.vw.makeNumber(self._canv_curva, 2)
 
     @vq_hotkey.hotkey('viv:make:number:four')
     def _hotkey_make_number_four(self):
-        if self._canv_curva:
+        if self._canv_curva != None:
             self.vw.makeNumber(self._canv_curva, 4)
 
     @vq_hotkey.hotkey('viv:make:number:eight')
     def _hotkey_make_number_eight(self):
-        if self._canv_curva:
+        if self._canv_curva != None:
             self.vw.makeNumber(self._canv_curva, 8)
 
     @vq_hotkey.hotkey('viv:make:number:sixteen')
     def _hotkey_make_number_sixteen(self):
-        if self._canv_curva:
+        if self._canv_curva != None:
             self.vw.makeNumber(self._canv_curva, 16)
 
     @firethread
@@ -250,6 +281,12 @@ class VivCanvasBase(vq_hotkey.HotKeyMixin, e_mem_canvas.VQMemoryCanvas):
         self.vw.vprint('Saving workspace...')
         self.vw.saveWorkspace(fullsave=fullsave)
         self.vw.vprint('complete!')
+
+    def getVaTag(self, va):
+        loc = self.mem.getLocation(va)
+        if loc != None:
+            va = loc[L_VA]
+        return e_mem_canvas.VQMemoryCanvas.getVaTag(self, va)
 
 
 class VQVivMemoryCanvas(VivCanvasBase):
@@ -261,7 +298,10 @@ class VQVivMemoryCanvas(VivCanvasBase):
         sbmin = frame.scrollBarMinimum(qt_vertical)
         sbmax = frame.scrollBarMaximum(qt_vertical)
 
-        if sbcur == sbmax:
+        if not len(self._canv_rendvas):
+            pass
+            
+        elif sbcur == sbmax:
 
             lastva, lastsize = self._canv_rendvas[-1]
             mapva, mapsize, mperm, mfname = self.vw.getMemoryMap(lastva)
@@ -301,7 +341,7 @@ class VQVivMemoryCanvas(VivCanvasBase):
 
         nva, nvsz, nvt, nvti = nloc
         return (nva, va-nva)
-        
+
 
 class VQVivMemoryView(e_mem_qt.VQMemoryWindow, viv_base.VivEventCore):
 
@@ -326,7 +366,7 @@ class VQVivMemoryView(e_mem_qt.VQMemoryWindow, viv_base.VivEventCore):
         menu = e_mem_qt.VQMemoryWindow.getRendToolsMenu(self)
         if self.vw.server:
 
-            leadact = QtGui.QAction('lead', menu, checkable=True)
+            leadact = QAction('lead', menu, checkable=True)
             def leadToggle():
                 self._leading = not self._leading
                 # We can only follow if not leading... (deep huh? ;) )
@@ -374,7 +414,7 @@ class VQVivMemoryView(e_mem_qt.VQMemoryWindow, viv_base.VivEventCore):
 
     def _viv_xrefsto(self):
 
-        if self.mem_canvas._canv_curva:
+        if self.mem_canvas._canv_curva != None:
             xrefs = self.vw.getXrefsTo(self.mem_canvas._canv_curva)
             if len(xrefs) == 0:
                 self.vw.vprint('No xrefs found!')

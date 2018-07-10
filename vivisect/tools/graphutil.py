@@ -341,6 +341,7 @@ def walkCodePaths(fgraph, callback, loopcnt=0, maxpath=None):
     For root nodes, the current path and edge will be None types.  
     '''
     pathcnt = 0
+    routed = fgraph.getMeta('Routed', False)
     for root in fgraph.getHierRootNodes():
         proot = vg_pathcore.newPathNode(nid=root[0], eid=None)
 
@@ -370,6 +371,9 @@ def walkCodePaths(fgraph, callback, loopcnt=0, maxpath=None):
                     return
 
             for eid, fromid, toid, einfo in refsfrom:
+                # skip edges which are not marked "follow"
+                if routed and not einfo.get('follow', False):
+                    continue
                 # Skip loops if they are "deeper" than we are allowed
                 if vg_pathcore.getPathLoopCount(cpath, 'nid', toid) > loopcnt:
                     continue
@@ -468,7 +472,12 @@ def buildFunctionGraph(vw, fva, revloop=False, g=None):
             g.addNode(nid=cbva, cbva=cbva, cbsize=cbsize, color=bcolor)
 
         # Grab the location for the last instruction in the block
-        lva, lsize, ltype, linfo = vw.getLocation(cbva+cbsize-1)
+        nextva = cbva+cbsize-1
+        loc = vw.getLocation(nextva)
+        if loc == None:
+            raise Exception("buildFunctionGraph: Attempt to get location at 0x%x" % nextva)
+
+        lva, lsize, ltype, linfo = loc
 
         for xrfrom, xrto, xrtype, xrflags in vw.getXrefsFrom(lva, vivisect.REF_CODE):
 
@@ -584,19 +593,36 @@ def findRemergeDown(graph, va):
                 break
 
 # path routing through a graph.  reduces aimless wandering when we know where we want to be
-def preRouteGraph(graph, fromva, tova):
+def preRouteGraph(graph, fromva, tova, clearFirst=True):
     '''
     Package it all together
     '''
-    graph.delNodesProps(('up','down'))
+    if clearFirst:
+        clearRouting(graph)
+
     preRouteGraphUp(graph, tova)
     preRouteGraphDown(graph, fromva)
+    preRouteGraphEdges(graph)
+
+def preRouteGraphEdges(graph):
+    '''
+    Mark edges as 'follow' if from-node is marked 'up' and to-node id marked 'down'
+    Note: unlike the other preRoute functions, this is not flexible on naming.
+    '''
+    for edge in graph.getEdges():
+        eid, frnid, tonid, einfo = edge
+        if not graph.getNodeProps(frnid).get('up'):
+            continue
+        if not graph.getNodeProps(tonid).get('down'):
+            continue
+
+        graph.setEdgeProp(edge, 'follow', True)
 
 def preRouteGraphUp(graph, tova, loop=True, mark='down'):
     '''
     paint a route from our destination, 'up' the graph
     '''
-
+    graph.setMeta('Routed', True)
     tonid = getGraphNodeByVa(graph, tova)
     if tonid == None:
         raise Exception("tova not in graph 0x%x" % tova)
@@ -619,6 +645,7 @@ def preRouteGraphDown(graph, fromva, loop=False, mark='up'):
     '''
     paint a route from our starting point, 'down' the graph
     '''
+    graph.setMeta('Routed', True)
     fromnode = getGraphNodeByVa(graph, fromva)
     if fromnode == None:
         raise Exception("fromva not in graph 0x%x" % fromva)
@@ -663,6 +690,11 @@ def clearMarkDown(graph, fromva, loop=False, mark='up'):
 
             todo.append(graph.getNode(to))
 
+def clearRouting(graph, nmarks=('up','down'), emarks=('follow',)):
+    graph.delNodesProps(nmarks)
+    graph.delEdgesProps(emarks)
+    graph.setMeta('Routed', False)
+
 def reduceGraph(graph, props=('up','down')):
     '''
     trims all nodes that don't have all the props in the props list
@@ -682,47 +714,27 @@ class PathForceQuitException(Exception):
 eventually, routing will include the ability to 'source-route', picking N specific points a path must go through
 '''
 class PathGenerator:
-    __go__ = None
-    __steplock = threading.Lock()
+    '''
+    PathGenerator provides routed paths using yield generators, with some external 
+    control.  Because these generators are typically layered with other API's 
+    (ie. Symboliks subsystem calls) on top, PathGenerator provides a timeout and 
+    some external control.
+
+    PathGenerator should be used one per thread, not shared between threads.  The stop() 
+    method is good for use by a single management thread.
+    '''
 
     def __init__(self, graph):
         self.graph = graph
+        self.__go__ = False
 
     def stop(self):
         '''
-        stops path generation.  used by watchdog, but could be used by path processing code
+        stops path generation.
         '''
         self.__go__ = False
 
-    def watchdog(self, time):
-        # FIXME: make this use one thread, not N
-        '''
-        set a watchdog timer for path generation (if it takes too long to get another path)
-        '''
-        self.wdt = threading.Thread(target=self.__wd, args=[time])
-        self.wdt.setDaemon = True
-        self.wdt.start()
-
-    def __wd(self, maxsec):
-        # FIXME: make this use one thread, not N
-        maxsec *=10
-        count = 0
-        while self.__go__:
-            time.sleep(.1)
-            self.__steplock.acquire()
-            try:
-                if not self.__update:
-                    count += 1
-                    if count > maxsec:
-                        self.stop()
-                        break
-            finally:
-                self.__steplock.release()
-
-            self.__update = False
-                
-
-    def getFuncCbRoutedPaths_genback(self, fromva, tova, loopcnt=0, maxpath=None, maxsec=None):
+    def getFuncCbRoutedPaths_genback(self, fromva, tova, loopcnt=0, maxpath=None, timeout=None):
         '''
         Yields all the paths through the hierarchical graph starting at the 
         "root nodes" and ending at tocbva.  Specify a loopcnt to allow loop 
@@ -746,10 +758,14 @@ class PathGenerator:
 
         todo = [(tocbva,pnode), ]
 
-        if maxsec:
-            self.watchdog(maxsec)
+        maxtime = None
+        if timeout:
+            maxtime = time.time() + timeout
 
         while todo:
+            if maxtime and time.time() > maxtime:
+                raise PathForceQuitException()
+
             if not self.__go__:
                 raise PathForceQuitException()
 
@@ -786,7 +802,9 @@ class PathGenerator:
                 npath = vg_pathcore.newPathNode(parent=cpath, nid=fromid, eid=None)
                 todo.append((fromid,npath))
 
-    def getFuncCbRoutedPaths(self, fromva, tova, loopcnt=0, maxpath=None, maxsec=None):
+        self.__go__ = False
+
+    def getFuncCbRoutedPaths(self, fromva, tova, loopcnt=0, maxpath=None, timeout=None):
         '''
         Yields all the paths through the hierarchical graph starting at the 
         "root nodes" and ending at tocbva.  Specify a loopcnt to allow loop 
@@ -808,12 +826,16 @@ class PathGenerator:
         
         pnode = vg_pathcore.newPathNode(nid=frcbva, eid=None)
 
-        todo = [(frcbva, pnode), ]
+        todo = [(frcbva,pnode), ]
 
-        if maxsec:
-            self.watchdog(maxsec)
+        maxtime = None
+        if timeout:
+            maxtime = time.time() + timeout
 
         while todo:
+            if maxtime and time.time() > maxtime:
+                raise PathForceQuitException()
+
             if not self.__go__:
                 raise PathForceQuitException()
 
@@ -853,3 +875,5 @@ class PathGenerator:
                 todo.append((toid,npath))
 
             vg_pathcore.trimPath(cpath)
+
+        self.__go__ = False

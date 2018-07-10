@@ -1378,8 +1378,8 @@ class WindowsMixin:
         if ((not self.exited) and
             self.getCurrentBreakpoint() != None):
             self._clearBreakpoints()
-            self.platformContinue()
             self.platformSendBreak()
+            self.platformContinue()
             self.platformWait()
         if not kernel32.DebugActiveProcessStop(self.pid):
             raiseWin32Error("DebugActiveProcessStop")

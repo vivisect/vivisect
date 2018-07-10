@@ -437,6 +437,8 @@ class PE(object):
     def rvaToOffset(self, rva):
         if self.inmem:
             return rva
+        if rva >= 0 and rva < self.IMAGE_NT_HEADERS.OptionalHeader.SizeOfHeaders:
+            return rva
         for s in self.sections:
             sbase = s.VirtualAddress
             ssize = max(s.SizeOfRawData, s.VirtualSize)
@@ -885,6 +887,11 @@ class PE(object):
             return
     
         funcbytes = self.readAtOffset(funcoff, funcsize)
+
+        if not funcbytes:
+            self.IMAGE_EXPORT_DIRECTORY = None
+            return
+
         funclist = struct.unpack("%dI" % (len(funcbytes) / 4), funcbytes)
 
         # named function exports

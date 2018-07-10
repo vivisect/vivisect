@@ -31,7 +31,7 @@ class VivEventCore(object):
     A class to facilitate event monitoring in the viv workspace.
     '''
 
-    def __init__(self, vw):
+    def __init__(self, vw=None, **kwargs):
         self._ve_vw = vw
         self._ve_ehand = [None for x in xrange(VWE_MAX)]
         self._ve_thand = [None for x in xrange(VTE_MAX)]
@@ -91,7 +91,10 @@ class VivEventDist(VivEventCore):
     Similar to an event core, but does optimized distribution
     to a set of sub eventcore objects (think GUI windows...)
     '''
-    def __init__(self, vw):
+    def __init__(self, vw=None, **kwargs):
+        if vw == None:
+            raise Exception("VivEventDist requires a vw argument")
+
         VivEventCore.__init__(self, vw)
         self._ve_subs = [ [] for x in xrange(VWE_MAX) ]
         self._ve_tsubs = [ [] for x in xrange(VTE_MAX) ]
@@ -247,7 +250,7 @@ class VivWorkspaceCore(object,viv_impapi.ImportApi):
 
     def _handleDELFUNCTION(self, einfo):
         self.funcmeta.pop(einfo)
-        self.func_args.pop(einfo)
+        self.func_args.pop(einfo, None)
         self.codeblocks_by_funcva.pop(einfo)
         node = self._call_graph.getNode(einfo)
         self._call_graph.delNode(node)
@@ -532,6 +535,18 @@ class VivWorkspaceCore(object,viv_impapi.ImportApi):
     #def _loadImportApi(self, apidict):
         #self._imp_api.update( apidict )
 
+    def getEndian(self):
+        return self.bigend
+
+    def setEndian(self, endian):
+        self.bigend = endian
+        for arch in self.imem_archs:
+            arch.setEndian(self.bigend)
+
+        if self.arch != None:
+            self.arch.setEndian(self.bigend)
+
+
 #################################################################
 #
 #  setMeta key callbacks
@@ -551,8 +566,7 @@ class VivWorkspaceCore(object,viv_impapi.ImportApi):
             self.setMeta('DefaultCall', defcall)
 
     def _mcb_bigend(self, name, value):
-        print('OH HAI')
-        self.bigend = bool(value)
+        self.setEndian(bool(value))
 
     def _mcb_Platform(self, name, value):
         # Default calling convention for platform

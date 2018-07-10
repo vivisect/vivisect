@@ -306,6 +306,7 @@ class Trace(e_mem.IMemory, e_reg.RegisterContext, e_resolv.SymbolResolver, objec
         self.requireAttached()
         self.requireNotExited()
         self.platformKill()
+        self.attached = False
 
     def detach(self):
         '''
