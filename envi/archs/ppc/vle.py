@@ -1,6 +1,7 @@
-from const import *
+from vle_ops import *
 from regs import *
 import envi
+import struct
 
 class PpcOpcode(envi.Opcode):
     def __init__(self, va, opcode, mnem, size, operands, iflags=0):
