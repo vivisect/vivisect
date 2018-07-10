@@ -1,3 +1,14 @@
+#!/usr/bin/env python
+'''
+tables and logic adapted from:
+    https://github.com/wargio/libvle
+    https://github.com/ehntoo/libvle
+
+special thanks to wargio and ehntoo for their hard work
+
+adapted by atlas <atlas@r4780y.com>
+'''
+
 from vle_ops import *
 from regs import *
 import envi
