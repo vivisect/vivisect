@@ -65,3 +65,56 @@ F_MASK_XFX =   0x03FFF800
 F_MASK_XER =   0x03FFF800
 F_MASK_MFPR =  0x03FFF800
 F_MASK_MTPR =  0x03FFF800
+
+COND_AL = 0
+COND_GE = 1
+COND_LE = 2
+COND_NE = 3
+COND_VC = 4
+COND_LT = 5
+COND_GT = 6
+COND_EQ = 7
+COND_VS = 8
+COND_NV = 9
+
+
+opcodetypes = (
+    'ILL',
+
+    'ADD',
+    'SUB',
+    'MUL',
+    'DIV',
+    'SHR',
+    'SHL',
+    'ROR',
+
+    'AND',
+    'OR',
+    'XOR',
+    'NOR',
+    'NOT',
+
+    'IO',
+    'LOAD',
+    'STORE',
+    'MOV',
+
+    'CMP',
+    'JMP',
+    'CJMP',
+    'CALL',
+    'CCALL',
+    'RJMP',
+    'RCALL',
+    'RET',
+
+    'SYNC',
+    'SWI',
+    'TRAP',
+    )
+
+for octidx in range(len(opcodetypes)):
+    octype = opcodetypes[octidx]
+    label = "INS_" + octype
+    globals()[label] = octidx

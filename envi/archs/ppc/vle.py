@@ -453,7 +453,7 @@ def case_E_BD24(types, data, va):
 
     op0 = operands[types[0]]
 
-    opers = ( op0(val0), )
+    opers = ( op0(val0, va), )
     return opers
 
 def case_E_BD15(types, data, va):
@@ -527,7 +527,7 @@ def case_F_EVX(types, data, va):
     if (types[0] != TYPE_NONE):
         val0 = (data & 0x3E00000) >> 21;
         op0 = operands[types[0]]
-        opers.append(op0(val0))
+        opers.append(op0(val0, va))
 
     if (types[1] != TYPE_NONE):
         #print types[1]
@@ -582,7 +582,7 @@ def case_F_DCI(types, data, va):
     val0 = (data & 0xE00000) >> 21;
     op0 = operands[types[0]]
 
-    opers = ( op0(val0), )
+    opers = ( op0(val0, va), )
     return opers
 
 def case_F_EXT(types, data, va):
@@ -599,7 +599,7 @@ def case_F_A(types, data, va):
     if types[0] != TYPE_NONE:
         val0 = (data & 0x1E00000) >> 21;
         op0 = operands[types[0]]
-        opers.append(op0(val0))
+        opers.append(op0(val0, va))
 
     if types[1] != TYPE_NONE:
         val1 = (data & 0x1F0000) >> 16;
@@ -622,7 +622,7 @@ def case_F_XFX(types, data, va):
     val0 = (data & 0x3E00000) >> 21;
     op0 = operands[types[0]]
 
-    opers = ( op0(val0), )
+    opers = ( op0(val0, va), )
     return opers
 
 def case_F_XER(types, data, va):
@@ -720,14 +720,13 @@ def find_ppc(buf, offset, endian=True, va=0):
     fmt = ('<I', '>I')[endian]
     data, = struct.unpack_from(fmt, buf, offset)
 
-    #for mnem, op, mask, type, (t0, t1, t2, t3, t4) in ppc_ops:
-    for mnem, op, mask, otype, types in ppc_ops:
+    for mnem, op, mask, form, opcode, cond, types in ppc_ops:
         iflags = 0  # FIXME: this should be put into the table
         #print mnem, op, mask, type
         if (op & data) == op and (mask & data) == data:
-            #print mnem, otype, types, hex(data)
+            #print mnem, form, opcode, types, hex(data)
             size = 4
-            opers = set_ppc_fields(data, otype, types, va)
+            opers = set_ppc_fields(data, form, types, va)
 
             return PpcOpcode(va, 0, mnem, size=size, operands=opers, iflags=iflags)
 
@@ -759,66 +758,21 @@ class PpcDisasm:
 
         return op
 
-'''
-
-static vle_t *find_ppc(const ut8* buffer) {
-	ut32 i;
-	ut32 data = (buffer[0] << 24) | (buffer[1] << 16) | (buffer[2] << 8) | buffer[3];
-	const ppc_t* p = NULL;
-	const ut32 size = sizeof (ppc_ops) / sizeof (ppc_t);
-	for (i = 0; i < size; ++i) {
-		p = &ppc_ops[i];
-		if ((p->op & data) == p->op && (p->mask & data) == data) {
-			vle_t* ret = (vle_t*) calloc(1, sizeof(vle_t));
-			ret->name = p->name;
-			ret->size = 4;
-			ret->n = 0;
-			set_ppc_fields (ret, p, data);
-			return ret;
-		}
-	}
-	return NULL;
-}
-'''
-
 
 def find_e(buf, offset, endian=True, va=0):
     fmt = ('<I', '>I')[endian]
     data, = struct.unpack_from(fmt, buf, offset)
 
 
-    #for mnem, op, mask, type, (t0, t1, t2, t3, t4) in e_ops:
-    for mnem, op, mask, otype, types in e_ops:
+    for mnem, op, mask, form, opcode, cond, types in e_ops:
         iflags = 0  # FIXME: this should be put into the table
         #print mnem, op, mask, type
         if (op & data) == op and (mask & data) == data:
-            #print mnem, otype, types, hex(data)
+            #print mnem, form, opcode, types, hex(data)
             size = 4
 
-            opers = set_e_fields(data, otype, types, va)
+            opers = set_e_fields(data, form, types, va)
             return PpcOpcode(va, 0, mnem, size=size, operands=opers, iflags=iflags)
-'''
-
-static vle_t *find_e(const ut8* buffer) {
-	ut32 i;
-	ut32 data = (buffer[0] << 24) | (buffer[1] << 16) | (buffer[2] << 8) | buffer[3];
-	const e_vle_t* p = NULL;
-	const ut32 size = sizeof (e_ops) / sizeof (e_vle_t);
-	for (i = 0; i < size; ++i) {
-		p = &e_ops[i];
-		if ((p->op & data) == p->op && (p->mask & data) == data) {
-			vle_t* ret = (vle_t*) calloc(1, sizeof(vle_t));
-			ret->name = p->name;
-			ret->size = 4;
-			ret->n = 0;
-			set_e_fields (ret, p, data);
-			return ret;
-		}
-	}
-	return NULL;
-}
-
-'''
 
 
 def find_se(buf, offset, endian=True, va=0):
@@ -827,7 +781,7 @@ def find_se(buf, offset, endian=True, va=0):
     iflags = 0      # FIXME: make this part of the table
 
     opers = None
-    for mnem, op, mask, n, fields in se_ops:
+    for mnem, op, mask, n, opcode, cond, fields in se_ops:
         #print mnem, op, mask, type
         if (op & data) == op and (mask & data) == data:
             #print "LOCK: ", mnem, op, hex(mask), fields, hex(data), n
@@ -876,127 +830,6 @@ def find_se(buf, offset, endian=True, va=0):
 
             return PpcOpcode(va, 0, mnem, size=2, operands=opers, iflags=iflags)
 
-
-
-            ''' wtfo?
-			for (j = 0; j < p->n; ++j) {
-				for (k = 0; k < p->n; ++k) {
-					if (p->fields[k].idx == j) {
-						ret->fields[j].value = data & p->fields[k].mask;
-						ret->fields[j].value >>= p->fields[k].shr;
-						ret->fields[j].value <<= p->fields[k].shl;
-						ret->fields[j].value += p->fields[k].add;
-						ret->fields[j].value &= 0xFFFF;
-						if (p->fields[k].type == TYPE_REG && ret->fields[j].value & 0x8) {
-							ret->fields[j].value = (ret->fields[j].value & 0x7) + 24;
-						} else if (p->fields[k].type == TYPE_JMP && ret->fields[j].value & 0x0100) {
-							ret->fields[j].value = 0xFFFFFE00 | ret->fields[j].value;
-						}
-						ret->fields[j].type = p->fields[k].type;
-						break;
-					}
-				}
-			}
-			ret->n = p->n;
-                        '''
-
-'''
-static vle_t *find_se(const ut8* buffer) {
-	ut32 i, j, k;
-	ut16 data = (buffer[0] << 8) | buffer[1];
-	const se_vle_t* p = NULL;
-	const ut32 size = sizeof (se_ops) / sizeof (se_vle_t);
-	for (i = 0; i < size; ++i) {
-		p = &se_ops[i];
-		if ((p->op & data) == p->op && (p->mask & data) == data) {
-			vle_t* ret = (vle_t*) calloc(1, sizeof(vle_t));
-			ret->name = p->name;
-			ret->size = 2;
-			for (j = 0; j < p->n; ++j) {
-				for (k = 0; k < p->n; ++k) {
-					if (p->fields[k].idx == j) {
-						ret->fields[j].value = data & p->fields[k].mask;
-						ret->fields[j].value >>= p->fields[k].shr;
-						ret->fields[j].value <<= p->fields[k].shl;
-						ret->fields[j].value += p->fields[k].add;
-						ret->fields[j].value &= 0xFFFF;
-						if (p->fields[k].type == TYPE_REG && ret->fields[j].value & 0x8) {
-							ret->fields[j].value = (ret->fields[j].value & 0x7) + 24;
-						} else if (p->fields[k].type == TYPE_JMP && ret->fields[j].value & 0x0100) {
-							ret->fields[j].value = 0xFFFFFE00 | ret->fields[j].value;
-						}
-						ret->fields[j].type = p->fields[k].type;
-						break;
-					}
-				}
-			}
-			ret->n = p->n;
-			return ret;
-		}
-	}
-	return NULL;
-}
-
-int vle_init(vle_handle* handle, const ut8* buffer, const ut32 size) {
-	if (!handle || !buffer || size < 2) {
-		return 1;
-	}
-	handle->pos = buffer;
-	handle->end = buffer + size;
-	handle->inc = 0;
-	return 0;
-}
-
-vle_t* vle_next(vle_handle* handle) {
-	vle_t *op = NULL;
-	if (!handle || handle->pos + handle->inc >= handle->end) {
-		return NULL;
-	}
-	handle->pos += handle->inc;
-	// ppc subset, e(32 bits) and then se(16 bits)
-
-	if (handle->pos + 4 <= handle->end) {
-		op = find_ppc (handle->pos);
-	}
-	if (!op && handle->pos + 4 <= handle->end) {
-		op = find_e (handle->pos);
-	}
-	if (!op && handle->pos + 2 <= handle->end) {
-		op = find_se (handle->pos);
-	}
-
-	handle->inc = op ? op->size : 0;
-	return op;
-}
-
-void vle_free(vle_t* instr) {
-	free (instr);
-}
-
-void vle_snprint(char* str, int size, ut64 addr, vle_t* instr) {
-	ut32 i;
-	int bufsize = size, add = 0;
-	add = snprintf (str, bufsize, "%s", instr->name);
-	for (i = 0; add > 0 && i < instr->n && add < bufsize; ++i) {
-		if (instr->fields[i].type == TYPE_REG) {
-			add += snprintf (str + add, bufsize - add, " r%u", instr->fields[i].value);
-		} else if (instr->fields[i].type == TYPE_IMM) {
-			add += snprintf (str + add, bufsize - add, " 0x%x", instr->fields[i].value);
-		} else if (instr->fields[i].type == TYPE_MEM) {
-			add += snprintf (str + add, bufsize - add, " 0x%x(r%d)", instr->fields[i + 1].value, instr->fields[i].value);
-			i++;
-		} else if (instr->fields[i].type == TYPE_JMP) {
-			add += snprintf (str + add, bufsize - add, " 0x%" PFMT64x, addr + instr->fields[i].value);
-		} else if (instr->fields[i].type == TYPE_CR) {
-			add += snprintf (str + add, bufsize - add, " cr%u", instr->fields[i].value);
-		}
-	}
-}
-
-
-
-
-'''
 
 
 '''
@@ -1086,7 +919,7 @@ def TEST(tbytez,z):
     print " ==== %s ====" % (tbytez.encode('hex'))
     while x < len(tbytez):
         d = PpcDisasm()
-        op = d.disasm(tbytez, x, x)
+        op = d.disasm(tbytez, x, 0)
         if len(op) == 2:
             print '%.2X %.2X\t\t%r' % (ord(tbytez[x]), ord(tbytez[x+1]), op)
         else:
