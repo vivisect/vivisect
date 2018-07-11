@@ -14,6 +14,12 @@ from regs import *
 import envi
 import struct
 
+def addrToName(mcanv, va):
+    sym = mcanv.syms.getSymByAddr(va)
+    if sym != None:
+        return repr(sym)
+    return "0x%.8x" % va
+
 class PpcOpcode(envi.Opcode):
     def __init__(self, va, opcode, mnem, size, operands, iflags=0):
         envi.Opcode.__init__(self, va, opcode, mnem, 0, size, operands, iflags)
@@ -64,6 +70,27 @@ class PpcOpcode(envi.Opcode):
             ret.append((tova, flags))
 
         return ret
+
+    def render(self, mcanv):
+        """
+        Render this opcode to the specified memory canvas
+        """
+        if self.prefixes:
+            pfx = self._getPrefixName(self.prefixes)
+            if pfx:
+                mcanv.addNameText("%s: " % pfx, pfx)
+
+        mcanv.addNameText(self.mnem, typename="mnemonic")
+        mcanv.addText(" ")
+
+        # Allow each of our operands to render
+        imax = len(self.opers)
+        lasti = imax - 1
+        for i in xrange(imax):
+            oper = self.opers[i]
+            oper.render(mcanv, self, i)
+            if i != lasti:
+                mcanv.addText(",")
 
 
 class PpcRegOper(envi.RegisterOper):
@@ -283,6 +310,7 @@ class PpcJmpOper(envi.RegisterOper):
 
     def render(self, mcanv, op, idx):
         value = self.getOperValue(op)
+        print (value)
         if mcanv.mem.isValidPointer(value):
             name = addrToName(mcanv, value)
             mcanv.addVaText(name, value)
@@ -290,6 +318,7 @@ class PpcJmpOper(envi.RegisterOper):
             mcanv.addVaText('0x%.8x' % value, value)
 
     def repr(self, op):
+        print "repr"
         targ = self.getOperValue(op)
         tname = "0x%.8x" % targ
         return tname
