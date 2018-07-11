@@ -81,6 +81,19 @@ class MemoryCanvas(object):
         '''
         self._canv_navcallback = callback
 
+    def getEndian(self):
+        '''
+        returns the endianness setting of the mem object
+        '''
+        return self.mem.getEndian()
+
+    def setEndian(self, bigend):
+        '''
+        envi.ENDIAN_LSB or envi.ENDIAN_MSB
+        passes the value to the mem.setEndian() accessor
+        '''
+        self.mem.setEndian(bigend)
+
     def addRenderer(self, name, rend):
         self.renderers[name] = rend
         self.currend = rend

@@ -334,7 +334,7 @@ e_ops = (
 
 se_ops = (
 #  ( "name"      , op    , mask  , n,   op_type           , ((field ,shr,shl,  +, i, TYPE_REG), ...)
-  ( "se_illegal", 0x0000, 0x0000, 0,   INS_ILL, COND_NV, ((0), (0), (0), (0), (0)), IFLAGS_NONE),
+  ( "se_illegal", 0x0000, 0x0000, 0,   INS_ILL, COND_NV, ((0), (0), (0), (0), (0)), IF_NOFALL),
   ( "se_isync"  , 0x0001, 0x0001, 0,  INS_SYNC, COND_AL, ((0), (0), (0), (0), (0)), IFLAGS_NONE),
   ( "se_sc"     , 0x0002, 0x0002, 0,   INS_SWI, COND_AL, ((0), (0), (0), (0), (0)), IFLAGS_NONE),
   ( "se_blr"    , 0x0004, 0x0004, 0,   INS_RET, COND_AL, ((0), (0), (0), (0), (0)), IF_RET | IF_NOFALL),

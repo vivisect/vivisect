@@ -23,6 +23,9 @@ class ByteRend(e_canvas.MemoryRenderer):
         self.pformat = '0x%s' % self.bformat
 
     def render(self, mcanv, va, numbytes=16):
+        bigend = mcanv.getEndian()
+        self.fmtbase = ('<', '>')[bigend]
+
         bytez = mcanv.mem.readMemory(va, numbytes)
         if self.__pad__:
             bytez = bytez.ljust(numbytes, '\x00')

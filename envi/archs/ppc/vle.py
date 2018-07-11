@@ -18,6 +18,53 @@ class PpcOpcode(envi.Opcode):
     def __init__(self, va, opcode, mnem, size, operands, iflags=0):
         envi.Opcode.__init__(self, va, opcode, mnem, 0, size, operands, iflags)
 
+    def getBranches(self, emu=None):
+        ret = []
+
+        # To start with we have no flags.
+        flags = 0
+        addb = False
+
+        # If we are a conditional branch, even our fallthrough
+        # case is conditional...
+        if self.iflags & (IF_BRANCH | IF_COND):
+            flags |= envi.BR_COND
+            addb = True
+
+        # If we can fall through, reflect that...
+        if not self.iflags & envi.IF_NOFALL:
+            ret.append((self.va + self.size, flags|envi.BR_FALL))
+
+        # In intel, if we have no operands, it has no
+        # further branches...
+        if len(self.opers) == 0:
+            return ret
+
+        # Check for a call...
+        if self.iflags & IF_CALL:
+            flags |= envi.BR_PROC
+            addb = True
+
+        # A conditional call?  really?  what compiler did you use? ;)
+        elif self.iflags & (IF_CALL | IF_COND):
+            flags |= (envi.BR_PROC | envi.BR_COND)
+            addb = True
+
+        elif self.iflags == IF_BRANCH:
+            addb = True
+
+        if addb:
+            oper0 = self.opers[0]
+            if oper0.isDeref():
+                flags |= envi.BR_DEREF
+                tova = oper0.getOperAddr(self, emu=emu)
+            else:
+                tova = oper0.getOperValue(self, emu=emu)
+
+            ret.append((tova, flags))
+
+        return ret
+
 
 class PpcRegOper(envi.RegisterOper):
     ''' register operand.  see "addressing mode 1 - data processing operands - register" '''
@@ -798,7 +845,7 @@ def find_se(buf, offset, endian=True, va=0):
 
             return PpcOpcode(va, 0, mnem, size=2, operands=opers, iflags=iflags)
 
-class PpcDisasm:
+class VleDisasm:
     def __init__(self, endian=True):
         # any speedy stuff here
         self._dis_regctx = PpcRegisterContext()
@@ -913,7 +960,7 @@ def TEST(tbytez,z):
     x = 0
     print " ==== %s ====" % (tbytez.encode('hex'))
     while x < len(tbytez):
-        d = PpcDisasm()
+        d = VleDisasm()
         op = d.disasm(tbytez, x, 0)
         if len(op) == 2:
             print '%.2X %.2X\t\t%r' % (ord(tbytez[x]), ord(tbytez[x+1]), op)

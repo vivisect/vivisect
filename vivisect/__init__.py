@@ -1059,8 +1059,14 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         '''
         Show the repr of an instruction in the current canvas *before* making it that
         '''
-        op = self.parseOpcode(va, arch)
-        self.vprint("0x%x  (%d bytes)  %s" % (va, len(op), repr(op)))
+        try:
+            op = self.parseOpcode(va, arch)
+            if op == None:
+                self.vprint("0x%x - None")
+            else:
+                self.vprint("0x%x  (%d bytes)  %s" % (va, len(op), repr(op)))
+        except Exception, e:
+            sys.excepthook(*sys.exc_info())
 
     #################################################################
     #

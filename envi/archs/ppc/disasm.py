@@ -7,6 +7,7 @@ import struct
 
 from envi.archs.ppc.disasm import *
 from envi.archs.ppc.regs import *
+from const import *
 
 
 def p_rDrArB(sdef, off, flags=0):
@@ -142,14 +143,11 @@ def p_rSrAshme(sdef, off, flags=0):
     pass
 
 
-ENDIAN_LITTLE = 0
-ENDIAN_BIG = 1
-
 class PpcDisasm:
     def __init__(self):
         # any speedy stuff here
         self._dis_regctx = PpcRegisterContext()
-        self.endian = BIGEND
+        self.endian = ENDIAN_MSB
 
     def setEndian(self, endian):
         self.endian = endian
