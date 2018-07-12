@@ -20,6 +20,9 @@ def addrToName(mcanv, va):
         return repr(sym)
     return "0x%.8x" % va
 
+
+IF_CALLCC = (IF_CALL | IF_COND)
+
 class PpcOpcode(envi.Opcode):
     def __init__(self, va, opcode, mnem, size, operands, iflags=0):
         envi.Opcode.__init__(self, va, opcode, mnem, 0, size, operands, iflags)
@@ -52,7 +55,7 @@ class PpcOpcode(envi.Opcode):
             addb = True
 
         # A conditional call?  really?  what compiler did you use? ;)
-        elif self.iflags & (IF_CALL | IF_COND):
+        elif (self.iflags & IF_CALLCC) == IF_CALLCC:
             flags |= (envi.BR_PROC | envi.BR_COND)
             addb = True
 
