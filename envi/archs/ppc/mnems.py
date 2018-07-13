@@ -10961,6 +10961,10 @@ FIELD_M_DATA = {
     'IMM' : ( (16,4), (21, 4), ),   # X FP: 16, X FP.RL 16
     }
 
+THING_FILL = 0
+THING_VAR = 1
+THING_STATIC = 2
+
 def decode(s):
     lines = s.split('\n')
     groups = []
@@ -11055,6 +11059,7 @@ def parseOpgroup(opgrp):
         statbits = 6 # include first 6 opcode bits
         varfs = []
         stats = []
+        nfields = []
         for fidx in range(len(fields)):
             f = fields[fidx]
             go = True
@@ -11062,14 +11067,18 @@ def parseOpgroup(opgrp):
             # check if it's a /// field.
             if '///' in f:
                 #print "field has ///.  Breaking: %r" % f
-                varfs.append([fidx, f, 0,0])
+                thing = [fidx, f, 0,0, THING_FILL]
+                varfs.append(thing)
+                nfields.append(thing)
                 continue
 
             # otherwise look through for static bits
             for x in range(len(f)):
                 if f[x] not in ('0','1',' ','/'):
                     #print "breaking on %s" % f[x]
-                    varfs.append([fidx, f, 0, 0])   # field index, field, size, startbit
+                    thing = [fidx, f, 0, 0, THING_VAR]   # field index, field, size, startbit
+                    varfs.append(thing)
+                    nfields.append(thing)
                     go = False
                     break
 
@@ -11081,7 +11090,10 @@ def parseOpgroup(opgrp):
             if not go: continue
 
             # add this static binary field to the list for counting
-            stats.append((fidx, f.replace(' ','')))
+            bits = f.replace(' ','')
+            thing = [fidx, bits, 0, len(bits), THING_STATIC]
+            stats.append(thing)
+            nfields.append(thing)
             statbits += (len(f)/2)
             #print f, "  \t",(len(f)/2), statbits
 
@@ -11091,7 +11103,7 @@ def parseOpgroup(opgrp):
         # mark registers
         for oidx in range(len(varfs)):
             oper = varfs[oidx]
-            fidx, f, fstart, fsz = oper
+            fidx, f, fstart, fsz, ftype = oper
             field = f.strip()
 
             #if oper[1].strip().startswith('r'):
@@ -11125,20 +11137,103 @@ def parseOpgroup(opgrp):
                     varfs[oidx][3] = gsz
                     leftover -= gsz
 
-            else:
-                for gstart, gsz in odata:
-                    #### FIGURE THIS OUT
+        # once we've completed a pass through the simple ones...
+
+        # reduce... find the length of the trailing static bits... and merge fields
+        #print mnem, nfields
+        cleanup = []
+        laststart = 32
+        lasttype = THING_STATIC
+        for tidx in range(len(nfields)-1, 0, -1):
+            thing = nfields[tidx]
+            prev = nfields[tidx-1]
+            #print thing
+
+
+            if thing[4] == THING_FILL and prev[4] == THING_FILL:
+                cleanup.append(tidx)
+
+            elif thing[4] == THING_STATIC:
+                # if this is the first static, we know the start and length
+                if laststart == 32:
+                    thing[2] = laststart - thing[3]
+                    laststart = thing[2]
+                    
+                if prev[4] == THING_STATIC:
+                    # since we're collapsing, set prev's starting point
+                    if prev[2] == 0 and thing[2] != 0:
+                        #laststart += thing[3]
+                        prev[2] = thing[2] - prev[3]
+
+                    # concat and add size, collapsing into prev
+                    #print "prev(1) = ", prev
+                    prev[1] += thing[1]
+                    prev[3] += thing[3]
+                    cleanup.append(tidx)
+
+                    #print "prev(2) = ", prev
+
+            laststart = thing[2]
+            lasttype = thing[4]
+
+        for x in cleanup:
+            #print "popping %d(1)  (%r) " % (x, nfields)
+            remove = nfields.pop(x)
+            #print "popping %d(2)  (%r) " % (x, nfields)
+
+
+        # now find what fits...
+        for oidx in range(len(varfs)):
+            oper = varfs[oidx]
+            fidx, f, fstart, fsz, ftype = oper
+            field = f.strip()
+            # skip if we have already identified a start bit
+            if fstart != 0:
+                continue
+            if '///' in f:
+                continue
+
+            odata = FIELD_M_DATA.get(field)
+            if odata == None:
+                print "UNKNOWN FIELD: %r  (%s)" % (oper, mnem)
+                bf = badfields.get(oper[1])
+                if bf == None:
+                    bf = []
+                    badforms[oper[1]] = bf
+                bf.append((mnem, data, oper))
+                continue
+
+            # mash all the known ones together and see if each of these can coexist with each...
+            for gidx in range(len(odata)-1, -1, -1):
+                gstart, gsz = odata[gidx]
+                fail = False
+
+                for ofield in nfields:
+                    tidx, tf, tstart, tsz, ttype = ofield
+                    if tstart < gstart:
+                        if tstart + tsz > gstart:
+                            # overlap
+                            fail = True
+                    elif gstart + gsz > tstart:
+                        # overlap
+                        fail = True
+                if fail:
+                    print "FAIL!  ", gstart, gsz, ofield
                     continue
 
-                    if gstart != None:
-                        varfs[oidx][2] = gstart
-                    if gsz != None:
-                        varfs[oidx][3] = gsz
-                        leftover -= gsz
+                print "SUCCESS!  ", gstart, gsz, ofield
+
+                # only continue if we're committed!
+                #print gstart, gsz, ofield
+                if gstart != None:
+                    varfs[oidx][2] = gstart
+                if gsz != None:
+                    varfs[oidx][3] = gsz
+                    leftover -= gsz
+                break
 
 
-
-        grpdeets.append((mnem, grp, form, cat, fields, statbits, varfs, stats))
+        grpdeets.append((mnem, grp, form, cat, fields, statbits, varfs, stats, nfields))
 
         
         nobits = [x for x in varfs if x[3] == 0 and '///' not in x[1]]
