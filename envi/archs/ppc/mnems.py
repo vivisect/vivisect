@@ -9759,32 +9759,32 @@ lwz 1 0 0 0 0 0
  rD
  rA
  D
- D
+ D None
 lwzu 1 0 0 0 0 1
  rD
  rA
  D
- D
+ D None
 lbz 1 0 0 0 1 0
  rD
  rA
  D
- D
+ D None
 lbzu 1 0 0 0 1 1
  rD
  rA
  D
- D
+ D None
 stw 1 0 0 1 0 0
  rS
  rA
  D
- D
+ D None
 stwu 1 0 0 1 0 1
  rS
  rA
  D
- D
+ D None
 A-108
 EREF: A Programmer’s Reference Manual for Freescale Power Architecture Processors, Rev. 1 (EIS 2.1)
 Freescale Semiconductor
@@ -9819,52 +9819,52 @@ stb 1 0 0 1 1 0
  rS
  rA
  D
- D
+ D None
 stbu 1 0 0 1 1 1
  rS
  rA
  D
- D
+ D None
 lhz 1 0 1 0 0 0
  rD
  rA
  D
- D
+ D None
 lhzu 1 0 1 0 0 1
  rD
  rA
  D
- D
+ D None
 lha 1 0 1 0 1 0
  rD
  rA
  D
- D
+ D None
 lhau 1 0 1 0 1 1
  rD
  rA
  D
- D
+ D None
 sth 1 0 1 1 0 0
  rS
  rA
  D
- D
+ D None
 sthu 1 0 1 1 0 1
  rS
  rA
  D
- D
+ D None
 lmw 1 0 1 1 1 0
  rD
  rA
  D
- D
+ D None
 stmw 1 0 1 1 1 1
  rS
  rA
  D
- D
+ D None
 lfs 1 1 0 0 0 0
  frD
  rA
@@ -11276,7 +11276,7 @@ def parseOpgroup(opgrp):
                 leftover -= gsz
 
         nobits = [x for x in varfs if x[3] == 0 and '///' not in x[1]]
-        print "%s: %s\t%s\t%s \t%r\t%d\t%r" % (mnem, grp, form, cat, nfields, leftover, nobits)
+        print "%-20s: %s\t%s\t%s \t%r\t%d\t%r" % (mnem, grp, form, cat, nfields, leftover, nobits)
 
         if checkNfieldSanity(nfields):
             print "ERROR: ", mnem, repr(nfields)
@@ -11297,7 +11297,7 @@ def parseOpgroup(opgrp):
             #bf.append((mnem, data))
 
         if len(nobits):
-            print "%s: %s\t%s\t%s \t%r\t%r\t%d\t%r" % (mnem, grp, form, cat, fields, varfs, leftover, nobits)
+            print "%-20s: %s\t%s\t%s \t%r\t%r\t%d\t%r" % (mnem, grp, form, cat, fields, varfs, leftover, nobits)
         
         #print "%s: %s\t%s\t%s \t%r\t%r\t%d" % (mnem, grp, form, cat, fields, varfs, leftover)
     return grpdeets
