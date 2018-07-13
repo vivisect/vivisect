@@ -10863,58 +10863,48 @@ forms = (
 # fname : (startbit, size)
 # None for either indicates an unknown
 FIELD_DATA = {
-    'rS' : (6,5),
-    'vS' : (6,5),
-    'frS' : (6,5),
-    'rS' : (6,5),
+    '------': (0,6),
+    'rS' :      (6,5),
+    'vS' :      (6,5),
+    'frS' :     (6,5),
+    'rS' :      (6,5),
     
-    'rD' : (6,5),
-    'vD' : (6,5),
-    'frD' : (6,5),
-    'crbD' : (6,5),
+    'rD' :      (6,5),
+    'vD' :      (6,5),
+    'frD' :     (6,5),
+    'crbD' :    (6,5),
     
-    'rA' : (11,5),
-    'vA' : (11,5),
-    'frA' : (11,5),
-    'crbA' : (11,5),
+    'rA' :      (11,5),
+    'vA' :      (11,5),
+    'frA' :     (11,5),
+    'crbA' :    (11,5),
 
-    'rB' : (16,5),
-    'vB' : (16,5),
-    'frB' : (16,5),
-    'crbB' : (16,5),
+    'rB' :      (16,5),
+    'vB' :      (16,5),
+    'frB' :     (16,5),
+    'crbB' :    (16,5),
     
-    'rC' : (21,5),
-    'vC' : (21,5),
-    'frC' : (21,5),
-    'crbC' : (21,5),
+    'rC' :      (21,5),
+    'vC' :      (21,5),
+    'frC' :     (21,5),
+    'crbC' :    (21,5),
 
-    'TO' : (6,5),
-    'BO' : (6, 5),
-    'BI' : (11, 5),
-    'LI' : (6, 24),
-    'BD' : (16, 16),
-    'BH' : (19, 2),
-    'LEV' : (20, 7),
-    'DUI' : (6, 5),
-    'DCTL' : (11, 5),
-    'STRM' : (9, 2),
-    'crD' : (6, 3),
-    'crfS' : (11,3),
-    'OC' : (6, 15), 
-    'CT' : (6, 5),
-    'D' : (16, 16),
-    'DS' : (16, 14),
-    'CRM' : (12, 8),
-    #'DCRN5-9' : (11, 5),
-    #'DCRN0-4' : (16, 5),
-    #'PMRN5-9' : (11, 5),
-    #'PMRN0-4' : (16, 5),
-    #'TBRN5-9' : (11, 5),
-    #'TBRN0-4' : (16, 5),
-    #'TMRN5-9' : (11, 5),
-    #'TMRN0-4' : (16, 5),
-    #'SPRN5-9' : (11, 5),
-    #'SPRN0-4' : (16, 5),
+    'TO' :      (6,5),
+    'BO' :      (6, 5),
+    'BI' :      (11, 5),
+    'LI' :      (6, 24),
+    'BD' :      (16, 14),
+    'BH' :      (19, 2),
+    'LEV' :     (20, 7),
+    'DUI' :     (6, 5),
+    'DCTL' :    (11, 5),
+    'STRM' :    (9, 2),
+    'crD' :     (6, 3),
+    'OC' :      (6, 15), 
+    'CT' :      (6, 5),
+    'D' :       (16, 16),
+    'DS' :      (16, 14),
+    'CRM' :     (12, 8),
     'DCRN5-9' : (11, 5),
     'DCRN0-4' : (16, 5),
     'PMRN5-9' : (11, 5),
@@ -10925,40 +10915,41 @@ FIELD_DATA = {
     'TMRN0-4' : (16, 5),
     'SPRN5-9' : (11, 5),
     'SPRN0-4' : (16, 5),
-    'MO' : (6, 5),
-    'L' : (6, 1),
-    'W' : (20, 1),
-    'FM' : (7, 8),
-    'sh0' : (30, 1),
-    'sh1-5' : (16, 5),
-    'mb1-5' : (21, 5),
-    'me1-5' : (21, 5),
-    'mb0'   : (26, 1),
-    'me0'   : (26, 1),
-    'MB'    : (21, 5),
-    'ME'    : (26, 5),
-    'SH' : (22, 4),
-    'TH' : (6, 5),
-    'SS' : (16, 1),
-    'IU' : (17, 1),
-    'OU' : (18, 1),
-    'SA' : (19, 2),
-    'E'  : (16, 1),
-    'WC' : (9, 2),
-    'WH' : (11, 1),
-    'T'  : (9, 2),
-    'crb' : (21, 5), 
-    #'Rc' : (31, 1),        # used by all "Rc" instructions (.)
-    '///' :  (None, None),  # this is a filler field.  could be anywhere and any size.
+    'MO' :      (6, 5),
+    'W' :       (15, 1),
+    'FM' :      (7, 8),
+    'sh0' :     (30, 1),
+    'sh1-5' :   (16, 5),
+    'mb1-5' :   (21, 5),
+    'me1-5' :   (21, 5),
+    'mb0'   :   (26, 1),
+    'me0'   :   (26, 1),
+    'MB'    :   (21, 5),
+    'ME'    :   (26, 5),
+    'TH' :      (6, 5),
+    'SS' :      (16, 1),
+    'IU' :      (17, 1),
+    'OU' :      (18, 1),
+    'SA' :      (19, 2),
+    'E'  :      (16, 1),
+    'WC' :      (9, 2),
+    'WH' :      (11, 1),
+    'T'  :      (9, 2),
+    'crb' :     (21, 5), 
+    #'Rc' :      (31, 1),        # used by all "Rc" instructions (.)
+    '///' :     (None, None),  # this is a filler field.  could be anywhere and any size.
 
     }
 FIELD_M_DATA = {
-    'UIMM' : ( (11, 5), (16, 5), (16,16), ), # form doesn't help.  eg. EVX does multiples
-    'UIMM 1' : ( (11, 5), (16, 5), ), # form doesn't help.  eg. EVX does multiples
-    'UIMM 2' : ( (11, 5), (16, 5), ), # form doesn't help.  eg. EVX does multiples
-    'UIMM 3' : ( (11, 5), (16, 5), ), # form doesn't help.  eg. EVX does multiples
-    'SIMM' : ( (11, 5), (16,16), ),
-    'IMM' : ( (16,4), (21, 4), ),   # X FP: 16, X FP.RL 16
+    'UIMM' :    ( (11, 5), (16, 5), (16,16), ), # form doesn't help.  eg. EVX does multiples
+    'UIMM 1' :  ( (11, 5), (16, 5), ), # form doesn't help.  eg. EVX does multiples
+    'UIMM 2' :  ( (11, 5), (16, 5), ), # form doesn't help.  eg. EVX does multiples
+    'UIMM 3' :  ( (11, 5), (16, 5), ), # form doesn't help.  eg. EVX does multiples
+    'SIMM' :    ( (11, 5), (16,16), ),
+    'IMM' :     ( (16,4), (21, 4), ),   # X FP: 16, X FP.RL 16
+    'crfS' :    ( (11,3), (29, 3), ),
+    'L' :       ( (6, 1), (10, 1), ),
+    'SH' :      ( (22, 4), (16, 5), ),
     }
 
 THING_FILL = 0
@@ -11059,7 +11050,7 @@ def parseOpgroup(opgrp):
         statbits = 6 # include first 6 opcode bits
         varfs = []
         stats = []
-        nfields = []
+        nfields = [(None, '------', 0, 6, THING_STATIC)]
         for fidx in range(len(fields)):
             f = fields[fidx]
             go = True
@@ -11067,7 +11058,7 @@ def parseOpgroup(opgrp):
             # check if it's a /// field.
             if '///' in f:
                 #print "field has ///.  Breaking: %r" % f
-                thing = [fidx, f, 0,0, THING_FILL]
+                thing = [fidx, f, None ,0, THING_FILL]
                 varfs.append(thing)
                 nfields.append(thing)
                 continue
@@ -11076,7 +11067,7 @@ def parseOpgroup(opgrp):
             for x in range(len(f)):
                 if f[x] not in ('0','1',' ','/'):
                     #print "breaking on %s" % f[x]
-                    thing = [fidx, f, 0, 0, THING_VAR]   # field index, field, size, startbit
+                    thing = [fidx, f, None, 0, THING_VAR]   # field index, field, size, startbit
                     varfs.append(thing)
                     nfields.append(thing)
                     go = False
@@ -11091,7 +11082,7 @@ def parseOpgroup(opgrp):
 
             # add this static binary field to the list for counting
             bits = f.replace(' ','')
-            thing = [fidx, bits, 0, len(bits), THING_STATIC]
+            thing = [fidx, bits, None, len(bits), THING_STATIC]
             stats.append(thing)
             nfields.append(thing)
             statbits += (len(f)/2)
@@ -11102,6 +11093,7 @@ def parseOpgroup(opgrp):
         leftover = 32 - statbits 
         # mark registers
         for oidx in range(len(varfs)):
+            odata = None
             oper = varfs[oidx]
             fidx, f, fstart, fsz, ftype = oper
             field = f.strip()
@@ -11111,8 +11103,15 @@ def parseOpgroup(opgrp):
             #    oper[2] = 5
             #    leftover -= 5
 
+            #### COMPLETE HACK! I APOLOGIZE IN ADVANCE.
+            if mnem == 'cmpl':
+                odata = { 'rA' : (8, 5), 'rB' : (13, 5), 'L' : (7,1), }.get(field)
+                #print field, odata
+
             # check the simple fields
-            odata = FIELD_DATA.get(field)
+            if odata == None:
+                odata = FIELD_DATA.get(field)
+
             multi = False
 
             if odata == None:
@@ -11144,7 +11143,7 @@ def parseOpgroup(opgrp):
         cleanup = []
         laststart = 32
         lasttype = THING_STATIC
-        for tidx in range(len(nfields)-1, 0, -1):
+        for tidx in range(len(nfields)-1, 1, -1):
             thing = nfields[tidx]
             prev = nfields[tidx-1]
             #print thing
@@ -11161,7 +11160,7 @@ def parseOpgroup(opgrp):
                     
                 if prev[4] == THING_STATIC:
                     # since we're collapsing, set prev's starting point
-                    if prev[2] == 0 and thing[2] != 0:
+                    if prev[2] == None and thing[2] != None:
                         #laststart += thing[3]
                         prev[2] = thing[2] - prev[3]
 
@@ -11183,16 +11182,21 @@ def parseOpgroup(opgrp):
 
 
         # now find what fits...
-        for oidx in range(len(varfs)):
-            oper = varfs[oidx]
+        for oidx in range(len(nfields)):
+            oper = nfields[oidx]
             fidx, f, fstart, fsz, ftype = oper
+            if ftype == THING_STATIC:
+                continue
+
             field = f.strip()
             # skip if we have already identified a start bit
-            if fstart != 0:
+            if fstart != None:
+                #print "fstart != None:", fstart
                 continue
             if '///' in f:
                 continue
 
+            # if we don't have a start bit, check multiple's
             odata = FIELD_M_DATA.get(field)
             if odata == None:
                 print "UNKNOWN FIELD: %r  (%s)" % (oper, mnem)
@@ -11210,6 +11214,10 @@ def parseOpgroup(opgrp):
 
                 for ofield in nfields:
                     tidx, tf, tstart, tsz, ttype = ofield
+                    # skip this field if we haven't figured it out yet.
+                    if tstart == None:
+                        continue
+
                     if tstart < gstart:
                         if tstart + tsz > gstart:
                             # overlap
@@ -11218,19 +11226,62 @@ def parseOpgroup(opgrp):
                         # overlap
                         fail = True
                 if fail:
-                    print "FAIL!  ", gstart, gsz, ofield
+                    #print "\tFAIL!  ", gstart, gsz, ofield
                     continue
 
-                print "SUCCESS!  ", gstart, gsz, ofield
+                #print "SUCCESS!  ", gstart, gsz, ofield
 
                 # only continue if we're committed!
                 #print gstart, gsz, ofield
                 if gstart != None:
-                    varfs[oidx][2] = gstart
+                    nfields[oidx][2] = gstart
                 if gsz != None:
-                    varfs[oidx][3] = gsz
+                    nfields[oidx][3] = gsz
                     leftover -= gsz
                 break
+
+        # clean up static start/size fields
+        for oidx in range(1, len(nfields)-1):
+            oper = nfields[oidx]
+            fidx, f, fstart, fsz, ftype = oper
+            field = f.strip()
+
+            if ftype == THING_STATIC:
+                if fstart == None:
+                    prevf = nfields[oidx-1]
+                    if prevf[2] != None:
+                        oper[2] = prevf[2] + prevf[3]
+                    else:
+                        nextf = nfields[oidx+1]
+                        oper[2] = nextf[2] - oper[3]
+                    #raw_input("Check to make sure '/' start is correct")
+
+
+        # finally, for cleanup sake ("///")
+        for oidx in range(1, len(nfields)-1):
+            oper = nfields[oidx]
+            fidx, f, fstart, fsz, ftype = oper
+            field = f.strip()
+
+            if ftype == THING_FILL:
+                prevf = nfields[oidx-1]
+                nextf = nfields[oidx+1]
+                gstart = prevf[2] + prevf[3]
+                gsz = nextf[2] - gstart
+
+                # now write into the array
+                #print "FILLER: ", gstart, gsz
+                nfields[oidx][2] = gstart
+                nfields[oidx][3] = gsz
+                leftover -= gsz
+
+        nobits = [x for x in varfs if x[3] == 0 and '///' not in x[1]]
+        print "%s: %s\t%s\t%s \t%r\t%d\t%r" % (mnem, grp, form, cat, nfields, leftover, nobits)
+
+        if checkNfieldSanity(nfields):
+            print "ERROR: ", mnem, repr(nfields)
+            raw_input()
+
 
 
         grpdeets.append((mnem, grp, form, cat, fields, statbits, varfs, stats, nfields))
@@ -11257,6 +11308,23 @@ def parseData():
     opgroups = breakupOpGrps(lgrps)
 
     return opgroups
+
+def checkNfieldSanity(nfields):
+    lastidx = 0
+    lastsize = 0
+    fail = False
+    for idx, f, start, sz, typ in nfields:
+        if start != (lastidx + lastsize):
+            print "FAIL Linkage Test! %r != (%r + %r)   %r " % (start, lastidx, lastsize, nfields)
+            fail = True
+        lastidx = start
+        lastsize = sz
+
+    if start + sz != 32:
+        print "FAIL Finishing Test! %r != (%r + %r)   %r " % (32, start, sz, nfields)
+        fail = True
+
+    return fail
 
 
 
