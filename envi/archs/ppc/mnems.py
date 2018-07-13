@@ -2719,7 +2719,8 @@ vaddsbs 0 0 0 1 0 0
 evldd 0 0 0 1 0 0
  rD
  rA
- UIMM 0 1 1 0 0
+ UIMM
+ 0 1 1 0 0
  0
  0 0 0
  0
@@ -2812,7 +2813,8 @@ vsrab 0 0 0 1 0 0
 evldh 0 0 0 1 0 0
  rD
  rA
- UIMM 0 1 1 0 0
+ UIMM
+ 0 1 1 0 0
  0
  0 0 1
  0
@@ -2854,7 +2856,8 @@ vmulesb 0 0 0 1 0 0
 evlhhesplat 0 0 0 1 0 0
  rD
  rA
- UIMM 0 1 1 0 0
+ UIMM
+ 0 1 1 0 0
  0
  0 1 0
  0
@@ -2948,7 +2951,8 @@ evlwhex 0 0 0 1 0 0
 evlwhe 0 0 0 1 0 0
  rD
  rA
- UIMM 0 1 1 0 0
+ UIMM
+ 0 1 1 0 0
  0
  1 0 0
  0
@@ -2988,7 +2992,8 @@ evlwhosx 0 0 0 1 0 0
 evlwhos 0 0 0 1 0 0
  rD
  rA
- UIMM 0 1 1 0 0
+ UIMM
+ 0 1 1 0 0
  0
  1 0 1
  1
@@ -3029,7 +3034,8 @@ evlwhsplatx 0 0 0 1 0 0
 evlwhsplat 0 0 0 1 0 0
  rD
  rA
- UIMM 0 1 1 0 0
+ UIMM
+ 0 1 1 0 0
  0
  1 1 1
  0
@@ -3069,7 +3075,8 @@ evstdwx 0 0 0 1 0 0
 evstdw 0 0 0 1 0 0
  rS
  rA
- UIMM 0 1 1 0 0
+ UIMM
+ 0 1 1 0 0
  1
  0 0 0
  1
@@ -3089,7 +3096,8 @@ evstdhx 0 0 0 1 0 0
 evstdh 0 0 0 1 0 0
  rS
  rA
- UIMM 0 1 1 0 0
+ UIMM
+ 0 1 1 0 0
  1
  0 0 1
  0
@@ -3109,7 +3117,8 @@ evstwhex 0 0 0 1 0 0
 evstwhe 0 0 0 1 0 0
  rS
  rA
- UIMM 0 1 1 0 0
+ UIMM
+ 0 1 1 0 0
  1
  1 0 0
  0
@@ -3200,7 +3209,8 @@ evstwwox 0 0 0 1 0 0
 evstwwo 0 0 0 1 0 0
  rS
  rA
- UIMM 0 1 1 0 0
+ UIMM
+ 0 1 1 0 0
  1
  1 1 1
  0
@@ -5459,81 +5469,106 @@ andis. 0 1 1 1 0 1
 rldicl 0 1 1 1 1 0
  rS
  rA
- sh1–5
- mb1–5
- mb0 0
- 0 0 sh0 0
+ sh1-5
+ mb1-5
+ mb0
+ 0
+ 0 0 
+ sh0
+ 0
  MD
  64
 rldicl. 0 1 1 1 1 0
  rS
  rA
- sh1–5
- mb1–5
- mb0 0
- 0 0 sh0 1
+ sh1-5
+ mb1-5
+ mb0
+ 0
+ 0 0 
+ sh0
+ 1
  MD
  64
 rldicr 0 1 1 1 1 0
  rS
  rA
- sh1–5
- me1–5
- me0 0
- 0 1 sh0 0
+ sh1-5
+ me1-5
+ me0
+ 0
+ 0 1 
+ sh0
+ 0
  MD
  64
 rldicr. 0 1 1 1 1 0
  rS
  rA
- sh1–5
- me1–5
- me0 0
- 0 1 sh0 1
+ sh1-5
+ me1-5
+ me0
+ 0
+ 0 1 
+ sh0
+ 1
  MD
  64
 rldic 0 1 1 1 1 0
  rS
  rA
- sh1–5
- mb1–5
- mb0 0
- 1 0 sh0 0
+ sh1-5
+ mb1-5
+ mb0
+ 0
+ 1 0 
+ sh0
+ 0
  MD
  64
 rldic. 0 1 1 1 1 0
  rS
  rA
- sh1–5
- mb1–5
- mb0 0
- 1 0 sh0 1
+ sh1-5
+ mb1-5
+ mb0
+ 0
+ 1 0 
+ sh0
+ 1
  MD
  64
 rldimi 0 1 1 1 1 0
  rS
  rA
- sh1–5
- mb1–5
- mb0 0
- 1 1 sh0 0
+ sh1-5
+ mb1-5
+ mb0
+ 0
+ 1 1 
+ sh0
+ 0
  MD
  64
 rldimi. 0 1 1 1 1 0
  rS
  rA
- sh1–5
- mb1–5
- mb0 0
- 1 1 sh0 1
+ sh1-5
+ mb1-5
+ mb0
+ 0
+ 1 1 
+ sh0
+ 1
  MD
  64
 rldcl 0 1 1 1 1 0
  rS
  rA
  rB
- mb1–5
- mb0 1
+ mb1-5
+ mb0
+ 1
  0 0
  0
  0
@@ -5542,8 +5577,9 @@ rldcl. 0 1 1 1 1 0
  rS
  rA
  rB
- mb1–5
- mb0 1
+ mb1-5
+ mb0
+ 1
  0 0
  0
  1
@@ -5552,8 +5588,9 @@ rldcr 0 1 1 1 1 0
  rS
  rA
  rB
- me1–5
- me0 1
+ me1-5
+ me0
+ 1
  0 0
  1
  0
@@ -5562,8 +5599,9 @@ rldcr. 0 1 1 1 1 0
  rS
  rA
  rB
- me1–5
- me0 1
+ me1-5
+ me0
+ 1
  0 0
  1
  1
@@ -6069,7 +6107,8 @@ andc. 0 1 1 1 1 1
  X
 wait 0 1 1 1 1 1
  ///
- WC WH
+ WC
+ WH
  ///
  0 0 0 0 1
  1
@@ -6900,7 +6939,10 @@ lvepxl 0 1 1 1 1 1
 sat 0 1 1 1 1 1
  rD
  rA
- A S I U O U S S
+ SS
+ IU 
+ OU 
+ SA
  0 1 0 0 0
  0
  1 0 0
@@ -6911,10 +6953,10 @@ sat 0 1 1 1 1 1
 sat. 0 1 1 1 1 1
  rD
  rA
- A
- S I U
- U
- O S S
+ SS
+ IU 
+ OU 
+ SA
  0 1 0 0 0
  0
  1 0 0
@@ -7119,8 +7161,8 @@ dcbtep 0 1 1 1 1 1
  E.PD
 mfdcr 0 1 1 1 1 1
  rD
- DCRN5–9
- DCRN0–4
+ DCRN5-9
+ DCRN0-4
  0 1 0 1 0
  0
  0 0 1
@@ -7184,8 +7226,8 @@ addw. 0 1 1 1 1 1
  64
 mfpmr 0 1 1 1 1 1
  rD
- PMRN5–9
- PMRN0–4
+ PMRN5-9
+ PMRN0-4
  0 1 0 1 0
  0
  1 1 1
@@ -7194,8 +7236,8 @@ mfpmr 0 1 1 1 1 1
  XFX E.PM
 mfspr 0 1 1 1 1 1
  rD
- SPRN[5–9]
- SPRN[0–4]
+ SPRN5-9
+ SPRN0-4
  0 1 0 1 0
  1
  0 0 1
@@ -7328,8 +7370,8 @@ mulwss. 0 1 1 1 1 1
  ISAT
 mftmr 0 1 1 1 1 1
  rD
- TMRN[5–9]
- TMRN[0–4]
+ TMRN5-9
+ TMRN0-4
  0 1 0 1 1
  0
  1 1 1
@@ -7338,8 +7380,8 @@ mftmr 0 1 1 1 1 1
  XFX EM.TM
 mftb 0 1 1 1 1 1
  rD
- TBRN[5–9]
- TBRN[0–4]
+ TBRN5-9
+ TBRN0-4
  0 1 0 1 1
  1
  0 0 1
@@ -7683,8 +7725,8 @@ or. 0 1 1 1 1 1
  X
 mtdcr 0 1 1 1 1 1
  rS
- DCRN5–9
- DCRN0–4
+ DCRN5-9
+ DCRN0-4
  0 1 1 1 0
  0
  0 0 1
@@ -7816,8 +7858,8 @@ divwu. 0 1 1 1 1 1
  X
 mtpmr 0 1 1 1 1 1
  rS
- PMRN5–9
- PMRN0–4
+ PMRN5-9
+ PMRN0-4
  0 1 1 1 0
  0
  1 1 1
@@ -7826,8 +7868,8 @@ mtpmr 0 1 1 1 1 1
  XFX E.PM
 mtspr 0 1 1 1 1 1
  rS
- SPRN[5–9]
- SPRN[0–4]
+ SPRN5-9
+ SPRN0-4
  0 1 1 1 0
  1
  0 0 1
@@ -7986,8 +8028,8 @@ divw. 0 1 1 1 1 1
  X
 mttmr 0 1 1 1 1 1
  rS
- TMRN[5–9]
- TMRN[0–4]
+ TMRN5-9
+ TMRN0-4
  0 1 1 1 1
  0
  1 1 1
@@ -8267,7 +8309,8 @@ sync 0 1 1 1 1 1
  ///
  L
  /
- ///E
+ ///
+ E
  ///
  1 0 0 1 0
  1
@@ -8856,7 +8899,7 @@ evlddepx 0 1 1 1 1 1
  1
  /
  X
- E.PD, SP
+ E.PD,SP
 lfddx 0 1 1 1 1 1
  frD
  rA
@@ -8961,19 +9004,23 @@ srawi. 0 1 1 1 1 1
 sradi 0 1 1 1 1 1
  rS
  rA
- sh1–5
+ sh1-5
  1 1 0 0 1
  1
- 1 0 1 sh0 0
+ 1 0 1 
+ sh0
+ 0
  XS
  64
 sradi. 0 1 1 1 1 1
  rS
  rA
- sh1–5
+ sh1-5
  1 1 0 0 1
  1
- 1 0 1 sh0 1
+ 1 0 1 
+ sh0
+ 1
  XS
  64
 A-106
@@ -10751,6 +10798,169 @@ fcfid. 1 1 1 1 1 1
  X
  FP.R'''
 
+
+forms = (
+        'X',
+        'D',
+        'XFX',
+        'XO',
+        'XL',
+        'A',
+        'MD',
+        'MDS',
+        'M',
+        'B',
+        'I',
+        'SC',
+        'VC',
+        'VX',
+        'EVX',
+        'VA',
+        'DS',
+        'XS',
+        )
+
+
+# rS, vS, frS all start at bit 6
+# rD, vD, frD, crbD all start at bit 6
+# rA, vA, frA, crbA all start at bit 11
+# rB, vB, frB, crbB all start at bit 16
+# rC, vC, frC, crbC all start at bit 21
+# BO starts at bit 6
+# BI starts at bit 11
+# LI starts at bit 6
+# BD starts at bit 16
+# UIMM and SIMM start at bit 16 (SOMETIMES) otherwise it's 5 bits 
+# DUI starts at bit 6
+# DCTL starts at bit 11
+# STRM starts at bit 9
+# crD is 2bits and starts at bit 6
+# crfS is 3 bits starting at bit 11
+# OC is 15 bits and starts at bit 6 
+# CT starts at bit 6
+# D starts at bit 16 and is 16 bits long
+# DS starts at bit 16
+# CRM starts at bit 12
+# DCRN5-9 starts at 11
+# DCRN0-4 starts at 16
+# PMRN5-9 starts at 11
+# PMRN0-4 starts at 16
+# TBRN5-9 starts at 11
+# TBRN0-4 starts at 16
+# TMRN5-9 starts at 11
+# TMRN0-4 starts at 16
+# MO starts at bit 6 for 5 bits
+# L is 1 bit at bit 6
+# W is 1 bit at bit 20
+# FM starts at bit 7 for 8 bits
+# IMM is 4 bits at 21
+# sh1-5
+# mb1-5
+# me1-5
+# MB
+# ME
+
+# fname : (startbit, size)
+# None for either indicates an unknown
+FIELD_DATA = {
+    'rS' : (6,5),
+    'vS' : (6,5),
+    'frS' : (6,5),
+    'rS' : (6,5),
+    
+    'rD' : (6,5),
+    'vD' : (6,5),
+    'frD' : (6,5),
+    'crbD' : (6,5),
+    
+    'rA' : (11,5),
+    'vA' : (11,5),
+    'frA' : (11,5),
+    'crbA' : (11,5),
+
+    'rB' : (16,5),
+    'vB' : (16,5),
+    'frB' : (16,5),
+    'crbB' : (16,5),
+    
+    'rC' : (21,5),
+    'vC' : (21,5),
+    'frC' : (21,5),
+    'crbC' : (21,5),
+
+    'TO' : (6,5),
+    'BO' : (6, 5),
+    'BI' : (11, 5),
+    'LI' : (6, 24),
+    'BD' : (16, 16),
+    'BH' : (19, 2),
+    'LEV' : (20, 7),
+    'DUI' : (6, 5),
+    'DCTL' : (11, 5),
+    'STRM' : (9, 2),
+    'crD' : (6, 3),
+    'crfS' : (11,3),
+    'OC' : (6, 15), 
+    'CT' : (6, 5),
+    'D' : (16, 16),
+    'DS' : (16, 14),
+    'CRM' : (12, 8),
+    #'DCRN5-9' : (11, 5),
+    #'DCRN0-4' : (16, 5),
+    #'PMRN5-9' : (11, 5),
+    #'PMRN0-4' : (16, 5),
+    #'TBRN5-9' : (11, 5),
+    #'TBRN0-4' : (16, 5),
+    #'TMRN5-9' : (11, 5),
+    #'TMRN0-4' : (16, 5),
+    #'SPRN5-9' : (11, 5),
+    #'SPRN0-4' : (16, 5),
+    'DCRN5-9' : (11, 5),
+    'DCRN0-4' : (16, 5),
+    'PMRN5-9' : (11, 5),
+    'PMRN0-4' : (16, 5),
+    'TBRN5-9' : (11, 5),
+    'TBRN0-4' : (16, 5),
+    'TMRN5-9' : (11, 5),
+    'TMRN0-4' : (16, 5),
+    'SPRN5-9' : (11, 5),
+    'SPRN0-4' : (16, 5),
+    'MO' : (6, 5),
+    'L' : (6, 1),
+    'W' : (20, 1),
+    'FM' : (7, 8),
+    'sh0' : (30, 1),
+    'sh1-5' : (16, 5),
+    'mb1-5' : (21, 5),
+    'me1-5' : (21, 5),
+    'mb0'   : (26, 1),
+    'me0'   : (26, 1),
+    'MB'    : (21, 5),
+    'ME'    : (26, 5),
+    'SH' : (22, 4),
+    'TH' : (6, 5),
+    'SS' : (16, 1),
+    'IU' : (17, 1),
+    'OU' : (18, 1),
+    'SA' : (19, 2),
+    'E'  : (16, 1),
+    'WC' : (9, 2),
+    'WH' : (11, 1),
+    'T'  : (9, 2),
+    'crb' : (21, 5), 
+    #'Rc' : (31, 1),        # used by all "Rc" instructions (.)
+    '///' :  (None, None),  # this is a filler field.  could be anywhere and any size.
+
+    }
+FIELD_M_DATA = {
+    'UIMM' : ( (11, 5), (16, 5), (16,16), ), # form doesn't help.  eg. EVX does multiples
+    'UIMM 1' : ( (11, 5), (16, 5), ), # form doesn't help.  eg. EVX does multiples
+    'UIMM 2' : ( (11, 5), (16, 5), ), # form doesn't help.  eg. EVX does multiples
+    'UIMM 3' : ( (11, 5), (16, 5), ), # form doesn't help.  eg. EVX does multiples
+    'SIMM' : ( (11, 5), (16,16), ),
+    'IMM' : ( (16,4), (21, 4), ),   # X FP: 16, X FP.RL 16
+    }
+
 def decode(s):
     lines = s.split('\n')
     groups = []
@@ -10797,6 +11007,154 @@ def breakupOpGrps(groups):
 
     return opgroups
 
+def buildTables(opgroups):
+    deets = { grp: parseOpgroup(opgroups[grp]) for grp in opgroups.keys() }
+    dbyform = {}
+    ##
+    return deets
+
+badforms = {}
+badfields = {}
+
+def parseOpgroup(opgrp):
+    global badforms, badfields
+    grpdeets = []
+    for mnem, data in opgrp:
+        grp = data[0]
+        cat = data[-1].strip()
+
+        if cat in forms and not data[-2].strip() in forms:
+            #print "fixing cat/form"
+            form = cat
+            fidx = -1
+            cat = ''
+        elif cat.find(' ') != -1 and cat.find(', ') == -1:
+            #print "fixing cat/form(2)"
+            form, cat = cat.split(' ')
+            fidx = -1
+            if form not in forms:
+                print "(1)form: %r  not in forms!" % form
+        else:
+            # this is really the default, if all goes well.
+            form = data[-2].strip()
+            fidx = -2
+            if form in ('/', '1', '0'):
+                form = cat
+                fidx = -1
+                cat = ''
+            if form not in forms:
+                print "(2)form: %r  not in forms!" % form
+                bf = badforms.get(form)
+                if bf == None:
+                    bf = []
+                    badforms[form] = bf
+                bf.append((mnem, data))
+
+        fields = data[1:fidx]
+
+        statbits = 6 # include first 6 opcode bits
+        varfs = []
+        stats = []
+        for fidx in range(len(fields)):
+            f = fields[fidx]
+            go = True
+
+            # check if it's a /// field.
+            if '///' in f:
+                #print "field has ///.  Breaking: %r" % f
+                varfs.append([fidx, f, 0,0])
+                continue
+
+            # otherwise look through for static bits
+            for x in range(len(f)):
+                if f[x] not in ('0','1',' ','/'):
+                    #print "breaking on %s" % f[x]
+                    varfs.append([fidx, f, 0, 0])   # field index, field, size, startbit
+                    go = False
+                    break
+
+            # if the last bit is a '/' it's considered a 1-bit field, count it.
+            if fidx == len(fields)-1 and f.strip() == '/':
+                go = True
+
+            # if we haven't only had appropriate 1, 0, and /...  it's a named field, skip
+            if not go: continue
+
+            # add this static binary field to the list for counting
+            stats.append((fidx, f.replace(' ','')))
+            statbits += (len(f)/2)
+            #print f, "  \t",(len(f)/2), statbits
+
+
+        # try to determing type and size of operands
+        leftover = 32 - statbits 
+        # mark registers
+        for oidx in range(len(varfs)):
+            oper = varfs[oidx]
+            fidx, f, fstart, fsz = oper
+            field = f.strip()
+
+            #if oper[1].strip().startswith('r'):
+            #    print "Register: %r" % oper
+            #    oper[2] = 5
+            #    leftover -= 5
+
+            # check the simple fields
+            odata = FIELD_DATA.get(field)
+            multi = False
+
+            if odata == None:
+                odata = FIELD_M_DATA.get(field)
+                multi = True
+
+            if odata == None:
+                print "UNKNOWN FIELD: %r  (%s)" % (oper, mnem)
+                bf = badfields.get(oper[1])
+                if bf == None:
+                    bf = []
+                    badforms[oper[1]] = bf
+                bf.append((mnem, data, oper))
+                continue
+
+            if not multi:
+                gstart, gsz = odata
+
+                if gstart != None:
+                    varfs[oidx][2] = gstart
+                if gsz != None:
+                    varfs[oidx][3] = gsz
+                    leftover -= gsz
+
+            else:
+                for gstart, gsz in odata:
+                    #### FIGURE THIS OUT
+                    continue
+
+                    if gstart != None:
+                        varfs[oidx][2] = gstart
+                    if gsz != None:
+                        varfs[oidx][3] = gsz
+                        leftover -= gsz
+
+
+
+        grpdeets.append((mnem, grp, form, cat, fields, statbits, varfs, stats))
+
+        
+        nobits = [x for x in varfs if x[3] == 0 and '///' not in x[1]]
+
+        #for nb in nobits:
+            #bf = badfields.get(nb[1])
+            #if bf == None:
+                #bf = []
+                #badforms[form] = bf
+            #bf.append((mnem, data))
+
+        if len(nobits):
+            print "%s: %s\t%s\t%s \t%r\t%r\t%d\t%r" % (mnem, grp, form, cat, fields, varfs, leftover, nobits)
+        
+        #print "%s: %s\t%s\t%s \t%r\t%r\t%d" % (mnem, grp, form, cat, fields, varfs, leftover)
+    return grpdeets
 
 def parseData():
     lgrps = decode(encodings)
