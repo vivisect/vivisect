@@ -11026,9 +11026,9 @@ def buildOutput():
                 fname = fname.strip().replace('-','_').replace(' ','')
                 shr = 32 - (start + sz)
                 fmask = e_bits.b_masks[sz]
-                fout.append(" ( '%s', %s, %s, 0x%x )" % (fname, "FIELD_"+fname, shr, fmask))
+                fout.append(" ( '%s', %s, %s, 0x%x )," % (fname, "FIELD_"+fname, shr, fmask))
 
-            operands = "( " + ','.join(fout) + ") "
+            operands = "( " + ''.join(fout) + ") "
 
             iflags = []
             if mnem.endswith('.'):
@@ -11072,17 +11072,30 @@ def buildOutput():
             out3.append('    FIELD_%s : PpcImmOper,' % (nkey))
 
     out3.append('}')
-    return out, out2, out3
+
+
+    utest = []
+    utest.append('import struct')
+    utest.append('import envi.archs.ppc.disasm as eapd')
+    utest.append('d = eapd.PpcDisasm()')
+    utest.append('for key,instrlist in eapd.instr_dict.items():')
+    utest.append('    for instrline in instrlist:')
+    utest.append('        opcodenum = instrline[1]')
+    utest.append('        op = d.disasm(struct.pack(">I", opcodenum), 0, 0x4000)')
+    utest.append('        print "0x%.8x:  %s" % (opcodenum, op)')
+    utest.append('')
+    return out, out2, out3, utest
     #for 
 
 
 # FIXME: unit-tests using the masks for each instruction to generate them.
 
 if __name__ == '__main__':
-    out,out2,out3 = buildOutput()
+    out,out2,out3,utest = buildOutput()
     file('const_gen.py','w').write( '\n'.join(out))
     file('ppc_tables.py','w').write( '\n'.join(out2))
     file('disasm_gen.py','w').write( '\n'.join(out3))
+    file('test_ppc.py','w').write( '\n'.join(utest))
 
 
 ''' 
