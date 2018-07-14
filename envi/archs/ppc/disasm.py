@@ -9,140 +9,6 @@ from envi.archs.ppc.disasm import *
 from envi.archs.ppc.regs import *
 from const import *
 
-
-def p_rDrArB(sdef, off, flags=0):
-    pass
-
-def p_rDrAUimm(sdef, off, flags=0):
-    pass
-
-def p_rDrA(sdef, off, flags=0):
-    pass
-
-def p_rDrArBcrfS(sdef, off, flags=0):   # evsel
-    pass
-
-def p_rDSIMM(sdef, off, flags=0):
-    pass
-
-def p_rSrArB(sdef, off, flags=0):
-    pass
-
-def p_rSrAUimm(sdef, off, flags=0):
-    pass
-
-def p_rDUimmRb(sdef, off, flags=0):
-    pass
-
-def p_rSrA(sdef, off, flags=0):
-    pass
-
-def p_frD__frB(sdef, off, flags=0):
-    pass
-
-def p_crD_frAfrB(sdef, off, flags=0):       # fcmpo, fcmpu
-    pass
-
-def p_frDfrAfrBfrC(sdef, off, flags=0):
-    pass
-
-def p_frDfrAfrB(sdef, off, flags=0):
-    pass
-
-def p_CTrArB(sdef, off, flags=0):
-    pass
-
-def p_rDrArBcrb(sdef, off, flags=0):
-    pass
-
-def p_rDrAD(sdef, off, flags=0):
-    pass
-
-def p_rDrADS(sdef, off, flags=0):
-    pass
-
-def p_frDrAD(sdef, off, flags=0):
-    pass
-
-def p_frDrArB(sdef, off, flags=0):
-    pass
-
-def p_vDrArB(sdef, off, flags=0):
-    pass
-
-def p_MO(sdef, off, flags=0):
-    pass
-
-def p_crD_crfS(sdef, off, flags=0):
-    pass
-
-def p_crD(sdef, off, flags=0):
-    pass
-
-def p_rD(sdef, off, flags=0):
-    pass
-
-def p_rDDCRN(sdef, off, flags=0):
-    pass
-
-def p_frD(sdef, off, flags=0):
-    pass
-
-def p_rD_CRM(sdef, off, flags=0):    # can combine these with a flag??
-    pass
-
-def p_rDPMRN(sdef, off, flags=0):
-    pass
-
-def p_rDSPRN(sdef, off, flags=0):
-    pass
-
-def p_rDTBRN(sdef, off, flags=0):
-    pass
-
-def p_rDTMRN(sdef, off, flags=0):
-    pass
-
-def p_vD(sdef, off, flags=0):
-    pass
-
-def p_rB(sdef, off, flags=0):
-    pass
-
-def p_rD_CRM(sdef, off, flags=0):
-    pass
-
-def p_rS_DCRN(sdef, off, flags=0):
-    pass
-
-def p_crbD(sdef, off, flags=0):
-    pass
-
-def p_LFMWfrB(sdef, off, flags=0):
-    pass
-
-def p_crD_WIMM(sdef, off, flags=0):
-    pass
-
-def p_rS(sdef, off, flags=0):
-    pass
-
-def p_rS_CRM(sdef, off, flags=0):
-    pass
-
-def p_rDrASimm(sdef, off, flags=0):
-    pass
-
-def p_rSrArBmb(sdef, off, flags=0):
-    pass
-
-def p_rSrArBmb(sdef, off, flags=0):
-    pass
-
-def p_rSrAshme(sdef, off, flags=0):
-    pass
-
-
 class PpcDisasm:
     def __init__(self):
         # any speedy stuff here
@@ -157,6 +23,7 @@ class PpcDisasm:
     def disasm(self, bytez, offset, va):
         """
         Parse a sequence of bytes out into an envi.Opcode instance.
+        This is the BOOK E PPC Disassembly routine.  Look in vle module for VLE instruction decoding
         """
         # Stuff we'll be putting in the opcode object
         optype = None # This gets set if we successfully decode below
@@ -166,36 +33,37 @@ class PpcDisasm:
         prefixes = 0
         iflags = 0
 
-        bytezlen = len(bytez)
+        fmt = ('<I', '>I')[self.endian]
+        ival = struct.unpack_from(fmt, bytez, offset)
 
-        if offset + 4 < bytezlen:
-            fmt = ('<I', '>I')[self.endian]
-            ival = struct.unpack_from(fmt, bytez, offset)
-            
-            op = find_ppc(bytez, offset)
-            
-            if op == None:
-                op = find_e(bytez, offset)
-
-        if op == None and offset+2 < bytezlen:
-            fmt = ('<H', '>H')[self.endian]
-            ival = struct.unpack_from(fmt, bytez, offset)
-
-            op = find_se(bytez, offset)
-
-
-
-        key = ival >> 26    # how will VLE work?
+        key = ival >> 26
         
-        decoder = decoders[key]
+        group = groups.get(key)
+        if group == None:
+            raise InvalidInstruction(bytez[offset:offset+4], 'No Instruction Group Found: %x' % key, va)
+
+        data = None
+        match = False
+        for ocode in group:
+            mask, value, data = ocode
+            if ival & mask != value:
+                continue
+
+            match = True
+
+        if not match:
+            raise InvalidInstruction(bytez[offset:offset+4], 'No Instruction Matched in Group: %x' % key, va)
+
+        mnem, opcode, form, cat, operands, iflags = data
+
+        decoder = decoders.get(form)
         if decoder == None:
-            raise InvalidInstruction(bytez[offset:offset+4], 'No Decoder Found: %x' % key, va)
+            raise InvalidInstruction(bytez[offset:offset+4], 'No Decoder Found for Form %s' % form_names.get(form), va)
 
-        foostuff = decoder(ival, va)
+        nopcode, opers, iflags = decoder(va, ival, operands, iflags)
 
-        print foostuff
+        return PpcOpcode(va, opcode, mnem, size=size, operands=opers, iflags=iflags)
 
-        #now make Opcode...
 
 def d_4(ival, va):
     pass
