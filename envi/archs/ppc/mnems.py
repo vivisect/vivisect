@@ -2,424 +2,6 @@
 
 import envi.bits as e_bits
 
-mnems = '''vaddubm
-vmaxub
-vrlb
-vcmpequb
-vmuloub
-vaddfp
-vmrghb
-vpkuhum
-vmhaddshs
-vmhraddshs
-vmladduhm
-vmsumubm
-vmsummbm
-vmsumuhm
-vmsumuhs
-vmsumshm
-vmsumshs
-vsel
-vperm
-vsldoi
-vmaddfp
-vnmsubfp
-vadduhm
-vmaxuh
-vrlh
-vcmpequh
-vmulouh
-vsubfp
-vmrghh
-vpkuwum
-vadduwm
-vmaxuw
-vrlw
-vcmpequw
-vmrghw
-vpkuhus
-vcmpeqfp
-vpkuwus
-vmaxsb
-vslb
-vmulosb
-vrefp
-vmrglb
-vpkshus
-vmaxsh
-vslh
-vmulosh
-vrsqrtefp
-vmrglh
-vpkswus
-vaddcuw
-vmaxsw
-vslw
-vexptefp
-vmrglw
-vpkshss
-vsl
-vcmpgefp
-vlogefp
-vpkswss
-evaddw
-vaddubs
-evaddiw
-vminub
-evsubfw
-vsrb
-evsubifw
-vcmpgtub
-evabs
-vmuleub
-evneg
-evextsb
-vrfin
-evextsh
-evrndw
-vspltb
-evcntlzw
-evcntlsw
-vupkhsb
-brinc
-evand
-evandc
-evxor
-evor
-evnor
-eveqv
-vorc
-evnand
-evsrwu
-evsrws
-evsrwiu
-evsrwis
-evslw
-evslwi
-evrlw
-evsplati
-evrlwi
-evsplatfi
-evmergehi
-evmergelo
-evmergehilo
-evmergelohi
-evcmpgtu
-evcmpgts
-evcmpltu
-evcmplts
-evcmpeq
-vadduhs
-vminuh
-vsrh
-vcmpgtuh
-vmuleuh
-vrfiz
-vsplth
-vupkhsh
-evsel
-evfsadd
-vadduws
-evfssub
-vminuw
-evfsabs
-vsrw
-evfsnabs
-evfsneg
-vcmpgtuw
-evfsmul
-evfsdiv
-vrfip
-evfscmpgt
-vspltw
-evfscmplt
-evfscmpeq
-vupklsb
-evfscfui
-evfscfsi
-evfscfuf
-evfscfsf
-evfsctui
-evfsctsi
-evfsctuf
-evfsctsf
-evfsctuiz
-evfsctsiz
-evfststgt
-evfststlt
-evfststeq
-efsadd
-efssub
-efsabs
-vsr
-efsnabs
-efsneg
-vcmpgtfp
-efsmul
-efsdiv
-vrfim
-efscmpgt
-efscmplt
-efscmpeq
-vupklsh
-efscfd
-efscfui
-efscfsi
-efscfuf
-efscfsf
-efsctui
-efsctsi
-efsctuf
-efsctsf
-efsctuiz
-efsctsiz
-efststgt
-efststlt
-efststeq
-efdadd
-efdsub
-efdabs
-efdnabs
-efdneg
-efdmul
-efddiv
-efdcmpgt
-efdcmplt
-efdcmpeq
-efdcfs
-efdcfui
-efdcfsi
-efdcfuf
-efdcfsf
-efdctui
-efdctsi
-efdctuf
-efdctsf
-efdctuiz
-efdctsiz
-efdtstgt
-efdtstlt
-efdtsteq
-evlddx
-vaddsbs
-evldd
-evldwx
-vminsb
-evldw
-evldhx
-A-90
-ERMnemonic
-vsrab
-evldh
-vcmpgtsb
-evlhhesplatx
-vmulesb
-evlhhesplat
-vcfux
-evlhhousplatx
-vspltisb
-evlhhousplat
-evlhhossplatx
-vpkpx
-evlhhossplat
-evlwhex
-evlwhe
-evlwhoux
-evlwhou
-evlwhosx
-evlwhos
-evlwwsplatx
-evlwwsplat
-evlwhsplatx
-evlwhsplat
-evstddx
-evstdd
-evstdwx
-evstdw
-evstdhx
-evstdh
-evstwhex
-evstwhe
-evstwhox
-evstwho
-evstwwex
-evstwwe
-evstwwox
-evstwwo
-vaddshs
-vminsh
-vsrah
-vcmpgtsh
-vmulesh
-vcfsx
-vspltish
-vupkhpx
-vaddsws
-vminsw
-vsraw
-vcmpgtsw
-vctuxs
-vspltisw
-vcmpbfp
-vctsxs
-vupklpx
-vsububm
-vavgub
-evmhessf
-vabsdub
-vand
-vcmpequb.
-evmhossf
-evmheumi
-evmhesmi
-vmaxfp
-evmhesmf
-evmhoumi
-vslo
-evmhosmi
-evmhosmf
-evmhessfa
-A-92
-ERMnemonic
-evmhossfa
-evmheumia
-evmhesmia
-evmhesmfa
-evmhoumia
-evmhosmia
-evmhosmfa
-vsubuhm
-vavguh
-vabsduh
-vandc
-vcmpequh.
-evmwhssf
-evmwlumi
-vminfp
-evmwhumi
-vsro
-evmwhsmi
-evmwhsmf
-evmwssf
-evmwumi
-evmwsmi
-evmwsmf
-evmwhssfa
-evmwlumia
-evmwhumia
-evmwhsmia
-evmwhsmfa
-evmwssfa
-evmwumia
-evmwsmia
-evmwsmfa
-vsubuwm
-vavguw
-vabsduw
-vor
-vcmpequw.
-evaddusiaaw
-evaddssiaaw
-evsubfusiaaw
-evsubfssiaaw
-evmra
-vxor
-evdivws
-vcmpeqfp.
-evdivwu
-evaddumiaaw
-evaddsmiaaw
-evsubfumiaaw
-evsubfsmiaaw
-evmheusiaaw
-evmhessiaaw
-vavgsb
-evmhessfaaw
-evmhousiaaw
-vnor
-evmhossiaaw
-evmhossfaaw
-evmheumiaaw
-evmhesmiaaw
-evmhesmfaaw
-evmhoumiaaw
-evmhosmiaaw
-evmhosmfaaw
-evmhegumiaa
-evmhegsmiaa
-evmhegsmfaa
-evmhogumiaa
-evmhogsmiaa
-evmhogsmfaa
-A-94
-ERMnemonic
-evmwlusiaaw
-evmwlssiaaw
-vavgsh
-evmwhssmaaw
-evmwlumiaaw
-evmwlsmiaaw
-evmwssfaa
-evmwumiaa
-evmwsmiaa
-evmwsmfaa
-evmheusianw
-vsubcuw
-evmhessianw
-vavgsw
-evmhessfanw
-evmhousianw
-evmhossianw
-evmhossfanw
-evmheumianw
-evmhesmianw
-evmhesmfanw
-evmhoumianw
-evmhosmianw
-evmhosmfanw
-evmhegumian
-evmhegsmian
-evmhegsmfan
-evmhogumian
-evmhogsmian
-evmhogsmfan
-evmwlusianw
-evmwlssianw
-vcmpgefp.
-evmwlumianw
-evmwlsmianw
-evmwssfan
-evmwumian
-evmwsmian
-evmwsmfan
-vsububs
-mfvscr
-vcmpgtub.
-vsum4ubs
-vsubuhs
-mtvscr
-vcmpgtuh.
-vsum4shs
-vsubuws
-vcmpgtuw.
-vsum2sws
-vcmpgtfp.
-vsubsbs
-vcmpgtsb.
-vsum4sbs
-vsubshs
-vcmpgtsh.
-vsubsws
-vcmpgtsw.
-vsumsws
-vcmpbfp.'''
-
-
-
-
-
-
-
 encodings = '''tdi 0 0 0 0 1 0
  TO
  rA
@@ -10822,6 +10404,7 @@ forms = (
         'XS',
         )
 
+FORM_CONST = { form : "FORM_" + form for form in forms }
 
 # rS, vS, frS all start at bit 6
 # rD, vD, frD, crbD all start at bit 6
@@ -11334,9 +10917,6 @@ def parseData():
 IGNORE_CONSTS = (
         '------',
         '///',
-        'UIMM 3',
-        'UIMM 2',
-        'UIMM 1',
     )
 
 def buildOutput():
@@ -11355,26 +10935,52 @@ def buildOutput():
 
 
     # kick out the constant strings
+
     fieldcounter = 0
     keys = [key for key in FIELD_DATA.keys() if key not in IGNORE_CONSTS]
     keys.sort()
     for field in keys:
-        out.append("FIELD_%s = %d" % (field, fieldcounter))
+        ffield = field.replace(' ','').replace('-','_')
+        out.append("FIELD_%s = %d" % (ffield, fieldcounter))
         fieldcounter += 1
 
     keys = [key for key in FIELD_M_DATA.keys() if key not in IGNORE_CONSTS]
     keys.sort()
     for field in keys:
-        out.append("FIELD_%s = %d" % (field, fieldcounter))
+        ffield = field.replace(' ','').replace('-','_')
+        out.append("FIELD_%s = %d" % (ffield, fieldcounter))
         fieldcounter += 1
+
+    form_names = []
+    formcounter = 0
+    keys = [form for form in FORM_CONST.values() ]
+    keys.sort()
+    for form in keys:
+        out.append("%s = %d" % (form, formcounter))
+        form_names.append("    %d : %r," % (formcounter, form))
+        formcounter += 1
+
+    out.append('')
+    out.append('form_names = {')
+    out.extend(form_names)
+    out.append('}')
+
 
     out.append('')
     out.append('mnems = (')
-    out.extend(["    '%s'," % mnem for mnem in mnems if not mnem.endswith('.')])
+    mnem_array = []
+    for mnem in mnems:
+        nmnem = mnem.replace('.','')
+        if nmnem in mnem_array:
+            continue
+        mnem_array.append("    '%s'," % nmnem)
+    out.extend(mnem_array)
     out.append(')')
     out.append('')
     out.append('inscounter = 0\nfor mnem in mnems:\n    globals()["INS_"+mnem.upper()] = inscounter\n    inscounter += 1\n')
-
+    out.append('')
+    out.append('IF_NONE = 0')
+    out.append('IF_RC  \t\t\t= 1<<8')
 
     # now build the instruction tables.
     out2 = []
@@ -11417,8 +11023,8 @@ def buildOutput():
             fout = []
             for field in fields:
                 n, fname, start, sz, ftyp = field
-                fname = fname.strip()
-                shr = 31 - (start + sz)
+                fname = fname.strip().replace('-','_').replace(' ','')
+                shr = 32 - (start + sz)
                 fmask = e_bits.b_masks[sz]
                 fout.append(" ( '%s', %s, %s, 0x%x )" % (fname, "FIELD_"+fname, shr, fmask))
 
@@ -11428,21 +11034,55 @@ def buildOutput():
             if mnem.endswith('.'):
                 iflags.append('IF_RC')
 
+            if not len(iflags):
+                iflags.append("IF_NONE")
+
             # mask, value, (data)
             # data is ( mnem, opcode, form, cat, operands, iflags) 
-            ins = "INS_" + mnem.replace('.','').upper()
-            data = "'%s', %s, %s, %s, %s, %s" % (mnem, ins, form, cat, str(operands), '|'.join(iflags))
+            opcode = "INS_" + mnem.replace('.','').upper()
+            form_const = FORM_CONST[form]
+            data = "'%s', %s, %s, %r, %s, %s" % (mnem, opcode, form_const, cat, operands, '|'.join(iflags))
 
             out2.append('        (0x%x, 0x%x, ( %s ), ),' % (mask, val, data))
 
         out2.append('    ),')
+    out2.append('}',)
 
-    
+    out3 = []
+    out3.append('# THIS SHOULD BE COPIED INTO disasm.py FOR DEPENDENCIES SAKE')
+    out3.append('OPERCLASSES = {')
+    operkeys = [key for key in FIELD_DATA.keys() if key not in IGNORE_CONSTS]
+    operkeys.extend([key for key in FIELD_M_DATA.keys() if key not in IGNORE_CONSTS])
+    operkeys.sort()
+    for key in operkeys:
+        nkey = key.replace('-','_').replace(' ','')
+        if key[0] == 'r':
+            out3.append('    FIELD_%s : PpcRegOper,' % (nkey))
+        elif key[0] == 'v':
+            out3.append('    FIELD_%s : PpcVRegOper,' % (nkey))
+        elif key[0:2] == 'fr':
+            out3.append('    FIELD_%s : PpcFRRegOper,' % (nkey))
+        elif key == 'UIMM1':
+            out3.append('    FIELD_%s : PpcUimm1,' % (nkey))
+        elif key == 'UIMM2':
+            out3.append('    FIELD_%s : PpcUimm2,' % (nkey))
+        elif key == 'UIMM3':
+            out3.append('    FIELD_%s : PpcUimm3,' % (nkey))
+        else:
+            out3.append('    FIELD_%s : PpcImmOper,' % (nkey))
 
-    return out, out2
+    out3.append('}')
+    return out, out2, out3
     #for 
 
 
+# FIXME: unit-tests using the masks for each instruction to generate them.
+
+if __name__ == '__main__':
+    out,out2,out3 = buildOutput()
+    file('const_gen.py','w').write( '\n'.join(out))
+    file('ppc_tables.py','w').write( '\n'.join(out2))
+    file('disasm_gen.py','w').write( '\n'.join(out3))
 
 
 ''' 
