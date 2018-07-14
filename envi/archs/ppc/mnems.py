@@ -1,5 +1,7 @@
 # -*- coding: latin-1 -*-
 
+import envi.bits as e_bits
+
 mnems = '''vaddubm
 vmaxub
 vrlb
@@ -11050,7 +11052,7 @@ def parseOpgroup(opgrp):
         statbits = 6 # include first 6 opcode bits
         varfs = []
         stats = []
-        nfields = [(None, '------', 0, 6, THING_STATIC)]
+        nfields = [(None, grp.replace(' ',''), 0, 6, THING_STATIC)]
         for fidx in range(len(fields)):
             f = fields[fidx]
             go = True
@@ -11302,13 +11304,6 @@ def parseOpgroup(opgrp):
         #print "%s: %s\t%s\t%s \t%r\t%r\t%d" % (mnem, grp, form, cat, fields, varfs, leftover)
     return grpdeets
 
-def parseData():
-    lgrps = decode(encodings)
-    filterLineGrps(lgrps)
-    opgroups = breakupOpGrps(lgrps)
-
-    return opgroups
-
 def checkNfieldSanity(nfields):
     lastidx = 0
     lastsize = 0
@@ -11325,6 +11320,128 @@ def checkNfieldSanity(nfields):
         fail = True
 
     return fail
+
+
+
+def parseData():
+    lgrps = decode(encodings)
+    filterLineGrps(lgrps)
+    opgroups = breakupOpGrps(lgrps)
+
+    return opgroups
+
+
+IGNORE_CONSTS = (
+        '------',
+        '///',
+        'UIMM 3',
+        'UIMM 2',
+        'UIMM 1',
+    )
+
+def buildOutput():
+    out = []
+    opgrps = parseData()
+    deets = buildTables(opgrps)
+
+    mnems = []
+    for grpkey in deets.keys():
+        grp = deets.get(grpkey)
+        #print " ==== NEW GROUP ====: ", grpkey
+        for instr in grp:
+            #print instr
+            mnems.append(instr[0])
+            #raw_input('waiting...')
+
+
+    # kick out the constant strings
+    fieldcounter = 0
+    keys = [key for key in FIELD_DATA.keys() if key not in IGNORE_CONSTS]
+    keys.sort()
+    for field in keys:
+        out.append("FIELD_%s = %d" % (field, fieldcounter))
+        fieldcounter += 1
+
+    keys = [key for key in FIELD_M_DATA.keys() if key not in IGNORE_CONSTS]
+    keys.sort()
+    for field in keys:
+        out.append("FIELD_%s = %d" % (field, fieldcounter))
+        fieldcounter += 1
+
+    out.append('')
+    out.append('mnems = (')
+    out.extend(["    '%s'," % mnem for mnem in mnems if not mnem.endswith('.')])
+    out.append(')')
+    out.append('')
+    out.append('inscounter = 0\nfor mnem in mnems:\n    globals()["INS_"+mnem.upper()] = inscounter\n    inscounter += 1\n')
+
+
+    # now build the instruction tables.
+    out2 = []
+    out2.append('from const import *')
+    out2.append('instr_dict = {')
+    for grpkey in deets.keys():
+        grp = deets.get(grpkey)
+        out2.append('    %s : (' % grpkey)
+        for instr in grp:
+            mnem, grptxt, form, cat, fields, statbits, varfs, stats, nfields = instr
+            # create mask and value.
+            mask = 0
+            val  = 0
+            #overlaps = []
+            for n, bits, start, sz, typ in nfields:
+                if typ != THING_STATIC:
+                    continue
+                pmask = e_bits.b_masks[sz]
+
+                # now we have to hunt down any / bytes
+                for x in range(sz):
+                    if bits[x] == '/':
+                        bits = bits[:x] + '0' + bits[x+1:]
+                        pmask &= ~(1<<(sz-x-1))
+
+                pval = int(bits, 2)
+                
+                # now shift them into place...
+                shl = 32 - sz - start
+                pval <<= shl
+                pmask <<= shl
+                #overlaps.append((pval, pmask))
+                val |= pval
+                mask |= pmask
+        
+
+            fields = [field for field in nfields if field[4] == THING_VAR]
+            print "Mask/Val: ", bin(mask), bin(val), hex(mask), hex(val), mnem, fields
+
+            fout = []
+            for field in fields:
+                n, fname, start, sz, ftyp = field
+                fname = fname.strip()
+                shr = 31 - (start + sz)
+                fmask = e_bits.b_masks[sz]
+                fout.append(" ( '%s', %s, %s, 0x%x )" % (fname, "FIELD_"+fname, shr, fmask))
+
+            operands = "( " + ','.join(fout) + ") "
+
+            iflags = []
+            if mnem.endswith('.'):
+                iflags.append('IF_RC')
+
+            # mask, value, (data)
+            # data is ( mnem, opcode, form, cat, operands, iflags) 
+            ins = "INS_" + mnem.replace('.','').upper()
+            data = "'%s', %s, %s, %s, %s, %s" % (mnem, ins, form, cat, str(operands), '|'.join(iflags))
+
+            out2.append('        (0x%x, 0x%x, ( %s ), ),' % (mask, val, data))
+
+        out2.append('    ),')
+
+    
+
+    return out, out2
+    #for 
+
 
 
 
