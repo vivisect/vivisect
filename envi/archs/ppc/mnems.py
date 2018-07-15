@@ -9194,7 +9194,7 @@ icbiep 0 1 1 1 1 1
  1
  /
  X
- E>PD
+ E.PD
 stvswxl 0 1 1 1 1 1
  vS
  rA
@@ -10383,6 +10383,30 @@ fcfid. 1 1 1 1 1 1
  FP.R'''
 
 
+cat_names = ('NONE',
+        '64',
+        'E',
+        'V',
+        'SP',
+        'SP_FV',
+        'SP_FS',
+        'SP_FD',
+        'EMBEDDED',
+        'E_ED',
+        'E_HV',
+        'E_PD',
+        'ER',
+        'WT',
+        'E_CL',
+        'E_PC',
+        'ISAT',
+        'E_DC',
+        'E_PM',
+        'EM_TM',
+        'DS',
+        'FP',
+        'DEO',
+        'FP_R', )
 forms = (
         'X',
         'D',
@@ -10607,7 +10631,7 @@ def parseOpgroup(opgrp):
             #print "fixing cat/form"
             form = cat
             fidx = -1
-            cat = ''
+            cat = 'NONE'
         elif cat.find(' ') != -1 and cat.find(', ') == -1:
             #print "fixing cat/form(2)"
             form, cat = cat.split(' ')
@@ -10621,7 +10645,7 @@ def parseOpgroup(opgrp):
             if form in ('/', '1', '0'):
                 form = cat
                 fidx = -1
-                cat = ''
+                cat = 'NONE'
             if form not in forms:
                 print "(2)form: %r  not in forms!" % form
                 bf = badforms.get(form)
@@ -10950,6 +10974,15 @@ def buildOutput():
         ffield = field.replace(' ','').replace('-','_')
         out.append("FIELD_%s = %d" % (ffield, fieldcounter))
         fieldcounter += 1
+    out.append('')
+
+    catcounter = 0
+    for cat in cat_names:
+        out.append('CAT_%s = 1<<%d' % (cat, catcounter))
+        catcounter += 1
+    out.append('')
+    out.append('CATEGORIES = { y : x  for x,y in globals().items() if x.startswith("CAT_")}')
+    out.append('')
 
     form_names = []
     formcounter = 0
@@ -10968,13 +11001,18 @@ def buildOutput():
 
     out.append('')
     out.append('mnems = (')
+
     mnem_array = []
+    mnem_done = []
     for mnem in mnems:
         nmnem = mnem.replace('.','')
-        if nmnem in mnem_array:
+        if nmnem in mnem_done:
             continue
         mnem_array.append("    '%s'," % nmnem)
+        mnem_done.append(nmnem)
+    
     out.extend(mnem_array)
+
     out.append(')')
     out.append('')
     out.append('inscounter = 0\nfor mnem in mnems:\n    globals()["INS_"+mnem.upper()] = inscounter\n    inscounter += 1\n')
@@ -11039,9 +11077,12 @@ def buildOutput():
 
             # mask, value, (data)
             # data is ( mnem, opcode, form, cat, operands, iflags) 
+            ncat = "CAT_" + cat.upper().replace('.', '_').replace(', ', ' | CAT_').replace(',',' | CAT_')
+
+
             opcode = "INS_" + mnem.replace('.','').upper()
             form_const = FORM_CONST[form]
-            data = "'%s', %s, %s, %r, %s, %s" % (mnem, opcode, form_const, cat, operands, '|'.join(iflags))
+            data = "'%s', %s, %s, %s, %s, %s" % (mnem, opcode, form_const, ncat, operands, '|'.join(iflags))
 
             out2.append('        (0x%x, 0x%x, ( %s ), ),' % (mask, val, data))
 
@@ -11073,17 +11114,22 @@ def buildOutput():
 
     out3.append('}')
 
-
     utest = []
+    utestbin = []
     utest.append('import struct')
     utest.append('import envi.archs.ppc.disasm as eapd')
     utest.append('d = eapd.PpcDisasm()')
+    utest.append('out = []')
     utest.append('for key,instrlist in eapd.instr_dict.items():')
     utest.append('    for instrline in instrlist:')
     utest.append('        opcodenum = instrline[1]')
-    utest.append('        op = d.disasm(struct.pack(">I", opcodenum), 0, 0x4000)')
+    utest.append('        opbin = struct.pack(">I", opcodenum)')
+    utest.append('        op = d.disasm(opbin, 0, 0x4000)')
     utest.append('        print "0x%.8x:  %s" % (opcodenum, op)')
+    utest.append('        out.append(opbin)')
+    utest.append('file("test_ppc.bin", "wb").write("".join(out))')
     utest.append('')
+
     return out, out2, out3, utest
     #for 
 

@@ -124,3 +124,5 @@ for octidx in range(len(opcodetypes)):
     octype = opcodetypes[octidx]
     label = "INS_" + octype
     globals()[label] = octidx
+
+

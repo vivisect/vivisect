@@ -11,10 +11,13 @@ from const import *
 from disasm_classes import *
 
 class PpcDisasm:
-    def __init__(self, endian=ENDIAN_MSB):
+    def __init__(self, endian=ENDIAN_MSB, options=CAT_NONE):  # FIXME: options needs to be paired down into a few common bitmasks, like CAT_ALTIVEC, etc...  right now this causes collisions, so first in list wins...
         # any speedy stuff here
+        if options == 0:
+            options = CAT_NONE
         self._dis_regctx = PpcRegisterContext()
         self.setEndian(endian)
+        self.options = options
 
     def setEndian(self, endian):
         self.endian = endian
@@ -53,7 +56,11 @@ class PpcDisasm:
             #print hex(ival), hex(mask), hex(value)
             if ival & mask != value:
                 continue
+            if not (data[3] & self.options):
+                #print "0x%x & 0x%x == 0 :(" % (data[3], self.options)
+                continue
 
+            #print "0x%x & 0x%x != 0 :)" % (data[3], self.options)
             #print "match:  %x & %x == %x" % (ival, mask, value)
             match = True
             break
