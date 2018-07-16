@@ -140,11 +140,31 @@ SIMPLIFIEDS = {
         INS_ISEL    : simpleISEL,
 }
 
+def form_DFLT(va, ival, operands, iflags):
+    opers = []
+    opcode = None
+
+    for onm, otype, oshr, omask in operands:
+        val = (ival >> oshr) & omask
+        oper = OPERCLASSES[otype](val, va)
+        opers.append(oper)
+
+    return opcode, opers, iflags
+    
 def form_EVX(va, ival, operands, iflags):
     opers = []
     opcode = None
 
-    # if the last operand is 
+    # if the last operand is UIMM[123], it's a memory deref.
+    if len(operands) == 3 and operands[2][1] in (FIELD_UIMM1, FIELD_UIMM2, FIELD_UIMM3):
+        opvals = [((ival >> oshr) & omask) for onm, otype, oshr, omask in operands]
+        oper0 = OPERCLASSES[operands[0][1]](opvals[0], va)
+        opers.append(oper0)
+
+        oper1 = PpcMemOper(opvals[1], opvals[2], va)
+        opers.append(oper1)
+        return opcode, opers, iflags
+
     for onm, otype, oshr, omask in operands:
         val = (ival >> oshr) & omask
         oper = OPERCLASSES[otype](val, va)
@@ -155,6 +175,16 @@ def form_EVX(va, ival, operands, iflags):
 def form_D(va, ival, operands, iflags):
     opers = []
     opcode = None
+
+    # if the last operand is FIELD_D, it's a memory deref.
+    if len(operands) == 3 and operands[2][1] == FIELD_D:
+        opvals = [((ival >> oshr) & omask) for onm, otype, oshr, omask in operands]
+        oper0 = OPERCLASSES[operands[0][1]](opvals[0], va)
+        opers.append(oper0)
+
+        oper1 = PpcMemOper(opvals[1], opvals[2], va)
+        opers.append(oper1)
+        return opcode, opers, iflags
 
     for onm, otype, oshr, omask in operands:
         val = (ival >> oshr) & omask
@@ -167,11 +197,12 @@ def form_DS(va, ival, operands, iflags):
     opers = []
     opcode = None
 
-    for onm, otype, oshr, omask in operands:
-        val = (ival >> oshr) & omask
-        oper = OPERCLASSES[otype](val, va)
-        opers.append(oper)
+    opvals = [((ival >> oshr) & omask) for onm, otype, oshr, omask in operands]
+    oper0 = OPERCLASSES[operands[0][1]](opvals[0], va)
+    opers.append(oper0)
 
+    oper1 = PpcMemOper(opvals[1], opvals[2], va)
+    opers.append(oper1)
     return opcode, opers, iflags
     
 decoders = { eval(x) : form_DFLT for x in globals().keys() if x.startswith('FORM_') }
