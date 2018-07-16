@@ -11,7 +11,7 @@ from const import *
 from disasm_classes import *
 
 class PpcDisasm:
-    def __init__(self, endian=ENDIAN_MSB, options=CAT_NONE):  # FIXME: options needs to be paired down into a few common bitmasks, like CAT_ALTIVEC, etc...  right now this causes collisions, so first in list wins...
+    def __init__(self, endian=ENDIAN_MSB, options=CAT_NONE|CAT_SP):  # FIXME: options needs to be paired down into a few common bitmasks, like CAT_ALTIVEC, etc...  right now this causes collisions, so first in list wins...
         # any speedy stuff here
         if options == 0:
             options = CAT_NONE
@@ -78,9 +78,92 @@ class PpcDisasm:
         if nopcode != None:
             opcode = nopcode
 
+        mnem, opcode, opers, iflags = self.simplifiedMnems(ival, mnem, opcode, opers, iflags)
+
         return PpcOpcode(va, opcode, mnem, size=4, operands=opers, iflags=iflags)
 
-def form_DFLT(va, ival, operands, iflags):
+    def simplifiedMnems(self, ival, mnem, opcode, opers, iflags):
+        if opcode in SIMPLIFIEDS.keys(): 
+            return SIMPLIFIEDS[opcode](ival, mnem, opcode, opers, iflags)
+
+        return mnem, opcode, opers, iflags
+
+
+def simpleORI(ival, mnem, opcode, opers, iflags):
+    if ival == 0x60000000:
+        return 'nop', INS_NOP, tuple(), iflags
+    return mnem, opcode, opers, iflags
+
+def simpleADDI(ival, mnem, opcode, opers, iflags):
+    if ival == 0x38000000:
+        return 'li', INS_LI, (opers[0], opers[2]), iflags
+    if ival == 0x3c000000:
+        return 'lis', INS_LIS, (opers[0], opers[2]), iflags
+
+    #  not sure how to do LA well just yet.
+    return mnem, opcode, opers, iflags
+
+def simpleOR(ival, mnem, opcode, opers, iflags):
+    if opers[1] == opers[2]:
+        return 'mr', INS_MR, (opers[0], opers[2]), iflags
+    return mnem, opcode, opers, iflags
+
+def simpleNOR(ival, mnem, opcode, opers, iflags):
+    if opers[1] == opers[2]:
+        return 'not', INS_NOT, (opers[0], opers[2]), iflags
+    return mnem, opcode, opers, iflags
+
+def simpleMTCRF(ival, mnem, opcode, opers, iflags):
+    #if opers[0].val == 0xff:
+    #    return 'mtcr', INS_MTCR, (opers[1],), iflags
+    return mnem, opcode, opers, iflags
+
+def simpleSYNC(ival, mnem, opcode, opers, iflags):
+    #if opers 
+    return mnem, opcode, opers, iflags
+def simpleISEL(ival, mnem, opcode, opers, iflags):
+    if opers[-1].val == 0:
+        return 'isellt', INS_ISELLT, (opers[0], opers[1], opers[2]), iflags
+    if opers[-1].val == 1:
+        return 'iselgt', INS_ISELGT, (opers[0], opers[1], opers[2]), iflags
+    if opers[-1].val == 2:
+        return 'iseleq', INS_ISELEQ, (opers[0], opers[1], opers[2]), iflags
+    return mnem, opcode, opers, iflags
+
+SIMPLIFIEDS = {
+        INS_ORI     : simpleORI,
+        INS_ADDI    : simpleADDI,
+        INS_OR      : simpleOR,
+        INS_NOR     : simpleNOR,
+        INS_MTCRF   : simpleMTCRF,
+        INS_SYNC    : simpleSYNC,
+        INS_ISEL    : simpleISEL,
+}
+
+def form_EVX(va, ival, operands, iflags):
+    opers = []
+    opcode = None
+
+    # if the last operand is 
+    for onm, otype, oshr, omask in operands:
+        val = (ival >> oshr) & omask
+        oper = OPERCLASSES[otype](val, va)
+        opers.append(oper)
+
+    return opcode, opers, iflags
+    
+def form_D(va, ival, operands, iflags):
+    opers = []
+    opcode = None
+
+    for onm, otype, oshr, omask in operands:
+        val = (ival >> oshr) & omask
+        oper = OPERCLASSES[otype](val, va)
+        opers.append(oper)
+
+    return opcode, opers, iflags
+    
+def form_DS(va, ival, operands, iflags):
     opers = []
     opcode = None
 
@@ -92,6 +175,9 @@ def form_DFLT(va, ival, operands, iflags):
     return opcode, opers, iflags
     
 decoders = { eval(x) : form_DFLT for x in globals().keys() if x.startswith('FORM_') }
+decoders[FORM_EVX] = form_EVX
+decoders[FORM_D] = form_D
+decoders[FORM_DS] = form_DS
 
         
 def genTests(abytez):

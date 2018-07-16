@@ -2303,7 +2303,7 @@ vaddsbs 0 0 0 1 0 0
 evldd 0 0 0 1 0 0
  rD
  rA
- UIMM
+ UIMM 1
  0 1 1 0 0
  0
  0 0 0
@@ -2335,7 +2335,7 @@ vminsb 0 0 0 1 0 0
 evldw 0 0 0 1 0 0
  rD
  rA
- UIMM
+ UIMM 3
  0 1 1 0 0
  0
  0 0 0
@@ -2397,7 +2397,7 @@ vsrab 0 0 0 1 0 0
 evldh 0 0 0 1 0 0
  rD
  rA
- UIMM
+ UIMM 2
  0 1 1 0 0
  0
  0 0 1
@@ -2440,7 +2440,7 @@ vmulesb 0 0 0 1 0 0
 evlhhesplat 0 0 0 1 0 0
  rD
  rA
- UIMM
+ UIMM 2
  0 1 1 0 0
  0
  0 1 0
@@ -2483,7 +2483,7 @@ vspltisb 0 0 0 1 0 0
 evlhhousplat 0 0 0 1 0 0
  rD
  rA
- UIMM
+ UIMM 2
  0 1 1 0 0
  0
  0 1 1
@@ -2535,7 +2535,7 @@ evlwhex 0 0 0 1 0 0
 evlwhe 0 0 0 1 0 0
  rD
  rA
- UIMM
+ UIMM 2
  0 1 1 0 0
  0
  1 0 0
@@ -2576,7 +2576,7 @@ evlwhosx 0 0 0 1 0 0
 evlwhos 0 0 0 1 0 0
  rD
  rA
- UIMM
+ UIMM 2
  0 1 1 0 0
  0
  1 0 1
@@ -2597,7 +2597,7 @@ evlwwsplatx 0 0 0 1 0 0
 evlwwsplat 0 0 0 1 0 0
  rD
  rA
- UIMM
+ UIMM 3
  0 1 1 0 0
  0
  1 1 0
@@ -2618,7 +2618,7 @@ evlwhsplatx 0 0 0 1 0 0
 evlwhsplat 0 0 0 1 0 0
  rD
  rA
- UIMM
+ UIMM 2
  0 1 1 0 0
  0
  1 1 1
@@ -2659,7 +2659,7 @@ evstdwx 0 0 0 1 0 0
 evstdw 0 0 0 1 0 0
  rS
  rA
- UIMM
+ UIMM 3
  0 1 1 0 0
  1
  0 0 0
@@ -2680,7 +2680,7 @@ evstdhx 0 0 0 1 0 0
 evstdh 0 0 0 1 0 0
  rS
  rA
- UIMM
+ UIMM 2
  0 1 1 0 0
  1
  0 0 1
@@ -2701,7 +2701,7 @@ evstwhex 0 0 0 1 0 0
 evstwhe 0 0 0 1 0 0
  rS
  rA
- UIMM
+ UIMM 2
  0 1 1 0 0
  1
  1 0 0
@@ -2722,7 +2722,7 @@ evstwhox 0 0 0 1 0 0
 evstwho 0 0 0 1 0 0
  rS
  rA
- UIMM
+ UIMM 2
  0 1 1 0 0
  1
  1 0 1
@@ -2793,7 +2793,7 @@ evstwwox 0 0 0 1 0 0
 evstwwo 0 0 0 1 0 0
  rS
  rA
- UIMM
+ UIMM 3
  0 1 1 0 0
  1
  1 1 1
@@ -6628,7 +6628,7 @@ Mnemonic
  31
  Form Category
 eqv 0 1 1 1 1 1
- rD
+ rS
  rA
  rB
  0 1 0 0 0
@@ -6638,7 +6638,7 @@ eqv 0 1 1 1 1 1
  0
  X
 eqv. 0 1 1 1 1 1
- rD
+ rS
  rA
  rB
  0 1 0 0 0
@@ -10381,7 +10381,11 @@ fcfid. 1 1 1 1 1 1
  1
  X
  FP.R'''
-
+# NOTE: had to fix this dump for several bugs
+# * UIMM[123] didn't copy the footnotes (and turns out they're important for memory derefs...)
+# * ">" instead of "." somehow made it in
+# * added None to the end of some of the lines to clearly demarc those lines without a Category
+# a few others (should have and will document as i think of them.  see git log.
 
 cat_names = ('NONE',
         '64',
@@ -10943,6 +10947,24 @@ IGNORE_CONSTS = (
         '///',
     )
 
+simplified_mnemonics = (
+        'nop',
+        'li',
+        'lis',
+        'la',
+        'mr',
+        'not',
+        'mtcr',
+        'lwsync',
+        'hwsync',
+        'msync',
+        'esync',
+        'isellt',
+        'iselgt',
+        'iseleq',
+        'waitrsv',
+        )
+
 def buildOutput():
     out = []
     opgrps = parseData()
@@ -10957,6 +10979,8 @@ def buildOutput():
             mnems.append(instr[0])
             #raw_input('waiting...')
 
+    for mnem in simplified_mnemonics:
+        mnems.append(mnem)
 
     # kick out the constant strings
 
@@ -11067,6 +11091,22 @@ def buildOutput():
                 fmask = e_bits.b_masks[sz]
                 fout.append(" ( '%s', %s, %s, 0x%x )," % (fname, "FIELD_"+fname, shr, fmask))
 
+            
+            # fix up the operand ordering where possible.  this is faster and simpler than doing it in the decoder
+            if len(fout) > 1 and 'FIELD_rS' in fout[0] and form != 'EVX':
+                if mnem != 'evstddepx':    # WONKY AS SHIT!
+                    temp = fout[0]
+                    fout[0] = fout[1]
+                    fout[1] = temp
+
+            if len(fout) == 4 and 'FIELD_frC' in fout[3] and form == 'A':
+                temp = fout[2]
+                fout[2] = fout[3]
+                fout[3] = temp
+
+            ##################### OPERAND ORDERING COMPLETE #####################
+
+
             operands = "( " + ''.join(fout) + ") "
             opcode = "INS_" + mnem.replace('.','').upper()
             form_const = FORM_CONST[form]
@@ -11090,7 +11130,6 @@ def buildOutput():
             # mask, value, (data)
             # data is ( mnem, opcode, form, cat, operands, iflags) 
             ncat = "CAT_" + cat.upper().replace('.', '_').replace(', ', ' | CAT_').replace(',',' | CAT_')
-
 
             data = "'%s', %s, %s, %s, %s, %s" % (mnem, opcode, form_const, ncat, operands, '|'.join(iflags))
 
@@ -11129,18 +11168,24 @@ def buildOutput():
     utest.append('import sys')
     utest.append('import struct')
     utest.append('import envi.archs.ppc.disasm as eapd')
-    utest.append('d = eapd.PpcDisasm()')
-    utest.append('out = []')
-    utest.append('for key,instrlist in eapd.instr_dict.items():')
-    utest.append('    for instrline in instrlist:')
-    utest.append('        opcodenum = instrline[1]')
-    utest.append('        opbin = struct.pack(">I", opcodenum)')
-    utest.append('        try:')
-    utest.append('            op = d.disasm(opbin, 0, 0x4000)')
-    utest.append('            print "0x%.8x:  %s" % (opcodenum, op)')
-    utest.append('        except Exception, e:')
-    utest.append('            sys.stderr.write("ERROR: 0x%x: %r\\n" % (opcodenum, e))')
-    utest.append('        out.append(opbin)')
+    utest.append('for cat in eapd.CATEGORIES.keys():')
+    utest.append('    d = eapd.PpcDisasm(options=cat)')
+    utest.append('    out = []')
+    utest.append('    for key,instrlist in eapd.instr_dict.items():')
+    utest.append('        for instrline in instrlist:')
+    utest.append('            opcodenum = instrline[1]')
+    utest.append('            shifters = [shl for nm,tp,shl,mask in instrline[2][-2]]')
+    utest.append('            shifters.sort()')
+    utest.append('            for oidx in range(len(shifters)):')
+    utest.append('                shl = shifters[oidx]')
+    utest.append('                opcodenum |= ((len(shifters)-oidx) << shl)')
+    utest.append('            opbin = struct.pack(">I", opcodenum)')
+    utest.append('            try:')
+    utest.append('                op = d.disasm(opbin, 0, 0x4000)')
+    utest.append('                print "0x%.8x:  %s" % (opcodenum, op)')
+    utest.append('            except Exception, e:')
+    utest.append('                sys.stderr.write("ERROR: 0x%x: %r\\n" % (opcodenum, e))')
+    utest.append('            out.append(opbin)')
     utest.append('file("test_ppc.bin", "wb").write("".join(out))')
     utest.append('')
 

@@ -71,6 +71,8 @@ statmetas = [   # FIXME
         ('DF', REG_CR, 10, 1, 'Direction Flag'),
         ('OF', REG_CR, 11, 1, 'Overflow Flag'),
         ]
+# FIXME: FPSCR bits
+# FIXME: CR bits!
 
 
 def getCrFields(regval):

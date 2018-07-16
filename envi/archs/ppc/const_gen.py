@@ -923,6 +923,21 @@ mnems = (
     'fctid',
     'fctidz',
     'fcfid',
+    'nop',
+    'li',
+    'lis',
+    'la',
+    'mr',
+    'not',
+    'mtcr',
+    'lwsync',
+    'hwsync',
+    'msync',
+    'esync',
+    'isellt',
+    'iselgt',
+    'iseleq',
+    'waitrsv',
 )
 
 inscounter = 0
