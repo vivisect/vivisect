@@ -77,6 +77,8 @@ arch_names = {
     Elf.EM_386:'i386',
     Elf.EM_X86_64:'amd64',
     Elf.EM_MSP430:'msp430',
+    Elf.EM_PPC:'ppc',
+    Elf.EM_PPC64:'ppc64',
 }
 
 archcalls = {

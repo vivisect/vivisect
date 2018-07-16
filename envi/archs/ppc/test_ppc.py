@@ -1,3 +1,4 @@
+import sys
 import struct
 import envi.archs.ppc.disasm as eapd
 d = eapd.PpcDisasm()
@@ -10,6 +11,6 @@ for key,instrlist in eapd.instr_dict.items():
             op = d.disasm(opbin, 0, 0x4000)
             print "0x%.8x:  %s" % (opcodenum, op)
         except Exception, e:
-            print "ERROR with opcode 0x%x: %r" % (opcodenum, e)
+            sys.stderr.write("ERROR: 0x%x: %r\n" % (opcodenum, e))
         out.append(opbin)
 file("test_ppc.bin", "wb").write("".join(out))

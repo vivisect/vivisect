@@ -1,3 +1,4 @@
+import envi
 from const import *
 instr_dict = {
     2 : (
@@ -438,24 +439,24 @@ instr_dict = {
         (0xfc000000, 0x3c000000, ( 'addis', INS_ADDIS, FORM_D, CAT_NONE, (  ( 'rD', FIELD_rD, 21, 0x1f ), ( 'rA', FIELD_rA, 16, 0x1f ), ( 'SIMM', FIELD_SIMM, 0, 0xffff ),) , IF_NONE ), ),
     ),
     16 : (
-        (0xfc000003, 0x40000000, ( 'bc', INS_BC, FORM_B, CAT_NONE, (  ( 'BO', FIELD_BO, 21, 0x1f ), ( 'BI', FIELD_BI, 16, 0x1f ), ( 'BD', FIELD_BD, 2, 0x3fff ),) , IF_NONE ), ),
-        (0xfc000003, 0x40000001, ( 'bcl', INS_BCL, FORM_B, CAT_NONE, (  ( 'BO', FIELD_BO, 21, 0x1f ), ( 'BI', FIELD_BI, 16, 0x1f ), ( 'BD', FIELD_BD, 2, 0x3fff ),) , IF_NONE ), ),
-        (0xfc000003, 0x40000002, ( 'bca', INS_BCA, FORM_B, CAT_NONE, (  ( 'BO', FIELD_BO, 21, 0x1f ), ( 'BI', FIELD_BI, 16, 0x1f ), ( 'BD', FIELD_BD, 2, 0x3fff ),) , IF_NONE ), ),
-        (0xfc000003, 0x40000003, ( 'bcla', INS_BCLA, FORM_B, CAT_NONE, (  ( 'BO', FIELD_BO, 21, 0x1f ), ( 'BI', FIELD_BI, 16, 0x1f ), ( 'BD', FIELD_BD, 2, 0x3fff ),) , IF_NONE ), ),
+        (0xfc000003, 0x40000000, ( 'bc', INS_BC, FORM_B, CAT_NONE, (  ( 'BO', FIELD_BO, 21, 0x1f ), ( 'BI', FIELD_BI, 16, 0x1f ), ( 'BD', FIELD_BD, 2, 0x3fff ),) , envi.IF_COND|envi.IF_BRANCH ), ),
+        (0xfc000003, 0x40000001, ( 'bcl', INS_BCL, FORM_B, CAT_NONE, (  ( 'BO', FIELD_BO, 21, 0x1f ), ( 'BI', FIELD_BI, 16, 0x1f ), ( 'BD', FIELD_BD, 2, 0x3fff ),) , envi.IF_COND ), ),
+        (0xfc000003, 0x40000002, ( 'bca', INS_BCA, FORM_B, CAT_NONE, (  ( 'BO', FIELD_BO, 21, 0x1f ), ( 'BI', FIELD_BI, 16, 0x1f ), ( 'BD', FIELD_BD, 2, 0x3fff ),) , envi.IF_COND|envi.IF_BRANCH ), ),
+        (0xfc000003, 0x40000003, ( 'bcla', INS_BCLA, FORM_B, CAT_NONE, (  ( 'BO', FIELD_BO, 21, 0x1f ), ( 'BI', FIELD_BI, 16, 0x1f ), ( 'BD', FIELD_BD, 2, 0x3fff ),) , envi.IF_COND|envi.IF_CALL ), ),
     ),
     17 : (
         (0xfc000002, 0x44000002, ( 'sc', INS_SC, FORM_SC, CAT_NONE, (  ( 'LEV', FIELD_LEV, 5, 0x7f ),) , IF_NONE ), ),
     ),
     18 : (
-        (0xfc000003, 0x48000000, ( 'b', INS_B, FORM_I, CAT_NONE, (  ( 'LI', FIELD_LI, 2, 0xffffff ),) , IF_NONE ), ),
-        (0xfc000003, 0x48000001, ( 'bl', INS_BL, FORM_I, CAT_NONE, (  ( 'LI', FIELD_LI, 2, 0xffffff ),) , IF_NONE ), ),
-        (0xfc000003, 0x48000002, ( 'ba', INS_BA, FORM_I, CAT_NONE, (  ( 'LI', FIELD_LI, 2, 0xffffff ),) , IF_NONE ), ),
-        (0xfc000003, 0x48000003, ( 'bla', INS_BLA, FORM_I, CAT_NONE, (  ( 'LI', FIELD_LI, 2, 0xffffff ),) , IF_NONE ), ),
+        (0xfc000003, 0x48000000, ( 'b', INS_B, FORM_I, CAT_NONE, (  ( 'LI', FIELD_LI, 2, 0xffffff ),) , envi.IF_BRANCH ), ),
+        (0xfc000003, 0x48000001, ( 'bl', INS_BL, FORM_I, CAT_NONE, (  ( 'LI', FIELD_LI, 2, 0xffffff ),) , envi.IF_CALL ), ),
+        (0xfc000003, 0x48000002, ( 'ba', INS_BA, FORM_I, CAT_NONE, (  ( 'LI', FIELD_LI, 2, 0xffffff ),) , envi.IF_BRANCH ), ),
+        (0xfc000003, 0x48000003, ( 'bla', INS_BLA, FORM_I, CAT_NONE, (  ( 'LI', FIELD_LI, 2, 0xffffff ),) , envi.IF_CALL ), ),
     ),
     19 : (
         (0xfc0007fe, 0x4c000000, ( 'mcrf', INS_MCRF, FORM_XL, CAT_NONE, (  ( 'crD', FIELD_crD, 23, 0x7 ), ( 'crfS', FIELD_crfS, 18, 0x7 ),) , IF_NONE ), ),
-        (0xfc0007ff, 0x4c000020, ( 'bclr', INS_BCLR, FORM_XL, CAT_NONE, (  ( 'BO', FIELD_BO, 21, 0x1f ), ( 'BI', FIELD_BI, 16, 0x1f ), ( 'BH', FIELD_BH, 11, 0x3 ),) , IF_NONE ), ),
-        (0xfc0007ff, 0x4c000021, ( 'bclrl', INS_BCLRL, FORM_XL, CAT_NONE, (  ( 'BO', FIELD_BO, 21, 0x1f ), ( 'BI', FIELD_BI, 16, 0x1f ), ( 'BH', FIELD_BH, 11, 0x3 ),) , IF_NONE ), ),
+        (0xfc0007ff, 0x4c000020, ( 'bclr', INS_BCLR, FORM_XL, CAT_NONE, (  ( 'BO', FIELD_BO, 21, 0x1f ), ( 'BI', FIELD_BI, 16, 0x1f ), ( 'BH', FIELD_BH, 11, 0x3 ),) , envi.IF_COND|envi.IF_BRANCH ), ),
+        (0xfc0007ff, 0x4c000021, ( 'bclrl', INS_BCLRL, FORM_XL, CAT_NONE, (  ( 'BO', FIELD_BO, 21, 0x1f ), ( 'BI', FIELD_BI, 16, 0x1f ), ( 'BH', FIELD_BH, 11, 0x3 ),) , envi.IF_COND|envi.IF_CALL ), ),
         (0xfc0007fe, 0x4c000042, ( 'crnor', INS_CRNOR, FORM_XL, CAT_NONE, (  ( 'crbD', FIELD_crbD, 21, 0x1f ), ( 'crbA', FIELD_crbA, 16, 0x1f ), ( 'crbB', FIELD_crbB, 11, 0x1f ),) , IF_NONE ), ),
         (0xfc0007fe, 0x4c00004c, ( 'rfmci', INS_RFMCI, FORM_XL, CAT_EMBEDDED, ( ) , IF_NONE ), ),
         (0xfc0007fe, 0x4c00004e, ( 'rfdi', INS_RFDI, FORM_X, CAT_E_ED, ( ) , IF_NONE ), ),
@@ -471,8 +472,8 @@ instr_dict = {
         (0xfc0007fe, 0x4c000242, ( 'creqv', INS_CREQV, FORM_XL, CAT_NONE, (  ( 'crbD', FIELD_crbD, 21, 0x1f ), ( 'crbA', FIELD_crbA, 16, 0x1f ), ( 'crbB', FIELD_crbB, 11, 0x1f ),) , IF_NONE ), ),
         (0xfc0007fe, 0x4c000342, ( 'crorc', INS_CRORC, FORM_XL, CAT_NONE, (  ( 'crbD', FIELD_crbD, 21, 0x1f ), ( 'crbA', FIELD_crbA, 16, 0x1f ), ( 'crbB', FIELD_crbB, 11, 0x1f ),) , IF_NONE ), ),
         (0xfc0007fe, 0x4c000382, ( 'cror', INS_CROR, FORM_XL, CAT_NONE, (  ( 'crbD', FIELD_crbD, 21, 0x1f ), ( 'crbA', FIELD_crbA, 16, 0x1f ), ( 'crbB', FIELD_crbB, 11, 0x1f ),) , IF_NONE ), ),
-        (0xfc0007ff, 0x4c000420, ( 'bcctr', INS_BCCTR, FORM_XL, CAT_NONE, (  ( 'BO', FIELD_BO, 21, 0x1f ), ( 'BI', FIELD_BI, 16, 0x1f ), ( 'BH', FIELD_BH, 11, 0x3 ),) , IF_NONE ), ),
-        (0xfc0007ff, 0x4c000421, ( 'bcctrl', INS_BCCTRL, FORM_XL, CAT_NONE, (  ( 'BO', FIELD_BO, 21, 0x1f ), ( 'BI', FIELD_BI, 16, 0x1f ), ( 'BH', FIELD_BH, 11, 0x3 ),) , IF_NONE ), ),
+        (0xfc0007ff, 0x4c000420, ( 'bcctr', INS_BCCTR, FORM_XL, CAT_NONE, (  ( 'BO', FIELD_BO, 21, 0x1f ), ( 'BI', FIELD_BI, 16, 0x1f ), ( 'BH', FIELD_BH, 11, 0x3 ),) , envi.IF_COND|envi.IF_BRANCH ), ),
+        (0xfc0007ff, 0x4c000421, ( 'bcctrl', INS_BCCTRL, FORM_XL, CAT_NONE, (  ( 'BO', FIELD_BO, 21, 0x1f ), ( 'BI', FIELD_BI, 16, 0x1f ), ( 'BH', FIELD_BH, 11, 0x3 ),) , envi.IF_COND|envi.IF_CALL ), ),
     ),
     20 : (
         (0xfc000001, 0x50000000, ( 'rlwimi', INS_RLWIMI, FORM_M, CAT_NONE, (  ( 'rS', FIELD_rS, 21, 0x1f ), ( 'rA', FIELD_rA, 16, 0x1f ), ( 'SH', FIELD_SH, 11, 0x1f ), ( 'MB', FIELD_MB, 6, 0x1f ), ( 'ME', FIELD_ME, 1, 0x1f ),) , IF_NONE ), ),

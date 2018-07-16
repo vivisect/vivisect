@@ -11022,6 +11022,7 @@ def buildOutput():
 
     # now build the instruction tables.
     out2 = []
+    out2.append('import envi')
     out2.append('from const import *')
     out2.append('instr_dict = {')
     for grpkey in deets.keys():
@@ -11067,10 +11068,21 @@ def buildOutput():
                 fout.append(" ( '%s', %s, %s, 0x%x )," % (fname, "FIELD_"+fname, shr, fmask))
 
             operands = "( " + ''.join(fout) + ") "
+            opcode = "INS_" + mnem.replace('.','').upper()
+            form_const = FORM_CONST[form]
 
+            # calculate flags...
             iflags = []
             if mnem.endswith('.'):
                 iflags.append('IF_RC')
+            if mnem[0] == 'b':
+                if mnem.startswith('bc'):
+                    iflags.append('envi.IF_COND')
+
+                if mnem in ('b', 'ba', 'bc', 'bca', 'bcctr', 'bclr'):
+                    iflags.append('envi.IF_BRANCH')
+                elif mnem in ('bl', 'bla', 'bcla', 'bcctrl', 'bclrl'):
+                    iflags.append('envi.IF_CALL')
 
             if not len(iflags):
                 iflags.append("IF_NONE")
@@ -11080,8 +11092,6 @@ def buildOutput():
             ncat = "CAT_" + cat.upper().replace('.', '_').replace(', ', ' | CAT_').replace(',',' | CAT_')
 
 
-            opcode = "INS_" + mnem.replace('.','').upper()
-            form_const = FORM_CONST[form]
             data = "'%s', %s, %s, %s, %s, %s" % (mnem, opcode, form_const, ncat, operands, '|'.join(iflags))
 
             out2.append('        (0x%x, 0x%x, ( %s ), ),' % (mask, val, data))
@@ -11116,6 +11126,7 @@ def buildOutput():
 
     utest = []
     utestbin = []
+    utest.append('import sys')
     utest.append('import struct')
     utest.append('import envi.archs.ppc.disasm as eapd')
     utest.append('d = eapd.PpcDisasm()')
@@ -11124,8 +11135,11 @@ def buildOutput():
     utest.append('    for instrline in instrlist:')
     utest.append('        opcodenum = instrline[1]')
     utest.append('        opbin = struct.pack(">I", opcodenum)')
-    utest.append('        op = d.disasm(opbin, 0, 0x4000)')
-    utest.append('        print "0x%.8x:  %s" % (opcodenum, op)')
+    utest.append('        try:')
+    utest.append('            op = d.disasm(opbin, 0, 0x4000)')
+    utest.append('            print "0x%.8x:  %s" % (opcodenum, op)')
+    utest.append('        except Exception, e:')
+    utest.append('            sys.stderr.write("ERROR: 0x%x: %r\\n" % (opcodenum, e))')
     utest.append('        out.append(opbin)')
     utest.append('file("test_ppc.bin", "wb").write("".join(out))')
     utest.append('')
