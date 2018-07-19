@@ -205,10 +205,54 @@ def form_DS(va, ival, operands, iflags):
     opers.append(oper1)
     return opcode, opers, iflags
     
+def form_MDS(va, ival, operands, iflags):
+    opers = []
+    opcode = None
+
+    opvals = [((ival >> oshr) & omask) for onm, otype, oshr, omask in operands]
+    oper0 = OPERCLASSES[operands[0][1]](opvals[0], va)
+    oper1 = OPERCLASSES[operands[1][1]](opvals[1], va)
+    oper2 = OPERCLASSES[operands[2][1]](opvals[2], va)
+
+    print "MDS: ", opvals
+    
+    val = (opvals[4] << 5) | opvals[3]
+    oper3 = PpcImmOper(val, va)
+
+    opers = (oper0, oper1, oper2, oper3)
+    return opcode, opers, iflags
+    
+def form_XFX(va, ival, operands, iflags):
+    opers = []
+    opcode = None
+
+    if len(operands) == 3 and operands[2][1] in (FIELD_DCRN0_4, FIELD_PMRN0_4, FIELD_SPRN0_4, FIELD_TMRN0_4, FIELD_TBRN0_4,):
+        opvals = [((ival >> oshr) & omask) for onm, otype, oshr, omask in operands]
+        if operands[1][1] in (FIELD_DCRN5_9, FIELD_PMRN5_9, FIELD_SPRN5_9, FIELD_TMRN5_9, FIELD_TBRN5_9,):
+            val = (opvals[2] << 5) | opvals[1]
+            oper0 = OPERCLASSES[operands[0][1]](opvals[0], va)
+            oper1 = PpcImmOper(val, va)    # FIXME: do we want specific DCRN, PMRN, SPRN, TMRN, TBRN operand types?
+        else:
+            val = (opvals[2] << 5) | opvals[0]
+            oper0 = PpcImmOper(val, va)    # FIXME: do we want specific DCRN, PMRN, SPRN, TMRN, TBRN operand types?
+            oper1 = OPERCLASSES[operands[1][1]](opvals[1], va)
+
+        opers = (oper0, oper1)
+        return opcode, opers, iflags
+
+    for onm, otype, oshr, omask in operands:
+        val = (ival >> oshr) & omask
+        oper = OPERCLASSES[otype](val, va)
+        opers.append(oper)
+
+    return opcode, opers, iflags
+    
 decoders = { eval(x) : form_DFLT for x in globals().keys() if x.startswith('FORM_') }
 decoders[FORM_EVX] = form_EVX
 decoders[FORM_D] = form_D
 decoders[FORM_DS] = form_DS
+decoders[FORM_XFX] = form_XFX
+decoders[FORM_MDS] = form_MDS
 
         
 def genTests(abytez):

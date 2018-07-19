@@ -1,4 +1,6 @@
 import envi
+import envi.bits as e_bits
+
 from envi import IF_NOFALL, IF_BRANCH, IF_CALL, IF_RET, IF_PRIV, IF_COND
 
 from regs import *
@@ -129,18 +131,34 @@ class PpcRegOper(envi.RegisterOper):
         rname = ppc_regs[self.reg][0]
         return rname
 
-class PpcFRRegOper(PpcRegOper):
-    ''' register operand.'''
+class PpcFRegOper(PpcRegOper):
+    ''' Floating Point register operand.'''
     def __init__(self, reg, va=0):
         self.va = va
         self.reg = reg + REG_IDX_FP
         
 class PpcVRegOper(PpcRegOper):
-    ''' register operand.'''
+    ''' Vector register operand.'''
     def __init__(self, reg, va=0):
         self.va = va
         self.reg = reg      + REG_IDX_VECTOR
         
+class PpcCRegOper(PpcRegOper):
+    ''' CR register operand.'''
+    def __init__(self, reg, va=0):
+        self.va = va
+        self.reg = reg
+        
+    def render(self, mcanv, op, idx):
+        #rname = ppc_regs[self.reg][0]
+        rname = "cr%d" % self.reg
+        mcanv.addNameText(rname, typename='registers')
+
+    def repr(self, op):
+        #rname = ppc_regs[self.reg][0]
+        rname = "cr%d" % self.reg
+        return rname
+
 
 class PpcImmOper(envi.ImmedOper):
     ''' Immediate operand. '''
@@ -175,6 +193,44 @@ class PpcImmOper(envi.ImmedOper):
     def repr(self, op):
         val = self.getOperValue(op)
         return '0x%x' % (val)
+
+class PpcSImmOper(PpcImmOper):
+    ''' Unsigned Immediate operand. '''
+    def __init__(self, val, va=0, bits=5):
+        if val & 1<<(bits-1):
+            val |= e_bits.b_masks[bits]
+
+        self.val = e_bits.signed(val, 4)
+
+class PpcSImm5Oper(PpcSImmOper):
+    ''' Signed Immediate operand bit 5. '''
+    def __init__(self, val, va=0):
+        PpcSImmOper.__init__(self, val, va, 5)
+
+class PpcSImm16Oper(PpcSImmOper):
+    ''' Unsigned Immediate operand. '''
+    def __init__(self, val, va=0):
+        PpcSImmOper.__init__(self, val, va, 16)
+
+class PpcUImmOper(PpcImmOper):
+    ''' Unsigned Immediate operand. '''
+    def __init__(self, val, va=0):
+        self.val = val
+
+class PpcUImm1Oper(PpcUImmOper):
+    ''' Unsigned Immediate operand. '''
+    def __init__(self, val, va=0):
+        self.val = val * 8
+
+class PpcUImm2Oper(PpcUImmOper):
+    ''' Unsigned Immediate operand. '''
+    def __init__(self, val, va=0):
+        self.val = val * 2
+
+class PpcUImm3Oper(PpcUImmOper):
+    ''' Unsigned Immediate operand. '''
+    def __init__(self, val, va=0):
+        self.val = val * 4
 
 
 
@@ -311,6 +367,8 @@ OPERCLASSES = {
     FIELD_SA : PpcImmOper,
     FIELD_SH : PpcImmOper,
     FIELD_SIMM : PpcImmOper,
+    FIELD_SIMM16 : PpcSImm16Oper,
+    FIELD_SIMM5 : PpcSImm5Oper,
     FIELD_SPRN0_4 : PpcImmOper,
     FIELD_SPRN5_9 : PpcImmOper,
     FIELD_SS : PpcImmOper,
@@ -329,18 +387,18 @@ OPERCLASSES = {
     FIELD_W : PpcImmOper,
     FIELD_WC : PpcImmOper,
     FIELD_WH : PpcImmOper,
-    FIELD_crD : PpcImmOper,
+    FIELD_crD : PpcCRegOper,
     FIELD_crb : PpcImmOper,
     FIELD_crbA : PpcImmOper,
     FIELD_crbB : PpcImmOper,
     FIELD_crbC : PpcImmOper,
     FIELD_crbD : PpcImmOper,
-    FIELD_crfS : PpcImmOper,
-    FIELD_frA : PpcFRRegOper,
-    FIELD_frB : PpcFRRegOper,
-    FIELD_frC : PpcFRRegOper,
-    FIELD_frD : PpcFRRegOper,
-    FIELD_frS : PpcFRRegOper,
+    FIELD_crfS : PpcCRegOper,
+    FIELD_frA : PpcFRegOper,
+    FIELD_frB : PpcFRegOper,
+    FIELD_frC : PpcFRegOper,
+    FIELD_frD : PpcFRegOper,
+    FIELD_frS : PpcFRegOper,
     FIELD_mb0 : PpcImmOper,
     FIELD_mb1_5 : PpcImmOper,
     FIELD_me0 : PpcImmOper,

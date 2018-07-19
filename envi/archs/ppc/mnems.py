@@ -10205,7 +10205,7 @@ mtfsfi 1 1 1 1 1 1
  crD
  ///
  ///
- W
+ 0
  IMM
  /
  0 0 1 0 0
@@ -10219,7 +10219,7 @@ mtfsfi. 1 1 1 1 1 1
  crD
  ///
  ///
- W
+ 0
  IMM
  /
  0 0 1 0 0
@@ -10294,9 +10294,9 @@ mffs. 1 1 1 1 1 1
  X
  FP.R
 mtfsf 1 1 1 1 1 1
- L
+ 0
  FM
- W
+ 0
  frB
  1 0 1 1 0
  0
@@ -10305,9 +10305,9 @@ mtfsf 1 1 1 1 1 1
  0
  XFX FP
 mtfsf. 1 1 1 1 1 1
- L
+ 0
  FM
- W
+ 0
  frB
  1 0 1 1 0
  0
@@ -10385,6 +10385,8 @@ fcfid. 1 1 1 1 1 1
 # * UIMM[123] didn't copy the footnotes (and turns out they're important for memory derefs...)
 # * ">" instead of "." somehow made it in
 # * added None to the end of some of the lines to clearly demarc those lines without a Category
+# * mtfsf instructions set L and W to 0's...  "The L and W fields of the instruction should always be set to 0."
+# * mtfsfi instructions set W to 0...  "The W field of the instruction should always be set to 0."
 # a few others (should have and will document as i think of them.  see git log.
 
 cat_names = ('NONE',
@@ -10549,7 +10551,8 @@ FIELD_DATA = {
     'WH' :      (11, 1),
     'T'  :      (9, 2),
     'crb' :     (21, 5), 
-    #'Rc' :      (31, 1),        # used by all "Rc" instructions (.)
+    'SIMM5' :   (11, 5),        # only here to be included in the const_gen.  this does not work with parsing the data
+    'SIMM16' :  (16, 16),       # only here to be included in the const_gen.  this does not work with parsing the data
     '///' :     (None, None),  # this is a filler field.  could be anywhere and any size.
 
     }
@@ -11089,11 +11092,16 @@ def buildOutput():
                 fname = fname.strip().replace('-','_').replace(' ','')
                 shr = 32 - (start + sz)
                 fmask = e_bits.b_masks[sz]
+
+                ###### fixup SIMM
+                if fname == 'SIMM':
+                    fname = 'SIMM%d' % sz
+                ######
                 fout.append(" ( '%s', %s, %s, 0x%x )," % (fname, "FIELD_"+fname, shr, fmask))
 
             
             # fix up the operand ordering where possible.  this is faster and simpler than doing it in the decoder
-            if len(fout) > 1 and 'FIELD_rS' in fout[0] and form != 'EVX':
+            if len(fout) > 1 and 'FIELD_rS' in fout[0] and form not in  ('EVX', ):
                 if mnem != 'evstddepx':    # WONKY AS SHIT!
                     temp = fout[0]
                     fout[0] = fout[1]
@@ -11103,6 +11111,13 @@ def buildOutput():
                 temp = fout[2]
                 fout[2] = fout[3]
                 fout[3] = temp
+
+            if len(fout) >2 and 'FIELD_UIMM' in fout[1]:
+                temp = fout[1]
+                fout[1] = fout[2]
+                fout[2] = temp
+
+
 
             ##################### OPERAND ORDERING COMPLETE #####################
 
@@ -11151,43 +11166,54 @@ def buildOutput():
         elif key[0] == 'v':
             out3.append('    FIELD_%s : PpcVRegOper,' % (nkey))
         elif key[0:2] == 'fr':
-            out3.append('    FIELD_%s : PpcFRRegOper,' % (nkey))
+            out3.append('    FIELD_%s : PpcFRegOper,' % (nkey))
+        elif key.startswith('cr') and not key.startswith('crb'):
+            out3.append('    FIELD_%s : PpcCRegOper,' % (nkey))
+        elif key == 'SIMM5':
+            out3.append('    FIELD_%s : PpcSImm5Oper,' % (nkey))
+        elif key == 'SIMM16':
+            out3.append('    FIELD_%s : PpcSImm16Oper,' % (nkey))
         elif key == 'UIMM1':
-            out3.append('    FIELD_%s : PpcUimm1,' % (nkey))
+            out3.append('    FIELD_%s : PpcUImm1Oper,' % (nkey))
         elif key == 'UIMM2':
-            out3.append('    FIELD_%s : PpcUimm2,' % (nkey))
+            out3.append('    FIELD_%s : PpcUImm2Oper,' % (nkey))
         elif key == 'UIMM3':
-            out3.append('    FIELD_%s : PpcUimm3,' % (nkey))
+            out3.append('    FIELD_%s : PpcUImm3Oper,' % (nkey))
         else:
             out3.append('    FIELD_%s : PpcImmOper,' % (nkey))
 
     out3.append('}')
 
-    utest = []
-    utestbin = []
-    utest.append('import sys')
-    utest.append('import struct')
-    utest.append('import envi.archs.ppc.disasm as eapd')
-    utest.append('for cat in eapd.CATEGORIES.keys():')
-    utest.append('    d = eapd.PpcDisasm(options=cat)')
-    utest.append('    out = []')
-    utest.append('    for key,instrlist in eapd.instr_dict.items():')
-    utest.append('        for instrline in instrlist:')
-    utest.append('            opcodenum = instrline[1]')
-    utest.append('            shifters = [shl for nm,tp,shl,mask in instrline[2][-2]]')
-    utest.append('            shifters.sort()')
-    utest.append('            for oidx in range(len(shifters)):')
-    utest.append('                shl = shifters[oidx]')
-    utest.append('                opcodenum |= ((len(shifters)-oidx) << shl)')
-    utest.append('            opbin = struct.pack(">I", opcodenum)')
-    utest.append('            try:')
-    utest.append('                op = d.disasm(opbin, 0, 0x4000)')
-    utest.append('                print "0x%.8x:  %s" % (opcodenum, op)')
-    utest.append('            except Exception, e:')
-    utest.append('                sys.stderr.write("ERROR: 0x%x: %r\\n" % (opcodenum, e))')
-    utest.append('            out.append(opbin)')
-    utest.append('file("test_ppc.bin", "wb").write("".join(out))')
-    utest.append('')
+    utest = '''
+import sys
+import struct
+import envi.archs.ppc.disasm as eapd
+
+for cat in eapd.CATEGORIES.keys():
+    d = eapd.PpcDisasm(options=cat)
+    out = []
+    print "\\n====== CAT: %r ======" % eapd.CATEGORIES.get(cat)
+    for key,instrlist in eapd.instr_dict.items():
+        for instrline in instrlist:
+            opcodenum = instrline[1]
+            opcat = instrline[2][3]
+            if not opcat & cat:
+                continue
+
+            shifters = [shl for nm,tp,shl,mask in instrline[2][-2]]
+            shifters.sort()
+            for oidx in range(len(shifters)):
+                shl = shifters[oidx]
+                opcodenum |= ((len(shifters)-oidx) << shl)
+            opbin = struct.pack(">I", opcodenum)
+            try:
+                op = d.disasm(opbin, 0, 0x4000)
+                print "0x%.8x:  %s" % (opcodenum, op)
+            except Exception, e:
+                sys.stderr.write("ERROR: 0x%x: %r\\n" % (opcodenum, e))
+            out.append(opbin)
+file("test_ppc.bin", "wb").write("".join(out))
+'''
 
     return out, out2, out3, utest
     #for 
@@ -11200,7 +11226,7 @@ if __name__ == '__main__':
     file('const_gen.py','w').write( '\n'.join(out))
     file('ppc_tables.py','w').write( '\n'.join(out2))
     file('disasm_gen.py','w').write( '\n'.join(out3))
-    file('test_ppc.py','w').write( '\n'.join(utest))
+    file('test_ppc.py','w').write(utest)
 
 
 ''' 
