@@ -214,8 +214,6 @@ def form_MDS(va, ival, operands, iflags):
     oper1 = OPERCLASSES[operands[1][1]](opvals[1], va)
     oper2 = OPERCLASSES[operands[2][1]](opvals[2], va)
 
-    print "MDS: ", opvals
-    
     val = (opvals[4] << 5) | opvals[3]
     oper3 = PpcImmOper(val, va)
 

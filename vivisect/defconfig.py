@@ -24,6 +24,7 @@ defconfig = {
             },
             'ihex':{
                 'arch':'',
+                'bigend':False,
             },
         },
         'analysis':{
@@ -63,6 +64,7 @@ docconfig = {
             },
             'ihex':{
                 'arch':'What architecture is the ihex dump?',
+                'bigend':'Is the architecture Big-Endian (MSB)?',
             },
         },
 
