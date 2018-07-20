@@ -382,7 +382,7 @@ operands = (
         )
 
 def case_E_X(types, data, va):
-    val0 = (data & 0x3E00000) >> 24;
+    val0 = (data & 0x3E00000) >> 21;
     op0 = operands[types[0]]
     val1 = (data & 0x1F0000) >> 16;
     op1 = operands[types[1]]
@@ -563,7 +563,7 @@ def case_E_LI20(types, data, va):
     op0 = operands[types[0]]
     val1 = ((data & 0x1F0000) >> 5);
     val1 |= ((data & 0x7800) << 5);
-    val1 |= (data & 0x3FF);
+    val1 |= (data & 0x7FF);
     op1 = operands[types[1]]
     if (val1 & 0x80000) :
             val1 = 0xFFF00000 | val1;
@@ -634,6 +634,19 @@ def case_F_EVX(types, data, va):
 
 case_F_X    = case_F_EVX
 case_F_XO   = case_F_EVX
+
+def case_F_XRA(types, data, va):
+    val1 = (data & 0x3E00000) >> 21;
+    op1 = operands[types[0]]
+
+    val0 = (data & 0x1F0000) >> 16;
+    op0 = operands[types[1]]
+
+    val2 = (data & 0xF800) >> 11;
+    op2 = operands[types[2]]
+
+    opers = (op0(val0, va), op1(val1, va), op2(val2, va))
+    return opers
 
 def case_F_CMP(types, data, va):
     val0 = (data & 0x3800000) >> 23;
@@ -862,6 +875,8 @@ def find_se(buf, offset, endian=True, va=0):
             while k < n:
                 ftype, value = opieces[k]
                 handler = operands[ftype]
+                if value & 0x8:
+                    value = (value & 7) + 24
 
                 if ftype == TYPE_MEM:
                     k += 1

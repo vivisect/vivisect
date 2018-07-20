@@ -27,6 +27,7 @@ E_LI20 =  13
 E_M =     14
 E_XCR =   15
 E_XLSP =  16
+E_XRA =   17
 
 E_MASK_X =    0x03FFF800
 E_MASK_XL =   0x03FFF801
@@ -55,6 +56,7 @@ F_XFX =  10
 F_XER =  11
 F_MFPR = 12
 F_MTPR = 13
+F_XRA =  14
 
 
 F_MASK_X =     0x03FFF800
