@@ -883,7 +883,7 @@ evextsh 0 0 0 1 0 0
 evrndw 0 0 0 1 0 0
  rD
  rA
- UIMM
+ 0 0 0 0 0 
  0 1 0 0 0
  0
  0 1 1
@@ -5541,11 +5541,11 @@ lwepx 0 1 1 1 1 1
  X
  E.PD
 cmpl 0 1 1 1 1 1
+ crfD
  /
  L
  rA
  rB
- ///
  0 0 0 0 1
  0
  0 0 0
@@ -10387,7 +10387,12 @@ fcfid. 1 1 1 1 1 1
 # * added None to the end of some of the lines to clearly demarc those lines without a Category
 # * mtfsf instructions set L and W to 0's...  "The L and W fields of the instruction should always be set to 0."
 # * mtfsfi instructions set W to 0...  "The W field of the instruction should always be set to 0."
+# * evrndw, replaced UIMM with 0 0 0 0 0 (appears to be wrong in this table, defined in SPEPEM.
+# * cmpl is completely botched:  they left out the crfD field completely, which caused a shift in all the other fields.  eerily, they made up for it with ///
 # a few others (should have and will document as i think of them.  see git log.
+
+# TODO: 
+# * isel   note: isel r15, r15, r16, cr3.eq
 
 cat_names = ('NONE',
         '64',
@@ -10551,6 +10556,7 @@ FIELD_DATA = {
     'WH' :      (11, 1),
     'T'  :      (9, 2),
     'crb' :     (21, 5), 
+    'crfD' :    (6, 3), 
     'SIMM5' :   (11, 5),        # only here to be included in the const_gen.  this does not work with parsing the data
     'SIMM16' :  (16, 16),       # only here to be included in the const_gen.  this does not work with parsing the data
     '///' :     (None, None),  # this is a filler field.  could be anywhere and any size.
@@ -10719,10 +10725,10 @@ def parseOpgroup(opgrp):
             #    oper[2] = 5
             #    leftover -= 5
 
-            #### COMPLETE HACK! I APOLOGIZE IN ADVANCE.
-            if mnem == 'cmpl':
-                odata = { 'rA' : (8, 5), 'rB' : (13, 5), 'L' : (7,1), }.get(field)
-                #print field, odata
+            #### COMPLETE HACK! I APOLOGIZE IN ADVANCE. - deprecated.  they screwed up the table.
+            #if mnem == 'cmpl':
+            #    odata = { 'rA' : (8, 5), 'rB' : (13, 5), 'L' : (7,1), }.get(field)
+            #    #print field, odata
 
             # check the simple fields
             if odata == None:
@@ -11167,18 +11173,22 @@ def buildOutput():
             out3.append('    FIELD_%s : PpcVRegOper,' % (nkey))
         elif key[0:2] == 'fr':
             out3.append('    FIELD_%s : PpcFRegOper,' % (nkey))
-        elif key.startswith('cr') and not key.startswith('crb'):
+        elif nkey.startswith('crb'):
+            out3.append('    FIELD_%s : PpcCBRegOper,' % (nkey))
+        elif nkey.startswith('cr'):
             out3.append('    FIELD_%s : PpcCRegOper,' % (nkey))
-        elif key == 'SIMM5':
+        elif nkey == 'SIMM5':
             out3.append('    FIELD_%s : PpcSImm5Oper,' % (nkey))
-        elif key == 'SIMM16':
+        elif nkey == 'SIMM16':
             out3.append('    FIELD_%s : PpcSImm16Oper,' % (nkey))
-        elif key == 'UIMM1':
+        elif nkey == 'UIMM1':
             out3.append('    FIELD_%s : PpcUImm1Oper,' % (nkey))
-        elif key == 'UIMM2':
+        elif nkey == 'UIMM2':
             out3.append('    FIELD_%s : PpcUImm2Oper,' % (nkey))
-        elif key == 'UIMM3':
+        elif nkey == 'UIMM3':
             out3.append('    FIELD_%s : PpcUImm3Oper,' % (nkey))
+        elif key == 'BD':
+            out3.append('    FIELD_%s : PpcSImm3Oper,' % (nkey))
         else:
             out3.append('    FIELD_%s : PpcImmOper,' % (nkey))
 
@@ -11226,7 +11236,7 @@ if __name__ == '__main__':
     file('const_gen.py','w').write( '\n'.join(out))
     file('ppc_tables.py','w').write( '\n'.join(out2))
     file('disasm_gen.py','w').write( '\n'.join(out3))
-    file('test_ppc.py','w').write(utest)
+    #file('test_ppc.py','w').write(utest)
 
 
 ''' 

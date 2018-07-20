@@ -122,11 +122,11 @@ def simpleSYNC(ival, mnem, opcode, opers, iflags):
     #if opers 
     return mnem, opcode, opers, iflags
 def simpleISEL(ival, mnem, opcode, opers, iflags):
-    if opers[-1].val == 0:
+    if opers[-1].bit == 0:
         return 'isellt', INS_ISELLT, (opers[0], opers[1], opers[2]), iflags
-    if opers[-1].val == 1:
+    if opers[-1].bit == 1:
         return 'iselgt', INS_ISELGT, (opers[0], opers[1], opers[2]), iflags
-    if opers[-1].val == 2:
+    if opers[-1].bit == 2:
         return 'iseleq', INS_ISELEQ, (opers[0], opers[1], opers[2]), iflags
     return mnem, opcode, opers, iflags
 
@@ -194,15 +194,12 @@ def form_D(va, ival, operands, iflags):
     return opcode, opers, iflags
     
 def form_DS(va, ival, operands, iflags):
-    opers = []
     opcode = None
 
     opvals = [((ival >> oshr) & omask) for onm, otype, oshr, omask in operands]
     oper0 = OPERCLASSES[operands[0][1]](opvals[0], va)
-    opers.append(oper0)
-
     oper1 = PpcMemOper(opvals[1], opvals[2], va)
-    opers.append(oper1)
+    opers = (oper0, oper1)
     return opcode, opers, iflags
     
 def form_MDS(va, ival, operands, iflags):
@@ -218,6 +215,35 @@ def form_MDS(va, ival, operands, iflags):
     oper3 = PpcImmOper(val, va)
 
     opers = (oper0, oper1, oper2, oper3)
+    return opcode, opers, iflags
+    
+def form_MD(va, ival, operands, iflags):
+    opers = []
+    opcode = None
+
+    opvals = [((ival >> oshr) & omask) for onm, otype, oshr, omask in operands]
+    oper0 = OPERCLASSES[operands[0][1]](opvals[0], va)
+    oper1 = OPERCLASSES[operands[1][1]](opvals[1], va)
+
+    val = (opvals[5] << 5) | opvals[2]
+    oper2 = PpcImmOper(val, va)
+    val = (opvals[4] << 5) | opvals[3]
+    oper3 = PpcImmOper(val, va)
+
+    opers = (oper0, oper1, oper2, oper3)
+    return opcode, opers, iflags
+    
+def form_XS(va, ival, operands, iflags):
+    opers = []
+    opcode = None
+
+    opvals = [((ival >> oshr) & omask) for onm, otype, oshr, omask in operands]
+    oper0 = OPERCLASSES[operands[0][1]](opvals[0], va)
+    oper1 = OPERCLASSES[operands[1][1]](opvals[1], va)
+    val = (opvals[3] << 5) | opvals[2]
+    oper2 = PpcImmOper(val, va)
+
+    opers = (oper0, oper1, oper2)
     return opcode, opers, iflags
     
 def form_XFX(va, ival, operands, iflags):
@@ -251,6 +277,8 @@ decoders[FORM_D] = form_D
 decoders[FORM_DS] = form_DS
 decoders[FORM_XFX] = form_XFX
 decoders[FORM_MDS] = form_MDS
+decoders[FORM_MD] = form_MD
+decoders[FORM_XS] = form_XS
 
         
 def genTests(abytez):

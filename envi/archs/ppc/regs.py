@@ -56,6 +56,14 @@ e_reg.addLocalEnums(l, ppc_regs)
 ppc_meta = [ 
         ('sp', REG_R1, 0, 32),
         ('toc', REG_R2, 0, 32),
+        ('cr0', REG_CR, 0, 4),
+        ('cr1', REG_CR, 4, 4),
+        ('cr2', REG_CR, 8, 4),
+        ('cr3', REG_CR, 12, 4),
+        ('cr4', REG_CR, 16, 4),
+        ('cr5', REG_CR, 20, 4),
+        ('cr6', REG_CR, 24, 4),
+        ('cr7', REG_CR, 28, 4),
 ]
 REG_SP = REG_R1
 
@@ -82,7 +90,7 @@ def getCrFields(regval):
     return ret
 
 e_reg.addLocalStatusMetas(l, ppc_meta, statmetas, 'FLAGS')
-#e_reg.addLocalMetas(l, ppc_meta)
+e_reg.addLocalMetas(l, ppc_meta)
 
 class PpcRegisterContext(e_reg.RegisterContext):
     def __init__(self):

@@ -144,20 +144,64 @@ class PpcVRegOper(PpcRegOper):
         self.reg = reg      + REG_IDX_VECTOR
         
 class PpcCRegOper(PpcRegOper):
-    ''' CR register operand.'''
-    def __init__(self, reg, va=0):
+    ''' CR register operand field.'''
+    def __init__(self, field, va=0):
         self.va = va
-        self.reg = reg
+        self.reg = REG_CR
+        self.field = field
         
     def render(self, mcanv, op, idx):
         #rname = ppc_regs[self.reg][0]
-        rname = "cr%d" % self.reg
-        mcanv.addNameText(rname, typename='registers')
+        rname = "cr%d" % self.field
+        mcanv.addNameText(rname, typename='cregisters')
 
     def repr(self, op):
         #rname = ppc_regs[self.reg][0]
-        rname = "cr%d" % self.reg
+        rname = "cr%d" % self.field
         return rname
+
+    def getOperValue(self, op, emu=None):
+        if emu == None:
+            return
+
+        cr = emu.getRegister(REG_CR)
+        crb = (cr >> (self.field*4)) & 0xf
+        return crb
+
+
+CRBITS = ('lt', 'gt', 'eq', 'so')
+class PpcCBRegOper(PpcRegOper):
+    ''' CR register operand.'''
+    def __init__(self, bit, va=0):
+        self.va = va
+        self.reg = REG_CR
+        self.bit = bit
+        
+    def render(self, mcanv, op, idx):
+        #rname = ppc_regs[self.reg][0]
+        creg = self.bit / 4
+        coff = self.bit % 4
+        name = "cr%d" % (creg)
+        rname = "cr%d.%s" % (creg, CRBITS[coff])
+        mcanv.addNameText(rname, name=name, typename='cregisters')
+
+    def repr(self, op):
+        #rname = ppc_regs[self.reg][0]
+        creg = self.bit / 4
+        coff = self.bit % 4
+        rname = "cr%d.%s" % (creg, CRBITS[coff])
+        return rname
+
+    def getOperValue(self, op, emu=None):
+        if emu == None:
+            return
+
+        cr = emu.getRegister(REG_CR)
+        crb = (cr >> self.bit) & 1
+
+        return crb
+
+
 
 
 class PpcImmOper(envi.ImmedOper):
@@ -232,6 +276,10 @@ class PpcUImm3Oper(PpcUImmOper):
     def __init__(self, val, va=0):
         self.val = val * 4
 
+class PpcSImm3Oper(PpcUImmOper):
+    ''' Unsigned Immediate operand. '''
+    def __init__(self, val, va=0):
+        self.val = e_bits.signed(val * 4, 2)
 
 
 class PpcMemOper(envi.DerefOper):
@@ -338,7 +386,7 @@ class PpcMemOper(envi.DerefOper):
 
 
 OPERCLASSES = {
-    FIELD_BD : PpcImmOper,
+    FIELD_BD : PpcSImm3Oper,
     FIELD_BH : PpcImmOper,
     FIELD_BI : PpcImmOper,
     FIELD_BO : PpcImmOper,
@@ -381,18 +429,19 @@ OPERCLASSES = {
     FIELD_TMRN5_9 : PpcImmOper,
     FIELD_TO : PpcImmOper,
     FIELD_UIMM : PpcImmOper,
-    FIELD_UIMM1 : PpcImmOper,
-    FIELD_UIMM2 : PpcImmOper,
-    FIELD_UIMM3 : PpcImmOper,
+    FIELD_UIMM1 : PpcUImm1Oper,
+    FIELD_UIMM2 : PpcUImm2Oper,
+    FIELD_UIMM3 : PpcUImm3Oper,
     FIELD_W : PpcImmOper,
     FIELD_WC : PpcImmOper,
     FIELD_WH : PpcImmOper,
     FIELD_crD : PpcCRegOper,
-    FIELD_crb : PpcImmOper,
-    FIELD_crbA : PpcImmOper,
-    FIELD_crbB : PpcImmOper,
-    FIELD_crbC : PpcImmOper,
-    FIELD_crbD : PpcImmOper,
+    FIELD_crb : PpcCBRegOper,
+    FIELD_crbA : PpcCBRegOper,
+    FIELD_crbB : PpcCBRegOper,
+    FIELD_crbC : PpcCBRegOper,
+    FIELD_crbD : PpcCBRegOper,
+    FIELD_crfD : PpcCRegOper,
     FIELD_crfS : PpcCRegOper,
     FIELD_frA : PpcFRegOper,
     FIELD_frB : PpcFRegOper,
