@@ -13,7 +13,9 @@ from vle_ops import *
 from regs import *
 import envi
 import struct
+from disasm_classes import *
 
+'''
 def addrToName(mcanv, va):
     sym = mcanv.syms.getSymByAddr(va)
     if sym != None:
@@ -94,7 +96,7 @@ class PpcOpcode(envi.Opcode):
             oper.render(mcanv, self, i)
             if i != lasti:
                 mcanv.addText(",")
-
+'''
 
 class PpcRegOper(envi.RegisterOper):
     ''' register operand.  see "addressing mode 1 - data processing operands - register" '''
@@ -288,7 +290,7 @@ class PpcJmpOper(envi.RegisterOper):
     '''
     def __init__(self, val, va):
         self.va = va
-        self.val = val
+        self.val = e_bits.signed(val, 4)
 
     def __eq__(self, oper):
         if not isinstance(oper, self.__class__):
@@ -321,7 +323,6 @@ class PpcJmpOper(envi.RegisterOper):
             mcanv.addVaText('0x%.8x' % value, value)
 
     def repr(self, op):
-        print "repr"
         targ = self.getOperValue(op)
         tname = "0x%.8x" % targ
         return tname
@@ -527,9 +528,9 @@ def case_E_I16LS(types, data, va):
     val0 = (data & 0x3E00000) >> 21;
     op0 = operands[types[0]]
     val1 = (data & 0x1F0000) >> 5;
-    val1 |= (data & 0x3FF);
-    if (val1 & 0x4000):
-            val1 = 0xFFF8000 | val1;
+    val1 |= (data & 0x7FF);
+    if (val1 & 0x8000):
+            val1 = 0xFFFF8000 | val1;
     
     op1 = operands[types[1]]
 
@@ -537,9 +538,9 @@ def case_E_I16LS(types, data, va):
     return opers
 
 def case_E_BD24(types, data, va):
-    val0 = data & 0x3FFFFFE;
-    if (val0 & 0x3000000):
-        val0 |= 0xFC000000;
+    val0 = data & 0x1FFFFFE;
+    if (val0 & 0x100000):
+        val0 |= 0xFE000000;
 
     op0 = operands[types[0]]
 
@@ -550,8 +551,8 @@ def case_E_BD15(types, data, va):
     val0 = (data & 0xC0000) >> 18;
     op0 = operands[types[0]]
     val1 = data & 0xFFE;
-    if (val1 & 0x800):
-            val1 |= 0xFFFFF000;
+    if (val1 & 0x8000):
+        val1 |= 0xFFFF0000;
     
     op1 = operands[types[1]]
 
@@ -746,12 +747,17 @@ def case_F_MFPR(types, data, va):
 
 def case_F_MTPR(types, data, va):
     #inverted
-    val1 = (data & 0x1E00000) >> 21;
-    op1 = operands[types[1]]
-    val0 = (data & 0x1FF800) >> 11;
-    op0 = operands[types[0]]
+    opers = []
+    if types[1] != TYPE_NONE:
+        val1 = (data & 0x1E00000) >> 21;
+        op1 = operands[types[1]]
+        opers.append(op1(val1, va))
 
-    opers = ( op0(val0, va), op1(val1, va), )
+    if types[0] != TYPE_NONE:
+        val0 = (data & 0x1FF800) >> 11;
+        op0 = operands[types[0]]
+        opers.append(op0(val0, va))
+
     return opers
 
 def case_F_NONE(types, data, va):
@@ -866,6 +872,7 @@ def find_se(buf, offset, endian=True, va=0):
                 elif ftype == TYPE_REG and value & 8:
                     value = (value & 0x7) + 24
 
+                print "val: %x"% value
                 opieces[idx] = (ftype, value)
                 k += 1
 
@@ -875,8 +882,6 @@ def find_se(buf, offset, endian=True, va=0):
             while k < n:
                 ftype, value = opieces[k]
                 handler = operands[ftype]
-                if value & 0x8:
-                    value = (value & 7) + 24
 
                 if ftype == TYPE_MEM:
                     k += 1
