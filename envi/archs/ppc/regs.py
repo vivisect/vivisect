@@ -11,43 +11,50 @@ vectors = [('v%s' % x, 64)  for x in range(32)]
 vectors.append( ('vscr', 64) )
 
 sysregs = (
-        ('xer', 64),
+        #('xer', 64),
         ('acc', 64), 
-        ('lr', 64),
+        #('lr', 64),
         ('cr', 32),
         ('msr', 64),
-        ('bucsr', 64),
-        ('msrp', 64),
-        ('epcr', 64),
-        ('hid0', 64),
-        ('hid1', 64),
-        ('pir', 64),
-        ('pvr', 64),
-        ('svr', 64),
-        ('cvr', 64),
-        ('gpir', 64),
+        #('bucsr', 64),
+        #('msrp', 64),
+        #('epcr', 64),
+        #('hid0', 64),
+        #('hid1', 64),
+        #('pir', 64),
+        #('pvr', 64),
+        #('svr', 64),
+        #('cvr', 64),
+        #('gpir', 64),
         ('tmcfg0', 64),
         ('imsr0', 64),
         ('tpri0', 64),
-        ('tir', 64),
+        #('tir', 64),
         ('ten', 64),
-        ('tens', 64),
-        ('tenc', 64),
-        ('tensr', 64),
-        ('sccsrbar', 64),
-        ('ppr32', 64),
-        ('ctr', 64), 
+        #('tens', 64),
+        #('tenc', 64),
+        #('tensr', 64),
+        #('sccsrbar', 64),
+        #('ppr32', 64),
+        #('ctr', 64), 
         ('pc', 32),
         )
 
 ppc_regs = []
 ppc_regs.extend(gprs)
-REG_IDX_FP = len(ppc_regs)
+
+REG_OFFSET = len(ppc_regs)
 ppc_regs.extend(floats)
-REG_IDX_VECTOR = len(ppc_regs)
+
+REG_OFFSET = len(ppc_regs)
 ppc_regs.extend(vectors)
 
+REG_OFFSET = len(ppc_regs)
 ppc_regs.extend(sysregs)
+
+import spr
+spr_regs = [(rname, bitsz) for sprnum, (rname, rdesc, bitsz) in spr.sprs.items()]
+ppc_regs.extend(spr_regs)
 
 # dynamically create REG_EAX and the like in our module
 l = locals()
@@ -69,15 +76,38 @@ REG_SP = REG_R1
 
 
 statmetas = [   # FIXME
-        ('CF', REG_CR, 0, 1, 'Carry Flag'),
-        ('PF', REG_CR, 2, 1, 'Parity Flag'),
-        ('AF', REG_CR, 4, 1, 'Adjust Flag'),
-        ('ZF', REG_CR, 6, 1, 'Zero Flag'),
-        ('SF', REG_CR, 7, 1, 'Sign Flag'),
-        ('TF', REG_CR, 8, 1, 'Trap Flag'),
-        ('IF', REG_CR, 9, 1, 'Interrupt Enable Flag'),
-        ('DF', REG_CR, 10, 1, 'Direction Flag'),
-        ('OF', REG_CR, 11, 1, 'Overflow Flag'),
+        ('LT', REG_CR, 0, 1, 'Less Than Flag'),
+        ('GT', REG_CR, 1, 1, 'Greater Than Flag'),
+        ('EQ', REG_CR, 2, 1, 'Equal to Flag'),
+        ('SO', REG_CR, 3, 1, 'Summary Overflow Flag'),
+        ('CR1_LT', REG_CR, 0, 1, 'Less Than Flag'),
+        ('CR1_GT', REG_CR, 1, 1, 'Greater Than Flag'),
+        ('CR1_EQ', REG_CR, 2, 1, 'Equal to Flag'),
+        ('CR1_SO', REG_CR, 3, 1, 'Summary Overflow Flag'),
+        ('CR2_LT', REG_CR, 0, 1, 'Less Than Flag'),
+        ('CR2_GT', REG_CR, 1, 1, 'Greater Than Flag'),
+        ('CR2_EQ', REG_CR, 2, 1, 'Equal to Flag'),
+        ('CR2_SO', REG_CR, 3, 1, 'Summary Overflow Flag'),
+        ('CR3_LT', REG_CR, 0, 1, 'Less Than Flag'),
+        ('CR3_GT', REG_CR, 1, 1, 'Greater Than Flag'),
+        ('CR3_EQ', REG_CR, 2, 1, 'Equal to Flag'),
+        ('CR3_SO', REG_CR, 3, 1, 'Summary Overflow Flag'),
+        ('CR4_LT', REG_CR, 0, 1, 'Less Than Flag'),
+        ('CR4_GT', REG_CR, 1, 1, 'Greater Than Flag'),
+        ('CR4_EQ', REG_CR, 2, 1, 'Equal to Flag'),
+        ('CR4_SO', REG_CR, 3, 1, 'Summary Overflow Flag'),
+        ('CR5_LT', REG_CR, 0, 1, 'Less Than Flag'),
+        ('CR5_GT', REG_CR, 1, 1, 'Greater Than Flag'),
+        ('CR5_EQ', REG_CR, 2, 1, 'Equal to Flag'),
+        ('CR5_SO', REG_CR, 3, 1, 'Summary Overflow Flag'),
+        ('CR6_LT', REG_CR, 0, 1, 'Less Than Flag'),
+        ('CR6_GT', REG_CR, 1, 1, 'Greater Than Flag'),
+        ('CR6_EQ', REG_CR, 2, 1, 'Equal to Flag'),
+        ('CR6_SO', REG_CR, 3, 1, 'Summary Overflow Flag'),
+        ('CR7_LT', REG_CR, 0, 1, 'Less Than Flag'),
+        ('CR7_GT', REG_CR, 1, 1, 'Greater Than Flag'),
+        ('CR7_EQ', REG_CR, 2, 1, 'Equal to Flag'),
+        ('CR7_SO', REG_CR, 3, 1, 'Summary Overflow Flag'),
         ]
 # FIXME: FPSCR bits
 # FIXME: CR bits!
