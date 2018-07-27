@@ -315,7 +315,6 @@ class PpcJmpOper(envi.RegisterOper):
 
     def render(self, mcanv, op, idx):
         value = self.getOperValue(op)
-        print (value)
         if mcanv.mem.isValidPointer(value):
             name = addrToName(mcanv, value)
             mcanv.addVaText(name, value)
@@ -550,7 +549,7 @@ def case_E_BD24(types, data, va):
 def case_E_BD15(types, data, va):
     val0 = (data & 0xC0000) >> 18;
     op0 = operands[types[0]]
-    val1 = data & 0xFFE;
+    val1 = data & 0xFFFE;
     if (val1 & 0x8000):
         val1 |= 0xFFFF0000;
     
@@ -872,7 +871,6 @@ def find_se(buf, offset, endian=True, va=0):
                 elif ftype == TYPE_REG and value & 8:
                     value = (value & 0x7) + 24
 
-                print "val: %x"% value
                 opieces[idx] = (ftype, value)
                 k += 1
 
