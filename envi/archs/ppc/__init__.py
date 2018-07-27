@@ -43,7 +43,7 @@ class PpcModule(envi.ArchitectureModule):
         return '0x%.8x' % va
 
     def archParseOpcode(self, bytes, offset=0, va=0):
-        print offset, hex(va), self.isVle(va), self.maps
+        #print offset, hex(va), self.isVle(va), self.maps
         if self.isVle(va):
             print "isVle"
             return self._arch_vle_dis.disasm(bytes, offset, va)
