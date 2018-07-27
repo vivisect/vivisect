@@ -28,7 +28,8 @@ class PpcOpcode(envi.Opcode):
 
         # If we are a conditional branch, even our fallthrough
         # case is conditional...
-        if self.iflags & (IF_BRANCH | IF_COND):
+        #if self.iflags & (IF_BRANCH | IF_COND):
+        if self.iflags & (IF_COND):
             flags |= envi.BR_COND
             addb = True
 
@@ -36,7 +37,7 @@ class PpcOpcode(envi.Opcode):
         if not self.iflags & envi.IF_NOFALL:
             ret.append((self.va + self.size, flags|envi.BR_FALL))
 
-        # In intel, if we have no operands, it has no
+        # In most architectures, if we have no operands, it has no
         # further branches...
         if len(self.opers) == 0:
             return ret
@@ -51,16 +52,16 @@ class PpcOpcode(envi.Opcode):
             flags |= (envi.BR_PROC | envi.BR_COND)
             addb = True
 
-        elif self.iflags == IF_BRANCH:
+        elif self.iflags & IF_BRANCH:
             addb = True
 
         if addb:
-            oper0 = self.opers[0]
-            if oper0.isDeref():
+            oper = self.opers[-1]
+            if oper.isDeref():
                 flags |= envi.BR_DEREF
-                tova = oper0.getOperAddr(self, emu=emu)
+                tova = oper.getOperAddr(self, emu=emu)
             else:
-                tova = oper0.getOperValue(self, emu=emu)
+                tova = oper.getOperValue(self, emu=emu)
 
             ret.append((tova, flags))
 
@@ -201,9 +202,6 @@ class PpcCBRegOper(PpcRegOper):
 
         return crb
 
-
-
-
 class PpcImmOper(envi.ImmedOper):
     ''' Immediate operand. '''
     def __init__(self, val, va=0):
@@ -233,6 +231,24 @@ class PpcImmOper(envi.ImmedOper):
     def render(self, mcanv, op, idx):
         val = self.getOperValue(op)
         mcanv.addNameText('0x%.2x' % (val))
+
+    def render(self, mcanv, op, idx):
+        value = self.val
+        hint = mcanv.syms.getSymHint(op.va, idx)
+        if hint != None:
+            if mcanv.mem.isValidPointer(value):
+                mcanv.addVaText(hint, value)
+            else:
+                mcanv.addNameText(hint)
+        elif mcanv.mem.isValidPointer(value):
+            name = addrToName(mcanv, value)
+            mcanv.addVaText(name, value)
+        else:
+
+            if self.val >= 4096:
+                mcanv.addNameText('0x%.8x' % value)
+            else:
+                mcanv.addNameText(str(value))
 
     def repr(self, op):
         val = self.getOperValue(op)
@@ -283,7 +299,7 @@ class PpcSImm3Oper(PpcUImmOper):
 
 
 class PpcMemOper(envi.DerefOper):
-    ''' immediate offset operand.
+    ''' immediate offset memory operand.
 
     0xOFFSET (base_reg)
 
