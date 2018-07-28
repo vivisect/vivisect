@@ -121,6 +121,7 @@ def simpleMTCRF(ival, mnem, opcode, opers, iflags):
 def simpleSYNC(ival, mnem, opcode, opers, iflags):
     #if opers 
     return mnem, opcode, opers, iflags
+
 def simpleISEL(ival, mnem, opcode, opers, iflags):
     if opers[-1].bit == 0:
         return 'isellt', INS_ISELLT, (opers[0], opers[1], opers[2]), iflags
@@ -130,6 +131,16 @@ def simpleISEL(ival, mnem, opcode, opers, iflags):
         return 'iseleq', INS_ISELEQ, (opers[0], opers[1], opers[2]), iflags
     return mnem, opcode, opers, iflags
 
+
+from spr import *
+def simpleMTSPR(ival, mnem, opcode, opers, iflags):
+    spr = sprs.get(opers)
+    return 'mt' + spr[0], opcode, opers[1:], iflags
+
+def simpleMFSPR(ival, mnem, opcode, opers, iflags):
+    spr = sprs.get(opers)
+    return 'mf' + spr[0], opcode, opers[1:], iflags
+
 SIMPLIFIEDS = {
         INS_ORI     : simpleORI,
         INS_ADDI    : simpleADDI,
@@ -138,6 +149,7 @@ SIMPLIFIEDS = {
         INS_MTCRF   : simpleMTCRF,
         INS_SYNC    : simpleSYNC,
         INS_ISEL    : simpleISEL,
+        INS_MTSPR   : simpleMTSPR,
 }
 
 def form_DFLT(va, ival, operands, iflags):
@@ -146,6 +158,20 @@ def form_DFLT(va, ival, operands, iflags):
 
     for onm, otype, oshr, omask in operands:
         val = (ival >> oshr) & omask
+        oper = OPERCLASSES[otype](val, va)
+        opers.append(oper)
+
+    return opcode, opers, iflags
+    
+def form_XL(va, ival, operands, iflags):
+    opers = []
+    opcode = None
+
+    for onm, otype, oshr, omask in operands:
+        val = (ival >> oshr) & omask
+        if otype == FIELD_BH:
+            iflags |= BHFLAGS[val]
+            continue # FIXME: this may want to change...
         oper = OPERCLASSES[otype](val, va)
         opers.append(oper)
 
@@ -190,6 +216,23 @@ def form_D(va, ival, operands, iflags):
         val = (ival >> oshr) & omask
         oper = OPERCLASSES[otype](val, va)
         opers.append(oper)
+
+    return opcode, opers, iflags
+    
+def form_B(va, ival, operands, iflags):
+    opcode = None
+
+    opvals = [((ival >> oshr) & omask) for onm, otype, oshr, omask in operands]
+    oper0 = PpcCBRegOper(opvals[0], va)
+    tgt = opvals[1] << 2
+    if iflags & IF_ABS:
+        oper1 = PpcUImmOper(tgt, va)
+    else:
+        val = e_bits.signed(tgt, 2) + va
+        oper1 = PpcUImmOper(val, va)
+
+    #opers = (oper0, oper1, oper2)
+    opers = (oper0, oper1)
 
     return opcode, opers, iflags
     
@@ -274,11 +317,13 @@ def form_XFX(va, ival, operands, iflags):
 decoders = { eval(x) : form_DFLT for x in globals().keys() if x.startswith('FORM_') }
 decoders[FORM_EVX] = form_EVX
 decoders[FORM_D] = form_D
+decoders[FORM_B] = form_B
 decoders[FORM_DS] = form_DS
 decoders[FORM_XFX] = form_XFX
 decoders[FORM_MDS] = form_MDS
 decoders[FORM_MD] = form_MD
 decoders[FORM_XS] = form_XS
+decoders[FORM_XL] = form_XL
 
         
 def genTests(abytez):
