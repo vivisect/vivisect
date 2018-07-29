@@ -76,7 +76,12 @@ class PpcOpcode(envi.Opcode):
             if pfx:
                 mcanv.addNameText("%s: " % pfx, pfx)
 
-        mcanv.addNameText(self.mnem, typename="mnemonic")
+        mnem = self.mnem
+        if self.iflags & IF_BRANCH_LIKELY:
+            mnem += '+'
+        elif self.iflags & IF_BRANCH_UNLIKELY:
+            mnem += '-'
+        mcanv.addNameText(mnem, typename="mnemonic")
         mcanv.addText(" ")
 
         # Allow each of our operands to render
