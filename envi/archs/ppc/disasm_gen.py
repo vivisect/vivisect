@@ -2,7 +2,7 @@
 OPERCLASSES = {
     FIELD_BD : PpcSImm3Oper,
     FIELD_BH : PpcImmOper,
-    FIELD_BI : PpcImmOper,
+    FIELD_BI : PpcCBRegOper,
     FIELD_BO : PpcImmOper,
     FIELD_CRM : PpcImmOper,
     FIELD_CT : PpcImmOper,

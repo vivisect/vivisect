@@ -34,7 +34,7 @@ class PpcOpcode(envi.Opcode):
             addb = True
 
         # If we can fall through, reflect that...
-        if not self.iflags & envi.IF_NOFALL:
+        if not self.iflags & (envi.IF_NOFALL | envi.IF_RET | envi.IF_BRANCH) or self.iflags & envi.IF_COND:
             ret.append((self.va + self.size, flags|envi.BR_FALL))
 
         # In most architectures, if we have no operands, it has no
@@ -81,7 +81,7 @@ class PpcOpcode(envi.Opcode):
             mnem += '+'
         elif self.iflags & IF_BRANCH_UNLIKELY:
             mnem += '-'
-        mcanv.addNameText(mnem, typename="mnemonic")
+        mcanv.addNameText(mnem, self.mnem, typename="mnemonic")
         mcanv.addText(" ")
 
         # Allow each of our operands to render
@@ -202,7 +202,7 @@ class PpcCBRegOper(PpcRegOper):
         if emu == None:
             return
 
-        cr = emu.getRegister(REG_CR)
+        cr = emu.getRegister(self.reg)
         crb = (cr >> self.bit) & 1
 
         return crb
@@ -409,7 +409,7 @@ class PpcMemOper(envi.DerefOper):
 OPERCLASSES = {
     FIELD_BD : PpcSImm3Oper,
     FIELD_BH : PpcImmOper,
-    FIELD_BI : PpcImmOper,
+    FIELD_BI : PpcCBRegOper,
     FIELD_BO : PpcImmOper,
     FIELD_CRM : PpcImmOper,
     FIELD_CT : PpcImmOper,

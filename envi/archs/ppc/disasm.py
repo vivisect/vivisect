@@ -132,13 +132,15 @@ def simpleISEL(ival, mnem, opcode, opers, iflags):
     return mnem, opcode, opers, iflags
 
 
-from spr import *
+from regs import sprnames
 def simpleMTSPR(ival, mnem, opcode, opers, iflags):
-    spr = sprs.get(opers)
-    return 'mt' + spr[0], opcode, opers[1:], iflags
+    spridx = opers[0].val
+    spr = sprnames.get(spridx)
+    return 'mt' + spr, opcode, opers[1:], iflags
 
 def simpleMFSPR(ival, mnem, opcode, opers, iflags):
-    spr = sprs.get(opers)
+    spridx = opers[0].val
+    spr = sprnames.get(spridx)
     return 'mf' + spr[0], opcode, opers[1:], iflags
 
 SIMPLIFIEDS = {
@@ -220,22 +222,41 @@ def form_D(va, ival, operands, iflags):
     return opcode, opers, iflags
     
 def form_B(va, ival, operands, iflags):
+    opers = []
     opcode = None
 
     opvals = [((ival >> oshr) & omask) for onm, otype, oshr, omask in operands]
-    oper0 = PpcCBRegOper(opvals[0], va)
+
+    # contingency for decoding BC opcodes with BO left in tact (basically, BC, BCL, BCA, BCLA)
+    if len(opvals) == 3:
+        opers.append(PpcImmOper(opvals.pop(0), va))
+
+    opers.append(PpcCBRegOper(opvals[0], va))
+
     tgt = opvals[1] << 2
     if iflags & IF_ABS:
-        oper1 = PpcUImmOper(tgt, va)
+        opers.append(PpcUImmOper(tgt, va))
     else:
         val = e_bits.signed(tgt, 2) + va
-        oper1 = PpcUImmOper(val, va)
-
-    #opers = (oper0, oper1, oper2)
-    opers = (oper0, oper1)
+        opers.append(PpcUImmOper(val, va))
 
     return opcode, opers, iflags
-    
+
+def form_I(va, ival, operands, iflags):
+    opers = []
+    opcode = None
+
+    opvals = [((ival >> oshr) & omask) for onm, otype, oshr, omask in operands]
+
+    tgt = opvals[0] << 2
+    if iflags & IF_ABS:
+        opers.append(PpcUImmOper(tgt, va))
+    else:
+        val = e_bits.bsigned(tgt, 26) + va
+        opers.append(PpcUImmOper(val, va))
+
+    return opcode, opers, iflags
+
 def form_DS(va, ival, operands, iflags):
     opcode = None
 
@@ -318,6 +339,7 @@ decoders = { eval(x) : form_DFLT for x in globals().keys() if x.startswith('FORM
 decoders[FORM_EVX] = form_EVX
 decoders[FORM_D] = form_D
 decoders[FORM_B] = form_B
+decoders[FORM_I] = form_I
 decoders[FORM_DS] = form_DS
 decoders[FORM_XFX] = form_XFX
 decoders[FORM_MDS] = form_MDS

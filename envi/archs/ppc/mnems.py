@@ -10978,59 +10978,42 @@ simplified_mnemonics = (
 aa = ('','a','lr','ctr')
 lk = ('','l')
 
-bobits = ('', )
-baz =    { 
-        0x14: (),
-        0x1b: (),
-}
-
-foo = ('b', 'bt', 'bf', 'bdnz', 'bdnzt', 'bdnzf', 'bdz', 'bdzt', 'bdzf')
 foo = (
-        ('bdnzf', 'envi.IF_COND | envi.IF_BRANCH'), 
-        None, 
-        ('bdzf', 'envi.IF_COND | envi.IF_BRANCH'), 
-        None, 
-        ('bdzf', 'envi.IF_COND | envi.IF_BRANCH'), 
-        None, 
-        ('bf', 'envi.IF_COND | envi.IF_BRANCH'), 
-        None, 
-        ('bf', 'envi.IF_COND | envi.IF_BRANCH | IF_BRANCH_UNLIKELY'), 
-        ('bf', 'envi.IF_COND | envi.IF_BRANCH | IF_BRANCH_LIKELY'), 
-        ('bdnzt', 'envi.IF_COND | envi.IF_BRANCH'), 
-        None, 
-        ('bdzt', 'envi.IF_COND | envi.IF_BRANCH'), 
+        ('bdnzf', 'envi.IF_COND | envi.IF_BRANCH', 0), 
+        ('bdnzf', 'envi.IF_COND | envi.IF_BRANCH | IF_BRANCH_LIKELY', 0), 
+        ('bdzf', 'envi.IF_COND | envi.IF_BRANCH', 0), 
+        ('bdzf', 'envi.IF_COND | envi.IF_BRANCH | IF_BRANCH_LIKELY', 0), 
+        ('bf', 'envi.IF_COND | envi.IF_BRANCH', 0), 
+        ('bf', 'envi.IF_COND | envi.IF_BRANCH', 0), # reserved bit used...
+        ('bf', 'envi.IF_COND | envi.IF_BRANCH | IF_BRANCH_UNLIKELY', 0), 
+        ('bf', 'envi.IF_COND | envi.IF_BRANCH | IF_BRANCH_LIKELY', 0), 
+        ('bdnzt', 'envi.IF_COND | envi.IF_BRANCH', 0), 
+        ('bdnzt', 'envi.IF_COND | envi.IF_BRANCH', 0), # sbz
+        ('bdzt', 'envi.IF_COND | envi.IF_BRANCH', 0), 
+        ('bdzt', 'envi.IF_COND | envi.IF_BRANCH', 0),  # sbz
+        ('bt', 'envi.IF_COND | envi.IF_BRANCH', 0),
         None,
-        ('bt', 'envi.IF_COND | envi.IF_BRANCH'),
+        ('bt', 'envi.IF_COND | envi.IF_BRANCH | IF_BRANCH_UNLIKELY', 0),
+        ('bt', 'envi.IF_COND | envi.IF_BRANCH | IF_BRANCH_LIKELY', 0),
+        ('bdnz', 'envi.IF_COND | envi.IF_BRANCH', 1),
         None,
-        ('bt', 'envi.IF_COND | envi.IF_BRANCH | IF_BRANCH_UNLIKELY'),
-        ('bt', 'envi.IF_COND | envi.IF_BRANCH | IF_BRANCH_LIKELY'),
-        ('bdnz', 'envi.IF_COND | envi.IF_BRANCH'),
+        ('bdz', 'envi.IF_COND | envi.IF_BRANCH', 1),
         None,
-        ('bdz', 'envi.IF_COND | envi.IF_BRANCH'),
-        None,
-        ('b', 'envi.IF_BRANCH'),
+        ('b', 'envi.IF_BRANCH', 1),
         None,
         None,
         None,
+        ('bdnz', 'envi.IF_COND | envi.IF_BRANCH | IF_BRANCH_UNLIKELY', 1),
+        ('bdnz', 'envi.IF_COND | envi.IF_BRANCH | IF_BRANCH_LIKELY', 1),
+        ('bdz', 'envi.IF_COND | envi.IF_BRANCH | IF_BRANCH_UNLIKELY', 1),
+        ('bdz', 'envi.IF_COND | envi.IF_BRANCH | IF_BRANCH_LIKELY', 1),
         None,
-        ('bdnz', 'envi.IF_COND | envi.IF_BRANCH | IF_BRANCH_UNLIKELY'),
-        ('bdnz', 'envi.IF_COND | envi.IF_BRANCH | IF_BRANCH_LIKELY'),
-        ('bdz', 'envi.IF_COND | envi.IF_BRANCH | IF_BRANCH_UNLIKELY'),
-        ('bdz', 'envi.IF_COND | envi.IF_BRANCH | IF_BRANCH_LIKELY'),
+        None,
+        None,
         None,
         # FIXME: Throw in other flags... (`  and Instructions... (INS_*)
 
         )
-bits = {
-        0x0  : '',
-        0x2  : '',
-        0x4  : '',
-        0x8  : '',
-        0xa  : '',
-        0xc  : '',
-        0x10 : '',
-        0x12 : 'dz',
-        }
 
 bcopcodes = []
 bclropcodes = []
@@ -11041,14 +11024,14 @@ for a in range(2):
             if foo[bo] == None:
                 continue
             
-            mnbase, flag = foo[bo]
+            mnbase, flag, opoff = foo[bo]
 
             #for bi in range(32):
             mnem = mnbase + lk[l] + aa[a]
             opcode = "INS_" + mnem.upper()
             num = 0x40000000 |(bo<<21) |  a<<1 | l
 
-            bcopcodes.append((mnem, opcode, (0xffe00003, num), flag))
+            bcopcodes.append((mnem, opcode, (0xffe00003, num), opoff, flag))
 
             mnem = mnbase + 'lr' + lk[l] + aa[a]
             if mnem == 'blr':
@@ -11056,13 +11039,13 @@ for a in range(2):
             opcode = "INS_" + mnem.upper()
             num = 0x4c000020 |(bo<<21) |  a<<1 | l
 
-            bclropcodes.append((mnem, opcode, (0xffe007ff, num), flag))
+            bclropcodes.append((mnem, opcode, (0xffe007ff, num), opoff, flag))
 
             mnem = mnbase + 'ctr' + lk[l] + aa[a]
             opcode = "INS_" + mnem.upper()
             num = 0x4c000420 |(bo<<21) |  a<<1 | l
 
-            bcctropcodes.append((mnem, opcode, (0xffe007ff, num), flag))
+            bcctropcodes.append((mnem, opcode, (0xffe007ff, num), opoff, flag))
 
 
 '''
@@ -11239,9 +11222,6 @@ def buildOutput():
 
             ##################### OPERAND ORDERING COMPLETE #####################
 
-
-            operands = "( " + ''.join(fout) + ") "
-            opcode = "INS_" + mnem.replace('.','').upper()
             form_const = FORM_CONST[form]
 
             # calculate flags...
@@ -11267,34 +11247,40 @@ def buildOutput():
             # data is ( mnem, opcode, form, cat, operands, iflags) 
             ncat = "CAT_" + cat.upper().replace('.', '_').replace(', ', ' | CAT_').replace(',',' | CAT_')
 
-            data = "'%s', %s, %s, %s, %s, %s" % (mnem, opcode, form_const, ncat, operands, '|'.join(iflags))
-
             ###### fixup bc
             if mnem == 'bc':
-                for mnem, bcopcode, (mask, val), flags in bcopcodes:
-                    operands = "( ( 'BI', FIELD_BI, 16, 0x1f ), ( 'BD', FIELD_BD, 2, 0x3fff ), )"
-                    data = "'%s', %s, %s, %s, %s, %s" % (mnem, bcopcode, form_const, ncat, operands, flags)
-                    out2.append('        (0x%x, 0x%x, ( %s ), ),' % (mask, val, data))
-                continue
+                for fmnem, bcopcode, (fmask, fval), opoff, fflags in bcopcodes:
+                    #operands = "( ( 'BI', FIELD_BI, 16, 0x1f ), ( 'BD', FIELD_BD, 2, 0x3fff ), )"
+                    operands = "( "+ ', '.join(["( 'BI', FIELD_BI, 16, 0x1f )", "( 'BD', FIELD_BD, 2, 0x3fff ),"][opoff:]) + " )"
+                    data = "'%s', %s, %s, %s, %s, %s" % (fmnem, bcopcode, form_const, ncat, operands, fflags)
+                    out2.append('        (0x%x, 0x%x, ( %s ), ),' % (fmask, fval, data))
+                #continue
 
             if mnem == 'bclr':
-                for mnem, bcopcode, (mask, val), flags in bclropcodes:
-                    operands = "( ( 'BI', FIELD_BI, 16, 0x1f ), )"
-                    data = "'%s', %s, %s, %s, %s, %s" % (mnem, bcopcode, form_const, ncat, operands, flags)
-                    out2.append('        (0x%x, 0x%x, ( %s ), ),' % (mask, val, data))
-                continue
-            if mnem == 'bclrl':
-                continue # this should be covered by the previous generator
+                for fmnem, bcopcode, (fmask, fval), opoff, fflags in bclropcodes:
+                    #operands = "( ( 'BI', FIELD_BI, 16, 0x1f ), )"
+                    operands = "( "+ ', '.join(["( 'BI', FIELD_BI, 16, 0x1f )," ][opoff:]) + " )"
+                    data = "'%s', %s, %s, %s, %s, %s" % (fmnem, bcopcode, form_const, ncat, operands, fflags)
+                    out2.append('        (0x%x, 0x%x, ( %s ), ),' % (fmask, fval, data))
+                #continue
+            #if mnem == 'bclrl':
+            #    continue # this should be covered by the previous generator
                 
             if mnem == 'bcctr':
-                for mnem, bcopcode, (mask, val), flags in bcctropcodes:
-                    operands = "( ( 'BI', FIELD_BI, 16, 0x1f ), )"
-                    data = "'%s', %s, %s, %s, %s, %s" % (mnem, bcopcode, form_const, ncat, operands, flags)
-                    out2.append('        (0x%x, 0x%x, ( %s ), ),' % (mask, val, data))
-                continue
+                for fmnem, bcopcode, (fmask, fval), opoff, fflags in bcctropcodes:
+                    #operands = "( ( 'BI', FIELD_BI, 16, 0x1f ), )"
+                    operands = "( "+ ', '.join(["( 'BI', FIELD_BI, 16, 0x1f )," ][opoff:]) + " )"
+                    data = "'%s', %s, %s, %s, %s, %s" % (fmnem, bcopcode, form_const, ncat, operands, fflags)
+                    out2.append('        (0x%x, 0x%x, ( %s ), ),' % (fmask, fval, data))
+                #continue
             
-            if mnem == 'bcctrl':
-                continue # this should be covered by the previous generator
+            #if mnem == 'bcctrl':
+            #    continue # this should be covered by the previous generator
+
+
+            operands = "( " + ''.join(fout) + ") "
+            opcode = "INS_" + mnem.replace('.','').upper()
+            data = "'%s', %s, %s, %s, %s, %s" % (mnem, opcode, form_const, ncat, operands, '|'.join(iflags))
 
             out2.append('        (0x%x, 0x%x, ( %s ), ),' % (mask, val, data))
 
@@ -11329,6 +11315,8 @@ def buildOutput():
             out3.append('    FIELD_%s : PpcUImm2Oper,' % (nkey))
         elif nkey == 'UIMM3':
             out3.append('    FIELD_%s : PpcUImm3Oper,' % (nkey))
+        elif key == 'BI':
+            out3.append('    FIELD_%s : PpcCBRegOper,' % (nkey))
         elif key == 'BD':
             out3.append('    FIELD_%s : PpcSImm3Oper,' % (nkey))
         else:
