@@ -39,6 +39,14 @@ def signed(value, size):
         x = (x - u_maxes[size]) - 1
     return x
 
+def bsigned(value, size):
+    """
+    Make a value signed based on it's size.
+    """
+    if value & bsign_bits[size]:
+        value = (value - bu_maxes[size]) - 1
+    return value
+
 def is_signed(value, size):
     x = unsigned(value, size)
     return bool(x & sign_bits[size])
