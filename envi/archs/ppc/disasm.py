@@ -88,6 +88,9 @@ class PpcDisasm:
 
         return mnem, opcode, opers, iflags
 
+# TODO simpleMnems:
+# cmpi -> cmpwi
+# rlwinm -> clrlwi
 
 def simpleORI(ival, mnem, opcode, opers, iflags):
     if ival == 0x60000000:
@@ -95,12 +98,15 @@ def simpleORI(ival, mnem, opcode, opers, iflags):
     return mnem, opcode, opers, iflags
 
 def simpleADDI(ival, mnem, opcode, opers, iflags):
-    if ival == 0x38000000:
+    if ival & 0xfc1f0000 == 0x38000000:
         return 'li', INS_LI, (opers[0], opers[2]), iflags
-    if ival == 0x3c000000:
+
+    return mnem, opcode, opers, iflags
+
+def simpleADDIS(ival, mnem, opcode, opers, iflags):
+    if ival & 0xfc1f0000 == 0x3c000000:
         return 'lis', INS_LIS, (opers[0], opers[2]), iflags
 
-    #  not sure how to do LA well just yet.
     return mnem, opcode, opers, iflags
 
 def simpleOR(ival, mnem, opcode, opers, iflags):
@@ -139,19 +145,21 @@ def simpleMTSPR(ival, mnem, opcode, opers, iflags):
     return 'mt' + spr, opcode, opers[1:], iflags
 
 def simpleMFSPR(ival, mnem, opcode, opers, iflags):
-    spridx = opers[0].val
+    spridx = opers[1].val
     spr = sprnames.get(spridx)
-    return 'mf' + spr[0], opcode, opers[1:], iflags
+    return 'mf' + spr, opcode, opers[:-1], iflags
 
 SIMPLIFIEDS = {
         INS_ORI     : simpleORI,
         INS_ADDI    : simpleADDI,
+        INS_ADDIS   : simpleADDIS,
         INS_OR      : simpleOR,
         INS_NOR     : simpleNOR,
         INS_MTCRF   : simpleMTCRF,
         INS_SYNC    : simpleSYNC,
         INS_ISEL    : simpleISEL,
-        INS_MTSPR   : simpleMTSPR,
+        #INS_MTSPR   : simpleMTSPR,
+        #INS_MFSPR   : simpleMFSPR,
 }
 
 def form_DFLT(va, ival, operands, iflags):
@@ -204,9 +212,9 @@ def form_D(va, ival, operands, iflags):
     opers = []
     opcode = None
 
+    opvals = [((ival >> oshr) & omask) for onm, otype, oshr, omask in operands]
     # if the last operand is FIELD_D, it's a memory deref.
     if len(operands) == 3 and operands[2][1] == FIELD_D:
-        opvals = [((ival >> oshr) & omask) for onm, otype, oshr, omask in operands]
         oper0 = OPERCLASSES[operands[0][1]](opvals[0], va)
         opers.append(oper0)
 
@@ -214,10 +222,20 @@ def form_D(va, ival, operands, iflags):
         opers.append(oper1)
         return opcode, opers, iflags
 
+    # check for rA being 0... and convert it to Immediate 0     TESTME: does this correctly slice the instruction set?
+    elif len(operands) == 3 and operands[1][1] == FIELD_rA and opvals[1] == 0:
+        oper0 = OPERCLASSES[operands[0][1]](opvals[0], va)
+        oper1 = PpcImmOper(0, va)
+        oper2 = OPERCLASSES[operands[2][1]](opvals[2], va)
+        opers = (oper0, oper1, oper2)
+        return opcode, opers, iflags
+
+    oidx = 0
     for onm, otype, oshr, omask in operands:
-        val = (ival >> oshr) & omask
+        val = opvals[oidx]
         oper = OPERCLASSES[otype](val, va)
         opers.append(oper)
+        oidx += 1
 
     return opcode, opers, iflags
     
@@ -309,7 +327,16 @@ def form_XS(va, ival, operands, iflags):
 
     opers = (oper0, oper1, oper2)
     return opcode, opers, iflags
-    
+   
+
+REG_OFFS = {
+        FIELD_DCRN0_4 : REG_OFFSET_DCR, 
+        FIELD_PMRN0_4 : REG_OFFSET_PMR, 
+        FIELD_SPRN0_4 : REG_OFFSET_SPR, 
+        FIELD_TMRN0_4 : REG_OFFSET_TMR, 
+        FIELD_TBRN0_4 : REG_OFFSET_TBR,
+        }
+
 def form_XFX(va, ival, operands, iflags):
     opers = []
     opcode = None
@@ -319,10 +346,12 @@ def form_XFX(va, ival, operands, iflags):
         if operands[1][1] in (FIELD_DCRN5_9, FIELD_PMRN5_9, FIELD_SPRN5_9, FIELD_TMRN5_9, FIELD_TBRN5_9,):
             val = (opvals[2] << 5) | opvals[1]
             oper0 = OPERCLASSES[operands[0][1]](opvals[0], va)
-            oper1 = PpcImmOper(val, va)    # FIXME: do we want specific DCRN, PMRN, SPRN, TMRN, TBRN operand types?
+            regoff = REG_OFFS.get(operands[2][1])
+            oper1 = PpcRegOper(regoff + val, va)
         else:
             val = (opvals[2] << 5) | opvals[0]
-            oper0 = PpcImmOper(val, va)    # FIXME: do we want specific DCRN, PMRN, SPRN, TMRN, TBRN operand types?
+            regoff = REG_OFFS.get(operands[2][1])
+            oper0 = PpcRegOper(regoff + val, va)    # FIXME: do we want specific DCRN, PMRN, SPRN, TMRN, TBRN operand types?
             oper1 = OPERCLASSES[operands[1][1]](opvals[1], va)
 
         opers = (oper0, oper1)
