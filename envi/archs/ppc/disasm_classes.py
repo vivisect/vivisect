@@ -360,6 +360,12 @@ class PpcMemOper(envi.DerefOper):
 
         return addr
 
+    def updateReg(self, emu):
+        rval = emu.getRegister(self.base_reg)
+        rval += self.offset
+        emu.setRegister(self.base_reg, rval)
+
+
     def render(self, mcanv, op, idx):
         basereg = ppc_regs[self.base_reg][0]
         if self.base_reg == REG_PC:

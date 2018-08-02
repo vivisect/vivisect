@@ -78,11 +78,14 @@ OPER_DST = 0
 
 class PpcEmulator(PpcModule, PpcRegisterContext, envi.Emulator):
 
-    def __init__(self):
-        # if not handed in, regarray is initialized to the standard init values for each register
-        PpcModule.__init__(self)
-        PpcRegisterContext.__init__(self)
+    def __init__(self, archmod=None):
+        if archmod == None:
+            archmod = PpcModule()
+        envi.Emulator.__init__(self, archmod=archmod)
                 
+        PpcRegisterContext.__init__(self)
+        PpcModule.__init__(self)
+
         #self.addCallingConvention("stdcall", stdcall)
         #self.addCallingConvention("thiscall", thiscall)
         #self.addCallingConvention("cdecl", cdecl)
@@ -719,7 +722,7 @@ class PpcEmulator(PpcModule, PpcRegisterContext, envi.Emulator):
         src = self.getOperValue(op, 0)
         self.setOperValue(op, 1, (src<<16))
 
-    def cmpi(self, op):
+    def i_cmpi(self, op):
         L = self.getOperValue(op, 1)
         rA = self.getOperValue(op, 2)
         if L==0:
@@ -739,7 +742,11 @@ class PpcEmulator(PpcModule, PpcRegisterContext, envi.Emulator):
         self.setOperValue(op, 0, c)
         print "TESTME: cmpi bit setting of the appropriate CR register"
 
-
+    def i_stwu(self, op):
+        src = self.getOperValue(op, 0)
+        self.setOperValue(op, 1, src)
+        op.opers[1].updateReg()
+    
 
 
 #############################  PPC MARKER.  BELOW THIS MARKER IS DELETION FODDER #################################3
