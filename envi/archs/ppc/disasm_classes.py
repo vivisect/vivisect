@@ -234,10 +234,6 @@ class PpcImmOper(envi.ImmedOper):
         return self.val
 
     def render(self, mcanv, op, idx):
-        val = self.getOperValue(op)
-        mcanv.addNameText('0x%.2x' % (val))
-
-    def render(self, mcanv, op, idx):
         value = self.val
         hint = mcanv.syms.getSymHint(op.va, idx)
         if hint != None:
@@ -250,8 +246,8 @@ class PpcImmOper(envi.ImmedOper):
             mcanv.addVaText(name, value)
         else:
 
-            if self.val >= 4096:
-                mcanv.addNameText('0x%.8x' % value)
+            if abs(self.val) >= 4096:
+                mcanv.addNameText(hex(value))
             else:
                 mcanv.addNameText(str(value))
 
@@ -262,8 +258,8 @@ class PpcImmOper(envi.ImmedOper):
 class PpcSImmOper(PpcImmOper):
     ''' Unsigned Immediate operand. '''
     def __init__(self, val, va=0, bits=5):
-        if val & 1<<(bits-1):
-            val |= e_bits.b_masks[bits]
+        if val & (1<<(bits-1)):
+            val |= (e_bits.b_masks[32-bits] << bits)
 
         self.val = e_bits.signed(val, 4)
 
