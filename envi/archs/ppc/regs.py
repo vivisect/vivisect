@@ -26,9 +26,6 @@ sysregs = (
         #('svr', 64),
         #('cvr', 64),
         #('gpir', 64),
-        ('tmcfg0', 64),
-        ('imsr0', 64),
-        ('tpri0', 64),
         #('tir', 64),
         ('ten', 64),
         #('tens', 64),
@@ -37,24 +34,62 @@ sysregs = (
         #('sccsrbar', 64),
         #('ppr32', 64),
         #('ctr', 64), 
+        ('spefscr', 64), 
         ('pc', 32),
         )
 
 ppc_regs = []
 ppc_regs.extend(gprs)
 
-REG_OFFSET = len(ppc_regs)
+REG_OFFSET_FLOAT = len(ppc_regs)
 ppc_regs.extend(floats)
 
-REG_OFFSET = len(ppc_regs)
+REG_OFFSET_VECTOR = len(ppc_regs)
 ppc_regs.extend(vectors)
 
-REG_OFFSET = len(ppc_regs)
+REG_OFFSET_SYSREGS = len(ppc_regs)
 ppc_regs.extend(sysregs)
 
 import spr
-spr_regs = [(rname, bitsz) for sprnum, (rname, rdesc, bitsz) in spr.sprs.items()]
+spr_regs = [('bad', 0) for x in range(1024)]
+for sprnum, (rname, rdesc, bitsz) in spr.sprs.items():
+    spr_regs[sprnum] = (rname, bitsz)
+
+REG_OFFSET_SPR = len(ppc_regs)
 ppc_regs.extend(spr_regs)
+
+tmr_regs = [
+        ('tmcfg0', 64),
+        ]
+tmr_regs.extend([('tpri%d' % x, 64) for x in range(32)]) 
+tmr_regs.extend([('imsr%d' % x, 64) for x in range(32)]) 
+tmr_regs.extend([('inia%d' % x, 64) for x in range(32)]) 
+
+REG_OFFSET_TMR = len(ppc_regs)
+ppc_regs.extend(tmr_regs)
+
+REG_OFFSET_DCR = len(ppc_regs)
+ppc_regs.extend([('dcr%d' % x, 64) for x in range(32)]) 
+
+pmr_regs = []
+pmr_regs.extend([('upmc%d' % x, 32) for x in range(16)]) 
+pmr_regs.extend([('pmc%d' % x, 32) for x in range(16)]) 
+pmr_regs.extend([('foo%d' % x, 32) for x in range(96)]) 
+pmr_regs.extend([('upmlca%d' % x, 32) for x in range(16)]) 
+pmr_regs.extend([('pmlca%d' % x, 32) for x in range(16)]) 
+pmr_regs.extend([('bar%d' % x, 32) for x in range(96)]) 
+pmr_regs.extend([('upmlcb%d' % x, 32) for x in range(16)]) 
+pmr_regs.extend([('pmlcb%d' % x, 32) for x in range(16)]) 
+pmr_regs.extend([('baz%d' % x, 32) for x in range(96)]) 
+pmr_regs.append(('upmgc0', 64))
+pmr_regs.extend([('fuq%d' % x, 32) for x in range(15)]) 
+pmr_regs.append(('pmgc0', 64))
+
+REG_OFFSET_PMR = len(ppc_regs)
+ppc_regs.extend(pmr_regs)
+
+#REG_OFFSET_TBR = len(ppc_regs)
+REG_OFFSET_TBR = REG_OFFSET_SPR
 
 # dynamically create REG_EAX and the like in our module
 l = locals()
