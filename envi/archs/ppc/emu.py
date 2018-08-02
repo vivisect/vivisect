@@ -226,6 +226,522 @@ class PpcEmulator(PpcModule, PpcRegisterContext, envi.Emulator):
         val = op.opers[OPER_DST].getOperValue(op, self)
         return val
 
+    def i_bdnzf(self, op):
+        if len(op,opers) != 2:
+            print("%s doesn't have 2 opers: %r" % (op.mnem, op.opers))
+
+        ctr = self.getRegister(REG_CTR)
+        ctr -= 1
+        self.setRegister(REG_CTR, ctr)
+        if ctr == 0:
+            return
+
+        if self.getOperValue(op, 0):
+            return
+
+        return self.getOperValue(op, 1)
+           
+    def i_bdzf(self, op):
+        if len(op,opers) != 2:
+            print("%s doesn't have 2 opers: %r" % (op.mnem, op.opers))
+
+        ctr = self.getRegister(REG_CTR)
+        ctr -= 1
+        self.setRegister(REG_CTR, ctr)
+        if ctr != 0:
+            return
+
+        if self.getOperValue(op, 0):
+            return
+
+        return self.getOperValue(op, 1)
+
+    def i_bf(self, op):
+        if len(op,opers) != 2:
+            print("%s doesn't have 2 opers: %r" % (op.mnem, op.opers))
+
+        if self.getOperValue(op, 0):
+            return
+
+        return self.getOperValue(op, 1)
+
+    def i_bdnzt(self, op):
+        if len(op,opers) != 2:
+            print("%s doesn't have 2 opers: %r" % (op.mnem, op.opers))
+
+        ctr = self.getRegister(REG_CTR)
+        ctr -= 1
+        self.setRegister(REG_CTR, ctr)
+        if ctr == 0:
+            return
+
+        if not self.getOperValue(op, 0):
+            return
+
+        return self.getOperValue(op, 1)
+           
+    def i_bdzt(self, op):
+        if len(op,opers) != 2:
+            print("%s doesn't have 2 opers: %r" % (op.mnem, op.opers))
+
+        ctr = self.getRegister(REG_CTR)
+        ctr -= 1
+        self.setRegister(REG_CTR, ctr)
+        if ctr != 0:
+            return
+
+        if not self.getOperValue(op, 0):
+            return
+
+        return self.getOperValue(op, 1)
+           
+    def i_bt(self, op):
+        if len(op,opers) != 2:
+            print("%s doesn't have 2 opers: %r" % (op.mnem, op.opers))
+
+        if not self.getOperValue(op, 0):
+            return
+
+        return self.getOperValue(op, 1)
+
+    def i_bdnz(self, op):
+        if len(op,opers) != 2:
+            print("%s doesn't have 2 opers: %r" % (op.mnem, op.opers))
+
+        ctr = self.getRegister(REG_CTR)
+        ctr -= 1
+        self.setRegister(REG_CTR, ctr)
+        if ctr == 0:
+            return
+
+        return self.getOperValue(op, 1)
+
+    def i_bdz(self, op):
+        if len(op,opers) != 2:
+            print("%s doesn't have 2 opers: %r" % (op.mnem, op.opers))
+
+        ctr = self.getRegister(REG_CTR)
+        ctr -= 1
+        self.setRegister(REG_CTR, ctr)
+        if ctr != 0:
+            return
+
+        return self.getOperValue(op, 1)
+
+
+    def i_bdnzfl(self, op):
+        if len(op,opers) != 2:
+            print("%s doesn't have 2 opers: %r" % (op.mnem, op.opers))
+
+        ctr = self.getRegister(REG_CTR)
+        ctr -= 1
+        self.setRegister(REG_CTR, ctr)
+        if ctr == 0:
+            return
+
+        if self.getOperValue(op, 0):
+            return
+
+        self.push(op.va + 4)
+        return self.getOperValue(op, 1)
+           
+    def i_bdzfl(self, op):
+        if len(op,opers) != 2:
+            print("%s doesn't have 2 opers: %r" % (op.mnem, op.opers))
+
+        ctr = self.getRegister(REG_CTR)
+        ctr -= 1
+        self.setRegister(REG_CTR, ctr)
+        if ctr != 0:
+            return
+
+        if self.getOperValue(op, 0):
+            return
+
+        self.push(op.va + 4)
+        return self.getOperValue(op, 1)
+
+    def i_bfl(self, op):
+        if len(op,opers) != 2:
+            print("%s doesn't have 2 opers: %r" % (op.mnem, op.opers))
+
+        if self.getOperValue(op, 0):
+            return
+
+        self.push(op.va + 4)
+        return self.getOperValue(op, 1)
+
+    def i_bdnztl(self, op):
+        if len(op,opers) != 2:
+            print("%s doesn't have 2 opers: %r" % (op.mnem, op.opers))
+
+        ctr = self.getRegister(REG_CTR)
+        ctr -= 1
+        self.setRegister(REG_CTR, ctr)
+        if ctr == 0:
+            return
+
+        if not self.getOperValue(op, 0):
+            return
+
+        self.push(op.va + 4)
+        return self.getOperValue(op, 1)
+           
+    def i_bdztl(self, op):
+        if len(op,opers) != 2:
+            print("%s doesn't have 2 opers: %r" % (op.mnem, op.opers))
+
+        ctr = self.getRegister(REG_CTR)
+        ctr -= 1
+        self.setRegister(REG_CTR, ctr)
+        if ctr != 0:
+            return
+
+        if not self.getOperValue(op, 0):
+            return
+
+        self.push(op.va + 4)
+        return self.getOperValue(op, 1)
+           
+    def i_btl(self, op):
+        if len(op,opers) != 2:
+            print("%s doesn't have 2 opers: %r" % (op.mnem, op.opers))
+
+        if not self.getOperValue(op, 0):
+            return
+
+        self.push(op.va + 4)
+        return self.getOperValue(op, 1)
+
+    def i_bdnzl(self, op):
+        if len(op,opers) != 2:
+            print("%s doesn't have 2 opers: %r" % (op.mnem, op.opers))
+
+        ctr = self.getRegister(REG_CTR)
+        ctr -= 1
+        self.setRegister(REG_CTR, ctr)
+        if ctr == 0:
+            return
+
+        self.push(op.va + 4)
+        return self.getOperValue(op, 1)
+
+    def i_bdzl(self, op):
+        if len(op,opers) != 2:
+            print("%s doesn't have 2 opers: %r" % (op.mnem, op.opers))
+
+        ctr = self.getRegister(REG_CTR)
+        ctr -= 1
+        self.setRegister(REG_CTR, ctr)
+        if ctr != 0:
+            return
+
+        self.push(op.va + 4)
+        return self.getOperValue(op, 1)
+
+
+    def i_bl(self, op):
+        self.push(op.va + 4)
+        return self.getOperValue(op, 0)
+
+    i_bdnzfa = i_bdnzf
+    i_bdzfa = i_bdzf
+    i_bfa = i_bf
+    i_bdnzta = i_bdnzt
+    i_bdzta = i_bdzt
+    i_bta = i_bt
+    i_bdnza = i_bdnz
+    i_bdza = i_bdz
+    i_bla = i_bl
+
+    i_bdnzfla = i_bdnzfl
+    i_bdzfla = i_bdzfl
+    i_bfla = i_bfl
+    i_bdnztla = i_bdnztl
+    i_bdztla = i_bdztl
+    i_btla = i_btl
+    i_bdnzla = i_bdnzl
+    i_bdzla = i_bdzl
+
+    ##### LR branches
+    def i_bdnzflr(self, op):
+        if len(op,opers) != 2:
+            print("%s doesn't have 2 opers: %r" % (op.mnem, op.opers))
+
+        ctr = self.getRegister(REG_CTR)
+        ctr -= 1
+        self.setRegister(REG_CTR, ctr)
+        if ctr == 0:
+            return
+
+        if self.getOperValue(op, 0):
+            return
+
+        return self.getOperValue(op, 1)
+           
+    def i_bdzflr(self, op):
+        if len(op,opers) != 2:
+            print("%s doesn't have 2 opers: %r" % (op.mnem, op.opers))
+
+        ctr = self.getRegister(REG_CTR)
+        ctr -= 1
+        self.setRegister(REG_CTR, ctr)
+        if ctr != 0:
+            return
+
+        if self.getOperValue(op, 0):
+            return
+
+        return self.getOperValue(op, 1)
+
+    def i_bflr(self, op):
+        if len(op,opers) != 2:
+            print("%s doesn't have 2 opers: %r" % (op.mnem, op.opers))
+
+        if self.getOperValue(op, 0):
+            return
+
+        return self.getOperValue(op, 1)
+
+    def i_bdnztlr(self, op):
+        if len(op,opers) != 2:
+            print("%s doesn't have 2 opers: %r" % (op.mnem, op.opers))
+
+        ctr = self.getRegister(REG_CTR)
+        ctr -= 1
+        self.setRegister(REG_CTR, ctr)
+        if ctr == 0:
+            return
+
+        if not self.getOperValue(op, 0):
+            return
+
+        return self.getOperValue(op, 1)
+           
+    def i_bdztlr(self, op):
+        if len(op,opers) != 2:
+            print("%s doesn't have 2 opers: %r" % (op.mnem, op.opers))
+
+        ctr = self.getRegister(REG_CTR)
+        ctr -= 1
+        self.setRegister(REG_CTR, ctr)
+        if ctr != 0:
+            return
+
+        if not self.getOperValue(op, 0):
+            return
+
+        return self.getOperValue(op, 1)
+           
+    def i_btlr(self, op):
+        if len(op,opers) != 2:
+            print("%s doesn't have 2 opers: %r" % (op.mnem, op.opers))
+
+        if not self.getOperValue(op, 0):
+            return
+
+        return self.getOperValue(op, 1)
+
+    def i_bdnzlr(self, op):
+        if len(op,opers) != 2:
+            print("%s doesn't have 2 opers: %r" % (op.mnem, op.opers))
+
+        ctr = self.getRegister(REG_CTR)
+        ctr -= 1
+        self.setRegister(REG_CTR, ctr)
+        if ctr == 0:
+            return
+
+        return self.getOperValue(op, 1)
+
+    def i_bdzlr(self, op):
+        if len(op,opers) != 2:
+            print("%s doesn't have 2 opers: %r" % (op.mnem, op.opers))
+
+        ctr = self.getRegister(REG_CTR)
+        ctr -= 1
+        self.setRegister(REG_CTR, ctr)
+        if ctr != 0:
+            return
+
+        return self.getOperValue(op, 1)
+
+
+    def i_bdnzflrl(self, op):
+        if len(op,opers) != 2:
+            print("%s doesn't have 2 opers: %r" % (op.mnem, op.opers))
+
+        ctr = self.getRegister(REG_CTR)
+        ctr -= 1
+        self.setRegister(REG_CTR, ctr)
+        if ctr == 0:
+            return
+
+        if self.getOperValue(op, 0):
+            return
+
+        self.push(op.va + 4)
+        return self.getOperValue(op, 1)
+           
+    def i_bdzflrl(self, op):
+        if len(op,opers) != 2:
+            print("%s doesn't have 2 opers: %r" % (op.mnem, op.opers))
+
+        ctr = self.getRegister(REG_CTR)
+        ctr -= 1
+        self.setRegister(REG_CTR, ctr)
+        if ctr != 0:
+            return
+
+        if self.getOperValue(op, 0):
+            return
+
+        self.push(op.va + 4)
+        return self.getOperValue(op, 1)
+
+    def i_bflrl(self, op):
+        if len(op,opers) != 2:
+            print("%s doesn't have 2 opers: %r" % (op.mnem, op.opers))
+
+        if self.getOperValue(op, 0):
+            return
+
+        self.push(op.va + 4)
+        return self.getOperValue(op, 1)
+
+    def i_bdnztlrl(self, op):
+        if len(op,opers) != 2:
+            print("%s doesn't have 2 opers: %r" % (op.mnem, op.opers))
+
+        ctr = self.getRegister(REG_CTR)
+        ctr -= 1
+        self.setRegister(REG_CTR, ctr)
+        if ctr == 0:
+            return
+
+        if not self.getOperValue(op, 0):
+            return
+
+        self.push(op.va + 4)
+        return self.getOperValue(op, 1)
+           
+    def i_bdztlrl(self, op):
+        if len(op,opers) != 2:
+            print("%s doesn't have 2 opers: %r" % (op.mnem, op.opers))
+
+        ctr = self.getRegister(REG_CTR)
+        ctr -= 1
+        self.setRegister(REG_CTR, ctr)
+        if ctr != 0:
+            return
+
+        if not self.getOperValue(op, 0):
+            return
+
+        self.push(op.va + 4)
+        return self.getOperValue(op, 1)
+           
+    def i_btlrl(self, op):
+        if len(op,opers) != 2:
+            print("%s doesn't have 2 opers: %r" % (op.mnem, op.opers))
+
+        if not self.getOperValue(op, 0):
+            return
+
+        self.push(op.va + 4)
+        return self.getOperValue(op, 1)
+
+    def i_bdnzlrl(self, op):
+        if len(op,opers) != 2:
+            print("%s doesn't have 2 opers: %r" % (op.mnem, op.opers))
+
+        ctr = self.getRegister(REG_CTR)
+        ctr -= 1
+        self.setRegister(REG_CTR, ctr)
+        if ctr == 0:
+            return
+
+        self.push(op.va + 4)
+        return self.getOperValue(op, 1)
+
+    def i_bdzlrl(self, op):
+        if len(op,opers) != 2:
+            print("%s doesn't have 2 opers: %r" % (op.mnem, op.opers))
+
+        ctr = self.getRegister(REG_CTR)
+        ctr -= 1
+        self.setRegister(REG_CTR, ctr)
+        if ctr != 0:
+            return
+
+        self.push(op.va + 4)
+        return self.getOperValue(op, 1)
+
+
+    def i_blrl(self, op):
+        self.push(op.va + 4)
+        return self.getOperValue(op, 0)
+
+    i_bdnzfa = i_bdnzflr
+    i_bdzfa = i_bdzflr
+    i_bfa = i_bflr
+    i_bdnzta = i_bdnztlr
+    i_bdzta = i_bdztlr
+    i_bta = i_btlr
+    i_bdnza = i_bdnzlr
+    i_bdza = i_bdzlr
+    i_bla = i_blrl
+
+    i_bdnzfla = i_bdnzfl
+    i_bdzfla = i_bdzfl
+    i_bfla = i_bfl
+    i_bdnztla = i_bdnztl
+    i_bdztla = i_bdztl
+    i_btla = i_btl
+    i_bdnzla = i_bdnzl
+    i_bdzla = i_bdzl
+
+    def i_sync(self, op):
+        print "sync call: %r" % op
+
+    def i_isync(self, op):
+        print "isync call: %r" % op
+
+    def i_mov(self, op):
+        src = self.getOperValue(op, 0)
+        self.setOperValue(op, 1, src)
+
+    i_mfspr = i_mov
+    i_mtspr = i_mov
+    i_li = i_mov
+
+    def i_lis(self, op):
+        src = self.getOperValue(op, 0)
+        self.setOperValue(op, 1, (src<<16))
+
+    def cmpi(self, op):
+        L = self.getOperValue(op, 1)
+        rA = self.getOperValue(op, 2)
+        if L==0:
+            a = e_bits.signed(rA & 0xffffffff, 4)
+        else:
+            a = rA
+        b = e_bits.signed(self.getOperValue(op, 3), 2)
+
+        if a < b:
+            c = 8
+        elif a > b:
+            c = 4
+        else:
+            c = 2
+        # FIXME: what's SO? (it's the 1 bit)
+
+        self.setOperValue(op, 0, c)
+        print "TESTME: cmpi bit setting of the appropriate CR register"
+
+
+
+
 #############################  PPC MARKER.  BELOW THIS MARKER IS DELETION FODDER #################################3
     
     def i_jb(self, op):     #jmp if bit is set
