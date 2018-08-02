@@ -10999,7 +10999,7 @@ foo = (
         None,
         ('bdz', 'envi.IF_COND | envi.IF_BRANCH', 1),
         None,
-        ('b', 'envi.IF_BRANCH', 1),
+        ('b', 'envi.IF_BRANCH | envi.IF_NOFALL', 1),
         None,
         None,
         None,
@@ -11026,6 +11026,10 @@ for a in range(2):
             
             mnbase, flag, opoff = foo[bo]
 
+            # if we link, then this has a fallthrough. period.
+            if lk[l] == 'l':
+                flag = flag.replace('| envi.IF_NOFALL','').replace('envi.IF_BRANCH', 'envi.IF_CALL')
+                
             #for bi in range(32):
             mnem = mnbase + lk[l] + aa[a]
             opcode = "INS_" + mnem.upper()
@@ -11035,7 +11039,7 @@ for a in range(2):
 
             mnem = mnbase + 'lr' + lk[l] + aa[a]
             if mnem == 'blr':
-                flag = 'envi.IF_RET'
+                flag = 'envi.IF_RET | envi.IF_NOFALL'
             opcode = "INS_" + mnem.upper()
             num = 0x4c000020 |(bo<<21) |  a<<1 | l
 
@@ -11203,7 +11207,7 @@ def buildOutput():
             
             # fix up the operand ordering where possible.  this is faster and simpler than doing it in the decoder
             if len(fout) > 1 and 'FIELD_rS' in fout[0] and form not in  ('EVX', ):
-                if mnem != 'evstddepx':    # WONKY AS SHIT!
+                if mnem not in ('evstddepx', ) and not mnem.startswith('st'):    # WONKY AS SHIT!
                     temp = fout[0]
                     fout[0] = fout[1]
                     fout[1] = temp
@@ -11232,7 +11236,9 @@ def buildOutput():
                 if mnem.startswith('bc'):
                     iflags.append('envi.IF_COND')
 
-                if mnem in ('b', 'ba', 'bc', 'bca', 'bcctr', 'bclr'):
+                if mnem in ('b', 'ba', ):
+                    iflags.append('envi.IF_BRANCH | envi.IF_NOFALL')
+                elif mnem in ('bc', 'bca', 'bcctr', 'bclr'):
                     iflags.append('envi.IF_BRANCH')
                 elif mnem in ('bl', 'bla', 'bcl', 'bcla', 'bcctrl', 'bclrl'):
                     iflags.append('envi.IF_CALL')
