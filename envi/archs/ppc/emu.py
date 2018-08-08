@@ -345,7 +345,7 @@ class PpcEmulator(PpcModule, PpcRegisterContext, envi.Emulator):
         if self.getOperValue(op, 0):
             return
 
-        self.push(op.va + 4)
+        self.doPush(op.va + 4)
         return self.getOperValue(op, 1)
            
     def i_bdzfl(self, op):
@@ -361,7 +361,7 @@ class PpcEmulator(PpcModule, PpcRegisterContext, envi.Emulator):
         if self.getOperValue(op, 0):
             return
 
-        self.push(op.va + 4)
+        self.doPush(op.va + 4)
         return self.getOperValue(op, 1)
 
     def i_bfl(self, op):
@@ -371,7 +371,7 @@ class PpcEmulator(PpcModule, PpcRegisterContext, envi.Emulator):
         if self.getOperValue(op, 0):
             return
 
-        self.push(op.va + 4)
+        self.doPush(op.va + 4)
         return self.getOperValue(op, 1)
 
     def i_bdnztl(self, op):
@@ -387,7 +387,7 @@ class PpcEmulator(PpcModule, PpcRegisterContext, envi.Emulator):
         if not self.getOperValue(op, 0):
             return
 
-        self.push(op.va + 4)
+        self.doPush(op.va + 4)
         return self.getOperValue(op, 1)
            
     def i_bdztl(self, op):
@@ -403,7 +403,7 @@ class PpcEmulator(PpcModule, PpcRegisterContext, envi.Emulator):
         if not self.getOperValue(op, 0):
             return
 
-        self.push(op.va + 4)
+        self.doPush(op.va + 4)
         return self.getOperValue(op, 1)
            
     def i_btl(self, op):
@@ -413,7 +413,7 @@ class PpcEmulator(PpcModule, PpcRegisterContext, envi.Emulator):
         if not self.getOperValue(op, 0):
             return
 
-        self.push(op.va + 4)
+        self.doPush(op.va + 4)
         return self.getOperValue(op, 1)
 
     def i_bdnzl(self, op):
@@ -426,7 +426,7 @@ class PpcEmulator(PpcModule, PpcRegisterContext, envi.Emulator):
         if ctr == 0:
             return
 
-        self.push(op.va + 4)
+        self.doPush(op.va + 4)
         return self.getOperValue(op, 1)
 
     def i_bdzl(self, op):
@@ -439,12 +439,12 @@ class PpcEmulator(PpcModule, PpcRegisterContext, envi.Emulator):
         if ctr != 0:
             return
 
-        self.push(op.va + 4)
+        self.doPush(op.va + 4)
         return self.getOperValue(op, 1)
 
 
     def i_bl(self, op):
-        self.push(op.va + 4)
+        self.doPush(op.va + 4)
         return self.getOperValue(op, 0)
 
     i_bdnzfa = i_bdnzf
@@ -583,7 +583,7 @@ class PpcEmulator(PpcModule, PpcRegisterContext, envi.Emulator):
         if self.getOperValue(op, 0):
             return
 
-        self.push(op.va + 4)
+        self.doPush(op.va + 4)
         return self.getOperValue(op, 1)
            
     def i_bdzflrl(self, op):
@@ -599,7 +599,7 @@ class PpcEmulator(PpcModule, PpcRegisterContext, envi.Emulator):
         if self.getOperValue(op, 0):
             return
 
-        self.push(op.va + 4)
+        self.doPush(op.va + 4)
         return self.getOperValue(op, 1)
 
     def i_bflrl(self, op):
@@ -609,7 +609,7 @@ class PpcEmulator(PpcModule, PpcRegisterContext, envi.Emulator):
         if self.getOperValue(op, 0):
             return
 
-        self.push(op.va + 4)
+        self.doPush(op.va + 4)
         return self.getOperValue(op, 1)
 
     def i_bdnztlrl(self, op):
@@ -625,7 +625,7 @@ class PpcEmulator(PpcModule, PpcRegisterContext, envi.Emulator):
         if not self.getOperValue(op, 0):
             return
 
-        self.push(op.va + 4)
+        self.doPush(op.va + 4)
         return self.getOperValue(op, 1)
            
     def i_bdztlrl(self, op):
@@ -641,7 +641,7 @@ class PpcEmulator(PpcModule, PpcRegisterContext, envi.Emulator):
         if not self.getOperValue(op, 0):
             return
 
-        self.push(op.va + 4)
+        self.doPush(op.va + 4)
         return self.getOperValue(op, 1)
            
     def i_btlrl(self, op):
@@ -651,7 +651,7 @@ class PpcEmulator(PpcModule, PpcRegisterContext, envi.Emulator):
         if not self.getOperValue(op, 0):
             return
 
-        self.push(op.va + 4)
+        self.doPush(op.va + 4)
         return self.getOperValue(op, 1)
 
     def i_bdnzlrl(self, op):
@@ -664,7 +664,7 @@ class PpcEmulator(PpcModule, PpcRegisterContext, envi.Emulator):
         if ctr == 0:
             return
 
-        self.push(op.va + 4)
+        self.doPush(op.va + 4)
         return self.getOperValue(op, 1)
 
     def i_bdzlrl(self, op):
@@ -677,12 +677,12 @@ class PpcEmulator(PpcModule, PpcRegisterContext, envi.Emulator):
         if ctr != 0:
             return
 
-        self.push(op.va + 4)
+        self.doPush(op.va + 4)
         return self.getOperValue(op, 1)
 
 
     def i_blrl(self, op):
-        self.push(op.va + 4)
+        self.doPush(op.va + 4)
         return self.getOperValue(op, 0)
 
     i_bdnzfa = i_bdnzflr
@@ -714,13 +714,21 @@ class PpcEmulator(PpcModule, PpcRegisterContext, envi.Emulator):
         src = self.getOperValue(op, 0)
         self.setOperValue(op, 1, src)
 
-    i_mfspr = i_mov
-    i_mtspr = i_mov
+    def i_mfspr(self, op):
+        src = self.getOperValue(op, 1)
+        self.setOperValue(op, 0, src)
+
+    def i_mtspr(self, op):
+        src = self.getOperValue(op, 0)
+        self.setOperValue(op, 1, src)
+
     i_li = i_mov
 
     def i_lis(self, op):
-        src = self.getOperValue(op, 0)
-        self.setOperValue(op, 1, (src<<16))
+        src = self.getOperValue(op, 1)
+        print hex(src)
+        self.setOperValue(op, 0, (src<<16))
+        print hex(src<<16)
 
     def i_cmpi(self, op):
         L = self.getOperValue(op, 1)
@@ -742,15 +750,172 @@ class PpcEmulator(PpcModule, PpcRegisterContext, envi.Emulator):
         self.setOperValue(op, 0, c)
         print "TESTME: cmpi bit setting of the appropriate CR register"
 
+    def i_addi(self, op):
+        '''
+        add immediate
+        '''
+        src1 = self.getOperValue(op, 1)
+        src2 = self.getOperValue(op, 2) # FIXME: move signedness here instead of at decode
+        src2 = e_bits.signed(src2, 2)
+        result = src1 + src2
+        self.setOperValue(op, 0, result)
+
+    def i_addis(self, op):
+        '''
+        add immediate shifted
+        '''
+        src1 = self.getOperValue(op, 1)
+        src2 = self.getOperValue(op, 2) # FIXME: move signedness here instead of at decode
+        src2 <<= 16
+        src2 = e_bits.signed(src2, 4)
+
+        result = src1 + src2
+        self.setOperValue(op, 0, result)
+
+    def i_addic(self, op):
+        '''
+        add immediate carry
+        update flags (if IF_RC)
+        '''
+        src1 = self.getOperValue(op, 1)
+        src2 = self.getOperValue(op, 2) # FIXME: move signedness here instead of at decode
+        carry = e_bits.is_signed_carry((src1 + src2), 8, src1)
+        src2 = e_bits.signed(src2, 2)
+        result = src1 + src2
+
+        self.setOperValue(op, 0, result)
+        self.setRegister(REG_CA, carry)
+        if op.iflags & IF_RC: self.setFlags(results, 0)
+
+    def i_addme(self, op):
+        '''
+        add minus one extended
+        update flags (if IF_RC)
+        '''
+        src1 = self.getOperValue(op, 1)
+        src2 = 0xffffffffffffffff
+        carry = e_bits.is_signed_carry((src1 + src2), 8, src1)
+        result = src1 + src2
+
+        self.setOperValue(op, 0, result)
+        self.setRegister(REG_CA, carry)
+        #OV = (carrym ^ carrym+1)   # FIXME::::  NEED TO UNDERSTAND THIS ONE....
+        #SO = SO | (carrym ^ carrym+1) 
+        if op.iflags & IF_RC: self.setFlags(results, 0, SO=SO)
+
+    def i_addmeo(self, op):
+        '''
+        add minus one extended
+        update flags (if IF_RC)
+        '''
+        src1 = self.getOperValue(op, 1)
+        src2 = 0xffffffffffffffff
+        carry = e_bits.is_signed_carry((src1 + src2), 8, src1)
+        result = src1 + src2
+
+        self.setOperValue(op, 0, result)
+        self.setRegister(REG_CA, carry)
+        if op.iflags & IF_RC: self.setFlags(results, 0)
+
+    def i_addw(self, op):
+        '''
+        add word
+        '''
+        src1 = self.getOperValue(op, 1)
+        src1 = e_bits.signed(src1, 4)
+        src2 = self.getOperValue(op, 2) # FIXME: move signedness here instead of at decode
+        src2 = e_bits.signed(src2, 4)
+        result = e_bits.signed(src1 + src2, 4)
+        self.setOperValue(op, 0, result)
+   
+    def i_addwss(self, op):
+        '''
+        add word
+        '''
+        src1 = self.getOperValue(op, 1)
+        src1 = e_bits.signed(src1, 4)
+        src2 = self.getOperValue(op, 2) # FIXME: move signedness here instead of at decode
+        src2 = e_bits.signed(src2, 4)
+        result = e_bits.signed(src1 + src2, 4)
+
+        SO = None
+        sum31 = ((result >> 32) & 1)
+        sum32 = ((result >> 31) & 1) 
+        OV = sum31 ^ sum32
+        if OV:
+            if sum31: 
+                result = 0xffffffff80000000
+            else:
+                result = 0x7fffffff
+            SO = self.getSO() | OV
+
+        self.setOperValue(op, 0, result)
+        self.setFlags(results, 0, SO)
+   
+
+    def i_lbz(self, op):
+        op.opers[1].tsize = 1
+        src = self.getOperValue(op, 1)
+        self.setOperValue(op, 0, src)
+        self.setOperValue(op, 1, 0)
+
     def i_stwu(self, op):
+        op.opers[1].tsize = 4
         src = self.getOperValue(op, 0)
         self.setOperValue(op, 1, src)
-        op.opers[1].updateReg()
+        op.opers[1].updateReg(self)
+    
+    def i_stw(self, op):
+        op.opers[1].tsize = 4
+        src = self.getOperValue(op, 0)
+        self.setOperValue(op, 1, src)
     
 
+    def getCr(self, crnum):
+        '''
+        get a particular cr# field
+        CR is the control status register
+        cr# is one of 8 status register fields within CR, cr0 being the most significant bits in CR
+        '''
+        cr = self.getRegister(REG_CR)
+        return (cr >> ((7-crnum) * 4)) & 0xf
+
+    def setCr(self, crnum, flags):
+        '''
+        set a particular cr# field
+        CR is the control status register
+        cr# is one of 8 status register fields within CR, cr0 being the most significant bits in CR
+        '''
+        cr = self.getRegister(REG_CR)
+        cr &= (cr_mask[crnum])
+        cr |= (flags << ((7-crnum) * 4))
+        self.setRegister(REG_CR, cr)
+
+    def setFlags(self, result, crnum=0, SO=None):
+        '''
+        easy way to set the flags, reusable by many different instructions
+        '''
+        flags = 0
+        if result > 0:
+            flags |= FLAGS_GT
+        elif result < 0:
+            flags |= FLAGS_LT
+        else:
+            flags |= FLAGS_EQ
+
+        if SO == None:
+            SO = bool(self.getCr(crnum) & FLAGS_SO)
+        
+        flags |= (SO << FLAGS_SO_bitnum)
+
+        self.setCr(crnum, flags)
+
+    def getSOflag(self, crnum=0):
+        cr = self.getCr(crnum)
+        return cr >> FLAGS_SO_bitnum
 
 #############################  PPC MARKER.  BELOW THIS MARKER IS DELETION FODDER #################################3
-    
+    '''
     def i_jb(self, op):     #jmp if bit is set
         dst = op.opers[OPER_DST].getOperValue(op, self)
         if dst:
@@ -1175,7 +1340,7 @@ class PpcEmulator(PpcModule, PpcRegisterContext, envi.Emulator):
 
         op.opers[OPER_DST].setOperValue(op, self, src)
         op.opers[OPER_SRC].setOperValue(op, self, dst)
-
+    '''
 """
 import envi.archs.cc8051 as cc8051
 import envi.memory as e_m

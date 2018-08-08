@@ -115,6 +115,9 @@ class PpcRegOper(envi.RegisterOper):
     def isDeref(self):
         return False
 
+    def getOperAddr(self, op, emu=None):
+        return None
+
     def getOperValue(self, op, emu=None):
         if self.reg == REG_PC:
             return self.va  # FIXME: is this modified?  or do we need to att # to this?
@@ -230,6 +233,9 @@ class PpcImmOper(envi.ImmedOper):
     def isDiscrete(self):
         return True
 
+    def getOperAddr(self, op, emu=None):
+        return None
+
     def getOperValue(self, op, emu=None):
         return self.val
 
@@ -305,9 +311,10 @@ class PpcMemOper(envi.DerefOper):
     0xOFFSET (base_reg)
 
     '''
-    def __init__(self, base_reg, offset, va):
+    def __init__(self, base_reg, offset, va, tsize=4):
         self.base_reg = base_reg
-        self.offset = offset
+        self.offset = e_bits.signed(offset, 2)
+        self.tsize = tsize
         self.va = va
 
     def __eq__(self, oper):
@@ -332,7 +339,7 @@ class PpcMemOper(envi.DerefOper):
 
         addr = self.getOperAddr(op, emu)
 
-        fmt = ("<I", ">I")[emu.getEndian()]
+        fmt = e_bits.fmt_chars[emu.getEndian()][self.tsize]
         emu.writeMemoryFormat(addr, fmt, val)
 
     def getOperValue(self, op, emu=None):
@@ -342,7 +349,7 @@ class PpcMemOper(envi.DerefOper):
 
         addr = self.getOperAddr(op, emu)
 
-        fmt = ("<I", ">I")[emu.getEndian()]
+        fmt = e_bits.fmt_chars[emu.getEndian()][self.tsize]
         ret, = emu.readMemoryFormat(addr, fmt)
         return ret
 
@@ -362,6 +369,7 @@ class PpcMemOper(envi.DerefOper):
 
     def updateReg(self, emu):
         rval = emu.getRegister(self.base_reg)
+        print self.offset
         rval += self.offset
         emu.setRegister(self.base_reg, rval)
 
@@ -391,7 +399,7 @@ class PpcMemOper(envi.DerefOper):
                     mcanv.addNameText("0x%x" % value)
 
         else:
-            mcanv.addNameText('0x%x' % (self.offset))
+            mcanv.addNameText(hex(self.offset))
 
             mcanv.addText('(')
             mcanv.addNameText(basereg, typename='registers')
@@ -402,9 +410,9 @@ class PpcMemOper(envi.DerefOper):
         if self.base_reg == REG_PC:
             addr = self.getOperAddr(op)    # only works without an emulator because we've already verified base_reg is PC
 
-            tname = "(0x%x)" % addr
+            tname = "(%s)" % hex(addr)
         else:
-            tname = '0x%x(%s)' % (self.offset, basereg)
+            tname = '%s(%s)' % (hex(self.offset), basereg)
         return tname
 
 

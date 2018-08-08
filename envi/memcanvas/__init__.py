@@ -218,6 +218,7 @@ class MemoryCanvas(object):
         return (va, 0)
 
     def renderMemoryUpdate(self, va, size):
+        #print "renderMemoryUpdate(0x%x, 0x%x)" % (va, size)
 
         maxva = va + size
         if not self._isRendered(va, maxva):
@@ -237,17 +238,25 @@ class MemoryCanvas(object):
             if ibegin != None and iend != None:
                 break
 
+        #if ibegin == None or iend == None:
+            #print " ibegin or iend == None.  we need more va's in _canv_rendvas?"
+
         saved_last  = self._canv_rendvas[iend:]
         saved_first = self._canv_rendvas[:ibegin]
         updatedvas  = self._canv_rendvas[ibegin:iend]
-        #print 'IBEGIN',hex(ibegin)
-        #print 'IEND',hex(iend)
-        #print 'FIRST',repr([hex(va) for va in saved_first])
-        #print 'UPDATED',repr([hex(va) for va in updatedvas])
-        #print 'LAST',repr([hex(va) for va in saved_last])
+        #print 'IBEGIN',(ibegin)
+        #print 'IEND',(iend)
+        #print 'FIRST',repr([(va) for va in saved_first])
+        #print 'UPDATED',repr([(va) for va in updatedvas])
+        #print 'LAST',repr([(va) for va in saved_last])
 
         # We must actually start rendering from the beginning
         # of the first updated VA index
+        #if startva
+        if not len(updatedvas):
+            print "returning because no updatedvas: %x/%x" % (va, size)
+            return self.renderMemory(va, size)
+
         startva = updatedvas[0][0]
         endva = self._canv_endva
         if saved_last:

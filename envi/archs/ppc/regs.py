@@ -14,7 +14,7 @@ sysregs = (
         #('xer', 64),
         ('acc', 64), 
         #('lr', 64),
-        ('cr', 32),
+        ('cr', 64),
         ('msr', 64),
         #('bucsr', 64),
         #('msrp', 64),
@@ -167,3 +167,12 @@ class PpcRegisterContext(e_reg.RegisterContext):
 
 import spr
 sprnames = {x:y.lower() for x,(y,z,b) in spr.sprs.items()}
+
+general_regs = []
+general_regs.extend(gprs)
+general_regs.extend(floats)
+general_regs.extend(vectors)
+general_regs.extend(sysregs)
+general_regs.append(('sp', 64))
+general_regs.append(('LR', 64))
+
