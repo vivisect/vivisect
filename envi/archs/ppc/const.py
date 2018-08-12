@@ -128,3 +128,12 @@ for octidx in range(len(opcodetypes)):
     globals()[label] = octidx
 
 
+FLAGS_LT_bitnum = 0
+FLAGS_GT_bitnum = 1
+FLAGS_EQ_bitnum = 2
+FLAGS_SO_bitnum = 3
+
+FLAGS_LT = 1 << FLAGS_LT_bitnum
+FLAGS_GT = 1 << FLAGS_GT_bitnum
+FLAGS_EQ = 1 << FLAGS_EQ_bitnum
+FLAGS_SO = 1 << FLAGS_SO_bitnum

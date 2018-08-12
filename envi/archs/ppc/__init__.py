@@ -10,6 +10,7 @@ from envi.archs.ppc.regs import *
 from envi.archs.ppc.disasm import *
 import vle
 
+
 class PpcModule(envi.ArchitectureModule):
 
     def __init__(self):
@@ -31,9 +32,10 @@ class PpcModule(envi.ArchitectureModule):
 
     def archGetRegisterGroups(self):
         groups = envi.ArchitectureModule.archGetRegisterGroups(self)
-        general = ('general', ['r%d' % x for x in range(32)] )
-
+        
+        general = ('general', general_regs)  # from regs.py
         groups.append(general)
+        
         return groups
 
     def getPointerSize(self):
