@@ -32,6 +32,11 @@ defconfig = {
                 'table_min_len':4,
             },
         },
+        'arch':{
+            'ppc':{
+                'options':'altivec'
+            },
+        },
     },
     'cli':vdb.defconfig.get('cli'), # FIXME make our own...
     'vdb':vdb.defconfig.get('vdb'),
