@@ -12,7 +12,7 @@ import visgraph.pathcore as vg_path
 from vivisect.const import *
 
 # Pre-initialize a default stack size
-init_stack_size = 0x7fff
+init_stack_size = 0x8000
 init_stack_map = b'\xfe' * init_stack_size
 
 def imphook(impname):
