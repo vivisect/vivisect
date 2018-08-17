@@ -145,10 +145,11 @@ def analyze(vw):
             elif wat.iscode() and vw.greedycode:
                 bcode.append(va)
             else:
-                if vw.isProbablyString(va):
-                    vw.makeString(va)
-                elif vw.isProbablyUnicode(va):
+                # Look for Unicode before ASCII to catch UTF-16 LE.
+                if vw.isProbablyUnicode(va):
                     vw.makeUnicode(va)
+                elif vw.isProbablyString(va):
+                    vw.makeString(va)
 
         if len(docode) == 0:
             break

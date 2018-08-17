@@ -166,7 +166,7 @@ class IMemory:
             return None
         #FIXME change this (and all uses of it) to passing in format...
         if len(bytes) != size:
-            raise Exception("Read Gave Wrong Length At 0x%.8x (va: 0x%.8x wanted %d got %d)" % (self.getProgramCounter(),addr, size, len(bytes)))
+            raise Exception("Read Gave Wrong Length (va: 0x%.8x wanted %d got %d)" % (addr, size, len(bytes)))
         if size == 1:
             return struct.unpack("B", bytes)[0]
         elif size == 2:
