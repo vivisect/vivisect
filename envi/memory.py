@@ -167,14 +167,7 @@ class IMemory:
         #FIXME change this (and all uses of it) to passing in format...
         if len(bytes) != size:
             raise Exception("Read Gave Wrong Length (va: 0x%.8x wanted %d got %d)" % (addr, size, len(bytes)))
-        if size == 1:
-            return struct.unpack("B", bytes)[0]
-        elif size == 2:
-            return struct.unpack("<H", bytes)[0]
-        elif size == 4:
-            return struct.unpack("<I", bytes)[0]
-        elif size == 8:
-            return struct.unpack("<Q", bytes)[0]
+        return e_bits.parsebytes(bytes, 0, size, False, self.getEndian())
 
     def readMemoryPtr(self, va):
         '''
