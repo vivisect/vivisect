@@ -71,10 +71,7 @@ def buildContextMenu(vw, va=None, expr=None, menu=None, parent=None, nav=None):
     nav     - the "local" EnviNavMixin instance
     '''
     if va == None:
-        try:
-            va = vw.parseExpression(expr)
-        except Exception, e:
-            sys.excepthook(*sys.exc_info())
+        va = vw.parseExpression(expr)
 
     if expr == None:
         expr = '0x%.8x' % va
