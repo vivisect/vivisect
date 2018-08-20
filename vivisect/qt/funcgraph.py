@@ -491,32 +491,35 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
 
     @idlethread
     def _renderMemory(self):
-
-        expr = str(self.addr_entry.text())
-        if not expr:
-            return
-
         try:
-            addr = self.vw.parseExpression(expr)
-        except Exception, e:
-            self.mem_canvas.addText('Invalid Address: %s (%s)' % (expr, e))
-            return
 
-        fva = self.vw.getFunction(addr)
-        if fva == self.fva:
-            self.mem_canvas.page().mainFrame().scrollToAnchor('viv:0x%.8x' % addr)
+            expr = str(self.addr_entry.text())
+            if not expr:
+                return
+
+            try:
+                addr = self.vw.parseExpression(expr)
+            except Exception, e:
+                self.mem_canvas.addText('Invalid Address: %s (%s)' % (expr, e))
+                return
+
+            fva = self.vw.getFunction(addr)
+            if fva == self.fva:
+                self.mem_canvas.page().mainFrame().scrollToAnchor('viv:0x%.8x' % addr)
+                self.updateWindowTitle()
+                return
+
+            if fva == None:
+                self.vw.vprint('0x%.8x is not in a function!' % addr)
+                return
+
+            self.clearText()
+            self.renderFunctionGraph(fva)
             self.updateWindowTitle()
-            return
 
-        if fva == None:
-            self.vw.vprint('0x%.8x is not in a function!' % addr)
-            return
-
-        self.clearText()
-        self.renderFunctionGraph(fva)
-        self.updateWindowTitle()
-
-        self._renderDoneSignal.emit()
+            self._renderDoneSignal.emit()
+        except Exception, e:
+            print e
 
     def loadDefaultRenderers(self):
         vivrend = viv_rend.WorkspaceRenderer(self.vw)

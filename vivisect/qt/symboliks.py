@@ -222,7 +222,11 @@ class VivSymbolikFuncPane(e_q_memory.EnviNavMixin, vq_save.SaveableWidget, QWidg
     def symPathSelected(self, emu, effects):
         self.curemu = emu
         self.cureffects = effects
-        self.rendSymbolikPath()
+        try:
+            self.rendSymbolikPath()
+        except Exception, e:
+            import sys
+            sys.excepthook(*sys.exc_info())
 
     def rendSymbolikPath(self, *args, **kwargs):
         '''
