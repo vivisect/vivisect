@@ -71,6 +71,18 @@ class ArmModule(envi.ArchitectureModule):
             return tova & -2, reftype, rflags
         return tova, reftype, rflags
 
+    def archGetRegisterGroups(self):
+        groups = envi.ArchitectureModule.archGetRegisterGroups(self)
+
+        groups.append(('general', arm_regs))
+
+        # compilers use the following regs to stick the module baseaddr in for 
+        # switchcase code
+        #switch_mapbase = ('switch_mapbase', [ 'edi', 'esi' ],)
+        #groups.append(switch_mapbase)
+        return groups
+
+
 class ThumbModule(envi.ArchitectureModule):
     '''
     This architecture module will *not* shift to ARM mode.  Evar.

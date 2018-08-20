@@ -73,7 +73,7 @@ class AnalysisMonitor(viv_monitor.AnalysisMonitor):
                 try:
                     tgt = op.getOperValue(0, emu)
 
-                    if self.verbose: print "BRANCH: ", hex(tgt), hex(op.va), hex(op.va)
+                    #if self.verbose: print "BRANCH: ", hex(tgt), hex(op.va), hex(op.va)
 
                     if tgt == op.va:
                         if self.verbose: print "+++++++++++++++ infinite loop +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
