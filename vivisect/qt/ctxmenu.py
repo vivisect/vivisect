@@ -45,6 +45,10 @@ def printEmuState(vw, fva, va):
     for i in xrange(len(op.opers)):
         o = op.opers[i]
         o.render(vw.canvas, op, i)
+        oaddr = o.getOperAddr(op, emu)
+        if oaddr != None:
+            vw.canvas.addText(' [ 0x%x ] ' % oaddr)
+
         vw.canvas.addText(" = ")
         oval = o.getOperValue(op, emu)
         taint = emu.getVivTaint(oval)
@@ -67,7 +71,10 @@ def buildContextMenu(vw, va=None, expr=None, menu=None, parent=None, nav=None):
     nav     - the "local" EnviNavMixin instance
     '''
     if va == None:
-        va = vw.parseExpression(expr)
+        try:
+            va = vw.parseExpression(expr)
+        except Exception, e:
+            sys.excepthook(*sys.exc_info())
 
     if expr == None:
         expr = '0x%.8x' % va
