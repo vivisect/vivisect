@@ -1565,7 +1565,7 @@ def p_vstr(opval, va):
     rbase = ("s%d","d%d")[sz]
     opers = (
             ArmRegOper(rctx.getRegisterIndex(rbase % vd)),
-            ArmImmOffsetOper(rn, imm, va, pudwl=pudwl)
+            ArmImmOffsetOper(rn, imm, va, pubwl=pudwl)
             )
 
     return INS_VSTR, 'vstr', opers, 0, 0
@@ -1622,7 +1622,7 @@ def p_vldr(opval, va):
     rbase = ("s%d","d%d")[sz]
     opers = (
             ArmRegOper(rctx.getRegisterIndex(rbase % vd)),
-            ArmImmOffsetOper(rn, imm, va, pudwl=pudwl)
+            ArmImmOffsetOper(rn, imm, va, pubwl=pudwl)
             )
 
     return INS_VLDR, 'vldr', opers, 0, simdflags
