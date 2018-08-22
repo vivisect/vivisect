@@ -221,7 +221,7 @@ def loadElfIntoWorkspace(vw, elf, filename=None):
             makeRelocTable(vw, sva, sva+size, addbase, baseaddr)
 
         if sec.sh_flags & Elf.SHF_STRINGS:
-            print "FIXME HANDLE SHF STRINGS"
+            makeStringTable(vw, sva, sva+size)
 
     # Let pyelf do all the stupid string parsing...
     for r in elf.getRelocs():
@@ -231,31 +231,31 @@ def loadElfIntoWorkspace(vw, elf, filename=None):
         try:
             # If it has a name, it's an externally
             # resolved "import" entry, otherwise, just a regular reloc
-            if arch in ('i386','amd64'):
+            name = decode(r.getName())
+            if arch in ('i386','amd64') and name:
+                if rtype == Elf.R_386_JMP_SLOT:
+                    vw.makeImport(rlva, "*", name)
 
-                name = r.getName()
-                if name:
-                    if rtype == Elf.R_386_JMP_SLOT:
-                        vw.makeImport(rlva, "*", name)
+                # FIXME elf has conflicting names for 2 relocs?
+                #elif rtype == Elf.R_386_GLOB_DAT:
+                    #vw.makeImport(rlva, "*", name)
 
-                    # FIXME elf has conflicting names for 2 relocs?
-                    #elif rtype == Elf.R_386_GLOB_DAT:
-                        #vw.makeImport(rlva, "*", name)
+                elif rtype == Elf.R_386_32:
+                    pass
 
-                    elif rtype == Elf.R_386_32:
-                        pass
+                elif rtype == Elf.R_X86_64_GLOB_DAT:
+                    vw.makeImport(rlva, "*", name)
 
-                    else:
-                        vw.verbprint('unknown reloc type: %d %s (at %s)' % (rtype, name, hex(rlva)))
+                else:
+                    vw.verbprint('unknown reloc type: %d %s (at %s)' % (rtype, name, hex(rlva)))
+                    
 
-            if arch == 'arm':
-                name = r.getName()
-                if name:
-                    if rtype == Elf.R_ARM_JUMP_SLOT:
-                        vw.makeImport(rlva, "*", name)
+            if arch == 'arm' and name:
+                if rtype == Elf.R_ARM_JUMP_SLOT:
+                    vw.makeImport(rlva, "*", name)
 
-                    else:
-                        vw.verbprint('unknown reloc type: %d %s (at %s)' % (rtype, name, hex(rlva)))
+                else:
+                    vw.verbprint('unknown reloc type: %d %s (at %s)' % (rtype, name, hex(rlva)))
 
         except vivisect.InvalidLocation, e:
             print "NOTE",e
@@ -364,6 +364,9 @@ def loadElfIntoWorkspace(vw, elf, filename=None):
     return fname
 
 def normName(name):
+    '''
+    Normalize symbol names.  ie. drop the @@GOBBLEDEGOOK from the end
+    '''
     atidx = name.find('@@')
     if atidx > -1:
         name = name[:atidx]
@@ -374,6 +377,10 @@ chars_ok = string.letters + string.digits + '_'# + ':'# + '~'
 chars_cok = ("%$#*<>~")
 
 def pyfriendlyName(name):
+    '''
+    Convert a C++ name into a Python-Friendly name (ie. name could become a variable in the 
+    Python environment)
+    '''
     out = []
     normname = os.path.basename(name)
 
@@ -407,6 +414,9 @@ def pyfriendlyName(name):
     return normname
 
 def decode(name):
+    '''
+    Translate C++ mangled name back into the verbose C++ symbol name (with helpful type info)
+    '''
     name = normName(name)
 
     try:
