@@ -630,6 +630,8 @@ def p_load_store_word_ubyte(opval, va, psize=4):
         ArmRegOper(Rd, va=va),
         ArmScaledOffsetOper(Rn, Rm, shtype, shval, va, pubwl, psize=psize)    # u=-/+, b=word/byte
     )
+    if Rd == REG_PC:
+        iflags |= envi.IF_BRANCH
     
     mnem, opcode = ldr_mnem[pubwl&1]
     return (opcode, mnem, olist, iflags, 0)
@@ -886,6 +888,9 @@ def p_load_imm_off(opval, va, psize=4):
         iflags = IF_B
     if (pubwl & 0x12) == 2:
         iflags |= IF_T
+    if Rd == REG_PC:
+        iflags |= envi.IF_BRANCH
+
     if (opval & 0xfff0fff) == 0x52D0004:
         mnem = "push"
         olist = (
@@ -952,7 +957,7 @@ def p_media(opval, va):
     media_parsers_tmp[4] = p_media_usada
     media_parsers_tmp[5] = p_media_sbfx
     media_parsers_tmp[6] = p_media_bf
-    media_parsers_tmp[7] = p_media_smul
+    #media_parsers_tmp[7] = p_media_smul
     media_parsers = tuple(media_parsers_tmp)
 
     media_codes = (
@@ -3773,7 +3778,7 @@ class ArmOpcode(envi.Opcode):
             operval = oper.getOperValue(self, emu)
 
             if self.opcode in (INS_BLX, INS_BX):
-                if operval & 3:
+                if operval != None and operval & 3:
                     flags |= envi.ARCH_THUMB
                     operval &= -2
                 else:
@@ -5118,7 +5123,6 @@ class ArmDisasm:
                     olist[0].involvesPC() and 
                     (opcode & 0xffff) not in no_update_Rd ):       # FIXME: only want IF_NOFALL if it *writes* to PC!
                 
-                showop = True
                 flags |= envi.IF_NOFALL
 
         else:
