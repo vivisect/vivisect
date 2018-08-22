@@ -82,6 +82,7 @@ def addAnalysisModules(vw):
         elif arch == 'arm':
             vw.addVaSet('thunk_reg', ( ('fva', vivisect.VASET_ADDRESS), ('reg', vivisect.VASET_INTEGER), ))
             vw.addFuncAnalysisModule('vivisect.analysis.arm.thunk_reg')
+            vw.addFuncAnalysisModule('vivisect.analysis.arm.elfplt')
 
         vw.addAnalysisModule("vivisect.analysis.generic.funcentries")
         vw.addAnalysisModule("vivisect.analysis.generic.relocations")
