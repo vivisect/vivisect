@@ -159,9 +159,9 @@ def analyzeFunction(vw, fva, prepend=False):
             cmt = "0x%x: %s ;\n %s" % (tgt, reprPointer(vw, tgt), curcmt)
             vw.setComment(va, cmt)
 
-        vw.vprint("PIE XREF: %x  %s" % (va, cmt))
+        if vw.verbose: vw.vprint("PIE XREF: %x  %s" % (va, cmt))
 
-    vw.vprint("ANOMS: \n", repr(emumon.emuanom))
+    if vw.verbose: vw.vprint("ANOMS: \n", repr(emumon.emuanom))
 
 def analyze(vw):
     # don't want to run this multiple times on the same function... comments get outa hand.
