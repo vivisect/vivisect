@@ -3,6 +3,7 @@ import sys
 import vivisect
 import vivisect.impemu as viv_imp
 import vivisect.impemu.monitor as viv_monitor
+import vivisect.analysis.generic.codeblocks as viv_cb
 
 import envi
 import envi.archs.arm as e_arm
@@ -24,6 +25,7 @@ class AnalysisMonitor(viv_monitor.AnalysisMonitor):
         self.strictops = False
         self.returns = False
         self.infloops = []
+        self.switchcases = 0
 
     def prehook(self, emu, op, starteip):
 
@@ -51,8 +53,14 @@ class AnalysisMonitor(viv_monitor.AnalysisMonitor):
                     if hasattr(op.opers, 'imm'):
                         self.retbytes = op.opers[0].imm
 
-            if op.opcode == INS_TB:
-                analyzeTB(emu, op, starteip, self)
+            # ARM gives us nice switchcase handling instructions
+            ##### FIXME: wrap TB-handling into getBranches(emu) which is called by checkBranches during emulation
+            if op.opcode in (INS_TBH, INS_TBB):
+                if emu.vw.getVaSetRow('SwitchCases', op.va) == None:
+                    base, tbl = analyzeTB(emu, op, starteip, self)
+                    count = len(tbl)
+                    self.switchcases += 1
+                    emu.vw.setVaSetRow('SwitchCases', (op.va, op.va, count) )
 
             if op.opcode == INS_MOV:
                 if len(op.opers) >= 2:
@@ -94,9 +102,6 @@ class AnalysisMonitor(viv_monitor.AnalysisMonitor):
         if op.opcode == INS_BLX:
             emu.setFlag(PSR_T_bit, self.last_tmode)
             
-
-def analyzeTB(emu, op, starteip, amon):
-    print "TB at 0x%x" % starteip
 
 argnames = {
     0: ('r0', 0),
@@ -140,16 +145,13 @@ def buildFunctionApi(vw, fva, emu, emumon):
     return api
 
 def analyzeFunction(vw, fva):
-    #raw_input( "= 0x%x viv.analysis.arm.emulation... =" % (fva))
     #print( "= 0x%x viv.analysis.arm.emulation... =" % (fva))
 
     emu = vw.getEmulator()
     emumon = AnalysisMonitor(vw, fva)
-
     emu.setEmulationMonitor(emumon)
 
     loc = vw.getLocation(fva)
-
     if loc != None:
         lva, lsz, lt, lti = loc
         if lt == LOC_OP:
@@ -186,5 +188,89 @@ def analyzeFunction(vw, fva):
 
     # handle infinite loops (actually, while 1;)
 
+    # switch-cases may have updated codeflow.  reanalyze
+    viv_cb.analyzeFunction(vw, fva)
+
+
 
 # TODO: incorporate some of emucode's analysis but for function analysis... if it makes sense.
+
+
+def analyzeTB(emu, op, starteip, amon):
+    ######################### FIXME: ADD THIS TO getBranches(emu)
+    ### DEBUGGING
+    #raw_input("\n\n\nPRESS ENTER TO START TB: 0x%x" % op.va)
+    print "\n\nTB at 0x%x" % starteip
+    tsize = op.opers[0].tsize
+    tbl = []
+    basereg = op.opers[0].base_reg
+    if basereg != REG_PC:
+        base = emu.getRegister(basereg)
+    else:
+        base = op.opers[0].va
+
+    print("\nbase: 0x%x" % base)
+    val0 = emu.readMemValue(base, tsize)
+
+    if val0 > 0x100 + base:
+        print "ummmm.. Houston we got a problem.  first option is a long ways beyond BASE"
+
+    va = base
+    while va < base + val0:
+        nextoff = emu.readMemValue(va, tsize) * 2
+        print "0x%x: -> 0x%x" % (va, nextoff + base)
+        if nextoff == 0:
+            print "Terminating TB at 0-offset"
+            break
+
+        if nextoff > 0x500:
+            print "Terminating TB at LARGE - offset  (may be too restrictive): 0x%x" % nextoff
+            break
+
+        loc = emu.vw.getLocation(va)
+        if loc != None:
+            print "Terminating TB at Location/Reference"
+            print "%x, %d, %x, %r" % loc
+            break
+
+        tbl.append((va, nextoff))
+        va += tsize
+        #sys.stderr.write('.')
+
+    print "%s: \n\t"%op.mnem + '\n\t'.join(['0x%x (0x%x)' % (x, base + x) for v,x in tbl])
+
+    ###
+    # for workspace emulation analysis, let's check the index register for sanity.
+    idxreg = op.opers[0].offset_reg
+    idx = emu.getRegister(idxreg)
+    if idx > 0x40000000:
+        emu.setRegister(idxreg, 0) # args handed in can be replaced with index 0
+
+    jmptblbase = op.opers[0]._getOperBase(emu)
+    jmptblval = emu.getOperAddr(op, 0)
+    jmptbltgt = (emu.getOperValue(op, 0) * 2) + base
+    print "0x%x: %r\njmptblbase: 0x%x\njmptblval:  0x%x\njmptbltgt:  0x%x" % (op.va, op, jmptblbase, jmptblval, jmptbltgt)
+    #raw_input("PRESS ENTER TO CONTINUE")
+
+    # make numbers and xrefs and names
+    emu.vw.addXref(op.va, base, REF_DATA)
+
+    case = 0
+    for ova, nextoff in tbl:
+        nexttgt = base + nextoff
+        emu.vw.makeNumber(ova, 2)
+        # check for loc first?
+        emu.vw.makeCode(nexttgt)
+        # check xrefs fist?
+        emu.vw.addXref(op.va, nexttgt, REF_CODE)
+        
+        curname = emu.vw.getName(nexttgt)
+        if curname == None:
+            emu.vw.makeName(nexttgt, "case_%x_%x_%x" % (case, op.va, nexttgt))
+        else:
+            emu.vw.vprint("case_%x_%x_%x conflicts with existing name: %r" % (case, op.va, nexttgt, curname))
+ 
+        case += 1
+
+    return base, tbl
+

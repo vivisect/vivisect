@@ -87,7 +87,8 @@ class watcher(viv_imp_monitor.EmulationMonitor):
             va, size, ltype, linfo = loc
             if ltype != vivisect.LOC_OP:
                 emu.stopEmu()
-                raise Exception("HIT %d AT %.8x" % (ltype, va))
+                raise Exception("HIT LOCTYPE %d AT %.8x" % (ltype, va))
+
         cnt = self.mndist.get(op.mnem, 0)
         self.mndist[ op.mnem ] = cnt+1
         self.insn_count += 1
