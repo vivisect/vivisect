@@ -322,6 +322,7 @@ iencs = (\
     'IENC_COPROC_LOAD',     #   Coprocessor load/store and double reg xfers
     'IENC_COPROC_DP',       #   Coprocessor data processing
     'IENC_COPROC_REG_XFER', #   Coprocessor register transfers
+    'IENC_COPROC_SIMD',     #   Coprocessor SIMD
     'IENC_MCR',             #   Move to Corprocessor from ARM Regs and vice versa
     'IENC_SWINT',           #   Sofware interrupts
     'IENC_UNCOND',          #   unconditional wacko instructions
@@ -397,10 +398,19 @@ instrnames = [
         'MOVT',
         'MOVW',
         'LDR',
+        'LDRH',
+        'LDRB',
+        'LDRD',
+        'LDREX',
+        'LDRSB',
+        'LDRSH',
         'LDREX',
         'LDM',
         'STR',
         'STREX',
+        'STRH',
+        'STRB',
+        'STRD',
         'STM',
         'STC',
         'STC2',
@@ -466,8 +476,6 @@ instrnames = [
         'VQRSHRUN',
         'VSHLL',
         'VCVT',
-        #'LDRB',
-        #'STRB',
         'MUL',
         'SMUL',
         'MUL',  
@@ -523,12 +531,10 @@ instrnames = [
         'CPS',
         'CBZ',
         'CBNZ',
-        'STRH',
-        #'LDRH',
         'LEAVEX',
         'ENTERX',
-        'TB',
-        'LDREX',
+        'TBB',
+        'TBH',
         'ORN',
         'PKH',
         'LSL',
@@ -546,7 +552,6 @@ instrnames = [
         'DMB',
         'DSB',
         'ISB',
-        #'LDRSB',
         'USAD8',
         'USADA8',
         'PLD',
@@ -731,6 +736,7 @@ instrnames = [
         'SETEND',
         'RFE',
         'SRS',
+        'HINT',
 ]
 
 ins_index = 85

@@ -217,7 +217,6 @@ class ArmWorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_arm.ArmEmulator):
           #except:
           #    sys.excepthook(*sys.exc_info())
 
-
 class ThumbWorkspaceEmulator(ArmWorkspaceEmulator):
     def __init__(self, vw, logwrite=False, logread=False):
         ArmWorkspaceEmulator.__init__(self, vw, logwrite, logread)

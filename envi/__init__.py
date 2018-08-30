@@ -25,7 +25,7 @@ arch_names = {
     ARCH_AMD64:     'amd64',
     ARCH_ARMV7:     'arm',
     ARCH_THUMB16:   'thumb16',
-    ARCH_THUMB:     'thumb2',
+    ARCH_THUMB:     'thumb',
     ARCH_MSP430:    'msp430',
     ARCH_H8:        'h8',
 }
@@ -38,6 +38,7 @@ arch_by_name = {
     'armv6l':   ARCH_ARMV7,
     'armv7l':   ARCH_ARMV7,
     'thumb16':  ARCH_THUMB16,
+    'thumb':    ARCH_THUMB,
     'thumb2':   ARCH_THUMB,
     'msp430':   ARCH_MSP430,
     'h8':       ARCH_H8,
