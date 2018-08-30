@@ -163,7 +163,10 @@ def workerThread():
                 if func == None:
                     return
 
-                func(*args,**kwargs)
+                try:
+                    func(*args,**kwargs)
+                except:
+                    sys.excepthook(*sys.exc_info())
 
         except Exception, e:
             print('vqt worker warning: %s' % e)
