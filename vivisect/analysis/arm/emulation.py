@@ -200,7 +200,7 @@ def analyzeTB(emu, op, starteip, amon):
     ######################### FIXME: ADD THIS TO getBranches(emu)
     ### DEBUGGING
     #raw_input("\n\n\nPRESS ENTER TO START TB: 0x%x" % op.va)
-    print "\n\nTB at 0x%x" % starteip
+    if emu.vw.verbose:  print "\n\nTB at 0x%x" % starteip
     tsize = op.opers[0].tsize
     tbl = []
     basereg = op.opers[0].base_reg
@@ -209,7 +209,7 @@ def analyzeTB(emu, op, starteip, amon):
     else:
         base = op.opers[0].va
 
-    print("\nbase: 0x%x" % base)
+    if emu.vw.verbose:  print("\nbase: 0x%x" % base)
     val0 = emu.readMemValue(base, tsize)
 
     if val0 > 0x100 + base:
@@ -218,26 +218,27 @@ def analyzeTB(emu, op, starteip, amon):
     va = base
     while va < base + val0:
         nextoff = emu.readMemValue(va, tsize) * 2
-        print "0x%x: -> 0x%x" % (va, nextoff + base)
+        if emu.vw.verbose:  print "0x%x: -> 0x%x" % (va, nextoff + base)
         if nextoff == 0:
-            print "Terminating TB at 0-offset"
+            if emu.vw.verbose:  print "Terminating TB at 0-offset"
             break
 
         if nextoff > 0x500:
-            print "Terminating TB at LARGE - offset  (may be too restrictive): 0x%x" % nextoff
+            if emu.vw.verbose:  print "Terminating TB at LARGE - offset  (may be too restrictive): 0x%x" % nextoff
             break
 
         loc = emu.vw.getLocation(va)
         if loc != None:
-            print "Terminating TB at Location/Reference"
-            print "%x, %d, %x, %r" % loc
+            if emu.vw.verbose:  print "Terminating TB at Location/Reference"
+            if emu.vw.verbose:  print "%x, %d, %x, %r" % loc
             break
 
         tbl.append((va, nextoff))
         va += tsize
         #sys.stderr.write('.')
 
-    print "%s: \n\t"%op.mnem + '\n\t'.join(['0x%x (0x%x)' % (x, base + x) for v,x in tbl])
+    if emu.vw.verbose: 
+        print "%s: \n\t"%op.mnem + '\n\t'.join(['0x%x (0x%x)' % (x, base + x) for v,x in tbl])
 
     ###
     # for workspace emulation analysis, let's check the index register for sanity.
@@ -249,11 +250,13 @@ def analyzeTB(emu, op, starteip, amon):
     jmptblbase = op.opers[0]._getOperBase(emu)
     jmptblval = emu.getOperAddr(op, 0)
     jmptbltgt = (emu.getOperValue(op, 0) * 2) + base
-    print "0x%x: %r\njmptblbase: 0x%x\njmptblval:  0x%x\njmptbltgt:  0x%x" % (op.va, op, jmptblbase, jmptblval, jmptbltgt)
+    if emu.vw.verbose: 
+        print "0x%x: %r\njmptblbase: 0x%x\njmptblval:  0x%x\njmptbltgt:  0x%x" % (op.va, op, jmptblbase, jmptblval, jmptbltgt)
     #raw_input("PRESS ENTER TO CONTINUE")
 
     # make numbers and xrefs and names
     emu.vw.addXref(op.va, base, REF_DATA)
+    emu.vw.makeName(op.va, 'br_tbl_%x' % op.va)
 
     case = 0
     for ova, nextoff in tbl:
