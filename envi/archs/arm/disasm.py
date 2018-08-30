@@ -1435,7 +1435,6 @@ def p_vmov_single(opval, va):   # p944
         opers = (
             ArmRegOper(rt, va),
             ArmRegOper(rctx.getRegisterIndex('s%d' % vn)),
-
                 )
     else:
         opers = (
@@ -1459,7 +1458,6 @@ def p_vmov_2single(opval, va):  # p944 (946?)
             ArmRegOper(rt2, va),
             ArmRegOper(rctx.getRegisterIndex('s%d' % vm)),
             ArmRegOper(rctx.getRegisterIndex('s%d' % (vm+1))),
-
                 )
     else:
         opers = (
@@ -1487,7 +1485,6 @@ def p_vmov_double(opval, va):
             ArmRegOper(rt, va),
             ArmRegOper(rt2, va),
             ArmRegOper(rctx.getRegisterIndex('d%d' % vm)),
-
                 )
     else:
         opers = (
@@ -3788,16 +3785,20 @@ class ArmOpcode(envi.Opcode):
             else:
                 flags |= self._def_arch
 
-            # if branch to register, let's return an entry for the DynamicBranch handler
-            #if operval == None:
-                # probably a branch to a register.  just return.
-                #ret.append((None, flags))
-
-            #operval &= 0xfffffffe           # this has to work for both arm and thumb
             if self.iflags & envi.IF_CALL:
                 flags |= envi.BR_PROC
 
-            ret.append((operval, flags))
+            if self.opcode in (INS_TBB, INS_TBH):
+                print "getBranches:  TBH and TBB...."
+                '''
+                base = self.opers[0]._getOperBase(emu)
+                if base != None:
+                    ret.append((base, flags | envi.BR_DEREF | envi.BR_TABLE))
+                else:
+                    print "0x%x:  %r      getBranches() with no emulator" % (self.va, self)
+                    '''
+            else:
+                ret.append((operval, flags))
             #print "getBranches: (0x%x) add  0x%x   %x"% (self.va, operval, flags)
 
         return ret
@@ -4187,7 +4188,7 @@ class ArmImmFPOper(ArmImmOper):
 
 class ArmScaledOffsetOper(ArmOperand):
     ''' scaled offset operand.  see "addressing mode 2 - load and store word or unsigned byte - scaled register *" '''
-    def __init__(self, base_reg, offset_reg, shtype, shval, va, pubwl=PUxWL_DFLT, psize=4):
+    def __init__(self, base_reg, offset_reg, shtype, shval, va, pubwl=PUxWL_DFLT, psize=4, tsize=None):
         if shval == 0:
             if shtype == S_ROR:
                 shtype = S_RRX
@@ -4201,9 +4202,11 @@ class ArmScaledOffsetOper(ArmOperand):
         self.psize = psize
         self.va = va
 
-        b = (self.pubwl >> 2) & 1
-        self.tsize = (4,1)[b]
-        #print "TESTME: ArmScaledOffsetOper at 0x%x" % va
+        if tsize != None:
+            self.tsize = tsize
+        else:
+            b = (self.pubwl >> 2) & 1
+            self.tsize = (4,1)[b]
 
     def __eq__(self, oper):
         if not isinstance(oper, self.__class__):
@@ -4247,7 +4250,8 @@ class ArmScaledOffsetOper(ArmOperand):
         if emu == None:
             return None
 
-        base = emu.getRegister(self.base_reg)
+        #base = emu.getRegister(self.base_reg)
+        base = self._getOperBase(emu)
 
         pom = (-1, 1)[(self.pubwl>>3)&1]
         addval = shifters[self.shtype]( emu.getRegister( self.offset_reg ), self.shval )
@@ -4273,6 +4277,15 @@ class ArmScaledOffsetOper(ArmOperand):
             return base
 
         return addr
+
+    def _getOperBase(self, emu):
+        if self.base_reg == REG_PC:
+            return self.va
+
+        if emu == None:
+            return None
+
+        return emu.getRegister(self.base_reg)
 
     def render(self, mcanv, op, idx):
         pom = ('-','')[(self.pubwl>>3)&1]

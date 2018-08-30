@@ -679,24 +679,47 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
 
     def i_vmov(self, op):
         if len(op.opers) == 2:
-            if isinstance(ArmImmOper, op.opers[1]):
+            src = self.getOperValue(op, 1)
+            if isinstance(op.opers[1], ArmImmOper):
                 # immediate version copies immediate into each element (Q=2 elements, D=1)
-                print "vmov: immediate"
+                srcsz = op.opers[1].size
+                print "0x%x vmov: immediate: %x (%d bytes)" % (op.va, src, srcsz)
+                # change src to fill all vectors with immediate
 
-        # vreg to vreg: 1 to 1 copy
-        # core reg to vreg
-        # vret to core reg
-        # core reg to single
-        # 2 core reg to 2 singles
+            # vreg to vreg: 1 to 1 copy
+            # core reg to vreg
+            # vret to core reg
+            # core reg to single
+            self.setOperValue(op, 0, src)
+
+        elif len(op.opers) == 3:
+            # 2 core reg to double
+            # move between two ARM Core regs and one dblword extension reg
+            if op.opers[0].reg < REGS_VECTOR_BASE_IDX:
+                # dest is core regs
+                src = self.getOperValue(op, 2)
+                self.setOperValue(op, 0, (src & 0xffffffff))
+                self.setOperValue(op, 1, (src >> 32))
+            else:
+                # dest is extension reg
+                src = self.getOperValue(op, 1)
+                src2 = self.getOperValue(op, 2)
+                src |= (src2 << 32)
+                self.setOperValue(op, 0, src)
+
         elif len(op.opers) == 4:
+            # 2 core reg to 2 singles
             src1 = self.getOperValue(op, 2)
             src2 = self.getOperValue(op, 3)
             self.setOperValue(op, 0, src1)
             self.setOperValue(op, 1, src2)
 
-        # 2 core reg to double
+        else:
+            raise Exception("0x%x:  %r   Something went wrong... opers = %r " % (op.va, op, op.opers))
+            
+
         # 
-        raise Exception("implement me: vmov")
+        #raise Exception("implement me: vmov")
 
 
     def i_ldm(self, op):
@@ -831,6 +854,9 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
             apsr |= (src | 0xf0000000)
             self.setOperValue(op, 0, apsr)
 
+    i_vldr = i_mov
+
+
     def i_it(self, op):
         if self.itcount:
             raise Exception("IT block within an IT block!")
@@ -848,12 +874,12 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
         mask = e_bits.b_masks[width]
 
         addit = self.getOperValue(op, 1) & mask
-        print lsb, width, bin(mask), bin(addit)
+        print "bfi:   ", lsb, width, bin(mask), bin(addit)
 
         mask <<= lsb
         val = self.getOperValue(op, 0) & ~mask
         val |= addit
-        print bin(mask), bin(val)
+        print "bfi: 2 ", bin(mask), bin(val)
 
         self.setOperValue(op, 0, val)
 
@@ -862,10 +888,10 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
         width = self.getOperValue(op, 2)
         mask = e_bits.b_masks[width] << lsb
         mask ^= 0xffffffff
-        print lsb, width, bin(mask)
+        print "bfc:   ", lsb, width, bin(mask)
 
         val = self.getOperValue(op, 0) & mask
-        print bin(mask), bin(val)
+        print "bfc: 2 ", bin(mask), bin(val)
 
         self.setOperValue(op, 0, val)
 
@@ -1299,8 +1325,9 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
             src = self.getOperValue(op, 0)
             imm5 = self.getOperValue(op, 1)
 
-        val = src >> imm5
-        carry = (src >> (imm5-1)) & 1
+        shift = (32, imm5)[bool(imm5)]
+        val = src >> shift
+        carry = (src >> (shift-1)) & 1
         self.setOperValue(op, 0, val)
 
         Sflag = op.iflags & IF_PSR_S
@@ -1321,12 +1348,13 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
             srclen = op.opers[0].tsize
             imm5 = self.getOperValue(op, 1)
 
+        shift = (32, imm5)[bool(imm5)]
         if e_bits.is_signed(src, srclen):
-            val = (src >> imm5) | top_bits_32[imm5]
+            val = (src >> shift) | top_bits_32[shift]
         else:
-            val = (src >> imm5)
+            val = (src >> shift)
 
-        carry = (src >> (imm5-1)) & 1
+        carry = (src >> (shift-1)) & 1
         self.setOperValue(op, 0, val)
 
         Sflag = op.iflags & IF_PSR_S
@@ -1434,11 +1462,86 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
 
         self.setOperValue(op, 0, result)
 
-    def i_tb(self, op):
+    def i_tbb(self, op):
         # TBB and TBH both come here.
-        tblbase = op.getOperValue(0)
-        off = op.getOperValue(1)
-        return tblbase + (2*off)
+        ### DEBUGGING
+        #raw_input("ArmEmulator:  TBB")
+        tsize = op.opers[0].tsize
+        tbl = []
+        '''
+        base = op.opers[0].getOperValue(op, self)
+        val0 = self.readMemValue(base, 4)
+        if val0 > 0x100 + base:
+            print "ummmm.. Houston we got a problem.  first option is a long ways beyond BASE"
+
+        va = base
+        while va < val0:
+            tbl.append(self.readMemValue(va, 4))
+            va += tsize
+
+        print "tbb: \n\t" + '\n'.join([hex(x) for x in tbl])
+
+        ###
+        jmptblval = self.getOperAddr(op, 0)
+        jmptbltgt = self.getOperValue(op, 0) + base
+        print "0x%x: 0x%r\njmptblval: 0x%x\njmptbltgt: 0x%x" % (op.va, op, jmptblval, jmptbltgt)
+        raw_input("PRESS ENTER TO CONTINUE")
+        return jmptbltgt
+        '''
+        emu = self
+        basereg = op.opers[0].base_reg
+        if basereg != REG_PC:
+            base = emu.getRegister(basereg)
+        else:
+            base = op.opers[0].va
+            print "base = ", hex(base)
+
+        #base = op.opers[0].getOperValue(op, emu)
+        print("base: 0x%x" % base)
+        val0 = emu.readMemValue(base, tsize)
+
+        if val0 > 0x200 + base:
+            print "ummmm.. Houston we got a problem.  first option is a long ways beyond BASE"
+
+        va = base
+        while va < base + val0:
+            nexttgt = emu.readMemValue(va, tsize) * 2
+            print "0x%x: -> 0x%x" % (va, nexttgt + base)
+            if nexttgt == 0:
+                print "Terminating TB at 0-offset"
+                break
+
+            if nexttgt > 0x500:
+                print "Terminating TB at LARGE - offset  (may be too restrictive): 0x%x" % nexttgt
+                break
+
+            loc = emu.vw.getLocation(va)
+            if loc != None:
+                print "Terminating TB at Location/Reference"
+                print "%x, %d, %x, %r" % loc
+                break
+
+            tbl.append(nexttgt)
+            va += tsize
+            #sys.stderr.write('.')
+
+        print "%s: \n\t"%op.mnem + '\n\t'.join([hex(x+base) for x in tbl])
+
+        ###
+        # for workspace emulation analysis, let's check the index register for sanity.
+        idxreg = op.opers[0].offset_reg
+        idx = emu.getRegister(idxreg)
+        if idx > 0x40000000:
+            emu.setRegister(idxreg, 0) # args handed in can be replaced with index 0
+
+        jmptblbase = op.opers[0]._getOperBase(emu)
+        jmptblval = emu.getOperAddr(op, 0)
+        jmptbltgt = (emu.getOperValue(op, 0) * 2) + base
+        print "0x%x: 0x%r\njmptblbase: 0x%x\njmptblval:  0x%x\njmptbltgt:  0x%x" % (op.va, op, jmptblbase, jmptblval, jmptbltgt)
+        #raw_input("PRESS ENTER TO CONTINUE")
+        return jmptbltgt
+
+    i_tbh = i_tbb
 
     def i_ubfx(self, op):
         src = self.getOperValue(op, 1)
