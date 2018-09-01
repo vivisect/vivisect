@@ -1922,8 +1922,8 @@ vmul_mnems = (
             (None, None),
             ('vfnms', INS_VFNMS),
             ('vfnma', INS_VFNMA),
-            ('vfms', INS_VFMS),
             ('vfma', INS_VFMA),
+            ('vfms', INS_VFMS),
             )
 def p_fp_dp(opval, va):
     val1 = opval >> 16
