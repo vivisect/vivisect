@@ -1910,9 +1910,20 @@ def p_uncond(opval, va, psize = 4):
                     bytez=struct.pack("<I", opval), va=va)
     
 vmul_mnems = (
-            ('vmla', INS_VMLA),('vmls', INS_VMLS),('vnmla', INS_VNMLA),('vnmls', INS_VNMLS),
-            ('vnmul', INS_VNMUL),('vmul', INS_VMUL),('vadd', INS_VADD),('vsub', INS_VSUB),
-            ('vdiv', INS_VDIV),('vfnms', INS_VFNMS),('vfnma', INS_VFNMA),('vfms', INS_VFMS),('vfma', INS_VFMA),
+            ('vmla', INS_VMLA),
+            ('vmls', INS_VMLS),
+            ('vnmla', INS_VNMLA),
+            ('vnmls', INS_VNMLS),
+            ('vmul', INS_VMUL),
+            ('vnmul', INS_VNMUL),
+            ('vadd', INS_VADD),
+            ('vsub', INS_VSUB),
+            ('vdiv', INS_VDIV),
+            (None, None),
+            ('vfnms', INS_VFNMS),
+            ('vfnma', INS_VFNMA),
+            ('vfms', INS_VFMS),
+            ('vfma', INS_VFMA),
             )
 def p_fp_dp(opval, va):
     val1 = opval >> 16

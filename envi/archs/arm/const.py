@@ -719,6 +719,7 @@ instrnames = [
         'VQMOVUN',
         'VRECPE',
         'VRSQRTE',
+        'VSQRT',
         'VCVTR',
         'VMSR',
         'VMRS',
