@@ -183,7 +183,7 @@ arm_status_metas = [
         ("M", REG_FLAGS, PSR_M, 5, "Processor Mode"),
         ]
 
-e_reg.addLocalStatusMetas(l, arm_metas, arm_status_metas, "CPSC")
+e_reg.addLocalStatusMetas(l, arm_metas, arm_status_metas, "CPSR")
 e_reg.addLocalMetas(l, arm_metas)
 
 

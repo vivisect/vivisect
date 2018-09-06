@@ -171,6 +171,14 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
             flags &= ~which
         self.setCPSR(flags)
 
+    def setFpFlag(self, which, state):
+        flags = self.getFPSCR()
+        if state:
+            flags |= which
+        else:
+            flags &= ~which
+        self.setCPSR(flags)
+
     def getFlag(self, which):          # FIXME: CPSR?
         #if (flags_reg == None):
         #    flags_reg = proc_modes[self.getProcMode()][5]
@@ -257,7 +265,6 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
                 pc = self.getProgramCounter()
                 x = pc+op.size
 
-            # should we set this to the odd address or even during thumb?  (debugger).  ANS: Even.  All addresses are Even.  Track Mode elsewhere.
             self.setProgramCounter(x)
         finally:
             self.setMeta('forrealz', False)
@@ -285,6 +292,12 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
         return the Current Program Status Register.
         '''
         return self._rctx_vals[REG_CPSR]
+
+    def getFPSCR(self):
+        '''
+        return the Current Floating Point Status/Control Register.
+        '''
+        return self._rctx_vals[REG_FPSCR]
 
     def getAPSR(self):
         '''
@@ -718,9 +731,29 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
             raise Exception("0x%x:  %r   Something went wrong... opers = %r " % (op.va, op, op.opers))
             
 
-        # 
-        #raise Exception("implement me: vmov")
+    def i_vstr(self, op):
+        src = self.getOperValue(op, 1)
+        self.setOperValue(op, 0, src)
 
+    def i_vcmpe(self, op):
+        src1 = self.getOperValue(op, 0)
+        src2 = self.getOperValue(op, 1)
+        val = src2 - src1
+        print "vcmpe %r  %r  %r" % (src1, src2, val)
+        fpsrc = self.getRegister(REG_FPSCR)
+
+        # taken from VFCompare() from arch ref manual p80
+        if src1 == src2:
+            n, z, c, v = 0, 1, 1, 0
+        elif src1 < src2:
+            n, z, c, v = 1, 0, 0, 0
+        else:
+            n, z, c, v = 0, 0, 1, 0
+
+        self.setFpFlag(PSR_N_bit, n)
+        self.setFpFlag(PSR_Z_bit, z)
+        self.setFpFlag(PSR_C_bit, c)
+        self.setFpFlag(PSR_V_bit, v)
 
     def i_ldm(self, op):
         if len(op.opers) == 2:
@@ -857,6 +890,7 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
     i_vldr = i_mov
 
 
+    '''  this one is not favored 
     def i_it(self, op):
         if self.itcount:
             raise Exception("IT block within an IT block!")
@@ -866,7 +900,32 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
         self.itcount = oper.getCondInstrCount()
         self.itflags = oper.getFlags()
         print "IT flags need to be set such that each bit means YES or NO"
-        
+        '''
+
+    # TESTME: IT functionality
+    def i_it(self, op):
+        if self.itcount:
+            raise Exception("IT block within an IT block!")
+
+        self.itcount, self.ittype, self.itmask = op.opers[0].getCondData()
+        condcheck = conditionals[self.ittype]
+        self.itva = op.va
+
+
+    i_ite = i_it
+    i_itt = i_it
+    i_itee = i_it
+    i_itet =  i_it
+    i_itte =  i_it
+    i_ittt = i_it
+    i_iteee = i_it
+    i_iteet = i_it
+    i_itete = i_it
+    i_itett = i_it
+    i_ittee = i_it
+    i_ittet = i_it
+    i_ittte = i_it
+    i_itttt = i_it
            
     def i_bfi(self, op):
         lsb = self.getOperValue(op, 2)
@@ -900,10 +959,11 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
         oper = self.getOperValue(op, 1)
         bsize = op.opers[1].tsize * 8
         lzcnt = 0
-        for x in range(tsize):
+        for x in range(bsize):
             if oper & 0x80000000:
                 break
             lzcnt += 1
+            oper <<= 1
 
         self.setOperValue(op, 0, lzcnt)
 
@@ -1639,13 +1699,6 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
     i_dmb = i_nop
     i_dsb = i_nop
     i_isb = i_nop
-
-
-#TODO: IT EQ
-    def i_it(self, op):
-        self.itcount, self.ittype, self.itmask = op.opers[0].getCondData()
-        condcheck = conditionals[self.ittype]
-        self.itva = op.va
 
 
 opcode_dist = \

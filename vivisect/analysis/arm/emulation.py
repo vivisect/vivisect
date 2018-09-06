@@ -44,8 +44,13 @@ class AnalysisMonitor(viv_monitor.AnalysisMonitor):
                 # do we want to hand this off to makeCode?
                 emu.vw.addLocation(starteip, len(op), vivisect.LOC_OP, op.iflags)
 
+            elif loctup[2] != LOC_OP:
+                if self.verbose: print "ARG! emulation found opcode in an existing NON-OPCODE location  (0x%x):  0x%x: %s" % (loctup[0], op.va, op)
+                emu.stopEmu()
+
             elif loctup[0] != starteip:
                 if self.verbose: print "ARG! emulation found opcode in a location at the wrong address (0x%x):  0x%x: %s" % (loctup[0], op.va, op)
+                emu.stopEmu()
 
             if op.iflags & envi.IF_RET:
                 self.returns = True
@@ -145,8 +150,7 @@ def buildFunctionApi(vw, fva, emu, emumon):
     return api
 
 def analyzeFunction(vw, fva):
-    #print( "= 0x%x viv.analysis.arm.emulation... =" % (fva))
-
+    #print("++ Arm EMU fmod: 0x%x" % fva)
     emu = vw.getEmulator()
     emumon = AnalysisMonitor(vw, fva)
     emu.setEmulationMonitor(emumon)
@@ -190,6 +194,7 @@ def analyzeFunction(vw, fva):
 
     # switch-cases may have updated codeflow.  reanalyze
     viv_cb.analyzeFunction(vw, fva)
+    #print("-- Arm EMU fmod: 0x%x" % fva)
 
 
 

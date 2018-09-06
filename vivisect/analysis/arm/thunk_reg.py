@@ -3,6 +3,7 @@ import envi
 import vivisect
 import vivisect.impemu.monitor as viv_monitor
 
+from envi.archs.arm.regs import PSR_T_bit
 from vivisect import LOC_STRING, LOC_UNI, REF_DATA
 
 MAX_INIT_OPCODES = 30
@@ -81,10 +82,18 @@ def analyzeFunction(vw, fva, prepend=False):
     success = 0
     tva = fva
     emu = vw.getEmulator()
-
+    emu._prep(tva)
+    
     for x in range(MAX_INIT_OPCODES):
-        op = vw.parseOpcode(tva)
+        op = emu.parseOpcode(tva)
+
+        tmode = emu.getFlag(PSR_T_bit)
+
         emu.executeOpcode(op)
+
+        newtmode = emu.getFlag(PSR_T_bit)
+        if newtmode != tmode:
+            emu.setFlag(PSR_T_bit, tmode)
 
         if op.iflags & (envi.IF_BRANCH | envi.IF_COND) == (envi.IF_BRANCH | envi.IF_COND):
             break
@@ -109,6 +118,9 @@ def analyzeFunction(vw, fva, prepend=False):
             break
 
         tva += len(op)
+        if op.isReturn():
+            #print "thunk_reg: returning before finding PIE data"
+            break
 
     if not success: 
         return

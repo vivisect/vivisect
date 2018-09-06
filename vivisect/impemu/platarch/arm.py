@@ -72,34 +72,80 @@ class ArmWorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_arm.ArmEmulator):
         if not self.checkCall(starteip, endeip, op):
             self.checkBranches(starteip, endeip, op)
 
+    def _prep(self, funcva, tmode=None):
+        if tmode != None:
+            # we're forcing thumb or arm mode... update the flag
+            self.setFlag(PSR_T_bit, tmode)
+            if verbose: print "funcva thumb==%d  (forced):  0x%x" % (tmode, funcva)
+
+        elif funcva & 3:
+            # if the va isn't 4-byte aligned, it's gotta be thumb
+            self.setFlag(PSR_T_bit, 1)
+            funcva &= -2
+            if verbose: print "funcva is THUMB(addr):  0x%x" % funcva
+
+        else:
+            loc = self.vw.getLocation(funcva)
+            if loc != None:
+                # if we have a opcode location, use it's iflags to determine mode
+                lva, lsz, lt, lti = loc
+                if (lti & envi.ARCH_MASK) == envi.ARCH_THUMB:
+                    self.setFlag(PSR_T_bit, 1)
+                    if verbose: print "funcva is THUMB(loc):  0x%x" % funcva
+                elif verbose: print "funcva is ARM(loc):  0x%x" % funcva
+
+            else:
+                # otherwise, let's use some heuristics to guess.
+                armthumb = 0
+                armop  = None
+                thumbop = None
+                try:
+                    thumbop = self.parseOpcode(funcva | 1)
+                    armthumb -= 1
+                    if thumbop.mnem == 'push':
+                        armthumb -= 5
+                    elif thumbop.mnem == 'ldr':
+                        armthumb -= 2
+
+                except InvalidInstruction, e:
+                    pass
+
+
+                try:
+                    armop = self.parseOpcode(funcva)
+                    armthumb += 1
+                    if armop.mnem == 'push':
+                        armthumb += 5
+                    elif armop.mnem == 'ldr':
+                        armthumb += 2
+
+                except InvalidInstruction, e:
+                    pass
+
+
+                if arm == None and thumb == None:
+                    # we didn't have a single push in either direction
+                    print("TOTAL FAILURE TO DETERMINE THUMB MODE")
+                    raise Exception("Neither architecture parsed the first opcode")
+
+                elif armthumb < 0:
+                        self.setFlag(PSR_T_bit, 1)
+                        if verbose: print "ArmWorkspaceEmulator: Heuristically Determined funcva is THUMB:  0x%x" % funcva
+                else:
+                    #if verbose: print "ArmWorkspaceEmulator: Nothing specified, defaulting to ARM: 0x%x" % funcva
+                    if verbose: print "ArmWorkspaceEmulator: Heuristically Determined funcva is ARM:  0x%x" % funcva
+
+
+        self.funcva = funcva
+
+
     def runFunction(self, funcva, stopva=None, maxhit=None, maxloop=None, tmode=None):
         """
         This is a utility function specific to WorkspaceEmulation (and impemu) that
         will emulate, but only inside the given function.  You may specify a stopva
         to return once that location is hit.
         """
-        
-        if tmode != None:
-            # we're forcing thumb or arm mode... update the flag
-            self.setFlag(PSR_T_bit, tmode)
-
-        elif funcva & 3:
-            self.setFlag(PSR_T_bit, 1)
-            funcva &= -2
-            if verbose: print "funcva is THUMB:  0x%x" % funcva
-
-        else:
-            loc = self.vw.getLocation(funcva)
-            if loc != None:
-                lva, lsz, lt, lti = loc
-                if (lti & envi.ARCH_MASK) == envi.ARCH_THUMB:
-                    self.setFlag(PSR_T_bit, 1)
-
-            else:
-                if verbose: print "ArmWorkspaceEmulator: Nothing specified, defaulting to ARM"
-
-
-        self.funcva = funcva
+        self._prep(funcva, tmode)
 
         # Let the current (should be base also) path know where we are starting
         vg_path.setNodeProp(self.curpath, 'bva', funcva)
@@ -155,8 +201,10 @@ class ArmWorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_arm.ArmEmulator):
 
                     self.op = op
                     if self.emumon:
-
-                        self.emumon.prehook(self, op, starteip)
+                        try:
+                            self.emumon.prehook(self, op, starteip)
+                        except Exception, e:
+                            print("funcva: 0x%x opva: 0x%x:  %r   %r (in emumon prehook)" % (funcva, starteip, op, e))
 
                         if self.emustop:
                             return 
@@ -168,7 +216,10 @@ class ArmWorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_arm.ArmEmulator):
                     endeip = self.getProgramCounter()
 
                     if self.emumon:
-                        self.emumon.posthook(self, op, endeip)
+                        try:
+                            self.emumon.posthook(self, op, endeip)
+                        except Exception, e:
+                            print("funcva: 0x%x opva: 0x%x:  %r   %r (in emumon posthook)" % (funcva, starteip, op, e))
                         if self.emustop:
                             return 
 

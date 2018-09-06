@@ -575,7 +575,12 @@ def it_hints(va, val):
     firstcond = (val>>4) & 0xf
     if mask != 0:
         # this is the IT instruction
-        return COND_AL,(ThumbITOper(mask, firstcond),), None
+        itoper = ThumbITOper(mask, firstcond)
+        count, cond, data = itoper.getCondData()
+        nextfew = it_strs[count][data]
+        mnem = 'it' + nextfew
+
+        return COND_AL,(itoper,), 0, None, mnem
 
     opcode, mnem = it_hints_others[firstcond]
 
@@ -1261,7 +1266,7 @@ def ldrb_memhints_32(va, val1, val2):
             imm12 = val2 & 0xfff
             opers = (
                     ArmRegOper(rt),
-                    ArmImmOffsetOper(rn, imm12, va),
+                    ArmImmOffsetOper(rn, imm12, va, tsize=1),
                     )
             return COND_AL, opcode, mnem, opers, flags, 0
 
@@ -1283,7 +1288,8 @@ def ldrb_memhints_32(va, val1, val2):
                 pubwl = ((val2 >> 6) & 0x18) | ((val2 >> 7) & 2)
                 opers = (
                         ArmRegOper(rt),
-                        ArmImmOffsetOper(rn, imm8, va, pubwl)
+                        #ArmImmOffsetOper(rn, imm8, va, pubwl)  # FIXME: deprecated
+                        ArmImmOffsetOper(rn, imm8, va, tsize=1)
                         )
                 return COND_AL, opcode, mnem, opers, flags, 0
 
@@ -1344,7 +1350,7 @@ def ldrd_imm_32(va, val1, val2):
 
     oper0 = ArmRegOper(rt, va=va)
     oper1 = ArmRegOper(rt2, va=va)
-    oper2 = ArmImmOffsetOper(rn, imm8<<2, va=va, pubwl=pubwl)
+    oper2 = ArmImmOffsetOper(rn, imm8<<2, va=va, pubwl=pubwl, tsize=8)
 
     opers = (oper0, oper1, oper2)
     flags = 0
@@ -1822,9 +1828,11 @@ def coproc_simd_32(va, val1, val2):
                 if indiv:
                     rbase = ('s%d', 'd%d')[size]
                     VRd = rctx.getRegisterIndex(rbase % d)
+                    tsize = 4 + (size*4)
+
                     opers = (
                             ArmRegOper(VRd, va=va, oflags=oflags),
-                            ArmImmOffsetOper(Rn, imm8, va=va, pubwl=pudwl),
+                            ArmImmOffsetOper(Rn, imm8, va=va, pubwl=pudwl, tsize=tsize),
                             )
 
                 else:
@@ -1867,6 +1875,7 @@ def adv_xfer_arm_ext_32(va, val1, val2):
     simdflags = 0
     opers = None
 
+    #print "adv_xfer_arm_ext_32  a=%d  l=%d  c=%d  b=%d" % (a,l,c,b)
     if l == 0:
         if c == 0:
             if a == 0:

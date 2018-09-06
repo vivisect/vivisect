@@ -470,7 +470,7 @@ STRB (imm) & (reg)
 STRH (imm) & (reg)
 
 '''
-swap_mnem = (("swp", INS_SWP), ("swpb", INS_SWPB),)
+swap_mnem = (("swp", INS_SWP, 4), ("swpb", INS_SWPB, 1),)
 strex_mnem = (("strex", INS_STREX), ("ldrex", INS_LDREX))  # FIXME: full instruction then suffix
 strex_flags = (0, IF_D, IF_B, IF_H)
 strh_mnem = (("str",INS_STR, IF_H,2),("ldr",INS_LDR, IF_H,2),)          # IF_H
@@ -489,11 +489,11 @@ def p_extra_load_store(opval, va, psize=4):
     if opval&0x0fb000f0==0x01000090:# swp/swpb
         idx = (pubwl>>2)&1
         opcode = INS_SWP
-        mnem, opcode = swap_mnem[idx]
+        mnem, opcode, tsize = swap_mnem[idx]
         olist = (
             ArmRegOper(Rd, va=va),
             ArmRegOper(Rm, va=va),
-            ArmImmOffsetOper(Rn, 0, va, pubwl, psize=psize),
+            ArmImmOffsetOper(Rn, 0, va, pubwl, psize=psize, tsize=tsize),
         )
     elif opval&0x0f800ff0==0x01800f90:# strex/ldrex
         idx = pubwl&1
@@ -534,16 +534,16 @@ def p_extra_load_store(opval, va, psize=4):
             iflags |= IF_T
         olist = (
             ArmRegOper(Rd, va=va),
-            ArmRegOffsetOper(Rn, Rm, va, pubwl, psize=psize, force_tsize=2),
+            ArmRegOffsetOper(Rn, Rm, va, pubwl, psize=psize, tsize=2),
         )
     elif opval&0x0e4000f0==0x004000b0:# strh/ldrh immoffset
         idx = pubwl&1
-        mnem, opcode, iflags, tsize= strh_mnem[idx]
+        mnem, opcode, iflags, tsize = strh_mnem[idx]
         if tvariant:
             iflags |= IF_T
         olist = (
             ArmRegOper(Rd, va=va),
-            ArmImmOffsetOper(Rn,(Rs<<4)+Rm, va, pubwl, psize=psize),
+            ArmImmOffsetOper(Rn,(Rs<<4)+Rm, va, pubwl, psize=psize, tsize=tsize),
         )
     elif opval&0x0e5000d0==0x005000d0:# ldrsh/b immoffset
         idx = (opval>>5)&1
@@ -553,7 +553,7 @@ def p_extra_load_store(opval, va, psize=4):
             iflags |= IF_T
         olist = (
             ArmRegOper(Rd, va=va),
-            ArmImmOffsetOper(Rn, (Rs<<4)+Rm, va, pubwl, psize=psize),
+            ArmImmOffsetOper(Rn, (Rs<<4)+Rm, va, pubwl, psize=psize, tsize=tsize),
         )
     elif opval&0x0e5000d0==0x001000d0:# ldrsh/b regoffset
         idx = (opval>>5)&1
@@ -563,7 +563,7 @@ def p_extra_load_store(opval, va, psize=4):
             iflags |= IF_T
         olist = (
             ArmRegOper(Rd, va=va),
-            ArmRegOffsetOper(Rn, Rm, va, pubwl, psize=psize, force_tsize=tsize),
+            ArmRegOffsetOper(Rn, Rm, va, pubwl, psize=psize, tsize=tsize),
         )
     elif opval&0x0e5000d0==0x000000d0:# ldrd/strd regoffset
         # 000pu0w0-Rn--Rt-SBZ-1101-Rm-  ldrd regoffset
@@ -580,7 +580,7 @@ def p_extra_load_store(opval, va, psize=4):
         olist = (
             ArmRegOper(Rd, va=va),
             ArmRegOper(Rd+1, va=va),
-            ArmRegOffsetOper(Rn, Rm, va, pubwl, psize=psize),
+            ArmRegOffsetOper(Rn, Rm, va, pubwl, psize=psize, tsize=8),
         )
     elif opval&0x0e5000d0==0x004000d0:# ldrd/strd immoffset
         if (Rd == 14) or (Rd % 2 != 0):
@@ -593,7 +593,7 @@ def p_extra_load_store(opval, va, psize=4):
         olist = (
             ArmRegOper(Rd, va=va),
             ArmRegOper(Rd+1, va=va),
-            ArmImmOffsetOper(Rn, (Rs<<4)+Rm, va, pubwl, psize=psize),
+            ArmImmOffsetOper(Rn, (Rs<<4)+Rm, va, pubwl, psize=psize, tsize=8),
         )
     else:
         raise envi.InvalidInstruction(
@@ -884,10 +884,15 @@ def p_load_imm_off(opval, va, psize=4):
     imm = opval & 0xfff
     mnem, opcode = ldr_mnem[pubwl&1]
     iflags = 0
+
+    tsize = 4
     if pubwl & 4:   # B   
         iflags = IF_B
+        tsize = 1
+
     if (pubwl & 0x12) == 2:
         iflags |= IF_T
+
     if Rd == REG_PC:
         iflags |= envi.IF_BRANCH
 
@@ -904,7 +909,7 @@ def p_load_imm_off(opval, va, psize=4):
     else: 
         olist = (
             ArmRegOper(Rd, va=va),
-            ArmImmOffsetOper(Rn, imm, va, pubwl=pubwl, psize=psize)    # u=-/+, b=word/byte
+            ArmImmOffsetOper(Rn, imm, va, pubwl=pubwl, psize=psize, tsize=tsize)    # u=-/+, b=word/byte
         )
     return (opcode, mnem, olist, iflags, 0)
 
@@ -1565,9 +1570,10 @@ def p_vstr(opval, va):
     simdflags = (IFS_32, IFS_64)[sz]
 
     rbase = ("s%d","d%d")[sz]
+    tsize = 4 + (4*sz)
     opers = (
             ArmRegOper(rctx.getRegisterIndex(rbase % vd)),
-            ArmImmOffsetOper(rn, imm, va, pubwl=pudwl)
+            ArmImmOffsetOper(rn, imm, va, pubwl=pudwl, tsize=tsize)
             )
 
     return INS_VSTR, 'vstr', opers, 0, 0
@@ -1622,9 +1628,10 @@ def p_vldr(opval, va):
     simdflags = (IFS_32, IFS_64)[sz]
 
     rbase = ("s%d","d%d")[sz]
+    tsize = 4 + (4*sz)
     opers = (
             ArmRegOper(rctx.getRegisterIndex(rbase % vd)),
-            ArmImmOffsetOper(rn, imm, va, pubwl=pudwl)
+            ArmImmOffsetOper(rn, imm, va, pubwl=pudwl, tsize=tsize)
             )
 
     return INS_VLDR, 'vldr', opers, 0, simdflags
@@ -4346,17 +4353,17 @@ class ArmScaledOffsetOper(ArmOperand):
 class ArmRegOffsetOper(ArmOperand):
     ''' register offset operand.  see "addressing mode 2 - load and store word or unsigned byte - register *" 
     dereference address mode using the combination of two register values '''
-    def __init__(self, base_reg, offset_reg, va, pubwl=PUxWL_DFLT, psize=4, force_tsize=None):
+    def __init__(self, base_reg, offset_reg, va, pubwl=PUxWL_DFLT, psize=4, tsize=None):
         self.base_reg = base_reg
         self.offset_reg = offset_reg
         self.pubwl = pubwl
         self.psize = psize
 
-        if force_tsize == None:
+        if tsize == None:
             b = (self.pubwl >> 2) & 1
             self.tsize = (4,1)[b]
         else:
-            self.tsize = force_tsize
+            self.tsize = tsize
 
     def __eq__(self, oper):
         if not isinstance(oper, self.__class__):
@@ -4449,7 +4456,7 @@ class ArmImmOffsetOper(ArmOperand):
     possibly with indexing, pre/post for faster rolling through arrays and such
     if the base_reg is PC, we'll dig in and hopefully grab the data being referenced.
     '''
-    def __init__(self, base_reg, offset, va, pubwl=PUxWL_DFLT, psize=4):
+    def __init__(self, base_reg, offset, va, pubwl=PUxWL_DFLT, psize=4, tsize=None):
         '''
         psize is pointer-size, since we want to increment base_reg that size when indexing
         tsize is the target size (4 or 1 bytes)
@@ -4460,8 +4467,11 @@ class ArmImmOffsetOper(ArmOperand):
         self.psize = psize
         self.va = va
 
-        b = (pubwl >> 2) & 1
-        self.tsize = (4,1)[b]
+        if tsize == None:
+            b = (pubwl >> 2) & 1
+            self.tsize = (4,1)[b]
+        else:
+            self.tsize = tsize
 
     def __eq__(self, oper):
         if not isinstance(oper, self.__class__):
@@ -4504,8 +4514,6 @@ class ArmImmOffsetOper(ArmOperand):
 
     def getOperAddr(self, op, emu=None):
         # there are certain circumstances where we can survive without an emulator
-        pubwl = self.pubwl >> 3
-        u = pubwl & 1
         # if we don't have an emulator, we must be PC-based since we know it
         if self.base_reg == REG_PC:
             base = self.va
@@ -4514,6 +4522,8 @@ class ArmImmOffsetOper(ArmOperand):
         else:
             base = emu.getRegister(self.base_reg)
 
+        pubwl = self.pubwl >> 3
+        u = pubwl & 1
         if u:
             addr = (base + self.offset) & e_bits.u_maxes[self.psize]
         else:

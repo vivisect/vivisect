@@ -324,7 +324,11 @@ class WorkspaceEmulator:
                     op = self.parseOpcode(starteip)
                     self.op = op
                     if self.emumon:
-                        self.emumon.prehook(self, op, starteip)
+                        try:
+                            self.emumon.prehook(self, op, starteip)
+                        except Exception, e:
+                            print("funcva: 0x%x opva: 0x%x:  %r   %r (in emumon prehook)" % (funcva, starteip, op, e))
+
 
                         if self.emustop:
                             return 
@@ -336,7 +340,11 @@ class WorkspaceEmulator:
                     endeip = self.getProgramCounter()
 
                     if self.emumon:
-                        self.emumon.posthook(self, op, endeip)
+                        try:
+                            self.emumon.posthook(self, op, endeip)
+                        except Exception, e:
+                            print("funcva: 0x%x opva: 0x%x:  %r   %r (in emumon posthook)" % (funcva, starteip, op, e))
+
                         if self.emustop:
                             return 
 
