@@ -223,7 +223,8 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
         note: differs from the IMemory interface by checking loclist
         '''
         if arch == envi.ARCH_DEFAULT:
-            arch = (envi.ARCH_ARMV7, envi.ARCH_THUMB)[self.getFlag(PSR_T_bit)]
+            tmode = self.getFlag(PSR_T_bit)
+            arch = (envi.ARCH_ARMV7, envi.ARCH_THUMB)[tmode]
 
         off, b = self.getByteDef(va)
         return self.imem_archs[ (arch & envi.ARCH_MASK) >> 16 ].archParseOpcode(b, off, va)

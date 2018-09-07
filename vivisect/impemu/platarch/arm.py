@@ -39,11 +39,11 @@ class ArmWorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_arm.ArmEmulator):
         '''
         op = self.opcache.get(va)
 
-        tmode = self.getFlag(PSR_T_bit)
-        if arch == envi.ARCH_DEFAULT:
-            arch = (envi.ARCH_ARMV7, envi.ARCH_THUMB)[tmode]
-
         if op == None:
+            tmode = self.getFlag(PSR_T_bit)
+            if arch == envi.ARCH_DEFAULT:
+                arch = (envi.ARCH_ARMV7, envi.ARCH_THUMB)[tmode]
+
             op = envi.archs.arm.emu.ArmEmulator.parseOpcode(self, va, arch=arch)
             self.opcache[va] = op
         return op
@@ -237,12 +237,11 @@ class ArmWorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_arm.ArmEmulator):
                             for bva,bpath in blist:
                                 todo.append((bva, esnap, bpath))
                             break
-                    else:
-                        # check if we've blx'd to a different thumb state.  if so,
-                        # be sure to return to the original tmode before continuing emulation pass
-                        newtmode = self.getFlag(PSR_T_bit)
-                        if newtmode != tmode:
-                            self.setFlag(PSR_T_bit, tmode)
+                    # check if we've blx'd to a different thumb state.  if so,
+                    # be sure to return to the original tmode before continuing emulation pass
+                    newtmode = self.getFlag(PSR_T_bit)
+                    if newtmode != tmode:
+                        self.setFlag(PSR_T_bit, tmode)
 
                     # If we enounter a procedure exit, it doesn't
                     # matter what EIP is, we're done here.

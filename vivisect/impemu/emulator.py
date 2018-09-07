@@ -51,7 +51,7 @@ class WorkspaceEmulator:
         self._safe_mem = True   # Should we be forgiving about memory accesses?
         self._func_only = True  # is this emulator meant to stay in one function scope?
 
-        self.strictops = True   # shoudl we bail on emulation if unsupported instruction encountered
+        self.strictops = True   # should we bail on emulation if unsupported instruction encountered
 
         # Map in all the memory associated with the workspace
         for va, size, perms, fname in vw.getMemoryMaps():

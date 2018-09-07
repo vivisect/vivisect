@@ -53,7 +53,7 @@ class AnalysisMonitor(viv_imp_monitor.AnalysisMonitor):
         viv_imp_monitor.AnalysisMonitor.prehook(self, emu, op, starteip)
 
         # Do return related stuff before we execute the opcode
-        if op.iflags & envi.IF_RET:
+        if op.isReturn():
             if len(op.opers):
                 self.retbytes = op.opers[0].imm
 
