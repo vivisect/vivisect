@@ -41,10 +41,8 @@ instrs = [
                 'tests':(('r3',0xfefefefe),('PSR_Q',0),('PSR_N',0),('PSR_Z',0),('PSR_V',0),('PSR_C',0)) }
         )),
         (REV_ALL_ARM, '08309fe5', 0xbfb00000, 'ldr r3, [#0xbfb00010]', 0, (
-            {#'setup':(('r0',0xaa),('PSR_C',0),('r3',0x1a)),
+            {
                 'tests':(('r3',0xfefefefe),('PSR_Q',0),('PSR_N',0),('PSR_Z',0),('PSR_V',0),('PSR_C',0)) },
-        #    {'setup':(('r0',0xaa),('PSR_C',0),('r3',0x1a)),
-        #        'tests':(('r3',0xfefefefe),('PSR_Q',0),('PSR_N',0),('PSR_Z',0),('PSR_V',0),('PSR_C',0)) }
         )),
 
         (REV_ALL_ARM, '08309be4', 0xbfb00000, 'ldr r3, [r11], #0x8', 0, ()),
@@ -879,7 +877,18 @@ instrs = [
         (REV_ALL_ARM, '434fb0e1', 0x4560, 'asrs  r4, r3, #0x1e', 0, ()),
         (REV_ALL_ARM, '5345a0e1', 0x4560, 'asr  r4, r3, r5', 0, ()),
         (REV_ALL_ARM, '5345b0e1', 0x4560, 'asrs  r4, r3, r5', 0, ()),
-        (REV_ALL_ARM, '1f32cfe7', 0x4560, 'bfc r3, #0x04, #0x0f', 0, ()),
+        (REV_ALL_ARM, '1f32cfe7', 0x4560, 'bfc r3, #0x04, #0x0f', 0, (
+            {'setup':(('r3',0xaaaaaaaa),),
+                'tests':(('r3',0b10101010101010000000000000001010),) },
+            )),
+        (REV_ALL_ARM, '6ff31f40', 0x4561, 'bfc.w r0, #0x10, #0x10', 0, (
+            {'setup':(('r0',0xaaaaaaaa),),
+                'tests':(('r0',0b1010101010101010),) },
+            )),
+        (REV_ALL_ARM, '6ff30e01', 0x4561, 'bfc.w r1, #0x00, #0x0f', 0, (
+            {'setup':(('r1',0xaaaaaaaa),),
+                'tests':(('r1',0b10101010101010101000000000000000),) },
+            )),
         (REV_ALL_ARM, '1432cfe7', 0x4560, 'bfi r3, r4, #0x04, #0x0f', 0, ()),
         (REV_ALL_ARM, 'fff053f5', 0x4560, 'pld [r3, #-0xff]', 0, ()),
         (REV_ALL_ARM, 'fff0d3f5', 0x4560, 'pld [r3, #0xff]', 0, ()),
@@ -1268,16 +1277,26 @@ instrs = [
         (REV_ALL_ARM, 'f4efec2f', 0x4561, 'vext.8 q9, q10, q14, #0x0f', 0, ()),
 
         (REV_ALL_ARM, 'e4404ff4', 0x4561, 'lsrs r4, r4', 0, ()),
-        (REV_ALL_ARM, 'ab066ff0', 0x2, 'mvn.w r6, #171', 0, ()),
-        (REV_ALL_ARM, '9800d6f8', 0x6, 'ldr.w r0, [r6, #152]', 0, ()),
-        (REV_ALL_ARM, '407f10f4', 0xa, 'tst.w r0, #768', 0, ()),
-        (REV_ALL_ARM, '40704ff4', 0xe, 'mov.w r0, #768', 0, ()),
+        (REV_ALL_ARM, 'ab066ff0', 0x2, 'lsls r3, r5, #0x1a', 0, ()),
+        (REV_ALL_ARM, '9800d6f8', 0x6, 'lsls r0, r3, #0x02', 0, ()),
+        (REV_ALL_ARM, '407f10f4', 0xa, 'ldrb r0, [r0, #0x1d]', 0, ()),
+        #(REV_ALL_ARM, '407f10f4', 0xa, 'tst.w r0, #768', 0, ()),
+        (REV_ALL_ARM, '40704ff4', 0xe, 'strb r0, [r0, #0x1]', 0, ()),
+        #(REV_ALL_ARM, '40704ff4', 0xe, 'mov.w r0, #768', 0, ()),
+        (REV_ALL_ARM, 'd6f89800', 0x6, 'ldr.w r0, [r6, #0x98]', 0, ()),
+        (REV_ALL_ARM, '980096e5', 0x4, 'ldr r0, [r6, #0x98]', 0, ()),       # arm
+        #(REV_ALL_ARM, '9800d6f8', 0x6, 'ldr.w r0, [r6, #152]', 0, ()),
+        (REV_ALL_ARM, '407f', 0xa, 'ldrb r0, [r0, #0x1d]', 0, ()),
+        (REV_ALL_ARM, '10f0011f', 0xa, 'tst.w r0, #0x10001', 0, ()),
+        #(REV_ALL_ARM, '407f10f4', 0xa, 'tst.w r0, #768', 0, ()),
+        (REV_ALL_ARM, '40704ff4', 0xe, 'strb r0, [r0, #0x1]', 0, ()),
+        #(REV_ALL_ARM, '40704ff4', 0xe, 'mov.w r0, #768', 0, ()),
 
-        (REV_ALL_ARM, '4ff4e440', 0x1, 'lsrs r4, r4', 0, ()),
-        (REV_ALL_ARM, '6ff0ab06', 0x2, 'mvn.w r6, #171', 0, ()),
-        (REV_ALL_ARM, 'd6f89800', 0x6, 'ldr.w r0, [r6, #152]', 0, ()),
-        (REV_ALL_ARM, '10f4407f', 0xa, 'tst.w r0, #768', 0, ()),
-        (REV_ALL_ARM, '4ff44070', 0xe, 'mov.w r0, #768', 0, ()),
+        (REV_ALL_ARM, '4ff4e440', 0x1, 'mov.w r0, #0x7200', 0, ()),
+        (REV_ALL_ARM, '6ff0ab06', 0x2, 'mvn.w r6, #0xab', 0, ()),
+        (REV_ALL_ARM, 'd6f89800', 0x6, 'ldr.w r0, [r6, #0x98]', 0, ()),
+        (REV_ALL_ARM, '10f4407f', 0xa, 'tst.w r0, #0x300', 0, ()),
+        (REV_ALL_ARM, '4ff44070', 0xe, 'mov.w r0, #0x300', 0, ()),
 
         ]
 instrs.extend(advsimdtests)
@@ -1330,7 +1349,7 @@ class ArmInstructionSet(unittest.TestCase):
 
     def test_BigEndian(self):
         am = arm.ArmModule()
-        am.setEndian(ENDIAN_MSB)
+        am.setEndian(envi.ENDIAN_MSB)
         op = am.archParseOpcode('e321f0d3'.decode('hex'))
         self.assertEqual('msr CPSR_c, #0xd3', repr(op))
 
