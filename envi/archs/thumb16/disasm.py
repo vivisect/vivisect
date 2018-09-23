@@ -124,7 +124,7 @@ def rm4_shift3(va, value): #bx/blx
     oper = ArmRegOper((value >> shval) & mask, va=va)
     if oval == REG_LR:
         l = bool(value & 0b0000000010000000)
-        iflags = envi.IF_RET | (envi.IF_NOFALL, envi.IF_CALL)[l]
+        iflags = (envi.IF_RET | envi.IF_NOFALL, envi.IF_CALL)[l]
     return COND_AL, (oper,), iflags
 
 banked_regs = (
@@ -660,93 +660,6 @@ class ThumbITOper(ArmOperand):
     def getOperValue(self, idx, emu=None):
         return None
 
-'''
-def thumb32_01(va, val, val2):
-    op =  (val2>>15)&1
-    op2 = (val>>4) & 0x7f
-    op1 = (val>>11) & 0x3
-    flags = 0
-    
-    if (op2 & 0x64) == 0:
-        raise Exception('# Load/Store Multiples')
-        op3 = (val>>7) & 3
-        W = (val>>5)&1
-        L = (val>>4)&1
-        mode = (val&0xf)
-
-        mnem, opcode = (('srs', INS_SRS), ('rfe',INS_RFE))[L]
-        iadb = (val>>7)&3
-        flags |= ( IF_DB, 0, 0, IF_IA ) [ iadb ]
-        olist = ( ArmRegOper(REG_SP), ArmImmOper(mode) )
-
-    elif (op2 & 0x64) == 4:
-        raise Exception('# Load/Store Dual, Load/Store Exclusive, table branch')
-
-    elif (op2 & 0x60) == 0x20:
-        raise Exception('# Data Processing (shifted register)')
-
-    elif (op2 & 0x40) == 0x40:
-        raise Exception('# Coprocessor, Advanced SIMD, Floating point instrs')
-    else:
-        raise InvalidInstruction(
-                mesg="Thumb32 failure",
-                bytez=struct.pack("<H", val)+struct.pack("<H", val2), va=va)
-    return COND_AL, opcode, mnem, opers, flags, 0
-
-
-def thumb32_10(va, val, val2):
-    op =  (val2>>15)&1
-    op2 = (val>>4) & 0x7f
-    op1 = (val>>11) & 0x3
-    flags = 0
-    
-    if (op2 & 0x20) == 0 and op == 0:
-        raise Exception('# Data Processing (modified immediate)')
-
-    elif (op2 & 0x20) == 1 and op == 0:
-        raise Exception('# Data Processing (plain binary immediate)')
-
-    elif op == 1:
-        raise Exception('# Branches and miscellaneous control')
-
-    else:
-        raise InvalidInstruction(
-                mesg="Thumb32 failure",
-                bytez=struct.pack("<H", val)+struct.pack("<H", val2), va=va)
-    return COND_AL, opcode, mnem, opers, flags, 0
-
-def thumb32_11(va, val, val2):
-    op =  (val2>>15)&1
-    op2 = (val>>4) & 0x7f
-    op1 = (val>>11) & 0x3
-    flags = 0
-    if (op2 & 0x71) == 0:
-        raise Exception('# Store single data item')
-
-    if (op2 & 0x67) == 1:
-        raise Exception('# Load byte, memory hints')
-
-    if (op2 & 0x67) == 3:
-        raise Exception('# Load half-word, memory hints')
-
-    if (op2 & 0x71) == 0x10:
-        raise Exception('# Advanced SIMD element or structure load/store instructions')
-
-    if (op2 & 0x70) == 0x20:
-        raise Exception('# Data Processing (register)')
-
-    if (op2 & 0x78) == 0x30:
-        raise Exception('# Multiply, multiply accumulate, and absolute difference')
-
-    if (op2 & 0x78) == 0x38:
-        raise Exception('# Long multiply, long multiply accumulate, and divide')
-
-    if (op2 & 0x40) == 0x40:
-        raise Exception('# Coprocessor, Advanced SIMD, Floating Point instrs')
-
-    return COND_AL, ( opcode, mnem, olist, flags, 0 )
-'''
-
 def ROR_C(imm, bitcount, shift):
     m = shift % bitcount
     result = (imm >> m) | (imm << (bitcount-m))
@@ -799,7 +712,7 @@ def dp_mod_imm_32(va, val1, val2):
     if val2 & 0x8000:
         return branch_misc(va, val1,val2)
 
-    flags = 0
+    flags = IF_THUMB32
     Rd = (val2 >> 8) & 0xf
     S = (val1>>4) & 1
 
@@ -1881,11 +1794,22 @@ def adv_xfer_arm_ext_32(va, val1, val2):
             if a == 0:
                 # p.A8-944
                 mnem, opcode = 'vmov', INS_VMOV
-                opers = ()
+                rt = val2 >> 12
+                vn = val1 & 0xf
+                Vreg = rctx.getRegisterIndex('s%d' % vn)
+                opers = (
+                        ArmRegOper(Vreg, va),
+                        ArmRegOper(rt, va),
+                        )
             elif a == 7:
                 # p.A8-956
                 mnem, opcode = 'vmsr', INS_VMSR
-                opers = ()
+                fpscr = REG_FPSCR
+                rt = val2 >> 12
+                opers = (
+                        ArmRegOper(fpscr, va),
+                        ArmRegOper(rt, va),
+                        )
             else:
                 bytez = struct.pack("<I", val)
                 raise InvalidInstruction(mesg="INVALID ENCODING: adv_xfer_arm_ext_32: l=0. c=0, a != (0, 7)", bytez=bytez, va=va)
@@ -1894,24 +1818,63 @@ def adv_xfer_arm_ext_32(va, val1, val2):
             if (a & 0b100) == 0:
                 # p.A8-940
                 mnem, opcode = 'vmov', INS_VMOV
-                opers = ()
+                return p_vmov_scalar(val, va)   # from the ARM code....
+
             else:
                 if b & 2:
                     raise InvalidInstruction(mesg="INVALID ENCODING: adv_xfer_arm_ext_32: b & 2", bytez=bytez, va=va)
                 # p.A8-886
                 mnem, opcode = 'vdup', INS_VDUP
-                opers = ()
+                b = (val1 >> 6) & 1
+                q = (val1 >> 5) & 1
+                d = (val2 >> 7) & 1
+                e = (val2 >> 5) & 1
+
+                #regs = (1, 2)[bool(q)]  # not necessary until emu, and not encoding specifically here
+                vd = (d << 4) | (val1 & 0xf)
+                rt = val2 >> 12
+                be = (b<<1) | e
+
+                simdflags = 0
+                if be == 0b00:
+                    simdflags = IFS_32
+                elif be == 0b01:
+                    esize = IFS_16
+                elif be == 0b10:
+                    esize = IFS_8
+                else:
+                    bytez = struct.pack("<I", val)
+                    raise InvalidInstruction(mesg="UNDEFINED ENCODING: adv_xfer_arm_ext_32: vdup: be=3", bytez=bytez, va=va)
+
+                opers = (
+                        ArmRegOper(vd, va),
+                        ArmRegOper(rt, va),
+                        )
 
     else:   # l == 1
         if c == 0:
             if a == 0:
                 # p.A8-944
                 mnem, opcode = 'vmov', INS_VMOV
-                opers = ()
+                rt = val2 >> 12
+                vn = val1 & 0xf
+                Vreg = rctx.getRegisterIndex('s%d' % vn)
+
+                opers = (
+                        ArmRegOper(rt, va),
+                        ArmRegOper(Vreg, va),
+                        )
+
             elif a == 7:
                 # p.A8-954 & B9-2012
                 mnem, opcode = 'vmrs', INS_VMRS
-                opers = ()
+                fpscr = REG_FPSCR
+                rt = val2 >> 12
+                opers = (
+                        ArmRegOper(rt, va),
+                        ArmRegOper(fpscr, va),
+                        )
+
             else:
                 bytez = struct.pack("<I", val)
                 raise InvalidInstruction(mesg="INVALID ENCODING: adv_xfer_arm_ext_32: l=1. c=0, a != (0, 7)", bytez=bytez, va=va)
@@ -1919,7 +1882,7 @@ def adv_xfer_arm_ext_32(va, val1, val2):
         else:   # c == 1
             # p.A8-942
             mnem, opcode = 'vmov', INS_VMOV
-            opers = ()
+            return p_vmov_scalar(val, va)   # from the ARM code....
 
     return COND_AL, opcode, mnem, opers, iflags, simdflags
 
@@ -2284,7 +2247,7 @@ class ThumbDisasm:
     _tree = ttree2
     _optype = envi.ARCH_THUMB
     _opclass = ThumbOpcode
-    def __init__(self, doModeSwitch=True, endian=ENDIAN_LSB):
+    def __init__(self, doModeSwitch=True, endian=envi.ENDIAN_LSB):
         self._doModeSwitch = doModeSwitch
         self.setEndian(endian)
 
@@ -2348,8 +2311,7 @@ class ThumbDisasm:
         #print opcode, mnem, olist, flags
         if (olist != None and 
                 len(olist) and 
-                isinstance(olist[0], ArmRegOper) and
-                olist[0].involvesPC() and 
+                olist[0].isPC() and
                 opcode not in no_update_Rd ):
             
             showop = True

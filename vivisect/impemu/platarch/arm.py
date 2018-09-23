@@ -1,5 +1,6 @@
 import sys
 import envi
+import logging
 import envi.archs.arm as e_arm
 
 import vivisect
@@ -8,7 +9,7 @@ import vivisect.impemu.emulator as v_i_emulator
 import visgraph.pathcore as vg_path
 from envi.archs.arm.regs import *
 
-
+logger = logging.getLogger("__name__")
 verbose = True
 
 class ArmWorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_arm.ArmEmulator):
@@ -123,7 +124,7 @@ class ArmWorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_arm.ArmEmulator):
                     pass
 
 
-                if arm == None and thumb == None:
+                if armop == None and thumbop == None:
                     # we didn't have a single push in either direction
                     print("TOTAL FAILURE TO DETERMINE THUMB MODE")
                     raise Exception("Neither architecture parsed the first opcode")
@@ -132,7 +133,6 @@ class ArmWorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_arm.ArmEmulator):
                         self.setFlag(PSR_T_bit, 1)
                         if verbose: print "ArmWorkspaceEmulator: Heuristically Determined funcva is THUMB:  0x%x" % funcva
                 else:
-                    #if verbose: print "ArmWorkspaceEmulator: Nothing specified, defaulting to ARM: 0x%x" % funcva
                     if verbose: print "ArmWorkspaceEmulator: Heuristically Determined funcva is ARM:  0x%x" % funcva
 
 
@@ -145,6 +145,7 @@ class ArmWorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_arm.ArmEmulator):
         will emulate, but only inside the given function.  You may specify a stopva
         to return once that location is hit.
         """
+        logger.debug('%s === emu.runFunction(0x%x, stopva=%r, maxhit=%r, maxloop=%r, tmode=%r)' % (__name__, funcva, stopva, maxhit, maxloop, tmode))
         self._prep(funcva, tmode)
 
         # Let the current (should be base also) path know where we are starting

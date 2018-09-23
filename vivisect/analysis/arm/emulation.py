@@ -1,7 +1,6 @@
 import sys
 
 import vivisect
-import vivisect.impemu as viv_imp
 import vivisect.impemu.monitor as viv_monitor
 import vivisect.analysis.generic.codeblocks as viv_cb
 
@@ -35,7 +34,7 @@ class AnalysisMonitor(viv_monitor.AnalysisMonitor):
             #if self.verbose: print "tmode: %x    emu:  0x%x   flags: 0x%x \t %r" % (tmode, starteip, op.iflags, op)
             #if op == self.badop:
             if op in self.badops:
-                raise Exception("Hit known BADOP at 0x%.8x %s" % (starteip, repr(op) ))
+                raise Exception("Hit known BADOP at 0x%.8x %s (fva: 0x%x)" % (starteip, repr(op), self.fva))
 
             viv_monitor.AnalysisMonitor.prehook(self, emu, op, starteip)
 
@@ -45,11 +44,11 @@ class AnalysisMonitor(viv_monitor.AnalysisMonitor):
                 emu.vw.addLocation(starteip, len(op), vivisect.LOC_OP, op.iflags)
 
             elif loctup[2] != LOC_OP:
-                if self.verbose: print "ARG! emulation found opcode in an existing NON-OPCODE location  (0x%x):  0x%x: %s" % (loctup[0], op.va, op)
+                if self.verbose: print("ARG! emulation found opcode in an existing NON-OPCODE location  (0x%x):  0x%x: %s" % (loctup[0], op.va, op))
                 emu.stopEmu()
 
             elif loctup[0] != starteip:
-                if self.verbose: print "ARG! emulation found opcode in a location at the wrong address (0x%x):  0x%x: %s" % (loctup[0], op.va, op)
+                if self.verbose: print("ARG! emulation found opcode in a location at the wrong address (0x%x):  0x%x: %s" % (loctup[0], op.va, op))
                 emu.stopEmu()
 
             if op.iflags & envi.IF_RET:
