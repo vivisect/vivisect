@@ -2311,7 +2311,8 @@ class ThumbDisasm:
         #print opcode, mnem, olist, flags
         if (olist != None and 
                 len(olist) and 
-                olist[0].isPC() and
+                isinstance(olist[0], ArmRegOper) and
+                olist[0].involvesPC() and 
                 opcode not in no_update_Rd ):
             
             showop = True

@@ -1703,7 +1703,7 @@ class ArmInstructionSet(unittest.TestCase):
                             #print "Instruction not in Emulator - ", repr(op)
                             bademu += 1
                         except Exception as exp:
-                            print "Exception in Emulator for command - ",repr(op)
+                            print "Exception in Emulator for command - ",repr(op), bytez, reprOp
                             print "  ",exp 
                             bademu += 1
                     else:

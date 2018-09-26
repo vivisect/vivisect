@@ -39,6 +39,14 @@ def signed(value, size):
         x = (x - u_maxes[size]) - 1
     return x
 
+def bsigned(value, size):
+    """
+    Make a value signed based on it's size.
+    """
+    if value & bsign_bits[size]:
+        value = (value - bu_maxes[size]) - 1
+    return value
+
 def is_signed(value, size):
     x = unsigned(value, size)
     return bool(x & sign_bits[size])
@@ -151,7 +159,10 @@ master_fmts = (fmt_chars, fmt_schars)
 fmt_sizes =  (None,1,2,4,4,8,8,8,8)
 
 
-fmt_schars = (le_fmt_schars, be_fmt_schars)
+le_fmt_float = (None, None, None, None, '<f', None, None, None, '<d')
+be_fmt_float = (None, None, None, None, '>f', None, None, None, '>d')
+
+fmt_floats = (le_fmt_float, be_fmt_float)
 
 
 def parsebytes(bytes, offset, size, sign=False, bigend=False):
