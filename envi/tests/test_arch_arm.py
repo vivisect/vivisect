@@ -1176,10 +1176,10 @@ instrs = [
         (REV_ALL_ARM, '421af4ee', 0x4560, 'vcmp.f32 s3, s4', 0, ()),
         (REV_ALL_ARM, 'c43bb4ee', 0x4560, 'vcmpe.f64 d3, d4', 0, ()),
         (REV_ALL_ARM, 'c21af4ee', 0x4560, 'vcmpe.f32 s3, s4', 0, ()),
-        (REV_ALL_ARM, '403bb5ee', 0x4560, 'vcmp.f64 d3, #0.00', 0, ()),
-        (REV_ALL_ARM, '401af5ee', 0x4560, 'vcmp.f32 s3, #0.00', 0, ()),
-        (REV_ALL_ARM, 'c03bb5ee', 0x4560, 'vcmpe.f64 d3, #0.00', 0, ()),
-        (REV_ALL_ARM, 'c01af5ee', 0x4560, 'vcmpe.f32 s3, #0.00', 0, ()),
+        (REV_ALL_ARM, '403bb5ee', 0x4560, 'vcmp.f64 d3, #0.000000', 0, ()),
+        (REV_ALL_ARM, '401af5ee', 0x4560, 'vcmp.f32 s3, #0.000000', 0, ()),
+        (REV_ALL_ARM, 'c03bb5ee', 0x4560, 'vcmpe.f64 d3, #0.000000', 0, ()),
+        (REV_ALL_ARM, 'c01af5ee', 0x4560, 'vcmpe.f32 s3, #0.000000', 0, ()),
         (REV_ALL_ARM, '4865b0f3', 0x4560, 'vcnt.8 q3, q4',0, ()),
         (REV_ALL_ARM, '0435b0f3', 0x4560, 'vcnt.8 d3, d4',0, ()),
         (REV_ALL_ARM, '4867bbf3', 0x4560, 'vcvt.s32.f32 q3, q4',0, ()),
@@ -1352,6 +1352,14 @@ class ArmInstructionSet(unittest.TestCase):
         am.setEndian(envi.ENDIAN_MSB)
         op = am.archParseOpcode('e321f0d3'.decode('hex'))
         self.assertEqual('msr CPSR_c, #0xd3', repr(op))
+
+    def test_regs(self):
+        self.assertEqual(rctx.getRealRegisterNameByIdx(REG_D3), 'q1')
+        self.assertEqual(rctx.getRealRegisterNameByIdx(REG_S0), 'q0')
+        self.assertEqual(rctx.getRealRegisterNameByIdx(REG_S1), 'q0')
+        self.assertEqual(rctx.getRealRegisterNameByIdx(REG_S2), 'q0')
+        self.assertEqual(rctx.getRealRegisterNameByIdx(REG_S3), 'q0')
+        self.assertEqual(rctx.getRealRegisterNameByIdx(REG_S4), 'q1')
 
     def test_envi_arm_operands(self):
         vw = vivisect.VivWorkspace()
@@ -1705,6 +1713,7 @@ class ArmInstructionSet(unittest.TestCase):
                         except Exception as exp:
                             print "Exception in Emulator for command - ",repr(op), bytez, reprOp
                             print "  ",exp 
+                            sys.excepthook(*sys.exc_info())
                             bademu += 1
                     else:
                         # if we have a special test lets run it
