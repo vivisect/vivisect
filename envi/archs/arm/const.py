@@ -240,30 +240,32 @@ PM_hyp = 0b11010
 PM_und = 0b11011
 PM_sys = 0b11111
 
+REGS_PER_MODE = 18
+
 # reg stuff stolen from regs.py to support proc_modes
 # these are in context of reg_table, not reg_data.  
 #  ie. these are indexes into the lookup table.
-REG_OFFSET_USR = 17 * (PM_usr&0xf)
-REG_OFFSET_FIQ = 17 * (PM_fiq&0xf)
-REG_OFFSET_IRQ = 17 * (PM_irq&0xf)
-REG_OFFSET_SVC = 17 * (PM_svc&0xf)
-REG_OFFSET_MON = 17 * (PM_mon&0xf)
-REG_OFFSET_ABT = 17 * (PM_abt&0xf)
-REG_OFFSET_HYP = 17 * (PM_hyp&0xf)
-REG_OFFSET_UND = 17 * (PM_und&0xf)
-REG_OFFSET_SYS = 17 * (PM_sys&0xf)
-#REG_OFFSET_CPSR = 17 * 16
+REG_OFFSET_USR = REGS_PER_MODE * (PM_usr&0xf)
+REG_OFFSET_FIQ = REGS_PER_MODE * (PM_fiq&0xf)
+REG_OFFSET_IRQ = REGS_PER_MODE * (PM_irq&0xf)
+REG_OFFSET_SVC = REGS_PER_MODE * (PM_svc&0xf)
+REG_OFFSET_MON = REGS_PER_MODE * (PM_mon&0xf)
+REG_OFFSET_ABT = REGS_PER_MODE * (PM_abt&0xf)
+REG_OFFSET_HYP = REGS_PER_MODE * (PM_hyp&0xf)
+REG_OFFSET_UND = REGS_PER_MODE * (PM_und&0xf)
+REG_OFFSET_SYS = REGS_PER_MODE * (PM_sys&0xf)
+#REG_OFFSET_CPSR = REGS_PER_MODE * 16
 REG_OFFSET_CPSR = 16                    # CPSR is available in every mode, and PM_usr and PM_sys don't have an SPSR.
 
-REG_SPSR_usr = REG_OFFSET_USR + 17
-REG_SPSR_fiq = REG_OFFSET_FIQ + 17
-REG_SPSR_irq = REG_OFFSET_IRQ + 17
-REG_SPSR_svc = REG_OFFSET_SVC + 17
-REG_SPSR_mon = REG_OFFSET_MON + 17
-REG_SPSR_abt = REG_OFFSET_ABT + 17
-REG_SPSR_hyp = REG_OFFSET_HYP + 17
-REG_SPSR_und = REG_OFFSET_UND + 17
-REG_SPSR_sys = REG_OFFSET_SYS + 17
+REG_SPSR_usr = REG_OFFSET_USR + REGS_PER_MODE
+REG_SPSR_fiq = REG_OFFSET_FIQ + REGS_PER_MODE
+REG_SPSR_irq = REG_OFFSET_IRQ + REGS_PER_MODE
+REG_SPSR_svc = REG_OFFSET_SVC + REGS_PER_MODE
+REG_SPSR_mon = REG_OFFSET_MON + REGS_PER_MODE
+REG_SPSR_abt = REG_OFFSET_ABT + REGS_PER_MODE
+REG_SPSR_hyp = REG_OFFSET_HYP + REGS_PER_MODE
+REG_SPSR_und = REG_OFFSET_UND + REGS_PER_MODE
+REG_SPSR_sys = REG_OFFSET_SYS + REGS_PER_MODE
 
 REG_PC = 0xf
 REG_LR = 0xe
@@ -737,7 +739,7 @@ instrnames = [
         'HINT',
 ]
 
-ins_index = 85
+ins_index = 0
 for instr in instrnames:
     globals()['INS_' + instr] = ins_index
     ins_index += 1

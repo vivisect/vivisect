@@ -57,7 +57,7 @@ class CoProcEmulator:       # useful for prototyping, but should be subclassed
 def _getRegIdx(idx, mode):
     if idx >= MAX_REGS:
         return idx
-    ridx = idx + (mode*17)  # account for different banks of registers
+    ridx = idx + (mode*REGS_PER_MODE)  # account for different banks of registers
     ridx = reg_table[ridx]  # magic pointers allowing overlapping banks of registers
     return ridx
 
@@ -718,7 +718,7 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
                 # dest is extension reg
                 src = self.getOperValue(op, 1)
                 src2 = self.getOperValue(op, 2)
-                src |= (src2 << 32)
+                src |= (int(src2) << 32)
                 self.setOperValue(op, 0, src)
 
         elif len(op.opers) == 4:
@@ -736,25 +736,100 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
         src = self.getOperValue(op, 1)
         self.setOperValue(op, 0, src)
 
+    def i_vcmp(self, op):
+        try:
+            src1 = self.getOperValue(op, 0)
+            src2 = self.getOperValue(op, 1)
+            val = src2 - src1
+            #print "vcmpe %r  %r  %r" % (src1, src2, val)
+            fpsrc = self.getRegister(REG_FPSCR)
+
+            # taken from VFCompare() from arch ref manual p80
+            if src1 == src2:
+                n, z, c, v = 0, 1, 1, 0
+            elif src1 < src2:
+                n, z, c, v = 1, 0, 0, 0
+            else:
+                n, z, c, v = 0, 0, 1, 0
+
+            self.setFpFlag(PSR_N_bit, n)
+            self.setFpFlag(PSR_Z_bit, z)
+            self.setFpFlag(PSR_C_bit, c)
+            self.setFpFlag(PSR_V_bit, v)
+        except Exception, e:
+            print("vcmp exception: %r" % e)
+
     def i_vcmpe(self, op):
-        src1 = self.getOperValue(op, 0)
-        src2 = self.getOperValue(op, 1)
-        val = src2 - src1
-        print "vcmpe %r  %r  %r" % (src1, src2, val)
-        fpsrc = self.getRegister(REG_FPSCR)
+        try:
+            size = (4,8)[bool(op.iflags & IFS_F64)]
 
-        # taken from VFCompare() from arch ref manual p80
-        if src1 == src2:
-            n, z, c, v = 0, 1, 1, 0
-        elif src1 < src2:
-            n, z, c, v = 1, 0, 0, 0
+            src1 = self.getOperValue(op, 0)
+            src2 = self.getOperValue(op, 1)
+                
+            val = src2 - src1
+                
+            #print "vcmpe %r %r  %r  %r" % (op, src1, src2, val)
+            fpsrc = self.getRegister(REG_FPSCR)
+
+            # taken from VFCompare() from arch ref manual p80
+            if src1 == src2:
+                n, z, c, v = 0, 1, 1, 0
+            elif src1 < src2:
+                n, z, c, v = 1, 0, 0, 0
+            else:
+                n, z, c, v = 0, 0, 1, 0
+
+            self.setFpFlag(PSR_N_bit, n)
+            self.setFpFlag(PSR_Z_bit, z)
+            self.setFpFlag(PSR_C_bit, c)
+            self.setFpFlag(PSR_V_bit, v)
+        except Exception, e:
+            print("vcmpe exception: %r" % e)
+
+    def i_vcvt(self, op):
+        print op, op.opers
+        print("complete implementing vcvt")
+        width = op.opers[0].getWidth()
+        regcnt = width / 4
+
+        
+        if len(op.opers) == 3:
+            for reg in range(regcnt):
+                #frac_bits = 64 - op.opers[2].val
+
+                if op.simdflags & IFS_F32_S32:
+                    pass
+                elif op.simdflags & IFS_F32_U32:
+                    pass
+                elif op.simdflags & IFS_S32_F32:
+                    pass
+                elif op.simdflags & IFS_U32_F32:
+                    pass
+
+        elif len(op.opers) == 2:
+            for reg in range(regcnt):
+                #frac_bits = 64 - op.opers[1].val
+
+                if op.simdflags & IFS_F32_S32:
+                    pass
+                elif op.simdflags & IFS_F32_U32:
+                    pass
+                elif op.simdflags & IFS_S32_F32:
+                    pass
+                elif op.simdflags & IFS_U32_F32:
+                    pass
+                elif op.simdflags & IFS_F64_S32:
+                    pass
+                elif op.simdflags & IFS_F64_U32:
+                    pass
+                elif op.simdflags & IFS_S32_F64:
+                    pass
+                elif op.simdflags & IFS_U32_F64:
+                    pass
         else:
-            n, z, c, v = 0, 0, 1, 0
+            raise Exception("i_vcvt with strange number of opers: %r" % op.opers)
 
-        self.setFpFlag(PSR_N_bit, n)
-        self.setFpFlag(PSR_Z_bit, z)
-        self.setFpFlag(PSR_C_bit, c)
-        self.setFpFlag(PSR_V_bit, v)
+    i_vcvtr = i_vcvt
 
     def i_ldm(self, op):
         if len(op.opers) == 2:
@@ -934,12 +1009,12 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
         mask = e_bits.b_masks[width]
 
         addit = self.getOperValue(op, 1) & mask
-        print "bfi:   ", lsb, width, bin(mask), bin(addit)
+        #print "bfi:   ", lsb, width, bin(mask), bin(addit)
 
         mask <<= lsb
         val = self.getOperValue(op, 0) & ~mask
         val |= addit
-        print "bfi: 2 ", bin(mask), bin(val)
+        #print "bfi: 2 ", bin(mask), bin(val)
 
         self.setOperValue(op, 0, val)
 
@@ -948,10 +1023,12 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
         width = self.getOperValue(op, 2)
         mask = e_bits.b_masks[width] << lsb
         mask ^= 0xffffffff
-        print "bfc:   ", lsb, width, bin(mask)
+        #print "0x%x: %r    %r:   " % (op.va, self.readMemory(op.va, 4).encode('hex'), op), lsb, width, bin(mask)
 
-        val = self.getOperValue(op, 0) & mask
-        print "bfc: 2 ", bin(mask), bin(val)
+        val = self.getOperValue(op, 0) 
+        #print "bfc: 1.5: ", bin(val)
+        val &= mask
+        #print "bfc: 2 ", bin(mask), bin(val)
 
         self.setOperValue(op, 0, val)
 
@@ -1428,11 +1505,11 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
         dsize = op.opers[0].tsize
         if len(op.opers) == 3:
             src = self.getOperValue(op, 1)
-            imm5 = self.getOperValue(op, 2)
+            imm5 = self.getOperValue(op, 2) & 0b11111
 
         else:
             src = self.getOperValue(op, 0)
-            imm5 = self.getOperValue(op, 1)
+            imm5 = self.getOperValue(op, 1) & 0b11111
 
         val = ((src >> imm5) | (src << 32-imm5)) & 0xffffffff
         carry = (val >> 31) & 1

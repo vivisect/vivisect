@@ -6,6 +6,9 @@ Make that apparent.
 import envi
 import vivisect
 
+import logging
+logger = logging.getLogger(__name__)
+
 def analyze(vw):
     """
     Do simple linear disassembly of the .plt section if present.

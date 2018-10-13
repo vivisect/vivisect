@@ -9,7 +9,7 @@ Strategy:
     * Emulator does translation from register/mode to actual storage container
         using reg_table and some math (see _getRegIdx)
 '''
-arm_regs = (
+arm_regs = [
     ('r0', 32),
     ('r1', 32),
     ('r2', 32),
@@ -29,8 +29,12 @@ arm_regs = (
     ('cpsr', 32),
     ('nil', 32),   # place holder
     # FIXME: need to deal with ELR_hyp
-)
+]
 MAX_REGS = 17
+#arm_regs.extend([('q%d' % x, 128) for x in range(VFP_QWORD_REG_COUNT)])
+
+# force them into a tuple for faster run-time access
+arm_regs = tuple(arm_regs)
 
 arm_metas = [
         ("r13", REG_SP, 0, 32),
@@ -44,7 +48,7 @@ REG_APSR_MASK = 0xffff0000
 modes = proc_modes.keys()
 modes.sort()
 
-reg_table = [ x for x in range(16 * 18) ]
+reg_table = [ x for x in range(17 * REGS_PER_MODE) ]
 reg_data = [ (reg, sz) for reg,sz in arm_regs ]
 
 for modenum in modes[1:]:       # skip first since we're already done
@@ -61,9 +65,11 @@ for modenum in modes[1:]:       # skip first since we're already done
         reg_table[ridx+offset] = idx
 
     # PC
-    reg_table[PSR_offset-2] = 15
+    reg_table[PSR_offset-3] = 15
     # CPSR
-    reg_table[PSR_offset-1] = 16
+    reg_table[PSR_offset-2] = 16   # SPSR....??
+    # NIL
+    reg_table[PSR_offset-1] = 17
     # PSR
     reg_table[PSR_offset] = len(reg_data)
     reg_data.append(("SPSR_"+msname, 32))

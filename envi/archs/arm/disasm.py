@@ -2077,7 +2077,7 @@ def _do_fp_dp(va, val1, val2):
             else:
                 opers = (
                         ArmRegOper(rctx.getRegisterIndex(rbase%d)),
-                        ArmImmFPOper(0.0),
+                        ArmFloatOper(0.0),
                         )
 
         # VCVT p874
@@ -3949,8 +3949,11 @@ class ArmRegOper(ArmOperand):
     def involvesPC(self):
         return self.reg == 15
 
-    def isDeref(self):
-        return False
+    def isReg(self):
+        return True
+
+    def getWidth(self):
+        return rctx.getRegisterWidth(self.reg) / 8
 
     def getOperValue(self, op, emu=None):
         if self.reg == REG_PC:
@@ -3998,7 +4001,7 @@ class ArmRegScalarOper(ArmRegOper):
         return False
 
     def isDeref(self):
-        return False
+        return True
 
     def getOperValue(self, op, emu=None):
         if emu == None:
@@ -4154,6 +4157,9 @@ class ArmImmOper(ArmOperand):
     def isDeref(self):
         return False
 
+    def isImmed(self):
+        return True
+
     def isDiscrete(self):
         return True
 
@@ -4170,26 +4176,50 @@ class ArmImmOper(ArmOperand):
         return '#0x%.2x' % (val)
 
 class ArmFloatOper(ArmImmOper):
+    '''
+    float operand (of a particular byte-width)
+    internal storage as N-bit bitfield (like the architecture would)
+    repr/render provides the appropriate floating point value
+    '''
     def __init__(self, val, size=4, endian=envi.ENDIAN_LSB):
-        self.val = val
         self.size = size
         self.endian = endian
+        self.intfmt = e_bits.fmt_chars[self.endian][self.size]
+        self.floatfmt = e_bits.fmt_floats[self.endian][self.size]
+
+        if type(val) == float:
+            self.setByFloat(val)
+        else:
+            self.setByBitField(val)
+
+    def setByFloat(self, val):
+        val = struct.pack(self.floatfmt, val)
+        self.val, = struct.unpack(self.intfmt, val)
+
+    def setByBitField(self, val):
+        self.val = val
 
     def getOperValue(self, op, emu=None):
-        infmt = e_bits.fmt_chars[self.endian][self.size]
-        outfmt = e_bits.fmt_floats[self.endian][self.size]
-        bytez = struct.pack(infmt, self.val)
-        retval = struct.unpack(outfmt, bytez)[0]
+        return self.val
+
+    def getFloatValue(self, op, emu=None):
+        '''
+        helper function to deal with the float values (getOperValue returns a bitfield)
+        '''
+        bytez = struct.pack(self.intfmt, self.val)
+        retval = struct.unpack(self.floatfmt, bytez)[0]
         return retval
 
     def render(self, mcanv, op, idx):
-        val = self.getOperValue(op)
+        val = self.getFloatValue(op)
         mcanv.addNameText('#%f' % (val))
 
     def repr(self, op):
-        val = self.getOperValue(op)
+        val = self.getFloatValue(op)
+
         return '#%f' % (val)
 
+"""
 class ArmImmFPOper(ArmImmOper):
     '''
     What's the difference between this and ArmFloatOper??
@@ -4208,7 +4238,7 @@ class ArmImmFPOper(ArmImmOper):
     def repr(self, op):
         val = self.getOperValue(op)
         return '#%.2f' % (val)
-
+"""
 
 class ArmScaledOffsetOper(ArmOperand):
     ''' scaled offset operand.  see "addressing mode 2 - load and store word or unsigned byte - scaled register *" '''
@@ -4635,6 +4665,9 @@ class ArmPcOffsetOper(ArmOperand):
         return True
 
     def involvesPC(self):
+        return True
+
+    def isImmed(self):
         return True
 
     def isDeref(self):
