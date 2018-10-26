@@ -121,6 +121,9 @@ def addAnalysisModules(vw):
 
     elif fmt == 'blob': # BLOB ######################################################
 
+        if arch in ('ppc', 'vle'):
+            vw.addAnalysisModule("vivisect.analysis.ppc.bootstrap")
+
         vw.addAnalysisModule("vivisect.analysis.generic.funcentries")
         vw.addAnalysisModule("vivisect.analysis.generic.relocations")
         vw.addAnalysisModule("vivisect.analysis.generic.pointertables")
@@ -131,6 +134,9 @@ def addAnalysisModules(vw):
         vw.addFuncAnalysisModule("vivisect.analysis.generic.thunks")
 
     elif fmt == 'ihex': # BLOB ######################################################
+
+        if arch in ('ppc', 'vle'):
+            vw.addAnalysisModule("vivisect.analysis.ppc.bootstrap")
 
         vw.addAnalysisModule("vivisect.analysis.generic.funcentries")
         vw.addAnalysisModule("vivisect.analysis.generic.relocations")
