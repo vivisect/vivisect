@@ -142,6 +142,7 @@ form_names = {
     15 : 'FORM_XL',
     16 : 'FORM_XO',
     17 : 'FORM_XS',
+    18 : 'FORM_X_2',
 }
 
 mnems = (

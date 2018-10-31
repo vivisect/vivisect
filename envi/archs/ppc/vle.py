@@ -515,9 +515,6 @@ def case_E_I16L(types, data, va):
     op0 = operands[types[0]]
     val1 = (data & 0x1F0000) >> 5;
     val1 |= (data & 0x7FF);
-    if (val1 & 0x8000):
-            val1 = 0xFFF8000 | val1;
-
     op1 = operands[types[1]]
 
     opers = ( op0(val0, va), op1(val1, va) )
@@ -528,8 +525,6 @@ def case_E_I16LS(types, data, va):
     op0 = operands[types[0]]
     val1 = (data & 0x1F0000) >> 5;
     val1 |= (data & 0x7FF);
-    if (val1 & 0x8000):
-            val1 = 0xFFFF8000 | val1;
     
     op1 = operands[types[1]]
 
@@ -634,6 +629,26 @@ def case_F_EVX(types, data, va):
 
 case_F_X    = case_F_EVX
 case_F_XO   = case_F_EVX
+
+def case_F_X_2(types, data, va):
+    opers = []
+    if (types[0] != TYPE_NONE):
+        #print types[1]
+        val1 = (data & 0x1F0000) >> 16;
+        op1 = operands[types[1]]
+        opers.append(op1(val1, va))
+
+    if (types[1] != TYPE_NONE):
+        val0 = (data & 0x3E00000) >> 21;
+        op0 = operands[types[0]]
+        opers.append(op0(val0, va))
+
+    if (types[2] != TYPE_NONE):
+        val2 = (data & 0xF800) >> 11;
+        op2 = operands[types[2]]
+        opers.append(op2(val2, va))
+
+    return opers
 
 def case_F_XRA(types, data, va):
     val1 = (data & 0x3E00000) >> 21;
@@ -787,6 +802,7 @@ e_handlers = {
 ppc_handlers = {
         F_X: case_F_X,
         F_XO: case_F_XO,
+        F_X_2: case_F_X_2,
         F_EVX: case_F_EVX,
         F_CMP: case_F_CMP,
         F_DCBF: case_F_DCBF,
