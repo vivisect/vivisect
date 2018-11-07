@@ -855,7 +855,7 @@ def find_e(buf, offset, endian=True, va=0):
 
 
     for mnem, op, mask, form, opcode, cond, types, iflags in e_ops:
-        #print mnem, op, mask, type
+        #print mnem, hex(op), hex(mask), types, hex(data)
         if (op & data) == op and (mask & data) == data:
             #print mnem, form, opcode, types, hex(data)
             size = 4
