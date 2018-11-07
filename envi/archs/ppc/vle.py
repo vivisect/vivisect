@@ -523,8 +523,10 @@ def case_E_I16L(types, data, va):
 def case_E_I16LS(types, data, va):
     val0 = (data & 0x3E00000) >> 21;
     op0 = operands[types[0]]
+
     val1 = (data & 0x1F0000) >> 5;
     val1 |= (data & 0x7FF);
+    val1 <<= 16
     
     op1 = operands[types[1]]
 
@@ -943,6 +945,9 @@ class VleDisasm:
 
         if op == None and bytelen >= offset + 2:
             op = find_se(bytes, offset, self.endian, va)
+
+        if op == None:
+            raise envi.InvalidInstruction(bytes[offset:offset+4], 'No Instruction Matched', va)
 
         return op
 
