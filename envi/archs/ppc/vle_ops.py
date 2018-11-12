@@ -60,6 +60,10 @@ ppc_ops = (
   ( "andc."      , 0x7C000078, 0x7C000079 | F_MASK_X   ,   F_XRA,   INS_AND, COND_AL, (TYPE_REG, TYPE_REG, TYPE_REG, TYPE_NONE, TYPE_NONE), IFLAGS_NONE),
   ( "or"         , 0x7C000378, 0x7C000378 | F_MASK_X   ,   F_XRA,    INS_OR, COND_AL, (TYPE_REG, TYPE_REG, TYPE_REG, TYPE_NONE, TYPE_NONE), IFLAGS_NONE),
   ( "or."        , 0x7C000378, 0x7C000379 | F_MASK_X   ,   F_XRA,    INS_OR, COND_AL, (TYPE_REG, TYPE_REG, TYPE_REG, TYPE_NONE, TYPE_NONE), IFLAGS_NONE),
+
+  ( "orc"        , 0x7C000338, 0x7C000338 | F_MASK_X   ,   F_XRA,    INS_OR, COND_AL, (TYPE_REG, TYPE_REG, TYPE_REG, TYPE_NONE, TYPE_NONE), IFLAGS_NONE),
+  ( "orc."       , 0x7C000338, 0x7C000339 | F_MASK_X   ,   F_XRA,    INS_OR, COND_AL, (TYPE_REG, TYPE_REG, TYPE_REG, TYPE_NONE, TYPE_NONE), IFLAGS_NONE),
+  
   ( "xor"        , 0x7C000278, 0x7C000278 | F_MASK_X   ,   F_XRA,   INS_XOR, COND_AL, (TYPE_REG, TYPE_REG, TYPE_REG, TYPE_NONE, TYPE_NONE), IFLAGS_NONE),
   ( "xor."       , 0x7C000278, 0x7C000279 | F_MASK_X   ,   F_XRA,   INS_XOR, COND_AL, (TYPE_REG, TYPE_REG, TYPE_REG, TYPE_NONE, TYPE_NONE), IFLAGS_NONE),
   ( "nor"        , 0x7C0000f8, 0x7C0000f8 | F_MASK_X   ,   F_XRA,   INS_NOR, COND_AL, (TYPE_REG, TYPE_REG, TYPE_REG, TYPE_NONE, TYPE_NONE), IFLAGS_NONE),
@@ -160,7 +164,7 @@ ppc_ops = (
 
    # 1a1b6:	7c 6b 1e 70 	srawi   r11,r3,3 */
 
-  ( "mbar"       , 0x7C00002E, 0x7C00002E | F_MASK_XFX ,   F_XFX,    INS_IO, COND_AL, (TYPE_IMM, TYPE_NONE, TYPE_NONE, TYPE_NONE, TYPE_NONE), IFLAGS_NONE),
+  ( "mbar"       , 0x7C0006AC, 0x7C0006AC | F_MASK_XFX ,   F_XFX,    INS_IO, COND_AL, (TYPE_IMM, TYPE_NONE, TYPE_NONE, TYPE_NONE, TYPE_NONE), IFLAGS_NONE),
   ( "mcrxr"      , 0x7C000400, 0x7C000400 | F_MASK_XER ,   F_XER,   INS_MOV, COND_AL, (TYPE_IMM, TYPE_NONE, TYPE_NONE, TYPE_NONE, TYPE_NONE), IFLAGS_NONE),
   ( "mfdcr"      , 0x7C000286, 0x7C000286 | F_MASK_MFPR,  F_MFPR,   INS_MOV, COND_AL, (TYPE_REG, TYPE_IMM, TYPE_NONE, TYPE_NONE, TYPE_NONE), IFLAGS_NONE),
   ( "mfdcrux"    , 0x7C000246, 0x7C000246 | F_MASK_EXT ,   F_EXT,   INS_MOV, COND_AL, (TYPE_REG, TYPE_REG, TYPE_NONE, TYPE_NONE, TYPE_NONE), IFLAGS_NONE),
@@ -345,7 +349,7 @@ se_ops = (
   ( "se_sc"     , 0x0002, 0x0002, 0,   INS_SWI, COND_AL, ((0), (0), (0), (0), (0)), IFLAGS_NONE),
   ( "se_blr"    , 0x0004, 0x0004, 0,   INS_RET, COND_AL, ((0), (0), (0), (0), (0)), IF_RET | IF_NOFALL),
   ( "se_blrl"   , 0x0005, 0x0005, 0,   INS_RET, COND_AL, ((0), (0), (0), (0), (0)), IF_RET | IF_NOFALL),
-  ( "se_bctr"   , 0x0006, 0x0006, 0,  INS_RJMP, COND_AL, ((0), (0), (0), (0), (0)), IF_BRANCH),
+  ( "se_bctr"   , 0x0006, 0x0006, 0,  INS_RJMP, COND_AL, ((0), (0), (0), (0), (0)), IF_BRANCH | IF_NOFALL),
   ( "se_bctrl"  , 0x0007, 0x0007, 0, INS_RCALL, COND_AL, ((0), (0), (0), (0), (0)), IF_CALL),
   ( "se_rfi"    , 0x0008, 0x0008, 0,  INS_TRAP, COND_AL, ((0), (0), (0), (0), (0)), IF_RET | IF_NOFALL | IF_PRIV),
   ( "se_rfci"   , 0x0009, 0x0009, 0,  INS_TRAP, COND_AL, ((0), (0), (0), (0), (0)), IF_RET | IF_NOFALL | IF_PRIV),
@@ -377,7 +381,7 @@ se_ops = (
   ( "se_and."   , 0x4700, 0x47FF, 2,   INS_AND, COND_AL, ((0x00F0,  4,  0,  0, 1, TYPE_REG), (0x000F,  0,  0,  0,  0, TYPE_REG), (0), (0), (0)), IFLAGS_NONE),
   ( "se_andi"   , 0x2E00, 0x2FFF, 2,   INS_AND, COND_AL, ((0x01F0,  4,  0,  0, 1, TYPE_IMM), (0x000F,  0,  0,  0,  0, TYPE_REG), (0), (0), (0)), IFLAGS_NONE),
   ( "se_andc"   , 0x4500, 0x45FF, 2,   INS_AND, COND_AL, ((0x00F0,  4,  0,  0, 1, TYPE_REG), (0x000F,  0,  0,  0,  0, TYPE_REG), (0), (0), (0)), IFLAGS_NONE),
-  ( "se_b"      , 0xE800, 0xE8FF, 1,   INS_JMP, COND_AL, ((0x00FF,  0,  1,  0, 0, TYPE_JMP), (0), (0), (0), (0)), IF_BRANCH),
+  ( "se_b"      , 0xE800, 0xE8FF, 1,   INS_JMP, COND_AL, ((0x00FF,  0,  1,  0, 0, TYPE_JMP), (0), (0), (0), (0)), IF_BRANCH | IF_NOFALL),
   ( "se_bl"     , 0xE900, 0xE9FF, 1,  INS_CALL, COND_AL, ((0x00FF,  0,  1,  0, 0, TYPE_JMP), (0), (0), (0), (0)), IF_CALL),
   # cr0
   # e2 e5
