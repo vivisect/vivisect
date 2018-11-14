@@ -80,11 +80,14 @@ arch_names = {
     Elf.EM_PPC:'ppc',
     Elf.EM_PPC64:'ppc64',
 }
+# FIXME: interpret ELF headers to configure VLE pages
 
+# FIXME: make ArchModules specify the default calling convention based on Architecture settings (which must be handed in)
 archcalls = {
     'i386':'cdecl',
     'amd64':'sysvamd64call',
     'arm':'armcall',
+    'ppc':'ppccall',
 }
 
 def loadElfIntoWorkspace(vw, elf, filename=None):

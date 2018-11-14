@@ -40,6 +40,8 @@ class PpcOpcode(envi.Opcode):
         # In most architectures, if we have no operands, it has no
         # further branches...
         if len(self.opers) == 0:
+            if self.iflags & envi.IF_CALL:
+                ret.append((None, flags | envi.BR_PROC))
             return ret
 
         # Check for a call...

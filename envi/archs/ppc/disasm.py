@@ -79,6 +79,7 @@ class PpcDisasm:
             opcode = nopcode
 
         mnem, opcode, opers, iflags = self.simplifiedMnems(ival, mnem, opcode, opers, iflags)
+        iflags |= envi.ARCH_PPC
 
         return PpcOpcode(va, opcode, mnem, size=4, operands=opers, iflags=iflags)
 
