@@ -34,7 +34,7 @@ defconfig = {
         },
         'arch':{
             'ppc':{
-                'options':'altivec'
+                'options':'spe'
             },
         },
     },
