@@ -7,6 +7,7 @@ import envi.memory as e_mem
 import copy
 import struct
 
+from envi import *
 from regs import *
 from const import *
 from disasm import *
@@ -20,57 +21,20 @@ IV_EXT1         = 0x0013
 IV_TIMER1       = 0x001b
 INTVECTOR_4     = 0x0023
 
-### TODO: Make Calling Conventions for PPC.  Examples below.. Replace!
-class StdCall(envi.CallingConvention):
 
-    def getCallArgs(self, emu, count):
-        esp = emu.getRegister(REG_ESP)
-        esp += 1 # For the saved eip
-        return struct.unpack("<%dB" % count, emu.readMemory(esp, count))
+class PpcCall(envi.CallingConvention):
+    '''
+    Does not have shadow space like MSx64.
+    '''
+    arg_def = [(CC_REG, REG_R3 + x) for x in range(7)]
+    arg_def.append((CC_STACK_INF, 8))
+    retaddr_def = (CC_STACK, 0)
+    retval_def = (CC_REG, REG_R3)
+    flags = CC_CALLEE_CLEANUP
+    align = 4
+    pad = 0
 
-class Cdecl(envi.CallingConvention):
-
-    def getCallArgs(self, emu, count):
-        esp = emu.getRegister(REG_ESP)
-        esp += 1 # For the saved eip
-        return struct.unpack("<%dB" % count, emu.readMemory(esp, count))
-
-    def setReturnValue(self, emu, value, ccinfo):
-        esp = emu.getRegister(REG_ESP)
-        eip = struct.unpack("B", emu.readMemory(esp, 1))[0]
-        esp += 1 # For the saved eip
-
-        emu.setRegister(REG_ESP, esp)
-        emu.setRegister(REG_EAX, value)
-        emu.setProgramCounter(eip)
-
-class ThisCall(envi.CallingConvention):
-
-    #FIXME do something about emulated argc vs our arg count...
-    def getCallArgs(self, emu, count):
-        #ret = [emu.getRegister(REG_ECX),]
-        esp = emu.getRegister(REG_ESP)
-        esp += 1 # For the saved eip
-        return struct.unpack("<%dB" % count, emu.readMemory(esp, count))
-
-    def setReturnValue(self, emu, value, ccinfo):
-        """
-        """
-        if ccinfo == None:
-            ccinfo = 0
-        # Our first arg (if any) is in a reg
-        esp = emu.getRegister(REG_ESP)
-        eip = struct.unpack("<B", emu.readMemory(esp, 1))[0]
-        esp += 1 # For the saved eip
-        esp += ccinfo # Cleanup saved args
-        emu.setRegister(REG_ESP, esp)
-        emu.setRegister(REG_EAX, value)
-        emu.setProgramCounter(eip)
-
-# Pre-make these and use the same instances for speed  (x86 leftovers.  apply here?)
-#stdcall = StdCall()
-#thiscall = ThisCall()
-#cdecl = Cdecl()
+ppccall = PpcCall()
 
 OPER_SRC = 1
 OPER_DST = 0
@@ -86,9 +50,7 @@ class PpcEmulator(PpcModule, PpcRegisterContext, envi.Emulator):
         PpcRegisterContext.__init__(self)
         PpcModule.__init__(self)
 
-        #self.addCallingConvention("stdcall", stdcall)
-        #self.addCallingConvention("thiscall", thiscall)
-        #self.addCallingConvention("cdecl", cdecl)
+        self.addCallingConvention("ppccall", ppccall)
 
     
     def undefFlags(self):
@@ -710,9 +672,21 @@ class PpcEmulator(PpcModule, PpcRegisterContext, envi.Emulator):
     def i_isync(self, op):
         print "isync call: %r" % op
 
+    def i_movfrom(self, op):
+        src = self.getOperValue(op, 1)
+        self.setOperValue(op, 0, src)
+
     def i_mov(self, op):
         src = self.getOperValue(op, 0)
         self.setOperValue(op, 1, src)
+
+    def i_mflr(self, op):
+        src = self.getRegister(REG_LR)
+        self.setOperValue(op, 0, src)
+
+    def i_mtlr(self, op):
+        src = self.getOperValue(op, 0)
+        self.setRegister(REG_LR, src)
 
     def i_mfspr(self, op):
         src = self.getOperValue(op, 1)
@@ -722,13 +696,14 @@ class PpcEmulator(PpcModule, PpcRegisterContext, envi.Emulator):
         src = self.getOperValue(op, 0)
         self.setOperValue(op, 1, src)
 
-    i_li = i_mov
+    i_li = i_movfrom
+    i_mr = i_movfrom
 
     def i_lis(self, op):
         src = self.getOperValue(op, 1)
-        print hex(src)
-        self.setOperValue(op, 0, (src<<16))
-        print hex(src<<16)
+        #self.setOperValue(op, 0, (src<<16))
+        # technically this is incorrect, but since we disassemble wrong, we emulate wrong.
+        self.setOperValue(op, 0, (src))
 
     def i_cmpi(self, op):
         L = self.getOperValue(op, 1)
@@ -859,6 +834,33 @@ class PpcEmulator(PpcModule, PpcRegisterContext, envi.Emulator):
         self.setOperValue(op, 0, src)
         self.setOperValue(op, 1, 0)
 
+    def i_lmw(self, op):
+        fmt = ('<I', '>I')[self.getEndian()]
+        op.opers[1].tsize = 4
+        startreg = op.opers[0].reg
+        regcnt = 32-startreg
+
+        startaddr = self.getOperAddr(op, 1)
+
+        offset = 0
+        for regidx in range(startreg, 32):
+            word = self.readMemValue(startaddr + offset, 4)
+            self.setRegister(regidx, word)
+            offset += 4
+
+    def i_stmw(self, op):
+        op.opers[1].tsize = 4
+        startreg = op.opers[0].reg
+        regcnt = 32-startreg
+
+        startaddr = self.getOperAddr(op, 1)
+
+        offset = 0
+        for regidx in range(startreg, 32):
+            word = self.getRegister(regidx)
+            self.writeMemValue(startaddr + offset, word & 0xffffffff, 4)
+            offset += 4
+    
     def i_stwu(self, op):
         op.opers[1].tsize = 4
         src = self.getOperValue(op, 0)
@@ -913,6 +915,17 @@ class PpcEmulator(PpcModule, PpcRegisterContext, envi.Emulator):
     def getSOflag(self, crnum=0):
         cr = self.getCr(crnum)
         return cr >> FLAGS_SO_bitnum
+
+    # VLE instructions
+    i_e_li = i_li
+    i_e_lis = i_lis
+    i_se_mflr = i_mflr
+    i_se_mtlr = i_mtlr
+    i_e_stwu = i_stwu
+    i_e_stmw = i_stmw
+    i_e_lmw = i_lmw
+    i_se_mr = i_mr
+
 
 #############################  PPC MARKER.  BELOW THIS MARKER IS DELETION FODDER #################################3
     '''

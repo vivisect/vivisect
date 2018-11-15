@@ -20,6 +20,11 @@ ppcargnames = {
     7: ('r10', e_ppc.REG_R10),
 }
 
+# Goals:
+# * Analyze and Annotate Calling Convention data
+# * Annotate Read/Writes of ctr and registers
+# * Annotate Read/Writes of SPRs (VA Set?)
+
 class AnalysisMonitor(viv_monitor.AnalysisMonitor):
 
     def __init__(self, vw, fva):
@@ -41,14 +46,13 @@ def ppcname(idx):
     else:
         name, idx = ret
     return name
-#####
 
 def buildFunctionApi(vw, fva, emu, emumon):
     
     argc = 0
     funcargs = []
     callconv = vw.getMeta('DefaultCall')
-    argnames = arch_bindings.get(callconv)
+    argnames = ppcargnames
     undefregs = set(emu.getUninitRegUse())
 
     for argnum in range(len(argnames), 0, -1):
@@ -73,7 +77,7 @@ def buildFunctionApi(vw, fva, emu, emumon):
 
 def analyzeFunction(vw, fva):
 
-    emu = vw.getEmulator()
+    emu = vw.getEmulator(logread=True, logwrite=True)
     emumon = AnalysisMonitor(vw, fva)
 
     emu.setEmulationMonitor(emumon)
@@ -99,4 +103,7 @@ def analyzeFunction(vw, fva):
         vw.setFunctionLocal(fva, baseoff + ( i * 8 ), LSYM_FARG, i+stackidx)
 
     emumon.addAnalysisResults(vw, emu)
+
+    # read/writes
+
 
