@@ -1,5 +1,6 @@
 import envi
 import envi.bits as e_bits
+import envi.symstore.resolver as e_resolv
 
 from envi import IF_NOFALL, IF_BRANCH, IF_CALL, IF_RET, IF_PRIV, IF_COND
 
@@ -7,10 +8,24 @@ from regs import *
 from const import *
 
 def addrToName(mcanv, va):
-    sym = mcanv.syms.getSymByAddr(va)
+    sym = getSymByAddr(mcanv.syms, va)
     if sym != None:
         return repr(sym)
-    return "0x%.8x" % va
+    return "0x%.4x" % va
+
+def getSymByAddr(self, addr, exact=True):
+    '''
+    local version for only 4-digit repr locations
+    '''
+    name = self.getName(addr)
+    if name == None:
+        if addr > 0xffff and self.isValidPointer(addr):
+            name = "loc_%.4x" % addr
+
+    if name != None:
+        #FIXME fname
+        #FIXME functions/segments/etc...
+        return e_resolv.Symbol(name, addr, 0)
 
 
 IF_CALLCC = (IF_CALL | IF_COND)
@@ -371,7 +386,7 @@ class PpcMemOper(envi.DerefOper):
 
     def updateReg(self, emu):
         rval = emu.getRegister(self.base_reg)
-        print self.offset
+        #print self.offset
         rval += self.offset
         emu.setRegister(self.base_reg, rval)
 
@@ -416,6 +431,95 @@ class PpcMemOper(envi.DerefOper):
         else:
             tname = '%s(%s)' % (hex(self.offset), basereg)
         return tname
+
+class PpcJmpOper(envi.RegisterOper):
+    """
+    PC + imm_offset
+
+    PpcImmOper but for Branches, not a dereference. 
+    """
+    def __init__(self, val, va):
+        self.va = va
+        self.val = e_bits.signed(val, 4)
+
+    def __eq__(self, oper):
+        if not isinstance(oper, self.__class__):
+            return False
+        if self.val != oper.val:
+            return False
+        if self.va != oper.va:
+            return False
+        return True
+
+    def involvesPC(self):
+        return True
+
+    def isDeref(self):
+        return False
+
+    def isDiscrete(self):
+        return False
+
+    def getOperValue(self, op, emu=None):
+        return self.va + self.val
+
+    def render(self, mcanv, op, idx):
+        value = self.getOperValue(op)
+        if mcanv.mem.isValidPointer(value):
+            name = addrToName(mcanv, value)
+            mcanv.addVaText(name, value)
+        else:
+            mcanv.addVaText('0x%.8x' % value, value)
+
+    def repr(self, op):
+        targ = self.getOperValue(op)
+        tname = "0x%.8x" % targ
+        return tname
+
+fields = (None, 'c', 'x', 'cx', 's', 'cs', 'xs', 'cxs',  'f', 'fc', 'fx', 'fcx', 'fs', 'fcs', 'fxs', 'fcxs')
+
+class PpcCrOper(envi.RegisterOper):
+    def __init__(self, val, va, mask=0xffffffff):
+        self.mask = mask
+        self.val = val
+
+    def __eq__(self, oper):
+        if not isinstance(oper, self.__class__):
+            return False
+        if self.val != oper.val:
+            return False
+        return True
+
+    def involvesPC(self):
+        return False
+
+    def isDeref(self):
+        return False
+
+    def getOperValue(self, op, emu=None):
+        if emu == None:
+            return None
+
+        psr = emu.getRegister(REG_CR)
+        return psr
+
+    def setOperValue(self, op, emu=None, val=None):
+        if emu == None:
+            return None
+
+        psr = emu.getRegister(REG_CR)
+        newpsr = psr & (~self.mask) | (val & self.mask)
+        emu.setRegister(REG_CR)
+
+        return newpsr
+
+    def repr(self, op):
+        #return "cr_" + fields[self.val]
+        return "cr%u" % self.val
+
+    def render(self, mcanv, op, idx):
+        name = "cr%u" % self.val
+        mcanv.addNameText(name, typename='cr')
 
 
 OPERCLASSES = {
