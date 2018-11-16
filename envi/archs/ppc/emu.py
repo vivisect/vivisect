@@ -865,6 +865,7 @@ class PpcEmulator(PpcModule, PpcRegisterContext, envi.Emulator):
         op.opers[1].tsize = 4
         src = self.getOperValue(op, 0)
         self.setOperValue(op, 1, src)
+        # the u stands for "update"... ie. write-back
         op.opers[1].updateReg(self)
     
     def i_stw(self, op):
@@ -872,6 +873,47 @@ class PpcEmulator(PpcModule, PpcRegisterContext, envi.Emulator):
         src = self.getOperValue(op, 0)
         self.setOperValue(op, 1, src)
     
+    def i_or(self, op):
+        dst = self.getOperValue(op, 0)
+        src = self.getOperValue(op, 1)
+        # PDE
+        if dst == None or src == None:
+            self.undefFlags()
+            op.opers[OPER_DST].setOperValue(op, self, None)
+            return
+
+        self.setOperValue(op, 0, (dst | src))
+        if op.iflags & IF_RC: self.setFlags(results, 0)
+
+    i_ori = i_or
+
+    def i_oris(self, op):
+        dst = self.getOperValue(op, 0)
+        src = self.getOperValue(op, 1)
+        src <<= 16
+
+        # PDE
+        if dst == None or src == None:
+            self.undefFlags()
+            op.opers[OPER_DST].setOperValue(op, self, None)
+            return
+
+        self.setOperValue(op, 0, (dst | src))
+        if op.iflags & IF_RC: self.setFlags(results, 0)
+
+    def i_orc(self, op):
+        dst = self.getOperValue(op, 0)
+        src = self.getOperValue(op, 1)
+        src = -src
+
+        # PDE
+        if dst == None or src == None:
+            self.undefFlags()
+            op.opers[OPER_DST].setOperValue(op, self, None)
+            return
+
+        self.setOperValue(op, 0, (dst | src))
+        if op.iflags & IF_RC: self.setFlags(results, 0)
 
     def getCr(self, crnum):
         '''
@@ -925,6 +967,84 @@ class PpcEmulator(PpcModule, PpcRegisterContext, envi.Emulator):
     i_e_stmw = i_stmw
     i_e_lmw = i_lmw
     i_se_mr = i_mr
+    i_se_or = i_or
+    i_e_ori = i_ori
+    i_e_or2i = i_ori
+    i_e_or2is = i_oris
+
+    '''
+    i_se_bclri                         rX,UI5
+    i_se_bgeni                         rX,UI5
+    i_se_bmaski                        rX,UI5
+    i_se_bseti                         rX,UI5
+    i_se_btsti                         rX,UI5
+    i_e_cmpli instructions, or CR0 for the se_cmpl, e_cmp16i, e_cmph16i, e_cmphl16i, e_cmpl16i, se_cmp,
+    i_se_cmph, se_cmphl, se_cmpi, and se_cmpli instructions, is set to reflect the result of the comparison. The
+    i_e_cmp16i                             rA,SI
+    i_e_cmpi                   crD32,rA,SCI8
+    i_se_cmp                              rX,rY
+    i_se_cmpi                           rX,UI5
+    i_e_cmph                        crD,rA,rB
+    i_se_cmph                            rX,rY
+    i_e_cmph16i                           rA,SI
+    i_e_cmphl                       crD,rA,rB
+    i_se_cmphl                           rX,rY
+    i_e_cmphl16i                         rA,UI
+    i_e_cmpl16i                           rA,UI
+    i_e_cmpli                  crD32,rA,SCI8
+    i_se_cmpl                             rX,rY
+    i_se_cmpli                      rX,OIMM
+    i_se_cmph, se_cmphl, se_cmpi, and se_cmpli instructions, is set to reflect the result of the comparison. The
+    i_e_cmph                        crD,rA,rB
+    i_se_cmph                            rX,rY
+    i_e_cmph16i                           rA,SI
+    i_e_cmphl                       crD,rA,rB
+    i_se_cmphl                           rX,rY
+    i_e_cmphl16i                         rA,UI
+    i_e_crnand               crbD,crbA,crbB
+    i_e_crnor               crbD,crbA,crbB
+    i_e_cror                 crbD,crbA,crbB
+    i_e_crorc               crbD,crbA,crbB
+    i_e_cror                 crbD,crbA,crbB
+    i_e_crorc               crbD,crbA,crbB
+    i_e_crxor                crbD,crbA,crbB
+    i_se_illegal
+    i_se_illegal is used to request an illegal instruction exception. A program interrupt is generated. The contents
+    i_se_isync
+    i_se_isync instruction have been performed.
+    i_e_lmw                         rD,D8(rA)
+    i_e_lwz                           rD,D(rA)                                                             (D-mode)
+    i_se_lwz                       rZ,SD4(rX)                                                            (SD4-mode)
+    i_e_lwzu                         rD,D8(rA)                                                            (D8-mode)
+    i_e_mcrf                          crD,crS
+    i_se_mfar                         rX,arY
+    i_se_mfctr                             rX
+    i_se_mflr                              rX
+    i_se_mr                             rX,rY
+    i_se_mtar                         arX,rY
+    i_se_mtctr                             rX
+    i_se_mtlr                              rX
+    i_se_rfci
+    i_se_rfi
+    i_e_rlw                           rA,rS,rB                                                               (Rc = 0)
+    i_e_rlw.                          rA,rS,rB                                                               (Rc = 1)
+    i_e_rlwi                          rA,rS,SH                                                               (Rc = 0)
+    i_e_rlwi.                         rA,rS,SH                                                               (Rc = 1)
+    i_e_rlwimi             rA,rS,SH,MB,ME
+    i_e_rlwinm              rA,rS,SH,MB,ME
+    i_e_rlwimi             rA,rS,SH,MB,ME
+    i_e_rlwinm              rA,rS,SH,MB,ME
+    i_se_sc provides the same functionality as sc without the LEV field. se_rfi, se_rfci, se_rfdi, and se_rfmci
+    i_se_sc
+    i_se_sc is used to request a system service. A system call interrupt is generated. The contents of the MSR
+    i_e_stmw                        rS,D8(rA)                                                               (D8-mode)
+    i_se_sub                            rX,rY
+    i_se_subf                           rX,rY
+    i_e_subfic                    rD,rA,SCI8                                                                  (Rc = 0)
+    i_e_subfic.                   rD,rA,SCI8                                                                  (Rc = 1)
+    i_se_subi                       rX,OIMM                                                                 (Rc = 0)
+    i_se_subi.                      rX,OIMM                                                                 (Rc = 1)
+    '''
 
 
 #############################  PPC MARKER.  BELOW THIS MARKER IS DELETION FODDER #################################3
