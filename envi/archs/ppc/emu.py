@@ -101,6 +101,7 @@ class PpcEmulator(PpcModule, PpcRegisterContext, envi.Emulator):
         meth = self.op_methods.get(op.mnem, None)
         if meth == None:
             raise envi.UnsupportedInstruction(self, op)
+
         x = meth(op)
         if x != None:
             self.setProgramCounter(x)
@@ -192,7 +193,7 @@ class PpcEmulator(PpcModule, PpcRegisterContext, envi.Emulator):
         return val
 
     def i_bdnzf(self, op):
-        if len(op,opers) != 2:
+        if len(op.opers) != 2:
             print("%s doesn't have 2 opers: %r" % (op.mnem, op.opers))
 
         ctr = self.getRegister(REG_CTR)
@@ -207,7 +208,7 @@ class PpcEmulator(PpcModule, PpcRegisterContext, envi.Emulator):
         return self.getOperValue(op, 1)
            
     def i_bdzf(self, op):
-        if len(op,opers) != 2:
+        if len(op.opers) != 2:
             print("%s doesn't have 2 opers: %r" % (op.mnem, op.opers))
 
         ctr = self.getRegister(REG_CTR)
@@ -222,7 +223,7 @@ class PpcEmulator(PpcModule, PpcRegisterContext, envi.Emulator):
         return self.getOperValue(op, 1)
 
     def i_bf(self, op):
-        if len(op,opers) != 2:
+        if len(op.opers) != 2:
             print("%s doesn't have 2 opers: %r" % (op.mnem, op.opers))
 
         if self.getOperValue(op, 0):
@@ -231,7 +232,7 @@ class PpcEmulator(PpcModule, PpcRegisterContext, envi.Emulator):
         return self.getOperValue(op, 1)
 
     def i_bdnzt(self, op):
-        if len(op,opers) != 2:
+        if len(op.opers) != 2:
             print("%s doesn't have 2 opers: %r" % (op.mnem, op.opers))
 
         ctr = self.getRegister(REG_CTR)
@@ -246,7 +247,7 @@ class PpcEmulator(PpcModule, PpcRegisterContext, envi.Emulator):
         return self.getOperValue(op, 1)
            
     def i_bdzt(self, op):
-        if len(op,opers) != 2:
+        if len(op.opers) != 2:
             print("%s doesn't have 2 opers: %r" % (op.mnem, op.opers))
 
         ctr = self.getRegister(REG_CTR)
@@ -261,7 +262,7 @@ class PpcEmulator(PpcModule, PpcRegisterContext, envi.Emulator):
         return self.getOperValue(op, 1)
            
     def i_bt(self, op):
-        if len(op,opers) != 2:
+        if len(op.opers) != 2:
             print("%s doesn't have 2 opers: %r" % (op.mnem, op.opers))
 
         if not self.getOperValue(op, 0):
@@ -270,7 +271,7 @@ class PpcEmulator(PpcModule, PpcRegisterContext, envi.Emulator):
         return self.getOperValue(op, 1)
 
     def i_bdnz(self, op):
-        if len(op,opers) != 2:
+        if len(op.opers) != 2:
             print("%s doesn't have 2 opers: %r" % (op.mnem, op.opers))
 
         ctr = self.getRegister(REG_CTR)
@@ -282,7 +283,7 @@ class PpcEmulator(PpcModule, PpcRegisterContext, envi.Emulator):
         return self.getOperValue(op, 1)
 
     def i_bdz(self, op):
-        if len(op,opers) != 2:
+        if len(op.opers) != 2:
             print("%s doesn't have 2 opers: %r" % (op.mnem, op.opers))
 
         ctr = self.getRegister(REG_CTR)
@@ -295,7 +296,7 @@ class PpcEmulator(PpcModule, PpcRegisterContext, envi.Emulator):
 
 
     def i_bdnzfl(self, op):
-        if len(op,opers) != 2:
+        if len(op.opers) != 2:
             print("%s doesn't have 2 opers: %r" % (op.mnem, op.opers))
 
         ctr = self.getRegister(REG_CTR)
@@ -311,7 +312,7 @@ class PpcEmulator(PpcModule, PpcRegisterContext, envi.Emulator):
         return self.getOperValue(op, 1)
            
     def i_bdzfl(self, op):
-        if len(op,opers) != 2:
+        if len(op.opers) != 2:
             print("%s doesn't have 2 opers: %r" % (op.mnem, op.opers))
 
         ctr = self.getRegister(REG_CTR)
@@ -327,7 +328,7 @@ class PpcEmulator(PpcModule, PpcRegisterContext, envi.Emulator):
         return self.getOperValue(op, 1)
 
     def i_bfl(self, op):
-        if len(op,opers) != 2:
+        if len(op.opers) != 2:
             print("%s doesn't have 2 opers: %r" % (op.mnem, op.opers))
 
         if self.getOperValue(op, 0):
@@ -337,7 +338,7 @@ class PpcEmulator(PpcModule, PpcRegisterContext, envi.Emulator):
         return self.getOperValue(op, 1)
 
     def i_bdnztl(self, op):
-        if len(op,opers) != 2:
+        if len(op.opers) != 2:
             print("%s doesn't have 2 opers: %r" % (op.mnem, op.opers))
 
         ctr = self.getRegister(REG_CTR)
@@ -353,7 +354,7 @@ class PpcEmulator(PpcModule, PpcRegisterContext, envi.Emulator):
         return self.getOperValue(op, 1)
            
     def i_bdztl(self, op):
-        if len(op,opers) != 2:
+        if len(op.opers) != 2:
             print("%s doesn't have 2 opers: %r" % (op.mnem, op.opers))
 
         ctr = self.getRegister(REG_CTR)
@@ -369,7 +370,7 @@ class PpcEmulator(PpcModule, PpcRegisterContext, envi.Emulator):
         return self.getOperValue(op, 1)
            
     def i_btl(self, op):
-        if len(op,opers) != 2:
+        if len(op.opers) != 2:
             print("%s doesn't have 2 opers: %r" % (op.mnem, op.opers))
 
         if not self.getOperValue(op, 0):
@@ -379,7 +380,7 @@ class PpcEmulator(PpcModule, PpcRegisterContext, envi.Emulator):
         return self.getOperValue(op, 1)
 
     def i_bdnzl(self, op):
-        if len(op,opers) != 2:
+        if len(op.opers) != 2:
             print("%s doesn't have 2 opers: %r" % (op.mnem, op.opers))
 
         ctr = self.getRegister(REG_CTR)
@@ -392,7 +393,7 @@ class PpcEmulator(PpcModule, PpcRegisterContext, envi.Emulator):
         return self.getOperValue(op, 1)
 
     def i_bdzl(self, op):
-        if len(op,opers) != 2:
+        if len(op.opers) != 2:
             print("%s doesn't have 2 opers: %r" % (op.mnem, op.opers))
 
         ctr = self.getRegister(REG_CTR)
@@ -430,7 +431,7 @@ class PpcEmulator(PpcModule, PpcRegisterContext, envi.Emulator):
 
     ##### LR branches
     def i_bdnzflr(self, op):
-        if len(op,opers) != 2:
+        if len(op.opers) != 2:
             print("%s doesn't have 2 opers: %r" % (op.mnem, op.opers))
 
         ctr = self.getRegister(REG_CTR)
@@ -445,7 +446,7 @@ class PpcEmulator(PpcModule, PpcRegisterContext, envi.Emulator):
         return self.getOperValue(op, 1)
            
     def i_bdzflr(self, op):
-        if len(op,opers) != 2:
+        if len(op.opers) != 2:
             print("%s doesn't have 2 opers: %r" % (op.mnem, op.opers))
 
         ctr = self.getRegister(REG_CTR)
@@ -460,7 +461,7 @@ class PpcEmulator(PpcModule, PpcRegisterContext, envi.Emulator):
         return self.getOperValue(op, 1)
 
     def i_bflr(self, op):
-        if len(op,opers) != 2:
+        if len(op.opers) != 2:
             print("%s doesn't have 2 opers: %r" % (op.mnem, op.opers))
 
         if self.getOperValue(op, 0):
@@ -469,7 +470,7 @@ class PpcEmulator(PpcModule, PpcRegisterContext, envi.Emulator):
         return self.getOperValue(op, 1)
 
     def i_bdnztlr(self, op):
-        if len(op,opers) != 2:
+        if len(op.opers) != 2:
             print("%s doesn't have 2 opers: %r" % (op.mnem, op.opers))
 
         ctr = self.getRegister(REG_CTR)
@@ -484,7 +485,7 @@ class PpcEmulator(PpcModule, PpcRegisterContext, envi.Emulator):
         return self.getOperValue(op, 1)
            
     def i_bdztlr(self, op):
-        if len(op,opers) != 2:
+        if len(op.opers) != 2:
             print("%s doesn't have 2 opers: %r" % (op.mnem, op.opers))
 
         ctr = self.getRegister(REG_CTR)
@@ -499,7 +500,7 @@ class PpcEmulator(PpcModule, PpcRegisterContext, envi.Emulator):
         return self.getOperValue(op, 1)
            
     def i_btlr(self, op):
-        if len(op,opers) != 2:
+        if len(op.opers) != 2:
             print("%s doesn't have 2 opers: %r" % (op.mnem, op.opers))
 
         if not self.getOperValue(op, 0):
@@ -508,7 +509,7 @@ class PpcEmulator(PpcModule, PpcRegisterContext, envi.Emulator):
         return self.getOperValue(op, 1)
 
     def i_bdnzlr(self, op):
-        if len(op,opers) != 2:
+        if len(op.opers) != 2:
             print("%s doesn't have 2 opers: %r" % (op.mnem, op.opers))
 
         ctr = self.getRegister(REG_CTR)
@@ -520,7 +521,7 @@ class PpcEmulator(PpcModule, PpcRegisterContext, envi.Emulator):
         return self.getOperValue(op, 1)
 
     def i_bdzlr(self, op):
-        if len(op,opers) != 2:
+        if len(op.opers) != 2:
             print("%s doesn't have 2 opers: %r" % (op.mnem, op.opers))
 
         ctr = self.getRegister(REG_CTR)
@@ -533,7 +534,7 @@ class PpcEmulator(PpcModule, PpcRegisterContext, envi.Emulator):
 
 
     def i_bdnzflrl(self, op):
-        if len(op,opers) != 2:
+        if len(op.opers) != 2:
             print("%s doesn't have 2 opers: %r" % (op.mnem, op.opers))
 
         ctr = self.getRegister(REG_CTR)
@@ -549,7 +550,7 @@ class PpcEmulator(PpcModule, PpcRegisterContext, envi.Emulator):
         return self.getOperValue(op, 1)
            
     def i_bdzflrl(self, op):
-        if len(op,opers) != 2:
+        if len(op.opers) != 2:
             print("%s doesn't have 2 opers: %r" % (op.mnem, op.opers))
 
         ctr = self.getRegister(REG_CTR)
@@ -565,7 +566,7 @@ class PpcEmulator(PpcModule, PpcRegisterContext, envi.Emulator):
         return self.getOperValue(op, 1)
 
     def i_bflrl(self, op):
-        if len(op,opers) != 2:
+        if len(op.opers) != 2:
             print("%s doesn't have 2 opers: %r" % (op.mnem, op.opers))
 
         if self.getOperValue(op, 0):
@@ -575,7 +576,7 @@ class PpcEmulator(PpcModule, PpcRegisterContext, envi.Emulator):
         return self.getOperValue(op, 1)
 
     def i_bdnztlrl(self, op):
-        if len(op,opers) != 2:
+        if len(op.opers) != 2:
             print("%s doesn't have 2 opers: %r" % (op.mnem, op.opers))
 
         ctr = self.getRegister(REG_CTR)
@@ -591,7 +592,7 @@ class PpcEmulator(PpcModule, PpcRegisterContext, envi.Emulator):
         return self.getOperValue(op, 1)
            
     def i_bdztlrl(self, op):
-        if len(op,opers) != 2:
+        if len(op.opers) != 2:
             print("%s doesn't have 2 opers: %r" % (op.mnem, op.opers))
 
         ctr = self.getRegister(REG_CTR)
@@ -607,7 +608,7 @@ class PpcEmulator(PpcModule, PpcRegisterContext, envi.Emulator):
         return self.getOperValue(op, 1)
            
     def i_btlrl(self, op):
-        if len(op,opers) != 2:
+        if len(op.opers) != 2:
             print("%s doesn't have 2 opers: %r" % (op.mnem, op.opers))
 
         if not self.getOperValue(op, 0):
@@ -617,7 +618,7 @@ class PpcEmulator(PpcModule, PpcRegisterContext, envi.Emulator):
         return self.getOperValue(op, 1)
 
     def i_bdnzlrl(self, op):
-        if len(op,opers) != 2:
+        if len(op.opers) != 2:
             print("%s doesn't have 2 opers: %r" % (op.mnem, op.opers))
 
         ctr = self.getRegister(REG_CTR)
@@ -630,7 +631,7 @@ class PpcEmulator(PpcModule, PpcRegisterContext, envi.Emulator):
         return self.getOperValue(op, 1)
 
     def i_bdzlrl(self, op):
-        if len(op,opers) != 2:
+        if len(op.opers) != 2:
             print("%s doesn't have 2 opers: %r" % (op.mnem, op.opers))
 
         ctr = self.getRegister(REG_CTR)
@@ -872,7 +873,10 @@ class PpcEmulator(PpcModule, PpcRegisterContext, envi.Emulator):
         op.opers[1].tsize = 4
         src = self.getOperValue(op, 0)
         self.setOperValue(op, 1, src)
-    
+   
+    i_sth = i_stw
+    i_sthu = i_stwu
+
     def i_or(self, op):
         dst = self.getOperValue(op, 0)
         src = self.getOperValue(op, 1)
