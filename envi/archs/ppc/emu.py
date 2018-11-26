@@ -829,14 +829,125 @@ class PpcEmulator(PpcModule, PpcRegisterContext, envi.Emulator):
         self.setFlags(results, 0, SO)
    
 
+    # lbz and lbzu access memory directly from operand[1]
     def i_lbz(self, op):
+        op.opers[1].tsize = 1
+        if op.opers[0].reg == 0:
+            src = 0
+        else:
+            src = self.getOperValue(op, 1)
+        self.setOperValue(op, 0, src)
+
+    def i_lbzu(self, op):
         op.opers[1].tsize = 1
         src = self.getOperValue(op, 1)
         self.setOperValue(op, 0, src)
-        self.setOperValue(op, 1, 0)
+        # the u stands for "update"... ie. write-back
+        op.opers[1].updateReg(self)
+
+    i_lbze = i_lbz
+    i_lbzue = i_lbzu
+
+    # lbzx and lbzux load an address by adding operand[1] and operand[2]
+    def i_lbzx(self, op):
+        op.opers[1].tsize = 1
+        src = self.getOperValue(op, 1)
+        src += e_bits.signed(self.getOperValue(op, 2), 2)
+        val = self.readMemValue(src, 1)
+        self.setOperValue(op, 0, val)
+
+    def i_lbzux(self, op):
+        op.opers[1].tsize = 1
+        src = self.getOperValue(op, 1)
+        src += self.getOperValue(op, 2)
+        src += e_bits.signed(self.getOperValue(op, 2), 2)
+        val = self.readMemValue(src, 1)
+        self.setOperValue(op, 0, val)
+        # the u stands for "update"... ie. write-back
+        op.opers[1].updateReg(self)
+
+    i_lbzxe = i_lbzx
+    i_lbzuxe = i_lbzux
+
+    # lhz and lhzu access memory directly from operand[1]
+    def i_lhz(self, op):
+        op.opers[1].tsize = 2
+        if op.opers[0].reg == 0:
+            src = 0
+        else:
+            src = self.getOperValue(op, 1)
+        self.setOperValue(op, 0, src)
+
+    def i_lhzu(self, op):
+        op.opers[1].tsize = 2
+        src = self.getOperValue(op, 1)
+        self.setOperValue(op, 0, src)
+        # the u stands for "update"... ie. write-back
+        op.opers[1].updateReg(self)
+
+    i_lhze = i_lhz
+    i_lhzue = i_lhzu
+
+    # lhzx and lhzux load an address by adding operand[1] and operand[2]
+    def i_lhzx(self, op):
+        src = self.getOperValue(op, 1)
+        src += e_bits.signed(self.getOperValue(op, 2), 2)
+        val = self.readMemValue(src, 2)
+        self.setOperValue(op, 0, val)
+
+    def i_lhzux(self, op):
+        src = self.getOperValue(op, 1)
+        src += self.getOperValue(op, 2)
+        src += e_bits.signed(self.getOperValue(op, 2), 2)
+        val = self.readMemValue(src, 2)
+        self.setOperValue(op, 0, val)
+        # the u stands for "update"... ie. write-back
+        op.opers[1].updateReg(self)
+
+    i_lhzxe = i_lhzx
+    i_lhzuxe = i_lhzux
+
+
+    # lwz and lwzu access memory directly from operand[1]
+    def i_lwz(self, op):
+        op.opers[1].tsize = 4
+        if op.opers[0].reg == 0:
+            src = 0
+        else:
+            src = self.getOperValue(op, 1)
+        self.setOperValue(op, 0, src)
+
+    def i_lwzu(self, op):
+        op.opers[1].tsize = 4
+        src = self.getOperValue(op, 1)
+        self.setOperValue(op, 0, src)
+        # the u stands for "update"... ie. write-back
+        op.opers[1].updateReg(self)
+
+    i_lwze = i_lwz
+    i_lwzue = i_lwzu
+
+    # lwzx and lwzux load an address by adding operand[1] and operand[2]
+    def i_lwzx(self, op):
+        src = self.getOperValue(op, 1)
+        src += e_bits.signed(self.getOperValue(op, 2), 2)
+        val = self.readMemValue(src, 4)
+        self.setOperValue(op, 0, val)
+
+    def i_lwzux(self, op):
+        src = self.getOperValue(op, 1)
+        src += self.getOperValue(op, 2)
+        src += e_bits.signed(self.getOperValue(op, 2), 2)
+        val = self.readMemValue(src, 4)
+        self.setOperValue(op, 0, val)
+        # the u stands for "update"... ie. write-back
+        op.opers[1].updateReg(self)
+
+    i_lwzxe = i_lwzx
+    i_lwzuxe = i_lwzux
+
 
     def i_lmw(self, op):
-        fmt = ('<I', '>I')[self.getEndian()]
         op.opers[1].tsize = 4
         startreg = op.opers[0].reg
         regcnt = 32-startreg
@@ -862,8 +973,25 @@ class PpcEmulator(PpcModule, PpcRegisterContext, envi.Emulator):
             self.writeMemValue(startaddr + offset, word & 0xffffffff, 4)
             offset += 4
     
-    def i_stwu(self, op):
-        op.opers[1].tsize = 4
+    def i_stb(self, op):
+        op.opers[1].tsize = 1
+        src = self.getOperValue(op, 0)
+        self.setOperValue(op, 1, src)
+   
+    def i_stbu(self, op):
+        op.opers[1].tsize = 1
+        src = self.getOperValue(op, 0)
+        self.setOperValue(op, 1, src)
+        # the u stands for "update"... ie. write-back
+        op.opers[1].updateReg(self)
+    
+    def i_sth(self, op):
+        op.opers[1].tsize = 2
+        src = self.getOperValue(op, 0)
+        self.setOperValue(op, 1, src)
+   
+    def i_sthu(self, op):
+        op.opers[1].tsize = 2
         src = self.getOperValue(op, 0)
         self.setOperValue(op, 1, src)
         # the u stands for "update"... ie. write-back
@@ -874,8 +1002,13 @@ class PpcEmulator(PpcModule, PpcRegisterContext, envi.Emulator):
         src = self.getOperValue(op, 0)
         self.setOperValue(op, 1, src)
    
-    i_sth = i_stw
-    i_sthu = i_stwu
+    def i_stwu(self, op):
+        op.opers[1].tsize = 4
+        src = self.getOperValue(op, 0)
+        self.setOperValue(op, 1, src)
+        # the u stands for "update"... ie. write-back
+        op.opers[1].updateReg(self)
+    
 
     def i_or(self, op):
         dst = self.getOperValue(op, 0)
