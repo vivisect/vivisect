@@ -291,6 +291,11 @@ class PpcSImm5Oper(PpcSImmOper):
     def __init__(self, val, va=0):
         PpcSImmOper.__init__(self, val, va, 5)
 
+class PpcSImm12Oper(PpcSImmOper):
+    ''' Unsigned Immediate operand. '''
+    def __init__(self, val, va=0):
+        PpcSImmOper.__init__(self, val, va, 12)
+
 class PpcSImm16Oper(PpcSImmOper):
     ''' Unsigned Immediate operand. '''
     def __init__(self, val, va=0):
@@ -529,7 +534,8 @@ OPERCLASSES = {
     FIELD_BO : PpcImmOper,
     FIELD_CRM : PpcImmOper,
     FIELD_CT : PpcImmOper,
-    FIELD_D : PpcImmOper,
+    FIELD_D : PpcSImm16Oper,
+    FIELD_DE : PpcSImm12Oper,
     FIELD_DCRN0_4 : PpcImmOper,
     FIELD_DCRN5_9 : PpcImmOper,
     FIELD_DCTL : PpcImmOper,

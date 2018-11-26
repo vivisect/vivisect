@@ -205,6 +205,7 @@ def form_EVX(va, ival, operands, iflags):
     for onm, otype, oshr, omask in operands:
         val = (ival >> oshr) & omask
         oper = OPERCLASSES[otype](val, va)
+        # FIXME: FORM_X seems to use Signed IMM's
         opers.append(oper)
 
     return opcode, opers, iflags
