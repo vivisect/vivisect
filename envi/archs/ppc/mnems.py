@@ -10523,6 +10523,7 @@ FIELD_DATA = {
     'OC' :      (6, 15), 
     'CT' :      (6, 5),
     'D' :       (16, 16),
+    'DE' :      (16, 12),
     'DS' :      (16, 14),
     'CRM' :     (12, 8),
     'DCRN5-9' : (11, 5),
@@ -11108,7 +11109,9 @@ def buildOutput():
     form_names = []
     formcounter = 0
     keys = [form for form in FORM_CONST.values() ]
+    keys.append('FORM_X_2') # used for VLE decoding (per Mitch)
     keys.sort()
+
     for form in keys:
         out.append("%s = %d" % (form, formcounter))
         form_names.append("    %d : %r," % (formcounter, form))
@@ -11311,6 +11314,10 @@ def buildOutput():
             out3.append('    FIELD_%s : PpcCBRegOper,' % (nkey))
         elif nkey.startswith('cr'):
             out3.append('    FIELD_%s : PpcCRegOper,' % (nkey))
+        elif nkey == 'D':
+            out3.append('    FIELD_%s : PpcSImm16Oper,' % (nkey))
+        elif nkey == 'DE':
+            out3.append('    FIELD_%s : PpcSImm12Oper,' % (nkey))
         elif nkey == 'SIMM5':
             out3.append('    FIELD_%s : PpcSImm5Oper,' % (nkey))
         elif nkey == 'SIMM16':
