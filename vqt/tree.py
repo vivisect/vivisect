@@ -32,6 +32,14 @@ class VQTreeItem(object):
         self.children.append(child)
         return child
 
+    def delete(self, rowdata):
+        idx = 0
+        for child in self.children:
+            if child.rowdata == rowdata:
+                return self.children.pop(idx)
+
+            idx += 1
+
     def child(self, row):
         return self.children[row]
 
@@ -89,6 +97,13 @@ class VQTreeModel(QtCore.QAbstractItemModel):
         self.endInsertRows()
         self.layoutChanged.emit()
         return node
+
+    def vqDelRow(self, rowdata, parent=None):
+        if parent == None:
+            parent = self.rootnode
+
+        row = parent.delete(rowdata)
+        print row
 
     def sort(self, colnum, order=0):
         cmpf = VQTreeSorter(colnum, order)
