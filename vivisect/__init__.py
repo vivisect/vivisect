@@ -855,27 +855,24 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         #FIXME this does not detect Unicode...
 
         offset, bytes = self.getByteDef(va)
-        maxlen = len(bytes) + offset
+        maxlen = len(bytes) - offset
         count = 0
+        charset = bytes[offset + 1]
         while count < maxlen:
             # If we hit another thing, then probably not.
             # Ignore when count==0 so detection can check something
             # already set as a location.
             if (count > 0):
                 loc = self.getLocation(va+count)
-                if loc and loc[L_LTYPE] == LOC_UNI:
-                    return loc[L_VA] - (va + count) + loc[L_SIZE]
-                return -1
+                if loc:
+                    if loc[L_LTYPE] == LOC_UNI:
+                        return loc[L_VA] - (va + count) + loc[L_SIZE]
+                    return -1
 
             c0 = bytes[offset+count]
             if offset+count+1 >= len(bytes):
                 return -1
             c1 = bytes[offset+count+1]
-
-            # If it's not null,char,null,char then it's
-            # not simple unicode...
-            if ord(c1) != 0:
-                return -1
 
             # If we find our null terminator after more
             # than 4 chars, we're probably a real string
@@ -887,6 +884,11 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             # If the first byte char isn't printable, then
             # we're probably not a real "simple" ascii string
             if c0 not in string.printable:
+                return -1
+
+            # If it's not null,char,null,char then it's
+            # not simple unicode...
+            if c1 != charset:
                 return -1
 
             count += 2
