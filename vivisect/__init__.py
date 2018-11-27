@@ -848,11 +848,6 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
                 return -1
             c1 = bytes[offset+count+1]
 
-            # If it's not null,char,null,char then it's
-            # not simple unicode...
-            if c1 != charset:
-                return -1
-
             # If we find our null terminator after more
             # than 4 chars, we're probably a real string
             if ord(c0) == 0:
@@ -863,6 +858,11 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             # If the first byte char isn't printable, then
             # we're probably not a real "simple" ascii string
             if c0 not in string.printable:
+                return -1
+
+            # If it's not null,char,null,char then it's
+            # not simple unicode...
+            if c1 != charset:
                 return -1
 
             count += 2
