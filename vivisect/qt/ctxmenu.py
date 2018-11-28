@@ -48,6 +48,10 @@ def printEmuState(vw, fva, va):
     for i in xrange(len(op.opers)):
         o = op.opers[i]
         o.render(vw.canvas, op, i)
+        oaddr = o.getOperAddr(op, emu)
+        if oaddr != None:
+            vw.canvas.addText(' [ 0x%x ] ' % oaddr)
+
         vw.canvas.addText(" = ")
         oval = o.getOperValue(op, emu)
         taint = emu.getVivTaint(oval)
