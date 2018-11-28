@@ -163,10 +163,11 @@ class HotKeyMixin(object):
 
     def keyPressEvent(self, event):
         if not self.eatKeyPressEvent(event):
-            return super(HotKeyMixin, self).keyPressEvent(event)       # FIXME: is this the correct functionality?? the old way no longer works
-            parent = self.parent()
-            if parent != None:
-                return parent.keyPressEvent(event)
+            return super(HotKeyMixin, self).keyPressEvent(event)
+
+        parent = self.parent()
+        if parent != None:
+            return parent.keyPressEvent(event)
 
 import vqt.tree
 
