@@ -49,7 +49,9 @@ class MemoryCanvas(object):
     of memory will be displayed. The methods implemented here show
     how a memory canvas which simply prints would be implemented.
     """
-    def __init__(self, mem, syms=None):
+    def __init__(self, mem=None, syms=None):
+        if mem == None:
+            raise Exception("MemoryCanvas must include mem args")
         if syms == None:
             syms = e_resolv.SymbolResolver()
         self.mem = mem

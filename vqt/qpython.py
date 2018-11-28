@@ -5,14 +5,17 @@ import types
 import traceback
 
 from threading import Thread
-from PyQt4 import QtCore, QtGui
+try:
+    from PyQt5.QtWidgets import *
+except:
+    from PyQt4.QtGui import *
 
 from vqt.main import idlethread
 from vqt.basics import *
 
 @idlethread
 def scripterr(msg, info):
-    msgbox = QtGui.QMessageBox()
+    msgbox = QMessageBox()
     msgbox.setText('Script Error: %s' % msg)
     msgbox.setInformativeText(info)
     msgbox.exec_()
@@ -31,7 +34,7 @@ class ScriptThread(Thread):
         except Exception, e:
             scripterr(str(e), traceback.format_exc())
 
-class VQPythonView(QtGui.QWidget):
+class VQPythonView(QWidget):
 
     def __init__(self, locals=None, parent=None):
         if locals == None:
@@ -39,12 +42,12 @@ class VQPythonView(QtGui.QWidget):
 
         self._locals = locals
 
-        QtGui.QWidget.__init__(self, parent=parent)
+        QWidget.__init__(self, parent=parent)
 
-        self._textWidget = QtGui.QTextEdit(parent=self)
-        self._botWidget = QtGui.QWidget(parent=self)
-        self._help_button = QtGui.QPushButton('?', parent=self._botWidget)
-        self._run_button = QtGui.QPushButton('Run', parent=self._botWidget)
+        self._textWidget = QTextEdit(parent=self)
+        self._botWidget = QWidget(parent=self)
+        self._help_button = QPushButton('?', parent=self._botWidget)
+        self._run_button = QPushButton('Run', parent=self._botWidget)
         self._run_button.clicked.connect(self._okClicked)
         self._help_button.clicked.connect( self._helpClicked ) 
 
@@ -81,7 +84,7 @@ class VQPythonView(QtGui.QWidget):
             txt += ( '====== %s\n' % name )
             txt += ( '%s\n' % doc )
 
-        self._help_text = QtGui.QTextEdit()
+        self._help_text = QTextEdit()
         self._help_text.setReadOnly( True )
         self._help_text.setWindowTitle('Python Interactive Help')
         self._help_text.setText( txt )
