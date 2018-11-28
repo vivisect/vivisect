@@ -1,3 +1,6 @@
+import logging
+logger = logging.getLogger(__name__)
+
 import envi
 from vivisect.const import *
 
@@ -34,7 +37,14 @@ def analyze(vw):
         for va, size, funcva in vw.getFunctionBlocks(fva):
             maxva = va+size
             while va < maxva:
-                op = vw.parseOpcode(va)
+                loctup = vw.getLocation(va)
+                if loctup == None:
+                    logger.error("error parsing through function 0x%x at 0x%x" % (fva, va))
+                    va += 1
+                    continue
+                lva,lsize,ltype,tinfo = loctup
+
+                op = vw.parseOpcode(va, arch=tinfo)
                 for o in op.opers:
 
                     if not o.isImmed():
