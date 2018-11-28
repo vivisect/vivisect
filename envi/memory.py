@@ -475,6 +475,36 @@ class MemoryObject(IMemory):
         off, b = self.getByteDef(va)
         return self.imem_archs[ (arch & envi.ARCH_MASK) >> 16 ].archParseOpcode(b, off, va)
 
+    def readMemString(self, va, maxlen=0xfffffff):
+        '''
+        Returns a C-style string from memory.  Stops at Memory Map boundaries, or the first NULL (\x00) byte.
+        '''
+
+        for mva, mmaxva, mmap, mbytes in self._map_defs:
+            if va >= mva and va < mmaxva:
+                mva, msize, mperms, mfname = mmap
+                if not mperms & MM_READ:
+                    raise envi.SegmentationViolation(va)
+                offset = va - mva
+
+                # now find the end of the string based on either \x00, maxlen, or end of map
+                end = mbytes.find('\x00', offset)
+
+                left = end - offset
+                if end == -1:
+                    # couldn't find the NULL byte
+                    mend = offset + maxlen
+                    cstr = mbytes[offset:mend]
+                else:
+                    # couldn't find the NULL byte go to the end of the map or maxlen
+                    mend = offset + (maxlen, left)[left < maxlen]
+                    cstr = mbytes[offset:mend]
+                return cstr
+
+        raise envi.SegmentationViolation(va)
+
+
+
 class MemoryFile:
     '''
     A file like object to wrap around a memory object.
