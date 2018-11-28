@@ -163,11 +163,12 @@ class HotKeyMixin(object):
 
     def keyPressEvent(self, event):
         if not self.eatKeyPressEvent(event):
+            # is this a bug?  do we call the super?  or the parent?
             return super(HotKeyMixin, self).keyPressEvent(event)
 
-        parent = self.parent()
-        if parent != None:
-            return parent.keyPressEvent(event)
+            #parent = self.parent()
+            #if parent != None:
+            #    return parent.keyPressEvent(event)
 
 import vqt.tree
 
