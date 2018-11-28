@@ -1,7 +1,7 @@
-import envi
 import logging
 logger = logging.getLogger(__name__)
 
+import envi
 from vivisect.const import *
 
 """Locate the basic use of known crypto constants"""
