@@ -407,7 +407,7 @@ class VQXrefView(VQVivTreeView):
         for fromva, tova, rtype, rflags in xrefs:
             fva = vw.getFunction(fromva)
             funcname = ''
-            if fva:
+            if fva != None:
                 funcname = vw.getName(fva)
             self.vivAddRow(fromva, '0x%.8x' % fromva, rtype, rflags, funcname)
 
