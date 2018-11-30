@@ -202,6 +202,14 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
         view = viv_q_views.VQVivVaSetView(self.vw, self, name)
         self.vqDockWidget(view)
 
+    def delFunction(self, fva, parent=None):
+        if parent == None:
+            parent = self
+
+        yn, ok = QInputDialog.getItem(self, 'Delete Function', 'Confirm:', ('No', 'Yes'), 0, False)
+        if ok and yn == 'Yes':
+            self.vw.delFunction(fva)
+
     def vqInitDockWidgetClasses(self):
 
         exprloc = e_expr.MemoryExpressionLocals(self.vw, symobj=self.vw)
