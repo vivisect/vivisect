@@ -246,10 +246,19 @@ class VivWorkspaceCore(object,viv_impapi.ImportApi):
                 mcb(va, name, value)
 
     def _handleDELFUNCTION(self, einfo):
-        self.funcmeta.pop(einfo)
-        self.func_args.pop(einfo, None)
-        self.codeblocks_by_funcva.pop(einfo)
-        node = self._call_graph.getNode(einfo)
+        # clear funcmeta, func_args, codeblocks_by_funcva, update codeblocks, blockgraph, locations, etc...
+        fva = einfo
+        blocks = self.getFunctionBlocks(fva)
+
+        # not every codeblock identifying as this function is stored in funcmeta
+        for cb in self.getCodeBlocks():
+            if cb[CB_FUNCVA] == fva:
+                self._handleDELCODEBLOCK(cb)
+
+        self.funcmeta.pop(fva)
+        self.func_args.pop(fva, None)
+        self.codeblocks_by_funcva.pop(fva)
+        node = self._call_graph.getNode(fva)
         self._call_graph.delNode(node)
 
     def _handleSETFUNCMETA(self, einfo):
@@ -269,6 +278,7 @@ class VivWorkspaceCore(object,viv_impapi.ImportApi):
         self.codeblocks.append(einfo)
 
     def _handleDELCODEBLOCK(self, cb):
+        print "DELCODEBLOCK: ", cb
         va,size,funcva = cb
         self.codeblocks.remove(cb)
         self.codeblocks_by_funcva.get(cb[CB_FUNCVA]).remove(cb)
