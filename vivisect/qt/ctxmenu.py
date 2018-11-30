@@ -152,7 +152,8 @@ def buildContextMenu(vw, va=None, expr=None, menu=None, parent=None, nav=None):
         funcmenu.addAction('call graph', ACT(vw.getVivGui().showFuncCallGraph, fva))
         funcmenu.addAction('re-analyze codeblocks', ACT(vagc.analyzeFunction, vw, fva))
         if fva == va:
-            funcmenu.addAction('delete function', ACT(vw.delFunction, va))
+            #funcmenu.addAction('delete function', ACT(vw.delFunction, va))
+            funcmenu.addAction('delete function', ACT(vw.getVivGui().delFunction, va))
 
     loc = vw.getLocation(va)
     if loc == None:

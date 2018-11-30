@@ -263,6 +263,13 @@ class VivWorkspaceCore(object,viv_impapi.ImportApi):
         self.codeblocks_by_funcva.pop(fva)
         node = self._call_graph.getNode(fva)
         self._call_graph.delNode(node)
+        self.cfctx.flushFunction(fva)
+
+        # FIXME: do we want to now seek the function we *should* be in?  
+        # if xrefs_to, look for non-PROC code xrefs and take their function
+        # if the previous instruction falls through, take its function
+        # run codeblock analysis on that function to reassociate the blocks
+        # with that function
 
     def _handleSETFUNCMETA(self, einfo):
         funcva, name, value = einfo
