@@ -31,7 +31,7 @@ class VivEventCore(object):
     A class to facilitate event monitoring in the viv workspace.
     '''
 
-    def __init__(self, vw):
+    def __init__(self, vw=None, **kwargs):
         self._ve_vw = vw
         self._ve_ehand = [None for x in xrange(VWE_MAX)]
         self._ve_thand = [None for x in xrange(VTE_MAX)]
@@ -91,7 +91,10 @@ class VivEventDist(VivEventCore):
     Similar to an event core, but does optimized distribution
     to a set of sub eventcore objects (think GUI windows...)
     '''
-    def __init__(self, vw):
+    def __init__(self, vw=None, **kwargs):
+        if vw == None:
+            raise Exception("VivEventDist requires a vw argument")
+
         VivEventCore.__init__(self, vw)
         self._ve_subs = [ [] for x in xrange(VWE_MAX) ]
         self._ve_tsubs = [ [] for x in xrange(VTE_MAX) ]
