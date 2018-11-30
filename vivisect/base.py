@@ -278,7 +278,6 @@ class VivWorkspaceCore(object,viv_impapi.ImportApi):
         self.codeblocks.append(einfo)
 
     def _handleDELCODEBLOCK(self, cb):
-        print "DELCODEBLOCK: ", cb
         va,size,funcva = cb
         self.codeblocks.remove(cb)
         self.codeblocks_by_funcva.get(cb[CB_FUNCVA]).remove(cb)
