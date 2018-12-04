@@ -1,7 +1,11 @@
 '''
 '''
-
-from PyQt4 import QtCore, QtGui
+try:
+    from PyQt5 import QtCore
+    from PyQt5.QtWidgets import QTreeView
+except:
+    from PyQt4 import QtCore
+    from PyQt4.QtGui import QTreeView
 
 import vqt.colors as vq_colors
 import visgraph.pathcore as vg_path
@@ -97,6 +101,13 @@ class VQTreeModel(QtCore.QAbstractItemModel):
         self.endInsertRows()
         self.layoutChanged.emit()
         return node
+
+    def vqDelRow(self, rowdata, parent=None):
+        if parent == None:
+            parent = self.rootnode
+
+        row = parent.delete(rowdata)
+        print row
 
     def sort(self, colnum, order=0):
         cmpf = VQTreeSorter(colnum, order)
@@ -201,10 +212,10 @@ class VQTreeModel(QtCore.QAbstractItemModel):
 
         return len(pitem.children)
 
-class VQTreeView(QtGui.QTreeView):
+class VQTreeView(QTreeView):
 
-    def __init__(self, parent=None, cols=None):
-        QtGui.QTreeView.__init__(self, parent=parent)
+    def __init__(self, parent=None, cols=None, **kwargs):
+        QTreeView.__init__(self, parent=parent, **kwargs)
         self.setSortingEnabled(True)
         self.setAlternatingRowColors(True)
 
@@ -220,5 +231,5 @@ class VQTreeView(QtGui.QTreeView):
     def setModel(self, model):
         model.dataChanged.connect( self.dataChanged )
         model.rowsInserted.connect( self.rowsInserted )
-        return QtGui.QTreeView.setModel(self, model)
+        return QTreeView.setModel(self, model)
 

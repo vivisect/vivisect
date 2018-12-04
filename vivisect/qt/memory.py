@@ -1,5 +1,10 @@
 
 import envi
+try:
+    from PyQt5.QtWidgets import *
+except:
+    from PyQt4.QtGui import *
+
 import envi.qt as envi_qt
 import envi.bits as e_bits
 import envi.qt.memory as e_mem_qt
@@ -17,7 +22,6 @@ import vivisect.qt.views as viv_q_views
 import vivisect.qt.ctxmenu as viv_q_ctxmenu
 import vivisect.qt.funcviews as viv_q_funcviews
 
-from PyQt4          import QtCore, QtGui, QtWebKit
 from envi.threads   import firethread
 
 from vqt.main import *
@@ -226,7 +230,7 @@ class VivCanvasBase(vq_hotkey.HotKeyMixin, e_mem_canvas.VQMemoryCanvas):
     def _hotkey_make_struct_multi(self, parent=None):
         if self._canv_curva != None:
             if self._last_sname != None:
-                number, ok = QtGui.QInputDialog.getText(parent, 'Make Multiple Consecutive Structs', 'Number of Structures')
+                number, ok = QInputDialog.getText(parent, 'Make Multiple Consecutive Structs', 'Number of Structures')
                 if ok:
                     curva = self._canv_curva
                     number = int(str(number), 0)
@@ -242,7 +246,7 @@ class VivCanvasBase(vq_hotkey.HotKeyMixin, e_mem_canvas.VQMemoryCanvas):
         if curcomment == None:
             curcomment = ''
 
-        comment, ok = QtGui.QInputDialog.getText(parent, 'Enter...', 'Comment', text=curcomment)
+        comment, ok = QInputDialog.getText(parent, 'Enter...', 'Comment', text=curcomment)
         if ok:
             self.vw.setComment(va, str(comment))
 
@@ -362,7 +366,7 @@ class VQVivMemoryView(e_mem_qt.VQMemoryWindow, viv_base.VivEventCore):
         menu = e_mem_qt.VQMemoryWindow.getRendToolsMenu(self)
         if self.vw.server:
 
-            leadact = QtGui.QAction('lead', menu, checkable=True)
+            leadact = QAction('lead', menu, checkable=True)
             def leadToggle():
                 self._leading = not self._leading
                 # We can only follow if not leading... (deep huh? ;) )

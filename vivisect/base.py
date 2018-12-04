@@ -249,11 +249,27 @@ class VivWorkspaceCore(object,viv_impapi.ImportApi):
                 mcb(va, name, value)
 
     def _handleDELFUNCTION(self, einfo):
-        self.funcmeta.pop(einfo)
-        self.func_args.pop(einfo, None)
-        self.codeblocks_by_funcva.pop(einfo)
-        node = self._call_graph.getNode(einfo)
+        # clear funcmeta, func_args, codeblocks_by_funcva, update codeblocks, blockgraph, locations, etc...
+        fva = einfo
+        blocks = self.getFunctionBlocks(fva)
+
+        # not every codeblock identifying as this function is stored in funcmeta
+        for cb in self.getCodeBlocks():
+            if cb[CB_FUNCVA] == fva:
+                self._handleDELCODEBLOCK(cb)
+
+        self.funcmeta.pop(fva)
+        self.func_args.pop(fva, None)
+        self.codeblocks_by_funcva.pop(fva)
+        node = self._call_graph.getNode(fva)
         self._call_graph.delNode(node)
+        self.cfctx.flushFunction(fva)
+
+        # FIXME: do we want to now seek the function we *should* be in?  
+        # if xrefs_to, look for non-PROC code xrefs and take their function
+        # if the previous instruction falls through, take its function
+        # run codeblock analysis on that function to reassociate the blocks
+        # with that function
 
     def _handleSETFUNCMETA(self, einfo):
         funcva, name, value = einfo
@@ -332,7 +348,7 @@ class VivWorkspaceCore(object,viv_impapi.ImportApi):
         va, etype, name, filename = einfo
         self.exports.append(einfo)
         self.exports_by_va[va] = einfo
-        fullname = "%s.%s_%x" % (filename,name,va)
+        fullname = "%s.%s" % (filename,name)
         self.makeName(va, fullname)
 
     def _handleSETMETA(self, einfo):

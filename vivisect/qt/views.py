@@ -6,7 +6,10 @@ import visgraph.pathcore as vg_path
 import envi.qt.memcanvas as e_q_memcanvas
 import vivisect.qt.ctxmenu as v_q_ctxmenu
 
-from PyQt4 import QtGui,QtCore
+try:
+    from PyQt5.QtWidgets import QMenu
+except:
+    from PyQt4.QtGui import QMenu
 
 from vqt.main import *
 from vqt.common import *
@@ -65,8 +68,8 @@ class VQVivTreeView(vq_tree.VQTreeView, viv_base.VivEventCore):
     window_title = "VivTreeView"
     _viv_navcol = 0
 
-    def __init__(self, vw, vwqgui):
-        vq_tree.VQTreeView.__init__(self, parent=vwqgui)
+    def __init__(self, vw=None, vwqgui=None, **kwargs):
+        vq_tree.VQTreeView.__init__(self, parent=vwqgui, **kwargs)
         viv_base.VivEventCore.__init__(self, vw)
 
         self.vw = vw
@@ -89,7 +92,7 @@ class VQVivTreeView(vq_tree.VQTreeView, viv_base.VivEventCore):
             return True
 
     def contextMenuEvent(self, event):
-        menu = QtGui.QMenu(parent=self)
+        menu = QMenu(parent=self)
         idxlist = self.selectedIndexes()
         if not idxlist:
             return

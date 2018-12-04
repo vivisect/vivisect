@@ -77,6 +77,7 @@ arch_names = {
     Elf.EM_386:'i386',
     Elf.EM_X86_64:'amd64',
     Elf.EM_MSP430:'msp430',
+    Elf.EM_ARM_AARCH64:'aarch64',
 }
 
 archcalls = {
@@ -326,7 +327,7 @@ def loadElfIntoWorkspace(vw, elf, filename=None):
         if addbase: sva += baseaddr
         if vw.isValidPointer(sva) and len(s.name):
             try:
-                vw.makeName(sva, "%s_%x" % (s.name,sva), filelocal=True)
+                vw.makeName(sva, s.name, filelocal=True)
             except Exception, e:
                 print "WARNING:",e
 

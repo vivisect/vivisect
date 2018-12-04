@@ -282,6 +282,14 @@ class CodeFlowContext(object):
         # Finally, notify the callback of a new function
         self._cb_function(va, {'CallsFrom':calls_from})
 
+    def flushFunction(self, fva):
+        '''
+        Codeflow context maintains a list of identified functions, to avoid 
+        analyzing the same function twice.  If a function is misidentified
+        flushFunction() is used to clear that function from the tracked _funcs
+        '''
+        self._funcs[fva] = None
+
     def addDynamicBranchHandler(self, cb):
         '''
         Add a callback handler for dynamic branches the code-flow resolver 
