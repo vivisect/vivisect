@@ -49,11 +49,15 @@ a real process ( via vdb/vtrace ) and dealing with an emulator / viv workspace.
 
 In order to get the vivisect UI running, you'll first need to install the Qt4 and Qt4-Webkit libraries. On Ubuntu, you can do this via:
 
-> sudo apt-get install libqt4-dev libqtwebkit-dev
+```
+sudo apt-get install libqt4-dev libqtwebkit-dev
+```
 
 If you're on an older version of python, you may be able to pip install PyQt4 and SIP like so:
 
-> pip install PyQt4 SIP
+```
+pip install PyQt4 SIP
+```
 
 However, on recent (tested on 2.7.15 December 2018) versions of pip, that pip install fails. To get around this, you'll need to download the sources for both PyQt4 and SIP from Riverbank.
 * SIP can be found [here](https://sourceforge.net/projects/pyqt/files/sip/sip-4.19.13/sip-4.19.13.tar.gz) 
