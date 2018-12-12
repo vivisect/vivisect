@@ -90,6 +90,22 @@ make install
 
 And then you should be able to open up your vivisect workspace with the vivbin script.
 
+### PyQt5
+
+PyQt5 is unsupported on Python 2.x. So similar steps must be followed to install PyQt5 to get the UI working that way as well.
+
+Install qt5:
+```
+sudo apt-get install qt5-default libqtwebkit-dev
+```
+
+Install the dependencies that PyQt5 needs:
+```
+pip install enum34
+```
+
+The rest of the build/install steps are the same, save for changing out the version numbers from PyQt4 to PyQt5.
+
 ## Build Status
 
 [![Build Status](https://travis-ci.org/vivisect/vivisect.svg?branch=master)](https://travis-ci.org/vivisect/vivisect)
