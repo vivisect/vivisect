@@ -12,7 +12,7 @@ import logging
 
 logging.basicConfig(format='%(asctime)s:%(levelname)s:%(name)s: %(message)s')
 logger = logging.getLogger()
-logger.setLevel(logging.DEBUG)  # any messages called during import will be printed
+logger.basicConfig(level=logging.DEBUG, format='%(asctime)s:%(levelname)s:%(name)s: %(message)s')
 
 import vivisect
 import vivisect.cli as viv_cli
