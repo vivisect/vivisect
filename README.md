@@ -96,7 +96,7 @@ PyQt5 is unsupported on Python 2.x. So similar steps must be followed to install
 
 Install qt5:
 ```
-sudo apt-get install qt5-default libqtwebkit-dev
+sudo apt-get install qt5-default libqt5webkit5-dev
 ```
 
 Install the dependencies that PyQt5 needs:
