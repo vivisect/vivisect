@@ -11,6 +11,9 @@ import visgraph.pathcore as vg_path
 
 from vivisect.const import *
 
+import logging
+logger = logging.getLogger(__name__)
+
 # Pre-initialize a default stack size
 init_stack_size = 0x7fff
 init_stack_map = b'\xfe' * init_stack_size
@@ -235,7 +238,7 @@ class WorkspaceEmulator:
         if len(blist) > 1:
             for bva,bflags in blist:
                 if bva == None:
-                    print "Unresolved branch even WITH an emulator?"
+                    logger.warn("Unresolved branch even WITH an emulator?")
                     continue
 
                 bpath = self.getBranchNode(self.curpath, bva)
@@ -371,10 +374,10 @@ class WorkspaceEmulator:
 
                 except envi.UnsupportedInstruction, e:
                     if self.strictops:
-                        print "STRICTOPS: BREAK!"
+                        logger.debug("STRICTOPS: BREAK!")
                         break
                     else:
-                        print 'runFunction continuing after unsupported instruction: 0x%08x %s' % (e.op.va, e.op.mnem)
+                        logger.debug('runFunction continuing after unsupported instruction: 0x%08x %s' % (e.op.va, e.op.mnem))
                         self.setProgramCounter(e.op.va+ e.op.size)
                 except Exception, e:
                     #traceback.print_exc()

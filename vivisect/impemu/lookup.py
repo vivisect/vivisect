@@ -15,6 +15,6 @@ workspace_emus  = {
     'amd64' :v_i_amd64.Amd64WorkspaceEmulator,
     'msp430' :v_i_msp430.Msp430WorkspaceEmulator,
     'thumb' :v_i_arm.ThumbWorkspaceEmulator,
-    'thumb2' :v_i_arm.ThumbWorkspaceEmulator,
+    'thumb16' :v_i_arm.Thumb16WorkspaceEmulator,
     ('windows','i386'):v_i_windows.Windowsi386Emulator,
 }

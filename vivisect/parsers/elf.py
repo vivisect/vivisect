@@ -85,6 +85,8 @@ archcalls = {
     'amd64':'sysvamd64call',
     'arm':'armcall',
     'thumb':'armcall',
+    'thumb16':'armcall',
+    'aarch64':'a64call',
 }
 
 def loadElfIntoWorkspace(vw, elf, filename=None):

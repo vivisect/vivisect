@@ -272,6 +272,16 @@ class ThumbWorkspaceEmulator(ArmWorkspaceEmulator):
     def __init__(self, vw, logwrite=False, logread=False):
         ArmWorkspaceEmulator.__init__(self, vw, logwrite, logread)
         self.setThumbMode()
+        self.setMemArchitecture(envi.ARCH_THUMB)
+
+    def runFunction(self, funcva, stopva=None, maxhit=None, maxloop=None, tmode=None):
+        return ArmWorkspaceEmulator.runFunction(self, funcva, stopva, maxhit, maxloop, tmode=1)
+
+class Thumb16WorkspaceEmulator(ArmWorkspaceEmulator):
+    def __init__(self, vw, logwrite=False, logread=False):
+        ArmWorkspaceEmulator.__init__(self, vw, logwrite, logread)
+        self.setThumbMode()
+        self.setMemArchitecture(envi.ARCH_THUMB16)
 
     def runFunction(self, funcva, stopva=None, maxhit=None, maxloop=None, tmode=None):
         return ArmWorkspaceEmulator.runFunction(self, funcva, stopva, maxhit, maxloop, tmode=1)
