@@ -47,7 +47,9 @@ a real process ( via vdb/vtrace ) and dealing with an emulator / viv workspace.
 
 ## UI Dependencies
 
-In order to get the vivisect UI running, you'll first need to install the Qt4 and Qt4-Webkit libraries. On Ubuntu, you can do this via:
+The vivisect UI can be run under either PyQt4 and PyQt5
+
+For running via PyQt4, first you'll need  to install Qt4 and Qt4-Webkit libraries. On Ubuntu, you can do this via:
 
 ```
 sudo apt-get install libqt4-dev libqtwebkit-dev
@@ -94,9 +96,9 @@ And then you should be able to open up your vivisect workspace with the vivbin s
 
 ### PyQt5
 
-PyQt5 is unsupported on Python 2.x. So similar steps must be followed to install PyQt5 to get the UI working that way as well.
+Installing PyQt5 via pip is not supported in Python 2.x. So similar steps must be followed to install PyQt5 to get the UI working that way as well.
 
-Install qt5:
+Install qt5 and the webkit dependency:
 ```
 sudo apt-get install qt5-default libqt5webkit5-dev
 ```
