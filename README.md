@@ -88,6 +88,8 @@ make -j4
 make install
 ```
 
+If you run into an `Error 2` status code on the `make install` line, replace that line with `sudo make install`, and things should work out fine.
+
 And then you should be able to open up your vivisect workspace with the vivbin script.
 
 ### PyQt5
