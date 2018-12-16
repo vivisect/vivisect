@@ -4,8 +4,8 @@ import argparse
 import traceback
 import logging
 
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s:%(levelname)s:%(name)s: %(message)s')
 logger = logging.getLogger()
-logger.basicConfig(level=logging.DEBUG, format='%(asctime)s:%(levelname)s:%(name)s: %(message)s')
 
 import vdb
 import vtrace
@@ -65,7 +65,7 @@ def main():
     parser.add_argument('-r', '--run', dest='dorunagain', default=False, action='store_true', help='Do not stop on attach')
     parser.add_argument('-s', '--snapshot', dest='snapshot', default=None, help='Load a vtrace snapshot file')
     parser.add_argument('-S', '--server', dest='doserver', default=False, action='store_true')
-    parser.add_argument('-v', '--verbose', dest='doverbose', default=False, action='count')
+    parser.add_argument('-v', '--verbose', dest='verbose', default=False, action='count')
     parser.add_argument('-t', '--target', dest='target', default=None, help='Activate special vdb target ( -t ? for list )')
     parser.add_argument('--android', dest='doandroid', default=False, action='store_true', help='Debug Android with ADB!')
     parser.add_argument('-e', '--eventid', dest='eventid', default=None, type=int, help='Used for Windows JIT')

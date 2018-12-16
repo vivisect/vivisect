@@ -10,8 +10,8 @@ import threading
 import traceback
 import logging
 
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s:%(levelname)s:%(name)s: %(message)s')
 logger = logging.getLogger()
-logger.basicConfig(level=logging.DEBUG, format='%(asctime)s:%(levelname)s:%(name)s: %(message)s')
 
 import vivisect
 import vivisect.cli as viv_cli
