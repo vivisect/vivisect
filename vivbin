@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 import os
 import imp
 import sys
@@ -9,13 +8,24 @@ import cProfile
 import argparse
 import threading
 import traceback
+import logging
 
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s:%(levelname)s:%(name)s: %(message)s')
+logger = logging.getLogger()
 
 import vivisect
 import vivisect.cli as viv_cli
 import envi.config as e_config
 import envi.threads as e_threads
 import vivisect.parsers as viv_parsers
+
+loglevels = (
+        logging.CRITICAL,
+        logging.ERROR,
+        logging.WARN,
+        logging.INFO,
+        logging.DEBUG,
+        )
 
 def main():
     parser = argparse.ArgumentParser(prog='vivbin', usage='%(prog)s [options] <workspace|binaries...>')
@@ -33,15 +43,18 @@ def main():
                         help='Manually specify the parser module (pe/elf/blob/...)')
     parser.add_argument('-s', '--storage', dest='storage_name', default=None, action='store',
                         help='Specify a storage module by name')
-    parser.add_argument('-v', '--verbose', dest='verbose', default=False, action='store_true',
-                        help='Enable verbose mode')
+    parser.add_argument('-v', '--verbose', dest='verbose', default=False, action='count',
+                        help='Enable verbose mode (multiples matter: -vvvv)')
     parser.add_argument('-V', '--version', dest='version', default=None, action='store',
                         help='Add file version (if available) to save file name')
     parser.add_argument('file', nargs='*')
     args = parser.parse_args()
 
     vw = viv_cli.VivCli()
-    vw.verbose = args.verbose
+
+    # setup logging
+    vw.verbose = min(args.verbose, 4)
+    logger.setLevel(loglevels[vw.verbose])
 
     if args.option is not None:
         if args.option in ('-h','?'):
