@@ -226,7 +226,7 @@ class VivCli(e_cli.EnviCli, vivisect.VivWorkspace):
         '''
         search opcodes/function for a pattern
 
-        search [-f <funcva>] [options] <pattern>
+        searchopcodes [-f <funcva>] [options] <pattern>
         -f [fva]   - focus on one function
         -c         - search comments
         -o         - search operands
@@ -253,7 +253,7 @@ class VivCli(e_cli.EnviCli, vivisect.VivWorkspace):
         pattern = ' '.join(args)
         if len(pattern) == 0:
             self.vprint('you must specify a pattern')
-            return self.do_help('search')
+            return self.do_help('searchopcodes')
 
         vw = self
        
