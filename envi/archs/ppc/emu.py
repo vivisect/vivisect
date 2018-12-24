@@ -169,6 +169,12 @@ class PpcEmulator(PpcModule, PpcRegisterContext, envi.Emulator):
         val = op.opers[OPER_DST].getOperValue(op, self)
         return val
 
+    def i_blr(self, op):
+        '''
+        blr is actually "ret"
+        '''
+        return self.getRegister(REG_LR)
+
     # conditional branches....
     def i_bc(self, op):
         val = op.opers[OPER_DST].getOperValue(op, self)
@@ -694,7 +700,60 @@ class PpcEmulator(PpcModule, PpcRegisterContext, envi.Emulator):
         # FIXME: what's SO? (it's the 1 bit)
 
         self.setOperValue(op, 0, c)
-        print "TESTME: cmpi bit setting of the appropriate CR register"
+        #print "TESTME: cmpi bit setting of the appropriate CR register"
+
+    def setOEFlags(self, results):
+        print('addo: make OE flag updates')
+
+    def i_add(self, op):
+        '''
+        add
+        '''
+        src1 = self.getOperValue(op, 1)
+        src2 = self.getOperValue(op, 2) # FIXME: move signedness here instead of at decode
+        src2 = e_bits.signed(src2, 2)
+        result = src1 + src2
+        self.setOperValue(op, 0, result)
+        if op.iflags & IF_RC: self.setFlags(results, 0)
+
+    def i_addo(self, op):
+        '''
+        add
+        '''
+        src1 = self.getOperValue(op, 1)
+        src2 = self.getOperValue(op, 2) # FIXME: move signedness here instead of at decode
+        src2 = e_bits.signed(src2, 2)
+        result = src1 + src2
+        self.setOperValue(op, 0, result)
+        self.setOEFlags(results)
+        if op.iflags & IF_RC: self.setFlags(results, 0)
+
+    def i_addc(self, op):
+        '''
+        add
+        '''
+        src1 = self.getOperValue(op, 1)
+        src2 = self.getOperValue(op, 2) # FIXME: move signedness here instead of at decode
+        src2 = e_bits.signed(src2, 2)
+        result = src1 + src2
+        self.setOperValue(op, 0, result)
+        if op.iflags & IF_RC: self.setFlags(results, 0)
+
+    def i_addco(self, op):
+        '''
+        add
+        '''
+        src1 = self.getopervalue(op, 1)
+        src2 = self.getopervalue(op, 2) # fixme: move signedness here instead of at decode
+        src2 = e_bits.signed(src2, 2)
+        carry = self.getRegister(REG_CA)
+        
+        result = src1 + src2 + carry
+        self.setopervalue(op, 0, result)
+
+        self.setOEFlags(results)
+        if op.iflags & if_rc: self.setflags(results, 0)
+
 
     def i_addi(self, op):
         '''

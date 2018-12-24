@@ -83,6 +83,9 @@ def analyzeFunction(vw, fva):
     emu.setEmulationMonitor(emumon)
     emu.runFunction(fva, maxhit=1)
 
+    # grab all reads/writes and comment (symhint??) and drop data xref
+    reads, writes = getReadsAndWrites(emu.path)
+
     # Do we already have API info in meta?
     # NOTE: do *not* use getFunctionApi here, it will make one!
     api = vw.getFunctionMeta(fva, 'api')
@@ -106,4 +109,6 @@ def analyzeFunction(vw, fva):
 
     # read/writes
 
+def getReadsAndWrites(path):
+    return [], []
 
