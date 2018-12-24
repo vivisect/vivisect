@@ -27,6 +27,7 @@ def analyze(vw):
         # look for an RCHW structure
         rchw = vw.readMemValue(baseaddr, 2)
         # the top 4 bits are reserved (expected to be 0) and the last 8 bits are 01011010
+        if vw.verbose > 1: vw.vprint("analyzing: 0x%x : 0x%x" % (baseaddr, rchw))
         if rchw & 0xf0ff != 0x5a:
             continue
 
