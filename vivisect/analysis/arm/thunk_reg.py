@@ -49,7 +49,7 @@ class AnalysisMonitor(viv_monitor.AnalysisMonitor):
                 # second operand has the register we're interested in for this function
                 tgt = op.getOperValue(0, emu)
                 if tgt == None:
-                    print "0x%x: %s   tgt == None!" % (op.va, op)
+                    emu.vw.vprint("0x%x: %s   tgt == None!" % (op.va, op))
                     return
 
                 self.tracker[op.va] = tgt
@@ -176,11 +176,10 @@ def analyzeFunction(vw, fva):
     if vw.verbose: vw.vprint("ANOMS: \n", repr(emumon.emuanom))
 
 def analyze(vw):
-    # don't want to run this multiple times on the same function... comments get outa hand.
+    '''
+    run analysis on each function
+    '''
     for fva in vw.getFunctions():
-        #if vw.getFunctionMeta(fva, 'PIE_reg'):
-        #    continue
-
         try:
             analyzeFunction(vw, fva)
         except:
