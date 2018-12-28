@@ -1121,8 +1121,10 @@ def p_media_pack_sat_rev_extend(opval, va):
             ArmRegOper(Rd, va=va),
             ArmRegOper(Rm, va=va),
         )
-    #elif opc1 == 3 and opc2 == 0xb:         # byte rev pkt halfword
-    #elif opc1 == 7 and opc2 == 0xb:         # byte rev signed halfword
+    elif opc1 == 3 and opc2 == 0xb:         # byte rev pkt halfword
+        raise Exception('IMPLEMENT ME: byte rev pkt halfword')
+    elif opc1 == 7 and opc2 == 0xb:         # byte rev signed halfword
+        raise Exception('IMPLEMENT ME: byte rev signed halfword')
     elif opc1 == 0 and opc2 == 0xb:         # select bytes
         mnem = "sel"
         opcode = INS_SEL
@@ -2408,7 +2410,7 @@ adv_simd_3_regs = (  # ABUC fields slammed together
         ('vceq',        INS_VCEQ, IFS_I32, None),
         (None,          None, 0, None),
 
-        # a=1001 b=0        # DOUBLECHECK THIS!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        # a=1001 b=0
         ('vmla',        INS_VMLA, IFS_I8, None),
         ('vmla',        INS_VMLA, IFS_I16, None),
         ('vmla',        INS_VMLA, IFS_I32, None),
@@ -2523,7 +2525,7 @@ adv_simd_3_regs = (  # ABUC fields slammed together
         (None,          None, 0, None),
         (None,          None, 0, None),
         (None,          None, 0, None),
-        ('vacge',       INS_VACGE, IFS_F32, None), # check if all instructions code this way: Q==0 means Dx Regs, Q==1 means Qx Regs
+        ('vacge',       INS_VACGE, IFS_F32, None),
         (None,          None, 0, None),
         ('vacgt',       INS_VACGT, IFS_F32, None),
         (None,          None, 0, None),
@@ -4219,27 +4221,6 @@ class ArmFloatOper(ArmImmOper):
 
         return '#%f' % (val)
 
-"""
-class ArmImmFPOper(ArmImmOper):
-    '''
-    What's the difference between this and ArmFloatOper??
-    '''
-    def __init__(self, val, precision=0):
-        self.val = val
-        self.precision = precision
-
-    def getOperValue(self, op, emu=None):
-        return float(self.val)
-
-    def render(self, mcanv, op, idx):
-        val = self.getOperValue(op)
-        mcanv.addNameText('#%.2f' % (val))
-
-    def repr(self, op):
-        val = self.getOperValue(op)
-        return '#%.2f' % (val)
-"""
-
 class ArmScaledOffsetOper(ArmOperand):
     ''' scaled offset operand.  see "addressing mode 2 - load and store word or unsigned byte - scaled register *" '''
     def __init__(self, base_reg, offset_reg, shtype, shval, va, pubwl=PUxWL_DFLT, psize=4, tsize=None):
@@ -4600,8 +4581,6 @@ class ArmImmOffsetOper(ArmOperand):
                 else:
                     mcanv.addNameText("0x%x" % value)
 
-            #if idxing != 0x2:
-                #print "OMJ! WRITING to program counter! -1"
         else:
             pom = ('-','')[u]
             mcanv.addText('[')

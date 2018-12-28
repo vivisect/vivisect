@@ -56,7 +56,7 @@ class AnalysisMonitor(viv_monitor.AnalysisMonitor):
                 #print("%x  %s" % (op.va, self.vw.reprVa(tgt)))
 
 
-def analyzeFunction(vw, fva, prepend=False):
+def analyzeFunction(vw, fva):
     '''
     this analysis module will identify thunk_reg functions, which place the .GOT pointer
     into some register which is then accessed later.  
