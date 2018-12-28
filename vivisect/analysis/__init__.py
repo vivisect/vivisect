@@ -4,6 +4,8 @@ The analysis package.  Modules in this directory are responsible
 for different phases of analysis on different platforms.
 """
 
+import logging
+logger = logging.getLogger(__name__)
 
 def addAnalysisModules(vw):
 
@@ -167,3 +169,4 @@ def addAnalysisModules(vw):
 
         raise Exception('Analysis modules unknown for format: %s' % fmt)
 
+    logger.info('Vivisect Analysis Setup Hooks Complete')
