@@ -9,7 +9,7 @@ import vivisect.impemu.emulator as v_i_emulator
 import visgraph.pathcore as vg_path
 from envi.archs.arm.regs import *
 
-logger = logging.getLogger("__name__")
+logger = logging.getLogger(__name__)
 verbose = True
 
 class ArmWorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_arm.ArmEmulator):

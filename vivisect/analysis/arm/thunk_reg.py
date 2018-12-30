@@ -3,9 +3,12 @@ import envi
 import vivisect
 import vivisect.impemu.monitor as viv_monitor
 
+import logging
+
 from envi.archs.arm.regs import PSR_T_bit
 from vivisect import LOC_STRING, LOC_UNI, REF_DATA
 
+logger = logging.getLogger(__name__)
 MAX_INIT_OPCODES = 30
 
 def reprPointer(vw, va):
@@ -49,11 +52,11 @@ class AnalysisMonitor(viv_monitor.AnalysisMonitor):
                 # second operand has the register we're interested in for this function
                 tgt = op.getOperValue(0, emu)
                 if tgt == None:
-                    emu.vw.vprint("0x%x: %s   tgt == None!" % (op.va, op))
+                    logger.warn("0x%x: %s   tgt == None!", op.va, op)
                     return
 
                 self.tracker[op.va] = tgt
-                #print("%x  %s" % (op.va, self.vw.reprVa(tgt)))
+                #logger.debug("%x  %s", op.va, self.vw.reprVa(tgt))
 
 
 def analyzeFunction(vw, fva):
@@ -119,13 +122,13 @@ def analyzeFunction(vw, fva):
 
         tva += len(op)
         if op.isReturn():
-            #print "thunk_reg: returning before finding PIE data"
+            logger.debug("thunk_reg: returning before finding PIE data")
             break
 
     if not success: 
         return
 
-    if vw.verbose: vw.vprint('funcva 0x%x using thunk_reg for PIE' % fva)
+    logger.debug('funcva 0x%x using thunk_reg for PIE', fva)
 
     # now check through all the functions and track references
     emumon = AnalysisMonitor(vw, fva)
@@ -133,7 +136,7 @@ def analyzeFunction(vw, fva):
     try:
         emu.runFunction(fva, maxhit=1)
     except:
-        vw.vprint("Error emulating function 0x%x\n\t%s" % (fva, repr(emumon.emuanom)))
+        logger.warn("Error emulating function 0x%x\n\t%r", fva, emumon.emuanom)
 
     if vw.verbose: sys.stderr.write('=')
 
@@ -146,7 +149,7 @@ def analyzeFunction(vw, fva):
             try:
                 vw.followPointer(tgt)
             except envi.SegmentationViolation:
-                if vw.verbose: vw.vprint("SegV: %x (va:0x%x)" % (tgt,va))
+                logger.debug("SegV: %x (va:0x%x)", tgt, va)
                 emumon.emuanom.append("SegV: %x (va:0x%x)" % (tgt,va))
                 continue
 
@@ -155,7 +158,7 @@ def analyzeFunction(vw, fva):
             if xto == tgt:
                 nogo = True
         if not nogo:
-            #vw.vprint("PIE XREF: 0x%x -> 0x%x" % (va, tgt))
+            logger.debug("PIE XREF: 0x%x -> 0x%x", va, tgt)
             try:
                 vw.addXref(va, tgt, REF_DATA, 0)
             except:
@@ -171,9 +174,9 @@ def analyzeFunction(vw, fva):
             cmt = "0x%x: %s ;\n %s" % (tgt, reprPointer(vw, tgt), curcmt)
             vw.setComment(va, cmt)
 
-        if vw.verbose: vw.vprint("PIE XREF: %x  %s" % (va, cmt))
+        logger.debug("PIE XREF: %x  %s" % (va, cmt))
 
-    if vw.verbose: vw.vprint("ANOMS: \n", repr(emumon.emuanom))
+    logger.debug("ANOMS: \n", repr(emumon.emuanom))
 
 def analyze(vw):
     '''
@@ -188,9 +191,9 @@ def analyze(vw):
 if globals().get('vw') != None:
     if len(argv) > 1:
         va = vw.parseExpression(argv[1])
-        vw.vprint("analyzing workspace function %x for thunk_reg", va)
+        logger.warn("analyzing workspace function %x for thunk_reg", va)
         analyzeFunction(vw, va)
     else:
-        vw.vprint("analyzing workspace for thunk_reg")
+        logger.warn("analyzing workspace for thunk_reg")
         analyze(vw)
-    vw.vprint("done")
+    logger.warn("done")
