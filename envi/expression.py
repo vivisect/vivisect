@@ -14,22 +14,25 @@ class ExpressionFail(Exception):
 
 def evaluate(pycode, locals):
     try:
-        # check through the keys for anything we might want to replace
-        keys = locals.keys()
-
-        # sort the keys in reverse order so that longer matching strings take priority
-        keys.sort(reverse=True)
-
-        # replace the substrings with the string versions of the lookup value
-        for key in keys:
-            if key in pycode:
-                pval = locals[key]
-                pycode = pycode.replace(key, str(pval))
-        
         val = eval(pycode, {}, locals)
-
     except NameError, e:
-        raise ExpressionFail(pycode)
+        try:
+            # check through the keys for anything we might want to replace
+            keys = locals.keys()
+
+            # sort the keys in reverse order so that longer matching strings take priority
+            keys.sort(reverse=True)
+
+            # replace the substrings with the string versions of the lookup value
+            for key in keys:
+                if key in pycode:
+                    pval = locals[key]
+                    pycode = pycode.replace(key, str(pval))
+            
+            val = eval(pycode, {}, locals)
+
+        except NameError, e:
+            raise ExpressionFail(pycode)
 
     return val
 
