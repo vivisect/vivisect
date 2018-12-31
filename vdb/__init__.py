@@ -1051,41 +1051,45 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
 
                 pc = t.getProgramCounter()
 
-                if pc == taddr:
-                    break
+                try:
+                    if pc == taddr:
+                        break
 
-                op = t.parseOpcode(pc)
+                    op = t.parseOpcode(pc)
 
-                sym = t.getSymByAddr(pc)
+                    sym = t.getSymByAddr(pc)
 
-                if sym != None and not quiet:
-                    self.canvas.addVaText(repr(sym), pc)
-                    self.canvas.addText(':\n')
+                    if sym != None and not quiet:
+                        self.canvas.addVaText(repr(sym), pc)
+                        self.canvas.addText(':\n')
 
-                if not quiet:
-                    self.canvas.addText('  ' * max(depth,0))
-                    self.canvas.addVaText('0x%.8x' % pc, pc)
-                    self.canvas.addText(':  ')
-                    op.render(self.canvas)
+                    if not quiet:
+                        self.canvas.addText('  ' * max(depth,0))
+                        self.canvas.addVaText('0x%.8x' % pc, pc)
+                        self.canvas.addText(':  ')
+                        op.render(self.canvas)
 
-                # these options are really mutually exclusive
-                if showop and not quiet:
-                    self.canvas.addText(' ; ')
-                    for oper in op.opers:
-                        try:
-                            val = oper.getOperValue(op, emu=t)
-                            self.canvas.addText('0x%.8x ' % val)
-                        except Exception, e:
-                            self.canvas.addText(str(e))
+                    # these options are really mutually exclusive
+                    if showop and not quiet:
+                        self.canvas.addText(' ; ')
+                        for oper in op.opers:
+                            try:
+                                val = oper.getOperValue(op, emu=t)
+                                self.canvas.addText('0x%.8x ' % val)
+                            except Exception, e:
+                                self.canvas.addText(str(e))
 
-                if not quiet:
-                    self.canvas.addText('\n')
+                    if not quiet:
+                        self.canvas.addText('\n')
 
-                if op.iflags & envi.IF_CALL:
-                    depth += 1
+                    if op.iflags & envi.IF_CALL:
+                        depth += 1
 
-                elif op.iflags & envi.IF_RET:
-                    depth -= 1
+                    elif op.iflags & envi.IF_RET:
+                        depth -= 1
+                except Exception, e:
+                    print "[E@0x%x] %r" % (pc, e)
+
 
                 tid = t.getCurrentThread()
 

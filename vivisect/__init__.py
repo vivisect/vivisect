@@ -667,8 +667,22 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         return stats
 
     def printDiscoveredStats(self):
-        disc, undisc = self.getDiscoveredInfo()
+        ( disc, 
+            undisc, 
+            numXrefs, 
+            numLocs, 
+            numFuncs, 
+            numBlocks, 
+            numOps, 
+            numUnis, 
+            numStrings, 
+            numNumbers, 
+            numPointers, 
+            numVtables ) = self.getDiscoveredInfo()
+
         self.vprint("Percentage of discovered executable surface area: %.1f%% (%s / %s)" % (disc*100.0/(disc+undisc), disc, disc+undisc))
+        self.vprint("   Xrefs/Blocks/Funcs:                             (%s / %s / %s)" % (numXrefs, numBlocks, numFuncs))
+        self.vprint("   Locs,  Ops/Strings/Unicode/Nums/Ptrs/Vtables:   (%s:  %s / %s / %s / %s / %s / %s)" % (numLocs, numOps, numStrings, numUnis, numNumbers, numPointers, numVtables))
 
     def getDiscoveredInfo(self):
         """
@@ -689,7 +703,19 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
                 else:
                     off += loc[L_SIZE]
                     disc += loc[L_SIZE]
-        return disc, undisc
+
+        numXrefs = len(self.getXrefs())
+        numLocs = len(self.getLocations())
+        numFuncs = len(self.getFunctions())
+        numBlocks = len(self.getCodeBlocks())
+        numOps = len(self.getLocations(LOC_OP))
+        numUnis = len(self.getLocations(LOC_UNI))
+        numStrings = len(self.getLocations(LOC_STRING))
+        numNumbers = len(self.getLocations(LOC_NUMBER))
+        numPointers = len(self.getLocations(LOC_POINTER))
+        numVtables = len(self.getLocations(LOC_VFTABLE))
+
+        return disc, undisc, numXrefs, numLocs, numFuncs, numBlocks, numOps, numUnis, numStrings, numNumbers, numPointers, numVtables
 
     def getImports(self):
         """
@@ -829,27 +855,24 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         #FIXME this does not detect Unicode...
 
         offset, bytes = self.getByteDef(va)
-        maxlen = len(bytes) + offset
+        maxlen = len(bytes) - offset
         count = 0
+        charset = bytes[offset + 1]
         while count < maxlen:
             # If we hit another thing, then probably not.
             # Ignore when count==0 so detection can check something
             # already set as a location.
             if (count > 0):
                 loc = self.getLocation(va+count)
-                if loc and loc[L_LTYPE] == LOC_UNI:
-                    return loc[L_VA] - (va + count) + loc[L_SIZE]
-                return -1
+                if loc:
+                    if loc[L_LTYPE] == LOC_UNI:
+                        return loc[L_VA] - (va + count) + loc[L_SIZE]
+                    return -1
 
             c0 = bytes[offset+count]
             if offset+count+1 >= len(bytes):
                 return -1
             c1 = bytes[offset+count+1]
-
-            # If it's not null,char,null,char then it's
-            # not simple unicode...
-            if ord(c1) != 0:
-                return -1
 
             # If we find our null terminator after more
             # than 4 chars, we're probably a real string
@@ -861,6 +884,11 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             # If the first byte char isn't printable, then
             # we're probably not a real "simple" ascii string
             if c0 not in string.printable:
+                return -1
+
+            # If it's not null,char,null,char then it's
+            # not simple unicode...
+            if c1 != charset:
                 return -1
 
             count += 2

@@ -319,6 +319,7 @@ class SymbolikBase:
                 # let's get into the minds of our kids...
                 cur = kid
                 idx = 0
+                continue
             #else:
             #    sys.stdout.write('.')
 
