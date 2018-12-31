@@ -14,25 +14,22 @@ class ExpressionFail(Exception):
 
 def evaluate(pycode, locals):
     try:
+        # check through the keys for anything we might want to replace
+        keys = locals.keys()
+
+        # sort the keys in reverse order so that longer matching strings take priority
+        keys.sort(reverse=True)
+
+        # replace the substrings with the string versions of the lookup value
+        for key in keys:
+            if key in pycode:
+                pval = locals[key]
+                pycode = pycode.replace(key, str(pval))
+        
         val = eval(pycode, {}, locals)
+
     except NameError, e:
-        try:
-            # check through the keys for anything we might want to replace
-            keys = locals.keys()
-
-            # sort the keys in reverse order so that longer matching strings take priority
-            keys.sort(reverse=True)
-
-            # replace the substrings with the string versions of the lookup value
-            for key in keys:
-                if key in pycode:
-                    pval = locals.get(key)
-                    pycode = pycode.replace(key, str(pval))
-            
-            val = eval(pycode, {}, locals)
-
-        except NameError, e:
-            raise ExpressionFail(pycode)
+        raise ExpressionFail(pycode)
 
     return val
 
@@ -49,8 +46,19 @@ class ExpressionLocals(dict):
     def __getitem__(self, name):
         if self.symobj != None:
             ret = self.symobj.getSymByName(name)
-            if ret != None: return ret
+            if ret != None: return ret.value
         return dict.__getitem__(self, name)
+
+    def __iter__(self):
+        for va, name in self.symobj.getNames():
+            yield name
+
+        dict.__iter__(self)
+
+    def keys(self):
+        return [key for key in self]
+        
+
 
 class MemoryExpressionLocals(ExpressionLocals):
 
