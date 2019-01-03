@@ -1,71 +1,22 @@
-# APIs for Windows 64-bit.  Each library has its own file of APIs, and
-# they are collected into a single dictionary here.  The separate files
-# are hard-coded into this module.  Each is expected to return
-# a dictionary named "api_defs_64".
-#
-# Format:  retval, rettype, callconv, exactname, arglist(type, name)
-#          where arglist type is one of ['int', 'void *']
-#                arglist name is one of [None, 'funcptr', 'obj', 'ptr']
+import vivisect.impapi.windows.i386 as v_w_i386
+apitypes = dict(v_w_i386.apitypes)
 
-
-apitypes = {
-    # NTDLL
-    'DWORD':        'unsigned int',
-    'HANDLE':       'DWORD',
-    'LIBHANDLE':    'HANDLE',
-    'HEAP':         'HANDLE',
+api = {
 }
 
+i386_omits = set([
+    'ntdll.seh3_prolog',
+    'ntdll.seh4_prolog',
+    'ntdll.seh4_gs_prolog',
+    'ntdll.seh3_epilog',
+    'ntdll.seh4_epilog',
+    'ntdll.eh_prolog',
+    'ntdll.gs_prolog',
+])
 
-api = {}
+for normname,(rtype,rname,cconv,cname,cargs) in v_w_i386.api.items():
+    if normname in i386_omits:
+        continue
 
-import vivisect.impapi.windows.ntdll_64 as mNt
-api.update(mNt.api_defs_64)
+    api[normname] = (rtype,rname,'msx64call',cname,cargs)
 
-import vivisect.impapi.windows.kernel_64 as mKer
-api.update(mKer.api_defs_64)
-
-import vivisect.impapi.windows.advapi_64 as mAdv
-api.update(mAdv.api_defs_64)
-
-import vivisect.impapi.windows.gdi_64 as mGdi
-api.update(mGdi.api_defs_64)
-
-import vivisect.impapi.windows.ole_64 as mOle
-api.update(mOle.api_defs_64)
-
-import vivisect.impapi.windows.user_64 as mUser
-api.update(mUser.api_defs_64)
-
-import vivisect.impapi.windows.rpcrt4_64 as mRpc
-api.update(mRpc.api_defs_64)
-
-import vivisect.impapi.windows.msvcrt_64 as mCrt
-api.update(mCrt.api_defs_64)
-
-# There is no 64-bit msvcr70 or msvcr71.
-
-import vivisect.impapi.windows.msvcr80_64 as mCr80
-api.update(mCr80.api_defs_64)
-
-import vivisect.impapi.windows.msvcr90_64 as mCr90
-api.update(mCr90.api_defs_64)
-
-import vivisect.impapi.windows.msvcr100_64 as mCr100
-api.update(mCr100.api_defs_64)
-
-import vivisect.impapi.windows.msvcr110_64 as mCr110
-api.update(mCr110.api_defs_64)
-
-import vivisect.impapi.windows.msvcr120_64 as mCr120
-api.update(mCr120.api_defs_64)
-
-import vivisect.impapi.windows.ws2plus_64 as mWs2
-api.update(mWs2.api_defs_64)
-
-
-# Miscellaneous.
-api_defs_64 = {
-    'mfc42.?afxbeginthread@@ygpavcwinthread@@p6aipax@z0hikpau_security_attributes@@@z':( 'int', None, 'cdecl', 'mfc42.?AfxBeginThread@@YGPAVCWinThread@@P6AIPAX@Z0HIKPAU_SECURITY_ATTRIBUTES@@@Z', (('void *','funcptr'), ('void *','ptr'), ('int',None), ('int',None), ('int',None), ('void *','ptr')) ),
-    }
-api.update(api_defs_64)
