@@ -1,9 +1,40 @@
 """
 Unified expression helpers.
 """
+class ExpressionFail(Exception):
+    def __init__(self, pycode):
+        Exception.__init__(self)
+        self.pycode = pycode
+
+    def __repr__(self):
+        return "ExpressionFail: %r is not a valid expression in this context" % self.pycode
+
+    def __str__(self): 
+        return self.__repr__()
 
 def evaluate(pycode, locals):
-    return eval(pycode, {}, locals)
+    try:
+        val = eval(pycode, {}, locals)
+    except NameError, e:
+        try:
+            # check through the keys for anything we might want to replace
+            keys = locals.keys()
+
+            # sort the keys in reverse order so that longer matching strings take priority
+            keys.sort(reverse=True)
+
+            # replace the substrings with the string versions of the lookup value
+            for key in keys:
+                if key in pycode:
+                    pval = locals[key]
+                    pycode = pycode.replace(key, str(pval))
+            
+            val = eval(pycode, {}, locals)
+
+        except NameError, e:
+            raise ExpressionFail(pycode)
+
+    return val
 
 class ExpressionLocals(dict):
     """
@@ -18,8 +49,19 @@ class ExpressionLocals(dict):
     def __getitem__(self, name):
         if self.symobj != None:
             ret = self.symobj.getSymByName(name)
-            if ret != None: return ret
+            if ret != None: return ret.value
         return dict.__getitem__(self, name)
+
+    def __iter__(self):
+        for va, name in self.symobj.getNames():
+            yield name
+
+        dict.__iter__(self)
+
+    def keys(self):
+        return [key for key in self]
+        
+
 
 class MemoryExpressionLocals(ExpressionLocals):
 
