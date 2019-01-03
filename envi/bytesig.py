@@ -45,10 +45,14 @@ class SignatureTree:
             elif siglen == 1:
                 # If it has one already, we *both* need to add another level
                 # (because if it is the only one, it thought it was last choice)
-                for s in sigs:
-                    chval = s[0][depth] # get the choice byte from siginfo
+                # If item[0] is [85, 139, 236] and item[1] is [85, 139, 236, 232, 144], then
+                # we're gonna hit an IndexException
+                for sig in sigs:
+                    chval = sig[0][depth] # get the choice byte from siginfo
                     nnode = self._getNode(depth, choices, chval)
-                    todo.append((nnode, s))
+                    if nnode[0] >= len(sig[0]):
+                        continue
+                    todo.append((nnode, sig))
 
             else: # This is already a choice node, keep on choosing...
                 chval = bytes[depth]
@@ -99,10 +103,15 @@ class SignatureTree:
         node = self.basenode
         while True:
             depth, sigs, choices = node
+            # We still have nodes that *could* match, but the bytes length is too short
+            if depth >= len(bytes):
+                return None
             # Once we get down to one sig, there are no more branches,
             # just check the byte sequence.
             if len(sigs) == 1:
                 sbytes, smasks, sobj = sigs[0]
+                if len(sbytes) > len(bytes):
+                    return None
                 for i in xrange(depth, len(sbytes)):
                     realoff = offset + i
                     masked = ord(bytes[realoff]) & smasks[i]
