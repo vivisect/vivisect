@@ -69,9 +69,6 @@ def addAnalysisModules(vw):
 
         vw.addAnalysisModule("vivisect.analysis.elf")
 
-        if arch in ('i386', 'amd64'):
-            vw.addImpApi('posix', arch)
-
         if arch == 'i386':
             viv_analysis_i386.addEntrySigs(vw)
             vw.addAnalysisModule("vivisect.analysis.i386.importcalls")
