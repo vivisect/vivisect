@@ -50,7 +50,7 @@ def analyzeFunction(vw, funcva):
         return
 
     gotname = vw.getName(opval)
-    tinfo = gotname
+    fname = gotname
     vw.makeName(funcva, "plt_%s" % fname, filelocal=True)
-    vw.makeFunctionThunk(funcva, tinfo)
+    vw.makeFunctionThunk(funcva, fname)
 
