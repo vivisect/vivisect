@@ -84,6 +84,8 @@ archcalls = {
     'i386':'cdecl',
     'amd64':'sysvamd64call',
     'arm':'armcall',
+    'thumb':'armcall',
+    'thumb16':'armcall',
 }
 
 def loadElfIntoWorkspace(vw, elf, filename=None, arch=None, platform=None, filefmt='elf'):
@@ -286,6 +288,7 @@ def loadElfIntoWorkspace(vw, elf, filename=None, arch=None, platform=None, filef
             try:
                 vw.addExport(sva, EXP_FUNCTION, sname, fname)
                 vw.addEntryPoint(sva)
+                if decodedname != sname:  vw.setComment(sva, decodedname)
             except Exception, e:
                 vw.vprint('addExport Failure: %s' % e)
 
@@ -293,6 +296,7 @@ def loadElfIntoWorkspace(vw, elf, filename=None, arch=None, platform=None, filef
             if vw.isValidPointer(sva):
                 try:
                     vw.addExport(sva, EXP_DATA, sname, fname)
+                    if decodedname != sname:  vw.setComment(sva, decodedname)
                 except Exception, e:
                     vw.vprint('WARNING: %s' % e)
 
@@ -305,6 +309,7 @@ def loadElfIntoWorkspace(vw, elf, filename=None, arch=None, platform=None, filef
                 try:
                     vw.addExport(sva, EXP_FUNCTION, sname, fname)
                     vw.addEntryPoint(sva)
+                    if decodedname != sname:  vw.setComment(sva, decodedname)
                 except Exception, e:
                     vw.vprint('WARNING: %s' % e)
 
@@ -316,6 +321,7 @@ def loadElfIntoWorkspace(vw, elf, filename=None, arch=None, platform=None, filef
             if vw.isValidPointer(sva):
                 try:
                     vw.addExport(sva, EXP_DATA, sname, fname)
+                    if decodedname != sname:  vw.setComment(sva, decodedname)
                 except Exception, e:
                     vw.vprint('WARNING: %s' % e)
 
@@ -345,14 +351,15 @@ def loadElfIntoWorkspace(vw, elf, filename=None, arch=None, platform=None, filef
                     sva = reloc.r_offset
                     break
 
+        origname = sname
         decodedname = decode(sname)
         sname = pyfriendlyName(decodedname)
 
         if addbase: sva += baseaddr
-        vw.setComment(sva, decodedname)
+        if decodedname != sname:  vw.setComment(sva, decodedname)
         if vw.isValidPointer(sva) and len(sname):
             try:
-                vw.makeName(sva, "%s_%x" % (sname,sva), filelocal=True)
+                vw.makeName(sva, sname, filelocal=True)
             except Exception, e:
                 print "WARNING:",e
 
@@ -371,6 +378,9 @@ def loadElfIntoWorkspace(vw, elf, filename=None, arch=None, platform=None, filef
     return fname
 
 def normName(name):
+    '''
+    Normalize symbol names.  ie. drop the @@GOBBLEDEGOOK from the end
+    '''
     atidx = name.find('@@')
     if atidx > -1:
         name = name[:atidx]
@@ -381,6 +391,10 @@ chars_ok = string.letters + string.digits + '_'# + ':'# + '~'
 chars_cok = ("%$#*<>~")
 
 def pyfriendlyName(name):
+    '''
+    Convert a C++ name into a Python-Friendly name (ie. name could become a variable in the 
+    Python environment)
+    '''
     out = []
     normname = os.path.basename(name)
 
@@ -414,6 +428,9 @@ def pyfriendlyName(name):
     return normname
 
 def decode(name):
+    '''
+    Translate C++ mangled name back into the verbose C++ symbol name (with helpful type info)
+    '''
     name = normName(name)
 
     try:

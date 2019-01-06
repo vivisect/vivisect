@@ -14,8 +14,9 @@ def analyze(vw):
     Do simple linear disassembly of the .plt section if present.
     """
     for sva,ssize,sname,sfname in vw.getSegments():
-        if sname != ".plt":
+        if sname not in (".plt", ".plt.got"):
             continue
+
         nextva = sva + ssize
         while sva < nextva:
             vw.makeCode(sva)
@@ -50,6 +51,6 @@ def analyzeFunction(vw, funcva):
 
     gotname = vw.getName(opval)
     tinfo = gotname
-    #vw.makeName(funcva, "plt_%s" % fname, filelocal=True)
+    vw.makeName(funcva, "plt_%s" % fname, filelocal=True)
     vw.makeFunctionThunk(funcva, tinfo)
 
