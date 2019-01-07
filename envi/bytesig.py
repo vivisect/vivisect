@@ -22,7 +22,9 @@ class SignatureTree:
     """
 
     def __init__(self):
-        self.basenode = (0, [], [None] * 256)
+        # each node in the tree is a tuple consisting of the depth we're at,
+        # the signatures in this particular subtree, and the list of subtree nodes
+        self.basenode = (0, [], [None] * 256, [])
         self.sigs = {} # track duplicates
 
     def _addChoice(self, siginfo, node):
@@ -33,11 +35,16 @@ class SignatureTree:
         while len(todo):
 
             node, siginfo = todo.pop()
-            depth, sigs, choices = node
+            depth, sigs, choices, term = node
             bytes, masks, o = siginfo
             siglen = len(sigs)
-
-            sigs.append(siginfo)
+            if len(bytes) > depth:
+                sigs.append(siginfo)
+            else:
+                term.append(siginfo)
+                continue
+            # If one sig is [85, 139, 236] and another is [85, 139, 236, 232, 144], then
+            # we're gonna hit an IndexException without this check
             if siglen == 0:
                 pass # we just don't want the "else" here, if we're the only
                 # one on this node, just let it ride.
@@ -45,13 +52,9 @@ class SignatureTree:
             elif siglen == 1:
                 # If it has one already, we *both* need to add another level
                 # (because if it is the only one, it thought it was last choice)
-                # If item[0] is [85, 139, 236] and item[1] is [85, 139, 236, 232, 144], then
-                # we're gonna hit an IndexException
                 for sig in sigs:
                     chval = sig[0][depth] # get the choice byte from siginfo
                     nnode = self._getNode(depth, choices, chval)
-                    if nnode[0] >= len(sig[0]):
-                        continue
                     todo.append((nnode, sig))
 
             else: # This is already a choice node, keep on choosing...
@@ -63,7 +66,7 @@ class SignatureTree:
         # Chose, (and or initialize) a sub node
         nnode = choices[choice]
         if nnode == None:
-            nnode = (depth+1, [], [None] * 256)
+            nnode = (depth+1, [], [None] * 256, [])
             choices[choice] = nnode
         return nnode
 
@@ -99,30 +102,33 @@ class SignatureTree:
         return self.getSignature(bytes, offset=offset) != None
 
     def getSignature(self, bytes, offset=0):
-
+        matches = []
         node = self.basenode
         while True:
-            depth, sigs, choices = node
-            # We still have nodes that *could* match, but the bytes length is too short
-            if depth >= len(bytes):
-                return None
+            depth, sigs, choices, term = node
+            if len(term) != 0:
+                for t in term:
+                    matches.append(t)
             # Once we get down to one sig, there are no more branches,
             # just check the byte sequence.
             if len(sigs) == 1:
                 sbytes, smasks, sobj = sigs[0]
-                if len(sbytes) > len(bytes):
-                    return None
                 for i in xrange(depth, len(sbytes)):
                     realoff = offset + i
                     masked = ord(bytes[realoff]) & smasks[i]
                     if masked != sbytes[i]:
-                        return None
-                return sobj
+                        sigs = None
+                if sigs != None:
+                    matches.append(sigs[0])
+                #return sobj
 
             # There are still more choices, keep branching.
             node = None # Lets go find a new one
             for sig in sigs:
                 sbytes, smasks, sobj = sig
+                # we've reached the end of this signature, so we're just going to mask the rest
+                if offset+depth >= len(bytes):
+                    continue
                 masked = ord(bytes[offset+depth]) & smasks[depth]
                 if sbytes[depth] == masked: # We have a winner!
                     # FIXME find the *best* winner! (because of masking)
@@ -131,4 +137,7 @@ class SignatureTree:
 
             # We failed to make our next choice
             if node == None:
-                return None
+                break
+        if len(matches) == 0:
+            return None
+        return sorted(matches, key=lambda m: len(m[0]), reverse=True)[0][2]
