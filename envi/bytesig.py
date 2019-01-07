@@ -113,22 +113,28 @@ class SignatureTree:
             # just check the byte sequence.
             if len(sigs) == 1:
                 sbytes, smasks, sobj = sigs[0]
+                is_match = True
                 for i in xrange(depth, len(sbytes)):
                     realoff = offset + i
+                    # we still have pieces of the signature left to match, but bytes wasn't long enough
+                    if realoff >= len(bytes):
+                        is_match = False
+                        break
                     masked = ord(bytes[realoff]) & smasks[i]
                     if masked != sbytes[i]:
-                        sigs = None
-                if sigs != None:
+                        is_match = False
+                        break
+                if is_match:
                     matches.append(sigs[0])
-                #return sobj
+                break
 
             # There are still more choices, keep branching.
             node = None # Lets go find a new one
             for sig in sigs:
                 sbytes, smasks, sobj = sig
-                # we've reached the end of this signature, so we're just going to mask the rest
                 if offset+depth >= len(bytes):
                     continue
+                # we've reached the end of this signature, so we're just going to mask the rest
                 masked = ord(bytes[offset+depth]) & smasks[depth]
                 if sbytes[depth] == masked: # We have a winner!
                     # FIXME find the *best* winner! (because of masking)
