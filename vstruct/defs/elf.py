@@ -170,13 +170,18 @@ class ElfNote(vstruct.VStruct):
         self.namesz = v_uint32(bigend=bigend)
         self.descsz = v_uint32(bigend=bigend)
         self.ntype  = v_uint32(bigend=bigend)
-        self.name   = v_bytes()
-        self.desc   = vstruct.VArray()
+        self.name   = v_str()
+        self.desc   = v_str()
 
     def pcb_namesz(self):
-        self['name'].vsSetLength( self.namesz )
+        # padded to 4 byte alignment
+        namesz = self.namesz
+        namesz += (namesz % 4)
+        self['name'].vsSetLength( namesz )
 
     def pcb_descsz(self):
-        elems = [ v_uint32() for i in xrange(self.descsz / 4) ]
-        self.desc = vstruct.VArray(elems=elems)
+        # padded to 4 byte alignment
+        descsz = self.descsz
+        descsz += (descsz % 4)
+        self['desc'].vsSetLength( descsz )
 
