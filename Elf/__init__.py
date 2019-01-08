@@ -544,7 +544,7 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
             plat = e.getPlatform()
         '''
         for note in self.getNotes():
-            if note.name == 'GNU\x00' and note.ntype == 1:
+            if note.name == 'GNU' and note.ntype == 1:
                 desc0 = int(note.desc[0])
                 return osnotes.get(desc0,'unknown')
 
