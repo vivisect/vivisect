@@ -175,13 +175,11 @@ class ElfNote(vstruct.VStruct):
 
     def pcb_namesz(self):
         # padded to 4 byte alignment
-        namesz = self.namesz
-        namesz += (namesz % 4)
+        namesz = ((self.namesz +3) /4) *4
         self['name'].vsSetLength( namesz )
 
     def pcb_descsz(self):
         # padded to 4 byte alignment
-        descsz = self.descsz
-        descsz += (descsz % 4)
+        descsz = ((self.descsz +3) /4) *4
         self['desc'].vsSetLength( descsz )
 
