@@ -237,18 +237,6 @@ class SymbolikFunctionEmulator(vsym_emulator.SymbolikEmulator):
                     if funccb != None:
                         fret = funccb(self, thunk, symargs)
 
-            # If calling convention is defined, then API will also be defined.
-            # Set the return state if there is one.                              
-            if (cconv != None) and \
-               not ((apictx[API_FUNC_NAME] != None) \
-                    and (apictx[API_RET_TYPE] == 'void')):
-                if fret == None:
-                    # TODO: yuck. take ez way out and use width on emu.          
-                    # should get return val def from cc and set width according  
-                    # to width of that?                                          
-                    fret = Call(funcsym, self.__width__, symargs)
-                cconv.setSymbolikReturn(self, fret, argv, precall=True)
-
         else:
 
             funcname = str(funcsym)     # Not necessarily the name but...
@@ -263,6 +251,7 @@ class SymbolikFunctionEmulator(vsym_emulator.SymbolikEmulator):
                 argv = (('int', None), ('int', None), ('int', None), ('int', None))
                 apidef = ( 'int', None, defcall, funcname, argv)
 
+            #( 'int', None, 'stdcall', 'wininet.FindFirstUrlCacheContainerW', (('int', None), ('void *', 'ptr'), ('int', None), ('int', None)) ),
             rt,rn,cc,fn,argv = apidef
             cconv = self.getCallingConvention( cc )
 
@@ -275,15 +264,14 @@ class SymbolikFunctionEmulator(vsym_emulator.SymbolikEmulator):
             if funccb != None:
                 fret = funccb(self, funcname, symargs)
 
-            # Set the return state if there is one.
-            if (cconv != None) and \
-               not ((fn != None) and (rt == 'void')):
-                if fret == None:
-                    # TODO: yuck. take ez way out and use width on emu.
-                    # should get return value def from cc and set width according
-                    # to width of that?
-                    fret = Call(funcsym, self.__width__, symargs)
-                cconv.setSymbolikReturn(self, fret, argv, precall=True)
+        # If we have a calling convention here, set the return state
+        if cconv != None:
+            if fret == None:
+                # TODO: yuck. take ez way out and use width on emu.
+                # should get return value def from cc and set width according
+                # to width of that?
+                fret = Call(funcsym, self.__width__, symargs)
+            cconv.setSymbolikReturn(self, fret, argv, precall=True)
 
         return symargs
 
