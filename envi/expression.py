@@ -31,7 +31,7 @@ def evaluate(pycode, locals):
             
             val = eval(pycode, {}, locals)
 
-        except (SyntaxError, NameError), e:
+        except (NameError, SyntaxError), e:
             raise ExpressionFail(pycode)
 
     return val
