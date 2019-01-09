@@ -44,7 +44,7 @@ def genSigAndMask(vw, funcva, startva=None):
     fsize = 0
     if startva == None:
         startva = funcva
-    # Figgure out the size of the first linear chunk
+    # Figure out the size of the first linear chunk
     # in this function...
     cb = vw.getCodeBlock(startva)
     if cb[2] != funcva:
