@@ -17,7 +17,7 @@ class ExpressionFail(Exception):
 def evaluate(pycode, locals):
     try:
         val = eval(pycode, {}, locals)
-    except (NameError, SyntaxError, AttributeError), e:
+    except Exception, e:
         try:
             # check through the keys for anything we might want to replace
             keys = locals.keys()
@@ -33,7 +33,7 @@ def evaluate(pycode, locals):
             
             val = eval(pycode, {}, locals)
 
-        except (NameError, SyntaxError, AttributeError), e:
+        except Exception, e:
             raise ExpressionFail(pycode, e)
 
     return val
