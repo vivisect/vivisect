@@ -2,12 +2,14 @@
 Unified expression helpers.
 """
 class ExpressionFail(Exception):
-    def __init__(self, pycode):
+    def __init__(self, pycode, exception):
         Exception.__init__(self)
         self.pycode = pycode
+        self.exception = exception
 
     def __repr__(self):
-        return "ExpressionFail: %r is not a valid expression in this context" % self.pycode
+        return "ExpressionFail: %r is not a valid expression in this context (%r)" % \
+                (self.pycode, self.exception)
 
     def __str__(self): 
         return self.__repr__()
@@ -15,7 +17,7 @@ class ExpressionFail(Exception):
 def evaluate(pycode, locals):
     try:
         val = eval(pycode, {}, locals)
-    except (NameError, SyntaxError), e:
+    except (NameError, SyntaxError, AttributeError), e:
         try:
             # check through the keys for anything we might want to replace
             keys = locals.keys()
@@ -31,8 +33,8 @@ def evaluate(pycode, locals):
             
             val = eval(pycode, {}, locals)
 
-        except (NameError, SyntaxError), e:
-            raise ExpressionFail(pycode)
+        except (NameError, SyntaxError, AttributeError), e:
+            raise ExpressionFail(pycode, e)
 
     return val
 
@@ -52,6 +54,8 @@ class ExpressionLocals(dict):
             if ret != None: return ret.value
         return dict.__getitem__(self, name)
 
+    get = __getitem__
+
     def __iter__(self):
         for va, name in self.symobj.getNames():
             yield name
@@ -61,6 +65,10 @@ class ExpressionLocals(dict):
     def keys(self):
         return [key for key in self]
         
+    def has_key(self, key):
+        return self.__getitem__(key) != None
+
+    __contains__ = has_key
 
 
 class MemoryExpressionLocals(ExpressionLocals):
