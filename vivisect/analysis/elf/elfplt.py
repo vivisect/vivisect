@@ -38,7 +38,7 @@ def analyzeFunction(vw, funcva):
         return
 
     oper0 = op.opers[0]
-    opval = oper0.getOperAddr(op)
+    opval = oper0.getOperAddr(op, None)
 
     loctup = vw.getLocation(opval)
 

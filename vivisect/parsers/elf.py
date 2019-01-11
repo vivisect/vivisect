@@ -241,7 +241,7 @@ def loadElfIntoWorkspace(vw, elf, filename=None, arch=None, platform=None, filef
             # resolved "import" entry, otherwise, just a regular reloc
             if arch in ('i386','amd64'):
 
-                name = decode(r.getName())
+                name = demangle(r.getName())
                 if name:
                     if rtype == Elf.R_386_JMP_SLOT:
                         vw.makeImport(rlva, "*", name)
@@ -275,28 +275,26 @@ def loadElfIntoWorkspace(vw, elf, filename=None, arch=None, platform=None, filef
     for s in elf.getDynSyms():
         stype = s.getInfoType()
         sva = s.st_value
+
         if sva == 0:
             continue
         if addbase: sva += baseaddr
         if sva == 0:
             continue
 
-        decodedname = decode(s.name)
-        sname = pyfriendlyName(decodedname)
+        demangledname = demangle(s.name)
 
         if stype == Elf.STT_FUNC or (stype == Elf.STT_GNU_IFUNC and arch in ('i386','amd64')):   # HACK: linux is what we're really after.
             try:
-                vw.addExport(sva, EXP_FUNCTION, sname, fname)
                 vw.addEntryPoint(sva)
-                if decodedname != sname:  vw.setComment(sva, decodedname)
+                vw.addExport(sva, EXP_FUNCTION, demangledname, fname, makeuniq=True)
             except Exception, e:
-                vw.vprint('addExport Failure: %s' % e)
+                vw.vprint('addExport Failure: (%s) %s' % (s.name, e))
 
         elif stype == Elf.STT_OBJECT:
             if vw.isValidPointer(sva):
                 try:
-                    vw.addExport(sva, EXP_DATA, sname, fname)
-                    if decodedname != sname:  vw.setComment(sva, decodedname)
+                    vw.addExport(sva, EXP_DATA, demangledname, fname, makeuniq=True)
                 except Exception, e:
                     vw.vprint('WARNING: %s' % e)
 
@@ -307,9 +305,8 @@ def loadElfIntoWorkspace(vw, elf, filename=None, arch=None, platform=None, filef
             if addbase: sva += baseaddr
             if vw.isValidPointer(sva):
                 try:
-                    vw.addExport(sva, EXP_FUNCTION, sname, fname)
                     vw.addEntryPoint(sva)
-                    if decodedname != sname:  vw.setComment(sva, decodedname)
+                    vw.addExport(sva, EXP_FUNCTION, demangledname, fname, makeuniq=True)
                 except Exception, e:
                     vw.vprint('WARNING: %s' % e)
 
@@ -320,8 +317,7 @@ def loadElfIntoWorkspace(vw, elf, filename=None, arch=None, platform=None, filef
             if addbase: sva += baseaddr
             if vw.isValidPointer(sva):
                 try:
-                    vw.addExport(sva, EXP_DATA, sname, fname)
-                    if decodedname != sname:  vw.setComment(sva, decodedname)
+                    vw.addExport(sva, EXP_DATA, demangledname, fname, makeuniq=True)
                 except Exception, e:
                     vw.vprint('WARNING: %s' % e)
 
@@ -352,14 +348,12 @@ def loadElfIntoWorkspace(vw, elf, filename=None, arch=None, platform=None, filef
                     break
 
         origname = sname
-        decodedname = decode(sname)
-        sname = pyfriendlyName(decodedname)
+        demangledname = demangle(sname)
 
         if addbase: sva += baseaddr
-        if decodedname != sname:  vw.setComment(sva, decodedname)
-        if vw.isValidPointer(sva) and len(sname):
+        if vw.isValidPointer(sva) and len(demangledname):
             try:
-                vw.makeName(sva, sname, filelocal=True)
+                vw.makeName(sva, demangledname, filelocal=True)
             except Exception, e:
                 print "WARNING:",e
 
@@ -386,48 +380,7 @@ def normName(name):
         name = name[:atidx]
     return name
 
-import string
-chars_ok = string.letters + string.digits + '_'# + ':'# + '~'
-chars_cok = ("%$#*<>~")
-
-def pyfriendlyName(name):
-    '''
-    Convert a C++ name into a Python-Friendly name (ie. name could become a variable in the 
-    Python environment)
-    '''
-    out = []
-    normname = os.path.basename(name)
-
-    lastcok = False
-    chars = list(normname)
-
-    for i in xrange(len(chars)):
-        if chars[i] not in chars_ok:
-            if chars[i] in chars_cok:
-                x = "%.2X" % ord(chars[i])
-                out.append(x)
-                if not lastcok:
-                    # prepend on front
-                    out.insert(i, '_')
-
-                lastcok = True
-
-            else:
-                out.append('_')
-                lastcok = False
-
-        else:
-            if lastcok:
-                # if last was a 'cok' and this is just ok...
-                out.append('_')
-            out.append(chars[i])
-
-            lastcok = False
-
-    normname = ''.join(out)
-    return normname
-
-def decode(name):
+def demangle(name):
     '''
     Translate C++ mangled name back into the verbose C++ symbol name (with helpful type info)
     '''
