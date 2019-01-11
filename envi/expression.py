@@ -65,10 +65,10 @@ class ExpressionLocals(dict):
     def keys(self):
         return [key for key in self]
         
-    def has_key(self, key):
+    def __contains__(self, key):
         return self.__getitem__(key) != None
 
-    __contains__ = has_key
+    has_key = __contains__
 
 
 class MemoryExpressionLocals(ExpressionLocals):
