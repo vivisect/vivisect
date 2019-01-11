@@ -745,9 +745,10 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         """
         rname = "%s.%s" % (filename,name)
 
-        # check if it exists
+        # check if it exists and is *not* what we're trying to make it
         curval = self.vaByName(rname)
-        if curval != None:
+
+        if curval != None and curval != va:
             # if we don't force it to make a uniq name, bail
             if not makeuniq:
                 raise Exception("Duplicate Name: %s => 0x%x  (cur: 0x%x)" % (rname, va, curval))
