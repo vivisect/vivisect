@@ -152,7 +152,7 @@ shifters = (
 dp_mnem = (
     ("and", INS_AND),
     ("eor", INS_EOR),
-    ("sub", INS_EOR),
+    ("sub", INS_SUB),
     ("rsb", INS_RSB),
     ("add", INS_ADD),
     ("adc", INS_ADC),
@@ -178,8 +178,8 @@ dp_shift_mnem = (
 )
 
 # THIS IS FUGLY but sadly it works
-dp_noRn = (13,15)
-dp_noRd = (8,9,10,11)
+dp_noRn = (INS_MOV,INS_MVN)
+dp_noRd = (INS_TST,INS_TEQ,INS_CMP,INS_CMN)
 dp_silS = dp_noRd
 
 # IF_PSR_S_SIL is silent s for tst, teq, cmp cmn
@@ -189,7 +189,7 @@ for x in dp_silS:
 
 # FIXME: dp_MOV was supposed to be a tuple of opcodes that could be converted to MOV's if offset from PC.
 # somehow this list has vanished into the ether.  add seems like the right one here.
-dp_ADR = (2, 4,)
+dp_ADR = (INS_SUB, INS_ADD,)
 
 
 # FIXME: !!! Don't make SBZ and SBO's part of the list of opers !!!
@@ -215,16 +215,16 @@ def p_dp_imm_shift(opval, va):
     Rm = opval & 0xf
     shtype = (opval >> 5) & 0x3
     shval = (opval >> 7) & 0x1f   # effectively, rot*2
-    if (shtype==3) & (shval ==0): # is it an rrx?
-        shtype = 4
+    if (shtype==S_ROR) & (shval ==0): # is it an rrx?
+        shtype = S_RRX
     mnem, opcode = dp_mnem[ocode]
 
     iflags = 0
     if ocode in dp_noRn:
         #is it a mov? Only if shval is a 0, type is lsl, and ocode = 13
-        if  (ocode == 13) and ((shval != 0) or (shtype != 0)):
+        if  (ocode == INS_MOV) and ((shval != 0) or (shtype != S_LSL)):
             mnem, opcode = dp_shift_mnem[shtype]
-            if shtype!= 4: #if not rrx
+            if shtype!= S_RRX: #if not rrx
                 olist = (
                     ArmRegOper(Rd, va=va),
                     ArmRegOper(Rm, va=va),
@@ -1699,10 +1699,9 @@ pld_mnem =  (("pldw", INS_PLDW), ("pld", INS_PLD))
 pl_opcode = (INS_PLI, INS_PLD)
 def p_uncond(opval, va, psize = 4):
     if opval & 0x0f000000 == 0x0f000000:
-        # FIXME THIS IS HORKED?
-        opcode = INS_SVC
+        opcode = INS_UNDEF
         immval = opval & 0x00ffffff
-        return (opcode, 'svc', (ArmImmOper(immval),), 0, 0)
+        return (opcode, 'undefined', (ArmImmOper(immval),), 0, 0)
 
     optop = ( opval >> 26 ) & 0x3
     if optop == 0:
@@ -1722,11 +1721,8 @@ def p_uncond(opval, va, psize = 4):
                     ArmCPSFlagsOper(aif)    # if mode is set...
                 ]
 
-                if imod & 1:    # interrupt disable
-                    iflags |= IF_ID
-
-                else:           # interrupt enable
-                    iflags |= IF_IE
+                # interrupt enable/disable (imod & 1)
+                iflags |= (IF_IE, IF_ID, IF_IE, IF_ID)
 
             else:
                 olist = []
@@ -1744,7 +1740,7 @@ def p_uncond(opval, va, psize = 4):
             return (opcode, mnem, olist, 0, 0)
 
         elif (opval & 0xfe000000 == 0xf2000000):
-            #print "handing off to adv_simd_32"
+            # handing off to adv_simd_32
             return adv_simd_32(opval, va)
             
         else:
@@ -1895,6 +1891,7 @@ def p_uncond(opval, va, psize = 4):
         elif (opval & 0xff000010) == 0xfe000000:
             #coproc dp (cdp2)
             return p_coproc_dp(opval, va)
+
         elif (opval & 0xff000010) == 0xfe000010:
             #mcr2/mrc2
             opcode1 = (opval>>21) & 0x7
@@ -4068,9 +4065,8 @@ class ArmRegShiftRegOper(ArmOperand):
         mcanv.addNameText(arm_regs[self.shreg][0], typename='registers')
 
     def repr(self, op):
-        rname = arm_regs[self.reg][0]+", "
-        rname+=shift_names[self.shtype] #Changed to remove extra spaces
-        rname+= arm_regs[self.shreg][0]
+        rname = "%s, %s %s" % (arm_regs[self.reg][0], \
+                shift_names[self.shtype],arm_regs[self.shreg][0])
         return rname
 
 class ArmRegShiftImmOper(ArmOperand):
@@ -4285,7 +4281,6 @@ class ArmScaledOffsetOper(ArmOperand):
         if emu == None:
             return None
 
-        #base = emu.getRegister(self.base_reg)
         base = self._getOperBase(emu)
 
         pom = (-1, 1)[(self.pubwl>>3)&1]
@@ -4719,12 +4714,7 @@ class ArmPgmStatRegOper(ArmOperand):
             newpsr = psr & (~self.mask) | (val & self.mask)
             emu.setSPSR(mode, newpsr)
 
-        #elif self.psr == PSR_APSR:    # APSR is an alias for CPSR
-        #    psr = emu.getCPSR()
-        #    newpsr = psr & (~self.mask) | (val & self.mask)
-        #    emu.setCPSR(newpsr)
-
-        else:           # CPSR
+        else:           # CPSR (APSR is an alias for CPSR)
             psr = emu.getCPSR()
             newpsr = psr & (~self.mask) | (val & self.mask)
             emu.setCPSR(newpsr)
@@ -4804,7 +4794,6 @@ class ArmRegListOper(ArmOperand):
         return reglist
 
     def repr(self, op):
-            #fixed register list. Should be {r1, r2, r3 ..} not { r1 r2 r3 ..}
             s = [ "{" ]
             regs = [arm_regs[l][0] for l in range(16) if (self.val & (1<<l))]
             s.append(', '.join(regs))
@@ -4814,6 +4803,9 @@ class ArmRegListOper(ArmOperand):
             return "".join(s)
     
 class ArmExtRegListOper(ArmOperand):
+    '''
+    extended register list: Vector/FP registers
+    '''
     def __init__(self, firstreg, count, size):
         self.firstreg = firstreg
         self.count = count
@@ -4838,8 +4830,6 @@ class ArmExtRegListOper(ArmOperand):
         mcanv.addText('{')
         top = self.count-1
         for l in xrange(self.count):
-            #vreg = REGS_VECTOR_BASE_IDX + self.firstreg + l
-            #mcanv.addNameText(arm_regs[l][0], typename='registers')
             vreg = self.firstreg + l
             mcanv.addNameText(regbase % vreg, typename='registers')
             if l < top:
