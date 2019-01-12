@@ -889,7 +889,10 @@ instrs = [
             {'setup':(('r1',0xaaaaaaaa),),
                 'tests':(('r1',0b10101010101010101000000000000000),) },
             )),
-        (REV_ALL_ARM, '1432cfe7', 0x4560, 'bfi r3, r4, #0x04, #0x0f', 0, ()),
+        (REV_ALL_ARM, '1432cfe7', 0x4560, 'bfi r3, r4, #0x04, #0x0f', 0, (
+            {'setup':(('r3', 0x55555555),('r4',0xabcdef),),
+                'tests':(('r3',0x5554def5),) },
+            )),
         (REV_ALL_ARM, 'fff053f5', 0x4560, 'pld [r3, #-0xff]', 0, ()),
         (REV_ALL_ARM, 'fff0d3f5', 0x4560, 'pld [r3, #0xff]', 0, ()),
         (REV_ALL_ARM, 'fff013f5', 0x4560, 'pldw [r3, #-0xff]', 0, ()),
