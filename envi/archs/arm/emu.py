@@ -1013,7 +1013,7 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
 
         mask <<= lsb
         val = self.getOperValue(op, 0) & ~mask
-        val |= addit
+        val |= (addit<<lsb)
         #print "bfi: 2 ", bin(mask), bin(val)
 
         self.setOperValue(op, 0, val)
