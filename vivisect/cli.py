@@ -5,6 +5,7 @@ The vivisect CLI.
 import shlex
 import pprint
 import socket
+import traceback
 from getopt import getopt
 
 import vtrace
@@ -15,9 +16,7 @@ import vivisect.vector as viv_vector
 import vivisect.reports as viv_reports
 import vivisect.tools.graphutil as viv_graph
 
-# FIXME modular arch specific commands!
 import vivisect.symboliks as viv_symb
-#import vivisect.symboliks.archs.i386 as viv_sym_i386
 
 import vivisect.tools.fscope as v_t_fscope
 import vivisect.tools.graphutil as v_t_graph
@@ -145,12 +144,8 @@ class VivCli(e_cli.EnviCli, vivisect.VivWorkspace):
         import vivisect.symboliks.common as sym_common
         import vivisect.symboliks.effects as viv_sym_effects
         import vivisect.symboliks.analysis as vsym_analysis
-        import vivisect.symboliks.archs.i386 as viv_sym_i386
 
         symctx = vsym_analysis.getSymbolikAnalysisContext(self)
-
-        #xlate = viv_sym_i386.i386SymbolikTranslator(self)
-        #graph = viv_symboliks.getSymbolikGraph(self, fva, xlate)
 
         for emu, effects in symctx.getSymbolikPaths(fva):
 
@@ -288,13 +283,13 @@ class VivCli(e_cli.EnviCli, vivisect.VivWorkspace):
             for va in valist:
                     addthis = False
                     op = vw.parseOpcode(va)
-                    #print op
+
                     # search comment
                     if options.searchComments:
                         defaultSearchAll = False
                         cmt = vw.getComment(va)
                         if cmt != None:
-                            #print "\t %r" % cmt
+
                             if options.is_regex:
                                 if len(re.findall(pattern, cmt)):
                                     addthis = True
@@ -306,13 +301,13 @@ class VivCli(e_cli.EnviCli, vivisect.VivWorkspace):
                     # search operands
                     if options.searchOperands:
                         defaultSearchAll = False
-                        for opidx in range(len(op.opers)):
+                        for opidx, oper in enumerate(op.opers):
                             # we're writing to a temp canvas, so clear it before each test
                             canv.clearCanvas()
                             oper = op.opers[opidx]
                             oper.render(canv, op, opidx)
                             operepr = canv.strval
-                            #print "\t %r" % operepr
+
                             if options.is_regex:
                                 if len(re.findall(pattern, operepr)):
                                     addthis = True
@@ -328,7 +323,7 @@ class VivCli(e_cli.EnviCli, vivisect.VivWorkspace):
                                 except:
                                     pass
 
-                                #print "\t %r" % vars(oper).values()
+
                                 if numpattrn in vars(oper).values():
                                     addthis = True
 
@@ -337,7 +332,7 @@ class VivCli(e_cli.EnviCli, vivisect.VivWorkspace):
                         canv.clearCanvas()
                         op.render(canv)
                         oprepr = canv.strval
-                        #print "\t %r" % oprepr
+
                         if options.is_regex:
                             if len(re.findall(pattern, oprepr)):
                                 addthis = True
@@ -350,9 +345,8 @@ class VivCli(e_cli.EnviCli, vivisect.VivWorkspace):
                     if addthis:
                         res.append(va)
 
-        except Exception, e:
-            import sys
-            sys.excepthook(*sys.exc_info())
+        except:
+            vw.vprint('\n'.join(traceback.format_exception(*sys.exc_info())))
 
         if len(res) == 0:
             self.vprint('pattern not found: %s (%s)' % (pattern.encode('hex'), repr(pattern)))
