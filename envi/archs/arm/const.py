@@ -737,6 +737,7 @@ instrnames = [
         'RFE',
         'SRS',
         'HINT',
+        'UNDEF',
 ]
 
 ins_index = 0

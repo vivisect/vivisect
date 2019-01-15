@@ -240,7 +240,7 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
             # IT block handling
             if self.itcount:
                 self.itcount -= 1
-                print "untested IT functionality"
+
                 if not (self.itmask & 1):
                     skip = True
                 self.itmask >>= 1
@@ -484,7 +484,6 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
         # get the necessary flags here, *or* we can just do both a signed and
         # unsigned sub and use the results.
 
-
         udst = e_bits.unsigned(src1, tsize)
         usrc = e_bits.unsigned(src2, tsize)
 
@@ -535,17 +534,17 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
 
     def interrupt(self, val):
         if val >= len(self.int_handlers):
-            print("FIXME: Interrupt Handler %x is not handled") % val
+            logger.critical("FIXME: Interrupt Handler %x is not handled", val)
 
         handler = self.int_handlers[val]
         handler(val)
 
     def default_int_handler(self, val):
-        print("DEFAULT INTERRUPT HANDLER for Interrupt %d (called at 0x%x)" % (val, self.getProgramCounter()))
-        print("Stack Dump:")
+        logger.warn("DEFAULT INTERRUPT HANDLER for Interrupt %d (called at 0x%x)", val, self.getProgramCounter())
+        logger.warn("Stack Dump:")
         sp = self.getStackCounter()
         for x in range(16):
-            print("\t0x%x:\t0x%x" % (sp, self.readMemValue(sp, self.psize)))
+            logger.warn("\t0x%x:\t0x%x", sp, self.readMemValue(sp, self.psize))
             sp += self.psize
 
     def i_and(self, op):
@@ -575,7 +574,7 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
             srcreg = op.opers[0].reg
             addr = self.getOperValue(op,0)
             regvals = self.getOperValue(op, 1)
-            #regmask = op.opers[1].val
+
             updatereg = op.opers[0].oflags & OF_W
             flags = op.iflags
         else:
@@ -697,7 +696,7 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
             if isinstance(op.opers[1], ArmImmOper):
                 # immediate version copies immediate into each element (Q=2 elements, D=1)
                 srcsz = op.opers[1].size
-                print "0x%x vmov: immediate: %x (%d bytes)" % (op.va, src, srcsz)
+                logger.warn("0x%x vmov: immediate: %x (%d bytes)", op.va, src, srcsz)
                 # change src to fill all vectors with immediate
 
             # vreg to vreg: 1 to 1 copy
@@ -741,7 +740,7 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
             src1 = self.getOperValue(op, 0)
             src2 = self.getOperValue(op, 1)
             val = src2 - src1
-            #print "vcmpe %r  %r  %r" % (src1, src2, val)
+            logger.debug("vcmpe %r  %r  %r", src1, src2, val)
             fpsrc = self.getRegister(REG_FPSCR)
 
             # taken from VFCompare() from arch ref manual p80
@@ -757,7 +756,7 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
             self.setFpFlag(PSR_C_bit, c)
             self.setFpFlag(PSR_V_bit, v)
         except Exception, e:
-            print("vcmp exception: %r" % e)
+            logger.warn("vcmp exception: %r", e)
 
     def i_vcmpe(self, op):
         try:
@@ -768,7 +767,7 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
                 
             val = src2 - src1
                 
-            #print "vcmpe %r %r  %r  %r" % (op, src1, src2, val)
+            logger.debug("vcmpe %r %r  %r  %r", op, src1, src2, val)
             fpsrc = self.getRegister(REG_FPSCR)
 
             # taken from VFCompare() from arch ref manual p80
@@ -784,15 +783,15 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
             self.setFpFlag(PSR_C_bit, c)
             self.setFpFlag(PSR_V_bit, v)
         except Exception, e:
-            print("vcmpe exception: %r" % e)
+            logger.warn("vcmpe exception: %r" % e)
 
     def i_vcvt(self, op):
-        print op, op.opers
-        print("complete implementing vcvt")
+        logger.warn('%r\t%r', op, op.opers)
+        logger.warn("complete implementing vcvt")
         width = op.opers[0].getWidth()
         regcnt = width / 4
 
-        
+        raise Exception("IMPLEMENT ME: i_vcvt")
         if len(op.opers) == 3:
             for reg in range(regcnt):
                 #frac_bits = 64 - op.opers[2].val
@@ -835,7 +834,6 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
         if len(op.opers) == 2:
             srcreg = op.opers[0].reg
             addr = self.getOperValue(op,0)
-            #regmask = self.getOperValue(op,1)
             regmask = op.opers[1].val
             updatereg = op.opers[0].oflags & OF_W
             flags = op.iflags
@@ -941,14 +939,6 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
 
         self.setRegister(REG_FPSCR, val)
             
-    #def i_vmrs(self, op):
-        #val = self.getRegister(REG_FPSCR)
-        #
-        #if len(op.opers) == 1:
-            #self.setOperValue(op, 0, val)
-        #else:
-            #self.setOperValue(op, 1, val)
-
     def i_mrs(self, op):
         val = self.getAPSR()
         self.setOperValue(op, 0, val)
@@ -966,18 +956,6 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
     i_vldr = i_mov
 
 
-    '''  this one is not favored 
-    def i_it(self, op):
-        if self.itcount:
-            raise Exception("IT block within an IT block!")
-
-        oper = op.opers[0]
-        self.itva = op.va
-        self.itcount = oper.getCondInstrCount()
-        self.itflags = oper.getFlags()
-        print "IT flags need to be set such that each bit means YES or NO"
-        '''
-
     # TESTME: IT functionality
     def i_it(self, op):
         if self.itcount:
@@ -986,7 +964,6 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
         self.itcount, self.ittype, self.itmask = op.opers[0].getCondData()
         condcheck = conditionals[self.ittype]
         self.itva = op.va
-
 
     i_ite = i_it
     i_itt = i_it
@@ -1009,12 +986,10 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
         mask = e_bits.b_masks[width]
 
         addit = self.getOperValue(op, 1) & mask
-        #print "bfi:   ", lsb, width, bin(mask), bin(addit)
 
         mask <<= lsb
         val = self.getOperValue(op, 0) & ~mask
         val |= (addit<<lsb)
-        #print "bfi: 2 ", bin(mask), bin(val)
 
         self.setOperValue(op, 0, val)
 
@@ -1023,12 +998,9 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
         width = self.getOperValue(op, 2)
         mask = e_bits.b_masks[width] << lsb
         mask ^= 0xffffffff
-        #print "0x%x: %r    %r:   " % (op.va, self.readMemory(op.va, 4).encode('hex'), op), lsb, width, bin(mask)
 
         val = self.getOperValue(op, 0) 
-        #print "bfc: 1.5: ", bin(val)
         val &= mask
-        #print "bfc: 2 ", bin(mask), bin(val)
 
         self.setOperValue(op, 0, val)
 
@@ -1153,7 +1125,7 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
 
     def i_svc(self, op):
         svc = self.getOperValue(op, 0)
-        print("Service 0x%x called at 0x%x" % (svc, op.va))
+        logger.warn("Service 0x%x called at 0x%x", svc, op.va)
 
     def i_tst(self, op):
         src1 = self.getOperValue(op, 0)
@@ -1179,7 +1151,7 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
         if isinstance(oper, ArmRegShiftImmOper):
             if oper.shimm == 0:
                 return
-            print('FIXME: TEQ - do different shift types for Carry flag')
+            logger.critical('FIXME: TEQ - do different shift types for Carry flag')
             # FIXME: make the operands handle a ThumbExpandImm_C (for immediate) or Shift_C (for RegShiftImm), etc...
             self.setFlag(PSR_C_bit, e_bits.is_unsigned_carry(ures, dsize))
         
@@ -1632,38 +1604,37 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
             base = emu.getRegister(basereg)
         else:
             base = op.opers[0].va
-            print "base = ", hex(base)
+            logger.debug("TB base = 0%x", base)
 
         #base = op.opers[0].getOperValue(op, emu)
-        print("base: 0x%x" % base)
+        logger.debug("base: 0x%x" % base)
         val0 = emu.readMemValue(base, tsize)
 
         if val0 > 0x200 + base:
-            print "ummmm.. Houston we got a problem.  first option is a long ways beyond BASE"
+            logger.warn("ummmm.. Houston we got a problem.  first option is a long ways beyond BASE")
 
         va = base
         while va < base + val0:
             nexttgt = emu.readMemValue(va, tsize) * 2
-            print "0x%x: -> 0x%x" % (va, nexttgt + base)
+            logger.debug("0x%x: -> 0x%x", va, nexttgt + base)
             if nexttgt == 0:
-                print "Terminating TB at 0-offset"
+                logger.warn("Terminating TB at 0-offset")
                 break
 
             if nexttgt > 0x500:
-                print "Terminating TB at LARGE - offset  (may be too restrictive): 0x%x" % nexttgt
+                logger.warn("Terminating TB at LARGE - offset  (may be too restrictive): 0x%x", nexttgt)
                 break
 
             loc = emu.vw.getLocation(va)
             if loc != None:
-                print "Terminating TB at Location/Reference"
-                print "%x, %d, %x, %r" % loc
+                logger.warn("Terminating TB at Location/Reference")
+                logger.warn("%x, %d, %x, %r", loc)
                 break
 
             tbl.append(nexttgt)
             va += tsize
-            #sys.stderr.write('.')
 
-        print "%s: \n\t"%op.mnem + '\n\t'.join([hex(x+base) for x in tbl])
+        logger.debug("%s: \n\t"%op.mnem + '\n\t'.join([hex(x+base) for x in tbl]))
 
         ###
         # for workspace emulation analysis, let's check the index register for sanity.
@@ -1675,7 +1646,7 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
         jmptblbase = op.opers[0]._getOperBase(emu)
         jmptblval = emu.getOperAddr(op, 0)
         jmptbltgt = (emu.getOperValue(op, 0) * 2) + base
-        print "0x%x: 0x%r\njmptblbase: 0x%x\njmptblval:  0x%x\njmptbltgt:  0x%x" % (op.va, op, jmptblbase, jmptblval, jmptbltgt)
+        logger.debug("0x%x: 0x%r\njmptblbase: 0x%x\njmptblval:  0x%x\njmptbltgt:  0x%x", op.va, op, jmptblbase, jmptblval, jmptbltgt)
         #raw_input("PRESS ENTER TO CONTINUE")
         return jmptbltgt
 
@@ -1693,15 +1664,15 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
 
 
     def i_umull(self, op):
-        print("FIXME: 0x%x: %s - in emu" % (op.va, op))
+        logger.warn("FIXME: 0x%x: %s - in emu", op.va, op)
     def i_umlal(self, op):
-        print("FIXME: 0x%x: %s - in emu" % (op.va, op))
+        logger.warn("FIXME: 0x%x: %s - in emu", op.va, op)
     def i_smull(self, op):
-        print("FIXME: 0x%x: %s - in emu" % (op.va, op))
+        logger.warn("FIXME: 0x%x: %s - in emu", op.va, op)
     def i_umull(self, op):
-        print("FIXME: 0x%x: %s - in emu" % (op.va, op))
+        logger.warn("FIXME: 0x%x: %s - in emu", op.va, op)
     def i_umull(self, op):
-        print("FIXME: 0x%x: %s - in emu" % (op.va, op))
+        logger.warn("FIXME: 0x%x: %s - in emu", op.va, op)
 
     def i_mla(self, op):
         src1 = self.getOperValue(op, 1)
@@ -1722,10 +1693,10 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
 
 
     def i_cps(self, op):
-        print("CPS: 0x%x  %r" % (op.va, op))
+        logger.warn("CPS: 0x%x  %r" % (op.va, op))
 
     def i_pld2(self, op):
-        print("FIXME: 0x%x: %s - in emu" % (op.va, op))
+        logger.warn("FIXME: 0x%x: %s - in emu" % (op.va, op))
 
     def _getCoProc(self, cpnum):
         if cpnum > 15:
