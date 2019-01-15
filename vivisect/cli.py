@@ -2,6 +2,7 @@
 The vivisect CLI.
 """
 
+import sys
 import shlex
 import pprint
 import socket
@@ -278,75 +279,74 @@ class VivCli(e_cli.EnviCli, vivisect.VivWorkspace):
         res = []
         canv = e_canvas.StringMemoryCanvas(vw)
 
-        try:
-            defaultSearchAll = True
-            for va in valist:
-                    addthis = False
-                    op = vw.parseOpcode(va)
+        defaultSearchAll = True
+        for va in valist:
+            try:
+                addthis = False
+                op = vw.parseOpcode(va)
 
-                    # search comment
-                    if options.searchComments:
-                        defaultSearchAll = False
-                        cmt = vw.getComment(va)
-                        if cmt != None:
-
-                            if options.is_regex:
-                                if len(re.findall(pattern, cmt)):
-                                    addthis = True
-
-                            else:
-                                if pattern in cmt:
-                                    addthis = True
-
-                    # search operands
-                    if options.searchOperands:
-                        defaultSearchAll = False
-                        for opidx, oper in enumerate(op.opers):
-                            # we're writing to a temp canvas, so clear it before each test
-                            canv.clearCanvas()
-                            oper = op.opers[opidx]
-                            oper.render(canv, op, opidx)
-                            operepr = canv.strval
-
-                            if options.is_regex:
-                                if len(re.findall(pattern, operepr)):
-                                    addthis = True
-
-                            else:
-                                if pattern in operepr:
-                                    addthis = True
-
-                                # if we're doing non-regex, let's test against real numbers (instead of converting to hex and back)
-                                numpattrn = pattern
-                                try:
-                                    numpattrn = int(numpattrn, 0)
-                                except:
-                                    pass
-
-
-                                if numpattrn in vars(oper).values():
-                                    addthis = True
-
-                    # search full text
-                    if options.searchText or defaultSearchAll:
-                        canv.clearCanvas()
-                        op.render(canv)
-                        oprepr = canv.strval
+                # search comment
+                if options.searchComments:
+                    defaultSearchAll = False
+                    cmt = vw.getComment(va)
+                    if cmt != None:
 
                         if options.is_regex:
-                            if len(re.findall(pattern, oprepr)):
+                            if len(re.findall(pattern, cmt)):
                                 addthis = True
 
                         else:
-                            if pattern in oprepr:
+                            if pattern in cmt:
                                 addthis = True
-                    
-                    # only want one listing of each va, no matter how many times it matches
-                    if addthis:
-                        res.append(va)
 
-        except:
-            vw.vprint('\n'.join(traceback.format_exception(*sys.exc_info())))
+                # search operands
+                if options.searchOperands:
+                    defaultSearchAll = False
+                    for opidx, oper in enumerate(op.opers):
+                        # we're writing to a temp canvas, so clear it before each test
+                        canv.clearCanvas()
+                        oper = op.opers[opidx]
+                        oper.render(canv, op, opidx)
+                        operepr = canv.strval
+
+                        if options.is_regex:
+                            if len(re.findall(pattern, operepr)):
+                                addthis = True
+
+                        else:
+                            if pattern in operepr:
+                                addthis = True
+
+                            # if we're doing non-regex, let's test against real numbers (instead of converting to hex and back)
+                            numpattrn = pattern
+                            try:
+                                numpattrn = int(numpattrn, 0)
+                            except:
+                                pass
+
+
+                            if numpattrn in vars(oper).values():
+                                addthis = True
+
+                # search full text
+                if options.searchText or defaultSearchAll:
+                    canv.clearCanvas()
+                    op.render(canv)
+                    oprepr = canv.strval
+
+                    if options.is_regex:
+                        if len(re.findall(pattern, oprepr)):
+                            addthis = True
+
+                    else:
+                        if pattern in oprepr:
+                            addthis = True
+                
+                # only want one listing of each va, no matter how many times it matches
+                if addthis:
+                    res.append(va)
+            except:
+                vw.vprint(''.join(traceback.format_exception(*sys.exc_info())))
 
         if len(res) == 0:
             self.vprint('pattern not found: %s (%s)' % (pattern.encode('hex'), repr(pattern)))
