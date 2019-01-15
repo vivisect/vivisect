@@ -1,7 +1,10 @@
 '''
 A unified context menu builder for all address context clicks.
 '''
-from PyQt4 import QtGui,QtCore
+try:
+    from PyQt5.QtWidgets import QMenu
+except:
+    from PyQt4.QtGui import QMenu
 
 import envi
 import envi.bits as e_bits
@@ -45,6 +48,10 @@ def printEmuState(vw, fva, va):
     for i in xrange(len(op.opers)):
         o = op.opers[i]
         o.render(vw.canvas, op, i)
+        oaddr = o.getOperAddr(op, emu)
+        if oaddr != None:
+            vw.canvas.addText(' [ 0x%x ] ' % oaddr)
+
         vw.canvas.addText(" = ")
         oval = o.getOperValue(op, emu)
         taint = emu.getVivTaint(oval)
@@ -73,7 +80,7 @@ def buildContextMenu(vw, va=None, expr=None, menu=None, parent=None, nav=None):
         expr = '0x%.8x' % va
 
     if menu == None:
-        menu = QtGui.QMenu(parent=parent)
+        menu = QMenu(parent=parent)
 
     menu.addAction('rename (n)', ACT(vw.getVivGui().setVaName, va))
     menu.addAction('comment (;)', ACT(vw.getVivGui().setVaComment, va))
@@ -144,6 +151,9 @@ def buildContextMenu(vw, va=None, expr=None, menu=None, parent=None, nav=None):
 
         funcmenu.addAction('call graph', ACT(vw.getVivGui().showFuncCallGraph, fva))
         funcmenu.addAction('re-analyze codeblocks', ACT(vagc.analyzeFunction, vw, fva))
+        if fva == va:
+            #funcmenu.addAction('delete function', ACT(vw.delFunction, va))
+            funcmenu.addAction('delete function', ACT(vw.getVivGui().delFunction, va))
 
     loc = vw.getLocation(va)
     if loc == None:

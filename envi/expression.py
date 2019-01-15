@@ -1,9 +1,42 @@
 """
 Unified expression helpers.
 """
+class ExpressionFail(Exception):
+    def __init__(self, pycode, exception):
+        Exception.__init__(self)
+        self.pycode = pycode
+        self.exception = exception
+
+    def __repr__(self):
+        return "ExpressionFail: %r is not a valid expression in this context (%r)" % \
+                (self.pycode, self.exception)
+
+    def __str__(self): 
+        return self.__repr__()
 
 def evaluate(pycode, locals):
-    return eval(pycode, {}, locals)
+    try:
+        val = eval(pycode, {}, locals)
+    except Exception, e:
+        try:
+            # check through the keys for anything we might want to replace
+            keys = locals.keys()
+
+            # sort the keys in reverse order so that longer matching strings take priority
+            keys.sort(reverse=True)
+
+            # replace the substrings with the string versions of the lookup value
+            for key in keys:
+                if key in pycode:
+                    pval = locals[key]
+                    pycode = pycode.replace(key, str(pval))
+            
+            val = eval(pycode, {}, locals)
+
+        except Exception, e:
+            raise ExpressionFail(pycode, e)
+
+    return val
 
 class ExpressionLocals(dict):
     """
@@ -18,8 +51,25 @@ class ExpressionLocals(dict):
     def __getitem__(self, name):
         if self.symobj != None:
             ret = self.symobj.getSymByName(name)
-            if ret != None: return ret
+            if ret != None: return ret.value
         return dict.__getitem__(self, name)
+
+    get = __getitem__
+
+    def __iter__(self):
+        for va, name in self.symobj.getNames():
+            yield name
+
+        dict.__iter__(self)
+
+    def keys(self):
+        return [key for key in self]
+        
+    def __contains__(self, key):
+        return self.__getitem__(key) != None
+
+    has_key = __contains__
+
 
 class MemoryExpressionLocals(ExpressionLocals):
 

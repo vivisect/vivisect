@@ -264,7 +264,7 @@ class CodeFlowContext(object):
         # Architecture gets to decide on actual final VA and Architecture (ARM/THUMB/etc...)
         info = { 'arch' : arch }
         va, info = self._mem.arch.archModifyFuncAddr(va, info)
-        arch = info.get('arch', envi.ARCH_DEFAULT)
+        arch = info.get('arch', arch)
 
         # Check if this is already a known function.
         if self._funcs.get(va) != None:
@@ -277,6 +277,14 @@ class CodeFlowContext(object):
         
         # Finally, notify the callback of a new function
         self._cb_function(va, {'CallsFrom':calls_from})
+
+    def flushFunction(self, fva):
+        '''
+        Codeflow context maintains a list of identified functions, to avoid 
+        analyzing the same function twice.  If a function is misidentified
+        flushFunction() is used to clear that function from the tracked _funcs
+        '''
+        self._funcs[fva] = None
 
     def addDynamicBranchHandler(self, cb):
         '''

@@ -23,7 +23,7 @@ class SymbolikEffect:
     def reduce(self, emu=None):
         raise Exception('%s must implement reduce()!' % (self.__class__.__name__))
 
-    def walkTree(self, cb, ctx=None):
+    def walkTree(self, cb, ctx=None, once=True):
         raise Exception('%s must implement walkTree()!' % (self.__class__.__name__))
 
     def applyEffect(self, emu):
@@ -61,7 +61,7 @@ class DebugEffect(SymbolikEffect):
 
         return True
 
-    def walkTree(self, cb, ctx=None):
+    def walkTree(self, cb, ctx=None, once=True):
         pass
 
     def reduce(self, emu=None):
@@ -102,8 +102,8 @@ class SetVariable(SymbolikEffect):
 
         return True
 
-    def walkTree(self, cb, ctx=None):
-        self.symobj = self.symobj.walkTree(cb, ctx=ctx)
+    def walkTree(self, cb, ctx=None, once=True):
+        self.symobj = self.symobj.walkTree(cb, ctx=ctx, once=once)
 
     def reduce(self, emu=None):
         self.symobj = self.symobj.reduce(emu=emu)
@@ -146,9 +146,9 @@ class ReadMemory(SymbolikEffect):
 
         return True
 
-    def walkTree(self, cb, ctx=None):
-        self.symaddr = self.symaddr.walkTree(cb, ctx=ctx)
-        self.symsize = self.symsize.walkTree(cb, ctx=ctx)
+    def walkTree(self, cb, ctx=None, once=True):
+        self.symaddr = self.symaddr.walkTree(cb, ctx=ctx, once=once)
+        self.symsize = self.symsize.walkTree(cb, ctx=ctx, once=once)
 
     def reduce(self, emu=None):
         self.symaddr = self.symaddr.reduce(emu=emu)
@@ -191,10 +191,10 @@ class WriteMemory(SymbolikEffect):
 
         return True
 
-    def walkTree(self, cb, ctx=None):
-        self.symval = self.symval.walkTree(cb, ctx=ctx)
-        self.symaddr = self.symaddr.walkTree(cb, ctx=ctx)
-        self.symsize = self.symsize.walkTree(cb, ctx=ctx)
+    def walkTree(self, cb, ctx=None, once=True):
+        self.symval = self.symval.walkTree(cb, ctx=ctx, once=once)
+        self.symaddr = self.symaddr.walkTree(cb, ctx=ctx, once=once)
+        self.symsize = self.symsize.walkTree(cb, ctx=ctx, once=once)
 
     def reduce(self, emu=None):
         self.symaddr = self.symaddr.reduce(emu=emu)
@@ -245,10 +245,10 @@ class CallFunction(SymbolikEffect):
 
         return True
 
-    def walkTree(self, cb, ctx=None):
-        self.funcsym = self.funcsym.walkTree(cb, ctx=ctx)
+    def walkTree(self, cb, ctx=None, once=True):
+        self.funcsym = self.funcsym.walkTree(cb, ctx=ctx, once=once)
         if self.argsyms != None:
-            self.argsyms = [ a.walkTree(cb,ctx=ctx) for a in self.argsyms ]
+            self.argsyms = [ a.walkTree(cb,ctx=ctx, once=once) for a in self.argsyms ]
 
     def reduce(self, emu=None):
         self.funcsym = self.funcsym.reduce(emu=emu)
@@ -300,8 +300,8 @@ class ConstrainPath(SymbolikEffect):
         self.addrsym = addrsym
         self.cons = cons
 
-    def walkTree(self, cb, ctx=None):
-        self.cons.walkTree(cb, ctx=ctx)
+    def walkTree(self, cb, ctx=None, once=True):
+        self.cons.walkTree(cb, ctx=ctx, once=once)
 
     def reduce(self, emu=None):
         self.addrsym = self.addrsym.reduce(emu=emu)

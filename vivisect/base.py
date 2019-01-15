@@ -31,7 +31,7 @@ class VivEventCore(object):
     A class to facilitate event monitoring in the viv workspace.
     '''
 
-    def __init__(self, vw):
+    def __init__(self, vw=None, **kwargs):
         self._ve_vw = vw
         self._ve_ehand = [None for x in xrange(VWE_MAX)]
         self._ve_thand = [None for x in xrange(VTE_MAX)]
@@ -91,7 +91,10 @@ class VivEventDist(VivEventCore):
     Similar to an event core, but does optimized distribution
     to a set of sub eventcore objects (think GUI windows...)
     '''
-    def __init__(self, vw):
+    def __init__(self, vw=None, **kwargs):
+        if vw == None:
+            raise Exception("VivEventDist requires a vw argument")
+
         VivEventCore.__init__(self, vw)
         self._ve_subs = [ [] for x in xrange(VWE_MAX) ]
         self._ve_tsubs = [ [] for x in xrange(VTE_MAX) ]
@@ -246,11 +249,27 @@ class VivWorkspaceCore(object,viv_impapi.ImportApi):
                 mcb(va, name, value)
 
     def _handleDELFUNCTION(self, einfo):
-        self.funcmeta.pop(einfo)
-        self.func_args.pop(einfo, None)
-        self.codeblocks_by_funcva.pop(einfo)
-        node = self._call_graph.getNode(einfo)
+        # clear funcmeta, func_args, codeblocks_by_funcva, update codeblocks, blockgraph, locations, etc...
+        fva = einfo
+        blocks = self.getFunctionBlocks(fva)
+
+        # not every codeblock identifying as this function is stored in funcmeta
+        for cb in self.getCodeBlocks():
+            if cb[CB_FUNCVA] == fva:
+                self._handleDELCODEBLOCK(cb)
+
+        self.funcmeta.pop(fva)
+        self.func_args.pop(fva, None)
+        self.codeblocks_by_funcva.pop(fva)
+        node = self._call_graph.getNode(fva)
         self._call_graph.delNode(node)
+        self.cfctx.flushFunction(fva)
+
+        # FIXME: do we want to now seek the function we *should* be in?  
+        # if xrefs_to, look for non-PROC code xrefs and take their function
+        # if the previous instruction falls through, take its function
+        # run codeblock analysis on that function to reassociate the blocks
+        # with that function
 
     def _handleSETFUNCMETA(self, einfo):
         funcva, name, value = einfo
