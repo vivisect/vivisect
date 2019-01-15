@@ -251,15 +251,13 @@ class VivCli(e_cli.EnviCli, vivisect.VivWorkspace):
             self.vprint('you must specify a pattern')
             return self.do_help('searchopcodes')
 
-        vw = self
-       
         # generate our interesting va list
         valist = []
         if options.funcva:
             # setup valist from function data
             try:
                 fva = int(args[0], 0)
-                graph = viv_graph.buildFunctionGraph(vw, fva)
+                graph = viv_graph.buildFunctionGraph(self, fva)
             except Exception, e:
                 self.vprint(repr(e))
                 return
@@ -268,27 +266,27 @@ class VivCli(e_cli.EnviCli, vivisect.VivWorkspace):
                 va = nva
                 endva = va + node.get('cbsize')
                 while va < endva:
-                    lva, lsz, ltype, ltinfo = vw.getLocation(va)
+                    lva, lsz, ltype, ltinfo = self.getLocation(va)
                     valist.append(va)
                     va += lsz
 
         else:
             # the whole workspace is our oyster
-            valist = [va for va, lvsz, ltype, ltinfo in vw.getLocations(LOC_OP)]
+            valist = [va for va, lvsz, ltype, ltinfo in self.getLocations(LOC_OP)]
 
         res = []
-        canv = e_canvas.StringMemoryCanvas(vw)
+        canv = e_canvas.StringMemoryCanvas(self)
 
         defaultSearchAll = True
         for va in valist:
             try:
                 addthis = False
-                op = vw.parseOpcode(va)
+                op = self.parseOpcode(va)
 
                 # search comment
                 if options.searchComments:
                     defaultSearchAll = False
-                    cmt = vw.getComment(va)
+                    cmt = self.getComment(va)
                     if cmt != None:
 
                         if options.is_regex:
@@ -346,7 +344,7 @@ class VivCli(e_cli.EnviCli, vivisect.VivWorkspace):
                 if addthis:
                     res.append(va)
             except:
-                vw.vprint(''.join(traceback.format_exception(*sys.exc_info())))
+                self.vprint(''.join(traceback.format_exception(*sys.exc_info())))
 
         if len(res) == 0:
             self.vprint('pattern not found: %s (%s)' % (pattern.encode('hex'), repr(pattern)))
@@ -355,7 +353,7 @@ class VivCli(e_cli.EnviCli, vivisect.VivWorkspace):
         # set the color for each finding
         color = options.markColor
         colormap = { va : color for va in res }
-        if vw._viv_gui != None:
+        if self._viv_gui != None:
             vqtevent('viv:colormap', colormap)
 
         self.vprint('matches for: %s (%s)' % (pattern.encode('hex'), repr(pattern)))
@@ -364,7 +362,7 @@ class VivCli(e_cli.EnviCli, vivisect.VivWorkspace):
             pname = e_mem.reprPerms(mperm)
             sname = self.reprPointer(va)
 
-            op = vw.parseOpcode(va)
+            op = self.parseOpcode(va)
             self.canvas.renderMemory(va, len(op))
             cmt = self.getComment(va)
             if cmt != None:
