@@ -537,6 +537,9 @@ def imm5_rm_rd(va, value):
 
     stype = value >> 11
 
+    if imm5 == 0:
+        imm5 = 0x20
+
     oper0 = ArmRegOper(rd, va)
     oper1 = ArmRegOper(rm, va)
     oper2 = ArmImmOper(imm5)
