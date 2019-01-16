@@ -8,8 +8,6 @@ archcalls = {
     'i386':'cdecl',
     'amd64':'sysvamd64call',
     'arm':'armcall',
-    'thumb':'armcall',
-    'thumb16':'armcall',
     }
 
 def parseFd(vw, fd, filename=None):
