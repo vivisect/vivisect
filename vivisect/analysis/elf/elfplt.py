@@ -49,8 +49,7 @@ def analyzeFunction(vw, funcva):
         vw.vprint("0x%x: %r != %r" % (funcva, loctup[vivisect.L_LTYPE], vivisect.LOC_IMPORT))
         return
 
-    gotname = vw.getName(opval)
-    fname = gotname
+    fname = vw.getName(opval)
     vw.makeName(funcva, "plt_%s" % fname, filelocal=True)
     vw.makeFunctionThunk(funcva, fname)
 
