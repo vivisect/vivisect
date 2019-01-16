@@ -84,24 +84,20 @@ archcalls = {
     'i386':'cdecl',
     'amd64':'sysvamd64call',
     'arm':'armcall',
-    'thumb':'armcall',
-    'thumb16':'armcall',
 }
 
-def loadElfIntoWorkspace(vw, elf, filename=None, arch=None, platform=None, filefmt='elf'):
+def loadElfIntoWorkspace(vw, elf, filename=None):
 
-    if arch == None:
         arch = arch_names.get(elf.e_machine)
         if arch == None:
            raise Exception("Unsupported Architecture: %d\n", elf.e_machine)
 
-    if platform == None:
         platform = elf.getPlatform()
 
     # setup needed platform/format
     vw.setMeta('Architecture', arch)
     vw.setMeta('Platform', platform)
-    vw.setMeta('Format', filefmt)
+    vw.setMeta('Format', 'elf')
 
     vw.setMeta('DefaultCall', archcalls.get(arch,'unknown'))
 

@@ -54,8 +54,6 @@ defcalls = {
     'i386':'cdecl',
     'amd64':'msx64call',
     'arm':'armcall',
-    'thumb':'armcall',
-    'thumb16':'armcall',
 }
 
 # map PE relocation types to vivisect types where possible
