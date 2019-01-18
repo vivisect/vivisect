@@ -88,11 +88,11 @@ archcalls = {
 
 def loadElfIntoWorkspace(vw, elf, filename=None):
 
-        arch = arch_names.get(elf.e_machine)
-        if arch == None:
-           raise Exception("Unsupported Architecture: %d\n", elf.e_machine)
+    arch = arch_names.get(elf.e_machine)
+    if arch == None:
+       raise Exception("Unsupported Architecture: %d\n", elf.e_machine)
 
-        platform = elf.getPlatform()
+    platform = elf.getPlatform()
 
     # setup needed platform/format
     vw.setMeta('Architecture', arch)
