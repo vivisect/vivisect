@@ -1,5 +1,6 @@
 import os
 import struct
+import logging
 
 import Elf
 import vivisect
@@ -8,6 +9,8 @@ import vivisect.parsers as v_parsers
 from vivisect.const import *
 
 from cStringIO import StringIO
+
+logger = logging.getLogger(__name__)
 
 def parseFile(vw, filename):
     fd = file(filename, 'rb')
@@ -385,7 +388,7 @@ def demangle(name):
     try:
         import cxxfilt
         name = cxxfilt.demangle(name)
-    except:
-        pass
+    except Exception, e:
+        logger.debug('failed to demangle name (%r): %r', name, e)
 
     return name
