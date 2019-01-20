@@ -110,6 +110,18 @@ pip install enum34
 
 The rest of the build/install steps are the same, save for changing out the version numbers from PyQt4 to PyQt5.
 
+### Dependencies:
+To enable proper networking:
+
+```
+pip install msgpack
+```
+
+To enable Posix C++ demangling:
+
+```
+pip install cxxfilter
+```
 ## Build Status
 
 [![Build Status](https://travis-ci.org/vivisect/vivisect.svg?branch=master)](https://travis-ci.org/vivisect/vivisect)
