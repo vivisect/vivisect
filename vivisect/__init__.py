@@ -651,7 +651,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             except Exception, e:
                 if self.verbose:
                     traceback.print_exc()
-                self.vprint("Extended Analysis Exception %s: %s" % (mod.__name__,e))
+                self.verbprint("Extended Analysis Exception %s: %s" % (mod.__name__,e))
 
         endtime = time.time()
         if self.verbose: 
