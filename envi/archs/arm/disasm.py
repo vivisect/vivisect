@@ -1721,8 +1721,8 @@ def p_uncond(opval, va, psize = 4):
                     ArmCPSFlagsOper(aif)    # if mode is set...
                 ]
 
-                # interrupt enable/disable (imod & 1)
-                iflags |= (IF_IE, IF_ID, IF_IE, IF_ID)
+                # interrupt enable/disable (imod & 1 == Disable)
+                iflags |= (IF_IE, IF_ID,)[imod&1]
 
             else:
                 olist = []
