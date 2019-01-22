@@ -99,8 +99,6 @@ IFS_SYS_MODE  = 1<<8    # instruction is encoded to be executed in SYSTEM mode, 
 
 IFS = [
     None,
-    '.f32',
-    '.f64',
     '.f32.s32',
     '.f64.s32',
     '.f32.u32',

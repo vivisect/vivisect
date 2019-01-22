@@ -5,6 +5,7 @@ The initial arm module.
 import sys
 import struct
 import logging
+import threading
 
 import envi
 import envi.bits as e_bits
@@ -143,6 +144,9 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
         self.itva = None
         self.itflags = None
         self.itcount = None
+
+        # for memory exclusive access:
+        self.mem_access_lock = threading.Lock()
 
         # FIXME: this should be None's, and added in for each real coproc... but this will work for now.
         self.coprocs = [CoProcEmulator(x) for x in xrange(16)]       
@@ -900,6 +904,20 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
     i_ldrsh = i_ldr
     i_ldrsb = i_ldr
     i_ldrt = i_ldr
+
+    def i_ldrex(self, op):
+        try:
+            self.mem_access_lock.acquire()
+            return self.i_ldr(op)
+        finally:
+            self.mem_access_lock.release()
+
+    def i_strex(self, op):
+        try:
+            self.mem_access_lock.acquire()
+            return self.i_str(op)
+        finally:
+            self.mem_access_lock.release()
 
     def i_mov(self, op):
         val = self.getOperValue(op, 1)
