@@ -93,7 +93,8 @@ class ArmWorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_arm.ArmEmulator):
                 if (lti & envi.ARCH_MASK) == envi.ARCH_THUMB:
                     self.setFlag(PSR_T_bit, 1)
                     logger.debug("funcva is THUMB(loc):  0x%x", funcva)
-                ellogger.debug("funcva is ARM(loc):  0x%x", funcva)
+                else:
+                    logger.debug("funcva is ARM(loc):  0x%x", funcva)
 
             else:
                 # otherwise, let's use some heuristics to guess.
