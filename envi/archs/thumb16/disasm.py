@@ -2122,18 +2122,22 @@ thumb2_extension = [
     ('11111110',            (IENC_COPROC_SIMD,'coproc simd', coproc_simd_32,  IF_THUMB32)),
     ('11111111',            (IENC_ADVSIMD,'adv simd', adv_simd_32,        IF_THUMB32)),
 
-    # data-processing (modified immediate)
+    # data-processing (modified immediate) (branches mostly redirected from dp_mod_imm_32)
     ('11110000000',         (INS_AND, 'and',      dp_mod_imm_32,      IF_THUMB32)),  # tst if rd=1111 and s=1
     ('11110000001',         (INS_BIC, 'bic',      dp_mod_imm_32,      IF_THUMB32)),
     ('11110000010',         (INS_ORR, 'orr',      dp_mod_imm_32,      IF_THUMB32)),
     ('11110000011',         (INS_ORN, 'orn',      dp_mod_imm_32,      IF_THUMB32)),  # mvn if rn=1111
-    ('11110000110',         (INS_BLX, 'blx',      branch_misc,        IF_THUMB32)),    # necessary
     ('11110000100',         (INS_EOR, 'eor',      dp_mod_imm_32,      IF_THUMB32)),  # teq if rd=1111 and s=1
+    ('11110000110',         (INS_BLX, 'blx',      branch_misc,        IF_THUMB32)),    # necessary
     ('11110001000',         (INS_ADD, 'add',      dp_mod_imm_32,      IF_THUMB32)),  # cmn if rd=1111 and s=1
+    ('11110001001',         (INS_BLX, 'blx',      branch_misc,        IF_THUMB32)),    # necessary
     ('11110001010',         (INS_ADC, 'adc',      dp_mod_imm_32,      IF_THUMB32)),
     ('11110001011',         (INS_SBC, 'sbc',      dp_mod_imm_32,      IF_THUMB32)),
+    ('11110001100',         (INS_BLX, 'blx',      branch_misc,        IF_THUMB32)),    # necessary
     ('11110001101',         (INS_SUB, 'sub',      dp_mod_imm_32,      IF_THUMB32)),  # cmp if rd=1111 and s=1
     ('11110001110',         (INS_RSB, 'rsb',      dp_mod_imm_32,      IF_THUMB32)),
+    ('11110001111',         (INS_BLX, 'blx',      branch_misc,        IF_THUMB32)),    # necessary
+    ('1111001',             (INS_BLX, 'blx',      branch_misc,        IF_THUMB32)),    # necessary
     ('11110100000',         (INS_AND, 'and',      dp_mod_imm_32,      IF_THUMB32)),  # tst if rd=1111 and s=1
     ('11110100001',         (INS_BIC, 'bic',      dp_mod_imm_32,      IF_THUMB32)),
     ('11110100010',         (INS_ORR, 'orr',      dp_mod_imm_32,      IF_THUMB32)),
@@ -2147,30 +2151,31 @@ thumb2_extension = [
 
     # data processing (plain binary immediate)
     ('1111001000',          (INS_ADD, 'add',      dp_bin_imm_32,      IF_THUMB32)),  # adr if rn=1111
-    ('1111001001',          (INS_MOVW, 'movw',     dp_bin_imm_32,      IF_THUMB32)),
+    ('1111001001',          (INS_MOVW, 'movw',    dp_bin_imm_32,      IF_THUMB32)),
     ('1111001010',          (INS_SUB, 'sub',      dp_bin_imm_32,      IF_THUMB32)),  # adr if rn=1111
-    ('1111001011',          (INS_MOVT, 'movt',     dp_bin_imm_32,      IF_THUMB32)),
-    ('11110011000',         (INS_SSAT, 'ssat',     dp_bin_imm_32,      IF_THUMB32)),
-    ('11110011001',         (INS_SSAT16,'ssat16',   dp_bin_imm_32,      IF_THUMB32)),
-    ('11110011010',         (INS_SBFX, 'sbfx',     dp_bin_imm_32,      IF_THUMB32)),
+    ('1111001011',          (INS_MOVT, 'movt',    dp_bin_imm_32,      IF_THUMB32)),
+    ('11110011000',         (INS_SSAT, 'ssat',    dp_bin_imm_32,      IF_THUMB32)),
+    ('11110011001',         (INS_SSAT16,'ssat16', dp_bin_imm_32,      IF_THUMB32)),
+    ('11110011010',         (INS_SBFX, 'sbfx',    dp_bin_imm_32,      IF_THUMB32)),
     ('11110011011',         (INS_BFI, 'bfi',      dp_bfi_imm_32,      IF_THUMB32)),  # bfc if rn=1111
-    ('11110011100',         (INS_USAT, 'usat',     dp_bin_imm_32,      IF_THUMB32)),
-    ('111100111010',        (INS_USAT, 'usat',     dp_bin_imm_32,      IF_THUMB32)),  # usat16 if val2=0000xxxx00xxxxxx
-    ('111100111011',        (INS_USAT, 'usat',     dp_bin_imm_32,      IF_THUMB32)),  # usat16 if val2=0000xxxx00xxxxxx
-    ('1111001111',          (INS_UBFX, 'ubfx',     ubfx_32,      IF_THUMB32)),
+    ('11110011100',         (INS_USAT, 'usat',    dp_bin_imm_32,      IF_THUMB32)),
+    ('111100111010',        (INS_USAT, 'usat',    dp_bin_imm_32,      IF_THUMB32)),  # usat16 if val2=0000xxxx00xxxxxx
+    ('111100111011',        (INS_USAT, 'usat',    dp_bin_imm_32,      IF_THUMB32)),  # usat16 if val2=0000xxxx00xxxxxx
+    ('1111001111',          (INS_UBFX, 'ubfx',    ubfx_32,            IF_THUMB32)),
+    ('1111010',             (INS_BLX, 'blx',      branch_misc,        IF_THUMB32)),    # necessary
     ('1111011000',          (INS_ADD, 'add',      dp_bin_imm_32,      IF_THUMB32)),  # adr if rn=1111
-    ('1111011001',          (INS_MOVW, 'movw',     dp_bin_imm_32,      IF_THUMB32)),
+    ('1111011001',          (INS_MOVW, 'movw',    dp_bin_imm_32,      IF_THUMB32)),
     ('1111011010',          (INS_SUB, 'sub',      dp_bin_imm_32,      IF_THUMB32)),  # adr if rn=1111
-    ('1111011011',          (INS_MOVT, 'movt',     dp_bin_imm_32,      IF_THUMB32)),
-    ('11110111000',         (INS_SSAT, 'ssat',     dp_bin_imm_32,      IF_THUMB32)),
-    ('11110111001',         (INS_SSAT16,'ssat16',   dp_bin_imm_32,      IF_THUMB32)),
-    ('11110111010',         (INS_SBFX, 'sbfx',     dp_bin_imm_32,      IF_THUMB32)),
+    ('1111011011',          (INS_MOVT, 'movt',    dp_bin_imm_32,      IF_THUMB32)),
+    ('11110111000',         (INS_SSAT, 'ssat',    dp_bin_imm_32,      IF_THUMB32)),
+    ('11110111001',         (INS_SSAT16,'ssat16', dp_bin_imm_32,      IF_THUMB32)),
+    ('11110111010',         (INS_SBFX, 'sbfx',    dp_bin_imm_32,      IF_THUMB32)),
     ('11110111011',         (INS_BFI, 'bfi',      dp_bfi_imm_32,      IF_THUMB32)),  # bfc if rn=1111
-    ('11110111100',         (INS_USAT, 'usat',     dp_bin_imm_32,      IF_THUMB32)),
-    ('11110111101',         (INS_USAT, 'usat',     dp_bin_imm_32,      IF_THUMB32)),  # usat16 if val2=0000xxxx00xxxxxx
-    ('11110111110',         (INS_UBFX, 'ubfx',     ubfx_32,      IF_THUMB32)),
-    ('11110111111',         (None, 'branchmisc', branch_misc,      IF_THUMB32)),    # necessary
-
+    ('11110111100',         (INS_USAT, 'usat',    dp_bin_imm_32,      IF_THUMB32)),
+    ('11110111101',         (INS_USAT, 'usat',    dp_bin_imm_32,      IF_THUMB32)),  # usat16 if val2=0000xxxx00xxxxxx
+    ('11110111110',         (INS_UBFX, 'ubfx',    ubfx_32,            IF_THUMB32)),
+    ('11110111111',         (None, 'branchmisc',  branch_misc,        IF_THUMB32)),    # necessary
+    
     # stores, loads, etc...
     ('111110000000',        (INS_STR, 'str', ldr_puw_32,        IF_B | IF_THUMB32)),
     ('111110000001',        (None, 'ldrb_memhints32', ldrb_memhints_32,  IF_THUMB32)),
@@ -2178,16 +2183,24 @@ thumb2_extension = [
     ('111110000011',        (INS_LDR,  'ldr',  ldr_puw_32,      IF_H | IF_THUMB32)),
     ('111110000100',        (INS_STR,  'str',  ldr_puw_32,      IF_THUMB32)),   # T4 encoding
     ('111110000101',        (INS_LDR,  'ldr',  ldr_puw_32,      IF_THUMB32)),   # T4 encoding
-    #('111110001001',        (INS_LDRB, 'ldrb', ldr_32,          IF_THUMB32)),
+    ('11111000011',         (INS_BLX, 'blx',      branch_misc,        IF_THUMB32)),    # necessary
+    ('111110001000',        (INS_STR, 'str', ldr_32,            IF_B | IF_THUMB32)),
     ('111110001001',        (None, 'ldrb_memhints32', ldrb_memhints_32,  IF_THUMB32)),
     ('111110001010',        (INS_STR, 'str', ldr_32,            IF_H | IF_THUMB32)),
     ('111110001011',        (INS_LDR, 'ldr', ldr_32,            IF_H | IF_THUMB32)),
     ('111110001100',        (INS_STR,  'str',  ldr_32,      IF_THUMB32)),
     ('111110001101',        (INS_LDR,  'ldr',  ldr_32,          IF_THUMB32)), # T3
-    ('111110001000',        (INS_STR, 'str', ldr_32,            IF_B | IF_THUMB32)),
+    ('111110001110',        (INS_BLX, 'blx',      branch_misc,        IF_THUMB32)),    # necessary
+    ('111110001111',        (INS_BLX, 'blx',      branch_misc,        IF_THUMB32)),    # necessary
+    ('111110010000',        (INS_BLX, 'blx',      branch_misc,        IF_THUMB32)),    # necessary
     ('111110010001',        (None, 'ldrb_memhints32', ldrb_memhints_32,  IF_THUMB32)),
+    ('11111001001',         (INS_BLX, 'blx',      branch_misc,        IF_THUMB32)),    # necessary
+    ('1111100101',          (INS_BLX, 'blx',      branch_misc,        IF_THUMB32)),    # necessary
+    ('111110011000',        (INS_BLX, 'blx',      branch_misc,        IF_THUMB32)),    # necessary
     ('111110011001',        (None, 'ldrb_memhints32', ldrb_memhints_32,  IF_THUMB32)),
+    ('111110011010',        (INS_BLX, 'blx',      branch_misc,        IF_THUMB32)),    # necessary
     ('111110011011',        (None, 'ldrb_memhints32', ldrb_memhints_32,  IF_THUMB32)),
+    ('1111100111',          (INS_BLX, 'blx',      branch_misc,        IF_THUMB32)),    # necessary
 
     # data-processing (register)
     ('111110100',           (None, 'shift_or_extend', shift_or_ext_32,   IF_THUMB32)),
