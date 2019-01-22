@@ -56,7 +56,7 @@ class ArmWorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_arm.ArmEmulator):
 
         # parse out an opcode
         tmode = self.getFlag(PSR_T_bit)
-        #print("tmode: %x" % tmode)
+        #logger.debug("tmode: %x", tmode)
         op = self.parseOpcode(starteip | tmode)
         if self.emumon:
             self.emumon.prehook(self, op, starteip)
@@ -77,13 +77,13 @@ class ArmWorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_arm.ArmEmulator):
         if tmode != None:
             # we're forcing thumb or arm mode... update the flag
             self.setFlag(PSR_T_bit, tmode)
-            if verbose: print("funcva thumb==%d  (forced):  0x%x" % (tmode, funcva))
+            logger.debug("funcva thumb==%d  (forced):  0x%x", (tmode, funcva))
 
         elif funcva & 3:
             # if the va isn't 4-byte aligned, it's gotta be thumb
             self.setFlag(PSR_T_bit, 1)
             funcva &= -2
-            if verbose: print("funcva is THUMB(addr):  0x%x" % funcva)
+            logger.debug("funcva is THUMB(addr):  0x%x", funcva)
 
         else:
             loc = self.vw.getLocation(funcva)
@@ -92,8 +92,8 @@ class ArmWorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_arm.ArmEmulator):
                 lva, lsz, lt, lti = loc
                 if (lti & envi.ARCH_MASK) == envi.ARCH_THUMB:
                     self.setFlag(PSR_T_bit, 1)
-                    if verbose: print("funcva is THUMB(loc):  0x%x" % funcva)
-                elif verbose: print("funcva is ARM(loc):  0x%x" % funcva)
+                    logger.debug("funcva is THUMB(loc):  0x%x", funcva)
+                ellogger.debug("funcva is ARM(loc):  0x%x", funcva)
 
             else:
                 # otherwise, let's use some heuristics to guess.
@@ -131,9 +131,9 @@ class ArmWorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_arm.ArmEmulator):
 
                 elif armthumb < 0:
                         self.setFlag(PSR_T_bit, 1)
-                        if verbose: print("ArmWorkspaceEmulator: Heuristically Determined funcva is THUMB:  0x%x" % funcva)
+                        logger.debug("ArmWorkspaceEmulator: Heuristically Determined funcva is THUMB:  0x%x", funcva)
                 else:
-                    if verbose: print("ArmWorkspaceEmulator: Heuristically Determined funcva is ARM:  0x%x" % funcva)
+                    logger.debug("ArmWorkspaceEmulator: Heuristically Determined funcva is ARM:  0x%x", funcva)
 
 
         self.funcva = funcva
@@ -145,7 +145,7 @@ class ArmWorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_arm.ArmEmulator):
         will emulate, but only inside the given function.  You may specify a stopva
         to return once that location is hit.
         """
-        logger.debug('%s === emu.runFunction(0x%x, stopva=%r, maxhit=%r, maxloop=%r, tmode=%r)' % (__name__, funcva, stopva, maxhit, maxloop, tmode))
+        logger.debug('%s === emu.runFunction(0x%x, stopva=%r, maxhit=%r, maxloop=%r, tmode=%r)', __name__, funcva, stopva, maxhit, maxloop, tmode)
         self._prep(funcva, tmode)
 
         # Let the current (should be base also) path know where we are starting
@@ -252,17 +252,17 @@ class ArmWorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_arm.ArmEmulator):
 
                 except envi.UnsupportedInstruction, e:
                     if self.strictops:
-                        if verbose: print('runFunction breaking after unsupported instruction: 0x%08x %s' % (e.op.va, e.op.mnem))
+                        logger.debug('runFunction breaking after unsupported instruction: 0x%08x %s', e.op.va, e.op.mnem)
                         raise e
                     else:
-                        if verbose: print('runFunction continuing after unsupported instruction: 0x%08x %s' % (e.op.va, e.op.mnem))
+                        logger.debug('runFunction continuing after unsupported instruction: 0x%08x %s', e.op.va, e.op.mnem)
                         self.setProgramCounter(e.op.va+ e.op.size)
                 except Exception, e:
                     #traceback.print_exc()
                     if self.emumon != None:
                         self.emumon.logAnomaly(self, starteip, str(e))
 
-                    if verbose: print('runFunction breaking after exception (fva: 0x%x): %s' % (funcva, e))
+                    logger.debug('runFunction breaking after exception (fva: 0x%x): %s', funcva, e)
                     if verbose: sys.excepthook(*sys.exc_info())
                     break # If we exc during execution, this branch is dead.
           #except:
