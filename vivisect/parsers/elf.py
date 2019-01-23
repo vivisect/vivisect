@@ -199,9 +199,37 @@ def loadElfIntoWorkspace(vw, elf, filename=None):
             vw.makeName(sva, "init_function", filelocal=True)
             vw.addEntryPoint(sva)
 
+        elif sname == ".init_array":
+            # handle pseudo-fixups first: these pointers require base-addresses
+            psize = vw.getPointerSize()
+            secbytes = elf.readAtRva(sec.sh_addr, size)
+            ptr_count = 0
+            for off in range(0, size, psize):
+                addr = struct.unpack_from(fmt, secbytes, off)
+                if addbase: addr += baseaddr
+                
+                vw.makeName(addr, "init_function_%d" % ptr_count, filelocal=True)
+                vw.addXref(sec.sh_addr + off, addr, REF_PTR)
+                vw.addEntryPoint(addr)
+                ptr_count += 1
+
         elif sname == ".fini":
             vw.makeName(sva, "fini_function", filelocal=True)
             vw.addEntryPoint(sva)
+
+        elif sname == ".fini_array":
+            # handle pseudo-fixups first: these pointers require base-addresses
+            psize = vw.getPointerSize()
+            secbytes = elf.readAtRva(sec.sh_addr, size)
+            ptr_count = 0
+            for off in range(0, size, psize):
+                addr = struct.unpack_from(fmt, secbytes, off)
+                if addbase: addr += baseaddr
+                
+                vw.makeName(addr, "fini_function_%d" % ptr_count, filelocal=True)
+                vw.addXref(sec.sh_addr + off, addr, REF_PTR)
+                vw.addEntryPoint(addr)
+                ptr_count += 1
 
         elif sname == ".dynamic": # Imports
             makeDynamicTable(vw, sva, sva+size)
