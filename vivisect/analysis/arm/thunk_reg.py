@@ -174,9 +174,9 @@ def analyzeFunction(vw, fva):
             cmt = "0x%x: %s ;\n %s" % (tgt, reprPointer(vw, tgt), curcmt)
             vw.setComment(va, cmt)
 
-        logger.debug("PIE XREF: %x  %s" % (va, cmt))
+        logger.debug("PIE XREF: %x  %s", va, cmt)
 
-    logger.debug("ANOMS: \n", repr(emumon.emuanom))
+    logger.debug("ANOMS: \n%r", emumon.emuanom)
 
 def analyze(vw):
     '''

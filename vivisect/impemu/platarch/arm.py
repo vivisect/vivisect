@@ -146,7 +146,7 @@ class ArmWorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_arm.ArmEmulator):
         will emulate, but only inside the given function.  You may specify a stopva
         to return once that location is hit.
         """
-        logger.debug('%s === emu.runFunction(0x%x, stopva=%r, maxhit=%r, maxloop=%r, tmode=%r)', __name__, funcva, stopva, maxhit, maxloop, tmode)
+        logger.debug('=== emu.runFunction(0x%x, stopva=%r, maxhit=%r, maxloop=%r, tmode=%r)', funcva, stopva, maxhit, maxloop, tmode)
         self._prep(funcva, tmode)
 
         # Let the current (should be base also) path know where we are starting
