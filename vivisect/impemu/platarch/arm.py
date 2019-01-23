@@ -77,7 +77,7 @@ class ArmWorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_arm.ArmEmulator):
         if tmode != None:
             # we're forcing thumb or arm mode... update the flag
             self.setFlag(PSR_T_bit, tmode)
-            logger.debug("funcva thumb==%d  (forced):  0x%x", (tmode, funcva))
+            logger.debug("funcva thumb==%d  (forced):  0x%x", tmode, funcva)
 
         elif funcva & 3:
             # if the va isn't 4-byte aligned, it's gotta be thumb
