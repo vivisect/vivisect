@@ -273,100 +273,10 @@ def branch_misc(va, val, val2): # bl and misc control
                 mesg="branch_misc subsection 2",
                 bytez=struct.pack("<H", val)+struct.pack("<H", val2), va=va-4)
 
-        else:
-            if imm8 == 0 and op == 0b0111101:
-                imm8 = val2 & 0xff
-                if imm8:
-                    opers = (
-                            ArmRegOper(REG_PC),
-                            ArmRegOper(REG_LR),
-                            ArmImmOper(imm8),
-                            )
-                    return COND_AL, None, 'sub', opers, IF_PSR_S, 0
-
-                return COND_AL, None, 'eret', tuple(), envi.IF_RET | envi.IF_NOFALL, 0
-            print("TEST ME: branch_misc subsection 3")
-##### FIXME!  THIS NEEDS TO ALSO HIT MSR BELOW....
-            #raise InvalidInstruction(
-            #    mesg="branch_misc subsection 3",
-            #    bytez=struct.pack("<H", val)+struct.pack("<H", val2), va=va-4)
-
-            # xx0xxxxx and others
-            if op == 0b0111000:
-                tmp = op2 & 3
-
-                Rn = val & 0xf
-                mask = (val2>>8) & 0xf
-                if tmp == 0:
-                    R = PSR_APSR
-                    #raise Exception("FIXME:  MSR(register) p A8-498")
-
-                else:
-                    R = (val >> 4) & 1
-                    #raise Exception("FIXME:  MSR(register) p B9-1968")
-
-                opers = (
-                        ArmPgmStatRegOper(R, mask),
-                        ArmRegOper(Rn)
-                        )
-                return COND_AL, None, 'msr', opers, None, 0
-
-
-            elif op == 0b0111001:
-                # coalesce with previous
-                raise Exception("FIXME:  MSR(register) p B9-1968")
-
-
-            elif op == 0b0111010:
-                flags = 0
-
-                op1 = (val2>>8) & 7
-                op2 = val2 & 0xff
-                if op1:
-                    opcode = INS_CPS
-                    mnem = 'cps'
-
-                    imod = (val2>>9) & 3    # enable = 0b10, disable = 0b11
-                    m = (val2>>8) & 1   # change mode
-                    aif = (val2>>5) & 7
-                    mode = val2 & 0x1f
-
-                    if (mode and m==0):
-                            raise Exception("CPS with invalid flags set:  UNPREDICTABLE (mode and not m)")
-
-                    if ((imod & 2) and not (aif)) or \
-                        (not (imod & 2) and (aif)):
-                            raise Exception("CPS with invalid flags set:  UNPREDICTABLE imod enable but not a/i/f")
-
-                    if not (imod or m):
-                        # hint
-                        mnem = "CPS Hint...  fix me"
-                        
-                    if imod & 2:
-                        opers = [
-                            ArmCPSFlagsOper(aif)    # if mode is set...
-                        ]
-                        flags |= (IF_IE, IF_ID)[imod&1]
-
-                    else:
-                        opers = []
-                    if m:
-                        opers.append(ArmImmOper(mode))
-
-                else:
-                    opcode, mnem = cpsh_mnems.get(op2, (INS_HINT, 'dbg'))
-                    opers = []
-
-                return COND_AL, opcode, mnem, opers, flags, 0
-
-            elif op == 0b0111011:
-                raise Exception("FIXME:  Misc control instrs p A6-235")
-
-            elif op == 0b0111100:
-                raise Exception("FIXME:  BXJ p A8-352")
-
-            elif op == 0b0111101:   # subs PC, LR, #imm (see special case ERET above)
-                imm8 = val2 & 0xff
+        if imm8 == 0 and op == 0b0111101:
+            # original imm8 was imm4!
+            imm8 = val2 & 0xff
+            if imm8:
                 opers = (
                         ArmRegOper(REG_PC),
                         ArmRegOper(REG_LR),
@@ -374,46 +284,129 @@ def branch_misc(va, val, val2): # bl and misc control
                         )
                 return COND_AL, None, 'sub', opers, IF_PSR_S, 0
 
-            elif op == 0b0111110:
-                Rd = (val2 >> 8) & 0xf
-                opers = (
-                        ArmRegOper(Rd),
-                        ArmRegOper(REG_OFFSET_CPSR),
-                        )
-                return COND_AL, None, 'mrs', opers, None, 0
+            return COND_AL, None, 'eret', tuple(), envi.IF_RET | envi.IF_NOFALL, 0
 
-            elif op == 0b0111111:
-                Rd = (val2 >> 8) & 0xf
+        # xx0xxxxx and others
+        if op & 0b1111110 == 0b0111000:
+            tmp = op2 & 3
+
+            Rn = val & 0xf
+            mask = (val2>>8) & 0xf
+            if not (op & 1) and tmp == 0:
+                # MSR(register) p A8-498
+                R = PSR_APSR
+
+            else:   # op==0111000 and op2==01/10/11 or op==0111001
+                # MSR(register) p B9-1968
                 R = (val >> 4) & 1
-                opers = (
-                        ArmRegOper(Rd),
-                        ArmRegOper(REG_OFFSET_CPSR),
-                        )
+                # System Level Only...
 
-                raise Exception("FIXME:  MRS(register) p B9-1962 - how is R used?")
-                return COND_AL, None, 'mrs', opers, None, 0
+            opers = (
+                    ArmPgmStatRegOper(R, mask),
+                    ArmRegOper(Rn)
+                    )
+            return COND_AL, None, 'msr', opers, None, 0
 
-            elif op == 0b1111110:
-                if op1 == 0:
-                    imm4 = val & 0xf
-                    imm12 = val2 & 0xfff
-                    oper0 = ArmImmOper((imm4<<12)|imm12)
-                    return COND_AL, None, 'hvc', (oper0,), None, 0
+        elif op == 0b0111010:
+            flags = 0
 
-                raise InvalidInstruction(
-                    mesg="branch_misc subsection 1",
-                    bytez=struct.pack("<HH", val, val2), va=va-4)
+            op1 = (val2>>8) & 7
+            op2 = val2 & 0xff
+            if op1:
+                opcode = INS_CPS
+                mnem = 'cps'
+
+                imod = (val2>>9) & 3    # enable = 0b10, disable = 0b11
+                m = (val2>>8) & 1   # change mode
+                aif = (val2>>5) & 7
+                mode = val2 & 0x1f
+
+                if (mode and m==0):
+                        raise Exception("CPS with invalid flags set:  UNPREDICTABLE (mode and not m)")
+
+                if ((imod & 2) and not (aif)) or \
+                    (not (imod & 2) and (aif)):
+                        raise Exception("CPS with invalid flags set:  UNPREDICTABLE imod enable but not a/i/f")
+
+                if not (imod or m):
+                    # hint
+                    mnem = "CPS Hint...  fix me"
+                    
+                if imod & 2:
+                    opers = [
+                        ArmCPSFlagsOper(aif)    # if mode is set...
+                    ]
+                    flags |= (IF_IE, IF_ID)[imod&1]
+
+                else:
+                    opers = []
+                if m:
+                    opers.append(ArmImmOper(mode))
+
+            else:
+                opcode, mnem = cpsh_mnems.get(op2, (INS_HINT, 'dbg'))
+                opers = []
+
+            return COND_AL, opcode, mnem, opers, flags, 0
+
+        #elif op == 0b0111011:
+        #    raise Exception("FIXME:  Misc control instrs p A6-235")  should be covered by "op & 0b111 == 0b011"
+
+        elif op == 0b0111100:
+            raise Exception("FIXME:  BXJ p A8-352")
+
+        #elif op == 0b0111101:   # subs PC, LR, #imm (see special case ERET above)...  unnecessary?
+        #    imm8 = val2 & 0xff
+        #    opers = (
+        #            ArmRegOper(REG_PC),
+        #            ArmRegOper(REG_LR),
+        #            ArmImmOper(imm8),
+        #            )
+        #    return COND_AL, None, 'sub', opers, IF_PSR_S, 0
+
+        elif op == 0b0111110:
+            Rd = (val2 >> 8) & 0xf
+            opers = (
+                    ArmRegOper(Rd),
+                    ArmPgmStatRegOper(PSR_CPSR),
+                    )
+            return COND_AL, None, 'mrs', opers, None, 0
+
+        elif op == 0b0111111:
+            Rd = (val2 >> 8) & 0xf
+            R = (val >> 4) & 1
+            opers = (
+                    ArmRegOper(Rd),
+                    ArmPgmStatRegOper(R),
+                    )
+
+            return COND_AL, None, 'mrs', opers, None, 0
+
+        elif op == 0b1111110:
+            if op1 == 0:
+                imm4 = val & 0xf
+                imm12 = val2 & 0xfff
+                oper0 = ArmImmOper((imm4<<12)|imm12)
+                return COND_AL, None, 'hvc', (oper0,), None, 0
+
+            raise InvalidInstruction(
+                mesg="branch_misc subsection 1",
+                bytez=struct.pack("<HH", val, val2), va=va-4)
 
 
-            elif op == 0b1111111:
-                if op1 == 0:
-                    imm4 = val & 0xf
-                    oper0 = ArmImmOper(imm4)
-                    return COND_AL, None, 'smc', (oper0,), None, 0
+        elif op == 0b1111111:
+            if op1 == 0:
+                imm4 = val & 0xf
+                oper0 = ArmImmOper(imm4)
+                return COND_AL, None, 'smc', (oper0,), None, 0
 
-                raise InvalidInstruction(
-                    mesg="branch_misc subsection 1",
-                    bytez=struct.pack("<HH", val, val2), va=va-4)
+            raise InvalidInstruction(
+                mesg="branch_misc subsection 1",
+                bytez=struct.pack("<HH", val, val2), va=va-4)
+
+        raise InvalidInstruction(
+            mesg="branch_misc subsection 3",
+            bytez=struct.pack("<H", val)+struct.pack("<H", val2), va=va-4)
 
 
 
@@ -439,7 +432,13 @@ def branch_misc(va, val, val2): # bl and misc control
 
     elif op1 == 0b010:
         if op == 0b1111111:
-            raise Exception("FIXME:  UDF (permanently undefined) p B9-1972")
+            flags = 0
+            imm4 = val & 0xf
+            imm12 = val2 & 0xfff
+            immval = (imm4<<12) | imm12
+            oper0 = ArmImmOper(immval)
+            return COND_AL, INS_UDF, 'udf', (oper0, ), flags, 0
+
         raise InvalidInstruction(
             mesg="branch_misc subsection 6",
             bytez=struct.pack("<H", val)+struct.pack("<H", val2), va=va-4)
@@ -473,9 +472,6 @@ def branch_misc(va, val, val2): # bl and misc control
 
         return COND_AL, opcode, mnem, (oper0, ), flags, 0
         
-
-
-    
     raise InvalidInstruction(
         mesg="branch_misc Branches and Miscellaneous Control: Failed to match",
         bytez=struct.pack("<H", val)+struct.pack("<H", val2), va=va-4)
