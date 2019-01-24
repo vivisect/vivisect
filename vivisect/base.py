@@ -1,4 +1,5 @@
 import Queue
+import logging
 import traceback
 import threading
 import collections
@@ -21,6 +22,8 @@ from envi.threads import firethread
 
 from vivisect.exc import *
 from vivisect.const import *
+
+logger = logging.getLogger(__name__)
 
 """
 Mostly this is a place to scuttle away some of the inner workings
@@ -320,9 +323,11 @@ class VivWorkspaceCore(object,viv_impapi.ImportApi):
         if name == None:
             oldname = self.name_by_va.pop(va, None)
             self.va_by_name.pop(oldname, None)
+
         else:
             curname = self.name_by_va.get(va)
             if curname != None:
+                logger.debug( 'replacing 0x%x: %r -> %r', va, curname, name)
                 self.va_by_name.pop(curname)
 
             self.va_by_name[name] = va
@@ -349,7 +354,7 @@ class VivWorkspaceCore(object,viv_impapi.ImportApi):
         self.exports.append(einfo)
         self.exports_by_va[va] = einfo
         fullname = "%s.%s" % (filename,name)
-        self.makeName(va, fullname)
+        self.makeName(va, fullname, makeuniq=True)
 
     def _handleSETMETA(self, einfo):
         name,value = einfo

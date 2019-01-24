@@ -238,12 +238,14 @@ def loadElfIntoWorkspace(vw, elf, filename=None):
         try:
             # If it has a name, it's an externally
             # resolved "import" entry, otherwise, just a regular reloc
+            name = r.getName()
+            dmglname = demangle(name)
+            logger.debug('relocs: 0x%x: %r', rlva, name)
             if arch in ('i386','amd64'):
-
-                name = demangle(r.getName())
                 if name:
                     if rtype == Elf.R_386_JMP_SLOT:
                         vw.makeImport(rlva, "*", name)
+                        vw.setComment(rlva, dmglname)
 
                     # FIXME elf has conflicting names for 2 relocs?
                     #elif rtype == Elf.R_386_GLOB_DAT:
@@ -254,16 +256,24 @@ def loadElfIntoWorkspace(vw, elf, filename=None):
 
                     elif rtype == Elf.R_X86_64_GLOB_DAT:
                         vw.makeImport(rlva, "*", name)
+                        vw.setComment(rlva, dmglname)
 
                     else:
                         vw.verbprint('unknown reloc type: %d %s (at %s)' % (rtype, name, hex(rlva)))
                         
 
             if arch == 'arm':
-                name = r.getName()
                 if name:
                     if rtype == Elf.R_ARM_JUMP_SLOT:
+                        vw.makeImport(rlva, "*", dmglname)
+
+                    elif rtype == Elf.R_ARM_ABS32:      # Direct 32 bit  */
                         vw.makeImport(rlva, "*", name)
+                        vw.setComment(rlva, dmglname)
+
+                    elif rtype == Elf.R_ARM_GLOB_DAT:   # Create GOT entry */
+                        vw.makeImport(rlva, "*", name)
+                        vw.setComment(rlva, dmglname)
 
                     else:
                         vw.verbprint('unknown reloc type: %d %s (at %s)' % (rtype, name, hex(rlva)))
@@ -281,19 +291,20 @@ def loadElfIntoWorkspace(vw, elf, filename=None):
         if sva == 0:
             continue
 
-        demangledname = demangle(s.name)
+        dmglname = demangle(s.name)
+        logger.debug('dynsyms: 0x%x: %r', sva, dmglname)
 
         if stype == Elf.STT_FUNC or (stype == Elf.STT_GNU_IFUNC and arch in ('i386','amd64')):   # HACK: linux is what we're really after.
             try:
                 vw.addEntryPoint(sva)
-                vw.addExport(sva, EXP_FUNCTION, demangledname, fname, makeuniq=True)
+                vw.addExport(sva, EXP_FUNCTION, s.name, fname)
             except Exception, e:
                 vw.vprint('addExport Failure: (%s) %s' % (s.name, e))
 
         elif stype == Elf.STT_OBJECT:
             if vw.isValidPointer(sva):
                 try:
-                    vw.addExport(sva, EXP_DATA, demangledname, fname, makeuniq=True)
+                    vw.addExport(sva, EXP_DATA, s.name, fname)
                 except Exception, e:
                     vw.vprint('WARNING: %s' % e)
 
@@ -305,7 +316,7 @@ def loadElfIntoWorkspace(vw, elf, filename=None):
             if vw.isValidPointer(sva):
                 try:
                     vw.addEntryPoint(sva)
-                    vw.addExport(sva, EXP_FUNCTION, demangledname, fname, makeuniq=True)
+                    vw.addExport(sva, EXP_FUNCTION, dmglname, fname)
                 except Exception, e:
                     vw.vprint('WARNING: %s' % e)
 
@@ -316,7 +327,7 @@ def loadElfIntoWorkspace(vw, elf, filename=None):
             if addbase: sva += baseaddr
             if vw.isValidPointer(sva):
                 try:
-                    vw.addExport(sva, EXP_DATA, demangledname, fname, makeuniq=True)
+                    vw.addExport(sva, EXP_DATA, dmglname, fname)
                 except Exception, e:
                     vw.vprint('WARNING: %s' % e)
 
@@ -333,9 +344,31 @@ def loadElfIntoWorkspace(vw, elf, filename=None):
             pass
             #print "DYNAMIC DYNAMIC DYNAMIC",d
 
+    vw.addVaSet("FileSymbols", (("Name",VASET_STRING),("va",VASET_ADDRESS)))
+    vw.addVaSet("WeakSymbols", (("Name",VASET_STRING),("va",VASET_ADDRESS)))
 
+    # apply symbols to workspace (if any)
+    impvas = [va for va,x,y,z in vw.getImports()]
+    expvas = [va for va,x,y,z in vw.getExports()]
     for s in elf.getSymbols():
         sva = s.st_value
+        logger.debug('symbol val: 0x%x\ttype: %r\tbind: %r\t name: %r',
+                sva, 
+                Elf.st_info_type.get(s.st_info, s.st_info),
+                Elf.st_info_bind.get(s.st_other, s.st_other),
+                s.name)
+
+        if s.st_info == Elf.STT_FILE:
+            vw.setVaSetRow('FileSymbols', (s.name, sva))
+            continue
+            
+        if s.st_info == Elf.STT_NOTYPE:
+            logger.info('skipping NOTYPE symbol: 0x%x: %r',sva, s.name)
+            continue
+
+        if sva in impvas or sva in expvas:
+            logginer.debug('skipping Symbol naming for existing Import/Export: 0x%x (%r)', sva, s.name)
+            continue
 
         # if the symbol has a value of 0, it is likely a relocation point which gets updated
         sname = normName(s.name)
@@ -344,17 +377,25 @@ def loadElfIntoWorkspace(vw, elf, filename=None):
                 rname = normName(reloc.name)
                 if rname == sname:
                     sva = reloc.r_offset
+                    logger.info('sva==0, using relocation name: %x: %r', sva, rname)
                     break
 
-        origname = sname
-        demangledname = demangle(sname)
+        dmglname = demangle(sname)
 
         if addbase: sva += baseaddr
-        if vw.isValidPointer(sva) and len(demangledname):
+        if vw.isValidPointer(sva) and len(dmglname):
             try:
-                vw.makeName(sva, demangledname, filelocal=True)
+                if s.st_other == Elf.STB_WEAK:
+                    logger.info('WEAK symbol: 0x%x: %r', sva, sname)
+                    vw.setVaSetRow('WeakSymbols', (sname, sva))
+                    dmglname = '__weak_' + dmglname
+
+                vw.makeName(sva, dmglname, filelocal=True, makeuniq=True)
             except Exception, e:
                 print "WARNING:",e
+
+        if s.st_info == Elf.STT_FUNC:
+            vw.addEntryPoint(sva)
 
     if addbase:
         eentry = baseaddr + elf.e_entry

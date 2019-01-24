@@ -750,17 +750,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
         if curval != None and curval != va:
             # if we don't force it to make a uniq name, bail
-            if not makeuniq:
-                raise Exception("Duplicate Name: %s => 0x%x  (cur: 0x%x)" % (rname, va, curval))
-
-            # otherwise, tack a number on the end
-            index = 0
-            newname = "%s.%d" % (rname, index)
-            while self.vaByName(newname) != None:
-                index += 1
-                newname = "%s.%d" % (rname, index)
-
-            name = "%s.%d" % (name, index)
+            raise Exception("Duplicate Name: %s => 0x%x  (cur: 0x%x)" % (rname, va, curval))
 
         self._fireEvent(VWE_ADDEXPORT, (va,etype,name,filename))
 
@@ -2046,7 +2036,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         name = "%s%s%s" % (basename, pom, hex(delta))
         return name
 
-    def makeName(self, va, name, filelocal=False):
+    def makeName(self, va, name, filelocal=False, makeuniq=False):
         """
         Set a readable name for the given location by va. There
         *must* be a Location defined for the VA before you may name
@@ -2067,7 +2057,18 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             return
 
         if oldva != None:
-            raise DuplicateName(oldva, va, name)
+            if not makeuniq:
+                raise DuplicateName(oldva, va, name)
+
+            else:
+                # tack a number on the end
+                index = 0
+                newname = "%s_%d" % (name, index)
+                while self.vaByName(newname) not in (None, newname):
+                    index += 1
+                    newname = "%s_%d" % (name, index)
+
+                name = newname
 
         self._fireEvent(VWE_SETNAME, (va,name))
 
