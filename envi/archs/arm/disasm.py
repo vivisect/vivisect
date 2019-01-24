@@ -124,15 +124,20 @@ def sh_ror(num, shval, size=4):
     return (((num&e_bits.u_maxes[size]) >> shval) | (num<< ((8*size)-shval))) & e_bits.u_maxes[size]
 
 def sh_rrx(num, shval, size=4, emu=None):
-    half1 = (num&e_bits.u_maxes[size]) >> shval
-    half2 = num<<(33-shval)
-    newC = (num>>(shval-1)) & 1
+    #shval should always be 0
+    newC = num & 1
+
     if emu != None:
         flags = emu.getFlags()
         oldC = (flags>>PSR_C) & 1
         emu.setFlags(flags & PSR_C_mask | newC)
     else:
+        # total hack!  should we just bomb here without an emu?
         oldC = 0
+
+    half1 = (num&e_bits.u_maxes[size]) >> 1
+    half2 = oldC<<(31)
+
     retval = (half1 | half2 | (oldC << (32-shval))) & e_bits.u_maxes[size]
     return retval
 
