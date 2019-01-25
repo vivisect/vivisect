@@ -205,14 +205,17 @@ def loadElfIntoWorkspace(vw, elf, filename=None):
             psize = vw.getPointerSize()
             pfmt = e_bits.le_fmt_chars[psize]   #FIXME: make Endian-aware (needs plumbing through ELF)
             secbytes = elf.readAtRva(sec.sh_addr, size)
+            sh_addr = sec.sh_addr
+            if addbase: sh_addr += baseaddr
+
             ptr_count = 0
             for off in range(0, size, psize):
-                vw.makePointer(sec.sh_addr + off)
+                vw.makePointer(sh_addr + off)
                 addr, = struct.unpack_from(pfmt, secbytes, off)
                 if addbase: addr += baseaddr
                 
                 vw.makeName(addr, "init_function_%d" % ptr_count, filelocal=True)
-                vw.addXref(sec.sh_addr + off, addr, REF_PTR)
+                vw.addXref(sh_addr + off, addr, REF_PTR)
                 vw.addEntryPoint(addr)
                 ptr_count += 1
 
@@ -225,9 +228,12 @@ def loadElfIntoWorkspace(vw, elf, filename=None):
             psize = vw.getPointerSize()
             pfmt = e_bits.le_fmt_chars[psize]   #FIXME: make Endian-aware (needs plumbing through ELF)
             secbytes = elf.readAtRva(sec.sh_addr, size)
+            sh_addr = sec.sh_addr
+            if addbase: sh_addr += baseaddr
+
             ptr_count = 0
             for off in range(0, size, psize):
-                vw.makePointer(sec.sh_addr + off)
+                vw.makePointer(sh_addr + off)
                 addr, = struct.unpack_from(pfmt, secbytes, off)
                 if addbase: addr += baseaddr
                 
