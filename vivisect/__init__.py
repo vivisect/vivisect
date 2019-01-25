@@ -739,7 +739,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         """
         return list(self.exports)
 
-    def addExport(self, va, etype, name, filename, makeuniq=False):
+    def addExport(self, va, etype, name, filename):
         """
         Add an already created export object.
         """
