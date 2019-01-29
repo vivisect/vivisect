@@ -44,10 +44,11 @@ def genSigAndMask(vw, funcva, startva=None):
     fsize = 0
     if startva == None:
         startva = funcva
+    func_blocks = [cbva for cbva, _, _ in vw.getFunctionBlocks(funcva)]
     # Figure out the size of the first linear chunk
     # in this function...
     cb = vw.getCodeBlock(startva)
-    if cb[2] != funcva:
+    if cb[CB_VA] not in func_blocks:
         raise Exception("startva not in given func")
     while cb != None:
         cbva, cbsize, cbfunc = cb
@@ -59,7 +60,7 @@ def genSigAndMask(vw, funcva, startva=None):
     if fsize == 0:
         raise Exception("0 length function??!?1")
 
-    bytes = vw.readMemory(startva, fsize)
+    bytez = vw.readMemory(startva, fsize)
 
     sig = ""
     mask = ""
@@ -67,7 +68,7 @@ def genSigAndMask(vw, funcva, startva=None):
     while i < fsize:
         rtype = vw.getRelocation(funcva + i)
         if rtype == None:
-            sig += bytes[i]
+            sig += bytez[i]
             mask += "\xff"
             i += 1
         elif rtype == RTYPE_BASERELOC:
