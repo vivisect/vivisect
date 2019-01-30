@@ -98,6 +98,14 @@ def rd_sp_imm8(va, value): # add
     rd = shmaskval(value, 8, 0x7)
     imm = shmaskval(value, 0, 0xff) * 4
     oper0 = ArmRegOper(rd, va=va)
+    oper1 = ArmRegOper(REG_SP, va=va)
+    oper2 = ArmImmOper(imm, va=va)
+    return COND_AL,(oper0,oper1,oper2), None
+
+def rd_sp_imm8d(va, value): # add
+    rd = shmaskval(value, 8, 0x7)
+    imm = shmaskval(value, 0, 0xff) * 4
+    oper0 = ArmRegOper(rd, va=va)
     # pre-compute PC relative addr
     oper1 = ArmImmOffsetOper(REG_SP, imm, (va&0xfffffffc)+4, pubwl=0x18)
     return COND_AL,(oper0,oper1), None
@@ -110,7 +118,15 @@ def rd_pc_imm8(va, value):  # add
     oper1 = ArmImmOper((va&0xfffffffc) + 4 + imm)
     return COND_AL,(oper0,oper1), None
 
-def rt_pc_imm8(va, value): # ldr
+def rd_pc_imm8d(va, value):  # add
+    rd = shmaskval(value, 8, 0x7)
+    imm = e_bits.signed(shmaskval(value, 0, 0xff), 1) * 4
+    oper0 = ArmRegOper(rd, va=va)
+    # pre-compute PC relative addr
+    oper1 = ArmImmOffsetOper(REG_PC, imm, (va&0xfffffffc)+4, pubwl=0x18)
+    return COND_AL,(oper0,oper1), None
+
+def rt_pc_imm8d(va, value): # ldr
     rt = shmaskval(value, 8, 0x7)
     imm = e_bits.unsigned((value & 0xff), 1) << 2
     oper0 = ArmRegOper(rt, va=va)
@@ -1223,20 +1239,18 @@ def ldrb_memhints_32(va, val1, val2):
     return COND_AL, opcode, mnem, opers, flags, 0
 
 
-def ldr_puw_32(va, val1, val2):
+def ldr_shift_32(va, val1, val2):
     #b11 = (val2>>11) & 1
     #if not b11:
-    #    raise Exception("ldr_puw_32 parsing non-ldrb")
+    #    raise Exception("ldr_shift_32 parsing non-ldrb")
 
     rn = val1 & 0xf
+    rm = val2 & 0xf
     rt = (val2 >> 12) & 0xf
-    imm8 = val2 & 0xff
-
-    puw = (val2>>8) & 0x7
-    pubwl = ((puw&1) | ((puw&0x6)<<1)) << 1
+    imm2 = (val2 >> 4) & 3
 
     oper0 = ArmRegOper(rt, va=va)
-    oper1 = ArmImmOffsetOper(rn, imm8, va=va, pubwl=pubwl)
+    oper1 = ArmScaledOffsetOper(rn, rm, S_LSL, imm2, va=va)
 
     opers = (oper0, oper1)
     return COND_AL, None, None, opers, None, 0
@@ -1950,7 +1964,7 @@ thumb_base = [
     ('010001110',   (INS_BL,'bx',      rm4_shift3, envi.IF_NOFALL)), # BX<c> <Rm>       # FIXME: check for IF_RET
     ('010001111',   (INS_BLX,'blx',     rm4_shift3, envi.IF_CALL)), # BLX<c> <Rm>
     # Load from Litera7 Pool
-    ('01001',       (INS_LDR,'ldr',     rt_pc_imm8, 0)), # LDR<c> <Rt>,<label>
+    ('01001',       (INS_LDR,'ldr',     rt_pc_imm8d, 0)), # LDR<c> <Rt>,<label>
     # Load/Stor single data item
     ('0101000',     (INS_STR,'str',     rm_rn_rt,   0)), # STR<c> <Rt>,[<Rn>,<Rm>]
     ('0101001',     (INS_STRH,'strh',    rm_rn_rt,   0)), # STRH<c> <Rt>,[<Rn>,<Rm>]
@@ -1966,8 +1980,8 @@ thumb_base = [
     ('01111',       (INS_LDRB,'ldrb',    imm56_rn_rt, 0)), # LDRB<c> <Rt>,[<Rn>{,#<imm5>}]
     ('10000',       (INS_STRH,'strh',    imm55_rn_rt, 0)), # STRH<c> <Rt>,[<Rn>{,#<imm>}]
     ('10001',       (INS_LDRH,'ldrh',    imm55_rn_rt, 0)), # LDRH<c> <Rt>,[<Rn>{,#<imm>}]
-    ('10010',       (INS_LDR,'str',     rd_sp_imm8, 0)), # STR<c> <Rt>, [<Rn>{,#<imm>}]
-    ('10011',       (INS_LDR,'ldr',     rd_sp_imm8, 0)), # LDR<c> <Rt>, [<Rn>{,#<imm>}]
+    ('10010',       (INS_LDR,'str',     rd_sp_imm8d, 0)), # STR<c> <Rt>, [<Rn>{,#<imm>}]
+    ('10011',       (INS_LDR,'ldr',     rd_sp_imm8d, 0)), # LDR<c> <Rt>, [<Rn>{,#<imm>}]
     # Generate PC relative address
     ('10100',       (INS_ADD,'add',     rd_pc_imm8, 0)), # ADD<c> <Rd>,<label>
     # Generate SP rel5tive address
@@ -2133,17 +2147,23 @@ thumb2_extension = [
     ('11110001101',         (INS_SUB, 'sub',      dp_mod_imm_32,      IF_THUMB32)),  # cmp if rd=1111 and s=1
     ('11110001110',         (INS_RSB, 'rsb',      dp_mod_imm_32,      IF_THUMB32)),
     ('11110001111',         (INS_BLX, 'blx',      branch_misc,        IF_THUMB32)),    # necessary
-    ('1111001',             (INS_BLX, 'blx',      branch_misc,        IF_THUMB32)),    # necessary
+    # skip 1111001* - see data processing below.
     ('11110100000',         (INS_AND, 'and',      dp_mod_imm_32,      IF_THUMB32)),  # tst if rd=1111 and s=1
     ('11110100001',         (INS_BIC, 'bic',      dp_mod_imm_32,      IF_THUMB32)),
     ('11110100010',         (INS_ORR, 'orr',      dp_mod_imm_32,      IF_THUMB32)),
     ('11110100011',         (INS_ORN, 'orn',      dp_mod_imm_32,      IF_THUMB32)),  # mvn if rn=1111
     ('11110100100',         (INS_EOR, 'eor',      dp_mod_imm_32,      IF_THUMB32)),  # teq if rd=1111 and s=1
+    ('11110100101',         (INS_BLX, 'blx',      branch_misc,        IF_THUMB32)),    # necessary
+    ('11110100110',         (INS_BLX, 'blx',      branch_misc,        IF_THUMB32)),    # necessary
+    ('11110100111',         (INS_BLX, 'blx',      branch_misc,        IF_THUMB32)),    # necessary
     ('11110101000',         (INS_ADD, 'add',      dp_mod_imm_32,      IF_THUMB32)),  # cmn if rd=1111 and s=1
+    ('11110101001',         (INS_BLX, 'blx',      branch_misc,        IF_THUMB32)),    # necessary
     ('11110101010',         (INS_ADC, 'adc',      dp_mod_imm_32,      IF_THUMB32)),
     ('11110101011',         (INS_SBC, 'sbc',      dp_mod_imm_32,      IF_THUMB32)),
+    ('11110101100',         (INS_BLX, 'blx',      branch_misc,        IF_THUMB32)),    # necessary
     ('11110101101',         (INS_SUB, 'sub',      dp_mod_imm_32,      IF_THUMB32)),  # cmp if rd=1111 and s=1
     ('11110101110',         (INS_RSB, 'rsb',      dp_mod_imm_32,      IF_THUMB32)),
+    ('11110101111',         (INS_BLX, 'blx',      branch_misc,        IF_THUMB32)),    # necessary
 
     # data processing (plain binary immediate)
     ('1111001000',          (INS_ADD, 'add',      dp_bin_imm_32,      IF_THUMB32)),  # adr if rn=1111
@@ -2158,7 +2178,6 @@ thumb2_extension = [
     ('111100111010',        (INS_USAT, 'usat',    dp_bin_imm_32,      IF_THUMB32)),  # usat16 if val2=0000xxxx00xxxxxx
     ('111100111011',        (INS_USAT, 'usat',    dp_bin_imm_32,      IF_THUMB32)),  # usat16 if val2=0000xxxx00xxxxxx
     ('1111001111',          (INS_UBFX, 'ubfx',    ubfx_32,            IF_THUMB32)),
-    ('1111010',             (INS_BLX, 'blx',      branch_misc,        IF_THUMB32)),    # necessary
     ('1111011000',          (INS_ADD, 'add',      dp_bin_imm_32,      IF_THUMB32)),  # adr if rn=1111
     ('1111011001',          (INS_MOVW, 'movw',    dp_bin_imm_32,      IF_THUMB32)),
     ('1111011010',          (INS_SUB, 'sub',      dp_bin_imm_32,      IF_THUMB32)),  # adr if rn=1111
@@ -2173,30 +2192,21 @@ thumb2_extension = [
     ('11110111111',         (None, 'branchmisc',  branch_misc,        IF_THUMB32)),    # necessary
     
     # stores, loads, etc...
-    ('111110000000',        (INS_STR, 'str', ldr_puw_32,        IF_B | IF_THUMB32)),
+    ('111110000000',        (INS_STR, 'str', ldr_shift_32,        IF_B | IF_THUMB32)),
     ('111110000001',        (None, 'ldrb_memhints32', ldrb_memhints_32,  IF_THUMB32)),
-    ('111110000010',        (INS_STR,  'str',  ldr_puw_32,      IF_H | IF_THUMB32)),
-    ('111110000011',        (INS_LDR,  'ldr',  ldr_puw_32,      IF_H | IF_THUMB32)),
-    ('111110000100',        (INS_STR,  'str',  ldr_puw_32,      IF_THUMB32)),   # T4 encoding
-    ('111110000101',        (INS_LDR,  'ldr',  ldr_puw_32,      IF_THUMB32)),   # T4 encoding
-    ('11111000011',         (INS_BLX, 'blx',      branch_misc,        IF_THUMB32)),    # necessary
+    ('111110000010',        (INS_STR,  'str',  ldr_shift_32,      IF_H | IF_THUMB32)),
+    ('111110000011',        (INS_LDR,  'ldr',  ldr_shift_32,      IF_H | IF_THUMB32)),
+    ('111110000100',        (INS_STR,  'str',  ldr_shift_32,      IF_THUMB32)),   # T4 encoding
+    ('111110000101',        (INS_LDR,  'ldr',  ldr_shift_32,      IF_THUMB32)),   # T4 encoding
     ('111110001000',        (INS_STR, 'str', ldr_32,            IF_B | IF_THUMB32)),
     ('111110001001',        (None, 'ldrb_memhints32', ldrb_memhints_32,  IF_THUMB32)),
     ('111110001010',        (INS_STR, 'str', ldr_32,            IF_H | IF_THUMB32)),
     ('111110001011',        (INS_LDR, 'ldr', ldr_32,            IF_H | IF_THUMB32)),
     ('111110001100',        (INS_STR,  'str',  ldr_32,      IF_THUMB32)),
     ('111110001101',        (INS_LDR,  'ldr',  ldr_32,          IF_THUMB32)), # T3
-    ('111110001110',        (INS_BLX, 'blx',      branch_misc,        IF_THUMB32)),    # necessary
-    ('111110001111',        (INS_BLX, 'blx',      branch_misc,        IF_THUMB32)),    # necessary
-    ('111110010000',        (INS_BLX, 'blx',      branch_misc,        IF_THUMB32)),    # necessary
     ('111110010001',        (None, 'ldrb_memhints32', ldrb_memhints_32,  IF_THUMB32)),
-    ('11111001001',         (INS_BLX, 'blx',      branch_misc,        IF_THUMB32)),    # necessary
-    ('1111100101',          (INS_BLX, 'blx',      branch_misc,        IF_THUMB32)),    # necessary
-    ('111110011000',        (INS_BLX, 'blx',      branch_misc,        IF_THUMB32)),    # necessary
     ('111110011001',        (None, 'ldrb_memhints32', ldrb_memhints_32,  IF_THUMB32)),
-    ('111110011010',        (INS_BLX, 'blx',      branch_misc,        IF_THUMB32)),    # necessary
     ('111110011011',        (None, 'ldrb_memhints32', ldrb_memhints_32,  IF_THUMB32)),
-    ('1111100111',          (INS_BLX, 'blx',      branch_misc,        IF_THUMB32)),    # necessary
 
     # data-processing (register)
     ('111110100',           (None, 'shift_or_extend', shift_or_ext_32,   IF_THUMB32)),

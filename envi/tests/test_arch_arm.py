@@ -16,6 +16,8 @@ from envi.archs.arm.disasm import *
 
 from envi.tests.armthumb_tests import advsimdtests
 
+GOOD_TESTS = 5612
+GOOD_EMU_TESTS = 840
 ''' 
   This dictionary will contain all instructions supported by ARM to test
   Fields will contain following information:
@@ -1240,13 +1242,21 @@ instrs = [
         (REV_ALL_ARM, '00010cf1', 0x4560, 'cpsid a', IF_ID, ()),
         (REV_ALL_ARM, '1a010ef1', 0x4560, 'cpsid a, #0x1a', IF_ID, ()),
         (REV_ALL_ARM, '1a0002f1', 0x4560, 'cps #0x1a', 0, ()),
+        #
         # Following commands are THUMB commands
+        (REV_ALL_ARM, '03af', 0x4561, 'add r7, sp, #0x0c', 0, ()),
+        (REV_ALL_ARM, '0348', 0x4561, 'ldr r0, [#0x4570]', 0, ()),
         (REV_ALL_ARM, '62b6', 0x4561, 'cpsie i', IF_IE, ()),
         (REV_ALL_ARM, '72b6', 0x4561, 'cpsid i', IF_IE, ()),
         (REV_ALL_ARM, 'aff34084', 0x4561, 'cpsie i', IF_IE, ()),
         (REV_ALL_ARM, 'aff38086', 0x4561, 'cpsid a', IF_ID, ()),
         (REV_ALL_ARM, 'aff39a87', 0x4561, 'cpsid a, #0x1a', IF_ID, ()),
         (REV_ALL_ARM, 'aff31a81', 0x4561, 'cps #0x1a', 0, ()),
+        (REV_ALL_ARM, 'f6f7e456', 0x456ffff1, 'bl 0x44af6dbc', 0, ()),
+        (REV_ALL_ARM, 'D5F6FEEA', 0x2208EBE, 'blx 0x020de4bc', 0, ()),
+        (REV_ALL_ARM, '33f6e456', 0x4561, 'add.w r6, r3, #0x3de4', 0, ()),
+        (REV_ALL_ARM, '56f6e456', 0x4561, 'movw.w r6, r6, #0x6de4', 0, ()),
+        (REV_ALL_ARM, '53f83450', 0x4561, 'ldr.w r5, [r3, r4, lsl #3]', 0, ()),
 
         #(REV_ALL_ARM, 'a54be3ef', 0x4561, 'vqdmlsl.s32 q10, d19, d21', 0, ()),
         #(REV_ALL_ARM, 'a54993ef', 0x4561, 'vqdmlal.s16 q2, d19, d21', 0, ()),
@@ -1741,6 +1751,8 @@ class ArmInstructionSet(unittest.TestCase):
         print "Done with assorted instructions test.  DISASM: %s tests passed.  %s tests failed.  EMU: %s tests passed.  %s tests failed" % \
                 (goodcount, badcount, goodemu, bademu)
         print "Total of ", str(goodcount + badcount) + " tests completed."
+        self.assertEqual(goodcount, GOOD_TESTS)
+        self.assertEqual(goodemu, GOOD_EMU_TESTS)
         
         #pending deletion of following comments. Please comment if they need to stay or I will delete in following commit
         #op = vw.arch.archParseOpcode('12c3'.decode('hex'))
