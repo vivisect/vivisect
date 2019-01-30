@@ -49,7 +49,6 @@ rm_rd       = simpleops((O_REG, 0, 0x7), (O_REG, 3, 0x7))
 rn_rdm      = simpleops((O_REG, 0, 0x7), (O_REG, 3, 0x7))
 rm_rdn      = simpleops((O_REG, 0, 0x7), (O_REG, 3, 0x7))
 rm_rd_imm0  = simpleops((O_REG, 0, 0x7), (O_REG, 3, 0x7), (O_IMM, 0, 0))
-rm_rn_rt    = simpleops((O_REG, 0, 0x7), (O_REG, 3, 0x7), (O_REG, 6, 0x7))
 imm8        = simpleops((O_IMM, 8, 0xff))
 #imm11       = simpleops((O_IMM, 11, 0x7ff))
 
@@ -63,11 +62,12 @@ def d1_rm4_rd3(va, value):
     return COND_AL,(ArmRegOper(rd, va=va),ArmRegOper(rm, va=va)), None
 
 def rm_rn_rt(va, value):
+    tsize = (4,2,1,1,4,2,1,2)[(value>>9)&7]
     rt = shmaskval(value, 0, 0x7) # target
     rn = shmaskval(value, 3, 0x7) # base
     rm = shmaskval(value, 6, 0x7) # offset
     oper0 = ArmRegOper(rt, va=va)
-    oper1 = ArmRegOffsetOper(rn, rm, va, pubwl=0x18)
+    oper1 = ArmRegOffsetOper(rn, rm, va, pubwl=0x18, tsize=tsize)
     return COND_AL,(oper0,oper1), None
 
 def imm54_rn_rt(va, value):
@@ -75,7 +75,7 @@ def imm54_rn_rt(va, value):
     rn = shmaskval(value, 3, 0x7)
     rt = shmaskval(value, 0, 0x7)
     oper0 = ArmRegOper(rt, va=va)
-    oper1 = ArmImmOffsetOper(rn, imm, (va&0xfffffffc)+4, pubwl=0x18)
+    oper1 = ArmImmOffsetOper(rn, imm, (va&0xfffffffc)+4, pubwl=0x18, tsize=4)
     return COND_AL,(oper0,oper1), None
 
 def imm55_rn_rt(va, value):
@@ -83,7 +83,7 @@ def imm55_rn_rt(va, value):
     rn = shmaskval(value, 3, 0x7)
     rt = shmaskval(value, 0, 0x7)
     oper0 = ArmRegOper(rt, va=va)
-    oper1 = ArmImmOffsetOper(rn, imm, (va&0xfffffffc)+4, pubwl=0x18)
+    oper1 = ArmImmOffsetOper(rn, imm, (va&0xfffffffc)+4, pubwl=0x18, tsize=2)
     return COND_AL,(oper0,oper1), None
 
 def imm56_rn_rt(va, value):
@@ -91,7 +91,7 @@ def imm56_rn_rt(va, value):
     rn = shmaskval(value, 3, 0x7)
     rt = shmaskval(value, 0, 0x7)
     oper0 = ArmRegOper(rt, va=va)
-    oper1 = ArmImmOffsetOper(rn, imm, (va&0xfffffffc)+4, pubwl=0x18)
+    oper1 = ArmImmOffsetOper(rn, imm, (va&0xfffffffc)+4, pubwl=0x18, tsize=1)
     return COND_AL,(oper0,oper1), None
 
 def rd_sp_imm8(va, value): # add
@@ -1974,19 +1974,19 @@ thumb_base = [
     ('01001',       (INS_LDR,'ldr',     rt_pc_imm8d, 0)), # LDR<c> <Rt>,<label>
     # Load/Stor single data item
     ('0101000',     (INS_STR,'str',     rm_rn_rt,   0)), # STR<c> <Rt>,[<Rn>,<Rm>]
-    ('0101001',     (INS_STRH,'strh',    rm_rn_rt,   0)), # STRH<c> <Rt>,[<Rn>,<Rm>]
-    ('0101010',     (INS_STRB,'strb',    rm_rn_rt,   0)), # STRB<c> <Rt>,[<Rn>,<Rm>]
-    ('0101011',     (INS_LDRSB,'ldrsb',   rm_rn_rt,   0)), # LDRSB<c> <Rt>,[<Rn>,<Rm>]
+    ('0101001',     (INS_STRH,'str',    rm_rn_rt,   IF_H)), # STRH<c> <Rt>,[<Rn>,<Rm>]
+    ('0101010',     (INS_STRB,'str',    rm_rn_rt,   IF_B)), # STRB<c> <Rt>,[<Rn>,<Rm>]
+    ('0101011',     (INS_LDRSB,'ldr',   rm_rn_rt,  IF_SIGNED | IF_B)), # LDRSB<c> <Rt>,[<Rn>,<Rm>]
     ('0101100',     (INS_LDR,'ldr',     rm_rn_rt,   0)), # LDR<c> <Rt>,[<Rn>,<Rm>]
-    ('0101101',     (INS_LDRH,'ldrh',    rm_rn_rt,   0)), # LDRH<c> <Rt>,[<Rn>,<Rm>]
-    ('0101110',     (INS_LDRB,'ldrb',    rm_rn_rt,   0)), # LDRB<c> <Rt>,[<Rn>,<Rm>]
-    ('0101111',     (INS_LDRSH,'ldrsh',   rm_rn_rt,   0)), # LDRSH<c> <Rt>,[<Rn>,<Rm>]
+    ('0101101',     (INS_LDRH,'ldr',    rm_rn_rt,   IF_H)), # LDRH<c> <Rt>,[<Rn>,<Rm>]
+    ('0101110',     (INS_LDRB,'ldr',    rm_rn_rt,   IF_B)), # LDRB<c> <Rt>,[<Rn>,<Rm>]
+    ('0101111',     (INS_LDRSH,'ldr',   rm_rn_rt,   IF_SIGNED | IF_H)), # LDRSH<c> <Rt>,[<Rn>,<Rm>]
     ('01100',       (INS_STR,'str',     imm54_rn_rt, 0)), # STR<c> <Rt>, [<Rn>{,#<imm5>}]
     ('01101',       (INS_LDR,'ldr',     imm54_rn_rt, 0)), # LDR<c> <Rt>, [<Rn>{,#<imm5>}]
-    ('01110',       (INS_STRB,'strb',    imm56_rn_rt, 0)), # STRB<c> <Rt>,[<Rn>,#<imm5>]
-    ('01111',       (INS_LDRB,'ldrb',    imm56_rn_rt, 0)), # LDRB<c> <Rt>,[<Rn>{,#<imm5>}]
-    ('10000',       (INS_STRH,'strh',    imm55_rn_rt, 0)), # STRH<c> <Rt>,[<Rn>{,#<imm>}]
-    ('10001',       (INS_LDRH,'ldrh',    imm55_rn_rt, 0)), # LDRH<c> <Rt>,[<Rn>{,#<imm>}]
+    ('01110',       (INS_STRB,'str',    imm56_rn_rt, IF_B)), # STRB<c> <Rt>,[<Rn>,#<imm5>]
+    ('01111',       (INS_LDRB,'ldr',    imm56_rn_rt, IF_B)), # LDRB<c> <Rt>,[<Rn>{,#<imm5>}]
+    ('10000',       (INS_STRH,'str',    imm55_rn_rt, IF_H)), # STRH<c> <Rt>,[<Rn>{,#<imm>}]
+    ('10001',       (INS_LDRH,'ldr',    imm55_rn_rt, IF_H)), # LDRH<c> <Rt>,[<Rn>{,#<imm>}]
     ('10010',       (INS_LDR,'str',     rd_sp_imm8d, 0)), # STR<c> <Rt>, [<Rn>{,#<imm>}]
     ('10011',       (INS_LDR,'ldr',     rd_sp_imm8d, 0)), # LDR<c> <Rt>, [<Rn>{,#<imm>}]
     # Generate PC relative address
