@@ -1138,12 +1138,15 @@ def strex_32(va, val1, val2):
     return COND_AL, None, None, opers, flags, 0
 
 def ldr_32(va, val1, val2):
+    bitsbits = (val1>>4) & 0x7
+    tsize = (1, 0, 2, 2, 4, 4, 0, 0)[bitsbits]
+
     rn = val1 & 0xf
     rt = (val2 >> 12) & 0xf
     imm12 = val2 & 0xfff
 
     oper0 = ArmRegOper(rt, va=va)
-    oper1 = ArmImmOffsetOper(rn, imm12, va=va)
+    oper1 = ArmImmOffsetOper(rn, imm12, va=va, tsize=tsize)
 
     opers = (oper0, oper1)
     return COND_AL, None, None, opers, None, 0
@@ -1183,7 +1186,7 @@ def ldrb_memhints_32(va, val1, val2):
             imm12 = val2 & 0xfff
             opers = (
                     ArmRegOper(rt),
-                    ArmPcOffsetOper(imm12, va),
+                    ArmPcOffsetOper(imm12, va, tsize=1),
                     )
             return COND_AL, opcode, mnem, opers, flags, 0
 
@@ -1228,7 +1231,7 @@ def ldrb_memhints_32(va, val1, val2):
                 imm2 = (val2>>4) & 3
                 opers = (
                         ArmRegOper(rt),
-                        ArmScaledOffsetOper(rn, rm, S_LSL, imm2, va),
+                        ArmScaledOffsetOper(rn, rm, S_LSL, imm2, va, tsize=1),
                         )
                 return COND_AL, opcode, mnem, opers, flags, 0
 
@@ -1243,6 +1246,8 @@ def ldr_shift_32(va, val1, val2):
     #b11 = (val2>>11) & 1
     #if not b11:
     #    raise Exception("ldr_shift_32 parsing non-ldrb")
+    bitsbits = (val1>>4) & 0x7
+    tsize = (1, 0, 2, 2, 4, 4, 0, 0)[bitsbits]
 
     rn = val1 & 0xf
     rm = val2 & 0xf
@@ -1250,7 +1255,7 @@ def ldr_shift_32(va, val1, val2):
     imm2 = (val2 >> 4) & 3
 
     oper0 = ArmRegOper(rt, va=va)
-    oper1 = ArmScaledOffsetOper(rn, rm, S_LSL, imm2, va=va)
+    oper1 = ArmScaledOffsetOper(rn, rm, S_LSL, imm2, va=va, tsize=tsize)
 
     opers = (oper0, oper1)
     return COND_AL, None, None, opers, None, 0
@@ -1261,7 +1266,7 @@ def ldrex_32(va, val1, val2):
     imm8 = val2 & 0xff
 
     oper0 = ArmRegOper(rt, va=va)
-    oper1 = ArmImmOffsetOper(rn, imm8<<2, va=va)
+    oper1 = ArmImmOffsetOper(rn, imm8<<2, va=va, tsize=4)
 
     opers = (oper0, oper1)
     flags = 0
@@ -1402,11 +1407,13 @@ def tb_ldrex_32(va, val1, val2):
     if op3 & 4: # ldrex#
         mnem = 'ldrex'
         opcode = INS_LDREX
-        flags | (IF_B, IF_H, 0, IF_D)[op3&3]
+        flags |= (IF_B, IF_H, 0, IF_D)[op3&3]
+        tsize = [1, 2, 0, 8][op3&3]
 
         oper0 = ArmRegOper(rt, va=va)
-        oper1 = ArmRegOper(rn, va=va)
+        oper1 = ArmRegOffsetOper(rn, va=va, tsize=tsize)
         opers = (oper0, oper1)
+
     else:       # tbb/tbh
         isH = op3 & 1
         mnem, opcode, tsize = (('tbb', INS_TBB, 1), ('tbh', INS_TBH, 2))[isH]
