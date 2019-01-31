@@ -33,7 +33,7 @@ class Signature:
 
 from vivisect.const import *
 
-def genSigAndMask(vw, funcva, startva=None):
+def genSigAndMask(vw, funcva):
 
     """
     Generate an envi bytesig signature and mask for the given
@@ -42,14 +42,16 @@ def genSigAndMask(vw, funcva, startva=None):
     """
 
     fsize = 0
-    if startva == None:
-        startva = funcva
+    if funcva not in vw.getFunctions():
+        funcva = vw.getFunction(funcva)
+        if funcva == None:
+            raise Exception('Given funcva not a function or within a known function')
     func_blocks = [cbva for cbva, _, _ in vw.getFunctionBlocks(funcva)]
     # Figure out the size of the first linear chunk
     # in this function...
-    cb = vw.getCodeBlock(startva)
+    cb = vw.getCodeBlock(funcva)
     if cb[CB_VA] not in func_blocks:
-        raise Exception("startva not in given func")
+        raise Exception("funcva not in given func")
     while cb != None:
         cbva, cbsize, cbfunc = cb
         if cbfunc != funcva:
@@ -60,7 +62,7 @@ def genSigAndMask(vw, funcva, startva=None):
     if fsize == 0:
         raise Exception("0 length function??!?1")
 
-    bytez = vw.readMemory(startva, fsize)
+    bytez = vw.readMemory(funcva, fsize)
 
     sig = ""
     mask = ""

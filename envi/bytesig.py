@@ -106,9 +106,7 @@ class SignatureTree:
         node = self.basenode
         while True:
             depth, sigs, choices, term = node
-            if len(term) != 0:
-                for t in term:
-                    matches.append(t)
+            matches.extend(term)
             # Once we get down to one sig, there are no more branches,
             # just check the byte sequence.
             if len(sigs) == 1:

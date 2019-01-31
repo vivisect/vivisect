@@ -113,7 +113,11 @@ def loadPeIntoWorkspace(vw, pe, filename=None):
     vw.setFileMeta(fname, 'SymbolCacheHash', symhash)
 
     # Add file version info if VS_VERSIONINFO has it
-    vs = pe.getVS_VERSIONINFO()
+    try:
+        vs = pe.getVS_VERSIONINFO()
+    except Exception, e:
+        vs = None
+        vw.vprint('Failed to load version info resource due to %s' % (repr(e),))
     if vs != None:
         vsver = vs.getVersionValue('FileVersion')
         if vsver != None and len(vsver):
