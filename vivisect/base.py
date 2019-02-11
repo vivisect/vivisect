@@ -1,11 +1,9 @@
 import Queue
-import logging
 import traceback
 import threading
 import collections
 
 import envi
-import envi.bits as e_bits
 import envi.memory as e_mem
 import envi.pagelookup as e_page
 import envi.codeflow as e_codeflow
@@ -23,8 +21,6 @@ from envi.threads import firethread
 
 from vivisect.exc import *
 from vivisect.const import *
-
-logger = logging.getLogger(__name__)
 
 """
 Mostly this is a place to scuttle away some of the inner workings
@@ -216,22 +212,8 @@ class VivWorkspaceCore(object,viv_impapi.ImportApi):
         self.segments.append(einfo)
 
     def _handleADDRELOC(self, einfo):
-        rva, rtype = einfo
-        self.reloc_by_va[rva] = rtype
+        self.reloc_by_va[einfo[0]] = einfo[1]
         self.relocations.append(einfo)
-
-        if rtype == RTYPE_BASERELOC:
-            fnm = self.getFileByVa(rva)
-            imgbase = self.getFileMeta(fnm, 'imagebase')
-            rbase = imgbase
-
-            ptr = self.readMemoryPtr(rva)
-            ptr += rbase
-            ptr &= e_bits.u_maxes[self.psize]
-            self.writeMemoryPtr(rva, ptr)
-
-        logger.info('_handleADDRELOC: %x -> %x (map: 0x%x)', rva, ptr, rbase)
-
 
     def _handleADDMODULE(self, einfo):
         print('DEPRICATED (ADDMODULE) ignored: %s' % einfo)

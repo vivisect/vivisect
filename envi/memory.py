@@ -162,9 +162,6 @@ class IMemory:
         return (0,0xffffffff)
 
     def readMemValue(self, addr, size):
-        '''
-        Read a number from memory of the given size.
-        '''
         #FIXME: use getBytesDef (and implement a dummy wrapper in VTrace for getBytesDef)
         bytes = self.readMemory(addr, size)
         if bytes == None:
@@ -199,23 +196,6 @@ class IMemory:
             fmt = fmt.replace("P","Q")
         mbytes = struct.pack(fmt, *args)
         self.writeMemory(va, mbytes)
-
-    def writeMemValue(self, addr, val, size):
-        '''
-        Write a number from memory of the given size.
-        '''
-        efmt = e_bits.fmt_chars[self.getEndian()]
-        fmt = efmt[size]
-        return self.writeMemoryFormat(addr, fmt, val)
-
-    def writeMemoryPtr(self, va, val):
-        '''
-        Read a pointer from memory at the specified address.
-
-        Example:
-            ptr = t.readMemoryPtr(addr)
-        '''
-        return self.writeMemValue(va, val, self.imem_psize)
 
     def getMemoryMap(self, va):
         '''
