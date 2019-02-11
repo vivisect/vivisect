@@ -204,9 +204,8 @@ class IMemory:
         '''
         Write a number from memory of the given size.
         '''
-        efmt = e_bits.fmt_chars[self.getEndian()]
-        fmt = efmt[size]
-        return self.writeMemoryFormat(addr, fmt, val)
+        bytez = e_bits.buildbytes(val, size, self.getEndian())
+        return self.writeMemory(addr, bytez)
 
     def writeMemoryPtr(self, va, val):
         '''
