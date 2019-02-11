@@ -10,11 +10,12 @@ archcalls = {
     'arm':'armcall',
     }
 
-def parseFd(vw, fd, filename=None):
+def parseFd(vw, fd, filename=None, baseaddr=None):
     fd.seek(0)
     arch = vw.config.viv.parsers.blob.arch
     bigend = vw.config.viv.parsers.blob.bigend
-    baseaddr = vw.config.viv.parsers.blob.baseaddr
+    if baseaddr == None:
+        baseaddr = vw.config.viv.parsers.blob.baseaddr
     try:
         envi.getArchModule(arch)
     except Exception, e:
@@ -31,11 +32,12 @@ def parseFd(vw, fd, filename=None):
     vw.addMemoryMap(baseaddr, 7, filename, bytez)
     vw.addSegment( baseaddr, len(bytez), '%.8x' % baseaddr, 'blob' )
 
-def parseFile(vw, filename):
+def parseFile(vw, filename, baseaddr=None):
 
     arch = vw.config.viv.parsers.blob.arch
     bigend = vw.config.viv.parsers.blob.bigend
-    baseaddr = vw.config.viv.parsers.blob.baseaddr
+    if baseaddr == None:
+        baseaddr = vw.config.viv.parsers.blob.baseaddr
 
     try:
         envi.getArchModule(arch)

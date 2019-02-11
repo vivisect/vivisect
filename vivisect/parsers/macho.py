@@ -4,12 +4,12 @@ import vivisect.parsers as viv_parsers
 import vstruct.defs.macho as vs_macho
 import vivisect.analysis.i386 as viv_a_i386
 
-def parseFile(vw, filename):
+def parseFile(vw, filename, baseaddr=None):
     fbytes = file(filename, 'rb').read()
-    return _loadMacho(vw, fbytes, filename=filename)
+    return _loadMacho(vw, fbytes, filename=filename, baseaddr=baseaddr)
 
-def parseBytes(vw, filebytes):
-    return _loadMacho(vw, filebytes)
+def parseBytes(vw, filebytes, baseaddr=None):
+    return _loadMacho(vw, filebytes, baseaddr=baseaddr)
 
 archcalls = {
     'i386':'cdecl',
@@ -17,10 +17,11 @@ archcalls = {
     'arm':'armcall',
 }
 
-def _loadMacho(vw, filebytes, filename=None):
+def _loadMacho(vw, filebytes, filename=None, baseaddr=None):
 
     # We fake them to *much* higher than norm so pointer tests do better...
-    baseaddr = vw.config.viv.parsers.macho.baseaddr
+    if baseaddr == None:
+        baseaddr = vw.config.viv.parsers.macho.baseaddr
 
     if filename == None:
         filename = 'macho_%.8x' % baseaddr # FIXME more than one!

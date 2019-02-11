@@ -24,15 +24,15 @@ from vivisect.const import *
 #0x166   MIPS R4000
 #0x183   DEC Alpha AXP
 
-def parseFile(vw, filename):
+def parseFile(vw, filename, baseaddr=None):
     pe = PE.PE(file(filename,"rb"))
-    return loadPeIntoWorkspace(vw, pe, filename)
+    return loadPeIntoWorkspace(vw, pe, filename, baseaddr=baseaddr)
 
-def parseBytes(vw, bytes):
+def parseBytes(vw, bytes, baseaddr=None):
     fd = StringIO.StringIO(bytes)
     fd.seek(0)
     pe = PE.PE(fd)
-    return loadPeIntoWorkspace(vw, pe, filename=filename)
+    return loadPeIntoWorkspace(vw, pe, filename=filename, baseaddr=baseaddr)
 
 def parseMemory(vw, memobj, base):
     pe = PE.peFromMemoryObject(memobj, base)
@@ -40,10 +40,10 @@ def parseMemory(vw, memobj, base):
     #FIXME does the PE's load address get fixedup on rebase?
     return loadPeIntoWorkspace(vw, pe, fname)
 
-def parseFd(vw, fd, filename=None):
+def parseFd(vw, fd, filename=None, baseaddr=None):
     fd.seek(0)
     pe = PE.PE(fd)
-    return loadPeIntoWorkspace(vw, pe, filename=filename)
+    return loadPeIntoWorkspace(vw, pe, filename=filename, baseaddr=baseaddr)
 
 arch_names = {
     PE.IMAGE_FILE_MACHINE_I386:'i386',
@@ -61,7 +61,7 @@ relmap = {
     PE.IMAGE_REL_BASED_HIGHLOW:vivisect.RTYPE_BASERELOC,
 }
 
-def loadPeIntoWorkspace(vw, pe, filename=None):
+def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
 
     mach = pe.IMAGE_NT_HEADERS.FileHeader.Machine
 
@@ -83,9 +83,10 @@ def loadPeIntoWorkspace(vw, pe, filename=None):
 
     vw.setMeta('DefaultCall', defcalls.get(arch,'unknown'))
 
-    # Set ourselvs up for extended windows binary analysis
+    # Set ourselves up for extended windows binary analysis
 
-    baseaddr = pe.IMAGE_NT_HEADERS.OptionalHeader.ImageBase
+    if baseaddr == None:
+        baseaddr = pe.IMAGE_NT_HEADERS.OptionalHeader.ImageBase
     entry = pe.IMAGE_NT_HEADERS.OptionalHeader.AddressOfEntryPoint + baseaddr
     entryrva = entry - baseaddr
 
