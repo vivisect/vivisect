@@ -209,10 +209,10 @@ class IMemory:
 
     def writeMemoryPtr(self, va, val):
         '''
-        Read a pointer from memory at the specified address.
+        Write a pointer to memory at the specified address.
 
         Example:
-            ptr = t.readMemoryPtr(addr)
+            ptr = t.writeMemoryPtr(addr, val)
         '''
         return self.writeMemValue(va, val, self.imem_psize)
 

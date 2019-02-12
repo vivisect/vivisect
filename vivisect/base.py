@@ -223,14 +223,15 @@ class VivWorkspaceCore(object,viv_impapi.ImportApi):
         if rtype == RTYPE_BASERELOC:
             fnm = self.getFileByVa(rva)
             imgbase = self.getFileMeta(fnm, 'imagebase')
-            rbase = imgbase
 
             ptr = self.readMemoryPtr(rva)
-            ptr += rbase
-            ptr &= e_bits.u_maxes[self.psize]
+            ptr += imgbase
+            if ptr != (ptr & e_bits.u_maxes[self.psize]):
+                logger.warn('RTYPE_BASERELOC calculated a bad pointer: 0x%x (imgbase: 0x%x)', ptr, imgbase)
+
             self.writeMemoryPtr(rva, ptr)
 
-        logger.info('_handleADDRELOC: %x -> %x (map: 0x%x)', rva, ptr, rbase)
+            logger.info('_handleADDRELOC: %x -> %x (map: 0x%x)', rva, ptr, imgbase)
 
 
     def _handleADDMODULE(self, einfo):
