@@ -2081,7 +2081,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
 
 
-    def loadFromFd(self, fd, fmtname=None):
+    def loadFromFd(self, fd, fmtname=None, baseaddr=None):
         """
         Read the first bytes of the file descriptor and see if we can identify the type.
         If so, load up the parser for that file type, otherwise raise an exception.
@@ -2100,7 +2100,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
         fd.seek(0)
         filename = hashlib.md5( fd.read() ).hexdigest()
-        fname = mod.parseFd(self, fd, filename)
+        fname = mod.parseFd(self, fd, filename, baseaddr=baseaddr)
 
         self.initMeta("StorageName", filename+".viv")
 
@@ -2146,7 +2146,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             self.vprint('Saving Symbol Cache: %s (%d syms)' % (symhash,len(symtups)))
             symcache.setCacheSyms( symhash, symtups )
 
-    def loadFromFile(self, filename, fmtname=None):
+    def loadFromFile(self, filename, fmtname=None, baseaddr=None):
         """
         Read the first bytes of the file and see if we can identify the type.
         If so, load up the parser for that file type, otherwise raise an exception.
@@ -2159,7 +2159,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             fmtname = viv_parsers.guessFormatFilename(filename)
 
         mod = viv_parsers.getParserModule(fmtname)
-        fname = mod.parseFile(self, filename)
+        fname = mod.parseFile(self, filename, baseaddr=baseaddr)
 
         self.initMeta("StorageName", filename+".viv")
 
