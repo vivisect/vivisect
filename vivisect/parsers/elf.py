@@ -93,7 +93,7 @@ archcalls = {
 def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
 
     arch = arch_names.get(elf.e_machine)
-    if arch == None:
+    if arch is None:
        raise Exception("Unsupported Architecture: %d\n", elf.e_machine)
 
     platform = elf.getPlatform()
@@ -112,11 +112,11 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
     addbase = False
     if not elf.isPreLinked() and elf.isSharedObject():
         addbase = True
-    if baseaddr == None:
+    if baseaddr is None:
         baseaddr = elf.getBaseAddress()
 
     #FIXME make filename come from dynamic's if present for shared object
-    if filename == None:
+    if filename is None:
         filename = "elf_%.8x" % baseaddr
 
     fhash = "unknown hash"

@@ -14,7 +14,7 @@ def parseFd(vw, fd, filename=None, baseaddr=None):
     fd.seek(0)
     arch = vw.config.viv.parsers.blob.arch
     bigend = vw.config.viv.parsers.blob.bigend
-    if baseaddr == None:
+    if baseaddr is None:
         baseaddr = vw.config.viv.parsers.blob.baseaddr
     try:
         envi.getArchModule(arch)
@@ -36,7 +36,7 @@ def parseFile(vw, filename, baseaddr=None):
 
     arch = vw.config.viv.parsers.blob.arch
     bigend = vw.config.viv.parsers.blob.bigend
-    if baseaddr == None:
+    if baseaddr is None:
         baseaddr = vw.config.viv.parsers.blob.baseaddr
 
     try:
