@@ -5,6 +5,7 @@ import threading
 import collections
 
 import envi
+import envi.bits as e_bits
 import envi.memory as e_mem
 import envi.pagelookup as e_page
 import envi.codeflow as e_codeflow
@@ -215,8 +216,23 @@ class VivWorkspaceCore(object,viv_impapi.ImportApi):
         self.segments.append(einfo)
 
     def _handleADDRELOC(self, einfo):
-        self.reloc_by_va[einfo[0]] = einfo[1]
+        rva, rtype = einfo
+        self.reloc_by_va[rva] = rtype
         self.relocations.append(einfo)
+
+        if rtype == RTYPE_BASERELOC:
+            fnm = self.getFileByVa(rva)
+            imgbase = self.getFileMeta(fnm, 'imagebase')
+
+            ptr = self.readMemoryPtr(rva)
+            ptr += imgbase
+            if ptr != (ptr & e_bits.u_maxes[self.psize]):
+                logger.warn('RTYPE_BASERELOC calculated a bad pointer: 0x%x (imgbase: 0x%x)', ptr, imgbase)
+
+            self.writeMemoryPtr(rva, ptr)
+
+            logger.info('_handleADDRELOC: %x -> %x (map: 0x%x)', rva, ptr, imgbase)
+
 
     def _handleADDMODULE(self, einfo):
         print('DEPRICATED (ADDMODULE) ignored: %s' % einfo)

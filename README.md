@@ -28,13 +28,17 @@ framework for PE/Elf/Mach-O/Blob binary formats on various architectures.
 To start with, you probably want to run a "bulk analysis" pass on a binary
 using:
 
-> python vivbin -B <binaryfile>
+```
+python vivbin -B <binaryfile>
+```
 
 which will leave you with <binaryfile>.viv
 
 Then run:
 
-> python vivbin <binaryfile>.viv
+```
+python vivbin <binaryfile>.viv
+```
 
 to open the GUI and begin reverse engineering.  As with most vtoys, the ui
 relies fairly heavily on right-click context menus and various memory
