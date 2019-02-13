@@ -106,6 +106,9 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
     vw.setMeta('DefaultCall', archcalls.get(arch,'unknown'))
 
     vw.addNoReturnApi("*.exit")
+    vw.addNoReturnApi("*._exit")
+    vw.addNoReturnApi("*.longjmp")
+    vw.addNoReturnApi("*._setjmp")
 
     # Base addr is earliest section address rounded to pagesize
     # NOTE: This is only for prelink'd so's and exe's.  Make something for old style so.
@@ -287,14 +290,10 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
                         vw.makeImport(rlva, "*", name)
                         vw.setComment(rlva, dmglname)
 
-                    # FIXME elf has conflicting names for 2 relocs?
-                    #elif rtype == Elf.R_386_GLOB_DAT:
-                        #vw.makeImport(rlva, "*", name)
-
                     elif rtype == Elf.R_386_32:
                         pass
 
-                    elif rtype == Elf.R_X86_64_GLOB_DAT:
+                    elif rtype == Elf.R_X86_64_GLOB_DAT:    # Elf.R_386_GLOB_DAT is same number
                         vw.makeImport(rlva, "*", name)
                         vw.setComment(rlva, dmglname)
 
@@ -302,21 +301,21 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
                         vw.verbprint('unknown reloc type: %d %s (at %s)' % (rtype, name, hex(rlva)))
                         
 
-            if arch == 'arm':
-                if name:
-                    if rtype == Elf.R_ARM_JUMP_SLOT:
-                        vw.makeImport(rlva, "*", dmglname)
+            if arch in ('arm', 'thumb', 'thumb16'):
+                if rtype in (Elf.R_ARM_JUMP_SLOT, Elf.R_ARM_GLOB_DAT):
+                    vw.makeImport(rlva, "*", name)
+                    vw.setComment(sva, dmglname)
 
-                    elif rtype == Elf.R_ARM_ABS32:      # Direct 32 bit  */
-                        vw.makeImport(rlva, "*", name)
-                        vw.setComment(rlva, dmglname)
+                elif rtype == Elf.R_ARM_ABS32:
+                    vw.makeImport(rlva, "*", name)
+                    vw.setComment(sva, dmglname)
 
-                    elif rtype == Elf.R_ARM_GLOB_DAT:   # Create GOT entry */
-                        vw.makeImport(rlva, "*", name)
-                        vw.setComment(rlva, dmglname)
+                elif rtype == Elf.R_ARM_RELATIVE:   # Adjust locations for the rebasing
+                    vw.addRelocation(rlva, vivisect.RTYPE_BASERELOC)
+                    vw.setComment(rlva, dmglname)
 
-                    else:
-                        vw.verbprint('unknown reloc type: %d %s (at %s)' % (rtype, name, hex(rlva)))
+                else:
+                    vw.verbprint('unknown reloc type: %d %s (at %s)' % (rtype, name, hex(rlva)))
 
         except vivisect.InvalidLocation, e:
             print "NOTE",e
@@ -338,6 +337,7 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
             try:
                 vw.addEntryPoint(sva)
                 vw.addExport(sva, EXP_FUNCTION, s.name, fname)
+                vw.setComment(sva, dmglname)
             except Exception, e:
                 vw.vprint('addExport Failure: (%s) %s' % (s.name, e))
 
@@ -345,6 +345,7 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
             if vw.isValidPointer(sva):
                 try:
                     vw.addExport(sva, EXP_DATA, s.name, fname)
+                    vw.setComment(sva, dmglname)
                 except Exception, e:
                     vw.vprint('WARNING: %s' % e)
 
@@ -356,7 +357,8 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
             if vw.isValidPointer(sva):
                 try:
                     vw.addEntryPoint(sva)
-                    vw.addExport(sva, EXP_FUNCTION, dmglname, fname)
+                    vw.addExport(sva, EXP_FUNCTION, s.name, fname)
+                    vw.setComment(sva, dmglname)
                 except Exception, e:
                     vw.vprint('WARNING: %s' % e)
 
@@ -367,7 +369,8 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
             if addbase: sva += baseaddr
             if vw.isValidPointer(sva):
                 try:
-                    vw.addExport(sva, EXP_DATA, dmglname, fname)
+                    vw.addExport(sva, EXP_DATA, s.name, fname)
+                    vw.setComment(sva, dmglname)
                 except Exception, e:
                     vw.vprint('WARNING: %s' % e)
 
