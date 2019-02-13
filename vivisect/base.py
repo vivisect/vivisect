@@ -229,7 +229,9 @@ class VivWorkspaceCore(object,viv_impapi.ImportApi):
             if ptr != (ptr & e_bits.u_maxes[self.psize]):
                 logger.warn('RTYPE_BASERELOC calculated a bad pointer: 0x%x (imgbase: 0x%x)', ptr, imgbase)
 
+            self._supervisor = True
             self.writeMemoryPtr(rva, ptr)
+            self._supervisor = False
 
             logger.info('_handleADDRELOC: %x -> %x (map: 0x%x)', rva, ptr, imgbase)
 
