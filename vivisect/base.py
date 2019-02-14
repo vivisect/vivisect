@@ -2,6 +2,7 @@ import Queue
 import logging
 import traceback
 import threading
+import contextlib
 import collections
 
 import envi
@@ -230,18 +231,7 @@ class VivWorkspaceCore(object,viv_impapi.ImportApi):
         self.reloc_by_va[rva] = rtype
         self.relocations.append(einfo)
 
-        if rtype == RTYPE_BASERELOC:
-            # FIXME: we can't rebase something and expect the pointer in memory to be just the offset...
-            # consider deprecating this reloc type in favor of BASEOFF
-            ptr = self.readMemoryPtr(rva)
-            ptr += imgbase
-            if ptr != (ptr & e_bits.u_maxes[self.psize]):
-                logger.warn('RTYPE_BASERELOC calculated a bad pointer: 0x%x (imgbase: 0x%x)', ptr, imgbase)
-
-            with SupervisorMode(self):
-                self.writeMemoryPtr(rva, ptr)
-
-            logger.info('_handleADDRELOC: %x -> %x (map: 0x%x)', rva, ptr, imgbase)
+        # RTYPE_BASERELOC assumes the memory is already accurate (eg. PE's unless rebased)
 
         if rtype == RTYPE_BASEOFF:
             # add imgbase and offset to pointer in memory
@@ -250,10 +240,20 @@ class VivWorkspaceCore(object,viv_impapi.ImportApi):
             if ptr != (ptr & e_bits.u_maxes[self.psize]):
                 logger.warn('RTYPE_BASEOFF calculated a bad pointer: 0x%x (imgbase: 0x%x)', ptr, imgbase)
 
-            with SupervisorMode(self):
+            # writes are costly, especially on larger binaries
+            if ptr == self.readMemoryPtr(rva):
+                return
+
+            with self.getAdminRights():
                 self.writeMemoryPtr(rva, ptr)
 
-            logger.info('_handleADDRELOC: %x -> %x (map: 0x%x)', rva, ptr, imgbase)
+            #logger.info('_handleADDRELOC: %x -> %x (map: 0x%x)', rva, ptr, imgbase)
+
+    @contextlib.contextmanager
+    def getAdminRights(self):
+        self._supervisor = True
+        yield
+        self._supervisor = False
 
     def _handleADDMODULE(self, einfo):
         print('DEPRICATED (ADDMODULE) ignored: %s' % einfo)
@@ -658,14 +658,6 @@ class VivWorkspaceCore(object,viv_impapi.ImportApi):
     def _fmcb_LocalSymbol(self, fva, mname, locsym):
         fva,spdelta,symtype,syminfo = locsym
         self.localsyms[fva][spdelta] = locsym
-
-class SupervisorMode:
-    def __init__(self, vw):
-        self.vw = vw
-    def __enter__(self):
-        self.vw._supervisor = 1
-    def __exit__(self, type, value, traceback):
-        self.vw._supervisor = 0
 
 def trackDynBranches(cfctx, op, vw, bflags, branches):
     '''
