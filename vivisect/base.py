@@ -216,25 +216,44 @@ class VivWorkspaceCore(object,viv_impapi.ImportApi):
         self.segments.append(einfo)
 
     def _handleADDRELOC(self, einfo):
-        rva, rtype = einfo
+        if len(einfo) == 2:     # FIXME: legacy: remove after 02/13/2020
+            rva,rtype = einfo
+            mmva, mmsz, mmperm, fname = self.getMemoryMap(rva)    # FIXME: getFileByVa does not obey file defs
+            imgbase = self.getFileMeta(fname, 'imagebase')
+            data = None
+            einfo = fname, rva-imgbase, rtype, data
+        else:
+            fname, ptroff, rtype, data = einfo
+            imgbase = self.getFileMeta(fname, 'imagebase')
+            rva = imgbase + ptroff
+
         self.reloc_by_va[rva] = rtype
         self.relocations.append(einfo)
 
         if rtype == RTYPE_BASERELOC:
-            fnm = self.getFileByVa(rva)
-            imgbase = self.getFileMeta(fnm, 'imagebase')
-
+            # FIXME: we can't rebase something and expect the pointer in memory to be just the offset...
+            # consider deprecating this reloc type in favor of BASEOFF
             ptr = self.readMemoryPtr(rva)
             ptr += imgbase
             if ptr != (ptr & e_bits.u_maxes[self.psize]):
                 logger.warn('RTYPE_BASERELOC calculated a bad pointer: 0x%x (imgbase: 0x%x)', ptr, imgbase)
 
-            self._supervisor = True
-            self.writeMemoryPtr(rva, ptr)
-            self._supervisor = False
+            with SupervisorMode(self):
+                self.writeMemoryPtr(rva, ptr)
 
             logger.info('_handleADDRELOC: %x -> %x (map: 0x%x)', rva, ptr, imgbase)
 
+        if rtype == RTYPE_BASEOFF:
+            # add imgbase and offset to pointer in memory
+            # 'data' arg must be 'offset' number
+            ptr = imgbase + data
+            if ptr != (ptr & e_bits.u_maxes[self.psize]):
+                logger.warn('RTYPE_BASEOFF calculated a bad pointer: 0x%x (imgbase: 0x%x)', ptr, imgbase)
+
+            with SupervisorMode(self):
+                self.writeMemoryPtr(rva, ptr)
+
+            logger.info('_handleADDRELOC: %x -> %x (map: 0x%x)', rva, ptr, imgbase)
 
     def _handleADDMODULE(self, einfo):
         print('DEPRICATED (ADDMODULE) ignored: %s' % einfo)
@@ -640,6 +659,13 @@ class VivWorkspaceCore(object,viv_impapi.ImportApi):
         fva,spdelta,symtype,syminfo = locsym
         self.localsyms[fva][spdelta] = locsym
 
+class SupervisorMode:
+    def __init__(self, vw):
+        self.vw = vw
+    def __enter__(self):
+        self.vw._supervisor = 1
+    def __exit__(self, type, value, traceback):
+        self.vw._supervisor = 0
 
 def trackDynBranches(cfctx, op, vw, bflags, branches):
     '''
