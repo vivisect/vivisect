@@ -196,6 +196,12 @@ class VivWorkspaceCore(object,viv_impapi.ImportApi):
         '''
         self._event_saved = len(self._event_list)
 
+    @contextlib.contextmanager
+    def getAdminRights(self):
+        self._supervisor = True
+        yield
+        self._supervisor = False
+
     def _handleADDLOCATION(self, loc):
         lva, lsize, ltype, linfo = loc
         self.locmap.setMapLookup(lva, lsize, loc)
@@ -248,12 +254,6 @@ class VivWorkspaceCore(object,viv_impapi.ImportApi):
                 self.writeMemoryPtr(rva, ptr)
 
             #logger.info('_handleADDRELOC: %x -> %x (map: 0x%x)', rva, ptr, imgbase)
-
-    @contextlib.contextmanager
-    def getAdminRights(self):
-        self._supervisor = True
-        yield
-        self._supervisor = False
 
     def _handleADDMODULE(self, einfo):
         print('DEPRICATED (ADDMODULE) ignored: %s' % einfo)
