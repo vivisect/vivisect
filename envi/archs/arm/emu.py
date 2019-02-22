@@ -56,8 +56,9 @@ class CoProcEmulator:       # useful for prototyping, but should be subclassed
 
 
 def _getRegIdx(idx, mode):
-    if idx >= MAX_REGS:
-        return idx
+    if idx >= REGS_VECTOR_TABLE_IDX:
+        return reg_table[idx]
+
     ridx = idx + (mode*REGS_PER_MODE)  # account for different banks of registers
     ridx = reg_table[ridx]  # magic pointers allowing overlapping banks of registers
     return ridx
@@ -336,7 +337,7 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
         set the SPSR for the given ARM processor mode
         '''
         ridx = _getRegIdx(REG_OFFSET_CPSR, mode)
-        psr = self._rctx_vals[REG_CPSR] & (~mask) | (psr & mask)
+        psr = self._rctx_vals[ridx] & (~mask) | (psr & mask)
         self._rctx_vals[ridx] = psr
 
     def setProcMode(self, mode):
@@ -384,7 +385,13 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
 
         self._rctx_dirty = True
 
+        # the raw index (in case index is a metaregister)
         idx = (index & 0xffff)
+
+        # we only keep separate register banks per mode for general registers, not vectors
+        if idx >= REGS_VECTOR_TABLE_IDX:
+            ridx = idx
+        else:
         ridx = _getRegIdx(idx, mode)
 
         if idx == index:    # not a metaregister
@@ -396,8 +403,7 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
         offset = (index >> 24) & 0xff
         width  = (index >> 16) & 0xff
 
-        #FIXME is it faster to generate or look thses up?
-        mask = (2**width)-1
+        mask = e_bits.b_masks[width]
         mask = mask << offset
 
         # NOTE: basewidth is in *bits*
@@ -460,13 +466,19 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
         sdst = e_bits.signed(src1, tsize)
         ssrc = e_bits.signed(src2, tsize)
 
-        ures = e_bits.unsigned(udst + usrc + carry, tsize)
-        sres = e_bits.signed(sdst + ssrc + carry, tsize)
-        result = ures & 0x7fffffff
+        #ures = e_bits.unsigned(udst + usrc + carry, tsize)
+        #sres = e_bits.signed(sdst + ssrc + carry, tsize)
+        ures = udst + usrc + carry
+        sres = sdst + ssrc + carry
+        result = ures & 0xffffffff
 
         newcarry = (ures != result)
-        #newcarry = (udst >= usrc)
-        overflow = (sres != result)
+        overflow = (e_bits.unsigned(sres, 4) != result)
+
+        #print "====================="
+        #print hex(udst), hex(usrc), hex(ures), hex(result)
+        #print hex(sdst), hex(ssrc), hex(sres)
+        #print e_bits.is_signed(result, tsize), not result, newcarry, overflow
 
         if Sflag:
             curmode = self.getProcMode() 
@@ -712,7 +724,7 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
         elif len(op.opers) == 3:
             # 2 core reg to double
             # move between two ARM Core regs and one dblword extension reg
-            if op.opers[0].reg < REGS_VECTOR_BASE_IDX:
+            if op.opers[0].reg < REGS_VECTOR_TABLE_IDX:
                 # dest is core regs
                 src = self.getOperValue(op, 2)
                 self.setOperValue(op, 0, (src & 0xffffffff))
@@ -875,7 +887,7 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
         newpc = self.getRegister(REG_PC)    # check whether pc has changed
         if pc != newpc:
             self.setThumbMode(newpc & 1)
-            return newpc
+            return newpc & -2
 
     i_ldmia = i_ldm
     i_pop = i_ldmia
@@ -1127,7 +1139,9 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
         return self.getOperValue(op, 0)
 
     def i_bl(self, op):
-        self.setRegister(REG_LR, self.getRegister(REG_PC) + len(op))
+        tmode = self.getFlag(PSR_T_bit)
+        retva = (self.getRegister(REG_PC) + len(op)) | tmode
+        self.setRegister(REG_LR, retva)
         return self.getOperValue(op, 0)
 
     def i_bx(self, op):
@@ -1136,7 +1150,10 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
         return target & -2
 
     def i_blx(self, op):
-        self.setRegister(REG_LR, self.getRegister(REG_PC) + len(op))
+        tmode = self.getFlag(PSR_T_bit)
+        retva = (self.getRegister(REG_PC) + len(op)) | tmode
+        self.setRegister(REG_LR, retva)
+
         target = self.getOperValue(op, 0)
         self.setFlag(PSR_T_bit, target & 1)
         return target & -2

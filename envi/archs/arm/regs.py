@@ -30,8 +30,6 @@ arm_regs = [
     ('nil', 32),   # place holder
     # FIXME: need to deal with ELR_hyp
 ]
-MAX_REGS = 17
-#arm_regs.extend([('q%d' % x, 128) for x in range(VFP_QWORD_REG_COUNT)])
 
 # force them into a tuple for faster run-time access
 arm_regs = tuple(arm_regs)
@@ -50,7 +48,11 @@ modes.sort()
 
 reg_table = [ x for x in range(17 * REGS_PER_MODE) ]
 reg_data = [ (reg, sz) for reg,sz in arm_regs ]
+reg_table_data = [ (None, 32) for x in range(17 * REGS_PER_MODE) ]
+for idx,data in enumerate(reg_data):
+    reg_table_data[idx] = data
 
+# banked registers for different processor modes
 for modenum in modes[1:]:       # skip first since we're already done
     (mname, msname, desc, offset, mode_reg_count, PSR_offset, priv_level) = proc_modes.get(modenum)
     # shared regs
@@ -58,20 +60,31 @@ for modenum in modes[1:]:       # skip first since we're already done
         # don't create new entries for this register, use the usr-mode reg
         reg_table[ridx+offset] = ridx
 
-    # mode-regs (including PC)
+        rnm, rsz = arm_regs[ridx]
+        reg_table_data[ridx+offset] = ('%s_%s' % (rnm, msname), rsz) 
+
+    # mode-regs (not including PC)
     for ridx in range(mode_reg_count, 15):
         idx = len(reg_data)
-        reg_data.append((arm_regs[ridx][0]+"_"+msname, 32))
+        rnm, rsz = arm_regs[ridx]
+        regname = rnm+"_"+msname
+        reg_data.append((regname, 32))
         reg_table[ridx+offset] = idx
+
+        reg_table_data[ridx+offset] = (regname, rsz) 
 
     # PC
     reg_table[PSR_offset-3] = 15
+    reg_table_data[PSR_offset-3] = ('pc_%s' % (msname), 32)
     # CPSR
     reg_table[PSR_offset-2] = 16   # SPSR....??
+    reg_table_data[PSR_offset-2] = ('CPSR_%s' % (msname), 32) 
     # NIL
     reg_table[PSR_offset-1] = 17
+    reg_table_data[PSR_offset-1] = ('NIL_%s' % (msname), 32) 
     # PSR
     reg_table[PSR_offset] = len(reg_data)
+    reg_table_data[PSR_offset] = ('SPSR_%s' % (msname), 32) 
     reg_data.append(("SPSR_"+msname, 32))
 
 # done with banked register translation table
@@ -87,12 +100,17 @@ for modenum in modes[1:]:       # skip first since we're already done
 # we implement VFPv4-D32 since it should be backwards-compatible with all others
 #  the largest accessor of this extended register bank is 128bits so we'll go with that.
 
-REGS_VECTOR_BASE_IDX = len(reg_data)
+REGS_VECTOR_TABLE_IDX = len(reg_table)
+REGS_VECTOR_DATA_IDX = len(reg_data)
+REGS_VECTOR_DELTA = REGS_VECTOR_TABLE_IDX - REGS_VECTOR_DATA_IDX
+
 for simdreg in range(VFP_QWORD_REG_COUNT):
-    simd_idx = REGS_VECTOR_BASE_IDX + simdreg
+    simd_idx = REGS_VECTOR_TABLE_IDX + simdreg
     d = simdreg * 2
     s = d * 2
+    reg_table.append(len(reg_data))
     reg_data.append(("q%d" % simdreg, 128))
+    reg_table_data.append(("q%d" % simdreg, 128))
     if simdreg < 8: # VFPv4 only allows S# indexing up to S31
         arm_metas.append(("s%d" % (s),   simd_idx, 0, 32))
         arm_metas.append(("s%d" % (s+1), simd_idx, 32, 32))
@@ -101,8 +119,12 @@ for simdreg in range(VFP_QWORD_REG_COUNT):
     arm_metas.append(("d%d" % (d),   simd_idx, 0, 64))
     arm_metas.append(("d%d" % (d+1), simd_idx, 32, 64))
 
-REG_FPSCR = len(reg_data)
+REG_FPSCR = len(reg_table)
+reg_table.append(len(reg_data))
 reg_data.append(('fpscr', 32))
+
+
+MAX_TABLE_SIZE = len(reg_table_data)
 
 l = locals()
 e_reg.addLocalEnums(l, arm_regs)
@@ -192,11 +214,14 @@ arm_status_metas = [
 e_reg.addLocalStatusMetas(l, arm_metas, arm_status_metas, "CPSR")
 e_reg.addLocalMetas(l, arm_metas)
 
+def getRegDataIdx(idx):
+    ridx = reg_table[idx]  # magic pointers allowing overlapping banks of registers
+    return ridx
 
 class ArmRegisterContext(e_reg.RegisterContext):
     def __init__(self):
         e_reg.RegisterContext.__init__(self)
-        self.loadRegDef(reg_data)
+        self.loadRegDef(reg_table_data)
         self.loadRegMetas(arm_metas, statmetas=arm_status_metas)
         self.setRegisterIndexes(REG_PC, REG_SP)
 

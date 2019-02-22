@@ -4850,7 +4850,7 @@ class ArmExtRegListOper(ArmOperand):
             return None
         reglist = []
         for regidx in xrange(self.firstreg, self.firstreg + self.count):
-            reg = emu.getRegister(REGS_VECTOR_BASE_IDX + regidx)
+            reg = emu.getRegister(REGS_VECTOR_TABLE_IDX + regidx)
             reglist.append(reg)
         return reglist
 

@@ -16,8 +16,8 @@ from envi.archs.arm.disasm import *
 
 from envi.tests.armthumb_tests import advsimdtests
 
-GOOD_TESTS = 5612
-GOOD_EMU_TESTS = 840
+GOOD_TESTS = 5615
+GOOD_EMU_TESTS = 839
 ''' 
   This dictionary will contain all instructions supported by ARM to test
   Fields will contain following information:
@@ -33,6 +33,56 @@ GOOD_EMU_TESTS = 840
 #HB, HBL, HBLP, HBP - thumbee instructions see A9.1125-1127
 #IT - thumb
 
+
+'''
+CMP verification (Raspberry Pi 2, hijacking /bin/chown's startup process in ARM mode):
+
+(gdb) set *(int*)$pc =      0xe1500002
+(gdb) set *(int*)($pc+4) =  0x3a000031
+
+(gdb) x/2i $pc
+=> 0x11380 <__libc_start_main@plt>:     cmp     r0, r2
+   0x11384 <__libc_start_main@plt+4>:   bcc     0x11450 <fscanf@plt+8>
+
+(gdb) stepi
+0x00011384 in __libc_start_main@plt ()
+1: x/i $pc
+=> 0x11384 <__libc_start_main@plt+4>:   bcc     0x11450 <fscanf@plt+8>
+
+(gdb) info reg r0 r2 cpsr
+r0             0x11599  71065
+r2             0x7efff6e4       2130704100
+cpsr           0x800e0010       -2146566128
+
+(gdb) stepi
+0x00011450 in fscanf@plt ()
+1: x/i $pc
+=> 0x11450 <fscanf@plt+8>:      ldr     pc, [r12, #3208]!       ; 0xc88
+
+so since r0 is less than r2, cpsr's "Negative" flag should be set and "bcc" branch should be taken.
+
+
+also:
+(gdb) set *(int*)$pc = 0xe3530cff
+(gdb) x/i $pc
+=> 0x11450 <fscanf@plt+8>:      cmp     r3, #65280      ; 0xff00
+
+(gdb) info reg r3 cpsr
+r3             0x17341  95041
+cpsr           0x800e0010       -2146566128
+
+(gdb) stepi
+0x00011454 in __printf_chk@plt ()
+1: x/i $pc
+=> 0x11454 <__printf_chk@plt>:  add     r12, pc, #0, 12
+
+(gdb) info reg r3 cpsr
+r3             0x17341  95041
+cpsr           0x200e0010       537788432
+
+in this case, since r3 was greater than 0xff00, the 
+
+'''
 instrs = [
         (REV_ALL_ARM, '08309fe5', 0xbfb00000, 'ldr r3, [#0xbfb00010]', 0, ()),
         (REV_ALL_ARM, '0830bbe5', 0xbfb00000, 'ldr r3, [r11, #0x8]!', 0, ()),
@@ -511,7 +561,14 @@ instrs = [
         (REV_ALL_ARM, '273764ee', 0x4560, 'cdp  p7, 6, cr3, cr4, cr7, 1', 0, ()),
         (REV_ALL_ARM, '473b34ee', 0x4560, 'vsub.f64 d3, d4, d7', 0, ()),
         (REV_ALL_ARM, 'ff0c74e3', 0x4560, 'cmn  r4, #0xff00', 0, ()),
-        (REV_ALL_ARM, 'ff0c54e3', 0x4560, 'cmp  r4, #0xff00', 0, ()),
+        (REV_ALL_ARM, 'ff0c54e3', 0x4560, 'cmp  r4, #0xff00', 0, (
+            {'setup':(('r4',0x17341), ('cpsr',0)),
+                'tests':(('cpsr',0b00100000000000000000000000000000),) },
+            )),
+        (REV_ALL_ARM, '020050e1', 0x4560, 'cmp  r0, r2', 0, (
+            {'setup':(('r0',0x11599),('r2',0x7efff6e4), ('cpsr',0)),
+                'tests':(('cpsr',0b10000000000000000000000000000000),) },
+            )),
         (REV_ALL_ARM, 'ff4c23e2', 0x4560, 'eor r4, r3, #0xff00', 0, ()),
         (REV_ALL_ARM, 'ff4c33e2', 0x4560, 'eors r4, r3, #0xff00', 0, ()),
         (REV_ALL_ARM, '073894ed', 0x4560, 'ldc p8, cr3, [r4, #0x1c]', 0, ()),
@@ -1692,7 +1749,7 @@ class ArmInstructionSet(unittest.TestCase):
                     op = vw.arch.archParseOpcode(bytez.decode('hex'), 0, va)
                     #print repr(op)
                     redoprepr = repr(op).replace(' ','').lower()
-                    redgoodop = reprOp.replace(' ','')
+                    redgoodop = reprOp.replace(' ','').lower()
                     if redoprepr != redgoodop:
                         print  bytez,redgoodop
                         print  bytez,redoprepr
