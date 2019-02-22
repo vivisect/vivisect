@@ -392,7 +392,7 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
         if idx >= REGS_VECTOR_TABLE_IDX:
             ridx = idx
         else:
-        ridx = _getRegIdx(idx, mode)
+            ridx = _getRegIdx(idx, mode)
 
         if idx == index:    # not a metaregister
             self._rctx_vals[ridx] = (value & self._rctx_masks[ridx])      # FIXME: hack.  should look up index in proc_modes dict?
