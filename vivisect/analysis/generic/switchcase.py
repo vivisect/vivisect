@@ -558,6 +558,8 @@ def thunk_bx(emu, fname, symargs):
     logger.info("YAY!  Thunk_bx is being called! %s\t%s\t%s\t%s", emu, symargs, reg, ebx)
     emu.setSymVariable(reg, ebx)
 
+UNINIT_CASE_INDEX = -2
+
 class SwitchCase:
     # FIXME: enhance "don't analyze" checks (like, already analyzed?)  or no?
     # FIXME: collisions in named targets... shared between jmp's in same switch/function
