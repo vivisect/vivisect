@@ -168,8 +168,6 @@ class WorkspaceEmulator:
             rtype,rname,convname,callname,funcargs = api
             callconv = self.getCallingConvention(convname)
             argv = callconv.getCallArgs(self, len(funcargs))
-            if (callname != None) and (rtype == 'void'):
-                callconv.makeNoReturn()
 
             ret = None
             if self.emumon != None:
@@ -184,7 +182,9 @@ class WorkspaceEmulator:
 
             else:
 
-                if ret == None:
+                apiRetVoid = (ret == None) and (callname != None) \
+                             and (rtype == 'void')
+                if (ret == None) and (not apiRetVoid):
                     ret = self.setVivTaint('apicall', (op,endeip,api,argv))
                 callconv.execCallReturn(self, ret, len(funcargs))
 

@@ -892,8 +892,6 @@ class CallingConvention(object):
             (CC_STACK, #) - on the stack, at offset 0 
             (CC_REG, REG_which) - in register "REG_which", eg. REG_EAX
 
-        retvoid - True if the function returns no value
-
         CC_REG      - Ret, Retval or Arg use a particular register
         CC_STACK    - Ret, Retval or Arg use stack memory at offset #
         CC_STACK_INF- the rest of Args use stack memory starting at #
@@ -906,20 +904,12 @@ class CallingConvention(object):
     arg_def = []
     retval_def = (CC_STACK, 0)
     retaddr_def = (CC_STACK, 0)
-    retvoid = False
 
     # Examples...
     #flags = CC_CALLEE_CLEANUP
     #arg_def = [(CC_STACK_INF, 4),]
     #retaddr_def = (CC_STACK, 0)
     #retval_def = (CC_REG, REG_EAX)
-
-    def makeNoReturn(self):
-        '''
-        Change the state of the object so it returns no value.
-        Usually called to modify a standard calling convention.
-        '''
-        retvoid = True
 
     def getNumStackArgs(self, emu, argc):
         '''
@@ -1042,8 +1032,6 @@ class CallingConvention(object):
 
         Expects to be called after the function return.
         '''
-        if self.retvoid:
-            raise Exception('no return value for the function')
         rtype, rvalue = self.retval_def
         if rtype == CC_REG:
             rv = emu.getRegister(rvalue)
@@ -1074,8 +1062,6 @@ class CallingConvention(object):
         '''
         Sets the return value.
         '''
-        if self.retvoid:
-            raise Exception('no return value for the function')
         rtype, rvalue = self.retval_def
         if rtype == CC_REG:
             emu.setRegister(rvalue, rv)
@@ -1214,7 +1200,7 @@ class CallingConvention(object):
         ip = self.getReturnAddress(emu)
         self.deallocateCallSpace(emu, argc)
 
-        if not self.retvoid:
+        if value is not None:
             self.setReturnValue(emu, value)
         emu.setProgramCounter(ip)
 
