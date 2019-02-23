@@ -9,6 +9,9 @@ import envi.archs.arm as arm
 import vivisect
 import platform
 import unittest
+
+import test_arch_arm_cmp_flags
+
 from envi import IF_RET, IF_NOFALL, IF_BRANCH, IF_CALL, IF_COND
 from envi.archs.arm.regs import *
 from envi.archs.arm.const import *
@@ -16,8 +19,8 @@ from envi.archs.arm.disasm import *
 
 from envi.tests.armthumb_tests import advsimdtests
 
-GOOD_TESTS = 5615
-GOOD_EMU_TESTS = 839
+GOOD_TESTS = 5618
+GOOD_EMU_TESTS = 850
 ''' 
   This dictionary will contain all instructions supported by ARM to test
   Fields will contain following information:
@@ -81,6 +84,27 @@ r3             0x17341  95041
 cpsr           0x200e0010       537788432
 
 in this case, since r3 was greater than 0xff00, the 
+
+
+
+in another bin, chosen for it's deps on libstdc++:
+(gdb) set *(int*)($pc)=0xe1510003
+(gdb) set *(int*)($pc+4)=0x31a04003
+(gdb) set $r1=9
+(gdb) set $r3=0
+(gdb) x/8i $pc
+=> 0x54aab8cc <_Z10InitLocalev@plt>:    cmp     r1, r3
+   0x54aab8d0 <_Z10InitLocalev@plt+4>:  movcc   r4, r3 
+(gdb) si
+0x54aab8d0 in InitLocale()@plt ()
+1: x/i $pc
+=> 0x54aab8d0 <_Z10InitLocalev@plt+4>:  movcc   r4, r3
+(gdb) si
+... <snip>
+(gdb)info reg r4 r3 cpsr
+r4             0x54aac14d       1420476749
+r3             0x0      0
+cpsr           0x200d0010       537722896
 
 '''
 instrs = [
@@ -452,6 +476,10 @@ instrs = [
         (REV_ALL_ARM, '3746f3e0', 0x4560, 'rscs r4, r3, r7, lsr r6', 0, ()),
         (REV_ALL_ARM, '374613e1', 0x4560, 'tst r3, r7, lsr r6', 0, ()),
         (REV_ALL_ARM, '374623e1', 0x4560, 'blx r7', 0, ()),
+        (REV_ALL_ARM, '0340a031', 0x4560, 'movcc r4, r3', 0, (
+            {'setup':(('r3',0xaa),('r4',0x1a),('cpsr',0b00100000000000000000000000000000)),
+                'tests':(('r3',0xaa),('r4',0x1a)), },
+            )),
         (REV_ALL_ARM, '374633e1', 0x4560, 'teq r3, r7, lsr r6', 0, ()),
         (REV_ALL_ARM, '374653e1', 0x4560, 'cmp r3, r7, lsr r6', 0, ()),
         (REV_ALL_ARM, '374673e1', 0x4560, 'cmn r3, r7, lsr r6', 0, ()),
@@ -565,9 +593,14 @@ instrs = [
             {'setup':(('r4',0x17341), ('cpsr',0)),
                 'tests':(('cpsr',0b00100000000000000000000000000000),) },
             )),
+        (REV_ALL_ARM, '024050e0', 0x4560, 'subs r4, r0, r2', 0, (
+            test_arch_arm_cmp_flags.cmp_tests
+            )),
         (REV_ALL_ARM, '020050e1', 0x4560, 'cmp  r0, r2', 0, (
-            {'setup':(('r0',0x11599),('r2',0x7efff6e4), ('cpsr',0)),
-                'tests':(('cpsr',0b10000000000000000000000000000000),) },
+            test_arch_arm_cmp_flags.cmp_tests
+            )),
+        (REV_ALL_ARM, '070073e1', 0x4560, 'cmn  r3, r7', 0, (
+            test_arch_arm_cmp_flags.cmn_tests
             )),
         (REV_ALL_ARM, 'ff4c23e2', 0x4560, 'eor r4, r3, #0xff00', 0, ()),
         (REV_ALL_ARM, 'ff4c33e2', 0x4560, 'eors r4, r3, #0xff00', 0, ()),
@@ -1787,15 +1820,16 @@ class ArmInstructionSet(unittest.TestCase):
                             bademu += 1
                     else:
                         # if we have a special test lets run it
-                        for sCase in emutests:
+                        for tidx, sCase in enumerate(emutests):
                             #allows us to just have a result to check if no setup needed
                             if 'tests' in sCase:
                                 setters = ()
                                 if 'setup' in sCase:
                                     setters = sCase['setup']
                                 tests = sCase['tests']
-                                if not self.validateEmulation(emu, op, (setters), (tests)):
+                                if not self.validateEmulation(emu, op, (setters), (tests), tidx):
                                     goodcount += 1
+                                    goodemu += 1
                                 else:
                                     bademu += 1
                                     raise Exception( "FAILED emulation (special case): %.8x %s - %s" % (va, bytez, op) )
@@ -1823,7 +1857,7 @@ class ArmInstructionSet(unittest.TestCase):
     def test_envi_arm_thumb_switches(self):
         pass
 
-    def validateEmulation(self, emu, op, setters, tests):
+    def validateEmulation(self, emu, op, setters, tests, tidx=0):
         # first set any environment stuff necessary
         ## defaults
         emu.setRegister(REG_R3, 0x414141)
@@ -1848,7 +1882,7 @@ class ArmInstructionSet(unittest.TestCase):
                     #For this couldn't we set a temp value equal to endian and write that? Assuming byte order is issue with this one
                     emu.writeMemValue(tgt, val, 1) # limited to 1-byte writes currently
                 else:
-                    raise Exception( "Funkt up Setting:  %s = 0x%x" % (tgt, val) )
+                    raise Exception( "Funkt up Setting: (%r test#%d)  %s = 0x%x" % (op, tidx, tgt, val) )
         emu.executeOpcode(op)
         if not len(tests):
             success = 0
@@ -1862,7 +1896,7 @@ class ArmInstructionSet(unittest.TestCase):
                     #print("SUCCESS(reg): %s  ==  0x%x" % (tgt, val))
                     success = 0
                 else:  # should be an else
-                    raise Exception("FAILED(reg): %s  !=  0x%x (observed: 0x%x)" % (tgt, val, testval))
+                    raise Exception("FAILED(reg): (%r test#%d)  %s  !=  0x%x (observed: 0x%x) \n\t(setters: %r)\n\t(test: %r)" % (op, tidx, tgt, val, testval, setters, tests))
             except e_reg.InvalidRegisterName, e:
                 # it's not a register
                 if type(tgt) == str and tgt.startswith("PSR_"):
@@ -1872,17 +1906,19 @@ class ArmInstructionSet(unittest.TestCase):
                         #print("SUCCESS(flag): %s  ==  0x%x" % (tgt, val))
                         success = 0
                     else:
-                        raise Exception("FAILED(flag): %s  !=  0x%x (observed: 0x%x)" % (tgt, val, testval))
+                        raise Exception("FAILED(flag): (%r test#%d)  %s  !=  0x%x (observed: 0x%x) \n\t(setters: %r)\n\t(test: %r)" % (op, tidx, tgt, val, testval, setters, tests))
+                        #raise Exception("FAILED(flag): (%r test#%d)  %s  !=  0x%x (observed: 0x%x)" % (op, tidx, tgt, val, testval))
                 elif type(tgt) in (long, int):
                     # it's an address
                     testval = emu.readMemValue(tgt, 1)
                     if testval == val:
                         #print("SUCCESS(addr): 0x%x  ==  0x%x" % (tgt, val))
                         success = 0
-                    raise Exception("FAILED(mem): 0x%x  !=  0x%x (observed: 0x%x)" % (tgt, val, testval))
+                    #raise Exception("FAILED(mem): (%r test#%d)  0x%x  !=  0x%x (observed: 0x%x)" % (op, tidx, tgt, val, testval))
+                    raise Exception("FAILED(mem): (%r test#%d)  0x%x  !=  0x%x (observed: 0x%x) \n\t(setters: %r)\n\t(test: %r)" % (op, tidx, tgt, val, testval, setters, tests))
 
                 else:
-                    raise Exception( "Funkt up test: %s == %s" % (tgt, val) )
+                    raise Exception( "Funkt up test (%r test#%d) : %s == %s" % (op, tidx, tgt, val) )
         
         # NOTE: Not sure how to test this to see if working
         # do some read/write tracking/testing
