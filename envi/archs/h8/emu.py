@@ -2,11 +2,9 @@
 The H8 Emulator module.
 """
 
-import sys
 import struct
 import logging
 
-import emu
 import envi
 import envi.bits as e_bits
 from envi.archs.h8 import H8Module
@@ -20,69 +18,69 @@ logger = logging.getLogger(__name__)
 bcd_add = {}
 for x in range(0xa):
     for y in range(0xa):
-        bcd_add[(0,0,(x,y))] = 0, 0
+        bcd_add[(0, 0, (x, y))] = 0, 0
 
     for y in range(4):
-        bcd_add[(0,1,(x,y))] = 0x6, 0
+        bcd_add[(0, 1, (x, y))] = 0x6, 0
 
 for x in range(9):
     for y in range(0xa, 0x10):
-        bcd_add[(0,0,(x,y))] = 0x6, 0
+        bcd_add[(0, 0, (x, y))] = 0x6, 0
 
 for x in range(0xa, 0x10):
     for y in range(0xa):
-        bcd_add[(0,0,(x,y))] = 0x60, 1
+        bcd_add[(0, 0, (x, y))] = 0x60, 1
 
     for y in range(4):
-        bcd_add[(0,1,(x,y))] = 0x66, 1
+        bcd_add[(0, 1, (x, y))] = 0x66, 1
 
 for x in range(9, 0x10):
     for y in range(0xa, 0x10):
-        bcd_add[(0,0,(x,y))] = 0x66, 1
+        bcd_add[(0, 0, (x, y))] = 0x66, 1
 
 for x in range(3):
     for y in range(0xa):
-        bcd_add[(1,0,(x,y))] = 0x60, 1
+        bcd_add[(1, 0, (x, y))] = 0x60, 1
 
     for y in range(0xa, 0x10):
-        bcd_add[(1,0,(x,y))] = 0x66, 1
+        bcd_add[(1, 0, (x, y))] = 0x66, 1
 
 for x in range(4):
     for y in range(4):
-        bcd_add[(1,1,(x,y))] = 0x66, 1
+        bcd_add[(1, 1, (x, y))] = 0x66, 1
 
 bcd_sub = {}
 for x in range(0xa):
     for y in range(0xa):
-        bcd_sub[(0,0,(x,y))] = 0, 0
+        bcd_sub[(0, 0, (x, y))] = 0, 0
 
 for x in range(0x9):
     for y in range(6, 0x10):
-        bcd_sub[(0,1,(x,y))] = 0xfa, 0
+        bcd_sub[(0, 1, (x, y))] = 0xfa, 0
 
 for x in range(7, 0x10):
     for y in range(0xa):
-        bcd_sub[(1,0,(x,y))] = 0xa0, 1
+        bcd_sub[(1, 0, (x, y))] = 0xa0, 1
 
 for x in range(6, 0x10):
     for y in range(6, 0x10):
-        bcd_sub[(1,1,(x,y))] = 0x9a, 1
+        bcd_sub[(1, 1, (x, y))] = 0x9a, 1
 
 sign_ext_bits = {
-        1: [((-1&0xff)<<(8-x) & 0xff) for x in range(8)],
+        1: [((-1 & 0xff) << (8 - x) & 0xff) for x in range(8)],
         2: [],
         4: [],
         }
 
+
 # calling conventions
 class H8CallAdv(envi.CallingConvention):
     """
-    H8 architectures hand arguments between functions using 
+    H8 architectures hand arguments between functions using
 
     reference: C_H8_User_Manual.pdf
     """
-    arg_def = [(CC_REG, REG_ER0), (CC_REG, REG_ER1), (CC_REG, REG_ER2),
-                (CC_STACK_INF, 4),]
+    arg_def = [(CC_REG, REG_ER0), (CC_REG, REG_ER1), (CC_REG, REG_ER2), (CC_STACK_INF, 4),]
     retaddr_def = (CC_STACK_INF, 0)
     retval_def = (CC_REG, REG_ER0), (CC_STACK_INF, 0) #FIXME
     flags = CC_CALLEE_CLEANUP
@@ -187,14 +185,14 @@ class H8Emulator(H8Module, H8RegisterContext, envi.Emulator):
                 self.doPush(self.getProgramCounter())
 
                 addr = (intval * 2) + 6
-            
+
             isrAddr = self.readMemoryPtr(addr)
 
         return isrAddr
 
     def emuProcessInterrupt(self, intval=0):
         '''
-        interrupt processing done according to H8/300 standards.  subclass and modify this function 
+        interrupt processing done according to H8/300 standards.  subclass and modify this function
         if the desired behavior differs.
         supports: advanced and normal modes
         '''
@@ -217,11 +215,10 @@ class H8Emulator(H8Module, H8RegisterContext, envi.Emulator):
                 self.doPush(self.getProgramCounter())
 
                 addr = (intval * 2) + 4
-            
+
             isrAddr = self.readMemoryPtr(addr)
 
         return isrAddr
-        
 
     def undefFlags(self):
         """
@@ -276,7 +273,7 @@ class H8Emulator(H8Module, H8RegisterContext, envi.Emulator):
         dsize = op.opers[1].tsize
         res = self.logicalAnd(op)
         self.setOperValue(op, 1, res)
-       
+
         self.setFlag(CCR_Z, not res)
         self.setFlag(CCR_N, e_bits.is_signed(res, dsize))
         self.setFlag(CCR_V, 0)
@@ -284,8 +281,6 @@ class H8Emulator(H8Module, H8RegisterContext, envi.Emulator):
     def i_andc(self, op):
         res = self.logicalAnd(op)
         self.setOperValue(op, 1, res)
-       
-
 
     def i_band(self, op):
         C = self.getFlag(CCR_C)
@@ -447,7 +442,7 @@ class H8Emulator(H8Module, H8RegisterContext, envi.Emulator):
 
         C = (tgt>>bit) & 1
         self.setFlag(CCR_C, C)
-        
+
     def i_bnot(self, op):
         bit = self.getOperValue(op, 0)
         tgt = self.getOperValue(op, 1)
@@ -485,7 +480,7 @@ class H8Emulator(H8Module, H8RegisterContext, envi.Emulator):
 
         Z = ((tgt>>bit) & 1) ^ 1
         self.setFlag(CCR_Z, Z)
-        
+
     def i_bxor(self, op):
         C = self.getFlag(CCR_C)
         bit = self.getOperValue(op, 0)
@@ -631,7 +626,7 @@ class H8Emulator(H8Module, H8RegisterContext, envi.Emulator):
             sdst = e_bits.signed(dst, dsize)
             usrc = e_bits.unsigned(src, ssize)
             ssrc = e_bits.signed(src, ssize)
-    
+
         else:
             dsize = op.opers[0].tsize
             dst = self.getOperValue(op, 0)
@@ -662,7 +657,7 @@ class H8Emulator(H8Module, H8RegisterContext, envi.Emulator):
             sdst = e_bits.signed(dst, dsize)
             usrc = e_bits.unsigned(src, ssize)
             ssrc = e_bits.signed(src, ssize)
-    
+
         else:
             dsize = op.opers[0].tsize
             dst = self.getOperValue(op, 0)
@@ -732,7 +727,7 @@ class H8Emulator(H8Module, H8RegisterContext, envi.Emulator):
     def i_xor(self, op):
         src1 = self.getOperValue(op, 0)
         src2 = self.getOperValue(op, 1)
-        
+
         #FIXME PDE and flags
         if src1 == None or src2 == None:
             self.undefFlags()
@@ -794,7 +789,7 @@ class H8Emulator(H8Module, H8RegisterContext, envi.Emulator):
 
         sdivisor = e_bits.signed(divisor, ssize)
         sdividend = e_bits.signed(dividend, dsize)
-        
+
         quotient = sdividend / sdivisor
         remainder = sdividend % sdivisor
 
@@ -889,7 +884,7 @@ class H8Emulator(H8Module, H8RegisterContext, envi.Emulator):
         oper = e_bits.signed(oper, dsize)
         oper = -oper
         self.setOperValue(op, 0, oper)
-        
+
         self.setFlag(CCR_H, e_bits.is_signed_half_carry(oper, dsize, oper))
         self.setFlag(CCR_N, e_bits.is_signed(oper, dsize))
         self.setFlag(CCR_Z, not oper)
@@ -902,7 +897,7 @@ class H8Emulator(H8Module, H8RegisterContext, envi.Emulator):
         #oper = e_bits.signed(oper, dsize)
         oper = e_bits.u_maxes[dsize] - oper
         self.setOperValue(op, 0, oper)
-        
+
         self.setFlag(CCR_N, e_bits.is_signed(oper, dsize))
         self.setFlag(CCR_Z, not oper)
         self.setFlag(CCR_V, 0)
