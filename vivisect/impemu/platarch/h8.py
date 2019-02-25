@@ -1,8 +1,9 @@
 import envi.archs.h8 as e_h8
+import envi.archs.h8.emu as h8_emu
 import vivisect.impemu.emulator as v_i_emulator
 
 
-class H8WorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_h8.H8Emulator):
+class H8WorkspaceEmulator(v_i_emulator.WorkspaceEmulator, h8_emu.H8Emulator):
 
     taintregs = [e_h8.REG_ER0, e_h8.REG_ER1, e_h8.REG_ER2]
 

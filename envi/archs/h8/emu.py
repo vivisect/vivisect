@@ -9,7 +9,7 @@ import envi
 import envi.bits as e_bits
 from envi.archs.h8 import H8Module
 from envi.archs.h8.regs import *
-from disasm import H8RegDirOper
+from operands import H8RegDirOper
 
 
 logger = logging.getLogger(__name__)
