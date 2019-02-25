@@ -10,7 +10,10 @@ import vivisect
 import platform
 import unittest
 
-import test_arch_arm_cmp_flags
+import arm_bit_test_adds
+import arm_bit_test_cmn
+import arm_bit_test_cmp
+import arm_bit_test_subs
 
 from envi import IF_RET, IF_NOFALL, IF_BRANCH, IF_CALL, IF_COND
 from envi.archs.arm.regs import *
@@ -19,8 +22,8 @@ from envi.archs.arm.disasm import *
 
 from envi.tests.armthumb_tests import advsimdtests
 
-GOOD_TESTS = 5618
-GOOD_EMU_TESTS = 850
+GOOD_TESTS = 5943
+GOOD_EMU_TESTS = 1172
 ''' 
   This dictionary will contain all instructions supported by ARM to test
   Fields will contain following information:
@@ -593,14 +596,19 @@ instrs = [
             {'setup':(('r4',0x17341), ('cpsr',0)),
                 'tests':(('cpsr',0b00100000000000000000000000000000),) },
             )),
+
+        # these are really all about testing flag setting for the various flag setters
         (REV_ALL_ARM, '024050e0', 0x4560, 'subs r4, r0, r2', 0, (
-            test_arch_arm_cmp_flags.cmp_tests
+            arm_bit_test_subs.subs_tests
             )),
         (REV_ALL_ARM, '020050e1', 0x4560, 'cmp  r0, r2', 0, (
-            test_arch_arm_cmp_flags.cmp_tests
+            arm_bit_test_cmp.cmp_tests
             )),
-        (REV_ALL_ARM, '070073e1', 0x4560, 'cmn  r3, r7', 0, (
-            test_arch_arm_cmp_flags.cmn_tests
+        (REV_ALL_ARM, '024090e0', 0x4560, 'adds r4, r0, r2', 0, (
+            arm_bit_test_adds.adds_tests
+            )),
+        (REV_ALL_ARM, '024070e1', 0x4560, 'cmn  r0, r2', 0, (
+            arm_bit_test_cmn.cmn_tests
             )),
         (REV_ALL_ARM, 'ff4c23e2', 0x4560, 'eor r4, r3, #0xff00', 0, ()),
         (REV_ALL_ARM, 'ff4c33e2', 0x4560, 'eors r4, r3, #0xff00', 0, ()),
@@ -1868,6 +1876,8 @@ class ArmInstructionSet(unittest.TestCase):
         emu.setRegister(REG_SP, 0x450000)
         ## special cases
         # setup flags and registers
+        settersrepr = '( %r )' % (', '.join(["%s=%s" % (s, hex(v)) for s,v in setters]))
+        testsrepr = '( %r )' % (', '.join(["%s==%s" % (s, hex(v)) for s,v in tests]))
         for tgt, val in setters:
             try:
                 # try register first
@@ -1896,7 +1906,7 @@ class ArmInstructionSet(unittest.TestCase):
                     #print("SUCCESS(reg): %s  ==  0x%x" % (tgt, val))
                     success = 0
                 else:  # should be an else
-                    raise Exception("FAILED(reg): (%r test#%d)  %s  !=  0x%x (observed: 0x%x) \n\t(setters: %r)\n\t(test: %r)" % (op, tidx, tgt, val, testval, setters, tests))
+                    raise Exception("FAILED(reg): (%r test#%d)  %s  !=  0x%x (observed: 0x%x) \n\t(setters: %r)\n\t(test: %r)" % (op, tidx, tgt, val, testval, settersrepr, testsrepr))
             except e_reg.InvalidRegisterName, e:
                 # it's not a register
                 if type(tgt) == str and tgt.startswith("PSR_"):
@@ -1906,7 +1916,7 @@ class ArmInstructionSet(unittest.TestCase):
                         #print("SUCCESS(flag): %s  ==  0x%x" % (tgt, val))
                         success = 0
                     else:
-                        raise Exception("FAILED(flag): (%r test#%d)  %s  !=  0x%x (observed: 0x%x) \n\t(setters: %r)\n\t(test: %r)" % (op, tidx, tgt, val, testval, setters, tests))
+                        raise Exception("FAILED(flag): (%r test#%d)  %s  !=  0x%x (observed: 0x%x) \n\t(setters: %r)\n\t(test: %r)" % (op, tidx, tgt, val, testval, settersrepr, testsrepr))
                         #raise Exception("FAILED(flag): (%r test#%d)  %s  !=  0x%x (observed: 0x%x)" % (op, tidx, tgt, val, testval))
                 elif type(tgt) in (long, int):
                     # it's an address
@@ -1914,8 +1924,7 @@ class ArmInstructionSet(unittest.TestCase):
                     if testval == val:
                         #print("SUCCESS(addr): 0x%x  ==  0x%x" % (tgt, val))
                         success = 0
-                    #raise Exception("FAILED(mem): (%r test#%d)  0x%x  !=  0x%x (observed: 0x%x)" % (op, tidx, tgt, val, testval))
-                    raise Exception("FAILED(mem): (%r test#%d)  0x%x  !=  0x%x (observed: 0x%x) \n\t(setters: %r)\n\t(test: %r)" % (op, tidx, tgt, val, testval, setters, tests))
+                    raise Exception("FAILED(mem): (%r test#%d)  0x%x  !=  0x%x (observed: 0x%x) \n\t(setters: %r)\n\t(test: %r)" % (op, tidx, tgt, val, testval, settersrepr, testsrepr))
 
                 else:
                     raise Exception( "Funkt up test (%r test#%d) : %s == %s" % (op, tidx, tgt, val) )

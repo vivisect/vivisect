@@ -121,7 +121,8 @@ def sh_asr(num, shval, size=4):
     return num >> shval
 
 def sh_ror(num, shval, size=4):
-    return (((num&e_bits.u_maxes[size]) >> shval) | (num<< ((8*size)-shval))) & e_bits.u_maxes[size]
+    #return (((num&e_bits.u_maxes[size]) >> shval) | (num<< ((8*size)-shval))) & e_bits.u_maxes[size]
+    return ((num >> shval) | (num << ((8*size)-shval))) & e_bits.u_maxes[size]
 
 def sh_rrx(num, shval, size=4, emu=None):
     #shval should always be 0
@@ -4772,9 +4773,6 @@ class ArmRegListOper(ArmOperand):
     def involvesPC(self):
         return self.val & 0x8000 == 0x8000
 
-    def isDeref(self):
-        return False
-
     def render(self, mcanv, op, idx):
         mcanv.addText('{')
         regs = [arm_regs[l][0] for l in range(16) if (self.val & (1<<l))]
@@ -4861,7 +4859,7 @@ class ArmExtRegListOper(ArmOperand):
         if emu == None:
             return None
         
-        base = REGS_VECTOR_BASE_IDX + self.firstreg
+        base = REGS_VECTOR_TABLE_IDX + self.firstreg
         for vidx in range(len(vals)):
             emu.setRegister(base + vidx, vals[vidx])
 
