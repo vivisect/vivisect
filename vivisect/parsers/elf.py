@@ -1,28 +1,32 @@
 import os
 import struct
+import logging
 
 import Elf
 import vivisect
 import vivisect.parsers as v_parsers
+import envi.bits as e_bits
 
 from vivisect.const import *
 
 from cStringIO import StringIO
 
-def parseFile(vw, filename):
+logger = logging.getLogger(__name__)
+
+def parseFile(vw, filename, baseaddr=None):
     fd = file(filename, 'rb')
     elf = Elf.Elf(fd)
-    return loadElfIntoWorkspace(vw, elf, filename=filename)
+    return loadElfIntoWorkspace(vw, elf, filename=filename, baseaddr=baseaddr)
 
-def parseBytes(vw, bytes):
+def parseBytes(vw, bytes, baseaddr=None):
     fd = StringIO(bytes)
     elf = Elf.Elf(fd)
-    return loadElfIntoWorkspace(vw, elf)
+    return loadElfIntoWorkspace(vw, elf, baseaddr=baseaddr)
 
-def parseFd(vw, fd, filename=None):
+def parseFd(vw, fd, filename=None, baseaddr=None):
     fd.seek(0)
     elf = Elf.Elf(fd)
-    return loadElfIntoWorkspace(vw, elf, filename=filename)
+    return loadElfIntoWorkspace(vw, elf, filename=filename, baseaddr=baseaddr)
 
 def parseMemory(vw, memobj, baseaddr):
     raise Exception('FIXME implement parseMemory for elf!')
@@ -89,10 +93,10 @@ archcalls = {
     'aarch64':'a64call',
 }
 
-def loadElfIntoWorkspace(vw, elf, filename=None):
+def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
 
     arch = arch_names.get(elf.e_machine)
-    if arch == None:
+    if arch is None:
        raise Exception("Unsupported Architecture: %d\n", elf.e_machine)
 
     platform = elf.getPlatform()
@@ -111,10 +115,11 @@ def loadElfIntoWorkspace(vw, elf, filename=None):
     addbase = False
     if not elf.isPreLinked() and elf.isSharedObject():
         addbase = True
-    baseaddr = elf.getBaseAddress()
+    if baseaddr is None:
+        baseaddr = elf.getBaseAddress()
 
     #FIXME make filename come from dynamic's if present for shared object
-    if filename == None:
+    if filename is None:
         filename = "elf_%.8x" % baseaddr
 
     fhash = "unknown hash"
