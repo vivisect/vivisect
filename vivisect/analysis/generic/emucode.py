@@ -80,6 +80,7 @@ class watcher(viv_imp_monitor.EmulationMonitor):
         # defined locations...
         if self.vw.isFunction(eip):
             emu.stopEmu()
+            # FIXME: this is a problem.  many time legit code falls into other functions...  "hydra" functions are more and more common.
             raise Exception("Fell Through Into Function: %.8x" % eip)
 
         loc = self.vw.getLocation(eip)

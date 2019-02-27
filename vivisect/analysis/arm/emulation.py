@@ -62,9 +62,10 @@ class AnalysisMonitor(viv_monitor.AnalysisMonitor):
             if op.opcode in (INS_TBH, INS_TBB):
                 if emu.vw.getVaSetRow('SwitchCases', op.va) == None:
                     base, tbl = analyzeTB(emu, op, starteip, self)
-                    count = len(tbl)
-                    self.switchcases += 1
-                    emu.vw.setVaSetRow('SwitchCases', (op.va, op.va, count) )
+                    if not None in (base, tbl):
+                        count = len(tbl)
+                        self.switchcases += 1
+                        emu.vw.setVaSetRow('SwitchCases', (op.va, op.va, count) )
 
             elif op.opcode == INS_MOV:
                 if len(op.opers) >= 2:
@@ -85,17 +86,19 @@ class AnalysisMonitor(viv_monitor.AnalysisMonitor):
                 # simple branch code
                 if emu.vw.getVaSetRow('SwitchCases', op.va) == None:
                     base, tbl = analyzeADDPC(emu, op, starteip, self)
-                    count = len(tbl)
-                    self.switchcases += 1
-                    emu.vw.setVaSetRow('SwitchCases', (op.va, op.va, count) )
+                    if not None in (base, tbl):
+                        count = len(tbl)
+                        self.switchcases += 1
+                        emu.vw.setVaSetRow('SwitchCases', (op.va, op.va, count) )
 
             elif op.opcode == INS_SUB and isinstance(op.opers[0], e_arm.ArmRegOper) and op.opers[0].reg == REG_PC:
                 # simple branch code
                 if emu.vw.getVaSetRow('SwitchCases', op.va) == None:
                     base, tbl = analyzeSUBPC(emu, op, starteip, self)
-                    count = len(tbl)
-                    self.switchcases += 1
-                    emu.vw.setVaSetRow('SwitchCases', (op.va, op.va, count) )
+                    if not None in (base, tbl):
+                        count = len(tbl)
+                        self.switchcases += 1
+                        emu.vw.setVaSetRow('SwitchCases', (op.va, op.va, count) )
 
 
             if op.iflags & envi.IF_BRANCH:
@@ -311,6 +314,8 @@ def analyzeADDPC(emu, op, starteip, emumon):
     while off < cbsz:
         top = emu.vw.parseOpcode(cbva+off)
         if top.opcode == INS_CMP:
+            # make sure this is a comparison for this register. 
+            # the comparison should be the size of the switch-case
             for opidx in range(len(top.opers)):
                 oper = top.opers[opidx]
                 if isinstance(oper, e_arm.ArmRegOper):
@@ -330,6 +335,7 @@ def analyzeADDPC(emu, op, starteip, emumon):
         return None, None
 
     #print("Making ADDPC SwitchCase (count=%d):" % count)
+    # wire up the switch-cases, name each one, etc...
     tbl = []
     for x in range(count):
         base = op.opers[-2].getOperValue(op, emu)
