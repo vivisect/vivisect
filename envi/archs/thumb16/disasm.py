@@ -794,7 +794,7 @@ sxt_mnem_2 = (
 
 def shift_or_ext_32(va, val1, val2):
     if (val2 & 0xf000) != 0xf000:
-        raise InvalidInstruction(mesg="shift_or_ext_32 needs to hand off for val2 & 0xf000 != 0xf000 at va 0x%x: val1:%.4x val2:%.4x" % (va, val1, val2), va=va)
+        raise InvalidInstruction(mesg="UNDEFINED: shift_or_ext_32: val2 & 0xf000 != 0xf000 at va 0x%x: val1:%.4x val2:%.4x" % (va, val1, val2), va=va)
 
 
     op1 = (val1>>4) & 0xf
@@ -1290,8 +1290,8 @@ def ldrd_imm_32(va, val1, val2):
 def strexn_32(va, val1, val2):
     op3 = (val1 >> 4) & 0xf
     if (op3 & 0xc != 0x10):
-        bytez = struct.pack("<HH", val1, val2)
-        raise InvalidInstruction(bytez=bytez, va=va)
+        raise InvalidInstruction(mesg="strexn_32 failure",
+                    bytez=struct.pack("<HH", val, val2), va=va-4)
 
     tsize = op3 & 4
     mnem = ('strexb', 'strexh', None, 'strexd')[tsize]
@@ -1380,13 +1380,13 @@ def smull_32(va, val1, val2):
     if secondary == None:
         raise envi.InvalidInstruction(      #FIXME!!!!
                 mesg="smull invalid decode: op1",
-                bytez=bytez[offset:offset+4], va=va)
+                bytez=struct.pack("<HH", val, val2), va=va-4)
 
     secout = secondary.get(op2)
     if secout == None:
         raise envi.InvalidInstruction(      #FIXME!!!!
                 mesg="smull invalid decode: op2",
-                bytez=bytez[offset:offset+4], va=va)
+                bytez=struct.pack("<HH", val, val2), va=va-4)
 
     opers = (
             ArmRegOper(rdhi, va=va),
@@ -1575,7 +1575,7 @@ def coproc_simd_32(va, val1, val2):
         bytez = struct.pack("<HH", val1, val2)
         raise envi.InvalidInstruction(
                 mesg="CoprocSIMD: UNDEFINED instructions",
-                bytez=bytez, va=va)
+                bytez=struct.pack("<HH", val, val2), va=va-4)
 
     if coproc & 0b1110 != 0b1010:   # apparently coproc 10 and 11 are not allowed...
         if op1 == 0b000100: 
@@ -1933,7 +1933,12 @@ bcc_ops = {
 
 # FIXME: thumb and arm opcode numbers don't line up. - FIX
 thumb_base = [
-    ('00000',       ( INS_LSL,'lsl',     imm5_rm_rd, IF_PSR_S)), # LSL<c> <Rd>,<Rm>,#<imm5>
+    ('0000000001',  ( INS_LSL,'lsl',     imm5_rm_rd, IF_PSR_S)), # LSL<c> <Rd>,<Rm>,#<imm5>
+    ('0000000000',  ( INS_MOV,'mov',     rm_rd, IF_PSR_S)), # MOVS<c> <Rd>,<Rm>
+    ('000000001',   ( INS_LSL,'lsl',     imm5_rm_rd, IF_PSR_S)), # LSL<c> <Rd>,<Rm>,#<imm5>
+    ('00000001',    ( INS_LSL,'lsl',     imm5_rm_rd, IF_PSR_S)), # LSL<c> <Rd>,<Rm>,#<imm5>
+    ('0000001',     ( INS_LSL,'lsl',     imm5_rm_rd, IF_PSR_S)), # LSL<c> <Rd>,<Rm>,#<imm5>
+    ('000001',      ( INS_LSL,'lsl',     imm5_rm_rd, IF_PSR_S)), # LSL<c> <Rd>,<Rm>,#<imm5>
     ('00001',       ( INS_LSR,'lsr',     imm5_rm_rd, IF_PSR_S)), # LSR<c> <Rd>,<Rm>,#<imm>
     ('00010',       ( INS_ASR,'asr',     imm5_rm_rd, IF_PSR_S)), # ASR<c> <Rd>,<Rm>,#<imm>
     ('0001100',     ( INS_ADD,'add',     rm_rn_rd,   IF_PSR_S)), # ADD<c> <Rd>,<Rn>,<Rm>

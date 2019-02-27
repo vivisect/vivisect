@@ -681,7 +681,7 @@ def p_dp_reg_shift(opval, va):
         iflags = 0
     return (opcode, mnem, olist, iflags, 0)
 
-multfail = (None, None, None,)
+multfail = (None, None, None, None)
 
 iencmul_r15_codes = {
     # Basic multiplication opcodes
@@ -1176,7 +1176,7 @@ def p_media_pack_sat_rev_extend(opval, va):
         mnem, opcode = xtnd_mnem[idx]
     else:
         raise envi.InvalidInstruction(
-                mesg="p_media_extend: invalid instruction"+opc1+"."+opc2,
+                mesg="p_media_extend: invalid instruction %r.%r" % (opc1, opc2),
                 bytez=struct.pack("<I", opval), va=va)
 
     return (opcode, mnem, olist, 0, 0)
