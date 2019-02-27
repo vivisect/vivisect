@@ -598,7 +598,10 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
         return self.e_type == ET_EXEC
 
     def __repr__(self, verbose=False):
-        """  Returns a string summary of this ELF.  If (verbose) the summary will include Symbols, Relocs, Dynamics and Dynamic Symbol tables"""
+        """  
+        Returns a string summary of this ELF.  
+        If (verbose) the summary will include Symbols, Relocs, Dynamics and Dynamic Symbol tables
+        """
         mystr = 'Elf Binary:'
         mystr+= "\n= Intimate Details:"
         mystr+= "\n==Magic:\t\t\t\t"       + self.e_ident

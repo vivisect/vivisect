@@ -655,6 +655,7 @@ DT_HIOS             = 0x6ffff000
 DT_LOPROC           = 0x70000000
 DT_HIPROC           = 0x7fffffff
 #DT_PROCNUM  = DT_MIPS_NUM
+dt_names = { v:k for k,v in globals().items() if k.startswith('DT_')}
 
 dt_types = {
 DT_NULL     : "Marks end of dynamic section ",
