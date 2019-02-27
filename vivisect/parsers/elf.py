@@ -289,108 +289,6 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
         else:
             logger.debug("DYNAMIC DYNAMIC DYNAMIC\t%r",d)
 
-    # Let pyelf do all the stupid string parsing...
-    dsyms = elf.getDynSyms()
-    relocs = elf.getRelocs()
-    for r in relocs:
-        rtype = Elf.getRelocType(r.r_info)
-        rlva = r.r_offset
-        if addbase: rlva += baseaddr
-        try:
-            # If it has a name, it's an externally
-            # resolved "import" entry, otherwise, just a regular reloc
-            name = r.getName()
-            dmglname = demangle(name)
-            logger.debug('relocs: 0x%x: %r', rlva, name)
-            if arch in ('i386','amd64'):
-                if name:
-                    if rtype == Elf.R_386_JMP_SLOT:
-                        vw.makeImport(rlva, "*", name)
-                        vw.setComment(rlva, dmglname)
-
-                    elif rtype == Elf.R_386_32:
-                        pass
-
-                    elif rtype == Elf.R_X86_64_GLOB_DAT:    # Elf.R_386_GLOB_DAT is same number
-                        vw.makeImport(rlva, "*", name)
-                        vw.setComment(rlva, dmglname)
-
-                    else:
-                        logging.info('unknown reloc type: %d %s (at %s)', rtype, name, hex(rlva))
-                        
-
-            if arch in ('arm', 'thumb', 'thumb16'):
-                if rtype == Elf.R_ARM_JUMP_SLOT:
-                    symidx = Elf.getRelocSymTabIndex(r.r_info)
-                    sym = dsyms[symidx]
-
-                    ptr = sym.st_value
-
-                    #quick check to make sure we don't provide this symbol
-                    if ptr:
-                        logger.info('R_ARM_JUMP_SLOT: adding Relocation 0x%x -> 0x%x (%s) ', rlva, ptr, dmglname)
-                        vw.addRelocation(rlva, vivisect.RTYPE_BASEOFF, ptr)
-                        pname = "ptr_%s" % name
-                        if vw.vaByName(pname) == None:
-                            vw.makeName(rlva, pname)
-
-                        if addbase: ptr += baseaddr
-                        vw.makeName(ptr, name)
-                        vw.setComment(ptr, dmglname)
-                    else:
-                        logger.info('R_ARM_JUMP_SLOT: adding Import 0x%x (%s) ', rlva, dmglname)
-                        vw.makeImport(rlva, "*", name)
-                        vw.setComment(rlva, dmglname)
-
-                elif rtype == Elf.R_ARM_GLOB_DAT:
-                    symidx = Elf.getRelocSymTabIndex(r.r_info)
-                    sym = dsyms[symidx]
-                    ptr = sym.st_value
-
-                    #quick check to make sure we don't provide this symbol
-                    if ptr:
-                        logger.info('R_ARM_GLOB_DAT: adding Relocation 0x%x -> 0x%x (%s) ', rlva, ptr, dmglname)
-                        vw.addRelocation(rlva, vivisect.RTYPE_BASEOFF, ptr)
-                        pname = "ptr_%s" % name
-                        if vw.vaByName(pname) == None:
-                            vw.makeName(rlva, pname)
-
-                        if addbase: ptr += baseaddr
-                        vw.makeName(ptr, name)
-                        vw.setComment(ptr, dmglname)
-                    else:
-                        logger.info('R_ARM_GLOB_DAT: adding Import 0x%x (%s) ', rlva, dmglname)
-                        vw.makeImport(rlva, "*", name)
-                        vw.setComment(rlva, dmglname)
-
-                elif rtype == Elf.R_ARM_ABS32:
-                    symidx = Elf.getRelocSymTabIndex(r.r_info)
-                    sym = dsyms[symidx]
-                    ptr = sym.st_value
-
-                    if ptr:
-                        logger.info('R_ARM_ABS32: adding Relocation 0x%x -> 0x%x (%s) ', rlva, ptr, dmglname)
-                        vw.addRelocation(rlva, vivisect.RTYPE_BASEOFF, ptr)
-                    else:
-                        logger.info('R_ARM_ABS32: adding Import 0x%x (%s) ', rlva, dmglname)
-                        vw.makeImport(rlva, "*", name)
-
-                    vw.setComment(rlva, dmglname)
-
-                elif rtype == Elf.R_ARM_RELATIVE:   # Adjust locations for the rebasing
-                    ptr = vw.readMemoryPtr(rlva)
-                    logger.info('R_ARM_RELATIVE: adding Relocation 0x%x -> 0x%x (name: %s) ', rlva, ptr, dmglname)
-                    vw.addRelocation(rlva, vivisect.RTYPE_BASEOFF, ptr)
-                    if len(name):
-                        vw.makeName(rlva, name, makeuniq=True)
-                        vw.setComment(rlva, dmglname)
-
-                else:
-                    logger.warn('unknown reloc type: %d %s (at %s)' % (rtype, name, hex(rlva)))
-
-        except vivisect.InvalidLocation, e:
-            logger.warn("NOTE\t%r",e)
-
     # process Dynamic Symbols
     for s in elf.getDynSyms():
         stype = s.getInfoType()
@@ -447,10 +345,14 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
         else:
             logger.debug("DYNSYM DYNSYM\t%r\t%r\t%r\t%r",s,s.getInfoType(),'other',hex(s.st_other))
 
+    # Let pyelf do all the stupid string parsing...
+    applyRelocs(elf, vw, addbase, baseaddr)
+
     vw.addVaSet("FileSymbols", (("Name",VASET_STRING),("va",VASET_ADDRESS)))
     vw.addVaSet("WeakSymbols", (("Name",VASET_STRING),("va",VASET_ADDRESS)))
 
     # apply symbols to workspace (if any)
+    relocs = elf.getRelocs()
     impvas = [va for va,x,y,z in vw.getImports()]
     expvas = [va for va,x,y,z in vw.getExports()]
     for s in elf.getSymbols():
@@ -545,6 +447,116 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
     for va, tva in new_pointers:
         logger.info('adding pointer 0x%x -> 0x%x', va, tva)
     return fname
+
+def applyRelocs(elf, vw, addbase=False, baseaddr=0):
+    # process relocations / strings (relocs use Dynamic Symbols)
+    arch = arch_names.get(elf.e_machine)
+    dsyms = elf.getDynSyms()
+    relocs = elf.getRelocs()
+    for r in relocs:
+        rtype = Elf.getRelocType(r.r_info)
+        rlva = r.r_offset
+        if addbase: rlva += baseaddr
+        try:
+            # If it has a name, it's an externally
+            # resolved "import" entry, otherwise, just a regular reloc
+            name = r.getName()
+            dmglname = demangle(name)
+            logger.debug('relocs: 0x%x: %r', rlva, name)
+            if arch in ('i386','amd64'):
+                if name:
+                    if rtype == Elf.R_386_JMP_SLOT:
+                        vw.makeImport(rlva, "*", name)
+                        vw.setComment(rlva, dmglname)
+
+                    elif rtype == Elf.R_386_32:
+                        pass
+
+                    elif rtype == Elf.R_X86_64_GLOB_DAT:    # Elf.R_386_GLOB_DAT is same number
+                        vw.makeImport(rlva, "*", name)
+                        vw.setComment(rlva, dmglname)
+
+                    else:
+                        logger.info('unknown reloc type: %d %s (at %s)' % (rtype, name, hex(rlva)))
+                        
+
+            if arch in ('arm', 'thumb', 'thumb16'):
+                if rtype == Elf.R_ARM_JUMP_SLOT:
+                    symidx = Elf.getRelocSymTabIndex(r.r_info)
+                    sym = dsyms[symidx]
+                    ptr = sym.st_value
+
+                    #quick check to make sure we don't provide this symbol
+                    if ptr:
+                        logger.info('R_ARM_JUMP_SLOT: adding Relocation 0x%x -> 0x%x (%s) ', rlva, ptr, dmglname)
+                        vw.addRelocation(rlva, vivisect.RTYPE_BASEOFF, ptr)
+                        pname = "ptr_%s" % name
+                        if vw.vaByName(pname) == None:
+                            vw.makeName(rlva, pname)
+
+                        if addbase: ptr += baseaddr
+                        vw.makeName(ptr, name)
+                        vw.setComment(ptr, dmglname)
+                    else:
+                        logger.info('R_ARM_JUMP_SLOT: adding Import 0x%x (%s) ', rlva, dmglname)
+                        vw.makeImport(rlva, "*", name)
+                        vw.setComment(rlva, dmglname)
+                    
+                elif rtype == Elf.R_ARM_GLOB_DAT:
+                    symidx = Elf.getRelocSymTabIndex(r.r_info)
+                    sym = dsyms[symidx]
+                    ptr = sym.st_value
+
+                    #quick check to make sure we don't provide this symbol
+                    if ptr:
+                        logger.info('R_ARM_GLOB_DAT: adding Relocation 0x%x -> 0x%x (%s) ', rlva, ptr, dmglname)
+                        vw.addRelocation(rlva, vivisect.RTYPE_BASEOFF, ptr)
+                        pname = "ptr_%s" % name
+                        if vw.vaByName(pname) == None:
+                            vw.makeName(rlva, pname)
+
+                        if addbase: ptr += baseaddr
+                        vw.makeName(ptr, name)
+                        vw.setComment(ptr, dmglname)
+                    else:
+                        logger.info('R_ARM_GLOB_DAT: adding Import 0x%x (%s) ', rlva, dmglname)
+                        vw.makeImport(rlva, "*", name)
+                        vw.setComment(rlva, dmglname)
+
+                elif rtype == Elf.R_ARM_ABS32:
+                    symidx = Elf.getRelocSymTabIndex(r.r_info)
+                    sym = dsyms[symidx]
+                    ptr = sym.st_value
+
+                    if ptr:
+                        logger.info('R_ARM_ABS32: adding Relocation 0x%x -> 0x%x (%s) ', rlva, ptr, dmglname)
+                        vw.addRelocation(rlva, vivisect.RTYPE_BASEOFF, ptr)
+                    else:
+                        logger.info('R_ARM_ABS32: adding Import 0x%x (%s) ', rlva, dmglname)
+                        vw.makeImport(rlva, "*", name)
+
+                    vw.setComment(rlva, dmglname)
+
+                elif rtype == Elf.R_ARM_RELATIVE:   # Adjust locations for the rebasing
+                    ptr = vw.readMemoryPtr(rlva)
+                    logger.info('R_ARM_RELATIVE: adding Relocation 0x%x -> 0x%x (name: %s) ', rlva, ptr, dmglname)
+                    vw.addRelocation(rlva, vivisect.RTYPE_BASEOFF, ptr)
+                    if len(name):
+                        vw.makeName(rlva, name, makeuniq=True)
+                        vw.setComment(rlva, dmglname)
+
+                else:
+                    logger.warn('unknown reloc type: %d %s (at %s)' % (rtype, name, hex(rlva)))
+
+        except vivisect.InvalidLocation, e:
+            logger.warn("NOTE\t%r",e)
+
+def connectSymbols(vw):
+    for lva,lsize,ltype,linfo in vw.getImports():
+        for va, etype, name, filename in vw.getExports():
+            pass
+
+
 
 def normName(name):
     '''
