@@ -15,7 +15,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 # Pre-initialize a default stack size
-init_stack_size = 0x7fff
+init_stack_size = 0x8000
 init_stack_map = b'\xfe' * init_stack_size
 
 def imphook(impname):
@@ -374,7 +374,7 @@ class WorkspaceEmulator:
 
                 except envi.UnsupportedInstruction, e:
                     if self.strictops:
-                        logger.debug("STRICTOPS: BREAK!")
+                        logger.debug('runFunction failed: unsupported instruction: 0x%08x %s', e.op.va, e.op.mnem)
                         break
                     else:
                         logger.debug('runFunction continuing after unsupported instruction: 0x%08x %s' % (e.op.va, e.op.mnem))
