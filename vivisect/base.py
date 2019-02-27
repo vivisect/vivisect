@@ -253,7 +253,7 @@ class VivWorkspaceCore(object,viv_impapi.ImportApi):
             with self.getAdminRights():
                 self.writeMemoryPtr(rva, ptr)
 
-            #logger.info('_handleADDRELOC: %x -> %x (map: 0x%x)', rva, ptr, imgbase)
+            logger.info('_handleADDRELOC: %x -> %x (map: 0x%x)', rva, ptr, imgbase)
 
     def _handleADDMODULE(self, einfo):
         print('DEPRICATED (ADDMODULE) ignored: %s' % einfo)
