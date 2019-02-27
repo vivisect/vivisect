@@ -1,6 +1,7 @@
 
 import os
 import PE
+import logging
 import vstruct
 import vivisect
 import PE.carve as pe_carve
@@ -16,6 +17,8 @@ import envi.memory as e_mem
 import envi.symstore.symcache as e_symcache
 
 from vivisect.const import *
+
+logger = logging.getLogger(__name__)
 
 # PE Machine field values
 #0x14d   Intel i860
@@ -60,7 +63,7 @@ defcalls = {
 
 # map PE relocation types to vivisect types where possible
 relmap = {
-    PE.IMAGE_REL_BASED_HIGHLOW:vivisect.RTYPE_BASERELOC,
+    PE.IMAGE_REL_BASED_HIGHLOW:vivisect.RTYPE_BASEOFF,
 }
 
 def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
@@ -313,9 +316,11 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
         # map PE reloc to VIV reloc ( or dont... )
         vtype = relmap.get(rtype)
         if vtype is None:
+            logger.info('Skipping PE Relocation type: %d (no handler)', rtype)
             continue
 
-        vw.addRelocation(rva+baseaddr, vtype)
+        mapoffset = vw.readMemoryPtr(rva+baseaddr) - baseaddr
+        vw.addRelocation(rva+baseaddr, vtype, mapoffset)
 
     for rva, lname, iname in pe.getImports():
         if vw.probeMemory(rva+baseaddr, 4, e_mem.MM_READ):

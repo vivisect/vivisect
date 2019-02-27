@@ -2,6 +2,7 @@ import Queue
 import logging
 import traceback
 import threading
+import contextlib
 import collections
 
 import envi
@@ -195,6 +196,12 @@ class VivWorkspaceCore(object,viv_impapi.ImportApi):
         '''
         self._event_saved = len(self._event_list)
 
+    @contextlib.contextmanager
+    def getAdminRights(self):
+        self._supervisor = True
+        yield
+        self._supervisor = False
+
     def _handleADDLOCATION(self, loc):
         lva, lsize, ltype, linfo = loc
         self.locmap.setMapLookup(lva, lsize, loc)
@@ -216,23 +223,37 @@ class VivWorkspaceCore(object,viv_impapi.ImportApi):
         self.segments.append(einfo)
 
     def _handleADDRELOC(self, einfo):
-        rva, rtype = einfo
+        if len(einfo) == 2:     # FIXME: legacy: remove after 02/13/2020
+            rva,rtype = einfo
+            mmva, mmsz, mmperm, fname = self.getMemoryMap(rva)    # FIXME: getFileByVa does not obey file defs
+            imgbase = self.getFileMeta(fname, 'imagebase')
+            data = None
+            einfo = fname, rva-imgbase, rtype, data
+        else:
+            fname, ptroff, rtype, data = einfo
+            imgbase = self.getFileMeta(fname, 'imagebase')
+            rva = imgbase + ptroff
+
         self.reloc_by_va[rva] = rtype
         self.relocations.append(einfo)
 
-        if rtype == RTYPE_BASERELOC:
-            fnm = self.getFileByVa(rva)
-            imgbase = self.getFileMeta(fnm, 'imagebase')
+        # RTYPE_BASERELOC assumes the memory is already accurate (eg. PE's unless rebased)
 
-            ptr = self.readMemoryPtr(rva)
-            ptr += imgbase
+        if rtype == RTYPE_BASEOFF:
+            # add imgbase and offset to pointer in memory
+            # 'data' arg must be 'offset' number
+            ptr = imgbase + data
             if ptr != (ptr & e_bits.u_maxes[self.psize]):
-                logger.warn('RTYPE_BASERELOC calculated a bad pointer: 0x%x (imgbase: 0x%x)', ptr, imgbase)
+                logger.warn('RTYPE_BASEOFF calculated a bad pointer: 0x%x (imgbase: 0x%x)', ptr, imgbase)
 
-            self.writeMemoryPtr(rva, ptr)
+            # writes are costly, especially on larger binaries
+            if ptr == self.readMemoryPtr(rva):
+                return
 
-            logger.info('_handleADDRELOC: %x -> %x (map: 0x%x)', rva, ptr, imgbase)
+            with self.getAdminRights():
+                self.writeMemoryPtr(rva, ptr)
 
+            #logger.info('_handleADDRELOC: %x -> %x (map: 0x%x)', rva, ptr, imgbase)
 
     def _handleADDMODULE(self, einfo):
         print('DEPRICATED (ADDMODULE) ignored: %s' % einfo)
@@ -637,7 +658,6 @@ class VivWorkspaceCore(object,viv_impapi.ImportApi):
     def _fmcb_LocalSymbol(self, fva, mname, locsym):
         fva,spdelta,symtype,syminfo = locsym
         self.localsyms[fva][spdelta] = locsym
-
 
 def trackDynBranches(cfctx, op, vw, bflags, branches):
     '''
