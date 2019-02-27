@@ -165,6 +165,7 @@ EXP_DATA     = 1
 
 # Relocation types
 RTYPE_BASERELOC = 0 # VA contains a pointer to a va (and is assumed fixed up by parser)
+RTYPE_BASEOFF   = 1 # Add Base and Offset to a pointer at a memory location
 
 # Function Local Symbol Types
 LSYM_NAME   = 0 # syminfo is a (typestr,name) tuple

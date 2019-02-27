@@ -405,6 +405,7 @@ class MemoryObject(IMemory):
         """
         IMemory.__init__(self, arch=arch)
         self._map_defs = []
+        self._supervisor = False
 
     #FIXME MemoryObject: def allocateMemory(self, size, perms=MM_RWX, suggestaddr=0):
 
@@ -462,7 +463,7 @@ class MemoryObject(IMemory):
             mva, mmaxva, mmap, mbytes = mapdef
             if va >= mva and va < mmaxva:
                 mva, msize, mperms, mfname = mmap
-                if not mperms & MM_WRITE:
+                if not (mperms & MM_WRITE or self._supervisor):
                     raise envi.SegmentationViolation(va)
                 offset = va - mva
                 mapdef[3] = mbytes[:offset] + bytes + mbytes[offset+len(bytes):]

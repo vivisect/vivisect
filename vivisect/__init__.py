@@ -303,11 +303,17 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         '''
         return self.comments.items()
 
-    def addRelocation(self, va, rtype):
+    def addRelocation(self, va, rtype, data=None):
         """
         Add a relocation entry for tracking.
+        Expects data to have whatever is necessary for the reloc type. eg. addend
         """
-        self._fireEvent(VWE_ADDRELOC, (va, rtype))
+        # split "current" va into fname and offset.  future relocations will want to base all va's from an image base
+        mmva, mmsz, mmperm, fname = self.getMemoryMap(va)    # FIXME: getFileByVa does not obey file defs
+        imgbase = self.getFileMeta(fname, 'imagebase')
+        offset = va - imgbase
+
+        self._fireEvent(VWE_ADDRELOC, (fname, offset, rtype, data))
 
     def getRelocations(self):
         """
