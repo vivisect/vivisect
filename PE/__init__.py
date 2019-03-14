@@ -1033,7 +1033,7 @@ class PE(object):
             cbytes = pyasn1.codec.der.encoder.encode( i['certificate'] )
 
             iparts = []
-            for rdnsequence in i["certificate"]["tbsCertificate"]["issuer"]:
+            for _, rdnsequence in i["certificate"]["tbsCertificate"]["issuer"].items():
                 for rdn in rdnsequence:
                     rtype = rdn[0]["type"]
                     rvalue = rdn[0]["value"][2:]
@@ -1042,7 +1042,7 @@ class PE(object):
             issuer = ','.join( iparts )
 
             sparts = []
-            for rdnsequence in i["certificate"]["tbsCertificate"]["subject"]:
+            for _, rdnsequence in i["certificate"]["tbsCertificate"]["subject"].items():
                 for rdn in rdnsequence:
                     rtype = rdn[0]["type"]
                     rvalue = rdn[0]["value"][2:]
