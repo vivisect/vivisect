@@ -35,8 +35,8 @@ def p_CCR_Rd(va, val, buf, off, tsize):
     rd = val & 0xf
     exr = op & 1
     opers = (
-            H8RegDirOper(e_regs.REG_CCR + exr, 4, va),
-            H8RegDirOper(rd, tsize, va),
+            h8_operands.H8RegDirOper(e_regs.REG_CCR + exr, 4, va),
+            h8_operands.H8RegDirOper(rd, tsize, va),
             )
     return (op, None, opers, iflags, 2)
 
@@ -48,8 +48,8 @@ def p_Rs_CCR(va, val, buf, off, tsize):
     rs = val & 0xf
     exr = op & 1
     opers = (
-            H8RegDirOper(rs, tsize, va),
-            H8RegDirOper(e_regs.REG_CCR + exr, 4, va),
+            h8_operands.H8RegDirOper(rs, tsize, va),
+            h8_operands.H8RegDirOper(e_regs.REG_CCR + exr, 4, va),
             )
     return (op, None, opers, iflags, 2)
 
@@ -62,8 +62,8 @@ def p_aAA8_Rd(va, val, buf, off, tsize):
     aAA8 = val & 0xff
 
     opers = (
-            H8AbsAddrOper(aAA8, tsize, aasize=1),
-            H8RegDirOper(Rd, tsize, va, 0),
+            h8_operands.H8AbsAddrOper(aAA8, tsize, aasize=1),
+            h8_operands.H8RegDirOper(Rd, tsize, va, 0),
             )
     return (op, None, opers, iflags, 2)
 
@@ -76,8 +76,8 @@ def p_Rs_aAA8(va, val, buf, off, tsize):
     aAA8 = val & 0xff
 
     opers = (
-            H8RegDirOper(Rs, tsize, va, 0),
-            H8AbsAddrOper(aAA8, tsize, aasize=1),
+            h8_operands.H8RegDirOper(Rs, tsize, va, 0),
+            h8_operands.H8AbsAddrOper(aAA8, tsize, aasize=1),
             )
     return (op, None, opers, iflags, 2)
 
@@ -603,7 +603,7 @@ def p_01(va, val, buf, off, tsize):
 
         # all 0100#### opcodes share these:
         tsize = 4
-        iflags |= envi.IF_L
+        iflags |= e_const.IF_L
 
         d2 = val2 >> 8
 
@@ -709,7 +709,7 @@ def p_01(va, val, buf, off, tsize):
 
     elif diff in (1, 2, 3):
         # ldm/stm (ERn-ERn+diff), @-SP
-        iflags = envi.IF_L
+        iflags = e_const.IF_L
 
         tsize = 4
         optest = val2 & 0xfff8
