@@ -31,10 +31,8 @@ class VtraceThreadTest(vt_tests.VtraceProcessTest):
 
         n = ThreadNotifier()
 
-        self.trace.registerNotifier( vtrace.NOTIFY_ALL, n)
+        self.trace.registerNotifier(vtrace.NOTIFY_ALL, n)
         self.runUntilExit()
 
-        self.assertTrue( n.threadexit )
-        self.assertTrue( n.threadcreate )
-
-
+        self.assertTrue(n.threadexit)
+        self.assertTrue(n.threadcreate)

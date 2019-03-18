@@ -456,8 +456,7 @@ class EnviCli(Cmd):
             code.interact(local=locals)
 
     def parseExpression(self, expr):
-        l = self.getExpressionLocals()
-        return long(e_expr.evaluate(expr, l))
+        return long(e_expr.evaluate(expr, self.getExpressionLocals()))
 
     def do_binstr(self, line):
         '''

@@ -121,7 +121,7 @@ class Trace(e_mem.IMemory, e_reg.RegisterContext, e_resolv.SymbolResolver, objec
         # For the crazy thread-call-proxy-thing
         # (must come first for __getattribute__
         self.requires_thread = {}
-        self.proxymeth = None # FIXME hack for now...
+        self.proxymeth = None  # FIXME hack for now...
         self._released = False
 
         # The universal place for all modes
@@ -149,10 +149,10 @@ class Trace(e_mem.IMemory, e_reg.RegisterContext, e_resolv.SymbolResolver, objec
 
         # Set us up with an envi arch module
         # FIXME eventually we should just inherit one...
-        if archname == None:
+        if archname is None:
             archname = envi.getCurrentArch()
 
-        arch = envi.getArchByName( archname )
+        arch = envi.getArchByName(archname)
         self.setMeta('Architecture', archname)
         self.arch = envi.getArchModule(name=archname)
 
@@ -183,7 +183,7 @@ class Trace(e_mem.IMemory, e_reg.RegisterContext, e_resolv.SymbolResolver, objec
         if num <= 0:
             raise Exception('you must specify a positive number of opcodes')
 
-        if va == None:
+        if va is None:
             va = self.getProgramCounter()
 
         ops = []
@@ -245,7 +245,7 @@ class Trace(e_mem.IMemory, e_reg.RegisterContext, e_resolv.SymbolResolver, objec
             self.platformAttach(pid)
             self._justAttached(pid)
             self.wait()
-        except Exception, msg:
+        except Exception as msg:
             raise PlatformException(str(msg))
 
     def stepi(self):
@@ -282,7 +282,7 @@ class Trace(e_mem.IMemory, e_reg.RegisterContext, e_resolv.SymbolResolver, objec
             self.steploop()
 
         else:
-            if until != None:
+            if until is not None:
                 self.setMode("RunForever", True)
                 self.addBreakpoint(StopAndRemoveBreak(until))
 
@@ -356,7 +356,7 @@ class Trace(e_mem.IMemory, e_reg.RegisterContext, e_resolv.SymbolResolver, objec
         """
         self._loadBinaryNorm(libname)
         sym = self.getSymByName(libname)
-        if sym == None:
+        if sym is None:
             raise Exception('Invalid Library Name: %s' % libname)
         return sym.getSymList()
 
@@ -369,12 +369,12 @@ class Trace(e_mem.IMemory, e_reg.RegisterContext, e_resolv.SymbolResolver, objec
         # file parsing.
 
         r = e_resolv.SymbolResolver.getSymByAddr(self, addr, exact=exact)
-        if r != None:
+        if r is not None:
             return r
 
         # See if we need to parse the file.
         mmap = self.getMemoryMap(addr)
-        if mmap == None:
+        if mmap is None:
             return None
 
         va, size, perms, fname = mmap
@@ -397,17 +397,17 @@ class Trace(e_mem.IMemory, e_reg.RegisterContext, e_resolv.SymbolResolver, objec
         returns a tuple (sym, is_thunk).  sym is None if no sym is found.
         '''
         sym = self.getSymByAddr(va)
-        if sym != None:
+        if sym is not None:
             return str(sym), False
 
         try:
             op = self.parseOpcode(va)
             for tva, tflags in op.getTargets(emu=self):
-                if tva == None:
+                if tva is None:
                     continue
 
                 sym = self.getSymByAddr(tva)
-                if sym != None:
+                if sym is not None:
                     return str(sym), True
 
         except Exception as e:
@@ -1276,15 +1276,15 @@ class VtraceExpressionLocals(e_expr.MemoryExpressionLocals):
         e_expr.MemoryExpressionLocals.__init__(self, trace, symobj=trace)
         self.trace = trace
         self.update({
-                'trace':trace,
-                'vtrace':vtrace
+            'trace': trace,
+            'vtrace': vtrace
         })
         self.update({
-            'frame':self.frame,
-            'teb':self.teb,
-            'bp':self.bp,
-            'meta':self.meta,
-            'go':self.go,
+            'frame': self.frame,
+            'teb': self.teb,
+            'bp': self.bp,
+            'meta': self.meta,
+            'go': self.go,
         })
 
     def __getitem__(self, name):
@@ -1294,13 +1294,13 @@ class VtraceExpressionLocals(e_expr.MemoryExpressionLocals):
 
             regs = self.trace.getRegisters()
             r = regs.get(name, None)
-            if r != None:
+            if r is not None:
                 return r
 
         # Check local variables
         locs = self.trace.getVariables()
         r = locs.get(name, None)
-        if r != None:
+        if r is not None:
             return r
 
         return e_expr.MemoryExpressionLocals.__getitem__(self, name)
@@ -1311,7 +1311,7 @@ class VtraceExpressionLocals(e_expr.MemoryExpressionLocals):
         breakpoint code (or similar even processors) to begin
         execution again after event processing...
         '''
-        self.trace.runAgain();
+        self.trace.runAgain()
 
     def frame(self, index):
         """
@@ -1331,12 +1331,12 @@ class VtraceExpressionLocals(e_expr.MemoryExpressionLocals):
         stack base or whatever.  If threadid is left out, it
         uses the threadid of the current thread context.
         """
-        if threadnum == None:
+        if threadnum is None:
             # Get the thread ID of the current Thread Context
             threadnum = self.trace.getMeta("ThreadId")
 
         teb = self.trace.getThreads().get(threadnum, None)
-        if teb == None:
+        if teb is None:
             raise Exception("ERROR - Unknown Thread Id %d" % threadnum)
 
         return teb
@@ -1347,7 +1347,7 @@ class VtraceExpressionLocals(e_expr.MemoryExpressionLocals):
         breakpoint
         """
         bp = self.trace.getBreakpoint(bpid)
-        if bp == None:
+        if bp is None:
             raise Exception("Unknown Breakpoint ID: %d" % bpid)
         return bp.resolveAddress(self.trace)
 

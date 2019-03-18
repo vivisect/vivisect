@@ -9,7 +9,7 @@ import traceback
 import platform
 
 from Queue import Queue
-from threading import Thread,currentThread,Lock
+from threading import Thread, currentThread, Lock
 
 import envi
 import envi.memory as e_mem
@@ -34,7 +34,7 @@ class TracerBase(vtrace.Notifier):
         """
         vtrace.Notifier.__init__(self)
 
-        self.pid = 0 # Attached pid (also used to know if attached)
+        self.pid = 0  # Attached pid (also used to know if attached)
         self.exited = False
         self.breakpoints = {}
         self.newbreaks = []
@@ -48,7 +48,7 @@ class TracerBase(vtrace.Notifier):
         self.attached = False
         # A cache for memory maps and fd listings
         self.mapcache = None
-        self.thread = None # our proxy thread...
+        self.thread = None  # our proxy thread...
         self.threadcache = None
         self.fds = None
         self.signal_ignores = []
@@ -214,7 +214,7 @@ class TracerBase(vtrace.Notifier):
         # Resolve deferred breaks
         for bp in self.deferred:
             addr = bp.resolveAddress(self)
-            if addr != None:
+            if addr is not None:
                 self.deferred.remove(bp)
                 self.breakpoints[addr] = bp
 
@@ -226,7 +226,7 @@ class TracerBase(vtrace.Notifier):
         """
         Sync the reg-cache into the target process
         """
-        if self.regcache != None:
+        if self.regcache is not None:
             for tid, ctx in self.regcache.items():
                 if ctx.isDirty():
                     self.platformSetRegCtx(tid, ctx)
@@ -236,10 +236,10 @@ class TracerBase(vtrace.Notifier):
         """
         Make sure the reg-cache is populated
         """
-        if self.regcache == None:
+        if self.regcache is None:
             self.regcache = {}
         ret = self.regcache.get(threadid)
-        if ret == None:
+        if ret is None:
             ret = self.platformGetRegCtx(threadid)
             ret.setIsDirty(False)
             self.regcache[threadid] = ret
@@ -256,7 +256,7 @@ class TracerBase(vtrace.Notifier):
         # Steal a reference because the step should
         # clear curbp...
         bp = self.curbp
-        if bp != None and bp.isEnabled():
+        if bp is not None and bp.isEnabled():
             if bp.active:
                 bp.deactivate(self)
             orig = self.getMode("FastStep")

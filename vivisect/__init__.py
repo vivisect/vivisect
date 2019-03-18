@@ -168,16 +168,16 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
     def getVivGuid(self):
         '''
-        Return the GUID for this workspace.  Every newly created VivWorkspace 
+        Return the GUID for this workspace.  Every newly created VivWorkspace
         should have a unique GUID, for identifying a particular workspace for
-        a given binary/process-space versus another created at a different 
+        a given binary/process-space versus another created at a different
         time.  Filesystem-copies of the same workspace will have the same GUID
         by design.  This easily allows for workspace-specific GUI layouts as
         well as comparisons of Server-based workspaces to the original file-
         based workspace used to store to the server.
         '''
         vivGuid = self.getMeta('GUID')
-        if vivGuid == None:
+        if vivGuid is None:
             vivGuid = guid()
             self.setMeta('GUID', vivGuid)
 
@@ -202,7 +202,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         the stack pointer at function entry.
         """
         # FIXME this should probably be an argument
-        r = (va,idx,val)
+        r = (va, idx, val)
         self._fireEvent(VWE_ADDFREF, r)
 
     def getFref(self, va, idx):
@@ -210,7 +210,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         Get back the fref value (or None) for the given operand index
         from the instruction at va.
         """
-        return self.frefs.get((va,idx))
+        return self.frefs.get((va, idx))
 
     def getEmulator(self, logwrite=False, logread=False):
         """
@@ -221,11 +221,11 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         plat = self.getMeta('Platform')
         arch = self.getMeta('Architecture')
 
-        eclass = viv_imp_lookup.workspace_emus.get( (plat,arch) )
-        if eclass == None:
+        eclass = viv_imp_lookup.workspace_emus.get((plat, arch))
+        if eclass is None:
             eclass = viv_imp_lookup.workspace_emus.get(arch)
 
-        if eclass == None:
+        if eclass is None:
             raise Exception("WorkspaceEmulation not supported on %s yet!" % arch)
 
         emu = eclass(self, logwrite=logwrite, logread=logread)

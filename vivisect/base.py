@@ -152,7 +152,7 @@ class VivEventDist(VivEventCore):
 def ddict():
     return collections.defaultdict(dict)
 
-class VivWorkspaceCore(object,viv_impapi.ImportApi):
+class VivWorkspaceCore(object, viv_impapi.ImportApi):
 
     def __init__(self):
         viv_impapi.ImportApi.__init__(self)
