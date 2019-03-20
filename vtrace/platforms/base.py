@@ -167,7 +167,7 @@ class TracerBase(vtrace.Notifier):
     def _doWait(self):
         doit = True
         while doit:
-        # A wrapper method for  wait() and the wait thread to use
+            # A wrapper method for wait() and the wait thread to use
             self.setMeta('SignalInfo', None)
             self.setMeta('PendingSignal', None)
             event = self.platformWait()
@@ -327,12 +327,12 @@ class TracerBase(vtrace.Notifier):
 
     def __del__(self):
         if not self._released:
-            print 'Warning! tracer del w/o release()!'
+            print('Warning! tracer del w/o release()!')
 
     def fireTracerThread(self):
         # Fire the threadwrap proxy thread for this tracer
         # (if it hasnt been fired...)
-        if self.thread == None:
+        if self.thread is None:
             self.thread = TracerThread()
 
     def fireNotifiers(self, event):

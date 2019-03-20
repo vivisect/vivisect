@@ -78,17 +78,17 @@ class PosixMixin:
                 self._fireExitThread(tid, exitcode)
 
             else:
-                self._fireExit( exitcode )
+                self._fireExit(exitcode)
 
         elif os.WIFSIGNALED(status):
-            self._fireExit( os.WTERMSIG( status ) )
+            self._fireExit(os.WTERMSIG(status))
 
         elif os.WIFSTOPPED(status):
             sig = os.WSTOPSIG(status)
             self.handlePosixSignal(sig)
 
         else:
-            print "OMG WTF JUST HAPPENED??!?11/!?1?>!"
+            print("OMG WTF JUST HAPPENED??!?11/!?1?>!")
 
     def handlePosixSignal(self, sig):
         """

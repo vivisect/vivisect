@@ -578,7 +578,7 @@ class Trace(e_mem.IMemory, e_reg.RegisterContext, e_resolv.SymbolResolver, objec
         not only will the default be returned, but the key will
         be set to the default specified.
         """
-        if default != None:
+        if default is not None:
             if not self.metadata.has_key(name):
                 self.metadata[name] = default
         return self.metadata.get(name, None)
@@ -679,7 +679,7 @@ class Trace(e_mem.IMemory, e_reg.RegisterContext, e_resolv.SymbolResolver, objec
         breakpoint.id = self.nextBpId()
         addr = breakpoint.resolveAddress(self)
 
-        if addr == None:
+        if addr is None:
             self.bpbyid[breakpoint.id] = breakpoint
             self.deferred.append(breakpoint)
             return breakpoint.id

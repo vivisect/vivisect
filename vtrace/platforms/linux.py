@@ -269,7 +269,7 @@ class LinuxMixin(v_posix.PtraceMixin, v_posix.PosixMixin):
         buf = create_string_buffer(size)
         x = libc.read(self.memfd, addressof(buf), size)
         if x != size:
-            #libc.perror('libc.read %d (size: %d)' % (x,size))
+            # libc.perror('libc.read %d (size: %d)' % (x,size))
             raise Exception("reading from invalid memory %s (%d returned)" % (hex(address), x))
         # We have to slice cause ctypes "helps" us by adding a null byte...
         return buf.raw
@@ -318,7 +318,7 @@ class LinuxMixin(v_posix.PtraceMixin, v_posix.PosixMixin):
                 os.kill(os.getpid(), signal.SIGSTOP)
                 os.execv(cmdlist[0], cmdlist)
             except Exception as e:
-                print e
+                print(e)
             sys.exit(-1)
 
         # Attach to child. should cause SIGSTOP
@@ -376,7 +376,7 @@ class LinuxMixin(v_posix.PtraceMixin, v_posix.PosixMixin):
             self.attachThread( tid )
 
     def attachThread(self, tid, attached=False):
-        self.doAttachThread(tid,attached=attached)
+        self.doAttachThread(tid, attached=attached)
         self.setMeta("ThreadId", tid)
         self.fireNotifiers(vtrace.NOTIFY_CREATE_THREAD)
 
@@ -455,7 +455,7 @@ class LinuxMixin(v_posix.PtraceMixin, v_posix.PosixMixin):
                 raise Exception("ERROR ptrace attach failed for thread %d" % tid)
 
         # We may have already revcieved the stop signal
-        if not self._stopped_cache.pop( tid, None ):
+        if not self._stopped_cache.pop(tid, None):
             os.waitpid(tid, 0x40000002)
 
         self.setupPtraceOptions(tid)
@@ -468,7 +468,8 @@ class LinuxMixin(v_posix.PtraceMixin, v_posix.PosixMixin):
         for ptrace.
         """
         opts = PT_O_TRACESYSGOOD
-        if platform.release()[:3] in ('2.6','3.0','3.1','3.2'):
+        ver = tuple(platform.release()[:3].split('.'))
+        if (int(ver[0]), int(ver[1])) >= (2, 6):
             opts |= PT_O_TRACECLONE | PT_O_TRACEEXIT
         x = v_posix.ptrace(PT_SETOPTIONS, tid, 0, opts)
         if x != 0:
@@ -487,7 +488,7 @@ class LinuxMixin(v_posix.PtraceMixin, v_posix.PosixMixin):
         tid, status = event
         if os.WIFSTOPPED(status):
             sig = status >> 8 # Cant use os.WSTOPSIG() here...
-            #print('STOPPED: %d %d %.8x %d' % (self.pid, tid, status, sig))
+            # print('STOPPED: %d %d %.8x %d' % (self.pid, tid, status, sig))
 
             # Ok... this is a crazy little state engine that tries
             # to account for the discrepancies in how linux posts
@@ -536,7 +537,7 @@ class LinuxMixin(v_posix.PtraceMixin, v_posix.PosixMixin):
             elif sig == SIG_LINUX_CLONE:
                 # Handle a new thread here!
                 newtid = self.getPtraceEvent()
-                #print('CLONE (new tid: %d)' % newtid)
+                # print('CLONE (new tid: %d)' % newtid)
                 self.attachThread(newtid, attached=True)
 
             elif sig == signal.SIGSTOP and tid != self.pid:
