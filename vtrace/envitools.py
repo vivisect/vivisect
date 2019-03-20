@@ -8,11 +8,12 @@ class RegisterException(Exception):
     pass
 
 def cmpRegs(emu, trace):
-    for idx, name in reg_map:  # TODO: Where is reg_map supposed to come from?
+    ctx = trace.getRegisterContext()
+    for rname, idx in ctx.getRegisterNameIndexes():
         er = emu.getRegister(idx)
-        tr = trace.getRegisterByName(name)
+        tr = trace.getRegisterByName(rname)
         if er != tr:
-            raise RegisterException("REGISTER MISMATCH: %s 0x%.8x 0x%.8x" % (name, tr, er))
+            raise RegisterException("REGISTER MISMATCH: %s 0x%.8x 0x%.8x" % (rname, tr, er))
     return True
 
 def emuFromTrace(trace):
@@ -20,6 +21,7 @@ def emuFromTrace(trace):
     Produce an envi emulator for this tracer object.
     '''
     arch = trace.getMeta('Architecture')
+    plat = trace.getMeta('Platform')
     amod = envi.getArchModule(arch)
     emu = amod.getEmulator()
 
@@ -27,7 +29,9 @@ def emuFromTrace(trace):
     for va, size, perms, fname in trace.getMemoryMaps():
         try:
             # So linux maps in a PROT_NONE page for efficient library sharing, so we have to take that into account
-            if (not perms & e_memory.MM_READ) and trace.getMeta('Platform') == 'linux':
+            if (not perms & e_memory.MM_READ):
+                continue
+            if plat == 'linux' and fname in ['[vvar]']:
                 continue
             bytez = trace.readMemory(va, size)
             emu.addMemoryMap(va, perms, fname, bytez)
@@ -38,7 +42,7 @@ def emuFromTrace(trace):
     rsnap = trace.getRegisterContext().getRegisterSnap()
     emu.setRegisterSnap(rsnap)
 
-    if trace.getMeta('Platform') == 'windows':
+    if plat == 'windows':
         emu.setSegmentInfo(e_i386.SEG_FS, trace.getThreads()[trace.getMeta('ThreadId')], 0xffffffff)
 
     return emu

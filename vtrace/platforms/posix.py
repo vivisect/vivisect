@@ -99,7 +99,7 @@ class PosixMixin:
 
             # Traps on posix systems are a little complicated
             if self.stepping:
-                #FIXME try out was single step thing for intel
+                # FIXME try out was single step thing for intel
                 self.stepping = False
                 self._fireStep()
 
