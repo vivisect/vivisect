@@ -1100,32 +1100,8 @@ class PE(object):
         else:
             raise AttributeError
 
-
-class MemObjFile:
-    """
-    A file like object that wraps a MemoryObject (envi) compatable
-    object with a file-like object where seek == VA.
-    """
-
-    def __init__(self, memobj, baseaddr):
-        self.baseaddr = baseaddr
-        self.offset = baseaddr
-        self.memobj = memobj
-
-    def seek(self, offset):
-        self.offset = self.baseaddr + offset
-
-    def read(self, size):
-        ret = self.memobj.readMemory(self.offset, size)
-        self.offset += size
-        return ret
-        
-    def write(self, bytes):
-        self.memobj.writeMemory(self.offset, bytes)
-        self.offset += len(bytes)
-
 def peFromMemoryObject(memobj, baseaddr):
-    fd = MemObjFile(memobj, baseaddr)
+    fd = vstruct.MemObjFile(memobj, baseaddr)
     return PE(fd, inmem=True)
 
 def peFromFileName(fname):

@@ -1,6 +1,8 @@
 """
 Unified expression helpers.
 """
+
+
 class ExpressionFail(Exception):
     def __init__(self, pycode, exception):
         Exception.__init__(self)
@@ -54,14 +56,18 @@ class ExpressionLocals(dict):
         if self.symobj is not None:
             ret = self.symobj.getSymByName(name)
             if ret is not None:
-                return ret.value
+                if ret.symtype == 3:
+                    return ret
+                else:
+                    return ret.value
         return dict.__getitem__(self, name)
 
     get = __getitem__
 
     def __iter__(self):
-        for va, name in self.symobj.getNames():
-            yield name
+        if self.symobj is not None:
+            for va, name in self.symobj.getNames():
+                yield name
 
         dict.__iter__(self)
 

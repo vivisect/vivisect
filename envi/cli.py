@@ -434,7 +434,7 @@ class EnviCli(Cmd):
         aliases = self.config.cli.aliases.keys()
         aliases.sort()
         for alias in aliases:
-            self.vprint('%s -> %s' % (alias,self.config.cli.aliases.get(alias)))
+            self.vprint('%s -> %s' % (alias, self.config.cli.aliases.get(alias)))
         self.vprint('')
         return
 

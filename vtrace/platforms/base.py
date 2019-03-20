@@ -539,8 +539,8 @@ class TracerBase(vtrace.Notifier):
         self.setMeta("LatestLibraryNorm", None)
 
         normname = self.normFileName(libname)
-        if self.getSymByName(normname) != None:
-            normname = "%s_%.8x" % (normname,address)
+        if self.getSymByName(normname) is not None:
+            normname = "%s_%.8x" % (normname, address)
 
         self.getMeta("LibraryPaths")[address] = libname
         self.getMeta("LibraryBases")[normname] = address
@@ -568,7 +568,7 @@ class TracerBase(vtrace.Notifier):
         done = {}
         mlen = len(magic)
 
-        for addr,size,perms,fname in self.getMemoryMaps():
+        for addr, size, perms, fname in self.getMemoryMaps():
 
             if not fname:
                 continue
@@ -588,7 +588,7 @@ class TracerBase(vtrace.Notifier):
     def _loadBinaryNorm(self, normname):
         if not self.libloaded.get(normname, False):
             fname = self.libpaths.get(normname)
-            if fname != None:
+            if fname is not None:
                 self._loadBinary(fname)
                 return True
         return False
@@ -601,7 +601,7 @@ class TracerBase(vtrace.Notifier):
         normname = self.normFileName(filename)
         if not self.libloaded.get(normname, False):
             address = self.getMeta("LibraryBases").get(normname)
-            if address == None:
+            if address is None:
                 return False
 
             self.platformParseBinary(filename, address, normname)
@@ -638,7 +638,7 @@ class TracerBase(vtrace.Notifier):
         field "StoppedThreadId" should be used in instances (like win32) where you
         must specify the ORIGINALLY STOPPED thread-id in the continue.
         """
-        self.setMeta("ThreadId",thrid)
+        self.setMeta("ThreadId", thrid)
 
     def platformSuspendThread(self, thrid):
         raise Exception("Platform must implement platformSuspendThread()")

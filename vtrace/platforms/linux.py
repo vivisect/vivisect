@@ -310,17 +310,17 @@ class LinuxMixin(v_posix.PtraceMixin, v_posix.PosixMixin):
         pid = os.fork()
 
         if pid == 0:
-            try: 
+            try:
                 # Don't use PT_TRACEME -- on some linux (tested on ubuntu)
                 # it will cause immediate asignment of ptrace slot to parent
                 # without parent having PT_ATTACH'D.... MAKES SYNCHRONIZATION HARD
                 # SIGSTOP ourself until parent continues us
-                os.kill(os.getpid(),signal.SIGSTOP)
+                os.kill(os.getpid(), signal.SIGSTOP)
                 os.execv(cmdlist[0], cmdlist)
             except Exception as e:
                 print e
             sys.exit(-1)
-        
+
         # Attach to child. should cause SIGSTOP
         if 0 != v_posix.ptrace(PT_ATTACH, pid, 0, 0):
             raise Exception("PT_ATTACH failed! linux platformExec")
@@ -328,8 +328,8 @@ class LinuxMixin(v_posix.PtraceMixin, v_posix.PosixMixin):
         # Eat all SIGSTOP (or other signal) and break from loop on SIGTRAP.
         # SIGTRAP triggered by execv while PTRACE_ATTACH'd
         while True:
-            wpid,status = os.waitpid(pid,os.WUNTRACED)
-            if wpid != pid: #should never happen
+            wpid, status = os.waitpid(pid, os.WUNTRACED)
+            if wpid != pid:  # should never happen
                 continue
             if os.WIFSTOPPED(status):
                 cause = os.WSTOPSIG(status)
@@ -337,19 +337,19 @@ class LinuxMixin(v_posix.PtraceMixin, v_posix.PosixMixin):
                     break
                 if v_posix.ptrace(v_posix.PT_CONTINUE, pid, 0, 0) != 0:
                     raise Exception("PT_CONTINUE failed! linux platformExec")
-        
-        # Do a single step, which will allow a new stop event for the 
+
+        # Do a single step, which will allow a new stop event for the
         # rest of vtrace to eat up.
         if v_posix.ptrace(v_posix.PT_STEP, pid, 0, 0) != 0:
             raise Exception("PT_CONTINUE failed! linux platformExec")
 
-        self.pthreads = [pid,]
+        self.pthreads = [pid]
         self.setMeta("ExeName", self._findExe(pid))
         return pid
 
     @v_base.threadwrap
     def platformAttach(self, pid):
-        self.pthreads = [pid,]
+        self.pthreads = [pid]
         self.setMeta("ThreadId", pid)
         if v_posix.ptrace(PT_ATTACH, pid, 0, 0) != 0:
             raise Exception("PT_ATTACH failed!")
@@ -362,11 +362,11 @@ class LinuxMixin(v_posix.PtraceMixin, v_posix.PosixMixin):
                 if not dname.isdigit():
                     continue
                 cmdline = self.platformReadFile('/proc/%s/cmdline' % dname)
-                cmdline = cmdline.replace("\x00"," ")
+                cmdline = cmdline.replace("\x00", " ")
                 if len(cmdline) > 0:
-                    pslist.append((int(dname),cmdline))
+                    pslist.append((int(dname), cmdline))
             except:
-                pass # Permissions...  quick process... whatev.
+                pass  # Permissions...  quick process... whatev.
         return pslist
 
     def _simpleCreateThreads(self):
@@ -776,7 +776,6 @@ class LinuxAmd64Trace(
         v_posix.ElfMixin.__init__(self)
         v_amd64.Amd64Mixin.__init__(self)
         LinuxMixin.__init__(self)
-
         self.dbgidx = self.archGetRegCtx().getRegisterIndex("debug0")
 
     @v_base.threadwrap

@@ -129,6 +129,7 @@ class Trace(e_mem.IMemory, e_reg.RegisterContext, e_resolv.SymbolResolver, objec
         self.modes = {}
         self.modedocs = {}
         self.notifiers = {}
+        self.namecache = []
 
         # For all transient data (if notifiers want
         # to track stuff per-trace
@@ -359,6 +360,15 @@ class Trace(e_mem.IMemory, e_reg.RegisterContext, e_resolv.SymbolResolver, objec
         if sym is None:
             raise Exception('Invalid Library Name: %s' % libname)
         return sym.getSymList()
+
+    def getNames(self):
+        if not self.namecache:
+            names = []
+            for lib in self.getNormalizedLibNames():
+                for sym in self.getSymsForFile(lib):
+                    names.append((sym.value, str(sym)))
+            self.namecache = sorted(names, key=lambda n: len(n[1]), reverse=True)
+        return self.namecache
 
     def getSymByAddr(self, addr, exact=True):
         """
@@ -1071,10 +1081,10 @@ class Trace(e_mem.IMemory, e_reg.RegisterContext, e_resolv.SymbolResolver, objec
         else:
             vs = vstruct.getStructure(sname)
 
-        if vs == None:
+        if vs is None:
             return None
 
-        if va == None:
+        if va is None:
             return vs
 
         bytez = self.readMemory(va, len(vs))
@@ -1302,6 +1312,12 @@ class VtraceExpressionLocals(e_expr.MemoryExpressionLocals):
         r = locs.get(name, None)
         if r is not None:
             return r
+
+        # Check the loaded libraries
+        for lib in self.trace.getNormalizedLibNames():
+            for sym in self.trace.getSymsForFile(lib):
+                if str(sym) == name:
+                    return sym
 
         return e_expr.MemoryExpressionLocals.__getitem__(self, name)
 
