@@ -156,16 +156,16 @@ class SymbolikFunctionEmulator(vsym_emulator.SymbolikEmulator):
         apictx = self._sym_vw.getFunctionApi(fva)
         if apictx == None:
             raise Exception('No API context for function %x' % fva)
-        
+
         ccname = apictx[API_CCONV]
         self.cconv = self.getCallingConvention(ccname)
         if self.cconv == None:
-            raise Exception('Unknown CallingConvention (%s) for: 0x%.8x' % (ccname,fva))
+            raise Exception('Unknown CallingConvention (%s) for: 0x%.8x' % (ccname, fva))
 
-        if args == None:
+        if args is None:
             # Initialize arguments by setting variables based on their arg indexes
-            argc = len( self._sym_vw.getFunctionArgs(fva) )
-            args = [ Var('arg%d' % i, self.__width__) for i in xrange( argc ) ]
+            argc = len(self._sym_vw.getFunctionArgs(fva))
+            args = [Var('arg%d' % i, self.__width__) for i in xrange(argc)]
 
         self.cconv.setSymbolikArgs(self, args)
 
@@ -209,13 +209,13 @@ class SymbolikFunctionEmulator(vsym_emulator.SymbolikEmulator):
                 thunk = vw.getFunctionMeta(fva, 'Thunk')
 
                 apictx = self._sym_vw.getFunctionApi(fva)
-                if apictx == None:
+                if apictx is None:
                     defcall = vw.getMeta("DefaultCall")
-                    if defcall == None:
+                    if defcall is None:
                         raise Exception('No API context for function %x and DefaultCall metadata not set' % fva)
                     # fake out 4 args
                     argv = (('int', None), ('int', None), ('int', None), ('int', None))
-                    apictx = ( 'int', None, defcall, fname, argv)
+                    apictx = ('int', None, defcall, fname, argv)
 
                 ccname = apictx[API_CCONV]
 
@@ -223,18 +223,18 @@ class SymbolikFunctionEmulator(vsym_emulator.SymbolikEmulator):
                 # Either way, if we have a calling convention and a function def
                 # lets parse out our arguments so the FofX() effect can have
                 # more info
-                if cconv != None:
+                if cconv is not None:
                     symargs = cconv.getSymbolikArgs(self, argv, update=True)
 
                 # First of all, if the name of the function has a callback
                 funccb = self.getFunctionCallback(fname)
-                if funccb != None:
+                if funccb is not None:
                     fret = funccb(self, fname, symargs)
 
                 # Next highest priority is "thunks" where there is a callback
-                elif thunk != None:
+                elif thunk is not None:
                     funccb = self.getFunctionCallback(thunk)
-                    if funccb != None:
+                    if funccb is not None:
                         fret = funccb(self, thunk, symargs)
 
         else:
@@ -242,31 +242,31 @@ class SymbolikFunctionEmulator(vsym_emulator.SymbolikEmulator):
             funcname = str(funcsym)     # Not necessarily the name but...
 
             # Attempt to use import api definitions...
-            apidef = self._sym_vw.getImpApi( funcname )
-            if apidef == None:
+            apidef = self._sym_vw.getImpApi(funcname)
+            if apidef is None:
                 defcall = vw.getMeta("DefaultCall")
-                if defcall == None:
+                if defcall is None:
                     raise Exception('No API context for function %x and DefaultCall metadata not set' % fva)
                 # fake out 4 args
                 argv = (('int', None), ('int', None), ('int', None), ('int', None))
-                apidef = ( 'int', None, defcall, funcname, argv)
+                apidef = ('int', None, defcall, funcname, argv)
 
-            #( 'int', None, 'stdcall', 'wininet.FindFirstUrlCacheContainerW', (('int', None), ('void *', 'ptr'), ('int', None), ('int', None)) ),
-            rt,rn,cc,fn,argv = apidef
-            cconv = self.getCallingConvention( cc )
+            # ( 'int', None, 'stdcall', 'wininet.FindFirstUrlCacheContainerW', (('int', None), ('void *', 'ptr'), ('int', None), ('int', None)) ),
+            rt, rn, cc, fn, argv = apidef
+            cconv = self.getCallingConvention(cc)
 
             # If we managed to get a calling convention *and* argument def...
-            if cconv != None and argv != None:
+            if cconv is not None and argv is not None:
                 symargs = cconv.getSymbolikArgs(self, argv, update=True)
 
             # Give the function callback a shot...
             funccb = self.getFunctionCallback(funcname)
-            if funccb != None:
+            if funccb is not None:
                 fret = funccb(self, funcname, symargs)
 
         # If we have a calling convention here, set the return state
-        if cconv != None:
-            if fret == None:
+        if cconv is not None:
+            if fret is None:
                 # TODO: yuck. take ez way out and use width on emu.
                 # should get return value def from cc and set width according
                 # to width of that?
@@ -335,7 +335,7 @@ class SymbolikAnalysisContext:
         self.vw = vw
         self.funccb = {}    # Callbacks
         self.consolve = False
-        self._sym_resolve = False 
+        self._sym_resolve = False
         self.preeffects = []
         self.preconstraints = []
 
@@ -371,12 +371,11 @@ class SymbolikAnalysisContext:
         is stored in 'symbolik_effects' list in the node properties.
         '''
         xlate = self.getTranslator()
-        graph = SymbolikFunctionGraph()
 
-        if fgraph == None:
+        if fgraph is None:
             fgraph = viv_graph.buildFunctionGraph(self.vw, fva)
 
-        for nodeva,ninfo in fgraph.getNodes():
+        for nodeva, ninfo in fgraph.getNodes():
 
             cbva = ninfo.get('cbva')
             cbsize = ninfo.get('cbsize')
@@ -391,7 +390,7 @@ class SymbolikAnalysisContext:
             for op in oplist:
                 xlate.translateOpcode(op)
 
-            efflist = xlate.getEffects() # we needn't copy
+            efflist = xlate.getEffects()  # we needn't copy
             conlist = xlate.getConstraints()
             xlate.clearEffects()
             # Put constraints into a dictionary lookup by target address
@@ -399,7 +398,7 @@ class SymbolikAnalysisContext:
             for coneff in conlist:
                 addrva = coneff.addrsym.solve()
                 clist = con_lookup.get(addrva)
-                if clist == None:
+                if clist is None:
                     clist = []
                     con_lookup[addrva] = clist
                 clist.append(coneff)
@@ -409,9 +408,9 @@ class SymbolikAnalysisContext:
             ninfo['symbolik_effects'] = efflist
 
             # Add the constraints to the edges
-            for eid,fromid,toid,einfo in fgraph.getRefsFromByNid(nodeva):
+            for eid, fromid, toid, einfo in fgraph.getRefsFromByNid(nodeva):
                 clist = con_lookup.pop(toid, None)
-                if clist == None:
+                if clist is None:
                     continue
                 einfo['symbolik_constraints'] = clist
 

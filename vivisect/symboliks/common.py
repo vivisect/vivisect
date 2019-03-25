@@ -73,7 +73,7 @@ def cb_astNodeCount(path,obj,ctx):
 class SymbolikBase:
     idgen = itertools.count()
 
-    symtype = None # sub-classes *must* set this
+    symtype = None  # sub-classes *must* set this
     discrete = False
     commutative = False
 
@@ -82,7 +82,7 @@ class SymbolikBase:
         self.kids          = []
         self.parents       = []
         self.cache         = {}
-    
+
     def __add__(self, other):
         return o_add(self, other, self.getWidth())
 
@@ -210,7 +210,7 @@ class SymbolikBase:
         '''
         def doreduce(path,oldkid,ctx):
             return oldkid._reduce(emu=emu)
-        
+
         sym = self.walkTree(doreduce, once=True)
         if foo:
             symstr = str(sym)
@@ -241,7 +241,12 @@ class SymbolikBase:
         '''
         if idx > len(self.kids)-1:
             self.kids.append(kid)
-            self.kids[idx].parents.append(self) 
+            try:
+                self.kids[idx].parents.append(self)
+            except:
+                import pdb
+                pdb.set_trace()
+                print("WAT")
         else:
             # kid already exists
             oldkid = self.kids[idx]
@@ -781,7 +786,7 @@ class Operator(SymbolikBase):
     def _solve(self, emu=None, vals=None):
         v1 = self.kids[0].solve(emu=emu, vals=vals)
         v2 = self.kids[1].solve(emu=emu, vals=vals)
-    
+
         if self.operstr == '/' or self.operstr == '%':
             # catch divide by zero
             if v2 == 0: 
@@ -802,7 +807,7 @@ class Operator(SymbolikBase):
 
     @symcache
     def __str__(self):
-        if self.operstr == None:
+        if self.operstr is None:
             raise Exception('Operators *must* set operstr')
         x,y = self.kids
         return '(%s %s %s)' % (str(x), self.operstr, str(y))

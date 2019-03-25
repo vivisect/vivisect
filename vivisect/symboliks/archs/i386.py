@@ -1,5 +1,3 @@
-import sys
-
 import envi
 import envi.bits as e_bits
 import envi.registers as e_registers
