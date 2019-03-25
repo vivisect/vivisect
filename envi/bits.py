@@ -92,6 +92,29 @@ def msb(value, size):
         return 1
     return 0
 
+def is_signed_half_carry(value, size, src):
+    '''
+    BCD carry/borrow in the second most important nibble:
+        32bit   - bit 27
+        16bit   - bit 11
+        8bit    - bit 3
+    '''
+    bitsize = (size << 3) - 5
+    mask = 1<<bitsize
+
+    p1 = value & mask
+    p2 = src & mask
+    
+    return ((p1 ^ p2) != 0)
+
+def is_signed_carry(value, size, src):
+    smax = s_maxes[size]
+    if value > smax > src:
+        return True
+    if value < -smax < -src:
+        return True
+    return False
+
 def is_signed_overflow(value, size):
     smax = s_maxes[size]
     if value > smax:
@@ -114,8 +137,23 @@ def is_aux_carry(src, dst):
 def is_aux_carry_sub(src, dst):
     return src & 0xf > dst & 0xf
 
+# set of format lists which make size, endianness, and signedness fast and easy
 le_fmt_chars = (None,"B","<H",None,"<I",None,None,None,"<Q")
 be_fmt_chars = (None,"B",">H",None,">I",None,None,None,">Q")
+fmt_chars = (le_fmt_chars, be_fmt_chars)
+
+le_fmt_schars = (None,"b","<h",None,"<i",None,None,None,"<q")
+be_fmt_schars = (None,"b",">h",None,">i",None,None,None,">q")
+fmt_schars = (le_fmt_schars, be_fmt_schars)
+
+master_fmts = (fmt_chars, fmt_schars)
+
+fmt_sizes =  (None,1,2,4,4,8,8,8,8)
+
+
+fmt_schars = (le_fmt_schars, be_fmt_schars)
+
+
 def parsebytes(bytes, offset, size, sign=False, bigend=False):
     """
     Mostly for pulling immediates out of strings...

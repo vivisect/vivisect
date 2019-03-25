@@ -12,6 +12,9 @@ from binascii import hexlify
 from exc import *
 import visgraph.pathcore as vg_pathcore
 
+def guid(size=16):
+    return hexlify(os.urandom(size))
+
 def zdict():
     return collections.defaultdict(int)
 
@@ -20,9 +23,6 @@ def ldict():
 
 def pdict():
     return collections.defaultdict(ldict)
-
-def guid():
-    return hexlify(os.urandom(16))
 
 class Graph:
 
@@ -94,6 +94,25 @@ class Graph:
             node1 = (n1, graph['nodes'][n1])
             node2 = (n2, graph['nodes'][n2])
             self.addEdge(node1, node2, eid=eid, eprops=eprops)
+
+    def merge(self, graph):
+        '''
+        duplicate another graph's contents.  subclasses may wish to modify this
+        function to duplicate more properties if present.
+        '''
+        self.wipeGraph()
+
+        self.metadata.update(graph.metadata)
+        self.formnodes.update(graph.formnodes)
+
+        for nid,nprops in graph.nodes.values():
+            self.addNode(nid=nid, nprops=nprops)
+
+        for eid, n1, n2, eprops in graph.edges.values():
+            node1 = graph.getNode(n1)
+            node2 = graph.getNode(n2)
+            self.addEdge(node1, node2, eid=eid, eprops=eprops)
+        
 
     def wipeGraph(self):
         '''
@@ -303,6 +322,17 @@ class Graph:
                 self.nodeprops[prop].pop(pval,None)
         return pval
 
+    def delNodesProps(self, props):
+        '''
+        Delete all listed properties from all nodes in the graph.
+
+        Example:
+            g.delNodesProps(('foo', 'bar'))
+        '''
+        for prop in props:
+            for node in self.getNodesByProp(prop):
+                self.delNodeProp(node, prop)
+
     def delNode(self, node):
         '''
         Delete a node from the graph.
@@ -421,6 +451,17 @@ class Graph:
             if not vlist:
                 self.edgeprops[prop].pop(v,None)
         return v
+
+    def delEdgesProps(self, props):
+        '''
+        Delete all listed properties from all edges in the graph.
+
+        Example:
+            g.delEdgesProps(('foo', 'bar'))
+        '''
+        for prop in props:
+            for edge in self.getEdgesByProp(prop):
+                self.delEdgeProp(edge, prop)
 
     def getRefsFrom(self, node):
         '''

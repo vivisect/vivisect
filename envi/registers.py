@@ -429,4 +429,3 @@ def addLocalMetas(l, metas):
     """
     for name,idx,offset,width in metas:
         l["REG_%s" % name.upper()] = (offset << 24) | (width << 16) | idx
-

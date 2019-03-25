@@ -25,14 +25,25 @@ import vivisect.qt.symboliks as viv_q_symboliks
 import vivisect.remote.share as viv_share
 import vivisect.remote.server as viv_server
 
-from PyQt4 import QtCore, QtGui
+try:
+    from PyQt5 import QtCore
+    from PyQt5.QtWidgets import QInputDialog, QFileDialog
+    from PyQt5.QtCore import PYQT_VERSION_STR
+except:
+    from PyQt4 import QtCore
+    from PyQt4.QtGui import QInputDialog, QFileDialog
+    from PyQt4.QtCore import PYQT_VERSION_STR
+
 from vqt.common import *
 from vivisect.const import *
+from vqt.main import getOpenFileName, getSaveFileName
+from vqt.saveable import compat_isNone, compat_toByteArray, compat_strList
 
 dock_top   = QtCore.Qt.TopDockWidgetArea
 dock_right = QtCore.Qt.RightDockWidgetArea
 
-class VQVivMainWindow(vq_app.VQMainCmdWindow, viv_base.VivEventDist):
+
+class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
 
     # Child windows may emit this on "navigate" requests...
     #vivNavSignal = QtCore.pyqtSignal(str, name='vivNavSignal') 
@@ -41,7 +52,7 @@ class VQVivMainWindow(vq_app.VQMainCmdWindow, viv_base.VivEventDist):
     def __init__(self, vw):
         self.vw = vw
         vw._viv_gui = self
-        viv_base.VivEventDist.__init__(self, vw)
+        viv_base.VivEventDist.__init__(self, vw=vw)
         vq_app.VQMainCmdWindow.__init__(self, 'Vivisect', vw)
         self.vqAddMenuField('&File.Save', self._menuFileSave)
         self.vqAddMenuField('&File.Save As', self._menuFileSaveAs)
@@ -61,6 +72,7 @@ class VQVivMainWindow(vq_app.VQMainCmdWindow, viv_base.VivEventDist):
         self.vqAddMenuField('&View.&Structures', self._menuViewStructs)
         self.vqAddMenuField('&View.&Segments', self._menuViewSegments)
         self.vqAddMenuField('&View.&Symboliks', self._menuViewSymboliks)
+        self.vqAddMenuField('&View.&Layouts.&Set Default', self._menuViewLayoutsSetDefault)
         self.vqAddMenuField('&View.&Layouts.&Save', self._menuViewLayoutsSave)
         self.vqAddMenuField('&View.&Layouts.&Load', self._menuViewLayoutsLoad)
 
@@ -100,7 +112,7 @@ class VQVivMainWindow(vq_app.VQMainCmdWindow, viv_base.VivEventDist):
         if curname == None:
             curname = ''
 
-        name, ok = QtGui.QInputDialog.getText(parent, 'Enter...', 'Name', text=curname)
+        name, ok = QInputDialog.getText(parent, 'Enter...', 'Name', text=curname)
         if ok:
             name = str(name)
             if self.vw.vaByName(name):
@@ -116,14 +128,14 @@ class VQVivMainWindow(vq_app.VQMainCmdWindow, viv_base.VivEventDist):
         if curcomment == None:
             curcomment = ''
 
-        comment, ok = QtGui.QInputDialog.getText(parent, 'Enter...', 'Comment', text=curcomment)
+        comment, ok = QInputDialog.getText(parent, 'Enter...', 'Comment', text=curcomment)
         if ok:
             self.vw.setComment(va, str(comment))
 
     def addVaXref(self, va, parent=None):
         if parent == None:
             parent = self
-        xtova, ok = QtGui.QInputDialog.getText(parent, 'Enter...', 'Make Code Xref 0x%x -> '% va)
+        xtova, ok = QInputDialog.getText(parent, 'Enter...', 'Make Code Xref 0x%x -> '% va)
         if ok:
             try:
                 val = self.vw.parseExpression(str(xtova))
@@ -135,12 +147,12 @@ class VQVivMainWindow(vq_app.VQMainCmdWindow, viv_base.VivEventDist):
                 self.vw.vprint(repr(e))
 
     def setFuncLocalName(self, fva, offset, atype, aname):
-        newname, ok = QtGui.QInputDialog.getText(self, 'Enter...', 'Local Name')
+        newname, ok = QInputDialog.getText(self, 'Enter...', 'Local Name')
         if ok:
             self.vw.setFunctionLocal(fva, offset, LSYM_NAME, (atype,str(newname)))
 
     def setFuncArgName(self, fva, idx, atype, aname):
-        newname, ok = QtGui.QInputDialog.getText(self, 'Enter...', 'Argument Name')
+        newname, ok = QInputDialog.getText(self, 'Enter...', 'Argument Name')
         if ok:
             self.vw.setFunctionArg(fva, idx, atype, str(newname))
 
@@ -156,11 +168,12 @@ class VQVivMainWindow(vq_app.VQMainCmdWindow, viv_base.VivEventDist):
         sname = vs_qt.selectStructure(self.vw.vsbuilder, parent=parent)
         if sname != None:
             self.vw.makeStructure(va, sname)
+        return sname
 
     def addBookmark(self, va, parent=None):
         if parent == None:
             parent = self
-        bname, ok = QtGui.QInputDialog.getText(parent, 'Enter...', 'Bookmark Name')
+        bname, ok = QInputDialog.getText(parent, 'Enter...', 'Bookmark Name')
         if ok:
             self.vw.setVaSetRow('Bookmarks', (va, str(bname)))
 
@@ -189,6 +202,14 @@ class VQVivMainWindow(vq_app.VQMainCmdWindow, viv_base.VivEventDist):
         view = viv_q_views.VQVivVaSetView(self.vw, self, name)
         self.vqDockWidget(view)
 
+    def delFunction(self, fva, parent=None):
+        if parent == None:
+            parent = self
+
+        yn, ok = QInputDialog.getItem(self, 'Delete Function', 'Confirm:', ('No', 'Yes'), 0, False)
+        if ok and yn == 'Yes':
+            self.vw.delFunction(fva)
+
     def vqInitDockWidgetClasses(self):
 
         exprloc = e_expr.MemoryExpressionLocals(self.vw, symobj=self.vw)
@@ -208,6 +229,88 @@ class VQVivMainWindow(vq_app.VQMainCmdWindow, viv_base.VivEventDist):
         self.vqAddDockWidgetClass(viv_q_funcgraph.VQVivFuncgraphView, args=(self.vw, self))
         self.vqAddDockWidgetClass(viv_q_symboliks.VivSymbolikFuncPane, args=(self.vw, self))
 
+    def vqRestoreGuiSettings(self, settings):
+        guid = self.vw.getVivGuid()
+        dwcls = settings.value('%s/DockClasses' % guid)
+        state = settings.value('%s/DockState' % guid)
+        geom =  settings.value('%s/DockGeometry' % guid)
+        stub = '%s/' % guid
+
+        if compat_isNone(dwcls):
+            names = self.vw.filemeta.keys()
+            names.sort()
+            name = '+'.join(names)
+            dwcls = settings.value('%s/DockClasses' % name)
+            state = settings.value('%s/DockState' % name)
+            geom =  settings.value('%s/DockGeometry' % name)
+            stub = '%s/' % name
+
+        if compat_isNone(dwcls):
+            dwcls = settings.value('DockClasses')
+            state = settings.value('DockState')
+            geom =  settings.value('DockGeometry')
+            stub = ''
+
+
+        if not compat_isNone(dwcls):
+            for i, clsname in enumerate(compat_strList(dwcls)):
+                name = 'VQDockWidget%d' % i
+                try:
+                    tup = self.vqBuildDockWidget(str(clsname), floating=False)
+                    if tup != None:
+                        d, obj = tup
+                        d.setObjectName(name)
+                        d.vqRestoreState(settings,name,stub)
+                        d.show()
+                except Exception, e:
+                    print('Error Building: %s: %s'  % (clsname,e))
+
+        # Once dock widgets are loaded, we can restoreState
+        if not compat_isNone(state):
+            self.restoreState(compat_toByteArray(state))
+
+        if not compat_isNone(geom):
+            self.restoreGeometry(compat_toByteArray(geom))
+
+        # Just get all the resize activities done...
+        vq_main.eatevents()
+        for w in self.vqGetDockWidgets():
+            w.show()
+
+        return True
+
+    def vqSaveGuiSettings(self, settings):
+
+        dock_classes = []
+        guid = self.vw.getVivGuid()
+        names = self.vw.filemeta.keys()
+        names.sort()
+        vivname = '+'.join(names)
+
+        # Enumerate the current dock windows and set
+        # their names by their list order...
+        for i, w in enumerate(self.vqGetDockWidgets()):
+            widget = w.widget()
+            dock_classes.append(widget.__class__.__name__)
+            name = 'VQDockWidget%d' % i
+            w.setObjectName(name)
+            w.vqSaveState(settings,'%s/%s' % (guid, name))
+            w.vqSaveState(settings,'%s/%s' % (vivname, name))
+
+        geom = self.saveGeometry()
+        state = self.saveState()
+
+        # first store for this specific workspace
+        settings.setValue('%s/DockClasses' % guid, dock_classes)
+        settings.setValue('%s/DockGeometry' % guid, geom)
+        settings.setValue('%s/DockState' % guid, state)
+
+        # next store for this filename
+        settings.setValue('%s/DockClasses' % vivname, dock_classes)
+        settings.setValue('%s/DockGeometry' % vivname, geom)
+        settings.setValue('%s/DockState' % vivname, state)
+        # don't store the default.  that should be saved manually
+
     def _menuToolsDebug(self):
         viv_vdbext.runVdb(self)
 
@@ -224,8 +327,8 @@ class VQVivMainWindow(vq_app.VQMainCmdWindow, viv_base.VivEventDist):
         self.vw.vprint('complete!')
 
     def _menuFileSaveAs(self):
-        fname = QtGui.QFileDialog.getSaveFileName(self, 'Save As...')
-        if fname == None:
+        fname = getSaveFileName(self, 'Save As...')
+        if fname == None or not len(fname):
             return
         self.vw.setMeta('StorageName', fname)
         self._menuFileSave(fullsave=True)
@@ -234,7 +337,7 @@ class VQVivMainWindow(vq_app.VQMainCmdWindow, viv_base.VivEventDist):
         viv_q_remote.saveToServer(self.vw, parent=self)
 
     def _menuViewLayoutsLoad(self):
-        fname = QtGui.QFileDialog.getOpenFileName(self, 'Load Layout')
+        fname = getOpenFileName(self, 'Load Layout')
         if fname == None:
             return
 
@@ -242,12 +345,15 @@ class VQVivMainWindow(vq_app.VQMainCmdWindow, viv_base.VivEventDist):
         self.vqRestoreGuiSettings(settings)
 
     def _menuViewLayoutsSave(self):
-        fname = QtGui.QFileDialog.getSaveFileName(self, 'Save Layout')
-        if fname == None:
+        fname = getSaveFileName(self, 'Save Layout')
+        if fname == None or not len(fname):
             return
 
         settings = QtCore.QSettings(fname, QtCore.QSettings.IniFormat)
         self.vqSaveGuiSettings(settings)
+
+    def _menuViewLayoutsSetDefault(self):
+        vq_app.VQMainCmdWindow.vqSaveGuiSettings(self, self._vq_settings)
 
     def _menuToolsStructNames(self):
         nsinfo = vs_qt.selectStructNamespace()

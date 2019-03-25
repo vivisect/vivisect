@@ -18,6 +18,7 @@ import traceback
 import threading
 import collections
 
+from binascii import hexlify
 from StringIO import StringIO
 from collections import deque
 from ConfigParser import ConfigParser
@@ -48,6 +49,9 @@ from vivisect.const import *
 from vivisect.defconfig import *
 
 import vivisect.analysis.generic.emucode as v_emucode
+
+def guid(size=16):
+    return hexlify(os.urandom(size))
 
 class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
@@ -162,6 +166,23 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         '''
         return self._viv_gui
 
+    def getVivGuid(self):
+        '''
+        Return the GUID for this workspace.  Every newly created VivWorkspace 
+        should have a unique GUID, for identifying a particular workspace for
+        a given binary/process-space versus another created at a different 
+        time.  Filesystem-copies of the same workspace will have the same GUID
+        by design.  This easily allows for workspace-specific GUI layouts as
+        well as comparisons of Server-based workspaces to the original file-
+        based workspace used to store to the server.
+        '''
+        vivGuid = self.getMeta('GUID')
+        if vivGuid == None:
+            vivGuid = guid()
+            self.setMeta('GUID', vivGuid)
+
+        return vivGuid
+
     def loadWorkspace(self, wsname):
         mname = self.getMeta("StorageModule")
         mod = self.loadModule(mname)
@@ -207,7 +228,10 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         if eclass == None:
             raise Exception("WorkspaceEmulation not supported on %s yet!" % arch)
 
-        return eclass(self, logwrite=logwrite, logread=logread)
+        emu = eclass(self, logwrite=logwrite, logread=logread)
+        emu.setEndian(self.getEndian())
+
+        return emu
 
     def getCachedEmu(self, emuname):
         """
@@ -279,11 +303,17 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         '''
         return self.comments.items()
 
-    def addRelocation(self, va, rtype):
+    def addRelocation(self, va, rtype, data=None):
         """
         Add a relocation entry for tracking.
+        Expects data to have whatever is necessary for the reloc type. eg. addend
         """
-        self._fireEvent(VWE_ADDRELOC, (va, rtype))
+        # split "current" va into fname and offset.  future relocations will want to base all va's from an image base
+        mmva, mmsz, mmperm, fname = self.getMemoryMap(va)    # FIXME: getFileByVa does not obey file defs
+        imgbase = self.getFileMeta(fname, 'imagebase')
+        offset = va - imgbase
+
+        self._fireEvent(VWE_ADDRELOC, (fname, offset, rtype, data))
 
     def getRelocations(self):
         """
@@ -643,8 +673,22 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         return stats
 
     def printDiscoveredStats(self):
-        disc, undisc = self.getDiscoveredInfo()
+        ( disc, 
+            undisc, 
+            numXrefs, 
+            numLocs, 
+            numFuncs, 
+            numBlocks, 
+            numOps, 
+            numUnis, 
+            numStrings, 
+            numNumbers, 
+            numPointers, 
+            numVtables ) = self.getDiscoveredInfo()
+
         self.vprint("Percentage of discovered executable surface area: %.1f%% (%s / %s)" % (disc*100.0/(disc+undisc), disc, disc+undisc))
+        self.vprint("   Xrefs/Blocks/Funcs:                             (%s / %s / %s)" % (numXrefs, numBlocks, numFuncs))
+        self.vprint("   Locs,  Ops/Strings/Unicode/Nums/Ptrs/Vtables:   (%s:  %s / %s / %s / %s / %s / %s)" % (numLocs, numOps, numStrings, numUnis, numNumbers, numPointers, numVtables))
 
     def getDiscoveredInfo(self):
         """
@@ -665,7 +709,19 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
                 else:
                     off += loc[L_SIZE]
                     disc += loc[L_SIZE]
-        return disc, undisc
+
+        numXrefs = len(self.getXrefs())
+        numLocs = len(self.getLocations())
+        numFuncs = len(self.getFunctions())
+        numBlocks = len(self.getCodeBlocks())
+        numOps = len(self.getLocations(LOC_OP))
+        numUnis = len(self.getLocations(LOC_UNI))
+        numStrings = len(self.getLocations(LOC_STRING))
+        numNumbers = len(self.getLocations(LOC_NUMBER))
+        numPointers = len(self.getLocations(LOC_POINTER))
+        numVtables = len(self.getLocations(LOC_VFTABLE))
+
+        return disc, undisc, numXrefs, numLocs, numFuncs, numBlocks, numOps, numUnis, numStrings, numNumbers, numPointers, numVtables
 
     def getImports(self):
         """
@@ -760,6 +816,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         if self.isReadable(va-4):
             plen = self.readMemValue(va-2, 2) # pascal string length
             dlen = self.readMemValue(va-4, 4) # delphi string length
+
         offset, bytes = self.getByteDef(va)
         maxlen = len(bytes) - offset
         count = 0
@@ -769,17 +826,22 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             # already set as a location.
             if (count > 0):
                 loc = self.getLocation(va+count)
-                if loc and loc[L_LTYPE] == LOC_STRING:
-                    return loc[L_VA] - (va + count) + loc[L_SIZE]
-                return -1
+                if loc != None:
+                    if loc[L_LTYPE] == LOC_STRING:
+                        return loc[L_VA] - (va + count) + loc[L_SIZE]
+                    return -1
+
             c = bytes[offset+count]
             # The "strings" algo basically says 4 or more...
             if ord(c) == 0 and count >= 4:
                 return count
+
             elif ord(c) == 0 and (count == dlen or count == plen):
                 return count
+
             if c not in string.printable:
                 return -1
+
             count += 1
         return -1
 
@@ -799,27 +861,24 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         #FIXME this does not detect Unicode...
 
         offset, bytes = self.getByteDef(va)
-        maxlen = len(bytes) + offset
+        maxlen = len(bytes) - offset
         count = 0
+        charset = bytes[offset + 1]
         while count < maxlen:
             # If we hit another thing, then probably not.
             # Ignore when count==0 so detection can check something
             # already set as a location.
             if (count > 0):
                 loc = self.getLocation(va+count)
-                if loc and loc[L_LTYPE] == LOC_UNI:
-                    return loc[L_VA] - (va + count) + loc[L_SIZE]
-                return -1
+                if loc:
+                    if loc[L_LTYPE] == LOC_UNI:
+                        return loc[L_VA] - (va + count) + loc[L_SIZE]
+                    return -1
 
             c0 = bytes[offset+count]
             if offset+count+1 >= len(bytes):
                 return -1
             c1 = bytes[offset+count+1]
-
-            # If it's not null,char,null,char then it's
-            # not simple unicode...
-            if ord(c1) != 0:
-                return -1
 
             # If we find our null terminator after more
             # than 4 chars, we're probably a real string
@@ -831,6 +890,11 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             # If the first byte char isn't printable, then
             # we're probably not a real "simple" ascii string
             if c0 not in string.printable:
+                return -1
+
+            # If it's not null,char,null,char then it's
+            # not simple unicode...
+            if c1 != charset:
                 return -1
 
             count += 2
@@ -878,7 +942,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
         note: differs from the IMemory interface by checking loclist
         '''
-        b = self.readMemory(va, 16)
+        off, b = self.getByteDef(va)
         if arch == envi.ARCH_DEFAULT:
             loctup = self.getLocation(va)
             # XXX - in the case where we've set a location on what should be an 
@@ -887,7 +951,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             if loctup != None and loctup[ L_TINFO ] and loctup[ L_LTYPE ] == LOC_OP:
                 arch = loctup[ L_TINFO ]
 
-        return self.imem_archs[ (arch & envi.ARCH_MASK) >> 16 ].archParseOpcode(b, 0, va)
+        return self.imem_archs[ (arch & envi.ARCH_MASK) >> 16 ].archParseOpcode(b, off, va)
 
     def makeOpcode(self, va, op=None, arch=envi.ARCH_DEFAULT):
         """
@@ -1445,7 +1509,10 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         (see REF_ macros).  This will *not* trigger any analysis.
         Callers are expected to do their own xref analysis (ie, makeCode() etc)
         """
-        ref = (fromva,tova,reftype,rflags)
+        # Architecture gets to decide on actual final VA (ARM/THUMB/etc...)
+        tova, reftype, rflags = self.arch.archModifyXrefAddr(tova, reftype, rflags)
+
+        ref = (fromva, tova, reftype, rflags)
         if ref in self.getXrefsFrom(fromva):
             return
         self._fireEvent(VWE_ADDXREF, (fromva, tova, reftype, rflags))
@@ -2020,7 +2087,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
 
 
-    def loadFromFd(self, fd, fmtname=None):
+    def loadFromFd(self, fd, fmtname=None, baseaddr=None):
         """
         Read the first bytes of the file descriptor and see if we can identify the type.
         If so, load up the parser for that file type, otherwise raise an exception.
@@ -2039,7 +2106,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
         fd.seek(0)
         filename = hashlib.md5( fd.read() ).hexdigest()
-        fname = mod.parseFd(self, fd, filename)
+        fname = mod.parseFd(self, fd, filename, baseaddr=baseaddr)
 
         self.initMeta("StorageName", filename+".viv")
 
@@ -2085,7 +2152,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             self.vprint('Saving Symbol Cache: %s (%d syms)' % (symhash,len(symtups)))
             symcache.setCacheSyms( symhash, symtups )
 
-    def loadFromFile(self, filename, fmtname=None):
+    def loadFromFile(self, filename, fmtname=None, baseaddr=None):
         """
         Read the first bytes of the file and see if we can identify the type.
         If so, load up the parser for that file type, otherwise raise an exception.
@@ -2098,7 +2165,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             fmtname = viv_parsers.guessFormatFilename(filename)
 
         mod = viv_parsers.getParserModule(fmtname)
-        fname = mod.parseFile(self, filename)
+        fname = mod.parseFile(self, filename, baseaddr=baseaddr)
 
         self.initMeta("StorageName", filename+".viv")
 

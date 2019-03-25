@@ -437,6 +437,8 @@ class PE(object):
     def rvaToOffset(self, rva):
         if self.inmem:
             return rva
+        if rva >= 0 and rva < self.IMAGE_NT_HEADERS.OptionalHeader.SizeOfHeaders:
+            return rva
         for s in self.sections:
             sbase = s.VirtualAddress
             ssize = max(s.SizeOfRawData, s.VirtualSize)
@@ -592,7 +594,10 @@ class PE(object):
                     if not namelen_bytes:
                         continue
                     namelen = struct.unpack('<H', namelen_bytes)[0]
-                    name_id = self.readAtRva(namerva + 2, namelen * 2).decode('utf-16le', 'ignore')
+                    name_raw = self.readAtRva(namerva + 2, namelen * 2)
+                    if not name_raw:
+                        continue
+                    name_id = name_raw.decode('utf-16le', 'ignore')
                     if not name_id:
                         name_id = dirent.Name
 
@@ -824,6 +829,9 @@ class PE(object):
             if chunksize > len(relbytes):
                 return
             
+            if relcnt < 0:
+                return
+            
             rels = struct.unpack("<%dH" % relcnt, relbytes[8:chunksize])
             for r in rels:
                 rtype = r >> 12
@@ -873,8 +881,17 @@ class PE(object):
         if not funcoff or funcsize > 0x7FFF or ((ordoff > 0) ^ (nameoff > 0)):
             self.IMAGE_EXPORT_DIRECTORY = None
             return
+        
+        if funcsize == 0:
+            self.IMAGE_EXPORT_DIRECTORY = None
+            return
     
         funcbytes = self.readAtOffset(funcoff, funcsize)
+
+        if not funcbytes:
+            self.IMAGE_EXPORT_DIRECTORY = None
+            return
+
         funclist = struct.unpack("%dI" % (len(funcbytes) / 4), funcbytes)
 
         # named function exports

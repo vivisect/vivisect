@@ -4,12 +4,15 @@ The initial arm module.
 
 import sys
 import struct
+import logging
 
 import envi
 import envi.bits as e_bits
 from envi.const import *
 from envi.archs.arm.regs import *
 from envi.archs.arm import ArmModule
+
+logger = logging.getLogger(__name__)
 
 # CPU state (memory, regs inc SPSRs and banked registers)
 # CPU mode  (User, FIQ, IRQ, supervisor, Abort, Undefined, System)
@@ -35,19 +38,19 @@ class CoProcEmulator:       # useful for prototyping, but should be subclassed
         pass
 
     def stc(self, parms):
-        print >>sys.stderr,"CoProcEmu: stc(%s)"%repr(parms)
+        logger.info("CoProcEmu: stc(%r)", parms)
     def ldc(self, parms):
-        print >>sys.stderr,"CoProcEmu: ldc(%s)"%repr(parms)
+        logger.info("CoProcEmu: ldc(%r)", parms)
     def cdp(self, parms):
-        print >>sys.stderr,"CoProcEmu: cdp(%s)"%repr(parms)
+        logger.info("CoProcEmu: cdp(%r)", parms)
     def mcr(self, parms):
-        print >>sys.stderr,"CoProcEmu: mcr(%s)"%repr(parms)
+        logger.info("CoProcEmu: mcr(%r)", parms)
     def mcrr(self, parms):
-        print >>sys.stderr,"CoProcEmu: mcrr(%s)"%repr(parms)
+        logger.info("CoProcEmu: mcrr(%r)", parms)
     def mrc(self, parms):
-        print >>sys.stderr,"CoProcEmu: mrc(%s)"%repr(parms)
+        logger.info("CoProcEmu: mrc(%r)", parms)
     def mrrc(self, parms):
-        print >>sys.stderr,"CoProcEmu: mrrc(%s)"%repr(parms)
+        logger.info("CoProcEmu: mrrc(%r)", parms)
 
 
 def _getRegIdx(idx, mode):
@@ -130,7 +133,7 @@ class ArmEmulator(ArmModule, ArmRegisterContext, envi.Emulator):
 
         ArmRegisterContext.__init__(self)
 
-        self.addCallingConvention("Arm Arch Procedure Call", aapcs)
+        self.addCallingConvention("armcall", aapcs)
 
     def undefFlags(self):
         """
@@ -411,28 +414,25 @@ class ArmEmulator(ArmModule, ArmRegisterContext, envi.Emulator):
 
         addr = self.getRegister(srcreg)
         for val in regvals:
-        #for reg in xrange(16):
-            #if reg in regmask:
-                #val = self.getRegister(reg)
-                if op.iflags & IF_DAIB_B:
-                    if op.iflags & IF_DAIB_I:
-                        addr += 4
-                    else:
-                        addr -= 4
-                    self.writeMemValue(addr, val, 4)
+            if op.iflags & IF_DAIB_B == IF_DAIB_B:
+                if op.iflags & IF_DAIB_I == IF_DAIB_I:
+                    addr += 4
                 else:
-                    self.writeMemValue(addr, val, 4)
-                    if op.iflags & IF_DAIB_I:
-                        addr += 4
-                    else:
-                        addr -= 4
+                    addr -= 4
+                self.writeMemValue(addr, val, 4)
+            else:
+                self.writeMemValue(addr, val, 4)
+                if op.iflags & IF_DAIB_I == IF_DAIB_I:
+                    addr += 4
+                else:
+                    addr -= 4
+
         if op.opers[0].oflags & OF_W:
             self.setRegister(srcreg,addr)
         #FIXME: add "shared memory" functionality?  prolly just in strex which will be handled in i_strex
         # is the following necessary?  
         newpc = self.getRegister(REG_PC)    # check whether pc has changed
         if pc != newpc:
-            print "PC HAS CHANGED!  THIS CODE IS WORTHWHILE!"
             return newpc
 
     i_stmia = i_stm
@@ -447,8 +447,8 @@ class ArmEmulator(ArmModule, ArmRegisterContext, envi.Emulator):
 
         for reg in xrange(16):
             if (1<<reg) & regmask:
-                if op.iflags & IF_DAIB_B:
-                    if op.iflags & IF_DAIB_I:
+                if op.iflags & IF_DAIB_B == IF_DAIB_B:
+                    if op.iflags & IF_DAIB_I == IF_DAIB_I:
                         addr += 4
                     else:
                         addr -= 4
@@ -457,7 +457,7 @@ class ArmEmulator(ArmModule, ArmRegisterContext, envi.Emulator):
                 else:
                     regval = self.readMemValue(addr, 4)
                     self.setRegister(reg, regval)
-                    if op.iflags & IF_DAIB_I:
+                    if op.iflags & IF_DAIB_I == IF_DAIB_I:
                         addr += 4
                     else:
                         addr -= 4

@@ -1,6 +1,7 @@
 
 import os
 import PE
+import logging
 import vstruct
 import vivisect
 import PE.carve as pe_carve
@@ -17,6 +18,8 @@ import envi.symstore.symcache as e_symcache
 
 from vivisect.const import *
 
+logger = logging.getLogger(__name__)
+
 # PE Machine field values
 #0x14d   Intel i860
 #0x14c   Intel I386 (same ID used for 486 and 586)
@@ -24,15 +27,15 @@ from vivisect.const import *
 #0x166   MIPS R4000
 #0x183   DEC Alpha AXP
 
-def parseFile(vw, filename):
+def parseFile(vw, filename, baseaddr=None):
     pe = PE.PE(file(filename,"rb"))
-    return loadPeIntoWorkspace(vw, pe, filename)
+    return loadPeIntoWorkspace(vw, pe, filename, baseaddr=baseaddr)
 
-def parseBytes(vw, bytes):
+def parseBytes(vw, bytes, baseaddr=None):
     fd = StringIO.StringIO(bytes)
     fd.seek(0)
     pe = PE.PE(fd)
-    return loadPeIntoWorkspace(vw, pe, filename=filename)
+    return loadPeIntoWorkspace(vw, pe, filename=filename, baseaddr=baseaddr)
 
 def parseMemory(vw, memobj, base):
     pe = PE.peFromMemoryObject(memobj, base)
@@ -40,10 +43,10 @@ def parseMemory(vw, memobj, base):
     #FIXME does the PE's load address get fixedup on rebase?
     return loadPeIntoWorkspace(vw, pe, fname)
 
-def parseFd(vw, fd, filename=None):
+def parseFd(vw, fd, filename=None, baseaddr=None):
     fd.seek(0)
     pe = PE.PE(fd)
-    return loadPeIntoWorkspace(vw, pe, filename=filename)
+    return loadPeIntoWorkspace(vw, pe, filename=filename, baseaddr=baseaddr)
 
 arch_names = {
     PE.IMAGE_FILE_MACHINE_I386:'i386',
@@ -53,19 +56,20 @@ arch_names = {
 defcalls = {
     'i386':'cdecl',
     'amd64':'msx64call',
+    'arm':'armcall',
 }
 
 # map PE relocation types to vivisect types where possible
 relmap = {
-    PE.IMAGE_REL_BASED_HIGHLOW:vivisect.RTYPE_BASERELOC,
+    PE.IMAGE_REL_BASED_HIGHLOW:vivisect.RTYPE_BASEOFF,
 }
 
-def loadPeIntoWorkspace(vw, pe, filename=None):
+def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
 
     mach = pe.IMAGE_NT_HEADERS.FileHeader.Machine
 
     arch = arch_names.get(mach)
-    if arch == None:
+    if arch is None:
         raise Exception("Machine %.4x is not supported for PE!" % mach )
 
     vw.setMeta('Architecture', arch)
@@ -80,13 +84,12 @@ def loadPeIntoWorkspace(vw, pe, filename=None):
 
     vw.setMeta('Platform', platform)
 
-    defcall = defcalls.get(arch)
-    if defcall:
-        vw.setMeta("DefaultCall", defcall)
+    vw.setMeta('DefaultCall', defcalls.get(arch,'unknown'))
 
-    # Set ourselvs up for extended windows binary analysis
+    # Set ourselves up for extended windows binary analysis
 
-    baseaddr = pe.IMAGE_NT_HEADERS.OptionalHeader.ImageBase
+    if baseaddr is None:
+        baseaddr = pe.IMAGE_NT_HEADERS.OptionalHeader.ImageBase
     entry = pe.IMAGE_NT_HEADERS.OptionalHeader.AddressOfEntryPoint + baseaddr
     entryrva = entry - baseaddr
 
@@ -101,7 +104,7 @@ def loadPeIntoWorkspace(vw, pe, filename=None):
     if dllname != None:
         fvivname = dllname
 
-    if fvivname == None:
+    if fvivname is None:
         fvivname = "pe_%.8x" % baseaddr
 
     fhash = "unknown hash"
@@ -114,7 +117,11 @@ def loadPeIntoWorkspace(vw, pe, filename=None):
     vw.setFileMeta(fname, 'SymbolCacheHash', symhash)
 
     # Add file version info if VS_VERSIONINFO has it
-    vs = pe.getVS_VERSIONINFO()
+    try:
+        vs = pe.getVS_VERSIONINFO()
+    except Exception, e:
+        vs = None
+        vw.vprint('Failed to load version info resource due to %s' % (repr(e),))
     if vs != None:
         vsver = vs.getVersionValue('FileVersion')
         if vsver != None and len(vsver):
@@ -306,10 +313,12 @@ def loadPeIntoWorkspace(vw, pe, filename=None):
 
         # map PE reloc to VIV reloc ( or dont... )
         vtype = relmap.get(rtype)
-        if vtype == None:
+        if vtype is None:
+            logger.info('Skipping PE Relocation type: %d (no handler)', rtype)
             continue
 
-        vw.addRelocation(rva+baseaddr, vtype)
+        mapoffset = vw.readMemoryPtr(rva+baseaddr) - baseaddr
+        vw.addRelocation(rva+baseaddr, vtype, mapoffset)
 
     for rva, lname, iname in pe.getImports():
         if vw.probeMemory(rva+baseaddr, 4, e_mem.MM_READ):
@@ -384,7 +393,7 @@ def loadPeIntoWorkspace(vw, pe, filename=None):
 
             try:
 
-                if vw.getName(symva) == None:
+                if vw.getName(symva) is None:
                     vw.makeName(symva, symname, filelocal=True)
 
             except Exception, e:

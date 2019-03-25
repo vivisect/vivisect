@@ -21,9 +21,9 @@ class Constraint:
         self._v1.clearCache()
         self._v2.clearCache()
 
-    def walkTree(self, cb, ctx=None):
-        self._v1 = self._v1.walkTree(cb, ctx=ctx)
-        self._v2 = self._v2.walkTree(cb, ctx=ctx)
+    def walkTree(self, cb, ctx=None, once=True):
+        self._v1 = self._v1.walkTree(cb, ctx=ctx, once=once)
+        self._v2 = self._v2.walkTree(cb, ctx=ctx, once=once)
 
     def getWidth(self):
         return self._v1.getWidth()
@@ -112,36 +112,46 @@ def opose(c1, c2):
 
 class eq(Constraint):
     operstr = '=='
+    symtype = SYMT_CON_EQ
     def testTruth(self, v1, v2):
         return v1 == v2
 
 class ne(Constraint):
     operstr = '!='
+    symtype = SYMT_CON_NE
     def testTruth(self, v1, v2):
         return v1 != v2
 
 class le(Constraint):
     operstr = '<='
+    symtype = SYMT_CON_LE
     def testTruth(self, v1, v2):
         return v1 <= v2
 
 class gt(Constraint):
     operstr = '>'
+    symtype = SYMT_CON_GT
     def testTruth(self, v1, v2):
         return v1 > v2
 
 class lt(Constraint):
     operstr = '<'
+    symtype = SYMT_CON_LT
     def testTruth(self, v1, v2):
         return v1 < v2
 
 class ge(Constraint):
     operstr = '>='
+    symtype = SYMT_CON_GE
     def testTruth(self, v1, v2):
         return v1 >= v2
 
-class UNK(Constraint): operstr = 'UNK'
-class NOTUNK(Constraint): operstr = '!UNK'
+class UNK(Constraint): 
+    operstr = 'UNK'
+    symtype = SYMT_CON_UNK
+class NOTUNK(Constraint): 
+    operstr = '!UNK'
+    symtype = SYMT_CON_NOTUNK
 
 # Create our oposing constraints
 opose(ne, eq)

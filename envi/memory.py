@@ -3,6 +3,7 @@ import struct
 import collections
 
 import envi
+import envi.bits as e_bits
 
 """
 A module containing memory utilities and the definition of the
@@ -127,7 +128,7 @@ class IMemory:
             return False
         mapva, mapsize, mapperm, mapfile = mmap
         mapend = mapva+mapsize
-        if va+size >= mapend:
+        if va+size > mapend:
             return False
         if mapperm & perm != perm:
             return False
@@ -146,7 +147,9 @@ class IMemory:
     def readMemoryFormat(self, va, fmt):
         # Somehow, pointers are "signed" when they
         # get chopped up by python's struct package
-        if self.imem_psize == 4:
+        if self.imem_psize == 2:
+            fmt = fmt.replace("P","H")
+        elif self.imem_psize == 4:
             fmt = fmt.replace("P","I")
         elif self.imem_psize == 8:
             fmt = fmt.replace("P","Q")
@@ -159,20 +162,19 @@ class IMemory:
         return (0,0xffffffff)
 
     def readMemValue(self, addr, size):
+        '''
+        Read a number from memory of the given size.
+        '''
+        #FIXME: use getBytesDef (and implement a dummy wrapper in VTrace for getBytesDef)
         bytes = self.readMemory(addr, size)
         if bytes == None:
             return None
+
         #FIXME change this (and all uses of it) to passing in format...
         if len(bytes) != size:
             raise Exception("Read Gave Wrong Length At 0x%.8x (va: 0x%.8x wanted %d got %d)" % (self.getProgramCounter(),addr, size, len(bytes)))
-        if size == 1:
-            return struct.unpack("B", bytes)[0]
-        elif size == 2:
-            return struct.unpack("<H", bytes)[0]
-        elif size == 4:
-            return struct.unpack("<I", bytes)[0]
-        elif size == 8:
-            return struct.unpack("<Q", bytes)[0]
+
+        return e_bits.parsebytes(bytes, 0, size, False, self.getEndian())
 
     def readMemoryPtr(self, va):
         '''
@@ -197,6 +199,22 @@ class IMemory:
             fmt = fmt.replace("P","Q")
         mbytes = struct.pack(fmt, *args)
         self.writeMemory(va, mbytes)
+
+    def writeMemValue(self, addr, val, size):
+        '''
+        Write a number from memory of the given size.
+        '''
+        bytez = e_bits.buildbytes(val, size, self.getEndian())
+        return self.writeMemory(addr, bytez)
+
+    def writeMemoryPtr(self, va, val):
+        '''
+        Write a pointer to memory at the specified address.
+
+        Example:
+            ptr = t.writeMemoryPtr(addr, val)
+        '''
+        return self.writeMemValue(va, val, self.imem_psize)
 
     def getMemoryMap(self, va):
         '''
@@ -387,6 +405,7 @@ class MemoryObject(IMemory):
         """
         IMemory.__init__(self, arch=arch)
         self._map_defs = []
+        self._supervisor = False
 
     #FIXME MemoryObject: def allocateMemory(self, size, perms=MM_RWX, suggestaddr=0):
 
@@ -444,7 +463,7 @@ class MemoryObject(IMemory):
             mva, mmaxva, mmap, mbytes = mapdef
             if va >= mva and va < mmaxva:
                 mva, msize, mperms, mfname = mmap
-                if not mperms & MM_WRITE:
+                if not (mperms & MM_WRITE or self._supervisor):
                     raise envi.SegmentationViolation(va)
                 offset = va - mva
                 mapdef[3] = mbytes[:offset] + bytes + mbytes[offset+len(bytes):]
@@ -466,6 +485,45 @@ class MemoryObject(IMemory):
                 offset = va - mva
                 return (offset, mbytes)
         raise envi.SegmentationViolation(va)
+
+    def parseOpcode(self, va, arch=envi.ARCH_DEFAULT):
+        '''
+        Parse an opcode from the specified virtual address.
+
+        Example: op = m.parseOpcode(0x7c773803)
+        '''
+        off, b = self.getByteDef(va)
+        return self.imem_archs[ (arch & envi.ARCH_MASK) >> 16 ].archParseOpcode(b, off, va)
+
+    def readMemString(self, va, maxlen=0xfffffff):
+        '''
+        Returns a C-style string from memory.  Stops at Memory Map boundaries, or the first NULL (\x00) byte.
+        '''
+
+        for mva, mmaxva, mmap, mbytes in self._map_defs:
+            if va >= mva and va < mmaxva:
+                mva, msize, mperms, mfname = mmap
+                if not mperms & MM_READ:
+                    raise envi.SegmentationViolation(va)
+                offset = va - mva
+
+                # now find the end of the string based on either \x00, maxlen, or end of map
+                end = mbytes.find('\x00', offset)
+
+                left = end - offset
+                if end == -1:
+                    # couldn't find the NULL byte
+                    mend = offset + maxlen
+                    cstr = mbytes[offset:mend]
+                else:
+                    # couldn't find the NULL byte go to the end of the map or maxlen
+                    mend = offset + (maxlen, left)[left < maxlen]
+                    cstr = mbytes[offset:mend]
+                return cstr
+
+        raise envi.SegmentationViolation(va)
+
+
 
 class MemoryFile:
     '''
