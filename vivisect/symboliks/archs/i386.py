@@ -512,8 +512,15 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
         o = self.getOperObj(op, 1)
         self.setOperObj(op, 0, o)
 
+    # All of these mov's are technically different in i386/amd64, but really only differ by widths and sizes, and not by
+    # actual mathematical operation
     i_movnti = i_mov
     i_movq = i_mov
+    i_movaps = i_mov
+    i_movapd = i_mov
+    i_movups = i_mov
+    i_movdqu = i_mov
+    i_movdqa = i_mov
 
     def _movs(self, op, width=-1):
         si = Var(self.__srcp__, self._psize)
@@ -641,6 +648,10 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
     def i_setnz(self, op):
         # FIXME
         self.setOperObj(op, 0, Const(1, self._psize)) #cnot(Var('eflags_eq', self._psize)))
+
+    def i_cwde(self, op):
+        v1 = o_sextend(self.getRegObj(e_i386.REG_AX), Const(self._psize, self._psize))
+        self.effSetVariable('eax', v1)
 
     def i_setz(self, op):
         # FIXME
@@ -780,18 +791,6 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
             val = oper << (Const(bitsize, self._psize) - bit)
         val |= (oper >> bit)
         self.setOperObj(op, 0, val)
-
-    def i_movups(self, op):
-        # lots of writing in the spec on different things about opersizes... 
-        # but all seems to be a big mov.
-        data = self.getOperObj(op, 1)
-        self.setOperObj(op, 0, data)
-
-    def i_movaps(self, op):
-        # lots of writing in the spec on different things about opersizes... 
-        # but all seems to be a big mov.
-        data = self.getOperObj(op, 1)
-        self.setOperObj(op, 0, data)
 
     def _stos(self, op, width=-1):
         # FIXME omg segments in symboliks?
