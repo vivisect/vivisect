@@ -475,7 +475,7 @@ class MemoryObject(IMemory):
         """
         An optimized routine which returns the existing
         segment bytes sequence without creating a new
-        string object *AND* an offset of va into the 
+        string object *AND* an offset of va into the
         buffer.  Used internally for optimized memory
         handling.  Returns (offset, bytes)
         """
@@ -493,7 +493,7 @@ class MemoryObject(IMemory):
         Example: op = m.parseOpcode(0x7c773803)
         '''
         off, b = self.getByteDef(va)
-        return self.imem_archs[ (arch & envi.ARCH_MASK) >> 16 ].archParseOpcode(b, off, va)
+        return self.imem_archs[(arch & envi.ARCH_MASK) >> 16].archParseOpcode(b, off, va)
 
     def readMemString(self, va, maxlen=0xfffffff):
         '''

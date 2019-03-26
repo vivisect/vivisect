@@ -1,4 +1,3 @@
-
 from vivisect.symboliks.common import *
 
 class Constraint:
@@ -70,7 +69,7 @@ class Constraint:
         return False
 
     def reverse(self):
-        if self.revclass == None:
+        if self.revclass is None:
             raise Exception('Constraints Must Define revclass!')
         return self.revclass(self._v1, self._v2)
 
@@ -90,17 +89,17 @@ class Constraint:
         v2 = self._v2.clone()
         return self.__class__(v1, v2)
 
-    def prove(self, emu=None,vals=None):
-        v1 = self._v1.solve(emu=emu,vals=vals)
-        v2 = self._v2.solve(emu=emu,vals=vals)
+    def prove(self, emu=None, vals=None):
+        v1 = self._v1.solve(emu=emu, vals=vals)
+        v2 = self._v2.solve(emu=emu, vals=vals)
         return self.testTruth(v1, v2)
 
     def solve(self, emu=None, vals=None):
         # A "solution" for a condition is it's boolean state as int...
-        return int(self.prove(emu=emu,vals=vals))
+        return int(self.prove(emu=emu, vals=vals))
 
     def testTruth(self, v1, v2):
-        #raise Exception('Constraint %s must implement testTruth!' % self.__class__.__name__)
+        # raise Exception('Constraint %s must implement testTruth!' % self.__class__.__name__)
         return True
 
     def isDiscrete(self, emu=None):
@@ -146,10 +145,11 @@ class ge(Constraint):
     def testTruth(self, v1, v2):
         return v1 >= v2
 
-class UNK(Constraint): 
+class UNK(Constraint):
     operstr = 'UNK'
     symtype = SYMT_CON_UNK
-class NOTUNK(Constraint): 
+
+class NOTUNK(Constraint):
     operstr = '!UNK'
     symtype = SYMT_CON_NOTUNK
 

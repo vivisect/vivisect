@@ -1,11 +1,10 @@
 import envi
 import envi.bits as e_bits
-import envi.registers as e_registers
 import envi.archs.i386 as e_i386
+import envi.archs.i386.opconst as i386_opconst
 
 import vivisect.symboliks.analysis as vsym_analysis
 import vivisect.symboliks.callconv as vsym_callconv
-import vivisect.symboliks.emulator as vsym_emulator
 import vivisect.symboliks.translator as vsym_trans
 
 from vivisect.const import *
@@ -94,7 +93,7 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
         ridx = regidx & 0xffff
         rname = self._reg_ctx.getRegisterName(ridx)
         rbitwidth = self._reg_ctx.getRegisterWidth(ridx)
-        val = Var(rname, rbitwidth / 8 )
+        val = Var(rname, rbitwidth / 8)
 
         # Translate to meta if needed...
         if ridx != regidx:
@@ -117,7 +116,7 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
         ridx = regidx & 0xffff
         rname = self._reg_ctx.getRegisterName(ridx)
         rbitwidth = self._reg_ctx.getRegisterWidth(ridx)
-        val = Var(rname, rbitwidth / 8 )
+        val = Var(rname, rbitwidth / 8)
 
         # Translate to native if needed...
         if ridx != regidx:
@@ -126,7 +125,7 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
             # obviously is NOT symboliks aware (2nd op in | operation is NOT
             # a symbolik); so we do it manually here since we are symbolik
             # aware.
-            #obj = self._reg_ctx._xlateToNativeReg(regidx, obj)
+            # obj = self._reg_ctx._xlateToNativeReg(regidx, obj)
             basemask = (2**rbitwidth) - 1
             rreg, lshift, mask = self._reg_ctx.getMetaRegInfo(regidx)
             # cut hole in mask
@@ -224,7 +223,7 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
             addrsym = self.getOperAddrObj(op, idx)
             return self.effWriteMemory(addrsym, Const(oper.tsize, self._psize), obj)
 
-        raise Exception('Umm..... really?')
+        raise Exception('setOperObj failed')
 
     def __get_dest_maxes(self, op):
         tsize = op.opers[0].tsize
@@ -276,7 +275,7 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
         self.setOperObj(op, 0, obj)
 
     def i_bt(self, op):
-        ''' 
+        '''
         selects a bit in a bit string
         '''
         bit_base = self.getOperObj(op, 0)
@@ -304,11 +303,11 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
         v1 = self.getOperObj(op, 0)
         v2 = self.getOperObj(op, 1)
         res = o_sub(v1, v2, v1.getWidth())
-        self.effSetVariable('eflags_cf', gt(v2, v1)) #
-        self.effSetVariable('eflags_gt', gt(v1, v2)) # v1 - v2 > 0 :: v1 > v2
-        self.effSetVariable('eflags_lt', lt(v1, v2)) # v1 - v2 < 0 :: v1 < v2
-        self.effSetVariable('eflags_sf', lt(v1, v2)) # v1 - v2 < 0 :: v1 < v2
-        self.effSetVariable('eflags_eq', eq(v1, v2)) # v1 - v2 == 0 :: v1 == v2
+        self.effSetVariable('eflags_cf', gt(v2, v1))  #
+        self.effSetVariable('eflags_gt', gt(v1, v2))  # v1 - v2 > 0 :: v1 > v2
+        self.effSetVariable('eflags_lt', lt(v1, v2))  # v1 - v2 < 0 :: v1 < v2
+        self.effSetVariable('eflags_sf', lt(v1, v2))  # v1 - v2 < 0 :: v1 < v2
+        self.effSetVariable('eflags_eq', eq(v1, v2))  # v1 - v2 == 0 :: v1 == v2
 
     def i_dec(self, op):
         v1 = self.getOperObj(op, 0)
@@ -316,10 +315,10 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
 
         sub = o_sub(v1, one, v1.getWidth())
 
-        self.effSetVariable('eflags_gt', gt(v1, one)) # v1 - 1 > 0 :: v1 > 1
-        self.effSetVariable('eflags_lt', lt(v1, one)) # v1 - 1 < 0 :: v1 < 1
-        self.effSetVariable('eflags_sf', lt(v1, one)) # v1 - 1 < 0 :: v1 < 1
-        self.effSetVariable('eflags_eq', eq(v1, one)) # v1 - 1 == 0 :: v1 == 1
+        self.effSetVariable('eflags_gt', gt(v1, one))  # v1 - 1 > 0 :: v1 > 1
+        self.effSetVariable('eflags_lt', lt(v1, one))  # v1 - 1 < 0 :: v1 < 1
+        self.effSetVariable('eflags_sf', lt(v1, one))  # v1 - 1 < 0 :: v1 < 1
+        self.effSetVariable('eflags_eq', eq(v1, one))  # v1 - 1 == 0 :: v1 == 1
 
         self.setOperObj(op, 0, sub)
 
@@ -441,10 +440,8 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
 
     def _cond_jmp(self, op, cond):
         # Construct the tuple for the conditional jump
-        return (
-                ( self.getOperObj(op, 0), cond ),
-                ( Const(op.va + len(op), self._psize), cnot(cond)), 
-               )
+        return ((self.getOperObj(op, 0), cond ),
+                (Const(op.va + len(op), self._psize), cnot(cond)))
 
     def i_jg(self, op):
         return self._cond_jmp(op, Var('eflags_gt', self._psize))
@@ -469,7 +466,7 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
         if not tgt.isDiscrete():
             # indirect jmp... table!
 
-            return [( Const(tva, self._psize), eq(tgt, Const(tva, self._psize)) ) for fr,tva,tp,flag in self.vw.getXrefsFrom(op.va) if tp == REF_CODE]
+            return [(Const(tva, self._psize), eq(tgt, Const(tva, self._psize))) for fr, tva, tp, flag in self.vw.getXrefsFrom(op.va) if tp == REF_CODE]
 
     def i_jne(self, op):
         return self._cond_jmp(op, cnot(Var('eflags_eq', self._psize)))
@@ -521,37 +518,36 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
         o = self.getOperObj(op, 1)
         self.setOperObj(op, 0, o)
 
-    def i_movsb(self, op):
+    def _movs(self, op, width=-1):
         si = Var(self.__srcp__, self._psize)
         di = Var(self.__destp__, self._psize)
-        mem = Mem(si, Const(1, self._psize))
-        self.effWriteMemory(di, Const(1, self._psize), mem)
-        self.effSetVariable(self.__srcp__, si + Const(1, self._psize))
-        self.effSetVariable(self.__destp__, di + Const(1, self._psize))
+        mem = Mem(si, Const(width, self._psize))
+        self.effWriteMemory(di, Const(width, self._psize), mem)
+        # XXX: So...in reality these could be + or - depending on
+        # what is in the DF flag in the EFLAGS register. But that's a
+        # conditional and we're in symboliks town, so...whiff past that for now
+        self.effSetVariable(self.__srcp__, si + Const(width, self._psize))
+        self.effSetVariable(self.__destp__, di + Const(width, self._psize))
+
+    # TODO: When we move to python 3.4 or greater, we can change these to just
+    # functools.partialmethod. Cleaner that way
+    def i_movsb(self, op):
+        return self._movs(op, width=1)
 
     def i_movsd(self, op):
-        si = Var(self.__srcp__, self._psize)
-        di = Var(self.__destp__, self._psize)
-        mem = Mem(si, Const(4, self._psize))
-        self.effWriteMemory(di, Const(4, self._psize), mem)
-
-        # FIXME *symbolic* flags!
-        #if self.getFlag(EFLAGS_DF):
-            #esi -= 4
-            #edi -= 4
-
-        #else:
-            #esi += 4
-            #edi += 4
-        #print 'FIXME how to handle DF bit?'
-
-        self.effSetVariable(self.__srcp__, si + Const(4, self._psize))
-        self.effSetVariable(self.__destp__, di + Const(4, self._psize))
+        # Unfortunately, these have the same mnemonic
+        if op.opcode & i386_opconst.INS_STRMOV:
+            # Since x86 doesn't differentiate movsw and movsd via opcode, we could try to infer it via the operators,
+            # but those are for documention only (and even intel says those could be nothing but lies), so just go with
+            # the default for now
+            return self._movs(op, width=4)
+        else:
+            return self.i_mov(op)
 
     def i_movsx(self, op):
         dsize = op.opers[0].tsize
         ssize = op.opers[1].tsize
-        v2 = o_sextend( self.getOperObj(op,1), Const(ssize, self._psize))
+        v2 = o_sextend(self.getOperObj(op, 1), Const(ssize, self._psize))
         self.setOperObj(op, 0, v2)
 
     def i_movzx(self, op):
@@ -801,6 +797,36 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
         data = self.getOperObj(op, 1)
         self.setOperObj(op, 0, data)
 
+    def _stos(self, op, width=-1):
+        # FIXME omg segments in symboliks?
+        # base, size = self.segments[SEG_ES]
+        di = Var(self.__destp__, self._psize)
+        self.effWriteMemory(di, Const(self._psize, self._psize), Var('eax', self._psize))
+        self.effSetVariable(self.__destp__, di + Const(width, self._psize))
+
+    def i_stosb(self, op):
+        return self._stos(op, width=1)
+
+    def i_stosd(self, op):
+        return self._stos(op, width=4)
+
+    def _cmps(self, op, width=-1):
+        si = Var(self.__srcp__, self._psize)
+        di = Var(self.__destp__, self._psize)
+        v1 = Mem(si, Const(width, self._psize))
+        v2 = Mem(di, Const(width, self._psize))
+        self.effSetVariable('eflags_cf', gt(v2, v1))  #
+        self.effSetVariable('eflags_gt', gt(v1, v2))  # v1 - v2 > 0 :: v1 > v2
+        self.effSetVariable('eflags_lt', lt(v1, v2))  # v1 - v2 < 0 :: v1 < v2
+        self.effSetVariable('eflags_sf', lt(v1, v2))  # v1 - v2 < 0 :: v1 < v2
+        self.effSetVariable('eflags_eq', eq(v1, v2))  # v1 - v2 == 0 :: v1 == v2
+
+    def i_cmpsb(self, op):
+        return self._cmps(op, width=1)
+
+    def i_cmpsd(self, op):
+        return self._cmps(op, width=4)
+
 class i386SymbolikTranslator(IntelSymbolikTranslator):
     __arch__ = e_i386.i386Module
     __ip__ = 'eip' # we could use regctx.getRegisterName if we want.
@@ -808,7 +834,6 @@ class i386SymbolikTranslator(IntelSymbolikTranslator):
     __bp__ = 'ebp' # we could use regctx.getRegisterName if we want.
     __srcp__ = 'esi'
     __destp__ = 'edi'
-
 
     def i_pushad(self, op):
         esp = self.getRegObj(e_i386.REG_ESP)
@@ -853,22 +878,6 @@ class i386SymbolikTranslator(IntelSymbolikTranslator):
 
         self.setOperObj(op, 0, ((v1 << v2) | (v1 >> ( Const(op.opers[0].tsize*8, self._psize) - v2))))
         # XXX - set cf flag with last bit moved
-
-    def i_stosd(self, op):
-        #eax = self.getRegObj(e_i386.REG_EAX)
-        #edi = self.getRegObj(e_i386.REG_EDI)
-        # FIXME omg segments in symboliks?
-        #base,size = self.segments[SEG_ES]
-        di = Var(self.__destp__, self._psize)
-        self.effWriteMemory(di, Const(self._psize, self._psize), Var('eax', self._psize))
-        # FIXME flags?
-        #if self.getFlag(e_i386.EFLAGS_DF):
-            #edi -= 4
-        #else:
-            #edi += 4
-        #print 'FIXME DF IN stosd'
-        di += Const(4, self._psize)
-        self.effSetVariable(self.__destp__, di)
 
 class i386ArgDefSymEmu(ArgDefSymEmu):
     __xlator__ = i386SymbolikTranslator
@@ -922,7 +931,7 @@ class i386SymFuncEmu(vsym_analysis.SymbolikFunctionEmulator):
         self.setSymVariable('esp', symobj)
 
     def _eh_prolog(self, emu, fname, argv):
-        
+
         # swap out [ esp ] (saved eip) to ebp
         # and set ebp to current esp (std frame)
         ebp = emu.getSymVariable('ebp')

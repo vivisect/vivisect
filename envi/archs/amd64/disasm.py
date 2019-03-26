@@ -31,12 +31,10 @@ amd64_prefixes[0x4c] = (0x1c << 16)
 amd64_prefixes[0x4d] = (0x1d << 16)
 amd64_prefixes[0x4e] = (0x1e << 16)
 amd64_prefixes[0x4f] = (0x1f << 16)
-amd64_prefixes[0xc5] = (0x20 << 16) # VEX 2byte
-amd64_prefixes[0xc4] = (0x40 << 16) # VEX 3byte
+amd64_prefixes[0xc5] = (0x20 << 16)  # VEX 2byte
+amd64_prefixes[0xc4] = (0x40 << 16)  # VEX 3byte
 
 mandatory_prefixes = [0x66, 0xf2, 0xf3]
-
-
 
 
 # NOTE: some notes from the intel manual...
@@ -45,19 +43,19 @@ mandatory_prefixes = [0x66, 0xf2, 0xf3]
 # REX.X only modifies the SIB index value
 # REX.B modifies modrm r/m field, or SIB base (if SIB present), or opcode reg.
 # We inherit all the regular intel prefixes...
-# VEX replaces REX, and mixing them is invalid 
-PREFIX_REX   = 0x100000 # Shows that the rex prefix is present
-PREFIX_REX_B = 0x010000 # Bit 0 in REX prefix (0x41) means ModR/M r/m field, SIB base, or opcode reg
-PREFIX_REX_X = 0x020000 # Bit 1 in REX prefix (0x42) means SIB index extension
-PREFIX_REX_R = 0x040000 # Bit 2 in REX prefix (0x44) means ModR/M reg extention
-PREFIX_REX_W = 0x080000 # Bit 3 in REX prefix (0x48) means 64 bit operand
+# VEX replaces REX, and mixing them is invalid
+PREFIX_REX   = 0x100000  # Shows that the rex prefix is present
+PREFIX_REX_B = 0x010000  # Bit 0 in REX prefix (0x41) means ModR/M r/m field, SIB base, or opcode reg
+PREFIX_REX_X = 0x020000  # Bit 1 in REX prefix (0x42) means SIB index extension
+PREFIX_REX_R = 0x040000  # Bit 2 in REX prefix (0x44) means ModR/M reg extention
+PREFIX_REX_W = 0x080000  # Bit 3 in REX prefix (0x48) means 64 bit operand
 PREFIX_REX_MASK = PREFIX_REX_B | PREFIX_REX_X | PREFIX_REX_W | PREFIX_REX_R
 PREFIX_REX_RXB  = PREFIX_REX_B | PREFIX_REX_X | PREFIX_REX_R
 REX_HIGH_DROP = ~(e_i386.RMETA_HIGH8 ^ e_i386.RMETA_LOW8)  # FIXME: this is ugly
 
-PREFIX_VEX2  = 0x200000 # 2 byte VEX (data stored in opcode)
-PREFIX_VEX3  = 0x400000 # 3 byte VEX (data stored in opcode)
-PREFIX_VEX_L = 0x800000 # L bit set
+PREFIX_VEX2  = 0x200000  # 2 byte VEX (data stored in opcode)
+PREFIX_VEX3  = 0x400000  # 3 byte VEX (data stored in opcode)
+PREFIX_VEX_L = 0x800000  # L bit set
 PREFIX_VEX   = PREFIX_VEX2 | PREFIX_VEX3
 
 VEX_V_SHIFT  = 59
@@ -67,7 +65,7 @@ MODE_16 = 0
 MODE_32 = 1
 MODE_64 = 2
 
-class Amd64Opcode (i386Opcode):
+class Amd64Opcode(i386Opcode):
     def __repr__(self):
         """
         Over-ride this if you want to make arch specific repr.
@@ -114,9 +112,10 @@ class Amd64RipRelOper(envi.DerefOper):
         self._is_deref = True
 
     def getOperValue(self, op, emu=None):
-        if self._is_deref == False: # Special lea behavior
+        if not self._is_deref:  # Special lea behavior
             return self.getOperAddr(op)
-        if emu == None: return None
+        if emu is None:
+            return None
         return emu.readMemValue(self.getOperAddr(op, emu), self.tsize)
 
     def setOperValue(self, op, emu, val):
@@ -172,9 +171,9 @@ class Amd64Disasm(e_i386.i386Disasm):
         self.ptrsize = 8
 
         # 64-bit only
-        self._dis_amethods[opcode86.ADDRMETH_B>>16] = self.ameth_b
-        self._dis_amethods[opcode86.ADDRMETH_H>>16] = self.ameth_h
-        self._dis_amethods[opcode86.ADDRMETH_L>>16] = self.ameth_l
+        self._dis_amethods[opcode86.ADDRMETH_B >> 16] = self.ameth_b
+        self._dis_amethods[opcode86.ADDRMETH_H >> 16] = self.ameth_h
+        self._dis_amethods[opcode86.ADDRMETH_L >> 16] = self.ameth_l
 
         # Over-ride these which are in use by the i386 version of the ASM
         self.ROFFSETMMX   = e_i386.getRegOffset(amd64regs, "mm0")
@@ -197,7 +196,7 @@ class Amd64Disasm(e_i386.i386Disasm):
         mode = MODE_32
 
         sizelist = opcode86.OPERSIZE.get(opertype, None)
-        if sizelist == None:
+        if sizelist is None:
             raise Exception("OPERSIZE FAIL")
 
         if operflags & opcode86.OP_64AUTO:
@@ -219,16 +218,16 @@ class Amd64Disasm(e_i386.i386Disasm):
         # FIXME: for newer instructions, the VEX.W bit needs to be able to change the opcode. ugh.
 
         # Stuff for opcode parsing
-        tabdesc = all_tables[ opcode86.TBL_Main ] # A tuple (optable, shiftbits, mask byte, sub, max)
-        startoff = offset # Use startoff as a size knob if needed
+        tabdesc = all_tables[opcode86.TBL_Main]  # A tuple (optable, shiftbits, mask byte, sub, max)
+        startoff = offset  # Use startoff as a size knob if needed
 
         # Stuff we'll be putting in the opcode object
-        optype = None # This gets set if we successfully decode below
-        mnem = None 
+        optype = None  # This gets set if we successfully decode below
+        mnem = None
         operands = []
 
         prefixes = 0
-        pho_prefixes = 0    # faux prefixes... don't immediately apply them, they may not be the prefixes we're looking for
+        pho_prefixes = 0  # faux prefixes...don't immediately apply them, they may not be the prefixes we're looking for
 
         while True:
 
@@ -236,18 +235,18 @@ class Amd64Disasm(e_i386.i386Disasm):
 
             # This line changes in 64 bit mode
             p = self._dis_prefixes[obyte]
-            if p == None:
+            if p is None:
                 break
 
-            #print "OBYTE",hex(obyte)
+            # print("OBYTE",hex(obyte))
             if obyte in mandatory_prefixes:
                 pho_prefixes |= p
                 # ratchet through the tables
 
                 tabidx = ((obyte - tabdesc[4]) >> tabdesc[2]) & tabdesc[3]
-                #print "TABIDX: %d" % tabidx
+                # print("TABIDX: %d" % tabidx)
                 opdesc = tabdesc[0][tabidx]
-                #print 'OPDESC: %s -> %s' % (repr(opdesc), opcode86.tables_lookup.get(opdesc[0]))
+                # print('OPDESC: %s -> %s' % (repr(opdesc), opcode86.tables_lookup.get(opdesc[0])))
                 tabdesc = all_tables[opdesc[0]]
             else:
                 prefixes |= p
@@ -599,5 +598,5 @@ class Amd64Disasm(e_i386.i386Disasm):
 
 if __name__ == '__main__':
     import envi.archs
-    envi.archs.dismain( Amd64Disasm() )
+    envi.archs.dismain(Amd64Disasm())
 

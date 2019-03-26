@@ -1,9 +1,7 @@
-import sys
 import hashlib
 import operator
 import functools
 import itertools
-import traceback
 
 import vstruct
 import envi.bits as e_bits
@@ -13,12 +11,12 @@ from vivisect.symboliks.constraints import *
 
 def symcache(f):
     def docache(*args, **kwargs):
-        ret = args[0].cache.get( f.__name__ )
-        if ret != None: 
+        ret = args[0].cache.get(f.__name__)
+        if ret is not None:
             return ret
 
         ret = f(*args, **kwargs)
-        args[0].cache[ f.__name__ ] = ret
+        args[0].cache[f.__name__] = ret
         return ret
 
     functools.update_wrapper(docache, f)
@@ -30,11 +28,11 @@ def varsolve(name,width,emu=None):
     "solves" ( aka, generates a repeatable entropic
     value ) for a varible by name.
     '''
-    if emu != None:
+    if emu is not None:
         name += emu.getRandomSeed()
 
     md5sum = hashlib.md5(name).hexdigest()
-    return long( md5sum[:width*2], 16)
+    return long(md5sum[:width*2], 16)
 
 def evalSymbolik(reprstr):
     '''
@@ -68,7 +66,6 @@ def cb_astNodeCount(path,obj,ctx):
     ctx['count'] += 1
     if len(path) > ctx['depth']:
         ctx['depth'] = len(path)
-
 
 class SymbolikBase:
     idgen = itertools.count()
@@ -151,7 +148,7 @@ class SymbolikBase:
 
     def __eq__(self, other):
 
-        if other == None:
+        if other is None:
             return False
 
         if type(other) in (int, long):
@@ -241,12 +238,7 @@ class SymbolikBase:
         '''
         if idx > len(self.kids)-1:
             self.kids.append(kid)
-            try:
-                self.kids[idx].parents.append(self)
-            except:
-                import pdb
-                pdb.set_trace()
-                print("WAT")
+            self.kids[idx].parents.append(self)
         else:
             # kid already exists
             oldkid = self.kids[idx]
@@ -263,23 +255,22 @@ class SymbolikBase:
                 if parent._sym_id in done:
                     continue
 
-                # track the objects whose cache has been cleared    
+                # track the objects whose cache has been cleared
                 done.add(parent._sym_id)
-                parent.cache.clear() 
+                parent.cache.clear()
                 # grow our todo list
                 todo.extend(list(parent.parents))
 
             # remove ourselves as the parent
             if oldkid.parents:
-                #oldkid.parents.remove(self)
+                # oldkid.parents.remove(self)
                 for i,obj in enumerate(oldkid.parents):
                     if obj._sym_id == self._sym_id:
                         oldkid.parents.pop(i)
                         break
             # add new kid
             self.kids[idx] = kid
-            self.kids[idx].parents.append(self) 
-
+            self.kids[idx].parents.append(self)
 
     @symcache
     def isDiscrete(self, emu=None):
@@ -296,7 +287,7 @@ class SymbolikBase:
         return False
 
     def walkTree(self, cb, ctx=None, once=True):
-        ''' 
+        '''
         this version basically mirrors the original walkTree/_walkTreeImpl combination
         not sure about the stack usage.
         probably want to track index separately so we can just hand stack in as the path (and have it be correct)
@@ -515,7 +506,7 @@ class Mem(SymbolikBase):
             val = emu.readSymMemory(self.kids[0], self.kids[1], vals=vals)
             if val and val.isDiscrete():
                 return val.solve()
-        
+
         addrval = self.kids[0].solve(emu=emu, vals=vals)
         sizeval = self.kids[1].solve(emu=emu, vals=vals)
         # FIXME higher entropy!
@@ -539,12 +530,12 @@ class Var(SymbolikBase):
         strval = str(self)
         value = self.solve()
 
-        if vw.isValidPointer( value ):
+        if vw.isValidPointer(value):
             canvas.addVaText(strval, va=value)
             return
 
-        sym = vw.getSymByName( strval )
-        if sym != None:
+        sym = vw.getSymByName(strval)
+        if sym is not None:
             value = long(sym)
             canvas.addVaText(strval, va=value)
             return
@@ -561,9 +552,9 @@ class Var(SymbolikBase):
         return self.name
 
     def _solve(self, emu=None, vals=None):
-        if vals != None:
+        if vals is not None:
             ret = vals.get(self.name)
-            if ret != None:
+            if ret is not None:
                 return ret
 
         return varsolve(self.name, self.width, emu=emu)
@@ -577,11 +568,11 @@ class Var(SymbolikBase):
     def getWidth(self):
         return self.width
 
-class LookupVar (Var):
+class LookupVar(Var):
     '''
-    A 'LookupVar' is a special kind of variable used to track hardware-level 
+    A 'LookupVar' is a special kind of variable used to track hardware-level
     information, such as the VMREAD data.  Because VMREAD instructions require
-    a register value to determine what is being read, and this register info 
+    a register value to determine what is being read, and this register info
     isn't available until symbolik emulation, LookupVar allows the important
     data to be tracked between simple effects and applied effects.
     '''
@@ -624,7 +615,7 @@ class LookupVar (Var):
         return LookupVar(self.name, offset, lookupdict=self.lookupdict, width=self.width)
 
     def _reduce(self, emu=None):
-        self.offset._reduce(emu=emu) 
+        self.offset._reduce(emu=emu)
         return self
 
     def getWidth(self):
@@ -770,7 +761,7 @@ class Operator(SymbolikBase):
         # FIXME - dependancy loop.  does this effect perf?
         from vivisect.symboliks.reducers import reduceoper
         ret = reduceoper(self,emu=emu)
-        if ret != None:
+        if ret is not None:
             return ret
         return self._op_reduce(v1, v1val, v2, v2val, emu)
 
@@ -789,7 +780,7 @@ class Operator(SymbolikBase):
 
         if self.operstr == '/' or self.operstr == '%':
             # catch divide by zero
-            if v2 == 0: 
+            if v2 == 0:
                 return Var("NaN", width=self.width).solve(emu=emu)
         if self.mod == 0:
             return Var("NaN", width=self.width).solve(emu=emu)

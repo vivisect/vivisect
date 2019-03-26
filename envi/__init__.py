@@ -903,8 +903,6 @@ class Emulator(e_reg.RegisterContext, e_mem.MemoryObject):
         return res
 
 
-
-
 class CallingConvention(object):
     '''
     Base class for all calling conventions. You must define class locals that
@@ -931,15 +929,15 @@ class CallingConvention(object):
     Details:
         pad - # of bytes on stack to allocate between RET and First Stack Arg
 
-        align - stack alignment.  as this is >= pointer size, this is used as 
+        align - stack alignment.  as this is >= pointer size, this is used as
                 the amount of space to leave for RET and Args
 
-        delta - stack delta to apply before arguments                
+        delta - stack delta to apply before arguments
 
-        flags - flags for this convention, namely Caller or Callee Cleanup 
+        flags - flags for this convention, namely Caller or Callee Cleanup
 
-        arg_def - list of tuples indicating what each arg is.  
-            (CC_REG, REG_which)     - this Arg is a register, specifically 
+        arg_def - list of tuples indicating what each arg is.
+            (CC_REG, REG_which)     - this Arg is a register, specifically
                                         REG_which
             (CC_STACK_INF, #)       - indicates the start of STACK-based Args
                                         Currently the number is ignored

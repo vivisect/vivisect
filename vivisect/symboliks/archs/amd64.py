@@ -2,15 +2,15 @@ import hashlib
 
 import envi.archs.amd64 as e_amd64
 
-import vivisect.symboliks.common as vsym_common
+from vivisect.symboliks.common import *
 import vivisect.symboliks.archs.i386 as vsym_i386
 import vivisect.symboliks.analysis as vsym_analysis
 import vivisect.symboliks.callconv as vsym_callconv
 from envi.archs.amd64.vmcslookup import VMCS_NAMES
 
-class VMCS_Field(vsym_common.Var):
+class VMCS_Field(Var):
     def __init__(self, offset, width):
-        vsym_common.SymbolikBase.__init__(self)
+        SymbolikBase.__init__(self)
         self.offset = offset
         self.width = width
 
@@ -62,13 +62,13 @@ class Amd64SymbolikTranslator(vsym_i386.IntelSymbolikTranslator):
         ridx = regidx & 0xffff
         rname = self._reg_ctx.getRegisterName(ridx)
         rbitwidth = self._reg_ctx.getRegisterWidth(ridx)
-        val = vsym_common.Var(rname, rbitwidth / 8)
+        val = Var(rname, rbitwidth / 8)
 
         # Translate to native if needed...
         if ridx != regidx:
             # 64 bit mode setting to 32bit regs, 0-extends to 64 bits
             if regidx == ridx | e_amd64.RMETA_LOW32:
-                val = vsym_common.Var(rname, 8)
+                val = Var(rname, 8)
             else:
                 # we cannot call _xlateToNativReg since we'd pass in a symbolik
                 # object that would trigger an or operation; the code in envi
@@ -81,30 +81,30 @@ class Amd64SymbolikTranslator(vsym_i386.IntelSymbolikTranslator):
                 # cut hole in mask
                 finalmask = basemask ^ (mask << lshift)
                 if lshift != 0:
-                    obj <<= vsym_common.Const(lshift, rbitwidth / 8)
+                    obj <<= Const(lshift, rbitwidth / 8)
 
-                obj = obj | (val & vsym_common.Const(finalmask, rbitwidth / 8))
+                obj = obj | (val & Const(finalmask, rbitwidth / 8))
 
         self.effSetVariable(rname, obj)
 
     def getOperAddrObj(self, op, idx):
         oper = op.opers[idx]
         if isinstance(oper, e_amd64.Amd64RipRelOper):
-            return vsym_common.Const(op.va + len(op) + oper.imm, 8)
+            return Const(op.va + len(op) + oper.imm, 8)
 
         return vsym_i386.IntelSymbolikTranslator.getOperAddrObj(self, op, idx)
 
     def getOperObj(self, op, idx):
         oper = op.opers[idx]
         if isinstance(oper, e_amd64.Amd64RipRelOper):
-            return vsym_common.Mem(vsym_common.Const(op.va + len(op) + oper.imm, 8), vsym_common.Const(oper.tsize, 8))
+            return Mem(Const(op.va + len(op) + oper.imm, 8), Const(oper.tsize, 8))
 
         return vsym_i386.IntelSymbolikTranslator.getOperObj(self, op, idx)
 
     def i_movsxd(self, op):
         dsize = op.opers[0].tsize
         ssize = op.opers[1].tsize
-        v2 = vsym_common.o_sextend(self.getOperObj(op, 1), vsym_common.Const(ssize, self._psize))
+        v2 = o_sextend(self.getOperObj(op, 1), Const(ssize, self._psize))
         self.setOperObj(op, 0, v2)
 
     def i_div(self, op):
@@ -115,9 +115,9 @@ class Amd64SymbolikTranslator(vsym_i386.IntelSymbolikTranslator):
             raise Exception('#DE, divide by zero')
 
         if oper.tsize == 8:
-            rax = vsym_common.Var('rax', self._psize)
-            rdx = vsym_common.Var('rdx', self._psize)
-            num = (rdx << vsym_common.Const(64, self._psize)) + rax
+            rax = Var('rax', self._psize)
+            rdx = Var('rdx', self._psize)
+            num = (rdx << Const(64, self._psize)) + rax
             temp = num / denom
             if temp > (2**64)-1:
                 # TODO: make effect
@@ -134,30 +134,22 @@ class Amd64SymbolikTranslator(vsym_i386.IntelSymbolikTranslator):
         return vsym_i386.IntelSymbolikTranslator.i_jecxz(self, op)
 
     def i_jrcxz(self, op):
-        return self._cond_jmp(op, eq(vsym_common.Var('rcx', self._psize), vsym_common.Const(0, self._psize)))
-
-    def i_movsq(self, op):
-        si = vsym_common.Var(self.__srcp__, self._psize)
-        di = vsym_common.Var(self.__destp__, self._psize)
-        mem = vsym_common.Mem(si, vsym_common.Const(8))
-        self.effWriteMemory(di, vsym_common.Const(8, self._psize), mem)
-        self.effSetVariable(self.__srcp__, si + vsym_common.Const(8, self._psize))
-        self.effSetVariable(self.__destp__, di + vsym_common.Const(8, self._psize))
+        return self._cond_jmp(op, eq(Var('rcx', self._psize), Const(0, self._psize)))
 
     def i_pushfd(self, op):
         sp = self.getRegObj(self._reg_ctx._rctx_spindex)
         sr = self.getRegObj(self._reg_ctx._rctx_srindex)
-        self.effSetVariable(self.__sp__, sp - vsym_common.Const(8, self._psize))
-        self.effWriteMemory(vsym_common.Var(self.__sp__, self._psize), vsym_common.Const(8, self._psize), sr)
+        self.effSetVariable(self.__sp__, sp - Const(8, self._psize))
+        self.effWriteMemory(Var(self.__sp__, self._psize), Const(8, self._psize), sr)
 
     def i_vmread(self, op):
         vmcsoff = self.getOperObj(op, 1)
-        self.setOperObj(op, 0, vsym_common.LookupVar("VMCS", vmcsoff, VMCS_NAMES, vmcsoff.getWidth()))
+        self.setOperObj(op, 0, LookupVar("VMCS", vmcsoff, VMCS_NAMES, vmcsoff.getWidth()))
 
     def i_bt(self, op):
         oper = self.getOperObj(op, 0)
         bit = self.getOperObj(op, 1)
-        cf = (oper >> bit) & vsym_common.Const(1, 1)
+        cf = (oper >> bit) & Const(1, 1)
         self.effSetVariable('eflags_cf', cf)
 
     def i_bts(self, op):
@@ -165,11 +157,11 @@ class Amd64SymbolikTranslator(vsym_i386.IntelSymbolikTranslator):
         opersize = oper.getWidth()
         bit = self.getOperObj(op, 1)
         if bit.isDiscrete():
-            mask = vsym_common.Const(1 << bit.solve(), opersize)
+            mask = Const(1 << bit.solve(), opersize)
         else:
-            mask = vsym_common.Const(1, self._psize) << bit
+            mask = Const(1, self._psize) << bit
         val = oper | mask
-        bitinfo = (oper >> bit) & vsym_common.Const(1, opersize)
+        bitinfo = (oper >> bit) & Const(1, opersize)
 
         self.effSetVariable('eflags_cf', bitinfo)
         self.setOperObj(op, 0, val)
@@ -179,11 +171,11 @@ class Amd64SymbolikTranslator(vsym_i386.IntelSymbolikTranslator):
         opersize = oper.getWidth()
         bit = self.getOperObj(op, 1)
         if bit.isDiscrete():
-            mask = vsym_common.Const(-1 ^ (1 << bit.solve()), opersize)
+            mask = Const(-1 ^ (1 << bit.solve()), opersize)
         else:
-            mask = vsym_common.Const(-1, opersize) ^ (vsym_common.Const(1, opersize) << bit)
+            mask = Const(-1, opersize) ^ (Const(1, opersize) << bit)
         val = oper & mask
-        bitinfo = (oper >> bit) & vsym_common.Const(1, opersize)
+        bitinfo = (oper >> bit) & Const(1, opersize)
 
         self.effSetVariable('eflags_cf', bitinfo)
         self.setOperObj(op, 0, val)
@@ -228,6 +220,15 @@ class Amd64SymbolikTranslator(vsym_i386.IntelSymbolikTranslator):
 
     i_cmovz = i_cmove
     i_cmovnz = i_cmovne
+
+    def i_movsq(self, op):
+        return self._movs(op, width=8)
+
+    def i_stosq(self, op):
+        return self._stos(op, width=8)
+
+    def i_cmpsq(self, op):
+        return self._cmps(op, width=8)
 
 class Amd64ArgDefSymEmu(vsym_i386.ArgDefSymEmu):
     __xlator__ = Amd64SymbolikTranslator

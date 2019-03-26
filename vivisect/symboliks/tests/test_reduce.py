@@ -22,17 +22,17 @@ class TestReduceCase(unittest.TestCase):
         self.assertReduce('255 & 255','255')
 
     def test_symboliks_reduce_op_and(self):
-        self.assertReduce('(foo & 0xff) & 0xff','foo & 0xff')
-        self.assertReduce('(0xff & foo) & 0xff','foo & 0xff')
-        self.assertReduce('0xff & (foo & 0xff)','foo & 0xff')
-        self.assertReduce('0xff & (0xff & foo)','foo & 0xff')
+        self.assertReduce('(foo & 0xff) & 0xff', 'foo & 0xff')
+        self.assertReduce('(0xff & foo) & 0xff', 'foo & 0xff')
+        self.assertReduce('0xff & (foo & 0xff)', 'foo & 0xff')
+        self.assertReduce('0xff & (0xff & foo)', 'foo & 0xff')
 
-        self.assertReduce('foo & 0','0')
-        self.assertReduce('0 & foo','0')
+        self.assertReduce('foo & 0', '0')
+        self.assertReduce('0 & foo', '0')
 
         # reduce & with 0 regarless of width
-        self.assertReduce('foo[1] & 0','0')
-        self.assertReduce('0[1] & foo','0')
+        self.assertReduce('foo[1] & 0', '0')
+        self.assertReduce('0[1] & foo', '0')
 
         # reduce & umax of foo to just foo
         self.assertReduce('foo[1] & 0xff','foo')

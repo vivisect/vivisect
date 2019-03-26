@@ -680,7 +680,7 @@ class i386Disasm:
         Return a tuple of (size, Operand)
         """
 
-        mod,reg,rm = self.parse_modrm(ord(bytez[offset]))
+        mod, reg, rm = self.parse_modrm(ord(bytez[offset]))
 
         size = 1
 
@@ -810,7 +810,7 @@ class i386Disasm:
 
         # Stuff we'll be putting in the opcode object
         optype = None # This gets set if we successfully decode below
-        mnem = None 
+        mnem = None
         operands = []
 
         prefixes = 0
@@ -821,7 +821,7 @@ class i386Disasm:
 
             # This line changes in 64 bit mode
             p = self._dis_prefixes[obyte]
-            if p == None:
+            if p is None:
                 break
             if obyte == 0x66 and ord(bytez[offset+1]) == 0x0f:
                 break
@@ -862,11 +862,11 @@ class i386Disasm:
                 continue
 
             # We are now on the final table...
-            #print repr(opdesc)
+            # print(repr(opdesc))
             mnem = opdesc[6]
             optype = opdesc[1]
             if tabdesc[2] == 0xff:
-                offset += 1 # For our final opcode byte
+                offset += 1  # For our final opcode byte
             break
 
         if optype == 0:
@@ -891,23 +891,22 @@ class i386Disasm:
             if operflags == 0:
                 break
 
-            #print "ADDRTYPE: %.8x OPERTYPE: %.8x" % (addrmeth, opertype)
+            # print("ADDRTYPE: %.8x OPERTYPE: %.8x" % (addrmeth, opertype))
 
             tsize = self._dis_calc_tsize(opertype, prefixes, operflags)
 
-            #print hex(opertype),hex(addrmeth), hex(tsize)
+            # print(hex(opertype),hex(addrmeth), hex(tsize))
 
 
             # If addrmeth is zero, we have operands embedded in the opcode
             if addrmeth == 0:
                 osize = 0
                 oper = self.ameth_0(operflags, opdesc[5+i], tsize, prefixes)
-
             else:
-                #print "ADDRTYPE",hex(addrmeth)
+                # print("ADDRTYPE", hex(addrmeth))
                 ameth = self._dis_amethods[addrmeth >> 16]
-                #print "AMETH",ameth
-                if ameth == None:
+                # print("AMETH", ameth)
+                if ameth is None:
                     raise Exception("Implement Addressing Method 0x%.8x" % addrmeth)
 
                 # NOTE: Depending on your addrmethod you may get beginning of operands, or offset
@@ -925,11 +924,11 @@ class i386Disasm:
                     else:
                         osize, oper = ameth(bytez, offset, tsize, prefixes, operflags)
 
-                except struct.error, e:
+                except struct.error as e:
                     # Catch struct unpack errors due to insufficient data length
                     raise envi.InvalidInstruction(bytez=bytez[startoff:startoff+16])
 
-            if oper != None:
+            if oper is not None:
                 # This is a filty hack for now...
                 oper._dis_regctx = self._dis_regctx
                 operands.append(oper)
@@ -965,9 +964,9 @@ class i386Disasm:
 
     def ameth_a(self, bytez, offset, tsize, prefixes, operflags):
         imm = e_bits.parsebytes(bytez, offset, tsize)
-        #seg = e_bits.parsebytes(bytez, offset+tsize, 2)
+        # seg = e_bits.parsebytes(bytez, offset+tsize, 2)
         # THIS BEING GHETTORIGGED ONLY EFFECTS callf jmpf - unghettorigged by atlas
-        #print "FIXME: envi.intel.ameth_a skipping seg prefix %d" % seg
+        # print("FIXME: envi.intel.ameth_a skipping seg prefix %d" % seg)
         return (tsize, i386ImmOper(imm, tsize))
 
     def ameth_e(self, bytez, offset, tsize, prefixes, operflags):
@@ -1044,4 +1043,4 @@ class i386Disasm:
 
 if __name__ == '__main__':
     import envi.archs
-    envi.archs.dismain( i386Disasm() )
+    envi.archs.dismain(i386Disasm())
