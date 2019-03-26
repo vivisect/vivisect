@@ -158,22 +158,22 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
         elif isinstance(oper, e_i386.i386SibOper):
 
             base = None
-            if oper.imm != None:
+            if oper.imm is not None:
                 base = Const(oper.imm, self._psize)
 
-            if oper.reg != None:
+            if oper.reg is not None:
                 robj = self.getRegObj(oper.reg)
-                if base == None:
+                if base is None:
                     base = robj
                 else:
                     base = o_add(base, robj, self._psize)
 
             # Base is set by here for sure!
-            if oper.index != None:
+            if oper.index is not None:
                 robj = self.getRegObj(oper.index)
                 base = o_add(base, o_mul(robj, Const(oper.scale, self._psize), self._psize), self._psize)
 
-            if oper.disp != None:
+            if oper.disp is not None:
                 if oper.disp > 0:
                     base = o_add(base, Const(oper.disp, self._psize), self._psize)
                 else:
@@ -513,21 +513,18 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
         self.setOperObj(op, 0, o)
 
     i_movnti = i_mov
-
-    def i_movq(self, op):
-        o = self.getOperObj(op, 1)
-        self.setOperObj(op, 0, o)
+    i_movq = i_mov
 
     def _movs(self, op, width=-1):
         si = Var(self.__srcp__, self._psize)
         di = Var(self.__destp__, self._psize)
         mem = Mem(si, Const(width, self._psize))
         self.effWriteMemory(di, Const(width, self._psize), mem)
-        # XXX: So...in reality these could be + or - depending on
-        # what is in the DF flag in the EFLAGS register. But that's a
-        # conditional and we're in symboliks town, so...whiff past that for now
-        self.effSetVariable(self.__srcp__, si + Const(width, self._psize))
-        self.effSetVariable(self.__destp__, di + Const(width, self._psize))
+        # This is a translation of if df == 0: add, else subtract that
+        # the movs{b,w,d,q} are supposed to deal with
+        mod = Const(width, self._psize) * (Const(1, self._psize) - Const(2, self._psize) * Var('eflags_df', self._psize))
+        self.effSetVariable(self.__srcp__, si + mod)
+        self.effSetVariable(self.__destp__, di + mod)
 
     # TODO: When we move to python 3.4 or greater, we can change these to just
     # functools.partialmethod. Cleaner that way
@@ -703,10 +700,9 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
         u = UNK(v1, v2)
 
         self.effSetVariable('eflags_gt', u)
-        self.effSetVariable('eflags_lt', lt(obj, Const(0, self._psize))) # ( SF != OF ) ( OF is cleared )
-
-        self.effSetVariable('eflags_sf', lt(obj, Const(0, self._psize))) # v1 & v2 < 0
-        self.effSetVariable('eflags_eq', eq(obj, Const(0, self._psize))) # v1 & v2 == 0
+        self.effSetVariable('eflags_lt', lt(obj, Const(0, self._psize)))  # ( SF != OF ) ( OF is cleared )
+        self.effSetVariable('eflags_sf', lt(obj, Const(0, self._psize)))  # v1 & v2 < 0
+        self.effSetVariable('eflags_eq', eq(obj, Const(0, self._psize)))  # v1 & v2 == 0
 
     def i_xadd(self, op):
         v1 = self.getOperObj(op, 0)
@@ -801,8 +797,9 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
         # FIXME omg segments in symboliks?
         # base, size = self.segments[SEG_ES]
         di = Var(self.__destp__, self._psize)
+        mod = Const(width, self._psize) * (Const(1, self._psize) - Const(2, self._psize) * Var('eflags_df', self._psize))
         self.effWriteMemory(di, Const(self._psize, self._psize), Var('eax', self._psize))
-        self.effSetVariable(self.__destp__, di + Const(width, self._psize))
+        self.effSetVariable(self.__destp__, di + mod)
 
     def i_stosb(self, op):
         return self._stos(op, width=1)
