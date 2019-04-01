@@ -20,6 +20,15 @@ from vqt.main import *
 from vqt.common import *
 from vivisect.const import *
 
+class VivFilterModel(QSortFilterProxyModel):
+    def __init__(self, parent=None):
+        QSortFilterProxyModel.__init__(self, parent=parent)
+        self.setDynamicSortFilter(True)
+        self.setFilterKeyColumn(-1)
+
+    def __getattr__(self, name):
+        return getattr(self.sourceModel(), name)
+
 class VivNavModel(e_q_memory.EnviNavModel):
     pass
 
@@ -144,7 +153,7 @@ class VQVivTreeView(vq_tree.VQTreeView, viv_base.VivEventCore):
             return None
         return pnode.rowdata[col]
 
-class VQVivFilterView(QWidget):
+class VivFilterView(QWidget):
     '''
     This is the primary window for the VQViv*Views if they want to include filtering
     '''
@@ -341,14 +350,6 @@ class VQFilterWidget(QLineEdit):
     def patternSyntaxFromAction(self, a):
         return int(a.data())
 
-class VQVivFilterModel(QSortFilterProxyModel):
-    def __init__(self, parent=None):
-        QSortFilterProxyModel.__init__(self, parent=parent)
-        self.setDynamicSortFilter(True)
-
-    def __getattr__(self, name):
-        return getattr(self.sourceModel(), name)
-
 class VQVivFunctionsViewPart(VQVivTreeView):
 
     _viv_navcol = 0
@@ -358,7 +359,7 @@ class VQVivFunctionsViewPart(VQVivTreeView):
         VQVivTreeView.__init__(self, vw, vwqgui, withfilter=True)
         
         self.navModel = VivNavModel(self._viv_navcol, self, columns=self.columns)
-        self.filterModel = VQVivFilterModel()
+        self.filterModel = VivFilterModel()
         self.filterModel.setSourceModel(self.navModel)
         self.setModel(self.filterModel)
 
