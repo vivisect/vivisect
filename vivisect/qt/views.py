@@ -321,16 +321,21 @@ class VQVivFunctionsFilterModel(QSortFilterProxyModel):
         return getattr(self.sourceModel(), name)
 
 class VQVivFunctionsView(QWidget):
+    '''
+    Functions Widget.  Holds the original VQVivFunctionsUnfilteredView, and adds a filter box and wires up the filtering functionality
+    '''
+    window_title = 'Functions'
     def __init__(self, vw, vwqgui):
         QWidget.__init__(self)
         
-        self.funcview = VQVivFunctionsUnfilteredView(vw, vwqgui)
+        self.funcview = VQVivFunctionsViewPart(vw, vwqgui)
         self.ffilt = VQFilterWidget(self)
 
         layout = vq_basics.VBox(self.funcview, self.ffilt)
         self.setLayout(layout)
 
         self.ffilt.filterChanged.connect(self.textFilterChanged)
+        self.setWindowTitle(self.window_title)
 
     def textFilterChanged(self):
         regExp = QtCore.QRegExp(self.ffilt.text(), 
@@ -343,10 +348,9 @@ class VQVivFunctionsView(QWidget):
         print "__getatter__(%s): %r" % (name, getattr(self.funcview, name)) 
         return getattr(self.funcview, name)
 
-class VQVivFunctionsUnfilteredView(VQVivTreeView):
+class VQVivFunctionsViewPart(VQVivTreeView):
 
     _viv_navcol = 0
-    window_title = 'Functions'
     columns = ('Name','Address', 'Size', 'Ref Count')
 
     def __init__(self, vw, vwqgui):
