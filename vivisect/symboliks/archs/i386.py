@@ -760,7 +760,7 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
     def i_xchg(self, op):
         # NOTE: requires using temp var because each asignment occurs
         # seperately. (even though the API makes it look like you've
-        # got your pwn copy... ;) )
+        # got your own copy... ;) )
         x = self.getOperObj(op, 0)
         y = self.getOperObj(op, 1)
         self.effSetVariable('i386_xchg_tmp', x)

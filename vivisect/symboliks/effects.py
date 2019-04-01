@@ -230,12 +230,12 @@ class CallFunction(SymbolikEffect):
 
     def __str__(self):
         argstr = '?'
-        if self.argsyms != None:
-            argstr = ','.join( str(x) for x in self.argsyms )
+        if self.argsyms is not None:
+            argstr = ','.join(str(x) for x in self.argsyms)
         return '%s(%s)' % (self.funcsym, argstr)
 
     def __eq__(self, other):
-        if other == None:
+        if other is None:
             return False
         if self.__class__ != other.__class__:
             return False
