@@ -93,7 +93,7 @@ class SymbolikFunctionEmulator(vsym_emulator.SymbolikEmulator):
             if emu.isStackLocal(reg):
                 print('regfoo is in the stack')
         '''
-        return self.getStackOffset(symvar) != None
+        return self.getStackOffset(symvar) is not None
 
     def isLocalMemory(self, symvar):
         '''
@@ -119,10 +119,10 @@ class SymbolikFunctionEmulator(vsym_emulator.SymbolikEmulator):
             if off != None:
                 print('regfoo is stack offset: %d' % off)
         '''
-        if self.stackbase == None or self.stacksize == None:
+        if self.stackbase is None or self.stacksize is None:
             return None
 
-        va = symvar.solve(emu=self) # solver cache will help out...
+        va = symvar.solve(emu=self)  # solver cache will help out...
         if self.stackdown and va > self.stackbase:
             return None
 
@@ -452,19 +452,19 @@ class SymbolikAnalysisContext:
         '''
         graph = self.getSymbolikGraph(fva)
         tocb = self.vw.getCodeBlock(tova)
-        if tocb == None:
+        if tocb is None:
             raise Exception("No codeblock for 'tova': 0x%x" % tova)
 
         paths = viv_graph.getCodePathsTo(graph, tocb[0])
         spaths = self.getSymbolikPaths(fva, paths=paths, args=args, maxpath=maxpath, graph=graph)
         for emu, effs in spaths:
-            # we have symboliks up to the codeblock, but not into it.  
+            # we have symboliks up to the codeblock, but not into it.
             seffs = graph.getNodeProps(tocb[0]).get('symbolik_effects')
             for idx in range(len(seffs)):
                 if tova == seffs[idx].va:
                     break
             effs.extend(emu.applyEffects(seffs[:idx+1]))
-            yield emu,effs
+            yield emu, effs
 
     def walkSymbolikPaths(self, fva, graph=None, maxpath=1000, loopcnt=0):
         '''
@@ -590,7 +590,7 @@ class SymbolikAnalysisContext:
                     #print 'EDGE GOT CONSTRAINTS',[ str(c) for c in constraints]
                     # FIXME check if constraints are discrete, and possibly skip path!
                     # FIXME: if constraints are Const vs Const, and one Const is a loop var, don't skip!
-                
+
                     cons = [ c.cons for c in constraints ]
                     if self.consolve:
                         # If any of the constraints are discrete and false we skip the path
@@ -613,7 +613,7 @@ class SymbolikAnalysisContext:
                 if skippath:
                     break
 
-                effects = emu.applyEffects( graph.getNodeProps(nid).get('symbolik_effects',()) )
+                effects = emu.applyEffects(graph.getNodeProps(nid).get('symbolik_effects',()))
                 patheffects.extend(effects)
 
                 opcodes.extend( graph.getNodeProps(nid).get('opcodes',() ) )
@@ -634,9 +634,9 @@ class SymbolikAnalysisContext:
             functions called (with args)
             output registers modified
         '''
-        if args == None:
+        if args is None:
             argdef = self.vw.getFunctionArgs( fva )
-            args = [ Arg(i, width=self.vw.psize) for i in xrange(len(argdef)) ]
+            args = [Arg(i, width=self.vw.psize) for i in xrange(len(argdef))]
 
         for emu, effects in self.getSymbolikPaths(fva, args=args):
 
@@ -658,7 +658,7 @@ class SymbolikAnalysisContext:
             self.vw.vprint('RETURN VALUE %s' % ret)
             self.vw.vprint('='*80)
 
-            yield ret, outputeffects 
+            yield ret, outputeffects
 
     def getTranslator(self):
         '''

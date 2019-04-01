@@ -3,9 +3,7 @@ import unittest
 
 import vivisect.symboliks.analysis as vsym_analysis
 
-class MockVw(object):
-    def __init__(self, *args, **kwargs):
-        self.psize = 4
+from vivisect.tests.helpers import MockVw
 
 class MockVar(object):
     def __init__(self, va):

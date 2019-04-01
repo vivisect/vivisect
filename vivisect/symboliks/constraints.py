@@ -105,9 +105,11 @@ class Constraint:
     def isDiscrete(self, emu=None):
         return self._v1.isDiscrete(emu=emu) and self._v2.isDiscrete(emu=emu)
 
+
 def opose(c1, c2):
     c1.revclass = c2
     c2.revclass = c1
+
 
 class eq(Constraint):
     operstr = '=='
@@ -115,11 +117,13 @@ class eq(Constraint):
     def testTruth(self, v1, v2):
         return v1 == v2
 
+
 class ne(Constraint):
     operstr = '!='
     symtype = SYMT_CON_NE
     def testTruth(self, v1, v2):
         return v1 != v2
+
 
 class le(Constraint):
     operstr = '<='
@@ -127,11 +131,13 @@ class le(Constraint):
     def testTruth(self, v1, v2):
         return v1 <= v2
 
+
 class gt(Constraint):
     operstr = '>'
     symtype = SYMT_CON_GT
     def testTruth(self, v1, v2):
         return v1 > v2
+
 
 class lt(Constraint):
     operstr = '<'
@@ -139,15 +145,18 @@ class lt(Constraint):
     def testTruth(self, v1, v2):
         return v1 < v2
 
+
 class ge(Constraint):
     operstr = '>='
     symtype = SYMT_CON_GE
     def testTruth(self, v1, v2):
         return v1 >= v2
 
+
 class UNK(Constraint):
     operstr = 'UNK'
     symtype = SYMT_CON_UNK
+
 
 class NOTUNK(Constraint):
     operstr = '!UNK'
@@ -158,4 +167,3 @@ opose(ne, eq)
 opose(le, gt)
 opose(lt, ge)
 opose(UNK, NOTUNK)
-

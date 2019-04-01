@@ -11,31 +11,31 @@ import vivisect.symboliks.constraints as v_s_cons
 from vivisect.symboliks.common import *
 
 op2op = {
-    ast.Pow:o_pow,
-    ast.Add:o_add,
-    ast.Sub:o_sub,
-    ast.Div:o_div,
-    ast.Mult:o_mul,
-    ast.BitOr:o_or,
-    ast.BitAnd:o_and,
-    ast.BitXor:o_xor,
-    ast.LShift:o_lshift,
-    ast.RShift:o_rshift,
+    ast.Pow: o_pow,
+    ast.Add: o_add,
+    ast.Sub: o_sub,
+    ast.Div: o_div,
+    ast.Mult: o_mul,
+    ast.BitOr: o_or,
+    ast.BitAnd: o_and,
+    ast.BitXor: o_xor,
+    ast.LShift: o_lshift,
+    ast.RShift: o_rshift,
 }
 
 cmp2cons = {
-    ast.LtE:v_s_cons.le,
-    ast.GtE:v_s_cons.ge,
-    ast.Lt:v_s_cons.lt,
-    ast.Gt:v_s_cons.gt,
-    ast.Eq:v_s_cons.eq,
-    ast.NotEq:v_s_cons.eq,
+    ast.LtE: v_s_cons.le,
+    ast.GtE: v_s_cons.ge,
+    ast.Lt: v_s_cons.lt,
+    ast.Gt: v_s_cons.gt,
+    ast.Eq: v_s_cons.eq,
+    ast.NotEq: v_s_cons.ne,
 }
 
 defexp = {}
 def symexp(expr, defwidth=4):
     p = defexp.get(defwidth)
-    if p == None:
+    if p is None:
         p = SymbolikExpressionParser(defwidth=defwidth)
         defexp[defwidth] = p
     return p.parseExpression(expr)
@@ -85,7 +85,7 @@ class SymbolikExpressionParser:
             if not cons:
                 raise Exception('Unhandled Compare Type: %s' % (ast.dump(a)))
 
-            return cons(v1,v2)
+            return cons(v1, v2)
 
         if isinstance(a, ast.Expr):
             return self.astToSymboliks(a.value)
@@ -97,10 +97,10 @@ class SymbolikExpressionParser:
             # assume basic width promotion
             widths = []
             if not left.symtype == SYMT_CONST:
-                widths.append( left.getWidth() )
+                widths.append(left.getWidth())
 
             if not right.symtype == SYMT_CONST:
-                widths.append( right.getWidth() )
+                widths.append(right.getWidth())
 
             if not widths:
                 widths.append(self._sym_defwidth)
@@ -108,10 +108,10 @@ class SymbolikExpressionParser:
             width = max(widths)
 
             myop = op2op.get(a.op.__class__)
-            if myop == None:
+            if myop is None:
                 raise Exception('Unsupported Op: %r' % a.op)
 
-            return myop(left,right,width)
+            return myop(left, right, width)
 
         if isinstance(a, ast.Name):
             return Var(a.id, self._sym_defwidth)

@@ -235,30 +235,43 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
         v1 = self.getOperObj(op, 0)
         v2 = self.getOperObj(op, 1)
 
-        # FIXME this is wrong!
-        #if self.getFlag(EFLAGS_CF):
-        #    v2 = v2 + 1
-
-        #self.effSetVariable('eflags_zf', eq(add, Const(0)))
-        self.setOperObj(op, 0, v1 + v2)
+        # self.effSetVariable('eflags_zf', eq(add, Const(0)))
+        # TODO: This causes an exception sometimes with no attribute parents
+        #self.setOperObj(op, 0, v1 + v2)
+        self.setOperObj(op, 0, v1 + v2 + Var('eflags_cf', 1))
 
     def i_add(self, op):
         v1 = self.getOperObj(op, 0)
         v2 = self.getOperObj(op, 1)
 
         dsize = op.opers[0].tsize
-        dmax  = e_bits.s_maxes[dsize]
-        ssize = op.opers[1].tsize
+        # dmax = e_bits.s_maxes[dsize]
+        # ssize = op.opers[1].tsize
 
         smax, umax = self.__get_dest_maxes(op)
 
         add = o_add(v1, v2, dsize)
         self.setOperObj(op, 0, add)
 
-        #self.effSetVariable('eflags_gt', gt(v1, v2))
-        #self.effSetVariable('eflags_lt', lt(v1, v2))
-        #self.effSetVariable('eflags_sf', lt(v1, v2))
-        #self.effSetVariable('eflags_eq', eq(v1+v2, 0))
+        # self.effSetVariable('eflags_gt', gt(v1, v2))
+        # self.effSetVariable('eflags_lt', lt(v1, v2))
+        # self.effSetVariable('eflags_sf', lt(v1, v2))
+        # self.effSetVariable('eflags_eq', eq(v1+v2, 0))
+
+    def i_addsd(self, op):
+        if len(op.opers) == 3:
+            v1_idx = 1
+            v2_idx = 2
+        else:
+            v1_idx = 0
+            v2_idx = 1
+        # vaddsd can have a write mask. eventually we should grab that
+        dsize = op.opers[0].tsize
+        v1 = self.getOperObj(op, v1_idx)
+        v2 = self.getOperObj(op, v2_idx)
+        add = o_add(v1, v2, dsize)
+        self.setOperObj(op, 0, add)
+        # TODO: set eflags
 
     def i_and(self, op):
         v1 = self.getOperObj(op, 0)
@@ -269,8 +282,8 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
         u = UNK(v1, v2)
         self.effSetVariable('eflags_gt', u)
         self.effSetVariable('eflags_lt', u)
-        self.effSetVariable('eflags_sf', lt(obj, Const(0, self._psize))) # v1 & v2 < 0
-        self.effSetVariable('eflags_eq', eq(obj, Const(0, self._psize))) # v1 & v2 == 0
+        self.effSetVariable('eflags_sf', lt(obj, Const(0, self._psize)))  # v1 & v2 < 0
+        self.effSetVariable('eflags_eq', eq(obj, Const(0, self._psize)))  # v1 & v2 == 0
 
         self.setOperObj(op, 0, obj)
 
@@ -900,7 +913,6 @@ class i386SymFuncEmu(vsym_analysis.SymbolikFunctionEmulator):
 
     __width__ = 4
 
-    #def __init__(self, vw, initial_sp=0xbfbff000):
     def __init__(self, vw):
         vsym_analysis.SymbolikFunctionEmulator.__init__(self, vw)
         self.setStackBase(0xbfbff000, 16384)
