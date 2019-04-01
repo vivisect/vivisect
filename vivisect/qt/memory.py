@@ -171,6 +171,10 @@ class VivCanvasBase(vq_hotkey.HotKeyMixin, e_mem_canvas.VQMemoryCanvas):
     @vq_hotkey.hotkey('viv:make:code')
     def _hotkey_make_code(self):
         if self._canv_curva != None:
+            loctup = self.vw.getLocation(self._canv_curva)
+            if loctup is not None:
+                return
+
             self.vw.makeCode(self._canv_curva)
 
     @vq_hotkey.hotkey('viv:make:function')
@@ -181,16 +185,28 @@ class VivCanvasBase(vq_hotkey.HotKeyMixin, e_mem_canvas.VQMemoryCanvas):
     @vq_hotkey.hotkey('viv:make:string')
     def _hotkey_make_string(self):
         if self._canv_curva != None:
+            loctup = self.vw.getLocation(self._canv_curva)
+            if loctup is not None:
+                return
+
             self.vw.makeString(self._canv_curva)
 
     @vq_hotkey.hotkey('viv:make:pointer')
     def _hotkey_make_pointer(self):
         if self._canv_curva != None:
+            loctup = self.vw.getLocation(self._canv_curva)
+            if loctup is not None:
+                return
+
             self.vw.makePointer(self._canv_curva)
 
     @vq_hotkey.hotkey('viv:make:unicode')
     def _hotkey_make_unicode(self):
         if self._canv_curva != None:
+            loctup = self.vw.getLocation(self._canv_curva)
+            if loctup is not None:
+                return
+
             self.vw.makeUnicode(self._canv_curva)
 
     @vq_hotkey.hotkey('viv:undefine')
