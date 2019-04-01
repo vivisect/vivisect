@@ -216,7 +216,7 @@ class VQVivLocView(VQVivTreeView):
     def vivAddLocation(self, lva, lsize, ltype, linfo):
         print "FIXME OVERRIDE"
 
-class VQVivStringsView(VQVivLocView):
+class VQVivStringsViewPart(VQVivLocView):
 
     columns = ('Address','String')
     loctypes = (LOC_STRING, LOC_UNI)
@@ -228,7 +228,7 @@ class VQVivStringsView(VQVivLocView):
             s = s.decode('utf-16le', 'ignore')
         self.vivAddRow(lva, '0x%.8x' % lva, repr(s))
 
-class VQVivImportsView(VQVivLocView):
+class VQVivImportsViewPart(VQVivLocView):
 
     columns = ('Address', 'Library', 'Function')
     loctypes = (LOC_IMPORT,)
@@ -238,7 +238,7 @@ class VQVivImportsView(VQVivLocView):
         libname, funcname = linfo.split('.', 1)
         self.vivAddRow(lva, '0x%.8x' % lva, libname, funcname)
 
-class VQVivStructsView(VQVivLocView):
+class VQVivStructsViewPart(VQVivLocView):
     columns = ('Address', 'Structure', 'Loc Name')
     loctypes = (LOC_STRUCT,)
     window_title = 'Structures'
@@ -247,14 +247,17 @@ class VQVivStructsView(VQVivLocView):
         sym = self.vw.getSymByAddr(lva)
         self.vivAddRow(lva, '0x%.8x' % lva, linfo, str(sym))
 
-class VQVivExportsView(VQVivTreeView):
+class VQVivExportsViewPart(VQVivTreeView):
 
     window_title = 'Exports'
     columns = ('Address', 'File', 'Export')
 
     def __init__(self, vw, vwqgui):
         VQVivTreeView.__init__(self, vw, vwqgui)
-        self.setModel( VivNavModel(self._viv_navcol, self, columns=self.columns) )
+        self.navModel = VivNavModel(self._viv_navcol, self, columns=self.columns)
+        self.filterModel = VivFilterModel()
+        self.filterModel.setSourceModel(self.navModel)
+        self.setModel(self.filterModel)
         self.vqLoad()
         self.vqSizeColumns()
 
@@ -357,6 +360,7 @@ class VQFilterWidget(QLineEdit):
 class VQVivFunctionsViewPart(VQVivTreeView):
 
     _viv_navcol = 0
+    window_title = 'Functions'
     columns = ('Name','Address', 'Size', 'Ref Count')
 
     def __init__(self, vw, vwqgui):
@@ -467,12 +471,14 @@ vaset_reprHandlers = {
     VASET_COMPLEX:  reprComplex,
 }
 
-class VQVivVaSetView(VQVivTreeView):
+class VQVivVaSetViewPart(VQVivTreeView):
 
+    window_title = 'Va Set'
     _viv_navcol = 0
 
     def __init__(self, vw, vwqgui, setname):
         self._va_setname = setname
+        self.window_title = 'Va Set: %s' % setname
 
         setdef = vw.getVaSetDef( setname )
         cols = [ cname for (cname,ctype) in setdef ]
@@ -482,7 +488,6 @@ class VQVivVaSetView(VQVivTreeView):
         self.setModel( VivNavModel(self._viv_navcol, self, columns=cols) )
         self.vqLoad()
         self.vqSizeColumns()
-        self.setWindowTitle('Va Set: %s' % setname)
 
     def VWE_SETVASETROW(self, vw, event, einfo):
         setname, row = einfo
@@ -515,7 +520,7 @@ class VQVivVaSetView(VQVivTreeView):
 
         return row
 
-class VQXrefView(VQVivTreeView):
+class VQXrefViewPart(VQVivTreeView):
 
     _viv_navcol = 0
 
@@ -539,6 +544,7 @@ class VQXrefView(VQVivTreeView):
 class VQVivNamesViewPart(VQVivTreeView):
 
     _viv_navcol = 0
+    window_title = 'Workspace Names'
     columns = ('Address', 'Name')
 
     def __init__(self, vw, vwqgui):
@@ -566,11 +572,32 @@ class VQVivNamesViewPart(VQVivTreeView):
         else:
             self.vivSetData(va, 1, name)
 
+
+#FIXME: is this a good time to use a @decorator?
+# Filtering VQTreeViews
 class VQVivFunctionsView(VivFilterView):
-    window_title = 'Functions'
     view_type = VQVivFunctionsViewPart
 
 class VQVivNamesView(VivFilterView):
-    window_title = 'Workspace Names'
     view_type = VQVivNamesViewPart
+
+class VQVivExportsView(VivFilterView):
+    view_type = VQVivExportsViewPart
+
+class VQVivVaSetView(VivFilterView):
+    view_type = VQVivVaSetViewPart
+
+class VQXrefView(VivFilterView):
+    view_type = VQXrefViewPart
+
+
+# Filtering VQVivLocViews
+class VQVivStringsView(VivFilterView):
+    view_type = VQVivStringsViewPart
+
+class VQVivImportsView(VivFilterView):
+    view_type = VQVivImportsViewPart
+
+class VQVivStructsView(VivFilterView):
+    view_type = VQVivStructsViewPart
 
