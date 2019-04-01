@@ -146,7 +146,7 @@ class VQVivTreeView(vq_tree.VQTreeView, viv_base.VivEventCore):
 
         idx = self.model().createIndex(pnode.row(), col, pnode)
         # We are *not* the edit role...
-        self.model().setData(idx, val, role=None)
+        self.model().setData(idx, val, role=QtCore.Qt.DisplayRole)
 
     def vivGetData(self, va, col):
         pnode = self._viv_va_nodes.get(va)
@@ -161,17 +161,17 @@ class VivFilterView(QWidget):
     window_title = '__undefined__'
     view_type = None
 
-    def __init__(self, vw, vwqgui):
+    def __init__(self, vw, vwqgui, *args, **kwargs):
         QWidget.__init__(self)
         
-        self.view = self.view_type(vw, vwqgui)
+        self.view = self.view_type(vw, vwqgui, *args, **kwargs)
         self.ffilt = VQFilterWidget(self)
 
         layout = vq_basics.VBox(self.view, self.ffilt)
         self.setLayout(layout)
 
         self.ffilt.filterChanged.connect(self.textFilterChanged)
-        self.setWindowTitle(self.window_title)
+        self.setWindowTitle(self.view.window_title)
 
     def textFilterChanged(self):
         regExp = QtCore.QRegExp(self.ffilt.text(), 
@@ -190,8 +190,11 @@ class VQVivLocView(VQVivTreeView):
 
     def __init__(self, vw, vwqgui):
         VQVivTreeView.__init__(self, vw, vwqgui)
-        model = VivNavModel(self._viv_navcol, parent=self, columns=self.columns)
-        self.setModel(model)
+        # whether we use it or not, include a sort/filter proxy model
+        self.navModel = VivNavModel(self._viv_navcol, parent=self, columns=self.columns)
+        self.filterModel = VivFilterModel()
+        self.filterModel.setSourceModel(self.navModel)
+        self.setModel(self.filterModel)
         self.vqLoad()
         self.vqSizeColumns()
 
