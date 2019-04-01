@@ -100,7 +100,8 @@ class VQVivTreeView(vq_tree.VQTreeView, viv_base.VivEventCore):
 
     def doubleClickedSignal(self, idx):
         if idx.isValid() and self._viv_navcol != None:
-            expr = idx.data()
+            # we need to access the selected navcol, but the current index will be the cell double-clicked
+            expr = idx.sibling(idx.row(), self._viv_navcol).data()
             vqtevent('envi:nav:expr', ('viv',expr,None))
             return True
 
