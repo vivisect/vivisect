@@ -181,7 +181,6 @@ class VivFilterView(QWidget):
         self.view.filterModel.setFilterRegExp(regExp)
 
     def __getattr__(self, name):
-        print "__getatter__(%s): %r" % (name, getattr(self.view, name)) 
         return getattr(self.view, name)
 
 class VQVivLocView(VQVivTreeView):
