@@ -49,20 +49,20 @@ def getLongPath(g, maxpath=1000):
     weights_to_cb, cb_to_weights, todo = getNodeWeightHisto(g)
 
     # unique root node code blocks
-    rootnodes = set([cb for cb,nprops in g.getHierRootNodes()]) 
+    rootnodes = set([cb for cb, nprops in g.getHierRootNodes()])
     leafmax = 0
     if len(todo):
-        leafmax = max( todo.keys() )
+        leafmax = max(todo.keys())
 
     invalidret = False
     # if the weight of the longest path to a leaf node
     # is not the highest weight then we need to fix our
-    # path choices by taking the longer path 
-    weightmax = max( weights_to_cb.keys() )
+    # path choices by taking the longer path
+    weightmax = max(weights_to_cb.keys())
     if leafmax != weightmax:
-        todo = weights_to_cb 
-        leafmax = weightmax 
-        invalidret = True 
+        todo = weights_to_cb
+        leafmax = weightmax
+        invalidret = True
 
     pcnt = 0
     rpaths = []

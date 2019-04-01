@@ -7,7 +7,6 @@ import vstruct
 import envi.bits as e_bits
 
 from vivisect.const import *
-from vivisect.symboliks.constraints import *
 
 def symcache(f):
     def docache(*args, **kwargs):
@@ -385,7 +384,6 @@ class cnot(SymbolikBase):
     def _reduce(self, emu=None):
         '''
         # FIXME dependancy loop...
-        from vivisect.symboliks.constraints import Constraint
         if self._reduced:
             return self
 
@@ -898,3 +896,107 @@ class o_sextend(SymbolikBase):
     def update(self, emu):
         kids = [k.update(emu) for k in self.kids]
         return self.__class__(*kids)
+
+class Constraint(Operator):
+    '''
+    A class to represent algebraic constraints that are tracked by a given
+    polynomial.
+    '''
+    revclass = None
+    operstr = None
+
+    def __init__(self, v1, v2, width=None):
+        if width is None:
+            width = v1.getWidth()
+        Operator.__init__(self, v1, v2, width)
+
+    def getWidth(self):
+        return self.kids[0].getWidth()
+
+    def __repr__(self):
+        return '%s(%s,%s)' % (self.__class__.__name__, repr(self.kids[0]), repr(self.kids[1]))
+
+    def __eq__(self, con):
+        '''
+        Is this constraint the same as some other?
+        '''
+        if not isinstance(con, Constraint):
+            return False
+
+        c1v1 = self.kids[0].solve()
+        c1v2 = self.kids[1].solve()
+        c2v1 = con.kids[0].solve()
+        c2v2 = con.kids[1].solve()
+
+        if c1v1 == c2v1 and c1v2 == c2v2 and self.__class__ == con.__class__:
+            return True
+
+        if c1v1 == c2v2 and c1v2 == c2v1 and self.__class__ == con.revclass:
+            return True
+
+        return False
+
+    def reverse(self):
+        if self.revclass is None:
+            raise Exception('Constraints Must Define revclass!')
+        return self.revclass(self.kids[0], self.kids[1])
+
+    def _op_reduce(self, v1, v1val, v2, v2val, emu):
+        return self.__class__(v1, v2)
+
+
+def opose(c1, c2):
+    c1.revclass = c2
+    c2.revclass = c1
+
+
+class eq(Constraint):
+    oper = operator.eq
+    operstr = '=='
+    symtype = SYMT_CON_EQ
+
+
+class ne(Constraint):
+    oper = operator.ne
+    operstr = '!='
+    symtype = SYMT_CON_NE
+
+
+class le(Constraint):
+    oper = operator.le
+    operstr = '<='
+    symtype = SYMT_CON_LE
+
+
+class gt(Constraint):
+    oper = operator.gt
+    operstr = '>'
+    symtype = SYMT_CON_GT
+
+
+class lt(Constraint):
+    oper = operator.lt
+    operstr = '<'
+    symtype = SYMT_CON_LT
+
+
+class ge(Constraint):
+    oper = operator.ge
+    operstr = '>='
+    symtype = SYMT_CON_GE
+
+
+class UNK(Constraint):
+    operstr = 'UNK'
+    symtype = SYMT_CON_UNK
+
+
+class NOTUNK(Constraint):
+    operstr = '!UNK'
+    symtype = SYMT_CON_NOTUNK
+
+# Create our oposing constraints
+opose(ne, eq)
+opose(le, gt)
+opose(lt, ge)
+opose(UNK, NOTUNK)

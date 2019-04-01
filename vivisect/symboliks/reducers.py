@@ -229,6 +229,7 @@ reducers = {
         ('(x1 - c1) + c2', lambda m, emu=None: addsub(m['x1'], m['c2'] - m['c1'])),
         ('(c1 - x1) + x2', lambda m, emu=None: addsub(m['x2'] - m['x1'], m['c1'])),
         ('(c1 - x1) + c2', lambda m, emu=None: addsub(symneg(m['x1']), m['c1'] + m['c2'])),
+        ('(x1 - x2) + x2', lambda m, emu=None: m['x1']),
         ('(x1 + 0)', lambda m, emu=None: m['x1']),
         ('(x1 + x1)', lambda m, emu=None: m['x1'] * Const(2, m['x1'].getWidth())),
         ('(x1 + x2) + x1', lambda m, emu=None: m['x2'] + (m['x1'] * Const(2,m['x1'].getWidth()))),
@@ -248,6 +249,7 @@ reducers = {
         ('(x1 + c1) - c2', lambda m,emu=None: addsub(m['x1'], m['c1'] - m['c2'])),  # x1 + (c1 - c2) #
         ('(x1 - c1) - c2', lambda m,emu=None: addsub(m['x1'], -(m['c1'] + m['c2']))),  # x1 - (c1 + c2) #
         ('(c1 - x1) - c2', lambda m,emu=None: sub_c_x(m['c1'] - m['c2'], m['x1'])), # (c1 - c2) - x1 #
+        ('(x1 + x2) - x2', lambda m, emu=None: m['x1']),
 
         ('c1 - (x1 - c2)', lambda m,emu=None: sub_c_x(m['c1'] + m['c2'], m['x1'])), # (c1 + c2) - x1 # 
         ('c1 - (c2 - x1)', lambda m,emu=None: addsub(m['x1'], m['c1'] - m['c2'])),#  (c1 + x1) - c2 # (x1 + c1) - c2 # x1 + (c1 - c2) #

@@ -32,16 +32,22 @@ class TestConstraints(unittest.TestCase):
         self.assertTruth('foo == foo')
 
     def test_reduce(self):
-        s1 = '(0 & ((foo * 4) >> 2)) == 0'
-        v1 = symexp('(0 & ((foo * 4) >> 2)) == 0')
+        s1 = '((0 & ((foo * 4) >> 2)) == 0)'
+        v1 = symexp('((0 & ((foo * 4) >> 2)) == 0)')
         self.assertTrue(s1 == str(v1))
-        self.assertReduce(s1, '0 == 0')
+        self.assertReduce(s1, '1')
         self.assertTrue(v1.getWidth() == 4)  # default width
 
-        s2 = '(((foo * bar) * baz) + (131 | 40)) == (((foo * bar) * baz) + 171)'
+        s2 = '((((foo * bar) * baz) + (131 | 40)) == (((foo * bar) * baz) + 171))'
         v2 = symexp(s2)
         self.assertTrue(s2 == str(v2))
         self.assertReduce(s2, '(((foo * bar) * baz) + 171) == (((foo * bar) * baz) + 171)')
+        self.assertTrue(v2.getWidth() == 4)  # default width
+
+        s2 = '(((((foo - bar) + bar) + (131 | 40)) - 171) == foo)'
+        v2 = symexp(s2)
+        self.assertTrue(s2 == str(v2))
+        self.assertReduce(s2, 'foo == foo')
         self.assertTrue(v2.getWidth() == 4)  # default width
 
     def test_rev(self):
@@ -90,7 +96,8 @@ class TestConstraints(unittest.TestCase):
                    '(((foo ** 2) << 1) + (bar * 3))',
                    '4',
                    '((((foo ** 2) << 1) + (bar * 3)) - 4)',
-                   '0']
+                   '0',
+                   '(((((foo ** 2) << 1) + (bar * 3)) - 4) > 0)']
         if len(order) != len(correct):
             self.fail('test_walktree, visit produced unexpected results')
 

@@ -9,7 +9,6 @@ import vivisect.symboliks.translator as vsym_trans
 
 from vivisect.const import *
 from vivisect.symboliks.common import *
-from vivisect.symboliks.constraints import *
 
 def getSegmentSymbol(op):
     if op.prefixes & e_i386.PREFIX_CS:
@@ -236,8 +235,6 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
         v2 = self.getOperObj(op, 1)
 
         # self.effSetVariable('eflags_zf', eq(add, Const(0)))
-        # TODO: This causes an exception sometimes with no attribute parents
-        #self.setOperObj(op, 0, v1 + v2)
         self.setOperObj(op, 0, v1 + v2 + Var('eflags_cf', 1))
 
     def i_add(self, op):

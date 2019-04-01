@@ -1,5 +1,4 @@
 from vivisect.symboliks.common import *
-from vivisect.symboliks.constraints import *
 
 from vivisect.const import *
 

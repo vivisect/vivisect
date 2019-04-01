@@ -6,7 +6,6 @@ constraints from humon input.
 import ast
 
 import vivisect.symboliks.effects as v_s_eff
-import vivisect.symboliks.constraints as v_s_cons
 
 from vivisect.symboliks.common import *
 
@@ -24,12 +23,12 @@ op2op = {
 }
 
 cmp2cons = {
-    ast.LtE: v_s_cons.le,
-    ast.GtE: v_s_cons.ge,
-    ast.Lt: v_s_cons.lt,
-    ast.Gt: v_s_cons.gt,
-    ast.Eq: v_s_cons.eq,
-    ast.NotEq: v_s_cons.ne,
+    ast.LtE: le,
+    ast.GtE: ge,
+    ast.Lt: lt,
+    ast.Gt: gt,
+    ast.Eq: eq,
+    ast.NotEq: ne,
 }
 
 defexp = {}
