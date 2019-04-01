@@ -144,6 +144,36 @@ class VQVivTreeView(vq_tree.VQTreeView, viv_base.VivEventCore):
             return None
         return pnode.rowdata[col]
 
+class VQVivFilterView(QWidget):
+    '''
+    This is the primary window for the VQViv*Views if they want to include filtering
+    '''
+    window_title = '__undefined__'
+    view_type = None
+
+    def __init__(self, vw, vwqgui):
+        QWidget.__init__(self)
+        
+        self.view = self.view_type(vw, vwqgui)
+        self.ffilt = VQFilterWidget(self)
+
+        layout = vq_basics.VBox(self.view, self.ffilt)
+        self.setLayout(layout)
+
+        self.ffilt.filterChanged.connect(self.textFilterChanged)
+        self.setWindowTitle(self.window_title)
+
+    def textFilterChanged(self):
+        regExp = QtCore.QRegExp(self.ffilt.text(), 
+                                self.ffilt.caseSensitivity(),
+                                self.ffilt.patternSyntax())
+
+        self.funcview.filterModel.setFilterRegExp(regExp)
+
+    def __getattr__(self, name):
+        print "__getatter__(%s): %r" % (name, getattr(self.view, name)) 
+        return getattr(self.view, name)
+
 class VQVivLocView(VQVivTreeView):
 
     loctypes = ()
@@ -311,42 +341,13 @@ class VQFilterWidget(QLineEdit):
     def patternSyntaxFromAction(self, a):
         return int(a.data())
 
-class VQVivFunctionsFilterModel(QSortFilterProxyModel):
+class VQVivFilterModel(QSortFilterProxyModel):
     def __init__(self, parent=None):
         QSortFilterProxyModel.__init__(self, parent=parent)
         self.setDynamicSortFilter(True)
 
     def __getattr__(self, name):
-        #print "VQVivFunctionsFilterModel:__getatter__(%s): %r" % (name, getattr(self.sourceModel(), name)) 
         return getattr(self.sourceModel(), name)
-
-class VQVivFunctionsView(QWidget):
-    '''
-    Functions Widget.  Holds the original VQVivFunctionsUnfilteredView, and adds a filter box and wires up the filtering functionality
-    '''
-    window_title = 'Functions'
-    def __init__(self, vw, vwqgui):
-        QWidget.__init__(self)
-        
-        self.funcview = VQVivFunctionsViewPart(vw, vwqgui)
-        self.ffilt = VQFilterWidget(self)
-
-        layout = vq_basics.VBox(self.funcview, self.ffilt)
-        self.setLayout(layout)
-
-        self.ffilt.filterChanged.connect(self.textFilterChanged)
-        self.setWindowTitle(self.window_title)
-
-    def textFilterChanged(self):
-        regExp = QtCore.QRegExp(self.ffilt.text(), 
-                                self.ffilt.caseSensitivity(),
-                                self.ffilt.patternSyntax())
-
-        self.funcview.filterModel.setFilterRegExp(regExp)
-
-    def __getattr__(self, name):
-        print "__getatter__(%s): %r" % (name, getattr(self.funcview, name)) 
-        return getattr(self.funcview, name)
 
 class VQVivFunctionsViewPart(VQVivTreeView):
 
@@ -357,7 +358,7 @@ class VQVivFunctionsViewPart(VQVivTreeView):
         VQVivTreeView.__init__(self, vw, vwqgui, withfilter=True)
         
         self.navModel = VivNavModel(self._viv_navcol, self, columns=self.columns)
-        self.filterModel = VQVivFunctionsFilterModel()
+        self.filterModel = VQVivFilterModel()
         self.filterModel.setSourceModel(self.navModel)
         self.setModel(self.filterModel)
 
@@ -404,6 +405,10 @@ class VQVivFunctionsViewPart(VQVivTreeView):
         funcva, key, value = einfo
         if key == "Size":
             self.vivSetData(funcva, 2, value)
+
+class VQVivFunctionsView(VQVivFilterView):
+    window_title = 'Functions'
+    view_type = VQVivFunctionsViewPart
 
 vaset_coltypes = {
     VASET_STRING:str,
