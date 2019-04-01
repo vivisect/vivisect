@@ -168,7 +168,7 @@ class VQVivFilterView(QWidget):
                                 self.ffilt.caseSensitivity(),
                                 self.ffilt.patternSyntax())
 
-        self.funcview.filterModel.setFilterRegExp(regExp)
+        self.view.filterModel.setFilterRegExp(regExp)
 
     def __getattr__(self, name):
         print "__getatter__(%s): %r" % (name, getattr(self.view, name)) 
@@ -324,7 +324,7 @@ class VQFilterWidget(QLineEdit):
         self.addAction(self.optionsAction, QLineEdit.LeadingPosition)
 
     def caseSensitivity(self):
-        return  (QtCore.Qt.CaseSensitive, QtCore.Qt.CaseInsensitive)[self.m_caseSensitivityAction.isChecked()]
+        return  (QtCore.Qt.CaseInsensitive, QtCore.Qt.CaseSensitive)[self.m_caseSensitivityAction.isChecked()]
 
     def setCaseSensitivity(self, cs):
         self.m_caseSensitivityAction.setChecked(cs == QtCore.Qt.CaseSensitive)
@@ -405,10 +405,6 @@ class VQVivFunctionsViewPart(VQVivTreeView):
         funcva, key, value = einfo
         if key == "Size":
             self.vivSetData(funcva, 2, value)
-
-class VQVivFunctionsView(VQVivFilterView):
-    window_title = 'Functions'
-    view_type = VQVivFunctionsViewPart
 
 vaset_coltypes = {
     VASET_STRING:str,
@@ -535,15 +531,17 @@ class VQXrefView(VQVivTreeView):
 
         self.vqSizeColumns()
 
-class VQVivNamesView(VQVivTreeView):
+class VQVivNamesViewPart(VQVivTreeView):
 
     _viv_navcol = 0
-    window_title = 'Workspace Names'
     columns = ('Address', 'Name')
 
     def __init__(self, vw, vwqgui):
         VQVivTreeView.__init__(self, vw, vwqgui)
-        self.setModel( VivNavModel(self._viv_navcol, self, columns=self.columns) )
+        self.navModel = VivNavModel(self._viv_navcol, self, columns=self.columns)
+        self.filterModel = VivFilterModel()
+        self.filterModel.setSourceModel(self.navModel)
+        self.setModel(self.filterModel)
         self.vqLoad()
         self.vqSizeColumns()
 
@@ -562,4 +560,12 @@ class VQVivNamesView(VQVivTreeView):
             self.vivAddRow(va, '0x%.8x' % va, name)
         else:
             self.vivSetData(va, 1, name)
+
+class VQVivFunctionsView(VivFilterView):
+    window_title = 'Functions'
+    view_type = VQVivFunctionsViewPart
+
+class VQVivNamesView(VivFilterView):
+    window_title = 'Workspace Names'
+    view_type = VQVivNamesViewPart
 
