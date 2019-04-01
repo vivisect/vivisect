@@ -1,5 +1,6 @@
 
 import vqt.tree as vq_tree
+import vqt.basics as vq_basics
 import vivisect.base as viv_base
 import envi.qt.memory as e_q_memory
 import visgraph.pathcore as vg_path
@@ -7,9 +8,13 @@ import envi.qt.memcanvas as e_q_memcanvas
 import vivisect.qt.ctxmenu as v_q_ctxmenu
 
 try:
+    from PyQt5 import QtGui
     from PyQt5.QtWidgets import QMenu
+    from PyQt5.QtCore import QSortFilterProxyModel
 except:
+    from PyQt4 import QtGui
     from PyQt4.QtGui import QMenu
+    from PyQt4.QtCore import QSortFilterProxyModel
 
 from vqt.main import *
 from vqt.common import *
@@ -86,8 +91,7 @@ class VQVivTreeView(vq_tree.VQTreeView, viv_base.VivEventCore):
 
     def doubleClickedSignal(self, idx):
         if idx.isValid() and self._viv_navcol != None:
-            pnode = idx.internalPointer()
-            expr = pnode.rowdata[self._viv_navcol]
+            expr = idx.data()
             vqtevent('envi:nav:expr', ('viv',expr,None))
             return True
 
@@ -238,15 +242,121 @@ class VQVivSegmentsView(VQVivTreeView):
         for va, size, sname, fname in self.vw.getSegments():
             self.vivAddRow(va, fname, sname, '0x%.8x' % va, str(size))
 
-class VQVivFunctionsView(VQVivTreeView):
+
+class VQFilterWidget(QLineEdit):
+    filterChanged = QtCore.pyqtSignal()
+
+    def __init__(self, parent=None):
+        QLineEdit.__init__(self, parent=parent)
+
+        self.setClearButtonEnabled(True)
+        self.m_patternGroup = QActionGroup(self)
+        self.textChanged.connect(self.filterChanged)
+
+        self.menu = QMenu(self)
+        self.m_caseSensitivityAction = self.menu.addAction("Case Sensitive")
+        self.m_caseSensitivityAction.setCheckable(True)
+        self.m_caseSensitivityAction.toggled.connect(self.filterChanged)
+
+
+        self.menu.addSeparator();
+        self.m_patternGroup.setExclusive(True);
+
+        self.patternAction = self.menu.addAction("Fixed String");
+        self.patternAction.setData(QtCore.QVariant(int(QtCore.QRegExp.FixedString)));
+        self.patternAction.setCheckable(True);
+        self.patternAction.setChecked(True);
+        self.m_patternGroup.addAction(self.patternAction);
+
+        self.patternAction = self.menu.addAction("Regular Expression");
+        self.patternAction.setCheckable(True);
+        self.patternAction.setData(QtCore.QVariant(int(QtCore.QRegExp.RegExp2)));
+        self.m_patternGroup.addAction(self.patternAction);
+
+        self.patternAction = self.menu.addAction("Wildcard");
+        self.patternAction.setCheckable(True);
+        self.patternAction.setData(QtCore.QVariant(int(QtCore.QRegExp.Wildcard)));
+        self.m_patternGroup.addAction(self.patternAction);
+        
+        self.m_patternGroup.triggered.connect(self.filterChanged);
+
+        self.icon = QtGui.QIcon(QtGui.QPixmap(":/images/find.png"))
+        self.optionsButton = QToolButton()
+        self.optionsButton.setCursor(QtCore.Qt.ArrowCursor)
+        self.optionsButton.setFocusPolicy(QtCore.Qt.NoFocus)
+        self.optionsButton.setStyleSheet("* { border: none; }")
+        self.optionsButton.setIcon(self.icon)
+        self.optionsButton.setMenu(self.menu)
+        self.optionsButton.setPopupMode(QToolButton.InstantPopup)
+
+        self.optionsAction = QWidgetAction(self)
+        self.optionsAction.setDefaultWidget(self.optionsButton)
+        self.addAction(self.optionsAction, QLineEdit.LeadingPosition)
+
+    def caseSensitivity(self):
+        return  (QtCore.Qt.CaseSensitive, QtCore.Qt.CaseInsensitive)[self.m_caseSensitivityAction.isChecked()]
+
+    def setCaseSensitivity(self, cs):
+        self.m_caseSensitivityAction.setChecked(cs == QtCore.Qt.CaseSensitive)
+
+    def patternSyntax(self):
+        return self.patternSyntaxFromAction(self.m_patternGroup.checkedAction())
+
+    def setPatternSyntax(self, s):
+        for a in self.m_patternGroup.actions():
+            if (self.patternSyntaxFromAction(a) == s):
+                a.setChecked(True)
+                break
+
+    def patternSyntaxFromAction(self, a):
+        return int(a.data())
+
+class VQVivFunctionsFilterModel(QSortFilterProxyModel):
+    def __init__(self, parent=None):
+        QSortFilterProxyModel.__init__(self, parent=parent)
+        self.setDynamicSortFilter(True)
+
+    def __getattr__(self, name):
+        #print "VQVivFunctionsFilterModel:__getatter__(%s): %r" % (name, getattr(self.sourceModel(), name)) 
+        return getattr(self.sourceModel(), name)
+
+class VQVivFunctionsView(QWidget):
+    def __init__(self, vw, vwqgui):
+        QWidget.__init__(self)
+        
+        self.funcview = VQVivFunctionsUnfilteredView(vw, vwqgui)
+        self.ffilt = VQFilterWidget(self)
+
+        layout = vq_basics.VBox(self.funcview, self.ffilt)
+        self.setLayout(layout)
+
+        self.ffilt.filterChanged.connect(self.textFilterChanged)
+
+    def textFilterChanged(self):
+        regExp = QtCore.QRegExp(self.ffilt.text(), 
+                                self.ffilt.caseSensitivity(),
+                                self.ffilt.patternSyntax())
+
+        self.funcview.filterModel.setFilterRegExp(regExp)
+
+    def __getattr__(self, name):
+        print "__getatter__(%s): %r" % (name, getattr(self.funcview, name)) 
+        return getattr(self.funcview, name)
+
+class VQVivFunctionsUnfilteredView(VQVivTreeView):
 
     _viv_navcol = 0
     window_title = 'Functions'
     columns = ('Name','Address', 'Size', 'Ref Count')
 
     def __init__(self, vw, vwqgui):
-        VQVivTreeView.__init__(self, vw, vwqgui)
-        self.setModel( VivNavModel(self._viv_navcol, self, columns=self.columns) )
+        VQVivTreeView.__init__(self, vw, vwqgui, withfilter=True)
+        
+        self.navModel = VivNavModel(self._viv_navcol, self, columns=self.columns)
+        self.filterModel = VQVivFunctionsFilterModel()
+        self.filterModel.setSourceModel(self.navModel)
+        self.setModel(self.filterModel)
+
         self.vqLoad()
         self.vqSizeColumns()
 
