@@ -945,7 +945,7 @@ class Constraint(Operator):
         return self.__class__(v1, v2)
 
 
-def opose(c1, c2):
+def oppose(c1, c2):
     c1.revclass = c2
     c2.revclass = c1
 
@@ -996,7 +996,7 @@ class NOTUNK(Constraint):
     symtype = SYMT_CON_NOTUNK
 
 # Create our oposing constraints
-opose(ne, eq)
-opose(le, gt)
-opose(lt, ge)
-opose(UNK, NOTUNK)
+oppose(ne, eq)
+oppose(le, gt)
+oppose(lt, ge)
+oppose(UNK, NOTUNK)
