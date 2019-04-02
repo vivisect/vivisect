@@ -20,6 +20,11 @@ class TestConstraints(unittest.TestCase):
         sym2 = symexp(s2)
         self.assertEqual(str(sym1), str(sym2))
 
+    @unittest.skip('This takes *forever* to compute')
+    def test_perf(self):
+        v1 = symexp('biz = bar ** foo + baz')
+        v1.reduce()
+
     def test_const(self):
         self.assertTruth('0 < 1')
         self.assertTruth('0xab == 0xab')
@@ -41,14 +46,18 @@ class TestConstraints(unittest.TestCase):
         s2 = '((((foo * bar) * baz) + (131 | 40)) == (((foo * bar) * baz) + 171))'
         v2 = symexp(s2)
         self.assertTrue(s2 == str(v2))
-        self.assertReduce(s2, '(((foo * bar) * baz) + 171) == (((foo * bar) * baz) + 171)')
+        self.assertTrue(v2.reduce() == 1)
         self.assertTrue(v2.getWidth() == 4)  # default width
 
-        s2 = '(((((foo - bar) + bar) + (131 | 40)) - 171) == foo)'
-        v2 = symexp(s2)
-        self.assertTrue(s2 == str(v2))
-        self.assertReduce(s2, 'foo == foo')
-        self.assertTrue(v2.getWidth() == 4)  # default width
+        s3 = '(((((foo - bar) + bar) + (131 | 40)) - 171) == foo)'
+        v3 = symexp(s3)
+        self.assertTrue(s3 == str(v3))
+        self.assertTrue(v3.reduce() == 1)
+        self.assertTrue(v3.getWidth() == 4)  # default width
+
+        s4 = 'foo - (foo + 3 ** 4) == biz / bar + boo'
+        v4 = symexp(s4)
+        self.assertTrue(v4.reduce() != 0)
 
     def test_rev(self):
         v1 = symexp('4 < 5')
@@ -120,4 +129,11 @@ class TestConstraints(unittest.TestCase):
         emu = MockEmulator(MockVw())
         emu.setSymVariable('foo', Const(5, emu.__width__))
         v1 = v1.update(emu).reduce()
-        self.assertTrue(v1.value == 50)
+        self.assertTrue(v1 == 50)
+
+    def test_layered(self):
+        v1 = symexp('(1595 == 1595) == (47 == 2)')
+        self.assertTrue(v1.reduce() == 0)
+
+        v1 = symexp('(foo == foo) == (bar == bar)')
+        self.assertTrue(v1.reduce() == 1)

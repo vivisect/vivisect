@@ -43,13 +43,13 @@ def ismatch(sym,tmp):
 
         ismatch( symexp('eax + 20'), symexp('x1 + c1')) -> {'x1':Var('eax'), 'c1':20}
     '''
-    todo = [(sym,tmp),]
+    todo = [(sym, tmp)]
 
     symwidth = sym.getWidth()
 
     ret = {}
     while todo:
-        s,t = todo.pop()
+        s, t = todo.pop()
 
         if s.getWidth() != symwidth and s.symtype != SYMT_CONST:
             return None
@@ -77,6 +77,11 @@ def ismatch(sym,tmp):
             todo.append((s.kids[1], t.kids[1]))
             continue
 
+        if t.symtype in (SYMT_CON_EQ, SYMT_CON_NE):
+            todo.append((s.kids[0], t.kids[0]))
+            todo.append((s.kids[1], t.kids[1]))
+            continue
+
         if t.symtype == SYMT_CONST:
             if t.value != s.value:
                 return None
@@ -85,7 +90,7 @@ def ismatch(sym,tmp):
         raise Exception(str(t))
 
     # replace all consts with their solved values...
-    for k,v in ret.items():
+    for k, v in ret.items():
         if k.startswith('c'):
             ret[k] = v.solve()
 
@@ -177,7 +182,7 @@ def andmask(v,c):
 
     return v & Const(c,vwidth)
 
-def mulbase(v,c):
+def mulbase(v, c):
     vwidth = v.getWidth()
     if c == 0:
         return Const(0, vwidth)
@@ -185,19 +190,19 @@ def mulbase(v,c):
         return v
     return v * Const(c,vwidth)
 
-def divbase_vc(v,c):
+def divbase_vc(v, c):
     vwidth = v.getWidth()
     if c == 1:
         return v
     return v / Const(c,vwidth)
 
-def divbase_cv(c,v):
+def divbase_cv(c, v):
     vwidth = v.getWidth()
     if c == 0:
         return Const(0,vwidth)
     return Const(c,vwidth) / v
 
-def muldiv(v,m,d):
+def muldiv(v, m, d):
     vwidth = v.getWidth()
 
     if m == d:
@@ -311,6 +316,14 @@ reducers = {
         ('(0 << x1)', lambda m, emu=None: 0),
         ('(x1 << c1)', lambda m, emu=None: mulbase(m['x1'], 2**m['c1'])),
     ]),
+
+    SYMT_CON_EQ: xpandrules([
+        ('(x1 == x1)', lambda m, emu=None: 1),
+    ]),
+
+    SYMT_CON_NE: xpandrules([
+        ('(x1 != x1)', lambda m, emu=None: 0),
+    ]),
 }
 
 def reduceoper(sym,emu=None):
@@ -321,13 +334,13 @@ def reduceoper(sym,emu=None):
     '''
     if not reducers.get(sym.symtype):
         return
-    for symtmp,reducer in reducers.get(sym.symtype):
-        m = ismatch(sym,symtmp)
+    for symtmp, reducer in reducers.get(sym.symtype):
+        m = ismatch(sym, symtmp)
         if m != None:
             #print 'MATCH',str(symtmp)
-            ret = reducer(m,emu=emu)
+            ret = reducer(m, emu=emu)
             # do this to much simplify reducers...
-            if type(ret) in (int,long):
+            if type(ret) in (int, long):
                 ret = Const(ret,sym.getWidth())
             return ret
 

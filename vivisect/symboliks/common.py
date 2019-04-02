@@ -916,6 +916,11 @@ class Constraint(Operator):
     def __repr__(self):
         return '%s(%s,%s)' % (self.__class__.__name__, repr(self.kids[0]), repr(self.kids[1]))
 
+    def _solve(self, emu=None, vals=None):
+        v1 = self.kids[0].solve(emu=emu, vals=vals)
+        v2 = self.kids[1].solve(emu=emu, vals=vals)
+        return int(self.oper(v1, v2))
+
     def __eq__(self, con):
         '''
         Is this constraint the same as some other?
