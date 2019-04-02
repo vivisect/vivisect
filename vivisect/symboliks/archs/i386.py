@@ -332,33 +332,71 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
 
         self.setOperObj(op, 0, sub)
 
-    def i_div(self, op):
+    def _div(self, op, isInvalid=None):
         oper = op.opers[0]
         divbase = self.getOperObj(op, 1)
+        if isInvalid is None:
+            limit = (2 ** (oper.tsize * 8)) - 1
+            isInvalid = lambda val: val > limit
 
         if oper.tsize == 1:
-            # TODO: this is broken
-            ax = self._reg_ctx._xlateToNativeReg(e_i386.REG_AX, Var('eax', self._psize))
+            ax = self.getRegObj(e_i386.REG_AX)
             quot = ax / divbase
-            rem  = ax % divbase
-            # TODO: this is broken
-            self.effSetVariable('eax', (quot << 8) + rem)
+            rem = ax % divbase
+            if isInvalid(quot):
+                raise envi.DivideError('i386 #DE')
+            self.effSetVariable('eax', (rem << 8) + quot)
 
         elif oper.tsize == 2:
-            raise Exception("16 bit divide needs help!")
+            ax = self.getRegObj(e_i386.REG_AX)
+            dx = self.getRegObj(e_i386.REG_DX)
+            tot = (edx << Const(16, self._psize)) + eax
+            quot = tot / divbase
+            rem = tot % divbase
+            if isInvalid(quot):
+                raise envi.DivideError('i386 #DE')
+            self.effSetVariable('eax', quot)
+            self.effSetVariable('edx', rem)
 
         elif oper.tsize == 4:
             eax = Var('eax', self._psize)
             edx = Var('edx', self._psize)
-
-            #FIXME 16 bit over-ride
             tot = (edx << Const(32, self._psize)) + eax
             quot = tot / divbase
             rem = tot % divbase
+            if isInvalid(quot):
+                raise envi.DivideError('i386 #DE')
             self.effSetVariable('eax', quot)
             self.effSetVariable('edx', rem)
-            #FIXME maybe we need a "check exception" effect?
+            # FIXME maybe we need a "check exception" effect?
 
+        else:
+            raise envi.UnsupportedInstruction(self, op)
+
+    def i_div(self, op):
+        return self._div(op)
+
+    def i_idiv(self, op):
+        tsize = op.opers[0].tsize
+        limit = ((-2 ** (tsize * 8 - 1)), 2 ** (tsize * 8 - 1) - 1)
+        return self._div(op, isInvalid=lambda val: val < limit[0] or val > limit[1])
+
+    def i_divsd(self, op):
+        ocount = len(op.opers)
+        if ocount == 2:
+            dst = self.getOperObj(op, 0)
+            src = self.getOperObj(op, 1)
+            if src == 0:
+                raise Exception('#DE, divide error')
+            res = dst / src
+            self.setOperObj(op, 0, res)
+        elif ocount == 3:
+            src1 = self.getOperObj(op, 1)
+            src2 = self.getOperObj(op, 2)
+            if src2 == 0:
+                raise Exception('#DE, divide error')
+            res = src1 / src2
+            self.setOperObj(op, 0, res)
         else:
             raise envi.UnsupportedInstruction(self, op)
 
@@ -376,7 +414,6 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
             self.setOperObj(op, 0, res)
 
         elif ocount == 3:
-            dst = self.getOperObj(op, 0)
             src1 = self.getOperObj(op, 1)
             src2 = self.getOperObj(op, 2)
             dsize = op.opers[0].tsize

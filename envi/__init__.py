@@ -298,6 +298,12 @@ class DivideByZero(EmuException):
     a 0 divisor...
     """
 
+class DivideError(EmuException):
+    """
+    Raised by an Emulator whena a divide falls out
+    of the specified range.
+    """
+
 class BreakpointHit(EmuException):
     """
     Raised by an emulator when you execute a breakpoint instruction

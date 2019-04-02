@@ -1,5 +1,6 @@
 import hashlib
 
+import envi
 import envi.archs.amd64 as e_amd64
 
 from vivisect.symboliks.common import *
@@ -107,28 +108,35 @@ class Amd64SymbolikTranslator(vsym_i386.IntelSymbolikTranslator):
         v2 = o_sextend(self.getOperObj(op, 1), Const(ssize, self._psize))
         self.setOperObj(op, 0, v2)
 
-    def i_div(self, op):
+    def _div(self, op, isInvalid=None):
         oper = op.opers[0]
         denom = self.getOperObj(op, 1)
         if denom == 0:
             # TODO: make effect
-            raise Exception('#DE, divide by zero')
+            raise envi.DivideByZero('AMD64 Divide by zero')
+
+        if isInvalid is None:
+            limit = (2 ** (oper.tsize * 8)) - 1
+            isInvalid = lambda val: val > limit
 
         if oper.tsize == 8:
             rax = Var('rax', self._psize)
             rdx = Var('rdx', self._psize)
             num = (rdx << Const(64, self._psize)) + rax
             temp = num / denom
-            if temp > (2**64)-1:
+            if isInvalid(temp):
                 # TODO: make effect
-                raise Exception('#DE, divide error')
+                raise envi.DivideError('AMD64 i_div #DE')
 
             self.effSetVariable('rax', temp)
             self.effSetVariable('rdx', num % denom)
 
             return
 
-        return vsym_i386.IntelSymbolikTranslator.i_div(self, op)
+        return vsym_i386.IntelSymbolikTranslator._div(self, op, isInvalid=isInvalid)
+
+    def i_div(self, op):
+        return self._div(op)
 
     def i_jecxz(self, op):
         return vsym_i386.IntelSymbolikTranslator.i_jecxz(self, op)

@@ -114,3 +114,10 @@ class TestConstraints(unittest.TestCase):
         v1 = v1.update(emu)
         self.assertTrue(v1.isDiscrete(emu))
         self.assertTrue(v1.solve(emu) == 0)
+
+    def test_mixed(self):
+        v1 = symexp('(foo ** 2) << (1 > 0)')
+        emu = MockEmulator(MockVw())
+        emu.setSymVariable('foo', Const(5, emu.__width__))
+        v1 = v1.update(emu).reduce()
+        self.assertTrue(v1.value == 50)

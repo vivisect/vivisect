@@ -427,5 +427,5 @@ def addLocalMetas(l, metas):
     Update a dictionary (or module locals) with REG_FOO index
     values for all meta registers defined in metas.
     """
-    for name,idx,offset,width in metas:
+    for name, idx, offset, width in metas:
         l["REG_%s" % name.upper()] = (offset << 24) | (width << 16) | idx
