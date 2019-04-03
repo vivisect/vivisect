@@ -46,7 +46,8 @@ class H8Module(envi.ArchitectureModule):
         import envi.archs.h8.emu as h8_emu
         return h8_emu.H8Emulator()
 
-
+# https://www.renesas.com/us/en/doc/products/mpumcu/001/rej09b0403_h8s2472_2462hm.pdf?key=69aea339d84b503e86d4d19924e46b8c
+# see page 1072 onwards for mem -> reg mappings
 memreg_h8s = {  # from rej06b0824_h8sap.pdf (h8s/2400).  uncommented entries from IDA H9S/Advanced
         0xffff84: 'SBYCR',     # Standby Control Register
         0xffff86: 'MSTPCRH',
