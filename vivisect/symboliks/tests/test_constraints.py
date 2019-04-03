@@ -137,3 +137,7 @@ class TestConstraints(unittest.TestCase):
 
         v1 = symexp('(foo == foo) == (bar == bar)')
         self.assertTrue(v1.reduce() == 1)
+
+        v2 = symexp('(foo == foo) & (bar == bar)')
+        self.assertTrue(v2.reduce() == 1)
+        self.assertTrue(v1.reduce() == v2.reduce())

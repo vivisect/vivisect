@@ -692,17 +692,110 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
         self.effSetVariable('eflags_eq', eq(v1, v2)) # v1 - v2 == 0 :: v1 == v2
         self.setOperObj(op, 0, v1 - v2)
 
-    def i_setnz(self, op):
-        # FIXME
-        self.setOperObj(op, 0, Const(1, self._psize)) #cnot(Var('eflags_eq', self._psize)))
 
     def i_cwde(self, op):
         v1 = o_sextend(self.getRegObj(e_i386.REG_AX), Const(self._psize, self._psize))
         self.effSetVariable('eax', v1)
 
-    def i_setz(self, op):
+    def _carry_eq(self, x):
+        return eq(Var('eflags_cf', self._psize), Const(x, self._psize))
+
+    def _zero_eq(self, x):
+        return eq(Var('eflags_eq', self._psize), Const(x, self._psize))
+
+    def _overflow_eq(self, x):
+        return eq(Var('eflags_eq', self._psize), Const(x, self._psize))
+
+    def _signed_eq(self, x):
+        return eq(Var('eflags_eq', self._psize), Const(x, self._psize))
+
+    def _parity_eq(self, x):
+        # TODO Somebody needs to set this
+        return eq(Var('eflags_pf', self._psize), Const(x, self._psize))
+
+    def i_seta(self, op):
+        self.setOperObj(op, 0, self._carry_eq(0) & self._zero_eq(0))
+
+    def i_setae(self, op):
+        self.setOperObj(op, 0, self._carry_eq(0))
+
+    def i_setb(self, op):
+        self.setOperObj(op, 0, self._carry_eq(1))
+
+    def i_setbe(self, op):
+        self.setOperObj(op, 0, self._zero_eq(1) | self._carry_eq(1))
+
+    i_setc = i_setb
+
+    def i_sete(self, op):
+        self.setOperObj(op, 0, self._zero_eq(1))
+
+    def i_setg(self, op):
+        signed = eq(Var('eflags_sf', self._psize), Var('eflags_of', self._psize))
+        self.setOperObj(op, 0, self._overflow_eq(0) & signed)
+
+    def i_setge(self, op):
+        signed = eq(Var('eflags_sf', self._psize), Var('eflags_of', self._psize))
+        self.setOperObj(op, 0, signed)
+
+    def i_setl(self, op):
+        not_signed = ne(Var('eflags_sf', self._psize), Var('eflags_of', self._psize))
+        self.setOperObj(op, 0, not_signed)
+
+    def i_setle(self, op):
+        equal = eq(Var('eflags_eq', self._psize), Const(1, self._psize))
+        not_signed = ne(Var('eflags_sf', self._psize), Var('eflags_of', self._psize))
+        self.setOperObj(op, 0, self._zero_eq(1) | not_signed)
+
+    i_setna = i_setbe
+
+    def i_setnae(self, op):
+        self.setOperObj(op, 0, self._carry_eq(1))
+
+    def i_setnb(self, op):
+        self.setOperObj(op, 0, self._carry_eq(0))
+
+    i_setnbe = i_seta
+    i_setnc = i_setnae
+
+    def i_setne(self, op):
+        self.setOperObj(op, 0, self._zero_eq(0))
+
+    i_setng = i_setle
+    i_setnge = i_setl
+    i_setnl = i_setge
+    i_setnle = i_setg
+
+    def i_setno(self, op):
+        self.setOperObj(op, 0, self._overflow_eq(0))
+
+    def i_setnp(self, op):
         # FIXME
-        self.setOperObj(op, 0, Const(0, self._psize)) #Var('eflags_eq', self._psize))
+        self.setOperObj(op, 0, Const(0, self._psize))
+
+    def i_setns(self, op):
+        self.setOperObj(op, 0, self._signed_eq(0))
+
+    i_setnz = i_setne
+
+    def i_seto(self, op):
+        self.setOperObj(op, 0, self._overflow_eq(0))
+
+    def i_setp(self, op):
+        # FIXME
+        self.setOperObj(op, 0, Const(0, self._psize))
+
+    def i_setpe(self, op):
+        # FIXME
+        self.setOperObj(op, 0, Const(0, self._psize))
+
+    def i_setpo(self, op):
+        # FIXME
+        self.setOperObj(op, 0, Const(0, self._psize))
+
+    def i_sets(self, op):
+        self.setOperObj(op, 0, self._signed_eq(1))
+    i_setz = i_sete
 
     def i_shl(self, op):
         v1 = self.getOperObj(op, 0)
