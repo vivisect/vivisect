@@ -254,7 +254,7 @@ class LinuxMixin(v_posix.PtraceMixin, v_posix.PosixMixin):
         A utility to open (if necessary) and seek the memfile
         """
         if self.memfd is None:
-            self.memfd = libc.open("/proc/%d/mem" % self.pid, O_RDWR | O_LARGEFILE, 755)
+            self.memfd = libc.open("/proc/%d/mem" % self.pid, O_RDWR | O_LARGEFILE, 0755)
 
         x = libc.lseek64(self.memfd, offset, 0)
 

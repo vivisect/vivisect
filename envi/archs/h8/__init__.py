@@ -61,7 +61,6 @@ memreg_h8s = {  # from rej06b0824_h8sap.pdf (h8s/2400).  uncommented entries fro
         0xffffa3: 'TDR_2',
         0xffffa4: 'SSR_2',
         0xffffa5: 'RDR_2',
-        # 0xffffa8: 'WDT_0',   # XXX: Reaffirm this
         0xffffa8: 'TCNT_0',    # Timer Counter_0(write)  - 16bits
         0xffffa9: 'TCNT_0_byte1',
         0xffffaa: 'PAODR',     # Port A Output Data Register

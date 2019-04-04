@@ -17,13 +17,13 @@ class ExpressionFail(Exception):
         return self.__repr__()
 
 
-def evaluate(pycode, locs):
+def evaluate(pycode, locvars):
     try:
-        val = eval(pycode, {}, locs)
+        val = eval(pycode, {}, locvars)
     except Exception:
         try:
             # check through the keys for anything we might want to replace
-            keys = locs.keys()
+            keys = locvars.keys()
 
             # sort the keys in reverse order so that longer matching strings take priority
             keys.sort(reverse=True)
@@ -31,10 +31,10 @@ def evaluate(pycode, locs):
             # replace the substrings with the string versions of the lookup value
             for key in keys:
                 if key in pycode:
-                    pval = locs[key]
+                    pval = locvars[key]
                     pycode = pycode.replace(key, str(pval))
 
-            val = eval(pycode, {}, locs)
+            val = eval(pycode, {}, locvars)
 
         except Exception as e:
             raise ExpressionFail(pycode, e)

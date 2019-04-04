@@ -1,4 +1,4 @@
 pyasn1=0.4.5
 pyans1-modules=0.2.4
-cxxfilter
+cxxfilt
 msgpack
