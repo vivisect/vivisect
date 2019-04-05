@@ -51,7 +51,7 @@ def lockStepEmulator(emu, trace):
             cmpRegs(emu, trace)
         except RegisterException, msg:
             print "Lockstep Error: %s: %s" % (repr(op),msg)
-            setRegs(emu, trace)
+            # setRegs(emu, trace)
             sys.stdin.readline()
         except Exception, msg:
             traceback.print_exc()
