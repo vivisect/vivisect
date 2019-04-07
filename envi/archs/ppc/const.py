@@ -138,3 +138,18 @@ FLAGS_LT = 1 << FLAGS_LT_bitnum
 FLAGS_GT = 1 << FLAGS_GT_bitnum
 FLAGS_EQ = 1 << FLAGS_EQ_bitnum
 FLAGS_SO = 1 << FLAGS_SO_bitnum
+
+XERFLAG_SO_bitnum = 0
+XERFLAG_OV_bitnum = 1
+XERFLAG_CA_bitnum = 2
+
+XERFLAG_SO_LOW = 1 << XERFLAG_SO_bitnum
+XERFLAG_OV_LOW = 1 << XERFLAG_OV_bitnum
+XERFLAG_CA_LOW = 1 << XERFLAG_CA_bitnum
+XERFLAG_SO = 1 << (XERFLAG_SO_bitnum + 29)
+XERFLAG_OV = 1 << (XERFLAG_OV_bitnum + 30)
+XERFLAG_CA = 1 << (XERFLAG_CA_bitnum + 31)
+
+# mask to clear out a 4-bit part of the 32-bit CR register about to be written
+cr_mask = [(0xffffffff & ~(0xf<<(4*x))) for x in range(8)]
+

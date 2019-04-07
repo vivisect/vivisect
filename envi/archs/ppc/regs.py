@@ -154,8 +154,6 @@ statmetas = [   # FIXME
 
         ]
 # FIXME: FPSCR bits
-# FIXME: CR bits!
-
 
 def getCrFields(regval):
     ret = []

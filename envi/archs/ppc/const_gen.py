@@ -1217,7 +1217,7 @@ for mnem in mnems:
 
 
 IF_NONE = 0
-IF_RC  			= 1<<8
-IF_ABS 			 = 1<<9
-IF_BRANCH_LIKELY			 = 1<<10
-IF_BRANCH_UNLIKELY			 = 1<<11
+IF_RC = 1<<8
+IF_ABS = 1<<9
+IF_BRANCH_LIKELY = 1<<10
+IF_BRANCH_UNLIKELY = 1<<11

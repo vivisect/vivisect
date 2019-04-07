@@ -114,15 +114,17 @@ class PpcOpcode(envi.Opcode):
 class PpcRegOper(envi.RegisterOper):
     ''' register operand.'''
 
-    def __init__(self, reg, va=0):
+    def __init__(self, reg, va=0, tsize=4):
         self.va = va
         self.reg = reg
-        
+        self.tsize = tsize
 
     def __eq__(self, oper):
         if not isinstance(oper, self.__class__):
             return False
         if self.reg != oper.reg:
+            return False
+        if self.tsize != oper.tsize:
             return False
         return True
     
@@ -152,28 +154,27 @@ class PpcRegOper(envi.RegisterOper):
         rname = ppc_regs[self.reg][0]
         mcanv.addNameText(rname, typename='registers')
 
-
     def repr(self, op):
         rname = ppc_regs[self.reg][0]
         return rname
 
 class PpcFRegOper(PpcRegOper):
     ''' Floating Point register operand.'''
-    def __init__(self, reg, va=0):
-        self.va = va
-        self.reg = reg + REG_IDX_FP
+    def __init__(self, reg, va=0, tsize=4):
+        reg += REG_IDX_FP
+        PpcRegOper.__init__(self, reg, va, tsize)
         
 class PpcVRegOper(PpcRegOper):
     ''' Vector register operand.'''
-    def __init__(self, reg, va=0):
-        self.va = va
-        self.reg = reg      + REG_IDX_VECTOR
+    def __init__(self, reg, va=0, tsize=4):
+        reg += REG_IDX_VECTOR
+        PpcRegOper.__init__(self, reg, va, tsize)
         
 class PpcCRegOper(PpcRegOper):
     ''' CR register operand field.'''
-    def __init__(self, field, va=0):
-        self.va = va
-        self.reg = REG_CR
+    def __init__(self, field, va=0, tsize=4):
+        reg = REG_CR
+        PpcRegOper.__init__(self, reg, va, tsize)
         self.field = field
         
     def render(self, mcanv, op, idx):
@@ -194,13 +195,12 @@ class PpcCRegOper(PpcRegOper):
         crb = (cr >> (self.field*4)) & 0xf
         return crb
 
-
 CRBITS = ('lt', 'gt', 'eq', 'so')
 class PpcCBRegOper(PpcRegOper):
     ''' CR register operand.'''
-    def __init__(self, bit, va=0):
-        self.va = va
-        self.reg = REG_CR
+    def __init__(self, bit, va=0, tsize=4):
+        reg = REG_CR
+        PpcRegOper.__init__(self, reg, va, tsize)
         self.bit = bit
         
     def render(self, mcanv, op, idx):
@@ -229,16 +229,17 @@ class PpcCBRegOper(PpcRegOper):
 
 class PpcImmOper(envi.ImmedOper):
     ''' Immediate operand. '''
-    def __init__(self, val, va=0):
+    def __init__(self, val, va=0, tsize=4):
         self.val = val
+        self.tsize = tsize
 
     def __eq__(self, oper):
         if not isinstance(oper, self.__class__):
             return False
-
         if self.getOperValue(None) != oper.getOperValue(None):
             return False
-
+        if self.tsize != oper.tsize:
+            return False
         return True
 
     def involvesPC(self):
@@ -279,8 +280,8 @@ class PpcImmOper(envi.ImmedOper):
         return '0x%x' % (val)
 
 class PpcSImmOper(PpcImmOper):
-    ''' Unsigned Immediate operand. '''
-    def __init__(self, val, va=0, bits=5):
+    ''' Signed Immediate operand. '''
+    def __init__(self, val, va=0, bits=5, tsize=4):
         if val & (1<<(bits-1)):
             val |= (e_bits.b_masks[32-bits] << bits)
 
@@ -288,43 +289,48 @@ class PpcSImmOper(PpcImmOper):
 
 class PpcSImm5Oper(PpcSImmOper):
     ''' Signed Immediate operand bit 5. '''
-    def __init__(self, val, va=0):
-        PpcSImmOper.__init__(self, val, va, 5)
+    def __init__(self, val, va=0, tsize=4):
+        PpcSImmOper.__init__(self, val, va, 5, tsize)
 
 class PpcSImm12Oper(PpcSImmOper):
     ''' Unsigned Immediate operand. '''
-    def __init__(self, val, va=0):
-        PpcSImmOper.__init__(self, val, va, 12)
+    def __init__(self, val, va=0, tsize=4):
+        PpcSImmOper.__init__(self, val, va, 12, tsize)
 
 class PpcSImm16Oper(PpcSImmOper):
     ''' Unsigned Immediate operand. '''
-    def __init__(self, val, va=0):
-        PpcSImmOper.__init__(self, val, va, 16)
+    def __init__(self, val, va=0, tsize=4):
+        PpcSImmOper.__init__(self, val, va, 16, tsize)
 
 class PpcUImmOper(PpcImmOper):
     ''' Unsigned Immediate operand. '''
-    def __init__(self, val, va=0):
+    def __init__(self, val, va=0, tsize=4):
         self.val = val
+        PpcImmOper.__init__(self, val, va, tsize)
 
 class PpcUImm1Oper(PpcUImmOper):
     ''' Unsigned Immediate operand. '''
-    def __init__(self, val, va=0):
-        self.val = val * 8
+    def __init__(self, val, va=0, tsize=4):
+        val *= 8
+        PpcUimmOper.__init__(self, val, va, tsize)
 
 class PpcUImm2Oper(PpcUImmOper):
     ''' Unsigned Immediate operand. '''
-    def __init__(self, val, va=0):
-        self.val = val * 2
+    def __init__(self, val, va=0, tsize=4):
+        val *= 2
+        PpcUimmOper.__init__(self, val, va, tsize)
 
 class PpcUImm3Oper(PpcUImmOper):
     ''' Unsigned Immediate operand. '''
-    def __init__(self, val, va=0):
-        self.val = val * 4
+    def __init__(self, val, va=0, tsize=4):
+        val *= 4
+        PpcUimmOper.__init__(self, val, va, tsize)
 
-class PpcSImm3Oper(PpcUImmOper):
-    ''' Unsigned Immediate operand. '''
-    def __init__(self, val, va=0):
-        self.val = e_bits.signed(val * 4, 2)
+class PpcSImm3Oper(PpcSImmOper):
+    ''' Signed Immediate operand. '''
+    def __init__(self, val, va=0, tsize=4):
+        val = e_bits.signed(val * 4, 2)
+        PpcSImmOper.__init__(self, val, va, tsize)
 
 
 class PpcMemOper(envi.DerefOper):
@@ -362,6 +368,7 @@ class PpcMemOper(envi.DerefOper):
         addr = self.getOperAddr(op, emu)
 
         fmt = e_bits.fmt_chars[emu.getEndian()][self.tsize]
+        val &= e_bits.u_maxes[self.tsize]
         emu.writeMemoryFormat(addr, fmt, val)
 
     def getOperValue(self, op, emu=None):
