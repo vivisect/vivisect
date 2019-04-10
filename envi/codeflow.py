@@ -2,9 +2,12 @@
 A module to contain code flow analysis for envi opcode objects...
 '''
 import copy
+import logging
 import traceback
 import envi
 import envi.memory as e_mem
+
+logger = logging.getLogger(__name__)
 
 class CodeFlowContext(object):
 
@@ -128,6 +131,7 @@ class CodeFlowContext(object):
 
         Set persist=True to store 'opdone' and never disassemble the same thing twice
         '''
+        logger.debug("addCodeFlow: 0x%x (arch:0x%x)", va, arch)
         opdone = {}
         if self._cf_persist != None:
             opdone = self._cf_persist

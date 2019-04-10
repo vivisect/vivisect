@@ -13,6 +13,7 @@ import string
 import struct
 import weakref
 import hashlib
+import logging
 import itertools
 import traceback
 import threading
@@ -49,6 +50,8 @@ from vivisect.const import *
 from vivisect.defconfig import *
 
 import vivisect.analysis.generic.emucode as v_emucode
+
+logger = logging.getLogger(__name__)
 
 def guid(size=16):
     return hexlify(os.urandom(size))
@@ -612,14 +615,17 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         if ltype == LOC_OP:
             # NOTE: currently analyzePointer returns LOC_OP
             # based on function entries, lets make a func too...
+            logger.debug("followPointer->makeFunction(0x%x)", va)
             self.makeFunction(va)
             return True
 
         elif ltype == LOC_STRING:
+            logger.debug("followPointer->makeString(0x%x)", va)
             self.makeString(va)
             return True
 
         elif ltype == LOC_UNI:
+            logger.debug("followPointer->makeUnicode(0x%x)", va)
             self.makeUnicode(va)
             return True
 
@@ -983,6 +989,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
                 self.addXref(va, tova, REF_DATA)
                 ptrdest = None
                 if self.getLocation(tova) == None:
+                    logger.debug('makeOpcode(0x%x)->makePointer(0x%x)', va, tova)
                     ptrdest = self.makePointer(tova, follow=False)
 
                 # If the actual dest is executable, make a code ref fixup
