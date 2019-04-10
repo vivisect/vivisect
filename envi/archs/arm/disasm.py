@@ -2866,6 +2866,130 @@ adv_simd_2regs_misc = (
         ('vcvt',        INS_VCVT, ADV_SIMD_F32S32+1, 0,0, 0),
 )
 
+
+def adv_simd_ldst_32(val, va):
+    u = (val>>24) & 1
+    return _do_adv_simd_ldst_32(val, va, u)
+
+def _do_adv_simd_ldst_32(val, va, u):
+    a = (val >> 23) & 1
+    l = (val >> 21) & 1
+
+    optype = (val >> 8) & 0xf
+
+    d = (val >> 22) & 1
+    rn = (val >> 16) & 0xf
+    vd = (val >> 12) & 0xf
+    rm = val & 0xf
+    dd = vd | (d << 4)
+
+    sflag, size =  ((IFS_8,1), (IFS_16,2), (IFS_32,4), (IFS_64,8))[(val >> 6) & 3]
+    align = (1,8,16,32)[(val >> 4) & 3]
+
+    simdflags = sflag
+    writeback = (rm != 15)
+    pubwl = PUxWL_DFLT | (writeback<<1)
+    iflags = (0, IF_W)[writeback]
+    opers = ()
+
+    if l == 0:
+        # store
+        if a == 0:
+            count = (1,2,4,2,3,3,3,1,1,1,2) [ optype ]
+
+            # multiple elements
+            if optype in (0b0010, 0b0110, 0b0111, 0b1010):
+                # vst1
+                mnem = 'vst1'
+                opers = (
+                        ArmExtRegListOper(dd, count, 1),    # size in this context means use "D#" registers
+                        ArmImmOffsetOper(rn, 0, va, pubwl=pubwl, psize=size, tsize=size),
+                        )
+
+            elif optype in (0b0011, 0b1000, 0b1001):
+                # vst2
+                mnem = 'vst2'
+            elif optype in (0b0100, 0b0101):
+                # vst3
+                mnem = 'vst3'
+                inc = 1 + (optype&1)
+                opers = (
+                        ArmExtRegListOper(dd, count, 1, inc),
+                        ArmImmOffsetOper(rn, 0, va, pubwl=pubwl, psize=size, tsize=size),
+                        )
+
+            elif optype in (0b0000, 0b0001):
+                # vst4
+                mnem = 'vst4'
+
+        else:
+            # single elements
+            index_align = (val >> 4) & 0xf
+            size = (val >> 10) & 3
+
+            if optype in (0b0000, 0b0100, 0b1000):
+                # vst1
+                mnem = 'vst1'
+                opers = (
+                        ArmExtRegListOper(dd, count, 1),
+                        ArmImmOffsetOper(rn, 0, va, pubwl=pubwl, psize=size, tsize=size),
+                        )
+            elif optype in (0b0001, 0b0101, 0b1001):
+                # vst2
+                mnem = 'vst2'
+            elif optype in (0b0010, 0b0110, 0b1010):
+                # vst3
+                mnem = 'vst3'
+            elif optype in (0b0011, 0b0111, 0b1011):
+                # vst4
+                mnem = 'vst4'
+
+    else:
+        # load
+        if a:
+            # multiple elements
+            if optype in (0b0010, 0b0110, 0b0111, 0b1010):
+                # vld1  multiple single element
+                mnem = 'vld1'
+            elif optype in (0b0011, 0b1000, 0b1001):
+                # vld2  multiple 2-element structures
+                mnem = 'vld2'
+            elif optype in (0b0100, 0b0101):
+                # vld3  multiple 3-element structures
+                mnem = 'vld3'
+            elif optype in (0b0000, 0b0001):
+                # vld4  multiple 4-element structures
+                mnem = 'vld4'
+
+        else:
+            # single elements
+            if optype in (0b0000, 0b0100, 0b1000):
+                # vld1  single element to one lane
+                mnem = 'vld1'
+            elif optype == 0b1100:
+                # vld1  single element to all lanes
+                mnem = 'vld1'
+            elif optype in (0b0001, 0b0101, 0b1001):
+                # vld2  single 2-element structure to one lane
+                mnem = 'vld2'
+            elif optype == 0b1101:
+                # vld2  single 2-element structure to all lanes
+                mnem = 'vld2'
+            elif optype in (0b0010, 0b0110, 0b1010):
+                # vld3  single 3-element structure to one lane
+                mnem = 'vld3'
+            elif optype == 0b1110:
+                # vld3  single 3-element structure to all lanes
+                mnem = 'vld3'
+            elif optype in (0b0011, 0b0111, 0b1011):
+                # vld4  single 4-element structure to one lane
+                mnem = 'vld4'
+            elif optype == 0b1111:
+                # vld4  single 4-element structure to all lanes
+                mnem = 'vld4'
+
+    return opcode, mnem, opers, iflags, simdflags    # no iflags, only simdflags for this one
+
 def adv_simd_32(val, va):
     u = (val>>24) & 1
     return _do_adv_simd_32(val, va, u)
