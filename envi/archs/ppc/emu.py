@@ -40,6 +40,13 @@ OPER_SRC = 1
 OPER_DST = 0
 
 
+print "PPC:Emu: TESTME: cmpi bit setting of the appropriate CR register"
+print "PPC:Emu: TESTME: cmp bit setting of the appropriate CR register"
+print "PPC:Emu: TESTME: cmpl bit setting of the appropriate CR register"
+print "PPC:Emu: TESTME: cmpli bit setting of the appropriate CR register"
+class Trap(Exception):
+    pass
+
 class PpcEmulator(PpcModule, PpcRegisterContext, envi.Emulator):
 
     def __init__(self, archmod=None):
@@ -110,6 +117,13 @@ class PpcEmulator(PpcModule, PpcRegisterContext, envi.Emulator):
             pc += op.size
             self.setProgramCounter(pc)
 
+    def _populateOpMethods(self):
+        for name in dir(self):
+            if name.startswith("i_"):
+                self.op_methods[name[2:]] = getattr(self, name)
+                # add in the "." suffix because instrs which have RC set are handled in same func
+                self.op_methods[name[2:] + "."] = getattr(self, name)
+
     ####################### Helper Functions ###########################
     def doPush(self, val):
         psize = self.getPointerSize()
@@ -159,6 +173,78 @@ class PpcEmulator(PpcModule, PpcRegisterContext, envi.Emulator):
         self.setFlag(EFLAGS_ZF, not res)
         self.setFlag(EFLAGS_PF, e_bits.is_parity_byte(res))
         return res
+
+    ########################### Flag Helpers #############################
+    def getCr(self, crnum):
+        '''
+        get a particular cr# field
+        CR is the control status register
+        cr# is one of 8 status register fields within CR, cr0 being the most significant bits in CR
+        '''
+        cr = self.getRegister(REG_CR)
+        return (cr >> ((7-crnum) * 4)) & 0xf
+
+    def setCr(self, crnum, flags):
+        '''
+        set a particular cr# field
+        CR is the control status register
+        cr# is one of 8 status register fields within CR, cr0 being the most significant bits in CR
+        '''
+        cr = self.getRegister(REG_CR)
+        cr &= (cr_mask[crnum])
+        cr |= (flags << ((7-crnum) * 4))
+        self.setRegister(REG_CR, cr)
+
+    def getXERflags(self):
+        '''
+        get a particular cr# field
+        CR is the control status register
+        cr# is one of 8 status register fields within CR, cr0 being the most significant bits in CR
+        '''
+        xer = self.getRegister(REG_XER)
+        xer >>= 29
+        xer &= 0x7
+        return xer
+
+    def setXERflags(self, flags):
+        '''
+        set XER flags
+            SO
+            OV
+            CA
+        '''
+        xer = self.getRegister(REG_XER)
+        xer & 0x1fffffff
+        xer |= (flags << 29)
+        self.setRegister(REG_XER, xer)
+
+    def setFlags(self, result, crnum=0, SO=None):
+        '''
+        easy way to set the flags, reusable by many different instructions
+        '''
+        flags = 0
+        if result > 0:
+            flags |= FLAGS_GT
+        elif result < 0:
+            flags |= FLAGS_LT
+        else:
+            flags |= FLAGS_EQ
+
+        if SO == None:
+            SO = self.getRegister(REG_SO)
+        
+        flags |= (SO << FLAGS_SO_bitnum)
+
+        self.setCr(crnum, flags)
+
+    #def getSO(self, crnum=0):
+    #    cr = self.getCr(crnum)
+    #    return (cr >> FLAGS_SO_bitnum) & 1
+
+    def trap(self, op):
+        raise Trap('0x%x: %r' % (op.va, op))
+        # FIXME: if this is used for software permission transition (like a kernel call), 
+        #   this approach may need to be rethought
 
     # Beginning of Instruction methods
     def i_nop(self, op):
@@ -683,6 +769,7 @@ class PpcEmulator(PpcModule, PpcRegisterContext, envi.Emulator):
 
     ######################## arithmetic instructions ##########################
     def i_cmpi(self, op):
+        # signed comparison for cmpi and cmp
         L = self.getOperValue(op, 1)
         rA = self.getOperValue(op, 2)
         if L==0:
@@ -690,6 +777,7 @@ class PpcEmulator(PpcModule, PpcRegisterContext, envi.Emulator):
         else:
             a = rA
         b = e_bits.signed(self.getOperValue(op, 3), 2)
+        SO = self.getOperValue(op, 0) & FLAGS_SO
 
         if a < b:
             c = 8
@@ -700,10 +788,112 @@ class PpcEmulator(PpcModule, PpcRegisterContext, envi.Emulator):
         # FIXME: what's SO? (it's the 1 bit)
 
         self.setOperValue(op, 0, c)
-        #print "TESTME: cmpi bit setting of the appropriate CR register"
 
-    def setOEFlags(self, results):
-        print('addo: make OE flag updates')
+    def i_cmp(self, op):
+        # signed comparison for cmpli and cmpl
+        L = self.getOperValue(op, 1)
+        rA = self.getOperValue(op, 2)
+        rB = self.getOperValue(op, 3)
+        dsize = op.opers[2].tsize
+        ssize = op.opers[3].tsize
+
+        if L==0:
+            a = e_bits.signed(rA, dsize)
+            b = e_bits.signed(rB, ssize)
+        else:
+            a = rA
+            b = rB
+        SO = self.getOperValue(op, 0) & FLAGS_SO
+
+        if a < b:
+            c = 8
+        elif a > b:
+            c = 4
+        else:
+            c = 2
+        # FIXME: what's SO? (it's the 1 bit)
+
+        self.setOperValue(op, 0, c)
+
+
+
+    def i_cmpl(self, op):
+        # unsigned comparison for cmpli and cmpl
+        L = self.getOperValue(op, 1)
+        rA = self.getOperValue(op, 2)
+        rB = self.getOperValue(op, 3)
+        dsize = op.opers[2].tsize
+        ssize = op.opers[3].tsize
+
+        if L==0:
+            a = e_bits.unsigned(rA, dsize)
+            b = e_bits.unsigned(rB, ssize)
+        else:
+            a = rA
+            b = rB
+        SO = self.getOperValue(op, 0) & FLAGS_SO
+
+        if a < b:
+            c = 8
+        elif a > b:
+            c = 4
+        else:
+            c = 2
+        # FIXME: what's SO? (it's the 1 bit)
+
+        self.setOperValue(op, 0, c)
+
+    def i_cmpli(self, op):
+        # unsigned comparison for cmpli and cmpl
+        L = self.getOperValue(op, 1)
+        rA = self.getOperValue(op, 2)
+        rB = self.getOperValue(op, 3)
+        dsize = op.opers[2].tsize
+        ssize = op.opers[3].tsize
+
+        if L==0:
+            a = e_bits.unsigned(rA, dsize)
+            b = e_bits.unsigned(rB, ssize)
+        else:
+            a = rA
+            b = rB
+
+        SO = self.getOperValue(op, 0) & FLAGS_SO
+        if a < b:
+            c = 8 | SO
+        elif a > b:
+            c = 4 | SO
+        else:
+            c = 2 | SO
+        # FIXME: what's SO? (it's the 1 bit)
+
+        self.setOperValue(op, 0, c)
+
+
+    def getCarryBitAtX(bit, result, add0, add1):
+        '''
+        return the carry bit at bit x.
+        algorithm: check the next higher bit for result and add0+add1.  
+            if they ==, carry is 0  
+            if they !=, carry is 1
+        '''
+        bit += 1
+        rb = (result >> bit) & 1
+        a0b = (add0 >> bit) & 1
+        a1b = (add1 >> bit) & 1
+        return rb != (a0b + a1b)
+
+    def setOEflags(self, result, add0, add1):
+        #OV = (carrym ^ carrym+1)   # FIXME::::  NEED TO UNDERSTAND THIS ONE....
+        cm = getCarryBitAtX(32, result, add0, add1)
+        cm1 = getCarryBitAtX(33, result, add0, add1)
+        ov = cm ^ cm1
+
+        #SO = SO | (carrym ^ carrym+1) 
+        so |= ov
+
+        self.setRegister(REG_SO, so)
+        self.setRegister(REG_OV, ov)
 
     def i_add(self, op):
         '''
@@ -714,7 +904,7 @@ class PpcEmulator(PpcModule, PpcRegisterContext, envi.Emulator):
         src2 = e_bits.signed(src2, 2)
         result = src1 + src2
         self.setOperValue(op, 0, result)
-        if op.iflags & IF_RC: self.setFlags(results, 0)
+        if op.iflags & IF_RC: self.setFlags(result, 0)
 
     def i_addo(self, op):
         '''
@@ -725,8 +915,8 @@ class PpcEmulator(PpcModule, PpcRegisterContext, envi.Emulator):
         src2 = e_bits.signed(src2, 2)
         result = src1 + src2
         self.setOperValue(op, 0, result)
-        self.setOEFlags(results)
-        if op.iflags & IF_RC: self.setFlags(results, 0)
+        self.setOEFlags(result)
+        if op.iflags & IF_RC: self.setFlags(result, 0)
 
     def i_addc(self, op):
         '''
@@ -737,7 +927,7 @@ class PpcEmulator(PpcModule, PpcRegisterContext, envi.Emulator):
         src2 = e_bits.signed(src2, 2)
         result = src1 + src2
         self.setOperValue(op, 0, result)
-        if op.iflags & IF_RC: self.setFlags(results, 0)
+        if op.iflags & IF_RC: self.setFlags(result, 0)
 
     def i_addco(self, op):
         '''
@@ -751,8 +941,8 @@ class PpcEmulator(PpcModule, PpcRegisterContext, envi.Emulator):
         result = src1 + src2 + carry
         self.setopervalue(op, 0, result)
 
-        self.setOEFlags(results)
-        if op.iflags & if_rc: self.setflags(results, 0)
+        self.setOEFlags(result)
+        if op.iflags & if_rc: self.setflags(result, 0)
 
 
     def i_addi(self, op):
@@ -790,7 +980,7 @@ class PpcEmulator(PpcModule, PpcRegisterContext, envi.Emulator):
 
         self.setOperValue(op, 0, result)
         self.setRegister(REG_CA, carry)
-        if op.iflags & IF_RC: self.setFlags(results, 0)
+        if op.iflags & IF_RC: self.setFlags(result, 0)
 
     def i_addme(self, op):
         '''
@@ -803,10 +993,9 @@ class PpcEmulator(PpcModule, PpcRegisterContext, envi.Emulator):
         result = src1 + src2
 
         self.setOperValue(op, 0, result)
+
         self.setRegister(REG_CA, carry)
-        #OV = (carrym ^ carrym+1)   # FIXME::::  NEED TO UNDERSTAND THIS ONE....
-        #SO = SO | (carrym ^ carrym+1) 
-        if op.iflags & IF_RC: self.setFlags(results, 0, SO=SO)
+        if op.iflags & IF_RC: self.setFlags(result, 0)
 
     def i_addmeo(self, op):
         '''
@@ -815,12 +1004,14 @@ class PpcEmulator(PpcModule, PpcRegisterContext, envi.Emulator):
         '''
         src1 = self.getOperValue(op, 1)
         src2 = 0xffffffffffffffff
-        carry = e_bits.is_signed_carry((src1 + src2), 8, src1)
         result = src1 + src2
+        carry = e_bits.is_signed_carry(result, 8, src1)
 
         self.setOperValue(op, 0, result)
+
         self.setRegister(REG_CA, carry)
-        if op.iflags & IF_RC: self.setFlags(results, 0)
+        self.setOEflags(result, src1, src2)
+        if op.iflags & IF_RC: self.setFlags(result, 0)
 
     def i_addw(self, op):
         '''
@@ -855,7 +1046,7 @@ class PpcEmulator(PpcModule, PpcRegisterContext, envi.Emulator):
             SO = self.getSO() | OV
 
         self.setOperValue(op, 0, result)
-        self.setFlags(results, 0, SO)
+        self.setFlags(result, 0, SO)
    
     def i_or(self, op):
         dst = self.getOperValue(op, 0)
@@ -867,7 +1058,7 @@ class PpcEmulator(PpcModule, PpcRegisterContext, envi.Emulator):
             return
 
         self.setOperValue(op, 0, (dst | src))
-        if op.iflags & IF_RC: self.setFlags(results, 0)
+        if op.iflags & IF_RC: self.setFlags(result, 0)
 
     i_ori = i_or
 
@@ -883,7 +1074,7 @@ class PpcEmulator(PpcModule, PpcRegisterContext, envi.Emulator):
             return
 
         self.setOperValue(op, 0, (dst | src))
-        if op.iflags & IF_RC: self.setFlags(results, 0)
+        if op.iflags & IF_RC: self.setFlags(result, 0)
 
     def i_orc(self, op):
         dst = self.getOperValue(op, 0)
@@ -897,52 +1088,7 @@ class PpcEmulator(PpcModule, PpcRegisterContext, envi.Emulator):
             return
 
         self.setOperValue(op, 0, (dst | src))
-        if op.iflags & IF_RC: self.setFlags(results, 0)
-
-    def getCr(self, crnum):
-        '''
-        get a particular cr# field
-        CR is the control status register
-        cr# is one of 8 status register fields within CR, cr0 being the most significant bits in CR
-        '''
-        cr = self.getRegister(REG_CR)
-        return (cr >> ((7-crnum) * 4)) & 0xf
-
-    def setCr(self, crnum, flags):
-        '''
-        set a particular cr# field
-        CR is the control status register
-        cr# is one of 8 status register fields within CR, cr0 being the most significant bits in CR
-        '''
-        cr = self.getRegister(REG_CR)
-        cr &= (cr_mask[crnum])
-        cr |= (flags << ((7-crnum) * 4))
-        self.setRegister(REG_CR, cr)
-
-    def setFlags(self, result, crnum=0, SO=None):
-        '''
-        easy way to set the flags, reusable by many different instructions
-        '''
-        flags = 0
-        if result > 0:
-            flags |= FLAGS_GT
-        elif result < 0:
-            flags |= FLAGS_LT
-        else:
-            flags |= FLAGS_EQ
-
-        if SO == None:
-            SO = bool(self.getCr(crnum) & FLAGS_SO)
-        
-        flags |= (SO << FLAGS_SO_bitnum)
-
-        self.setCr(crnum, flags)
-
-    def getSOflag(self, crnum=0):
-        cr = self.getCr(crnum)
-        return cr >> FLAGS_SO_bitnum
-
-
+        if op.iflags & IF_RC: self.setFlags(result, 0)
 
     ########################## LOAD/STORE INSTRUCTIONS ################################
     # lbz and lbzu access memory directly from operand[1]
@@ -1158,6 +1304,216 @@ class PpcEmulator(PpcModule, PpcRegisterContext, envi.Emulator):
         # technically this is incorrect, but since we disassemble wrong, we emulate wrong.
         self.setOperValue(op, 0, (src))
 
+    def i_rlwinm(self, op):
+        rs = self.getOperValue(op, 1)
+        sh = self.getOperValue(op, 2)
+        mb = self.getOperValue(op, 3)
+        me = self.getOperValue(op, 4)
+
+        r = (rs << sh) | (rs >> (32-sh))
+        numbits = me - mb
+        k = e_bits.b_masks[numbits] << mb
+
+        result = r & k
+        self.setOperValue(op, 0, result)
+        if op.iflags & IF_RC: self.setFlags(result, 0)
+
+    def i_lha(self, op):
+        src = e_bits.signed(self.getOperValue(op, 1), 2)
+        self.setOperValue(op, 0, src & 0xffffffffffffffff)
+        
+
+    def i_twi(self, op):
+        TO = self.getOperValue(op, 0)
+        rA = self.getOperValue(op, 1)
+        asize = op.opers[1].tsize
+        SIMM = self.getOperValue(op, 2)
+
+        if TO & 1 and e_bits.signed(rA, asize) < e_bits.signed(SIMM, 2):
+            #TRAP
+            self.trap(op)
+        if TO & 2 and e_bits.signed(rA, asize) > e_bits.signed(SIMM, 2):
+            #TRAP
+            self.trap(op)
+        if TO & 4 and rA == SIMM:
+            #TRAP
+            self.trap(op)
+        if TO & 8 and rA > SIMM:
+            #TRAP
+            self.trap(op)
+        if TO & 10 and rA > SIMM:
+            #TRAP
+            self.trap(op)
+
+
+    def i_mulli(self, op):
+        dsize = op.opers[0].tsize
+        s1size = op.opers[1].tsize
+        src1 = e_bits.signed(self.getOperValue(op, 1), s1size)
+        src2 = e_bits.signed(self.getOperValue(op, 2), 2)
+
+        result = (src1 * src2) & e_bits.u_maxes[dsize]
+
+        self.setOperValue(op, 0, result)
+
+    def i_mfcr(self, op):
+        cr = self.getRegister(REG_CR)
+        self.setOperValue(op, 0, cr & 0xffffffff)
+
+
+    def _base_sub(self, op, oeflags=False, setcarry=False, addone=1):
+        dsize = op.opers[0].tsize
+        asize = op.opers[1].tsize
+        ra = self.getOperValue(op, 1)
+        rb = self.getOperValue(op, 2)
+
+        ra ^= e_bits.u_maxes[asize] # 1's complement
+        result = ra + rb + addone
+        ures = result & e_bits.u_maxes[dsize]
+        sres = e_bits.signed(ures, dsize)
+        self.setOperValue(op, 0, sres & e_bits.u_maxes[dsize])
+        
+        if oeflags: self.setOEflags(result, ra, rb+1)
+        if op.iflags & IF_RC: self.setFlags(result, 0)
+
+        if setcarry:
+            carry = bool(result & (e_bits.u_maxes[dsize] + 1))
+            self.setRegister(REG_CA, carry)
+
+    def i_subf(self, op):
+        result = self._base_sub(op)
+
+    def i_subfo(self, op):
+        result = self._base_sub(op, oeflags=True)
+
+    def i_subfb(self, op):
+        dsize = op.opers[0].tsize
+        asize = op.opers[1].tsize
+        bsize = op.opers[2].tsize
+
+        ra = e_bits.sign_extend(self.getOperValue(op, 1), 1, asize)
+        ra ^= e_bits.u_maxes[asize] # 1's complement
+        ra = e_bits.signed(ra, 1)
+
+        rb = e_bits.sign_extend(self.getOperValue(op, 2), 1, bsize)
+
+        result = ra + rb + 1
+        ures = result & e_bits.u_maxes[dsize]
+        self.setOperValue(op, 0, ures & e_bits.u_maxes[dsize])
+        
+        if op.iflags & IF_RC: self.setFlags(result, 0)
+
+    def i_subfbss(self, op):
+        dsize = op.opers[0].tsize
+        asize = op.opers[1].tsize
+        bsize = op.opers[2].tsize
+
+        ra = e_bits.sign_extend(self.getOperValue(op, 1), 1, asize)
+        ra ^= e_bits.u_maxes[asize] # 1's complement
+        ra = e_bits.signed(ra, 1)
+
+        rb = e_bits.sign_extend(self.getOperValue(op, 2), 1, bsize)
+
+        result = ra + rb + 1
+        ures = result & e_bits.u_maxes[dsize]
+
+        # flag magic
+        so = self.getRegister(REG_SO)
+        sum55 = (result>>8)&1
+        sum56 = (result>>7)&1
+        ov = sum55 ^ sum56
+        if ov:
+            if sum55:
+                ures = 0xffffff80
+            else:
+                ures = 0x7f
+        so |= ov
+        
+        self.setRegister(REG_OV, ov)
+        self.setRegister(REG_SO, so)
+        if op.iflags & IF_RC: self.setFlags(result, 0, SO=so)
+
+        self.setOperValue(op, 0, ures & e_bits.u_maxes[dsize])
+
+    def i_subfbu(self, op):
+        dsize = op.opers[0].tsize
+        asize = op.opers[1].tsize
+
+        ra = self.getOperValue(op, 1) & 0xff    # EXTZ... zero-extended
+        ra ^= e_bits.u_maxes[asize] # 1's complement
+        ra = e_bits.signed(ra, 1)
+
+        rb = self.getOperValue(op, 2) & 0xff
+
+        result = ra + rb + 1
+        ures = result & 0xff
+        self.setOperValue(op, 0, ures & e_bits.u_maxes[dsize])
+
+        if op.iflags & IF_RC: self.setFlags(result, 0)  # FIXME: bit-size correctness
+
+    def i_subfbus(self, op):
+        dsize = op.opers[0].tsize
+        asize = op.opers[1].tsize
+
+        ra = self.getOperValue(op, 1) & 0xff    # EXTZ... zero-extended
+        ra ^= e_bits.u_maxes[asize] # 1's complement
+        ra = e_bits.signed(ra, 1)
+
+        rb = self.getOperValue(op, 2) & 0xff
+
+        result = ra + rb + 1
+        ures = result & 0xff
+
+        # flag magic
+        so = self.getRegister(REG_SO)
+        sum55 = (result>>8)&1
+        sum56 = (result>>7)&1
+        ov = sum55 ^ sum56
+        if ov:
+            if sum55:
+                ures = 0xffffff80
+            else:
+                ures = 0x7f
+        so |= ov
+        
+        self.setRegister(REG_OV, ov)
+        self.setRegister(REG_SO, so)
+        if op.iflags & IF_RC: self.setFlags(result, 0, SO=so)
+
+        self.setOperValue(op, 0, ures & e_bits.u_maxes[dsize])
+
+    def i_subfc(self, op, oeflags=False):
+        self._base_sub(op, oeflags=False, setCarry=True)
+
+    def i_subfco(self, op):
+        self._base_sub(op, oeflags=True, setCarry=True)
+
+
+
+    def i_subfic(self, op):
+        dsize = op.opers[0].tsize
+        asize = op.opers[1].tsize
+        immsize = op.opers[2].tsize
+        ra = self.getOperValue(op, 1)
+        simm = e_bits.signed(self.getOperValue(op, 2), immsize)
+
+        ra ^= e_bits.u_maxes[asize] # 1's complement
+        result = ra + simm + 1
+        ures = result & e_bits.u_maxes[dsize]
+        
+        carry = bool(result & (e_bits.u_maxes[dsize] + 1))
+        self.setRegister(REG_CA, carry)
+
+    def i_subfe(self, op):
+        addone = self.getRegister(REG_CA)
+        self._base_sub(op, oeflags=False, setcarry=True, addone=addone)
+
+    def i_subfeo(self, op):
+        addone = self.getRegister(REG_CA)
+        self._base_sub(op, oeflags=True, setcarry=True, addone=addone)
+
+    def i_subfh(self, op):
+        pass
 
     # VLE instructions
     i_e_li = i_li
