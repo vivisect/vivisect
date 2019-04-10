@@ -607,6 +607,9 @@ class Emulator(e_reg.RegisterContext, e_mem.MemoryObject):
         # by finding all methods starting with i_ and assume they
         # implement an instruction by mnemonic
         self.op_methods = {}
+        self._populateOpMethods()
+
+    def _populateOpMethods(self):
         for name in dir(self):
             if name.startswith("i_"):
                 self.op_methods[name[2:]] = getattr(self, name)
