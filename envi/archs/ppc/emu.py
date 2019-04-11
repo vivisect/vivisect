@@ -49,7 +49,8 @@ class Trap(Exception):
 
 class PpcEmulator(PpcModule, PpcRegisterContext, envi.Emulator):
 
-    def __init__(self, archmod=None):
+    def __init__(self, archmod=None, psize=4):
+        self.psize = psize
         if archmod == None:
             archmod = PpcModule()
         envi.Emulator.__init__(self, archmod=archmod)
@@ -883,10 +884,10 @@ class PpcEmulator(PpcModule, PpcRegisterContext, envi.Emulator):
         a1b = (add1 >> bit) & 1
         return rb != (a0b + a1b)
 
-    def setOEflags(self, result, add0, add1):
+    def setOEflags(self, result, size, add0, add1):
         #OV = (carrym ^ carrym+1)   # FIXME::::  NEED TO UNDERSTAND THIS ONE....
-        cm = getCarryBitAtX(32, result, add0, add1)
-        cm1 = getCarryBitAtX(33, result, add0, add1)
+        cm = getCarryBitAtX(size*8, result, add0, add1)
+        cm1 = getCarryBitAtX(size*8+1, result, add0, add1)
         ov = cm ^ cm1
 
         #SO = SO | (carrym ^ carrym+1) 
@@ -1010,7 +1011,7 @@ class PpcEmulator(PpcModule, PpcRegisterContext, envi.Emulator):
         self.setOperValue(op, 0, result)
 
         self.setRegister(REG_CA, carry)
-        self.setOEflags(result, src1, src2)
+        self.setOEflags(result, 4, src1, src2)
         if op.iflags & IF_RC: self.setFlags(result, 0)
 
     def i_addw(self, op):
@@ -1361,7 +1362,7 @@ class PpcEmulator(PpcModule, PpcRegisterContext, envi.Emulator):
         self.setOperValue(op, 0, cr & 0xffffffff)
 
 
-    def _base_sub(self, op, oeflags=False, setcarry=False, addone=1):
+    def _base_sub(self, op, oeflags=False, setcarry=False, addone=1, size=4):
         dsize = op.opers[0].tsize
         asize = op.opers[1].tsize
         ra = self.getOperValue(op, 1)
@@ -1373,7 +1374,7 @@ class PpcEmulator(PpcModule, PpcRegisterContext, envi.Emulator):
         sres = e_bits.signed(ures, dsize)
         self.setOperValue(op, 0, sres & e_bits.u_maxes[dsize])
         
-        if oeflags: self.setOEflags(result, ra, rb+1)
+        if oeflags: self.setOEflags(result, size, ra, rb+1)
         if op.iflags & IF_RC: self.setFlags(result, 0)
 
         if setcarry:
@@ -1386,16 +1387,16 @@ class PpcEmulator(PpcModule, PpcRegisterContext, envi.Emulator):
     def i_subfo(self, op):
         result = self._base_sub(op, oeflags=True)
 
-    def i_subfb(self, op):
+    def i_subfb(self, op, size=1):
         dsize = op.opers[0].tsize
         asize = op.opers[1].tsize
         bsize = op.opers[2].tsize
 
-        ra = e_bits.sign_extend(self.getOperValue(op, 1), 1, asize)
+        ra = e_bits.sign_extend(self.getOperValue(op, 1), size, asize)
         ra ^= e_bits.u_maxes[asize] # 1's complement
-        ra = e_bits.signed(ra, 1)
+        ra = e_bits.signed(ra, size)
 
-        rb = e_bits.sign_extend(self.getOperValue(op, 2), 1, bsize)
+        rb = e_bits.sign_extend(self.getOperValue(op, 2), size, bsize)
 
         result = ra + rb + 1
         ures = result & e_bits.u_maxes[dsize]
@@ -1403,30 +1404,30 @@ class PpcEmulator(PpcModule, PpcRegisterContext, envi.Emulator):
         
         if op.iflags & IF_RC: self.setFlags(result, 0)
 
-    def i_subfbss(self, op):
+    def i_subfbss(self, op, size=1):
         dsize = op.opers[0].tsize
         asize = op.opers[1].tsize
         bsize = op.opers[2].tsize
 
-        ra = e_bits.sign_extend(self.getOperValue(op, 1), 1, asize)
+        ra = e_bits.sign_extend(self.getOperValue(op, 1), size, asize)
         ra ^= e_bits.u_maxes[asize] # 1's complement
         ra = e_bits.signed(ra, 1)
 
-        rb = e_bits.sign_extend(self.getOperValue(op, 2), 1, bsize)
+        rb = e_bits.sign_extend(self.getOperValue(op, 2), size, bsize)
 
         result = ra + rb + 1
         ures = result & e_bits.u_maxes[dsize]
 
         # flag magic
         so = self.getRegister(REG_SO)
-        sum55 = (result>>8)&1
-        sum56 = (result>>7)&1
+        sum55 = (result>>(size*8))&1
+        sum56 = (result>>(size*8-1))&1
         ov = sum55 ^ sum56
         if ov:
             if sum55:
-                ures = 0xffffff80
+                ures = e_bits.sign_extend(e_bits.s_maxes[size] + 1, size, 4)
             else:
-                ures = 0x7f
+                ures = e_bits.s_maxes[size]
         so |= ov
         
         self.setRegister(REG_OV, ov)
@@ -1435,34 +1436,34 @@ class PpcEmulator(PpcModule, PpcRegisterContext, envi.Emulator):
 
         self.setOperValue(op, 0, ures & e_bits.u_maxes[dsize])
 
-    def i_subfbu(self, op):
+    def i_subfbu(self, op, size=1):
         dsize = op.opers[0].tsize
         asize = op.opers[1].tsize
 
-        ra = self.getOperValue(op, 1) & 0xff    # EXTZ... zero-extended
+        ra = self.getOperValue(op, 1) & e_bits.u_maxes[size]     # EXTZ... zero-extended
         ra ^= e_bits.u_maxes[asize] # 1's complement
         ra = e_bits.signed(ra, 1)
 
-        rb = self.getOperValue(op, 2) & 0xff
+        rb = self.getOperValue(op, 2) & e_bits.u_maxes[size] 
 
         result = ra + rb + 1
-        ures = result & 0xff
+        ures = result & e_bits.u_maxes[size] 
         self.setOperValue(op, 0, ures & e_bits.u_maxes[dsize])
 
         if op.iflags & IF_RC: self.setFlags(result, 0)  # FIXME: bit-size correctness
 
-    def i_subfbus(self, op):
+    def i_subfbus(self, op, size=1):
         dsize = op.opers[0].tsize
         asize = op.opers[1].tsize
 
-        ra = self.getOperValue(op, 1) & 0xff    # EXTZ... zero-extended
+        ra = self.getOperValue(op, 1) & e_bits.u_maxes[size]    # EXTZ... zero-extended
         ra ^= e_bits.u_maxes[asize] # 1's complement
         ra = e_bits.signed(ra, 1)
 
-        rb = self.getOperValue(op, 2) & 0xff
+        rb = self.getOperValue(op, 2) & e_bits.u_maxes[size]
 
         result = ra + rb + 1
-        ures = result & 0xff
+        ures = result & e_bits.u_maxes[size] 
 
         # flag magic
         so = self.getRegister(REG_SO)
@@ -1471,9 +1472,9 @@ class PpcEmulator(PpcModule, PpcRegisterContext, envi.Emulator):
         ov = sum55 ^ sum56
         if ov:
             if sum55:
-                ures = 0xffffff80
+                ures = e_bits.sign_extend(e_bits.s_maxes[size] + 1, size, 4)
             else:
-                ures = 0x7f
+                ures = e_bits.s_maxes[size]
         so |= ov
         
         self.setRegister(REG_OV, ov)
@@ -1488,7 +1489,25 @@ class PpcEmulator(PpcModule, PpcRegisterContext, envi.Emulator):
     def i_subfco(self, op):
         self._base_sub(op, oeflags=True, setCarry=True)
 
+    def i_subfe(self, op):
+        addone = self.getRegister(REG_CA)
+        self._base_sub(op, oeflags=False, setcarry=True, addone=addone)
 
+    def i_subfeo(self, op):
+        addone = self.getRegister(REG_CA)
+        self._base_sub(op, oeflags=True, setcarry=True, addone=addone)
+
+    def i_subfh(self, op):
+        self.i_subfb(op, 2)
+
+    def i_subfhss(self, op):
+        self.i_subfbss(op, 2)
+
+    def i_subfhu(self, op):
+        self.i_subfbu(op, 2)
+
+    def i_subfhus(self, op):
+        self.i_subfbus(op, 2)
 
     def i_subfic(self, op):
         dsize = op.opers[0].tsize
@@ -1504,16 +1523,44 @@ class PpcEmulator(PpcModule, PpcRegisterContext, envi.Emulator):
         carry = bool(result & (e_bits.u_maxes[dsize] + 1))
         self.setRegister(REG_CA, carry)
 
-    def i_subfe(self, op):
-        addone = self.getRegister(REG_CA)
-        self._base_sub(op, oeflags=False, setcarry=True, addone=addone)
+    def _subme(self, op, size=4, addone=1, oeflags=False):
+        dsize = op.opers[0].tsize
+        asize = op.opers[1].tsize
+        ra = self.getOperValue(op, 1)
+        rb = 0xffffffffffffffff
 
-    def i_subfeo(self, op):
-        addone = self.getRegister(REG_CA)
-        self._base_sub(op, oeflags=True, setcarry=True, addone=addone)
+        ra ^= e_bits.u_maxes[asize] # 1's complement
+        result = ra + rb + addone
+        ures = result & e_bits.u_maxes[dsize]
+        sres = e_bits.signed(ures, dsize)
+        self.setOperValue(op, 0, sres & e_bits.u_maxes[dsize])
+        
+        if oeflags: self.setOEflags(result, size, ra, rb+1)
+        if op.iflags & IF_RC: self.setFlags(result, 0)
 
-    def i_subfh(self, op):
-        pass
+        carry = bool(result & (e_bits.u_maxes[dsize] + 1))
+        self.setRegister(REG_CA, carry)
+
+    def i_subfme(self, op, size=4, addone=1):
+        ca = self.getRegister(REG_CA)
+        self._subme(op, size, ca)
+
+    def i_subfmeo(self, op, size=4, addone=1):
+        ca = self.getRegister(REG_CA)
+        self._subme(op, size, ca, oeflags=True)
+
+    def i_subfw(self, op):
+        self.i_subfb(op, 4)
+
+    def i_subfhss(self, op):
+        self.i_subfbss(op, 4)
+
+    def i_subfhu(self, op):
+        self.i_subfbu(op, 4)
+
+    def i_subfhus(self, op):
+        self.i_subfbus(op, 4)
+
 
     # VLE instructions
     i_e_li = i_li
