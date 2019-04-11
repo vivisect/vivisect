@@ -1552,13 +1552,13 @@ class PpcEmulator(PpcModule, PpcRegisterContext, envi.Emulator):
     def i_subfw(self, op):
         self.i_subfb(op, 4)
 
-    def i_subfhss(self, op):
+    def i_subfwss(self, op):
         self.i_subfbss(op, 4)
 
-    def i_subfhu(self, op):
+    def i_subfwu(self, op):
         self.i_subfbu(op, 4)
 
-    def i_subfhus(self, op):
+    def i_subfwus(self, op):
         self.i_subfbus(op, 4)
 
 

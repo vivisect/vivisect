@@ -112,10 +112,10 @@ REG_SP = REG_R1
 
 
 statmetas = [   # FIXME
-        ('LT', REG_CR, 32, 1, 'Less Than Flag'),
-        ('GT', REG_CR, 33, 1, 'Greater Than Flag'),
-        ('EQ', REG_CR, 34, 1, 'Equal to Flag'),
-        ('SO', REG_CR, 35, 1, 'Summary Overflow Flag'),
+        ('CR0_LT', REG_CR, 32, 1, 'Less Than Flag'),
+        ('CR0_GT', REG_CR, 33, 1, 'Greater Than Flag'),
+        ('CR0_EQ', REG_CR, 34, 1, 'Equal to Flag'),
+        ('CR0_SO', REG_CR, 35, 1, 'Summary Overflow Flag'),
         ('CR1_LT', REG_CR, 36, 1, 'Less Than Flag'),
         ('CR1_GT', REG_CR, 37, 1, 'Greater Than Flag'),
         ('CR1_EQ', REG_CR, 38, 1, 'Equal to Flag'),
