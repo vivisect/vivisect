@@ -144,9 +144,9 @@ class VQVivTreeView(vq_tree.VQTreeView, viv_base.VivEventCore):
         if not pnode:
             return
 
-        idx = self.model().createIndex(pnode.row(), col, pnode)
+        idx = self.model().sourceModel().createIndex(pnode.row(), col, pnode)
         # We are *not* the edit role...
-        self.model().setData(idx, val, role=QtCore.Qt.DisplayRole)
+        self.model().sourceModel().setData(idx, val, role=QtCore.Qt.DisplayRole)
 
     def vivGetData(self, va, col):
         pnode = self._viv_va_nodes.get(va)
