@@ -124,7 +124,7 @@ class Amd64SymbolikTranslator(vsym_i386.IntelSymbolikTranslator):
             rdx = Var('rdx', self._psize)
             num = (rdx << Const(64, self._psize)) + rax
             temp = num / denom
-            if isInvalid(temp):
+            if temp.isDiscrete() and isInvalid(temp):
                 # TODO: make effect
                 raise envi.DivideError('AMD64 i_div #DE')
 

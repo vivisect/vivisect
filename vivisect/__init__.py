@@ -797,7 +797,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
                     ret.append((va, x))
                     offset += size
                     continue
-                        
+
 
                 offset += 1
 
@@ -858,7 +858,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         This will return true if the memory location is likely
         *simple* UTF16-LE unicode (<ascii><0><ascii><0><0><0>).
         '''
-        #FIXME this does not detect Unicode...
+        # FIXME this does not detect Unicode...
 
         offset, bytes = self.getByteDef(va)
         maxlen = len(bytes) - offset
@@ -1801,8 +1801,8 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         at the specified location (or -1 if no terminator
         is found in the memory map)
         """
-        offset,bytes = self.getByteDef(va)
-        foff = bytes.find('\x00', offset)
+        offset, bytez = self.getByteDef(va)
+        foff = bytez.find('\x00', offset)
         if foff == -1:
             return foff
         return (foff - offset) + 1
@@ -1813,8 +1813,8 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         at the specified location (or -1 if no terminator
         is found in the memory map)
         """
-        offset,bytes = self.getByteDef(va)
-        foff = bytes.find('\x00\x00', offset)
+        offset, bytez = self.getByteDef(va)
+        foff = bytez.find('\x00\x00', offset)
         if foff == -1:
             return foff
         return (foff - offset) + 2

@@ -468,7 +468,7 @@ class SymbolikAnalysisContext:
 
     def walkSymbolikPaths(self, fva, graph=None, maxpath=1000, loopcnt=0):
         '''
-        walkSymbolikPaths is a function-focused symbolik path generator, using the 
+        walkSymbolikPaths is a function-focused symbolik path generator, using the
         walkCodePaths generator foundation.  Symbolik effects are dragged through
         each code block, and constraints are evaluated in-process to determine and
         trim dead code paths.
@@ -476,13 +476,13 @@ class SymbolikAnalysisContext:
         Begins first node by applying self.preeffects and self.preconstraints
         '''
 
-        if graph == None:
+        if graph is None:
             graph = self.getSymbolikGraph(fva)
 
         # our callback routine for code path walking
         def codewalker(ppath, edge, path):
             # first, test for the "entry" case
-            if ppath == None and edge == None:
+            if ppath is None and edge is None:
                 emu = self.getFuncEmu(fva)
                 for fname, funccb in self.funccb.items():
                     emu.addFunctionCallback(fname, funccb)
@@ -495,8 +495,8 @@ class SymbolikAnalysisContext:
                 patheffs.extend(emu.applyEffects(effects))
 
                 vg_pathcore.setNodeProp(path, 'pathemu', emu)
-                vg_pathcore.setNodeProp(path, 'pathcons', pathcons )
-                vg_pathcore.setNodeProp(path, 'patheffs', patheffs )
+                vg_pathcore.setNodeProp(path, 'pathcons', pathcons)
+                vg_pathcore.setNodeProp(path, 'patheffs', patheffs)
                 return True
 
             # we are now in the "walking" case
@@ -523,7 +523,7 @@ class SymbolikAnalysisContext:
                         print('TRIM: %s' % (str(coneff.cons),))
                         return False
                     continue
-                    
+
                 # bail if the constraint is mutex
                 # FIXME
                 #if any([ oldconeff.isMutualExclusion( coneff ) for oldconeff in pathcons ]):
@@ -682,7 +682,7 @@ class SymbolikAnalysisContext:
         '''
         emu = self.__emu__(self.vw, *args)
         emu._sym_resolve = self._sym_resolve
-        if fva != None:
+        if fva is not None:
             emu.setupFunctionCall(fva, args=fargs)
         return emu
 

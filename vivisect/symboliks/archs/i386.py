@@ -334,7 +334,7 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
 
     def _div(self, op, isInvalid=None):
         oper = op.opers[0]
-        divbase = self.getOperObj(op, 1)
+        divbase = self.getOperObj(op, 0)
         if isInvalid is None:
             limit = (2 ** (oper.tsize * 8)) - 1
             isInvalid = lambda val: val > limit
@@ -343,7 +343,7 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
             ax = self.getRegObj(e_i386.REG_AX)
             quot = ax / divbase
             rem = ax % divbase
-            if isInvalid(quot):
+            if quot.isDiscrete() and isInvalid(quot):
                 raise envi.DivideError('i386 #DE')
             self.effSetVariable('eax', (rem << 8) + quot)
 
@@ -353,7 +353,7 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
             tot = (edx << Const(16, self._psize)) + eax
             quot = tot / divbase
             rem = tot % divbase
-            if isInvalid(quot):
+            if quot.isDiscrete() and isInvalid(quot):
                 raise envi.DivideError('i386 #DE')
             self.effSetVariable('eax', quot)
             self.effSetVariable('edx', rem)
@@ -364,7 +364,7 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
             tot = (edx << Const(32, self._psize)) + eax
             quot = tot / divbase
             rem = tot % divbase
-            if isInvalid(quot):
+            if quot.isDiscrete() and isInvalid(quot):
                 raise envi.DivideError('i386 #DE')
             self.effSetVariable('eax', quot)
             self.effSetVariable('edx', rem)
