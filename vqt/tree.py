@@ -219,7 +219,7 @@ class VQTreeView(QTreeView):
         self.setSortingEnabled(True)
         self.setAlternatingRowColors(True)
 
-        if cols != None:
+        if cols != None:    # FIXME: doesn't account for filtering
             model = VQTreeModel(parent=self, columns=cols)
             self.setModel( model )
 
