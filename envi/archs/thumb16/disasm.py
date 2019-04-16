@@ -1779,10 +1779,17 @@ def coproc_simd_32(va, val1, val2):
 
     return COND_AL, opcode, mnem, opers, iflags, simdflags
 
-from envi.archs.arm.disasm import _do_adv_simd_32, _do_fp_dp
+from envi.archs.arm.disasm import _do_adv_simd_32, _do_fp_dp, _do_adv_simd_ldst_32
 
 def fp_dp(va, val1, val2):
     opcode, mnem, opers, iflags, simdflags = _do_fp_dp(va, val1, val2)
+    return COND_AL, opcode, mnem, opers, iflags, simdflags
+   
+def adv_simd_ldst_32(va, val1, val2):
+    val = (val1 << 16) | val2
+    u = (val1 >> 12) & 1
+    opcode, mnem, opers, iflags, simdflags = _do_adv_simd_ldst_32(val, va, u)
+    #print "simdflags: %r" % simdflags
     return COND_AL, opcode, mnem, opers, iflags, simdflags
    
 def adv_simd_32(va, val1, val2):
@@ -2006,6 +2013,9 @@ thumb_base = [
     ('1011010',     (INS_PUSH,'push',    push_reglist,    0)), # PUSH <reglist>
     ('10110110010', (INS_SETEND,'setend',  sh4_imm1,   0)), # SETEND <endian_specifier>
     ('10110110011', (INS_CPS,'cps',     cps16,0)), # CPS<effect> <iflags>
+    ('1011011000',  (INS_PUSH,'push',    push_reglist,    0)), # PUSH <reglist>
+    ('101101101',   (INS_PUSH,'push',    push_reglist,    0)), # PUSH <reglist>
+    ('10110111',    (INS_PUSH,'push',    push_reglist,    0)), # PUSH <reglist>
     ('10110001',    (INS_CBZ,'cbz',     i_imm5_rn,  envi.IF_COND | envi.IF_BRANCH)), # CBZ{<q>} <Rn>, <label>    # label must be positive, even offset from PC
     ('10111001',    (INS_CBNZ,'cbnz',    i_imm5_rn,  envi.IF_COND | envi.IF_BRANCH)), # CBNZ{<q>} <Rn>, <label>   # label must be positive, even offset from PC
     ('10110011',    (INS_CBZ,'cbz',     i_imm5_rn,  envi.IF_COND | envi.IF_BRANCH)), # CBZ{<q>} <Rn>, <label>    # label must be positive, even offset from PC
@@ -2141,6 +2151,14 @@ thumb2_extension = [
     ('11101110',            (IENC_COPROC_SIMD,'coproc simd', coproc_simd_32,  IF_THUMB32)),
     ('11101111',            (IENC_ADVSIMD,'adv simd', adv_simd_32,        IF_THUMB32)),
     ('1111110',             (IENC_COPROC_SIMD,'coproc simd', coproc_simd_32,  IF_THUMB32)),
+    ('111110010000',        (IENC_ADVSIMD,'adv simd ld/st', adv_simd_ldst_32,        IF_THUMB32)),
+    ('111110010010',        (IENC_ADVSIMD,'adv simd ld/st', adv_simd_ldst_32,        IF_THUMB32)),
+    ('111110010100',        (IENC_ADVSIMD,'adv simd ld/st', adv_simd_ldst_32,        IF_THUMB32)),
+    ('111110010110',        (IENC_ADVSIMD,'adv simd ld/st', adv_simd_ldst_32,        IF_THUMB32)),
+    ('111110011000',        (IENC_ADVSIMD,'adv simd ld/st', adv_simd_ldst_32,        IF_THUMB32)),
+    ('111110011010',        (IENC_ADVSIMD,'adv simd ld/st', adv_simd_ldst_32,        IF_THUMB32)),
+    ('111110011100',        (IENC_ADVSIMD,'adv simd ld/st', adv_simd_ldst_32,        IF_THUMB32)),
+    ('111110011110',        (IENC_ADVSIMD,'adv simd ld/st', adv_simd_ldst_32,        IF_THUMB32)),
     ('11111110',            (IENC_COPROC_SIMD,'coproc simd', coproc_simd_32,  IF_THUMB32)),
     ('11111111',            (IENC_ADVSIMD,'adv simd', adv_simd_32,        IF_THUMB32)),
 
@@ -2219,6 +2237,7 @@ thumb2_extension = [
     ('111110010001',        (None, 'ldrb_memhints32', ldrb_memhints_32,  IF_THUMB32)),
     ('111110011001',        (None, 'ldrb_memhints32', ldrb_memhints_32,  IF_THUMB32)),
     ('111110011011',        (None, 'ldrb_memhints32', ldrb_memhints_32,  IF_THUMB32)),
+    # see adv simd as well
 
     # data-processing (register)
     ('111110100',           (None, 'shift_or_extend', shift_or_ext_32,   IF_THUMB32)),

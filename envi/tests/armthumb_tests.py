@@ -4496,4 +4496,5 @@ advsimdtests = (\
         (REV_ALL_ARM, '323efcf3', 0x7fcc, 'vcvt.f32.u32 d19, d18, #0x04', 0, ()),
         (REV_ALL_ARM, '123ffcf3', 0x7fe4, 'vcvt.u32.f32 d19, d2, #0x04', 0, ()),
         (REV_ALL_ARM, '323ffcf3', 0x7fec, 'vcvt.u32.f32 d19, d18, #0x04', 0, ()),
+        (REV_ALL_ARM, '42f98f0a', 0x7fe1, 'vst1.32 {d16, d17},[r2]!', 0, ()),
 )
