@@ -4933,10 +4933,11 @@ class ArmExtRegListOper(ArmOperand):
     '''
     extended register list: Vector/FP registers
     '''
-    def __init__(self, firstreg, count, size):
+    def __init__(self, firstreg, count, size, inc=1):
         self.firstreg = firstreg
         self.count = count
         self.size = size    # 0 or 1, meaning 32bit or 64bit
+        self.inc = inc
 
     def __eq__(self, oper):
         if not isinstance(oper, self.__class__):
@@ -4947,6 +4948,8 @@ class ArmExtRegListOper(ArmOperand):
             return False
         if self.size != oper.size:
             return False
+        if self.inc != oper.inc:
+            return False
         return True
 
     def isDeref(self):
@@ -4956,7 +4959,7 @@ class ArmExtRegListOper(ArmOperand):
         regbase = ("s%d", "d%d")[self.size]
         mcanv.addText('{')
         top = self.count-1
-        for l in xrange(self.count):
+        for l in xrange(0, self.count, self.inc):
             vreg = self.firstreg + l
             mcanv.addNameText(regbase % vreg, typename='registers')
             if l < top:
