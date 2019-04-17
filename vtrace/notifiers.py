@@ -45,7 +45,7 @@ class Notifier(object):
 
 class VerboseNotifier(Notifier):
     def notify(self, event, trace):
-        print "PID %d - ThreadID (%d) got" % (trace.getPid(), trace.getMeta("ThreadId")),
+        print("PID %d - ThreadID (%d) got" % (trace.getPid(), trace.getMeta("ThreadId"))),
         if event == vtrace.NOTIFY_ALL:
             print("WTF, how did we get a vtrace.NOTIFY_ALL event?!?!")
         elif event == vtrace.NOTIFY_SIGNAL:
