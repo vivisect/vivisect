@@ -230,7 +230,10 @@ def p_dp_imm_shift(opval, va):
         #is it a mov? Only if shval is a 0, type is lsl, and ocode = 13
         if  (ocode == INS_MOV) and ((shval != 0) or (shtype != S_LSL)):
             mnem, opcode = dp_shift_mnem[shtype]
-            if shtype!= S_RRX: #if not rrx
+            if shtype != S_RRX: #if not rrx
+                if shtype in (S_ASR, S_LSR) and shval == 0:
+                    shval = 32
+
                 olist = (
                     ArmRegOper(Rd, va=va),
                     ArmRegOper(Rm, va=va),

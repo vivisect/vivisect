@@ -1420,15 +1420,19 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
         dsize = op.opers[0].tsize
         if len(op.opers) == 3:
             src = self.getOperValue(op, 1)
-            imm5 = self.getOperValue(op, 2)
+            shval = self.getOperValue(op, 2) & 0xff
 
         else:
             src = self.getOperValue(op, 0)
-            imm5 = self.getOperValue(op, 1)
+            shval = self.getOperValue(op, 1) & 0xff
 
-        shift = (32, imm5)[bool(imm5)]
-        val = src >> shift
-        carry = (src >> (shift-1)) & 1
+        if shval:
+            val = src >> shval
+            carry = (src >> (shval-1)) & 1
+        else:
+            val = src
+            carry = 0
+
         self.setOperValue(op, 0, val)
 
         Sflag = op.iflags & IF_PSR_S
@@ -1442,20 +1446,23 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
         if len(op.opers) == 3:
             src = self.getOperValue(op, 1)
             srclen = op.opers[1].tsize
-            imm5 = self.getOperValue(op, 2)
+            shval = self.getOperValue(op, 2) & 0xff
 
         else:
             src = self.getOperValue(op, 0)
             srclen = op.opers[0].tsize
-            imm5 = self.getOperValue(op, 1)
+            shval = self.getOperValue(op, 1) & 0xff
 
-        shift = (32, imm5)[bool(imm5)]
-        if e_bits.is_signed(src, srclen):
-            val = (src >> shift) | top_bits_32[shift]
+        if shval:
+            if e_bits.is_signed(src, srclen):
+                val = (src >> shval) | top_bits_32[shval]
+            else:
+                val = (src >> shval)
+            carry = (src >> (shval-1)) & 1
         else:
-            val = (src >> shift)
+            val = src
+            carry = 0
 
-        carry = (src >> (shift-1)) & 1
         self.setOperValue(op, 0, val)
 
         Sflag = op.iflags & IF_PSR_S
