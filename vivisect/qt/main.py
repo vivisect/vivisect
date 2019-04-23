@@ -329,10 +329,12 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
         fname = getOpenFileName(self, 'Open...')
         if fname is None or not len(fname):
             return
-        self.vw.loadFromFile(fname)
+
         self.vw.vprint('Opening %s' % fname)
+        self.vw.loadFromFile(fname)
+        self.vw.vprint('Analyzing %s' % fname)
         self.vw.analyze()
-        self.vw.vprint('Opened %s' % fname)
+        self.vw.vprint('%s is ready!' % fname)
 
     @vq_main.workthread
     def _menuFileSave(self, fullsave=False):
@@ -458,10 +460,9 @@ def main(vw):
     mw.show()
     vq_main.main()
 
+
 if __name__ == '__main__':
     vw = viv_cli.VivCli()
-    import sys
     if len(sys.argv) == 2:
         vw.loadWorkspace(sys.argv[1])
     main(vw)
-
