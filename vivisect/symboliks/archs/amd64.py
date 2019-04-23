@@ -110,7 +110,7 @@ class Amd64SymbolikTranslator(vsym_i386.IntelSymbolikTranslator):
 
     def _div(self, op, isInvalid=None):
         oper = op.opers[0]
-        denom = self.getOperObj(op, 1)
+        denom = self.getOperObj(op, 0)
         if denom == 0:
             # TODO: make effect
             raise envi.DivideByZero('AMD64 Divide by zero')
@@ -137,6 +137,10 @@ class Amd64SymbolikTranslator(vsym_i386.IntelSymbolikTranslator):
 
     def i_div(self, op):
         return self._div(op)
+
+    def i_cdq(self, op):
+        v1 = o_sextend(self.getRegObj(e_amd64.REG_EAX), Const(self._psize, self._psize))
+        self.effSetVariable('rax', v1)
 
     def i_jecxz(self, op):
         return vsym_i386.IntelSymbolikTranslator.i_jecxz(self, op)

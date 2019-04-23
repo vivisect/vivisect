@@ -224,7 +224,7 @@ class VivWorkspaceCore(object,viv_impapi.ImportApi):
 
     def _handleADDRELOC(self, einfo):
         if len(einfo) == 2:     # FIXME: legacy: remove after 02/13/2020
-            rva,rtype = einfo
+            rva, rtype = einfo
             mmva, mmsz, mmperm, fname = self.getMemoryMap(rva)    # FIXME: getFileByVa does not obey file defs
             imgbase = self.getFileMeta(fname, 'imagebase')
             data = None

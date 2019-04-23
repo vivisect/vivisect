@@ -70,9 +70,9 @@ def getLongPath(g, maxpath=1000):
     # this is our loop that we want to yield out of..
     # start at the bottom of the graph and work our way back up
     for weight in xrange(leafmax, -1, -1):
-        # the todo is a a list of codeblocks a specific level 
+        # the todo is a a list of codeblocks a specific level
         codeblocks = todo.get(weight)
-        if not codeblocks: 
+        if not codeblocks:
             continue
 
         for cbva, paths, visited in codeblocks:
@@ -84,10 +84,10 @@ def getLongPath(g, maxpath=1000):
             while work:
                 cbva, weight, cpath, visited = work.pop()
                 for eid, fromid, toid, einfo in g.getRefsToByNid(cbva):
-                    #print '0x%08x in [%s]' % (fromid, ' '.join(['0x%08x' % va for va in visited])) 
-                    if fromid in visited: 
+                    # print '0x%08x in [%s]' % (fromid, ' '.join(['0x%08x' % va for va in visited])) 
+                    if fromid in visited:
                         continue
-                    
+
                     nweight = cb_to_weights.get(fromid)
                     #print 'cbva: 0x%08x nweight: %d weght: %d fromid: 0x%08x' % (cbva, nweight, weight, 
                     if nweight == weight-1:
@@ -104,11 +104,11 @@ def getLongPath(g, maxpath=1000):
                         newcpath.append( (fromid, None) )
                         newvisited = set(visited)
                         newvisited.add(fromid)
-                        t = (fromid, newcpath, newvisited) 
+                        t = (fromid, newcpath, newvisited)
                         if t not in tleafs[nweight]:
-                            tleafs[ nweight ].append( t )
+                            tleafs[nweight].append(t)
 
-                if cbva in rootnodes: 
+                if cbva in rootnodes:
                     l = list(cpath)
                     l.reverse()
                     yield l

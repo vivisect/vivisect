@@ -667,24 +667,24 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
     def getStats(self):
         stats = {
-            'functions':len(self.funcmeta),
-            'relocations':len(self.relocations),
+            'functions': len(self.funcmeta),
+            'relocations': len(self.relocations),
         }
         return stats
 
     def printDiscoveredStats(self):
-        ( disc, 
-            undisc, 
-            numXrefs, 
-            numLocs, 
-            numFuncs, 
-            numBlocks, 
-            numOps, 
-            numUnis, 
-            numStrings, 
-            numNumbers, 
-            numPointers, 
-            numVtables ) = self.getDiscoveredInfo()
+        (disc,
+         undisc,
+         numXrefs,
+         numLocs,
+         numFuncs,
+         numBlocks,
+         numOps,
+         numUnis,
+         numStrings,
+         numNumbers,
+         numPointers,
+         numVtables) = self.getDiscoveredInfo()
 
         self.vprint("Percentage of discovered executable surface area: %.1f%% (%s / %s)" % (disc*100.0/(disc+undisc), disc, disc+undisc))
         self.vprint("   Xrefs/Blocks/Funcs:                             (%s / %s / %s)" % (numXrefs, numBlocks, numFuncs))

@@ -29,105 +29,105 @@ ADDRMETH_X = 0x00160000    # Memory addressed by DS:rSI
 ADDRMETH_Y = 0x00170000    # Memory addressd by ES:rDI
 ADDRMETH_LAST = ADDRMETH_Y
 
-OPTYPE_a   = 0x01000000     # 2/4   two one-word operands in memory or two double-word operands in memory (operand-size attribute)   
-OPTYPE_b   = 0x02000000     # 1     always 1 byte
-OPTYPE_c   = 0x03000000     # 1/2   byte or word, depending on operand
-OPTYPE_d   = 0x04000000     # 4     double-word
-OPTYPE_ds  = 0x04000000     # 4     double-word
-OPTYPE_dq  = 0x05000000     # 16    double quad-word
-OPTYPE_p   = 0x06000000     # 4/6   32-bit or 48-bit pointer
-OPTYPE_pi  = 0x07000000     # 8     quadword MMX register
-OPTYPE_ps  = 0x08000000     # 16    128-bit single-precision float
-OPTYPE_pd  = 0x08000000     # ??    should be a double-precision float?
-OPTYPE_q   = 0x09000000     # 8     quad-word
-OPTYPE_qp  = 0x09000000     # 8     quad-word
-OPTYPE_qq  = 0x0A000000     # 8     quad-word
-OPTYPE_s   = 0x0B000000     # 6     6-byte pseudo descriptor
-OPTYPE_ss  = 0x0C000000     # ??    Scalar of 128-bit single-precision float
-OPTYPE_si  = 0x0D000000     # 4     Doubleword integer register
-OPTYPE_sd  = 0x0E000000     #   ???  
-OPTYPE_v   = 0x0F000000     # 2/4   word or double-word, depending on operand
-OPTYPE_w   = 0x10000000     # 2     always word
-OPTYPE_x   = 0x11000000     # 2     always word
-OPTYPE_y   = 0x12000000     # 4/8   dword or qword
-OPTYPE_z   = 0x13000000     # 2/4   is this OPTYPE_z?  word for 16-bit operand size or doubleword for 32 or 64-bit operand-size
+OPTYPE_a = 0x01000000     # 2/4   two one-word operands in memory or two double-word operands in memory (operand-size attribute)   
+OPTYPE_b = 0x02000000     # 1     always 1 byte
+OPTYPE_c = 0x03000000     # 1/2   byte or word, depending on operand
+OPTYPE_d = 0x04000000     # 4     double-word
+OPTYPE_ds = 0x04000000     # 4     double-word
+OPTYPE_dq = 0x05000000     # 16    double quad-word
+OPTYPE_p = 0x06000000     # 4/6   32-bit or 48-bit pointer
+OPTYPE_pi = 0x07000000     # 8     quadword MMX register
+OPTYPE_ps = 0x08000000     # 16    128-bit single-precision float
+OPTYPE_pd = 0x08000000     # ??    should be a double-precision float?
+OPTYPE_q = 0x09000000     # 8     quad-word
+OPTYPE_qp = 0x09000000     # 8     quad-word
+OPTYPE_qq = 0x0A000000     # 8     quad-word
+OPTYPE_s = 0x0B000000     # 6     6-byte pseudo descriptor
+OPTYPE_ss = 0x0C000000     # ??    Scalar of 128-bit single-precision float
+OPTYPE_si = 0x0D000000     # 4     Doubleword integer register
+OPTYPE_sd = 0x0E000000     # ???
+OPTYPE_v = 0x0F000000     # 2/4   word or double-word, depending on operand
+OPTYPE_w = 0x10000000     # 2     always word
+OPTYPE_x = 0x11000000     # 2     always word
+OPTYPE_y = 0x12000000     # 4/8   dword or qword
+OPTYPE_z = 0x13000000     # 2/4   is this OPTYPE_z?  word for 16-bit operand size or doubleword for 32 or 64-bit operand-size
 
-OPTYPE_fs  = 0x14000000      #   
-OPTYPE_fd  = 0x15000000      #   
-OPTYPE_fe  = 0x16000000      #   
-OPTYPE_fb  = 0x17000000      #   
-OPTYPE_fv  = 0x18000000      #   
+OPTYPE_fs = 0x14000000
+OPTYPE_fd = 0x15000000
+OPTYPE_fe = 0x16000000
+OPTYPE_fb = 0x17000000
+OPTYPE_fv = 0x18000000
 
 # FIXME this should probably be a list rather than a dictionary
 
 OPERSIZE = {
-             0        : (2,4,8),           # We will only end up here on regs embedded in opcodes
-             OPTYPE_a : (2,4,4),
-             OPTYPE_b : (1,1,1),
-             OPTYPE_c : (1,2,2),           # 1/2   byte or word, depending on operand
-             OPTYPE_d : (4,4,4),           # 4     double-word
-             OPTYPE_dq: (16,16,16),        # 16    double quad-word
-             OPTYPE_p : (4,6,6),           # 4/6   32-bit or 48-bit pointer
-             OPTYPE_pi: (8,8,8),           # 8     quadword MMX register
-             OPTYPE_ps: (16,16,16),        # 16    128-bit single-precision float
-             OPTYPE_pd: (16,16,16),        # ??    should be a double-precision float?
-             OPTYPE_q : (8,8,8),           # 8     quad-word
-             OPTYPE_qq: (32,32,32),        # 32    quad-quad-word
-             OPTYPE_s : (6,10,10),         # 6     6-byte pseudo descriptor
-             OPTYPE_ss: (16,16,16),        # ??    Scalar of 128-bit single-precision float
-             OPTYPE_si: (4,4,4),           # 4     Doubleword integer register
-             OPTYPE_sd: (16,16,16),        # ???   Scalar of 128-bit double-precision float
-             OPTYPE_v : (2,4,8),           # 2/4   word or double-word, depending on operand
-             OPTYPE_w : (2,2,2),           # 2     always word
-             OPTYPE_x : (16,16,32),        # 16/32 double-quadword or quad-quadword
-             OPTYPE_y : (4,4,8),           # 4/8   dword or qword in 64-bit mode
-             OPTYPE_z : (2,4,4),           #  word for 16-bit operand size or doubleword for 32 or 64-bit operand-size
-             # Floating point crazyness FIXME these are mostly wrong
-             OPTYPE_fs: (4,4,4),
-             OPTYPE_fd: (8,8,8),
-             OPTYPE_fe: (10,10,10),
-             OPTYPE_fb: (10,10,10),
-             OPTYPE_fv: (14,14,28),
+    0: (2, 4, 8),           # We will only end up here on regs embedded in opcodes
+    OPTYPE_a: (2, 4, 4),
+    OPTYPE_b: (1, 1, 1),
+    OPTYPE_c: (1, 2, 2),           # 1/2   byte or word, depending on operand
+    OPTYPE_d: (4, 4, 4),           # 4     double-word
+    OPTYPE_dq: (16, 16, 16),        # 16    double quad-word
+    OPTYPE_p: (4, 6, 6),           # 4/6   32-bit or 48-bit pointer
+    OPTYPE_pi: (8, 8, 8),           # 8     quadword MMX register
+    OPTYPE_ps: (16, 16, 16),        # 16    128-bit single-precision float
+    OPTYPE_pd: (16, 16, 16),        # ??    should be a double-precision float?
+    OPTYPE_q: (8, 8, 8),           # 8     quad-word
+    OPTYPE_qq: (32, 32, 32),        # 32    quad-quad-word
+    OPTYPE_s: (6, 10, 10),         # 6     6-byte pseudo descriptor
+    OPTYPE_ss: (16, 16, 16),        # ??    Scalar of 128-bit single-precision float
+    OPTYPE_si: (4, 4, 4),           # 4     Doubleword integer register
+    OPTYPE_sd: (16, 16, 16),        # ???   Scalar of 128-bit double-precision float
+    OPTYPE_v: (2, 4, 8),           # 2/4   word or double-word, depending on operand
+    OPTYPE_w: (2, 2, 2),           # 2     always word
+    OPTYPE_x: (16, 16, 32),        # 16/32 double-quadword or quad-quadword
+    OPTYPE_y: (4, 4, 8),           # 4/8   dword or qword in 64-bit mode
+    OPTYPE_z: (2, 4, 4),           # word for 16-bit operand size or doubleword for 32 or 64-bit operand-size
+    # Floating point crazyness FIXME these are mostly wrong
+    OPTYPE_fs: (4, 4, 4),
+    OPTYPE_fd: (8, 8, 8),
+    OPTYPE_fe: (10, 10, 10),
+    OPTYPE_fb: (10, 10, 10),
+    OPTYPE_fv: (14, 14, 28),
 }
 
 
-INS_EXEC =               0x1000
-INS_ARITH=               0x2000
-INS_LOGIC=               0x3000
-INS_STACK=               0x4000
-INS_COND =               0x5000
-INS_LOAD =               0x6000
-INS_ARRAY=               0x7000
-INS_BIT  =       	 0x8000
-INS_FLAG =               0x9000
-INS_FPU  =      	 0xA000
-INS_TRAPS=               0xD000
-INS_SYSTEM = 	     	 0xE000
-INS_OTHER=               0xF000
+INS_EXEC = 0x1000
+INS_ARITH = 0x2000
+INS_LOGIC = 0x3000
+INS_STACK = 0x4000
+INS_COND = 0x5000
+INS_LOAD = 0x6000
+INS_ARRAY = 0x7000
+INS_BIT = 0x8000
+INS_FLAG = 0x9000
+INS_FPU = 0xA000
+INS_TRAPS = 0xD000
+INS_SYSTEM = 0xE000
+INS_OTHER = 0xF000
 
-INS_BRANCH  =    INS_EXEC | 0x01
-INS_BRANCHCC=    INS_EXEC | 0x02
-INS_CALL    =    INS_EXEC | 0x03
-INS_CALLCC  =    INS_EXEC | 0x04
-INS_RET     =    INS_EXEC | 0x05
-INS_LOOP    =    INS_EXEC | 0x06
-INS_ADD=         INS_ARITH | 0x01
+INS_BRANCH = INS_EXEC | 0x01
+INS_BRANCHCC = INS_EXEC | 0x02
+INS_CALL = INS_EXEC | 0x03
+INS_CALLCC = INS_EXEC | 0x04
+INS_RET = INS_EXEC | 0x05
+INS_LOOP = INS_EXEC | 0x06
+INS_ADD = INS_ARITH | 0x01
 
-INS_SUB=         INS_ARITH | 0x02
-INS_MUL=         INS_ARITH | 0x03
-INS_DIV=         INS_ARITH | 0x04
-INS_INC=         INS_ARITH | 0x05
-INS_DEC=         INS_ARITH | 0x06
-INS_SHL=         INS_ARITH | 0x07
-INS_SHR=         INS_ARITH | 0x08
-INS_ROL=         INS_ARITH | 0x09
-INS_ROR=         INS_ARITH | 0x0A
+INS_SUB = INS_ARITH | 0x02
+INS_MUL = INS_ARITH | 0x03
+INS_DIV = INS_ARITH | 0x04
+INS_INC = INS_ARITH | 0x05
+INS_DEC = INS_ARITH | 0x06
+INS_SHL = INS_ARITH | 0x07
+INS_SHR = INS_ARITH | 0x08
+INS_ROL = INS_ARITH | 0x09
+INS_ROR = INS_ARITH | 0x0A
 
-INS_AND=         INS_LOGIC | 0x01
-INS_OR =         INS_LOGIC | 0x02
-INS_XOR=         INS_LOGIC | 0x03
-INS_NOT=         INS_LOGIC | 0x04
-INS_NEG=         INS_LOGIC | 0x05
+INS_AND = INS_LOGIC | 0x01
+INS_OR = INS_LOGIC | 0x02
+INS_XOR = INS_LOGIC | 0x03
+INS_NOT = INS_LOGIC | 0x04
+INS_NEG = INS_LOGIC | 0x05
 
 INS_PUSH =        INS_STACK | 0x01
 INS_POP =         INS_STACK | 0x02
@@ -196,35 +196,35 @@ INS_BCDCONV =    INS_OTHER | 0x02        #/* convert to/from BCD */
 INS_SZCONV  =    INS_OTHER | 0x03        #/* convert size of operand */
 
 
-OP_R=         0x001    
-OP_W=         0x002 
-OP_X=         0x004  
-OP_64AUTO=    0x008     # operand is in 64bit mode with amd64!
+OP_R = 0x001
+OP_W = 0x002
+OP_X = 0x004
+OP_64AUTO = 0x008 # operand is in 64bit mode with amd64!
 
-OP_UNK=       0x000  
-OP_REG=       0x100   
-OP_IMM=       0x200  
-OP_REL=       0x300   
-OP_ADDR=      0x400 
-OP_EXPR=      0x500   
-OP_PTR =      0x600 
-OP_OFF =      0x700   
+OP_UNK = 0x000
+OP_REG = 0x100
+OP_IMM = 0x200
+OP_REL = 0x300
+OP_ADDR = 0x400
+OP_EXPR = 0x500
+OP_PTR = 0x600
+OP_OFF = 0x700
 
-OP_SIGNED=    0x001000  
-OP_STRING=    0x002000  
-OP_CONST =    0x004000
+OP_SIGNED = 0x001000
+OP_STRING = 0x002000
+OP_CONST = 0x004000
 
 ARG_NONE = 0
-cpu_8086 =        0x00001000
-cpu_80286=        0x00002000
-cpu_80386=        0x00003000
-cpu_80387=        0x00004000
-cpu_80486=        0x00005000
-cpu_PENTIUM=      0x00006000
-cpu_PENTPRO=      0x00007000
-cpu_PENTMMX=      0x00008000
-cpu_PENTIUM2=     0x00009000
-cpu_AMD64=        0x0000a000
+cpu_8086 = 0x00001000
+cpu_80286 = 0x00002000
+cpu_80386 = 0x00003000
+cpu_80387 = 0x00004000
+cpu_80486 = 0x00005000
+cpu_PENTIUM = 0x00006000
+cpu_PENTPRO = 0x00007000
+cpu_PENTMMX = 0x00008000
+cpu_PENTIUM2 = 0x00009000
+cpu_AMD64 = 0x0000a000
 
 #import envi.archs.i386.regs as e_i386_regs
 # Relative import priority...
@@ -236,7 +236,7 @@ cpu_AMD64=        0x0000a000
 #ADDEXP_DISP_OFFSET = 24
 #MODRM_EA =  1
 #MODRM_reg=  0
-ADDRMETH_MASK =     0x00FF0000
-OPTYPE_MASK   =     0xFF000000
-OPFLAGS_MASK  =     0x0000FFFF
+ADDRMETH_MASK = 0x00FF0000
+OPTYPE_MASK = 0xFF000000
+OPFLAGS_MASK = 0x0000FFFF
 

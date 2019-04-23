@@ -5,10 +5,11 @@ point to valid locations.
 
 import vivisect
 
+
 def analyze(vw):
     for fname, vaoff, rtype, data in vw.getRelocations():
-        if rtype == vivisect.RTYPE_BASERELOC and not vw.isLocation(va):
-            vw.makePointer(va, follow=True)
+        if rtype == vivisect.RTYPE_BASERELOC and not vw.isLocation(vaoff):
+            vw.makePointer(vaoff, follow=True)
 
         elif rtype == vivisect.RTYPE_BASEOFF:
             imgbase = vw.getFileMeta(fname, 'imagebase')

@@ -451,6 +451,29 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
         self.effSetVariable('eflags_cf', f)
         self.effSetVariable('eflags_of', f)
 
+    def i_mulsd(self, op):
+        '''
+        Also doesn't set flags?
+        '''
+        ocount = len(op.opers)
+        if ocount == 2:
+            dst = self.getOperObj(op, 0)
+            src = self.getOperObj(op, 1)
+            dsize = op.opers[0].tsize
+            res = dst * src
+            self.setOperObj(op, 0, res)
+
+        elif ocount == 3:
+            dst = self.getOperObj(op, 0)
+            src1 = self.getOperObj(op, 1)
+            src2 = self.getOperObj(op, 2)
+            res = src1 * src2
+            self.setOperObj(op, 0, res)
+
+        else:
+            raise Exception("WTFO?  i_mul with no opers")
+
+
     def i_inc(self, op):
         v1 = self.getOperObj(op, 0)
         obj = o_add(v1, Const(1, self._psize), v1.getWidth())
@@ -842,6 +865,15 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
         self.effSetVariable('eflags_lt', lt(v1, v2)) # v1 - v2 < 0 :: v1 < v2
         self.effSetVariable('eflags_sf', lt(v1, v2)) # v1 - v2 < 0 :: v1 < v2
         self.effSetVariable('eflags_eq', eq(v1, v2)) # v1 - v2 == 0 :: v1 == v2
+        self.setOperObj(op, 0, obj)
+
+    def i_subsd(self, op):
+        '''
+        None of the ref docs say subsd affects any flags
+        '''
+        v1 = self.getOperObj(op, 0)
+        v2 = self.getOperObj(op, 1)
+        obj = o_sub(v1, v2, v1.getWidth())
         self.setOperObj(op, 0, obj)
 
     def i_test(self, op):
