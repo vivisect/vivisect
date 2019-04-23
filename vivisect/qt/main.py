@@ -329,9 +329,8 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
         fname = getOpenFileName(self, 'Open...')
         if fname is None or not len(fname):
             return
-
         self.vw.vprint('Opening %s' % fname)
-        self.vw.loadFromFile(fname)
+        self.vw.loadFromFile(str(fname))
         self.vw.vprint('Analyzing %s' % fname)
         self.vw.analyze()
         self.vw.vprint('%s is ready!' % fname)
