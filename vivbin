@@ -1,19 +1,14 @@
 #!/usr/bin/env python
-import os
 import imp
 import sys
 import time
-import inspect
 import cProfile
 import argparse
-import threading
-import traceback
 import logging
 
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s:%(levelname)s:%(name)s: %(message)s')
 logger = logging.getLogger()
 
-import vivisect
 import vivisect.cli as viv_cli
 import envi.config as e_config
 import envi.threads as e_threads
@@ -57,25 +52,23 @@ def main():
     logger.setLevel(loglevels[vw.verbose])
 
     if args.option is not None:
-        if args.option in ('-h','?'):
+        if args.option in ('-h', '?'):
             print(vw.config.reprConfigPaths())
             sys.exit(-1)
 
         try:
             vw.config.parseConfigOption(args.option)
-        except e_config.ConfigNoAssignment, e:
+        except e_config.ConfigNoAssignment as e:
             print(vw.config.reprConfigPaths() + "\n")
             print(e)
             print("syntax: \t-O <secname>.<optname>=<optval> (optval must be json syntax)")
             sys.exit(-1)
 
-        except Exception, e:
+        except Exception as e:
             print(vw.config.reprConfigPaths())
             print("With entry: %s" % args.option)
             print(e)
             sys.exit(-1)
-
-
 
     if args.storage_name is not None:
         vw.setMeta("StorageModule", args.storage_name)
@@ -88,7 +81,7 @@ def main():
     needanalyze = False
     if args.file is not None:
         for fname in args.file:
-            if args.parsemod == None:
+            if args.parsemod is None:
                 args.parsemod = viv_parsers.guessFormatFilename(fname)
 
             start = time.time()
@@ -131,14 +124,6 @@ def main():
 
         viv_qt_main.main(vw)
 
+
 if __name__ == '__main__':
-    try:
-        # psyco makes disasm much faster (2-3X)
-        import psyco
-        #psyco.log()
-        psyco.full()
-    except ImportError:
-        pass
-
     main()
-

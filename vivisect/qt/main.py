@@ -46,7 +46,7 @@ dock_right = QtCore.Qt.RightDockWidgetArea
 class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
 
     # Child windows may emit this on "navigate" requests...
-    #vivNavSignal = QtCore.pyqtSignal(str, name='vivNavSignal') 
+    # vivNavSignal = QtCore.pyqtSignal(str, name='vivNavSignal')
     vivMemColorSignal = QtCore.pyqtSignal(dict, name='vivMemColorSignal')
 
     def __init__(self, vw):
@@ -54,6 +54,15 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
         vw._viv_gui = self
         viv_base.VivEventDist.__init__(self, vw=vw)
         vq_app.VQMainCmdWindow.__init__(self, 'Vivisect', vw)
+
+        self.addHotKey('ctrl+o', 'file:open')
+        self.addHotKeyTarget('file:open', self._menuFileOpen)
+        self.addHotKey('ctrl+s', 'file:save')
+        self.addHotKeyTarget('file:save', self._menuFileSave)
+        self.addHotKey('ctrl+w', 'file:quit')
+        self.addHotKeyTarget('file:save', self._menuFileQuit)
+
+        self.vqAddMenuField('&File.Open', self._menuFileOpen)
         self.vqAddMenuField('&File.Save', self._menuFileSave)
         self.vqAddMenuField('&File.Save As', self._menuFileSaveAs)
         self.vqAddMenuField('&File.Save to Server', self._menuFileSaveServer)
@@ -68,7 +77,7 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
         self.vqAddMenuField('&View.&Memory', self._menuViewMemory)
         self.vqAddMenuField('&View.&Function Graph', self._menuViewFuncGraph)
         self.vqAddMenuField('&View.&Strings', self._menuViewStrings)
-        #self.vqAddMenuField('&View.&Strings', ACT(viv_q_views.getLocView, vw, (LOC_STRING,LOC_UNI) ,'Strings'))
+        # self.vqAddMenuField('&View.&Strings', ACT(viv_q_views.getLocView, vw, (LOC_STRING,LOC_UNI) ,'Strings'))
         self.vqAddMenuField('&View.&Structures', self._menuViewStructs)
         self.vqAddMenuField('&View.&Segments', self._menuViewSegments)
         self.vqAddMenuField('&View.&Symboliks', self._menuViewSymboliks)
@@ -320,6 +329,15 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
     def _menuViewSymboliks(self):
         self.vqBuildDockWidget('VivSymbolikFuncPane', area=QtCore.Qt.TopDockWidgetArea)
 
+    def _menuFileOpen(self):
+        fname = getOpenFileName(self, 'Open...')
+        if fname is None or not len(fname):
+            return
+        self.vw.loadFromFile(fname)
+        self.vw.vprint('Opening %s' % fname)
+        self.vw.analyze()
+        self.vw.vprint('Opened %s' % fname)
+
     @vq_main.workthread
     def _menuFileSave(self, fullsave=False):
         self.vw.vprint('Saving workspace...')
@@ -328,7 +346,7 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
 
     def _menuFileSaveAs(self):
         fname = getSaveFileName(self, 'Save As...')
-        if fname == None or not len(fname):
+        if fname is None or not len(fname):
             return
         self.vw.setMeta('StorageName', fname)
         self._menuFileSave(fullsave=True)
@@ -338,7 +356,7 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
 
     def _menuViewLayoutsLoad(self):
         fname = getOpenFileName(self, 'Load Layout')
-        if fname == None:
+        if fname is None:
             return
 
         settings = QtCore.QSettings(fname, QtCore.QSettings.IniFormat)
