@@ -349,7 +349,7 @@ class RegisterContext:
         width = (index >> 16) & 0xff
         offset = (index >> 24) & 0xff
 
-        # FIXME is it faster to generate or look thses up?
+        # FIXME is it faster to generate or look these up?
         mask = (2 ** width) - 1
         mask = mask << offset
 
