@@ -586,6 +586,7 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
     # actual mathematical operation
     i_movnti = i_mov
     i_movq = i_mov
+    i_movd = i_mov
     i_movaps = i_mov
     i_movapd = i_mov
     i_movups = i_mov
@@ -719,6 +720,12 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
     def i_cwde(self, op):
         v1 = o_sextend(self.getRegObj(e_i386.REG_AX), Const(self._psize, self._psize))
         self.effSetVariable('eax', v1)
+
+    #def i_cdq(self, op):
+    #    # TODO: So this sign extends things into edx, so we need to grab the sign bit in eax
+    #    # and then fill in all the bits of edx
+    #    v1 = o_sextend(self.getRegObj(e_i386.REG_EAX), Const(self._psize, self._psize))
+    #    self.effSetVariable('edx', v1)
 
     def _carry_eq(self, x):
         return eq(Var('eflags_cf', self._psize), Const(x, self._psize))
@@ -908,6 +915,14 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
         self.effSetVariable('eflags_sf', lt(obj, Const(0, self._psize))) # v1 & v2 < 0
         self.effSetVariable('eflags_eq', eq(obj, Const(0, self._psize))) # v1 & v2 == 0
         self.setOperObj(op, 0, obj)
+
+    def i_xorpd(self, op):
+        v1 = self.getOperObj(op, 0)
+        v2 = self.getOperObj(op, 1)
+        obj = o_xor(v1, v2, v1.getWidth())
+        self.setOperObj(op, 0, obj)
+
+    i_xorps = i_xorpd
 
     def i_cmpxchg(self, op):
 
