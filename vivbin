@@ -109,7 +109,7 @@ def main():
                 start = time.time()
                 vw.analyze()
                 end = time.time()
-                print "ANALYSIS TIME: %s" % (end-start)
+                print("ANALYSIS TIME: %s" % (end-start))
 
         if args.modname is not None:
             module = imp.load_module("custom_analysis", file(modname, "rb"), modname, ('.py', 'U', 1))
