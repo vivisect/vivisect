@@ -55,13 +55,6 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
         viv_base.VivEventDist.__init__(self, vw=vw)
         vq_app.VQMainCmdWindow.__init__(self, 'Vivisect', vw)
 
-        self.addHotKey('ctrl+o', 'file:open')
-        self.addHotKeyTarget('file:open', self._menuFileOpen)
-        self.addHotKey('ctrl+s', 'file:save')
-        self.addHotKeyTarget('file:save', self._menuFileSave)
-        self.addHotKey('ctrl+w', 'file:quit')
-        self.addHotKeyTarget('file:save', self._menuFileQuit)
-
         self.vqAddMenuField('&File.Open', self._menuFileOpen)
         self.vqAddMenuField('&File.Save', self._menuFileSave)
         self.vqAddMenuField('&File.Save As', self._menuFileSaveAs)
@@ -112,6 +105,13 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
         fname = os.path.basename(self.vw.getMeta('StorageName', 'Unknown'))
         self.setWindowTitle('Vivisect: %s' % fname)
         self.windowState = QtCore.Qt.WindowNoState
+
+        self.addHotKey('ctrl+o', 'file:open')
+        self.addHotKeyTarget('file:open', self._menuFileOpen)
+        self.addHotKey('ctrl+s', 'file:save')
+        self.addHotKeyTarget('file:save', self._menuFileSave)
+        self.addHotKey('ctrl+w', 'file:quit')
+        self.addHotKeyTarget('file:quit', self.close)
 
     def setVaName(self, va, parent=None):
         if parent == None:
