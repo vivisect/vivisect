@@ -958,18 +958,15 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         Create a single opcode location.  If you have already parsed the
         opcode object, you may pass it in.
         """
-        if op == None:
+        if op is None:
             try:
-
                 op = self.parseOpcode(va, arch=arch)
-
-            except envi.InvalidInstruction, msg:
-                #FIXME something is just not right about this...
-                bytes = self.readMemory(va, 16)
-                print "Invalid Instruct Attempt At:",hex(va),bytes.encode("hex")
+            except envi.InvalidInstruction as msg:
+                # FIXME something is just not right about this...
+                bytez = self.readMemory(va, 16)
+                print("Invalid Instruct Attempt At:", hex(va), bytez.encode("hex"))
                 raise InvalidLocation(va,msg)
-
-            except Exception, msg:
+            except Exception as msg:
                 traceback.print_exc()
                 raise InvalidLocation(va,msg)
 
@@ -980,11 +977,13 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
         brdone = {}
         brlist = op.getBranches()
-        for tova,bflags in brlist:
+        for tova, bflags in brlist:
 
             # If there were unresolved dynamic branches, oh well...
-            if tova == None: continue
-            if not self.isValidPointer(tova): continue
+            if tova is None:
+                continue
+            if not self.isValidPointer(tova):
+                continue
 
             brdone[tova] = True
 
@@ -1000,12 +999,12 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
                     if not tabdone.get(rdest):
                         tabdone[rdest] = True
                         self.addXref(va, rdest, REF_CODE, envi.BR_COND)
-                        if self.getName(rdest) == None:
+                        if self.getName(rdest) is None:
                             self.makeName(rdest, "case%d_%.8x" % (i,rdest))
 
                     ptrbase += self.psize
                     if len(self.getXrefsTo(ptrbase)):
-                        break # Another xref means not our table anymore
+                        break  # Another xref means not our table anymore
                     i += 1
                     rdest = self.castPointer(ptrbase)
 
@@ -1016,7 +1015,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
                 self.addXref(va, tova, REF_DATA)
                 ptrdest = None
-                if self.getLocation(tova) == None:
+                if self.getLocation(tova) is None:
                     ptrdest = self.makePointer(tova, follow=False)
 
                 # If the actual dest is executable, make a code ref fixup
@@ -1029,7 +1028,8 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             else:
                 # vivisect does NOT create REF_CODE entries for
                 # instruction fall through
-                if bflags & envi.BR_FALL: continue
+                if bflags & envi.BR_FALL:
+                    continue
 
                 self.addXref(va, tova, REF_CODE, bflags)
 
@@ -1047,7 +1047,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
                 if brdone.get(ref, False):
                     continue
 
-                if ref != None and self.isValidPointer(ref):
+                if ref is not None and self.isValidPointer(ref):
 
                     # It's a data reference. lets also check if the data is
                     # a pointer.
@@ -1056,7 +1056,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
                     # If we don't already know what type this location is,
                     # lets make it either a pointer or a number...
-                    if self.getLocation(ref) == None:
+                    if self.getLocation(ref) is None:
 
                         offset, bytes = self.getByteDef(ref)
 
@@ -1071,7 +1071,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
                 ref = o.getOperValue(op)
                 if brdone.get(ref, False):
                     continue
-                if ref != None and self.isValidPointer(ref):
+                if ref is not None and self.isValidPointer(ref):
                     self.addXref(va, ref, REF_PTR)
 
         return loc
