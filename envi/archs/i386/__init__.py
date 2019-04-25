@@ -1,12 +1,6 @@
 import envi
-import envi.bits as e_bits
 
-#TODO
-# f0 0f c7 4d 00 75 f0 5d 5b - this is NOT right in disasm
-
-import copy
-import struct
-import traceback
+# TODO: f0 0f c7 4d 00 75 f0 5d 5b - this is NOT right in disasm
 
 # Gank in our bundled libdisassemble
 import opcode86

@@ -1,6 +1,5 @@
 import re
 import struct
-import collections
 
 import envi
 import envi.bits as e_bits
@@ -19,7 +18,7 @@ MM_EXEC = 0x1
 MM_SHARED = 0x08
 
 MM_READ_WRITE = MM_READ | MM_WRITE
-MM_READ_EXEC  =  MM_READ | MM_EXEC
+MM_READ_EXEC = MM_READ | MM_EXEC
 MM_RWX = MM_READ | MM_WRITE | MM_EXEC
 
 pnames = ['No Access', 'Execute', 'Write', None, 'Read']
@@ -31,7 +30,7 @@ def getPermName(perm):
     return pnames[perm]
 
 def reprPerms(mask):
-    plist = ['-','-','-','-']
+    plist = ['-', '-', '-', '-']
     if mask & MM_SHARED:
         plist[0] = 's'
     if mask & MM_READ:

@@ -434,7 +434,7 @@ class EnviCli(Cmd):
         aliases = self.config.cli.aliases.keys()
         aliases.sort()
         for alias in aliases:
-            self.vprint('%s -> %s' % (alias,self.config.cli.aliases.get(alias)))
+            self.vprint('%s -> %s' % (alias, self.config.cli.aliases.get(alias)))
         self.vprint('')
         return
 
@@ -456,8 +456,7 @@ class EnviCli(Cmd):
             code.interact(local=locals)
 
     def parseExpression(self, expr):
-        l = self.getExpressionLocals()
-        return long(e_expr.evaluate(expr, l))
+        return long(e_expr.evaluate(expr, self.getExpressionLocals()))
 
     def do_binstr(self, line):
         '''

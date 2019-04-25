@@ -1033,7 +1033,7 @@ class PE(object):
             cbytes = pyasn1.codec.der.encoder.encode( i['certificate'] )
 
             iparts = []
-            for rdnsequence in i["certificate"]["tbsCertificate"]["issuer"]:
+            for _, rdnsequence in i["certificate"]["tbsCertificate"]["issuer"].items():
                 for rdn in rdnsequence:
                     rtype = rdn[0]["type"]
                     rvalue = rdn[0]["value"][2:]
@@ -1042,7 +1042,7 @@ class PE(object):
             issuer = ','.join( iparts )
 
             sparts = []
-            for rdnsequence in i["certificate"]["tbsCertificate"]["subject"]:
+            for _, rdnsequence in i["certificate"]["tbsCertificate"]["subject"].items():
                 for rdn in rdnsequence:
                     rtype = rdn[0]["type"]
                     rvalue = rdn[0]["value"][2:]
@@ -1100,32 +1100,8 @@ class PE(object):
         else:
             raise AttributeError
 
-
-class MemObjFile:
-    """
-    A file like object that wraps a MemoryObject (envi) compatable
-    object with a file-like object where seek == VA.
-    """
-
-    def __init__(self, memobj, baseaddr):
-        self.baseaddr = baseaddr
-        self.offset = baseaddr
-        self.memobj = memobj
-
-    def seek(self, offset):
-        self.offset = self.baseaddr + offset
-
-    def read(self, size):
-        ret = self.memobj.readMemory(self.offset, size)
-        self.offset += size
-        return ret
-        
-    def write(self, bytes):
-        self.memobj.writeMemory(self.offset, bytes)
-        self.offset += len(bytes)
-
 def peFromMemoryObject(memobj, baseaddr):
-    fd = MemObjFile(memobj, baseaddr)
+    fd = vstruct.MemObjFile(memobj, baseaddr)
     return PE(fd, inmem=True)
 
 def peFromFileName(fname):
