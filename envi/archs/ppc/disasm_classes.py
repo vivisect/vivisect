@@ -305,7 +305,6 @@ class PpcSImm16Oper(PpcSImmOper):
 class PpcUImmOper(PpcImmOper):
     ''' Unsigned Immediate operand. '''
     def __init__(self, val, va=0, tsize=4):
-        self.val = val
         PpcImmOper.__init__(self, val, va, tsize)
 
 class PpcUImm1Oper(PpcUImmOper):
@@ -578,7 +577,7 @@ OPERCLASSES = {
     FIELD_TMRN0_4 : PpcImmOper,
     FIELD_TMRN5_9 : PpcImmOper,
     FIELD_TO : PpcImmOper,
-    FIELD_UIMM : PpcImmOper,
+    FIELD_UIMM : PpcUImmOper,
     FIELD_UIMM1 : PpcUImm1Oper,
     FIELD_UIMM2 : PpcUImm2Oper,
     FIELD_UIMM3 : PpcUImm3Oper,
