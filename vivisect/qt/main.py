@@ -110,6 +110,17 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
         self.addHotKey('ctrl+w', 'file:quit')
         self.addHotKeyTarget('file:quit', self.close)
 
+    def getLocation(self, va):
+        loctup = self.vw.getLocation(va)
+        if loctup is None:
+            self.vw.vprint('Location not found!')
+        else:
+            name = loc_type_names.get(loctup[L_LTYPE], 'Unspecified')
+            self.vw.vprint('VA: %s' % hex(loctup[L_VA]))
+            self.vw.vprint('Size: %d' % loctup[L_SIZE])
+            self.vw.vprint('Type: %s' % name)
+            self.vw.vprint('Info: %s' % str(loctup[L_TINFO]))
+
     def setVaName(self, va, parent=None):
         if parent is None:
             parent = self
@@ -330,6 +341,7 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
         if fname is None or not len(fname):
             return
         self.vw.vprint('Opening %s' % fname)
+        self.setWindowTitle('Vivisect: %s' % fname)
         self.vw.loadFromFile(str(fname))
         self.vw.vprint('Analyzing %s' % fname)
         self.vw.analyze()
@@ -338,8 +350,12 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
     @vq_main.workthread
     def _menuFileSave(self, fullsave=False):
         self.vw.vprint('Saving workspace...')
-        self.vw.saveWorkspace(fullsave=fullsave)
-        self.vw.vprint('complete!')
+        try:
+            self.vw.saveWorkspace(fullsave=fullsave)
+        except Exception as e:
+            self.vw.vprint(str(e))
+        else:
+            self.vw.vprint('complete!')
 
     def _menuFileSaveAs(self):
         fname = getSaveFileName(self, 'Save As...')

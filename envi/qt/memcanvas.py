@@ -1,10 +1,10 @@
 import cgi
 try:
-    from PyQt5    import QtCore, QtGui, QtWebKit, QtWebKitWidgets
+    from PyQt5 import QtCore, QtGui, QtWebKit, QtWebKitWidgets
     from PyQt5.QtWebKitWidgets import *
     from PyQt5.QtWidgets import *
 except:
-    from PyQt4    import QtCore, QtGui, QtWebKit
+    from PyQt4 import QtCore, QtGui, QtWebKit
     from PyQt4.QtWebKit import *
     from PyQt4.QtGui import *
 
@@ -16,15 +16,15 @@ import envi.qt.html as e_q_html
 import envi.qt.jquery as e_q_jquery
 import envi.memcanvas as e_memcanvas
 
-qt_horizontal   = 1
-qt_vertical     = 2
+qt_horizontal = 1
+qt_vertical = 2
 
 from vqt.main import *
 from vqt.common import *
 
 class LoggerPage(QWebPage):
     def javaScriptConsoleMessage(self, msg, line, source):
-        print '%s line %d: %s' % (source, line, msg)
+        print('%s line %d: %s' % (source, line, msg))
 
 class VQMemoryCanvas(e_memcanvas.MemoryCanvas, QWebView):
 
@@ -37,9 +37,9 @@ class VQMemoryCanvas(e_memcanvas.MemoryCanvas, QWebView):
         self._canv_rendtagid = '#memcanvas'
         self._canv_rend_middle = False
 
-        self.setPage( LoggerPage() )
+        self.setPage(LoggerPage())
 
-        htmlpage = e_q_html.template.replace('{{{jquery}}}',e_q_jquery.jquery_2_1_0)
+        htmlpage = e_q_html.template.replace('{{{jquery}}}', e_q_jquery.jquery_2_1_0)
         self.setContent(htmlpage)
 
         frame = self.page().mainFrame()
@@ -50,7 +50,7 @@ class VQMemoryCanvas(e_memcanvas.MemoryCanvas, QWebView):
         # Allow our parent to handle these...
         self.setAcceptDrops(False)
 
-    @QtCore.pyqtSlot(str)  
+    @QtCore.pyqtSlot(str)
     def showMessage(self, message):
         print "Message from website:", message
 
@@ -79,9 +79,9 @@ class VQMemoryCanvas(e_memcanvas.MemoryCanvas, QWebView):
 
     @idlethread
     def _scrollToVa(self, va):
-        vq_main.eatevents() # Let all render events go first
+        vq_main.eatevents()  # Let all render events go first
         self.page().mainFrame().scrollToAnchor('viv:0x%.8x' % va)
-        #self._selectVa(va)
+        # self._selectVa(va)
 
     @idlethread
     def _selectVa(self, va):
@@ -97,7 +97,7 @@ class VQMemoryCanvas(e_memcanvas.MemoryCanvas, QWebView):
         self._canv_cache = None
 
     def _beginRenderVa(self, va):
-        self._add_raw('<a name="viv:0x%.8x" id="a_%.8x">' % (va,va))
+        self._add_raw('<a name="viv:0x%.8x" id="a_%.8x">' % (va, va))
 
     def _endRenderVa(self, va):
         self._add_raw('</a>')
@@ -109,7 +109,7 @@ class VQMemoryCanvas(e_memcanvas.MemoryCanvas, QWebView):
         elem = frame.findFirstElement('a#a_%.8x' % valist[0][0])
         elem.prependOutside('<update id="updatetmp"></update>')
 
-        for va,size in valist:
+        for va, size in valist:
             elem = frame.findFirstElement('a#a_%.8x' % va)
             elem.removeFromDocument()
 
@@ -153,7 +153,7 @@ class VQMemoryCanvas(e_memcanvas.MemoryCanvas, QWebView):
         # The "class" will be the same that we get back from goto event
         return ('<span class="envi-va envi-va-0x%.8x" va="0x%.8x" ondblclick="vagoto(this)" oncontextmenu="vaclick(this)" onclick="vaclick(this)">' % (va,va), '</span>')
 
-    @QtCore.pyqtSlot(str)  
+    @QtCore.pyqtSlot(str)
     def _jsGotoExpr(self, expr):
         # The routine used by the javascript code to trigger nav events
         if self._canv_navcallback:
@@ -172,7 +172,7 @@ class VQMemoryCanvas(e_memcanvas.MemoryCanvas, QWebView):
 
     def _add_raw(self, text):
         # If we are in a call to renderMemory, cache til the end.
-        if self._canv_cache != None:
+        if self._canv_cache is not None:
             self._canv_cache += text
             return
 
@@ -181,7 +181,7 @@ class VQMemoryCanvas(e_memcanvas.MemoryCanvas, QWebView):
     def addText(self, text, tag=None):
         text = cgi.escape(text)
 
-        if tag != None:
+        if tag is not None:
             otag, ctag = tag
             text = otag + text + ctag
 
@@ -197,7 +197,7 @@ class VQMemoryCanvas(e_memcanvas.MemoryCanvas, QWebView):
 
         va = self._canv_curva
         menu = QMenu()
-        if self._canv_curva != None:
+        if self._canv_curva is not None:
             self.initMemWindowMenu(va, menu)
 
         viewmenu = menu.addMenu('view   ')
@@ -210,7 +210,7 @@ class VQMemoryCanvas(e_memcanvas.MemoryCanvas, QWebView):
 
     def _menuSaveToHtml(self):
         fname = getSaveFileName(self, 'Save As HTML...')
-        if fname != None:
+        if fname is not None:
             fname = str(fname)
             if len(fname):
                 html = self.page().mainFrame().toHtml()
@@ -220,15 +220,15 @@ class VQMemoryCanvas(e_memcanvas.MemoryCanvas, QWebView):
 def getNavTargetNames():
     '''
     Returns a list of Memory View names.
-    Populated by vqt in a seperate thread, thus is time-sensitive.  If the 
+    Populated by vqt in a seperate thread, thus is time-sensitive.  If the
     list is accessed too quickly, some valid names may not yet be inserted.
     '''
     ret = []
     vqtevent('envi:nav:getnames', ret)
     return ret
 
+
 def initMemSendtoMenu(expr, menu):
     for name in set(getNavTargetNames()):
         args = (name, expr, None)
         menu.addAction('sendto: %s' % name, ACT(vqtevent, 'envi:nav:expr', args))
-

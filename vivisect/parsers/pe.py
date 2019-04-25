@@ -65,7 +65,6 @@ defcalls = {
 
 # map PE relocation types to vivisect types where possible
 relmap = {
-    PE.IMAGE_REL_BASED_ABSOLUTE: vivisect.RTYPE_BASERELOC,
     PE.IMAGE_REL_BASED_HIGHLOW: vivisect.RTYPE_BASEOFF,
     PE.IMAGE_REL_BASED_DIR64: vivisect.RTYPE_BASEOFF,
 }

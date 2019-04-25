@@ -21,7 +21,7 @@ def symcache(f):
     functools.update_wrapper(docache, f)
     return docache
 
-def varsolve(name,width,emu=None):
+def varsolve(name, width, emu=None):
     '''
     A helper routine which unifies the way symboliks
     "solves" (aka, generates a repeatable entropic
@@ -515,7 +515,7 @@ class Var(SymbolikBase):
 
     def __init__(self, name, width):
         SymbolikBase.__init__(self)
-        self.name  = name
+        self.name = name
         self.width = width
 
     def render(self, canvas, vw):
@@ -533,7 +533,7 @@ class Var(SymbolikBase):
             canvas.addVaText(strval, va=value)
             return
 
-        #canvas.addNameText(strval, name=strval, typename="registers")
+        # canvas.addNameText(strval, name=strval, typename="registers")
         canvas.addNameText(strval)
 
     @symcache
