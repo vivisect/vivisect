@@ -814,24 +814,24 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         plen = 0 # pascal string length
         dlen = 0 # delphi string length
         if self.isReadable(va-4):
-            plen = self.readMemValue(va-2, 2) # pascal string length
-            dlen = self.readMemValue(va-4, 4) # delphi string length
+            plen = self.readMemValue(va - 2, 2) # pascal string length
+            dlen = self.readMemValue(va - 4, 4) # delphi string length
 
-        offset, bytes = self.getByteDef(va)
-        maxlen = len(bytes) - offset
+        offset, bytez = self.getByteDef(va)
+        maxlen = len(bytez) - offset
         count = 0
         while count < maxlen:
             # If we hit another thing, then probably not.
             # Ignore when count==0 so detection can check something
             # already set as a location.
-            if (count > 0):
+            if count > 0:
                 loc = self.getLocation(va+count)
-                if loc != None:
+                if loc is not None:
                     if loc[L_LTYPE] == LOC_STRING:
                         return loc[L_VA] - (va + count) + loc[L_SIZE]
                     return -1
 
-            c = bytes[offset+count]
+            c = bytez[offset+count]
             # The "strings" algo basically says 4 or more...
             if ord(c) == 0 and count >= 4:
                 return count
@@ -1058,12 +1058,16 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
                     # lets make it either a pointer or a number...
                     if self.getLocation(ref) is None:
 
-                        offset, bytes = self.getByteDef(ref)
+                        offset, _ = self.getByteDef(ref)
 
                         val = self.parseNumber(ref, o.tsize)
-
                         if (self.psize == o.tsize and self.isValidPointer(val)):
                             self.makePointer(ref, tova=val)
+                        # In some binaries, this can be a string as well (confirmed to happen in psexec 32/64)
+                        elif self.detectUnicode(ref):
+                            self.makeUnicode(ref)
+                        elif self.detectString(ref):
+                            self.makeString(ref)
                         else:
                             self.makeNumber(ref, o.tsize)
 

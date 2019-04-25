@@ -120,6 +120,7 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
             self.vw.vprint('Size: %d' % loctup[L_SIZE])
             self.vw.vprint('Type: %s' % name)
             self.vw.vprint('Info: %s' % str(loctup[L_TINFO]))
+            self.vw.vprint('')
 
     def setVaName(self, va, parent=None):
         if parent is None:
