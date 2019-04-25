@@ -123,11 +123,11 @@ class SymbolikEmulator:
         # FIXME handle memory offsets etc...
         # FIXME handle write size.. (using isDiscrete?)
         addrval = symaddr.solve(emu=self, vals=vals)
-        #sizeval = symsize.solve(slvctx=self)
+        # sizeval = symsize.solve(slvctx=self)
         self._sym_mem[addrval] = (symaddr, symval)
 
     def setSymVariable(self, name, symval, width=None):
-        if width == None:
+        if width is None:
             width = self.__width__
         self._sym_vars[name] = symval
 

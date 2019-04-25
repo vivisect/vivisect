@@ -1,7 +1,6 @@
 import envi
 
-#TODO
-# f0 0f c7 4d 00 75 f0 5d 5b - this is NOT right in disasm
+# TODO: f0 0f c7 4d 00 75 f0 5d 5b - this is NOT right in disasm
 
 from envi.archs.i386.regs import *
 from envi.archs.i386.disasm import *

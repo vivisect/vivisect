@@ -1,7 +1,6 @@
-import unittest
-
 import vtrace
 import vtrace.envitools
+
 
 class EnvitoolsTests(vtrace.tests.VtraceProcessTest):
     def test_emulatorFromTrace(self):

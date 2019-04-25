@@ -9,7 +9,7 @@ import traceback
 import platform
 
 from Queue import Queue
-from threading import Thread,currentThread,Lock
+from threading import Thread, currentThread, Lock
 
 import envi
 import envi.memory as e_mem
@@ -34,7 +34,7 @@ class TracerBase(vtrace.Notifier):
         """
         vtrace.Notifier.__init__(self)
 
-        self.pid = 0 # Attached pid (also used to know if attached)
+        self.pid = 0  # Attached pid (also used to know if attached)
         self.exited = False
         self.breakpoints = {}
         self.newbreaks = []
@@ -48,7 +48,7 @@ class TracerBase(vtrace.Notifier):
         self.attached = False
         # A cache for memory maps and fd listings
         self.mapcache = None
-        self.thread = None # our proxy thread...
+        self.thread = None  # our proxy thread...
         self.threadcache = None
         self.fds = None
         self.signal_ignores = []
@@ -167,7 +167,7 @@ class TracerBase(vtrace.Notifier):
     def _doWait(self):
         doit = True
         while doit:
-        # A wrapper method for  wait() and the wait thread to use
+            # A wrapper method for wait() and the wait thread to use
             self.setMeta('SignalInfo', None)
             self.setMeta('PendingSignal', None)
             event = self.platformWait()
@@ -214,7 +214,7 @@ class TracerBase(vtrace.Notifier):
         # Resolve deferred breaks
         for bp in self.deferred:
             addr = bp.resolveAddress(self)
-            if addr != None:
+            if addr is not None:
                 self.deferred.remove(bp)
                 self.breakpoints[addr] = bp
 
@@ -226,7 +226,7 @@ class TracerBase(vtrace.Notifier):
         """
         Sync the reg-cache into the target process
         """
-        if self.regcache != None:
+        if self.regcache is not None:
             for tid, ctx in self.regcache.items():
                 if ctx.isDirty():
                     self.platformSetRegCtx(tid, ctx)
@@ -236,10 +236,10 @@ class TracerBase(vtrace.Notifier):
         """
         Make sure the reg-cache is populated
         """
-        if self.regcache == None:
+        if self.regcache is None:
             self.regcache = {}
         ret = self.regcache.get(threadid)
-        if ret == None:
+        if ret is None:
             ret = self.platformGetRegCtx(threadid)
             ret.setIsDirty(False)
             self.regcache[threadid] = ret
@@ -256,7 +256,7 @@ class TracerBase(vtrace.Notifier):
         # Steal a reference because the step should
         # clear curbp...
         bp = self.curbp
-        if bp != None and bp.isEnabled():
+        if bp is not None and bp.isEnabled():
             if bp.active:
                 bp.deactivate(self)
             orig = self.getMode("FastStep")
@@ -327,12 +327,12 @@ class TracerBase(vtrace.Notifier):
 
     def __del__(self):
         if not self._released:
-            print 'Warning! tracer del w/o release()!'
+            print('Warning! tracer del w/o release()!')
 
     def fireTracerThread(self):
         # Fire the threadwrap proxy thread for this tracer
         # (if it hasnt been fired...)
-        if self.thread == None:
+        if self.thread is None:
             self.thread = TracerThread()
 
     def fireNotifiers(self, event):
@@ -539,8 +539,8 @@ class TracerBase(vtrace.Notifier):
         self.setMeta("LatestLibraryNorm", None)
 
         normname = self.normFileName(libname)
-        if self.getSymByName(normname) != None:
-            normname = "%s_%.8x" % (normname,address)
+        if self.getSymByName(normname) is not None:
+            normname = "%s_%.8x" % (normname, address)
 
         self.getMeta("LibraryPaths")[address] = libname
         self.getMeta("LibraryBases")[normname] = address
@@ -568,7 +568,7 @@ class TracerBase(vtrace.Notifier):
         done = {}
         mlen = len(magic)
 
-        for addr,size,perms,fname in self.getMemoryMaps():
+        for addr, size, perms, fname in self.getMemoryMaps():
 
             if not fname:
                 continue
@@ -588,7 +588,7 @@ class TracerBase(vtrace.Notifier):
     def _loadBinaryNorm(self, normname):
         if not self.libloaded.get(normname, False):
             fname = self.libpaths.get(normname)
-            if fname != None:
+            if fname is not None:
                 self._loadBinary(fname)
                 return True
         return False
@@ -601,7 +601,7 @@ class TracerBase(vtrace.Notifier):
         normname = self.normFileName(filename)
         if not self.libloaded.get(normname, False):
             address = self.getMeta("LibraryBases").get(normname)
-            if address == None:
+            if address is None:
                 return False
 
             self.platformParseBinary(filename, address, normname)
@@ -638,7 +638,7 @@ class TracerBase(vtrace.Notifier):
         field "StoppedThreadId" should be used in instances (like win32) where you
         must specify the ORIGINALLY STOPPED thread-id in the continue.
         """
-        self.setMeta("ThreadId",thrid)
+        self.setMeta("ThreadId", thrid)
 
     def platformSuspendThread(self, thrid):
         raise Exception("Platform must implement platformSuspendThread()")
