@@ -24,18 +24,23 @@ def analyze(vw):
 
     # from NXP MPC5674
     for baseaddr in 0x0000, 0x4000, 0x10000, 0x1C000, 0x20000, 0x30000:
-        # look for an RCHW structure
-        rchw = vw.readMemValue(baseaddr, 2)
-        # the top 4 bits are reserved (expected to be 0) and the last 8 bits are 01011010
-        if vw.verbose > 1: vw.vprint("analyzing: 0x%x : 0x%x" % (baseaddr, rchw))
-        if rchw & 0xf0ff != 0x5a:
-            continue
+        try:
+            if vw.verbose > 1: vw.vprint("analyzing: 0x%x : 0x%x" % (baseaddr, rchw))
 
-        # make the structure
-        rchw = vw.makeStructure(baseaddr, 'ppc.RCHW')
+            # look for an RCHW structure
+            rchw = vw.readMemValue(baseaddr, 2)
+            # the top 4 bits are reserved (expected to be 0) and the last 8 bits are 01011010
+            if rchw & 0xf0ff != 0x5a:
+                continue
 
-        # now wrap in the pointer to the entry point and make it a function
-        eva = rchw.entry_point
-        vw.addEntryPoint(eva)
-        vw.makeFunction(eva)
-        vw.makeName(eva, 'ENTRY_%.8x' % eva)
+            # make the structure
+            rchw = vw.makeStructure(baseaddr, 'ppc.RCHW')
+
+            # now wrap in the pointer to the entry point and make it a function
+            eva = rchw.entry_point
+            vw.addEntryPoint(eva)
+            vw.makeFunction(eva)
+            vw.makeName(eva, 'ENTRY_%.8x' % eva)
+        except Exception, e:
+            if vw.verbose:
+                vw.vprint(" ... failed: %r" % e)
