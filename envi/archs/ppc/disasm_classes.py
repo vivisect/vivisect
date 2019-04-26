@@ -302,6 +302,12 @@ class PpcSImm16Oper(PpcSImmOper):
     def __init__(self, val, va=0, tsize=4):
         PpcSImmOper.__init__(self, val, va, 16, tsize)
 
+class PpcSImm3Oper(PpcSImmOper):
+    ''' Signed Immediate operand. '''
+    def __init__(self, val, va=0, tsize=4):
+        val = e_bits.signed(val * 4, 2)
+        PpcSImmOper.__init__(self, val, va, tsize)
+
 class PpcUImmOper(PpcImmOper):
     ''' Unsigned Immediate operand. '''
     def __init__(self, val, va=0, tsize=4):
@@ -324,12 +330,6 @@ class PpcUImm3Oper(PpcUImmOper):
     def __init__(self, val, va=0, tsize=4):
         val *= 4
         PpcUimmOper.__init__(self, val, va, tsize)
-
-class PpcSImm3Oper(PpcSImmOper):
-    ''' Signed Immediate operand. '''
-    def __init__(self, val, va=0, tsize=4):
-        val = e_bits.signed(val * 4, 2)
-        PpcSImmOper.__init__(self, val, va, tsize)
 
 
 class PpcMemOper(envi.DerefOper):
