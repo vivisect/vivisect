@@ -968,10 +968,10 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
                 # FIXME something is just not right about this...
                 bytez = self.readMemory(va, 16)
                 print("Invalid Instruct Attempt At:", hex(va), bytez.encode("hex"))
-                raise InvalidLocation(va,msg)
+                raise InvalidLocation(va, msg)
             except Exception as msg:
                 traceback.print_exc()
-                raise InvalidLocation(va,msg)
+                raise InvalidLocation(va, msg)
 
         # Add our opcode location first (op flags become ldata)
         loc = self.addLocation(va, op.size, LOC_OP, op.iflags)
@@ -1003,7 +1003,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
                         tabdone[rdest] = True
                         self.addXref(va, rdest, REF_CODE, envi.BR_COND)
                         if self.getName(rdest) is None:
-                            self.makeName(rdest, "case%d_%.8x" % (i,rdest))
+                            self.makeName(rdest, "case%d_%.8x" % (i, rdest))
 
                     ptrbase += self.psize
                     if len(self.getXrefsTo(ptrbase)):
@@ -1536,7 +1536,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         it recommends or None if a location is already there or it has
         no idea.
         """
-        if self.getLocation(va) != None:
+        if self.getLocation(va) is not None:
             return None
         if self.isProbablyString(va):
             return LOC_STRING
@@ -1557,20 +1557,20 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
     def markDeadData(self, start, end):
         """
-        mark a virtual range as dead code. 
+        mark a virtual range as dead code.
         """
         self.setMeta("deaddata:0x%08x" % start, (start, end))
 
     def unmarkDeadData(self, start, end):
         """
         unmark a virtual range as dead code
-        """ 
+        """
         self._dead_data.remove( (start,end) )
 
     def _mcb_deaddata(self, name, value):
         """
-        callback from setMeta with namespace 
-        deaddata: 
+        callback from setMeta with namespace
+        deaddata:
         that indicates a range has been added
         as dead data.
         """
@@ -1579,13 +1579,13 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
     def isDeadData(self, va):
         """
-        Return boolean indicating va is in 
+        Return boolean indicating va is in
         a dead data range.
         """
         for start,end in self._dead_data:
             if va >= start and va <= end:
                 return True
-        return False 
+        return False
 
     def initMeta(self, name, value):
         """
@@ -1631,7 +1631,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         psize = self.psize
 
         # Get and document the xrefs created for the new location
-        if tova == None:
+        if tova is None:
             tova = self.castPointer(va)
 
         self.addXref(va, tova, REF_PTR)

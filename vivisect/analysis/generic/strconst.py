@@ -1,4 +1,3 @@
-import envi
 from vivisect.const import *
 
 

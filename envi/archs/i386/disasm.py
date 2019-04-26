@@ -62,42 +62,42 @@ scale_lookup = (1, 2, 4, 8)
 # A set of instructions that are considered privileged (mark with IF_PRIV)
 # FIXME this should be part of the opcdode tables!
 priv_lookup = {
-    "int":True,
-    "in":True,
-    "out":True,
-    "insb":True,
-    "outsb":True,
-    "insd":True,
-    "outsd":True,
-    "vmcall":True,
-    "vmlaunch":True,
-    "vmresume":True,
-    "vmxoff":True,
-    "vmread":True,
-    "vmwrite":True,
-    "rsm":True,
-    "lar":True,
-    "lsl":True,
-    "clts":True,
-    "invd":True,
-    "wbinvd":True,
-    "wrmsr":True,
-    "rdmsr":True,
-    "sysexit":True,
-    "lgdt":True,
-    "lidt":True,
-    "lmsw":True,
-    "monitor":True,
-    "mwait":True,
-    "vmclear":True,
-    "vmptrld":True,
-    "vmptrst":True,
-    "vmxon":True,
+    "int": True,
+    "in": True,
+    "out": True,
+    "insb": True,
+    "outsb": True,
+    "insd": True,
+    "outsd": True,
+    "vmcall": True,
+    "vmlaunch": True,
+    "vmresume": True,
+    "vmxoff": True,
+    "vmread": True,
+    "vmwrite": True,
+    "rsm": True,
+    "lar": True,
+    "lsl": True,
+    "clts": True,
+    "invd": True,
+    "wbinvd": True,
+    "wrmsr": True,
+    "rdmsr": True,
+    "sysexit": True,
+    "lgdt": True,
+    "lidt": True,
+    "lmsw": True,
+    "monitor": True,
+    "mwait": True,
+    "vmclear": True,
+    "vmptrld": True,
+    "vmptrst": True,
+    "vmxon": True,
 }
 
 # Map of codes to their respective envi flags
 iflag_lookup = {
-    opcode86.INS_RET: envi.IF_NOFALL|envi.IF_RET,
+    opcode86.INS_RET: envi.IF_NOFALL | envi.IF_RET,
     opcode86.INS_CALL: envi.IF_CALL,
     opcode86.INS_HALT: envi.IF_NOFALL,
     opcode86.INS_DEBUG: envi.IF_NOFALL,
@@ -688,8 +688,10 @@ class i386Disasm:
 
         if mod == 3: # Easy one, just a reg
             # FIXME only use self.byteRegOffset in 32 bit mode, NOT 64 bit...
-            if opersize == 1: rm = self.byteRegOffset(rm, prefixes=prefixes)
-            elif opersize == 2: rm += RMETA_LOW16
+            if opersize == 1:
+                rm = self.byteRegOffset(rm, prefixes=prefixes)
+            elif opersize == 2:
+                rm += RMETA_LOW16
             #print "OPERSIZE",opersize,rm
             return (size, i386RegOper(rm+regbase, opersize))
 
@@ -704,8 +706,10 @@ class i386Disasm:
             elif rm == 4:
                 sibsize, scale, index, base, imm = self.parse_sib(bytez, offset+size, mod, prefixes=prefixes)
                 size += sibsize
-                if base != None: base += regbase    # Adjust for different register addressing modes
-                if index != None: index += regbase    # Adjust for different register addressing modes
+                if base is not None:
+                    base += regbase    # Adjust for different register addressing modes
+                if index is not None:
+                    index += regbase    # Adjust for different register addressing modes
                 oper = i386SibOper(opersize, reg=base, imm=imm, index=index, scale=scale_lookup[scale])
                 return (size, oper)
 
