@@ -53,11 +53,11 @@ class VivCli(e_cli.EnviCli, vivisect.VivWorkspace):
         self.addScriptPathEnvVar('VIV_SCRIPT_PATH')
 
     def getExpressionLocals(self):
-        l = e_cli.EnviCli.getExpressionLocals(self)
-        l['vw'] = self
-        l['vprint'] = self.vprint
-        l['vivisect'] = vivisect
-        return l
+        locs = e_cli.EnviCli.getExpressionLocals(self)
+        locs['vw'] = self
+        locs['vprint'] = self.vprint
+        locs['vivisect'] = vivisect
+        return locs
 
     def do_report(self, line):
         """
@@ -67,7 +67,7 @@ class VivCli(e_cli.EnviCli, vivisect.VivWorkspace):
         """
         if not line:
             self.vprint("Report Modules")
-            for descr,modname in viv_reports.listReportModules():
+            for descr, modname in viv_reports.listReportModules():
                 self.vprint("%32s %s" % (modname, descr))
             return
 
@@ -562,7 +562,7 @@ class VivCli(e_cli.EnviCli, vivisect.VivWorkspace):
         argv = e_cli.splitargs(line)
         try:
             opts,args = getopt(argv, "csup:S:")
-        except Exception, e:
+        except Exception as e:
             return self.do_help("make")
 
         if len(args) != 1 or len(opts) != 1:
@@ -601,7 +601,7 @@ class VivCli(e_cli.EnviCli, vivisect.VivWorkspace):
         """
         Create an emulator for the given function, and drop into a vdb
         interface to step through the code.
-        
+
         (vdb CLI will appear in controlling terminal...)
 
         Usage: emulate <va_expr>
@@ -633,7 +633,7 @@ class VivCli(e_cli.EnviCli, vivisect.VivWorkspace):
 
         try:
             fva = self.parseExpression(argv[0])
-        except Exception, e:
+        except Exception as e:
             self.vprint("Invalid Address Expression: %s" % argv[0])
             return
 

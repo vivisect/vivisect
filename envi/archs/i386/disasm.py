@@ -834,21 +834,21 @@ class i386Disasm:
 
             obyte = ord(bytez[offset])
 
-            #print "OBYTE",hex(obyte)
+            # print("OBYTE", hex(obyte))
             if (obyte > tabdesc[4]):
-                #print "Jumping To Overflow Table:", tabdesc[5]
+                # print "Jumping To Overflow Table:", tabdesc[5]
                 tabdesc = all_tables[tabdesc[5]]
 
             tabidx = ((obyte - tabdesc[3]) >> tabdesc[1]) & tabdesc[2]
-            #print "TABIDX: %d" % tabidx
+            # print("TABIDX: %d" % tabidx)
             opdesc = tabdesc[0][tabidx]
-            #print 'OPDESC: %s' % repr(opdesc)
+            # print('OPDESC: %s' % repr(opdesc))
 
             # Hunt down multi-byte opcodes
             nexttable = opdesc[0]
-            #print "NEXT",nexttable,hex(obyte)
+            # print("NEXT",nexttable,hex(obyte))
             if nexttable != 0: # If we have a sub-table specified, use it.
-                #print "Multi-Byte Next Hop For",hex(obyte),opdesc[0]
+                # print "Multi-Byte Next Hop For",hex(obyte),opdesc[0]
                 tabdesc = all_tables[nexttable]
 
                 # In the case of 66 0f, the next table is *already* assuming we ate

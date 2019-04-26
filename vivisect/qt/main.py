@@ -116,10 +116,10 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
             self.vw.vprint('Location not found!')
         else:
             name = loc_type_names.get(loctup[L_LTYPE], 'Unspecified')
-            self.vw.vprint('VA: %s' % hex(loctup[L_VA]))
-            self.vw.vprint('Size: %d' % loctup[L_SIZE])
-            self.vw.vprint('Type: %s' % name)
-            self.vw.vprint('Info: %s' % str(loctup[L_TINFO]))
+            self.vw.vprint('\nVA: %s' % hex(loctup[L_VA]))
+            self.vw.vprint('    Size: %d' % loctup[L_SIZE])
+            self.vw.vprint('    Type: %s' % name)
+            self.vw.vprint('    Info: %s' % str(loctup[L_TINFO]))
             self.vw.vprint('')
 
     def setVaName(self, va, parent=None):
@@ -338,6 +338,9 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
         self.vqBuildDockWidget('VivSymbolikFuncPane', area=QtCore.Qt.TopDockWidgetArea)
 
     def _menuFileOpen(self):
+        # TODO: Add something to change the workspace storage name,
+        # and also to list the currently loaded files
+        # Right now it'll successively create storage files
         fname = getOpenFileName(self, 'Open...')
         if fname is None or not len(fname):
             return
