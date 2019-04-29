@@ -64,8 +64,8 @@ class PETests(unittest.TestCase):
     def test_string_locations(self):
         strRefs = self.vw_psexec.getLocations(ltype=viv_con.LOC_STRING)
         uniRefs = self.vw_psexec.getLocations(ltype=viv_con.LOC_UNI)
-        #self.assertEquals(len(strRefs), )
-        #self.assertEquals(len(uniRefs), )
+        # self.assertEquals(len(strRefs), )
+        # self.assertEquals(len(uniRefs), )
 
     def test_pointer_locations(self):
         pass

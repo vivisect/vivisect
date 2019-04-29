@@ -673,7 +673,8 @@ def trackDynBranches(cfctx, op, vw, bflags, branches):
     if len(vw.getXrefsFrom(op.va)):
         return
 
-    if vw.verbose: print "Dynamic Branch found at 0x%x    %s" % (op.va, op)
+    if vw.verbose:
+        print("Dynamic Branch found at 0x%x    %s" % (op.va, op))
     vw.setVaSetRow('DynamicBranches', (op.va, repr(op), bflags))
 
 class VivCodeFlowContext(e_codeflow.CodeFlowContext):
@@ -701,7 +702,7 @@ class VivCodeFlowContext(e_codeflow.CodeFlowContext):
     def _cb_opcode(self, va, op, branches):
 
         loc = self._mem.getLocation(va)
-        if loc  == None: 
+        if loc is None:
 
             # dont code flow through import calls
             branches = [br for br in branches if not self._mem.isLocType(br[0],LOC_IMPORT)]

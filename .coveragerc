@@ -18,6 +18,7 @@ omit =
     */vivisect/tests/helpers.py
     */vivisect/tests/vivbins.py
     */vivisect/tests/samplecode.py
+    */vivisect/BP*
     */vtrace/tests/*
     */envi/test_*
     */envi/tests/*

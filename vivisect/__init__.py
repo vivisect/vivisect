@@ -1064,6 +1064,9 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
                         offset, _ = self.getByteDef(ref)
 
                         val = self.parseNumber(ref, o.tsize)
+                        # So we need the size check to avoid things like "aaaaa", maybe
+                        # but maybe if we do something like the tsize must be either the
+                        # target pointer size or in a set of them that the arch defines?
                         if (self.psize == o.tsize and self.isValidPointer(val)):
                             self.makePointer(ref, tova=val)
                         else:
