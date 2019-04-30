@@ -1,3 +1,5 @@
+# -*- coding: iso-8859-15 -*-
+
 import sys
 
 import envi
