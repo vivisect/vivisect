@@ -11249,6 +11249,9 @@ def buildOutput():
                 if mnem in ('ba', 'bca', 'bla', 'bcla',):
                     iflags.append('IF_ABS')
 
+            elif mnem.startswith('rf'):
+                iflags.append('envi.IF_RET | envi.IF_NOFALL')
+
             if not len(iflags):
                 iflags.append("IF_NONE")
 
