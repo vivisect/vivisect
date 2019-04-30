@@ -283,8 +283,18 @@ class PpcAbstractEmulator(PpcRegisterContext, envi.Emulator):
 
     ########################### Metric shit-ton of Branch Instructions #############################
     def i_b(self, op):
-        val = op.opers[OPER_DST].getOperValue(op, self)
+        '''
+        Branch!  no frills.
+        '''
+        val = self.getOperValue(op, OPER_DST)
         return val
+
+    def i_bl(self, op):
+        '''
+        branch with link, the basic CALL instruction
+        '''
+        self.setRegister(REG_LR, op.va + 4)
+        return self.getOperValue(op, 0)
 
     def i_blr(self, op):
         '''
@@ -300,30 +310,69 @@ class PpcAbstractEmulator(PpcRegisterContext, envi.Emulator):
 
 
     # conditional branches....
-    def i_bc(self, op):
-        val = op.opers[OPER_DST].getOperValue(op, self)
-        return val
+    def i_bc(self, op, aa=False, lk=False, tgtreg=None):
+        bo = self.getOperValue(op, 0)
+        bi = self.getOperValue(op, 1)
+        nextva = op.va + len(op)
+        ctr = self.getRegister(REG_CTR)
+        cr = self.getRegister(REG_CR)
+
+        # if we provide a tgtreg, it's an  instruction-inherent register (eg. bclr)
+        if tgtreg is None:
+            tgt = self.getOperValue(op, 2)
+        else:
+            tgt = self.getRegister(tgtreg)
+
+        bo_0 = bo & 0x10
+        bo_1 = bo & 0x8
+        bo_2 = bo & 0x4
+        bo_3 = bo & 0x2
+        crmask = 1 << (32 - bi)
+
+        # if tgtreg is REG_CTR, we can't decrement it...
+        if not bo_2 and tgtreg != REG_CTR:
+            ctr -= 1
+            self.setRegister(REG_CTR, ctr)
+
+        # ctr_ok ← BO2 | ((CTRm:63 ≠ 0) ⊕ BO3)
+        ctr_ok = bool(bo_2)
+        if not ctr_ok:
+            if (ctr & e_bits.u_maxes[self.psize]) != 0 and not bo_3: ctr_ok = True
+            elif (not (ctr & e_bits.u_maxes[self.psize]) != 0) and bo_3: ctr_ok = True
+
+        # cond_ok = BO0 | (CRBI+32 ≡ BO1)
+        cond_ok = bo_0 or (bool(cr & crmask) == bool(bo_1))
+
+        # always update LR, regardless of the conditions.  odd.
+        if lk:
+            self.setRegister(REG_LR, nextva)
+
+        # if we don't meet the requirements, bail
+        if not (ctr_ok and cond_ok):
+            return
+
+        # if we meet the required conditions:
+        if not aa:  # if *not* ABSOLUTE address
+            tgt += nextva
+
+        return tgt
 
     def i_bca(self, op):
-        val = op.opers[OPER_DST].getOperValue(op, self)
-        return val
+        return self.i_bc(op, aa=True)
 
     def i_bcl(self, op):
-        val = op.opers[OPER_DST].getOperValue(op, self)
-        return val
+        return self.i_bc(op, lk=True)
 
     def i_bcla(self, op):
-        val = op.opers[OPER_DST].getOperValue(op, self)
-        return val
+        return self.i_bc(op, aa=True, lk=True)
 
     def i_bclr(self, op):
-        val = op.opers[OPER_DST].getOperValue(op, self)
-        return val
+        return self.i_bc(op, aa=True, lk=True, tgtreg=REG_LR)
 
     def i_bcctr(self, op):
-        val = op.opers[OPER_DST].getOperValue(op, self)
-        return val
+        return self.i_bc(op, aa=True, lk=True, tgtreg=REG_CTR)
 
+    # bc breakdowns:  decrement, zero/not-zero, true/false, w/link, etc...
     def i_bdnzf(self, op):
         if len(op.opers) != 2:
             print("%s doesn't have 2 opers: %r" % (op.mnem, op.opers))
@@ -403,30 +452,24 @@ class PpcAbstractEmulator(PpcRegisterContext, envi.Emulator):
         return self.getOperValue(op, 1)
 
     def i_bdnz(self, op):
-        if len(op.opers) != 2:
-            print("%s doesn't have 2 opers: %r" % (op.mnem, op.opers))
-
         ctr = self.getRegister(REG_CTR)
         ctr -= 1
         self.setRegister(REG_CTR, ctr)
         if ctr == 0:
             return
 
-        return self.getOperValue(op, 1)
+        return self.getOperValue(op, 0)
 
     def i_bdz(self, op):
-        if len(op.opers) != 2:
-            print("%s doesn't have 2 opers: %r" % (op.mnem, op.opers))
-
         ctr = self.getRegister(REG_CTR)
         ctr -= 1
         self.setRegister(REG_CTR, ctr)
         if ctr != 0:
             return
 
-        return self.getOperValue(op, 1)
+        return self.getOperValue(op, 0)
 
-
+    # with link...
     def i_bdnzfl(self, op):
         if len(op.opers) != 2:
             print("%s doesn't have 2 opers: %r" % (op.mnem, op.opers))
@@ -440,7 +483,7 @@ class PpcAbstractEmulator(PpcRegisterContext, envi.Emulator):
         if self.getOperValue(op, 0):
             return
 
-        self.doPush(op.va + 4)
+        self.setRegister(REG_LR, op.va + 4)
         return self.getOperValue(op, 1)
            
     def i_bdzfl(self, op):
@@ -456,7 +499,7 @@ class PpcAbstractEmulator(PpcRegisterContext, envi.Emulator):
         if self.getOperValue(op, 0):
             return
 
-        self.doPush(op.va + 4)
+        self.setRegister(REG_LR, op.va + 4)
         return self.getOperValue(op, 1)
 
     def i_bfl(self, op):
@@ -466,7 +509,7 @@ class PpcAbstractEmulator(PpcRegisterContext, envi.Emulator):
         if self.getOperValue(op, 0):
             return
 
-        self.doPush(op.va + 4)
+        self.setRegister(REG_LR, op.va + 4)
         return self.getOperValue(op, 1)
 
     def i_bdnztl(self, op):
@@ -482,7 +525,7 @@ class PpcAbstractEmulator(PpcRegisterContext, envi.Emulator):
         if not self.getOperValue(op, 0):
             return
 
-        self.doPush(op.va + 4)
+        self.setRegister(REG_LR, op.va + 4)
         return self.getOperValue(op, 1)
            
     def i_bdztl(self, op):
@@ -498,7 +541,7 @@ class PpcAbstractEmulator(PpcRegisterContext, envi.Emulator):
         if not self.getOperValue(op, 0):
             return
 
-        self.doPush(op.va + 4)
+        self.setRegister(REG_LR, op.va + 4)
         return self.getOperValue(op, 1)
            
     def i_btl(self, op):
@@ -508,7 +551,7 @@ class PpcAbstractEmulator(PpcRegisterContext, envi.Emulator):
         if not self.getOperValue(op, 0):
             return
 
-        self.doPush(op.va + 4)
+        self.setRegister(REG_LR, op.va + 4)
         return self.getOperValue(op, 1)
 
     def i_bdnzl(self, op):
@@ -521,7 +564,7 @@ class PpcAbstractEmulator(PpcRegisterContext, envi.Emulator):
         if ctr == 0:
             return
 
-        self.doPush(op.va + 4)
+        self.setRegister(REG_LR, op.va + 4)
         return self.getOperValue(op, 1)
 
     def i_bdzl(self, op):
@@ -534,13 +577,9 @@ class PpcAbstractEmulator(PpcRegisterContext, envi.Emulator):
         if ctr != 0:
             return
 
-        self.doPush(op.va + 4)
+        self.setRegister(REG_LR, op.va + 4)
         return self.getOperValue(op, 1)
 
-
-    def i_bl(self, op):
-        self.doPush(op.va + 4)
-        return self.getOperValue(op, 0)
 
     i_bdnzfa = i_bdnzf
     i_bdzfa = i_bdzf
@@ -596,7 +635,7 @@ class PpcAbstractEmulator(PpcRegisterContext, envi.Emulator):
         if self.getOperValue(op, 0):
             return
 
-        return self.getOperValue(op, 1)
+        return self.getRegister(REG_LR)
 
     def i_bdnztlr(self, op):
         if len(op.opers) != 2:
@@ -632,7 +671,7 @@ class PpcAbstractEmulator(PpcRegisterContext, envi.Emulator):
         if not self.getOperValue(op, 0):
             return
 
-        return self.getOperValue(op, 1)
+        return self.getRegister(REG_LR)
 
     def i_bdnzlr(self, op):
         if len(op.opers) != 2:
@@ -672,8 +711,9 @@ class PpcAbstractEmulator(PpcRegisterContext, envi.Emulator):
         if self.getOperValue(op, 0):
             return
 
-        self.doPush(op.va + 4)
-        return self.getOperValue(op, 1)
+        tgt = self.getRegister(REG_LR)
+        self.setRegister(REG_LR, op.va + 4)
+        return tgt
            
     def i_bdzflrl(self, op):
         if len(op.opers) != 2:
@@ -688,18 +728,17 @@ class PpcAbstractEmulator(PpcRegisterContext, envi.Emulator):
         if self.getOperValue(op, 0):
             return
 
-        self.doPush(op.va + 4)
-        return self.getOperValue(op, 1)
+        tgt = self.getRegister(REG_LR)
+        self.setRegister(REG_LR, op.va + 4)
+        return tgt
 
     def i_bflrl(self, op):
-        if len(op.opers) != 2:
-            print("%s doesn't have 2 opers: %r" % (op.mnem, op.opers))
-
         if self.getOperValue(op, 0):
             return
 
-        self.doPush(op.va + 4)
-        return self.getOperValue(op, 1)
+        tgt = self.getRegister(REG_LR)
+        self.setRegister(REG_LR, op.va + 4)
+        return tgt
 
     def i_bdnztlrl(self, op):
         if len(op.opers) != 2:
@@ -714,8 +753,9 @@ class PpcAbstractEmulator(PpcRegisterContext, envi.Emulator):
         if not self.getOperValue(op, 0):
             return
 
-        self.doPush(op.va + 4)
-        return self.getOperValue(op, 1)
+        tgt = self.getRegister(REG_LR)
+        self.setRegister(REG_LR, op.va + 4)
+        return tgt
            
     def i_bdztlrl(self, op):
         if len(op.opers) != 2:
@@ -730,18 +770,17 @@ class PpcAbstractEmulator(PpcRegisterContext, envi.Emulator):
         if not self.getOperValue(op, 0):
             return
 
-        self.doPush(op.va + 4)
-        return self.getOperValue(op, 1)
+        tgt = self.getRegister(REG_LR)
+        self.setRegister(REG_LR, op.va + 4)
+        return tgt
            
     def i_btlrl(self, op):
-        if len(op.opers) != 2:
-            print("%s doesn't have 2 opers: %r" % (op.mnem, op.opers))
-
         if not self.getOperValue(op, 0):
             return
 
-        self.doPush(op.va + 4)
-        return self.getOperValue(op, 1)
+        tgt = self.getRegister(REG_LR)
+        self.setRegister(REG_LR, op.va + 4)
+        return tgt
 
     def i_bdnzlrl(self, op):
         if len(op.opers) != 2:
@@ -753,8 +792,9 @@ class PpcAbstractEmulator(PpcRegisterContext, envi.Emulator):
         if ctr == 0:
             return
 
-        self.doPush(op.va + 4)
-        return self.getOperValue(op, 1)
+        tgt = self.getRegister(REG_LR)
+        self.setRegister(REG_LR, op.va + 4)
+        return tgt
 
     def i_bdzlrl(self, op):
         if len(op.opers) != 2:
@@ -766,13 +806,15 @@ class PpcAbstractEmulator(PpcRegisterContext, envi.Emulator):
         if ctr != 0:
             return
 
-        self.doPush(op.va + 4)
-        return self.getOperValue(op, 1)
+        tgt = self.getRegister(REG_LR)
+        self.setRegister(REG_LR, op.va + 4)
+        return tgt
 
 
     def i_blrl(self, op):
-        self.doPush(op.va + 4)
-        return self.getOperValue(op, 0)
+        tgt = self.getRegister(REG_LR)
+        self.setRegister(REG_LR, op.va + 4)
+        return tgt
 
     i_bdnzfa = i_bdnzflr
     i_bdzfa = i_bdzflr
