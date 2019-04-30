@@ -1,5 +1,5 @@
 # this analysis module is for blobs and ihex files, and attempts to identify boot information as understood by a Boot Assist Module (BAM) found in many of the modern PPC/VLE processors.
-# for reference, this module uses information from the "MPC5674F Microcontroller Reference Manual, rev 7" from NXP.
+# for reference, this module uses information from the "MPC5674F Microcontroller Reference Manual, rev 7" from NXP, as well as "MPC5646C Microcontroller Reference Manual, rev. 5".
 # we won't mimic the behavior exactly, but rather use BAM information to identify entry points
 
 
@@ -23,7 +23,7 @@ def analyze(vw):
     vw.addStructureModule('ppc', 'vstruct.defs.ppc')
 
     # from NXP MPC5674
-    for baseaddr in 0x0000, 0x4000, 0x10000, 0x1C000, 0x20000, 0x30000:
+    for baseaddr in 0x0000, 0x4000, 0x8000, 0x10000, 0x18000, 0x1C000, 0x20000, 0x30000:
         try:
             if vw.verbose > 1: vw.vprint("analyzing: 0x%x : 0x%x" % (baseaddr, rchw))
 
