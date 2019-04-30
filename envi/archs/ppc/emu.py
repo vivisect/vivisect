@@ -81,20 +81,16 @@ def ROTL32(x, y):
     x |= (x<<32)
     return x << 7
     
-class PpcEmulator(PpcModule, PpcRegisterContext, envi.Emulator):
+class PpcAbstractEmulator(PpcRegisterContext, envi.Emulator):
 
     def __init__(self, archmod=None, psize=4):
         self.psize = psize
-        if archmod == None:
-            archmod = PpcModule()
         envi.Emulator.__init__(self, archmod=archmod)
                 
         PpcRegisterContext.__init__(self)
-        PpcModule.__init__(self)
 
         self.addCallingConvention("ppccall", ppccall)
 
-    
     def undefFlags(self):
         """
         Used in PDE.
@@ -1999,6 +1995,22 @@ e.setMemoryObject(m)
 m.addMemoryMap(0x0000,0777,"memmap1", "\xff"*1024)
 
 """
+
+class Ppc64Emulator(Ppc64Module, PpcAbstractEmulator):
+    def __init__(self, archmod=None, psize=8):
+        Ppc64AbstractEmulator.__init__(self, archmod=Ppc64Module(), psize=8)
+        PpcModule.__init__(self)
+
+class PpcVleEmulator(PpcVleModule, PpcAbstractEmulator):
+    def __init__(self, archmod=None, psize=8):
+        PpcVleAbstractEmulator.__init__(self, archmod=VleModule(), psize=4)
+        PpcModule.__init__(self)
+
+class PpcSpeEmulator(PpcSpeModule, PpcAbstractEmulator):
+    def __init__(self, archmod=None, psize=4):
+        PpcAbstractEmulator.__init__(self, archmod=PpcSpeModule(), psize=4)
+        PpcSpeModule.__init__(self)
+
 
 
 

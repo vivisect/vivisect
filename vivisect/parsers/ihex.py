@@ -9,8 +9,9 @@ archcalls = {
     'i386':'cdecl',
     'amd64':'sysvamd64call',
     'arm':'armcall',
-    'ppc':'ppccall',
-    'vle':'ppccall',
+    'ppc-spe':'ppccall',
+    'ppc-vle':'ppccall',
+    'ppc64-altivec':'ppccall',
 }
 
 def parseFile(vw, filename):
@@ -28,7 +29,7 @@ def parseFile(vw, filename):
     vw.setMeta('Architecture', arch)
     vw.setMeta('Platform','Unknown')
     vw.setMeta('Format','ihex')
-    vw.setEndian(bigend)
+    vw.setMeta('bigend', bigend)
 
     vw.setMeta('DefaultCall', archcalls.get(arch,'unknown'))
 

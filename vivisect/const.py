@@ -71,7 +71,9 @@ VWE_CHAT            = 40 # (username, message)
 VWE_SYMHINT         = 41 # (va, idx, hint)
 VWE_AUTOANALFIN     = 42 # (starttime, endtime)
 
-VWE_MAX             = 43
+VWE_ENDIAN          = 43 # endian
+
+VWE_MAX             = 44
 
 # Constants for vivisect "transient" events which flow through
 # the event subsystem but are not recorded to the workspace.

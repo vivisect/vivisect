@@ -271,6 +271,12 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             return []
         return list(dl)
 
+    def setEndian(self, endian):
+        '''
+        Set the Endianness for the workspace from this point on.
+        '''
+        self._fireEvent(VWE_ENDIAN, endian)
+
     def setComment(self, va, comment, check=False):
         '''
         Set the humon readable comment for a given virtual.

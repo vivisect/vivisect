@@ -11,10 +11,10 @@ from envi.archs.ppc.disasm import *
 import vle
 
 
-class PpcModule(envi.ArchitectureModule):
+class PpcSpeModule(envi.ArchitectureModule):
 
     def __init__(self):
-        envi.ArchitectureModule.__init__(self, 'ppc')
+        envi.ArchitectureModule.__init__(self, 'ppc-spe')
         self.maps = tuple()
         self._arch_dis = PpcDisasm()
         self._arch_vle_dis = vle.VleDisasm()
@@ -75,9 +75,9 @@ class PpcModule(envi.ArchitectureModule):
                 return True
         return False
 
-class VleModule(PpcModule):
+class PpcVleModule(PpcSpeModule):
     def __init__(self):
-        envi.ArchitectureModule.__init__(self, 'vle')
+        envi.ArchitectureModule.__init__(self, 'ppc-vle')
         self._arch_dis = vle.VleDisasm()
         
     def isVle(self, va):
@@ -85,6 +85,18 @@ class VleModule(PpcModule):
 
     def archParseOpcode(self, bytes, offset=0, va=0):
         return self._arch_dis.disasm(bytes, offset, va)
+
+class Ppc64Module(PpcSpeModule):
+    def __init__(self):
+        envi.ArchitectureModule.__init__(self, 'ppc64-altivec')
+        self._arch_dis = PpcDisasm(options=CAT_ALTIVEC)
+        
+    def isVle(self, va):
+        return False
+
+    def archParseOpcode(self, bytes, offset=0, va=0):
+        return self._arch_dis.disasm(bytes, offset, va)
+
 
 # NOTE: This one must be after the definition of PpcModule
 from envi.archs.ppc.emu import *

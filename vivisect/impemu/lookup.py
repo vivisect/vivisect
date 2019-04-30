@@ -12,8 +12,9 @@ import vivisect.impemu.platarch.windows as v_i_windows
 workspace_emus  = {
     'h8' :v_i_h8.H8WorkspaceEmulator,
     'arm' :v_i_arm.ArmWorkspaceEmulator,
-    'ppc' :v_i_ppc.PpcWorkspaceEmulator,
-    'vle' :v_i_ppc.VleWorkspaceEmulator,
+    'ppc-spe' :v_i_ppc.PpcSpeWorkspaceEmulator,
+    'ppc64-altivec' :v_i_ppc.Ppc64WorkspaceEmulator,
+    'ppc-vle' :v_i_ppc.PpcVleWorkspaceEmulator,
     'i386'  :v_i_i386.i386WorkspaceEmulator,
     'amd64' :v_i_amd64.Amd64WorkspaceEmulator,
     'msp430' :v_i_msp430.Msp430WorkspaceEmulator,

@@ -11,7 +11,7 @@ from const import *
 from disasm_classes import *
 
 class PpcDisasm:
-    def __init__(self, endian=ENDIAN_MSB, options=CAT_NONE|CAT_SP):  # FIXME: options needs to be paired down into a few common bitmasks, like CAT_ALTIVEC, etc...  right now this causes collisions, so first in list wins...
+    def __init__(self, endian=ENDIAN_MSB, options=CAT_SPE):  # FIXME: options needs to be paired down into a few common bitmasks, like CAT_ALTIVEC, etc...  right now this causes collisions, so first in list wins...
         # any speedy stuff here
         if options == 0:
             options = CAT_NONE

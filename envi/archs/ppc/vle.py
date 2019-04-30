@@ -493,7 +493,7 @@ def find_ppc(buf, offset, endian=True, va=0):
 
             opers = handler(types, data, va)
 
-            iflags |= envi.ARCH_VLE
+            iflags |= envi.ARCH_PPCVLE
             return PpcOpcode(va, 0, mnem, size=size, operands=opers, iflags=iflags)
 
 
@@ -515,7 +515,7 @@ def find_e(buf, offset, endian=True, va=0):
 
             opers = handler(types, data, va)
 
-            iflags |= envi.ARCH_VLE
+            iflags |= envi.ARCH_PPCVLE
             return PpcOpcode(va, 0, mnem, size=size, operands=opers, iflags=iflags)
 
 
@@ -571,7 +571,7 @@ def find_se(buf, offset, endian=True, va=0):
 
                 k += 1
 
-            iflags |= envi.ARCH_VLE
+            iflags |= envi.ARCH_PPCVLE
             return PpcOpcode(va, 0, mnem, size=2, operands=opers, iflags=iflags)
 
 class VleDisasm:

@@ -18,7 +18,8 @@ ARCH_THUMB2      = 5 << 16
 ARCH_MSP430      = 6 << 16
 ARCH_H8          = 7 << 16
 ARCH_PPC         = 8 << 16
-ARCH_VLE         = 9 << 16
+ARCH_PPC64       = 9 << 16
+ARCH_PPCVLE      = 10 << 16
 ARCH_MASK        = 0xffff0000   # Masked into IF_FOO and BR_FOO values
 
 arch_names = {
@@ -30,10 +31,12 @@ arch_names = {
     ARCH_THUMB2:    'thumb2',
     ARCH_MSP430:    'msp430',
     ARCH_H8:        'h8',
-    ARCH_PPC:       'ppc',
-    ARCH_VLE:       'vle',
+    ARCH_PPC:       'ppc-spe',
+    ARCH_PPC64:     'ppc64-altive',
+    ARCH_PPCVLE:    'ppc-vle',
 }
 
+# used by command line config
 arch_by_name = {
     'default':  ARCH_DEFAULT,
     'i386':     ARCH_I386,
@@ -46,7 +49,12 @@ arch_by_name = {
     'msp430':   ARCH_MSP430,
     'h8':       ARCH_H8,
     'ppc':      ARCH_PPC,
-    'vle':      ARCH_VLE,
+    'ppc-spe':  ARCH_PPC,
+    'ppc-vle':  ARCH_PPCVLE,
+    'vle':      ARCH_PPCVLE,
+    'ppc64':    ARCH_PPC64,
+    'altivec':  ARCH_PPC64,
+    'ppc64-altivec': ARCH_PPC64,
 }
 
 # Instruction flags (The first 8 bits are reserved for arch independant use)
@@ -1365,13 +1373,17 @@ def getArchModule(name=None):
         import envi.archs.h8 as e_h8
         return e_h8.H8Module()
 
-    elif name in ( 'ppc', 'ppcvle' ):
+    elif name in ( 'ppc', 'ppc-spe', 'ppcspe', 'spe', 'mpc56xx' ):
         import envi.archs.ppc as e_ppc
-        return e_ppc.PpcModule()
+        return e_ppc.PpcSpeModule()
 
-    elif name in ( 'vle', ):
+    elif name in ( 'ppc64', 'ppc-altivec', 'ppcaltivec', 'altivec' ):
         import envi.archs.ppc as e_ppc
-        return e_ppc.VleModule()
+        return e_ppc.Ppc64Module()
+
+    elif name in ( 'vle', 'ppc-vle', 'ppcvle'):
+        import envi.archs.ppc as e_ppc
+        return e_ppc.PpcVleModule()
 
     else:
         raise ArchNotImplemented(name)
@@ -1399,8 +1411,9 @@ def getArchModules(default=ARCH_DEFAULT):
     archs.append( e_thumb16.Thumb2Module() )
     archs.append( e_msp430.Msp430Module() )
     archs.append( e_h8.H8Module() )
-    archs.append( e_ppc.PpcModule() )
-    archs.append( e_ppc.VleModule() )
+    archs.append( e_ppc.PpcSpeModule() )
+    archs.append( e_ppc.Ppc64Module() )
+    archs.append( e_ppc.PpcVleModule() )
 
     # Set the default module ( or None )
     archs[ ARCH_DEFAULT ] = archs[ default >> 16 ]
