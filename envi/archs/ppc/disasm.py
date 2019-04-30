@@ -251,9 +251,13 @@ def form_B(va, ival, operands, iflags):
     if len(opvals) == 3:
         opers.append(PpcImmOper(opvals.pop(0), va))
 
-    opers.append(PpcCBRegOper(opvals[0], va))
+    if len(opvals) == 2:
+        opers.append(PpcCBRegOper(opvals[0], va))
+        tgt = opvals[1] << 2
+    
+    if len(opvals) == 1:    # eg. bdnz doesn't have a BI operand
+        tgt = opvals[0] << 2
 
-    tgt = opvals[1] << 2
     if iflags & IF_ABS:
         opers.append(PpcUImmOper(tgt, va))
     else:

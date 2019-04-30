@@ -161,13 +161,13 @@ class PpcRegOper(envi.RegisterOper):
 class PpcFRegOper(PpcRegOper):
     ''' Floating Point register operand.'''
     def __init__(self, reg, va=0, tsize=4):
-        reg += REG_IDX_FP
+        reg += REG_OFFSET_FLOAT
         PpcRegOper.__init__(self, reg, va, tsize)
         
 class PpcVRegOper(PpcRegOper):
     ''' Vector register operand.'''
     def __init__(self, reg, va=0, tsize=4):
-        reg += REG_IDX_VECTOR
+        reg += REG_OFFSET_VECTOR
         PpcRegOper.__init__(self, reg, va, tsize)
         
 class PpcCRegOper(PpcRegOper):
