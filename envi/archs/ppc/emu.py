@@ -1142,13 +1142,13 @@ class PpcAbstractEmulator(PpcRegisterContext, envi.Emulator):
         '''
         src1 = self.getOperValue(op, 1)
         src2 = self.getOperValue(op, 2) # FIXME: move signedness here instead of at decode
-        src2 <<= 16
-
         # PDE
-        if dst == None or src == None:
+        if src1 == None or src2 == None:
             self.undefFlags()
             op.opers[OPER_DST].setOperValue(op, self, None)
             return
+
+        src2 <<= 16
 
         result = src1 & src2
         self.setOperValue(op, 0, result)
@@ -1455,9 +1455,9 @@ class PpcAbstractEmulator(PpcRegisterContext, envi.Emulator):
 
     def i_lis(self, op):
         src = self.getOperValue(op, 1)
-        #self.setOperValue(op, 0, (src<<16))
+        self.setOperValue(op, 0, (src<<16))
         # technically this is incorrect, but since we disassemble wrong, we emulate wrong.
-        self.setOperValue(op, 0, (src))
+        #self.setOperValue(op, 0, (src))
 
     def i_rlwimi(self, op):
         n = self.getOperValue(op, 2) & 0x1f
@@ -1676,7 +1676,7 @@ class PpcAbstractEmulator(PpcRegisterContext, envi.Emulator):
             else:
                 self.setFlags(result, so)
 
-        self.setOperValue(op, 0, result)
+        self.setOperValue(op, 0, quotient)
 
     def i_divwu(self, op, oe=False):
         dividend = self.getOperValue(op, 1)
@@ -1703,7 +1703,7 @@ class PpcAbstractEmulator(PpcRegisterContext, envi.Emulator):
             else:
                 self.setFlags(result, so)
 
-        self.setOperValue(op, 0, result)
+        self.setOperValue(op, 0, quotient)
 
     def i_divwuo(self, op):
         return self.i_divwu(op, oe=True)
