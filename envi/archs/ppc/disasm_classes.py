@@ -178,12 +178,10 @@ class PpcCRegOper(PpcRegOper):
         self.field = field
         
     def render(self, mcanv, op, idx):
-        #rname = ppc_regs[self.reg][0]
         rname = "cr%d" % self.field
         mcanv.addNameText(rname, typename='cregisters')
 
     def repr(self, op):
-        #rname = ppc_regs[self.reg][0]
         rname = "cr%d" % self.field
         return rname
 
@@ -204,7 +202,6 @@ class PpcCBRegOper(PpcRegOper):
         self.bit = bit
         
     def render(self, mcanv, op, idx):
-        #rname = ppc_regs[self.reg][0]
         creg = self.bit / 4
         coff = self.bit % 4
         name = "cr%d" % (creg)
@@ -212,7 +209,6 @@ class PpcCBRegOper(PpcRegOper):
         mcanv.addNameText(rname, name=name, typename='cregisters')
 
     def repr(self, op):
-        #rname = ppc_regs[self.reg][0]
         creg = self.bit / 4
         coff = self.bit % 4
         rname = "cr%d.%s" % (creg, CRBITS[coff])

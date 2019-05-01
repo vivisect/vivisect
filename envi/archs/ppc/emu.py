@@ -41,7 +41,7 @@ INTVECTOR_4     = 0x0023
 
 class PpcCall(envi.CallingConvention):
     '''
-    Does not have shadow space like MSx64.
+    PowerPC Calling Convention.  
     '''
     arg_def = [(CC_REG, REG_R3 + x) for x in range(7)]
     arg_def.append((CC_STACK_INF, 8))
