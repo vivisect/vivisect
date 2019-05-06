@@ -11,7 +11,7 @@ from const import *
 from disasm_classes import *
 
 class PpcDisasm:
-    def __init__(self, endian=ENDIAN_MSB, options=CAT_SPE):  # FIXME: options needs to be paired down into a few common bitmasks, like CAT_ALTIVEC, etc...  right now this causes collisions, so first in list wins...
+    def __init__(self, endian=ENDIAN_MSB, options=CAT_SPE):
         # any speedy stuff here
         if options == 0:
             options = CAT_NONE
@@ -93,6 +93,55 @@ class PpcDisasm:
 # cmpi -> cmpwi
 # rlwinm -> clrlwi
 
+def simpleCMP(ival, mnem, opcode, opers, iflags):
+    print vars(opers[0])
+    l = opers[1]
+    opers.pop(1)
+
+    # if using CR0, it can be omitted
+    if opers[0].field == 0:
+        opers.pop(0)
+    
+    if l == 0:
+        return 'cmpw', INS_CMPWI, opers, iflags
+    return 'cmpd', INS_CMPDI, opers, iflags
+
+def simpleCMPI(ival, mnem, opcode, opers, iflags):
+    l = opers[1]
+    opers.pop(1)
+
+    # if using CR0, it can be omitted
+    if opers[0].field == 0:
+        opers.pop(0)
+    
+    if l == 0:
+        return 'cmpwi', INS_CMPWI, opers, iflags
+    return 'cmpdi', INS_CMPDI, opers, iflags
+
+def simpleCMPLI(ival, mnem, opcode, opers, iflags):
+    l = opers[1]
+    opers.pop(1)
+
+    # if using CR0, it can be omitted
+    if opers[0].field == 0:
+        opers.pop(0)
+    
+    if l == 0:
+        return 'cmplwi', INS_CMPWI, opers, iflags
+    return 'cmpldi', INS_CMPDI, opers, iflags
+
+def simpleCMPL(ival, mnem, opcode, opers, iflags):
+    l = opers[1]
+    opers.pop(1)
+
+    # if using CR0, it can be omitted
+    if opers[0].field == 0:
+        opers.pop(0)
+    
+    if l == 0:
+        return 'cmplw', INS_CMPWI, opers, iflags
+    return 'cmpld', INS_CMPDI, opers, iflags
+
 def simpleORI(ival, mnem, opcode, opers, iflags):
     if ival == 0x60000000:
         return 'nop', INS_NOP, tuple(), iflags
@@ -154,6 +203,10 @@ SIMPLIFIEDS = {
         INS_ORI     : simpleORI,
         INS_ADDI    : simpleADDI,
         INS_ADDIS   : simpleADDIS,
+        INS_CMP     : simpleCMP,
+        INS_CMPI    : simpleCMPI,
+        INS_CMPL    : simpleCMPL,
+        INS_CMPLI   : simpleCMPLI,
         INS_OR      : simpleOR,
         INS_NOR     : simpleNOR,
         INS_MTCRF   : simpleMTCRF,

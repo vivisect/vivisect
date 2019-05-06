@@ -31,19 +31,11 @@ MASK and ROTL32 have specifically been coded to allow the emulated instructions 
 directly to the EREF docs execution pseudocode.
 '''
 
-MCU_START       = 0x0000
-IV_EXT0         = 0x0003
-IV_TIMER0       = 0x000b
-IV_EXT1         = 0x0013
-IV_TIMER1       = 0x001b
-INTVECTOR_4     = 0x0023
-
-
 class PpcCall(envi.CallingConvention):
     '''
     PowerPC Calling Convention.  
     '''
-    arg_def = [(CC_REG, REG_R3 + x) for x in range(7)]
+    arg_def = [(CC_REG, REG_R3 + x) for x in range(8)]
     arg_def.append((CC_STACK_INF, 8))
     retaddr_def = (CC_STACK, 0)
     retval_def = (CC_REG, REG_R3)
@@ -844,16 +836,24 @@ class PpcAbstractEmulator(PpcRegisterContext, envi.Emulator):
         print "isync call: %r" % op
 
     ######################## arithmetic instructions ##########################
-    def i_cmpi(self, op):
+    def i_cmpwi(self, op, L=0): # FIXME: we may be able to simply use i_cmpw for this...
         # signed comparison for cmpi and cmp
-        L = self.getOperValue(op, 1)
-        rA = self.getOperValue(op, 2)
+        if len(op.opers) == 3:
+            cridx = op.opers[0].field
+            raidx = 1
+            rbidx = 2
+        else:
+            cridx = 0
+            raidx = 0
+            rbidx = 1
+
+        rA = self.getOperValue(op, raidx)
         if L==0:
             a = e_bits.signed(rA & 0xffffffff, 4)
         else:
             a = rA
-        b = e_bits.signed(self.getOperValue(op, 3), 2)
-        SO = self.getOperValue(op, 0) & FLAGS_SO
+        b = e_bits.signed(self.getOperValue(op, rbidx), 2)
+        SO = self.getRegister(REG_SO)
 
         if a < b:
             c = 8
@@ -861,17 +861,24 @@ class PpcAbstractEmulator(PpcRegisterContext, envi.Emulator):
             c = 4
         else:
             c = 2
-        # FIXME: what's SO? (it's the 1 bit)
 
-        self.setOperValue(op, 0, c)
+        self.setCr(cridx, c|SO)
 
-    def i_cmp(self, op):
+    def i_cmpw(self, op, L=0):
         # signed comparison for cmpli and cmpl
-        L = self.getOperValue(op, 1)
-        rA = self.getOperValue(op, 2)
-        rB = self.getOperValue(op, 3)
-        dsize = op.opers[2].tsize
-        ssize = op.opers[3].tsize
+        if len(op.opers) == 3:
+            cridx = op.opers[0].field
+            raidx = 1
+            rbidx = 2
+        else:
+            cridx = 0
+            raidx = 0
+            rbidx = 1
+
+        rA = self.getOperValue(op, raidx)
+        rB = self.getOperValue(op, rbidx)
+        dsize = op.opers[raidx].tsize
+        ssize = op.opers[rbidx].tsize
 
         if L==0:
             a = e_bits.signed(rA, dsize)
@@ -879,7 +886,7 @@ class PpcAbstractEmulator(PpcRegisterContext, envi.Emulator):
         else:
             a = rA
             b = rB
-        SO = self.getOperValue(op, 0) & FLAGS_SO
+        SO = self.getRegister(REG_SO)
 
         if a < b:
             c = 8
@@ -887,19 +894,24 @@ class PpcAbstractEmulator(PpcRegisterContext, envi.Emulator):
             c = 4
         else:
             c = 2
-        # FIXME: what's SO? (it's the 1 bit)
 
-        self.setOperValue(op, 0, c)
+        self.setCr(cridx, c|SO)
 
-
-
-    def i_cmpl(self, op):
+    def i_cmplw(self, op, L=0):
         # unsigned comparison for cmpli and cmpl
-        L = self.getOperValue(op, 1)
-        rA = self.getOperValue(op, 2)
-        rB = self.getOperValue(op, 3)
-        dsize = op.opers[2].tsize
-        ssize = op.opers[3].tsize
+        if len(op.opers) == 3:
+            cridx = op.opers[0].field
+            raidx = 1
+            rbidx = 2
+        else:
+            cridx = 0
+            raidx = 0
+            rbidx = 1
+
+        rA = self.getOperValue(op, raidx)
+        rB = self.getOperValue(op, rbidx)
+        dsize = op.opers[raidx].tsize
+        ssize = op.opers[rbidx].tsize
 
         if L==0:
             a = e_bits.unsigned(rA, dsize)
@@ -907,7 +919,7 @@ class PpcAbstractEmulator(PpcRegisterContext, envi.Emulator):
         else:
             a = rA
             b = rB
-        SO = self.getOperValue(op, 0) & FLAGS_SO
+        SO = self.getRegister(REG_SO)
 
         if a < b:
             c = 8
@@ -915,35 +927,22 @@ class PpcAbstractEmulator(PpcRegisterContext, envi.Emulator):
             c = 4
         else:
             c = 2
-        # FIXME: what's SO? (it's the 1 bit)
 
-        self.setOperValue(op, 0, c)
+        self.setCr(cridx, c|SO)
 
-    def i_cmpli(self, op):
-        # unsigned comparison for cmpli and cmpl
-        L = self.getOperValue(op, 1)
-        rA = self.getOperValue(op, 2)
-        rB = self.getOperValue(op, 3)
-        dsize = op.opers[2].tsize
-        ssize = op.opers[3].tsize
+    i_cmplwi = i_cmplw
 
-        if L==0:
-            a = e_bits.unsigned(rA, dsize)
-            b = e_bits.unsigned(rB, ssize)
-        else:
-            a = rA
-            b = rB
+    def i_cmpdi(self, op):
+        return self.i_cmpwi(op, L=1)
 
-        SO = self.getOperValue(op, 0) & FLAGS_SO
-        if a < b:
-            c = 8 | SO
-        elif a > b:
-            c = 4 | SO
-        else:
-            c = 2 | SO
-        # FIXME: what's SO? (it's the 1 bit)
+    def i_cmpd(self, op):
+        return self.i_cmpw(op, L=1)
 
-        self.setOperValue(op, 0, c)
+    def i_cmpld(self, op):
+        return self.i_cmplw(op, L=1)
+
+    def i_cmpldi(self, op):
+        return self.i_cmplwi(op, L=1)
 
 
     def getCarryBitAtX(bit, result, add0, add1):

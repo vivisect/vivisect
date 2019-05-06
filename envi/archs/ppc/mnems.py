@@ -11062,6 +11062,16 @@ AA = Absolute Addressing (instead of offset)
 LK = Link or not
 '''
 ############
+mnems_simplify = [
+        'cmpw',
+        'cmpd',
+        'cmpwi',
+        'cmpdi',
+        'cmplw',
+        'cmpld',
+        'cmplwi',
+        'cmpldi',
+        ]
 
 def buildOutput():
     out = []
@@ -11129,6 +11139,14 @@ def buildOutput():
     mnem_array = []
     mnem_done = []
     for mnem in mnems:
+        nmnem = mnem.replace('.','')
+        if nmnem in mnem_done:
+            continue
+        mnem_array.append("    '%s'," % nmnem)
+        mnem_done.append(nmnem)
+
+    # allows us to insert non-scraped mnemonics into the const_gen.py without manual modification
+    for mnem in mnems_simplify:
         nmnem = mnem.replace('.','')
         if nmnem in mnem_done:
             continue
