@@ -703,5 +703,17 @@ def getSymbolikAnalysisContext(vw):
         import vivisect.symboliks.archs.amd64 as vsym_amd64
         return vsym_amd64.Amd64SymbolikAnalysisContext(vw)
 
+    elif arch == 'ppc-spe':
+        import vivisect.symboliks.archs.ppc as vsym_ppc
+        return vsym_ppc.PpcSpeSymbolikAnalysisContext(vw)
+
+    elif arch == 'ppc-vle':
+        import vivisect.symboliks.archs.ppc as vsym_ppc
+        return vsym_ppc.PpcVleSymbolikAnalysisContext(vw)
+
+    elif arch == 'ppc-altivec':
+        import vivisect.symboliks.archs.ppc as vsym_ppc
+        return vsym_ppc.Ppc64SymbolikAnalysisContext(vw)
+
     return None
 
