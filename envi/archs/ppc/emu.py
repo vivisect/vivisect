@@ -73,7 +73,7 @@ def ROTL32(x, y):
     lsb = bit 63!!!
     '''
     x |= (x<<32)
-    return x << 7
+    return x << y
     
 class PpcAbstractEmulator(PpcRegisterContext, envi.Emulator):
 
@@ -261,10 +261,6 @@ class PpcAbstractEmulator(PpcRegisterContext, envi.Emulator):
         flags |= (SO << FLAGS_SO_bitnum)
 
         self.setCr(crnum, flags)
-
-    #def getSO(self, crnum=0):
-    #    cr = self.getCr(crnum)
-    #    return (cr >> FLAGS_SO_bitnum) & 1
 
     def trap(self, op):
         raise Trap('0x%x: %r' % (op.va, op))
@@ -1105,7 +1101,7 @@ class PpcAbstractEmulator(PpcRegisterContext, envi.Emulator):
         src2 = e_bits.signed(src2, 4)
         result = e_bits.signed(src1 + src2, 4)
 
-        SO = None
+        SO = self.getRegister(REG_SO)
         sum31 = ((result >> 32) & 1)
         sum32 = ((result >> 31) & 1) 
         OV = sum31 ^ sum32
@@ -1114,7 +1110,7 @@ class PpcAbstractEmulator(PpcRegisterContext, envi.Emulator):
                 result = 0xffffffff80000000
             else:
                 result = 0x7fffffff
-            SO = self.getSO() | OV
+            SO |= OV
 
         self.setOperValue(op, 0, result)
         self.setFlags(result, 0, SO)
@@ -1546,9 +1542,9 @@ class PpcAbstractEmulator(PpcRegisterContext, envi.Emulator):
         n = rb & 0x1f
         r = ROTL32(rs, 64-n)
         if bool(rb & 0x20):
-            k = MASK(n+32, 63)
-        else:
             k = 0
+        else:
+            k = MASK(n+32, 63)
 
         result = r & k
 
@@ -1563,9 +1559,9 @@ class PpcAbstractEmulator(PpcRegisterContext, envi.Emulator):
         n = rb & 0x1f
         r = ROTL32(rs, n)
         if bool(rb & 0x20):
-            k = MASK(32, 63-n)
-        else:
             k = 0
+        else:
+            k = MASK(n+32, 63)
 
         result = r & k
 
