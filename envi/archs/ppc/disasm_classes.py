@@ -1,6 +1,7 @@
 import envi
 import envi.bits as e_bits
 import envi.symstore.resolver as e_resolv
+import vivisect.symboliks.common as vs_common
 
 from envi import IF_NOFALL, IF_BRANCH, IF_CALL, IF_RET, IF_PRIV, IF_COND
 
@@ -397,6 +398,11 @@ class PpcMemOper(envi.DerefOper):
         #print self.offset
         rval += self.offset
         emu.setRegister(self.base_reg, rval)
+
+    def updateRegObj(self, emu):
+        rval = emu.getRegObj(self.base_reg)
+        rval += vs_common.Const(self.offset, emu._psize)
+        emu.setRegObj(self.base_reg, rval)
 
 
     def render(self, mcanv, op, idx):
