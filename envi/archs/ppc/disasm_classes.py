@@ -281,7 +281,8 @@ class PpcSImmOper(PpcImmOper):
         if val & (1<<(bits-1)):
             val |= (e_bits.b_masks[32-bits] << bits)
 
-        self.val = e_bits.signed(val, 4)
+        val = e_bits.signed(val, tsize)
+        PpcImmOper.__init__(self, val, va, tsize)
 
 class PpcSImm5Oper(PpcSImmOper):
     ''' Signed Immediate operand bit 5. '''
