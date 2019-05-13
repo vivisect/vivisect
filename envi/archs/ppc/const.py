@@ -5,39 +5,64 @@ ENDIAN_MSB = 1
 
 TYPE_NONE = 0
 TYPE_REG =  1
-TYPE_IMM =  2
-TYPE_MEM =  3
-TYPE_JMP =  4
-TYPE_CR =   5
+
+# The "se_" instructions have register fields that are only 4 bits wide instead 
+# of 5 bits wide, so normally register values 0-15 refer to registers 
+# r0-r7,r24-r31. But there are some "alternate register" instructions where 0-15 
+# refers to r8-r23. the TYPE_REG_SE helps to distinguish between these different 
+# fields when parsing "se_" VLE instructions.
+TYPE_REG_SE = 2
+
+TYPE_IMM =  3
+TYPE_SIMM = 4
+TYPE_MEM =  5
+TYPE_JMP =  6
+TYPE_CR =   7
 
 E_NONE =  0
 E_X =     1
 E_XL =    2
 E_D =     3
 E_D8 =    4
-E_I16A =  5
-E_SCI8 =  6
-E_SCI8I = 7
-E_I16L =  8
-E_I16LS = 9
-E_BD24 =  10
-E_BD15 =  11
-E_IA16 =  12
-E_LI20 =  13
-E_M =     14
-E_XCR =   15
-E_XLSP =  16
-E_XRA =   17
+
+# This form is a variation of the E_D8 parser that is used for parsing the new 
+# "e_ldmv*" and "e_stmv*" ISR vector load/store instructions. E_D8 is close to 
+# what is needed to parse these instructions, but it is not quite right.  The rA 
+# field is smaller than a normal E_D8 instruction.
+E_D8VLS = 5
+
+E_I16A =  6
+E_SCI8 =  7
+E_SCI8I = 8
+
+# There are some compare instructions that use the SCI8 form, but the CRD32 
+# field is not formed like the normal rD field in an SCI8 instruction
+E_SCI8CR = 9
+
+E_I16L =  10
+E_I16LS = 11
+E_BD24 =  12
+E_BD15 =  13
+E_IA16 =  14
+E_LI20 =  15
+E_M =     16
+E_XCR =   17
+E_XLSP =  18
+E_XRA =   19
 
 E_MASK_X =    0x03FFF800
 E_MASK_XL =   0x03FFF801
 E_MASK_D =    0x03FFFFFF
 E_MASK_D8 =   0x03FF00FF
+E_MASK_D8VLS = 0x001F00FF  # Mask for the D8 "volatile" load/store instructions
 E_MASK_I16A = 0x03FF07FF
 E_MASK_SCI8 = 0x03FF07FF
+E_MASK_SCI8CR = 0x007F07FF # Mask for the SCI8 form "e_cmpi", and "e_cmpli" instructions
+E_MASK_SCI8_2 = 0x03FF0700 # Special SCI8 mask for the "e_mr" alias of "e_ori"
 E_MASK_I16L = 0x03FF07FF
 E_MASK_BD24 = 0x03FFFFFE
 E_MASK_BD15 = 0x000CFFFE
+E_MASK_BD15CTR = 0x000FFFFE
 E_MASK_IA16 = 0x03FF07FF
 E_MASK_LI20 = 0x03FF7FFF
 E_MASK_M =    0x03FFFFFE
@@ -59,6 +84,18 @@ F_MTPR = 13
 F_XRA =  14
 F_X_2 =  15
 
+# The "wrteei" instruction is a normal PPC instruction but it gets parsed in 
+# it's own special way
+F_X_WRTEEI = 16
+
+# The "mtcrf" instruction is a normal PPC instruction but it gets parsed in it's 
+# own special way
+F_X_MTCRF = 17
+
+# For some of the normal PPC form X instructions the second register argument 
+# (rA) when rA is 0 it is interpreted as a constant 0 rather than r0.
+F_X_Z = 18
+
 
 F_MASK_X =     0x03FFF800
 F_MASK_XO =    0x03FFF800
@@ -69,6 +106,7 @@ F_MASK_DCBL =  0x01FFF800
 F_MASK_DCI =   0x00FFF800
 F_MASK_EXT =   0x03FF0000
 F_MASK_A =     0x01FFFFC0
+F_MASK_A_ISEL = 0x03FFFF00
 F_MASK_XFX =   0x03FFF800
 F_MASK_XER =   0x03FFF800
 F_MASK_MFPR =  0x03FFF800

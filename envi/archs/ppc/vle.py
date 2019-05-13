@@ -21,7 +21,9 @@ import envi.bits as e_bits
 operands = (
         None,
         PpcRegOper,
+        PpcRegOper,
         PpcImmOper,
+        PpcSImm32Oper,
         PpcMemOper,
         PpcJmpOper,
         PpcCrOper,
@@ -58,12 +60,16 @@ def case_E_D(types, data, va):
     val2 = data & 0xFFFF;
     if (val2 & 0x8000) :
         val2 = 0xFFFF0000 | val2;
-    
+
+    # holy crap, this table is a mess.  too C-ish, not Pythonic.
     if types[1] == TYPE_MEM:
-        opers = ( op0(val0, va), op1(val1, val2, va) )  # holy crap, this table is a mess.  too C-ish, not Pythonic.
+        if types[2] == TYPE_REG and val1 == 0:
+            opers = ( op0(val0, va), PpcImmOper(val2, va) )
+        else:
+            opers = ( op0(val0, va), op1(val1, val2, va) )
     else:
         op2 = operands[types[2]]
-        opers = ( op0(val0, va), op1(val1, va), op2(val2, va) )  # holy crap, this table is a mess.  too C-ish, not Pythonic.
+        opers = ( op0(val0, va), op1(val1, va), op2(val2, va) )
 
     return opers
 
@@ -77,8 +83,20 @@ def case_E_D8(types, data, va):
     val2 = data & 0xFF;
     if (val2 & 0x80):
             val2 = 0xFFFFFF00 | val2;
-    
+
     opers = ( op0(val0, va), op1(val1, val2, va) )
+    return opers
+
+# Handles the new multiple load/store VLE instructions
+def case_E_D8VLS(types, data, va):
+    val0 = (data & 0x1F0000) >> 16;
+    op0 = operands[types[0]]
+
+    val1 = data & 0xFF;
+    if (val1 & 0x80):
+        val1 = 0xFFFFFF00 | val1;
+
+    opers = ( op0(val0, val1, va), )
     return opers
 
 def case_E_I16A(types, data, va):
@@ -87,9 +105,6 @@ def case_E_I16A(types, data, va):
     val0 = (data & 0x1F0000) >> 16;
     op0 = operands[types[1]]
     val1 |= (data & 0x7FF);
-    if (val1 & 0x8000):
-        val1 = 0xFFFF0000 | val1;
-    
 
     opers = ( op0(val0, va), op1(val1, va) )
     #print "E_I16/A", opers
@@ -100,31 +115,40 @@ case_E_IA16 = case_E_I16A
 
 SCI_mask = (0xffffff00, 0xffff00ff, 0xff00ffff, 0x00ffffff)
 def case_E_SCI8(types, data, va):
-    val0 = (data & 0x3E00000) >> 21;
-    op0 = operands[types[0]]
-    val1 = (data & 0x1F0000) >> 16;
-    op1 = operands[types[1]]
-    ui8 = data & 0xFF;
-    scl = (data & 0x300) >> 8;
-    f = bool(data & 0x400)
-    
-    val2 = (ui8 << (8*scl)) | (f * SCI_mask[scl])
-    '''
-    if scl == 0:
-        val2 = ui8 | (f ? 0xffffff00 : 0);
-    elif scl == 1:
-        val2 = (ui8 << 8) | (f ? 0xffff00ff : 0);
-    elif scl == 2:
-        val2 = (ui8 << 16) | (f ? 0xff00ffff : 0);
-    else:
-        val2 = (ui8 << 24) | (f ? 0x00ffffff : 0);
+    opers = []
+    if (types[0] != TYPE_NONE):
+        val0 = (data & 0x3E00000) >> 21;
+        op0 = operands[types[0]]
+        opers.append(op0(val0, va))
+
+    if (types[1] != TYPE_NONE):
+        val1 = (data & 0x1F0000) >> 16;
+        op1 = operands[types[1]]
+        opers.append(op1(val1, va))
+
+    if (types[2] != TYPE_NONE):
+        ui8 = data & 0xFF;
+        scl = (data & 0x300) >> 8;
+        f = bool(data & 0x400)
+
+        val2 = (ui8 << (8*scl)) | (f * SCI_mask[scl])
+        '''
+        if scl == 0:
+            val2 = ui8 | (f ? 0xffffff00 : 0);
+        elif scl == 1:
+            val2 = (ui8 << 8) | (f ? 0xffff00ff : 0);
+        elif scl == 2:
+            val2 = (ui8 << 16) | (f ? 0xff00ffff : 0);
+        else:
+            val2 = (ui8 << 24) | (f ? 0x00ffffff : 0);
         '''
 
-    op2 = operands[types[2]]
+        op2 = operands[types[2]]
+        opers.append(op2(val2, va))
 
-    opers = ( op0(val0, va), op1(val1, va), op2(val2, va) )
     return opers
 
+# Handles SCI8 form instructions with rA and rS inverted
 def case_E_SCI8I(types, data, va):
     val1 = (data & 0x3E00000) >> 21;
     op1 = operands[types[0]]
@@ -136,21 +160,43 @@ def case_E_SCI8I(types, data, va):
 
     val2 = (ui8 << (8*scl)) | (f * SCI_mask[scl])
     '''
-    switch (scl) {
-            case 0:
-                    val2 = ui8 | (f ? 0xffffff00 : 0);
-                    break;
-            case 1:
-                    val2 = (ui8 << 8) | (f ? 0xffff00ff : 0);
-                    break;
-            case 2:
-                    val2 = (ui8 << 16) | (f ? 0xff00ffff : 0);
-                    break;
-            default:
-                    val2 = (ui8 << 24) | (f ? 0x00ffffff : 0);
-                    break;
-    }
+    if scl == 0:
+        val2 = ui8 | (f ? 0xffffff00 : 0);
+    elif scl == 1:
+        val2 = (ui8 << 8) | (f ? 0xffff00ff : 0);
+    elif scl == 2:
+        val2 = (ui8 << 16) | (f ? 0xff00ffff : 0);
+    else:
+        val2 = (ui8 << 24) | (f ? 0x00ffffff : 0);
     '''
+
+    op2 = operands[types[2]]
+
+    opers = ( op0(val0, va), op1(val1, va), op2(val2, va) )
+    return opers
+
+# Handles SCI8 form compare instructions with a smaller register field
+def case_E_SCI8CR(types, data, va):
+    val0 = (data & 0x0600000) >> 21;
+    op0 = operands[types[0]]
+    val1 = (data & 0x1F0000) >> 16;
+    op1 = operands[types[1]]
+    ui8 = data & 0xFF;
+    scl = (data & 0x300) >> 8;
+    f = bool(data & 0x400)
+
+    val2 = (ui8 << (8*scl)) | (f * SCI_mask[scl])
+    '''
+    if scl == 0:
+        val2 = ui8 | (f ? 0xffffff00 : 0);
+    elif scl == 1:
+        val2 = (ui8 << 8) | (f ? 0xffff00ff : 0);
+    elif scl == 2:
+        val2 = (ui8 << 16) | (f ? 0xff00ffff : 0);
+    else:
+        val2 = (ui8 << 24) | (f ? 0x00ffffff : 0);
+    '''
+
     op2 = operands[types[2]]
 
     opers = ( op0(val0, va), op1(val1, va), op2(val2, va) )
@@ -175,15 +221,15 @@ def case_E_I16LS(types, data, va):
     val1 |= (data & 0x7FF);
     # this is technically incorrect, but makes disassembly prettier to look at.
     val1 <<= 16
-    
+
     op1 = operands[types[1]]
 
     opers = ( op0(val0, va), op1(val1, va) )
     return opers
 
 def case_E_BD24(types, data, va):
-    val0 = data & 0x1FFFFFE;
-    if (val0 & 0x100000):
+    val0 = data & 0x01FFFFFE;
+    if (val0 & 0x01000000):
         val0 |= 0xFE000000;
 
     op0 = operands[types[0]]
@@ -192,15 +238,26 @@ def case_E_BD24(types, data, va):
     return opers
 
 def case_E_BD15(types, data, va):
-    val0 = (data & 0xC0000) >> 18;
-    op0 = operands[types[0]]
     val1 = data & 0xFFFE;
     if (val1 & 0x8000):
         val1 |= 0xFFFF0000;
-    
+
     op1 = operands[types[1]]
 
-    opers = ( op0(val0, va), op1(val1, va) )
+    if (data & 0x00200000) == 0x00200000:
+        # If this is a CTR related branch conditional, the register to check
+        # the value for is always the CTR SPR (SPR 9).
+        #val0 = 9 + REG_OFFSET_SPR
+        #op0 = operands[types[0]]
+
+        #opers = ( op0(val0, va), op1(val1, va) )
+        opers = ( op1(val1, va), )
+    else:
+        val0 = (data & 0xC0000) >> 18;
+        op0 = operands[types[0]]
+
+        opers = ( op0(val0, va), op1(val1, va) )
+
     return opers
 
 def case_E_LI20(types, data, va):
@@ -212,7 +269,7 @@ def case_E_LI20(types, data, va):
     op1 = operands[types[1]]
     if (val1 & 0x80000) :
             val1 = 0xFFF00000 | val1;
-    
+
     opers = ( op0(val0, va), op1(val1, va) )
     return opers
 
@@ -255,8 +312,6 @@ def case_E_NONE(types, data, va):
     opers = tuple()
     return opers
 
-
-
 def case_F_EVX(types, data, va):
     opers = []
     if (types[0] != TYPE_NONE):
@@ -269,6 +324,28 @@ def case_F_EVX(types, data, va):
         val1 = (data & 0x1F0000) >> 16;
         op1 = operands[types[1]]
         opers.append(op1(val1, va))
+
+    if (types[2] != TYPE_NONE):
+        val2 = (data & 0xF800) >> 11;
+        op2 = operands[types[2]]
+        opers.append(op2(val2, va))
+
+    return opers
+
+def case_F_X_Z(types, data, va):
+    opers = []
+    if (types[0] != TYPE_NONE):
+        val0 = (data & 0x3E00000) >> 21;
+        op0 = operands[types[0]]
+        opers.append(op0(val0, va))
+
+    if (types[1] != TYPE_NONE):
+        val1 = (data & 0x1F0000) >> 16;
+        if types[1] == TYPE_REG and val1 == 0:
+            opers.append(PpcImmOper(val1, va))
+        else:
+            op1 = operands[types[1]]
+            opers.append(op1(val1, va))
 
     if (types[2] != TYPE_NONE):
         val2 = (data & 0xF800) >> 11;
@@ -300,6 +377,25 @@ def case_F_X_2(types, data, va):
 
     return opers
 
+def case_F_X_WRTEEI(types, data, va):
+    # Can't figure out a good generic way to do this with the F_X handler
+    val0 = (data & 0x00008000) >> 15
+    op0 = operands[types[0]]
+    opers = ( op0(val0, va), )
+    return opers
+
+def case_F_X_MTCRF(types, data, va):
+    # Can't figure out a good generic way to do this with the F_X or F_XFX or
+    # F_XO handlers
+    val0 = (data & 0x3E00000) >> 21;
+    op0 = operands[types[0]]
+
+    val1 = (data & 0x000FF000) >> 12
+    op1 = operands[types[1]]
+
+    opers = ( op0(val0, va), op1(val1, va) )
+    return opers
+
 def case_F_XRA(types, data, va):
     val1 = (data & 0x3E00000) >> 21;
     op1 = operands[types[0]]
@@ -323,7 +419,7 @@ def case_F_CMP(types, data, va):
     op1 = operands[types[1]]
     val2 = (data & 0xF800) >> 11;
     op2 = operands[types[2]]
-    
+
     opers = ( op0(val0, va), op1(val1, va), op2(val2, va) )
     return opers
 
@@ -368,14 +464,18 @@ def case_F_EXT(types, data, va):
 def case_F_A(types, data, va):
     opers = []
     if types[0] != TYPE_NONE:
-        val0 = (data & 0x1E00000) >> 21;
+        val0 = (data & 0x3E00000) >> 21;
         op0 = operands[types[0]]
         opers.append(op0(val0, va))
 
     if types[1] != TYPE_NONE:
+        # If this type is REG and the value is 0, add a constant 0 instead
         val1 = (data & 0x1F0000) >> 16;
-        op1 = operands[types[1]]
-        opers.append(op1(val1, va))
+        if types[1] == TYPE_REG and val1 == 0:
+            opers.append(PpcImmOper(val1, va))
+        else:
+            op1 = operands[types[1]]
+            opers.append(op1(val1, va))
 
     if types[2] != TYPE_NONE:
         val2 = (data & 0xF800) >> 11;
@@ -383,7 +483,11 @@ def case_F_A(types, data, va):
         opers.append(op2(val2, va))
 
     if types[3] != TYPE_NONE:
-        val3 = (data & 0x7C0) >> 6;
+        # If the type is CR, then use only the upper 3 bits
+        if types[3] == TYPE_CR:
+            val3 = (data & 0x700) >> 8;
+        else:
+            val3 = (data & 0x7C0) >> 6;
         op3 = operands[types[3]]
         opers.append(op3(val3, va))
 
@@ -404,31 +508,31 @@ def case_F_XER(types, data, va):
     return opers
 
 def case_F_MFPR(types, data, va):
-    val0 = (data & 0x1E00000) >> 21;
+    # From register is first arg
+    val0 = (data & 0x03E00000) >> 21;
     op0 = operands[types[0]]
-    val1 = (data & 0x1F0000) >> 16
-    val1 |= (data &  0xF800) >> 6
+
+    # To SPR is second arg
+    val1 =  (data & 0x001F0000) >> 16
+    val1 |= (data & 0x0000F800) >> 6
     val1 += REG_OFFSET_SPR
     op1 = operands[types[1]]
-    #print op0, val0, op1, val1
+
     opers = ( op0(val0, va), op1(val1, va))
     return opers
 
 def case_F_MTPR(types, data, va):
-    #inverted
-    opers = []
-    if types[0] != TYPE_NONE:
-        val0 = (data & 0x001F0000) >> 16
-        val0 |= (data &  0x00F800) >> 6
-        val0 += REG_OFFSET_SPR
-        op0 = operands[types[0]]
-        opers.append(op0(val0, va))
+    # To SPR is first arg
+    val0 =  (data & 0x001F0000) >> 16
+    val0 |= (data & 0x0000F800) >> 6
+    val0 += REG_OFFSET_SPR
+    op0 = operands[types[0]]
 
-    if types[1] != TYPE_NONE:
-        val1 = (data & 0x1E00000) >> 21;
-        op1 = operands[types[1]]
-        opers.append(op1(val1, va))
+    # From register is second arg
+    val1 = (data & 0x03E00000) >> 21;
+    op1 = operands[types[1]]
 
+    opers = ( op0(val0, va), op1(val1, va))
     return opers
 
 def case_F_NONE(types, data, va):
@@ -442,10 +546,12 @@ e_handlers = {
         E_XRA: case_E_XRA,
         E_D: case_E_D,
         E_D8: case_E_D8,
+        E_D8VLS: case_E_D8VLS,
         E_I16A: case_E_I16A,
         E_IA16: case_E_IA16,
         E_SCI8: case_E_SCI8,
         E_SCI8I: case_E_SCI8I,
+        E_SCI8CR: case_E_SCI8CR,
         E_I16L: case_E_I16L,
         E_I16LS: case_E_I16LS,
         E_BD24: case_E_BD24,
@@ -462,6 +568,9 @@ ppc_handlers = {
         F_XO: case_F_XO,
         F_XRA: case_F_XRA,
         F_X_2: case_F_X_2,
+        F_X_WRTEEI: case_F_X_WRTEEI,
+        F_X_MTCRF: case_F_X_MTCRF,
+        F_X_Z: case_F_X_Z,
         F_EVX: case_F_EVX,
         F_CMP: case_F_CMP,
         F_DCBF: case_F_DCBF,
@@ -492,6 +601,25 @@ def find_ppc(buf, offset, endian=True, va=0):
                 raise Exception("Unknown FORM handler: %x" % form)
 
             opers = handler(types, data, va)
+
+            # Some instrucions have aliases that depend on some of the
+            # instruction parameters matching and can't be identified with
+            # static masks
+            mnem_alises = {
+                'or': 'mr',
+                'or.': 'mr.',
+                'nor': 'not',
+                'nor.': 'not.',
+            }
+            if mnem in mnem_alises:
+                # For this to be valid there must be 3 register arguments and
+                # the last two must match.
+                if len(opers) == 3 and \
+                        isinstance(opers[1], PpcRegOper) and \
+                        isinstance(opers[2], PpcRegOper) and \
+                        opers[1].reg == opers[2].reg:
+                    mnem = mnem_alises[mnem]
+                    opers = opers[0:-1]
 
             iflags |= envi.ARCH_PPCVLE
             return PpcOpcode(va, 0, mnem, size=size, operands=opers, iflags=iflags)
@@ -542,12 +670,13 @@ def find_se(buf, offset, endian=True, va=0):
                 value >>= shr
                 value <<= shl
                 value += add
+                #print(data, value)
 
-                handler = operands[ftype]
                 if ftype == TYPE_JMP and value & 0x100:
                     value = e_bits.signed(value | 0xfffffe00, 4)
-                elif ftype == TYPE_REG and value & 8:
-                    value = (value & 0x7) + 24
+                elif ftype in [TYPE_MEM, TYPE_REG_SE]:
+                    if value & 8:
+                        value = (value & 0x7) + 24
 
                 opieces[idx] = (ftype, value)
                 k += 1
@@ -562,8 +691,8 @@ def find_se(buf, offset, endian=True, va=0):
                 if ftype == TYPE_MEM:
                     k += 1
                     ft2, val2 = opieces[k]
-                    if ft2 != TYPE_MEM:
-                        print "PROBLEM! ft2 is not TYPE_MEM!"
+                    if ft2 != TYPE_IMM:
+                        print "PROBLEM! ft2 is not TYPE_IMM!"
 
                     opers.append(handler(value, val2, va))
                 else:
@@ -613,7 +742,7 @@ tests
 example_1  = ''.join(['%c'%x for x in (0x00, 0x80, 0x18, 0x21, 0x06, 0xF0, 0xD5, 0x01, 0x79, 0xFF, 0xAF, 0x09, 0xC5, 0x01, 0x00, 0xD3, 0x00, 0x90, 0x20, 0xF1, 0x00, 0x04)])
 example_2  = ''.join(['%c'%x for x in (0x2D, 0x07, 0x70, 0xD8, 0xE3, 0xFE, 0x70, 0x0B, 0x02, 0xF0, 0x6D, 0xC3, 0x44, 0x30, 0x1C, 0xC6, 0xC0, 0x00, 0xD1, 0x06, 0x44, 0x30, 0x02, 0x78, 0xD1, 0x06, 0xC0, 0x06, 0x66, 0x40, 0xE2, 0xFE, 0x00, 0x04)])
 se_only    = ''.join(['%c'%x for x in (0x04, 0x7f, 0x21, 0xec, 0x46, 0x10, 0x47, 0x01, 0x45, 0x32, 0x2f, 0x14, 0xe8, 0xfa, 0xe9, 0x00, 0xe7, 0x14, 0x61, 0x2b, 0x00, 0x06, 0x00, 0x07, 0x63, 0x17, 0x00, 0x04, 0x00, 0x05, 0x2c, 0x06, 0x64, 0x10, 0x66, 0x74, 0x0c, 0x10, 0x0e, 0xcf, 0x0f, 0x91, 0x2b, 0x63, 0x0d, 0x76, 0x22, 0xbc, 0x00, 0xd1, 0x00, 0xf2, 0x00, 0xce, 0x00, 0xe8, 0x00, 0x00, 0x00, 0x01, 0x88, 0x18, 0xa9, 0x84, 0x4c, 0xf4, 0xcf, 0x60, 0x03, 0x07, 0x00, 0xa3, 0x00, 0x84, 0x01, 0x0f, 0x02, 0x2f, 0x00, 0xb6, 0x00, 0x9f, 0x05, 0x43, 0x00, 0x38, 0x00, 0x29, 0x44, 0x10, 0x00, 0x09, 0x00, 0x0a, 0x00, 0x08, 0x00, 0x02, 0x42, 0x65, 0x6c, 0x77, 0x41, 0xe6, 0x6a, 0x89, 0x40, 0x0e, 0x69, 0x9d, 0x9a, 0x02, 0xb6, 0x1e, 0xd0, 0x7d, 0x06, 0x21, 0x07, 0xad, 0x25, 0x77, 0x27, 0x29, 0xe9, 0xc2)])
-e_only     = ''.join(['%c'%x for x in (0x1c, 0x83, 0x00, 0x1b, 0x70, 0xc0, 0x8c, 0x56, 0x71, 0x01, 0x93, 0x21, 0x18, 0x46, 0x88, 0x37, 0x18, 0x65, 0x81, 0x37, 0x18, 0x84, 0x9a, 0x37, 0x18, 0xe8, 0x93, 0x37, 0x71, 0x3f, 0xce, 0xed, 0x71, 0x40, 0xe8, 0x05, 0x19, 0xab, 0xc8, 0x39, 0x19, 0xec, 0xc2, 0x37, 0x78, 0x00, 0x00, 0xec, 0x78, 0x00, 0x00, 0x01, 0x7a, 0x03, 0xff, 0xcc, 0x7a, 0x1f, 0x00, 0x01, 0x70, 0xc2, 0x9b, 0x33, 0x18, 0x46, 0xa9, 0x37, 0x7c, 0x87, 0x58, 0x1c, 0x73, 0xec, 0xb5, 0xef, 0x7c, 0x06, 0x40, 0x5c, 0x70, 0x4d, 0xba, 0x34, 0x73, 0xe1, 0xae, 0xe0, 0x18, 0xa3, 0xab, 0x37, 0x7f, 0xa3, 0x02, 0x02, 0x7c, 0x02, 0xe9, 0x02, 0x7d, 0xf0, 0x8a, 0x42, 0x7d, 0xe0, 0x19, 0xc2, 0x7d, 0xe0, 0x18, 0x42, 0x7d, 0x8d, 0x73, 0x82, 0x7e, 0x72, 0x8b, 0x42, 0x7c, 0x00, 0x01, 0x82, 0x30, 0xe3, 0xcc, 0x0d, 0x18, 0xe5, 0x00, 0xcc, 0x39, 0x0a, 0x01, 0xff, 0x19, 0x01, 0x03, 0xff, 0x58, 0xe0, 0x18, 0x38, 0x18, 0xe0, 0x01, 0x3e, 0x70, 0x06, 0x1b, 0x33, 0x70, 0x26, 0xe3, 0x33, 0x18, 0xa3, 0x08, 0x18, 0x50, 0xa3, 0x27, 0x28, 0x18, 0xc2, 0x02, 0x72, 0x7c, 0x98, 0x00, 0x20, 0x19, 0x2a, 0xa0, 0x37, 0x70, 0x01, 0xa6, 0x68, 0x70, 0xa4, 0xc3, 0x45, 0x70, 0xb4, 0xd3, 0x45, 0x19, 0x27, 0xd8, 0x37, 0x19, 0x07, 0xd1, 0x37, 0x7e, 0xd2, 0x02, 0x30, 0x7c, 0x48, 0x02, 0x31, 0x7c, 0x74, 0xaa, 0x70, 0x7c, 0x62, 0xaa, 0x71, 0x76, 0x64, 0x6a, 0x1e, 0x74, 0x24, 0x68, 0x63, 0x7e, 0x6c, 0x30, 0x70, 0x7d, 0x4c, 0xa0, 0x71, 0x7c, 0x20, 0x84, 0x70, 0x7c, 0x20, 0x5c, 0x71, 0x34, 0x61, 0x55, 0xf0, 0x1a, 0x76, 0x04, 0xfc, 0x5c, 0x15, 0x02, 0x9a, 0x18, 0x37, 0x05, 0xff, 0x18, 0x03, 0x09, 0x04, 0x54, 0x60, 0x3f, 0x21, 0x1a, 0xc4, 0x06, 0xee, 0x18, 0x15, 0xb2, 0x37, 0x1a, 0xc0, 0xbb, 0x37, 0x18, 0x75, 0xe1, 0x37, 0x1a, 0x80, 0xe8, 0x37, 0x79, 0xff, 0xff, 0x82, 0x79, 0xff, 0xfe, 0x67)]) 
+e_only     = ''.join(['%c'%x for x in (0x1c, 0x83, 0x00, 0x1b, 0x70, 0xc0, 0x8c, 0x56, 0x71, 0x01, 0x93, 0x21, 0x18, 0x46, 0x88, 0x37, 0x18, 0x65, 0x81, 0x37, 0x18, 0x84, 0x9a, 0x37, 0x18, 0xe8, 0x93, 0x37, 0x71, 0x3f, 0xce, 0xed, 0x71, 0x40, 0xe8, 0x05, 0x19, 0xab, 0xc8, 0x39, 0x19, 0xec, 0xc2, 0x37, 0x78, 0x00, 0x00, 0xec, 0x78, 0x00, 0x00, 0x01, 0x7a, 0x03, 0xff, 0xcc, 0x7a, 0x1f, 0x00, 0x01, 0x70, 0xc2, 0x9b, 0x33, 0x18, 0x46, 0xa9, 0x37, 0x7c, 0x87, 0x58, 0x1c, 0x73, 0xec, 0xb5, 0xef, 0x7c, 0x06, 0x40, 0x5c, 0x70, 0x4d, 0xba, 0x34, 0x73, 0xe1, 0xae, 0xe0, 0x18, 0xa3, 0xab, 0x37, 0x7f, 0xa3, 0x02, 0x02, 0x7c, 0x02, 0xe9, 0x02, 0x7d, 0xf0, 0x8a, 0x42, 0x7d, 0xe0, 0x19, 0xc2, 0x7d, 0xe0, 0x18, 0x42, 0x7d, 0x8d, 0x73, 0x82, 0x7e, 0x72, 0x8b, 0x42, 0x7c, 0x00, 0x01, 0x82, 0x30, 0xe3, 0xcc, 0x0d, 0x18, 0xe5, 0x00, 0xcc, 0x39, 0x0a, 0x01, 0xff, 0x19, 0x01, 0x03, 0xff, 0x58, 0xe0, 0x18, 0x38, 0x18, 0xe0, 0x01, 0x3e, 0x70, 0x06, 0x1b, 0x33, 0x70, 0x26, 0xe3, 0x33, 0x18, 0xa3, 0x08, 0x18, 0x50, 0xa3, 0x27, 0x28, 0x18, 0xc2, 0x02, 0x72, 0x7c, 0x98, 0x00, 0x20, 0x19, 0x2a, 0xa0, 0x37, 0x70, 0x01, 0xa6, 0x68, 0x70, 0xa4, 0xc3, 0x45, 0x70, 0xb4, 0xd3, 0x45, 0x19, 0x27, 0xd8, 0x37, 0x19, 0x07, 0xd1, 0x37, 0x7e, 0xd2, 0x02, 0x30, 0x7c, 0x48, 0x02, 0x31, 0x7c, 0x74, 0xaa, 0x70, 0x7c, 0x62, 0xaa, 0x71, 0x76, 0x64, 0x6a, 0x1e, 0x74, 0x24, 0x68, 0x63, 0x7e, 0x6c, 0x30, 0x70, 0x7d, 0x4c, 0xa0, 0x71, 0x7c, 0x20, 0x84, 0x70, 0x7c, 0x20, 0x5c, 0x71, 0x34, 0x61, 0x55, 0xf0, 0x1a, 0x76, 0x04, 0xfc, 0x5c, 0x15, 0x02, 0x9a, 0x18, 0x37, 0x05, 0xff, 0x18, 0x03, 0x09, 0x04, 0x54, 0x60, 0x3f, 0x21, 0x1a, 0xc4, 0x06, 0xee, 0x18, 0x15, 0xb2, 0x37, 0x1a, 0xc0, 0xbb, 0x37, 0x18, 0x75, 0xe1, 0x37, 0x1a, 0x80, 0xe8, 0x37, 0x79, 0xff, 0xff, 0x82, 0x79, 0xff, 0xfe, 0x67)])
 
 # Regression tests for the reported issue #1
 #  Tested on Freescale Codewarrior 5.9.0 IDE, Compiler: PPC_eabi v4.3.0.224
@@ -704,11 +833,11 @@ def TEST(tbytez,z):
     print "Decoded Opcodes: %d" % count
 
 def doTests():
-    TEST(example_1,9);                          
+    TEST(example_1,9);
     TEST(example_2, 14);
-    TEST(se_only, 63);             
+    TEST(se_only, 63);
     TEST(e_only, 72);
-                                       
+
     TEST(testcase_1, 2);
     TEST(testcase_2, 1);
     TEST(testcase_3, 1);

@@ -274,7 +274,7 @@ class PpcImmOper(envi.ImmedOper):
 
     def repr(self, op):
         val = self.getOperValue(op)
-        return '0x%x' % (val)
+        return '%#x' % (val)
 
 class PpcSImmOper(PpcImmOper):
     ''' Signed Immediate operand. '''
@@ -299,6 +299,11 @@ class PpcSImm16Oper(PpcSImmOper):
     ''' Unsigned Immediate operand. '''
     def __init__(self, val, va=0, tsize=4):
         PpcSImmOper.__init__(self, val, va, 16, tsize)
+
+class PpcSImm32Oper(PpcSImmOper):
+    ''' Signed Immediate operand. '''
+    def __init__(self, val, va=0, tsize=4):
+        PpcSImmOper.__init__(self, val, va, 32, tsize)
 
 class PpcSImm3Oper(PpcSImmOper):
     ''' Signed Immediate operand. '''
@@ -487,7 +492,7 @@ class PpcJmpOper(envi.RegisterOper):
 
     def repr(self, op):
         targ = self.getOperValue(op)
-        tname = "0x%.8x" % targ
+        tname = "%#x" % targ
         return tname
 
 fields = (None, 'c', 'x', 'cx', 's', 'cs', 'xs', 'cxs',  'f', 'fc', 'fx', 'fcx', 'fs', 'fcs', 'fxs', 'fcxs')
@@ -528,7 +533,6 @@ class PpcCrOper(envi.RegisterOper):
         return newpsr
 
     def repr(self, op):
-        #return "cr_" + fields[self.val]
         return "cr%u" % self.val
 
     def render(self, mcanv, op, idx):
