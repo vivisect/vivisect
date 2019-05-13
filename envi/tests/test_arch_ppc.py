@@ -60,5 +60,6 @@ class PpcInstructionSet(unittest.TestCase):
                 #print hex(emumask), repr(symmask), symmask
 
 
-                if emumask != symmask.solve():
-                    print "FAIL!!!!"
+                self.assertEqual(emumask, symmask.solve(), 'MASK({}, {}): {} != {}'.format(x, y, emumask, symmask.solve()))
+
+
