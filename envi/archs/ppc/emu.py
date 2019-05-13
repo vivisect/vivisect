@@ -62,7 +62,14 @@ def MASK(b, e):
     NOTE: THIS IS IN NXP's WARPED VIEW ON BIT NUMBERING!
     lsb = bit 63!!!
     '''
-    delta = e - b
+    if e < b:
+        delta = b - e - 1
+        real_shift = 63 - b + 1
+        mask = e_bits.bu_maxes[delta] << real_shift
+        mask ^= 0xffffffffffffffff
+        return mask
+
+    delta = e - b + 1
     real_shift = 63 - e
     return e_bits.bu_maxes[delta] << (real_shift)
 
@@ -1215,10 +1222,7 @@ class PpcAbstractEmulator(PpcRegisterContext, envi.Emulator):
     # lbz and lbzu access memory directly from operand[1]
     def i_lbz(self, op):
         op.opers[1].tsize = 1
-        if op.opers[0].reg == 0:
-            src = 0
-        else:
-            src = self.getOperValue(op, 1)
+        src = self.getOperValue(op, 1)
         self.setOperValue(op, 0, src)
 
     def i_lbzu(self, op):
@@ -1233,14 +1237,12 @@ class PpcAbstractEmulator(PpcRegisterContext, envi.Emulator):
 
     # lbzx and lbzux load an address by adding operand[1] and operand[2]
     def i_lbzx(self, op):
-        op.opers[1].tsize = 1
         src = self.getOperValue(op, 1)
         src += e_bits.signed(self.getOperValue(op, 2), 2)
         val = self.readMemValue(src, 1)
         self.setOperValue(op, 0, val)
 
     def i_lbzux(self, op):
-        op.opers[1].tsize = 1
         src = self.getOperValue(op, 1)
         src += self.getOperValue(op, 2)
         src += e_bits.signed(self.getOperValue(op, 2), 2)
@@ -1255,10 +1257,7 @@ class PpcAbstractEmulator(PpcRegisterContext, envi.Emulator):
     # lhz and lhzu access memory directly from operand[1]
     def i_lhz(self, op):
         op.opers[1].tsize = 2
-        if op.opers[0].reg == 0:
-            src = 0
-        else:
-            src = self.getOperValue(op, 1)
+        src = self.getOperValue(op, 1)
         self.setOperValue(op, 0, src)
 
     def i_lhzu(self, op):
@@ -1293,15 +1292,10 @@ class PpcAbstractEmulator(PpcRegisterContext, envi.Emulator):
 
     # lwz and lwzu access memory directly from operand[1]
     def i_lwz(self, op):
-        op.opers[1].tsize = 4
-        if op.opers[0].reg == 0:
-            src = 0
-        else:
-            src = self.getOperValue(op, 1)
+        src = self.getOperValue(op, 1)
         self.setOperValue(op, 0, src)
 
     def i_lwzu(self, op):
-        op.opers[1].tsize = 4
         src = self.getOperValue(op, 1)
         self.setOperValue(op, 0, src)
         # the u stands for "update"... ie. write-back
@@ -1356,20 +1350,39 @@ class PpcAbstractEmulator(PpcRegisterContext, envi.Emulator):
             self.writeMemValue(startaddr + offset, word & 0xffffffff, 4)
             offset += 4
     
-    def i_stb(self, op):
-        op.opers[1].tsize = 1
+    def i_stb(self, op, size=1):
+        op.opers[1].tsize = size
         src = self.getOperValue(op, 0)
         self.setOperValue(op, 1, src)
-   
-    def i_stbu(self, op):
-        op.opers[1].tsize = 1
+
+    def i_sth(self, op):
+        return self.i_stb(op, size=2)
+
+    def i_stw(self, op):
+        return self.i_stb(op, size=4)
+
+    def i_std(self, op):
+        return self.i_stb(op, size=8)
+  
+
+    def i_stbu(self, op, size=1):
+        op.opers[1].tsize = size
         src = self.getOperValue(op, 0)
         self.setOperValue(op, 1, src)
         # the u stands for "update"... ie. write-back
         op.opers[1].updateReg(self)
     
+    def i_sthu(self, op):
+        return self.i_stb(op, size=2)
+    
+    def i_stwu(self, op):
+        return self.i_stb(op, size=4)
+
+    def i_stdu(self, op):
+        return self.i_stb(op, size=8)
+
+
     def i_stbx(self, op, size=1):
-        print "%r: test with rA = 0, whatever that means" % op
         val = self.getOperValue(op, 0)
         src = self.getOperValue(op, 1)
         src += self.getOperValue(op, 2)
@@ -1382,35 +1395,9 @@ class PpcAbstractEmulator(PpcRegisterContext, envi.Emulator):
     def i_stwx(self, op):
         return self.i_stbx(op, size=4)
 
-    def i_stwx(self, op):
+    def i_stdx(self, op):
         return self.i_stbx(op, size=8)
-
-    def i_sth(self, op):
-        op.opers[1].tsize = 2
-        src = self.getOperValue(op, 0)
-        self.setOperValue(op, 1, src)
-
-
-    def i_sthu(self, op):
-        op.opers[1].tsize = 2
-        src = self.getOperValue(op, 0)
-        self.setOperValue(op, 1, src)
-        # the u stands for "update"... ie. write-back
-        op.opers[1].updateReg(self)
-    
-
-    def i_stw(self, op):
-        op.opers[1].tsize = 4
-        src = self.getOperValue(op, 0)
-        self.setOperValue(op, 1, src)
-
    
-    def i_stwu(self, op):
-        op.opers[1].tsize = 4
-        src = self.getOperValue(op, 0)
-        self.setOperValue(op, 1, src)
-        # the u stands for "update"... ie. write-back
-        op.opers[1].updateReg(self)
     
 
     def i_movfrom(self, op):

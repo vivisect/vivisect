@@ -22,6 +22,45 @@ from envi.archs.ppc.regs import *
 # a list of conditionals as pertain to the BI operand for conditional branches
 conds = [crfld.lower() for crfld, reg, boff, bsz, desc in e_ppc.statmetas if reg == e_ppc.REG_CR]
 
+def MASK(b, e, psize=8):
+    '''
+    helper to create masks.
+    NOTE: THIS IS IN NXP's WARPED VIEW ON BIT NUMBERING!
+    lsb = bit 63!!!
+    '''
+    #print "MASK( %r, %r )" % (b, e)
+    delta = e - b + Const(1, psize)
+    if delta.isDiscrete():
+        e = e.solve()
+        b = b.solve()
+        if e < b:
+            # b is greater than e, so we chop out the e/b bits and invert the mask
+            delta = b - e - 1
+            real_shift = 63 - b + 1
+            #print real_shift, delta
+            mask = e_bits.bu_maxes[delta] << real_shift
+            mask ^= 0xffffffffffffffff
+        else:
+            # b is less than/equal to e, so we do normal mask
+            delta = e - b + 1
+            real_shift = 63 - e
+            #print real_shift, delta
+            mask = e_bits.bu_maxes[delta] << real_shift
+        return Const(mask, psize)
+    
+    sym_shift = Const(63, psize) - e
+    mask = (Const(1, psize) << delta) - Const(1, psize)
+    return mask << (sym_shift)
+
+def ROTL32(x, y, psize=4):
+    '''
+    helper to rotate left, 32-bit stype.
+    NOTE: THIS IS IN NXP's WARPED VIEW ON BIT NUMBERING!
+    lsb = bit 63!!!
+    '''
+    x |= (x<<Const(32, psize))
+    return x << y
+    
 class PpcSymbolikTranslator(vsym_trans.SymbolikTranslator):
     '''
     Common parent for ppc32 and ppc64.  Make sure you define:
@@ -160,7 +199,8 @@ class PpcSymbolikTranslator(vsym_trans.SymbolikTranslator):
         '''
         blr is actually "ret"
         '''
-        return [ self.getRegObj(REG_LR) ]
+        self.effSetVariable(self.__ip__, Var('LR', self._psize))
+        #return [ self.getRegObj(REG_LR), ]
 
     # conditional branches....
     def _cond_jmp(self, op, aa=0, lk=0, tgtreg=None):
@@ -207,7 +247,7 @@ class PpcSymbolikTranslator(vsym_trans.SymbolikTranslator):
         return self._cond_jmp(op, aa=1, lk=1)
 
     def i_bclr(self, op):
-        return self._cond_jmp(op, aa=1, lk=1, tgtreg='lr')
+        return self._cond_jmp(op, aa=1, lk=1, tgtreg='LR')
 
     def i_bcctr(self, op):
         return self._cond_jmp(op, aa=1, lk=1, tgtreg='ctr')
@@ -411,8 +451,12 @@ class PpcSymbolikTranslator(vsym_trans.SymbolikTranslator):
                 )
 
     def i_bl(self, op):
-        self.setRegObj(REG_LR, op.va+len(op))
-        return self.getOperObj(op, 0)
+        self.setRegObj(REG_LR, Const(op.va+len(op), self._psize))
+        # For now, calling means finding which of our symbols go in
+        # and logging what comes out.
+        targ = self.getOperObj(op, 0)
+        self.effFofX(targ)
+        return 
 
     i_bdnzfa = i_bdnzf
     i_bdzfa = i_bdzf
@@ -686,7 +730,7 @@ class PpcSymbolikTranslator(vsym_trans.SymbolikTranslator):
         else:
             a = rA
             b = rB
-        SO = self.getRegObj(REG_SO)
+        SO = Var('so', 1)
 
         # setting the flags...
         self.effSetVariable(conds[croff + 0], gt(a, b))
@@ -703,7 +747,7 @@ class PpcSymbolikTranslator(vsym_trans.SymbolikTranslator):
             raidx = 1
             rbidx = 2
         else:
-            cridx = 0
+            croff = 0
             raidx = 0
             rbidx = 1
 
@@ -718,7 +762,7 @@ class PpcSymbolikTranslator(vsym_trans.SymbolikTranslator):
         else:
             a = rA
             b = rB
-        SO = self.getRegObj(REG_SO)
+        SO = Var('so', 1)
 
         # setting the flags...
         self.effSetVariable(conds[croff + 0], gt(a, b))
@@ -765,6 +809,24 @@ class PpcSymbolikTranslator(vsym_trans.SymbolikTranslator):
         self.setRegObj(REG_SO, so)
         self.setRegObj(REG_OV, ov)
 
+    def setFlag(self, flagname, symobj):
+        self.effSetVariable(flagname, symobj)
+
+    def setFlags(self, result, crf=0, so=None):
+        croff = crf * 4
+
+        b = Const(0, self._psize)
+        
+        if so == None:
+            so = Var('so', 1)
+
+        # setting the flags...
+        self.effSetVariable(conds[croff + 0], lt(result, ))
+        self.effSetVariable(conds[croff + 1], gt(result, b))
+        self.effSetVariable(conds[croff + 2], eq(result, b))
+        self.effSetVariable(conds[croff + 3], so)
+
+
     ######################## arithmetic instructions ##########################
     def i_add(self, op, oe=False):
         '''
@@ -801,7 +863,7 @@ class PpcSymbolikTranslator(vsym_trans.SymbolikTranslator):
     def i_adde(self, op, oe=False):
         ra = self.getOperObj(op, 1)
         rb = self.getOperObj(op, 2)
-        ca = self.getRegObj(REG_CA)
+        ca = Var('ca', 1)
 
         bplus = rb + ca
         result = ra + bplus
@@ -833,15 +895,14 @@ class PpcSymbolikTranslator(vsym_trans.SymbolikTranslator):
         update flags (if IF_RC)
         '''
         src1 = self.getOperObj(op, 1)
-        src2 = self.getOperObj(op, 2) # FIXME: move signedness here instead of at decode
+        src2 = self.getOperObj(op, 2)
         src2 = o_sextend(src2, Const(self._psize, self._psize))
         result = src1 + src2
 
         self.setOperObj(op, 0, result)
-        self.setRegObj(REG_CA, gt(src2, src1))
+        self.setFlag('ca', gt(src2, src1))
         if op.iflags & IF_RC: self.setFlags(result, 0)
 
-    #===============
     def i_addme(self, op):
         '''
         add minus one extended
@@ -853,7 +914,7 @@ class PpcSymbolikTranslator(vsym_trans.SymbolikTranslator):
 
         self.setOperObj(op, 0, result)
 
-        self.setRegObj(REG_CA, gt(src2, src1))
+        self.setFlag('ca', gt(src2, src1))
         if op.iflags & IF_RC: self.setFlags(result, 0)
 
     def i_addmeo(self, op):
@@ -867,7 +928,7 @@ class PpcSymbolikTranslator(vsym_trans.SymbolikTranslator):
 
         self.setOperObj(op, 0, result)
 
-        self.setRegObj(REG_CA, gt(src2, src1))
+        self.setFlag('ca', gt(src2, src1))
         self.setOEflags(result, 4, src1, src2)
         if op.iflags & IF_RC: self.setFlags(result, 0)
 
@@ -892,16 +953,16 @@ class PpcSymbolikTranslator(vsym_trans.SymbolikTranslator):
         src2 = o_sextend(src2, self._psize)
         result = src1 + src2
 
-        SO = self.getSO()
+        SO = Var('so', 1)
         sum31 = ((result >> Const(32, self._psize)) & Const(1, self._psize))
         sum32 = ((result >> Const(31, self._psize)) & Const(1, self._psize)) 
         OV = sum31 ^ sum32
         if OV:
             if sum31: 
-                result = 0xffffffff80000000
+                result = Const(0x80000000, 4)
             else:
-                result = 0x7fffffff
-            SO = self.getSO() | OV
+                result = Const(0x7fffffff, 4)
+            SO = SO | OV
 
         self.setOperObj(op, 0, result)
         self.setFlags(result, 0, SO)
@@ -909,12 +970,6 @@ class PpcSymbolikTranslator(vsym_trans.SymbolikTranslator):
     def i_and(self, op):
         dst = self.getOperObj(op, 0)
         src = self.getOperObj(op, 1)
-        # PDE
-        if dst == None or src == None:
-            self.undefFlags()
-            op.opers[OPER_DST].setOperObj(op, self, None)
-            return
-
         result = (dst & src)
 
         self.setOperObj(op, 0, result)
@@ -928,13 +983,7 @@ class PpcSymbolikTranslator(vsym_trans.SymbolikTranslator):
         '''
         src1 = self.getOperObj(op, 1)
         src2 = self.getOperObj(op, 2) # FIXME: move signedness here instead of at decode
-        # PDE
-        if src1 == None or src2 == None:
-            self.undefFlags()
-            op.opers[OPER_DST].setOperObj(op, self, None)
-            return
-
-        src2 <<= 16
+        src2 <<= Const(16, self._psize)
 
         result = src1 & src2
         self.setOperObj(op, 0, result)
@@ -947,12 +996,7 @@ class PpcSymbolikTranslator(vsym_trans.SymbolikTranslator):
         ssize = op.opers[1].tsize
         dst = self.getOperObj(op, 0)
         src = self.getOperObj(op, 1) ^ e_bits.u_maxes[ssize]
-        # PDE
-        if dst == None or src == None:
-            self.undefFlags()
-            op.opers[OPER_DST].setOperObj(op, self, None)
-            return
-
+        
         result = (dst & src)
 
         self.setOperObj(op, 0, result)
@@ -961,11 +1005,6 @@ class PpcSymbolikTranslator(vsym_trans.SymbolikTranslator):
     def i_or(self, op):
         dst = self.getOperObj(op, 0)
         src = self.getOperObj(op, 1)
-        # PDE
-        if dst == None or src == None:
-            self.undefFlags()
-            op.opers[OPER_DST].setOperObj(op, self, None)
-            return
 
         result = (dst | src)
         
@@ -977,13 +1016,7 @@ class PpcSymbolikTranslator(vsym_trans.SymbolikTranslator):
     def i_oris(self, op):
         dst = self.getOperObj(op, 0)
         src = self.getOperObj(op, 1)
-        src <<= 16
-
-        # PDE
-        if dst == None or src == None:
-            self.undefFlags()
-            op.opers[OPER_DST].setOperObj(op, self, None)
-            return
+        src <<= Const(16, self._psize)
 
         self.setOperObj(op, 0, (dst | src))
         if op.iflags & IF_RC: self.setFlags(result, 0)
@@ -993,12 +1026,6 @@ class PpcSymbolikTranslator(vsym_trans.SymbolikTranslator):
         src = self.getOperObj(op, 1)
         src = -src
 
-        # PDE
-        if dst == None or src == None:
-            self.undefFlags()
-            op.opers[OPER_DST].setOperObj(op, self, None)
-            return
-
         self.setOperObj(op, 0, (dst | src))
         if op.iflags & IF_RC: self.setFlags(result, 0)
 
@@ -1006,10 +1033,7 @@ class PpcSymbolikTranslator(vsym_trans.SymbolikTranslator):
     # lbz and lbzu access memory directly from operand[1]
     def i_lbz(self, op):
         op.opers[1].tsize = 1
-        if op.opers[0].reg == 0:
-            src = 0
-        else:
-            src = self.getOperObj(op, 1)
+        src = self.getOperObj(op, 1)
         self.setOperObj(op, 0, src)
 
     def i_lbzu(self, op):
@@ -1026,16 +1050,15 @@ class PpcSymbolikTranslator(vsym_trans.SymbolikTranslator):
     def i_lbzx(self, op):
         op.opers[1].tsize = 1
         src = self.getOperObj(op, 1)
-        src += o_sextend(self.getOperObj(op, 2), Const(self._psize, self._psize))
-        val = self.readMemValue(src, 1)
+        src += self.getOperObj(op, 2)
+        val = self.effReadMemory(src, Const(1, self._psize))
         self.setOperObj(op, 0, val)
 
     def i_lbzux(self, op):
         op.opers[1].tsize = 1
         src = self.getOperObj(op, 1)
         src += self.getOperObj(op, 2)
-        src += o_sextend(self.getOperObj(op, 2), Const(self._psize, self._psize))
-        val = self.readMemValue(src, 1)
+        val = self.effReadMemory(src, Const(1, self._psize))
         self.setOperObj(op, 0, val)
         # the u stands for "update"... ie. write-back
         op.opers[1].updateRegObj(self)
@@ -1046,10 +1069,7 @@ class PpcSymbolikTranslator(vsym_trans.SymbolikTranslator):
     # lhz and lhzu access memory directly from operand[1]
     def i_lhz(self, op):
         op.opers[1].tsize = 2
-        if op.opers[0].reg == 0:
-            src = 0
-        else:
-            src = self.getOperObj(op, 1)
+        src = self.getOperObj(op, 1)
         self.setOperObj(op, 0, src)
 
     def i_lhzu(self, op):
@@ -1066,14 +1086,14 @@ class PpcSymbolikTranslator(vsym_trans.SymbolikTranslator):
     def i_lhzx(self, op):
         src = self.getOperObj(op, 1)
         src += o_sextend(self.getOperObj(op, 2), Const(self._psize, self._psize))
-        val = self.readMemValue(src, 2)
+        val = self.effReadMemory(src, Const(2, self._psize))
         self.setOperObj(op, 0, val)
 
     def i_lhzux(self, op):
         src = self.getOperObj(op, 1)
         src += self.getOperObj(op, 2)
         src += o_sextend(self.getOperObj(op, 2), Const(self._psize, self._psize))
-        val = self.readMemValue(src, 2)
+        val = self.effReadMemory(src, Const(2, self._psize))
         self.setOperObj(op, 0, val)
         # the u stands for "update"... ie. write-back
         op.opers[1].updateRegObj(self)
@@ -1085,10 +1105,7 @@ class PpcSymbolikTranslator(vsym_trans.SymbolikTranslator):
     # lwz and lwzu access memory directly from operand[1]
     def i_lwz(self, op):
         op.opers[1].tsize = 4
-        if op.opers[0].reg == 0:
-            src = 0
-        else:
-            src = self.getOperObj(op, 1)
+        src = self.getOperObj(op, 1)
         self.setOperObj(op, 0, src)
 
     def i_lwzu(self, op):
@@ -1105,14 +1122,14 @@ class PpcSymbolikTranslator(vsym_trans.SymbolikTranslator):
     def i_lwzx(self, op):
         src = self.getOperObj(op, 1)
         src += o_sextend(self.getOperObj(op, 2), Const(self._psize, self._psize))
-        val = self.readMemValue(src, 4)
+        val = self.effReadMemory(src, Const(4, self._psize))
         self.setOperObj(op, 0, val)
 
     def i_lwzux(self, op):
         src = self.getOperObj(op, 1)
         src += self.getOperObj(op, 2)
         src += o_sextend(self.getOperObj(op, 2), Const(self._psize, self._psize))
-        val = self.readMemValue(src, 4)
+        val = self.effReadMemory(src, Const(4, self._psize))
         self.setOperObj(op, 0, val)
         # the u stands for "update"... ie. write-back
         op.opers[1].updateRegObj(self)
@@ -1122,7 +1139,6 @@ class PpcSymbolikTranslator(vsym_trans.SymbolikTranslator):
 
 
     def i_lmw(self, op):
-        op.opers[1].tsize = 4
         startreg = op.opers[0].reg
         regcnt = 32-startreg
 
@@ -1131,7 +1147,7 @@ class PpcSymbolikTranslator(vsym_trans.SymbolikTranslator):
         offset = 0
         for regidx in range(startreg, 32):
             addrsym = startaddr + Const(offset, self._psize)
-            word = self.readMemObj(addrsym, Const(4, self._psize))
+            word = self.effReadMemory(addrsym, Const(4, self._psize))
             self.setRegObj(regidx, word)
             offset += 4
 
@@ -1149,24 +1165,43 @@ class PpcSymbolikTranslator(vsym_trans.SymbolikTranslator):
             self.effWriteMemory(addrsym, Const(4, self._psize), word)
             offset += 4
     
-    def i_stb(self, op):
-        op.opers[1].tsize = 1
+    def i_stb(self, op, size=1):
+        op.opers[1].tsize = size
         src = self.getOperObj(op, 0)
         self.setOperObj(op, 1, src)
    
-    def i_stbu(self, op):
-        op.opers[1].tsize = 1
+    def i_sth(self, op):
+        return self.i_stb(op, size=2)
+
+    def i_stw(self, op):
+        return self.i_stb(op, size=4)
+
+    def i_std(self, op):
+        return self.i_stb(op, size=8)
+
+
+    def i_stbu(self, op, size=1):
+        op.opers[1].tsize = size
         src = self.getOperObj(op, 0)
         self.setOperObj(op, 1, src)
         # the u stands for "update"... ie. write-back
         op.opers[1].updateRegObj(self)
     
+    def i_sthu(self, op):
+        return self.i_stbu(op, size=2)
+
+    def i_stwu(self, op):
+        return self.i_stbu(op, size=4)
+
+    def i_stdu(self, op):
+        return self.i_stbu(op, size=8)
+
+
     def i_stbx(self, op, size=1):
-        print "%r: test with rA = 0, whatever that means" % op
         val = self.getOperObj(op, 0)
         src = self.getOperObj(op, 1)
         src += self.getOperObj(op, 2)
-        self.effWriteMemory(src, Const(1, self._psize), val)
+        self.effWriteMemory(src, Const(size, self._psize), val)
         self.setOperObj(op, 1, src)
 
     def i_sthx(self, op):
@@ -1175,37 +1210,10 @@ class PpcSymbolikTranslator(vsym_trans.SymbolikTranslator):
     def i_stwx(self, op):
         return self.i_stbx(op, size=4)
 
-    def i_stwx(self, op):
+    def i_stdx(self, op):
         return self.i_stbx(op, size=8)
 
-    def i_sth(self, op):
-        op.opers[1].tsize = 2
-        src = self.getOperObj(op, 0)
-        self.setOperObj(op, 1, src)
-
-
-    def i_sthu(self, op):
-        op.opers[1].tsize = 2
-        src = self.getOperObj(op, 0)
-        self.setOperObj(op, 1, src)
-        # the u stands for "update"... ie. write-back
-        op.opers[1].updateRegObj(self)
-    
-
-    def i_stw(self, op):
-        op.opers[1].tsize = 4
-        src = self.getOperObj(op, 0)
-        self.setOperObj(op, 1, src)
-
-   
-    def i_stwu(self, op):
-        op.opers[1].tsize = 4
-        src = self.getOperObj(op, 0)
-        self.setOperObj(op, 1, src)
-        # the u stands for "update"... ie. write-back
-        op.opers[1].updateRegObj(self)
-    
-
+    # mov instructions
     def i_movfrom(self, op):
         src = self.getOperObj(op, 1)
         self.setOperObj(op, 0, src)
@@ -1223,7 +1231,7 @@ class PpcSymbolikTranslator(vsym_trans.SymbolikTranslator):
         self.setRegObj(REG_LR, src)
 
     def i_mfmsr(self, op):
-        src = self.getRegObj(REG_MSR) & Const(0xffffffff, self._psize)
+        src = self.getRegObj(REG_MSR)# & Const(0xffffffff, self._psize)
         self.setOperObj(op, 0, src)
 
     def i_mtmsr(self, op):
@@ -1244,8 +1252,6 @@ class PpcSymbolikTranslator(vsym_trans.SymbolikTranslator):
     def i_lis(self, op):
         src = self.getOperObj(op, 1)
         self.setOperObj(op, 0, (src<<Const(16, self._psize)))
-        # technically this is incorrect, but since we disassemble wrong, we emulate wrong.
-        #self.setOperObj(op, 0, (src))
 
     def i_rlwimi(self, op):
         n = self.getOperObj(op, 2) & Const(0x1f, self._psize)
@@ -1256,7 +1262,7 @@ class PpcSymbolikTranslator(vsym_trans.SymbolikTranslator):
         r = ROTL32(self.getOperObj(op, 1), n)
         k = MASK(b, e)
 
-        result = (r & k) | (ra & ~k)
+        result = (r & k) | (ra & cnot(k))
 
         self.setOperObj(op, 0, result)
         if op.iflags & IF_RC: self.setFlags(result, 0)
@@ -1283,7 +1289,7 @@ class PpcSymbolikTranslator(vsym_trans.SymbolikTranslator):
         mb = self.getOperObj(op, 3)
         me = self.getOperObj(op, 4)
 
-        r = (rs << sh) | (rs >> (32-sh))
+        r = (rs << sh) | (rs >> (Const(32, self._psize) - sh))
         numbits = me - mb
         k = e_bits.bu_masks[numbits] << mb
 
@@ -1292,18 +1298,23 @@ class PpcSymbolikTranslator(vsym_trans.SymbolikTranslator):
         if op.iflags & IF_RC: self.setFlags(result, 0)
 
     def i_srawi(self, op, size=4):
-        rs = self.getOperObj(op, 1)
-        n = self.getOperObj(op, 2) & Const(0x1f, self._psize)
-        k = MASK(n+32, 63)
-        r = ROTL32(rs, 64-n)
-        s = (0, e_bits.u_maxes[4])[bool(rs & 0x80000000)]
+        rs = self.getOperValue(op, 1)
+        n = self.getOperObj(op, 2) & Const(0x1f, self._psize)   # FIXME: is the &... necessary for symboliks?
 
-        result = (r & k) | (s & ~k)
+        k = MASK(n+Const(32, self._psize), Const(63, self._psize))
+        r = ROTL32(rs, Const(64, self._psize)-n)
+
+        # symbolikally generate the signed mask (based on bit 31)
+        s = (rs >> Const(31, self._psize)) & Const(1, self._psize)
+        s *= Const(0xffffffff, self._psize)
+
+        notk = cnot(k)
+        result = (r & k) | (s & notk)
 
         self.setOperObj(op, 0, result)
 
-        carry = bool(s and ((r & ~k)))
-        self.setRegObj(REG_CA, carry)
+        carry = o_and(s, ((r & notk)))
+        self.setFlag('ca', carry)
         
         if op.iflags & IF_RC: self.setFlags(result, 0)
 
@@ -1311,35 +1322,51 @@ class PpcSymbolikTranslator(vsym_trans.SymbolikTranslator):
         rb = self.getOperObj(op, 2)
         rs = self.getOperObj(op, 1)
 
-        n = rb & 0x1f
-        r = ROTL32(rs, 64-n)
+        n = rb & Const(0x1f, self._psize)
+        r = ROTL32(rs, Const(64, self._psize)-n)
         if bool(rb & 0x20):
-            k = 0
+            k = Const(0, self._psize)
         else:
-            k = MASK(n+32, 63)
-        s = (0, e_bits.u_maxes[4])[bool(rs & 0x80000000)]
+            k = MASK(n+Const(32, self._psize), Const(63, self._psize))
 
-        result = (r & k) | (s & ~k)
+        self.effDebug("%s requires MultiPath Symbolik Translation" % op.mnem)
 
-        carry = bool(s and ((r & ~k)))
-        self.setRegObj(REG_CA, carry)
-        
-        if op.iflags & IF_RC: self.setFlags(result, 0)
+        s = o_and(rb >> Const(32, self._psize), Const(1, self._psize))
+        s *= Const(0xffffffff, self._psize)
+
+        notk = cnot(k)
+        result = (r & k) | (s & notk)
+
         self.setOperObj(op, 0, result)
 
+        carry = o_and(s, (r & notk))
+        self.setFlag('ca', carry)
+        
+        if op.iflags & IF_RC: self.setFlags(result, 0)
 
+
+
+
+    #===== NEEDS WORK ==========
     def i_srw(self, op):
         rb = self.getOperObj(op, 2)
         rs = self.getOperObj(op, 1)
 
-        n = rb & 0x1f
-        r = ROTL32(rs, 64-n)
-        if bool(rb & 0x20):
-            k = MASK(n+32, 63)
-        else:
-            k = 0
+        n = rb & Const(0x3f, self._psize)
 
-        result = r & k
+        result = rs >> n
+
+        if op.iflags & IF_RC: self.setFlags(result, 0)
+        self.setOperObj(op, 0, result)
+        print "srw: rb: %x  rs: %x  result: %x" % (rb, rs, result)
+
+    def i_srd(self, op):
+        rb = self.getOperObj(op, 2)
+        rs = self.getOperObj(op, 1)
+
+        n = rb & Const(0x7f, self._psize)
+
+        result = rs >> n
 
         if op.iflags & IF_RC: self.setFlags(result, 0)
         self.setOperObj(op, 0, result)
@@ -1349,12 +1376,12 @@ class PpcSymbolikTranslator(vsym_trans.SymbolikTranslator):
         rb = self.getOperObj(op, 2)
         rs = self.getOperObj(op, 1)
 
-        n = rb & 0x1f
+        n = rb & Const(0x1f, self._psize)
         r = ROTL32(rs, n)
         if bool(rb & 0x20):
-            k = MASK(32, 63-n)
+            k = Const(0, self._psize)
         else:
-            k = 0
+            k = MASK(n+Const(32, self._psize), Const(63, self._psize))
 
         result = r & k
 
@@ -1394,7 +1421,7 @@ class PpcSymbolikTranslator(vsym_trans.SymbolikTranslator):
         rb = self.getOperObj(op, 2) & e_bits.u_maxes[size]
         prod = ra * rb
 
-        so = self.getRegObj(REG_SO)
+        so = Var('so', 1)
         if oe:
             ov = (prod & 0xffffffff80000000) not in (0, 0xffffffff80000000)
             so |= ov
@@ -1410,7 +1437,7 @@ class PpcSymbolikTranslator(vsym_trans.SymbolikTranslator):
         rb = self.getOperObj(op, 2) & e_bits.u_maxes[size]
         prod = ra * rb
 
-        so = self.getRegObj(REG_SO)
+        so = Var('so', 1)
         if oe:
             ov = (prod & 0xffffffff80000000) not in (0, 0xffffffff80000000)
             so |= ov
@@ -1452,7 +1479,7 @@ class PpcSymbolikTranslator(vsym_trans.SymbolikTranslator):
             quotient = dividend / divisor
             ov = 0
 
-        so = self.getRegObj(REG_SO)
+        so = Var('so', 1)
         if oe:
             so |= ov
             self.setRegObj(REG_OV, ov)
@@ -1479,7 +1506,7 @@ class PpcSymbolikTranslator(vsym_trans.SymbolikTranslator):
 
             ov = 0
 
-        so = self.getRegObj(REG_SO)
+        so = Var('so', 1)
         if oe:
             so |= ov
             self.setRegObj(REG_OV, ov)
@@ -1518,7 +1545,7 @@ class PpcSymbolikTranslator(vsym_trans.SymbolikTranslator):
 
         if setcarry:
             carry = bool(result & (e_bits.u_maxes[dsize] + 1))
-            self.setRegObj(REG_CA, carry)
+            self.setFlag('ca', carry)
 
     def i_subf(self, op):
         result = self._base_sub(op)
@@ -1558,7 +1585,7 @@ class PpcSymbolikTranslator(vsym_trans.SymbolikTranslator):
         ures = result & e_bits.u_maxes[dsize]
 
         # flag magic
-        so = self.getRegObj(REG_SO)
+        so = Var('so', 1)
         sum55 = (result>>(size*8))&1
         sum56 = (result>>(size*8-1))&1
         ov = sum55 ^ sum56
@@ -1605,7 +1632,7 @@ class PpcSymbolikTranslator(vsym_trans.SymbolikTranslator):
         ures = result & e_bits.u_maxes[size] 
 
         # flag magic
-        so = self.getRegObj(REG_SO)
+        so = Var('so', 1)
         sum55 = (result>>8)&1
         sum56 = (result>>7)&1
         ov = sum55 ^ sum56
@@ -1629,11 +1656,11 @@ class PpcSymbolikTranslator(vsym_trans.SymbolikTranslator):
         self._base_sub(op, oeflags=True, setcarry=True)
 
     def i_subfe(self, op):
-        addone = self.getRegObj(REG_CA)
+        addone = Var('ca', 1)
         self._base_sub(op, oeflags=False, setcarry=True, addone=addone)
 
     def i_subfeo(self, op):
-        addone = self.getRegObj(REG_CA)
+        addone = Var('ca', 1)
         self._base_sub(op, oeflags=True, setcarry=True, addone=addone)
 
     def i_subfh(self, op):
@@ -1660,7 +1687,7 @@ class PpcSymbolikTranslator(vsym_trans.SymbolikTranslator):
         ures = result & e_bits.u_maxes[dsize]
         
         carry = bool(result & (e_bits.u_maxes[dsize] + 1))
-        self.setRegObj(REG_CA, carry)
+        self.setFlag('ca', carry)
 
     def _subme(self, op, size=4, addone=1, oeflags=False):
         dsize = op.opers[0].tsize
@@ -1678,14 +1705,14 @@ class PpcSymbolikTranslator(vsym_trans.SymbolikTranslator):
         if op.iflags & IF_RC: self.setFlags(result, 0)
 
         carry = bool(result & (e_bits.u_maxes[dsize] + 1))
-        self.setRegObj(REG_CA, carry)
+        self.setFlag('ca', carry)
 
     def i_subfme(self, op, size=4, addone=1):
-        ca = self.getRegObj(REG_CA)
+        ca = Var('ca', 1)
         self._subme(op, size, ca)
 
     def i_subfmeo(self, op, size=4, addone=1):
-        ca = self.getRegObj(REG_CA)
+        ca = Var('ca', 1)
         self._subme(op, size, ca, oeflags=True)
 
     def i_subfw(self, op):
@@ -1733,7 +1760,7 @@ class PpcSymbolikTranslator(vsym_trans.SymbolikTranslator):
                 self.setRegObj(REG_SO, so)
             else:
                 ov = 0
-                so = self.getRegObj(REG_SO)
+                so = Var('so', 1)
 
         if op.iflags & IF_RC: self.setFlags(result, so)
         self.setOperObj(op, 0, result)
