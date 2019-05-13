@@ -10,6 +10,52 @@ from envi.archs.ppc.regs import *
 from envi.archs.ppc.disasm import *
 import vle
 
+''' taken from the MCP850 ref manual (circa 2001)
+3.2.1 Levels of the PowerPC Architecture
+The PowerPC architecture is defined in three levels that correspond to three programming
+environments, roughly described from the most general, user-level instruction set
+environment, to the more specific, operating environment.
+
+This layering of the architecture provides flexibility, allowing degrees of software
+compatibility across a wide range of implementations. For example, an implementation
+such as an embedded controller may support the user instruction set, whereas it may be
+impractical for it to adhere to the memory management, exception, and cache models.
+
+The three levels of the PowerPC architecture are defined as follows:
+
+* PowerPC user instruction set architecture (UISA)-The UISA defines the level of
+the architecture to which user-level (referred to as problem state in the architecture
+specification) software should conform. The UISA defines the base user-level
+instruction set, user-level registers, data types, the exception model as seen by user
+programs, and the memory and programming models.
+
+* PowerPC virtual environment architecture (VEA)-The VEA defines additional
+user-level functionality that falls outside typical user-level software requirements.
+The VEA describes the memory model for an environment in which multiple
+devices can access memory, defines aspects of the cache model, defines cache
+control instructions, and defines the time base facility from a user-level perspective.
+Implementations that conform to the PowerPC VEA also adhere to the UISA, but
+may not necessarily adhere to the OEA.
+
+* PowerPC operating environment architecture (OEA)-The OEA defines
+supervisor-level (referred to as privileged state in the architecture specification)
+resources typically required by an operating system. The OEA defines the PowerPC
+memory management model, supervisor-level registers, synchronization
+requirements, and the exception model. The OEA also defines the time base feature
+from a supervisor-level perspective.
+
+Implementations that conform to the PowerPC OEA also conform to the PowerPC
+UISA and VEA.
+
+The MPC850 adheres to the OEA definition of the exception model and provides a
+subset of the memory management model. It includes OEA-defined registers and
+instructions for configuration and exception handling.
+
+Implementations that adhere to the VEA level are guaranteed to adhere to the UISA level;
+likewise, implementations that conform to the OEA level are also guaranteed to conform to
+the UISA and the VEA levels. For a more detailed discussion of the characteristics of the
+PowerPC architecture, see the Programming Environments Manual.
+'''
 
 class PpcSpeModule(envi.ArchitectureModule):
 
