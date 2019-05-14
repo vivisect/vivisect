@@ -635,6 +635,7 @@ class i386Disasm:
         self._dis_amethods[opcode86.ADDRMETH_C>>16] = self.ameth_c
         self._dis_amethods[opcode86.ADDRMETH_D>>16] = self.ameth_d
         self._dis_amethods[opcode86.ADDRMETH_E>>16] = self.ameth_e
+        self._dis_amethods[opcode86.ADDRMETH_L>>16] = self.ameth_l
         self._dis_amethods[opcode86.ADDRMETH_M>>16] = self.ameth_e
         self._dis_amethods[opcode86.ADDRMETH_N>>16] = self.ameth_n
         self._dis_amethods[opcode86.ADDRMETH_Q>>16] = self.ameth_q
@@ -666,7 +667,7 @@ class i386Disasm:
         reg = (byte >> 3) & 0x7
         rm = byte & 0x7
         #print "MOD/RM",hex(byte),mod,reg,rm
-        return (mod,reg,rm)
+        return (mod, reg, rm)
 
     def byteRegOffset(self, val, prefixes=0):
         # NOTE: This is used for high byte metas in 32 bit mode only
@@ -835,29 +836,29 @@ class i386Disasm:
 
         #pdone = False
         while True:
-
             obyte = ord(bytez[offset])
-
-            # print("OBYTE", hex(obyte))
+            #print("OBYTE", hex(obyte))
             if (obyte > tabdesc[4]):
-                # print "Jumping To Overflow Table:", tabdesc[5]
+                #print("Jumping To Overflow Table: %s" % repr(tabdesc[5]))
                 tabdesc = all_tables[tabdesc[5]]
 
             tabidx = ((obyte - tabdesc[3]) >> tabdesc[1]) & tabdesc[2]
-            # print("TABIDX: %d" % tabidx)
+            #print("TABIDX: %d" % tabidx)
             opdesc = tabdesc[0][tabidx]
-            # print('OPDESC: %s' % repr(opdesc))
+            #print('OPDESC: %s' % repr(opdesc))
 
             # Hunt down multi-byte opcodes
             nexttable = opdesc[0]
-            # print("NEXT",nexttable,hex(obyte))
+            #print("NEXT",nexttable,hex(obyte))
             if nexttable != 0: # If we have a sub-table specified, use it.
-                # print "Multi-Byte Next Hop For",hex(obyte),opdesc[0]
+                #print("Multi-Byte Next Hop For %s: %s" % (hex(obyte),repr(opdesc[0])))
+                #print("Jumping to table %d" % nexttable)
                 tabdesc = all_tables[nexttable]
 
                 # In the case of 66 0f, the next table is *already* assuming we ate
                 # the 66 *and* the 0f...  oblidge them.
                 if obyte == 0x66 and ord(bytez[offset+1]) == 0x0f:
+                    # print("Jumping another byte set for 660F")
                     offset += 1
 
                 # Account for the table jump we made
@@ -868,6 +869,7 @@ class i386Disasm:
             # We are now on the final table...
             # print(repr(opdesc))
             mnem = opdesc[6]
+            # print(mnem)
             optype = opdesc[1]
             if tabdesc[2] == 0xff:
                 offset += 1  # For our final opcode byte
@@ -1007,34 +1009,38 @@ class i386Disasm:
         return (self.ptrsize, i386ImmMemOper(imm, tsize))
 
     def ameth_g(self, bytez, offset, tsize, prefixes, operflags):
-        mod,reg,rm = self.parse_modrm(ord(bytez[offset]))
+        mod, reg, rm = self.parse_modrm(ord(bytez[offset]))
         if tsize == 1: reg = self.byteRegOffset(reg, prefixes)
         elif tsize == 2: reg += RMETA_LOW16
         return (0, i386RegOper(reg, tsize))
 
     def ameth_c(self, bytez, offset, tsize, prefixes, operflags):
-        mod,reg,rm = self.parse_modrm(ord(bytez[offset]))
+        mod, reg, rm = self.parse_modrm(ord(bytez[offset]))
         return (0, i386RegOper(reg+self.ROFFSETCTRL, tsize))
 
     def ameth_d(self, bytez, offset, tsize, prefixes, operflags):
-        mod,reg,rm = self.parse_modrm(ord(bytez[offset]))
+        mod, reg, rm = self.parse_modrm(ord(bytez[offset]))
         return (0, i386RegOper(reg+self.ROFFSETDEBUG, tsize))
 
     def ameth_p(self, bytez, offset, tsize, prefixes, operflags):
-        mod,reg,rm = self.parse_modrm(ord(bytez[offset]))
+        mod, reg, rm = self.parse_modrm(ord(bytez[offset]))
         return (0, i386RegOper(reg+self.ROFFSETMMX, tsize))
 
     def ameth_s(self, bytez, offset, tsize, prefixes, operflags):
-        mod,reg,rm = self.parse_modrm(ord(bytez[offset]))
+        mod, reg, rm = self.parse_modrm(ord(bytez[offset]))
         return (0, i386RegOper(reg+self.ROFFSETSEG, tsize))
 
     def ameth_u(self, bytez, offset, tsize, prefixes, operflags):
-        mod,reg,rm = self.parse_modrm(ord(bytez[offset]))
+        mod, reg, rm = self.parse_modrm(ord(bytez[offset]))
         return (0, i386RegOper(reg+self.ROFFSETTEST, tsize))
 
     def ameth_v(self, bytez, offset, tsize, prefixes, operflags):
-        mod,reg,rm = self.parse_modrm(ord(bytez[offset]))
+        mod, reg, rm = self.parse_modrm(ord(bytez[offset]))
         return (0, i386RegOper(reg+self.ROFFSETSIMD, tsize))
+
+    def ameth_l(self, bytez, offset, tsize, prefixes, operflags):
+        mod, reg, rm = self.parse_modrm(ord(bytez[offset]))
+        return (1, i386RegOper(rm+self.ROFFSETSIMD, tsize))
 
     def ameth_x(self, bytez, offset, tsize, prefixes, operflags):
         #FIXME this needs the DS over-ride, but is only for outsb which we don't support
