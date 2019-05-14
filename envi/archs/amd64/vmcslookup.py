@@ -145,6 +145,4 @@ VMCS_NAMES = {
     0x6812: 'Host_IA32_SYSENTER_EIP',
     0x6814: 'Host_RSP',
     0x6816: 'Host_RIP',
-
-
 }

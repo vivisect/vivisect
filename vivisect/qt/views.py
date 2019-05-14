@@ -242,11 +242,11 @@ class VQVivFunctionsView(VQVivTreeView):
 
     _viv_navcol = 0
     window_title = 'Functions'
-    columns = ('Name','Address', 'Size', 'Ref Count')
+    columns = ('Name', 'Address', 'Size', 'Ref Count')
 
     def __init__(self, vw, vwqgui):
         VQVivTreeView.__init__(self, vw, vwqgui)
-        self.setModel( VivNavModel(self._viv_navcol, self, columns=self.columns) )
+        self.setModel(VivNavModel(self._viv_navcol, self, columns=self.columns))
         self.vqLoad()
         self.vqSizeColumns()
 
@@ -267,10 +267,10 @@ class VQVivFunctionsView(VQVivTreeView):
 
     def vivAddFunction(self, fva):
 
-        size   = self.vw.getFunctionMeta(fva, "Size", -1)
-        fname  = self.vw.getName(fva)
+        size = self.vw.getFunctionMeta(fva, "Size", -1)
+        funcname = self.vw.getName(fva)
         xcount = len(self.vw.getXrefsTo(fva))
-        self.vivAddRow(fva, fname, '0x%.8x' % fva, size, xcount)
+        self.vivAddRow(fva, funcname, '0x%.8x' % fva, size, xcount)
 
     def VWE_ADDXREF(self, vw, event, einfo):
         fromva, tova, rtype, rflag = einfo

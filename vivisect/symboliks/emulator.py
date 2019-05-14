@@ -110,7 +110,6 @@ class SymbolikEmulator:
         # If we have a workspace, check it for meaningful
         # symbols etc...
         if self._sym_vw is not None:
-
             # Make a special check for imports...
             loc = self._sym_vw.getLocation(addrval)
             if loc is not None:

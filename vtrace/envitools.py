@@ -58,7 +58,7 @@ def lockStepEmulator(emu, trace):
             cmpRegs(emu, trace)
         except RegisterException as msg:
             print("Lockstep Error: %s: %s" % (repr(op), msg))
-            setRegs(emu, trace)  # TODO: Where is this from?
+            # setRegs(emu, trace)  # TODO: Where is this from?
             sys.stdin.readline()
         except Exception as msg:
             import traceback
@@ -147,4 +147,3 @@ def main():
 if __name__ == "__main__":
     # Copy this file out to the vtrace dir for testing and run as main
     main()
-

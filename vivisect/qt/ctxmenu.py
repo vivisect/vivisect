@@ -36,7 +36,7 @@ def printEmuState(vw, fva, va):
 
     # FIXME: this may not be as flexible as it could be, as we don't necessarily *have* to have a location... though we certainly should.
     loc = vw.getLocation(va)
-    if loc == None:
+    if loc is None:
         vw.vprint("ARG! can't find location info for 0x%x" % va)
         return
 
@@ -49,15 +49,15 @@ def printEmuState(vw, fva, va):
         o = op.opers[i]
         o.render(vw.canvas, op, i)
         oaddr = o.getOperAddr(op, emu)
-        if oaddr != None:
+        if oaddr is not None:
             vw.canvas.addText(' [ 0x%x ] ' % oaddr)
 
         vw.canvas.addText(" = ")
         oval = o.getOperValue(op, emu)
         taint = emu.getVivTaint(oval)
-        base = "0x%.8x (%d)" % (oval,oval)
-        if taint != None:
-            base += '%s + %d' % ( emu.reprVivTaint(taint), oval - taint[0])
+        base = "0x%.8x (%d)" % (oval, oval)
+        if taint is not None:
+            base += '%s + %d' % (emu.reprVivTaint(taint), oval - taint[0])
 
         vw.vprint(base)
 
@@ -73,29 +73,30 @@ def buildContextMenu(vw, va=None, expr=None, menu=None, parent=None, nav=None):
     parent  - Qt parent
     nav     - the "local" EnviNavMixin instance
     '''
-    if va == None:
+    if va is None:
         va = vw.parseExpression(expr)
 
-    if expr == None:
+    if expr is None:
         expr = '0x%.8x' % va
 
-    if menu == None:
+    if menu is None:
         menu = QMenu(parent=parent)
 
     menu.addAction('rename (n)', ACT(vw.getVivGui().setVaName, va))
     menu.addAction('comment (;)', ACT(vw.getVivGui().setVaComment, va))
+    menu.addAction('print location', ACT(vw.getVivGui().getLocation, va))
 
     refsto = vw.getXrefsTo(va)
     refsfrom = vw.getXrefsFrom(va)
 
     if refsto:
         rtomenu = menu.addMenu('xrefs to')
-        for fromva,tova,xrtype,xrflag in refsto:
+        for fromva, tova, xrtype, xrflag in refsto:
             xloc = vw.getLocation(fromva)
             xexpr = '0x%.8x' % fromva
             xrepr = '0x%.8x: %s' % (fromva, vw.reprLocation(xloc))
             xfva = vw.getFunction(fromva)
-            if xfva != None:
+            if xfva is not None:
                 xrepr = '%s (%s)' % (xrepr, vw.getName(xfva))
             xmenu = rtomenu.addMenu(xrepr)
             if nav:
@@ -104,12 +105,12 @@ def buildContextMenu(vw, va=None, expr=None, menu=None, parent=None, nav=None):
 
     if refsfrom:
         rfrmenu = menu.addMenu('xrefs from')
-        for fromva,tova,xrtype,xrflag in refsfrom:
+        for fromva, tova, xrtype, xrflag in refsfrom:
             xloc = vw.getLocation(tova)
             xexpr = '0x%.8x' % tova
             xrepr = '0x%.8x: %s' % (tova, vw.reprLocation(xloc))
             xfva = vw.getFunction(tova)
-            if xfva != None:
+            if xfva is not None:
                 xrepr = '%s (%s)' % (xrepr, vw.getName(xfva))
             xmenu = rfrmenu.addMenu(xrepr)
             if nav:
@@ -117,7 +118,7 @@ def buildContextMenu(vw, va=None, expr=None, menu=None, parent=None, nav=None):
             e_q_memcanvas.initMemSendtoMenu(xexpr, xmenu)
 
     fva = vw.getFunction(va)
-    if fva != None:
+    if fva is not None:
         funcmenu = menu.addMenu('function')
         funcname = vw.getName(fva)
         if nav:
@@ -137,7 +138,7 @@ def buildContextMenu(vw, va=None, expr=None, menu=None, parent=None, nav=None):
 
             locmenu = funcmenu.addMenu('locals')
 
-            for _,spdelta,ltype,linfo in funclocals:
+            for _, spdelta, ltype, linfo in funclocals:
                 if spdelta > 0: # FIXME perhaps make this flexable based on cconv?
                     continue
 
@@ -147,27 +148,27 @@ def buildContextMenu(vw, va=None, expr=None, menu=None, parent=None, nav=None):
                 locmenu.addAction(varname, act)
 
         if fva != va:
-            funcmenu.addAction('show emulator state', ACT(printEmuState, vw, fva, va) )
+            funcmenu.addAction('show emulator state', ACT(printEmuState, vw, fva, va))
 
         funcmenu.addAction('call graph', ACT(vw.getVivGui().showFuncCallGraph, fva))
         funcmenu.addAction('re-analyze codeblocks', ACT(vagc.analyzeFunction, vw, fva))
         if fva == va:
-            #funcmenu.addAction('delete function', ACT(vw.delFunction, va))
+            # funcmenu.addAction('delete function', ACT(vw.delFunction, va))
             funcmenu.addAction('delete function', ACT(vw.getVivGui().delFunction, va))
 
     loc = vw.getLocation(va)
-    if loc == None:
+    if loc is None:
         makemenu = menu.addMenu('make')
-        makemenu.addAction('code (c)',      ACT(vw.makeCode,     va))
-        makemenu.addAction('function (f)',  ACT(vw.makeFunction, va))
-        makemenu.addAction('string (s)',    ACT(vw.makeString,   va))
-        makemenu.addAction('pointer (p)',   ACT(vw.makePointer,  va))
-        makemenu.addAction('unicode (u)',   ACT(vw.makeUnicode,  va))
+        makemenu.addAction('code (c)', ACT(vw.makeCode, va))
+        makemenu.addAction('function (f)', ACT(vw.makeFunction, va))
+        makemenu.addAction('string (s)', ACT(vw.makeString,  va))
+        makemenu.addAction('pointer (p)', ACT(vw.makePointer, va))
+        makemenu.addAction('unicode (u)', ACT(vw.makeUnicode, va))
         makemenu.addAction('structure (S)', ACT(vw.getVivGui().makeStruct, va))
 
         nummenu = makemenu.addMenu('number')
-        for size in (1,2,4,8):
-            nummenu.addAction("%d-bit (%d bytes)" % (size<<3, size), ACT(vw.makeNumber, va, size=size))
+        for size in (1, 2, 4, 8):
+            nummenu.addAction("%d-bit (%d bytes)" % (size << 3, size), ACT(vw.makeNumber, va, size=size))
 
         archmenu = makemenu.addMenu('code (archs)')
         prevumenu = menu.addMenu('preview instruction')

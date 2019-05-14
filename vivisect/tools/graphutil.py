@@ -30,14 +30,14 @@ def getNodeWeightHisto(g):
     weights_to_cb = collections.defaultdict(list)
 
     # create default dict
-    for cb, weight in sorted(nodeweights.items(), lambda x,y: cmp(y[1], x[1]) ):
+    for cb, weight in sorted(nodeweights.items(), lambda x, y: cmp(y[1], x[1])):
         if not len(g.getRefsFromByNid(cb)):
             # leaves is a tuple of (cb, current path, visited nodes)
             # these are our leaf nodes
-            leaves[weight].append( (cb, list(), set()) ) 
+            leaves[weight].append((cb, list(), set()))
 
         # create histogram
-        weights_to_cb[weight].append( (cb, list(), set()) )
+        weights_to_cb[weight].append((cb, list(), set()))
 
     return weights_to_cb, nodeweights, leaves
 
@@ -49,20 +49,20 @@ def getLongPath(g, maxpath=1000):
     weights_to_cb, cb_to_weights, todo = getNodeWeightHisto(g)
 
     # unique root node code blocks
-    rootnodes = set([cb for cb,nprops in g.getHierRootNodes()]) 
+    rootnodes = set([cb for cb, nprops in g.getHierRootNodes()])
     leafmax = 0
     if len(todo):
-        leafmax = max( todo.keys() )
+        leafmax = max(todo.keys())
 
     invalidret = False
     # if the weight of the longest path to a leaf node
     # is not the highest weight then we need to fix our
-    # path choices by taking the longer path 
-    weightmax = max( weights_to_cb.keys() )
+    # path choices by taking the longer path
+    weightmax = max(weights_to_cb.keys())
     if leafmax != weightmax:
-        todo = weights_to_cb 
-        leafmax = weightmax 
-        invalidret = True 
+        todo = weights_to_cb
+        leafmax = weightmax
+        invalidret = True
 
     pcnt = 0
     rpaths = []
@@ -70,9 +70,9 @@ def getLongPath(g, maxpath=1000):
     # this is our loop that we want to yield out of..
     # start at the bottom of the graph and work our way back up
     for weight in xrange(leafmax, -1, -1):
-        # the todo is a a list of codeblocks a specific level 
+        # the todo is a a list of codeblocks a specific level
         codeblocks = todo.get(weight)
-        if not codeblocks: 
+        if not codeblocks:
             continue
 
         for cbva, paths, visited in codeblocks:
@@ -84,10 +84,10 @@ def getLongPath(g, maxpath=1000):
             while work:
                 cbva, weight, cpath, visited = work.pop()
                 for eid, fromid, toid, einfo in g.getRefsToByNid(cbva):
-                    #print '0x%08x in [%s]' % (fromid, ' '.join(['0x%08x' % va for va in visited])) 
-                    if fromid in visited: 
+                    # print '0x%08x in [%s]' % (fromid, ' '.join(['0x%08x' % va for va in visited])) 
+                    if fromid in visited:
                         continue
-                    
+
                     nweight = cb_to_weights.get(fromid)
                     #print 'cbva: 0x%08x nweight: %d weght: %d fromid: 0x%08x' % (cbva, nweight, weight, 
                     if nweight == weight-1:
@@ -104,11 +104,11 @@ def getLongPath(g, maxpath=1000):
                         newcpath.append( (fromid, None) )
                         newvisited = set(visited)
                         newvisited.add(fromid)
-                        t = (fromid, newcpath, newvisited) 
+                        t = (fromid, newcpath, newvisited)
                         if t not in tleafs[nweight]:
-                            tleafs[ nweight ].append( t )
+                            tleafs[nweight].append(t)
 
-                if cbva in rootnodes: 
+                if cbva in rootnodes:
                     l = list(cpath)
                     l.reverse()
                     yield l
@@ -448,7 +448,7 @@ def buildFunctionGraph(vw, fva, revloop=False, g=None):
 
     colors = vw.getFunctionMeta(fva, 'BlockColors', default={})
     fcb = vw.getCodeBlock(fva)
-    if fcb == None:
+    if fcb is None:
         t = (fva, vw.isFunction(fva))
         raise Exception('Invalid initial code block for 0x%.8x isfunc: %s' % t)
 
@@ -462,7 +462,7 @@ def buildFunctionGraph(vw, fva, revloop=False, g=None):
 
     while todo:
 
-        (cbva,cbsize,cbfunc),path = todo.pop()
+        (cbva, cbsize, cbfunc), path = todo.pop()
 
         path.append(cbva)
 
@@ -472,7 +472,7 @@ def buildFunctionGraph(vw, fva, revloop=False, g=None):
             g.addNode(nid=cbva, cbva=cbva, cbsize=cbsize, color=bcolor)
 
         # Grab the location for the last instruction in the block
-        nextva = cbva+cbsize-1
+        nextva = cbva + cbsize - 1
         loc = vw.getLocation(nextva)
         if loc == None:
             raise Exception("buildFunctionGraph: Attempt to get location at 0x%x" % nextva)
@@ -488,20 +488,20 @@ def buildFunctionGraph(vw, fva, revloop=False, g=None):
 
             if not g.hasNode(xrto):
                 cblock = vw.getCodeBlock(xrto)
-                if cblock == None:
-                    print 'CB == None in graph building?!?! (0x%x)' % xrto
-                    print '(fva: 0x%.8x cbva: 0x%.8x)' % (fva, xrto)
+                if cblock is None:
+                    logger.warning('CB == None in graph building?!?! (0x%x)' % xrto)
+                    logger.warning('(fva: 0x%.8x cbva: 0x%.8x)' % (fva, xrto))
                     continue
 
                 tova, tosize, tofunc = cblock
                 if tova != xrto:
-                    print 'CBVA != XREFTO in graph building!?'
-                    print '(cbva: 0x%.8x xrto: 0x%.8x)' % (tova, xrto)
+                    logger.warning('CBVA != XREFTO in graph building!?')
+                    logger.warning('(cbva: 0x%.8x xrto: 0x%.8x)' % (tova, xrto))
                     continue
 
                 # Since we haven't seen this node, lets add it to todo
                 # and build a new node for it.
-                todo.append( ((tova,tosize,tofunc), list(path)) )
+                todo.append(((tova,tosize,tofunc), list(path)))
                 bcolor = colors.get(tova, '#0f0')
                 g.addNode(nid=tova, cbva=tova, cbsize=tosize, color=bcolor)
 
@@ -510,7 +510,7 @@ def buildFunctionGraph(vw, fva, revloop=False, g=None):
                 g.addEdgeByNids(xrto, cbva, reverse=True)
             else:
                 g.addEdgeByNids(cbva, xrto)
-                
+
         if ltype == vivisect.LOC_OP and linfo & envi.IF_NOFALL:
             continue
 

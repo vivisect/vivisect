@@ -13,8 +13,7 @@ def addAnalysisModules(vw):
     import vivisect.analysis.i386 as viv_analysis_i386
 
     arch = vw.getMeta('Architecture')
-    fmt  = vw.getMeta('Format')
-    plat = vw.getMeta('Platform')
+    fmt = vw.getMeta('Format')
 
     if fmt == 'pe':
 
@@ -22,7 +21,7 @@ def addAnalysisModules(vw):
 
         if arch == 'i386':
 
-            vw.addImpApi('windows','i386')
+            vw.addImpApi('windows', 'i386')
 
             viv_analysis_i386.addEntrySigs(vw)
             vw.addStructureModule('win32', 'vstruct.defs.win32')
@@ -30,15 +29,15 @@ def addAnalysisModules(vw):
 
         elif arch == 'amd64':
 
-            vw.addImpApi('windows','amd64')
+            vw.addImpApi('windows', 'amd64')
             vw.addStructureModule('ntdll', 'vstruct.defs.windows.win_6_1_amd64.ntdll')
 
         vw.addConstModule('vstruct.constants.ntstatus')
 
         vw.addAnalysisModule("vivisect.analysis.generic.relocations")
 
-        vw.addAnalysisModule("vivisect.analysis.ms.vftables") # RELIES ON LOC_POINTER
-        vw.addAnalysisModule("vivisect.analysis.generic.emucode") # RELIES ON LOC_POINTER
+        vw.addAnalysisModule("vivisect.analysis.ms.vftables")  # RELIES ON LOC_POINTER
+        vw.addAnalysisModule("vivisect.analysis.generic.emucode")  # RELIES ON LOC_POINTER
 
         # run imports after emucode
         if arch == 'i386':
@@ -65,7 +64,7 @@ def addAnalysisModules(vw):
 
         vw.addAnalysisModule('vivisect.analysis.generic.strconst')
 
-    elif fmt == 'elf': # ELF ########################################################
+    elif fmt == 'elf':  # ELF ########################################################
 
         vw.addAnalysisModule("vivisect.analysis.elf")
 

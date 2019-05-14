@@ -9,7 +9,7 @@ def analyze(vw):
     """
     """
     # Go through the relocations and create locations for them
-    for segva,segsize,segname,segfname in vw.getSegments():
+    for segva, segsize, segname, segfname in vw.getSegments():
         reloc_va = vw.getFileMeta(segfname, "reloc_va")
         # Found binaries with multiple sections named .reloc where one was iat another
         # was actual reloc

@@ -1,9 +1,6 @@
 from envi.archs.i386.opconst import *
 import regs as e_amd64_regs
 
-
-
-
 # in order to be included, table name must be listed here.
 tablenames = [  None,           # nexttable index 0 means NO TABLE!
                 'tbl32_0F',
@@ -80,7 +77,7 @@ tablenames = [  None,           # nexttable index 0 means NO TABLE!
                 'tbl32_fpuDF_00BF',
                 'tbl32_fpuDF_rest',
                 'tbl32_INVALID',
-]
+    ]
 tables_lookup = {}
 
 # generate TBL_* "constants"
@@ -95,20 +92,20 @@ for nidx in xrange(1, len(tablenames)):
 (optable, optype, operand 0, operand 1, operand 2, CPU required, "opcodenane", op0Register, op1Register, op2Register)
 """
 tbl32_Main = [
-( 0, INS_ADD, ADDRMETH_E | OPTYPE_b | OP_W, ADDRMETH_G | OPTYPE_b | OP_R, ARG_NONE, cpu_80386, "add", 0, 0, 0),
-( 0, INS_ADD, ADDRMETH_E | OPTYPE_v | OP_W, ADDRMETH_G | OPTYPE_v | OP_R, ARG_NONE, cpu_80386, "add", 0, 0, 0),
-( 0, INS_ADD, ADDRMETH_G | OPTYPE_b | OP_W, ADDRMETH_E | OPTYPE_b | OP_R, ARG_NONE, cpu_80386, "add", 0, 0, 0),
-( 0, INS_ADD, ADDRMETH_G | OPTYPE_v | OP_W, ADDRMETH_E | OPTYPE_v | OP_R, ARG_NONE, cpu_80386, "add", 0, 0, 0),
-( 0, INS_ADD, OP_REG | OP_W, ADDRMETH_I | OPTYPE_b | OP_SIGNED | OP_R, ARG_NONE, cpu_80386, "add", e_amd64_regs.REG_AL, 0, 0),  
-( 0, INS_ADD, OP_REG | OP_W, ADDRMETH_I | OPTYPE_z | OP_SIGNED | OP_R, ARG_NONE, cpu_80386, "add", e_amd64_regs.REG_EAX, 0, 0),  
+(0, INS_ADD, ADDRMETH_E | OPTYPE_b | OP_W, ADDRMETH_G | OPTYPE_b | OP_R, ARG_NONE, cpu_80386, "add", 0, 0, 0),
+(0, INS_ADD, ADDRMETH_E | OPTYPE_v | OP_W, ADDRMETH_G | OPTYPE_v | OP_R, ARG_NONE, cpu_80386, "add", 0, 0, 0),
+(0, INS_ADD, ADDRMETH_G | OPTYPE_b | OP_W, ADDRMETH_E | OPTYPE_b | OP_R, ARG_NONE, cpu_80386, "add", 0, 0, 0),
+(0, INS_ADD, ADDRMETH_G | OPTYPE_v | OP_W, ADDRMETH_E | OPTYPE_v | OP_R, ARG_NONE, cpu_80386, "add", 0, 0, 0),
+(0, INS_ADD, OP_REG | OP_W, ADDRMETH_I | OPTYPE_b | OP_SIGNED | OP_R, ARG_NONE, cpu_80386, "add", e_amd64_regs.REG_AL, 0, 0),  
+(0, INS_ADD, OP_REG | OP_W, ADDRMETH_I | OPTYPE_z | OP_SIGNED | OP_R, ARG_NONE, cpu_80386, "add", e_amd64_regs.REG_EAX, 0, 0),  
 (0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
 (0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
-( 0, INS_OR, ADDRMETH_E | OPTYPE_b | OP_W, ADDRMETH_G | OPTYPE_b | OP_R, ARG_NONE, cpu_80386, "or", 0, 0, 0),  
-( 0, INS_OR, ADDRMETH_E | OPTYPE_v | OP_W, ADDRMETH_G | OPTYPE_v | OP_R, ARG_NONE, cpu_80386, "or", 0, 0, 0),  
-( 0, INS_OR, ADDRMETH_G | OPTYPE_b | OP_W, ADDRMETH_E | OPTYPE_b | OP_R, ARG_NONE, cpu_80386, "or", 0, 0, 0),  
-( 0, INS_OR, ADDRMETH_G | OPTYPE_v | OP_W, ADDRMETH_E | OPTYPE_v | OP_R, ARG_NONE, cpu_80386, "or", 0, 0, 0),  
-( 0, INS_OR, OP_REG | OP_W, ADDRMETH_I | OPTYPE_b | OP_R, ARG_NONE, cpu_80386, "or", e_amd64_regs.REG_AL, 0, 0),  
-( 0, INS_OR, OP_REG | OP_W, ADDRMETH_I | OPTYPE_z | OP_R, ARG_NONE, cpu_80386, "or", e_amd64_regs.REG_EAX, 0, 0),  
+(0, INS_OR, ADDRMETH_E | OPTYPE_b | OP_W, ADDRMETH_G | OPTYPE_b | OP_R, ARG_NONE, cpu_80386, "or", 0, 0, 0),  
+(0, INS_OR, ADDRMETH_E | OPTYPE_v | OP_W, ADDRMETH_G | OPTYPE_v | OP_R, ARG_NONE, cpu_80386, "or", 0, 0, 0),  
+(0, INS_OR, ADDRMETH_G | OPTYPE_b | OP_W, ADDRMETH_E | OPTYPE_b | OP_R, ARG_NONE, cpu_80386, "or", 0, 0, 0),  
+(0, INS_OR, ADDRMETH_G | OPTYPE_v | OP_W, ADDRMETH_E | OPTYPE_v | OP_R, ARG_NONE, cpu_80386, "or", 0, 0, 0),  
+(0, INS_OR, OP_REG | OP_W, ADDRMETH_I | OPTYPE_b | OP_R, ARG_NONE, cpu_80386, "or", e_amd64_regs.REG_AL, 0, 0),  
+(0, INS_OR, OP_REG | OP_W, ADDRMETH_I | OPTYPE_z | OP_R, ARG_NONE, cpu_80386, "or", e_amd64_regs.REG_EAX, 0, 0),  
 (0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
 (TBL_0F, 0, 0, 0, 0, cpu_80386, 0, 0, 0, 0),  # 0x0f
 # 0x10
@@ -266,22 +263,24 @@ tbl32_Main = [
 ( 0, INS_MOV, 0, 0, 0, cpu_80386, "sahf", 0, 0, 0),  
 ( 0, INS_MOV, 0, 0, 0, cpu_80386, "lahf", 0, 0, 0),  
 # 0xa0
-( 0, INS_MOV, OP_REG | OP_W, ADDRMETH_O | OPTYPE_b | OP_R, ARG_NONE, cpu_80386, "mov", e_amd64_regs.REG_AL, 0, 0),  
-( 0, INS_MOV, OP_REG | OP_W, ADDRMETH_O | OPTYPE_v | OP_R, ARG_NONE, cpu_80386, "mov", e_amd64_regs.REG_EAX, 0, 0),  
-( 0, INS_MOV, ADDRMETH_O | OPTYPE_b | OP_W, OP_REG | OP_R, ARG_NONE, cpu_80386, "mov", 0, e_amd64_regs.REG_AL, 0),  
-( 0, INS_MOV, ADDRMETH_O | OPTYPE_v | OP_W, OP_REG | OP_R, ARG_NONE, cpu_80386, "mov", 0, e_amd64_regs.REG_EAX, 0),  
-( 0, INS_STRMOV, 0, 0, 0, cpu_80386, "movsb", 0, 0, 0),  
-( 0, INS_STRMOV, 0, 0, 0, cpu_80386, "movsd", 0, 0, 0),  
-( 0, INS_STRCMP, 0, 0, 0, cpu_80386, "cmpsb", 0, 0, 0),  
-( 0, INS_STRCMP, 0, 0, 0, cpu_80386, "cmpsd", 0, 0, 0),  
-( 0, INS_TEST, OP_REG | OP_R, ADDRMETH_I | OPTYPE_b | OP_R, ARG_NONE, cpu_80386, "test", e_amd64_regs.REG_AL, 0, 0),  
-( 0, INS_TEST, OP_REG | OP_R, ADDRMETH_I | OPTYPE_z | OP_R, ARG_NONE, cpu_80386, "test", e_amd64_regs.REG_EAX, 0, 0),  
-( 0, INS_STRSTOR, 0, 0, 0, cpu_80386, "stosb", 0, 0, 0),  
-( 0, INS_STRSTOR, 0, 0, 0, cpu_80386, "stosd", 0, 0, 0),  
-( 0, INS_STRLOAD, 0, 0, 0, cpu_80386, "lodsb", 0, 0, 0),  
-( 0, INS_STRLOAD, 0, 0, 0, cpu_80386, "lodsd", 0, 0, 0),  
-( 0, INS_STRCMP, 0, 0, 0, cpu_80386, "scasb", 0, 0, 0),  
-( 0, INS_STRCMP, 0, 0, 0, cpu_80386, "scasd", 0, 0, 0),  
+(0, INS_MOV, OP_REG | OP_W, ADDRMETH_O | OPTYPE_b | OP_R, ARG_NONE, cpu_80386, "mov", e_amd64_regs.REG_AL, 0, 0),  
+(0, INS_MOV, OP_REG | OP_W, ADDRMETH_O | OPTYPE_v | OP_R, ARG_NONE, cpu_80386, "mov", e_amd64_regs.REG_EAX, 0, 0),  
+(0, INS_MOV, ADDRMETH_O | OPTYPE_b | OP_W, OP_REG | OP_R, ARG_NONE, cpu_80386, "mov", 0, e_amd64_regs.REG_AL, 0),  
+(0, INS_MOV, ADDRMETH_O | OPTYPE_v | OP_W, OP_REG | OP_R, ARG_NONE, cpu_80386, "mov", 0, e_amd64_regs.REG_EAX, 0),  
+(0, INS_STRMOV, 0, 0, 0, cpu_80386, "movsb", 0, 0, 0),
+# Yes there should be movsw here, but it shares the same opcode as movsw, so skip it
+(0, INS_STRMOV, 0, 0, 0, cpu_80386, "movsd", 0, 0, 0),
+(0, INS_STRCMP, 0, 0, 0, cpu_80386, "cmpsb", 0, 0, 0),
+(0, INS_STRCMP, 0, 0, 0, cpu_80386, "cmpsd", 0, 0, 0),
+(0, INS_TEST, OP_REG | OP_R, ADDRMETH_I | OPTYPE_b | OP_R, ARG_NONE, cpu_80386, "test", e_amd64_regs.REG_AL, 0, 0),  
+(0, INS_TEST, OP_REG | OP_R, ADDRMETH_I | OPTYPE_z | OP_R, ARG_NONE, cpu_80386, "test", e_amd64_regs.REG_EAX, 0, 0),  
+(0, INS_STRSTOR, 0, 0, 0, cpu_80386, "stosb", 0, 0, 0),
+# Yes there should be stosw here, but it shares the same opcode as stosd, so skip it
+(0, INS_STRSTOR, 0, 0, 0, cpu_80386, "stosd", 0, 0, 0),
+(0, INS_STRLOAD, 0, 0, 0, cpu_80386, "lodsb", 0, 0, 0),
+(0, INS_STRLOAD, 0, 0, 0, cpu_80386, "lodsd", 0, 0, 0),
+(0, INS_STRCMP, 0, 0, 0, cpu_80386, "scasb", 0, 0, 0),
+(0, INS_STRCMP, 0, 0, 0, cpu_80386, "scasd", 0, 0, 0),
 # 0xb0
 ( 0, INS_MOV, OP_REG | OP_W, ADDRMETH_I | OPTYPE_b | OP_R, ARG_NONE, cpu_80386, "mov", e_amd64_regs.REG_AL, 0, 0),  
 ( 0, INS_MOV, OP_REG | OP_W, ADDRMETH_I | OPTYPE_b | OP_R, ARG_NONE, cpu_80386, "mov", e_amd64_regs.REG_CL, 0, 0),  
