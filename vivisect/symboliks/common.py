@@ -327,10 +327,16 @@ class SymbolikBase:
             path.append(cur)    # old walkTree expects cur to be on the top of the stack
             newb = cb(path, cur, ctx)
             path.pop()          # clean up, since our algorithm doesn't expect cur on the top...
-            #sys.stdout.write(' << ')
+            #sys.stdout.write(' << \n')
 
             done.append(cur)
 
+            if newb != None and newb != cur:
+                cur = newb
+                #sys.stdout.write(' 8 ')
+                continue    # give it another shot...
+
+            # exit if we're the top node
             if not len(path):
                 #sys.stdout.write('=')
                 if newb:
