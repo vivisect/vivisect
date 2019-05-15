@@ -73,14 +73,24 @@ def MASK(b, e):
     real_shift = 63 - e
     return e_bits.bu_maxes[delta] << (real_shift)
 
-def ROTL32(x, y):
+def ROTL32(x, y, psize=8):
     '''
     helper to rotate left, 32-bit stype.
     NOTE: THIS IS IN NXP's WARPED VIEW ON BIT NUMBERING!
     lsb = bit 63!!!
     '''
+    tmp = x >> (32-y)
     x |= (x<<32)
-    return x << y
+    return ((x << y) | tmp) & e_bits.u_maxes[psize]
+    
+def ROTL64(x, y, psize=8):
+    '''
+    helper to rotate left, 64-bit stype.
+    NOTE: THIS IS IN NXP's WARPED VIEW ON BIT NUMBERING!
+    lsb = bit 63!!!
+    '''
+    tmp = x >> (64-y)
+    return ((x << y) | tmp) & e_bits.u_maxes[psize]
     
 class PpcAbstractEmulator(PpcRegisterContext, envi.Emulator):
 
