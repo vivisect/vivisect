@@ -125,6 +125,8 @@ COND_NV = 9
 
 IFLAGS_NONE = 0
 
+
+# VLE opcode types #FIXME: coordinate between VLE and const_gen
 opcodetypes = (
     'ILL',
 
@@ -167,6 +169,10 @@ for octidx in range(len(opcodetypes)):
     globals()[label] = octidx
 
 
+# special instruction aliases:
+INS_VMR = inscounter ; inscounter += 1
+
+# flag bit numbers and masks
 FLAGS_LT_bitnum = 0
 FLAGS_GT_bitnum = 1
 FLAGS_EQ_bitnum = 2
@@ -188,6 +194,7 @@ XERFLAG_SO = 1 << (XERFLAG_SO_bitnum + 29)
 XERFLAG_OV = 1 << (XERFLAG_OV_bitnum + 30)
 XERFLAG_CA = 1 << (XERFLAG_CA_bitnum + 31)
 
+# roll-up architecture CATEGORIES
 CAT_PPC64 = CAT_ALTIVEC =   CAT_NONE | CAT_EMBEDDED | CAT_E | CAT_V | CAT_64 | CAT_E_ED | CAT_WT | CAT_E_PD | CAT_E_CL | CAT_E_PC
 CAT_PPC =   CAT_SPE =       CAT_NONE | CAT_E | CAT_E_ED | CAT_E_HV | CAT_E_PD | CAT_E_CL | CAT_E_PC | CAT_E_DC | CAT_E_PM | CAT_SP | CAT_SP_FV | CAT_SP_FS | CAT_SP_FD | CAT_ER | CAT_EM_TM | CAT_DS | CAT_FP | CAT_DEO | CAT_FP_R | CAT_WT | CAT_64 | CAT_EMBEDDED | CAT_ISAT
 

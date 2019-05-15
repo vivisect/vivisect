@@ -30,9 +30,9 @@ class PpcInstructionSet(unittest.TestCase):
                 op_str = repr(op).strip()
                 if op_str == result_instr:
                     test_pass += 1
-                #self.assertEqual(result_instr, op_str, '{}: {} != {}'.format(test_bytes, result_instr, op_str))
+                #self.assertEqual(result_instr, op_str, '{}: {} != {}'.format(test_bytes, op_str, result_instr))
                 if result_instr != op_str:
-                    print ('{}: {} != {}'.format(test_bytes, result_instr, op_str))
+                    print ('{}: {} != {}'.format(test_bytes, op_str, result_instr))
             except Exception, e:
                 print ('ERROR: {}: {}'.format(test_bytes, result_instr))
                 sys.excepthook(*sys.exc_info())
@@ -42,7 +42,7 @@ class PpcInstructionSet(unittest.TestCase):
     def test_envi_ppc64_disasm(self):
         test_pass = 0
 
-        vw, emu, sctx = self.getVivEnv('ppc')
+        vw, emu, sctx = self.getVivEnv('ppc64')
 
         import ppc64_instructions
         for test_bytes, result_instr in ppc64_instructions.instructions:
@@ -51,9 +51,9 @@ class PpcInstructionSet(unittest.TestCase):
                 op_str = repr(op).strip()
                 if op_str == result_instr:
                     test_pass += 1
-                #self.assertEqual(result_instr, op_str, '{}: {} != {}'.format(test_bytes, result_instr, op_str))
+                #self.assertEqual(result_instr, op_str, '{}: {} != {}'.format(test_bytes, op_str, result_instr))
                 if result_instr != op_str:
-                    print ('{}: {} != {}'.format(test_bytes, result_instr, op_str))
+                    print ('{}: {} != {}'.format(test_bytes, op_str, result_instr))
             except Exception, e:
                 print ('ERROR: {}: {}'.format(test_bytes, result_instr))
                 sys.excepthook(*sys.exc_info())

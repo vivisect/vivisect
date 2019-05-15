@@ -94,8 +94,8 @@ class PpcDisasm:
 # rlwinm -> clrlwi
 
 def simpleCMP(ival, mnem, opcode, opers, iflags):
-    print vars(opers[0])
-    l = opers[1]
+    #print vars(opers[0])
+    l = opers[1].val
     opers.pop(1)
 
     # if using CR0, it can be omitted
@@ -107,7 +107,7 @@ def simpleCMP(ival, mnem, opcode, opers, iflags):
     return 'cmpd', INS_CMPDI, opers, iflags
 
 def simpleCMPI(ival, mnem, opcode, opers, iflags):
-    l = opers[1]
+    l = opers[1].val
     opers.pop(1)
 
     # if using CR0, it can be omitted
@@ -119,19 +119,19 @@ def simpleCMPI(ival, mnem, opcode, opers, iflags):
     return 'cmpdi', INS_CMPDI, opers, iflags
 
 def simpleCMPLI(ival, mnem, opcode, opers, iflags):
-    l = opers[1]
+    l = opers[1].val
     opers.pop(1)
 
     # if using CR0, it can be omitted
     if opers[0].field == 0:
         opers.pop(0)
-    
+   
     if l == 0:
         return 'cmplwi', INS_CMPWI, opers, iflags
     return 'cmpldi', INS_CMPDI, opers, iflags
 
 def simpleCMPL(ival, mnem, opcode, opers, iflags):
-    l = opers[1]
+    l = opers[1].val
     opers.pop(1)
 
     # if using CR0, it can be omitted
@@ -187,6 +187,12 @@ def simpleISEL(ival, mnem, opcode, opers, iflags):
         return 'iseleq', INS_ISELEQ, (opers[0], opers[1], opers[2]), iflags
     return mnem, opcode, opers, iflags
 
+def simpleVOR(ival, mnem, opcode, opers, iflags):
+    if opers[1] == opers[2]:
+        opers.pop()
+        return 'vmr', INS_VMR, opers, iflags
+    return mnem, opcode, opers, iflags
+
 
 from regs import sprnames
 def simpleMTSPR(ival, mnem, opcode, opers, iflags):
@@ -214,6 +220,7 @@ SIMPLIFIEDS = {
         INS_ISEL    : simpleISEL,
         #INS_MTSPR   : simpleMTSPR,
         #INS_MFSPR   : simpleMFSPR,
+        INS_VOR     : simpleVOR,
 }
 
 def form_DFLT(va, ival, operands, iflags):
