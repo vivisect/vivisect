@@ -1,4 +1,4 @@
-
+import sys
 import unittest
 import vivisect
 import envi.archs.ppc
@@ -25,11 +25,17 @@ class PpcInstructionSet(unittest.TestCase):
         
         import ppc_vle_instructions
         for test_bytes, result_instr in ppc_vle_instructions.instructions:
-            op = vw.arch.archParseOpcode(test_bytes.decode('hex'), 0)
-            op_str = repr(op).strip()
-            if op_str == result_instr:
-                test_pass += 1
-            self.assertEqual(result_instr, op_str, '{}: {} != {}'.format(test_bytes, result_instr, op_str))
+            try:
+                op = vw.arch.archParseOpcode(test_bytes.decode('hex'), 0)
+                op_str = repr(op).strip()
+                if op_str == result_instr:
+                    test_pass += 1
+                #self.assertEqual(result_instr, op_str, '{}: {} != {}'.format(test_bytes, result_instr, op_str))
+                if result_instr != op_str:
+                    print ('{}: {} != {}'.format(test_bytes, result_instr, op_str))
+            except Exception, e:
+                print ('ERROR: {}: {}'.format(test_bytes, result_instr))
+                sys.excepthook(*sys.exc_info())
 
         self.assertEqual(test_pass, len(ppc_vle_instructions.instructions))
 
@@ -40,11 +46,17 @@ class PpcInstructionSet(unittest.TestCase):
 
         import ppc64_instructions
         for test_bytes, result_instr in ppc64_instructions.instructions:
-            op = vw.arch.archParseOpcode(test_bytes.decode('hex'), 0)
-            op_str = repr(op).strip()
-            if op_str == result_instr:
-                test_pass += 1
-            self.assertEqual(result_instr, op_str, '{}: {} != {}'.format(test_bytes, result_instr, op_str))
+            try:
+                op = vw.arch.archParseOpcode(test_bytes.decode('hex'), 0)
+                op_str = repr(op).strip()
+                if op_str == result_instr:
+                    test_pass += 1
+                #self.assertEqual(result_instr, op_str, '{}: {} != {}'.format(test_bytes, result_instr, op_str))
+                if result_instr != op_str:
+                    print ('{}: {} != {}'.format(test_bytes, result_instr, op_str))
+            except Exception, e:
+                print ('ERROR: {}: {}'.format(test_bytes, result_instr))
+                sys.excepthook(*sys.exc_info())
 
         self.assertEqual(test_pass, len(ppc64_instructions.instructions))
 

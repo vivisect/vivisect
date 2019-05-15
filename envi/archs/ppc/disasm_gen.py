@@ -11,7 +11,7 @@ OPERCLASSES = {
     FIELD_DCRN5_9 : PpcImmOper,
     FIELD_DCTL : PpcImmOper,
     FIELD_DE : PpcSImm12Oper,
-    FIELD_DS : PpcImmOper,
+    FIELD_DS : PpcSImm3Oper,
     FIELD_DUI : PpcImmOper,
     FIELD_E : PpcImmOper,
     FIELD_FM : PpcImmOper,

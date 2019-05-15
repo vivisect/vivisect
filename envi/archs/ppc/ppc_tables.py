@@ -1146,6 +1146,7 @@ instr_dict = {
         (0xfc2007fe, 0x7c2007ec, ( 'dcbzl', INS_DCBZL, FORM_X, CAT_DEO, (  ( 'rA', FIELD_rA, 16, 0x1f ), ( 'rB', FIELD_rB, 11, 0x1f ),) , IF_NONE ), ),
         (0xfc2007fe, 0x7c0007fe, ( 'dcbzep', INS_DCBZEP, FORM_X, CAT_E_PD, (  ( 'rA', FIELD_rA, 16, 0x1f ), ( 'rB', FIELD_rB, 11, 0x1f ),) , IF_NONE ), ),
         (0xfc2007fe, 0x7c2007fe, ( 'dcbzlep', INS_DCBZLEP, FORM_X, CAT_DEO | CAT_E_PD, (  ( 'rA', FIELD_rA, 16, 0x1f ), ( 'rB', FIELD_rB, 11, 0x1f ),) , IF_NONE ), ),
+        (0xfe0007ff, 0x7c2007fe, ( 'tlbsrx', INS_TLBSX, FORM_X, CAT_EMBEDDED, (  ( 'rA', FIELD_rA, 16, 0x1f ), ( 'rB', FIELD_rB, 11, 0x1f ),), IF_RC ), ),
     ),
     32 : (
         (0xfc000000, 0x80000000, ( 'lwz', INS_LWZ, FORM_D, CAT_NONE, (  ( 'rD', FIELD_rD, 21, 0x1f ), ( 'rA', FIELD_rA, 16, 0x1f ), ( 'D', FIELD_D, 0, 0xffff ),) , IF_NONE ), ),
