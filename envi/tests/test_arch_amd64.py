@@ -8,29 +8,30 @@ import platform
 import unittest
 
 instrs = [
-        ( "bf9fb44900", 0x456000, 'mov edi,0x0049b49f'),
-        ( "48bf9fb44900aabbccdd", 0x456000, 'mov rdi,0xddccbbaa0049b49f'),
-        ( "c705b58a270001000000", 0x456005, 'mov [rip + 2591413],1'),
-        ( "48c705e68a270084ef4a00", 0x45600f, 'mov [rip + 2591462],0x004aef84'),
-        ( "48c705b39b2700105f4500", 0x45601a, 'mov [rip + 2595763],0x00455f10'),
-        ( 'c4e2f1004141', 0x456000, 'vpshufb xmm0,xmm1,oword [rcx + 65]'),
-        ( 'c4e2f5004141', 0x456000, 'vpshufb ymm0,ymm1,dqword [rcx + 65]'),
-        ( '0f38004141', 0x456000, 'pshufb mm0,qword [rcx + 65]'),
-        ( "41b401", 0x456000, 'mov r12l, 1' ),      # ndisasm and oda say "mov r12b, 1" but ia32 manual says "r12l"
-        ( "4585f6", 0x456000, 'test r14d,r14d'),
-        ]
+    ("bf9fb44900", 0x456000, 'mov edi,0x0049b49f'),
+    ("48bf9fb44900aabbccdd", 0x456000, 'mov rdi,0xddccbbaa0049b49f'),
+    ("c705b58a270001000000", 0x456005, 'mov [rip + 2591413],1'),
+    ("48c705e68a270084ef4a00", 0x45600f, 'mov [rip + 2591462],0x004aef84'),
+    ("48c705b39b2700105f4500", 0x45601a, 'mov [rip + 2595763],0x00455f10'),
+    ('c4e2f1004141', 0x456000, 'vpshufb xmm0,xmm1,oword [rcx + 65]'),
+    ('c4e2f5004141', 0x456000, 'vpshufb ymm0,ymm1,dqword [rcx + 65]'),
+    ('0f38004141', 0x456000, 'pshufb mm0,qword [rcx + 65]'),
+    ("41b401", 0x456000, 'mov r12l, 1' ),      # ndisasm and oda say "mov r12b, 1" but ia32 manual says "r12l"
+    ("4585f6", 0x456000, 'test r14d,r14d'),
+]
+
 
 class Amd64InstrTest(unittest.TestCase):
     def test_envi_amd64_assorted_instrs(self):
-       global instrs
+        global instrs
 
-       archmod = envi.getArchModule("amd64")
+        archmod = envi.getArchModule("amd64")
 
-       for bytez, va, reprOp in instrs:
-           op = archmod.archParseOpcode(bytez.decode('hex'), 0, va)
-           if repr(op).replace(' ','') != reprOp.replace(' ',''):
-               raise Exception("FAILED to decode instr:  %.8x %s - should be: %s  - is: %s" % \
-                       ( va, bytez, reprOp, repr(op) ) )
+        for bytez, va, reprOp in instrs:
+            op = archmod.archParseOpcode(bytez.decode('hex'), 0, va)
+            if repr(op).replace(' ', '') != reprOp.replace(' ', ''):
+                raise Exception("FAILED to decode instr:  %.8x %s - should be: %s  - is: %s" %
+                                (va, bytez, reprOp, repr(op)))
 
     #FIXME: test emuluation as well.
 

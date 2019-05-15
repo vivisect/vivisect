@@ -68,6 +68,9 @@ i386MultiByteOpcodes = [
     ('PSRLDQ (66)', '660f73b1aa4141', 0x40, 'psllq xmm1,170', 'psllq xmm1,170'),
     ('PSRLDQ (66)', '660f73b9aa4141', 0x40, 'psldq xmm1,170', 'psldq xmm1,170'),
 
+    ('PCMPISTRI', '660f3a630f0d', 0x40, 'pcmpistri xmm1,oword [edi],13', 'pcmpistri xmm1,oword [edi],13'),
+    ('PSHUFB', '660F3800EF', 0x40, 'pshufb xmm5,xmm7', 'pshufb xmm5,xmm7'),
+    # ('CVTDQ2PD', 'f30fe6c0', 0x40, 'cvtdq2pd xmm0,xmm0', 'cvtdq2pd xmm0,xmm0'),
 
     # Dang it. movdqu and rep: movq are literalally the same bytes, and movdqu should win out, but it doesn't
     # because we have no mechanism to override the bytes after we decoding the instruction.
@@ -75,7 +78,6 @@ i386MultiByteOpcodes = [
     # ('MOVQ (F3)',   'F30F7E0D41414100', 0x40, 'movq xmm1,qword [0x00414141]', 'movq xmm1,qword [0x00414141]'),
     # ('MOVDQU', 'F30F6FCA', 0x40, 'movdqu xmm1,xmm2', 'movdqu xmm1, xmm2'),
     # ('MOVDQU (REP)', 'F3F30F6FCA', 0x40, 'rep: movdqu xmm1,xmm2', 'rep: movdqu xmm1, xmm2'),
-
 ]
 
 

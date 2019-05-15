@@ -882,7 +882,7 @@ tbl32_F30F[0xae] =  (TBL_F30FAE_00BF, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
 tbl32_F30F[0xc2] =    ( 0, INS_CMP,     ADDRMETH_V | OPTYPE_ss | OP_W, ADDRMETH_H | OPTYPE_ss | OP_R, ADDRMETH_W | OPTYPE_ss | OP_W, ADDRMETH_I | OPTYPE_b | OP_R, cpu_PENTIUM2, "cmpss", 0, 0, 0)
 tbl32_F30F[0xc7] =  (TBL_F30FC7_00BF, 0, 0, 0, 0, ARG_NONE, cpu_PENTMMX, 0, 0, 0, 0)  # group 9
 tbl32_F30F[0xd6] =    ( 0, INS_OTHER,   ADDRMETH_V | OPTYPE_dq | OP_W, ADDRMETH_N | OPTYPE_q  | OP_R, ARG_NONE, ARG_NONE, cpu_PENTMMX, "movq2dq", 0, 0, 0)
-tbl32_F30F[0xe6] =    ( 0, INS_MUL,     ADDRMETH_V | OPTYPE_x  | OP_W, ADDRMETH_W | OPTYPE_pd | OP_R, ARG_NONE, ARG_NONE, cpu_PENTMMX, "cvtdq2pd", 0, 0, 0)
+tbl32_F30F[0xe6] =    ( 0, INS_OTHER,     ADDRMETH_V | OPTYPE_x  | OP_W, ADDRMETH_W | OPTYPE_pd | OP_R, ARG_NONE, ARG_NONE, cpu_PENTMMX, "cvtdq2pd", 0, 0, 0)
 
 
 tbl32_F2660F = list( tbl32_660F )   # it seems that 66 trumps F2, so if we don't have a combination specifically for F266, default to 66's
