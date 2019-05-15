@@ -6,7 +6,7 @@ tables and logic adapted from:
 
 special thanks to wargio and ehntoo for their hard work
 
-adapted by atlas <atlas@r4780y.com>
+adapted by atlas <atlas@r4780y.com>, bugfixes and unit tests by @sprout42.
 '''
 
 from vle_ops import *
