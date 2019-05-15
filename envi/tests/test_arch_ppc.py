@@ -1,7 +1,8 @@
 
+import unittest
 import vivisect
 import envi.archs.ppc
-import unittest
+import vivisect.symboliks.analysis as vs_anal
 
 class PpcInstructionSet(unittest.TestCase):
     def getVivEnv(self, arch='ppc'):
@@ -24,7 +25,7 @@ class PpcInstructionSet(unittest.TestCase):
         
         import ppc_vle_instructions
         for test_bytes, result_instr in ppc_vle_instructions.instructions:
-            op = vw.arch.archParseOpcode(test_bytes.decode('hex'), 0, va)
+            op = vw.arch.archParseOpcode(test_bytes.decode('hex'), 0)
             op_str = repr(op).strip()
             if op_str == result_instr:
                 test_pass += 1
@@ -39,7 +40,7 @@ class PpcInstructionSet(unittest.TestCase):
 
         import ppc64_instructions
         for test_bytes, result_instr in ppc64_instructions.instructions:
-            op = vw.arch.archParseOpcode(test_bytes.decode('hex'), 0, va)
+            op = vw.arch.archParseOpcode(test_bytes.decode('hex'), 0)
             op_str = repr(op).strip()
             if op_str == result_instr:
                 test_pass += 1
@@ -62,4 +63,13 @@ class PpcInstructionSet(unittest.TestCase):
 
                 self.assertEqual(emumask, symmask.solve(), 'MASK({}, {}): {} != {}'.format(x, y, emumask, symmask.solve()))
 
+        for y in range(32):
+            emurot32 = eape.ROTL32(0x31337040, y)
+            symrot32 = vsap.ROTL32(vsap.Const(0x31337040, 8), vsap.Const(y, 8))
+            self.assertEqual(emurot32, symrot32.solve(), 'ROTL32(0x31337040, {}): {} != {}   {}'.format(y, hex(emurot32), hex(symrot32.solve()), symrot32))
+
+        for y in range(64):
+            emurot64 = eape.ROTL64(0x31337040, y)
+            symrot64 = vsap.ROTL64(vsap.Const(0x31337040, 8), vsap.Const(y, 8))
+            self.assertEqual(emurot64, symrot64.solve(), 'ROTL64(0x31337040, {}): {} != {}   {}'.format(y, hex(emurot64), hex(symrot64.solve()), symrot64))
 
