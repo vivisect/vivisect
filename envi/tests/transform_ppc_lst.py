@@ -98,18 +98,20 @@ class ppc_instr(object):
         'e_bne':        'signed_bd15',             # BD15: signed 15 bit value << 1
         'e_beq':        'signed_bd15',             # BD15: signed 15 bit value << 1
         'e_bdnz':       'signed_bd15',             # BD15: signed 15 bit value << 1
-        'bge':          'signed_b',                # I:    signed 14 bit value << 2
-        'bgt':          'signed_b',                # I:    signed 14 bit value << 2
-        'ble':          'signed_b',                # I:    signed 14 bit value << 2
-        'blt':          'signed_b',                # I:    signed 14 bit value << 2
-        'bne':          'signed_b',                # I:    signed 14 bit value << 2
-        'beq':          'signed_b',                # I:    signed 14 bit value << 2
-        'bdnz':         'signed_b',                # I:    signed 14 bit value << 2
-        'bdnzf':        'signed_b',                # I:    signed 14 bit value << 2
-        'bdnzt':        'signed_b',                # I:    signed 14 bit value << 2
-        'bns':          'signed_b',                # I:    signed 14 bit value << 2
-        'bdz':          'signed_b',                # I:    signed 14 bit value << 2
-        'bcl':          'signed_b',                # I:    signed 14 bit value << 2
+        'bge':          'signed_b',                # B:    signed 14 bit value << 2
+        'bgt':          'signed_b',                # B:    signed 14 bit value << 2
+        'ble':          'signed_b',                # B:    signed 14 bit value << 2
+        'blt':          'signed_b',                # B:    signed 14 bit value << 2
+        'bne':          'signed_b',                # B:    signed 14 bit value << 2
+        'beq':          'signed_b',                # B:    signed 14 bit value << 2
+        'bdnz':         'signed_b',                # B:    signed 14 bit value << 2
+        'bdnzf':        'signed_b',                # B:    signed 14 bit value << 2
+        'bdnzt':        'signed_b',                # B:    signed 14 bit value << 2
+        'bns':          'signed_b',                # B:    signed 14 bit value << 2
+        'bdz':          'signed_b',                # B:    signed 14 bit value << 2
+        'bcl':          'signed_b',                # B:    signed 14 bit value << 2
+        'bca':          'signed_b',                # B:    signed 14 bit value << 2
+        'bcla':         'signed_b',                # B:    signed 14 bit value << 2
 
         # Integer Select
         'isel':         'special_r0_handling',     # A:    special handling of param rA r0 case
@@ -206,7 +208,8 @@ class ppc_instr(object):
         'se_li':        'unsigned_im7',            # IM7:  unsigned 7 bit value
         'e_li':         'signed_li20',             # LI20: signed 20 bit value
         'e_lis':        'unsigned_i16l',           # I16L: unsigned 16 bit value
-        'li':           'signed_d',                # D:    signed 16 bit value
+        'li':           'signed_d',                # D:    signed 16 bit value (alias of addi)
+        'lis':          'signed_d',                # D:    signed 16 bit value (alias of addis)
 
         # OR Immediate
         'e_or2i':       'unsigned_i16l',           # I16L: unsigned 16 bit value
@@ -245,14 +248,18 @@ class ppc_instr(object):
         'rlwimi':       'unsigned_m',              # M:    3 unsigned 5 bit values
         'rlwinm':       'unsigned_m',              # M:    3 unsigned 5 bit values
         'rlwinm.':      'unsigned_m',              # M:    3 unsigned 5 bit values
+        'rlwnm':        'unsigned_m_reg',          # M:    3 unsigned 5 bit values
+        'rlwnm.':       'unsigned_m_reg',          # M:    3 unsigned 5 bit values
         'srawi':        'unsigned_x',              # X:    unsigned 5 bit value
         'srawi.':       'unsigned_x',              # X:    unsigned 5 bit value
-        'rldimi':       'unsigned_md',             # MD:   1 unsigned 5 bit, 1 unsigned 6 bit
-        'rldimi.':      'unsigned_md',             # MD:   1 unsigned 5 bit, 1 unsigned 6 bit
-        'rldicl':       'unsigned_md',             # MD:   1 unsigned 5 bit, 1 unsigned 6 bit
-        'rldicl.':      'unsigned_md',             # MD:   1 unsigned 5 bit, 1 unsigned 6 bit
-        'rldicr':       'unsigned_md',             # MD:   1 unsigned 5 bit, 1 unsigned 6 bit
-        'rldicr.':      'unsigned_md',             # MD:   1 unsigned 5 bit, 1 unsigned 6 bit
+        'rldimi':       'unsigned_md',             # MD:   2 unsigned 6 bit values
+        'rldimi.':      'unsigned_md',             # MD:   2 unsigned 6 bit values
+        'rldicl':       'unsigned_md',             # MD:   2 unsigned 6 bit values
+        'rldicl.':      'unsigned_md',             # MD:   2 unsigned 6 bit values
+        'rldic':        'unsigned_md',             # MD:   2 unsigned 6 bit values
+        'rldic.':       'unsigned_md',             # MD:   2 unsigned 6 bit values
+        'rldicr':       'unsigned_md',             # MD:   2 unsigned 6 bit values
+        'rldicr.':      'unsigned_md',             # MD:   2 unsigned 6 bit values
 
         # Bit Manipulate Immediate
         'se_bmaski':    'unsigned_im5',            # IM5:  unsigned 5 bit value
@@ -272,8 +279,8 @@ class ppc_instr(object):
         'cmpi':         'signed_d',                # D:    signed 16 bit value
         'cmplwi':       'unsigned_d',              # D:    unsigned 16 bit value
         'cmpwi':        'signed_d',                # D:    signed 16 bit value
-        'cmpldi':       'unsigned_d',              # D:    unsigned 16 bit value
-        'cmpdi':        'signed_d',                # D:    signed 16 bit value
+        'cmpldi':       'unsigned_d',              # D:    unsigned 16 bit value (alias of cmpli)
+        'cmpdi':        'signed_d',                # D:    signed 16 bit value (alias of cmpi)
 
         # Trap Immediate
         'twi':          'signed_d',                # D:    signed 16 bit value
@@ -342,7 +349,10 @@ class ppc_instr(object):
                 self.data = tok
             elif tok.type == 'ASM':
                 self.op = tok
-            elif tok.type in ['REG', 'INDIRECT_REF', 'DEC_CONST', 'HEX_CONST', 'CONDITION']:
+            elif tok.type == 'CONDITION':
+                cond_str = re.sub( r'4 ?\* ?(cr[0-7]) ?\+ ?(lt|gt|eq|so|un)\b', r'\1.\2', tok.value)
+                self.args.append(lst_parser.Token('CONDITION', tok, cond_str, tok.column))
+            elif tok.type in ['REG', 'INDIRECT_REF', 'DEC_CONST', 'HEX_CONST']:
                 self.args.append(tok)
             elif tok.type in ['LABEL', 'LABEL_MATH']:
                 self.args.append(lst_parser.Token('TBD', tok, 'TBD', tok.column))
@@ -378,7 +388,7 @@ class ppc_instr(object):
             'e_lmvdsrrw':  (None, 'e_ldmvdsrrw'),
 
             # These VLE instructions should not be translated eventually.
-            'e_srwi':      ('74', 'e_rlwinm'),
+            'e_srwi':      ( (0x74000000, 'e_rlwinm') ),
             'e_extrwi':    (None, 'e_rlwinm'),
             'e_extlwi':    (None, 'e_rlwinm'),
             'e_clrlslwi':  (None, 'e_rlwinm'),
@@ -390,6 +400,8 @@ class ppc_instr(object):
             'mtcr':        (None, 'mtcrf'),
 
             # These PPC instructions should not be translated eventually.
+            'mr':          ( (0x7C000000, 'or'), (0x60000000, 'ori') ),
+            'mr.':         ( (0x7C000000, 'or.') ),
             'rotldi':      (None, 'rldicl'),
             'rotrdi':      (None, 'rldicl'),
             'sldi':        (None, 'rldicr'),
@@ -405,23 +417,26 @@ class ppc_instr(object):
             'clrrwi':      (None, 'rlwinm'),
             'rotrwi':      (None, 'rlwinm'),
             'rotlwi':      (None, 'rlwinm'),
+            'rotlw':       (None, 'rlwnm'),
             'inslwi':      (None, 'rlwimi'),
             'clrrdi':      (None, 'rldicr'),
             'clrldi':      (None, 'rldicl'),
             'extldi':      (None, 'rldicr'),
             'extrdi':      (None, 'rldicl'),
-            'clrlsldi':    (None, 'rldicl'),
-            'cmpdi':       (None, 'cmpi'),
-            'cmpd':        (None, 'cmp'),
-            'cmpldi':      (None, 'cmpli'),
-            'cmpld':       (None, 'cmpi'),
-            'li':          (None, 'addi'),
-            'lis':         (None, 'addis'),
+            'clrlsldi':    (None, 'rldic'),
         }
 
         cr0_prepend = [
-                'e_bge', 'e_ble', 'e_bne', 'e_beq', 'e_bgt', 'e_blt',
                 'cmpw', 'cmpwi', 'cmplw', 'cmplwi', 'cmpli', 'cmpl', 'cmp', 'cmpi'
+                'e_bge', 'e_ble', 'e_bne', 'e_beq', 'e_bgt', 'e_blt',
+                'bge', 'ble', 'bne', 'beq', 'bgt', 'blt',
+                'bgea', 'blea', 'bnea', 'beqa', 'bgta', 'blta',
+                'bgel', 'blel', 'bnel', 'beql', 'bgtl', 'bltl',
+                'bgela', 'blela', 'bnela', 'beqla', 'bgtla', 'bltla',
+                'bgelr', 'blelr', 'bnelr', 'beqlr', 'bgtlr', 'bltlr',
+                'bgelrl', 'blelrl', 'bnelrl', 'beqlrl', 'bgtlrl', 'bltlrl',
+                'bgectr', 'blectr', 'bnectr', 'beqctr', 'bgtctr', 'bltctr',
+                'bgectrl', 'blectrl', 'bnectrl', 'beqctrl', 'bgtctrl', 'bltctrl',
         ]
 
         cr0_append = [
@@ -429,13 +444,31 @@ class ppc_instr(object):
         ]
 
         op, cr = (self.op.value[:-1], self.op.value[-1]) if self.op.value[-1] == '.' else (self.op.value, '')
-        if op in rename_mapping and rename_mapping[op][0] in [None, self.data.match[0:2]]:
-            # mtcr needs additional parsing of fields
-            if self.op.value == 'mtcr':
-                self.args.append(lst_parser.Token('TBD', None, 'TBD', None))
+        if op in rename_mapping:
+            new_op = None
+            if rename_mapping[op][0] is None:
+                new_op = rename_mapping[op][1]
+            else:
+                op_bytes = self.data.value & 0xFC000000
+                matches = [ m[1] for m in rename_mapping[op] if m[0] == op_bytes ]
+                if len(matches) >= 1:
+                    new_op = matches[0]
 
-            new_op = lst_parser.Token('ASM', self.op.match, rename_mapping[op][1] + cr, self.op.column)
-            self.op = new_op
+            if new_op is not None:
+                self.op = lst_parser.Token('ASM', self.op.match, new_op + cr, self.op.column)
+
+                # If this is 'or', duplicate the last register
+                if new_op in ['or', 'or.']:
+                    last_arg = self.args[-1]
+                    self.args.append(last_arg)
+
+        # Some instructions need to be forced to re-evaluate the operands
+        update_ops = [
+            'mtcr', 'rlwnm', 'ori', 'rlwnm'
+        ]
+        args_to_fix = [ a for a in self.args if a.type in ['TBD', 'DEC_CONST', 'HEX_CONST'] ]
+        if self.op.value in update_ops and len(args_to_fix) == 0:
+            self.args.append(lst_parser.Token('TBD', None, 'TBD', None))
 
         fixed_args = []
         changed = False
@@ -454,8 +487,11 @@ class ppc_instr(object):
             else:
                 fixed_args.append(arg)
 
-        if self.op.value in cr0_prepend and not self.args[0].match[0:2] == 'cr':
-            fixed_args.insert(0, lst_parser.Token('REG', None, 'cr0', None))
+        if self.op.value in cr0_prepend:
+            if len(self.args) == 0:
+                fixed_args.append(lst_parser.Token('REG', None, 'cr0', None))
+            elif self.args[0].match[0:2] != 'cr':
+                fixed_args.insert(0, lst_parser.Token('REG', None, 'cr0', None))
 
         if self.op.value in cr0_append and not self.args[-1].match[0:2] == 'cr':
             fixed_args.append(lst_parser.Token('REG', None, 'cr0', None))
@@ -477,6 +513,36 @@ class ppc_instr(object):
             'mftbu':       'mfspr',
             'mfdec':       'mfspr',
             'mtdec':       'mtspr',
+            'mfsprg0':     'mfspr',
+            'mtsprg0':     'mtspr',
+            'mfsprg3':     'mfspr',
+            'mtsprg3':     'mtspr',
+            'mfpvr':       'mfspr',
+            'mtpvr':       'mtspr',
+        }
+
+        # The same 3 letter prefixes work for all types of conditional branches:
+        #   bc
+        #   bcl
+        #   bca
+        #   bcla
+        #   bcctr
+        #   bcctrl
+        #   bclr
+        #   bclrl
+        rename_branch_instrs = {
+            'blt': ('bt', '.lt'),
+            'ble': ('bf', '.gt'),
+            'beq': ('bt', '.eq'),
+            'bge': ('bf', '.lt'),
+            'bgt': ('bt', '.gt'),
+            'bnl': ('bf', '.gt'),
+            'bne': ('bf', '.eq'),
+            'bng': ('bf', '.gt'),
+            'bso': ('bt', '.so'),
+            'bns': ('bf', '.so'),
+            'bun': ('bt', '.so'),
+            'bnu': ('bt', '.so'),
         }
         if self.op.value in spr_asm:
             new_op = lst_parser.Token('ASM', self.op.match, spr_asm[self.op.value], self.op.column)
@@ -489,6 +555,15 @@ class ppc_instr(object):
             if self.op.value == 'mtspr' and fixed_args[0].type not in ['SPR', 'HEX_CONST', 'DEC_CONST']:
                 new_arg = getattr(self, ppc_instr.Instructions[self.op.value])(self.data.value)
                 fixed_args.insert(0, new_arg)
+
+        elif self.op.value[0:3] in rename_branch_instrs:
+            mods = rename_branch_instrs[self.op.value[0:3]]
+            instr_rem = self.op.value[3:]
+            new_op = lst_parser.Token('ASM', self.op.match, mods[0] + instr_rem, self.op.column)
+            self.op = new_op
+
+            fixed_cr_arg = lst_parser.Token(fixed_args[0].type, fixed_args[0].type, fixed_args[0].value + mods[1], fixed_args[0].column)
+            fixed_args[0] = fixed_cr_arg
 
         self.args = fixed_args
 
@@ -565,8 +640,8 @@ class ppc_instr(object):
 
     @classmethod
     def signed_b(cls, data):
-        sign = 0x00020000
-        mask = 0x0001FFFC
+        sign = 0x00008000
+        mask = 0x00007FFC
         val = (data & mask) - (data & sign)
         return cls._dec_token(val)
 
@@ -700,14 +775,27 @@ class ppc_instr(object):
         return [cls._hex_token(shift), cls._hex_token(mask_begin), cls._hex_token(mask_end)]
 
     @classmethod
-    def unsigned_md(cls, data):
-        mask_1 = 0x0000F800
-        mask_2 = 0x000007E0
-        shift = (data & mask_1) >> 11
-        mask_begin = (data & mask_2) >> 5
+    def unsigned_m_reg(cls, data):
+        mask_1 = 0x000007C0
+        mask_2 = 0x0000003E
+        mask_begin = (data & mask_1) >> 6
+        mask_end = (data & mask_2) >> 1
 
         # Make hex tokens for logical operation operands
-        return [cls._hex_token(shift), cls._hex_token(mask_begin)]
+        return [cls._hex_token(mask_begin), cls._hex_token(mask_end)]
+
+    @classmethod
+    def unsigned_md(cls, data):
+        sh_lower_mask = 0x0000F800
+        sh_upper_mask = 0x00000002
+        sh = ((data & sh_upper_mask ) << 4) | ((data & sh_lower_mask ) >> 11)
+
+        mb_lower_mask = 0x000007C0
+        mb_upper_mask = 0x00000020
+        mb = (data & mb_upper_mask ) | ((data & mb_lower_mask ) >> 6)
+
+        # Make hex tokens for logical operation operands
+        return [cls._hex_token(sh), cls._hex_token(mb)]
 
     @classmethod
     def special_r0_handling(cls, data):
