@@ -206,7 +206,8 @@ class ppc_instr(object):
         'se_li':        'unsigned_im7',            # IM7:  unsigned 7 bit value
         'e_li':         'signed_li20',             # LI20: signed 20 bit value
         'e_lis':        'unsigned_i16l',           # I16L: unsigned 16 bit value
-        'li':           'signed_d',                # D:    signed 16 bit value
+        'li':           'signed_d',                # D:    signed 16 bit value (alias of addi)
+        'lis':          'signed_d',                # D:    signed 16 bit value (alias of addis)
 
         # OR Immediate
         'e_or2i':       'unsigned_i16l',           # I16L: unsigned 16 bit value
@@ -272,8 +273,8 @@ class ppc_instr(object):
         'cmpi':         'signed_d',                # D:    signed 16 bit value
         'cmplwi':       'unsigned_d',              # D:    unsigned 16 bit value
         'cmpwi':        'signed_d',                # D:    signed 16 bit value
-        'cmpldi':       'unsigned_d',              # D:    unsigned 16 bit value
-        'cmpdi':        'signed_d',                # D:    signed 16 bit value
+        'cmpldi':       'unsigned_d',              # D:    unsigned 16 bit value (alias of cmpli)
+        'cmpdi':        'signed_d',                # D:    signed 16 bit value (alias of cmpi)
 
         # Trap Immediate
         'twi':          'signed_d',                # D:    signed 16 bit value
@@ -411,12 +412,6 @@ class ppc_instr(object):
             'extldi':      (None, 'rldicr'),
             'extrdi':      (None, 'rldicl'),
             'clrlsldi':    (None, 'rldicl'),
-            'cmpdi':       (None, 'cmpi'),
-            'cmpd':        (None, 'cmp'),
-            'cmpldi':      (None, 'cmpli'),
-            'cmpld':       (None, 'cmpi'),
-            'li':          (None, 'addi'),
-            'lis':         (None, 'addis'),
         }
 
         cr0_prepend = [
