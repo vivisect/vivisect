@@ -206,13 +206,19 @@ class PpcCBRegOper(PpcRegOper):
         creg = self.bit / 4
         coff = self.bit % 4
         name = "cr%d" % (creg)
-        rname = "cr%d.%s" % (creg, CRBITS[coff])
+        if creg:
+            rname = "cr%d.%s" % (creg, CRBITS[coff])
+        else:
+            rname = "%s" % (CRBITS[coff])
         mcanv.addNameText(rname, name=name, typename='cregisters')
 
     def repr(self, op):
         creg = self.bit / 4
         coff = self.bit % 4
-        rname = "cr%d.%s" % (creg, CRBITS[coff])
+        if creg:
+            rname = "cr%d.%s" % (creg, CRBITS[coff])
+        else:
+            rname = "%s" % (CRBITS[coff])
         return rname
 
     def getOperValue(self, op, emu=None):
