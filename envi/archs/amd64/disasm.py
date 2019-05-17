@@ -311,7 +311,7 @@ class Amd64Disasm(e_i386.i386Disasm):
 
             # print("OP-OBYTE", hex(obyte))
             if (obyte > tabdesc[5]):
-                # print("Jumping To Overflow Table:", tabdesc[5])
+                # print("Jumping To Overflow Table: %s" % hex(tabdesc[5]))
                 tabdesc = all_tables[tabdesc[6]]
 
             tabidx = ((obyte - tabdesc[4]) >> tabdesc[2]) & tabdesc[3]
@@ -323,7 +323,7 @@ class Amd64Disasm(e_i386.i386Disasm):
             nexttable = opdesc[0]
             # print("NEXT", nexttable, hex(obyte), opcode86.tables_lookup.get(nexttable))
             if nexttable != 0:  # If we have a sub-table specified, use it.
-                # print("Multi-Byte Next Hop For",hex(obyte),opdesc[0])
+                # print("Multi-Byte Next Hop For (%s, %s)" % (hex(obyte), opdesc[0]))
                 tabdesc = all_tables[nexttable]
 
                 # Account for the table jump we made
@@ -332,7 +332,7 @@ class Amd64Disasm(e_i386.i386Disasm):
                 continue
 
             # We are now on the final table...
-            # print repr(opdesc)
+            # print(repr(opdesc))
             tbl_opercnt = tabdesc[1]
             mnem = opdesc[3 + tbl_opercnt]
             optype = opdesc[1]
@@ -423,7 +423,6 @@ class Amd64Disasm(e_i386.i386Disasm):
             operands[1]._is_deref = False
 
         ret = Amd64Opcode(va, optype, mnem, prefixes, (offset-startoff)+operoffset, operands, iflags)
-
         return ret
 
     def parse_modrm(self, byte, prefixes=0):

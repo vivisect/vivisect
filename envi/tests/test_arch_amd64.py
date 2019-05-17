@@ -75,6 +75,8 @@ amd64MultiByteOpcodes = [
         ('PSLLQ (reg)',  '660FF3CA', 0x40, 'psllq xmm1,xmm2', 'psllq xmm1,xmm2'),
         ('PSLLW (regs)',  '0F71F108', 0x40, 'psllw mm1,8', 'psllw mm1,8'),
         ('PSLLQ (66)',  '660F73F108', 0x40, 'psllq xmm1,8', 'psllq xmm1,8'),
+        ('RDTSC', '0F31', 0x40, 'rdtsc ', 'rdtsc '),
+        ('RDTSCP', '0F01F9', 0x40, 'rdtscp ', 'rdtscp '),
 
         # TODO: These require deeper fixes in the amd64 parser
         # ('PSRLW (66)',  '660F71D611', 0x40, 'psrlw xmm6,17', 'psrlw xmm6,17'),

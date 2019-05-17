@@ -70,6 +70,8 @@ i386MultiByteOpcodes = [
 
     ('PCMPISTRI', '660f3a630f0d', 0x40, 'pcmpistri xmm1,oword [edi],13', 'pcmpistri xmm1,oword [edi],13'),
     ('PSHUFB', '660F3800EF', 0x40, 'pshufb xmm5,xmm7', 'pshufb xmm5,xmm7'),
+    ('RDTSC', '0F31', 0x40, 'rdtsc ', 'rdtsc '),
+    ('RDTSCP', '0F01F9', 0x40, 'rdtscp ', 'rdtscp '),
     # ('CVTDQ2PD', 'f30fe6c0', 0x40, 'cvtdq2pd xmm0,xmm0', 'cvtdq2pd xmm0,xmm0'),
 
     # Dang it. movdqu and rep: movq are literalally the same bytes, and movdqu should win out, but it doesn't
