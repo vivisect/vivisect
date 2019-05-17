@@ -175,7 +175,7 @@ class ppc_instr(object):
         'e_ldmvcrrw':   'signed_d8',               # D8:   signed 8 bit value
         'e_ldmvdrrw':   'signed_d8',               # D8:   signed 8 bit value
         'lwz':          'signed_d',                # D:    signed 16 bit value
-        'lwa':          'signed_d',                # D:    signed 16 bit value
+        'lwa':          'signed_ds',               # DS:   unsigned 14 bit value << 2
         'lwzu':         'signed_d',                # D:    signed 16 bit value
         'lwzx':         'special_r0_handling',     # X:    special handling of param rA r0 case
 
