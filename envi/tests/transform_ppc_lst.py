@@ -400,8 +400,6 @@ class ppc_instr(object):
             'mtcr':        (None, 'mtcrf'),
 
             # These PPC instructions should not be translated eventually.
-            'mr':          ( (0x7C000000, 'or'), (0x60000000, 'ori') ),
-            'mr.':         ( (0x7C000000, 'or.') ),
             'rotldi':      (None, 'rldicl'),
             'rotrdi':      (None, 'rldicl'),
             'sldi':        (None, 'rldicr'),
