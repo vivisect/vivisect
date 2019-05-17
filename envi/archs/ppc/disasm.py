@@ -142,9 +142,21 @@ def simpleCMPL(ival, mnem, opcode, opers, iflags):
         return 'cmplw', INS_CMPWI, opers, iflags
     return 'cmpld', INS_CMPDI, opers, iflags
 
+mr_mnems = ('mr', 'mr.')
+def simpleOR(ival, mnem, opcode, opers, iflags):
+    if opers[1] == opers[2]:
+        mnem = mr_mnems[bool(iflags & IF_RC)]
+        return mnem, INS_MR, (opers[0], opers[2]), iflags
+    return mnem, opcode, opers, iflags
+
 def simpleORI(ival, mnem, opcode, opers, iflags):
     if ival == 0x60000000:
         return 'nop', INS_NOP, tuple(), iflags
+
+    if opers[2].val == 0:
+        mnem = mr_mnems[bool(iflags & IF_RC)]
+        return mnem, INS_MR, opers[:2], iflags
+
     return mnem, opcode, opers, iflags
 
 def simpleADDI(ival, mnem, opcode, opers, iflags):
@@ -157,11 +169,6 @@ def simpleADDIS(ival, mnem, opcode, opers, iflags):
     if ival & 0xfc1f0000 == 0x3c000000:
         return 'lis', INS_LIS, (opers[0], opers[2]), iflags
 
-    return mnem, opcode, opers, iflags
-
-def simpleOR(ival, mnem, opcode, opers, iflags):
-    if opers[1] == opers[2]:
-        return 'mr', INS_MR, (opers[0], opers[2]), iflags
     return mnem, opcode, opers, iflags
 
 def simpleNOR(ival, mnem, opcode, opers, iflags):
@@ -207,13 +214,13 @@ trap_conds = {
         0x10 : 'lt',
         0x14 : 'le',
         0x18 : 'ne',
-        0x1f : 'trap',
     }
 
 td_mnems = { k : 'td%s' % v for k,v in trap_conds.items() } 
 tdi_mnems = { k : 'td%si' % v for k,v in trap_conds.items() } 
 tw_mnems = { k : 'tw%s' % v for k,v in trap_conds.items() } 
 twi_mnems = { k : 'tw%si' % v for k,v in trap_conds.items() } 
+td_mnems[0x1f] = tdi_mnems[0x1f] = tw_mnems[0x1f] = twi_mnems[0x1f] = 'trap'
 
 def simpleTD(ival, mnem, opcode, opers, iflags):
     cond = opers[0].val
@@ -305,6 +312,44 @@ def form_DFLT(va, ival, operands, iflags):
 
     return opcode, opers, iflags
     
+def form_A(va, ival, operands, iflags):
+    opcode = None
+    # fallback for all non-memory-accessing FORM_X opcodes
+    opers = []
+    for onm, otype, oshr, omask in operands:
+        val = (ival >> oshr) & omask
+        oper = OPERCLASSES[otype](val, va)
+        opers.append(oper)
+
+    if iflags & IF_MEM_EA:
+        opvals = [((ival >> oshr) & omask) for onm, otype, oshr, omask in operands]
+        # FORM_X opcodes that access memory (EA calculation) with rA==0 use the number 0
+        if opvals[1] == 0:
+            opers[1] = PpcImmOper(0, va)
+
+    return opcode, opers, iflags
+
+def form_X(va, ival, operands, iflags):
+    opcode = None
+    # fallback for all non-memory-accessing FORM_X opcodes
+    opers = []
+    rAidx = None
+    for idx, (onm, otype, oshr, omask) in enumerate(operands):
+        val = (ival >> oshr) & omask
+        oper = OPERCLASSES[otype](val, va)
+        opers.append(oper)
+        if otype == FIELD_rA:
+            rAidx = idx
+
+    if iflags & IF_MEM_EA and rAidx is not None:
+        opvals = [((ival >> oshr) & omask) for onm, otype, oshr, omask in operands]
+        # FORM_X opcodes that access memory (EA calculation) with rA==0 use the number 0
+        if opvals[rAidx] == 0:
+            opers[rAidx] = PpcImmOper(0, va)
+
+    return opcode, opers, iflags
+
+    
 def form_XL(va, ival, operands, iflags):
     opers = []
     opcode = None
@@ -351,12 +396,19 @@ def form_D(va, ival, operands, iflags):
         oper0 = OPERCLASSES[operands[0][1]](opvals[0], va)
         opers.append(oper0)
 
+        if opvals[1] == 0:
+            oper1 = PpcImmOper(0, va)
+            oper2 = OPERCLASSES[operands[2][1]](opvals[2], va)
+            opers = (oper0, oper1, oper2)
+            return opcode, opers, iflags
+
         oper1 = PpcMemOper(opvals[1], opvals[2], va)
         opers.append(oper1)
         return opcode, opers, iflags
 
     # check for rA being 0... and convert it to Immediate 0     TESTME: does this correctly slice the instruction set?
-    elif len(operands) == 3 and operands[1][1] == FIELD_rA and opvals[1] == 0:
+    elif iflags & IF_MEM_EA and len(operands) == 3 and operands[1][1] == FIELD_rA and opvals[1] == 0:
+        print "form_D: secondary IF_MEM_EA...", hex(ival), operands, iflags
         oper0 = OPERCLASSES[operands[0][1]](opvals[0], va)
         oper1 = PpcImmOper(0, va)
         oper2 = OPERCLASSES[operands[2][1]](opvals[2], va)
@@ -502,6 +554,8 @@ def form_XFX(va, ival, operands, iflags):
     return opcode, opers, iflags
     
 decoders = { eval(x) : form_DFLT for x in globals().keys() if x.startswith('FORM_') }
+decoders[FORM_A] = form_A
+decoders[FORM_X] = form_X
 decoders[FORM_EVX] = form_EVX
 decoders[FORM_D] = form_D
 decoders[FORM_B] = form_B
