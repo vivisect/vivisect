@@ -16,7 +16,7 @@ instrs = [
     ('c4e2f1004141', 0x456000, 'vpshufb xmm0,xmm1,oword [rcx + 65]'),
     ('c4e2f5004141', 0x456000, 'vpshufb ymm0,ymm1,dqword [rcx + 65]'),
     ('0f38004141', 0x456000, 'pshufb mm0,qword [rcx + 65]'),
-    ("41b401", 0x456000, 'mov r12l, 1' ),      # ndisasm and oda say "mov r12b, 1" but ia32 manual says "r12l"
+    ("41b401", 0x456000, 'mov r12l, 1'),      # ndisasm and oda say "mov r12b, 1" but ia32 manual says "r12l"
     ("4585f6", 0x456000, 'test r14d,r14d'),
 ]
 
@@ -33,7 +33,7 @@ class Amd64InstrTest(unittest.TestCase):
                 raise Exception("FAILED to decode instr:  %.8x %s - should be: %s  - is: %s" %
                                 (va, bytez, reprOp, repr(op)))
 
-    #FIXME: test emuluation as well.
+    # FIXME: test emuluation as well.
 
 
 # name, bytes, va, repr, txtRender
@@ -65,11 +65,31 @@ amd64MultiByteOpcodes = [
         ('MOVAPD', '660f28aa41414141', 0x40, 'movapd xmm5,oword [rdx + 1094795585]', 'movapd xmm5,oword [rdx + 1094795585]'),
         ('PMULLW (66)', '660faa41414141', 0x40, 'rsm ', 'rsm '),
         ('CMPXCH8B', '0fc70a', 0x40, 'cmpxch8b qword [rdx]', 'cmpxch8b qword [rdx]'),
-        ('PSRLDQ (66)', '660f73faaa4141', 0x40, 'psldq xmm7,250', 'psldq xmm7,250'),
-        ('PSRLDQ (66)', '660f73b5aa4141', 0x40, 'psllq xmm6,181', 'psllq xmm6,181'),
-        ('PSRLDQ (66)', '660f73b1aa4141', 0x40, 'psllq xmm6,177', 'psllq xmm6,177'),
-        ('PSRLDQ (66)', '660f73b9aa4141', 0x40, 'psldq xmm7,185', 'psldq xmm7,185'),
+        ('MOVD (66)',   '660f7ecb414141', 0x40, 'movd ebx,xmm1', 'movd ebx,xmm1'),
+        ('MOVD', '0F6E0D41414100', 0x40, 'movd mm1,[rip + 4276545]', 'movd mm1,dword [rip + 4276545]'),
+        ('MOVQ', '0F6FCB', 0x40, 'movq mm1,mm3', 'movq mm1,mm3'),
+        ('PSRAW',  '0FE1CA4141', 0x40, 'psraw mm1,mm2', 'psraw mm1,mm2'),
+        ('PSRLQ (66)',  '660FF3CB4141', 0x40, 'psllq xmm1,xmm3', 'psllq xmm1,xmm3'),
+        ('PALIGNR', '0F3A0FDC03', 0x40, 'palignr xmm3,xmm4,3', 'palignr xmm3,xmm4,3'),
+        ('PALIGNR (66)',  '660F3A0FCA07', 0x40, 'palignr xmm1,xmm2,7', 'palignr xmm1,xmm2,7'),
+        ('PSLLQ (reg)',  '660FF3CA', 0x40, 'psllq xmm1,xmm2', 'psllq xmm1,xmm2'),
+        ('PSLLW (regs)',  '0F71F108', 0x40, 'psllw mm1,8', 'psllw mm1,8'),
+        ('PSLLQ (66)',  '660F73F108', 0x40, 'psllq xmm1,8', 'psllq xmm1,8'),
+
+        # TODO: These require deeper fixes in the amd64 parser
+        # ('PSRLW (66)',  '660F71D611', 0x40, 'psrlw xmm6,17', 'psrlw xmm6,17'),
+        # ('PSRAD (66)',  '660F72E704', 0x40, 'psrad xmm7,4', 'psrad xmm7,4'),
+        # ('PSRLQ (66)',  '660F73D308', 0x40, 'psrlq xmm3,8', 'psrlq xmm3,8'),
+        # ('PSRLQ 2',  '660f73d501', 0x40, 'psrlq xmm5,1', 'psrlq xmm5,1'),
+        # ('PSHUFB', '660F3800EF', 0x40, 'pshufb xmm5,xmm7', 'pshufb xmm5,xmm7'),
+        ('PSRLDQ (66)', '660f73b5aa4141', 0x40, 'psllq xmm5,170', 'psllq xmm5,170'),
+        ('PSRLDQ (66)', '660f73f5aa4141', 0x40, 'psllq xmm5,170', 'psllq xmm5,170'),
+        ('PSRLDQ (66)', '660f73b1aa4141', 0x40, 'psllq xmm1,170', 'psllq xmm1,170'),
+        ('PSRLDQ (66)', '660f73b9aa4141', 0x40, 'psldq xmm1,170', 'psldq xmm1,170'),
+        ('PCMPISTRI', '660f3a630f0d', 0x40, 'pcmpistri xmm1,oword [rdi],13', 'pcmpistri xmm1,oword [rdi],13'),
     ]
+
+
 class Amd64InstructionSet(unittest.TestCase):
     _arch = envi.getArchModule("amd64")
 
@@ -83,13 +103,13 @@ class Amd64InstructionSet(unittest.TestCase):
         for name, bytez, va, reprOp, renderOp in amd64SingleByteOpcodes:
 
             op = self._arch.archParseOpcode(bytez.decode('hex'), 0, va)
-            #print "'%s', 0x%x, '%s' == '%s'" % (bytez, va, repr(op), reprOp)
-            self.assertEqual( repr(op), reprOp )
+            # print("'%s', 0x%x, '%s' == '%s'" % (bytez, va, repr(op), reprOp))
+            self.assertEqual(repr(op), reprOp)
 
             scanv.clearCanvas()
             op.render(scanv)
             #print "render:  %s" % repr(scanv.strval)
-            self.assertEqual( scanv.strval, renderOp )
+            self.assertEqual(scanv.strval, renderOp)
 
     def test_envi_amd64_disasm_Specific_MultiByte_Instrs(self):
         '''
@@ -102,12 +122,12 @@ class Amd64InstructionSet(unittest.TestCase):
 
             op = self._arch.archParseOpcode(bytez.decode('hex'), 0, va)
             #print "'%s', 0x%x, '%s' == '%s'" % (bytez, va, repr(op), reprOp)
-            self.assertEqual( repr(op), reprOp )
+            self.assertEqual(repr(op), reprOp)
 
             scanv.clearCanvas()
             op.render(scanv)
             #print "render:  %s" % repr(scanv.strval)
-            self.assertEqual( scanv.strval, renderOp )
+            self.assertEqual(scanv.strval, renderOp)
 
     def checkOpcode(self, hexbytez, va, oprepr, opcheck, opercheck, renderOp):
 

@@ -1623,11 +1623,11 @@ tbl32_0F73 = [
 tbl32_660F71 = [
     (0, 0, ARG_NONE, ARG_NONE, ARG_NONE, 0, 0, 0, 0, 0),
     (0, 0, ARG_NONE, ARG_NONE, ARG_NONE, 0, 0, 0, 0, 0),
-    (0, INS_OTHER, ADDRMETH_L | OPTYPE_q | OP_W, ADDRMETH_I | OPTYPE_b | OP_R, ARG_NONE, cpu_PENTMMX, "psrlw", 0, 0, 0),
+    (0, INS_OTHER, ADDRMETH_Z | OPTYPE_q | OP_W, ADDRMETH_I | OPTYPE_b | OP_R, ARG_NONE, cpu_PENTMMX, "psrlw", 0, 0, 0),
     (0, 0, ARG_NONE, ARG_NONE, ARG_NONE, 0, 0, 0, 0, 0),
-    (0, INS_OTHER, ADDRMETH_L | OPTYPE_q | OP_W, ADDRMETH_I | OPTYPE_b | OP_R, ARG_NONE, cpu_PENTMMX, "psraw", 0, 0, 0),
+    (0, INS_OTHER, ADDRMETH_Z | OPTYPE_q | OP_W, ADDRMETH_I | OPTYPE_b | OP_R, ARG_NONE, cpu_PENTMMX, "psraw", 0, 0, 0),
     (0, 0, ARG_NONE, ARG_NONE, ARG_NONE, 0, 0, 0, 0, 0),
-    (0, INS_OTHER, ADDRMETH_L | OPTYPE_q | OP_W, ADDRMETH_I | OPTYPE_b | OP_R, ARG_NONE, cpu_PENTMMX, "psllw", 0, 0, 0),
+    (0, INS_OTHER, ADDRMETH_Z | OPTYPE_q | OP_W, ADDRMETH_I | OPTYPE_b | OP_R, ARG_NONE, cpu_PENTMMX, "psllw", 0, 0, 0),
     (0, 0, ARG_NONE, ARG_NONE, ARG_NONE, 0, 0, 0, 0, 0)
 ]
 
@@ -1638,11 +1638,11 @@ tbl32_660F71 = [
 tbl32_660F72 = [
     (0, 0, ARG_NONE, ARG_NONE, ARG_NONE, 0, 0, 0, 0, 0),
     (0, 0, ARG_NONE, ARG_NONE, ARG_NONE, 0, 0, 0, 0, 0),
-    (0, INS_OTHER, ADDRMETH_L | OPTYPE_q | OP_W, ADDRMETH_I | OPTYPE_b | OP_R, ARG_NONE, cpu_PENTMMX, "psrld", 0, 0, 0),
+    (0, INS_OTHER, ADDRMETH_Z | OPTYPE_q | OP_W, ADDRMETH_I | OPTYPE_b | OP_R, ARG_NONE, cpu_PENTMMX, "psrld", 0, 0, 0),
     (0, 0, ARG_NONE, ARG_NONE, ARG_NONE, 0, 0, 0, 0, 0),
-    (0, INS_OTHER, ADDRMETH_L | OPTYPE_q | OP_W, ADDRMETH_I | OPTYPE_b | OP_R, ARG_NONE, cpu_PENTMMX, "psrad", 0, 0, 0),
+    (0, INS_OTHER, ADDRMETH_Z | OPTYPE_q | OP_W, ADDRMETH_I | OPTYPE_b | OP_R, ARG_NONE, cpu_PENTMMX, "psrad", 0, 0, 0),
     (0, 0, ARG_NONE, ARG_NONE, ARG_NONE, 0, 0, 0, 0, 0),
-    (0, INS_OTHER, ADDRMETH_L | OPTYPE_q | OP_W, ADDRMETH_I | OPTYPE_b | OP_R, ARG_NONE, cpu_PENTMMX, "pslld", 0, 0, 0),
+    (0, INS_OTHER, ADDRMETH_Z | OPTYPE_q | OP_W, ADDRMETH_I | OPTYPE_b | OP_R, ARG_NONE, cpu_PENTMMX, "pslld", 0, 0, 0),
     (0, 0, ARG_NONE, ARG_NONE, ARG_NONE, 0, 0, 0, 0, 0)
 ]
 
@@ -1653,12 +1653,12 @@ tbl32_660F72 = [
 tbl32_660F73 = [
     (0, 0, ARG_NONE, ARG_NONE, ARG_NONE, 0, 0, 0, 0, 0),
     (0, 0, ARG_NONE, ARG_NONE, ARG_NONE, 0, 0, 0, 0, 0),
-    (0, INS_OTHER, ADDRMETH_L | OPTYPE_dq | OP_W, ADDRMETH_I | OPTYPE_b | OP_R, ARG_NONE, cpu_PENTMMX, "psrlq", 0, 0, 0),
-    (0, INS_OTHER, ADDRMETH_L | OPTYPE_dq | OP_W, ADDRMETH_I | OPTYPE_b | OP_R, ARG_NONE, cpu_PENTMMX, "psrldq", 0, 0, 0),
+    (0, INS_OTHER, ADDRMETH_Z | OPTYPE_dq | OP_W, ADDRMETH_I | OPTYPE_b | OP_R, ARG_NONE, cpu_PENTMMX, "psrlq", 0, 0, 0),
+    (0, INS_OTHER, ADDRMETH_Z | OPTYPE_dq | OP_W, ADDRMETH_I | OPTYPE_b | OP_R, ARG_NONE, cpu_PENTMMX, "psrldq", 0, 0, 0),
     (0, 0, ARG_NONE, ARG_NONE, ARG_NONE, 0, 0, 0, 0, 0),
     (0, 0, ARG_NONE, ARG_NONE, ARG_NONE, 0, 0, 0, 0, 0),
-    (0, INS_OTHER, ADDRMETH_L | OPTYPE_dq | OP_W, ADDRMETH_I | OPTYPE_b | OP_R, ARG_NONE, cpu_PENTMMX, "psllq", 0, 0, 0),
-    (0, INS_OTHER, ADDRMETH_L | OPTYPE_dq | OP_W, ADDRMETH_I | OPTYPE_b | OP_R, ARG_NONE, cpu_PENTMMX, "psldq", 0, 0, 0),
+    (0, INS_OTHER, ADDRMETH_Z | OPTYPE_dq | OP_W, ADDRMETH_I | OPTYPE_b | OP_R, ARG_NONE, cpu_PENTMMX, "psllq", 0, 0, 0),
+    (0, INS_OTHER, ADDRMETH_Z | OPTYPE_dq | OP_W, ADDRMETH_I | OPTYPE_b | OP_R, ARG_NONE, cpu_PENTMMX, "psldq", 0, 0, 0),
 ]
 
 """

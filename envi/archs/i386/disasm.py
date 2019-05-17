@@ -635,7 +635,6 @@ class i386Disasm:
         self._dis_amethods[opcode86.ADDRMETH_C>>16] = self.ameth_c
         self._dis_amethods[opcode86.ADDRMETH_D>>16] = self.ameth_d
         self._dis_amethods[opcode86.ADDRMETH_E>>16] = self.ameth_e
-        self._dis_amethods[opcode86.ADDRMETH_L>>16] = self.ameth_l
         self._dis_amethods[opcode86.ADDRMETH_M>>16] = self.ameth_e
         self._dis_amethods[opcode86.ADDRMETH_N>>16] = self.ameth_n
         self._dis_amethods[opcode86.ADDRMETH_Q>>16] = self.ameth_q
@@ -651,6 +650,7 @@ class i386Disasm:
         self._dis_amethods[opcode86.ADDRMETH_V>>16] = self.ameth_v
         self._dis_amethods[opcode86.ADDRMETH_X>>16] = self.ameth_x
         self._dis_amethods[opcode86.ADDRMETH_Y>>16] = self.ameth_y
+        self._dis_amethods[opcode86.ADDRMETH_Z>>16] = self.ameth_z
 
         # Offsets used to add in addressing method parsers
         self.ROFFSETMMX   = getRegOffset(i386regs, "mm0")
@@ -1038,10 +1038,6 @@ class i386Disasm:
         mod, reg, rm = self.parse_modrm(ord(bytez[offset]))
         return (0, i386RegOper(reg+self.ROFFSETSIMD, tsize))
 
-    def ameth_l(self, bytez, offset, tsize, prefixes, operflags):
-        mod, reg, rm = self.parse_modrm(ord(bytez[offset]))
-        return (1, i386RegOper(rm+self.ROFFSETSIMD, tsize))
-
     def ameth_x(self, bytez, offset, tsize, prefixes, operflags):
         #FIXME this needs the DS over-ride, but is only for outsb which we don't support
         return (0, i386RegMemOper(REG_ESI, tsize))
@@ -1049,6 +1045,10 @@ class i386Disasm:
     def ameth_y(self, bytez, offset, tsize, prefixes, operflags):
         #FIXME this needs the ES over-ride, but is only for insb which we don't support
         return (0, i386RegMemOper(REG_ESI, tsize))
+
+    def ameth_z(self, bytez, offset, tsize, prefixes, operflags):
+        mod, reg, rm = self.parse_modrm(ord(bytez[offset]))
+        return (1, i386RegOper(rm+self.ROFFSETSIMD, tsize))
 
 
 if __name__ == '__main__':
