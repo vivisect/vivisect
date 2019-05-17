@@ -32,7 +32,7 @@ class PpcInstructionSet(unittest.TestCase):
                     test_pass += 1
                 #self.assertEqual(result_instr, op_str, '{}: {} != {}'.format(test_bytes, op_str, result_instr))
                 if result_instr != op_str:
-                    print ('{}: {} != {}'.format(test_bytes, op_str, result_instr))
+                    print ('{}: ours: {} != {}'.format(test_bytes, op_str, result_instr))
             except Exception, e:
                 print ('ERROR: {}: {}'.format(test_bytes, result_instr))
                 sys.excepthook(*sys.exc_info())
@@ -53,7 +53,7 @@ class PpcInstructionSet(unittest.TestCase):
                     test_pass += 1
                 #self.assertEqual(result_instr, op_str, '{}: {} != {}'.format(test_bytes, op_str, result_instr))
                 if result_instr != op_str:
-                    print ('{}: {} != {}'.format(test_bytes, op_str, result_instr))
+                    print ('{}: ours: {} != {}'.format(test_bytes, op_str, result_instr))
             except Exception, e:
                 print ('ERROR: {}: {}'.format(test_bytes, result_instr))
                 sys.excepthook(*sys.exc_info())

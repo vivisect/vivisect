@@ -162,11 +162,11 @@ opcodetypes = (
     'SWI',
     'TRAP',
     )
-
+VLE_INST_OFFSET = 0x1000
 for octidx in range(len(opcodetypes)):
     octype = opcodetypes[octidx]
     label = "INS_" + octype
-    globals()[label] = octidx
+    globals()[label] = octidx + VLE_INST_OFFSET
 
 
 # special instruction aliases:

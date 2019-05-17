@@ -193,6 +193,64 @@ def simpleVOR(ival, mnem, opcode, opers, iflags):
         return 'vmr', INS_VMR, opers, iflags
     return mnem, opcode, opers, iflags
 
+trap_conds = {
+        0x01 : 'lgt',
+        0x02 : 'llt',
+        0x03 : 'lne',
+        0x05 : 'lge',
+        0x06 : 'lle', 
+
+        0x04 : 'eq',
+
+        0x08 : 'gt',
+        0x0a : 'ge',
+        0x10 : 'lt',
+        0x14 : 'le',
+        0x18 : 'ne',
+        0x1f : 'trap',
+    }
+
+td_mnems = { k : 'td%s' % v for k,v in trap_conds.items() } 
+tdi_mnems = { k : 'td%si' % v for k,v in trap_conds.items() } 
+tw_mnems = { k : 'tw%s' % v for k,v in trap_conds.items() } 
+twi_mnems = { k : 'tw%si' % v for k,v in trap_conds.items() } 
+
+def simpleTD(ival, mnem, opcode, opers, iflags):
+    cond = opers[0].val
+    nmnem = td_mnems.get(cond)
+    if nmnem is not None:
+        opers = opers[1:3]
+        return nmnem, opcode, opers, iflags
+
+    return mnem, opcode, opers, iflags
+
+def simpleTDI(ival, mnem, opcode, opers, iflags):
+    cond = opers[0].val
+    nmnem = tdi_mnems.get(cond)
+    if nmnem is not None:
+        opers = opers[1:3]
+        return nmnem, opcode, opers, iflags
+
+    return mnem, opcode, opers, iflags
+
+def simpleTW(ival, mnem, opcode, opers, iflags):
+    cond = opers[0].val
+    nmnem = tw_mnems.get(cond)
+    if nmnem is not None:
+        opers = opers[1:3]
+        return nmnem, opcode, opers, iflags
+
+    return mnem, opcode, opers, iflags
+
+def simpleTWI(ival, mnem, opcode, opers, iflags):
+    cond = opers[0].val
+    nmnem = twi_mnems.get(cond)
+    if nmnem is not None:
+        opers = opers[1:3]
+        return nmnem, opcode, opers, iflags
+
+    return mnem, opcode, opers, iflags
+
 
 from regs import sprnames
 def simpleMTSPR(ival, mnem, opcode, opers, iflags):
@@ -221,6 +279,10 @@ SIMPLIFIEDS = {
         #INS_MTSPR   : simpleMTSPR,
         #INS_MFSPR   : simpleMFSPR,
         INS_VOR     : simpleVOR,
+        INS_TD      : simpleTD,
+        INS_TDI     : simpleTDI,
+        INS_TW      : simpleTW,
+        INS_TWI     : simpleTWI,
 }
 
 def form_DFLT(va, ival, operands, iflags):
