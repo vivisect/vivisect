@@ -251,40 +251,49 @@ def simpleTWI(ival, mnem, opcode, opers, iflags):
 
     return mnem, opcode, opers, iflags
 
+def simpleCREQV(ival, mnem, opcode, opers, iflags):
+    if opers[0] == opers[1] == opers[2]:
+        opers = (opers[0],)
+        return 'crset', opcode, opers, iflags
+    return mnem, opcode, opers, iflags
+
+def simpleCRXOR(ival, mnem, opcode, opers, iflags):
+    if opers[0] == opers[1] == opers[2]:
+        opers = (opers[0],)
+        return 'crclr', opcode, opers, iflags
+    return mnem, opcode, opers, iflags
+
+def simpleCROR(ival, mnem, opcode, opers, iflags):
+    if opers[1] == opers[2]:
+        return 'crmove', opcode, opers[:2], iflags
+    return mnem, opcode, opers, iflags
+
+def simpleCRNOR(ival, mnem, opcode, opers, iflags):
+    if opers[1] == opers[2]:
+        return 'crnot', opcode, opers[:2], iflags
+    return mnem, opcode, opers, iflags
+
 
 from regs import sprnames
-def simpleMTSPR(ival, mnem, opcode, opers, iflags):
+def _no_simpleMTSPR(ival, mnem, opcode, opers, iflags):
     spridx = opers[0].val
     spr = sprnames.get(spridx)
     return 'mt' + spr, opcode, opers[1:], iflags
 
-def simpleMFSPR(ival, mnem, opcode, opers, iflags):
+def _no_simpleMFSPR(ival, mnem, opcode, opers, iflags):
     spridx = opers[1].val
     spr = sprnames.get(spridx)
     return 'mf' + spr, opcode, opers[:-1], iflags
 
-SIMPLIFIEDS = {
-        INS_ORI     : simpleORI,
-        INS_ADDI    : simpleADDI,
-        INS_ADDIS   : simpleADDIS,
-        INS_CMP     : simpleCMP,
-        INS_CMPI    : simpleCMPI,
-        INS_CMPL    : simpleCMPL,
-        INS_CMPLI   : simpleCMPLI,
-        INS_OR      : simpleOR,
-        INS_NOR     : simpleNOR,
-        INS_MTCRF   : simpleMTCRF,
-        INS_SYNC    : simpleSYNC,
-        INS_ISEL    : simpleISEL,
-        #INS_MTSPR   : simpleMTSPR,
-        #INS_MFSPR   : simpleMFSPR,
-        INS_VOR     : simpleVOR,
-        INS_TD      : simpleTD,
-        INS_TDI     : simpleTDI,
-        INS_TW      : simpleTW,
-        INS_TWI     : simpleTWI,
-}
+# this generates the handler table for any function starting with simple*
+SIMPLIFIEDS = {}
+for k, v in globals().items():
+    if k.startswith('simple'):
+        capmnem = k[6:]
+        SIMPLIFIEDS[eval('INS_' + capmnem)] = v
 
+
+# FORM parsers
 def form_DFLT(va, ival, operands, iflags):
     opers = []
     opcode = None
@@ -408,7 +417,7 @@ def form_DS(va, ival, operands, iflags):
 
     opvals = [((ival >> oshr) & omask) for onm, otype, oshr, omask in operands]
     oper0 = OPERCLASSES[operands[0][1]](opvals[0], va)
-    oper1 = PpcMemOper(opvals[1], opvals[2], va)
+    oper1 = PpcMemOper(opvals[1], opvals[2] * 4, va)
     opers = (oper0, oper1)
     return opcode, opers, iflags
     
