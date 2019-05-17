@@ -425,7 +425,7 @@ class ppc_instr(object):
         }
 
         cr0_prepend = [
-                'cmpw', 'cmpwi', 'cmplw', 'cmplwi', 'cmpli', 'cmpl', 'cmp', 'cmpi'
+                #'cmpw', 'cmpwi', 'cmplw', 'cmplwi', 'cmpli', 'cmpl', 'cmp', 'cmpi'
                 'e_bge', 'e_ble', 'e_bne', 'e_beq', 'e_bgt', 'e_blt',
                 'bge', 'ble', 'bne', 'beq', 'bgt', 'blt',
                 'bgea', 'blea', 'bnea', 'beqa', 'bgta', 'blta',
@@ -438,7 +438,6 @@ class ppc_instr(object):
         ]
 
         cr0_append = [
-            'iselgt', 'isellt', 'iseleq',
         ]
 
         op, cr = (self.op.value[:-1], self.op.value[-1]) if self.op.value[-1] == '.' else (self.op.value, '')
@@ -517,6 +516,8 @@ class ppc_instr(object):
             'mtsprg3':     'mtspr',
             'mfpvr':       'mfspr',
             'mtpvr':       'mtspr',
+            'mtsprg2':     'mtspr',
+            'mfsprg2':     'mfspr',
         }
 
         # The same 3 letter prefixes work for all types of conditional branches:
@@ -592,9 +593,10 @@ class ppc_instr(object):
     @classmethod
     def _str_arg(cls, arg):
         if isinstance(arg.value, str):
+            if len(arg.value) == 6 and arg.value[0:4] == "cr0.":
+                return arg.value[4:]
             return arg.value
-        else:
-            return hex(arg.value)
+        return hex(arg.value)
 
     @classmethod
     def _str_arg_list(cls, arg_list):
@@ -917,7 +919,7 @@ class ppc_instr(object):
             22: 'DEC',
             26: 'SRR0',
             27: 'SRR1',
-            48: 'PID0',
+            48: 'PID',
             54: 'DECAR',
             56: 'LPER',
             57: 'LPERU',
@@ -1096,7 +1098,7 @@ class ppc_instr(object):
             1010: 'L1CSR0',
             1011: 'L1CSR1',
             1012: 'MMUCSR0',
-            1013: 'BUCSR0',
+            1013: 'BUCSR',
             1015: 'MMUCFG',
             1016: 'L1FINV0',
             1017: 'L2CSR0',
