@@ -4,6 +4,9 @@ import envi.bits as e_bits
 
 # "encodings" is data scraped from the EREF manual
 # "EXTRA_OPCODES" is a table added manually in addition to the scraped data
+
+#FIXME: dcbtst (and others, I assume) has different operand ordering between Embedded and Server
+
 encodings = '''tdi 0 0 0 0 1 0
  TO
  rA
@@ -8557,7 +8560,7 @@ dss 0 1 1 1 1 1
 dssall 0 1 1 1 1 1
  1
  //
- STRM
+ ///
  ///
  ///
  1 1 0 0 1
@@ -10708,13 +10711,15 @@ rAnegades = [
     'sthcix',
     'stwcix',
     'stdcix',
+    'tlbilx',
+    'tlbsrx.',
 ]
 
 TAG_APPEND  = -1
 TAG_PREPEND = 0
 EXTRA_OPCODES = {
         0x1f:   (
-            (TAG_APPEND, 0xfe0007ff, 0x7c0006a5, ( 'tlbsrx.', 'INS_TLBSX', 'FORM_X', 'CAT_EMBEDDED', "(  ( 'rA', FIELD_rA, 16, 0x1f ), ( 'rB', FIELD_rB, 11, 0x1f ),)" , "IF_RC" ), ),
+            (TAG_APPEND, 0xfe0007ff, 0x7c0006a5, ( 'tlbsrx.', 'INS_TLBSX', 'FORM_X', 'CAT_EMBEDDED', "(  ( 'rA', FIELD_rA, 16, 0x1f ), ( 'rB', FIELD_rB, 11, 0x1f ),)" , "IF_RC|IF_MEM_EA" ), ),
             ),
         }
 

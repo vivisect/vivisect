@@ -52,7 +52,7 @@ ppc_regs.extend(sysregs)
 
 import spr
 # populate spr_regs from the PPC SPR register list (in spr.py)
-spr_regs = [('unknown_%d' % x, 64) for x in range(1024)]
+spr_regs = [('%#x' % x, 64) for x in range(1024)]
 for sprnum, (rname, rdesc, bitsz) in spr.sprs.items():
     spr_regs[sprnum] = (rname, bitsz)
 
