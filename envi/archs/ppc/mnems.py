@@ -10583,7 +10583,7 @@ THING_STATIC = 2
 
 EXTRA_OPCODES = {
         0x1f:   (
-            (0xfe0007ff, 0x7c0006a5, ( 'tlbsrx', 'INS_TLBSX', 'FORM_X', 'CAT_EMBEDDED', "(  ( 'rA', FIELD_rA, 16, 0x1f ), ( 'rB', FIELD_rB, 11, 0x1f ),)" , "IF_RC" ), ),
+            (0xfe0007ff, 0x7c0006a5, ( 'tlbsrx.', 'INS_TLBSX', 'FORM_X', 'CAT_EMBEDDED', "(  ( 'rA', FIELD_rA, 16, 0x1f ), ( 'rB', FIELD_rB, 11, 0x1f ),)" , "IF_RC" ), ),
             ),
         }
 
@@ -11324,7 +11324,7 @@ def buildOutput():
             out2.append('        (0x%x, 0x%x, ( %s ), ),' % (mask, val, data))
 
         # ADDITIONAL INSTRUCTIONS NOT INCLUDED IN EREF BREAKDOWN (manual)
-        for mask, va, data in EXTRA_OPCODES.get(grpkey, []):
+        for mask, val, data in EXTRA_OPCODES.get(grpkey, []):
             data = "'%s', %s, %s, %s, %s, %s" % data
             out2.append('        (0x%x, 0x%x, ( %s ), ),' % (mask, val, data))
 
