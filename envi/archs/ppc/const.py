@@ -195,7 +195,7 @@ XERFLAG_OV = 1 << (XERFLAG_OV_bitnum + 30)
 XERFLAG_CA = 1 << (XERFLAG_CA_bitnum + 31)
 
 # roll-up architecture CATEGORIES
-CAT_PPC64 = CAT_ALTIVEC =   CAT_NONE | CAT_EMBEDDED | CAT_E | CAT_V | CAT_64 | CAT_E_ED | CAT_WT | CAT_E_PD | CAT_E_CL | CAT_E_PC
+CAT_PPC64 = CAT_ALTIVEC =   CAT_NONE | CAT_EMBEDDED | CAT_E | CAT_V | CAT_64 | CAT_E_ED | CAT_WT | CAT_E_PD | CAT_E_CL | CAT_E_PC | CAT_FP | CAT_FP_R | CAT_E_PM | CAT_ER | CAT_EM_TM
 CAT_PPC =   CAT_SPE =       CAT_NONE | CAT_E | CAT_E_ED | CAT_E_HV | CAT_E_PD | CAT_E_CL | CAT_E_PC | CAT_E_DC | CAT_E_PM | CAT_SP | CAT_SP_FV | CAT_SP_FS | CAT_SP_FD | CAT_ER | CAT_EM_TM | CAT_DS | CAT_FP | CAT_DEO | CAT_FP_R | CAT_WT | CAT_64 | CAT_EMBEDDED | CAT_ISAT
 
 # mask to clear out a 4-bit part of the 32-bit CR register about to be written
