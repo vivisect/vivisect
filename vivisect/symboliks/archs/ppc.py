@@ -91,7 +91,6 @@ class PpcSymbolikTranslator(vsym_trans.SymbolikTranslator):
         self._reg_ctx = self._arch.archGetRegCtx()
 
     def translateOpcode(self, op):
-        print "-- %r" % op
         return vsym_trans.SymbolikTranslator.translateOpcode(self, op)
 
     def getRegObj(self, regidx):
