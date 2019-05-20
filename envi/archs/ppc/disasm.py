@@ -31,7 +31,6 @@ class PpcDisasm:
         """
         # Stuff we'll be putting in the opcode object
         optype = None # This gets set if we successfully decode below
-        startoff = offset # Use startoff as a size knob if needed
         mnem = None 
         operands = []
         prefixes = 0

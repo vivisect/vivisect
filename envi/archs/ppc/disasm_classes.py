@@ -342,10 +342,9 @@ class PpcUImm3Oper(PpcUImmOper):
 
 
 class PpcMemOper(envi.DerefOper):
-    ''' immediate offset memory operand.
-
+    ''' 
+    immediate offset memory operand.
     0xOFFSET (base_reg)
-
     '''
     def __init__(self, base_reg, offset, va, tsize=4):
         self.base_reg = base_reg
