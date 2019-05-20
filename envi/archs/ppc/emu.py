@@ -1945,6 +1945,11 @@ class PpcAbstractEmulator(PpcRegisterContext, envi.Emulator):
     def i_nego(self, op):
         return self.i_neg(op, oe=True)
 
+    def i_wrteei(self, op):
+        print "Write MSR External Enable"
+
+    i_wrtee = i_wrteei
+
     '''
     i_se_bclri                         rX,UI5
     i_se_bgeni                         rX,UI5
