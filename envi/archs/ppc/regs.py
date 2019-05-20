@@ -180,6 +180,5 @@ general_regs.extend(gprs)
 general_regs.extend(floats)
 general_regs.extend(vectors)
 general_regs.extend(sysregs)
-general_regs.append(('sp', 64))
 general_regs.append(('LR', 64))
 
