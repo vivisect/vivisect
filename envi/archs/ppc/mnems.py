@@ -11157,13 +11157,6 @@ for a in range(2):
             if lk[l] == 'l':
                 flag = flag.replace('| envi.IF_NOFALL','').replace('envi.IF_BRANCH', 'envi.IF_CALL')
                 
-            #for bi in range(32):
-            mnem = mnbase + lk[l] + aa[a]
-            opcode = "INS_" + mnem.upper()
-            num = 0x40000000 |(bo<<21) |  a<<1 | l
-
-            bcopcodes.append((mnem, opcode, (0xffe00003, num), opoff, flag))
-
             mnem = mnbase + 'lr' + lk[l] + aa[a]
             if mnem == 'blr':
                 flag = 'envi.IF_RET | envi.IF_NOFALL'
@@ -11177,6 +11170,16 @@ for a in range(2):
             num = 0x4c000420 |(bo<<21) |  a<<1 | l
 
             bcctropcodes.append((mnem, opcode, (0xffe007ff, num), opoff, flag))
+
+            if mnbase == 'b':
+                continue
+
+            #for bi in range(32):
+            mnem = mnbase + lk[l] + aa[a]
+            opcode = "INS_" + mnem.upper()
+            num = 0x40000000 |(bo<<21) |  a<<1 | l
+
+            bcopcodes.append((mnem, opcode, (0xffe00003, num), opoff, flag))
 
 
 '''
