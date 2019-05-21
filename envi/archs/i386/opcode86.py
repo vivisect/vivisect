@@ -1856,38 +1856,6 @@ tbl32_F30FC7_rest = [
 """
 (optable, optype, operand 0, operand 1, operand 2, CPU required, "opcodename", op0Register, op1Register, op2Register)
 """
-tbl32_F30FC7_00BF = [
-(0, 0, ARG_NONE, ARG_NONE, ARG_NONE, 0, 0, 0, 0, 0),  
-(0, 0, ARG_NONE, ARG_NONE, ARG_NONE, 0, 0, 0, 0, 0),  
-(0, 0, ARG_NONE, ARG_NONE, ARG_NONE, 0, 0, 0, 0, 0),  
-(0, 0, ARG_NONE, ARG_NONE, ARG_NONE, 0, 0, 0, 0, 0),  
-(0, 0, ARG_NONE, ARG_NONE, ARG_NONE, 0, 0, 0, 0, 0),  
-(0, 0, ARG_NONE, ARG_NONE, ARG_NONE, 0, 0, 0, 0, 0),  
-(0, INS_SYSTEM, ADDRMETH_M | OPTYPE_q | OP_W, ARG_NONE, ARG_NONE, 0, "vmxon", 0, 0, 0),  
-(0, 0, ARG_NONE, ARG_NONE, ARG_NONE, 0, 0, 0, 0, 0)
-]
-
-
-"""
-(optable, optype, operand 0, operand 1, operand 2, CPU required, "opcodename", op0Register, op1Register, op2Register)
-"""
-tbl32_F30FC7_rest = [
-(0, 0, ARG_NONE, ARG_NONE, ARG_NONE, 0, 0, 0, 0, 0),  
-(0, 0, ARG_NONE, ARG_NONE, ARG_NONE, 0, 0, 0, 0, 0),  
-(0, 0, ARG_NONE, ARG_NONE, ARG_NONE, 0, 0, 0, 0, 0),  
-(0, 0, ARG_NONE, ARG_NONE, ARG_NONE, 0, 0, 0, 0, 0),  
-(0, 0, ARG_NONE, ARG_NONE, ARG_NONE, 0, 0, 0, 0, 0),  
-(0, 0, ARG_NONE, ARG_NONE, ARG_NONE, 0, 0, 0, 0, 0),  
-(0, 0, ARG_NONE, ARG_NONE, ARG_NONE, 0, 0, 0, 0, 0),  
-(0, 0, ARG_NONE, ARG_NONE, ARG_NONE, 0, 0, 0, 0, 0),  
-(0, 0, ARG_NONE, ARG_NONE, ARG_NONE, 0, 0, 0, 0, 0),  
-(0, 0, ARG_NONE, ARG_NONE, ARG_NONE, 0, 0, 0, 0, 0)
-]
-
-
-"""
-(optable, optype, operand 0, operand 1, operand 2, CPU required, "opcodename", op0Register, op1Register, op2Register)
-"""
 tbl32_80 = [
 ( 0, INS_ADD, ADDRMETH_E | OPTYPE_b | OP_W, ADDRMETH_I | OPTYPE_b | OP_SIGNED | OP_R, ARG_NONE, cpu_80386, "add", 0, 0, 0),  
 ( 0, INS_OR,  ADDRMETH_E | OPTYPE_b | OP_W, ADDRMETH_I | OPTYPE_b | OP_SIGNED | OP_R, ARG_NONE, cpu_80386, "or", 0, 0, 0),  
@@ -2862,9 +2830,9 @@ tables86=[
     (tbl32_660FC7_rest, 3, 0x07, 0xc0, 0xff),    # 48
     (tbl32_F20FC7_00BF, 3, 0x07, 0, 0xff, 50),   # 49
     (tbl32_F20FC7_rest, 3, 0x07, 0xc0, 0xff),    # 50
-    (tbl32_F30FC7_00BF, 3, 0x07, 0, 0xff, 50),   # 51
+    (tbl32_F30FC7_00BF, 3, 0x07, 0, 0xff, 52),   # 51
     (tbl32_F30FC7_rest, 3, 0x07, 0xc0, 0xff),    # 52
-    (tbl32_0FAE_rest, 3, 0x07, 0xc0, 0xff),      # 53
+    (tbl32_0FAE_rest, 3, 0xff, 0xc0, 0xff),      # 53
     (tbl32_660F73, 3, 0x7, 0, 0xff),             # 54
     (tbl32_0F38, 0, 0xff, 0, 0xff),              # 55
     (tbl32_660F38, 0, 0xff, 0, 0xff),            # 56    - unused at present

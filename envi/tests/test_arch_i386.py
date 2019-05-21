@@ -58,6 +58,14 @@ i386MultiByteOpcodes = [
     ('PSRLQ (66)',  '660F73D308', 0x40, 'psrlq xmm3,8', 'psrlq xmm3,8'),
     ('PSRAW (66)',  '660F71E1084141', 0x40, 'psraw xmm1,8', 'psraw xmm1,8'),
     ('PSRLDQ (66)', '660f73faaa4141', 0x40, 'psldq xmm2,170', 'psldq xmm2,170'),
+    ('LFENCE', '0faee8', 0x40, 'lfence ', 'lfence '),
+    ('LFENCE', '0faeea', 0x40, 'lfence ', 'lfence '),
+    ('LFENCE', '0faeec', 0x40, 'lfence ', 'lfence '),
+    ('LFENCE', '0faeef', 0x40, 'lfence ', 'lfence '),
+    ('MFENCE', '0faef0', 0x40, 'mfence ', 'mfence '),
+    ('MFENCE', '0faef2', 0x40, 'mfence ', 'mfence '),
+    ('MFENCE', '0faef5', 0x40, 'mfence ', 'mfence '),
+    ('MFENCE', '0faef7', 0x40, 'mfence ', 'mfence '),
 
     # Because of how the MODRM Bytes are set, these map to the same instruction
     # TODO: Would these be the same to a real x86 chip?
