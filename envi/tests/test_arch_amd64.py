@@ -55,6 +55,7 @@ amd64SingleByteOpcodes = [
         ('pop', '488ff0', 0x40, 'pop rax', 'pop rax'),
         ('pop', '488ffb', 0x40, 'pop rbx', 'pop rbx'),
         ]
+
 amd64MultiByteOpcodes = [
         ('CVTTPS2PI', '0f2caaaaaaaa41', 0x40, 'cvttps2pi mm5,oword [rdx + 1101703850]', 'cvttps2pi mm5,oword [rdx + 1101703850]'),
         ('CVTTSS2SI', 'f30f2caaaaaaaa41', 0x40, 'cvttss2si ebp,oword [rdx + 1101703850]', 'cvttss2si ebp,oword [rdx + 1101703850]'),
@@ -81,9 +82,12 @@ amd64MultiByteOpcodes = [
         # TODO: These require deeper fixes in the amd64 parser
         # ('PSRLW (66)',  '660F71D611', 0x40, 'psrlw xmm6,17', 'psrlw xmm6,17'),
         # ('PSRAD (66)',  '660F72E704', 0x40, 'psrad xmm7,4', 'psrad xmm7,4'),
-        # ('PSRLQ (66)',  '660F73D308', 0x40, 'psrlq xmm3,8', 'psrlq xmm3,8'),
-        # ('PSRLQ 2',  '660f73d501', 0x40, 'psrlq xmm5,1', 'psrlq xmm5,1'),
+        ('PSRLQ (66)',  '660F73D308', 0x40, 'psrlq xmm3,8', 'psrlq xmm3,8'),
+        ('PSRLQ 2',  '660f73d501', 0x40, 'psrlq xmm5,1', 'psrlq xmm5,1'),
         # ('PSHUFB', '660F3800EF', 0x40, 'pshufb xmm5,xmm7', 'pshufb xmm5,xmm7'),
+        ('PSRLQ', '660FD3DC', 0x40, 'psrlq xmm3,xmm4', 'psrlq xmm3,xmm4'),
+        # ('VPSRLDQ', 'C5E9D3CB', 0x40, 'vpsrlq xmm1,xmm2,xmm3', 'vpsrlq xmm1,xmm2,xmm3'),
+        ('PSRLQ', '660F73d10f', 0x40, 'psrlq xmm1,15', 'psrlq xmm1,15'),
         ('PSRLDQ (66)', '660f73b5aa4141', 0x40, 'psllq xmm5,170', 'psllq xmm5,170'),
         ('PSRLDQ (66)', '660f73f5aa4141', 0x40, 'psllq xmm5,170', 'psllq xmm5,170'),
         ('PSRLDQ (66)', '660f73b1aa4141', 0x40, 'psllq xmm1,170', 'psllq xmm1,170'),
