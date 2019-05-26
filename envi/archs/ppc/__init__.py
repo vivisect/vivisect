@@ -66,7 +66,7 @@ class PpcSpeModule(envi.ArchitectureModule):
         self._arch_vle_dis = vle.VleDisasm()
 
     def archGetRegCtx(self):
-        return PpcRegisterContext()
+        return Ppc64RegisterContext()
 
     def archGetBreakInstr(self):
         raise Exception("IMPLEMENT ME")
@@ -143,6 +143,8 @@ class Ppc64Module(PpcSpeModule):
     def archParseOpcode(self, bytes, offset=0, va=0):
         return self._arch_dis.disasm(bytes, offset, va)
 
+    def archGetRegCtx(self):
+        return Ppc64RegisterContext()
 
 # NOTE: This one must be after the definition of PpcModule
 from envi.archs.ppc.emu import *
