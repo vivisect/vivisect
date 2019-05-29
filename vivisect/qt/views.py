@@ -6,7 +6,10 @@ import visgraph.pathcore as vg_path
 import envi.qt.memcanvas as e_q_memcanvas
 import vivisect.qt.ctxmenu as v_q_ctxmenu
 
-from PyQt4 import QtGui,QtCore
+try:
+    from PyQt5.QtWidgets import QMenu
+except:
+    from PyQt4.QtGui import QMenu
 
 from vqt.main import *
 from vqt.common import *
@@ -65,8 +68,8 @@ class VQVivTreeView(vq_tree.VQTreeView, viv_base.VivEventCore):
     window_title = "VivTreeView"
     _viv_navcol = 0
 
-    def __init__(self, vw, vwqgui):
-        vq_tree.VQTreeView.__init__(self, parent=vwqgui)
+    def __init__(self, vw=None, vwqgui=None, **kwargs):
+        vq_tree.VQTreeView.__init__(self, parent=vwqgui, **kwargs)
         viv_base.VivEventCore.__init__(self, vw)
 
         self.vw = vw
@@ -89,7 +92,7 @@ class VQVivTreeView(vq_tree.VQTreeView, viv_base.VivEventCore):
             return True
 
     def contextMenuEvent(self, event):
-        menu = QtGui.QMenu(parent=self)
+        menu = QMenu(parent=self)
         idxlist = self.selectedIndexes()
         if not idxlist:
             return
@@ -239,11 +242,11 @@ class VQVivFunctionsView(VQVivTreeView):
 
     _viv_navcol = 0
     window_title = 'Functions'
-    columns = ('Name','Address', 'Size', 'Ref Count')
+    columns = ('Name', 'Address', 'Size', 'Ref Count')
 
     def __init__(self, vw, vwqgui):
         VQVivTreeView.__init__(self, vw, vwqgui)
-        self.setModel( VivNavModel(self._viv_navcol, self, columns=self.columns) )
+        self.setModel(VivNavModel(self._viv_navcol, self, columns=self.columns))
         self.vqLoad()
         self.vqSizeColumns()
 
@@ -255,8 +258,7 @@ class VQVivFunctionsView(VQVivTreeView):
         fva, fmeta = einfo
         self.vivAddFunction(fva)
 
-    def VWE_DELFUNCTION(self, vw, event, efino):
-        fva, fmeta = einfo
+    def VWE_DELFUNCTION(self, vw, event, fva):
         self.vivDelRow(fva)
 
     def VWE_SETNAME(self, vw, event, einfo):
@@ -265,10 +267,10 @@ class VQVivFunctionsView(VQVivTreeView):
 
     def vivAddFunction(self, fva):
 
-        size   = self.vw.getFunctionMeta(fva, "Size", -1)
-        fname  = self.vw.getName(fva)
+        size = self.vw.getFunctionMeta(fva, "Size", -1)
+        funcname = self.vw.getName(fva)
         xcount = len(self.vw.getXrefsTo(fva))
-        self.vivAddRow(fva, fname, '0x%.8x' % fva, size, xcount)
+        self.vivAddRow(fva, funcname, '0x%.8x' % fva, size, xcount)
 
     def VWE_ADDXREF(self, vw, event, einfo):
         fromva, tova, rtype, rflag = einfo
@@ -295,6 +297,56 @@ vaset_coltypes = {
     VASET_INTEGER:long,
 }
 
+
+def reprAddress(vw, item):
+    return "0x%x (%s)" % (item, vw.reprPointer(item))
+
+def reprString(vw, item):
+    return item
+
+def reprIntLong(vw, item):
+    if item > 1024:
+        return hex(item)
+    return item
+
+def reprHextup(vw, item):
+    return [hex(x) for x in item]
+
+def reprSmart(vw, item):
+    ptype = type(item)
+    if ptype in (int, long):
+        if -1024 < item < 1024 :
+            return str(item)
+        elif vw.isValidPointer(item):
+            return vw.reprPointer(item)
+        else:
+            return hex(item)
+
+    elif ptype in (list, tuple):
+        return reprComplex(vw, item) # recurse
+
+    elif ptype == dict:
+        return '{%s}' % ','.join(["%s:%s" % (reprSmart(vw,k), reprSmart(vw,v)) for k,v in item.items()])
+
+    else:
+        return repr(item)
+
+def reprComplex(vw, item):
+    retval = []
+    for part in item:
+        retval.append(reprSmart(vw, part))
+
+    return ', '.join(retval)
+
+
+vaset_reprHandlers = {
+    VASET_ADDRESS:  reprAddress,
+    VASET_STRING:   reprString,
+    VASET_INTEGER:  reprIntLong,
+    VASET_HEXTUP:   reprHextup,
+    VASET_COMPLEX:  reprComplex,
+}
+
 class VQVivVaSetView(VQVivTreeView):
 
     _viv_navcol = 0
@@ -316,18 +368,32 @@ class VQVivVaSetView(VQVivTreeView):
         setname, row = einfo
         if setname == self._va_setname:
             va = row[0]
-            row = list(row)
-            row[0] = '0x%.8x' % va
-            self.vivAddRow( va, *row )
+            self.vivAddRow( va, *self.reprRow(row) )
 
     def vqLoad(self):
         setdef = self.vw.getVaSetDef( self._va_setname )
         rows = self.vw.getVaSetRows( self._va_setname )
         for row in rows:
             va = row[0]
-            row = list(row)
-            row[0] = '0x%.8x' % va
-            self.vivAddRow(va, *row)
+            self.vivAddRow(va, *self.reprRow(row))
+
+    def reprRow(self, row):
+        row = [item for item in row]
+        setdef = self.vw.getVaSetDef( self._va_setname )
+        
+        row[0] = hex(row[0])
+        for idx in range(1,len(row)):
+            item = row[idx]
+            itype = setdef[idx][1]
+
+            handler = vaset_reprHandlers.get(itype)
+
+            if handler == None:
+                row[idx] = repr(row[idx])
+            else:
+                row[idx] = handler(self.vw, item)
+
+        return row
 
 class VQXrefView(VQVivTreeView):
 
@@ -344,7 +410,7 @@ class VQXrefView(VQVivTreeView):
         for fromva, tova, rtype, rflags in xrefs:
             fva = vw.getFunction(fromva)
             funcname = ''
-            if fva:
+            if fva != None:
                 funcname = vw.getName(fva)
             self.vivAddRow(fromva, '0x%.8x' % fromva, rtype, rflags, funcname)
 

@@ -222,12 +222,12 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
         fd.seek(0)
         bytes = fd.read(len(e))
         e.vsParse(bytes)
-        
+
         if e.e_data == ELFDATA2MSB:
             bigend = True
         else:
             bigend = False
-            
+
         #Parse 32bit header
         if e.e_class == ELFCLASS32:
             vs_elf.Elf32.__init__(self, bigend=bigend)
@@ -252,8 +252,9 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
             raise Exception('Unrecognized e_class: %d' % e.e_class)
 
         self.fd = fd
+        self.inmem = inmem
         self.bigend = bigend
-        
+
         bytes = self.readAtOffset(0, len(self))
         self.vsParse(bytes)
 
@@ -643,7 +644,7 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
             mystr+= "\n"+repr(dyn)
 
         return mystr
- 
+
     def lookupSymbolName(self, name):
         """
         Lookup symbol entries in this elf binary by name.  The result is
@@ -672,6 +673,10 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
 
     def getSymbols(self):
         return self.symbols
+
+def elfFromMemoryObject(memobj, baseaddr):
+    fd = vstruct.MemObjFile(memobj, baseaddr)
+    return Elf(fd)
 
 def getRelocType(val):
     return val & 0xff

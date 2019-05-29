@@ -10,8 +10,7 @@ from envi.archs.msp430.const import *
 
 
 class Msp430Call(envi.CallingConvention):
-    arg_def = [(CC_REG, REG_R15), (CC_REG, REG_R14), (CC_REG, REG_R13), (CC_REG, REG_R12),
-            (CC_STACK_INF, 2)]
+    arg_def = [(CC_REG, REG_R15), (CC_REG, REG_R14), (CC_REG, REG_R13), (CC_REG, REG_R12), (CC_STACK_INF, 2)]
     retaddr_def = (CC_STACK, 0)
     retval_def = (CC_REG, REG_R15)
     flags = CC_CALLEE_CLEANUP
@@ -29,7 +28,7 @@ class Msp430Emulator(Msp430RegisterContext, envi.Emulator):
         envi.Emulator.__init__(self, self.archmod)
         Msp430RegisterContext.__init__(self)
 
-        self._emu_segments = [ (0, 0xffff), ]
+        self._emu_segments = [(0, 0xffff)]
         self.addCallingConvention('msp430call', msp430call)
 
     def getArchModule(self):
@@ -37,18 +36,19 @@ class Msp430Emulator(Msp430RegisterContext, envi.Emulator):
 
     def setFlag(self, which, state):
         flags = self.getRegister(REG_SR)
-        if flags ==  None:
+        if flags is None:
             raise envi.PDEUndefinedFlag(self)
 
         if state:
             flags |= which
         else:
             flags &= ~which
+
         self.setRegister(REG_SR, flags)
 
     def getFlag(self, which):
         flags = self.getRegister(REG_SR)
-        if flags == None:
+        if flags is None:
             raise envi.PDEUndefinedFlag(self)
         return bool(flags & which)
 

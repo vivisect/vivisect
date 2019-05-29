@@ -18,4 +18,4 @@ install:
     - "travis_retry sudo apt-get -qq install libfreetype6-dev liblcms2-dev python-qt4 ghostscript libffi-dev libjpeg-turbo-progs cmake imagemagick"
     - pip install msgpack-python
 
-script: py.test
+script: python -m unittest discover

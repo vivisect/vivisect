@@ -73,7 +73,7 @@ def execRemoteApp(uri):
     subprocess.Popen([sys.executable, '-m', 'cobra.remoteapp', uri])
 
 def main():
-    runRemoteApp(argv[0])
+    runRemoteApp(sys.argv[1])
 
 if __name__ == '__main__':
     sys.exit(main())

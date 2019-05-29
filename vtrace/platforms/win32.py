@@ -5,6 +5,7 @@ Win32 Platform Module
 import os
 import sys
 import struct
+import logging
 import traceback
 import platform
 
@@ -31,6 +32,7 @@ import envi.symstore.symcache as e_symcache
 from ctypes import *
 #from ctypes.wintypes import *
 
+logger = logging.getLogger(__name__)
 platdir = os.path.dirname(__file__)
 
 kernel32 = None
@@ -883,7 +885,7 @@ def loadlib(path):
     try:
         return windll.LoadLibrary(path)
     except Exception as e:
-        print('LoadLibrary %s: %s' % (path,e))
+        logger.warning('LoadLibrary %s: %s', path,e)
 
 # All platforms must be able to import this module (for exceptions etc..)
 # (do this stuff *after* we define some types...)
@@ -1376,8 +1378,8 @@ class WindowsMixin:
         if ((not self.exited) and
             self.getCurrentBreakpoint() != None):
             self._clearBreakpoints()
-            self.platformContinue()
             self.platformSendBreak()
+            self.platformContinue()
             self.platformWait()
         if not kernel32.DebugActiveProcessStop(self.pid):
             raiseWin32Error("DebugActiveProcessStop")
@@ -1820,8 +1822,8 @@ class Windowsi386Trace(
 
     def _winGetRegStruct(self):
         c = CONTEXTx86()
-        c.ContextFlags = (CONTEXT_i386 | 
-                          CONTEXT_FULL | 
+        c.ContextFlags = (CONTEXT_i386 |
+                          CONTEXT_FULL |
                           CONTEXT_DEBUG_REGISTERS |
                           CONTEXT_EXTENDED_REGISTERS)
         return c
@@ -1850,22 +1852,22 @@ reserved = {
     'False': True,
 }
 
-VT_EMPTY    = 0 
-VT_NULL     = 1 
-VT_I2       = 2 
-VT_I4       = 3 
-VT_R4       = 4 
-VT_R8       = 5 
-VT_CY       = 6 
-VT_DATE     = 7 
-VT_BSTR     = 8 
-VT_DISPATCH = 9 
-VT_ERROR    = 10 
-VT_BOOL     = 11 
-VT_VARIANT  = 12 
-VT_UNKNOWN  = 13 
+VT_EMPTY    = 0
+VT_NULL     = 1
+VT_I2       = 2
+VT_I4       = 3
+VT_R4       = 4
+VT_R8       = 5
+VT_CY       = 6
+VT_DATE     = 7
+VT_BSTR     = 8
+VT_DISPATCH = 9
+VT_ERROR    = 10
+VT_BOOL     = 11
+VT_VARIANT  = 12
+VT_UNKNOWN  = 13
 VT_I1       = 16
-VT_UI1      = 17 
+VT_UI1      = 17
 VT_UI2      = 18
 VT_UI4      = 19
 VT_INT      = 20

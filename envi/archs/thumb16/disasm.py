@@ -975,11 +975,20 @@ class Thumb16Disasm:
     _tree = ttree
     _optype = envi.ARCH_THUMB16
     _opclass = ThumbOpcode
+    def setEndian(self, endian):
+        self.endian = endian
+        self.hfmt = ("<H", ">H")[endian]
+
+    def getEndian(self):
+        return self.endian
+
 
     def disasm(self, bytez, offset, va, trackMode=True):
         flags = 0
         va &= -2
-        val, = struct.unpack("<H", bytez[offset:offset+2])
+        offset &= -2
+        val, = struct.unpack_from(self.hfmt, bytez, offset)
+
         try:
             opcode, mnem, opermkr, flags = self._tree.getInt(val, 16)
         except TypeError:
@@ -988,7 +997,7 @@ class Thumb16Disasm:
                     bytez=bytez[offset:offset+2], va=va)
 
         if flags & IF_THUMB32:
-            val2, = struct.unpack("<H", bytez[offset+2:offset+4])
+            val2, = struct.unpack_from(self.hfmt, bytez, offset+2)
             olist, nmnem, nopcode, nflags = opermkr(va+4, val, val2)
             if nmnem != None:   # allow opermkr to set the mnem
                 mnem = nmnem

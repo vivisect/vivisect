@@ -56,35 +56,35 @@ IMAGE_REL_BASED_MIPS_JMPADDR          = 5
 IMAGE_REL_BASED_IA64_IMM64            = 9
 IMAGE_REL_BASED_DIR64                 = 10
 
-IMAGE_DIRECTORY_ENTRY_EXPORT          =0   # Export Directory
-IMAGE_DIRECTORY_ENTRY_IMPORT          =1   # Import Directory
-IMAGE_DIRECTORY_ENTRY_RESOURCE        =2   # Resource Directory
-IMAGE_DIRECTORY_ENTRY_EXCEPTION       =3   # Exception Directory
-IMAGE_DIRECTORY_ENTRY_SECURITY        =4   # Security Directory
-IMAGE_DIRECTORY_ENTRY_BASERELOC       =5   # Base Relocation Table
-IMAGE_DIRECTORY_ENTRY_DEBUG           =6   # Debug Directory
-IMAGE_DIRECTORY_ENTRY_COPYRIGHT       =7   # (X86 usage)
-IMAGE_DIRECTORY_ENTRY_ARCHITECTURE    =7   # Architecture Specific Data
-IMAGE_DIRECTORY_ENTRY_GLOBALPTR       =8   # RVA of GP
-IMAGE_DIRECTORY_ENTRY_TLS             =9   # TLS Directory
-IMAGE_DIRECTORY_ENTRY_LOAD_CONFIG    =10   # Load Configuration Directory
-IMAGE_DIRECTORY_ENTRY_BOUND_IMPORT   =11   # Bound Import Directory in headers
-IMAGE_DIRECTORY_ENTRY_IAT            =12   # Import Address Table
-IMAGE_DIRECTORY_ENTRY_DELAY_IMPORT   =13   # Delay Load Import Descriptors
-IMAGE_DIRECTORY_ENTRY_COM_DESCRIPTOR =14   # COM Runtime descriptor
+IMAGE_DIRECTORY_ENTRY_EXPORT          = 0   # Export Directory
+IMAGE_DIRECTORY_ENTRY_IMPORT          = 1   # Import Directory
+IMAGE_DIRECTORY_ENTRY_RESOURCE        = 2   # Resource Directory
+IMAGE_DIRECTORY_ENTRY_EXCEPTION       = 3   # Exception Directory
+IMAGE_DIRECTORY_ENTRY_SECURITY        = 4   # Security Directory
+IMAGE_DIRECTORY_ENTRY_BASERELOC       = 5   # Base Relocation Table
+IMAGE_DIRECTORY_ENTRY_DEBUG           = 6   # Debug Directory
+IMAGE_DIRECTORY_ENTRY_COPYRIGHT       = 7   # (X86 usage)
+IMAGE_DIRECTORY_ENTRY_ARCHITECTURE    = 7   # Architecture Specific Data
+IMAGE_DIRECTORY_ENTRY_GLOBALPTR       = 8   # RVA of GP
+IMAGE_DIRECTORY_ENTRY_TLS             = 9   # TLS Directory
+IMAGE_DIRECTORY_ENTRY_LOAD_CONFIG     = 10   # Load Configuration Directory
+IMAGE_DIRECTORY_ENTRY_BOUND_IMPORT    = 11   # Bound Import Directory in headers
+IMAGE_DIRECTORY_ENTRY_IAT             = 12   # Import Address Table
+IMAGE_DIRECTORY_ENTRY_DELAY_IMPORT    = 13   # Delay Load Import Descriptors
+IMAGE_DIRECTORY_ENTRY_COM_DESCRIPTOR  = 14   # COM Runtime descriptor
 
-IMAGE_DEBUG_TYPE_UNKNOWN          =0
-IMAGE_DEBUG_TYPE_COFF             =1
-IMAGE_DEBUG_TYPE_CODEVIEW         =2
-IMAGE_DEBUG_TYPE_FPO              =3
-IMAGE_DEBUG_TYPE_MISC             =4
-IMAGE_DEBUG_TYPE_EXCEPTION        =5
-IMAGE_DEBUG_TYPE_FIXUP            =6
-IMAGE_DEBUG_TYPE_OMAP_TO_SRC      =7
-IMAGE_DEBUG_TYPE_OMAP_FROM_SRC    =8
-IMAGE_DEBUG_TYPE_BORLAND          =9
-IMAGE_DEBUG_TYPE_RESERVED10       =10
-IMAGE_DEBUG_TYPE_CLSID            =11
+IMAGE_DEBUG_TYPE_UNKNOWN          = 0
+IMAGE_DEBUG_TYPE_COFF             = 1
+IMAGE_DEBUG_TYPE_CODEVIEW         = 2
+IMAGE_DEBUG_TYPE_FPO              = 3
+IMAGE_DEBUG_TYPE_MISC             = 4
+IMAGE_DEBUG_TYPE_EXCEPTION        = 5
+IMAGE_DEBUG_TYPE_FIXUP            = 6
+IMAGE_DEBUG_TYPE_OMAP_TO_SRC      = 7
+IMAGE_DEBUG_TYPE_OMAP_FROM_SRC    = 8
+IMAGE_DEBUG_TYPE_BORLAND          = 9
+IMAGE_DEBUG_TYPE_RESERVED10       = 10
+IMAGE_DEBUG_TYPE_CLSID            = 11
 
 IMAGE_SCN_CNT_CODE                  = 0x00000020
 IMAGE_SCN_CNT_INITIALIZED_DATA      = 0x00000040
@@ -437,6 +437,8 @@ class PE(object):
     def rvaToOffset(self, rva):
         if self.inmem:
             return rva
+        if rva >= 0 and rva < self.IMAGE_NT_HEADERS.OptionalHeader.SizeOfHeaders:
+            return rva
         for s in self.sections:
             sbase = s.VirtualAddress
             ssize = max(s.SizeOfRawData, s.VirtualSize)
@@ -592,7 +594,10 @@ class PE(object):
                     if not namelen_bytes:
                         continue
                     namelen = struct.unpack('<H', namelen_bytes)[0]
-                    name_id = self.readAtRva(namerva + 2, namelen * 2).decode('utf-16le', 'ignore')
+                    name_raw = self.readAtRva(namerva + 2, namelen * 2)
+                    if not name_raw:
+                        continue
+                    name_id = name_raw.decode('utf-16le', 'ignore')
                     if not name_id:
                         name_id = dirent.Name
 
@@ -780,7 +785,7 @@ class PE(object):
                 self.imports.append((x.FirstThunk+arrayoff,libname,funcname))
 
                 idx += 1
-                
+
             irva += isize
 
             # RP BUG FIX - if the import table is at the end of the file we can't count on the ending to be null
@@ -800,11 +805,11 @@ class PE(object):
         edir = self.getDataDirectory(IMAGE_DIRECTORY_ENTRY_BASERELOC)
         rva = edir.VirtualAddress
         rsize = edir.Size
-        
+
         # RP BUG FIX - don't watn to read past the end of the file
         if not self.checkRva(rva):
             return
-        
+
         reloff = self.rvaToOffset(rva)
         relbytes = self.readAtOffset(reloff, rsize)
 
@@ -815,7 +820,7 @@ class PE(object):
 
             pageva, chunksize = struct.unpack("<II", relbytes[:8])
             relcnt = (chunksize - 8) / 2
-            
+
             # if chunksize == 0 bail
             if not chunksize:
                 return
@@ -823,7 +828,10 @@ class PE(object):
             # RP BUG FIX - sometimes the chunksize is invalid we do a quick check to make sure we dont overrun the buffer
             if chunksize > len(relbytes):
                 return
-            
+
+            if relcnt < 0:
+                return
+
             rels = struct.unpack("<%dH" % relcnt, relbytes[8:chunksize])
             for r in rels:
                 rtype = r >> 12
@@ -879,6 +887,11 @@ class PE(object):
             return
     
         funcbytes = self.readAtOffset(funcoff, funcsize)
+
+        if not funcbytes:
+            self.IMAGE_EXPORT_DIRECTORY = None
+            return
+
         funclist = struct.unpack("%dI" % (len(funcbytes) / 4), funcbytes)
 
         # named function exports
@@ -1020,7 +1033,7 @@ class PE(object):
             cbytes = pyasn1.codec.der.encoder.encode( i['certificate'] )
 
             iparts = []
-            for rdnsequence in i["certificate"]["tbsCertificate"]["issuer"]:
+            for _, rdnsequence in i["certificate"]["tbsCertificate"]["issuer"].items():
                 for rdn in rdnsequence:
                     rtype = rdn[0]["type"]
                     rvalue = rdn[0]["value"][2:]
@@ -1029,7 +1042,7 @@ class PE(object):
             issuer = ','.join( iparts )
 
             sparts = []
-            for rdnsequence in i["certificate"]["tbsCertificate"]["subject"]:
+            for _, rdnsequence in i["certificate"]["tbsCertificate"]["subject"].items():
                 for rdn in rdnsequence:
                     rtype = rdn[0]["type"]
                     rvalue = rdn[0]["value"][2:]
@@ -1087,32 +1100,8 @@ class PE(object):
         else:
             raise AttributeError
 
-
-class MemObjFile:
-    """
-    A file like object that wraps a MemoryObject (envi) compatable
-    object with a file-like object where seek == VA.
-    """
-
-    def __init__(self, memobj, baseaddr):
-        self.baseaddr = baseaddr
-        self.offset = baseaddr
-        self.memobj = memobj
-
-    def seek(self, offset):
-        self.offset = self.baseaddr + offset
-
-    def read(self, size):
-        ret = self.memobj.readMemory(self.offset, size)
-        self.offset += size
-        return ret
-        
-    def write(self, bytes):
-        self.memobj.writeMemory(self.offset, bytes)
-        self.offset += len(bytes)
-
 def peFromMemoryObject(memobj, baseaddr):
-    fd = MemObjFile(memobj, baseaddr)
+    fd = vstruct.MemObjFile(memobj, baseaddr)
     return PE(fd, inmem=True)
 
 def peFromFileName(fname):

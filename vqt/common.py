@@ -1,5 +1,21 @@
+import sys
+import logging
+import traceback
+
 # Some common GUI helpers
-from PyQt4 import QtGui,QtCore
+try:
+    from PyQt5 import QtCore
+    from PyQt5.QtWidgets import QTreeView
+except:
+    from PyQt4 import QtCore
+    from PyQt4.QtGui import QTreeView
+
+logger = logging.getLogger(__name__)
+#logger.setLevel(logging.DEBUG)
+if not len(logger.handlers):
+    logger.addHandler(logging.StreamHandler())
+
+
 
 class ACT:
     def __init__(self, meth, *args, **kwargs):
@@ -8,7 +24,12 @@ class ACT:
         self.kwargs = kwargs
 
     def __call__(self):
-        return self.meth( *self.args, **self.kwargs )
+        try:
+            return self.meth( *self.args, **self.kwargs )
+        except:
+            logger.warn("error in ACT(%r, %r, %r)" % (self.meth, self.args, self.kwargs))
+            logger.debug(''.join(traceback.format_exception(*sys.exc_info())))
+
 
 class VqtModel(QtCore.QAbstractItemModel):
 
@@ -128,10 +149,10 @@ class VqtModel(QtCore.QAbstractItemModel):
         #mdata.setData('vqt/rows',json.dumps(nodes))
         #return mdata
 
-class VqtView(QtGui.QTreeView):
+class VqtView(QTreeView):
 
     def __init__(self, parent=None):
-        QtGui.QTreeView.__init__(self, parent=parent)
+        QTreeView.__init__(self, parent=parent)
         self.setAlternatingRowColors( True )
         self.setSortingEnabled( True )
 
@@ -150,9 +171,9 @@ class VqtView(QtGui.QTreeView):
         return ret
 
     def setModel(self, model):
-        smodel = QtGui.QSortFilterProxyModel(parent=self)
+        smodel = QtCore.QSortFilterProxyModel(parent=self)
         smodel.setSourceModel(model)
-        ret = QtGui.QTreeView.setModel(self, smodel)
+        ret = QTreeView.setModel(self, smodel)
         c = len(model.columns)
         for i in xrange(c):
             self.resizeColumnToContents(i)

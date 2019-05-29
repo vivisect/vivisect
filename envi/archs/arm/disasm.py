@@ -2351,7 +2351,11 @@ class ArmDisasm:
         self.setEndian(endian)
         
     def setEndian(self, endian):
+        self.endian = endian
         self.fmt = ("<I", ">I")[endian]
+
+    def getEndian(self):
+        return self.endian
 
     def disasm(self, bytez, offset, va):
         """

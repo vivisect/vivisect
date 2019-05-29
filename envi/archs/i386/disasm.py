@@ -62,42 +62,42 @@ scale_lookup = (1, 2, 4, 8)
 # A set of instructions that are considered privileged (mark with IF_PRIV)
 # FIXME this should be part of the opcdode tables!
 priv_lookup = {
-    "int":True,
-    "in":True,
-    "out":True,
-    "insb":True,
-    "outsb":True,
-    "insd":True,
-    "outsd":True,
-    "vmcall":True,
-    "vmlaunch":True,
-    "vmresume":True,
-    "vmxoff":True,
-    "vmread":True,
-    "vmwrite":True,
-    "rsm":True,
-    "lar":True,
-    "lsl":True,
-    "clts":True,
-    "invd":True,
-    "wbinvd":True,
-    "wrmsr":True,
-    "rdmsr":True,
-    "sysexit":True,
-    "lgdt":True,
-    "lidt":True,
-    "lmsw":True,
-    "monitor":True,
-    "mwait":True,
-    "vmclear":True,
-    "vmptrld":True,
-    "vmptrst":True,
-    "vmxon":True,
+    "int": True,
+    "in": True,
+    "out": True,
+    "insb": True,
+    "outsb": True,
+    "insd": True,
+    "outsd": True,
+    "vmcall": True,
+    "vmlaunch": True,
+    "vmresume": True,
+    "vmxoff": True,
+    "vmread": True,
+    "vmwrite": True,
+    "rsm": True,
+    "lar": True,
+    "lsl": True,
+    "clts": True,
+    "invd": True,
+    "wbinvd": True,
+    "wrmsr": True,
+    "rdmsr": True,
+    "sysexit": True,
+    "lgdt": True,
+    "lidt": True,
+    "lmsw": True,
+    "monitor": True,
+    "mwait": True,
+    "vmclear": True,
+    "vmptrld": True,
+    "vmptrst": True,
+    "vmxon": True,
 }
 
 # Map of codes to their respective envi flags
 iflag_lookup = {
-    opcode86.INS_RET: envi.IF_NOFALL|envi.IF_RET,
+    opcode86.INS_RET: envi.IF_NOFALL | envi.IF_RET,
     opcode86.INS_CALL: envi.IF_CALL,
     opcode86.INS_HALT: envi.IF_NOFALL,
     opcode86.INS_DEBUG: envi.IF_NOFALL,
@@ -680,7 +680,7 @@ class i386Disasm:
         Return a tuple of (size, Operand)
         """
 
-        mod,reg,rm = self.parse_modrm(ord(bytez[offset]))
+        mod, reg, rm = self.parse_modrm(ord(bytez[offset]))
 
         size = 1
 
@@ -688,8 +688,10 @@ class i386Disasm:
 
         if mod == 3: # Easy one, just a reg
             # FIXME only use self.byteRegOffset in 32 bit mode, NOT 64 bit...
-            if opersize == 1: rm = self.byteRegOffset(rm, prefixes=prefixes)
-            elif opersize == 2: rm += RMETA_LOW16
+            if opersize == 1:
+                rm = self.byteRegOffset(rm, prefixes=prefixes)
+            elif opersize == 2:
+                rm += RMETA_LOW16
             #print "OPERSIZE",opersize,rm
             return (size, i386RegOper(rm+regbase, opersize))
 
@@ -704,8 +706,10 @@ class i386Disasm:
             elif rm == 4:
                 sibsize, scale, index, base, imm = self.parse_sib(bytez, offset+size, mod, prefixes=prefixes)
                 size += sibsize
-                if base != None: base += regbase    # Adjust for different register addressing modes
-                if index != None: index += regbase    # Adjust for different register addressing modes
+                if base is not None:
+                    base += regbase    # Adjust for different register addressing modes
+                if index is not None:
+                    index += regbase    # Adjust for different register addressing modes
                 oper = i386SibOper(opersize, reg=base, imm=imm, index=index, scale=scale_lookup[scale])
                 return (size, oper)
 
@@ -810,7 +814,7 @@ class i386Disasm:
 
         # Stuff we'll be putting in the opcode object
         optype = None # This gets set if we successfully decode below
-        mnem = None 
+        mnem = None
         operands = []
 
         prefixes = 0
@@ -821,7 +825,7 @@ class i386Disasm:
 
             # This line changes in 64 bit mode
             p = self._dis_prefixes[obyte]
-            if p == None:
+            if p is None:
                 break
             if obyte == 0x66 and ord(bytez[offset+1]) == 0x0f:
                 break
@@ -834,21 +838,21 @@ class i386Disasm:
 
             obyte = ord(bytez[offset])
 
-            #print "OBYTE",hex(obyte)
+            # print("OBYTE", hex(obyte))
             if (obyte > tabdesc[4]):
-                #print "Jumping To Overflow Table:", tabdesc[5]
+                # print "Jumping To Overflow Table:", tabdesc[5]
                 tabdesc = all_tables[tabdesc[5]]
 
             tabidx = ((obyte - tabdesc[3]) >> tabdesc[1]) & tabdesc[2]
-            #print "TABIDX: %d" % tabidx
+            # print("TABIDX: %d" % tabidx)
             opdesc = tabdesc[0][tabidx]
-            #print 'OPDESC: %s' % repr(opdesc)
+            # print('OPDESC: %s' % repr(opdesc))
 
             # Hunt down multi-byte opcodes
             nexttable = opdesc[0]
-            #print "NEXT",nexttable,hex(obyte)
+            # print("NEXT",nexttable,hex(obyte))
             if nexttable != 0: # If we have a sub-table specified, use it.
-                #print "Multi-Byte Next Hop For",hex(obyte),opdesc[0]
+                # print "Multi-Byte Next Hop For",hex(obyte),opdesc[0]
                 tabdesc = all_tables[nexttable]
 
                 # In the case of 66 0f, the next table is *already* assuming we ate
@@ -862,11 +866,11 @@ class i386Disasm:
                 continue
 
             # We are now on the final table...
-            #print repr(opdesc)
+            # print(repr(opdesc))
             mnem = opdesc[6]
             optype = opdesc[1]
             if tabdesc[2] == 0xff:
-                offset += 1 # For our final opcode byte
+                offset += 1  # For our final opcode byte
             break
 
         if optype == 0:
@@ -891,23 +895,22 @@ class i386Disasm:
             if operflags == 0:
                 break
 
-            #print "ADDRTYPE: %.8x OPERTYPE: %.8x" % (addrmeth, opertype)
+            # print("ADDRTYPE: %.8x OPERTYPE: %.8x" % (addrmeth, opertype))
 
             tsize = self._dis_calc_tsize(opertype, prefixes, operflags)
 
-            #print hex(opertype),hex(addrmeth), hex(tsize)
+            # print(hex(opertype),hex(addrmeth), hex(tsize))
 
 
             # If addrmeth is zero, we have operands embedded in the opcode
             if addrmeth == 0:
                 osize = 0
                 oper = self.ameth_0(operflags, opdesc[5+i], tsize, prefixes)
-
             else:
-                #print "ADDRTYPE",hex(addrmeth)
+                # print("ADDRTYPE", hex(addrmeth))
                 ameth = self._dis_amethods[addrmeth >> 16]
-                #print "AMETH",ameth
-                if ameth == None:
+                # print("AMETH", ameth)
+                if ameth is None:
                     raise Exception("Implement Addressing Method 0x%.8x" % addrmeth)
 
                 # NOTE: Depending on your addrmethod you may get beginning of operands, or offset
@@ -925,11 +928,11 @@ class i386Disasm:
                     else:
                         osize, oper = ameth(bytez, offset, tsize, prefixes, operflags)
 
-                except struct.error, e:
+                except struct.error as e:
                     # Catch struct unpack errors due to insufficient data length
                     raise envi.InvalidInstruction(bytez=bytez[startoff:startoff+16])
 
-            if oper != None:
+            if oper is not None:
                 # This is a filty hack for now...
                 oper._dis_regctx = self._dis_regctx
                 operands.append(oper)
@@ -965,9 +968,9 @@ class i386Disasm:
 
     def ameth_a(self, bytez, offset, tsize, prefixes, operflags):
         imm = e_bits.parsebytes(bytez, offset, tsize)
-        #seg = e_bits.parsebytes(bytez, offset+tsize, 2)
+        # seg = e_bits.parsebytes(bytez, offset+tsize, 2)
         # THIS BEING GHETTORIGGED ONLY EFFECTS callf jmpf - unghettorigged by atlas
-        #print "FIXME: envi.intel.ameth_a skipping seg prefix %d" % seg
+        # print("FIXME: envi.intel.ameth_a skipping seg prefix %d" % seg)
         return (tsize, i386ImmOper(imm, tsize))
 
     def ameth_e(self, bytez, offset, tsize, prefixes, operflags):
@@ -1044,4 +1047,4 @@ class i386Disasm:
 
 if __name__ == '__main__':
     import envi.archs
-    envi.archs.dismain( i386Disasm() )
+    envi.archs.dismain(i386Disasm())
