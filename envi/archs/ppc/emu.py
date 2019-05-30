@@ -92,14 +92,12 @@ def ROTL64(x, y, psize=8):
     tmp = x >> (64-y)
     return ((x << y) | tmp) & e_bits.u_maxes[psize]
     
-class PpcAbstractEmulator(PpcRegisterContext, envi.Emulator):
+class PpcAbstractEmulator(envi.Emulator):
 
     def __init__(self, archmod=None, psize=4):
         self.psize = psize
         envi.Emulator.__init__(self, archmod=archmod)
                 
-        PpcRegisterContext.__init__(self)
-
         self.addCallingConvention("ppccall", ppccall)
 
     def undefFlags(self):
@@ -2037,18 +2035,24 @@ m.addMemoryMap(0x0000,0777,"memmap1", "\xff"*1024)
 
 """
 
-class Ppc64Emulator(Ppc64Module, PpcAbstractEmulator):
+class Ppc64Emulator(Ppc64RegisterContext, Ppc64Module, PpcAbstractEmulator):
     def __init__(self, archmod=None, psize=8):
-        Ppc64AbstractEmulator.__init__(self, archmod=Ppc64Module(), psize=8)
+        Ppc64RegisterContext.__init__(self)
+
+        PpcAbstractEmulator.__init__(self, archmod=Ppc64Module(), psize=8)
         PpcModule.__init__(self)
 
-class PpcVleEmulator(PpcVleModule, PpcAbstractEmulator):
+class PpcVleEmulator(Ppc64RegisterContext, PpcVleModule, PpcAbstractEmulator):
     def __init__(self, archmod=None, psize=8):
-        PpcVleAbstractEmulator.__init__(self, archmod=VleModule(), psize=4)
+        Ppc64RegisterContext.__init__(self)
+
+        PpcAbstractEmulator.__init__(self, archmod=VleModule(), psize=4)
         PpcModule.__init__(self)
 
-class PpcSpeEmulator(PpcSpeModule, PpcAbstractEmulator):
+class PpcSpeEmulator(Ppc64RegisterContext, PpcSpeModule, PpcAbstractEmulator):
     def __init__(self, archmod=None, psize=4):
+        Ppc64RegisterContext.__init__(self)
+
         PpcAbstractEmulator.__init__(self, archmod=PpcSpeModule(), psize=4)
         PpcSpeModule.__init__(self)
 

@@ -4,7 +4,8 @@ Home of the PowerPC module's register specs/code.
 """
 import envi.registers as e_reg
 
-gprs = [('r%s' % x, 32)  for x in range(32)]
+gprs32 = [('r%s' % x, 32)  for x in range(32)]
+gprs64 = [('r%s' % x, 64)  for x in range(32)]
 floats = [('f%s' % x, 64)  for x in range(32)]
 floats.append( ('fpscr', 64) )
 vectors = [('v%s' % x, 64)  for x in range(32)]
@@ -38,17 +39,23 @@ sysregs = (
         ('pc', 32),
         )
 
-ppc_regs = []
-ppc_regs.extend(gprs)
+ppc_regs32 = []
+ppc_regs = ppc_regs64 = []
+
+ppc_regs64.extend(gprs64)
+ppc_regs32.extend(gprs32)
 
 REG_OFFSET_FLOAT = len(ppc_regs)
-ppc_regs.extend(floats)
+ppc_regs64.extend(floats)
+ppc_regs32.extend(floats)
 
 REG_OFFSET_VECTOR = len(ppc_regs)
-ppc_regs.extend(vectors)
+ppc_regs64.extend(vectors)
+ppc_regs32.extend(vectors)
 
 REG_OFFSET_SYSREGS = len(ppc_regs)
-ppc_regs.extend(sysregs)
+ppc_regs64.extend(sysregs)
+ppc_regs32.extend(sysregs)
 
 import spr
 # populate spr_regs from the PPC SPR register list (in spr.py)
@@ -57,7 +64,8 @@ for sprnum, (rname, rdesc, bitsz) in spr.sprs.items():
     spr_regs[sprnum] = (rname, bitsz)
 
 REG_OFFSET_SPR = len(ppc_regs)
-ppc_regs.extend(spr_regs)
+ppc_regs64.extend(spr_regs)
+ppc_regs32.extend(spr_regs)
 
 tmr_regs = [
         ('tmcfg0', 64),
@@ -67,10 +75,12 @@ tmr_regs.extend([('imsr%d' % x, 64) for x in range(32)])
 tmr_regs.extend([('inia%d' % x, 64) for x in range(32)]) 
 
 REG_OFFSET_TMR = len(ppc_regs)
-ppc_regs.extend(tmr_regs)
+ppc_regs64.extend(tmr_regs)
+ppc_regs32.extend(tmr_regs)
 
 REG_OFFSET_DCR = len(ppc_regs)
-ppc_regs.extend([('dcr%d' % x, 64) for x in range(32)]) 
+ppc_regs64.extend([('dcr%d' % x, 64) for x in range(32)]) 
+ppc_regs32.extend([('dcr%d' % x, 64) for x in range(32)]) 
 
 pmr_regs = []
 pmr_regs.extend([('upmc%d' % x, 32) for x in range(16)]) 
@@ -87,7 +97,8 @@ pmr_regs.extend([('fuq%d' % x, 32) for x in range(15)])
 pmr_regs.append(('pmgc0', 64))
 
 REG_OFFSET_PMR = len(ppc_regs)
-ppc_regs.extend(pmr_regs)
+ppc_regs64.extend(pmr_regs)
+ppc_regs32.extend(pmr_regs)
 
 #REG_OFFSET_TBR = len(ppc_regs)
 REG_OFFSET_TBR = REG_OFFSET_SPR
@@ -164,10 +175,17 @@ def getCrFields(regval):
 e_reg.addLocalStatusMetas(l, ppc_meta, statmetas, 'FLAGS')
 e_reg.addLocalMetas(l, ppc_meta)
 
-class PpcRegisterContext(e_reg.RegisterContext):
+class Ppc32RegisterContext(e_reg.RegisterContext):
     def __init__(self):
         e_reg.RegisterContext.__init__(self)
-        self.loadRegDef(ppc_regs)
+        self.loadRegDef(ppc_regs32)
+        self.loadRegMetas(ppc_meta, statmetas=statmetas)
+        self.setRegisterIndexes(REG_PC, REG_SP, srindex=REG_CR)
+ 
+class Ppc64RegisterContext(e_reg.RegisterContext):
+    def __init__(self):
+        e_reg.RegisterContext.__init__(self)
+        self.loadRegDef(ppc_regs64)
         self.loadRegMetas(ppc_meta, statmetas=statmetas)
         self.setRegisterIndexes(REG_PC, REG_SP, srindex=REG_CR)
  
@@ -176,7 +194,7 @@ import spr
 sprnames = {x:y.lower() for x,(y,z,b) in spr.sprs.items()}
 
 general_regs = []
-general_regs.extend(gprs)
+general_regs.extend(gprs64)
 general_regs.extend(floats)
 general_regs.extend(vectors)
 general_regs.extend(sysregs)

@@ -706,7 +706,7 @@ def find_se(buf, offset, endian=True, va=0):
 class VleDisasm:
     def __init__(self, endian=True):
         # any speedy stuff here
-        self._dis_regctx = PpcRegisterContext()
+        self._dis_regctx = Ppc64RegisterContext()
         self.endian = endian
         #self.setEndian(endian)  # FIXME: when Endianness is dragged through Viv.
 
