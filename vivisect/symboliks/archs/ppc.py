@@ -141,7 +141,7 @@ class PpcSymbolikTranslator(vsym_trans.SymbolikTranslator):
 
         self.effSetVariable(rname, obj)
 
-    def getFlagObj(self, regidx, obj):
+    def getFlagObj(self, regidx):
         ridx = regidx & 0xffff
         rbase = self._reg_ctx.getRegisterName(ridx)
         rflag = self._reg_ctx.getRegisterName(regidx)
@@ -155,7 +155,7 @@ class PpcSymbolikTranslator(vsym_trans.SymbolikTranslator):
         rbase = self._reg_ctx.getRegisterName(ridx)
         rflag = self._reg_ctx.getRegisterName(regidx)
 
-        rname = '%s_%s' % (rbase, rflag)
+        rname = ('%s_%s' % (rbase, rflag)).lower()
 
         self.effSetVariable(rname, obj)
 
@@ -187,6 +187,9 @@ class PpcSymbolikTranslator(vsym_trans.SymbolikTranslator):
         oper = op.opers[idx]
         if oper.isReg():
             # CHECK FOR PARTS OF CR and XER
+            if oper.reg in (REG_CR, REG_XER):
+                return Var(oper.repr(op, simple=False), 1)
+
             return self.getRegObj(oper.reg)
 
         elif oper.isDeref():
