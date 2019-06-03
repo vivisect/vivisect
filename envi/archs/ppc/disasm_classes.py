@@ -212,10 +212,10 @@ class PpcCBRegOper(PpcRegOper):
             rname = "%s" % (CRBITS[coff])
         mcanv.addNameText(rname, name=name, typename='cregisters')
 
-    def repr(self, op):
+    def repr(self, op, simple=True):
         creg = self.bit / 4
         coff = self.bit % 4
-        if creg:
+        if creg or not simple:
             rname = "cr%d.%s" % (creg, CRBITS[coff])
         else:
             rname = "%s" % (CRBITS[coff])

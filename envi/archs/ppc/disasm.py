@@ -15,7 +15,7 @@ class PpcDisasm:
         # any speedy stuff here
         if options == 0:
             options = CAT_NONE
-        self._dis_regctx = PpcRegisterContext()
+        self._dis_regctx = Ppc64RegisterContext()
         self.setEndian(endian)
         self.options = options
 
