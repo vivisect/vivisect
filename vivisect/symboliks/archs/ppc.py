@@ -187,7 +187,7 @@ class PpcSymbolikTranslator(vsym_trans.SymbolikTranslator):
         oper = op.opers[idx]
         if oper.isReg():
             # CHECK FOR PARTS OF CR and XER
-            if oper.reg in (REG_CR, REG_XER):
+            if oper.reg == REG_CR:
                 return Var(oper.repr(op, simple=False), 1)
 
             return self.getRegObj(oper.reg)
@@ -1364,13 +1364,13 @@ class PpcSymbolikTranslator(vsym_trans.SymbolikTranslator):
         r = rs >> n
         signbits = MASK(Const(0, self._psize), n + Const(32, self._psize))
 
-        s = o_and(rb >> Const(32, self._psize), Const(1, self._psize))
+        s = o_and(rb >> Const(32, self._psize), Const(1, self._psize), self._psize)
 
         result = r | (s * signbits)
 
         self.setOperObj(op, 0, result)
 
-        carry = o_and((Const(s, 8) << n) - Const(1, 8), (r & MASK(Const(63, 8) - n, Const(63, 8))))
+        carry = o_and((s << n) - Const(1, 8), (r & MASK(Const(63, 8) - n, Const(63, 8))), 8)
         self.setFlagObj(REG_CA, carry)
         
         if op.iflags & IF_RC: self.setFlags(result, 0, size=size)
@@ -1399,24 +1399,17 @@ class PpcSymbolikTranslator(vsym_trans.SymbolikTranslator):
 
         if op.iflags & IF_RC: self.setFlags(result, 0)
         self.setOperObj(op, 0, result)
-        print "srw: rb: %x  rs: %x  result: %x" % (rb, rs, result)
 
     def i_slw(self, op):
         rb = self.getOperObj(op, 2)
         rs = self.getOperObj(op, 1)
 
         n = rb & Const(0x1f, self._psize)
-        r = ROTL32(rs, n)
-        if bool(rb & 0x20):
-            k = Const(0, self._psize)
-        else:
-            k = MASK(n+Const(32, self._psize), Const(63, self._psize))
 
-        result = r & k
+        result = (rs << n) & Const(0xffffffff, self._psize)
 
         if op.iflags & IF_RC: self.setFlags(result, 0)
         self.setOperObj(op, 0, result)
-        print "slw: rb: %x  rs: %x  result: %x" % (rb, rs, result)
 
     def i_lha(self, op):
         src = o_sextend(self.getOperObj(op, 1), Const(self._psize, self._psize))
@@ -1485,7 +1478,7 @@ class PpcSymbolikTranslator(vsym_trans.SymbolikTranslator):
         src1 = o_sextend(self.getOperObj(op, 1), Const(self._psize, self._psize))
         src2 = o_sextend(self.getOperObj(op, 2), Const(self._psize, self._psize))
 
-        result = (src1 * src2) & e_bits.u_maxes[dsize]
+        result = (src1 * src2) & Const(e_bits.u_maxes[dsize], self._psize)
 
         self.setOperObj(op, 0, result)
 
@@ -1563,17 +1556,17 @@ class PpcSymbolikTranslator(vsym_trans.SymbolikTranslator):
         ra = self.getOperObj(op, 1)
         rb = self.getOperObj(op, 2)
 
-        ra ^= e_bits.u_maxes[asize] # 1's complement
+        ra ^= Const(e_bits.u_maxes[asize], self._psize) # 1's complement
         result = ra + rb + addone
-        ures = result & e_bits.u_maxes[dsize]
+        ures = result & Const(e_bits.u_maxes[dsize], self._psize)
         sres = o_sextend(ures, Const(self._psize, self._psize))
-        self.setOperObj(op, 0, sres & e_bits.u_maxes[dsize])
+        self.setOperObj(op, 0, sres & Const(e_bits.u_maxes[dsize]. self._psize))
         
         if oeflags: self.setOEflags(result, size, ra, rb+1)
         if op.iflags & IF_RC: self.setFlags(result, 0)
 
         if setcarry:
-            carry = bool(result & (e_bits.u_maxes[dsize] + 1))
+            carry = ne(result >> Const(dsize * 8, self._psize), Const(0,8))
             self.setFlagObj(REG_CA, carry)
 
     def i_subf(self, op):
