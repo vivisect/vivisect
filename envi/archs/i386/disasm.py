@@ -18,29 +18,31 @@ from envi.archs.i386.regs import *
 # Our instruction prefix masks
 # NOTE: table 3-4 (section 3.6) of intel 1 shows how REX/OP_SIZE
 # interact...
-INSTR_PREFIX=      0x0001
-PREFIX_LOCK =      0x0002
-PREFIX_REPNZ=      0x0004
-PREFIX_REPZ =      0x0008
-PREFIX_REP  =      0x0010
-PREFIX_REP_SIMD=   0x0020
-PREFIX_REP_MASK =  PREFIX_REPNZ | PREFIX_REPZ | PREFIX_REP | PREFIX_REP_SIMD
-PREFIX_OP_SIZE=    0x0040
-PREFIX_ADDR_SIZE=  0x0080
-PREFIX_SIMD=       0x0100
-PREFIX_CS  =       0x0200
-PREFIX_SS  =       0x0400
-PREFIX_DS  =       0x0800
-PREFIX_ES  =       0x1000
-PREFIX_FS  =       0x2000
-PREFIX_GS  =       0x4000
-PREFIX_REG_MASK=   0x8000
+INSTR_PREFIX = 0x0001
+PREFIX_LOCK = 0x0002
+PREFIX_REPNZ = 0x0004
+PREFIX_REPZ = 0x0008
+PREFIX_REP = 0x0010
+PREFIX_REP_SIMD = 0x0020
+PREFIX_REP_MASK = PREFIX_REPNZ | PREFIX_REPZ | PREFIX_REP | PREFIX_REP_SIMD
+PREFIX_OP_SIZE = 0x0040
+PREFIX_ADDR_SIZE = 0x0080
+PREFIX_SIMD = 0x0100
+PREFIX_CS = 0x0200
+PREFIX_SS = 0x0400
+PREFIX_DS = 0x0800
+PREFIX_ES = 0x1000
+PREFIX_FS = 0x2000
+PREFIX_GS = 0x4000
+PREFIX_REG_MASK = 0x8000
+
+MANDATORY_PREFIXES = [0xF2, 0xF3, 0x66]
 
 # envi.registers meta offsets
-RMETA_LOW8  = 0x00080000
+RMETA_LOW8 = 0x00080000
 RMETA_HIGH8 = 0x08080000
 RMETA_LOW16 = 0x00100000
-RMETA_LOW128= 0x00800000
+RMETA_LOW128 = 0x00800000
 
 # Use a list here instead of a dict for speed (max 255 anyway)
 i386_prefixes = [ None for i in range(256) ]
@@ -516,6 +518,7 @@ class i386Opcode(envi.Opcode):
 
     # Printable prefix names
     prefix_names = [
+        (PREFIX_ADDR_SIZE, "addr"),
         (PREFIX_LOCK, "lock"),
         (PREFIX_REPNZ, "repnz"),
         (PREFIX_REP, "rep"),
@@ -818,67 +821,100 @@ class i386Disasm:
         mnem = None
         operands = []
 
-        prefixes = 0
+        all_prefixes = 0
+        prefix_len = 0
 
         while True:
 
             obyte = ord(bytez[offset])
+            # print("PREFIXBYTE: 0x%x" % obyte)
 
             # This line changes in 64 bit mode
             p = self._dis_prefixes[obyte]
             if p is None:
                 break
-            if obyte == 0x66 and ord(bytez[offset+1]) == 0x0f:
-                break
-            prefixes |= p
+            all_prefixes |= p
             offset += 1
             continue
 
+        # At this point we should have all the possible prefixes, but some may be mandatory ones that we
+        # need to not use as display prefixes and use as jumps in the table instead.
+        # So we're going to lie to the rest of the code in order to use them as we want
+        obyte = ord(bytez[offset])
+        ppref = [(None, None)]
+        # print("PREFXIES: 0x%x" % all_prefixes)
+        if obyte == 0x0f:
+            if all_prefixes & PREFIX_REPNZ:
+                ppref.append((0xF2, PREFIX_REPNZ))
+            elif all_prefixes & PREFIX_REP:
+                ppref.append((0xF3, PREFIX_REP))
+            # XXX: Seriously, don't move this one from here
+            elif all_prefixes & PREFIX_OP_SIZE:
+                ppref.append((0x66, PREFIX_OP_SIZE))
+        # print("POSTFXIES: 0x%x" % all_prefixes)
+
         #pdone = False
-        while True:
-            obyte = ord(bytez[offset])
-            # print("OBYTE", hex(obyte))
-            if (obyte > tabdesc[4]):
-                # print("Jumping To Overflow Table: %s" % repr(tabdesc[5]))
-                tabdesc = all_tables[tabdesc[5]]
+        decodings = []
+        mainbyte = offset
+        prefixes = all_prefixes
+        for pref, onehot in ppref:
+            if pref is not None:
+                # print("pref is not none")
+                obyte = pref
+                offset = mainbyte
+                prefixes = all_prefixes & (~onehot)
+                tabdesc = all_tables[0]
+            else:
+                # print("pref is none")
+                offset = mainbyte
+                obyte = ord(bytez[offset])
 
-            tabidx = ((obyte - tabdesc[3]) >> tabdesc[1]) & tabdesc[2]
-            # print("TABIDX: %d" % tabidx)
-            opdesc = tabdesc[0][tabidx]
-            # print('OPDESC: %s' % repr(opdesc))
+            while True:
+                # print("OBYTE", hex(obyte))
+                if (obyte > tabdesc[4]):
+                    # print("Jumping To Overflow Table: %s" % repr(tabdesc[5]))
+                    tabdesc = all_tables[tabdesc[5]]
 
-            # Hunt down multi-byte opcodes
-            nexttable = opdesc[0]
-            # print("NEXT",nexttable,hex(obyte))
-            if nexttable != 0: # If we have a sub-table specified, use it.
-                # print("Multi-Byte Next Hop For %s: %s" % (hex(obyte),repr(opdesc[0])))
-                # print("Jumping to table %d" % nexttable)
-                tabdesc = all_tables[nexttable]
+                tabidx = ((obyte - tabdesc[3]) >> tabdesc[1]) & tabdesc[2]
+                # print("TABIDX: %d" % tabidx)
+                if tabidx > len(tabdesc[0]):
+                    # print("Jumped off end of table. Continuing on")
+                    break
+                opdesc = tabdesc[0][tabidx]
+                # print('OPDESC: %s' % repr(opdesc))
 
-                # In the case of 66 0f, the next table is *already* assuming we ate
-                # the 66 *and* the 0f...  oblidge them.
-                if obyte == 0x66 and ord(bytez[offset+1]) == 0x0f:
-                    # print("Jumping another byte set for 660F")
+                # Hunt down multi-byte opcodes
+                nexttable = opdesc[0]
+                # print("NEXT",nexttable,hex(obyte))
+                if nexttable != 0: # If we have a sub-table specified, use it.
+                    # print("Multi-Byte Next Hop For %s: %s" % (hex(obyte),repr(opdesc[0])))
+                    # print("Jumping to table %d" % nexttable)
+                    tabdesc = all_tables[nexttable]
+
                     offset += 1
+                    obyte = ord(bytez[offset])
 
-                # Account for the table jump we made
-                offset += 1
+                    continue
 
-                continue
+                # We are now on the final table...
+                # print(repr(opdesc))
+                mnem = opdesc[6]
+                # print(mnem)
+                optype = opdesc[1]
+                if tabdesc[2] == 0xff:
+                    offset += 1  # For our final opcode byte
+                break
+            if optype != 0:
+                decodings.append((opdesc, offset, prefixes))
 
-            # We are now on the final table...
-            # print(repr(opdesc))
-            mnem = opdesc[6]
-            # print(mnem)
-            optype = opdesc[1]
-            if tabdesc[2] == 0xff:
-                offset += 1  # For our final opcode byte
-            break
+        if not len(decodings):
+            raise envi.InvalidInstruction(bytez=bytez[startoff:startoff+16], va=va)
+
+        opdesc, offset, all_prefixes = decodings.pop()
+        optype = opdesc[1]
+        mnem = opdesc[6]
 
         if optype == 0:
-            #print tabidx
-            #print opdesc
-            #print "OPTTYPE 0"
             raise envi.InvalidInstruction(bytez=bytez[startoff:startoff+16], va=va)
 
         operoffset = 0
@@ -899,7 +935,7 @@ class i386Disasm:
 
             # print("ADDRTYPE: %.8x OPERTYPE: %.8x" % (addrmeth, opertype))
 
-            tsize = self._dis_calc_tsize(opertype, prefixes, operflags)
+            tsize = self._dis_calc_tsize(opertype, all_prefixes, operflags)
 
             # print(hex(opertype),hex(addrmeth), hex(tsize))
 
@@ -907,7 +943,7 @@ class i386Disasm:
             # If addrmeth is zero, we have operands embedded in the opcode
             if addrmeth == 0:
                 osize = 0
-                oper = self.ameth_0(operflags, opdesc[5+i], tsize, prefixes)
+                oper = self.ameth_0(operflags, opdesc[5+i], tsize, all_prefixes)
             else:
                 # print("ADDRTYPE", hex(addrmeth))
                 ameth = self._dis_amethods[addrmeth >> 16]
@@ -918,7 +954,7 @@ class i386Disasm:
                 # NOTE: Depending on your addrmethod you may get beginning of operands, or offset
                 try:
                     if addrmeth == opcode86.ADDRMETH_I or addrmeth == opcode86.ADDRMETH_J:
-                        osize, oper = ameth(bytez, offset+operoffset, tsize, prefixes, operflags)
+                        osize, oper = ameth(bytez, offset+operoffset, tsize, all_prefixes, operflags)
 
                         # If we are a sign extended immediate and not the same as the other operand,
                         # do the sign extension during disassembly so nothing else has to worry about it..
@@ -928,7 +964,7 @@ class i386Disasm:
                             oper.tsize = otsize
 
                     else:
-                        osize, oper = ameth(bytez, offset, tsize, prefixes, operflags)
+                        osize, oper = ameth(bytez, offset, tsize, all_prefixes, operflags)
 
                 except struct.error as e:
                     # Catch struct unpack errors due to insufficient data length
@@ -944,7 +980,7 @@ class i386Disasm:
         # Pull in the envi generic instruction flags
         iflags = iflag_lookup.get(optype, 0) | self._dis_oparch
 
-        if prefixes & PREFIX_REP_MASK:
+        if all_prefixes & PREFIX_REP_MASK:
             iflags |= envi.IF_REPEAT
 
         if priv_lookup.get(mnem, False):
@@ -954,7 +990,7 @@ class i386Disasm:
         if optype == opcode86.INS_LEA:
             operands[1]._is_deref = False
 
-        ret = i386Opcode(va, optype, mnem, prefixes, (offset-startoff)+operoffset, operands, iflags)
+        ret = i386Opcode(va, optype, mnem, all_prefixes, (offset-startoff)+operoffset, operands, iflags)
 
         return ret
 

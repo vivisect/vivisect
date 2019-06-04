@@ -31,13 +31,15 @@ i386SingleByteOpcodes = [
     ('setg (dl)', '0f9fc2', 0x40, 'setg dl', 'setg dl'),
     ('rep setg (al)', 'f30f9fc0', 0x40, 'rep: setg al', 'rep: setg al'),
     ('rep setg (dl)', 'f30f9fc2', 0x40, 'rep: setg dl', 'rep: setg dl'),
+    ('prefix scas', 'f2ae', 0x40, 'repnz: scasb ', 'repnz: scasb '),
 ]
 
 i386MultiByteOpcodes = [
-    ('CVTTPS2PI', '0f2caaaaaaaa41', 0x40, 'cvttps2pi qword [edx + 1101703850],oword [edx + 1101703850]', 'cvttps2pi qword [edx + 1101703850],oword [edx + 1101703850]'),
-    ('CVTTSS2SI', 'f30f2caaaaaaaa41', 0x40, 'rep: cvttps2pi qword [edx + 1101703850],oword [edx + 1101703850]', 'rep: cvttps2pi qword [edx + 1101703850],oword [edx + 1101703850]'),
+    ('CVTTPS2PI', '0f2caaaaaaaa41', 0x40, 'cvttps2pi mm5,qword [edx + 1101703850]', 'cvttps2pi mm5,qword [edx + 1101703850]'),
+    ('CVTTSS2SI', 'f30f2caaaaaaaa41', 0x40, 'cvttss2si ebp,dword [edx + 1101703850]', 'cvttss2si ebp,dword [edx + 1101703850]'),
+    ('CVTTSS2SI', 'f30f2ce9414141', 0x40, 'cvttss2si ebp,xmm1', 'cvttss2si ebp,xmm1'),
     ('CVTTPD2PI', '660f2caaaaaaaa41', 0x40, 'cvttpd2pi oword [edx + 1101703850],oword [edx + 1101703850]', 'cvttpd2pi oword [edx + 1101703850],oword [edx + 1101703850]'),
-    ('CVTTSD2SI', 'f20f2caaaaaaaa41', 0x40, 'repnz: cvttps2pi qword [edx + 1101703850],oword [edx + 1101703850]', 'repnz: cvttps2pi qword [edx + 1101703850],oword [edx + 1101703850]'),
+    ('CVTTSD2SI', 'f20f2caaaaaaaa41', 0x40, 'cvttsd2si qword [edx + 1101703850],oword [edx + 1101703850]', 'cvttsd2si qword [edx + 1101703850],oword [edx + 1101703850]'),
     ('ADDPS', '0f58aa4141414141', 0x40, 'addps xmm5,oword [edx + 1094795585]', 'addps xmm5,oword [edx + 1094795585]'),
     ('MOVAPS', '0f28aa41414141', 0x40, 'movaps xmm5,oword [edx + 1094795585]', 'movaps xmm5,oword [edx + 1094795585]'),
     ('MOVAPD', '660f28aa41414141', 0x40, 'movapd xmm5,oword [edx + 1094795585]', 'movapd xmm5,oword [edx + 1094795585]'),
@@ -67,6 +69,11 @@ i386MultiByteOpcodes = [
     ('MFENCE', '0faef5', 0x40, 'mfence ', 'mfence '),
     ('MFENCE', '0faef7', 0x40, 'mfence ', 'mfence '),
 
+    ('CVTTSS2SI', 'f30f2cc8', 0x40, 'cvttss2si ecx,xmm0', 'cvttss2si ecx,xmm0'),
+     ('PREFIXES', 'f0673e2e65f30f10ca', 0x40, 'addr lock cs ds gs: movss xmm1,xmm2', 'addr lock cs ds gs: movss xmm1,xmm2'),
+    ('BSR', '0fbdc3414141', 0x40, 'bsr eax,ebx', 'bsr eax,ebx'),
+    ('LZNT', 'f30fbdc3414141', 0x40, 'lzcnt eax,ebx', 'lzcnt eax,ebx'),
+
     # Because of how the MODRM Bytes are set, these map to the same instruction
     # TODO: Would these be the same to a real x86 chip?
     ('PSRLDQ (66)', '660f73b5aa4141', 0x40, 'psllq xmm5,170', 'psllq xmm5,170'),
@@ -80,14 +87,19 @@ i386MultiByteOpcodes = [
     ('PSHUFB', '660F3800EF', 0x40, 'pshufb xmm5,xmm7', 'pshufb xmm5,xmm7'),
     ('RDTSC', '0F31', 0x40, 'rdtsc ', 'rdtsc '),
     ('RDTSCP', '0F01F9', 0x40, 'rdtscp ', 'rdtscp '),
-    # ('CVTDQ2PD', 'f30fe6c0', 0x40, 'cvtdq2pd xmm0,xmm0', 'cvtdq2pd xmm0,xmm0'),
-
-    # Dang it. movdqu and rep: movq are literalally the same bytes, and movdqu should win out, but it doesn't
-    # because we have no mechanism to override the bytes after we decoding the instruction.
-    # ('MOVQ', 'F30F7ECB', 0x40, 'movq xmm1,xmm3', 'movq xmm1,xmm3'),
-    # ('MOVQ (F3)',   'F30F7E0D41414100', 0x40, 'movq xmm1,qword [0x00414141]', 'movq xmm1,qword [0x00414141]'),
-    # ('MOVDQU', 'F30F6FCA', 0x40, 'movdqu xmm1,xmm2', 'movdqu xmm1, xmm2'),
-    # ('MOVDQU (REP)', 'F3F30F6FCA', 0x40, 'rep: movdqu xmm1,xmm2', 'rep: movdqu xmm1, xmm2'),
+    ('CVTDQ2PD', 'f30fe6c0', 0x40, 'cvtdq2pd xmm0,xmm0', 'cvtdq2pd xmm0,xmm0'),
+    ('MOVQ', 'F30F7ECB', 0x40, 'movq xmm1,xmm3', 'movq xmm1,xmm3'),
+    ('MOVQ (F3)', 'F30F7E0D41414100', 0x40, 'movq xmm1,qword [0x00414141]', 'movq xmm1,qword [0x00414141]'),
+    ('MOVSD', 'f20f10ca', 0x40, 'movsd xmm1,xmm2', 'movsd xmm1,xmm2'),
+    ('MOVSD (PREFIX)', 'f3f20f10ca', 0x40, 'rep: movsd xmm1,xmm2', 'rep: movsd xmm1,xmm2'),
+    ('POPCNT', '66f30fb8c3', 0x40, 'popcnt ax,bx', 'popcnt ax,bx'),
+    ('POPCNT', 'f30fb8c4', 0x40, 'popcnt eax,esp', 'popcnt eax,esp'),
+    ('POPCNT', 'f30fb80541414100', 0x40, 'popcnt eax,dword [0x00414141]', 'popcnt eax,dword [0x00414141]'),
+    ('LZCNT', 'f30fbdc4', 0x40, 'lzcnt eax,esp', 'lzcnt eax,esp'),
+    ('LZCNT', 'f30fbd0541414100', 0x40, 'lzcnt eax,dword [0x00414141]', 'lzcnt eax,dword [0x00414141]'),
+    ('MOVDQU', 'F30F6FCA', 0x40, 'movdqu xmm1,xmm2', 'movdqu xmm1,xmm2'),
+    ('MOVDQU (MEM)', 'F30F6F4810', 0x40, 'movdqu xmm1,qword [eax + 16]', 'movdqu xmm1,qword [eax + 16]'),
+    ('MOVDQU (REP)', 'F3F30F6FCA', 0x40, 'movdqu xmm1,xmm2', 'movdqu xmm1,xmm2'),
 ]
 
 
@@ -181,14 +193,14 @@ class i386InstructionSet(unittest.TestCase):
         self.assertEqual( repr(op), oprepr )
         opvars = vars(op)
         for opk,opv in opcheck.items():
-            #print "op: %s %s" % (opk,opv)
+            # print("op: %s %s" % (opk,opv))
             self.assertEqual( (opk, opvars.get(opk)), (opk, opv) )
 
         for oidx in range(len(op.opers)):
             oper = op.opers[oidx]
             opervars = vars(oper)
             for opk,opv in opercheck[oidx].items():
-                #print "oper: %s %s" % (opk,opv)
+                # print("oper: %s %s" % (opk,opv))
                 self.assertEqual( (opk, opervars.get(opk)), (opk, opv) )
 
         vw = vivisect.VivWorkspace()
@@ -233,8 +245,6 @@ class i386InstructionSet(unittest.TestCase):
         opcheck =  {'iflags': 65536, 'va': 16384, 'repr': None, 'prefixes': 0, 'mnem': 'mov', 'opcode': 24577, 'size': 3}
         opercheck = ( {'disp': 0, 'tsize': 4, '_is_deref': True, 'reg': 0}, {'tsize': 4, 'reg': 35} )
         self.checkOpcode( opbytez, 0x4000, oprepr, opcheck, opercheck, oprepr )
-
-
 
     def test_envi_i386_disasm_Imm_Operands(self):
         '''
@@ -293,7 +303,7 @@ class i386InstructionSet(unittest.TestCase):
     def test_envi_i386_disasm_SIB_Operands(self):
         '''
         exercize the entire SIB operand space
-        A       jmp         fa
+        A       jmp         ea
         E       lar         0f02
         Q       cvttps2pi   0f2c
         W       cvttps2pi   0f2c
@@ -311,7 +321,7 @@ class i386InstructionSet(unittest.TestCase):
         self.checkOpcode( opbytez, 0x4000, oprepr, opcheck, opercheck, oprepr )
 
         opbytez = '0f2caabbccddeeff'
-        oprepr = 'cvttps2pi qword [edx - 287454021],oword [edx - 287454021]'
+        oprepr = 'cvttps2pi mm5,qword [edx - 287454021]'
         opcheck = {'iflags': 65536, 'va': 16384, 'repr': None, 'prefixes': 0, 'mnem': 'cvttps2pi', 'opcode': 61440}
-        opercheck = [{'disp': -287454021, 'tsize': 8, '_is_deref': True, 'reg': 2}, {'disp': -287454021, 'tsize': 16, '_is_deref': True, 'reg': 2}]
+        opercheck = [{'tsize': 8, 'reg': 13}, {'disp': -287454021, 'tsize': 8, '_is_deref': True, 'reg': 2}]
         self.checkOpcode(opbytez, 0x4000, oprepr, opcheck, opercheck, oprepr)
