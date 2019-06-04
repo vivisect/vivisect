@@ -508,7 +508,6 @@ class Opcode:
     def __len__(self):
         return int(self.size)
 
-
     # NOTE: From here down is mostly things that architecture specific opcode
     #       extensions should override.
     def isCall(self):
@@ -567,10 +566,10 @@ class Opcode:
         architecture specific prefix bitmask.
         """
         ret = []
-        for byte,name in self.prefix_names:
+        for byte, name in self.prefix_names:
             if self.prefixes & byte:
                 ret.append(name)
-        return "".join(ret)
+        return " ".join(ret)
 
     def getOperValue(self, idx, emu=None):
         oper = self.opers[idx]
