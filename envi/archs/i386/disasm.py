@@ -859,13 +859,11 @@ class i386Disasm:
         prefixes = all_prefixes
         for pref, onehot in ppref:
             if pref is not None:
-                # print("pref is not none")
                 obyte = pref
                 offset = mainbyte
                 prefixes = all_prefixes & (~onehot)
                 tabdesc = all_tables[0]
             else:
-                # print("pref is none")
                 offset = mainbyte
                 obyte = ord(bytez[offset])
 
@@ -885,9 +883,9 @@ class i386Disasm:
 
                 # Hunt down multi-byte opcodes
                 nexttable = opdesc[0]
-                # print("NEXT",nexttable,hex(obyte))
+                # print("NEXT", nexttable, hex(obyte))
                 if nexttable != 0: # If we have a sub-table specified, use it.
-                    # print("Multi-Byte Next Hop For %s: %s" % (hex(obyte),repr(opdesc[0])))
+                    # print("Multi-Byte Next Hop For %s: %s" % (hex(obyte), repr(opdesc[0])))
                     # print("Jumping to table %d" % nexttable)
                     tabdesc = all_tables[nexttable]
 
@@ -899,7 +897,6 @@ class i386Disasm:
                 # We are now on the final table...
                 # print(repr(opdesc))
                 mnem = opdesc[6]
-                # print(mnem)
                 optype = opdesc[1]
                 if tabdesc[2] == 0xff:
                     offset += 1  # For our final opcode byte

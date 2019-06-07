@@ -39,7 +39,7 @@ i386MultiByteOpcodes = [
     ('CVTTSS2SI', 'f30f2caaaaaaaa41', 0x40, 'cvttss2si ebp,dword [edx + 1101703850]', 'cvttss2si ebp,dword [edx + 1101703850]'),
     ('CVTTSS2SI', 'f30f2ce9414141', 0x40, 'cvttss2si ebp,xmm1', 'cvttss2si ebp,xmm1'),
     ('CVTTPD2PI', '660f2caaaaaaaa41', 0x40, 'cvttpd2pi oword [edx + 1101703850],oword [edx + 1101703850]', 'cvttpd2pi oword [edx + 1101703850],oword [edx + 1101703850]'),
-    ('CVTTSD2SI', 'f20f2caaaaaaaa41', 0x40, 'cvttsd2si qword [edx + 1101703850],oword [edx + 1101703850]', 'cvttsd2si qword [edx + 1101703850],oword [edx + 1101703850]'),
+    ('CVTTSD2SI', 'f20f2caaaaaaaa41', 0x40, 'cvttsd2si ebp,qword [edx + 1101703850]', 'cvttsd2si ebp,qword [edx + 1101703850]'),
     ('ADDPS', '0f58aa4141414141', 0x40, 'addps xmm5,oword [edx + 1094795585]', 'addps xmm5,oword [edx + 1094795585]'),
     ('MOVAPS', '0f28aa41414141', 0x40, 'movaps xmm5,oword [edx + 1094795585]', 'movaps xmm5,oword [edx + 1094795585]'),
     ('MOVAPD', '660f28aa41414141', 0x40, 'movapd xmm5,oword [edx + 1094795585]', 'movapd xmm5,oword [edx + 1094795585]'),
@@ -70,7 +70,7 @@ i386MultiByteOpcodes = [
     ('MFENCE', '0faef7', 0x40, 'mfence ', 'mfence '),
 
     ('CVTTSS2SI', 'f30f2cc8', 0x40, 'cvttss2si ecx,xmm0', 'cvttss2si ecx,xmm0'),
-     ('PREFIXES', 'f0673e2e65f30f10ca', 0x40, 'addr lock cs ds gs: movss xmm1,xmm2', 'addr lock cs ds gs: movss xmm1,xmm2'),
+    ('PREFIXES', 'f0673e2e65f30f10ca', 0x40, 'addr lock cs ds gs: movss xmm1,xmm2', 'addr lock cs ds gs: movss xmm1,xmm2'),
     ('BSR', '0fbdc3414141', 0x40, 'bsr eax,ebx', 'bsr eax,ebx'),
     ('LZNT', 'f30fbdc3414141', 0x40, 'lzcnt eax,ebx', 'lzcnt eax,ebx'),
 
@@ -79,7 +79,7 @@ i386MultiByteOpcodes = [
     ('PSRLDQ (66)', '660f73b5aa4141', 0x40, 'psllq xmm5,170', 'psllq xmm5,170'),
     ('PSRLDQ (66)', '660f73f5aa4141', 0x40, 'psllq xmm5,170', 'psllq xmm5,170'),
 
-    # Same for these
+    # Same for these two
     ('PSRLDQ (66)', '660f73b1aa4141', 0x40, 'psllq xmm1,170', 'psllq xmm1,170'),
     ('PSRLDQ (66)', '660f73b9aa4141', 0x40, 'psldq xmm1,170', 'psldq xmm1,170'),
 
@@ -98,8 +98,22 @@ i386MultiByteOpcodes = [
     ('LZCNT', 'f30fbdc4', 0x40, 'lzcnt eax,esp', 'lzcnt eax,esp'),
     ('LZCNT', 'f30fbd0541414100', 0x40, 'lzcnt eax,dword [0x00414141]', 'lzcnt eax,dword [0x00414141]'),
     ('MOVDQU', 'F30F6FCA', 0x40, 'movdqu xmm1,xmm2', 'movdqu xmm1,xmm2'),
-    ('MOVDQU (MEM)', 'F30F6F4810', 0x40, 'movdqu xmm1,qword [eax + 16]', 'movdqu xmm1,qword [eax + 16]'),
+    ('MOVDQU (MEM)', 'F30F6F4810', 0x40, 'movdqu xmm1,oword [eax + 16]', 'movdqu xmm1,oword [eax + 16]'),
     ('MOVDQU (REP)', 'F3F30F6FCA', 0x40, 'movdqu xmm1,xmm2', 'movdqu xmm1,xmm2'),
+
+    ('MOVSD', 'f20f100d28330608', 0x40, 'movsd xmm1,oword [0x08063328]', 'movsd xmm1,oword [0x08063328]'),
+    ('MOVSD 2', 'f20f1145f0', 0x40, 'movsd oword [ebp - 16],xmm0', 'movsd oword [ebp - 16],xmm0'),
+    ('MOVSD 3', 'f20f100d70790908', 0x40, 'movsd xmm1,oword [0x08097970]', 'movsd xmm1,oword [0x08097970]'),
+    ('MOVSS', 'f30f1045f8', 0x40, 'movss xmm0,oword [ebp - 8]', 'movss xmm0,oword [ebp - 8]'),
+    ('MOVSS 2', 'f30f1055d0', 0x40, 'movss xmm2,oword [ebp - 48]', 'movss xmm2,oword [ebp - 48]'),
+    ('MOVSS 3', 'F30F110D41414100', 0x40, 'movss dword [0x00414141],xmm1', 'movss dword [0x00414141],xmm1'),
+    ('CVTSI2SS', 'f30f2ac8', 0x40, 'cvtsi2ss xmm1,eax', 'cvtsi2ss xmm1,eax'),
+    ('MULSS', 'f30f59ca', 0x40, 'mulss xmm1,xmm2', 'mulss xmm1,xmm2'),
+    ('SUBSS', 'f30f5cc1', 0x40, 'subss xmm0,xmm1', 'subss xmm0,xmm1'),
+    ('CVTSS2SD', 'f30f5ac0', 0x40, 'cvtss2sd xmm0,xmm0', 'cvtss2sd xmm0,xmm0'),
+    ('SQRTSS', 'f30f51d9', 0x40, 'sqrtss xmm3,xmm1', 'sqrtss xmm3,xmm1'),
+    ('VMXON', 'f30fc73541414100', 0x40, 'vmxon qword [0x00414141]', 'vmxon qword [0x00414141]'),
+    ('MULSD', 'f20f59c1', 0x40, 'mulsd xmm0,xmm1', 'mulsd xmm0,xmm1'),
 ]
 
 
