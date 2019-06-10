@@ -118,6 +118,13 @@ i386MultiByteOpcodes = [
     ('CRC 1', 'f20f38f0e8', 0x40, 'crc32 ebp,al', 'crc32 ebp,al'),
     ('CRC 2', '66f20f38f1C3', 0x40, 'crc32 eax,bx', 'crc32 eax,bx'),
     ('CRC 3', 'f20f38f1C3', 0x40, 'crc32 eax,ebx', 'crc32 eax,ebx'),
+    ('CLAC', '0f01ca414141', 0x40, 'clac ', 'clac '),
+    ('STAC', '0f01cb414141', 0x40, 'stac ', 'stac '),
+    ('VMFUNC', '0f01d44141', 0x40, 'vmfunc ', 'vmfunc '),
+    ('XEND', '0f01d54141', 0x40, 'xend ', 'xend '),
+    ('XGETBV', '0f01d04141', 0x40, 'xgetbv ', 'xgetbv '),
+    ('XSETBV', '0f01d14141', 0x40, 'xsetbv ', 'xsetbv '),
+    ('XTEST', '0f01d64141', 0x40, 'xtest ', 'xtest '),
 ]
 
 

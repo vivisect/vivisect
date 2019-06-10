@@ -170,6 +170,9 @@ INS_SETOF    = INS_FLAG | 0x09
 INS_SETDF    = INS_FLAG | 0x0A
 INS_SETSF    = INS_FLAG | 0x0B
 INS_SETPF    = INS_FLAG | 0x0C
+INS_CLEARAF  = INS_FLAG | 0x0D
+INS_SETAF    = INS_FLAG | 0x0E
+
 INS_TOGCF    = INS_FLAG | 0x10  # /* toggle */
 INS_TOGZF    = INS_FLAG | 0x20
 INS_TOGOF    = INS_FLAG | 0x30
@@ -177,14 +180,14 @@ INS_TOGDF    = INS_FLAG | 0x40
 INS_TOGSF    = INS_FLAG | 0x50
 INS_TOGPF    = INS_FLAG | 0x60
 
-INS_TRAP   =              INS_TRAPS | 0x01  #/* generate trap */
-INS_TRAPCC =      INS_TRAPS | 0x02          #/* conditional trap gen */
-INS_TRET   =              INS_TRAPS | 0x03  #/* return from trap */
-INS_BOUNDS =      INS_TRAPS | 0x04          #/* gen bounds trap */
-INS_DEBUG  =              INS_TRAPS | 0x05  #/* gen breakpoint trap */
-INS_TRACE  =             INS_TRAPS | 0x06  #/* gen single step trap */
-INS_INVALIDOP=   INS_TRAPS | 0x07          #     /* gen invalid instruction */
-INS_OFLOW    =           INS_TRAPS | 0x08  #      /* gen overflow trap */
+INS_TRAP = INS_TRAPS | 0x01         # generate trap
+INS_TRAPCC = INS_TRAPS | 0x02       # conditional trap gen
+INS_TRET = INS_TRAPS | 0x03         # return from trap
+INS_BOUNDS = INS_TRAPS | 0x04       # gen bounds trap
+INS_DEBUG = INS_TRAPS | 0x05        # gen breakpoint trap
+INS_TRACE = INS_TRAPS | 0x06        # gen single step trap
+INS_INVALIDOP = INS_TRAPS | 0x07    # gen invalid instruction
+INS_OFLOW = INS_TRAPS | 0x08       # gen overflow trap
 
 #/* INS_SYSTEM */
 INS_HALT    =            INS_SYSTEM | 0x01 #               /* halt machine */
