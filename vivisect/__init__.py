@@ -926,9 +926,9 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         emu.setEmulationMonitor(wat)
         try:
             emu.runFunction(va, maxhit=1)
-        except Exception, e:
+        except Exception as e:
             return False
- 
+
         if wat.looksgood():
             return True
         return False

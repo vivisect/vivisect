@@ -27,7 +27,8 @@ ADDRMETH_V = 0x00140000    # MODRM reg field defines XMM register
 ADDRMETH_W = 0x00150000    # MODRM defines XMM register or memory
 ADDRMETH_X = 0x00160000    # Memory addressed by DS:rSI
 ADDRMETH_Y = 0x00170000    # Memory addressd by ES:rDI
-ADDRMETH_LAST = ADDRMETH_Y
+ADDRMETH_Z = 0x00180000    # R/M field of MODRM defines XMM register, reg is used as an ext
+ADDRMETH_LAST = ADDRMETH_Z
 
 OPTYPE_a = 0x01000000     # 2/4   two one-word operands in memory or two double-word operands in memory (operand-size attribute)   
 OPTYPE_b = 0x02000000     # 1     always 1 byte
