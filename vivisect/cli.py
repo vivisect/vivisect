@@ -35,7 +35,6 @@ import envi.expression as e_expr
 import envi.memcanvas as e_canvas
 import envi.memcanvas.renderers as e_render
 
-from vqt.main import vqtevent
 from vivisect.const import *
 
 class VivCli(e_cli.EnviCli, vivisect.VivWorkspace):
@@ -353,12 +352,13 @@ class VivCli(e_cli.EnviCli, vivisect.VivWorkspace):
         # set the color for each finding
         color = options.markColor
         colormap = { va : color for va in res }
-        if self._viv_gui != None:
+        if self._viv_gui is not None:
+            from vqt.main import vqtevent
             vqtevent('viv:colormap', colormap)
 
         self.vprint('matches for: %s (%s)' % (pattern.encode('hex'), repr(pattern)))
         for va in res:
-            mbase,msize,mperm,mfile = self.memobj.getMemoryMap(va)
+            mbase, msize, mperm, mfile = self.memobj.getMemoryMap(va)
             pname = e_mem.reprPerms(mperm)
             sname = self.reprPointer(va)
 
