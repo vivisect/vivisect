@@ -803,11 +803,10 @@ class i386Disasm:
             raise "OPERSIZE FAIL: %.8x" % opertype
 
         if prefixes & PREFIX_OP_SIZE:
-
             mode = MODE_16
 
-        #print "OPERTYPE",hex(opertype)
-        #print "SIZELIST",repr(sizelist)
+        # print("OPERTYPE", hex(opertype))
+        # print("SIZELIST", repr(sizelist))
         return sizelist[mode]
 
     def disasm(self, bytez, offset, va):
@@ -931,11 +930,10 @@ class i386Disasm:
                 break
 
             # print("ADDRTYPE: %.8x OPERTYPE: %.8x" % (addrmeth, opertype))
-
+            # print("ALLPREFIXES 0x%x" % (all_prefixes))
             tsize = self._dis_calc_tsize(opertype, all_prefixes, operflags)
 
-            # print(hex(opertype),hex(addrmeth), hex(tsize))
-
+            # print(hex(opertype), hex(addrmeth), hex(tsize))
 
             # If addrmeth is zero, we have operands embedded in the opcode
             if addrmeth == 0:

@@ -836,7 +836,7 @@ tbl32_F20F[0x12] = (0, INS_MOV, ADDRMETH_V | OPTYPE_sd | OP_W, ADDRMETH_W | OPTY
 tbl32_F20F[0x2a] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_sd | OP_W, ADDRMETH_E | OPTYPE_ds | OP_R, ARG_NONE, cpu_PENTIUM2, "cvtsi2sd", 0, 0, 0)
 tbl32_F20F[0x2c] = (0, INS_OTHER, ADDRMETH_G | OPTYPE_q | OP_W, ADDRMETH_W | OPTYPE_q | OP_R, ARG_NONE, cpu_PENTIUM2, "cvttsd2si", 0, 0, 0)
 tbl32_F20F[0x2d] = (0, INS_OTHER, ADDRMETH_G | OPTYPE_d | OP_W, ADDRMETH_W | OPTYPE_sd | OP_R, ARG_NONE, cpu_PENTIUM2, "cvtsd2si", 0, 0, 0)
-#tbl32_F20F[0x38] = (61, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+tbl32_F20F[0x38] = (61, 0, 0, 0, 0, 0, 0, 0, 0, 0)
 tbl32_F20F[0x51] = (0, INS_ARITH, ADDRMETH_V | OPTYPE_sd | OP_W, ADDRMETH_W | OPTYPE_sd | OP_R, ARG_NONE, cpu_PENTIUM2, "sqrtsd", 0, 0, 0)
 tbl32_F20F[0x58] = (0, INS_ADD, ADDRMETH_V | OPTYPE_sd | OP_W, ADDRMETH_W | OPTYPE_sd | OP_R, ARG_NONE, cpu_PENTIUM2, "addsd", 0, 0, 0)
 tbl32_F20F[0x59] = (0, INS_MUL, ADDRMETH_V | OPTYPE_sd | OP_R, ADDRMETH_W | OPTYPE_sd | OP_R, ARG_NONE, cpu_PENTIUM2, "mulsd", 0, 0, 0)
@@ -855,6 +855,10 @@ tbl32_F20F[0xd6] = (0, INS_OTHER, ADDRMETH_P | OPTYPE_q | OP_W, ADDRMETH_V | OPT
 tbl32_F20F[0xe6] = (0, INS_MUL, ADDRMETH_V | OPTYPE_x | OP_W, ADDRMETH_W | OPTYPE_pd | OP_R, ARG_NONE, cpu_PENTMMX, "cvtpd2dq", 0, 0, 0)
 tbl32_F20F[0xf0] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_dq | OP_W, ADDRMETH_M | OPTYPE_dq | OP_R, ARG_NONE, cpu_PENTMMX, "lddqu", 0, 0, 0)
 
+
+tbl32_F20F38 = [(0, 0, ARG_NONE, ARG_NONE, ARG_NONE, 0, 0, 0, 0, 0) for x in xrange(2)]
+tbl32_F20F38[0] = (0, INS_OTHER, ADDRMETH_G | OPTYPE_d | OP_W, ADDRMETH_E | OPTYPE_b | OP_R, ARG_NONE, cpu_PENTIUM, "crc32", 0, 0, 0)
+tbl32_F20F38[1] = (0, INS_OTHER, ADDRMETH_G | OPTYPE_d | OP_W, ADDRMETH_E | OPTYPE_z | OP_R, ARG_NONE, cpu_PENTIUM, "crc32", 0, 0, 0)
 
 """
 (optable, optype, operand 0, operand 1, operand 2, CPU required, "opcodename", op0Register, op1Register, op2Register)
@@ -2381,9 +2385,9 @@ tables86=[
     (tbl32_660F38, 0, 0xff, 0, 0xff),            # 56    - unused at present
     (tbl32_0F3A, 0, 0xff, 0, 0xff),              # 57
     (tbl32_660F3A, 0, 0xff, 0, 0xff),            # 58    - unused at present
-    (tbl32_660F71, 3, 0x7, 0, 0xff),            # 59
-    (tbl32_660F72, 3, 0x7, 0, 0xff),            # 60
-    #(tbl32_F20F38, )            # 61
+    (tbl32_660F71, 3, 0x7, 0, 0xff),             # 59
+    (tbl32_660F72, 3, 0x7, 0, 0xff),             # 60
+    (tbl32_F20F38, 0, 0xff, 0xf0, 0xff),         # 61
 ]
 
 regs=[

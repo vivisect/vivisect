@@ -114,6 +114,10 @@ i386MultiByteOpcodes = [
     ('SQRTSS', 'f30f51d9', 0x40, 'sqrtss xmm3,xmm1', 'sqrtss xmm3,xmm1'),
     ('VMXON', 'f30fc73541414100', 0x40, 'vmxon qword [0x00414141]', 'vmxon qword [0x00414141]'),
     ('MULSD', 'f20f59c1', 0x40, 'mulsd xmm0,xmm1', 'mulsd xmm0,xmm1'),
+    ('VMCLEAR', '660FC73541414100', 0x40, 'vmclear qword [0x00414141]', 'vmclear qword [0x00414141]'),
+    ('CRC 1', 'f20f38f0e8', 0x40, 'crc32 ebp,al', 'crc32 ebp,al'),
+    ('CRC 2', '66f20f38f1C3', 0x40, 'crc32 eax,bx', 'crc32 eax,bx'),
+    ('CRC 3', 'f20f38f1C3', 0x40, 'crc32 eax,ebx', 'crc32 eax,ebx'),
 ]
 
 
