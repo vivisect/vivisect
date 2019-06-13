@@ -35,21 +35,22 @@ i386SingleByteOpcodes = [
 ]
 
 i386MultiByteOpcodes = [
+    ('CVTPD2PI', '660f2Daaaaaaaa41', 0x40, 'cvtpd2pi mm5,oword [edx + 1101703850]', 'cvtpd2pi mm5,oword [edx + 1101703850]'),
     ('CVTTPS2PI', '0f2caaaaaaaa41', 0x40, 'cvttps2pi mm5,qword [edx + 1101703850]', 'cvttps2pi mm5,qword [edx + 1101703850]'),
     ('CVTTSS2SI', 'f30f2caaaaaaaa41', 0x40, 'cvttss2si ebp,dword [edx + 1101703850]', 'cvttss2si ebp,dword [edx + 1101703850]'),
     ('CVTTSS2SI', 'f30f2ce9414141', 0x40, 'cvttss2si ebp,xmm1', 'cvttss2si ebp,xmm1'),
-    ('CVTTPD2PI', '660f2caaaaaaaa41', 0x40, 'cvttpd2pi oword [edx + 1101703850],oword [edx + 1101703850]', 'cvttpd2pi oword [edx + 1101703850],oword [edx + 1101703850]'),
+    ('CVTTPD2PI', '660f2caaaaaaaa41', 0x40, 'cvttpd2pi mm5,oword [edx + 1101703850]', 'cvttpd2pi mm5,oword [edx + 1101703850]'),
     ('CVTTSD2SI', 'f20f2caaaaaaaa41', 0x40, 'cvttsd2si ebp,qword [edx + 1101703850]', 'cvttsd2si ebp,qword [edx + 1101703850]'),
     ('ADDPS', '0f58aa4141414141', 0x40, 'addps xmm5,oword [edx + 1094795585]', 'addps xmm5,oword [edx + 1094795585]'),
     ('MOVAPS', '0f28aa41414141', 0x40, 'movaps xmm5,oword [edx + 1094795585]', 'movaps xmm5,oword [edx + 1094795585]'),
     ('MOVAPD', '660f28aa41414141', 0x40, 'movapd xmm5,oword [edx + 1094795585]', 'movapd xmm5,oword [edx + 1094795585]'),
     ('PMULLW (66)', '660faa41414141', 0x40, 'rsm ', 'rsm '),
     ('CMPXCH8B', '0fc70a', 0x40, 'cmpxch8b qword [edx]', 'cmpxch8b qword [edx]'),
-    ('MOVD (66)',   '660f7ecb414141', 0x40, 'movd ebx,xmm1', 'movd ebx,xmm1'),
+    ('MOVD (66)', '660f7ecb414141', 0x40, 'movd ebx,xmm1', 'movd ebx,xmm1'),
     ('MOVD', '0F6E0D41414100', 0x40, 'movd mm1,dword [0x00414141]', 'movd mm1,dword [0x00414141]'),
     ('MOVQ', '0F6FCB', 0x40, 'movq mm1,mm3', 'movq mm1,mm3'),
     ('PSRAW',  '0FE1CA4141', 0x40, 'psraw mm1,mm2', 'psraw mm1,mm2'),
-    ('PSRLQ (66)',  '660FF3CB4141', 0x40, 'psllq xmm1,xmm3', 'psllq xmm1,xmm3'),
+    ('PSLLQ (66)',  '660FF3CB4141', 0x40, 'psllq xmm1,xmm3', 'psllq xmm1,xmm3'),
     ('PALIGNR', '0F3A0FDC03', 0x40, 'palignr xmm3,xmm4,3', 'palignr xmm3,xmm4,3'),
     ('PALIGNR (66)',  '660F3A0FCA07', 0x40, 'palignr xmm1,xmm2,7', 'palignr xmm1,xmm2,7'),
     ('PSLLQ (reg)',  '660FF3CA', 0x40, 'psllq xmm1,xmm2', 'psllq xmm1,xmm2'),
@@ -68,7 +69,6 @@ i386MultiByteOpcodes = [
     ('MFENCE', '0faef2', 0x40, 'mfence ', 'mfence '),
     ('MFENCE', '0faef5', 0x40, 'mfence ', 'mfence '),
     ('MFENCE', '0faef7', 0x40, 'mfence ', 'mfence '),
-
     ('CVTTSS2SI', 'f30f2cc8', 0x40, 'cvttss2si ecx,xmm0', 'cvttss2si ecx,xmm0'),
     ('PREFIXES', 'f0673e2e65f30f10ca', 0x40, 'addr lock cs ds gs: movss xmm1,xmm2', 'addr lock cs ds gs: movss xmm1,xmm2'),
     ('BSR', '0fbdc3414141', 0x40, 'bsr eax,ebx', 'bsr eax,ebx'),
@@ -100,7 +100,6 @@ i386MultiByteOpcodes = [
     ('MOVDQU', 'F30F6FCA', 0x40, 'movdqu xmm1,xmm2', 'movdqu xmm1,xmm2'),
     ('MOVDQU (MEM)', 'F30F6F4810', 0x40, 'movdqu xmm1,oword [eax + 16]', 'movdqu xmm1,oword [eax + 16]'),
     ('MOVDQU (REP)', 'F3F30F6FCA', 0x40, 'movdqu xmm1,xmm2', 'movdqu xmm1,xmm2'),
-
     ('MOVSD', 'f20f100d28330608', 0x40, 'movsd xmm1,oword [0x08063328]', 'movsd xmm1,oword [0x08063328]'),
     ('MOVSD 2', 'f20f1145f0', 0x40, 'movsd oword [ebp - 16],xmm0', 'movsd oword [ebp - 16],xmm0'),
     ('MOVSD 3', 'f20f100d70790908', 0x40, 'movsd xmm1,oword [0x08097970]', 'movsd xmm1,oword [0x08097970]'),
@@ -125,6 +124,17 @@ i386MultiByteOpcodes = [
     ('XGETBV', '0f01d04141', 0x40, 'xgetbv ', 'xgetbv '),
     ('XSETBV', '0f01d14141', 0x40, 'xsetbv ', 'xsetbv '),
     ('XTEST', '0f01d64141', 0x40, 'xtest ', 'xtest '),
+    ('MOVUPD', '660f10cc', 0x40, 'movupd xmm1,xmm4', 'movupd xmm1,xmm4'),
+    ('MOVUPD', '660f1018', 0x40, 'movupd xmm3,[eax]', 'movupd xmm3,[eax]'),
+    ('UNPCKLPD', '660F14A241414100', 0x40, 'unpcklpd xmm4,[edx+4276545]', 'unpcklpd xmm4,[edx+4276545]'),
+    ('MOVHPD', '660f16cb', 0x40, 'movhpd xmm1,xmm3', 'movhpd xmm1,xmm3'),
+    ('MOVMSKPS', '0F50D6', 0x40, 'movmskps edx,xmm6', 'movmskps edx,xmm6'),
+    ('MOVMSKPD', '660F50D6', 0x40, 'movmskpd edx,xmm6', 'movmskpd edx,xmm6'),
+    ('SUBPD', '660F5C6C240E', 0x40, 'subpd xmm5,[esp+14]', 'subpd xmm5,[esp+14]'),
+    ('MAXPD', '660F5FAB0F270000', 0x40, 'maxpd xmm5,[ebx+9999]', 'maxpd xmm5, [ebx+9999]'),
+    ('XORPD', '660F57BD15CD5B07', 0x40, 'xorpd xmm7,[ebp+123456789]', 'xorpd xmm7,[ebp+123456789]'),
+    ('SQRTPD', '660f51ca', 0x40, 'sqrtpd xmm1,xmm2', 'sqrtpd xmm1,xmm2'),
+    ('PSHUFD', '660F70CD11', 0x40, 'pshufd xmm1,xmm5,17', 'pshufd xmm1,xmm5,17'),
 ]
 
 

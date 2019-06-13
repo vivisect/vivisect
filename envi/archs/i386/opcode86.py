@@ -561,269 +561,69 @@ tbl32_0F = [
 (0, 0, ARG_NONE, ARG_NONE, ARG_NONE, 0, 0, 0, 0, 0   ) 
 ]
 
-"""
-(optable, optype, operand 0, operand 1, operand 2, CPU required, "opcodename", op0Register, op1Register, op2Register)
-"""
-tbl32_660F = [
-(16, 0, ARG_NONE, ARG_NONE, ARG_NONE, cpu_80386, 0, 0, 0, 0),
-(17, 0, ARG_NONE, ARG_NONE, ARG_NONE, cpu_80386, 0, 0, 0, 0),
-( 0, INS_SYSTEM, ADDRMETH_G | OPTYPE_v | OP_W, ADDRMETH_E | OPTYPE_w | OP_R, ARG_NONE, cpu_80386, "lar", 0, 0, 0),
-( 0, INS_SYSTEM, ADDRMETH_G | OPTYPE_v | OP_W, ADDRMETH_E | OPTYPE_w | OP_R, ARG_NONE, cpu_80386, "lsl", 0, 0, 0),
-(0, 0, ARG_NONE, ARG_NONE, ARG_NONE, 0, 0, 0, 0, 0),
-(0, 0, ARG_NONE, ARG_NONE, ARG_NONE, 0, 0, 0, 0, 0),
-( 0, INS_SYSTEM, ARG_NONE, ARG_NONE, ARG_NONE, cpu_80386, "clts", 0, 0, 0),
-(0, 0, ARG_NONE, ARG_NONE, ARG_NONE, 0, 0, 0, 0, 0),
-(0, INS_SYSTEM, ARG_NONE, ARG_NONE, ARG_NONE, cpu_80486, "invd", 0, 0, 0),
-(0, INS_SYSTEM, ARG_NONE, ARG_NONE, ARG_NONE, cpu_80486, "wbinvd", 0, 0, 0),
-(0, 0, ARG_NONE, ARG_NONE, ARG_NONE, cpu_80386, 0, 0, 0, 0),
-(0, 0, ARG_NONE, ARG_NONE, ARG_NONE, cpu_80386, "ud2", 0, 0, 0),
-(0, 0, ARG_NONE, ARG_NONE, ARG_NONE, 0, 0, 0, 0, 0),
-( 0, INS_OTHER, ADDRMETH_E | OPTYPE_v, ARG_NONE, ARG_NONE, cpu_80386, "prefetchw", 0, 0, 0),
-(0, 0, ARG_NONE, ARG_NONE, ARG_NONE, 0, 0, 0, 0, 0),
-(0, 0, ARG_NONE, ARG_NONE, ARG_NONE, 0, 0, 0, 0, 0),
-    ( 0, INS_MOV, ADDRMETH_V | OPTYPE_pd | OP_W, ADDRMETH_W | OPTYPE_pd | OP_R, ARG_NONE, cpu_PENTIUM2, "movupd", 0, 0, 0),  #
-( 0, INS_MOV, ADDRMETH_W | OPTYPE_pd | OP_W, ADDRMETH_V | OPTYPE_pd | OP_R, ARG_NONE, cpu_PENTIUM2, "movupd", 0, 0, 0),  #
-( 0, INS_MOV, ADDRMETH_V | OPTYPE_q | OP_W, ADDRMETH_M | OPTYPE_q | OP_R, ARG_NONE, cpu_PENTIUM2, "movlpd", 0, 0, 0),  #
-( 0, INS_MOV, ADDRMETH_M | OPTYPE_q | OP_W, ADDRMETH_V | OPTYPE_q | OP_R, ARG_NONE, cpu_PENTIUM2, "movlpd", 0, 0, 0),  #
-( 0, INS_OTHER, ADDRMETH_V | OPTYPE_pd | OP_W, ADDRMETH_W | OPTYPE_q | OP_R, ARG_NONE, cpu_PENTIUM2, "unpcklpd", 0, 0, 0),  #
-( 0, INS_OTHER, ADDRMETH_V | OPTYPE_pd | OP_W, ADDRMETH_W | OPTYPE_q | OP_R, ARG_NONE, cpu_PENTIUM2, "unpckhpd", 0, 0, 0),  #
-( 0, INS_OTHER, ADDRMETH_V | OPTYPE_q | OP_W, ADDRMETH_M | OPTYPE_q | OP_R, ARG_NONE, cpu_PENTIUM2, "movhpd", 0, 0, 0),  #
-( 0, INS_OTHER, ADDRMETH_M | OPTYPE_q | OP_W, ADDRMETH_V | OPTYPE_q | OP_R, ARG_NONE, cpu_PENTIUM2, "movhpd", 0, 0, 0),  #
-(18, 0, ARG_NONE, ARG_NONE, ARG_NONE, cpu_80386, 0, 0, 0, 0),  
-(0, 0, ARG_NONE, ARG_NONE, ARG_NONE, 0, 0, 0, 0, 0),  
-(0, 0, ARG_NONE, ARG_NONE, ARG_NONE, 0, 0, 0, 0, 0),  
-(0, 0, ARG_NONE, ARG_NONE, ARG_NONE, 0, 0, 0, 0, 0),  
-(0, 0, ARG_NONE, ARG_NONE, ARG_NONE, 0, 0, 0, 0, 0),  
-(0, 0, ARG_NONE, ARG_NONE, ARG_NONE, 0, 0, 0, 0, 0),  
-(0, 0, ARG_NONE, ARG_NONE, ARG_NONE, 0, 0, 0, 0, 0),  
-( 0, INS_OTHER, ADDRMETH_E | OPTYPE_v, ARG_NONE, ARG_NONE, cpu_80386, "nop", 0, 0, 0),
-    ( 0, INS_MOV, ADDRMETH_R | OPTYPE_d | OP_W, ADDRMETH_C | OPTYPE_d | OP_R, ARG_NONE, cpu_80386, "mov", 0, 0, 0),
-( 0, INS_MOV, ADDRMETH_R | OPTYPE_d | OP_W, ADDRMETH_D | OPTYPE_d | OP_R, ARG_NONE, cpu_80386, "mov", 0, 0, 0),
-( 0, INS_MOV, ADDRMETH_C | OPTYPE_d | OP_W, ADDRMETH_R | OPTYPE_d | OP_R, ARG_NONE, cpu_80386, "mov", 0, 0, 0),
-( 0, INS_MOV, ADDRMETH_D | OPTYPE_d | OP_W, ADDRMETH_R | OPTYPE_d | OP_R, ARG_NONE, cpu_80386, "mov", 0, 0, 0),
-(0, 0, ARG_NONE, ARG_NONE, ARG_NONE, 0, 0, 0, 0, 0),  
-(0, 0, ARG_NONE, ARG_NONE, ARG_NONE, 0, 0, 0, 0, 0),  
-(0, 0, ARG_NONE, ARG_NONE, ARG_NONE, 0, 0, 0, 0, 0),  
-(0, 0, ARG_NONE, ARG_NONE, ARG_NONE, 0, 0, 0, 0, 0),  
-( 0, INS_MOV, ADDRMETH_V | OPTYPE_pd | OP_W, ADDRMETH_W | OPTYPE_pd | OP_R, ARG_NONE, cpu_PENTIUM2, "movapd", 0, 0, 0),  #
-( 0, INS_MOV, ADDRMETH_W | OPTYPE_pd | OP_W, ADDRMETH_V | OPTYPE_pd | OP_R, ARG_NONE, cpu_PENTIUM2, "movapd", 0, 0, 0),  #
-( 0, INS_OTHER, ADDRMETH_V | OPTYPE_pd | OP_R, ADDRMETH_Q | OPTYPE_q | OP_R, ARG_NONE, cpu_PENTIUM2, "cvtpi2pd", 0, 0, 0),  #
-( 0, INS_MOV, ADDRMETH_M | OPTYPE_pd | OP_W, ADDRMETH_V | OPTYPE_pd | OP_R, ARG_NONE, cpu_PENTIUM2, "movntpd", 0, 0, 0),  #
-( 0, INS_OTHER, ADDRMETH_Q | OPTYPE_dq | OP_R, ADDRMETH_W | OPTYPE_pd | OP_R, ARG_NONE, cpu_PENTIUM2, "cvttpd2pi", 0, 0, 0),  #
-( 0, INS_OTHER, ADDRMETH_Q | OPTYPE_dq | OP_R, ADDRMETH_W | OPTYPE_pd | OP_R, ARG_NONE, cpu_PENTIUM2, "cvtpd2pi", 0, 0, 0),  #
-( 0, INS_OTHER, ADDRMETH_V | OPTYPE_sd | OP_W, ADDRMETH_W | OPTYPE_sd | OP_R, ARG_NONE, cpu_PENTIUM2, "ucomisd", 0, 0, 0),  #
-( 0, INS_OTHER, ADDRMETH_V | OPTYPE_pd | OP_W, ADDRMETH_W | OPTYPE_sd | OP_W, ARG_NONE, cpu_PENTIUM2, "comisd", 0, 0, 0),  #
-    (0, INS_SYSTEM, ARG_NONE, ARG_NONE, ARG_NONE, cpu_PENTIUM, "wrmsr", 0, 0, 0),
-(0, INS_SYSTEM, ARG_NONE, ARG_NONE, ARG_NONE, cpu_PENTIUM, "rdtsc", 0, 0, 0),
-(0, INS_SYSTEM, ARG_NONE, ARG_NONE, ARG_NONE, cpu_PENTIUM, "rdmsr", 0, 0, 0),
-(0, INS_OTHER, ARG_NONE, ARG_NONE, ARG_NONE, cpu_PENTPRO, "rdpmc", 0, 0, 0),
-(0, INS_SYSTEM, ARG_NONE, ARG_NONE, ARG_NONE, cpu_PENTIUM2, "sysenter", 0, 0, 0),
-(0, INS_SYSTEM, ARG_NONE, ARG_NONE, ARG_NONE, cpu_PENTIUM2, "sysexit", 0, 0, 0),
-(0, 0, ARG_NONE, ARG_NONE, ARG_NONE, 0, 0, 0, 0, 0),
-(0, 0, ARG_NONE, ARG_NONE, ARG_NONE, 0, 0, 0, 0, 0),
-(56, 0, ARG_NONE, ARG_NONE, ARG_NONE, 0, 0, 0, 0, 0),  # 3-byte escape 38
-(0, 0, ARG_NONE, ARG_NONE, ARG_NONE, 0, 0, 0, 0, 0),
-(58, 0, ARG_NONE, ARG_NONE, ARG_NONE, 0, 0, 0, 0, 0),  # 3-byte escape 3a
-(0, 0, ARG_NONE, ARG_NONE, ARG_NONE, 0, 0, 0, 0, 0),
-(0, 0, ARG_NONE, ARG_NONE, ARG_NONE, 0, 0, 0, 0, 0),
-(0, 0, ARG_NONE, ARG_NONE, ARG_NONE, 0, 0, 0, 0, 0),
-(0, 0, ARG_NONE, ARG_NONE, ARG_NONE, 0, 0, 0, 0, 0),
-(0, 0, ARG_NONE, ARG_NONE, ARG_NONE, 0, 0, 0, 0, 0),
-    ( 0, INS_MOVCC, ADDRMETH_G | OPTYPE_v | OP_W, ADDRMETH_E | OPTYPE_v | OP_R, ARG_NONE, cpu_PENTPRO, "cmovo", 0, 0, 0),
-( 0, INS_MOVCC, ADDRMETH_G | OPTYPE_v | OP_W, ADDRMETH_E | OPTYPE_v | OP_R, ARG_NONE, cpu_PENTPRO, "cmovno", 0, 0, 0),
-( 0, INS_MOVCC, ADDRMETH_G | OPTYPE_v | OP_W, ADDRMETH_E | OPTYPE_v | OP_R, ARG_NONE, cpu_PENTPRO, "cmovc", 0, 0, 0),
-( 0, INS_MOVCC, ADDRMETH_G | OPTYPE_v | OP_W, ADDRMETH_E | OPTYPE_v | OP_R, ARG_NONE, cpu_PENTPRO, "cmovnc", 0, 0, 0),
-( 0, INS_MOVCC, ADDRMETH_G | OPTYPE_v | OP_W, ADDRMETH_E | OPTYPE_v | OP_R, ARG_NONE, cpu_PENTPRO, "cmovz", 0, 0, 0),
-( 0, INS_MOVCC, ADDRMETH_G | OPTYPE_v | OP_W, ADDRMETH_E | OPTYPE_v | OP_R, ARG_NONE, cpu_PENTPRO, "cmovnz", 0, 0, 0),
-( 0, INS_MOVCC, ADDRMETH_G | OPTYPE_v | OP_W, ADDRMETH_E | OPTYPE_v | OP_R, ARG_NONE, cpu_PENTPRO, "cmovbe", 0, 0, 0),
-( 0, INS_MOVCC, ADDRMETH_G | OPTYPE_v | OP_W, ADDRMETH_E | OPTYPE_v | OP_R, ARG_NONE, cpu_PENTPRO, "cmova", 0, 0, 0),
-( 0, INS_MOVCC, ADDRMETH_G | OPTYPE_v | OP_W, ADDRMETH_E | OPTYPE_v | OP_R, ARG_NONE, cpu_PENTPRO, "cmovs", 0, 0, 0),
-( 0, INS_MOVCC, ADDRMETH_G | OPTYPE_v | OP_W, ADDRMETH_E | OPTYPE_v | OP_R, ARG_NONE, cpu_PENTPRO, "cmovns", 0, 0, 0),
-( 0, INS_MOVCC, ADDRMETH_G | OPTYPE_v | OP_W, ADDRMETH_E | OPTYPE_v | OP_R, ARG_NONE, cpu_PENTPRO, "cmovpe", 0, 0, 0),
-( 0, INS_MOVCC, ADDRMETH_G | OPTYPE_v | OP_W, ADDRMETH_E | OPTYPE_v | OP_R, ARG_NONE, cpu_PENTPRO, "cmovpo", 0, 0, 0),
-( 0, INS_MOVCC, ADDRMETH_G | OPTYPE_v | OP_W, ADDRMETH_E | OPTYPE_v | OP_R, ARG_NONE, cpu_PENTPRO, "cmovl", 0, 0, 0),
-( 0, INS_MOVCC, ADDRMETH_G | OPTYPE_v | OP_W, ADDRMETH_E | OPTYPE_v | OP_R, ARG_NONE, cpu_PENTPRO, "cmovge", 0, 0, 0),
-( 0, INS_MOVCC, ADDRMETH_G | OPTYPE_v | OP_W, ADDRMETH_E | OPTYPE_v | OP_R, ARG_NONE, cpu_PENTPRO, "cmovle", 0, 0, 0),
-( 0, INS_MOVCC, ADDRMETH_G | OPTYPE_v | OP_W, ADDRMETH_E | OPTYPE_v | OP_R, ARG_NONE, cpu_PENTPRO, "cmovg", 0, 0, 0),
-    ( 0, INS_MOV, ADDRMETH_G | OPTYPE_d | OP_W, ADDRMETH_U | OPTYPE_pd | OP_R, ARG_NONE, cpu_PENTIUM2, "movmskpd", 0, 0, 0),  #
-( 0, INS_ARITH, ADDRMETH_V | OPTYPE_pd | OP_W, ADDRMETH_W | OPTYPE_pd | OP_R, ARG_NONE, cpu_PENTIUM2, "sqrtpd", 0, 0, 0),  #
-( 0, INS_ARITH, ADDRMETH_V | OPTYPE_pd | OP_W, ADDRMETH_W | OPTYPE_pd | OP_R, ARG_NONE, cpu_PENTIUM2, "rsqrtpd", 0, 0, 0),  #
-( 0, INS_OTHER, ADDRMETH_V | OPTYPE_pd | OP_W, ADDRMETH_W | OPTYPE_pd | OP_R, ARG_NONE, cpu_PENTIUM2, "rcppd", 0, 0, 0),  #
-( 0, INS_AND, ADDRMETH_V | OPTYPE_pd | OP_W, ADDRMETH_W | OPTYPE_pd | OP_R, ARG_NONE, cpu_PENTIUM2, "andpd", 0, 0, 0),  #
-( 0, INS_AND, ADDRMETH_V | OPTYPE_pd | OP_W, ADDRMETH_W | OPTYPE_pd | OP_R, ARG_NONE, cpu_PENTIUM2, "andnpd", 0, 0, 0),  #
-( 0, INS_OR, ADDRMETH_V | OPTYPE_pd | OP_W, ADDRMETH_W | OPTYPE_pd | OP_R, ARG_NONE, cpu_PENTIUM2, "orpd", 0, 0, 0),  #
-( 0, INS_XOR, ADDRMETH_V | OPTYPE_pd | OP_W, ADDRMETH_W | OPTYPE_pd | OP_R, ARG_NONE, cpu_PENTIUM2, "xorpd", 0, 0, 0),  #
-( 0, INS_ADD, ADDRMETH_V | OPTYPE_pd | OP_W, ADDRMETH_W | OPTYPE_pd | OP_R, ARG_NONE, cpu_PENTIUM2, "addpd", 0, 0, 0),  #
-( 0, INS_MUL, ADDRMETH_V | OPTYPE_pd | OP_R, ADDRMETH_W | OPTYPE_pd | OP_R, ARG_NONE, cpu_PENTIUM2, "mulpd", 0, 0, 0),  #
-( 0, INS_OTHER, ADDRMETH_V | OPTYPE_pd | OP_R, ADDRMETH_Q | OPTYPE_q, ARG_NONE, 0, "cvtpd2pd", 0, 0, 0),  #
-( 0, INS_MOV, ADDRMETH_M | OPTYPE_pd, ADDRMETH_V | OPTYPE_pd, ARG_NONE, 0, "movntpd", 0, 0, 0),  #
-( 0, INS_SUB, ADDRMETH_V | OPTYPE_pd | OP_W, ADDRMETH_W | OPTYPE_pd | OP_R, ARG_NONE, cpu_PENTIUM2, "subpd", 0, 0, 0),  #
-( 0, INS_ARITH, ADDRMETH_V | OPTYPE_pd | OP_W, ADDRMETH_W | OPTYPE_pd | OP_R, ARG_NONE, cpu_PENTIUM2, "minpd", 0, 0, 0),  #
-( 0, INS_DIV, ADDRMETH_V | OPTYPE_pd | OP_W, ADDRMETH_W | OPTYPE_pd | OP_R, ARG_NONE, cpu_PENTIUM2, "divpd", 0, 0, 0),  #
-( 0, INS_ARITH, ADDRMETH_V | OPTYPE_pd | OP_W, ADDRMETH_W | OPTYPE_pd | OP_R, ARG_NONE, cpu_PENTIUM2, "maxpd", 0, 0, 0),  #
-    ( 0, INS_OTHER, ADDRMETH_V | OPTYPE_dq | OP_W, ADDRMETH_W | OPTYPE_dq | OP_R, ARG_NONE, cpu_PENTMMX, "punpcklbw", 0, 0, 0),  #
-( 0, INS_OTHER, ADDRMETH_V | OPTYPE_dq | OP_W, ADDRMETH_Q | OPTYPE_dq | OP_R, ARG_NONE, cpu_PENTMMX, "punpcklwd", 0, 0, 0),  #
-( 0, INS_OTHER, ADDRMETH_V | OPTYPE_dq | OP_W, ADDRMETH_Q | OPTYPE_dq | OP_R, ARG_NONE, cpu_PENTMMX, "punpckldq", 0, 0, 0),  #
-( 0, INS_OTHER, ADDRMETH_V | OPTYPE_dq | OP_W, ADDRMETH_Q | OPTYPE_dq | OP_R, ARG_NONE, cpu_PENTMMX, "packsswb", 0, 0, 0),  #
-( 0, INS_OTHER, ADDRMETH_V | OPTYPE_dq | OP_W, ADDRMETH_Q | OPTYPE_dq | OP_R, ARG_NONE, cpu_PENTMMX, "pcmpgtb", 0, 0, 0),  #
-( 0, INS_OTHER, ADDRMETH_V | OPTYPE_dq | OP_W, ADDRMETH_Q | OPTYPE_dq | OP_R, ARG_NONE, cpu_PENTMMX, "pcmpgtw", 0, 0, 0),  #
-( 0, INS_OTHER, ADDRMETH_V | OPTYPE_dq | OP_W, ADDRMETH_Q | OPTYPE_dq | OP_R, ARG_NONE, cpu_PENTMMX, "pcmpgtd", 0, 0, 0),  #
-( 0, INS_OTHER, ADDRMETH_V | OPTYPE_dq | OP_W, ADDRMETH_Q | OPTYPE_dq | OP_R, ARG_NONE, cpu_PENTMMX, "packuswb", 0, 0, 0),  #
-( 0, INS_OTHER, ADDRMETH_P | OPTYPE_dq | OP_W, ADDRMETH_Q | OPTYPE_dq | OP_R, ARG_NONE, cpu_PENTMMX, "punpckhbw", 0, 0, 0),  #
-( 0, INS_OTHER, ADDRMETH_P | OPTYPE_dq | OP_W, ADDRMETH_Q | OPTYPE_dq | OP_R, ARG_NONE, cpu_PENTMMX, "punpckhwd", 0, 0, 0),  #
-( 0, INS_OTHER, ADDRMETH_P | OPTYPE_dq | OP_W, ADDRMETH_Q | OPTYPE_dq | OP_R, ARG_NONE, cpu_PENTMMX, "punpckhdq", 0, 0, 0),  #
-( 0, INS_OTHER, ADDRMETH_P | OPTYPE_dq | OP_W, ADDRMETH_Q | OPTYPE_dq | OP_R, ARG_NONE, cpu_PENTMMX, "packssdw", 0, 0, 0),  #
-( 0, INS_OTHER, ADDRMETH_V | OPTYPE_dq | OP_W, ADDRMETH_W | OPTYPE_dq | OP_R, ARG_NONE, cpu_PENTMMX, "punpcklqdq", 0, 0, 0),  #
-( 0, INS_OTHER, ADDRMETH_V | OPTYPE_dq | OP_W, ADDRMETH_W | OPTYPE_dq | OP_R, ARG_NONE, cpu_PENTMMX, "punpckhqdq", 0, 0, 0),  #
-#VISI
-( 0, INS_MOV, ADDRMETH_V | OPTYPE_dq | OP_W, ADDRMETH_E | OPTYPE_dq | OP_R, ARG_NONE, cpu_PENTMMX, "movd", 0, 0, 0),  #
-( 0, INS_MOV, ADDRMETH_V | OPTYPE_dq | OP_W, ADDRMETH_E | OPTYPE_dq | OP_R, ARG_NONE, cpu_PENTMMX, "movq", 0, 0, 0),  # FIXME HORKED
-( 0, INS_OTHER, ADDRMETH_V | OPTYPE_dq | OP_W, ADDRMETH_W | OPTYPE_dq | OP_R, ADDRMETH_I |  OPTYPE_b | OP_R, cpu_PENTIUM2, "pshufd", 0, 0, 0),  #
-(59, 0, ARG_NONE, ARG_NONE, ARG_NONE, cpu_PENTMMX, 0, 0, 0, 0),  
-(60, 0, ARG_NONE, ARG_NONE, ARG_NONE, cpu_PENTMMX, 0, 0, 0, 0),  
-(54, 0, ARG_NONE, ARG_NONE, ARG_NONE, cpu_PENTMMX, 0, 0, 0, 0),  # 66 0f 73
-( 0, INS_OTHER, ADDRMETH_V | OPTYPE_dq | OP_W, ADDRMETH_W | OPTYPE_dq | OP_R, ARG_NONE, cpu_PENTMMX, "pcmpeqb", 0, 0, 0),  #
-( 0, INS_CMP, ADDRMETH_V | OPTYPE_dq | OP_W, ADDRMETH_W | OPTYPE_dq | OP_R, ARG_NONE, cpu_PENTMMX, "pcmpeqw", 0, 0, 0),  #
-( 0, INS_CMP, ADDRMETH_V | OPTYPE_dq | OP_W, ADDRMETH_W | OPTYPE_dq | OP_R, ARG_NONE, cpu_PENTMMX, "pcmpeqd", 0, 0, 0),  #
-(0, INS_OTHER, ARG_NONE, ARG_NONE, ARG_NONE, cpu_PENTMMX, "emms", 0, 0, 0),
-(0, INS_SYSTEM, ADDRMETH_E | OPTYPE_d | OP_W, ADDRMETH_G | OPTYPE_d | OP_R, ARG_NONE, cpu_PENTIUM2, "vmread", 0, 0, 0),
-(0, INS_SYSTEM, ADDRMETH_G | OPTYPE_d | OP_W, ADDRMETH_E | OPTYPE_d | OP_R, ARG_NONE, cpu_PENTIUM2, "vmwrite", 0, 0, 0),
-(0, 0, ARG_NONE, ARG_NONE, ARG_NONE, 0, 0, 0, 0, 0),  
-(0, 0, ARG_NONE, ARG_NONE, ARG_NONE, 0, 0, 0, 0, 0),  
-( 0, INS_MOV, ADDRMETH_V | OPTYPE_pd | OP_W, ADDRMETH_W | OPTYPE_pd | OP_R, ARG_NONE, cpu_PENTMMX, "haddpd", 0, 0, 0),  #
-( 0, INS_MOV, ADDRMETH_V | OPTYPE_pd | OP_W, ADDRMETH_W | OPTYPE_pd | OP_R, ARG_NONE, cpu_PENTMMX, "hsubpd", 0, 0, 0),  #
-( 0, INS_MOV, ADDRMETH_E | OPTYPE_d | OP_W, ADDRMETH_V | OPTYPE_dq | OP_R, ARG_NONE, cpu_PENTMMX, "movd", 0, 0, 0),  #
-( 0, INS_MOV, ADDRMETH_Q | OPTYPE_q | OP_W, ADDRMETH_P | OPTYPE_q | OP_R, ARG_NONE, cpu_PENTMMX, "movq", 0, 0, 0),
+tbl32_660F = [(0, 0, ARG_NONE, ARG_NONE, ARG_NONE, 0, 0, 0, 0, 0) for x in xrange(256)]
+tbl32_660F[0x10] = (0, INS_MOV, ADDRMETH_V | OPTYPE_pd | OP_W, ADDRMETH_W | OPTYPE_pd | OP_R, ARG_NONE, cpu_PENTIUM2, "movupd", 0, 0, 0)
+tbl32_660F[0x11] = (0, INS_MOV, ADDRMETH_W | OPTYPE_pd | OP_W, ADDRMETH_V | OPTYPE_pd | OP_R, ARG_NONE, cpu_PENTIUM2, "movupd", 0, 0, 0)
+tbl32_660F[0x12] = (0, INS_MOV, ADDRMETH_V | OPTYPE_q | OP_W, ADDRMETH_M | OPTYPE_q | OP_R, ARG_NONE, cpu_PENTIUM2, "movlpd", 0, 0, 0)
+tbl32_660F[0x13] = (0, INS_MOV, ADDRMETH_M | OPTYPE_q | OP_W, ADDRMETH_V | OPTYPE_q | OP_R, ARG_NONE, cpu_PENTIUM2, "movlpd", 0, 0, 0)
+tbl32_660F[0x14] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_pd | OP_W, ADDRMETH_W | OPTYPE_pd | OP_R, ARG_NONE, cpu_PENTIUM2,"unpcklpd", 0, 0, 0)
+tbl32_660F[0x15] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_pd | OP_W, ADDRMETH_W | OPTYPE_pd | OP_R, ARG_NONE, cpu_PENTIUM2,"unpckhpd", 0, 0, 0)
+tbl32_660F[0x16] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_pd | OP_W, ADDRMETH_M | OPTYPE_pd | OP_R, ARG_NONE, cpu_PENTIUM2, "movhpd", 0, 0, 0)
+tbl32_660F[0x17] = (0, INS_OTHER, ADDRMETH_M | OPTYPE_pd | OP_W, ADDRMETH_V | OPTYPE_pd | OP_R, ARG_NONE, cpu_PENTIUM2, "movhpd", 0, 0, 0)
+tbl32_660F[0x28] = (0, INS_MOV, ADDRMETH_V | OPTYPE_pd | OP_W, ADDRMETH_W | OPTYPE_pd | OP_R, ARG_NONE, cpu_PENTIUM2, "movapd", 0, 0, 0)
+tbl32_660F[0x29] = (0, INS_MOV, ADDRMETH_W | OPTYPE_pd | OP_W, ADDRMETH_V | OPTYPE_pd | OP_R, ARG_NONE, cpu_PENTIUM2, "movapd", 0, 0, 0)
+tbl32_660F[0x2A] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_pd | OP_W, ADDRMETH_Q | OPTYPE_pi | OP_R, ARG_NONE, cpu_PENTIUM2, "cvtpi2pd", 0, 0, 0)
+tbl32_660F[0x2B] = (0, INS_MOV, ADDRMETH_M | OPTYPE_pd | OP_W, ADDRMETH_V | OPTYPE_pd | OP_R, ARG_NONE, cpu_PENTIUM2, "movntpd", 0, 0, 0)
+tbl32_660F[0x2C] = (0, INS_OTHER, ADDRMETH_P | OPTYPE_pi | OP_W, ADDRMETH_W | OPTYPE_pd | OP_R, ARG_NONE, cpu_PENTIUM2, "cvttpd2pi", 0, 0, 0)
+tbl32_660F[0x2D] = (0, INS_OTHER, ADDRMETH_P | OPTYPE_dq | OP_W, ADDRMETH_W | OPTYPE_pd | OP_R, ARG_NONE, cpu_PENTIUM2, "cvtpd2pi", 0, 0, 0)
+tbl32_660F[0x2E] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_pd | OP_W, ADDRMETH_W | OPTYPE_pd | OP_R, ARG_NONE, cpu_PENTIUM2, "ucomisd", 0, 0, 0)
+tbl32_660F[0x2F] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_pd | OP_W, ADDRMETH_W | OPTYPE_pd | OP_R, ARG_NONE, cpu_PENTIUM2, "comisd", 0, 0, 0)
 
-( 0, INS_BRANCHCC, ADDRMETH_J | OPTYPE_z | OP_X, ARG_NONE, ARG_NONE, cpu_80386, "jo", 0, 0, 0),
-( 0, INS_BRANCHCC, ADDRMETH_J | OPTYPE_z | OP_X, ARG_NONE, ARG_NONE, cpu_80386, "jno", 0, 0, 0),
-( 0, INS_BRANCHCC, ADDRMETH_J | OPTYPE_z | OP_X, ARG_NONE, ARG_NONE, cpu_80386, "jc", 0, 0, 0),
-( 0, INS_BRANCHCC, ADDRMETH_J | OPTYPE_z | OP_X, ARG_NONE, ARG_NONE, cpu_80386, "jnc", 0, 0, 0),
-( 0, INS_BRANCHCC, ADDRMETH_J | OPTYPE_z | OP_X, ARG_NONE, ARG_NONE, cpu_80386, "jz", 0, 0, 0),
-( 0, INS_BRANCHCC, ADDRMETH_J | OPTYPE_z | OP_X, ARG_NONE, ARG_NONE, cpu_80386, "jnz", 0, 0, 0),
-( 0, INS_BRANCHCC, ADDRMETH_J | OPTYPE_z | OP_X, ARG_NONE, ARG_NONE, cpu_80386, "jbe", 0, 0, 0),
-( 0, INS_BRANCHCC, ADDRMETH_J | OPTYPE_z | OP_X, ARG_NONE, ARG_NONE, cpu_80386, "ja", 0, 0, 0),
-( 0, INS_BRANCHCC, ADDRMETH_J | OPTYPE_z | OP_X, ARG_NONE, ARG_NONE, cpu_80386, "js", 0, 0, 0),
-( 0, INS_BRANCHCC, ADDRMETH_J | OPTYPE_z | OP_X, ARG_NONE, ARG_NONE, cpu_80386, "jns", 0, 0, 0),
-( 0, INS_BRANCHCC, ADDRMETH_J | OPTYPE_z | OP_X, ARG_NONE, ARG_NONE, cpu_80386, "jpe", 0, 0, 0),
-( 0, INS_BRANCHCC, ADDRMETH_J | OPTYPE_z | OP_X, ARG_NONE, ARG_NONE, cpu_80386, "jpo", 0, 0, 0),
-( 0, INS_BRANCHCC, ADDRMETH_J | OPTYPE_z | OP_X, ARG_NONE, ARG_NONE, cpu_80386, "jl", 0, 0, 0),
-( 0, INS_BRANCHCC, ADDRMETH_J | OPTYPE_z | OP_X, ARG_NONE, ARG_NONE, cpu_80386, "jge", 0, 0, 0),
-( 0, INS_BRANCHCC, ADDRMETH_J | OPTYPE_z | OP_X, ARG_NONE, ARG_NONE, cpu_80386, "jle", 0, 0, 0),
-( 0, INS_BRANCHCC, ADDRMETH_J | OPTYPE_z | OP_X, ARG_NONE, ARG_NONE, cpu_80386, "jg", 0, 0, 0),
-    ( 0, INS_MOVCC, ADDRMETH_E | OPTYPE_b | OP_W, ARG_NONE, ARG_NONE, cpu_80386, "seto", 0, 0, 0),
-( 0, INS_MOVCC, ADDRMETH_E | OPTYPE_b | OP_W, ARG_NONE, ARG_NONE, cpu_80386, "setno", 0, 0, 0),
-( 0, INS_MOVCC, ADDRMETH_E | OPTYPE_b | OP_W, ARG_NONE, ARG_NONE, cpu_80386, "setc", 0, 0, 0),
-( 0, INS_MOVCC, ADDRMETH_E | OPTYPE_b | OP_W, ARG_NONE, ARG_NONE, cpu_80386, "setnc", 0, 0, 0),
-( 0, INS_MOVCC, ADDRMETH_E | OPTYPE_b | OP_W, ARG_NONE, ARG_NONE, cpu_80386, "setz", 0, 0, 0),
-( 0, INS_MOVCC, ADDRMETH_E | OPTYPE_b | OP_W, ARG_NONE, ARG_NONE, cpu_80386, "setnz", 0, 0, 0),
-( 0, INS_MOVCC, ADDRMETH_E | OPTYPE_b | OP_W, ARG_NONE, ARG_NONE, cpu_80386, "setbe", 0, 0, 0),
-( 0, INS_MOVCC, ADDRMETH_E | OPTYPE_b | OP_W, ARG_NONE, ARG_NONE, cpu_80386, "seta", 0, 0, 0),
-( 0, INS_MOVCC, ADDRMETH_E | OPTYPE_b | OP_W, ARG_NONE, ARG_NONE, cpu_80386, "sets", 0, 0, 0),
-( 0, INS_MOVCC, ADDRMETH_E | OPTYPE_b | OP_W, ARG_NONE, ARG_NONE, cpu_80386, "setns", 0, 0, 0),
-( 0, INS_MOVCC, ADDRMETH_E | OPTYPE_b | OP_W, ARG_NONE, ARG_NONE, cpu_80386, "setpe", 0, 0, 0),
-( 0, INS_MOVCC, ADDRMETH_E | OPTYPE_b | OP_W, ARG_NONE, ARG_NONE, cpu_80386, "setpo", 0, 0, 0),
-( 0, INS_MOVCC, ADDRMETH_E | OPTYPE_b | OP_W, ARG_NONE, ARG_NONE, cpu_80386, "setl", 0, 0, 0),
-( 0, INS_MOVCC, ADDRMETH_E | OPTYPE_b | OP_W, ARG_NONE, ARG_NONE, cpu_80386, "setge", 0, 0, 0),
-( 0, INS_MOVCC, ADDRMETH_E | OPTYPE_b | OP_W, ARG_NONE, ARG_NONE, cpu_80386, "setle", 0, 0, 0),
-( 0, INS_MOVCC, ADDRMETH_E | OPTYPE_b | OP_W, ARG_NONE, ARG_NONE, cpu_80386, "setg", 0, 0, 0),
-    (0, INS_PUSH, OP_REG | OP_R, ARG_NONE, ARG_NONE, cpu_80386, "push", e_i386_regs.REG_FS, 0, 0),
-(0, INS_POP, OP_REG | OP_W, ARG_NONE, ARG_NONE, cpu_80386, "pop", e_i386_regs.REG_FS, 0, 0),
-(0, INS_CPUID, ARG_NONE, ARG_NONE, ARG_NONE, cpu_80486, "cpuid", 0, 0, 0),
-( 0, INS_BITTEST, ADDRMETH_E | OPTYPE_v | OP_R, ADDRMETH_G | OPTYPE_v | OP_R, ARG_NONE, cpu_80386, "bt", 0, 0, 0),
-( 0, INS_SHL, ADDRMETH_E | OPTYPE_v | OP_W, ADDRMETH_G | OPTYPE_v | OP_R, ADDRMETH_I | OPTYPE_b | OP_R, cpu_80386, "shld", 0, 0, 0),
-( 0, INS_SHL, ADDRMETH_E | OPTYPE_v | OP_W, ADDRMETH_G | OPTYPE_v | OP_R, OP_R | OP_REG, cpu_80386, "shld", 0, 0, e_i386_regs.REG_CL),
-(0, 0, ARG_NONE, ARG_NONE, ARG_NONE, 0, 0, 0, 0, 0),
-(0, 0, ARG_NONE, ARG_NONE, ARG_NONE, 0, 0, 0, 0, 0),
-(0, INS_PUSH, OP_REG | OP_R, ARG_NONE, ARG_NONE, cpu_80386, "push", e_i386_regs.REG_GS, 0, 0),
-(0, INS_POP, OP_REG | OP_W, ARG_NONE, ARG_NONE, cpu_80386, "pop", e_i386_regs.REG_GS, 0, 0),
-(0, INS_SYSTEM, ARG_NONE, ARG_NONE, ARG_NONE, cpu_80386, "rsm", 0, 0, 0),
-( 0, INS_BITTEST, ADDRMETH_E | OPTYPE_v | OP_R, ADDRMETH_G | OPTYPE_v | OP_R, ARG_NONE, cpu_80386, "bts", 0, 0, 0),
-( 0, INS_SHR, ADDRMETH_E | OPTYPE_v | OP_W, ADDRMETH_G | OPTYPE_v | OP_R, ADDRMETH_I | OPTYPE_b | OP_R, cpu_80386, "shrd", 0, 0, 0),
-( 0, INS_SHR, ADDRMETH_E | OPTYPE_v | OP_W, ADDRMETH_G | OPTYPE_v | OP_R, OP_R | OP_REG, cpu_80386, "shrd", 0, 0, e_i386_regs.REG_CL),
-(22, 0, ARG_NONE, ARG_NONE, ARG_NONE, cpu_PENTIUM2, 0, 0, 0, 0),
-( 0, INS_MUL, ADDRMETH_G | OPTYPE_v | OP_R, ADDRMETH_E | OPTYPE_v | OP_R, ARG_NONE, cpu_80386, "imul", 0, 0, 0),
-    ( 0, INS_XCHGCC, ADDRMETH_E | OPTYPE_b | OP_W, ADDRMETH_G | OPTYPE_b | OP_W, ARG_NONE, cpu_80486, "cmpxchg", 0, 0, 0),
-( 0, INS_XCHGCC, ADDRMETH_E | OPTYPE_v | OP_W, ADDRMETH_G | OPTYPE_v | OP_W, ARG_NONE, cpu_80486, "cmpxchg", 0, 0, 0),
-( 0, INS_MOV, ADDRMETH_G | OPTYPE_v | OP_W, ADDRMETH_M | OPTYPE_p | OP_R, ARG_NONE, cpu_80386, "lss", 0, 0, 0),
-( 0, INS_BITTEST, ADDRMETH_E | OPTYPE_v | OP_R, ADDRMETH_G | OPTYPE_v | OP_R, ARG_NONE, cpu_80386, "btr", 0, 0, 0),
-( 0, INS_MOV, ADDRMETH_G | OPTYPE_v | OP_W, ADDRMETH_M | OPTYPE_p| OP_R, ARG_NONE, cpu_80386, "lfs", 0, 0, 0),
-( 0, INS_MOV, ADDRMETH_G | OPTYPE_v | OP_W, ADDRMETH_M | OPTYPE_p | OP_R, ARG_NONE, cpu_80386, "lgs", 0, 0, 0),
-( 0, INS_MOV, ADDRMETH_G | OPTYPE_v | OP_W, ADDRMETH_E | OPTYPE_b | OP_R, ARG_NONE, cpu_80386, "movzx", 0, 0, 0),
-( 0, INS_MOV, ADDRMETH_G | OPTYPE_v | OP_W, ADDRMETH_E | OPTYPE_w | OP_R, ARG_NONE, cpu_80386, "movzx", 0, 0, 0),
-(0, 0, ARG_NONE, ARG_NONE, ARG_NONE, 0, 0, 0, 0, 0),
-(0, 0, ARG_NONE, ARG_NONE, ARG_NONE, cpu_80386, "ud1", 0, 0, 0),  #### GROUP 10?
-(23, 0, ARG_NONE, ARG_NONE, ARG_NONE, cpu_80386, 0, 0, 0, 0),
-( 0, INS_BITTEST, ADDRMETH_E | OPTYPE_v | OP_R, ADDRMETH_G | OPTYPE_v | OP_R, ARG_NONE, cpu_80386, "btc", 0, 0, 0),
-( 0, INS_BITTEST, ADDRMETH_G | OPTYPE_v | OP_R | OP_W, ADDRMETH_E | OPTYPE_v | OP_R, ARG_NONE, cpu_80386, "bsf", 0, 0, 0),
-( 0, INS_BITTEST, ADDRMETH_G | OPTYPE_v | OP_R | OP_W, ADDRMETH_E | OPTYPE_v | OP_R, ARG_NONE, cpu_80386, "bsr", 0, 0, 0),
-( 0, INS_MOV, ADDRMETH_G | OPTYPE_v | OP_W, ADDRMETH_E | OPTYPE_b | OP_R, ARG_NONE, cpu_80386, "movsx", 0, 0, 0),
-( 0, INS_MOV, ADDRMETH_G | OPTYPE_v | OP_W, ADDRMETH_E | OPTYPE_w | OP_R, ARG_NONE, cpu_80386, "movsx", 0, 0, 0),
-    ( 0, INS_ADD, ADDRMETH_E | OPTYPE_b | OP_W, ADDRMETH_G | OPTYPE_b | OP_W, ARG_NONE, cpu_80486, "xadd", 0, 0, 0),
-( 0, INS_ADD, ADDRMETH_E | OPTYPE_v | OP_W, ADDRMETH_G | OPTYPE_v, ARG_NONE, cpu_80486, "xadd", 0, 0, 0),
-( 0, INS_CMP, ADDRMETH_V | OPTYPE_pd| OP_W, ADDRMETH_W | OPTYPE_pd| OP_W, ADDRMETH_I | OPTYPE_b | OP_R, cpu_PENTIUM2, "cmppd", 0, 0, 0),  #
-( 0, INS_MOV, ADDRMETH_M | OPTYPE_q | OP_W, ADDRMETH_G | OPTYPE_q |OP_R, ARG_NONE, cpu_PENTIUM2, "movnti", 0, 0, 0),
-( 0, INS_OTHER, ADDRMETH_V | OPTYPE_dq | OP_W, ADDRMETH_E | OPTYPE_w | OP_R, ADDRMETH_I | OPTYPE_b | OP_R, cpu_PENTIUM2, "pinsrw", 0, 0, 0),  #
-( 0, INS_OTHER, ADDRMETH_G | OPTYPE_d | OP_W, ADDRMETH_U | OPTYPE_dq | OP_R, ADDRMETH_I | OPTYPE_b | OP_R, cpu_PENTIUM2, "pextrw", 0, 0, 0),  #
-( 0, INS_OTHER, ADDRMETH_V | OPTYPE_pd | OP_W, ADDRMETH_W | OPTYPE_pd | OP_R, ADDRMETH_I | OPTYPE_b | OP_R, cpu_PENTIUM2, "shufps", 0, 0, 0),  #
-(47, 0, ARG_NONE, ARG_NONE, ARG_NONE, cpu_PENTMMX, 0, 0, 0, 0),  # 660FC7 table #
-( 0, INS_XCHG, OP_REG | OP_W, ARG_NONE, ARG_NONE, cpu_80486, "bswap", e_i386_regs.REG_EAX, 0, 0),
-( 0, INS_XCHG, OP_REG | OP_W, ARG_NONE, ARG_NONE, cpu_80486, "bswap", e_i386_regs.REG_ECX, 0, 0),
-( 0, INS_XCHG, OP_REG | OP_W, ARG_NONE, ARG_NONE, cpu_80486, "bswap", e_i386_regs.REG_EDX, 0, 0),
-( 0, INS_XCHG, OP_REG | OP_W, ARG_NONE, ARG_NONE, cpu_80486, "bswap", e_i386_regs.REG_EBX, 0, 0),
-( 0, INS_XCHG, OP_REG | OP_W, ARG_NONE, ARG_NONE, cpu_80486, "bswap", e_i386_regs.REG_ESP, 0, 0),
-( 0, INS_XCHG, OP_REG | OP_W, ARG_NONE, ARG_NONE, cpu_80486, "bswap", e_i386_regs.REG_EBP, 0, 0),
-( 0, INS_XCHG, OP_REG | OP_W, ARG_NONE, ARG_NONE, cpu_80486, "bswap", e_i386_regs.REG_ESI, 0, 0),
-( 0, INS_XCHG, OP_REG | OP_W, ARG_NONE, ARG_NONE, cpu_80486, "bswap", e_i386_regs.REG_EDI, 0, 0),
-    ( 0, INS_ADD, ADDRMETH_V | OPTYPE_pd | OP_W, ADDRMETH_W | OPTYPE_pd | OP_R, ARG_NONE, cpu_PENTMMX, "addsubpd", 0, 0, 0),  #
-( 0, INS_OTHER, ADDRMETH_V | OPTYPE_dq | OP_W, ADDRMETH_W | OPTYPE_dq | OP_R, ARG_NONE, cpu_PENTMMX, "psrlw", 0, 0, 0),  #
-( 0, INS_OTHER, ADDRMETH_V | OPTYPE_dq | OP_W, ADDRMETH_W | OPTYPE_dq | OP_R, ARG_NONE, cpu_PENTMMX, "psrld", 0, 0, 0),  #
-( 0, INS_OTHER, ADDRMETH_V | OPTYPE_dq | OP_W, ADDRMETH_W | OPTYPE_dq | OP_R, ARG_NONE, cpu_PENTMMX, "psrlq", 0, 0, 0),  #
-( 0, INS_OTHER, ADDRMETH_V | OPTYPE_dq | OP_W, ADDRMETH_W | OPTYPE_dq | OP_R, ARG_NONE, cpu_PENTMMX, "paddq", 0, 0, 0),  #
-( 0, INS_OTHER, ADDRMETH_V | OPTYPE_dq | OP_W, ADDRMETH_W | OPTYPE_dq | OP_R, ARG_NONE, cpu_PENTMMX, "pmullw", 0, 0, 0),  #
-( 0, INS_OTHER, ADDRMETH_W | OPTYPE_q | OP_W, ADDRMETH_V | OPTYPE_q | OP_R, ARG_NONE, cpu_PENTMMX, "movq", 0, 0, 0),  #
-( 0, INS_OTHER, ADDRMETH_G | OPTYPE_d | OP_W, ADDRMETH_U | OPTYPE_dq | OP_R, ARG_NONE, cpu_PENTIUM2, "pmovmskb", 0, 0, 0), #
-( 0, INS_OTHER, ADDRMETH_V | OPTYPE_dq | OP_W, ADDRMETH_W | OPTYPE_dq | OP_R, ARG_NONE, cpu_PENTMMX, "psubusb", 0, 0, 0),  #
-( 0, INS_OTHER, ADDRMETH_V | OPTYPE_dq | OP_W, ADDRMETH_W | OPTYPE_dq | OP_R, ARG_NONE, cpu_PENTMMX, "psubusw", 0, 0, 0),  #
-( 0, INS_OTHER, ADDRMETH_V | OPTYPE_dq | OP_W, ADDRMETH_W | OPTYPE_dq | OP_R, ARG_NONE, cpu_PENTIUM2, "pminub", 0, 0, 0),  #
-( 0, INS_AND, ADDRMETH_V | OPTYPE_dq | OP_W, ADDRMETH_W | OPTYPE_dq | OP_R, ARG_NONE, cpu_PENTMMX, "pand", 0, 0, 0),  #
-( 0, INS_ADD, ADDRMETH_V | OPTYPE_dq | OP_W, ADDRMETH_W | OPTYPE_dq | OP_R, ARG_NONE, cpu_PENTMMX, "paddusb", 0, 0, 0),  #
-( 0, INS_ADD, ADDRMETH_V | OPTYPE_dq | OP_W, ADDRMETH_W | OPTYPE_dq | OP_R, ARG_NONE, cpu_PENTMMX, "paddusw", 0, 0, 0),  #
-( 0, INS_ARITH, ADDRMETH_V | OPTYPE_dq | OP_W, ADDRMETH_W | OPTYPE_dq | OP_R, ARG_NONE, cpu_PENTIUM2, "pmaxub", 0, 0, 0),  #
-( 0, INS_AND, ADDRMETH_V | OPTYPE_dq | OP_W, ADDRMETH_W | OPTYPE_dq | OP_R, ARG_NONE, cpu_PENTMMX, "pandn", 0, 0, 0),  #
-    ( 0, INS_OTHER, ADDRMETH_V | OPTYPE_dq | OP_W, ADDRMETH_W | OPTYPE_dq | OP_R, ARG_NONE, cpu_PENTIUM2, "pavgb", 0, 0, 0),  #
-( 0, INS_OTHER, ADDRMETH_V | OPTYPE_dq | OP_W, ADDRMETH_W | OPTYPE_dq | OP_R, ARG_NONE, cpu_PENTMMX, "psraw", 0, 0, 0),  #
-( 0, INS_OTHER, ADDRMETH_V | OPTYPE_dq | OP_W, ADDRMETH_W | OPTYPE_dq | OP_R, ARG_NONE, cpu_PENTMMX, "psrad", 0, 0, 0),  #
-( 0, INS_OTHER, ADDRMETH_V | OPTYPE_dq | OP_W, ADDRMETH_W | OPTYPE_dq | OP_R, ARG_NONE, cpu_PENTIUM2, "pavgw", 0, 0, 0),  #
-( 0, INS_MUL, ADDRMETH_V | OPTYPE_dq | OP_W, ADDRMETH_W | OPTYPE_dq | OP_R, ARG_NONE, cpu_PENTIUM2, "pmulhuw", 0, 0, 0),  #
-( 0, INS_MUL, ADDRMETH_V | OPTYPE_dq | OP_W, ADDRMETH_W | OPTYPE_dq | OP_R, ARG_NONE, cpu_PENTMMX, "pmulhw", 0, 0, 0),  #
-( 0, INS_MUL, ADDRMETH_V | OPTYPE_dq | OP_W, ADDRMETH_W | OPTYPE_pd | OP_R, ARG_NONE, cpu_PENTMMX, "cvttpd2dq", 0, 0, 0),  #
-( 0, INS_MOV, ADDRMETH_M | OPTYPE_dq | OP_W, ADDRMETH_V | OPTYPE_dq | OP_R, ARG_NONE, cpu_PENTIUM2, "movntdq", 0, 0, 0),  #
-( 0, INS_SUB, ADDRMETH_V | OPTYPE_dq | OP_W, ADDRMETH_W | OPTYPE_dq | OP_R, ARG_NONE, cpu_PENTMMX, "psubsb", 0, 0, 0),  #
-( 0, INS_SUB, ADDRMETH_V | OPTYPE_dq | OP_W, ADDRMETH_W | OPTYPE_dq | OP_R, ARG_NONE, cpu_PENTMMX, "psubsw", 0, 0, 0),  #
-( 0, INS_ARITH, ADDRMETH_V | OPTYPE_dq | OP_W, ADDRMETH_W | OPTYPE_dq | OP_R, ARG_NONE, cpu_PENTIUM2, "pminsw", 0, 0, 0),  #
-( 0, INS_OR, ADDRMETH_V | OPTYPE_dq | OP_W, ADDRMETH_W | OPTYPE_dq | OP_R, ARG_NONE, cpu_PENTMMX, "por", 0, 0, 0),  #
-( 0, INS_ADD, ADDRMETH_V | OPTYPE_dq | OP_W, ADDRMETH_W | OPTYPE_dq | OP_R, ARG_NONE, cpu_PENTMMX, "paddsb", 0, 0, 0),  #
-( 0, INS_ADD, ADDRMETH_V | OPTYPE_dq | OP_W, ADDRMETH_W | OPTYPE_dq | OP_R, ARG_NONE, cpu_PENTMMX, "paddsw", 0, 0, 0),  #
-( 0, INS_ARITH, ADDRMETH_V | OPTYPE_dq | OP_W, ADDRMETH_W | OPTYPE_dq | OP_R, ARG_NONE, cpu_PENTIUM2, "pmaxsw", 0, 0, 0),  #
-( 0, INS_XOR, ADDRMETH_V | OPTYPE_dq | OP_W, ADDRMETH_W | OPTYPE_dq | OP_R, ARG_NONE, cpu_PENTMMX, "pxor", 0, 0, 0),  #
-    (0, 0, ARG_NONE, ARG_NONE, ARG_NONE, 0, 0, 0, 0, 0),  
-( 0, INS_OTHER, ADDRMETH_V | OPTYPE_dq | OP_W, ADDRMETH_W | OPTYPE_dq | OP_R, ARG_NONE, cpu_PENTMMX, "psllw", 0, 0, 0),  #
-( 0, INS_OTHER, ADDRMETH_V | OPTYPE_dq | OP_W, ADDRMETH_W | OPTYPE_dq | OP_R, ARG_NONE, cpu_PENTMMX, "pslld", 0, 0, 0),  #
-( 0, INS_OTHER, ADDRMETH_V | OPTYPE_dq | OP_W, ADDRMETH_W | OPTYPE_dq | OP_R, ARG_NONE, cpu_PENTMMX, "psllq", 0, 0, 0),  #
-( 0, INS_OTHER, ADDRMETH_V | OPTYPE_dq | OP_W, ADDRMETH_W | OPTYPE_dq | OP_R, ARG_NONE, cpu_PENTMMX, "pmuludq", 0, 0, 0),  #
-( 0, INS_ADD, ADDRMETH_V | OPTYPE_dq | OP_W, ADDRMETH_W | OPTYPE_dq | OP_R, ARG_NONE, cpu_PENTMMX, "pmaddwd", 0, 0, 0),  #
-( 0, INS_OTHER, ADDRMETH_V | OPTYPE_dq | OP_W, ADDRMETH_W | OPTYPE_dq | OP_R, ARG_NONE, cpu_PENTIUM2, "psadbw", 0, 0, 0),  #
-( 0, INS_MOV, ADDRMETH_V | OPTYPE_dq | OP_W, ADDRMETH_U | OPTYPE_dq | OP_R, ARG_NONE, cpu_PENTIUM2, "maskmovq", 0, 0, 0),  #
-( 0, INS_SUB, ADDRMETH_V | OPTYPE_dq | OP_W, ADDRMETH_W | OPTYPE_dq | OP_R, ARG_NONE, cpu_PENTMMX, "psubb", 0, 0, 0),  #
-( 0, INS_SUB, ADDRMETH_V | OPTYPE_dq | OP_W, ADDRMETH_W | OPTYPE_dq | OP_R, ARG_NONE, cpu_PENTMMX, "psubw", 0, 0, 0),  #
-( 0, INS_SUB, ADDRMETH_V | OPTYPE_dq | OP_W, ADDRMETH_W | OPTYPE_dq | OP_R, ARG_NONE, cpu_PENTMMX, "psubd", 0, 0, 0),  #
-( 0, INS_SUB, ADDRMETH_V | OPTYPE_dq | OP_W, ADDRMETH_W | OPTYPE_dq | OP_R, ARG_NONE, cpu_PENTMMX, "psubq", 0, 0, 0),  #
-( 0, INS_ADD, ADDRMETH_V | OPTYPE_dq | OP_W, ADDRMETH_W | OPTYPE_dq | OP_R, ARG_NONE, cpu_PENTMMX, "paddb", 0, 0, 0),  #
-( 0, INS_ADD, ADDRMETH_V | OPTYPE_dq | OP_W, ADDRMETH_W | OPTYPE_dq | OP_R, ARG_NONE, cpu_PENTMMX, "paddw", 0, 0, 0),  #
-( 0, INS_ADD, ADDRMETH_V | OPTYPE_dq | OP_W, ADDRMETH_W | OPTYPE_dq | OP_R, ARG_NONE, cpu_PENTMMX, "paddd", 0, 0, 0),  #
-(0, 0, ARG_NONE, ARG_NONE, ARG_NONE, 0, 0, 0, 0, 0   ) 
-]
+tbl32_660F[0x38] = (56, 0, ARG_NONE, ARG_NONE, ARG_NONE, 0, 0, 0, 0, 0)
+tbl32_660F[0x3a] = (58, 0, ARG_NONE, ARG_NONE, ARG_NONE, 0, 0, 0, 0, 0)
+
+tbl32_660F[0x50] = (0, INS_MOV, ADDRMETH_G | OPTYPE_b | OP_W, ADDRMETH_V | OPTYPE_b | OP_R, ARG_NONE, cpu_PENTIUM2, "movmskpd", 0, 0, 0)
+tbl32_660F[0x51] = (0, INS_ARITH, ADDRMETH_V | OPTYPE_pd | OP_W, ADDRMETH_W | OPTYPE_pd | OP_R, ARG_NONE, cpu_PENTIUM2, "sqrtpd", 0, 0, 0)
+tbl32_660F[0x54] = (0, INS_AND, ADDRMETH_V | OPTYPE_pd | OP_W, ADDRMETH_W | OPTYPE_pd | OP_R, ARG_NONE, cpu_PENTIUM2, "andpd", 0, 0, 0)
+tbl32_660F[0x55] = (0, INS_AND, ADDRMETH_V | OPTYPE_pd | OP_W, ADDRMETH_W | OPTYPE_pd | OP_R, ARG_NONE, cpu_PENTIUM2, "andnpd", 0, 0, 0)
+tbl32_660F[0x56] = (0, INS_AND, ADDRMETH_V | OPTYPE_pd | OP_W, ADDRMETH_W | OPTYPE_pd | OP_R, ARG_NONE, cpu_PENTIUM2, "orpd", 0, 0, 0)
+tbl32_660F[0x57] = (0, INS_AND, ADDRMETH_V | OPTYPE_pd | OP_W, ADDRMETH_W | OPTYPE_pd | OP_R, ARG_NONE, cpu_PENTIUM2, "xorpd", 0, 0, 0)
+tbl32_660F[0x58] = (0, INS_AND, ADDRMETH_V | OPTYPE_pd | OP_W, ADDRMETH_W | OPTYPE_pd | OP_R, ARG_NONE, cpu_PENTIUM2, "addpd", 0, 0, 0)
+tbl32_660F[0x59] = (0, INS_AND, ADDRMETH_V | OPTYPE_pd | OP_W, ADDRMETH_W | OPTYPE_pd | OP_R, ARG_NONE, cpu_PENTIUM2, "mulpd", 0, 0, 0)
+tbl32_660F[0x5a] = (0, INS_AND, ADDRMETH_V | OPTYPE_ps | OP_W, ADDRMETH_W | OPTYPE_pd | OP_R, ARG_NONE, cpu_PENTIUM2, "cvtpd2ps", 0, 0, 0)
+tbl32_660F[0x5b] = (0, INS_AND, ADDRMETH_V | OPTYPE_dq | OP_W, ADDRMETH_W | OPTYPE_ps | OP_R, ARG_NONE, cpu_PENTIUM2, "cvtps2dq", 0, 0, 0)
+tbl32_660F[0x5c] = (0, INS_AND, ADDRMETH_V | OPTYPE_pd | OP_W, ADDRMETH_W | OPTYPE_pd | OP_R, ARG_NONE, cpu_PENTIUM2, "subpd", 0, 0, 0)
+tbl32_660F[0x5d] = (0, INS_AND, ADDRMETH_V | OPTYPE_pd | OP_W, ADDRMETH_W | OPTYPE_pd | OP_R, ARG_NONE, cpu_PENTIUM2, "minpd", 0, 0, 0)
+tbl32_660F[0x5e] = (0, INS_AND, ADDRMETH_V | OPTYPE_pd | OP_W, ADDRMETH_W | OPTYPE_pd | OP_R, ARG_NONE, cpu_PENTIUM2, "divpd", 0, 0, 0)
+tbl32_660F[0x5f] = (0, INS_AND, ADDRMETH_V | OPTYPE_pd | OP_W, ADDRMETH_W | OPTYPE_pd | OP_R, ARG_NONE, cpu_PENTIUM2, "maxpd", 0, 0, 0)
+tbl32_660F[0x60] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_dq | OP_W, ADDRMETH_W | OPTYPE_dq | OP_R, ARG_NONE, cpu_PENTIUM2, "punpcklbw", 0, 0, 0)
+tbl32_660F[0x61] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_dq | OP_W, ADDRMETH_W | OPTYPE_dq | OP_R, ARG_NONE, cpu_PENTIUM2, "punpcklwd", 0, 0, 0)
+tbl32_660F[0x62] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_dq | OP_W, ADDRMETH_W | OPTYPE_dq | OP_R, ARG_NONE, cpu_PENTIUM2, "punpckldq", 0, 0, 0)
+tbl32_660F[0x63] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_dq | OP_W, ADDRMETH_W | OPTYPE_dq | OP_R, ARG_NONE, cpu_PENTIUM2, "packsswb", 0, 0, 0)
+tbl32_660F[0x64] = (0, INS_CMP, ADDRMETH_V | OPTYPE_dq | OP_W, ADDRMETH_W | OPTYPE_dq | OP_R, ARG_NONE, cpu_PENTIUM2, "pcmpgtb", 0, 0, 0)
+tbl32_660F[0x65] = (0, INS_CMP, ADDRMETH_V | OPTYPE_dq | OP_W, ADDRMETH_W | OPTYPE_dq | OP_R, ARG_NONE, cpu_PENTIUM2, "pcmpgtw", 0, 0, 0)
+tbl32_660F[0x66] = (0, INS_CMP, ADDRMETH_V | OPTYPE_dq | OP_W, ADDRMETH_W | OPTYPE_dq | OP_R, ARG_NONE, cpu_PENTIUM2, "pcmpgtd", 0, 0, 0)
+tbl32_660F[0x67] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_dq | OP_W, ADDRMETH_W | OPTYPE_dq | OP_R, ARG_NONE, cpu_PENTIUM2, "packuswb", 0, 0, 0)
+tbl32_660F[0x68] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_dq | OP_W, ADDRMETH_W | OPTYPE_dq | OP_R, ARG_NONE, cpu_PENTIUM2, "punpckhbw", 0, 0, 0)
+tbl32_660F[0x69] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_dq | OP_W, ADDRMETH_W | OPTYPE_dq | OP_R, ARG_NONE, cpu_PENTIUM2, "punpckhwd", 0, 0, 0)
+tbl32_660F[0x6a] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_dq | OP_W, ADDRMETH_W | OPTYPE_dq | OP_R, ARG_NONE, cpu_PENTIUM2, "punpckhdq", 0, 0, 0)
+tbl32_660F[0x6b] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_dq | OP_W, ADDRMETH_W | OPTYPE_dq | OP_R, ARG_NONE, cpu_PENTIUM2, "packssdw", 0, 0, 0)
+tbl32_660F[0x6c] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_dq | OP_W, ADDRMETH_W | OPTYPE_dq | OP_R, ARG_NONE, cpu_PENTIUM2, "punpcklqdq", 0, 0, 0)
+tbl32_660F[0x6d] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_dq | OP_W, ADDRMETH_W | OPTYPE_dq | OP_R, ARG_NONE, cpu_PENTIUM2, "punpckhqdq", 0, 0, 0)
+tbl32_660F[0x6e] = (0, INS_MOV, ADDRMETH_V | OPTYPE_d | OP_W, ADDRMETH_W | OPTYPE_d | OP_R, ARG_NONE, cpu_PENTIUM2, "movd", 0, 0, 0)
+tbl32_660F[0x6f] = (0, INS_MOV, ADDRMETH_V | OPTYPE_dq | OP_W, ADDRMETH_W | OPTYPE_dq | OP_R, ARG_NONE, cpu_PENTIUM2, "movdqa", 0, 0, 0)
+tbl32_660F[0x70] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_d | OP_W, ADDRMETH_W | OPTYPE_d | OP_R, ADDRMETH_I | OPTYPE_b | OP_R, cpu_PENTIUM2, "pshufd", 0, 0, 0)
+tbl32_660F[0x71] = (59, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+tbl32_660F[0x72] = (60, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+tbl32_660F[0x73] = (54, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+tbl32_660F[0x74] = (0, INS_CMP, ADDRMETH_V | OPTYPE_dq | OP_W, ADDRMETH_W | OPTYPE_dq | OP_R, ARG_NONE, cpu_PENTIUM2, "pcmpeqb", 0, 0, 0)
+tbl32_660F[0x75] = (0, INS_CMP, ADDRMETH_V | OPTYPE_dq | OP_W, ADDRMETH_W | OPTYPE_dq | OP_R, ARG_NONE, cpu_PENTIUM2, "pcmpeqw", 0, 0, 0)
+tbl32_660F[0x76] = (0, INS_CMP, ADDRMETH_V | OPTYPE_dq | OP_W, ADDRMETH_W | OPTYPE_dq | OP_R, ARG_NONE, cpu_PENTIUM2, "pcmpeqd", 0, 0, 0)
+tbl32_660F[0x7c] = (0, INS_ADD, ADDRMETH_V | OPTYPE_pd | OP_W, ADDRMETH_W | OPTYPE_pd | OP_R, ARG_NONE, cpu_PENTIUM2, "haddpd", 0, 0, 0)
+tbl32_660F[0x7d] = (0, INS_SUB, ADDRMETH_V | OPTYPE_pd | OP_W, ADDRMETH_W | OPTYPE_pd | OP_R, ARG_NONE, cpu_PENTIUM2, "hsubpd", 0, 0, 0)
+tbl32_660F[0x7e] = (0, INS_MOV, ADDRMETH_E | OPTYPE_d | OP_W, ADDRMETH_V | OPTYPE_d | OP_R, ARG_NONE, cpu_PENTIUM2, "movd", 0, 0, 0)
+tbl32_660F[0x7f] = (0, INS_MOV, ADDRMETH_W | OPTYPE_x | OP_W, ADDRMETH_V | OPTYPE_x | OP_R, ARG_NONE, cpu_PENTIUM2, "movdqa", 0, 0, 0)
+
 
 """
 (optable, optype, operand 0, operand 1, operand 2, CPU required, "opcodename", op0Register, op1Register, op2Register)
@@ -888,7 +688,6 @@ tbl32_F30F[0x6f] = (0, INS_MOV, ADDRMETH_V | OPTYPE_x | OP_W, ADDRMETH_W | OPTYP
 tbl32_F30F[0x70] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_x | OP_W, ADDRMETH_W | OPTYPE_x | OP_R, ADDRMETH_I | OPTYPE_b | OP_R, cpu_PENTIUM2, "pshufhw", 0, 0, 0)
 tbl32_F30F[0x7e] = (0, INS_MOV, ADDRMETH_V | OPTYPE_q | OP_W, ADDRMETH_W | OPTYPE_q | OP_R, ARG_NONE, cpu_PENTMMX, "movq", 0, 0, 0)
 tbl32_F30F[0x7f] = (0, INS_MOV, ADDRMETH_W | OPTYPE_x | OP_W, ADDRMETH_V | OPTYPE_x | OP_R, ARG_NONE, cpu_PENTMMX, "movdqu", 0, 0, 0)
-#tbl32_F30F[0xae] = (TBL_F30FAE_00BF, 0, 0, 0, 0, 0, 0, 0, 0, 0)  
 tbl32_F30F[0xb8] = (0, INS_BITTEST, ADDRMETH_G | OPTYPE_v | OP_W, ADDRMETH_E | OPTYPE_v | OP_R, ARG_NONE, cpu_80386, "popcnt", 0, 0, 0)
 tbl32_F30F[0xbd] = (0, INS_BITTEST, ADDRMETH_G | OPTYPE_v | OP_R | OP_W, ADDRMETH_E | OPTYPE_v | OP_R, ARG_NONE, cpu_80386, "lzcnt", 0, 0, 0)
 tbl32_F30F[0xc2] = (0, INS_CMP, ADDRMETH_V | OPTYPE_ss | OP_W, ADDRMETH_W | OPTYPE_ss | OP_R, ADDRMETH_I | OPTYPE_b | OP_R, cpu_PENTIUM2, "cmpss", 0, 0, 0)
