@@ -73,12 +73,10 @@ i386MultiByteOpcodes = [
     ('PREFIXES', 'f0673e2e65f30f10ca', 0x40, 'addr lock cs ds gs: movss xmm1,xmm2', 'addr lock cs ds gs: movss xmm1,xmm2'),
     ('BSR', '0fbdc3414141', 0x40, 'bsr eax,ebx', 'bsr eax,ebx'),
     ('LZNT', 'f30fbdc3414141', 0x40, 'lzcnt eax,ebx', 'lzcnt eax,ebx'),
-
     # Because of how the MODRM Bytes are set, these map to the same instruction
     # TODO: Would these be the same to a real x86 chip?
     ('PSRLDQ (66)', '660f73b5aa4141', 0x40, 'psllq xmm5,170', 'psllq xmm5,170'),
     ('PSRLDQ (66)', '660f73f5aa4141', 0x40, 'psllq xmm5,170', 'psllq xmm5,170'),
-
     # Same for these two
     ('PSRLDQ (66)', '660f73b1aa4141', 0x40, 'psllq xmm1,170', 'psllq xmm1,170'),
     ('PSRLDQ (66)', '660f73b9aa4141', 0x40, 'psldq xmm1,170', 'psldq xmm1,170'),
@@ -125,16 +123,22 @@ i386MultiByteOpcodes = [
     ('XSETBV', '0f01d14141', 0x40, 'xsetbv ', 'xsetbv '),
     ('XTEST', '0f01d64141', 0x40, 'xtest ', 'xtest '),
     ('MOVUPD', '660f10cc', 0x40, 'movupd xmm1,xmm4', 'movupd xmm1,xmm4'),
-    ('MOVUPD', '660f1018', 0x40, 'movupd xmm3,[eax]', 'movupd xmm3,[eax]'),
-    ('UNPCKLPD', '660F14A241414100', 0x40, 'unpcklpd xmm4,[edx+4276545]', 'unpcklpd xmm4,[edx+4276545]'),
-    ('MOVHPD', '660f16cb', 0x40, 'movhpd xmm1,xmm3', 'movhpd xmm1,xmm3'),
+    ('MOVUPD', '660f1018', 0x40, 'movupd xmm3,oword [eax]', 'movupd xmm3,oword [eax]'),
+    ('UNPCKLPD', '660F14A241414100', 0x40, 'unpcklpd xmm4,oword [edx + 4276545]', 'unpcklpd xmm4,oword [edx + 4276545]'),
+    ('MOVHPD', '660F162541414141', 0x40, 'movhpd xmm4,oword [0x41414141]', 'movhpd xmm4,oword [0x41414141]'),
+    ('MOVHPD', '660F172D41414141', 0x40, 'movhpd oword [0x41414141],xmm5', 'movhpd oword [0x41414141],xmm5'),
     ('MOVMSKPS', '0F50D6', 0x40, 'movmskps edx,xmm6', 'movmskps edx,xmm6'),
     ('MOVMSKPD', '660F50D6', 0x40, 'movmskpd edx,xmm6', 'movmskpd edx,xmm6'),
-    ('SUBPD', '660F5C6C240E', 0x40, 'subpd xmm5,[esp+14]', 'subpd xmm5,[esp+14]'),
-    ('MAXPD', '660F5FAB0F270000', 0x40, 'maxpd xmm5,[ebx+9999]', 'maxpd xmm5, [ebx+9999]'),
-    ('XORPD', '660F57BD15CD5B07', 0x40, 'xorpd xmm7,[ebp+123456789]', 'xorpd xmm7,[ebp+123456789]'),
+    ('SUBPD', '660F5C6C240E', 0x40, 'subpd xmm5,oword [esp + 14]', 'subpd xmm5,oword [esp + 14]'),
+    ('MAXPD', '660F5FAB0F270000', 0x40, 'maxpd xmm5,oword [ebx + 9999]', 'maxpd xmm5,oword [ebx + 9999]'),
+    ('XORPD', '660F57BD15CD5B07', 0x40, 'xorpd xmm7,oword [ebp + 123456789]', 'xorpd xmm7,oword [ebp + 123456789]'),
     ('SQRTPD', '660f51ca', 0x40, 'sqrtpd xmm1,xmm2', 'sqrtpd xmm1,xmm2'),
     ('PSHUFD', '660F70CD11', 0x40, 'pshufd xmm1,xmm5,17', 'pshufd xmm1,xmm5,17'),
+    ('PEXTRW', '660FC5C307', 0x40, 'pextrw eax,xmm3,7', 'pextrw eax,xmm3,7'),
+    ('MOVQ', '660FD620', 0x40, 'movq qword [eax],xmm4', 'movq qword [eax],xmm4'),
+    ('PMAXUB', '660FDE2541414141', 0x40, 'pmaxub xmm4,oword [0x41414141]', 'pmaxub xmm4,oword [0x41414141]'),
+    ('MOVNTDQ', '660FE73D78563412', 0x40, 'movntdq oword [0x12345678],xmm7', 'movntdq oword [0x12345678],xmm7'),
+    ('PADDD', '660FFECE', 0x40, 'paddd xmm1,xmm6', 'paddd xmm1,xmm6'),
 ]
 
 
