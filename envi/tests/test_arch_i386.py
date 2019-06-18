@@ -32,6 +32,7 @@ i386SingleByteOpcodes = [
     ('rep setg (al)', 'f30f9fc0', 0x40, 'rep: setg al', 'rep: setg al'),
     ('rep setg (dl)', 'f30f9fc2', 0x40, 'rep: setg dl', 'rep: setg dl'),
     ('prefix scas', 'f2ae', 0x40, 'repnz: scasb ', 'repnz: scasb '),
+    ('TEST', '84db', 0x40, 'test bl,bl', 'test bl,bl'),
 ]
 
 i386MultiByteOpcodes = [

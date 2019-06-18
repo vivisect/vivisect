@@ -861,11 +861,11 @@ class i386Disasm:
                 obyte = pref
                 offset = mainbyte
                 prefixes = all_prefixes & (~onehot)
-                tabdesc = all_tables[0]
             else:
                 offset = mainbyte
                 obyte = ord(bytez[offset])
 
+            tabdesc = all_tables[0]
             while True:
                 # print("OBYTE", hex(obyte))
                 if (obyte > tabdesc[4]):
