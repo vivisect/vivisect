@@ -288,7 +288,7 @@ class Amd64InstructionSet(unittest.TestCase):
 
         #In [6]: generateTestInfo('673ac4')
         opbytez = '673ac4'
-        oprepr = 'cmp al,ah'
+        oprepr = 'addr: cmp al,ah'
         opcheck =  {'iflags': 131072, 'va': 16384, 'repr': None, 'prefixes': 128, 'mnem': 'cmp', 'opcode': 20482, 'size': 3}
         opercheck = [{'tsize': 1, 'reg': 524288}, {'tsize': 1, 'reg': 134742016}]
         self.checkOpcode( opbytez, 0x4000, oprepr, opcheck, opercheck, oprepr )

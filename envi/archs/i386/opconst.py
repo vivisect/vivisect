@@ -38,7 +38,7 @@ OPTYPE_ds = 0x04000000     # 4     double-word
 OPTYPE_dq = 0x05000000     # 16    double quad-word
 OPTYPE_p = 0x06000000     # 4/6   32-bit or 48-bit pointer
 OPTYPE_pi = 0x07000000     # 8     quadword MMX register
-OPTYPE_ps = 0x08000000     # 16    128-bit single-precision float
+OPTYPE_ps = 0x08000000     # 16    128-bit single-precision float (packed?)
 OPTYPE_pd = 0x08000000     # ??    should be a double-precision float?
 OPTYPE_q = 0x09000000     # 8     quad-word
 OPTYPE_qp = 0x09000000     # 8     quad-word
@@ -46,10 +46,10 @@ OPTYPE_qq = 0x0A000000     # 8     quad-word
 OPTYPE_s = 0x0B000000     # 6     6-byte pseudo descriptor
 OPTYPE_ss = 0x0C000000     # ??    Scalar of 128-bit single-precision float
 OPTYPE_si = 0x0D000000     # 4     Doubleword integer register
-OPTYPE_sd = 0x0E000000     # ???
+OPTYPE_sd = 0x0E000000     # Scalar double precision float
 OPTYPE_v = 0x0F000000     # 2/4   word or double-word, depending on operand
 OPTYPE_w = 0x10000000     # 2     always word
-OPTYPE_x = 0x11000000     # 2     always word
+OPTYPE_x = 0x11000000     # 2     double-quadword or quad-quadword
 OPTYPE_y = 0x12000000     # 4/8   dword or qword
 OPTYPE_z = 0x13000000     # 2/4   is this OPTYPE_z?  word for 16-bit operand size or doubleword for 32 or 64-bit operand-size
 
@@ -170,6 +170,9 @@ INS_SETOF    = INS_FLAG | 0x09
 INS_SETDF    = INS_FLAG | 0x0A
 INS_SETSF    = INS_FLAG | 0x0B
 INS_SETPF    = INS_FLAG | 0x0C
+INS_CLEARAF  = INS_FLAG | 0x0D
+INS_SETAF    = INS_FLAG | 0x0E
+
 INS_TOGCF    = INS_FLAG | 0x10  # /* toggle */
 INS_TOGZF    = INS_FLAG | 0x20
 INS_TOGOF    = INS_FLAG | 0x30
@@ -177,14 +180,14 @@ INS_TOGDF    = INS_FLAG | 0x40
 INS_TOGSF    = INS_FLAG | 0x50
 INS_TOGPF    = INS_FLAG | 0x60
 
-INS_TRAP   =              INS_TRAPS | 0x01  #/* generate trap */
-INS_TRAPCC =      INS_TRAPS | 0x02          #/* conditional trap gen */
-INS_TRET   =              INS_TRAPS | 0x03  #/* return from trap */
-INS_BOUNDS =      INS_TRAPS | 0x04          #/* gen bounds trap */
-INS_DEBUG  =              INS_TRAPS | 0x05  #/* gen breakpoint trap */
-INS_TRACE  =             INS_TRAPS | 0x06  #/* gen single step trap */
-INS_INVALIDOP=   INS_TRAPS | 0x07          #     /* gen invalid instruction */
-INS_OFLOW    =           INS_TRAPS | 0x08  #      /* gen overflow trap */
+INS_TRAP = INS_TRAPS | 0x01         # generate trap
+INS_TRAPCC = INS_TRAPS | 0x02       # conditional trap gen
+INS_TRET = INS_TRAPS | 0x03         # return from trap
+INS_BOUNDS = INS_TRAPS | 0x04       # gen bounds trap
+INS_DEBUG = INS_TRAPS | 0x05        # gen breakpoint trap
+INS_TRACE = INS_TRAPS | 0x06        # gen single step trap
+INS_INVALIDOP = INS_TRAPS | 0x07    # gen invalid instruction
+INS_OFLOW = INS_TRAPS | 0x08       # gen overflow trap
 
 #/* INS_SYSTEM */
 INS_HALT    =            INS_SYSTEM | 0x01 #               /* halt machine */

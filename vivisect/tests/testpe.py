@@ -16,6 +16,37 @@ class PETests(unittest.TestCase):
         cls.vw_psexec.loadFromFile(cls.psexec_fn)
         cls.vw_psexec.analyze()
 
+    def test_function_disasm(self):
+        disasm = [
+            (0x4028e0, 1, 'push ebp'),
+            (0x4028e1, 2, 'mov ebp,esp'),
+            (0x4028e3, 3, 'sub esp,8'),
+            (0x4028e6, 1, 'push esi'),
+            (0x4028e7, 3, 'mov esi,dword [ebp + 8]'),
+            (0x4028ea, 1, 'push edi'),
+            (0x4028eb, 2, 'push 64'),
+            (0x4028ed, 1, 'push esi'),
+            (0x4028ee, 6, 'call dword [0x0041a168]'),
+            (0x4028f4, 5, 'push 0x00420944'),
+            (0x4028f9, 5, 'push 0x0042095c'),
+            (0x4028fe, 6, 'call dword [0x0041a178]'),
+            (0x402904, 1, 'push eax'),
+            (0x402905, 6, 'call dword [0x0041a18c]'),
+            (0x40290b, 2, 'mov edi,eax'),
+            (0x40290d, 2, 'test edi,edi'),
+            (0x40290f, 2, 'jz 0x00402935'),
+        ]
+
+        cbva = 0x4028e0
+        self.assertEquals(self.vw_psexec.getFunction(cbva), cbva)
+        for (va, size, inst) in disasm:
+            lva, lsize, ltype, linfo = self.vw_psexec.getLocation(cbva)
+            op = self.vw_psexec.parseOpcode(lva)
+            self.assertEquals(ltype, viv_con.LOC_OP)
+            self.assertEquals(size, lsize)
+            self.assertEquals(str(op), inst)
+            cbva += size
+
     def test_export_by_name(self):
         file_path = helpers.getTestPath('windows', 'i386', 'export_by_name.dll')
         pe = PE.peFromFileName(file_path)

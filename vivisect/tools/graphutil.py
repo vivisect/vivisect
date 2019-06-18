@@ -6,6 +6,7 @@ Some glue code to do workspace related things based on visgraph
 import sys
 import time
 import envi
+import logging
 import vivisect
 import threading
 import collections
@@ -14,6 +15,9 @@ import visgraph.pathcore as vg_pathcore
 import visgraph.graphcore as vg_graphcore
 
 xrskip = envi.BR_PROC | envi.BR_DEREF
+
+logger = logging.getLogger()
+
 
 def getNodeWeightHisto(g):
     '''
