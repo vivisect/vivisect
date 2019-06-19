@@ -994,11 +994,15 @@ class ge(Constraint):
 class UNK(Constraint):
     operstr = 'UNK'
     symtype = SYMT_CON_UNK
+    def oper(self, v1, v2):
+        raise Exception('Attempted reduce/solve on UNK, which has no oper')
 
 
 class NOTUNK(Constraint):
     operstr = '!UNK'
     symtype = SYMT_CON_NOTUNK
+    def oper(self, v1, v2):
+        raise Exception('Attempted reduce/solve on NOUNK, which has no oper')
 
 # Create our oposing constraints
 oppose(ne, eq)
