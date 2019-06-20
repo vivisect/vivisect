@@ -483,7 +483,7 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
         self.effSetVariable('eflags_gt', gt(v1, obj))
         self.effSetVariable('eflags_lt', lt(v1, obj))
         self.effSetVariable('eflags_sf', gt(v1, obj))
-        self.effSetVariable('eflags_eq', eq(onj, Const(0, self._psize)))
+        self.effSetVariable('eflags_eq', eq(obj, Const(0, self._psize)))
         self.setOperObj(op, 0, obj)
 
     def i_int3(self, op):
