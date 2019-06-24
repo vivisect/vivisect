@@ -303,7 +303,7 @@ class SymbolikBase:
             if idx < len(cur.kids):
                 # sys.stdout.write('+')
                 kid = cur.kids[idx]
-                if once and kid in done:
+                if once and kid._sym_id in done:
                     idx += 1
                     continue
 
@@ -325,7 +325,7 @@ class SymbolikBase:
             path.pop()          # clean up, since our algorithm doesn't expect cur on the top...
             #sys.stdout.write(' << ')
 
-            done.append(cur)
+            done.append(cur._sym_id)
 
             if not len(path):
                 #sys.stdout.write('=')

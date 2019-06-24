@@ -871,7 +871,7 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
                 return
             elif bit == 1:
                 tsize = v1.getWidth()
-                power = o_pow(Const(2, tsize), tsize - 1, self._psize)
+                power = o_pow(Const(2, tsize), Const(tsize - 1, self._psize), self._psize)
                 msb = o_div((v1 & power), power, v1.getWidth())
                 self.effSetVariable('eflags_of', msb)
 
