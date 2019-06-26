@@ -1,6 +1,7 @@
 import sys
 import envi
 import logging
+import traceback
 import envi.archs.arm as e_arm
 
 import vivisect
@@ -10,7 +11,6 @@ import visgraph.pathcore as vg_path
 from envi.archs.arm.regs import *
 
 logger = logging.getLogger(__name__)
-verbose = True
 
 class ArmWorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_arm.ArmEmulator):
 
@@ -127,7 +127,7 @@ class ArmWorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_arm.ArmEmulator):
 
                 if armop == None and thumbop == None:
                     # we didn't have a single push in either direction
-                    print("TOTAL FAILURE TO DETERMINE THUMB MODE")
+                    logger.warn("TOTAL FAILURE TO DETERMINE THUMB MODE")
                     raise Exception("Neither architecture parsed the first opcode")
 
                 elif armthumb < 0:
@@ -153,20 +153,18 @@ class ArmWorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_arm.ArmEmulator):
         vg_path.setNodeProp(self.curpath, 'bva', funcva)
 
         hits = {}
-        todo = [(funcva,self.getEmuSnap(),self.path),]
-        vw = self.vw # Save a dereference many many times
+        todo = [(funcva, self.getEmuSnap(), self.path)]
+        vw = self.vw    # Save a dereference many many times
 
         while len(todo):
-          #try:  
-
-            va,esnap,self.curpath = todo.pop()
+            va, esnap, self.curpath = todo.pop()
 
             self.setEmuSnap(esnap)
 
             self.setProgramCounter(va)
 
             # Check if we are beyond our loop max...
-            if maxloop != None:
+            if maxloop is not None:
                 lcount = vg_path.getPathLoopCount(self.curpath, 'bva', va)
                 if lcount > maxloop:
                     continue
@@ -197,7 +195,6 @@ class ArmWorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_arm.ArmEmulator):
                 try:
 
                     tmode = self.getFlag(PSR_T_bit)
-                    #print("tmode: %x" % tmode)
                     # FIXME unify with stepi code...
                     op = self.parseOpcode(starteip | tmode)
 
@@ -207,7 +204,7 @@ class ArmWorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_arm.ArmEmulator):
                             self.emumon.prehook(self, op, starteip)
                         except Exception, e:
                             if not self.getMeta('silent'):
-                                print("funcva: 0x%x opva: 0x%x:  %r   %r (in emumon prehook)" % (funcva, starteip, op, e))
+                                logger.warn("funcva: 0x%x opva: 0x%x:  %r   %r (in emumon prehook)", funcva, starteip, op, e)
 
                         if self.emustop:
                             return 
@@ -223,7 +220,7 @@ class ArmWorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_arm.ArmEmulator):
                             self.emumon.posthook(self, op, endeip)
                         except Exception, e:
                             if not self.getMeta('silent'):
-                                print("funcva: 0x%x opva: 0x%x:  %r   %r (in emumon posthook)" % (funcva, starteip, op, e))
+                                logger.warn("funcva: 0x%x opva: 0x%x:  %r   %r (in emumon posthook)", funcva, starteip, op, e)
                         if self.emustop:
                             return 
 
@@ -238,7 +235,7 @@ class ArmWorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_arm.ArmEmulator):
                         if len(blist):
                             # pc in the snap will be wrong, but over-ridden at restore
                             esnap = self.getEmuSnap()
-                            for bva,bpath in blist:
+                            for bva, bpath in blist:
                                 todo.append((bva, esnap, bpath))
                             break
                     # check if we've blx'd to a different thumb state.  if so,
@@ -265,10 +262,8 @@ class ArmWorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_arm.ArmEmulator):
                         self.emumon.logAnomaly(self, starteip, str(e))
 
                     logger.debug('runFunction breaking after exception (fva: 0x%x): %s', funcva, e)
-                    if verbose: sys.excepthook(*sys.exc_info())
+                    logger.info('\n'.join(traceback.format_exception(*sys.exc_info())))
                     break # If we exc during execution, this branch is dead.
-          #except:
-          #    sys.excepthook(*sys.exc_info())
 
 class ThumbWorkspaceEmulator(ArmWorkspaceEmulator):
     def __init__(self, vw, logwrite=False, logread=False):

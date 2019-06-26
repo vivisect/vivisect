@@ -239,7 +239,7 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
         #       other than None, that is the new eip
         try:
             self.setMeta('forrealz', True)
-            x = None
+            newpc = None
             skip = False
         
             # IT block handling
@@ -264,14 +264,14 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
                     raise envi.UnsupportedInstruction(self, op)
 
                 # executing opcode now...
-                x = meth(op)
+                newpc = meth(op)
 
             # returned None, so the instruction hasn't directly changed PC
-            if x == None:
+            if newpc == None:
                 pc = self.getProgramCounter()
-                x = pc+op.size
+                newpc = pc+op.size
 
-            self.setProgramCounter(x)
+            self.setProgramCounter(newpc)
         finally:
             self.setMeta('forrealz', False)
 
@@ -927,18 +927,12 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
     i_ldrt = i_ldr
 
     def i_ldrex(self, op):
-        try:
-            self.mem_access_lock.acquire()
+        with self.mem_access_lock:
             return self.i_ldr(op)
-        finally:
-            self.mem_access_lock.release()
 
     def i_strex(self, op):
-        try:
-            self.mem_access_lock.acquire()
+        with self.mem_access_lock:
             return self.i_str(op)
-        finally:
-            self.mem_access_lock.release()
 
     def i_mov(self, op):
         val = self.getOperValue(op, 1)
