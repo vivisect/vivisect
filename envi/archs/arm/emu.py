@@ -185,17 +185,17 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
         self.setCPSR(flags)
 
     def getFlag(self, which):          # FIXME: CPSR?
-        #if (flags_reg == None):
+        #if (flags_reg is None):
         #    flags_reg = proc_modes[self.getProcMode()][5]
         #flags = self.getRegister(flags_reg)
         flags = self.getCPSR()
-        if flags == None:
+        if flags is None:
             raise envi.PDEUndefinedFlag(self)
         return bool(flags & which)
 
     def readMemValue(self, addr, size):
         bytes = self.readMemory(addr, size)
-        if bytes == None:
+        if bytes is None:
             return None
         if len(bytes) != size:
             raise Exception("Read Gave Wrong Length At 0x%.8x (va: 0x%.8x wanted %d got %d)" % (self.getProgramCounter(),addr, size, len(bytes)))
@@ -211,7 +211,7 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
 
     def readMemSignedValue(self, addr, size):
         bytes = self.readMemory(addr, size)
-        if bytes == None:
+        if bytes is None:
             return None
         if len(bytes) != size:
             raise Exception("Read Gave Wrong Length At 0x%.8x (va: 0x%.8x wanted %d got %d)" % (self.getProgramCounter(),addr, size, len(bytes)))
@@ -1099,7 +1099,7 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
             src2 = self.getOperValue(op, 1)
         
         #FIXME PDE and flags
-        if src1 == None or src2 == None:
+        if src1 is None or src2 is None:
             self.undefFlags()
             self.setOperValue(op, 0, None)
             return
@@ -1176,7 +1176,7 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
         src2 = self.getOperValue(op, 2)
         
         #FIXME PDE and flags
-        if src1 == None or src2 == None:
+        if src1 is None or src2 is None:
             self.undefFlags()
             self.setOperValue(op, 0, None)
             return
@@ -1196,7 +1196,7 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
         src1 = self.getOperValue(op, 1)
         src2 = self.getOperValue(op, 2)
         #FIXME PDE and flags
-        if src1 == None or src2 == None:
+        if src1 is None or src2 is None:
             self.undefFlags()
             self.setOperValue(op, 0, None)
             return
@@ -1226,7 +1226,7 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
         Sflag = op.iflags & IF_PSR_S
         mask = e_bits.u_maxes[op.opers[1].tsize]
 
-        if src1 == None or src2 == None:
+        if src1 is None or src2 is None:
             self.undefFlags()
             return None
 
@@ -1262,7 +1262,7 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
             src2 = self.getOperValue(op, 1)
         
         #FIXME PDE and flags
-        if src1 == None or src2 == None:
+        if src1 is None or src2 is None:
             self.undefFlags()
             self.setOperValue(op, 0, None)
             return
@@ -1616,7 +1616,7 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
                 break
 
             loc = emu.vw.getLocation(va)
-            if loc != None:
+            if loc is not None:
                 logger.warn("Terminating TB at Location/Reference")
                 logger.warn("%x, %d, %x, %r", loc)
                 break
