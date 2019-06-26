@@ -1001,8 +1001,8 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
     i_ite = i_it
     i_itt = i_it
     i_itee = i_it
-    i_itet =  i_it
-    i_itte =  i_it
+    i_itet = i_it
+    i_itte = i_it
     i_ittt = i_it
     i_iteee = i_it
     i_iteet = i_it
@@ -1022,7 +1022,7 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
 
         mask <<= lsb
         val = self.getOperValue(op, 0) & ~mask
-        val |= (addit<<lsb)
+        val |= (addit << lsb)
 
         self.setOperValue(op, 0, val)
 
@@ -1032,11 +1032,10 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
         mask = e_bits.b_masks[width] << lsb
         mask ^= 0xffffffff
 
-        val = self.getOperValue(op, 0) 
+        val = self.getOperValue(op, 0)
         val &= mask
 
         self.setOperValue(op, 0, val)
-
 
     def i_clz(self, op):
         oper = self.getOperValue(op, 1)
@@ -1069,7 +1068,6 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
     i_strsh = i_str
     i_strsb = i_str
     i_strt = i_str
-
 
     def i_add(self, op):
         if len(op.opers) == 3:
