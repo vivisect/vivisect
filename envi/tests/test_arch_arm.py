@@ -22,8 +22,8 @@ from envi.archs.arm.disasm import *
 
 from envi.tests.armthumb_tests import advsimdtests
 
-GOOD_TESTS = 5943
-GOOD_EMU_TESTS = 1172
+GOOD_TESTS = 5946
+GOOD_EMU_TESTS = 1174
 ''' 
   This dictionary will contain all instructions supported by ARM to test
   Fields will contain following information:
@@ -943,6 +943,8 @@ instrs = [
         (REV_ALL_ARM, 'a745b3e1', 0x4560, 'lsrs r4, r7, #0x0b', 0, ()),
         (REV_ALL_ARM, 'c745a3e1', 0x4560, 'asr r4, r7, #0x0b', 0, ()),
         (REV_ALL_ARM, 'c745b3e1', 0x4560, 'asrs r4, r7, #0x0b', 0, ()),
+        (REV_ALL_ARM, '4740a3e1', 0x4560, 'asr r4, r7, #0x20', 0, ()),
+        (REV_ALL_ARM, '4740b3e1', 0x4560, 'asrs r4, r7, #0x20', 0, ()),
         (REV_ALL_ARM, 'e745a3e1', 0x4560, 'ror r4, r7, #0x0b', 0, ()),
         (REV_ALL_ARM, 'e745b3e1', 0x4560, 'rors r4, r7, #0x0b', 0, ()),
         (REV_ALL_ARM, '0746a3e1', 0x4560, 'lsl r4, r7, #0x0c', 0, ()),
