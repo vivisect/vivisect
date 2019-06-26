@@ -1,4 +1,3 @@
-
 import os
 import PE
 import logging
@@ -21,15 +20,17 @@ from vivisect.const import *
 logger = logging.getLogger(__name__)
 
 # PE Machine field values
-#0x14d   Intel i860
-#0x14c   Intel I386 (same ID used for 486 and 586)
-#0x162   MIPS R3000
-#0x166   MIPS R4000
-#0x183   DEC Alpha AXP
+# 0x14d   Intel i860
+# 0x14c   Intel I386 (same ID used for 486 and 586)
+# 0x162   MIPS R3000
+# 0x166   MIPS R4000
+# 0x183   DEC Alpha AXP
+
 
 def parseFile(vw, filename, baseaddr=None):
-    pe = PE.PE(file(filename,"rb"))
+    pe = PE.PE(file(filename, "rb"))
     return loadPeIntoWorkspace(vw, pe, filename, baseaddr=baseaddr)
+
 
 def parseBytes(vw, bytes, baseaddr=None):
     fd = StringIO.StringIO(bytes)
@@ -37,34 +38,39 @@ def parseBytes(vw, bytes, baseaddr=None):
     pe = PE.PE(fd)
     return loadPeIntoWorkspace(vw, pe, filename=filename, baseaddr=baseaddr)
 
+
 def parseMemory(vw, memobj, base):
     pe = PE.peFromMemoryObject(memobj, base)
     mapbase, mapsize, perms, fname = memobj.getMemoryMap(base)
-    #FIXME does the PE's load address get fixedup on rebase?
+    # FIXME does the PE's load address get fixedup on rebase?
     return loadPeIntoWorkspace(vw, pe, fname)
+
 
 def parseFd(vw, fd, filename=None, baseaddr=None):
     fd.seek(0)
     pe = PE.PE(fd)
     return loadPeIntoWorkspace(vw, pe, filename=filename, baseaddr=baseaddr)
 
+
 arch_names = {
-    PE.IMAGE_FILE_MACHINE_I386:'i386',
-    PE.IMAGE_FILE_MACHINE_AMD64:'amd64',
+    PE.IMAGE_FILE_MACHINE_I386: 'i386',
+    PE.IMAGE_FILE_MACHINE_AMD64: 'amd64',
 }
 
 defcalls = {
-    'i386':'cdecl',
-    'amd64':'msx64call',
-    'arm':'armcall',
-    'thumb':'armcall',
-    'thumb16':'armcall',
+    'i386': 'cdecl',
+    'amd64': 'msx64call',
+    'arm': 'armcall',
+    'thumb': 'armcall',
+    'thumb16': 'armcall',
 }
 
 # map PE relocation types to vivisect types where possible
 relmap = {
-    PE.IMAGE_REL_BASED_HIGHLOW:vivisect.RTYPE_BASEOFF,
+    PE.IMAGE_REL_BASED_HIGHLOW: vivisect.RTYPE_BASEOFF,
+    PE.IMAGE_REL_BASED_DIR64: vivisect.RTYPE_BASEOFF,
 }
+
 
 def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
 
@@ -72,7 +78,7 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
 
     arch = arch_names.get(mach)
     if arch is None:
-        raise Exception("Machine %.4x is not supported for PE!" % mach )
+        raise Exception("Machine %.4x is not supported for PE!" % mach)
 
     vw.setMeta('Architecture', arch)
     vw.setMeta('Format', 'pe')
@@ -86,7 +92,7 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
 
     vw.setMeta('Platform', platform)
 
-    vw.setMeta('DefaultCall', defcalls.get(arch,'unknown'))
+    vw.setMeta('DefaultCall', defcalls.get(arch, 'unknown'))
 
     # Set ourselves up for extended windows binary analysis
 
@@ -121,12 +127,12 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
     # Add file version info if VS_VERSIONINFO has it
     try:
         vs = pe.getVS_VERSIONINFO()
-    except Exception, e:
+    except Exception as e:
         vs = None
         vw.vprint('Failed to load version info resource due to %s' % (repr(e),))
-    if vs != None:
+    if vs is not None:
         vsver = vs.getVersionValue('FileVersion')
-        if vsver != None and len(vsver):
+        if vsver is not None and len(vsver):
             # add check to split seeing samples with spaces and nothing else..
             parts = vsver.split()
             if len(parts):
@@ -134,16 +140,16 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
                 vw.setFileMeta(fname, 'Version', vsver)
 
     # Setup some va sets used by windows analysis modules
-    vw.addVaSet("Library Loads", (("Address", VASET_ADDRESS),("Library", VASET_STRING)))
-    vw.addVaSet('pe:ordinals', (('Address', VASET_ADDRESS),('Ordinal',VASET_INTEGER)))
+    vw.addVaSet("Library Loads", (("Address", VASET_ADDRESS), ("Library", VASET_STRING)))
+    vw.addVaSet('pe:ordinals', (('Address', VASET_ADDRESS), ('Ordinal', VASET_INTEGER)))
 
     # SizeOfHeaders spoofable...
-    curr_offset = pe.IMAGE_DOS_HEADER.e_lfanew + len(pe.IMAGE_NT_HEADERS) 
-    
+    curr_offset = pe.IMAGE_DOS_HEADER.e_lfanew + len(pe.IMAGE_NT_HEADERS)
+
     secsize = len(vstruct.getStructure("pe.IMAGE_SECTION_HEADER"))
-    
-    sec_offset = pe.IMAGE_DOS_HEADER.e_lfanew + 4 + len(pe.IMAGE_NT_HEADERS.FileHeader) +  pe.IMAGE_NT_HEADERS.FileHeader.SizeOfOptionalHeader 
-    
+
+    sec_offset = pe.IMAGE_DOS_HEADER.e_lfanew + 4 + len(pe.IMAGE_NT_HEADERS.FileHeader) + pe.IMAGE_NT_HEADERS.FileHeader.SizeOfOptionalHeader 
+
     if sec_offset != curr_offset:
         header_size = sec_offset + pe.IMAGE_NT_HEADERS.FileHeader.NumberOfSections * secsize
     else:
@@ -152,9 +158,7 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
     # Add the first page mapped in from the PE header.
     header = pe.readAtOffset(0, header_size)
 
-
     secalign = pe.IMAGE_NT_HEADERS.OptionalHeader.SectionAlignment
-
     subsys_majver = pe.IMAGE_NT_HEADERS.OptionalHeader.MajorSubsystemVersion
     subsys_minver = pe.IMAGE_NT_HEADERS.OptionalHeader.MinorSubsystemVersion
 
@@ -170,7 +174,7 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
     if vw.readMemory(baseaddr + magicaddr, 2) != "PE":
         raise Exception("We only support PE exe's")
 
-    if not vw.isLocation( baseaddr + magicaddr ):
+    if not vw.isLocation(baseaddr + magicaddr):
         padloc = vw.makePad(baseaddr + magicaddr, 4)
 
     ifhdr_va = baseaddr + magicaddr + 4
@@ -211,7 +215,7 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
         if chars & PE.IMAGE_SCN_MEM_READ:
             mapflags |= e_mem.MM_READ
 
-            isrsrc = ( sec.VirtualAddress == ddir.VirtualAddress )
+            isrsrc = (sec.VirtualAddress == ddir.VirtualAddress)
             if isrsrc and not loadrsrc:
                 continue
 
@@ -229,14 +233,13 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
         if chars & PE.IMAGE_SCN_CNT_CODE:
             mapflags |= e_mem.MM_EXEC
 
-
         secrva = sec.VirtualAddress
         secvsize = sec.VirtualSize
         secfsize = sec.SizeOfRawData
         secbase = secrva + baseaddr
         secname = sec.Name.strip("\x00")
         secrvamax = secrva + secvsize
-    
+
         # If the section is part of BaseOfCode->SizeOfCode
         # force execute perms...
         if secrva >= codebase and secrva < codervamax:
@@ -253,11 +256,11 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
         if sec.VirtualSize == 0 or sec.SizeOfRawData == 0:
             if idx+1 >= len(pe.sections):
                 continue
-            # fill the gap with null bytes.. 
-            nsec = pe.sections[idx+1] 
+            # fill the gap with null bytes..
+            nsec = pe.sections[idx+1]
             nbase = nsec.VirtualAddress + baseaddr
 
-            plen = nbase - secbase 
+            plen = nbase - secbase
             readsize = sec.SizeOfRawData if sec.SizeOfRawData < sec.VirtualSize else sec.VirtualSize
             secoff = pe.rvaToOffset(secrva)
             secbytes = pe.readAtOffset(secoff, readsize)
@@ -273,14 +276,14 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
             if not (chars & PE.IMAGE_SCN_CNT_CODE) and not (chars & PE.IMAGE_SCN_MEM_EXECUTE) and not (chars & PE.IMAGE_SCN_MEM_WRITE):
                 vw.markDeadData(secbase, secbase+len(secbytes))
             continue
-        
+
         # if SizeOfRawData is greater than VirtualSize we'll end up using VS in our read..
         if sec.SizeOfRawData < sec.VirtualSize:
-            if sec.SizeOfRawData > pe.filesize: 
+            if sec.SizeOfRawData > pe.filesize:
                 continue
-    
-        plen = sec.VirtualSize - sec.SizeOfRawData          
-    
+
+        plen = sec.VirtualSize - sec.SizeOfRawData
+
         try:
             # According to http://code.google.com/p/corkami/wiki/PE#section_table if SizeOfRawData is larger than VirtualSize, VS is used..
             readsize = sec.SizeOfRawData if sec.SizeOfRawData < sec.VirtualSize else sec.VirtualSize
@@ -299,7 +302,7 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
             if not (chars & PE.IMAGE_SCN_CNT_CODE) and not (chars & PE.IMAGE_SCN_MEM_EXECUTE) and not (chars & PE.IMAGE_SCN_MEM_WRITE):
                 vw.markDeadData(secbase, secbase+len(secbytes))
 
-        except Exception, e:
+        except Exception as e:
             print("Error Loading Section (%s size:%d rva:%.8x offset: %d): %s" % (secname,secfsize,secrva,secoff,e))
 
     vw.addExport(entry, EXP_FUNCTION, '__entry', fname)
@@ -311,20 +314,20 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
         reloc_va += baseaddr
     vw.setFileMeta(fname, "reloc_va", reloc_va)
 
-    for rva,rtype in pe.getRelocations():
+    for rva, rtype in pe.getRelocations():
 
         # map PE reloc to VIV reloc ( or dont... )
         vtype = relmap.get(rtype)
         if vtype is None:
-            logger.info('Skipping PE Relocation type: %d (no handler)', rtype)
+            logger.info('Skipping PE Relocation type: %d at %d (no handler)', rtype, rva)
             continue
 
-        mapoffset = vw.readMemoryPtr(rva+baseaddr) - baseaddr
-        vw.addRelocation(rva+baseaddr, vtype, mapoffset)
+        mapoffset = vw.readMemoryPtr(rva + baseaddr) - baseaddr
+        vw.addRelocation(rva + baseaddr, vtype, mapoffset)
 
     for rva, lname, iname in pe.getImports():
-        if vw.probeMemory(rva+baseaddr, 4, e_mem.MM_READ):
-            vw.makeImport(rva+baseaddr, lname, iname)
+        if vw.probeMemory(rva + baseaddr, 4, e_mem.MM_READ):
+            vw.makeImport(rva + baseaddr, lname, iname)
 
     # Tell vivisect about ntdll functions that don't exit...
     vw.addNoReturnApi("ntdll.RtlExitUserThread")
@@ -339,12 +342,12 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
     for rva, ord, name in exports:
         eva = rva + baseaddr
         try:
-            vw.setVaSetRow('pe:ordinals', (eva,ord))
+            vw.setVaSetRow('pe:ordinals', (eva, ord))
             vw.addExport(eva, EXP_UNTYPED, name, fname)
             if vw.probeMemory(eva, 1, e_mem.MM_EXEC):
                 vw.addEntryPoint(eva)
-        except Exception, e:
-            vw.vprint('addExport Failed: %s.%s (0x%.8x): %s' % (fname,name,eva,e))
+        except Exception as e:
+            vw.vprint('addExport Failed: %s.%s (0x%.8x): %s' % (fname, name, eva, e))
 
     # Save off the ordinals...
     vw.setFileMeta(fname, 'ordinals', exports)

@@ -2,9 +2,32 @@ import struct
 
 from copy import deepcopy
 from inspect import isclass
-from StringIO import StringIO
 
 import vstruct.primitives as vs_prims
+
+
+class MemObjFile:
+    """
+    A file like object that wraps a MemoryObject (envi) compatable
+    object with a file-like object where seek == VA.
+    """
+
+    def __init__(self, memobj, baseaddr):
+        self.baseaddr = baseaddr
+        self.offset = baseaddr
+        self.memobj = memobj
+
+    def seek(self, offset):
+        self.offset = self.baseaddr + offset
+
+    def read(self, size):
+        ret = self.memobj.readMemory(self.offset, size)
+        self.offset += size
+        return ret
+
+    def write(self, bytes):
+        self.memobj.writeMemory(self.offset, bytes)
+        self.offset += len(bytes)
 
 def isVstructType(x):
     return isinstance(x, vs_prims.v_base)

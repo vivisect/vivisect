@@ -1,6 +1,5 @@
 import re
 import struct
-import collections
 
 import envi
 import envi.bits as e_bits
@@ -19,7 +18,7 @@ MM_EXEC = 0x1
 MM_SHARED = 0x08
 
 MM_READ_WRITE = MM_READ | MM_WRITE
-MM_READ_EXEC  =  MM_READ | MM_EXEC
+MM_READ_EXEC = MM_READ | MM_EXEC
 MM_RWX = MM_READ | MM_WRITE | MM_EXEC
 
 pnames = ['No Access', 'Execute', 'Write', None, 'Read']
@@ -31,7 +30,7 @@ def getPermName(perm):
     return pnames[perm]
 
 def reprPerms(mask):
-    plist = ['-','-','-','-']
+    plist = ['-', '-', '-', '-']
     if mask & MM_SHARED:
         plist[0] = 's'
     if mask & MM_READ:
@@ -45,10 +44,14 @@ def reprPerms(mask):
 
 def parsePerms(pstr):
     ret = 0
-    if pstr.find('s') != -1: ret |= MM_SHARED
-    if pstr.find('r') != -1: ret |= MM_READ
-    if pstr.find('w') != -1: ret |= MM_WRITE
-    if pstr.find('x') != -1: ret |= MM_EXEC
+    if pstr.find('s') != -1:
+        ret |= MM_SHARED
+    if pstr.find('r') != -1:
+        ret |= MM_READ
+    if pstr.find('w') != -1:
+        ret |= MM_WRITE
+    if pstr.find('x') != -1:
+        ret |= MM_EXEC
     return ret
 
 class IMemory:
@@ -64,7 +67,7 @@ class IMemory:
     def __init__(self, arch=None):
         self.imem_psize = struct.calcsize('P')
         self.imem_archs = envi.getArchModules()
-        if arch != None:
+        if arch is not None:
             self.setMemArchitecture(arch)
 
     def setMemArchitecture(self, arch):
@@ -84,7 +87,7 @@ class IMemory:
         '''
         Get a reference to the default arch module for the memory object.
         '''
-        return self.imem_archs[ arch >> 16 ]
+        return self.imem_archs[arch >> 16]
 
     def getPointerSize(self):
         return self.imem_psize
@@ -475,7 +478,7 @@ class MemoryObject(IMemory):
         """
         An optimized routine which returns the existing
         segment bytes sequence without creating a new
-        string object *AND* an offset of va into the 
+        string object *AND* an offset of va into the
         buffer.  Used internally for optimized memory
         handling.  Returns (offset, bytes)
         """
@@ -493,7 +496,7 @@ class MemoryObject(IMemory):
         Example: op = m.parseOpcode(0x7c773803)
         '''
         off, b = self.getByteDef(va)
-        return self.imem_archs[ (arch & envi.ARCH_MASK) >> 16 ].archParseOpcode(b, off, va)
+        return self.imem_archs[(arch & envi.ARCH_MASK) >> 16].archParseOpcode(b, off, va)
 
     def readMemString(self, va, maxlen=0xfffffff):
         '''

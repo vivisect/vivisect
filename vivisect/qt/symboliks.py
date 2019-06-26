@@ -11,7 +11,6 @@ import vivisect.symboliks.common as viv_sym_common
 import vivisect.symboliks.effects as viv_sym_effects
 import vivisect.symboliks.analysis as viv_sym_analysis
 import vivisect.symboliks.expression as viv_sym_expression
-import vivisect.symboliks.constraints as viv_sym_constraints
 
 try:
     from PyQt5 import QtCore
@@ -140,7 +139,7 @@ class VivSymbolikFuncPane(e_q_memory.EnviNavMixin, vq_save.SaveableWidget, QWidg
             for e in exprparts[1:]:
                 s = self.symexpr.parseExpression(e)
 
-                if isinstance(s, viv_sym_constraints.Constraint):
+                if isinstance(s, viv_sym_common.Constraint):
                     precons.append(s)
                     continue
 

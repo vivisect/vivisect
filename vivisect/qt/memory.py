@@ -44,18 +44,18 @@ class VivCanvasBase(vq_hotkey.HotKeyMixin, e_mem_canvas.VQMemoryCanvas):
         self.vw = self.mem
         self._last_sname = None
 
-        self.addHotKey('c','viv:make:code')
-        self.addHotKey('f','viv:make:function')
-        self.addHotKey('s','viv:make:string')
-        self.addHotKey('p','viv:make:pointer')
-        self.addHotKey('u','viv:make:unicode')
-        self.addHotKey('n','viv:setname')
-        self.addHotKey(';','viv:comment')
-        self.addHotKey('S','viv:make:struct')
-        self.addHotKey('ctrl+S','viv:make:struct:again')
-        self.addHotKey('ctrl+meta+S','viv:make:struct:multi')
-        self.addHotKey('U','viv:undefine')
-        self.addHotKey('ctrl+s','viv:save')
+        self.addHotKey('c', 'viv:make:code')
+        self.addHotKey('f', 'viv:make:function')
+        self.addHotKey('s', 'viv:make:string')
+        self.addHotKey('p', 'viv:make:pointer')
+        self.addHotKey('u', 'viv:make:unicode')
+        self.addHotKey('n', 'viv:setname')
+        self.addHotKey('g', 'viv:getlocation')
+        self.addHotKey(';', 'viv:comment')
+        self.addHotKey('S', 'viv:make:struct')
+        self.addHotKey('ctrl+S', 'viv:make:struct:again')
+        self.addHotKey('ctrl+meta+S', 'viv:make:struct:multi')
+        self.addHotKey('U', 'viv:undefine')
         self.addHotKey('B', 'viv:bookmark')
         self.addHotKey('ctrl+1', 'viv:make:number:one')
         self.addHotKey('ctrl+2', 'viv:make:number:two')
@@ -63,10 +63,10 @@ class VivCanvasBase(vq_hotkey.HotKeyMixin, e_mem_canvas.VQMemoryCanvas):
         self.addHotKey('ctrl+6', 'viv:make:number:sixteen')
         self.addHotKey('ctrl+8', 'viv:make:number:eight')
 
-        self.addHotKey('down','viv:nav:nextva')
-        self.addHotKey('up','viv:nav:prevva')
-        self.addHotKey('ctrl+down','viv:nav:nextundef')
-        self.addHotKey('ctrl+up','viv:nav:prevundef')
+        self.addHotKey('down', 'viv:nav:nextva')
+        self.addHotKey('up', 'viv:nav:prevva')
+        self.addHotKey('ctrl+down', 'viv:nav:nextundef')
+        self.addHotKey('ctrl+up', 'viv:nav:prevundef')
 
         self.loadHotKeys(self.vw._viv_gui._vq_settings)
 
@@ -195,29 +195,34 @@ class VivCanvasBase(vq_hotkey.HotKeyMixin, e_mem_canvas.VQMemoryCanvas):
 
     @vq_hotkey.hotkey('viv:undefine')
     def _hotkey_undefine(self):
-        if self._canv_curva != None:
+        if self._canv_curva is not None:
             self.vw.delLocation(self._canv_curva)
+
+    @vq_hotkey.hotkey('viv:getlocation')
+    def _hotkey_getlocation(self):
+        if self._canv_curva is not None:
+            self.vw.getVivGui().getLocation(self._canv_curva)
 
     @vq_hotkey.hotkey('viv:setname')
     def _hotkey_setname(self):
-        if self._canv_curva != None:
-            self.vw.getVivGui().setVaName( self._canv_curva, parent=self )
+        if self._canv_curva is not None:
+            self.vw.getVivGui().setVaName(self._canv_curva, parent=self)
 
     @vq_hotkey.hotkey('viv:bookmark')
     def _hotkey_bookmark(self):
-        if self._canv_curva != None:
-            self.vw.getVivGui().addBookmark( self._canv_curva, parent=self )
+        if self._canv_curva is not None:
+            self.vw.getVivGui().addBookmark(self._canv_curva, parent=self)
 
     @vq_hotkey.hotkey('viv:comment')
     def _hotkey_comment(self):
-        if self._canv_curva != None:
-            self.vw.getVivGui().setVaComment( self._canv_curva, parent=self )
+        if self._canv_curva is not None:
+            self.vw.getVivGui().setVaComment(self._canv_curva, parent=self)
 
     @vq_hotkey.hotkey('viv:make:struct')
     def _hotkey_make_struct(self):
-        if self._canv_curva != None:
+        if self._canv_curva is not None:
             sname = self.vw.getVivGui().makeStruct(self._canv_curva)
-            if sname != None:
+            if sname is not None:
                 self._last_sname = sname
 
     @vq_hotkey.hotkey('viv:make:struct:again')
@@ -274,13 +279,6 @@ class VivCanvasBase(vq_hotkey.HotKeyMixin, e_mem_canvas.VQMemoryCanvas):
     def _hotkey_make_number_sixteen(self):
         if self._canv_curva != None:
             self.vw.makeNumber(self._canv_curva, 16)
-
-    @firethread
-    @vq_hotkey.hotkey('viv:save')
-    def _hotkey_save(self, fullsave=False):
-        self.vw.vprint('Saving workspace...')
-        self.vw.saveWorkspace(fullsave=fullsave)
-        self.vw.vprint('complete!')
 
     def getVaTag(self, va):
         loc = self.mem.getLocation(va)

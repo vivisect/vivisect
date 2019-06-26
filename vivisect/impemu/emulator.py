@@ -155,7 +155,7 @@ class WorkspaceEmulator:
         # We can make an opcode *faster* with the workspace because of
         # getByteDef etc... use it.
         op = self.opcache.get(va)
-        if op == None:
+        if op is None:
             op = envi.Emulator.parseOpcode(self, va, arch=arch)
             self.opcache[va] = op
         return op
@@ -168,27 +168,24 @@ class WorkspaceEmulator:
         iscall = bool(op.iflags & envi.IF_CALL)
         if iscall:
             api = self.getCallApi(endeip)
-            rtype,rname,convname,callname,funcargs = api
+            rtype, rname, convname, callname, funcargs = api
             callconv = self.getCallingConvention(convname)
             argv = callconv.getCallArgs(self, len(funcargs))
 
             ret = None
-            if self.emumon != None:
+            if self.emumon is not None:
                 try:
                     ret = self.emumon.apicall(self, op, endeip, api, argv)
-                except Exception, e:
+                except Exception as e:
                     self.emumon.logAnomaly(self, endeip, "%s.apicall failed: %s" % (self.emumon.__class__.__name__, e))
 
             hook = self.hooks.get(callname)
-            if ret == None and hook:
-                hook( self, callconv, api, argv )
-
+            if ret is None and hook:
+                hook(self, callconv, api, argv)
             else:
-
-                if ret == None:
-                    ret = self.setVivTaint('apicall', (op,endeip,api,argv))
-
-                callconv.execCallReturn( self, ret, len(funcargs) )
+                if ret is None:
+                    ret = self.setVivTaint('apicall', (op, endeip, api, argv))
+                callconv.execCallReturn(self, ret, len(funcargs))
 
             # Either way, if it's a call PC goes to next instruction
             if self._func_only:
@@ -236,8 +233,8 @@ class WorkspaceEmulator:
         # FIXME this should actually check for conditional...
         # If there is more than one branch target, we need a new code block
         if len(blist) > 1:
-            for bva,bflags in blist:
-                if bva == None:
+            for bva, bflags in blist:
+                if bva is None:
                     logger.warn("Unresolved branch even WITH an emulator?")
                     continue
 
@@ -281,19 +278,19 @@ class WorkspaceEmulator:
         vg_path.setNodeProp(self.curpath, 'bva', funcva)
 
         hits = {}
-        todo = [(funcva,self.getEmuSnap(),self.path),]
-        vw = self.vw # Save a dereference many many times
+        todo = [(funcva, self.getEmuSnap(), self.path)]
+        vw = self.vw  # Save a dereference many many times
 
         while len(todo):
 
-            va,esnap,self.curpath = todo.pop()
+            va, esnap, self.curpath = todo.pop()
 
             self.setEmuSnap(esnap)
 
             self.setProgramCounter(va)
 
             # Check if we are beyond our loop max...
-            if maxloop != None:
+            if maxloop is not None:
                 lcount = vg_path.getPathLoopCount(self.curpath, 'bva', va)
                 if lcount > maxloop:
                     continue
@@ -309,7 +306,7 @@ class WorkspaceEmulator:
                     return
 
                 # Check straight hit count...
-                if maxhit != None:
+                if maxhit is not None:
                     h = hits.get(starteip, 0)
                     h += 1
                     if h > maxhit:
@@ -318,7 +315,7 @@ class WorkspaceEmulator:
 
                 # If we ran out of path (branches that went
                 # somewhere that we couldn't follow?
-                if self.curpath == None:
+                if self.curpath is None:
                     break
 
                 try:
@@ -334,7 +331,7 @@ class WorkspaceEmulator:
 
 
                         if self.emustop:
-                            return 
+                            return
 
                     # Execute the opcode
                     self.executeOpcode(op)
@@ -349,7 +346,7 @@ class WorkspaceEmulator:
                             print("funcva: 0x%x opva: 0x%x:  %r   %r (in emumon posthook)" % (funcva, starteip, op, e))
 
                         if self.emustop:
-                            return 
+                            return
 
                     iscall = self.checkCall(starteip, endeip, op)
                     if self.emustop:
@@ -362,7 +359,7 @@ class WorkspaceEmulator:
                         if len(blist):
                             # pc in the snap will be wrong, but over-ridden at restore
                             esnap = self.getEmuSnap()
-                            for bva,bpath in blist:
+                            for bva, bpath in blist:
                                 todo.append((bva, esnap, bpath))
                             break
 
@@ -371,20 +368,19 @@ class WorkspaceEmulator:
                     if op.iflags & envi.IF_RET:
                         vg_path.setNodeProp(self.curpath, 'cleanret', True)
                         break
-
-                except envi.UnsupportedInstruction, e:
+                except envi.UnsupportedInstruction as e:
                     if self.strictops:
                         logger.debug('runFunction failed: unsupported instruction: 0x%08x %s', e.op.va, e.op.mnem)
                         break
                     else:
-                        logger.debug('runFunction continuing after unsupported instruction: 0x%08x %s' % (e.op.va, e.op.mnem))
-                        self.setProgramCounter(e.op.va+ e.op.size)
-                except Exception, e:
-                    #traceback.print_exc()
-                    if self.emumon != None:
+                        logger.debug('runFunction continuing after unsupported instruction: 0x%08x %s', e.op.va, e.op.mnem)
+                        self.setProgramCounter(e.op.va + e.op.size)
+                except Exception as e:
+                    # traceback.print_exc()
+                    if self.emumon is not None:
                         self.emumon.logAnomaly(self, starteip, str(e))
 
-                    break # If we exc during execution, this branch is dead.
+                    break  # If we exc during execution, this branch is dead.
 
     def getCallApi(self, va):
         '''

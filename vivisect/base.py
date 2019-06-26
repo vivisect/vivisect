@@ -152,7 +152,7 @@ class VivEventDist(VivEventCore):
 def ddict():
     return collections.defaultdict(dict)
 
-class VivWorkspaceCore(object,viv_impapi.ImportApi):
+class VivWorkspaceCore(object, viv_impapi.ImportApi):
 
     def __init__(self):
         viv_impapi.ImportApi.__init__(self)
@@ -224,7 +224,7 @@ class VivWorkspaceCore(object,viv_impapi.ImportApi):
 
     def _handleADDRELOC(self, einfo):
         if len(einfo) == 2:     # FIXME: legacy: remove after 02/13/2020
-            rva,rtype = einfo
+            rva, rtype = einfo
             mmva, mmsz, mmperm, fname = self.getMemoryMap(rva)    # FIXME: getFileByVa does not obey file defs
             imgbase = self.getFileMeta(fname, 'imagebase')
             data = None
@@ -673,7 +673,8 @@ def trackDynBranches(cfctx, op, vw, bflags, branches):
     if len(vw.getXrefsFrom(op.va)):
         return
 
-    if vw.verbose: print "Dynamic Branch found at 0x%x    %s" % (op.va, op)
+    if vw.verbose:
+        print("Dynamic Branch found at 0x%x    %s" % (op.va, op))
     vw.setVaSetRow('DynamicBranches', (op.va, repr(op), bflags))
 
 class VivCodeFlowContext(e_codeflow.CodeFlowContext):
@@ -701,7 +702,7 @@ class VivCodeFlowContext(e_codeflow.CodeFlowContext):
     def _cb_opcode(self, va, op, branches):
 
         loc = self._mem.getLocation(va)
-        if loc  == None: 
+        if loc is None:
 
             # dont code flow through import calls
             branches = [br for br in branches if not self._mem.isLocType(br[0],LOC_IMPORT)]
