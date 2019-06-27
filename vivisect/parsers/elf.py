@@ -117,6 +117,8 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
     vw.addNoReturnApi("*._exit")
     vw.addNoReturnApi("*.longjmp")
     vw.addNoReturnApi("*._setjmp")
+    vw.addNoReturnApi("*.j__ZSt9terminatev")
+    vw.addNoReturnApi("*.std::terminate(void)")
 
     # Base addr is earliest section address rounded to pagesize
     # NOTE: This is only for prelink'd so's and exe's.  Make something for old style so.
@@ -491,7 +493,7 @@ def applyRelocs(elf, vw, addbase=False, baseaddr=0):
                         logger.info('R_ARM_JUMP_SLOT: adding Relocation 0x%x -> 0x%x (%s) ', rlva, ptr, dmglname)
                         vw.addRelocation(rlva, vivisect.RTYPE_BASEOFF, ptr)
                         pname = "ptr_%s" % name
-                        if vw.vaByName(pname) == None:
+                        if vw.vaByName(pname) is None:
                             vw.makeName(rlva, pname)
 
                         if addbase: ptr += baseaddr
@@ -512,7 +514,7 @@ def applyRelocs(elf, vw, addbase=False, baseaddr=0):
                         logger.info('R_ARM_GLOB_DAT: adding Relocation 0x%x -> 0x%x (%s) ', rlva, ptr, dmglname)
                         vw.addRelocation(rlva, vivisect.RTYPE_BASEOFF, ptr)
                         pname = "ptr_%s" % name
-                        if vw.vaByName(pname) == None:
+                        if vw.vaByName(pname) is None:
                             vw.makeName(rlva, pname)
 
                         if addbase: ptr += baseaddr
@@ -531,6 +533,10 @@ def applyRelocs(elf, vw, addbase=False, baseaddr=0):
                     if ptr:
                         logger.info('R_ARM_ABS32: adding Relocation 0x%x -> 0x%x (%s) ', rlva, ptr, dmglname)
                         vw.addRelocation(rlva, vivisect.RTYPE_BASEOFF, ptr)
+                        pname = "ptr_%s" % name
+                        if vw.vaByName(pname) is None and len(name):
+                            vw.makeName(rlva, pname)
+
                     else:
                         logger.info('R_ARM_ABS32: adding Import 0x%x (%s) ', rlva, dmglname)
                         vw.makeImport(rlva, "*", name)
