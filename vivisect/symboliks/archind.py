@@ -2,7 +2,7 @@
 Utilities for generating "archetecture independant" ASTs.
 '''
 from vivisect.const import *
-from vivisect.symboliks.common import * 
+from vivisect.symboliks.common import *
 
 def wipeAstArch(symctx, symobjs, emu=None, wipeva=False):
     '''
@@ -46,7 +46,7 @@ def wipeAstArch(symctx, symobjs, emu=None, wipeva=False):
     # for constants to map new symobj id -> oldsym
     idtova = {}
     # for registers to map new symobj id -> oldsym
-    idtoold = {} 
+    idtoold = {}
     # a tree walker to frob reg vars
     def normast(path,oldsym,ctx):
         # are we wipping away consts?
@@ -79,19 +79,20 @@ def wipeAstArch(symctx, symobjs, emu=None, wipeva=False):
     # frob regs
     symobjs = [ s.walkTree(normast) for s in symobjs ]
     # force the solver cache to populate
-    [ s.solve(emu=emu) for s in symobjs ]
+    [s.solve(emu=emu) for s in symobjs]
     # retrieve all "position hashes" or whatever...
     vapos = []
     sympos = []
-    def gatherpos(path,symobj,ctx):
-        if idtova.get(symobj._sym_id) != None:
-            poshash = 'va:' + (':'.join([ '%.8x' % s.solve(emu=emu) for s in path ]))
-            vapos.append( (poshash, symobj._sym_id) )
+
+    def gatherpos(path, symobj, ctx):
+        if idtova.get(symobj._sym_id) is not None:
+            poshash = 'va:' + (':'.join(['%.8x' % s.solve(emu=emu) for s in path]))
+            vapos.append((poshash, symobj._sym_id))
             return
 
-        if idtoold.get(symobj._sym_id) != None:
-            poshash = 'sym:' + (':'.join([ '%.8x' % s.solve(emu=emu) for s in path ]))
-            sympos.append( (poshash,symobj._sym_id) )
+        if idtoold.get(symobj._sym_id) is not None:
+            poshash = 'sym:' + (':'.join(['%.8x' % s.solve(emu=emu) for s in path]))
+            sympos.append((poshash, symobj._sym_id))
             return
 
     [ s.walkTree(gatherpos) for s in symobjs ]

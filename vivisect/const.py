@@ -111,17 +111,17 @@ LOC_PAD     = 10  # A sequence of bytes which is a pad (string nulls, MS hotpatc
 LOC_MAX     = 11
 
 loc_type_names = {
-        LOC_UNDEF:'Undefined',
-        LOC_NUMBER:'Num/Int',
-        LOC_STRING:'String',
-        LOC_UNI:'Unicode',
-        LOC_POINTER:'Pointer',
-        LOC_OP:'Opcode',
-        LOC_STRUCT:'Structure',
-        LOC_CLSID:'Clsid',
-        LOC_VFTABLE:'VFTable',
-        LOC_IMPORT:'Import Entry',
-        LOC_PAD:'Pad'
+        LOC_UNDEF: 'Undefined',
+        LOC_NUMBER: 'Num/Int',
+        LOC_STRING: 'String',
+        LOC_UNI: 'Unicode',
+        LOC_POINTER: 'Pointer',
+        LOC_OP: 'Opcode',
+        LOC_STRUCT: 'Structure',
+        LOC_CLSID: 'Clsid',
+        LOC_VFTABLE: 'VFTable',
+        LOC_IMPORT: 'Import Entry',
+        LOC_PAD: 'Pad'
 }
 
 # Location tuples contain the following fields indexes.  Many types of

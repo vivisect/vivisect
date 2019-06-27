@@ -48,7 +48,7 @@ def makeStringTable(vw, va, maxva):
                 l = vw.makeString(va)
                 va += l[vivisect.L_SIZE]
             except Exception, e:
-                logger.warn("makeStringTable\t%r",e)
+                logger.warn("makeStringTable\t%r", e)
                 return
 
 def makeSymbolTable(vw, va, maxva):
@@ -154,8 +154,9 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
             bytez = elf.readAtOffset(pgm.p_offset, pgm.p_filesz)
             bytez += "\x00" * (pgm.p_memsz - pgm.p_filesz)
             pva = pgm.p_vaddr
-            if addbase: pva += baseaddr
-            vw.addMemoryMap(pva, pgm.p_flags & 0x7, fname, bytez) #FIXME perms
+            if addbase:
+                pva += baseaddr
+            vw.addMemoryMap(pva, pgm.p_flags & 0x7, fname, bytez)  # FIXME perms
         else:
             logger.info('Skipping: %s', repr(pgm))
 
@@ -318,7 +319,7 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
                 try:
                     vw.addExport(sva, EXP_DATA, s.name, fname)
                     vw.setComment(sva, dmglname)
-                except Exception, e:
+                except Exception as e:
                     vw.vprint('WARNING: %s' % e)
 
         elif stype == Elf.STT_HIOS:
@@ -331,7 +332,7 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
                     new_functions.append(("DynSym: STT_HIOS", sva))
                     vw.addExport(sva, EXP_FUNCTION, s.name, fname)
                     vw.setComment(sva, dmglname)
-                except Exception, e:
+                except Exception as e:
                     vw.vprint('WARNING: %s' % e)
 
         elif stype == 14:# OMG WTF FUCK ALL THIS NONSENSE! FIXME
@@ -341,7 +342,7 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
                 try:
                     vw.addExport(sva, EXP_DATA, s.name, fname)
                     vw.setComment(sva, dmglname)
-                except Exception, e:
+                except Exception as e:
                     vw.vprint('WARNING: %s' % e)
 
         else:
@@ -436,7 +437,7 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
     if vw.isValidPointer(eentry):
         vw.addExport(eentry, EXP_FUNCTION, '__entry', fname)
         new_functions.append(("ELF Entry", eentry))
-        
+
     if vw.isValidPointer(baseaddr):
         vw.makeStructure(baseaddr, "elf.Elf32")
 

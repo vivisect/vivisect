@@ -1,10 +1,9 @@
+import sys
 import unittest
 
 import vivisect.symboliks.analysis as vsym_analysis
 
-class MockVw(object):
-    def __init__(self, *args, **kwargs):
-        self.psize = 4
+from vivisect.tests.helpers import MockVw
 
 class MockVar(object):
     def __init__(self, va):
@@ -40,14 +39,13 @@ class AnalysisTests(unittest.TestCase):
         self.assertIs(offset, None)
 
 
-import sys
 import vivisect.tests.vivbins as vivbins
-from vivisect.tests.vivbins import getTestWorkspace, getAnsWorkspace
-def cb_astNodeCount(path,obj,ctx):
+from vivisect.tests.vivbins import getAnsWorkspace
+def cb_astNodeCount(path, obj, ctx):
     ctx['count'] += 1
     if len(path) > ctx['depth']:
         ctx['depth'] = len(path)
-    #print "\n\t%r\n\t\t%s" % (obj, '\n\t\t'.join([repr(x) for x in path]))
+    # print("\n\t%r\n\t\t%s" % (obj, '\n\t\t'.join([repr(x) for x in path])))
 
 
 class WalkTreeTest(unittest.TestCase):
@@ -63,17 +61,16 @@ class WalkTreeTest(unittest.TestCase):
         try:
             vw = getAnsWorkspace('test_elf_i386')
             walkTreeDoer(vw)
-        except Exception as e:
+        except Exception:
             sys.excepthook(*sys.exc_info())
 
 
-        
 def walkTreeDoer(vw):
     sctx = vsym_analysis.getSymbolikAnalysisContext(vw)
 
     count = 0
     for fva in vw.getFunctions():
-        ctx = {'depth':0, 'count':0}
+        ctx = {'depth': 0, 'count': 0}
         count += 1
         #print "(%d) 0x%x done" % (count, fva)
         #raw_input("============================================================")
@@ -84,24 +81,24 @@ def walkTreeDoer(vw):
                 continue
             eff = effs[-1]
 
-            #print "=====\n %r \n=====" % (eff)
+            # print("=====\n %r \n=====" % (eff))
             # this is ugly
             symast = getattr(eff, 'symobj', None)
 
-            if symast == None:
+            if symast is None:
                 symast = getattr(eff, 'addrsym', None)
 
-            if symast == None:
+            if symast is None:
                 symast = getattr(eff, 'cons', None)
 
-            if symast == None:
+            if symast is None:
                 symast = getattr(eff, 'funcsym', None)
-            if symast == None:
+            if symast is None:
                 symast = getattr(eff, 'argsyms', None)
 
-            if symast == None:
+            if symast is None:
                 symast = getattr(eff, 'symaddr', None)
-            if symast == None:
+            if symast is None:
                 symast = getattr(eff, 'symval', None)
 
 
