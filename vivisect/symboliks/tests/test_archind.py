@@ -29,7 +29,7 @@ class TestArchind(unittest.TestCase):
         self.assertEquals(1, len(wiped))
         self.assertEquals('((mem[(arg0 + 1indreg()):4] + 0indreg) * 0indreg)', str(wiped[0]))
 
-    def test_wipAstArch_wipeva(self):
+    def test_wipeAstArch_wipeva(self):
         vw = viv.VivWorkspace()
         vw.addMemoryMap(0x410000, e_mem.MM_RWX, 'code', [0 for x in range(0xFFFF)])
         vw.addLocation(0x41b2ac, 47, viv_const.LOC_POINTER)
