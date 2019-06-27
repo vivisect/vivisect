@@ -492,7 +492,7 @@ def applyRelocs(elf, vw, addbase=False, baseaddr=0):
                     if ptr:
                         logger.info('R_ARM_JUMP_SLOT: adding Relocation 0x%x -> 0x%x (%s) ', rlva, ptr, dmglname)
                         vw.addRelocation(rlva, vivisect.RTYPE_BASEOFF, ptr)
-                        pname = "ptr_%s" % name
+                        pname = "ptr_%s_%.8x" % (name, rlva)
                         if vw.vaByName(pname) is None:
                             vw.makeName(rlva, pname)
 
