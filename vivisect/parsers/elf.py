@@ -445,7 +445,7 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
     # for now, ignore them.
     for cmnt, fva in new_functions:
         logger.info('adding function from ELF metadata: 0x%x (%s)', fva, cmnt)
-        vw.makeFunction(fva)
+        vw.addEntryPoint(fva)
 
     for va, tva in new_pointers:
         logger.info('adding pointer 0x%x -> 0x%x', va, tva)
