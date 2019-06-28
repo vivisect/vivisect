@@ -21,6 +21,7 @@ Send bug reports to Invisigoth or Metr0.
 import os
 import sys
 import struct
+import logging
 import traceback
 import zlib
 
@@ -30,6 +31,9 @@ import vstruct
 import vstruct.defs.elf as vs_elf
 
 verbose = False
+
+logger = logging.getLogger(__name__)
+
 
 class ElfReloc:
     """
@@ -43,7 +47,7 @@ class ElfReloc:
         self.name = ""
 
     def __repr__(self):
-        return "reloc: @%s %d %s" % (hex(self.r_offset),self.getType(),self.getName())
+        return "reloc: @%s %d %s" % (hex(self.r_offset), self.getType(), self.getName())
 
     def setName(self, name):
         self.name = name
@@ -54,6 +58,7 @@ class ElfReloc:
     def getType(self):
         return self.r_info & 0xff
 
+
 class Elf32Reloc(ElfReloc, vs_elf.Elf32Reloc):
     def __init__(self, bigend=False):
         vs_elf.Elf32Reloc.__init__(self, bigend=bigend)
@@ -61,6 +66,7 @@ class Elf32Reloc(ElfReloc, vs_elf.Elf32Reloc):
 
     def getSymTabIndex(self):
         return self.r_info >> 8
+
 
 class Elf32Reloca(ElfReloc, vs_elf.Elf32Reloca):
     def __init__(self, bigend=False):
@@ -70,6 +76,7 @@ class Elf32Reloca(ElfReloc, vs_elf.Elf32Reloca):
     def getSymTabIndex(self):
         return self.r_info >> 8
 
+
 class Elf64Reloc(ElfReloc, vs_elf.Elf64Reloc):
     def __init__(self, bigend=False):
         vs_elf.Elf64Reloc.__init__(self, bigend=bigend)
@@ -77,6 +84,7 @@ class Elf64Reloc(ElfReloc, vs_elf.Elf64Reloc):
 
     def getSymTabIndex(self):
         return self.r_info >> 32
+
 
 class Elf64Reloca(ElfReloc, vs_elf.Elf64Reloca):
     def __init__(self, bigend=False):
@@ -86,12 +94,13 @@ class Elf64Reloca(ElfReloc, vs_elf.Elf64Reloca):
     def getSymTabIndex(self):
         return self.r_info >> 32
 
+
 class ElfDynamic:
-    has_string = [DT_NEEDED,DT_SONAME]
     """
     An object to represent an Elf dynamic entry.
     (linker/loader directives)
     """
+    has_string = [DT_NEEDED, DT_SONAME]
 
     def __init__(self, bytes=None):
         self.name = ""
@@ -100,7 +109,7 @@ class ElfDynamic:
         name = self.getName()
         if not name:
             name = hex(self.d_value)
-        return "%s %s" % (name,self.getTypeName())
+        return "%s %s" % (name, self.getTypeName())
 
     def getName(self):
         return self.name
@@ -109,7 +118,7 @@ class ElfDynamic:
         self.name = name
 
     def getTypeName(self):
-        return dt_types.get(self.d_tag,"Unknown: %s"%hex(self.d_tag))
+        return dt_types.get(self.d_tag, "Unknown: %s"%hex(self.d_tag))
 
 class Elf32Dynamic(ElfDynamic, vs_elf.Elf32Dynamic):
     def __init__(self, bigend=False):
@@ -136,7 +145,7 @@ class ElfSymbol:
             return 1
         return -1
 
-    def setName(self,name):
+    def setName(self, name):
         self.name = name
 
     def getName(self):
@@ -320,13 +329,13 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
             secbytes = self.readAtOffset(sbase, self.e_shnum * slen)
 
             secs = sec * self.e_shnum
-            vstruct.VArray(elems=secs).vsParse(secbytes,fast=True)
+            vstruct.VArray(elems=secs).vsParse(secbytes, fast=True)
 
             self.sections.extend(secs)
 
             # Populate the section names
             strsec = self.sections[self.e_shstrndx]
-            names = self.readAtOffset(strsec.sh_offset,strsec.sh_size)
+            names = self.readAtOffset(strsec.sh_offset, strsec.sh_size)
             for sec in self.sections:
                 name = names[sec.sh_name:].split("\x00")[0]
                 if len(name) > 0:
@@ -342,10 +351,10 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
                 sym = self._cls_symbol(bigend=self.bigend)
                 symtab = self.readAtOffset(sec.sh_offset, sec.sh_size)
 
-                count,remain = divmod(sec.sh_size,len(sym))
+                count, remain = divmod(sec.sh_size, len(sym))
                 syms = sym * count
 
-                vstruct.VArray(elems=syms).vsParse(symtab,fast=True)
+                vstruct.VArray(elems=syms).vsParse(symtab, fast=True)
 
                 for sym in syms:
                     if sym.st_name:
@@ -356,17 +365,17 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
 
     def _parseDynamic(self):
         symtab = self.getSectionBytes('.dynsym')
-        if symtab == None:
+        if symtab is None:
             return
 
         sym = self._cls_symbol(bigend=self.bigend)
         syms = sym * (len(symtab) / len(sym))
-        vstruct.VArray(elems=syms).vsParse(symtab,fast=True)
+        vstruct.VArray(elems=syms).vsParse(symtab, fast=True)
 
         for sym in syms:
             if not sym.st_name:
                 continue
-            name = self.getStrtabString(sym.st_name,".dynstr")
+            name = self.getStrtabString(sym.st_name, ".dynstr")
             sym.setName(name)
 
         self.dynamic_symbols.extend(syms)
@@ -395,7 +404,7 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
         sh_type == SHT_REL
         """
         for sec in self.sections:
-            if sec.sh_type not in (SHT_REL,SHT_RELA):
+            if sec.sh_type not in (SHT_REL, SHT_RELA):
                 continue
 
             reloccls = self._cls_reloc
@@ -404,10 +413,10 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
 
             secbytes = self.readAtOffset(sec.sh_offset, sec.sh_size)
             reloc = reloccls(bigend=self.bigend)
-            count, remain = divmod(len(secbytes),len(reloc))
+            count, remain = divmod(len(secbytes), len(reloc))
 
             relocs = reloc * count
-            vstruct.VArray(elems=relocs).vsParse(secbytes,fast=True)
+            vstruct.VArray(elems=relocs).vsParse(secbytes, fast=True)
 
             for reloc in relocs:
                 index = reloc.getSymTabIndex()
@@ -438,14 +447,14 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
             if pgm.p_vaddr == 0:
                 continue
 
-            if base == None:
+            if base is None:
                 base = pgm.p_vaddr
                 continue
 
             if pgm.p_vaddr < base:
                 base = pgm.p_vaddr
 
-        if base == None:
+        if base is None:
             base = 0x20000000
 
         base &= 0xfffff000
@@ -480,7 +489,7 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
             rvaoff = rva - phrva
             return pgm.p_offset + rvaoff
 
-        raise 'omg',hex(rva)
+        raise ('omg', hex(rva))
         return None
 
     def readAtOffset(self, off, size):
@@ -491,7 +500,7 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
         return self.fd.read(size)
 
     def getSection(self, secname):
-        return self.secnames.get(secname,None)
+        return self.secnames.get(secname, None)
 
     def getSections(self):
         """
@@ -501,7 +510,7 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
 
     def getSectionBytes(self, secname):
         sec = self.getSection(secname)
-        if sec == None:
+        if sec is None:
             return None
         return self.readAtOffset(sec.sh_offset, sec.sh_size)
 
@@ -518,25 +527,27 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
 
         Example:
             for note in e.getNotes():
-                print('%s : %d' % (e.name,e.ntype))
+                print('%s : %d' % (e.name, e.ntype))
         '''
         for sec in self.getSections():
             if sec.sh_type != SHT_NOTE:
                 continue
 
             try:
-                notebytes =  self.readAtOffset(sec.sh_offset, sec.sh_size)
+                notebytes = self.readAtOffset(sec.sh_offset, sec.sh_size)
                 offset = 0
                 notebyteslen = len(notebytes)
                 while offset < notebyteslen:
                     note = vs_elf.ElfNote()
                     if notebyteslen - offset < len(note):
-                        #print ("\nNOTES section length mismatch!\n\t%s\n\tSection Bytes: %s\n\tStranded bytes: %s\n" % (sec, repr(notebytes), repr(notebytes[offset:])))
+                        logger.warn("""\nNOTES section length mismatch!\n\t%s
+                                \tSection Bytes: %s\n\tStranded bytes: %s\n""",
+                                sec, repr(notebytes), repr(notebytes[offset:]))
                         break
 
-                    offset = note.vsParse(notebytes,offset=offset)
+                    offset = note.vsParse(notebytes, offset=offset)
                     yield note
-            except Exception, e:
+            except Exception as e:
                 print("Elf.getNotes() Exception: %r" % e)
 
     def getPlatform(self):
@@ -550,7 +561,7 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
         for note in self.getNotes():
             if note.name == 'GNU\x00' and note.ntype == 1:
                 desc0 = int(note.desc[0])
-                return osnotes.get(desc0,'unknown')
+                return osnotes.get(desc0, 'unknown')
 
         return 'unknown'
 
