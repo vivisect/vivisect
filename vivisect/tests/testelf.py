@@ -26,13 +26,15 @@ class ELFTests(unittest.TestCase):
         cls.vw_sh.loadFromFile(cls.sh_fn)
         cls.vw_sh.analyze()
 
-    def test_files(self):
+    def test_ls(self):
         print "self.ls_fn:  %s" % self.ls_fn
         self.do_file(self.vw_ls, ls_data)
 
+    def test_libc(self):
         print "self.libc_fn:  %s" % self.libc_fn
         self.do_file(self.vw_libc, libc_data)
 
+    def test_sh(self):
         print "self.sh_fn:  %s" % self.sh_fn
         self.do_file(self.vw_sh, sh_data)
 
@@ -55,11 +57,16 @@ class ELFTests(unittest.TestCase):
 
     def relocs(self, vw, data):
         # simple comparison to ensure same relocs.  perhaps too simple.
-        newrels = vw.getExports()
+        newrels = vw.getRelocations()
         self.assertEqual(newrels, data['relocs'])
 
     def pltgot(self, vw, data):
-        pass
+        for pltva, gotva in data['pltgot']:
+            match = False
+            for xfr, xto, xtype, xinfo in vw.getXrefsFrom(pltva):
+                if xfr == pltva and xto == gotva:
+                    match = True
+            self.assertEqual((hex(pltva), match), (hex(pltva), True))
 
     def debuginfosyms(self, vw, data):
         # we don't currently parse debugging symbols.
