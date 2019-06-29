@@ -468,20 +468,29 @@ def applyRelocs(elf, vw, addbase=False, baseaddr=0):
             logger.debug('relocs: 0x%x: %r', rlva, name)
             if arch in ('i386','amd64'):
                 if name:
-                    if rtype == Elf.R_386_JMP_SLOT:
+                    if rtype in (Elf.R_386_JMP_SLOT, Elf.R_X86_64_GLOB_DAT):
                         vw.makeImport(rlva, "*", name)
                         vw.setComment(rlva, dmglname)
 
-                    elif rtype == Elf.R_386_32:
+                    elif rtype in (Elf.R_386_32, Elf.R_386_COPY):
                         pass
-
-                    elif rtype == Elf.R_X86_64_GLOB_DAT:    # Elf.R_386_GLOB_DAT is same number
-                        vw.makeImport(rlva, "*", name)
-                        vw.setComment(rlva, dmglname)
 
                     else:
                         logger.info('unknown reloc type: %d %s (at %s)' % (rtype, name, hex(rlva)))
-                        
+                       
+                else:
+                    symidx = Elf.getRelocSymTabIndex(r.r_info)
+                    sym = dsyms[symidx]
+                    ptr = sym.st_value
+
+                    if rtype in (Elf.R_386_RELATIVE, ):
+                        ptr = vw.readMemoryPtr(rlva)
+                        logger.info('R_386_RELATIVE: adding Relocation 0x%x -> 0x%x (name: %s) ', rlva, ptr, dmglname)
+                        vw.addRelocation(rlva, vivisect.RTYPE_BASEOFF, ptr)
+
+                    else:
+                        logger.info('unknown reloc type: %d %s (at %s)' % (rtype, name, hex(rlva)))
+
 
             if arch in ('arm', 'thumb', 'thumb16'):
                 if rtype == Elf.R_ARM_JUMP_SLOT:
