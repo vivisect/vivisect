@@ -11,6 +11,14 @@ def analyze(vw):
     if vw.verbose:
         vw.vprint('...analyzing pointers.')
 
+    # Let's analyze and Relocations we know are pointers
+    for rva, rtype in self.reloc_by_va.items():
+        if rtype != RTYPE_BASEPTR:
+            continue
+
+        for xfr, xto, xtype in vw.getXrefsFrom(rva):
+            vw.analyzePointer(xto)
+
     # Now, lets find likely free-hanging pointers
     for addr, pval in vw.findPointers():
         if vw.isDeadData(pval):

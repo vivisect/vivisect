@@ -445,10 +445,15 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
     # for now, ignore them.
     for cmnt, fva in new_functions:
         logger.info('adding function from ELF metadata: 0x%x (%s)', fva, cmnt)
-        vw.addEntryPoint(fva)
+        vw.addEntryPoint(fva)   # addEntryPoint queue's code analysis for later in the analysis pass
 
     for va, tva in new_pointers:
         logger.info('adding pointer 0x%x -> 0x%x', va, tva)
+        if tva is not None:
+            vw.makePointer(va, tva, follow=False)   # depend on Pointer Analysis module, after code analysis
+        else:
+            vw.makePointer(va, follow=False)
+
     return fname
 
 def applyRelocs(elf, vw, addbase=False, baseaddr=0):
@@ -486,7 +491,7 @@ def applyRelocs(elf, vw, addbase=False, baseaddr=0):
                     if rtype in (Elf.R_386_RELATIVE, ):
                         ptr = vw.readMemoryPtr(rlva)
                         logger.info('R_386_RELATIVE: adding Relocation 0x%x -> 0x%x (name: %s) ', rlva, ptr, dmglname)
-                        vw.addRelocation(rlva, vivisect.RTYPE_BASEOFF, ptr)
+                        vw.addRelocation(rlva, vivisect.RTYPE_BASEPTR, ptr)
 
                     else:
                         logger.info('unknown reloc type: %d %s (at %s)' % (rtype, name, hex(rlva)))
@@ -501,7 +506,7 @@ def applyRelocs(elf, vw, addbase=False, baseaddr=0):
                     #quick check to make sure we don't provide this symbol
                     if ptr:
                         logger.info('R_ARM_JUMP_SLOT: adding Relocation 0x%x -> 0x%x (%s) ', rlva, ptr, dmglname)
-                        vw.addRelocation(rlva, vivisect.RTYPE_BASEOFF, ptr)
+                        vw.addRelocation(rlva, vivisect.RTYPE_BASEPTR, ptr)
                         pname = "ptr_%s_%.8x" % (name, rlva)
                         if vw.vaByName(pname) is None:
                             vw.makeName(rlva, pname)
@@ -509,6 +514,7 @@ def applyRelocs(elf, vw, addbase=False, baseaddr=0):
                         if addbase: ptr += baseaddr
                         vw.makeName(ptr, name)
                         vw.setComment(ptr, dmglname)
+
                     else:
                         logger.info('R_ARM_JUMP_SLOT: adding Import 0x%x (%s) ', rlva, dmglname)
                         vw.makeImport(rlva, "*", name)
@@ -522,7 +528,7 @@ def applyRelocs(elf, vw, addbase=False, baseaddr=0):
                     #quick check to make sure we don't provide this symbol
                     if ptr:
                         logger.info('R_ARM_GLOB_DAT: adding Relocation 0x%x -> 0x%x (%s) ', rlva, ptr, dmglname)
-                        vw.addRelocation(rlva, vivisect.RTYPE_BASEOFF, ptr)
+                        vw.addRelocation(rlva, vivisect.RTYPE_BASEPTR, ptr)
                         pname = "ptr_%s" % name
                         if vw.vaByName(pname) is None:
                             vw.makeName(rlva, pname)
@@ -530,6 +536,7 @@ def applyRelocs(elf, vw, addbase=False, baseaddr=0):
                         if addbase: ptr += baseaddr
                         vw.makeName(ptr, name)
                         vw.setComment(ptr, dmglname)
+
                     else:
                         logger.info('R_ARM_GLOB_DAT: adding Import 0x%x (%s) ', rlva, dmglname)
                         vw.makeImport(rlva, "*", name)
@@ -542,7 +549,7 @@ def applyRelocs(elf, vw, addbase=False, baseaddr=0):
 
                     if ptr:
                         logger.info('R_ARM_ABS32: adding Relocation 0x%x -> 0x%x (%s) ', rlva, ptr, dmglname)
-                        vw.addRelocation(rlva, vivisect.RTYPE_BASEOFF, ptr)
+                        vw.addRelocation(rlva, vivisect.RTYPE_BASEPTR, ptr)
                         pname = "ptr_%s" % name
                         if vw.vaByName(pname) is None and len(name):
                             vw.makeName(rlva, pname)
@@ -556,7 +563,7 @@ def applyRelocs(elf, vw, addbase=False, baseaddr=0):
                 elif rtype == Elf.R_ARM_RELATIVE:   # Adjust locations for the rebasing
                     ptr = vw.readMemoryPtr(rlva)
                     logger.info('R_ARM_RELATIVE: adding Relocation 0x%x -> 0x%x (name: %s) ', rlva, ptr, dmglname)
-                    vw.addRelocation(rlva, vivisect.RTYPE_BASEOFF, ptr)
+                    vw.addRelocation(rlva, vivisect.RTYPE_BASEPTR, ptr)
                     if len(name):
                         vw.makeName(rlva, name, makeuniq=True)
                         vw.setComment(rlva, dmglname)

@@ -239,7 +239,7 @@ class VivWorkspaceCore(object, viv_impapi.ImportApi):
 
         # RTYPE_BASERELOC assumes the memory is already accurate (eg. PE's unless rebased)
 
-        if rtype == RTYPE_BASEOFF:
+        if rtype in (RTYPE_BASEOFF, RTYPE_BASEPTR):
             # add imgbase and offset to pointer in memory
             # 'data' arg must be 'offset' number
             ptr = imgbase + data
@@ -247,13 +247,19 @@ class VivWorkspaceCore(object, viv_impapi.ImportApi):
                 logger.warn('RTYPE_BASEOFF calculated a bad pointer: 0x%x (imgbase: 0x%x)', ptr, imgbase)
 
             # writes are costly, especially on larger binaries
-            if ptr == self.readMemoryPtr(rva):
-                return
-
-            with self.getAdminRights():
-                self.writeMemoryPtr(rva, ptr)
+            if ptr != self.readMemoryPtr(rva):
+                with self.getAdminRights():
+                    self.writeMemoryPtr(rva, ptr)
 
             logger.info('_handleADDRELOC: %x -> %x (map: 0x%x)', rva, ptr, imgbase)
+
+        if rtype == RTYPE_BASEPTR:
+            # make it like a pointer (but one that could move with each load)
+            #   self.addXref(va, tova, REF_PTR)
+            #   ploc = self.addLocation(va, psize, LOC_POINTER)
+            #   don't follow.  handle it later, once "known code" is analyzed
+            self._handleADDXREF((rva, ptr, REF_PTR, 0))
+            self._handleADDLOCATION((rva, self.psize, LOC_POINTER, None))
 
     def _handleADDMODULE(self, einfo):
         print('DEPRICATED (ADDMODULE) ignored: %s' % einfo)
