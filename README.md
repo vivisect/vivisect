@@ -124,7 +124,7 @@ pip install msgpack
 To enable Posix C++ demangling:
 
 ```
-pip install cxxfilter
+pip install cxxfilt
 ```
 ## Build Status
 
