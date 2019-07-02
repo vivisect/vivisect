@@ -389,6 +389,8 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
             else:
                 raise Exception('Platform not supported: %d' % (self.bits))
             dyn.vsParse(dynbytes)
+            logger.debug("dynamic: %r: 0x%x", dt_names.get(dyn.d_tag), dyn.d_value)
+
             if dyn.d_tag in Elf32Dynamic.has_string:
                 name = self.getStrtabString(dyn.d_value, ".dynstr")
                 dyn.setName(name)
