@@ -4,19 +4,26 @@ import vivisect.parsers as viv_parsers
 import vstruct.defs.macho as vs_macho
 import vivisect.analysis.i386 as viv_a_i386
 
-def parseFile(vw, filename):
+def parseFile(vw, filename, baseaddr=None):
     fbytes = file(filename, 'rb').read()
-    return _loadMacho(vw, fbytes, filename=filename)
+    return _loadMacho(vw, fbytes, filename=filename, baseaddr=baseaddr)
 
-def parseBytes(vw, filebytes):
-    return _loadMacho(vw, filebytes)
+def parseBytes(vw, filebytes, baseaddr=None):
+    return _loadMacho(vw, filebytes, baseaddr=baseaddr)
 
-def _loadMacho(vw, filebytes, filename=None):
+archcalls = {
+    'i386':'cdecl',
+    'amd64':'sysvamd64call',
+    'arm':'armcall',
+}
+
+def _loadMacho(vw, filebytes, filename=None, baseaddr=None):
 
     # We fake them to *much* higher than norm so pointer tests do better...
-    baseaddr = vw.config.viv.parsers.macho.baseaddr
+    if baseaddr is None:
+        baseaddr = vw.config.viv.parsers.macho.baseaddr
 
-    if filename == None:
+    if filename is None:
         filename = 'macho_%.8x' % baseaddr # FIXME more than one!
 
     # Check for the FAT binary magic...
@@ -53,7 +60,7 @@ def _loadMacho(vw, filebytes, filename=None):
     macho.vsParse(filebytes)
 
     arch = vs_macho.mach_cpu_names.get(macho.mach_header.cputype)
-    if arch == None:
+    if arch is None:
         raise Exception('Unknown MACH-O arch: %.8x' % macho.mach_header.cputype)
 
     # Setup arch/plat/fmt
@@ -61,8 +68,7 @@ def _loadMacho(vw, filebytes, filename=None):
     vw.setMeta("Platform", "Darwin")
     vw.setMeta("Format", "macho")
 
-    # FIXME 64bit!
-    vw.setMeta("DefaultCall", "cdecl")
+    vw.setMeta('DefaultCall', archcalls.get(arch,'unknown'))
 
     # Add the file entry
     hash = "unknown hash"

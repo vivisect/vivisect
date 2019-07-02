@@ -11,10 +11,9 @@ import visgraph.pathcore as vg_path
 
 from vivisect.const import *
 
-# Pre-initialize a stack memory bytes
-init_stack_map = ''
-for i in xrange(8192/4):
-    init_stack_map += struct.pack("<I", 0xfefe0000+(i*4))
+# Pre-initialize a default stack size
+init_stack_size = 0x7fff
+init_stack_map = b'\xfe' * init_stack_size
 
 def imphook(impname):
 
@@ -48,16 +47,11 @@ class WorkspaceEmulator:
         self.emumon = None
         self.psize = self.getPointerSize()
 
-        self.stack_map_mask = e_bits.sign_extend(0xfff00000, 4, vw.psize)
-        self.stack_map_base = e_bits.sign_extend(0xbfb00000, 4, vw.psize)
-        self.stack_pointer = self.stack_map_base + 4096
-
         # Possibly need an "options" API?
         self._safe_mem = True   # Should we be forgiving about memory accesses?
         self._func_only = True  # is this emulator meant to stay in one function scope?
 
-        # Map in a memory map for the stack
-        self.addMemoryMap(self.stack_map_base, 6, "[stack]", init_stack_map)
+        self.strictops = True   # shoudl we bail on emulation if unsupported instruction encountered
 
         # Map in all the memory associated with the workspace
         for va, size, perms, fname in vw.getMemoryMaps():
@@ -69,14 +63,6 @@ class WorkspaceEmulator:
             regval = self.setVivTaint( 'uninitreg', regidx )
             self.setRegister(regidx, regval)
 
-        self.setStackCounter(self.stack_pointer)
-
-        # Create some pre-made taints for positive stack indexes
-        # NOTE: This is *ugly* for speed....
-        taints = [ self.setVivTaint('funcstack', i * self.psize) for i in xrange(20) ]
-        taintbytes = ''.join([ e_bits.buildbytes(taint,self.psize) for taint in taints ])
-        self.writeMemory(self.stack_pointer, taintbytes )
-
         for name in dir(self):
             val = getattr(self, name, None)
             if val == None:
@@ -87,6 +73,56 @@ class WorkspaceEmulator:
                 continue
 
             self.hooks[impname] = val
+
+        self.stack_map_mask = None
+        self.stack_map_base = None
+        self.stack_map_top = None
+        self.stack_pointer = None
+        self.initStackMemory()
+
+    def initStackMemory(self, stacksize=init_stack_size):
+        '''
+        Setup and initialize stack memory.
+        You may call this prior to emulating instructions.
+        '''
+        if self.stack_map_base is None:
+            self.stack_map_mask = e_bits.sign_extend(0xfff00000, 4, self.vw.psize)
+            self.stack_map_base = e_bits.sign_extend(0xbfb00000, 4, self.vw.psize)
+            self.stack_map_top = self.stack_map_base + stacksize
+            self.stack_pointer = self.stack_map_top
+
+            stack_map = init_stack_map
+            if stacksize != init_stack_size:
+                stack_map = b'\xfe' * stacksize
+
+            # Map in a memory map for the stack
+
+            self.addMemoryMap(self.stack_map_base, 6, "[stack]", stack_map)
+            self.setStackCounter(self.stack_pointer)
+
+            # Create some pre-made taints for positive stack indexes
+            # NOTE: This is *ugly* for speed....
+            taints = [ self.setVivTaint('funcstack', i * self.psize) for i in xrange(20) ]
+            taintbytes = ''.join([ e_bits.buildbytes(taint,self.psize) for taint in taints ])
+
+            self.writeMemory(self.stack_pointer, taintbytes)
+        else:
+            existing_map_size = self.stack_map_top - self.stack_map_base
+            new_map_size = stacksize - existing_map_size
+            if new_map_size < 0:
+                raise RuntimeError('cannot shrink stack')
+
+            new_map_top = self.stack_map_base
+            new_map_base = new_map_top - new_map_size
+
+            stack_map = ''.join([struct.pack('<I', new_map_base+(i*4))
+                                    for i in xrange(new_map_size)])
+
+            self.addMemoryMap(new_map_base, 6, "[stack]", stack_map)
+            self.stack_map_base = new_map_base
+
+            # no need to do tainting here, since SP will always be in the
+            #   first map
 
     def stopEmu(self):
         '''
@@ -112,13 +148,13 @@ class WorkspaceEmulator:
         """
         self.emumon = emumon
 
-    def parseOpcode(self, pc):
+    def parseOpcode(self, va, arch=envi.ARCH_DEFAULT):
         # We can make an opcode *faster* with the workspace because of
         # getByteDef etc... use it.
-        op = self.opcache.get(pc)
-        if op == None:
-            op = envi.Emulator.parseOpcode(self, pc)
-            self.opcache[pc] = op
+        op = self.opcache.get(va)
+        if op is None:
+            op = envi.Emulator.parseOpcode(self, va, arch=arch)
+            self.opcache[va] = op
         return op
 
     def checkCall(self, starteip, endeip, op):
@@ -129,27 +165,24 @@ class WorkspaceEmulator:
         iscall = bool(op.iflags & envi.IF_CALL)
         if iscall:
             api = self.getCallApi(endeip)
-            rtype,rname,convname,callname,funcargs = api
+            rtype, rname, convname, callname, funcargs = api
             callconv = self.getCallingConvention(convname)
             argv = callconv.getCallArgs(self, len(funcargs))
 
             ret = None
-            if self.emumon != None:
+            if self.emumon is not None:
                 try:
                     ret = self.emumon.apicall(self, op, endeip, api, argv)
-                except Exception, e:
+                except Exception as e:
                     self.emumon.logAnomaly(self, endeip, "%s.apicall failed: %s" % (self.emumon.__class__.__name__, e))
 
             hook = self.hooks.get(callname)
-            if ret == None and hook:
-                hook( self, callconv, api, argv )
-
+            if ret is None and hook:
+                hook(self, callconv, api, argv)
             else:
-
-                if ret == None:
-                    ret = self.setVivTaint('apicall', (op,endeip,api,argv))
-
-                callconv.execCallReturn( self, ret, len(funcargs) )
+                if ret is None:
+                    ret = self.setVivTaint('apicall', (op, endeip, api, argv))
+                callconv.execCallReturn(self, ret, len(funcargs))
 
             # Either way, if it's a call PC goes to next instruction
             if self._func_only:
@@ -197,9 +230,9 @@ class WorkspaceEmulator:
         # FIXME this should actually check for conditional...
         # If there is more than one branch target, we need a new code block
         if len(blist) > 1:
-            for bva,bflags in blist:
-                if bva == None:
-                    print "Unresolved branch even WITH an emulator?"
+            for bva, bflags in blist:
+                if bva is None:
+                    print("Unresolved branch even WITH an emulator?")
                     continue
 
                 bpath = self.getBranchNode(self.curpath, bva)
@@ -242,19 +275,19 @@ class WorkspaceEmulator:
         vg_path.setNodeProp(self.curpath, 'bva', funcva)
 
         hits = {}
-        todo = [(funcva,self.getEmuSnap(),self.path),]
-        vw = self.vw # Save a dereference many many times
+        todo = [(funcva, self.getEmuSnap(), self.path)]
+        vw = self.vw  # Save a dereference many many times
 
         while len(todo):
 
-            va,esnap,self.curpath = todo.pop()
+            va, esnap, self.curpath = todo.pop()
 
             self.setEmuSnap(esnap)
 
             self.setProgramCounter(va)
 
             # Check if we are beyond our loop max...
-            if maxloop != None:
+            if maxloop is not None:
                 lcount = vg_path.getPathLoopCount(self.curpath, 'bva', va)
                 if lcount > maxloop:
                     continue
@@ -270,7 +303,7 @@ class WorkspaceEmulator:
                     return
 
                 # Check straight hit count...
-                if maxhit != None:
+                if maxhit is not None:
                     h = hits.get(starteip, 0)
                     h += 1
                     if h > maxhit:
@@ -279,7 +312,7 @@ class WorkspaceEmulator:
 
                 # If we ran out of path (branches that went
                 # somewhere that we couldn't follow?
-                if self.curpath == None:
+                if self.curpath is None:
                     break
 
                 try:
@@ -291,7 +324,7 @@ class WorkspaceEmulator:
                         self.emumon.prehook(self, op, starteip)
 
                         if self.emustop:
-                            return 
+                            return
 
                     # Execute the opcode
                     self.executeOpcode(op)
@@ -302,7 +335,7 @@ class WorkspaceEmulator:
                     if self.emumon:
                         self.emumon.posthook(self, op, endeip)
                         if self.emustop:
-                            return 
+                            return
 
                     iscall = self.checkCall(starteip, endeip, op)
                     if self.emustop:
@@ -315,7 +348,7 @@ class WorkspaceEmulator:
                         if len(blist):
                             # pc in the snap will be wrong, but over-ridden at restore
                             esnap = self.getEmuSnap()
-                            for bva,bpath in blist:
+                            for bva, bpath in blist:
                                 todo.append((bva, esnap, bpath))
                             break
 
@@ -324,13 +357,18 @@ class WorkspaceEmulator:
                     if op.iflags & envi.IF_RET:
                         vg_path.setNodeProp(self.curpath, 'cleanret', True)
                         break
-
-                except Exception, e:
-                    #traceback.print_exc()
-                    if self.emumon != None:
+                except envi.UnsupportedInstruction as e:
+                    if self.strictops:
+                        break
+                    else:
+                        print('runFunction continuing after unsupported instruction: 0x%08x %s' % (e.op.va, e.op.mnem))
+                        self.setProgramCounter(e.op.va + e.op.size)
+                except Exception as e:
+                    # traceback.print_exc()
+                    if self.emumon is not None:
                         self.emumon.logAnomaly(self, starteip, str(e))
 
-                    break # If we exc during execution, this branch is dead.
+                    break  # If we exc during execution, this branch is dead.
 
     def getCallApi(self, va):
         '''
@@ -505,7 +543,6 @@ class WorkspaceEmulator:
         return self.uninit_use.keys()
 
     def readMemory(self, va, size):
-
         if self.logread:
             rlog = vg_path.getNodeProp(self.curpath, 'readlog')
             rlog.append((self.getProgramCounter(),va,size))

@@ -6,6 +6,7 @@ Some glue code to do workspace related things based on visgraph
 import sys
 import time
 import envi
+import logging
 import vivisect
 import threading
 import collections
@@ -15,41 +16,57 @@ import visgraph.graphcore as vg_graphcore
 
 xrskip = envi.BR_PROC | envi.BR_DEREF
 
+logger = logging.getLogger()
+
+
+def getNodeWeightHisto(g):
+    '''
+    Takes a graph and returns the following tuple:
+        (weights_to_node, nodes_to_weight, leaves)
+
+    where:
+        weights_to_node - dict using weight as key
+        nodes_to_weight - dict using nodes as key
+        leaves          - dict of nodes without refs from
+    '''
+    nodeweights = g.getHierNodeWeights()
+    leaves = collections.defaultdict(list)
+    weights_to_cb = collections.defaultdict(list)
+
+    # create default dict
+    for cb, weight in sorted(nodeweights.items(), lambda x, y: cmp(y[1], x[1])):
+        if not len(g.getRefsFromByNid(cb)):
+            # leaves is a tuple of (cb, current path, visited nodes)
+            # these are our leaf nodes
+            leaves[weight].append((cb, list(), set()))
+
+        # create histogram
+        weights_to_cb[weight].append((cb, list(), set()))
+
+    return weights_to_cb, nodeweights, leaves
+
 def getLongPath(g, maxpath=1000):
     '''
     Returns a list of list tuples (node id, edge id) representing the longest path
     '''
 
-    todo = collections.defaultdict(list)
-    weights_to_cb = collections.defaultdict(list)
-    # mapping code block -> weight
-    cb_to_weights = {}
-
-    # create default dict
-    for cb, weight in sorted(g.getHierNodeWeights().items(), lambda x,y: cmp(y[1], x[1]) ):
-        if not len(g.getRefsFromByNid(cb)):
-            # todo is a tuple of (cb, current path, visited nodes)
-            # these are our leaf nodes
-            todo[weight].append( (cb, list(), set()) ) 
-        # set code block to weight
-        cb_to_weights[ cb ] = weight 
-        weights_to_cb[weight].append( (cb, list(), set()) )
+    weights_to_cb, cb_to_weights, todo = getNodeWeightHisto(g)
 
     # unique root node code blocks
-    rootnodes = set([cb for cb,nprops in g.getHierRootNodes()]) 
+    rootnodes = set([cb for cb, nprops in g.getHierRootNodes()])
     leafmax = 0
     if len(todo):
-        leafmax = max( todo.keys() )
+        leafmax = max(todo.keys())
 
     invalidret = False
     # if the weight of the longest path to a leaf node
     # is not the highest weight then we need to fix our
-    # path choices by taking the longer path 
-    weightmax = max( weights_to_cb.keys() )
+    # path choices by taking the longer path
+    weightmax = max(weights_to_cb.keys())
     if leafmax != weightmax:
-        todo = weights_to_cb 
-        leafmax = weightmax 
-        invalidret = True 
+        todo = weights_to_cb
+        leafmax = weightmax
+        invalidret = True
 
     pcnt = 0
     rpaths = []
@@ -57,9 +74,9 @@ def getLongPath(g, maxpath=1000):
     # this is our loop that we want to yield out of..
     # start at the bottom of the graph and work our way back up
     for weight in xrange(leafmax, -1, -1):
-        # the todo is a a list of codeblocks a specific level 
+        # the todo is a a list of codeblocks a specific level
         codeblocks = todo.get(weight)
-        if not codeblocks: 
+        if not codeblocks:
             continue
 
         for cbva, paths, visited in codeblocks:
@@ -71,10 +88,10 @@ def getLongPath(g, maxpath=1000):
             while work:
                 cbva, weight, cpath, visited = work.pop()
                 for eid, fromid, toid, einfo in g.getRefsToByNid(cbva):
-                    #print '0x%08x in [%s]' % (fromid, ' '.join(['0x%08x' % va for va in visited])) 
-                    if fromid in visited: 
+                    # print '0x%08x in [%s]' % (fromid, ' '.join(['0x%08x' % va for va in visited])) 
+                    if fromid in visited:
                         continue
-                    
+
                     nweight = cb_to_weights.get(fromid)
                     #print 'cbva: 0x%08x nweight: %d weght: %d fromid: 0x%08x' % (cbva, nweight, weight, 
                     if nweight == weight-1:
@@ -91,11 +108,11 @@ def getLongPath(g, maxpath=1000):
                         newcpath.append( (fromid, None) )
                         newvisited = set(visited)
                         newvisited.add(fromid)
-                        t = (fromid, newcpath, newvisited) 
+                        t = (fromid, newcpath, newvisited)
                         if t not in tleafs[nweight]:
-                            tleafs[ nweight ].append( t )
+                            tleafs[nweight].append(t)
 
-                if cbva in rootnodes: 
+                if cbva in rootnodes:
                     l = list(cpath)
                     l.reverse()
                     yield l
@@ -129,7 +146,7 @@ def getCoveragePaths(fgraph, maxpath=None):
 
     for root in fgraph.getHierRootNodes():
 
-        proot = vg_pathcore.newPathNode(nid=root, eid=None)
+        proot = vg_pathcore.newPathNode(nid=root[0], eid=None)
         todo = [(root,proot), ]
 
         while todo:
@@ -146,7 +163,7 @@ def getCoveragePaths(fgraph, maxpath=None):
                 yield [ _nodeedge(n) for n in path ]
 
                 pathcnt += 1
-                if pathcnt >= maxpath:
+                if maxpath != None and pathcnt >= maxpath:
                     return
 
             for eid, fromid, toid, einfo in refsfrom:
@@ -158,7 +175,7 @@ def getCoveragePaths(fgraph, maxpath=None):
 
                     # Check if that was the last path we should yield
                     pathcnt += 1
-                    if pathcnt >= maxpath:
+                    if maxpath != None and pathcnt >= maxpath:
                         return
 
                     # If we're at a completed node, take no further branches
@@ -180,83 +197,13 @@ def getCodePathsThru(fgraph, tgtcbva, loopcnt=0, maxpath=None):
             for node,edge in path:
                 ...etc...
     '''    
-    # this starts with the "To" side, finding a path back from tgtcbva to root
-    pathcnt = 0
-    looptrack = []
-    pnode = vg_pathcore.newPathNode(nid=tgtcbva, eid=None)
-
-    node = fgraph.getNode(tgtcbva)
-    todo = [(node,pnode), ]
-
-    while todo:
-
-        node,cpath = todo.pop()
-
-        refsto = fgraph.getRefsTo(node)
-
-        # This is the root node!
-        if node[1].get('rootnode'):
-            path = vg_pathcore.getPathToNode(cpath)
-            path.reverse()
-            # build the path in the right direction
-            newcpath = None
-            lastnk = {'eid':None}
-            for np,nc,nk in path:
-                newcpath = vg_pathcore.newPathNode(parent=newcpath, nid=nk['nid'], eid=lastnk['eid'])
-                lastnk = nk
-
-            for fullpath, count in _getCodePathsThru2(fgraph, tgtcbva, path, newcpath, loopcnt=loopcnt, pathcnt=pathcnt, maxpath=maxpath):
-                yield [ _nodeedge(n) for n in fullpath ]
-            vg_pathcore.trimPath(cpath)
-
-            pathcnt += count
-            if maxpath and pathcnt >= maxpath:
+    cnt = 0
+    for pathto in getCodePathsTo(fgraph, tgtcbva, loopcnt=loopcnt, maxpath=maxpath):
+        for pathfrom in getCodePathsFrom(fgraph, tgtcbva, loopcnt=loopcnt, maxpath=maxpath):
+            yield pathto + pathfrom[1:]
+            cnt += 1
+            if maxpath != None and cnt >= maxpath:
                 return
-
-        for eid, fromid, toid, einfo in refsto:
-            # Skip loops if they are "deeper" than we are allowed
-            loops = vg_pathcore.getPathLoopCount(cpath, 'nid', fromid)
-            if loops > loopcnt:
-                continue
-
-            #vg_pathcore.setNodeProp(cpath, 'eid', eid)
-            #print "-e: %d %x %x %s" % (eid, fromid, toid, repr(einfo))
-            npath = vg_pathcore.newPathNode(parent=cpath, nid=fromid, eid=eid)
-            fromnode = fgraph.getNode(fromid)
-            todo.append((fromnode,npath))
-
-
-def _getCodePathsThru2(fgraph, tgtcbva, path, firstpath, loopcnt=0, pathcnt=0, maxpath=None):
-
-    tgtnode = fgraph.getNode(tgtcbva)
-    todo = [ (tgtnode,firstpath), ]
-
-    while todo:
-
-        node,cpath = todo.pop()
-
-        refsfrom = fgraph.getRefsFrom(node)
-
-        # This is a leaf node!
-        if not refsfrom:
-            path = vg_pathcore.getPathToNode(cpath)
-            yield path, pathcnt
-            vg_pathcore.trimPath(cpath)
-
-            pathcnt += 1
-            if maxpath and pathcnt >= maxpath:
-                return
-
-        for eid, fromid, toid, einfo in refsfrom:
-            # Skip loops if they are "deeper" than we are allowed
-            loops = vg_pathcore.getPathLoopCount(cpath, 'nid', toid)
-            if loops > loopcnt:
-                continue
-
-            npath = vg_pathcore.newPathNode(parent=cpath, nid=toid, eid=eid)
-            tonode = fgraph.getNode(toid)
-            todo.append((tonode,npath))
-
 
 def getCodePathsTo(fgraph, tocbva, loopcnt=0, maxpath=None):
     '''
@@ -398,6 +345,7 @@ def walkCodePaths(fgraph, callback, loopcnt=0, maxpath=None):
     For root nodes, the current path and edge will be None types.  
     '''
     pathcnt = 0
+    routed = fgraph.getMeta('Routed', False)
     for root in fgraph.getHierRootNodes():
         proot = vg_pathcore.newPathNode(nid=root[0], eid=None)
 
@@ -427,6 +375,9 @@ def walkCodePaths(fgraph, callback, loopcnt=0, maxpath=None):
                     return
 
             for eid, fromid, toid, einfo in refsfrom:
+                # skip edges which are not marked "follow"
+                if routed and not einfo.get('follow', False):
+                    continue
                 # Skip loops if they are "deeper" than we are allowed
                 if vg_pathcore.getPathLoopCount(cpath, 'nid', toid) > loopcnt:
                     continue
@@ -501,7 +452,7 @@ def buildFunctionGraph(vw, fva, revloop=False, g=None):
 
     colors = vw.getFunctionMeta(fva, 'BlockColors', default={})
     fcb = vw.getCodeBlock(fva)
-    if fcb == None:
+    if fcb is None:
         t = (fva, vw.isFunction(fva))
         raise Exception('Invalid initial code block for 0x%.8x isfunc: %s' % t)
 
@@ -515,7 +466,7 @@ def buildFunctionGraph(vw, fva, revloop=False, g=None):
 
     while todo:
 
-        (cbva,cbsize,cbfunc),path = todo.pop()
+        (cbva, cbsize, cbfunc), path = todo.pop()
 
         path.append(cbva)
 
@@ -525,7 +476,12 @@ def buildFunctionGraph(vw, fva, revloop=False, g=None):
             g.addNode(nid=cbva, cbva=cbva, cbsize=cbsize, color=bcolor)
 
         # Grab the location for the last instruction in the block
-        lva, lsize, ltype, linfo = vw.getLocation(cbva+cbsize-1)
+        nextva = cbva + cbsize - 1
+        loc = vw.getLocation(nextva)
+        if loc == None:
+            raise Exception("buildFunctionGraph: Attempt to get location at 0x%x" % nextva)
+
+        lva, lsize, ltype, linfo = loc
 
         for xrfrom, xrto, xrtype, xrflags in vw.getXrefsFrom(lva, vivisect.REF_CODE):
 
@@ -536,20 +492,20 @@ def buildFunctionGraph(vw, fva, revloop=False, g=None):
 
             if not g.hasNode(xrto):
                 cblock = vw.getCodeBlock(xrto)
-                if cblock == None:
-                    print 'CB == None in graph building?!?! (0x%x)' % xrto
-                    print '(fva: 0x%.8x cbva: 0x%.8x)' % (fva, xrto)
+                if cblock is None:
+                    logger.warning('CB == None in graph building?!?! (0x%x)' % xrto)
+                    logger.warning('(fva: 0x%.8x cbva: 0x%.8x)' % (fva, xrto))
                     continue
 
                 tova, tosize, tofunc = cblock
                 if tova != xrto:
-                    print 'CBVA != XREFTO in graph building!?'
-                    print '(cbva: 0x%.8x xrto: 0x%.8x)' % (tova, xrto)
+                    logger.warning('CBVA != XREFTO in graph building!?')
+                    logger.warning('(cbva: 0x%.8x xrto: 0x%.8x)' % (tova, xrto))
                     continue
 
                 # Since we haven't seen this node, lets add it to todo
                 # and build a new node for it.
-                todo.append( ((tova,tosize,tofunc), list(path)) )
+                todo.append(((tova,tosize,tofunc), list(path)))
                 bcolor = colors.get(tova, '#0f0')
                 g.addNode(nid=tova, cbva=tova, cbsize=tosize, color=bcolor)
 
@@ -558,7 +514,7 @@ def buildFunctionGraph(vw, fva, revloop=False, g=None):
                 g.addEdgeByNids(xrto, cbva, reverse=True)
             else:
                 g.addEdgeByNids(cbva, xrto)
-                
+
         if ltype == vivisect.LOC_OP and linfo & envi.IF_NOFALL:
             continue
 
@@ -612,61 +568,147 @@ def getGraphNodeByVa(fgraph, va):
             return nva
     return None
 
+def findRemergeDown(graph, va):
+    '''
+    starting at a given va, figure out the nodes connecting va to the next place something remerges
+    '''
+    startnid = getGraphNodeByVa(graph, va)
+
+    # paint down graph, 
+    preRouteGraphDown(graph, startnid, mark='hit', loop=False)
+
+    histo, nodewts, leaves = getNodeWeightHisto(graph)
+    startnode = graph.getNode(startnid)
+    startweight = nodewts.get(startnid)
+
+    for node in graph.getNodesByProp('hit'):
+        # skip the starting node
+        if node[0] == startnid: 
+            continue
+
+        if node[1].get('hit') == None: 
+            continue
+
+        for eid, frva, tova, einfo in graph.getRefsTo(node):
+            frnode = graph.getNode(frva)
+            if frnode[1].get('hit') == None:
+                # clear from here down
+                clearMarkDown(graph, tova, mark='hit')
+                break
 
 # path routing through a graph.  reduces aimless wandering when we know where we want to be
-def preRouteGraph(graph, fromva, tova):
+def preRouteGraph(graph, fromva, tova, clearFirst=True):
     '''
     Package it all together
     '''
-    clearGraphRouting(graph)
+    if clearFirst:
+        clearRouting(graph)
+
     preRouteGraphUp(graph, tova)
     preRouteGraphDown(graph, fromva)
+    preRouteGraphEdges(graph)
 
-def clearGraphRouting(graph):
+def preRouteGraphEdges(graph):
     '''
-    clear all nodes of routing entries
+    Mark edges as 'follow' if from-node is marked 'up' and to-node id marked 'down'
+    Note: unlike the other preRoute functions, this is not flexible on naming.
     '''
-    for nid, ninfo in graph.getNodes():
-        graph.getNodeProps(nid)['up'  ] = False
-        graph.getNodeProps(nid)['down'] = False
-    
+    for edge in graph.getEdges():
+        eid, frnid, tonid, einfo = edge
+        if not graph.getNodeProps(frnid).get('up'):
+            continue
+        if not graph.getNodeProps(tonid).get('down'):
+            continue
 
-def preRouteGraphUp(graph, tova, loops=True):
+        graph.setEdgeProp(edge, 'follow', True)
+
+def preRouteGraphUp(graph, tova, loop=True, mark='down'):
     '''
     paint a route from our destination, 'up' the graph
     '''
-
-    tonode = getGraphNodeByVa(graph, tova)
-    if tonode == None:
+    graph.setMeta('Routed', True)
+    tonid = getGraphNodeByVa(graph, tova)
+    if tonid == None:
         raise Exception("tova not in graph 0x%x" % tova)
 
+    tonode = graph.getNode(tonid)
+    nwlist = graph.getHierNodeWeights()
     todo = [ (tonode) ]
     while todo:
         curnode = todo.pop()
-        graph.getNodeProps(curnode)['down'] = True
-        for eid, fr, to, einfo in graph.getRefsTo((curnode, None)):
-            if graph.getNodeProps(fr).get('down') == True:
+        graph.setNodeProp(curnode, mark, True)
+        for eid, fr, to, einfo in graph.getRefsTo(curnode):
+            if graph.getNodeProps(fr).get(mark) == True:
                 continue
-            #raw_input("try next")
-            todo.append(fr)
+            if not loop and nwlist.get(fr) <= nwlist.get(to):
+                continue
+            frnode = graph.getNode(fr)
+            todo.append(frnode)
    
-def preRouteGraphDown(graph, fromva):
+def preRouteGraphDown(graph, fromva, loop=False, mark='up'):
     '''
     paint a route from our starting point, 'down' the graph
+    '''
+    graph.setMeta('Routed', True)
+    fromnode = getGraphNodeByVa(graph, fromva)
+    if fromnode == None:
+        raise Exception("fromva not in graph 0x%x" % fromva)
+
+    nwlist = graph.getHierNodeWeights()
+    todo = [ graph.getNode(fromnode) ]
+    while todo:
+        curnode = todo.pop()
+        curnodeva, curninfo = curnode
+        graph.setNodeProp(curnode, mark, True)
+        for eid, fr, to, einfo in graph.getRefsFrom(curnode):
+            if graph.getNodeProps(to).get(mark) == True:
+                continue
+            if not loop and nwlist.get(fr) >= nwlist.get(to):
+                continue
+
+            todo.append(graph.getNode(to))
+
+def clearMarkDown(graph, fromva, loop=False, mark='up'):
+    '''
+    clear a route from our starting point, 'down' the graph.
+    ie. remove the mark
     '''
     fromnode = getGraphNodeByVa(graph, fromva)
     if fromnode == None:
         raise Exception("fromva not in graph 0x%x" % fromva)
 
+    nwlist = graph.getHierNodeWeights()
     todo = [ graph.getNode(fromnode) ]
-    while todo:
-        curnodeva, curnode = todo.pop()
-        graph.getNodeProps(curnodeva)['up'] = True
-        for eid, fr, to, einfo in graph.getRefsFrom((curnodeva,curnode)):
-            if graph.getNodeProps(to).get('up') == True:
+    while len(todo):
+        curnode = todo.pop()
+        curnodeva, curninfo = curnode
+
+        # actually delete the node property, not just remove value
+        graph.delNodeProp(curnode, mark)
+
+        for eid, fr, to, einfo in graph.getRefsFrom(curnode):
+            if graph.getNodeProps(to).get(mark) == True:
                 continue
-            #raw_input("try next")
+            if not loop and nwlist.get(fr) >= nwlist.get(to):
+                continue
+
             todo.append(graph.getNode(to))
+
+def clearRouting(graph, nmarks=('up','down'), emarks=('follow',)):
+    graph.delNodesProps(nmarks)
+    graph.delEdgesProps(emarks)
+    graph.setMeta('Routed', False)
+
+def reduceGraph(graph, props=('up','down')):
+    '''
+    trims all nodes that don't have all the props in the props list
+    '''
+    for node in graph.getNodes():
+        for prop in props:
+            if node[1].get(prop) == None:
+                graph.delNode(node)
+                break
+
 
 class PathForceQuitException(Exception):
     def __repr__(self):
@@ -676,47 +718,27 @@ class PathForceQuitException(Exception):
 eventually, routing will include the ability to 'source-route', picking N specific points a path must go through
 '''
 class PathGenerator:
-    __go__ = None
-    __steplock = threading.Lock()
+    '''
+    PathGenerator provides routed paths using yield generators, with some external 
+    control.  Because these generators are typically layered with other API's 
+    (ie. Symboliks subsystem calls) on top, PathGenerator provides a timeout and 
+    some external control.
+
+    PathGenerator should be used one per thread, not shared between threads.  The stop() 
+    method is good for use by a single management thread.
+    '''
 
     def __init__(self, graph):
         self.graph = graph
+        self.__go__ = False
 
     def stop(self):
         '''
-        stops path generation.  used by watchdog, but could be used by path processing code
+        stops path generation.
         '''
         self.__go__ = False
 
-    def watchdog(self, time):
-        # FIXME: make this use one thread, not N
-        '''
-        set a watchdog timer for path generation (if it takes too long to get another path)
-        '''
-        self.wdt = threading.Thread(target=self.__wd, args=[time])
-        self.wdt.setDaemon = True
-        self.wdt.start()
-
-    def __wd(self, maxsec):
-        # FIXME: make this use one thread, not N
-        maxsec *=10
-        count = 0
-        while self.__go__:
-            time.sleep(.1)
-            self.__steplock.acquire()
-            try:
-                if not self.__update:
-                    count += 1
-                    if count > maxsec:
-                        self.stop()
-                        break
-            finally:
-                self.__steplock.release()
-
-            self.__update = False
-                
-
-    def getFuncCbRoutedPaths_genback(self, fromva, tova, loopcnt=0, maxpath=None, maxsec=None):
+    def getFuncCbRoutedPaths_genback(self, fromva, tova, loopcnt=0, maxpath=None, timeout=None):
         '''
         Yields all the paths through the hierarchical graph starting at the 
         "root nodes" and ending at tocbva.  Specify a loopcnt to allow loop 
@@ -740,10 +762,14 @@ class PathGenerator:
 
         todo = [(tocbva,pnode), ]
 
-        if maxsec:
-            self.watchdog(maxsec)
+        maxtime = None
+        if timeout:
+            maxtime = time.time() + timeout
 
         while todo:
+            if maxtime and time.time() > maxtime:
+                raise PathForceQuitException()
+
             if not self.__go__:
                 raise PathForceQuitException()
 
@@ -780,7 +806,9 @@ class PathGenerator:
                 npath = vg_pathcore.newPathNode(parent=cpath, nid=fromid, eid=None)
                 todo.append((fromid,npath))
 
-    def getFuncCbRoutedPaths(self, fromva, tova, loopcnt=0, maxpath=None, maxsec=None):
+        self.__go__ = False
+
+    def getFuncCbRoutedPaths(self, fromva, tova, loopcnt=0, maxpath=None, timeout=None):
         '''
         Yields all the paths through the hierarchical graph starting at the 
         "root nodes" and ending at tocbva.  Specify a loopcnt to allow loop 
@@ -802,12 +830,16 @@ class PathGenerator:
         
         pnode = vg_pathcore.newPathNode(nid=frcbva, eid=None)
 
-        todo = [(frcbva, pnode), ]
+        todo = [(frcbva,pnode), ]
 
-        if maxsec:
-            self.watchdog(maxsec)
+        maxtime = None
+        if timeout:
+            maxtime = time.time() + timeout
 
         while todo:
+            if maxtime and time.time() > maxtime:
+                raise PathForceQuitException()
+
             if not self.__go__:
                 raise PathForceQuitException()
 
@@ -847,3 +879,5 @@ class PathGenerator:
                 todo.append((toid,npath))
 
             vg_pathcore.trimPath(cpath)
+
+        self.__go__ = False

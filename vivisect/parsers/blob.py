@@ -3,10 +3,19 @@ import vivisect
 import vivisect.parsers as v_parsers
 from vivisect.const import *
 
-def parseFd(vw, fd, filename=None):
+
+archcalls = {
+    'i386':'cdecl',
+    'amd64':'sysvamd64call',
+    'arm':'armcall',
+    }
+
+def parseFd(vw, fd, filename=None, baseaddr=None):
     fd.seek(0)
     arch = vw.config.viv.parsers.blob.arch
-    baseaddr = vw.config.viv.parsers.blob.baseaddr
+    bigend = vw.config.viv.parsers.blob.bigend
+    if baseaddr is None:
+        baseaddr = vw.config.viv.parsers.blob.baseaddr
     try:
         envi.getArchModule(arch)
     except Exception, e:
@@ -15,15 +24,20 @@ def parseFd(vw, fd, filename=None):
     vw.setMeta('Architecture', arch)
     vw.setMeta('Platform','unknown')
     vw.setMeta('Format','blob')
+
+    vw.setMeta('bigend', bigend)
+    vw.setMeta('DefaultCall', archcalls.get(arch,'unknown'))
 
     bytez =  fd.read() 
     vw.addMemoryMap(baseaddr, 7, filename, bytez)
     vw.addSegment( baseaddr, len(bytez), '%.8x' % baseaddr, 'blob' )
 
-def parseFile(vw, filename):
+def parseFile(vw, filename, baseaddr=None):
 
     arch = vw.config.viv.parsers.blob.arch
-    baseaddr = vw.config.viv.parsers.blob.baseaddr
+    bigend = vw.config.viv.parsers.blob.bigend
+    if baseaddr is None:
+        baseaddr = vw.config.viv.parsers.blob.baseaddr
 
     try:
         envi.getArchModule(arch)
@@ -34,6 +48,9 @@ def parseFile(vw, filename):
     vw.setMeta('Architecture', arch)
     vw.setMeta('Platform','unknown')
     vw.setMeta('Format','blob')
+
+    vw.setMeta('bigend', bigend)
+    vw.setMeta('DefaultCall', archcalls.get(arch,'unknown'))
 
     fname = vw.addFile(filename, baseaddr, v_parsers.md5File(filename))
     bytez =  file(filename, "rb").read()
@@ -48,4 +65,5 @@ def parseMemory(vw, memobj, baseaddr):
     bytes = memobj.readMemory(va, size)
     fname = vw.addFile(fname, baseaddr, v_parsers.md5Bytes(bytes))
     vw.addMemoryMap(va, perms, fname, bytes)
+    vw.setMeta('DefaultCall', archcalls.get(arch,'unknown'))
 

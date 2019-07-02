@@ -1,4 +1,7 @@
 *.pyc
 *.swp
+*.swo
 *.py~
 .hg*
+.idea
+coverage_html_report*

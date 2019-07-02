@@ -111,17 +111,17 @@ LOC_PAD     = 10  # A sequence of bytes which is a pad (string nulls, MS hotpatc
 LOC_MAX     = 11
 
 loc_type_names = {
-        LOC_UNDEF:'Undefined',
-        LOC_NUMBER:'Num/Int',
-        LOC_STRING:'String',
-        LOC_UNI:'Unicode',
-        LOC_POINTER:'Pointer',
-        LOC_OP:'Opcode',
-        LOC_STRUCT:'Structure',
-        LOC_CLSID:'Clsid',
-        LOC_VFTABLE:'VFTable',
-        LOC_IMPORT:'Import Entry',
-        LOC_PAD:'Pad'
+        LOC_UNDEF: 'Undefined',
+        LOC_NUMBER: 'Num/Int',
+        LOC_STRING: 'String',
+        LOC_UNI: 'Unicode',
+        LOC_POINTER: 'Pointer',
+        LOC_OP: 'Opcode',
+        LOC_STRUCT: 'Structure',
+        LOC_CLSID: 'Clsid',
+        LOC_VFTABLE: 'VFTable',
+        LOC_IMPORT: 'Import Entry',
+        LOC_PAD: 'Pad'
 }
 
 # Location tuples contain the following fields indexes.  Many types of
@@ -165,6 +165,7 @@ EXP_DATA     = 1
 
 # Relocation types
 RTYPE_BASERELOC = 0 # VA contains a pointer to a va (and is assumed fixed up by parser)
+RTYPE_BASEOFF   = 1 # Add Base and Offset to a pointer at a memory location
 
 # Function Local Symbol Types
 LSYM_NAME   = 0 # syminfo is a (typestr,name) tuple
@@ -175,6 +176,8 @@ LSYM_FARG   = 1 # syminfo is an argument index
 VASET_ADDRESS   = 0
 VASET_INTEGER   = 1
 VASET_STRING    = 2
+VASET_HEXTUP    = 3
+VASET_COMPLEX   = 4
 
 # Symboliks effect types
 EFFTYPE_DEBUG        = 0
@@ -192,6 +195,7 @@ SYMT_MEM            = 3
 SYMT_SEXT           = 4
 SYMT_CONST          = 5
 SYMT_LOOKUP         = 6
+SYMT_NOT            = 7
 
 SYMT_OPER           = 0x00010000
 SYMT_OPER_ADD       = SYMT_OPER | 1
@@ -208,3 +212,13 @@ SYMT_OPER_POW       = SYMT_OPER | 11
 
 # number of function arguments viv will discover and allow
 MAX_ARGS            = 40
+
+SYMT_CON            = 0x00020000
+SYMT_CON_EQ         = SYMT_CON | 1
+SYMT_CON_NE         = SYMT_CON | 2
+SYMT_CON_GT         = SYMT_CON | 3
+SYMT_CON_GE         = SYMT_CON | 4
+SYMT_CON_LT         = SYMT_CON | 5
+SYMT_CON_LE         = SYMT_CON | 6
+SYMT_CON_UNK        = SYMT_CON | 7
+SYMT_CON_NOTUNK     = SYMT_CON | 8

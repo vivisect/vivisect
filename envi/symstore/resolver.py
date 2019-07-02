@@ -47,7 +47,7 @@ class Symbol:
         return self.size
 
     def __str__(self):
-        if self.fname != None:
+        if self.fname is not None:
             return "%s.%s" % (self.fname, self.name)
         return self.name
 
@@ -59,6 +59,7 @@ class FunctionSymbol(Symbol):
     Used to represent functions.
     """
     symtype = SYMSTOR_SYM_FUNCTION
+
     def __repr__(self):
         return "%s.%s()" % (self.fname, self.name)
 
@@ -67,6 +68,7 @@ class SectionSymbol(Symbol):
     Used for file sections/segments.
     """
     symtype = SYMSTOR_SYM_SECTION
+
     def __repr__(self):
         return "%s[%s]" % (self.fname, self.name)
 
@@ -93,8 +95,8 @@ class SymbolResolver:
         self.symaddrs = {}
 
         # caches that hold instantiated Symbol objects
-        self.symobjsbyaddr  = {}
-        self.symobjsbyname  = {}
+        self.symobjsbyaddr = {}
+        self.symobjsbyname = {}
 
     def delSymbol(self, sym):
         """
@@ -103,15 +105,15 @@ class SymbolResolver:
         symval = long(sym)
         self.symaddrs.pop(symval, None)
 
-        bbase = symval & self.bucketmask
-        #self.objbuckets[bbase].remove(sym)
+        # bbase = symval & self.bucketmask
+        # self.objbuckets[bbase].remove(sym)
 
         subres = None
-        if sym.fname != None:
+        if sym.fname is not None:
             subres = self.symnames.get(sym.fname)
 
         # Potentially del it from the sub resolver's namespace
-        if subres != None:
+        if subres is not None:
             subres.delSymbol(sym)
 
         # Otherwise del it from our namespace
@@ -126,10 +128,10 @@ class SymbolResolver:
         Add a symbol to the resolver.
         """
         # Fake these out for the API ( optimized implementations should *not* call this )
-        symtup = ( sym.value, sym.size, sym.name, sym.symtype, sym.fname )
-        symtups = [symtup,]
+        symtup = (sym.value, sym.size, sym.name, sym.symtype, sym.fname)
+        symtups = [symtup]
 
-        self._nomSymTupAddrs( symtups )
+        self._nomSymTupAddrs(symtups)
 
         subres = self.symobjsbyname.get(sym.fname)
         if subres:

@@ -40,21 +40,22 @@ class Notifier(object):
         self.notify(event, trace)
 
     def notify(self, event, trace):
-        print "Got event: %d from pid %d" % (event, trace.getPid())
+        print("Got event: %d from pid %d" % (event, trace.getPid()))
+
 
 class VerboseNotifier(Notifier):
     def notify(self, event, trace):
-        print "PID %d - ThreadID (%d) got" % (trace.getPid(), trace.getMeta("ThreadId")),
+        print("PID %d - ThreadID (%d) got" % (trace.getPid(), trace.getMeta("ThreadId"))),
         if event == vtrace.NOTIFY_ALL:
             print("WTF, how did we get a vtrace.NOTIFY_ALL event?!?!")
         elif event == vtrace.NOTIFY_SIGNAL:
             signo = trace.getCurrentSignal()
-            print("vtrace.NOTIFY_SIGNAL %d (0x%08x)" % (signo, signo) )
+            print("vtrace.NOTIFY_SIGNAL %d (0x%08x)" % (signo, signo))
             if trace.getMeta("Platform") == "windows":
                 print(repr(trace.getMeta("Win32Event")))
         elif event == vtrace.NOTIFY_BREAK:
             print("vtrace.NOTIFY_BREAK")
-            print("\tIP: 0x%08x" % trace.getProgramCounter() )
+            print("\tIP: 0x%08x" % trace.getProgramCounter())
         elif event == vtrace.NOTIFY_SYSCALL:
             print("vtrace.NOTIFY_SYSCALL")
         elif event == vtrace.NOTIFY_CONTINUE:
@@ -67,16 +68,16 @@ class VerboseNotifier(Notifier):
         elif event == vtrace.NOTIFY_DETACH:
             print("vtrace.NOTIFY_DETACH")
         elif event == vtrace.NOTIFY_LOAD_LIBRARY:
-			print("vtrace.NOTIFY_LOAD_LIBRARY")
-			print("\tLoaded library %s" % trace.getMeta('LatestLibrary') )
+            print("vtrace.NOTIFY_LOAD_LIBRARY")
+            print("\tLoaded library %s" % trace.getMeta('LatestLibrary'))
         elif event == vtrace.NOTIFY_UNLOAD_LIBRARY:
             print("vtrace.NOTIFY_UNLOAD_LIBRARY")
         elif event == vtrace.NOTIFY_CREATE_THREAD:
             print("vtrace.NOTIFY_CREATE_THREAD")
-            print("\tNew thread - ThreadID: %d" % trace.getMeta("ThreadId") )
+            print("\tNew thread - ThreadID: %d" % trace.getMeta("ThreadId"))
         elif event == vtrace.NOTIFY_EXIT_THREAD:
             print("vtrace.NOTIFY_EXIT_THREAD")
-            print("Thread exited - ThreadID: %d" % trace.getMeta("ExitThread", -1) )
+            print("Thread exited - ThreadID: %d" % trace.getMeta("ExitThread", -1))
         elif event == vtrace.NOTIFY_STEP:
             print("vtrace.NOTIFY_STEP")
         else:

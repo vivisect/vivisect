@@ -49,8 +49,10 @@ class MemoryCanvas(object):
     of memory will be displayed. The methods implemented here show
     how a memory canvas which simply prints would be implemented.
     """
-    def __init__(self, mem, syms=None):
-        if syms == None:
+    def __init__(self, mem=None, syms=None):
+        if mem is None:
+            raise Exception("MemoryCanvas must include mem args")
+        if syms is None:
             syms = e_resolv.SymbolResolver()
         self.mem = mem
         self.syms = syms
@@ -225,11 +227,11 @@ class MemoryCanvas(object):
         saved_last  = self._canv_rendvas[iend:]
         saved_first = self._canv_rendvas[:ibegin]
         updatedvas  = self._canv_rendvas[ibegin:iend]
-        #print 'IBEGIN',hex(ibegin)
-        #print 'IEND',hex(iend)
-        #print 'FIRST',repr([hex(va) for va in saved_first])
-        #print 'UPDATED',repr([hex(va) for va in updatedvas])
-        #print 'LAST',repr([hex(va) for va in saved_last])
+        # print 'IBEGIN',hex(ibegin)
+        # print 'IEND',hex(iend)
+        # print 'FIRST',repr([hex(va) for va in saved_first])
+        # print 'UPDATED',repr([hex(va) for va in updatedvas])
+        # print 'LAST',repr([hex(va) for va in saved_last])
 
         # We must actually start rendering from the beginning
         # of the first updated VA index
@@ -250,7 +252,7 @@ class MemoryCanvas(object):
                 self._endRenderVa(startva)
                 startva += rsize
 
-        except Exception, e:
+        except Exception as e:
             s = traceback.format_exc()
             self.addText("\nException At %s: %s\n" % (hex(va),s))
 
@@ -283,7 +285,7 @@ class MemoryCanvas(object):
 
             self._canv_rendvas.extend(savedrendvas)
 
-        except Exception, e:
+        except Exception as e:
             s = traceback.format_exc()
             self.addText("\nException At %s: %s\n" % (hex(va),s))
 
@@ -308,7 +310,7 @@ class MemoryCanvas(object):
 
             self._canv_endva = maxva
 
-        except Exception, e:
+        except Exception as e:
             s = traceback.format_exc()
             self.addText("\nException At %s: %s\n" % (hex(va),s))
 
@@ -342,13 +344,13 @@ class MemoryCanvas(object):
                     self._canv_rendvas.append((va,rsize))
                     self._endRenderVa(va)
                     va += rsize
-                except Exception, e:
+                except Exception as e:
                     traceback.print_exc()
                     self.addText("\nRender Exception At %s: %s\n" % (hex(va),e))
                     self._endRenderVa(va)
                     break
 
-        except Exception, e:
+        except Exception as e:
             self.addText("\nException At %s: %s\n" % (hex(va),e))
 
         # Canvas callback for render completion (or error...)
@@ -357,7 +359,7 @@ class MemoryCanvas(object):
 class StringMemoryCanvas(MemoryCanvas):
 
     def __init__(self, mem, syms=None):
-        MemoryCanvas.__init__(self, mem, syms=None)
+        MemoryCanvas.__init__(self, mem, syms=syms)
         self.strval = ''
 
         # we perform manual clearing of the canvas.

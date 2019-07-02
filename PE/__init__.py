@@ -56,35 +56,35 @@ IMAGE_REL_BASED_MIPS_JMPADDR          = 5
 IMAGE_REL_BASED_IA64_IMM64            = 9
 IMAGE_REL_BASED_DIR64                 = 10
 
-IMAGE_DIRECTORY_ENTRY_EXPORT          =0   # Export Directory
-IMAGE_DIRECTORY_ENTRY_IMPORT          =1   # Import Directory
-IMAGE_DIRECTORY_ENTRY_RESOURCE        =2   # Resource Directory
-IMAGE_DIRECTORY_ENTRY_EXCEPTION       =3   # Exception Directory
-IMAGE_DIRECTORY_ENTRY_SECURITY        =4   # Security Directory
-IMAGE_DIRECTORY_ENTRY_BASERELOC       =5   # Base Relocation Table
-IMAGE_DIRECTORY_ENTRY_DEBUG           =6   # Debug Directory
-IMAGE_DIRECTORY_ENTRY_COPYRIGHT       =7   # (X86 usage)
-IMAGE_DIRECTORY_ENTRY_ARCHITECTURE    =7   # Architecture Specific Data
-IMAGE_DIRECTORY_ENTRY_GLOBALPTR       =8   # RVA of GP
-IMAGE_DIRECTORY_ENTRY_TLS             =9   # TLS Directory
-IMAGE_DIRECTORY_ENTRY_LOAD_CONFIG    =10   # Load Configuration Directory
-IMAGE_DIRECTORY_ENTRY_BOUND_IMPORT   =11   # Bound Import Directory in headers
-IMAGE_DIRECTORY_ENTRY_IAT            =12   # Import Address Table
-IMAGE_DIRECTORY_ENTRY_DELAY_IMPORT   =13   # Delay Load Import Descriptors
-IMAGE_DIRECTORY_ENTRY_COM_DESCRIPTOR =14   # COM Runtime descriptor
+IMAGE_DIRECTORY_ENTRY_EXPORT          = 0   # Export Directory
+IMAGE_DIRECTORY_ENTRY_IMPORT          = 1   # Import Directory
+IMAGE_DIRECTORY_ENTRY_RESOURCE        = 2   # Resource Directory
+IMAGE_DIRECTORY_ENTRY_EXCEPTION       = 3   # Exception Directory
+IMAGE_DIRECTORY_ENTRY_SECURITY        = 4   # Security Directory
+IMAGE_DIRECTORY_ENTRY_BASERELOC       = 5   # Base Relocation Table
+IMAGE_DIRECTORY_ENTRY_DEBUG           = 6   # Debug Directory
+IMAGE_DIRECTORY_ENTRY_COPYRIGHT       = 7   # (X86 usage)
+IMAGE_DIRECTORY_ENTRY_ARCHITECTURE    = 7   # Architecture Specific Data
+IMAGE_DIRECTORY_ENTRY_GLOBALPTR       = 8   # RVA of GP
+IMAGE_DIRECTORY_ENTRY_TLS             = 9   # TLS Directory
+IMAGE_DIRECTORY_ENTRY_LOAD_CONFIG     = 10   # Load Configuration Directory
+IMAGE_DIRECTORY_ENTRY_BOUND_IMPORT    = 11   # Bound Import Directory in headers
+IMAGE_DIRECTORY_ENTRY_IAT             = 12   # Import Address Table
+IMAGE_DIRECTORY_ENTRY_DELAY_IMPORT    = 13   # Delay Load Import Descriptors
+IMAGE_DIRECTORY_ENTRY_COM_DESCRIPTOR  = 14   # COM Runtime descriptor
 
-IMAGE_DEBUG_TYPE_UNKNOWN          =0
-IMAGE_DEBUG_TYPE_COFF             =1
-IMAGE_DEBUG_TYPE_CODEVIEW         =2
-IMAGE_DEBUG_TYPE_FPO              =3
-IMAGE_DEBUG_TYPE_MISC             =4
-IMAGE_DEBUG_TYPE_EXCEPTION        =5
-IMAGE_DEBUG_TYPE_FIXUP            =6
-IMAGE_DEBUG_TYPE_OMAP_TO_SRC      =7
-IMAGE_DEBUG_TYPE_OMAP_FROM_SRC    =8
-IMAGE_DEBUG_TYPE_BORLAND          =9
-IMAGE_DEBUG_TYPE_RESERVED10       =10
-IMAGE_DEBUG_TYPE_CLSID            =11
+IMAGE_DEBUG_TYPE_UNKNOWN          = 0
+IMAGE_DEBUG_TYPE_COFF             = 1
+IMAGE_DEBUG_TYPE_CODEVIEW         = 2
+IMAGE_DEBUG_TYPE_FPO              = 3
+IMAGE_DEBUG_TYPE_MISC             = 4
+IMAGE_DEBUG_TYPE_EXCEPTION        = 5
+IMAGE_DEBUG_TYPE_FIXUP            = 6
+IMAGE_DEBUG_TYPE_OMAP_TO_SRC      = 7
+IMAGE_DEBUG_TYPE_OMAP_FROM_SRC    = 8
+IMAGE_DEBUG_TYPE_BORLAND          = 9
+IMAGE_DEBUG_TYPE_RESERVED10       = 10
+IMAGE_DEBUG_TYPE_CLSID            = 11
 
 IMAGE_SCN_CNT_CODE                  = 0x00000020
 IMAGE_SCN_CNT_INITIALIZED_DATA      = 0x00000040
@@ -369,7 +369,6 @@ class PE(object):
         self.pe32p = False
         self.psize = 4
         self.high_bit_mask = 0x80000000
-
         self.IMAGE_DOS_HEADER = vstruct.getStructure("pe.IMAGE_DOS_HEADER")
         dosbytes = self.readAtOffset(0, len(self.IMAGE_DOS_HEADER))
         self.IMAGE_DOS_HEADER.vsParse(dosbytes)
@@ -436,6 +435,8 @@ class PE(object):
          
     def rvaToOffset(self, rva):
         if self.inmem:
+            return rva
+        if rva >= 0 and rva < self.IMAGE_NT_HEADERS.OptionalHeader.SizeOfHeaders:
             return rva
         for s in self.sections:
             sbase = s.VirtualAddress
@@ -592,7 +593,10 @@ class PE(object):
                     if not namelen_bytes:
                         continue
                     namelen = struct.unpack('<H', namelen_bytes)[0]
-                    name_id = self.readAtRva(namerva + 2, namelen * 2).decode('utf-16le', 'ignore')
+                    name_raw = self.readAtRva(namerva + 2, namelen * 2)
+                    if not name_raw:
+                        continue
+                    name_id = name_raw.decode('utf-16le', 'ignore')
                     if not name_id:
                         name_id = dirent.Name
 
@@ -630,9 +634,10 @@ class PE(object):
 
         self.sections = []
         off = self.IMAGE_DOS_HEADER.e_lfanew + len(self.IMAGE_NT_HEADERS)
+        off -= len(self.IMAGE_NT_HEADERS.OptionalHeader.DataDirectory)
+        off += self.IMAGE_NT_HEADERS.OptionalHeader.NumberOfRvaAndSizes * len(vstruct.getStructure("pe.IMAGE_DATA_DIRECTORY"))
 
         secsize = len(vstruct.getStructure("pe.IMAGE_SECTION_HEADER"))
-
         sbytes = self.readAtOffset(off, secsize * self.IMAGE_NT_HEADERS.FileHeader.NumberOfSections)
         while sbytes:
             s = vstruct.getStructure("pe.IMAGE_SECTION_HEADER")
@@ -755,6 +760,9 @@ class PE(object):
                 if ibn_rva & self.high_bit_mask:
                     funcname = ordlookup.ordLookup(libname, ibn_rva & 0x7fffffff)
 
+                elif not self.checkRva(ibn_rva):
+                    break
+
                 else:
                     # RP BUG FIX - we can't use this API on this call because we can have binaries that put their import table
                     # right at the end of the file, statically saying the imported function name is 128 will cause use to potentially
@@ -777,7 +785,7 @@ class PE(object):
                 self.imports.append((x.FirstThunk+arrayoff,libname,funcname))
 
                 idx += 1
-                
+
             irva += isize
 
             # RP BUG FIX - if the import table is at the end of the file we can't count on the ending to be null
@@ -797,27 +805,33 @@ class PE(object):
         edir = self.getDataDirectory(IMAGE_DIRECTORY_ENTRY_BASERELOC)
         rva = edir.VirtualAddress
         rsize = edir.Size
-        
+
         # RP BUG FIX - don't watn to read past the end of the file
         if not self.checkRva(rva):
             return
-        
+
         reloff = self.rvaToOffset(rva)
         relbytes = self.readAtOffset(reloff, rsize)
-        
 
         while relbytes:
-            pageva, chunksize = struct.unpack("<LL", relbytes[:8])
-            relcnt = (chunksize - 8) / 2
-            
-            # RP BUG FIX - when the reloc section has no fixups but the directory exists..
-            if not chunksize or not pageva:
+            # bounce if we have less than 8 bytes to unpack
+            if len(relbytes) < 8:
                 return
+
+            pageva, chunksize = struct.unpack("<II", relbytes[:8])
+            relcnt = (chunksize - 8) / 2
+
+            # if chunksize == 0 bail
+            if not chunksize:
+                return
+
             # RP BUG FIX - sometimes the chunksize is invalid we do a quick check to make sure we dont overrun the buffer
             if chunksize > len(relbytes):
                 return
-            
-            
+
+            if relcnt < 0:
+                return
+
             rels = struct.unpack("<%dH" % relcnt, relbytes[8:chunksize])
             for r in rels:
                 rtype = r >> 12
@@ -860,48 +874,79 @@ class PE(object):
         namesize = 4 * self.IMAGE_EXPORT_DIRECTORY.NumberOfNames
         ordoff = self.rvaToOffset(self.IMAGE_EXPORT_DIRECTORY.AddressOfOrdinals)
         ordsize = 2 * self.IMAGE_EXPORT_DIRECTORY.NumberOfNames
-        
-        
+
         # RP BUG FIX - sanity check the exports before reading
-        if not funcoff or not ordoff and not nameoff or funcsize > 0x7FFF:
+        # FH BUG FIX - ordoff and nameoff must both be set (named function exports)
+        #              or both be null (unnamed function exports)
+        if not funcoff or funcsize > 0x7FFF or ((ordoff > 0) ^ (nameoff > 0)):
+            self.IMAGE_EXPORT_DIRECTORY = None
+            return
+        
+        if funcsize == 0:
             self.IMAGE_EXPORT_DIRECTORY = None
             return
     
         funcbytes = self.readAtOffset(funcoff, funcsize)
 
-        namebytes = self.readAtOffset(nameoff, namesize)
-
-        ordbytes = self.readAtOffset(ordoff, ordsize)
+        if not funcbytes:
+            self.IMAGE_EXPORT_DIRECTORY = None
+            return
 
         funclist = struct.unpack("%dI" % (len(funcbytes) / 4), funcbytes)
-        namelist = struct.unpack("%dI" % (len(namebytes) / 4), namebytes)
-        ordlist = struct.unpack("%dH" % (len(ordbytes) / 2), ordbytes)
 
-        #for i in range(len(funclist)):
-        for i in range(len(namelist)):
+        # named function exports
+        if nameoff and ordoff:
+            namebytes = self.readAtOffset(nameoff, namesize)
+            ordbytes = self.readAtOffset(ordoff, ordsize)
 
-            ord = ordlist[i]
-            nameoff = self.rvaToOffset(namelist[i])
-            if ord > len(funclist):
+            namelist = struct.unpack("%dI" % (len(namebytes) / 4), namebytes)
+            ordlist = struct.unpack("%dH" % (len(ordbytes) / 2), ordbytes)
+
+            #for i in range(len(funclist)):
+            for i in range(len(namelist)):
+
+                ord = ordlist[i]
+                nameoff = self.rvaToOffset(namelist[i])
+                if ord > len(funclist):
+                    self.IMAGE_EXPORT_DIRECTORY = None
+                    return
+
+                funcoff = funclist[ord]
+                ffoff = self.rvaToOffset(funcoff)
+
+                name = None
+
+                if nameoff != 0:
+                    name = self.readAtOffset(nameoff, 256, shortok=True).split("\x00", 1)[0]
+                else:
+                    name = "ord_%.4x" % ord
+
+                # RP BUG FIX - Export forwarding range check is done using RVA's
+                if funcoff >= edir.VirtualAddress and funcoff < edir.VirtualAddress + edir.Size:
+                    fwdname = self.readAtRva(funcoff, 260, shortok=True).split("\x00", 1)[0]
+                    self.forwarders.append((funclist[ord],name,fwdname))
+                else:
+                    self.exports.append((funclist[ord], ord, name))
+
+        # unnamed function exports
+        else:
+            # sanity check length of array containing export functions
+            if len(funclist) != self.IMAGE_EXPORT_DIRECTORY.NumberOfFunctions:
                 self.IMAGE_EXPORT_DIRECTORY = None
                 return
 
-            funcoff = funclist[ord]
-            ffoff = self.rvaToOffset(funcoff)
+            for i in range(len(funclist)):
+                funcoff = funclist[i]
 
-            name = None
-
-            if nameoff != 0:
-                name = self.readAtOffset(nameoff, 256, shortok=True).split("\x00", 1)[0]
-            else:
-                name = "ord_%.4x" % ord
-
-            # RP BUG FIX - Export forwarding range check is done using RVA's 
-            if funcoff >= edir.VirtualAddress and funcoff < edir.VirtualAddress + edir.Size:
-                fwdname = self.readAtRva(funcoff, 260, shortok=True).split("\x00", 1)[0]
-                self.forwarders.append((funclist[ord],name,fwdname))
-            else:
-                self.exports.append((funclist[ord], ord, name))
+                # The function array will contain X elements, where X equals (highest
+                # ordinal number - lowest ordinal number). For example, a PE with ordinal
+                # exports of 0x10, 0x14, and 0x18 will contain 0x9 elements, with elements
+                # 0x0, 0x4, and 0x8 containing the relative offset of the corresponding
+                # exported function. An element with a value of 0 indicates the element in
+                # the array is a placeholder to preserve the length of the array.
+                if funcoff > 0:
+                    ord = self.IMAGE_EXPORT_DIRECTORY.Base + i
+                    self.exports.append((funcoff, ord, None))
 
     def getSignature(self):
         '''
@@ -988,7 +1033,7 @@ class PE(object):
             cbytes = pyasn1.codec.der.encoder.encode( i['certificate'] )
 
             iparts = []
-            for rdnsequence in i["certificate"]["tbsCertificate"]["issuer"]:
+            for _, rdnsequence in i["certificate"]["tbsCertificate"]["issuer"].items():
                 for rdn in rdnsequence:
                     rtype = rdn[0]["type"]
                     rvalue = rdn[0]["value"][2:]
@@ -997,7 +1042,7 @@ class PE(object):
             issuer = ','.join( iparts )
 
             sparts = []
-            for rdnsequence in i["certificate"]["tbsCertificate"]["subject"]:
+            for _, rdnsequence in i["certificate"]["tbsCertificate"]["subject"].items():
                 for rdn in rdnsequence:
                     rtype = rdn[0]["type"]
                     rvalue = rdn[0]["value"][2:]
@@ -1055,32 +1100,8 @@ class PE(object):
         else:
             raise AttributeError
 
-
-class MemObjFile:
-    """
-    A file like object that wraps a MemoryObject (envi) compatable
-    object with a file-like object where seek == VA.
-    """
-
-    def __init__(self, memobj, baseaddr):
-        self.baseaddr = baseaddr
-        self.offset = baseaddr
-        self.memobj = memobj
-
-    def seek(self, offset):
-        self.offset = self.baseaddr + offset
-
-    def read(self, size):
-        ret = self.memobj.readMemory(self.offset, size)
-        self.offset += size
-        return ret
-        
-    def write(self, bytes):
-        self.memobj.writeMemory(self.offset, bytes)
-        self.offset += len(bytes)
-
 def peFromMemoryObject(memobj, baseaddr):
-    fd = MemObjFile(memobj, baseaddr)
+    fd = vstruct.MemObjFile(memobj, baseaddr)
     return PE(fd, inmem=True)
 
 def peFromFileName(fname):

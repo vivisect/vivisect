@@ -19,13 +19,14 @@ class watcher(viv_imp_monitor.EmulationMonitor):
     def __init__(self, vw, tryva):
         viv_imp_monitor.EmulationMonitor.__init__(self)
         self.vw = vw
-        self.badops = [vw.arch.archParseOpcode("\x00\x00\x00\x00\x00")]
         self.tryva = tryva
         self.hasret = False
         self.mndist = {}
         self.insn_count = 0
         self.lastop = None
         self.badcode = False
+
+        self.badops = vw.arch.archGetBadOps()
 
     def logAnomaly(self, emu, eip, msg):
         self.badcode = True
@@ -39,7 +40,7 @@ class watcher(viv_imp_monitor.EmulationMonitor):
 
         # if there is 1 mnem that makes up over 50% of all instructions then flag it as invalid
         for mnem, count in self.mndist.items():
-            if round(float( float(count) / float(self.insn_count)), 3) >= .50:
+            if round(float( float(count) / float(self.insn_count)), 3) >= .67:
                 return False
 
         return True
@@ -110,7 +111,6 @@ def analyze(vw):
        
         vatodo = []
         vatodo = [ va for va, name in vw.getNames() if vw.getLocation(va) == None ]
-        vatodo.extend( [ va for addr, va in vw.findPointers() if vw.getLocation(va) == None ] ) 
         vatodo.extend( [tova for fromva, tova, reftype, rflags in vw.getXrefs(rtype=REF_PTR) if vw.getLocation(tova) == None] )
 
         for va in set(vatodo):

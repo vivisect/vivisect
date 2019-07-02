@@ -1,9 +1,33 @@
 import struct
 
+from copy import deepcopy
 from inspect import isclass
-from StringIO import StringIO
 
 import vstruct.primitives as vs_prims
+
+
+class MemObjFile:
+    """
+    A file like object that wraps a MemoryObject (envi) compatable
+    object with a file-like object where seek == VA.
+    """
+
+    def __init__(self, memobj, baseaddr):
+        self.baseaddr = baseaddr
+        self.offset = baseaddr
+        self.memobj = memobj
+
+    def seek(self, offset):
+        self.offset = self.baseaddr + offset
+
+    def read(self, size):
+        ret = self.memobj.readMemory(self.offset, size)
+        self.offset += size
+        return ret
+
+    def write(self, bytes):
+        self.memobj.writeMemory(self.offset, bytes)
+        self.offset += len(bytes)
 
 def isVstructType(x):
     return isinstance(x, vs_prims.v_base)
@@ -40,7 +64,7 @@ class VStruct(vs_prims.v_base):
 
     def __mul__(self, x):
         # build a list of instances of this vstruct
-        return [ self.__class__() for i in xrange(x) ]
+        return [ deepcopy(self) for i in xrange(x) ]
 
     def vsAddParseCallback(self, fieldname, callback):
         '''
@@ -83,10 +107,21 @@ class VStruct(vs_prims.v_base):
             for callback in cblist:
                 callback(self)
 
-    def vsParseFd(self, fd):
+    @classmethod
+    def vsFromFd(cls, fd, fast=True):
+        v = cls()
+        v.vsParseFd(fd,fast=fast)
+        return v
+
+    def vsParseFd(self, fd, fast=False):
         '''
         Parse from the given file like object as input.
         '''
+        if fast:
+            b = fd.read( len(self) )
+            self.vsParse(b,fast=True)
+            return
+
         for fname in self._vs_fields:
             fobj = self._vs_values.get(fname)
             fobj.vsParseFd(fd)
@@ -409,13 +444,19 @@ class VStruct(vs_prims.v_base):
     def __getitem__(self, name):
         return self.vsGetField(name)
 
+    def __setitem__(self, name, valu):
+        return self.vsSetField(name,valu)
+
     def tree(self, va=0, reprmax=None):
         ret = ""
         for off, indent, name, field in self.vsGetPrintInfo():
             rstr = repr(field) #field.vsGetTypeName()
             if isinstance(field, vs_prims.v_number):
-                val = field.vsGetValue()
-                rstr = '0x%.8x (%d)' % (val,val)
+                if field.vsGetEnum() is not None:
+                    rstr = '%s (0x%.8x)' % (str(field), field.vsGetValue())
+                else:
+                    val = field.vsGetValue()
+                    rstr = '0x%.8x (%d)' % (val,val)
             elif isinstance(field, vs_prims.v_prim):
                 rstr = repr(field)
             if reprmax != None and len(rstr) > reprmax:

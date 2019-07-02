@@ -44,10 +44,10 @@ class AnalysisMonitor(viv_imp_monitor.AnalysisMonitor):
     def __init__(self, vw, fva):
         viv_imp_monitor.AnalysisMonitor.__init__(self, vw, fva)
         self.retbytes = None
-        self.badop = vw.arch.archParseOpcode("\x00\x00\x00\x00\x00")
+        self.badops = vw.arch.archGetBadOps()
 
     def prehook(self, emu, op, starteip):
-        if op == self.badop:
+        if op in self.badops:
             raise Exception("Hit known BADOP at 0x%.8x %s" % (starteip, repr(op) ))
 
         viv_imp_monitor.AnalysisMonitor.prehook(self, emu, op, starteip)
@@ -86,6 +86,9 @@ def buildFunctionApi(vw, fva, emu, emumon):
 
         vw.setFunctionMeta(fva, "UndefRegUse", undefkeys)
 
+    if argc > 64:
+        callconv = 'unkcall' 
+        argc = 0
     # Add argument indexes to our argument names
     funcargs = [ argcname(callconv, i) for i in xrange(argc) ]
     api = ('int',None,callconv,None,funcargs)
@@ -108,6 +111,8 @@ def analyzeFunction(vw, fva):
         api = buildFunctionApi(vw, fva, emu, emumon)
 
     rettype,retname,callconv,callname,callargs = api
+    if callconv == 'unkcall':
+        return
 
     argc = len(callargs)
     cc = emu.getCallingConvention(callconv)
