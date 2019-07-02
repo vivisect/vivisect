@@ -4,7 +4,7 @@ country looking for pointers to interesting things.
 
 in a previous life, this analysis code lived inside VivWorkspace.analyze()
 """
-
+from vivisect.const import RTYPE_BASEPTR
 
 def analyze(vw):
 
@@ -12,7 +12,7 @@ def analyze(vw):
         vw.vprint('...analyzing pointers.')
 
     # Let's analyze and Relocations we know are pointers
-    for rva, rtype in self.reloc_by_va.items():
+    for rva, rtype in vw.reloc_by_va.items():
         if rtype != RTYPE_BASEPTR:
             continue
 

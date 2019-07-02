@@ -57,6 +57,9 @@ def analyzeFunction(vw, funcva):
             gotplt = va
             break
 
+    if gotplt is None:
+        gotplt = -1
+
     # all architectures should at least have some minimal emulator
     emu = vw.getEmulator()
     emu.setRegister(e_i386.REG_EBX, gotplt)  # every emulator will have a 4th register, and if it's not used, no harm done.
