@@ -16,7 +16,7 @@ def analyze(vw):
         if rtype != RTYPE_BASEPTR:
             continue
 
-        for xfr, xto, xtype in vw.getXrefsFrom(rva):
+        for xfr, xto, xtype, xinfo in vw.getXrefsFrom(rva):
             vw.analyzePointer(xto)
 
     # Now, lets find likely free-hanging pointers
