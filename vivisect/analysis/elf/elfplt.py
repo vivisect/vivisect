@@ -67,16 +67,16 @@ def analyzeFunction(vw, funcva):
     opval = oper0.getOperAddr(op, emu)
 
     loctup = vw.getLocation(opval)
+    fname = vw.getName(opval)
 
     if loctup is None:
         logger.warn("PLT: 0x%x - branch deref not defined: 0x%x", opva, opval)
         return
 
     if loctup[vivisect.L_LTYPE] != vivisect.LOC_IMPORT: # FIXME: Why are some AMD64 IMPORTS showing up as LOC_POINTERs?
-        vw.vprint("0x%x: %r != %r" % (funcva, loctup[vivisect.L_LTYPE], vivisect.LOC_IMPORT))
+        logger.warn("0x%x: (0x%x)  %r != %r (%r)" % (funcva, opval, loctup[vivisect.L_LTYPE], vivisect.LOC_IMPORT, fname))
         return
 
-    fname = vw.getName(opval)
     if fname.endswith('_%.8x' % opval):
         fname = fname[:-9]
     #vw.makeName(funcva, "plt_%s" % fname, filelocal=True)
