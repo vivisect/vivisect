@@ -80,6 +80,26 @@ def makeRelocTable(vw, va, maxva, addbase, baseaddr):
         vw.setComment(va, tname)
         va += len(s)
 
+def makeFunctionTable(elf, vw, tbladdr, size, tblname, funcs, ptrs, baseaddr=0):
+    psize = vw.getPointerSize()
+    pfmt = e_bits.le_fmt_chars[psize]   #FIXME: make Endian-aware (needs plumbing through ELF)
+    secbytes = elf.readAtRva(tbladdr, size)
+    tbladdr += baseaddr
+
+    ptr_count = 0
+    for off in range(0, size, psize):
+        addr, = struct.unpack_from(pfmt, secbytes, off)
+        addr += baseaddr
+        
+        nstub = tblname + "_%d"
+        pname = nstub % ptr_count
+
+        vw.makeName(addr, pname, filelocal=True)
+        ptrs.append((tbladdr + off, addr, pname))
+        funcs.append((pname, addr))
+        ptr_count += 1
+
+
 arch_names = {
     Elf.EM_ARM:'arm',
     Elf.EM_386:'i386',
@@ -216,46 +236,14 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
             new_functions.append(("init_function", sva))
 
         elif sname == ".init_array":
-            # handle pseudo-fixups first: these pointers require base-addresses
-            psize = vw.getPointerSize()
-            pfmt = e_bits.le_fmt_chars[psize]   #FIXME: make Endian-aware (needs plumbing through ELF)
-            secbytes = elf.readAtRva(sec.sh_addr, size)
-            sh_addr = sec.sh_addr
-            if addbase: sh_addr += baseaddr
-
-            ptr_count = 0
-            for off in range(0, size, psize):
-                addr, = struct.unpack_from(pfmt, secbytes, off)
-                if addbase: addr += baseaddr
-                
-                new_pointers.append((sh_addr + off, addr))
-                vw.makeName(addr, "init_function_%d" % ptr_count, filelocal=True)
-                vw.addXref(sh_addr + off, addr, REF_PTR)
-                new_functions.append(("init_function", addr))
-                ptr_count += 1
+            makeFunctionTable(elf, vw, sec.sh_addr, size, 'init_function', new_functions, new_pointers, baseaddr)
 
         elif sname == ".fini":
             vw.makeName(sva, "fini_function", filelocal=True)
             new_functions.append(("fini_function", sva))
 
         elif sname == ".fini_array":
-            # handle pseudo-fixups first: these pointers require base-addresses
-            psize = vw.getPointerSize()
-            pfmt = e_bits.le_fmt_chars[psize]   #FIXME: make Endian-aware (needs plumbing through ELF)
-            secbytes = elf.readAtRva(sec.sh_addr, size)
-            sh_addr = sec.sh_addr
-            if addbase: sh_addr += baseaddr
-
-            ptr_count = 0
-            for off in range(0, size, psize):
-                addr, = struct.unpack_from(pfmt, secbytes, off)
-                if addbase: addr += baseaddr
-                
-                new_pointers.append((sh_addr + off, addr))
-                vw.makeName(addr, "fini_function_%d" % ptr_count, filelocal=True)
-                vw.addXref(sec.sh_addr + off, addr, REF_PTR)
-                new_functions.append(("fini_array entry", addr))
-                ptr_count += 1
+            makeFunctionTable(elf, vw, sec.sh_addr, size, 'fini_function', new_functions, new_pointers, baseaddr)
 
         elif sname == ".dynamic": # Imports
             makeDynamicTable(vw, sva, sva+size)
@@ -441,18 +429,15 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
     if vw.isValidPointer(baseaddr):
         vw.makeStructure(baseaddr, "elf.Elf32")
 
-    # do we add data_ptrs here?  ideally they would be marked out, but analyzed after all other analysis...
-    # for now, ignore them.
+    # mark all the entry points for analysis later
     for cmnt, fva in new_functions:
         logger.info('adding function from ELF metadata: 0x%x (%s)', fva, cmnt)
         vw.addEntryPoint(fva)   # addEntryPoint queue's code analysis for later in the analysis pass
 
-    for va, tva in new_pointers:
+    # mark all the pointers for analysis later
+    for va, tva, pname in new_pointers:
         logger.info('adding pointer 0x%x -> 0x%x', va, tva)
-        if tva is not None:
-            vw.makePointer(va, tva, follow=False)   # depend on Pointer Analysis module, after code analysis
-        else:
-            vw.makePointer(va, follow=False)
+        vw.setVaSetRow('PointersFromFile', (va, tva, pname))
 
     return fname
 
@@ -474,6 +459,7 @@ def applyRelocs(elf, vw, addbase=False, baseaddr=0):
             if arch in ('i386','amd64'):
                 if name:
                     if rtype in (Elf.R_386_JMP_SLOT, Elf.R_X86_64_GLOB_DAT):
+                        logger.info('Reloc: making Import 0x%x (name: %s/%s) ', rlva, name, dmglname)
                         vw.makeImport(rlva, "*", name)
                         vw.setComment(rlva, dmglname)
 
