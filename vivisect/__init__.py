@@ -13,6 +13,7 @@ import string
 import struct
 import weakref
 import hashlib
+import logging
 import itertools
 import traceback
 import threading
@@ -49,6 +50,9 @@ from vivisect.const import *
 from vivisect.defconfig import *
 
 import vivisect.analysis.generic.emucode as v_emucode
+
+logger = logging.getLogger(__name__)
+
 
 def guid(size=16):
     return hexlify(os.urandom(size))
@@ -145,6 +149,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         self.addVaSet("Emulation Anomalies", (("va", VASET_ADDRESS), ("Message", VASET_STRING)))
         self.addVaSet("Bookmarks", (("va", VASET_ADDRESS), ("Bookmark Name", VASET_STRING)))
         self.addVaSet('DynamicBranches', (('va', VASET_ADDRESS), ('opcode', VASET_STRING), ('bflags', VASET_INTEGER)))
+        self.addVaSet('PointersFromFile', (('va', VASET_ADDRESS), ('target', VASET_ADDRESS), ('comment', VASET_STRING), ))
 
     def verbprint(self, msg):
         if self.verbose:
@@ -1637,6 +1642,11 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         parsed out the pointers value, you may specify tova to speed things
         up.
         """
+        loctup = self.getLocation(va)
+        if loctup is not None:
+            logger.warn("0x%x: Attempting to make a Pointer where another location object exists (of type %r)", va, loctup[L_LTYPE])
+            return None
+
         psize = self.psize
 
         # Get and document the xrefs created for the new location
