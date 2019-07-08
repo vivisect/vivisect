@@ -474,7 +474,7 @@ def applyRelocs(elf, vw, addbase=False, baseaddr=0):
                     sym = dsyms[symidx]
                     ptr = sym.st_value
 
-                    if rtype in (Elf.R_386_RELATIVE, ):
+                    if rtype in (Elf.R_386_RELATIVE, ): # R_X86_64_RELATIVE is the same number
                         ptr = vw.readMemoryPtr(rlva)
                         logger.info('R_386_RELATIVE: adding Relocation 0x%x -> 0x%x (name: %s) ', rlva, ptr, dmglname)
                         vw.addRelocation(rlva, vivisect.RTYPE_BASEPTR, ptr)

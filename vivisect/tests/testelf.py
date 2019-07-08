@@ -48,12 +48,12 @@ class ELFTests(unittest.TestCase):
     def imports(self, vw, data):
         # simple comparison to ensure same imports.  perhaps too simple.
         newimps = vw.getImports()
-        self.assertEqual(newimps, data['imports'])
+        self.assertListEqual(newimps, data['imports'])
 
     def exports(self, vw, data):
         # simple comparison to ensure same exports.  perhaps too simple.
         newexps = vw.getExports()
-        self.assertEqual(newexps, data['exports'])
+        self.assertListEqual(newexps, data['exports'])
 
     def relocs(self, vw, data):
         # simple comparison to ensure same relocs.  perhaps too simple.
