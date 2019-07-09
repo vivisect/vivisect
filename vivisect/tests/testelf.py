@@ -1,9 +1,11 @@
+import logging
 import unittest
 
 import Elf
 import vivisect.cli as viv_cli
-import vivisect.const as viv_con
 import vivisect.tests.helpers as helpers
+
+logger = logging.getLogger(__name__)
 
 
 class ELFTests(unittest.TestCase):
@@ -12,30 +14,33 @@ class ELFTests(unittest.TestCase):
     def setUpClass(cls):
         super(ELFTests, cls).setUpClass()
         cls.ls_fn = helpers.getTestPath('linux', 'amd64', 'ls')
+        cls.e_ls = Elf.Elf(file(cls.ls_fn))
         cls.vw_ls = viv_cli.VivCli()
         cls.vw_ls.loadFromFile(cls.ls_fn)
         cls.vw_ls.analyze()
 
         cls.libc_fn = helpers.getTestPath('linux', 'i386', 'libc-2.13.so')
+        cls.e_libc = Elf.Elf(file(cls.libc_fn))
         cls.vw_libc = viv_cli.VivCli()
         cls.vw_libc.loadFromFile(cls.libc_fn)
         cls.vw_libc.analyze()
 
         cls.sh_fn = helpers.getTestPath('linux', 'arm', 'sh')
+        cls.e_sh = Elf.Elf(file(cls.sh_fn))
         cls.vw_sh = viv_cli.VivCli()
         cls.vw_sh.loadFromFile(cls.sh_fn)
         cls.vw_sh.analyze()
 
     def test_ls(self):
-        print "self.ls_fn:  %s" % self.ls_fn
+        logger.debug("self.ls_fn:  %s", self.ls_fn)
         self.do_file(self.vw_ls, ls_data)
 
     def test_libc(self):
-        print "self.libc_fn:  %s" % self.libc_fn
+        logger.debug("self.libc_fn:  %s", self.libc_fn)
         self.do_file(self.vw_libc, libc_data)
 
     def test_sh(self):
-        print "self.sh_fn:  %s" % self.sh_fn
+        logger.debug("self.sh_fn:  %s", self.sh_fn)
         self.do_file(self.vw_sh, sh_data)
 
     def do_file(self, vw, data):
