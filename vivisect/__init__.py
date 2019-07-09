@@ -435,6 +435,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         mod = self.loadModule(modname)
         self.amods[modname] = mod
         self.amodlist.append(modname)
+        logger.debug('Adding Analysis Module: %s', modname)
 
     def delAnalysisModule(self, modname):
         """
@@ -461,6 +462,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         mod = self.loadModule(modname)
         self.fmods[modname] = mod
         self.fmodlist.append(modname)
+        logger.debug('Adding Function Analysis Module: %s', modname)
 
     def delFuncAnalysisModule(self, modname):
         '''
