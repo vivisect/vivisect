@@ -39,6 +39,7 @@ def analyzeFunction(vw, funcva):
     if segname not in (".plt", ".plt.got"):
         return
 
+    logger.info('analysis of PLT function: 0x%x', funcva)
     count = 0
     opva = funcva
     op = vw.parseOpcode(opva)
@@ -63,6 +64,7 @@ def analyzeFunction(vw, funcva):
     # all architectures should at least have some minimal emulator
     emu = vw.getEmulator()
     emu.setRegister(e_i386.REG_EBX, gotplt)  # every emulator will have a 4th register, and if it's not used, no harm done.
+    # FIXME: should we use op.getBranches(emu)?
     oper0 = op.opers[0]
     opval = oper0.getOperAddr(op, emu)
 

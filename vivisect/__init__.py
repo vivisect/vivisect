@@ -758,6 +758,10 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
     def addExport(self, va, etype, name, filename, makeuniq=False):
         """
         Add an already created export object.
+        
+        makeuniq allows Vivisect to append some number to make the name unique.
+        This behavior allows for colliding names (eg. different versions of a function)
+        to coexist in the same workspace.
         """
         rname = "%s.%s" % (filename,name)
 
@@ -2065,6 +2069,12 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         Set a readable name for the given location by va. There
         *must* be a Location defined for the VA before you may name
         it.  You may set a location's name to None to remove a name.
+
+        makeuniq allows Vivisect to append some number to make the name unique.
+        This behavior allows for colliding names (eg. different versions of a function)
+        to coexist in the same workspace.  
+
+        default behavior is to fail on duplicate (False).
         """
         if filelocal:
             segtup = self.getSegment(va)

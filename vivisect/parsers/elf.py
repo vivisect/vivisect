@@ -456,9 +456,15 @@ def applyRelocs(elf, vw, addbase=False, baseaddr=0):
             name = r.getName()
             dmglname = demangle(name)
             logger.debug('relocs: 0x%x: %r', rlva, name)
-            if arch in ('i386','amd64'):
+            if arch in ('i386', 'amd64'):
                 if name:
-                    if rtype in (Elf.R_386_JMP_SLOT, Elf.R_X86_64_GLOB_DAT):
+                    if rtype == Elf.R_X86_64_IRELATIVE:
+                        # before making import, let's fix up the pointer as a BASEPTR Relocation
+                        ptr = r.r_addend
+                        vw.addRelocation(rlva, vivisect.RTYPE_BASEPTR, ptr)
+                        logger.info('Reloc: R_X86_64_IRELATIVE 0x%x', rlva)
+
+                    if rtype in (Elf.R_386_JMP_SLOT, Elf.R_X86_64_GLOB_DAT, Elf.R_X86_64_IRELATIVE):
                         logger.info('Reloc: making Import 0x%x (name: %s/%s) ', rlva, name, dmglname)
                         vw.makeImport(rlva, "*", name)
                         vw.setComment(rlva, dmglname)
@@ -467,7 +473,7 @@ def applyRelocs(elf, vw, addbase=False, baseaddr=0):
                         pass
 
                     else:
-                        logger.info('unknown reloc type: %d %s (at %s)' % (rtype, name, hex(rlva)))
+                        logger.warn('unknown reloc type: %d %s (at %s)' % (rtype, name, hex(rlva)))
                        
                 else:
                     symidx = Elf.getRelocSymTabIndex(r.r_info)
@@ -478,6 +484,20 @@ def applyRelocs(elf, vw, addbase=False, baseaddr=0):
                         ptr = vw.readMemoryPtr(rlva)
                         logger.info('R_386_RELATIVE: adding Relocation 0x%x -> 0x%x (name: %s) ', rlva, ptr, dmglname)
                         vw.addRelocation(rlva, vivisect.RTYPE_BASEPTR, ptr)
+
+                    elif rtype == Elf.R_X86_64_IRELATIVE:
+                        # first make it a relocation that is based on the imagebase
+                        ptr = r.r_addend
+                        logger.info('R_X86_64_IRELATIVE: adding Relocation 0x%x -> 0x%x (name: %r %r) ', rlva, ptr, name, dmglname)
+                        vw.addRelocation(rlva, vivisect.RTYPE_BASEPTR, ptr)
+
+                        # next get the target and find a name, since the reloc itself doesn't have one
+                        tgt = vw.readMemoryPtr(rlva)
+                        tgtname = vw.getName(tgt)
+                        logger.info('   name(0x%x): %r', tgt, tgtname)
+                        fn, symname = tgtname.split('.', 1)
+                        vw.makeImport(rlva, fn, symname)
+                        logger.info('Reloc: making Import 0x%x (name: %s.%s) ', rlva, fn, symname)
 
                     else:
                         logger.info('unknown reloc type: %d %s (at %s)' % (rtype, name, hex(rlva)))
