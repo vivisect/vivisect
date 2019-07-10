@@ -323,7 +323,7 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
                 except Exception as e:
                     vw.vprint('WARNING: %s' % e)
 
-        elif stype == 14:# OMG WTF FUCK ALL THIS NONSENSE! FIXME
+        elif stype == Elf.STT_MDPROC:    # there's only one that isn't HI or LO...
             sva = s.st_other
             if addbase: sva += baseaddr
             if vw.isValidPointer(sva):

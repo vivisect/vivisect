@@ -590,8 +590,10 @@ STT_FILE = 4
 STT_COMMON = 5
 STT_TLS = 6
 STT_LOOS = 10
+STT_MDOS = 11  # there's only one that isn't HI or LO...
 STT_HIOS = 12
 STT_LOPROC = 13
+STT_MDPROC = 14
 STT_HIPROC = 15
 
 STT_GNU_IFUNC = 10
@@ -605,8 +607,10 @@ STT_FILE:"Symbol's name is file name",
 STT_COMMON:"Symbol is a common data object",
 STT_TLS:"Symbol is thread-local data",
 STT_LOOS:"Start of OS-specific",
+STT_MDOS:"Middle of OS-specific",
 STT_HIOS:"End of OS-specific",
 STT_LOPROC:"Start of processor-specific",
+STT_MDPROC:"Middle of processor-specific",
 STT_HIPROC:"End of processor-specific",
 }
 
