@@ -396,8 +396,6 @@ class VivWorkspaceCore(object, viv_impapi.ImportApi):
         va, etype, name, filename = einfo
         self.exports.append(einfo)
         self.exports_by_va[va] = einfo
-        fullname = "%s.%s" % (filename,name)
-        self.makeName(va, fullname, makeuniq=True)
 
     def _handleSETMETA(self, einfo):
         name,value = einfo

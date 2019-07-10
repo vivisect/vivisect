@@ -297,7 +297,7 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
         if stype == Elf.STT_FUNC or (stype == Elf.STT_GNU_IFUNC and arch in ('i386','amd64')):   # HACK: linux is what we're really after.
             try:
                 new_functions.append(("DynSym: STT_FUNC", sva))
-                vw.addExport(sva, EXP_FUNCTION, s.name, fname)
+                vw.addExport(sva, EXP_FUNCTION, s.name, fname, makeuniq=True)
                 vw.setComment(sva, dmglname)
             except Exception, e:
                 vw.vprint('addExport Failure: (%s) %s' % (s.name, e))
@@ -305,7 +305,7 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
         elif stype == Elf.STT_OBJECT:
             if vw.isValidPointer(sva):
                 try:
-                    vw.addExport(sva, EXP_DATA, s.name, fname)
+                    vw.addExport(sva, EXP_DATA, s.name, fname, makeuniq=True)
                     vw.setComment(sva, dmglname)
                 except Exception as e:
                     vw.vprint('WARNING: %s' % e)
@@ -318,7 +318,7 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
             if vw.isValidPointer(sva):
                 try:
                     new_functions.append(("DynSym: STT_HIOS", sva))
-                    vw.addExport(sva, EXP_FUNCTION, s.name, fname)
+                    vw.addExport(sva, EXP_FUNCTION, s.name, fname, makeuniq=True)
                     vw.setComment(sva, dmglname)
                 except Exception as e:
                     vw.vprint('WARNING: %s' % e)
@@ -328,7 +328,7 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
             if addbase: sva += baseaddr
             if vw.isValidPointer(sva):
                 try:
-                    vw.addExport(sva, EXP_DATA, s.name, fname)
+                    vw.addExport(sva, EXP_DATA, s.name, fname, makeuniq=True)
                     vw.setComment(sva, dmglname)
                 except Exception as e:
                     vw.vprint('WARNING: %s' % e)
@@ -571,6 +571,7 @@ def normName(name):
     '''
     Normalize symbol names.  ie. drop the @@GOBBLEDEGOOK from the end
     '''
+    return name
     atidx = name.find('@@')
     if atidx > -1:
         name = name[:atidx]

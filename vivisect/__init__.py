@@ -755,7 +755,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         """
         return list(self.exports)
 
-    def addExport(self, va, etype, name, filename):
+    def addExport(self, va, etype, name, filename, makeuniq=False):
         """
         Add an already created export object.
         """
@@ -764,10 +764,11 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         # check if it exists and is *not* what we're trying to make it
         curval = self.vaByName(rname)
 
-        if curval != None and curval != va:
+        if curval != None and curval != va and not makeuniq:
             # if we don't force it to make a uniq name, bail
             raise Exception("Duplicate Name: %s => 0x%x  (cur: 0x%x)" % (rname, va, curval))
 
+        rname = self.makeName(va, rname, makeuniq=makeuniq)
         self._fireEvent(VWE_ADDEXPORT, (va,etype,name,filename))
 
     def getExport(self, va):
@@ -2094,6 +2095,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
                 name = newname
 
         self._fireEvent(VWE_SETNAME, (va,name))
+        return name
 
     def saveWorkspace(self, fullsave=True):
 
