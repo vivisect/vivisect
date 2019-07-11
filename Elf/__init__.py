@@ -28,8 +28,10 @@ from stat import *
 from Elf.elf_lookup import *
 import vstruct
 import vstruct.defs.elf as vs_elf
+import vstruct.primitives as vs_prim
 
 verbose = False
+
 
 class ElfReloc:
     """
@@ -274,12 +276,15 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
         self.symbols_by_addr = {}
         self.dynamics = []
         self.dynamic_symbols = []
+        self.debuginfo = []
 
         self._parsePheaders()
         self._parseSections()
         self._parseSymbols()
         self._parseDynamic()
         self._parseRelocs()
+        self._debug_abbrev = {}
+        # self._parseDebug()
 
     def getRelocTypeName(self, rtype):
         '''
@@ -415,6 +420,279 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
                     sym = self.dynamic_symbols[index]
                     reloc.setName( sym.getName() )
                 self.relocs.append(reloc)
+
+    def _getDebugString(self, offset, use_utf8=False):
+        bytez = self.getSectionBytes('.debug_str')
+        if bytez is None or offset > len(bytez):
+            return None
+        return bytez[offset:].split('\x00', 1)[0]
+
+    def _getBlock(self, length, bytez):
+        data = vs_prim.v_bytes(size=length.getValue())
+        return data.vsParse(bytez)
+
+    def _getFormData(self, form, bytez, use_utf8=False):
+        '''
+        TODO: So for anything marked "constant", we technically have to use "context" to determine if it's
+        signed, unsigned, target machine endianness, etc. as per the dwarf docs
+
+        Returns a tuple of (attribute name, vstruct data, how many bytes were consumed)
+        '''
+        extra = 0
+        if form == DW_FORM_addr:
+            # So this is technically supposed to come from the compilation header in the info section,
+            # but for now we're going to cheat and just use the info we grabbed from the elf header itself
+            if self.bits == 32:
+                vsData = vs_prim.v_ptr32(bigend=self.bigend)
+            elif self.bits == 64:
+                vsData = vs_prim.v_ptr64(bigend=self.bigend)
+            else:
+                raise Exception("Platform with pointer size %d unsupported" % self.bits)
+            vsData.vsParse(bytez)
+
+        elif form == DW_FORM_block:  # special block
+            # TODO
+            blocklen, extra = leb128ToInt(bytez)
+            vsData = vs_prim.v_bytes(size=blocklen)
+            vsData.vsParse(bytez, extra)
+
+        elif form == DW_FORM_block1:  # block
+            blocklen = vs_prim.v_uint8(bigend=self.bigend)
+            blocklen.vsParse(bytez)
+            vsData = self._getBlock(blocklen, bytez[len(blocklen):])
+            extra = blocklen
+
+        elif form == DW_FORM_block2:  # block
+            blocklen = vs_prim.v_uint16(bigend=self.bigend)
+            blocklen.vsParse(bytez)
+            vsData = self._getBlock(blocklen, bytez[len(blocklen):])
+            extra = blocklen
+
+        elif form == DW_FORM_block4:  # block
+            blocklen = vs_prim.v_uint32(bigend=self.bigend)
+            blocklen.vsParse(bytez)
+            vsData = self._getBlock(blocklen, bytez[len(blocklen):])
+            extra = blocklen
+
+        elif form == DW_FORM_data1:  # constant
+            vsData = vs_prim.v_uint8(bigend=self.bigend)
+            vsData.vsParse(bytez)
+
+        elif form == DW_FORM_data2:  # constant
+            vsData = vs_prim.v_uint16(bigend=self.bigend)
+            vsData.vsParse(bytez)
+
+        elif form == DW_FORM_data4:  # constant
+            vsData = vs_prim.v_uint32(bigend=self.bigend)
+            vsData.vsParse(bytez)
+
+        elif form == DW_FORM_data8:  # constant
+            vsData = vs_prim.v_uint64(bigend=self.bigend)
+            vsData.vsParse(bytez)
+
+        elif form == DW_FORM_string:  # string
+            # Directly in the .debug_info section
+            vsData = vs_prim.v_str(size=bytez.index('\x00'))
+            vsData.vsParse(bytez)
+            # Don't forget about skipping the null terminator
+            extra = 1
+
+        elif form == DW_FORM_flag:  # flag
+            vsData = vs_prim.v_uint8(bigend=self.bigend)
+            vsData.vsParse(bytez)
+
+        elif form == DW_FORM_strp:  # string
+            # a ptr-sized offset into the string table .debug_str
+            if self.bits == 32:
+                offset = vs_prim.v_int32(bigend=self.bigend)
+                offset.vsParse(bytez)
+            elif self.bits == 64:
+                offset = vs_prim.v_int64(bigend=self.bigend)
+                offset.vsParse(bytez)
+            else:
+                raise Exception('Platform with pointer size %d unsupported' % self.bits)
+            strp = self._getDebugString(offset.vsGetValue(), use_utf8)
+            vsData = vs_prim.v_str(len(strp), val=strp)
+
+            # strp is special since it's an easy reference into a table
+            return vsData, len(offset)
+
+        elif form == DW_FORM_sdata:  # constant
+            slen, extra = leb128ToInt(bytez, signed=True)
+            vsData = vs_prim.v_bytes(size=slen)
+            vsData.vsParse(bytez, extra)
+
+        elif form == DW_FORM_udata:  # constant
+            ulen, extra = leb128ToInt(bytez)
+            vsData = vs_prim.v_bytes(size=ulen)
+            vsData.vsParse(bytez, extra)
+
+        elif form == DW_FORM_ref_addr:  # ref
+            if self.bits == 32:
+                vsData = vs_prim.v_ptr32(bigend=self.bigend)
+            elif self.bits == 64:
+                vsData = vs_prim.v_ptr64(bigend=self.bigend)
+            else:
+                raise Exception("Platform with pointer size %d unsupported" % self.bits)
+            vsData.vsParse(bytez)
+
+        elif form == DW_FORM_ref1:  # ref
+            vsData = vs_prim.v_uint8(bigend=self.bigend)
+            vsData.vsParse(bytez)
+
+        elif form == DW_FORM_ref2:  # ref
+            vsData = vs_prim.v_uint16(bigend=self.bigend)
+            vsData.vsParse(bytez)
+
+        elif form == DW_FORM_ref4:  # ref
+            vsData = vs_prim.v_uint32(bigend=self.bigend)
+            vsData.vsParse(bytez)
+
+        elif form == DW_FORM_ref8:  # ref
+            vsData = vs_prim.v_uint64(bigend=self.bigend)
+            vsData.vsParse(bytez)
+
+        elif form == DW_FORM_ref_udata:  # ref
+            # refers to something within the .debug_info section
+            # variable length offset
+            # XXX
+            reflen, extra = leb128ToInt(bytez)
+            vsData = vs_prim.v_uint64(value=reflen, bigend=self.bigend)
+            return vsData, extra
+
+        elif form == DW_FORM_indirect:  # SPECIAL
+            # TODO: Is this right?
+            valu, extra = leb128ToInt(bytez)
+            vsData = vs_prim.v_uint64(value=valu, bigend=self.bigend)
+            return vsData, extra
+
+        elif form == DW_FORM_sec_offset:  # lineptr, loclistptr, macptr, rangelistptr
+            if self.bits == 32:
+                vsData = vs_prim.v_int32(bigend=self.bigend)
+                vsData.vsParse(bytez)
+            elif self.bits == 64:
+                vsData = vs_prim.v_int64(bigend=self.bigend)
+                vsData.vsParse(bytez)
+            else:
+                raise Exception('Platform with pointer size %d unsupported' % self.bits)
+
+            # TODO: so where the offset is depends on what subtype the sec_offset is, but that's determined
+            # by the attr name, and honestly, right now, I don't care about that
+
+        elif form == DW_FORM_exprloc:  # exprloc
+            loclen, extra = leb128ToInt(bytez)
+            vsData = vs_prim.v_bytes(loclen)
+            vsData.vsParse(bytez, offset=extra)
+
+        elif form == DW_FORM_flag_present:  # flag
+            # Don't actually consume any bytes, but do indicate the flag is there
+            vsData = vs_prim.v_uint8(value=1)
+            return vsData, 0
+
+        elif form == DW_FORM_ref_sig8:  # reference
+            vsData = vs_prim.v_int64(bigend=self.bigend)
+            vsData.vsParse(bytez)
+
+        else:
+            raise Exception('Unrecognized debug form 0x%.8x' % form)
+
+        return vsData, len(vsData) + extra
+
+    def _parseDebugAbbrev(self):
+        bytez = self.getSectionBytes('.debug_abbrev')
+        consumed = 0
+        offset = consumed
+        parentChain = None
+        # Compile units are referenced by their offsets in the .debug_info section.
+        compileunits = {}
+        dies = {}
+        while consumed < len(bytez):
+            idx, con = leb128ToInt(bytez[consumed:])
+            consumed += con
+            tag, con = leb128ToInt(bytez[consumed:])
+            consumed += con
+            hasKids = ord(bytez[consumed])
+            consumed += 1
+
+            typeinfo = []
+            attr, attrType = 0xff, 0xff
+            while True:
+                attr, alen = leb128ToInt(bytez[consumed:])
+                consumed += alen
+                attrType, alen = leb128ToInt(bytez[consumed:])
+                consumed += alen
+
+                if attr == 0 and attrType == 0:
+                    break
+                typeinfo.append((attr, attrType))
+
+            dies[idx] = (tag, hasKids, typeinfo)
+            # if the next byte is 0, we're done with this compile unit
+            if ord(bytez[consumed]) == 0:
+                compileunits[offset] = dies
+                consumed += 1
+                offset = consumed
+                dies = {}
+
+        self._debug_abbrev = compileunits
+
+    def _parseDebugInfo(self):
+        # Use that to parse out things from the .debug_info section
+        bytez = self.getSectionBytes('.debug_info')
+        consumed = 0
+        while consumed < len(bytez):
+            # Parse the compile unit header
+            if self.bits == 32:
+                header = vs_elf.Dwarf32CompileHeader(bigend=self.bigend)
+            elif self.bits == 64:
+                header = vs_elf.Dwarf64CompileHeader(bigend=self.bigend)
+            else:
+                raise Exception('Platform not supported: %d' % (self.bits))
+
+            header.vsParse(bytez[consumed:])
+            abbrev = self._debug_abbrev[header.abbrev_offset]
+
+            # so the header in 64 bit is weird, since the first 4 are going to all f's for the length field
+            consumed += len(header)
+            toConsume = header.length + len(header.vsGetField('length'))
+            unitConsumed = 0
+            parentChain = []
+            # Need to grab the compile headers attributes and promote those for things like use_utf8
+            # Or just parse out the first header block?
+
+            while len(header) + unitConsumed < toConsume:
+                idx, ulen = leb128ToInt(bytez[consumed + unitConsumed])
+                unitConsumed += ulen
+                if idx == 0:
+                    parentChain.pop()
+                    continue
+
+                tag, hasKids, typeinfo = abbrev[idx]
+                # Need to actually do something with struct
+                struct = vstruct.VStruct()
+                for attr, attrForm in typeinfo:
+                    name = dwarf_attribute_names.get(attr, "UNK")
+                    vsForm, flen = self._getFormData(attrForm, bytez[consumed+unitConsumed:])
+                    struct.vsAddField(name, vsForm)
+                    unitConsumed += flen
+
+                if parentChain:
+                    parentChain[-1].dwarf_children.vsAddElement(struct)
+                else:
+                    self.debuginfo.append(struct)
+
+                if hasKids:
+                    parentChain.append(struct)
+                    struct.vsAddField('dwarf_children', vstruct.VArray())
+
+            consumed += unitConsumed
+        # TODO: Make these a dictionary key'd by fva for easy access for getting things like 
+        # runtime debugging information?
+
+    def _parseDebug(self):
+        # First parse out type information from the .debug_abbrev section
+        self._parseDebugAbbrev()
+        self._parseDebugInfo()
 
     def getBaseAddress(self):
         """
@@ -684,3 +962,22 @@ def getRelocType(val):
 def getRelocSymTabIndex(val):
     return val >> 8
 
+def leb128ToInt(bytez, bitlen=31, signed=False):
+    '''
+    Return tuple of the decoded value and how many bytes it consumed to decode the value
+    '''
+    valu = 0
+    shift = 0
+    signBit = False
+    for i, bz in enumerate(bytez, start=1):
+        bz = ord(bz)
+        valu |= (bz & 0x7f) << shift
+        shift += 7
+        if not bz & 0x80:
+            signBit = True if bz & 0x40 else False
+            break
+
+    if signed and signBit and shift < bitlen:
+        valu |= - (1 << shift)
+
+    return valu, i

@@ -301,6 +301,10 @@ class v_uint64(v_number):
     _vs_builder = True
     _vs_length = 8
 
+class v_uint96(v_number):
+    _vs_builder = True
+    _vs_length = 12
+
 class v_int8(v_snumber):
     _vs_builder = True
     _vs_length = 1

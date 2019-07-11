@@ -266,8 +266,8 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
                     else:
                         vw.verbprint('unknown reloc type: %d %s (at %s)' % (rtype, name, hex(rlva)))
 
-        except vivisect.InvalidLocation, e:
-            print "NOTE",e
+        except vivisect.InvalidLocation as e:
+            print("NOTE %s" % str(e))
 
     for s in elf.getDynSyms():
         stype = s.getInfoType()

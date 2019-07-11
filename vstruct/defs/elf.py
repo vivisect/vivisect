@@ -183,3 +183,44 @@ class ElfNote(vstruct.VStruct):
         descct = ((self.descsz +3) /4)
         elems = [ v_uint32() for i in xrange(descct) ]
         self.desc = vstruct.VArray(elems=elems)
+
+
+class Dwarf32CompileHeader(vstruct.VStruct):
+    def __init__(self, bigend=False):
+        vstruct.VStruct.__init__(self)
+        self.length = v_uint32(bigend=bigend)
+        self.version = v_uint16(bigend=bigend)
+        self.abbrev_offset = v_uint32(bigend=bigend)
+        self.ptrsize= v_uint8()
+
+
+class Dwarf32TypeHeader(vstruct.VStruct):
+    def __init__(self, bigend=False):
+        vstruct.VStruct.__init__(self)
+        self.length = v_uint32(bigend=bigend)
+        self.version = v_uint16(bigend=bigend)
+        self.abbrev_offset = v_uint32(bigend=bigend)
+        self.ptrsize= v_uint8()
+        self.type_sig = v_uint64(bigend=bigend)
+        self.type_offset = v_uint32(bigend=bigend)
+
+
+class Dwarf64CompileHeader(vstruct.VStruct):
+    def __init__(self, bigend=False):
+        vstruct.VStruct.__init__(self)
+        self.length = v_uint96(bigend=bigend)
+        self.version = v_uint16(bigend=bigend)
+        self.abbrev_offset = v_uint64(bigend=bigend)
+        self.ptrsize= v_uint8()
+
+
+class Dwarf64TypeHeader(vstruct.VStruct):
+    def __init__(self, bigend=False):
+        vstruct.VStruct.__init__(self)
+        self.length = v_uint96(bigend=bigend)
+        self.version = v_uint16(bigend=bigend)
+        self.abbrev_offset = v_uint64(bigend=bigend)
+        self.ptrsize= v_uint8()
+        self.type_sig = v_uint64(bigend=bigend)
+        self.type_offset = v_uint64(bigend=bigend)
+
