@@ -53,17 +53,26 @@ class ELFTests(unittest.TestCase):
     def imports(self, vw, data):
         # simple comparison to ensure same imports.  perhaps too simple.
         newimps = vw.getImports()
-        self.assertListEqual(newimps, data['imports'])
+        newimps.sort()
+        oldimps = data['imports']
+        oldimps.sort()
+        self.assertListEqual(newimps, oldimps)
 
     def exports(self, vw, data):
         # simple comparison to ensure same exports.  perhaps too simple.
         newexps = vw.getExports()
-        self.assertListEqual(newexps, data['exports'])
+        newexps.sort()
+        oldexps = data['exports']
+        oldexps.sort()
+        self.assertListEqual(newexps, oldexps)
 
     def relocs(self, vw, data):
         # simple comparison to ensure same relocs.  perhaps too simple.
         newrels = vw.getRelocations()
-        self.assertEqual(newrels, data['relocs'])
+        newrels.sort()
+        oldrels = data['relocs']
+        oldrels.sort()
+        self.assertEqual(newrels, newrels)
 
     def pltgot(self, vw, data):
         for pltva, gotva in data['pltgot']:
