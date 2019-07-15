@@ -232,10 +232,8 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
         bytes = fd.read(len(e))
         e.vsParse(bytes)
 
-        if e.e_data == ELFDATA2MSB:
-            bigend = True
-        else:
-            bigend = False
+        # if e_data == 1, then 32 bit, if e_data == 2, 64bit
+        bigend = (e.e_data == ELFDATA2MSB)
 
         #Parse 32bit header
         if e.e_class == ELFCLASS32:
@@ -501,6 +499,19 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
         self.fd.seek(off)
         return self.fd.read(size)
 
+    def getEndian(self):
+        '''
+        Is architecture BigEndian?
+        Returns True for MSB, False for LSB
+
+        This works with Vivisect's definitions of ENDIAN_MSB/ENDIAN_LSB constants:
+            (defined in envi/const.py)
+            ENDIAN_LSB = 0
+            ENDIAN_MSB = 1
+
+        '''
+        return self.e_data == ELFDATA2MSB
+
     def getSection(self, secname):
         return self.secnames.get(secname, None)
 
@@ -550,7 +561,7 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
                     offset = note.vsParse(notebytes, offset=offset)
                     yield note
             except Exception as e:
-                print("Elf.getNotes() Exception: %r" % e)
+                logger.warn("Elf.getNotes() Exception: %r", e)
 
     def getPlatform(self):
         '''

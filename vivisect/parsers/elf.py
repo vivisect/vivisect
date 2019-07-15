@@ -47,7 +47,7 @@ def makeStringTable(vw, va, maxva):
                     return
                 l = vw.makeString(va)
                 va += l[vivisect.L_SIZE]
-            except Exception, e:
+            except Exception as e:
                 logger.warn("makeStringTable\t%r", e)
                 return
 
@@ -82,7 +82,8 @@ def makeRelocTable(vw, va, maxva, addbase, baseaddr):
 
 def makeFunctionTable(elf, vw, tbladdr, size, tblname, funcs, ptrs, baseaddr=0):
     psize = vw.getPointerSize()
-    pfmt = e_bits.le_fmt_chars[psize]   #FIXME: make Endian-aware (needs plumbing through ELF)
+    fmtgrps = e_bits.fmt_chars[vw.getEndian()]
+    pfmt = fmtgrps[psize]
     secbytes = elf.readAtRva(tbladdr, size)
     tbladdr += baseaddr
 
@@ -139,6 +140,9 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
     vw.addNoReturnApi("*._setjmp")
     vw.addNoReturnApi("*.j__ZSt9terminatev")
     vw.addNoReturnApi("*.std::terminate(void)")
+
+    # for VivWorkspace, MSB==1, LSB==0... which is the same as True/False
+    vw.setEndian(elf.getEndian())
 
     # Base addr is earliest section address rounded to pagesize
     # NOTE: This is only for prelink'd so's and exe's.  Make something for old style so.
@@ -299,7 +303,7 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
                 new_functions.append(("DynSym: STT_FUNC", sva))
                 vw.addExport(sva, EXP_FUNCTION, s.name, fname, makeuniq=True)
                 vw.setComment(sva, dmglname)
-            except Exception, e:
+            except Exception as e:
                 vw.vprint('addExport Failure: (%s) %s' % (s.name, e))
 
         elif stype == Elf.STT_OBJECT:
@@ -411,7 +415,7 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
                 else:
                     vw.makeName(sva, dmglname, filelocal=True, makeuniq=True)
 
-            except Exception, e:
+            except Exception as e:
                 logger.warn("WARNING:\t%r",e)
 
         if s.st_info == Elf.STT_FUNC:
@@ -577,11 +581,11 @@ def applyRelocs(elf, vw, addbase=False, baseaddr=0):
                 else:
                     logger.warn('unknown reloc type: %d %s (at %s)' % (rtype, name, hex(rlva)))
 
-        except vivisect.InvalidLocation, e:
-            logger.warn("NOTE\t%r",e)
+        except vivisect.InvalidLocation as e:
+            logger.warn("NOTE\t%r", e)
 
 def connectSymbols(vw):
-    for lva,lsize,ltype,linfo in vw.getImports():
+    for lva, lsize, ltype, linfo in vw.getImports():
         for va, etype, name, filename in vw.getExports():
             pass
 
@@ -606,7 +610,7 @@ def demangle(name):
     try:
         import cxxfilt
         name = cxxfilt.demangle(name)
-    except Exception, e:
+    except Exception as e:
         logger.debug('failed to demangle name (%r): %r', name, e)
 
     return name

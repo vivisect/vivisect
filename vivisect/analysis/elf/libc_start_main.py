@@ -28,7 +28,6 @@ def analyzeFunction(vw, funcva):
         cconv = emu.getCallingConvention(api[vivisect.API_CCONV])
 
         args = cconv.getCallArgs(emu, 6)
-        print args
         vw.addEntryPoint(args[0])
         vw.makeFunction(args[0])
 
@@ -58,7 +57,7 @@ def analyze(vw):
                     emu = vw.getEmulator()
                     emu.setProgramCounter(arg2va)
                 except Exception as e:
-                    print repr(e)
+                    logger.warn(repr(e))
 
                 main = op0.opers[-1].getOperValue(op0)
                 logger.info("main = 0x%x", main)
