@@ -432,10 +432,20 @@ class WorkspaceEmulator:
         to represent the value of the taint.
         '''
 
-        if taint in self.trepr:
-            return self.trepr[taint]
+        def _makeIdx(val):
+            if type(val) in (list, tuple):
+                nval = []
+                for idx, subval in enumerate(val):
+                    nval.append(_makeIdx(subval))
+                return tuple(nval)
+            else:
+                return val
 
         va, ttype, tinfo = taint
+        tidx = (va, ttype, _makeIdx(tinfo))
+        if tidx in self.taintrepr:
+            return self.taintrepr[tidx]
+
         if ttype == 'uninitreg':
             trepr = self.getRegisterName(tinfo)
         elif ttype == 'import':
@@ -467,7 +477,8 @@ class WorkspaceEmulator:
         else:
             trepr = 'taint: 0x%.8x %s %r' % (va, ttype, tinfo)
 
-        self.taintrepr[taint] = trepr
+        self.taintrepr[tidx] = trepr
+        return trepr
 
     def reprVivValue(self, val):
         '''
@@ -476,7 +487,7 @@ class WorkspaceEmulator:
         and taint subsystems ).
         '''
         if self.vw.isFunction(val):
-            thunk = self.vw.getFunctionMeta(val,'Thunk')
+            thunk = self.vw.getFunctionMeta(val, 'Thunk')
             if thunk:
                 return thunk
 
@@ -487,19 +498,19 @@ class WorkspaceEmulator:
         taint = self.getVivTaint(val)
         if taint:
             # NOTE we need to prevent infinite recursion due to args being
-            # tainted and then referencing the same api call 
-            va,ttype,tinfo = taint
+            # tainted and then referencing the same api call
+            va, ttype, tinfo = taint
             if ttype == 'apicall':
-                op,pc,api,argv = tinfo
-                rettype,retname,callconv,callname,callargs = api
+                op, pc, api, argv = tinfo
+                rettype, retname, callconv, callname, callargs = api
                 if val not in argv:
                     return self.reprVivTaint(taint)
 
         stackoff = self.getStackOffset(val)
-        if stackoff != None:
+        if stackoff is not None:
             funclocal = self.vw.getFunctionLocal(self.funcva, stackoff)
-            if funclocal != None:
-                typename,varname = funclocal
+            if funclocal is not None:
+                typename, varname = funclocal
                 return varname
 
         if val < 4096:
