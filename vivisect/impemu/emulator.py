@@ -432,19 +432,7 @@ class WorkspaceEmulator:
         to represent the value of the taint.
         '''
 
-        def _makeIdx(val):
-            if type(val) in (list, tuple):
-                nval = []
-                for idx, subval in enumerate(val):
-                    nval.append(_makeIdx(subval))
-                return tuple(nval)
-            else:
-                return val
-
         va, ttype, tinfo = taint
-        tidx = (va, ttype, _makeIdx(tinfo))
-        if tidx in self.taintrepr:
-            return self.taintrepr[tidx]
 
         if ttype == 'uninitreg':
             trepr = self.getRegisterName(tinfo)
@@ -470,14 +458,16 @@ class WorkspaceEmulator:
             trepr = 'sp%s%d' % (o, abs(stackoff))
         elif ttype == 'apicall':
             op, pc, api, argv = tinfo
+            if op.va in self.taintrepr:
+                return '<0x%.8x>' % op.va
             rettype, retname, callconv, callname, callargs = api
             callstr = self.reprVivValue(pc)
             argsstr = ','.join([self.reprVivValue(x) for x in argv])
             trepr = '%s(%s)' % (callstr, argsstr)
+            self.taintrepr[op.va] = trepr
         else:
             trepr = 'taint: 0x%.8x %s %r' % (va, ttype, tinfo)
 
-        self.taintrepr[tidx] = trepr
         return trepr
 
     def reprVivValue(self, val):
