@@ -80,17 +80,19 @@ def makeRelocTable(vw, va, maxva, addbase, baseaddr):
         vw.setComment(va, tname)
         va += len(s)
 
-def makeFunctionTable(elf, vw, tbladdr, size, tblname, funcs, ptrs, baseaddr=0):
+def makeFunctionTable(elf, vw, tbladdr, size, tblname, funcs, ptrs, baseaddr=0, addbase=False):
+    logger.debug('makeFunctionTable(tbladdr=0x%x, size=0x%x, tblname=%r,  baseaddr=0x%x)',
+            tbladdr, size, tblname, baseaddr)
     psize = vw.getPointerSize()
     fmtgrps = e_bits.fmt_chars[vw.getEndian()]
     pfmt = fmtgrps[psize]
     secbytes = elf.readAtRva(tbladdr, size)
-    tbladdr += baseaddr
+    if addbase: tbladdr += baseaddr
 
     ptr_count = 0
     for off in range(0, size, psize):
         addr, = struct.unpack_from(pfmt, secbytes, off)
-        addr += baseaddr
+        if addbase: addr += baseaddr
         
         nstub = tblname + "_%d"
         pname = nstub % ptr_count
@@ -240,14 +242,14 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
             new_functions.append(("init_function", sva))
 
         elif sname == ".init_array":
-            makeFunctionTable(elf, vw, sec.sh_addr, size, 'init_function', new_functions, new_pointers, baseaddr)
+            makeFunctionTable(elf, vw, sec.sh_addr, size, 'init_function', new_functions, new_pointers, baseaddr, addbase)
 
         elif sname == ".fini":
             vw.makeName(sva, "fini_function", filelocal=True)
             new_functions.append(("fini_function", sva))
 
         elif sname == ".fini_array":
-            makeFunctionTable(elf, vw, sec.sh_addr, size, 'fini_function', new_functions, new_pointers, baseaddr)
+            makeFunctionTable(elf, vw, sec.sh_addr, size, 'fini_function', new_functions, new_pointers, baseaddr, addbase)
 
         elif sname == ".dynamic": # Imports
             makeDynamicTable(vw, sva, sva+size)
