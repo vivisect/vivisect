@@ -487,8 +487,6 @@ class WorkspaceEmulator:
 
         taint = self.getVivTaint(val)
         if taint:
-            # NOTE we need to prevent infinite recursion due to args being
-            # tainted and then referencing the same api call
             va, ttype, tinfo = taint
             if ttype == 'apicall':
                 op, pc, api, argv = tinfo
