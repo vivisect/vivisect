@@ -153,7 +153,7 @@ class CodeFlowContext(object):
 
             try:
                 op = self._mem.parseOpcode(va, arch=arch)
-            except envi.InvalidInstruction, e:
+            except envi.InvalidInstruction as e:
                 print 'parseOpcode error at 0x%.8x: %s' % (va,e)
                 continue
             except Exception as e:
