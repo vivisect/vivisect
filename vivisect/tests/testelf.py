@@ -57,6 +57,7 @@ class ELFTests(unittest.TestCase):
         self.imports(vw, data)
         self.exports(vw, data)
         self.relocs(vw, data)
+        self.names(vw, data)
         self.pltgot(vw, data)
         self.debuginfosyms(vw, data)
 
@@ -82,7 +83,15 @@ class ELFTests(unittest.TestCase):
         newrels.sort()
         oldrels = data['relocs']
         oldrels.sort()
-        self.assertEqual(newrels, newrels)
+        self.assertListEqual(newrels, newrels)
+
+    def names(self, vw, data):
+        # simple comparison to ensure same workspace names.  perhaps too simple.
+        newnames = vw.getRelocations()
+        newnames.sort()
+        oldnames = data['names']
+        oldnames.sort()
+        self.assertListEqual(newnames, newnames)
 
     def pltgot(self, vw, data):
         for pltva, gotva in data['pltgot']:
