@@ -443,7 +443,7 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
     # mark all the pointers for analysis later
     for va, tva, pname in new_pointers:
         logger.info('adding pointer 0x%x -> 0x%x', va, tva)
-        vw.setVaSetRow('PointersFromFile', (va, tva, pname))
+        vw.setVaSetRow('PointersFromFile', (va, tva, fname, pname))
 
     return fname
 
