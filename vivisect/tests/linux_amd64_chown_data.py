@@ -83,7 +83,6 @@ chown_data = {
     ],
 
     'exports' : [
-        (0x2000064, 1, '', 'chown'),
         (0x20027a0, 0, '__entry', 'chown'),
         (0x2008420, 0, 'fts_open', 'chown'),
         (0x20087c0, 0, 'fts_close', 'chown'),
@@ -142,7 +141,6 @@ chown_data = {
     ],
 
     'names' : [
-        (0x2000064, 'chown._0'),
         (0x2000238, 'str_/lib64/ld-linux-_02000238'),
         (0x2000ce1, 'str_libc.so.6_02000ce1'),
         (0x2000ceb, 'str_fflush_02000ceb'),
