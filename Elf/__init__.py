@@ -985,6 +985,12 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
         self.dynstrtabmeta = (rva, size)
         self.dynstrtab = self.readAtRva(rva, size).split('\0')
 
+        # since our string table should certainly end in '\0', we'll have an empty string
+        # at the end.  since this array is used to determine the number of symbols, we
+        # need to clean it up.
+        if len(self.dynstrtab) and not len(self.dynstrtab[-1]):
+            self.dynstrtab.pop()
+
     def getDynStrtabString(self, stroff):
         '''
         Returns a string starting at stroff
