@@ -690,7 +690,6 @@ def normName(name):
     '''
     Normalize symbol names.  ie. drop the @@GOBBLEDEGOOK from the end
     '''
-    return name
     atidx = name.find('@@')
     if atidx > -1:
         name = name[:atidx]

@@ -1753,9 +1753,9 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         and will not create one (use makeStructure).
         """
         s = vstruct.getStructure(vstructname)
-        if s == None:
+        if s is None:
             s = self.vsbuilder.buildVStruct(vstructname)
-        if s != None:
+        if s is not None:
             bytes = self.readMemory(va, len(s))
             s.vsParse(bytes)
         return s
