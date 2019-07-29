@@ -284,21 +284,32 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
         self.dynstrtab = []
         self.dynsymtabct = None     # populated by _parseDynStrs()
 
+        logger.info('self._parsePheaders')
         self._parsePheaders()
-        self._parseDynLinkInfo()
+        logger.info('self._parseDynLinkInfo')
+        self._parseDynLinkInfo()    # FIXME: should we parse string info early and have string info available for other _parse sections?
 
+        logger.info('self._parseDynLinkInfo')
         self._parseSections()
+        logger.info('self._parseDynamicsFromSections')
         self._parseDynamicsFromSections()
 
         # load symbols and relocs from DYNAMICS
+        logger.info('self._parseDynStrs')
         self._parseDynStrs()
+        logger.info('self._parseDynSyms')
         self._parseDynSyms()
+        logger.info('self._parseDynRelocs')
         self._parseDynRelocs()
 
         # load symbols and relocs from SECTIONS
+        logger.info('self._parseDynSymsFromSections')
         self._parseDynSymsFromSections()
+        logger.info('self._parseSectionSymbols')
         self._parseSectionSymbols()
+        logger.info('self._parseSectionRelocs')
         self._parseSectionRelocs()
+        logger.info('done parsing ELF')
 
     def getRelocTypeName(self, rtype):
         '''
@@ -461,7 +472,7 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
 
             # dump the tag/value pairs into the "dyns" dictionary.  if multiples, create a tuple
             curdyn = self.dyns.get(dyn.d_tag)
-            if curdyn != None:
+            if curdyn is not None:
                 self.dyns[dyn.d_tag] = (curdyn, dyn.d_value)
             else:
                 self.dyns[dyn.d_tag] = dyn.d_value
@@ -562,17 +573,17 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
         * JMPREL
         """
         rel, relent, relsz = self.getDynRelInfo()
-        if rel != None:
+        if rel is not None:
             cls = self._cls_reloc
             self._doDynRelocs(rel, relsz, cls)
 
         rela, relaent, relasz = self.getDynRelaInfo()
-        if rela != None:
+        if rela is not None:
             cls = self._cls_reloca
             self._doDynRelocs(rela, relasz, cls)
 
         jmprel, pltrel, pltrelsz = self.getDynPltRelInfo()
-        if jmprel != None:
+        if jmprel is not None:
             cls = (self._cls_reloc, self._cls_reloca)[pltrel==DT_RELA]
             self._doDynRelocs(jmprel, pltrelsz, cls)
 
@@ -580,7 +591,7 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
         syms = self.getDynSyms()
         symslen = len(syms)
 
-        if cls == None:
+        if cls is None:
             cls = self._cls_reloc
 
         reloc = cls(bigend=self.bigend)
