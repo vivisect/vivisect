@@ -490,7 +490,7 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
         strsz = self.dyns.get(DT_STRSZ)
         if dynstrtab is None or strsz is None:
             logger.warn('no dynamic string tableinfo found: DT_STRTAB: %r  DT_STRSZ: %r', dynstrtab, strsz)
-
+            return
 
         if self.dynstrtabmeta != (None, None):
             curtab = self.dynstrtabmeta[0]
