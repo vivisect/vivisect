@@ -77,4 +77,4 @@ def analyze(vw):
         tgtname = vw.getName(tgt)
         if tgtname is not None:
             logger.info('   name(0x%x): %r', tgt, tgtname)
-            vw.makeName('ptr_%s_%.8x' % (tgtname, ptr))
+            vw.makeName(ptr, 'ptr_%s_%.8x' % (tgtname, ptr))
