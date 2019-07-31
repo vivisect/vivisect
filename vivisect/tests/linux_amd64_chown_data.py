@@ -104,6 +104,7 @@ chown_data = {
         (0x22100a8, 1, u'__progname_full', 'chown'),
         (0x22100a8, 1, u'program_invocation_name', 'chown'),
         (0x22100c0, 1, u'stderr', 'chown'),
+        (0x22100f8, 1, u'program_name', 'chown'),
     ],
 
     'relocs' : [
@@ -518,6 +519,7 @@ chown_data = {
         (0x22100a0, u'chown.optarg'),
         (0x22100a8, u'chown.__progname_full'),
         (0x22100c0, u'chown.stderr'),
+        (0x22100f8, u'chown.program_name'),
     ],
 
     'pltgot' : [

@@ -299,6 +299,7 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
         self._parseDynStrs()
         #logger.info('self._parseDynSyms')  # DEPRECATED: autoparsing by Relocs
         #self._parseDynSyms()
+        self._parseDynSyms2()
         logger.info('self._parseDynRelocs')
         self._parseDynRelocs()
 
@@ -539,6 +540,37 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
             name = self.getDynStrtabString(sym.st_name)
             sym.setName(name)
             self.dynamic_symbols.append(sym)
+
+    def _parseDynSyms2(self):
+        symtabrva, symsz, symtabsz = self.getDynSymTabInfo()
+        if symtabrva is None:
+            return
+
+        #for dsoff in xrange(0, symtabsz, symsz):
+        dsoff = 0
+        while True:
+            syment = self.readAtRva(symtabrva + dsoff, symsz)
+            sym = self._cls_symbol(bigend=self.bigend)
+            sym.vsParse(syment)
+            #print sym.tree()
+            if sym.st_info & 0xf not in st_info_type:
+                break
+
+            if sym.st_info >> 4 not in st_info_bind:
+                break
+
+            name = self.getDynStrtabString(sym.st_name)
+            #print name
+            if name is None:
+                break
+
+            sym.setName(name)
+            #self.dynamic_symbols.append(sym)
+
+            dsoff += symsz
+            #if dsoff % (symsz*100) == 0:
+            #    raw_input()
+
 
 
     # FIXME: wrap in VERDEF and SYMINFO into the analysis.
@@ -1033,6 +1065,8 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
         dynstrtabva, strsz = self.dynstrtabmeta
         strings = self.readAtRva(dynstrtabva, strsz)
         strend = strings.find('\0', stroff)
+        if stroff > len(strings):
+            return None
 
         return strings[stroff:strend]
 
