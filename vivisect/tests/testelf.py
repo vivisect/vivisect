@@ -45,9 +45,9 @@ class ELFTests(unittest.TestCase):
             e = Elf.Elf(file(fn))
             vw = viv_cli.VivCli()
             vw.loadFromFile(fn)
-            #vw.analyze()
-            vaeep.analyze(vw)
-            vagp.analyze(vw)
+            vw.analyze()
+            #vaeep.analyze(vw)
+            #vagp.analyze(vw)
 
             cls.tests.append((name, test_data, fn, e, vw))
 
