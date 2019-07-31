@@ -65,8 +65,15 @@ def analyzeFunction(vw, funcva):
     emu = vw.getEmulator()
     emu.setRegister(e_i386.REG_EBX, gotplt)  # every emulator will have a 4th register, and if it's not used, no harm done.
     # FIXME: should we use op.getBranches(emu)?
-    oper0 = op.opers[0]
-    opval = oper0.getOperAddr(op, emu)
+    branches = op.getBranches(emu)
+    if len(branches) != 1:
+        logger.warn('getBranches() returns anomolous results: 0x%x: %r   (result: %r)',
+                op.va, op, branches)
+        return
+
+    opval, brflags = branches[0]
+    #oper0 = op.opers[0]
+    #opval = oper0.getOperAddr(op, emu)
 
     loctup = vw.getLocation(opval)
     fname = vw.getName(opval)
