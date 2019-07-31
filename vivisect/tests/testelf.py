@@ -28,8 +28,11 @@ data = (("linux_amd64_ls", linux_amd64_ls_data.ls_data, ('linux', 'amd64', 'ls')
         ("openbsd_amd64_ls", openbsd_amd64_ls_data.ls_amd64_data, ('openbsd', 'ls.amd64'),),
         )
 
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s:%(levelname)s:%(name)s: %(message)s')
 
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+
 
 
 class ELFTests(unittest.TestCase):
