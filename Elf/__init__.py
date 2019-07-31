@@ -297,8 +297,8 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
         # load symbols and relocs from DYNAMICS
         logger.info('self._parseDynStrs')
         self._parseDynStrs()
-        logger.info('self._parseDynSyms')
-        self._parseDynSyms()
+        #logger.info('self._parseDynSyms')  # DEPRECATED: autoparsing by Relocs
+        #self._parseDynSyms()
         logger.info('self._parseDynRelocs')
         self._parseDynRelocs()
 

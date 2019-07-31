@@ -368,14 +368,14 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
 
         elfmeta[Elf.dt_names.get(d.d_tag)] = d.d_value
 
-    vw.setMeta('ELF_DYNAMICS', elfmeta)  # create a VaSet instead? this allows more free-form info, but isn't currently accessible from the gui
+    vw.setMeta('ELF_DYNAMICS', elfmeta)  # create a VaSet instead? setMeta allows more free-form info, but isn't currently accessible from the gui
 
     # applyRelocs is specifically prior to "process Dynamic Symbols" because Dynamics-only symbols 
     #       (ie. not using Section Headers) may not get all the symbols.  Some ELF's simply list too 
     #       small a space using SYMTAB and SYMTABSZ
     applyRelocs(elf, vw, addbase, baseaddr)
 
-    # process Dynamic Symbols   FIXME: make this *after* applying relocations?  relocations can expand the size of this
+    # process Dynamic Symbols - this must happen *after* relocations, which can expand the size of this
     for s in elf.getDynSyms():
         stype = s.getInfoType()
         sva = s.st_value
@@ -393,16 +393,16 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
                 (stype == Elf.STT_GNU_IFUNC and arch in ('i386', 'amd64')):   # HACK: linux is what we're really after.
             try:
                 new_functions.append(("DynSym: STT_FUNC", sva))
-                vw.addExport(sva, EXP_FUNCTION, s.name, fname, makeuniq=True)
-                vw.setComment(sva, dmglname)
+                vw.addExport(sva, EXP_FUNCTION, dmglname, fname, makeuniq=True)
+                vw.setComment(sva, s.name)
             except Exception as e:
                 vw.vprint('addExport Failure: (%s) %s' % (s.name, e))
 
         elif stype == Elf.STT_OBJECT:
             if vw.isValidPointer(sva):
                 try:
-                    vw.addExport(sva, EXP_DATA, s.name, fname, makeuniq=True)
-                    vw.setComment(sva, dmglname)
+                    vw.addExport(sva, EXP_DATA, dmglname, fname, makeuniq=True)
+                    vw.setComment(sva, s.name)
                 except Exception as e:
                     vw.vprint('WARNING: %s' % e)
 
@@ -414,8 +414,8 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
             if vw.isValidPointer(sva):
                 try:
                     new_functions.append(("DynSym: STT_HIOS", sva))
-                    vw.addExport(sva, EXP_FUNCTION, s.name, fname, makeuniq=True)
-                    vw.setComment(sva, dmglname)
+                    vw.addExport(sva, EXP_FUNCTION, dmglname, fname, makeuniq=True)
+                    vw.setComment(sva, s.name)
                 except Exception as e:
                     vw.vprint('WARNING: %s' % e)
 
@@ -424,16 +424,16 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
             if addbase: sva += baseaddr
             if vw.isValidPointer(sva):
                 try:
-                    vw.addExport(sva, EXP_DATA, s.name, fname, makeuniq=True)
-                    vw.setComment(sva, dmglname)
+                    vw.addExport(sva, EXP_DATA, dmglname, fname, makeuniq=True)
+                    vw.setComment(sva, s.name)
                 except Exception as e:
                     vw.vprint('WARNING: %s' % e)
 
         else:
             logger.debug("DYNSYM DYNSYM\t%r\t%r\t%r\t%r", s, s.getInfoType(), 'other', hex(s.st_other))
 
-    vw.addVaSet("FileSymbols", (("Name",VASET_STRING),("va",VASET_ADDRESS)))
-    vw.addVaSet("WeakSymbols", (("Name",VASET_STRING),("va",VASET_ADDRESS)))
+    vw.addVaSet("FileSymbols", (("Name", VASET_STRING),("va", VASET_ADDRESS)))
+    vw.addVaSet("WeakSymbols", (("Name", VASET_STRING),("va", VASET_ADDRESS)))
 
     # apply symbols to workspace (if any)
     relocs = elf.getRelocs()
@@ -441,14 +441,15 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
     expvas = [va for va, x, y, z in vw.getExports()]
     for s in elf.getSymbols():
         sva = s.st_value
+        dmglname = demangle(s.name)
         logger.debug('symbol val: 0x%x\ttype: %r\tbind: %r\t name: %r',
-                sva, 
+                sva,
                 Elf.st_info_type.get(s.st_info, s.st_info),
                 Elf.st_info_bind.get(s.st_other, s.st_other),
                 s.name)
 
         if s.st_info == Elf.STT_FILE:
-            vw.setVaSetRow('FileSymbols', (s.name, sva))
+            vw.setVaSetRow('FileSymbols', (dmglname, sva))
             continue
             
         if s.st_info == Elf.STT_NOTYPE:
@@ -458,28 +459,25 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
                 if addbase: sva += baseaddr
                 if symname == '$a':
                     # ARM code
-                    logger.info('mapping (NOTYPE) ARM symbol: 0x%x: %r',sva, s.name)
-                    #vw.makeCode(sva)
+                    logger.info('mapping (NOTYPE) ARM symbol: 0x%x: %r',sva, dmglname)
                     new_functions.append(("Mapping Symbol: $a", sva))
 
                 elif symname == '$t':
                     # Thumb code
-                    logger.info('mapping (NOTYPE) Thumb symbol: 0x%x: %r',sva, s.name)
-                    #vw.makeCode(sva)
+                    logger.info('mapping (NOTYPE) Thumb symbol: 0x%x: %r',sva, dmglname)
                     new_functions.append(("Mapping Symbol: $t", sva + 1))
 
                 elif symname == '$d':
                     # Data Items (eg. literal pool)
-                    logger.info('mapping (NOTYPE) data symbol: 0x%x: %r',sva, s.name)
-                    #vw.followPointer(sva)
+                    logger.info('mapping (NOTYPE) data symbol: 0x%x: %r',sva, dmglname)
                     data_ptrs.append(sva)
 
 
         # if the symbol has a value of 0, it is likely a relocation point which gets updated
-        sname = normName(s.name)
+        sname = demangle(s.name)
         if sva == 0:
             for reloc in relocs:
-                rname = normName(reloc.name)
+                rname = demangle(reloc.name)
                 if rname == sname:
                     sva = reloc.r_offset
                     logger.info('sva==0, using relocation name: %x: %r', sva, rname)
@@ -548,7 +546,7 @@ def applyRelocs(elf, vw, addbase=False, baseaddr=0):
             # resolved "import" entry, otherwise, just a regular reloc
             name = r.getName()
             dmglname = demangle(name)
-            logger.debug('relocs: 0x%x: %r', rlva, name)
+            logger.debug('relocs: 0x%x: %r  (%r)', rlva, dmglname, name)
             if arch in ('i386', 'amd64'):
                 if name:
                     if rtype == Elf.R_X86_64_IRELATIVE:
@@ -559,8 +557,8 @@ def applyRelocs(elf, vw, addbase=False, baseaddr=0):
 
                     if rtype in (Elf.R_386_JMP_SLOT, Elf.R_X86_64_GLOB_DAT, Elf.R_X86_64_IRELATIVE):
                         logger.info('Reloc: making Import 0x%x (name: %s/%s) ', rlva, name, dmglname)
-                        vw.makeImport(rlva, "*", name)
-                        vw.setComment(rlva, dmglname)
+                        vw.makeImport(rlva, "*", dmglname)
+                        vw.setComment(rlva, name)
 
                     elif rtype in (Elf.R_386_32, Elf.R_386_COPY):
                         pass
@@ -621,8 +619,8 @@ def applyRelocs(elf, vw, addbase=False, baseaddr=0):
 
                     else:
                         logger.info('R_ARM_JUMP_SLOT: adding Import 0x%x (%s) ', rlva, dmglname)
-                        vw.makeImport(rlva, "*", name)
-                        vw.setComment(rlva, dmglname)
+                        vw.makeImport(rlva, "*", dmglname)
+                        vw.setComment(rlva, name)
                     
                 elif rtype == Elf.R_ARM_GLOB_DAT:
                     symidx = Elf.getRelocSymTabIndex(r.r_info)
@@ -638,13 +636,13 @@ def applyRelocs(elf, vw, addbase=False, baseaddr=0):
                             vw.makeName(rlva, pname)
 
                         if addbase: ptr += baseaddr
-                        vw.makeName(ptr, name)
-                        vw.setComment(ptr, dmglname)
+                        vw.makeImport(ptr, "*", dmglname)
+                        vw.setComment(ptr, name)
 
                     else:
                         logger.info('R_ARM_GLOB_DAT: adding Import 0x%x (%s) ', rlva, dmglname)
-                        vw.makeImport(rlva, "*", name)
-                        vw.setComment(rlva, dmglname)
+                        vw.makeImport(rlva, "*", dmglname)
+                        vw.setComment(rlva, name)
 
                 elif rtype == Elf.R_ARM_ABS32:
                     symidx = Elf.getRelocSymTabIndex(r.r_info)
@@ -660,7 +658,8 @@ def applyRelocs(elf, vw, addbase=False, baseaddr=0):
 
                     else:
                         logger.info('R_ARM_ABS32: adding Import 0x%x (%s) ', rlva, dmglname)
-                        vw.makeImport(rlva, "*", name)
+                        vw.makeImport(rlva, "*", dmglname)
+                        vw.setComment(rlva, name)
 
                     vw.setComment(rlva, dmglname)
 
@@ -669,8 +668,8 @@ def applyRelocs(elf, vw, addbase=False, baseaddr=0):
                     logger.info('R_ARM_RELATIVE: adding Relocation 0x%x -> 0x%x (name: %s) ', rlva, ptr, dmglname)
                     vw.addRelocation(rlva, vivisect.RTYPE_BASEPTR, ptr)
                     if len(name):
-                        vw.makeName(rlva, name, makeuniq=True)
-                        vw.setComment(rlva, dmglname)
+                        vw.makeName(rlva, dmglname, makeuniq=True)
+                        vw.setComment(rlva, name)
 
                 else:
                     logger.warn('unknown reloc type: %d %s (at %s)', rtype, name, hex(rlva))
