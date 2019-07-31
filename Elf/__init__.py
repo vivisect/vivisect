@@ -18,12 +18,7 @@ Send bug reports to Invisigoth or Metr0.
 
 """
 # Copyright (C) 2007 Invisigoth - See LICENSE file for details
-import os
-import sys
-import struct
 import logging
-import traceback
-import zlib
 
 from stat import *
 from Elf.elf_lookup import *
@@ -222,6 +217,12 @@ class Elf64Section(ElfSection, vs_elf.Elf64Section):
 
 class Elf(vs_elf.Elf32, vs_elf.Elf64):
     def __init__(self, fd, inmem=False):
+        '''
+        Parse data from 'fd' and create an Elf object.
+
+        This process attempts to get as much information from DYNAMICS as 
+        possible, then adds in data from SECTIONS.
+        '''
 
         # Grab a 32bit header to use to check for other
         # machine types...
@@ -287,9 +288,9 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
         logger.info('self._parsePheaders')
         self._parsePheaders()
         logger.info('self._parseDynLinkInfo')
-        self._parseDynLinkInfo()    # FIXME: should we parse string info early and have string info available for other _parse sections?
+        self._parseDynLinkInfo()
 
-        logger.info('self._parseDynLinkInfo')
+        logger.info('self._parseSections')
         self._parseSections()
         logger.info('self._parseDynamicsFromSections')
         self._parseDynamicsFromSections()
@@ -451,7 +452,7 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
 
     def _parseDynLinkInfo(self):
         '''
-        Parse the Dynamics section and populate both self.dynamics (legacy) and self.dyns
+        Parse the Dynamics segment and populate both self.dynamics (legacy) and self.dyns
         This must be run before most Dynamic-data accessors like getDynStrTabString(), 
         getDynSymTabInfo(), etc..
         '''
