@@ -13,7 +13,6 @@ def analyzeFunction(vw, funcva):
     search through all calls, looking for a call to an import named __libc_start_main
     then check for arg0
     '''
-    global emu, emumon, cconv
     try:
         emu = vw.getEmulator()
         emumon = AnalysisMonitor(vw, funcva)
@@ -45,9 +44,8 @@ def analyzeFunction(vw, funcva):
         sys.excepthook(*sys.exc_info())
 
 
-
 def analyze(vw):
-    logger.info('analyze() ')
+    logger.info('analyze()')
 
     for va, name in vw.getNames():
         lcsm = '__libc_start_main_%.8x' % va
@@ -56,29 +54,6 @@ def analyze(vw):
                 logger.info("0x%x -> 0x%x", xfr, xto)
                 funcva = vw.getFunction(xfr)
                 analyzeFunction(vw, funcva)
-                '''
-                arg0va = vw.getLocation(xfr-1)[0]
-                op0 = vw.parseOpcode(arg0va)
-
-                arg1va = vw.getLocation(arg0va-1)[0]
-                op1 = vw.parseOpcode(arg1va)
-
-                arg2va = vw.getLocation(arg1va-1)[0]
-                op2 = vw.parseOpcode(arg2va)
-
-                try:    # attempt to use emulation to setup call, requires accurate calling convention
-                    emu = vw.getEmulator()
-                    emu.setProgramCounter(arg2va)
-                except Exception as e:
-                    logger.warn(repr(e))
-
-                main = op0.opers[-1].getOperValue(op0)
-                logger.info("main = 0x%x", main)
-                vw.addEntryPoint(main)
-                vw.makeFunction(main)
-                vw.makeName(main, 'main', True)
-                '''
-
 
 
 class AnalysisMonitor(viv_imp_monitor.AnalysisMonitor):
@@ -109,7 +84,3 @@ class AnalysisMonitor(viv_imp_monitor.AnalysisMonitor):
                     self.success = True
                     self.emu = emu
                     emu.stop()
-
-
-
-

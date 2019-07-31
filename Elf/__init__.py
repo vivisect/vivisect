@@ -297,9 +297,8 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
         # load symbols and relocs from DYNAMICS
         logger.info('self._parseDynStrs')
         self._parseDynStrs()
-        #logger.info('self._parseDynSyms')  # DEPRECATED: autoparsing by Relocs
-        #self._parseDynSyms()
-        self._parseDynSyms2()
+        logger.info('self._parseDynSyms')
+        self._parseDynSyms()
         logger.info('self._parseDynRelocs')
         self._parseDynRelocs()
 
@@ -501,18 +500,19 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
 
         self.dynstrtabmeta = (dynstrtab, strsz)
         self.dynstrtab = strtabbytes.split('\0')
-        self.dynsymtabct = len(self.dynstrtab)  # cheat: there is a 1-to-1 relationship between symbols and strings in these tables
-        # if "DT_SONAME" is within this string table, there are no symbols to match that or thereafter:
-        soname = self.dyns.get(DT_SONAME)
-        if soname is not None and soname != -1 and soname < strsz:
-            dynsymstrs = strtabbytes[:soname].split('\0')
-            self.dynsymtabct = len(dynsymstrs) - 1
 
         # since our string table should certainly end in '\0', we'll have an empty string
         # at the end.  since this array is used to determine the number of symbols, we
         # need to clean it up.
         if len(self.dynstrtab) and not len(self.dynstrtab[-1]):
             self.dynstrtab.pop()
+
+        self.dynsymtabct = len(self.dynstrtab)  # cheat: there is a 1-to-1 relationship between symbols and strings in these tables
+        # if "DT_SONAME" is within this string table, there are no symbols to match that or thereafter:
+        soname = self.dyns.get(DT_SONAME)
+        if soname is not None and soname != -1 and soname < strsz:
+            dynsymstrs = strtabbytes[:soname].split('\0')
+            self.dynsymtabct = len(dynsymstrs) - 1
 
         # setup names for the dynamics table entries
         for dyn in self.dynamics:
@@ -524,35 +524,35 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
         '''
         Parses the Symbol Table and sets up Dynamic String Table
         Using Dynamics instead of ELF Sections
+
+        This relies on the DYNAMICS section having DT_SYMTAB and DT_SYMENT
+
+        Because ELF has no DT_SYMTABSZ, "symtabsz" as returned from 
+        getDynSymTabInfo() cannot be fully trusted.  Therefore, we run a few
+        sanity heuristics.
+
+        This is only a prep run to identify symbols.  If getDynSymbol() is 
+        called with an index not currently in dynamic_symbols, dynamic_symbols 
+        is expanded to fill the need (albeit, without these sanity checks, so
+        be cautious).
         '''
         # fyi:  '.dynsym' section == DT_SYMTAB
         #       '.dynstr' section == DT_STRTAB
 
         # parse Dynamic Symbol Table
+        if len(self.dynamic_symbols):
+            logger.warn("_parseDynSyms() cannot run: dynamic_symbols is not empty")
+            return
+
         symtabrva, symsz, symtabsz = self.getDynSymTabInfo()
         if symtabrva is None:
             return
 
-        for dsoff in xrange(0, symtabsz, symsz):
-            syment = self.readAtRva(symtabrva + dsoff, symsz)
-            sym = self._cls_symbol(bigend=self.bigend)
-            sym.vsParse(syment)
-            name = self.getDynStrtabString(sym.st_name)
-            sym.setName(name)
-            self.dynamic_symbols.append(sym)
-
-    def _parseDynSyms2(self):
-        symtabrva, symsz, symtabsz = self.getDynSymTabInfo()
-        if symtabrva is None:
-            return
-
-        #for dsoff in xrange(0, symtabsz, symsz):
         dsoff = 0
         while True:
             syment = self.readAtRva(symtabrva + dsoff, symsz)
             sym = self._cls_symbol(bigend=self.bigend)
             sym.vsParse(syment)
-            #print sym.tree()
             if sym.st_info & 0xf not in st_info_type:
                 break
 
@@ -560,16 +560,13 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
                 break
 
             name = self.getDynStrtabString(sym.st_name)
-            #print name
             if name is None:
                 break
 
             sym.setName(name)
-            #self.dynamic_symbols.append(sym)
+            self.dynamic_symbols.append(sym)
 
             dsoff += symsz
-            #if dsoff % (symsz*100) == 0:
-            #    raw_input()
 
 
 
@@ -1043,6 +1040,14 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
         Returns Symbol Table information (as obtained through Dynamics only)
         Assumes _parseDynSyms has run (populating self.dynstrtab)
         returns (symtabva, symbolsz, symtabsz)
+
+        Because there is no DT_SYMTABSZ, we can't be certain how many dynamic 
+        symbols to expect.  Supposedly there is a 1:1 relationship between 
+        DynSyms and DynStrs, but that can be misleading.  Still, based on the
+        number of DynStrs parsed in _parseDynStrs() we use that to roughly 
+        determine the number, which is estimated in _parseDynStrs()  and stored 
+        in self.dynsymtabct.  Perhaps this is horrible and should be stricken
+        from the code.
         '''
         symtabva = self.dyns.get(DT_SYMTAB)
         if symtabva is None:
