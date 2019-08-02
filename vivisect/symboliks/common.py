@@ -256,7 +256,7 @@ class SymbolikBase:
                 done.add(parent._sym_id)
                 parent.cache.clear()
                 # grow our todo list
-                todo += parent.parents
+                todo += list(set(parent.parents))
 
             # remove ourselves as the parent
             if oldkid.parents:
