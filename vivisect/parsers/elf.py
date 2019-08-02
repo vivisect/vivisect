@@ -14,8 +14,6 @@ from cStringIO import StringIO
 
 logger = logging.getLogger(__name__)
 
-# FIXME: TODO: Reorder, so that Dynamics Data is applied first... with optional ELF Section data afterwards (default to apply if not already there)
-# FIXME: we're causing Functions and Code to happen... *before* any analysis modules are put into place.
 
 def parseFile(vw, filename, baseaddr=None):
     fd = file(filename, 'rb')
@@ -222,62 +220,51 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
         if addbase: sva += baseaddr
 
         vw.addSegment(sva, size, sname, fname)
-        # FIXME: since getFile is based on segments, and some Elfs don't reach this...
-        #       should we instead include ProgramHeaders?
+
+    # since getFileByVa is based on segments, and ELF Sections seldom cover all the
+    # loadable memory space.... we'll add PT_LOAD Program Headers, only at the
+    # end.  If we add them first, they're always the matching segments.  At the 
+    # end, they make more of a default segment
+    pcount = 0
+    if vw.getFileByVa(baseaddr) is None:
+        for phdr in elf.getPheaders():
+            if phdr.p_type != Elf.PT_LOAD:
+                continue
+            
+            sva = phdr.p_vaddr
+            if addbase: sva += baseaddr
+
+            vw.addSegment(pva, phdr.p_memsz, 'PHDR%d' % pcount, fname)
 
     # load information from dynamics:
     f_init = elf.dyns.get(Elf.DT_INIT)
-    if f_init != None:
+    if f_init is not None:
         if addbase:
             f_init += baseaddr
         vw.makeName(f_init, "init_function", filelocal=True)
         vw.addEntryPoint(f_init)
 
     f_fini = elf.dyns.get(Elf.DT_FINI)
-    if f_fini != None:
+    if f_fini is not None:
         if addbase:
             f_fini += baseaddr
         vw.makeName(f_fini, "fini_function", filelocal=True)
         vw.addEntryPoint(f_fini)
 
     f_inita = elf.dyns.get(Elf.DT_INIT_ARRAY)
-    if f_inita != None:
+    if f_inita is not None:
         f_initasz = elf.dyns.get(Elf.DT_INIT_ARRAYSZ)
-        if addbase:
-            f_inita += baseaddr
-        for off in range(0, f_initasz, vw.psize):
-            iava = f_inita + off
-            fva = vw.readMemValue(iava, vw.psize)
-            if addbase:
-                fva += baseaddr
-            vw.makeName(fva, "init_array_%d" % off, filelocal=True)
-            vw.addEntryPoint(fva)
+        makeFunctionTable(elf, vw, f_inita, f_initasz, 'init_array', new_functions, new_pointers, baseaddr, addbase)
 
     f_finia = elf.dyns.get(Elf.DT_FINI_ARRAY)
-    if f_finia != None:
+    if f_finia is not None:
         f_finiasz = elf.dyns.get(Elf.DT_FINI_ARRAYSZ)
-        if addbase:
-            f_finia += baseaddr
-        for off in range(0, f_finiasz, vw.psize):
-            fava = f_finia + off
-            fva = vw.readMemValue(fava, vw.psize)
-            if addbase:
-                fva += baseaddr
-            vw.makeName(fva, "fini_array_%d" % off, filelocal=True)
-            vw.addEntryPoint(fva)
+        makeFunctionTable(elf, vw, f_finia, f_finiasz, 'fini_array', new_functions, new_pointers, baseaddr, addbase)
 
     f_preinita = elf.dyns.get(Elf.DT_PREINIT_ARRAY)
-    if f_preinita != None:
+    if f_preinita is not None:
         f_preinitasz = elf.dyns.get(Elf.DT_PREINIT_ARRAY)
-        if addbase:
-            f_preinita += baseaddr
-        for off in range(0, f_preinitasz, vw.psize):
-            piava = f_preinita + off
-            fva = vw.readMemValue(piava, vw.psize)
-            if addbase:
-                fva += baseaddr
-            vw.makeName(fva, "preinit_array_%d" % off, filelocal=True)
-            vw.addEntryPoint(fva)
+        makeFunctionTable(elf, vw, f_preinita, f_preinitasz, 'preinit_array', new_functions, new_pointers, baseaddr, addbase)
 
     # dynamic table
     phdr = elf.getDynPHdr()    # file offset?
