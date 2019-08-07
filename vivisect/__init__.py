@@ -40,6 +40,7 @@ import vstruct.cparse as vs_cparse
 import vstruct.primitives as vs_prims
 
 import vivisect.base as viv_base
+import vivisect.extensions as viv_ext
 import vivisect.parsers as viv_parsers
 import vivisect.codegraph as viv_codegraph
 import vivisect.impemu.lookup as viv_imp_lookup
@@ -145,6 +146,8 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         self.addVaSet("Emulation Anomalies", (("va", VASET_ADDRESS), ("Message", VASET_STRING)))
         self.addVaSet("Bookmarks", (("va", VASET_ADDRESS), ("Bookmark Name", VASET_STRING)))
         self.addVaSet('DynamicBranches', (('va', VASET_ADDRESS), ('opcode', VASET_STRING), ('bflags', VASET_INTEGER)))
+
+        viv_ext.earlyExtensions(self)
 
     def verbprint(self, msg):
         if self.verbose:

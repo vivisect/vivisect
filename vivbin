@@ -2,17 +2,18 @@
 import imp
 import sys
 import time
+import logging
 import cProfile
 import argparse
-import logging
+
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s:%(levelname)s:%(name)s: %(message)s')
+logger = logging.getLogger()
+
 
 import vivisect.cli as viv_cli
 import envi.config as e_config
 import envi.threads as e_threads
 import vivisect.parsers as viv_parsers
-
-logging.basicConfig(level=logging.DEBUG, format='%(asctime)s:%(levelname)s:%(name)s: %(message)s')
-logger = logging.getLogger()
 
 loglevels = (
     logging.CRITICAL,
