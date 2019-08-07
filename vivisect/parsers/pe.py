@@ -27,6 +27,9 @@ logger = logging.getLogger(__name__)
 # 0x183   DEC Alpha AXP
 
 
+def isParser(bytez):
+    return bytez.startswith("MZ")
+
 def parseFile(vw, filename, baseaddr=None):
     pe = PE.PE(file(filename, "rb"))
     return loadPeIntoWorkspace(vw, pe, filename, baseaddr=baseaddr)

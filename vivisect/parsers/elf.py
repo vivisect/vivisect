@@ -13,6 +13,10 @@ from cStringIO import StringIO
 
 logger = logging.getLogger(__name__)
 
+
+def isParser(bytez):
+    return bytez.startswith("\x7fELF")
+
 def parseFile(vw, filename, baseaddr=None):
     fd = file(filename, 'rb')
     elf = Elf.Elf(fd)
@@ -43,8 +47,8 @@ def makeStringTable(vw, va, maxva):
                     return
                 l = vw.makeString(va)
                 va += l[vivisect.L_SIZE]
-            except Exception, e:
-                print "makeStringTable",e
+            except Exception as e:
+                logger.warn("makeStringTable\t%r", e)
                 return
 
 def makeSymbolTable(vw, va, maxva):

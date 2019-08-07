@@ -11,6 +11,9 @@ archcalls = {
     'arm':'armcall',
 }
 
+def isParser(bytez):
+    return bytez[0] == ':'
+
 def parseFile(vw, filename, baseaddr=None):
 
     arch = vw.config.viv.parsers.ihex.arch
