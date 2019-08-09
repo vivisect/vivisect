@@ -121,6 +121,7 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
         fhash = v_parsers.md5File(filename)
 
     fname = vw.addFile(fvivname.lower(), baseaddr, fhash)
+    vw.setFileMeta(fname, 'sha256', v_parsers.sha256File(filename))
 
     symhash = e_symcache.symCacheHashFromPe(pe)
     vw.setFileMeta(fname, 'SymbolCacheHash', symhash)

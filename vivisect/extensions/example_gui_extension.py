@@ -36,6 +36,21 @@ class ExampleWindow(QWidget):
         textedit = QTextEdit('WOOT! Some text!', parent=self)
         self.setLayout( VBox(button, textedit) )
 
+def earlyLoad(vw):
+    vw.vprint('hook immediately after workspace creation')
+
+def preFileLoadHook(vw, fname, bytez, fd):
+    '''
+    this hook is called just before parseFrom(Fd, File, Memory).
+
+    NOTE:
+    vw will always be the Viv Workspace, but the other args can all be None.
+    parseFromFd will only include the fname and fd.
+    parseFromFile will only include fname
+    parseFromMemory will only include fname and bytez.
+    '''
+    vw.vprint('preFileLoadHook(vw, %r, %s..., %r)' % fname, repr(bytez)[:20], fd)
+
 @idlethread
 def vivExtension(vw, vwgui):
     toolbar = ExampleToolbar(vw, vwgui)

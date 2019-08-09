@@ -33,6 +33,21 @@ def earlyExtensions(vw):
             vw.vprint('Extension Error (early): %s' % filepath)
 
 
+def preFileLoadExtensions(vw, fname, bytez, fd):
+    logger.debug('preFileLoad')
+    for mod in extensions:
+        if not hasattr(mod, 'preFileLoadHook'):
+            logger.debug('preFileLoad: %r (no preFileLoadHook() function)', mod)
+            continue
+
+        logger.debug('preFileLoad: %r', mod)
+        try:
+            mod.preFileLoadHook(vw, fname, bytez, fd)
+        except Exception, e:
+            vw.vprint(traceback.format_exc())
+            vw.vprint('Extension Error (preFileLoad): %s' % filepath)
+
+
 def loadExtensions(vw, vwgui):
     logger.debug('loadExtensions')
     for mod in extensions:

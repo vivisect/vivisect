@@ -2114,6 +2114,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
         fd.seek(0)
         filename = hashlib.md5( fd.read() ).hexdigest()
+        viv_ext.preFileLoadExtensions(self, filename, None, fd)
         fname = mod.parseFd(self, fd, filename, baseaddr=baseaddr)
 
         self.initMeta("StorageName", filename+".viv")

@@ -128,6 +128,7 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
         fhash = v_parsers.md5File(filename)
 
     fname = vw.addFile(filename.lower(), baseaddr, fhash)
+    vw.setFileMeta(fname, 'sha256', v_parsers.sha256File(filename))
 
     strtabs = {}
     secnames = []
