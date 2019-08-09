@@ -38,66 +38,86 @@ class Amd64InstrTest(unittest.TestCase):
 
 # name, bytes, va, repr, txtRender
 amd64SingleByteOpcodes = [
-        ('add', '0001', 0x40, 'add byte [rcx],al', 'add byte [rcx],al'),
-        ('jg', '7faa', 0x400, 'jg 0x000003ac', 'jg 0x000003ac'),
-        ('rep movsb', 'f3a4', 0x40, 'rep: movsb ', 'rep: movsb '),
-        ('mov al', 'b0aa', 0x40, 'mov al,170', 'mov al,170'),
-        ('mov ebx', 'b8aaaa4040', 0x40, 'mov eax,0x4040aaaa', 'mov eax,0x4040aaaa'),
-        ('call ebx', 'ffd3', 0x40, 'call rbx', 'call rbx'),
-        ('call lit', 'e801010101', 0x40, 'call 0x01010146', 'call 0x01010146'),
-        ('mov dword', '89aa41414141', 0x40, 'mov dword [rdx + 1094795585],ebp', 'mov dword [rdx + 1094795585],ebp'),
-        ('imul 1', 'f6aaaaaaaaaa', 0x40, 'imul al,byte [rdx - 1431655766]', 'imul al,byte [rdx - 1431655766]'),
-        ('imul 2', 'f7aaaaaaaaaa', 0x40, 'imul eax,dword [rdx - 1431655766]', 'imul eax,dword [rdx - 1431655766]'),
-        ('push', 'fff0', 0x40, 'push eax', 'push eax'),
-        ('pop', '8ff0', 0x40, 'pop eax', 'pop eax'),
-        ('pop', '8ffb', 0x40, 'pop ebx', 'pop ebx'),
-        ('push', '48fff0', 0x40, 'push rax', 'push rax'),
-        ('pop', '488ff0', 0x40, 'pop rax', 'pop rax'),
-        ('pop', '488ffb', 0x40, 'pop rbx', 'pop rbx'),
-        ]
+    ('add', '0001', 0x40, 'add byte [rcx],al', 'add byte [rcx],al'),
+    ('jg', '7faa', 0x400, 'jg 0x000003ac', 'jg 0x000003ac'),
+    ('rep movsb', 'f3a4', 0x40, 'rep: movsb ', 'rep: movsb '),
+    ('mov al', 'b0aa', 0x40, 'mov al,170', 'mov al,170'),
+    ('mov ebx', 'b8aaaa4040', 0x40, 'mov eax,0x4040aaaa', 'mov eax,0x4040aaaa'),
+    ('call ebx', 'ffd3', 0x40, 'call rbx', 'call rbx'),
+    ('call lit', 'e801010101', 0x40, 'call 0x01010146', 'call 0x01010146'),
+    ('mov dword', '89aa41414141', 0x40, 'mov dword [rdx + 1094795585],ebp', 'mov dword [rdx + 1094795585],ebp'),
+    ('imul 1', 'f6aaaaaaaaaa', 0x40, 'imul al,byte [rdx - 1431655766]', 'imul al,byte [rdx - 1431655766]'),
+    ('imul 2', 'f7aaaaaaaaaa', 0x40, 'imul eax,dword [rdx - 1431655766]', 'imul eax,dword [rdx - 1431655766]'),
+    ('push', 'fff0', 0x40, 'push eax', 'push eax'),
+    ('pop', '8ff0', 0x40, 'pop eax', 'pop eax'),
+    ('pop', '8ffb', 0x40, 'pop ebx', 'pop ebx'),
+    ('push', '48fff0', 0x40, 'push rax', 'push rax'),
+    ('pop', '488ff0', 0x40, 'pop rax', 'pop rax'),
+    ('pop', '488ffb', 0x40, 'pop rbx', 'pop rbx'),
+    #('BSWAP (eax)', 'f30fc84141', 0x40, 'rep: bswap eax', 'rep: bswap eax'),
+]
 
 amd64MultiByteOpcodes = [
-        ('CVTTPS2PI', '0f2caaaaaaaa41', 0x40, 'cvttps2pi mm5,oword [rdx + 1101703850]', 'cvttps2pi mm5,oword [rdx + 1101703850]'),
-        ('CVTTSS2SI', 'f30f2caaaaaaaa41', 0x40, 'cvttss2si ebp,oword [rdx + 1101703850]', 'cvttss2si ebp,oword [rdx + 1101703850]'),
-        ('CVTTPD2PI', '660f2caaaaaaaa41', 0x40, 'cvttpd2pi mm5,oword [rdx + 1101703850]', 'cvttpd2pi mm5,oword [rdx + 1101703850]'),
-        ('CVTTSD2SI', 'f20f2caaaaaaaa41', 0x40, 'cvttsd2si ebp,oword [rdx + 1101703850]', 'cvttsd2si ebp,oword [rdx + 1101703850]'),
-        ('ADDPS', '0f58aa4141414141', 0x40, 'addps xmm5,oword [rdx + 1094795585]', 'addps xmm5,oword [rdx + 1094795585]'),
-        ('MOVAPS', '0f28aa41414141', 0x40, 'movaps xmm5,oword [rdx + 1094795585]', 'movaps xmm5,oword [rdx + 1094795585]'),
-        ('MOVAPD', '660f28aa41414141', 0x40, 'movapd xmm5,oword [rdx + 1094795585]', 'movapd xmm5,oword [rdx + 1094795585]'),
-        ('PMULLW (66)', '660faa41414141', 0x40, 'rsm ', 'rsm '),
-        ('CMPXCH8B', '0fc70a', 0x40, 'cmpxch8b qword [rdx]', 'cmpxch8b qword [rdx]'),
-        ('MOVD (66)',   '660f7ecb414141', 0x40, 'movd ebx,xmm1', 'movd ebx,xmm1'),
-        ('MOVD', '0F6E0D41414100', 0x40, 'movd mm1,[rip + 4276545]', 'movd mm1,dword [rip + 4276545]'),
-        ('MOVQ', '0F6FCB', 0x40, 'movq mm1,mm3', 'movq mm1,mm3'),
-        ('PSRAW',  '0FE1CA4141', 0x40, 'psraw mm1,mm2', 'psraw mm1,mm2'),
-        ('PSRLQ (66)',  '660FF3CB4141', 0x40, 'psllq xmm1,xmm3', 'psllq xmm1,xmm3'),
-        ('PALIGNR', '0F3A0FDC03', 0x40, 'palignr xmm3,xmm4,3', 'palignr xmm3,xmm4,3'),
-        ('PALIGNR (66)',  '660F3A0FCA07', 0x40, 'palignr xmm1,xmm2,7', 'palignr xmm1,xmm2,7'),
-        ('PSLLQ (reg)',  '660FF3CA', 0x40, 'psllq xmm1,xmm2', 'psllq xmm1,xmm2'),
-        ('PSLLW (regs)',  '0F71F108', 0x40, 'psllw mm1,8', 'psllw mm1,8'),
-        ('PSLLQ (66)',  '660F73F108', 0x40, 'psllq xmm1,8', 'psllq xmm1,8'),
-        ('RDTSC', '0F31', 0x40, 'rdtsc ', 'rdtsc '),
-        ('RDTSCP', '0F01F9', 0x40, 'rdtscp ', 'rdtscp '),
+    ('CVTTPS2PI', '0f2caaaaaaaa41', 0x40, 'cvttps2pi mm5,oword [rdx + 1101703850]', 'cvttps2pi mm5,oword [rdx + 1101703850]'),
+    ('CVTTSS2SI', 'f30f2caaaaaaaa41', 0x40, 'cvttss2si ebp,oword [rdx + 1101703850]', 'cvttss2si ebp,oword [rdx + 1101703850]'),
+    ('CVTTPD2PI', '660f2caaaaaaaa41', 0x40, 'cvttpd2pi mm5,oword [rdx + 1101703850]', 'cvttpd2pi mm5,oword [rdx + 1101703850]'),
+    ('CVTTSD2SI', 'f20f2caaaaaaaa41', 0x40, 'cvttsd2si ebp,oword [rdx + 1101703850]', 'cvttsd2si ebp,oword [rdx + 1101703850]'),
+    ('ADDPS', '0f58aa4141414141', 0x40, 'addps xmm5,oword [rdx + 1094795585]', 'addps xmm5,oword [rdx + 1094795585]'),
+    ('MOVAPS', '0f28aa41414141', 0x40, 'movaps xmm5,oword [rdx + 1094795585]', 'movaps xmm5,oword [rdx + 1094795585]'),
+    ('MOVAPD', '660f28aa41414141', 0x40, 'movapd xmm5,oword [rdx + 1094795585]', 'movapd xmm5,oword [rdx + 1094795585]'),
+    ('PMULLW (66)', '660faa41414141', 0x40, 'rsm ', 'rsm '),
+    ('CMPXCH8B', '0fc70a', 0x40, 'cmpxch8b qword [rdx]', 'cmpxch8b qword [rdx]'),
+    ('MOVD (66)',   '660f7ecb414141', 0x40, 'movd ebx,xmm1', 'movd ebx,xmm1'),
+    ('MOVD', '0F6E0D41414100', 0x40, 'movd mm1,[rip + 4276545]', 'movd mm1,dword [rip + 4276545]'),
+    ('MOVQ', '0F6FCB', 0x40, 'movq mm1,mm3', 'movq mm1,mm3'),
+    ('PSRAW',  '0FE1CA4141', 0x40, 'psraw mm1,mm2', 'psraw mm1,mm2'),
+    ('PSRLQ (66)',  '660FF3CB4141', 0x40, 'psllq xmm1,xmm3', 'psllq xmm1,xmm3'),
+    ('PALIGNR', '0F3A0FDC03', 0x40, 'palignr xmm3,xmm4,3', 'palignr xmm3,xmm4,3'),
+    ('PALIGNR (66)',  '660F3A0FCA07', 0x40, 'palignr xmm1,xmm2,7', 'palignr xmm1,xmm2,7'),
+    ('PSLLQ (reg)',  '660FF3CA', 0x40, 'psllq xmm1,xmm2', 'psllq xmm1,xmm2'),
+    ('PSLLW (regs)',  '0F71F108', 0x40, 'psllw mm1,8', 'psllw mm1,8'),
+    ('PSLLQ (66)',  '660F73F108', 0x40, 'psllq xmm1,8', 'psllq xmm1,8'),
+    ('RDTSC', '0F31', 0x40, 'rdtsc ', 'rdtsc '),
+    ('RDTSCP', '0F01F9', 0x40, 'rdtscp ', 'rdtscp '),
 
-        # TODO: These require deeper fixes in the amd64 parser
-        # ('PSRLW (66)',  '660F71D611', 0x40, 'psrlw xmm6,17', 'psrlw xmm6,17'),
-        # ('PSRAD (66)',  '660F72E704', 0x40, 'psrad xmm7,4', 'psrad xmm7,4'),
-        ('PSRLQ (66)',  '660F73D308', 0x40, 'psrlq xmm3,8', 'psrlq xmm3,8'),
-        ('PSRLQ 2',  '660f73d501', 0x40, 'psrlq xmm5,1', 'psrlq xmm5,1'),
-        # ('PSHUFB', '660F3800EF', 0x40, 'pshufb xmm5,xmm7', 'pshufb xmm5,xmm7'),
-        ('PSRLQ', '660FD3DC', 0x40, 'psrlq xmm3,xmm4', 'psrlq xmm3,xmm4'),
-        # ('VPSRLDQ', 'C5E9D3CB', 0x40, 'vpsrlq xmm1,xmm2,xmm3', 'vpsrlq xmm1,xmm2,xmm3'),
-        ('PSRLQ', '660F73d10f', 0x40, 'psrlq xmm1,15', 'psrlq xmm1,15'),
-        ('PSRLDQ (66)', '660f73b5aa4141', 0x40, 'psllq xmm5,170', 'psllq xmm5,170'),
-        ('PSRLDQ (66)', '660f73f5aa4141', 0x40, 'psllq xmm5,170', 'psllq xmm5,170'),
-        ('PSRLDQ (66)', '660f73b1aa4141', 0x40, 'psllq xmm1,170', 'psllq xmm1,170'),
-        ('PSRLDQ (66)', '660f73b9aa4141', 0x40, 'psldq xmm1,170', 'psldq xmm1,170'),
-        ('PCMPISTRI', '660f3a630f0d', 0x40, 'pcmpistri xmm1,oword [rdi],13', 'pcmpistri xmm1,oword [rdi],13'),
-    ]
+    # TODO: These require deeper fixes in the amd64 parser
+    # ('PSRLW (66)',  '660F71D611', 0x40, 'psrlw xmm6,17', 'psrlw xmm6,17'),
+    # ('PSRAD (66)',  '660F72E704', 0x40, 'psrad xmm7,4', 'psrad xmm7,4'),
+    ('PSRLQ (66)',  '660F73D308', 0x40, 'psrlq xmm3,8', 'psrlq xmm3,8'),
+    ('PSRLQ 2',  '660f73d501', 0x40, 'psrlq xmm5,1', 'psrlq xmm5,1'),
+    # ('PSHUFB', '660F3800EF', 0x40, 'pshufb xmm5,xmm7', 'pshufb xmm5,xmm7'),
+    ('PSRLQ', '660FD3DC', 0x40, 'psrlq xmm3,xmm4', 'psrlq xmm3,xmm4'),
+    # ('VPSRLDQ', 'C5E9D3CB', 0x40, 'vpsrlq xmm1,xmm2,xmm3', 'vpsrlq xmm1,xmm2,xmm3'),
+    ('PSRLQ', '660F73d10f', 0x40, 'psrlq xmm1,15', 'psrlq xmm1,15'),
+    ('PSRLDQ (66)', '660f73b5aa4141', 0x40, 'psllq xmm5,170', 'psllq xmm5,170'),
+    ('PSRLDQ (66)', '660f73f5aa4141', 0x40, 'psllq xmm5,170', 'psllq xmm5,170'),
+    ('PSRLDQ (66)', '660f73b1aa4141', 0x40, 'psllq xmm1,170', 'psllq xmm1,170'),
+    ('PSRLDQ (66)', '660f73b9aa4141', 0x40, 'psldq xmm1,170', 'psldq xmm1,170'),
+    ('PCMPISTRI', '660f3a630f0d', 0x40, 'pcmpistri xmm1,oword [rdi],13', 'pcmpistri xmm1,oword [rdi],13'),
+]
 
+amd64VexOpcodes = [
+    ('VMOVDQU', 'C5fe6fe3', 0x40, 'vmovdqu ymm4,ymm3', 'vmovdqu ymm4,ymm3'),
+    ('VLDDQU', 'C5FFF01C2541414141', 0x40, 'vlddqu ymm3,0x41414141', 'vlddqu ymm3,0x41414141')
+]
 
 class Amd64InstructionSet(unittest.TestCase):
     _arch = envi.getArchModule("amd64")
+
+    def SKIPtest_envi_amd64_disasm_Specific_VEX_Instrs(self):
+        vw = vivisect.VivWorkspace()
+        scanv = e_memcanvas.StringMemoryCanvas(vw)
+
+        for name, bytez, va, reprOp, renderOp in amd64VexOpcodes:
+
+            op = self._arch.archParseOpcode(bytez.decode('hex'), 0, va)
+            # print("'%s', 0x%x, '%s' == '%s'" % (bytez, va, repr(op), reprOp))
+            self.assertEqual(repr(op), reprOp)
+
+            scanv.clearCanvas()
+            op.render(scanv)
+            #print "render:  %s" % repr(scanv.strval)
+            self.assertEqual(scanv.strval, renderOp)
 
     def test_envi_amd64_disasm_Specific_SingleByte_Instrs(self):
         '''

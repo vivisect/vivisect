@@ -91,7 +91,7 @@ i386MultiByteOpcodes = [
     ('MOVQ (F3)', 'F30F7E0D41414100', 0x40, 'movq xmm1,qword [0x00414141]', 'movq xmm1,qword [0x00414141]'),
     ('MOVSD', 'f20f10ca', 0x40, 'movsd xmm1,xmm2', 'movsd xmm1,xmm2'),
     ('MOVSD (PREFIX)', 'f3f20f10ca', 0x40, 'rep: movsd xmm1,xmm2', 'rep: movsd xmm1,xmm2'),
-    ('MOVSS (PREFIX)', 'f2f30f10ca', 0x40, 'rep: movss xmm1,xmm2', 'rep: movss xmm1,xmm2'),
+    ('MOVSS (PREFIX)', 'f2f30f10ca', 0x40, 'repnz: movss xmm1,xmm2', 'repnz: movss xmm1,xmm2'),
     ('POPCNT', '66f30fb8c3', 0x40, 'popcnt ax,bx', 'popcnt ax,bx'),
     ('POPCNT', 'f30fb8c4', 0x40, 'popcnt eax,esp', 'popcnt eax,esp'),
     ('POPCNT', 'f30fb80541414100', 0x40, 'popcnt eax,dword [0x00414141]', 'popcnt eax,dword [0x00414141]'),
