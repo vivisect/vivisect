@@ -1006,8 +1006,9 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
                             self.makeName(rdest, "case%d_%.8x" % (i, rdest))
 
                     ptrbase += self.psize
-                    if len(self.getXrefsTo(ptrbase)):
-                        break  # Another xref means not our table anymore
+                    if len(self.getXrefsTo(ptrbase)) or not self.isValidPointer(ptrbase):
+                        # Another xref or an invalid pointer means we're done here
+                        break
                     i += 1
                     rdest = self.castPointer(ptrbase)
 
