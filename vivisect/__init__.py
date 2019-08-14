@@ -948,19 +948,67 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         off, b = self.getByteDef(va)
         if arch == envi.ARCH_DEFAULT:
             loctup = self.getLocation(va)
-            # XXX - in the case where we've set a location on what should be an 
+            # XXX - in the case where we've set a location on what should be an
             # opcode lets make sure L_LTYPE == LOC_OP if not lets reset L_TINFO = original arch param
             # so that at least parse opcode wont fail
-            if loctup != None and loctup[ L_TINFO ] and loctup[ L_LTYPE ] == LOC_OP:
-                arch = loctup[ L_TINFO ]
+            if loctup is not None and loctup[L_TINFO] and loctup[L_LTYPE] == LOC_OP:
+                arch = loctup[L_TINFO]
 
-        return self.imem_archs[ (arch & envi.ARCH_MASK) >> 16 ].archParseOpcode(b, off, va)
+        return self.imem_archs[(arch & envi.ARCH_MASK) >> 16].archParseOpcode(b, off, va)
+
+    def iterJumpTable(self, startva):
+        ptrbase = startva
+        rdest = self.castPointer(ptrbase)
+        while self.isValidPointer(rdest):
+            yield rdest
+            ptrbase += self.psize
+            if len(self.getXrefsTo(ptrbase)):
+                break
+            rdest = self.castPointer(ptrbase)
+
+    def splitJumpTable(self, calling_va, prevRefVa, newTablAddr):
+        '''
+        So we have the case where if we have two jump tables laid out consecutively in memory (let's
+        call them tables Foo and Bar, with Foo coming before Bar), and we see Foo first, we're going to
+        recognize Foo as being a giant table, with all of Bar overlapping with Foo
+
+        So we need to construct a list of now invalid references from prevRefVa, starting at newTablAddr
+        newTablAddr should point to the new jump table, and those new codeblock VAs should be removed from
+        the list of references that prevRefVa refs to (and delete the name)
+
+        We also need to check to see if the functions themselves line up (ie, do these two jump tables
+        even belong to the same function, or should we remove the code block from the function entirely?)
+        '''
+        splitcb = False
+        fva = self.getFunction(calling_va)
+        prevfva = self.getFunction(prevRefVa)
+
+        # Due to how codeflow happens, we have no guarantee if these two adjacent jump tables are
+        # even in the same function
+        if cb != prevcb and prevcb is not None:
+            # even if cb and prevcb are none, that means we haven't created any code blocks for them,
+            # which is fine
+            splitcb = True
+
+        codeblocks = set()
+        # collect all the entries for the new jump table
+        for cb in self.iterJumpTable(newTablAddr):
+            codeblocks.add(cb)
+
+        # now delete those entries from the previous jump table
+        import pdb
+        pdb.set_trace()
+        oldrefs = self.getXrefsFrom(prevRefVa)
+        for xref in oldrefs:
+            xrfrom, xrto, rtype, rflags = xref
+            if xrto in codeblocks:
+                self.delXref(xref)
 
     def makeOpcode(self, va, op=None, arch=envi.ARCH_DEFAULT):
-        """
+        '''
         Create a single opcode location.  If you have already parsed the
         opcode object, you may pass it in.
-        """
+        '''
         if op is None:
             try:
                 op = self.parseOpcode(va, arch=arch)
@@ -997,11 +1045,48 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
                 i = 0
                 tabdone = {}
-                while self.isValidPointer(rdest):
+                # if there's already an Xref to this address from another jump table, we overshot
+                # the other table, and need to cut that one short, delete its Xrefs starting at this one
+                # and then let the rest of this function build the new jump table
+                # This jump table also may not be in the same function as the other jump table, so we need
+                # to remove those codeblocks (and child codeblocks) from this function
 
+                # at this point, rdest should be the first codeblock in the jumptable, so get all the xrefs to him
+                # (but skipping over the current jumptable base address we're looking at)
+                prevTabl = None
+                for xrfrom, xrto, rtype, rflags in self.getXrefsTo(rdest):
+                    if prevTabl:
+                        break
+
+                    if tova == xrfrom:
+                        continue
+
+                    refva, refsize, reftype, refinfo = self.getLocation(xrfrom)
+                    if reftype != vivisect.LOC_OP:
+                        continue
+
+                    refop = self.parseOpcode(refva)
+                    refbranches = refop.getBranches()
+                    for refbase, refbflags in refbranches:
+                        if refbflags & envi.BR_TABLE:
+                            prevTabl = refva
+                            break
+
+                # so this is the fun case, where we are trying to make a jumptable, but another
+                # one already points to this location
+                if prevTabl:
+                    self.splitJumpTable(va, prevTabl, tova)
+
+                # tova is the pointer to the jumptable
+                while self.isValidPointer(rdest):
+                    # TODO(rakuyo): so the problem here is that if we hvae two jump tables next to each
+                    # other (chgrp, llvm 9.0.0, -O1, quotearg_buffer_restyled), we're going to miss the bounds
+                    # of where one jump table ends and the other begins
                     if not tabdone.get(rdest):
                         tabdone[rdest] = True
                         self.addXref(va, rdest, REF_CODE, envi.BR_COND)
+                        # Honestly we should be more specific, because some cases can fall through
+                        # or to others and effectively overlap
                         if self.getName(rdest) is None:
                             self.makeName(rdest, "case%d_%.8x" % (i, rdest))
 
@@ -1140,7 +1225,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         if self.isFunction(va):
             return
 
-        if meta == None:
+        if meta is None:
             meta = {}
 
         if not self.isValidPointer(va):
