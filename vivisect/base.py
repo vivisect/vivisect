@@ -734,7 +734,7 @@ class VivCodeFlowContext(e_codeflow.CodeFlowContext):
             fmod = vw.fmods.get(fmname)
             try:
                 fmod.analyzeFunction(vw, fva)
-            except Exception, e:
+            except Exception as e:
                 if vw.verbose:
                     traceback.print_exc()
                 vw.verbprint("Function Analysis Exception for 0x%x   %s: %s" % (fva, fmod.__name__, e))
