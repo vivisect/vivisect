@@ -966,7 +966,19 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
                 break
             rdest = self.castPointer(ptrbase)
 
-    def splitJumpTable(self, calling_va, prevRefVa, newTablAddr):
+    def moveCodeBlock(self, cbva, newfva):
+        cb = self.getCodeBlock(cbva)
+
+        if cb is None:
+            return
+
+        if cb[CB_FUNCVA] == newfva:
+            return
+
+        self.delCodeBlock(cb)
+        self.addCodeBlock((cb[CB_VA], cb[CB_SIZE], newfva))
+
+    def splitJumpTable(self, callingVa, prevRefVa, newTablAddr):
         '''
         So we have the case where if we have two jump tables laid out consecutively in memory (let's
         call them tables Foo and Bar, with Foo coming before Bar), and we see Foo first, we're going to
@@ -979,30 +991,35 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         We also need to check to see if the functions themselves line up (ie, do these two jump tables
         even belong to the same function, or should we remove the code block from the function entirely?)
         '''
-        splitcb = False
-        fva = self.getFunction(calling_va)
-        prevfva = self.getFunction(prevRefVa)
-
         # Due to how codeflow happens, we have no guarantee if these two adjacent jump tables are
         # even in the same function
-        if cb != prevcb and prevcb is not None:
-            # even if cb and prevcb are none, that means we haven't created any code blocks for them,
-            # which is fine
-            splitcb = True
-
         codeblocks = set()
+        curfva = self.getFunction(callingVa)
         # collect all the entries for the new jump table
         for cb in self.iterJumpTable(newTablAddr):
             codeblocks.add(cb)
+            prevcb = self.getCodeBlock(cb)
+            if prevcb is None:
+                continue
+            # we may also have to break these codeblocks from the old function
+            # 1 -- new func is none, old func is none
+            #   * can't happen. if the codeblock is defined, we at least have an old function
+            # 2 -- new func is not none, old func is none
+            #   * Can't happen. see above
+            # 3 -- new func is none, old func is not none
+            #   * delete the codeblock. we've dropped into a new function that is different from the old
+            #     since how codeflow discover functions, we should have all the code blocks for function
+            # 4 -- neither are none
+            #   * moveCodeBlock -- that func will handle whether or not functions are the same
+            if curfva is not None:
+                self.moveCodeBlock(cb, curcb[CB_FUNCVA])
+            else:
+                self.delCodeBlock(prevcb)
 
         # now delete those entries from the previous jump table
-        import pdb
-        pdb.set_trace()
         oldrefs = self.getXrefsFrom(prevRefVa)
-        for xref in oldrefs:
-            xrfrom, xrto, rtype, rflags = xref
-            if xrto in codeblocks:
-                self.delXref(xref)
+        todel = [xref for xref in self.getXrefsFrom(prevRefVa) if xref[1] in codeblocks]
+        map(self.delXref, todel)
 
     def makeOpcode(self, va, op=None, arch=envi.ARCH_DEFAULT):
         '''
@@ -1053,11 +1070,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
                 # at this point, rdest should be the first codeblock in the jumptable, so get all the xrefs to him
                 # (but skipping over the current jumptable base address we're looking at)
-                prevTabl = None
                 for xrfrom, xrto, rtype, rflags in self.getXrefsTo(rdest):
-                    if prevTabl:
-                        break
-
                     if tova == xrfrom:
                         continue
 
@@ -1066,22 +1079,12 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
                         continue
 
                     refop = self.parseOpcode(refva)
-                    refbranches = refop.getBranches()
-                    for refbase, refbflags in refbranches:
+                    for refbase, refbflags in refop.getBranches():
                         if refbflags & envi.BR_TABLE:
-                            prevTabl = refva
-                            break
-
-                # so this is the fun case, where we are trying to make a jumptable, but another
-                # one already points to this location
-                if prevTabl:
-                    self.splitJumpTable(va, prevTabl, tova)
+                            self.splitJumpTable(va, refva, tova)
 
                 # tova is the pointer to the jumptable
                 while self.isValidPointer(rdest):
-                    # TODO(rakuyo): so the problem here is that if we hvae two jump tables next to each
-                    # other (chgrp, llvm 9.0.0, -O1, quotearg_buffer_restyled), we're going to miss the bounds
-                    # of where one jump table ends and the other begins
                     if not tabdone.get(rdest):
                         tabdone[rdest] = True
                         self.addXref(va, rdest, REF_CODE, envi.BR_COND)
@@ -1566,10 +1569,10 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         are at all logical branches and have more in common with a logical
         graph view than function chunks.
         """
-        loc = self.getLocation( va )
-        if loc == None:
+        loc = self.getLocation(va)
+        if loc is None:
             raise Exception('Adding Codeblock on *non* location?!?: 0x%.8x' % va)
-        self._fireEvent(VWE_ADDCODEBLOCK, (va,size,funcva))
+        self._fireEvent(VWE_ADDCODEBLOCK, (va, size, funcva))
 
     def getCodeBlock(self, va):
         """
@@ -1583,7 +1586,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         Remove a code-block definition from the codeblock namespace.
         """
         cb = self.getCodeBlock(va)
-        if cb == None:
+        if cb is None:
             raise Exception("Unknown Code Block: 0x%x" % va)
         self._fireEvent(VWE_DELCODEBLOCK, cb)
 
