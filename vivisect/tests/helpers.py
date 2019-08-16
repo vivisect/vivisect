@@ -30,10 +30,12 @@ def getTestPath(*paths):
     return os.path.join(testdir, *paths)
 
 
-def getTestWorkspace(fname, analyze=True):
-    fpath = os.path.join('vivisect', 'bins', fname)
+def getTestWorkspace(*paths):
+    testdir = os.getenv('VIVTESTFILES')
+    if not testdir:
+        raise unittest.SkipTest('VIVTESTFILES env var not found!')
+    fpath = os.path.join(testdir, *paths)
     vw = vivisect.VivWorkspace()
     vw.loadFromFile(fpath)
-    if analyze:
-        vw.analyze()
+    vw.analyze()
     return vw
