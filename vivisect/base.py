@@ -404,8 +404,8 @@ class VivWorkspaceCore(object, viv_impapi.ImportApi):
 
     def _handleCOMMENT(self, einfo):
         va,comment = einfo
-        if comment == None:
-            self.comments.pop(va)
+        if comment is None:
+            self.comments.pop(va, None)
         else:
             self.comments[va] = comment
 

@@ -1019,7 +1019,9 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         # now delete those entries from the previous jump table
         oldrefs = self.getXrefsFrom(prevRefVa)
         todel = [xref for xref in self.getXrefsFrom(prevRefVa) if xref[1] in codeblocks]
-        map(self.delXref, todel)
+        for va in todel:
+            self.setComment(va[1], None)
+            self.delXref(va)
 
     def makeOpcode(self, va, op=None, arch=envi.ARCH_DEFAULT):
         '''
@@ -1060,8 +1062,6 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
                 ptrbase = tova
                 rdest = self.castPointer(ptrbase)
 
-                i = 0
-                tabdone = {}
                 # if there's already an Xref to this address from another jump table, we overshot
                 # the other table, and need to cut that one short, delete its Xrefs starting at this one
                 # and then let the rest of this function build the new jump table
@@ -1083,8 +1083,8 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
                         if refbflags & envi.BR_TABLE:
                             self.splitJumpTable(va, refva, tova)
 
-                # tova is the pointer to the jumptable
-                while self.isValidPointer(rdest):
+                tabdone = {}
+                for i, rdest in enumerate(self.iterJumpTable(ptrbase)):
                     if not tabdone.get(rdest):
                         tabdone[rdest] = True
                         self.addXref(va, rdest, REF_CODE, envi.BR_COND)
@@ -1092,12 +1092,13 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
                         # or to others and effectively overlap
                         if self.getName(rdest) is None:
                             self.makeName(rdest, "case%d_%.8x" % (i, rdest))
-
-                    ptrbase += self.psize
-                    if len(self.getXrefsTo(ptrbase)):
-                        break  # Another xref means not our table anymore
-                    i += 1
-                    rdest = self.castPointer(ptrbase)
+                    else:
+                        cmnt = self.getComment(rdest)
+                        if cmnt is None:
+                            self.setComment(rdest, "Other Case(s): %d" % i)
+                        else:
+                            cmnt += ", %d" % i
+                            self.setComment(rdest, cmnt)
 
                 # This must be second (len(xrefsto))
                 self.addXref(va, tova, REF_PTR, None)

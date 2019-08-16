@@ -1,6 +1,6 @@
 import unittest
-import vivisect.tools.graphutil as viv_graph
 import visgraph.graphcore as vs_graphcore
+import vivisect.tools.graphutil as viv_graph
 
 
 class VivGraphTest(unittest.TestCase):
@@ -70,6 +70,39 @@ class VivGraphTest(unittest.TestCase):
         self.assertEqual(len(self.codepaths), 22)
 
     def test_longpath(self):
-        weights = self.graph.getHierNodeWeights()
-        path_gen = viv_graph.getLongPath(self.graph)
-        long_path = path_gen.next()
+        pathgenr = viv_graph.getLongPath(self.graph)
+        longpath = pathgenr.next()
+
+    def test_weights(self):
+        g = vs_graphcore.HierGraph()
+        g.addHierRootNode('Foo')
+        g.addNode('Lefty')
+        g.addNode('Righty')
+        g.addNode('RightyClone')
+        g.addNode('SonOfLefty')
+        g.addNode('LeftysRevenge')
+        g.addNode('TheEnd')
+        g.addNode('OrIsIt?')
+
+        g.addEdgeByNids('Foo', 'Lefty')
+        g.addEdgeByNids('Foo', 'Righty')
+
+        g.addEdgeByNids('Lefty', 'SonOfLefty')
+        g.addEdgeByNids('SonOfLefty', 'LeftysRevenge')
+
+        g.addEdgeByNids('Righty', 'RightyClone')
+
+        g.addEdgeByNids('RightyClone', 'TheEnd')
+        g.addEdgeByNids('LeftysRevenge', 'TheEnd')
+
+        g.addEdgeByNids('TheEnd', 'OrIsIt?')
+
+        weights = g.getHierNodeWeights()
+        self.assertEqual(weights['Foo'], 0)
+        self.assertEqual(weights['Lefty'], 1)
+        self.assertEqual(weights['Righty'], 1)
+        self.assertEqual(weights['RightyClone'], 2)
+        self.assertEqual(weights['SonOfLefty'], 2)
+        self.assertEqual(weights['LeftysRevenge'], 3)
+        self.assertEqual(weights['TheEnd'], 4)
+        self.assertEqual(weights['OrIsIt?'], 5)

@@ -29,10 +29,13 @@ class VivisectTest(unittest.TestCase):
         # 2 actual codeblocks and 1 xref to the jumptable itself
         prefs = self.elf_vw.getXrefsFrom(primaryJumpOpVa)
         self.assertEqual(len(prefs), 3)
-
+        cmnt = self.elf_vw.getComment(0x804c9bd)
+        self.assertEqual(cmnt, 'Other Case(s): 2, 6, 8, 11, 15, 20, 21, 34, 38, 40, 47')
         # 13 actual codeblocks and 1 xref to the jumptable itself
         srefs = self.elf_vw.getXrefsFrom(secondJumpOpVa)
         self.assertEqual(len(srefs), 14)
+        cmnt = self.elf_vw.getComment(0x804ca4a)
+        self.assertEqual(cmnt, 'Other Case(s): 41')
 
     def test_viv_bigend(self):
         fd = StringIO('ABCDEFG')
