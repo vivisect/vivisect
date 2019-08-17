@@ -20,7 +20,7 @@ from vivisect.symboliks.archs.i386 import ArgDefSymEmu
 from envi.archs.ppc.regs import * 
 
 # a list of conditionals as pertain to the BI operand for conditional branches
-conds = [crfld.lower() for crfld, reg, boff, bsz, desc in e_ppc.statmetas if reg == e_ppc.REG_CR]
+conds = [crfld.replace('_','.').lower() for crfld, reg, boff, bsz, desc in e_ppc.statmetas if reg == e_ppc.REG_CR]
 
 def MASK(b, e, psize=8):
     '''
@@ -146,7 +146,7 @@ class PpcSymbolikTranslator(vsym_trans.SymbolikTranslator):
         rbase = self._reg_ctx.getRegisterName(ridx)
         rflag = self._reg_ctx.getRegisterName(regidx)
 
-        rname = ('%s_%s' % (rbase, rflag)).lower()
+        rname = ('%s.%s' % (rbase, rflag)).lower()
         return Var(rname, 1)
 
 
@@ -155,7 +155,7 @@ class PpcSymbolikTranslator(vsym_trans.SymbolikTranslator):
         rbase = self._reg_ctx.getRegisterName(ridx)
         rflag = self._reg_ctx.getRegisterName(regidx)
 
-        rname = ('%s_%s' % (rbase, rflag)).lower()
+        rname = ('%s.%s' % (rbase, rflag)).lower()
 
         self.effSetVariable(rname, obj)
 
