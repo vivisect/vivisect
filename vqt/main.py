@@ -163,7 +163,10 @@ def workerThread():
                 if func == None:
                     return
 
-                func(*args,**kwargs)
+                try:
+                    func(*args,**kwargs)
+                except:
+                    sys.excepthook(*sys.exc_info())
 
         except Exception, e:
             print('vqt worker warning: %s' % e)
@@ -208,10 +211,10 @@ def vqtevent(event,einfo):
     info context.
     '''
     global qapp
-    qapp.guievents.emit(event,einfo)
+    qapp.guievents.emit(event, einfo)
     chan = qapp.vqtchans.get(event)
-    if chan != None:
-        chan.guievents.emit(event,einfo)
+    if chan is not None:
+        chan.guievents.emit(event, einfo)
 
 def vqtconnect(callback, event=None):
     '''
@@ -223,12 +226,12 @@ def vqtconnect(callback, event=None):
     of the specified type.
     '''
     global qapp
-    if event == None:
-        qapp.guievents.connect( callback )
+    if event is None:
+        qapp.guievents.connect(callback)
         return
-        
+
     chan = qapp.vqtchans.get(event)
-    if chan == None:
+    if chan is None:
         chan = QEventChannel()
         qapp.vqtchans[event] = chan
 
@@ -247,7 +250,7 @@ def vqtdisconnect(callback, event=None):
     if event == None:
         qapp.guievents.disconnect( callback )
         return
-        
+
     chan = qapp.vqtchans.get(event)
     if chan != None:
         chan.guievents.disconnect(callback)

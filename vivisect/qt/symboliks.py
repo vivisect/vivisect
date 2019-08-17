@@ -11,7 +11,6 @@ import vivisect.symboliks.common as viv_sym_common
 import vivisect.symboliks.effects as viv_sym_effects
 import vivisect.symboliks.analysis as viv_sym_analysis
 import vivisect.symboliks.expression as viv_sym_expression
-import vivisect.symboliks.constraints as viv_sym_constraints
 
 try:
     from PyQt5 import QtCore
@@ -140,7 +139,7 @@ class VivSymbolikFuncPane(e_q_memory.EnviNavMixin, vq_save.SaveableWidget, QWidg
             for e in exprparts[1:]:
                 s = self.symexpr.parseExpression(e)
 
-                if isinstance(s, viv_sym_constraints.Constraint):
+                if isinstance(s, viv_sym_common.Constraint):
                     precons.append(s)
                     continue
 
@@ -169,13 +168,13 @@ class VivSymbolikFuncPane(e_q_memory.EnviNavMixin, vq_save.SaveableWidget, QWidg
                 ccb = self.vw.getCodeBlock(cva)
 
                 if ccb != None and ccb in self.vw.getFunctionBlocks(self.fva):
-                    #FIXME: allow the GUI-setting of loopcnt, instead of hard-coding
                     loopcnt = self.loop_count.value()
                     codepaths = viv_graph.getCodePathsThru(codegraph, ccb[0], loopcnt=loopcnt)   
                     paths = self.symctx.getSymbolikPaths(self.fva, paths=codepaths, graph=codegraph, maxpath=100)
 
             if codepaths == None:
-                paths = self.symctx.walkSymbolikPaths(self.fva, maxpath=100)
+                loopcnt = self.loop_count.value()
+                paths = self.symctx.walkSymbolikPaths(self.fva, maxpath=100, loopcnt=loopcnt)
                     
             self.pathview.loadSymbolikPaths(paths)
 
@@ -222,7 +221,11 @@ class VivSymbolikFuncPane(e_q_memory.EnviNavMixin, vq_save.SaveableWidget, QWidg
     def symPathSelected(self, emu, effects):
         self.curemu = emu
         self.cureffects = effects
-        self.rendSymbolikPath()
+        try:
+            self.rendSymbolikPath()
+        except Exception, e:
+            import sys
+            sys.excepthook(*sys.exc_info())
 
     def rendSymbolikPath(self, *args, **kwargs):
         '''

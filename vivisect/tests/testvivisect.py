@@ -27,19 +27,19 @@ class VivisectTest(unittest.TestCase):
         self.assertTrue( vw.getImportCallers('kernel32.CreateFileA') )
 
     def checkTestWorkspace(self, vw, ans):
-        self.assertEqual( vw.getMeta('Platform'), ans.getMeta('Platform') )
-        self.assertEqual( vw.getMeta('Architecture'), ans.getMeta('Architecture') )
+        self.assertEqual(vw.getMeta('Platform'), ans.getMeta('Platform'))
+        self.assertEqual(vw.getMeta('Architecture'), ans.getMeta('Architecture'))
 
-        self.assertEqual( sorted( vw.getFunctions() ), sorted( ans.getFunctions() ) )
-        self.assertEqual( sorted( vw.getLibraryDependancies() ), sorted( ans.getLibraryDependancies() ) )
-        self.assertEqual( sorted( vw.getRelocations() ), sorted( ans.getRelocations() ) )
-        self.assertEqual( sorted( vw.getImports() ), sorted( ans.getImports() ) )
-        self.assertEqual( sorted( vw.getExports() ), sorted( ans.getExports() ) )
-        self.assertEqual( sorted( vw.getSegments() ), sorted( ans.getSegments() ) )
-        #self.assertEqual( sorted( vw.getCodeBlocks() ), sorted( ans.getCodeBlocks() ) )
-        #self.assertEqual( sorted( vw.getLocations() ), sorted( ans.getLocations() ) )
-        #self.assertEqual( sorted( vw.getNames() ), sorted( ans.getNames() ) )
-        self.assertEqual( sorted( vw.getFiles() ), sorted( ans.getFiles() ) )
+        self.assertEqual(sorted(vw.getFunctions()), sorted(ans.getFunctions()))
+        self.assertEqual(sorted(vw.getLibraryDependancies()), sorted(ans.getLibraryDependancies()))
+        self.assertEqual(sorted(vw.getRelocations()), sorted(ans.getRelocations()))
+        self.assertEqual(sorted(vw.getImports()), sorted(ans.getImports()))
+        self.assertEqual(sorted(vw.getExports()), sorted(ans.getExports()))
+        self.assertEqual(sorted(vw.getSegments()), sorted(ans.getSegments()))
+        #self.assertEqual(sorted(vw.getCodeBlocks()), sorted( ans.getCodeBlocks()))
+        #self.assertEqual(sorted(vw.getLocations()), sorted( ans.getLocations()))
+        #self.assertEqual(sorted(vw.getNames()), sorted( ans.getNames()))
+        self.assertEqual(sorted(vw.getFiles()), sorted( ans.getFiles()))
 
         for fva in ans.getFunctions():
             self.assertEqual(vw.getFunction(fva), ans.getFunction(fva))
@@ -47,8 +47,7 @@ class VivisectTest(unittest.TestCase):
             ansfgraph = viv_graph.buildFunctionGraph(ans, fva)
             vwnodes = vwfgraph.nodes.keys()
             ansnodes = ansfgraph.nodes.keys()
-            self.assertEqual( sorted( vwnodes ), sorted( ansnodes ) )
-
+            self.assertEqual(sorted(vwnodes), sorted(ansnodes))
 
     def getAndTestWorkspace(self, fname):
         vw = getTestWorkspace(fname)

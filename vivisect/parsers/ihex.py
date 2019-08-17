@@ -14,7 +14,7 @@ archcalls = {
     'ppc64-altivec':'ppccall',
 }
 
-def parseFile(vw, filename):
+def parseFile(vw, filename, baseaddr=None):
 
     arch = vw.config.viv.parsers.ihex.arch
     if not arch:
@@ -33,6 +33,7 @@ def parseFile(vw, filename):
 
     vw.setMeta('DefaultCall', archcalls.get(arch,'unknown'))
 
+    # might we make use of baseaddr, even though it's an IHEX?  for now, no.
     fname = vw.addFile(filename, 0, v_parsers.md5File(filename))
 
     ihex = v_ihex.IHexFile()

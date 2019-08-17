@@ -71,9 +71,7 @@ class VQDockWidget(vq_hotkeys.HotKeyMixin, QDockWidget):
         self.show()
         self.raise_()
 
-import vqt.hotkeys as vq_hotkey
-
-class VQMainCmdWindow(vq_hotkey.HotKeyMixin, QMainWindow):
+class VQMainCmdWindow(vq_hotkeys.HotKeyMixin, QMainWindow):
     '''
     A base class for application window's to inherit from.
     '''
@@ -83,13 +81,13 @@ class VQMainCmdWindow(vq_hotkey.HotKeyMixin, QMainWindow):
     def __init__(self, appname, cmd, **kwargs):
 
         super(QMainWindow, self).__init__(**kwargs)
-        vq_hotkey.HotKeyMixin.__init__(self)
+        vq_hotkeys.HotKeyMixin.__init__(self)
 
         self._vq_appname = appname
         self._vq_dockwidgets = []
 
         self._vq_settings = QtCore.QSettings('invisigoth', application=appname, parent=self)
-        self._vq_histfile = os.path.join( os.path.expanduser('~'), '.%s_history' % appname)
+        self._vq_histfile = os.path.join(os.path.expanduser('~'), '.%s_history' % appname)
 
         self._dock_classes = {}
 

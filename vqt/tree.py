@@ -102,6 +102,13 @@ class VQTreeModel(QtCore.QAbstractItemModel):
         self.layoutChanged.emit()
         return node
 
+    def vqDelRow(self, rowdata, parent=None):
+        if parent == None:
+            parent = self.rootnode
+
+        row = parent.delete(rowdata)
+        print row
+
     def sort(self, colnum, order=0):
         cmpf = VQTreeSorter(colnum, order)
         self.layoutAboutToBeChanged.emit()
