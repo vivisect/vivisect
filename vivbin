@@ -54,7 +54,7 @@ def main():
 
     if args.option is not None:
         if args.option in ('-h', '?'):
-            logger.crtitical(vw.config.reprConfigPaths())
+            logger.critical(vw.config.reprConfigPaths())
             sys.exit(-1)
 
         try:
