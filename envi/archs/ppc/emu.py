@@ -2037,27 +2037,21 @@ m.addMemoryMap(0x0000,0777,"memmap1", "\xff"*1024)
 
 class Ppc64Emulator(Ppc64RegisterContext, Ppc64Module, PpcAbstractEmulator):
     def __init__(self, archmod=None, psize=8):
-        Ppc64RegisterContext.__init__(self)
-
         PpcAbstractEmulator.__init__(self, archmod=Ppc64Module(), psize=8)
-        PpcModule.__init__(self)
+        Ppc64RegisterContext.__init__(self)
+        Ppc64Module.__init__(self)
 
 class PpcVleEmulator(Ppc64RegisterContext, PpcVleModule, PpcAbstractEmulator):
     def __init__(self, archmod=None, psize=8):
-        Ppc64RegisterContext.__init__(self)
-
         PpcAbstractEmulator.__init__(self, archmod=VleModule(), psize=4)
-        PpcModule.__init__(self)
+        Ppc64RegisterContext.__init__(self)
+        PpcVleModule.__init__(self)
 
 class PpcSpeEmulator(Ppc64RegisterContext, PpcSpeModule, PpcAbstractEmulator):
     def __init__(self, archmod=None, psize=4):
-        Ppc64RegisterContext.__init__(self)
-
         PpcAbstractEmulator.__init__(self, archmod=PpcSpeModule(), psize=4)
+        Ppc64RegisterContext.__init__(self)
         PpcSpeModule.__init__(self)
-
-
-
 
 '''
 In [2]: mnems = {}
