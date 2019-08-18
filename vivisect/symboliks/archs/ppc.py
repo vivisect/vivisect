@@ -14,7 +14,6 @@ from envi.archs.ppc.const import *
 
 from vivisect.const import *
 from vivisect.symboliks.common import *
-from vivisect.symboliks.constraints import *
 from vivisect.symboliks.archs.i386 import ArgDefSymEmu
 
 from envi.archs.ppc.regs import * 

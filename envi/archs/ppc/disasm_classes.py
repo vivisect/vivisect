@@ -260,6 +260,9 @@ class PpcImmOper(envi.ImmedOper):
     def getOperValue(self, op, emu=None):
         return self.val
 
+    def setOperValue(self, op, val, emu=None):
+        return None
+
     def render(self, mcanv, op, idx):
         value = self.val
         hint = mcanv.syms.getSymHint(op.va, idx)
