@@ -1014,7 +1014,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             if curfva is not None:
                 self.moveCodeBlock(cb, curcb[CB_FUNCVA])
             else:
-                self.delCodeBlock(prevcb)
+                self.delCodeBlock(prevcb[CB_VA])
 
         # now delete those entries from the previous jump table
         oldrefs = self.getXrefsFrom(prevRefVa)
