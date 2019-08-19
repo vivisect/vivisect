@@ -2,6 +2,8 @@ import unittest
 import visgraph.graphcore as vs_graphcore
 import vivisect.tools.graphutil as viv_graph
 
+from pprint import pprint
+
 
 class VivGraphTest(unittest.TestCase):
 
@@ -50,7 +52,7 @@ class VivGraphTest(unittest.TestCase):
 
         self.graph = g
 
-    def test_longpath(self):
+    def test_longpath_backedge(self):
         longpath = [
             'Rooty',
             'Lefty',
@@ -68,6 +70,41 @@ class VivGraphTest(unittest.TestCase):
         pathgenr = viv_graph.getLongPath(self.graph)
         path = map(lambda k: k[0], pathgenr.next())
         self.assertEqual(longpath, path)
+
+    def test_longpath_basic(self):
+        g = vs_graphcore.HierGraph()
+        g.addHierRootNode('A')
+        g.addNode('B')
+        g.addNode('C')
+        g.addNode('D')
+        g.addNode('E')
+        g.addNode('F')
+        g.addNode('G')
+        g.addNode('H')
+        g.addNode('I')
+        g.addNode('J')
+        g.addNode('K')
+        g.addNode('L')
+
+        g.addEdgeByNids('A', 'B')
+        g.addEdgeByNids('A', 'C')
+        g.addEdgeByNids('B', 'D')
+        g.addEdgeByNids('B', 'E')
+        g.addEdgeByNids('C', 'F')
+        g.addEdgeByNids('C', 'G')
+        g.addEdgeByNids('D', 'H')
+        g.addEdgeByNids('E', 'H')
+        g.addEdgeByNids('F', 'I')
+        g.addEdgeByNids('G', 'I')
+        g.addEdgeByNids('H', 'J')
+        g.addEdgeByNids('H', 'K')
+        g.addEdgeByNids('I', 'L')
+        g.addEdgeByNids('J', 'L')
+        g.addEdgeByNids('K', 'L')
+
+        pathgenr = viv_graph.getLongPath(g)
+        longpath = pathgenr.next()
+        self.assertEqual(len(longpath), 6)
 
     def test_weights(self):
         '''
