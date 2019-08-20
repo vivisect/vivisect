@@ -2,8 +2,6 @@ import unittest
 import visgraph.graphcore as vs_graphcore
 import vivisect.tools.graphutil as viv_graph
 
-from pprint import pprint
-
 
 class VivGraphTest(unittest.TestCase):
 
@@ -52,7 +50,9 @@ class VivGraphTest(unittest.TestCase):
 
         self.graph = g
 
-    def test_longpath_backedge(self):
+    def SKIPtest_longpath_backedge(self):
+        # TODO: We need to answer whether or not we support weird backedges in the
+        # longpath stuff
         longpath = [
             'Rooty',
             'Lefty',
@@ -71,20 +71,58 @@ class VivGraphTest(unittest.TestCase):
         path = map(lambda k: k[0], pathgenr.next())
         self.assertEqual(longpath, path)
 
+    def test_longpath_med(self):
+        g = vs_graphcore.HierGraph()
+        g.addHierRootNode('A')
+        for i in range(ord('B'), ord('U')):
+            g.addNode(chr(i))
+
+        g.addEdgeByNids('A', 'B')
+        g.addEdgeByNids('A', 'C')
+
+        g.addEdgeByNids('B', 'D')
+        g.addEdgeByNids('B', 'E')
+
+        g.addEdgeByNids('D', 'F')
+        g.addEdgeByNids('E', 'F')
+
+        g.addEdgeByNids('C', 'G')
+        g.addEdgeByNids('F', 'G')
+
+        g.addEdgeByNids('G', 'H')
+        g.addEdgeByNids('G', 'I')
+
+        g.addEdgeByNids('H', 'J')
+        g.addEdgeByNids('H', 'K')
+
+        g.addEdgeByNids('J', 'L')
+        g.addEdgeByNids('K', 'L')
+        g.addEdgeByNids('I', 'L')
+
+        g.addEdgeByNids('L', 'M')
+
+        g.addEdgeByNids('L', 'Q')
+        g.addEdgeByNids('Q', 'R')
+        g.addEdgeByNids('Q', 'S')
+        g.addEdgeByNids('R', 'T')
+        g.addEdgeByNids('S', 'T')
+        g.addEdgeByNids('T', 'G')
+
+        g.addEdgeByNids('M', 'N')
+        g.addEdgeByNids('M', 'O')
+
+        g.addEdgeByNids('N', 'P')
+        g.addEdgeByNids('O', 'P')
+
+        pathgenr = viv_graph.getLongPath(g)
+        longpath = pathgenr.next()
+        self.assertEqual(len(longpath), 11)
+
     def test_longpath_basic(self):
         g = vs_graphcore.HierGraph()
         g.addHierRootNode('A')
-        g.addNode('B')
-        g.addNode('C')
-        g.addNode('D')
-        g.addNode('E')
-        g.addNode('F')
-        g.addNode('G')
-        g.addNode('H')
-        g.addNode('I')
-        g.addNode('J')
-        g.addNode('K')
-        g.addNode('L')
+        for i in range(ord('B'), ord('M')):
+            g.addNode(chr(i))
 
         g.addEdgeByNids('A', 'B')
         g.addEdgeByNids('A', 'C')
