@@ -181,7 +181,14 @@ def simpleMTCRF(ival, mnem, opcode, opers, iflags):
     return mnem, opcode, opers, iflags
 
 def simpleSYNC(ival, mnem, opcode, opers, iflags):
-    #if opers 
+    if opers[1].val == 0:
+        oper0 = opers[0].val
+        if oper0 == 0:
+            return 'msync', opcode, (), iflags
+
+        if oper0 == 1:
+            return 'lwsync', opcode, (), iflags
+
     return mnem, opcode, opers, iflags
 
 def simpleISEL(ival, mnem, opcode, opers, iflags):
@@ -213,18 +220,20 @@ trap_conds = {
         0x10 : 'lt',
         0x14 : 'le',
         0x18 : 'ne',
+        0x1f : '',
     }
 
 td_mnems = { k : 'td%s' % v for k,v in trap_conds.items() } 
 tdi_mnems = { k : 'td%si' % v for k,v in trap_conds.items() } 
 tw_mnems = { k : 'tw%s' % v for k,v in trap_conds.items() } 
 twi_mnems = { k : 'tw%si' % v for k,v in trap_conds.items() } 
-td_mnems[0x1f] = tdi_mnems[0x1f] = tw_mnems[0x1f] = twi_mnems[0x1f] = 'trap'
 
 def simpleTD(ival, mnem, opcode, opers, iflags):
     cond = opers[0].val
     nmnem = td_mnems.get(cond)
     if nmnem is not None:
+        if opers[1] == opers[2]:
+            return 'trap', opcode, (), iflags
         opers = opers[1:3]
         return nmnem, opcode, opers, iflags
 
@@ -234,6 +243,8 @@ def simpleTDI(ival, mnem, opcode, opers, iflags):
     cond = opers[0].val
     nmnem = tdi_mnems.get(cond)
     if nmnem is not None:
+        if opers[1] == opers[2]:
+            return 'trap', opcode, (), iflags
         opers = opers[1:3]
         return nmnem, opcode, opers, iflags
 
@@ -243,6 +254,8 @@ def simpleTW(ival, mnem, opcode, opers, iflags):
     cond = opers[0].val
     nmnem = tw_mnems.get(cond)
     if nmnem is not None:
+        if opers[1] == opers[2]:
+            return 'trap', opcode, (), iflags
         opers = opers[1:3]
         return nmnem, opcode, opers, iflags
 
@@ -252,6 +265,8 @@ def simpleTWI(ival, mnem, opcode, opers, iflags):
     cond = opers[0].val
     nmnem = twi_mnems.get(cond)
     if nmnem is not None:
+        if opers[1] == opers[2]:
+            return 'trap', opcode, (), iflags
         opers = opers[1:3]
         return nmnem, opcode, opers, iflags
 
