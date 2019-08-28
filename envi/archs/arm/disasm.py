@@ -1367,7 +1367,7 @@ class ArmOpcode(envi.Opcode):
                 if operval & 3:
                     flags |= envi.ARCH_THUMB16
                 else:
-                    flags |= envi.ARCH_ARM
+                    flags |= envi.ARCH_ARMV7
 
             # if we don't know that it's thumb, default to "ARCH_DEFAULT"
             else:
