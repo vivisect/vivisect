@@ -70,7 +70,6 @@ class AnalysisMonitor(viv_imp_monitor.AnalysisMonitor):
                 self.startmain = va
 
     def prehook(self, emu, op, starteip):
-        viv_imp_monitor.AnalysisMonitor.prehook(self, emu, op, starteip)
 
         if op.iflags & envi.IF_CALL:
             # it's a call, get the target

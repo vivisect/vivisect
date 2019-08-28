@@ -16,7 +16,7 @@ def analyze(vw):
 
     done = []
 
-    # Let's analyze and Relocations we know are pointers
+    # Let's analyze Relocations we know are pointers
     for rva, rtype in vw.reloc_by_va.items():
         if rtype != RTYPE_BASEPTR:
             continue

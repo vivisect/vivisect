@@ -14,16 +14,29 @@ logger = logging.getLogger(__name__)
 def analyze(vw):
     """
     Do simple linear disassembly of the .plt section if present.
+    Make functions 
     """
     for sva, ssize, sname, sfname in vw.getSegments():
         if sname not in (".plt", ".plt.got"):
             continue
 
-        nextva = sva + ssize
-        while sva < nextva:
-            vw.makeCode(sva)
+        nextseg = sva + ssize
+        while sva < nextseg:
+            if vw.getLocation(sva) is None:
+                vw.makeFunction(sva)
+                try:
+                    analyzeFunction(vw, sva)
+                except Exception as e:
+                    logger.warn('0x%x: %r', sva, e)
+
             ltup = vw.getLocation(sva)
-            sva += ltup[vivisect.L_SIZE]
+
+            if ltup is not None:
+                sva += ltup[vivisect.L_SIZE]
+            else:
+                logger.warn('makeFunction(0x%x) failed to make a location (probably failed instruction decode)!  incrementing instruction pointer by 1 to continue PLT analysis <fingers crossed>', sva)
+                sva += 1    # FIXME: add architectural "PLT_INSTRUCTION_INCREMENT" or something like it
+
 
 
 MAX_OPS = 10
@@ -64,7 +77,7 @@ def analyzeFunction(vw, funcva):
     # all architectures should at least have some minimal emulator
     emu = vw.getEmulator()
     emu.setRegister(e_i386.REG_EBX, gotplt)  # every emulator will have a 4th register, and if it's not used, no harm done.
-    # FIXME: should we use op.getBranches(emu)?
+
     branches = op.getBranches(emu)
     if len(branches) != 1:
         logger.warn('getBranches() returns anomolous results: 0x%x: %r   (result: %r)',
@@ -86,8 +99,8 @@ def analyzeFunction(vw, funcva):
         logger.warn("0x%x: (0x%x)  %r != %r (%r)" % (funcva, opval, loctup[vivisect.L_LTYPE], vivisect.LOC_IMPORT, fname))
         return
 
-    if fname.endswith('_%.8x' % opval):
+    if fname is not None and fname.endswith('_%.8x' % opval):
         fname = fname[:-9]
-    #vw.makeName(funcva, "plt_%s" % fname, filelocal=True)
+
     vw.makeFunctionThunk(funcva, "plt_" + fname)
 

@@ -1,11 +1,15 @@
 import logging
+logging.basicConfig()
+logger = logging.getLogger(__name__)
 import unittest
 
 import Elf
 import vivisect.cli as viv_cli
 import vivisect.tests.helpers as helpers
+import vivisect.analysis.elf as vae
 import vivisect.analysis.elf.elfplt as vaeep
 import vivisect.analysis.generic.pointers as vagp
+import vivisect.analysis.generic.relocations as vagr
 
 from vivisect.tests import linux_amd64_ls_data
 from vivisect.tests import linux_amd64_chown_data
@@ -40,13 +44,16 @@ class ELFTests(unittest.TestCase):
         cls.tests = []
         for test in data:
             name, test_data, path = test
+            logger.warn("======== %r ========", name)
             fn = helpers.getTestPath(*path)
             e = Elf.Elf(file(fn))
             vw = viv_cli.VivCli()
             vw.loadFromFile(fn)
-            vw.analyze()
-            #vaeep.analyze(vw)
-            #vagp.analyze(vw)
+            #vw.analyze()
+            vae.analyze(vw)
+            vagr.analyze(vw)
+            vaeep.analyze(vw)
+            vagp.analyze(vw)
 
             cls.tests.append((name, test_data, fn, e, vw))
 
@@ -71,7 +78,10 @@ class ELFTests(unittest.TestCase):
         newimps.sort()
         oldimps = data['imports']
         oldimps.sort()
-        self.assertListEqual(newimps, oldimps)
+        for oldimp in oldimps:
+            self.assertIn(oldimp, newimps)
+        for newimp in newimps:
+            self.assertIn(newimp, oldimps)
 
     def exports(self, vw, data):
         # simple comparison to ensure same exports.  perhaps too simple.
@@ -79,7 +89,10 @@ class ELFTests(unittest.TestCase):
         newexps.sort()
         oldexps = data['exports']
         oldexps.sort()
-        self.assertListEqual(newexps, oldexps)
+        for oldexp in oldexps:
+            self.assertIn(oldexp, newexps)
+        for newexp in newexps:
+            self.assertIn(newexp, oldexps)
 
     def relocs(self, vw, data):
         # simple comparison to ensure same relocs.  perhaps too simple.
@@ -87,7 +100,11 @@ class ELFTests(unittest.TestCase):
         newrels.sort()
         oldrels = data['relocs']
         oldrels.sort()
-        self.assertListEqual(newrels, newrels)
+        for oldrel in oldrels:
+            self.assertIn(oldrel, newrels)
+        for newrel in newrels:
+            self.assertIn(newrel, oldrels)
+
 
     def names(self, vw, data):
         # simple comparison to ensure same workspace names.  perhaps too simple.
@@ -96,6 +113,10 @@ class ELFTests(unittest.TestCase):
         oldnames = data['names']
         oldnames.sort()
         self.assertListEqual(newnames, newnames)
+        for oldname in oldnames:
+            self.assertIn(oldname, newnames)
+        for newname in newnames:
+            self.assertIn(newname, oldnames)
 
     def pltgot(self, vw, data):
         for pltva, gotva in data['pltgot']:

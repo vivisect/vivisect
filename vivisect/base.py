@@ -754,7 +754,7 @@ class VivCodeFlowContext(e_codeflow.CodeFlowContext):
             return
 
         fmeta = vw.getFunctionMetaDict(fva)
-        for lva in vw.getVaSetRows('NoReturnCalls'): 
+        for lva in vw.getVaSetRows('NoReturnCalls'):
             va = lva[0]
             ctup = vw.getCodeBlock(va)
             if ctup and fva == ctup[2] and vw.getFunctionMeta(fva, 'BlockCount', default=0) == 1:
