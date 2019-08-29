@@ -178,6 +178,17 @@ class PpcCRegOper(PpcRegOper):
         PpcRegOper.__init__(self, reg, va, tsize)
         self.field = field
         
+    def __eq__(self, oper):
+        if not isinstance(oper, self.__class__):
+            return False
+        if self.reg != oper.reg:
+            return False
+        if self.tsize != oper.tsize:
+            return False
+        if self.field != oper.field:
+            return False
+        return True
+    
     def render(self, mcanv, op, idx):
         rname = "cr%d" % self.field
         mcanv.addNameText(rname, typename='cregisters')
@@ -202,6 +213,15 @@ class PpcCBRegOper(PpcRegOper):
         PpcRegOper.__init__(self, reg, va, tsize)
         self.bit = bit
         
+    def __eq__(self, other):
+        if self.__class__ != other.__class__:
+            return False
+        if self.reg != other.reg:
+            return False
+        if self.bit != other.bit:
+            return False
+        return True
+
     def render(self, mcanv, op, idx):
         creg = self.bit / 4
         coff = self.bit % 4
