@@ -638,6 +638,17 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
         return False
 
+    def processEntryPoints(self):
+        '''
+        Roll through EntryPoints and make them into functions (if not already)
+        '''
+        for eva in self.getEntryPoints():
+            if self.isFunction(eva):
+                continue
+            if not self.probeMemory(eva, 1, e_mem.MM_EXEC):
+                continue
+            self.makeFunction(eva)
+
     def analyze(self):
         """
         Call this to ask any available analysis modules
@@ -649,14 +660,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             self.vprint('...analyzing exports.')
 
         starttime = time.time()
-        for eva in self.getEntryPoints():
-            if self.isFunction(eva):
-                continue
-            if not self.probeMemory(eva, 1, e_mem.MM_EXEC):
-                continue
-            self.makeFunction(eva)
-
-        # Now lets engage any extended analysis modules.  If any modules return
+        # Now lets engage any analysis modules.  If any modules return
         # true, they managed to change things and we should run again...
         for mname in self.amodlist:
             mod = self.amods.get(mname)
