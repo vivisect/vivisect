@@ -109,9 +109,10 @@ class ppc_instr(object):
         'bdnzt':        'signed_b',                # B:    signed 14 bit value << 2
         'bns':          'signed_b',                # B:    signed 14 bit value << 2
         'bdz':          'signed_b',                # B:    signed 14 bit value << 2
-        'bcl':          'signed_b',                # B:    signed 14 bit value << 2
-        'bca':          'signed_b',                # B:    signed 14 bit value << 2
-        'bcla':         'signed_b',                # B:    signed 14 bit value << 2
+        'bc':           'signed_b_full',           # B:    signed 14 bit value << 2
+        'bcl':          'signed_b_full',           # B:    signed 14 bit value << 2
+        'bca':          'signed_b_full',           # B:    signed 14 bit value << 2
+        'bcla':         'signed_b_full',           # B:    signed 14 bit value << 2
 
         # Integer Select
         'isel':         'special_r0_handling',     # A:    special handling of param rA r0 case
@@ -143,7 +144,7 @@ class ppc_instr(object):
         'stw':          'signed_d',                # D:    unsigned 16 bit value
         'stwu':         'signed_d',                # D:    unsigned 16 bit value
 
-        # Store Half Wor'd
+        # Store Half Word
         'se_sth':       'unsigned_sd4_half_addr',  # SD4:  unsigned 4 bit value << 1
         'e_sth':        'signed_d',                # D:    signed 16 bit value
         'e_sthu':       'signed_d8',               # D8:   signed 8 bit value
@@ -174,9 +175,9 @@ class ppc_instr(object):
         'e_ldmvsrrw':   'signed_d8',               # D8:   signed 8 bit value
         'e_ldmvcrrw':   'signed_d8',               # D8:   signed 8 bit value
         'e_ldmvdrrw':   'signed_d8',               # D8:   signed 8 bit value
-        'lwz':          'signed_d',                # D:    signed 16 bit value
+        'lwz':          'signed_d_handle_r0',      # D:    signed 16 bit value
         'lwa':          'signed_ds',               # DS:   unsigned 14 bit value << 2
-        'lwzu':         'signed_d',                # D:    signed 16 bit value
+        'lwzu':         'signed_d_handle_r0',      # D:    signed 16 bit value
         'lwzx':         'special_r0_handling',     # X:    special handling of param rA r0 case
 
         # Load Float Double
@@ -252,6 +253,8 @@ class ppc_instr(object):
         'rlwnm.':       'unsigned_m_reg',          # M:    3 unsigned 5 bit values
         'srawi':        'unsigned_x',              # X:    unsigned 5 bit value
         'srawi.':       'unsigned_x',              # X:    unsigned 5 bit value
+        'sradi':        'unsigned_x_dw',           # X:    unsigned 6 bit value
+        'sradi.':       'unsigned_x_dw',           # X:    unsigned 6 bit value
         'rldimi':       'unsigned_md',             # MD:   2 unsigned 6 bit values
         'rldimi.':      'unsigned_md',             # MD:   2 unsigned 6 bit values
         'rldicl':       'unsigned_md',             # MD:   2 unsigned 6 bit values
@@ -283,13 +286,17 @@ class ppc_instr(object):
         'cmpdi':        'signed_d',                # D:    signed 16 bit value (alias of cmpi)
 
         # Trap Immediate
-        'twi':          'signed_d',                # D:    signed 16 bit value
+        'twui':         'signed_d_full',           # D:    signed 16 bit value
+        'tw':           'x_full',                  # X
+        'twu':          'x_full',                  # X
+        'twi':          'signed_d_full',           # D:    signed 16 bit value
+        'trap':         'signed_d_full',           # D:    signed 16 bit value
         'twgti':        'signed_d',                # D:    signed 16 bit value
-        'twlgti':        'signed_d',                # D:    signed 16 bit value
+        'twlgti':       'signed_d',                # D:    signed 16 bit value
         'twnei':        'signed_d',                # D:    signed 16 bit value
         'tdi':          'signed_d',                # D:    signed 16 bit value
         'tdgti':        'signed_d',                # D:    signed 16 bit value
-        'tdlgti':        'signed_d',                # D:    signed 16 bit value
+        'tdlgti':       'signed_d',                # D:    signed 16 bit value
         'tdnei':        'signed_d',                # D:    signed 16 bit value
 
         # Add Immediate
@@ -319,17 +326,34 @@ class ppc_instr(object):
         # Move To/From SPR
         'mtspr':        'xfx_spr',                 # XFX: Special Purpose Register
         'mfspr':        'xfx_spr',                 # XFX: Special Purpose Register
+        'mttmr':        'xfx_tmr',                 # XFX: Thread Management Register
+        'mftmr':        'xfx_tmr',                 # XFX: Thread Management Register
+        'mtpmr':        'xfx_pmr',                 # XFX: Performance Monitor Register
+        'mfpmr':        'xfx_pmr',                 # XFX: Performance Monitor Register
+
+        # Data cache
+        'dcbtst':       'dcbt',                    # X:   5 bit unsigned field
+        'dcbt':         'dcbt',                    # X:   5 bit unsigned field
 
         # Other
+        'eieio':        'xfx_field1',              # XFX: special MO flag
         'mbar':         'xfx_field1',              # XFX: special MO flag
         'wrteei':       'wrteei',                  # X:   special E flag
+        'mtcr':         'mtcrf',                   # XFX: special CRM flag values
         'mtcrf':        'mtcrf',                   # XFX: special CRM flag values
         'mfcrf':        'mtcrf',                   # XFX: special CRM flag values
         'mtocrf':       'mtcrf',                   # XFX: special CRM flag values
         'mfocrf':       'mtcrf',                   # XFX: special CRM flag values
-        'mttmr':        'xfx_field2',              # XFX
-        'mtpmr':        'xfx_field2',              # XFX
-        'mfpmr':        'xfx_field2',              # XFX
+        'mtfsf':        'xfx_field2',              # XFX
+        'mffsf':        'xfx_field2',              # XFX
+        'tlbsx':        'x_2reg_r0_handling',      # X
+        'tlbsx.':       'x_2reg_r0_handling',      # X
+        'tlbsrx.':      'x_2reg_r0_handling',      # X
+        'tlbivax':      'x_2reg_r0_handling',      # X
+        'sync':         'sync',                    # X:  special sync format
+        'msync':        'sync',                    # X:  special sync format
+        'lwsync':       'sync',                    # X:  special sync format
+        'wait':         'wait',                    # X:  special wait format
 
         # altivec
         'vspltisb':     'signed_vx',               # VX: signed 5 bit value
@@ -357,28 +381,59 @@ class ppc_instr(object):
             elif tok.type in ['LABEL', 'LABEL_MATH']:
                 self.args.append(lst_parser.Token('TBD', tok, 'TBD', tok.column))
 
-        # There are some register-only operand instructions that can have 
-        # integers in the operands when rA == 0, don't bother "fixing" those
-        dont_fix_instructions = [
-            'lhbrx', 'lwbrx', 'lwarx', 'ldarx', 'stwcx', 'stwcx.', 'stdcx',
-            'stdcx.', 'mtfsf', 'mtfsf.', 'sradi', 'sradi.', 'dcbst', 'dcbf',
-            'icbi', 'tlbilx', 'tlbsx', 'tlbre', 'stwbrx', 'sthbrx', 'dcbz',
-            'tlbivax', 'tlbsrx.', 'lbarx', 'stbcx.', 'ldx', 'lbzx', 'tlbsx.',
-            'lvx', 'stvx', 'dcbt', 'dcbtst', 'lvsl', 'lhau', 'lvsr',
+        # Some instructions tend to be decoded incorrectly by IDA, but not in 
+        # a way that is dramatically wrong enough to require "fixing"
+        if self.op.value in ['lbarx', 'lharx', 'lwarx', 'ldarx'] and len(self.args) > 3:
+            self.args = self.args[:3]
+
+        if self.op.value == 'tlbre' and len(self.args) > 0:
+            # tlbre should not have parameters
+            self.args = []
+
+        if self.op.value in ['mtcrf'] and len(self.args) == 1:
+            self.args = [lst_parser.Token('TBD', tok, 'TBD', tok.column)] + self.args[:]
+
+        if self.op.value in ['dcbt', 'dcbtst'] and len(self.args) == 2:
+            self.args = [lst_parser.Token('TBD', tok, 'TBD', tok.column)] + self.args[:]
+
+        # Some instructions don't need fixing or re-evaluating
+        dont_fix_instrs = [
+                'lvx', 'lvsr', 'lvsl',
+                'lxl',
+                'stvx',
+                'lbarx', 'lharx', 'lwarx', 'ldarx',
+                'stbcx.', 'sthcx.', 'stwcx.', 'stdcx.',
+                'lhbrx', 'lwbrx', 'ldbrx',
+                'sthbrx', 'stwbrx', 'stwdrx',
+                'ldx', 'lbzx',
+                'lhau',
+                'dcbst', 'dcbf', 'dcbz',
+                'icbi',
+                'tlbilx', 'tlbre',
         ]
-        if self.op.value not in dont_fix_instructions:
+        if self.op.value not in dont_fix_instrs:
             self.fix()
 
     def fix(self):
         # IDA listings use some incorrect mnemononics
         rename_mapping = {
+            'mfsprg':      (None, 'mfspr'),
+            'mtsprg':      (None, 'mtspr'),
+
             # 'eieio' was the old PPC instruction, it should now be called 'mbar'
             'eieio':       (None, 'mbar'),
-            'sync':        (None, 'msync'),
+            'msync':       (None, 'sync'),
+            'lwsync':      (None, 'sync'),
 
             # Generic PPC forms into forms I recognize better
             'twu':         (None, 'tw'),
             'twui':        (None, 'twi'),
+            'trap':        ( (0x0C000000, 'twi'),
+                             (0x7C000000, 'tw') ),
+
+            # There is no tlbsx. instruction
+            'tlbsx':       (None, 'tlbsx'),
+            'tlbsx.':      (None, 'tlbsx'),
 
             # These new ISR load/store instrucions are misnamed in IDA
             'e_lmvgprw':   (None, 'e_ldmvgprw'),
@@ -442,6 +497,10 @@ class ppc_instr(object):
 
         op, cr = (self.op.value[:-1], self.op.value[-1]) if self.op.value[-1] == '.' else (self.op.value, '')
         if op in rename_mapping:
+            if self.op.value in rename_mapping:
+                op = self.op.value
+                cr = ''
+
             new_op = None
             if rename_mapping[op][0] is None:
                 new_op = rename_mapping[op][1]
@@ -460,17 +519,31 @@ class ppc_instr(object):
                     self.args.append(last_arg)
 
         # Some instructions need to be forced to re-evaluate the operands
-        update_ops = [
-            'mtcr', 'rlwnm', 'ori', 'rlwnm'
-        ]
         args_to_fix = [ a for a in self.args if a.type in ['TBD', 'DEC_CONST', 'HEX_CONST'] ]
-        if self.op.value in update_ops and len(args_to_fix) == 0:
+        if self.op.value in ['rlwnm', 'ori', 'rlwnm'] and len(args_to_fix) == 0:
             self.args.append(lst_parser.Token('TBD', None, 'TBD', None))
+        
+        if self.op.value in ['mtcrf'] and len(args_to_fix) == 0:
+            self.args = [lst_parser.Token('TBD', None, 'TBD', None)] + self.args[:]
+
+        # Some instructions need to be completely re-generated
+        regen_ops = [
+            'wait',
+            'mbar',
+            'bc', 'bcl',
+            'tlbsx', 'tlbsx.', 'tlbsrx.', 'tlbivax',
+            'sync',
+            'tw', 'twi',
+        ]
+        if self.op.value in regen_ops:
+            self.args = [lst_parser.Token('TBD', None, 'TBD', None)]
 
         fixed_args = []
         changed = False
         for arg in self.args:
-            if arg.type in ['TBD', 'DEC_CONST', 'HEX_CONST']:
+            # I can't figure out a cleaner way to handle "twi" than this
+            if (self.op.value == 'twi' and arg.type == 'TBD') or \
+                    (self.op.value != 'twi' and arg.type in ['TBD', 'DEC_CONST', 'HEX_CONST']):
                 if self.op.value in ppc_instr.Instructions and not changed:
                     changed = True
                     new_arg = getattr(self, ppc_instr.Instructions[self.op.value])(self.data.value)
@@ -512,12 +585,16 @@ class ppc_instr(object):
             'mtdec':       'mtspr',
             'mfsprg0':     'mfspr',
             'mtsprg0':     'mtspr',
+            'mfsprg1':     'mfspr',
+            'mtsprg1':     'mtspr',
+            'mfsprg2':     'mfspr',
+            'mtsprg2':     'mtspr',
             'mfsprg3':     'mfspr',
             'mtsprg3':     'mtspr',
             'mfpvr':       'mfspr',
             'mtpvr':       'mtspr',
-            'mtsprg2':     'mtspr',
-            'mfsprg2':     'mfspr',
+            'mfvtb':       'mfspr',
+            'mtvtb':       'mtspr',
         }
 
         # The same 3 letter prefixes work for all types of conditional branches:
@@ -547,11 +624,13 @@ class ppc_instr(object):
             new_op = lst_parser.Token('ASM', self.op.match, spr_asm[self.op.value], self.op.column)
             self.op = new_op
 
-            if self.op.value == 'mfspr' and fixed_args[-1].type not in ['SPR', 'HEX_CONST', 'DEC_CONST']:
+            if self.op.value in ['mfspr', 'mfpmr', 'mftmr'] and \
+                    fixed_args[-1].type not in ['SPR', 'HEX_CONST', 'DEC_CONST']:
                 new_arg = getattr(self, ppc_instr.Instructions[self.op.value])(self.data.value)
                 fixed_args.append(new_arg)
 
-            if self.op.value == 'mtspr' and fixed_args[0].type not in ['SPR', 'HEX_CONST', 'DEC_CONST']:
+            if self.op.value in ['mtspr', 'mtpmr', 'mttmr'] and \
+                    fixed_args[0].type not in ['SPR', 'HEX_CONST', 'DEC_CONST']:
                 new_arg = getattr(self, ppc_instr.Instructions[self.op.value])(self.data.value)
                 fixed_args.insert(0, new_arg)
 
@@ -563,6 +642,10 @@ class ppc_instr(object):
 
             fixed_cr_arg = lst_parser.Token(fixed_args[0].type, fixed_args[0].type, fixed_args[0].value + mods[1], fixed_args[0].column)
             fixed_args[0] = fixed_cr_arg
+        elif self.op.value in ['bc', 'bcl'] and len(fixed_args) == 3 and fixed_args[0].value == 0x14:
+            # Special case: a branch conditional with flags indicating "don't 
+            # decrement and ignore the condition flags"
+            fixed_args = fixed_args[-1:]
 
         self.args = fixed_args
 
@@ -584,10 +667,10 @@ class ppc_instr(object):
             else:
                 arg_list = ' ' + ppc_instr._str_arg_list(self.args)
 
-        if self.op.value in ['tdi', 'vaddubm']:
-            fmt = '#{0.data.match: <8} {0.op.value}{1}'
-        else:
-            fmt = '{0.data.match: <8} {0.op.value}{1}'
+        #if self.op.value in ['tdi', 'vaddubm']:
+        #    fmt = '#{0.data.match: <8} {0.op.value}{1}'
+        #else:
+        fmt = '{0.data.match: <8} {0.op.value}{1}'
         return fmt.format(self, arg_list)
 
     @classmethod
@@ -640,10 +723,35 @@ class ppc_instr(object):
 
     @classmethod
     def signed_b(cls, data):
-        sign = 0x00008000
-        mask = 0x00007FFC
-        val = (data & mask) - (data & sign)
-        return cls._dec_token(val)
+        tgt_sign = 0x00008000
+        tgt_mask = 0x00007FFC
+        tgt = (data & tgt_mask) - (data & tgt_sign)
+
+        return cls._dec_token(tgt)
+
+    @classmethod
+    def signed_b_full(cls, data):
+        # For non-simplified branch conditionals, grab all fields
+        flags_mask = 0x03E00000
+        flags = (data & flags_mask) >> 21
+
+        cr_reg  = (data & 0x001C0000) >> 18
+        cr_bits = (data & 0x00030000) >> 16
+        if cr_bits == 0b00:
+            cr = 'cr{}.lt'.format(cr_reg)
+        elif cr_bits == 0b01:
+            cr = 'cr{}.gt'.format(cr_reg)
+        elif cr_bits == 0b10:
+            cr = 'cr{}.eq'.format(cr_reg)
+        elif cr_bits == 0b11:
+            cr = 'cr{}.so'.format(cr_reg)
+
+        tgt_sign = 0x00008000
+        tgt_mask = 0x00007FFC
+        tgt = (data & tgt_mask) - (data & tgt_sign)
+
+        cr_tok = lst_parser.Token('CONDITION', cr, cr, None)
+        return [cls._dec_token(flags), cr_tok, cls._dec_token(tgt)]
 
     @classmethod
     def unsigned_sd4_word_addr(cls, data):
@@ -685,6 +793,53 @@ class ppc_instr(object):
         mask = 0x00007FFF
         val = (data & mask) - (data & sign)
         return cls._dec_token(val)
+
+    @classmethod
+    def signed_d_full(cls, data):
+        mask_TO = 0x03E00000
+        mask_rA = 0x001F0000
+
+        sign = 0x00008000
+        mask = 0x00007FFF
+
+        TO = (data & mask_TO) >> 21
+        rA = (data & mask_rA) >> 16
+        val = (data & mask) - (data & sign)
+
+        reg_str ='r{}'.format(rA)
+        return [cls._dec_token(TO),
+                lst_parser.Token('REG', reg_str, reg_str, None),
+                cls._dec_token(val)]
+
+    @classmethod
+    def x_full(cls, data):
+        mask_TO = 0x03E00000
+        mask_rA = 0x001F0000
+        mask_rB = 0x0000F800
+
+        TO = (data & mask_TO) >> 21
+        rA = (data & mask_rA) >> 16
+        rB = (data & mask_rB) >> 11
+
+        rA_str ='r{}'.format(rA)
+        rB_str ='r{}'.format(rB)
+        return [cls._dec_token(TO),
+                lst_parser.Token('REG', rA_str, rA_str, None),
+                lst_parser.Token('REG', rB_str, rB_str, None)]
+
+    @classmethod
+    def signed_d_handle_r0(cls, data):
+        sign = 0x00008000
+        mask = 0x00007FFF
+        val = (data & mask) - (data & sign)
+
+        reg_mask = 0x001F0000
+        reg = (data & reg_mask) >> 16
+
+        if reg == 0:
+            return [cls._dec_token(reg), cls._dec_token(val)]
+        else:
+            return cls._dec_token(val)
 
     @classmethod
     def unsigned_d(cls, data):
@@ -758,6 +913,17 @@ class ppc_instr(object):
     def unsigned_x(cls, data):
         mask = 0x0000F800
         val = (data & mask) >> 11
+
+        # Make hex tokens for logical operation operands
+        return cls._hex_token(val)
+
+    @classmethod
+    def unsigned_x_dw(cls, data):
+        mask_1 = 0x0000F800
+        mask_2 = 0x00000002
+        val_1 = (data & mask_1) >> 11
+        val_2 = (data & mask_2) << 4 # >> 1 then << 5
+        val = val_1 | val_2
 
         # Make hex tokens for logical operation operands
         return cls._hex_token(val)
@@ -884,7 +1050,7 @@ class ppc_instr(object):
     def signed_vx(cls, data):
         sign = 0x00100000
         mask = 0x000F0000
-        val = (data & mask) - (data & sign)
+        val = ((data & mask) - (data & sign)) >> 16
 
         # For signed values return a decimal operand
         return cls._dec_token(val)
@@ -910,6 +1076,43 @@ class ppc_instr(object):
         return cls._hex_token(val)
 
     @classmethod
+    def x_2reg_r0_handling(cls, data):
+        mask_rA = 0x001F0000
+        mask_rB = 0x0000F800
+
+        rA = (data & mask_rA) >> 16
+        rB = (data & mask_rB) >> 11
+
+        if rA == 0:
+            rB_str ='r{}'.format(rB)
+            return [cls._dec_token(rA),
+                    lst_parser.Token('REG', rB_str, rB_str, None)]
+        else:
+            rA_str ='r{}'.format(rA)
+            rB_str ='r{}'.format(rB)
+            return [lst_parser.Token('REG', rA_str, rA_str, None),
+                    lst_parser.Token('REG', rB_str, rB_str, None)]
+    @classmethod
+    def sync(cls, data):
+        mask_l = 0x00600000
+        mask_e = 0x00070000
+
+        l = (data & mask_l) >> 21
+        e = (data & mask_e) >> 16
+
+        return [cls._dec_token(l), cls._dec_token(e)]
+
+    @classmethod
+    def wait(cls, data):
+        mask_WC = 0x00600000
+        mask_WH = 0x00100000
+
+        WC = (data & mask_WC) >> 21
+        WH = (data & mask_WH) >> 20
+
+        return [cls._dec_token(WC), cls._dec_token(WH)]
+
+    @classmethod
     def xfx_spr(cls, data):
         val = cls._get_xfx_field2(data)
         spr_to_str_map = {
@@ -929,11 +1132,11 @@ class ppc_instr(object):
             62: 'ESR',
             63: 'IVPR',
             256: 'USPRG0',
-            259: 'SPRG3_USER',
-            260: 'SPRG4_USER',
-            261: 'SPRG5_USER',
-            262: 'SPRG6_USER',
-            263: 'SPRG7_USER',
+            259: 'USPRG3',
+            260: 'USPRG4',
+            261: 'USPRG5',
+            262: 'USPRG6',
+            263: 'USPRG7',
             268: 'TB',
             269: 'TBU',
             272: 'SPRG0',
@@ -948,6 +1151,7 @@ class ppc_instr(object):
             284: 'TBL_HYP',
             285: 'TBU_HYP',
             286: 'PIR',
+            287: 'PVR',
             304: 'DBSR',
             306: 'DBSRWR',
             307: 'EPCR',
@@ -1114,6 +1318,129 @@ class ppc_instr(object):
             return lst_parser.Token('HEX_CONST', hex(val), val, None)
 
     @classmethod
+    def xfx_tmr(cls, data):
+        val = cls._get_xfx_field2(data)
+        tmr_to_str_map = {
+            289: 'IMSR1',
+            290: 'IMSR2',
+            291: 'IMSR3',
+            292: 'IMSR4',
+            293: 'IMSR5',
+            294: 'IMSR6',
+            295: 'IMSR7',
+            296: 'IMSR8',
+            297: 'IMSR9',
+            298: 'IMSR10',
+            299: 'IMSR11',
+            300: 'IMSR12',
+            301: 'IMSR13',
+            302: 'IMSR14',
+            303: 'IMSR15',
+            304: 'IMSR16',
+            305: 'IMSR17',
+            306: 'IMSR18',
+            307: 'IMSR19',
+            308: 'IMSR20',
+            309: 'IMSR21',
+            310: 'IMSR22',
+            311: 'IMSR23',
+            312: 'IMSR24',
+            313: 'IMSR25',
+            314: 'IMSR26',
+            315: 'IMSR27',
+            316: 'IMSR28',
+            317: 'IMSR29',
+            318: 'IMSR30',
+            319: 'IMSR31',
+            320: 'INIA0',
+            321: 'INIA1',
+            322: 'INIA2',
+            323: 'INIA3',
+            324: 'INIA4',
+            325: 'INIA5',
+            326: 'INIA6',
+            327: 'INIA7',
+            328: 'INIA8',
+            329: 'INIA9',
+            330: 'INIA10',
+            331: 'INIA11',
+            332: 'INIA12',
+            333: 'INIA13',
+            334: 'INIA14',
+            335: 'INIA15',
+            336: 'INIA16',
+            337: 'INIA17',
+            338: 'INIA18',
+            339: 'INIA19',
+            340: 'INIA20',
+            341: 'INIA21',
+            342: 'INIA22',
+            343: 'INIA23',
+            344: 'INIA24',
+            345: 'INIA25',
+            346: 'INIA26',
+            347: 'INIA27',
+            348: 'INIA28',
+            349: 'INIA29',
+            350: 'INIA30',
+            351: 'INIA31',
+        }
+
+        if val in tmr_to_str_map:
+            return lst_parser.Token('SPR', hex(val), tmr_to_str_map[val], None)
+        else:
+            return lst_parser.Token('HEX_CONST', hex(val), val, None)
+
+    @classmethod
+    def xfx_pmr(cls, data):
+        val = cls._get_xfx_field2(data)
+        pmr_to_str_map = {
+            0: 'UPMC0',
+            1: 'UPMC1',
+            2: 'UPMC2',
+            3: 'UPMC3',
+            4: 'UPMC4',
+            5: 'UPMC5',
+            16: 'PMC0',
+            17: 'PMC1',
+            18: 'PMC2',
+            19: 'PMC3',
+            20: 'PMC4',
+            21: 'PMC5',
+            128: 'UPMLCA0',
+            129: 'UPMLCA1',
+            130: 'UPMLCA2',
+            131: 'UPMLCA3',
+            132: 'UPMLCA4',
+            133: 'UPMLCA5',
+            144: 'PMLCA0',
+            145: 'PMLCA1',
+            146: 'PMLCA2',
+            147: 'PMLCA3',
+            148: 'PMLCA4',
+            149: 'PMLCA5',
+            256: 'UPMLCB0',
+            257: 'UPMLCB1',
+            258: 'UPMLCB2',
+            259: 'UPMLCB3',
+            260: 'UPMLCB4',
+            261: 'UPMLCB5',
+            272: 'PMLCB0',
+            273: 'PMLCB1',
+            274: 'PMLCB2',
+            275: 'PMLCB3',
+            276: 'PMLCB4',
+            277: 'PMLCB5',
+            384: 'UPMGC0',
+            400: 'PMGC0',
+        }
+
+        if val in pmr_to_str_map:
+            return lst_parser.Token('SPR', hex(val), pmr_to_str_map[val], None)
+        else:
+            return lst_parser.Token('HEX_CONST', hex(val), val, None)
+
+    @classmethod
     def wrteei(cls, data):
         mask = 0x00008000
         val = (data & mask) >> 15
@@ -1124,6 +1451,19 @@ class ppc_instr(object):
         mask = 0x000FF000
         val = (data & mask) >> 12
         return cls._hex_token(val)
+
+    @classmethod
+    def dcbt(cls, data):
+        mask = 0x03E00000
+        val = (data & mask) >> 21
+
+        rA_mask = 0x001F0000
+        rA = (data & rA_mask) >> 16
+
+        if rA == 0:
+            return [cls._hex_token(val), cls._hex_token(rA)]
+        else:
+            return cls._hex_token(val)
 
 
 def parse(lst_lines):
@@ -1148,8 +1488,10 @@ if __name__ == '__main__':
         with open(file_in, 'r') as f:
             input_lines.extend(f.readlines())
 
-    # turn the lines into a set to get unique instructions for testing
-    unique_instructions = sorted(list(set([repr(l) for l in parse(input_lines)])))
+    # turn the input lines into a set before parsing to reduce the amount of 
+    # time it takes to generate the tests.
+    # Then turn the results into a set to get unique instructions for testing
+    unique_instructions = sorted(list(set([repr(l) for l in parse(list(set(input_lines)))])))
 
     if sys.argv[-1] == '-':
         for line in unique_instructions:
