@@ -194,6 +194,8 @@ class CodeFlowContext(object):
                                     branches.append((bdest, envi.BR_COND))
 
                                 ptrbase += self._mem.psize
+                                if not self._mem.isValidPointer(ptrbase):
+                                    break
                                 bdest = self._mem.readMemoryFormat(ptrbase, ptrfmt)[0]
                         continue
 
