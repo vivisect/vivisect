@@ -464,10 +464,10 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         Example:
             vw.delFuncAnalysisModule('mypkg.mymod')
         '''
-        if not self.fmods.has_key(modname):
+        if modname not in self.fmods:
             raise Exception("Unknown Module in delAnalysisModule: %s" % modname)
         x = self.fmods.pop(modname, None)
-        if x != None:
+        if x is not None:
             self.fmodlist.remove(modname)
 
     def createEventChannel(self):
@@ -483,7 +483,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         # During import, if we have a server, be sure not to notify
         # the server about the events he just gave us...
         local = False
-        if self.server != None:
+        if self.server is not None:
             local = True
 
         # Process the events from the import data...
@@ -849,7 +849,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         return -1
 
     def isProbablyString(self, va):
-        if self.detectString(va) > 0 :
+        if self.detectString(va) > 0:
             return True
         return False
 
@@ -904,7 +904,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         return -1
 
     def isProbablyUnicode(self, va):
-        if self.detectUnicode(va) > 0 :
+        if self.detectUnicode(va) > 0:
             return True
         return False
 
