@@ -109,6 +109,6 @@ def _addNamePrefix(vw, name, va, prefix, joinstr=''):
         name = joinstr.join([prefix, npart])
 
     else:
-        name = fpart + '.' + joinstr.join([prefix, npart]) + '_' % vapart
+        name = fpart + '.' + joinstr.join([prefix, npart]) + '_%s' % vapart
     logger.debug('addNamePrefix: %r %r %r -> %r', fpart, npart, vapart, name)
     return name

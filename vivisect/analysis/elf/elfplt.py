@@ -17,31 +17,14 @@ def analyze(vw):
     Do simple linear disassembly of the .plt section if present.
     Make functions 
     """
-    print "=========== ELF PLT ANALYSIS MODULE START ============="
     for sva, ssize, sname, sfname in vw.getSegments():
         if sname not in (".plt", ".plt.got"):
             continue
-        '''
-    for filename in vw.getFiles():
-        dyns = vw.getFileMeta(filename, 'ELF_DYNAMICS')
-        addbase = vw.getFileMeta(filename, 'addbase')
-        imgbase = vw.getFileMeta(filename, 'imagebase')
-        if dyns is None:
-            logger.info('skipping file %r: no ELF_DYNAMICS info', filename)
-            continue
+        analyzePLT(vw, sva, ssize)
 
-        pltva = dyns.get('DT_JMPREL')
-        pltsz = dyns.get('DT_PLTRELSZ')
-        if pltva is None or pltsz is None:
-            logger.info('skipping file %r: no PLT/SZ info (staticly-linked?)', filename)
-            continue
-        if addbase:
-            pltva += imgbase
-        nextseg = pltva + pltsz
-        sva = pltva
-    '''
+def analyzePLT(vw, sva, ssize):
+        # make code for every opcode in PLT
         nextseg = sva + ssize
-        # make code
         while sva < nextseg:
             if vw.getLocation(sva) is None:
                 logger.info('making PLT function: 0x%x', sva)
@@ -65,53 +48,23 @@ def analyze(vw):
             vw.makeFunction(sva)
             analyzeFunction(vw, sva)
 
-    '''
-    for sva, ssize, sname, sfname in vw.getSegments():
-        if sname not in (".plt", ".plt.got"):
-            continue
-
-        # make the first function as the dyn linker helper func, then skip 16 bytes #FIXME: JANKY
-        vw.makeFunction(sva)
-        nextseg = sva + ssize
-        sva += 0x10
-
-        while sva < nextseg:
-            if vw.getLocation(sva) is None:
-                logger.info('making PLT function: 0x%x', sva)
-                vw.makeFunction(sva)
-                try:
-                    analyzeFunction(vw, sva)
-                except Exception as e:
-                    logger.warn('0x%x: exception: %r', sva, e)
-
-            ltup = vw.getLocation(sva)
-
-            if ltup is not None:
-                sva += ltup[vivisect.L_SIZE]
-                logger.debug('incrementing to next va: 0x%x', sva)
-            else:
-                logger.warn('makeFunction(0x%x) failed to make a location (probably failed instruction decode)!  incrementing instruction pointer by 1 to continue PLT analysis <fingers crossed>', sva)
-                sva += 1    # FIXME: add architectural "PLT_INSTRUCTION_INCREMENT" or something like it
-'''
-
 MAX_OPS = 10
 
 
 def analyzeFunction(vw, funcva):
-    print "=========== ELF PLT FUNCTION ANALYSIS MODULE START ============="
     logger.warn('analyzeFunction(vw, 0x%x)', funcva)
     return
 
     seg = vw.getSegment(funcva)
     if seg is None:
         logger.info('not analyzing 0x%x: no segment found', funcva)
-        return
+        #return
+    else:
+        segva, segsize, segname, segfname = seg
 
-    segva, segsize, segname, segfname = seg
-
-    if segname not in (".plt", ".plt.got"):
-        logger.info('not analyzing 0x%x: not part of ".plt" or ".plt.got"', funcva)
-        return
+        if segname not in (".plt", ".plt.got"):
+            logger.warn('0x%x: not part of ".plt" or ".plt.got"', funcva)
+            #return
 
     logger.info('analyzing PLT function: 0x%x', funcva)
     count = 0
@@ -207,6 +160,6 @@ def _addNamePrefix(vw, name, va, prefix, joinstr=''):
         name = joinstr.join([prefix, npart])
 
     else:
-        name = fpart + '.' + joinstr.join([prefix, npart]) + '_' % vapart
+        name = fpart + '.' + joinstr.join([prefix, npart]) + '_%s' % vapart
     logger.debug('addNamePrefix: %r %r %r -> %r', fpart, npart, vapart, name)
     return name

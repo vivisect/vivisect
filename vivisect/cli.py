@@ -755,3 +755,36 @@ class VivCli(e_cli.EnviCli, vivisect.VivWorkspace):
 
         import vivisect.vdbext as viv_vdbext
         viv_vdbext.runVdb(self._viv_gui)
+
+    def do_plt(self, line):
+        '''
+        Parse an entire PLT Section
+
+        Usage: plt <pltva> <pltsize>
+        '''
+        if not line:
+            return self.do_help("plt")
+
+        argv = e_cli.splitargs(line)
+        if len(argv) != 2:
+            return self.do_help("plt")
+
+        sva = self.parseExpression(argv[0])
+        ssize = self.parseExpression(argv[1])
+
+        import vivisect.analysis.elf.elfplt as vaee
+        vaee.analyzePLT(self, sva, ssize)
+
+    def do_plt_function(self, line):
+        '''
+        Make a PLT function at a virtual address
+
+        Usage: plt_function <va>
+        '''
+        if not line:
+            return self.do_help("plt_function")
+
+        fva = self.parseExpression(line)
+
+        import vivisect.analysis.elf.elfplt as vaee
+        vaee.analyzeFunction(self, fva)
