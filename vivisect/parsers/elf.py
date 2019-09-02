@@ -364,7 +364,8 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
 
         elfmeta[Elf.dt_names.get(d.d_tag)] = d.d_value
 
-    vw.setMeta('ELF_DYNAMICS', elfmeta)  # create a VaSet instead? setMeta allows more free-form info, but isn't currently accessible from the gui
+    vw.setFileMeta(fname, 'ELF_DYNAMICS', elfmeta)  # create a VaSet instead? setMeta allows more free-form info, but isn't currently accessible from the gui
+    vw.setFileMeta(fname, 'addbase', addbase)
 
     # applyRelocs is specifically prior to "process Dynamic Symbols" because Dynamics-only symbols 
     #       (ie. not using Section Headers) may not get all the symbols.  Some ELF's simply list too 

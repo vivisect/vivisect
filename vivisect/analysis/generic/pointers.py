@@ -76,5 +76,39 @@ def analyze(vw):
 
         tgtname = vw.getName(tgt)
         if tgtname is not None:
-            logger.info('   name(0x%x): %r', tgt, tgtname)
-            vw.makeName(ptr, 'ptr_%s_%.8x' % (tgtname, ptr))
+            name = _addNamePrefix(vw, tgtname, tgt, 'ptr', '_') + '_%.8x' % ptr
+            logger.info('   name(0x%x): %r  (%r)', tgt, tgtname, name)
+            vw.makeName(ptr, name)
+
+
+def _getNameParts(vw, name, va):
+    fpart = None
+    npart = name
+    vapart = None
+    fname = vw.getFileByVa(va)
+    if name.startswith(fname + '.'):
+        fpart, npart = name.split('.', 1)
+    elif name.startswith('*.'):
+        skip, npart = name.split('.', 1)
+
+    if npart.endswith('_%.8x' % va):
+        npart, vapart = npart.rsplit('_', 1)
+
+    return fpart, npart, vapart
+
+
+def _addNamePrefix(vw, name, va, prefix, joinstr=''):
+    fpart, npart, vapart = _getNameParts(vw, name, va)
+    if fpart is None and vapart is None:
+        name = joinstr.join([prefix, npart])
+
+    elif vapart is None:
+        name = fpart + '.' + joinstr.join([prefix, npart])
+
+    elif fpart is None:
+        name = joinstr.join([prefix, npart])
+
+    else:
+        name = fpart + '.' + joinstr.join([prefix, npart]) + '_' % vapart
+    logger.debug('addNamePrefix: %r %r %r -> %r', fpart, npart, vapart, name)
+    return name

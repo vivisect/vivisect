@@ -10,21 +10,71 @@ import envi.archs.i386 as e_i386
 
 logger = logging.getLogger(__name__)
 
+MAGIC_PLT_SIZE = 16
 
 def analyze(vw):
     """
     Do simple linear disassembly of the .plt section if present.
     Make functions 
     """
+    print "=========== ELF PLT ANALYSIS MODULE START ============="
+    for sva, ssize, sname, sfname in vw.getSegments():
+        if sname not in (".plt", ".plt.got"):
+            continue
+        '''
+    for filename in vw.getFiles():
+        dyns = vw.getFileMeta(filename, 'ELF_DYNAMICS')
+        addbase = vw.getFileMeta(filename, 'addbase')
+        imgbase = vw.getFileMeta(filename, 'imagebase')
+        if dyns is None:
+            logger.info('skipping file %r: no ELF_DYNAMICS info', filename)
+            continue
+
+        pltva = dyns.get('DT_JMPREL')
+        pltsz = dyns.get('DT_PLTRELSZ')
+        if pltva is None or pltsz is None:
+            logger.info('skipping file %r: no PLT/SZ info (staticly-linked?)', filename)
+            continue
+        if addbase:
+            pltva += imgbase
+        nextseg = pltva + pltsz
+        sva = pltva
+    '''
+        nextseg = sva + ssize
+        # make code
+        while sva < nextseg:
+            if vw.getLocation(sva) is None:
+                logger.info('making PLT function: 0x%x', sva)
+                try:
+                    vw.makeCode(sva)
+                except Exception as e:
+                    logger.warn('0x%x: exception: %r', sva, e)
+
+            ltup = vw.getLocation(sva)
+
+            if ltup is not None:
+                sva += ltup[vivisect.L_SIZE]
+                logger.debug('incrementing to next va: 0x%x', sva)
+            else:
+                logger.warn('makeCode(0x%x) failed to make a location (probably failed instruction decode)!  incrementing instruction pointer by 1 to continue PLT analysis <fingers crossed>', sva)
+                sva += 1    # FIXME: add architectural "PLT_INSTRUCTION_INCREMENT" or something like it
+
+
+        # scroll through arbitrary length functions and make functions
+        for sva in range(sva, nextseg, MAGIC_PLT_SIZE):
+            vw.makeFunction(sva)
+            analyzeFunction(vw, sva)
+
+    '''
     for sva, ssize, sname, sfname in vw.getSegments():
         if sname not in (".plt", ".plt.got"):
             continue
 
         # make the first function as the dyn linker helper func, then skip 16 bytes #FIXME: JANKY
         vw.makeFunction(sva)
+        nextseg = sva + ssize
         sva += 0x10
 
-        nextseg = sva + ssize
         while sva < nextseg:
             if vw.getLocation(sva) is None:
                 logger.info('making PLT function: 0x%x', sva)
@@ -42,14 +92,15 @@ def analyze(vw):
             else:
                 logger.warn('makeFunction(0x%x) failed to make a location (probably failed instruction decode)!  incrementing instruction pointer by 1 to continue PLT analysis <fingers crossed>', sva)
                 sva += 1    # FIXME: add architectural "PLT_INSTRUCTION_INCREMENT" or something like it
-
-
+'''
 
 MAX_OPS = 10
 
 
 def analyzeFunction(vw, funcva):
-    logger.info('analyzeFunction(vw, 0x%x)', funcva)
+    print "=========== ELF PLT FUNCTION ANALYSIS MODULE START ============="
+    logger.warn('analyzeFunction(vw, 0x%x)', funcva)
+    return
 
     seg = vw.getSegment(funcva)
     if seg is None:
@@ -115,17 +166,7 @@ def analyzeFunction(vw, funcva):
         logger.info("PLT->PTR 0x%x: (0x%x)  -> 0x%x -> 0x%x (%r)" % (funcva, opval, tgtva, ptrva, ptrname))
         if vw.isValidPointer(ptrva):
             if funcname is None:
-                if ptrname.startswith(segfname+'.'):
-                    fpart, npart = ptrname.split('.', 1)
-                    funcname = '%s.ptr_%r' % (fpart, npart)
-                    logger.info('.0  %r  / %r  / %r', fpart, npart, funcname)
-                else:
-                    if fpart == '*':
-                        fpart, npart = ptrname.split('.', 1)
-                        logger.info('.1  %r  / %r  / %r', fpart, npart, funcname)
-                        funcname = npart
-                    funcname = 'ptr_%r' % ptrname
-                    logger.info('.2  %r', funcname)
+                funcname = _addNamePrefix(vw, ptrname, ptrva, 'ptr', '_')
 
     elif loctup[vivisect.L_LTYPE] != vivisect.LOC_IMPORT:
         logger.warn("0x%x: (0x%x)  %r != %r (%r)" % (funcva, opval, loctup[vivisect.L_LTYPE], vivisect.LOC_IMPORT, funcname))
@@ -136,3 +177,36 @@ def analyzeFunction(vw, funcva):
 
     logger.info('makeFunctionThunk(0x%x, "plt_%s")', funcva, funcname)
     vw.makeFunctionThunk(funcva, "plt_" + funcname)
+
+
+def _getNameParts(vw, name, va):
+    fpart = None
+    npart = name
+    vapart = None
+    fname = vw.getFileByVa(va)
+    if name.startswith(fname + '.'):
+        fpart, npart = name.split('.', 1)
+    elif name.startswith('*.'):
+        skip, npart = name.split('.', 1)
+
+    if npart.endswith('_%.8x' % va):
+        npart, vapart = npart.rsplit('_', 1)
+
+    return fpart, npart, vapart
+
+
+def _addNamePrefix(vw, name, va, prefix, joinstr=''):
+    fpart, npart, vapart = _getNameParts(vw, name, va)
+    if fpart is None and vapart is None:
+        name = joinstr.join([prefix, npart])
+
+    elif vapart is None:
+        name = fpart + '.' + joinstr.join([prefix, npart])
+
+    elif fpart is None:
+        name = joinstr.join([prefix, npart])
+
+    else:
+        name = fpart + '.' + joinstr.join([prefix, npart]) + '_' % vapart
+    logger.debug('addNamePrefix: %r %r %r -> %r', fpart, npart, vapart, name)
+    return name
