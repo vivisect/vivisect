@@ -86,12 +86,14 @@ def _getNameParts(vw, name, va):
     npart = name
     vapart = None
     fname = vw.getFileByVa(va)
+    vastr = '_%.8x' % va
+
     if name.startswith(fname + '.'):
         fpart, npart = name.split('.', 1)
     elif name.startswith('*.'):
         skip, npart = name.split('.', 1)
 
-    if npart.endswith('_%.8x' % va):
+    if npart.endswith(vastr) and not npart == 'sub' + vastr:
         npart, vapart = npart.rsplit('_', 1)
 
     return fpart, npart, vapart

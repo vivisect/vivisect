@@ -80,6 +80,7 @@ def analyzeFunction(vw, funcva):
 
     # slight hack, but we don't currently know if thunk_bx exists
     gotplt = None
+    # FIXME: THIS IS DT_PLTGOT!! DT_PLTGOT for each file....
     for va, size, name, fname in vw.getSegments():
         if name == ".got.plt":
             gotplt = va
