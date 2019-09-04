@@ -21,7 +21,8 @@ from vivisect.tests import linux_arm_sh_data
 from vivisect.tests import qnx_arm_ksh_data
 from vivisect.tests import openbsd_amd64_ls_data
 
-data = (("linux_amd64_ls", linux_amd64_ls_data.ls_data, ('linux', 'amd64', 'ls'), ),
+data = (
+        ("linux_amd64_ls", linux_amd64_ls_data.ls_data, ('linux', 'amd64', 'ls'), ),
         ("linux_amd64_chown", linux_amd64_chown_data.chown_data, ('linux', 'amd64', 'chown'),),
         ("linux_amd64_libc", linux_amd64_libc_2_27_data.libc_data, ('linux', 'amd64', 'libc-2.27.so'),),
         ("linux_amd64_libstdc", linux_amd64_libstdc_data.libstdc_data, ('linux', 'amd64', 'libstdc++.so.6.0.25'),),
@@ -114,11 +115,13 @@ class ELFTests(unittest.TestCase):
         oldnames.sort()
         self.assertListEqual(newnames, newnames)
         for oldname in oldnames:
-            if oldname[1].startswith('str_') or oldname[1].startswith('ptr_str_') or oldname[1].startswith('ptr_sub_'):
+            if oldname[1].startswith('str_') or oldname[1].startswith('ptr_str_') \
+                    or oldname[1].startswith('ptr_sub_') or oldname[1].startswith('sub_'):
                 continue
             self.assertIn(oldname, newnames, msg='names: missing: %r   (%r)' % (oldname, fname))
         for newname in newnames:
-            if newname[1].startswith('str_') or newname[1].startswith('ptr_str_') or newname[1].startswith('ptr_sub_'):
+            if newname[1].startswith('str_') or newname[1].startswith('ptr_str_') \
+                    or newname[1].startswith('ptr_sub_') or newname[1].startswith('sub_'):
                 continue
             self.assertIn(newname, oldnames, msg='names: new: %r   (%r)' % (newname, fname))
 
