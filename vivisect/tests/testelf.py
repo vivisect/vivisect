@@ -108,7 +108,7 @@ class ELFTests(unittest.TestCase):
 
     def names(self, vw, data, fname):
         # simple comparison to ensure same workspace names.  perhaps too simple.
-        newnames = vw.getRelocations()
+        newnames = vw.getNames()
         newnames.sort()
         oldnames = data['names']
         oldnames.sort()
