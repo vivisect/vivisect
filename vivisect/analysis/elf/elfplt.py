@@ -70,10 +70,14 @@ def analyzeFunction(vw, funcva):
     logger.info('analyzing PLT function: 0x%x', funcva)
     count = 0
     opva = funcva
-    op = vw.parseOpcode(opva)
-    while count < MAX_OPS and op.iflags & envi.IF_BRANCH == 0:
-        opva += len(op)
+    try:
         op = vw.parseOpcode(opva)
+        while count < MAX_OPS and op.iflags & envi.IF_BRANCH == 0:
+            opva += len(op)
+            op = vw.parseOpcode(opva)
+    except Exception as e:
+        logger.warn('failure analyzing PLT func 0x%x: %r', funcva, e)
+        return
 
     if op.iflags & envi.IF_BRANCH == 0:
         logger.warn("PLT: 0x%x - Could not find a branch!", funcva)
