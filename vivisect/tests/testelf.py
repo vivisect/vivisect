@@ -114,11 +114,11 @@ class ELFTests(unittest.TestCase):
         oldnames.sort()
         self.assertListEqual(newnames, newnames)
         for oldname in oldnames:
-            if oldname.startswith('str_') or oldname.startswith('ptr_str_'):
+            if oldname.startswith('str_') or oldname.startswith('ptr_str_') or oldname.startswith('ptr_sub_'):
                 continue
             self.assertIn(oldname, newnames, msg='names: missing: %r   (%r)' % (oldname, fname))
         for newname in newnames:
-            if newname.startswith('str_') or newname.startswith('ptr_str_'):
+            if newname.startswith('str_') or newname.startswith('ptr_str_') or newname.startswith('ptr_sub_'):
                 continue
             self.assertIn(newname, oldnames, msg='names: new: %r   (%r)' % (newname, fname))
 
