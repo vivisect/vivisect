@@ -62,51 +62,51 @@ class ELFTests(unittest.TestCase):
     def test_files(self):
         for name, test_data, fn, e, vw in self.tests:
             logger.debug("testing %r (%r)...", name, fn)
-            self.do_file(vw, test_data)
+            self.do_file(vw, test_data, name)
 
-    def do_file(self, vw, data):
-        self.imports(vw, data)
-        self.exports(vw, data)
-        self.relocs(vw, data)
-        self.names(vw, data)
-        self.pltgot(vw, data)
-        self.debuginfosyms(vw, data)
+    def do_file(self, vw, data, fname):
+        self.imports(vw, data, fname)
+        self.exports(vw, data, fname)
+        self.relocs(vw, data, fname)
+        self.names(vw, data, fname)
+        self.pltgot(vw, data, fname)
+        self.debuginfosyms(vw, data, fname)
 
-    def imports(self, vw, data):
+    def imports(self, vw, data, fname):
         # simple comparison to ensure same imports.  perhaps too simple.
         newimps = vw.getImports()
         newimps.sort()
         oldimps = data['imports']
         oldimps.sort()
         for oldimp in oldimps:
-            self.assertIn(oldimp, newimps)
+            self.assertIn(oldimp, newimps, msg='imports: missing: %r   (%r)' % (oldimp, fname))
         for newimp in newimps:
-            self.assertIn(newimp, oldimps)
+            self.assertIn(newimp, oldimps, msg='imports: new: %r   (%r)' % (newimp, fname))
 
-    def exports(self, vw, data):
+    def exports(self, vw, data, fname):
         # simple comparison to ensure same exports.  perhaps too simple.
         newexps = vw.getExports()
         newexps.sort()
         oldexps = data['exports']
         oldexps.sort()
         for oldexp in oldexps:
-            self.assertIn(oldexp, newexps)
+            self.assertIn(oldexp, newexps, msg='exports: missing: %r   (%r)' % (oldexp, fname))
         for newexp in newexps:
-            self.assertIn(newexp, oldexps)
+            self.assertIn(newexp, oldexps, msg='exports:  new: %r   (%r)' % (newexp, fname))
 
-    def relocs(self, vw, data):
+    def relocs(self, vw, data, fname):
         # simple comparison to ensure same relocs.  perhaps too simple.
         newrels = vw.getRelocations()
         newrels.sort()
         oldrels = data['relocs']
         oldrels.sort()
         for oldrel in oldrels:
-            self.assertIn(oldrel, newrels)
+            self.assertIn(oldrel, newrels, msg='relocs: missing: %r   (%r)' % (oldrel, fname))
         for newrel in newrels:
-            self.assertIn(newrel, oldrels)
+            self.assertIn(newrel, oldrels, msg='relocs:  new: %r   (%r)' % (newrel, fname))
 
 
-    def names(self, vw, data):
+    def names(self, vw, data, fname):
         # simple comparison to ensure same workspace names.  perhaps too simple.
         newnames = vw.getRelocations()
         newnames.sort()
@@ -114,19 +114,23 @@ class ELFTests(unittest.TestCase):
         oldnames.sort()
         self.assertListEqual(newnames, newnames)
         for oldname in oldnames:
-            self.assertIn(oldname, newnames)
+            if oldname.startswith('str_') or oldname.startswith('ptr_str_'):
+                continue
+            self.assertIn(oldname, newnames, msg='names: missing: %r   (%r)' % (oldname, fname))
         for newname in newnames:
-            self.assertIn(newname, oldnames)
+            if newname.startswith('str_') or newname.startswith('ptr_str_'):
+                continue
+            self.assertIn(newname, oldnames, msg='names: new: %r   (%r)' % (newname, fname))
 
-    def pltgot(self, vw, data):
+    def pltgot(self, vw, data, fname):
         for pltva, gotva in data['pltgot']:
             match = False
             for xfr, xto, xtype, xinfo in vw.getXrefsFrom(pltva):
                 if xfr == pltva and xto == gotva:
                     match = True
-            self.assertEqual((hex(pltva), match), (hex(pltva), True))
+            self.assertEqual((hex(pltva), match), (hex(pltva), True), msg='pltgot: %r' % fname)
 
-    def debuginfosyms(self, vw, data):
+    def debuginfosyms(self, vw, data, fname):
         # we don't currently parse debugging symbols.
         # while they are seldom in hard targets, this is a weakness we should correct.
         pass

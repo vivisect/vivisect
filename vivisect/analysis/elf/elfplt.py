@@ -22,12 +22,13 @@ def analyze(vw):
             continue
         analyzePLT(vw, sva, ssize)
 
-def analyzePLT(vw, sva, ssize):
+def analyzePLT(vw, ssva, ssize):
         # make code for every opcode in PLT
+        sva = ssva
         nextseg = sva + ssize
         while sva < nextseg:
             if vw.getLocation(sva) is None:
-                logger.info('making PLT function: 0x%x', sva)
+                logger.info('making code: 0x%x', sva)
                 try:
                     vw.makeCode(sva)
                 except Exception as e:
@@ -44,7 +45,8 @@ def analyzePLT(vw, sva, ssize):
 
 
         # scroll through arbitrary length functions and make functions
-        for sva in range(sva, nextseg, MAGIC_PLT_SIZE):
+        for sva in range(ssva, nextseg, MAGIC_PLT_SIZE):
+            logger.info('making PLT function: 0x%x', sva)
             vw.makeFunction(sva)
             analyzeFunction(vw, sva)
 
@@ -52,8 +54,7 @@ MAX_OPS = 10
 
 
 def analyzeFunction(vw, funcva):
-    logger.warn('analyzeFunction(vw, 0x%x)', funcva)
-    return
+    logger.info('analyzeFunction(vw, 0x%x)', funcva)
 
     seg = vw.getSegment(funcva)
     if seg is None:
@@ -126,11 +127,18 @@ def analyzeFunction(vw, funcva):
         logger.warn("0x%x: (0x%x)  %r != %r (%r)" % (funcva, opval, loctup[vivisect.L_LTYPE], vivisect.LOC_IMPORT, funcname))
         return
 
-    if funcname is not None and funcname.endswith('_%.8x' % opval):
+    # if we can't resolve a name, don't make it a thunk
+    if funcname is None:
+        return
+
+    # trim up the name
+    if funcname.startswith('*.'):
+        funcname = funcname[2:]
+    if funcname.endswith('_%.8x' % opval):
         funcname = funcname[:-9]
 
-    logger.info('makeFunctionThunk(0x%x, "plt_%s")', funcva, funcname)
-    vw.makeFunctionThunk(funcva, "plt_" + funcname)
+    logger.info('makeFunctionThunk(0x%x, "plt@%s")', funcva, funcname)
+    vw.makeFunctionThunk(funcva, "plt@" + funcname)
 
 
 def _getNameParts(vw, name, va):
