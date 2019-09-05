@@ -67,6 +67,7 @@ def addAnalysisModules(vw):
 
     elif fmt == 'elf':  # ELF ########################################################
 
+        # elfplt wants to be run before generic.entrypoints.
         vw.addAnalysisModule("vivisect.analysis.elf.elfplt")
         vw.addAnalysisModule("vivisect.analysis.generic.entrypoints")
         vw.addAnalysisModule("vivisect.analysis.elf")
@@ -84,8 +85,6 @@ def addAnalysisModules(vw):
         vw.addAnalysisModule("vivisect.analysis.generic.pointertables")
         vw.addAnalysisModule("vivisect.analysis.generic.emucode")
 
-        # Get PLTs taken care of early
-        #vw.addFuncAnalysisModule("vivisect.analysis.elf.elfplt")
         # Generic code block analysis
         vw.addFuncAnalysisModule("vivisect.analysis.generic.codeblocks")
         vw.addFuncAnalysisModule("vivisect.analysis.generic.impapi")
