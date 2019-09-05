@@ -92,7 +92,9 @@ archcalls = {
     'i386':'cdecl',
     'amd64':'sysvamd64call',
     'arm':'armcall',
+    'vle':'ppccall',
     'ppc':'ppccall',
+    'ppc64':'ppccall',
 }
 
 def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):

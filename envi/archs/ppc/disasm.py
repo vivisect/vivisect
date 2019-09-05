@@ -89,7 +89,6 @@ class PpcDisasm:
         return mnem, opcode, opers, iflags
 
 # TODO simpleMnems:
-# cmpi -> cmpwi
 # rlwinm -> clrlwi
 
 def simpleCMP(ival, mnem, opcode, opers, iflags):
@@ -227,6 +226,7 @@ td_mnems = { k : 'td%s' % v for k,v in trap_conds.items() }
 tdi_mnems = { k : 'td%si' % v for k,v in trap_conds.items() } 
 tw_mnems = { k : 'tw%s' % v for k,v in trap_conds.items() } 
 twi_mnems = { k : 'tw%si' % v for k,v in trap_conds.items() } 
+tw_mnems[0x1f] = 'trap'
 
 def simpleTD(ival, mnem, opcode, opers, iflags):
     cond = opers[0].val

@@ -9,9 +9,9 @@ archcalls = {
     'i386':'cdecl',
     'amd64':'sysvamd64call',
     'arm':'armcall',
-    'ppc-spe':'ppccall',
-    'ppc-vle':'ppccall',
-    'ppc64-altivec':'ppccall',
+    'ppc':'ppccall',
+    'vle':'ppccall',
+    'ppc64':'ppccall',
 }
 
 def parseFile(vw, filename, baseaddr=None):

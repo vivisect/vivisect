@@ -990,7 +990,7 @@ class PpcAbstractEmulator(envi.Emulator):
         src2 = e_bits.signed(src2, 2)
         result = src1 + src2
         self.setOperValue(op, 0, result)
-        if oe: self.setOEFlags(result)
+        if oe: self.setOEflags(result, self.psize, src1, src2)
         if op.iflags & IF_RC: self.setFlags(result, 0)
 
     def i_addo(self, op):
@@ -1008,7 +1008,7 @@ class PpcAbstractEmulator(envi.Emulator):
         
         self.setOperValue(op, 0, result)
         if op.iflags & IF_RC: self.setFlags(result, 0)
-        if oe: self.setOEFlags(result)
+        if oe: self.setOEflags(result, self.psize, src1, src2)
 
     def i_addco(self, op):
         return self.i_addc(op, oe=True)
