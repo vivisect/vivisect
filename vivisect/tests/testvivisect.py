@@ -1,72 +1,97 @@
+import os
 import unittest
 
 from cStringIO import StringIO
 
 import vivisect
-import vivisect.tests.helpers as helpers
+import vivisect.vector as viv_vector
+import vivisect.tools.graphutil as viv_graph
 
+from vivisect.const import *
+
+import vivisect.tests.vivbins as vivbins
+from vivisect.tests.vivbins import getTestWorkspace, getAnsWorkspace
 
 class VivisectTest(unittest.TestCase):
 
-    def test_consecutive_jump_table(self):
-        vw = helpers.getTestWorkspace('linux', 'i386', 'chgrp.llvm')
+    maxDiff = None
+    #def setUp(self):
+        #pass
 
-        primaryJumpOpVa = 0x804c9b6
-        secondJumpOpVa = 0x804ca2b
+    #def tearDown(self):
+        #pass
 
-        pfva = vw.getFunction(primaryJumpOpVa)
-        sfva = vw.getFunction(secondJumpOpVa)
-        self.assertEqual(pfva, sfva)
-        self.assertTrue(pfva is not None)
+    def _exe_generics(self, vw):
+        globstr = [ loc for loc in vw.getLocations(LOC_STRING) if vw.readMemory(loc[0], loc[1]-1) == 'A Global String' ]
+        self.assertTrue(globstr)
+        self.assertTrue( vw.getImportCallers('kernel32.CreateFileA') )
 
-        # 2 actual codeblocks and 1 xref to the jumptable itself
-        prefs = vw.getXrefsFrom(primaryJumpOpVa)
-        self.assertEqual(len(prefs), 3)
-        cmnt = vw.getComment(0x804c9bd)
-        self.assertEqual(cmnt, 'Other Case(s): 2, 6, 8, 11, 15, 20, 21, 34, 38, 40, 47')
-        # 13 actual codeblocks and 1 xref to the jumptable itself
-        srefs = vw.getXrefsFrom(secondJumpOpVa)
-        self.assertEqual(len(srefs), 14)
-        cmnt = vw.getComment(0x804ca4a)
-        self.assertEqual(cmnt, 'Other Case(s): 41')
+    def checkTestWorkspace(self, vw, ans):
+        self.assertEqual(vw.getMeta('Platform'), ans.getMeta('Platform'))
+        self.assertEqual(vw.getMeta('Architecture'), ans.getMeta('Architecture'))
 
-    def test_consecutive_jump_table_diff_func(self):
-        vw = helpers.getTestWorkspace('linux', 'i386', 'vdir.llvm')
-        jumptabl = [
-            0x8059718,
-            0x8059b68,
-            0x8059b78,
-            0x8059b90,
-            0x8059ba4,
-            0x8059bb8,
-            0x8059d9c,
-            0x8059e30,
-            0x8059fac
-        ]
+        self.assertEqual(sorted(vw.getFunctions()), sorted(ans.getFunctions()))
+        self.assertEqual(sorted(vw.getLibraryDependancies()), sorted(ans.getLibraryDependancies()))
+        self.assertEqual(sorted(vw.getRelocations()), sorted(ans.getRelocations()))
+        self.assertEqual(sorted(vw.getImports()), sorted(ans.getImports()))
+        self.assertEqual(sorted(vw.getExports()), sorted(ans.getExports()))
+        self.assertEqual(sorted(vw.getSegments()), sorted(ans.getSegments()))
+        #self.assertEqual(sorted(vw.getCodeBlocks()), sorted( ans.getCodeBlocks()))
+        #self.assertEqual(sorted(vw.getLocations()), sorted( ans.getLocations()))
+        #self.assertEqual(sorted(vw.getNames()), sorted( ans.getNames()))
+        self.assertEqual(sorted(vw.getFiles()), sorted( ans.getFiles()))
 
-        # list of tuples of (xref addr, func addr, number of xrefs from xref addr)
-        ans = [
-            (0x804a468, 0x804a210, 62),
-            (0x804ad21, 0x804a210, 5),
-            (0x804b00a, 0x804a210, 7),  # 0x8059b78
-            (0x804beee, 0x804bee0, 6),
-            (0x804d1c9, 0x804d1a0, 6),
-            (0x804d28f, 0x804d1a0, 15),  # 0x8059bb8
-            (0x804d1e7, 0x804d1a0, 6),
-            (0x804d95b, 0x804d820, 3),
-            (0x804fd01, 0x804fc70, 9)  # 0x8059fac
-        ]
+        for fva in ans.getFunctions():
+            self.assertEqual(vw.getFunction(fva), ans.getFunction(fva))
+            vwfgraph = viv_graph.buildFunctionGraph(vw, fva)
+            ansfgraph = viv_graph.buildFunctionGraph(ans, fva)
+            vwnodes = vwfgraph.nodes.keys()
+            ansnodes = ansfgraph.nodes.keys()
+            self.assertEqual(sorted(vwnodes), sorted(ansnodes))
 
-        for i, tablva in enumerate(jumptabl):
-            refva = vw.getXrefsTo(tablva)
-            self.assertEqual(len(refva), 1)
-            refva = refva[0]
-            func = vw.getFunction(refva[0])
-            refs = vw.getXrefsFrom(refva[0])
-            test = ans[i]
-            self.assertEqual(refva[0], test[0])
-            self.assertEqual(func, test[1])
-            self.assertEqual(len(refs), test[2])
+    def getAndTestWorkspace(self, fname):
+        vw = getTestWorkspace(fname)
+        ans = getAnsWorkspace(fname)
+        self.checkTestWorkspace(vw, ans)
+        return vw
+
+    @vivbins.require
+    def test_viv_elf_i386(self):
+        vw = self.getAndTestWorkspace('test_elf_i386')
+
+    @vivbins.require
+    def test_viv_elf_arm(self):
+        vw = self.getAndTestWorkspace('test_elf_arm')
+
+    #def test_macho_i386(self):
+        #vw = self.getAndTestWorkspace('test_macho_i386')
+
+    #def test_macho_amd64(self):
+        #vw = self.getAndTestWorkspace('test_macho_amd64')
+
+    @vivbins.require
+    def test_viv_testexe_i386(self):
+        vw = self.getAndTestWorkspace('testexe_i386.exe')
+        self._exe_generics(vw)
+
+        # This is actually a fairly thorough test of the impemu subsystem...
+        cfa_callers = vw.getImportCallers('kernel32.CreateFileA')
+        cmnt = vw.getComment(cfa_callers[0])
+        self.assertEqual(cmnt,'kernel32.CreateFileA(64,65,66,67,68,69,70)')
+
+    @vivbins.require
+    def test_viv_testexe_amd64(self):
+        vw = self.getAndTestWorkspace('testexe_amd64.exe')
+        self._exe_generics(vw)
+
+    @vivbins.require
+    def test_viv_vector_getImportCallers(self):
+        vw = getTestWorkspace('testexe_i386.exe')
+        cargs = [64, 65, 66, 67, 68, 69, 70]
+        argvs = [ argv for (va,argv) in viv_vector.trackImportInputs(vw, 'kernel32.CreateFileA') ]
+
+        # Make sure we found our silly call...
+        self.assertTrue( cargs in argvs )
 
     def test_viv_bigend(self):
         fd = StringIO('ABCDEFG')
@@ -76,10 +101,18 @@ class VivisectTest(unittest.TestCase):
         vw.config.viv.parsers.blob.bigend = True
         vw.config.viv.parsers.blob.baseaddr = 0x22220000
 
-        vw.loadFromFd(fd, fmtname='blob')
+        vw.loadFromFd(fd,fmtname='blob')
 
-        self.assertEqual(vw.castPointer(0x22220000), 0x41424344)
-        self.assertEqual(vw.parseNumber(0x22220000, 2), 0x4142)
+        self.assertEqual( vw.castPointer(0x22220000), 0x41424344 )
+        self.assertEqual( vw.parseNumber(0x22220000, 2), 0x4142 )
 
-    def test_posix_impapi(self):
-        pass
+    #def test_impapi_windows(self):
+        #imp = viv_impapi.getImportApi('windows','i386')
+        #self.assertEqual( imp.getImpApiCallConv('ntdll.RtlAllocateHeap'), 'stdcall')
+
+    #def test_impapi_posix(self):
+        #imp = viv_impapi.getImpApi('windows','i386')
+
+    #def test_impapi_winkern(self):
+        #imp = viv_impapi.getImportApi('winkern','i386')
+        #self.assertEqual( imp.getImpApiCallConv('ntoskrnl.ObReferenceObjectByHandle'), 'stdcall')
