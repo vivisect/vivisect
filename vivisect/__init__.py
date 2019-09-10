@@ -483,7 +483,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         # During import, if we have a server, be sure not to notify
         # the server about the events he just gave us...
         local = False
-        if self.server is not None:
+        if self.server != None:
             local = True
 
         # Process the events from the import data...
@@ -849,7 +849,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         return -1
 
     def isProbablyString(self, va):
-        if self.detectString(va) > 0:
+        if self.detectString(va) > 0 :
             return True
         return False
 
@@ -904,7 +904,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         return -1
 
     def isProbablyUnicode(self, va):
-        if self.detectUnicode(va) > 0:
+        if self.detectUnicode(va) > 0 :
             return True
         return False
 
@@ -1024,10 +1024,10 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             self.delXref(va)
 
     def makeOpcode(self, va, op=None, arch=envi.ARCH_DEFAULT):
-        '''
+        """
         Create a single opcode location.  If you have already parsed the
         opcode object, you may pass it in.
-        '''
+        """
         if op is None:
             try:
                 op = self.parseOpcode(va, arch=arch)
@@ -1229,7 +1229,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         if self.isFunction(va):
             return
 
-        if meta is None:
+        if meta == None:
             meta = {}
 
         if not self.isValidPointer(va):
@@ -1571,9 +1571,9 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         graph view than function chunks.
         """
         loc = self.getLocation(va)
-        if loc is None:
+        if loc == None:
             raise Exception('Adding Codeblock on *non* location?!?: 0x%.8x' % va)
-        self._fireEvent(VWE_ADDCODEBLOCK, (va, size, funcva))
+        self._fireEvent(VWE_ADDCODEBLOCK, (va,size,funcva))
 
     def getCodeBlock(self, va):
         """
@@ -1587,7 +1587,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         Remove a code-block definition from the codeblock namespace.
         """
         cb = self.getCodeBlock(va)
-        if cb is None:
+        if cb == None:
             raise Exception("Unknown Code Block: 0x%x" % va)
         self._fireEvent(VWE_DELCODEBLOCK, cb)
 
