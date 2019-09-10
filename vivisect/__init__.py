@@ -1570,7 +1570,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         are at all logical branches and have more in common with a logical
         graph view than function chunks.
         """
-        loc = self.getLocation(va)
+        loc = self.getLocation( va )
         if loc == None:
             raise Exception('Adding Codeblock on *non* location?!?: 0x%.8x' % va)
         self._fireEvent(VWE_ADDCODEBLOCK, (va,size,funcva))
