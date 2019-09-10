@@ -109,7 +109,7 @@ def wipeAstArch(symctx, symobjs, emu=None, wipeva=False):
         if indreg == None:
             # do *not* modify this register name convention
             # (all previously calcualated results are only
-            # compairible while these are the same. Additionally,
+            # comparable while these are the same. Additionally,
             # having the number "early" in the string, helps
             # spread the entropy further... (python hash)
             indreg = '%dindreg' % len(indregs)

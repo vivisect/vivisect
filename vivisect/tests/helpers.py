@@ -1,6 +1,8 @@
 import os
 import unittest
 
+import vivisect
+
 
 class MockVw(object):
     def __init__(self, *args, **kwargs):
@@ -26,3 +28,14 @@ def getTestPath(*paths):
         raise unittest.SkipTest('VIVTESTFILES env var not found!')
 
     return os.path.join(testdir, *paths)
+
+
+def getTestWorkspace(*paths):
+    testdir = os.getenv('VIVTESTFILES')
+    if not testdir:
+        raise unittest.SkipTest('VIVTESTFILES env var not found!')
+    fpath = os.path.join(testdir, *paths)
+    vw = vivisect.VivWorkspace()
+    vw.loadFromFile(fpath)
+    vw.analyze()
+    return vw
