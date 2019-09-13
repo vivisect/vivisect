@@ -464,11 +464,10 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         Example:
             vw.delFuncAnalysisModule('mypkg.mymod')
         '''
-        if modname not in self.fmods:
-            raise Exception("Unknown Module in delAnalysisModule: %s" % modname)
         x = self.fmods.pop(modname, None)
-        if x is not None:
-            self.fmodlist.remove(modname)
+        if x is None:
+            raise Exception("Unknown Module in delAnalysisModule: %s" % modname)
+        self.fmodlist.remove(modname)
 
     def createEventChannel(self):
         chanid = self.chanids.next()
