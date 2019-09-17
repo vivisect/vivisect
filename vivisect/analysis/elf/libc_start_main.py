@@ -82,4 +82,4 @@ class AnalysisMonitor(viv_imp_monitor.AnalysisMonitor):
                 if tgt == self.startmain:
                     self.success = True
                     self.emu = emu
-                    emu.stop()
+                    emu.stopEmu()
