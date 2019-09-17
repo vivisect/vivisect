@@ -1352,7 +1352,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             name = "%s_%.8x" % (base,fva)
         else:
             name = base
-        self.makeName(fva, name)
+        self.makeName(fva, name, makeuniq=True)
 
         api = self.getImpApi(thname)
         if api:
