@@ -141,8 +141,8 @@ def analyzeFunction(vw, funcva):
     if funcname.endswith('_%.8x' % opval):
         funcname = funcname[:-9]
 
-    logger.info('makeFunctionThunk(0x%x, "plt@%s")', funcva, funcname)
-    vw.makeFunctionThunk(funcva, "plt@" + funcname)
+    logger.info('makeFunctionThunk(0x%x, "plt_%s")', funcva, funcname)
+    vw.makeFunctionThunk(funcva, "plt_" + funcname, addVa=False)
 
 
 def _getNameParts(vw, name, va):

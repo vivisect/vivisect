@@ -1336,7 +1336,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             ret = []
         return ret
 
-    def makeFunctionThunk(self, fva, thname):
+    def makeFunctionThunk(self, fva, thname, addVa=True):
         """
         Inform the workspace that a given function is considered a "thunk" to another.
         This allows the workspace to process argument inheritance and several other things.
@@ -1348,7 +1348,11 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         n = self.getName(fva)
 
         base = thname.split(".")[-1]
-        self.makeName(fva, "%s_%.8x" % (base,fva))
+        if addVa:
+            name = "%s_%.8x" % (base,fva)
+        else:
+            name = base
+        self.makeName(fva, name)
 
         api = self.getImpApi(thname)
         if api:
