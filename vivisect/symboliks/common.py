@@ -245,9 +245,7 @@ class SymbolikBase:
                 return
 
             # invalidate the cache
-            todo = list(oldkid.parents)
-            todo.append(self)
-
+            todo = list(set(oldkid.parents))
             done = set()
             while todo:
                 parent = todo.pop()
@@ -258,11 +256,10 @@ class SymbolikBase:
                 done.add(parent._sym_id)
                 parent.cache.clear()
                 # grow our todo list
-                todo.extend(list(parent.parents))
+                todo += list(set(parent.parents))
 
             # remove ourselves as the parent
             if oldkid.parents:
-                # oldkid.parents.remove(self)
                 for i, obj in enumerate(oldkid.parents):
                     if obj._sym_id == self._sym_id:
                         oldkid.parents.pop(i)
@@ -293,7 +290,7 @@ class SymbolikBase:
         '''
         path = []
         idxs = []
-        done = []
+        done = set()
 
         cur = self
         idx = 0
@@ -303,7 +300,7 @@ class SymbolikBase:
             if idx < len(cur.kids):
                 # sys.stdout.write('+')
                 kid = cur.kids[idx]
-                if once and kid in done:
+                if once and kid._sym_id in done:
                     idx += 1
                     continue
 
@@ -325,7 +322,7 @@ class SymbolikBase:
             path.pop()          # clean up, since our algorithm doesn't expect cur on the top...
             #sys.stdout.write(' << ')
 
-            done.append(cur)
+            done.add(cur._sym_id)
 
             if not len(path):
                 #sys.stdout.write('=')
@@ -994,14 +991,19 @@ class ge(Constraint):
 class UNK(Constraint):
     operstr = 'UNK'
     symtype = SYMT_CON_UNK
+    def oper(self, v1, v2):
+        raise Exception('Attempted reduce/solve on UNK, which has no oper')
 
 
 class NOTUNK(Constraint):
     operstr = '!UNK'
     symtype = SYMT_CON_NOTUNK
+    def oper(self, v1, v2):
+        raise Exception('Attempted reduce/solve on NOUNK, which has no oper')
 
 # Create our oposing constraints
 oppose(ne, eq)
 oppose(le, gt)
 oppose(lt, ge)
 oppose(UNK, NOTUNK)
+
