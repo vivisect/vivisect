@@ -369,7 +369,6 @@ class PE(object):
         self.pe32p = False
         self.psize = 4
         self.high_bit_mask = 0x80000000
-
         self.IMAGE_DOS_HEADER = vstruct.getStructure("pe.IMAGE_DOS_HEADER")
         dosbytes = self.readAtOffset(0, len(self.IMAGE_DOS_HEADER))
         self.IMAGE_DOS_HEADER.vsParse(dosbytes)
@@ -635,9 +634,10 @@ class PE(object):
 
         self.sections = []
         off = self.IMAGE_DOS_HEADER.e_lfanew + len(self.IMAGE_NT_HEADERS)
+        off -= len(self.IMAGE_NT_HEADERS.OptionalHeader.DataDirectory)
+        off += self.IMAGE_NT_HEADERS.OptionalHeader.NumberOfRvaAndSizes * len(vstruct.getStructure("pe.IMAGE_DATA_DIRECTORY"))
 
         secsize = len(vstruct.getStructure("pe.IMAGE_SECTION_HEADER"))
-
         sbytes = self.readAtOffset(off, secsize * self.IMAGE_NT_HEADERS.FileHeader.NumberOfSections)
         while sbytes:
             s = vstruct.getStructure("pe.IMAGE_SECTION_HEADER")

@@ -153,10 +153,10 @@ class CodeFlowContext(object):
 
             try:
                 op = self._mem.parseOpcode(va, arch=arch)
-            except envi.InvalidInstruction, e:
+            except envi.InvalidInstruction as e:
                 print 'parseOpcode error at 0x%.8x: %s' % (va,e)
-                continue 
-            except Exception, e:
+                continue
+            except Exception as e:
                 print 'parseOpcode error at 0x%.8x: %s' % (va,e)
                 continue
 
@@ -171,7 +171,7 @@ class CodeFlowContext(object):
             while len(branches):
 
                 bva, bflags = branches.pop()
-                                
+
                 # look for dynamic branches (ie. branches which don't have a known target).  assume at least one branch
                 if bva == None:
                     self._cb_dynamic_branch(va, op, bflags, branches)
@@ -197,6 +197,8 @@ class CodeFlowContext(object):
                                     branches.append((bdest, envi.BR_COND))
 
                                 ptrbase += self._mem.psize
+                                if not self._mem.isValidPointer(ptrbase):
+                                    break
                                 bdest = self._mem.readMemoryFormat(ptrbase, ptrfmt)[0]
                         continue
 

@@ -822,6 +822,7 @@ class i386Disasm:
 
         all_prefixes = 0
         prefix_len = 0
+        last_pref = None
 
         while True:
 
@@ -833,6 +834,7 @@ class i386Disasm:
             if p is None:
                 break
             all_prefixes |= p
+            last_pref = obyte
             offset += 1
             continue
 
@@ -842,13 +844,13 @@ class i386Disasm:
         obyte = ord(bytez[offset])
         ppref = [(None, None)]
         # print("PREFXIES: 0x%x" % all_prefixes)
-        if obyte == 0x0f:
-            if all_prefixes & PREFIX_REPNZ:
+        if obyte == 0x0f and last_pref in MANDATORY_PREFIXES:
+            obyte = last_pref
+            if last_pref == 0xF2:
                 ppref.append((0xF2, PREFIX_REPNZ))
-            elif all_prefixes & PREFIX_REP:
+            elif last_pref == 0xF3:
                 ppref.append((0xF3, PREFIX_REP))
-            # XXX: Seriously, don't move this one from here
-            elif all_prefixes & PREFIX_OP_SIZE:
+            elif last_pref == 0x66:
                 ppref.append((0x66, PREFIX_OP_SIZE))
         # print("POSTFXIES: 0x%x" % all_prefixes)
 

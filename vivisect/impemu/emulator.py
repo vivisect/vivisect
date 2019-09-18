@@ -39,6 +39,7 @@ class WorkspaceEmulator:
         self.hooks = {}
         self.taints = {}
         self.taintva = itertools.count(0x41560000, 8192)
+        self.taintrepr = {}
 
         self.uninit_use = {}
         self.logwrite = logwrite
@@ -442,44 +443,44 @@ class WorkspaceEmulator:
         For the base "known" taint types, return a humon readable string
         to represent the value of the taint.
         '''
-        va,ttype,tinfo = taint
+
+        va, ttype, tinfo = taint
+
         if ttype == 'uninitreg':
-            return self.getRegisterName(tinfo)
-
-        if ttype == 'import':
+            trepr = self.getRegisterName(tinfo)
+        elif ttype == 'import':
             lva,lsize,ltype,linfo = tinfo
-            return linfo
-
-        if ttype == 'dynlib':
+            trepr = linfo
+        elif ttype == 'dynlib':
             libname = tinfo
-            return libname
-
-        if ttype == 'dynfunc':
+            trepr = libname
+        elif ttype == 'dynfunc':
             libname,funcname = tinfo
-            return '%s.%s' % (libname,funcname)
-
-        if ttype == 'funcstack':
+            trepr = '%s.%s' % (libname,funcname)
+        elif ttype == 'funcstack':
             stackoff = tinfo
             if self.funcva:
                 flocal = self.vw.getFunctionLocal(self.funcva, stackoff)
                 if flocal != None:
                     typename,argname = flocal
                     return argname
-
             o = '+'
             if stackoff < 0:
                 o = '-'
+            trepr = 'sp%s%d' % (o, abs(stackoff))
+        elif ttype == 'apicall':
+            op, pc, api, argv = tinfo
+            if op.va in self.taintrepr:
+                return '<0x%.8x>' % op.va
+            rettype, retname, callconv, callname, callargs = api
+            callstr = self.reprVivValue(pc)
+            argsstr = ','.join([self.reprVivValue(x) for x in argv])
+            trepr = '%s(%s)' % (callstr, argsstr)
+            self.taintrepr[op.va] = trepr
+        else:
+            trepr = 'taint: 0x%.8x %s %r' % (va, ttype, tinfo)
 
-            return 'sp%s%d' % (o, abs(stackoff))
-
-        if ttype == 'apicall':
-            op,pc,api,argv = tinfo
-            rettype,retname,callconv,callname,callargs = api
-            callstr = self.reprVivValue( pc )
-            argsstr = ','.join([ self.reprVivValue( x ) for x in argv])
-            return '%s(%s)' % (callstr,argsstr)
-
-        return 'taint: 0x%.8x %s %r' % (va, ttype, tinfo)
+        return trepr
 
     def reprVivValue(self, val):
         '''
@@ -488,7 +489,7 @@ class WorkspaceEmulator:
         and taint subsystems ).
         '''
         if self.vw.isFunction(val):
-            thunk = self.vw.getFunctionMeta(val,'Thunk')
+            thunk = self.vw.getFunctionMeta(val, 'Thunk')
             if thunk:
                 return thunk
 
@@ -498,20 +499,18 @@ class WorkspaceEmulator:
 
         taint = self.getVivTaint(val)
         if taint:
-            # NOTE we need to prevent infinite recursion due to args being
-            # tainted and then referencing the same api call 
-            va,ttype,tinfo = taint
+            va, ttype, tinfo = taint
             if ttype == 'apicall':
-                op,pc,api,argv = tinfo
-                rettype,retname,callconv,callname,callargs = api
+                op, pc, api, argv = tinfo
+                rettype, retname, callconv, callname, callargs = api
                 if val not in argv:
                     return self.reprVivTaint(taint)
 
         stackoff = self.getStackOffset(val)
-        if stackoff != None:
+        if stackoff is not None:
             funclocal = self.vw.getFunctionLocal(self.funcva, stackoff)
-            if funclocal != None:
-                typename,varname = funclocal
+            if funclocal is not None:
+                typename, varname = funclocal
                 return varname
 
         if val < 4096:
