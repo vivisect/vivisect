@@ -51,7 +51,7 @@ def analyze(vw):
         lcsm = '__libc_start_main_%.8x' % va
         if name in (lcsm, "*."+lcsm):
             for xfr, xto, xtype, xtinfo in vw.getXrefsTo(va):
-                if xtype != REF_CODE:
+                if xtype != vivisect.REF_CODE:
                     continue
 
                 logger.info("0x%x -> 0x%x (%r)", xfr, xto, xtype)
