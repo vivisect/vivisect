@@ -328,7 +328,7 @@ class WorkspaceEmulator:
                         try:
                             self.emumon.prehook(self, op, starteip)
                         except Exception, e:
-                            print("funcva: 0x%x opva: 0x%x:  %r   %r (in emumon prehook)" % (funcva, starteip, op, e))
+                            logger.warn("funcva: 0x%x opva: 0x%x:  %r   %r (in emumon prehook)", funcva, starteip, op, e)
 
 
                         if self.emustop:
@@ -344,7 +344,7 @@ class WorkspaceEmulator:
                         try:
                             self.emumon.posthook(self, op, endeip)
                         except Exception, e:
-                            print("funcva: 0x%x opva: 0x%x:  %r   %r (in emumon posthook)" % (funcva, starteip, op, e))
+                            logger.warn("funcva: 0x%x opva: 0x%x:  %r   %r (in emumon posthook)", funcva, starteip, op, e)
 
                         if self.emustop:
                             return
