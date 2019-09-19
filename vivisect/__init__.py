@@ -959,6 +959,8 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         ptrbase = startva
         rdest = self.castPointer(ptrbase)
         while self.isValidPointer(rdest):
+            if self.analyzePointer(rdest) in (LOC_STRING, LOC_UNI):
+                break
             yield rdest
             ptrbase += self.psize
             if len(self.getXrefsTo(ptrbase)):
@@ -1087,8 +1089,6 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
                     if not tabdone.get(rdest):
                         tabdone[rdest] = True
                         self.addXref(va, rdest, REF_CODE, envi.BR_COND)
-                        # Honestly we should be more specific, because some cases can fall through
-                        # or to others and effectively overlap
                         if self.getName(rdest) is None:
                             self.makeName(rdest, "case%d_%.8x" % (i, rdest))
                     else:
