@@ -820,7 +820,7 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
         if len(op.opers) == 3:
             for reg in range(regcnt):
                 #frac_bits = 64 - op.opers[2].val
-
+                # pA8_870
                 if op.simdflags & IFS_F32_S32:
                     pass
                 elif op.simdflags & IFS_F32_U32:
@@ -828,12 +828,47 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
                 elif op.simdflags & IFS_S32_F32:
                     pass
                 elif op.simdflags & IFS_U32_F32:
+                    pass
+
+                # pA8_872
+                elif op.simdflags & IFS_U16_F32:
+                    pass
+                elif op.simdflags & IFS_S16_F32:
+                    pass
+                elif op.simdflags & IFS_U32_F32:
+                    pass
+                elif op.simdflags & IFS_S32_F32:
+                    pass
+                elif op.simdflags & IFS_U16_F64:
+                    pass
+                elif op.simdflags & IFS_S16_F64:
+                    pass
+                elif op.simdflags & IFS_U32_F64:
+                    pass
+                elif op.simdflags & IFS_S32_F64:
+                    pass
+
+                elif op.simdflags & IFS_F32_U16:
+                    pass                      
+                elif op.simdflags & IFS_F32_S16:
+                    pass
+                elif op.simdflags & IFS_F32_U32:
+                    pass
+                elif op.simdflags & IFS_F32_S32:
+                    pass
+                elif op.simdflags & IFS_F64_U16:
+                    pass
+                elif op.simdflags & IFS_F64_S16:
+                    pass
+                elif op.simdflags & IFS_F64_U32:
+                    pass
+                elif op.simdflags & IFS_F64_S32:
                     pass
 
         elif len(op.opers) == 2:
             for reg in range(regcnt):
                 #frac_bits = 64 - op.opers[1].val
-
+                # pA8_866
                 if op.simdflags & IFS_F32_S32:
                     pass
                 elif op.simdflags & IFS_F32_U32:
@@ -842,13 +877,36 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
                     pass
                 elif op.simdflags & IFS_U32_F32:
                     pass
+
+                # pA8-868
                 elif op.simdflags & IFS_F64_S32:
                     pass
                 elif op.simdflags & IFS_F64_U32:
                     pass
+                elif op.simdflags & IFS_F32_S32:
+                    pass
+                elif op.simdflags & IFS_F32_U32:
+                    pass
+
                 elif op.simdflags & IFS_S32_F64:
                     pass
                 elif op.simdflags & IFS_U32_F64:
+                    pass
+                elif op.simdflags & IFS_S32_F32:
+                    pass
+                elif op.simdflags & IFS_U32_F32:
+                    pass
+
+                # pA8-874
+                elif op.simdflags & IFS_F64_F32:
+                    pass
+                elif op.simdflags & IFS_F32_F64:
+                    pass
+
+                # pA8-876
+                elif op.simdflags & IFS_F16_F32:
+                    pass
+                elif op.simdflags & IFS_F32_F16:
                     pass
         else:
             raise Exception("i_vcvt with strange number of opers: %r" % op.opers)
