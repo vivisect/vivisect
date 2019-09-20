@@ -145,6 +145,7 @@ class i386RegOper(envi.RegisterOper):
 
     def setOperValue(self, op, emu, value):
         emu.setRegister(self.reg, value)
+        emu._useVirtAddr(value)
 
     def render(self, mcanv, op, idx):
         hint = mcanv.syms.getSymHint(op.va, idx)
