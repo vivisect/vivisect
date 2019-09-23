@@ -975,10 +975,10 @@ tbl32_0F3A = [
 (optable, optype, operand 0, operand 1, operand 2, CPU required, "opcodename", op0Register, op1Register, op2Register)
 """
 tbl32_660F3A = [(0, 0, 0, 0, 0, 0, 0, 0, 0, 0) for x in range(256)]
-tbl32_660F3A[0x0F] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_dq | OP_W, ADDRMETH_W | OPTYPE_dq | OP_R, ADDRMETH_I | OPTYPE_b | OP_R, cpu_PENTIUM2, "palignr", 0, 0, 0)
+tbl32_660F3A[0x0f] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_dq | OP_W, ADDRMETH_W | OPTYPE_dq | OP_R, ADDRMETH_I | OPTYPE_b | OP_R, cpu_PENTIUM2, "palignr", 0, 0, 0)
 tbl32_660F3A[0x44] = (0, INS_CRYPT, ADDRMETH_V | OPTYPE_dq | OP_W, ADDRMETH_W | OPTYPE_dq | OP_R, ADDRMETH_I | OPTYPE_b | OP_R, cpu_AESNI, "pclmulqdq", 0, 0, 0)
 tbl32_660F3A[0x63] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_dq | OP_R, ADDRMETH_W | OPTYPE_dq | OP_R, ADDRMETH_I | OPTYPE_b | OP_R, cpu_PENTMMX, "pcmpistri", 0, 0, 0)
-tbl32_660F3A[0xDF] = (0, INS_CRYPT, ADDRMETH_V | OPTYPE_dq | OP_W, ADDRMETH_W | OPTYPE_dq | OP_R, ADDRMETH_I | OPTYPE_b | OP_R, cpu_AESNI, "aeskeygenassist", 0, 0, 0)
+tbl32_660F3A[0xdf] = (0, INS_CRYPT, ADDRMETH_V | OPTYPE_dq | OP_W, ADDRMETH_W | OPTYPE_dq | OP_R, ADDRMETH_I | OPTYPE_b | OP_R, cpu_AESNI, "aeskeygenassist", 0, 0, 0)
 
 """
 (optable, optype, operand 0, operand 1, operand 2, CPU required, "opcodename", op0Register, op1Register, op2Register)
