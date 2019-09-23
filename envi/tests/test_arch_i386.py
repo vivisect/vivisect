@@ -194,7 +194,10 @@ class i386InstructionSet(unittest.TestCase):
             except envi.InvalidInstruction:
                 self.fail("Failed to parse opcode bytes: %s (case: %s, expected: %s)" % (bytez, name, reprOp))
             # print("'%s', 0x%x, '%s' == '%s'" % (bytez, va, repr(op), reprOp))
-            self.assertEqual(repr(op), reprOp)
+            try:
+                self.assertEqual(repr(op), reprOp)
+            except AssertionError:
+                self.fail("Failing match for case %s (%s != %s)" % (name, repr(op), reprOp))
 
             scanv.clearCanvas()
             op.render(scanv)
