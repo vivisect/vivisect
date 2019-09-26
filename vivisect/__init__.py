@@ -964,7 +964,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
             yield rdest
             ptrbase += self.psize
-            if len(self.getXrefsTo(ptrbase)):
+            if len(self.getXrefsTo(ptrbase)) or self.analyzePointer(ptrbase) in (LOC_STRING, LOC_UNI):
                 break
             rdest = self.castPointer(ptrbase)
 
