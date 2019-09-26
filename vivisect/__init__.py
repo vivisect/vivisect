@@ -958,14 +958,16 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
     def iterJumpTable(self, startva):
         ptrbase = startva
         rdest = self.castPointer(ptrbase)
-        while self.isValidPointer(rdest):
-            if self.analyzePointer(rdest) in (LOC_STRING, LOC_UNI):
+        while self.isValidPointer(rdest) and self.analyzePointer(rdest) not in (LOC_STRING, LOC_UNI):
+            if self.analyzePointer(ptrbase) in (LOC_STRING, LOC_UNI):
                 break
 
             yield rdest
+
             ptrbase += self.psize
-            if len(self.getXrefsTo(ptrbase)) or self.analyzePointer(ptrbase) in (LOC_STRING, LOC_UNI):
+            if len(self.getXrefsTo(ptrbase)):
                 break
+
             rdest = self.castPointer(ptrbase)
 
     def moveCodeBlock(self, cbva, newfva):

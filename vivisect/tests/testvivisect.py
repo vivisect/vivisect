@@ -93,14 +93,12 @@ class VivisectTest(unittest.TestCase):
         self.assertEqual(vmeta['Recursive'], cmeta['Recursive'])
         self.assertTrue(vmeta['Recursive'])
 
-
     def test_non_codeblock(self):
         '''
         So these VAs used to be recognized as codeblocks, which is not correct.
         <va> should be actually be a VA in the middle of a string
         <strtbl> should be a table of *string* pointers, not code block pointers
         '''
-        opva = 0x805633c
         badva = 0x0805b6f2
         loctup = self.vdir_vw.getLocation(badva)
         self.assertEqual((134592163, 86, 2, None), loctup)
