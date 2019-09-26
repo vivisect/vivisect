@@ -68,14 +68,41 @@ class VivisectTest(unittest.TestCase):
             self.assertEqual(ltype, loctup[2])
             self.assertEqual(lstr, self.chgrp_vw.readMemory(lva, lsize))
 
+    def test_libfunc_meta_equality(self):
+        '''
+        both vdir and chgrp have a bunch of library ufunctions in common, and while the addresses
+        may be off, other information like # of blocks, # of xrefs from each block, etc.
+        '''
+        vdir_fva = 0x8055bb0
+        chgp_fva = 0x804ab30
+
+        vmeta = self.vdir_vw.getFunctionMetaDict(vdir_fva)
+        cmeta = self.chgrp_vw.getFunctionMetaDict(chgp_fva)
+
+        self.assertEqual(vmeta['InstructionCount'], cmeta['InstructionCount'])
+        self.assertEqual(vmeta['InstructionCount'], 868)
+
+        self.assertEqual(vmeta['BlockCount'], cmeta['BlockCount'])
+        self.assertEqual(vmeta['BlockCount'], 261)
+
+        self.assertEqual(vmeta['Size'], cmeta['Size'])
+        self.assertEqual(vmeta['Size'], 3154)  # or 877?
+
+        self.assertEqual(vmeta['MnemDist'], cmeta['MnemDist'])
+
+        self.assertEqual(vmeta['Recursive'], cmeta['Recursive'])
+        self.assertTrue(vmeta['Recursive'])
+
+
     def test_non_codeblock(self):
         '''
         So these VAs used to be recognized as codeblocks, which is not correct.
         <va> should be actually be a VA in the middle of a string
         <strtbl> should be a table of *string* pointers, not code block pointers
         '''
-        va = 0x0805b6f2
-        loctup = self.vdir_vw.getLocation(va)
+        opva = 0x805633c
+        badva = 0x0805b6f2
+        loctup = self.vdir_vw.getLocation(badva)
         self.assertEqual((134592163, 86, 2, None), loctup)
 
         strtbl = 0x805e75c

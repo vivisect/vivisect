@@ -761,9 +761,6 @@ class VivCodeFlowContext(e_codeflow.CodeFlowContext):
             return False
 
         if self._mem.getLocation(tableva) == None:
-            # Deal with string tables
-            if self._mem.analyzePointer(destva) in (LOC_STRING, LOC_UNI):
-                return False
             self._mem.makePointer(tableva, tova=destva, follow=False)
 
         return True

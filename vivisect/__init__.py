@@ -961,6 +961,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         while self.isValidPointer(rdest):
             if self.analyzePointer(rdest) in (LOC_STRING, LOC_UNI):
                 break
+
             yield rdest
             ptrbase += self.psize
             if len(self.getXrefsTo(ptrbase)):
@@ -1078,7 +1079,8 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
                     refva, refsize, reftype, refinfo = self.getLocation(xrfrom)
                     if reftype != vivisect.LOC_OP:
                         continue
-
+                    if refva == op.va:
+                        continue
                     refop = self.parseOpcode(refva)
                     for refbase, refbflags in refop.getBranches():
                         if refbflags & envi.BR_TABLE:
