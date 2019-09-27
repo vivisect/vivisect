@@ -81,5 +81,8 @@ class VivisectTest(unittest.TestCase):
         self.assertEqual(vw.castPointer(0x22220000), 0x41424344)
         self.assertEqual(vw.parseNumber(0x22220000, 2), 0x4142)
 
+    def test_dynbranch(self):
+        pass
+
     def test_posix_impapi(self):
         pass
