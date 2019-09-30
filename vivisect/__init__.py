@@ -961,8 +961,9 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         iters = 0
         ptrbase = startva
         rdest = self.castPointer(ptrbase)
+        STOP_LOCS = (LOC_STRING, LOC_UNI, LOC_STRUCT, LOC_CLSID, LOC_VFTABLE, LOC_IMPORT, LOC_PAD, LOC_NUMBER)
         while self.isValidPointer(rdest) and self.analyzePointer(rdest) in (None, LOC_OP):
-            if self.analyzePointer(ptrbase) in (LOC_STRING, LOC_UNI):
+            if self.analyzePointer(ptrbase) in STOP_LOCS:
                 break
 
             yield rdest
@@ -1088,8 +1089,9 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
                     refva, refsize, reftype, refinfo = self.getLocation(xrfrom)
                     if reftype != vivisect.LOC_OP:
                         continue
-                    # If we've already seen this jump table from somewhere else, there's no need to split
-                    # the codeblock, so just move on
+                    # If we've already constructed this opcode location and made the xref to the new codeblock,
+                    # that should mean we've already made the jump table, so there should be no need to split this
+                    # jump table.
                     if refva == op.va:
                         continue
                     refop = self.parseOpcode(refva)
