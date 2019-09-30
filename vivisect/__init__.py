@@ -955,20 +955,27 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
         return self.imem_archs[(arch & envi.ARCH_MASK) >> 16].archParseOpcode(b, off, va)
 
-    def iterJumpTable(self, startva):
+    def iterJumpTable(self, startva, step=None, maxiters=None):
+        if not step:
+            step = self.psize
+        iters = 0
         ptrbase = startva
         rdest = self.castPointer(ptrbase)
-        while self.isValidPointer(rdest) and self.analyzePointer(rdest) not in (LOC_STRING, LOC_UNI):
+        while self.isValidPointer(rdest) and self.analyzePointer(rdest) in (None, LOC_OP):
             if self.analyzePointer(ptrbase) in (LOC_STRING, LOC_UNI):
                 break
 
             yield rdest
 
-            ptrbase += self.psize
+            ptrbase += step
             if len(self.getXrefsTo(ptrbase)):
                 break
 
             rdest = self.castPointer(ptrbase)
+
+            iters += 1
+            if maxiters is not None and iters >= maxiters:
+                break
 
     def moveCodeBlock(self, cbva, newfva):
         cb = self.getCodeBlock(cbva)
@@ -1081,6 +1088,8 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
                     refva, refsize, reftype, refinfo = self.getLocation(xrfrom)
                     if reftype != vivisect.LOC_OP:
                         continue
+                    # If we've already seen this jump table from somewhere else, there's no need to split
+                    # the codeblock, so just move on
                     if refva == op.va:
                         continue
                     refop = self.parseOpcode(refva)
