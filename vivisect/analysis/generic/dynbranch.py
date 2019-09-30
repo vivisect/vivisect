@@ -4,7 +4,6 @@ Analysis module that attempts to deal with dynamic branches to discover new jump
 
 import vivisect.const as vc
 import vivisect.symboliks.analysis as vsa
-import vivisect.symboliks.common as vsc
 
 
 def handleDynBranch(vw, va):
@@ -24,15 +23,20 @@ def handleDynBranch(vw, va):
 
     # No symbolik effects were dragged through inside this codeblock, so we still look like a `call eax`
     pointers = []
+
+    # jmp eax
+    # jmp [eax]
+    # call eax
+    # call [eax]
     def gatherPointers(path, cur, vw):
         if cur.symtype == vc.SYMT_CONST:
             if vw.isValidPointer(cur.value):
                 pointers.append(cur.value)
-    import pdb
-    pdb.set_trace()
+
     target = op.opers[0].repr(None)
     # For both calls and other branches, what if there's multiple operations that lead to the final result?
-    # And for both of them, it could be an calculated value, or it could be a pointer to a series of tables
+    # The called/jumped value could be a straight calculated value,
+    # or it could be a pointer to a table of values
     if dynbranch.efftype == vc.EFFTYPE_CALLFUNC:
         if str(dynbranch.funcsym) == target:
             # No effects were dragged through, so no point in trying to resolve further
@@ -40,16 +44,9 @@ def handleDynBranch(vw, va):
         dynbranch.funcsym.walkTree(gatherPointers, ctx=vw)
     else:
         # if we're not a call, we need to hunt for the last set to the branch register
-        sets = filter(lambda k: k.efftype == vc.EFFTYPE_SETVAR, effects)
-        if not sets:
+        if str(dynbranch.symobj) == target:
             return False
-        breg = filter(lambda k: k.varname == target, sets)
-        if not breg:
-            return False
-        lastset = breg[-1]
-
-    import pdb
-    pdb.set_trace()
+        dynbranch.symobj.walkTree(gatherPointers, ctx=vw)
 
     print("Done!")
 
