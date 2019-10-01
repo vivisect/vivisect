@@ -1,7 +1,6 @@
 import envi
 import envi.bits as e_bits
 import envi.symstore.resolver as e_resolv
-import vivisect.symboliks.common as vs_common
 
 from envi import IF_NOFALL, IF_BRANCH, IF_CALL, IF_RET, IF_PRIV, IF_COND
 
@@ -370,6 +369,7 @@ class PpcMemOper(envi.DerefOper):
     0xOFFSET (base_reg)
     '''
     def __init__(self, base_reg, offset, va, tsize=4):
+        import vivisect.symboliks.common as vs_common
         self.base_reg = base_reg
         self.offset = e_bits.signed(offset, 2)
         self.tsize = tsize
