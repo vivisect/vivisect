@@ -12,6 +12,7 @@ def handleDynBranch(vw, va):
     fva = vw.getFunction(op.va)
     cbva = vw.getCodeBlock(va)
 
+    # TODO: Translate only inside this code block? Would be a nice perf upgrade
     # Symbolikally emulate inside of this codeblock only
     sym_ctx = vsa.getSymbolikAnalysisContext(vw)
     sym_path = sym_ctx.getSymbolikPaths(fva, paths=[[(cbva[0], None)]])
@@ -27,7 +28,10 @@ def handleDynBranch(vw, va):
     # jmp eax
     # jmp [eax]
     # call eax
+    # vtables?
+    # lea eax, label
     # call [eax]
+    # call [addr]
     def gatherPointers(path, cur, vw):
         if cur.symtype == vc.SYMT_CONST:
             if vw.isValidPointer(cur.value):
@@ -48,10 +52,19 @@ def handleDynBranch(vw, va):
             return False
         dynbranch.symobj.walkTree(gatherPointers, ctx=vw)
 
+    # we could have already sectioned off this codeblock into it's own function if this is just a branch
+    # and not a call
+    # does a deref on a global memory address that we don't know if it's been written
+    # to count as a dynamic branch?
+    for ptr in pointers:
+        # here is where we need to deal with things like tables, invalid jumps, etc
+        print("wat")
+
     print("Done!")
 
 
 def analyze(vw):
+    return
     dynbranches = vw.getVaSetRows('DynamicBranches')
 
     # db is tuple of (va, str of mnem, bflags of opcode)

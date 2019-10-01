@@ -670,6 +670,7 @@ def trackDynBranches(cfctx, op, vw, bflags, branches):
     #  call dword [ebx + eax * 4 - 228]
 
     # if we have any xrefs from here, we have already been analyzed.  nevermind.
+    # Not necessarily. We can have something like call[funcptr] where funcptr is a global variable
     if len(vw.getXrefsFrom(op.va)):
         return
 
