@@ -57,12 +57,12 @@ the UISA and the VEA levels. For a more detailed discussion of the characteristi
 PowerPC architecture, see the Programming Environments Manual.
 '''
 
-class PpcSpeModule(envi.ArchitectureModule):
+class PpcEmbeddedModule(envi.ArchitectureModule):
 
     def __init__(self):
-        envi.ArchitectureModule.__init__(self, 'ppc-spe')
+        envi.ArchitectureModule.__init__(self, 'ppc-embedded')
         self.maps = tuple()
-        self._arch_dis = PpcDisasm()
+        self._arch_dis = PpcEmbeddedDisasm()
         self._arch_vle_dis = vle.VleDisasm()
 
     def archGetRegCtx(self):
@@ -121,7 +121,7 @@ class PpcSpeModule(envi.ArchitectureModule):
                 return True
         return False
 
-class PpcVleModule(PpcSpeModule):
+class PpcVleModule(PpcEmbeddedModule):
     def __init__(self):
         envi.ArchitectureModule.__init__(self, 'ppc-vle')
         self._arch_dis = vle.VleDisasm()
@@ -132,10 +132,10 @@ class PpcVleModule(PpcSpeModule):
     def archParseOpcode(self, bytes, offset=0, va=0):
         return self._arch_dis.disasm(bytes, offset, va)
 
-class Ppc64Module(PpcSpeModule):
+class PpcServerModule(PpcEmbeddedModule):
     def __init__(self):
-        envi.ArchitectureModule.__init__(self, 'ppc64-altivec')
-        self._arch_dis = PpcDisasm(options=CAT_ALTIVEC)
+        envi.ArchitectureModule.__init__(self, 'ppc-server')
+        self._arch_dis = PpcServerDisasm()
         
     def isVle(self, va):
         return False

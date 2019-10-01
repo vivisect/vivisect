@@ -151,8 +151,8 @@ class HotKeyMixin(object):
             callback, args, kwargs = self._vq_hotkey_targets.get(target)
             try:
                 callback(*args, **kwargs)
-            except:
-                logger.warn("error in eatKeyPressEvent(%r, %r, %r): %s" % (event, args, kwargs, e))
+            except Exception as e:
+                logger.warn("error in eatKeyPressEvent(%r, %r, %r): %s", event, args, kwargs, e)
                 logger.debug(''.join(traceback.format_exception(*sys.exc_info())))
 
             event.accept()
