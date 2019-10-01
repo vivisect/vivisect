@@ -2427,7 +2427,8 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         you can name it as you like...)
         """
         x = self.vasetdefs.get(name)
-        if x == None: raise InvalidVaSet(name)
+        if x is None:
+            raise InvalidVaSet(name)
         return x
 
     def getVaSetRows(self, name):
@@ -2435,7 +2436,8 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         Get a list of the rows in this VA set.
         """
         x = self.vasets.get(name)
-        if x == None: InvalidVaSet(name)
+        if x is None:
+            raise InvalidVaSet(name)
         return x.values()
 
     def getVaSet(self, name):
