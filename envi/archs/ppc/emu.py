@@ -92,6 +92,19 @@ def ROTL64(x, y, psize=8):
     tmp = x >> (64-y)
     return ((x << y) | tmp) & e_bits.u_maxes[psize]
     
+def getCarryBitAtX(bit, result, add0, add1):
+    '''
+    return the carry bit at bit x.
+    algorithm: check the next higher bit for result and add0+add1.  
+        if they ==, carry is 0  
+        if they !=, carry is 1
+    '''
+    bit += 1
+    rb = (result >> bit) & 1
+    a0b = (add0 >> bit) & 1
+    a1b = (add1 >> bit) & 1
+    return rb != (a0b + a1b)
+
 class PpcAbstractEmulator(envi.Emulator):
 
     def __init__(self, archmod=None, psize=4):
@@ -956,19 +969,6 @@ class PpcAbstractEmulator(envi.Emulator):
         return self.i_cmplwi(op, L=1)
 
 
-    def getCarryBitAtX(bit, result, add0, add1):
-        '''
-        return the carry bit at bit x.
-        algorithm: check the next higher bit for result and add0+add1.  
-            if they ==, carry is 0  
-            if they !=, carry is 1
-        '''
-        bit += 1
-        rb = (result >> bit) & 1
-        a0b = (add0 >> bit) & 1
-        a1b = (add1 >> bit) & 1
-        return rb != (a0b + a1b)
-
     def setOEflags(self, result, size, add0, add1):
         #OV = (carrym ^ carrym+1)   # FIXME::::  NEED TO UNDERSTAND THIS ONE....
         cm = getCarryBitAtX(size*8, result, add0, add1)
@@ -976,6 +976,7 @@ class PpcAbstractEmulator(envi.Emulator):
         ov = cm ^ cm1
 
         #SO = SO | (carrym ^ carrym+1) 
+        so = self.getRegister(REG_SO)
         so |= ov
 
         self.setRegister(REG_SO, so)
