@@ -87,3 +87,21 @@ class PpcInstructionSet(unittest.TestCase):
             symrot64 = vsap.ROTL64(vsap.Const(0x31337040, 8), vsap.Const(y, 8))
             self.assertEqual(emurot64, symrot64.solve(), 'ROTL64(0x31337040, {}): {} != {}   {}'.format(y, hex(emurot64), hex(symrot64.solve()), symrot64))
 
+    def test_CR_and_XER(self):
+        vw, emu, sctx = self.getVivEnv(arch='ppc')
+        OPCODE_ADDCO = '7C620C15'.decode('hex')
+        ppcarch = vw.imem_archs[0]
+        op = ppcarch.archParseOpcode(OPCODE_ADDCO)
+        emu.setRegisterByName('r1', 1)
+        emu.setRegisterByName('r2', 2)
+        emu.setRegisterByName('r3', 0)
+        emu.setRegisterByName('cr', 1)
+        emu.setRegisterByName('XER', 1)
+
+        emu.executeOpcode(op)
+
+        self.assertEqual((repr(op), cr, xer), (repr(op), 0x40000000, 0))
+
+
+
+
