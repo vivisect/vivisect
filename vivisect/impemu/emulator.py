@@ -371,6 +371,19 @@ class WorkspaceEmulator:
 
                     break  # If we exc during execution, this branch is dead.
 
+    def getCallVa(self, va):
+        vw = self.vw
+        ret = None
+        if vw.isFunction(va):
+            ret = va
+        else:
+            taint = self.getVivTaint(va)
+            if taint:
+                tva, ttype, tinfo = taint
+                if ttype == 'import':
+                    ret = tinfo[0]
+        return ret
+
     def getCallApi(self, va):
         '''
         Retrieve an API definition from either the vivisect workspace

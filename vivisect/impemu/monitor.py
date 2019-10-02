@@ -104,9 +104,11 @@ class AnalysisMonitor(EmulationMonitor):
                 else:
                     vw.makeNumber(val, tsize)
 
-        for va, callname, argv in self.callcomments:
+        for va, callva, callname, argv in self.callcomments:
             reprargs = [ emu.reprVivValue(val) for val in argv ]
             self.vw.setComment(va, '%s(%s)' % (callname, ','.join(reprargs)))
+            if callva is not None:
+                self.vw.addXref(va, callva, REF_CODE)
 
     def addDynamicBranchHandler(self, cb):
         '''
@@ -154,8 +156,8 @@ class AnalysisMonitor(EmulationMonitor):
         if self.vw.getComment(op.va) == None:
             if callname == None:
                 callname = self.vw.getName( pc )
-
-            self.callcomments.append( (op.va, callname, argv) )
+            callva = emu.getCallVa(pc)
+            self.callcomments.append( (op.va, callva, callname, argv) )
 
         # Record uninitialized register use
         for i,arg in enumerate(argv):
