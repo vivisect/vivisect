@@ -5,6 +5,9 @@ Analysis module that attempts to deal with dynamic branches to discover new jump
 import vivisect.const as vc
 import vivisect.symboliks.analysis as vsa
 
+# TODO: If a call is to an arg, and there's only one caller of the function, should we pseudo-inline
+# that function (or try to symbolikally resolve the arguments and determine what the value there should be?
+
 
 def handleDynBranch(vw, va):
     # get the register we're dynamically branching off of
