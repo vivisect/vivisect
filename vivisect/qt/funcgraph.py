@@ -35,6 +35,9 @@ class VQVivFuncgraphCanvas(vq_memory.VivCanvasBase):
 
     def __init__(self, *args, **kwargs):
         vq_memory.VivCanvasBase.__init__(self, *args, **kwargs)
+        settings = QtWebKit.QWebSettings.globalSettings()
+        settings.setFontFamily(QtWebKit.QWebSettings.StandardFont, 'Noto Mono')
+        settings.setFontSize(QtWebKit.QWebSettings.DefaultFontSize, 11)
         self.curs = QtGui.QCursor()
 
     def wheelEvent(self, event):
