@@ -510,6 +510,7 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
 
             if fva == self.fva:
                 self.mem_canvas.page().mainFrame().scrollToAnchor('viv:0x%.8x' % addr)
+                vqtevent('viv:colormap', {addr: 'orange'})
                 self.updateWindowTitle()
                 return
 
