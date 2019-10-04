@@ -106,6 +106,7 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
     vw.setMeta('DefaultCall', archcalls.get(arch,'unknown'))
 
     vw.addNoReturnApi("*.exit")
+    vw.addNoReturnApi("*.abort")
 
     # Base addr is earliest section address rounded to pagesize
     # NOTE: This is only for prelink'd so's and exe's.  Make something for old style so.

@@ -50,8 +50,12 @@ from vivisect.defconfig import *
 
 import vivisect.analysis.generic.emucode as v_emucode
 
+STOP_LOCS = (LOC_STRING, LOC_UNI, LOC_STRUCT, LOC_CLSID, LOC_VFTABLE, LOC_IMPORT, LOC_PAD, LOC_NUMBER)
+
+
 def guid(size=16):
     return hexlify(os.urandom(size))
+
 
 class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
@@ -955,15 +959,27 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
         return self.imem_archs[(arch & envi.ARCH_MASK) >> 16].archParseOpcode(b, off, va)
 
-    def iterJumpTable(self, startva):
+    def iterJumpTable(self, startva, step=None, maxiters=None):
+        if not step:
+            step = self.psize
+        iters = 0
         ptrbase = startva
         rdest = self.castPointer(ptrbase)
-        while self.isValidPointer(rdest):
+        while self.isValidPointer(rdest) and self.analyzePointer(rdest) in (None, LOC_OP):
+            if self.analyzePointer(ptrbase) in STOP_LOCS:
+                break
+
             yield rdest
-            ptrbase += self.psize
+
+            ptrbase += step
             if len(self.getXrefsTo(ptrbase)):
                 break
+
             rdest = self.castPointer(ptrbase)
+
+            iters += 1
+            if maxiters is not None and iters >= maxiters:
+                break
 
     def moveCodeBlock(self, cbva, newfva):
         cb = self.getCodeBlock(cbva)
@@ -1076,7 +1092,11 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
                     refva, refsize, reftype, refinfo = self.getLocation(xrfrom)
                     if reftype != vivisect.LOC_OP:
                         continue
-
+                    # If we've already constructed this opcode location and made the xref to the new codeblock,
+                    # that should mean we've already made the jump table, so there should be no need to split this
+                    # jump table.
+                    if refva == op.va:
+                        continue
                     refop = self.parseOpcode(refva)
                     for refbase, refbflags in refop.getBranches():
                         if refbflags & envi.BR_TABLE:
@@ -1087,8 +1107,6 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
                     if not tabdone.get(rdest):
                         tabdone[rdest] = True
                         self.addXref(va, rdest, REF_CODE, envi.BR_COND)
-                        # Honestly we should be more specific, because some cases can fall through
-                        # or to others and effectively overlap
                         if self.getName(rdest) is None:
                             self.makeName(rdest, "case%d_%.8x" % (i, rdest))
                     else:
