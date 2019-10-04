@@ -1124,7 +1124,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
             # Special case, if it's a table branch, lets resolve it now.
             if bflags & envi.BR_TABLE:
-                self.makeJumpTable(va, op, tova)
+                self.makeJumpTable(op, tova)
 
             elif bflags & envi.BR_DEREF:
 
