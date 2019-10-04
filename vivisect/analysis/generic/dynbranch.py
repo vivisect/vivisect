@@ -3,10 +3,7 @@ General idea:
 * symbolikally execute up to the dynamic branch
 * if the value isn't discrete (like it's the result of an arg or something),
 
-To figure out:
-* What if there are multiple paths to the dynamic branch (and there will be)
-
-We're typically fairly good at dragging through functions, except in the case of the results of
+We're typically fairly good at dragging through dynamic function calls, except in the case of the results of
 another function (cross function solving a super hairy problem that is out of scope for this),
 so this will probably just deal with dynamic branches (set a reg in one instruction,
 and then jmp off the value of that register later)
@@ -17,39 +14,60 @@ import vivisect.const as vc
 import vivisect.symboliks.analysis as vsa
 
 
+def getLongestLine(vw, g, va, blim=25):
+    '''
+    From the codeblock that holds this va, traverse *up* the graph till we get to a codeblock that has
+    multiple xrefs to it.
+
+    This ultimately exists because it's very possible to start to analyze a function that hits a path
+    explosion, and determining at what point we cut off analysis is a mess. So only analyze the longest
+    straight line path up a chain of codeblocks
+    '''
+    fva = vw.getFunction(va)
+    cbva, cbsize, cbfunc = vw.getCodeBlock(va)
+    node = g.getNode(cbva)
+    refs = g.getRefsTo(node)
+    chain = [(cbva, None)]
+
+    while len(refs) == 1 and cbfunc == fva and len(chain) < blim:
+        eid, fromva, tova, _ = refs[0]
+        cbva, _, cbfunc = vw.getCodeBlock(fromva)
+
+        node = g.getNode(cbva)
+        refs = g.getRefsTo(node)
+
+        chain.pop()
+        chain += [(tova, eid), (fromva, None)]
+    chain.reverse()
+
+    return chain
+
+
 def handleDynBranch(vw, va):
-    # get the register we're dynamically branching off of
     op = vw.parseOpcode(va)
     if not op.iflags & envi.IF_BRANCH:
         return False
-    fva = vw.getFunction(op.va)
 
-    # TODO: Translate only inside this code block? Would be a nice perf upgrade
-    # Symbolikally emulate inside of this codeblock only
+    fva = vw.getFunction(op.va)
     sym_ctx = vsa.getSymbolikAnalysisContext(vw)
-    sym_path = sym_ctx.getSymbolikPathsTo(fva, va)
-    emu, effects = sym_path.next()
-    # I don't care about anything after the `call <reg>` or `jmp <reg>`
-    # TODO: don't just filter the ones before the branch, also stop on calls
-    effects = filter(lambda k: k.va <= op.va, effects)
-    dynbranch = effects[-1]
+    g = sym_ctx.getSymbolikGraph(fva)
+    chain = getLongestLine(vw, g, va)
+    target = op.opers[0].repr(None)
+    emu, effects = sym_ctx.getSymbolikPaths(fva, graph=g, paths=[chain]).next()
 
     # No symbolik effects were dragged through inside this codeblock, so we still look like a `call eax`
+    symvar = emu.getSymVariable(str(target))
+    if str(symvar) == str(target):
+        return
+
     pointers = []
 
-    # jmp eax
-    # jmp [eax]
-    # vtables?
     def gatherPointers(path, cur, vw):
         if cur.symtype == vc.SYMT_CONST:
             if vw.isValidPointer(cur.value):
                 pointers.append(cur.value)
 
-    target = op.opers[0].repr(None)
-
-    if str(dynbranch.symobj) == str(target):
-        return False
-    dynbranch.symobj.walkTree(gatherPointers, ctx=vw)
+    symvar.walkTree(gatherPointers, ctx=vw)
 
     # we could have already sectioned off this codeblock into it's own function if this is just a branch
     # and not a call
