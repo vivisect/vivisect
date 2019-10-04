@@ -43,6 +43,7 @@ def addAnalysisModules(vw):
         if arch == 'i386':
             vw.addAnalysisModule("vivisect.analysis.i386.importcalls")
 
+        vw.addAnalysisModule('vivisect.analysis.generic.dynbranch')
         vw.addFuncAnalysisModule("vivisect.analysis.generic.codeblocks")
         vw.addFuncAnalysisModule("vivisect.analysis.generic.impapi")
         vw.addFuncAnalysisModule("vivisect.analysis.ms.hotpatch")
@@ -63,7 +64,6 @@ def addAnalysisModules(vw):
         vw.addAnalysisModule('vivisect.analysis.ms.msvcfunc')
 
         vw.addAnalysisModule('vivisect.analysis.generic.strconst')
-        vw.addAnalysisModule('vivisect.analysis.generic.dynbranch')
 
     elif fmt == 'elf':  # ELF ########################################################
 
@@ -78,12 +78,13 @@ def addAnalysisModules(vw):
 
         vw.addAnalysisModule("vivisect.analysis.generic.funcentries")
         vw.addAnalysisModule("vivisect.analysis.generic.relocations")
-        vw.addAnalysisModule("vivisect.analysis.generic.pointertables")
         vw.addAnalysisModule("vivisect.analysis.generic.emucode")
 
         # Get PLTs taken care of early
         vw.addFuncAnalysisModule("vivisect.analysis.elf.elfplt")
         # Generic code block analysis
+        vw.addAnalysisModule('vivisect.analysis.generic.dynbranch')
+        vw.addAnalysisModule("vivisect.analysis.generic.pointertables")
         vw.addFuncAnalysisModule("vivisect.analysis.generic.codeblocks")
         vw.addFuncAnalysisModule("vivisect.analysis.generic.impapi")
 
@@ -96,7 +97,6 @@ def addAnalysisModules(vw):
         # Find import thunks
         vw.addFuncAnalysisModule("vivisect.analysis.generic.thunks")
         vw.addAnalysisModule("vivisect.analysis.generic.pointers")
-        vw.addAnalysisModule('vivisect.analysis.generic.dynbranch')
 
     elif fmt == 'macho': # MACH-O ###################################################
 
@@ -110,6 +110,7 @@ def addAnalysisModules(vw):
         vw.addAnalysisModule("vivisect.analysis.generic.pointertables")
         vw.addAnalysisModule("vivisect.analysis.generic.emucode")
 
+        vw.addAnalysisModule('vivisect.analysis.generic.dynbranch')
         vw.addFuncAnalysisModule("vivisect.analysis.generic.codeblocks")
         vw.addFuncAnalysisModule("vivisect.analysis.generic.impapi")
 
@@ -121,7 +122,6 @@ def addAnalysisModules(vw):
 
         vw.addFuncAnalysisModule("vivisect.analysis.generic.thunks")
         vw.addAnalysisModule("vivisect.analysis.generic.pointers")
-        vw.addAnalysisModule('vivisect.analysis.generic.dynbranch')
 
     elif fmt == 'blob': # BLOB ######################################################
 
@@ -130,10 +130,10 @@ def addAnalysisModules(vw):
         vw.addAnalysisModule("vivisect.analysis.generic.pointertables")
         vw.addAnalysisModule("vivisect.analysis.generic.emucode")
 
+        vw.addAnalysisModule('vivisect.analysis.generic.dynbranch')
         vw.addFuncAnalysisModule("vivisect.analysis.generic.codeblocks")
         vw.addFuncAnalysisModule("vivisect.analysis.generic.impapi")
         vw.addFuncAnalysisModule("vivisect.analysis.generic.thunks")
-        vw.addAnalysisModule('vivisect.analysis.generic.dynbranch')
 
     elif fmt == 'ihex': # BLOB ######################################################
 

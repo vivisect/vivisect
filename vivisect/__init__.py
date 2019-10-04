@@ -1022,6 +1022,51 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             self.setComment(va[1], None)
             self.delXref(va)
 
+    def makeJumpTable(self, op, tova):
+        ptrbase = tova
+        rdest = self.castPointer(ptrbase)
+
+        # if there's already an Xref to this address from another jump table, we overshot
+        # the other table, and need to cut that one short, delete its Xrefs starting at this one
+        # and then let the rest of this function build the new jump table
+        # This jump table also may not be in the same function as the other jump table, so we need
+        # to remove those codeblocks (and child codeblocks) from this function
+
+        # at this point, rdest should be the first codeblock in the jumptable, so get all the xrefs to him
+        # (but skipping over the current jumptable base address we're looking at)
+        for xrfrom, xrto, rtype, rflags in self.getXrefsTo(rdest):
+            if tova == xrfrom:
+                continue
+
+            refva, refsize, reftype, refinfo = self.getLocation(xrfrom)
+            if reftype != vivisect.LOC_OP:
+                continue
+
+            refop = self.parseOpcode(refva)
+            for refbase, refbflags in refop.getBranches():
+                if refbflags & envi.BR_TABLE:
+                    self.splitJumpTable(op.va, refva, tova)
+
+        tabdone = set()
+        for i, rdest in enumerate(self.iterJumpTable(ptrbase)):
+            if rdest not in tabdone:
+                tabdone.add(rdest)
+                self.addXref(op.va, rdest, REF_CODE, envi.BR_COND)
+                # Honestly we should be more specific, because some cases can fall through
+                # or to others and effectively overlap
+                if self.getName(rdest) is None:
+                    self.makeName(rdest, "case%d_%.8x" % (i, rdest))
+            else:
+                cmnt = self.getComment(rdest)
+                if cmnt is None:
+                    self.setComment(rdest, "Other Case(s): %d" % i)
+                else:
+                    cmnt += ", %d" % i
+                    self.setComment(rdest, cmnt)
+
+        # This must be second (len(xrefsto))
+        self.addXref(op.va, tova, REF_PTR, None)
+
     def makeOpcode(self, va, op=None, arch=envi.ARCH_DEFAULT):
         """
         Create a single opcode location.  If you have already parsed the
@@ -1033,7 +1078,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             except envi.InvalidInstruction as msg:
                 # FIXME something is just not right about this...
                 bytez = self.readMemory(va, 16)
-                print("Invalid Instruct Attempt At:", hex(va), bytez.encode("hex"))
+                print("Invalid parseOpcode Attempt At:", hex(va), bytez.encode("hex"))
                 raise InvalidLocation(va, msg)
             except Exception as msg:
                 traceback.print_exc()
@@ -1058,49 +1103,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
             # Special case, if it's a table branch, lets resolve it now.
             if bflags & envi.BR_TABLE:
-                ptrbase = tova
-                rdest = self.castPointer(ptrbase)
-
-                # if there's already an Xref to this address from another jump table, we overshot
-                # the other table, and need to cut that one short, delete its Xrefs starting at this one
-                # and then let the rest of this function build the new jump table
-                # This jump table also may not be in the same function as the other jump table, so we need
-                # to remove those codeblocks (and child codeblocks) from this function
-
-                # at this point, rdest should be the first codeblock in the jumptable, so get all the xrefs to him
-                # (but skipping over the current jumptable base address we're looking at)
-                for xrfrom, xrto, rtype, rflags in self.getXrefsTo(rdest):
-                    if tova == xrfrom:
-                        continue
-
-                    refva, refsize, reftype, refinfo = self.getLocation(xrfrom)
-                    if reftype != vivisect.LOC_OP:
-                        continue
-
-                    refop = self.parseOpcode(refva)
-                    for refbase, refbflags in refop.getBranches():
-                        if refbflags & envi.BR_TABLE:
-                            self.splitJumpTable(va, refva, tova)
-
-                tabdone = {}
-                for i, rdest in enumerate(self.iterJumpTable(ptrbase)):
-                    if not tabdone.get(rdest):
-                        tabdone[rdest] = True
-                        self.addXref(va, rdest, REF_CODE, envi.BR_COND)
-                        # Honestly we should be more specific, because some cases can fall through
-                        # or to others and effectively overlap
-                        if self.getName(rdest) is None:
-                            self.makeName(rdest, "case%d_%.8x" % (i, rdest))
-                    else:
-                        cmnt = self.getComment(rdest)
-                        if cmnt is None:
-                            self.setComment(rdest, "Other Case(s): %d" % i)
-                        else:
-                            cmnt += ", %d" % i
-                            self.setComment(rdest, cmnt)
-
-                # This must be second (len(xrefsto))
-                self.addXref(va, tova, REF_PTR, None)
+                self.makeJumpTable(va, op, tova)
 
             elif bflags & envi.BR_DEREF:
 
@@ -1382,7 +1385,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
     def getFunctionMeta(self, funcva, key, default=None):
         m = self.funcmeta.get(funcva)
-        if m == None:
+        if m is None:
             raise InvalidFunction(funcva)
         return m.get(key, default)
 
