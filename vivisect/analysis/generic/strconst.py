@@ -30,13 +30,14 @@ def analyze(vw):
                     if not vw.getSegment(ref):
                         continue
 
-                    sz = vw.detectString(ref)
+                    # Look for Unicode before ASCII to catch UTF-16 LE.
+                    sz = vw.detectUnicode(ref)
                     if sz > 0:
-                        vw.addLocation(ref, sz, LOC_STRING)
+                        vw.addLocation(ref, sz, LOC_UNI)
                     else:
-                        sz = vw.detectUnicode(ref)
+                        sz = vw.detectString(ref)
                         if sz > 0:
-                            vw.addLocation(ref, sz, LOC_UNI)
+                            vw.addLocation(ref, sz, LOC_STRING)
 
                 va += len(op)
     return
