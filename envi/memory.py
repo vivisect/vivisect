@@ -175,7 +175,7 @@ class IMemory:
 
         #FIXME change this (and all uses of it) to passing in format...
         if len(bytes) != size:
-            raise Exception("Read Gave Wrong Length At 0x%.8x (va: 0x%.8x wanted %d got %d)" % (self.getProgramCounter(),addr, size, len(bytes)))
+            raise Exception("Read gave wrong length at va: 0x%.8x (wanted %d got %d)" % (addr, size, len(bytes)))
 
         return e_bits.parsebytes(bytes, 0, size, False, self.getEndian())
 

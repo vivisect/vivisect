@@ -136,6 +136,7 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
 
     vw.setMeta('DefaultCall', archcalls.get(arch,'unknown'))
 
+    vw.addNoReturnApi("*.abort")
     vw.addNoReturnApi("*.exit")
     vw.addNoReturnApi("*._exit")
     vw.addNoReturnApi("*.longjmp")

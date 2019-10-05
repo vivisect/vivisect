@@ -768,6 +768,6 @@ class VivCodeFlowContext(e_codeflow.CodeFlowContext):
 
         if self._mem.getLocation(tableva) == None:
             self._mem.makePointer(tableva, tova=destva, follow=False)
-    
+
         return True
 
