@@ -107,6 +107,7 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
 
     vw.addNoReturnApi("*.exit")
     vw.addNoReturnApi("*.abort")
+    vw.addNoReturnApi("__assert_fail")
 
     # Base addr is earliest section address rounded to pagesize
     # NOTE: This is only for prelink'd so's and exe's.  Make something for old style so.

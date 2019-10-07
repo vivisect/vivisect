@@ -12,6 +12,7 @@ and then jmp off the value of that register later)
 import envi
 import vivisect.const as vc
 import vivisect.symboliks.analysis as vsa
+import vivisect.analysis.generic.codeblocks as vagc
 
 
 def getLongestLine(vw, g, va, blim=25):
@@ -88,8 +89,7 @@ def handleDynBranch(vw, va):
                 continue
             vw.makeCode(xrto)
 
-    for name, fmod in vw.fmods.items():
-        fmod.analyzeFunction(vw, fva)
+    vagc.analyzeFunction(vw, fva)
 
 
 def analyze(vw):
