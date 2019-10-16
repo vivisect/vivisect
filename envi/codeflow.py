@@ -215,6 +215,9 @@ class CodeFlowContext(object):
                         if bva != nextva: # NOTE: avoid call 0 constructs
 
                             # Now we decend so we do deepest func callbacks first!
+                            # This is not necessarily true. We don't actually recurse since bva
+                            # typically (save for derefs) is being added to self._cf_blocks above
+                            # and nobody but drefs changes what bva is
                             if self._cf_recurse:
                                 if bva in self._cf_blocks:
                                     # the function that we want to make prodcedural
