@@ -168,6 +168,8 @@ RTYPE_BASERELOC = 0 # VA contains a pointer to a va (and is assumed fixed up by 
 RTYPE_BASEOFF   = 1 # Add Base and Offset to a pointer at a memory location
 RTYPE_BASEPTR   = 2 # Like BASEOFF, but treated as a Pointer, not part of an instruction/etc.
 
+REBASE_TYPES = (RTYPE_BASEOFF, RTYPE_BASEPTR)
+
 # Function Local Symbol Types
 LSYM_NAME   = 0 # syminfo is a (typestr,name) tuple
 LSYM_FARG   = 1 # syminfo is an argument index

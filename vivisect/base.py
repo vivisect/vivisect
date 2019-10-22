@@ -149,8 +149,10 @@ class VivEventDist(VivEventCore):
 
         VivEventCore._ve_fireEvent(self, event, edata)
 
+
 def ddict():
     return collections.defaultdict(dict)
+
 
 class VivWorkspaceCore(object, viv_impapi.ImportApi):
 
@@ -239,7 +241,7 @@ class VivWorkspaceCore(object, viv_impapi.ImportApi):
 
         # RTYPE_BASERELOC assumes the memory is already accurate (eg. PE's unless rebased)
 
-        if rtype in (RTYPE_BASEOFF, RTYPE_BASEPTR):
+        if rtype in REBASE_TYPES:
             # add imgbase and offset to pointer in memory
             # 'data' arg must be 'offset' number
             ptr = imgbase + data
