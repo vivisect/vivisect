@@ -7452,7 +7452,6 @@ libstdc_data = {
     ],
 
     'names' : [
-        (0x2084b72, u'libstdc___so_6_0.ptr_std::istreambuf_iterator<wchar_t, std::char_traits<wchar_t> > std::num_get<wchar_t, std::istreambuf_iterator<wchar_t, std::char_traits<wchar_t> > >::_M_extract_int<unsigned int>(std::istreambuf_iterator<wchar_t, std::char_traits<wchar_t> >, std::istreambuf_iterator<wchar_t, std::char_traits<wchar_t> >, std::ios_base&, std::_Ios_Iostate&, unsigned int&) const_02084b72'),
         (0x2088480, 'libstdc___so_6_0.init_function'),
         (0x20884b0, u'plt___cxa_allocate_dependent_exception'),
         (0x20884c0, u'plt_std::__cxx11::basic_string<wchar_t, std::char_traits<wchar_t>, std::allocator<wchar_t> >::find_last_not_of(wchar_t const*, unsigned long, unsigned long) const'),
@@ -8279,7 +8278,6 @@ libstdc_data = {
         (0x208b810, u'plt_operator delete[](void*)'),
         (0x208b820, u'plt_std::overflow_error::~overflow_error()'),
         (0x208b830, u'plt_std::regex_error::~regex_error()'),
-        (0x208b838, u'operator new[](unsigned long)_0208b838'),
         (0x208b840, u'plt___cxa_finalize'),
         (0x208b850, u'plt_std::bad_array_new_length::~bad_array_new_length()'),
         (0x208b860, u'plt_std::bad_cast::~bad_cast()'),

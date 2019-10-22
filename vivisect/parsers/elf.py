@@ -60,8 +60,9 @@ def makeSymbolTable(vw, va, maxva):
 
 def makeDynamicTable(vw, va, maxva):
     ret = []
+    sname = 'elf.Elf%dDynamic' % (vw.getPointerSize() * 8)
     while va < maxva:
-        s = vw.makeStructure(va, "elf.Elf32Dynamic")
+        s = vw.makeStructure(va, sname)
         ret.append(s)
         dtag = s.d_tag
         dtype = Elf.dt_types.get(dtag, "Unknown Dynamic Type")
@@ -71,9 +72,14 @@ def makeDynamicTable(vw, va, maxva):
             break
     return ret
 
-def makeRelocTable(vw, va, maxva, addbase, baseaddr):
+def makeRelocTable(vw, va, maxva, addbase, baseaddr, addend=False):
+    if addend:
+        sname = 'elf.Elf%dReloca' % (vw.getPointerSize() * 8)
+    else:
+        sname = 'elf.Elf%dReloc' % (vw.getPointerSize() * 8)
+
     while va < maxva:
-        s = vw.makeStructure(va, "elf.Elf32Reloc")
+        s = vw.makeStructure(va, sname)
         tname = Elf.r_types_386.get(Elf.getRelocType(s.r_info), "Unknown Type")
         vw.setComment(va, tname)
         va += len(s)
@@ -350,6 +356,9 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
         elif sec.sh_type == Elf.SHT_REL:
             makeRelocTable(vw, sva, sva+size, addbase, baseaddr)
 
+        elif sec.sh_type == Elf.SHT_RELA:
+            makeRelocTable(vw, sva, sva+size, addbase, baseaddr, addend=True)
+
         if sec.sh_flags & Elf.SHF_STRINGS:
             makeStringTable(vw, sva, sva+size)
 
@@ -521,7 +530,8 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
         new_functions.append(("ELF Entry", eentry))
 
     if vw.isValidPointer(baseaddr):
-        vw.makeStructure(baseaddr, "elf.Elf32")
+        sname = 'elf.Elf%d' % (vw.getPointerSize() * 8)
+        vw.makeStructure(baseaddr, sname)
 
     # mark all the entry points for analysis later
     for cmnt, fva in new_functions:
