@@ -59,13 +59,13 @@ def analyzeFunction(vw, funcva):
     seg = vw.getSegment(funcva)
     if seg is None:
         logger.info('not analyzing 0x%x: no segment found', funcva)
-        #return
+        return
     else:
         segva, segsize, segname, segfname = seg
 
         if segname not in (".plt", ".plt.got"):
             logger.warn('0x%x: not part of ".plt" or ".plt.got"', funcva)
-            #return
+            return
 
     logger.info('analyzing PLT function: 0x%x', funcva)
     count = 0
