@@ -1,6 +1,9 @@
 from vivisect.const import *
 
 
+STRTYPES = (LOC_UNI, LOC_STRING)
+
+
 def analyze(vw):
     '''
     Find string constants used in function calls and add them to the
@@ -20,6 +23,11 @@ def analyze(vw):
                     if o.isDeref():
                         continue
                     ref = o.getOperValue(op, None)
+
+                    # we've already processed this one
+                    loc = vw.getLocation(ref)
+                    if loc is not None and loc[L_LTYPE] in STRTYPES:
+                        continue
 
                     # Candidates will be listed with the Xrefs thanks to
                     # logic in makeOpcode().

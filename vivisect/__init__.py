@@ -854,6 +854,8 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
                 loc = self.getLocation(va+count)
                 if loc is not None:
                     if loc[L_LTYPE] == LOC_STRING:
+                        if loc[L_VA] == va:
+                            return loc[L_SIZE]
                         return loc[L_VA] - (va + count) + loc[L_SIZE]
                     return -1
 
