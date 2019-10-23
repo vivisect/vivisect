@@ -370,7 +370,7 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
             name = name.split('.')[0].lower()
             vw.addLibraryDependancy(name)
         else:
-            logger.debug("DYNAMIC DYNAMIC DYNAMIC\t%r",d)
+            logger.debug("DYNAMIC:\t%r",d)
 
         elfmeta[Elf.dt_names.get(d.d_tag)] = d.d_value
 
@@ -440,7 +440,7 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
                     vw.vprint('WARNING: %s' % e)
 
         else:
-            logger.debug("DYNSYM DYNSYM\t%r\t%r\t%r\t%r", s, s.getInfoType(), 'other', hex(s.st_other))
+            logger.debug("DYNSYM:\t%r\t%r\t%r\t%r", s, s.getInfoType(), 'other', hex(s.st_other))
 
     vw.addVaSet("FileSymbols", (("Name", VASET_STRING),("va", VASET_ADDRESS)))
     vw.addVaSet("WeakSymbols", (("Name", VASET_STRING),("va", VASET_ADDRESS)))
