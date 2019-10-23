@@ -598,8 +598,6 @@ def applyRelocs(elf, vw, addbase=False, baseaddr=0):
                         vw.addRelocation(rlva, vivisect.RTYPE_BASEPTR, ptr)
 
                         # next get the target and find a name, since the reloc itself doesn't have one
-                        # FIXME: this doesn't actually do anything, since naming of PLT functions doesn't happen until later
-                        #   should this happen during pointer analysis?
                         tgt = vw.readMemoryPtr(rlva)
                         tgtname = vw.getName(tgt)
                         if tgtname is not None:
