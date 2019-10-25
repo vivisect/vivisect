@@ -180,15 +180,11 @@ i386MultiByteOpcodes = [
 class i386InstructionSet(unittest.TestCase):
     _arch = envi.getArchModule("i386")
 
-    def test_envi_i386_disasm_Specific_SingleByte_Instrs(self):
-        '''
-        pick 10 arbitrary 1-byte-operands
-        '''
+    def check_opreprs(self, opcodes):
         vw = vivisect.VivWorkspace()
         scanv = e_memcanvas.StringMemoryCanvas(vw)
 
-        for name, bytez, va, reprOp, renderOp in i386SingleByteOpcodes:
-
+        for name, bytez, va, reprOp, renderOp in opcodes:
             try:
                 op = self._arch.archParseOpcode(bytez.decode('hex'), 0, va)
             except envi.InvalidInstruction:
@@ -203,30 +199,13 @@ class i386InstructionSet(unittest.TestCase):
             op.render(scanv)
             # print("render:  %s" % repr(scanv.strval))
             self.assertEqual(scanv.strval, renderOp)
+
+    def test_envi_i386_disasm_Specific_SingleByte_Instrs(self):
+        self.check_opreprs(i386SingleByteOpcodes)
 
     def test_envi_i386_disasm_Specific_MultiByte_Instrs(self):
-        '''
-        pick 10 arbitrary 2- and 3-byte operands
-        '''
-        vw = vivisect.VivWorkspace()
-        scanv = e_memcanvas.StringMemoryCanvas(vw)
+        self.check_opreprs(i386MultiByteOpcodes)
 
-        for name, bytez, va, reprOp, renderOp in i386MultiByteOpcodes:
-
-            try:
-                op = self._arch.archParseOpcode(bytez.decode('hex'), 0, va)
-            except envi.InvalidInstruction:
-                self.fail("Failed to parse opcode bytes: %s (case: %s, expected: %s)" % (bytez, name, reprOp))
-            # print("'%s', 0x%x, '%s' == '%s'" % (bytez, va, repr(op), reprOp))
-            try:
-                self.assertEqual(repr(op), reprOp)
-            except AssertionError:
-                self.fail("Failing match for case %s (%s != %s)" % (name, repr(op), reprOp))
-
-            scanv.clearCanvas()
-            op.render(scanv)
-            # print("render:  %s" % repr(scanv.strval))
-            self.assertEqual(scanv.strval, renderOp)
     '''
     def test_envi_i386_disasm_A(self):
         pass

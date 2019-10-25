@@ -87,73 +87,64 @@ amd64MultiByteOpcodes = [
     ('PSRLQ 2',  '660f73d501', 0x40, 'psrlq xmm5,1', 'psrlq xmm5,1'),
     # ('PSHUFB', '660F3800EF', 0x40, 'pshufb xmm5,xmm7', 'pshufb xmm5,xmm7'),
     ('PSRLQ', '660FD3DC', 0x40, 'psrlq xmm3,xmm4', 'psrlq xmm3,xmm4'),
-    # ('VPSRLDQ', 'C5E9D3CB', 0x40, 'vpsrlq xmm1,xmm2,xmm3', 'vpsrlq xmm1,xmm2,xmm3'),
     ('PSRLQ', '660F73d10f', 0x40, 'psrlq xmm1,15', 'psrlq xmm1,15'),
     ('PSRLDQ (66)', '660f73b5aa4141', 0x40, 'psllq xmm5,170', 'psllq xmm5,170'),
     ('PSRLDQ (66)', '660f73f5aa4141', 0x40, 'psllq xmm5,170', 'psllq xmm5,170'),
     ('PSRLDQ (66)', '660f73b1aa4141', 0x40, 'psllq xmm1,170', 'psllq xmm1,170'),
     ('PSRLDQ (66)', '660f73b9aa4141', 0x40, 'psldq xmm1,170', 'psldq xmm1,170'),
     ('PCMPISTRI', '660f3a630f0d', 0x40, 'pcmpistri xmm1,oword [rdi],13', 'pcmpistri xmm1,oword [rdi],13'),
+
+    ('POPCNT', '66f30fb8c3', 0x40, 'popcnt ax,bx', 'popcnt ax,bx'),
+    ('POPCNT', 'f30fb8c4', 0x40, 'popcnt eax,esp', 'popcnt eax,esp'),
+    ('POPCNT', 'f30fb80541414100', 0x40, 'popcnt eax,dword [0x00414141]', 'popcnt eax,dword [0x00414141]'),
+    ('LZCNT', 'f30fbdc4', 0x40, 'lzcnt eax,esp', 'lzcnt eax,esp'),
+    ('LZCNT', 'f30fbd0541414100', 0x40, 'lzcnt eax,dword [0x00414141]', 'lzcnt eax,dword [0x00414141]'),
 ]
 
 amd64VexOpcodes = [
     ('VMOVDQU', 'C5fe6fe3', 0x40, 'vmovdqu ymm4,ymm3', 'vmovdqu ymm4,ymm3'),
-    ('VLDDQU', 'C5FFF01C2541414141', 0x40, 'vlddqu ymm3,0x41414141', 'vlddqu ymm3,0x41414141')
+    ('VLDDQU', 'C5FFF01C2541414141', 0x40, 'vlddqu ymm3,0x41414141', 'vlddqu ymm3,0x41414141'),
+    ('VPSRLDQ', 'C5E9D3CB', 0x40, 'vpsrlq xmm1,xmm2,xmm3', 'vpsrlq xmm1,xmm2,xmm3'),
 ]
+
 
 class Amd64InstructionSet(unittest.TestCase):
     _arch = envi.getArchModule("amd64")
 
-    def SKIPtest_envi_amd64_disasm_Specific_VEX_Instrs(self):
+    def check_opreprs(self, opers):
         vw = vivisect.VivWorkspace()
         scanv = e_memcanvas.StringMemoryCanvas(vw)
 
-        for name, bytez, va, reprOp, renderOp in amd64VexOpcodes:
+        for name, bytez, va, reprOp, renderOp in opers:
 
-            op = self._arch.archParseOpcode(bytez.decode('hex'), 0, va)
+            try:
+                op = self._arch.archParseOpcode(bytez.decode('hex'), 0, va)
+            except envi.InvalidInstruction:
+                self.fail("Failed to parse opcode bytes: %s (case: %s, expected: %s)" % (bytez, name, reprOp))
             # print("'%s', 0x%x, '%s' == '%s'" % (bytez, va, repr(op), reprOp))
-            self.assertEqual(repr(op), reprOp)
+            try:
+                self.assertEqual(repr(op), reprOp)
+            except AssertionError:
+                self.fail("Failing match for case %s (%s != %s)" % (name, repr(op), reprOp))
 
             scanv.clearCanvas()
             op.render(scanv)
-            #print "render:  %s" % repr(scanv.strval)
             self.assertEqual(scanv.strval, renderOp)
+
+    def SKIPtest_envi_amd64_disasm_Specific_VEX_Instrs(self):
+        self.check_opreprs(amd64VexOpcodes)
 
     def test_envi_amd64_disasm_Specific_SingleByte_Instrs(self):
         '''
         pick 10 arbitrary 1-byte-operands
         '''
-        vw = vivisect.VivWorkspace()
-        scanv = e_memcanvas.StringMemoryCanvas(vw)
-
-        for name, bytez, va, reprOp, renderOp in amd64SingleByteOpcodes:
-
-            op = self._arch.archParseOpcode(bytez.decode('hex'), 0, va)
-            # print("'%s', 0x%x, '%s' == '%s'" % (bytez, va, repr(op), reprOp))
-            self.assertEqual(repr(op), reprOp)
-
-            scanv.clearCanvas()
-            op.render(scanv)
-            #print "render:  %s" % repr(scanv.strval)
-            self.assertEqual(scanv.strval, renderOp)
+        self.check_opreprs(amd64SingleByteOpcodes)
 
     def test_envi_amd64_disasm_Specific_MultiByte_Instrs(self):
         '''
         pick 10 arbitrary 2- and 3-byte operands
         '''
-        vw = vivisect.VivWorkspace()
-        scanv = e_memcanvas.StringMemoryCanvas(vw)
-
-        for name, bytez, va, reprOp, renderOp in amd64MultiByteOpcodes:
-
-            op = self._arch.archParseOpcode(bytez.decode('hex'), 0, va)
-            #print "'%s', 0x%x, '%s' == '%s'" % (bytez, va, repr(op), reprOp)
-            self.assertEqual(repr(op), reprOp)
-
-            scanv.clearCanvas()
-            op.render(scanv)
-            #print "render:  %s" % repr(scanv.strval)
-            self.assertEqual(scanv.strval, renderOp)
+        self.check_opreprs(amd64MultiByteOpcodes)
 
     def checkOpcode(self, hexbytez, va, oprepr, opcheck, opercheck, renderOp):
 
@@ -178,8 +169,6 @@ class Amd64InstructionSet(unittest.TestCase):
         #print "render:  %s" % repr(scanv.strval)
         self.assertEqual( scanv.strval, renderOp )
 
-
-    
     ###############################################
     # only pick the operands special to 64-bit mode
     def test_envi_amd64_disasm_Reg_Operands(self):
