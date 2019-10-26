@@ -279,7 +279,7 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
         self.relocvas = []
         self.symbols_by_name = {}
         self.symbols_by_addr = {}
-        self.dynamics = []
+        self.dynamics = []      # deprecated - 2019-10-21
         self.dynamic_symbols = []
         self.dynstrtabmeta = (None, None)
         self.dynstrtab = []
@@ -479,7 +479,8 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
                 self.dyns[dyn.d_tag] = dyn.d_value
             logger.debug("dynamic: %r: 0x%x", dt_names.get(dyn.d_tag), dyn.d_value)
 
-            # FIXME: storing info in both dyns{} and dynamics[].  Is this a problem?
+            # DEPRECATED: storing info in both dyns{} and dynamics[].  
+            # 2019-10-21:  dynamics will go away sometime in the future
             self.dynamics.append(dyn)
             if dyn.d_tag == DT_NULL: # Represents the end
                 break
