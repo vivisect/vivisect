@@ -2624,6 +2624,56 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         """
         return self.colormaps.get(mapname)
 
+    def _getNameParts(self, name, va):
+        '''
+        Return the given name in three parts: 
+        fpart: filename, if applicable (for file-local names)
+        npart: base name
+        vapart: address, if tacked on the end
+
+        If any of these are not applicable, they will return None for that field.
+        '''
+        fpart = None
+        npart = name
+        vapart = None
+        fname = self.getFileByVa(va)
+        vastr = '_%.8x' % va
+
+        if name.startswith(fname + '.'):
+            fpart, npart = name.split('.', 1)
+        elif name.startswith('*.'):
+            skip, npart = name.split('.', 1)
+
+        if npart.endswith(vastr) and not npart == 'sub' + vastr:
+            npart, vapart = npart.rsplit('_', 1)
+
+        return fpart, npart, vapart
+
+
+    def _addNamePrefix(self, name, va, prefix, joinstr=''):
+        '''
+        Add a prefix to the given name paying attention to the filename prefix, and 
+        any VA suffix which may exist.
+
+        This is used by multiple analysis modules.
+        Uses _getNameParts.
+        '''
+        fpart, npart, vapart = self._getNameParts(name, va)
+        if fpart is None and vapart is None:
+            name = joinstr.join([prefix, npart])
+
+        elif vapart is None:
+            name = fpart + '.' + joinstr.join([prefix, npart])
+
+        elif fpart is None:
+            name = joinstr.join([prefix, npart])
+
+        else:
+            name = fpart + '.' + joinstr.join([prefix, npart]) + '_%s' % vapart
+        logger.debug('addNamePrefix: %r %r %r -> %r', fpart, npart, vapart, name)
+        return name
+
+
 ##########################################################
 #
 # The envi.symstore.resolver.SymbolResolver API...

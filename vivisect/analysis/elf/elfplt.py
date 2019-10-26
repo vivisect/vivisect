@@ -125,7 +125,7 @@ def analyzeFunction(vw, funcva):
         logger.info("PLT->PTR 0x%x: (0x%x)  -> 0x%x -> 0x%x (%r)" % (funcva, opval, tgtva, ptrva, ptrname))
         if vw.isValidPointer(ptrva):
             if funcname is None:
-                funcname = _addNamePrefix(vw, ptrname, ptrva, 'ptr', '_')
+                funcname = vw._addNamePrefix(ptrname, ptrva, 'ptr', '_')
 
     elif loctup[vivisect.L_LTYPE] != vivisect.LOC_IMPORT:
         logger.warn("0x%x: (0x%x)  %r != %r (%r)" % (funcva, opval, loctup[vivisect.L_LTYPE], vivisect.LOC_IMPORT, funcname))
@@ -143,36 +143,3 @@ def analyzeFunction(vw, funcva):
 
     logger.info('makeFunctionThunk(0x%x, "plt_%s")', funcva, funcname)
     vw.makeFunctionThunk(funcva, "plt_" + funcname, addVa=False)
-
-
-def _getNameParts(vw, name, va):
-    fpart = None
-    npart = name
-    vapart = None
-    fname = vw.getFileByVa(va)
-    if name.startswith(fname + '.'):
-        fpart, npart = name.split('.', 1)
-    elif name.startswith('*.'):
-        skip, npart = name.split('.', 1)
-
-    if npart.endswith('_%.8x' % va):
-        npart, vapart = npart.rsplit('_', 1)
-
-    return fpart, npart, vapart
-
-
-def _addNamePrefix(vw, name, va, prefix, joinstr=''):
-    fpart, npart, vapart = _getNameParts(vw, name, va)
-    if fpart is None and vapart is None:
-        name = joinstr.join([prefix, npart])
-
-    elif vapart is None:
-        name = fpart + '.' + joinstr.join([prefix, npart])
-
-    elif fpart is None:
-        name = joinstr.join([prefix, npart])
-
-    else:
-        name = fpart + '.' + joinstr.join([prefix, npart]) + '_%s' % vapart
-    logger.debug('addNamePrefix: %r %r %r -> %r', fpart, npart, vapart, name)
-    return name
