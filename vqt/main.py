@@ -5,7 +5,12 @@ import traceback
 from Queue import Queue
 from threading import currentThread
 
-from PyQt4 import QtCore, QtGui
+try:
+    from PyQt5 import QtCore
+    from PyQt5.QtWidgets import *
+except:
+    from PyQt4 import QtCore
+    from PyQt4.QtGui import *
 
 import envi.threads as e_threads
 
@@ -131,12 +136,12 @@ class QEventThread(QtCore.QThread):
             except Exception, e:
                 print('vqt event thread: %s' % e)
 
-class VQApplication(QtGui.QApplication):
+class VQApplication(QApplication):
 
     guievents = QtCore.pyqtSignal(str,object)
 
     def __init__(self, *args, **kwargs):
-        QtGui.QApplication.__init__(self, *args, **kwargs)
+        QApplication.__init__(self, *args, **kwargs)
         self.vqtchans = {}
 
     def callFromQtLoop(self, callback, args, kwargs):
@@ -158,7 +163,10 @@ def workerThread():
                 if func == None:
                     return
 
-                func(*args,**kwargs)
+                try:
+                    func(*args,**kwargs)
+                except:
+                    sys.excepthook(*sys.exc_info())
 
         except Exception, e:
             print('vqt worker warning: %s' % e)
@@ -203,10 +211,10 @@ def vqtevent(event,einfo):
     info context.
     '''
     global qapp
-    qapp.guievents.emit(event,einfo)
+    qapp.guievents.emit(event, einfo)
     chan = qapp.vqtchans.get(event)
-    if chan != None:
-        chan.guievents.emit(event,einfo)
+    if chan is not None:
+        chan.guievents.emit(event, einfo)
 
 def vqtconnect(callback, event=None):
     '''
@@ -218,12 +226,12 @@ def vqtconnect(callback, event=None):
     of the specified type.
     '''
     global qapp
-    if event == None:
-        qapp.guievents.connect( callback )
+    if event is None:
+        qapp.guievents.connect(callback)
         return
-        
+
     chan = qapp.vqtchans.get(event)
-    if chan == None:
+    if chan is None:
         chan = QEventChannel()
         qapp.vqtchans[event] = chan
 
@@ -242,8 +250,21 @@ def vqtdisconnect(callback, event=None):
     if event == None:
         qapp.guievents.disconnect( callback )
         return
-        
+
     chan = qapp.vqtchans.get(event)
     if chan != None:
         chan.guievents.disconnect(callback)
+
+def getOpenFileName(*args, **kwargs):
+        fname = QFileDialog.getOpenFileName(*args, **kwargs)
+        if type(fname) == tuple:
+            return fname[0]
+        return fname
+
+def getSaveFileName(*args, **kwargs):
+        fname = QFileDialog.getSaveFileName(*args, **kwargs)
+        if type(fname) == tuple:
+            return fname[0]
+        return fname
+
 

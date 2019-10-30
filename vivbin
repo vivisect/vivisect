@@ -1,21 +1,27 @@
 #!/usr/bin/env python
-
-import os
 import imp
 import sys
 import time
-import inspect
 import cProfile
 import argparse
-import threading
-import traceback
+import logging
 
-
-import vivisect
 import vivisect.cli as viv_cli
 import envi.config as e_config
 import envi.threads as e_threads
 import vivisect.parsers as viv_parsers
+
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s:%(levelname)s:%(name)s: %(message)s')
+logger = logging.getLogger()
+
+loglevels = (
+    logging.CRITICAL,
+    logging.ERROR,
+    logging.WARN,
+    logging.INFO,
+    logging.DEBUG
+)
+
 
 def main():
     parser = argparse.ArgumentParser(prog='vivbin', usage='%(prog)s [options] <workspace|binaries...>')
@@ -33,36 +39,37 @@ def main():
                         help='Manually specify the parser module (pe/elf/blob/...)')
     parser.add_argument('-s', '--storage', dest='storage_name', default=None, action='store',
                         help='Specify a storage module by name')
-    parser.add_argument('-v', '--verbose', dest='verbose', default=False, action='store_true',
-                        help='Enable verbose mode')
+    parser.add_argument('-v', '--verbose', dest='verbose', default=False, action='count',
+                        help='Enable verbose mode (multiples matter: -vvvv)')
     parser.add_argument('-V', '--version', dest='version', default=None, action='store',
                         help='Add file version (if available) to save file name')
     parser.add_argument('file', nargs='*')
     args = parser.parse_args()
 
     vw = viv_cli.VivCli()
-    vw.verbose = args.verbose
+
+    # setup logging
+    vw.verbose = min(args.verbose, 4)
+    logger.setLevel(loglevels[vw.verbose])
 
     if args.option is not None:
-        if args.option in ('-h','?'):
-            print(vw.config.reprConfigPaths())
+        if args.option in ('-h', '?'):
+            logger.critical(vw.config.reprConfigPaths())
             sys.exit(-1)
 
         try:
             vw.config.parseConfigOption(args.option)
-        except e_config.ConfigNoAssignment, e:
-            print(vw.config.reprConfigPaths() + "\n")
-            print(e)
-            print("syntax: \t-O <secname>.<optname>=<optval> (optval must be json syntax)")
+        except e_config.ConfigNoAssignment as e:
+            logger.critical(vw.config.reprConfigPaths() + "\n")
+            logger.critical(e)
+            logger.critical("syntax: \t-O <secname>.<optname>=<optval> (optval must be json syntax)")
             sys.exit(-1)
 
-        except Exception, e:
-            print(vw.config.reprConfigPaths())
-            print("With entry: %s" % args.option)
-            print(e)
+        except Exception as e:
+            logger.critical(vw.config.reprConfigPaths())
+            logger.critical("With entry: %s" % args.option)
+            logger.critical(e)
             sys.exit(-1)
-
-
 
     if args.storage_name is not None:
         vw.setMeta("StorageModule", args.storage_name)
@@ -75,7 +82,7 @@ def main():
     needanalyze = False
     if args.file is not None:
         for fname in args.file:
-            if args.parsemod == None:
+            if args.parsemod is None:
                 args.parsemod = viv_parsers.guessFormatFilename(fname)
 
             start = time.time()
@@ -86,7 +93,7 @@ def main():
                 vw.loadFromFile(fname, fmtname=args.parsemod)
 
             end = time.time()
-            print('Loaded (%.4f sec) %s' % (end - start, fname))
+            logger.info('Loaded (%.4f sec) %s' % (end - start, fname))
 
     if args.bulk:
         if args.doanalyze:
@@ -96,14 +103,14 @@ def main():
                 start = time.time()
                 vw.analyze()
                 end = time.time()
-                print "ANALYSIS TIME: %s" % (end-start)
+                logger.debug("ANALYSIS TIME: %s" % (end-start))
 
         if args.modname is not None:
             module = imp.load_module("custom_analysis", file(modname, "rb"), modname, ('.py', 'U', 1))
             module.analyze(vw)
 
-        print('stats: %r' % (vw.getStats(),))
-        print("Saving workspace: %s" % (vw.getMeta('StorageName')))
+        logger.info('stats: %r' % (vw.getStats(),))
+        logger.info("Saving workspace: %s" % (vw.getMeta('StorageName')))
 
         vw.saveWorkspace()
 
@@ -118,14 +125,6 @@ def main():
 
         viv_qt_main.main(vw)
 
+
 if __name__ == '__main__':
-    try:
-        # psyco makes disasm much faster (2-3X)
-        import psyco
-        #psyco.log()
-        psyco.full()
-    except ImportError:
-        pass
-
     main()
-

@@ -137,4 +137,3 @@ class Amd64Emulator(Amd64RegisterContext, e_i386.IntelEmulator):
     i_movntps = e_i386.IntelEmulator.i_mov
     i_movntdq = e_i386.IntelEmulator.i_mov
     i_movntdqa = e_i386.IntelEmulator.i_mov
-

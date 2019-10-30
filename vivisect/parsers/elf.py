@@ -1,28 +1,32 @@
 import os
 import struct
+import logging
 
 import Elf
 import vivisect
 import vivisect.parsers as v_parsers
+import envi.bits as e_bits
 
 from vivisect.const import *
 
 from cStringIO import StringIO
 
-def parseFile(vw, filename):
+logger = logging.getLogger(__name__)
+
+def parseFile(vw, filename, baseaddr=None):
     fd = file(filename, 'rb')
     elf = Elf.Elf(fd)
-    return loadElfIntoWorkspace(vw, elf, filename=filename)
+    return loadElfIntoWorkspace(vw, elf, filename=filename, baseaddr=baseaddr)
 
-def parseBytes(vw, bytes):
+def parseBytes(vw, bytes, baseaddr=None):
     fd = StringIO(bytes)
     elf = Elf.Elf(fd)
-    return loadElfIntoWorkspace(vw, elf)
+    return loadElfIntoWorkspace(vw, elf, baseaddr=baseaddr)
 
-def parseFd(vw, fd, filename=None):
+def parseFd(vw, fd, filename=None, baseaddr=None):
     fd.seek(0)
     elf = Elf.Elf(fd)
-    return loadElfIntoWorkspace(vw, elf, filename=filename)
+    return loadElfIntoWorkspace(vw, elf, filename=filename, baseaddr=baseaddr)
 
 def parseMemory(vw, memobj, baseaddr):
     raise Exception('FIXME implement parseMemory for elf!')
@@ -77,6 +81,7 @@ arch_names = {
     Elf.EM_386:'i386',
     Elf.EM_X86_64:'amd64',
     Elf.EM_MSP430:'msp430',
+    Elf.EM_ARM_AARCH64:'aarch64',
 }
 
 archcalls = {
@@ -85,10 +90,10 @@ archcalls = {
     'arm':'armcall',
 }
 
-def loadElfIntoWorkspace(vw, elf, filename=None):
+def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
 
     arch = arch_names.get(elf.e_machine)
-    if arch == None:
+    if arch is None:
        raise Exception("Unsupported Architecture: %d\n", elf.e_machine)
 
     platform = elf.getPlatform()
@@ -101,16 +106,18 @@ def loadElfIntoWorkspace(vw, elf, filename=None):
     vw.setMeta('DefaultCall', archcalls.get(arch,'unknown'))
 
     vw.addNoReturnApi("*.exit")
+    vw.addNoReturnApi("*.abort")
 
     # Base addr is earliest section address rounded to pagesize
     # NOTE: This is only for prelink'd so's and exe's.  Make something for old style so.
     addbase = False
     if not elf.isPreLinked() and elf.isSharedObject():
         addbase = True
-    baseaddr = elf.getBaseAddress()
+    if baseaddr is None:
+        baseaddr = elf.getBaseAddress()
 
     #FIXME make filename come from dynamic's if present for shared object
-    if filename == None:
+    if filename is None:
         filename = "elf_%.8x" % baseaddr
 
     fhash = "unknown hash"
@@ -129,14 +136,17 @@ def loadElfIntoWorkspace(vw, elf, filename=None):
 
     for pgm in pgms:
         if pgm.p_type == Elf.PT_LOAD:
-            if vw.verbose: vw.vprint('Loading: %s' % (repr(pgm)))
+            if vw.verbose:
+                vw.vprint('Loading: %s' % (repr(pgm)))
             bytez = elf.readAtOffset(pgm.p_offset, pgm.p_filesz)
             bytez += "\x00" * (pgm.p_memsz - pgm.p_filesz)
             pva = pgm.p_vaddr
-            if addbase: pva += baseaddr
-            vw.addMemoryMap(pva, pgm.p_flags & 0x7, fname, bytez) #FIXME perms
+            if addbase:
+                pva += baseaddr
+            vw.addMemoryMap(pva, pgm.p_flags & 0x7, fname, bytez)  # FIXME perms
         else:
-            if vw.verbose: vw.vprint('Skipping: %s' % repr(pgm))
+            if vw.verbose:
+                vw.vprint('Skipping: %s' % repr(pgm))
 
     if len(pgms) == 0:
         # fall back to loading sections as best we can...
@@ -221,7 +231,7 @@ def loadElfIntoWorkspace(vw, elf, filename=None):
             makeRelocTable(vw, sva, sva+size, addbase, baseaddr)
 
         if sec.sh_flags & Elf.SHF_STRINGS:
-            print "FIXME HANDLE SHF STRINGS"
+            print("FIXME HANDLE SHF STRINGS")
 
     # Let pyelf do all the stupid string parsing...
     for r in elf.getRelocs():
@@ -273,14 +283,14 @@ def loadElfIntoWorkspace(vw, elf, filename=None):
             try:
                 vw.addExport(sva, EXP_FUNCTION, s.name, fname)
                 vw.addEntryPoint(sva)
-            except Exception, e:
+            except Exception as e:
                 vw.vprint('addExport Failure: %s' % e)
 
         elif stype == Elf.STT_OBJECT:
             if vw.isValidPointer(sva):
                 try:
                     vw.addExport(sva, EXP_DATA, s.name, fname)
-                except Exception, e:
+                except Exception as e:
                     vw.vprint('WARNING: %s' % e)
 
         elif stype == Elf.STT_HIOS:
@@ -292,7 +302,7 @@ def loadElfIntoWorkspace(vw, elf, filename=None):
                 try:
                     vw.addExport(sva, EXP_FUNCTION, s.name, fname)
                     vw.addEntryPoint(sva)
-                except Exception, e:
+                except Exception as e:
                     vw.vprint('WARNING: %s' % e)
 
         elif stype == 14:# OMG WTF FUCK ALL THIS NONSENSE! FIXME
@@ -303,7 +313,7 @@ def loadElfIntoWorkspace(vw, elf, filename=None):
             if vw.isValidPointer(sva):
                 try:
                     vw.addExport(sva, EXP_DATA, s.name, fname)
-                except Exception, e:
+                except Exception as e:
                     vw.vprint('WARNING: %s' % e)
 
         else:
@@ -332,7 +342,7 @@ def loadElfIntoWorkspace(vw, elf, filename=None):
     if vw.isValidPointer(elf.e_entry):
         vw.addExport(elf.e_entry, EXP_FUNCTION, '__entry', fname)
         vw.addEntryPoint(elf.e_entry)
-        
+
     if vw.isValidPointer(baseaddr):
         vw.makeStructure(baseaddr, "elf.Elf32")
 

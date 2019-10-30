@@ -1,9 +1,12 @@
 import Queue
+import logging
 import traceback
 import threading
+import contextlib
 import collections
 
 import envi
+import envi.bits as e_bits
 import envi.memory as e_mem
 import envi.pagelookup as e_page
 import envi.codeflow as e_codeflow
@@ -22,6 +25,8 @@ from envi.threads import firethread
 from vivisect.exc import *
 from vivisect.const import *
 
+logger = logging.getLogger(__name__)
+
 """
 Mostly this is a place to scuttle away some of the inner workings
 of a workspace, so the outer facing API is a little cleaner.
@@ -31,7 +36,7 @@ class VivEventCore(object):
     A class to facilitate event monitoring in the viv workspace.
     '''
 
-    def __init__(self, vw):
+    def __init__(self, vw=None, **kwargs):
         self._ve_vw = vw
         self._ve_ehand = [None for x in xrange(VWE_MAX)]
         self._ve_thand = [None for x in xrange(VTE_MAX)]
@@ -91,7 +96,10 @@ class VivEventDist(VivEventCore):
     Similar to an event core, but does optimized distribution
     to a set of sub eventcore objects (think GUI windows...)
     '''
-    def __init__(self, vw):
+    def __init__(self, vw=None, **kwargs):
+        if vw == None:
+            raise Exception("VivEventDist requires a vw argument")
+
         VivEventCore.__init__(self, vw)
         self._ve_subs = [ [] for x in xrange(VWE_MAX) ]
         self._ve_tsubs = [ [] for x in xrange(VTE_MAX) ]
@@ -144,7 +152,7 @@ class VivEventDist(VivEventCore):
 def ddict():
     return collections.defaultdict(dict)
 
-class VivWorkspaceCore(object,viv_impapi.ImportApi):
+class VivWorkspaceCore(object, viv_impapi.ImportApi):
 
     def __init__(self):
         viv_impapi.ImportApi.__init__(self)
@@ -188,6 +196,12 @@ class VivWorkspaceCore(object,viv_impapi.ImportApi):
         '''
         self._event_saved = len(self._event_list)
 
+    @contextlib.contextmanager
+    def getAdminRights(self):
+        self._supervisor = True
+        yield
+        self._supervisor = False
+
     def _handleADDLOCATION(self, loc):
         lva, lsize, ltype, linfo = loc
         self.locmap.setMapLookup(lva, lsize, loc)
@@ -209,8 +223,37 @@ class VivWorkspaceCore(object,viv_impapi.ImportApi):
         self.segments.append(einfo)
 
     def _handleADDRELOC(self, einfo):
-        self.reloc_by_va[einfo[0]] = einfo[1]
+        if len(einfo) == 2:     # FIXME: legacy: remove after 02/13/2020
+            rva, rtype = einfo
+            mmva, mmsz, mmperm, fname = self.getMemoryMap(rva)    # FIXME: getFileByVa does not obey file defs
+            imgbase = self.getFileMeta(fname, 'imagebase')
+            data = None
+            einfo = fname, rva-imgbase, rtype, data
+        else:
+            fname, ptroff, rtype, data = einfo
+            imgbase = self.getFileMeta(fname, 'imagebase')
+            rva = imgbase + ptroff
+
+        self.reloc_by_va[rva] = rtype
         self.relocations.append(einfo)
+
+        # RTYPE_BASERELOC assumes the memory is already accurate (eg. PE's unless rebased)
+
+        if rtype == RTYPE_BASEOFF:
+            # add imgbase and offset to pointer in memory
+            # 'data' arg must be 'offset' number
+            ptr = imgbase + data
+            if ptr != (ptr & e_bits.u_maxes[self.psize]):
+                logger.warn('RTYPE_BASEOFF calculated a bad pointer: 0x%x (imgbase: 0x%x)', ptr, imgbase)
+
+            # writes are costly, especially on larger binaries
+            if ptr == self.readMemoryPtr(rva):
+                return
+
+            with self.getAdminRights():
+                self.writeMemoryPtr(rva, ptr)
+
+            #logger.info('_handleADDRELOC: %x -> %x (map: 0x%x)', rva, ptr, imgbase)
 
     def _handleADDMODULE(self, einfo):
         print('DEPRICATED (ADDMODULE) ignored: %s' % einfo)
@@ -246,11 +289,27 @@ class VivWorkspaceCore(object,viv_impapi.ImportApi):
                 mcb(va, name, value)
 
     def _handleDELFUNCTION(self, einfo):
-        self.funcmeta.pop(einfo)
-        self.func_args.pop(einfo, None)
-        self.codeblocks_by_funcva.pop(einfo)
-        node = self._call_graph.getNode(einfo)
+        # clear funcmeta, func_args, codeblocks_by_funcva, update codeblocks, blockgraph, locations, etc...
+        fva = einfo
+        blocks = self.getFunctionBlocks(fva)
+
+        # not every codeblock identifying as this function is stored in funcmeta
+        for cb in self.getCodeBlocks():
+            if cb[CB_FUNCVA] == fva:
+                self._handleDELCODEBLOCK(cb)
+
+        self.funcmeta.pop(fva)
+        self.func_args.pop(fva, None)
+        self.codeblocks_by_funcva.pop(fva)
+        node = self._call_graph.getNode(fva)
         self._call_graph.delNode(node)
+        self.cfctx.flushFunction(fva)
+
+        # FIXME: do we want to now seek the function we *should* be in?  
+        # if xrefs_to, look for non-PROC code xrefs and take their function
+        # if the previous instruction falls through, take its function
+        # run codeblock analysis on that function to reassociate the blocks
+        # with that function
 
     def _handleSETFUNCMETA(self, einfo):
         funcva, name, value = einfo
@@ -345,8 +404,8 @@ class VivWorkspaceCore(object,viv_impapi.ImportApi):
 
     def _handleCOMMENT(self, einfo):
         va,comment = einfo
-        if comment == None:
-            self.comments.pop(va)
+        if comment is None:
+            self.comments.pop(va, None)
         else:
             self.comments[va] = comment
 
@@ -600,7 +659,6 @@ class VivWorkspaceCore(object,viv_impapi.ImportApi):
         fva,spdelta,symtype,syminfo = locsym
         self.localsyms[fva][spdelta] = locsym
 
-
 def trackDynBranches(cfctx, op, vw, bflags, branches):
     '''
     track dynamic branches
@@ -615,7 +673,8 @@ def trackDynBranches(cfctx, op, vw, bflags, branches):
     if len(vw.getXrefsFrom(op.va)):
         return
 
-    if vw.verbose: print "Dynamic Branch found at 0x%x    %s" % (op.va, op)
+    if vw.verbose:
+        print("Dynamic Branch found at 0x%x    %s" % (op.va, op))
     vw.setVaSetRow('DynamicBranches', (op.va, repr(op), bflags))
 
 class VivCodeFlowContext(e_codeflow.CodeFlowContext):
@@ -643,7 +702,7 @@ class VivCodeFlowContext(e_codeflow.CodeFlowContext):
     def _cb_opcode(self, va, op, branches):
 
         loc = self._mem.getLocation(va)
-        if loc  == None: 
+        if loc is None:
 
             # dont code flow through import calls
             branches = [br for br in branches if not self._mem.isLocType(br[0],LOC_IMPORT)]
@@ -675,7 +734,7 @@ class VivCodeFlowContext(e_codeflow.CodeFlowContext):
             fmod = vw.fmods.get(fmname)
             try:
                 fmod.analyzeFunction(vw, fva)
-            except Exception, e:
+            except Exception as e:
                 if vw.verbose:
                     traceback.print_exc()
                 vw.verbprint("Function Analysis Exception for 0x%x   %s: %s" % (fva, fmod.__name__, e))
@@ -703,6 +762,6 @@ class VivCodeFlowContext(e_codeflow.CodeFlowContext):
 
         if self._mem.getLocation(tableva) == None:
             self._mem.makePointer(tableva, tova=destva, follow=False)
-    
+
         return True
 
