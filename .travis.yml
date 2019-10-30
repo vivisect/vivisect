@@ -5,7 +5,7 @@ env:
     - VIVTESTFILES=/tmp/vivtestfiles
 
 sudo: required
-dist: trusty
+dist: bionic
 
 language: python
 
@@ -17,5 +17,6 @@ install:
     - git clone https://github.com/vivisect/vivtestfiles.git /tmp/vivtestfiles
     - "travis_retry sudo apt-get -qq install libfreetype6-dev liblcms2-dev python-qt4 ghostscript libffi-dev libjpeg-turbo-progs cmake imagemagick"
     - pip install msgpack-python
+    - pip install cxxfilt
 
 script: python -m unittest discover
