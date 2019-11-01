@@ -682,7 +682,7 @@ class SwitchCase:
         if None in (lower, upper): 
             logger.info("something odd in count/offset calculation... skipping 0x%x...", self.jmpva)
             return
-        return (upper-lower), offset+lower
+        return (upper-lower+1), offset+lower
 
 
     def getConstraints(self):
@@ -805,6 +805,10 @@ class SwitchCase:
 
 
     def getBounds(self):
+        '''
+        Determine the lower index, the upper index, and the offset.
+        lower and upper are inclusive.
+        '''
         if None not in (self.lower, self.upper, self.baseoff):
             return self.lower, self.upper, self.baseoff
 
@@ -936,7 +940,7 @@ class SwitchCase:
                         lower, upper, baseoff, self.jmpva)
                 return
 
-            count = upper - lower
+            count = upper - lower + 1
             if count > MAX_CASES:
                 logger.warn("too many switch cases during analysis: %d   limiting to %d", count, MAX_CASES)
                 count = MAX_CASES
@@ -1185,11 +1189,11 @@ Out[14]: o_add(Mem(o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var(
             self.vw.addXref(va, addr, REF_DATA)
 
             if sz == self.vw.psize and self.vw.isValidPointer(tgt):
-                for count in range(upper-lower):
+                for count in range(upper-lower+1):
                     self.vw.makePointer(addr + (sz*count))
 
             else:
-                for count in range(upper-lower):
+                for count in range(upper-lower+1):
                     self.vw.makeNumber(addr + (sz*count), sz)
 
 
@@ -1215,7 +1219,7 @@ Out[14]: o_add(Mem(o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var(
         #workJmpTgt = jmptgt.update(emu=symemu)
 
 
-        for idx in range(lower-offset, upper-offset):
+        for idx in range(lower-offset, upper-offset+1):
             symemu.setSymVariable(symidx, Const(idx, 8))
             workJmpTgt = jmptgt.update(emu=symemu)
             coderef = workJmpTgt.solve(emu=symemu, vals={symidx:idx})
