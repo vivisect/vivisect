@@ -767,13 +767,13 @@ class SwitchCase:
                 #return None, None, None
                 continue
             
-            if cons._v2.symtype == SYMT_CONST:
-                symvar = cons._v1
-                symcmp = cons._v2
+            if cons.kids[1].symtype == SYMT_CONST:
+                symvar = cons.kids[0]
+                symcmp = cons.kids[1]
             
-            elif cons._v1.symtype == SYMT_CONST:
-                symcmp = cons._v1
-                symvar = cons._v2
+            elif cons.kids[0].symtype == SYMT_CONST:
+                symcmp = cons.kids[0]
+                symvar = cons.kids[1]
             
             else:
                 # neither side of the constraint is a CONST.  this constraint does 
@@ -907,6 +907,7 @@ class SwitchCase:
 
         # only support branching switch-cases (ie, not calls)
         if not (self.op.iflags & envi.IF_BRANCH):
+            logger.info("makeSwitch: exiting: not a branch opcode: 0x%x: %r", self.op.va, self.op)
             return
 
         if len(vw.getXrefsFrom(self.jmpva)):
