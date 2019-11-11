@@ -13,6 +13,7 @@ import string
 import struct
 import weakref
 import hashlib
+import logging
 import itertools
 import traceback
 import threading
@@ -50,6 +51,7 @@ from vivisect.defconfig import *
 
 import vivisect.analysis.generic.emucode as v_emucode
 
+logger = logging.getLogger(__name__)
 STOP_LOCS = (LOC_STRING, LOC_UNI, LOC_STRUCT, LOC_CLSID, LOC_VFTABLE, LOC_IMPORT, LOC_PAD, LOC_NUMBER)
 
 
@@ -149,6 +151,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         self.addVaSet("Emulation Anomalies", (("va", VASET_ADDRESS), ("Message", VASET_STRING)))
         self.addVaSet("Bookmarks", (("va", VASET_ADDRESS), ("Bookmark Name", VASET_STRING)))
         self.addVaSet('DynamicBranches', (('va', VASET_ADDRESS), ('opcode', VASET_STRING), ('bflags', VASET_INTEGER)))
+        self.addVaSet('PointersFromFile', (('va', VASET_ADDRESS), ('target', VASET_ADDRESS), ('file', VASET_STRING), ('comment', VASET_STRING), ))
 
     def verbprint(self, msg):
         if self.verbose:
@@ -434,6 +437,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         mod = self.loadModule(modname)
         self.amods[modname] = mod
         self.amodlist.append(modname)
+        logger.debug('Adding Analysis Module: %s', modname)
 
     def delAnalysisModule(self, modname):
         """
@@ -460,6 +464,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         mod = self.loadModule(modname)
         self.fmods[modname] = mod
         self.fmodlist.append(modname)
+        logger.debug('Adding Function Analysis Module: %s', modname)
 
     def delFuncAnalysisModule(self, modname):
         '''
@@ -634,6 +639,17 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
         return False
 
+    def processEntryPoints(self):
+        '''
+        Roll through EntryPoints and make them into functions (if not already)
+        '''
+        for eva in self.getEntryPoints():
+            if self.isFunction(eva):
+                continue
+            if not self.probeMemory(eva, 1, e_mem.MM_EXEC):
+                continue
+            self.makeFunction(eva)
+
     def analyze(self):
         """
         Call this to ask any available analysis modules
@@ -645,14 +661,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             self.vprint('...analyzing exports.')
 
         starttime = time.time()
-        for eva in self.getEntryPoints():
-            if self.isFunction(eva):
-                continue
-            if not self.probeMemory(eva, 1, e_mem.MM_EXEC):
-                continue
-            self.makeFunction(eva)
-
-        # Now lets engage any extended analysis modules.  If any modules return
+        # Now lets engage any analysis modules.  If any modules return
         # true, they managed to change things and we should run again...
         for mname in self.amodlist:
             mod = self.amods.get(mname)
@@ -751,13 +760,24 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         """
         return list(self.exports)
 
-    def addExport(self, va, etype, name, filename):
+    def addExport(self, va, etype, name, filename, makeuniq=False):
         """
         Add an already created export object.
+        
+        makeuniq allows Vivisect to append some number to make the name unique.
+        This behavior allows for colliding names (eg. different versions of a function)
+        to coexist in the same workspace.
         """
         rname = "%s.%s" % (filename,name)
-        if self.vaByName(rname) != None:
-            raise Exception("Duplicate Name: %s" % rname)
+
+        # check if it exists and is *not* what we're trying to make it
+        curval = self.vaByName(rname)
+
+        if curval != None and curval != va and not makeuniq:
+            # if we don't force it to make a uniq name, bail
+            raise Exception("Duplicate Name: %s => 0x%x  (cur: 0x%x)" % (rname, va, curval))
+
+        rname = self.makeName(va, rname, makeuniq=makeuniq)
         self._fireEvent(VWE_ADDEXPORT, (va,etype,name,filename))
 
     def getExport(self, va):
@@ -834,6 +854,8 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
                 loc = self.getLocation(va+count)
                 if loc is not None:
                     if loc[L_LTYPE] == LOC_STRING:
+                        if loc[L_VA] == va:
+                            return loc[L_SIZE]
                         return loc[L_VA] - (va + count) + loc[L_SIZE]
                     return -1
 
@@ -1420,7 +1442,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             ret = []
         return ret
 
-    def makeFunctionThunk(self, fva, thname):
+    def makeFunctionThunk(self, fva, thname, addVa=True):
         """
         Inform the workspace that a given function is considered a "thunk" to another.
         This allows the workspace to process argument inheritance and several other things.
@@ -1432,7 +1454,11 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         n = self.getName(fva)
 
         base = thname.split(".")[-1]
-        self.makeName(fva, "%s_%.8x" % (base,fva))
+        if addVa:
+            name = "%s_%.8x" % (base,fva)
+        else:
+            name = base
+        self.makeName(fva, name, makeuniq=True)
 
         api = self.getImpApi(thname)
         if api:
@@ -1737,6 +1763,11 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         parsed out the pointers value, you may specify tova to speed things
         up.
         """
+        loctup = self.getLocation(va)
+        if loctup is not None:
+            logger.warn("0x%x: Attempting to make a Pointer where another location object exists (of type %r)", va, loctup[L_LTYPE])
+            return None
+
         psize = self.psize
 
         # Get and document the xrefs created for the new location
@@ -1836,9 +1867,9 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         and will not create one (use makeStructure).
         """
         s = vstruct.getStructure(vstructname)
-        if s == None:
+        if s is None:
             s = self.vsbuilder.buildVStruct(vstructname)
-        if s != None:
+        if s is not None:
             bytes = self.readMemory(va, len(s))
             s.vsParse(bytes)
         return s
@@ -2147,11 +2178,17 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         name = "%s%s%s" % (basename, pom, hex(delta))
         return name
 
-    def makeName(self, va, name, filelocal=False):
+    def makeName(self, va, name, filelocal=False, makeuniq=False):
         """
         Set a readable name for the given location by va. There
         *must* be a Location defined for the VA before you may name
         it.  You may set a location's name to None to remove a name.
+
+        makeuniq allows Vivisect to append some number to make the name unique.
+        This behavior allows for colliding names (eg. different versions of a function)
+        to coexist in the same workspace.  
+
+        default behavior is to fail on duplicate (False).
         """
         if filelocal:
             segtup = self.getSegment(va)
@@ -2168,9 +2205,21 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             return
 
         if oldva != None:
-            raise DuplicateName(oldva, va, name)
+            if not makeuniq:
+                raise DuplicateName(oldva, va, name)
+
+            else:
+                # tack a number on the end
+                index = 0
+                newname = "%s_%d" % (name, index)
+                while self.vaByName(newname) not in (None, newname):
+                    index += 1
+                    newname = "%s_%d" % (name, index)
+
+                name = newname
 
         self._fireEvent(VWE_SETNAME, (va,name))
+        return name
 
     def saveWorkspace(self, fullsave=True):
 
@@ -2574,6 +2623,56 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         Return the colormap dictionary for the given map name.
         """
         return self.colormaps.get(mapname)
+
+    def _getNameParts(self, name, va):
+        '''
+        Return the given name in three parts: 
+        fpart: filename, if applicable (for file-local names)
+        npart: base name
+        vapart: address, if tacked on the end
+
+        If any of these are not applicable, they will return None for that field.
+        '''
+        fpart = None
+        npart = name
+        vapart = None
+        fname = self.getFileByVa(va)
+        vastr = '_%.8x' % va
+
+        if name.startswith(fname + '.'):
+            fpart, npart = name.split('.', 1)
+        elif name.startswith('*.'):
+            skip, npart = name.split('.', 1)
+
+        if npart.endswith(vastr) and not npart == 'sub' + vastr:
+            npart, vapart = npart.rsplit('_', 1)
+
+        return fpart, npart, vapart
+
+
+    def _addNamePrefix(self, name, va, prefix, joinstr=''):
+        '''
+        Add a prefix to the given name paying attention to the filename prefix, and 
+        any VA suffix which may exist.
+
+        This is used by multiple analysis modules.
+        Uses _getNameParts.
+        '''
+        fpart, npart, vapart = self._getNameParts(name, va)
+        if fpart is None and vapart is None:
+            name = joinstr.join([prefix, npart])
+
+        elif vapart is None:
+            name = fpart + '.' + joinstr.join([prefix, npart])
+
+        elif fpart is None:
+            name = joinstr.join([prefix, npart])
+
+        else:
+            name = fpart + '.' + joinstr.join([prefix, npart]) + '_%s' % vapart
+        logger.debug('addNamePrefix: %r %r %r -> %r', fpart, npart, vapart, name)
+        return name
+
 
 ##########################################################
 #
