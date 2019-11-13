@@ -230,17 +230,18 @@ class VivCli(e_cli.EnviCli, vivisect.VivWorkspace):
             return self.do_help('xrefs')
 
         va = self.parseExpression(argv[0])
-        if options.xrto:
-            self.vprint('Xrefs To: {}'.format(va))
-            for xrfr, xrto, rtype, rflags in self.getXrefsTo(va):
-                tname = ref_type_names.get(rtype, 'Unknown')
-                self.vprint('\tFrom: {}, To: {}, Type: {}, Flags: {}'. format(xrfr, xrto, tname, rflags))
 
+        fptr = []
+        if options.xrto:
+            fptr.append(self.getXrefsTo)
         if options.xrfrom:
-            self.vprint('Xrefs From: {}'.format(va))
-            for xrfr, xrto, rtype, rflags in self.getXrefsFrom(va):
+            fptr.append(self.getXrefsFrom)
+
+        for func in fptr:
+            for xrfr, xrto, rtype, rflags in func(va):
                 tname = ref_type_names.get(rtype, 'Unknown')
-                self.vprint('\tFrom: {}, To: {}, Type: {}, Flags: {}'. format(xrfr, xrto, tname, rflags))
+                self.vprint('\tFrom: {}, To: {}, Type: {}, Flags: {}'. format(hex(xrfr), hex(xrto), tname, hex(rflags)))
+
 
     def do_searchopcodes(self, line):
         '''
