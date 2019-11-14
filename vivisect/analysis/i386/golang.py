@@ -22,9 +22,6 @@ def analyze(vw):
     '''
     # Make sure it is a PE file, with "Go build ID:" in the first few bytes
     # of the .text segment (versus a .upxN segment of a packed sample).
-    if (vw.getMeta('Format') != 'pe') and \
-       (vw.getMeta('Architecture') != 'i386'):
-        return
     has_go_build = False
     for segment in vw.getSegments():
         va, size, name, filename = segment
@@ -52,12 +49,11 @@ def analyze(vw):
         return
 
     # Invoke codeflow on runtime_main().
+    vw.addEntryPoint(runtime_va)
     vw.makeFunction(runtime_va)
 
     # Also mark the ptr_va as a pointer to runtime_va.
     vw.makePointer(ptr_va, tova=runtime_va)
-
-    return
 
 
 def extract_golang_mainmain(vw, basic_blocks, filename):
@@ -69,9 +65,9 @@ def extract_golang_mainmain(vw, basic_blocks, filename):
     The push instruction -5 from the end will load the contents of a memory
     address, and those contents are the runtime_main() address.
     '''
-    op = find_golang_bblock_1(vw, basic_blocks, filename)
+    op = find_golang_bblock(vw, basic_blocks, filename)
     if op is None:
-        op = find_golang_bblock_2(vw, filename)
+        op = find_golang_bblock_via_stack(vw, filename)
         if op is None:
             return None, None
 
@@ -86,7 +82,7 @@ _GOLANG_I386_INSTRS = ['cld', 'call', 'mov', 'mov', 'mov', 'mov', 'call',
                        'call', 'call', 'push', 'push', 'call', 'pop', 'pop']
 
 
-def find_golang_bblock_1(vw, basic_blocks, filename):
+def find_golang_bblock(vw, basic_blocks, filename):
     '''
     Find the basic block of interest and return the opcode where
     the special sequence of opcodes begins.  Return None if not found.
@@ -122,7 +118,7 @@ def find_golang_bblock_1(vw, basic_blocks, filename):
     return instrs[len(_GOLANG_I386_INSTRS) - 5]
 
 
-def find_golang_bblock_2(vw, filename):
+def find_golang_bblock_via_stack(vw, filename):
     '''
     Find the basic block of interest and return the address where
     the special sequence of opcodes begins.  Return None if not found.
@@ -139,7 +135,6 @@ def find_golang_bblock_2(vw, filename):
     basic_blocks = vw.getFunctionBlocks(ep_va)
     if len(basic_blocks) != 1:
         return None
-    next_va = basic_blocks[0][0]
     instrs = golang_collect_opcodes(vw, basic_blocks[0])
     if (len(instrs) < 2) or \
        (instrs[-1].mnem != 'ret') or \
@@ -156,7 +151,7 @@ def find_golang_bblock_2(vw, filename):
 
     # This function should contain the special basic block.
     basic_blocks = vw.getFunctionBlocks(ptr_va)
-    return find_golang_bblock_1(vw, basic_blocks, filename)
+    return find_golang_bblock(vw, basic_blocks, filename)
 
 
 def parse_push_imm(vw, opcode, filename, get_content=False):

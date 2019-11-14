@@ -23,9 +23,6 @@ def analyze(vw):
     '''
     # Make sure it is a PE file, with "Go build ID:" in the first few bytes
     # of the .text segment (versus a .upxN segment of a packed sample).
-    if (vw.getMeta('Format') != 'pe') and \
-       (vw.getMeta('Architecture') != 'amd64'):
-        return
     has_go_build = False
     for segment in vw.getSegments():
         va, size, name, filename = segment
@@ -41,34 +38,16 @@ def analyze(vw):
     # Search the entry point (public export) for the pointer to runtime_main().
     # Most GO executables have a single entry point, but some are more complex.
     ep = vw.getEntryPoints()
-    if len(ep) == 1:
-        ptr_va, runtime_va = golang_search_single_ep(vw, ep, filename)
-    else:
-        ptr_va, runtime_va = golang_search_multi_ep(vw, ep, filename)
+    ptr_va, runtime_va = golang_search_eps(vw, ep, filename)
     if runtime_va is None:
         return
 
     # Invoke codeflow on runtime_main().
+    vw.addEntryPoint(runtime_va)
     vw.makeFunction(runtime_va)
 
     # Also mark the ptr_va as a pointer to runtime_va.
     vw.makePointer(ptr_va, tova=runtime_va)
-
-    return
-
-
-def golang_search_single_ep(vw, ep , filename):
-    '''
-    The single GO entry point appears as a function with many basic blocks,
-    one of which is the call to runtime_main().
-    Return two pointers, or None, None if not found.
-    '''
-    ep_va = ep[0]
-    bblocks = vw.getFunctionBlocks(ep_va)
-    if not bblocks:
-        return None, None
-    ptr_va, runtime_va = extract_golang_mainmain(vw, bblocks, filename)
-    return ptr_va, runtime_va
 
 
 _GOLANG_AMD64_MEP1A_INSTRS \
@@ -81,14 +60,22 @@ _GOLANG_AMD64_MEP2A_INSTRS \
 _GOLANG_AMD64_MEP2B_INSTRS \
     = ['mov', 'mov', 'call', 'mov', 'mov', 'mov', 'mov', 'mov', 'mov',
        'call', 'mov', 'mov', 'test', 'jz']
-def golang_search_multi_ep(vw, ep , filename):
+def golang_search_eps(vw, ep , filename):
     '''
     Search over all entry points to find main(), and then look for the
     function that calls runtime_main().
     Return two pointers, or None, None if not found.
     '''
-    # The entry point must have a single basic block with a specific set of
-    # instructions.  One of the call instructions has the next function.
+    if len(ep) == 1:
+        ep_va = ep[0]
+        bblocks = vw.getFunctionBlocks(ep_va)
+        if not bblocks:
+            return None, None
+        ptr_va, runtime_va = extract_golang_mainmain(vw, bblocks, filename)
+        return ptr_va, runtime_va
+
+    # Look for an entry point with a single basic block with a specific set
+    # of instructions.  One of the call instructions has the next function.
     # There can be multiple candidate functions meeting this criteria.
     candidate_fns_1 = set()
     for next_ep in ep:
@@ -106,7 +93,7 @@ def golang_search_multi_ep(vw, ep , filename):
         opcode = instrs[-5]
         if not isinstance(opcode.opers[0],
                           envi.archs.i386.disasm.i386PcRelOper):
-            contine
+            continue
         try:
             candidate_fns_1.add(opcode.opers[0].getOperValue(opcode))
         except Exception:
@@ -133,7 +120,7 @@ def golang_search_multi_ep(vw, ep , filename):
             opcode = instrs[-5]
             if not isinstance(opcode.opers[0],
                               envi.archs.i386.disasm.i386PcRelOper):
-                contine
+                continue
             try:
                 candidate_fns_2.add(opcode.opers[0].getOperValue(opcode))
             except Exception:
@@ -143,7 +130,7 @@ def golang_search_multi_ep(vw, ep , filename):
     if len(candidate_fns_2) != 1:
         return None, None
 
-    ptr = list(candidate_fns_2)[0]
+    ptr = candidate_fns_2.pop()
 
     # Analyze the function at the pointer if necessary.
     if not vw.isFunction(ptr):
@@ -184,9 +171,9 @@ def extract_golang_mainmain(vw, basic_blocks, filename):
     The push instruction -6 from the end will load the contents of a memory
     address, and those contents are the runtime_main() address.
     '''
-    op = find_golang_bblock_1(vw, basic_blocks, filename)
+    op = find_golang_bblock(vw, basic_blocks, filename)
     if op is None:
-        op = find_golang_bblock_2(vw, filename)
+        op = find_golang_bblock_via_ind_jmp(vw, filename)
         if op is None:
             return None, None
 
@@ -201,7 +188,7 @@ _GOLANG_AMD64_INSTRS = ['cld', 'call', 'mov', 'mov', 'mov', 'mov', 'call',
                         'call', 'call', 'lea', 'push', 'push', 'call',
                         'pop', 'pop']
 
-def find_golang_bblock_1(vw, basic_blocks, filename):
+def find_golang_bblock(vw, basic_blocks, filename):
     '''
     Find the basic block of interest and return the opcode where
     the special sequence of opcodes begins.  Return None if not found.
@@ -237,7 +224,7 @@ def find_golang_bblock_1(vw, basic_blocks, filename):
     return instrs[len(_GOLANG_AMD64_INSTRS) - 6]
 
 
-def find_golang_bblock_2(vw, filename):
+def find_golang_bblock_via_ind_jmp(vw, filename):
     '''
     Find the basic block of interest and return the address where
     the special sequence of opcodes begins.  Return None if not found.
@@ -285,7 +272,7 @@ def find_golang_bblock_2(vw, filename):
 
     # This function should contain the special basic block.
     basic_blocks = vw.getFunctionBlocks(ptr_va)
-    return find_golang_bblock_1(vw, basic_blocks, filename)
+    return find_golang_bblock(vw, basic_blocks, filename)
 
 
 def parse_lea_raxriprel(vw, opcode, filename, get_content=False):
@@ -301,11 +288,11 @@ def parse_lea_raxriprel(vw, opcode, filename, get_content=False):
         return None, None
     try:
         ptr_va = opcode.opers[1].getOperValue(opcode)
-        if len(vw.readMemory(ptr_va, 4)) != 4:
+        if len(vw.readMemory(ptr_va, 8)) != 8:
             return None, None
         if get_content:
             runtime_va = vw.castPointer(ptr_va)
-            if len(vw.readMemory(runtime_va, 4)) != 4:
+            if len(vw.readMemory(runtime_va, 8)) != 8:
                 return None, None
         else:
             runtime_va = None
