@@ -215,7 +215,36 @@ class VivCli(e_cli.EnviCli, vivisect.VivWorkspace):
         -T Show xrefs *to* the given address
         -F Show xrefs *from* the given address (default)
         """
-        pass
+        parser = e_cli.VOptionParser()
+        parser.add_option('-T', action='store_true', dest='xrto')
+        parser.add_option('-F', action='store_true', dest='xrfrom')
+        argv = shlex.split(line)
+        try:
+            options, argv = parser.parse_args(argv)
+        except Exception as e:
+            self.vprint(repr(e))
+            return self.do_help('xrefs')
+
+        if len(argv) < 1:
+            self.vprint('Supply a va_expr')
+            return self.do_help('xrefs')
+
+        va = self.parseExpression(argv[0])
+
+        fptr = []
+        if options.xrto:
+            fptr.append(self.getXrefsTo)
+        if options.xrfrom:
+            fptr.append(self.getXrefsFrom)
+
+        for func in fptr:
+            for xrfr, xrto, rtype, rflags in func(va):
+                xrfr = hex(xrfr)
+                xrto = hex(xrto)
+                rflags = hex(rflags)
+                tname = ref_type_names.get(rtype, 'Unknown')
+                self.vprint('\tFrom: %s, To: %s, Type: %s, Flags: %s' % (xrfr, xrto, tname, rflags))
+
 
     def do_searchopcodes(self, line):
         '''
