@@ -68,7 +68,7 @@ amd64MultiByteOpcodes = [
     ('PMULLW (66)', '660faa41414141', 0x40, 'rsm ', 'rsm '),
     ('CMPXCH8B', '0fc70a', 0x40, 'cmpxch8b qword [rdx]', 'cmpxch8b qword [rdx]'),
     ('MOVD (66)',   '660f7ecb414141', 0x40, 'movd ebx,xmm1', 'movd ebx,xmm1'),
-    ('MOVD', '0F6E0D41414100', 0x40, 'movd mm1,[rip + 4276545]', 'movd mm1,dword [rip + 4276545]'),
+    ('MOVD', '0F6E0D41414100', 0x40, 'movd mm1,dword [rip + 4276545]', 'movd mm1,dword [rip + 4276545]'),
     ('MOVQ', '0F6FCB', 0x40, 'movq mm1,mm3', 'movq mm1,mm3'),
     ('PSRAW',  '0FE1CA4141', 0x40, 'psraw mm1,mm2', 'psraw mm1,mm2'),
     ('PSRLQ (66)',  '660FF3CB4141', 0x40, 'psllq xmm1,xmm3', 'psllq xmm1,xmm3'),
@@ -83,7 +83,7 @@ amd64MultiByteOpcodes = [
     # TODO: These require deeper fixes in the amd64 parser
     # ('PSRLW (66)',  '660F71D611', 0x40, 'psrlw xmm6,17', 'psrlw xmm6,17'),
     # ('PSRAD (66)',  '660F72E704', 0x40, 'psrad xmm7,4', 'psrad xmm7,4'),
-    # ('PSHUFB', '660F3800EF', 0x40, 'pshufb xmm5,xmm7', 'pshufb xmm5,xmm7'),
+    ('PSHUFB', '660F3800EF', 0x40, 'pshufb xmm5,xmm7', 'pshufb xmm5,xmm7'),
     # ('POPCNT', '66f30fb8c3', 0x40, 'popcnt ax,bx', 'popcnt ax,bx'),
     # ('', '', 0x40, '', ''),
 
@@ -99,14 +99,14 @@ amd64MultiByteOpcodes = [
 
     ('POPCNT', 'f30fb8c4', 0x40, 'popcnt eax,esp', 'popcnt eax,esp'),
     ('POPCNT', 'f3480fb8c4', 0x40, 'popcnt rax,rsp', 'popcnt rax,rsp'),
-    ('POPCNT', 'f30fb80541414100', 0x40, 'popcnt eax,dword [rip+0x00414141]', 'popcnt eax,dword [rip+0x00414141]'),
+    ('POPCNT', 'f30fb80541414100', 0x40, 'popcnt eax,dword [rip + 4276545]', 'popcnt eax,dword [rip + 4276545]'),
     ('LZCNT', 'f30fbdc4', 0x40, 'lzcnt eax,esp', 'lzcnt eax,esp'),
-    ('LZCNT', 'f30fbd0541414100', 0x40, 'lzcnt eax,dword [0x00414141]', 'lzcnt eax,dword [0x00414141]'),
+    ('LZCNT', 'f30fbd0541414100', 0x40, 'lzcnt eax,dword [rip + 4276545]', 'lzcnt eax,dword [rip + 4276545]'),
 
     ('MOVDQU', 'F30F6FCA', 0x40, 'movdqu xmm1,xmm2', 'movdqu xmm1,xmm2'),
-    ('MOVDQU (MEM)', 'F30F6F4810', 0x40, 'movdqu xmm1,oword [eax + 16]', 'movdqu xmm1,oword [eax + 16]'),
+    ('MOVDQU (MEM)', 'F30F6F4810', 0x40, 'movdqu xmm1,oword [rax + 16]', 'movdqu xmm1,oword [rax + 16]'),
     ('MOVDQU (REP)', 'F3F30F6FCA', 0x40, 'movdqu xmm1,xmm2', 'movdqu xmm1,xmm2'),
-    ('MOVSD', 'f20f100d28330608', 0x40, 'movsd xmm1,oword [0x08063328]', 'movsd xmm1,oword [0x08063328]'),
+    ('MOVSD', 'f20f100d28330608', 0x40, 'movsd xmm1,oword [rip + 134624040]', 'movsd xmm1,oword [rip + 134624040]'),
     ('MOVSD 2', 'f20f1145f0', 0x40, 'movsd oword [ebp - 16],xmm0', 'movsd oword [ebp - 16],xmm0'),
     ('MOVSD 3', 'f20f100d70790908', 0x40, 'movsd xmm1,oword [0x08097970]', 'movsd xmm1,oword [0x08097970]'),
     ('MOVSS', 'f30f1045f8', 0x40, 'movss xmm0,oword [ebp - 8]', 'movss xmm0,oword [ebp - 8]'),
@@ -202,11 +202,15 @@ class Amd64InstructionSet(unittest.TestCase):
             try:
                 op = self._arch.archParseOpcode(bytez.decode('hex'), 0, va)
             except envi.InvalidInstruction:
+                import pdb
+                pdb.set_trace()
                 self.fail("Failed to parse opcode bytes: %s (case: %s, expected: %s)" % (bytez, name, reprOp))
             # print("'%s', 0x%x, '%s' == '%s'" % (bytez, va, repr(op), reprOp))
             try:
                 self.assertEqual(repr(op), reprOp)
             except AssertionError:
+                import pdb
+                pdb.set_trace()
                 self.fail("Failing match for case %s (bytes: %s) (Got: %s, Expected: %s)" % (name, bytez, repr(op), reprOp))
             except Exception:
                 import pdb, sys

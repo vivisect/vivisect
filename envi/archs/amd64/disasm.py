@@ -154,7 +154,7 @@ class Amd64RipRelOper(envi.DerefOper):
         mcanv.addText("]")
 
     def repr(self, op):
-        return "[rip + %d]" % self.imm
+        return "%s [rip + %d]" % (e_i386.sizenames[self.tsize], self.imm)
 
 operands_index = 2
 vex_pp_table = ( (0xf,), (0x66,0xf), (0xf3,0xf), (0xf2,0xf) )
