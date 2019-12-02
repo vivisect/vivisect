@@ -215,7 +215,36 @@ class VivCli(e_cli.EnviCli, vivisect.VivWorkspace):
         -T Show xrefs *to* the given address
         -F Show xrefs *from* the given address (default)
         """
-        pass
+        parser = e_cli.VOptionParser()
+        parser.add_option('-T', action='store_true', dest='xrto')
+        parser.add_option('-F', action='store_true', dest='xrfrom')
+        argv = shlex.split(line)
+        try:
+            options, argv = parser.parse_args(argv)
+        except Exception as e:
+            self.vprint(repr(e))
+            return self.do_help('xrefs')
+
+        if len(argv) < 1:
+            self.vprint('Supply a va_expr')
+            return self.do_help('xrefs')
+
+        va = self.parseExpression(argv[0])
+
+        fptr = []
+        if options.xrto:
+            fptr.append(self.getXrefsTo)
+        if options.xrfrom:
+            fptr.append(self.getXrefsFrom)
+
+        for func in fptr:
+            for xrfr, xrto, rtype, rflags in func(va):
+                xrfr = hex(xrfr)
+                xrto = hex(xrto)
+                rflags = hex(rflags)
+                tname = ref_type_names.get(rtype, 'Unknown')
+                self.vprint('\tFrom: %s, To: %s, Type: %s, Flags: %s' % (xrfr, xrto, tname, rflags))
+
 
     def do_searchopcodes(self, line):
         '''
@@ -802,4 +831,35 @@ class VivCli(e_cli.EnviCli, vivisect.VivWorkspace):
             print e
             return self.do_help("switch")
 
+    def do_plt(self, line):
+        '''
+        Parse an entire PLT Section
 
+        Usage: plt <pltva> <pltsize>
+        '''
+        if not line:
+            return self.do_help("plt")
+
+        argv = e_cli.splitargs(line)
+        if len(argv) != 2:
+            return self.do_help("plt")
+
+        sva = self.parseExpression(argv[0])
+        ssize = self.parseExpression(argv[1])
+
+        import vivisect.analysis.elf.elfplt as vaee
+        vaee.analyzePLT(self, sva, ssize)
+
+    def do_plt_function(self, line):
+        '''
+        Make a PLT function at a virtual address
+
+        Usage: plt_function <va>
+        '''
+        if not line:
+            return self.do_help("plt_function")
+
+        fva = self.parseExpression(line)
+
+        import vivisect.analysis.elf.elfplt as vaee
+        vaee.analyzeFunction(self, fva)

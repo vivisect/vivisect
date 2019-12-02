@@ -105,7 +105,7 @@ class Amd64SymbolikTranslator(vsym_i386.IntelSymbolikTranslator):
     def i_movsxd(self, op):
         dsize = op.opers[0].tsize
         ssize = op.opers[1].tsize
-        v2 = o_sextend(self.getOperObj(op, 1), Const(ssize, self._psize))
+        v2 = o_sextend(self.getOperObj(op, 1), Const(dsize, self._psize))
         self.setOperObj(op, 0, v2)
 
     def _div(self, op, isInvalid=None):
