@@ -611,9 +611,6 @@ def applyRelocs(elf, vw, addbase=False, baseaddr=0):
             if arch in ('arm', 'thumb', 'thumb16'):
                 if rtype == Elf.R_ARM_JUMP_SLOT:
                     symidx = r.getSymTabIndex()
-                    if symidx == 0:
-                        continue
-
                     sym = elf.getDynSymbol(symidx)
                     ptr = sym.st_value
 
@@ -640,9 +637,6 @@ def applyRelocs(elf, vw, addbase=False, baseaddr=0):
                     
                 elif rtype == Elf.R_ARM_GLOB_DAT:
                     symidx = r.getSymTabIndex()
-                    if symidx == 0:
-                        continue
-
                     sym = elf.getDynSymbol(symidx)
                     ptr = sym.st_value
 
@@ -666,9 +660,6 @@ def applyRelocs(elf, vw, addbase=False, baseaddr=0):
 
                 elif rtype == Elf.R_ARM_ABS32:
                     symidx = r.getSymTabIndex()
-                    if symidx == 0:
-                        continue
-
                     sym = elf.getDynSymbol(symidx)
                     ptr = sym.st_value
 
