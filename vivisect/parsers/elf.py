@@ -545,6 +545,7 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
 
     return fname
 
+
 def applyRelocs(elf, vw, addbase=False, baseaddr=0):
     # process relocations / strings (relocs use Dynamic Symbols)
     arch = arch_names.get(elf.e_machine)
@@ -556,8 +557,8 @@ def applyRelocs(elf, vw, addbase=False, baseaddr=0):
         if addbase:
             rlva += baseaddr
         try:
-            # If it has a name, it's an externally
-            # resolved "import" entry, otherwise, just a regular reloc
+            # If it has a name, it's an externally resolved "import" entry, 
+            # otherwise, just a regular reloc
             name = r.getName()
             dmglname = demangle(name)
             logger.debug('relocs: 0x%x: %r  (%r)', rlva, dmglname, name)
@@ -582,10 +583,6 @@ def applyRelocs(elf, vw, addbase=False, baseaddr=0):
                         logger.info(r.tree())
                        
                 else:
-                    symidx = Elf.getRelocSymTabIndex(r.r_info)
-                    sym = elf.getDynSymbol(symidx)
-                    ptr = sym.st_value
-
                     if rtype == Elf.R_386_RELATIVE: # R_X86_64_RELATIVE is the same number
                         ptr = vw.readMemoryPtr(rlva)
                         logger.info('R_386_RELATIVE: adding Relocation 0x%x -> 0x%x (name: %s) ', rlva, ptr, dmglname)
@@ -613,7 +610,10 @@ def applyRelocs(elf, vw, addbase=False, baseaddr=0):
 
             if arch in ('arm', 'thumb', 'thumb16'):
                 if rtype == Elf.R_ARM_JUMP_SLOT:
-                    symidx = Elf.getRelocSymTabIndex(r.r_info)
+                    symidx = r.getRelocSymTabIndex()
+                    if symidx == 0:
+                        continue
+
                     sym = elf.getDynSymbol(symidx)
                     ptr = sym.st_value
 
@@ -639,7 +639,10 @@ def applyRelocs(elf, vw, addbase=False, baseaddr=0):
                         vw.setComment(rlva, name)
                     
                 elif rtype == Elf.R_ARM_GLOB_DAT:
-                    symidx = Elf.getRelocSymTabIndex(r.r_info)
+                    symidx = r.getRelocSymTabIndex()
+                    if symidx == 0:
+                        continue
+
                     sym = elf.getDynSymbol(symidx)
                     ptr = sym.st_value
 
@@ -662,7 +665,10 @@ def applyRelocs(elf, vw, addbase=False, baseaddr=0):
                         vw.setComment(rlva, name)
 
                 elif rtype == Elf.R_ARM_ABS32:
-                    symidx = Elf.getRelocSymTabIndex(r.r_info)
+                    symidx = r.getRelocSymTabIndex()
+                    if symidx == 0:
+                        continue
+
                     sym = elf.getDynSymbol(symidx)
                     ptr = sym.st_value
 
