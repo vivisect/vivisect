@@ -620,7 +620,6 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
 
     def _doDynRelocs(self, rva, relsz, cls=None):
         syms = self.getDynSyms()
-        symslen = len(syms)
 
         if cls is None:
             cls = self._cls_reloc
