@@ -610,7 +610,7 @@ def applyRelocs(elf, vw, addbase=False, baseaddr=0):
 
             if arch in ('arm', 'thumb', 'thumb16'):
                 if rtype == Elf.R_ARM_JUMP_SLOT:
-                    symidx = r.getRelocSymTabIndex()
+                    symidx = r.getSymTabIndex()
                     if symidx == 0:
                         continue
 
@@ -639,7 +639,7 @@ def applyRelocs(elf, vw, addbase=False, baseaddr=0):
                         vw.setComment(rlva, name)
                     
                 elif rtype == Elf.R_ARM_GLOB_DAT:
-                    symidx = r.getRelocSymTabIndex()
+                    symidx = r.getSymTabIndex()
                     if symidx == 0:
                         continue
 
@@ -665,7 +665,7 @@ def applyRelocs(elf, vw, addbase=False, baseaddr=0):
                         vw.setComment(rlva, name)
 
                 elif rtype == Elf.R_ARM_ABS32:
-                    symidx = r.getRelocSymTabIndex()
+                    symidx = r.getSymTabIndex()
                     if symidx == 0:
                         continue
 
