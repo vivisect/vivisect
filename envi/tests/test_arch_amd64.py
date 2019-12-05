@@ -1,3 +1,4 @@
+import sys
 import envi
 import envi.memory as e_mem
 import envi.memcanvas as e_memcanvas
@@ -14,7 +15,7 @@ instrs = [
     ("48c705e68a270084ef4a00", 0x45600f, 'mov [rip + 2591462],0x004aef84'),
     ("48c705b39b2700105f4500", 0x45601a, 'mov [rip + 2595763],0x00455f10'),
     ('c4e2f1004141', 0x456000, 'vpshufb xmm0,xmm1,oword [rcx + 65]'),
-    ('c4e2f5004141', 0x456000, 'vpshufb ymm0,ymm1,dqword [rcx + 65]'),
+    ('c4e2f5004141', 0x456000, 'vpshufb ymm0,ymm1,yword [rcx + 65]'),
     ('0f38004141', 0x456000, 'pshufb mm0,qword [rcx + 65]'),
     ("41b401", 0x456000, 'mov r12l, 1'),      # ndisasm and oda say "mov r12b, 1" but ia32 manual says "r12l"
     ("4585f6", 0x456000, 'test r14d,r14d'),
@@ -54,50 +55,51 @@ amd64SingleByteOpcodes = [
     ('push', '48fff0', 0x40, 'push rax', 'push rax'),
     ('pop', '488ff0', 0x40, 'pop rax', 'pop rax'),
     ('pop', '488ffb', 0x40, 'pop rbx', 'pop rbx'),
-    #('BSWAP (eax)', 'f30fc84141', 0x40, 'rep: bswap eax', 'rep: bswap eax'),
+    ('ud2', '0f0b', 0x40, 'ud2 ', 'ud2 '),
+    ('BSWAP (eax)', 'f30fc84141', 0x40, 'rep: bswap eax', 'rep: bswap eax'),
 ]
 
 amd64MultiByteOpcodes = [
-    ('CVTTPS2PI', '0f2caaaaaaaa41', 0x40, 'cvttps2pi mm5,oword [rdx + 1101703850]', 'cvttps2pi mm5,oword [rdx + 1101703850]'),
-    ('CVTTSS2SI', 'f30f2caaaaaaaa41', 0x40, 'cvttss2si ebp,oword [rdx + 1101703850]', 'cvttss2si ebp,oword [rdx + 1101703850]'),
-    ('CVTTPD2PI', '660f2caaaaaaaa41', 0x40, 'cvttpd2pi mm5,oword [rdx + 1101703850]', 'cvttpd2pi mm5,oword [rdx + 1101703850]'),
-    ('CVTTSD2SI', 'f20f2caaaaaaaa41', 0x40, 'cvttsd2si ebp,oword [rdx + 1101703850]', 'cvttsd2si ebp,oword [rdx + 1101703850]'),
-    ('ADDPS', '0f58aa4141414141', 0x40, 'addps xmm5,oword [rdx + 1094795585]', 'addps xmm5,oword [rdx + 1094795585]'),
-    ('MOVAPS', '0f28aa41414141', 0x40, 'movaps xmm5,oword [rdx + 1094795585]', 'movaps xmm5,oword [rdx + 1094795585]'),
-    ('MOVAPD', '660f28aa41414141', 0x40, 'movapd xmm5,oword [rdx + 1094795585]', 'movapd xmm5,oword [rdx + 1094795585]'),
-    ('PMULLW (66)', '660faa41414141', 0x40, 'rsm ', 'rsm '),
-    ('CMPXCH8B', '0fc70a', 0x40, 'cmpxch8b qword [rdx]', 'cmpxch8b qword [rdx]'),
-    ('MOVD (66)',   '660f7ecb414141', 0x40, 'movd ebx,xmm1', 'movd ebx,xmm1'),
-    ('MOVD', '0F6E0D41414100', 0x40, 'movd mm1,dword [rip + 4276545]', 'movd mm1,dword [rip + 4276545]'),
-    ('MOVQ', '0F6FCB', 0x40, 'movq mm1,mm3', 'movq mm1,mm3'),
-    ('PSRAW',  '0FE1CA4141', 0x40, 'psraw mm1,mm2', 'psraw mm1,mm2'),
-    ('PSRLQ (66)',  '660FF3CB4141', 0x40, 'psllq xmm1,xmm3', 'psllq xmm1,xmm3'),
-    ('PALIGNR', '0F3A0FDC03', 0x40, 'palignr xmm3,xmm4,3', 'palignr xmm3,xmm4,3'),
-    ('PALIGNR (66)',  '660F3A0FCA07', 0x40, 'palignr xmm1,xmm2,7', 'palignr xmm1,xmm2,7'),
-    ('PSLLQ (reg)',  '660FF3CA', 0x40, 'psllq xmm1,xmm2', 'psllq xmm1,xmm2'),
-    ('PSLLW (regs)',  '0F71F108', 0x40, 'psllw mm1,8', 'psllw mm1,8'),
-    ('PSLLQ (66)',  '660F73F108', 0x40, 'psllq xmm1,8', 'psllq xmm1,8'),
-    ('RDTSC', '0F31', 0x40, 'rdtsc ', 'rdtsc '),
-    ('RDTSCP', '0F01F9', 0x40, 'rdtscp ', 'rdtscp '),
+    #('CVTTPS2PI', '0f2caaaaaaaa41', 0x40, 'cvttps2pi mm5,oword [rdx + 1101703850]', 'cvttps2pi mm5,oword [rdx + 1101703850]'),
+    #('CVTTSS2SI', 'f30f2caaaaaaaa41', 0x40, 'cvttss2si ebp,oword [rdx + 1101703850]', 'cvttss2si ebp,oword [rdx + 1101703850]'),
+    #('CVTTPD2PI', '660f2caaaaaaaa41', 0x40, 'cvttpd2pi mm5,oword [rdx + 1101703850]', 'cvttpd2pi mm5,oword [rdx + 1101703850]'),
+    #('CVTTSD2SI', 'f20f2caaaaaaaa41', 0x40, 'cvttsd2si ebp,oword [rdx + 1101703850]', 'cvttsd2si ebp,oword [rdx + 1101703850]'),
+    #('ADDPS', '0f58aa4141414141', 0x40, 'addps xmm5,oword [rdx + 1094795585]', 'addps xmm5,oword [rdx + 1094795585]'),
+    #('MOVAPS', '0f28aa41414141', 0x40, 'movaps xmm5,oword [rdx + 1094795585]', 'movaps xmm5,oword [rdx + 1094795585]'),
+    #('MOVAPD', '660f28aa41414141', 0x40, 'movapd xmm5,oword [rdx + 1094795585]', 'movapd xmm5,oword [rdx + 1094795585]'),
+    #('PMULLW (66)', '660faa41414141', 0x40, 'rsm ', 'rsm '),
+    #('CMPXCH8B', '0fc70a', 0x40, 'cmpxch8b qword [rdx]', 'cmpxch8b qword [rdx]'),
+    #('MOVD (66)',   '660f7ecb414141', 0x40, 'movd ebx,xmm1', 'movd ebx,xmm1'),
+    #('MOVD', '0F6E0D41414100', 0x40, 'movd mm1,dword [rip + 4276545]', 'movd mm1,dword [rip + 4276545]'),
+    #('MOVQ', '0F6FCB', 0x40, 'movq mm1,mm3', 'movq mm1,mm3'),
+    #('PSRAW',  '0FE1CA4141', 0x40, 'psraw mm1,mm2', 'psraw mm1,mm2'),
+    #('PSRLQ (66)',  '660FF3CB4141', 0x40, 'psllq xmm1,xmm3', 'psllq xmm1,xmm3'),
+    #('PALIGNR', '0F3A0FDC03', 0x40, 'palignr xmm3,xmm4,3', 'palignr xmm3,xmm4,3'),
+    #('PALIGNR (66)',  '660F3A0FCA07', 0x40, 'palignr xmm1,xmm2,7', 'palignr xmm1,xmm2,7'),
+    #('PSLLQ (reg)',  '660FF3CA', 0x40, 'psllq xmm1,xmm2', 'psllq xmm1,xmm2'),
+    #('PSLLW (regs)',  '0F71F108', 0x40, 'psllw mm1,8', 'psllw mm1,8'),
+    #('PSLLQ (66)',  '660F73F108', 0x40, 'psllq xmm1,8', 'psllq xmm1,8'),
+    #('RDTSC', '0F31', 0x40, 'rdtsc ', 'rdtsc '),
+    #('RDTSCP', '0F01F9', 0x40, 'rdtscp ', 'rdtscp '),
 
-    # TODO: These require deeper fixes in the amd64 parser
-    # ('PSRLW (66)',  '660F71D611', 0x40, 'psrlw xmm6,17', 'psrlw xmm6,17'),
-    # ('PSRAD (66)',  '660F72E704', 0x40, 'psrad xmm7,4', 'psrad xmm7,4'),
-    ('PSHUFB', '660F3800EF', 0x40, 'pshufb xmm5,xmm7', 'pshufb xmm5,xmm7'),
-    # ('POPCNT', '66f30fb8c3', 0x40, 'popcnt ax,bx', 'popcnt ax,bx'),
-    # ('', '', 0x40, '', ''),
+    #('PSRLW (66)', '660fd1ce', 0x40, 'psrlw xmm1,xmm6', 'psrlw xmm1,xmm6'),
+    #('PSRLW (66) 2', '660F71D611', 0x40, 'psrlw xmm6,17', 'psrlw xmm6,17'),
+    #('PSRLW (66) 3', '660FD10C253A3A3A3A', 0x40, 'psrlw xmm1,oword [0x3a3a3a3a]', 'psrlw xmm1,oword [0x3a3a3a3a]'),
+    #('PSRAD (66)', '660F72E704', 0x40, 'psrad xmm7,4', 'psrad xmm7,4'),
+    #('PSHUFB', '660F3800EF', 0x40, 'pshufb xmm5,xmm7', 'pshufb xmm5,xmm7'),
+    #('POPCNT', '66f30fb8c3', 0x40, 'popcnt ax,bx', 'popcnt ax,bx'),
 
-    ('PSRLQ (66)',  '660F73D308', 0x40, 'psrlq xmm3,8', 'psrlq xmm3,8'),
-    ('PSRLQ 2',  '660f73d501', 0x40, 'psrlq xmm5,1', 'psrlq xmm5,1'),
-    ('PSRLQ', '660FD3DC', 0x40, 'psrlq xmm3,xmm4', 'psrlq xmm3,xmm4'),
-    ('PSRLQ', '660F73d10f', 0x40, 'psrlq xmm1,15', 'psrlq xmm1,15'),
-    ('PSRLDQ (66)', '660f73b5aa4141', 0x40, 'psllq xmm5,170', 'psllq xmm5,170'),
-    ('PSRLDQ (66)', '660f73f5aa4141', 0x40, 'psllq xmm5,170', 'psllq xmm5,170'),
-    ('PSRLDQ (66)', '660f73b1aa4141', 0x40, 'psllq xmm1,170', 'psllq xmm1,170'),
-    ('PSRLDQ (66)', '660f73b9aa4141', 0x40, 'psldq xmm1,170', 'psldq xmm1,170'),
-    ('PCMPISTRI', '660f3a630f0d', 0x40, 'pcmpistri xmm1,oword [rdi],13', 'pcmpistri xmm1,oword [rdi],13'),
+    #('PSRLQ (66)',  '660F73D308', 0x40, 'psrlq xmm3,8', 'psrlq xmm3,8'),
+    #('PSRLQ 2',  '660f73d501', 0x40, 'psrlq xmm5,1', 'psrlq xmm5,1'),
+    #('PSRLQ', '660FD3DC', 0x40, 'psrlq xmm3,xmm4', 'psrlq xmm3,xmm4'),
+    #('PSRLQ', '660F73d10f', 0x40, 'psrlq xmm1,15', 'psrlq xmm1,15'),
+    #('PSRLDQ (66)', '660f73b5aa4141', 0x40, 'psllq xmm5,170', 'psllq xmm5,170'),
+    #('PSRLDQ (66)', '660f73f5aa4141', 0x40, 'psllq xmm5,170', 'psllq xmm5,170'),
+    #('PSRLDQ (66)', '660f73b1aa4141', 0x40, 'psllq xmm1,170', 'psllq xmm1,170'),
+    #('PSRLDQ (66)', '660f73b9aa4141', 0x40, 'psldq xmm1,170', 'psldq xmm1,170'),
+    #('PCMPISTRI', '660f3a630f0d', 0x40, 'pcmpistri xmm1,oword [rdi],13', 'pcmpistri xmm1,oword [rdi],13'),
 
-    ('POPCNT', 'f30fb8c4', 0x40, 'popcnt eax,esp', 'popcnt eax,esp'),
+    #('POPCNT', 'f30fb8c4', 0x40, 'popcnt eax,esp', 'popcnt eax,esp'),
     ('POPCNT', 'f3480fb8c4', 0x40, 'popcnt rax,rsp', 'popcnt rax,rsp'),
     ('POPCNT', 'f30fb80541414100', 0x40, 'popcnt eax,dword [rip + 4276545]', 'popcnt eax,dword [rip + 4276545]'),
     ('LZCNT', 'f30fbdc4', 0x40, 'lzcnt eax,esp', 'lzcnt eax,esp'),
@@ -107,11 +109,11 @@ amd64MultiByteOpcodes = [
     ('MOVDQU (MEM)', 'F30F6F4810', 0x40, 'movdqu xmm1,oword [rax + 16]', 'movdqu xmm1,oword [rax + 16]'),
     ('MOVDQU (REP)', 'F3F30F6FCA', 0x40, 'movdqu xmm1,xmm2', 'movdqu xmm1,xmm2'),
     ('MOVSD', 'f20f100d28330608', 0x40, 'movsd xmm1,oword [rip + 134624040]', 'movsd xmm1,oword [rip + 134624040]'),
-    ('MOVSD 2', 'f20f1145f0', 0x40, 'movsd oword [ebp - 16],xmm0', 'movsd oword [ebp - 16],xmm0'),
-    ('MOVSD 3', 'f20f100d70790908', 0x40, 'movsd xmm1,oword [0x08097970]', 'movsd xmm1,oword [0x08097970]'),
-    ('MOVSS', 'f30f1045f8', 0x40, 'movss xmm0,oword [ebp - 8]', 'movss xmm0,oword [ebp - 8]'),
-    ('MOVSS 2', 'f30f1055d0', 0x40, 'movss xmm2,oword [ebp - 48]', 'movss xmm2,oword [ebp - 48]'),
-    ('MOVSS 3', 'F30F110D41414100', 0x40, 'movss dword [0x00414141],xmm1', 'movss dword [0x00414141],xmm1'),
+    ('MOVSD 2', 'f20f1145f0', 0x40, 'movsd oword [rbp - 16],xmm0', 'movsd oword [rbp - 16],xmm0'),
+    ('MOVSD 3', 'f20f100d70790908', 0x40, 'movsd xmm1,oword [rip + 134838640]', 'movsd xmm1,oword [rip + 134838640]'),
+    ('MOVSS', 'f30f1045f8', 0x40, 'movss xmm0,dword [rbp - 8]', 'movss xmm0,dword [rbp - 8]'),
+    ('MOVSS 2', 'f30f1055d0', 0x40, 'movss xmm2,dword [rbp - 48]', 'movss xmm2,dword [rbp - 48]'),
+    ('MOVSS 3', 'F30F110D41414100', 0x40, 'movss dword [rip + 4276545],xmm1', 'movss dword [rip + 4276545],xmm1'),
     ('CVTSI2SS', 'f30f2ac8', 0x40, 'cvtsi2ss xmm1,eax', 'cvtsi2ss xmm1,eax'),
     ('MULSS', 'f30f59ca', 0x40, 'mulss xmm1,xmm2', 'mulss xmm1,xmm2'),
     ('SUBSS', 'f30f5cc1', 0x40, 'subss xmm0,xmm1', 'subss xmm0,xmm1'),
@@ -147,6 +149,9 @@ amd64MultiByteOpcodes = [
     ('PMAXUB', '660FDE2541414141', 0x40, 'pmaxub xmm4,oword [0x41414141]', 'pmaxub xmm4,oword [0x41414141]'),
     ('MOVNTDQ', '660FE73D78563412', 0x40, 'movntdq oword [0x12345678],xmm7', 'movntdq oword [0x12345678],xmm7'),
     ('PADDD', '660FFECE', 0x40, 'paddd xmm1,xmm6', 'paddd xmm1,xmm6'),
+    ('HADDPS', 'F20F7CCE', 0x40, 'haddps xmm1,xmm6', 'haddps xmm1,xmm6'),
+    ('HADDPS 1', 'C5CB7CCB', 0x40, 'vhaddps xmm1,xmm6,xmm3', 'vhaddps xmm1,xmm6,xmm3'),
+    ('HADDPS 2', 'C5E77CD6', 0x40, 'vhaddps ymm2,ymm3,ymm6', 'vhaddps ymm2,ymm3,ymm6'),
 
     # AES-NI feature set
     ('AESENC', '660F38DCEA', 0x40, 'aesenc xmm5,xmm2', 'aesenc xmm5,xmm2'),
@@ -180,13 +185,36 @@ amd64MultiByteOpcodes = [
 ]
 
 amd64VexOpcodes = [
+    ('PSRLW (VEX)', 'C5E9D1CB', 0x40, '', ''),
+    ('PSRLW (VEX) 1', 'C5F171D208', 0x40, '', ''),
+    ('PSRLW (VEX) 2', 'C5E9D10C2541414141', 0x40, '', ''),
+    ('PSRLW (VEX) 3', '67C5E9D108', 0x40, 'vpsrlw xmm1,xmm2,[eax]', ''),
+    ('ANDN', 'C4E260F2C1', 0x40, 'andn eax,ebx,ecx', 'andn eax,ebx,ecx'),
+    ('ANDN 2', 'C4E2E0F2C1', 0x40, 'andn rax,rbx,rcx', 'andn rax,rbx,rcx'),
+    ('BEXTR', 'C4E270F7D3', 0x40, 'bextr edx,ebx,ecx', 'bextr edx,ebx,ecx'),
+    ('BEXTR 2', 'C4E2F0F7D0', 0x40, 'bextr rdx,rax,rcx', 'bextr rdx,rax,rcx'),
+    ('BEXTR 3', 'C4E2F0F71541414100', 0x40, 'bextr rdx, [rip+0x414141],rcx', 'bextr rdx,[rip+0x414141],rcx'),
+    ('BLSI', 'c4e268f3d8', 0x40, 'blsi edx,eax', 'blsi edx,eax'),
+    ('BLSI 2', 'C4E268F31C2541414141', 0x40, 'blsi edx,dword [1094795585]', 'blsi edx,dword [1094795585]'),
+    ('BLSI 3', 'C4E2F0F31C2541414141', 0x40, 'blsi rcx,oword [rip+1094795585]', 'blsi edx,oword [rip+1094795585]'),
+    ('BLSMSK', 'C4E2F0F3142541414141', 0x40, 'blsmsk rcx,oword [rip+1094795585]', 'blsmsk rcx,oword [rip+1094795585]'),
+    ('BLSMSK 2', 'C4E278F3D2', 0x40, 'blsmsk eax, edx', 'blsmsk eax, edx'),
+    ('', '', 0x40, '', ''),
     ('VMOVDQU', 'C5fe6fe3', 0x40, 'vmovdqu ymm4,ymm3', 'vmovdqu ymm4,ymm3'),
     ('VLDDQU', 'C5FFF01C2541414141', 0x40, 'vlddqu ymm3,0x41414141', 'vlddqu ymm3,0x41414141'),
     ('VLDDQU', 'C5FFF034D50400', 0x40, 'vlddqu ymm6, [rdx*8+4]', 'vlddqu ymm6, [rdx*8+4]'),
+    ('VLDDQU', 'C5FBF00CF504000000', 0x40, 'vlddqu xmm1,[rsi*8+4]', 'vlddqu xmm1,[rsi*8+4]'),
     # w/ address size override
-    ('VLDDQU', '67C5FBF00CF504', 0x40, 'vlddqu xmm1,[esi*8+4]', 'vlddqu xmm1,[esi*8+4]'),
+    ('VLDDQU', '67C5FBF00CF504000000', 0x40, 'vlddqu xmm1,[esi*8+4]', 'vlddqu xmm1,[esi*8+4]'),
     ('VPSRLDQ', 'C5E9D3CB', 0x40, 'vpsrlq xmm1,xmm2,xmm3', 'vpsrlq xmm1,xmm2,xmm3'),
     ('VPOR', 'C5EDEBCB', 0x40, 'vpor ymm1,ymm2,ymm3', 'vpor ymm1,ymm2,ymm3'),
+    ('VMOVSD', 'C5FB1008', 0x40, 'vmovsd xmm1, oword [rax]', 'vmovsd xmm1,oword[rax]'),
+    ('VMOVSD 2', 'C5EB10CB', 0x40, 'vmovsd xmm1,xmm2,xmm3', 'vmovsd xmm1,xmm2,xmm3'),
+    ('VMOVSD 3', '67C5FB1118', 0x40, 'vmovsd oword [eax],xmm3', 'vmovsd oword [eax],xmm3'),
+    ('VMOVSD 4', 'C5FB111C2541414141', 0x40, 'vmovsd oword [0x41414141],xmm3', 'vmovsd oword [0x41414141],xmm3'),
+    ('VSQRTPD', 'C5F951CA', 0x40, 'vsqrtpd xmm1,xmm2', 'vsqrtpd xmm1,xmm2'),
+    ('VSQRTPD 2', 'C5FD51CA', 0x40, 'vsqrtpd ymm1,ymm2', 'vsqrtpd ymm1,ymm2'),
+    # ('VSQRTPD 3' ,'', 0x40, 'vsqrtpd zmm1,zmm2', 'vsqrtpd zmm1,zmm2'),
 ]
 
 
@@ -205,6 +233,10 @@ class Amd64InstructionSet(unittest.TestCase):
                 import pdb
                 pdb.set_trace()
                 self.fail("Failed to parse opcode bytes: %s (case: %s, expected: %s)" % (bytez, name, reprOp))
+            except Exception:
+                import pdb
+                pdb.post_mortem(sys.exc_info()[2])
+                print('wat')
             # print("'%s', 0x%x, '%s' == '%s'" % (bytez, va, repr(op), reprOp))
             try:
                 self.assertEqual(repr(op), reprOp)
@@ -213,9 +245,9 @@ class Amd64InstructionSet(unittest.TestCase):
                 pdb.set_trace()
                 self.fail("Failing match for case %s (bytes: %s) (Got: %s, Expected: %s)" % (name, bytez, repr(op), reprOp))
             except Exception:
-                import pdb, sys
+                import pdb
                 pdb.post_mortem(sys.exc_info()[2])
-                print("Whelp.")
+                print('wat')
 
             scanv.clearCanvas()
             op.render(scanv)

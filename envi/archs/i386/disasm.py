@@ -110,13 +110,14 @@ iflag_lookup = {
     opcode86.INS_XCHGCC: envi.IF_COND,
 }
 
-sizenames = ["" for x in range(33)]
+sizenames = ["" for x in range(65)]
 sizenames[1] = "byte"
 sizenames[2] = "word"
 sizenames[4] = "dword"
 sizenames[8] = "qword"
 sizenames[16] = "oword"
-sizenames[32] = "dqword"    # yword?
+sizenames[32] = "yword"    # ymm regs
+sizenames[64] = "zword"    # zmm regs
 
 def addrToName(mcanv, va):
     sym = mcanv.syms.getSymByAddr(va)

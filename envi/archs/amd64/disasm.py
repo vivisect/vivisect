@@ -9,7 +9,7 @@ all_tables = opcode86.tables86
 
 from envi.archs.i386.disasm import iflag_lookup, operand_range, priv_lookup, \
         i386Opcode, i386ImmOper, i386RegOper, i386ImmMemOper, i386RegMemOper, \
-        i386SibOper
+        i386SibOper, PREFIX_REPNZ, PREFIX_REP, PREFIX_OP_SIZE, PREFIX_ADDR_SIZE
 from envi.archs.amd64.regs import *
 
 # Pre generate these for fast lookup. Because our REX prefixes have the same relative
@@ -34,7 +34,7 @@ amd64_prefixes[0x4f] = (0x1f << 16)
 amd64_prefixes[0xc5] = (0x20 << 16)  # VEX 2byte
 amd64_prefixes[0xc4] = (0x40 << 16)  # VEX 3byte
 
-mandatory_prefixes = [0x66, 0xf2, 0xf3]
+MANDATORY_PREFIXES = [0x66, 0xf2, 0xf3]
 
 
 # NOTE: some notes from the intel manual...
@@ -220,6 +220,10 @@ class Amd64Disasm(e_i386.i386Disasm):
         # Stuff for opcode parsing
         tabdesc = all_tables[opcode86.TBL_Main]  # A tuple (optable, shiftbits, mask byte, sub, max)
         startoff = offset  # Use startoff as a size knob if needed
+        isvex = False
+        vexw = None
+        last_pref = None
+        ppref = [(None, None)]
 
         # Stuff we'll be putting in the opcode object
         optype = None  # This gets set if we successfully decode below
@@ -239,19 +243,24 @@ class Amd64Disasm(e_i386.i386Disasm):
                 break
 
             # print("OBYTE",hex(obyte))
-            if obyte in mandatory_prefixes:
+            if obyte in MANDATORY_PREFIXES:
                 pho_prefixes |= p
+                # don't rachet through quite yet, since we still need to determine which
+                # prefix is the mandatory prefix (if there is such a prefix)
+
                 # ratchet through the tables
 
-                tabidx = ((obyte - tabdesc[4]) >> tabdesc[2]) & tabdesc[3]
+                # tabidx = ((obyte - tabdesc[4]) >> tabdesc[2]) & tabdesc[3]
                 # print("TABIDX: %d" % tabidx)
-                opdesc = tabdesc[0][tabidx]
+                # opdesc = tabdesc[0][tabidx]
                 # print('OPDESC: %s -> %s' % (repr(opdesc), opcode86.tables_lookup.get(opdesc[0])))
-                tabdesc = all_tables[opdesc[0]]
+                # tabdesc = all_tables[opdesc[0]]
+                last_pref = obyte
             else:
                 prefixes |= p
 
             if p & PREFIX_VEX:
+                isvex = True
                 if p == PREFIX_VEX2:
                     offset += 1
                     imm1 = ord(bytez[offset])
@@ -283,7 +292,8 @@ class Amd64Disasm(e_i386.i386Disasm):
                     m_mmmm = imm1 & 0x1f
                     # print("imms: %x %x \tl: %d\tvvvv: 0x%x\tpp: %d\tm_mmmm: 0x%x" % (imm1, imm2, vex_l, vvvv, pp, m_mmmm))
                     prefixes |= ((inv1 << 11) & PREFIX_REX_RXB)     # RXB are inverted
-                    prefixes |= ((imm2 << 12) & PREFIX_REX_W)       # W is not inverted
+                    vexw = ((imm2 << 12) & PREFIX_REX_W)            # W is not inverted
+                    prefixes |= vexw
                     prefixes |= vex_l
                     prefixes |= (vvvv << VEX_V_SHIFT)               # vvvv
 
@@ -305,40 +315,71 @@ class Amd64Disasm(e_i386.i386Disasm):
         if obyte != 0x0f:
             prefixes |= pho_prefixes
 
-        while True:
+        # intel manual says VEX and legacy prefixes don't intermingle
+        if obyte == 0x0f and last_pref in MANDATORY_PREFIXES and not isvex:
+            obyte = last_pref
+            if last_pref == 0xF2:
+                ppref.append((0xF2, PREFIX_REPNZ))
+            elif last_pref == 0xF3:
+                ppref.append((0xF3, PREFIX_REP))
+            elif last_pref == 0x66:
+                ppref.append((0x66, PREFIX_OP_SIZE))
 
-            obyte = ord(bytez[offset])
+        decodings = []
+        mainbyte = offset
+        all_prefixes = prefixes
+        ogtabdesc = tabdesc
+        for pref, onehot in ppref:
+            if pref is not None:
+                tabdesc = ogtabdesc
+                obyte = pref
+                offset = mainbyte - 1
+                all_prefixes = prefixes | (pho_prefixes & (~onehot))
+            else:
+                offset = mainbyte
+                obyte = ord(bytez[offset])
+            while True:
 
-            # print("OP-OBYTE", hex(obyte))
-            if (obyte > tabdesc[5]):
-                # print("Jumping To Overflow Table: %s" % hex(tabdesc[5]))
-                tabdesc = all_tables[tabdesc[6]]
+                # print("OP-OBYTE", hex(obyte))
+                if (obyte > tabdesc[5]):
+                    # print("Jumping To Overflow Table: %s" % hex(tabdesc[5]))
+                    tabdesc = all_tables[tabdesc[6]]
 
-            tabidx = ((obyte - tabdesc[4]) >> tabdesc[2]) & tabdesc[3]
-            # print("TABIDX: %s" % tabidx)
-            opdesc = tabdesc[0][tabidx]
-            # print('OPDESC: %s -> %s' % (repr(opdesc), opcode86.tables_lookup.get(opdesc[0])))
+                tabidx = ((obyte - tabdesc[4]) >> tabdesc[2]) & tabdesc[3]
+                # print("TABIDX: %s" % tabidx)
+                opdesc = tabdesc[0][tabidx]
+                # print('OPDESC: %s -> %s' % (repr(opdesc), opcode86.tables_lookup.get(opdesc[0])))
 
-            # Hunt down multi-byte opcodes
-            nexttable = opdesc[0]
-            # print("NEXT", nexttable, hex(obyte), opcode86.tables_lookup.get(nexttable))
-            if nexttable != 0:  # If we have a sub-table specified, use it.
-                # print("Multi-Byte Next Hop For (%s, %s)" % (hex(obyte), opdesc[0]))
-                tabdesc = all_tables[nexttable]
+                # Hunt down multi-byte opcodes
+                nexttable = opdesc[0]
+                # print("NEXT", nexttable, hex(obyte), opcode86.tables_lookup.get(nexttable))
+                if nexttable != 0:  # If we have a sub-table specified, use it.
+                    # print("Multi-Byte Next Hop For (%s, %s)" % (hex(obyte), opdesc[0]))
+                    tabdesc = all_tables[nexttable]
 
-                # Account for the table jump we made
-                offset += 1
+                    # Account for the table jump we made
+                    offset += 1
+                    obyte = ord(bytez[offset])
+                    continue
 
-                continue
+                # We are now on the final table...
+                # print(repr(opdesc))
+                tbl_opercnt = tabdesc[1]
+                mnem = opdesc[3 + tbl_opercnt]
+                optype = opdesc[1]
+                if tabdesc[3] == 0xff:
+                    offset += 1  # For our final opcode byte
+                break
+            if optype != 0:
+                decodings.append((tabdesc, opdesc, offset, all_prefixes))
 
-            # We are now on the final table...
-            # print(repr(opdesc))
-            tbl_opercnt = tabdesc[1]
-            mnem = opdesc[3 + tbl_opercnt]
-            optype = opdesc[1]
-            if tabdesc[3] == 0xff:
-                offset += 1  # For our final opcode byte
-            break
+        if not len(decodings):
+            raise envi.InvalidInstruction(bytez=bytez[startoff:startoff+16], va=va)
+
+        tabdesc, opdesc, offset, all_prefixes = decodings.pop()
+        optype = opdesc[1]
+        tbl_opercnt = tabdesc[1]
+        mnem = opdesc[3 + tbl_opercnt]
 
         if optype == 0:
             # print(tabidx)
@@ -376,8 +417,13 @@ class Amd64Disasm(e_i386.i386Disasm):
 
             else:
                 # print("ADDRTYPE", hex(addrmeth))
-                ameth = self._dis_amethods[addrmeth >> 16]
+                ameth = self._dis_amethods[(addrmeth >> 16) & 0x7F]
+                vex_skip = addrmeth & opcode86.ADDRMETH_VEXSKIP
+                # TODO(rakuyo): need to also check to see if we need to promote things here
                 # print("AMETH", ameth)
+                if not isvex and vex_skip:
+                    continue
+
                 if ameth is None:
                     raise Exception("Implement Addressing Method 0x%.8x" % addrmeth)
 
@@ -400,6 +446,8 @@ class Amd64Disasm(e_i386.i386Disasm):
 
                 except struct.error:
                     # Catch struct unpack errors due to insufficient data length
+                    import pdb
+                    pdb.set_trace()
                     raise envi.InvalidInstruction(bytez=bytez[startoff:startoff+16])
 
             if oper is not None:

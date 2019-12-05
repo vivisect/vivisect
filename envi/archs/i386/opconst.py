@@ -30,6 +30,9 @@ ADDRMETH_Y = 0x00170000    # Memory addressd by ES:rDI
 ADDRMETH_Z = 0x00180000    # R/M field of MODRM defines XMM register, reg is used as an ext
 ADDRMETH_LAST = ADDRMETH_Z
 
+ADDRMETH_VEXSKIP = 0x00800000  # This operand should be skipped if we're not in VEX mode
+ADDRMETH_VEXADDR = 0x00800000  # Allow VEX to muck with the size of the operand
+
 OPTYPE_a = 0x01000000     # 2/4   two one-word operands in memory or two double-word operands in memory (operand-size attribute)   
 OPTYPE_b = 0x02000000     # 1     always 1 byte
 OPTYPE_c = 0x03000000     # 1/2   byte or word, depending on operand
