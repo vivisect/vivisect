@@ -341,6 +341,7 @@ class Amd64Disasm(e_i386.i386Disasm):
             while True:
 
                 # print("OP-OBYTE", hex(obyte))
+                # print("TABDESC: {}".format(tabdesc[1:]))
                 if (obyte > tabdesc[5]):
                     # print("Jumping To Overflow Table: %s" % hex(tabdesc[5]))
                     tabdesc = all_tables[tabdesc[6]]

@@ -531,8 +531,8 @@ tbl32_0F = [
 ( 0, INS_CMP, ADDRMETH_P | OPTYPE_q | OP_W, ADDRMETH_Q | OPTYPE_q | OP_R, ARG_NONE, ARG_NONE, cpu_PENTMMX, "pcmpeqw", 0, 0, 0),  
 ( 0, INS_CMP, ADDRMETH_P | OPTYPE_q | OP_W, ADDRMETH_Q | OPTYPE_q | OP_R, ARG_NONE, ARG_NONE, cpu_PENTMMX, "pcmpeqd", 0, 0, 0),  
 ( 0, INS_OTHER, 0, 0, 0, ARG_NONE, cpu_PENTMMX, "emms", 0, 0, 0),  
-( 0, INS_SYSTEM, ADDRMETH_E | OPTYPE_d | OP_W, ADDRMETH_G | OPTYPE_d | OP_R, ARG_NONE, ARG_NONE, cpu_PENTIUM2, "vmread", 0, 0, 0),  
-( 0, INS_SYSTEM, ADDRMETH_G | OPTYPE_d | OP_W, ADDRMETH_E | OPTYPE_d | OP_R, ARG_NONE, ARG_NONE, cpu_PENTIUM2, "vmwrite", 0, 0, 0),  
+( 0, INS_SYSTEM, ADDRMETH_E | OPTYPE_q | OP_W, ADDRMETH_G | OPTYPE_q | OP_R, ARG_NONE, ARG_NONE, cpu_PENTIUM2, "vmread", 0, 0, 0),
+( 0, INS_SYSTEM, ADDRMETH_G | OPTYPE_q | OP_W, ADDRMETH_E | OPTYPE_q | OP_R, ARG_NONE, ARG_NONE, cpu_PENTIUM2, "vmwrite", 0, 0, 0),
 ( 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),  
 ( 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),  
 ( 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),  
@@ -955,7 +955,7 @@ tbl32_0F01_rest = [
 ( 0, INS_SYSTEM, OP_REG | OP_R, ARG_NONE, ARG_NONE, cpu_AMD64, "xsetbv", e_amd64_regs.REG_RCX, 0, 0),  
 ( 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
 ( 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
-( 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+( 0, INS_SYSTEM, ARG_NONE, ARG_NONE, ARG_NONE, cpu_AMD64, "vmfunc", 0, 0, 0),
 ( 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
 ( 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
 ( 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
@@ -1078,6 +1078,9 @@ tbl32_660F38[0x1c] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_x  | OP_W, ADDRMETH_W | 
 tbl32_660F38[0x1d] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_x  | OP_W, ADDRMETH_W | OPTYPE_x  | OP_R, ARG_NONE, cpu_AMD64, "pabsw", 0, 0, 0)
 tbl32_660F38[0x1e] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_x  | OP_W, ADDRMETH_W | OPTYPE_x  | OP_R, ARG_NONE, cpu_AMD64, "pabsd", 0, 0, 0)
 # more here necessary....
+tbl32_660F38[0x80] = (0, INS_SYSTEM, ADDRMETH_G | OPTYPE_q | OP_R, ADDRMETH_M | OPTYPE_dq | OP_R, ARG_NONE, cpu_AMD64, "invept", 0, 0, 0)
+tbl32_660F38[0x81] = (0, INS_SYSTEM, ADDRMETH_G | OPTYPE_q | OP_R, ADDRMETH_M | OPTYPE_dq | OP_R, ARG_NONE, cpu_AMD64, "invvpid", 0, 0, 0)
+
 tbl32_660F38[0xdc] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_dq | OP_W, ADDRMETH_H | OPTYPE_dq | OP_R, ADDRMETH_W | OPTYPE_dq | OP_R, cpu_AMD64, "aesenc", 0, 0, 0)  # only in 66 table?!
 tbl32_660F38[0xdd] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_dq | OP_W, ADDRMETH_H | OPTYPE_dq | OP_R, ADDRMETH_W | OPTYPE_dq | OP_R, cpu_AMD64, "aesenclast", 0, 0, 0)  # only in 66 table?!
 tbl32_660F38[0xde] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_dq | OP_W, ADDRMETH_H | OPTYPE_dq | OP_R, ADDRMETH_W | OPTYPE_dq | OP_R, cpu_AMD64, "aesdec", 0, 0, 0)  # only in 66 table?!
@@ -1253,12 +1256,6 @@ desc_0FAE_rest      = (tbl32_0FAE_rest,3,3,0x07,0xc0,0xff)
 desc_F30FAE_rest    = (tbl32_F30FAE_rest,3,3,0x07,0xc0,0xff)
 
 
-
-
-
-
-
-
 """
 (optable, optype, operand 0, operand 1, operand 2, CPU required, "opcodename", op0Register, op1Register, op2Register)
 """
@@ -1287,8 +1284,8 @@ tbl32_660FC7_00BF = [ (0, 0, 0, 0, 0, 0, 0, 0, 0, 0) for x in range(8) ]
 tbl32_660FC7_00BF[6] =  (0, INS_SYSTEM, ADDRMETH_M | OPTYPE_q | OP_W, ARG_NONE, ARG_NONE, cpu_AMD64, "vmclear", 0, 0, 0)
 
 tbl32_F30FC7_00BF = [ (0, 0, 0, 0, 0, 0, 0, 0, 0, 0) for x in range(8) ]
-tbl32_F30FC7_00BF[6] =  (0, INS_SYSTEM, ADDRMETH_M | OPTYPE_q | OP_W, ARG_NONE, ARG_NONE, cpu_AMD64, "vmclear", 0, 0, 0)
-tbl32_F30FC7_00BF[7] =  (0, INS_SYSTEM, ADDRMETH_M | OPTYPE_q | OP_W, ARG_NONE, ARG_NONE, cpu_AMD64, "vmptrst", 0, 0, 0)
+tbl32_F30FC7_00BF[6] =  (0, INS_SYSTEM, ADDRMETH_M | OPTYPE_q | OP_W, ARG_NONE, ARG_NONE, cpu_AMD64, "vmxon", 0, 0, 0)
+#tbl32_F30FC7_00BF[7] =  (0, INS_SYSTEM, ADDRMETH_M | OPTYPE_q | OP_W, ARG_NONE, ARG_NONE, cpu_AMD64, "vmptrst", 0, 0, 0) FIXME: No prefix, goes into straight 0f table
 
 
 
@@ -1301,12 +1298,12 @@ tbl32_660FC7_rest = list( tbl32_0FC7_rest )
 tbl32_F30FC7_rest = list( tbl32_0FC7_rest )
 
 
-desc_0FC7_00BF      = (tbl32_0FC7_00BF,3,3,0x07,0,0xbf, TBL_0FC7_rest)
-desc_0FC7_rest      = (tbl32_0FC7_rest,3,0,0x07,0xc0,0xff)
-desc_660FC7_00BF    = (tbl32_660FC7_00BF,3,3,0x07,3,0,0xff, TBL_660FC7_rest)
-desc_660FC7_rest    = (tbl32_660FC7_rest,3,3,0x07,0xc0,0xff)
-desc_F30FC7_00BF    = (tbl32_F30FC7_00BF,3,3,0x07,3,0,0xff, TBL_F30FC7_rest)
-desc_F30FC7_rest    = (tbl32_F30FC7_rest,3,3,0x07,0xc0,0xff)
+desc_0FC7_00BF   = (tbl32_0FC7_00BF, 3,3, 0x07, 0, 0xbf, TBL_0FC7_rest)
+desc_0FC7_rest   = (tbl32_0FC7_rest, 3, 0, 0x07, 0xc0, 0xff)
+desc_660FC7_00BF = (tbl32_660FC7_00BF, 3, 3, 0x07, 3, 0xff, TBL_660FC7_rest)
+desc_660FC7_rest = (tbl32_660FC7_rest, 3, 3, 0x07, 0xc0, 0xff)
+desc_F30FC7_00BF = (tbl32_F30FC7_00BF, 3, 3, 0x07, 3, 0xff, TBL_F30FC7_rest)
+desc_F30FC7_rest = (tbl32_F30FC7_rest, 3, 3, 0x07, 0xc0, 0xff)
 
 
 """
