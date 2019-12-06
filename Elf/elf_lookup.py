@@ -632,7 +632,7 @@ st_other_visibility = {
     STV_DEFAULT:"Symbol visibility specified by binding type",
     STV_INTERNAL:"Symbol visibility is reserved",
     STV_HIDDEN:"Symbol is not visible to other objects",
-    STV_PROTECTED:"Symbol is visibl by other objects, but cannot be preempted"
+    STV_PROTECTED:"Symbol is visible by other objects, but cannot be preempted"
 }
 
 DT_NULL     = 0
