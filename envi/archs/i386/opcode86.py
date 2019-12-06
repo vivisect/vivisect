@@ -800,8 +800,8 @@ tbl32_0F01_rest = [
 (0, 0, ARG_NONE, ARG_NONE, ARG_NONE, 0, 0, 0, 0, 0),
 (0, 0, ARG_NONE, ARG_NONE, ARG_NONE, 0, 0, 0, 0, 0),
 # 0f01d0
-(0, INS_SYSTEM, ARG_NONE, ARG_NONE, ARG_NONE, cpu_PENTIUM2, "xgetbv", 0, 0, 0),
-(0, INS_SYSTEM, ARG_NONE, ARG_NONE, ARG_NONE, cpu_PENTIUM2, "xsetbv", 0, 0, 0),
+(0, INS_SYSTEM, OP_R | OP_REG, ARG_NONE, ARG_NONE, cpu_PENTIUM2, "xgetbv", e_i386_regs.REG_ECX, 0, 0),
+(0, INS_SYSTEM, OP_R | OP_REG, ARG_NONE, ARG_NONE, cpu_PENTIUM2, "xsetbv", e_i386_regs.REG_ECX, 0, 0),
 (0, 0, ARG_NONE, ARG_NONE, ARG_NONE, 0, 0, 0, 0, 0),
 (0, 0, ARG_NONE, ARG_NONE, ARG_NONE, 0, 0, 0, 0, 0),
 (0, INS_SYSTEM, ARG_NONE, ARG_NONE, ARG_NONE, cpu_80386, "vmfunc", 0, 0, 0),

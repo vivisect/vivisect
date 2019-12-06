@@ -44,17 +44,17 @@ tablenames = [  None,           # nexttable index 0 means NO TABLE!
                 'tbl32_F20F3A',
                 'tbl32_F3',
                 'tbl32_F30F',
-                'tbl32_F30F38',
+                #'tbl32_F30F38',
                 'tbl32_F30FC7_00BF',
                 'tbl32_F30FC7_rest',
                 'tbl32_F30FAE_00BF',
                 'tbl32_F30FAE_rest',
-                'tbl32_F3660F38',
-                'tbl32_F2660F',
-                'tbl32_F266',
-                'tbl32_F2660F38',
-                'tbl32_F3660F',
-                'tbl32_F366',
+                #'tbl32_F3660F38',
+                #'tbl32_F2660F',
+                #'tbl32_F266',
+                #'tbl32_F2660F38',
+                #'tbl32_F3660F',
+                #'tbl32_F366',
                 'tbl32_F6',
                 'tbl32_F7',
                 'tbl32_FE',
@@ -376,27 +376,27 @@ desc_Main       = (tbl32_Main,3,0,0xff,0,0xff)
 
 tbl32_66 = list(tbl32_Main)
 tbl32_66[0x0f] =  (TBL_660F, 0, 0, 0, 0, 0, 0, 0, 0, 0)
-tbl32_66[0xf2] =  (TBL_F266, 0, 0, 0, 0, 0, 0, 0, 0, 0)
-tbl32_66[0xf3] =  (TBL_F366, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+#tbl32_66[0xf2] =  (TBL_F266, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+#tbl32_66[0xf3] =  (TBL_F366, 0, 0, 0, 0, 0, 0, 0, 0, 0)
 desc_66       = (tbl32_66,3,0,0xff,0,0xff)
 
 tbl32_F2 = list(tbl32_Main)
 tbl32_F2[0x0f] =  (TBL_F20F, 0, 0, 0, 0, 0, 0, 0, 0, 0)
-tbl32_F2[0x66] =  (TBL_F266, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+#tbl32_F2[0x66] =  (TBL_F266, 0, 0, 0, 0, 0, 0, 0, 0, 0)
 desc_F2       = (tbl32_F2,3,0,0xff,0,0xff)
 
 tbl32_F3 = list(tbl32_Main)
 tbl32_F3[0x0f] =  (TBL_F30F, 0, 0, 0, 0, 0, 0, 0, 0, 0)
-tbl32_F3[0x66] =  (TBL_F366, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+#tbl32_F3[0x66] =  (TBL_F366, 0, 0, 0, 0, 0, 0, 0, 0, 0)
 desc_F3       = (tbl32_F3,3,0,0xff,0,0xff)
 
-tbl32_F266 = list(tbl32_66)
-tbl32_F266[0x0f] =  (TBL_F2660F, 0, 0, 0, 0, 0, 0, 0, 0, 0)
-desc_F266       = (tbl32_F266,3,0,0xff,0,0xff)
+#tbl32_F266 = list(tbl32_66)
+#tbl32_F266[0x0f] =  (TBL_F2660F, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+#desc_F266       = (tbl32_F266,3,0,0xff,0,0xff)
 
-tbl32_F366 = list(tbl32_66)
-tbl32_F366[0x0f] =  (TBL_F3660F, 0, 0, 0, 0, 0, 0, 0, 0, 0)
-desc_F366       = (tbl32_F366,3,0,0xff,0,0xff)
+#tbl32_F366 = list(tbl32_66)
+#tbl32_F366[0x0f] =  (TBL_F3660F, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+#desc_F366       = (tbl32_F366,3,0,0xff,0,0xff)
 
 
 """
@@ -860,7 +860,7 @@ tbl32_F30F[0x2a] =    ( 0, INS_OTHER,   ADDRMETH_V | OPTYPE_ss | OP_R, ADDRMETH_
 
 tbl32_F30F[0x2c] =    ( 0, INS_OTHER,   ADDRMETH_G | OPTYPE_y  | OP_R, ADDRMETH_W | OPTYPE_ss | OP_R, ARG_NONE, ARG_NONE, cpu_PENTIUM2, "cvttss2si", 0, 0, 0)
 tbl32_F30F[0x2d] =    ( 0, INS_OTHER,   ADDRMETH_G | OPTYPE_y  | OP_R, ADDRMETH_W | OPTYPE_ss | OP_R, ARG_NONE, ARG_NONE, cpu_PENTIUM2, "cvtss2si", 0, 0, 0)
-tbl32_F30F[0x38] =  (TBL_F30F38, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+tbl32_F30F[0x38] =  (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
 tbl32_F30F[0x51] =    ( 0, INS_ARITH,   ADDRMETH_V | OPTYPE_ss | OP_W, ADDRMETH_VEXSKIP | ADDRMETH_H | OPTYPE_ss | OP_R, ADDRMETH_W | OPTYPE_ss | OP_R, ARG_NONE, cpu_PENTIUM2, "sqrtss", 0, 0, 0)
 tbl32_F30F[0x52] =    ( 0, INS_ARITH,   ADDRMETH_V | OPTYPE_ss | OP_W, ADDRMETH_VEXSKIP | ADDRMETH_H | OPTYPE_ss | OP_R, ADDRMETH_W | OPTYPE_ss | OP_R, ARG_NONE, cpu_PENTIUM2, "rsqrtss", 0, 0, 0)
 tbl32_F30F[0x53] =    ( 0, INS_OTHER,   ADDRMETH_V | OPTYPE_ss | OP_W, ADDRMETH_VEXSKIP | ADDRMETH_H | OPTYPE_ss | OP_R, ADDRMETH_W | OPTYPE_ss | OP_R, ARG_NONE, cpu_PENTIUM2, "rcpss", 0, 0, 0)
@@ -886,8 +886,8 @@ tbl32_F30F[0xd6] =    ( 0, INS_OTHER,   ADDRMETH_V | OPTYPE_dq | OP_W, ADDRMETH_
 tbl32_F30F[0xe6] =    ( 0, INS_OTHER,     ADDRMETH_V | OPTYPE_x  | OP_W, ADDRMETH_W | OPTYPE_pd | OP_R, ARG_NONE, ARG_NONE, cpu_PENTMMX, "cvtdq2pd", 0, 0, 0)
 
 
-tbl32_F2660F = list( tbl32_660F )   # it seems that 66 trumps F2, so if we don't have a combination specifically for F266, default to 66's
-tbl32_F2660F[0x38] =  (TBL_F2660F38, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+#tbl32_F2660F = list( tbl32_660F )   # it seems that 66 trumps F2, so if we don't have a combination specifically for F266, default to 66's
+#tbl32_F2660F[0x38] =  (TBL_F2660F38, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
 
 
 tbl32_F3660F = list( tbl32_660F )
@@ -895,11 +895,9 @@ tbl32_F3660F = list( tbl32_660F )
 desc_660F         = (tbl32_660F,4,0,0xff,0,0xff)
 desc_F20F         = (tbl32_F20F,4,0,0xff,0,0xff)
 desc_F30F         = (tbl32_F30F,4,0,0xff,0,0xff)
-desc_F2660F       = (tbl32_F2660F,4,0,0xff,0,0xff)
-desc_F3660F       = (tbl32_F3660F,4,0,0xff,0,0xff)
+#desc_F2660F       = (tbl32_F2660F,4,0,0xff,0,0xff)
+#desc_F3660F       = (tbl32_F3660F,4,0,0xff,0,0xff)
 ######################################### END 0F ##############################
-
-
 
 
 """
@@ -946,18 +944,18 @@ tbl32_0F01_rest = [
 ( 0, INS_SYSTEM, 0, 0, 0, cpu_PENTIUM2, "monitor", 0, 0, 0),
 ( 0, INS_SYSTEM, 0, 0, 0, cpu_PENTIUM2, "mwait", 0, 0, 0),
 ( 0, INS_SYSTEM, 0, 0, 0, cpu_PENTIUM2, "clac", 0, 0, 0),
+( 0, INS_SETAF, ARG_NONE, ARG_NONE, ARG_NONE, cpu_PENTIUM2, "stac", 0, 0, 0),
 ( 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
 ( 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
 ( 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
 ( 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
-( 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
-( 0, INS_SYSTEM, OP_REG | OP_R, ARG_NONE, ARG_NONE, cpu_AMD64, "xgetbv", e_amd64_regs.REG_RCX, 0, 0),  
-( 0, INS_SYSTEM, OP_REG | OP_R, ARG_NONE, ARG_NONE, cpu_AMD64, "xsetbv", e_amd64_regs.REG_RCX, 0, 0),  
+( 0, INS_SYSTEM, OP_REG | OP_R, ARG_NONE, ARG_NONE, cpu_AMD64, "xgetbv", e_amd64_regs.REG_ECX, 0, 0),
+( 0, INS_SYSTEM, OP_REG | OP_R, ARG_NONE, ARG_NONE, cpu_AMD64, "xsetbv", e_amd64_regs.REG_ECX, 0, 0),
 ( 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
 ( 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
 ( 0, INS_SYSTEM, ARG_NONE, ARG_NONE, ARG_NONE, cpu_AMD64, "vmfunc", 0, 0, 0),
-( 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
-( 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+( 0, INS_SYSTEM, ARG_NONE, ARG_NONE, ARG_NONE, cpu_PENTIUM, "xend", 0, 0, 0),
+( 0, INS_SYSTEM, ARG_NONE, ARG_NONE, ARG_NONE, cpu_PENTIUM, "xtest", 0, 0, 0),
 ( 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
 ( 0, INS_SYSTEM, OP_REG | OP_R, ARG_NONE, ARG_NONE, cpu_AMD64, "vmrun", e_amd64_regs.REG_RAX, 0, 0),  
 ( 0, INS_SYSTEM, 0, 0, 0, cpu_AMD64, "vmmcall", 0, 0, 0),  
@@ -1088,25 +1086,28 @@ tbl32_660F38[0xdf] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_dq | OP_W, ADDRMETH_H | 
 tbl32_660F38[0xf0] = (0, INS_SYSTEM, ADDRMETH_G | OPTYPE_w | OP_W, ADDRMETH_M | OPTYPE_w | OP_R, ARG_NONE, cpu_AMD64, "movbe", 0, 0, 0)
 tbl32_660F38[0xf1] = (0, INS_SYSTEM, ADDRMETH_M | OPTYPE_w | OP_W, ADDRMETH_G | OPTYPE_w | OP_R, ARG_NONE, cpu_AMD64, "movbe", 0, 0, 0)
 
-tbl32_F20F38 = list(tbl32_0F38)
-#tbl32_F20F38 = [ (0, 0, 0, 0, 0, 0, 0, 0, 0, 0) for x in xrange(256) ]
-tbl32_F20F38[0xf0] = (0, INS_OTHER, ADDRMETH_G | OPTYPE_d  | OP_W, ADDRMETH_E | OPTYPE_b  | OP_R, ARG_NONE, cpu_AMD64, "crc32", 0, 0, 0)
+#tbl32_F20F38 = list(tbl32_0F38)
+tbl32_F20F38 = [ (0, 0, 0, 0, 0, 0, 0, 0, 0, 0) for x in xrange(2) ]
+tbl32_F20F38[0] = (0, INS_OTHER, ADDRMETH_G | OPTYPE_d | OP_W, ADDRMETH_E | OPTYPE_b | OP_R, ARG_NONE, cpu_AMD64, "crc32", 0, 0, 0)
+#XXX: Thanks intel for not differentiating between 16 and 32 here
+tbl32_F20F38[1] = (0, INS_OTHER, ADDRMETH_G | OPTYPE_d | OP_W, ADDRMETH_E | OPTYPE_v | OP_R, ARG_NONE, cpu_AMD64, "crc32", 0, 0, 0)
 
-tbl32_F30F38 = [ (0, 0, 0, 0, 0, 0, 0, 0, 0, 0) for x in xrange(256) ]
-tbl32_F30F38[0xf0] = (0, INS_OTHER, ADDRMETH_G | OPTYPE_d  | OP_W, ADDRMETH_E | OPTYPE_b  | OP_R, ARG_NONE, cpu_AMD64, "crc32", 0, 0, 0)
+#tbl32_F30F38 = [ (0, 0, 0, 0, 0, 0, 0, 0, 0, 0) for x in xrange(256) ]
+#tbl32_F30F38[0] = (0, INS_OTHER, ADDRMETH_G | OPTYPE_d  | OP_W, ADDRMETH_E | OPTYPE_b  | OP_R, ARG_NONE, cpu_AMD64, "crc32", 0, 0, 0)
+#tbl32_F30F38[1] = (0, INS_OTHER, ADDRMETH_G | OPTYPE_d  | OP_W, ADDRMETH_E | OPTYPE_b  | OP_R, ARG_NONE, cpu_AMD64, "crc32", 0, 0, 0)
 
-tbl32_F3660F38 = [ (0, 0, 0, 0, 0, 0, 0, 0, 0, 0) for x in xrange(256) ]
+#tbl32_F3660F38 = [ (0, 0, 0, 0, 0, 0, 0, 0, 0, 0) for x in xrange(256) ]
 
-tbl32_F2660F38 = list(tbl32_660F38)
-tbl32_F2660F38[0xf0] = (0, INS_OTHER, ADDRMETH_G | OPTYPE_d  | OP_W, ADDRMETH_E | OPTYPE_b  | OP_R, ARG_NONE, cpu_AMD64, "crc32", 0, 0, 0)
-tbl32_F2660F38[0xf1] = (0, INS_OTHER, ADDRMETH_G | OPTYPE_d  | OP_W, ADDRMETH_E | OPTYPE_w  | OP_R, ARG_NONE, cpu_AMD64, "crc32", 0, 0, 0)
+#tbl32_F2660F38 = list(tbl32_660F38)
+#tbl32_F2660F38[0xf0] = (0, INS_OTHER, ADDRMETH_G | OPTYPE_d  | OP_W, ADDRMETH_E | OPTYPE_b  | OP_R, ARG_NONE, cpu_AMD64, "crc32", 0, 0, 0)
+#tbl32_F2660F38[0xf1] = (0, INS_OTHER, ADDRMETH_G | OPTYPE_d  | OP_W, ADDRMETH_E | OPTYPE_w  | OP_R, ARG_NONE, cpu_AMD64, "crc32", 0, 0, 0)
 
-desc_0F38           = (tbl32_0F38,3,0,0xff,0,0xff)
-desc_660F38         = (tbl32_660F38,3,0,0xff,0,0xff)
-desc_F30F38         = (tbl32_F30F38,3,0,0xff,0,0xff)
-desc_F3660F38       = (tbl32_F3660F38,3,0,0xff,0,0xff)
-desc_F20F38         = (tbl32_0F38,3,0,0xff,0,0xff)
-desc_F2660F38       = (tbl32_F2660F38,3,0,0xff,0,0xff)
+desc_0F38   = (tbl32_0F38, 3, 0, 0xff, 0, 0xff)
+desc_660F38 = (tbl32_660F38, 3, 0, 0xff, 0, 0xff)
+desc_F20F38 = (tbl32_F20F38, 3, 0, 0xff, 0xf0, 0xff)
+#desc_F30F38   = (tbl32_F30F38,3,0,0xff,0,0xff)
+#desc_F3660F38 = (tbl32_F3660F38,3,0,0xff,0,0xff)
+#desc_F2660F38 = (tbl32_F2660F38,3,0,0xff,0,0xff)
 
 
 tbl32_0F38F3 = [ (0, 0, 0, 0, 0, 0, 0, 0, 0, 0) for x in xrange(256) ]

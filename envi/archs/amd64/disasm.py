@@ -330,12 +330,14 @@ class Amd64Disasm(e_i386.i386Disasm):
         all_prefixes = prefixes
         ogtabdesc = tabdesc
         for pref, onehot in ppref:
+            #print("NEW RUN")
             if pref is not None:
                 tabdesc = ogtabdesc
                 obyte = pref
                 offset = mainbyte - 1
                 all_prefixes = prefixes | (pho_prefixes & (~onehot))
             else:
+                tabdesc = ogtabdesc
                 offset = mainbyte
                 obyte = ord(bytez[offset])
             while True:
@@ -377,7 +379,7 @@ class Amd64Disasm(e_i386.i386Disasm):
         if not len(decodings):
             raise envi.InvalidInstruction(bytez=bytez[startoff:startoff+16], va=va)
 
-        tabdesc, opdesc, offset, all_prefixes = decodings.pop()
+        tabdesc, opdesc, offset, prefixes = decodings.pop()
         optype = opdesc[1]
         tbl_opercnt = tabdesc[1]
         mnem = opdesc[3 + tbl_opercnt]
@@ -447,8 +449,6 @@ class Amd64Disasm(e_i386.i386Disasm):
 
                 except struct.error:
                     # Catch struct unpack errors due to insufficient data length
-                    import pdb
-                    pdb.set_trace()
                     raise envi.InvalidInstruction(bytez=bytez[startoff:startoff+16])
 
             if oper is not None:
