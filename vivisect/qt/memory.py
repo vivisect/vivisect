@@ -407,6 +407,24 @@ class VQVivMemoryView(e_mem_qt.VQMemoryWindow, viv_base.VivEventCore):
 
         return title
 
+    def _getRenderVaSize(self):
+        '''
+        Vivisect steps in and attempts to map to locations when they exist.
+        
+        since we have a location database, let's use that to make sure we get a
+        real location if it exists.  otherwise, we end up in no-man's land, 
+        since we rely on labels, which only exist for the base of a location.
+        '''
+        addr, size = e_mem_qt.VQMemoryWindow._getRenderVaSize(self)
+        if addr is None:
+            return addr, size
+
+        loc = self.vw.getLocation(addr)
+        if loc is None:
+            return addr, size
+
+        return loc[L_VA], size
+
     def initMemoryCanvas(self, memobj, syms=None):
         return VQVivMemoryCanvas(memobj, syms=syms, parent=self)
 

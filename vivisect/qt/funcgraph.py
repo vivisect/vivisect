@@ -342,6 +342,7 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
         after every change.  
         '''
         self._last_viewpt = self.mem_canvas.page().mainFrame().scrollPosition()
+        # FIXME: history should track this as well and return to the same place
         self.clearText()
         self.fva = None
         self._renderMemory()
@@ -489,6 +490,18 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
         #self.parentWidget().delEventCore(self)
         #return e_mem_qt.VQMemoryWindow.closeEvent(self, event)
 
+    def _getLocVa(self, addr):
+        '''
+        since we have a location database, let's use that to make sure we get a
+        real location if it exists.  otherwise, we end up in no-man's land, 
+        since we rely on labels, which only exist for the base of a location.
+        '''
+        loc = self.vw.getLocation(addr)
+        if loc is None:
+            return addr
+
+        return loc[L_VA]
+
     @idlethread
     def _renderMemory(self):
         try:
@@ -503,12 +516,10 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
                 self.mem_canvas.addText('Invalid Address: %s (%s)' % (expr, e))
                 return
 
-            fva = self.vw.getFunction(addr)
-            if fva == self.fva:
-                self.mem_canvas.page().mainFrame().scrollToAnchor('viv:0x%.8x' % addr)
-                self.updateWindowTitle()
-                return
+            # get a location anchor if one exists
+            addr = self._getLocVa(addr)
 
+            fva = self.vw.getFunction(addr)
             if fva == None:
                 self.vw.vprint('0x%.8x is not in a function!' % addr)
                 return
@@ -516,6 +527,11 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
             self.clearText()
             self.renderFunctionGraph(fva)
             self.updateWindowTitle()
+
+            if fva == self.fva:
+                self.mem_canvas.page().mainFrame().scrollToAnchor('viv:0x%.8x' % addr)
+                self.updateWindowTitle()
+                return
 
             self._renderDoneSignal.emit()
         except Exception, e:
