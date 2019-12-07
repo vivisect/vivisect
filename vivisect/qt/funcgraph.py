@@ -520,18 +520,19 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
             addr = self._getLocVa(addr)
 
             fva = self.vw.getFunction(addr)
+            if fva == self.fva:
+                self.mem_canvas.page().mainFrame().scrollToAnchor('viv:0x%.8x' % addr)
+                self.updateWindowTitle()
+                return
+
             if fva == None:
                 self.vw.vprint('0x%.8x is not in a function!' % addr)
                 return
 
             self.clearText()
             self.renderFunctionGraph(fva)
+            self.mem_canvas.page().mainFrame().scrollToAnchor('viv:0x%.8x' % addr)
             self.updateWindowTitle()
-
-            if fva == self.fva:
-                self.mem_canvas.page().mainFrame().scrollToAnchor('viv:0x%.8x' % addr)
-                self.updateWindowTitle()
-                return
 
             self._renderDoneSignal.emit()
         except Exception, e:
