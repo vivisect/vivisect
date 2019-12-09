@@ -313,13 +313,6 @@ def analyzeFunction(vw, fva):
             if bflags & envi.BR_PROC:   # skip calls
                 continue
 
-            if jmpva in done:
-                continue
-            done.append(jmpva)
-
-            if vw.getVaSetRow('SwitchCases', jmpva) is not None:
-                continue
-
             funcva = vw.getFunction(jmpva)
             if funcva != fva:
                 # jmp_indir is for the entire VivWorkspace.  
@@ -327,6 +320,15 @@ def analyzeFunction(vw, fva):
                 # this should be checked again when codeblocks are allowed to 
                 #   be part of multiple functions.
                 continue
+
+            if vw.getVaSetRow('SwitchCases', jmpva) is not None:
+                logger.warn("...skipping 0x%x - SwitchCases already has it?", jmpva)
+                continue
+
+            if jmpva in done:
+                logger.warn("...skipping 0x%x - already done", jmpva)
+                continue
+            done.append(jmpva)
 
             sc = SwitchCase(vw, jmpva)
             sc.analyze()
