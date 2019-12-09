@@ -1,3 +1,5 @@
+import envi
+
 import vqt.hotkeys as vq_hotkey
 import vqt.saveable as vq_save
 import envi.qt.memory as e_mem_qt
@@ -121,6 +123,7 @@ class VQVivFuncgraphCanvas(vq_memory.VivCanvasBase):
         Sets the view reticle to an absolute scroll position
         '''
         point = QPoint(x, y)
+        print "   setScrollPosition(%r, %r)" % (x, y)
         self.page().mainFrame().setScrollPosition(point)
 
 funcgraph_js = '''
@@ -263,7 +266,8 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
 
         self.loadDefaultRenderers()
 
-        self.addr_entry.returnPressed.connect(self._renderMemory)
+        self.addr_entry.returnPressed.connect(self._locSelected)
+        #self.addr_entry.returnPressed.connect(self._renderMemory)
 
         hbox.addWidget(self.hist_button)
         hbox.addWidget(self.addr_entry)
@@ -301,10 +305,13 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
         self.addHotKeyTarget('funcgraph:paintmerge', self._hotkey_paintMerge)
 
     def _hotkey_histback(self):
+        print "_hotkey_histback", repr(self.history), len(self.history)
         if len(self.history) >= 2:
-            self.history.pop()
-            expr = self.history.pop()
-            self.enviNavGoto(expr)
+            print " _hotkey_histback2 ", repr(self.history)
+            print "  POPPED: ", self.history.pop()
+            expr, scrPos = self.history.pop()
+            print " histback: history.pop() == %r, %r" % (expr, scrPos)
+            self.enviNavGoto(expr, scrPos=scrPos, track=False)
 
     def _hotkey_resetzoom(self):
         self.mem_canvas.setZoomFactor( 1 )
@@ -362,29 +369,69 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
         self.histmenu.clear()
 
         history = []
-        for expr in self.history:
-            addr = self.vw.parseExpression(expr)
-            menustr = '0x%.8x' % addr
+        for expr, scrPos in self.history:
+            try:
+                addr = self.vw.parseExpression(expr)
+                menustr = '0x%.8x' % addr
+            except envi.expression.ExpressionFail:
+                logger.warn('no such expression: %r', expr)
+                menustr = ''
+
             sym = self.vw.getSymByAddr(addr)
-            if sym != None:
+            if sym is not  None:
                 menustr += ' - %s' % repr(sym)
 
+            print " menuhistory.append( %r, %r )" % (menustr, expr)
             history.append( (menustr, expr) )
 
         history.reverse()
-        for menustr,expr in history:
-            self.histmenu.addAction(menustr, ACT(self._histSelected, expr))
+        for idx, (menustr, expr) in enumerate(history):
+            print " histmenu.append( %r, %r ) %d" % (menustr, expr, idx)
+            self.histmenu.addAction(menustr, ACT(self._histSelected, expr, idx))
 
-    def _histSelected(self, expr):
-        while self.history.pop() != expr:
-            pass
-        self.enviNavGoto(expr)
+    def _histSelected(self, expr, idx):
+        hexpr, scrPos = self.history.pop()
+        print " _histSelected: history.pop() == %r, %r (idx: 0)" % (hexpr, scrPos)
+        #while hexpr != expr:
+        for x in range(idx):
+            hexpr, scrPos = self.history.pop()
+            print " _histSelected: history.pop() == %r, %r (idx: %d)" % (hexpr, scrPos, x+1)
+        self.enviNavGoto(expr, scrPos=scrPos, track=False)
 
-    def enviNavGoto(self, expr, sizeexpr=None):
+    def addHistory(self, expr, scrPos=None):
+        print 'addHistory(%r, %r)' % (expr, scrPos)
+        if len(self.history):
+            curexpr, curPos = self.history[-1]
+            if curexpr == expr and curPos == scrPos:
+                print "   skipping (same position)"
+                return
+
+            #if curexpr == expr:
+            #    print "   updating top"
+            #    self.history[-1] = (expr, scrPos)
+            #    return
+
+        print "   adding new address"
+        self.history.append((expr, scrPos))
+
+    def enviNavGoto(self, expr, sizeexpr=None, scrPos=None, track=True):
+        curexpr = self.addr_entry.text()
+        curScrPos = self.mem_canvas.page().mainFrame().scrollPosition()
         self.addr_entry.setText(expr)
-        self.history.append( expr )
+        print "enviNavGoto() expr = %r, %r (%r, %r)" % (expr, scrPos, curexpr, curScrPos)
+        if len(curexpr) and track: #curScrPos is not None and scrPos is not None:
+            print " enviNavGoto:pre:history.append( %r, %r )" % (curexpr, curScrPos)
+            self.history.append((curexpr, curScrPos))
+
+
+        print " enviNavGoto:history.append( %r, %r )" % (expr, scrPos)
+        #self.history.append((expr, scrPos))
+        self.addHistory(expr, scrPos)
+
         self.updateWindowTitle()
         self._renderMemory()
+        if scrPos is not None:
+            self.mem_canvas.setScrollPosition(scrPos.x(), scrPos.y())
 
     def vqGetSaveState(self):
         return { 'expr':str(self.addr_entry.text()), }
@@ -489,6 +536,27 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
         #self.parentWidget().delEventCore(self)
         #return e_mem_qt.VQMemoryWindow.closeEvent(self, event)
 
+    def _getLocVa(self, addr):
+        '''
+        since we have a location database, let's use that to make sure we get a
+        real location if it exists.  otherwise, we end up in no-man's land, 
+        since we rely on labels, which only exist for the base of a location.
+        '''
+        loc = self.vw.getLocation(addr)
+        if loc is None:
+            return addr
+
+        return loc[L_VA]
+
+    def _locSelected(self):
+        '''
+        
+        '''
+        expr = self.addr_entry.text()
+        #curScrPos = self.mem_canvas.page().mainFrame().scrollPosition()
+        self.addHistory(expr)
+        self._renderMemory()
+
     @idlethread
     def _renderMemory(self):
         try:
@@ -499,6 +567,7 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
 
             try:
                 addr = self.vw.parseExpression(expr)
+                #self.addHistory(expr)
             except Exception, e:
                 self.mem_canvas.addText('Invalid Address: %s (%s)' % (expr, e))
                 return
