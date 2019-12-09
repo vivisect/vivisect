@@ -54,6 +54,8 @@ import vivisect.analysis.generic.emucode as v_emucode
 logger = logging.getLogger(__name__)
 STOP_LOCS = (LOC_STRING, LOC_UNI, LOC_STRUCT, LOC_CLSID, LOC_VFTABLE, LOC_IMPORT, LOC_PAD, LOC_NUMBER)
 
+sys.setrecursionlimit(5000)
+
 
 def guid(size=16):
     return hexlify(os.urandom(size))

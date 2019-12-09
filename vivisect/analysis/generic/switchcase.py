@@ -9,9 +9,10 @@ import sys
 
 import logging
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARN)
-#if not len(logger.handlers):
-#    logger.addHandler(logging.StreamHandler())
+#logger.setLevel(logging.WARN)
+logger.setLevel(logging.DEBUG)
+if not len(logger.handlers):
+    logger.addHandler(logging.StreamHandler())
 
 import envi
 import envi.archs.i386 as e_i386
@@ -72,9 +73,6 @@ class SymIdxNotFoundException(Exception):
     def __repr__(self):
         return "getSymIdx cannot determine the Index register"
 
-    def __str__(self):
-        return "getSymIdx cannot determine the Index register"
-
 
 class TrackingSymbolikEmulator(vs_anal.SymbolikFunctionEmulator):
     '''
@@ -96,6 +94,10 @@ class TrackingSymbolikEmulator(vs_anal.SymbolikFunctionEmulator):
         
     def getTrackInfo(self):
         return self._trackReads
+
+    def setupFunctionCall(self, fva, args=None):
+        logger.warn("setupFunctionCall: SKIPPING!")
+        pass
         
     def readSymMemory(self, symaddr, symsize, vals=None):
         '''
@@ -185,7 +187,7 @@ def getMemTargets(symvar):
         '''
         walkTree callback for grabbing Var objects
         '''
-        logger.debug("... %r", symobj)
+        logger.debug("... memtgt: %r", symobj)
         if symobj.symtype == SYMT_MEM:
             tgt = symobj.kids[0]
             if tgt not in ctx:
@@ -202,7 +204,7 @@ def getUnknowns(symvar):
         '''
         walkTree callback for grabbing Var objects
         '''
-        logging.debug("... %r", symobj)
+        logging.debug("... unk: %r", symobj)
         if symobj.symtype == SYMT_VAR:
             if symobj.name not in ctx:
                 ctx.append(symobj.name)
@@ -252,7 +254,8 @@ def targetNewFunctions(vw, fva):
     if this is too cumbersome, we'll just do the first one, or any in the first codeblock
     '''
 
-    todo = [vw.getCodeBlock(fva)]
+    todo = list(vw.getFunctionBlocks(fva))
+    done = []
 
     while len(todo):
         cbva, cbsz, cbfva = todo.pop()
@@ -277,7 +280,11 @@ def targetNewFunctions(vw, fva):
                 if vw.getFunction(tgtva) is not None:
                     continue
 
-                logger.warn('Making new function: 0x%x', tgtva)
+                if tgtva in done:
+                    continue
+                done.append(tgtva)
+
+                logger.warn('Making new function: 0x%x (from 0x%x)', tgtva, xrfr)
                 vw.makeFunction(tgtva)
 
             cbva += len(op)
@@ -294,7 +301,7 @@ def analyzeFunction(vw, fva):
 
     lastdynlen = 0
     dynbranches = vw.getVaSet('DynamicBranches')
-    done = vw.getFunctionMeta(fva, 'analyzedDynBranches')
+    done = vw.getMeta('analyzedDynBranches')
     if done is None:
         done = []
     
@@ -335,7 +342,8 @@ def analyzeFunction(vw, fva):
                 inp = raw_input("PRESS ENTER TO CONTINUE...")
             '''
         dynbranches = vw.getVaSet('DynamicBranches')
-    vw.setFunctionMeta(fva, 'analyzedDynBranches', done)
+    vw.setMeta('analyzedDynBranches', done)
+    # FIXME: we need a better way to store changing lists/dicts, that don't show up in the UI.  VaSet would be great, but ugly
 
 
 def makeSwitch(vw, jmpva):
@@ -422,7 +430,7 @@ def thunk_bx(emu, fname, symargs):
 
     ebx = Const(ebxval, vw.psize)
     reg = rctx.getRealRegisterName('ebx')
-    logger.info("YAY!  Thunk_bx is being called! %s\t%s\t%s\t%s", emu, symargs, reg, ebx)
+    logger.debug("YAY!  Thunk_bx is being called! %s\t%s\t%s\t%s", emu, symargs, reg, ebx)
     emu.setSymVariable(reg, ebx)
 
 UNINIT_CASE_INDEX = -2
@@ -597,11 +605,11 @@ class SwitchCase:
         contextpath = self._codepath[:-1]
         analpath = self._codepath[-1:]
 
-        self.cspath = sctx.getSymbolikPaths(fva, graph=self._sgraph, paths=[contextpath]).next()
-        self.aspath = sctx.getSymbolikPaths(fva, graph=self._sgraph, paths=[analpath]).next()
+        self.cspath = sctx.getSymbolikPaths(fva, graph=self._sgraph, args=[], paths=[contextpath]).next()
+        self.aspath = sctx.getSymbolikPaths(fva, graph=self._sgraph, args=[], paths=[analpath]).next()
         if len(self.cspath[1]) == 0:
             self.cspath = self.aspath
-        self.fullpath = sctx.getSymbolikPaths(fva, graph=self._sgraph, paths=[self._codepath]).next()
+        self.fullpath = sctx.getSymbolikPaths(fva, graph=self._sgraph, args=[], paths=[self._codepath]).next()
 
 
         return self.cspath, self.aspath, self.fullpath
@@ -667,9 +675,6 @@ class SwitchCase:
             retcons.append((con, cons.symtype, consoff+symcmp.solve()))
 
         return retcons
-
-            
-
 
     def getBounds(self):
         '''
@@ -756,6 +761,7 @@ class SwitchCase:
                 logger.info("Done.. %r %r ...\n" % (lower, upper))
         except StopIteration:
             pass
+
         # if upper is None:  we need to exercize upper until something doesn't make sense.  
         # we also need to make sure we don't analyze non-Switches.  
         if upper is None:
@@ -907,6 +913,9 @@ class SwitchCase:
 
 
     def getDerefs(self):
+        '''
+        roll through effects and look for EFF_READMEM
+        '''
         derefs = []
 
         csp, asp, fullp = self.getSymbolikParts()
@@ -1092,6 +1101,8 @@ Out[14]: o_add(Mem(o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var(
         (csemu, cseffs), aspath, fullpath = self.getSymbolikParts()
 
         symidx = self.getSymIdx()
+        logger.info('getSymIdx: %r', symidx)
+
         jmptgt = self.getSymTarget()
         lower, upper, offset = self.getBounds()
         logger.debug( " itercases: %r %r %r %r", symidx, lower, upper, offset)
@@ -1108,6 +1119,7 @@ Out[14]: o_add(Mem(o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var(
         for idx in range(lower-offset, upper-offset+1):
             symemu.setSymVariable(symidx, Const(idx, 8))
             workJmpTgt = jmptgt.update(emu=symemu)
+            logger.info(" itercases: workJmpTgt: %r", workJmpTgt)
             coderef = workJmpTgt.solve(emu=symemu, vals={symidx:idx})
             #coderef = jmptgt.update(emu=symemu)
             logger.debug(" itercases: %r, %r", idx, hex(coderef))
