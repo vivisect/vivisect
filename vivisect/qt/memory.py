@@ -57,7 +57,6 @@ class VivCanvasBase(vq_hotkey.HotKeyMixin, e_mem_canvas.VQMemoryCanvas):
         self.addHotKey('ctrl+meta+S', 'viv:make:struct:multi')
         self.addHotKey('U', 'viv:undefine')
         self.addHotKey('ctrl+p', 'viv:preview:instr')
-        self.addHotKey('ctrl+s', 'viv:save')
         self.addHotKey('B', 'viv:bookmark')
         self.addHotKey('ctrl+1', 'viv:make:number:one')
         self.addHotKey('ctrl+2', 'viv:make:number:two')
@@ -286,13 +285,6 @@ class VivCanvasBase(vq_hotkey.HotKeyMixin, e_mem_canvas.VQMemoryCanvas):
     def _hotkey_preview_instr(self):
         if self._canv_curva is not None:
             self.vw.previewCode(self._canv_curva)
-
-    @firethread
-    @vq_hotkey.hotkey('viv:save')
-    def _hotkey_save(self, fullsave=False):
-        self.vw.vprint('Saving workspace...')
-        self.vw.saveWorkspace(fullsave=fullsave)
-        self.vw.vprint('complete!')
 
     def getVaTag(self, va):
         loc = self.mem.getLocation(va)
