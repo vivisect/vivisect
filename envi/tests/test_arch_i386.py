@@ -136,6 +136,9 @@ i386MultiByteOpcodes = [
     ('MOVHPD', '660F172D41414141', 0x40, 'movhpd oword [0x41414141],xmm5', 'movhpd oword [0x41414141],xmm5'),
     ('MOVMSKPS', '0F50D6', 0x40, 'movmskps edx,xmm6', 'movmskps edx,xmm6'),
     ('MOVMSKPD', '660F50D6', 0x40, 'movmskpd edx,xmm6', 'movmskpd edx,xmm6'),
+    # TODO: so technically this is movhlps, but we need to have the operand change the opcode
+    ('MOVLPS', '0F12DE', 0x40, 'movlps xmm3,xmm6', 'movlps xmm3,xmm6'),
+    ('MOVLPS 2', '0F121D41414141', 0x40, 'movlps xmm3,qword [0x41414141]', 'movlps xmm3,qword [0x41414141]'),
     ('SUBPD', '660F5C6C240E', 0x40, 'subpd xmm5,oword [esp + 14]', 'subpd xmm5,oword [esp + 14]'),
     ('MAXPD', '660F5FAB0F270000', 0x40, 'maxpd xmm5,oword [ebx + 9999]', 'maxpd xmm5,oword [ebx + 9999]'),
     ('XORPD', '660F57BD15CD5B07', 0x40, 'xorpd xmm7,oword [ebp + 123456789]', 'xorpd xmm7,oword [ebp + 123456789]'),
