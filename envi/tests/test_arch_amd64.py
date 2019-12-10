@@ -242,10 +242,10 @@ amd64VexOpcodes = [
     ('VMOVSD 4', 'C5FB111C2541414141', 'vmovsd oword [0x41414141],xmm3', 'vmovsd oword [0x41414141],xmm3'),
     ('VSQRTPD', 'C5F951CA', 'vsqrtpd xmm1,xmm2', 'vsqrtpd xmm1,xmm2'),
     ('VSQRTPD 2', 'C5FD51CA', 'vsqrtpd ymm1,ymm2', 'vsqrtpd ymm1,ymm2'),
-    ('VBLENDVPS (128)', '', '', ''),
-    ('VBLENDVPS (MEM128)', '', '', ''),
-    ('VBLENDVPS (256)', '', '', ''),
-    ('VBLENDVPS (MEM256)', '', '', ''),
+    ('VBLENDVPS (128)', 'C4E3694ACB40', 'vblendvps xmm1,xmm2,xmm3,xmm4', 'vblendvps xmm1,xmm2,xmm3,xmm4'),
+    ('VBLENDVPS (MEM128)', 'C4E3694A0C254141414140', 'vblendvps xmm1,xmm2,oword [0x41414141],xmm4', ''),
+    ('VBLENDVPS (256)', 'C4E36D4ACB40', 'vblendvps ymm1,ymm2,ymm3,ymm4', 'vblendvps ymm1,ymm2,ymm3,ymm4'),
+    ('VBLENDVPS (MEM256)', 'C4E36D4A0C254141414140', 'vblendvps ymm1,ymm2,oword [0x41414141],ymm4', 'vblendvps ymm1,ymm2,oword [0x41414141],ymm4'),
     # ('VSQRTPD 3' ,'', 'vsqrtpd zmm1,zmm2', 'vsqrtpd zmm1,zmm2'),
 ]
 
@@ -262,30 +262,19 @@ class Amd64InstructionSet(unittest.TestCase):
             try:
                 op = self._arch.archParseOpcode(bytez.decode('hex'), 0, 0x40)
             except envi.InvalidInstruction:
-                import pdb
-                pdb.set_trace()
                 self.fail("Failed to parse opcode bytes: %s (case: %s, expected: %s)" % (bytez, name, reprOp))
-            except Exception:
-                import pdb
-                pdb.post_mortem(sys.exc_info()[2])
-                print('wat')
-            # print("'%s', 0x%x, '%s' == '%s'" % (bytez, va, repr(op), reprOp))
+
             try:
                 self.assertEqual(repr(op), reprOp)
             except AssertionError:
-                import pdb
-                pdb.set_trace()
                 self.fail("Failing match for case %s (bytes: %s) (Got: %s, Expected: %s)" % (name, bytez, repr(op), reprOp))
-            except Exception:
-                import pdb
-                pdb.post_mortem(sys.exc_info()[2])
-                print('wat')
 
             scanv.clearCanvas()
             op.render(scanv)
             self.assertEqual(scanv.strval, renderOp)
 
-    def SKIPtest_envi_amd64_disasm_Specific_VEX_Instrs(self):
+    def test_envi_amd64_disasm_Specific_VEX_Instrs(self):
+        print("AND NOW FOR VEX")
         self.check_opreprs(amd64VexOpcodes)
 
     def test_envi_amd64_disasm_Specific_SingleByte_Instrs(self):
