@@ -15,8 +15,10 @@ from vivisect.tests import linux_amd64_ls_data
 from vivisect.tests import linux_amd64_chown_data
 from vivisect.tests import linux_amd64_libc_2_27_data
 from vivisect.tests import linux_amd64_libstdc_data
+from vivisect.tests import linux_amd64_static_data
 from vivisect.tests import linux_i386_libc_2_13_data
 from vivisect.tests import linux_i386_libstdc_data
+from vivisect.tests import linux_i386_static_data
 from vivisect.tests import linux_arm_sh_data
 from vivisect.tests import qnx_arm_ksh_data
 from vivisect.tests import openbsd_amd64_ls_data
@@ -26,8 +28,10 @@ data = (
         ("linux_amd64_chown", linux_amd64_chown_data.chown_data, ('linux', 'amd64', 'chown'),),
         ("linux_amd64_libc", linux_amd64_libc_2_27_data.libc_data, ('linux', 'amd64', 'libc-2.27.so'),),
         ("linux_amd64_libstdc", linux_amd64_libstdc_data.libstdc_data, ('linux', 'amd64', 'libstdc++.so.6.0.25'),),
+        #("linux_amd64_static", linux_amd64_static_data.static64_data, ('linux', 'amd64', 'static64.llvm.elf'),),
         ("linux_i386_libc", linux_i386_libc_2_13_data.libc_data, ('linux', 'i386', 'libc-2.13.so'),),
         ("linux_i386_libstdc", linux_i386_libstdc_data.libstdc_data, ('linux', 'i386', 'libstdc++.so.6.0.25'),),
+        #("linux_i386_static", linux_i386_static_data.static32_data, ('linux', 'i386', 'static32.llvm.elf'),),
         ("linux_arm_sh", linux_arm_sh_data.sh_data, ('linux', 'arm', 'sh'),),
         ("qnx_arm_ksh", qnx_arm_ksh_data.ksh_data, ('qnx', 'arm', 'ksh'),),
         ("openbsd_amd64_ls", openbsd_amd64_ls_data.ls_amd64_data, ('openbsd', 'ls.amd64'),),
@@ -138,4 +142,11 @@ class ELFTests(unittest.TestCase):
         # while they are seldom in hard targets, this is a weakness we should correct.
         pass
 
+    def test_minimal(self):
+        for path in ('linux/amd64/static64.llvm.elf', 'linux/i386/static32.llvm.elf'):
+            logger.warn("======== %r ========", name)
+            fn = helpers.getTestPath(*path)
+            e = Elf.Elf(file(fn))
+            vw = viv_cli.VivCli()
+            vw.loadFromFile(fn)
 
