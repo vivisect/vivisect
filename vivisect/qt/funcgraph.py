@@ -342,6 +342,7 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
         after every change.  
         '''
         self._last_viewpt = self.mem_canvas.page().mainFrame().scrollPosition()
+        # FIXME: history should track this as well and return to the same place
         self.clearText()
         self.fva = None
         self._renderMemory()
@@ -489,6 +490,7 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
         #self.parentWidget().delEventCore(self)
         #return e_mem_qt.VQMemoryWindow.closeEvent(self, event)
 
+
     @idlethread
     def _renderMemory(self):
         try:
@@ -503,6 +505,13 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
                 self.mem_canvas.addText('Invalid Address: %s (%s)' % (expr, e))
                 return
 
+            # get a location anchor if one exists, otherwise, we may end up in no-man's land,
+            # since we rely on labels, which only exist for the base of a location.
+            loc = self.vw.getLocation(addr)
+            if loc is not None:
+                addr = loc[L_VA]
+
+            # check if we're already rendering this function. if so, just scroll to addr
             fva = self.vw.getFunction(addr)
             if fva == self.fva:
                 self.mem_canvas.page().mainFrame().scrollToAnchor('viv:0x%.8x' % addr)
@@ -513,8 +522,10 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
                 self.vw.vprint('0x%.8x is not in a function!' % addr)
                 return
 
+            # if we're rendering a different function, get to work!
             self.clearText()
             self.renderFunctionGraph(fva)
+            self.mem_canvas.page().mainFrame().scrollToAnchor('viv:0x%.8x' % addr)
             self.updateWindowTitle()
 
             self._renderDoneSignal.emit()
