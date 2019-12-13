@@ -194,6 +194,9 @@ class Amd64Disasm(e_i386.i386Disasm):
         Use the oper type and prefixes to decide on the tsize for
         the operand.
         """
+        # if prefixes & PREFIX_ADDR_SIZE:
+        #     import pdb
+        #     pdb.set_trace()
 
         mode = MODE_32
 
@@ -528,7 +531,9 @@ class Amd64Disasm(e_i386.i386Disasm):
 
     def ameth_g(self, bytes, offset, tsize, prefixes, operflags):
         osize, oper = e_i386.i386Disasm.ameth_g(self, bytes, offset, tsize, prefixes, operflags)
-        if oper.tsize == 4 and oper.reg != REG_RIP:
+        # TODO: Disallowing reg_rip is probably wrong
+        # TODO: the addr override operates off the default of the instruction, so we need to grab that
+        if oper.tsize == 4:
             oper.reg += RMETA_LOW32
         if prefixes & PREFIX_REX_R:
             oper.reg += REX_BUMP
@@ -539,7 +544,8 @@ class Amd64Disasm(e_i386.i386Disasm):
         oper = 0
         vvvv = (prefixes >> VEX_V_SHIFT) & 0xf
         oper = i386RegOper(vvvv, tsize)
-        if oper.tsize == 4 and oper.reg != REG_RIP:
+        # TODO: Disallowing reg_rip is probably wrong
+        if oper.tsize == 4:
             oper.reg += RMETA_LOW32
         return osize, oper
 

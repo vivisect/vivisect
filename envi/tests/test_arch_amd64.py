@@ -11,9 +11,9 @@ import unittest
 instrs = [
     ("bf9fb44900", 0x456000, 'mov edi,0x0049b49f'),
     ("48bf9fb44900aabbccdd", 0x456000, 'mov rdi,0xddccbbaa0049b49f'),
-    ("c705b58a270001000000", 0x456005, 'mov [rip + 2591413],1'),
-    ("48c705e68a270084ef4a00", 0x45600f, 'mov [rip + 2591462],0x004aef84'),
-    ("48c705b39b2700105f4500", 0x45601a, 'mov [rip + 2595763],0x00455f10'),
+    ("c705b58a270001000000", 0x456005, 'mov dword [rip + 2591413],1'),
+    ("48c705e68a270084ef4a00", 0x45600f, 'mov qword [rip + 2591462],0x004aef84'),
+    ("48c705b39b2700105f4500", 0x45601a, 'mov qword [rip + 2595763],0x00455f10'),
     ('c4e2f1004141', 0x456000, 'vpshufb xmm0,xmm1,oword [rcx + 65]'),
     ('c4e2f5004141', 0x456000, 'vpshufb ymm0,ymm1,yword [rcx + 65]'),
     ('0f38004141', 0x456000, 'pshufb mm0,qword [rcx + 65]'),
@@ -75,10 +75,10 @@ amd64SingleByteOpcodes = [
 ]
 
 amd64MultiByteOpcodes = [
-    ('NOT', '66F7D0', 0x40, 'not ax', 'not ax'),
-    ('NOT 2', 'F7D0', 0x40, 'not eax', 'not eax'),
-    ('PUSH', '6653', 0x40, 'push bx', 'push bx'),
-    ('PUSH 2', '67FF37', 0x40, 'push qword [edi]', 'push dword [edi]'),
+    ('NOT', '66F7D0', 'not ax', 'not ax'),
+    ('NOT 2', 'F7D0', 'not eax', 'not eax'),
+    ('PUSH', '6653', 'push bx', 'push bx'),
+    ('PUSH 2', '67FF37', 'push qword [edi]', 'push dword [edi]'),
     ('CVTTPS2PI', '0f2caaaaaaaa41', 'cvttps2pi mm5,oword [rdx + 1101703850]', 'cvttps2pi mm5,oword [rdx + 1101703850]'),
     ('CVTTSS2SI', 'f30f2caaaaaaaa41', 'cvttss2si ebp,oword [rdx + 1101703850]', 'cvttss2si ebp,oword [rdx + 1101703850]'),
     ('CVTTPD2PI', '660f2caaaaaaaa41', 'cvttpd2pi mm5,oword [rdx + 1101703850]', 'cvttpd2pi mm5,oword [rdx + 1101703850]'),
@@ -160,6 +160,14 @@ amd64MultiByteOpcodes = [
     ('INVEPT', '660F3880142541414141', 'invept rdx,oword [0x41414141]', 'invept rdx,oword [0x41414141]'),
     ('MULSD', 'f20f59c1', 'mulsd xmm0,xmm1', 'mulsd xmm0,xmm1'),
     ('VMCLEAR', '660FC73541414100', 'vmclear qword [rip + 4276545]', 'vmclear qword [rip + 4276545]'),
+    ('MOVBE',   '0F38F04910', 'movbe ecx,dword [edx + 16]', 'movbe ecx,dword [edx + 16]'),
+    ('MOVBE 2', '0F38F009', 'movbe ecx,dword [ecx]', 'movbe ecx,dword [ecx]'),
+    ('MOVBE 3', '0F38F00C8D41414141', 'movbe ecx,dword [0x41414141 + ecx * 4]', 'movbe ecx,dword [0x41414141 + ecx * 4]'),
+    ('MOVBE 4', '0F38F15110', 'movbe dword [edx + 16],eax', 'movbe dword [edx + 16],eax'),
+    ('MOVBE 5', '0F38F102', 'movbe dword [edx],eax', 'movbe dword [edx],eax'),
+    ('MOVBE 6', '0F38F10541414141', 'movbe dword [0x41414141],eax', 'movbe dword [0x41414141],eax'),
+    # TODO: Need to wrap in support for thing slike fstcw and fstenv, which overlap with wait
+    # TODO: need to make sure 66 <REX> stuff works
     ('CRC 1', 'f20f38f0e8', 'crc32 ebp,al', 'crc32 ebp,al'),
     ('CRC 2', '66f20f38f1C3', 'crc32 eax,bx', 'crc32 eax,bx'),
     ('CRC 3', 'f20f38f1C3', 'crc32 eax,ebx', 'crc32 eax,ebx'),
@@ -237,6 +245,17 @@ amd64MultiByteOpcodes = [
     ('BLENDVPS', '660F3814DC', 'blendvps xmm3,xmm4', 'blendvps xmm3,xmm4'),
     ('BLENDVPD', '660F38150C2541414141', 'blendvpd xmm1,oword [0x41414141]', 'blendvpd xmm1,oword [0x41414141]'),
     ('BLENDVPD', '660F3815DC', 'blendvpd xmm3,xmm4', 'blendvpd xmm3,xmm4'),
+    ('PEXTRB', '660F3A14D011', 'pextrb eax,xmm2,17', 'pextrb eax,xmm2,17'),
+    ('PEXTRB 2', '660F3A141011', 'pextrb dword [eax],xmm2,17', 'pextrb dword [rax],xmm2,17'),
+    ('PEXTRB 3', '', 'pextrb dword [rax],xmm2,17', 'pextrb dword [rax],xmm2,17'),
+    ('PEXTRD', '660F3A16EA11', 'pextrd edx,xmm5,17', 'pextrd edx,xmm5,17'),
+    ('PEXTRD 2', '660F3A161011', 'pextrd dword [rax],xmm2,17', 'pextrd dword [rax],xmm2,17'),
+    ('PEXTRD 3', '67660F3A162A11', 'pextrd dword [eax],xmm2,17', 'pextrd dword [eax],xmm2,17'),
+    ('PEXTRQ', '66480F3A16D9FE', 'pextrq rcx,xmm3,254', 'pextrq rcx,xmm3,254'),
+    ('PEXTRQ 2', '66480F3A16A14141414175', 'pextrq qword [rcx + 0x41414141],xmm4,117', 'pextrq qword [rcx + 0x41414141],xmm4,117'),
+    ('PEXTRQ 3', '6766480F3A16A34141414175', 'pextrq qword [ebx+0x41414141],,xmm4,117', 'pextrq qword [ebx+0x41414141],,xmm4,117'),
+    ('TEST', '67F70078563412', 'test dword [eax], 0x12345678', 'test dword [eax], 0x12345678'),
+    ('TEST', 'F70078563412', 'test dword [rax], 0x12345678', 'test dword [eax], 0x12345678'),
 ]
 
 amd64VexOpcodes = [
@@ -310,10 +329,10 @@ class Amd64InstructionSet(unittest.TestCase):
     def test_envi_amd64_disasm_Specific_VEX_Instrs(self):
         self.check_opreprs(amd64VexOpcodes)
 
-    def SKIPtest_envi_amd64_disasm_Specific_SingleByte_Instrs(self):
+    def test_envi_amd64_disasm_Specific_SingleByte_Instrs(self):
         self.check_opreprs(amd64SingleByteOpcodes)
 
-    def SKIPtest_envi_amd64_disasm_Specific_MultiByte_Instrs(self):
+    def test_envi_amd64_disasm_Specific_MultiByte_Instrs(self):
         self.check_opreprs(amd64MultiByteOpcodes)
 
     def checkOpcode(self, hexbytez, va, oprepr, opcheck, opercheck, renderOp):
