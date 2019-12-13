@@ -32,10 +32,19 @@ i386SingleByteOpcodes = [
     ('rep setg (al)', 'f30f9fc0', 0x40, 'rep: setg al', 'rep: setg al'),
     ('rep setg (dl)', 'f30f9fc2', 0x40, 'rep: setg dl', 'rep: setg dl'),
     ('prefix scas', 'f2ae', 0x40, 'repnz: scasb ', 'repnz: scasb '),
+    ('jmp', 'E910000000', 0x40, 'jmp 0x00000055', 'jmp 0x00000055'),
     ('TEST', '84db', 0x40, 'test bl,bl', 'test bl,bl'),
 ]
 
 i386MultiByteOpcodes = [
+    ('jmp 2', 'FF248D3A3A3A3A', 0x40, 'jmp dword [0x3a3a3a3a + ecx * 4]', 'jmp dword [0x3a3a3a3a + ecx * 4]'),
+    ('MOV', '8B148541414141', 0x40, 'mov edx,dword [0x41414141 + eax * 4]', 'mov edx,dword [0x41414141 + eax * 4]'),
+    ('MOV 2', '678B16', 0x40, 'mov edx,dword [si]', 'mov edx,dword [si]'),
+    ('MOV 3', '8B16', 0x40, 'mov edx,dword [esi]', 'mov edx,dword [esi]'),
+    ('NOT', '66F7D0', 0x40, 'not ax', 'not ax'),
+    ('NOT 2', 'F7D0', 0x40, 'not eax', 'not eax'),
+    ('PUSH', '6653', 0x40, 'push bx', 'push bx'),
+    ('PUSH 2', '67FF37', 0x40, 'push dword [bx]', 'push dword [bx]'),
     ('CVTPD2PI', '660f2Daaaaaaaa41', 0x40, 'cvtpd2pi mm5,oword [edx + 1101703850]', 'cvtpd2pi mm5,oword [edx + 1101703850]'),
     ('CVTTPS2PI', '0f2caaaaaaaa41', 0x40, 'cvttps2pi mm5,qword [edx + 1101703850]', 'cvttps2pi mm5,qword [edx + 1101703850]'),
     ('CVTTSS2SI', 'f30f2caaaaaaaa41', 0x40, 'cvttss2si ebp,dword [edx + 1101703850]', 'cvttss2si ebp,dword [edx + 1101703850]'),
@@ -194,6 +203,9 @@ class i386InstructionSet(unittest.TestCase):
                 op = self._arch.archParseOpcode(bytez.decode('hex'), 0, va)
             except envi.InvalidInstruction:
                 self.fail("Failed to parse opcode bytes: %s (case: %s, expected: %s)" % (bytez, name, reprOp))
+            except Exception:
+                import pdb, sys
+                pdb.post_mortem(sys.exc_info()[2])
             # print("'%s', 0x%x, '%s' == '%s'" % (bytez, va, repr(op), reprOp))
             try:
                 self.assertEqual(repr(op), reprOp)

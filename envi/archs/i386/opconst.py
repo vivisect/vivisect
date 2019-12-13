@@ -94,6 +94,9 @@ OPERSIZE = {
     OPTYPE_fv: (14, 14, 28),
 }
 
+INS_NOPREF = 0x10000  # This instruction diallows prefixes, and if it does, it's a different insttruction
+INS_VEXREQ = 0x20000  # This instructions requires VEX
+INS_VEXNOPREF = 0x30000  # This instruction doesn't get the "v" prefix common to VEX instructions
 
 INS_EXEC = 0x1000
 INS_ARITH = 0x2000

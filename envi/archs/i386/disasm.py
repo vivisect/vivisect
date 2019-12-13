@@ -976,7 +976,7 @@ class i386Disasm:
             operoffset += osize
 
         # Pull in the envi generic instruction flags
-        iflags = iflag_lookup.get(optype, 0) | self._dis_oparch
+        iflags = iflag_lookup.get(optype & 0xFFFF, 0) | self._dis_oparch
 
         if all_prefixes & PREFIX_REP_MASK:
             iflags |= envi.IF_REPEAT
@@ -997,6 +997,8 @@ class i386Disasm:
     def ameth_0(self, operflags, operval, tsize, prefixes):
         # Special address method for opcodes with embedded operands
         if operflags & opcode86.OP_REG:
+            if prefixes & PREFIX_OP_SIZE:
+                operval += RMETA_LOW16
             return i386RegOper(operval, tsize)
         elif operflags & opcode86.OP_IMM:
             return i386ImmOper(operval, tsize)

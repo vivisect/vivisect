@@ -4,6 +4,7 @@ import envi
 import envi.bits as e_bits
 import envi.archs.i386 as e_i386
 import envi.archs.i386.disasm as ed_i386
+import envi.archs.i386.opconst as e_i386_const
 import opcode64 as opcode86
 all_tables = opcode86.tables86
 
@@ -75,7 +76,7 @@ class Amd64Opcode(i386Opcode):
             pfx = '%s: ' % pfx
 
         mnem = self.mnem
-        if self.prefixes & PREFIX_VEX:
+        if self.prefixes & PREFIX_VEX and not self.opcode & e_i386_const.INS_VEXNOPREF:
             mnem = 'v' + mnem
 
         return pfx + mnem + " " + ",".join([o.repr(self) for o in self.opers])
@@ -90,7 +91,7 @@ class Amd64Opcode(i386Opcode):
                 mcanv.addNameText("%s: " % pfx, pfx)
 
         mnem = self.mnem
-        if self.prefixes & PREFIX_VEX:
+        if self.prefixes & PREFIX_VEX and not self.opcode & e_i386_const.INS_VEXNOPREF:
             mnem = 'v' + mnem
 
         mcanv.addNameText(mnem, typename="mnemonic")
@@ -155,6 +156,7 @@ class Amd64RipRelOper(envi.DerefOper):
 
     def repr(self, op):
         return "%s [rip + %d]" % (e_i386.sizenames[self.tsize], self.imm)
+
 
 operands_index = 2
 vex_pp_table = ( (0xf,), (0x66,0xf), (0xf3,0xf), (0xf2,0xf) )
@@ -242,19 +244,8 @@ class Amd64Disasm(e_i386.i386Disasm):
             if p is None:
                 break
 
-            # print("OBYTE",hex(obyte))
             if obyte in MANDATORY_PREFIXES:
                 pho_prefixes |= p
-                # don't rachet through quite yet, since we still need to determine which
-                # prefix is the mandatory prefix (if there is such a prefix)
-
-                # ratchet through the tables
-
-                # tabidx = ((obyte - tabdesc[4]) >> tabdesc[2]) & tabdesc[3]
-                # print("TABIDX: %d" % tabidx)
-                # opdesc = tabdesc[0][tabidx]
-                # print('OPDESC: %s -> %s' % (repr(opdesc), opcode86.tables_lookup.get(opdesc[0])))
-                # tabdesc = all_tables[opdesc[0]]
                 last_pref = obyte
             else:
                 prefixes |= p
@@ -304,10 +295,13 @@ class Amd64Disasm(e_i386.i386Disasm):
                 for tabidx in combined_mand_prefixes:
                     if tabidx is None:
                         continue
-                    # print("TABIDX: %d" % tabidx)
+                    #print("VEXTABIDX: %d" % tabidx)
                     opdesc = tabdesc[0][tabidx]
-                    # print('OPDESC: %s -> %s' % (repr(opdesc), opcode86.tables_lookup.get(opdesc[0])))
+                    #print('VEXOPDESC: %s -> %s' % (repr(opdesc), opcode86.tables_lookup.get(opdesc[0])))
                     tabdesc = all_tables[opdesc[0]]
+                # So VEX and mandatory prefixes don't really intermingle
+                offset += 1
+                break
 
             offset += 1
             continue
@@ -342,22 +336,22 @@ class Amd64Disasm(e_i386.i386Disasm):
                 obyte = ord(bytez[offset])
             while True:
 
-                # print("OP-OBYTE", hex(obyte))
-                # print("TABDESC: {}".format(tabdesc[1:]))
+                #print("OP-OBYTE", hex(obyte))
+                #print("TABDESC: {}".format(tabdesc[1:]))
                 if (obyte > tabdesc[5]):
-                    # print("Jumping To Overflow Table: %s" % hex(tabdesc[5]))
+                    #print("Jumping To Overflow Table: %s" % hex(tabdesc[5]))
                     tabdesc = all_tables[tabdesc[6]]
 
                 tabidx = ((obyte - tabdesc[4]) >> tabdesc[2]) & tabdesc[3]
-                # print("TABIDX: %s" % tabidx)
+                #print("TABIDX: %s" % tabidx)
                 opdesc = tabdesc[0][tabidx]
-                # print('OPDESC: %s -> %s' % (repr(opdesc), opcode86.tables_lookup.get(opdesc[0])))
+                #print('OPDESC: %s -> %s' % (repr(opdesc), opcode86.tables_lookup.get(opdesc[0])))
 
                 # Hunt down multi-byte opcodes
                 nexttable = opdesc[0]
                 # print("NEXT", nexttable, hex(obyte), opcode86.tables_lookup.get(nexttable))
                 if nexttable != 0:  # If we have a sub-table specified, use it.
-                    # print("Multi-Byte Next Hop For (%s, %s)" % (hex(obyte), opdesc[0]))
+                    #print("Multi-Byte Next Hop For (%s, %s)" % (hex(obyte), opdesc[0]))
                     tabdesc = all_tables[nexttable]
 
                     # Account for the table jump we made
@@ -366,7 +360,7 @@ class Amd64Disasm(e_i386.i386Disasm):
                     continue
 
                 # We are now on the final table...
-                # print(repr(opdesc))
+                #print(repr(opdesc))
                 tbl_opercnt = tabdesc[1]
                 mnem = opdesc[3 + tbl_opercnt]
                 optype = opdesc[1]
@@ -459,7 +453,7 @@ class Amd64Disasm(e_i386.i386Disasm):
             operoffset += osize
 
         # Pull in the envi generic instruction flags
-        iflags = iflag_lookup.get(optype, 0) | self._dis_oparch
+        iflags = iflag_lookup.get(optype & 0xFFFF, 0) | self._dis_oparch
 
         if prefixes & ed_i386.PREFIX_REP_MASK:
             iflags |= envi.IF_REPEAT
@@ -545,6 +539,8 @@ class Amd64Disasm(e_i386.i386Disasm):
         oper = 0
         vvvv = (prefixes >> VEX_V_SHIFT) & 0xf
         oper = i386RegOper(vvvv, tsize)
+        if oper.tsize == 4 and oper.reg != REG_RIP:
+            oper.reg += RMETA_LOW32
         return osize, oper
 
     def ameth_h(self, bytez, offset, tsize, prefixes, operflags):
