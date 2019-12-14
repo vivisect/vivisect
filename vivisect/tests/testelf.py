@@ -141,7 +141,7 @@ class ELFTests(unittest.TestCase):
         pass
 
     def test_minimal(self):
-        for path in ('linux/amd64/static64.llvm.elf', 'linux/i386/static32.llvm.elf'):
+        for path in (('linux','amd64','static64.llvm.elf'), ('linux','i386','static32.llvm.elf')):
             logger.warn("======== %r ========", path)
             fn = helpers.getTestPath(*path)
             e = Elf.Elf(file(fn))
