@@ -182,24 +182,18 @@ class CodeFlowContext(object):
                 try:
                     # Handle a table branch by adding more branches...
                     ptrfmt = ('<P', '>P')[self._mem.getEndian()]
+                    # most if not all of the work to construct jump tables is done in makeOpcode
                     if bflags & envi.BR_TABLE:
                         if self._cf_exptable:
                             ptrbase = bva
-                            bdest = self._mem.readMemoryFormat(ptrbase, ptrfmt)[0]
-                            tabdone = {}
-                            while self._mem.isValidPointer(bdest):
-
-                                if self._cb_branchtable(bva, ptrbase, bdest) == False:
+                            tabdone = set()
+                            for bdest in self._mem.iterJumpTable(ptrbase):
+                                if not self._cb_branchtable(bva, ptrbase, bdest):
                                     break
-
-                                if not tabdone.get(bdest):
-                                    tabdone[bdest] = True
+                                if bdest not in tabdone:
+                                    tabdone.add(bdest)
                                     branches.append((bdest, envi.BR_COND))
-
                                 ptrbase += self._mem.psize
-                                if not self._mem.isValidPointer(ptrbase):
-                                    break
-                                bdest = self._mem.readMemoryFormat(ptrbase, ptrfmt)[0]
                         continue
 
                     if bflags & envi.BR_DEREF:

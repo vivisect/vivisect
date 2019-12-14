@@ -17,6 +17,7 @@ def addAnalysisModules(vw):
 
     if fmt == 'pe':
 
+        vw.addAnalysisModule("vivisect.analysis.generic.entrypoints")
         vw.addAnalysisModule("vivisect.analysis.pe")
 
         if arch == 'i386':
@@ -46,6 +47,9 @@ def addAnalysisModules(vw):
         # run imports after emucode
         if arch == 'i386':
             vw.addAnalysisModule("vivisect.analysis.i386.importcalls")
+            vw.addAnalysisModule("vivisect.analysis.i386.golang")
+        elif arch == 'amd64':
+            vw.addAnalysisModule("vivisect.analysis.amd64.golang")
 
         vw.addFuncAnalysisModule("vivisect.analysis.generic.codeblocks")
         vw.addFuncAnalysisModule("vivisect.analysis.generic.impapi")
@@ -73,6 +77,9 @@ def addAnalysisModules(vw):
 
     elif fmt == 'elf':  # ELF ########################################################
 
+        # elfplt wants to be run before generic.entrypoints.
+        vw.addAnalysisModule("vivisect.analysis.elf.elfplt")
+        vw.addAnalysisModule("vivisect.analysis.generic.entrypoints")
         vw.addAnalysisModule("vivisect.analysis.elf")
 
         if arch == 'i386':
@@ -89,11 +96,10 @@ def addAnalysisModules(vw):
 
         vw.addAnalysisModule("vivisect.analysis.generic.funcentries")
         vw.addAnalysisModule("vivisect.analysis.generic.relocations")
+        vw.addAnalysisModule("vivisect.analysis.elf.libc_start_main")
         vw.addAnalysisModule("vivisect.analysis.generic.pointertables")
         vw.addAnalysisModule("vivisect.analysis.generic.emucode")
 
-        # Get PLTs taken care of early
-        vw.addFuncAnalysisModule("vivisect.analysis.elf.elfplt")
         # Generic code block analysis
         vw.addFuncAnalysisModule("vivisect.analysis.generic.codeblocks")
         vw.addFuncAnalysisModule("vivisect.analysis.generic.impapi")
@@ -112,6 +118,7 @@ def addAnalysisModules(vw):
 
     elif fmt == 'macho': # MACH-O ###################################################
 
+        vw.addAnalysisModule("vivisect.analysis.generic.entrypoints")
         if arch == 'i386':
             viv_analysis_i386.addEntrySigs(vw)
             vw.addAnalysisModule("vivisect.analysis.i386.importcalls")
@@ -140,6 +147,7 @@ def addAnalysisModules(vw):
 
     elif fmt == 'blob': # BLOB ######################################################
 
+        vw.addAnalysisModule("vivisect.analysis.generic.entrypoints")
         vw.addAnalysisModule("vivisect.analysis.generic.funcentries")
         vw.addAnalysisModule("vivisect.analysis.generic.relocations")
         #vw.addAnalysisModule("vivisect.analysis.generic.pointertables")
@@ -156,6 +164,7 @@ def addAnalysisModules(vw):
 
     elif fmt == 'ihex': # BLOB ######################################################
 
+        vw.addAnalysisModule("vivisect.analysis.generic.entrypoints")
         vw.addAnalysisModule("vivisect.analysis.generic.funcentries")
         vw.addAnalysisModule("vivisect.analysis.generic.relocations")
         #vw.addAnalysisModule("vivisect.analysis.generic.pointertables")
