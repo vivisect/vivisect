@@ -142,7 +142,7 @@ class ELFTests(unittest.TestCase):
 
     def test_minimal(self):
         for path in ('linux/amd64/static64.llvm.elf', 'linux/i386/static32.llvm.elf'):
-            logger.warn("======== %r ========", name)
+            logger.warn("======== %r ========", path)
             fn = helpers.getTestPath(*path)
             e = Elf.Elf(file(fn))
             vw = viv_cli.VivCli()
