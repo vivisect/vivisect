@@ -15,10 +15,8 @@ from vivisect.tests import linux_amd64_ls_data
 from vivisect.tests import linux_amd64_chown_data
 from vivisect.tests import linux_amd64_libc_2_27_data
 from vivisect.tests import linux_amd64_libstdc_data
-from vivisect.tests import linux_amd64_static_data
 from vivisect.tests import linux_i386_libc_2_13_data
 from vivisect.tests import linux_i386_libstdc_data
-from vivisect.tests import linux_i386_static_data
 from vivisect.tests import linux_arm_sh_data
 from vivisect.tests import qnx_arm_ksh_data
 from vivisect.tests import openbsd_amd64_ls_data
