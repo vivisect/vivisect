@@ -504,6 +504,8 @@ SHT_HIPROC = 0x7fffffff
 SHT_LOUSER = 0x80000000
 SHT_HIUSER = 0x8fffffff
 
+sht_lookup ={y: x for x, y in globals().items() if x.startswith("SHT_")}
+
 sh_type = {
     SHT_NULL:"Section header table entry unused",
     SHT_PROGBITS:"Program data",
@@ -573,6 +575,8 @@ STB_HIOS = 12
 STB_LOPROC = 13
 STB_HIPROC = 15
 
+stb_lookup ={y: x for x, y in globals().items() if x.startswith("STB_")}
+
 st_info_bind = {
     STB_LOCAL:"Local symbol",
     STB_GLOBAL:"Global symbol",
@@ -599,6 +603,8 @@ STT_HIPROC = 15
 
 STT_GNU_IFUNC = 10
 
+stt_lookup ={y: x for x, y in globals().items() if x.startswith("STT_")}
+
 st_info_type = {
     STT_NOTYPE:"Symbol type is unspecified",
     STT_OBJECT:"Symbol is a data object",
@@ -613,6 +619,20 @@ st_info_type = {
     STT_LOPROC:"Start of processor-specific",
     STT_MDPROC:"Middle of processor-specific",
     STT_HIPROC:"End of processor-specific",
+}
+
+STV_DEFAULT     = 0
+STV_INTERNAL    = 1
+STV_HIDDEN      = 2
+STV_PROTECTED   = 3
+
+stv_lookup ={y: x for x, y in globals().items() if x.startswith("STV_")}
+
+st_other_visibility = {
+    STV_DEFAULT:"Symbol visibility specified by binding type",
+    STV_INTERNAL:"Symbol visibility is reserved",
+    STV_HIDDEN:"Symbol is not visible to other objects",
+    STV_PROTECTED:"Symbol is visible by other objects, but cannot be preempted"
 }
 
 DT_NULL     = 0
@@ -687,6 +707,7 @@ DT_HIOS             = 0x6ffff000
 DT_LOPROC           = 0x70000000
 DT_HIPROC           = 0x7fffffff
 #DT_PROCNUM  = DT_MIPS_NUM
+
 dt_names = { v:k for k,v in globals().items() if k.startswith('DT_')}
 
 dt_types = {
