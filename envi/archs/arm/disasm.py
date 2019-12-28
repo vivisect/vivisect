@@ -1486,9 +1486,9 @@ class ArmRegOper(ArmOperand):
     def isDeref(self):
         return False
 
-    def getOperValue(self, op, emu=None):
-        if self.reg == REG_PC:
-            return self.va  # FIXME: is this modified?  or do we need to att # to this?
+    def getOperValue(self, op, emu=None, codeflow=False):
+        if self.reg == REG_PC and not codeflow:
+            return self.va
 
         if emu == None:
             return None

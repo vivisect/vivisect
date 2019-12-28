@@ -1165,7 +1165,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
                 self.addXref(va, tova, REF_CODE, bflags)
 
         # Check the instruction for static d-refs
-        for o in op.opers:
+        for oidx, o in enumerate(op.opers):
             # FIXME it would be nice if we could just do this one time
             # in the emulation pass (or hint emulation that some have already
             # been done.
@@ -1201,10 +1201,10 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
                             self.makeNumber(ref, o.tsize)
 
             else:
-                ref = o.getOperValue(op)
+                ref = op.getOperValue(oidx, codeflow=True)
                 if brdone.get(ref, False):
                     continue
-                if ref is not None and self.isValidPointer(ref):
+                if ref is not None and type(ref) in (int, long) and self.isValidPointer(ref):
                     self.addXref(va, ref, REF_PTR)
 
         return loc
