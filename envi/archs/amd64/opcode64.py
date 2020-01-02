@@ -1544,7 +1544,7 @@ tbl32_FF = [
 ( 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
 ( 0, INS_BRANCH, ADDRMETH_E | OPTYPE_v | OP_X | OP_64AUTO, ARG_NONE, ARG_NONE, cpu_80386, "jmp", 0, 0, 0),  # on amd64 this is jmp rnx
 ( 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
-( 0, INS_PUSH, ADDRMETH_E | OPTYPE_v | OP_R, ARG_NONE, ARG_NONE, cpu_80386, "push", 0, 0, 0),  
+( 0, INS_PUSH, ADDRMETH_E | OPTYPE_v | OP_R | OP_64AUTO, ARG_NONE, ARG_NONE, cpu_80386, "push", 0, 0, 0),
 ( 0, 0, 0, 0, 0, 0, 0, 0, 0, 0   ) 
 ]
 desc_FF         = (tbl32_FF,3,3,0x07,0,0xff)

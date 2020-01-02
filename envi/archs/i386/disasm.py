@@ -519,7 +519,7 @@ class i386Opcode(envi.Opcode):
 
     # Printable prefix names
     prefix_names = [
-        (PREFIX_ADDR_SIZE, "addr"),
+        #(PREFIX_ADDR_SIZE, "addr"),
         (PREFIX_LOCK, "lock"),
         (PREFIX_REPNZ, "repnz"),
         (PREFIX_REP, "rep"),
