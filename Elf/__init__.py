@@ -620,7 +620,6 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
 
     def _doDynRelocs(self, rva, relsz, cls=None):
         syms = self.getDynSyms()
-        symslen = len(syms)
 
         if cls is None:
             cls = self._cls_reloc
@@ -1022,7 +1021,6 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
         symidx indexed symbol.
         '''
         symtabrva, symsz, symtabsz = self.getDynSymTabInfo()
-        strtabva = self.dyns.get(DT_STRTAB)
 
         symrva = symtabrva + (symidx * symsz)
         # DON'T trust symtabsz.  it's often smaller than the '.dynsym' section
@@ -1051,6 +1049,7 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
         in self.dynsymtabct.  Perhaps this is horrible and should be stricken
         from the code.
         '''
+        #FIXME: make this use both SECTION and PT_DYNAMICS versions...
         symtabva = self.dyns.get(DT_SYMTAB)
         if symtabva is None:
             return None, None, None
