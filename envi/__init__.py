@@ -553,6 +553,14 @@ class Opcode:
         """
         return ()
 
+    def genRefOpers(self, emu=None):
+        """
+        Search through operands and yield potential references for further
+        analysis.
+        """
+        for oidx, o in enumerate(self.opers):
+            yield (oidx, o)
+
     def render(self, mcanv):
         """
         Render this opcode to the memory canvas passed in.  This is used for both
