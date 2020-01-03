@@ -554,10 +554,12 @@ class Opcode:
         return ()
 
     def genRefOpers(self, emu=None):
-        """
-        Search through operands and yield potential references for further
-        analysis.
-        """
+        '''
+        Operand generator, yielding an (oper-index, operand) tuple from this 
+        Opcode... but only for operands which make sense for XREF analysis.  
+        Override when architecture makes use of odd operands like the program 
+        counter, which returns a real value even without an emulator.
+        '''
         for oidx, o in enumerate(self.opers):
             yield (oidx, o)
 

@@ -1335,6 +1335,18 @@ class ArmOpcode(envi.Opcode):
     def __len__(self):
         return int(self.size)
 
+    def genRefOpers(self, emu=None):
+        '''
+        Operand generator, yielding an (oper-index, operand) tuple from this 
+        Opcode... but only for operands which make sense for XREF analysis.  
+        Override when architecture makes use of odd operands like the program 
+        counter, which returns a real value even without an emulator.
+        '''
+        for oidx, o in enumerate(self.opers):
+            if o.isReg() and o.reg == REG_PC:
+                continue
+            yield (oidx, o)
+
     def getBranches(self, emu=None):
         """
         Return a list of tuples.  Each tuple contains the target VA of the
