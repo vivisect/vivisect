@@ -1486,16 +1486,16 @@ class ArmRegOper(ArmOperand):
     def isDeref(self):
         return False
 
-    def getOperValue(self, op, emu=None, codeflow=False):
-        if self.reg == REG_PC and not codeflow:
+    def getOperValue(self, op, emu=None):
+        if self.reg == REG_PC:
             return self.va
 
-        if emu == None:
+        if emu is None:
             return None
         return emu.getRegister(self.reg)
 
     def setOperValue(self, op, emu=None, val=None):
-        if emu == None:
+        if emu is None:
             return None
         emu.setRegister(self.reg, val)
 
@@ -1503,8 +1503,7 @@ class ArmRegOper(ArmOperand):
         rname = arm_regs[self.reg][0]
         mcanv.addNameText(rname, typename='registers')
         if self.oflags & OF_W:
-            mcanv.addText( "!" )
-
+            mcanv.addText("!")
 
     def repr(self, op):
         rname = arm_regs[self.reg][0]

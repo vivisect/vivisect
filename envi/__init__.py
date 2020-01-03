@@ -347,7 +347,7 @@ class Operand:
     pwn on purpose to cut down on memory use and constructor CPU cost.
     """
 
-    def getOperValue(self, op, emu=None, codeflow=False):
+    def getOperValue(self, op, emu=None):
         """
         Get the current value for the operand.  If needed, use
         the given emulator/workspace/trace to resolve things like
@@ -571,7 +571,7 @@ class Opcode:
                 ret.append(name)
         return " ".join(ret)
 
-    def getOperValue(self, idx, emu=None, codeflow=False):
+    def getOperValue(self, idx, emu=None):
         oper = self.opers[idx]
         return oper.getOperValue(self, emu=emu)
 
