@@ -45,7 +45,9 @@ i386MultiByteOpcodes = [
     ('ADDPS', '0f58aa4141414141', 0x40, 'addps xmm5,oword [edx + 1094795585]', 'addps xmm5,oword [edx + 1094795585]'),
     ('MOVAPS', '0f28aa41414141', 0x40, 'movaps xmm5,oword [edx + 1094795585]', 'movaps xmm5,oword [edx + 1094795585]'),
     ('MOVAPD', '660f28aa41414141', 0x40, 'movapd xmm5,oword [edx + 1094795585]', 'movapd xmm5,oword [edx + 1094795585]'),
-    ('PMULLW (66)', '660faa41414141', 0x40, 'rsm ', 'rsm '),
+    ('RSM', '0faa414141', 0x40, 'rsm ', 'rsm '),
+    ('PMULLW (66)', '660fd5cd', 0x40, 'pmullw xmm1,xmm5', 'pmullw xmm1,xmm5'),
+    ('PMULLW', '0fd5e2', 0x40, 'pmullw mm4,mm2', 'pmullw mm4,mm2'),
     ('CMPXCH8B', '0fc70a', 0x40, 'cmpxch8b qword [edx]', 'cmpxch8b qword [edx]'),
     ('MOVD (66)', '660f7ecb414141', 0x40, 'movd ebx,xmm1', 'movd ebx,xmm1'),
     ('MOVD', '0F6E0D41414100', 0x40, 'movd mm1,dword [0x00414141]', 'movd mm1,dword [0x00414141]'),
@@ -84,6 +86,7 @@ i386MultiByteOpcodes = [
 
     ('PCMPISTRI', '660f3a630f0d', 0x40, 'pcmpistri xmm1,oword [edi],13', 'pcmpistri xmm1,oword [edi],13'),
     ('PSHUFB', '660F3800EF', 0x40, 'pshufb xmm5,xmm7', 'pshufb xmm5,xmm7'),
+    ('PABSB', '660F381C08', 0x40, 'pabsb xmm1,oword [eax]', 'pabsb xmm1,oword [eax]'),
     ('RDTSC', '0F31', 0x40, 'rdtsc ', 'rdtsc '),
     ('RDTSCP', '0F01F9', 0x40, 'rdtscp ', 'rdtscp '),
     ('CVTDQ2PD', 'f30fe6c0', 0x40, 'cvtdq2pd xmm0,xmm0', 'cvtdq2pd xmm0,xmm0'),
@@ -91,6 +94,7 @@ i386MultiByteOpcodes = [
     ('MOVQ (F3)', 'F30F7E0D41414100', 0x40, 'movq xmm1,qword [0x00414141]', 'movq xmm1,qword [0x00414141]'),
     ('MOVSD', 'f20f10ca', 0x40, 'movsd xmm1,xmm2', 'movsd xmm1,xmm2'),
     ('MOVSD (PREFIX)', 'f3f20f10ca', 0x40, 'rep: movsd xmm1,xmm2', 'rep: movsd xmm1,xmm2'),
+    ('MOVSS (PREFIX)', 'f2f30f10ca', 0x40, 'repnz: movss xmm1,xmm2', 'repnz: movss xmm1,xmm2'),
     ('POPCNT', '66f30fb8c3', 0x40, 'popcnt ax,bx', 'popcnt ax,bx'),
     ('POPCNT', 'f30fb8c4', 0x40, 'popcnt eax,esp', 'popcnt eax,esp'),
     ('POPCNT', 'f30fb80541414100', 0x40, 'popcnt eax,dword [0x00414141]', 'popcnt eax,dword [0x00414141]'),
@@ -140,6 +144,36 @@ i386MultiByteOpcodes = [
     ('PMAXUB', '660FDE2541414141', 0x40, 'pmaxub xmm4,oword [0x41414141]', 'pmaxub xmm4,oword [0x41414141]'),
     ('MOVNTDQ', '660FE73D78563412', 0x40, 'movntdq oword [0x12345678],xmm7', 'movntdq oword [0x12345678],xmm7'),
     ('PADDD', '660FFECE', 0x40, 'paddd xmm1,xmm6', 'paddd xmm1,xmm6'),
+
+    # AES-NI feature set
+    ('AESENC', '660F38DCEA', 0x40, 'aesenc xmm5,xmm2', 'aesenc xmm5,xmm2'),
+    ('AESENC (MEM)', '660f38DC3A', 0x40, 'aesenc xmm7,oword [edx]', 'aesenc xmm7,oword [edx]'),
+    ('AESENC (MEM 2)', '660f38DC7C2404', 0x40, 'aesenc xmm7,oword [esp + 4]', 'aesenc xmm7,oword [esp + 4]'),
+    ('AESENC (MEM 3)', '660F38DC1D41414141', 0x40, 'aesenc xmm3,oword [0x41414141]', 'aesenc xmm3,oword [0x41414141]'),
+    ('AESENCLAST', '660F38DDDC', 0x40, 'aesenclast xmm3,xmm4', 'aesenclast xmm3,xmm4'),
+    ('AESENCLAST (MEM)', '660F38DD18', 0x40, 'aesenclast xmm3,oword [eax]', 'aesenclast xmm3,oword [eax]'),
+    ('AESENCLAST (MEM 2)', '660F38DD5808', 0x40, 'aesenclast xmm3,oword [eax + 8]', 'aesenclast xmm3,oword [eax + 8]'),
+    ('AESENCLAST (MEM 3)', '660F38DD2578563442', 0x40, 'aesenclast xmm4,oword [0x42345678]', 'aesenclast xmm4,oword [0x42345678]'),
+    ('AESDEC', '660f38DECB', 0x40, 'aesdec xmm1,xmm3', 'aesdec xmm1,xmm3'),
+    ('AESDEC (MEM)', '660F38DE0C24', 0x40, 'aesdec xmm1,oword [esp]', 'aesdec xmm1,oword [esp]'),
+    ('AESDEC (MEM 2)', '660F38DE5D0C', 0x40, 'aesdec xmm3,oword [ebp + 12]', 'aesdec xmm3,oword [ebp + 12]'),
+    ('AESDEC (MEM 3)', '660F38DE3544434241', 0x40, 'aesdec xmm6,oword [0x41424344]', 'aesdec xmm6,oword [0x41424344]'),
+    ('AESDECLAST', '660F38DFED', 0x40, 'aesdeclast xmm5,xmm5', 'aesdeclast xmm5,xmm5'),
+    ('AESDECLAST (MEM)', '660F38DF2E', 0x40, 'aesdeclast xmm5,oword [esi]', 'aesdeclast xmm5,oword [esi]'),
+    ('AESDECLAST (MEM 2)', '660F38DF6740', 0x40, 'aesdeclast xmm4,oword [edi + 64]', 'aesdeclast xmm4,oword [edi + 64]'),
+    ('AESDECLAST (MEM 3)', '660F38DF2511213141', 0x40, 'aesdeclast xmm4,oword [0x41312111]', 'aesdeclast xmm4,oword [0x41312111]'),
+    ('AESIMC', '660F38DBF9', 0x40, 'aesimc xmm7,xmm1', 'aesimc xmm7,xmm1'),
+    ('AESIMC (MEM)', '660F38DB13', 0x40, 'aesimc xmm2,oword [ebx]', 'aesimc xmm2,oword [ebx]'),
+    ('AESIMC (MEM 2)', '660F38DB5020', 0x40, 'aesimc xmm2,oword [eax + 32]', 'aesimc xmm2,oword [eax + 32]'),
+    ('AESIMC (MEM 3)', '660F38DB1D00000041', 0x40, 'aesimc xmm3,oword [0x41000000]', 'aesimc xmm3,oword [0x41000000]'),
+    ('AESKEYGENASSIST', '660F3ADFFE08', 0x40, 'aeskeygenassist xmm7,xmm6,8', 'aeskeygenassist xmm7,xmm6,8'),
+    ('AESKEYGENASSIST (MEM)', '660F3ADF1AFE', 0x40, 'aeskeygenassist xmm3,oword [edx],254', 'aeskeygenassist xmm3,oword [edx],254'),
+    ('AESKEYGENASSIST (MEM 2)', '660F3ADF998000000039', 0x40, 'aeskeygenassist xmm3,oword [ecx + 128],57', 'aeskeygenassist xmm3,oword [ecx + 128],57'),
+    ('AESKEYGENASSIST (MEM 3)', '660F3ADF2541414141C6', 0x40, 'aeskeygenassist xmm4,oword [0x41414141],198', 'aeskeygenassist xmm4,oword [0x41414141],198'),
+    ('PCLMULQDQ', '660F3A44D307', 0x40, 'pclmulqdq xmm2,xmm3,7', 'pclmulqdq xmm2,xmm3,7'),
+    ('PCLMULQDQ (MEM)', '660F3A441007', 0x40, 'pclmulqdq xmm2,oword [eax],7', 'pclmulqdq xmm2,oword [eax],7'),
+    ('PCLMULQDQ (MEM 2)', '660F3A4478119C', 0x40, 'pclmulqdq xmm7,oword [eax + 17],156', 'pclmulqdq xmm7,oword [eax + 17],156'),
+    ('PCLMULQDQ (MEM 3)', '660F3A443D41414141C6', 0x40, 'pclmulqdq xmm7,oword [0x41414141],198', 'pclmulqdq xmm7,oword [0x41414141],198'),
 ]
 
 
@@ -155,9 +189,15 @@ class i386InstructionSet(unittest.TestCase):
 
         for name, bytez, va, reprOp, renderOp in i386SingleByteOpcodes:
 
-            op = self._arch.archParseOpcode(bytez.decode('hex'), 0, va)
+            try:
+                op = self._arch.archParseOpcode(bytez.decode('hex'), 0, va)
+            except envi.InvalidInstruction:
+                self.fail("Failed to parse opcode bytes: %s (case: %s, expected: %s)" % (bytez, name, reprOp))
             # print("'%s', 0x%x, '%s' == '%s'" % (bytez, va, repr(op), reprOp))
-            self.assertEqual(repr(op), reprOp)
+            try:
+                self.assertEqual(repr(op), reprOp)
+            except AssertionError:
+                self.fail("Failing match for case %s (%s != %s)" % (name, repr(op), reprOp))
 
             scanv.clearCanvas()
             op.render(scanv)
@@ -173,9 +213,15 @@ class i386InstructionSet(unittest.TestCase):
 
         for name, bytez, va, reprOp, renderOp in i386MultiByteOpcodes:
 
-            op = self._arch.archParseOpcode(bytez.decode('hex'), 0, va)
+            try:
+                op = self._arch.archParseOpcode(bytez.decode('hex'), 0, va)
+            except envi.InvalidInstruction:
+                self.fail("Failed to parse opcode bytes: %s (case: %s, expected: %s)" % (bytez, name, reprOp))
             # print("'%s', 0x%x, '%s' == '%s'" % (bytez, va, repr(op), reprOp))
-            self.assertEqual(repr(op), reprOp)
+            try:
+                self.assertEqual(repr(op), reprOp)
+            except AssertionError:
+                self.fail("Failing match for case %s (%s != %s)" % (name, repr(op), reprOp))
 
             scanv.clearCanvas()
             op.render(scanv)

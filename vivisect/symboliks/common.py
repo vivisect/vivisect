@@ -245,9 +245,7 @@ class SymbolikBase:
                 return
 
             # invalidate the cache
-            todo = list(oldkid.parents)
-            todo.append(self)
-
+            todo = list(set(oldkid.parents))
             done = set()
             while todo:
                 parent = todo.pop()
@@ -258,11 +256,10 @@ class SymbolikBase:
                 done.add(parent._sym_id)
                 parent.cache.clear()
                 # grow our todo list
-                todo.extend(list(parent.parents))
+                todo += list(set(parent.parents))
 
             # remove ourselves as the parent
             if oldkid.parents:
-                # oldkid.parents.remove(self)
                 for i, obj in enumerate(oldkid.parents):
                     if obj._sym_id == self._sym_id:
                         oldkid.parents.pop(i)
@@ -293,7 +290,7 @@ class SymbolikBase:
         '''
         path = []
         idxs = []
-        done = []
+        done = set()
 
         cur = self
         idx = 0
@@ -325,7 +322,7 @@ class SymbolikBase:
             path.pop()          # clean up, since our algorithm doesn't expect cur on the top...
             #sys.stdout.write(' << \n')
 
-            done.append(cur._sym_id)
+            done.add(cur._sym_id)
 
             if newb != None and newb != cur:
                 cur = newb
@@ -1015,3 +1012,4 @@ oppose(ne, eq)
 oppose(le, gt)
 oppose(lt, ge)
 oppose(UNK, NOTUNK)
+

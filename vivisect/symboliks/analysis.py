@@ -552,14 +552,14 @@ class SymbolikAnalysisContext:
         effects in an emulator instance and yield
         emu, effects tuples...
         '''
-        if graph == None:
+        if graph is None:
             graph = self.getSymbolikGraph(fva)
 
-        if args == None:
-            argdef = self.vw.getFunctionArgs( fva )
-            args = [ Arg(i, width=self.vw.psize) for i in xrange(len(argdef)) ]
+        if args is None:
+            argdef = self.vw.getFunctionArgs(fva)
+            args = [Arg(i, width=self.vw.psize) for i in xrange(len(argdef))]
 
-        if paths == None:
+        if paths is None:
             paths = viv_graph.getCodePaths(graph, maxpath=maxpath)
 
         pcnt = 0
@@ -567,7 +567,7 @@ class SymbolikAnalysisContext:
             if pcnt > maxpath:
                 break
 
-            pcnt+=1
+            pcnt += 1
             skippath = False
             emu = self.getFuncEmu(fva, fargs=args)
 
@@ -577,46 +577,40 @@ class SymbolikAnalysisContext:
             opcodes = []
 
             patheffects = emu.applyEffects(self.preeffects)
-            pathconstraints = emu.applyEffects(self.preconstraints)
 
             for nid, eid in path:
                 # This is the edge that *got us here* so it has to
                 # be processed first!
-                if eid != None:
+                if eid is not None:
                     constraints = graph.getEdgeProps(eid).get('symbolik_constraints', ())
                     constraints = emu.applyEffects(constraints)
-                    #[ c.reduce() for c in constraints ]
 
-                    #print 'EDGE GOT CONSTRAINTS',[ str(c) for c in constraints]
+                    # print 'EDGE GOT CONSTRAINTS',[ str(c) for c in constraints]
                     # FIXME check if constraints are discrete, and possibly skip path!
                     # FIXME: if constraints are Const vs Const, and one Const is a loop var, don't skip!
 
-                    cons = [ c.cons for c in constraints ]
                     if self.consolve:
                         # If any of the constraints are discrete and false we skip the path
-                        [ c.reduce() for c in constraints ]
-                        discs = [ c.cons._solve() for c in constraints if c.cons.isDiscrete() ]
-                        #print 'CONS',constraints
-                        #print 'DISCS',discs
-                        if not all( discs ): # emtpy discs is True...
-                            #print('SKIP: %s %s' % (repr(discs),[str(c) for c in constraints ]))
+                        [c.reduce() for c in constraints]
+                        discs = [c.cons._solve() for c in constraints if c.cons.isDiscrete()]
+                        # print 'CONS',constraints
+                        # print 'DISCS',discs
+                        if not all(discs):  # emtpy discs is True...
+                            # print('SKIP: %s %s' % (repr(discs),[str(c) for c in constraints ]))
                             skippath = True
                             break
 
                         # reduce/remove constraints that were discrete and passed
-                        constraints = [ c for c in constraints if not c.cons.isDiscrete() ]
-                        cons = [ c.cons for c in constraints ]
+                        constraints = [c for c in constraints if not c.cons.isDiscrete()]
 
-                    patheffects.extend(constraints)
-                    pathconstraints.extend( cons )
+                    patheffects += constraints
 
                 if skippath:
                     break
 
-                effects = emu.applyEffects(graph.getNodeProps(nid).get('symbolik_effects',()))
-                patheffects.extend(effects)
+                patheffects += emu.applyEffects(graph.getNodeProps(nid).get('symbolik_effects', ()))
 
-                opcodes.extend( graph.getNodeProps(nid).get('opcodes',() ) )
+                opcodes += graph.getNodeProps(nid).get('opcodes', ())
 
             if not skippath:
                 # Store off some info into emu meta for analysis to use

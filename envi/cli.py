@@ -716,11 +716,15 @@ class EnviCli(Cmd):
         if va == 0:
             return "NULL"
 
-        mbase,msize,mperm,mfile = self.memobj.getMemoryMap(va)
-        ret = mfile
-        sym = self.symobj.getSymByAddr(va, exact=False)
-        if sym != None:
-            ret = "%s + %d" % (repr(sym),va-long(sym))
+        try:
+            mbase,msize,mperm,mfile = self.memobj.getMemoryMap(va)
+            ret = mfile
+            sym = self.symobj.getSymByAddr(va, exact=False)
+            if sym != None:
+                ret = "%s + %d" % (repr(sym),va-long(sym))
+        except:
+            ret = hex(va)
+
         return ret
 
     def do_memdump(self, line):

@@ -47,7 +47,7 @@ class DebugEffect(SymbolikEffect):
         self.msg = msg
 
     def __repr__(self):
-        return 'DebugEffect(0x%.8x, %s)' % (self.va, self.msg)
+        return 'DebugEffect( 0x%.8x, %s )' % (self.va, self.msg)
 
     def __str__(self):
         return '%s' % self.msg
@@ -81,7 +81,7 @@ class SetVariable(SymbolikEffect):
         self.symobj = symobj
 
     def __repr__(self):
-        return 'SetVariable(0x%.8x, %s, %s)' % (self.va, repr(self.varname), repr(self.symobj))
+        return 'SetVariable( 0x%.8x, %s, %s )' % (self.va, repr(self.varname), repr(self.symobj))
 
     def __str__(self):
         return '%s = %s' % (self.varname, str(self.symobj))
@@ -172,7 +172,7 @@ class WriteMemory(SymbolikEffect):
 
     def __repr__(self):
         t = (self.va, repr(self.symaddr), repr(self.symsize), repr(self.symval))
-        return 'WriteMemory( 0x%.8x, %s, %s, %s)' % t
+        return 'WriteMemory( 0x%.8x, %s, %s, %s )' % t
 
     def __str__(self):
         t = (str(self.symaddr), str(self.symsize), str(self.symval))

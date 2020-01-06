@@ -198,6 +198,7 @@ INS_CPUID   =            INS_SYSTEM | 0x04 #              /* iden
 INS_NOP     =    INS_OTHER | 0x01
 INS_BCDCONV =    INS_OTHER | 0x02        #/* convert to/from BCD */
 INS_SZCONV  =    INS_OTHER | 0x03        #/* convert size of operand */
+INS_CRYPT   = INS_OTHER | 0x4  # AES-NI instruction support
 
 
 OP_R = 0x001
@@ -229,6 +230,7 @@ cpu_PENTPRO = 0x00007000
 cpu_PENTMMX = 0x00008000
 cpu_PENTIUM2 = 0x00009000
 cpu_AMD64 = 0x0000a000
+cpu_AESNI = 0x0000b000
 
 #import envi.archs.i386.regs as e_i386_regs
 # Relative import priority...
