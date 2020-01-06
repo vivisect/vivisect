@@ -554,6 +554,16 @@ class Opcode:
         """
         return ()
 
+    def genRefOpers(self, emu=None):
+        '''
+        Operand generator, yielding an (oper-index, operand) tuple from this 
+        Opcode... but only for operands which make sense for XREF analysis.  
+        Override when architecture makes use of odd operands like the program 
+        counter, which returns a real value even without an emulator.
+        '''
+        for oidx, o in enumerate(self.opers):
+            yield (oidx, o)
+
     def render(self, mcanv):
         """
         Render this opcode to the memory canvas passed in.  This is used for both
