@@ -1168,10 +1168,13 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
                 self.addXref(va, tova, REF_CODE, bflags)
 
         # Check the instruction for static d-refs
-        for o in op.opers:
+        for oidx, o in op.genRefOpers(emu=None):
             # FIXME it would be nice if we could just do this one time
             # in the emulation pass (or hint emulation that some have already
             # been done.
+            # unfortunately, emulation pass only occurs for code identified
+            # within a marked function.
+            # future fix: move this all into VivCodeFlowContext.
 
             # Does the operand touch memory ?
             if o.isDeref():
@@ -1207,7 +1210,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
                 ref = o.getOperValue(op)
                 if brdone.get(ref, False):
                     continue
-                if ref is not None and self.isValidPointer(ref):
+                if ref is not None and type(ref) in (int, long) and self.isValidPointer(ref):
                     self.addXref(va, ref, REF_PTR)
 
         return loc
