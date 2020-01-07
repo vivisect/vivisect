@@ -679,7 +679,7 @@ class i386Disasm:
             return val + RMETA_LOW8
         return (val-4) + RMETA_HIGH8
 
-    # Parse modrm as though addr mode might not be just a reg
+    # Parse modrm as though addr mode might not be just a reg, but only for 32bit mode
     def extended_parse_modrm(self, bytez, offset, opersize, regbase=0, prefixes=0):
         """
         Return a tuple of (size, Operand)
@@ -702,6 +702,7 @@ class i386Disasm:
 
         elif mod == 0:
             # means we are [reg] unless rm == 4 (SIB) or rm == 5 ([imm32])
+            # BUT JOKES -- the table is totally different in 16 bit mode BECAUSE WHY
             if rm == 5:
                 imm = e_bits.parsebytes(bytez, offset + size, 4)
                 size += 4
