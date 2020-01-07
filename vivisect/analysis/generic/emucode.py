@@ -26,10 +26,7 @@ class watcher(viv_imp_monitor.EmulationMonitor):
         self.lastop = None
         self.badcode = False
 
-        try:
-            self.badops = [vw.arch.archParseOpcode("\x00\x00\x00\x00\x00")]
-        except:
-            self.badops = []
+        self.badops = vw.arch.archGetBadOps()
 
     def logAnomaly(self, emu, eip, msg):
         self.badcode = True

@@ -2,5 +2,7 @@
 *.swp
 *.swo
 *.py~
+*.un~
 .hg*
 .idea
+coverage_html_report*

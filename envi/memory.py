@@ -1,8 +1,8 @@
 import re
 import struct
-import collections
 
 import envi
+import envi.bits as e_bits
 
 """
 A module containing memory utilities and the definition of the
@@ -18,7 +18,7 @@ MM_EXEC = 0x1
 MM_SHARED = 0x08
 
 MM_READ_WRITE = MM_READ | MM_WRITE
-MM_READ_EXEC  =  MM_READ | MM_EXEC
+MM_READ_EXEC = MM_READ | MM_EXEC
 MM_RWX = MM_READ | MM_WRITE | MM_EXEC
 
 pnames = ['No Access', 'Execute', 'Write', None, 'Read']
@@ -30,7 +30,7 @@ def getPermName(perm):
     return pnames[perm]
 
 def reprPerms(mask):
-    plist = ['-','-','-','-']
+    plist = ['-', '-', '-', '-']
     if mask & MM_SHARED:
         plist[0] = 's'
     if mask & MM_READ:
@@ -44,10 +44,14 @@ def reprPerms(mask):
 
 def parsePerms(pstr):
     ret = 0
-    if pstr.find('s') != -1: ret |= MM_SHARED
-    if pstr.find('r') != -1: ret |= MM_READ
-    if pstr.find('w') != -1: ret |= MM_WRITE
-    if pstr.find('x') != -1: ret |= MM_EXEC
+    if pstr.find('s') != -1:
+        ret |= MM_SHARED
+    if pstr.find('r') != -1:
+        ret |= MM_READ
+    if pstr.find('w') != -1:
+        ret |= MM_WRITE
+    if pstr.find('x') != -1:
+        ret |= MM_EXEC
     return ret
 
 class IMemory:
@@ -63,7 +67,7 @@ class IMemory:
     def __init__(self, arch=None):
         self.imem_psize = struct.calcsize('P')
         self.imem_archs = envi.getArchModules()
-        if arch != None:
+        if arch is not None:
             self.setMemArchitecture(arch)
 
     def setMemArchitecture(self, arch):
@@ -83,7 +87,7 @@ class IMemory:
         '''
         Get a reference to the default arch module for the memory object.
         '''
-        return self.imem_archs[ arch >> 16 ]
+        return self.imem_archs[arch >> 16]
 
     def getPointerSize(self):
         return self.imem_psize
@@ -161,20 +165,19 @@ class IMemory:
         return (0,0xffffffff)
 
     def readMemValue(self, addr, size):
+        '''
+        Read a number from memory of the given size.
+        '''
+        #FIXME: use getBytesDef (and implement a dummy wrapper in VTrace for getBytesDef)
         bytes = self.readMemory(addr, size)
         if bytes == None:
             return None
+
         #FIXME change this (and all uses of it) to passing in format...
         if len(bytes) != size:
-            raise Exception("Read Gave Wrong Length At 0x%.8x (va: 0x%.8x wanted %d got %d)" % (self.getProgramCounter(),addr, size, len(bytes)))
-        if size == 1:
-            return struct.unpack("B", bytes)[0]
-        elif size == 2:
-            return struct.unpack("<H", bytes)[0]
-        elif size == 4:
-            return struct.unpack("<I", bytes)[0]
-        elif size == 8:
-            return struct.unpack("<Q", bytes)[0]
+            raise Exception("Read gave wrong length at va: 0x%.8x (wanted %d got %d)" % (addr, size, len(bytes)))
+
+        return e_bits.parsebytes(bytes, 0, size, False, self.getEndian())
 
     def readMemoryPtr(self, va):
         '''
@@ -199,6 +202,22 @@ class IMemory:
             fmt = fmt.replace("P","Q")
         mbytes = struct.pack(fmt, *args)
         self.writeMemory(va, mbytes)
+
+    def writeMemValue(self, addr, val, size):
+        '''
+        Write a number from memory of the given size.
+        '''
+        bytez = e_bits.buildbytes(val, size, self.getEndian())
+        return self.writeMemory(addr, bytez)
+
+    def writeMemoryPtr(self, va, val):
+        '''
+        Write a pointer to memory at the specified address.
+
+        Example:
+            ptr = t.writeMemoryPtr(addr, val)
+        '''
+        return self.writeMemValue(va, val, self.imem_psize)
 
     def getMemoryMap(self, va):
         '''
@@ -389,6 +408,7 @@ class MemoryObject(IMemory):
         """
         IMemory.__init__(self, arch=arch)
         self._map_defs = []
+        self._supervisor = False
 
     #FIXME MemoryObject: def allocateMemory(self, size, perms=MM_RWX, suggestaddr=0):
 
@@ -446,7 +466,7 @@ class MemoryObject(IMemory):
             mva, mmaxva, mmap, mbytes = mapdef
             if va >= mva and va < mmaxva:
                 mva, msize, mperms, mfname = mmap
-                if not mperms & MM_WRITE:
+                if not (mperms & MM_WRITE or self._supervisor):
                     raise envi.SegmentationViolation(va)
                 offset = va - mva
                 mapdef[3] = mbytes[:offset] + bytes + mbytes[offset+len(bytes):]
@@ -458,7 +478,7 @@ class MemoryObject(IMemory):
         """
         An optimized routine which returns the existing
         segment bytes sequence without creating a new
-        string object *AND* an offset of va into the 
+        string object *AND* an offset of va into the
         buffer.  Used internally for optimized memory
         handling.  Returns (offset, bytes)
         """
@@ -468,6 +488,45 @@ class MemoryObject(IMemory):
                 offset = va - mva
                 return (offset, mbytes)
         raise envi.SegmentationViolation(va)
+
+    def parseOpcode(self, va, arch=envi.ARCH_DEFAULT):
+        '''
+        Parse an opcode from the specified virtual address.
+
+        Example: op = m.parseOpcode(0x7c773803)
+        '''
+        off, b = self.getByteDef(va)
+        return self.imem_archs[(arch & envi.ARCH_MASK) >> 16].archParseOpcode(b, off, va)
+
+    def readMemString(self, va, maxlen=0xfffffff):
+        '''
+        Returns a C-style string from memory.  Stops at Memory Map boundaries, or the first NULL (\x00) byte.
+        '''
+
+        for mva, mmaxva, mmap, mbytes in self._map_defs:
+            if va >= mva and va < mmaxva:
+                mva, msize, mperms, mfname = mmap
+                if not mperms & MM_READ:
+                    raise envi.SegmentationViolation(va)
+                offset = va - mva
+
+                # now find the end of the string based on either \x00, maxlen, or end of map
+                end = mbytes.find('\x00', offset)
+
+                left = end - offset
+                if end == -1:
+                    # couldn't find the NULL byte
+                    mend = offset + maxlen
+                    cstr = mbytes[offset:mend]
+                else:
+                    # couldn't find the NULL byte go to the end of the map or maxlen
+                    mend = offset + (maxlen, left)[left < maxlen]
+                    cstr = mbytes[offset:mend]
+                return cstr
+
+        raise envi.SegmentationViolation(va)
+
+
 
 class MemoryFile:
     '''

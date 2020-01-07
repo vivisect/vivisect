@@ -399,11 +399,11 @@ class Graph:
 
         Example: g.addEdge(node1, node2, eprops={'name':'Woot Edge'})
         '''
-        if eprops == None:
+        if eprops is None:
             eprops = {}
 
         eprops.update(kwargs)
-        if eid == None:
+        if eid is None:
             eid = guid()
 
         n1 = node1[0]
@@ -418,7 +418,7 @@ class Graph:
         for k,v in eprops.items():
             try:
                 self.edgeprops[k][v].append(edge)
-            except TypeError, e:
+            except TypeError as e:
                 pass # no value indexes for unhashable types
 
         return edge
@@ -451,6 +451,17 @@ class Graph:
             if not vlist:
                 self.edgeprops[prop].pop(v,None)
         return v
+
+    def delEdgesProps(self, props):
+        '''
+        Delete all listed properties from all edges in the graph.
+
+        Example:
+            g.delEdgesProps(('foo', 'bar'))
+        '''
+        for prop in props:
+            for edge in self.getEdgesByProp(prop):
+                self.delEdgeProp(edge, prop)
 
     def getRefsFrom(self, node):
         '''

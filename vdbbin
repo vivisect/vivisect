@@ -1,8 +1,11 @@
 #!/usr/bin/env python
-
 import sys
 import argparse
 import traceback
+import logging
+
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s:%(levelname)s:%(name)s: %(message)s')
+logger = logging.getLogger()
 
 import vdb
 import vtrace
@@ -45,6 +48,14 @@ def targetusage():
     ''')
     sys.exit(0)
 
+loglevels = (
+        logging.CRITICAL,
+        logging.ERROR,
+        logging.WARN,
+        logging.INFO,
+        logging.DEBUG,
+        )
+
 def main():
     parser = argparse.ArgumentParser(prog='vdbbin', usage='%(prog)s [options] [platformopt=foo, ...]')
     parser.add_argument('-c', '--cmd', dest='command', default=None, help='Debug a fired command')
@@ -54,7 +65,7 @@ def main():
     parser.add_argument('-r', '--run', dest='dorunagain', default=False, action='store_true', help='Do not stop on attach')
     parser.add_argument('-s', '--snapshot', dest='snapshot', default=None, help='Load a vtrace snapshot file')
     parser.add_argument('-S', '--server', dest='doserver', default=False, action='store_true')
-    parser.add_argument('-v', '--verbose', dest='doverbose', default=False, action='store_true')
+    parser.add_argument('-v', '--verbose', dest='verbose', default=False, action='count')
     parser.add_argument('-t', '--target', dest='target', default=None, help='Activate special vdb target ( -t ? for list )')
     parser.add_argument('--android', dest='doandroid', default=False, action='store_true', help='Debug Android with ADB!')
     parser.add_argument('-e', '--eventid', dest='eventid', default=None, type=int, help='Used for Windows JIT')
@@ -62,6 +73,10 @@ def main():
     parser.add_argument('platargs', nargs='*')
 
     args = parser.parse_args()
+
+    # setup logging
+    verbose = min(args.verbose, 4)
+    logger.setLevel(loglevels[verbose])
 
     # Handle some options before we even create a trace.
     vtrace.remote = args.remotehost # None by default

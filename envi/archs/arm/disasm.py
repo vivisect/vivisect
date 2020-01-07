@@ -1335,6 +1335,18 @@ class ArmOpcode(envi.Opcode):
     def __len__(self):
         return int(self.size)
 
+    def genRefOpers(self, emu=None):
+        '''
+        Operand generator, yielding an (oper-index, operand) tuple from this 
+        Opcode... but only for operands which make sense for XREF analysis.  
+        Override when architecture makes use of odd operands like the program 
+        counter, which returns a real value even without an emulator.
+        '''
+        for oidx, o in enumerate(self.opers):
+            if o.isReg() and o.reg == REG_PC:
+                continue
+            yield (oidx, o)
+
     def getBranches(self, emu=None):
         """
         Return a list of tuples.  Each tuple contains the target VA of the
@@ -1367,7 +1379,7 @@ class ArmOpcode(envi.Opcode):
                 if operval & 3:
                     flags |= envi.ARCH_THUMB16
                 else:
-                    flags |= envi.ARCH_ARM
+                    flags |= envi.ARCH_ARMV7
 
             # if we don't know that it's thumb, default to "ARCH_DEFAULT"
             else:
@@ -1488,14 +1500,14 @@ class ArmRegOper(ArmOperand):
 
     def getOperValue(self, op, emu=None):
         if self.reg == REG_PC:
-            return self.va  # FIXME: is this modified?  or do we need to att # to this?
+            return self.va
 
-        if emu == None:
+        if emu is None:
             return None
         return emu.getRegister(self.reg)
 
     def setOperValue(self, op, emu=None, val=None):
-        if emu == None:
+        if emu is None:
             return None
         emu.setRegister(self.reg, val)
 
@@ -1503,8 +1515,7 @@ class ArmRegOper(ArmOperand):
         rname = arm_regs[self.reg][0]
         mcanv.addNameText(rname, typename='registers')
         if self.oflags & OF_W:
-            mcanv.addText( "!" )
-
+            mcanv.addText("!")
 
     def repr(self, op):
         rname = arm_regs[self.reg][0]
@@ -2351,7 +2362,11 @@ class ArmDisasm:
         self.setEndian(endian)
         
     def setEndian(self, endian):
+        self.endian = endian
         self.fmt = ("<I", ">I")[endian]
+
+    def getEndian(self):
+        return self.endian
 
     def disasm(self, bytez, offset, va):
         """

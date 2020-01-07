@@ -30,6 +30,13 @@ def splitargs(cmdline):
     for item in cmdline.split('\n'):
         return [s.strip('"') for s in patt.findall(item)]
 
+def formatargs(args):
+    ret = []
+    subcmds = [args[i:i+5] for i in range(0, len(args), 5)]
+    for cmdnames in subcmds:
+        fmtstr = '{:15}' * len(cmdnames)
+        yield fmtstr.format(*cmdnames)
+
 def columnstr(slist):
     msize = 0
     for s in slist:
@@ -51,6 +58,51 @@ class CliExtMeth:
 
     def __call__(self, line):
         return self.func(self.cli, line)
+
+def isValidScript(scriptpath):
+    '''
+    Takes in a filepath
+    Returns whether the file is valid python (ie. suvives import)
+    '''
+    if not os.path.isfile(scriptpath):
+        return False
+
+    with open(scriptpath, 'rb') as f:
+        contents = f.read()
+
+    try:
+        cobj = compile(contents, scriptpath, 'exec')
+        return True
+    except Exception, e:
+        pass
+    
+    return False
+
+def getRelScriptsFromPath(scriptpaths):
+    '''
+    Takes in a list of base paths (eg. ENVI_SCRIPT_PATH list) and recurses the 
+    directories looking for valid python files (ie. they don't throw errors
+    on import).
+
+    Returns a list of scripts usable from the cli in *relative path* format.
+    ie.  if my path has "/home/hacker/fooscripts" in it, the script located
+    at "/home/hacker/fooscripts/barmazing/bazthis.py" is listed as
+    "barmazing/bazthis.py" and the do_script() handler can use that.
+    '''
+    scripts = []
+    for basedir in scriptpaths:
+        baselen = len(basedir)
+
+        for dirname,subdirs,subfiles in os.walk(basedir):
+            for subfile in subfiles:
+                subpath = os.path.join(dirname,subfile)
+                if isValidScript(subpath):
+                    script = subpath[baselen:]
+                    if script.startswith(os.sep):
+                        script = script[1:]
+                    scripts.append(script)
+
+    return scripts
 
 cfgdefs = {
     'cli':{
@@ -88,7 +140,7 @@ class EnviCli(Cmd):
 
         for name in dir(self):
             if name.startswith('do_'):
-                self.basecmds.append( name[3:] )
+                self.basecmds.append(name[3:])
 
         self.shutdown = threading.Event()
 
@@ -243,38 +295,37 @@ class EnviCli(Cmd):
         lines = line.split("&&")
         try:
             for line in lines:
-                line = self.aliascmd( line )
+                line = self.aliascmd(line)
                 Cmd.onecmd(self, line)
         except SystemExit:
             raise
-        except Exception, msg:
+        except Exception as msg:
             if self.config.cli.verbose:
                 self.vprint(traceback.format_exc())
-            self.vprint("\nERROR: (%s) %s" % (msg.__class__.__name__,msg))
+            self.vprint("\nERROR: (%s) %s" % (msg.__class__.__name__, msg))
 
         if self.shutdown.isSet():
             return True
 
     def do_help(self, line):
         if line:
-            return Cmd.do_help(self,line)
+            return Cmd.do_help(self, line)
 
         self.basecmds.sort()
         self.vprint('\nbasics:')
 
-        #self.vprint( self.columnize( self.basecmds ) )
-        self.columnize( self.basecmds )
+        for line in formatargs(self.basecmds):
+            self.vprint(line)
 
         subsys = self.extsubsys.keys()
         subsys.sort()
 
         for sub in subsys:
             self.vprint('\n%s:' % sub)
-
             cmds = self.extsubsys.get(sub)
             cmds.sort()
-
-            self.columnize(cmds)
+            for line in formatargs(cmds):
+                self.vprint(line)
 
         self.vprint('\n')
 
@@ -389,7 +440,7 @@ class EnviCli(Cmd):
         aliases = self.config.cli.aliases.keys()
         aliases.sort()
         for alias in aliases:
-            self.vprint('%s -> %s' % (alias,self.config.cli.aliases.get(alias)))
+            self.vprint('%s -> %s' % (alias, self.config.cli.aliases.get(alias)))
         self.vprint('')
         return
 
@@ -411,8 +462,7 @@ class EnviCli(Cmd):
             code.interact(local=locals)
 
     def parseExpression(self, expr):
-        l = self.getExpressionLocals()
-        return long(e_expr.evaluate(expr, l))
+        return long(e_expr.evaluate(expr, self.getExpressionLocals()))
 
     def do_binstr(self, line):
         '''
@@ -468,6 +518,8 @@ class EnviCli(Cmd):
               all be strings)
 
         Usage: script <scriptfile> [<argv[0]>, ...]
+
+        or     script ?
         '''
         if len(line) == 0:
             return self.do_help('script')
@@ -476,14 +528,10 @@ class EnviCli(Cmd):
         locals = self.getExpressionLocals()
         locals['argv'] = argv
 
-        if line.startswith("?"):
-            scripts = []
-            for scriptdir in self.scriptpaths:
-                # FIXME: filter on more than just ".py".  something internal
-                potential_scripts = [py[:-3] for py in os.listdir(scriptdir) if py.endswith('.py')]
-                scripts.extend(potential_scripts)
-
-            self.vprint('Scripts available script paths:\n\t' + '\n\t'.join(scripts))
+        if len(argv) and argv[0] == "?":
+            scripts = getRelScriptsFromPath(self.scriptpaths)
+            scripts.sort()
+            self.vprint('Scripts available in script paths:\n\t' + '\n\t'.join(scripts))
             return
 
 
@@ -668,11 +716,15 @@ class EnviCli(Cmd):
         if va == 0:
             return "NULL"
 
-        mbase,msize,mperm,mfile = self.memobj.getMemoryMap(va)
-        ret = mfile
-        sym = self.symobj.getSymByAddr(va, exact=False)
-        if sym != None:
-            ret = "%s + %d" % (repr(sym),va-long(sym))
+        try:
+            mbase,msize,mperm,mfile = self.memobj.getMemoryMap(va)
+            ret = mfile
+            sym = self.symobj.getSymByAddr(va, exact=False)
+            if sym != None:
+                ret = "%s + %d" % (repr(sym),va-long(sym))
+        except:
+            ret = hex(va)
+
         return ret
 
     def do_memdump(self, line):
@@ -793,6 +845,7 @@ class EnviCli(Cmd):
 
         showmem()
         self.setEmptyMethod(showmem)
+
 
 class EnviMutableCli(EnviCli):
     """

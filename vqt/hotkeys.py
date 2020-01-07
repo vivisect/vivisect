@@ -1,16 +1,29 @@
-from PyQt4 import QtCore, QtGui
+import sys
+import logging
+import traceback
 
-QMOD_CTRL   = 0x04000000
-QMOD_SHIFT  = 0x02000000
+logger = logging.getLogger(__name__)
+# logger.setLevel(logging.INFO)
+if not len(logger.handlers):
+    logger.addHandler(logging.StreamHandler())
+
+try:
+    from PyQt5.QtWidgets import *
+except:
+    from PyQt4.QtGui import *
+
+QMOD_META = 0x08000000
+QMOD_CTRL = 0x04000000
+QMOD_SHIFT = 0x02000000
 
 special_keys = {
-    0x1000000:'esc',
-    0x1000003:'bs',
-    0x1000004:'enter',
-    0x1000012:'left',
-    0x1000013:'up',
-    0x1000014:'right',
-    0x1000015:'down',
+    0x1000000: 'esc',
+    0x1000003: 'bs',
+    0x1000004: 'enter',
+    0x1000012: 'left',
+    0x1000013: 'up',
+    0x1000014: 'right',
+    0x1000015: 'down',
 }
 
 fkey_base = 0x100002f
@@ -60,7 +73,7 @@ class HotKeyMixin(object):
         '''
         Check if the given hotkey target name is valid.
         '''
-        return self._vq_hotkey_targets.get(targname) != None
+        return self._vq_hotkey_targets.get(targname) is not None
 
     def getHotKeys(self):
         '''
@@ -94,19 +107,18 @@ class HotKeyMixin(object):
 
             keyobj = settings.value('hotkey:%s' % tname)
 
-            if not keyobj.isNull():
-                self.addHotKey(keyobj.toString(),tname)
+            if keyobj is not None:
+                self.addHotKey(keyobj.toString(), tname)
 
     def getHotKeyFromEvent(self, event):
         '''
         A utility to retrieve the keystr from a QT keystroke event.
         '''
         key = event.key()
-        txt = str(event.text())
 
         mods = int(event.modifiers())
 
-        #print('HOTKEY: %s 0x%.8x' % (key, mods))
+        # print('HOTKEY: %s 0x%.8x' % (key, mods))
 
         keytxt = None
 
@@ -123,18 +135,26 @@ class HotKeyMixin(object):
                 keytxt = keytxt.upper()
 
             if mods & QMOD_CTRL:
-                keytxt = 'ctrl+' + keytxt
+                if mods & QMOD_META:
+                    keytxt = 'ctrl+meta+' + keytxt
+                else:
+                    keytxt = 'ctrl+' + keytxt
 
         return keytxt
 
     def eatKeyPressEvent(self, event):
         hotkey = self.getHotKeyFromEvent(event)
-        #print 'KEYSTR:',hotkey
+        # print 'KEYSTR:', hotkey
 
-        target = self._vq_hotkeys.get( hotkey )
-        if target != None:
-            callback, args, kwargs = self._vq_hotkey_targets.get( target )
-            callback(*args,**kwargs)
+        target = self._vq_hotkeys.get(hotkey)
+        if target is not None:
+            callback, args, kwargs = self._vq_hotkey_targets.get(target)
+            try:
+                callback(*args, **kwargs)
+            except:
+                logger.warn("error in eatKeyPressEvent(%r, %r, %r)" % (event, args, kwargs))
+                logger.debug(''.join(traceback.format_exception(*sys.exc_info())))
+
             event.accept()
             return True
 
@@ -142,7 +162,12 @@ class HotKeyMixin(object):
 
     def keyPressEvent(self, event):
         if not self.eatKeyPressEvent(event):
+            # is this a bug?  do we call the super?  or the parent?
             return super(HotKeyMixin, self).keyPressEvent(event)
+
+            #parent = self.parent()
+            #if parent != None:
+            #    return parent.keyPressEvent(event)
 
 import vqt.tree
 
@@ -155,12 +180,12 @@ class HotKeyEditor(vqt.tree.VQTreeView):
 
         model = self.model()
 
-        lookup = dict([ (targname, keystr) for (keystr,targname) in self.getHotKeys() ])
+        lookup = dict([(targname, keystr) for (keystr, targname) in self.getHotKeys()])
         targets = self.getHotKeyTargets()
         targets.sort()
 
         for targname in targets:
-            model.append((targname,lookup.get(targname, '')))
+            model.append((targname, lookup.get(targname, '')))
 
         self.setWindowTitle('Hotkey Editor')
 

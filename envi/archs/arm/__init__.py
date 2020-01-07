@@ -12,10 +12,12 @@ class ArmModule(envi.ArchitectureModule):
 
     def __init__(self, name='armv6'):
         import envi.archs.thumb16.disasm as eatd
-        envi.ArchitectureModule.__init__(self, name, maxinst=4)
-        self._arch_reg = self.archGetRegCtx()
+        # these are required for setEndian() which is called from ArchitectureModule.__init__()
         self._arch_dis = ArmDisasm()
         self._arch_thumb_dis = eatd.Thumb2Disasm()
+
+        envi.ArchitectureModule.__init__(self, name, maxinst=4)
+        self._arch_reg = self.archGetRegCtx()
 
     def archGetRegCtx(self):
         return ArmRegisterContext()
@@ -44,5 +46,23 @@ class ArmModule(envi.ArchitectureModule):
 
     def getEmulator(self):
         return ArmEmulator()
+
+    def setEndian(self, endian):
+        self._endian = endian
+        self._arch_dis.setEndian(endian)
+        self._arch_thumb_dis.setEndian(endian)
+
+    def archModifyFuncAddr(self, va, info):
+        if va & 1:
+            return va & -2, {'arch' : envi.ARCH_THUMB2}
+        return va, {}
+
+    def archModifyXrefAddr(self, tova, reftype, rflags):
+        if tova & 1:
+            return tova & -2, reftype, rflags
+        return tova, reftype, rflags
+
+
+
 
 from envi.archs.arm.emu import *
