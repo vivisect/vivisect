@@ -14,7 +14,7 @@ ADDRMETH_G = 0x00070000    # MODRM byte defines general-purpose reg
 ADDRMETH_H = 0x00080000    # VEX.vvvv field selects 128bit XMM or 256bit YMM register
 ADDRMETH_I = 0x00090000    # Immediate data follows
 ADDRMETH_J = 0x000A0000    # Immediate value is relative to EIP
-ADDRMETH_L = 0x000B0000
+ADDRMETH_L = 0x000B0000    # MODRM rm refers only to memory, and reg is used as an ext
 ADDRMETH_M = 0x000C0000    # MODRM mod field can refer only to memory
 ADDRMETH_N = 0x000D0000    # R/M field of MODRM selects a packed-quadword, MMX register
 ADDRMETH_O = 0x000E0000    # Displacement follows (without modrm/sib)
@@ -28,7 +28,9 @@ ADDRMETH_W = 0x00150000    # MODRM defines XMM register or memory
 ADDRMETH_X = 0x00160000    # Memory addressed by DS:rSI
 ADDRMETH_Y = 0x00170000    # Memory addressd by ES:rDI
 ADDRMETH_Z = 0x00180000    # R/M field of MODRM defines XMM register, reg is used as an ext
-ADDRMETH_LAST = ADDRMETH_Z
+ADDRMETH_IRU = 0x00190000   # An immediate value follows, but bits[7:4] signifies a register
+ADDRMETH_IRL = 0x001A0000   # An immediate value follows, but bits[3:0] signifies a register
+ADDRMETH_LAST = ADDRMETH_IRL
 
 ADDRMETH_VEXSKIP = 0x00800000  # This operand should be skipped if we're not in VEX mode
 ADDRMETH_VEXADDR = 0x00800000  # Allow VEX to muck with the size of the operand
@@ -96,7 +98,7 @@ OPERSIZE = {
 
 INS_NOPREF = 0x10000  # This instruction diallows prefixes, and if it does, it's a different insttruction
 INS_VEXREQ = 0x20000  # This instructions requires VEX
-INS_VEXNOPREF = 0x30000  # This instruction doesn't get the "v" prefix common to VEX instructions
+INS_VEXNOPREF = 0x40000  # This instruction doesn't get the "v" prefix common to VEX instructions
 
 INS_EXEC = 0x1000
 INS_ARITH = 0x2000
@@ -211,6 +213,7 @@ OP_R = 0x001
 OP_W = 0x002
 OP_X = 0x004
 OP_64AUTO = 0x008 # operand is in 64bit mode with amd64!
+OP_REG32AUTO = 0x010 # force only *register* to be 32 bit
 
 OP_UNK = 0x000
 OP_REG = 0x100

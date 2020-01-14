@@ -801,7 +801,7 @@ class i386Disasm:
 
         #print "OPERTYPE",hex(opertype)
         sizelist = opcode86.OPERSIZE.get(opertype, None)
-        if sizelist == None:
+        if sizelist is None:
             raise "OPERSIZE FAIL: %.8x" % opertype
 
         if prefixes & PREFIX_OP_SIZE:
@@ -1039,6 +1039,9 @@ class i386Disasm:
         imm = e_bits.parsebytes(bytez, offset, tsize, sign=True)
         return (tsize, i386PcRelOper(imm, tsize))
 
+    def ameth_l(self, bytez, offset, tsize, prefixes, operflags):
+        return 0, 0
+
     def ameth_o(self, bytez, offset, tsize, prefixes, operflags):
         # NOTE: displacement *stays* 32 bit even with REX
         # (but 16 bit should probably be supported)
@@ -1086,7 +1089,6 @@ class i386Disasm:
     def ameth_z(self, bytez, offset, tsize, prefixes, operflags):
         mod, reg, rm = self.parse_modrm(ord(bytez[offset]))
         return (1, i386RegOper(rm+self.ROFFSETSIMD, tsize))
-
 
 if __name__ == '__main__':
     import envi.archs

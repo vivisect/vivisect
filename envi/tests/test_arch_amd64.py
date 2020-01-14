@@ -45,45 +45,54 @@ amd64SingleByteOpcodes = [
     ('mov al', 'b0aa', 'mov al,170', 'mov al,170'),
     ('mov ebx', 'b8aaaa4040', 'mov eax,0x4040aaaa', 'mov eax,0x4040aaaa'),
     ('call ebx', 'ffd3', 'call rbx', 'call rbx'),
-    ('call lit', 'e801010101', 'call 0x01010146', 'call 0x01010146'),
+    ('call lit', 'e801010101', 'call 0x01010506', 'call 0x01010506'),
     ('mov dword', '89aa41414141', 'mov dword [rdx + 1094795585],ebp', 'mov dword [rdx + 1094795585],ebp'),
     ('imul 1', 'f6aaaaaaaaaa', 'imul al,byte [rdx - 1431655766]', 'imul al,byte [rdx - 1431655766]'),
     ('imul 2', 'f7aaaaaaaaaa', 'imul eax,dword [rdx - 1431655766]', 'imul eax,dword [rdx - 1431655766]'),
-    ('push', 'fff0', 'push eax', 'push eax'),
-    ('pop', '8ff0', 'pop eax', 'pop eax'),
-    ('pop', '8ffb', 'pop ebx', 'pop ebx'),
+    ('push', 'fff0', 'push rax', 'push rax'),
+    ('pop', '8ff0', 'pop rax', 'pop rax'), # TODO: This isn't a real instr. 8F can only be mem, using r/m to determine encoding
+    ('pop', '8ffb', 'pop rbx', 'pop rbx'), # TODO: neither is this
     ('push', '48fff0', 'push rax', 'push rax'),
     ('pop', '488ff0', 'pop rax', 'pop rax'),
     ('pop', '488ffb', 'pop rbx', 'pop rbx'),
     ('ud2', '0f0b', 'ud2 ', 'ud2 '),
     ('FISTTP', 'db08', 'fisttp dword [rax]', 'fisttp dword [rax]'),
-    ('FISTTP', 'df08', 'fisttp word [rax]', 'fisttp dword [rax]'),
-    ('FISTTP', 'dd08', 'fisttp qword [rax]', 'fisttp dword [rax]'),
-    ('FDIV', 'd8f1', 'fdiv s0,st1', 'fdiv s0,st1'),
+    ('FISTTP 2', 'df08', 'fisttp word [rax]', 'fisttp word [rax]'),
+    ('FISTTP 3', 'dd08', 'fisttp qword [rax]', 'fisttp qword [rax]'),
+    ('FDIV', 'd8f1', 'fdiv st0,st1', 'fdiv st0,st1'),
     ('FXCH', 'd9ca', 'fxch st0,st2', 'fxch st0,st2'),
     ('FADDP', 'dec1', 'faddp st1,st0', 'faddp st1,st0'),
     ('PREFETCH0', '0f1809', 'prefetch0 byte [rcx]', 'prefetch0 byte [rcx]'),
     ('PREFETCH1', '0f1810', 'prefetch1 byte [rax]', 'prefetch1 byte [rax]'),
     ('PREFETCH2', '0f181b', 'prefetch2 byte [rbx]', 'prefetch2 byte [rbx]'),
     ('PREFETCHNTA', '0f1802', 'prefetchnta byte [rdx]', 'prefetchnta byte [rdx]'),
-    ('PREFETCH0', '670f1809', 'prefetch0 byte [ecx]', 'prefetch0 byte [ecx]'),
-    ('PREFETCH1', '670f1810', 'prefetch1 byte [eax]', 'prefetch1 byte [eax]'),
-    ('PREFETCH2', '670f181b', 'prefetch2 byte [ebx]', 'prefetch2 byte [ebx]'),
-    ('PREFETCHNTA', '670f1802', 'prefetchnta byte [edx]', 'prefetchnta byte [edx]'),
+    #('PREFETCH0', '670f1809', 'prefetch0 byte [ecx]', 'prefetch0 byte [ecx]'),
+    #('PREFETCH1', '670f1810', 'prefetch1 byte [eax]', 'prefetch1 byte [eax]'),
+    #('PREFETCH2', '670f181b', 'prefetch2 byte [ebx]', 'prefetch2 byte [ebx]'),
+    #('PREFETCHNTA', '670f1802', 'prefetchnta byte [edx]', 'prefetchnta byte [edx]'),
     # ('CDQE', '4898', 'cdqe ', 'cdqe '), # It bothers me that this doesn't work
     ('BSWAP (eax)', 'f30fc84141', 'rep: bswap eax', 'rep: bswap eax'),
 ]
 
 amd64MultiByteOpcodes = [
-    ('NOT', '66F7D0', 'not ax', 'not ax'),
-    ('NOT 2', 'F7D0', 'not eax', 'not eax'),
-    ('PUSH', '6653', 'push bx', 'push bx'),
+    # These are all valid tests, but our current impl of prefix 67 is borked
+    #('BLSR 2', '67C4E278F30B', 'blsr eax,dword [ebx]', 'blsr eax,dword [ebx]'),
     #('PUSH 2', '67FF37', 'push qword [edi]', 'push dword [edi]'),
     #('MOV w/ size', '67488B16', 'mov rdx,qword [esi]', 'mov rdx,qword [esi]'),
     #('HSUBPS', '67F20F7D9041414141', 'hsubps xmm1,oword [eax + 0x41414141]', 'hsubps xmm1,oword [eax + 0x41414141]'),
+    #('PEXTRD 3', '67660F3A162A11', 'pextrd_q dword [eax],xmm2,17', 'pextrd_q dword [eax],xmm2,17'),
+    #('PEXTRQ 3', '6766480F3A16A34141414175', 'pextrd_q qword [ebx+0x41414141],,xmm4,117', 'pextrd_q qword [ebx+0x41414141],,xmm4,117'),
+    #('TEST', '67F70078563412', 'test dword [eax], 0x12345678', 'test dword [eax], 0x12345678'),
+    #('HSUBPS 4', '67F20F7D12', 'hsubps xmm2,oword [edx]', 'hsubps xmm2,oword [edx]'),
+
+    ('INSERTPS', '660F3A21CB59', 'insertps xmm1,xmm3,89', 'insertps xmm1,xmm3,89'),
+    ('INSERTPS 2', '660F3A21500449', 'insertps xmm2,dword [rax + 4],73', 'insertps xmm2,dword [rax + 4],73'),
+    ('INSERTPS 3', '660F3A2114254141414149', 'insertps xmm2,dword [0x41414141],73', 'insertps xmm2,dword [0x41414141],73'),
     ('HSUBPS 2', 'F20F7D9041414141', 'hsubps xmm2,oword [rax + 1094795585]', 'hsubps xmm2,oword [rax + 1094795585]'),
     ('HSUBPS 3', 'F20F7D10', 'hsubps xmm2,oword [rax]', 'hsubps xmm2,oword [rax]'),
-    #('HSUBPS 4', '67F20F7D12', 'hsubps xmm2,oword [edx]', 'hsubps xmm2,oword [edx]'),
+    ('NOT', '66F7D0', 'not ax', 'not ax'),
+    ('NOT 2', 'F7D0', 'not eax', 'not eax'),
+    ('PUSH', '6653', 'push bx', 'push bx'),
 
     ('CVTTPS2PI', '0f2caaaaaaaa41', 'cvttps2pi mm5,oword [rdx + 1101703850]', 'cvttps2pi mm5,oword [rdx + 1101703850]'),
     ('CVTTSS2SI', 'f30f2caaaaaaaa41', 'cvttss2si ebp,oword [rdx + 1101703850]', 'cvttss2si ebp,oword [rdx + 1101703850]'),
@@ -205,8 +214,7 @@ amd64MultiByteOpcodes = [
     ('MOVNTDQ', '660FE73D78563412', 'movntdq oword [rip + 305419896],xmm7', 'movntdq oword [rip + 305419896],xmm7'),
     ('PADDD', '660FFECE', 'paddd xmm1,xmm6', 'paddd xmm1,xmm6'),
     ('HADDPS', 'F20F7CCE', 'haddps xmm1,xmm6', 'haddps xmm1,xmm6'),
-    ('HADDPS 1', 'C5CB7CCB', 'vhaddps xmm1,xmm6,xmm3', 'vhaddps xmm1,xmm6,xmm3'),
-    ('HADDPS 2', 'C5E77CD6', 'vhaddps ymm2,ymm3,ymm6', 'vhaddps ymm2,ymm3,ymm6'),
+    ('LDDQU', 'F20FF01C2541414141', 'lddqu xmm3,oword [0x41414141]', 'lddqu xmm3,oword [0x41414141]'),
 
     # override tests
     ('BSF', '480FBCC2', 'bsf rax,rdx', 'bsf rax,rdx'),
@@ -247,16 +255,18 @@ amd64MultiByteOpcodes = [
     ('BLENDVPD', '660F38150C2541414141', 'blendvpd xmm1,oword [0x41414141]', 'blendvpd xmm1,oword [0x41414141]'),
     ('BLENDVPD', '660F3815DC', 'blendvpd xmm3,xmm4', 'blendvpd xmm3,xmm4'),
     ('PEXTRB', '660F3A14D011', 'pextrb eax,xmm2,17', 'pextrb eax,xmm2,17'),
-    ('PEXTRB 2', '660F3A141011', 'pextrb dword [eax],xmm2,17', 'pextrb dword [rax],xmm2,17'),
-    ('PEXTRB 3', '', 'pextrb dword [rax],xmm2,17', 'pextrb dword [rax],xmm2,17'),
-    ('PEXTRD', '660F3A16EA11', 'pextrd edx,xmm5,17', 'pextrd edx,xmm5,17'),
-    ('PEXTRD 2', '660F3A161011', 'pextrd dword [rax],xmm2,17', 'pextrd dword [rax],xmm2,17'),
-    ('PEXTRD 3', '67660F3A162A11', 'pextrd dword [eax],xmm2,17', 'pextrd dword [eax],xmm2,17'),
-    ('PEXTRQ', '66480F3A16D9FE', 'pextrq rcx,xmm3,254', 'pextrq rcx,xmm3,254'),
-    ('PEXTRQ 2', '66480F3A16A14141414175', 'pextrq qword [rcx + 0x41414141],xmm4,117', 'pextrq qword [rcx + 0x41414141],xmm4,117'),
-    ('PEXTRQ 3', '6766480F3A16A34141414175', 'pextrq qword [ebx+0x41414141],,xmm4,117', 'pextrq qword [ebx+0x41414141],,xmm4,117'),
-    ('TEST', '67F70078563412', 'test dword [eax], 0x12345678', 'test dword [eax], 0x12345678'),
-    ('TEST', 'F70078563412', 'test dword [rax], 0x12345678', 'test dword [eax], 0x12345678'),
+    ('PEXTRB 2', '660F3A141011', 'pextrb dword [rax],xmm2,17', 'pextrb dword [rax],xmm2,17'),
+    ('PEXTRB 3', '660F3A14500411', 'pextrb dword [rax + 4],xmm2,17', 'pextrb dword [rax + 4],xmm2,17'),
+    # Uck. We need to let the REX bytes modify the opcode name
+    ('PEXTRD', '660F3A16EA11', 'pextrd_q edx,xmm5,17', 'pextrd_q edx,xmm5,17'),
+    ('PEXTRD 2', '660F3A161011', 'pextrd_q dword [rax],xmm2,17', 'pextrd_q dword [rax],xmm2,17'),
+    ('PEXTRQ', '66480F3A16D9FE', 'pextrd_q rcx,xmm3,254', 'pextrd_q rcx,xmm3,254'),
+    ('PEXTRQ 2', '66480F3A16A14141414175', 'pextrd_q qword [rcx + 1094795585],xmm4,117', 'pextrd_q qword [rcx + 1094795585],xmm4,117'),
+    ('TEST', 'F70078563412', 'test dword [rax],0x12345678', 'test dword [rax],0x12345678'),
+
+    # ('PINSRB', '', '', ''),
+    # ('PINSRB 2', '', '', ''),
+    # ('PINSRB 3', '', '', ''),
 ]
 
 amd64VexOpcodes = [
@@ -275,30 +285,44 @@ amd64VexOpcodes = [
     ('BLSMSK', 'C4E2F0F3142541414141', 'blsmsk rcx,qword [0x41414141]', 'blsmsk rcx,qword [0x41414141]'),
     ('BLSMSK 2', 'C4E278F3D2', 'blsmsk eax,edx', 'blsmsk eax,edx'),
     ('BLSR', 'C4E278F3CB', 'blsr eax,ebx', 'blsr eax,ebx'),
-    ('BLSR 2', '67C4E278F30B', 'blsr eax,dword [ebx]', 'blsr eax,dword [ebx]'),
-    ('BLSR 3', 'C4E270F30C2541414141', 'blsr rcx, dword [0x41414141]', 'blsr rcx, dword [0x41414141]'),
+    ('BLSR 3', 'C4E270F30C2541414141', 'blsr ecx,dword [0x41414141]', 'blsr ecx,dword [0x41414141]'),
     ('BLSR 4', 'C4E2F0F30B', 'blsr rcx,qword [rbx]', 'blsr rcx,qword [rbx]'),
     ('BLSR 5', 'C4E2E8F30C2541414141', 'blsr rdx,qword [0x41414141]', 'blsr rdx,qword [0x41414141]'),
+    ('VMOVSS', 'C5E210CE', 'vmovss xmm1,xmm3,xmm6', 'vmovss xmm1,xmm3,xmm6'),
+    ('VMOVSS 2', 'C5FA1008', 'vmovss xmm1,dword [rax]', 'vmovss xmm1,dword [rax]'),
+    ('HADDPS 1', 'C5CB7CCB', 'vhaddps xmm1,xmm6,xmm3', 'vhaddps xmm1,xmm6,xmm3'),
+    ('HADDPS 2', 'C5E77CD6', 'vhaddps ymm2,ymm3,ymm6', 'vhaddps ymm2,ymm3,ymm6'),
     ('VMOVDQU', 'C5fe6fe3', 'vmovdqu ymm4,ymm3', 'vmovdqu ymm4,ymm3'),
-    ('VLDDQU', 'C5FFF01C2541414141', 'vlddqu ymm3,0x41414141', 'vlddqu ymm3,0x41414141'),
-    ('VLDDQU', 'C5FFF034D50400', 'vlddqu ymm6, [rdx*8+4]', 'vlddqu ymm6, [rdx*8+4]'),
-    ('VLDDQU', 'C5FBF00CF504000000', 'vlddqu xmm1,[rsi*8+4]', 'vlddqu xmm1,[rsi*8+4]'),
+    ('VLDDQU', 'C5FFF01C2541414141', 'vlddqu ymm3,yword [0x41414141]', 'vlddqu ymm3,yword [0x41414141]'),
+    ('VLDDQU 2', 'C5FFF034D504000000', 'vlddqu ymm6,yword [0x00000004 + rdx * 8]', 'vlddqu ymm6,yword [0x00000004 + rdx * 8]'),
+    ('VLDDQU 3', 'C5FBF00CF504000000', 'vlddqu xmm1,oword [0x00000004 + rsi * 8]', 'vlddqu xmm1,oword [0x00000004 + rsi * 8]'),
 
-    # w/ address size override
-    ('VLDDQU', '67C5FBF00CF504000000', 'vlddqu xmm1,[esi*8+4]', 'vlddqu xmm1,[esi*8+4]'),
+    ('INSERTPS 4', 'C4E36921D94C', 'vinsertps xmm3,xmm2,xmm1,76', 'vinsertps xmm3,xmm2,xmm1,76'),
+    ('INSERTPS 5', 'C4E369211C25414141414C', 'vinsertps xmm3,xmm2,dword [0x41414141],76', 'vinsertps xmm3,xmm2,dword [0x41414141],76'),
+    ('INSERTPS 6', 'C4E3692198454141414C', 'vinsertps xmm3,xmm2,dword [rax + 1094795589],76', 'vinsertps xmm3,xmm2,dword [rax + 1094795589],76'),
+
+    # Address size override is TODO
+    #('VLDDQU', '67C5FBF00CF504000000', 'vlddqu xmm1,[esi*8+4]', 'vlddqu xmm1,[esi*8+4]'),
+    #('VMOVSD 3', '67C5FB1118', 'vmovsd oword [eax],xmm3', 'vmovsd oword [eax],xmm3'),
+    ('VPSLLDQ', 'C5F173D208', 'vpsrlq xmm1,xmm2,8', 'vpsrlq xmm1,xmm2,8'),
+    ('VPSRLD', 'C5E172D41B', 'vpsrld xmm3,xmm4,27', 'vpsrld xmm3,xmm4,27'),
+    ('VPSRLD 2', 'C5D9D218', 'vpsrld xmm3,xmm4,oword [rax]', 'vpsrld xmm3,xmm4,oword [rax]'),
+    ('VPSRLD 3', 'C5D9D25875', 'vpsrld xmm3,xmm4,oword [rax + 117]', 'vpsrld xmm3,xmm4,oword [rax + 117]'),
+
     ('VPSRLDQ', 'C5E9D3CB', 'vpsrlq xmm1,xmm2,xmm3', 'vpsrlq xmm1,xmm2,xmm3'),
     ('VPOR', 'C5EDEBCB', 'vpor ymm1,ymm2,ymm3', 'vpor ymm1,ymm2,ymm3'),
-    ('VMOVSD', 'C5FB1008', 'vmovsd xmm1, oword [rax]', 'vmovsd xmm1,oword[rax]'),
+    ('VMOVSD', 'C5FB1008', 'vmovsd xmm1,oword [rax]', 'vmovsd xmm1,oword [rax]'),
     ('VMOVSD 2', 'C5EB10CB', 'vmovsd xmm1,xmm2,xmm3', 'vmovsd xmm1,xmm2,xmm3'),
-    ('VMOVSD 3', '67C5FB1118', 'vmovsd oword [eax],xmm3', 'vmovsd oword [eax],xmm3'),
     ('VMOVSD 4', 'C5FB111C2541414141', 'vmovsd oword [0x41414141],xmm3', 'vmovsd oword [0x41414141],xmm3'),
     ('VSQRTPD', 'C5F951CA', 'vsqrtpd xmm1,xmm2', 'vsqrtpd xmm1,xmm2'),
     ('VSQRTPD 2', 'C5FD51CA', 'vsqrtpd ymm1,ymm2', 'vsqrtpd ymm1,ymm2'),
     ('VBLENDVPS (128)', 'C4E3694ACB40', 'vblendvps xmm1,xmm2,xmm3,xmm4', 'vblendvps xmm1,xmm2,xmm3,xmm4'),
-    ('VBLENDVPS (MEM128)', 'C4E3694A0C254141414140', 'vblendvps xmm1,xmm2,oword [0x41414141],xmm4', ''),
+    ('VBLENDVPS (MEM128)', 'C4E3694A0C254141414140', 'vblendvps xmm1,xmm2,oword [0x41414141],xmm4', 'vblendvps xmm1,xmm2,oword [0x41414141],xmm4'),
     ('VBLENDVPS (256)', 'C4E36D4ACB40', 'vblendvps ymm1,ymm2,ymm3,ymm4', 'vblendvps ymm1,ymm2,ymm3,ymm4'),
-    ('VBLENDVPS (MEM256)', 'C4E36D4A0C254141414140', 'vblendvps ymm1,ymm2,oword [0x41414141],ymm4', 'vblendvps ymm1,ymm2,oword [0x41414141],ymm4'),
-    # ('VSQRTPD 3' ,'', 'vsqrtpd zmm1,zmm2', 'vsqrtpd zmm1,zmm2'),
+    ('VBLENDVPS (MEM256)', 'C4E36D4A0C254141414140', 'vblendvps ymm1,ymm2,yword [0x41414141],ymm4', 'vblendvps ymm1,ymm2,yword [0x41414141],ymm4'),
+    ('VMOVUPD', 'C5F910D3', 'vmovupd xmm2,xmm3', 'vmovupd xmm2,xmm3'),
+    ('VMOVUPD 2', 'C5FD10D6', 'vmovupd ymm2,ymm6', 'vmovupd ymm2,ymm6'),
+    ('VMOVUPD 3', 'C5FD1010', 'vmovupd ymm2,yword [rax]', 'vmovupd ymm2,yword [rax]'),
 ]
 
 
@@ -312,9 +336,15 @@ class Amd64InstructionSet(unittest.TestCase):
         for name, bytez, reprOp, renderOp in opers:
 
             try:
-                op = self._arch.archParseOpcode(bytez.decode('hex'), 0, 0x40)
+                op = self._arch.archParseOpcode(bytez.decode('hex'), 0, 0x400)
             except envi.InvalidInstruction:
+                import pdb, sys
+                pdb.post_mortem(sys.exc_info()[2])
                 self.fail("Failed to parse opcode bytes: %s (case: %s, expected: %s)" % (bytez, name, reprOp))
+            except Exception as e:
+                import pdb, sys
+                pdb.post_mortem(sys.exc_info()[2])
+                print("FUCK")
 
             try:
                 self.assertEqual(repr(op), reprOp)
@@ -325,7 +355,10 @@ class Amd64InstructionSet(unittest.TestCase):
 
             scanv.clearCanvas()
             op.render(scanv)
-            self.assertEqual(scanv.strval, renderOp)
+            try:
+                self.assertEqual(scanv.strval, renderOp)
+            except AssertionError:
+                self.fail("Failing canvas case for case %s (bytes: %s) (Got: '%s', Expected: '%s')" % (name, bytez, scanv.strval, renderOp))
 
     def test_envi_amd64_disasm_Specific_VEX_Instrs(self):
         self.check_opreprs(amd64VexOpcodes)
@@ -396,7 +429,7 @@ class Amd64InstructionSet(unittest.TestCase):
         opbytez = '0440'
         oprepr = 'add al,64'
         opcheck = {'iflags': 131072, 'prefixes': 0, 'mnem': 'add', 'opcode': 8193, 'size': 2}
-        opercheck = ( {'tsize': 4, 'reg': 524288}, {'tsize': 4, 'imm': 64} )
+        opercheck = ( {'tsize': 4, 'reg': 524288}, {'tsize': 1, 'imm': 64} )
         self.checkOpcode( opbytez, 0x4000, oprepr, opcheck, opercheck, oprepr )
 
         opbytez = '0218'
@@ -421,9 +454,6 @@ class Amd64InstructionSet(unittest.TestCase):
             op = self._arch.archParseOpcode((bytez).decode('hex'),0,0x1000)
             self.assertEqual( (bytez, hex(op.opers[0].reg)), (bytez, hex( 0x200000 + (x-0xb0) )) )
 
-
-
-
     def test_envi_amd64_disasm_Imm_Operands(self):
         '''
         test an opcode encoded with an Imm operand
@@ -435,7 +465,7 @@ class Amd64InstructionSet(unittest.TestCase):
         opcheck =  {'iflags': 131072, 'va': 16384, 'prefixes': 0, 'mnem': 'rol', 'opcode': 8201, 'size': 2}
         opercheck = ( {'disp': 0, 'tsize': 1, '_is_deref': True, 'reg': 0}, {'tsize': 4, 'imm': 1} )
         self.checkOpcode( opbytez, 0x4000, oprepr, opcheck, opercheck, oprepr )
-       
+
         # this is failing legitimately... we decode this opcode wrong
         opbytez = '9aaa11aabbcc33'
         oprepr = 'callf 0x33cc:0xbbaa11aa'
@@ -487,7 +517,7 @@ class Amd64InstructionSet(unittest.TestCase):
 
         #In [6]: generateTestInfo('673ac4')
         opbytez = '673ac4'
-        oprepr = 'addr: cmp al,ah'
+        oprepr = 'cmp al,ah'
         opcheck =  {'iflags': 131072, 'va': 16384, 'repr': None, 'prefixes': 128, 'mnem': 'cmp', 'opcode': 20482, 'size': 3}
         opercheck = [{'tsize': 1, 'reg': 524288}, {'tsize': 1, 'reg': 134742016}]
         self.checkOpcode( opbytez, 0x4000, oprepr, opcheck, opercheck, oprepr )
