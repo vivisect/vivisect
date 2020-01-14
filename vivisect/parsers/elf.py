@@ -149,6 +149,7 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
     vw.addNoReturnApi("*._setjmp")
     vw.addNoReturnApi("*.j__ZSt9terminatev")
     vw.addNoReturnApi("*.std::terminate(void)")
+    vw.addNoReturnApi("*.__assert_fail")
 
     # for VivWorkspace, MSB==1, LSB==0... which is the same as True/False
     vw.setEndian(elf.getEndian())
