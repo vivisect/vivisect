@@ -178,7 +178,6 @@ class Amd64Disasm(e_i386.i386Disasm):
         # 64-bit only
         self._dis_amethods[opcode86.ADDRMETH_B >> 16] = self.ameth_b
         self._dis_amethods[opcode86.ADDRMETH_H >> 16] = self.ameth_h
-        self._dis_amethods[opcode86.ADDRMETH_L >> 16] = self.ameth_l
         self._dis_amethods[opcode86.ADDRMETH_E >> 16] = self.ameth_e
         self._dis_amethods[opcode86.ADDRMETH_IRU>>16] = self.ameth_iru
         self._dis_amethods[opcode86.ADDRMETH_IRL>>16] = self.ameth_irl
