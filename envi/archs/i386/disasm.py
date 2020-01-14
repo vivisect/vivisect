@@ -1039,9 +1039,6 @@ class i386Disasm:
         imm = e_bits.parsebytes(bytez, offset, tsize, sign=True)
         return (tsize, i386PcRelOper(imm, tsize))
 
-    def ameth_l(self, bytez, offset, tsize, prefixes, operflags):
-        return 0, 0
-
     def ameth_o(self, bytez, offset, tsize, prefixes, operflags):
         # NOTE: displacement *stays* 32 bit even with REX
         # (but 16 bit should probably be supported)

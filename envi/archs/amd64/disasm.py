@@ -571,12 +571,6 @@ class Amd64Disasm(e_i386.i386Disasm):
         oper = i386RegOper(offset + vvvv, tsize)
         return osize, oper
 
-    def ameth_l(self, bytez, offset, tsize, prefixes, operflags):
-        mod, reg, rm = self.parse_modrm(ord(bytez[offset]))
-        import pdb
-        pdb.set_trace()
-        return osize, oper
-
     def ameth_c(self, bytes, offset, tsize, prefixes, operflags):
         osize, oper = e_i386.i386Disasm.ameth_c(self, bytes, offset, tsize, prefixes, operflags)
         if prefixes & PREFIX_REX_R:
