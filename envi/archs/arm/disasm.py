@@ -18,7 +18,7 @@ from envi.bits import binary
 from envi.archs.arm.const import *
 from envi.archs.arm.regs import *
 
-# FIXME: TODO
+# FIXME: TODO: ARM Symboliks (enough to successfully handle most switchcases)
 # FIXME:   codeflow currently misses some switchcases
 # FIXME:   codeflow needs to identify the following pattern as a call with fallthrough
 #          (currently identifying the xref and making the fallthrough into a function):
@@ -4070,6 +4070,17 @@ class ArmOperand(envi.Operand):
     def getOperAddr(self, op, emu=None):
         return None
 
+    def getOperObj(self, op, emu=None):
+        logger.info("ArmOperand: subclass must implement getOperObj (%r)", self.__class__)
+        return None
+
+    def getOperAddrObj(self, op, xlater):
+        logger.info("ArmOperand: subclass must implement getOperAddrObj, (%r)", self.__class__)
+        return None, None
+
+
+
+
 class ArmRegOper(ArmOperand):
     ''' register operand.  see "addressing mode 1 - data processing operands - register" '''
 
@@ -4160,6 +4171,20 @@ class ArmRegScalarOper(ArmRegOper):
 
         raise Exception("Scalar Accessors Not Implemented")
         emu.setRegister(self.reg, val)
+
+    def getOperAddr(self, op, emu=None):
+        return None
+
+    #def getOperAddrObj(self, op, xlater):
+        #reg = Var(self._reg_ctx.getRegisterName(oper.reg), oper.tsize)
+        #if oper.index == 0:
+            #base = reg
+        #elif oper.index > 0:
+            #base = o_add(reg, Const(oper.index, self._psize), self._psize)
+        #else: # oper.index < 0:
+            #base = o_sub(reg, Const(abs(oper.index), self._psize), self._psize)
+
+        #return base, None
 
     def render(self, mcanv, op, idx):
         rname = rctx.getRegisterName(self.reg)
@@ -4462,6 +4487,41 @@ class ArmScaledOffsetOper(ArmOperand):
 
         return emu.getRegister(self.base_reg)
 
+    def getOperAddrObj(self, op, xlater):
+        secondary = None
+
+        base_reg = Var(xlater.vw._reg_ctx.getRegisterName(oper.base_reg), oper.tsize)
+        offset_reg = Var(xlater.vw._reg_ctx.getRegisterName(oper.offset_reg), oper.tsize)
+
+        pom = (self.pubwl>>3) & 1
+
+        #addval = shifters[self.shtype]( emu.getRegister( self.offset_reg ), self.shval )
+        if self.shval:
+            addval = shifters[self.shtype]( xlater.getRegObj(self.offset_reg), Const(self.shval, self.tsize))
+
+        # in a symboliks world, don't want to save as much processing time on the front end, 
+        # but simplify the output.  unfortunately, that means there are less tricks.
+        if pom:
+            addr = base_reg + addval
+        else:
+            addr = base_reg - addval
+
+
+        # if pre-indexed, we incremement/decrement the register before determining the OperAddr
+        if (self.pubwl & 0x12 == 0x12):
+            # pre-indexed...
+            if update: 
+                secondary = (self.base_reg, addr)
+            return addr, secondary
+
+        elif (self.pubwl & 0x12 == 0):
+            # post-indexed... still write it but return the original value
+            secondary = (base_reg, addr)
+            return base_reg, secondary
+
+        # non-indexed...  just return the addr, update nothing
+        return addr, None
+
     def render(self, mcanv, op, idx):
         pom = ('-','')[(self.pubwl>>3)&1]
         idxing = self.pubwl & 0x12
@@ -4572,6 +4632,35 @@ class ArmRegOffsetOper(ArmOperand):
             return base
 
         return addr
+
+    def getOperAddrObj(self, op, xlater):
+        secondary = None
+
+        base_reg = Var(self._reg_ctx.getRegisterName(self.base_reg), self.tsize)
+        #base_reg2 = xlater.getRegObj(oper.base_reg)
+        #print base_reg == base_reg2, base_reg, base_reg2
+        offset_reg = Var(self._reg_ctx.getRegisterName(self.offset_reg), self.tsize)
+        #offset_reg2 = xlater.getRegObj(oper.offset_reg)
+        #print offset_reg == offset_reg2, offset_reg, offset_reg2
+
+        pom = (self.pubwl>>3) & 1
+
+        # in a symboliks world, don't want to save as much processing time on the front end, 
+        # but simplify the output.  unfortunately, that means there are less tricks.
+        if pom:
+            addr = base_reg + offset_reg
+        else:
+            addr = base_reg - offset_reg
+
+
+        # if pre-indexed, we incremement/decrement the register before determining the OperAddr
+        if (self.pubwl & 0x2 or not self.pubwl & 0x10):  # write-back if (P==0 || W==1)
+            secondary = (self.base_reg, addr)
+
+        if (self.pubwl & 0x10 == 0): # not indexed
+            return base, None
+
+        return addr, secondary
 
     def render(self, mcanv, op, idx):
         pom = ('-','')[(self.pubwl>>3)&1]
@@ -4694,6 +4783,29 @@ class ArmImmOffsetOper(ArmOperand):
             return base
 
         return addr
+
+    def getOperAddrObj(self, op, xlater):
+        if self.base_reg == REG_PC:
+            base = Const(self.va, self.psize)
+        else:
+            base = Var(xlater.vw._reg_ctx.getRegisterName(self.base_reg), self.psize)
+
+        pubwl = self.pubwl >> 3
+        u = pubwl & 1
+        if u:
+            addr = (base + self.offset) & e_bits.u_maxes[self.psize]
+        else:
+            addr = (base - self.offset) & e_bits.u_maxes[self.psize]
+
+
+        if (self.pubwl & 0x2 or not self.pubwl & 0x10):  # write-back if (P==0 || W==1)
+            secondary = ( self.base_reg, addr)
+
+        if (self.pubwl & 0x10 == 0): # not indexed
+            return base, secondary
+
+        return addr, secondary
+
 
     def render(self, mcanv, op, idx):
         u = (self.pubwl>>3)&1

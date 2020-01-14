@@ -74,11 +74,11 @@ class A32SymbolikTranslator(vsym_trans.SymbolikTranslator):
     '''
     def __init__(self, vw):
         vsym_trans.SymbolikTranslator.__init__(self, vw)
-        self._arch = self.__arch__()
+        self._arch = vw.arch
         self._psize = self._arch.getPointerSize()
         self._reg_ctx = self._arch.archGetRegCtx()
 
-    ### move upstream to SymbolikTranslator
+    ### move upstream to SymbolikTranslator?
     def getRegObj(self, regidx):
         ridx = regidx & 0xffff
         rname = self._reg_ctx.getRegisterName(ridx)
@@ -102,7 +102,7 @@ class A32SymbolikTranslator(vsym_trans.SymbolikTranslator):
 
         return val
 
-    ### move upstream to SymbolikTranslator
+    ### move upstream to SymbolikTranslator?
     def setRegObj(self, regidx, obj):
         ridx = regidx & 0xffff
         rname = self._reg_ctx.getRegisterName(ridx)
@@ -129,52 +129,26 @@ class A32SymbolikTranslator(vsym_trans.SymbolikTranslator):
         self.effSetVariable(rname, obj)
 
     def getOperAddrObj(self, op, idx):
+        '''
+        Returns a Tuple!
+
+        (symOperAddrObj,  (reg, newupdate))
+
+        The second part of the tuple is because sometimes ARM updates a register *after*
+        the address is used.  This second component should be None if nothing needs to 
+        be done for updates.
+
+        This allows the caller to decide whether updates need to be done... and apply 
+        the effects at the appropriate time in the event stream, but leaving the operand
+        responsible for the calculation/etc...
+        '''
         oper = op.opers[idx]
-        seg = getSegmentSymbol(op)
+        return oper.getOperAddrObj(op, self)
 
-        if isinstance(oper, e_arm.ArmScaledOffsetOper):
-            base_reg = Var(self._reg_ctx.getRegisterName(oper.base_reg), oper.tsize)
-            offset_reg = Var(self._reg_ctx.getRegisterName(oper.offset_reg), oper.tsize)
 
-            pom = (-1, 1)[(self.pubwl>>3)&1]
-            addval = shifters[self.shtype]( emu.getRegister( self.offset_reg ), self.shval )
-            # if U==0, subtract
-            addval *= pom
-
-            addr = base_reg + addval
-
-            # if pre-indexed, we incremement/decrement the register before determining the OperAddr
-            if (self.pubwl & 0x12 == 0x12):
-                # pre-indexed...
-                if update: emu.setRegister( self.base_reg, addr )
-                self.effSetVariable(base_reg, addr)
-                return addr
-
-            elif (self.pubwl & 0x12 == 0):
-                # post-indexed... still write it but return the original value
-                after_effects = (
-                         SetVariable(op.va, base_reg, addr),
-                        )
-                return base_reg, after_effects
-
-            # non-indexed...  just return the addr, update nothing
-            return addr, None
-
+        """
         ############################################## WORK IN PROGRESS ###############################
         elif isinstance(oper, e_arm.i386RegMemOper):
-            reg = Var(self._reg_ctx.getRegisterName(oper.reg), oper.tsize)
-            if oper.disp == 0:
-                base = reg
-            if oper.disp > 0:
-                base = o_add(reg, Const(oper.disp, self._psize), self._psize)
-            if oper.disp < 0:
-                base = o_sub(reg, Const(abs(oper.disp), self._psize), self._psize)
-
-            if seg:
-                return o_add(seg, base, self._psize)
-
-            return base
-
         elif isinstance(oper, e_i386.i386SibOper):
 
             base = None
@@ -1018,3 +992,4 @@ class i386SymFuncEmu(vsym_analysis.SymbolikFunctionEmulator):
 class i386SymbolikAnalysisContext(vsym_analysis.SymbolikAnalysisContext):
     __xlator__ = i386SymbolikTranslator
     __emu__ = i386SymFuncEmu
+"""
