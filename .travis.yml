@@ -10,7 +10,7 @@ dist: bionic
 language: python
 
 python:
-    - "2.7_with_system_site_packages"
+    - "2.7"
 
 install:
     - "travis_retry sudo apt-get update"
