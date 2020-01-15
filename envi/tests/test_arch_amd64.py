@@ -343,16 +343,10 @@ class Amd64InstructionSet(unittest.TestCase):
                 import pdb, sys
                 pdb.post_mortem(sys.exc_info()[2])
                 self.fail("Failed to parse opcode bytes: %s (case: %s, expected: %s)" % (bytez, name, reprOp))
-            except Exception as e:
-                import pdb, sys
-                pdb.post_mortem(sys.exc_info()[2])
-                print("FUCK")
 
             try:
                 self.assertEqual(repr(op), reprOp)
             except AssertionError:
-                import pdb
-                pdb.set_trace()
                 self.fail("Failing match for case %s (bytes: %s) (Got: '%s', Expected: '%s')" % (name, bytez, repr(op), reprOp))
 
             scanv.clearCanvas()

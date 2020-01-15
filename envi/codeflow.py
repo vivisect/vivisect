@@ -276,13 +276,13 @@ class CodeFlowContext(object):
         self._funcs[va] = True
         calls_from = self.addCodeFlow(va, arch=arch)
         self._fcalls[va] = calls_from
-        
+
         # Finally, notify the callback of a new function
         self._cb_function(va, {'CallsFrom':calls_from})
 
     def flushFunction(self, fva):
         '''
-        Codeflow context maintains a list of identified functions, to avoid 
+        Codeflow context maintains a list of identified functions, to avoid
         analyzing the same function twice.  If a function is misidentified
         flushFunction() is used to clear that function from the tracked _funcs
         '''
@@ -290,7 +290,7 @@ class CodeFlowContext(object):
 
     def addDynamicBranchHandler(self, cb):
         '''
-        Add a callback handler for dynamic branches the code-flow resolver 
+        Add a callback handler for dynamic branches the code-flow resolver
         doesn't know what to do with
         '''
         if cb in self._dynamic_branch_handlers:
