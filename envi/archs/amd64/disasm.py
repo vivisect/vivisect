@@ -631,6 +631,7 @@ class Amd64Disasm(e_i386.i386Disasm):
 
     def ameth_e(self, bytes, offset, tsize, prefixes, operflags):
         regbase = 0
+        # TODO: Does this impact memory as well?
         if operflags & OP_REG32AUTO:
             tsize = 4
         osize, oper = self.extended_parse_modrm(bytes, offset, tsize, prefixes=prefixes, regbase=regbase)
