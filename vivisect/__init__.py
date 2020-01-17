@@ -2189,14 +2189,14 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
         makeuniq allows Vivisect to append some number to make the name unique.
         This behavior allows for colliding names (eg. different versions of a function)
-        to coexist in the same workspace.  
+        to coexist in the same workspace.
 
         default behavior is to fail on duplicate (False).
         """
         if filelocal:
             segtup = self.getSegment(va)
             if segtup == None:
-                print "Failed to find file for 0x%.8x (%s) (and filelocal == True!)"  % (va, name)
+                self.vprint("Failed to find file for 0x%.8x (%s) (and filelocal == True!)"  % (va, name))
             if segtup != None:
                 fname = segtup[SEG_FNAME]
                 if fname != None:
