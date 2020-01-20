@@ -28,8 +28,8 @@ ADDRMETH_W = 0x00150000    # MODRM defines XMM register or memory
 ADDRMETH_X = 0x00160000    # Memory addressed by DS:rSI
 ADDRMETH_Y = 0x00170000    # Memory addressd by ES:rDI
 ADDRMETH_Z = 0x00180000    # R/M field of MODRM defines XMM register, reg is used as an ext
-ADDRMETH_IRU = 0x00190000   # An immediate value follows, but bits[7:4] signifies a register
-ADDRMETH_IRL = 0x001A0000   # An immediate value follows, but bits[3:0] signifies a register
+ADDRMETH_IRU = 0x00190000   # An immediate value follows, but bits[7:4] signifies an xmm register
+ADDRMETH_IRL = 0x001A0000   # An immediate value follows, but bits[3:0] signifies an xmm register
 ADDRMETH_LAST = ADDRMETH_IRL
 
 ADDRMETH_VEXSKIP = 0x00800000  # This operand should be skipped if we're not in VEX mode
@@ -211,9 +211,10 @@ INS_CRYPT   = INS_OTHER | 0x4  # AES-NI instruction support
 OP_R = 0x001
 OP_W = 0x002
 OP_X = 0x004
-OP_64AUTO = 0x008 # operand is in 64bit mode with amd64!
-OP_REG32AUTO = 0x010 # force only *register* to be 32 bit.
-OP_MEM32AUTO = 0x020 # force only *register* to be 32 bit.
+OP_64AUTO = 0x008  # operand is in 64bit mode with amd64!
+OP_REG32AUTO = 0x010  # force only *register* to be 32 bit.
+OP_MEM32AUTO = 0x020  # force only *memory* to be 32 bit.
+OP_NOVEXL = 0x030  # don't apply VEX.L here (even though it's set). TLDR: always 128/xmm reg
 
 OP_UNK = 0x000
 OP_REG = 0x100
@@ -241,9 +242,6 @@ cpu_PENTIUM2 = 0x00009000
 cpu_AMD64 = 0x0000a000
 cpu_AESNI = 0x0000b000
 
-#import envi.archs.i386.regs as e_i386_regs
-# Relative import priority...
-
 #eventually, change this for your own codes
 #ADDEXP_SCALE_OFFSET= 0 
 #ADDEXP_INDEX_OFFSET= 8
@@ -254,4 +252,3 @@ cpu_AESNI = 0x0000b000
 ADDRMETH_MASK = 0x00FF0000
 OPTYPE_MASK = 0xFF000000
 OPFLAGS_MASK = 0x0000FFFF
-

@@ -11,7 +11,7 @@ from envi.archs.i386.disasm import iflag_lookup, operand_range, priv_lookup, \
         i386Opcode, i386ImmOper, i386RegOper, i386ImmMemOper, i386RegMemOper, \
         i386SibOper, PREFIX_REPNZ, PREFIX_REP, PREFIX_OP_SIZE, PREFIX_ADDR_SIZE
 from envi.archs.amd64.regs import *
-from envi.archs.i386.opconst import OP_REG32AUTO, OP_MEM32AUTO, INS_VEXREQ
+from envi.archs.i386.opconst import OP_REG32AUTO, OP_MEM32AUTO, INS_VEXREQ, OP_NOVEXL
 all_tables = opcode86.tables86
 
 # Pre generate these for fast lookup. Because our REX prefixes have the same relative
@@ -254,14 +254,15 @@ class Amd64Disasm(e_i386.i386Disasm):
                 last_pref = obyte
             else:
                 prefixes |= p
-
             if p & PREFIX_VEX:
                 isvex = True
                 if p == PREFIX_VEX2:
                     offset += 1
                     imm1 = ord(bytez[offset])
-                    if imm1 & 0xc0 != 0xc0:     # shouldn't in 64-bit mode, but in 32-bit, this keeps LES from colliding
-                        break
+                    # shouldn't in 64-bit mode, but in 32-bit, this keeps LES from colliding
+                    # TODO: So we're always in 64 bit here. This will need to be here once we unify 32/64 decoding
+                    #if imm1 & 0xc0 != 0xc0:
+                        #break
                     inv1 = imm1 ^ 0xff
 
                     vex_l = (0, PREFIX_VEX_L)[(imm1 & 4) >> 2]
@@ -275,9 +276,10 @@ class Amd64Disasm(e_i386.i386Disasm):
 
                 elif p == PREFIX_VEX3:
                     imm1 = ord(bytez[offset+1])
-                    if imm1 & 0xc0 != 0xc0:     # shouldn't in 64-bit mode, but in 32-bit, this keeps LDS from colliding
-                        break
                     offset += 2
+                    # TODO: So we're always in 64 bit here. This will need to be here once we unify 32/64 decoding
+                    #if imm1 & 0xc0 != 0xc0:
+                        #break
                     imm2 = ord(bytez[offset])
                     inv1 = imm1 ^ 0xff
                     inv2 = imm2 ^ 0xff
@@ -567,7 +569,7 @@ class Amd64Disasm(e_i386.i386Disasm):
         if vvvv == 0x0:
             return (0, None)
         offset = self.ROFFSETSIMD
-        if not (prefixes & PREFIX_VEX_L):
+        if not (prefixes & PREFIX_VEX_L) or operflags & OP_NOVEXL:
             vvvv |= e_i386.RMETA_LOW128
 
         oper = i386RegOper(offset + vvvv, tsize)
@@ -589,7 +591,7 @@ class Amd64Disasm(e_i386.i386Disasm):
         osize, oper = e_i386.i386Disasm.ameth_v(self, bytes, offset, tsize, prefixes, operflags)
 
         # FIXME: YMM->XMM (this may move into i386 version when VEX is made available there)
-        if not (prefixes & PREFIX_VEX_L):
+        if not (prefixes & PREFIX_VEX_L) or operflags & OP_NOVEXL:
             oper.reg |= e_i386.RMETA_LOW128
 
         if prefixes & PREFIX_REX_R:
@@ -598,8 +600,13 @@ class Amd64Disasm(e_i386.i386Disasm):
 
     def ameth_z(self, bytes, offset, tsize, prefixes, operflags):
         osize, oper = e_i386.i386Disasm.ameth_z(self, bytes, offset, tsize, prefixes, operflags)
-        if not (prefixes & PREFIX_VEX_L):
+
+        if not (prefixes & PREFIX_VEX_L) or operflags & OP_NOVEXL:
             oper.reg |= e_i386.RMETA_LOW128
+
+        if prefixes & PREFIX_REX_B:
+            oper.reg += REX_BUMP
+
         return osize, oper
 
     # NOTE: The ones below are the only ones to which REX.X or REX.B can apply (besides ameth_0)
@@ -645,14 +652,14 @@ class Amd64Disasm(e_i386.i386Disasm):
         mod, reg, rm = self.parse_modrm(ord(bytez[offset]))
         if mod == 3:
             vvvv = self.ROFFSETSIMD
-            if not (prefixes & PREFIX_VEX_L):
+            if not (prefixes & PREFIX_VEX_L) or operflags & OP_NOVEXL:
                 vvvv |= e_i386.RMETA_LOW128
                 tsize = 16
 
             osize, oper = (1, i386RegOper(rm + vvvv, tsize))
         else:
             osize, oper = self.extended_parse_modrm(bytez, offset, tsize, prefixes=prefixes)
-            if oper.tsize == 32 and not (prefixes & PREFIX_VEX_L):
+            if (oper.tsize == 32 and not (prefixes & PREFIX_VEX_L)) or operflags & OP_NOVEXL:
                 oper.tsize = 16
 
         self._dis_rex_exmodrm(oper, prefixes, operflags)
@@ -662,7 +669,7 @@ class Amd64Disasm(e_i386.i386Disasm):
         reg = self.ROFFSETSIMD
         imm = e_bits.parsebytes(bytez, offset, 1, sign=False)
         idx = (imm & 0xF0) >> 4
-        if not (prefixes & PREFIX_VEX_L):
+        if not (prefixes & PREFIX_VEX_L) or operflags & OP_NOVEXL:
             reg |= e_i386.RMETA_LOW128
         return (1, i386RegOper(reg + idx, tsize))
 
@@ -670,7 +677,7 @@ class Amd64Disasm(e_i386.i386Disasm):
         reg = self.ROFFSETSIMD
         imm = e_bits.parsebytes(bytez, offset, 1, sign=False)
         idx = (imm & 0x0F) >> 4
-        if not (prefixes & PREFIX_VEX_L):
+        if not (prefixes & PREFIX_VEX_L) or operflags & OP_NOVEXL:
             reg |= e_i386.RMETA_LOW128
         return (1, i386RegOper(reg + idx, tsize))
 

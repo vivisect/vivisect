@@ -99,7 +99,15 @@ amd64MultiByteOpcodes = [
     ('CVTTPS2PI', '0f2caaaaaaaa41', 'cvttps2pi mm5,oword [rdx + 1101703850]', 'cvttps2pi mm5,oword [rdx + 1101703850]'),
     ('CVTTSS2SI', 'f30f2caaaaaaaa41', 'cvttss2si ebp,dword [rdx + 1101703850]', 'cvttss2si ebp,dword [rdx + 1101703850]'),
     ('CVTTPD2PI', '660f2caaaaaaaa41', 'cvttpd2pi mm5,oword [rdx + 1101703850]', 'cvttpd2pi mm5,oword [rdx + 1101703850]'),
-    ('CVTTSD2SI', 'f20f2caaaaaaaa41', 'cvttsd2si ebp,oword [rdx + 1101703850]', 'cvttsd2si ebp,oword [rdx + 1101703850]'),
+    ('CVTTSD2SI', 'f20f2caaaaaaaa41', 'cvttsd2si ebp,qword [rdx + 1101703850]', 'cvttsd2si ebp,qword [rdx + 1101703850]'),
+    ('CVTTSD2SI 2', 'f20f2cc1', 'cvttsd2si eax,xmm1', 'cvttsd2si eax,xmm1'),
+    ('CVTTSD2SI 3', 'f2480f2cde', 'cvttsd2si rbx,xmm6', 'cvttsd2si rbx,xmm6'),
+    ('CVTTSD2SI 4', 'f2490f2cd9', 'cvttsd2si rbx,xmm9', 'cvttsd2si rbx,xmm9'),
+    ('CVTSD2SI', 'f20f2dcb', 'cvtsd2si ecx,xmm3', 'cvtsd2si ecx,xmm3'),
+    ('CVTSD2SI 2', 'f24d0f2de1', 'cvtsd2si r12,xmm9', 'cvtsd2si r12,xmm9'),
+    ('CVTSD2SI 3', 'f2480f2d142541414141', 'cvtsd2si rdx,qword [0x41414141]', 'cvtsd2si rdx,qword [0x41414141]'),
+    ('CVTSD2SI 4', 'f2480f2d09', 'cvtsd2si rcx,qword [rcx]', 'cvtsd2si rcx,qword [rcx]'),
+    ('CVTSD2SI 5', 'f2480f2d0cd581000000', 'cvtsd2si rcx,qword [0x00000081 + rdx * 8]', 'cvtsd2si rcx,qword [0x00000081 + rdx * 8]'),
     ('ADDPS', '0f58aa4141414141', 'addps xmm5,oword [rdx + 1094795585]', 'addps xmm5,oword [rdx + 1094795585]'),
     ('MOVAPS', '0f28aa41414141', 'movaps xmm5,oword [rdx + 1094795585]', 'movaps xmm5,oword [rdx + 1094795585]'),
     ('MOVAPD', '660f28aa41414141', 'movapd xmm5,oword [rdx + 1094795585]', 'movapd xmm5,oword [rdx + 1094795585]'),
@@ -222,7 +230,6 @@ amd64MultiByteOpcodes = [
     ('HADDPS', 'F20F7CCE', 'haddps xmm1,xmm6', 'haddps xmm1,xmm6'),
     ('LDDQU', 'F20FF01C2541414141', 'lddqu xmm3,oword [0x41414141]', 'lddqu xmm3,oword [0x41414141]'),
 
-    # override tests
     ('BSF', '480FBCC2', 'bsf rax,rdx', 'bsf rax,rdx'),
     ('BSF 2', '0FBC042541414141', 'bsf eax,dword [0x41414141]', 'bsf eax,dword [0x41414141]'),
     # AES-NI feature set
@@ -318,6 +325,29 @@ amd64MultiByteOpcodes = [
     ('CVTPD2PI 2 (NOREX)', '660f2d38', 'cvtpd2pi mm7,oword [rax]', 'cvtpd2pi mm7,oword [rax]'),
     ('CVTPD2PI 3', '660f2d3c2541414141', 'cvtpd2pi mm7,oword [0x41414141]', 'cvtpd2pi mm7,oword [0x41414141]'),
     ('CVTPD2PI 4', '660f2d3c8561000000', 'cvtpd2pi mm7,oword [0x00000061 + rax * 4]', 'cvtpd2pi mm7,oword [0x00000061 + rax * 4]'),
+    ('SQRTSD', 'f20f51cc', 'sqrtsd xmm1,xmm4', 'sqrtsd xmm1,xmm4'),
+    ('SQRTSD 2', 'f20f5110', 'sqrtsd xmm2,qword [rax]', 'sqrtsd xmm2,qword [rax]'),
+    ('SQRTSD 3', 'f2440f511cd530000000', 'sqrtsd xmm11,qword [0x00000030 + rdx * 8]', 'sqrtsd xmm11,qword [0x00000030 + rdx * 8]'),
+    ('MULSD', 'f20f59dc', 'mulsd xmm3,xmm4', 'mulsd xmm3,xmm4'),
+    ('MULSD 2', 'f2440f5920', 'mulsd xmm12,qword [rax]', 'mulsd xmm12,qword [rax]'),
+    ('MULSD 3', 'f2410f594c2420', 'mulsd xmm1,qword [r12 + 32]', 'mulsd xmm1,qword [r12 + 32]'),
+    ('LDDQU', 'f2440ff0142541414141', 'lddqu xmm10,oword [0x41414141]', 'lddqu xmm10,oword [0x41414141]'),
+    ('LDDQU 1', 'f20ff0348531000000', 'lddqu xmm6,oword [0x00000031 + rax * 4]', 'lddqu xmm6,oword [0x00000031 + rax * 4]'),
+    ('MOVDQ2Q', 'f20fd6d9', 'movdq2q mm3,xmm1', 'movdq2q mm3,xmm1'),
+    # XXX: Here's a fun tidbit. In the intel docs for this instruction, it says to use REX.B
+    # to index into the higher
+    # xmm{8,15} registers. But the only xmm register in this are specifcally indexed by the
+    # r/m portion of the ModRM byte.
+    ('MOVDQ2Q 2', 'f2410fd6db', 'movdq2q mm3,xmm11', 'movdq2q mm3,xmm11'),
+    ('MOVDQ2Q 2', 'f2410fd6fc', 'movdq2q mm7,xmm12', 'movdq2q mm7,xmm12'),
+    ('ADDSUBPS', 'f20fd0d3', 'addsubps xmm2,xmm3', 'addsubps xmm2,xmm3'),
+    ('ADDSUBPS 2', 'f2450fd0d3', 'addsubps xmm10,xmm11', 'addsubps xmm10,xmm11'),
+    ('ADDSUBPS 3', 'f2440fd009', 'addsubps xmm9,oword [rcx]', 'addsubps xmm9,oword [rcx]'),
+    ('PSHUFLW', 'f2410f70ca13', 'pshuflw xmm1,xmm10,19', 'pshuflw xmm1,xmm10,19'),
+    ('PSHUFLW 2', 'f20f708b282300001b', 'pshuflw xmm1,oword [rbx + 9000],27', 'pshuflw xmm1,oword [rbx + 9000],27'),
+    ('CVTPD2DQ', 'f2410fe6d1', 'cvtpd2dq xmm2,xmm9', 'cvtpd2dq xmm2,xmm9'),
+    ('CVTPD2DQ 2', 'f2440fe6791d', 'cvtpd2dq xmm15,oword [rcx + 29]', 'cvtpd2dq xmm15,oword [rcx + 29]'),
+    ('CVTPD2DQ 3', 'f2440fe6342541414141', 'cvtpd2dq xmm14,oword [0x41414141]', 'cvtpd2dq xmm14,oword [0x41414141]'),
 ]
 
 amd64VexOpcodes = [
@@ -389,6 +419,16 @@ amd64VexOpcodes = [
     ('VUNPCKLPD 2', 'c5dd14d6', 'vunpcklpd ymm2,ymm4,ymm6', 'vunpcklpd ymm2,ymm4,ymm6'),
     ('VUNPCKLPD 3', 'c5d914142541414141', 'vunpcklpd xmm2,xmm4,oword [0x41414141]', 'vunpcklpd xmm2,xmm4,oword [0x41414141]'),
     ('VUNPCKLPD 4', 'c5dd14142541414141', 'vunpcklpd ymm2,ymm4,yword [0x41414141]', 'vunpcklpd ymm2,ymm4,yword [0x41414141]'),
+    ('VLDDQU', 'c4c17bf01424', 'vlddqu xmm2,oword [r12]', 'vlddqu xmm2,oword [r12]'),
+    ('VLDDQU', 'c4c17ff01424', 'vlddqu ymm2,yword [r12]', 'vlddqu ymm2,yword [r12]'),
+    ('VPSHUFLW', 'c5fb70ca61', 'vpshuflw xmm1,xmm2,97', 'vpshuflw xmm1,xmm2,97'),
+    ('VPSHUFLW 2', 'c5ff70ca11', 'vpshuflw ymm1,ymm2,17', 'vpshuflw ymm1,ymm2,17'),
+    ('VPSHUFLW 3', 'c4417f70d411', 'vpshuflw ymm10,ymm12,17', 'vpshuflw ymm10,ymm12,17'),
+    ('VPSHUFLW 4', 'c57f701040', 'vpshuflw ymm10,yword [rax],64', 'vpshuflw ymm10,yword [rax],64'),
+    ('VCVTPD2DQ', 'c57be6e9', 'vcvtpd2dq xmm13,xmm1', 'vcvtpd2dq xmm13,xmm1'),
+    ('VCVTPD2DQ 2', 'c4417be62b', 'vcvtpd2dq xmm13,oword [r11]', 'vcvtpd2dq xmm13,oword [r11]'),
+    ('VCVTPD2DQ 3', 'c57fe6e9', 'vcvtpd2dq xmm13,ymm1', 'vcvtpd2dq xmm13,ymm1'),
+    ('VCVTPD2DQ 4', 'c4c17fe60a', 'vcvtpd2dq xmm1,yword [r10]', 'vcvtpd2dq xmm1,yword [r10]'),
 ]
 
 
