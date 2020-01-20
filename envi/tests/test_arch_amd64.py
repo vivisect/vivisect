@@ -85,6 +85,7 @@ amd64MultiByteOpcodes = [
     #('TEST', '67F70078563412', 'test dword [eax], 0x12345678', 'test dword [eax], 0x12345678'),
     #('HSUBPS 4', '67F20F7D12', 'hsubps xmm2,oword [edx]', 'hsubps xmm2,oword [edx]'),
     #('CVTSI2SS 3', '67f3440f2a02', 'cvtsi2ss xmm8,[edx]', 'cvtsi2ss xmm8,[edx]'),
+    #('RCPSS 3', '67f3440f531a', 'rcpss xmm11,dword [edx]', 'rcpss xmm11,dword [edx]'),
 
     ('INSERTPS', '660F3A21CB59', 'insertps xmm1,xmm3,89', 'insertps xmm1,xmm3,89'),
     ('INSERTPS 2', '660F3A21500449', 'insertps xmm2,dword [rax + 4],73', 'insertps xmm2,dword [rax + 4],73'),
@@ -96,7 +97,7 @@ amd64MultiByteOpcodes = [
     ('PUSH', '6653', 'push bx', 'push bx'),
 
     ('CVTTPS2PI', '0f2caaaaaaaa41', 'cvttps2pi mm5,oword [rdx + 1101703850]', 'cvttps2pi mm5,oword [rdx + 1101703850]'),
-    ('CVTTSS2SI', 'f30f2caaaaaaaa41', 'cvttss2si ebp,oword [rdx + 1101703850]', 'cvttss2si ebp,oword [rdx + 1101703850]'),
+    ('CVTTSS2SI', 'f30f2caaaaaaaa41', 'cvttss2si ebp,dword [rdx + 1101703850]', 'cvttss2si ebp,dword [rdx + 1101703850]'),
     ('CVTTPD2PI', '660f2caaaaaaaa41', 'cvttpd2pi mm5,oword [rdx + 1101703850]', 'cvttpd2pi mm5,oword [rdx + 1101703850]'),
     ('CVTTSD2SI', 'f20f2caaaaaaaa41', 'cvttsd2si ebp,oword [rdx + 1101703850]', 'cvttsd2si ebp,oword [rdx + 1101703850]'),
     ('ADDPS', '0f58aa4141414141', 'addps xmm5,oword [rdx + 1094795585]', 'addps xmm5,oword [rdx + 1094795585]'),
@@ -105,7 +106,7 @@ amd64MultiByteOpcodes = [
     ('PMULLW (66)', '660faa41414141', 'rsm ', 'rsm '),
     ('CMPXCH8B', '0fc70a', 'cmpxch8b qword [rdx]', 'cmpxch8b qword [rdx]'),
     ('MOVD (66)',   '660f7ecb414141', 'movd ebx,xmm1', 'movd ebx,xmm1'),
-    ('MOVD', '66480f7ef8', 'movq rax,xmm7', 'movq rax,xmm7'),
+    ('MOVD', '66480f7ef8', 'movd rax,xmm7', 'movd rax,xmm7'), # TODO: REX.W needs to be able to change the opcode name
     ('MOVD', '0F6E0D41414100', 'movd mm1,dword [rip + 4276545]', 'movd mm1,dword [rip + 4276545]'),
     ('MOVQ', '0F6FCB', 'movq mm1,mm3', 'movq mm1,mm3'),
     ('PSRAW',  '0FE1CA4141', 'psraw mm1,mm2', 'psraw mm1,mm2'),
@@ -214,7 +215,7 @@ amd64MultiByteOpcodes = [
     ('PSHUFD', '660F70CD11', 'pshufd xmm1,xmm5,17', 'pshufd xmm1,xmm5,17'),
     ('PEXTRW', '660FC5C307', 'pextrw rax,xmm3,7', 'pextrw rax,xmm3,7'),
     ('MOVQ', '660FD620', 'movq qword [rax],xmm4', 'movq qword [rax],xmm4'),
-    ('MOVQ', 'f3410f7ed8', 'movq xmm3,xmm8', 'movq xmm3,xmm8'),
+    ('MOVQ', 'f3410f7ed8', 'movd_q xmm3,xmm8', 'movd_q xmm3,xmm8'),
     ('PMAXUB', '660FDE2541414141', 'pmaxub xmm4,oword [rip + 1094795585]', 'pmaxub xmm4,oword [rip + 1094795585]'),
     ('MOVNTDQ', '660FE73D78563412', 'movntdq oword [rip + 305419896],xmm7', 'movntdq oword [rip + 305419896],xmm7'),
     ('PADDD', '660FFECE', 'paddd xmm1,xmm6', 'paddd xmm1,xmm6'),
@@ -281,21 +282,42 @@ amd64MultiByteOpcodes = [
     ('CVTSS2SI 3', 'f3480f2d10', 'cvtss2si rdx,dword [rax]', 'cvtss2si rdx,dword [rax]'),
     ('CVTSS2SI 4', 'f30f2d4212', 'cvtss2si eax,dword [rdx + 18]', 'cvtss2si eax,dword [rdx + 18]'),
     ('SQRTSS', 'f30f51d7', 'sqrtss xmm2,xmm7', 'sqrtss xmm2,xmm7'),
-    ('SQRTSS 2', 'f30f511c2541414141', 'sqrtss xmm3, dword [0x41414141]', 'sqrtss xmm3, dword [0x41414141]'),
-    ('SQRTSS 3', 'f30f511cd540000000', 'sqrtss xmm3,dword [rdx * 8 + 64]', 'sqrtss xmm3,dword [rdx * 8 + 64]'),
+    ('SQRTSS 2', 'f30f511c2541414141', 'sqrtss xmm3,dword [0x41414141]', 'sqrtss xmm3,dword [0x41414141]'),
+    ('SQRTSS 3', 'f30f511cd540000000', 'sqrtss xmm3,dword [0x00000040 + rdx * 8]', 'sqrtss xmm3,dword [0x00000040 + rdx * 8]'),
     ('RSQRTSS', 'f30f52d7', 'rsqrtss xmm2,xmm7', 'rsqrtss xmm2,xmm7'),
-    ('RSQRTSS 2', 'f30f521c2541414141', 'rsqrtss xmm3, dword [0x41414141]', 'rsqrtss xmm3, dword [0x41414141]'),
-    ('RSQRTSS 3', 'f30f521cd540000000', 'rsqrtss xmm3,dword [rdx * 8 + 64]', 'rsqrtss xmm3,dword [rdx * 8 + 64]'),
+    ('RSQRTSS 2', 'f30f521c2541414141', 'rsqrtss xmm3,dword [0x41414141]', 'rsqrtss xmm3,dword [0x41414141]'),
+    ('RSQRTSS 3', 'f30f521cd540000000', 'rsqrtss xmm3,dword [0x00000040 + rdx * 8]', 'rsqrtss xmm3,dword [0x00000040 + rdx * 8]'),
     ('RCPSS', 'f3440f53cf', 'rcpss xmm9,xmm7', 'rcpss xmm9,xmm7'),
     ('RCPSS 2', 'f3440f5319', 'rcpss xmm11,dword [rcx]', 'rcpss xmm11,dword [rcx]'),
-    ('RCPSS 3', '67f3440f531a', 'rcpss xmm11,dword [edx]', 'rcpss xmm11,dword [edx]'),
 
     ('PINSRB', '660f3a20c811', 'pinsrb xmm1,eax,17', 'pinsrb xmm1,eax,17'),
     ('PINSRB 2', '660f3a200811', 'pinsrb xmm1,dword [rax],17', 'pinsrb xmm1,dword [rax],17'),
     ('ADDSS', 'f30f58ca', 'addss xmm1,xmm2', 'addss xmm1,xmm2'),
-    ('ADDSS 2', 'f30f580a', 'addss xmm1,[rdx]', 'addss xmm1,[rdx]'),
+    ('ADDSS 2', 'f30f580a', 'addss xmm1,dword [rdx]', 'addss xmm1,dword [rdx]'),
     ('ADDSS 3', 'f30f585963', 'addss xmm3,dword [rcx + 99]', 'addss xmm3,dword [rcx + 99]'),
+    ('CVTPD2PI (NOREX)', '660f2df8', 'cvtpd2pi mm7,xmm0', 'cvtpd2pi mm7,xmm0'),
+    # So the only part of REX that should matter for these is: REX.B
+    # So anything with the least significant bit set
+    ('CVTPD2PI (REX 41)', '66410f2df8', 'cvtpd2pi mm7,xmm8', 'cvtpd2pi mm7,xmm8'),
+    ('CVTPD2PI (REX 43)', '66430f2df8', 'cvtpd2pi mm7,xmm8', 'cvtpd2pi mm7,xmm8'),
+    ('CVTPD2PI (REX 45)', '66450f2df8', 'cvtpd2pi mm7,xmm8', 'cvtpd2pi mm7,xmm8'),
+    ('CVTPD2PI (REX 47)', '66470f2df8', 'cvtpd2pi mm7,xmm8', 'cvtpd2pi mm7,xmm8'),
+    ('CVTPD2PI (REX 49)', '66490f2df8', 'cvtpd2pi mm7,xmm8', 'cvtpd2pi mm7,xmm8'),
+    ('CVTPD2PI (REX 4b)', '664b0f2df8', 'cvtpd2pi mm7,xmm8', 'cvtpd2pi mm7,xmm8'),
+    ('CVTPD2PI (REX 4d)', '664d0f2df8', 'cvtpd2pi mm7,xmm8', 'cvtpd2pi mm7,xmm8'),
+    ('CVTPD2PI (REX 4f)', '664f0f2df8', 'cvtpd2pi mm7,xmm8', 'cvtpd2pi mm7,xmm8'),
 
+    ('CVTPD2PI (REX 42)', '66420f2df8', 'cvtpd2pi mm7,xmm0', 'cvtpd2pi mm7,xmm0'),
+    ('CVTPD2PI (REX 44)', '66440f2df8', 'cvtpd2pi mm7,xmm0', 'cvtpd2pi mm7,xmm0'),
+    ('CVTPD2PI (REX 46)', '66460f2df8', 'cvtpd2pi mm7,xmm0', 'cvtpd2pi mm7,xmm0'),
+    ('CVTPD2PI (REX 48)', '66480f2df8', 'cvtpd2pi mm7,xmm0', 'cvtpd2pi mm7,xmm0'),
+    ('CVTPD2PI (REX 4a)', '664a0f2df8', 'cvtpd2pi mm7,xmm0', 'cvtpd2pi mm7,xmm0'),
+    ('CVTPD2PI (REX 4c)', '664c0f2df8', 'cvtpd2pi mm7,xmm0', 'cvtpd2pi mm7,xmm0'),
+    ('CVTPD2PI (REX 4e)', '664e0f2df8', 'cvtpd2pi mm7,xmm0', 'cvtpd2pi mm7,xmm0'),
+    ('CVTPD2PI 2 (REX)', '66410f2d38', 'cvtpd2pi mm7,oword [r8]', 'cvtpd2pi mm7,oword [r8]'),
+    ('CVTPD2PI 2 (NOREX)', '660f2d38', 'cvtpd2pi mm7,oword [rax]', 'cvtpd2pi mm7,oword [rax]'),
+    ('CVTPD2PI 3', '660f2d3c2541414141', 'cvtpd2pi mm7,oword [0x41414141]', 'cvtpd2pi mm7,oword [0x41414141]'),
+    ('CVTPD2PI 4', '660f2d3c8561000000', 'cvtpd2pi mm7,oword [0x00000061 + rax * 4]', 'cvtpd2pi mm7,oword [0x00000061 + rax * 4]'),
 ]
 
 amd64VexOpcodes = [
@@ -330,7 +352,7 @@ amd64VexOpcodes = [
     ('INSERTPS 6', 'C4E3692198454141414C', 'vinsertps xmm3,xmm2,dword [rax + 1094795589],76', 'vinsertps xmm3,xmm2,dword [rax + 1094795589],76'),
 
     # Address size override is TODO
-    #('PSRLW (VEX) 3', '67C5E9D108', 'vpsrlw xmm1,xmm2,[eax]', ''),
+    #('PSRLW (VEX) 3', '67C5E9D108', 'vpsrlw xmm1,xmm2,[eax]', 'vpsrlw xmm1,xmm2,[eax]'),
     #('VLDDQU', '67C5FBF00CF504000000', 'vlddqu xmm1,[esi*8+4]', 'vlddqu xmm1,[esi*8+4]'),
     #('VMOVSD 3', '67C5FB1118', 'vmovsd oword [eax],xmm3', 'vmovsd oword [eax],xmm3'),
     ('VPSLLDQ', 'C5F173D208', 'vpsrlq xmm1,xmm2,8', 'vpsrlq xmm1,xmm2,8'),
@@ -357,11 +379,16 @@ amd64VexOpcodes = [
     ('VMOVSLDUP 2', 'c5fe12d4', 'vmovsldup ymm2,ymm4', 'vmovsldup ymm2,ymm4'),
     ('VMOVSLDUP 3', 'c5fe1210', 'vmovsldup ymm2,yword [rax]', 'vmovsldup ymm2,yword [rax]'),
     ('VMOVSLDUP 4', 'c5fe125257', 'vmovsldup ymm2,yword [rdx + 87]', 'vmovsldup ymm2,yword [rdx + 87]'),
-    #('VMOVDDUP', '', '', ''),
+    ('VMOVDDUP', 'c5fb12fa', 'vmovddup xmm7,xmm2', 'vmovddup xmm7,xmm2'),
+    ('VMOVDDUP 2', 'c5fb1221', 'vmovddup xmm4,oword [rcx]', 'vmovddup xmm4,oword [rcx]'),
     ('VADDSS', 'c5ea580a', 'vaddss xmm1,xmm2,dword [rdx]', 'vaddss xmm1,xmm2,dword [rdx]'),
     ('VADDSS 2', 'c5ea58cc', 'vaddss xmm1,xmm2,xmm4', 'vaddss xmm1,xmm2,xmm4'),
-    ('VMULSS', 'c5ea590a', 'vmulss xmm1,xmm2,dword [rdx]', 'vaddss xmm1,xmm2,dword [rdx]'),
-    ('VMULSS 2', 'c5ea59cc', 'vmulss xmm1,xmm2,xmm4', 'vaddss xmm1,xmm2,xmm4'),
+    ('VMULSS', 'c5ea590a', 'vmulss xmm1,xmm2,dword [rdx]', 'vmulss xmm1,xmm2,dword [rdx]'),
+    ('VMULSS 2', 'c5ea59cc', 'vmulss xmm1,xmm2,xmm4', 'vmulss xmm1,xmm2,xmm4'),
+    ('VUNPCKLPD', 'c5d914d6', 'vunpcklpd xmm2,xmm4,xmm6', 'vunpcklpd xmm2,xmm4,xmm6'),
+    ('VUNPCKLPD 2', 'c5dd14d6', 'vunpcklpd ymm2,ymm4,ymm6', 'vunpcklpd ymm2,ymm4,ymm6'),
+    ('VUNPCKLPD 3', 'c5d914142541414141', 'vunpcklpd xmm2,xmm4,oword [0x41414141]', 'vunpcklpd xmm2,xmm4,oword [0x41414141]'),
+    ('VUNPCKLPD 4', 'c5dd14142541414141', 'vunpcklpd ymm2,ymm4,yword [0x41414141]', 'vunpcklpd ymm2,ymm4,yword [0x41414141]'),
 ]
 
 
@@ -377,14 +404,16 @@ class Amd64InstructionSet(unittest.TestCase):
             try:
                 op = self._arch.archParseOpcode(bytez.decode('hex'), 0, 0x400)
             except envi.InvalidInstruction:
-                import pdb, sys
-                pdb.post_mortem(sys.exc_info()[2])
                 self.fail("Failed to parse opcode bytes: %s (case: %s, expected: %s)" % (bytez, name, reprOp))
+            except Exception as e:
+                self.fail('Unexpected parse error for case %s: %s' % (name, repr(e)))
 
             try:
                 self.assertEqual(repr(op), reprOp)
             except AssertionError:
                 self.fail("Failing match for case %s (bytes: %s) (Got: '%s', Expected: '%s')" % (name, bytez, repr(op), reprOp))
+            except Exception as e:
+                self.fail('Unexpected repr error for case %s: %s' % (name, repr(e)))
 
             scanv.clearCanvas()
             op.render(scanv)
@@ -392,6 +421,8 @@ class Amd64InstructionSet(unittest.TestCase):
                 self.assertEqual(scanv.strval, renderOp)
             except AssertionError:
                 self.fail("Failing canvas case for case %s (bytes: %s) (Got: '%s', Expected: '%s')" % (name, bytez, scanv.strval, renderOp))
+            except Exception as e:
+                self.fail('Unexpected scanv error for case %s: %s' % (name, repr(e)))
 
     def test_envi_amd64_disasm_Specific_VEX_Instrs(self):
         self.check_opreprs(amd64VexOpcodes)

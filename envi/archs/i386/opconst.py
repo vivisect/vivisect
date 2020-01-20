@@ -212,8 +212,8 @@ OP_R = 0x001
 OP_W = 0x002
 OP_X = 0x004
 OP_64AUTO = 0x008 # operand is in 64bit mode with amd64!
-OP_REG32AUTO = 0x010 # force only *register* to be 32 bit
-OP_MEM32AUTO = 0x020 # force only *register* to be 32 bit
+OP_REG32AUTO = 0x010 # force only *register* to be 32 bit.
+OP_MEM32AUTO = 0x020 # force only *register* to be 32 bit.
 
 OP_UNK = 0x000
 OP_REG = 0x100

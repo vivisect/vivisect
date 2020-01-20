@@ -11,7 +11,7 @@ from envi.archs.i386.disasm import iflag_lookup, operand_range, priv_lookup, \
         i386Opcode, i386ImmOper, i386RegOper, i386ImmMemOper, i386RegMemOper, \
         i386SibOper, PREFIX_REPNZ, PREFIX_REP, PREFIX_OP_SIZE, PREFIX_ADDR_SIZE
 from envi.archs.amd64.regs import *
-from envi.archs.i386.opconst import OP_REG32AUTO, INS_VEXREQ
+from envi.archs.i386.opconst import OP_REG32AUTO, OP_MEM32AUTO, INS_VEXREQ
 all_tables = opcode86.tables86
 
 # Pre generate these for fast lookup. Because our REX prefixes have the same relative
@@ -222,6 +222,7 @@ class Amd64Disasm(e_i386.i386Disasm):
 
     def disasm(self, bytez, offset, va):
         # FIXME: for newer instructions, the VEX.W bit needs to be able to change the opcode. ugh.
+        # FIXME: And also REX.W
 
         # Stuff for opcode parsing
         tabdesc = all_tables[opcode86.TBL_Main]  # A tuple (optable, shiftbits, mask byte, sub, max)
@@ -452,6 +453,8 @@ class Amd64Disasm(e_i386.i386Disasm):
 
                     else:
                         osize, oper = ameth(bytez, offset, tsize, prefixes, operflags)
+                        if getattr(oper, "_is_deref", False) and operflags & OP_MEM32AUTO:
+                            oper.tsize = 4
 
                 except struct.error:
                     # Catch struct unpack errors due to insufficient data length
