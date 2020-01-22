@@ -14,6 +14,7 @@ from vivisect.const import *
 from vivisect.symboliks.common import *
 from vivisect.symboliks.constraints import *
 
+# FIXME: move this arch-independent code...
 class ArgDefSymEmu(object):
     '''
     An emulator snapped in to return the symbolic representation of
@@ -48,6 +49,7 @@ class ArgDefSymEmu(object):
 
     def readMemoryFormat(self, va, fmt):
         # TODO: we assume psize and le, better way? must be...
+        # FIXME: psize and endian correctness here!
         if not fmt.startswith('<') and not fmt.endswith('P'):
             raise Exception('we dont handle this format string')
 
@@ -67,18 +69,25 @@ class ArgDefSymEmu(object):
 
 class A32SymbolikTranslator(vsym_trans.SymbolikTranslator):
     '''
-    Common parent for Arm32 and Arm64.  Make sure you define:
-    __arch__, __ip__, __sp__, __srcp__, __destp__
-
-    Symbolik representations that are 'agnostic' to 32 or 64-bit belong here.
     '''
+    __arch__ = e_arm.ArmModule
+    __ip__ = 'pc'
+    __sp__ = 'sp'
+    #__srcp__ = ''  # ARM doesn't really have these constructs
+    #__destp__ = ''
     def __init__(self, vw):
         vsym_trans.SymbolikTranslator.__init__(self, vw)
         self._arch = vw.arch
         self._psize = self._arch.getPointerSize()
         self._reg_ctx = self._arch.archGetRegCtx()
 
-    ### move upstream to SymbolikTranslator?
+    def setFlag(self, flagname, state):
+        self.effSetVariable(flagname, state)
+        
+    def getFlag(self, flagname):
+        return self.effGetVariable(flagname)
+        
+    ### move upstream to SymbolikTranslator
     def getRegObj(self, regidx):
         ridx = regidx & 0xffff
         rname = self._reg_ctx.getRegisterName(ridx)
@@ -145,9 +154,1577 @@ class A32SymbolikTranslator(vsym_trans.SymbolikTranslator):
         oper = op.opers[idx]
         return oper.getOperAddrObj(op, self)
 
+    def getOperObj(self, op, idx):
+        '''
+        Translate the specified operand to a symbol compatible with
+        the symbolic translation system.
 
-        """
+        Returns a tuple: (OperObj, AfterEffs)
+        where:
+            OperObj is the symbolic operand
+            AfterEffs is a list of effects which may be applied after this
+                    this allows for ARM's Post-Indexed processing, etc...
+                    None by default
+        '''
+        oper = op.opers[idx]
+        if oper.isReg():
+            return (self.getRegObj(oper.reg), None)
+
+        elif oper.isDeref():
+            addrsym, aftereffs = self.getOperAddrObj(op, idx)
+            return self.effReadMemory(addrsym, Const(oper.tsize, self._psize))
+
+        elif oper.isImmed():
+            ret = oper.getOperValue(op, self)
+            return (Const(ret, self._psize), None)
+
+        raise Exception('Unknown operand class: %s' % oper.__class__.__name__)
+
+    def setOperObj(self, op, idx, obj):
+        '''
+        Set the operand to the new symbolic object.
+        '''
+        oper = op.opers[idx]
+        if oper.isReg():
+            self.setRegObj(oper.reg, obj)
+            return
+
+        if oper.isDeref():
+            addrsym = self.getOperAddrObj(op, idx)
+            return self.effWriteMemory(addrsym, Const(oper.tsize, self._psize), obj)
+
+        raise Exception('Umm..... really?')
+    
+    def doPush(self, val):
+        sp = self.getRegObj(REG_SP)
+        sp -= Const(4, 4)
+        self.setRegObj(REG_SP, sp)
+        self.writeMemObj(sp, val, Const(4, 4))
+
+    def doPop(self):
+        sp = self.getRegObj(REG_SP)
+        self.setRegObj(REG_SP, sp+Const(4, 4))
+        val = self.readMemObj(sp, Const(4, 4))
+        return val
+
+    """
+    def getProcMode(self):
+        '''
+        get current ARM processor mode.  see proc_modes (const.py)
+        '''
+        return self._rctx_vals[REG_CPSR] & 0x1f     # obfuscated for speed.  could call getCPSR but it's not as fast
+
+    def getCPSR(self):
+        '''
+        return the Current Program Status Register.
+        '''
+        return Var('cpsr', 4)
+        #return self._rctx_vals[REG_CPSR]
+
+    def getFPSCR(self):
+        '''
+        return the Current Floating Point Status/Control Register.
+        '''
+        return Var('fpscr', 4)
+        #return self._rctx_vals[REG_FPSCR]
+
+    def getAPSR(self):
+        '''
+        return the Current Program Status Register.
+        '''
+        apsr = self.getCPSR() & REG_APSR_MASK
+        return apsr
+
+    def setCPSR(self, psr, mask=0xffffffff):
+        '''
+        set the CPSR for the current ARM processor mode
+        '''
+        
+        psr = self._rctx_vals[REG_CPSR] & (~mask) | (psr & mask)
+        self._rctx_vals[REG_CPSR] = psr
+
+    def setAPSR(self, psr):
+        '''
+        set the CPSR for the current ARM processor mode
+        '''
+        self.setCPSR(psr, mask=0xffff0000)
+
+    def getSPSR(self, mode):
+        '''
+        get the SPSR for the given ARM processor mode
+        '''
+        ridx = _getRegIdx(REG_OFFSET_CPSR, mode)
+        return self._rctx_vals[ridx]
+
+    def setSPSR(self, mode, psr, mask=0xffffffff):
+        '''
+        set the SPSR for the given ARM processor mode
+        '''
+        ridx = _getRegIdx(REG_OFFSET_CPSR, mode)
+        psr = self._rctx_vals[ridx] & (~mask) | (psr & mask)
+        self._rctx_vals[ridx] = psr
+
+    def setProcMode(self, mode):
+        '''
+        set the current processor mode.  stored in CPSR
+        '''
+        # write current psr to the saved psr register for target mode
+        # but not for USR or SYS modes, which don't have their own SPSR
+        if mode not in (PM_usr, PM_sys):
+            curSPSRidx = proc_modes[mode]
+            self._rctx_vals[curSPSRidx] = self.getCPSR()
+
+        # set current processor mode
+        cpsr = self._rctx_vals[REG_CPSR] & 0xffffffe0
+        self._rctx_vals[REG_CPSR] = cpsr | mode
+
+    def getRegister(self, index, mode=None):
+        '''
+        Return the current value of the specified register index.
+        '''
+        if mode == None:
+            mode = self.getProcMode() & 0xf
+        else:
+            mode &= 0xf
+
+        idx = (index & 0xffff)
+        ridx = _getRegIdx(idx, mode)
+        if idx == index:
+            return self._rctx_vals[ridx]
+
+        offset = (index >> 24) & 0xff
+        width  = (index >> 16) & 0xff
+
+        mask = (2**width)-1
+        return (self._rctx_vals[ridx] >> offset) & mask
+
+    def setRegister(self, index, value, mode=None):
+        '''
+        Set a register value by index.
+        '''
+        if mode == None:
+            mode = self.getProcMode() & 0xf
+        else:
+            mode &= 0xf
+
+        self._rctx_dirty = True
+
+        # the raw index (in case index is a metaregister)
+        idx = (index & 0xffff)
+
+        # we only keep separate register banks per mode for general registers, not vectors
+        if idx >= REGS_VECTOR_TABLE_IDX:
+            ridx = idx
+        else:
+            ridx = _getRegIdx(idx, mode)
+
+        if idx == index:    # not a metaregister
+            if value.width != self._rctx_widths[ridx]:
+                raise Exception('crap')
+            
+            self.effSetVariable(rname, value)
+            #self._rctx_vals[ridx] = (value & self._rctx_masks[ridx])      # FIXME: hack.  should look up index in proc_modes dict?
+            return
+
+        # If we get here, it's a meta register index.
+        # NOTE: offset/width are in bits...
+        offset = (index >> 24) & 0xff
+        width  = (index >> 16) & 0xff
+
+        mask = e_bits.b_masks[width]
+        mask = mask << offset
+
+        # NOTE: basewidth is in *bits*
+        basewidth = self._rctx_widths[ridx]
+        basemask  = (2**basewidth)-1
+
+        # cut a whole in basemask at the size/offset of mask
+        finalmask = basemask ^ mask
+
+        curval = self._rctx_vals[ridx]
+
+        self._rctx_vals[ridx] = (curval & finalmask) | (value << offset)
+        self.effSetVariable(rname, value)
+
+    def integerSubtraction(self, op):
+        '''
+        Do the core of integer subtraction but only *return* the
+        resulting value rather than assigning it.
+        (allows cmp and sub to use the same code)
+        '''
+        # Src op gets sign extended to dst
+        #FIXME account for same operand with zero result for PDE
+        src1 = self.getOperObj(op, 1)
+        src2 = self.getOperObj(op, 2)
+        Sflag = op.iflags & IF_PSR_S
+
+        return self.intSubBase(src1, src2, Sflag)
+
+    def AddWithCarry(self, src1, src2, carry=0, Sflag=0, rd=0, tsize=4):
+        '''////AddWithCarry()
+        ==============
+        (bits(N), bit, bit) AddWithCarry(bits(N) x, bits(N) y, bit carry_in)
+            unsigned_sum = UInt(x) + UInt(y) + UInt(carry_in);
+            signed_sum = SInt(x) + SInt(y) + UInt(carry_in);
+
+            result = unsigned_sum<N-1:0>; // same value as signed_sum<N-1:0>
+
+            carry_out = if UInt(result) == unsigned_sum then '0' else '1';
+            overflow = if SInt(result) == signed_sum then '0' else '1';
+
+            return (result, carry_out, overflow);
+
+        An important property of the AddWithCarry() function is that if:
+        (result, carry_out, overflow) = AddWithCarry(x, NOT(y), carry_in)
+        then:
+
+        * if carry_in == '1', then result == x-y with:
+            overflow == '1' if signed overflow occurred during the subtraction
+            carry_out == '1' if unsigned borrow did not occur during the subtraction, that is, if x >= y
+       
+        * if carry_in == '0', then result == x-y-1 with:
+            overflow == '1' if signed overflow occurred during the subtraction
+            carry_out == '1' if unsigned borrow did not occur during the subtraction, that is, if x > y.
+
+
+        Together, these mean that the carry_in and carry_out bits in AddWithCarry() calls can act as NOT borrow flags for
+        subtractions as well as carry flags for additions.
+        (@ we don't retrn carry-out and overflow, but set the flags here)
+        '''
+        udst = e_bits.unsigned(src1, tsize)
+        usrc = e_bits.unsigned(src2, tsize)
+
+        sdst = e_bits.signed(src1, tsize)
+        ssrc = e_bits.signed(src2, tsize)
+
+        ures = udst + usrc + carry
+        sres = sdst + ssrc + carry
+        result = ures & 0xffffffff
+
+        newcarry = (ures != result)
+        overflow = e_bits.signed(result, tsize) != sres
+
+        #print "====================="
+        #print hex(udst), hex(usrc), hex(ures), hex(result)
+        #print hex(sdst), hex(ssrc), hex(sres)
+        #print e_bits.is_signed(result, tsize), not result, newcarry, overflow
+        #print "ures:", ures, hex(ures), " sres:", sres, hex(sres), " result:", result, hex(result), " signed(result):", e_bits.signed(result, 4), hex(e_bits.signed(result, 4)), "  C/V:",newcarry, overflow
+
+        if Sflag:
+            curmode = self.getProcMode()
+            if rd == 15:
+                if(curmode != PM_sys and curmode != PM_usr):
+                    self.setCPSR(self.getSPSR(curmode))
+                else:
+                    raise Exception("Messed up opcode...  adding to r15 from PM_usr or PM_sys")
+            else:
+                self.setFlag(PSR_N_bit, e_bits.is_signed(result, tsize))
+                self.setFlag(PSR_Z_bit, not result)
+                self.setFlag(PSR_C_bit, newcarry)
+                self.setFlag(PSR_V_bit, overflow)
+
+        return result
+
+    def intSubBase(self, src1, src2, Sflag=0, rd=0, tsize=4):
+        # So we can either do a BUNCH of crazyness with xor and shifting to
+        # get the necessary flags here, *or* we can just do both a signed and
+        # unsigned sub and use the results.
+
+        udst = e_bits.unsigned(src1, tsize)
+        usrc = e_bits.unsigned(src2, tsize)
+
+        sdst = e_bits.signed(src1, tsize)
+        ssrc = e_bits.signed(src2, tsize)
+
+        ures = udst - usrc
+        sres = sdst - ssrc
+        result = ures & 0xffffffff
+
+        newcarry = (ures != result)
+        overflow = (e_bits.signed(result, 4) != sres)
+
+        if Sflag:
+            curmode = self.getProcMode()
+            if rd == 15:
+                if(curmode != PM_sys and curmode != PM_usr):
+                    self.setCPSR(self.getSPSR(curmode))
+                else:
+                    raise Exception("Messed up opcode...  adding to r15 from PM_usr or PM_sys")
+            self.setFlag(PSR_N_bit, e_bits.is_signed(ures, tsize))
+            self.setFlag(PSR_Z_bit, not ures)
+            self.setFlag(PSR_C_bit, newcarry)
+            self.setFlag(PSR_V_bit, overflow)
+
+        return ures
+    """
+    def logicalAnd(self, op):
+        opercnt = len(op.opers)
+
+        if opercnt == 3:
+            src1 = self.getOperObj(op, 1)
+            src2 = self.getOperObj(op, 2)
+        else:
+            src1 = self.getOperObj(op, 0)
+            src2 = self.getOperObj(op, 1)
+
+        res = src1 & src2
+
+        if op.iflags & IF_PSR_S:     # FIXME: convert to gt, lt, eq, sf
+            self.setFlag(PSR_N_bit, Const(0, 1))
+            self.setFlag(PSR_Z_bit, not res)
+            self.setFlag(PSR_C_bit, Const(0, 1))
+            self.setFlag(PSR_V_bit, Const(0, 1))
+        return res
+
+    def interrupt(self, val):
+        '''
+        If we run into an interrupt, what do we do?  Handles can be snapped in and used as function calls
+        '''
+        if val >= len(self.int_handlers):
+            logger.critical("FIXME: Interrupt Handler %x is not handled", val)
+
+        handler = self.int_handlers[val]
+        handler(val)
+
+    def default_int_handler(self, val):
+        logger.warn("DEFAULT INTERRUPT HANDLER for Interrupt %d (called at 0x%x)", val, self.getProgramCounter())
+
+    def i_and(self, op):
+        res = self.logicalAnd(op)
+        self.setOperObj(op, 0, res)
+       
+    def i_orr(self, op):
+        tsize = op.opers[0].tsize
+        if len(op.opers) == 3:
+            val1 = self.getOperObj(op, 1)
+            val2 = self.getOperObj(op, 2)
+        else:
+            val1 = self.getOperObj(op, 0)
+            val2 = self.getOperObj(op, 1)
+        val = val1 | val2
+        self.setOperObj(op, 0, val)
+
+        Sflag = op.iflags & IF_PSR_S
+        if Sflag:
+            #self.setFlag(PSR_N_bit, e_bits.is_signed(val, tsize))
+            #self.setFlag(PSR_Z_bit, not val)
+            #self.setFlag(PSR_C_bit, e_bits.is_unsigned_carry(val, tsize))
+            #self.setFlag(PSR_V_bit, e_bits.is_signed_overflow(val, tsize))
+            self.effSetVariable('eflags_gt', gt(v1, v2))
+            self.effSetVariable('eflags_lt', lt(v1, v2))
+            self.effSetVariable('eflags_of', Const(0, self._psize))
+            self.effSetVariable('eflags_cf', Const(0, self._psize))
+            self.effSetVariable('eflags_sf', lt(obj, Const(0, self._psize))) # v1 | v2 < 0
+            self.effSetVariable('eflags_eq', eq(obj, Const(0, self._psize))) # v1 & v2 == 0
+            self.setOperObj(op, 0, obj)
+       
+    def i_stm(self, op):
+        if len(op.opers) == 2:
+            srcreg = op.opers[0].reg
+            addr = self.getOperValue(op,0)
+            regvals = self.getOperValue(op, 1)
+
+            updatereg = op.opers[0].oflags & OF_W
+            flags = op.iflags
+        else:
+            srcreg = REG_SP
+            addr = self.getStackCounter()
+            oper = op.opers[0]
+            if isinstance(oper, ArmRegOper):
+                regvals = [ self.getOperValue(op, 0) ]
+            else:
+                regvals = self.getOperValue(op, 0)
+
+            updatereg = 1
+            flags = IF_DAIB_B
+
+        pc = self.getRegister(REG_PC)       # store for later check
+
+        addr = self.getRegister(srcreg)
+        numregs = len(regvals)
+        for vidx in range(numregs):
+            if flags & IF_DAIB_B == IF_DAIB_B:
+                if flags & IF_DAIB_I == IF_DAIB_I:
+                    addr += 4
+                    val = regvals[vidx]
+                else:
+                    addr -= 4
+                    val = regvals[numregs-vidx-1]
+                self.writeMemValue(addr, val, 4)
+            else:
+                if flags & IF_DAIB_I == IF_DAIB_I:
+                    val = regvals[vidx]
+                else:
+                    val = regvals[numregs-vidx-1]
+
+                self.writeMemValue(addr, val, 4)
+
+                if flags & IF_DAIB_I == IF_DAIB_I:
+                    addr += 4
+                else:
+                    addr -= 4
+
+        if updatereg:
+            self.setRegister(srcreg,addr)
+        #FIXME: add "shared memory" functionality?  prolly just in strex which will be handled in i_strex
+        # is the following necessary? 
+        newpc = self.getRegister(REG_PC)    # check whether pc has changed
+        if pc != newpc:
+            return newpc
+
+    i_stmia = i_stm
+    i_push = i_stmia
+
+    def i_vpush(self, op):
+        oper = op.opers[0]
+        tsize = oper.getRegSize()
+        reglist = oper.getOperValue(op, self)
+
+        for reg in reglist:
+            sp = self.getRegister(REG_SP)
+            sp -= tsize
+            self.writeMemValue(sp, reg, tsize)
+            self.setRegister(REG_SP, sp)
+
+    def i_vpop(self, op):
+        oper = op.opers[0]
+        tsize = oper.getRegSize()
+
+        reglist = []
+        for ridx in range(oper.getRegCount()):
+            sp = self.getRegister(REG_SP)
+            val = self.readMemValue(sp, 4)
+            reglist.append(val)
+            self.setRegister(REG_SP, sp+4)
+
+        oper.setOperValue(op, reglist, self)
+
+    def i_vldm(self, op):
+        if len(op.opers) == 2:
+            srcreg = op.opers[0].reg
+            updatereg = op.opers[0].oflags & OF_W
+            addr = self.getOperValue(op,0)
+            flags = op.iflags
+        else:
+            srcreg = REG_SP
+            updatereg = 1
+            addr = self.getStackCounter()
+            flags = IF_DAIB_I
+
+        pc = self.getRegister(REG_PC)       # store for later check
+       
+        # set up
+        reglistoper = op.opers[1]
+        count = reglistoper.getRegCount()
+        size  = reglistoper.getRegSize()
+
+        # do multiples based on base and count.  unlike ldm, these must be consecutive
+        if flags & IF_DAIB_I == IF_DAIB_I:
+            for reg in xrange(count):
+                regval = self.readMemValue(addr, size)
+                self.setRegister(reg, regval)
+                addr += size
+        else:
+            for reg in xrange(count-1, -1, -1):
+                addr -= size
+                regval = self.readMemValue(addr, size)
+                self.setRegister(reg, regval)
+
+        if updatereg:
+            self.setRegister(srcreg,addr)
+        #FIXME: add "shared memory" functionality?  prolly just in ldrex which will be handled in i_ldrex
+        # is the following necessary? 
+        newpc = self.getRegister(REG_PC)    # check whether pc has changed
+        if pc != newpc:
+            self.setThumbMode(newpc & 1)
+            return newpc
+
+    def i_vmov(self, op):
+        if len(op.opers) == 2:
+            src = self.getOperValue(op, 1)
+            if isinstance(op.opers[1], ArmImmOper):
+                # immediate version copies immediate into each element (Q=2 elements, D=1)
+                srcsz = op.opers[1].size
+                logger.warn("0x%x vmov: immediate: %x (%d bytes)", op.va, src, srcsz)
+                # change src to fill all vectors with immediate
+
+            # vreg to vreg: 1 to 1 copy
+            # core reg to vreg
+            # vret to core reg
+            # core reg to single
+            self.setOperValue(op, 0, src)
+
+        elif len(op.opers) == 3:
+            # 2 core reg to double
+            # move between two ARM Core regs and one dblword extension reg
+            if op.opers[0].reg < REGS_VECTOR_TABLE_IDX:
+                # dest is core regs
+                src = self.getOperValue(op, 2)
+                self.setOperValue(op, 0, (src & 0xffffffff))
+                self.setOperValue(op, 1, (src >> 32))
+            else:
+                # dest is extension reg
+                src = self.getOperValue(op, 1)
+                src2 = self.getOperValue(op, 2)
+                src |= (int(src2) << 32)
+                self.setOperValue(op, 0, src)
+
+        elif len(op.opers) == 4:
+            # 2 core reg to 2 singles
+            src1 = self.getOperValue(op, 2)
+            src2 = self.getOperValue(op, 3)
+            self.setOperValue(op, 0, src1)
+            self.setOperValue(op, 1, src2)
+
+        else:
+            raise Exception("0x%x:  %r   Something went wrong... opers = %r " % (op.va, op, op.opers))
+           
+
+    def i_vstr(self, op):
+        src = self.getOperValue(op, 1)
+        self.setOperValue(op, 0, src)
+
+    def i_vcmp(self, op):
+        try:
+            src1 = self.getOperValue(op, 0)
+            src2 = self.getOperValue(op, 1)
+            val = src2 - src1
+            logger.debug("vcmpe %r  %r  %r", src1, src2, val)
+            fpsrc = self.getRegister(REG_FPSCR)
+
+            # taken from VFCompare() from arch ref manual p80
+            if src1 == src2:
+                n, z, c, v = 0, 1, 1, 0
+            elif src1 < src2:
+                n, z, c, v = 1, 0, 0, 0
+            else:
+                n, z, c, v = 0, 0, 1, 0
+
+            self.setFpFlag(PSR_N_bit, n)
+            self.setFpFlag(PSR_Z_bit, z)
+            self.setFpFlag(PSR_C_bit, c)
+            self.setFpFlag(PSR_V_bit, v)
+        except Exception, e:
+            logger.warn("vcmp exception: %r", e)
+
+    def i_vcmpe(self, op):
+        try:
+            size = (4,8)[bool(op.iflags & IFS_F64)]
+
+            src1 = self.getOperValue(op, 0)
+            src2 = self.getOperValue(op, 1)
+               
+            val = src2 - src1
+               
+            logger.debug("vcmpe %r %r  %r  %r", op, src1, src2, val)
+            fpsrc = self.getRegister(REG_FPSCR)
+
+            # taken from VFCompare() from arch ref manual p80
+            if src1 == src2:
+                n, z, c, v = 0, 1, 1, 0
+            elif src1 < src2:
+                n, z, c, v = 1, 0, 0, 0
+            else:
+                n, z, c, v = 0, 0, 1, 0
+
+            self.setFpFlag(PSR_N_bit, n)
+            self.setFpFlag(PSR_Z_bit, z)
+            self.setFpFlag(PSR_C_bit, c)
+            self.setFpFlag(PSR_V_bit, v)
+        except Exception, e:
+            logger.warn("vcmpe exception: %r" % e)
+
+    def i_vcvt(self, op):
+        logger.warn('%r\t%r', op, op.opers)
+        logger.warn("complete implementing vcvt")
+        width = op.opers[0].getWidth()
+        regcnt = width / 4
+
+        raise Exception("IMPLEMENT ME: i_vcvt")
+        if len(op.opers) == 3:
+            for reg in range(regcnt):
+                #frac_bits = 64 - op.opers[2].val
+                # pA8_870
+                if op.simdflags & IFS_F32_S32:
+                    pass
+                elif op.simdflags & IFS_F32_U32:
+                    pass
+                elif op.simdflags & IFS_S32_F32:
+                    pass
+                elif op.simdflags & IFS_U32_F32:
+                    pass
+
+                # pA8_872
+                elif op.simdflags & IFS_U16_F32:
+                    pass
+                elif op.simdflags & IFS_S16_F32:
+                    pass
+                elif op.simdflags & IFS_U32_F32:
+                    pass
+                elif op.simdflags & IFS_S32_F32:
+                    pass
+                elif op.simdflags & IFS_U16_F64:
+                    pass
+                elif op.simdflags & IFS_S16_F64:
+                    pass
+                elif op.simdflags & IFS_U32_F64:
+                    pass
+                elif op.simdflags & IFS_S32_F64:
+                    pass
+
+                elif op.simdflags & IFS_F32_U16:
+                    pass                      
+                elif op.simdflags & IFS_F32_S16:
+                    pass
+                elif op.simdflags & IFS_F32_U32:
+                    pass
+                elif op.simdflags & IFS_F32_S32:
+                    pass
+                elif op.simdflags & IFS_F64_U16:
+                    pass
+                elif op.simdflags & IFS_F64_S16:
+                    pass
+                elif op.simdflags & IFS_F64_U32:
+                    pass
+                elif op.simdflags & IFS_F64_S32:
+                    pass
+
+        elif len(op.opers) == 2:
+            for reg in range(regcnt):
+                #frac_bits = 64 - op.opers[1].val
+                # pA8_866
+                if op.simdflags & IFS_F32_S32:
+                    pass
+                elif op.simdflags & IFS_F32_U32:
+                    pass
+                elif op.simdflags & IFS_S32_F32:
+                    pass
+                elif op.simdflags & IFS_U32_F32:
+                    pass
+
+                # pA8-868
+                elif op.simdflags & IFS_F64_S32:
+                    pass
+                elif op.simdflags & IFS_F64_U32:
+                    pass
+                elif op.simdflags & IFS_F32_S32:
+                    pass
+                elif op.simdflags & IFS_F32_U32:
+                    pass
+
+                elif op.simdflags & IFS_S32_F64:
+                    pass
+                elif op.simdflags & IFS_U32_F64:
+                    pass
+                elif op.simdflags & IFS_S32_F32:
+                    pass
+                elif op.simdflags & IFS_U32_F32:
+                    pass
+
+                # pA8-874
+                elif op.simdflags & IFS_F64_F32:
+                    pass
+                elif op.simdflags & IFS_F32_F64:
+                    pass
+
+                # pA8-876
+                elif op.simdflags & IFS_F16_F32:
+                    pass
+                elif op.simdflags & IFS_F32_F16:
+                    pass
+        else:
+            raise Exception("i_vcvt with strange number of opers: %r" % op.opers)
+
+    i_vcvtr = i_vcvt
+
+    def i_ldm(self, op):
+        if len(op.opers) == 2:
+            srcreg = op.opers[0].reg
+            addr = self.getOperValue(op,0)
+            regmask = op.opers[1].val
+            updatereg = op.opers[0].oflags & OF_W
+            flags = op.iflags
+        else:
+            srcreg = REG_SP
+            addr = self.getStackCounter()
+            oper = op.opers[0]
+            if isinstance(oper, ArmRegOper):
+                regmask = (1<<oper.reg)
+
+            else:
+                regmask = op.opers[0].val
+            updatereg = 1
+            flags = IF_DAIB_I
+
+        pc = self.getRegister(REG_PC)       # store for later check
+
+        if flags & IF_DAIB_I == IF_DAIB_I:
+            for reg in xrange(16):
+                if (1<<reg) & regmask:
+                    regval = self.readMemValue(addr, 4)
+                    self.setRegister(reg, regval)
+                    addr += 4
+        else:
+            for reg in xrange(15, -1, -1):
+                if (1<<reg) & regmask:
+                    addr -= 4
+                    regval = self.readMemValue(addr, 4)
+                    self.setRegister(reg, regval)
+
+        if updatereg:
+            self.setRegister(srcreg,addr)
+        #FIXME: add "shared memory" functionality?  prolly just in ldrex which will be handled in i_ldrex
+        # is t  he following necessary? 
+        newpc = self.getRegister(REG_PC)    # check whether pc has changed
+        if pc != newpc:
+            self.setThumbMode(newpc & 1)
+            return newpc & -2
+
+    i_ldmia = i_ldm
+    i_pop = i_ldmia
+
+
+    def setThumbMode(self, thumb=1):
+        self.setFlag(PSR_T_bit, thumb)
+
+    def setArmMode(self, arm=1):
+        self.setFlag(PSR_T_bit, not arm)
+
+    def i_ldr(self, op):
+        # hint: covers ldr, ldrb, ldrbt, ldrd, ldrh, ldrsh, ldrsb, ldrt   (any instr where the syntax is ldr{condition}stuff)
+        # need to check that t variants only allow non-priveleged access (ldrt, ldrht etc)
+        val = self.getOperValue(op, 1)
+        self.setOperValue(op, 0, val)
+        if op.opers[0].reg == REG_PC:
+            self.setThumbMode(val & 1)
+            return val & -2
+
+    i_ldrb = i_ldr
+    i_ldrbt = i_ldr
+    i_ldrd = i_ldr
+    i_ldrh = i_ldr
+    i_ldrht = i_ldr
+    i_ldrsh = i_ldr
+    i_ldrsb = i_ldr
+    i_ldrt = i_ldr
+
+    def i_ldrex(self, op):
+        with self.mem_access_lock:
+            return self.i_ldr(op)
+
+    def i_strex(self, op):
+        with self.mem_access_lock:
+            return self.i_str(op)
+
+    def i_mov(self, op):
+        val = self.getOperValue(op, 1)
+        self.setOperValue(op, 0, val)
+
+        if op.iflags & IF_PSR_S:
+            dsize = op.opers[0].tsize
+            self.setFlag(PSR_N_bit, e_bits.is_signed(val, dsize))
+            self.setFlag(PSR_Z_bit, not val)
+
+        if op.iflags & envi.IF_RET:
+            self.setThumbMode(val & 1)
+            return val & -2
+
+        dest = op.opers[0]
+        if isinstance(dest, ArmRegOper) and dest.reg == REG_PC:
+            self.setThumbMode(val & 1)
+            return val & -2
+
+    def i_movt(self, op):
+        base = self.getOperValue(op, 0) & 0xffff
+        val = self.getOperValue(op, 1) << 16
+        self.setOperValue(op, 0, base | val)
+
+    def i_movw(self, op):
+        val = self.getOperValue(op, 1)
+        self.setOperValue(op, 0, val)
+
+    i_msr = i_mov
+    i_adr = i_mov
+
+    def i_vmsr(self, op):
+        if len(op.opers) == 1:
+            val = self.getOperValue(op, 0)
+        else:
+            val = self.getOperValue(op, 1)
+
+        self.setRegister(REG_FPSCR, val)
+           
+    def i_mrs(self, op):
+        val = self.getAPSR()
+        self.setOperValue(op, 0, val)
+
+    def i_vmrs(self, op):
+        src = self.getRegister(REG_FPSCR)
+
+        if op.opers[0].reg != 15:
+            self.setOperValue(op, 0, src)
+        else:
+            apsr = self.getAPSR() & 0x0fffffff
+            apsr |= (src | 0xf0000000)
+            self.setOperValue(op, 0, apsr)
+
+    i_vldr = i_mov
+
+
+    # TESTME: IT functionality
+    def i_it(self, op):
+        if self.itcount:
+            raise Exception("IT block within an IT block!")
+
+        self.itcount, self.ittype, self.itmask = op.opers[0].getCondData()
+        condcheck = conditionals[self.ittype]
+        self.itva = op.va
+
+    i_ite = i_it
+    i_itt = i_it
+    i_itee = i_it
+    i_itet = i_it
+    i_itte = i_it
+    i_ittt = i_it
+    i_iteee = i_it
+    i_iteet = i_it
+    i_itete = i_it
+    i_itett = i_it
+    i_ittee = i_it
+    i_ittet = i_it
+    i_ittte = i_it
+    i_itttt = i_it
+          
+    def i_bfi(self, op):
+        lsb = self.getOperValue(op, 2)
+        width = self.getOperValue(op, 3)
+        mask = e_bits.b_masks[width]
+
+        addit = self.getOperValue(op, 1) & mask
+
+        mask <<= lsb
+        val = self.getOperValue(op, 0) & ~mask
+        val |= (addit << lsb)
+
+        self.setOperValue(op, 0, val)
+
+    def i_bfc(self, op):
+        lsb = self.getOperValue(op, 1)
+        width = self.getOperValue(op, 2)
+        mask = e_bits.b_masks[width] << lsb
+        mask ^= 0xffffffff
+
+        val = self.getOperValue(op, 0)
+        val &= mask
+
+        self.setOperValue(op, 0, val)
+
+    def i_clz(self, op):
+        oper = self.getOperValue(op, 1)
+        bsize = op.opers[1].tsize * 8
+        lzcnt = 0
+        for x in range(bsize):
+            if oper & 0x80000000:
+                break
+            lzcnt += 1
+            oper <<= 1
+
+        self.setOperValue(op, 0, lzcnt)
+
+    def i_mvn(self, op):
+        val = self.getOperValue(op, 1)
+        val ^= 0xffffffff
+        self.setOperValue(op, 0, val)
+
+    def i_str(self, op):
+        # hint: covers str, strb, strbt, strd, strh, strsh, strsb, strt   (any instr where the syntax is str{condition}stuff)
+        # need to check that t variants only allow non-priveleged access (strt, strht etc)
+        val = self.getOperValue(op, 0)
+        self.setOperValue(op, 1, val)
+
+    i_strh = i_str
+    i_strb = i_str
+    i_strbt = i_str
+    i_strd = i_str
+    i_strh = i_str
+    i_strsh = i_str
+    i_strsb = i_str
+    i_strt = i_str
+
+    def i_add(self, op):
+        if len(op.opers) == 3:
+            src1 = self.getOperValue(op, 1)
+            src2 = self.getOperValue(op, 2)
+        else:
+            src1 = self.getOperValue(op, 0)
+            src2 = self.getOperValue(op, 1)
+       
+        dsize = op.opers[0].tsize
+        reg = op.opers[0].reg
+        Sflag = op.iflags & IF_PSR_S
+
+        ures = self.AddWithCarry(src1, src2, 0, Sflag, rd=reg, tsize=dsize)
+        self.setOperValue(op, 0, ures)
+       
+        #FIXME PDE and flags
+        if src1 == None or src2 == None:
+            self.undefFlags()
+            self.setOperValue(op, 0, None)
+            return
+
+    def i_adc(self, op):
+        if len(op.opers) == 3:
+            src1 = self.getOperValue(op, 1)
+            src2 = self.getOperValue(op, 2)
+        else:
+            src1 = self.getOperValue(op, 0)
+            src2 = self.getOperValue(op, 1)
+       
+        #FIXME PDE and flags
+        if src1 is None or src2 is None:
+            self.undefFlags()
+            self.setOperValue(op, 0, None)
+            return
+
+       
+        dsize = op.opers[0].tsize
+        ssize = op.opers[1].tsize
+        Carry = self.getFlag(PSR_C_bit)
+        Sflag = op.iflags & IF_PSR_S
+        ures = self.AddWithCarry(src1, src2, Carry, Sflag, op.opers[0].reg)
+
+        self.setOperValue(op, 0, ures)
+
+    def i_b(self, op):
+        '''
+        conditional branches (eg. bne) will be handled here. they are all CONDITIONAL 'b'
+        '''
+        return self.getOperValue(op, 0)
+
+    def i_bl(self, op):
+        tmode = self.getFlag(PSR_T_bit)
+        retva = (self.getRegister(REG_PC) + len(op)) | tmode
+        self.setRegister(REG_LR, retva)
+        return self.getOperValue(op, 0)
+
+    def i_bx(self, op):
+        target = self.getOperValue(op, 0)
+        self.setFlag(PSR_T_bit, target & 1)
+        return target & -2
+
+    def i_blx(self, op):
+        tmode = self.getFlag(PSR_T_bit)
+        retva = (self.getRegister(REG_PC) + len(op)) | tmode
+        self.setRegister(REG_LR, retva)
+
+        target = self.getOperValue(op, 0)
+        self.setFlag(PSR_T_bit, target & 1)
+        return target & -2
+
+    def i_svc(self, op):
+        svc = self.getOperValue(op, 0)
+        logger.warn("Service 0x%x called at 0x%x", svc, op.va)
+
+    def i_tst(self, op):
+        src1 = self.getOperValue(op, 0)
+        src2 = self.getOperValue(op, 1)
+
+        dsize = op.opers[0].tsize
+        ures = src1 & src2
+
+        self.setFlag(PSR_N_bit, e_bits.is_signed(ures, dsize))
+        self.setFlag(PSR_Z_bit, (0,1)[ures==0])
+        self.setFlag(PSR_C_bit, e_bits.is_unsigned_carry(ures, dsize))
+       
+    def i_teq(self, op):
+        src1 = self.getOperValue(op, 0)
+        src2 = self.getOperValue(op, 1)
+
+        dsize = op.opers[0].tsize
+        ures = src1 ^ src2
+
+        self.setFlag(PSR_N_bit, e_bits.is_signed(ures, dsize))
+        self.setFlag(PSR_Z_bit, not ures)
+        oper = op.opers[1]
+        if isinstance(oper, ArmRegShiftImmOper):
+            if oper.shimm == 0:
+                return
+            logger.critical('FIXME: TEQ - do different shift types for Carry flag')
+            # FIXME: make the operands handle a ThumbExpandImm_C (for immediate) or Shift_C (for RegShiftImm), etc...
+            self.setFlag(PSR_C_bit, e_bits.is_unsigned_carry(ures, dsize))
+       
+    def i_rsb(self, op):
+        src1 = self.getOperValue(op, 1)
+        src2 = self.getOperValue(op, 2)
+       
+        #FIXME PDE and flags
+        if src1 is None or src2 is None:
+            self.undefFlags()
+            self.setOperValue(op, 0, None)
+            return
+
+        Sflag = op.iflags & IF_PSR_S
+        Carry = 1
+        dsize = op.opers[0].tsize
+        reg = op.opers[0].reg
+
+        mask = e_bits.u_maxes[dsize]
+        res = self.AddWithCarry(mask ^ src1, src2, Carry, Sflag, reg, dsize)
+
+        self.setOperValue(op, 0, res)
+
+    def i_rsc(self, op):
+        # Src op gets sign extended to dst
+        src1 = self.getOperValue(op, 1)
+        src2 = self.getOperValue(op, 2)
+        #FIXME PDE and flags
+        if src1 is None or src2 is None:
+            self.undefFlags()
+            self.setOperValue(op, 0, None)
+            return
+
+        Sflag = op.iflags & IF_PSR_S
+        Carry = self.getFlag(PSR_C_bit)
+        dsize = op.opers[0].tsize
+        reg = op.opers[0].reg
+
+        mask = e_bits.u_maxes[dsize]
+        res = self.AddWithCarry(src2, mask ^ src1, Carry, Sflag, reg, dsize)
+
+        self.setOperValue(op, 0, res)
+
+    def i_sub(self, op):
+        # Src op gets sign extended to dst
+        #FIXME account for same operand with zero result for PDE
+        if len(op.opers) > 2:
+            src1 = self.getOperValue(op, 1)
+            src2 = self.getOperValue(op, 2)
+        else:
+            src1 = self.getOperValue(op, 0)
+            src2 = self.getOperValue(op, 1)
+
+        dsize = op.opers[0].tsize
+        reg = op.opers[0].reg
+        Sflag = op.iflags & IF_PSR_S
+        mask = e_bits.u_maxes[op.opers[1].tsize]
+
+        if src1 is None or src2 is None:
+            self.undefFlags()
+            return None
+
+        res = self.AddWithCarry(src1, mask ^ src2, 1, Sflag, rd=reg, tsize=dsize)
+        self.setOperValue(op, 0, res)
+
+    i_subs = i_sub
+
+    def i_sbc(self, op):
+        # Src op gets sign extended to dst
+        if len(op.opers) > 2:
+            src1 = self.getOperValue(op, 1)
+            src2 = self.getOperValue(op, 2)
+        else:
+            src1 = self.getOperValue(op, 0)
+            src2 = self.getOperValue(op, 1)
+
+        Sflag = op.iflags & IF_PSR_S
+        Carry = self.getFlag(PSR_C_bit)
+
+        mask = e_bits.u_maxes[op.opers[1].tsize]
+        res = self.AddWithCarry(src1, mask ^ src2, Carry, Sflag, op.opers[0].reg)
+
+        self.setOperValue(op, 0, res)
+
+    def i_eor(self, op):
+        dsize = op.opers[0].tsize
+        if len(op.opers) == 3:
+            src1 = self.getOperValue(op, 1)
+            src2 = self.getOperValue(op, 2)
+        else:
+            src1 = self.getOperValue(op, 0)
+            src2 = self.getOperValue(op, 1)
+       
+        #FIXME PDE and flags
+        if src1 is None or src2 is None:
+            self.undefFlags()
+            self.setOperValue(op, 0, None)
+            return
+
+        usrc1 = e_bits.unsigned(src1, dsize)
+        usrc2 = e_bits.unsigned(src2, dsize)
+
+        ures = usrc1 ^ usrc2
+
+        self.setOperValue(op, 0, ures)
+
+        curmode = self.getProcMode()
+        if op.iflags & IF_PSR_S:
+            if op.opers[0].reg == 15:
+                if (curmode != PM_sys and curmode != PM_usr):
+                    self.setCPSR(self.getSPSR(curmode))
+                else:
+                    raise Exception("Messed up opcode...  adding to r15 from PM_usr or PM_sys")
+
+            self.setFlag(PSR_N_bit, e_bits.is_signed(ures, dsize))
+            self.setFlag(PSR_Z_bit, not ures)
+            self.setFlag(PSR_C_bit, e_bits.is_unsigned_carry(ures, dsize))
+            self.setFlag(PSR_V_bit, e_bits.is_signed_overflow(ures, dsize))
+
+    def i_cmp(self, op):
+        # Src op gets sign extended to dst
+        src1 = self.getOperValue(op, 0)
+        src2 = self.getOperValue(op, 1)
+        dsize = op.opers[0].tsize
+        reg = op.opers[0].reg
+        Sflag = 1
+        mask = e_bits.u_maxes[dsize]
+
+        #print 'cmp', hex(src1), hex(src2)
+        res2 = self.AddWithCarry(src1, mask^src2, 1, Sflag, rd=reg, tsize=dsize)
+
+    def i_cmn(self, op):
+        # Src op gets sign extended to dst
+        src1 = self.getOperValue(op, 0)
+        src2 = self.getOperValue(op, 1)
+        dsize = op.opers[0].tsize
+        reg = op.opers[0].reg
+        Sflag = 1
+
+        #print 'cmn', hex(src1), hex(src2)
+        res2 = self.AddWithCarry(src1, src2, carry=0, Sflag=Sflag, rd=reg, tsize=dsize)
+
+    i_cmps = i_cmp
+
+    def i_uxth(self, op):
+        val = self.getOperValue(op, 1)
+        self.setOperValue(op, 0, val)
+
+    i_uxtb = i_uxth
+
+    def i_uxtah(self, op):
+        val = self.getOperValue(op, 2)
+        val += self.getOperValue(op, 1)
+
+        self.setOperValue(op, 0, val)
+
+    i_uxtab = i_uxtah
+
+    def i_sxth(self, op):
+        slen = op.opers[1].tsize
+        dlen = op.opers[0].tsize
+
+        val = self.getOperValue(op, 1)
+        val = e_bits.sign_extend(val, slen, dlen)
+        self.setOperValue(op, 0, val)
+
+    i_sxtb = i_sxth
+
+    def i_sxtah(self, op):
+        slen = op.opers[2].tsize
+        dlen = op.opers[0].tsize
+
+        val = self.getOperValue(op, 2)
+        val = e_bits.sign_extend(val, slen, dlen)
+        val += self.getOperValue(op, 1)
+
+        self.setOperValue(op, 0, val)
+
+    i_sxtab = i_sxtah
+
+    def i_bic(self, op):
+        dsize = op.opers[0].tsize
+        if len(op.opers) == 3:
+            val = self.getOperValue(op, 1)
+            const = self.getOperValue(op, 2)
+        else:
+            val = self.getOperValue(op, 0)
+            const = self.getOperValue(op, 1)
+
+        val &= ~const
+        self.setOperValue(op, 0, val)
+
+        Sflag = op.iflags & IF_PSR_S # FIXME: IF_PSR_S???
+        if Sflag:
+            self.setFlag(PSR_N_bit, e_bits.is_signed(val, dsize))
+            self.setFlag(PSR_Z_bit, not val)
+            self.setFlag(PSR_C_bit, e_bits.is_unsigned_carry(val, dsize))
+            self.setFlag(PSR_V_bit, e_bits.is_signed_overflow(val, dsize))
+
+    def i_swi(self, op):
+        # this causes a software interrupt.  we need a good way to handle interrupts
+        self.interrupt(op.opers[0].val)
+
+    def i_mul(self, op):
+        dsize = op.opers[0].tsize
+        Rn = self.getOperValue(op, 1)
+        if len(op.opers) == 3:
+            Rm = self.getOperValue(op, 2)
+        else:
+            Rm = self.getOperValue(op, 0)
+        val = Rn * Rm
+        self.setOperValue(op, 0, val)
+
+        Sflag = op.iflags & IF_PSR_S
+        if Sflag:
+            self.setFlag(PSR_N_bit, e_bits.is_signed(val, dsize))
+            self.setFlag(PSR_Z_bit, not val)
+            self.setFlag(PSR_C_bit, e_bits.is_unsigned_carry(val, dsize))
+            self.setFlag(PSR_V_bit, e_bits.is_signed_overflow(val, dsize))
+
+    def i_lsl(self, op):
+        dsize = op.opers[0].tsize
+        if len(op.opers) == 3:
+            src = self.getOperValue(op, 1)
+            imm5 = self.getOperValue(op, 2)
+
+        else:
+            src = self.getOperValue(op, 0)
+            imm5 = self.getOperValue(op, 1)
+
+        val = src << imm5
+        carry = (val >> 32) & 1
+        self.setOperValue(op, 0, val)
+
+        Sflag = op.iflags & IF_PSR_S
+        if Sflag:
+            self.setFlag(PSR_N_bit, e_bits.is_signed(val, dsize))
+            self.setFlag(PSR_Z_bit, not val)
+            self.setFlag(PSR_C_bit, carry)
+
+    def i_lsr(self, op):
+        dsize = op.opers[0].tsize
+        if len(op.opers) == 3:
+            src = self.getOperValue(op, 1)
+            shval = self.getOperValue(op, 2) & 0xff
+
+        else:
+            src = self.getOperValue(op, 0)
+            shval = self.getOperValue(op, 1) & 0xff
+
+        if shval:
+            val = src >> shval
+            carry = (src >> (shval-1)) & 1
+        else:
+            val = src
+            carry = 0
+
+        self.setOperValue(op, 0, val)
+
+        Sflag = op.iflags & IF_PSR_S
+        if Sflag:
+            self.setFlag(PSR_N_bit, e_bits.is_signed(val, dsize))
+            self.setFlag(PSR_Z_bit, not val)
+            self.setFlag(PSR_C_bit, carry)
+
+    def i_asr(self, op):
+        dsize = op.opers[0].tsize
+        if len(op.opers) == 3:
+            src = self.getOperValue(op, 1)
+            srclen = op.opers[1].tsize
+            shval = self.getOperValue(op, 2) & 0xff
+
+        else:
+            src = self.getOperValue(op, 0)
+            srclen = op.opers[0].tsize
+            shval = self.getOperValue(op, 1) & 0xff
+
+        if shval:
+            if e_bits.is_signed(src, srclen):
+                val = (src >> shval) | top_bits_32[shval]
+            else:
+                val = (src >> shval)
+            carry = (src >> (shval-1)) & 1
+        else:
+            val = src
+            carry = 0
+
+        self.setOperValue(op, 0, val)
+
+        Sflag = op.iflags & IF_PSR_S
+        if Sflag:
+            self.setFlag(PSR_N_bit, e_bits.is_signed(val, dsize))
+            self.setFlag(PSR_Z_bit, not val)
+            self.setFlag(PSR_C_bit, carry)
+
+    def i_ror(self, op):
+        dsize = op.opers[0].tsize
+        if len(op.opers) == 3:
+            src = self.getOperValue(op, 1)
+            imm5 = self.getOperValue(op, 2) & 0b11111
+
+        else:
+            src = self.getOperValue(op, 0)
+            imm5 = self.getOperValue(op, 1) & 0b11111
+
+        val = ((src >> imm5) | (src << 32-imm5)) & 0xffffffff
+        carry = (val >> 31) & 1
+        self.setOperValue(op, 0, val)
+
+        Sflag = op.iflags & IF_PSR_S
+        if Sflag:
+            self.setFlag(PSR_N_bit, e_bits.is_signed(val, dsize))
+            self.setFlag(PSR_Z_bit, not val)
+            self.setFlag(PSR_C_bit, carry)
+
+    def i_rrx(self, op):
+        dsize = op.opers[0].tsize
+        if len(op.opers) == 3:
+            src = self.getOperValue(op, 1)
+            imm5 = self.getOperValue(op, 2)
+
+        else:
+            src = self.getOperValue(op, 0)
+            imm5 = self.getOperValue(op, 1)
+
+        carry_in = self.getFlag(PSR_C_bit)
+
+        val = (carry_in<<31) | (src >> 1)
+        carry = src & 1
+        self.setOperValue(op, 0, val)
+
+        Sflag = op.iflags & IF_PSR_S
+        if Sflag:
+            self.setFlag(PSR_N_bit, e_bits.is_signed(val, dsize))
+            self.setFlag(PSR_Z_bit, not val)
+            self.setFlag(PSR_C_bit, carry)
+
+
+    def i_cbz(self, op):
+        regval = op.getOperValue(0)
+        imm32 = op.getOperValue(1)
+        if not regval:
+            return imm32
+
+    def i_cbnz(self, op):
+        regval = op.getOperValue(0)
+        imm32 = op.getOperValue(1)
+        if regval:
+            return imm32
+
+    def i_smulbb(self, op):
+        oper1 = self.getOperValue(op, 1) & 0xffff
+        oper2 = self.getOperValue(op, 2) & 0xffff
+
+        s1 = e_bits.signed(oper1 & 0xffff, 2)
+        s2 = e_bits.signed(oper2 & 0xffff, 2)
+
+        result = s1 * s2
+
+        self.setOperValue(op, 0, result)
+
+    def i_smultb(self, op):
+        oper1 = self.getOperValue(op, 1) & 0xffff
+        oper2 = self.getOperValue(op, 2) & 0xffff
+
+        s1 = e_bits.signed(oper1 >> 16, 2)
+        s2 = e_bits.signed(oper2 & 0xffff, 2)
+
+        result = s1 * s2
+
+        self.setOperValue(op, 0, result)
+
+    def i_smulbt(self, op):
+        oper1 = self.getOperValue(op, 1) & 0xffff
+        oper2 = self.getOperValue(op, 2) & 0xffff
+
+        s1 = e_bits.signed(oper1 & 0xffff, 2)
+        s2 = e_bits.signed(oper2 >> 16, 2)
+
+        result = s1 * s2
+
+        self.setOperValue(op, 0, result)
+
+    def i_smultt(self, op):
+        oper1 = self.getOperValue(op, 1) & 0xffff
+        oper2 = self.getOperValue(op, 2) & 0xffff
+
+        s1 = e_bits.signed(oper1 >>16, 2)
+        s2 = e_bits.signed(oper2 >>16, 2)
+
+        result = s1 * s2
+
+        self.setOperValue(op, 0, result)
+
+    def i_tbb(self, op):
+        # TBB and TBH both come here.
+        ### DEBUGGING
+        #raw_input("ArmEmulator:  TBB")
+        tsize = op.opers[0].tsize
+        tbl = []
+        '''
+        base = op.opers[0].getOperValue(op, self)
+        val0 = self.readMemValue(base, 4)
+        if val0 > 0x100 + base:
+            print "ummmm.. Houston we got a problem.  first option is a long ways beyond BASE"
+
+        va = base
+        while va < val0:
+            tbl.append(self.readMemValue(va, 4))
+            va += tsize
+
+        print "tbb: \n\t" + '\n'.join([hex(x) for x in tbl])
+
+        ###
+        jmptblval = self.getOperAddr(op, 0)
+        jmptbltgt = self.getOperValue(op, 0) + base
+        print "0x%x: 0x%r\njmptblval: 0x%x\njmptbltgt: 0x%x" % (op.va, op, jmptblval, jmptbltgt)
+        raw_input("PRESS ENTER TO CONTINUE")
+        return jmptbltgt
+        '''
+        emu = self
+        basereg = op.opers[0].base_reg
+        if basereg != REG_PC:
+            base = emu.getRegister(basereg)
+        else:
+            base = op.opers[0].va
+            logger.debug("TB base = 0%x", base)
+
+        #base = op.opers[0].getOperValue(op, emu)
+        logger.debug("base: 0x%x" % base)
+        val0 = emu.readMemValue(base, tsize)
+
+        if val0 > 0x200 + base:
+            logger.warn("ummmm.. Houston we got a problem.  first option is a long ways beyond BASE")
+
+        va = base
+        while va < base + val0:
+            nexttgt = emu.readMemValue(va, tsize) * 2
+            logger.debug("0x%x: -> 0x%x", va, nexttgt + base)
+            if nexttgt == 0:
+                logger.warn("Terminating TB at 0-offset")
+                break
+
+            if nexttgt > 0x500:
+                logger.warn("Terminating TB at LARGE - offset  (may be too restrictive): 0x%x", nexttgt)
+                break
+
+            loc = emu.vw.getLocation(va)
+            if loc is not None:
+                logger.warn("Terminating TB at Location/Reference")
+                logger.warn("%x, %d, %x, %r", loc)
+                break
+
+            tbl.append(nexttgt)
+            va += tsize
+
+        logger.debug("%s: \n\t"%op.mnem + '\n\t'.join([hex(x+base) for x in tbl]))
+
+        ###
+        # for workspace emulation analysis, let's check the index register for sanity.
+        idxreg = op.opers[0].offset_reg
+        idx = emu.getRegister(idxreg)
+        if idx > 0x40000000:
+            emu.setRegister(idxreg, 0) # args handed in can be replaced with index 0
+
+        jmptblbase = op.opers[0]._getOperBase(emu)
+        jmptblval = emu.getOperAddr(op, 0)
+        jmptbltgt = (emu.getOperValue(op, 0) * 2) + base
+        logger.debug("0x%x: 0x%r\njmptblbase: 0x%x\njmptblval:  0x%x\njmptbltgt:  0x%x", op.va, op, jmptblbase, jmptblval, jmptbltgt)
+        #raw_input("PRESS ENTER TO CONTINUE")
+        return jmptbltgt
+
+    i_tbh = i_tbb
+
+    def i_ubfx(self, op):
+        src = self.getOperValue(op, 1)
+        lsb = self.getOperValue(op, 2)
+        width = self.getOperValue(op, 3)
+        mask = (1 << width) - 1
+
+        val = (src>>lsb) & mask
+
+        self.setOperValue(op, 0, val)
+
+
+    def i_umull(self, op):
+        logger.warn("FIXME: 0x%x: %s - in emu", op.va, op)
+    def i_umlal(self, op):
+        logger.warn("FIXME: 0x%x: %s - in emu", op.va, op)
+    def i_smull(self, op):
+        logger.warn("FIXME: 0x%x: %s - in emu", op.va, op)
+    def i_umull(self, op):
+        logger.warn("FIXME: 0x%x: %s - in emu", op.va, op)
+    def i_umull(self, op):
+        logger.warn("FIXME: 0x%x: %s - in emu", op.va, op)
+
+    def i_mla(self, op):
+        src1 = self.getOperValue(op, 1)
+        src2 = self.getOperValue(op, 2)
+        src3 = self.getOperValue(op, 3)
+
+        val = (src1 * src2 + src3) & 0xffffffff
+
+        self.setOperValue(op, 0, val)
+
+        Sflag = op.iflags & IF_PSR_S
+        if Sflag:
+            self.setFlag(PSR_N_bit, e_bits.is_signed(val, 4))
+            self.setFlag(PSR_Z_bit, not val)
+
+
+
+
+
+    def i_cps(self, op):
+        logger.warn("CPS: 0x%x  %r" % (op.va, op))
+
+    def i_pld2(self, op):
+        logger.warn("FIXME: 0x%x: %s - in emu" % (op.va, op))
+
+    def _getCoProc(self, cpnum):
+        if cpnum > 15:
+            raise Exception("Emu error: Attempting to access coproc %d (max: 15)" % cpnum)
+
+        coproc = self.coprocs[cpnum]
+        return coproc
+
+
+    # Coprocessor Instructions
+    def i_stc(self, op):
+        cpnum = op.opers[0].val
+        coproc = self._getCoProc(cpnum)
+        coproc.stc(op.opers)
+
+    def i_ldc(self, op):
+        cpnum = op.opers[0].val
+        coproc = self._getCoProc(cpnum)
+        coproc.ldc(op.opers)
+
+    def i_cdp(self, op):
+        cpnum = op.opers[0].val
+        coproc = self._getCoProc(cpnum)
+        coproc.cdp(op.opers)
+
+    def i_mrc(self, op):
+        cpnum = op.opers[0].val
+        coproc = self._getCoProc(cpnum)
+        coproc.mrc(op.opers)
+
+    def i_mrrc(self, op):
+        cpnum = op.opers[0].val
+        coproc = self._getCoProc(cpnum)
+        coproc.mrrc(op.opers)
+
+    def i_mcr(self, op):
+        cpnum = op.opers[0].val
+        coproc = self._getCoProc(cpnum)
+        coproc.mrrc(op.opers)
+
+    def i_mcrr(self, op):
+        cpnum = op.opers[0].val
+        coproc = self._getCoProc(cpnum)
+        coproc.mcrr(op.opers)
+
+    def i_nop(self, op):
+        pass
+
+    i_dmb = i_nop
+    i_dsb = i_nop
+    i_isb = i_nop
+
+    
         ############################################## WORK IN PROGRESS ###############################
+
+    """
         elif isinstance(oper, e_arm.i386RegMemOper):
         elif isinstance(oper, e_i386.i386SibOper):
 
@@ -184,41 +1761,7 @@ class A32SymbolikTranslator(vsym_trans.SymbolikTranslator):
                 return o_add(seg, Const(oper.imm, self._psize), self._psize)
 
             return Const(oper.imm, self._psize)
-
-    def getOperObj(self, op, idx):
-        '''
-        Translate the specified operand to a symbol compatible with
-        the symbolic translation system.
-        '''
-        oper = op.opers[idx]
-        if oper.isReg():
-            return self.getRegObj(oper.reg)
-
-        elif oper.isDeref():
-            addrsym = self.getOperAddrObj(op, idx)
-            return self.effReadMemory(addrsym, Const(oper.tsize, self._psize))
-
-        elif oper.isImmed():
-            ret = oper.getOperValue(op, self)
-            return Const(ret, self._psize)
-
-        raise Exception('Unknown operand class: %s' % oper.__class__.__name__)
-
-    def setOperObj(self, op, idx, obj):
-        '''
-        Set the operand to the new symbolic object.
-        '''
-        oper = op.opers[idx]
-        if oper.isReg():
-            self.setRegObj(oper.reg, obj)
-            return
-
-        if oper.isDeref():
-            addrsym = self.getOperAddrObj(op, idx)
-            return self.effWriteMemory(addrsym, Const(oper.tsize, self._psize), obj)
-
-        raise Exception('Umm..... really?')
-
+"""
     def __get_dest_maxes(self, op):
         tsize = op.opers[0].tsize
         smax = e_bits.s_maxes[tsize]
@@ -794,13 +2337,13 @@ class A32SymbolikTranslator(vsym_trans.SymbolikTranslator):
         data = self.getOperObj(op, 1)
         self.setOperObj(op, 0, data)
 
-class i386SymbolikTranslator(IntelSymbolikTranslator):
-    __arch__ = e_i386.i386Module
-    __ip__ = 'eip' # we could use regctx.getRegisterName if we want.
-    __sp__ = 'esp' # we could use regctx.getRegisterName if we want.
-    __bp__ = 'ebp' # we could use regctx.getRegisterName if we want.
-    __srcp__ = 'esi'
-    __destp__ = 'edi'
+#class i386SymbolikTranslator(IntelSymbolikTranslator):
+    #__arch__ = e_i386.i386Module
+    #__ip__ = 'eip' # we could use regctx.getRegisterName if we want.
+    #__sp__ = 'esp' # we could use regctx.getRegisterName if we want.
+    #__bp__ = 'ebp' # we could use regctx.getRegisterName if we want.
+    #__srcp__ = 'esi'
+    #__destp__ = 'edi'
 
 
     def i_pushad(self, op):
@@ -826,7 +2369,7 @@ class i386SymbolikTranslator(IntelSymbolikTranslator):
         esp = self.getRegObj(e_i386.REG_ESP)
         self.effSetVariable('edi', Mem(esp, Const(4, self._psize)))
         self.effSetVariable('esi', Mem(esp + Const(4, self._psize), Const(4, self._psize)))
-        self.effSetVariable('ebp', Mem(esp + Const(8, self._psize), Const(4, self._psize)))
+        self.effSetVariable('bp', Mem(esp + Const(8, self._psize), Const(4, self._psize)))
         self.effSetVariable('ebx', Mem(esp + Const(16, self._psize), Const(4, self._psize)))
         self.effSetVariable('edx', Mem(esp + Const(20, self._psize), Const(4, self._psize)))
         self.effSetVariable('ecx', Mem(esp + Const(24, self._psize), Const(4, self._psize)))
@@ -863,28 +2406,16 @@ class i386SymbolikTranslator(IntelSymbolikTranslator):
         di += Const(4, self._psize)
         self.effSetVariable(self.__destp__, di)
 
-class i386ArgDefSymEmu(ArgDefSymEmu):
-    __xlator__ = i386SymbolikTranslator
+class A32ArgDefSymEmu(ArgDefSymEmu):
+    __xlator__ = A32SymbolikTranslator
 
-class i386SymCallingConv(vsym_callconv.SymbolikCallingConvention):
-    __argdefemu__ = i386ArgDefSymEmu
+class A32SymCallingConv(vsym_callconv.SymbolikCallingConvention):
+    __argdefemu__ = A32ArgDefSymEmu
 
-class StdCall(i386SymCallingConv, e_i386.StdCall):
+class ArmCall(A32SymCallingConv, e_arm.ArmArchitectureProcedureCall):
     pass
 
-class Cdecl(i386SymCallingConv, e_i386.Cdecl):
-    pass
-
-class ThisCall(i386SymCallingConv, e_i386.ThisCall):
-    pass
-
-class MsFastCall(i386SymCallingConv, e_i386.MsFastCall):
-    pass
-
-class BFastCall(i386SymCallingConv, e_i386.BFastCall):
-    pass
-
-class i386SymFuncEmu(vsym_analysis.SymbolikFunctionEmulator):
+class A32SymFuncEmu(vsym_analysis.SymbolikFunctionEmulator):
 
     __width__ = 4
 
@@ -893,50 +2424,46 @@ class i386SymFuncEmu(vsym_analysis.SymbolikFunctionEmulator):
         vsym_analysis.SymbolikFunctionEmulator.__init__(self, vw)
         self.setStackBase(0xbfbff000, 16384)
 
-        self.addCallingConvention('cdecl', Cdecl())
-        self.addCallingConvention('stdcall', StdCall())
-        self.addCallingConvention('thiscall', ThisCall())
-        self.addCallingConvention('bfastcall', BFastCall())
-        self.addCallingConvention('msfastcall', MsFastCall())
+        self.addCallingConvention('armcall', ArmCall())
         # FIXME possibly decide this by platform/format?
-        self.addCallingConvention(None, Cdecl())
+        self.addCallingConvention(None, ArmCall())
 
-        self.addFunctionCallback('ntdll.eh_prolog', self._eh_prolog)
-        self.addFunctionCallback('ntdll.seh3_prolog', self._seh3_prolog)
-        self.addFunctionCallback('ntdll.seh3_epilog', self._seh3_epilog)
-        self.addFunctionCallback('ntdll._alloca_probe', self.alloca_probe)
+        #self.addFunctionCallback('ntdll.eh_prolog', self._eh_prolog)
+        #self.addFunctionCallback('ntdll.seh3_prolog', self._seh3_prolog)
+        #self.addFunctionCallback('ntdll.seh3_epilog', self._seh3_epilog)
+        #self.addFunctionCallback('ntdll._alloca_probe', self.alloca_probe)
 
         #self.writeSymMemory( Mem(Var('fs') + 292, 4)
 
     def getStackCounter(self):
-        return self.getSymVariable('esp')
+        return self.getSymVariable('sp')
 
     def setStackCounter(self, symobj):
-        self.setSymVariable('esp', symobj)
+        self.setSymVariable('sp', symobj)
 
     def _eh_prolog(self, emu, fname, argv):
         
-        # swap out [ esp ] (saved eip) to ebp
-        # and set ebp to current esp (std frame)
-        ebp = emu.getSymVariable('ebp')
-        esp = emu.getSymVariable('esp')
+        # swap out [ sp ] (saved eip) to bp
+        # and set bp to current sp (std frame)
+        bp = emu.getSymVariable('bp')
+        sp = emu.getSymVariable('sp')
         eax = emu.getSymVariable('eax')
-        emu.writeSymMemory(esp, ebp)
-        emu.setSymVariable('ebp', esp)
+        emu.writeSymMemory(sp, bp)
+        emu.setSymVariable('bp', sp)
 
         # now carry out 3 symbolik pushes
-        esp -= Const(4, 4)
-        emu.writeSymMemory(esp, Var('eh_ffffffff',4))
-        esp -= Const(4, 4)
-        emu.writeSymMemory(esp, eax)
-        esp -= Const(4, 4)
-        emu.writeSymMemory(esp, Var('eh_c0c0c0c0',4))
-        self.setSymVariable('esp', esp)
+        sp -= Const(4, 4)
+        emu.writeSymMemory(sp, Var('eh_ffffffff',4))
+        sp -= Const(4, 4)
+        emu.writeSymMemory(sp, eax)
+        sp -= Const(4, 4)
+        emu.writeSymMemory(sp, Var('eh_c0c0c0c0',4))
+        self.setSymVariable('sp', sp)
 
         return eax
 
     def alloca_probe(self, emu, fname, argv):
-        esp = emu.getSymVariable('esp')
+        sp = emu.getSymVariable('sp')
         eax = emu.getSymVariable('eax')
         # Update the stack size if eax is discrete
         if eax.isDiscrete(emu=emu):
@@ -945,31 +2472,31 @@ class i386SymFuncEmu(vsym_analysis.SymbolikFunctionEmulator):
             stacksize = emu.getStackSize()
             emu.setStackSize( stacksize + stackadd )
 
-        emu.setSymVariable('esp', esp-eax)
+        emu.setSymVariable('sp', sp-eax)
         #if eax < 0x1000:
             #eax -= Const(4, self.__width__)
-            #emu.setSymVariable('esp', esp-eax)
+            #emu.setSymVariable('sp', sp-eax)
         #else:
             #while eax > 0x1000:
                 #eax -= Const(0x1000, self.__width__)
-                #emu.setSymVariable('esp', esp-Const(0x1000, self.__width__))
-                #esp -= Const(0x1000, self.__width__)
-            #emu.setSymVariable('esp', esp-eax)
+                #emu.setSymVariable('sp', sp-Const(0x1000, self.__width__))
+                #sp -= Const(0x1000, self.__width__)
+            #emu.setSymVariable('sp', sp-eax)
 
     def _seh3_prolog(self, emu, fname, argv):
 
         scopetable, localsize = argv
-        esp = emu.getSymVariable('esp')
+        sp = emu.getSymVariable('sp')
 
-        emu.writeSymMemory(esp + Const(4, self.__width__),  emu.getSymVariable('ebp'))
-        emu.writeSymMemory(esp, scopetable)
-        emu.writeSymMemory(esp - Const(4, self.__width__), Var('ntdll.seh3_handler', 4))     # push
-        emu.writeSymMemory(esp - Const(8, self.__width__), Var('saved_seh3_scopetable', 4))  # push
-        emu.writeSymMemory(esp - Const(12, self.__width__), emu.getSymVariable('ebx'))
-        emu.writeSymMemory(esp - Const(16, self.__width__), emu.getSymVariable('esi'))
-        emu.writeSymMemory(esp - Const(20, self.__width__), emu.getSymVariable('edi'))
-        emu.setSymVariable('esp', (esp - Const(20, self.__width__)) - localsize)
-        emu.setSymVariable('ebp', (esp + Const(4, self.__width__)))
+        emu.writeSymMemory(sp + Const(4, self.__width__),  emu.getSymVariable('bp'))
+        emu.writeSymMemory(sp, scopetable)
+        emu.writeSymMemory(sp - Const(4, self.__width__), Var('ntdll.seh3_handler', 4))     # push
+        emu.writeSymMemory(sp - Const(8, self.__width__), Var('saved_seh3_scopetable', 4))  # push
+        emu.writeSymMemory(sp - Const(12, self.__width__), emu.getSymVariable('ebx'))
+        emu.writeSymMemory(sp - Const(16, self.__width__), emu.getSymVariable('esi'))
+        emu.writeSymMemory(sp - Const(20, self.__width__), emu.getSymVariable('edi'))
+        emu.setSymVariable('sp', (sp - Const(20, self.__width__)) - localsize)
+        emu.setSymVariable('bp', (sp + Const(4, self.__width__)))
 
         return scopetable
 
@@ -978,18 +2505,17 @@ class i386SymFuncEmu(vsym_analysis.SymbolikFunctionEmulator):
         esi = emu.getSymVariable('esi')
         ebx = emu.getSymVariable('ebx')
 
-        esp = emu.getSymVariable('esp')
+        sp = emu.getSymVariable('sp')
         # FIXME do seh restore...
         emu.setSymVariable('edi', edi)
         emu.setSymVariable('esi', esi)
         emu.setSymVariable('ebx', ebx)
-        ebp = emu.getSymVariable('ebp')
-        savedbp = emu.readSymMemory(ebp, Const(4, self.__width__))
-        emu.setSymVariable('ebp', savedbp)
-        emu.setSymVariable('esp', ebp + Const(4, self.__width__))
+        bp = emu.getSymVariable('bp')
+        savedbp = emu.readSymMemory(bp, Const(4, self.__width__))
+        emu.setSymVariable('bp', savedbp)
+        emu.setSymVariable('sp', bp + Const(4, self.__width__))
         return emu.getSymVariable('eax')
 
-class i386SymbolikAnalysisContext(vsym_analysis.SymbolikAnalysisContext):
-    __xlator__ = i386SymbolikTranslator
-    __emu__ = i386SymFuncEmu
-"""
+class A32SymbolikAnalysisContext(vsym_analysis.SymbolikAnalysisContext):
+    __xlator__ = A32SymbolikTranslator
+    __emu__ = A32SymFuncEmu
