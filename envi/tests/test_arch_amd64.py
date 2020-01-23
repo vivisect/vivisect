@@ -115,7 +115,7 @@ amd64MultiByteOpcodes = [
     ('PMULLW (66)', '660faa41414141', 'rsm ', 'rsm '),
     ('CMPXCH8B', '0fc70a', 'cmpxch8b qword [rdx]', 'cmpxch8b qword [rdx]'),
     ('MOVD (66)',   '660f7ecb414141', 'movd ebx,xmm1', 'movd ebx,xmm1'),
-    ('MOVD', '66480f7ef8', 'movd rax,xmm7', 'movd rax,xmm7'), # TODO: REX.W needs to be able to change the opcode name
+    ('MOVD', '66480f7ef8', 'movd rax,xmm7', 'movd rax,xmm7'),  # TODO: REX.W needs to be able to change the opcode name
     ('MOVD', '0F6E0D41414100', 'movd mm1,dword [rip + 4276545]', 'movd mm1,dword [rip + 4276545]'),
     ('MOVQ', '0F6FCB', 'movq mm1,mm3', 'movq mm1,mm3'),
     ('PSRAW',  '0FE1CA4141', 'psraw mm1,mm2', 'psraw mm1,mm2'),
@@ -195,7 +195,6 @@ amd64MultiByteOpcodes = [
     ('MOVBE 4', '0F38F15110', 'movbe dword [rcx + 16],edx', 'movbe dword [rcx + 16],edx'),
     ('MOVBE 5', '0F38F102', 'movbe dword [rdx],eax', 'movbe dword [rdx],eax'),
     ('MOVBE 6', '0F38F10541414141', 'movbe dword [rip + 1094795585],eax', 'movbe dword [rip + 1094795585],eax'),
-    # TODO: Need to wrap in support for things like fstcw and fstenv, which overlap with wait
     # TODO: need to make sure 66 <REX> stuff works
     ('CRC 1', 'f20f38f0e8', 'crc32 ebp,al', 'crc32 ebp,al'),
     ('CRC 2', '66f20f38f1C3', 'crc32 eax,bx', 'crc32 eax,bx'),
@@ -402,6 +401,8 @@ amd64MultiByteOpcodes = [
     ('MAXPD 2', '66450f5f85c4000000', 'maxpd xmm8,oword [r13 + 196]', 'maxpd xmm8,oword [r13 + 196]'),
     ('MAXPD 3', '66460f5f04cdc4000000', 'maxpd xmm8,oword [0x000000c4 + r9 * 8]', 'maxpd xmm8,oword [0x000000c4 + r9 * 8]'),
     ('MAXPD 4', '66440f5fc1', 'maxpd xmm8,xmm1', 'maxpd xmm8,xmm1'),
+
+    ('WAIT', '9b', 'wait ', 'wait '),  # TODO: this needs to be able to change the opcode too
 ]
 
 amd64VexOpcodes = [
