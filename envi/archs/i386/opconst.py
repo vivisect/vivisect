@@ -242,6 +242,7 @@ cpu_PENTMMX = 0x00008000
 cpu_PENTIUM2 = 0x00009000
 cpu_AMD64 = 0x0000a000
 cpu_AESNI = 0x0000b000
+cpu_AVX   = 0x0000c000
 
 #eventually, change this for your own codes
 #ADDEXP_SCALE_OFFSET= 0 
