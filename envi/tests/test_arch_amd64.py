@@ -96,6 +96,11 @@ amd64MultiByteOpcodes = [
     ('NOT', '66F7D0', 'not ax', 'not ax'),
     ('NOT 2', 'F7D0', 'not eax', 'not eax'),
     ('PUSH', '6653', 'push bx', 'push bx'),
+    ('CMPPS 0', '440fc2e35a', 'cmpps xmm12,xmm3,90', 'cmpps xmm12,xmm3,90'),
+    ('CMPPS 1', '440fc224254a4a4a4a53', 'cmpps xmm12,oword [0x4a4a4a4a],83', 'cmpps xmm12,oword [0x4a4a4a4a],83'),
+    ('CMPPS 2', '440fc220ec', 'cmpps xmm12,oword [rax],236', 'cmpps xmm12,oword [rax],236'),
+    ('CMPPS 3', '450fc2a2d4000000cf', 'cmpps xmm12,oword [r10 + 212],207', 'cmpps xmm12,oword [r10 + 212],207'),
+    ('CMPPS 4', '460fc224f5d400000081', 'cmpps xmm12,oword [0x000000d4 + r14 * 8],129', 'cmpps xmm12,oword [0x000000d4 + r14 * 8],129'),
 
     ('CVTTPS2PI', '0f2caaaaaaaa41', 'cvttps2pi mm5,oword [rdx + 1101703850]', 'cvttps2pi mm5,oword [rdx + 1101703850]'),
     ('CVTTSS2SI', 'f30f2caaaaaaaa41', 'cvttss2si ebp,dword [rdx + 1101703850]', 'cvttss2si ebp,dword [rdx + 1101703850]'),
@@ -366,6 +371,7 @@ amd64MultiByteOpcodes = [
     ('ANDNPD 2', '66410f55515a', 'andnpd xmm2,oword [r9 + 90]', 'andnpd xmm2,oword [r9 + 90]'),
     ('ANDNPD 3', '660f5514d55a000000', 'andnpd xmm2,oword [0x0000005a + rdx * 8]', 'andnpd xmm2,oword [0x0000005a + rdx * 8]'),
     ('ANDNPD 4', '660f55d4', 'andnpd xmm2,xmm4', 'andnpd xmm2,xmm4'),
+
     ('ADDPD 0', '660f580c2541414141', 'addpd xmm1,oword [0x41414141]', 'addpd xmm1,oword [0x41414141]'),
     ('ADDPD 1', '66410f5808', 'addpd xmm1,oword [r8]', 'addpd xmm1,oword [r8]'),
     ('ADDPD 2', '66410f584c241b', 'addpd xmm1,oword [r12 + 27]', 'addpd xmm1,oword [r12 + 27]'),
@@ -961,6 +967,14 @@ amd64VexOpcodes = [
     ('VFMADD231PD 7', 'c4c2c5b822', 'vfmadd231pd ymm4,ymm7,yword [r10]', 'vfmadd231pd ymm4,ymm7,yword [r10]'),
     ('VFMADD231PD 8', 'c4c2c5b8a1df000000', 'vfmadd231pd ymm4,ymm7,yword [r9 + 223]', 'vfmadd231pd ymm4,ymm7,yword [r9 + 223]'),
     ('VFMADD231PD 9', 'c4a2c5b824d5df000000', 'vfmadd231pd ymm4,ymm7,yword [0x000000df + r10 * 8]', 'vfmadd231pd ymm4,ymm7,yword [0x000000df + r10 * 8]'),
+    ('VCMPPS 0', 'c5a8c2d1e8', 'vcmpps xmm2,xmm10,xmm1,232', 'vcmpps xmm2,xmm10,xmm1,232'),
+    ('VCMPPS 1', 'c5a8c214254a4a4a4aaa', 'vcmpps xmm2,xmm10,oword [0x4a4a4a4a],170', 'vcmpps xmm2,xmm10,oword [0x4a4a4a4a],170'),
+    ('VCMPPS 2', 'c4c128c216e5', 'vcmpps xmm2,xmm10,oword [r14],229', 'vcmpps xmm2,xmm10,oword [r14],229'),
+    ('VCMPPS 3', 'c4c128c2514efe', 'vcmpps xmm2,xmm10,oword [r9 + 78],254', 'vcmpps xmm2,xmm10,oword [r9 + 78],254'),
+    ('VCMPPS 5', 'c44134c2fd98', 'vcmpps ymm15,ymm9,ymm13,152', 'vcmpps ymm15,ymm9,ymm13,152'),
+    ('VCMPPS 6', 'c534c23c254a4a4a4a2b', 'vcmpps ymm15,ymm9,yword [0x4a4a4a4a],43', 'vcmpps ymm15,ymm9,yword [0x4a4a4a4a],43'),
+    ('VCMPPS 7', 'c44134c27d00d3', 'vcmpps ymm15,ymm9,yword [r13],211', 'vcmpps ymm15,ymm9,yword [r13],211'),
+    ('VCMPPS 8', 'c534c2b8f8000000d1', 'vcmpps ymm15,ymm9,yword [rax + 248],209', 'vcmpps ymm15,ymm9,yword [rax + 248],209'),
 
 ]
 
