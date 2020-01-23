@@ -30,7 +30,8 @@ ADDRMETH_Y = 0x00170000    # Memory addressd by ES:rDI
 ADDRMETH_Z = 0x00180000    # R/M field of MODRM defines XMM register, reg is used as an ext
 ADDRMETH_IRU = 0x00190000   # An immediate value follows, but bits[7:4] signifies an xmm register
 ADDRMETH_IRL = 0x001A0000   # An immediate value follows, but bits[3:0] signifies an xmm register
-ADDRMETH_LAST = ADDRMETH_IRL
+ADDRMETH_VEXV = 0x001B0000  # Maybe Ignore the VEX.vvv field based on what the ModRM bytes are
+ADDRMETH_LAST = ADDRMETH_VEXV
 
 ADDRMETH_VEXSKIP = 0x00800000  # This operand should be skipped if we're not in VEX mode
 
@@ -214,7 +215,7 @@ OP_X = 0x004
 OP_64AUTO = 0x008  # operand is in 64bit mode with amd64!
 OP_REG32AUTO = 0x010  # force only *register* to be 32 bit.
 OP_MEM32AUTO = 0x020  # force only *memory* to be 32 bit.
-OP_NOVEXL = 0x030  # don't apply VEX.L here (even though it's set). TLDR: always 128/xmm reg
+OP_NOVEXL = 0x040  # don't apply VEX.L here (even though it's set). TLDR: always 128/xmm reg
 
 OP_UNK = 0x000
 OP_REG = 0x100

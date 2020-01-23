@@ -181,6 +181,7 @@ class Amd64Disasm(e_i386.i386Disasm):
         self._dis_amethods[opcode86.ADDRMETH_E >> 16] = self.ameth_e
         self._dis_amethods[opcode86.ADDRMETH_IRU>>16] = self.ameth_iru
         self._dis_amethods[opcode86.ADDRMETH_IRL>>16] = self.ameth_irl
+        self._dis_amethods[opcode86.ADDRMETH_VEXV>>16] = self.ameth_vexv
 
         # Over-ride these which are in use by the i386 version of the ASM
         self.ROFFSETMMX   = e_i386.getRegOffset(amd64regs, "mm0")
@@ -543,6 +544,19 @@ class Amd64Disasm(e_i386.i386Disasm):
             o.reg += REX_BUMP
         return o
 
+    def ameth_vexv(self, bytes, offset, tsize, prefixes, operflags):
+        '''
+        So this is here because instructions like movss and movsd are ambiguous in their
+        2/3 operand state without first jumping ahead to the modrm byte. If modrm refers to
+        memory, we skip this state and just go on to the next addressing method. If it refers
+        to a register, pass through to self.ameth_h
+        '''
+        mod, reg, rm = self.parse_modrm(ord(bytes[offset]), prefixes)
+        if mod == 3:
+            return self.ameth_h(bytes, offset, tsize, prefixes, operflags)
+        else:
+            return (0, None)
+
     def ameth_g(self, bytes, offset, tsize, prefixes, operflags):
         osize, oper = e_i386.i386Disasm.ameth_g(self, bytes, offset, tsize, prefixes, operflags)
         # TODO: Disallowing reg_rip is probably wrong
@@ -566,8 +580,6 @@ class Amd64Disasm(e_i386.i386Disasm):
     def ameth_h(self, bytez, offset, tsize, prefixes, operflags):
         osize = 0
         vvvv = (prefixes >> VEX_V_SHIFT) & 0xf
-        if vvvv == 0x0:
-            return (0, None)
         offset = self.ROFFSETSIMD
         if not (prefixes & PREFIX_VEX_L) or operflags & OP_NOVEXL:
             vvvv |= e_i386.RMETA_LOW128
@@ -637,7 +649,7 @@ class Amd64Disasm(e_i386.i386Disasm):
 
         if isinstance(oper, e_i386.i386RegOper):
             if oper.tsize == 4:
-                oper.reg += RMETA_LOW32
+                oper.reg |= RMETA_LOW32
 
     def ameth_e(self, bytes, offset, tsize, prefixes, operflags):
         regbase = 0
