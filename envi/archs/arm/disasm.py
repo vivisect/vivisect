@@ -4070,6 +4070,31 @@ class ArmOperand(envi.Operand):
     def getOperAddr(self, op, emu=None):
         return None
 
+    def getOperObj(self, op):
+        '''
+        Translate the specified operand to a symbol compatible with
+        the symbolic translation system.
+
+        Returns a tuple: (OperObj, AfterEffs)
+        where:
+            OperObj is the symbolic operand
+            AfterEffs is a list of effects which may be applied after this
+                    this allows for ARM's Post-Indexed processing, etc...
+                    None by default
+        '''
+        if self.isReg():
+            return (self.getRegObj(self.reg), None)
+
+        elif self.isDeref():
+            addrsym, aftereffs = self.getOperAddrObj(op, idx)
+            return self.effReadMemory(addrsym, Const(self.tsize, self._psize))
+
+        elif self.isImmed():
+            ret = self.getOperValue(op, self)
+            return (Const(ret, self._psize), None)
+
+        raise Exception('Unknown operand class: %s' % oper.__class__.__name__)
+
     def getOperObj(self, op, emu=None):
         logger.info("ArmOperand: subclass must implement getOperObj (%r)", self.__class__)
         return None
@@ -5037,6 +5062,17 @@ class ArmRegListOper(ArmOperand):
             mcanv.addText('^')
 
     def getOperValue(self, op, emu=None):
+        if emu == None:
+            return None
+        reglist = []
+        for regidx in xrange(16):
+            #FIXME: check processor mode (abort, system, user, etc... use banked registers?)
+            if self.val & (1<<regidx):
+                reg = emu.getRegister(regidx)
+                reglist.append(reg)
+        return reglist
+
+    def getOperObj(self, op, emu=None):
         if emu == None:
             return None
         reglist = []

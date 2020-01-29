@@ -14,59 +14,6 @@ from vivisect.const import *
 from vivisect.symboliks.common import *
 from vivisect.symboliks.constraints import *
 
-# FIXME: move this arch-independent code...
-class ArgDefSymEmu(object):
-    '''
-    An emulator snapped in to return the symbolic representation of
-    a calling convention arg definition.  This is used by getPreCallArgs when
-    called by {get, set}SymbolikArgs.  This allows us to not have to
-    re-implement cc argument parsing *again* for symbolics.
-    '''
-    def __init__(self):
-        self.xlator = self.__xlator__(None)
-
-    def getRegister(self, ridx):
-        '''
-        uses the translators method to return a symbolic object for a
-        register index.
-        '''
-        return self.xlator.getRegObj(ridx)
-
-    def getStackCounter(self):
-        '''
-        uses the translators register ctx to find the sp index and returns a
-        symbolic object for the sp.
-        '''
-        return self.getRegister(self.xlator._reg_ctx._rctx_spindex)
-
-    def setStackCounter(self, value):
-        '''
-        stubbed out so when we re-use deallocateCallSpace we don't get an
-        exception.  we only use the delta returned by deallocateCallSpace; we
-        don't care that it's setting the stack counter.
-        '''
-        pass
-
-    def readMemoryFormat(self, va, fmt):
-        # TODO: we assume psize and le, better way? must be...
-        # FIXME: psize and endian correctness here!
-        if not fmt.startswith('<') and not fmt.endswith('P'):
-            raise Exception('we dont handle this format string')
-
-        if isinstance(va, int) or isinstance(va, long):
-            va = Const(va, self.xlator._psize)
-
-        if len(fmt) == 2:
-            return Mem(va, Const(self.xlator._psize, self.xlator._psize))
-
-        args = []
-        num = int(fmt[1:fmt.index('P')])
-        for i in xrange(num):
-            args.append(Mem(va, Const(self.xlator._psize, self.xlator._psize)))
-            va += Const(self.xlator._psize, self.xlator._psize)
-
-        return args
-
 class A32SymbolikTranslator(vsym_trans.SymbolikTranslator):
     '''
     '''
@@ -77,9 +24,6 @@ class A32SymbolikTranslator(vsym_trans.SymbolikTranslator):
     #__destp__ = ''
     def __init__(self, vw):
         vsym_trans.SymbolikTranslator.__init__(self, vw)
-        self._arch = vw.arch
-        self._psize = self._arch.getPointerSize()
-        self._reg_ctx = self._arch.archGetRegCtx()
 
     def setFlag(self, flagname, state):
         self.effSetVariable(flagname, state)
@@ -87,73 +31,6 @@ class A32SymbolikTranslator(vsym_trans.SymbolikTranslator):
     def getFlag(self, flagname):
         return self.effGetVariable(flagname)
         
-    ### move upstream to SymbolikTranslator
-    def getRegObj(self, regidx):
-        ridx = regidx & 0xffff
-        rname = self._reg_ctx.getRegisterName(ridx)
-        rbitwidth = self._reg_ctx.getRegisterWidth(ridx)
-        val = Var(rname, rbitwidth / 8 )
-
-        # Translate to meta if needed...
-        if ridx != regidx:
-            # we cannot call _xlateToMetaReg since we'd pass in a symbolik
-            # object that would trigger an and operation; the code in envi
-            # obviously is NOT symboliks aware (2nd op in & operation is NOT
-            # a symbolik); so we do it manually here since we are symbolik
-            # aware.
-            rreg, lshift, mask = self._reg_ctx.getMetaRegInfo(regidx)
-            metawidth = e_bits.u_maxes.index(mask)
-            if lshift != 0:
-                val = o_rshift(val, Const(lshift, metawidth), metawidth)
-
-            # We must be explicit about the width!
-            val = o_and(val, Const(mask, metawidth), metawidth)
-
-        return val
-
-    ### move upstream to SymbolikTranslator?
-    def setRegObj(self, regidx, obj):
-        ridx = regidx & 0xffff
-        rname = self._reg_ctx.getRegisterName(ridx)
-        rbitwidth = self._reg_ctx.getRegisterWidth(ridx)
-        val = Var(rname, rbitwidth / 8 )
-
-        # Translate to native if needed...
-        if ridx != regidx:
-            # we cannot call _xlateToNativReg since we'd pass in a symbolik
-            # object that would trigger an or operation; the code in envi
-            # obviously is NOT symboliks aware (2nd op in | operation is NOT
-            # a symbolik); so we do it manually here since we are symbolik
-            # aware.
-            #obj = self._reg_ctx._xlateToNativeReg(regidx, obj)
-            basemask = (2**rbitwidth) - 1
-            rreg, lshift, mask = self._reg_ctx.getMetaRegInfo(regidx)
-            # cut hole in mask
-            finalmask = basemask ^ (mask << lshift)
-            if lshift != 0:
-                obj <<= Const(lshift, rbitwidth / 8)
-
-            obj = obj | (val & Const(finalmask, rbitwidth / 8))
-
-        self.effSetVariable(rname, obj)
-
-    def getOperAddrObj(self, op, idx):
-        '''
-        Returns a Tuple!
-
-        (symOperAddrObj,  (reg, newupdate))
-
-        The second part of the tuple is because sometimes ARM updates a register *after*
-        the address is used.  This second component should be None if nothing needs to 
-        be done for updates.
-
-        This allows the caller to decide whether updates need to be done... and apply 
-        the effects at the appropriate time in the event stream, but leaving the operand
-        responsible for the calculation/etc...
-        '''
-        oper = op.opers[idx]
-        return oper.getOperAddrObj(op, self)
-
     def getOperObj(self, op, idx):
         '''
         Translate the specified operand to a symbol compatible with
@@ -167,45 +44,21 @@ class A32SymbolikTranslator(vsym_trans.SymbolikTranslator):
                     None by default
         '''
         oper = op.opers[idx]
-        if oper.isReg():
-            return (self.getRegObj(oper.reg), None)
 
-        elif oper.isDeref():
-            addrsym, aftereffs = self.getOperAddrObj(op, idx)
-            return self.effReadMemory(addrsym, Const(oper.tsize, self._psize))
+        return oper.getOperObj(op)
 
-        elif oper.isImmed():
-            ret = oper.getOperValue(op, self)
-            return (Const(ret, self._psize), None)
+    ### move upstream to SymbolikTranslator
+    #def doPush(self, val):
+    #    sp = self.getRegObj(REG_SP)
+    #    sp -= Const(self._psize, self._psize)
+    #    self.setRegObj(REG_SP, sp)
+    #    self.effWriteMemory(sp, Const(self._psize, self._psize), val)
 
-        raise Exception('Unknown operand class: %s' % oper.__class__.__name__)
-
-    def setOperObj(self, op, idx, obj):
-        '''
-        Set the operand to the new symbolic object.
-        '''
-        oper = op.opers[idx]
-        if oper.isReg():
-            self.setRegObj(oper.reg, obj)
-            return
-
-        if oper.isDeref():
-            addrsym = self.getOperAddrObj(op, idx)
-            return self.effWriteMemory(addrsym, Const(oper.tsize, self._psize), obj)
-
-        raise Exception('Umm..... really?')
-    
-    def doPush(self, val):
-        sp = self.getRegObj(REG_SP)
-        sp -= Const(4, 4)
-        self.setRegObj(REG_SP, sp)
-        self.writeMemObj(sp, val, Const(4, 4))
-
-    def doPop(self):
-        sp = self.getRegObj(REG_SP)
-        self.setRegObj(REG_SP, sp+Const(4, 4))
-        val = self.readMemObj(sp, Const(4, 4))
-        return val
+    #def doPop(self):
+    #    sp = self.getRegObj(REG_SP)
+    #    self.setRegObj(REG_SP, sp+Const(self._psize, self._psize))
+    #    val = self.effReadMemory(sp, Const(self._psize, self._psize))
+    #    return val
 
     """
     def getProcMode(self):
@@ -457,6 +310,16 @@ class A32SymbolikTranslator(vsym_trans.SymbolikTranslator):
 
         return ures
     """
+    def interrupt(self, val):
+        '''
+        If we run into an interrupt, what do we do?  Handles can be snapped in and used as function calls
+        '''
+        if val >= len(self.int_handlers):
+            logger.critical("FIXME: Interrupt Handler %x is not handled", val)
+
+        handler = self.int_handlers[val]
+        handler(val)
+
     def logicalAnd(self, op):
         opercnt = len(op.opers)
 
@@ -475,16 +338,6 @@ class A32SymbolikTranslator(vsym_trans.SymbolikTranslator):
             self.setFlag(PSR_C_bit, Const(0, 1))
             self.setFlag(PSR_V_bit, Const(0, 1))
         return res
-
-    def interrupt(self, val):
-        '''
-        If we run into an interrupt, what do we do?  Handles can be snapped in and used as function calls
-        '''
-        if val >= len(self.int_handlers):
-            logger.critical("FIXME: Interrupt Handler %x is not handled", val)
-
-        handler = self.int_handlers[val]
-        handler(val)
 
     def default_int_handler(self, val):
         logger.warn("DEFAULT INTERRUPT HANDLER for Interrupt %d (called at 0x%x)", val, self.getProgramCounter())
@@ -521,26 +374,26 @@ class A32SymbolikTranslator(vsym_trans.SymbolikTranslator):
     def i_stm(self, op):
         if len(op.opers) == 2:
             srcreg = op.opers[0].reg
-            addr = self.getOperValue(op,0)
-            regvals = self.getOperValue(op, 1)
+            #addr = self.getOperObj(op, 0)
+            regvals = self.getOperObj(op, 1)
 
             updatereg = op.opers[0].oflags & OF_W
             flags = op.iflags
         else:
             srcreg = REG_SP
-            addr = self.getStackCounter()
+            #addr = self.getStackCounter()
             oper = op.opers[0]
             if isinstance(oper, ArmRegOper):
-                regvals = [ self.getOperValue(op, 0) ]
+                regvals = [ self.getOperObj(op, 0) ]
             else:
-                regvals = self.getOperValue(op, 0)
+                regvals = self.getOperObj(op, 0)
 
             updatereg = 1
             flags = IF_DAIB_B
 
         pc = self.getRegister(REG_PC)       # store for later check
 
-        addr = self.getRegister(srcreg)
+        addr = self.getRegObj(srcreg)
         numregs = len(regvals)
         for vidx in range(numregs):
             if flags & IF_DAIB_B == IF_DAIB_B:
@@ -2406,7 +2259,7 @@ class A32SymbolikTranslator(vsym_trans.SymbolikTranslator):
         di += Const(4, self._psize)
         self.effSetVariable(self.__destp__, di)
 
-class A32ArgDefSymEmu(ArgDefSymEmu):
+class A32ArgDefSymEmu(vsym_emulator.ArgDefSymEmu):
     __xlator__ = A32SymbolikTranslator
 
 class A32SymCallingConv(vsym_callconv.SymbolikCallingConvention):
