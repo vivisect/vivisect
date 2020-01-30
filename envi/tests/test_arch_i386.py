@@ -34,9 +34,12 @@ i386SingleByteOpcodes = [
     ('prefix scas', 'f2ae', 0x40, 'repnz: scasb ', 'repnz: scasb '),
     ('jmp', 'E910000000', 0x40, 'jmp 0x00000055', 'jmp 0x00000055'),
     ('TEST', '84db', 0x40, 'test bl,bl', 'test bl,bl'),
+    ('POP', '5D', 0x40, 'pop ebp', 'pop ebp'),
+    ('POP', '5B', 0x40, 'pop ebx', 'pop ebx'),
 ]
 
 i386MultiByteOpcodes = [
+    ('CMPXCH8B', 'f00fc74d00', 0x40, 'lock: cmpxch8b qword [ebp]', 'lock: cmpxch8b qword [ebp]'),
     ('jmp 2', 'FF248D3A3A3A3A', 0x40, 'jmp dword [0x3a3a3a3a + ecx * 4]', 'jmp dword [0x3a3a3a3a + ecx * 4]'),
     ('MOV', '8B148541414141', 0x40, 'mov edx,dword [0x41414141 + eax * 4]', 'mov edx,dword [0x41414141 + eax * 4]'),
     # ('MOV 2r', '678B14', 0x40, 'mov edx,dword [si]', 'mov edx,dword [si]'),
