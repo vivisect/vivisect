@@ -1,51 +1,46 @@
-import os
+# XXX(rakuyo): move to a tools directory
+
 import sys
 import code
-import optparse
+import argparse
 
 import PE
 
-'''
-For now, all this does is rename files to their exportname and version info.
-(more to come is likely)
-'''
 
-def main():
+def main(argv):
 
-    parser = optparse.OptionParser()
-    parser.add_option('--version', dest='version', default=False, action='store_true')
-    parser.add_option('--resources', dest='resources', default=False, action='store_true')
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--version', dest='version', default=False, action='store_true')
+    parser.add_argument('--resources', dest='resources', default=False, action='store_true')
+    parser.add_argument('--files', dest='files', nargs='+')
 
-    opts,argv = parser.parse_args()
+    opts = parser.parse_args(argv)
 
-    for fname in argv:
+    for fname in opts.files:
 
-        print 'Parsing: %s' % fname
+        print('Parsing: %s' % fname)
 
-        vsver = None
-        expname = None
+        with PE.peFromFileName(fname) as pe:
+            if opts.resources:
+                print('Type Nameid - rva size sample')
+                for rtype, nameid, (rva, size, codepage) in pe.getResources():
+                    hexstr = pe.readAtRva(rva, max(size, 8)).encode('hex')
+                    print('0x%.4x 0x%.4x - 0x%.8x 0x%.8x %s' % (rtype, nameid, rva, size, hexstr))
 
-        pe = PE.peFromFileName(fname)
+            if opts.version:
+                vs = pe.getVS_VERSIONINFO()
+                if vs is None:
+                    print('No VS_VERSIONINFO found!')
 
-        if opts.resources:
-            print('Type Nameid - rva size sample')
-            for rtype,nameid,(rva,size,codepage) in pe.getResources():
-                hexstr = pe.readAtRva(rva, max(size,8)).encode('hex')
-                print('0x%.4x 0x%.4x - 0x%.8x 0x%.8x %s' % (rtype,nameid,rva,size,hexstr))
+                else:
+                    keys = vs.getVersionKeys()
+                    keys.sort()
+                    for k in keys:
+                        val = vs.getVersionValue(k)
+                        print('%s: %r' % (k, val))
 
-        if opts.version:
-            vs = pe.getVS_VERSIONINFO()
-            if vs == None:
-                print 'No VS_VERSIONINFO found!'
+            code.interact(local=locals())
 
-            else:
-                keys = vs.getVersionKeys()
-                keys.sort()
-                for k in keys:
-                    val = vs.getVersionValue(k)
-                    print '%s: %r' % (k, val)
-
-        code.interact(local=locals())
 
 if __name__ == "__main__":
-    sys.exit(main())
+    sys.exit(main(sys.argv[1:]))

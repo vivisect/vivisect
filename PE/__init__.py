@@ -1,5 +1,6 @@
 import os
 import struct
+import contextlib
 
 from cStringIO import StringIO
 
@@ -1104,13 +1105,14 @@ def peFromMemoryObject(memobj, baseaddr):
     fd = vstruct.MemObjFile(memobj, baseaddr)
     return PE(fd, inmem=True)
 
+@contextlib.contextmanager
 def peFromFileName(fname):
     """
-    Utility helper that assures that the file is opened in 
+    Utility helper that assures that the file is opened in
     binary mode which is required for proper functioning.
     """
-    f = file(fname, "rb")
-    return PE(f)
+    with open(fname, "rb") as fd:
+        yield PE(fd)
 
 def peFromBytes(fbytes):
     fd = StringIO(fbytes)
