@@ -5,19 +5,14 @@ if they are code by emulation behaviorial analysis.
 (This module works best very late in the analysis passes)
 """
 import envi
-import vivisect
-import vivisect.reports as viv_rep
-from envi.archs.i386.opconst import *
-import vivisect.impemu.monitor as viv_imp_monitor
+import vivisect.const as v_const
+import vivisect.impemu.monitor as v_i_monitor
 
-from vivisect.const import *
 
-verbose = False
-
-class watcher(viv_imp_monitor.EmulationMonitor):
+class watcher(v_i_monitor.EmulationMonitor):
 
     def __init__(self, vw, tryva):
-        viv_imp_monitor.EmulationMonitor.__init__(self)
+        v_i_monitor.EmulationMonitor.__init__(self)
         self.vw = vw
         self.tryva = tryva
         self.hasret = False
@@ -31,16 +26,14 @@ class watcher(viv_imp_monitor.EmulationMonitor):
     def logAnomaly(self, emu, eip, msg):
         self.badcode = True
         emu.stopEmu()
-        
-        #self.vw.verbprint("Emucode: 0x%.8x (f:0x%.8x) %s" % (eip, self.tryva, msg))
 
     def looksgood(self):
-        if not self.hasret or self.badcode: 
+        if not self.hasret or self.badcode:
             return False
 
         # if there is 1 mnem that makes up over 50% of all instructions then flag it as invalid
         for mnem, count in self.mndist.items():
-            if round(float( float(count) / float(self.insn_count)), 3) >= .67:
+            if round(float(float(count) / float(self.insn_count)), 3) >= .67:
                 return False
 
         return True
@@ -56,20 +49,19 @@ class watcher(viv_imp_monitor.EmulationMonitor):
 
         for mnem, count in self.mndist.items():
             # XXX - CONFIG OPTION
-            if round(float( float(count) / float(self.insn_count)), 3) >= .60:
+            if round(float(float(count) / float(self.insn_count)), 3) >= .60:
                 return False
 
         return True
 
-
     def prehook(self, emu, op, eip):
-        if op.mnem == "out": #FIXME arch specific. see above idea.
+        if op.mnem == "out":  # FIXME arch specific. see above idea.
             emu.stopEmu()
             raise Exception("Out instruction...")
 
         if op in self.badops:
             emu.stopEmu()
-            raise Exception("Hit known BADOP at 0x%.8x %s" % (eip,repr(op)))
+            raise Exception("Hit known BADOP at 0x%.8x %s" % (eip, repr(op)))
 
         if op.iflags & envi.IF_RET:
             self.hasret = True
@@ -83,13 +75,13 @@ class watcher(viv_imp_monitor.EmulationMonitor):
             raise Exception("Fell Through Into Function: %.8x" % eip)
 
         loc = self.vw.getLocation(eip)
-        if loc != None:
+        if loc is not None:
             va, size, ltype, linfo = loc
-            if ltype != vivisect.LOC_OP:
+            if ltype != v_const.LOC_OP:
                 emu.stopEmu()
                 raise Exception("HIT %d AT %.8x" % (ltype, va))
         cnt = self.mndist.get(op.mnem, 0)
-        self.mndist[ op.mnem ] = cnt+1
+        self.mndist[op.mnem] = cnt+1
         self.insn_count += 1
 
         # FIXME do we need a way to terminate emulation here?
@@ -99,6 +91,7 @@ class watcher(viv_imp_monitor.EmulationMonitor):
             self.hasret = True
             emu.stopEmu()
 
+
 def analyze(vw):
 
     flist = vw.getFunctions()
@@ -107,14 +100,15 @@ def analyze(vw):
     vasetrows = []
     while True:
         docode = []
-        bcode  = []
-       
+        bcode = []
+
         vatodo = []
-        vatodo = [ va for va, name in vw.getNames() if vw.getLocation(va) == None ]
-        vatodo.extend( [tova for fromva, tova, reftype, rflags in vw.getXrefs(rtype=REF_PTR) if vw.getLocation(tova) == None] )
+        vatodo = [va for va, name in vw.getNames() if vw.getLocation(va) is None]
+        vatodo.extend([tova for fromva, tova, reftype, rflags in vw.getXrefs(
+            rtype=v_const.REF_PTR) if vw.getLocation(tova) is None])
 
         for va in set(vatodo):
-            if vw.getLocation(va) != None:
+            if vw.getLocation(va) is not None:
                 continue
             if vw.isDeadData(va):
                 continue
@@ -133,7 +127,7 @@ def analyze(vw):
             emu.setEmulationMonitor(wat)
             try:
                 emu.runFunction(va, maxhit=1)
-            except Exception, e:
+            except Exception as e:
                 continue
             if wat.looksgood():
                 docode.append(va)
@@ -152,22 +146,22 @@ def analyze(vw):
 
         docode.sort()
         for va in docode:
-            if vw.getLocation(va) != None:
+            if vw.getLocation(va) is not None:
                 continue
-            # XXX - RP 
+            # XXX - RP
             try:
                 vw.makeFunction(va)
-            except: 
+            except Exception as e:
                 continue
             vasetrows.append((va,))
-    
+
         bcode.sort()
         for va in bcode:
-            if vw.getLocation(va) != None:
+            if vw.getLocation(va) is not None:
                 continue
             vw.makeCode(va)
 
     dlist = vw.getFunctions()
 
-    vw.verbprint("emucode: %d new functions defined (now total: %d)" % (len(dlist)-len(flist), len(dlist)))
-
+    vw.verbprint("emucode: %d new functions defined (now total: %d)" %
+                 (len(dlist)-len(flist), len(dlist)))

@@ -2,8 +2,8 @@
 PE Extended analysis module.
 """
 
-import vivisect
 import envi.bits as e_bits
+
 
 def analyze(vw):
     """
@@ -23,8 +23,6 @@ def analyze(vw):
             if len(bytes[offset+4:offset+8]) != 4:
                 break
 
-            basepage = e_bits.parsebytes(bytes, offset, 4)
-
             vaoff = segva + offset
             vw.makeNumber(vaoff, 4)
             vw.makeName(vaoff, "reloc_chunk_%.8x" % vaoff)
@@ -42,5 +40,3 @@ def analyze(vw):
             offset += recsize
             if recsize == 0:
                 break
-
-

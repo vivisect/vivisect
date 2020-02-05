@@ -14,6 +14,7 @@ except:
 
 import envi.threads as e_threads
 
+
 def idlethread(func):
     '''
     A decorator which causes the function to be called by the qt
@@ -27,10 +28,11 @@ def idlethread(func):
         if iAmQtSafeThread():
             return func(*args, **kwargs)
 
-        guiq.append( (func, args, kwargs) )
+        guiq.append((func, args, kwargs))
 
-    functools.update_wrapper(idleadd,func)
+    functools.update_wrapper(idleadd, func)
     return idleadd
+
 
 def workthread(func):
     '''
@@ -39,13 +41,14 @@ def workthread(func):
     '''
     # If we're already the work thread, just do it.
     def workadd(*args, **kwargs):
-        if getattr(currentThread(),'VQtWorkerThread',False):
+        if getattr(currentThread(), 'VQtWorkerThread', False):
             return func(*args, **kwargs)
 
-        workerq.append( (func,args,kwargs) )
+        workerq.append((func, args, kwargs))
 
-    functools.update_wrapper(workadd,func)
+    functools.update_wrapper(workadd, func)
     return workadd
+
 
 def boredthread(func):
     '''
@@ -54,14 +57,15 @@ def boredthread(func):
     '''
     # If we're already the work thread, just do it.
     def workadd(*args, **kwargs):
-        if getattr(currentThread(),'VQtWorkerThread',False):
+        if getattr(currentThread(), 'VQtWorkerThread', False):
             return func(*args, **kwargs)
 
         if not len(workerq):
-            workerq.append( (func,args,kwargs) )
+            workerq.append((func, args, kwargs))
 
-    functools.update_wrapper(workadd,func)
+    functools.update_wrapper(workadd, func)
     return workadd
+
 
 def idlethreadsync(func):
     '''
@@ -69,21 +73,23 @@ def idlethreadsync(func):
     to return values.
     '''
     q = Queue()
+
     def dowork(*args, **kwargs):
         try:
             q.put(func(*args, **kwargs))
-        except Exception, e:
+        except Exception as e:
             q.put(e)
 
     def idleadd(*args, **kwargs):
         if iAmQtSafeThread():
             return func(*args, **kwargs)
 
-        guiq.append( (dowork, args, kwargs) )
+        guiq.append((dowork, args, kwargs))
         return q.get()
 
-    functools.update_wrapper(idleadd,func)
+    functools.update_wrapper(idleadd, func)
     return idleadd
+
 
 class QFireThread(QtCore.QThread):
     def __init__(self, callable, args, kwargs):
@@ -91,9 +97,10 @@ class QFireThread(QtCore.QThread):
         self.args = args
         self.kwargs = kwargs
         self.callable = callable
-    
+
     def run(self):
         self.callable(*self.args, **self.kwargs)
+
 
 def fireqtthread(func):
 
@@ -102,18 +109,20 @@ def fireqtthread(func):
         func._qt_thread.start()
         return func._qt_thread
 
-    functools.update_wrapper(doqtthread,func)
+    functools.update_wrapper(doqtthread, func)
     return doqtthread
 
+
 def iAmQtSafeThread():
-    return getattr(currentThread(),'QtSafeThread',False)
+    return getattr(currentThread(), 'QtSafeThread', False)
+
 
 class QEventThread(QtCore.QThread):
     '''
     A thread who exists to consume callback requests from the
     given workq and fire them into Qt *safely*.
     '''
-    idleadd = QtCore.pyqtSignal(object,object,object)
+    idleadd = QtCore.pyqtSignal(object, object, object)
 
     def __init__(self, workq):
         QtCore.QThread.__init__(self)
@@ -124,31 +133,34 @@ class QEventThread(QtCore.QThread):
             try:
 
                 todo = self.workq.get()
-                if todo == None:
+                if todo is None:
                     continue
 
-                func,args,kwargs = todo
-                if func == None:
+                func, args, kwargs = todo
+                if func is None:
                     return
 
-                self.idleadd.emit(func,args,kwargs)
+                self.idleadd.emit(func, args, kwargs)
 
-            except Exception, e:
+            except Exception as e:
                 print('vqt event thread: %s' % e)
+
 
 class VQApplication(QApplication):
 
-    guievents = QtCore.pyqtSignal(str,object)
+    guievents = QtCore.pyqtSignal(str, object)
 
     def __init__(self, *args, **kwargs):
         QApplication.__init__(self, *args, **kwargs)
         self.vqtchans = {}
 
     def callFromQtLoop(self, callback, args, kwargs):
-        callback(*args,**kwargs)
+        callback(*args, **kwargs)
+
 
 class QEventChannel(QtCore.QObject):
-    guievents = QtCore.pyqtSignal(str,object)
+    guievents = QtCore.pyqtSignal(str, object)
+
 
 @e_threads.firethread
 def workerThread():
@@ -157,18 +169,18 @@ def workerThread():
     while True:
         try:
             todo = workerq.get()
-            if todo != None:
-                func,args,kwargs = todo
+            if todo is not None:
+                func, args, kwargs = todo
 
-                if func == None:
+                if func is None:
                     return
 
                 try:
-                    func(*args,**kwargs)
+                    func(*args, **kwargs)
                 except:
                     sys.excepthook(*sys.exc_info())
 
-        except Exception, e:
+        except Exception as e:
             print('vqt worker warning: %s' % e)
 
 def startup(css=None):
@@ -187,10 +199,11 @@ def startup(css=None):
         qapp.setStyleSheet( css )
 
     ethread = QEventThread(guiq)
-    ethread.idleadd.connect( qapp.callFromQtLoop )
+    ethread.idleadd.connect(qapp.callFromQtLoop)
     ethread.start()
 
     workerThread()
+
 
 def main():
     global qapp
@@ -200,9 +213,11 @@ def main():
 
     qapp.exec_()
 
+
 def eatevents():
     global qapp
     qapp.processEvents()
+
 
 def vqtevent(event,einfo):
     '''
@@ -215,6 +230,7 @@ def vqtevent(event,einfo):
     chan = qapp.vqtchans.get(event)
     if chan is not None:
         chan.guievents.emit(event, einfo)
+
 
 def vqtconnect(callback, event=None):
     '''
@@ -237,6 +253,7 @@ def vqtconnect(callback, event=None):
 
     chan.guievents.connect(callback)
 
+
 def vqtdisconnect(callback, event=None):
     '''
     Connect to the application wide "gui events" which has
@@ -247,24 +264,24 @@ def vqtdisconnect(callback, event=None):
     of the specified type.
     '''
     global qapp
-    if event == None:
-        qapp.guievents.disconnect( callback )
+    if event is None:
+        qapp.guievents.disconnect(callback)
         return
 
     chan = qapp.vqtchans.get(event)
-    if chan != None:
+    if chan is not None:
         chan.guievents.disconnect(callback)
+
 
 def getOpenFileName(*args, **kwargs):
         fname = QFileDialog.getOpenFileName(*args, **kwargs)
-        if type(fname) == tuple:
+        if type(fname) is tuple:
             return fname[0]
         return fname
+
 
 def getSaveFileName(*args, **kwargs):
         fname = QFileDialog.getSaveFileName(*args, **kwargs)
-        if type(fname) == tuple:
+        if type(fname) is tuple:
             return fname[0]
         return fname
-
-

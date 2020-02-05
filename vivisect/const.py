@@ -2,19 +2,23 @@
 A place for all vivisect contstants so everybody can import them.
 """
 
+import enum
+
+
+@enum.unique
+class WorkspaceEvents(enum.Enum):
+    pass
+
 # Vivisect workspace events
 # NOTE: All events in a vivisect workspace are notified async!
 # Also, an event *must* carry with it all the needed information to
 # reconstruct the changes to the workspace for the event.
 VWE_ADDLOCATION     = 1 # (va,size,ltype,tinfo)
 VWE_DELLOCATION     = 2 # (va,size,ltype,tinfo)
-
 VWE_ADDSEGMENT      = 3 # (va, size, name, filename)
 VWE_DELSEGMENT      = 4 # FIXME IMPLEMENT
-
 VWE_ADDRELOC        = 5 # (va,rtype)
 VWE_DELRELOC        = 6 # # FIXME IMPLEMENT
-
 VWE_ADDMODULE       = 7 # DEPRICATED
 VWE_DELMODULE       = 8 # DEPRICATED
 
@@ -45,19 +49,19 @@ VWE_SETMETA         = 24 # (key, val)
 
 VWE_COMMENT         = 25 # (va, comment)
 
-VWE_ADDFILE         = 26 # (normname, baseaddr, md5sum)
+VWE_ADDFILE         = 26  # (normname, baseaddr, md5sum)
 VWE_DELFILE         = 27  # FIXME IMPLEMENT
 
-VWE_SETFILEMETA     = 28 # (fname, key, value)
+VWE_SETFILEMETA     = 28  # (fname, key, value)
 
-VWE_ADDCOLOR        = 29 # (mapname, colordict)
-VWE_DELCOLOR        = 30 # mapname
+VWE_ADDCOLOR        = 29  # (mapname, colordict)
+VWE_DELCOLOR        = 30  # mapname
 
-VWE_ADDVASET        = 31 # (name, setdict)
-VWE_DELVASET        = 32 # setname
+VWE_ADDVASET        = 31  # (name, setdict)
+VWE_DELVASET        = 32  # setname
 
-VWE_ADDFREF         = 33 # (va, operidx, value)
-VWE_DELFREF         = 34 # FIXME IMPLEMENT
+VWE_ADDFREF         = 33  # (va, operidx, value)
+VWE_DELFREF         = 34  # (va, operidx, value)
 
 VWE_SETVASETROW     = 35 # (name, rowtup)
 VWE_DELVASETROW     = 36 # (name, va)
@@ -65,13 +69,13 @@ VWE_DELVASETROW     = 36 # (name, va)
 VWE_ADDFSIG         = 37 # (sigbytes, sigmask)
 VWE_DELFSIG         = 38 # FIXME IMPLEMENT
 
-VWE_FOLLOWME        = 39 # LEGACY - not in use.
-VWE_CHAT            = 40 # (username, message)
+VWE_FOLLOWME        = 37 # LEGACY - not in use.
+VWE_CHAT            = 38 # (username, message)
 
-VWE_SYMHINT         = 41 # (va, idx, hint)
-VWE_AUTOANALFIN     = 42 # (starttime, endtime)
+VWE_SYMHINT         = 39 # (va, idx, hint)
+VWE_AUTOANALFIN     = 40 # (starttime, endtime)
 
-VWE_MAX             = 43
+VWE_MAX             = 41
 
 # Constants for vivisect "transient" events which flow through
 # the event subsystem but are not recorded to the workspace.

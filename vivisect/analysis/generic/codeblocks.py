@@ -6,19 +6,19 @@ module which should be snapped in *very* early by parsers.
 
 """
 
-#FIXME this belongs in the core disassembler loop!
-import sys
-import envi
-import vivisect
+# FIXME this belongs in the core disassembler loop!
+# But does it really though?
 import collections
 
-from vivisect.const import *
+import envi
+import vivisect.const as v_const
+
 
 def analyzeFunction(vw, funcva):
     blocks = {}
     done = {}
     mnem = collections.defaultdict(int)
-    todo = [ funcva, ]
+    todo = [funcva, ]
     brefs = []
     size = 0
     opcount = 0
@@ -32,7 +32,7 @@ def analyzeFunction(vw, funcva):
 
         done[start] = True
         blocks[start] = 0
-        brefs.append( (start, True) )
+        brefs.append((start, True))
 
         va = start
 
@@ -46,9 +46,9 @@ def analyzeFunction(vw, funcva):
                 brefs.append((va, False))
                 break
 
-            lva,lsize,ltype,linfo = loc
+            lva, lsize, ltype, linfo = loc
 
-            if ltype == LOC_POINTER:
+            if ltype == v_const.LOC_POINTER:
                 # pointer analysis mis-identified a pointer,
                 # so clear and re-analyze instructions.
 
@@ -60,13 +60,13 @@ def analyzeFunction(vw, funcva):
                 loc = vw.getLocation(va)
                 if loc is None:
                     blocks[start] = va - start
-                    brefs.append( (va, False) )
+                    brefs.append((va, False))
                     break
 
-                lva,lsize,ltype,linfo = loc
+                lva, lsize, ltype, linfo = loc
 
             # If it's not an op, terminate
-            if ltype != LOC_OP:
+            if ltype != v_const.LOC_OP:
                 blocks[start] = va - start
                 brefs.append((va, False))
                 break
@@ -79,7 +79,7 @@ def analyzeFunction(vw, funcva):
 
             # For each of our code xrefs, create a new target.
             branch = False
-            xrefs = vw.getXrefsFrom(va, REF_CODE)
+            xrefs = vw.getXrefsFrom(va, v_const.REF_CODE)
             for fromva, tova, rtype, rflags in xrefs:
                 # We don't handle procedural branches here...
                 if rflags & envi.BR_PROC:
@@ -90,12 +90,12 @@ def analyzeFunction(vw, funcva):
                     continue
 
                 branch = True
-                todo.append(tova )
+                todo.append(tova)
 
             # If it doesn't fall through, terminate (at nextva)
             if linfo & envi.IF_NOFALL:
                 blocks[start] = nextva - start
-                brefs.append( (nextva, False) )
+                brefs.append((nextva, False))
                 break
 
             # If we hit a branch, we are the end of a block...
@@ -104,7 +104,7 @@ def analyzeFunction(vw, funcva):
                 todo.append(nextva)
                 break
 
-            if vw.getXrefsTo(nextva, REF_CODE):
+            if vw.getXrefsTo(nextva, v_const.REF_CODE):
                 blocks[start] = nextva - start
                 todo.append(nextva)
                 break

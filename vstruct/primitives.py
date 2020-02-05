@@ -228,12 +228,19 @@ class v_number(v_prim):
     def __rlshift__(self, other): return long(other) << long(self)
     def __rrshift__(self, other): return long(other) >> long(self)
     def __rand__(self, other): return long(other) & long(self)
-    def __rxor__(self, other): return long(other) ^ long(self)
-    def __ror__(self, other): return long(other) | long(self)
+    def __rxor__(self, other):
+        return long(other) ^ long(self)
+
+    def __ror__(self, other):
+        return long(other) | long(self)
 
     # Inplace variants
-    def __iadd__(self, other): self.vsSetValue(self+other); return self
-    def __isub__(self, other): self.vsSetValue(self - other); return self
+    def __iadd__(self, other):
+        self.vsSetValue(self+other)
+        return self
+    def __isub__(self, other):
+        self.vsSetValue(self - other)
+        return self
     def __imul__(self, other): self.vsSetValue(self*other); return self
     def __idiv__(self, other): self.vsSetValue(self/other); return self
     def __ifloordiv__(self, other): self.vsSetValue(self // other); return self
@@ -257,8 +264,8 @@ class v_number(v_prim):
     def __coerce__(self, other):
         try:
             return long(self),long(other)
-        except Exception, e:
-            return NotImplemented
+        except Exception as e:
+            raise
 
     # Print helpers
     def __hex__(self): return hex(long(self))

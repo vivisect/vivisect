@@ -11,7 +11,8 @@ import envi.config as e_config
 import envi.threads as e_threads
 import vivisect.parsers as viv_parsers
 
-logging.basicConfig(level=logging.DEBUG, format='%(asctime)s:%(levelname)s:%(name)s: %(message)s')
+logging.basicConfig(level=logging.DEBUG,
+                    format='%(asctime)s:%(levelname)s:%(name)s: %(message)s')
 logger = logging.getLogger()
 
 loglevels = (
@@ -62,7 +63,8 @@ def main():
         except e_config.ConfigNoAssignment as e:
             logger.critical(vw.config.reprConfigPaths() + "\n")
             logger.critical(e)
-            logger.critical("syntax: \t-O <secname>.<optname>=<optval> (optval must be json syntax)")
+            logger.critical(
+                "syntax: \t-O <secname>.<optname>=<optval> (optval must be json syntax)")
             sys.exit(-1)
 
         except Exception as e:
@@ -106,8 +108,9 @@ def main():
                 logger.debug("ANALYSIS TIME: %s" % (end-start))
 
         if args.modname is not None:
-            module = imp.load_module("custom_analysis", file(modname, "rb"), modname, ('.py', 'U', 1))
-            module.analyze(vw)
+            with open(args.modname, 'rb') as fd:
+                module = imp.load_module("custom_analysis", fd, args.modname, ('.py', 'U', 1))
+                module.analyze(vw)
 
         logger.info('stats: %r' % (vw.getStats(),))
         logger.info("Saving workspace: %s" % (vw.getMeta('StorageName')))
