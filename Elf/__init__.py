@@ -18,10 +18,11 @@ Send bug reports to Invisigoth or Metr0.
 
 """
 # Copyright (C) 2007 Invisigoth - See LICENSE file for details
+import stat
 import logging
 
-from stat import *
-from Elf.elf_lookup import *
+import Elf.elf_lookup as elf_lookup
+
 import vstruct
 import vstruct.defs.elf as vs_elf
 
@@ -113,17 +114,20 @@ class ElfDynamic:
         self.name = name
 
     def getTypeName(self):
-        return dt_types.get(self.d_tag, "Unknown: %s"%hex(self.d_tag))
+        return dt_types.get(self.d_tag, "Unknown: %s" % hex(self.d_tag))
+
 
 class Elf32Dynamic(ElfDynamic, vs_elf.Elf32Dynamic):
     def __init__(self, bigend=False):
         vs_elf.Elf32Dynamic.__init__(self, bigend=bigend)
         ElfDynamic.__init__(self)
 
+
 class Elf64Dynamic(ElfDynamic, vs_elf.Elf64Dynamic):
     def __init__(self, bigend=False):
         vs_elf.Elf64Dynamic.__init__(self, bigend=bigend)
         ElfDynamic.__init__(self)
+
 
 class ElfSymbol:
     def __init__(self):
@@ -149,15 +153,18 @@ class ElfSymbol:
     def __repr__(self):
         return "0x%.8x %d %s" % (self.st_value, self.st_size, self.name)
 
+
 class Elf32Symbol(ElfSymbol, vs_elf.Elf32Symbol):
     def __init__(self, bigend=False):
         vs_elf.Elf32Symbol.__init__(self, bigend=bigend)
         ElfSymbol.__init__(self)
 
+
 class Elf64Symbol(ElfSymbol, vs_elf.Elf64Symbol):
     def __init__(self, bigend=False):
         vs_elf.Elf64Symbol.__init__(self, bigend=bigend)
         ElfSymbol.__init__(self)
+
 
 class ElfPheader:
     def __init__(self):
@@ -176,15 +183,18 @@ class ElfPheader:
             self.p_filesz,
             self.p_flags)
 
+
 class Elf32Pheader(ElfPheader, vs_elf.Elf32Pheader):
     def __init__(self, bigend=False):
         vs_elf.Elf32Pheader.__init__(self, bigend=bigend)
         ElfPheader.__init__(self)
 
+
 class Elf64Pheader(ElfPheader, vs_elf.Elf64Pheader):
     def __init__(self, bigend=False):
         vs_elf.Elf64Pheader.__init__(self, bigend=bigend)
         ElfPheader.__init__(self)
+
 
 class ElfSection:
     def __init__(self):
@@ -198,22 +208,25 @@ class ElfSection:
 
     def __repr__(self):
         return 'Elf Sec: [%20s] @0x%.8x (%8d)  ent/size: %8d/%8d  align: %8d' % (
-                self.name,
-                self.sh_addr,
-                self.sh_offset,
-                self.sh_entsize,
-                self.sh_size,
-                self.sh_addralign)
-    
+            self.name,
+            self.sh_addr,
+            self.sh_offset,
+            self.sh_entsize,
+            self.sh_size,
+            self.sh_addralign)
+
+
 class Elf32Section(ElfSection, vs_elf.Elf32Section):
     def __init__(self, bigend=False):
         vs_elf.Elf32Section.__init__(self, bigend=bigend)
         ElfSection.__init__(self)
 
+
 class Elf64Section(ElfSection, vs_elf.Elf64Section):
     def __init__(self, bigend=False):
         vs_elf.Elf64Section.__init__(self, bigend=bigend)
         ElfSection.__init__(self)
+
 
 class Elf(vs_elf.Elf32, vs_elf.Elf64):
     def __init__(self, fd, inmem=False):
@@ -234,23 +247,23 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
         # if e_data == 1, then 32 bit, if e_data == 2, 64bit
         bigend = (e.e_data == ELFDATA2MSB)
 
-        #Parse 32bit header
+        # Parse 32bit header
         if e.e_class == ELFCLASS32:
             vs_elf.Elf32.__init__(self, bigend=bigend)
             self.bits = 32
             self.psize = 4
 
-            self._cls_reloc  = Elf32Reloc
+            self._cls_reloc = Elf32Reloc
             self._cls_reloca = Elf32Reloca
             self._cls_symbol = Elf32Symbol
             self._cls_section = Elf32Section
-        #Parse 64bit header
+        # Parse 64bit header
         elif e.e_class == ELFCLASS64:
             vs_elf.Elf64.__init__(self, bigend=bigend)
             self.bits = 64
             self.psize = 8
 
-            self._cls_reloc  = Elf64Reloc
+            self._cls_reloc = Elf64Reloc
             self._cls_reloca = Elf64Reloca
             self._cls_symbol = Elf64Symbol
             self._cls_section = Elf64Section
@@ -274,8 +287,8 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
         self.pheaders = []
         self.sections = []
         self.secnames = {}
-        self.symbols  = []
-        self.relocs   = []
+        self.symbols = []
+        self.relocs = []
         self.relocvas = []
         self.symbols_by_name = {}
         self.symbols_by_addr = {}
@@ -396,8 +409,8 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
         ssymtabva = self.getSection('.dynsym').sh_addr
         dsymtabva = self.dyns.get(DT_SYMTAB)
         if ssymtabva != dsymtabva:
-            logger.warn("Section headers and Dynamics disagree on Symbol Table:  sec: 0x%x, dyn: 0x%x", 
-                    ssymtabva, dsymtabva)
+            logger.warn("Section headers and Dynamics disagree on Symbol Table:  sec: 0x%x, dyn: 0x%x",
+                        ssymtabva, dsymtabva)
 
         # only parse the symbols that are not already accounted for.
         # symbols are ordered, so existence of index Y is always the same
@@ -446,14 +459,14 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
                 logger.debug("dynamic: %r: 0x%x", dt_names.get(dyn.d_tag), dyn.d_value)
                 self.dynamics.append(dyn)
 
-            if dyn.d_tag == DT_NULL: # Represents the end
+            if dyn.d_tag == DT_NULL:  # Represents the end
                 break
             dynbytes = dynbytes[len(dyn):]
 
     def _parseDynLinkInfo(self):
         '''
         Parse the Dynamics segment and populate both self.dynamics (legacy) and self.dyns
-        This must be run before most Dynamic-data accessors like getDynStrTabString(), 
+        This must be run before most Dynamic-data accessors like getDynStrTabString(),
         getDynSymTabInfo(), etc..
         '''
         self.dyns = {}
@@ -477,21 +490,23 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
                 self.dyns[dyn.d_tag] = (curdyn, dyn.d_value)
             else:
                 self.dyns[dyn.d_tag] = dyn.d_value
-            logger.debug("dynamic: %r: 0x%x", dt_names.get(dyn.d_tag), dyn.d_value)
+            logger.debug("dynamic: %r: 0x%x",
+                         dt_names.get(dyn.d_tag), dyn.d_value)
 
-            # DEPRECATED: storing info in both dyns{} and dynamics[].  
+            # DEPRECATED: storing info in both dyns{} and dynamics[].
             # 2019-10-21:  dynamics will go away sometime in the future
             self.dynamics.append(dyn)
-            if dyn.d_tag == DT_NULL: # Represents the end
+            if dyn.d_tag == DT_NULL:  # Represents the end
                 break
             dynbytes = dynbytes[len(dyn):]
 
     def _parseDynStrs(self):
         # setup STRTAB for string recovery:
-        dynstrtab = self.dyns.get(DT_STRTAB) 
+        dynstrtab = self.dyns.get(DT_STRTAB)
         strsz = self.dyns.get(DT_STRSZ)
         if dynstrtab is None or strsz is None:
-            logger.warn('no dynamic string tableinfo found: DT_STRTAB: %r  DT_STRSZ: %r', dynstrtab, strsz)
+            logger.warn(
+                'no dynamic string tableinfo found: DT_STRTAB: %r  DT_STRSZ: %r', dynstrtab, strsz)
             return
 
         if self.dynstrtabmeta != (None, None):
@@ -509,7 +524,8 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
         if len(self.dynstrtab) and not len(self.dynstrtab[-1]):
             self.dynstrtab.pop()
 
-        self.dynsymtabct = len(self.dynstrtab)  # cheat: there is a 1-to-1 relationship between symbols and strings in these tables
+        # cheat: there is a 1-to-1 relationship between symbols and strings in these tables
+        self.dynsymtabct = len(self.dynstrtab)
         # if "DT_SONAME" is within this string table, there are no symbols to match that or thereafter:
         soname = self.dyns.get(DT_SONAME)
         if soname is not None and soname != -1 and soname < strsz:
@@ -529,12 +545,12 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
 
         This relies on the DYNAMICS section having DT_SYMTAB and DT_SYMENT
 
-        Because ELF has no DT_SYMTABSZ, "symtabsz" as returned from 
+        Because ELF has no DT_SYMTABSZ, "symtabsz" as returned from
         getDynSymTabInfo() cannot be fully trusted.  Therefore, we run a few
         sanity heuristics.
 
-        This is only a prep run to identify symbols.  If getDynSymbol() is 
-        called with an index not currently in dynamic_symbols, dynamic_symbols 
+        This is only a prep run to identify symbols.  If getDynSymbol() is
+        called with an index not currently in dynamic_symbols, dynamic_symbols
         is expanded to fill the need (albeit, without these sanity checks, so
         be cautious).
         '''
@@ -543,7 +559,8 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
 
         # parse Dynamic Symbol Table
         if len(self.dynamic_symbols):
-            logger.warn("_parseDynSyms() cannot run: dynamic_symbols is not empty")
+            logger.warn(
+                "_parseDynSyms() cannot run: dynamic_symbols is not empty")
             return
 
         symtabrva, symsz, symtabsz = self.getDynSymTabInfo()
@@ -569,8 +586,6 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
             self.dynamic_symbols.append(sym)
 
             dsoff += symsz
-
-
 
     # FIXME: wrap in VERDEF and SYMINFO into the analysis.
 
@@ -615,7 +630,7 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
 
         jmprel, pltrel, pltrelsz = self.getDynPltRelInfo()
         if jmprel is not None:
-            cls = (self._cls_reloc, self._cls_reloca)[pltrel==DT_RELA]
+            cls = (self._cls_reloc, self._cls_reloca)[pltrel == DT_RELA]
             self._doDynRelocs(jmprel, pltrelsz, cls)
 
     def _doDynRelocs(self, rva, relsz, cls=None):
@@ -629,13 +644,13 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
         count, remain = divmod(relsz, len(reloc))
 
         relocs = reloc * count
-        vstruct.VArray(elems=relocs).vsParse(relbytes,fast=True)
+        vstruct.VArray(elems=relocs).vsParse(relbytes, fast=True)
 
         for reloc in relocs:
             index = reloc.getSymTabIndex()
             sym = self.getDynSymbol(index)
             if sym is not None:
-                reloc.setName( sym.getName() )
+                reloc.setName(sym.getName())
             self.relocs.append(reloc)
             self.relocvas.append(reloc.r_offset)
             logger.info('dynamic reloc: %r', reloc)
@@ -658,7 +673,8 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
                 continue
 
             if sec.sh_offset not in dynrels:
-                logger.warn("_parseSectionRelocs: Reloc section differs from Dynamics: 0x%x", sec.sh_offset)
+                logger.warn(
+                    "_parseSectionRelocs: Reloc section differs from Dynamics: 0x%x", sec.sh_offset)
 
             reloccls = self._cls_reloc
             if sec.sh_type == SHT_RELA:
@@ -675,8 +691,8 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
                 index = reloc.getSymTabIndex()
                 if index < len(self.dynamic_symbols):
                     sym = self.dynamic_symbols[index]
-                    reloc.setName( sym.getName() )
-                    
+                    reloc.setName(sym.getName())
+
                 if reloc.r_offset in self.relocvas:
                     logger.debug("duplicate relocation (section): %r", reloc)
                     continue
@@ -732,10 +748,10 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
         Convert an RVA for this ELF binary to a file offset.
         '''
         baseaddr = 0
-        #if self.isPreLinked() or not self.isSharedObject():
-        #if not self.isSharedObject():
-            #print 'SUBTRACTING CALCULATED BASE'
-            #baseaddr = self.getBaseAddress()
+        # if self.isPreLinked() or not self.isSharedObject():
+        # if not self.isSharedObject():
+        # print 'SUBTRACTING CALCULATED BASE'
+        # baseaddr = self.getBaseAddress()
 
         for pgm in self.pheaders:
             if pgm.p_type != PT_LOAD:
@@ -842,7 +858,7 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
                     if notebyteslen - offset < len(note):
                         logger.warn("""\nNOTES section length mismatch!\n\t%s
                                 \tSection Bytes: %s\n\tStranded bytes: %s\n""",
-                                sec, repr(notebytes), repr(notebytes[offset:]))
+                                    sec, repr(notebytes), repr(notebytes[offset:]))
                         break
 
                     offset = note.vsParse(notebytes, offset=offset)
@@ -910,55 +926,64 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
         return self.e_type == ET_EXEC
 
     def __repr__(self, verbose=False):
-        """  
-        Returns a string summary of this ELF.  
+        """
+        Returns a string summary of this ELF.
         If (verbose) the summary will include Symbols, Relocs, Dynamics and Dynamic Symbol tables
         """
         mystr = 'Elf Binary:'
-        mystr+= "\n= Intimate Details:"
-        mystr+= "\n==Magic:\t\t\t\t"       + self.e_ident
-        mystr+= "\n==Type:\t\t\t\t\t"        + e_types.get(self.e_type)
-        mystr+= "\n==Machine Arch:\t\t\t\t"  + e_machine_types.get(self.e_machine)
-        mystr+= "\n==Version:\t\t\t\t%d"     % (self.e_version)
-        mystr+= "\n==Entry:\t\t\t\t0x%.8x"      % (self.e_entry)
-        mystr+= "\n==Program Headers(offset):\t\t%d (0x%x) bytes" % (self.e_phoff, self.e_phoff)
-        mystr+= "\n==Section Headers(offset):\t\t%d (0x%x) bytes" % (self.e_shoff, self.e_shoff)
-        mystr+= "\n==Flags:\t\t\t\t" + repr(self.e_flags) + " "
-        mystr+= "\n==Elf Header Size:\t\t\t" + repr(self.e_ehsize) + " (" + hex(self.e_ehsize) + " bytes)"
-        mystr+= "\n==Program Header Size:\t\t\t" + repr(self.e_phentsize) + " (" + hex(self.e_phentsize) + " bytes)"
-        mystr+= "\n==Program Header Count:\t\t\t" + repr(self.e_phnum) + " (" + hex(self.e_phnum)+ ")"
-        mystr+= "\n==Section Header Size:\t\t\t" + repr(self.e_shentsize) + " (" + hex(self.e_shentsize) + " bytes)"
-        mystr+= "\n==Section Header Count:\t\t\t" + repr(self.e_shnum) + " (" + hex(self.e_shnum) + ")"
-        mystr+= "\n==Section Header String Index\t\t" + repr(self.e_shstrndx) + " (" + hex(self.e_shstrndx) + " bytes)"
+        mystr += "\n= Intimate Details:"
+        mystr += "\n==Magic:\t\t\t\t" + self.e_ident
+        mystr += "\n==Type:\t\t\t\t\t" + e_types.get(self.e_type)
+        mystr += "\n==Machine Arch:\t\t\t\t" + \
+            e_machine_types.get(self.e_machine)
+        mystr += "\n==Version:\t\t\t\t%d" % (self.e_version)
+        mystr += "\n==Entry:\t\t\t\t0x%.8x" % (self.e_entry)
+        mystr += "\n==Program Headers(offset):\t\t%d (0x%x) bytes" % (
+            self.e_phoff, self.e_phoff)
+        mystr += "\n==Section Headers(offset):\t\t%d (0x%x) bytes" % (
+            self.e_shoff, self.e_shoff)
+        mystr += "\n==Flags:\t\t\t\t" + repr(self.e_flags) + " "
+        mystr += "\n==Elf Header Size:\t\t\t" + \
+            repr(self.e_ehsize) + " (" + hex(self.e_ehsize) + " bytes)"
+        mystr += "\n==Program Header Size:\t\t\t" + \
+            repr(self.e_phentsize) + " (" + hex(self.e_phentsize) + " bytes)"
+        mystr += "\n==Program Header Count:\t\t\t" + \
+            repr(self.e_phnum) + " (" + hex(self.e_phnum) + ")"
+        mystr += "\n==Section Header Size:\t\t\t" + \
+            repr(self.e_shentsize) + " (" + hex(self.e_shentsize) + " bytes)"
+        mystr += "\n==Section Header Count:\t\t\t" + \
+            repr(self.e_shnum) + " (" + hex(self.e_shnum) + ")"
+        mystr += "\n==Section Header String Index\t\t" + \
+            repr(self.e_shstrndx) + " (" + hex(self.e_shstrndx) + " bytes)"
 
-        mystr+= "\n\n= Sections:"
+        mystr += "\n\n= Sections:"
         for sec in self.sections:
-            mystr+= "\n"+repr(sec)
+            mystr += "\n"+repr(sec)
 
-        mystr+= "\n\n= Program Headers:"
+        mystr += "\n\n= Program Headers:"
         for ph in self.pheaders:
-            mystr+= "\n"+repr(ph)
+            mystr += "\n"+repr(ph)
 
         return mystr
 
     def verbrepr(self):
         mystr = repr(self)
 
-        mystr+= "\n\n= Symbols table:"
+        mystr += "\n\n= Symbols table:"
         for sym in self.symbols:
-            mystr+= "\n"+repr(sym)
+            mystr += "\n"+repr(sym)
 
-        mystr+= "\n\n= Relocation table:"
+        mystr += "\n\n= Relocation table:"
         for reloc in self.relocs:
-            mystr+= "\n"+repr(reloc)
+            mystr += "\n"+repr(reloc)
 
-        mystr+= "\n\n= Dynamics table:"
+        mystr += "\n\n= Dynamics table:"
         for dyn in self.dynamics:
-            mystr+= "\n"+repr(dyn)
+            mystr += "\n"+repr(dyn)
 
-        mystr+= "\n\n= Dynamic Symbols table:"
+        mystr += "\n\n= Dynamic Symbols table:"
         for dyn in self.dynamic_symbols:
-            mystr+= "\n"+repr(dyn)
+            mystr += "\n"+repr(dyn)
 
         return mystr
 
@@ -1008,7 +1033,8 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
         symlen = len(self.dynamic_symbols)
         if symidx >= symlen:
             # dynamic_symbols is too small, grow
-            logger.info('getDynSymbol(%d): expanding dynamic_symbols from %d' % (symidx, symlen))
+            logger.info(
+                'getDynSymbol(%d): expanding dynamic_symbols from %d' % (symidx, symlen))
             newspace = [self._getDynSymbol(x) for x in range(symlen, symidx+1)]
             self.dynamic_symbols.extend(newspace)
 
@@ -1017,7 +1043,7 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
 
     def _getDynSymbol(self, symidx):
         '''
-        Parse the Dynamics entries for SYMTAB and STRTAB, and return the 
+        Parse the Dynamics entries for SYMTAB and STRTAB, and return the
         symidx indexed symbol.
         '''
         symtabrva, symsz, symtabsz = self.getDynSymTabInfo()
@@ -1041,15 +1067,15 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
         Assumes _parseDynSyms has run (populating self.dynstrtab)
         returns (symtabva, symbolsz, symtabsz)
 
-        Because there is no DT_SYMTABSZ, we can't be certain how many dynamic 
-        symbols to expect.  Supposedly there is a 1:1 relationship between 
+        Because there is no DT_SYMTABSZ, we can't be certain how many dynamic
+        symbols to expect.  Supposedly there is a 1:1 relationship between
         DynSyms and DynStrs, but that can be misleading.  Still, based on the
-        number of DynStrs parsed in _parseDynStrs() we use that to roughly 
-        determine the number, which is estimated in _parseDynStrs()  and stored 
+        number of DynStrs parsed in _parseDynStrs() we use that to roughly
+        determine the number, which is estimated in _parseDynStrs()  and stored
         in self.dynsymtabct.  Perhaps this is horrible and should be stricken
         from the code.
         '''
-        #FIXME: make this use both SECTION and PT_DYNAMICS versions...
+        # FIXME: make this use both SECTION and PT_DYNAMICS versions...
         symtabva = self.dyns.get(DT_SYMTAB)
         if symtabva is None:
             return None, None, None
@@ -1076,13 +1102,15 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
 
         return strings[stroff:strend]
 
+
 def elfFromMemoryObject(memobj, baseaddr):
     fd = vstruct.MemObjFile(memobj, baseaddr)
     return Elf(fd)
 
+
 def getRelocType(val):
     return val & 0xff
 
+
 def getRelocSymTabIndex(val):
     return val >> 8
-
