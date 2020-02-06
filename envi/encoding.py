@@ -2,6 +2,7 @@
 Helpers for several encodings.
 """
 
+
 def int_to_bcd(val):
     if val < 0:
         raise ValueError("negative value")
@@ -14,6 +15,7 @@ def int_to_bcd(val):
         val /= 10
 
     return res
+
 
 def bcd_to_int(val, strict=False):
     if val < 0:

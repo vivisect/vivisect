@@ -24,11 +24,13 @@ s_maxes[0] = 0
 b_masks = [(2**i)-1 for i in range(MAX_WORD*8)]
 b_masks[0] = 0
 
+
 def unsigned(value, size):
     """
     Make a value unsigned based on it's size.
     """
     return value & u_maxes[size]
+
 
 def signed(value, size):
     """
@@ -39,9 +41,11 @@ def signed(value, size):
         x = (x - u_maxes[size]) - 1
     return x
 
+
 def is_signed(value, size):
     x = unsigned(value, size)
     return bool(x & sign_bits[size])
+
 
 def sign_extend(value, cursize, newsize):
     """
@@ -58,6 +62,7 @@ def sign_extend(value, cursize, newsize):
             x |= highbits << (8*cursize)
     return x
 
+
 def bsign_extend(value, cursize, newsize):
     x = value
     if cursize != newsize:
@@ -67,6 +72,7 @@ def bsign_extend(value, cursize, newsize):
             x |= highbits << (cursize)
     return x
 
+
 def is_parity(val):
     s = 0
     while val:
@@ -74,9 +80,11 @@ def is_parity(val):
         val = val >> 1
     return (not s)
 
+
 parity_table = []
 for i in range(256):
     parity_table.append(is_parity(i))
+
 
 def is_parity_byte(bval):
     """
@@ -84,13 +92,16 @@ def is_parity_byte(bval):
     """
     return parity_table[bval & 0xff]
 
+
 def lsb(value):
     return value & 0x1
+
 
 def msb(value, size):
     if value & sign_bits[size]:
         return 1
     return 0
+
 
 def is_signed_half_carry(value, size, src):
     '''
@@ -100,12 +111,13 @@ def is_signed_half_carry(value, size, src):
         8bit    - bit 3
     '''
     bitsize = (size << 3) - 5
-    mask = 1<<bitsize
+    mask = 1 << bitsize
 
     p1 = value & mask
     p2 = src & mask
 
     return ((p1 ^ p2) != 0)
+
 
 def is_signed_carry(value, size, src):
     smax = s_maxes[size]
@@ -115,6 +127,7 @@ def is_signed_carry(value, size, src):
         return True
     return False
 
+
 def is_signed_overflow(value, size):
     smax = s_maxes[size]
     if value > smax:
@@ -122,6 +135,7 @@ def is_signed_overflow(value, size):
     if value < -smax:
         return True
     return False
+
 
 def is_unsigned_carry(value, size):
     umax = u_maxes[size]
@@ -131,24 +145,28 @@ def is_unsigned_carry(value, size):
         return True
     return False
 
+
 def is_aux_carry(src, dst):
     return (dst & 0xf) + (src & 0xf) > 15
 
+
 def is_aux_carry_sub(src, dst):
     return src & 0xf > dst & 0xf
+
 
 # set of format lists which make size, endianness, and signedness fast and easy
 le_fmt_chars = (None, "B", "<H", None, "<I", None, None, None, "<Q")
 be_fmt_chars = (None, "B", ">H", None, ">I", None, None, None, ">Q")
 fmt_chars = (le_fmt_chars, be_fmt_chars)
 
-le_fmt_schars = (None,"b","<h",None,"<i",None,None,None,"<q")
-be_fmt_schars = (None,"b",">h",None,">i",None,None,None,">q")
+le_fmt_schars = (None, "b", "<h", None, "<i", None, None, None, "<q")
+be_fmt_schars = (None, "b", ">h", None, ">i", None, None, None, ">q")
 fmt_schars = (le_fmt_schars, be_fmt_schars)
 
 master_fmts = (fmt_chars, fmt_schars)
 
-fmt_sizes =  (None,1,2,4,4,8,8,8,8)
+fmt_sizes = (None, 1, 2, 4, 4, 8, 8, 8, 8)
+
 
 def getFormat(size, big_endian=False, signed=False):
     '''
@@ -161,6 +179,7 @@ def getFormat(size, big_endian=False, signed=False):
     '''
     return master_fmts[signed][big_endian][size]
 
+
 def parsebytes(bytes, offset, size, sign=False, bigend=False):
     """
     Mostly for pulling immediates out of strings...
@@ -171,13 +190,14 @@ def parsebytes(bytes, offset, size, sign=False, bigend=False):
         f = be_fmt_chars[size]
     else:
         f = le_fmt_chars[size]
-    if f == None:
+    if f is None:
         return slowparsebytes(bytes, offset, size, sign=sign, bigend=bigend)
     d = bytes[offset:offset+size]
     x = struct.unpack(f, d)[0]
     if sign:
         x = signed(x, size)
     return x
+
 
 def slowparsebytes(bytes, offset, size, sign=False, bigend=False):
     if bigend:
@@ -197,15 +217,17 @@ def slowparsebytes(bytes, offset, size, sign=False, bigend=False):
         ret = signed(ret, size)
     return ret
 
+
 def buildbytes(value, size, bigend=False):
     value = unsigned(value, size)
     if bigend:
         f = be_fmt_chars[size]
     else:
         f = le_fmt_chars[size]
-    if f == None:
+    if f is None:
         raise Exception("envi.bits.buildbytes needs slowbuildbytes")
     return struct.pack(f, value)
+
 
 def byteswap(value, size):
     ret = 0
@@ -214,13 +236,15 @@ def byteswap(value, size):
         ret = ret << 8
     return ret
 
+
 hex_fmt = {
-    0:'0x%.1x',
-    1:"0x%.2x",
-    2:"0x%.4x",
-    4:"0x%.8x",
-    8:"0x%.16x",
+    0: '0x%.1x',
+    1: "0x%.2x",
+    2: "0x%.4x",
+    4: "0x%.8x",
+    8: "0x%.16x",
 }
+
 
 def intwidth(val):
     if val < 0:
@@ -231,12 +255,13 @@ def intwidth(val):
         val = val >> 8
     return ret
 
+
 def hex(value, size=None):
-    if size == None:
+    if size is None:
         size = intwidth(value)
 
     fmt = hex_fmt.get(size)
-    if fmt != None:
+    if fmt is not None:
         return fmt % value
 
     x = []
@@ -246,8 +271,8 @@ def hex(value, size=None):
     x.reverse()
     return '0x%.s' % ''.join(x)
 
-
     return hex_fmt.get(size) % value
+
 
 def binrepr(intval, bitwidth=None):
     '''
@@ -259,15 +284,17 @@ def binrepr(intval, bitwidth=None):
         intval >>= 1
     ret.reverse()
     binstr = ''.join(ret)
-    if bitwidth != None:
+    if bitwidth is not None:
         binstr = binstr.rjust(bitwidth, '0')
     return binstr
+
 
 def binary(binstr):
     '''
     Decode a binary string of 1/0's into a python number
     '''
     return int(binstr, 2)
+
 
 def binbytes(binstr):
     '''
@@ -281,6 +308,7 @@ def binbytes(binstr):
         bytez += chr(binary(binstr[:8]))
         binstr = binstr[8:]
     return bytez
+
 
 def parsebits(bytes, offset, bitoff, bitsize):
     '''
@@ -305,6 +333,7 @@ def parsebits(bytes, offset, bitoff, bitsize):
 
     return val
 
+
 def masktest(s):
     '''
     Specify a bit mask with the following syntax:
@@ -326,9 +355,3 @@ def masktest(s):
     def domask(testval):
         return testval & maskin == matchval
     return domask
-
-# if __name__ == '__main__':
-    # print hex(parsebits('\x0f\x00', 0, 4, 8))
-    # print hex(parsebits('\x0f\x0f', 0, 4, 12))
-    # print hex(parsebits('\x0f\x0f\xf0', 1, 4, 4))
-

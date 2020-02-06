@@ -1,13 +1,12 @@
 '''
 A module to contain code flow analysis for envi opcode objects...
 '''
-import copy
 import logging
-import traceback
 import envi
 import envi.memory as e_mem
 
 logger = logging.getLogger(__name__)
+
 
 class CodeFlowContext(object):
 
@@ -30,6 +29,7 @@ class CodeFlowContext(object):
     Set persist=True to never disasm the same thing twice
     Set recurse=True to automatically code flow to nested functions
     '''
+
     def __init__(self, mem, persist=False, exptable=True, recurse=True):
 
         self._funcs = {}
@@ -45,9 +45,8 @@ class CodeFlowContext(object):
 
         self._cf_recurse = recurse
         self._cf_exptable = exptable
-        self._cf_blocks = [] 
+        self._cf_blocks = []
         self._dynamic_branch_handlers = []
-
 
     def _cb_opcode(self, va, op, branches):
         '''
@@ -75,8 +74,8 @@ class CodeFlowContext(object):
     def _cb_branchtable(self, tableva, ptrva, destva):
         '''
         Extend CodeFlowContext and implement this method to receive
-        a callback for every conditional branch in a discovered 
-        "branch table" ( think jump/switch cases ).  
+        a callback for every conditional branch in a discovered
+        "branch table" ( think jump/switch cases ).
         tableva     - The base address of the table
         ptrva       - The address of the pointer for this index
         destva      - The destination address (deref of ptrva)
@@ -89,22 +88,21 @@ class CodeFlowContext(object):
         '''
         if codeflow finds a branch to a non-discrete value (eg. to a register)
         we handle it here.  by default, we simply track the dynamic branch in a global
-        VaSet which is added to every workspace. 
+        VaSet which is added to every workspace.
         '''
         '''
-        When code-flow analysis runs into an indirect branch it doesn't know 
+        When code-flow analysis runs into an indirect branch it doesn't know
         what to do with, the architecture can take a crack at it.
         '''
         for cb in self._dynamic_branch_handlers:
             cb(self, op, self._mem, bflags, branches)
-
 
     def addNoReturnAddr(self, va):
         '''
         Add a virtual address to the list of VAs that are non-returning
         procedural branch targets.
         '''
-        self._cf_noret[ va ] = True
+        self._cf_noret[va] = True
 
     def addNoFlow(self, va, destva):
         '''
@@ -112,7 +110,7 @@ class CodeFlowContext(object):
         continuing to destva as a result of va ( destva may still be
         decoded as a result of being reached some other way... )
         '''
-        self._cf_noflow[ (va, destva) ] = True
+        self._cf_noflow[(va, destva)] = True
 
     def getCallsFrom(self, fva):
         return self._fcalls.get(fva)
@@ -132,20 +130,20 @@ class CodeFlowContext(object):
         Set persist=True to store 'opdone' and never disassemble the same thing twice
         '''
         opdone = {}
-        if self._cf_persist != None:
+        if self._cf_persist is not None:
             opdone = self._cf_persist
 
         calls_from = {}
-        optodo = [ ((0, va), arch), ]
+        optodo = [((0, va), arch), ]
         startva = va
-        self._cf_blocks.append( va )
+        self._cf_blocks.append(va)
         cf_eps = set()
         while len(optodo):
 
-            todo,arch = optodo.pop()
+            todo, arch = optodo.pop()
 
-            if self._cf_noflow.get( todo ):
-                self._cb_noflow( *todo )
+            if self._cf_noflow.get(todo):
+                self._cb_noflow(*todo)
                 continue
 
             pva, va = todo
@@ -157,10 +155,12 @@ class CodeFlowContext(object):
             try:
                 op = self._mem.parseOpcode(va, arch=arch)
             except envi.InvalidInstruction as e:
-                logger.warn('parseOpcode error at 0x%.8x (addCodeFlow(0x%x)): %s',va, startva, e)
+                logger.warn(
+                    'parseOpcode error at 0x%.8x (addCodeFlow(0x%x)): %s', va, startva, e)
                 continue
             except Exception as e:
-                logger.warn('parseOpcode error at 0x%.8x (addCodeFlow(0x%x)): %s', va, startva, e)
+                logger.warn(
+                    'parseOpcode error at 0x%.8x (addCodeFlow(0x%x)): %s', va, startva, e)
                 continue
 
             branches = op.getBranches()
@@ -172,11 +172,11 @@ class CodeFlowContext(object):
                 bva, bflags = branches.pop()
 
                 # look for dynamic branches (ie. branches which don't have a known target).  assume at least one branch
-                if bva == None:
+                if bva is None:
                     self._cb_dynamic_branch(va, op, bflags, branches)
 
                 # add block as part of our call stack
-                self._cf_blocks.append( bva )
+                self._cf_blocks.append(bva)
 
                 try:
                     # Handle a table branch by adding more branches...
@@ -201,8 +201,8 @@ class CodeFlowContext(object):
                             continue
 
                         # Before we update bva, lets check if its in noret...
-                        if self._cf_noret.get( bva ):
-                            self.addNoFlow( va, va + len(op) )
+                        if self._cf_noret.get(bva):
+                            self.addNoFlow(va, va + len(op))
 
                         bva = self._mem.readMemoryFormat(bva, ptrfmt)[0]
 
@@ -215,7 +215,7 @@ class CodeFlowContext(object):
                         # to the branch target...
                         nextva = va + len(op)
 
-                        if bva != nextva: # NOTE: avoid call 0 constructs
+                        if bva != nextva:  # NOTE: avoid call 0 constructs
 
                             # Now we decend so we do deepest func callbacks first!
                             if self._cf_recurse:
@@ -225,11 +225,11 @@ class CodeFlowContext(object):
                                     # until its done
                                     cf_eps.add((bva, bflags))
                                 else:
-                                    self.addEntryPoint( bva, arch=bflags )
+                                    self.addEntryPoint(bva, arch=bflags)
 
-                            if self._cf_noret.get( bva ):
+                            if self._cf_noret.get(bva):
                                 # then our next va is noflow!
-                                self._cf_noflow[ (va, nextva) ] = True
+                                self._cf_noflow[(va, nextva)] = True
 
                             calls_from[bva] = True
 
@@ -239,8 +239,7 @@ class CodeFlowContext(object):
                     self._cf_blocks.pop()
 
                 if not opdone.get(bva):
-                    optodo.append( ((va, bva), bflags) )
-
+                    optodo.append(((va, bva), bflags))
 
         # remove our local blocks from global block stack
         self._cf_blocks.pop()
@@ -261,25 +260,25 @@ class CodeFlowContext(object):
             ... callbacks flow along ...
         '''
         # Architecture gets to decide on actual final VA and Architecture (ARM/THUMB/etc...)
-        info = { 'arch' : arch }
+        info = {'arch': arch}
         va, info = self._mem.arch.archModifyFuncAddr(va, info)
         arch = info.get('arch', arch)
 
         # Check if this is already a known function.
-        if self._funcs.get(va) != None:
+        if self._funcs.get(va) is not None:
             return
 
         # Add this function to known functions
         self._funcs[va] = True
         calls_from = self.addCodeFlow(va, arch=arch)
         self._fcalls[va] = calls_from
-        
+
         # Finally, notify the callback of a new function
-        self._cb_function(va, {'CallsFrom':calls_from})
+        self._cb_function(va, {'CallsFrom': calls_from})
 
     def flushFunction(self, fva):
         '''
-        Codeflow context maintains a list of identified functions, to avoid 
+        Codeflow context maintains a list of identified functions, to avoid
         analyzing the same function twice.  If a function is misidentified
         flushFunction() is used to clear that function from the tracked _funcs
         '''
@@ -287,12 +286,11 @@ class CodeFlowContext(object):
 
     def addDynamicBranchHandler(self, cb):
         '''
-        Add a callback handler for dynamic branches the code-flow resolver 
+        Add a callback handler for dynamic branches the code-flow resolver
         doesn't know what to do with
         '''
         if cb in self._dynamic_branch_handlers:
-            raise Exception("Already have this handler (%s) for dynamic branches" % repr(cb))
+            raise Exception(
+                "Already have this handler (%s) for dynamic branches" % repr(cb))
 
         self._dynamic_branch_handlers.append(cb)
-
-
