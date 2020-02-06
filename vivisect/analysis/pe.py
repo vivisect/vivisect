@@ -6,8 +6,6 @@ import envi.bits as e_bits
 
 
 def analyze(vw):
-    """
-    """
     # Go through the relocations and create locations for them
     for segva, segsize, segname, segfname in vw.getSegments():
         reloc_va = vw.getFileMeta(segfname, "reloc_va")
