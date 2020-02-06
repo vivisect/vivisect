@@ -1595,6 +1595,8 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
     def delMemoryMap(self, va):
         """
         Kill a memory map by name or VA. one of these values *must* be non-None
+        If you use this, you either know what you're doing, or letting vivisect
+        really take the wheel
         """
         self._fireEvent(VWE_DELMMAP, (va, fname))
 
