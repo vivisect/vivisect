@@ -1,5 +1,6 @@
 
-import vivisect.exc as viv_exc
+import vivisect.exc as v_exc
+
 
 class VivColorMap:
     '''
@@ -25,11 +26,11 @@ class VivColorMap:
         addresses in the given block.
         '''
         cbtup = self.vw.getCodeBlock(va)
-        if cbtup == None:
-            raise viv_exc.InvalidCodeBlock(va)
+        if cbtup is None:
+            raise v_exc.InvalidCodeBlock(va)
 
         cbva, cbsize, fva = cbtup
-        for i in xrange(cbsize):
+        for i in range(cbsize):
             self.cmap[cbva + i] = color
 
     def colorFunction(self, fva, color):
@@ -39,7 +40,7 @@ class VivColorMap:
         '''
         fva = self.vw.getFunction(fva)
         for cbva, cbsize, fva in self.vw.getFunctionBlocks(fva):
-            for i in xrange(cbsize):
+            for i in range(cbsize):
                 self.cmap[cbva + i] = color
 
     def saveAs(self, name):
@@ -57,4 +58,3 @@ class VivColorMap:
 
     def getColorDict(self):
         return dict(self.cmap)
-

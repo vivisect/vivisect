@@ -2,6 +2,7 @@
 The vivisect CLI.
 """
 
+import re
 import sys
 import shlex
 import pprint
@@ -12,12 +13,9 @@ from getopt import getopt
 import vtrace
 import vivisect
 import vivisect.vamp as viv_vamp
-import vivisect.impemu as viv_imp
 import vivisect.vector as viv_vector
 import vivisect.reports as viv_reports
 import vivisect.tools.graphutil as viv_graph
-
-import vivisect.symboliks as viv_symb
 
 import vivisect.tools.fscope as v_t_fscope
 import vivisect.tools.graphutil as v_t_graph
@@ -28,14 +26,13 @@ import vtrace.envitools as vt_envitools
 
 import vdb
 
-import envi
 import envi.cli as e_cli
-import envi.memory as e_mem
 import envi.expression as e_expr
 import envi.memcanvas as e_canvas
 import envi.memcanvas.renderers as e_render
 
-from vivisect.const import *
+import vivisect.const as v_const
+
 
 class VivCli(e_cli.EnviCli, vivisect.VivWorkspace):
 
@@ -84,7 +81,7 @@ class VivCli(e_cli.EnviCli, vivisect.VivWorkspace):
 
         for va, pri, info in mod.report(self):
             name = self.getName(va)
-            if name == None:
+            if name is None:
                 name = self.arch.pointerString(va)
             self.canvas.addVaText(name, va)
             self.canvas.addText(": %s\n" % info)
@@ -105,14 +102,14 @@ class VivCli(e_cli.EnviCli, vivisect.VivWorkspace):
         g = v_t_graph.buildFunctionGraph(self, fva)
         # Lets find the "bottom" nodes...
         endblocks = []
-        for nid,ninfo in g.getNodes():
+        for nid, ninfo in g.getNodes():
             if len(g.getRefsFrom(nid)) == 0:
-                endblocks.append((nid,ninfo))
+                endblocks.append((nid, ninfo))
 
-        for nid,ninfo in endblocks:
+        for nid, ninfo in endblocks:
             paths = list(g.pathSearch(0, toid=nid))
-            self.vprint('paths to 0x%.8x: %d' % (ninfo.get('cbva'), len(paths)))
-        
+            self.vprint('paths to 0x%.8x: %d' %
+                        (ninfo.get('cbva'), len(paths)))
 
     def do_symboliks(self, line):
         '''
@@ -129,20 +126,17 @@ class VivCli(e_cli.EnviCli, vivisect.VivWorkspace):
 
         argv = e_cli.splitargs(line)
         try:
-            opts,argv = getopt(argv, 'A:')
-        except Exception, e:
+            opts, argv = getopt(argv, 'A:')
+        except Exception:
             return self.do_help('symboliks')
 
-        for opt,optarg in opts:
+        for opt, optarg in opts:
             if opt == '-A':
                 watchaddr = self.parseExpression(optarg)
 
         va = self.parseExpression(argv[0])
         fva = self.getFunction(va)
 
-        import vivisect.symboliks as viv_symboliks
-        import vivisect.symboliks.common as sym_common
-        import vivisect.symboliks.effects as viv_sym_effects
         import vivisect.symboliks.analysis as vsym_analysis
 
         symctx = vsym_analysis.getSymbolikAnalysisContext(self)
@@ -151,34 +145,34 @@ class VivCli(e_cli.EnviCli, vivisect.VivWorkspace):
 
             self.vprint('PATH %s' % ('='*60))
 
-            #esp = emu.solveExpression('esp', update=False)
+            # esp = emu.solveExpression('esp', update=False)
 
             for eff in effects:
 
                 eff.reduce(emu)
-                if eff.efftype in (EFFTYPE_CONSTRAIN,EFFTYPE_CALLFUNC):
+                if eff.efftype in (EFFTYPE_CONSTRAIN, EFFTYPE_CALLFUNC):
                     self.vprint(str(eff))
 
-            #for reg in ['eax','ebx','ecx','edx','esi','edi','ebp','esp','eip']:
-                #regobj = emu.getSymVariable(reg)
-                #if regobj == None:
-                    #continue
-                #regobj = regobj.reduce()
-                #regval = regobj.solve(emu=emu)
-                #if regval == emu.solveExpression(reg, update=False):
-                    #continue
-                #self.vprint('%s: %s 0x%.8x' % (reg, regobj.reduce(), regobj.solve(emu)))
+            # for reg in ['eax','ebx','ecx','edx','esi','edi','ebp','esp','eip']:
+                # regobj = emu.getSymVariable(reg)
+                # if regobj == None:
+                    # continue
+                # regobj = regobj.reduce()
+                # regval = regobj.solve(emu=emu)
+                # if regval == emu.solveExpression(reg, update=False):
+                    # continue
+                # self.vprint('%s: %s 0x%.8x' % (reg, regobj.reduce(), regobj.solve(emu)))
 
-            for addrsym,valsym in emu._sym_mem.values():
+            for addrsym, valsym in emu._sym_mem.values():
                 addrsym = addrsym.reduce(emu=emu)
                 valsym = valsym.reduce(emu=emu)
                 if emu.isLocalMemory(addrsym):
                     continue
                 self.vprint('[ %s ] = %s' % (addrsym, valsym))
 
-            #print 'SPDELTA: %d' % (emu.solveExpression('esp')-esp)
-            #print 'RETURN',emu.parseExpression('eax').reduce()
-            self.vprint('RETURN',emu.getFunctionReturn().reduce())
+            # print 'SPDELTA: %d' % (emu.solveExpression('esp')-esp)
+            # print 'RETURN',emu.parseExpression('eax').reduce()
+            self.vprint('RETURN', emu.getFunctionReturn().reduce())
 
     def do_names(self, line):
         '''
@@ -193,9 +187,9 @@ class VivCli(e_cli.EnviCli, vivisect.VivWorkspace):
 
         import re
         regex = re.compile(line, re.I)
-        for va,name in self.getNames():
+        for va, name in self.getNames():
             if regex.search(name):
-                self.vprint('0x%.8x: %s' % (va,name))
+                self.vprint('0x%.8x: %s' % (va, name))
 
     def do_save(self, line):
         """
@@ -243,8 +237,8 @@ class VivCli(e_cli.EnviCli, vivisect.VivWorkspace):
                 xrto = hex(xrto)
                 rflags = hex(rflags)
                 tname = ref_type_names.get(rtype, 'Unknown')
-                self.vprint('\tFrom: %s, To: %s, Type: %s, Flags: %s' % (xrfr, xrto, tname, rflags))
-
+                self.vprint('\tFrom: %s, To: %s, Type: %s, Flags: %s' %
+                            (xrfr, xrto, tname, rflags))
 
     def do_searchopcodes(self, line):
         '''
@@ -264,7 +258,8 @@ class VivCli(e_cli.EnviCli, vivisect.VivWorkspace):
         parser.add_option('-c', action='store_true', dest='searchComments')
         parser.add_option('-o', action='store_true', dest='searchOperands')
         parser.add_option('-t', action='store_true', dest='searchText')
-        parser.add_option('-M', action='store', dest='markColor', default='orange')
+        parser.add_option('-M', action='store',
+                          dest='markColor', default='orange')
         parser.add_option('-R', action='store_true', dest='is_regex')
 
         argv = shlex.split(line)
@@ -286,7 +281,7 @@ class VivCli(e_cli.EnviCli, vivisect.VivWorkspace):
             try:
                 fva = int(args[0], 0)
                 graph = viv_graph.buildFunctionGraph(self, fva)
-            except Exception, e:
+            except Exception as e:
                 self.vprint(repr(e))
                 return
 
@@ -315,7 +310,7 @@ class VivCli(e_cli.EnviCli, vivisect.VivWorkspace):
                 if options.searchComments:
                     defaultSearchAll = False
                     cmt = self.getComment(va)
-                    if cmt != None:
+                    if cmt is not None:
 
                         if options.is_regex:
                             if len(re.findall(pattern, cmt)):
@@ -343,13 +338,13 @@ class VivCli(e_cli.EnviCli, vivisect.VivWorkspace):
                             if pattern in operepr:
                                 addthis = True
 
-                            # if we're doing non-regex, let's test against real numbers (instead of converting to hex and back)
+                            # if we're doing non-regex, let's test against real numbers
+                            # (instead of converting to hex and back)
                             numpattrn = pattern
                             try:
                                 numpattrn = int(numpattrn, 0)
-                            except:
+                            except Exception:
                                 pass
-
 
                             if numpattrn in vars(oper).values():
                                 addthis = True
@@ -367,34 +362,34 @@ class VivCli(e_cli.EnviCli, vivisect.VivWorkspace):
                     else:
                         if pattern in oprepr:
                             addthis = True
-                
+
                 # only want one listing of each va, no matter how many times it matches
                 if addthis:
                     res.append(va)
-            except:
+            except Exception:
                 self.vprint(''.join(traceback.format_exception(*sys.exc_info())))
 
         if len(res) == 0:
-            self.vprint('pattern not found: %s (%s)' % (pattern.encode('hex'), repr(pattern)))
+            self.vprint('pattern not found: %s (%s)' %
+                        (pattern.encode('hex'), repr(pattern)))
             return
 
         # set the color for each finding
         color = options.markColor
-        colormap = { va : color for va in res }
+        colormap = {va: color for va in res}
         if self._viv_gui is not None:
             from vqt.main import vqtevent
             vqtevent('viv:colormap', colormap)
 
-        self.vprint('matches for: %s (%s)' % (pattern.encode('hex'), repr(pattern)))
+        self.vprint('matches for: %s (%s)' %
+                    (pattern.encode('hex'), repr(pattern)))
         for va in res:
             mbase, msize, mperm, mfile = self.memobj.getMemoryMap(va)
-            pname = e_mem.reprPerms(mperm)
-            sname = self.reprPointer(va)
 
             op = self.parseOpcode(va)
             self.canvas.renderMemory(va, len(op))
             cmt = self.getComment(va)
-            if cmt != None:
+            if cmt is not None:
                 self.canvas.addText('\t\t; %s' % cmt)
 
             self.canvas.addText('\n')
@@ -408,7 +403,7 @@ class VivCli(e_cli.EnviCli, vivisect.VivWorkspace):
         Usage: imports [fname]
         """
         self.canvas.addText("Imports:\n")
-        for va,size,ltype,tinfo in self.getImports():
+        for va, size, ltype, tinfo in self.getImports():
             # FIXME warn them...
             if not tinfo.startswith(line):
                 continue
@@ -437,14 +432,14 @@ class VivCli(e_cli.EnviCli, vivisect.VivWorkspace):
 
         argv = e_cli.splitargs(line)
         try:
-            opts,args = getopt(argv, 'IS')
-        except Exception, e:
+            opts, args = getopt(argv, 'IS')
+        except Exception:
             return self.do_help('fscope')
 
         if not len(args) or not len(opts):
             return self.do_help('fscope')
 
-        for opt,optarg in opts:
+        for opt, optarg in opts:
             if opt == '-I':
                 showimp = True
             elif opt == '-S':
@@ -475,27 +470,27 @@ class VivCli(e_cli.EnviCli, vivisect.VivWorkspace):
 
         Usage: exports [fname]
         """
-        edict = {}
+        exports = {}
         for va, etype, name, filename in self.getExports():
-            l = edict.get(filename)
-            if l == None:
-                l = []
-                edict[filename] = l
-            l.append((name, va))
+            loc = exports.get(filename)
+            if loc is None:
+                loc = []
+                exports[filename] = loc
+            loc.append((name, va))
 
         if line:
-            x = edict.get(line)
-            if x == None:
+            x = exports.get(line)
+            if x is None:
                 self.vprint("Unknown fname: %s" % line)
                 return
-            edict = {line:x}
+            exports = {line: x}
 
-        fnames = edict.keys()
+        fnames = exports.keys()
         fnames.sort()
         for fname in fnames:
             self.canvas.addNameText(fname, fname)
             self.canvas.addText(":\n")
-            exports = edict.get(fname)
+            exports = exports.get(fname)
             exports.sort()
             for ename, eva in exports:
                 pstr = self.arch.pointerString(eva)
@@ -506,7 +501,6 @@ class VivCli(e_cli.EnviCli, vivisect.VivWorkspace):
                 self.canvas.addText("\n")
 
     def do_filemeta(self, line):
-
         '''
         Show/List file metadata.
 
@@ -568,11 +562,11 @@ class VivCli(e_cli.EnviCli, vivisect.VivWorkspace):
             return self.do_help("loc")
 
         addr = self.parseExpression(line)
-        l = self.getLocation(addr)
-        if l == None:
+        loc = self.getLocation(addr)
+        if loc is None:
             s = self.arch.pointerString(addr)
             self.vprint("Unknown location: %s" % s)
-        r = self.reprLocation(l)
+        r = self.reprLocation(loc)
         self.vprint(r)
 
     def do_make(self, line):
@@ -590,8 +584,8 @@ class VivCli(e_cli.EnviCli, vivisect.VivWorkspace):
         """
         argv = e_cli.splitargs(line)
         try:
-            opts,args = getopt(argv, "csup:S:")
-        except Exception as e:
+            opts, args = getopt(argv, "csup:S:")
+        except Exception:
             return self.do_help("make")
 
         if len(args) != 1 or len(opts) != 1:
@@ -662,13 +656,13 @@ class VivCli(e_cli.EnviCli, vivisect.VivWorkspace):
 
         try:
             fva = self.parseExpression(argv[0])
-        except Exception as e:
+        except Exception:
             self.vprint("Invalid Address Expression: %s" % argv[0])
             return
 
         try:
             idx = self.parseExpression(argv[1])
-        except Exception, e:
+        except Exception:
             self.vprint("Invalid Index Expression: %s" % argv[1])
             return
 
@@ -687,13 +681,13 @@ class VivCli(e_cli.EnviCli, vivisect.VivWorkspace):
                 argv = vg_path.getNodeProp(pnode, 'argv')
                 callva = vg_path.getNodeProp(pnode, 'cva')
                 argidx = vg_path.getNodeProp(pnode, 'argidx')
-                if callva != None:
+                if callva is not None:
                     aval, amagic = argv[argidx]
                     arepr = '0x%.8x' % aval
-                    if amagic != None:
+                    if amagic is not None:
                         arepr = repr(amagic)
                     frepr = 'UNKNOWN'
-                    if fva != None:
+                    if fva is not None:
                         frepr = '0x%.8x' % fva
                     self.vprint('func: %s calls at: 0x%.8x with his own: %s' % (frepr, callva, arepr))
             self.vprint("="*80)
@@ -724,14 +718,14 @@ class VivCli(e_cli.EnviCli, vivisect.VivWorkspace):
 
         try:
             frva = self.parseExpression(argv[0])
-        except Exception, e:
-            self.vprint("Invalid From Va: %s" % argv[0])
+        except Exception:
+            self.vprint("Invalid Target Va: %s" % argv[0])
             return
 
         try:
             tova = self.parseExpression(argv[1])
-        except Exception, e:
-            self.vprint("Invalid To Va: %s" % argv[1])
+        except Exception:
+            self.vprint("Invalid Starter Va: %s" % argv[1])
             return
 
         self.vprint("Tracking Paths From 0x%.8x to 0x%.8x" % (frva, tova))
@@ -744,11 +738,11 @@ class VivCli(e_cli.EnviCli, vivisect.VivWorkspace):
             self.vprint("="*30)
             for bva, bsize, fva in blist:
                 fname = self.getName(fva)
-                self.vprint("0x%.8x\t0x%.8x\t%4d\t%s" % (fva, bva, bsize,fname))
+                self.vprint("0x%.8x\t0x%.8x\t%4d\t%s" %
+                            (fva, bva, bsize, fname))
         if count == 0:
             self.vprint("None!")
             return
-
 
     def do_vampsig(self, line):
         """
@@ -760,10 +754,10 @@ class VivCli(e_cli.EnviCli, vivisect.VivWorkspace):
         va = self.parseExpression(line)
 
         fva = self.getFunction(va)
-        if fva == None:
+        if fva is None:
             self.vprint("Invalid Function Address: 0x%.8x (%s)" % (va, line))
 
-        sig,mask = viv_vamp.genSigAndMask(self, fva)
+        sig, mask = viv_vamp.genSigAndMask(self, fva)
         self.vprint("SIGNATURE: %s" % sig.encode("hex"))
         self.vprint("MASK: %s" % mask.encode("hex"))
 
@@ -777,7 +771,7 @@ class VivCli(e_cli.EnviCli, vivisect.VivWorkspace):
         if line:
             try:
                 socket.gethostbyname(line)
-            except Exception, e:
+            except Exception:
                 self.vprint('Invalid Remote Host: %s' % line)
 
             vtrace.remote = line
