@@ -48,3 +48,7 @@ change out prints to logging
 CobraAsync need not be a thing since py3.7 has async
 If they want up to date cobra, mandate >=py3.7?
 remove the whole "verbose" thing
+change urllib2 to requests
+
+import imp --> import importlib
+* also api change

@@ -15,14 +15,18 @@ import time
 import types
 import socket
 import struct
+import urllib
 import logging
-import urllib2
 import threading
 import traceback
 
-import cPickle as pickle
+import pickle
 
-from SocketServer import ThreadingTCPServer, BaseRequestHandler
+# TODO(rakuyo): These aren't things in py3
+try:
+    import socketserver
+except Exception:
+    import SocketServer as socketserver
 
 
 logger = logging.getLogger(__name__)
@@ -487,7 +491,7 @@ class CobraClientSocket(CobraSocket):
                 self.reConnect()
 
 
-class CobraDaemon(ThreadingTCPServer):
+class CobraDaemon(socketserver.ThreadingTCPServer):
 
     def __init__(self, host="", port=COBRA_PORT, sslcrt=None, sslkey=None, sslca=None, msgpack=False, json=False):
         '''
@@ -711,7 +715,7 @@ class CobraDaemon(ThreadingTCPServer):
         return obj
 
 
-class CobraRequestHandler(BaseRequestHandler):
+class CobraRequestHandler(socketserver.BaseRequestHandler):
 
     def handle(self):
         c = CobraConnectionHandler(self.server, self.request)
@@ -916,7 +920,7 @@ class CobraConnectionHandler:
 
 def isCobraUri(uri):
     try:
-        x = urllib2.Request(uri)
+        x = urllib.Request(uri)
         if x.get_type() not in ["cobra", "cobrassl"]:
             return False
     except Exception:
@@ -926,7 +930,7 @@ def isCobraUri(uri):
 
 def chopCobraUri(uri):
 
-    req = urllib2.Request(uri)
+    req = urllib.Request(uri)
     scheme = req.get_type()
     host = req.get_host()
 
@@ -1149,8 +1153,7 @@ class CobraProxy:
         return True
 
     def __setattr__(self, name, value):
-        if verbose:
-            print "SETATTR %s %s" % (name, repr(value)[:20])
+        logger.info("Setting Attribute %s to value %s" % (name, repr(value)[:20]))
 
         if name.startswith('_cobra_'):
             self.__dict__[name] = value
@@ -1168,8 +1171,7 @@ class CobraProxy:
             raise Exception("Invalid Cobra Response")
 
     def __getattr__(self, name):
-        if verbose:
-            print "GETATTR", name
+        logger.info("Setting Attribute %s" % name)
 
         if name == "__getinitargs__":
             raise AttributeError()
