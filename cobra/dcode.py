@@ -13,6 +13,7 @@ import cobra
 
 verbose = False
 
+
 class DcodeServer:
 
     def getPythonModule(self, fullname, path=None):
@@ -20,14 +21,14 @@ class DcodeServer:
         # Some serialization causes this to be a tuple
         # and find_module is SUPER SERIOUS about it being
         # a *list*... ;)
-        if path != None:
+        if path is not None:
             path = list(path)
 
         fullname = fullname.split(".")[-1]
 
         try:
             fobj, filename, typeinfo = imp.find_module(fullname, path)
-        except ImportError, e:
+        except ImportError as e:
             return None
 
         if os.path.isdir(filename):
@@ -42,14 +43,16 @@ class DcodeServer:
 
         path = os.path.dirname(filename)
         fbytes = file(filename, "rU").read()
-        return (fbytes,filename,path)
+        return (fbytes, filename, path)
 
-        #return DcodeLoader(fbytes, filename, path)
+        # return DcodeLoader(fbytes, filename, path)
+
 
 def toutf8(s):
     if type(s) == unicode:
         s = s.encode('utf8')
     return s
+
 
 class DcodeLoader(object):
 
@@ -80,11 +83,13 @@ class DcodeLoader(object):
 
         return mod
 
+
 class DcodeFinder(object):
     """
     This object goes into the client side import path_hooks
     to allow cobra:// uri's to be added to the import path.
     """
+
     def __init__(self, proxy):
         self.proxy = proxy
 
@@ -96,23 +101,28 @@ class DcodeFinder(object):
 
         try:
 
-            fobj, filename, typeinfo = imp.find_module(name,path) 
+            fobj, filename, typeinfo = imp.find_module(name, path)
 
         except ImportError:
 
-            if verbose: print('Dcode Searching: %s (%s)' % (name,path))
-            pymod = self.proxy.getPythonModule(fullname,path)
+            if verbose:
+                print('Dcode Searching: %s (%s)' % (name, path))
+            pymod = self.proxy.getPythonModule(fullname, path)
             if pymod:
-                if verbose: print('Dcode Loaded: %s' % fullname)
+                if verbose:
+                    print('Dcode Loaded: %s' % fullname)
                 return DcodeLoader(*pymod)
+
 
 def addDcodeProxy(proxy):
     finder = DcodeFinder(proxy)
     sys.meta_path.append(finder)
 
+
 def addDcodeUri(uri):
     proxy = cobra.CobraProxy(uri, timeout=120, retrymax=3)
     addDcodeProxy(proxy)
+
 
 def addDcodeServer(server, port=cobra.COBRA_PORT, ssl=False):
     scheme = "cobra"
@@ -122,10 +132,10 @@ def addDcodeServer(server, port=cobra.COBRA_PORT, ssl=False):
     uri = "%s://%s:%d/DcodeServer" % (scheme, server, port)
     addDcodeUri(uri)
 
+
 def enableDcodeServer(daemon=None):
     server = DcodeServer()
     if daemon:
         daemon.shareObject(server, 'DcodeServer')
         return
     cobra.shareObject(server, 'DcodeServer')
-

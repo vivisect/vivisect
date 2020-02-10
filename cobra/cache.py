@@ -5,10 +5,12 @@ An API implementing a few caching utilities.
 from functools import wraps
 from collections import deque
 
+
 class FixedDepthCache:
     '''
     A fixed depth cache.
     '''
+
     def __init__(self, depth, misscb=None, finicb=None):
         self.cache = {}
         self.depth = depth
@@ -28,9 +30,9 @@ class FixedDepthCache:
         '''
         Retrieve the given key's value in the cache.
         '''
-        if not self.cache.has_key(key) and self.misscb:
+        if key not in self.cache and self.misscb:
             val = self.misscb(key)
-            self.put( key, val )
+            self.put(key, val)
             return val
 
         return self.cache.get(key, default)
@@ -39,24 +41,25 @@ class FixedDepthCache:
         '''
         Insert the given key/value pair into the cache.
         '''
-        self.cache[ key ] = value
-        self.cdeque.append( key )
+        self.cache[key] = value
+        self.cdeque.append(key)
         while len(self.cdeque) > self.depth:
             popkey = self.cdeque.popleft()
             popval = self.cache.pop(popkey, None)
             if self.finicb:
-                self.finicb(popkey,popval)
+                self.finicb(popkey, popval)
 
     def pop(self):
         key = self.cdeque.popleft()
         val = self.cache.pop(key)
-        return (key,val)
+        return (key, val)
 
     def has(self, key):
-        return self.cache.has_key(key)
+        return key in self.cache
 
     def __len__(self):
         return len(self.cdeque)
+
 
 def cachefunc(depth):
     cache = FixedDepthCache(depth)
@@ -65,9 +68,9 @@ def cachefunc(depth):
 
         @wraps(f)
         def funcdef(*args):
-            if not cache.has( args ):
+            if not cache.has(args):
                 ret = f(*args)
-                cache.put(args,ret)
+                cache.put(args, ret)
                 return ret
             return cache.get(args)
 

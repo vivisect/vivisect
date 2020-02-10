@@ -4,19 +4,22 @@ import collections
 
 import cobra
 
+
 class PoolMethod(cobra.CobraMethod):
     def __init__(self, pool, methname):
         cobra.CobraMethod.__init__(self, None, methname)
         self._cobra_pool = pool
 
     def __call__(self, *args, **kwargs):
-        proxy = self._cobra_pool.cobraPoolGetProxy(rotate=self._cobra_pool.loadbalance)
+        proxy = self._cobra_pool.cobraPoolGetProxy(
+            rotate=self._cobra_pool.loadbalance)
         while True:
             try:
-                return getattr(proxy,self.methname)(*args,**kwargs)
-            except cobra.CobraException, e:
-                print('CobraPool Method Failure: %s %s' % (proxy._cobra_uri,e))
+                return getattr(proxy, self.methname)(*args, **kwargs)
+            except cobra.CobraException as e:
+                print('CobraPool Method Failure: %s %s' % (proxy._cobra_uri, e))
                 proxy = self._cobra_pool.cobraPoolGetProxy(rotate=True)
+
 
 class CobraPool:
     '''
@@ -26,6 +29,7 @@ class CobraPool:
     NOTE: by default, all CobraExceptions are "failures".
           ( this means auth fail etc may be masked! )
     '''
+
     def __init__(self, uris, loadbalance=False):
         self.uris = collections.deque([str(u) for u in uris])
         self.faildelay = 1
@@ -34,9 +38,9 @@ class CobraPool:
 
     def __getattr__(self, name):
         proxy = self.cobraPoolGetProxy()
-        if proxy._cobra_methods.get(name,False):
-            poolmeth = PoolMethod(self,name)
-            setattr(self,name,poolmeth)
+        if proxy._cobra_methods.get(name, False):
+            poolmeth = PoolMethod(self, name)
+            setattr(self, name, poolmeth)
             return poolmeth
         raise AttributeError('no such method: %s' % name)
 
@@ -55,13 +59,13 @@ class CobraPool:
 
                 uri = self.uris[0]
                 proxy = self.proxycache.get(uri)
-                if proxy == None:
+                if proxy is None:
                     proxy = cobra.CobraProxy(uri)
                     self.proxycache[uri] = proxy
                 return proxy
 
-            except Exception, e: # proxy construction error!
+            except Exception as e:  # proxy construction error!
                 self.uris.rotate(1)
                 traceback.print_exc()
-                print('CobraPool Proxy Failure: %s %s' % (uri,e))
-                time.sleep(self.faildelay) # FIXME track per?
+                print('CobraPool Proxy Failure: %s %s' % (uri, e))
+                time.sleep(self.faildelay)  # FIXME track per?

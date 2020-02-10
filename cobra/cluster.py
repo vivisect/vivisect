@@ -1,4 +1,5 @@
 
+import collections
 """
 Cobra's built in clustering framework
 """
@@ -18,7 +19,7 @@ import multiprocessing
 import cobra
 import dcode
 
-queen_port   = 32124
+queen_port = 32124
 
 cluster_port = 32123
 cluster_ip = "224.69.69.69"
@@ -28,10 +29,12 @@ import cobra.cluster
 cobra.cluster.getAndDoWork("%s", docode=%s)
 """
 
+
 class InvalidInProgWorkId(Exception):
     def __init__(self, workid):
         Exception.__init__(self, "Work ID %d is not valid" % workid)
         self.workid = workid
+
 
 class ClusterWork(object):
     """
@@ -39,17 +42,18 @@ class ClusterWork(object):
     a proper module (and not __main__ to be able to use this
     in conjunction with cobra.dcode).
     """
+
     def __init__(self, timeout=None):
         object.__init__(self)
-        self.id = None # Set by adding to the server
-        self.server = None # Set by ClusterClient
+        self.id = None  # Set by adding to the server
+        self.server = None  # Set by ClusterClient
         self.starttime = 0
-        self.endtime = 0 # Both are set by worker before and after work()
+        self.endtime = 0  # Both are set by worker before and after work()
         self.timeout = timeout
         self.touchtime = None
-        self.excinfo = None # Will be exception traceback on work unit fail.
+        self.excinfo = None  # Will be exception traceback on work unit fail.
 
-    def touch(self): # heh...
+    def touch(self):  # heh...
         """
         Update the internal "touch time" which is used by the timeout
         subsystem to see if this work unit has gone too long without
@@ -61,11 +65,11 @@ class ClusterWork(object):
         """
         Check if this work unit is timed out.
         """
-        if self.timeout == None:
+        if self.timeout is None:
             return False
-        if self.touchtime == None:
+        if self.touchtime is None:
             return False
-        if self.endtime != 0:
+        if self.endtime is not 0:
             return False
         return (self.touchtime + self.timeout) < time.time()
 
@@ -73,7 +77,7 @@ class ClusterWork(object):
         """
         Actually do the work associated with this work object.
         """
-        print "OVERRIDE ME"
+        print("OVERRIDE ME")
         for i in range(10):
             self.setCompletion(i*10)
             self.setStatus("Sleeping: %d" % i)
@@ -112,7 +116,7 @@ class ClusterWork(object):
 
         NOTE: The server must use shareFileToWorkers().
         '''
-        uri = self.server.openSharedFile( filename )
+        uri = self.server.openSharedFile(filename)
         return cobra.CobraProxy(uri)
 
     def getServerObject(self, objname):
@@ -123,6 +127,7 @@ class ClusterWork(object):
         proxy = cobra.CobraProxy(uri, timeout=60, retrymax=3)
         return proxy
 
+
 class ClusterCallback:
     """
     Place one of these in the ClusterServer to get synchronous
@@ -132,41 +137,55 @@ class ClusterCallback:
 
     def workAdded(self, server, work):
         pass
+
     def workGotten(self, server, work):
         pass
+
     def workStatus(self, server, workid, status):
         pass
+
     def workCompletion(self, server, workid, completion):
         pass
+
     def workDone(self, server, work):
         pass
+
     def workFailed(self, server, work):
         pass
+
     def workTimeout(self, server, work):
         pass
+
     def workCanceled(self, server, work):
         pass
+
 
 class VerboseCallback(ClusterCallback):
     # This is mostly for testing...
     def workAdded(self, server, work):
         print "WORK ADDED: %d" % work.id
+
     def workGotten(self, server, work):
         print "WORK GOTTEN: %d" % work.id
+
     def workStatus(self, server, workid, status):
         print "WORK STATUS: (%d) %s" % (workid, status)
+
     def workCompletion(self, server, workid, completion):
         print "WORK COMPLETION: (%d) %d%%" % (workid, completion)
+
     def workDone(self, server, work):
         print "WORK DONE: %d" % work.id
+
     def workFailed(self, server, work):
         print "WORK FAILED: %d" % work.id
+
     def workTimeout(self, server, work):
         print "WORK TIMEOUT: %d" % work.id
+
     def workCanceled(self, server, work):
         print "WORK CANCELED %d" % work.id
 
-import collections
 
 class ClusterServer:
 
@@ -219,8 +238,9 @@ class ClusterServer:
         on the given host.  When the ClusterServer begins to announce work,
         he will do so in "infrastructure mode" and ask any set queens for help.
         '''
-        queen = cobra.CobraProxy('cobra://%s:%d/ClusterQueen' % (queenhost, queen_port))
-        self.queens.append( queen )
+        queen = cobra.CobraProxy(
+            'cobra://%s:%d/ClusterQueen' % (queenhost, queen_port))
+        self.queens.append(queen)
 
     def shareFileToWorkers(self, filename):
         '''
@@ -246,16 +266,16 @@ class ClusterServer:
         fd = file(filename, 'rb')
 
         cname = self.cobrad.shareObject(fd, doref=True)
-        host,port = cobra.getLocalInfo()
+        host, port = cobra.getLocalInfo()
 
         uri = 'cobra://%s:%d/%s' % (host, port, cname)
         return uri
 
-    def getServerInfo(self): 
+    def getServerInfo(self):
         '''
         Return server host/port information
         '''
-        return cobra.getLocalInfo() 
+        return cobra.getLocalInfo()
 
     def getServerObjectUri(self, objname):
         '''
@@ -282,7 +302,7 @@ class ClusterServer:
         # Internal function to monitor work unit time
         while self.go:
             try:
-                for id,work in self.inprog.items():
+                for id, work in self.inprog.items():
                     if work.isTimedOut():
                         self.timeoutWork(work)
 
@@ -302,12 +322,14 @@ class ClusterServer:
         if self.queens:
             for q in self.queens:
                 try:
-                    q.proxyAnnounceWork(self.name, self.cobraname, self.cobrad.port)
+                    q.proxyAnnounceWork(
+                        self.name, self.cobraname, self.cobrad.port)
                 except Exception, e:
                     print('Queen Error: %s' % e)
 
         else:
-            buf = "cobra:%s:%s:%d" % (self.name, self.cobraname, self.cobrad.port)
+            buf = "cobra:%s:%s:%d" % (
+                self.name, self.cobraname, self.cobrad.port)
             self.sendsock.sendto(buf, (cluster_ip, cluster_port))
 
     def runServer(self, firethread=False):
@@ -380,7 +402,6 @@ class ClusterServer:
 
         return ret
 
-
     def doneWork(self, work):
         """
         Used by the clients to report work as done.
@@ -430,7 +451,7 @@ class ClusterServer:
         if self.callback:
             for w in qlist:
                 self.callback.workCanceled(self, w)
-        
+
     def cancelWork(self, workid):
         """
         Cancel a work unit by ID.
@@ -474,6 +495,7 @@ class ClusterServer:
         if self.callback:
             self.callback.workCompletion(self, workid, percent)
 
+
 class ClusterClient:
 
     """
@@ -494,8 +516,9 @@ class ClusterClient:
 
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        self.sock.bind(("",cluster_port))
-        mreq = struct.pack("4sL", socket.inet_aton(cluster_ip), socket.INADDR_ANY)
+        self.sock.bind(("", cluster_port))
+        mreq = struct.pack("4sL", socket.inet_aton(
+            cluster_ip), socket.INADDR_ANY)
         self.sock.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
 
     def processWork(self):
@@ -503,7 +526,7 @@ class ClusterClient:
         Runs handing out work up to maxwidth until self.go == False.
         """
         while self.go:
-            
+
             buf, sockaddr = self.sock.recvfrom(4096)
             if self.width >= self.maxwidth:
                 continue
@@ -517,9 +540,9 @@ class ClusterClient:
 
             ilen = len(info)
             if ilen == 4:
-                cc,name,cobject,portstr = info
+                cc, name, cobject, portstr = info
             elif ilen == 5:
-                cc,name,cobject,portstr,server = info
+                cc, name, cobject, portstr, server = info
             else:
                 continue
 
@@ -528,7 +551,7 @@ class ClusterClient:
 
             port = int(portstr)
 
-            uri = "%s://%s:%d/%s" % (cc,server,port,cobject)
+            uri = "%s://%s:%d/%s" % (cc, server, port, cobject)
             self.fireRunner(uri)
 
     def fireRunner(self, uri):
@@ -540,10 +563,12 @@ class ClusterClient:
         self.width += 1
         cmd = sub_cmd % (uri, self.docode)
         try:
-            sub = subprocess.Popen([sys.executable, '-c', cmd], stdin=subprocess.PIPE)
+            sub = subprocess.Popen(
+                [sys.executable, '-c', cmd], stdin=subprocess.PIPE)
             sub.wait()
         finally:
             self.width -= 1
+
 
 class ClusterQueen:
 
@@ -566,6 +591,7 @@ class ClusterQueen:
         buf = "cobra:%s:%s:%d:%s" % (name, cobraname, port, host)
         self.sendsock.sendto(buf, (cluster_ip, cluster_port))
 
+
 def getHostPortFromUri(uri):
     """
     Take the server URI and pull out the
@@ -578,7 +604,8 @@ def getHostPortFromUri(uri):
     host = hparts[0]
     if len(hparts):
         port = int(hparts[1])
-    return host,port
+    return host, port
+
 
 def workThread(server, work):
     try:
@@ -590,14 +617,15 @@ def workThread(server, work):
         work.server = None
         server.doneWork(work)
 
-    except InvalidInProgWorkId, e: # the work was canceled
-        pass # Nothing to do, the server already knows
+    except InvalidInProgWorkId, e:  # the work was canceled
+        pass  # Nothing to do, the server already knows
 
     except Exception, e:
         # Tell the server that the work unit failed
         work.excinfo = traceback.format_exc()
         traceback.print_exc()
         server.failWork(work)
+
 
 def runAndWaitWork(server, work):
 
@@ -622,12 +650,13 @@ def runAndWaitWork(server, work):
 
         time.sleep(2)
 
+
 def getAndDoWork(uri, docode=False):
 
     # If we wanna use dcode, set it up
     try:
         if docode:
-            host,port = getHostPortFromUri(uri)
+            host, port = getHostPortFromUri(uri)
             cobra.dcode.addDcodeServer(host, port=port)
 
         # Use a cobra proxy with timeout/maxretry so we
@@ -644,6 +673,5 @@ def getAndDoWork(uri, docode=False):
 
     # Any way it goes we wanna exit now.  Work units may have
     # spun up non-daemon threads, so lets GTFO.
-    gc.collect() # Try to call destructors
+    gc.collect()  # Try to call destructors
     sys.exit(0)  # GTFO
-
