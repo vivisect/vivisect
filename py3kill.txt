@@ -44,3 +44,7 @@ symcache.py -- symCacheHashFromElf -- implement
 
 
 change out prints to logging
+
+CobraAsync need not be a thing since py3.7 has async
+If they want up to date cobra, mandate >=py3.7?
+remove the whole "verbose" thing
