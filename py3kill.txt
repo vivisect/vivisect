@@ -37,3 +37,10 @@ do_symboliks --> actually use watchaddr
 
 
 RIP OUT ENVI/CONFIG
+
+symcache.py -- symCacheHashFromElf -- implement
+            -- check input path
+            -- line 102 implement HTTP proxy and revsync proxy for symbols
+
+
+change out prints to logging

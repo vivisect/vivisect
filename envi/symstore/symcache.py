@@ -1,19 +1,21 @@
 import os
 import json
-import time
 
 import cobra
-#import cobra.http as c_http
 import envi.config as e_config
+
 
 def symCacheHashFromPe(pe):
     checksum = pe.IMAGE_NT_HEADERS.OptionalHeader.CheckSum
     codesize = pe.IMAGE_NT_HEADERS.OptionalHeader.SizeOfCode
     timestamp = pe.IMAGE_NT_HEADERS.FileHeader.TimeDateStamp
-    return 'pe.%.8x.%.8x.%.8x' % (timestamp,checksum,codesize)
+    return 'pe.%.8x.%.8x.%.8x' % (timestamp, checksum, codesize)
+
 
 def symCacheHashFromElf(elf):
-    pass #FIXME
+    # FIXME: Implement this
+    raise NotImplemented("Make me a real boy pls")
+
 
 class SymbolCache:
     '''
@@ -25,10 +27,11 @@ class SymbolCache:
     shared object API to allow "symbol servers" to be cobra
     shared instances of SymbolCache objects.
     '''
+
     def __init__(self, dirname=None):
 
-        if dirname == None:
-            dirname = e_config.gethomedir('.envi','symcache')
+        if dirname is None:
+            dirname = e_config.gethomedir('.envi', 'symcache')
 
         if not os.path.isdir(dirname):
             os.makedirs(dirname)
@@ -44,15 +47,15 @@ class SymbolCache:
             cache = SymbolCache()
             cache.setCacheSyms( vhash, tups )
         '''
-        cachefile = os.path.join( self._sym_cachedir, vhash )
+        cachefile = os.path.join(self._sym_cachedir, vhash)
 
         abspath = os.path.abspath(cachefile)
-        if not abspath.startswith( self._sym_cachedir ):
+        if not abspath.startswith(self._sym_cachedir):
             raise Exception('Invalid Symbol Cache Hash: %s' % vhash)
 
         # FIXME check input path
-        fd = file(cachefile,'wb')
-        return json.dump(symcache, fd)
+        with open(cachefile, 'w') as fd:
+            return json.dump(symcache, fd)
 
     def getCacheSyms(self, vhash):
         '''
@@ -64,23 +67,22 @@ class SymbolCache:
             for rva, size, name, stype in cache.getCacheSyms():
                 dostuff()
         '''
-        cachefile = os.path.join( self._sym_cachedir, vhash )
+        cachefile = os.path.join(self._sym_cachedir, vhash)
 
         abspath = os.path.abspath(cachefile)
-        if not abspath.startswith( self._sym_cachedir ):
+        if not abspath.startswith(self._sym_cachedir):
             raise Exception('Invalid Symbol Cache Hash: %s' % vhash)
 
         if not os.path.isfile(cachefile):
             return None
 
         try:
-
             print('Loading Cache File: %s' % cachefile)
-            fd = file(cachefile,'rb')
-            return json.load(fd)
-
-        except Exception, e:
+            with open(cachefile, 'r') as fd:
+                return json.load(fd)
+        except Exception as e:
             return None
+
 
 class SymbolCachePath:
 
@@ -94,20 +96,19 @@ class SymbolCachePath:
                 continue
 
             if path.startswith('cobra://') or path.startswith('cobrassl://'):
-                self.symcaches.append( cobra.CobraProxy( path ) )
+                self.symcaches.append(cobra.CobraProxy(path))
                 continue
 
-            #if path.startswith('http://') or path.startswith('https://'):
-                #FIXME
+            # if path.startswith('http://') or path.startswith('https://'):
+                # FIXME
 
     def getCacheSyms(self, symhash):
 
         for symcache in self.symcaches:
             ret = symcache.getCacheSyms(symhash)
-            if ret != None:
+            if ret is not None:
                 return ret
 
     def setCacheSyms(self, symhash, symcache):
         if self.symcaches:
-            self.symcaches[0].setCacheSyms(symhash,symcache)
-
+            self.symcaches[0].setCacheSyms(symhash, symcache)
