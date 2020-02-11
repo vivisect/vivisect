@@ -24,7 +24,7 @@ class VQMemoryCanvas(e_memcanvas.MemoryCanvas, QtWebEngineWidgets.QWebEngineView
 
     def __init__(self, mem, syms=None, parent=None, **kwargs):
         e_memcanvas.MemoryCanvas.__init__(self, mem=mem, syms=syms)
-        QWebView.__init__(self, parent=parent, **kwargs)
+        QtWebEngineWidgets.QWebEngineView.__init__(self, parent=parent, **kwargs)
 
         self._canv_cache = None
         self._canv_curva = None
@@ -33,8 +33,7 @@ class VQMemoryCanvas(e_memcanvas.MemoryCanvas, QtWebEngineWidgets.QWebEngineView
 
         self.setPage(LoggerPage())
 
-        htmlpage = e_q_html.template.replace(
-            '{{{jquery}}}', e_q_jquery.jquery_2_1_0)
+        htmlpage = e_q_html.template.replace('{{{jquery}}}', e_q_jquery.jquery_2_1_0)
         self.setContent(htmlpage)
 
         frame = self.page().mainFrame()
