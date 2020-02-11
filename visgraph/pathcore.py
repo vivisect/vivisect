@@ -7,31 +7,36 @@ Each "leaf" node may be tracked back for it's entire path by
 tracking back to parents.
 '''
 
+
 def newPathNode(parent=None, **kwargs):
     '''
     Create a new path node with the given properties
     '''
     ret = (parent, [], kwargs)
-    if parent != None:
+    if parent is not None:
         parent[1].append(ret)
     return ret
 
+
 def getNodeParent(pnode):
     return pnode[0]
+
 
 def delPathNode(pnode):
     '''
     Prune (remove) this node from the parent...
     '''
     p = getNodeParent(pnode)
-    if p != None:
+    if p is not None:
         p[1].remove(pnode)
+
 
 def getNodeIndex(pnode):
     p = getNodeParent(pnode)
-    if p != None:
+    if p is not None:
         return p[1].index(pnode)
     return None
+
 
 def getNodeKids(pnode):
     '''
@@ -42,6 +47,7 @@ def getNodeKids(pnode):
     '''
     return pnode[1]
 
+
 def getRootNode(pnode):
     '''
     Get the root node for the path tree which contains
@@ -49,10 +55,10 @@ def getRootNode(pnode):
 
     Example: root = getRootNode(branchnode)
     '''
-    ret = pnode
-    while pnode[0] != None:
+    while pnode[0] is not None:
         pnode = pnode[0]
     return pnode
+
 
 def getLeafNodes(pnode):
     '''
@@ -73,18 +79,20 @@ def getLeafNodes(pnode):
             todo.append(n)
     return ret
 
+
 def getPathToNode(pnode):
     '''
     Return a list of the path nodes which lead from the
     root node to the specified path node.
     '''
     path = []
-    while pnode != None:
+    while pnode is not None:
         path.append(pnode)
         pnode = pnode[0]
 
     path.reverse()
     return path
+
 
 def getAllPaths(pnode):
     '''
@@ -102,6 +110,7 @@ def getAllPaths(pnode):
         paths.append(path)
     return paths
 
+
 def getNodeProp(pnode, key, default=None):
     '''
     Get a property from the given node, returning
@@ -112,6 +121,7 @@ def getNodeProp(pnode, key, default=None):
         name = getNodeProp(pnode, 'name', 'Unknown')
     '''
     return pnode[2].get(key, default)
+
 
 def getPathProp(pnode, key, default=None):
     '''
@@ -124,12 +134,13 @@ def getPathProp(pnode, key, default=None):
         name = getPathProp(pnode, 'name', 'Unknown')
     '''
     parent = pnode
-    while parent != None:
+    while parent is not None:
         parent, kids, props = parent
         x = props.get(key)
-        if x != None:
+        if x is not None:
             return x
     return default
+
 
 def setNodeProp(pnode, key, value):
     '''
@@ -139,6 +150,7 @@ def setNodeProp(pnode, key, value):
         setNodeProp(pnode, 'name', 'woot')
     '''
     pnode[2][key] = value
+
 
 def isPathLoop(pnode, key, value):
     '''
@@ -151,11 +163,12 @@ def isPathLoop(pnode, key, value):
             continue
     '''
     parent = pnode
-    while parent != None:
+    while parent is not None:
         parent, kids, props = parent
         if props.get(key) == value:
             return True
     return False
+
 
 def getPathLoopCount(pnode, key, value):
     '''
@@ -165,55 +178,55 @@ def getPathLoopCount(pnode, key, value):
     '''
     count = 0
     parent = pnode
-    while parent != None:
+    while parent is not None:
         parent, kids, props = parent
         if props.get(key) == value:
             count += 1
     return count
 
+
 def trimPath(pnode):
     '''
-    Doing analysis on a path tree can be very memory consuming.  If an analysis tool is 
+    Doing analysis on a path tree can be very memory consuming.  If an analysis tool is
     powering through bajillions of nodes, the tree can consume all RAM.  However,
     the analysis may be doable with some selective trimming of the path tree.
-    Only trim when you are done with a path node, and make sure your algorithm uses 
+    Only trim when you are done with a path node, and make sure your algorithm uses
     newPathNode on all "children" before traversing into one of them.
-    
-    trimPath() will remove pnode from it's parent node, then check if the parent node 
+
+    trimPath() will remove pnode from it's parent node, then check if the parent node
     has any other children nodes, and recursively remove path links to all unnecessary
-    path nodes leading up to pnode.  
-    
+    path nodes leading up to pnode.
+
     caveat: if you are not calling newPathNode (which adds a reference from it's parent)
-    on all child nodes before traversing into any of them, it is possible that the 
+    on all child nodes before traversing into any of them, it is possible that the
     current node could be trimmed because it looks like it doesn't have any children.
     '''
     while True:
         p = getNodeParent(pnode)
-        
+
         # if we don't have a parent, we're done
-        if p == None:
+        if p is None:
             break
-            
+
         # remove our burden from our parent
         if pnode in p[1]:
             p[1].remove(pnode)
-        
+
         # if our parent still has kids living at home, we're done
         if len(p[1]):
             break
-            
+
         # time to kill our parent
         pnode = p
 
-def reprPath(node, startFromRoot=True):
-    snode = node
 
+def reprPath(node, startFromRoot=True):
     if startFromRoot:
         node = getRootNode(node)
 
     snid = getNodeProp(node, 'nid')
-    todo = [ (snid, node, 1) ]
-    print hex(snid)
+    todo = [(snid, node, 1)]
+    print(hex(snid))
 
     while len(todo):
         nid, pnode, indent = todo.pop()
@@ -223,9 +236,6 @@ def reprPath(node, startFromRoot=True):
             outstr = "   |"*indent + "--" + hex(tnid)
             if tnid == snid:
                 outstr += "  <<<<-- our node!"
-            print outstr
+            print(outstr)
 
-            todo.append( (tnid, tpnode, indent+1) )
-
-
-
+            todo.append((tnid, tpnode, indent+1))

@@ -2,9 +2,10 @@
 A couple useful thread related toys...
 '''
 import time
-import threading
 import functools
+import threading
 import collections
+
 
 def firethread(func):
     '''
@@ -18,8 +19,9 @@ def firethread(func):
         thr.setDaemon(True)
         thr.start()
         return thr
-    functools.update_wrapper(dothread,func)
+    functools.update_wrapper(dothread, func)
     return dothread
+
 
 def maintthread(stime):
     '''
@@ -33,8 +35,8 @@ def maintthread(stime):
             while True:
                 try:
                     func(*args, **kwargs)
-                except Exception, e:
-                    print('MaintThread (%s) Error: %s' % (args[0],e))
+                except Exception as e:
+                    print('MaintThread (%s) Error: %s' % (args[0], e))
                 time.sleep(stime)
 
         def dothread(*args, **kwargs):
@@ -42,12 +44,15 @@ def maintthread(stime):
             thr.setDaemon(True)
             thr.start()
 
-        functools.update_wrapper(dothread,func)
+        functools.update_wrapper(dothread, func)
         return dothread
 
     return maintwrap
 
-class QueueShutdown(Exception): pass
+
+class QueueShutdown(Exception):
+    pass
+
 
 class ChunkQueue:
     '''
@@ -55,12 +60,13 @@ class ChunkQueue:
     when requested to minimize round tripping.  It's also keeps track
     of client checkins to help identify "abandonment" behaviors.
     '''
+
     def __init__(self, items=None):
         self.shut = False
         self.last = time.time()
         self.lock = threading.Lock()
         self.event = threading.Event()
-        if items == None:
+        if items is None:
             items = []
         self.items = items
 
@@ -73,20 +79,23 @@ class ChunkQueue:
         return now > (self.last + dtime)
 
     def append(self, x):
-        if self.shut: raise QueueShutdown()
+        if self.shut:
+            raise QueueShutdown()
         with self.lock:
             self.items.append(x)
             self.event.set()
 
     def prepend(self, x):
         # NOTE: this is heavy, use judiciously
-        if self.shut: raise QueueShutdown()
+        if self.shut:
+            raise QueueShutdown()
         with self.lock:
-            self.items.insert(0,x)
+            self.items.insert(0, x)
             self.event.set()
 
     def extend(self, x):
-        if self.shut: raise QueueShutdown()
+        if self.shut:
+            raise QueueShutdown()
         with self.lock:
             self.items.extend(x)
             self.event.set()
@@ -99,12 +108,13 @@ class ChunkQueue:
             while True:
                 for i in self.get(timeout=1):
                     yield i
-        except QueueShutdown,e:
+        except QueueShutdown:
             pass
 
     def put(self, item):
-        if self.shut: raise QueueShutdown()
-        self.append( item )
+        if self.shut:
+            raise QueueShutdown()
+        self.append(item)
 
     def get(self, timeout=None):
         self.last = time.time()
@@ -112,13 +122,15 @@ class ChunkQueue:
             if self.items:
                 return self._get_items()
 
-            if self.shut: raise QueueShutdown()
+            if self.shut:
+                raise QueueShutdown()
 
             # Clear the event so we can wait...
             self.event.clear()
 
         self.event.wait(timeout=timeout)
-        if self.shut: raise QueueShutdown()
+        if self.shut:
+            raise QueueShutdown()
         with self.lock:
             self.last = time.time()
             if not self.items and self.shut:
@@ -133,16 +145,18 @@ class ChunkQueue:
         self.items = []
         return ret
 
+
 class EnviQueue:
     '''
     A deterministic Queue that doesn't suck.
     '''
+
     def __init__(self, items=None):
         self.shut = False
         self.last = time.time()
         self.lock = threading.Lock()
         self.event = threading.Event()
-        if items == None:
+        if items is None:
             items = []
         self.items = collections.deque(items)
 
@@ -155,19 +169,22 @@ class EnviQueue:
         self.event.set()
 
     def append(self, x):
-        if self.shut: raise QueueShutdown()
+        if self.shut:
+            raise QueueShutdown()
         with self.lock:
             self.items.append(x)
             self.event.set()
 
     def prepend(self, x):
-        if self.shut: raise QueueShutdown()
+        if self.shut:
+            raise QueueShutdown()
         with self.lock:
             self.items.appendleft(x)
             self.event.set()
 
     def extend(self, x):
-        if self.shut: raise QueueShutdown()
+        if self.shut:
+            raise QueueShutdown()
         with self.lock:
             self.items.extend(x)
             self.event.set()
@@ -176,12 +193,13 @@ class EnviQueue:
         return len(self.items)
 
     def __iter__(self):
-        if self.shut: raise QueueShutdown()
+        if self.shut:
+            raise QueueShutdown()
         try:
             while True:
                 ret = self.get()
                 yield ret
-        except QueueShutdown,e:
+        except QueueShutdown:
             pass
 
     def put(self, x):
@@ -192,7 +210,8 @@ class EnviQueue:
         self.last = start
 
         while True:
-            if self.shut: raise QueueShutdown()
+            if self.shut:
+                raise QueueShutdown()
 
             with self.lock:
                 if self.items:
@@ -207,4 +226,3 @@ class EnviQueue:
 
             if not self.event.wait(timeout=deltat):
                 return None
-

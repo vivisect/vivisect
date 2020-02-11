@@ -16,8 +16,8 @@ h8_regs = (
 )
 
 
-l = locals()
-e_reg.addLocalEnums(l, h8_regs)
+locs = locals()
+e_reg.addLocalEnums(locs, h8_regs)
 
 REG_CCR_T = 7
 REG_CCR_U1 = 6
@@ -28,21 +28,22 @@ REG_CCR_Z = 2
 REG_CCR_V = 1
 REG_CCR_C = 0
 
+# TODO(rakuyo): so I have no idea which datasheet to pull for this. Who uses this?
 ccr_fields = [None for x in range(8)]
-for k,v in locals().items():
+for k, v in locs.items():
     if k.startswith('REG_CCR_'):
         ccr_fields[v] = k
 
 H8StatMeta = tuple([
-    ("N", h8_const.REG_FLAGS, REG_CCR_N, 1, 'Negative'),
-    ("Z", h8_const.REG_FLAGS, REG_CCR_Z, 1, 'Zero'),
-    ("C", h8_const.REG_FLAGS, REG_CCR_C, 1, 'Carry'),
-    ("V", h8_const.REG_FLAGS, REG_CCR_V, 1, 'oVerflow'),
+    ("N",  h8_const.REG_FLAGS, REG_CCR_N, 1, 'Negative'),
+    ("Z",  h8_const.REG_FLAGS, REG_CCR_Z, 1, 'Zero'),
+    ("C",  h8_const.REG_FLAGS, REG_CCR_C, 1, 'Carry'),
+    ("V",  h8_const.REG_FLAGS, REG_CCR_V, 1, 'oVerflow'),
     ("U0", h8_const.REG_FLAGS, REG_CCR_U0, 1, 'User 0'),
     ("U1", h8_const.REG_FLAGS, REG_CCR_U1, 1, 'User 0'),
-    ("T", h8_const.REG_FLAGS, REG_CCR_T, 1, 'T'),
-    ("H", h8_const.REG_FLAGS, REG_CCR_H, 1, 'Half Carry'),
-    ])
+    ("T",  h8_const.REG_FLAGS, REG_CCR_T, 1, 'T'),
+    ("H",  h8_const.REG_FLAGS, REG_CCR_H, 1, 'Half Carry'),
+])
 
 H8Meta = [
     ('r0', REG_ER0, 0, 16),
@@ -106,12 +107,12 @@ def metaFrom16(regidx):
 
 
 converters = (
-        None,
-        metaFrom8,
-        metaFrom16,
-        None,
-        None,
-        )
+    None,
+    metaFrom8,
+    metaFrom16,
+    None,
+    None,
+)
 
 
 def convertMeta(regidx, tsize):

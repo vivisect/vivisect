@@ -52,3 +52,8 @@ change urllib2 to requests
 
 import imp --> import importlib
 * also api change
+
+We shouldn't just silently swallow TypeErrors in visgraph
+is visgraph still valid in the face of networkx?
+
+delfunction fixme
