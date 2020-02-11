@@ -29,8 +29,10 @@ REG_CCR_V = 1
 REG_CCR_C = 0
 
 # TODO(rakuyo): so I have no idea which datasheet to pull for this. Who uses this?
+# Also, I'm really not a fan of directly smashing stuff onto locals. Like, making a list
+# copy works for now, but this is super icky
 ccr_fields = [None for x in range(8)]
-for k, v in locs.items():
+for k, v in list(locs.items()):
     if k.startswith('REG_CCR_'):
         ccr_fields[v] = k
 
@@ -122,7 +124,7 @@ def convertMeta(regidx, tsize):
     return converter(regidx)
 
 
-e_reg.addLocalStatusMetas(l, H8Meta, H8StatMeta, 'CCR')
+e_reg.addLocalStatusMetas(locs, H8Meta, H8StatMeta, 'CCR')
 
 
 class H8RegisterContext(e_reg.RegisterContext):

@@ -1,5 +1,6 @@
 import envi.archs.arm as e_arm
 
+
 class ArmMixin(e_arm.ArmModule, e_arm.ArmRegisterContext):
 
     def __init__(self):
@@ -9,4 +10,4 @@ class ArmMixin(e_arm.ArmModule, e_arm.ArmRegisterContext):
     def archGetStackTrace(self):
         pc = self.getProgramCounter()
         sp = self.getStackCounter()
-        return [ (pc,sp), ]
+        return [(pc, sp), ]

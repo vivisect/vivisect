@@ -8,7 +8,7 @@ import struct
 import envi
 import envi.bits as e_bits
 
-import opcode86
+import envi.archs.i386.opcode86 as opcode86
 all_tables = opcode86.tables86
 
 # Grab our register enums etc...

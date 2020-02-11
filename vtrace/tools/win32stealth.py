@@ -2,11 +2,13 @@ import vtrace
 import vstruct
 import vivisect.impapi as viv_impapi
 
+
 class StealthBreak(vtrace.Breakpoint):
     '''
     Base class that can be extended by other classes to bypass anti-debugging
     checks.
     '''
+
     def __init__(self, sym=None):
         vtrace.Breakpoint.__init__(self, None, expression=sym)
         self.fastbreak = True
@@ -37,7 +39,7 @@ class StealthBreak(vtrace.Breakpoint):
             self.bpid = None
 
     def notify(self, event, trace):
-        if self.impapi != None:
+        if self.impapi is not None:
             # cached
             return
 
@@ -47,11 +49,13 @@ class StealthBreak(vtrace.Breakpoint):
         self.cc = emu.getCallingConvention(cc)
         self.argc = len(self.impapi.getImpApiArgs(self.vte))
 
+
 class StealthPeb(StealthBreak):
     '''
     Disables the "BeingDebugged" and "NtGlobalFlag" flags in the PEB.
     Also modifies heap flags that indicate debugging.
     '''
+
     def __init__(self):
         self.patched = False
         self.savedForceFlags = None
@@ -66,8 +70,8 @@ class StealthPeb(StealthBreak):
         ps = vstruct.getStructure('win32.PEB')
         off = ps.vsGetOffset('BeingDebugged')
         trace.writeMemoryFormat(peb+off, '<B', val)
-        #TODO Save off the old peb so we can fix it when we want to break
-        #trace.setMeta("Win32StealthPeb", val)
+        # TODO Save off the old peb so we can fix it when we want to break
+        # trace.setMeta("Win32StealthPeb", val)
 
     def writeProcessHeapFlags(self, trace, val):
         pebaddr = trace.parseExpression('peb')
@@ -98,11 +102,13 @@ class StealthPeb(StealthBreak):
         self.writeProcessHeapFlags(trace, self.savedForceFlags)
         self.writeNtGlobalFlag(trace, self.savedNtGlobalFlags)
 
+
 class StealthCheckRemoteDebuggerPresent(StealthBreak):
     '''
     Forces the "CheckRemoteDebuggerPresent" API to indicate that the process
     is not being debugged.
     '''
+
     def __init__(self, sym):
         StealthBreak.__init__(self, sym)
         self.name = 'CheckRemoteDebuggerPresent'
@@ -115,11 +121,13 @@ class StealthCheckRemoteDebuggerPresent(StealthBreak):
 
         trace.runAgain()
 
+
 class StealthGetTickCount(StealthBreak):
     '''
     Returns a static tickcount in case the application checks time deltas
     between instructions.
     '''
+
     def __init__(self, sym):
         StealthBreak.__init__(self, sym)
         self.name = 'GetTickCount'
@@ -132,10 +140,12 @@ class StealthGetTickCount(StealthBreak):
 
         trace.runAgain()
 
+
 class StealthOutputDebugString(StealthBreak):
     '''
     Forces the OutputDebugString API to return 1.
     '''
+
     def __init__(self, sym):
         StealthBreak.__init__(self, sym)
         self.name = 'OutputDebugString'
@@ -146,11 +156,13 @@ class StealthOutputDebugString(StealthBreak):
 
         trace.runAgain()
 
+
 class StealthZwClose(StealthBreak):
     '''
     When called with a invalid handle (-1) the malware will simply return so
     an exception is not thrown when a debugger is attached.
     '''
+
     def __init__(self, sym):
         StealthBreak.__init__(self, sym)
         self.name = 'ZwClose'
@@ -163,18 +175,21 @@ class StealthZwClose(StealthBreak):
 
         trace.runAgain()
 
+
 class StealthZwSetInformationThread(StealthBreak):
     '''
     When ZwSetInformationThread is called with ThreadHideFromDebugger, just
     return in case threads try to detach from the debugger.
     '''
+
     def __init__(self, sym):
         StealthBreak.__init__(self, sym)
         self.name = 'ZwSetInformationThread'
 
     def notify(self, event, trace):
         StealthBreak.notify(self, event, trace)
-        handle, threadInfoClass, threadInfo, threadInfoLen = self.cc.getCallArgs(trace, self.argc)
+        handle, threadInfoClass, threadInfo, threadInfoLen = self.cc.getCallArgs(
+            trace, self.argc)
         # ThreadHideFromDebugger = 0x11
         if threadInfoClass == 0x11:
             # If ThreadHideFromDebugger is passed, fake it
@@ -183,18 +198,21 @@ class StealthZwSetInformationThread(StealthBreak):
 
         trace.runAgain()
 
+
 class StealthZwQueryInformationProcess(StealthBreak):
     '''
     Forces ZwQueryInformationProcess to return success when passed
     "ProcessDebugPort"
     '''
+
     def __init__(self, sym):
         StealthBreak.__init__(self, sym)
         self.name = 'ZwQueryInformationProcess'
 
     def notify(self, event, trace):
         StealthBreak.notify(self, event, trace)
-        handle, procInfoClass, procInfo, procInfoLen, retLen = self.cc.getCallArgs(trace, self.argc)
+        handle, procInfoClass, procInfo, procInfoLen, retLen = self.cc.getCallArgs(
+            trace, self.argc)
         # ProcessDebugPort = 7
         if procInfoClass == 7:
             # If ProcessDebugPort is passed, fake it out by setting
@@ -205,22 +223,26 @@ class StealthZwQueryInformationProcess(StealthBreak):
 
         trace.runAgain()
 
+
 def stealthInit(trace):
     objs = []
     objs.append(StealthPeb())
-    objs.append(StealthCheckRemoteDebuggerPresent('kernel32.CheckRemoteDebuggerPresent'))
+    objs.append(StealthCheckRemoteDebuggerPresent(
+        'kernel32.CheckRemoteDebuggerPresent'))
     objs.append(StealthGetTickCount('kernel32.GetTickCount'))
     objs.append(StealthZwClose('ntdll.ZwClose'))
     objs.append(StealthZwSetInformationThread('ntdll.ZwSetInformationThread'))
     objs.append(StealthOutputDebugString('kernel32.OutputDebugStringA'))
-    objs.append(StealthZwQueryInformationProcess('ntdll.ZwQueryInformationProcess'))
+    objs.append(StealthZwQueryInformationProcess(
+        'ntdll.ZwQueryInformationProcess'))
 
     trace.setMeta('Win32Stealth', objs)
+
 
 def getStatus(trace):
     statList = []
     if not trace.getMeta('Win32Stealth'):
-       stealthInit(trace)
+        stealthInit(trace)
 
     stealthObjs = trace.getMeta('Win32Stealth')
     for inst in stealthObjs:
@@ -228,34 +250,38 @@ def getStatus(trace):
 
     return statList
 
+
 def enableAllStealth(trace):
     if not trace.getMeta('Win32Stealth'):
-       stealthInit(trace)
+        stealthInit(trace)
 
     stealthObjs = trace.getMeta('Win32Stealth')
     for inst in stealthObjs:
         inst.enablePatch(trace)
 
+
 def disableAllStealth(trace):
     if not trace.getMeta('Win32Stealth'):
-       stealthInit(trace)
+        stealthInit(trace)
 
     stealthObjs = trace.getMeta('Win32Stealth')
     for inst in stealthObjs:
         inst.disablePatch(trace)
 
+
 def stealthify(trace, name):
     if not trace.getMeta('Win32Stealth'):
-       stealthInit(trace)
+        stealthInit(trace)
 
     stealthObjs = trace.getMeta('Win32Stealth')
     for inst in stealthObjs:
         if inst.getName().lower() == name:
             inst.enablePatch(trace)
 
+
 def unstealthify(trace, name):
     if not trace.getMeta('Win32Stealth'):
-       stealthInit(trace)
+        stealthInit(trace)
 
     stealthObjs = trace.getMeta('Win32Stealth')
     for inst in stealthObjs:

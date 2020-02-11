@@ -4,7 +4,7 @@ import envi
 import envi.bits as e_bits
 import envi.archs.i386 as e_i386
 import envi.archs.i386.disasm as ed_i386
-import opcode64 as opcode86
+import envi.archs.amd64.opcode64 as opcode86
 all_tables = opcode86.tables86
 
 from envi.archs.i386.disasm import iflag_lookup, operand_range, priv_lookup, \

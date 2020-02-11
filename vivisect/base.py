@@ -551,7 +551,7 @@ class VivWorkspaceCore(v_impapi.ImportApi):
 
     def _handleIAMLEADER(self, event, einfo):
         user, follow = einfo
-        self.vprint(f'{user} invites everyone to follow "{follow}"')
+        self.vprint('%s invites everyone to follow "%s"' % (user, follow))
 
     def _handleFOLLOWME(self, event, einfo):
         # workspace has nothing to do...
@@ -654,9 +654,8 @@ class VivWorkspaceCore(v_impapi.ImportApi):
         self.vsbuilder.addVStructCtor(sname, ctor)
 
     def _mcb_WorkspaceServer(self, name, wshost):
-        self.vprint(f'Workspace was Saved to Server: {wshost}')
-        self.vprint(
-            '(You must close this local copy and work from the server to stay in sync.)')
+        self.vprint('Workspace was Saved to Server: %s' % wshost)
+        self.vprint('(You must close this local copy and work from the server to stay in sync.)')
 
     def _fmcb_Thunk(self, funcva, th, thunkname):
         # If the function being made a thunk is registered

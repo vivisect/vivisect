@@ -1,11 +1,16 @@
 import sys
 
+import vtrace
+import vtrace.platforms.base as v_base
+
 import envi
 import envi.memory as e_memory
 import envi.archs.i386 as e_i386  # FIXME This should NOT have to be here
 
+
 class RegisterException(Exception):
     pass
+
 
 def cmpRegs(emu, trace):
     ctx = trace.getRegisterContext()
@@ -15,6 +20,7 @@ def cmpRegs(emu, trace):
         if er != tr:
             raise RegisterException("REGISTER MISMATCH: %s 0x%.8x 0x%.8x" % (rname, tr, er))
     return True
+
 
 def emuFromTrace(trace):
     '''
@@ -43,9 +49,11 @@ def emuFromTrace(trace):
     emu.setRegisterSnap(rsnap)
 
     if plat == 'windows':
-        emu.setSegmentInfo(e_i386.SEG_FS, trace.getThreads()[trace.getMeta('ThreadId')], 0xffffffff)
+        emu.setSegmentInfo(e_i386.SEG_FS, trace.getThreads()[
+                           trace.getMeta('ThreadId')], 0xffffffff)
 
     return emu
+
 
 def lockStepEmulator(emu, trace):
     while True:
@@ -66,13 +74,12 @@ def lockStepEmulator(emu, trace):
             print("Lockstep Error: %s" % msg)
             return
 
-import vtrace
-import vtrace.platforms.base as v_base
 
 class TraceEmulator(vtrace.Trace, v_base.TracerBase):
     """
     Wrap an arbitrary emulator in a Tracer compatible API.
     """
+
     def __init__(self, emu):
         self.emu = emu
         archname = emu.vw.getMeta('Architecture')
@@ -129,6 +136,7 @@ class TraceEmulator(vtrace.Trace, v_base.TracerBase):
     def platformDetach(self):
         pass
 
+
 def main():
     import vtrace
     sym = sys.argv[1]
@@ -143,6 +151,7 @@ def main():
     # snap.saveToFile("woot.snap") # You may open in vdb to follow along
     emu = emuFromTrace(snap)
     lockStepEmulator(emu, t)
+
 
 if __name__ == "__main__":
     # Copy this file out to the vtrace dir for testing and run as main

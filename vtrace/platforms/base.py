@@ -3,21 +3,23 @@ Tracer Platform Base
 """
 # Copyright (C) 2007 Invisigoth - See LICENSE file for details
 import os
-import struct
-import vtrace
-import traceback
 import platform
+import threading
+import traceback
+import contextlib
 
-from Queue import Queue
-from threading import Thread, currentThread, Lock
+try:
+    import queue
+except Exception:
+    import Queue as queue
 
-import envi
+import vtrace
 import envi.memory as e_mem
 import envi.threads as e_threads
 import envi.symstore.resolver as e_sym_resolv
-import envi.symstore.symcache as e_sym_symcache
 
 import vstruct.builder as vs_builder
+
 
 class TracerBase(vtrace.Notifier):
     """
@@ -25,6 +27,7 @@ class TracerBase(vtrace.Notifier):
     functions are defaulted, and internal state is initialized.
     Additionally, a number of internal utilities are housed here.
     """
+
     def __init__(self):
         """
         The routine to initialize a tracer's initial internal state.  This
@@ -41,7 +44,7 @@ class TracerBase(vtrace.Notifier):
         self.bpbyid = {}
         self.bpid = 0
         self.curbp = None
-        self.bplock = Lock()
+        self.bplock = threading.Lock()
         self.deferred = []
         self.running = False
         self.runagain = False
@@ -62,22 +65,24 @@ class TracerBase(vtrace.Notifier):
         self.symcache = None            # Set by setSymCachePath()
         self.vsbuilder = vs_builder.VStructBuilder()
 
-        self.psize = self.getPointerSize() # From the envi arch mod...
+        self.psize = self.getPointerSize()  # From the envi arch mod...
 
         # Track which libraries are parsed, and their
         # normame to full path mappings
-        self.libloaded = {} # True if the library has been loaded already
+        self.libloaded = {}  # True if the library has been loaded already
         self.libpaths = {}  # normname->filename and filename->normname lookup
 
         # Set up some globally expected metadata
         self.setMeta('PendingSignal', None)
         self.setMeta('SignalInfo', None)
-        self.setMeta("IgnoredSignals",[])
-        self.setMeta("LibraryBases", {}) # name -> base address mappings for binaries
-        self.setMeta("LibraryPaths", {}) # base -> path mappings for binaries
-        self.setMeta("ThreadId", 0) # If you *can* have a thread id put it here
+        self.setMeta("IgnoredSignals", [])
+        # name -> base address mappings for binaries
+        self.setMeta("LibraryBases", {})
+        self.setMeta("LibraryPaths", {})  # base -> path mappings for binaries
+        # If you *can* have a thread id put it here
+        self.setMeta("ThreadId", 0)
         plat = platform.system().lower()
-        rel  = platform.release().lower()
+        rel = platform.release().lower()
         self.setMeta("Platform", plat)
         self.setMeta("Release", rel)
 
@@ -105,9 +110,11 @@ class TracerBase(vtrace.Notifier):
 
     def getResolverForFile(self, filename):
         res = self.resbynorm.get(filename, None)
-        if res: return res
+        if res:
+            return res
         res = self.resbyfile.get(filename, None)
-        if res: return res
+        if res:
+            return res
         return None
 
     def steploop(self):
@@ -202,7 +209,6 @@ class TracerBase(vtrace.Notifier):
                 bp.deactivate(self)
 
     def _activBreakpoints(self):
-
         """
         Run through the breakpoints and setup
         the ones that are enabled.
@@ -320,7 +326,7 @@ class TracerBase(vtrace.Notifier):
         self._tellThreadExit()
 
     def _tellThreadExit(self):
-        if self.thread != None:
+        if self.thread is not None:
             self.thread.queue.put(None)
             self.thread.join(timeout=2)
             self.thread = None
@@ -342,7 +348,8 @@ class TracerBase(vtrace.Notifier):
         if event == vtrace.NOTIFY_SIGNAL:
             signo = self.getCurrentSignal()
             if signo in self.getMeta('IgnoredSignals', []):
-                if vtrace.verbose: print('Ignoring %s' % signo)
+                if vtrace.verbose:
+                    print('Ignoring %s' % signo)
                 self.runAgain()
                 return
 
@@ -362,14 +369,14 @@ class TracerBase(vtrace.Notifier):
         for notifier in alllist:
             try:
                 notifier.handleEvent(event, trace)
-            except:
+            except Exception:
                 print('WARNING: Notifier exception for %s' % repr(notifier))
                 traceback.print_exc()
 
         for notifier in nlist:
             try:
                 notifier.handleEvent(event, trace)
-            except:
+            except Exception:
                 print('WARNING: Notifier exception for %s' % repr(notifier))
                 traceback.print_exc()
 
@@ -385,9 +392,9 @@ class TracerBase(vtrace.Notifier):
 
         try:
             bp.notify(vtrace.NOTIFY_BREAK, self)
-        except Exception, msg:
+        except Exception as msg:
             traceback.print_exc()
-            print "Breakpoint Exception 0x%.8x : %s" % (bp.address,msg)
+            print("Breakpoint Exception 0x%.8x : %s" % (bp.address, msg))
 
         # "stealthbreak" bp's do not NOTIFY *or* run again
         if bp.stealthbreak:
@@ -407,14 +414,15 @@ class TracerBase(vtrace.Notifier):
         Check if the given memory fault was part of a valid
         MapWatchpoint.
         """
-        faultaddr,faultperm = self.platformGetMemFault()
+        faultaddr, faultperm = self.platformGetMemFault()
 
-        #FIXME this is some AWESOME but intel specific nonsense
-        if faultaddr == None: return False
+        # FIXME this is some AWESOME but intel specific nonsense
+        if faultaddr is None:
+            return False
         faultpage = faultaddr & 0xfffff000
 
         wp = self.breakpoints.get(faultpage, None)
-        if wp == None:
+        if wp is None:
             return False
 
         self._fireBreakpoint(wp)
@@ -424,7 +432,7 @@ class TracerBase(vtrace.Notifier):
     def checkWatchpoints(self):
         # Check for hardware watchpoints
         waddr = self.archCheckWatchpoints()
-        if waddr != None:
+        if waddr is not None:
             wp = self.breakpoints.get(waddr, None)
             if wp:
                 self._fireBreakpoint(wp)
@@ -476,7 +484,7 @@ class TracerBase(vtrace.Notifier):
             self.runAgain()
 
         # For thread exits, make sure the tid
-        # isn't in 
+        # isn't in
         if event == vtrace.NOTIFY_EXIT_THREAD:
             tid = self.getMeta("ThreadId")
             self.sus_threads.pop(tid, None)
@@ -582,8 +590,8 @@ class TracerBase(vtrace.Notifier):
                     done[fname] = True
                     self.addLibraryBase(fname, addr, always=always)
 
-            except:
-                pass # *never* do this... except this once...
+            except Exception:
+                pass  # *never* do this... except this once...
 
     def _loadBinaryNorm(self, normname):
         if not self.libloaded.get(normname, False):
@@ -715,7 +723,7 @@ class TracerBase(vtrace.Notifier):
 
     def archCheckWatchpoints(self):
         """
-        If the current register state indicates that a watchpoint was hit, 
+        If the current register state indicates that a watchpoint was hit,
         return the address of the watchpoint and clear the event.  Otherwise
         return None
         """
@@ -727,12 +735,12 @@ class TracerBase(vtrace.Notifier):
         to memory ( and saves off the old bytes ).
         '''
         b = self.archGetBreakInstr()
-        self._bp_saved[ addr ] = self.readMemory( addr, len(b) )
-        self.writeMemory( addr, b )
+        self._bp_saved[addr] = self.readMemory(addr, len(b))
+        self.writeMemory(addr, b)
 
     def archClearBreakpoint(self, addr):
-        b = self._bp_saved.pop( addr )
-        self.writeMemory( addr, b )
+        b = self._bp_saved.pop(addr)
+        self.writeMemory(addr, b)
 
     def archGetRegCtx(self):
         """
@@ -754,7 +762,7 @@ class TracerBase(vtrace.Notifier):
         Get the full path to the main executable for this
         *attached* Trace
         """
-        return self.getMeta("ExeName","Unknown")
+        return self.getMeta("ExeName", "Unknown")
 
     def platformAttach(self, pid):
         """
@@ -800,13 +808,13 @@ class TracerBase(vtrace.Notifier):
 
     def platformProtectMemory(self, va, size, perms):
         raise Exception("Plaform does not implement protect memory")
-        
+
     def platformAllocateMemory(self, size, perms=e_mem.MM_RWX, suggestaddr=0):
         raise Exception("Plaform does not implement allocate memory")
-        
+
     def platformReadMemory(self, address, size):
         raise Exception("Platform must implement platformReadMemory!")
-        
+
     def platformWriteMemory(self, address, bytes):
         raise Exception("Platform must implement platformWriteMemory!")
 
@@ -815,9 +823,9 @@ class TracerBase(vtrace.Notifier):
         Return the addr of the current memory fault
         or None
         """
-        #NOTE: This is used by the PageWatchpoint subsystem
+        # NOTE: This is used by the PageWatchpoint subsystem
         # (and is still considered experimental)
-        return None,None
+        return None, None
 
     def platformWait(self):
         """
@@ -842,15 +850,18 @@ class TracerBase(vtrace.Notifier):
         """
         raise Exception("Platform must implement platformProcessEvent")
 
+    @contextlib.contextmanager
     def platformOpenFile(self, filename):
-        # Open a file for reading
-        return file(filename, 'rb')
+        with open(filename, 'rb') as fd:
+            yield fd
 
-    def platformReadFile(self, path):
+    @contextlib.contextmanager
+    def platformReadFile(self, filename):
         '''
         Abstract away reading file bytes to allow wire/remote cases.
         '''
-        return file(path,'rb').read()
+        with open(filename, 'rb') as fd:
+            return fd.read()
 
     def platformListDir(self, path):
         return os.listdir(path)
@@ -868,13 +879,13 @@ class TracerBase(vtrace.Notifier):
         '''
         pass
 
-import threading
+
 def threadwrap(func):
     def trfunc(self, *args, **kwargs):
         if threading.currentThread().__class__ == TracerThread:
             return func(self, *args, **kwargs)
         # Proxy the call through a single thread
-        q = Queue()
+        q = queue.Queue()
         # FIXME change calling convention!
         args = (self, ) + args
         self.thread.queue.put((func, args, kwargs, q))
@@ -884,7 +895,8 @@ def threadwrap(func):
         return ret
     return trfunc
 
-class TracerThread(Thread):
+
+class TracerThread(threading.Thread):
     """
     Ok... so here's the catch... most debug APIs do *not* allow
     one thread to do the attach and another to do continue and another
@@ -896,9 +908,10 @@ class TracerThread(Thread):
     cobra not have to be aware of which one is allowed and not allowed
     to make particular calls and on what platforms...  YAY!
     """
+
     def __init__(self):
-        Thread.__init__(self)
-        self.queue = Queue()
+        threading.Thread.__init__(self)
+        self.queue = queue.Queue()
         self.setDaemon(True)
         self.start()
 
@@ -910,16 +923,16 @@ class TracerThread(Thread):
         while True:
             try:
                 qobj = self.queue.get()
-                if qobj == None:
+                if qobj is None:
                     break
                 meth, args, kwargs, queue = qobj
                 try:
                     queue.put(meth(*args, **kwargs))
-                except Exception,e:
+                except Exception as e:
                     queue.put(e)
                     if vtrace.verbose:
                         traceback.print_exc()
                     continue
-            except:
+            except Exception:
                 if vtrace.verbose:
                     traceback.print_exc()

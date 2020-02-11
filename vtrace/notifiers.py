@@ -15,6 +15,7 @@ has occured...
 import vtrace
 import traceback
 
+
 class Notifier(object):
     """
     The top level example notifier...  Anything which registers
@@ -45,7 +46,8 @@ class Notifier(object):
 
 class VerboseNotifier(Notifier):
     def notify(self, event, trace):
-        print("PID %d - ThreadID (%d) got" % (trace.getPid(), trace.getMeta("ThreadId"))),
+        print("PID %d - ThreadID (%d) got" %
+              (trace.getPid(), trace.getMeta("ThreadId"))),
         if event == vtrace.NOTIFY_ALL:
             print("WTF, how did we get a vtrace.NOTIFY_ALL event?!?!")
         elif event == vtrace.NOTIFY_SIGNAL:
@@ -77,11 +79,13 @@ class VerboseNotifier(Notifier):
             print("\tNew thread - ThreadID: %d" % trace.getMeta("ThreadId"))
         elif event == vtrace.NOTIFY_EXIT_THREAD:
             print("vtrace.NOTIFY_EXIT_THREAD")
-            print("Thread exited - ThreadID: %d" % trace.getMeta("ExitThread", -1))
+            print("Thread exited - ThreadID: %d" %
+                  trace.getMeta("ExitThread", -1))
         elif event == vtrace.NOTIFY_STEP:
             print("vtrace.NOTIFY_STEP")
         else:
-            print "vtrace.NOTIFY_WTF_HUH?"
+            print("vtrace.NOTIFY_WTF_HUH?")
+
 
 class DistributedNotifier(Notifier):
     """
@@ -90,6 +94,7 @@ class DistributedNotifier(Notifier):
     callbacks only require once across the wire.
     """
     # NOTE: once you turn on vtrace.NOTIFY_ALL it can't be turned back off yet.
+
     def __init__(self):
         Notifier.__init__(self)
         self.shared = False
@@ -99,7 +104,7 @@ class DistributedNotifier(Notifier):
             self.notifiers[i] = []
 
     def getProxy(self, trace):
-        host,nothing = cobra.getCobraSocket(trace).getLocalName()
+        host, nothing = cobra.getCobraSocket(trace).getLocalName()
 
     def notify(self, event, trace):
         self.fireNotifiers(event, trace)
@@ -112,15 +117,15 @@ class DistributedNotifier(Notifier):
         for notifier in nlist:
             try:
                 notifier.handleEvent(event, trace)
-            except:
-                print "ERROR - Exception in notifier:",traceback.format_exc()
+            except Exception:
+                print("ERROR - Exception in notifier:", traceback.format_exc())
 
         nlist = self.notifiers.get(event, [])
         for notifier in nlist:
             try:
                 notifier.handleEvent(event, trace)
-            except:
-                print "ERROR - Exception in notifier:",traceback.format_exc()
+            except Exception:
+                print("ERROR - Exception in notifier:", traceback.format_exc())
 
     def registerNotifier(self, event, notif):
         """
@@ -133,4 +138,3 @@ class DistributedNotifier(Notifier):
     def deregisterNotifier(self, event, notif):
         nlist = self.notifiers.get(event)
         nlist.remove(notif)
-

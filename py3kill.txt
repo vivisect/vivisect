@@ -1,4 +1,5 @@
 Unify vdbbin and vivbin
+
 Move workspace events over to a enum
 Maybe just redo notifier entirely
 
@@ -57,3 +58,5 @@ We shouldn't just silently swallow TypeErrors in visgraph
 is visgraph still valid in the face of networkx?
 
 delfunction fixme
+
+addLocalEnums and directly smushing things onto locals is evil

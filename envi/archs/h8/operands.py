@@ -154,7 +154,7 @@ class H8Opcode(envi.Opcode):
         # Allow each of our operands to render
         imax = len(self.opers)
         lasti = imax - 1
-        for i in xrange(imax):
+        for i in range(imax):
             oper = self.opers[i]
             oper.render(mcanv, self, i)
             if i != lasti:
@@ -323,7 +323,6 @@ class H8RegIndirOper(envi.DerefOper, H8Operand):
 
     def repr(self, op):
         out = ['@']
-        name = self._dis_regctx.getRegisterName(self.reg)
         rname = self._dis_regctx.getRegisterName(self.reg & h8_const.RMETA_NMASK)
         if self.disp:
             out.append('(0x%x:%d, ' % (self.disp, self.dispsz))
@@ -515,7 +514,7 @@ class H8MemIndirOper(envi.DerefOper, H8Operand):
             return
 
         addr = self.getOperAddr(op, emu)
-        ret = emu.writeMemValue(addr, val, self.tsize)
+        emu.writeMemValue(addr, val, self.tsize)
         return val
 
     def render(self, mcanv, op, idx):
@@ -530,7 +529,8 @@ class H8PcOffsetOper(H8Operand):
     '''
     PC Relative Address
 
-    H8ImmOper but for Branches, not a dereference.  perhaps we can have H8ImmOper do all the things... but for now we have this.
+    H8ImmOper but for Branches, not a dereference.  perhaps we can have H8ImmOper do all the
+    things... but for now we have this.
     Program-counter relative [@(d:8,PC) or @(d:16,PC)]
     '''
     def __init__(self, val, va, aasize):

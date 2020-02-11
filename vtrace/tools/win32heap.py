@@ -1,41 +1,40 @@
 
 # Heap Flags
-HEAP_NO_SERIALIZE               = 0x00000001
-HEAP_GROWABLE                   = 0x00000002
-HEAP_GENERATE_EXCEPTIONS        = 0x00000004
-HEAP_ZERO_MEMORY                = 0x00000008
-HEAP_REALLOC_IN_PLACE_ONLY      = 0x00000010
-HEAP_TAIL_CHECKING_ENABLED      = 0x00000020
-HEAP_FREE_CHECKING_ENABLED      = 0x00000040
-HEAP_DISABLE_COALESCE_ON_FREE   = 0x00000080
-HEAP_CREATE_ALIGN_16            = 0x00010000
-HEAP_CREATE_ENABLE_TRACING      = 0x00020000
-HEAP_CREATE_ENABLE_EXECUTE      = 0x00040000
+HEAP_NO_SERIALIZE = 0x00000001
+HEAP_GROWABLE = 0x00000002
+HEAP_GENERATE_EXCEPTIONS = 0x00000004
+HEAP_ZERO_MEMORY = 0x00000008
+HEAP_REALLOC_IN_PLACE_ONLY = 0x00000010
+HEAP_TAIL_CHECKING_ENABLED = 0x00000020
+HEAP_FREE_CHECKING_ENABLED = 0x00000040
+HEAP_DISABLE_COALESCE_ON_FREE = 0x00000080
+HEAP_CREATE_ALIGN_16 = 0x00010000
+HEAP_CREATE_ENABLE_TRACING = 0x00020000
+HEAP_CREATE_ENABLE_EXECUTE = 0x00040000
 
 heap_flag_names = {
-HEAP_NO_SERIALIZE:"HEAP_NO_SERIALIZE",
-HEAP_GROWABLE:"HEAP_GROWABLE",
-HEAP_GENERATE_EXCEPTIONS:"HEAP_GENERATE_EXCEPTIONS",
-HEAP_ZERO_MEMORY:"HEAP_ZERO_MEMORY",
-HEAP_REALLOC_IN_PLACE_ONLY:"HEAP_REALLOC_IN_PLACE_ONLY",
-HEAP_TAIL_CHECKING_ENABLED:"HEAP_TAIL_CHECKING_ENABLED",
-HEAP_FREE_CHECKING_ENABLED:"HEAP_FREE_CHECKING_ENABLED",
-HEAP_DISABLE_COALESCE_ON_FREE:"HEAP_DISABLE_COALESCE_ON_FREE",
-HEAP_CREATE_ALIGN_16:"HEAP_CREATE_ALIGN_16",
-HEAP_CREATE_ENABLE_TRACING:"HEAP_CREATE_ENABLE_TRACING",
-HEAP_CREATE_ENABLE_EXECUTE:"HEAP_CREATE_ENABLE_EXECUTE",
+    HEAP_NO_SERIALIZE: "HEAP_NO_SERIALIZE",
+    HEAP_GROWABLE: "HEAP_GROWABLE",
+    HEAP_GENERATE_EXCEPTIONS: "HEAP_GENERATE_EXCEPTIONS",
+    HEAP_ZERO_MEMORY: "HEAP_ZERO_MEMORY",
+    HEAP_REALLOC_IN_PLACE_ONLY: "HEAP_REALLOC_IN_PLACE_ONLY",
+    HEAP_TAIL_CHECKING_ENABLED: "HEAP_TAIL_CHECKING_ENABLED",
+    HEAP_FREE_CHECKING_ENABLED: "HEAP_FREE_CHECKING_ENABLED",
+    HEAP_DISABLE_COALESCE_ON_FREE: "HEAP_DISABLE_COALESCE_ON_FREE",
+    HEAP_CREATE_ALIGN_16: "HEAP_CREATE_ALIGN_16",
+    HEAP_CREATE_ENABLE_TRACING: "HEAP_CREATE_ENABLE_TRACING",
+    HEAP_CREATE_ENABLE_EXECUTE: "HEAP_CREATE_ENABLE_EXECUTE",
 }
 
 # Heap Chunk Flags
-HEAP_ENTRY_BUSY             = 0x01
-HEAP_ENTRY_EXTRA_PRESENT    = 0x02
-HEAP_ENTRY_FILL_PATTERN     = 0x04
-HEAP_ENTRY_VIRTUAL_ALLOC    = 0x08
-HEAP_ENTRY_LAST_ENTRY       = 0x10
-HEAP_ENTRY_SETTABLE_FLAG1   = 0x20
-HEAP_ENTRY_SETTABLE_FLAG2   = 0x40
-HEAP_ENTRY_SETTABLE_FLAG3   = 0x80
-
+HEAP_ENTRY_BUSY = 0x01
+HEAP_ENTRY_EXTRA_PRESENT = 0x02
+HEAP_ENTRY_FILL_PATTERN = 0x04
+HEAP_ENTRY_VIRTUAL_ALLOC = 0x08
+HEAP_ENTRY_LAST_ENTRY = 0x10
+HEAP_ENTRY_SETTABLE_FLAG1 = 0x20
+HEAP_ENTRY_SETTABLE_FLAG2 = 0x40
+HEAP_ENTRY_SETTABLE_FLAG3 = 0x80
 
 
 def reprHeapFlags(flags):
@@ -50,13 +49,14 @@ def reprHeapFlags(flags):
         return "|".join(ret)
     return "NONE"
 
+
 class HeapCorruptionException(Exception):
     def __init__(self, heap, segment, prevchunk, badchunk):
         prevaddr = 0
         badaddr = 0
-        if prevchunk != None:
+        if prevchunk is not None:
             prevaddr = prevchunk.address
-        if badchunk != None:
+        if badchunk is not None:
             badaddr = badchunk.address
         Exception.__init__(self, "Prev Chunk: 0x%.8x Bad Chunk: 0x%.8x" % (prevaddr, badaddr))
         self.heap = heap
@@ -64,22 +64,26 @@ class HeapCorruptionException(Exception):
         self.prevchunk = prevchunk
         self.badchunk = badchunk
 
+
 class FreeListCorruption(Exception):
     def __init__(self, heap, index, prevchunk, badchunk):
         prevaddr = 0
         badaddr = 0
-        if prevchunk != None:
+        if prevchunk is not None:
             prevaddr = prevchunk.address
-        if badchunk != None:
+        if badchunk is not None:
             badaddr = badchunk.address
-        Exception.__init__(self, "Index: %d Prev Chunk: 0x%.8x Bad Chunk: 0x%.8x" % (index, prevaddr, badaddr))
+        Exception.__init__(self, "Index: %d Prev Chunk: 0x%.8x Bad Chunk: 0x%.8x" % (
+            index, prevaddr, badaddr))
         self.heap = heap
         self.index = index
         self.prevchunk = prevchunk
         self.badchunk = badchunk
 
+
 class ChunkNotFound(Exception):
     pass
+
 
 def getHeapSegChunk(trace, address):
     """
@@ -100,9 +104,10 @@ def getHeapSegChunk(trace, address):
                 a = chunk.address
                 b = chunk.address + len(chunk)
                 if address >= a and address < b:
-                    return heap,seg,chunk
+                    return heap, seg, chunk
 
     raise ChunkNotFound("No Chunk Found for 0x%.8x" % address)
+
 
 def getHeaps(trace):
     """
@@ -112,10 +117,11 @@ def getHeaps(trace):
     pebaddr = trace.getMeta("PEB")
     peb = trace.getStruct("ntdll.PEB", pebaddr)
     heapcount = int(peb.NumberOfHeaps)
-    hlist = trace.readMemoryFormat(long(peb.ProcessHeaps), "<"+('P'*heapcount))
+    hlist = trace.readMemoryFormat(int(peb.ProcessHeaps), "<"+('P' * heapcount))
     for haddr in hlist:
         ret.append(Win32Heap(trace, haddr))
     return ret
+
 
 class Win32Heap:
     def __init__(self, trace, address):
@@ -162,12 +168,13 @@ class Win32Heap:
 
         (If this windows version doesn't support UCRs, the dict will be empty)
         '''
-        if self.ucrdict == None:
+        if self.ucrdict is None:
             self.ucrdict = {}
             if self.heap.vsHasField('UCRList'):
                 listhead_va = self.address + self.heap.vsGetOffset('UCRList')
                 for lva in self._getListEntries(listhead_va):
-                    ucrent = self.trace.getStruct('ntdll.HEAP_UCR_DESCRIPTOR', lva)
+                    ucrent = self.trace.getStruct(
+                        'ntdll.HEAP_UCR_DESCRIPTOR', lva)
                     if ucrent.Size != 0:
                         self.ucrdict[ucrent.Address] = ucrent.Size
 
@@ -190,7 +197,7 @@ class Win32Heap:
         '''
         Return a list of Win32Segment objects.
         '''
-        if self.seglist == None:
+        if self.seglist is None:
             self.seglist = []
 
             # Windows 7 style heap segment list
@@ -198,9 +205,9 @@ class Win32Heap:
                 self._win7ParseSegments()
 
             else:
-                for i in range(long(self.heap.LastSegmentIndex)+1):
+                for i in range(int(self.heap.LastSegmentIndex)+1):
                     sa = self.heap.Segments[i]
-                    self.seglist.append(Win32Segment(self.trace, self, long(sa)))
+                    self.seglist.append(Win32Segment(self.trace, self, int(sa)))
 
         return self.seglist
 
@@ -209,10 +216,11 @@ class Win32Heap:
         Return a list of the lookaside list for this heap
         '''
         if not self.hasLookAside():
-            raise Exception('Heap at 0x%.8x has no lookaside!' % (self.address))
+            raise Exception('Heap at 0x%.8x has no lookaside!' %
+                            (self.address))
         # Look aside lists are 128 pointer slots in a chunk pointed
         # to by the FrontEndHeap field in the heap structure.
-        #fetype = self.heap.FrontEndHeapType
+        # fetype = self.heap.FrontEndHeapType
 
         laside = self.heap.FrontEndHeap
         ret = []
@@ -223,7 +231,7 @@ class Win32Heap:
             while base != 0:
                 chunk = Win32Chunk(self.trace, self, base-8)
                 bucket.append(chunk)
-                base,blink = chunk.getFlinkBlink()
+                base, blink = chunk.getFlinkBlink()
             ret.append(bucket)
         return ret
 
@@ -238,7 +246,7 @@ class Win32Heap:
         return ret
 
     def _win7FreeLists(self):
-        #print 'Windows 7 Free List Parsing Fixme!'
+        # print 'Windows 7 Free List Parsing Fixme!'
         return []
 
     def getFreeLists(self):
@@ -263,7 +271,7 @@ class Win32Heap:
                 # If we die here, the guy before us was dorked.
                 try:
                     chunk = Win32Chunk(self.trace, self, addr-8)
-                except Exception, e:
+                except Exception:
                     chunk = bucket[-1]
                     pchunk = None
                     if len(bucket) >= 2:
@@ -271,7 +279,7 @@ class Win32Heap:
                     raise FreeListCorruption(self, i, pchunk, chunk)
 
                 # Check our back pointer
-                flink,blink = chunk.getFlinkBlink()
+                flink, blink = chunk.getFlinkBlink()
                 if len(bucket):
                     pchunk = bucket[-1]
                     if blink != pchunk.getDataAddress():
@@ -285,7 +293,7 @@ class Win32Heap:
 
     def getFlagNames(self):
         ret = []
-        for k,v in heap_flag_names.items():
+        for k, v in heap_flag_names.items():
             if self.heap.Flags & k:
                 ret.append(v)
         return ret
@@ -294,13 +302,14 @@ class Win32Heap:
         fnames = "|".join(self.getFlagNames())
         return "heap: 0x%.8x flags:%s" % (self.address, fnames)
 
+
 class Win32Segment:
     def __init__(self, trace, heap, address):
         self.trace = trace
         self.heap = heap
         self.address = address
         self.seg = trace.getStruct('ntdll.HEAP_SEGMENT', address)
-        #FIXME segments can specify chunk Size granularity
+        # FIXME segments can specify chunk Size granularity
         self.chunks = None
         self.segend = self.address + (self.seg.NumberOfPages * 4096)
 
@@ -308,18 +317,16 @@ class Win32Segment:
         return self.segend
 
     def getChunks(self):
-        if self.chunks == None:
+        if self.chunks is None:
             self.chunks = []
             addr = self.address
-            lastchunk = None
             ucrdict = self.heap.getUCRDict()
 
             while True:
 
                 # Skip any uncommited ranges...
                 usize = ucrdict.get(addr)
-                if usize != None:
-                    lastchunk = None
+                if usize is not None:
                     addr += usize
                     continue
 
@@ -331,21 +338,21 @@ class Win32Segment:
                 chunk = Win32Chunk(self.trace, self.heap, addr)
 
                 self.chunks.append(chunk)
-                #if lastchunk != None:
-                    #if lastchunk.chunk.Size != chunk.chunk.PreviousSize:
-                        #print 'last size:',lastchunk.chunk.Size,'prev',chunk.chunk.PreviousSize
-                        #raise HeapCorruptionException(self.heap, self, lastchunk, chunk)
+                # if lastchunk != None:
+                # if lastchunk.chunk.Size != chunk.chunk.PreviousSize:
+                # print 'last size:',lastchunk.chunk.Size,'prev',chunk.chunk.PreviousSize
+                # raise HeapCorruptionException(self.heap, self, lastchunk, chunk)
 
                 if chunk.isLast():
                     break
 
-                lastchunk = chunk
                 addr += len(chunk)
         return self.chunks
 
     def getLastChunk(self):
         va = self.seg.LastEntryInSegment
         return Win32Chunk(self.trace, self.heap, va)
+
 
 class Win32Chunk:
     def __init__(self, trace, heap, address):
@@ -359,7 +366,7 @@ class Win32Chunk:
             self.chunk ^= self.heap.heapenc
 
     def __repr__(self):
-        return 'HeapChunk: 0x%.8x (%d) %s' % (self.address, len(self),self.reprFlags())
+        return 'HeapChunk: 0x%.8x (%d) %s' % (self.address, len(self), self.reprFlags())
 
     def __len__(self):
         return int(self.chunk.Size) * 8
@@ -378,7 +385,7 @@ class Win32Chunk:
 
     def getDataBytes(self, maxsize=None):
         size = self.getDataSize()
-        if maxsize != None:
+        if maxsize is not None:
             size = min(size, maxsize)
         return self.trace.readMemory(self.getDataAddress(), size)
 
@@ -388,6 +395,7 @@ class Win32Chunk:
     def reprFlags(self):
         return reprHeapFlags(int(self.chunk.Flags))
 
+
 class Win32Subsegment(object):
     def __init__(self, trace, heap, address):
         self.trace = trace
@@ -396,7 +404,7 @@ class Win32Subsegment(object):
         self.subsegment = trace.getStruct('ntdll.HEAP_SUBSEGMENT', address)
 
     def getChunks(self):
-        for chunk in xrange(self.getChunksStart(), self.getChunksEnd(), self.getBucketSize()):
+        for chunk in range(self.getChunksStart(), self.getChunksEnd(), self.getBucketSize()):
             yield Win32Chunk(self.trace, self.heap, chunk)
 
     def getUserBlocks(self):
@@ -426,6 +434,7 @@ class Win32Subsegment(object):
 
     def getUsedBlockCount(self):
         return self.getBlockCount() - self.getFreeBlockCount()
+
 
 class Win32LFH(object):
     def __init__(self, trace, heap, address):

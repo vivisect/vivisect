@@ -3,7 +3,7 @@ Utilities for windows tracer objects.
 '''
 import PE
 import vtrace
-import envi.bits as e_bits
+
 
 def deAslr(trace, va):
     '''
@@ -15,8 +15,8 @@ def deAslr(trace, va):
     if vtrace.remote:
         raise Exception('deAslr only works for local debuggers!')
 
-    map = trace.getMemoryMap(va)
-    if map == None:
+    mmap = trace.getMemoryMap(va)
+    if mmap is None:
         return va
 
     mapva, mapsize, mapperm, mapfname = map
@@ -25,10 +25,10 @@ def deAslr(trace, va):
 
     normname = trace.normFileName(mapfname)
     sym = trace.getSymByName(normname)
-    if sym == None:
+    if sym is None:
         return va
 
-    membase = long(sym)
+    membase = int(sym)
 
     pe = PE.peFromFileName(mapfname)
     filebase = pe.IMAGE_NT_HEADERS.OptionalHeader.ImageBase
@@ -36,5 +36,3 @@ def deAslr(trace, va):
     rva = va - membase
 
     return filebase + rva
-
-

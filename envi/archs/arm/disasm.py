@@ -1987,7 +1987,7 @@ class ArmImmOffsetOper(ArmOperand):
 
             # FIXME: is there any chance of us doing indexing on PC?!?
             if idxing != 0x10:
-                print "OMJ! indexing on the program counter!"
+                print("OMJ! indexing on the program counter!")
         else:
             pom = ('-','')[u]
             mcanv.addText('[')
@@ -2017,7 +2017,7 @@ class ArmImmOffsetOper(ArmOperand):
             tname = "[#0x%x]" % addr
             # FIXME: is there any chance of us doing indexing on PC?!?
             if idxing != 0x10:
-                print "OMJ! indexing on the program counter!"
+                print("OMJ! indexing on the program counter!")
         else:
             pom = ('-','')[u]
             if self.offset != 0:

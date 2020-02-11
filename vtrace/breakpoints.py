@@ -9,6 +9,7 @@ from collections import defaultdict
 
 import vtrace
 
+
 class Breakpoint:
     """
     Breakpoints in Vtrace are platform independant objects that
@@ -18,7 +19,7 @@ class Breakpoint:
     objects should be portable.
     """
 
-    bpcodeobj = {} # Cache compiled code objects on the class def
+    bpcodeobj = {}  # Cache compiled code objects on the class def
 
     def __init__(self, address, expression=None):
         self.resonce = False
@@ -51,7 +52,7 @@ class Breakpoint:
         return "0x%.8x" % self.address
 
     def __repr__(self):
-        if self.address == None:
+        if self.address is None:
             addr = "unresolved"
         else:
             addr = "0x%.8x" % self.address
@@ -88,14 +89,14 @@ class Breakpoint:
         addressed break, just return the address.  If it has an "expression"
         use that to resolve the address...
         """
-        if self.address == None and self.vte:
+        if self.address is None and self.vte:
             try:
                 self.address = trace.parseExpression(self.vte)
-            except Exception, e:
+            except Exception:
                 self.address = None
 
         # If we resolved, lets get our saved code...
-        if self.address != None and not self.resonce:
+        if self.address is not None and not self.resonce:
             self.resonce = True
             self.resolvedaddr(trace, self.address)
 
@@ -138,9 +139,9 @@ class Breakpoint:
         for this breakpoint to have bpcode, you must call this method from
         your override.
         """
-        if self.bpcode != None:
+        if self.bpcode is not None:
             cobj = Breakpoint.bpcodeobj.get(self.id, None)
-            if cobj == None:
+            if cobj is None:
                 fname = "BP:%d (0x%.8x)" % (self.id, self.address)
                 cobj = compile(self.bpcode, fname, "exec")
                 Breakpoint.bpcodeobj[self.id] = cobj
@@ -149,18 +150,21 @@ class Breakpoint:
             d['bp'] = self
             exec(cobj, None, d)
 
+
 class TrackerBreak(Breakpoint):
     """
     A breakpoint which will record how many times it was hit
     (by the address it was at) as metadata for the tracer.
     """
+
     def notify(self, event, trace):
         tb = trace.getMeta("TrackerBreak", None)
-        if tb == None:
+        if tb is None:
             tb = {}
         trace.setMeta("TrackerBreak", tb)
         tb[self.address] = (tb.get(self.address, 0) + 1)
         Breakpoint.notify(self, event, trace)
+
 
 class OneTimeBreak(Breakpoint):
     """
@@ -168,9 +172,11 @@ class OneTimeBreak(Breakpoint):
     and code-coverage stuff.  It removes itself.
     (most frequently used with a continued trace)
     """
+
     def notify(self, event, trace):
         trace.removeBreakpoint(self.id)
         Breakpoint.notify(self, event, trace)
+
 
 class StopRunForeverBreak(Breakpoint):
     """
@@ -179,19 +185,23 @@ class StopRunForeverBreak(Breakpoint):
     to let things run on and on processing exceptions
     but stop when you get to this one thing.
     """
+
     def notify(self, event, trace):
         trace.setMode("RunForever", False)
         Breakpoint.notify(self, event, trace)
+
 
 class StopAndRemoveBreak(Breakpoint):
     """
     When hit, take the tracer out of run-forever mode and
     remove this breakpoint.
     """
+
     def notify(self, event, trace):
         trace.setMode("RunForever", False)
         trace.removeBreakpoint(self.id)
         Breakpoint.notify(self, event, trace)
+
 
 class CallBreak(Breakpoint):
     """
@@ -205,9 +215,10 @@ class CallBreak(Breakpoint):
     with the regs at the time it was hit and kept until
     we get garbage collected...
     """
+
     def __init__(self, address, saved_regs):
         Breakpoint.__init__(self, address)
-        self.endregs = None # Filled in when we get hit
+        self.endregs = None  # Filled in when we get hit
         self.saved_regs = saved_regs
 
     def notify(self, event, trace):
@@ -215,6 +226,7 @@ class CallBreak(Breakpoint):
         trace.removeBreakpoint(self.id)
         trace.setRegisters(self.saved_regs)
         trace.setMeta("PendingSignal", None)
+
 
 class SnapshotBreak(Breakpoint):
     """
@@ -224,22 +236,27 @@ class SnapshotBreak(Breakpoint):
     recommended for use in heavily hit breakpoints as taking a
     snapshot is processor intensive.
     """
+
     def notify(self, event, trace):
         exe = trace.getExe()
         snap = trace.takeSnapshot()
         snap.saveToFile("%s-%d.vsnap" % (exe, time.time()))
         Breakpoint.notify(self, event, trace)
 
+
 class NiceBreakpoint(Breakpoint):
     '''
     Calls the underlying breakpoint constructor with the correct constructor
     automagically by checking the type you passed in (int vs other).
     '''
+
     def __init__(self, expr, *args, **kwargs):
         if isinstance(expr, int):
             vtrace.Breakpoint.__init__(self, expr, *args, **kwargs)
         else:
-            vtrace.Breakpoint.__init__(self, None, expression=expr, *args, **kwargs)
+            vtrace.Breakpoint.__init__(
+                self, None, expression=expr, *args, **kwargs)
+
 
 def addHook(trace, expr, pre_callback, post_callback=None, cc=None, argc=None):
     '''
@@ -250,7 +267,7 @@ def addHook(trace, expr, pre_callback, post_callback=None, cc=None, argc=None):
 
     # does a hook bp already exist in the deferred or active bplist?
     ret_bp = None
-    if addr == None:
+    if addr is None:
         for dbp in trace.deferred:
             if dbp.getName() == expr:
                 ret_bp = dbp
@@ -258,7 +275,7 @@ def addHook(trace, expr, pre_callback, post_callback=None, cc=None, argc=None):
     else:
         ret_bp = trace.getBreakpointByAddr(addr)
 
-    if ret_bp == None:
+    if ret_bp is None:
         # add a new bp, one does not exist at this location already
         trace.addBreakpoint(hbp)
         ret_bp = hbp
@@ -267,8 +284,9 @@ def addHook(trace, expr, pre_callback, post_callback=None, cc=None, argc=None):
 
     ret_bp.addPreHook(pre_callback)
 
-    if post_callback != None:
+    if post_callback is not None:
         ret_bp.addPostHook(post_callback)
+
 
 class HookBreakpoint(NiceBreakpoint):
     '''
@@ -293,6 +311,7 @@ class HookBreakpoint(NiceBreakpoint):
     The prototype for post hook callback handlers is the same.
     def posthook(event, trace, saved_ret_addr, saved_args, callconv)
     '''
+
     def __init__(self, expr, callingconv=None, argc=None):
         vtrace.NiceBreakpoint.__init__(self, expr)
 
@@ -320,7 +339,7 @@ class HookBreakpoint(NiceBreakpoint):
         what to do.
         '''
         # told explicitly what to do, don't go look anything up
-        if self.cc != None and self.argc != None:
+        if self.cc is not None and self.argc is not None:
             return
 
         # TODO: move this out of here after we move impapi to a top-level
@@ -335,7 +354,7 @@ class HookBreakpoint(NiceBreakpoint):
         emu = vtrace.getEmu(trace)
         self.cc = emu.getCallingConvention(cc)
         apiargs = self.impapi.getImpApiArgs(self.vte)
-        if apiargs != None:
+        if apiargs is not None:
             self.argc = len(apiargs)
 
     def addPreHook(self, callback):
@@ -354,7 +373,7 @@ class HookBreakpoint(NiceBreakpoint):
     def notify(self, event, trace):
         ret_addr = None
         args = None
-        if self.cc != None:
+        if self.cc is not None:
             ret_addr = self.cc.getReturnAddress(trace)
             args = self.cc.getCallArgs(trace, self.argc)
 
@@ -363,16 +382,18 @@ class HookBreakpoint(NiceBreakpoint):
         # setup a PostHookBreakpoint on where we are headed to (if one is not
         # already there) we can't do this if we don't know the calling conv
         # information.
-        if ret_addr != None:
+        if ret_addr is not None:
             ret_bp = trace.getBreakpointByAddr(ret_addr)
-            if ret_bp == None:
+            if ret_bp is None:
                 ret_bp = PostHookBreakpoint(ret_addr, self)
                 trace.addBreakpoint(ret_bp)
 
             if not isinstance(ret_bp, PostHookBreakpoint):
-                raise Exception('cannot add PostHookBreakpoint, another type of bp exists at this location')
+                raise Exception(
+                    'cannot add PostHookBreakpoint, another type of bp exists at this location')
 
         self.runPreHookCallbacks(self.prehooks, event, trace, ret_addr, args)
+
 
 class PostHookBreakpoint(NiceBreakpoint):
 
@@ -384,13 +405,15 @@ class PostHookBreakpoint(NiceBreakpoint):
     def runPostHookCallbacks(self, event, trace, saved_ret_addr, saved_args):
         for hook_cb in self.parent.posthooks:
             try:
-                hook_cb(event, trace, saved_ret_addr, saved_args, self.parent.cc)
+                hook_cb(event, trace, saved_ret_addr,
+                        saved_args, self.parent.cc)
             except Exception as e:
-                print('Post hook callback "%s" exception: %s' % (hook_cb, str(e)))
+                print('Post hook callback "%s" exception: %s' %
+                      (hook_cb, str(e)))
 
     def notify(self, event, trace):
         tup = self.parent.callinfo.get(trace.getCurrentThread(), None)
-        if tup == None:
+        if tup is None:
             return
 
         ret_addr, args = tup

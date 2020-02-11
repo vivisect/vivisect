@@ -6,11 +6,9 @@ import os
 import sys
 import struct
 import signal
-import platform
 
 
 import vtrace
-import vtrace.util as v_util
 import vtrace.platforms.base as v_base
 
 import Elf
@@ -18,11 +16,11 @@ from ctypes import *
 import ctypes.util as cutil
 
 import envi.cli as e_cli
-import envi.memory as e_mem
 import envi.symstore.resolver as e_resolv
 
 
 libc = None
+
 
 class PosixMixin:
 
@@ -36,9 +34,9 @@ class PosixMixin:
         Setup for the fact that we support signal driven
         debugging on posix platforms
         """
-        self.stepping = False # Set this on stepi to diff the TRAP
-        self.execing  = False # Set this on exec to diff the TRAP
-        self.pthreads = [] # Some platforms make a pthread list
+        self.stepping = False  # Set this on stepi to diff the TRAP
+        self.execing = False  # Set this on exec to diff the TRAP
+        self.pthreads = []  # Some platforms make a pthread list
 
         self.fireTracerThread()
 
@@ -129,6 +127,7 @@ class ElfMixin:
     """
     A platform mixin to parse Elf binaries
     """
+
     def __init__(self):
         self.setMeta('Format', 'elf')
 
@@ -145,7 +144,7 @@ class ElfMixin:
             try:
                 # it's possible we hit vdso or something similar
                 elf = Elf.elfFromMemoryObject(self, baseaddr)
-            except:
+            except Exception:
                 raise
         # elf = Elf.Elf(fd)
         addbase = 0
@@ -153,36 +152,41 @@ class ElfMixin:
             addbase = baseaddr
 
         for sec in elf.sections:
-            sym = e_resolv.SectionSymbol(sec.name, sec.sh_addr+addbase, sec.sh_size, normname)
+            sym = e_resolv.SectionSymbol(
+                sec.name, sec.sh_addr+addbase, sec.sh_size, normname)
             self.addSymbol(sym)
 
         for sym in elf.symbols:
             symclass = typemap.get((sym.st_info & 0xf), e_resolv.Symbol)
-            sym = symclass(sym.name, sym.st_value+addbase, sym.st_size, normname)
+            sym = symclass(sym.name, sym.st_value +
+                           addbase, sym.st_size, normname)
             self.addSymbol(sym)
 
         for sym in elf.dynamic_symbols:
             symclass = typemap.get((sym.st_info & 0xf), e_resolv.Symbol)
-            sym = symclass(sym.name, sym.st_value+addbase, sym.st_size, normname)
+            sym = symclass(sym.name, sym.st_value +
+                           addbase, sym.st_size, normname)
             self.addSymbol(sym)
 
         if elf.isExecutable():
             sym = e_resolv.Symbol('__entry', elf.e_entry, 0, normname)
             self.addSymbol(sym)
 
+
 # As much as I would *love* if all the ptrace defines were the same all the time,
 # there seem to be small platform differences...
 # These are the ones upon which most agree
-PT_TRACE_ME     = 0   # child declares it's being traced */
-PT_READ_I       = 1   # read word in child's I space */
-PT_READ_D       = 2   # read word in child's D space */
-PT_READ_U       = 3   # read word in child's user structure */
-PT_WRITE_I      = 4   # write word in child's I space */
-PT_WRITE_D      = 5   # write word in child's D space */
-PT_WRITE_U      = 6   # write word in child's user structure */
-PT_CONTINUE     = 7   # continue the child */
-PT_KILL         = 8   # kill the child process */
-PT_STEP         = 9   # single step the child */
+PT_TRACE_ME = 0   # child declares it's being traced */
+PT_READ_I = 1   # read word in child's I space */
+PT_READ_D = 2   # read word in child's D space */
+PT_READ_U = 3   # read word in child's user structure */
+PT_WRITE_I = 4   # write word in child's I space */
+PT_WRITE_D = 5   # write word in child's D space */
+PT_WRITE_U = 6   # write word in child's user structure */
+PT_CONTINUE = 7   # continue the child */
+PT_KILL = 8   # kill the child process */
+PT_STEP = 9   # single step the child */
+
 
 def ptrace(code, pid, addr, data):
     """
@@ -203,6 +207,7 @@ def ptrace(code, pid, addr, data):
         libc.ptrace.restype = c_size_t
         libc.ptrace.argtypes = [c_int, c_uint32, c_size_t, c_size_t]
     return libc.ptrace(code, pid, c_size_t(addr), c_size_t(data))
+
 
 class PtraceMixin:
     """
@@ -241,7 +246,7 @@ class PtraceMixin:
 
     @v_base.threadwrap
     def platformWriteMemory(self, address, bytes):
-        wordsize = len(struct.pack("P",0))
+        wordsize = len(struct.pack("P", 0))
         remainder = len(bytes) % wordsize
 
         if remainder:
@@ -250,8 +255,6 @@ class PtraceMixin:
 
         for i in range(len(bytes)/wordsize):
             offset = wordsize*i
-            dword = struct.unpack("L",bytes[offset:offset+wordsize])[0]
-            if ptrace(PT_WRITE_D, self.pid, long(address+offset), long(dword)) != 0:
+            dword = struct.unpack("L", bytes[offset:offset+wordsize])[0]
+            if ptrace(PT_WRITE_D, self.pid, int(address+offset), int(dword)) != 0:
                 raise Exception("ERROR ptrace PT_WRITE_D failed!")
-
-

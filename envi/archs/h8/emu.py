@@ -10,8 +10,8 @@ import envi.bits as e_bits
 import envi.const as e_const
 import envi.archs.h8.regs as h8_regs
 import envi.archs.h8.const as h8_const
+import envi.archs.h8.operands as h8_opers
 from envi.archs.h8 import H8Module
-from operands import H8RegDirOper
 
 
 logger = logging.getLogger(__name__)
@@ -544,7 +544,7 @@ class H8Emulator(H8Module, h8_regs.H8RegisterContext, envi.Emulator):
         self.setFlag(h8_regs.CCR_Z, not val)
         self.setFlag(h8_regs.CCR_V, 0)
 
-        if isinstance(op.opers[1], H8RegDirOper) and op.opers[1].reg == h8_const.REG_PC:
+        if isinstance(op.opers[1], h8_opers.H8RegDirOper) and op.opers[1].reg == h8_const.REG_PC:
             return val
 
     def i_add(self, op):

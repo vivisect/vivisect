@@ -1,6 +1,8 @@
 """
 PPC Support Module (not done)
 """
+
+
 # Copyright (C) 2007 Invisigoth - See LICENSE file for details
 class PpcMixin:
     def archAddWatchpoint(self, address):
@@ -17,7 +19,7 @@ class PpcMixin:
         return []
 
     def getBreakInstruction(self):
-        # twi 0x14, r0, 0 
+        # twi 0x14, r0, 0
         # trap if r0 is (>=:unsigned) 0
         return "\x0e\x80\x00\x00"
 

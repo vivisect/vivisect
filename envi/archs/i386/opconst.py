@@ -2,8 +2,8 @@
 # The opcode tables were taken from Mammon_'s Guide to Writing Disassemblers in Perl, You Morons!"
 # and the bastard project. http://www.eccentrix.com/members/mammon/
 
-INSTR_PREFIX = 0xF0000000L
-ADDRMETH_MASK = 0x00FF0000L
+INSTR_PREFIX = 0xF0000000
+ADDRMETH_MASK = 0x00FF0000
 ADDRMETH_A = 0x00010000    # Direct address with segment prefix
 ADDRMETH_B = 0x00020000    # VEX.vvvv field selects general purpose register
 ADDRMETH_C = 0x00030000    # MODRM reg field defines control register

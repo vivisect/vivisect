@@ -1,22 +1,24 @@
 '''
 All the code related to vtrace process snapshots and TraceSnapshot classes.
 '''
-import sys
 import copy
-import cPickle as pickle
+try:
+    import pickle
+except Exception:
+    import cPickle as pickle
 
 import envi
-import envi.memory as e_mem
-import envi.symstore.resolver as e_resolv
 
 import vtrace
 import vtrace.platforms.base as v_base
+
 
 class TraceSnapshot(vtrace.Trace, v_base.TracerBase):
     '''
     A trace snapshot is similar to a traditional "core file" except that
     you may also have memory only snapshots that are never written to disk.
     '''
+
     def __init__(self, snapdict):
 
         self.s_snapcache = {}
@@ -50,15 +52,15 @@ class TraceSnapshot(vtrace.Trace, v_base.TracerBase):
         rinfo = self.s_regs.items()[0][1]
         self.setRegisterInfo(rinfo)
 
-        #FIXME hard-coded page size!
+        # FIXME hard-coded page size!
         self.s_map_lookup = {}
         for mmap in self.s_maps:
             for i in range(mmap[0], mmap[0] + mmap[1], 4096):
                 self.s_map_lookup[i] = mmap
 
         # Lets get some symbol resolvers created for our libraries
-        #for fname in self.getNormalizedLibNames():
-            #subres = e_resolv.FileSymbol(fname, 
+        # for fname in self.getNormalizedLibNames():
+            # subres = e_resolv.FileSymbol(fname,
 
         self.running = False
         self.attached = True
@@ -77,9 +79,8 @@ class TraceSnapshot(vtrace.Trace, v_base.TracerBase):
         '''
         Save a snapshot to file for later reading in...
         '''
-        f = file(filename, 'wb')
-        self.saveToFd(f)
-        f.close()
+        with open(filename, 'wb') as f:
+            self.saveToFd(f)
 
     def getMemoryMap(self, addr):
         if self.getMeta('Architecture') == 'amd64':
@@ -98,7 +99,7 @@ class TraceSnapshot(vtrace.Trace, v_base.TracerBase):
     def getStackTrace(self):
         tid = self.getMeta('ThreadId')
         tr = self.s_stacktrace.get(tid, None)
-        if tr == None:
+        if tr is None:
             raise Exception('ERROR: Invalid thread id specified')
         return tr
 
@@ -115,15 +116,15 @@ class TraceSnapshot(vtrace.Trace, v_base.TracerBase):
         return self.s_threads
 
     def platformReadMemory(self, address, size):
-        map = self.getMemoryMap(address)
-        if map == None:
+        mmap = self.getMemoryMap(address)
+        if mmap is None:
             raise Exception("ERROR: platformReadMemory says no map for 0x%.8x" % address)
-        offset = address - map[0] # Base address
-        mapbytes = self.s_mem.get(map[0], None)
-        if mapbytes == None:
-            raise vtrace.PlatformException("ERROR: Memory map at 0x%.8x is not backed!" % map[0])
+        offset = address - mmap[0]  # Base address
+        mapbytes = self.s_mem.get(mmap[0], None)
+        if mapbytes is None:
+            raise vtrace.PlatformException("ERROR: Memory map at 0x%.8x is not backed!" % mmap[0])
         if len(mapbytes) == 0:
-            raise vtrace.PlatformException("ERROR: Memory Map at 0x%.8x is backed by ''" % map[0])
+            raise vtrace.PlatformException("ERROR: Memory Map at 0x%.8x is backed by len 0" % mmap[0])
 
         ret = mapbytes[offset:offset+size]
         rlen = len(ret)
@@ -133,18 +134,18 @@ class TraceSnapshot(vtrace.Trace, v_base.TracerBase):
         return ret
 
     def platformWriteMemory(self, address, bytes):
-        map = self.getMemoryMap(address)
-        if map == None:
+        mmap = self.getMemoryMap(address)
+        if mmap is None:
             raise Exception("ERROR: platformWriteMemory says no map for 0x%.8x" % address)
-        offset = address - map[0]
-        mapbytes = self.s_mem[map[0]]
-        self.s_mem[map[0]] = mapbytes[:offset] + bytes + mapbytes[offset+len(bytes):]
+        offset = address - mmap[0]
+        mapbytes = self.s_mem[mmap[0]]
+        self.s_mem[mmap[0]] = mapbytes[:offset] + bytes + mapbytes[offset+len(bytes):]
 
     def platformDetach(self):
         pass
 
     def platformParseBinary(self, *args):
-        print 'FIXME FAKE PLATFORM PARSE BINARY: %s' % repr(args)
+        print('FIXME FAKE PLATFORM PARSE BINARY: %s' % repr(args))
 
     # Over-ride register *caching* subsystem to store/retrieve
     # register information in pure dictionaries
@@ -156,13 +157,15 @@ class TraceSnapshot(vtrace.Trace, v_base.TracerBase):
     def syncRegs(self):
         pass
 
+
 def loadSnapshot(filename):
     '''
     Load a vtrace process snapshot from a file
     '''
-    sfile = file(filename, "rb")
-    snapdict = pickle.load(sfile)
+    with open(filename, 'rb') as f:
+        snapdict = pickle.load(f)
     return TraceSnapshot(snapdict)
+
 
 def takeSnapshot(trace):
     '''
@@ -170,28 +173,27 @@ def takeSnapshot(trace):
     a reference to a tracer which wraps a "snapshot" or "core file".
     '''
     sd = dict()
-    orig_thread = trace.getMeta("ThreadId")
 
     regs = dict()
     stacktrace = dict()
 
-    for thrid,tdata in trace.getThreads().items():
+    for thrid, tdata in trace.getThreads().items():
         ctx = trace.getRegisterContext(thrid)
         reginfo = ctx.getRegisterInfo()
         regs[thrid] = reginfo
         try:
             stacktrace[thrid] = trace.getStackTrace()
-        except Exception, msg:
-            print >> sys.stderr, "WARNING: Failed to get stack trace for thread 0x%.8x" % thrid
+        except Exception as msg:
+            print("WARNING: Failed to get stack trace for thread 0x%.8x (%s)" % (thrid, msg))
 
     mem = dict()
     maps = []
-    for base,size,perms,fname in trace.getMemoryMaps():
+    for base, size, perms, fname in trace.getMemoryMaps():
         try:
             mem[base] = trace.readMemory(base, size)
-            maps.append((base,size,perms,fname))
-        except Exception, msg:
-            print >> sys.stderr, "WARNING: Can't snapshot memmap at 0x%.8x (%s)" % (base,msg)
+            maps.append((base, size, perms, fname))
+        except Exception as msg:
+            print("WARNING: Can't snapshot memmap at 0x%.8x (%s)" % (base, msg))
 
     # If the contents here change, change the version...
     sd['version'] = 1
