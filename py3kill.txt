@@ -62,3 +62,7 @@ delfunction fixme
 addLocalEnums and directly smushing things onto locals is evil
 
 qtwebkit is dead. long live qtwebenginewidgets
+
+imp is dead. long long importlib
+
+pickle must die

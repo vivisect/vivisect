@@ -1,14 +1,9 @@
 from vqt.common import *
 from vqt.main import *
 import cgi
-try:
-    from PyQt5 import QtCore, QtGui, QtWebKit, QtWebKitWidgets
-    from PyQt5.QtWebKitWidgets import *
-    from PyQt5.QtWidgets import *
-except:
-    from PyQt4 import QtCore, QtGui, QtWebKit
-    from PyQt4.QtWebKit import *
-    from PyQt4.QtGui import *
+
+from PyQt5 import QtCore, QtGui, QtWebEngine, QtWebEngineWidgets
+from PyQt5.QtWidgets import *
 
 
 import vqt.main as vq_main
@@ -20,12 +15,12 @@ qt_horizontal = 1
 qt_vertical = 2
 
 
-class LoggerPage(QWebPage):
+class LoggerPage(QtWebEngineWidgets.QWebEnginePage):
     def javaScriptConsoleMessage(self, msg, line, source):
         print('%s line %d: %s' % (source, line, msg))
 
 
-class VQMemoryCanvas(e_memcanvas.MemoryCanvas, QWebView):
+class VQMemoryCanvas(e_memcanvas.MemoryCanvas, QtWebEngineWidgets.QWebEngineView):
 
     def __init__(self, mem, syms=None, parent=None, **kwargs):
         e_memcanvas.MemoryCanvas.__init__(self, mem=mem, syms=syms)
@@ -214,7 +209,8 @@ class VQMemoryCanvas(e_memcanvas.MemoryCanvas, QWebView):
             fname = str(fname)
             if len(fname):
                 html = self.page().mainFrame().toHtml()
-                file(fname, 'w').write(html)
+                with open(fname, 'w') as fd:
+                    fd.write(html)
 
 
 def getNavTargetNames():

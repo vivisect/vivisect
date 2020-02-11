@@ -1,68 +1,71 @@
-import cPickle as pickle
 import vivisect
 
-vivsig_cpickle = 'VIV'.ljust(8,'\x00')
+try:
+    import pickle
+except Exception:
+    import cPickle as pickle
+
+vivsig_cpickle = 'VIV'.ljust(8, '\x00')
+
 
 def saveWorkspaceChanges(vw, filename):
     elist = vw.exportWorkspaceChanges()
     if len(elist):
-        f = file(filename, 'ab')
-        pickle.dump(elist, f, protocol=2)
-        f.close()
+        with open(filename, 'ab') as f:
+            pickle.dump(elist, f, protocol=2)
+
 
 def saveWorkspace(vw, filename):
     events = vw.exportWorkspace()
     vivEventsToFile(filename, events)
 
+
 def vivEventsAppendFile(filename, events):
-    f = file(filename, 'ab')
-    # Mime type for the basic workspace
-    pickle.dump(events, f, protocol=2)
-    f.close()
+    with open(filename, 'ab') as f:
+        pickle.dump(events, f, protocol=2)
+
 
 def vivEventsToFile(filename, events):
-    f = file(filename, 'wb')
-    # Mime type for the basic workspace
-    f.write(vivsig_cpickle)
-    pickle.dump(events, f, protocol=2)
-    f.close()
+    with open(filename, 'wb') as f:
+        # Mime type for the basic workspace
+        f.write(vivsig_cpickle)
+        pickle.dump(events, f, protocol=2)
+
 
 def vivEventsFromFile(filename):
-    f = file(filename, "rb")
-    vivsig = f.read(8)
+    with open(filename, 'rb') as f:
+        vivsig = f.read(8)
 
-    # check for various viv serial formats
-    if vivsig == vivsig_cpickle:
-        pass
+        # check for various viv serial formats
+        if vivsig == vivsig_cpickle:
+            pass
 
-    else: # FIXME legacy file format.... ( eventually remove )
-        f.seek(0)
+        else:  # FIXME legacy file format.... ( eventually remove )
+            f.seek(0)
 
-    events = []
-    # Incremental changes are saved to the file by appending more pickled
-    # lists of exported events
-    while True:
-        try:
-            events.extend( pickle.load(f) )
-        except EOFError, e:
-            break
-        except pickle.UnpicklingError, e:
-            raise vivisect.InvalidWorkspace(filename, "invalid workspace file")
-
-    f.close()
+        events = []
+        # Incremental changes are saved to the file by appending more pickled
+        # lists of exported events
+        while True:
+            try:
+                events.extend(pickle.load(f))
+            except EOFError:
+                break
+            except pickle.UnpicklingError:
+                raise vivisect.InvalidWorkspace(filename, "invalid workspace file")
 
     # FIXME - diagnostics to hunt msgpack unsave values
-    #for event in events:
-        #import msgpack
-        #try:
-            #msgpack.dumps(event)
-        #except Exception, e:
-            #print('Unsafe Event: %d %r' % event)
+    # for event in events:
+    # import msgpack
+    # try:
+    # msgpack.dumps(event)
+    # except Exception, e:
+    # print('Unsafe Event: %d %r' % event)
 
     return events
+
 
 def loadWorkspace(vw, filename):
     events = vivEventsFromFile(filename)
     vw.importWorkspace(events)
     return
-

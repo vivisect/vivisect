@@ -15,8 +15,6 @@ from vqt.common import *
 from envi.threads import *
 from vivisect.const import *
 
-def cmpoffset(x,y):
-    return cmp(x[0], y[0])
 
 @firethread
 def printEmuState(vw, fva, va):
@@ -45,7 +43,7 @@ def printEmuState(vw, fva, va):
     vw.canvas.addVaText("0x%.8x: " % va, va)
     op.render(vw.canvas)
     vw.canvas.addText("\n")
-    for i in xrange(len(op.opers)):
+    for i in range(len(op.opers)):
         o = op.opers[i]
         o.render(vw.canvas, op, i)
         oaddr = o.getOperAddr(op, emu)
@@ -60,6 +58,7 @@ def printEmuState(vw, fva, va):
             base += '%s + %d' % (emu.reprVivTaint(taint), oval - taint[0])
 
         vw.vprint(base)
+
 
 def buildContextMenu(vw, va=None, expr=None, menu=None, parent=None, nav=None):
     '''
@@ -124,10 +123,10 @@ def buildContextMenu(vw, va=None, expr=None, menu=None, parent=None, nav=None):
         if nav:
             funcmenu.addAction(funcname[:80], ACT(nav.enviNavGoto, funcname))
 
-        rtype,rname,cconv,cname,cargs = vw.getFunctionApi(fva)
+        rtype, rname, cconv, cname, cargs = vw.getFunctionApi(fva)
         if cargs:
             argmenu = funcmenu.addMenu('args')
-            for i,(atype,aname) in enumerate(cargs):
+            for i, (atype, aname) in enumerate(cargs):
                 act = ACT(vw.getVivGui().setFuncArgName, fva, i, atype, aname)
                 argmenu.addAction(aname, act)
 
@@ -139,11 +138,11 @@ def buildContextMenu(vw, va=None, expr=None, menu=None, parent=None, nav=None):
             locmenu = funcmenu.addMenu('locals')
 
             for _, spdelta, ltype, linfo in funclocals:
-                if spdelta > 0: # FIXME perhaps make this flexable based on cconv?
+                if spdelta > 0:  # FIXME perhaps make this flexable based on cconv?
                     continue
 
                 # Make the workspace do the resolving for us
-                typename, varname = vw.getFunctionLocal(fva,spdelta)
+                typename, varname = vw.getFunctionLocal(fva, spdelta)
                 act = ACT(vw.getVivGui().setFuncLocalName, fva, spdelta, typename, varname)
                 locmenu.addAction(varname, act)
 
@@ -154,7 +153,8 @@ def buildContextMenu(vw, va=None, expr=None, menu=None, parent=None, nav=None):
         funcmenu.addAction('re-analyze codeblocks', ACT(vagc.analyzeFunction, vw, fva))
         if fva == va:
             # funcmenu.addAction('delete function', ACT(vw.delFunction, va))
-            funcmenu.addAction('delete function', ACT(vw.getVivGui().delFunction, va))
+            funcmenu.addAction('delete function', ACT(
+                vw.getVivGui().delFunction, va))
 
     loc = vw.getLocation(va)
     if loc is None:
@@ -173,20 +173,17 @@ def buildContextMenu(vw, va=None, expr=None, menu=None, parent=None, nav=None):
         archmenu = makemenu.addMenu('code (archs)')
         prevumenu = menu.addMenu('preview instruction')
 
-        archs = [ (archname,archid) for (archid,archname) in envi.arch_names.items() ]
+        archs = [(archname, archid) for (archid, archname) in envi.arch_names.items()]
         archs.sort()
-        for archname,archid in archs:
+        for archname, archid in archs:
             if archname == 'default':
                 continue
             archmenu.addAction(archname, ACT(vw.makeCode, va, arch=archid))
             prevumenu.addAction(archname, ACT(vw.previewCode, va, arch=archid))
-
     else:
-
         if loc[L_LTYPE] == LOC_OP:
-
             op = vw.parseOpcode(va, arch=loc[L_TINFO])
-            for idx,oper in enumerate(op.opers):
+            for idx, oper in enumerate(op.opers):
                 # Give the option to switch ('hint') that you want
                 # the immediate operand displayed differently...
                 if oper.isImmed():
@@ -203,19 +200,17 @@ def buildContextMenu(vw, va=None, expr=None, menu=None, parent=None, nav=None):
                     immmenu = menu.addMenu('immediate')
                     # FIXME struct offsets?
                     immmenu.addAction('decimal (%d)' % val, ACT(vw.setSymHint, va, idx, str(val)))
-                    immmenu.addAction('hex (%s)' % hval,    ACT(vw.setSymHint, va, idx, hval))
+                    immmenu.addAction('hex (%s)' % hval, ACT(vw.setSymHint, va, idx, hval))
                     immmenu.addAction('chars (%s)' % cstr,  ACT(vw.setSymHint, va, idx, cstr))
 
                     names = vw.vsconsts.revLookup(val)
-                    if names != None:
+                    if names is not None:
                         for name in names:
                             immmenu.addAction(name, ACT(vw.setSymHint, va, idx, name))
             menu.addAction('make code xref->', ACT(vw.getVivGui().addVaXref, va))
 
-        menu.addAction('bookmark (B)',   ACT(vw.getVivGui().addBookmark, va))
-        menu.addAction('undefine (U)',   ACT(vw.delLocation, va))
+        menu.addAction('bookmark (B)', ACT(vw.getVivGui().addBookmark, va))
+        menu.addAction('undefine (U)', ACT(vw.delLocation, va))
 
     e_q_memcanvas.initMemSendtoMenu(expr, menu)
     return menu
-
-

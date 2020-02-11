@@ -24,12 +24,8 @@ import vivisect.qt.funcviews as viv_q_funcviews
 import vivisect.qt.symboliks as viv_q_symboliks
 import vivisect.remote.share as viv_share
 
-try:
-    from PyQt5 import QtCore
-    from PyQt5.QtWidgets import QInputDialog, QFileDialog
-except:
-    from PyQt4 import QtCore
-    from PyQt4.QtGui import QInputDialog, QFileDialog
+from PyQt5 import QtCore
+from PyQt5.QtWidgets import QInputDialog, QFileDialog
 
 from vqt.common import *
 from vivisect.const import *

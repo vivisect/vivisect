@@ -8,7 +8,7 @@ Particularly useful for clustering and workunit stuff.
 """
 import os
 import sys
-import imp
+import importlib
 import cobra
 
 verbose = False
@@ -25,33 +25,28 @@ class DcodeServer:
             path = list(path)
 
         fullname = fullname.split(".")[-1]
-
+        # replace with find_spec from import lib
         try:
             fobj, filename, typeinfo = imp.find_module(fullname, path)
         except ImportError as e:
+            return None
+
+        if not os.path.exists(filename):
             return None
 
         if os.path.isdir(filename):
             typeinfo = ('.py', 'U', 1)
             filename = os.path.join(filename, "__init__.py")
 
-        if not os.path.exists(filename):
-            return None
-
         if typeinfo[0] != '.py':
             return None
 
         path = os.path.dirname(filename)
-        fbytes = file(filename, "rU").read()
+        with open(filename, 'r') as fd:
+            fbytes = fd.read()
         return (fbytes, filename, path)
 
         # return DcodeLoader(fbytes, filename, path)
-
-
-def toutf8(s):
-    if type(s) == unicode:
-        s = s.encode('utf8')
-    return s
 
 
 class DcodeLoader(object):
@@ -71,15 +66,16 @@ class DcodeLoader(object):
 
     def load_module(self, fullname):
         mod = sys.modules.get(fullname)
-        if mod == None:
+        if mod is None:
             mod = imp.new_module(fullname)
             sys.modules[fullname] = mod
             mod.__file__ = self.filename
             mod.__loader__ = self
-            if self.path != None:
+            if self.path is not None:
                 mod.__path__ = [self.path]
 
-            exec toutf8(self.fbytes) in mod.__dict__
+            # TOOD(rakuyo): No
+            exec(toutf8(self.fbytes) in mod.__dict__)
 
         return mod
 
@@ -100,11 +96,8 @@ class DcodeFinder(object):
         name, ext = os.path.splitext(localname)
 
         try:
-
             fobj, filename, typeinfo = imp.find_module(name, path)
-
         except ImportError:
-
             if verbose:
                 print('Dcode Searching: %s (%s)' % (name, path))
             pymod = self.proxy.getPythonModule(fullname, path)
