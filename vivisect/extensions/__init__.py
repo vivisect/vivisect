@@ -1,7 +1,3 @@
-import os
-import imp
-import traceback
-
 '''
 Extensions for vivisect may be implemented as python
 modules which contain the function "vivExtension".
@@ -13,12 +9,16 @@ modules which implement "vivExtension"
 The module's vivExtension function takes a vivisect workspace
 (vw) and an vivisect gui reference (if present).
 '''
+import os
+import imp
+import traceback
 
-def loadExtensions( vw, vwgui ):
+
+def loadExtensions(vw, vwgui):
 
     extdir = os.getenv('VIV_EXT_PATH')
 
-    if extdir == None:
+    if extdir is None:
         return
 
     for dirname in extdir.split(';'):
@@ -35,12 +35,12 @@ def loadExtensions( vw, vwgui ):
             # Build code objects from the module files
             mod = imp.new_module('viv_ext')
             filepath = os.path.join(dirname, fname)
-            filebytes = file( filepath, 'r' ).read()
-            mod.__file__ = filepath
-            try:
-                exec filebytes in mod.__dict__
-                mod.vivExtension(vw, vwgui)
-            except Exception, e:
-                vw.vprint( traceback.format_exc() )
-                vw.vprint('Extension Error: %s' % filepath)
-
+            with open(filepath, 'r') as f:
+                filebytes = f.read()
+                mod.__file__ = filepath
+                try:
+                    exec(filebytes in mod.__dict__)
+                    mod.vivExtension(vw, vwgui)
+                except Exception:
+                    vw.vprint(traceback.format_exc())
+                    vw.vprint('Extension Error: %s' % filepath)
