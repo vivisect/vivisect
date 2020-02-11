@@ -60,3 +60,5 @@ is visgraph still valid in the face of networkx?
 delfunction fixme
 
 addLocalEnums and directly smushing things onto locals is evil
+
+qtwebkit is dead. long live qtwebenginewidgets

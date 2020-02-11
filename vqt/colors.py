@@ -170,6 +170,6 @@ QToolBar {
 
 defcolors = qt_matrix
 
+
 def getDefaultColors():
     return qt_matrix
-

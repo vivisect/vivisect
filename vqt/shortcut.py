@@ -8,6 +8,7 @@ except:
     from PyQt4 import QtGui
     from PyQt4.QtGui import QShortcut
 
+
 def addShortCut(widget, keycode, callback):
     if isinstance(keycode, str):
         keycode = ord(keycode)

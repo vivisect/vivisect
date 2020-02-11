@@ -1,8 +1,11 @@
 import sys
 import functools
-import traceback
 
-from Queue import Queue
+try:
+    import queue
+except Exception:
+    import Queue as queue
+
 from threading import currentThread
 
 try:
@@ -72,7 +75,7 @@ def idlethreadsync(func):
     Similar to idlethread except that it is synchronous and able
     to return values.
     '''
-    q = Queue()
+    q = queue.Queue()
 
     def dowork(*args, **kwargs):
         try:
@@ -183,6 +186,7 @@ def workerThread():
         except Exception as e:
             print('vqt worker warning: %s' % e)
 
+
 def startup(css=None):
     # yea yea.... globals suck...
     global qapp     # the main QApplication
@@ -196,7 +200,7 @@ def startup(css=None):
     currentThread().QtSafeThread = True
     qapp = VQApplication(sys.argv)
     if css:
-        qapp.setStyleSheet( css )
+        qapp.setStyleSheet(css)
 
     ethread = QEventThread(guiq)
     ethread.idleadd.connect(qapp.callFromQtLoop)
@@ -219,7 +223,7 @@ def eatevents():
     qapp.processEvents()
 
 
-def vqtevent(event,einfo):
+def vqtevent(event, einfo):
     '''
     Fire an event into the application wide GUI events subsystem.
     Each event should be an event name ( str ) and arbitrary event
@@ -274,14 +278,14 @@ def vqtdisconnect(callback, event=None):
 
 
 def getOpenFileName(*args, **kwargs):
-        fname = QFileDialog.getOpenFileName(*args, **kwargs)
-        if type(fname) is tuple:
-            return fname[0]
-        return fname
+    fname = QFileDialog.getOpenFileName(*args, **kwargs)
+    if type(fname) is tuple:
+        return fname[0]
+    return fname
 
 
 def getSaveFileName(*args, **kwargs):
-        fname = QFileDialog.getSaveFileName(*args, **kwargs)
-        if type(fname) is tuple:
-            return fname[0]
-        return fname
+    fname = QFileDialog.getSaveFileName(*args, **kwargs)
+    if type(fname) is tuple:
+        return fname[0]
+    return fname

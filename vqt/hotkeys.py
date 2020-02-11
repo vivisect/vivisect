@@ -1,3 +1,4 @@
+import vqt.tree
 import sys
 import logging
 import traceback
@@ -27,14 +28,16 @@ special_keys = {
 }
 
 fkey_base = 0x100002f
-for i in xrange(1,12):
-    special_keys[ fkey_base + i ] = 'f%d' % i
+for i in range(1, 12):
+    special_keys[fkey_base + i] = 'f%d' % i
+
 
 def hotkey(targname):
     def hotkeydecor(f):
         f._vq_hotkey = targname
         return f
     return hotkeydecor
+
 
 class HotKeyMixin(object):
 
@@ -55,7 +58,7 @@ class HotKeyMixin(object):
 
         w.addHotKeyTarget('go', trace.run)
         '''
-        self._vq_hotkey_targets[hkname] = (callback,args,kwargs)
+        self._vq_hotkey_targets[hkname] = (callback, args, kwargs)
 
     def getHotKeyTargets(self):
         '''
@@ -152,8 +155,10 @@ class HotKeyMixin(object):
             try:
                 callback(*args, **kwargs)
             except:
-                logger.warn("error in eatKeyPressEvent(%r, %r, %r)" % (event, args, kwargs))
-                logger.debug(''.join(traceback.format_exception(*sys.exc_info())))
+                logger.warn("error in eatKeyPressEvent(%r, %r, %r)" %
+                            (event, args, kwargs))
+                logger.debug(
+                    ''.join(traceback.format_exception(*sys.exc_info())))
 
             event.accept()
             return True
@@ -165,22 +170,23 @@ class HotKeyMixin(object):
             # is this a bug?  do we call the super?  or the parent?
             return super(HotKeyMixin, self).keyPressEvent(event)
 
-            #parent = self.parent()
-            #if parent != None:
+            # parent = self.parent()
+            # if parent != None:
             #    return parent.keyPressEvent(event)
 
-import vqt.tree
 
 class HotKeyEditor(vqt.tree.VQTreeView):
 
     def __init__(self, hotkeyobj, settings=None, parent=None):
         self._hk_settings = settings
         self._hk_hotkeyobj = hotkeyobj
-        vqt.tree.VQTreeView.__init__(self, parent=parent, cols=('Hot Target', 'Hot Key'))
+        vqt.tree.VQTreeView.__init__(
+            self, parent=parent, cols=('Hot Target', 'Hot Key'))
 
         model = self.model()
 
-        lookup = dict([(targname, keystr) for (keystr, targname) in self.getHotKeys()])
+        lookup = dict([(targname, keystr)
+                       for (keystr, targname) in self.getHotKeys()])
         targets = self.getHotKeyTargets()
         targets.sort()
 
@@ -188,4 +194,3 @@ class HotKeyEditor(vqt.tree.VQTreeView):
             model.append((targname, lookup.get(targname, '')))
 
         self.setWindowTitle('Hotkey Editor')
-

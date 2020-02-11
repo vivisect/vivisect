@@ -1,3 +1,5 @@
+from vqt.common import *
+from vqt.main import *
 import cgi
 try:
     from PyQt5 import QtCore, QtGui, QtWebKit, QtWebKitWidgets
@@ -10,8 +12,6 @@ except:
 
 
 import vqt.main as vq_main
-import vqt.colors as vq_colors
-import vqt.hotkeys as vq_hotkey
 import envi.qt.html as e_q_html
 import envi.qt.jquery as e_q_jquery
 import envi.memcanvas as e_memcanvas
@@ -19,12 +19,11 @@ import envi.memcanvas as e_memcanvas
 qt_horizontal = 1
 qt_vertical = 2
 
-from vqt.main import *
-from vqt.common import *
 
 class LoggerPage(QWebPage):
     def javaScriptConsoleMessage(self, msg, line, source):
         print('%s line %d: %s' % (source, line, msg))
+
 
 class VQMemoryCanvas(e_memcanvas.MemoryCanvas, QWebView):
 
@@ -39,7 +38,8 @@ class VQMemoryCanvas(e_memcanvas.MemoryCanvas, QWebView):
 
         self.setPage(LoggerPage())
 
-        htmlpage = e_q_html.template.replace('{{{jquery}}}', e_q_jquery.jquery_2_1_0)
+        htmlpage = e_q_html.template.replace(
+            '{{{jquery}}}', e_q_jquery.jquery_2_1_0)
         self.setContent(htmlpage)
 
         frame = self.page().mainFrame()
@@ -52,13 +52,13 @@ class VQMemoryCanvas(e_memcanvas.MemoryCanvas, QWebView):
 
     @QtCore.pyqtSlot(str)
     def showMessage(self, message):
-        print "Message from website:", message
+        print("Message from website: %s" % message)
 
     def renderMemory(self, va, size, rend=None):
 
         if self._canv_rend_middle:
             vmap = self.mem.getMemoryMap(va)
-            if vmap == None:
+            if vmap is None:
                 raise Exception('Invalid Address:%s' % hex(va))
 
             origva = va
@@ -146,12 +146,12 @@ class VQMemoryCanvas(e_memcanvas.MemoryCanvas, QWebView):
         '''
         clsname = 'envi-%s' % typename
         namehex = name.lower().encode('hex')
-        subclsname = 'envi-%s-%s' % (typename,namehex)
-        return ('<span class="%s %s" envitag="%s" envival="%s" onclick="nameclick(this)">' % (clsname,subclsname,typename,namehex), '</span>')
+        subclsname = 'envi-%s-%s' % (typename, namehex)
+        return ('<span class="%s %s" envitag="%s" envival="%s" onclick="nameclick(this)">' % (clsname, subclsname, typename, namehex), '</span>')
 
     def getVaTag(self, va):
         # The "class" will be the same that we get back from goto event
-        return ('<span class="envi-va envi-va-0x%.8x" va="0x%.8x" ondblclick="vagoto(this)" oncontextmenu="vaclick(this)" onclick="vaclick(this)">' % (va,va), '</span>')
+        return ('<span class="envi-va envi-va-0x%.8x" va="0x%.8x" ondblclick="vagoto(this)" oncontextmenu="vaclick(this)" onclick="vaclick(this)">' % (va, va), '</span>')
 
     @QtCore.pyqtSlot(str)
     def _jsGotoExpr(self, expr):
@@ -231,4 +231,5 @@ def getNavTargetNames():
 def initMemSendtoMenu(expr, menu):
     for name in set(getNavTargetNames()):
         args = (name, expr, None)
-        menu.addAction('sendto: %s' % name, ACT(vqtevent, 'envi:nav:expr', args))
+        menu.addAction('sendto: %s' % name, ACT(
+            vqtevent, 'envi:nav:expr', args))

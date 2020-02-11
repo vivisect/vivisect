@@ -503,7 +503,7 @@ class VivWorkspaceCore(v_impapi.ImportApi):
         pass
 
     def _initEventHandlers(self):
-        self.ehand = [None for x in range(v_const.WorkspaceEvents)]
+        self.ehand = [None for x in range(v_const.VWE_MAX)]
         self.ehand[v_const.VWE_ADDLOCATION] = self._handleADDLOCATION
         self.ehand[v_const.VWE_DELLOCATION] = self._handleDELLOCATION
         self.ehand[v_const.VWE_ADDSEGMENT] = self._handleADDSEGMENT

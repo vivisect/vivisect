@@ -11,10 +11,13 @@ except:
     from PyQt4.QtGui import QTreeView
 
 logger = logging.getLogger(__name__)
-#logger.setLevel(logging.DEBUG)
+# logger.setLevel(logging.DEBUG)
 if not len(logger.handlers):
     logger.addHandler(logging.StreamHandler())
 
+
+def cmpr(x, y):
+    return (x > y) - (x < y)
 
 
 class ACT:
@@ -25,24 +28,25 @@ class ACT:
 
     def __call__(self):
         try:
-            return self.meth( *self.args, **self.kwargs )
+            return self.meth(*self.args, **self.kwargs)
         except:
-            logger.warn("error in ACT(%r, %r, %r)" % (self.meth, self.args, self.kwargs))
+            logger.warn("error in ACT(%r, %r, %r)" %
+                        (self.meth, self.args, self.kwargs))
             logger.debug(''.join(traceback.format_exception(*sys.exc_info())))
 
 
 class VqtModel(QtCore.QAbstractItemModel):
 
-    columns = ('one','two')
+    columns = ('one', 'two')
     editable = None
     dragable = False
 
     def __init__(self, rows=()):
         QtCore.QAbstractItemModel.__init__(self)
         # Make sure the rows are lists ( so we can mod them )
-        self.rows = [ list(row) for row in rows ]
+        self.rows = [list(row) for row in rows]
         if self.editable == None:
-            self.editable = [False,] * len(self.columns)
+            self.editable = [False, ] * len(self.columns)
 
     def index(self, row, column, parent):
         return self.createIndex(row, column, self.rows[row])
@@ -56,7 +60,7 @@ class VqtModel(QtCore.QAbstractItemModel):
         return len(self.rows)
 
     def data(self, index, role):
-        if role == 0: 
+        if role == 0:
             row = index.row()
             col = index.column()
             return self.rows[row][col]
@@ -69,8 +73,8 @@ class VqtModel(QtCore.QAbstractItemModel):
 
     def headerData(self, column, orientation, role):
 
-        if ( orientation == QtCore.Qt.Horizontal and
-             role == QtCore.Qt.DisplayRole):
+        if (orientation == QtCore.Qt.Horizontal and
+                role == QtCore.Qt.DisplayRole):
 
             return self.columns[column]
 
@@ -85,30 +89,30 @@ class VqtModel(QtCore.QAbstractItemModel):
             flags |= QtCore.Qt.ItemIsEditable
 
         if self.dragable:
-            flags |= QtCore.Qt.ItemIsDragEnabled# | QtCore.Qt.ItemIsDropEnabled
+            flags |= QtCore.Qt.ItemIsDragEnabled  # | QtCore.Qt.ItemIsDropEnabled
 
         return flags
 
-    #def data(self, index, role):
-        #if not index.isValid():
-            #return None
+    # def data(self, index, role):
+        # if not index.isValid():
+        # return None
         #item = index.internalPointer()
-        #if role == QtCore.Qt.DisplayRole:
-            #return item.data(index.column())
-        #if role == QtCore.Qt.UserRole:
-            #return item
-        #return None
+        # if role == QtCore.Qt.DisplayRole:
+        # return item.data(index.column())
+        # if role == QtCore.Qt.UserRole:
+        # return item
+        # return None
 
-    #def _vqt_set_data(self, row, col, value):
-        #return False
+    # def _vqt_set_data(self, row, col, value):
+        # return False
 
-    #def appends(self, rows):
+    # def appends(self, rows):
 
     def append(self, row, parent=QtCore.QModelIndex()):
         #pidx = self.createIndex(parent.row(), 0, parent)
         i = len(self.rows)
         self.beginInsertRows(parent, i, i)
-        self.rows.append( row )
+        self.rows.append(row)
         #node = parent.append(rowdata)
         self.endInsertRows()
         self.layoutChanged.emit()
@@ -121,14 +125,14 @@ class VqtModel(QtCore.QAbstractItemModel):
         # If this is the edit role, fire the vqEdited thing
         if role == QtCore.Qt.EditRole:
             print('EDIT ROLE')
-            
+
             #value = self.vqEdited(node, index.column(), value)
-            #if value == None:
-                #return False
+            # if value == None:
+            # return False
 
             row = index.row()
             col = index.column()
-            if not self._vqt_set_data( row, col, value ):
+            if not self._vqt_set_data(row, col, value):
                 return False
 
         return True
@@ -136,25 +140,26 @@ class VqtModel(QtCore.QAbstractItemModel):
     def pop(self, row, parent=QtCore.QModelIndex()):
         self.beginRemoveRows(parent, row, row+1)
         self.rows.pop(row)
-        self.endRemoveRows()  
+        self.endRemoveRows()
 
-    #def mimeTypes(self):
+    # def mimeTypes(self):
         #types = QtCore.QStringList()
-        #types.append('vqt/row')
-        #return types
+        # types.append('vqt/row')
+        # return types
 
-    #def mimeData(self, idx):
+    # def mimeData(self, idx):
         #nodes = [ self.rows[i.row()][-1] for i in idx ]
         #mdata = QtCore.QMimeData()
-        #mdata.setData('vqt/rows',json.dumps(nodes))
-        #return mdata
+        # mdata.setData('vqt/rows',json.dumps(nodes))
+        # return mdata
+
 
 class VqtView(QTreeView):
 
     def __init__(self, parent=None):
         QTreeView.__init__(self, parent=parent)
-        self.setAlternatingRowColors( True )
-        self.setSortingEnabled( True )
+        self.setAlternatingRowColors(True)
+        self.setSortingEnabled(True)
 
     def getSelectedRows(self):
         ret = []
@@ -166,7 +171,7 @@ class VqtView(QTreeView):
                 continue
 
             rdone[idx.row()] = True
-            ret.append( model.mapToSource(idx).internalPointer() )
+            ret.append(model.mapToSource(idx).internalPointer())
 
         return ret
 
@@ -184,4 +189,4 @@ class VqtView(QTreeView):
 
     def getModelRow(self, idx):
         idx = self.model().mapToSource(idx)
-        return idx.row(),idx.internalPointer()
+        return idx.row(), idx.internalPointer()

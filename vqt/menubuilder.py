@@ -3,6 +3,7 @@ try:
 except:
     from PyQt4.QtGui import *
 
+
 class FieldAdder:
 
     def __init__(self, splitchar='.'):
@@ -15,9 +16,9 @@ class FieldAdder:
         kid = self
         for p in plist:
             kid = parent.kids.get(p)
-            if kid == None:
+            if kid is None:
                 kid = VQMenu(p, parent=parent, splitchar=self.splitchar)
-                action = parent.addMenu(kid)
+                parent.addMenu(kid)
                 parent.kids[p] = kid
             parent = kid
 
@@ -47,7 +48,7 @@ class FieldAdder:
             m.addDynMenu( callback )
         '''
         plist = pathstr.split(self.splitchar)
-        menu = self._addMenuFields( plist )
+        menu = self._addMenuFields(plist)
         menu._dyn_callback = callback
         menu.aboutToShow.connect(menu._addDynActions)
 
@@ -55,26 +56,29 @@ class FieldAdder:
         plist = pathstr.split(self.splitchar)
         kid = self._addMenuFields(plist[:-1])
 
-        acall = ActionCall( callback, *args )
+        acall = ActionCall(callback, *args)
         action = QAction(plist[-1], kid)
         action.triggered.connect(acall)
 
-        if tip: action.setStatusTip(tip)
+        if tip:
+            action.setStatusTip(tip)
 
         kid.addAction(action)
 
         return kid
+
 
 class VQMenuBar(FieldAdder, QMenuBar):
     def __init__(self, parent=None, splitchar='.'):
         QMenuBar.__init__(self, parent=parent)
         FieldAdder.__init__(self, splitchar=splitchar)
 
-class VQMenu(FieldAdder, QMenu):
 
+class VQMenu(FieldAdder, QMenu):
     def __init__(self, name, parent=None, splitchar='.'):
         QMenu.__init__(self, name, parent=parent)
         FieldAdder.__init__(self, splitchar=splitchar)
+
 
 class ActionCall:
 

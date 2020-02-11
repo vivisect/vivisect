@@ -13,6 +13,7 @@ from vqt.common import ACT
 import vqt.tree as vq_tree
 import envi.memory as e_mem
 
+
 class VQMemoryMapView(vq_tree.VQTreeView):
 
     def __init__(self, mem, parent=None):
@@ -33,10 +34,14 @@ class VQMemoryMapView(vq_tree.VQTreeView):
 
     def buildContextMenu(self, va, size):
         menu = QMenu()
-        menu.addAction('Copy Bytes To Clipboard', ACT(self.menuCopyBytesToClipboard, va, size))
-        menu.addAction('Save Bytes To File', ACT(self.menuSaveBytesToFile, va, size))
-        menu.addAction('Search Selected Memory Map', ACT(self.menuSearchMaps, va, size, allmaps=False))
-        menu.addAction('Search All Memory Maps', ACT(self.menuSearchMaps, va, size, allmaps=True))
+        menu.addAction('Copy Bytes To Clipboard', ACT(
+            self.menuCopyBytesToClipboard, va, size))
+        menu.addAction('Save Bytes To File', ACT(
+            self.menuSaveBytesToFile, va, size))
+        menu.addAction('Search Selected Memory Map', ACT(
+            self.menuSearchMaps, va, size, allmaps=False))
+        menu.addAction('Search All Memory Maps', ACT(
+            self.menuSearchMaps, va, size, allmaps=True))
         return menu
 
     def vqLoad(self):
@@ -53,8 +58,10 @@ class VQMemoryMapView(vq_tree.VQTreeView):
         pindex = index.parent()
         va_index = self.model().index(index.row(), 0, pindex)
         size_index = self.model().index(index.row(), 1, pindex)
-        va = self.mem.parseExpression(self.model().data(va_index, QtCore.Qt.DisplayRole))
-        size = self.mem.parseExpression(self.model().data(size_index, QtCore.Qt.DisplayRole))
+        va = self.mem.parseExpression(
+            self.model().data(va_index, QtCore.Qt.DisplayRole))
+        size = self.mem.parseExpression(
+            self.model().data(size_index, QtCore.Qt.DisplayRole))
 
         return va, size
 
@@ -86,7 +93,7 @@ class VQMemoryMapView(vq_tree.VQTreeView):
 
         pattern, fname = dlg.getResults()
 
-        if allmaps == True:
+        if allmaps:
             self.do_searchall(pattern, fname=fname)
         else:
             va, size, perms, mname = self.mem.getMemoryMap(va)

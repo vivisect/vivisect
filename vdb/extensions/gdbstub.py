@@ -2,6 +2,7 @@
 import vtrace
 import vdb.extensions.windows as vdb_windows
 
+
 def ethread(db, line):
     '''
     Display information about the currently stopped ethread.
@@ -17,6 +18,7 @@ def ethread(db, line):
     ethraddr = kpcr.PrcbData.CurrentThread
     ethr = t.getStruct('nt.ETHREAD', ethraddr)
     db.vprint(ethr.tree(va=ethraddr))
+
 
 def eprocess(db, line):
     '''
@@ -36,6 +38,7 @@ def eprocess(db, line):
     eproc = t.getStruct('nt.EPROCESS', eprocaddr)
     db.vprint(eproc.tree(va=eprocaddr))
 
+
 def kpcr(db, line):
     '''
     Show the kpcr structure for the currently stopped kernel.
@@ -50,6 +53,7 @@ def kpcr(db, line):
 
 # FIXME do we need to make gdbstub a package so it can have subs?
 
+
 def armcore(db, line):
     '''
     Show / set the 'mode' of the arm core between arm and thumb.
@@ -60,7 +64,7 @@ def armcore(db, line):
     t.requireNotRunning()
 
     if line:
-        if line not in ('arm','thumb'):
+        if line not in ('arm', 'thumb'):
             return db.do_help('armcore')
         cmdstr = t._monitorCommand('arm core_state %s' % line)
     else:
@@ -68,6 +72,7 @@ def armcore(db, line):
 
     mode = cmdstr.split(':')[1].strip()
     db.vprint('Arm Core Mode: %s' % mode)
+
 
 class GdbStubNotifier(vtrace.Notifier):
 
@@ -83,11 +88,11 @@ class GdbStubNotifier(vtrace.Notifier):
         gdbplatform = trace.getMeta('GdbPlatform')
         targplatform = trace.getMeta('GdbTargetPlatform')
 
-        #print 'Target Architecture: %s' % targarch
-        #print 'Gdb Platform: %s' % gdbplatform
-        #print 'Target Platform: %s' % targplatform
+        # print 'Target Architecture: %s' % targarch
+        # print 'Gdb Platform: %s' % gdbplatform
+        # print 'Target Platform: %s' % targplatform
 
-        if gdbplatform in ('VMware32','Qemu32'):
+        if gdbplatform in ('VMware32', 'Qemu32'):
 
             if targplatform == 'Windows':
                 self._db.registerCmdExtension(vdb_windows.aslr)
@@ -99,9 +104,10 @@ class GdbStubNotifier(vtrace.Notifier):
 
             # If we are openocd, lets add some commands for jtag etc..
             if targarch == 'arm':
-                #import vdb.extensions.arm as vdb_arm
+                # import vdb.extensions.arm as vdb_arm
                 self._db.registerCmdExtension(armcore)
-                #self._db.registerCmdExtension(vdb_arm.thumb)
+                # self._db.registerCmdExtension(vdb_arm.thumb)
+
 
 def gdbmon(db, line):
     '''
@@ -115,13 +121,13 @@ def gdbmon(db, line):
     if len(line) == 0:
         return db.do_help('gdbmon')
     t = db.getTrace()
-    #t.requireNotRunning()
+    # t.requireNotRunning()
     resp = t._monitorCommand(line)
     db.vprint('gdb> %s' % line)
     db.vprint(resp)
+
 
 def vdbExtension(db, trace):
     notif = GdbStubNotifier(db)
     db.registerCmdExtension(gdbmon)
     db.registerNotifier(vtrace.NOTIFY_ATTACH, notif)
-

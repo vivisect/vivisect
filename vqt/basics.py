@@ -8,23 +8,27 @@ except:
     from PyQt4 import QtCore
     from PyQt4.QtGui import *
 
+import vqt.common as vqt_common
+
+
 class BasicTreeView(QTreeView):
 
     def __init__(self, parent=None):
         QTreeView.__init__(self, parent=parent)
-        self.setAlternatingRowColors( True )
-        self.setSortingEnabled( True )
+        self.setAlternatingRowColors(True)
+        self.setSortingEnabled(True)
 
     def setModel(self, model):
         ret = QTreeView.setModel(self, model)
         c = len(model.columns)
-        for i in xrange(c):
+        for i in range(c):
             self.resizeColumnToContents(i)
         return ret
 
+
 class BasicModel(QtCore.QAbstractItemModel):
 
-    columns = ('one','two')
+    columns = ('one', 'two')
 
     def __init__(self, rows=()):
         QtCore.QAbstractItemModel.__init__(self)
@@ -52,7 +56,7 @@ class BasicModel(QtCore.QAbstractItemModel):
 
     def sort(self, col, order=QtCore.Qt.AscendingOrder):
         self.layoutAboutToBeChanged.emit()
-        self.rows.sort( cmp=lambda x,y: cmp(x[col],y[col]) )
+        self.rows.sort(key=lambda x, y: vqt_common.cmpr(x[col], y[col]))
         if order == QtCore.Qt.DescendingOrder:
             self.rows.reverse()
         self.layoutChanged.emit()
@@ -62,36 +66,39 @@ class BasicModel(QtCore.QAbstractItemModel):
 
     def headerData(self, column, orientation, role):
 
-        if ( orientation == QtCore.Qt.Horizontal and
-             role == QtCore.Qt.DisplayRole):
+        if (orientation == QtCore.Qt.Horizontal and
+                role == QtCore.Qt.DisplayRole):
 
             return self.columns[column]
 
         return None
 
-class VBox( QVBoxLayout ):
+
+class VBox(QVBoxLayout):
 
     def __init__(self, *widgets):
         QVBoxLayout.__init__(self)
-        self.setContentsMargins(2,2,2,2)
+        self.setContentsMargins(2, 2, 2, 2)
         self.setSpacing(4)
         for w in widgets:
-            if w == None:
+            if w is None:
                 self.addStretch()
                 continue
-            self.addWidget( w )
+            self.addWidget(w)
 
-class HBox( QHBoxLayout ):
+
+class HBox(QHBoxLayout):
 
     def __init__(self, *widgets):
         QHBoxLayout.__init__(self)
-        self.setContentsMargins(2,2,2,2)
+        self.setContentsMargins(2, 2, 2, 2)
         self.setSpacing(4)
         for w in widgets:
-            if w == None:
+            if w is None:
                 self.addStretch()
                 continue
-            self.addWidget( w )
+            self.addWidget(w)
+
 
 class ACT:
     def __init__(self, meth, *args, **kwargs):
@@ -100,5 +107,4 @@ class ACT:
         self.kwargs = kwargs
 
     def __call__(self):
-        return self.meth( *self.args, **self.kwargs )
-
+        return self.meth(*self.args, **self.kwargs)

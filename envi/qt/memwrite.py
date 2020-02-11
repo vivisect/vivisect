@@ -11,6 +11,7 @@ except:
     from PyQt4 import QtCore, QtGui
     from PyQt4.QtGui import *
 
+
 class VQLineEdit(QLineEdit):
     '''
     Has an additional signal to emit a signal on release of every keypress.
@@ -20,6 +21,7 @@ class VQLineEdit(QLineEdit):
     def keyReleaseEvent(self, event):
         self.keyReleased.emit(event)
         QLineEdit.keyReleaseEvent(self, event)
+
 
 class MemNavWidget(QWidget):
     userChanged = QtCore.pyqtSignal(str, str)
@@ -61,6 +63,7 @@ class MemNavWidget(QWidget):
     def getValues(self):
         return str(self.expr_entry.text()), str(self.esize_entry.text())
 
+
 class MemWriteWindow(QWidget):
     '''
     gui for writemem cli command.
@@ -74,7 +77,7 @@ class MemWriteWindow(QWidget):
         QWidget.__init__(self, parent=parent)
 
         self.modes = ['ascii', 'hex', 'regex', 'utf-8', 'utf-16-le',
-                        'utf-16-be']
+                      'utf-16-be']
 
         rend_orig = e_render.ByteRend()
         self.canvas_orig = e_canvas.StringMemoryCanvas(None)
@@ -94,7 +97,7 @@ class MemWriteWindow(QWidget):
         self.hex_edit = QPlainTextEdit()
         self.hex_edit.setWordWrapMode(QtGui.QTextOption.NoWrap)
         self.hex_edit.setReadOnly(True)
-        font = QtGui.QFont('Courier') # should use actual memcanvas
+        font = QtGui.QFont('Courier')  # should use actual memcanvas
         self.hex_edit.setFont(font)
         hbox2.addWidget(self.hex_edit)
 
@@ -157,13 +160,13 @@ class MemWriteWindow(QWidget):
         self.renderMemory(expr, esize)
 
     def renderMemory(self, expr=None, esize=None, emu=None):
-        if emu != None:
+        if emu is not None:
             self.emu = emu
 
         curexpr, cur_esize = self.nav.getValues()
-        if expr == None:
+        if expr is None:
             expr = curexpr
-        if esize == None:
+        if esize is None:
             esize = cur_esize
 
         self.renderRequest.emit(expr, esize)
@@ -182,7 +185,8 @@ class MemWriteWindow(QWidget):
 
             # encoded bytes is bigger than the amount we are displaying.
             if len(erbytes) > len(bytez):
-                self.hex_preview.setPlainText('too many bytes, change size, encoding or input')
+                self.hex_preview.setPlainText(
+                    'too many bytes, change size, encoding or input')
                 return
 
             bytez = erbytes + bytez[len(erbytes):]
@@ -214,7 +218,7 @@ class MemWriteWindow(QWidget):
 
     def encodeData(self, txt, encoding):
         if encoding == 'hex' and (len(txt) % 2) != 0:
-            txt = txt[:-1] # trim last if odd length
+            txt = txt[:-1]  # trim last if odd length
 
         if encoding == 'hex':
             if not all(c in string.hexdigits for c in txt):
@@ -228,7 +232,7 @@ class MemWriteWindow(QWidget):
         return txt.encode(encoding)
 
     def updateHexOrig(self, va, bytez):
-        if bytez == None:
+        if bytez is None:
             self.hex_edit.setPlainText('')
             return
 
@@ -240,7 +244,7 @@ class MemWriteWindow(QWidget):
         self.hex_edit.setPlainText(str(self.canvas_orig))
 
     def updateHexPreview(self, va, bytez):
-        if bytez == None:
+        if bytez is None:
             self.hex_preview.setPlainText('')
             return
 
@@ -266,12 +270,14 @@ class MemWriteWindow(QWidget):
     def setValues(self, expr, esize):
         self.nav.setValues(expr, esize)
 
+
 class MockEmu(object):
     def parseExpression(self, expr):
-        return long(eval(expr, {}, {}))
+        return int(eval(expr, {}, {}))
 
     def readMemory(self, va, size):
         return '\x90' * size
+
 
 def main():
     import sys
@@ -281,6 +287,7 @@ def main():
     w.show()
 
     sys.exit(app.exec_())
+
 
 if __name__ == '__main__':
     main()

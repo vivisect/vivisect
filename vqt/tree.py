@@ -3,12 +3,13 @@
 try:
     from PyQt5 import QtCore
     from PyQt5.QtWidgets import QTreeView
-except:
+except Exception:
     from PyQt4 import QtCore
     from PyQt4.QtGui import QTreeView
 
-import vqt.colors as vq_colors
-import visgraph.pathcore as vg_path
+
+import vqt.common as vqt_common
+
 
 class VQTreeSorter:
 
@@ -20,9 +21,10 @@ class VQTreeSorter:
         x1val = x1.rowdata[self.colnum]
         x2val = x2.rowdata[self.colnum]
         if self.asc:
-            return cmp(x1val, x2val)
+            return vqt_common.cmpr(x1val, x2val)
 
-        return cmp(x2val, x1val)
+        return vqt_common.cmpr(x2val, x1val)
+
 
 class VQTreeItem(object):
 
@@ -66,32 +68,35 @@ class VQTreeItem(object):
             return self.parent.children.index(self)
         return 0
 
+
 class VQTreeModel(QtCore.QAbstractItemModel):
     '''
     A QT tree model that uses the tree API from visgraph
     to hold the data...
     '''
 
-    columns = ( 'A first column!', 'The Second Column!')
+    columns = ('A first column!', 'The Second Column!')
     editable = None
     dragable = False
 
     def __init__(self, parent=None, columns=None):
 
-        if columns != None:
+        if columns is not None:
             self.columns = columns
+        else:
+            self.columns = []
 
         QtCore.QAbstractItemModel.__init__(self, parent=parent)
         self.rootnode = VQTreeItem((), None)
 
-        if self.editable == None:
-            self.editable = [False,] * len(self.columns)
+        if self.editable is None:
+            self.editable = [False, ] * len(self.columns)
 
     def vqEdited(self, pnode, col, value):
         return value
 
     def append(self, rowdata, parent=None):
-        if parent == None:
+        if parent is None:
             parent = self.rootnode
 
         pidx = self.createIndex(parent.row(), 0, parent)
@@ -103,11 +108,11 @@ class VQTreeModel(QtCore.QAbstractItemModel):
         return node
 
     def vqDelRow(self, rowdata, parent=None):
-        if parent == None:
+        if parent is None:
             parent = self.rootnode
 
         row = parent.delete(rowdata)
-        print row
+        print(row)
 
     def sort(self, colnum, order=0):
         cmpf = VQTreeSorter(colnum, order)
@@ -151,7 +156,7 @@ class VQTreeModel(QtCore.QAbstractItemModel):
         # If this is the edit role, fire the vqEdited thing
         if role == QtCore.Qt.EditRole:
             value = self.vqEdited(node, index.column(), value)
-            if value == None:
+            if value is None:
                 return False
 
         node.rowdata[index.column()] = value
@@ -160,8 +165,8 @@ class VQTreeModel(QtCore.QAbstractItemModel):
         return True
 
     def headerData(self, column, orientation, role):
-        if ( orientation == QtCore.Qt.Horizontal and
-             role == QtCore.Qt.DisplayRole):
+        if (orientation == QtCore.Qt.Horizontal and
+                role == QtCore.Qt.DisplayRole):
 
             return self.columns[column]
 
@@ -196,7 +201,7 @@ class VQTreeModel(QtCore.QAbstractItemModel):
         if pitem == self.rootnode:
             return QtCore.QModelIndex()
 
-        if pitem == None:
+        if pitem is None:
             return QtCore.QModelIndex()
 
         return self.createIndex(pitem.row(), 0, pitem)
@@ -212,6 +217,7 @@ class VQTreeModel(QtCore.QAbstractItemModel):
 
         return len(pitem.children)
 
+
 class VQTreeView(QTreeView):
 
     def __init__(self, parent=None, cols=None, **kwargs):
@@ -219,17 +225,16 @@ class VQTreeView(QTreeView):
         self.setSortingEnabled(True)
         self.setAlternatingRowColors(True)
 
-        if cols != None:
+        if cols is not None:
             model = VQTreeModel(parent=self, columns=cols)
-            self.setModel( model )
+            self.setModel(model)
 
     def vqSizeColumns(self):
         c = self.model().columnCount()
-        for i in xrange(c):
+        for i in range(c):
             self.resizeColumnToContents(i)
 
     def setModel(self, model):
-        model.dataChanged.connect( self.dataChanged )
-        model.rowsInserted.connect( self.rowsInserted )
+        model.dataChanged.connect(self.dataChanged)
+        model.rowsInserted.connect(self.rowsInserted)
         return QTreeView.setModel(self, model)
-

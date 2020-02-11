@@ -24,6 +24,7 @@ import vqt.menubuilder as vqt_menu
 from vqt.main import *
 from vqt.common import *
 
+
 class EnviNavMixin:
     '''
     Classes may inerhit from this mixin to help out with envi
@@ -53,12 +54,12 @@ class EnviNavMixin:
         pass
 
     def enviNavExpr(self, event, einfo):
-        name,expr,sizeexpr = einfo
+        name, expr, sizeexpr = einfo
         if self._envi_navname == name:
-            self.enviNavGoto(expr,sizeexpr=sizeexpr)
+            self.enviNavGoto(expr, sizeexpr=sizeexpr)
 
     def enviNavGetnames(self, event, einfo):
-        einfo.append( self._envi_navname )
+        einfo.append(self._envi_navname)
 
     def setEnviNavName(self, name):
         self._envi_navname = name
@@ -83,6 +84,7 @@ class EnviNavMixin:
             return
         e.ignore()
 
+
 class EnviNavModel(vq_tree.VQTreeModel):
 
     dragable = True
@@ -95,8 +97,9 @@ class EnviNavModel(vq_tree.VQTreeModel):
         pnode = idx[0].internalPointer()
         expr = pnode.rowdata[self.navcol]
         mdata = QtCore.QMimeData()
-        mdata.setData('envi/expression',str(expr))
+        mdata.setData('envi/expression', str(expr))
         return mdata
+
 
 class VQMemoryWindow(vq_hotkey.HotKeyMixin, EnviNavMixin, vq_save.SaveableWidget, QWidget):
 
@@ -118,18 +121,18 @@ class VQMemoryWindow(vq_hotkey.HotKeyMixin, EnviNavMixin, vq_save.SaveableWidget
         hbox.setSpacing(4)
 
         self.histmenu = QMenu(parent=self)
-        self.histmenu.aboutToShow.connect( self.setupMemHistMenu )
+        self.histmenu.aboutToShow.connect(self.setupMemHistMenu)
 
         self.hist_button = QPushButton('History', parent=self.top_box)
         self.hist_button.setMenu(self.histmenu)
 
-        self.addr_entry  = QLineEdit(parent=self.top_box)
-        self.size_entry  = QLineEdit(parent=self.top_box)
+        self.addr_entry = QLineEdit(parent=self.top_box)
+        self.size_entry = QLineEdit(parent=self.top_box)
         self.size_entry.setText('256')
         self.rend_select = QComboBox(parent=self.top_box)
 
         self.rend_tools = QPushButton('Opts', parent=self.top_box)
-        self.rend_tools.setMenu( self.getRendToolsMenu() )
+        self.rend_tools.setMenu(self.getRendToolsMenu())
 
         self.mem_history = deque()
         self.mem_canvas = self.initMemoryCanvas(memobj, syms=syms)
@@ -144,7 +147,8 @@ class VQMemoryWindow(vq_hotkey.HotKeyMixin, EnviNavMixin, vq_save.SaveableWidget
         self.addr_entry.returnPressed.connect(self._renderMemory)
         self.size_entry.returnPressed.connect(self._renderMemory)
 
-        self.rend_select.currentIndexChanged['QString'].connect(self._renderMemory)
+        self.rend_select.currentIndexChanged['QString'].connect(
+            self._renderMemory)
 
         hbox.addWidget(self.hist_button)
         hbox.addWidget(self.addr_entry)
@@ -214,14 +218,14 @@ class VQMemoryWindow(vq_hotkey.HotKeyMixin, EnviNavMixin, vq_save.SaveableWidget
         menu = self.getRendToolsMenu()
         menu.exec_(self.mapToGlobal(self.rend_tools.pos()))
 
-    #def setRendererByName(self, rname):
+    # def setRendererByName(self, rname):
         # FIXME implement...
 
     def _hotkey_histback(self):
         if len(self.mem_history) >= 2:
             hinfo = self.mem_history.popleft()
             hinfo = self.mem_history.popleft()
-            self._histSelected( hinfo )
+            self._histSelected(hinfo)
 
     def _histSelected(self, hinfo):
         addrexpr, sizeexpr, rendname = hinfo
@@ -238,7 +242,7 @@ class VQMemoryWindow(vq_hotkey.HotKeyMixin, EnviNavMixin, vq_save.SaveableWidget
             addr = self._mem_obj.parseExpression(addrexpr)
             menustr = '0x%.8x' % addr
             sym = self._mem_obj.getSymByAddr(addr)
-            if sym != None:
+            if sym is not None:
                 menustr += ' - %s' % repr(sym)
 
             self.histmenu.addAction(menustr, ACT(self._histSelected, hinfo))
@@ -251,10 +255,10 @@ class VQMemoryWindow(vq_hotkey.HotKeyMixin, EnviNavMixin, vq_save.SaveableWidget
 
         # Used by nav event generators to make us render
         self.addr_entry.setText(expr)
-        if sizeexpr != None:
+        if sizeexpr is not None:
             self.size_entry.setText(sizeexpr)
 
-        if rend != None:
+        if rend is not None:
             idx = self.rend_select.findText(str(rend))
             if idx >= 0:
                 self.rend_select.setCurrentIndex(idx)
@@ -285,8 +289,8 @@ class VQMemoryWindow(vq_hotkey.HotKeyMixin, EnviNavMixin, vq_save.SaveableWidget
 
         try:
             addr = self._mem_obj.parseExpression(expr)
-        except Exception, e:
-            #import traceback;traceback.print_exc()
+        except Exception as e:
+            # import traceback;traceback.print_exc()
             self.mem_canvas.addText('Invalid Address: %s (%s)' % (expr, e))
             return None, None
 
@@ -305,7 +309,7 @@ class VQMemoryWindow(vq_hotkey.HotKeyMixin, EnviNavMixin, vq_save.SaveableWidget
         self.clearText()
 
         addr, size = self._getRenderVaSize()
-        if addr == None:
+        if addr is None:
             return
 
         expr = str(self.addr_entry.text())
@@ -314,7 +318,7 @@ class VQMemoryWindow(vq_hotkey.HotKeyMixin, EnviNavMixin, vq_save.SaveableWidget
 
         mhist = (expr, sizeexpr, rname)
         if mhist not in self.mem_history:
-            self.mem_history.appendleft( mhist )
+            self.mem_history.appendleft(mhist)
             while len(self.mem_history) > 100:
                 self.mem_history.pop()
 
@@ -322,7 +326,8 @@ class VQMemoryWindow(vq_hotkey.HotKeyMixin, EnviNavMixin, vq_save.SaveableWidget
         try:
             self.mem_canvas.renderMemory(addr, size)
         except Exception, e:
-            self.mem_canvas.addText('Render Exception: %s (%s)' % (hex(addr), e))
+            self.mem_canvas.addText(
+                'Render Exception: %s (%s)' % (hex(addr), e))
 
     def clearText(self):
         self.mem_canvas.clearCanvas()
@@ -336,13 +341,12 @@ class VQMemoryWindow(vq_hotkey.HotKeyMixin, EnviNavMixin, vq_save.SaveableWidget
         return state
 
     def vqSetSaveState(self, state):
-        
-        self.addr_entry.setText(state.get('addr_entry',''))
-        self.size_entry.setText(state.get('size_entry',''))
-        self.setMemWindowName( str(state.get('name','mem')) )
+
+        self.addr_entry.setText(state.get('addr_entry', ''))
+        self.size_entry.setText(state.get('size_entry', ''))
+        self.setMemWindowName(str(state.get('name', 'mem')))
 
         rendname = state.get('rend_select')
         if rendname:
             index = self.rend_select.findText(rendname)
             self.rend_select.setCurrentIndex(index)
-
