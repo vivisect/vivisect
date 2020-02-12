@@ -1,11 +1,5 @@
-'''
-'''
-try:
-    from PyQt5 import QtCore
-    from PyQt5.QtWidgets import QTreeView
-except Exception:
-    from PyQt4 import QtCore
-    from PyQt4.QtGui import QTreeView
+from PyQt5 import QtCore
+from PyQt5.QtWidgets import QTreeView
 
 
 import vqt.common as vqt_common

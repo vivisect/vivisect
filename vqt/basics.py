@@ -1,12 +1,8 @@
 '''
 A place for some no-brainer basics :)
 '''
-try:
-    from PyQt5 import QtCore
-    from PyQt5.QtWidgets import *
-except:
-    from PyQt4 import QtCore
-    from PyQt4.QtGui import *
+from PyQt5 import QtCore
+from PyQt5.QtWidgets import *
 
 import vqt.common as vqt_common
 

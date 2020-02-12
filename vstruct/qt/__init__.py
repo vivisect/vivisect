@@ -3,10 +3,7 @@ Some utils for QT code which uses vstruct...
 '''
 import vqt.tree as vq_tree
 
-try:
-    from PyQt5.QtWidgets import *
-except:
-    from PyQt4.QtGui import *
+from PyQt5.QtWidgets import *
 
 from vqt.main import idlethread, idlethreadsync
 
