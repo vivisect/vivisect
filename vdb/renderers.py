@@ -5,14 +5,16 @@ A home for the vdb specific memory renderers.
 import envi
 import vtrace
 import envi.bits as e_bits
+import envi.const as e_const
 import envi.memory as e_mem
 import envi.memcanvas as e_canvas
-import vivisect.impapi as viv_impapi
 import envi.memcanvas.renderers as e_canvas_rend
+
+import vivisect.impapi as viv_impapi
 
 class OpcodeRenderer(e_canvas.MemoryRenderer):
 
-    def __init__(self, trace, arch=envi.ARCH_DEFAULT):
+    def __init__(self, trace, arch=e_const.ARCH_DEFAULT):
         self.arch = arch
         self.emu_cache = {} # arch_num: emu instance
         self.pwidth = trace.getPointerSize()

@@ -2,7 +2,8 @@
 A module to contain code flow analysis for envi opcode objects...
 '''
 import logging
-import envi
+
+import envi.const as e_const
 import envi.memory as e_mem
 
 logger = logging.getLogger(__name__)
@@ -122,7 +123,7 @@ class CodeFlowContext(object):
         '''
         self._fcalls[fva] = calls_from
 
-    def addCodeFlow(self, va, arch=envi.ARCH_DEFAULT):
+    def addCodeFlow(self, va, arch=e_const.ARCH_DEFAULT):
         '''
         Do code flow disassembly from the specified address.  Returnes a list
         of the procedural branch targets discovered during code flow...
@@ -250,7 +251,7 @@ class CodeFlowContext(object):
 
         return calls_from.keys()
 
-    def addEntryPoint(self, va, arch=envi.ARCH_DEFAULT):
+    def addEntryPoint(self, va, arch=e_const.ARCH_DEFAULT):
         '''
         Analyze the given procedure entry point and flow downward
         to find all subsequent code blocks and procedure edges.

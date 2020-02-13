@@ -1,19 +1,19 @@
 import struct
-import traceback
 import itertools
 
 import envi
 import envi.bits as e_bits
+import envi.const as e_const
 import envi.memory as e_mem
-import envi.registers as e_reg
 
 import visgraph.pathcore as vg_path
 
-from vivisect.const import *
+import vivisect.const as v_const
 
 # Pre-initialize a default stack size
 init_stack_size = 0x7fff
 init_stack_map = b'\xfe' * init_stack_size
+
 
 def imphook(impname):
 
@@ -23,6 +23,7 @@ def imphook(impname):
 
     return imptemp
 
+
 class WorkspaceEmulator:
 
     taintregs = []
@@ -30,7 +31,7 @@ class WorkspaceEmulator:
     def __init__(self, vw, logwrite=False, logread=False):
 
         self.vw = vw
-        self.funcva = None # Set if using runFunction
+        self.funcva = None  # Set if using runFunction
         self.emustop = False
 
         self.hooks = {}
@@ -52,7 +53,8 @@ class WorkspaceEmulator:
         self._safe_mem = True   # Should we be forgiving about memory accesses?
         self._func_only = True  # is this emulator meant to stay in one function scope?
 
-        self.strictops = True   # shoudl we bail on emulation if unsupported instruction encountered
+        # shoudl we bail on emulation if unsupported instruction encountered
+        self.strictops = True
 
         # Map in all the memory associated with the workspace
         for va, size, perms, fname in vw.getMemoryMaps():
@@ -60,17 +62,16 @@ class WorkspaceEmulator:
             self.addMemoryMap(va, perms, fname, bytes)
 
         for regidx in self.taintregs:
-            rname = self.getRegisterName(regidx)
-            regval = self.setVivTaint( 'uninitreg', regidx )
+            regval = self.setVivTaint('uninitreg', regidx)
             self.setRegister(regidx, regval)
 
         for name in dir(self):
             val = getattr(self, name, None)
-            if val == None:
+            if val is None:
                 continue
 
-            impname = getattr(val, '__imphook__',None)
-            if impname == None:
+            impname = getattr(val, '__imphook__', None)
+            if impname is None:
                 continue
 
             self.hooks[impname] = val
@@ -87,8 +88,10 @@ class WorkspaceEmulator:
         You may call this prior to emulating instructions.
         '''
         if self.stack_map_base is None:
-            self.stack_map_mask = e_bits.sign_extend(0xfff00000, 4, self.vw.psize)
-            self.stack_map_base = e_bits.sign_extend(0xbfb00000, 4, self.vw.psize)
+            self.stack_map_mask = e_bits.sign_extend(
+                0xfff00000, 4, self.vw.psize)
+            self.stack_map_base = e_bits.sign_extend(
+                0xbfb00000, 4, self.vw.psize)
             self.stack_map_top = self.stack_map_base + stacksize
             self.stack_pointer = self.stack_map_top
 
@@ -103,8 +106,8 @@ class WorkspaceEmulator:
 
             # Create some pre-made taints for positive stack indexes
             # NOTE: This is *ugly* for speed....
-            taints = [ self.setVivTaint('funcstack', i * self.psize) for i in xrange(20) ]
-            taintbytes = ''.join([ e_bits.buildbytes(taint,self.psize) for taint in taints ])
+            taints = [self.setVivTaint('funcstack', i * self.psize) for i in range(20)]
+            taintbytes = ''.join([e_bits.buildbytes(taint, self.psize) for taint in taints])
 
             self.writeMemory(self.stack_pointer, taintbytes)
         else:
@@ -116,8 +119,7 @@ class WorkspaceEmulator:
             new_map_top = self.stack_map_base
             new_map_base = new_map_top - new_map_size
 
-            stack_map = ''.join([struct.pack('<I', new_map_base+(i*4))
-                                    for i in xrange(new_map_size)])
+            stack_map = ''.join([struct.pack('<I', new_map_base+(i*4)) for i in range(new_map_size)])
 
             self.addMemoryMap(new_map_base, 6, "[stack]", stack_map)
             self.stack_map_base = new_map_base
@@ -149,7 +151,7 @@ class WorkspaceEmulator:
         """
         self.emumon = emumon
 
-    def parseOpcode(self, va, arch=envi.ARCH_DEFAULT):
+    def parseOpcode(self, va, arch=e_const.ARCH_DEFAULT):
         # We can make an opcode *faster* with the workspace because of
         # getByteDef etc... use it.
         op = self.opcache.get(va)
@@ -175,7 +177,8 @@ class WorkspaceEmulator:
                 try:
                     ret = self.emumon.apicall(self, op, endeip, api, argv)
                 except Exception as e:
-                    self.emumon.logAnomaly(self, endeip, "%s.apicall failed: %s" % (self.emumon.__class__.__name__, e))
+                    self.emumon.logAnomaly(self, endeip, "%s.apicall failed: %s" % (
+                        self.emumon.__class__.__name__, e))
 
             hook = self.hooks.get(callname)
             if ret is None and hook:
@@ -198,11 +201,11 @@ class WorkspaceEmulator:
         for symbolic emulator...)
         '''
         props = {
-            'bva':bva,    # the entry virtual address for this branch
-            'valist':[],  # the virtual addresses in this node in order
-            'calllog':[], # FIXME is this even used?
-            'readlog':[], # a log of all memory reads from this block
-            'writelog':[],# a log of all memory writes from this block
+            'bva': bva,    # the entry virtual address for this branch
+            'valist': [],  # the virtual addresses in this node in order
+            'calllog': [],  # FIXME is this even used?
+            'readlog': [],  # a log of all memory reads from this block
+            'writelog': [],  # a log of all memory writes from this block
         }
         ret = vg_path.newPathNode(parent=parent, **props)
         return ret
@@ -329,7 +332,8 @@ class WorkspaceEmulator:
 
                     # Execute the opcode
                     self.executeOpcode(op)
-                    vg_path.getNodeProp(self.curpath, 'valist').append(starteip)
+                    vg_path.getNodeProp(
+                        self.curpath, 'valist').append(starteip)
 
                     endeip = self.getProgramCounter()
 
@@ -362,7 +366,8 @@ class WorkspaceEmulator:
                     if self.strictops:
                         break
                     else:
-                        print('runFunction continuing after unsupported instruction: 0x%08x %s' % (e.op.va, e.op.mnem))
+                        print('runFunction continuing after unsupported instruction: 0x%08x %s' % (
+                            e.op.va, e.op.mnem))
                         self.setProgramCounter(e.op.va + e.op.size)
                 except Exception as e:
                     # traceback.print_exc()
@@ -383,28 +388,28 @@ class WorkspaceEmulator:
 
         if vw.isFunction(va):
             ret = vw.getFunctionApi(va)
-            if ret != None:
+            if ret is not None:
                 return ret
 
         else:
 
             taint = self.getVivTaint(va)
             if taint:
-                tva,ttype,tinfo = taint
+                tva, ttype, tinfo = taint
 
                 if ttype == 'import':
-                    lva,lsize,ltype,linfo = tinfo
-                    ret = vw.getImpApi( linfo )
+                    lva, lsize, ltype, linfo = tinfo
+                    ret = vw.getImpApi(linfo)
 
                 elif ttype == 'dynfunc':
-                    libname,funcname = tinfo
-                    ret = vw.getImpApi('%s.%s' % (libname,funcname))
+                    libname, funcname = tinfo
+                    ret = vw.getImpApi('%s.%s' % (libname, funcname))
 
                 if ret:
                     return ret
 
         defcall = vw.getMeta("DefaultCall")
-        return ('int', None, defcall, 'UnknownApi', () )
+        return ('int', None, defcall, 'UnknownApi', ())
 
     def nextVivTaint(self):
         # One page into the new taint range
@@ -416,7 +421,7 @@ class WorkspaceEmulator:
         the created taint.
         '''
         va = self.nextVivTaint()
-        self.taints[ va & 0xffffe000 ] = (va,typename,taint)
+        self.taints[va & 0xffffe000] = (va, typename, taint)
         return va
 
     def getVivTaint(self, va):
@@ -424,7 +429,7 @@ class WorkspaceEmulator:
         Retrieve a previously registered taint ( this will automagically
         mask values down and allow you to retrieve "near taint" values.)
         '''
-        return self.taints.get( va & 0xffffe000 )
+        return self.taints.get(va & 0xffffe000)
 
     def reprVivTaint(self, taint):
         '''
@@ -437,20 +442,20 @@ class WorkspaceEmulator:
         if ttype == 'uninitreg':
             trepr = self.getRegisterName(tinfo)
         elif ttype == 'import':
-            lva,lsize,ltype,linfo = tinfo
+            lva, lsize, ltype, linfo = tinfo
             trepr = linfo
         elif ttype == 'dynlib':
             libname = tinfo
             trepr = libname
         elif ttype == 'dynfunc':
-            libname,funcname = tinfo
-            trepr = '%s.%s' % (libname,funcname)
+            libname, funcname = tinfo
+            trepr = '%s.%s' % (libname, funcname)
         elif ttype == 'funcstack':
             stackoff = tinfo
             if self.funcva:
                 flocal = self.vw.getFunctionLocal(self.funcva, stackoff)
-                if flocal != None:
-                    typename,argname = flocal
+                if flocal is not None:
+                    typename, argname = flocal
                     return argname
             o = '+'
             if stackoff < 0:
@@ -508,10 +513,10 @@ class WorkspaceEmulator:
 
     def _useVirtAddr(self, va):
         taint = self.getVivTaint(va)
-        if taint == None:
+        if taint is None:
             return
 
-        tva,ttype,tinfo = taint
+        tva, ttype, tinfo = taint
 
         if ttype == 'uninitreg':
             self.logUninitRegUse(tinfo)
@@ -523,9 +528,9 @@ class WorkspaceEmulator:
         """
         if self.logwrite:
             wlog = vg_path.getNodeProp(self.curpath, 'writelog')
-            wlog.append((self.getProgramCounter(),va,bytes))
+            wlog.append((self.getProgramCounter(), va, bytes))
 
-        self._useVirtAddr( va )
+        self._useVirtAddr(va)
 
         # It's totally ok to write to invalid memory during the
         # emulation pass (as long as safe_mem is true...)
@@ -544,13 +549,13 @@ class WorkspaceEmulator:
     def readMemory(self, va, size):
         if self.logread:
             rlog = vg_path.getNodeProp(self.curpath, 'readlog')
-            rlog.append((self.getProgramCounter(),va,size))
+            rlog.append((self.getProgramCounter(), va, size))
 
         # If they read an import entry, start a taint...
         loc = self.vw.getLocation(va)
-        if loc != None:
+        if loc is not None:
             lva, lsize, ltype, ltinfo = loc
-            if ltype == LOC_IMPORT and lsize == size: # They just read an import.
+            if ltype == v_const.LOC_IMPORT and lsize == size:  # They just read an import.
                 ret = self.setVivTaint('import', loc)
                 return e_bits.buildbytes(ret, lsize)
 
@@ -570,7 +575,7 @@ class WorkspaceEmulator:
         If val is a numerical value in the same memory page
         as the un-initialized stack values return True
         """
-        #NOTE: If uninit_stack_byte changes, so must this!
+        # NOTE: If uninit_stack_byte changes, so must this!
         if (val & 0xfffff000) == 0xfefef000:
             return True
         return False
@@ -581,4 +586,3 @@ class WorkspaceEmulator:
     def getStackOffset(self, va):
         if (va & self.stack_map_mask) == self.stack_map_base:
             return va - self.stack_pointer
-

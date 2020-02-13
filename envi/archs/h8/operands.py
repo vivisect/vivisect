@@ -90,7 +90,7 @@ def addrToName(mcanv, va):
 
 
 class H8Opcode(envi.Opcode):
-    _def_arch = envi.ARCH_H8
+    _def_arch = e_const.ARCH_H8
 
     def __hash__(self):
         return int(hash(self.mnem) ^ (self.size << 4))
@@ -109,29 +109,29 @@ class H8Opcode(envi.Opcode):
         ret = []
 
         # FIXME: which do we use?  _def_arch?  or  & ARCH_MASK?
-        brflags = (self.iflags & envi.ARCH_MASK) | self._def_arch
+        brflags = (self.iflags & e_const.ARCH_MASK) | self._def_arch
 
         # If we can fall through, reflect that...
-        if not self.iflags & envi.IF_NOFALL:
-            ret.append((self.va + self.size, brflags | envi.BR_FALL))
+        if not self.iflags & e_const.IF_NOFALL:
+            ret.append((self.va + self.size, brflags | e_const.BR_FALL))
 
         # In H8, if we have no operands, it has no
         # further branches...
         if len(self.opers) == 0:
             return ret
 
-        if self.iflags & envi.IF_COND:
-            brflags |= envi.BR_COND
+        if self.iflags & e_const.IF_COND:
+            brflags |= e_const.BR_COND
 
-        if self.iflags & envi.IF_BRANCH:
+        if self.iflags & e_const.IF_BRANCH:
             if self.opers[0].isDeref():
-                brflags |= envi.BR_DEREF
+                brflags |= e_const.BR_DEREF
             ret.append((self.getOperValue(0), brflags))
 
-        elif self.iflags & envi.IF_CALL:
-            brflags |= envi.BR_PROC
+        elif self.iflags & e_const.IF_CALL:
+            brflags |= e_const.BR_PROC
             if self.opers[0].isDeref():
-                brflags |= envi.BR_DEREF
+                brflags |= e_const.BR_DEREF
             ret.append((self.getOperValue(0), brflags))
 
         return ret
@@ -223,7 +223,8 @@ class H8RegDirOper(envi.RegisterOper, H8Operand):
 
     def render(self, mcanv, op, idx):
         name = self._dis_regctx.getRegisterName(self.reg)
-        rname = self._dis_regctx.getRegisterName(self.reg & e_const.RMETA_NMASK)
+        rname = self._dis_regctx.getRegisterName(
+            self.reg & e_const.RMETA_NMASK)
         mcanv.addNameText(name, name=rname, typename="registers")
 
     def repr(self, op):
@@ -288,9 +289,11 @@ class H8RegIndirOper(envi.DerefOper, H8Operand):
 
         if mod:
             if self.oflags & h8_const.OF_PREDEC:
-                emu.setRegister(self.reg, emu.getRegister(self.reg) - self.tsize)
+                emu.setRegister(self.reg, emu.getRegister(
+                    self.reg) - self.tsize)
             elif self.oflags & h8_const.OF_POSTINC:
-                emu.setRegister(self.reg, emu.getRegister(self.reg) + self.tsize)
+                emu.setRegister(self.reg, emu.getRegister(
+                    self.reg) + self.tsize)
 
         return addr
 
@@ -309,7 +312,8 @@ class H8RegIndirOper(envi.DerefOper, H8Operand):
 
     def render(self, mcanv, op, idx):
         name = self._dis_regctx.getRegisterName(self.reg)
-        rname = self._dis_regctx.getRegisterName(self.reg & h8_const.RMETA_NMASK)
+        rname = self._dis_regctx.getRegisterName(
+            self.reg & h8_const.RMETA_NMASK)
         mcanv.addText('@')
         if self.disp:
             mcanv.addText('(0x%x:%d, ' % (self.disp, self.dispsz))
@@ -323,7 +327,8 @@ class H8RegIndirOper(envi.DerefOper, H8Operand):
 
     def repr(self, op):
         out = ['@']
-        rname = self._dis_regctx.getRegisterName(self.reg & h8_const.RMETA_NMASK)
+        rname = self._dis_regctx.getRegisterName(
+            self.reg & h8_const.RMETA_NMASK)
         if self.disp:
             out.append('(0x%x:%d, ' % (self.disp, self.dispsz))
 
@@ -346,6 +351,7 @@ class H8RegMultiOper(H8Operand):
     rn = upper register
     count = number of registers (2, 3, or 4)
     '''
+
     def __init__(self, basereg, count):
         self.count = count
         self.basereg = basereg
@@ -396,6 +402,7 @@ class H8AbsAddrOper(H8Operand):
     '''
     Absolute address [@aa:8, @aa:16, or @aa:24]
     '''
+
     def __init__(self, aa, tsize=1, aasize=2):
 
         if aasize == 1:
@@ -445,6 +452,7 @@ class H8ImmOper(envi.ImmedOper, H8Operand):
     '''
     Immediate [#xx:8, #xx:16, or #xx:32]
     '''
+
     def __init__(self, val, tsize, oflags=0):
         self.val = val
         self.oflags = oflags
@@ -481,6 +489,7 @@ class H8MemIndirOper(envi.DerefOper, H8Operand):
     '''
     Memory indirect [@@aa:8]
     '''
+
     def __init__(self, aa, tsize=1):
         self.aa = aa
         self.tsize = tsize
@@ -533,6 +542,7 @@ class H8PcOffsetOper(H8Operand):
     things... but for now we have this.
     Program-counter relative [@(d:8,PC) or @(d:16,PC)]
     '''
+
     def __init__(self, val, va, aasize):
         self.va = va
         self.val = val

@@ -1,8 +1,3 @@
-import vtrace.util as v_util
-from vtrace.watchpoints import *
-from vtrace.breakpoints import *
-from vtrace.notifiers import *
-from vtrace.rmi import *
 """
 Vtrace Debugger Framework
 
@@ -39,8 +34,8 @@ import time
 import types
 import platform
 
-import envi
 import envi.bits as e_bits
+import envi.const as e_const
 import envi.memory as e_mem
 import envi.registers as e_reg
 import envi.expression as e_expr
@@ -48,6 +43,12 @@ import envi.symstore.resolver as e_resolv
 import envi.symstore.symcache as e_symcache
 
 import vstruct
+
+import vtrace.util as v_util
+from vtrace.watchpoints import *
+from vtrace.breakpoints import *
+from vtrace.notifiers import *
+from vtrace.rmi import *
 
 remote = None       # If set, we're a vtrace client (set to serverhost)
 cobra_daemon = None
@@ -1547,7 +1548,7 @@ def interact(pid=0, server=None, trace=None):
     code.interact(local=mylocals)
 
 
-def getEmu(trace, arch=envi.ARCH_DEFAULT):
+def getEmu(trace, arch=e_const.ARCH_DEFAULT):
     '''
     See comment for emulator from trace (in envitools); does not set any
     registers or mem.
@@ -1555,7 +1556,7 @@ def getEmu(trace, arch=envi.ARCH_DEFAULT):
     TODO: this really belongs in envitools, or somewhere else, but putting it
     in envitools causes a circular import problem due to the TraceEmulator.
     '''
-    if arch == envi.ARCH_DEFAULT:
+    if arch == e_const.ARCH_DEFAULT:
         arch_name = trace.getMeta('Architecture')
     else:
         arch_name = envi.getArchById(trace.arch)
