@@ -1,5 +1,5 @@
 import envi.registers as e_reg
-import envi.archs.i386 as e_i386
+import envi.archs.i386.regs as e_i386_regs
 
 # NOTE: all REX_R registers must *directly* follow their 3 bit variants
 #       in the table below
@@ -131,7 +131,7 @@ amd64meta = [
 statmetas = []
 # have to rebuild this because the register index is different inside this
 # scope.  rebuild with the REG_EFLAGS index inside this module.
-for name, idx, offset, width, desc in e_i386.statmetas:
+for name, idx, offset, width, desc in e_i386_regs.statmetas:
     statmetas.append( (name, REG_EFLAGS, offset, width, desc) )
 
 e_reg.addLocalStatusMetas(l, amd64meta, statmetas, 'EFLAGS')

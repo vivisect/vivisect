@@ -232,8 +232,6 @@ cpu_PENTIUM2 = 0x00009000
 cpu_AMD64 = 0x0000a000
 cpu_AESNI = 0x0000b000
 
-#import envi.archs.i386.regs as e_i386_regs
-# Relative import priority...
 
 #eventually, change this for your own codes
 #ADDEXP_SCALE_OFFSET= 0 

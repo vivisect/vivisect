@@ -4,7 +4,6 @@ import envi
 import envi.bits as e_bits
 import envi.encoding as e_enc
 
-from envi.archs.msp430 import Msp430Module
 from envi.archs.msp430.regs import *
 from envi.archs.msp430.const import *
 
@@ -23,16 +22,11 @@ msp430call = Msp430Call()
 class Msp430Emulator(Msp430RegisterContext, envi.Emulator):
 
     def __init__(self, regarray=None):
-        self.archmod = Msp430Module()
-
-        envi.Emulator.__init__(self, self.archmod)
+        envi.Emulator.__init__(self, envi.ARCH_MSP430)
         Msp430RegisterContext.__init__(self)
 
         self._emu_segments = [(0, 0xffff)]
         self.addCallingConvention('msp430call', msp430call)
-
-    def getArchModule(self):
-        return self.archmod
 
     def setFlag(self, which, state):
         flags = self.getRegister(REG_SR)

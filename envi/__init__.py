@@ -7,64 +7,13 @@ import types
 import struct
 import platform
 
+import envi.registers as e_reg
+import envi.memory as e_mem
+import envi.const as e_const
+import envi.bits as e_bits
+
 # TODO: move into const.py
 # Parsed Opcode Formats
-ARCH_DEFAULT     = 0 << 16   # arch 0 is whatever the mem object has as default
-ARCH_I386        = 1 << 16
-ARCH_AMD64       = 2 << 16
-ARCH_ARMV7       = 3 << 16
-ARCH_THUMB16     = 4 << 16
-ARCH_THUMB2      = 5 << 16
-ARCH_MSP430      = 6 << 16
-ARCH_H8          = 7 << 16
-ARCH_MASK        = 0xffff0000   # Masked into IF_FOO and BR_FOO values
-
-arch_names = {
-    ARCH_DEFAULT:   'default',
-    ARCH_I386:      'i386',
-    ARCH_AMD64:     'amd64',
-    ARCH_ARMV7:     'arm',
-    ARCH_THUMB16:   'thumb16',
-    ARCH_THUMB2:    'thumb2',
-    ARCH_MSP430:    'msp430',
-    ARCH_H8:        'h8',
-}
-
-arch_by_name = {
-    'default':  ARCH_DEFAULT,
-    'i386':     ARCH_I386,
-    'amd64':    ARCH_AMD64,
-    'arm':      ARCH_ARMV7,
-    'armv6l':   ARCH_ARMV7,
-    'armv7l':   ARCH_ARMV7,
-    'thumb16':  ARCH_THUMB16,
-    'thumb2':   ARCH_THUMB2,
-    'msp430':   ARCH_MSP430,
-    'h8':       ARCH_H8,
-}
-
-# Instruction flags (The first 8 bits are reserved for arch independant use)
-IF_NOFALL = 0x01  # Set if this instruction does *not* fall through
-IF_PRIV   = 0x02  # Set if this is a "privileged mode" instruction
-IF_CALL   = 0x04  # Set if this instruction branches to a procedure
-IF_BRANCH = 0x08  # Set if this instruction branches
-IF_RET    = 0x10  # Set if this instruction terminates a procedure
-IF_COND   = 0x20  # Set if this instruction is conditional
-IF_REPEAT = 0x40  # set if this instruction repeats (including 0 times)
-
-# Branch flags (flags returned by the getBranches() method on an opcode)
-BR_PROC  = 1<<0  # The branch target is a procedure (call <foo>)
-BR_COND  = 1<<1  # The branch target is conditional (jz <foo>)
-BR_DEREF = 1<<2  # the branch target is *dereferenced* into PC (call [0x41414141])
-BR_TABLE = 1<<3  # The branch target is the base of a pointer array of jmp/call slots
-BR_FALL  = 1<<4  # The branch is a "fall through" to the next instruction
-BR_ARCH  = 1<<5  # The branch *switches opcode formats*. ( ARCH_FOO in high bits )
-
-from envi.const import *
-import envi.bits as e_bits
-import envi.memory as e_mem
-import envi.registers as e_reg
-import envi.memcanvas as e_canvas
 
 class ArchitectureModule:
     """
@@ -74,7 +23,8 @@ class ArchitectureModule:
     """
     _default_call = None
     _plat_def_calls = {}
-    def __init__(self, archname, maxinst=32, endian=ENDIAN_LSB):
+
+    def __init__(self, archname, maxinst=32, endian=e_const.ENDIAN_LSB):
         self._arch_id = getArchByName(archname)
         self._arch_name = archname
         self._arch_maxinst = maxinst
@@ -188,7 +138,7 @@ class ArchitectureModule:
         for badbytes in byteslist:
             try:
                 self.badops.append(self.archParseOpcode(badbytes))
-            except:
+            except Exception:
                 pass
 
         return badops
@@ -218,6 +168,7 @@ class ArchitectureModule:
         defcall = self._plat_def_calls.get(platform)
         return defcall
 
+
 def stealArchMethods(obj, archname):
     '''
     Used by objects which are expected to inherit from an
@@ -226,18 +177,21 @@ def stealArchMethods(obj, archname):
     arch = getArchModule(archname)
     for name in dir(arch):
         o = getattr(arch, name, None)
-        if type(o) == types.MethodType:
+        if isinstance(o, types.MethodType):
             setattr(obj, name, o)
+
 
 class EnviException(Exception):
     def __str__(self):
         return repr(self)
+
 
 class InvalidInstruction(EnviException):
     """
     Raised by opcode parsers when the specified
     bytes do not represent a valid opcode
     """
+
     def __init__(self, bytez=None, mesg=None, va=0):
         msg = []
         if mesg is not None:
@@ -250,16 +204,19 @@ class InvalidInstruction(EnviException):
             msg.append('at ' + hex(va))
         EnviException.__init__(self, ' '.join(msg))
 
+
 class SegmentationViolation(EnviException):
     """
     Raised by an Emulator extension when you
     bad-touch memory. (Likely from memobj).
     """
+
     def __init__(self, va, msg=None):
         if msg is None:
             msg = "Bad Memory Access: %s" % hex(va)
         EnviException.__init__(self, msg)
         self.va = va
+
 
 class ArchNotImplemented(EnviException):
     """
@@ -268,11 +225,13 @@ class ArchNotImplemented(EnviException):
     """
     pass
 
+
 class EmuException(EnviException):
     """
     A parent for all emulation exceptions so catching
     them can be easy.
     """
+
     def __init__(self, emu, msg=None):
         EnviException.__init__(self, msg)
         self.va = emu.getProgramCounter()
@@ -280,11 +239,13 @@ class EmuException(EnviException):
     def __repr__(self):
         return "%s at %s" % (self.__class__.__name__, hex(self.va))
 
+
 class UnsupportedInstruction(EmuException):
     """
     Raised by emulators when the given instruction
     is not implemented by the emulator.
     """
+
     def __init__(self, emu, op):
         EmuException.__init__(self, emu)
         self.op = op
@@ -292,11 +253,13 @@ class UnsupportedInstruction(EmuException):
     def __repr__(self):
         return "Unsupported Instruction: 0x%.8x %s" % (self.va, repr(self.op))
 
+
 class DivideByZero(EmuException):
     """
     Raised by an Emulator when a divide/mod has
     a 0 divisor...
     """
+
 
 class DivideError(EmuException):
     """
@@ -304,16 +267,19 @@ class DivideError(EmuException):
     of the specified range.
     """
 
+
 class BreakpointHit(EmuException):
     """
     Raised by an emulator when you execute a breakpoint instruction
     """
+
 
 class PDEUndefinedFlag(EmuException):
     """
     This exception is raised when a conditional operation is dependant on
     a flag state that is unknown.
     """
+
 
 class PDEException(EmuException):
     """
@@ -322,22 +288,27 @@ class PDEException(EmuException):
     un-recoverable.
     """
 
+
 class UnknownCallingConvention(EmuException):
     """
     Raised when the getCallArgs() or execCallReturn() methods
     are given an unknown calling convention type.
     """
 
+
 class MapOverlapException(EnviException):
     """
     Raised when adding a memory map to a MemoryObject which overlaps
     with another already existing map.
     """
+
     def __init__(self, map1, map2):
         self.map1 = map1
         self.map2 = map2
         margs = (map1[0], map1[1], map2[0], map2[1])
-        EnviException.__init__(self, "Map At 0x%.8x (%d) overlaps map at 0x%.8x (%d)" % margs)
+        EnviException.__init__(
+            self, "Map At 0x%.8x (%d) overlaps map at 0x%.8x (%d)" % margs)
+
 
 class Operand:
 
@@ -365,7 +336,8 @@ class Operand:
         the given emulator/workspace/trace to assign things like
         memory and registers.
         """
-        print("%s needs to implement setOperValue! (0x%.8x: %s) " % (self.__class__.__name__, op.va, repr(op)))
+        print("%s needs to implement setOperValue! (0x%.8x: %s) " %
+              (self.__class__.__name__, op.va, repr(op)))
 
     def isDeref(self):
         """
@@ -420,13 +392,15 @@ class Operand:
     def __eq__(self, oper):
         if not isinstance(oper, self.__class__):
             return False
-        #FIXME each one will need this...
+        # FIXME each one will need this...
         return True
+
 
 class DerefOper(Operand):
 
     def isDeref(self):
         return True
+
 
 class ImmedOper(Operand):
 
@@ -436,16 +410,18 @@ class ImmedOper(Operand):
     def isDiscrete(self):
         return True
 
+
 class RegisterOper(Operand):
 
     def isReg(self):
         return True
 
+
 class Opcode:
     """
     A universal representation for an opcode
     """
-    prefix_names = [] # flag->humon tuples
+    prefix_names = []  # flag->humon tuples
 
     def __init__(self, va, opcode, mnem, prefixes, size, operands, iflags=0):
         """
@@ -511,10 +487,10 @@ class Opcode:
     # NOTE: From here down is mostly things that architecture specific opcode
     #       extensions should override.
     def isCall(self):
-        return bool(self.iflags & IF_CALL)
+        return bool(self.iflags & e_const.IF_CALL)
 
     def isReturn(self):
-        return bool(self.iflags & IF_RET)
+        return bool(self.iflags & e_const.IF_RET)
 
     def getTargets(self, emu=None):
         """
@@ -529,13 +505,13 @@ class Opcode:
         """
         remote_branches = []
         for bva, bflags in self.getBranches(emu=emu):
-            if bflags & BR_FALL:
+            if bflags & e_const.BR_FALL:
                 continue
 
-            if bva and (bflags & BR_DEREF):
+            if bva and (bflags & e_const.BR_DEREF):
                 if emu is not None:
                     bva = emu.readMemoryFormat(bva, '<P')[0]
-                    bflags &= (~BR_DEREF)
+                    bflags &= (~e_const.BR_DEREF)
                 else:
                     bva = None
 
@@ -555,9 +531,9 @@ class Opcode:
 
     def genRefOpers(self, emu=None):
         '''
-        Operand generator, yielding an (oper-index, operand) tuple from this 
-        Opcode... but only for operands which make sense for XREF analysis.  
-        Override when architecture makes use of odd operands like the program 
+        Operand generator, yielding an (oper-index, operand) tuple from this
+        Opcode... but only for operands which make sense for XREF analysis.
+        Override when architecture makes use of odd operands like the program
         counter, which returns a real value even without an emulator.
         '''
         for oidx, o in enumerate(self.opers):
@@ -588,6 +564,7 @@ class Opcode:
     def getOperands(self):
         return list(self.opers)
 
+
 class Emulator(e_reg.RegisterContext, e_mem.MemoryObject):
     """
     The Emulator class is mostly "Abstract" in the java
@@ -602,10 +579,11 @@ class Emulator(e_reg.RegisterContext, e_mem.MemoryObject):
     implemented mostly for user-space emulation of
     protected mode execution.
     """
-    def __init__(self, archmod=None):
+
+    def __init__(self, archid=None):
 
         self.metadata = {}
-        e_mem.MemoryObject.__init__(self, arch=archmod._arch_id)
+        e_mem.MemoryObject.__init__(self, archid=archid)
         e_reg.RegisterContext.__init__(self)
 
         self._emu_segments = [(0, 0xffffffff)]
@@ -634,7 +612,7 @@ class Emulator(e_reg.RegisterContext, e_mem.MemoryObject):
         '''
         Set a (previously initialized) emulator option.
         '''
-        if not self._emu_opts.has_key(opt):
+        if opt not in self._emu_opts:
             raise Exception('Unknown Emu Opt: %s' % opt)
         self._emu_opts[opt] = val
 
@@ -643,10 +621,10 @@ class Emulator(e_reg.RegisterContext, e_mem.MemoryObject):
         Retrieve the current value of an emulator option.
         ( emu impls may directly access _emu_opts for speed )
         '''
-        if not self._emu_opts.has_key(opt):
+        if opt not in self._emu_opts:
             raise Exception('Unknown Emu Opt: %s' % opt)
         return self._emu_opts.get(opt)
-    
+
     def setEndian(self, endian):
         '''
         Sets Endianness for the Emulator.
@@ -659,7 +637,6 @@ class Emulator(e_reg.RegisterContext, e_mem.MemoryObject):
         Returns the current Endianness for the emulator
         '''
         return self.imem_archs[0].getEndian()
-
 
     def getMeta(self, name, default=None):
         return self.metadata.get(name, default)
@@ -681,16 +658,16 @@ class Emulator(e_reg.RegisterContext, e_mem.MemoryObject):
         """
         regs = self.getRegisterSnap()
         mem = self.getMemorySnap()
-        return regs,mem
+        return regs, mem
 
     def setEmuSnap(self, snap):
-        regs,mem = snap
+        regs, mem = snap
         self.setRegisterSnap(regs)
         self.setMemorySnap(mem)
 
     def executeOpcode(self, opobj):
         """
-        This is the core method for the 
+        This is the core method for the emulator loop
         """
         raise ArchNotImplemented()
 
@@ -699,8 +676,8 @@ class Emulator(e_reg.RegisterContext, e_mem.MemoryObject):
         Run the emulator until "something" happens.
         (breakpoint, segv, syscall, etc...)
         """
-        if stepcount != None:
-            for i in xrange(stepcount):
+        if stepcount is not None:
+            for i in range(stepcount):
                 self.stepi()
         else:
             while True:
@@ -728,10 +705,10 @@ class Emulator(e_reg.RegisterContext, e_mem.MemoryObject):
         Set a base and size for a given segment index.
         '''
         if len(self._emu_segments) - idx == 0:
-            self._emu_segments.append( (base, size) )
+            self._emu_segments.append((base, size))
             return
 
-        self._emu_segments[idx] = (base,size)
+        self._emu_segments[idx] = (base, size)
 
     def getOperValue(self, op, idx):
         """
@@ -769,7 +746,7 @@ class Emulator(e_reg.RegisterContext, e_mem.MemoryObject):
         Usage: getCallArgs(3, "stdcall") -> (0, 32, 0xf00)
         """
         c = self._emu_call_convs.get(cc, None)
-        if c == None:
+        if c is None:
             raise UnknownCallingConvention(cc)
 
         return c.getCallArgs(self, count)
@@ -783,7 +760,7 @@ class Emulator(e_reg.RegisterContext, e_mem.MemoryObject):
         for the calling convention)
         """
         c = self._emu_call_convs.get(cc, None)
-        if c == None:
+        if c is None:
             raise UnknownCallingConvention(cc)
 
         return c.execCallReturn(self, value, argc)
@@ -792,7 +769,7 @@ class Emulator(e_reg.RegisterContext, e_mem.MemoryObject):
         self._emu_call_convs[name] = obj
 
     def hasCallingConvention(self, name):
-        if self._emu_call_convs.get(name) != None:
+        if self._emu_call_convs.get(name) is not None:
             return True
         return False
 
@@ -807,26 +784,27 @@ class Emulator(e_reg.RegisterContext, e_mem.MemoryObject):
         Returns the value of the bytes at the "addr" address, given the size (currently, power of 2 only)
         """
         bytes = self.readMemory(addr, size)
-        if bytes == None:
+        if bytes is None:
             return None
         if len(bytes) != size:
-            raise Exception("Read Gave Wrong Length At 0x%.8x (va: 0x%.8x wanted %d got %d)" % (self.getProgramCounter(),addr, size, len(bytes)))
-        
+            raise Exception("Read Gave Wrong Length At 0x%.8x (va: 0x%.8x wanted %d got %d)" % (
+                self.getProgramCounter(), addr, size, len(bytes)))
+
         return e_bits.parsebytes(bytes, 0, size, False, self.getEndian())
 
     def writeMemValue(self, addr, value, size):
-        #FIXME change this (and all uses of it) to passing in format...
-        #FIXME: Remove byte check and possibly half-word check.  (possibly all but word?)
+        # FIXME change this (and all uses of it) to passing in format...
+        # FIXME: Remove byte check and possibly half-word check.  (possibly all but word?)
         mask = e_bits.u_maxes[size]
         bytes = e_bits.buildbytes(value & mask, size, self.getEndian())
 
         self.writeMemory(addr, bytes)
 
     def readMemSignedValue(self, addr, size):
-        #FIXME: Remove byte check and possibly half-word check.  (possibly all but word?)
-        #FIXME: Handle endianness
+        # FIXME: Remove byte check and possibly half-word check.  (possibly all but word?)
+        # FIXME: Handle endianness
         bytes = self.readMemory(addr, size)
-        if bytes == None:
+        if bytes is None:
             return None
         fmttbl = e_bits.fmt_schars[self.getEndian()]
         return struct.unpack(fmttbl[size], bytes)[0]
@@ -843,7 +821,7 @@ class Emulator(e_reg.RegisterContext, e_mem.MemoryObject):
         subtra = self.getOperValue(op, sidx)
         minuend = self.getOperValue(op, midx)
 
-        if subtra == None or minuend == None:
+        if subtra is None or minuend is None:
             self.undefFlags()
             return None
 
@@ -851,8 +829,8 @@ class Emulator(e_reg.RegisterContext, e_mem.MemoryObject):
 
     def intSubBase(self, subtrahend, minuend, ssize, msize):
         '''
-        Base for integer subtraction.  
-        Segmented such that order of operands can easily be overridden by 
+        Base for integer subtraction.
+        Segmented such that order of operands can easily be overridden by
         subclasses.  Does not set flags (arch-specific), and doesn't set
         the dest operand.  That's up to the instruction implementation.
 
@@ -878,14 +856,14 @@ class Emulator(e_reg.RegisterContext, e_mem.MemoryObject):
         Do the core of integer addition but only *return* the
         resulting value rather than assigning it.
 
-        Architectures shouldn't have to override this as operand order 
+        Architectures shouldn't have to override this as operand order
         doesn't matter
         """
         src = self.getOperValue(op, 0)
         dst = self.getOperValue(op, 1)
 
-        #FIXME PDE and flags
-        if src == None:
+        # FIXME PDE and flags
+        if src is None:
             self.undefFlags()
             self.setOperValue(op, 1, None)
             return
@@ -909,7 +887,7 @@ class Emulator(e_reg.RegisterContext, e_mem.MemoryObject):
         src2 = self.getOperValue(op, 1)
 
         # PDE
-        if src1 == None or src2 == None:
+        if src1 is None or src2 is None:
             self.undefFlags()
             self.setOperValue(op, 1, None)
             return
@@ -959,11 +937,11 @@ class CallingConvention(object):
                                         Currently the number is ignored
 
         retaddr_def  - where does the function get a return address from?
-            (CC_STACK, #) - on the stack, at offset 0 
+            (CC_STACK, #) - on the stack, at offset 0
             (CC_REG, REG_which) - in register "REG_which", eg. REG_LR
 
         retval_def  - where does the function return value go?
-            (CC_STACK, #) - on the stack, at offset 0 
+            (CC_STACK, #) - on the stack, at offset 0
             (CC_REG, REG_which) - in register "REG_which", eg. REG_EAX
 
         CC_REG      - Ret, Retval or Arg use a particular register
@@ -976,20 +954,20 @@ class CallingConvention(object):
     delta = 0       # FIXME: possible duplicate use with pad
     flags = 0
     arg_def = []
-    retval_def = (CC_STACK, 0)
-    retaddr_def = (CC_STACK, 0)
+    retval_def = (e_const.CC_STACK, 0)
+    retaddr_def = (e_const.CC_STACK, 0)
 
     # Examples...
-    #flags = CC_CALLEE_CLEANUP
-    #arg_def = [(CC_STACK_INF, 4),]
-    #retaddr_def = (CC_STACK, 0)
-    #retval_def = (CC_REG, REG_EAX)
+    # flags = CC_CALLEE_CLEANUP
+    # arg_def = [(CC_STACK_INF, 4),]
+    # retaddr_def = (CC_STACK, 0)
+    # retval_def = (CC_REG, REG_EAX)
 
     def getNumStackArgs(self, emu, argc):
         '''
         Returns the number of stack arguments.
         '''
-        rargs = [ v for (t, v) in self.arg_def if t == CC_REG ]
+        rargs = [v for (t, v) in self.arg_def if t == CC_REG]
         return max(argc - len(rargs), 0)
 
     def getStackArgOffset(self, emu, argc):
@@ -1011,14 +989,14 @@ class CallingConvention(object):
             if argc <= 0:
                 break
 
-            if arg_type == CC_REG:
+            if arg_type == e_const.CC_REG:
                 args.append(emu.getRegister(arg_val))
                 argc -= 1
-            elif arg_type == CC_STACK:
+            elif arg_type == e_const.CC_STACK:
                 args.append(emu.readMemoryFormat(sp, '<P')[0])
                 argc -= 1
                 sp += self.align
-            elif arg_type == CC_STACK_INF:
+            elif arg_type == e_const.CC_STACK_INF:
                 values = emu.readMemoryFormat(sp, '<%dP' % argc)
                 args.extend(values)
                 argc -= len(values)
@@ -1055,16 +1033,16 @@ class CallingConvention(object):
             if argc <= 0:
                 break
 
-            if arg_type == CC_REG:
+            if arg_type == e_const.CC_REG:
                 emu.setRegister(arg_val, args[cur_arg])
                 argc -= 1
                 cur_arg += 1
-            elif arg_type == CC_STACK:
+            elif arg_type == e_const.CC_STACK:
                 args += emu.writeMemoryFormat(sp, '<P', args[cur_arg])
                 argc -= 1
                 cur_arg += 1
                 sp += self.align
-            elif arg_type == CC_STACK_INF:
+            elif arg_type == e_const.CC_STACK_INF:
                 arg_val -= self.align
                 emu.writeMemoryFormat(sp, '<%dP' % argc, *args[cur_arg:])
                 argc -= len(args[cur_arg:])
@@ -1090,9 +1068,9 @@ class CallingConvention(object):
         Expects to be called at the function entrypoint.
         '''
         rtype, rvalue = self.retaddr_def
-        if rtype == CC_REG:
+        if rtype == e_const.CC_REG:
             ra = emu.getRegister(rvalue)
-        elif rtype == CC_STACK:
+        elif rtype == e_const.CC_STACK:
             sp = emu.getStackCounter() + rvalue
             ra = emu.readMemoryFormat(sp, '<P')[0]
         else:
@@ -1107,9 +1085,9 @@ class CallingConvention(object):
         Expects to be called after the function return.
         '''
         rtype, rvalue = self.retval_def
-        if rtype == CC_REG:
+        if rtype == e_const.CC_REG:
             rv = emu.getRegister(rvalue)
-        elif rtype == CC_STACK:
+        elif rtype == e_const.CC_STACK:
             sp = emu.getStackCounter() + rvalue
             rv = emu.readMemoryFormat(sp, '<P')[0]
         else:
@@ -1124,9 +1102,9 @@ class CallingConvention(object):
         Expects to be called at the function entrypoint.
         '''
         rtype, rvalue = self.retaddr_def
-        if rtype == CC_REG:
+        if rtype == e_const.CC_REG:
             emu.setRegister(rvalue, ra)
-        elif rtype == CC_STACK:
+        elif rtype == e_const.CC_STACK:
             sp = emu.getStackCounter() + rvalue
             emu.writeMemoryFormat(sp, '<P', ra)
         else:
@@ -1137,9 +1115,9 @@ class CallingConvention(object):
         Sets the return value.
         '''
         rtype, rvalue = self.retval_def
-        if rtype == CC_REG:
+        if rtype == e_const.CC_REG:
             emu.setRegister(rvalue, rv)
-        elif rtype == CC_STACK:
+        elif rtype == e_const.CC_STACK:
             sp = emu.getStackCounter() + rvalue
             emu.writeMemoryFormat(sp, '<P', rv)
         else:
@@ -1150,7 +1128,7 @@ class CallingConvention(object):
         Allocates space on the stack for the return address.
         '''
         rtype, rvalue = self.retaddr_def
-        if rtype != CC_STACK:
+        if rtype != e_const.CC_STACK:
             return 0
 
         sp = emu.getStackCounter()
@@ -1192,23 +1170,23 @@ class CallingConvention(object):
         delta = self.delta
 
         rtype, rvalue = self.retaddr_def
-        if rtype == CC_STACK and not precall:
+        if rtype == e_const.CC_STACK and not precall:
             delta += self.align
 
         rtype, rvalue = self.retval_def
-        if rtype == CC_STACK:
+        if rtype == e_const.CC_STACK:
             delta += self.align
 
-        if self.flags & CC_CALLEE_CLEANUP:
+        if self.flags & e_const.CC_CALLEE_CLEANUP:
             for arg_type, arg_val in self.arg_def:
                 if argc <= 0:
                     break
-                if arg_type == CC_REG:
+                if arg_type == e_const.CC_REG:
                     argc -= 1
-                elif arg_type == CC_STACK:
+                elif arg_type == e_const.CC_STACK:
                     delta += self.align
                     argc -= 1
-                elif arg_type == CC_STACK_INF:
+                elif arg_type == e_const.CC_STACK_INF:
                     delta = self._dealloc(delta, argc)
                     argc = 0
                 else:
@@ -1228,7 +1206,7 @@ class CallingConvention(object):
         '''
         self.setCallArgs(emu, args)
 
-        if ra != None:
+        if ra is not None:
             self.setReturnAddress(emu, ra)
 
     def setupCall(self, emu, args=None, ra=None):
@@ -1241,12 +1219,12 @@ class CallingConvention(object):
         program counter.
         '''
         argv = []
-        if args != None:
+        if args is not None:
             argv.extend(args)
 
         argc = len(argv)
 
-        if ra == None:
+        if ra is None:
             ra = emu.getProgramCounter()
 
         self.allocateCallSpace(emu, argc)
@@ -1270,49 +1248,52 @@ class CallingConvention(object):
 
         Expects to be called at the function entrypoint.
         '''
-        sp = emu.getStackCounter()
         ip = self.getReturnAddress(emu)
         self.deallocateCallSpace(emu, argc)
 
         self.setReturnValue(emu, value)
         emu.setProgramCounter(ip)
 
+
 # NOTE: This mapping is needed because of inconsistancies
 # in how different compilers and versions of python embed
 # the machine setting.
 arch_xlate_32 = {
-    'i386':'i386',
-    'i486':'i386',
-    'i586':'i386',
-    'i686':'i386',
-    'x86':'i386',
-    'i86pc':'i386', # Solaris
-    '':'i386', # Stupid windows...
-    'AMD64':'i386', # ActiveState python can say AMD64 in 32 bit install?
+    'i386': 'i386',
+    'i486': 'i386',
+    'i586': 'i386',
+    'i686': 'i386',
+    'x86': 'i386',
+    'i86pc': 'i386',  # Solaris
+    '': 'i386',  # Stupid windows...
+    'AMD64': 'i386',  # ActiveState python can say AMD64 in 32 bit install?
     # Arm!
-    'armv6l':'armv6l',
-    'armv7l':'armv7l',
+    'armv6l': 'armv6l',
+    'armv7l': 'armv7l',
 }
 
 arch_xlate_64 = {
-    'x86_64':'amd64',
-    'AMD64':'amd64',
-    'amd64':'amd64',
-    'i386':'amd64', # MAC ports builds are 64bit and say i386
-    '':'amd64', # And again....
+    'x86_64': 'amd64',
+    'AMD64': 'amd64',
+    'amd64': 'amd64',
+    'i386': 'amd64',  # MAC ports builds are 64bit and say i386
+    '': 'amd64',  # And again....
 }
+
 
 def getArchByName(archname):
     '''
     Get the architecture constant by the humon name.
     '''
-    return arch_by_name.get(archname)
+    return e_const.arch_by_name.get(archname)
+
 
 def getArchById(archid):
     '''
     Get the architecture name by the constant.
     '''
-    return arch_names.get(archid)
+    return e_const.arch_names.get(archid)
+
 
 def getCurrentArch():
     """
@@ -1327,10 +1308,11 @@ def getCurrentArch():
     elif width == 8:
         ret = arch_xlate_64.get(mach)
 
-    if ret == None:
+    if ret is None:
         raise ArchNotImplemented(mach)
 
     return ret
+
 
 def getArchModule(name=None):
     """
@@ -1373,7 +1355,8 @@ def getArchModule(name=None):
     else:
         raise ArchNotImplemented(name)
 
-def getArchModules(default=ARCH_DEFAULT):
+
+def getArchModules(default=e_const.ARCH_DEFAULT):
     '''
     Retrieve a default array of arch modules ( where index 0 is
     also the "named" or "default" arch module.
@@ -1397,6 +1380,6 @@ def getArchModules(default=ARCH_DEFAULT):
     archs.append(e_h8.H8Module())
 
     # Set the default module ( or None )
-    archs[ARCH_DEFAULT] = archs[default >> 16]
+    archs[e_const.ARCH_DEFAULT] = archs[default >> 16]
 
     return archs

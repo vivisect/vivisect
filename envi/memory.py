@@ -3,6 +3,7 @@ import struct
 
 import envi
 import envi.bits as e_bits
+import envi.const as e_const
 
 """
 A module containing memory utilities and the definition of the
@@ -69,11 +70,11 @@ class IMemory:
     be faster than the default implementation, DO IT!
     """
 
-    def __init__(self, arch=None):
+    def __init__(self, archid=None):
         self.imem_psize = struct.calcsize('P')
         self.imem_archs = envi.getArchModules()
-        if arch is not None:
-            self.setMemArchitecture(arch)
+        if archd is not None:
+            self.setMemArchitecture(archid)
 
     def setMemArchitecture(self, arch):
         '''
@@ -82,13 +83,13 @@ class IMemory:
 
         Example:
             import envi
-            mem.setMemArchitecture( envi.ARCH_I386 )
+            mem.setMemArchitecture(envi.ARCH_I386)
         '''
         archmod = self.imem_archs[arch >> 16]
-        self.imem_archs[envi.ARCH_DEFAULT] = archmod
+        self.imem_archs[e_const.ARCH_DEFAULT] = archmod
         self.imem_psize = archmod.getPointerSize()
 
-    def getMemArchModule(self, arch=envi.ARCH_DEFAULT):
+    def getMemArchModule(self, arch=e_const.ARCH_DEFAULT):
         '''
         Get a reference to the default arch module for the memory object.
         '''
@@ -317,7 +318,7 @@ class IMemory:
 
         return results
 
-    def parseOpcode(self, va, arch=envi.ARCH_DEFAULT):
+    def parseOpcode(self, va, arch=e_const.ARCH_DEFAULT):
         '''
         Parse an opcode from the specified virtual address.
 
@@ -410,13 +411,13 @@ class MemoryCache(IMemory):
 
 class MemoryObject(IMemory):
 
-    def __init__(self, arch=None):
+    def __init__(self, archid=None):
         """
         Take a set of memory maps (va, perms, fname, bytes) and put them in
         a sparse space finder. You may specify your own page-size to optimize
         the search for an architecture.
         """
-        IMemory.__init__(self, arch=arch)
+        IMemory.__init__(self, archid=archid)
         self._map_defs = []
         self._supervisor = False
 
@@ -500,14 +501,14 @@ class MemoryObject(IMemory):
                 return (offset, mbytes)
         raise envi.SegmentationViolation(va)
 
-    def parseOpcode(self, va, arch=envi.ARCH_DEFAULT):
+    def parseOpcode(self, va, arch=e_const.ARCH_DEFAULT):
         '''
         Parse an opcode from the specified virtual address.
 
         Example: op = m.parseOpcode(0x7c773803)
         '''
         off, b = self.getByteDef(va)
-        return self.imem_archs[(arch & envi.ARCH_MASK) >> 16].archParseOpcode(b, off, va)
+        return self.imem_archs[(arch & e_const.ARCH_MASK) >> 16].archParseOpcode(b, off, va)
 
     def readMemString(self, va, maxlen=0xfffffff):
         '''
