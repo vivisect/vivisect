@@ -1,7 +1,7 @@
-from vivisect.const import *
+import vivisect.const as v_const
 
 
-STRTYPES = (LOC_UNI, LOC_STRING)
+STRTYPES = (v_const.LOC_UNI, v_const.LOC_STRING)
 
 
 def analyze(vw):
@@ -26,7 +26,7 @@ def analyze(vw):
 
                     # we've already processed this one
                     loc = vw.getLocation(ref)
-                    if loc is not None and loc[L_LTYPE] in STRTYPES:
+                    if loc is not None and loc[v_const.L_LTYPE] in STRTYPES:
                         continue
 
                     # Candidates will be listed with the Xrefs thanks to
@@ -41,11 +41,11 @@ def analyze(vw):
                     # Look for Unicode before ASCII to catch UTF-16 LE.
                     sz = vw.detectUnicode(ref)
                     if sz > 0:
-                        vw.addLocation(ref, sz, LOC_UNI)
+                        vw.addLocation(ref, sz, v_const.LOC_UNI)
                     else:
                         sz = vw.detectString(ref)
                         if sz > 0:
-                            vw.addLocation(ref, sz, LOC_STRING)
+                            vw.addLocation(ref, sz, v_const.LOC_STRING)
 
                 va += len(op)
     return

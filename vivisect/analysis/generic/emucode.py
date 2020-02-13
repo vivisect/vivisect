@@ -127,7 +127,7 @@ def analyze(vw):
             emu.setEmulationMonitor(wat)
             try:
                 emu.runFunction(va, maxhit=1)
-            except Exception as e:
+            except Exception:
                 continue
             if wat.looksgood():
                 docode.append(va)
@@ -151,7 +151,7 @@ def analyze(vw):
             # XXX - RP
             try:
                 vw.makeFunction(va)
-            except Exception as e:
+            except Exception:
                 continue
             vasetrows.append((va,))
 

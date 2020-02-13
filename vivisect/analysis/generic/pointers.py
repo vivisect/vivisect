@@ -9,6 +9,7 @@ from vivisect.const import RTYPE_BASEPTR, LOC_POINTER
 
 logger = logging.getLogger(__name__)
 
+
 def analyze(vw):
 
     if vw.verbose:
@@ -53,7 +54,6 @@ def analyze(vw):
         except Exception:
             if vw.verbose:
                 vw.vprint("followPointer() failed for 0x%.8x (pval: 0x%.8x)" % (lva, tva))
-
 
     # Now, lets find likely free-hanging pointers
     for addr, pval in vw.findPointers():
