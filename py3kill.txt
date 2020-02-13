@@ -66,3 +66,14 @@ qtwebkit is dead. long live qtwebenginewidgets
 imp is dead. long long importlib
 
 pickle must die
+
+so the i386 and amd64 package structure is quite possibly screwed. Need to get rid of the whole circular import
+structure we've got going on
+
+test getRegisterIndex == getRegisterOffset
+
+
+There's this horrible little pattern in the envi modules where the Archmod depends on the Emulator and 
+the emulator depends on the archmod, creating this circular chain of dependencies that makes importing this
+super fine tapdance of "will it work? LET'S FIND OUT"
+* We can break this since down the line, IMemory doesn't care and only use _arch_id (requires changing the Emulator base class a little bit
