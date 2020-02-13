@@ -1,5 +1,6 @@
-import envi.archs.i386 as e_i386
 import envi.archs.amd64 as e_amd64
+
+import envi.archs.i386.regs as e_i386_regs
 
 import vivisect.impemu.emulator as v_i_emulator
 import vivisect.impemu.platarch.i386 as v_i_i386
@@ -9,7 +10,9 @@ from vivisect.impemu.emulator import imphook
 MAX_PATH = 260
 
 # A shared place for most of the import hooks
-#class WindowsEmulator(v_i_emulator.WorkspaceEmulator):
+# class WindowsEmulator(v_i_emulator.WorkspaceEmulator):
+
+
 class WindowsMixin(v_i_emulator.WorkspaceEmulator):
 
     def __init__(self):
@@ -22,7 +25,7 @@ class WindowsMixin(v_i_emulator.WorkspaceEmulator):
 
         bytez = self.readMemory(va, size)
         if unicode:
-            bytez = bytez.decode('utf-16le','ignore')
+            bytez = bytez.decode('utf-16le', 'ignore')
 
         bytez = bytez.split('\x00')[0]
 
@@ -39,25 +42,25 @@ class WindowsMixin(v_i_emulator.WorkspaceEmulator):
     def kernel32_LoadLibraryA(self, emu, callconv, api, argv):
         lpLibName = argv[0]
         libname = self.readLibraryPath(lpLibName)
-        retval = emu.setVivTaint('dynlib',libname)
+        retval = emu.setVivTaint('dynlib', libname)
         callconv.execCallReturn(emu, retval, len(argv))
 
     @imphook('kernel32.LoadLibraryW')
     def kernel32_LoadLibraryW(self, emu, callconv, api, argv):
         lpLibName = argv[0]
         libname = self.readLibraryPath(lpLibName, unicode=True)
-        retval = emu.setVivTaint('dynlib',libname)
+        retval = emu.setVivTaint('dynlib', libname)
         callconv.execCallReturn(emu, retval, len(argv))
 
     @imphook('kernel32.GetProcAddress')
     def kernel32_GetProcAddress(self, emu, callconv, api, argv):
-        hLibrary,lpProcName = argv
+        hLibrary, lpProcName = argv
         procname = self.readFilePath(lpProcName, default='unknownproc')
 
         libname = 'unknownlib'
         taint = emu.getVivTaint(hLibrary)
         if taint:
-            tva,ttype,tinfo = taint
+            tva, ttype, tinfo = taint
             if ttype == 'dynlib':
                 libname = tinfo
 
@@ -82,25 +85,29 @@ class WindowsMixin(v_i_emulator.WorkspaceEmulator):
 
     @imphook('kernel32.GetModuleHandleA')
     def kernel32_GetModuleHandleExA(self, emu, callconv, api, argv):
-        dwFlags,lpLibName,phModule = argv
+        dwFlags, lpLibName, phModule = argv
         libname = self.readLibraryPath(lpLibName, unicode=False)
-        retval = emu.setVivTaint('dynlib',libname)
+        retval = emu.setVivTaint('dynlib', libname)
         callconv.execCallReturn(emu, retval, len(argv))
 
     @imphook('kernel32.GetModuleHandleW')
-    def kernel32_GetModuleHandleExA(self, emu, callconv, api, argv):
-        dwFlags,lpLibName,phModule = argv
+    def kernel32_GetModuleHandleExW(self, emu, callconv, api, argv):
+        dwFlags, lpLibName, phModule = argv
         libname = self.readLibraryPath(lpLibName, unicode=True)
-        retval = emu.setVivTaint('dynlib',libname)
+        retval = emu.setVivTaint('dynlib', libname)
         callconv.execCallReturn(emu, retval, len(argv))
 
-import vivisect.impemu.platarch.i386 as v_i_i386
+
 class Windowsi386Emulator(WindowsMixin, v_i_i386.i386WorkspaceEmulator):
 
-    taintregs = [ 
-        e_i386.REG_EAX, e_i386.REG_ECX, e_i386.REG_EDX,
-        e_i386.REG_EBX, e_i386.REG_EBP, e_i386.REG_ESI,
-        e_i386.REG_EDI,
+    taintregs = [
+        e_i386_regs.REG_EAX,
+        e_i386_regs.REG_ECX,
+        e_i386_regs.REG_EDX,
+        e_i386_regs.REG_EBX,
+        e_i386_regs.REG_EBP,
+        e_i386_regs.REG_ESI,
+        e_i386_regs.REG_EDI,
     ]
 
     def __init__(self, vw, logwrite=False, logread=False):
@@ -112,21 +119,22 @@ class Windowsi386Emulator(WindowsMixin, v_i_i386.i386WorkspaceEmulator):
 
         scopetable, localsize = argv
 
-        emu.doPush(0) # seh3_handler
-        emu.doPush(0) # saved seh3 scopetable
+        emu.doPush(0)  # seh3_handler
+        emu.doPush(0)  # saved seh3 scopetable
 
-        ebp = emu.getRegister(e_i386.REG_EBP)
-        esp = emu.getRegister(e_i386.REG_ESP)
+        ebp = emu.getRegister(e_i386_regs.REG_EBP)
+        esp = emu.getRegister(e_i386_regs.REG_ESP)
         emu.writeMemValue(esp+16, ebp, 4)
 
-        ebp = esp+16 # [saved_scope, seh3_handler, saved_eip, new_scope, <size>]
+        # [saved_scope, seh3_handler, saved_eip, new_scope, <size>]
+        ebp = esp+16
         esp -= localsize
 
-        emu.setRegister(e_i386.REG_EBP, ebp)
-        emu.setRegister(e_i386.REG_ESP, esp)
-        emu.doPush(emu.getRegister(e_i386.REG_EBX))
-        emu.doPush(emu.getRegister(e_i386.REG_ESI))
-        emu.doPush(emu.getRegister(e_i386.REG_EDI))
+        emu.setRegister(e_i386_regs.REG_EBP, ebp)
+        emu.setRegister(e_i386_regs.REG_ESP, esp)
+        emu.doPush(emu.getRegister(e_i386_regs.REG_EBX))
+        emu.doPush(emu.getRegister(e_i386_regs.REG_ESI))
+        emu.doPush(emu.getRegister(e_i386_regs.REG_EDI))
 
     @imphook('ntdll.seh4_prolog')
     def seh4_prolog(self, emu, callconv, api, argv):
@@ -144,62 +152,63 @@ class Windowsi386Emulator(WindowsMixin, v_i_i386.i386WorkspaceEmulator):
     def seh3_epilog(self, emu, callconv, api, argv):
 
         emu.doPop()
-        emu.setRegister(e_i386.REG_EDI, emu.doPop())
-        emu.setRegister(e_i386.REG_ESI, emu.doPop())
-        emu.setRegister(e_i386.REG_EBX, emu.doPop())
+        emu.setRegister(e_i386_regs.REG_EDI, emu.doPop())
+        emu.setRegister(e_i386_regs.REG_ESI, emu.doPop())
+        emu.setRegister(e_i386_regs.REG_EBX, emu.doPop())
 
-        ebp = emu.getRegister(e_i386.REG_EBP)
-        emu.setRegister(e_i386.REG_ESP, ebp)
-        emu.setRegister(e_i386.REG_EBP, emu.doPop())
+        ebp = emu.getRegister(e_i386_regs.REG_EBP)
+        emu.setRegister(e_i386_regs.REG_ESP, ebp)
+        emu.setRegister(e_i386_regs.REG_EBP, emu.doPop())
 
     @imphook('ntdll.seh4_epilog')
     def seh4_epilog(self, emu, callconv, api, argv):
 
         emu.doPop()
-        emu.setRegister(e_i386.REG_EDI, emu.doPop())
-        emu.setRegister(e_i386.REG_EDI, emu.doPop())
-        emu.setRegister(e_i386.REG_ESI, emu.doPop())
-        emu.setRegister(e_i386.REG_EBX, emu.doPop())
+        emu.setRegister(e_i386_regs.REG_EDI, emu.doPop())
+        emu.setRegister(e_i386_regs.REG_EDI, emu.doPop())
+        emu.setRegister(e_i386_regs.REG_ESI, emu.doPop())
+        emu.setRegister(e_i386_regs.REG_EBX, emu.doPop())
 
-        ebp = emu.getRegister(e_i386.REG_EBP)
-        emu.setRegister(e_i386.REG_ESP, ebp)
-        emu.setRegister(e_i386.REG_EBP, emu.doPop())
+        ebp = emu.getRegister(e_i386_regs.REG_EBP)
+        emu.setRegister(e_i386_regs.REG_ESP, ebp)
+        emu.setRegister(e_i386_regs.REG_EBP, emu.doPop())
 
     @imphook('ntdll.eh_prolog')
     def eh_prolog(self, emu, callconv, api, argv):
-        emu.doPop() # Remove saved eip
+        emu.doPop()  # Remove saved eip
 
         # Push ebp, move ebp, esp
-        emu.doPush(emu.getRegister(e_i386.REG_EBP))
-        esp = emu.getRegister(e_i386.REG_ESP)
-        emu.setRegister(e_i386.REG_EBP, esp)
+        emu.doPush(emu.getRegister(e_i386_regs.REG_EBP))
+        esp = emu.getRegister(e_i386_regs.REG_ESP)
+        emu.setRegister(e_i386_regs.REG_EBP, esp)
 
         # Push a new EH record
         emu.doPush(0xffffffff)
-        emu.doPush(emu.getRegister(e_i386.REG_EAX))
+        emu.doPush(emu.getRegister(e_i386_regs.REG_EAX))
         emu.doPush(0xc0c0c0c0)
 
     @imphook('ntdll._alloca_probe')
     def alloca_probe(self, emu, callconv, api, argv):
-        esp = emu.getRegister(e_i386.REG_ESP)
-        eax = emu.getRegister(e_i386.REG_EAX)
+        esp = emu.getRegister(e_i386_regs.REG_ESP)
+        eax = emu.getRegister(e_i386_regs.REG_EAX)
         if eax < 0x1000:
             eax -= 4
-            emu.setRegister(e_i386.REG_ESP,  (esp-eax))
+            emu.setRegister(e_i386_regs.REG_ESP,  (esp-eax))
         else:
             while eax > 0x1000:
                 eax -= 0x1000
-                emu.setRegister(e_i386.REG_ESP,  (esp-0x1000))
+                emu.setRegister(e_i386_regs.REG_ESP,  (esp-0x1000))
                 esp -= 0x1000
 
-            emu.setRegister(e_i386.REG_ESP,  (esp-eax))
+            emu.setRegister(e_i386_regs.REG_ESP,  (esp-eax))
 
     @imphook('ntdll.gs_prolog')
     def gs_prolog(self, emu, callconv, api, argv):
-        esp = emu.getRegister(e_i386.REG_ESP)
+        esp = emu.getRegister(e_i386_regs.REG_ESP)
         esp += 8
-        eax = emu.getRegister(e_i386.REG_EAX)
+        eax = emu.getRegister(e_i386_regs.REG_EAX)
         # XXX - this is not a complete implementation..
         if eax < 0x1000:
-            emu.setRegister(e_i386.REG_ESP,  (esp-eax))
+            emu.setRegister(e_i386_regs.REG_ESP,  (esp-eax))
 
+# TODO(rakuyo): amd64?

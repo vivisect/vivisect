@@ -1,6 +1,7 @@
 import struct
 
 import envi
+import envi.const as e_const
 
 import envi.archs.h8.operands as h8_operands
 
@@ -13,7 +14,7 @@ class H8Disasm:
 
     def __init__(self):
         self._dis_regctx = h8_regs.H8RegisterContext()
-        self._dis_oparch = envi.ARCH_H8
+        self._dis_oparch = e_const.ARCH_H8
         self.ptrsize = 4
 
     def disasm(self, bytez, offset, va):

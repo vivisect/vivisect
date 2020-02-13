@@ -2,6 +2,7 @@ import struct
 
 import envi
 import envi.bits as e_bits
+import envi.const as e_const
 import envi.archs.i386.disasm as ed_i386
 import envi.archs.amd64.regs as e_amd64_regs
 import envi.archs.amd64.opcode64 as opcode86
@@ -169,7 +170,7 @@ class Amd64Disasm(ed_i386.i386Disasm):
 
     def __init__(self):
         ed_i386.i386Disasm.__init__(self)
-        self._dis_oparch = envi.ARCH_AMD64
+        self._dis_oparch = e_const.ARCH_AMD64
         self._dis_prefixes = amd64_prefixes
         self._dis_regctx = e_amd64_regs.Amd64RegisterContext()
         self.ptrsize = 8

@@ -2,29 +2,27 @@ import envi
 import envi.bits as e_bits
 import struct
 
-# from disasm import H8ImmOper, H8RegDirOper, H8RegIndirOper, H8AbsAddrOper, H8PcOffsetOper, H8RegMultiOper, H8MemIndirOper
-
 import envi.archs.h8.regs as e_regs
 import envi.archs.h8.const as e_const
 import envi.archs.h8.operands as h8_operands
 
 bcc = [
-        ('bra', envi.IF_NOFALL | envi.IF_BRANCH),
-        ('brn', envi.IF_BRANCH | envi.IF_COND),
-        ('bhi', envi.IF_BRANCH | envi.IF_COND),
-        ('bls', envi.IF_BRANCH | envi.IF_COND),
-        ('bcc', envi.IF_BRANCH | envi.IF_COND),
-        ('bcs', envi.IF_BRANCH | envi.IF_COND),
-        ('bne', envi.IF_BRANCH | envi.IF_COND),
-        ('beq', envi.IF_BRANCH | envi.IF_COND),
-        ('bvc', envi.IF_BRANCH | envi.IF_COND),
-        ('bvs', envi.IF_BRANCH | envi.IF_COND),
-        ('bpl', envi.IF_BRANCH | envi.IF_COND),
-        ('bmi', envi.IF_BRANCH | envi.IF_COND),
-        ('bge', envi.IF_BRANCH | envi.IF_COND),
-        ('blt', envi.IF_BRANCH | envi.IF_COND),
-        ('bgt', envi.IF_BRANCH | envi.IF_COND),
-        ('ble', envi.IF_BRANCH | envi.IF_COND),
+        ('bra', e_const.IF_NOFALL | e_const.IF_BRANCH),
+        ('brn', e_const.IF_BRANCH | e_const.IF_COND),
+        ('bhi', e_const.IF_BRANCH | e_const.IF_COND),
+        ('bls', e_const.IF_BRANCH | e_const.IF_COND),
+        ('bcc', e_const.IF_BRANCH | e_const.IF_COND),
+        ('bcs', e_const.IF_BRANCH | e_const.IF_COND),
+        ('bne', e_const.IF_BRANCH | e_const.IF_COND),
+        ('beq', e_const.IF_BRANCH | e_const.IF_COND),
+        ('bvc', e_const.IF_BRANCH | e_const.IF_COND),
+        ('bvs', e_const.IF_BRANCH | e_const.IF_COND),
+        ('bpl', e_const.IF_BRANCH | e_const.IF_COND),
+        ('bmi', e_const.IF_BRANCH | e_const.IF_COND),
+        ('bge', e_const.IF_BRANCH | e_const.IF_COND),
+        ('blt', e_const.IF_BRANCH | e_const.IF_COND),
+        ('bgt', e_const.IF_BRANCH | e_const.IF_COND),
+        ('ble', e_const.IF_BRANCH | e_const.IF_COND),
     ]
 
 
@@ -1373,18 +1371,18 @@ main_table[0x51] = (False, 'divxu', p_Rs_Rd_mul, 1, e_const.IF_B)
 main_table[0x52] = (False, 'mulxu', p_Rs_ERd, 2, e_const.IF_W)
 main_table[0x53] = (False, 'divxu', p_Rs_ERd, 2, e_const.IF_W)
 
-main_table[0x54] = (False, 'rts', None, 0, envi.IF_RET | envi.IF_NOFALL)   # 5470
-main_table[0x55] = (False, 'bsr', p_disp8, 0, envi.IF_CALL)
-main_table[0x56] = (False, 'rte', None, 0, envi.IF_RET | envi.IF_NOFALL)   # 5670
-main_table[0x57] = (False, 'trapa', p_i2, 0, envi.IF_NOFALL)
+main_table[0x54] = (False, 'rts', None, 0, e_const.IF_RET | e_const.IF_NOFALL)   # 5470
+main_table[0x55] = (False, 'bsr', p_disp8, 0, e_const.IF_CALL)
+main_table[0x56] = (False, 'rte', None, 0, e_const.IF_RET | e_const.IF_NOFALL)   # 5670
+main_table[0x57] = (False, 'trapa', p_i2, 0, e_const.IF_NOFALL)
 main_table[0x58] = (False, 'error', p_disp16, 2, 0)
-main_table[0x59] = (False, 'jmp', p_aERn,  3, envi.IF_BRANCH | envi.IF_NOFALL)
-main_table[0x5a] = (False, 'jmp', p_aAA24, 0, envi.IF_BRANCH | envi.IF_NOFALL)
-main_table[0x5b] = (False, 'jmp', p_aaAA8, 0, envi.IF_BRANCH | envi.IF_NOFALL)
-main_table[0x5c] = (False, 'bsr', p_disp16, 0, envi.IF_CALL)
-main_table[0x5d] = (False, 'jsr', p_aERn, 3, envi.IF_CALL)
-main_table[0x5e] = (False, 'jsr', p_aAA24, 0, envi.IF_CALL)
-main_table[0x5f] = (False, 'jsr', p_aaAA8, 0, envi.IF_CALL)
+main_table[0x59] = (False, 'jmp', p_aERn,  3, e_const.IF_BRANCH | e_const.IF_NOFALL)
+main_table[0x5a] = (False, 'jmp', p_aAA24, 0, e_const.IF_BRANCH | e_const.IF_NOFALL)
+main_table[0x5b] = (False, 'jmp', p_aaAA8, 0, e_const.IF_BRANCH | e_const.IF_NOFALL)
+main_table[0x5c] = (False, 'bsr', p_disp16, 0, e_const.IF_CALL)
+main_table[0x5d] = (False, 'jsr', p_aERn, 3,   e_const.IF_CALL)
+main_table[0x5e] = (False, 'jsr', p_aAA24, 0,  e_const.IF_CALL)
+main_table[0x5f] = (False, 'jsr', p_aaAA8, 0,  e_const.IF_CALL)
 
 # all bit instructions are B. may set 0->1
 main_table[0x60] = (False, 'bset', p_Rn_Rd, 1, 0)

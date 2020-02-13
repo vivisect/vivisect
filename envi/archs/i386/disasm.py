@@ -648,7 +648,7 @@ class i386Disasm:
         self._dis_mode = MODE_32
         self._dis_prefixes = i386_prefixes
         self._dis_regctx = e_i386_regs.i386RegisterContext()
-        self._dis_oparch = envi.ARCH_I386
+        self._dis_oparch = e_const.ARCH_I386
         self.ptrsize = 4
 
         # This will make function lookups nice and quick

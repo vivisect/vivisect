@@ -29,6 +29,7 @@ import vivisect.contrib  # This should go first
 import envi
 import envi.bits as e_bits
 import envi.memory as e_mem
+import envi.const as e_const
 import envi.config as e_config
 import envi.bytesig as e_bytesig
 import envi.symstore.resolver as e_resolv
@@ -972,7 +973,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
     #
     # Opcode API
     #
-    def parseOpcode(self, va, arch=envi.ARCH_DEFAULT):
+    def parseOpcode(self, va, arch=e_const.ARCH_DEFAULT):
         '''
         Parse an opcode from the specified virtual address.
 
@@ -981,7 +982,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         note: differs from the IMemory interface by checking loclist
         '''
         off, b = self.getByteDef(va)
-        if arch == envi.ARCH_DEFAULT:
+        if arch == e_const.ARCH_DEFAULT:
             loctup = self.getLocation(va)
             # XXX - in the case where we've set a location on what should be an
             # opcode lets make sure L_LTYPE == LOC_OP if not lets reset L_TINFO = original arch param
@@ -1071,7 +1072,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             self.setComment(va[1], None)
             self.delXref(va)
 
-    def makeOpcode(self, va, op=None, arch=envi.ARCH_DEFAULT):
+    def makeOpcode(self, va, op=None, arch=e_const.ARCH_DEFAULT):
         """
         Create a single opcode location.  If you have already parsed the
         opcode object, you may pass it in.
@@ -1222,7 +1223,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
         return loc
 
-    def makeCode(self, va, arch=envi.ARCH_DEFAULT):
+    def makeCode(self, va, arch=e_const.ARCH_DEFAULT):
         """
         Attempt to begin code-flow based disassembly by
         starting at the given va.  The va will be made into
@@ -1235,7 +1236,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
         calls_from = self.cfctx.addCodeFlow(va, arch=arch)
 
-    def previewCode(self, va, arch=envi.ARCH_DEFAULT):
+    def previewCode(self, va, arch=e_const.ARCH_DEFAULT):
         '''
         Show the repr of an instruction in the current canvas *before* making it that
         '''
@@ -1274,7 +1275,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
         return None
 
-    def makeFunction(self, va, meta=None, arch=envi.ARCH_DEFAULT):
+    def makeFunction(self, va, meta=None, arch=e_const.ARCH_DEFAULT):
         """
         Do parsing for function information and add a new function doodad.
         This function should probably only be called once code-flow for the

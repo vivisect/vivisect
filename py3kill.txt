@@ -77,3 +77,5 @@ There's this horrible little pattern in the envi modules where the Archmod depen
 the emulator depends on the archmod, creating this circular chain of dependencies that makes importing this
 super fine tapdance of "will it work? LET'S FIND OUT"
 * We can break this since down the line, IMemory doesn't care and only use _arch_id (requires changing the Emulator base class a little bit
+
+vivisect.tools.graphutils has a lot of unused variables that need to be used/implemented

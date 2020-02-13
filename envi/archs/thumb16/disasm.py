@@ -1,5 +1,6 @@
 
 import envi.bits as e_bits
+import envi.const as e_const
 import envi.bintree as e_btree
 
 from envi.bits import binary
@@ -724,7 +725,7 @@ thumb_base = [
     ('010001010',   (30,'cmp',     d1_rm4_rd3, 0)), # CMP<c> <Rn>,<Rm>
     ('010001011',   (31,'cmp',     d1_rm4_rd3, 0)), # CMP<c> <Rn>,<Rm>
     ('01000110',    (34,'mov',     d1_rm4_rd3, 0)), # MOV<c> <Rd>,<Rm>
-    ('010001110',   (35,'bx',      rm4_shift3, envi.IF_NOFALL)), # BX<c> <Rm>
+    ('010001110',   (35,'bx',      rm4_shift3, e_const.IF_NOFALL)), # BX<c> <Rm>
     ('010001111',   (36,'blx',     rm4_shift3, 0)), # BLX<c> <Rm>
     # Load from Litera7 Pool
     ('01001',       (37,'ldr',     rt_pc_imm8, 0)), # LDR<c> <Rt>,<label>
@@ -772,21 +773,21 @@ thumb_base = [
     ('11000',       (68,'stm',   rm_reglist, IF_IA|IF_W)), # LDMIA Rd!, reg_list
     ('11001',       (69,'ldm',   rm_reglist, IF_IA|IF_W)), # STMIA Rd!, reg_list
     # Conditional Bran6hes
-    ('11010000',    (INS_BCC,'beq',     pc_imm8,       envi.IF_COND)),
-    ('11010001',    (INS_BCC,'bn',      pc_imm8,       envi.IF_COND)),
-    ('11010010',    (INS_BCC,'bhs',     pc_imm8,       envi.IF_COND)),
-    ('11010011',    (INS_BCC,'blo',     pc_imm8,       envi.IF_COND)),
-    ('11010100',    (INS_BCC,'bmi',     pc_imm8,       envi.IF_COND)),
-    ('11010101',    (INS_BCC,'bpl',     pc_imm8,       envi.IF_COND)),
-    ('11010110',    (INS_BCC,'bvs',     pc_imm8,       envi.IF_COND)),
-    ('11010111',    (INS_BCC,'bvc',     pc_imm8,       envi.IF_COND)),
-    ('11011000',    (INS_BCC,'bhi',     pc_imm8,       envi.IF_COND)),
-    ('11011001',    (INS_BCC,'bls',     pc_imm8,       envi.IF_COND)),
-    ('11011010',    (INS_BCC,'bge',     pc_imm8,       envi.IF_COND)),
-    ('11011011',    (INS_BCC,'blt',     pc_imm8,       envi.IF_COND)),
-    ('11011100',    (INS_BCC,'bgt',     pc_imm8,       envi.IF_COND)),
-    ('11011101',    (INS_BCC,'ble',     pc_imm8,       envi.IF_COND)),
-    ('11011110',    (INS_B,'b',       pc_imm8,       envi.IF_NOFALL)),
+    ('11010000',    (INS_BCC,'beq',     pc_imm8,       e_const.IF_COND)),
+    ('11010001',    (INS_BCC,'bn',      pc_imm8,       e_const.IF_COND)),
+    ('11010010',    (INS_BCC,'bhs',     pc_imm8,       e_const.IF_COND)),
+    ('11010011',    (INS_BCC,'blo',     pc_imm8,       e_const.IF_COND)),
+    ('11010100',    (INS_BCC,'bmi',     pc_imm8,       e_const.IF_COND)),
+    ('11010101',    (INS_BCC,'bpl',     pc_imm8,       e_const.IF_COND)),
+    ('11010110',    (INS_BCC,'bvs',     pc_imm8,       e_const.IF_COND)),
+    ('11010111',    (INS_BCC,'bvc',     pc_imm8,       e_const.IF_COND)),
+    ('11011000',    (INS_BCC,'bhi',     pc_imm8,       e_const.IF_COND)),
+    ('11011001',    (INS_BCC,'bls',     pc_imm8,       e_const.IF_COND)),
+    ('11011010',    (INS_BCC,'bge',     pc_imm8,       e_const.IF_COND)),
+    ('11011011',    (INS_BCC,'blt',     pc_imm8,       e_const.IF_COND)),
+    ('11011100',    (INS_BCC,'bgt',     pc_imm8,       e_const.IF_COND)),
+    ('11011101',    (INS_BCC,'ble',     pc_imm8,       e_const.IF_COND)),
+    ('11011110',    (INS_B,'b',       pc_imm8,         e_const.IF_NOFALL)),
     ('11011111',    (INS_BCC,'bfukt',   pc_imm8,       0)),
     # Software Interru2t
     ('11011111',    (INS_SWI,'swi',     imm8,       0)), # SWI <blahblah>
@@ -814,8 +815,8 @@ thumb_base = [
     ]
 
 thumb1_extension = [
-    ('11100',       (INS_B,  'b',       pc_imm11,           envi.IF_NOFALL)),        # B <imm11>
-    ('1111',        (INS_BL, 'bl',      bl_imm23,       envi.IF_CALL | IF_THUMB32)),   # BL/BLX <addr25> 
+    ('11100',       (INS_B,  'b',       pc_imm11,           e_const.IF_NOFALL)),        # B <imm11>
+    ('1111',        (INS_BL, 'bl',      bl_imm23,       e_const.IF_CALL | IF_THUMB32)),   # BL/BLX <addr25> 
 ]
 
 ###  holy crap, this is so wrong and imcomplete....
@@ -931,8 +932,8 @@ thumb2_extension = [
     ('11110101011',         (85,'sbc',      dp_mod_imm_32,        IF_THUMB32)),
     ('11110101101',         (85,'sub',      dp_mod_imm_32,        IF_THUMB32)),  # cmp if rd=1111 and s=1
     ('11110101110',         (85,'rsb',      dp_mod_imm_32,        IF_THUMB32)),
-    ('11100',       (INS_B,  'b',       pc_imm11,           envi.IF_NOFALL)),        # B <imm11>
-    ('1111',        (INS_BL, 'bl',      bl_imm23,       envi.IF_CALL | IF_THUMB32)),   # BL/BLX <addr25> 
+    ('11100',       (INS_B,  'b',       pc_imm11,           e_const.IF_NOFALL)),        # B <imm11>
+    ('1111',        (INS_BL, 'bl',      bl_imm23,       e_const.IF_CALL | IF_THUMB32)),   # BL/BLX <addr25> 
     ]
 '''
 '''
@@ -964,16 +965,14 @@ def is_thumb32(val):
 
 
 class ThumbOpcode(ArmOpcode):
-    _def_arch = envi.ARCH_THUMB16
-    pass
+    _def_arch = e_const.ARCH_THUMB16
 
 class Thumb2Opcode(ArmOpcode):
-    _def_arch = envi.ARCH_THUMB2
-    pass
+    _def_arch = e_const.ARCH_THUMB2
 
 class Thumb16Disasm:
     _tree = ttree
-    _optype = envi.ARCH_THUMB16
+    _optype = e_const.ARCH_THUMB16
     _opclass = ThumbOpcode
     def setEndian(self, endian):
         self.endian = endian
@@ -992,9 +991,8 @@ class Thumb16Disasm:
         try:
             opcode, mnem, opermkr, flags = self._tree.getInt(val, 16)
         except TypeError:
-            raise envi.InvalidInstruction(
-                    mesg="disasm parser cannot find instruction",
-                    bytez=bytez[offset:offset+2], va=va)
+            raise envi.InvalidInstruction(mesg="disasm parser cannot find instruction",
+                                          bytez=bytez[offset:offset+2], va=va)
 
         if flags & IF_THUMB32:
             val2, = struct.unpack_from(self.hfmt, bytez, offset+2)
@@ -1013,20 +1011,20 @@ class Thumb16Disasm:
         # performance-wise this should be set as the default value instead of 0, but this is cleaner
         flags |= self._optype
 
-        if (  len(olist) and 
+        if (  len(olist) and
                 isinstance(olist[0], ArmRegOper) and
-                olist[0].involvesPC() and 
+                olist[0].involvesPC() and
                 opcode not in no_update_Rd ):
             
             showop = True
-            flags |= envi.IF_NOFALL
+            flags |= e_const.IF_NOFALL
 
         op = ThumbOpcode(va, opcode, mnem, 0xe, oplen, olist, flags)
         return op
 
 class Thumb2Disasm ( Thumb16Disasm ):
     _tree = ttree2
-    _optype = envi.ARCH_THUMB2
+    _optype = e_const.ARCH_THUMB2
     _opclass = Thumb2Opcode
 
 if __name__ == '__main__':

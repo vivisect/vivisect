@@ -1,10 +1,7 @@
-import sys
-import copy
 import struct
 
 import envi
-import envi.bits as e_bits
-import envi.memory as e_mem
+import envi.const as e_const
 
 from envi.archs.msp430.regs import *
 
@@ -758,7 +755,7 @@ class Msp430JmpOper(Msp430Operand):
 class Msp430Disasm:
     def __init__(self):
         self._dis_regctx = Msp430RegisterContext()
-        self._dis_oparch = envi.ARCH_MSP430
+        self._dis_oparch = e_const.ARCH_MSP430
 
     # FIXME: Msp430Data is kinda kludgy and should be wrapped into the disasm logic
     class Msp430Data:

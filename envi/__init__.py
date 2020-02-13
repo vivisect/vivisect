@@ -1363,8 +1363,8 @@ def getArchModules(default=e_const.ARCH_DEFAULT):
     '''
     import envi.archs.h8 as e_h8
     import envi.archs.arm as e_arm
-    import envi.archs.i386 as e_i386
-    import envi.archs.amd64 as e_amd64
+    import envi.archs.i386.archmod as e_i386
+    import envi.archs.amd64.archmod as e_amd64
     import envi.archs.thumb16 as e_thumb16
     import envi.archs.msp430 as e_msp430
 
