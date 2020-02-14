@@ -7,6 +7,7 @@ import vtrace
 
 import envi.tests as e_test
 
+
 class VtraceProcessTest(unittest.TestCase):
 
     pypath = os.path.join('vtrace', 'tests', 'mains', 'main.py')
@@ -41,6 +42,7 @@ class VtraceProcessTest(unittest.TestCase):
         self.trace.run()
 
         self.assertEqual(self.trace.getMeta('ExitCode'), 33)
+
 
 class VtraceExecTest(VtraceProcessTest):
 

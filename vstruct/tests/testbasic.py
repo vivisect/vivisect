@@ -1,9 +1,11 @@
+import io
 import unittest
 
 import vstruct
-from vstruct.primitives import *
+import vstruct.bitfield as v_bitfield
+from vstruct.primitives import v_uint8, v_uint16, v_uint24, v_uint32, v_uint64, \
+    v_str, v_wstr, v_bytes, v_float, v_double
 
-from cStringIO import StringIO
 
 class woot(vstruct.VStruct):
     def __init__(self):
@@ -17,8 +19,8 @@ class woot(vstruct.VStruct):
 
 class VStructTest(unittest.TestCase):
 
-    #def setUp(self):
-    #def tearDown(self):
+    # def setUp(self):
+    # def tearDown(self):
 
     def test_vstruct_basicstruct(self):
 
@@ -31,8 +33,7 @@ class VStructTest(unittest.TestCase):
         v.vbytes = v_bytes(vbytes='ABCD')
 
         answer = '01020003000004000000050000000000000041424344'.decode('hex')
-        self.assertEqual( v.vsEmit(), answer )
-
+        self.assertEqual(v.vsEmit(), answer)
 
     def test_vstruct_basicreasign(self):
         v = vstruct.VStruct()
@@ -51,8 +52,7 @@ class VStructTest(unittest.TestCase):
         v.vbytes = '\x00\x00\x00\x00'
 
         answer = '63640065000066000000670000000000000000000000'.decode('hex')
-        self.assertEqual( v.vsEmit(), answer )
-
+        self.assertEqual(v.vsEmit(), answer)
 
     def test_vstruct_fieldalign(self):
         v = vstruct.VStruct()
@@ -63,8 +63,9 @@ class VStructTest(unittest.TestCase):
         v.uint32 = v_uint32(0x42434445, bigend=True)
         v.uint64 = v_uint64(0x4243444546474849, bigend=True)
 
-        answer = '420042430000424344000000424344454243444546474849'.decode('hex')
-        self.assertEqual( v.vsEmit(), answer )
+        answer = '420042430000424344000000424344454243444546474849'.decode(
+            'hex')
+        self.assertEqual(v.vsEmit(), answer)
 
     def test_vstruct_fixedpartialasign(self):
         v = vstruct.VStruct()
@@ -74,9 +75,10 @@ class VStructTest(unittest.TestCase):
         v.strfield = 'wootwoot!'
         v.unifield = 'bazbaz'
 
-        answer = '776f6f74776f6f7421000000000000000000000000000000000000000000620061007a00620061007a00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000'.decode('hex')
+        answer = '776f6f74776f6f7421000000000000000000000000000000000000000000620061007a00620061007a00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000'.decode(
+            'hex')
 
-        self.assertEqual( v.vsEmit(), answer )
+        self.assertEqual(v.vsEmit(), answer)
 
     def test_vstruct_lengthcallback(self):
 
@@ -89,25 +91,24 @@ class VStructTest(unittest.TestCase):
         v.vsAddParseCallback('lenfield', updatelen)
 
         v.vsParse('\x01' + 'A' * 30)
-        self.assertEqual( v.vsEmit(), '0141'.decode('hex') )
-
+        self.assertEqual(v.vsEmit(), '0141'.decode('hex'))
 
     def test_vstruct_classcallback(self):
         v = woot()
         v.vsParse('\x01' + 'A'*30)
-        self.assertEqual( v.vsEmit(), '0141'.decode('hex') )
+        self.assertEqual(v.vsEmit(), '0141'.decode('hex'))
 
     def test_vstruct_parsefd(self):
         v = woot()
-        sio = StringIO('\x01' + 'A' * 30)
+        sio = io.BytesIO('\x01' + b'A' * 30)
         v.vsParseFd(sio)
-        self.assertEqual( v.vsEmit(), '0141'.decode('hex') )
+        self.assertEqual(v.vsEmit(), '0141'.decode('hex'))
 
     def test_vstruct_insertfield(self):
         v = woot()
         v.vsInsertField('ifield', v_uint8(), 'strfield')
         v.vsParse('\x01BAAAAA')
-        self.assertEqual( v.vsEmit(), '014241'.decode('hex') )
+        self.assertEqual(v.vsEmit(), '014241'.decode('hex'))
 
     def test_vstruct_floats(self):
 
@@ -118,7 +119,7 @@ class VStructTest(unittest.TestCase):
         v.float4 = 99.3
         v.float8 = -400.2
 
-        self.assertEqual( v.vsEmit(), '9a99c64233333333330379c0'.decode('hex') )
+        self.assertEqual(v.vsEmit(), '9a99c64233333333330379c0'.decode('hex'))
 
     def test_vstruct_fastparse(self):
         v = vstruct.VStruct()
@@ -128,9 +129,9 @@ class VStructTest(unittest.TestCase):
 
         v.vsParse('BAAAAABCD', fast=True)
 
-        self.assertEqual( v.x, 0x42 )
-        self.assertEqual( v.y, 'AAAA' )
-        self.assertEqual( v.z, 0x44434241 )
+        self.assertEqual(v.x, 0x42)
+        self.assertEqual(v.y, 'AAAA')
+        self.assertEqual(v.z, 0x44434241)
 
     def test_vstruct_fastparse_bigend(self):
         v = vstruct.VStruct()
@@ -140,33 +141,31 @@ class VStructTest(unittest.TestCase):
 
         v.vsParse('BAAAAABCD', fast=True)
 
-        self.assertEqual( v.x, 0x42 )
-        self.assertEqual( v.y, 'AAAA' )
-        self.assertEqual( v.z, 0x41424344 )
+        self.assertEqual(v.x, 0x42)
+        self.assertEqual(v.y, 'AAAA')
+        self.assertEqual(v.z, 0x41424344)
 
     def test_vstruct_varray(self):
-        v = vstruct.VArray( [ v_uint8(i) for i in xrange(20) ] )
-        self.assertEqual( v[2], 2 )
+        v = vstruct.VArray([v_uint8(i) for i in range(20)])
+        self.assertEqual(v[2], 2)
         v.vsParse('A' * 20)
-        self.assertEqual( v[2], 0x41 )
+        self.assertEqual(v[2], 0x41)
 
     def test_bitfield(self):
-        from vstruct.bitfield import *
-        v = VBitField()
-        v.vsAddField('w', v_bits(2))
-        v.vsAddField('x', v_bits(3))
-        v.vsAddField('y', v_bits(3))
-        v.vsAddField('z', v_bits(11))
-        v.vsAddField('a', v_bits(3))
+        v = v_bitfield.VBitField()
+        v.vsAddField('w', v_bitfield.v_bits(2))
+        v.vsAddField('x', v_bitfield.v_bits(3))
+        v.vsAddField('y', v_bitfield.v_bits(3))
+        v.vsAddField('z', v_bitfield.v_bits(11))
+        v.vsAddField('a', v_bitfield.v_bits(3))
 
-        v.vsAddField('stuff', v_bits(23))
-        v.vsAddField('pad', v_bits(3))
-        v.vsAddField('pad2', v_bits(6))
-        v.vsAddField('pad3', v_bits(2))
-
+        v.vsAddField('stuff', v_bitfield.v_bits(23))
+        v.vsAddField('pad',  v_bitfield.v_bits(3))
+        v.vsAddField('pad2', v_bitfield.v_bits(6))
+        v.vsAddField('pad3', v_bitfield.v_bits(2))
 
         v.vsParse('AAAAAAA')
-        #print v.tree()
+        # print v.tree()
         self.assertEqual(1, v.w)
         self.assertEqual(0, v.x)
         self.assertEqual(1, v.y)
@@ -180,7 +179,7 @@ class VStructTest(unittest.TestCase):
         self.assertEqual('AAAAAAA', v.vsEmit())
 
         v.vsParse('ABCDEFG')
-        #print v.tree()
+        # print v.tree()
         self.assertEqual(1, v.w)
         self.assertEqual(0, v.x)
         self.assertEqual(1, v.y)
@@ -193,9 +192,8 @@ class VStructTest(unittest.TestCase):
 
         self.assertEqual('ABCDEFG', v.vsEmit())
 
-
         v.vsParse('zxcvbnm')
-        #print v.tree()
+        # print v.tree()
         self.assertEqual(1, v.w)
         self.assertEqual(7, v.x)
         self.assertEqual(2, v.y)
@@ -208,9 +206,8 @@ class VStructTest(unittest.TestCase):
 
         self.assertEqual('zxcvbnm', v.vsEmit())
 
-        
         v.vsParse('asdfghj')
-        #print v.tree()
+        # print v.tree()
         self.assertEqual(1, v.w)
         self.assertEqual(4, v.x)
         self.assertEqual(1, v.y)
@@ -222,6 +219,3 @@ class VStructTest(unittest.TestCase):
         self.assertEqual(2, v.pad3)
 
         self.assertEqual('asdfghj', v.vsEmit())
-
-        
-

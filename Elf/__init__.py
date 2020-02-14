@@ -18,7 +18,6 @@ Send bug reports to Invisigoth or Metr0.
 
 """
 # Copyright (C) 2007 Invisigoth - See LICENSE file for details
-import stat
 import logging
 
 import Elf.elf_lookup as elf_lookup
@@ -96,8 +95,9 @@ class ElfDynamic:
     An object to represent an Elf dynamic entry.
     (linker/loader directives)
     """
-    has_string = [DT_NEEDED, DT_SONAME]
+    has_string = [elf_lookup.DT_NEEDED, elf_lookup.DT_SONAME]
 
+    # TODO(rakuyo): why?
     def __init__(self, bytes=None):
         self.name = ""
 
@@ -425,7 +425,8 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
         syms = sym * diff
         vstruct.VArray(elems=syms).vsParse(symtab[offset:], fast=True)
 
-        logger.warn("_parseDynSymsFromSections:  current_count: %d\tdiff: %d\toffset: %d\t", count, diff, offset)
+        logger.warn(
+            "_parseDynSymsFromSections:  current_count: %d\tdiff: %d\toffset: %d\t", count, diff, offset)
         for sym in syms:
             if not sym.st_name:
                 continue
@@ -456,7 +457,8 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
 
             # don't add a second entry
             if dyn not in self.dynamics:
-                logger.debug("dynamic: %r: 0x%x", dt_names.get(dyn.d_tag), dyn.d_value)
+                logger.debug("dynamic: %r: 0x%x",
+                             dt_names.get(dyn.d_tag), dyn.d_value)
                 self.dynamics.append(dyn)
 
             if dyn.d_tag == DT_NULL:  # Represents the end
@@ -511,7 +513,8 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
 
         if self.dynstrtabmeta != (None, None):
             curtab = self.dynstrtabmeta[0]
-            logger.warn('wtf?  multiple dynamic string tables?  old: 0x%x  new: 0x%x', curtab, rva)
+            logger.warn(
+                'wtf?  multiple dynamic string tables?  old: 0x%x  new: 0x%x', curtab, rva)
 
         strtabbytes = self.readAtRva(dynstrtab, strsz)
 

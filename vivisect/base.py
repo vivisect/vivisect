@@ -418,7 +418,7 @@ class VivWorkspaceCore(v_impapi.ImportApi):
         # callback name....
         mcbname = "_mcb_%s" % name.split(':')[0]
         mcb = getattr(self, mcbname, None)
-        if mcb is None:
+        if mcb is not None:
             mcb(name, value)
         self.metadata[name] = value
 

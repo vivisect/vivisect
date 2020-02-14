@@ -4,6 +4,7 @@ import struct
 import logging
 
 import Elf
+import Elf.elf_lookup
 import envi.bits as e_bits
 import vivisect.exc as v_exc
 import vivisect.const as v_const

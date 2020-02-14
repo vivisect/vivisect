@@ -1,6 +1,5 @@
+import io
 import unittest
-
-from cStringIO import StringIO
 
 import vivisect
 import vivisect.tests.helpers as helpers
@@ -145,7 +144,7 @@ class VivisectTest(unittest.TestCase):
             self.assertEqual(len(refs), test[2])
 
     def test_viv_bigend(self):
-        fd = StringIO('ABCDEFG')
+        fd = io.BytesIO('ABCDEFG')
 
         vw = vivisect.VivWorkspace()
         vw.config.viv.parsers.blob.arch = 'arm'

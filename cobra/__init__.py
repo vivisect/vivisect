@@ -15,26 +15,21 @@ import time
 import types
 import socket
 import struct
-import urllib
 import logging
 import threading
 import traceback
 
+# TODO(rakuyo): UGGGGGGGGGGHHHHHHHHHH
 import pickle
 
-# TODO(rakuyo): These aren't things in py3
 try:
     import socketserver
+    import queue  # py3
+    from urllib.request import Request
 except Exception:
     import SocketServer as socketserver
-
-
-logger = logging.getLogger(__name__)
-
-try:
-    import queue  # py3
-except ImportError:  # py3 is ModuleNotFoundError, but py2 is ImportError
     import Queue as queue
+    from urllib2 import Request
 
 try:
     import msgpack
@@ -43,10 +38,10 @@ try:
     if msgpack.version >= (0, 4, 1):
         dumpargs['use_bin_type'] = 1
         loadargs['encoding'] = 'utf-8'
-
 except ImportError:
     msgpack = None
 
+logger = logging.getLogger(__name__)
 daemon = None
 verbose = False
 version = "Cobra2"
@@ -545,7 +540,7 @@ class CobraDaemon(socketserver.ThreadingTCPServer):
             raise Exception('CobraDaemon: sslca param must be a file!')
 
         self.allow_reuse_address = True
-        ThreadingTCPServer.__init__(self, (host, port), CobraRequestHandler)
+        socketserver.ThreadingTCPServer.__init__(self, (host, port), CobraRequestHandler)
 
         if port == 0:
             self.port = self.socket.getsockname()[1]
@@ -589,7 +584,7 @@ class CobraDaemon(socketserver.ThreadingTCPServer):
     def serve_forever(self):
         try:
 
-            ThreadingTCPServer.serve_forever(self)
+            socketserver.ThreadingTCPServer.serve_forever(self)
 
         except Exception:
             if not self.run:
@@ -635,9 +630,9 @@ class CobraDaemon(socketserver.ThreadingTCPServer):
         return None
 
     def getRandomName(self):
-        ret = ""
+        ret = b""
         for byte in os.urandom(16):
-            ret += "%.2x" % ord(byte)
+            ret += b"%.2x" % ord(byte)
         return ret
 
     def shareObject(self, obj, name=None, doref=False, dowith=False):
@@ -920,7 +915,7 @@ class CobraConnectionHandler:
 
 def isCobraUri(uri):
     try:
-        x = urllib.Request(uri)
+        x = Request(uri)
         if x.get_type() not in ["cobra", "cobrassl"]:
             return False
     except Exception:
@@ -930,7 +925,7 @@ def isCobraUri(uri):
 
 def chopCobraUri(uri):
 
-    req = urllib.Request(uri)
+    req = Request(uri)
     scheme = req.get_type()
     host = req.get_host()
 
