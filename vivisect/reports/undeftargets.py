@@ -3,37 +3,37 @@
 import vivisect
 
 ref_names = {
-    vivisect.REF_CODE:"Code",
-    vivisect.REF_DATA:"Data",
-    vivisect.REF_PTR:"Pointer",
+    vivisect.REF_CODE: "Code",
+    vivisect.REF_DATA: "Data",
+    vivisect.REF_PTR: "Pointer",
 }
 
-columns = ( ("Bytes",str), ("Name", str) )
+columns = (("Bytes", str), ("Name", str))
+
 
 def report(vw):
 
     res = {}
 
     for fromva, tova, reftype, rflags in vw.getXrefs():
-        if vw.getLocation(tova, range=True) == None:
+        if vw.getLocation(tova, range=True) is None:
             rname = ref_names.get(reftype, "Unknown")
             sname = "Unknown"
             seg = vw.getSegment(tova)
-            if seg != None:
+            if seg is not None:
                 sname = seg[vivisect.SEG_NAME]
             try:
                 b = vw.readMemory(tova, 8).encode('hex')
-            except Exception, e:
+            except Exception as e:
                 b = str(e)
-            res[tova] = (b, "%s ref from 0x%x (%s)" % (rname,fromva,sname))
+            res[tova] = (b, "%s ref from 0x%x (%s)" % (rname, fromva, sname))
 
     for va, name in vw.getNames():
-        if vw.getLocation(va) == None:
+        if vw.getLocation(va) is None:
             try:
                 b = vw.readMemory(tova, 8).encode('hex')
-            except Exception, e:
+            except Exception as e:
                 b = str(e)
             res[va] = (b, name)
 
     return res
-

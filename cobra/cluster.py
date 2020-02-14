@@ -289,7 +289,7 @@ class ClusterServer:
         # Used to both validate an inprog workid *and*
         # update it's timestamp for the timeout thread
         work = self.inprog.get(workid, None)
-        if work == None:
+        if work is None:
             raise InvalidInProgWorkId(workid)
         work.touch()
 
@@ -306,8 +306,8 @@ class ClusterServer:
                     if work.isTimedOut():
                         self.timeoutWork(work)
 
-            except Exception, e:
-                print "ClusterTimer: %s" % e
+            except Exception as e:
+                print("ClusterTimer: %s" % e)
 
             time.sleep(2)
 
@@ -324,7 +324,7 @@ class ClusterServer:
                 try:
                     q.proxyAnnounceWork(
                         self.name, self.cobraname, self.cobrad.port)
-                except Exception, e:
+                except Exception as e:
                     print('Queen Error: %s' % e)
 
         else:
@@ -362,17 +362,17 @@ class ClusterServer:
 
     def addWork(self, work):
         """
-        Add a work object to the ClusterServer.  This 
+        Add a work object to the ClusterServer.
         """
         if not isinstance(work, ClusterWork):
             raise Exception("%s is not a ClusterWork extension!")
 
         # If this work has no ID, give it one
-        if work.id == None:
+        if work.id is None:
             work.id = self.widiter.next()
 
         self.qcond.acquire()
-        if self.maxsize != None:
+        if self.maxsize is not None:
             while len(self.queue) >= self.maxsize:
                 self.qcond.wait()
         self.queue.append(work)
@@ -460,7 +460,7 @@ class ClusterServer:
 
         # Remove it from the work queue
         # (if we didn't find in inprog)
-        if cwork == None:
+        if cwork is None:
             self.qcond.acquire()
             qlist = list(self.queue)
             self.queue.clear()
@@ -473,7 +473,7 @@ class ClusterServer:
             self.qcond.notifyAll()
             self.qcond.release()
 
-        if cwork == None:
+        if cwork is None:
             return
 
         if self.callback:
@@ -620,7 +620,7 @@ def workThread(server, work):
     except InvalidInProgWorkId, e:  # the work was canceled
         pass  # Nothing to do, the server already knows
 
-    except Exception, e:
+    except Exception as e:
         # Tell the server that the work unit failed
         work.excinfo = traceback.format_exc()
         traceback.print_exc()
@@ -665,10 +665,10 @@ def getAndDoWork(uri, docode=False):
 
         work = proxy.getWork()
         # If we got work, do it.
-        if work != None:
+        if work is not None:
             runAndWaitWork(proxy, work)
 
-    except Exception, e:
+    except Exception:
         traceback.print_exc()
 
     # Any way it goes we wanna exit now.  Work units may have

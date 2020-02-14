@@ -55,11 +55,12 @@ init_db = '''
 
 # Exanmple database creds...
 default_dbinfo = {
-'user':'visgraph',
-'password':'ohhai!',
-'database':'visgraph',
-# Add host if you want...
+    'user': 'visgraph',
+    'password': 'ohhai!',
+    'database': 'visgraph',
+    # Add host if you want...
 }
+
 
 def initGraphDb(dbinfo):
     db = psycopg2.connect(**dbinfo)
@@ -70,21 +71,24 @@ def initGraphDb(dbinfo):
     db.close()
 
 # Rollback transactions on exception
+
+
 def rollsafe(f):
     def doroll(*args, **kwargs):
         try:
             return f(*args, **kwargs)
-        except Exception, e:
+        except Exception:
             traceback.print_exc()
             try:
                 args[0].db.rollback()
-            except Exception, e:
+            except Exception:
                 pass
             raise
 
     doroll.__doc__ == f.__doc__
     doroll.__name__ == f.__name__
     return doroll
+
 
 class DbGraphStore:
     '''
@@ -96,12 +100,13 @@ class DbGraphStore:
     Use the buildSubGraph() API to pull path serchable graphs out of
     the DBGraphStore.
     '''
+
     def __init__(self, dbinfo=None):
 
-        if dbinfo == False:
+        if dbinfo is False:
             return
 
-        if dbinfo == None:
+        if dbinfo is None:
             dbinfo = default_dbinfo
 
         self.dbinfo = dbinfo
@@ -171,21 +176,21 @@ class DbGraphStore:
         c.close()
         if self.autocommit:
             self.db.commit()
-        return [ r[0] for r in rows ]
+        return [r[0] for r in rows]
 
     def _doCommit(self):
         self.db.commit()
 
     def addNode(self, nodeid=None, ninfo=None, **kwargs):
-        if nodeid != None:
+        if nodeid is not None:
             raise Exception('DbGraphStore Manages nodeid!')
         q = 'INSERT INTO vg_nodes DEFAULT VALUES RETURNING nid'
         nid = self._doInsertRetId(q)
 
-        if ninfo != None:
+        if ninfo is not None:
             kwargs.update(ninfo)
 
-        for key,val in kwargs.items():
+        for key, val in kwargs.items():
             self.setNodeProp(nid, key, val)
 
         return nid
@@ -226,7 +231,7 @@ class DbGraphStore:
             vg_edge_props
         USING
             vg_edges
-        WHERE 
+        WHERE
             vg_edges.n1 = %s
           AND
             vg_edges.eid = vg_edge_props.eid
@@ -238,7 +243,7 @@ class DbGraphStore:
             vg_edge_props
         USING
             vg_edges
-        WHERE 
+        WHERE
             vg_edges.n2 = %s
           AND
             vg_edges.eid = vg_edge_props.eid
@@ -283,7 +288,7 @@ class DbGraphStore:
         if isinstance(value, bool):
             value = int(value)
 
-        if isinstance(value, int) or isinstance(value, long):
+        if isinstance(value, int):
             q = 'UPDATE vg_node_props SET intval=%s,created=NOW() WHERE nid=%s and pname=%s RETURNING nid'
             q1 = 'INSERT INTO vg_node_props (nid, pname, intval) VALUES (%s,%s,%s)'
         else:
@@ -303,7 +308,7 @@ class DbGraphStore:
         if len(res) == 0:
             return default
         intval, strval = res[0]
-        if intval != None:
+        if intval is not None:
             return intval
         return strval
 
@@ -314,8 +319,8 @@ class DbGraphStore:
     def getNodeProps(self, nid):
         ret = {}
         q = 'SELECT pname,intval,strval FROM vg_node_props WHERE nid=%s'
-        for pname,intval,strval in self._doSelect(q, nid):
-            if intval != None:
+        for pname, intval, strval in self._doSelect(q, nid):
+            if intval is not None:
                 ret[pname] = intval
             else:
                 ret[pname] = strval
@@ -323,25 +328,25 @@ class DbGraphStore:
 
     def getNodesProps(self, nids):
         ret = collections.defaultdict(dict)
-        q = 'SELECT nid,pname,intval,strval FROM vg_node_props WHERE nid IN %s' 
-        for nid,pname,intval,strval in self._doSelect(q, tuple(nids)):
-            if intval != None:
+        q = 'SELECT nid,pname,intval,strval FROM vg_node_props WHERE nid IN %s'
+        for nid, pname, intval, strval in self._doSelect(q, tuple(nids)):
+            if intval is not None:
                 ret[nid][pname] = intval
             else:
                 ret[nid][pname] = strval
         return ret.items()
 
     def addEdge(self, fromid, toid, eid=None, einfo=None):
-        if eid != None:
+        if eid is not None:
             raise Exception('DbGraphStore Manages eid!')
-        if fromid == None:
+        if fromid is None:
             raise Exception('Invalid from id (None)!')
-        if toid == None:
+        if toid is None:
             raise Exception('Invalid to id (None)!')
         q = 'INSERT INTO vg_edges (n1, n2) VALUES (%s, %s) RETURNING eid'
         eid = self._doInsertRetId(q, fromid, toid)
-        if einfo != None:
-            for key,val in einfo.items():
+        if einfo is not None:
+            for key, val in einfo.items():
                 self.setEdgeProp(eid, key, val)
         return eid
 
@@ -364,13 +369,13 @@ class DbGraphStore:
         '''
         refs = {}
         res = self._doSelect(q, nodeid)
-        for eid,n1,n2,created,eid1,pname,intval,strval,created1 in res:
+        for eid, n1, n2, created, eid1, pname, intval, strval, created1 in res:
             r = refs.get(eid)
-            if r == None:
+            if r is None:
                 r = (eid, n1, n2, {})
                 refs[eid] = r
 
-            if intval != None:
+            if intval is not None:
                 r[3][pname] = intval
             else:
                 r[3][pname] = strval
@@ -396,19 +401,19 @@ class DbGraphStore:
         '''
         refs = {}
         res = self._doSelect(q, nodeid)
-        for eid,n1,n2,created,eid1,pname,intval,strval,created1 in res:
+        for eid, n1, n2, created, eid1, pname, intval, strval, created1 in res:
             r = refs.get(eid)
-            if r == None:
+            if r is None:
                 r = (eid, n1, n2, {})
                 refs[eid] = r
 
-            if intval != None:
+            if intval is not None:
                 r[3][pname] = intval
             else:
                 r[3][pname] = strval
 
         return refs.values()
-    
+
     def getRefsFromBulk(self, nids):
         '''
         Return a list of edges which originate with us.
@@ -430,16 +435,16 @@ class DbGraphStore:
         if not nids:
             return []
         refs = {}
-        qend = ','.join( ['%s',] * len(nids))
+        qend = ','.join(['%s', ] * len(nids))
         q = q % qend
         res = self._doSelect(q, *nids)
         for eid, n1, n2, pname, intval, strval in res:
             r = refs.get(eid)
-            if r == None:
+            if r is None:
                 r = (eid, n1, n2, {})
                 refs[eid] = r
 
-            if intval != None:
+            if intval is not None:
                 r[3][pname] = intval
             else:
                 r[3][pname] = strval
@@ -448,7 +453,7 @@ class DbGraphStore:
 
     def getRefsToBulk(self, nids):
         '''
-        Return a list of edges which we reference. 
+        Return a list of edges which we reference.
         Supply a list of edges to gets refs.
 
         Example: for eid, fromid, toid, einfo in g.getRefsToBulk(nids)
@@ -467,16 +472,16 @@ class DbGraphStore:
         if not nids:
             return []
         refs = {}
-        qend = ','.join( ['%s',] * len(nids))
+        qend = ','.join(['%s', ] * len(nids))
         q = q % qend
         res = self._doSelect(q, *nids)
         for eid, n1, n2, pname, intval, strval in res:
             r = refs.get(eid)
-            if r == None:
+            if r is None:
                 r = (eid, n1, n2, {})
                 refs[eid] = r
 
-            if intval != None:
+            if intval is not None:
                 r[3][pname] = intval
             else:
                 r[3][pname] = strval
@@ -488,7 +493,7 @@ class DbGraphStore:
         if isinstance(value, bool):
             value = int(value)
 
-        if isinstance(value, int) or isinstance(value, long):
+        if isinstance(value, int):
             q = 'UPDATE vg_edge_props SET intval=%s WHERE eid=%s and pname=%s RETURNING eid'
             q1 = 'INSERT INTO vg_edge_props (eid, pname, intval) VALUES (%s,%s,%s)'
         else:
@@ -505,7 +510,7 @@ class DbGraphStore:
         if len(res) == 0:
             return default
         intval, strval = res[0]
-        if intval != None:
+        if intval is not None:
             return intval
         return strval
 
@@ -514,11 +519,11 @@ class DbGraphStore:
         Get the edge tuple ( eid, n1, n2, nprops ) for the given edge by id.
         '''
         q = 'SELECT eid,n1,n2 FROM vg_edges WHERE eid=%s'
-        res = self._doSelect( q, eid )
+        res = self._doSelect(q, eid)
         if not res:
             raise Exception('Invalid Edge Id: %s' % eid)
-        e,n1,n2 = res[0]
-        return (eid, n1, n2, self.getEdgeProps( eid ) )
+        e, n1, n2 = res[0]
+        return (eid, n1, n2, self.getEdgeProps(eid))
 
     def getEdgeProps(self, eid):
         '''
@@ -526,8 +531,8 @@ class DbGraphStore:
         '''
         ret = {}
         q = 'SELECT pname,intval,strval FROM vg_edge_props WHERE eid=%s'
-        for pname,intval,strval in self._doSelect(q, eid):
-            if intval != None:
+        for pname, intval, strval in self._doSelect(q, eid):
+            if intval is not None:
                 ret[pname] = intval
             else:
                 ret[pname] = strval
@@ -541,10 +546,10 @@ class DbGraphStore:
         Example:
             for nid in g.searchNodes('woot', 10)
                 print g.getNodeProp(nid, 'name')
-            
+
         NOTE: This is specific to the DbGraphStore...
         '''
-        if propval == None:
+        if propval is None:
             q = 'SELECT nid FROM vg_node_props WHERE pname=%s'
             c = self.db.cursor()
             c.execute(q, (propname,))
@@ -558,6 +563,7 @@ class DbGraphStore:
         do path searching.
         '''
         return DbSubGraph(self.dbinfo)
+
 
 class DbSubGraph(DbGraphStore, vg_graphcore.Graph):
 
@@ -591,21 +597,20 @@ class DbSubGraph(DbGraphStore, vg_graphcore.Graph):
         visgraph.graphcore.Graph instance so path traversal is possible.
         '''
         done = {}
-        for key,val in kwargs.items():
-            if type(val) in (int,long):
+        for key, val in kwargs.items():
+            if isinstance(val, int):
                 # FIXME is vg_edges.eid faster or vg_edge_props?
                 q = 'SELECT vg_edges.eid,n1,n2 FROM vg_edge_props,vg_edges WHERE pname=%s AND intval=%s AND vg_edges.eid=vg_edge_props.eid'
             else:
                 q = 'SELECT vg_edges.eid,n1,n2 FROM vg_edge_props,vg_edges WHERE pname=%s AND strval=%s AND vg_edges.eid=vg_edge_props.eid'
-            for eid,n1,n2 in self._doSelect(q, key, val):
-                print 'using: %d (%d->%d)' % (eid, n1, n2)
+            for eid, n1, n2 in self._doSelect(q, key, val):
                 done[eid] = (eid, n1, n2)
 
         # FIXME add the nodes for these edges
         for eid, n1, n2 in done.values():
-            if vg_graphcore.Graph.getNode(self, n1) == None:
+            if vg_graphcore.Graph.getNode(self, n1) is None:
                 vg_graphcore.Graph.addNode(self, nodeid=n1)
-            if vg_graphcore.Graph.getNode(self, n2) == None:
+            if vg_graphcore.Graph.getNode(self, n2) is None:
                 vg_graphcore.Graph.addNode(self, nodeid=n2)
             vg_graphcore.Graph.addEdge(self, n1, n2, eid=eid)
 
@@ -614,14 +619,12 @@ class DbSubGraph(DbGraphStore, vg_graphcore.Graph):
         Add *all* the edges (and adjacent nodes) by traversing this nodes
         edges to the specified depth...
         '''
-        todo = [(nid, 0),]
-        print 'INITIAL EXPAND',nid
-        if vg_graphcore.Graph.getNode(self, nid) == None:
-            print 'EXPANDING',nid
+        todo = [(nid, 0), ]
+        if vg_graphcore.Graph.getNode(self, nid) is None:
             vg_graphcore.Graph.addNode(self, nodeid=nid)
 
         while len(todo):
-            nid,depth = todo.pop()
+            nid, depth = todo.pop()
 
             if depth > maxdepth:
                 continue
@@ -629,10 +632,9 @@ class DbSubGraph(DbGraphStore, vg_graphcore.Graph):
             # Do expansion based on the *database*
             q = 'SELECT eid,n2 FROM vg_edges WHERE n1=%s'
             for eid, n2 in self._doSelect(q, nid):
-                if vg_graphcore.Graph.getNode(self, n2) == None:
-                    print 'EXPANDING',n2
+                if vg_graphcore.Graph.getNode(self, n2) is None:
                     vg_graphcore.Graph.addNode(self, nodeid=n2)
-                if vg_graphcore.Graph.getEdge(self, eid) == None:
+                if vg_graphcore.Graph.getEdge(self, eid) is None:
                     vg_graphcore.Graph.addEdge(self, nid, n2, eid=eid)
                 ndepth = depth+1
                 if ndepth < maxdepth:
@@ -640,4 +642,3 @@ class DbSubGraph(DbGraphStore, vg_graphcore.Graph):
 
     # pullNode?
     # expandNode?
-

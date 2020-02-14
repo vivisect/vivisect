@@ -80,8 +80,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         self.psize = None  # Used so much, optimization is appropriate
 
         cfgpath = os.path.join(self.vivhome, 'viv.json')
-        self.config = e_config.EnviConfig(
-            filename=cfgpath, defaults=defconfig, docs=docconfig)
+        self.config = e_config.EnviConfig(filename=cfgpath, defaults=defconfig, docs=docconfig)
 
         # Ideally, *none* of these are modified except by _handleFOO funcs...
         self.segments = []
@@ -2405,7 +2404,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         ok = string.letters + string.digits + '_'
 
         chars = list(normname)
-        for i in xrange(len(chars)):
+        for i in range(len(chars)):
             if chars[i] not in ok:
                 chars[i] = '_'
 

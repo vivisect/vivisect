@@ -1,21 +1,21 @@
+import io
 import os
-import PE
+import hashlib
 import logging
 import vstruct
-import vivisect
+
+import PE
 import PE.carve as pe_carve
-import cStringIO as StringIO
+
+import vivisect.const as v_const
 import vivisect.parsers as v_parsers
 
 # Steal symbol parsing from vtrace
-import vtrace
 import vtrace.platforms.win32 as vt_win32
 
-import envi
 import envi.memory as e_mem
 import envi.symstore.symcache as e_symcache
 
-from vivisect.const import *
 
 logger = logging.getLogger(__name__)
 
@@ -28,15 +28,16 @@ logger = logging.getLogger(__name__)
 
 
 def parseFile(vw, filename, baseaddr=None):
-    pe = PE.PE(file(filename, "rb"))
-    return loadPeIntoWorkspace(vw, pe, filename, baseaddr=baseaddr)
+    with open(filename, 'rb') as f:
+        pe = PE.peFromBytes(f.read())
+        return loadPeIntoWorkspace(vw, pe, filename, baseaddr=baseaddr)
 
 
 def parseBytes(vw, bytes, baseaddr=None):
-    fd = StringIO.StringIO(bytes)
+    fd = io.BytesIO(bytes)
     fd.seek(0)
     pe = PE.PE(fd)
-    return loadPeIntoWorkspace(vw, pe, filename=filename, baseaddr=baseaddr)
+    return loadPeIntoWorkspace(vw, pe, baseaddr=baseaddr)
 
 
 def parseMemory(vw, memobj, base):
@@ -65,8 +66,8 @@ defcalls = {
 
 # map PE relocation types to vivisect types where possible
 relmap = {
-    PE.IMAGE_REL_BASED_HIGHLOW: vivisect.RTYPE_BASEOFF,
-    PE.IMAGE_REL_BASED_DIR64: vivisect.RTYPE_BASEOFF,
+    PE.IMAGE_REL_BASED_HIGHLOW: v_const.RTYPE_BASEOFF,
+    PE.IMAGE_REL_BASED_DIR64: v_const.RTYPE_BASEOFF,
 }
 
 
@@ -107,15 +108,25 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
 
     # This will help linkers with files that are re-named
     dllname = pe.getDllName()
-    if dllname != None:
+    if dllname is not None:
         fvivname = dllname
 
     if fvivname is None:
         fvivname = "pe_%.8x" % baseaddr
 
     fhash = "unknown hash"
-    if os.path.exists(filename):
-        fhash = v_parsers.md5File(filename)
+    if filename is not None:
+        if os.path.exists(filename):
+            fhash = v_parsers.sha256File(filename)
+    else:
+        off = 0
+        bytez = pe.readAtOffset(off, 4096, shortok=True)
+        hobj = hashlib.sha256()
+        while len(bytez):
+            hobj.update(bytez)
+            off += len(bytez)
+            bytez = pe.readAtOffset(off, 4096, shortok=True)
+        fname = hobj.hexdigest()
 
     fname = vw.addFile(fvivname.lower(), baseaddr, fhash)
 
@@ -127,7 +138,8 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
         vs = pe.getVS_VERSIONINFO()
     except Exception as e:
         vs = None
-        vw.vprint('Failed to load version info resource due to %s' % (repr(e),))
+        vw.vprint('Failed to load version info resource due to %s' %
+                  (repr(e),))
     if vs is not None:
         vsver = vs.getVersionValue('FileVersion')
         if vsver is not None and len(vsver):
@@ -138,27 +150,32 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
                 vw.setFileMeta(fname, 'Version', vsver)
 
     # Setup some va sets used by windows analysis modules
-    vw.addVaSet("Library Loads", (("Address", VASET_ADDRESS), ("Library", VASET_STRING)))
-    vw.addVaSet('pe:ordinals', (('Address', VASET_ADDRESS), ('Ordinal', VASET_INTEGER)))
+    vw.addVaSet("Library Loads", (("Address", v_const.VASET_ADDRESS),
+                                  ("Library", v_const.VASET_STRING)))
+    vw.addVaSet('pe:ordinals', (('Address', v_const.VASET_ADDRESS),
+                                ('Ordinal', v_const.VASET_INTEGER)))
 
     # SizeOfHeaders spoofable...
     curr_offset = pe.IMAGE_DOS_HEADER.e_lfanew + len(pe.IMAGE_NT_HEADERS)
 
     secsize = len(vstruct.getStructure("pe.IMAGE_SECTION_HEADER"))
 
-    sec_offset = pe.IMAGE_DOS_HEADER.e_lfanew + 4 + len(pe.IMAGE_NT_HEADERS.FileHeader) + pe.IMAGE_NT_HEADERS.FileHeader.SizeOfOptionalHeader 
+    sec_offset = pe.IMAGE_DOS_HEADER.e_lfanew + 4 + \
+        len(pe.IMAGE_NT_HEADERS.FileHeader) + \
+        pe.IMAGE_NT_HEADERS.FileHeader.SizeOfOptionalHeader
 
     if sec_offset != curr_offset:
         header_size = sec_offset + pe.IMAGE_NT_HEADERS.FileHeader.NumberOfSections * secsize
     else:
-        header_size = pe.IMAGE_DOS_HEADER.e_lfanew + len(pe.IMAGE_NT_HEADERS) + pe.IMAGE_NT_HEADERS.FileHeader.NumberOfSections * secsize
+        header_size = pe.IMAGE_DOS_HEADER.e_lfanew + \
+            len(pe.IMAGE_NT_HEADERS) + \
+            pe.IMAGE_NT_HEADERS.FileHeader.NumberOfSections * secsize
 
     # Add the first page mapped in from the PE header.
     header = pe.readAtOffset(0, header_size)
 
     secalign = pe.IMAGE_NT_HEADERS.OptionalHeader.SectionAlignment
     subsys_majver = pe.IMAGE_NT_HEADERS.OptionalHeader.MajorSubsystemVersion
-    subsys_minver = pe.IMAGE_NT_HEADERS.OptionalHeader.MinorSubsystemVersion
 
     secrem = len(header) % secalign
     if secrem != 0:
@@ -173,7 +190,7 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
         raise Exception("We only support PE exe's")
 
     if not vw.isLocation(baseaddr + magicaddr):
-        padloc = vw.makePad(baseaddr + magicaddr, 4)
+        vw.makePad(baseaddr + magicaddr, 4)
 
     ifhdr_va = baseaddr + magicaddr + 4
     ifstruct = vw.makeStructure(ifhdr_va, "pe.IMAGE_FILE_HEADER")
@@ -270,7 +287,7 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
             if sec.VirtualAddress in deadvas:
                 vw.markDeadData(secbase, secbase+len(secbytes))
 
-            #FIXME create a mask for this
+            # FIXME create a mask for this
             if not (chars & PE.IMAGE_SCN_CNT_CODE) and not (chars & PE.IMAGE_SCN_MEM_EXECUTE) and not (chars & PE.IMAGE_SCN_MEM_WRITE):
                 vw.markDeadData(secbase, secbase+len(secbytes))
             continue
@@ -283,7 +300,8 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
         plen = sec.VirtualSize - sec.SizeOfRawData
 
         try:
-            # According to http://code.google.com/p/corkami/wiki/PE#section_table if SizeOfRawData is larger than VirtualSize, VS is used..
+            # According to http://code.google.com/p/corkami/wiki/PE#section_table
+            # if SizeOfRawData is larger than VirtualSize, VS is used..
             readsize = sec.SizeOfRawData if sec.SizeOfRawData < sec.VirtualSize else sec.VirtualSize
 
             secoff = pe.rvaToOffset(secrva)
@@ -296,18 +314,19 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
             if sec.VirtualAddress in deadvas:
                 vw.markDeadData(secbase, secbase+len(secbytes))
 
-            #FIXME create a mask for this
+            # FIXME create a mask for this
             if not (chars & PE.IMAGE_SCN_CNT_CODE) and not (chars & PE.IMAGE_SCN_MEM_EXECUTE) and not (chars & PE.IMAGE_SCN_MEM_WRITE):
                 vw.markDeadData(secbase, secbase+len(secbytes))
 
         except Exception as e:
-            print("Error Loading Section (%s size:%d rva:%.8x offset: %d): %s" % (secname,secfsize,secrva,secoff,e))
+            print("Error Loading Section (%s size:%d rva:%.8x offset: %d): %s" % (secname, secfsize, secrva, secoff, e))
 
-    vw.addExport(entry, EXP_FUNCTION, '__entry', fname)
+    vw.addExport(entry, v_const.EXP_FUNCTION, '__entry', fname)
     vw.addEntryPoint(entry)
 
     # store the actual reloc section virtual address
-    reloc_va = pe.getDataDirectory(PE.IMAGE_DIRECTORY_ENTRY_BASERELOC).VirtualAddress
+    reloc_va = pe.getDataDirectory(
+        PE.IMAGE_DIRECTORY_ENTRY_BASERELOC).VirtualAddress
     if reloc_va:
         reloc_va += baseaddr
     vw.setFileMeta(fname, "reloc_va", reloc_va)
@@ -317,7 +336,8 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
         # map PE reloc to VIV reloc ( or dont... )
         vtype = relmap.get(rtype)
         if vtype is None:
-            logger.info('Skipping PE Relocation type: %d at %d (no handler)', rtype, rva)
+            logger.info(
+                'Skipping PE Relocation type: %d at %d (no handler)', rtype, rva)
             continue
 
         mapoffset = vw.readMemoryPtr(rva + baseaddr) - baseaddr
@@ -341,7 +361,7 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
         eva = rva + baseaddr
         try:
             vw.setVaSetRow('pe:ordinals', (eva, ord))
-            vw.addExport(eva, EXP_UNTYPED, name, fname)
+            vw.addExport(eva, v_const.EXP_UNTYPED, name, fname)
             if vw.probeMemory(eva, 1, e_mem.MM_EXEC):
                 vw.addEntryPoint(eva)
         except Exception as e:
@@ -358,7 +378,7 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
     vw.setFileMeta(fname, 'forwarders', fwds)
 
     # Check For SafeSEH list...
-    if pe.IMAGE_LOAD_CONFIG != None:
+    if pe.IMAGE_LOAD_CONFIG is not None:
 
         vw.setFileMeta(fname, "SafeSEH", True)
 
@@ -368,16 +388,16 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
             count = pe.IMAGE_LOAD_CONFIG.SEHandlerCount
             # RP BUG FIX - sanity check the count
             if count * 4 < pe.filesize and vw.isValidPointer(va):
-                # XXX - CHEAP HACK for some reason we have binaries still thorwing issues.. 
-                
+                # XXX - CHEAP HACK for some reason we have binaries still thorwing issues..
+
                 try:
                     # Just cheat and use the workspace with memory maps in it already
                     for h in vw.readMemoryFormat(va, "<%dP" % count):
                         sehva = baseaddr + h
                         vw.addEntryPoint(sehva)
-                        #vw.hintFunction(sehva, meta={'SafeSEH':True})
-                except:
-                    vw.vprint("SEHandlerTable parse error")
+                        # vw.hintFunction(sehva, meta={'SafeSEH':True})
+                except Exception as e:
+                    vw.vprint("SEHandlerTable parse error: %s" % str(e))
 
     # Last but not least, see if we have symbol support and use it if we do
     if vt_win32.dbghelp:
@@ -399,7 +419,7 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
                 if vw.getName(symva) is None:
                     vw.makeName(symva, symname, filelocal=True)
 
-            except Exception, e:
+            except Exception as e:
                 vw.vprint("Symbol Load Error: %s" % e)
 
         # Also, lets set the locals/args name hints if we found any
@@ -419,12 +439,12 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
             fva = f.BeginAddress + baseaddr
             uiva = baseaddr + f.UnwindInfoAddress
             # Possible method 1...
-            #uiva = baseaddr + (f.UnwindInfoAddress & 0xfffffffc )
+            # uiva = baseaddr + (f.UnwindInfoAddress & 0xfffffffc )
 
             # Possible method 2...
-            #uirem = f.UnwindInfoAddress % 4
-            #if uirem:
-                #uiva += ( 4 - uirem )
+            # uirem = f.UnwindInfoAddress % 4
+            # if uirem:
+            # uiva += ( 4 - uirem )
             uinfo = vw.getStructure(uiva, 'pe.UNWIND_INFO')
             ver = uinfo.VerFlags & 0x7
             if ver != 1:
@@ -439,7 +459,7 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
             va += len(f)
 
     # auto-mark embedded PEs as "dead data" to prevent code flow...
-    if carvepes: 
+    if carvepes:
         pe.fd.seek(0)
         fbytes = pe.fd.read()
         for offset, i in pe_carve.carve(fbytes, 1):

@@ -2,20 +2,23 @@ import os
 
 import vivisect.parsers as viv_parsers
 import vstruct.defs.macho as vs_macho
-import vivisect.analysis.i386 as viv_a_i386
+
 
 def parseFile(vw, filename, baseaddr=None):
-    fbytes = file(filename, 'rb').read()
-    return _loadMacho(vw, fbytes, filename=filename, baseaddr=baseaddr)
+    with open(filename, 'rb') as f:
+        return _loadMacho(vw, f.read(), filename=filename, baseaddr=baseaddr)
+
 
 def parseBytes(vw, filebytes, baseaddr=None):
     return _loadMacho(vw, filebytes, baseaddr=baseaddr)
 
+
 archcalls = {
-    'i386':'cdecl',
-    'amd64':'sysvamd64call',
-    'arm':'armcall',
+    'i386': 'cdecl',
+    'amd64': 'sysvamd64call',
+    'arm': 'armcall',
 }
+
 
 def _loadMacho(vw, filebytes, filename=None, baseaddr=None):
 
@@ -24,7 +27,7 @@ def _loadMacho(vw, filebytes, filename=None, baseaddr=None):
         baseaddr = vw.config.viv.parsers.macho.baseaddr
 
     if filename is None:
-        filename = 'macho_%.8x' % baseaddr # FIXME more than one!
+        filename = 'macho_%.8x' % baseaddr  # FIXME more than one!
 
     # Check for the FAT binary magic...
     if filebytes[:4].encode('hex') in ('cafebabe', 'bebafeca'):
@@ -37,21 +40,22 @@ def _loadMacho(vw, filebytes, filename=None, baseaddr=None):
         offset = 0
         fat = vs_macho.fat_header()
         offset = fat.vsParse(filebytes, offset=offset)
-        for i in xrange(fat.nfat_arch):
+        for i in range(fat.nfat_arch):
             ar = vs_macho.fat_arch()
             offset = ar.vsParse(filebytes, offset=offset)
             archname = vs_macho.mach_cpu_names.get(ar.cputype)
             if archname == fatarch:
                 archhdr = ar
                 break
-            archlist.append((archname,ar))
+            archlist.append((archname, ar))
 
         if not archhdr:
             # If we don't have a specified arch, exception!
             vw.vprint('Mach-O Fat Binary Architectures:')
             for archname, ar in archlist:
                 vw.vprint('0x%.8x 0x%.8x %s' % (ar.offset, ar.size, archname))
-            raise Exception('Mach-O Fat Binary: Please specify arch with -O viv.parsers.macho.fatarch="<archname>"')
+            raise Exception(
+                'Mach-O Fat Binary: Please specify arch with -O viv.parsers.macho.fatarch="<archname>"')
 
         filebytes = filebytes[archhdr.offset:archhdr.offset+archhdr.size]
 
@@ -61,14 +65,15 @@ def _loadMacho(vw, filebytes, filename=None, baseaddr=None):
 
     arch = vs_macho.mach_cpu_names.get(macho.mach_header.cputype)
     if arch is None:
-        raise Exception('Unknown MACH-O arch: %.8x' % macho.mach_header.cputype)
+        raise Exception('Unknown MACH-O arch: %.8x' %
+                        macho.mach_header.cputype)
 
     # Setup arch/plat/fmt
     vw.setMeta('Architecture', arch)
     vw.setMeta("Platform", "Darwin")
     vw.setMeta("Format", "macho")
 
-    vw.setMeta('DefaultCall', archcalls.get(arch,'unknown'))
+    vw.setMeta('DefaultCall', archcalls.get(arch, 'unknown'))
 
     # Add the file entry
     hash = "unknown hash"
@@ -92,6 +97,6 @@ def _loadMacho(vw, filebytes, filename=None, baseaddr=None):
 
     return fname
 
-def parseMemory(vw, memobj, baseaddr):
-    pass
 
+def parseMemory(vw, memobj, baseaddr):
+    raise NotImplementedError("Implement MACH-O parseMemory!")

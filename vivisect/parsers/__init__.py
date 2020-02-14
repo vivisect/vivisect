@@ -17,13 +17,26 @@ import hashlib
 import vstruct.defs.macho as vs_macho
 
 
-def md5File(filename, size=4096):
-    d = hashlib.md5()
-    with open(filename, 'rb') as fd:
-        bytez = fd.read(size)
+def _hashFile(filename, size, hobj):
+    with open(filename, 'rb') as f:
+        bytez = f.read(size)
         while len(bytez):
-            d.update(bytez)
-            bytez = fd.read(size)
+            hobj.update(bytez)
+            bytez = f.read(size)
+    return hobj.hexdigest()
+
+
+def sha256file(filename, size=4096):
+    return _hashFile(filename, size, hashlib.sha256())
+
+
+def md5File(filename, size=4096):
+    return _hashFile(filename, size, hashlib.md5())
+
+
+def sha256Bytes(bytez):
+    d = hashlib.sha256()
+    d.update(bytez)
     return d.hexdigest()
 
 
