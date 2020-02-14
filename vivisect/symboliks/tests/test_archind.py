@@ -44,5 +44,5 @@ class TestArchind(unittest.TestCase):
         func3 = vsc.Call(vsc.Const(0x41ac93, 4), 4, argsyms=[vsc.Const(0, 4), vsc.Var('ecx', 4)])
         wiped = vsym_archind.wipeAstArch(symctx, [func1 + func2, func3], wipeva=True)
         self.assertEquals(2, len(wiped))
-        self.assertEquals('(0archindva(0indreg) + 1archindva(0,1,0archindva))', str(wiped[0]))
-        self.assertEquals('2archindva(0,1indreg)', str(wiped[1]))
+        self.assertEquals('(2archindva(1indreg) + 1archindva(0,1,2archindva))', str(wiped[0]))
+        self.assertEquals('0archindva(0,0indreg)', str(wiped[1]))

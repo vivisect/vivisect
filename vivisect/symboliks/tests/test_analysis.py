@@ -98,3 +98,18 @@ class WalkTreeTest(unittest.TestCase):
         add.walkTree(walkerTest)
         self.assertEqual(traveled_ids, ids)
         self.assertEqual('((mem[piva_global(0xbfbfee08):1] | (mem[(arg0 + 72):4] & 0xffffff00)) + piva_global())', str(add))
+
+    def test_cleanwalk(self):
+        '''
+        test that we don't accidentally populate the solver cache while walking the tree
+        '''
+        symstr = "o_add(o_xor(o_sub(Var('eax', 4), Const(98, 4), 4), Const(127, 4), 4), Const(4, 4), 4)"
+        symobj = vsc.evalSymbolik(symstr)
+        objs = []
+        def walker(path, symobj, ctx):
+            objs.append(symobj)
+        symobj.walkTree(walker)
+
+        self.assertEquals(len(objs), 7)
+        for obj in objs:
+            self.assertEquals(obj.cache, {})
