@@ -4,6 +4,7 @@ import subprocess
 
 import vtrace
 
+
 def waitForTest():
     sys.stdout.write('testwait\n')
     sys.stdout.flush()
@@ -12,19 +13,22 @@ def waitForTest():
         if line == 'testmod':
             break
 
+
 def safeReadline():
     while True:
-        try: # Crazy loop for freebsd readline failure
+        try:  # Crazy loop for freebsd readline failure
             r = sys.stdin.readline()
             break
-        except IOError,e:
+        except IOError as e:
             if e.errno == errno.EINTR:
                 continue
             raise
     return r
 
+
 class SkipTest(Exception):
     pass
+
 
 class TestModule:
 
@@ -42,6 +46,7 @@ class TestModule:
 
     def cleanTest(self):
         pass
+
 
 class VtracePythonTest(TestModule):
     '''
@@ -65,18 +70,22 @@ class VtracePythonTest(TestModule):
             self.trace.kill()
         self.trace.release()
 
+
 class VtracePythonProcTest(TestModule):
     modname = 'FIXME'
+
     def __init__(self):
         TestModule.__init__(self)
         self.proc = None
         self.trace = None
 
     def prepTest(self):
-        self.proc = subprocess.Popen([ sys.executable, '-m', self.modname ], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+        self.proc = subprocess.Popen([sys.executable, '-m', self.modname],
+                                     stdin=subprocess.PIPE,
+                                     stdout=subprocess.PIPE)
         assert(self.proc.stdout.readline().strip() == 'testwait')
         self.trace = vtrace.getTrace()
-        self.trace.attach( self.proc.pid )
+        self.trace.attach(self.proc.pid)
 
     def runProcess(self):
         self.proc.stdin.write('testmod\n')
@@ -85,4 +94,3 @@ class VtracePythonProcTest(TestModule):
     def cleanTest(self):
         self.proc.wait()
         self.trace.release()
-

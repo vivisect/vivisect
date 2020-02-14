@@ -7,8 +7,7 @@ import time
 import logging
 import collections
 
-import vivisect
-import vivisect.tools.graphutil as v_t_graphutil
+import vivisect.const as v_const
 
 import visgraph.pathcore as vg_pathcore
 import visgraph.graphcore as vg_graphcore
@@ -18,6 +17,10 @@ import envi.const as e_const
 xrskip = e_const.BR_PROC | e_const.BR_DEREF
 
 logger = logging.getLogger(__name__)
+
+
+def cmpr(x, y):
+    return (x > y) - (x < y)
 
 
 def getNodeWeightHisto(g):
@@ -35,7 +38,7 @@ def getNodeWeightHisto(g):
     weights_to_cb = collections.defaultdict(list)
 
     # create default dict
-    for cb, weight in sorted(nodeweights.items(), lambda x, y: cmp(y[1], x[1])):
+    for cb, weight in sorted(nodeweights.items(), lambda x, y: cmpr(y[1], x[1])):
         if not len(g.getRefsFromByNid(cb)):
             # leaves is a tuple of (cb, current path, visited nodes)
             # these are our leaf nodes
@@ -414,10 +417,9 @@ def getLoopPaths(fgraph):
             node, cpath, loopcnt = todo.pop()
 
             count = 0
-            free = []
             if loopcnt == 1:
-                yield [_nodeedge(n) for n in vg_pathcore.getPathToNode(npath)]
-
+                # TODO(rakuyo): It's late. Test this tomorrow
+                yield [_nodeedge(n) for n in vg_pathcore.getPathToNode(cpath)]
             else:
                 for eid, fromid, toid, einfo in fgraph.getRefsFromByNid(node):
 
@@ -426,8 +428,7 @@ def getLoopPaths(fgraph):
                         continue
 
                     count += 1
-                    npath = vg_pathcore.newPathNode(
-                        parent=cpath, nid=toid, eid=eid)
+                    npath = vg_pathcore.newPathNode(parent=cpath, nid=toid, eid=eid)
                     todo.append((toid, npath, loopcnt))
 
             if not count:
@@ -457,7 +458,7 @@ def buildFunctionGraph(vw, fva, revloop=False, g=None):
     Build a visgraph HierGraph for the specified function.
     '''
 
-    if g == None:
+    if g is None:
         g = vg_graphcore.HierGraph()
         g.setMeta('fva', fva)
 
@@ -489,13 +490,12 @@ def buildFunctionGraph(vw, fva, revloop=False, g=None):
         # Grab the location for the last instruction in the block
         nextva = cbva + cbsize - 1
         loc = vw.getLocation(nextva)
-        if loc == None:
-            raise Exception(
-                "buildFunctionGraph: Attempt to get location at 0x%x" % nextva)
+        if loc is None:
+            raise Exception("buildFunctionGraph: Attempt to get location at 0x%x" % nextva)
 
         lva, lsize, ltype, linfo = loc
 
-        for xrfrom, xrto, xrtype, xrflags in vw.getXrefsFrom(lva, vivisect.REF_CODE):
+        for xrfrom, xrto, xrtype, xrflags in vw.getXrefsFrom(lva, v_const.REF_CODE):
 
             # For now, the graph doesn't cross function boundaries
             # or indirects.
@@ -505,16 +505,14 @@ def buildFunctionGraph(vw, fva, revloop=False, g=None):
             if not g.hasNode(xrto):
                 cblock = vw.getCodeBlock(xrto)
                 if cblock is None:
-                    logger.warning(
-                        'CB == None in graph building?!?! (0x%x)' % xrto)
+                    logger.warning('CB == None in graph building?!?! (0x%x)' % xrto)
                     logger.warning('(fva: 0x%.8x cbva: 0x%.8x)' % (fva, xrto))
                     continue
 
                 tova, tosize, tofunc = cblock
                 if tova != xrto:
                     logger.warning('CBVA != XREFTO in graph building!?')
-                    logger.warning('(cbva: 0x%.8x xrto: 0x%.8x)' %
-                                   (tova, xrto))
+                    logger.warning('(cbva: 0x%.8x xrto: 0x%.8x)' % (tova, xrto))
                     continue
 
                 # Since we haven't seen this node, lets add it to todo
@@ -529,7 +527,7 @@ def buildFunctionGraph(vw, fva, revloop=False, g=None):
             else:
                 g.addEdgeByNids(cbva, xrto)
 
-        if ltype == vivisect.LOC_OP and linfo & envi.IF_NOFALL:
+        if ltype == v_const.LOC_OP and linfo & e_const.IF_NOFALL:
             continue
 
         # If this codeblock can fall through into another, add it to
@@ -537,7 +535,7 @@ def buildFunctionGraph(vw, fva, revloop=False, g=None):
         fallva = lva + lsize
         if not g.hasNode(fallva):
             fallblock = vw.getCodeBlock(fallva)
-            if fallblock == None:
+            if fallblock is None:
                 logger.warning('FB == None in graph building!??!')
                 logger.warning('(fva: 0x%.8x  fallva: 0x%.8x' % (fva, fallva))
             elif fallva != fallblock[0]:
@@ -576,9 +574,8 @@ def getGraphNodeByVa(fgraph, va):
     '''
     for nva, ninfo in fgraph.nodes.values():
         nvamax = ninfo.get('cbsize')
-        if nvamax == None:
-            raise Exception(
-                'getGraphNodeByVa() called on graph with non-codeblock nodes')
+        if nvamax is None:
+            raise Exception('getGraphNodeByVa() called on graph with non-codeblock nodes')
 
         nvamax += nva
         if va >= nva and va < nvamax:
@@ -604,12 +601,12 @@ def findRemergeDown(graph, va):
         if node[0] == startnid:
             continue
 
-        if node[1].get('hit') == None:
+        if node[1].get('hit') is None:
             continue
 
         for eid, frva, tova, einfo in graph.getRefsTo(node):
             frnode = graph.getNode(frva)
-            if frnode[1].get('hit') == None:
+            if frnode[1].get('hit') is None:
                 # clear from here down
                 clearMarkDown(graph, tova, mark='hit')
                 break
@@ -811,7 +808,7 @@ class PathGenerator:
                 path = vg_pathcore.getPathToNode(cpath)
                 path.reverse()
                 self.__steplock.acquire()
-                yield [v_t_graphutil._nodeedge(n) for n in path]
+                yield [_nodeedge(n) for n in path]
                 vg_pathcore.trimPath(cpath)
 
                 pathcnt += 1

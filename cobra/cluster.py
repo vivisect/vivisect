@@ -387,7 +387,7 @@ class ClusterServer:
 
         try:
             ret = self.queue.popleft()
-        except IndexError, e:
+        except IndexError as e:
             self.qcond.release()
             return None
 

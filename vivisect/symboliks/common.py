@@ -6,8 +6,8 @@ import collections
 
 import vstruct
 import envi.bits as e_bits
-
 from vivisect.const import *
+
 
 def symcache(f):
     def docache(*args, **kwargs):
@@ -22,6 +22,7 @@ def symcache(f):
     functools.update_wrapper(docache, f)
     return docache
 
+
 def varsolve(name, width, emu=None):
     '''
     A helper routine which unifies the way symboliks
@@ -32,7 +33,8 @@ def varsolve(name, width, emu=None):
         name += emu.getRandomSeed()
 
     md5sum = hashlib.md5(name).hexdigest()
-    return long(md5sum[:width*2], 16)
+    return int(md5sum[:width*2], 16)
+
 
 def evalSymbolik(reprstr):
     '''
@@ -44,6 +46,7 @@ def evalSymbolik(reprstr):
         symobj = evalSymbolik(x)
     '''
     return eval(reprstr, globals(), {})
+
 
 def getSymbolikImport(vw, impname):
     '''
@@ -62,10 +65,12 @@ def getSymbolikImport(vw, impname):
     mod = vw.loadModule(modbase)
     return vstruct.resolve(mod, nameparts)
 
-def cb_astNodeCount(path,obj,ctx):
+
+def cb_astNodeCount(path, obj, ctx):
     ctx['count'] += 1
     if len(path) > ctx['depth']:
         ctx['depth'] = len(path)
+
 
 class SymbolikBase:
     idgen = itertools.count()
@@ -75,7 +80,7 @@ class SymbolikBase:
     commutative = False
 
     def __init__(self):
-        self._sym_id = self.idgen.next()
+        self._sym_id = next(self.idgen)
         self.kids = []
         self.parents = []
         self.cache = {}
@@ -151,7 +156,7 @@ class SymbolikBase:
         if other is None:
             return False
 
-        if type(other) in (int, long):
+        if isinstance(other, int):
             return self.solve() == other
 
         return self.solve() == other.solve()
@@ -168,7 +173,7 @@ class SymbolikBase:
             obj.cache.clear()
         self.walkTree(cb)
 
-    #@symcache - we use the cache, but specially...
+    # @symcache - we use the cache, but specially...
     def solve(self, emu=None, vals=None):
         '''
         Produce a reproducable answer based on the current state.
@@ -196,7 +201,8 @@ class SymbolikBase:
         '''
         Produce a reproducable answer based on the current state if provided.
         '''
-        raise Exception('%s *must* implement solve(emu=emu)!' % self.__class__.__name__)
+        raise Exception('%s *must* implement solve(emu=emu)!' %
+                        self.__class__.__name__)
 
     def reduce(self, emu=None, foo=False):
         '''
@@ -231,7 +237,8 @@ class SymbolikBase:
         Return an updated representation for this symbolik state based on the given
         emulator.
         '''
-        raise Exception('%s *must* implement update(emu)!' % self.__class__.__name__)
+        raise Exception('%s *must* implement update(emu)!' %
+                        self.__class__.__name__)
 
     def setSymKid(self, idx, kid):
         '''
@@ -246,7 +253,8 @@ class SymbolikBase:
                 return
 
             # invalidate the cache, but be careful not to repopulate it
-            todo = collections.OrderedDict({p._sym_id: p for p in oldkid.parents})
+            todo = collections.OrderedDict(
+                {p._sym_id: p for p in oldkid.parents})
             done = set()
             while todo:
                 pid, parent = todo.popitem()
@@ -313,20 +321,22 @@ class SymbolikBase:
                 cur = kid
                 idx = 0
                 continue
-            #else:
+            # else:
             #    sys.stdout.write('.')
 
             # do self
-            #sys.stdout.write(' >> %r' % cur.__class__)
-            path.append(cur)    # old walkTree expects cur to be on the top of the stack
+            # sys.stdout.write(' >> %r' % cur.__class__)
+            # old walkTree expects cur to be on the top of the stack
+            path.append(cur)
             newb = cb(path, cur, ctx)
-            path.pop()          # clean up, since our algorithm doesn't expect cur on the top...
-            #sys.stdout.write(' << ')
+            # clean up, since our algorithm doesn't expect cur on the top...
+            path.pop()
+            # sys.stdout.write(' << ')
 
             done.add(cur._sym_id)
 
             if not len(path):
-                #sys.stdout.write('=')
+                # sys.stdout.write('=')
                 if newb:
                     return newb
                 return cur
@@ -350,6 +360,7 @@ class SymbolikBase:
 
         ast.walkTree(cb_astNodeCount, ctx)
         return ctx['count'], ctx['depth']
+
 
 class cnot(SymbolikBase):
     '''
@@ -387,7 +398,7 @@ class cnot(SymbolikBase):
 
         self._reduced = True
         '''
-        #self.kids[0] = self.kids[0].reduce(emu=emu)
+        # self.kids[0] = self.kids[0].reduce(emu=emu)
 
         kidzero = self.kids[0]
         if kidzero.symtype == SYMT_CON:
@@ -398,6 +409,7 @@ class cnot(SymbolikBase):
 
     def getWidth(self):
         return self.kids[0].getWidth()
+
 
 class Call(SymbolikBase):
     '''
@@ -456,6 +468,7 @@ class Call(SymbolikBase):
         # symbolik calls are *never* discrete
         return False
 
+
 class Mem(SymbolikBase):
     '''
     This is effectivly a cop-out for symbolic states read in from
@@ -499,13 +512,14 @@ class Mem(SymbolikBase):
                 return val.solve()
 
         addrval = self.kids[0].solve(emu=emu, vals=vals)
-        sizeval = self.kids[1].solve(emu=emu, vals=vals)
+        # sizeval = self.kids[1].solve(emu=emu, vals=vals)
         # FIXME higher entropy!
         return hash(str(addrval)) & 0xffffffff
 
     def getWidth(self):
         # FIXME should we do something about that?
         return self.kids[1].solve()
+
 
 class Var(SymbolikBase):
 
@@ -527,7 +541,7 @@ class Var(SymbolikBase):
 
         sym = vw.getSymByName(strval)
         if sym is not None:
-            value = long(sym)
+            value = int(sym)
             canvas.addVaText(strval, va=value)
             return
 
@@ -552,12 +566,13 @@ class Var(SymbolikBase):
 
     def update(self, emu):
         ret = emu.getSymVariable(self.name, create=False)
-        if ret != None:
+        if ret is not None:
             return ret
         return Var(self.name, width=self.width)
 
     def getWidth(self):
         return self.width
+
 
 class LookupVar(Var):
     '''
@@ -587,16 +602,17 @@ class LookupVar(Var):
         if not self.offset.isDiscrete():
             return '%s::%s' % (self.name, self.offset)
 
-        self._strval = '%s_%s' % (self.name, self.lookupdict.get(self.offset.solve()))
+        self._strval = '%s_%s' % (
+            self.name, self.lookupdict.get(self.offset.solve()))
         return self._strval
 
     def _solve(self, emu=None):
         name = 'LookupVar:%s:%s' % (self.name, self.offset)
 
-        if emu != None:
+        if emu is not None:
             name += emu.getRandomSeed()
 
-        return long(hashlib.md5(name).hexdigest()[:self.width*2], 16)
+        return int(hashlib.md5(name).hexdigest()[:self.width*2], 16)
 
     def update(self, emu):
         offset = self.offset.update(emu=emu)
@@ -614,6 +630,7 @@ class LookupVar(Var):
 
     def isDiscrete(self, emu=None):
         return False
+
 
 class Arg(SymbolikBase):
     '''
@@ -654,10 +671,11 @@ class Arg(SymbolikBase):
     def getWidth(self):
         return self.width
 
+
 class Const(SymbolikBase):
 
-    symtype     = SYMT_CONST
-    discrete    = True
+    symtype = SYMT_CONST
+    discrete = True
 
     def __init__(self, value, width, ptrname=None, constname=None):
         '''
@@ -686,19 +704,19 @@ class Const(SymbolikBase):
             return
 
         # if our const is a named pointer...
-        if vw.isValidPointer( self.value ):
-            name = str(vw.getSymByAddr( self.value ))
+        if vw.isValidPointer(self.value):
+            name = str(vw.getSymByAddr(self.value))
             canvas.addText('&')
             canvas.addVaText(name, va=self.value)
             return
-        canvas.addNameText( str(self) )
+        canvas.addNameText(str(self))
 
     def _solve(self, emu=None, vals=None):
         return self.value
 
     @symcache
     def __repr__(self):
-        return 'Const(0x%.8x,%d)' % (self.value,self.width)
+        return 'Const(0x%.8x,%d)' % (self.value, self.width)
 
     @symcache
     def __str__(self):
@@ -712,11 +730,12 @@ class Const(SymbolikBase):
     def update(self, emu):
         # const's are immutable... don't copy...
         return self
-        #return Const(self.value, self.width, ptrname=self.ptrname, constname=self.constname)
+        # return Const(self.value, self.width, ptrname=self.ptrname, constname=self.constname)
 
     @symcache
     def isDiscrete(self, emu=None):
         return True
+
 
 class Operator(SymbolikBase):
     '''
@@ -725,6 +744,7 @@ class Operator(SymbolikBase):
     '''
     oper = None
     operstr = None
+
     def __init__(self, v1, v2, width):
         SymbolikBase.__init__(self)
         self.width = width
@@ -796,74 +816,87 @@ class Operator(SymbolikBase):
 
     def render(self, canvas, vw):
         canvas.addText('(')
-        self.kids[0].render(canvas,vw)
+        self.kids[0].render(canvas, vw)
         canvas.addText(' ')
         canvas.addNameText(self.operstr)
         canvas.addText(' ')
-        self.kids[1].render(canvas,vw)
+        self.kids[1].render(canvas, vw)
         canvas.addText(')')
 
+
 class o_add(Operator):
-    oper        = operator.add
-    operstr     = '+'
-    symtype     = SYMT_OPER_ADD
+    oper = operator.add
+    operstr = '+'
+    symtype = SYMT_OPER_ADD
     commutative = True
+
 
 class o_sub(Operator):
-    oper        = operator.sub
-    operstr     = '-'
-    symtype     = SYMT_OPER_SUB
+    oper = operator.sub
+    operstr = '-'
+    symtype = SYMT_OPER_SUB
+
 
 class o_xor(Operator):
-    oper        = operator.xor
-    operstr     = '^'
-    symtype     = SYMT_OPER_XOR
+    oper = operator.xor
+    operstr = '^'
+    symtype = SYMT_OPER_XOR
     commutative = True
+
 
 class o_and(Operator):
-    oper        = operator.and_
-    operstr     = '&'
-    symtype     = SYMT_OPER_AND
+    oper = operator.and_
+    operstr = '&'
+    symtype = SYMT_OPER_AND
     commutative = True
+
 
 class o_or(Operator):
-    oper        = operator.or_
-    operstr     = '|'
-    symtype     = SYMT_OPER_OR
+    oper = operator.or_
+    operstr = '|'
+    symtype = SYMT_OPER_OR
     commutative = True
+
 
 class o_mul(Operator):
-    oper        = operator.mul
-    operstr     = '*'
-    symtype     = SYMT_OPER_MUL
+    oper = operator.mul
+    operstr = '*'
+    symtype = SYMT_OPER_MUL
     commutative = True
 
+
 class o_div(Operator):
-    oper        = operator.truediv # should this be floordiv?
-    operstr     = '/'
-    symtype     = SYMT_OPER_DIV
+    oper = operator.truediv  # should this be floordiv?
+    operstr = '/'
+    symtype = SYMT_OPER_DIV
+
 
 class o_mod(Operator):
-    oper        = operator.mod
-    operstr     = '%'
-    symtype     = SYMT_OPER_MOD
+    oper = operator.mod
+    operstr = '%'
+    symtype = SYMT_OPER_MOD
+
 
 class o_lshift(Operator):
-    oper        = operator.lshift
-    operstr     = '<<'
-    symtype     = SYMT_OPER_LSHIFT
+    oper = operator.lshift
+    operstr = '<<'
+    symtype = SYMT_OPER_LSHIFT
+
 
 class o_rshift(Operator):
-    oper        = operator.rshift
-    operstr     = '>>'
-    symtype     = SYMT_OPER_RSHIFT
+    oper = operator.rshift
+    operstr = '>>'
+    symtype = SYMT_OPER_RSHIFT
+
 
 class o_pow(Operator):
-    oper        = operator.pow
-    operstr     = '**'
-    symtype     = SYMT_OPER_POW
+    oper = operator.pow
+    operstr = '**'
+    symtype = SYMT_OPER_POW
 
 # introduce the concept of a modifier?  or keep this an operator?
+
+
 class o_sextend(SymbolikBase):
     symtype = SYMT_SEXT
 
@@ -894,6 +927,7 @@ class o_sextend(SymbolikBase):
     def update(self, emu):
         kids = [k.update(emu) for k in self.kids]
         return self.__class__(*kids)
+
 
 class Constraint(Operator):
     '''
@@ -992,6 +1026,7 @@ class ge(Constraint):
 class UNK(Constraint):
     operstr = 'UNK'
     symtype = SYMT_CON_UNK
+
     def oper(self, v1, v2):
         raise Exception('Attempted reduce/solve on UNK, which has no oper')
 
@@ -999,12 +1034,13 @@ class UNK(Constraint):
 class NOTUNK(Constraint):
     operstr = '!UNK'
     symtype = SYMT_CON_NOTUNK
+
     def oper(self, v1, v2):
         raise Exception('Attempted reduce/solve on NOUNK, which has no oper')
+
 
 # Create our oposing constraints
 oppose(ne, eq)
 oppose(le, gt)
 oppose(lt, ge)
 oppose(UNK, NOTUNK)
-
