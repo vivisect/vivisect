@@ -2,6 +2,7 @@ import hashlib
 import operator
 import functools
 import itertools
+import collections
 
 import vstruct
 import envi.bits as e_bits
@@ -244,19 +245,19 @@ class SymbolikBase:
             if oldkid._sym_id == kid._sym_id:
                 return
 
-            # invalidate the cache
-            todo = list(set(oldkid.parents))
+            # invalidate the cache, but be careful not to repopulate it
+            todo = collections.OrderedDict({p._sym_id: p for p in oldkid.parents})
             done = set()
             while todo:
-                parent = todo.pop()
-                if parent._sym_id in done:
+                pid, parent = todo.popitem()
+                if pid in done:
                     continue
 
                 # track the objects whose cache has been cleared
-                done.add(parent._sym_id)
+                done.add(pid)
                 parent.cache.clear()
                 # grow our todo list
-                todo += list(set(parent.parents))
+                todo.update({p._sym_id: p for p in parent.parents})
 
             # remove ourselves as the parent
             if oldkid.parents:
