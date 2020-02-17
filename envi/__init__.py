@@ -17,9 +17,9 @@ ARCH_THUMB16     = 4 << 16
 ARCH_THUMB2      = 5 << 16
 ARCH_MSP430      = 6 << 16
 ARCH_H8          = 7 << 16
-ARCH_PPC_E       = 8 << 16
+ARCH_PPC_E32     = 8 << 16
 ARCH_PPC_E64     = 9 << 16
-ARCH_PPC_S       = 10 << 16
+ARCH_PPC_S32     = 10 << 16
 ARCH_PPC_S64     = 11 << 16
 ARCH_PPCVLE      = 12 << 16
 ARCH_PPC_D       = 13 << 16
@@ -34,9 +34,9 @@ arch_names = {
     ARCH_THUMB2:    'thumb2',
     ARCH_MSP430:    'msp430',
     ARCH_H8:        'h8',
-    ARCH_PPC_E:     'ppc32-embedded',
+    ARCH_PPC_E32:   'ppc32-embedded',
     ARCH_PPC_E64:   'ppc-embedded',
-    ARCH_PPC_S:     'ppc32-server',
+    ARCH_PPC_S32:   'ppc32-server',
     ARCH_PPC_S64:   'ppc-server',
     ARCH_PPCVLE:    'ppc-vle',
     ARCH_PPC_D:     'ppc-desktop',
@@ -54,14 +54,14 @@ arch_by_name = {
     'thumb2':       ARCH_THUMB2,
     'msp430':       ARCH_MSP430,
     'h8':           ARCH_H8,
-    'ppc32':        ARCH_PPC_E,
-    'ppc32-embedded': ARCH_PPC_E,
+    'ppc32':        ARCH_PPC_E32,
+    'ppc32-embedded': ARCH_PPC_E32,
     'ppc':          ARCH_PPC_E64,
     'ppc-embedded': ARCH_PPC_E64,
     'ppc-spe':      ARCH_PPC_E64,
     'ppc-vle':      ARCH_PPCVLE,
     'vle':          ARCH_PPCVLE,
-    'ppc32-server': ARCH_PPC_S,
+    'ppc32-server': ARCH_PPC_S32,
     'ppc-server':   ARCH_PPC_S64,
     'altivec':      ARCH_PPC_S64,
     'ppc-altivec':  ARCH_PPC_S64,

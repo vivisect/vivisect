@@ -2007,11 +2007,17 @@ m.addMemoryMap(0x0000,0777,"memmap1", "\xff"*1024)
 
 """
 
-class PpcServerEmulator(Ppc64RegisterContext, PpcServer64Module, PpcAbstractEmulator):
+class PpcServer64Emulator(Ppc64RegisterContext, PpcServer64Module, PpcAbstractEmulator):
     def __init__(self, archmod=None, psize=8):
-        PpcAbstractEmulator.__init__(self, archmod=PpcServerModule(), psize=psize)
+        PpcAbstractEmulator.__init__(self, archmod=PpcServer64Module(), psize=psize)
         Ppc64RegisterContext.__init__(self)
         PpcServer64Module.__init__(self)
+
+class PpcServer32Emulator(Ppc32RegisterContext, PpcServer32Module, PpcAbstractEmulator):
+    def __init__(self, archmod=None, psize=4):
+        PpcAbstractEmulator.__init__(self, archmod=PpcServer32Module(), psize=psize)
+        Ppc32RegisterContext.__init__(self)
+        PpcServer32Module.__init__(self)
 
 class PpcVleEmulator(Ppc64RegisterContext, PpcVleModule, PpcAbstractEmulator):
     def __init__(self, archmod=None, psize=8):
@@ -2019,11 +2025,17 @@ class PpcVleEmulator(Ppc64RegisterContext, PpcVleModule, PpcAbstractEmulator):
         Ppc64RegisterContext.__init__(self)
         PpcVleModule.__init__(self)
 
-class PpcEmbeddedEmulator(Ppc64RegisterContext, PpcEmbedded64Module, PpcAbstractEmulator):
+class PpcEmbedded64Emulator(Ppc64RegisterContext, PpcEmbedded64Module, PpcAbstractEmulator):
     def __init__(self, archmod=None, psize=8):
         PpcAbstractEmulator.__init__(self, archmod=PpcEmbedded64Module(), psize=psize)
         Ppc64RegisterContext.__init__(self)
         PpcEmbedded64Module.__init__(self)
+
+class PpcEmbedded32Emulator(Ppc32RegisterContext, PpcEmbedded32Module, PpcAbstractEmulator):
+    def __init__(self, archmod=None, psize=8):
+        PpcAbstractEmulator.__init__(self, archmod=PpcEmbedded32Module(), psize=psize)
+        Ppc32RegisterContext.__init__(self)
+        PpcEmbedded32Module.__init__(self)
 
 '''
 In [2]: mnems = {}

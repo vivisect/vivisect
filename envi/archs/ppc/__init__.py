@@ -64,8 +64,10 @@ class PpcEmbedded64Module(envi.ArchitectureModule):
         self.mode = mode
         self.psize = mode/8
         self.maps = tuple()
-        # disassembly for 32-bit and 64-bit should basically be the same. if not, change this.
-        self._arch_dis = PpcEmbedded64Disasm()
+        if self.psize == 8:
+            self._arch_dis = PpcEmbedded64Disasm()
+        else:
+            self._arch_dis = PpcEmbedded32Disasm()
         self._arch_vle_dis = vle.VleDisasm()
 
     def archGetRegCtx(self):
@@ -143,8 +145,10 @@ class PpcVleModule(PpcEmbedded64Module):
 class PpcServer64Module(PpcEmbedded64Module):
     def __init__(self, mode=64, archname='ppc-server'):
         PpcEmbedded64Module.__init__(self, mode=mode, archname=archname)
-        # disassembly for 32-bit and 64-bit should basically be the same. if not, change this.
-        self._arch_dis = PpcServer64Disasm()
+        if self.psize == 8:
+            self._arch_dis = PpcServer64Disasm()
+        else:
+            self._arch_dis = PpcServer32Disasm()
         
     def isVle(self, va):
         return False

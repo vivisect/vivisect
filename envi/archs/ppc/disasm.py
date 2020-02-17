@@ -11,7 +11,7 @@ from const import *
 from disasm_classes import *
 
 class PpcDisasm:
-    __ARCH__ = envi.ARCH_PPC_E
+    __ARCH__ = None # abstract class.  subclasses should define this
     def __init__(self, endian=ENDIAN_MSB, options=CAT_PPC_EMBEDDED):
         ### FIXME: options gets lost in Vivisect.  it must be part of the event stream to get saved.  this is only worthwhile for canned options which are otherwise persistent or for incidental hacking use.
         ### perhaps we need arch config entries in the config file which are passed into the different architectures.
@@ -605,12 +605,22 @@ def genTests(abytez):
         yield ("        ('%s', 0x%s, '%s %s', 0, ())," % (bytez, ova, op, opers))
 
 class PpcEmbedded64Disasm(PpcDisasm):
-    __ARCH__ = envi.ARCH_PPC_E
+    __ARCH__ = envi.ARCH_PPC_E64
+    def __init__(self, endian=ENDIAN_MSB, options=CAT_PPC_EMBEDDED):
+        PpcDisasm.__init__(self, endian, options)
+
+class PpcEmbedded32Disasm(PpcDisasm):
+    __ARCH__ = envi.ARCH_PPC_E32
     def __init__(self, endian=ENDIAN_MSB, options=CAT_PPC_EMBEDDED):
         PpcDisasm.__init__(self, endian, options)
 
 class PpcServer64Disasm(PpcDisasm):
-    __ARCH__ = envi.ARCH_PPC_S
+    __ARCH__ = envi.ARCH_PPC_S64
+    def __init__(self, endian=ENDIAN_MSB, options=CAT_PPC_SERVER):
+        PpcDisasm.__init__(self, endian, options)
+
+class PpcServer32Disasm(PpcDisasm):
+    __ARCH__ = envi.ARCH_PPC_S32
     def __init__(self, endian=ENDIAN_MSB, options=CAT_PPC_SERVER):
         PpcDisasm.__init__(self, endian, options)
 
