@@ -60,7 +60,9 @@ PREFIX_VEX3  = 0x400000  # 3 byte VEX (data stored in opcode)
 PREFIX_VEX_L = 0x800000  # L bit set
 PREFIX_VEX   = PREFIX_VEX2 | PREFIX_VEX3
 
-IMM_REQOFFS = (opcode86.ADDRMETH_I, opcode86.ADDRMETH_J, opcode86.ADDRMETH_IRL, opcode86.ADDRMETH_IRU)
+PREFIX_SIZE_BOTH = (PREFIX_REX_W | PREFIX_VEX_L)
+
+IMM_REQOFFS = (opcode86.ADDRMETH_I, opcode86.ADDRMETH_J, opcode86.ADDRMETH_L)
 
 VEX_V_SHIFT  = 59
 
@@ -179,9 +181,8 @@ class Amd64Disasm(e_i386.i386Disasm):
         self._dis_amethods[opcode86.ADDRMETH_B >> 16] = self.ameth_b
         self._dis_amethods[opcode86.ADDRMETH_H >> 16] = self.ameth_h
         self._dis_amethods[opcode86.ADDRMETH_E >> 16] = self.ameth_e
-        self._dis_amethods[opcode86.ADDRMETH_IRU>>16] = self.ameth_iru
-        self._dis_amethods[opcode86.ADDRMETH_IRL>>16] = self.ameth_irl
-        self._dis_amethods[opcode86.ADDRMETH_VEXV>>16] = self.ameth_vexv
+        self._dis_amethods[opcode86.ADDRMETH_L >> 16] = self.ameth_l
+        self._dis_amethods[opcode86.ADDRMETH_VEXH >> 16] = self.ameth_vexh
 
         # Over-ride these which are in use by the i386 version of the ASM
         self.ROFFSETMMX   = e_i386.getRegOffset(amd64regs, "mm0")
@@ -211,7 +212,7 @@ class Amd64Disasm(e_i386.i386Disasm):
 
         # NOTE: REX takes precedence over 66
         # (see section 2.2.1.2 in Intel 2a)
-        if prefixes & PREFIX_REX_W or prefixes & PREFIX_VEX_L:
+        if prefixes & PREFIX_SIZE_BOTH:
 
             mode = MODE_64
 
@@ -320,12 +321,7 @@ class Amd64Disasm(e_i386.i386Disasm):
         # intel manual says VEX and legacy prefixes don't intermingle
         if obyte == 0x0f and last_pref in MANDATORY_PREFIXES and not isvex:
             obyte = last_pref
-            if last_pref == 0xF2:
-                ppref.append((0xF2, PREFIX_REPNZ))
-            elif last_pref == 0xF3:
-                ppref.append((0xF3, PREFIX_REP))
-            elif last_pref == 0x66:
-                ppref.append((0x66, PREFIX_OP_SIZE))
+            ppref.append((last_pref, amd64_prefixes[last_pref]))
 
         decodings = []
         mainbyte = offset
@@ -432,7 +428,6 @@ class Amd64Disasm(e_i386.i386Disasm):
                 # print("ADDRTYPE", hex(addrmeth))
                 ameth = self._dis_amethods[(addrmeth >> 16) & 0x7F]
                 vex_skip = addrmeth & opcode86.ADDRMETH_VEXSKIP
-                # TODO(rakuyo): need to also check to see if we need to promote things here
                 # print("AMETH", ameth)
                 if not isvex and vex_skip:
                     continue
@@ -544,7 +539,7 @@ class Amd64Disasm(e_i386.i386Disasm):
             o.reg += REX_BUMP
         return o
 
-    def ameth_vexv(self, bytes, offset, tsize, prefixes, operflags):
+    def ameth_vexh(self, bytes, offset, tsize, prefixes, operflags):
         '''
         So this is here because instructions like movss and movsd are ambiguous in their
         2/3 operand state without first jumping ahead to the modrm byte. If modrm refers to
@@ -557,14 +552,22 @@ class Amd64Disasm(e_i386.i386Disasm):
         else:
             return (0, None)
 
+    def ameth_l(self, bytez, offset, tsize, prefixes, operflags):
+        reg = self.ROFFSETSIMD
+        imm = e_bits.parsebytes(bytez, offset, 1, sign=False)
+        idx = (imm & 0xF0) >> 4
+        if not (prefixes & PREFIX_VEX_L) or operflags & OP_NOVEXL:
+            reg |= e_i386.RMETA_LOW128
+        return (1, i386RegOper(reg + idx, tsize))
+
     def ameth_g(self, bytes, offset, tsize, prefixes, operflags):
         osize, oper = e_i386.i386Disasm.ameth_g(self, bytes, offset, tsize, prefixes, operflags)
         # TODO: Disallowing reg_rip is probably wrong
         # TODO: the addr override operates off the default of the instruction, so we need to grab that
         if oper.tsize == 4:
-            oper.reg += RMETA_LOW32
+            oper.reg |= RMETA_LOW32
         if prefixes & PREFIX_REX_R:
-            oper.reg += REX_BUMP
+            oper.reg |= REX_BUMP
         return osize, oper
 
     def ameth_b(self, bytez, offset, tsize, prefixes, operflags):
@@ -677,24 +680,7 @@ class Amd64Disasm(e_i386.i386Disasm):
         self._dis_rex_exmodrm(oper, prefixes, operflags)
         return osize, oper
 
-    def ameth_iru(self, bytez, offset, tsize, prefixes, operflags):
-        reg = self.ROFFSETSIMD
-        imm = e_bits.parsebytes(bytez, offset, 1, sign=False)
-        idx = (imm & 0xF0) >> 4
-        if not (prefixes & PREFIX_VEX_L) or operflags & OP_NOVEXL:
-            reg |= e_i386.RMETA_LOW128
-        return (1, i386RegOper(reg + idx, tsize))
-
-    def ameth_irl(self, bytez, offset, tsize, prefixes, operflags):
-        reg = self.ROFFSETSIMD
-        imm = e_bits.parsebytes(bytez, offset, 1, sign=False)
-        idx = (imm & 0x0F) >> 4
-        if not (prefixes & PREFIX_VEX_L) or operflags & OP_NOVEXL:
-            reg |= e_i386.RMETA_LOW128
-        return (1, i386RegOper(reg + idx, tsize))
-
 
 if __name__ == '__main__':
     import envi.archs
     envi.archs.dismain(Amd64Disasm())
-

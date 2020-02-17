@@ -848,13 +848,8 @@ class i386Disasm:
         # print("PREFXIES: 0x%x" % all_prefixes)
         if obyte == 0x0f and last_pref in MANDATORY_PREFIXES:
             obyte = last_pref
-            if last_pref == 0xF2:
-                ppref.append((0xF2, PREFIX_REPNZ))
-            elif last_pref == 0xF3:
-                ppref.append((0xF3, PREFIX_REP))
-            elif last_pref == 0x66:
-                ppref.append((0x66, PREFIX_OP_SIZE))
-        # print("POSTFXIES: 0x%x" % all_prefixes)
+            ppref.append((last_pref, i386_prefixes[last_pref]))
+        # print("POSTFIXES: 0x%x" % all_prefixes)
 
         #pdone = False
         decodings = []
@@ -999,7 +994,7 @@ class i386Disasm:
         # Special address method for opcodes with embedded operands
         if operflags & opcode86.OP_REG:
             if prefixes & PREFIX_OP_SIZE:
-                operval += RMETA_LOW16
+                operval |= RMETA_LOW16
             return i386RegOper(operval, tsize)
         elif operflags & opcode86.OP_IMM:
             return i386ImmOper(operval, tsize)

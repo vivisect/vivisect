@@ -14,7 +14,7 @@ ADDRMETH_G = 0x00070000    # MODRM byte defines general-purpose reg
 ADDRMETH_H = 0x00080000    # VEX.vvvv field selects 128bit XMM or 256bit YMM register
 ADDRMETH_I = 0x00090000    # Immediate data follows
 ADDRMETH_J = 0x000A0000    # Immediate value is relative to EIP
-ADDRMETH_L = 0x000B0000    # TODO: MODRM rm refers only to memory, and reg is used as an ext
+ADDRMETH_L = 0x000B0000    # An immediate value follows, but bits[7:4] signifies an xmm register
 ADDRMETH_M = 0x000C0000    # MODRM mod field can refer only to memory
 ADDRMETH_N = 0x000D0000    # R/M field of MODRM selects a packed-quadword, MMX register
 ADDRMETH_O = 0x000E0000    # Displacement follows (without modrm/sib)
@@ -28,10 +28,8 @@ ADDRMETH_W = 0x00150000    # MODRM defines XMM register or memory
 ADDRMETH_X = 0x00160000    # Memory addressed by DS:rSI
 ADDRMETH_Y = 0x00170000    # Memory addressd by ES:rDI
 ADDRMETH_Z = 0x00180000    # R/M field of MODRM defines XMM register, reg is used as an ext
-ADDRMETH_IRU = 0x00190000   # An immediate value follows, but bits[7:4] signifies an xmm register
-ADDRMETH_IRL = 0x001A0000   # An immediate value follows, but bits[3:0] signifies an xmm register
-ADDRMETH_VEXV = 0x001B0000  # Maybe Ignore the VEX.vvv field based on what the ModRM bytes are
-ADDRMETH_LAST = ADDRMETH_VEXV
+ADDRMETH_VEXH = 0x001B0000  # Maybe Ignore the VEX.vvvv field based on what the ModRM bytes are
+ADDRMETH_LAST = ADDRMETH_VEXH
 
 ADDRMETH_VEXSKIP = 0x00800000  # This operand should be skipped if we're not in VEX mode
 
