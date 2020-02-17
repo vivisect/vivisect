@@ -107,7 +107,7 @@ def getCarryBitAtX(bit, result, add0, add1):
 
 class PpcAbstractEmulator(envi.Emulator):
 
-    def __init__(self, archmod=None, psize=4):
+    def __init__(self, archmod=None, psize=8):
         self.psize = psize
         envi.Emulator.__init__(self, archmod=archmod)
                 
@@ -192,40 +192,6 @@ class PpcAbstractEmulator(envi.Emulator):
         sp -= psize
         self.setRegister(REG_SP, sp)
         return val
-
-    def logicalAnd(self, op):
-        dst = op.opers[OPER_DST].getOperValue(op, self)
-        src = op.opers[OPER_SRC].getOperValue(op, self)
-
-        # PDE
-        if dst == None or src == None:
-            self.undefFlags()
-            op.opers[OPER_DST].setOperValue(op, self, None)
-            return
-
-        dsize = op.opers[OPER_DST].tsize
-        ssize = op.opers[OPER_SRC].tsize
-
-        # sign-extend an immediate if needed
-        if dsize != ssize:
-            src = e_bits.sign_extend(src, ssize, dsize)
-            ssize = dsize
-
-        # Make sure everybody's on the same bit page.
-        dst = e_bits.unsigned(dst, dsize)
-        src = e_bits.unsigned(src, ssize)
-
-        res = src & dst
-
-        # FIXME:  SET FLAGS IN CR0 and CR1 and XER?
-        raise Exception(' FIXME:  SET FLAGS IN CR0 and CR1 and XER?')
-        self.setFlag(EFLAGS_AF, 0) # AF is undefined, but it seems like it is zeroed
-        self.setFlag(EFLAGS_OF, 0)
-        self.setFlag(EFLAGS_CF, 0)
-        self.setFlag(EFLAGS_SF, e_bits.is_signed(res, dsize))
-        self.setFlag(EFLAGS_ZF, not res)
-        self.setFlag(EFLAGS_PF, e_bits.is_parity_byte(res))
-        return res
 
     ########################### Flag Helpers #############################
     def getCr(self, crnum):
@@ -1001,13 +967,18 @@ class PpcAbstractEmulator(envi.Emulator):
         '''
         add
         '''
+        mode = self.getPointerSize() * 8
+        print "mode: %x" % mode
+        s2size = op.opers[2].tsize
         src1 = self.getOperValue(op, 1)
         src2 = self.getOperValue(op, 2) # FIXME: move signedness here instead of at decode
-        src2 = e_bits.signed(src2, 2)
+        src2 = e_bits.signed(src2, s2size)
 
         result = src1 + src2
+        ca = bool(result >> mode)
         
         self.setOperValue(op, 0, result)
+        self.setRegister(REG_CA, ca)
         if op.iflags & IF_RC: self.setFlags(result, 0)
         if oe: self.setOEflags(result, self.psize, src1, src2)
 
@@ -2036,11 +2007,11 @@ m.addMemoryMap(0x0000,0777,"memmap1", "\xff"*1024)
 
 """
 
-class PpcServerEmulator(Ppc64RegisterContext, PpcServerModule, PpcAbstractEmulator):
+class PpcServerEmulator(Ppc64RegisterContext, PpcServer64Module, PpcAbstractEmulator):
     def __init__(self, archmod=None, psize=8):
         PpcAbstractEmulator.__init__(self, archmod=PpcServerModule(), psize=psize)
         Ppc64RegisterContext.__init__(self)
-        PpcServerModule.__init__(self)
+        PpcServer64Module.__init__(self)
 
 class PpcVleEmulator(Ppc64RegisterContext, PpcVleModule, PpcAbstractEmulator):
     def __init__(self, archmod=None, psize=8):
@@ -2048,11 +2019,11 @@ class PpcVleEmulator(Ppc64RegisterContext, PpcVleModule, PpcAbstractEmulator):
         Ppc64RegisterContext.__init__(self)
         PpcVleModule.__init__(self)
 
-class PpcEmbeddedEmulator(Ppc64RegisterContext, PpcEmbeddedModule, PpcAbstractEmulator):
+class PpcEmbeddedEmulator(Ppc64RegisterContext, PpcEmbedded64Module, PpcAbstractEmulator):
     def __init__(self, archmod=None, psize=8):
-        PpcAbstractEmulator.__init__(self, archmod=PpcEmbeddedModule(), psize=psize)
+        PpcAbstractEmulator.__init__(self, archmod=PpcEmbedded64Module(), psize=psize)
         Ppc64RegisterContext.__init__(self)
-        PpcEmbeddedModule.__init__(self)
+        PpcEmbedded64Module.__init__(self)
 
 '''
 In [2]: mnems = {}

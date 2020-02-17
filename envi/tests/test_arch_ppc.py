@@ -41,13 +41,13 @@ class PpcInstructionSet(unittest.TestCase):
         print "test_envi_ppcvle_disasm: %d of %d successes" % (test_pass, len(ppc_vle_instructions.instructions))
         self.assertAlmostEqual(test_pass, len(ppc_vle_instructions.instructions), delta=MARGIN_OF_ERROR)
 
-    def test_envi_ppc64_disasm(self):
+    def test_envi_ppc_server_disasm(self):
         test_pass = 0
 
-        vw, emu, sctx = self.getVivEnv('ppc64')
+        vw, emu, sctx = self.getVivEnv('ppc-server')
 
-        import ppc64_instructions
-        for test_bytes, result_instr in ppc64_instructions.instructions:
+        import ppc_server_instructions
+        for test_bytes, result_instr in ppc_server_instructions.instructions:
             try:
                 op = vw.arch.archParseOpcode(test_bytes.decode('hex'), 0)
                 op_str = repr(op).strip()
@@ -59,8 +59,8 @@ class PpcInstructionSet(unittest.TestCase):
                 print ('ERROR: {}: {}'.format(test_bytes, result_instr))
                 sys.excepthook(*sys.exc_info())
 
-        print "test_envi_ppc64_disasm: %d of %d successes" % (test_pass, len(ppc64_instructions.instructions))
-        self.assertAlmostEqual(test_pass, len(ppc64_instructions.instructions), delta=MARGIN_OF_ERROR)
+        print "test_envi_ppc_server_disasm: %d of %d successes" % (test_pass, len(ppc_server_instructions.instructions))
+        self.assertAlmostEqual(test_pass, len(ppc_server_instructions.instructions), delta=MARGIN_OF_ERROR)
 
     def test_MASK_and_ROTL32(self):
         import envi.archs.ppc.emu as eape
@@ -88,20 +88,32 @@ class PpcInstructionSet(unittest.TestCase):
             self.assertEqual(emurot64, symrot64.solve(), 'ROTL64(0x31337040, {}): {} != {}   {}'.format(y, hex(emurot64), hex(symrot64.solve()), symrot64))
 
     def test_CR_and_XER(self):
-        vw, emu, sctx = self.getVivEnv(arch='ppc')
         OPCODE_ADDCO = '7C620C15'.decode('hex')
+
+        vw, emu, sctx = self.getVivEnv(arch='ppc-server')
         ppcarch = vw.imem_archs[0]
         op = ppcarch.archParseOpcode(OPCODE_ADDCO)
-        emu.setRegisterByName('r1', 1)
-        emu.setRegisterByName('r2', 2)
-        emu.setRegisterByName('r3', 0)
-        emu.setRegisterByName('cr', 1)
-        emu.setRegisterByName('XER', 1)
+        self._do_CR_XER(op, emu, 1, 2, 0, 0, 0, 3, 0x40000000, 0)
+        self._do_CR_XER(op, emu, 0x3FFFFFFFFFFFFFFF, 0x3FFFFFFFFFFFFFFF, 0, 0, 0, 0x7ffffffffffffffeL, 0x40000000L, 0)
+        self._do_CR_XER(op, emu, 0x4000000000000000, 0x4000000000000000, 0, 0, 0xc0000000, 0x8000000000000000, 0x90000000, 0xc0000000L)
+        self._do_CR_XER(op, emu, 0x4000000000000000, 0x4000000000000000, 0, 0, 0, 0x8000000000000000, 0x90000000, 0xc0000000)
+        self._do_CR_XER(op, emu, 0x7FFFFFFFFFFFFFFF, 0x7FFFFFFFFFFFFFFF, 0, 0, 0, 0xfffffffffffffffe, 0x90000000, 0xc0000000)
+        self._do_CR_XER(op, emu, 0x8000000000000000, 0x8000000000000000, 0, 0, 0, 0, 0x30000000, 0xe0000000)
+        self._do_CR_XER(op, emu, 0xFFFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFF, 0, 0, 0, 0xfffffffffffffffe, 0x90000000, 0xa0000000)
+        self._do_CR_XER(op, emu, 1, 2, 0, 0, 0xa0000000, 3, 0x40000000, 0)
+
+    def _do_CR_XER(self, op, emu, r1, r2, r3, cr, xer, expr3, expcr, expxer):
+        emu.setRegisterByName('r1', r1)
+        emu.setRegisterByName('r2', r2)
+        emu.setRegisterByName('r3', r3)
+        emu.setRegisterByName('CR', cr)
+        emu.setRegisterByName('XER', xer)
 
         emu.executeOpcode(op)
 
-        self.assertEqual((repr(op), cr, xer), (repr(op), 0x40000000, 0))
+        newcr = emu.getRegisterByName('CR')
+        newxer = emu.getRegisterByName('XER')
+        newr3 = emu.getRegisterByName('r3')
 
-
-
+        self.assertEqual((repr(op), r1, r2, r3, cr, xer, newr3, newcr, newxer), (repr(op), r1, r2, r3, cr, xer, expr3, expcr, expxer))
 

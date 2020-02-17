@@ -76,7 +76,7 @@ class PpcDisasm:
         if decoder == None:
             raise envi.InvalidInstruction(bytez[offset:offset+4], 'No Decoder Found for Form %s' % form_names.get(form), va)
 
-        nopcode, opers, iflags = decoder(va, ival, operands, iflags)
+        nopcode, opers, iflags = decoder(self, va, ival, operands, iflags)
         if nopcode != None:
             opcode = nopcode
 
@@ -318,7 +318,7 @@ for k, v in globals().items():
 
 
 # FORM parsers
-def form_DFLT(va, ival, operands, iflags):
+def form_DFLT(disasm, va, ival, operands, iflags):
     opers = []
     opcode = None
 
@@ -329,7 +329,7 @@ def form_DFLT(va, ival, operands, iflags):
 
     return opcode, opers, iflags
     
-def form_A(va, ival, operands, iflags):
+def form_A(disasm, va, ival, operands, iflags):
     opcode = None
     # fallback for all non-memory-accessing FORM_X opcodes
     opers = []
@@ -346,7 +346,7 @@ def form_A(va, ival, operands, iflags):
 
     return opcode, opers, iflags
 
-def form_X(va, ival, operands, iflags):
+def form_X(disasm, va, ival, operands, iflags):
     opcode = None
     # fallback for all non-memory-accessing FORM_X opcodes
     opers = []
@@ -367,7 +367,7 @@ def form_X(va, ival, operands, iflags):
     return opcode, opers, iflags
 
     
-def form_XL(va, ival, operands, iflags):
+def form_XL(disasm, va, ival, operands, iflags):
     opers = []
     opcode = None
 
@@ -381,7 +381,7 @@ def form_XL(va, ival, operands, iflags):
 
     return opcode, opers, iflags
     
-def form_EVX(va, ival, operands, iflags):
+def form_EVX(disasm, va, ival, operands, iflags):
     opers = []
     opcode = None
 
@@ -403,7 +403,7 @@ def form_EVX(va, ival, operands, iflags):
 
     return opcode, opers, iflags
     
-def form_D(va, ival, operands, iflags):
+def form_D(disasm, va, ival, operands, iflags):
     opers = []
     opcode = None
 
@@ -441,7 +441,7 @@ def form_D(va, ival, operands, iflags):
 
     return opcode, opers, iflags
     
-def form_B(va, ival, operands, iflags):
+def form_B(disasm, va, ival, operands, iflags):
     opers = []
     opcode = None
 
@@ -466,7 +466,7 @@ def form_B(va, ival, operands, iflags):
 
     return opcode, opers, iflags
 
-def form_I(va, ival, operands, iflags):
+def form_I(disasm, va, ival, operands, iflags):
     opers = []
     opcode = None
 
@@ -481,7 +481,7 @@ def form_I(va, ival, operands, iflags):
 
     return opcode, opers, iflags
 
-def form_DS(va, ival, operands, iflags):
+def form_DS(disasm, va, ival, operands, iflags):
     opcode = None
 
     opvals = [((ival >> oshr) & omask) for onm, otype, oshr, omask in operands]
@@ -490,7 +490,7 @@ def form_DS(va, ival, operands, iflags):
     opers = (oper0, oper1)
     return opcode, opers, iflags
     
-def form_MDS(va, ival, operands, iflags):
+def form_MDS(disasm, va, ival, operands, iflags):
     opers = []
     opcode = None
 
@@ -505,7 +505,7 @@ def form_MDS(va, ival, operands, iflags):
     opers = (oper0, oper1, oper2, oper3)
     return opcode, opers, iflags
     
-def form_MD(va, ival, operands, iflags):
+def form_MD(disasm, va, ival, operands, iflags):
     opers = []
     opcode = None
 
@@ -521,7 +521,7 @@ def form_MD(va, ival, operands, iflags):
     opers = (oper0, oper1, oper2, oper3)
     return opcode, opers, iflags
     
-def form_XS(va, ival, operands, iflags):
+def form_XS(disasm, va, ival, operands, iflags):
     opers = []
     opcode = None
 
@@ -543,7 +543,7 @@ REG_OFFS = {
         FIELD_TBRN0_4 : REG_OFFSET_TBR,
         }
 
-def form_XFX(va, ival, operands, iflags):
+def form_XFX(disasm, va, ival, operands, iflags):
     opers = []
     opcode = None
 
@@ -604,12 +604,12 @@ def genTests(abytez):
         bytez = bytez[6:8] + bytez[4:6] + bytez[2:4] + bytez[:2]
         yield ("        ('%s', 0x%s, '%s %s', 0, ())," % (bytez, ova, op, opers))
 
-class PpcEmbeddedDisasm(PpcDisasm):
+class PpcEmbedded64Disasm(PpcDisasm):
     __ARCH__ = envi.ARCH_PPC_E
     def __init__(self, endian=ENDIAN_MSB, options=CAT_PPC_EMBEDDED):
         PpcDisasm.__init__(self, endian, options)
 
-class PpcServerDisasm(PpcDisasm):
+class PpcServer64Disasm(PpcDisasm):
     __ARCH__ = envi.ARCH_PPC_S
     def __init__(self, endian=ENDIAN_MSB, options=CAT_PPC_SERVER):
         PpcDisasm.__init__(self, endian, options)

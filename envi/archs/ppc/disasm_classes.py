@@ -112,9 +112,9 @@ class PpcOpcode(envi.Opcode):
 
 
 class PpcRegOper(envi.RegisterOper):
-    ''' register operand.'''
+    ''' register operand. defaults to 64-bit registers'''
 
-    def __init__(self, reg, va=0, tsize=4):
+    def __init__(self, reg, va=0, tsize=8):
         self.va = va
         self.reg = reg
         self.tsize = tsize

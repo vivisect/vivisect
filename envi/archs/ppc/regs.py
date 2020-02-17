@@ -153,12 +153,12 @@ statmetas = [   # FIXME
         ('CR7_EQ', REG_CR, 63-62, 1, 'Equal to Flag'),
         ('CR7_SO', REG_CR, 63-63, 1, 'Summary Overflow Flag'),
 
-        ('SO64', REG_XER, 63-63, 1, 'Summary Overflow 64'),
+        ('SO64', REG_XER, 63-61, 1, 'Summary Overflow 64'),
         ('OV64', REG_XER, 63-62, 1, 'Overflow 64'),
-        ('CA64', REG_XER, 63-61, 1, 'Carry 64'),
-        ('SO',   REG_XER, 63-31, 1, 'Summary Overflow'),
-        ('OV',   REG_XER, 63-30, 1, 'Overflow'),
-        ('CA',   REG_XER, 63-29, 1, 'Carry'),
+        ('CA64', REG_XER, 63-63, 1, 'Carry 64'),
+        ('SO',   REG_XER, 63-32, 1, 'Summary Overflow'),
+        ('OV',   REG_XER, 63-33, 1, 'Overflow'),
+        ('CA',   REG_XER, 63-34, 1, 'Carry'),
 
         ]
 # FIXME: FPSCR bits

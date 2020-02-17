@@ -173,26 +173,26 @@ for octidx in range(len(opcodetypes)):
 INS_VMR = inscounter ; inscounter += 1
 
 # flag bit numbers and masks
-FLAGS_LT_bitnum = 0
-FLAGS_GT_bitnum = 1
-FLAGS_EQ_bitnum = 2
-FLAGS_SO_bitnum = 3
+FLAGS_LT_bitnum = 3-0   # noted to tie back to the manual's referencing this as bit 0
+FLAGS_GT_bitnum = 3-1
+FLAGS_EQ_bitnum = 3-2
+FLAGS_SO_bitnum = 3-3
 
 FLAGS_LT = 1 << FLAGS_LT_bitnum
 FLAGS_GT = 1 << FLAGS_GT_bitnum
 FLAGS_EQ = 1 << FLAGS_EQ_bitnum
 FLAGS_SO = 1 << FLAGS_SO_bitnum
 
-XERFLAG_SO_bitnum = 0
-XERFLAG_OV_bitnum = 1
-XERFLAG_CA_bitnum = 2
+XERFLAG_SO_bitnum = 2-0
+XERFLAG_OV_bitnum = 2-1
+XERFLAG_CA_bitnum = 2-2
 
 XERFLAG_SO_LOW = 1 << XERFLAG_SO_bitnum
 XERFLAG_OV_LOW = 1 << XERFLAG_OV_bitnum
 XERFLAG_CA_LOW = 1 << XERFLAG_CA_bitnum
 XERFLAG_SO = 1 << (XERFLAG_SO_bitnum + 29)
-XERFLAG_OV = 1 << (XERFLAG_OV_bitnum + 30)
-XERFLAG_CA = 1 << (XERFLAG_CA_bitnum + 31)
+XERFLAG_OV = 1 << (XERFLAG_OV_bitnum + 29)
+XERFLAG_CA = 1 << (XERFLAG_CA_bitnum + 29)
 
 # roll-up architecture CATEGORIES
 CAT_PPC_SERVER = CAT_ALTIVEC =   CAT_NONE | CAT_EMBEDDED | CAT_E | CAT_V | CAT_64 | CAT_E_ED | CAT_WT | CAT_E_PD | CAT_E_CL | CAT_E_PC | CAT_FP | CAT_FP_R | CAT_E_PM | CAT_ER | CAT_EM_TM

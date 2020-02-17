@@ -57,12 +57,15 @@ the UISA and the VEA levels. For a more detailed discussion of the characteristi
 PowerPC architecture, see the Programming Environments Manual.
 '''
 
-class PpcEmbeddedModule(envi.ArchitectureModule):
+class PpcEmbedded64Module(envi.ArchitectureModule):
 
-    def __init__(self):
-        envi.ArchitectureModule.__init__(self, 'ppc-embedded')
+    def __init__(self, mode=64, archname='ppc-embedded'):
+        envi.ArchitectureModule.__init__(self, archname)
+        self.mode = mode
+        self.psize = mode/8
         self.maps = tuple()
-        self._arch_dis = PpcEmbeddedDisasm()
+        # disassembly for 32-bit and 64-bit should basically be the same. if not, change this.
+        self._arch_dis = PpcEmbedded64Disasm()
         self._arch_vle_dis = vle.VleDisasm()
 
     def archGetRegCtx(self):
@@ -85,7 +88,7 @@ class PpcEmbeddedModule(envi.ArchitectureModule):
         return groups
 
     def getPointerSize(self):
-        return 4
+        return self.psize
 
     def pointerString(self, va):
         return '0x%.8x' % va
@@ -121,9 +124,14 @@ class PpcEmbeddedModule(envi.ArchitectureModule):
                 return True
         return False
 
-class PpcVleModule(PpcEmbeddedModule):
+class PpcEmbedded32Module(PpcEmbedded64Module):
     def __init__(self):
-        envi.ArchitectureModule.__init__(self, 'ppc-vle')
+        PpcEmbedded64Module.__init__(self, mode=32, archname='ppc32-embedded')
+
+
+class PpcVleModule(PpcEmbedded64Module):
+    def __init__(self):
+        PpcEmbedded64Module.__init__(self, mode=32, archname='ppc-vle')
         self._arch_dis = vle.VleDisasm()
         
     def isVle(self, va):
@@ -132,10 +140,11 @@ class PpcVleModule(PpcEmbeddedModule):
     def archParseOpcode(self, bytes, offset=0, va=0):
         return self._arch_dis.disasm(bytes, offset, va)
 
-class PpcServerModule(PpcEmbeddedModule):
-    def __init__(self):
-        envi.ArchitectureModule.__init__(self, 'ppc-server')
-        self._arch_dis = PpcServerDisasm()
+class PpcServer64Module(PpcEmbedded64Module):
+    def __init__(self, mode=64, archname='ppc-server'):
+        PpcEmbedded64Module.__init__(self, mode=mode, archname=archname)
+        # disassembly for 32-bit and 64-bit should basically be the same. if not, change this.
+        self._arch_dis = PpcServer64Disasm()
         
     def isVle(self, va):
         return False
@@ -145,6 +154,14 @@ class PpcServerModule(PpcEmbeddedModule):
 
     def archGetRegCtx(self):
         return Ppc64RegisterContext()
+
+class PpcServer32Module(PpcServer64Module):
+    def __init__(self):
+        PpcServer64Module.__init__(self, mode=32, archname='ppc32-embedded')
+
+class PpcDesktopModule(PpcServer64Module):
+    # for now, treat desktop like server
+    pass
 
 # NOTE: This one must be after the definition of PpcModule
 from envi.archs.ppc.emu import *
