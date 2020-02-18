@@ -43,7 +43,11 @@ PREFIX_REG_MASK = 0x8000
 # * A mandatory prefix (66H, F2H, or F3H), an escape opcode byte, and a second opcode byte (same as previous
 # bullet).
 
-MANDATORY_PREFIXES = [0xF2, 0xF3, 0x66]
+MANDATORY_PREFIXES = [False for i in range(0xFF)]
+MANDATORY_PREFIXES[0xF2] = True
+MANDATORY_PREFIXES[0xF3] = True
+MANDATORY_PREFIXES[0x66] = True
+
 
 # envi.registers meta offsets
 RMETA_LOW8 = 0x00080000
@@ -853,7 +857,7 @@ class i386Disasm:
         obyte = ord(bytez[offset])
         ppref = [(None, None)]
         # print("PREFXIES: 0x%x" % all_prefixes)
-        if obyte == 0x0f and last_pref in MANDATORY_PREFIXES:
+        if obyte == 0x0f and MANDATORY_PREFIXES[last_pref]:
             obyte = last_pref
             ppref.append((last_pref, i386_prefixes[last_pref]))
         # print("POSTFIXES: 0x%x" % all_prefixes)

@@ -251,11 +251,12 @@ class Amd64Disasm(e_i386.i386Disasm):
             if p is None:
                 break
 
-            if obyte in MANDATORY_PREFIXES:
+            if MANDATORY_PREFIXES[obyte]:
                 pho_prefixes |= p
                 last_pref = obyte
             else:
                 prefixes |= p
+
             if p & PREFIX_VEX:
                 isvex = True
                 if p == PREFIX_VEX2:
@@ -319,7 +320,7 @@ class Amd64Disasm(e_i386.i386Disasm):
             prefixes |= pho_prefixes
 
         # intel manual says VEX and legacy prefixes don't intermingle
-        if obyte == 0x0f and last_pref in MANDATORY_PREFIXES and not isvex:
+        if obyte == 0x0f and MANDATORY_PREFIXES[last_pref] and not isvex:
             obyte = last_pref
             ppref.append((last_pref, amd64_prefixes[last_pref]))
 
@@ -577,7 +578,7 @@ class Amd64Disasm(e_i386.i386Disasm):
         oper = i386RegOper(vvvv, tsize)
         # TODO: Disallowing reg_rip is probably wrong
         if oper.tsize == 4:
-            oper.reg += RMETA_LOW32
+            oper.reg |= RMETA_LOW32
         return osize, oper
 
     def ameth_h(self, bytez, offset, tsize, prefixes, operflags):
@@ -599,7 +600,7 @@ class Amd64Disasm(e_i386.i386Disasm):
     def ameth_d(self, bytes, offset, tsize, prefixes, operflags):
         osize, oper = e_i386.i386Disasm.ameth_d(self, bytes, offset, tsize, prefixes, operflags)
         if prefixes & PREFIX_REX_R:
-            oper.reg += REX_BUMP
+            oper.reg |= REX_BUMP
         return osize, oper
 
     def ameth_v(self, bytes, offset, tsize, prefixes, operflags):
@@ -610,7 +611,7 @@ class Amd64Disasm(e_i386.i386Disasm):
             oper.reg |= e_i386.RMETA_LOW128
 
         if prefixes & PREFIX_REX_R:
-            oper.reg += REX_BUMP
+            oper.reg |= REX_BUMP
         return osize, oper
 
     def ameth_z(self, bytes, offset, tsize, prefixes, operflags):
@@ -620,7 +621,7 @@ class Amd64Disasm(e_i386.i386Disasm):
             oper.reg |= e_i386.RMETA_LOW128
 
         if prefixes & PREFIX_REX_B:
-            oper.reg += REX_BUMP
+            oper.reg |= REX_BUMP
 
         return osize, oper
 
