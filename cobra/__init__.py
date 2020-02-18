@@ -736,7 +736,7 @@ class CobraConnectionHandler:
 
         peer = self.socket.getpeername()
         me = self.socket.getsockname()
-        logger.info("GOT A CONNECTION TO %s" % peer)
+        logger.info("GOT A CONNECTION TO %s" % str(peer))
 
         sock = self.socket
         if self.daemon.sslkey:
@@ -810,8 +810,7 @@ class CobraConnectionHandler:
 
             if obj is None:
                 try:
-                    csock.sendMessage(COBRA_ERROR, name, Exception(
-                        "Unknown object requested: %s" % name))
+                    csock.sendMessage(COBRA_ERROR, name, Exception("Unknown object requested: %s" % name))
                 except CobraClosedException:
                     pass
                 logger.warning("WARNING: Got request for unknown object: %s", name)
@@ -894,7 +893,7 @@ class CobraConnectionHandler:
             pass
 
     def handleSetAttr(self, csock, oname, obj, data):
-        logger.info("Setting attribute: %s" % data)
+        logger.info("Setting attribute: %s" % str(data))
         if not self.daemon.cansetattr:
             raise CobraPermDenied('setattr disallowed!')
         name, value = data
@@ -976,7 +975,7 @@ class CobraProxy:
 
         scheme, host, port, name, urlparams = chopCobraUri(URI)
 
-        logger.debug("CobraProxy: %s:%s, obj:" % (host, port, name))
+        logger.debug("CobraProxy: %s:%s, obj: %s" % (host, port, name))
 
         self._cobra_uri = URI
         self._cobra_scheme = scheme
@@ -1054,8 +1053,7 @@ class CobraProxy:
         Re-authenticate to the server ( and store auth info for reconnect ).
         '''
         with self._cobra_getsock() as csock:
-            mtype, rver, data = csock.cobraTransaction(
-                COBRA_AUTH, '', authinfo)
+            mtype, rver, data = csock.cobraTransaction(COBRA_AUTH, '', authinfo)
         if mtype == COBRA_AUTH:
             self._cobra_kwargs['authinfo'] = authinfo
             return True
@@ -1080,8 +1078,7 @@ class CobraProxy:
             # If we have authinfo lets authenticate
             authinfo = self._cobra_kwargs.get('authinfo')
             if authinfo is not None:
-                mtype, rver, data = sock.cobraTransaction(
-                    COBRA_AUTH, '', authinfo)
+                mtype, rver, data = sock.cobraTransaction(COBRA_AUTH, '', authinfo)
                 if mtype != COBRA_AUTH:
                     raise CobraAuthException('Authentication Failed!')
 
@@ -1155,10 +1152,11 @@ class CobraProxy:
             return
 
         with self._cobra_getsock() as csock:
-            mtype, name, data = csock.cobraTransaction(
-                COBRA_SETATTR, self._cobra_name, (name, value))
+            mtype, name, data = csock.cobraTransaction(COBRA_SETATTR, self._cobra_name, (name, value))
 
         if mtype == COBRA_ERROR:
+            import pdb
+            pdb.set_trace()
             raise data
         elif mtype == COBRA_SETATTR:
             return
