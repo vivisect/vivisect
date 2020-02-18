@@ -9,7 +9,9 @@ import opcode64 as opcode86
 
 from envi.archs.i386.disasm import iflag_lookup, operand_range, priv_lookup, \
         i386Opcode, i386ImmOper, i386RegOper, i386ImmMemOper, i386RegMemOper, \
-        i386SibOper, PREFIX_REPNZ, PREFIX_REP, PREFIX_OP_SIZE, PREFIX_ADDR_SIZE
+        i386SibOper, PREFIX_REPNZ, PREFIX_REP, PREFIX_OP_SIZE, PREFIX_ADDR_SIZE, \
+        MANDATORY_PREFIXES
+
 from envi.archs.amd64.regs import *
 from envi.archs.i386.opconst import OP_REG32AUTO, OP_MEM32AUTO, INS_VEXREQ, OP_NOVEXL
 all_tables = opcode86.tables86
@@ -35,8 +37,6 @@ amd64_prefixes[0x4e] = (0x1e << 16)
 amd64_prefixes[0x4f] = (0x1f << 16)
 amd64_prefixes[0xc5] = (0x20 << 16)  # VEX 2byte
 amd64_prefixes[0xc4] = (0x40 << 16)  # VEX 3byte
-
-MANDATORY_PREFIXES = [0x66, 0xf2, 0xf3]
 
 
 # NOTE: some notes from the intel manual...

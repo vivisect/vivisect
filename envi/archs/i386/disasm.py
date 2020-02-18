@@ -36,6 +36,13 @@ PREFIX_FS = 0x2000
 PREFIX_GS = 0x4000
 PREFIX_REG_MASK = 0x8000
 
+# So these prefixes aren't mandatory in the strict sense that all instructions have to have them
+# but from section 2.1.2 of the intel manual which states:
+# Two-byte opcode formats for general-purpose and SIMD instructions consist of one of the following:
+# * An escape opcode byte 0FH as the primary opcode and a second opcode byte.
+# * A mandatory prefix (66H, F2H, or F3H), an escape opcode byte, and a second opcode byte (same as previous
+# bullet).
+
 MANDATORY_PREFIXES = [0xF2, 0xF3, 0x66]
 
 # envi.registers meta offsets
@@ -115,9 +122,9 @@ sizenames[1] = "byte"
 sizenames[2] = "word"
 sizenames[4] = "dword"
 sizenames[8] = "qword"
-sizenames[16] = "oword"
-sizenames[32] = "yword"    # ymm regs
-sizenames[64] = "zword"    # zmm regs
+sizenames[16] = "oword"    # xmm regs, can also be dqword
+sizenames[32] = "yword"    # ymm regs, can also be qqword
+sizenames[64] = "zword"    # zmm regs, can also be dqqword
 
 def addrToName(mcanv, va):
     sym = mcanv.syms.getSymByAddr(va)
