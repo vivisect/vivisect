@@ -558,7 +558,7 @@ class Amd64Disasm(e_i386.i386Disasm):
         imm = e_bits.parsebytes(bytez, offset, 1, sign=False)
         idx = (imm & 0xF0) >> 4
         if not (prefixes & PREFIX_VEX_L) or operflags & OP_NOVEXL:
-            reg |= e_i386.RMETA_LOW128
+            reg += e_i386.RMETA_LOW128
         return (1, i386RegOper(reg + idx, tsize))
 
     def ameth_g(self, bytes, offset, tsize, prefixes, operflags):
@@ -568,7 +568,7 @@ class Amd64Disasm(e_i386.i386Disasm):
         if oper.tsize == 4:
             oper.reg |= RMETA_LOW32
         if prefixes & PREFIX_REX_R:
-            oper.reg |= REX_BUMP
+            oper.reg += REX_BUMP
         return osize, oper
 
     def ameth_b(self, bytez, offset, tsize, prefixes, operflags):
@@ -600,7 +600,7 @@ class Amd64Disasm(e_i386.i386Disasm):
     def ameth_d(self, bytes, offset, tsize, prefixes, operflags):
         osize, oper = e_i386.i386Disasm.ameth_d(self, bytes, offset, tsize, prefixes, operflags)
         if prefixes & PREFIX_REX_R:
-            oper.reg |= REX_BUMP
+            oper.reg += REX_BUMP
         return osize, oper
 
     def ameth_v(self, bytes, offset, tsize, prefixes, operflags):
@@ -608,20 +608,20 @@ class Amd64Disasm(e_i386.i386Disasm):
 
         # FIXME: YMM->XMM (this may move into i386 version when VEX is made available there)
         if not (prefixes & PREFIX_VEX_L) or operflags & OP_NOVEXL:
-            oper.reg |= e_i386.RMETA_LOW128
+            oper.reg += e_i386.RMETA_LOW128
 
         if prefixes & PREFIX_REX_R:
-            oper.reg |= REX_BUMP
+            oper.reg += REX_BUMP
         return osize, oper
 
     def ameth_z(self, bytes, offset, tsize, prefixes, operflags):
         osize, oper = e_i386.i386Disasm.ameth_z(self, bytes, offset, tsize, prefixes, operflags)
 
         if not (prefixes & PREFIX_VEX_L) or operflags & OP_NOVEXL:
-            oper.reg |= e_i386.RMETA_LOW128
+            oper.reg += e_i386.RMETA_LOW128
 
         if prefixes & PREFIX_REX_B:
-            oper.reg |= REX_BUMP
+            oper.reg += REX_BUMP
 
         return osize, oper
 

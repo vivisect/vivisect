@@ -835,7 +835,7 @@ class i386Disasm:
 
         all_prefixes = 0
         prefix_len = 0
-        last_pref = None
+        last_pref = 0
 
         while True:
 
