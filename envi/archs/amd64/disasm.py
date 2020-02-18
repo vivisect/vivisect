@@ -471,8 +471,8 @@ class Amd64Disasm(e_i386.i386Disasm):
                 # will look like vsprlw xmm3, xmm4, 17.
                 # The fun bit of this is that the vex only portions aren't exclusive to the VEX-only
                 # addressing methods, so we can have ADDRMETH_V be skipped outside of VEX mode too, and not
-                # just things like ADDRMETH_H. Hence, new flag that we stick into the upper bits of
-                # instruction operand definition.
+                # just things like ADDRMETH_H. Hence, we need a new flag that I stash in the upper bits of
+                # instruction operand definition so we can know when to skip operands
                 ameth = self._dis_amethods[(addrmeth >> 16) & 0x7F]
                 vex_skip = addrmeth & opcode86.ADDRMETH_VEXSKIP
                 # print("AMETH", ameth)
