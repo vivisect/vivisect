@@ -464,6 +464,15 @@ class Amd64Disasm(e_i386.i386Disasm):
 
             else:
                 # print("ADDRTYPE", hex(addrmeth))
+
+                # So the 0x7f is here to help us deal with an issue between VEX and non-VEX
+                # A super common patter in vex is to add an operand somewhere in the middle of the
+                # existing operands. So if we have like cmpps xmm2, 17 in non-VEX, the vex version
+                # will look like vsprlw xmm3, xmm4, 17.
+                # The fun bit of this is that the vex only portions aren't exclusive to the VEX-only
+                # addressing methods, so we can have ADDRMETH_V be skipped outside of VEX mode too, and not
+                # just things like ADDRMETH_H. Hence, new flag that we stick into the upper bits of
+                # instruction operand definition.
                 ameth = self._dis_amethods[(addrmeth >> 16) & 0x7F]
                 vex_skip = addrmeth & opcode86.ADDRMETH_VEXSKIP
                 # print("AMETH", ameth)
