@@ -230,7 +230,7 @@ class Amd64Disasm(e_i386.i386Disasm):
         startoff = offset  # Use startoff as a size knob if needed
         isvex = False
         vexw = None
-        last_pref = None
+        last_pref = 0
         ppref = [(None, None)]
 
         # Stuff we'll be putting in the opcode object
