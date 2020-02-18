@@ -455,6 +455,7 @@ amd64VexOpcodes = [
     ('VPSLLDQ', 'C5F173D208', 'vpsrlq xmm1,xmm2,8', 'vpsrlq xmm1,xmm2,8'),
     ('VPSRLD', 'C5E172D41B', 'vpsrld xmm3,xmm4,27', 'vpsrld xmm3,xmm4,27'),
     ('VPSRLD', 'c5e172d063', 'vpsrld xmm3,xmm0,99', 'vpsrld xmm3,xmm0,99'),
+    ('VPSRLD REP', 'f3c5e172d063', 'rep: vpsrld xmm3,xmm0,99', 'rep: vpsrld xmm3,xmm0,99'),
     ('VPSRLD 2', 'C5D9D218', 'vpsrld xmm3,xmm4,oword [rax]', 'vpsrld xmm3,xmm4,oword [rax]'),
     ('VPSRLD 3', 'C5D9D25875', 'vpsrld xmm3,xmm4,oword [rax + 117]', 'vpsrld xmm3,xmm4,oword [rax + 117]'),
 

@@ -222,6 +222,37 @@ class Amd64Disasm(e_i386.i386Disasm):
         return sizelist[mode]
 
     def disasm(self, bytez, offset, va):
+        '''
+        The main amd64 decoder function. The inital steps it takes are determining what
+        potential prefixes are attached to the instruction. By "potential", we mean that at
+        this stage we don't know if thigs like 66, F2, F3 are being used as normal prefixes
+        (representing things like a rep prefix) or if they're being used as mandatory prefixes
+        that completely change with instruction we're decoding. All potential prefixes are stored
+        in the pho_prefixes variable.
+
+        To that end, there's some tap dancing we need to do to deal with what the intel manual
+        refers to as "mandatory prefixes". If we hit a main opcode byte of 0F and we know we have a
+        potentially mandatory prefix (and we're not in VEX land), we treat the byte right before the 0F
+        as the only potential mandatory prefix (as laid out in the intel manual). Then we basically brute
+        force the decoding since we really only have two paths to try. One where the mandatory prefix is
+        merely a normal prefix (and doesn't affect which set of tables we traverse down) and one where
+        the mandatory prefix does affect what tables we rachet through (and thus directly changes which
+        instruction we're looking at). For each case, we append all the relevant output to a list (should
+        the decoding produce a meaningful output).
+
+        If we end up producing no instruction definitions from our brute force loop, we've hit an invalid
+        sequence of instruction bytes and we throw an exception.
+
+        If only one path produce output, then that's our results and we proceed on to use the instruction
+        definition to determine what addressing methods and size types to use when determining operands.
+
+        If both paths produce a valid instruction definition, then the path that uses the mandatory prefix
+        to directly change the instruction takes precedence over the path where it's just a normal prefix.
+
+        In both the one and two results case, outside of our instruction decoding loop, we've kept a list of
+        the possible decodings we could have hit, and just merely pop off the end of the list (so order
+        matters when building the ppref variable).
+        '''
         # FIXME: for newer instructions, the VEX.W bit needs to be able to change the opcode. ugh.
         # FIXME: And also REX.W
 
@@ -328,22 +359,29 @@ class Amd64Disasm(e_i386.i386Disasm):
         all_prefixes = prefixes
 
         ogtabdesc = tabdesc
+        # onehot in this case refers to the their prefixes that are defined in i386/disasm.py where only
+        # on bit of the entire integer is set. We use that to quickly pop things in and out of the prefixes
+        # list
         for pref, onehot in ppref:
+            tabdesc = ogtabdesc
+            offset = mainbyte
             if pref is not None:
-                # our mandatory prefix is not none
-                tabdesc = ogtabdesc
+                # our mandatory prefix is not none, which means that we have to jump through the tables
+                # using the mandatory prefix byte as our "main byte"
+                # As a bit of a hack, the 66/F2/F3 entries in the main table
+                # directly point to the 660F/F20F/F30F tables since we're carefully tap dancing around
+                # what our opcode byte really is
                 obyte = pref
-                offset = mainbyte
+                # since we're treating this prefix as mandatory and not as REPNZ/REPZ/etc, we need to rip
+                # it out of the pho_prefixes before we combine pho_prefixes with the main prefixes container
                 all_prefixes = prefixes | (pho_prefixes & (~onehot))
             else:
-                # treat nothing as mandatory prefix (or we defaulted into here if we got no mandatory
-                # prefixes
-                tabdesc = ogtabdesc
-                offset = mainbyte
+                # treat nothing as a mandatory prefix (or we defaulted into here if we got no mandatory
+                # prefixes). For most instructions this will be the normal case.
                 obyte = ord(bytez[offset])
                 all_prefixes = prefixes | pho_prefixes
-            while True:
 
+            while True:
                 # print("OP-OBYTE", hex(obyte))
                 # print("TABDESC: {}".format(tabdesc[1:]))
                 if (obyte > tabdesc[5]):

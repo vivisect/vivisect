@@ -823,7 +823,6 @@ class i386Disasm:
         return sizelist[mode]
 
     def disasm(self, bytez, offset, va):
-
         # Stuff for opcode parsing
         tabdesc = all_tables[0] # A tuple (optable, shiftbits, mask byte, sub, max)
         startoff = offset # Use startoff as a size knob if needed
