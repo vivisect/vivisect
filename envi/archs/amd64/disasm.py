@@ -3,14 +3,13 @@ import struct
 import envi
 import envi.bits as e_bits
 import envi.archs.i386 as e_i386
-import envi.archs.i386.disasm as ed_i386
 import envi.archs.i386.opconst as e_i386_const
 import opcode64 as opcode86
 
 from envi.archs.i386.disasm import iflag_lookup, operand_range, priv_lookup, \
         i386Opcode, i386ImmOper, i386RegOper, i386ImmMemOper, i386RegMemOper, \
         i386SibOper, PREFIX_REPNZ, PREFIX_REP, PREFIX_OP_SIZE, PREFIX_ADDR_SIZE, \
-        MANDATORY_PREFIXES
+        MANDATORY_PREFIXES, PREFIX_REP_MASK
 
 from envi.archs.amd64.regs import *
 from envi.archs.i386.opconst import OP_REG32AUTO, OP_MEM32AUTO, INS_VEXREQ, OP_NOVEXL
@@ -466,17 +465,18 @@ class Amd64Disasm(e_i386.i386Disasm):
 
             operoffset += osize
 
+        typemask = optype & 0xFFFF
         # Pull in the envi generic instruction flags
-        iflags = iflag_lookup.get(optype & 0xFFFF, 0) | self._dis_oparch
+        iflags = iflag_lookup.get(typemask, 0) | self._dis_oparch
 
-        if prefixes & ed_i386.PREFIX_REP_MASK:
+        if prefixes & PREFIX_REP_MASK:
             iflags |= envi.IF_REPEAT
 
         if priv_lookup.get(mnem, False):
             iflags |= envi.IF_PRIV
 
         # Lea will have a reg-mem/sib operand with _is_deref True, but should be false
-        if optype & 0xFFFF == opcode86.INS_LEA:
+        if typemask == opcode86.INS_LEA:
             operands[1]._is_deref = False
 
         ret = Amd64Opcode(va, optype, mnem, prefixes, (offset-startoff)+operoffset, operands, iflags)
