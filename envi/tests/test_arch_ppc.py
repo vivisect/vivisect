@@ -88,6 +88,68 @@ class PpcInstructionSet(unittest.TestCase):
             self.assertEqual(emurot64, symrot64.solve(), 'ROTL64(0x31337040, {}): {} != {}   {}'.format(y, hex(emurot64), hex(symrot64.solve()), symrot64))
 
     def test_CR_and_XER(self):
+        from envi.archs.ppc.regs import *
+        from envi.archs.ppc.const import *
+        vw, emu, sctx = self.getVivEnv(arch='ppc-server')
+
+        # now compare the register and bitmap stuff to be the same
+        emu.setRegister(REG_CR0, 0)
+        emu.setRegister(REG_CR0_LT, 1)
+        cr = emu.getRegister(REG_CR)
+        self.assertEqual(("CR: ", hex(cr)), ("CR: ", hex(0x80000000L)))
+        cr0 = emu.getRegister(REG_CR0)
+        self.assertEqual(("CR0: ", hex(cr0)), ("CR0: ", hex(8L)))
+        self.assertEqual((cr0) , FLAGS_LT)
+
+        emu.setRegister(REG_CR0, 0)
+        emu.setRegister(REG_CR0_GT, 1)
+        cr = emu.getRegister(REG_CR)
+        self.assertEqual(("CR: ", hex(cr)), ("CR: ", hex(0x40000000L)))
+        cr0 = emu.getRegister(REG_CR0)
+        self.assertEqual(("CR0: ", hex(cr0)), ("CR0: ", hex(4L)))
+        self.assertEqual((cr0) , FLAGS_GT)
+
+        emu.setRegister(REG_CR0, 0)
+        emu.setRegister(REG_CR0_EQ, 1)
+        cr = emu.getRegister(REG_CR)
+        self.assertEqual(("CR: ", hex(cr)), ("CR: ", hex(0x20000000L)))
+        cr0 = emu.getRegister(REG_CR0)
+        self.assertEqual(("CR0: ", hex(cr0)), ("CR0: ", hex(2L)))
+        self.assertEqual((cr0) , FLAGS_EQ)
+
+        emu.setRegister(REG_CR0, 0)
+        emu.setRegister(REG_CR0_SO, 1)
+        cr = emu.getRegister(REG_CR)
+        self.assertEqual(("CR: ", hex(cr)), ("CR: ", hex(0x10000000L)))
+        cr0 = emu.getRegister(REG_CR0)
+        self.assertEqual(("CR0: ", hex(cr0)), ("CR0: ", hex(1L)))
+        self.assertEqual((cr0) , FLAGS_SO)
+
+        emu.setRegister(REG_CR0, 0)
+        emu.setRegister(REG_XER, 0)
+        emu.setRegister(REG_CA, 1)
+        xer = emu.getRegister(REG_XER)
+        self.assertEqual(xer , XERFLAG_CA)
+        self.assertEqual(xer>>29 , XERFLAG_CA_LOW)
+
+        emu.setRegister(REG_CR0, 0)
+        emu.setRegister(REG_XER, 0)
+        emu.setRegister(REG_OV, 1)
+        xer = emu.getRegister(REG_XER)
+        self.assertEqual(xer , XERFLAG_OV)
+        self.assertEqual(xer>>29 , XERFLAG_OV_LOW)
+
+        emu.setRegister(REG_CR0, 0)
+        emu.setRegister(REG_XER, 0)
+        emu.setRegister(REG_SO, 1)
+        xer = emu.getRegister(REG_XER)
+        self.assertEqual(xer , XERFLAG_SO)
+        self.assertEqual(xer>>29 , XERFLAG_SO_LOW)
+
+
+
+    def test_emu_CR_and_XER(self):
+
         OPCODE_ADDCO = '7C620C15'.decode('hex')
 
         vw, emu, sctx = self.getVivEnv(arch='ppc-server')
