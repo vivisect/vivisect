@@ -10,8 +10,8 @@ class PpcInstructionSet(unittest.TestCase):
     def getVivEnv(self, arch='ppc'):
         vw = vivisect.VivWorkspace()
         vw.setMeta("Architecture", arch)
-        vw.addMemoryMap(0, 7, 'firmware', '\xff' * 16384*1024)
-        vw.addMemoryMap(0xbfb00000, 7, 'firmware', '\xfe' * 16384*1024)
+        vw.addMemoryMap(0, 7, 'firmware', '\xff' * 16384)
+        vw.addMemoryMap(0xbfbff000, 7, 'firmware', '\xfe' * 0x1000)
 
         emu = vw.getEmulator()
         emu.setMeta('forrealz', True)
@@ -157,14 +157,15 @@ class PpcInstructionSet(unittest.TestCase):
         op = ppcarch.archParseOpcode(OPCODE_ADDCO)
         self._do_CR_XER(op, emu, 1, 2, 0, 0, 0, 3, 0x40000000, 0)
         self._do_CR_XER(op, emu, 0x3FFFFFFFFFFFFFFF, 0x3FFFFFFFFFFFFFFF, 0, 0, 0, 0x7ffffffffffffffeL, 0x40000000L, 0)
-        self._do_CR_XER(op, emu, 0x4000000000000000, 0x4000000000000000, 0, 0, 0xc0000000, 0x8000000000000000, 0x90000000, 0xc0000000L)
-        self._do_CR_XER(op, emu, 0x4000000000000000, 0x4000000000000000, 0, 0, 0, 0x8000000000000000, 0x90000000, 0xc0000000)
-        self._do_CR_XER(op, emu, 0x7FFFFFFFFFFFFFFF, 0x7FFFFFFFFFFFFFFF, 0, 0, 0, 0xfffffffffffffffe, 0x90000000, 0xc0000000)
-        self._do_CR_XER(op, emu, 0x8000000000000000, 0x8000000000000000, 0, 0, 0, 0, 0x30000000, 0xe0000000)
-        self._do_CR_XER(op, emu, 0xFFFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFF, 0, 0, 0, 0xfffffffffffffffe, 0x90000000, 0xa0000000)
-        self._do_CR_XER(op, emu, 1, 2, 0, 0, 0xa0000000, 3, 0x40000000, 0)
+        self._do_CR_XER(op, emu, 0x4000000000000000, 0x4000000000000000, 0, 0, 0xc0000000, 0x8000000000000000, 0x90000000L, 0xc0000000L)
+        self._do_CR_XER(op, emu, 0x4000000000000000, 0x4000000000000000, 0, 0, 0xc0000000, 0x8000000000000000, 0x90000000, 0xc0000000)
+        self._do_CR_XER(op, emu, 0x7FFFFFFFFFFFFFFF, 0x7FFFFFFFFFFFFFFF, 0, 0, 0xc0000000, 0xfffffffffffffffe, 0x90000000, 0xc0000000)
+        self._do_CR_XER(op, emu, 0x8000000000000000, 0x8000000000000000, 0, 0, 0xc0000000, 0, 0x30000000, 0xe0000000)
+        self._do_CR_XER(op, emu, 0xFFFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFF, 0, 0, 0xa0000000, 0xfffffffffffffffe, 0x90000000, 0xa0000000)
+        self._do_CR_XER(op, emu, 1, 2, 0, 0, 0xa0000000, 3, 0x50000000, 0x80000000)
 
     def _do_CR_XER(self, op, emu, r1, r2, r3, cr, xer, expr3, expcr, expxer):
+        print "== %x %x %x  %x %x  %x %x %x" % (r1, r2, r3, cr, xer, expr3, expcr, expxer)
         emu.setRegisterByName('r1', r1)
         emu.setRegisterByName('r2', r2)
         emu.setRegisterByName('r3', r3)
