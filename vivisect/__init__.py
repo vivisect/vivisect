@@ -8,10 +8,7 @@ import os
 import re
 import sys
 import time
-import Queue
 import string
-import struct
-import weakref
 import hashlib
 import logging
 import itertools
@@ -20,14 +17,14 @@ import threading
 import collections
 
 from binascii import hexlify
-from StringIO import StringIO
-from collections import deque
-from ConfigParser import ConfigParser
+try:
+    import Queue
+except ModuleNotFoundError:
+    import queue as Queue
 
 import vivisect.contrib  # This should go first
 
 # The envi imports...
-import vdb
 import envi
 import envi.bits as e_bits
 import envi.memory as e_mem
@@ -2189,14 +2186,14 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
         makeuniq allows Vivisect to append some number to make the name unique.
         This behavior allows for colliding names (eg. different versions of a function)
-        to coexist in the same workspace.  
+        to coexist in the same workspace.
 
         default behavior is to fail on duplicate (False).
         """
         if filelocal:
             segtup = self.getSegment(va)
             if segtup == None:
-                print "Failed to find file for 0x%.8x (%s) (and filelocal == True!)"  % (va, name)
+                self.vprint("Failed to find file for 0x%.8x (%s) (and filelocal == True!)"  % (va, name))
             if segtup != None:
                 fname = segtup[SEG_FNAME]
                 if fname != None:

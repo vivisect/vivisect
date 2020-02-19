@@ -3,14 +3,17 @@ import struct
 import envi
 import envi.bits as e_bits
 import envi.archs.i386 as e_i386
-import envi.archs.i386.disasm as ed_i386
+import envi.archs.i386.opconst as e_i386_const
 import opcode64 as opcode86
-all_tables = opcode86.tables86
 
 from envi.archs.i386.disasm import iflag_lookup, operand_range, priv_lookup, \
         i386Opcode, i386ImmOper, i386RegOper, i386ImmMemOper, i386RegMemOper, \
-        i386SibOper
+        i386SibOper, PREFIX_REPNZ, PREFIX_REP, PREFIX_OP_SIZE, PREFIX_ADDR_SIZE, \
+        MANDATORY_PREFIXES, PREFIX_REP_MASK
+
 from envi.archs.amd64.regs import *
+from envi.archs.i386.opconst import OP_REG32AUTO, OP_MEM32AUTO, INS_VEXREQ, OP_NOVEXL
+all_tables = opcode86.tables86
 
 # Pre generate these for fast lookup. Because our REX prefixes have the same relative
 # bit relationship to eachother, we can cheat a little...
@@ -34,8 +37,6 @@ amd64_prefixes[0x4f] = (0x1f << 16)
 amd64_prefixes[0xc5] = (0x20 << 16)  # VEX 2byte
 amd64_prefixes[0xc4] = (0x40 << 16)  # VEX 3byte
 
-mandatory_prefixes = [0x66, 0xf2, 0xf3]
-
 
 # NOTE: some notes from the intel manual...
 # REX.W overrides 66, but alternate registers (via REX.B etc..) can have 66 to be 16 bit..
@@ -58,6 +59,10 @@ PREFIX_VEX3  = 0x400000  # 3 byte VEX (data stored in opcode)
 PREFIX_VEX_L = 0x800000  # L bit set
 PREFIX_VEX   = PREFIX_VEX2 | PREFIX_VEX3
 
+PREFIX_SIZE_BOTH = (PREFIX_REX_W | PREFIX_VEX_L)
+
+IMM_REQOFFS = (opcode86.ADDRMETH_I, opcode86.ADDRMETH_J, opcode86.ADDRMETH_L)
+
 VEX_V_SHIFT  = 59
 
 REX_BUMP = 8
@@ -75,7 +80,7 @@ class Amd64Opcode(i386Opcode):
             pfx = '%s: ' % pfx
 
         mnem = self.mnem
-        if self.prefixes & PREFIX_VEX:
+        if self.prefixes & PREFIX_VEX and not self.opcode & e_i386_const.INS_VEXNOPREF:
             mnem = 'v' + mnem
 
         return pfx + mnem + " " + ",".join([o.repr(self) for o in self.opers])
@@ -90,7 +95,7 @@ class Amd64Opcode(i386Opcode):
                 mcanv.addNameText("%s: " % pfx, pfx)
 
         mnem = self.mnem
-        if self.prefixes & PREFIX_VEX:
+        if self.prefixes & PREFIX_VEX and not self.opcode & e_i386_const.INS_VEXNOPREF:
             mnem = 'v' + mnem
 
         mcanv.addNameText(mnem, typename="mnemonic")
@@ -154,10 +159,11 @@ class Amd64RipRelOper(envi.DerefOper):
         mcanv.addText("]")
 
     def repr(self, op):
-        return "[rip + %d]" % self.imm
+        return "%s [rip + %d]" % (e_i386.sizenames[self.tsize], self.imm)
+
 
 operands_index = 2
-vex_pp_table = ( (0xf,), (0x66,0xf), (0xf3,0xf), (0xf2,0xf) )
+vex_pp_table = ( (0xf,), (0x66,), (0xf3,), (0xf2,) )
 vex3_mmmm_table = ( (None,), (None,), (0x38,), (0x3A,), None, None, None, None )   # None is invalid.  (None,) adds no table depths
 
 
@@ -173,7 +179,9 @@ class Amd64Disasm(e_i386.i386Disasm):
         # 64-bit only
         self._dis_amethods[opcode86.ADDRMETH_B >> 16] = self.ameth_b
         self._dis_amethods[opcode86.ADDRMETH_H >> 16] = self.ameth_h
+        self._dis_amethods[opcode86.ADDRMETH_E >> 16] = self.ameth_e
         self._dis_amethods[opcode86.ADDRMETH_L >> 16] = self.ameth_l
+        self._dis_amethods[opcode86.ADDRMETH_VEXH >> 16] = self.ameth_vexh
 
         # Over-ride these which are in use by the i386 version of the ASM
         self.ROFFSETMMX   = e_i386.getRegOffset(amd64regs, "mm0")
@@ -192,7 +200,6 @@ class Amd64Disasm(e_i386.i386Disasm):
         Use the oper type and prefixes to decide on the tsize for
         the operand.
         """
-
         mode = MODE_32
 
         sizelist = opcode86.OPERSIZE.get(opertype, None)
@@ -204,7 +211,7 @@ class Amd64Disasm(e_i386.i386Disasm):
 
         # NOTE: REX takes precedence over 66
         # (see section 2.2.1.2 in Intel 2a)
-        if prefixes & PREFIX_REX_W:
+        if prefixes & PREFIX_SIZE_BOTH:
 
             mode = MODE_64
 
@@ -215,11 +222,47 @@ class Amd64Disasm(e_i386.i386Disasm):
         return sizelist[mode]
 
     def disasm(self, bytez, offset, va):
+        '''
+        The main amd64 decoder function. The inital steps it takes are determining what
+        potential prefixes are attached to the instruction. By "potential", we mean that at
+        this stage we don't know if thigs like 66, F2, F3 are being used as normal prefixes
+        (representing things like a rep prefix) or if they're being used as mandatory prefixes
+        that completely change with instruction we're decoding. All potential prefixes are stored
+        in the pho_prefixes variable.
+
+        To that end, there's some tap dancing we need to do to deal with what the intel manual
+        refers to as "mandatory prefixes". If we hit a main opcode byte of 0F and we know we have a
+        potentially mandatory prefix (and we're not in VEX land), we treat the byte right before the 0F
+        as the only potential mandatory prefix (as laid out in the intel manual). Then we basically brute
+        force the decoding since we really only have two paths to try. One where the mandatory prefix is
+        merely a normal prefix (and doesn't affect which set of tables we traverse down) and one where
+        the mandatory prefix does affect what tables we rachet through (and thus directly changes which
+        instruction we're looking at). For each case, we append all the relevant output to a list (should
+        the decoding produce a meaningful output).
+
+        If we end up producing no instruction definitions from our brute force loop, we've hit an invalid
+        sequence of instruction bytes and we throw an exception.
+
+        If only one path produce output, then that's our results and we proceed on to use the instruction
+        definition to determine what addressing methods and size types to use when determining operands.
+
+        If both paths produce a valid instruction definition, then the path that uses the mandatory prefix
+        to directly change the instruction takes precedence over the path where it's just a normal prefix.
+
+        In both the one and two results case, outside of our instruction decoding loop, we've kept a list of
+        the possible decodings we could have hit, and just merely pop off the end of the list (so order
+        matters when building the ppref variable).
+        '''
         # FIXME: for newer instructions, the VEX.W bit needs to be able to change the opcode. ugh.
+        # FIXME: And also REX.W
 
         # Stuff for opcode parsing
         tabdesc = all_tables[opcode86.TBL_Main]  # A tuple (optable, shiftbits, mask byte, sub, max)
         startoff = offset  # Use startoff as a size knob if needed
+        isvex = False
+        vexw = None
+        last_pref = 0
+        ppref = [(None, None)]
 
         # Stuff we'll be putting in the opcode object
         optype = None  # This gets set if we successfully decode below
@@ -238,25 +281,21 @@ class Amd64Disasm(e_i386.i386Disasm):
             if p is None:
                 break
 
-            # print("OBYTE",hex(obyte))
-            if obyte in mandatory_prefixes:
+            if MANDATORY_PREFIXES[obyte]:
                 pho_prefixes |= p
-                # ratchet through the tables
-
-                tabidx = ((obyte - tabdesc[4]) >> tabdesc[2]) & tabdesc[3]
-                # print("TABIDX: %d" % tabidx)
-                opdesc = tabdesc[0][tabidx]
-                # print('OPDESC: %s -> %s' % (repr(opdesc), opcode86.tables_lookup.get(opdesc[0])))
-                tabdesc = all_tables[opdesc[0]]
+                last_pref = obyte
             else:
                 prefixes |= p
 
             if p & PREFIX_VEX:
+                isvex = True
                 if p == PREFIX_VEX2:
                     offset += 1
                     imm1 = ord(bytez[offset])
-                    if imm1 & 0xc0 != 0xc0:     # shouldn't in 64-bit mode, but in 32-bit, this keeps LES from colliding
-                        break
+                    # shouldn't in 64-bit mode, but in 32-bit, this keeps LES from colliding
+                    # TODO: So we're always in 64 bit here. This will need to be here once we unify 32/64 decoding
+                    #if imm1 & 0xc0 != 0xc0:
+                        #break
                     inv1 = imm1 ^ 0xff
 
                     vex_l = (0, PREFIX_VEX_L)[(imm1 & 4) >> 2]
@@ -270,9 +309,10 @@ class Amd64Disasm(e_i386.i386Disasm):
 
                 elif p == PREFIX_VEX3:
                     imm1 = ord(bytez[offset+1])
-                    if imm1 & 0xc0 != 0xc0:     # shouldn't in 64-bit mode, but in 32-bit, this keeps LDS from colliding
-                        break
                     offset += 2
+                    # TODO: So we're always in 64 bit here. This will need to be here once we unify 32/64 decoding
+                    #if imm1 & 0xc0 != 0xc0:
+                        #break
                     imm2 = ord(bytez[offset])
                     inv1 = imm1 ^ 0xff
                     inv2 = imm2 ^ 0xff
@@ -283,7 +323,8 @@ class Amd64Disasm(e_i386.i386Disasm):
                     m_mmmm = imm1 & 0x1f
                     # print("imms: %x %x \tl: %d\tvvvv: 0x%x\tpp: %d\tm_mmmm: 0x%x" % (imm1, imm2, vex_l, vvvv, pp, m_mmmm))
                     prefixes |= ((inv1 << 11) & PREFIX_REX_RXB)     # RXB are inverted
-                    prefixes |= ((imm2 << 12) & PREFIX_REX_W)       # W is not inverted
+                    vexw = ((imm2 << 12) & PREFIX_REX_W)            # W is not inverted
+                    prefixes |= vexw
                     prefixes |= vex_l
                     prefixes |= (vvvv << VEX_V_SHIFT)               # vvvv
 
@@ -294,10 +335,13 @@ class Amd64Disasm(e_i386.i386Disasm):
                 for tabidx in combined_mand_prefixes:
                     if tabidx is None:
                         continue
-                    # print("TABIDX: %d" % tabidx)
+                    #print("VEXTABIDX: %d" % tabidx)
                     opdesc = tabdesc[0][tabidx]
-                    # print('OPDESC: %s -> %s' % (repr(opdesc), opcode86.tables_lookup.get(opdesc[0])))
+                    #print('VEXOPDESC: %s -> %s' % (repr(opdesc), opcode86.tables_lookup.get(opdesc[0])))
                     tabdesc = all_tables[opdesc[0]]
+                # So VEX and mandatory prefixes don't really intermingle
+                offset += 1
+                break
 
             offset += 1
             continue
@@ -305,40 +349,84 @@ class Amd64Disasm(e_i386.i386Disasm):
         if obyte != 0x0f:
             prefixes |= pho_prefixes
 
-        while True:
+        # intel manual says VEX and legacy prefixes don't intermingle
+        if obyte == 0x0f and MANDATORY_PREFIXES[last_pref] and not isvex:
+            obyte = last_pref
+            ppref.append((last_pref, amd64_prefixes[last_pref]))
 
-            obyte = ord(bytez[offset])
+        decodings = []
+        mainbyte = offset
+        all_prefixes = prefixes
 
-            # print("OP-OBYTE", hex(obyte))
-            if (obyte > tabdesc[5]):
-                # print("Jumping To Overflow Table: %s" % hex(tabdesc[5]))
-                tabdesc = all_tables[tabdesc[6]]
+        ogtabdesc = tabdesc
+        # onehot in this case refers to the their prefixes that are defined in i386/disasm.py where only
+        # on bit of the entire integer is set. We use that to quickly pop things in and out of the prefixes
+        # list
+        for pref, onehot in ppref:
+            tabdesc = ogtabdesc
+            offset = mainbyte
+            if pref is not None:
+                # our mandatory prefix is not none, which means that we have to jump through the tables
+                # using the mandatory prefix byte as our "main byte"
+                # As a bit of a hack, the 66/F2/F3 entries in the main table
+                # directly point to the 660F/F20F/F30F tables since we're carefully tap dancing around
+                # what our opcode byte really is
+                obyte = pref
+                # since we're treating this prefix as mandatory and not as REPNZ/REPZ/etc, we need to rip
+                # it out of the pho_prefixes before we combine pho_prefixes with the main prefixes container
+                all_prefixes = prefixes | (pho_prefixes & (~onehot))
+            else:
+                # treat nothing as a mandatory prefix (or we defaulted into here if we got no mandatory
+                # prefixes). For most instructions this will be the normal case.
+                obyte = ord(bytez[offset])
+                all_prefixes = prefixes | pho_prefixes
 
-            tabidx = ((obyte - tabdesc[4]) >> tabdesc[2]) & tabdesc[3]
-            # print("TABIDX: %s" % tabidx)
-            opdesc = tabdesc[0][tabidx]
-            # print('OPDESC: %s -> %s' % (repr(opdesc), opcode86.tables_lookup.get(opdesc[0])))
+            while True:
+                # print("OP-OBYTE", hex(obyte))
+                # print("TABDESC: {}".format(tabdesc[1:]))
+                if (obyte > tabdesc[5]):
+                    # print("Jumping To Overflow Table: %s" % hex(tabdesc[5]))
+                    tabdesc = all_tables[tabdesc[6]]
 
-            # Hunt down multi-byte opcodes
-            nexttable = opdesc[0]
-            # print("NEXT", nexttable, hex(obyte), opcode86.tables_lookup.get(nexttable))
-            if nexttable != 0:  # If we have a sub-table specified, use it.
-                # print("Multi-Byte Next Hop For (%s, %s)" % (hex(obyte), opdesc[0]))
-                tabdesc = all_tables[nexttable]
+                tabidx = ((obyte - tabdesc[4]) >> tabdesc[2]) & tabdesc[3]
+                # print("TABIDX: %s" % tabidx)
+                opdesc = tabdesc[0][tabidx]
+                # print('OPDESC: %s -> %s' % (repr(opdesc), opcode86.tables_lookup.get(opdesc[0])))
 
-                # Account for the table jump we made
-                offset += 1
+                # Hunt down multi-byte opcodes
+                nexttable = opdesc[0]
+                # print("NEXT", nexttable, hex(obyte), opcode86.tables_lookup.get(nexttable))
+                if nexttable != 0:  # If we have a sub-table specified, use it.
+                    # print("Multi-Byte Next Hop For (%s, %s)" % (hex(obyte), opdesc[0]))
+                    tabdesc = all_tables[nexttable]
 
+                    # Account for the table jump we made
+                    offset += 1
+                    obyte = ord(bytez[offset])
+                    continue
+
+                # We are now on the final table...
+                # print(repr(opdesc))
+                tbl_opercnt = tabdesc[1]
+                mnem = opdesc[3 + tbl_opercnt]
+                optype = opdesc[1]
+                if tabdesc[3] == 0xff:
+                    offset += 1  # For our final opcode byte
+                break
+
+            if optype & INS_VEXREQ and not isvex:
                 continue
 
-            # We are now on the final table...
-            # print(repr(opdesc))
-            tbl_opercnt = tabdesc[1]
-            mnem = opdesc[3 + tbl_opercnt]
-            optype = opdesc[1]
-            if tabdesc[3] == 0xff:
-                offset += 1  # For our final opcode byte
-            break
+            if optype != 0:
+                decodings.append((tabdesc, opdesc, offset, all_prefixes))
+
+        if not len(decodings):
+            raise envi.InvalidInstruction(bytez=bytez[startoff:startoff+16], va=va)
+
+        tabdesc, opdesc, offset, prefixes = decodings.pop()
+        optype = opdesc[1]
+        tbl_opercnt = tabdesc[1]
+        mnem = opdesc[3 + tbl_opercnt]
 
         if optype == 0:
             # print(tabidx)
@@ -376,27 +464,42 @@ class Amd64Disasm(e_i386.i386Disasm):
 
             else:
                 # print("ADDRTYPE", hex(addrmeth))
-                ameth = self._dis_amethods[addrmeth >> 16]
+
+                # So the 0x7f is here to help us deal with an issue between VEX and non-VEX
+                # A super common patter in vex is to add an operand somewhere in the middle of the
+                # existing operands. So if we have like cmpps xmm2, 17 in non-VEX, the vex version
+                # will look like vsprlw xmm3, xmm4, 17.
+                # The fun bit of this is that the vex only portions aren't exclusive to the VEX-only
+                # addressing methods, so we can have ADDRMETH_V be skipped outside of VEX mode too, and not
+                # just things like ADDRMETH_H. Hence, we need a new flag that I stash in the upper bits of
+                # instruction operand definition so we can know when to skip operands
+                ameth = self._dis_amethods[(addrmeth >> 16) & 0x7F]
+                vex_skip = addrmeth & opcode86.ADDRMETH_VEXSKIP
                 # print("AMETH", ameth)
+                if not isvex and vex_skip:
+                    continue
+
                 if ameth is None:
                     raise Exception("Implement Addressing Method 0x%.8x" % addrmeth)
 
                 # NOTE: Depending on your addrmethod you may get beginning of operands, or offset
                 try:
-                    if addrmeth == opcode86.ADDRMETH_I or addrmeth == opcode86.ADDRMETH_J:
+                    if addrmeth in IMM_REQOFFS:
                         osize, oper = ameth(bytez, offset+operoffset, tsize, prefixes, operflags)
 
                         # If we are a sign extended immediate and not the same as the other operand,
                         # do the sign extension during disassembly so nothing else has to worry about it..
                         if len(operands) and tsize != operands[-1].tsize:
                             # Check if we are an explicitly signed operand *or* REX.W
-                            if operflags & opcode86.OP_SIGNED or prefixes & PREFIX_REX_W:
+                            if operflags & opcode86.OP_SIGNED and prefixes & PREFIX_REX_W:
                                 otsize = operands[-1].tsize
                                 oper.imm = e_bits.sign_extend(oper.imm, oper.tsize, otsize)
                                 oper.tsize = otsize
 
                     else:
                         osize, oper = ameth(bytez, offset, tsize, prefixes, operflags)
+                        if getattr(oper, "_is_deref", False) and operflags & OP_MEM32AUTO:
+                            oper.tsize = 4
 
                 except struct.error:
                     # Catch struct unpack errors due to insufficient data length
@@ -409,17 +512,18 @@ class Amd64Disasm(e_i386.i386Disasm):
 
             operoffset += osize
 
+        typemask = optype & 0xFFFF
         # Pull in the envi generic instruction flags
-        iflags = iflag_lookup.get(optype, 0) | self._dis_oparch
+        iflags = iflag_lookup.get(typemask, 0) | self._dis_oparch
 
-        if prefixes & ed_i386.PREFIX_REP_MASK:
+        if prefixes & PREFIX_REP_MASK:
             iflags |= envi.IF_REPEAT
 
         if priv_lookup.get(mnem, False):
             iflags |= envi.IF_PRIV
 
         # Lea will have a reg-mem/sib operand with _is_deref True, but should be false
-        if optype == opcode86.INS_LEA:
+        if typemask == opcode86.INS_LEA:
             operands[1]._is_deref = False
 
         ret = Amd64Opcode(va, optype, mnem, prefixes, (offset-startoff)+operoffset, operands, iflags)
@@ -483,10 +587,33 @@ class Amd64Disasm(e_i386.i386Disasm):
             o.reg += REX_BUMP
         return o
 
+    def ameth_vexh(self, bytes, offset, tsize, prefixes, operflags):
+        '''
+        So this is here because instructions like movss and movsd are ambiguous in their
+        2/3 operand state without first jumping ahead to the modrm byte. If modrm refers to
+        memory, we skip this state and just go on to the next addressing method. If it refers
+        to a register, pass through to self.ameth_h
+        '''
+        mod, reg, rm = self.parse_modrm(ord(bytes[offset]), prefixes)
+        if mod == 3:
+            return self.ameth_h(bytes, offset, tsize, prefixes, operflags)
+        else:
+            return (0, None)
+
+    def ameth_l(self, bytez, offset, tsize, prefixes, operflags):
+        reg = self.ROFFSETSIMD
+        imm = e_bits.parsebytes(bytez, offset, 1, sign=False)
+        idx = (imm & 0xF0) >> 4
+        if not (prefixes & PREFIX_VEX_L) or operflags & OP_NOVEXL:
+            reg += e_i386.RMETA_LOW128
+        return (1, i386RegOper(reg + idx, tsize))
+
     def ameth_g(self, bytes, offset, tsize, prefixes, operflags):
         osize, oper = e_i386.i386Disasm.ameth_g(self, bytes, offset, tsize, prefixes, operflags)
-        if oper.tsize == 4 and oper.reg != REG_RIP:
-            oper.reg += RMETA_LOW32
+        # TODO: Disallowing reg_rip is probably wrong
+        # TODO: the addr override operates off the default of the instruction, so we need to grab that
+        if oper.tsize == 4:
+            oper.reg |= RMETA_LOW32
         if prefixes & PREFIX_REX_R:
             oper.reg += REX_BUMP
         return osize, oper
@@ -496,24 +623,16 @@ class Amd64Disasm(e_i386.i386Disasm):
         oper = 0
         vvvv = (prefixes >> VEX_V_SHIFT) & 0xf
         oper = i386RegOper(vvvv, tsize)
+        # TODO: Disallowing reg_rip is probably wrong
+        if oper.tsize == 4:
+            oper.reg |= RMETA_LOW32
         return osize, oper
 
     def ameth_h(self, bytez, offset, tsize, prefixes, operflags):
         osize = 0
         vvvv = (prefixes >> VEX_V_SHIFT) & 0xf
         offset = self.ROFFSETSIMD
-        if not (prefixes & PREFIX_VEX_L):
-            vvvv |= e_i386.RMETA_LOW128
-
-        oper = i386RegOper(offset + vvvv, tsize)
-        return osize, oper
-
-    def ameth_l(self, bytez, offset, tsize, prefixes, operflags):
-        osize = 1
-        imm = e_bits.parsebytes(bytez, offset, 1)
-        vvvv = (imm >> 4)
-        offset = self.ROFFSETSIMD
-        if not (prefixes & PREFIX_VEX_L):
+        if not (prefixes & PREFIX_VEX_L) or operflags & OP_NOVEXL:
             vvvv |= e_i386.RMETA_LOW128
 
         oper = i386RegOper(offset + vvvv, tsize)
@@ -535,8 +654,8 @@ class Amd64Disasm(e_i386.i386Disasm):
         osize, oper = e_i386.i386Disasm.ameth_v(self, bytes, offset, tsize, prefixes, operflags)
 
         # FIXME: YMM->XMM (this may move into i386 version when VEX is made available there)
-        if not (prefixes & PREFIX_VEX_L):
-            oper.reg |= e_i386.RMETA_LOW128
+        if not (prefixes & PREFIX_VEX_L) or operflags & OP_NOVEXL:
+            oper.reg += e_i386.RMETA_LOW128
 
         if prefixes & PREFIX_REX_R:
             oper.reg += REX_BUMP
@@ -544,8 +663,13 @@ class Amd64Disasm(e_i386.i386Disasm):
 
     def ameth_z(self, bytes, offset, tsize, prefixes, operflags):
         osize, oper = e_i386.i386Disasm.ameth_z(self, bytes, offset, tsize, prefixes, operflags)
-        if not (prefixes & PREFIX_VEX_L):
-            oper.reg |= e_i386.RMETA_LOW128
+
+        if not (prefixes & PREFIX_VEX_L) or operflags & OP_NOVEXL:
+            oper.reg += e_i386.RMETA_LOW128
+
+        if prefixes & PREFIX_REX_B:
+            oper.reg += REX_BUMP
+
         return osize, oper
 
     # NOTE: The ones below are the only ones to which REX.X or REX.B can apply (besides ameth_0)
@@ -576,30 +700,35 @@ class Amd64Disasm(e_i386.i386Disasm):
 
         if isinstance(oper, e_i386.i386RegOper):
             if oper.tsize == 4:
-                oper.reg += RMETA_LOW32
+                oper.reg |= RMETA_LOW32
 
     def ameth_e(self, bytes, offset, tsize, prefixes, operflags):
-        osize, oper = e_i386.i386Disasm.ameth_e(self, bytes, offset, tsize, prefixes, operflags)
+        regbase = 0
+        # TODO: Does this impact memory as well?
+        if operflags & OP_REG32AUTO:
+            tsize = 4
+        osize, oper = self.extended_parse_modrm(bytes, offset, tsize, prefixes=prefixes, regbase=regbase)
         self._dis_rex_exmodrm(oper, prefixes, operflags)
         return osize, oper
 
     def ameth_w(self, bytez, offset, tsize, prefixes, operflags):
-        mod,reg,rm = self.parse_modrm(ord(bytez[offset]))
+        mod, reg, rm = self.parse_modrm(ord(bytez[offset]))
         if mod == 3:
             vvvv = self.ROFFSETSIMD
-            if not (prefixes & PREFIX_VEX_L):
+            if not (prefixes & PREFIX_VEX_L) or operflags & OP_NOVEXL:
                 vvvv |= e_i386.RMETA_LOW128
+                tsize = 16
 
             osize, oper = (1, i386RegOper(rm + vvvv, tsize))
         else:
             osize, oper = self.extended_parse_modrm(bytez, offset, tsize, prefixes=prefixes)
-            if oper.tsize == 32 and not (prefixes & PREFIX_VEX_L):
+            if (oper.tsize == 32 and not (prefixes & PREFIX_VEX_L)) or operflags & OP_NOVEXL:
                 oper.tsize = 16
 
         self._dis_rex_exmodrm(oper, prefixes, operflags)
-        return osize,oper
+        return osize, oper
+
 
 if __name__ == '__main__':
     import envi.archs
     envi.archs.dismain(Amd64Disasm())
-
