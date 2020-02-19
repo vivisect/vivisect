@@ -1329,27 +1329,27 @@ def getArchModule(name=None):
 
     # Some builds have x86 (py2.6) and some have other stuff...
     if name in ['i386', 'i486', 'i586', 'i686', 'x86']:
-        import envi.archs.i386 as e_i386
+        import envi.archs.i386.archmod as e_i386
         return e_i386.i386Module()
 
     elif name in ('amd64', 'x86_64'):
-        import envi.archs.amd64 as e_amd64
+        import envi.archs.amd64.archmod as e_amd64
         return e_amd64.Amd64Module()
 
     elif name in ('arm', 'armv6l', 'armv7l'):
-        import envi.archs.arm as e_arm
+        import envi.archs.arm.archmod as e_arm
         return e_arm.ArmModule()
 
     elif name in ('thumb', 'thumb16', 'thumb2'):
-        import envi.archs.thumb16 as e_thumb
+        import envi.archs.thumb16.archmod as e_thumb
         return e_thumb.Thumb16Module()
 
     elif name in ('msp430',):
-        import envi.archs.msp430 as e_msp430
+        import envi.archs.msp430.archmod as e_msp430
         return e_msp430.Msp430Module()
 
     elif name in ('h8',):
-        import envi.archs.h8 as e_h8
+        import envi.archs.h8.archmod as e_h8
         return e_h8.H8Module()
 
     else:
@@ -1362,10 +1362,10 @@ def getArchModules(default=e_const.ARCH_DEFAULT):
     also the "named" or "default" arch module.
     '''
     import envi.archs.h8 as e_h8
-    import envi.archs.arm as e_arm
+    import envi.archs.arm.archmod as e_arm
     import envi.archs.i386.archmod as e_i386
     import envi.archs.amd64.archmod as e_amd64
-    import envi.archs.thumb16 as e_thumb16
+    import envi.archs.thumb16.archmod as e_thumb16
     import envi.archs.msp430 as e_msp430
 
     archs = [None]

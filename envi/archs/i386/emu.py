@@ -94,10 +94,9 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
 
     def __init__(self, archid=None):
         envi.Emulator.__init__(self, archid=envi.ARCH_I386)
-        self.initEmuOpt('i386:reponce', False,
-                        'Set to True to short circuit rep prefix')
+        self.initEmuOpt('i386:reponce', False, 'Set to True to short circuit rep prefix')
 
-        for i in xrange(6):
+        for i in range(6):
             self.setSegmentInfo(i, 0, 0xffffffff)
 
         i386RegisterContext.__init__(self)

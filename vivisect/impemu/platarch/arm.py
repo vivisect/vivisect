@@ -1,7 +1,7 @@
-import envi.archs.arm as e_arm
+import envi.archs.arm.emu as e_arm_emu
 import vivisect.impemu.emulator as v_i_emulator
 
-class ArmWorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_arm.ArmEmulator):
+class ArmWorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_arm_emu.ArmEmulator):
 
     taintregs = [ x for x in range(13) ]
 

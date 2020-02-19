@@ -1,7 +1,10 @@
+import binascii
+import unittest
+
 import envi
 import envi.memcanvas as e_memcanvas
+
 import vivisect
-import unittest
 
 # name, bytes, va, repr, txtRender
 i386SingleByteOpcodes = [
@@ -190,7 +193,7 @@ class i386InstructionSet(unittest.TestCase):
         for name, bytez, va, reprOp, renderOp in i386SingleByteOpcodes:
 
             try:
-                op = self._arch.archParseOpcode(bytez.decode('hex'), 0, va)
+                op = self._arch.archParseOpcode(binascii.unhexlify(bytez), 0, va)
             except envi.InvalidInstruction:
                 self.fail("Failed to parse opcode bytes: %s (case: %s, expected: %s)" % (bytez, name, reprOp))
             # print("'%s', 0x%x, '%s' == '%s'" % (bytez, va, repr(op), reprOp))
@@ -214,7 +217,7 @@ class i386InstructionSet(unittest.TestCase):
         for name, bytez, va, reprOp, renderOp in i386MultiByteOpcodes:
 
             try:
-                op = self._arch.archParseOpcode(bytez.decode('hex'), 0, va)
+                op = self._arch.archParseOpcode(binascii.unhexlify(bytez), 0, va)
             except envi.InvalidInstruction:
                 self.fail("Failed to parse opcode bytes: %s (case: %s, expected: %s)" % (bytez, name, reprOp))
             # print("'%s', 0x%x, '%s' == '%s'" % (bytez, va, repr(op), reprOp))
@@ -274,25 +277,25 @@ class i386InstructionSet(unittest.TestCase):
 
     def checkOpcode(self, hexbytez, va, oprepr, opcheck, opercheck, renderOp):
 
-        op = self._arch.archParseOpcode(hexbytez.decode('hex'), 0, va)
+        op = self._arch.archParseOpcode(binascii.unhexlify(hexbytez), 0, va)
 
-        self.assertEqual( repr(op), oprepr )
+        self.assertEqual(repr(op), oprepr)
         opvars = vars(op)
-        for opk,opv in opcheck.items():
+        for opk, opv in opcheck.items():
             # print("op: %s %s" % (opk,opv))
-            self.assertEqual( (opk, opvars.get(opk)), (opk, opv) )
+            self.assertEqual((opk, opvars.get(opk)), (opk, opv))
 
         for oidx in range(len(op.opers)):
             oper = op.opers[oidx]
             opervars = vars(oper)
-            for opk,opv in opercheck[oidx].items():
+            for opk, opv in opercheck[oidx].items():
                 # print("oper: %s %s" % (opk,opv))
                 self.assertEqual( (opk, opervars.get(opk)), (opk, opv) )
 
         vw = vivisect.VivWorkspace()
         scanv = e_memcanvas.StringMemoryCanvas(vw)
         op.render(scanv)
-        #print "render:  %s" % repr(scanv.strval)
+        #print("render:  %s" % repr(scanv.strval))
         self.assertEqual( scanv.strval, renderOp )
 
     def test_envi_i386_disasm_Reg_Operands(self):
@@ -310,15 +313,15 @@ class i386InstructionSet(unittest.TestCase):
         '''
         opbytez = '0032'
         oprepr = 'add byte [edx],dh'
-        opcheck =  {'iflags': 65536, 'va': 16384, 'repr': None, 'prefixes': 0, 'mnem': 'add', 'opcode': 8193, 'size': 2}
+        opcheck = {'iflags': 65536, 'va': 16384, 'repr': None, 'prefixes': 0, 'mnem': 'add', 'opcode': 8193, 'size': 2}
         opercheck = [{'disp': 0, 'tsize': 1, '_is_deref': True, 'reg': 2}, {'tsize': 1, 'reg': 134742018}]
-        self.checkOpcode( opbytez, 0x4000, oprepr, opcheck, opercheck, oprepr )
+        self.checkOpcode(opbytez, 0x4000, oprepr, opcheck, opercheck, oprepr)
 
         opbytez = '0440'
         oprepr = 'add al,64'
         opcheck = {'iflags': 65536, 'prefixes': 0, 'mnem': 'add', 'opcode': 8193, 'size': 2}
-        opercheck = ( {'tsize': 1, 'reg': 524288}, {'tsize': 1, 'imm': 64} )
-        self.checkOpcode( opbytez, 0x4000, oprepr, opcheck, opercheck, oprepr )
+        opercheck = ({'tsize': 1, 'reg': 524288}, {'tsize': 1, 'imm': 64})
+        self.checkOpcode(opbytez, 0x4000, oprepr, opcheck, opercheck, oprepr)
 
         opbytez = '0218'
         oprepr = 'add bl,byte [eax]'

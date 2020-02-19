@@ -429,10 +429,10 @@ class Amd64Disasm(ed_i386.i386Disasm):
         iflags = iflag_lookup.get(optype, 0) | self._dis_oparch
 
         if prefixes & ed_i386.PREFIX_REP_MASK:
-            iflags |= envi.IF_REPEAT
+            iflags |= e_const.IF_REPEAT
 
         if priv_lookup.get(mnem, False):
-            iflags |= envi.IF_PRIV
+            iflags |= e_const.IF_PRIV
 
         # Lea will have a reg-mem/sib operand with _is_deref True, but should be false
         if optype == opcode86.INS_LEA:
