@@ -13,6 +13,7 @@ import sys
 import json
 import time
 import types
+import random
 import socket
 import struct
 import logging
@@ -630,10 +631,7 @@ class CobraDaemon(socketserver.ThreadingTCPServer):
         return None
 
     def getRandomName(self):
-        ret = b""
-        for byte in os.urandom(16):
-            ret += b"%.2x" % ord(byte)
-        return ret
+        return ''.join([hex(random.randint(0, 255))[2:] for i in range(16)])
 
     def shareObject(self, obj, name=None, doref=False, dowith=False):
         """
