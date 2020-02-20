@@ -149,20 +149,38 @@ class PpcInstructionSet(unittest.TestCase):
 
 
     def test_emu_CR_and_XER(self):
+        addco_tests = (
+            {'cmd': 'addco.', 'inr1': 0x1, 'inr2': 0x2, 'inr3': 0x0, 'incr': 0x0, 'inxer': 0x0,     'expr3': 0x3,   'expcr': 0x40000000,    'expxer': 0x0,},
+            {'cmd': 'addco.', 'inr1': 0x3fffffffffffffff, 'inr2': 0x3fffffffffffffff, 'inr3': 0x0, 'incr': 0x0, 'inxer': 0x0,       'expr3': 0x7ffffffffffffffe,    'expcr': 0x40000000,    'expxer': 0x0,},
+            {'cmd': 'addco.', 'inr1': 0x4000000000000000, 'inr2': 0x4000000000000000, 'inr3': 0x0, 'incr': 0x0, 'inxer': 0xc0000000,        'expr3': 0x8000000000000000,    'expcr': 0x90000000,    'expxer': 0xc0000000,},
+            {'cmd': 'addco.', 'inr1': 0x4000000000000000, 'inr2': 0x4000000000000000, 'inr3': 0x0, 'incr': 0x0, 'inxer': 0xc0000000,        'expr3': 0x8000000000000000,    'expcr': 0x90000000,    'expxer': 0xc0000000,},
+            {'cmd': 'addco.', 'inr1': 0x7fffffffffffffff, 'inr2': 0x7fffffffffffffff, 'inr3': 0x0, 'incr': 0x0, 'inxer': 0xc0000000,        'expr3': 0xfffffffffffffffe,    'expcr': 0x90000000,    'expxer': 0xc0000000,},
+            {'cmd': 'addco.', 'inr1': 0x8000000000000000, 'inr2': 0x8000000000000000, 'inr3': 0x0, 'incr': 0x0, 'inxer': 0xc0000000,        'expr3': 0x0,   'expcr': 0x30000000,    'expxer': 0xe0000000,},
+            {'cmd': 'addco.', 'inr1': 0xffffffffffffffff, 'inr2': 0xffffffffffffffff, 'inr3': 0x0, 'incr': 0x0, 'inxer': 0xa0000000,        'expr3': 0xfffffffffffffffe,    'expcr': 0x90000000,    'expxer': 0xa0000000,},
+            {'cmd': 'addco.', 'inr1': 0x1, 'inr2': 0x2, 'inr3': 0x0, 'incr': 0x0, 'inxer': 0xa0000000,      'expr3': 0x3,   'expcr': 0x50000000,    'expxer': 0x80000000,},
+            {'cmd': 'addco.', 'inr1': 0x8000000000000000, 'inr2': 0x7fffffffffffffff, 'inr3': 0x0, 'incr': 0x0, 'inxer': 0x0,       'expr3': 0xffffffffffffffff,    'expcr': 0x80000000,    'expxer': 0x0,},
+            {'cmd': 'addco.', 'inr1': 0x8000000000000000, 'inr2': 0x7fffffffffffffff, 'inr3': 0x0, 'incr': 0x0, 'inxer': 0x0,       'expr3': 0xffffffffffffffff,    'expcr': 0x80000000,    'expxer': 0x0,},
+            {'cmd': 'addco.', 'inr1': 0x8000000000000000, 'inr2': 0x8000000000000000, 'inr3': 0x0, 'incr': 0x0, 'inxer': 0x0,       'expr3': 0x0,   'expcr': 0x30000000,    'expxer': 0xe0000000,},
+            {'cmd': 'addco.', 'inr1': 0x7fffffffffffffff, 'inr2': 0x8000000000000000, 'inr3': 0x0, 'incr': 0x0, 'inxer': 0x0,       'expr3': 0xffffffffffffffff,    'expcr': 0x80000000,    'expxer': 0x0,},
+            {'cmd': 'addco.', 'inr1': 0xcfffffffffffffff, 'inr2': 0x8000000000000000, 'inr3': 0x0, 'incr': 0x0, 'inxer': 0x0,       'expr3': 0x4fffffffffffffff,    'expcr': 0x50000000,    'expxer': 0xe0000000,},
+        )
 
         OPCODE_ADDCO = '7C620C15'.decode('hex')
 
         vw, emu, sctx = self.getVivEnv(arch='ppc-server')
         ppcarch = vw.imem_archs[0]
         op = ppcarch.archParseOpcode(OPCODE_ADDCO)
-        self._do_CR_XER(op, emu, 1, 2, 0, 0, 0, 3, 0x40000000, 0)
-        self._do_CR_XER(op, emu, 0x3FFFFFFFFFFFFFFF, 0x3FFFFFFFFFFFFFFF, 0, 0, 0, 0x7ffffffffffffffeL, 0x40000000L, 0)
-        self._do_CR_XER(op, emu, 0x4000000000000000, 0x4000000000000000, 0, 0, 0xc0000000, 0x8000000000000000, 0x90000000L, 0xc0000000L)
-        self._do_CR_XER(op, emu, 0x4000000000000000, 0x4000000000000000, 0, 0, 0xc0000000, 0x8000000000000000, 0x90000000, 0xc0000000)
-        self._do_CR_XER(op, emu, 0x7FFFFFFFFFFFFFFF, 0x7FFFFFFFFFFFFFFF, 0, 0, 0xc0000000, 0xfffffffffffffffe, 0x90000000, 0xc0000000)
-        self._do_CR_XER(op, emu, 0x8000000000000000, 0x8000000000000000, 0, 0, 0xc0000000, 0, 0x30000000, 0xe0000000)
-        self._do_CR_XER(op, emu, 0xFFFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFF, 0, 0, 0xa0000000, 0xfffffffffffffffe, 0x90000000, 0xa0000000)
-        self._do_CR_XER(op, emu, 1, 2, 0, 0, 0xa0000000, 3, 0x50000000, 0x80000000)
+        for test in addco_tests:
+            self._do_CR_XER(op, emu, test['inr1'],  test['inr2'], test['inr3'], test['incr'], test['inxer'], test['expr3'], test['expcr'], test['expxer'])
+
+        #self._do_CR_XER(op, emu, 1, 2, 0, 0, 0, 3, 0x40000000, 0)
+        #self._do_CR_XER(op, emu, 0x3FFFFFFFFFFFFFFF, 0x3FFFFFFFFFFFFFFF, 0, 0, 0, 0x7ffffffffffffffeL, 0x40000000L, 0)
+        #self._do_CR_XER(op, emu, 0x4000000000000000, 0x4000000000000000, 0, 0, 0xc0000000, 0x8000000000000000, 0x90000000L, 0xc0000000L)
+        #self._do_CR_XER(op, emu, 0x4000000000000000, 0x4000000000000000, 0, 0, 0xc0000000, 0x8000000000000000, 0x90000000, 0xc0000000)
+        #self._do_CR_XER(op, emu, 0x7FFFFFFFFFFFFFFF, 0x7FFFFFFFFFFFFFFF, 0, 0, 0xc0000000, 0xfffffffffffffffe, 0x90000000, 0xc0000000)
+        #self._do_CR_XER(op, emu, 0x8000000000000000, 0x8000000000000000, 0, 0, 0xc0000000, 0, 0x30000000, 0xe0000000)
+        #self._do_CR_XER(op, emu, 0xFFFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFF, 0, 0, 0xa0000000, 0xfffffffffffffffe, 0x90000000, 0xa0000000)
+        #self._do_CR_XER(op, emu, 1, 2, 0, 0, 0xa0000000, 3, 0x50000000, 0x80000000)
 
     def _do_CR_XER(self, op, emu, r1, r2, r3, cr, xer, expr3, expcr, expxer):
         print "== %x %x %x  %x %x  %x %x %x" % (r1, r2, r3, cr, xer, expr3, expcr, expxer)
