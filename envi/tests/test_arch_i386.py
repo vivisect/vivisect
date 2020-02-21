@@ -196,6 +196,8 @@ i386MultiByteOpcodes = [
 
     ('LEA', '8d5a0c', 0x40, 'lea ebx,dword [edx + 12]', 'lea ebx,dword [edx + 12]'),
     ('SIGNED', '83C0F9', 0x40, 'add eax,0xfffffff9', 'add eax,0xfffffff9'),
+    ('MAXPD', '660F5F64C020', 0x40, 'maxpd xmm4,oword [eax + eax * 8 + 32]', 'maxpd xmm4,oword [eax + eax * 8 + 32]'),
+    ('MAXPD 2', '660f5fa490d0a80000', 0x40, 'maxpd xmm4,oword [eax + edx * 4 + 43216]', 'maxpd xmm4,oword [eax + edx * 4 + 43216]'),
     # ('rm4mod2', '', 0x40, '', ''),
 
     # AES-NI feature set
