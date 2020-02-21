@@ -174,7 +174,7 @@ class PpcInstructionSet(unittest.TestCase):
             self._do_CR_XER(op, emu, test['inr1'],  test['inr2'], test['inr3'], test['incr'], test['inxer'], test['expr3'], test['expcr'], test['expxer'])
 
     def _do_CR_XER(self, op, emu, r1, r2, r3, cr, xer, expr3, expcr, expxer):
-        print "== %x %x %x  %x %x  %x %x %x" % (r1, r2, r3, cr, xer, expr3, expcr, expxer)
+        #print "== %x %x %x  %x %x  %x %x %x" % (r1, r2, r3, cr, xer, expr3, expcr, expxer)
         emu.setRegisterByName('r1', r1)
         emu.setRegisterByName('r2', r2)
         emu.setRegisterByName('r3', r3)

@@ -99,7 +99,7 @@ def getCarryBitAtX(bit, add0, add1):
     a0b = (add0 & e_bits.b_masks[bit])
     a1b = (add1 & e_bits.b_masks[bit])
     results = (a0b + a1b) >> (bit)
-    print "getCarryBitAtX (%d): 0x%x  0x%x  (%d)" % (bit, a0b, a1b, results)
+    #print "getCarryBitAtX (%d): 0x%x  0x%x  (%d)" % (bit, a0b, a1b, results)
     return results
 
 class PpcAbstractEmulator(envi.Emulator):
@@ -250,9 +250,9 @@ class PpcAbstractEmulator(envi.Emulator):
         if SO == None:
             SO = self.getRegister(REG_SO)
         
-        print "0 setFlags( 0x%x, 0x%x)" % (result, flags)
+        #print "0 setFlags( 0x%x, 0x%x)" % (result, flags)
         flags |= (SO << FLAGS_SO_bitnum)
-        print "1 setFlags( 0x%x, 0x%x)" % (result, flags)
+        #print "1 setFlags( 0x%x, 0x%x)" % (result, flags)
 
         self.setCr(crnum, flags)
 
@@ -941,25 +941,25 @@ class PpcAbstractEmulator(envi.Emulator):
         '''
         mode = self.getPointerSize() * 8
         ca = bool(result >> mode)
-        print "setCA(0x%x):  %r" % (result, ca)
+        #print "setCA(0x%x):  %r" % (result, ca)
         self.setRegister(REG_CA, ca)
 
 
     def setOEflags(self, result, size, add0, add1, mode=OEMODE_ADDSUBNEG):
         #https://devblogs.microsoft.com/oldnewthing/20180808-00/?p=99445
-        #OV = (carrym ^ carrym+1)   # FIXME::::  NEED TO UNDERSTAND THIS ONE....
 
-        if mode==OEMODE_LEGACY:
-            cm = getCarryBitAtX((size*8)-1, add0, add1)
-            cm1 = getCarryBitAtX((size*8)-2, add0, add1)
-            ov = cm != cm1
-            print "setOEflags( 0x%x, 0x%x, 0x%x, 0x%x):  cm= 0x%x, cm1= 0x%x, ov= 0x%x" % (result, size, add0, add1, cm, cm1, ov)
-        elif mode==OEMODE_ADDSUBNEG:
+        # OV = (carrym ^ carrym+1) 
+        if mode == OEMODE_LEGACY:
             cm = getCarryBitAtX((size*8), add0, add1)
             cm1 = getCarryBitAtX((size*8)-1, add0, add1)
             ov = cm != cm1
-            print "setOEflags( 0x%x, 0x%x, 0x%x, 0x%x):  cm= 0x%x, cm1= 0x%x, ov= 0x%x" % (result, size, add0, add1, cm, cm1, ov)
-            #print "setOEflags( 0x%x, 0x%x, 0x%x, 0x%x):  cm= 0x%x, cm1= 0x%x, ov= 0x%x" % (result, size, add0, add1, 0, 0, ov)
+            #print "setOEflags( 0x%x, 0x%x, 0x%x, 0x%x):  cm= 0x%x, cm1= 0x%x, ov= 0x%x" % (result, size, add0, add1, cm, cm1, ov)
+
+        elif mode == OEMODE_ADDSUBNEG:
+            cm = getCarryBitAtX((size*8), add0, add1)
+            cm1 = getCarryBitAtX((size*8)-1, add0, add1)
+            ov = cm != cm1
+            #print "setOEflags( 0x%x, 0x%x, 0x%x, 0x%x):  cm= 0x%x, cm1= 0x%x, ov= 0x%x" % (result, size, add0, add1, cm, cm1, ov)
 
         else:
             # for mul/div, ov is set if the result cannot be contained in 64bits
@@ -979,8 +979,12 @@ class PpcAbstractEmulator(envi.Emulator):
         '''
         src1 = self.getOperValue(op, 1)
         src2 = self.getOperValue(op, 2) # FIXME: move signedness here instead of at decode
+        uresult = src1 + src2
+
         src2 = e_bits.signed(src2, 2)
         result = src1 + src2
+        
+        self.setCA(uresult)
         self.setOperValue(op, 0, result)
         if oe: self.setOEflags(result, self.psize, src1, src2)
         if op.iflags & IF_RC: self.setFlags(result, 0)
@@ -1015,6 +1019,7 @@ class PpcAbstractEmulator(envi.Emulator):
 
         result = ra + rb + ca
 
+        self.setCA(result)
         if oe: self.setOEflags(result, self.psize, ra, rb + ca)
         if op.iflags & IF_RC: self.setFlags(result, 0)
         self.setOperValue(op, 0, result)
@@ -1051,12 +1056,13 @@ class PpcAbstractEmulator(envi.Emulator):
         '''
         src1 = self.getOperValue(op, 1)
         src2 = self.getOperValue(op, 2) # FIXME: move signedness here instead of at decode
-        carry = e_bits.is_signed_carry((src1 + src2), 8, src1)
+        uresult = src1 + src2
+
         src2 = e_bits.signed(src2, 2)
         result = src1 + src2
 
+        self.setCA(uresult)
         self.setOperValue(op, 0, result)
-        self.setRegister(REG_CA, carry)
         if op.iflags & IF_RC: self.setFlags(result, 0)
 
     def i_addme(self, op):
@@ -1066,12 +1072,12 @@ class PpcAbstractEmulator(envi.Emulator):
         '''
         src1 = self.getOperValue(op, 1)
         src2 = 0xffffffffffffffff
-        carry = e_bits.is_signed_carry((src1 + src2), 8, src1)
-        result = src1 + src2
+        ca = self.getRegister(REG_CA)
+        result = src1 + src2 + ca
 
         self.setOperValue(op, 0, result)
 
-        self.setRegister(REG_CA, carry)
+        self.setCA(result)
         if op.iflags & IF_RC: self.setFlags(result, 0)
 
     def i_addmeo(self, op):
