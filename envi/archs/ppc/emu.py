@@ -92,18 +92,15 @@ def ROTL64(x, y, psize=8):
     tmp = x >> (64-y)
     return ((x << y) | tmp) & e_bits.u_maxes[psize]
     
-def getCarryBitAtX(bit, result, add0, add1):
+def getCarryBitAtX(bit, add0, add1):
     '''
     return the carry bit at bit x.
-    algorithm: check the next higher bit for result and add0+add1.  
-        if they ==, carry is 0  
-        if they !=, carry is 1
     '''
-    rb = (result >> bit) & 1
-    bit += 1
-    a0b = (add0 >> bit) & 1
-    a1b = (add1 >> bit) & 1
-    return rb != (a0b + a1b)
+    a0b = (add0 & e_bits.b_masks[bit])
+    a1b = (add1 & e_bits.b_masks[bit])
+    results = (a0b + a1b) >> (bit)
+    print "getCarryBitAtX (%d): 0x%x  0x%x  (%d)" % (bit, a0b, a1b, results)
+    return results
 
 class PpcAbstractEmulator(envi.Emulator):
 
@@ -948,17 +945,22 @@ class PpcAbstractEmulator(envi.Emulator):
         self.setRegister(REG_CA, ca)
 
 
-    def setOEflags(self, result, size, add0, add1, addSubNegate=True):
+    def setOEflags(self, result, size, add0, add1, mode=OEMODE_ADDSUBNEG):
         #https://devblogs.microsoft.com/oldnewthing/20180808-00/?p=99445
         #OV = (carrym ^ carrym+1)   # FIXME::::  NEED TO UNDERSTAND THIS ONE....
 
-        if addSubNegate:
-            ov = getCarryBitAtX((size*8)-1, result, add0, add1)
-            #cm = getCarryBitAtX((size*8)-1, result, add0, add1)
-            #cm1 = getCarryBitAtX((size*8)-2, result, add0, add1)
-            #ov = cm ^ cm1
-            #print "setOEflags( 0x%x, 0x%x, 0x%x, 0x%x):  cm= 0x%x, cm1= 0x%x, ov= 0x%x" % (result, size, add0, add1, cm, cm1, ov)
-            print "setOEflags( 0x%x, 0x%x, 0x%x, 0x%x):  cm= 0x%x, cm1= 0x%x, ov= 0x%x" % (result, size, add0, add1, 0, 0, ov)
+        if mode==OEMODE_LEGACY:
+            cm = getCarryBitAtX((size*8)-1, add0, add1)
+            cm1 = getCarryBitAtX((size*8)-2, add0, add1)
+            ov = cm != cm1
+            print "setOEflags( 0x%x, 0x%x, 0x%x, 0x%x):  cm= 0x%x, cm1= 0x%x, ov= 0x%x" % (result, size, add0, add1, cm, cm1, ov)
+        elif mode==OEMODE_ADDSUBNEG:
+            cm = getCarryBitAtX((size*8), add0, add1)
+            cm1 = getCarryBitAtX((size*8)-1, add0, add1)
+            ov = cm != cm1
+            print "setOEflags( 0x%x, 0x%x, 0x%x, 0x%x):  cm= 0x%x, cm1= 0x%x, ov= 0x%x" % (result, size, add0, add1, cm, cm1, ov)
+            #print "setOEflags( 0x%x, 0x%x, 0x%x, 0x%x):  cm= 0x%x, cm1= 0x%x, ov= 0x%x" % (result, size, add0, add1, 0, 0, ov)
+
         else:
             # for mul/div, ov is set if the result cannot be contained in 64bits
             ov = bool(result >> 64)

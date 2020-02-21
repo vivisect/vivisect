@@ -125,6 +125,9 @@ COND_NV = 9
 
 IFLAGS_NONE = 0
 
+OEMODE_LEGACY = 0
+OEMODE_ADDSUBNEG = 1
+OEMODE_MULDIV = 2
 
 # VLE opcode types #FIXME: coordinate between VLE and const_gen
 opcodetypes = (
