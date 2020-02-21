@@ -407,6 +407,32 @@ amd64MultiByteOpcodes = [
     ('MAXPD 2', '66450f5f85c4000000', 'maxpd xmm8,oword [r13 + 196]', 'maxpd xmm8,oword [r13 + 196]'),
     ('MAXPD 3', '66460f5f04cdc4000000', 'maxpd xmm8,oword [0x000000c4 + r9 * 8]', 'maxpd xmm8,oword [0x000000c4 + r9 * 8]'),
     ('MAXPD 4', '66440f5fc1', 'maxpd xmm8,xmm1', 'maxpd xmm8,xmm1'),
+    ('MOV AMETH_C', '0f20d0', 'mov rax,ctrl2', 'mov rax,ctrl2'),
+    ('MOV AMETH_C 2', '0f20f1', 'mov rcx,ctrl6', 'mov rcx,ctrl6'),
+    ('MOV AMETH_C 3', '0f22e2', 'mov ctrl4,rdx', 'mov ctrl4,rdx'),
+    ('MOV AMETH_C 4', '0f22f8', 'mov ctrl7,rax', 'mov ctrl7,rax'),
+    ('MOV AMETH_C REX', '440f20c2', 'mov rdx,ctrl8', 'mov rdx,ctrl8'),
+    ('MOV AMETH_C REX 2', '450f22c1', 'mov ctrl8,r9', 'mov ctrl8,r9'),
+
+    ('MOV AMETH_D', '0f21c0', 'mov rax,debug0', 'mov rax,debug0'), # ADDRMETH_D
+    ('MOV AMETH_D 2', '0f21f9', 'mov rcx,debug7', 'mov rcx,debug7'),
+    ('MOV AMETH_D 3', '0f23e1', 'mov debug4,rcx', 'mov debug4,rcx'),
+    ('MOV AMETH_D REX', '410f23c4', 'mov debug0,r12', 'mov debug0,r12'),
+
+    ('LEA', '8d4a0c', 'lea ecx,dword [rdx + 12]', 'lea ecx,dword [rdx + 12]'),
+    ('LEA 2', '488d400c', 'lea rax,qword [rax + 12]', 'lea rax,qword [rax + 12]'),
+    ('XOR', '4981F4CE260000', 'xor r12,0x000026ce', 'xor r12,0x000026ce'),
+    ('XOR SIGNED', '4881F19B83FFFF', 'xor rcx,0xffffffffffff839b', 'xor rcx,0xffffffffffff839b'),
+    ('SIGNED', '83C0F9', 'add eax,0xfffffff9', 'add eax,0xfffffff9'),
+    ('UNSIGNED', '05f9000000', 'add eax,249', 'add eax,249'),
+
+    ('MOV SEGREG 2', '8ce0', 'mov ax,fs', 'mov ax,fs'),
+    ('MOV SEGREG 3', '8ec6', 'mov es,si', 'mov es,si'),
+    ('MOV SEGREG 4', '488ce7', 'mov rdi,fs', 'mov rdi,fs'),
+    ('MOV SEGREG 5', '488ed6', 'mov ss,rsi', 'mov ss,rsi'),
+    ('MOV SEGREG 6', '8E142541414141', 'mov ss,word [0x41414141]', 'mov ss,word [0x41414141]'),
+    ('MOV SEGREG 7', '8C042541414141', 'mov word [0x41414141],es', 'mov word [0x41414141],es'),
+
 
     ('WAIT', '9b', 'wait ', 'wait '),  # TODO: this needs to be able to change the opcode too
 ]
@@ -1081,7 +1107,7 @@ class Amd64InstructionSet(unittest.TestCase):
         opbytez = '0440'
         oprepr = 'add al,64'
         opcheck = {'iflags': 131072, 'prefixes': 0, 'mnem': 'add', 'opcode': 8193, 'size': 2}
-        opercheck = ( {'tsize': 4, 'reg': 524288}, {'tsize': 1, 'imm': 64} )
+        opercheck = ( {'tsize': 4, 'reg': 524288}, {'tsize': 4, 'imm': 64} )
         self.checkOpcode( opbytez, 0x4000, oprepr, opcheck, opercheck, oprepr )
 
         opbytez = '0218'
@@ -1091,9 +1117,10 @@ class Amd64InstructionSet(unittest.TestCase):
         self.checkOpcode( opbytez, 0x4000, oprepr, opcheck, opercheck, oprepr )
 
         opbytez = '0f2018'
-        oprepr = 'mov dword [rax],ctrl3'
+        # TODO: nothing in the manual says anything about mov from a control reg being able to hit memory
+        oprepr = 'mov qword [rax],ctrl3'
         opcheck =  {'iflags': 131072, 'va': 16384, 'repr': None, 'prefixes': 0, 'mnem': 'mov', 'opcode': 24577, 'size': 3}
-        opercheck = ( {'disp': 0, 'tsize': 4, '_is_deref': True, 'reg': 0}, {'tsize': 4, 'reg': 59} )
+        opercheck = ( {'disp': 0, 'tsize': 8, '_is_deref': True, 'reg': 0}, {'tsize': 8, 'reg': 59} )
         self.checkOpcode( opbytez, 0x4000, oprepr, opcheck, opercheck, oprepr )
 
         for x in range(0xb0, 0xb8):

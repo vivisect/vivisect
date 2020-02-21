@@ -490,8 +490,7 @@ class Amd64Disasm(e_i386.i386Disasm):
                         # If we are a sign extended immediate and not the same as the other operand,
                         # do the sign extension during disassembly so nothing else has to worry about it..
                         if len(operands) and tsize != operands[-1].tsize:
-                            # Check if we are an explicitly signed operand *or* REX.W
-                            if operflags & opcode86.OP_SIGNED and prefixes & PREFIX_REX_W:
+                            if operflags & opcode86.OP_SIGNED:
                                 otsize = operands[-1].tsize
                                 oper.imm = e_bits.sign_extend(oper.imm, oper.tsize, otsize)
                                 oper.tsize = otsize
