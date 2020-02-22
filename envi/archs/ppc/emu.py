@@ -874,8 +874,8 @@ class PpcAbstractEmulator(envi.Emulator):
             a = e_bits.signed(rA, dsize)
             b = e_bits.signed(rB, ssize)
         else:
-            a = rA
-            b = rB
+            a = e_bits.signed(rA, 8)
+            b = e_bits.signed(rB, 8)
         SO = self.getRegister(REG_SO)
 
         if a < b:
@@ -885,6 +885,7 @@ class PpcAbstractEmulator(envi.Emulator):
         else:
             c = 2
 
+        #print "cmpw: %r  %x  %x  %x" % (cridx, a, b, c)
         self.setCr(cridx, c|SO)
 
     def i_cmplw(self, op, L=0):
