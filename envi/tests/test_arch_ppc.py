@@ -1190,10 +1190,110 @@ class PpcInstructionSet(unittest.TestCase):
             {'cmd': 'cmpd.', 'inr0': 0xffffffff80000000, 'inr1': 0xffffffff20000000, 'incr': 0x0, 'inxer': 0x0, 'infpscr': 0x0,     'expcr': 0x40000000,    'expxer': 0x0,  'expfpscr': 0x0},
             {'cmd': 'cmpd.', 'inr0': 0xffffffff80000000, 'inr1': 0xffffffff40000000, 'incr': 0x0, 'inxer': 0x0, 'infpscr': 0x0,     'expcr': 0x40000000,    'expxer': 0x0,  'expfpscr': 0x0},
             {'cmd': 'cmpd.', 'inr0': 0xffffffff80000000, 'inr1': 0xffffffff80000000, 'incr': 0x0, 'inxer': 0x0, 'infpscr': 0x0,     'expcr': 0x20000000,    'expxer': 0x0,  'expfpscr': 0x0},
-)
+        )
 
+        cmplw_tests = (
+            {'cmd': 'cmplw.', 'inr0': 0x1, 'inr1': 0x1, 'incr': 0x0, 'inxer': 0x0, 'infpscr': 0x0,  'expcr': 0x20000000,    'expxer': 0x0,  'expfpscr': 0x0},
+            {'cmd': 'cmplw.', 'inr0': 0x1, 'inr1': 0x2, 'incr': 0x0, 'inxer': 0x0, 'infpscr': 0x0,  'expcr': 0x80000000,    'expxer': 0x0,  'expfpscr': 0x0},
+            {'cmd': 'cmplw.', 'inr0': 0x1, 'inr1': 0x4000, 'incr': 0x0, 'inxer': 0x0, 'infpscr': 0x0,       'expcr': 0x80000000,    'expxer': 0x0,  'expfpscr': 0x0},
+            {'cmd': 'cmplw.', 'inr0': 0x1, 'inr1': 0x8000, 'incr': 0x0, 'inxer': 0x0, 'infpscr': 0x0,       'expcr': 0x80000000,    'expxer': 0x0,  'expfpscr': 0x0},
+            {'cmd': 'cmplw.', 'inr0': 0x1, 'inr1': 0xffffffff00010000, 'incr': 0x0, 'inxer': 0x0, 'infpscr': 0x0,   'expcr': 0x80000000,    'expxer': 0x0,  'expfpscr': 0x0},
+            {'cmd': 'cmplw.', 'inr0': 0x1, 'inr1': 0xffffffff00020000, 'incr': 0x0, 'inxer': 0x0, 'infpscr': 0x0,   'expcr': 0x80000000,    'expxer': 0x0,  'expfpscr': 0x0},
+            {'cmd': 'cmplw.', 'inr0': 0x1, 'inr1': 0xffffffff00040000, 'incr': 0x0, 'inxer': 0x0, 'infpscr': 0x0,   'expcr': 0x80000000,    'expxer': 0x0,  'expfpscr': 0x0},
+            {'cmd': 'cmplw.', 'inr0': 0x1, 'inr1': 0xffffffff40000000, 'incr': 0x0, 'inxer': 0x0, 'infpscr': 0x0,   'expcr': 0x80000000,    'expxer': 0x0,  'expfpscr': 0x0},
+            {'cmd': 'cmplw.', 'inr0': 0x1, 'inr1': 0xffffffff80000000, 'incr': 0x0, 'inxer': 0x0, 'infpscr': 0x0,   'expcr': 0x80000000,    'expxer': 0x0,  'expfpscr': 0x0},
+            {'cmd': 'cmplw.', 'inr0': 0x2, 'inr1': 0x1, 'incr': 0x0, 'inxer': 0x0, 'infpscr': 0x0,  'expcr': 0x40000000,    'expxer': 0x0,  'expfpscr': 0x0},
+            {'cmd': 'cmplw.', 'inr0': 0x2, 'inr1': 0x2, 'incr': 0x0, 'inxer': 0x0, 'infpscr': 0x0,  'expcr': 0x20000000,    'expxer': 0x0,  'expfpscr': 0x0},
+            {'cmd': 'cmplw.', 'inr0': 0x2, 'inr1': 0x4000, 'incr': 0x0, 'inxer': 0x0, 'infpscr': 0x0,       'expcr': 0x80000000,    'expxer': 0x0,  'expfpscr': 0x0},
+            {'cmd': 'cmplw.', 'inr0': 0x2, 'inr1': 0x8000, 'incr': 0x0, 'inxer': 0x0, 'infpscr': 0x0,       'expcr': 0x80000000,    'expxer': 0x0,  'expfpscr': 0x0},
+            {'cmd': 'cmplw.', 'inr0': 0x2, 'inr1': 0xffffffff00010000, 'incr': 0x0, 'inxer': 0x0, 'infpscr': 0x0,   'expcr': 0x80000000,    'expxer': 0x0,  'expfpscr': 0x0},
+            {'cmd': 'cmplw.', 'inr0': 0x2, 'inr1': 0xffffffff00020000, 'incr': 0x0, 'inxer': 0x0, 'infpscr': 0x0,   'expcr': 0x80000000,    'expxer': 0x0,  'expfpscr': 0x0},
+            {'cmd': 'cmplw.', 'inr0': 0x2, 'inr1': 0xffffffff00040000, 'incr': 0x0, 'inxer': 0x0, 'infpscr': 0x0,   'expcr': 0x80000000,    'expxer': 0x0,  'expfpscr': 0x0},
+            {'cmd': 'cmplw.', 'inr0': 0x2, 'inr1': 0xffffffff40000000, 'incr': 0x0, 'inxer': 0x0, 'infpscr': 0x0,   'expcr': 0x80000000,    'expxer': 0x0,  'expfpscr': 0x0},
+            {'cmd': 'cmplw.', 'inr0': 0x2, 'inr1': 0xffffffff80000000, 'incr': 0x0, 'inxer': 0x0, 'infpscr': 0x0,   'expcr': 0x80000000,    'expxer': 0x0,  'expfpscr': 0x0},
+            {'cmd': 'cmplw.', 'inr0': 0x4000, 'inr1': 0x1, 'incr': 0x0, 'inxer': 0x0, 'infpscr': 0x0,       'expcr': 0x40000000,    'expxer': 0x0,  'expfpscr': 0x0},
+            {'cmd': 'cmplw.', 'inr0': 0x4000, 'inr1': 0x2, 'incr': 0x0, 'inxer': 0x0, 'infpscr': 0x0,       'expcr': 0x40000000,    'expxer': 0x0,  'expfpscr': 0x0},
+            {'cmd': 'cmplw.', 'inr0': 0x4000, 'inr1': 0x4000, 'incr': 0x0, 'inxer': 0x0, 'infpscr': 0x0,    'expcr': 0x20000000,    'expxer': 0x0,  'expfpscr': 0x0},
+            {'cmd': 'cmplw.', 'inr0': 0x4000, 'inr1': 0x8000, 'incr': 0x0, 'inxer': 0x0, 'infpscr': 0x0,    'expcr': 0x80000000,    'expxer': 0x0,  'expfpscr': 0x0},
+            {'cmd': 'cmplw.', 'inr0': 0x4000, 'inr1': 0xffffffff00010000, 'incr': 0x0, 'inxer': 0x0, 'infpscr': 0x0,        'expcr': 0x80000000,    'expxer': 0x0,  'expfpscr': 0x0},
+            {'cmd': 'cmplw.', 'inr0': 0x4000, 'inr1': 0xffffffff00020000, 'incr': 0x0, 'inxer': 0x0, 'infpscr': 0x0,        'expcr': 0x80000000,    'expxer': 0x0,  'expfpscr': 0x0},
+            {'cmd': 'cmplw.', 'inr0': 0x4000, 'inr1': 0xffffffff00040000, 'incr': 0x0, 'inxer': 0x0, 'infpscr': 0x0,        'expcr': 0x80000000,    'expxer': 0x0,  'expfpscr': 0x0},
+            {'cmd': 'cmplw.', 'inr0': 0x4000, 'inr1': 0xffffffff40000000, 'incr': 0x0, 'inxer': 0x0, 'infpscr': 0x0,        'expcr': 0x80000000,    'expxer': 0x0,  'expfpscr': 0x0},
+            {'cmd': 'cmplw.', 'inr0': 0x4000, 'inr1': 0xffffffff80000000, 'incr': 0x0, 'inxer': 0x0, 'infpscr': 0x0,        'expcr': 0x80000000,    'expxer': 0x0,  'expfpscr': 0x0},
+            {'cmd': 'cmplw.', 'inr0': 0x8000, 'inr1': 0x1, 'incr': 0x0, 'inxer': 0x0, 'infpscr': 0x0,       'expcr': 0x40000000,    'expxer': 0x0,  'expfpscr': 0x0},
+            {'cmd': 'cmplw.', 'inr0': 0x8000, 'inr1': 0x2, 'incr': 0x0, 'inxer': 0x0, 'infpscr': 0x0,       'expcr': 0x40000000,    'expxer': 0x0,  'expfpscr': 0x0},
+            {'cmd': 'cmplw.', 'inr0': 0x8000, 'inr1': 0x4000, 'incr': 0x0, 'inxer': 0x0, 'infpscr': 0x0,    'expcr': 0x40000000,    'expxer': 0x0,  'expfpscr': 0x0},
+            {'cmd': 'cmplw.', 'inr0': 0x8000, 'inr1': 0x8000, 'incr': 0x0, 'inxer': 0x0, 'infpscr': 0x0,    'expcr': 0x20000000,    'expxer': 0x0,  'expfpscr': 0x0},
+            {'cmd': 'cmplw.', 'inr0': 0x8000, 'inr1': 0xffffffff00010000, 'incr': 0x0, 'inxer': 0x0, 'infpscr': 0x0,        'expcr': 0x80000000,    'expxer': 0x0,  'expfpscr': 0x0},
+            {'cmd': 'cmplw.', 'inr0': 0x8000, 'inr1': 0xffffffff00020000, 'incr': 0x0, 'inxer': 0x0, 'infpscr': 0x0,        'expcr': 0x80000000,    'expxer': 0x0,  'expfpscr': 0x0},
+            {'cmd': 'cmplw.', 'inr0': 0x8000, 'inr1': 0xffffffff00040000, 'incr': 0x0, 'inxer': 0x0, 'infpscr': 0x0,        'expcr': 0x80000000,    'expxer': 0x0,  'expfpscr': 0x0},
+            {'cmd': 'cmplw.', 'inr0': 0x8000, 'inr1': 0xffffffff40000000, 'incr': 0x0, 'inxer': 0x0, 'infpscr': 0x0,        'expcr': 0x80000000,    'expxer': 0x0,  'expfpscr': 0x0},
+            {'cmd': 'cmplw.', 'inr0': 0x8000, 'inr1': 0xffffffff80000000, 'incr': 0x0, 'inxer': 0x0, 'infpscr': 0x0,        'expcr': 0x80000000,    'expxer': 0x0,  'expfpscr': 0x0},
+            {'cmd': 'cmplw.', 'inr0': 0xffffffff00010000, 'inr1': 0x1, 'incr': 0x0, 'inxer': 0x0, 'infpscr': 0x0,   'expcr': 0x40000000,    'expxer': 0x0,  'expfpscr': 0x0},
+            {'cmd': 'cmplw.', 'inr0': 0xffffffff00010000, 'inr1': 0x2, 'incr': 0x0, 'inxer': 0x0, 'infpscr': 0x0,   'expcr': 0x40000000,    'expxer': 0x0,  'expfpscr': 0x0},
+            {'cmd': 'cmplw.', 'inr0': 0xffffffff00010000, 'inr1': 0x4000, 'incr': 0x0, 'inxer': 0x0, 'infpscr': 0x0,        'expcr': 0x40000000,    'expxer': 0x0,  'expfpscr': 0x0},
+            {'cmd': 'cmplw.', 'inr0': 0xffffffff00010000, 'inr1': 0x8000, 'incr': 0x0, 'inxer': 0x0, 'infpscr': 0x0,        'expcr': 0x40000000,    'expxer': 0x0,  'expfpscr': 0x0},
+            {'cmd': 'cmplw.', 'inr0': 0xffffffff00010000, 'inr1': 0xffffffff00010000, 'incr': 0x0, 'inxer': 0x0, 'infpscr': 0x0,    'expcr': 0x20000000,    'expxer': 0x0,  'expfpscr': 0x0},
+            {'cmd': 'cmplw.', 'inr0': 0xffffffff00010000, 'inr1': 0xffffffff00020000, 'incr': 0x0, 'inxer': 0x0, 'infpscr': 0x0,    'expcr': 0x80000000,    'expxer': 0x0,  'expfpscr': 0x0},
+            {'cmd': 'cmplw.', 'inr0': 0xffffffff00010000, 'inr1': 0xffffffff00040000, 'incr': 0x0, 'inxer': 0x0, 'infpscr': 0x0,    'expcr': 0x80000000,    'expxer': 0x0,  'expfpscr': 0x0},
+            {'cmd': 'cmplw.', 'inr0': 0xffffffff00010000, 'inr1': 0xffffffff40000000, 'incr': 0x0, 'inxer': 0x0, 'infpscr': 0x0,    'expcr': 0x80000000,    'expxer': 0x0,  'expfpscr': 0x0},
+            {'cmd': 'cmplw.', 'inr0': 0xffffffff00010000, 'inr1': 0xffffffff80000000, 'incr': 0x0, 'inxer': 0x0, 'infpscr': 0x0,    'expcr': 0x80000000,    'expxer': 0x0,  'expfpscr': 0x0},
+            {'cmd': 'cmplw.', 'inr0': 0xffffffff00020000, 'inr1': 0x1, 'incr': 0x0, 'inxer': 0x0, 'infpscr': 0x0,   'expcr': 0x40000000,    'expxer': 0x0,  'expfpscr': 0x0},
+            {'cmd': 'cmplw.', 'inr0': 0xffffffff00020000, 'inr1': 0x2, 'incr': 0x0, 'inxer': 0x0, 'infpscr': 0x0,   'expcr': 0x40000000,    'expxer': 0x0,  'expfpscr': 0x0},
+            {'cmd': 'cmplw.', 'inr0': 0xffffffff00020000, 'inr1': 0x4000, 'incr': 0x0, 'inxer': 0x0, 'infpscr': 0x0,        'expcr': 0x40000000,    'expxer': 0x0,  'expfpscr': 0x0},
+            {'cmd': 'cmplw.', 'inr0': 0xffffffff00020000, 'inr1': 0x8000, 'incr': 0x0, 'inxer': 0x0, 'infpscr': 0x0,        'expcr': 0x40000000,    'expxer': 0x0,  'expfpscr': 0x0},
+            {'cmd': 'cmplw.', 'inr0': 0xffffffff00020000, 'inr1': 0xffffffff00010000, 'incr': 0x0, 'inxer': 0x0, 'infpscr': 0x0,    'expcr': 0x40000000,    'expxer': 0x0,  'expfpscr': 0x0},
+            {'cmd': 'cmplw.', 'inr0': 0xffffffff00020000, 'inr1': 0xffffffff00020000, 'incr': 0x0, 'inxer': 0x0, 'infpscr': 0x0,    'expcr': 0x20000000,    'expxer': 0x0,  'expfpscr': 0x0},
+            {'cmd': 'cmplw.', 'inr0': 0xffffffff00020000, 'inr1': 0xffffffff00040000, 'incr': 0x0, 'inxer': 0x0, 'infpscr': 0x0,    'expcr': 0x80000000,    'expxer': 0x0,  'expfpscr': 0x0},
+            {'cmd': 'cmplw.', 'inr0': 0xffffffff00020000, 'inr1': 0xffffffff40000000, 'incr': 0x0, 'inxer': 0x0, 'infpscr': 0x0,    'expcr': 0x80000000,    'expxer': 0x0,  'expfpscr': 0x0},
+            {'cmd': 'cmplw.', 'inr0': 0xffffffff00020000, 'inr1': 0xffffffff80000000, 'incr': 0x0, 'inxer': 0x0, 'infpscr': 0x0,    'expcr': 0x80000000,    'expxer': 0x0,  'expfpscr': 0x0},
+            {'cmd': 'cmplw.', 'inr0': 0xffffffff00040000, 'inr1': 0x1, 'incr': 0x0, 'inxer': 0x0, 'infpscr': 0x0,   'expcr': 0x40000000,    'expxer': 0x0,  'expfpscr': 0x0},
+            {'cmd': 'cmplw.', 'inr0': 0xffffffff00040000, 'inr1': 0x2, 'incr': 0x0, 'inxer': 0x0, 'infpscr': 0x0,   'expcr': 0x40000000,    'expxer': 0x0,  'expfpscr': 0x0},
+            {'cmd': 'cmplw.', 'inr0': 0xffffffff00040000, 'inr1': 0x4000, 'incr': 0x0, 'inxer': 0x0, 'infpscr': 0x0,        'expcr': 0x40000000,    'expxer': 0x0,  'expfpscr': 0x0},
+            {'cmd': 'cmplw.', 'inr0': 0xffffffff00040000, 'inr1': 0x8000, 'incr': 0x0, 'inxer': 0x0, 'infpscr': 0x0,        'expcr': 0x40000000,    'expxer': 0x0,  'expfpscr': 0x0},
+            {'cmd': 'cmplw.', 'inr0': 0xffffffff00040000, 'inr1': 0xffffffff00010000, 'incr': 0x0, 'inxer': 0x0, 'infpscr': 0x0,    'expcr': 0x40000000,    'expxer': 0x0,  'expfpscr': 0x0},
+            {'cmd': 'cmplw.', 'inr0': 0xffffffff00040000, 'inr1': 0xffffffff00020000, 'incr': 0x0, 'inxer': 0x0, 'infpscr': 0x0,    'expcr': 0x40000000,    'expxer': 0x0,  'expfpscr': 0x0},
+            {'cmd': 'cmplw.', 'inr0': 0xffffffff00040000, 'inr1': 0xffffffff00040000, 'incr': 0x0, 'inxer': 0x0, 'infpscr': 0x0,    'expcr': 0x20000000,    'expxer': 0x0,  'expfpscr': 0x0},
+            {'cmd': 'cmplw.', 'inr0': 0xffffffff00040000, 'inr1': 0xffffffff40000000, 'incr': 0x0, 'inxer': 0x0, 'infpscr': 0x0,    'expcr': 0x80000000,    'expxer': 0x0,  'expfpscr': 0x0},
+            {'cmd': 'cmplw.', 'inr0': 0xffffffff00040000, 'inr1': 0xffffffff80000000, 'incr': 0x0, 'inxer': 0x0, 'infpscr': 0x0,    'expcr': 0x80000000,    'expxer': 0x0,  'expfpscr': 0x0},
+            {'cmd': 'cmplw.', 'inr0': 0xffffffff40000000, 'inr1': 0x1, 'incr': 0x0, 'inxer': 0x0, 'infpscr': 0x0,   'expcr': 0x40000000,    'expxer': 0x0,  'expfpscr': 0x0},
+            {'cmd': 'cmplw.', 'inr0': 0xffffffff40000000, 'inr1': 0x2, 'incr': 0x0, 'inxer': 0x0, 'infpscr': 0x0,   'expcr': 0x40000000,    'expxer': 0x0,  'expfpscr': 0x0},
+            {'cmd': 'cmplw.', 'inr0': 0xffffffff40000000, 'inr1': 0x4000, 'incr': 0x0, 'inxer': 0x0, 'infpscr': 0x0,        'expcr': 0x40000000,    'expxer': 0x0,  'expfpscr': 0x0},
+            {'cmd': 'cmplw.', 'inr0': 0xffffffff40000000, 'inr1': 0x8000, 'incr': 0x0, 'inxer': 0x0, 'infpscr': 0x0,        'expcr': 0x40000000,    'expxer': 0x0,  'expfpscr': 0x0},
+            {'cmd': 'cmplw.', 'inr0': 0xffffffff40000000, 'inr1': 0xffffffff00010000, 'incr': 0x0, 'inxer': 0x0, 'infpscr': 0x0,    'expcr': 0x40000000,    'expxer': 0x0,  'expfpscr': 0x0},
+            {'cmd': 'cmplw.', 'inr0': 0xffffffff40000000, 'inr1': 0xffffffff00020000, 'incr': 0x0, 'inxer': 0x0, 'infpscr': 0x0,    'expcr': 0x40000000,    'expxer': 0x0,  'expfpscr': 0x0},
+            {'cmd': 'cmplw.', 'inr0': 0xffffffff40000000, 'inr1': 0xffffffff00040000, 'incr': 0x0, 'inxer': 0x0, 'infpscr': 0x0,    'expcr': 0x40000000,    'expxer': 0x0,  'expfpscr': 0x0},
+            {'cmd': 'cmplw.', 'inr0': 0xffffffff40000000, 'inr1': 0xffffffff40000000, 'incr': 0x0, 'inxer': 0x0, 'infpscr': 0x0,    'expcr': 0x20000000,    'expxer': 0x0,  'expfpscr': 0x0},
+            {'cmd': 'cmplw.', 'inr0': 0xffffffff40000000, 'inr1': 0xffffffff80000000, 'incr': 0x0, 'inxer': 0x0, 'infpscr': 0x0,    'expcr': 0x80000000,    'expxer': 0x0,  'expfpscr': 0x0},
+            {'cmd': 'cmplw.', 'inr0': 0xffffffff80000000, 'inr1': 0x1, 'incr': 0x0, 'inxer': 0x0, 'infpscr': 0x0,   'expcr': 0x40000000,    'expxer': 0x0,  'expfpscr': 0x0},
+            {'cmd': 'cmplw.', 'inr0': 0xffffffff80000000, 'inr1': 0x2, 'incr': 0x0, 'inxer': 0x0, 'infpscr': 0x0,   'expcr': 0x40000000,    'expxer': 0x0,  'expfpscr': 0x0},
+            {'cmd': 'cmplw.', 'inr0': 0xffffffff80000000, 'inr1': 0x4000, 'incr': 0x0, 'inxer': 0x0, 'infpscr': 0x0,        'expcr': 0x40000000,    'expxer': 0x0,  'expfpscr': 0x0},
+            {'cmd': 'cmplw.', 'inr0': 0xffffffff80000000, 'inr1': 0x8000, 'incr': 0x0, 'inxer': 0x0, 'infpscr': 0x0,        'expcr': 0x40000000,    'expxer': 0x0,  'expfpscr': 0x0},
+            {'cmd': 'cmplw.', 'inr0': 0xffffffff80000000, 'inr1': 0xffffffff00010000, 'incr': 0x0, 'inxer': 0x0, 'infpscr': 0x0,    'expcr': 0x40000000,    'expxer': 0x0,  'expfpscr': 0x0},
+            {'cmd': 'cmplw.', 'inr0': 0xffffffff80000000, 'inr1': 0xffffffff00020000, 'incr': 0x0, 'inxer': 0x0, 'infpscr': 0x0,    'expcr': 0x40000000,    'expxer': 0x0,  'expfpscr': 0x0},
+            {'cmd': 'cmplw.', 'inr0': 0xffffffff80000000, 'inr1': 0xffffffff00040000, 'incr': 0x0, 'inxer': 0x0, 'infpscr': 0x0,    'expcr': 0x40000000,    'expxer': 0x0,  'expfpscr': 0x0},
+            {'cmd': 'cmplw.', 'inr0': 0xffffffff80000000, 'inr1': 0xffffffff40000000, 'incr': 0x0, 'inxer': 0x0, 'infpscr': 0x0,    'expcr': 0x40000000,    'expxer': 0x0,  'expfpscr': 0x0},
+            {'cmd': 'cmplw.', 'inr0': 0xffffffff80000000, 'inr1': 0xffffffff80000000, 'incr': 0x0, 'inxer': 0x0, 'infpscr': 0x0,    'expcr': 0x20000000,    'expxer': 0x0,  'expfpscr': 0x0},
+            {'cmd': 'cmplw.', 'inr0': 0xffffffff80000000, 'inr1': 0xffffffff80000000, 'incr': 0x0, 'inxer': 0x0, 'infpscr': 0x0,    'expcr': 0x20000000,    'expxer': 0x0,  'expfpscr': 0x0},
+        )
+
+        subfco_tests = (
+            {'cmd': 'subfco.', 'inr1': 0x1, 'inr2': 0x2, 'inr3': 0x0, 'incr': 0x0, 'inxer': 0x0,    'expr3': 0xffffffffffffffff,    'expcr': 0x80000000,    'expxer': 0x0,},
+            {'cmd': 'subfco.', 'inr1': 0x1, 'inr2': 0x2, 'inr3': 0x0, 'incr': 0x0, 'inxer': 0xa0000000,     'expr3': 0xffffffffffffffff,    'expcr': 0x90000000,    'expxer': 0x80000000,},
+            {'cmd': 'subfco.', 'inr1': 0x3fffffffffffffff, 'inr2': 0x3fffffffffffffff, 'inr3': 0x0, 'incr': 0x0, 'inxer': 0x0,      'expr3': 0x0,   'expcr': 0x20000000,    'expxer': 0x20000000,},
+            {'cmd': 'subfco.', 'inr1': 0x4000000000000000, 'inr2': 0x4000000000000000, 'inr3': 0x0, 'incr': 0x0, 'inxer': 0x0,      'expr3': 0x0,   'expcr': 0x20000000,    'expxer': 0x20000000,},
+            {'cmd': 'subfco.', 'inr1': 0x4000000000000000, 'inr2': 0x4000000000000000, 'inr3': 0x0, 'incr': 0x0, 'inxer': 0xc0000000,       'expr3': 0x0,   'expcr': 0x30000000,    'expxer': 0xa0000000,},
+            {'cmd': 'subfco.', 'inr1': 0x7fffffffffffffff, 'inr2': 0x7fffffffffffffff, 'inr3': 0x0, 'incr': 0x0, 'inxer': 0x0,      'expr3': 0x0,   'expcr': 0x20000000,    'expxer': 0x20000000,},
+            {'cmd': 'subfco.', 'inr1': 0x7fffffffffffffff, 'inr2': 0x7fffffffffffffff, 'inr3': 0x0, 'incr': 0x0, 'inxer': 0xc0000000,       'expr3': 0x0,   'expcr': 0x30000000,    'expxer': 0xa0000000,},
+            {'cmd': 'subfco.', 'inr1': 0x8000000000000000, 'inr2': 0x8000000000000000, 'inr3': 0x0, 'incr': 0x0, 'inxer': 0x0,      'expr3': 0x0,   'expcr': 0x20000000,    'expxer': 0x20000000,},
+            {'cmd': 'subfco.', 'inr1': 0x8000000000000000, 'inr2': 0x8000000000000000, 'inr3': 0x0, 'incr': 0x0, 'inxer': 0xc0000000,       'expr3': 0x0,   'expcr': 0x30000000,    'expxer': 0xa0000000,},
+            {'cmd': 'subfco.', 'inr1': 0xffffffffffffffff, 'inr2': 0xffffffffffffffff, 'inr3': 0x0, 'incr': 0x0, 'inxer': 0x0,      'expr3': 0x0,   'expcr': 0x20000000,    'expxer': 0x20000000,},
+            {'cmd': 'subfco.', 'inr1': 0xffffffffffffffff, 'inr2': 0xffffffffffffffff, 'inr3': 0x0, 'incr': 0x0, 'inxer': 0xa0000000,       'expr3': 0x0,   'expcr': 0x30000000,    'expxer': 0xa0000000,},
+        )
         OPCODE_ADDCO = '7C620C15'.decode('hex')
         OPCODE_CMPD =  '7C200800'.decode('hex')
+        OPCODE_CMPLW = '7C000840'.decode('hex')
+        OPCODE_SUBFCO= '7C620C11'.decode('hex')
 
         vw, emu, sctx = self.getVivEnv(arch='ppc-server')
         ppcarch = vw.imem_archs[0]
@@ -1204,6 +1304,14 @@ class PpcInstructionSet(unittest.TestCase):
         op = ppcarch.archParseOpcode(OPCODE_CMPD)
         for test in cmpd_tests:
             self._do_cmpd_CR_XER(op, emu, test['inr0'],  test['inr1'], test['incr'], test['inxer'], test['infpscr'], test['expcr'], test['expxer'], test['expfpscr'])
+
+        op = ppcarch.archParseOpcode(OPCODE_CMPLW)
+        for test in cmplw_tests:
+            self._do_cmpd_CR_XER(op, emu, test['inr0'],  test['inr1'], test['incr'], test['inxer'], test['infpscr'], test['expcr'], test['expxer'], test['expfpscr'])
+
+        op = ppcarch.archParseOpcode(OPCODE_SUBFCO)
+        for test in subfco_tests:
+            self._do_addco_CR_XER(op, emu, test['inr1'],  test['inr2'], test['inr3'], test['incr'], test['inxer'], test['expr3'], test['expcr'], test['expxer'])
 
 
     def _do_addco_CR_XER(self, op, emu, r1, r2, r3, cr, xer, expr3, expcr, expxer):
