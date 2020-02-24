@@ -414,7 +414,7 @@ def p_misc1(opval, va): #
         Rm = opval & 0xf
         olist = ( ArmRegOper(Rm, va=va), )
         if Rm == REG_LR:
-            iflags |= envi.IF_RET | envi.IF_NOFALL
+            iflags |= envi.IF_RET
         else:
             iflags |= envi.IF_BRANCH
         
