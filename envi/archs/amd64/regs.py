@@ -12,7 +12,7 @@ amd64regs = [
 
     # SIMD registers
     ("ymm0",256),("ymm1",256),("ymm2",256),("ymm3",256),("ymm4",256),("ymm5",256),("ymm6",256),("ymm7",256),
-    # The amd64 eytended SIMD regs...
+    # The amd64 extended SIMD regs...
     ("ymm8",256),("ymm9",256),("ymm10",256),("ymm11",256),("ymm12",256),("ymm13",256),("ymm14",256),("ymm15",256),
 
     #("xmm0",128),("xmm1",128),("xmm2",128),("xmm3",128),("xmm4",128),("xmm5",128),("xmm6",128),("xmm7",128),
