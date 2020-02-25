@@ -152,6 +152,7 @@ RT_ANIICON          = 22
 RT_HTML             = 23
 RT_MANIFEST         = 24
 
+
 class VS_VERSIONINFO:
     '''
     A simple (read-only) VS_VERSIONINFO parser
@@ -851,6 +852,18 @@ class PE(object):
 
         return self.readAtRva(e.Name, 128).split('\x00')[0]
 
+    def parseCLR(self):
+        self.clr = []
+
+        dirn = self.getDataDirectory(IMAGE_DIRECTORY_ENTRY_COM_DESCRIPTOR)
+        doff = self.rvaToOffset(dirn.VirtualAddress)
+
+        if doff == 0:
+            return None
+
+        self.IMAGE_COR20_HEADER = self.readStructAtOffset(doff, "pe.IMAGE_COR20_HEADER")
+
+
     def parseExports(self):
 
         # Initialize our required locals.
@@ -1096,6 +1109,10 @@ class PE(object):
         elif name == "IMAGE_LOAD_CONFIG":
             self.parseLoadConfig()
             return self.IMAGE_LOAD_CONFIG
+
+        elif name == "clr":
+            self.parseCLR()
+            return self.clr
 
         else:
             raise AttributeError

@@ -301,3 +301,108 @@ class SignatureEntry(vstruct.VStruct):
     def pcb_size(self):
         size = self.size
         self.vsGetField('pkcs7').vsSetLength(size)
+
+
+# https://github.com/dotnet/coreclr/blob/master/src/inc/corhdr.h#L208
+# Pointed to by one of the data directory entries in the PE header
+class IMAGE_COR20_HEADER(vstruct.VStruct):
+    def __init__(self):
+        vstruct.VStruct.__init__(self)
+        self.HeaderSize = v_uint32()
+        self.MajorRuntimeVersion = v_uint16()
+        self.MinorRuntimeVersion = v_uint16()
+
+        self.Metadata = IMAGE_DATA_DIRECTORY()
+
+        self.Flags = v_uint32()
+
+        self.EntryPoint = v_uint32()
+
+        self.Resources = IMAGE_DATA_DIRECTORY()
+        self.StrongNameSignature = IMAGE_DATA_DIRECTORY()
+        self.CodeManagerTable = IMAGE_DATA_DIRECTORY()  # Deprecated apparently
+        self.VTableFixups = IMAGE_DATA_DIRECTORY()
+        self.ExportAddressTableJumps = IMAGE_DATA_DIRECTORY()
+        self.ManagerNativeHeader = IMAGE_DATA_DIRECTORY()
+
+
+class IMAGE_COR_ILMETHOD_SECT_SMALL(vstruct.VStruct):
+    def __init__(self):
+        vstruct.VStruct.__init__(self)
+        self.Kind = v_uint8()
+        self.DataSize = v_uint8()
+
+
+class IMAGE_COR_ILMETHOD_SECT_FAT(vstruct.VStruct):
+    def __init__(self):
+        vstruct.VStruct.__init__(self)
+        self.Kind = v_uint8()
+        self.DataSize = v_uint24()
+
+class IMAGE_COR_ILMETHOD_SECT_EH_CLAUSE_FAT(vstruct.VStruct):
+    def __init__(self):
+        vstruct.VStruct.__init__(self)
+        self.Flags = v_uint32()  # TODO: So this is actually an enum, so is 32 right?
+        self.TryOffset = v_uint32()
+        self.TryLength = v_uint32()
+        self.HandlerOffset = v_uint32()
+        self.HandlerLength = v_uint32()
+
+        self.TokenOffset = v_uint32()  # Union of ClassToken and FilterOffset
+
+
+class IMAGE_COR_ILMETHOD_SECT_EH_FAT(vstruct.VStruct):
+    def __init__(self):
+        vstruct.VStruct.__init__(self)
+        self.SectFast = IMAGE_COR_ILMETHOD_SECT_FAT()
+        self.Clauses = IMAGE_COR_ILMETHOD_SECT_EH_CLAUSE_FAT()  # TODO: This is an array of .....?????
+
+
+class IMAGE_COR_ILMETHOD_SECT_EH_CLAUSE_SMALL(vstruct.VStruct):
+    def __init__(self):
+        vstruct.VStruct.__init__(self)
+        self.Flags = v_uint16()
+        self.TryOffset = v_uint16()
+        self.TryLength = v_uint8()
+        self.HandlerOffset = v_uint16()
+        self.HandlerLength = v_uint8()
+        self.TokenOffset = v_uint32()  # Union of ClassToken and FilterOffset
+
+
+class IMAGE_COR_ILMETHOD_SECT_EH_SMALL(vstruct.VStruct):
+    def __init__(self):
+        vstruct.VStruct.__init__(self)
+        self.SectSmall = IMAGE_COR_ILMETHOD_SECT_SMALL()
+        self.Reserved = v_uint16()
+        self.Clauses = IMAGE_COR_ILMETHOD_SECT_EH_CLAUSE_SMALL()  # TODO: This is an array of ....????
+
+
+class IMAGE_COR_ILMETHOD_TINY(vstruct.VStruct):
+    def __init__(self):
+        vstruct.VStruct.__init__(self)
+        self.Flags_CodeSize = v_uint8()
+
+
+class IMAGE_COR_ILMETHOD_FAT(vstruct.VStruct):
+    def __init__(self):
+        vstruct.VStruct.__init__(self)
+        # So this is a bitfield where 12 of it is flags and 4 of it is the Size
+        self.FlagNSize = v_uint16()
+        self.MaxStack = v_uint16()
+        self.CodeSize = v_uint32()
+        self.LocVarSigTok = v_uint32()
+
+
+class IMAGE_COR_VTABLEFIXUP(vstruct.VStruct):
+    def __init__(self):
+        vstruct.VStruct.__init__(self)
+        self.Rva = v_uint32()
+        self.Count = v_uint16()
+        self.Type = v_uint16()
+
+
+class COR_FIELD_OFFSET(vstruct.VStruct):
+    def __init__(self):
+        vstruct.VStruct.__init__(self)
+        self.ridOfField = self.v_uint32()
+        self.ulOffset = self.v_uint32()
