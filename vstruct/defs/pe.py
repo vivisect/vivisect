@@ -316,13 +316,23 @@ class IMAGE_COR20_HEADER(vstruct.VStruct):
 
         self.Flags = v_uint32()
 
+        # If COMIMAGE_FLAGS_NATIVE_ENTRYPOINT is not set, EntryPointToken represents a managed entrypoint.
+        # If COMIMAGE_FLAGS_NATIVE_ENTRYPOINT is set, EntryPointRVA represents an RVA to a native entrypoint
         self.EntryPoint = v_uint32()
 
+        # This is the blob of managed resources. Fetched using code:AssemblyNative.GetResource and
+        # code:PEFile.GetResource and accessible from managed code from
+        # System.Assembly.GetManifestResourceStream.  The meta data has a table that maps names to 
+        # offsets into this blob, so logically the blob is a set of resources.
         self.Resources = IMAGE_DATA_DIRECTORY()
         self.StrongNameSignature = IMAGE_DATA_DIRECTORY()
         self.CodeManagerTable = IMAGE_DATA_DIRECTORY()  # Deprecated apparently
+        # Used for manged codee that has unmaanaged code inside it (or exports methods as unmanaged entry points)
         self.VTableFixups = IMAGE_DATA_DIRECTORY()
         self.ExportAddressTableJumps = IMAGE_DATA_DIRECTORY()
+        # null for ordinary IL images. In NGEN images it points at a code:CORCOMPILE_HEADER structure.
+        # In Ready2Run images it points to a READYTORUN_HEADER.
+        # TODO: ALso support all the ready2run stuff
         self.ManagerNativeHeader = IMAGE_DATA_DIRECTORY()
 
 
@@ -355,7 +365,8 @@ class IMAGE_COR_ILMETHOD_SECT_EH_FAT(vstruct.VStruct):
     def __init__(self):
         vstruct.VStruct.__init__(self)
         self.SectFast = IMAGE_COR_ILMETHOD_SECT_FAT()
-        self.Clauses = IMAGE_COR_ILMETHOD_SECT_EH_CLAUSE_FAT()  # TODO: This is an array of .....?????
+        # TODO: Who sets this exception handler clause length?
+        self.Clauses = vstruct.VArray([])  # This is an array of IMAGE_COR_ILMETHOD_SECT_EH_CLAUSE_FAT
 
 
 class IMAGE_COR_ILMETHOD_SECT_EH_CLAUSE_SMALL(vstruct.VStruct):
@@ -374,7 +385,8 @@ class IMAGE_COR_ILMETHOD_SECT_EH_SMALL(vstruct.VStruct):
         vstruct.VStruct.__init__(self)
         self.SectSmall = IMAGE_COR_ILMETHOD_SECT_SMALL()
         self.Reserved = v_uint16()
-        self.Clauses = IMAGE_COR_ILMETHOD_SECT_EH_CLAUSE_SMALL()  # TODO: This is an array of ....????
+        # TODO: Who sets this exception handler clause length?
+        self.Clauses = vstruct.VArray([])  # This is an array of IMAGE_COR_ILMETHOD_SECT_EH_CLAUSE_SMALL
 
 
 class IMAGE_COR_ILMETHOD_TINY(vstruct.VStruct):
@@ -399,6 +411,81 @@ class IMAGE_COR_VTABLEFIXUP(vstruct.VStruct):
         self.Rva = v_uint32()
         self.Count = v_uint16()
         self.Type = v_uint16()
+
+
+class METADATA_SIGNATURE_HEADER(vstruct.VStruct):
+    def __init__(self):
+        vstruct.VStruct.__init__(self)
+        self.Signature = v_uint32()
+        self.MajorVersion = v_uint16()
+        self.MinorVersion = v_uint16()
+        self.ExtraData = v_uint32()
+        self.VersionStringLen = v_uint32()
+        self.VersionString = v_str(32)  # WAG
+
+    def pcb_VersionStringLen(self):
+        vslen = self.vsGetField('VersionStringLen')
+        self.vsGetField('VersionString').vsSetLength(vslen)
+
+
+class METADATA_STORAGE_HEADER(vstruct.VStruct):
+    def __init__(self):
+        vstruct.VStruct.__init__(self)
+        self.Flags = v_uint8()  # should be set to 0
+        self.Pad = v_uint8()
+        self.NumberOfStreams = v_uint16()
+
+
+class METADATA_STREAM_HEADER(vstruct.VStruct):
+    def __init__(self):
+        vstruct.VStruct.__init__(self)
+        self.Offset = v_uint32()
+        self.Size = v_uint32()
+        self.RCName = v_str(32)
+
+    def pcb_RCName(self):
+        rclen = len(self.RCName) + 1  # +1 for the null terminator
+        self.vsGetField("RCName").vsSetLength(rclen)
+
+
+# https://github.com/dotnet/runtime/blob/master/src/coreclr/src/md/inc/metamodel.h#L238
+class METADATA_TABLE_STREAM_HEADER(vstruct.VStruct):
+    def __init__(self):
+        vstruct.VStruct.__init__(self)
+        self.Reserved = v_uint32()
+        self.MajorVersion = v_uint8()
+        self.MinorVersion = v_uint8()
+        self.Heap = v_uint8()
+        self.Rid = v_uint8()
+        self.MaskValid = v_uint64()
+        self.Sorted = v_uint64()
+
+
+# https://github.com/dotnet/runtime/blob/master/src/coreclr/src/inc/metamodelpub.h
+class METADATA_TABLE_DESCRIPTOR(vstruct.VStruct):
+    def __init__(self):
+        vstruct.VStruct.__init__(self)
+        self.Pointer = v_uint32()
+        self.NumberColumns = v_uint8()
+        self.IndexOfKey = v_uint8()
+        self.SizeOfRecord = v_uint16()
+
+
+class METADATA_TABLE_DESCRIPTOR64(vstruct.VStruct):
+    def __init__(self):
+        vstruct.VStruct.__init__(self)
+        self.Pointer = v_uint64()
+        self.NumberColumns = v_uint8()
+        self.IndexOfKey = v_uint8()
+        self.SizeOfRecord = v_uint16()
+
+
+class METADATA_TABLE_COLUMN_DESCRIPTOR(vstruct.VStruct):
+    def __init__(self):
+        vstruct.VStruct.__init__(self)
+        self.Type = v_uint8()
+        self.ColumnOffset = v_uint8()
+        self.ColumnSize = v_uint8()
 
 
 class COR_FIELD_OFFSET(vstruct.VStruct):

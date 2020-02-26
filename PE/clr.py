@@ -840,3 +840,23 @@ class CLRCoreAttrTargets(enum.Enum):
 
     catAll = catAssembly | catModule | catClass | catStruct | catEnum | catConstructor | catMethod | catProperty | catField | catEvent | catInterface | catParameter | catDelegate | catGenericParameter,
     catClassMembers = catClass | catStruct | catEnum | catConstructor | catMethod | catProperty | catField | catEvent | catDelegate | catInterface,
+
+
+class CLRNgenHints(enum.Enum):
+    NGenDefault             = 0x0000  # No preference specified
+    NGenEager               = 0x0001  # NGen at install time
+    NGenLazy                = 0x0002  # NGen after install time
+    NGenNever               = 0x0003  # Assembly should not be ngened
+
+
+class CLRLoadHints(enum.Enum):
+    LoadDefault             = 0x0000  # No preference specified
+    LoadAlways              = 0x0001  # Dependency is always loaded
+    LoadSometimes           = 0x0002  # Dependency is sometimes loaded
+    LoadNever               = 0x0003  # Dependency is never loaded
+
+
+class CLRCoreSaveSize(enum.Enum):
+    cssAccurate             = 0x0000  # Find exact save size, accurate but slower.
+    cssQuick                = 0x0001  # Estimate save size, may pad estimate, but faster.
+    cssDiscardTransientCAs  = 0x0002  # remove all of the CAs of discardable types

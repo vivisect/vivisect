@@ -1,5 +1,6 @@
 import os
 import struct
+import binascii
 
 from cStringIO import StringIO
 
@@ -852,18 +853,6 @@ class PE(object):
 
         return self.readAtRva(e.Name, 128).split('\x00')[0]
 
-    def parseCLR(self):
-        self.clr = []
-
-        dirn = self.getDataDirectory(IMAGE_DIRECTORY_ENTRY_COM_DESCRIPTOR)
-        doff = self.rvaToOffset(dirn.VirtualAddress)
-
-        if doff == 0:
-            return None
-
-        self.IMAGE_COR20_HEADER = self.readStructAtOffset(doff, "pe.IMAGE_COR20_HEADER")
-
-
     def parseExports(self):
 
         # Initialize our required locals.
@@ -1116,6 +1105,99 @@ class PE(object):
 
         else:
             raise AttributeError
+
+    def parseCLR(self):
+        self.CLRMetadata = {}
+
+        dirn = self.getDataDirectory(IMAGE_DIRECTORY_ENTRY_COM_DESCRIPTOR)
+        doff = self.rvaToOffset(dirn.VirtualAddress)
+
+        if doff == 0:
+            return None
+
+        self.IMAGE_COR20_HEADER = clrheader = self.readStructAtOffset(doff, 'pe.IMAGE_COR20_HEADER')
+
+        def fourPad(off):
+            return (4 - (off % 4)) % 4
+
+        # So all the juicy bits live under the Metadata field, but other exports can live under 
+        # vtable fixups
+
+        # metadata points to signature header
+        # which is followed by storage header
+        # which is followed by stream headers
+        # which is then followed by different heaps/streams that contain all the data
+        metasize = clrheader.Metadata.Size
+        moff = metastart = self.rvaToOffset(clrheader.Metadata.VirtualAddress)
+        # the clr does some fun things with packing to get things aligned to a 4 byte boundary
+        moff += moff % 4
+
+        import pdb
+        self.CLRSignatureHeader = self.readStructAtOffset(moff, 'pe.METADATA_SIGNATURE_HEADER')
+        moff += len(self.CLRSignatureHeader)
+        moff += fourPad(moff)
+
+        self.CLRStorageHeader = self.readStructAtOffset(moff, 'pe.METADATA_STORAGE_HEADER')
+        moff += len(self.CLRStorageHeader)
+        moff += fourPad(moff)
+
+        shoff = moff
+        self.CLRStreamHeaders = []
+        for i in range(self.CLRStorageHeader.NumberOfStreams):
+            stream = self.readStructAtOffset(moff, 'pe.METADATA_STREAM_HEADER')
+            shoff += len(stream)
+            shoff += fourPad(len(stream))
+            self.CLRStreamHeaders.append(stream)
+
+        # Note: the stream offsets are from the start of the metadata header, not the start of the file 
+        for sh in self.CLRStreamHeaders:
+            name = sh.RCName
+
+            if name == '#~':  # optimized clr data
+                self.parseOptimizedData(metastart + sh.Offset, sh.Size)
+            elif name == '#-':  # unoptimized clr data
+                pass
+            elif name == '#Strings':
+                pass
+            elif name == '#GUID':
+                guids = self.parseGuidHeap(sh.Offset, sh.Size)
+            elif name == '#Blob':
+                pass
+            elif name == '#US':
+                pass
+            else:
+                logger.warning('Unhandled CLR stream type of: %s' % name)
+
+
+    def parseOptimizedData(self, offset, size):
+        header = self.readStructAtOffset(offset, 'pe.METADATA_TABLE_STREAM_HEADER')
+
+    def parseUnoptimizedData(self, offset, size):
+        pass
+
+    def parseStringHeap(self, offset, size):
+        '''
+        A string heap isn't the hard coded strings that you'd see in the source code. Those live
+        in the #US heap. This is things like class names, method names, etc.
+        '''
+        pass
+
+    def parseGuidHeap(self, offset, size):
+        '''
+        Guid heaps are just a series of 16 byte strings immediately following each other.
+        There's no delimiting, no size parameters.
+        '''
+        consumed = 0
+        guids = []
+        while consumed < size:
+            # Is this right? Who references this?
+            g = binascii.hexlify(self.readAtOffset(offset + consumed, 16))
+            guids.append(g)
+            consumed += 16
+
+        import pdb
+        pdb.set_trace()
+        return guids
 
 def peFromMemoryObject(memobj, baseaddr):
     fd = vstruct.MemObjFile(memobj, baseaddr)
