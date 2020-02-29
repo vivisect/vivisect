@@ -604,22 +604,22 @@ def genTests(abytez):
         bytez = bytez[6:8] + bytez[4:6] + bytez[2:4] + bytez[:2]
         yield ("        ('%s', 0x%s, '%s %s', 0, ())," % (bytez, ova, op, opers))
 
-class PpcEmbedded64Disasm(PpcDisasm):
+class Ppc64EmbeddedDisasm(PpcDisasm):
     __ARCH__ = envi.ARCH_PPC_E64
     def __init__(self, endian=ENDIAN_MSB, options=CAT_PPC_EMBEDDED):
         PpcDisasm.__init__(self, endian, options)
 
-class PpcEmbedded32Disasm(PpcDisasm):
+class Ppc32EmbeddedDisasm(PpcDisasm):
     __ARCH__ = envi.ARCH_PPC_E32
     def __init__(self, endian=ENDIAN_MSB, options=CAT_PPC_EMBEDDED):
         PpcDisasm.__init__(self, endian, options)
 
-class PpcServer64Disasm(PpcDisasm):
+class Ppc64ServerDisasm(PpcDisasm):
     __ARCH__ = envi.ARCH_PPC_S64
     def __init__(self, endian=ENDIAN_MSB, options=CAT_PPC_SERVER):
         PpcDisasm.__init__(self, endian, options)
 
-class PpcServer32Disasm(PpcDisasm):
+class Ppc32ServerDisasm(PpcDisasm):
     __ARCH__ = envi.ARCH_PPC_S32
     def __init__(self, endian=ENDIAN_MSB, options=CAT_PPC_SERVER):
         PpcDisasm.__init__(self, endian, options)

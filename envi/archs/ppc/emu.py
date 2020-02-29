@@ -2037,17 +2037,17 @@ m.addMemoryMap(0x0000,0777,"memmap1", "\xff"*1024)
 
 """
 
-class PpcServer64Emulator(Ppc64RegisterContext, PpcServer64Module, PpcAbstractEmulator):
+class Ppc64ServerEmulator(Ppc64RegisterContext, Ppc64ServerModule, PpcAbstractEmulator):
     def __init__(self, archmod=None, psize=8):
-        PpcAbstractEmulator.__init__(self, archmod=PpcServer64Module(), psize=psize)
+        PpcAbstractEmulator.__init__(self, archmod=Ppc64ServerModule(), psize=psize)
         Ppc64RegisterContext.__init__(self)
-        PpcServer64Module.__init__(self)
+        Ppc64ServerModule.__init__(self)
 
-class PpcServer32Emulator(Ppc32RegisterContext, PpcServer32Module, PpcAbstractEmulator):
+class Ppc32ServerEmulator(Ppc32RegisterContext, Ppc32ServerModule, PpcAbstractEmulator):
     def __init__(self, archmod=None, psize=4):
-        PpcAbstractEmulator.__init__(self, archmod=PpcServer32Module(), psize=psize)
+        PpcAbstractEmulator.__init__(self, archmod=Ppc32ServerModule(), psize=psize)
         Ppc32RegisterContext.__init__(self)
-        PpcServer32Module.__init__(self)
+        Ppc32ServerModule.__init__(self)
 
 class PpcVleEmulator(Ppc64RegisterContext, PpcVleModule, PpcAbstractEmulator):
     def __init__(self, archmod=None, psize=8):
@@ -2055,17 +2055,17 @@ class PpcVleEmulator(Ppc64RegisterContext, PpcVleModule, PpcAbstractEmulator):
         Ppc64RegisterContext.__init__(self)
         PpcVleModule.__init__(self)
 
-class PpcEmbedded64Emulator(Ppc64RegisterContext, PpcEmbedded64Module, PpcAbstractEmulator):
+class Ppc64EmbeddedEmulator(Ppc64RegisterContext, Ppc64EmbeddedModule, PpcAbstractEmulator):
     def __init__(self, archmod=None, psize=8):
-        PpcAbstractEmulator.__init__(self, archmod=PpcEmbedded64Module(), psize=psize)
+        PpcAbstractEmulator.__init__(self, archmod=Ppc64EmbeddedModule(), psize=psize)
         Ppc64RegisterContext.__init__(self)
-        PpcEmbedded64Module.__init__(self)
+        Ppc64EmbeddedModule.__init__(self)
 
-class PpcEmbedded32Emulator(Ppc32RegisterContext, PpcEmbedded32Module, PpcAbstractEmulator):
+class Ppc32EmbeddedEmulator(Ppc32RegisterContext, Ppc32EmbeddedModule, PpcAbstractEmulator):
     def __init__(self, archmod=None, psize=8):
-        PpcAbstractEmulator.__init__(self, archmod=PpcEmbedded32Module(), psize=psize)
+        PpcAbstractEmulator.__init__(self, archmod=Ppc32EmbeddedModule(), psize=psize)
         Ppc32RegisterContext.__init__(self)
-        PpcEmbedded32Module.__init__(self)
+        Ppc32EmbeddedModule.__init__(self)
 
 '''
 In [2]: mnems = {}

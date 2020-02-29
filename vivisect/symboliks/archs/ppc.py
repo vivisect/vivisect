@@ -1796,73 +1796,73 @@ for cr in range(8):
 
 
 # SymbolikTranslators
-class PpcEmbedded32SymbolikTranslator(PpcSymbolikTranslator):
+class Ppc32EmbeddedSymbolikTranslator(PpcSymbolikTranslator):
     psize = 4
-    __arch__ = e_ppc.PpcEmbedded32Module
+    __arch__ = e_ppc.Ppc32EmbeddedModule
     __ip__ = 'pc' # we could use regctx.getRegObjName if we want.
     __sp__ = 'sp' # we could use regctx.getRegObjName if we want.
 
-class PpcEmbedded64SymbolikTranslator(PpcSymbolikTranslator):
+class Ppc64EmbeddedSymbolikTranslator(PpcSymbolikTranslator):
     psize = 8
-    __arch__ = e_ppc.PpcEmbedded64Module
+    __arch__ = e_ppc.Ppc64EmbeddedModule
     __ip__ = 'pc' # we could use regctx.getRegObjName if we want.
     __sp__ = 'sp' # we could use regctx.getRegObjName if we want.
 
-class PpcVleSymbolikTranslator(PpcEmbedded64SymbolikTranslator):
+class PpcVleSymbolikTranslator(Ppc64EmbeddedSymbolikTranslator):
     __arch__ = e_ppc.PpcVleModule
 
-class PpcServer32SymbolikTranslator(PpcSymbolikTranslator):
+class Ppc32ServerSymbolikTranslator(PpcSymbolikTranslator):
     psize = 4
-    __arch__ = e_ppc.PpcServer32Module
+    __arch__ = e_ppc.Ppc32ServerModule
     __ip__ = 'pc' # we could use regctx.getRegObjName if we want.
     __sp__ = 'sp' # we could use regctx.getRegObjName if we want.
 
-class PpcServer64SymbolikTranslator(PpcSymbolikTranslator):
+class Ppc64ServerSymbolikTranslator(PpcSymbolikTranslator):
     psize = 8
-    __arch__ = e_ppc.PpcServer64Module
+    __arch__ = e_ppc.Ppc64ServerModule
     __ip__ = 'pc' # we could use regctx.getRegObjName if we want.
     __sp__ = 'sp' # we could use regctx.getRegObjName if we want.
 
 
 # ArgDefSymEmus
-class PpcEmbedded32ArgDefSymEmu(ArgDefSymEmu):
-    __xlator__ = PpcEmbedded32SymbolikTranslator
+class Ppc32EmbeddedArgDefSymEmu(ArgDefSymEmu):
+    __xlator__ = Ppc32EmbeddedSymbolikTranslator
 
-class PpcEmbedded64ArgDefSymEmu(ArgDefSymEmu):
-    __xlator__ = PpcEmbedded64SymbolikTranslator
+class Ppc64EmbeddedArgDefSymEmu(ArgDefSymEmu):
+    __xlator__ = Ppc64EmbeddedSymbolikTranslator
 
-class PpcServer32ArgDefSymEmu(ArgDefSymEmu):
-    __xlator__ = PpcServer32SymbolikTranslator
+class Ppc32ServerArgDefSymEmu(ArgDefSymEmu):
+    __xlator__ = Ppc32ServerSymbolikTranslator
 
-class PpcServer64ArgDefSymEmu(ArgDefSymEmu):
-    __xlator__ = PpcServer64SymbolikTranslator
+class Ppc64ServerArgDefSymEmu(ArgDefSymEmu):
+    __xlator__ = Ppc64ServerSymbolikTranslator
 
 
 # SymCallingConvs
-class PpcEmbedded32SymCallingConv(vsym_callconv.SymbolikCallingConvention):
-    __argdefemu__ = PpcEmbedded32ArgDefSymEmu
+class Ppc32EmbeddedSymCallingConv(vsym_callconv.SymbolikCallingConvention):
+    __argdefemu__ = Ppc32EmbeddedArgDefSymEmu
 
-class PpcEmbedded64SymCallingConv(vsym_callconv.SymbolikCallingConvention):
-    __argdefemu__ = PpcEmbedded64ArgDefSymEmu
+class Ppc64EmbeddedSymCallingConv(vsym_callconv.SymbolikCallingConvention):
+    __argdefemu__ = Ppc64EmbeddedArgDefSymEmu
 
-class PpcServer32SymCallingConv(vsym_callconv.SymbolikCallingConvention):
-    __argdefemu__ = PpcServer32ArgDefSymEmu
+class Ppc32ServerSymCallingConv(vsym_callconv.SymbolikCallingConvention):
+    __argdefemu__ = Ppc32ServerArgDefSymEmu
 
-class PpcServer64SymCallingConv(vsym_callconv.SymbolikCallingConvention):
-    __argdefemu__ = PpcServer64ArgDefSymEmu
+class Ppc64ServerSymCallingConv(vsym_callconv.SymbolikCallingConvention):
+    __argdefemu__ = Ppc64ServerArgDefSymEmu
 
 
 # Call impls
-class PpcEmbedded32Call(PpcEmbedded32SymCallingConv, e_ppc.PpcCall):
+class Ppc32EmbeddedCall(Ppc32EmbeddedSymCallingConv, e_ppc.PpcCall):
     pass
 
-class PpcEmbedded64Call(PpcEmbedded64SymCallingConv, e_ppc.PpcCall):
+class Ppc64EmbeddedCall(Ppc64EmbeddedSymCallingConv, e_ppc.PpcCall):
     pass
 
-class PpcServer32Call(PpcServer32SymCallingConv, e_ppc.PpcCall):
+class Ppc32ServerCall(Ppc32ServerSymCallingConv, e_ppc.PpcCall):
     pass
 
-class PpcServer64Call(PpcServer64SymCallingConv, e_ppc.PpcCall):
+class Ppc64ServerCall(Ppc64ServerSymCallingConv, e_ppc.PpcCall):
     pass
 
 class PpcSymFuncEmu(vsym_analysis.SymbolikFunctionEmulator):
@@ -1966,39 +1966,39 @@ class PpcSymFuncEmu(vsym_analysis.SymbolikFunctionEmulator):
         return emu.getSymVariable('eax') '''
 
 
-class PpcEmbedded32SymFuncEmu(PpcSymFuncEmu):
+class Ppc32EmbeddedSymFuncEmu(PpcSymFuncEmu):
     __width__ = 4
-    __cconv__ = PpcEmbedded32Call()
+    __cconv__ = Ppc32EmbeddedCall()
 
-class PpcEmbedded64SymFuncEmu(PpcSymFuncEmu):
+class Ppc64EmbeddedSymFuncEmu(PpcSymFuncEmu):
     __width__ = 8
-    __cconv__ = PpcEmbedded64Call()
+    __cconv__ = Ppc64EmbeddedCall()
 
-class PpcServer32SymFuncEmu(PpcSymFuncEmu):
+class Ppc32ServerSymFuncEmu(PpcSymFuncEmu):
     __width__ = 4
-    __cconv__ = PpcServer32Call()
+    __cconv__ = Ppc32ServerCall()
 
-class PpcServer64SymFuncEmu(PpcSymFuncEmu):
+class Ppc64ServerSymFuncEmu(PpcSymFuncEmu):
     __width__ = 8
-    __cconv__ = PpcServer64Call()
+    __cconv__ = Ppc64ServerCall()
 
 
-class PpcEmbedded32SymbolikAnalysisContext(vsym_analysis.SymbolikAnalysisContext):
-    __xlator__ = PpcEmbedded32SymbolikTranslator
-    __emu__ = PpcEmbedded32SymFuncEmu
+class Ppc32EmbeddedSymbolikAnalysisContext(vsym_analysis.SymbolikAnalysisContext):
+    __xlator__ = Ppc32EmbeddedSymbolikTranslator
+    __emu__ = Ppc32EmbeddedSymFuncEmu
 
-class PpcEmbedded64SymbolikAnalysisContext(vsym_analysis.SymbolikAnalysisContext):
-    __xlator__ = PpcEmbedded64SymbolikTranslator
-    __emu__ = PpcEmbedded64SymFuncEmu
+class Ppc64EmbeddedSymbolikAnalysisContext(vsym_analysis.SymbolikAnalysisContext):
+    __xlator__ = Ppc64EmbeddedSymbolikTranslator
+    __emu__ = Ppc64EmbeddedSymFuncEmu
 
 class PpcVleSymbolikAnalysisContext(vsym_analysis.SymbolikAnalysisContext):
     __xlator__ = PpcVleSymbolikTranslator
-    __emu__ = PpcEmbedded32SymFuncEmu
+    __emu__ = Ppc32EmbeddedSymFuncEmu
 
-class PpcServer32SymbolikAnalysisContext(vsym_analysis.SymbolikAnalysisContext):
-    __xlator__ = PpcServer32SymbolikTranslator
-    __emu__ = PpcServer32SymFuncEmu
+class Ppc32ServerSymbolikAnalysisContext(vsym_analysis.SymbolikAnalysisContext):
+    __xlator__ = Ppc32ServerSymbolikTranslator
+    __emu__ = Ppc32ServerSymFuncEmu
 
-class PpcServer64SymbolikAnalysisContext(vsym_analysis.SymbolikAnalysisContext):
-    __xlator__ = PpcServer64SymbolikTranslator
-    __emu__ = PpcServer64SymFuncEmu
+class Ppc64ServerSymbolikAnalysisContext(vsym_analysis.SymbolikAnalysisContext):
+    __xlator__ = Ppc64ServerSymbolikTranslator
+    __emu__ = Ppc64ServerSymFuncEmu

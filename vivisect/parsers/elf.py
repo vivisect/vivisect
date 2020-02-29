@@ -114,21 +114,32 @@ arch_names = {
     Elf.EM_386:'i386',
     Elf.EM_X86_64:'amd64',
     Elf.EM_MSP430:'msp430',
-    Elf.EM_PPC:'ppc',
-    Elf.EM_PPC64:'ppc64',
+    Elf.EM_PPC:'ppc-embedded',
+    Elf.EM_PPC64:'ppc-server',
     Elf.EM_ARM_AARCH64:'aarch64',
 }
 # FIXME: interpret ELF headers to configure VLE pages
 
 # FIXME: make ArchModules specify the default calling convention based on Architecture settings (which must be handed in)
 archcalls = {
-    'i386':'cdecl',
-    'amd64':'sysvamd64call',
-    'arm':'armcall',
-    'vle':'ppccall',
-    'ppc':'ppccall',
-    'ppc64':'ppccall',
+    'i386': 'cdecl',
+    'amd64': 'sysvamd64call',
+    'arm': 'armcall',
+    'vle': 'ppccall',
+    'ppc32-embedded': 'ppccall',
+    'ppc32-server': 'ppccall',
+    'ppc-embedded': 'ppccall',
+    'ppc-server': 'ppccall',
 }
+
+
+def getArchName(emfield):
+    arch = arch_names.get(emfield)
+    if arch is None:
+       raise Exception("Unsupported Architecture: %d\n", elf.e_machine)
+
+    return arch
+
 
 def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
     # analysis of discovered functions and data locations should be stored until the end of loading
@@ -136,10 +147,7 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
     new_pointers = []
     new_functions = []
 
-    arch = arch_names.get(elf.e_machine)
-    if arch is None:
-       raise Exception("Unsupported Architecture: %d\n", elf.e_machine)
-
+    arch = getArchName(elf.e_machine)
     platform = elf.getPlatform()
 
     # setup needed platform/format

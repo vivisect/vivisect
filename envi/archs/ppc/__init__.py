@@ -57,7 +57,7 @@ the UISA and the VEA levels. For a more detailed discussion of the characteristi
 PowerPC architecture, see the Programming Environments Manual.
 '''
 
-class PpcEmbedded64Module(envi.ArchitectureModule):
+class Ppc64EmbeddedModule(envi.ArchitectureModule):
 
     def __init__(self, mode=64, archname='ppc-embedded'):
         envi.ArchitectureModule.__init__(self, archname)
@@ -65,9 +65,9 @@ class PpcEmbedded64Module(envi.ArchitectureModule):
         self.psize = mode/8
         self.maps = tuple()
         if self.psize == 8:
-            self._arch_dis = PpcEmbedded64Disasm()
+            self._arch_dis = Ppc64EmbeddedDisasm()
         else:
-            self._arch_dis = PpcEmbedded32Disasm()
+            self._arch_dis = Ppc32EmbeddedDisasm()
         self._arch_vle_dis = vle.VleDisasm()
 
     def archGetRegCtx(self):
@@ -126,14 +126,14 @@ class PpcEmbedded64Module(envi.ArchitectureModule):
                 return True
         return False
 
-class PpcEmbedded32Module(PpcEmbedded64Module):
+class Ppc32EmbeddedModule(Ppc64EmbeddedModule):
     def __init__(self):
-        PpcEmbedded64Module.__init__(self, mode=32, archname='ppc32-embedded')
+        Ppc64EmbeddedModule.__init__(self, mode=32, archname='ppc32-embedded')
 
 
-class PpcVleModule(PpcEmbedded64Module):
+class PpcVleModule(Ppc64EmbeddedModule):
     def __init__(self):
-        PpcEmbedded64Module.__init__(self, mode=32, archname='ppc-vle')
+        Ppc64EmbeddedModule.__init__(self, mode=32, archname='ppc-vle')
         self._arch_dis = vle.VleDisasm()
         
     def isVle(self, va):
@@ -142,13 +142,13 @@ class PpcVleModule(PpcEmbedded64Module):
     def archParseOpcode(self, bytes, offset=0, va=0):
         return self._arch_dis.disasm(bytes, offset, va)
 
-class PpcServer64Module(PpcEmbedded64Module):
+class Ppc64ServerModule(Ppc64EmbeddedModule):
     def __init__(self, mode=64, archname='ppc-server'):
-        PpcEmbedded64Module.__init__(self, mode=mode, archname=archname)
+        Ppc64EmbeddedModule.__init__(self, mode=mode, archname=archname)
         if self.psize == 8:
-            self._arch_dis = PpcServer64Disasm()
+            self._arch_dis = Ppc64ServerDisasm()
         else:
-            self._arch_dis = PpcServer32Disasm()
+            self._arch_dis = Ppc32ServerDisasm()
         
     def isVle(self, va):
         return False
@@ -159,11 +159,11 @@ class PpcServer64Module(PpcEmbedded64Module):
     def archGetRegCtx(self):
         return Ppc64RegisterContext()
 
-class PpcServer32Module(PpcServer64Module):
+class Ppc32ServerModule(Ppc64ServerModule):
     def __init__(self):
-        PpcServer64Module.__init__(self, mode=32, archname='ppc32-embedded')
+        Ppc64ServerModule.__init__(self, mode=32, archname='ppc32-embedded')
 
-class PpcDesktopModule(PpcServer64Module):
+class PpcDesktopModule(Ppc64ServerModule):
     # for now, treat desktop like server
     pass
 

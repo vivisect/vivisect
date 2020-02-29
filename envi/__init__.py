@@ -1400,19 +1400,19 @@ def getArchModule(name=None):
 
     elif name in ('ppc', 'ppc-embedded', 'ppc-spe', 'ppcspe', 'spe', 'mpc56xx'):
         import envi.archs.ppc as e_ppc
-        return e_ppc.PpcEmbedded64Module()
+        return e_ppc.Ppc64EmbeddedModule()
 
     elif name in ('ppc32', 'ppc32-embedded', 'ppc32-spe'):
         import envi.archs.ppc as e_ppc
-        return e_ppc.PpcEmbedded32Module()
+        return e_ppc.Ppc32EmbeddedModule()
 
     elif name in ('ppc-server', 'ppc-altivec', 'ppcaltivec', 'altivec'):
         import envi.archs.ppc as e_ppc
-        return e_ppc.PpcServer64Module()
+        return e_ppc.Ppc64ServerModule()
 
     elif name in ('ppc32-server', 'ppc32-altivec'):
         import envi.archs.ppc as e_ppc
-        return e_ppc.PpcServer32Module()
+        return e_ppc.Ppc32ServerModule()
 
     elif name in ('vle', 'ppc-vle', 'ppcvle'):
         import envi.archs.ppc as e_ppc
@@ -1444,10 +1444,10 @@ def getArchModules(default=ARCH_DEFAULT):
     archs.append(e_thumb16.Thumb2Module())
     archs.append(e_msp430.Msp430Module())
     archs.append(e_h8.H8Module())
-    archs.append(e_ppc.PpcEmbedded32Module())
-    archs.append(e_ppc.PpcEmbedded64Module())
-    archs.append(e_ppc.PpcServer32Module())
-    archs.append(e_ppc.PpcServer64Module())
+    archs.append(e_ppc.Ppc32EmbeddedModule())
+    archs.append(e_ppc.Ppc64EmbeddedModule())
+    archs.append(e_ppc.Ppc32ServerModule())
+    archs.append(e_ppc.Ppc64ServerModule())
     archs.append(e_ppc.PpcVleModule())
     archs.append(e_ppc.PpcDesktopModule())
 
