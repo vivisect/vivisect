@@ -193,6 +193,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
 
         meth = self.op_methods.get(op.mnem, None)
         if meth == None:
+            print("0x%x: Intel Emulator needs %s" % (op.va, str(op)))
             raise envi.UnsupportedInstruction(self, op)
 
         newpc = meth(op)
@@ -464,10 +465,51 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
 
         self.setOperValue(op, 0, ures)
 
+    def _adds(self, op, off=0):
+        opA = self.getOperValue(op, off)
+        opB = self.getOperValue(op, off+1)
+
+        res = opA + opB
+
+        self.setOperValue(op, 0, res)
+
+    def i_addsd(self, op):
+        self._adds(op)
+
+    def i_vaddsd(self, op):
+        self._adds(op, off=1)
+
+    i_addss = i_addsd
+    i_addps = i_addsd
+    i_addpd = i_addsd
+
+    i_vaddss = i_vaddsd
+    i_vaddps = i_vaddsd
+    i_vaddpd = i_vaddsd
+
     def i_and(self, op):
         #FIXME 24 and 25 opcodes should *not* get sign-extended.
         res = self.logicalAnd(op)
         self.setOperValue(op, 0, res)
+
+    def _ands(self, op, off=0):
+        dst = self.getOperValue(op, 0)
+        src = self.getOperValue(op, 1)
+        res = dst & src
+
+    def i_andsd(self, op):
+        self._ands(op)
+
+    i_andss = i_andsd
+    i_andps = i_andsd
+    i_andpd = i_andsd
+
+    def i_vandsd(self, op):
+        self._ands(op, off=1)
+
+    i_vandss = i_vandsd
+    i_vandps = i_vandsd
+    i_vandpd = i_vandsd
 
     def i_arpl(self, op):
         v1 = self.getOperValue(op, 0)
@@ -697,6 +739,17 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
 
     def i_cdq(self, op):
         return self.i_cwd(op)
+
+    def i_comisd(self, op):
+        opA = self.getOperValue(op, 0)
+        opB = self.getOperValue(op, 1)
+
+        self.setFlag(EFLAGS_ZF, )
+        self.setFlag(EFLAGS_PF, )
+        self.setFlag(EFLAGS_CF, )
+
+    def i_ucomisd(self, op):
+        pass
 
     def i_cpuid(self, op):
         eax = self.getRegister(REG_EAX)
@@ -945,7 +998,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         else:
             esi -= 1
         self.setRegister(REG_ESI, esi)
-        
+
     def i_lodsd(self, op):
         esi = self.getRegister(REG_ESI)
         neweax = self.readMemoryFormat(esi, "<L")[0]
@@ -1014,9 +1067,34 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         val = e_bits.sign_extend(val, osize, nsize)
         self.setOperValue(op, 0, val)
 
+    i_movsxd = i_movsx
+
     def i_movzx(self, op):
         val = self.getOperValue(op, 1)
         self.setOperValue(op, 0, val)
+
+    i_movd  = i_mov
+    i_movd_q = i_mov
+    i_vmovd_q = i_mov
+    i_movdqu = i_mov
+    i_vmovdqu = i_mov
+    i_movaps = i_mov
+    i_vmovaps = i_mov
+    i_movapd = i_mov
+    i_vmovapd = i_mov
+    i_movups = i_mov
+    i_vmovups = i_mov
+    i_movupd = i_mov
+    i_vmovupd = i_mov
+    i_movnti = i_mov
+    i_movntpd = i_mov
+    i_vmovntpd = i_mov
+    i_movntps = i_mov
+    i_vmovntps = i_mov
+    i_movntdq = i_mov
+    i_vmovntdq = i_mov
+    i_movntdqa = i_mov
+    i_vmovntdqa = i_mov
 
     def i_mul(self, op):
         #FIXME make sure these work right
@@ -1044,6 +1122,26 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         else:
             self.setFlag(EFLAGS_CF, False)
             self.setFlag(EFLAGS_OF, False)
+
+    def _muls(self, op, off=0):
+        opA = self.getOperValue(op, off)
+        opB = self.getOperValue(op, off+1)
+        res = opA * opB
+        self.setOperValue(op, 0, res)
+
+    def i_mulsd(self, op):
+        self._muls(op)
+
+    i_mulss = i_mulsd
+    i_mulps = i_mulsd
+    i_mulpd = i_mulsd
+
+    def i_vmulsd(self, op):
+        self._muls(op, 1)
+
+    i_vmulss = i_vmulsd
+    i_vmulps = i_vmulsd
+    i_vmulpd = i_vmulsd
 
     def _emu_setGpReg(self, reg, val, tsize):
         """
@@ -1080,6 +1178,9 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         self.setFlag(EFLAGS_SF, e_bits.is_signed(res, tsize))
         #FIXME how does neg cause/not cause a carry?
         self.setFlag(EFLAGS_AF, 0) # FIXME EFLAGS_AF
+
+    def i_lfence(self, op):
+        pass
 
     def i_nop(self, op):
         pass
@@ -1287,7 +1388,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
                 self.setFlag(EFLAGS_OF, e_bits.msb(val, dstSize) ^ cf)
             else:
                 self.setFlag(EFLAGS_OF, False)
-        
+
     def i_ror(self, op):
         dstSize = op.opers[0].tsize
         count = self.getOperValue(op, 1)
@@ -1640,8 +1741,64 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         self.setFlag(EFLAGS_PF, e_bits.is_parity_byte(ret))
         self.setFlag(EFLAGS_AF, False) # Undefined but actually cleared on amd64 X2
 
+    def _xors(self, op, off=0):
+        opA = self.getOperValue(op, off)
+        opB = self.getOperValue(op, off+1)
+
+        res = opA ^ opB
+
+        self.setOperValue(op, 0, res)
+
+    def i_xorps(self, op):
+        self._xors(op)
+    i_xorpd = i_xorps
+
+    def i_vxorps(self, op):
+        self._xors(op, off=1)
+    i_vxorpd = i_vxorps
+
+    def _psrl(self, op, off=0):
+        value = self.getOperValue(op, off)
+        imm = self.getOperValue(op, off+1)
+        if imm > 15:
+            return self.setOperValue(op, 0, 0)
+
+        res = op >> (imm*8)
+        self.setOperValue(op, 0, res)
+
+    def _psll(self, op, off=0):
+        value = self.getOperValue(op, off)
+        imm = self.getOperValue(op, off+1)
+        if imm > 15:
+            return self.setOperValue(op, 0, 0)
+
+        res = op << (imm*8)
+        self.setOperValue(op, 0, res)
+
+    #psraw, psrld psrlq psrad
+    def i_psldq(self, op):
+        pass
+
+    def i_pshufd(self, op):
+        '''
+        Ugh. This one sucks so much
+        '''
+        pass
+
+    def i_pslldq(self, op):
+        self._psll(op)
+
+    def i_vpslldq(self, op):
+        self._psll(op, off=1)
+
+    def i_psrldq(self, op):
+        self._psrl(op)
+
+    def i_vpsrldq(self, op):
+        self._psrl(op, off=1)
+
     def i_pxor(self, op):
-        return self.i_xor(op)
+        self.i_xor(op)
 
     def i_lahf(self, op):
         self.setRegister(REG_AH, self.getRegister(REG_EFLAGS) & 0b11010101)

@@ -116,19 +116,3 @@ class Amd64Emulator(Amd64RegisterContext, e_i386.IntelEmulator):
         val = self.readMemValue(rsp, 8)
         self.setRegister(REG_RSP, rsp+8)
         return val
-
-    def i_movsxd(self, op):
-        val = self.getOperValue(op, 1)
-        val = e_bits.sign_extend(val, 4, 8)
-        self.setOperValue(op, 0, val)
-
-    # these are movs, some deal with caching, which we don't currently care about
-    i_movaps = e_i386.IntelEmulator.i_mov
-    i_movapd = e_i386.IntelEmulator.i_mov
-    i_movups = e_i386.IntelEmulator.i_mov
-    i_movupd = e_i386.IntelEmulator.i_mov
-    i_movnti = e_i386.IntelEmulator.i_mov
-    i_movntpd = e_i386.IntelEmulator.i_mov
-    i_movntps = e_i386.IntelEmulator.i_mov
-    i_movntdq = e_i386.IntelEmulator.i_mov
-    i_movntdqa = e_i386.IntelEmulator.i_mov
