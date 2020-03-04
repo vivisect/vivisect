@@ -2,11 +2,11 @@
 Home for the i386 emulation code.
 """
 import struct
+import operator
 
 import envi
 from envi.const import *
 import envi.bits as e_bits
-import envi.memory as e_mem
 
 from envi.archs.i386.regs import *
 from envi.archs.i386.disasm import *
@@ -22,7 +22,22 @@ def shiftMask(val, size):
     elif size == 8:
         return val & 0x3f
     else:
-        raise Exception("shiftMask is broke in envi/intel.py")
+        raise Exception("shiftMask is broke in envi/arch/i386/emu.py")
+
+
+submasks = [None, 0xFF, 0xFFFF, 0xFFFFFFFF, 0xFFFFFFFFFFFFFFFF]
+def yieldSubbytes(valu, size, subsize):
+    '''
+    For the fun SIMD instructions like psrld
+    '''
+    mask = submasks[int(subsize/8)]
+    if mask is None:
+        raise Exception('yieldSubbytes is broken in i386 emu.py')
+
+    for i in range(size/subsize):
+        sub = valu >> (i * subsize)
+        yield (mask, (sub & mask))
+
 
 # The indexes for the list of segments in the emulator
 SEG_CS = 0
@@ -480,12 +495,12 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         self._adds(op, off=1)
 
     i_addss = i_addsd
-    i_addps = i_addsd
-    i_addpd = i_addsd
+    #i_addps = i_addsd
+    #i_addpd = i_addsd
 
     i_vaddss = i_vaddsd
-    i_vaddps = i_vaddsd
-    i_vaddpd = i_vaddsd
+    #i_vaddps = i_vaddsd
+    #i_vaddpd = i_vaddsd
 
     def i_and(self, op):
         #FIXME 24 and 25 opcodes should *not* get sign-extended.
@@ -794,7 +809,8 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         #FIXME this is probably broke
         oper = op.opers[0]
         val = self.getOperValue(op, 1)
-        if val == 0: raise envi.DivideByZero(self)
+        if val == 0:
+            raise envi.DivideByZero(self)
 
         if oper.tsize == 1:
             ax = self.getRegister(REG_AX)
@@ -854,6 +870,9 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
     # FIXME a whole bunch of float instructions whose
     # processing is essentially ignored:
     def i_fldz(self, op):
+        pass
+
+    def i_fld(self, op):
         pass
 
     def i_fild(self, op):
@@ -1133,15 +1152,15 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         self._muls(op)
 
     i_mulss = i_mulsd
-    i_mulps = i_mulsd
-    i_mulpd = i_mulsd
+    #i_mulps = i_mulsd
+    #i_mulpd = i_mulsd
 
     def i_vmulsd(self, op):
         self._muls(op, 1)
 
     i_vmulss = i_vmulsd
-    i_vmulps = i_vmulsd
-    i_vmulpd = i_vmulsd
+    #i_vmulps = i_vmulsd
+    #i_vmulpd = i_vmulsd
 
     def _emu_setGpReg(self, reg, val, tsize):
         """
@@ -1179,17 +1198,12 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         #FIXME how does neg cause/not cause a carry?
         self.setFlag(EFLAGS_AF, 0) # FIXME EFLAGS_AF
 
-    def i_lfence(self, op):
-        pass
-
     def i_nop(self, op):
         pass
-
-    def i_prefetch(self, op):
-        pass
-
-    def i_prefetchw(self, op):
-        pass
+    i_lfence = i_nop
+    i_clflush = i_nop
+    i_prefetch = i_nop
+    i_prefetchw = i_nop
 
     def i_not(self, op):
         val = self.getOperValue(op, 0)
@@ -1757,6 +1771,12 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         self._xors(op, off=1)
     i_vxorpd = i_vxorps
 
+    def i_pxor(self, op):
+        self._xors(op)
+
+    def i_vpxor(self, op):
+        self._xors(op, off=1)
+
     def _psrl(self, op, off=0):
         value = self.getOperValue(op, off)
         imm = self.getOperValue(op, off+1)
@@ -1776,14 +1796,102 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         self.setOperValue(op, 0, res)
 
     #psraw, psrld psrlq psrad
-    def i_psldq(self, op):
-        pass
+    def _simdshift(self, op, shiftfunc, bitwidth, off):
+        res = 0
+        valu = self.getOperValue(op, off)
+        tsize = op.opers[off].tsize
+        opvalu = op.opers[off]
+        shift = self.getOperValue(op, off+1)
+        for idx, (mask, valu) in enumerate(yieldSubbytes(valu, tsize, bitwidth)):
+            valu = shiftfunc(valu, shift) & mask
+            res |= valu << (idx * bitwidth)
+
+        import pdb
+        pdb.set_trace()
+        self.setOperValue(op, 0, res)
+
+    # right shifts
+    def i_psrlw(self, op):
+        self._simdshift(op, operator.rshift, 16, 0)
+
+    def i_psrld(self, op):
+        self._simdshift(op, operator.rshift, 32, 0)
+
+    def i_psrlq(self, op):
+        self._simdshift(op, operator.rshift, 64, 0)
+
+    def i_vpsrlw(self, op):
+        self._simdshift(op, operator.rshift, 16, 1)
+
+    def i_vpsrld(self, op):
+        self._simdshift(op, operator.rshift, 32, 1)
+
+    def i_vpsrlq(self, op):
+        self._simdshift(op, operator.rshift, 64, 1)
+
+    # left shifts
+    def i_psllw(self, op):
+        self._simdshift(op, operator.lshift, 16, 0)
+
+    def i_pslld(self, op):
+        self._simdshift(op, operator.lshift, 32, 0)
+
+    def i_psllq(self, op):
+        self._simdshift(op, operator.lshift, 64, 0)
+
+    def i_vpsllw(self, op):
+        self._simdshift(op, operator.lshift, 16, 1)
+
+    def i_vpslld(self, op):
+        self._simdshift(op, operator.lshift, 32, 1)
+
+    def i_vpsllq(self, op):
+        self._simdshift(op, operator.lshift, 64, 1)
 
     def i_pshufd(self, op):
-        '''
-        Ugh. This one sucks so much
-        '''
         pass
+
+    def i_pcmpeqb(self, op, off=0, size=8):
+        res = 0
+        dest = self.getOperValue(op, off)
+        src = self.getOperValue(op, off+1)
+        packed = zip(yieldSubbytes(dest, op.opers[off], 8),
+                     yieldSubbytes(src, op.opers[off+1], 8))
+
+        eql = submasks[size/8]
+        for idx, (lft, rgt) in enumerate(packed):
+            if lft == rgt:
+                cmp = eql
+            else:
+                cmp = 0
+            res |= cmp << (size * idx)
+
+    def i_pcmpeqw(self, op):
+        self.i_pcmpeqb(op, off=0, size=16)
+    def i_pcmpeqd(self, op):
+        self.i_pcmpeqb(op, off=0, size=32)
+
+    def i_vpcmpeqw(self, op):
+        self.i_pcmpeqb(op, off=1, size=8)
+    def i_vpcmpeqw(self, op):
+        self.i_pcmpeqb(op, off=1, size=16)
+    def i_vpcmpeqd(self, op):
+        self.i_pcmpeqb(op, off=1, size=32)
+
+    def i_pmovmskb(self, op):
+        res = 0
+        src = self.getOperValue(op, 1)
+        dsize = op.opers[0].tsize
+        ssize = op.opers[1].tsize
+
+        if dsize < 32:
+            raise envi.UnsupportedInstruction(self, op)
+
+        for i in range(ssize / 8):
+            res |= (src & (1 << (7 + i*8))) << i
+        self.setOperValue(op, 0, res)
+
+    i_vpmovmskb = i_pmovmskb
 
     def i_pslldq(self, op):
         self._psll(op)
@@ -1796,9 +1904,6 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
 
     def i_vpsrldq(self, op):
         self._psrl(op, off=1)
-
-    def i_pxor(self, op):
-        self.i_xor(op)
 
     def i_lahf(self, op):
         self.setRegister(REG_AH, self.getRegister(REG_EFLAGS) & 0b11010101)

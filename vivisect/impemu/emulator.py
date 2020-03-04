@@ -296,6 +296,8 @@ class WorkspaceEmulator:
             while True:
 
                 starteip = self.getProgramCounter()
+                if self.funcva == 0x14008d930:
+                    print("Yeet Yeet Yeet %s" % hex(starteip))
 
                 if not vw.isValidPointer(starteip):
                     break
@@ -326,12 +328,16 @@ class WorkspaceEmulator:
 
                         if self.emustop:
                             return
-
+                    if op.va == 0x14008d96a:
+                        import pdb
+                        pdb.set_trace()
                     # Execute the opcode
                     self.executeOpcode(op)
                     vg_path.getNodeProp(self.curpath, 'valist').append(starteip)
 
                     endeip = self.getProgramCounter()
+                    if self.funcva == 0x14008d930:
+                        print("Skeet skeet skeet %s" % hex(endeip))
 
                     if self.emumon:
                         self.emumon.posthook(self, op, endeip)
