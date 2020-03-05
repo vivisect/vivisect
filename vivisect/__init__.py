@@ -1588,11 +1588,53 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         """
         Add a memory map to the workspace.  This is the *only* way to
         get memory backings into the workspace.
+
+        If va is None, a location will be selected from free-space
+        appropriate to the desired size.  va is returned from this call
         """
+        if va is None:
+            msize = len(bytes)
+            va = self.getFreeMemAddr(msize)
+
         self._fireEvent(VWE_ADDMMAP, (va, perms, fname, bytes))
+        return va
 
     def delMemoryMap(self, va):
         raise "OMG"
+
+    def getFreeMemAddr(self, size, hint=None, align=0x10000, minaddr=0x100000):
+        """
+        This returns a base memory address with at least "size" free bytes 
+        immediately following.
+
+        If "hint" is provided, address-space at or above that location will 
+        be searched first.
+
+        This function is used for loader capabilities.
+        """
+        # select a starting address (if hint not provided)
+        if hint is None:
+            maxmap = 0
+            for mva, msz, mperm, mname in self.getMemoryMaps():
+                if mva + msz > maxmap:
+                    maxmap = mva + msz
+            hint = maxmap
+
+        # align appropriately
+        hint += align-1
+        hint = (hint / align) * align
+
+        # now go fish...
+        memva = hint
+        while self.isValidPointer(memva):
+            memva += align
+
+            # arbitrarily limiting to a 64-bit address space
+            # FIXME: for some devices, this will definitely need to be lower.
+            if memva > e_bits.u_maxes[8]:
+                memva = minaddr
+
+        return memva
 
     def addSegment(self, va, size, name, filename):
         """
