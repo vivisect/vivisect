@@ -3,6 +3,7 @@ A file full of bit twidling helpers
 """
 
 import struct
+import envi.exc as e_exc
 
 MAX_WORD = 32  # usually no more than 8, 16 is for SIMD register support
 
@@ -327,8 +328,48 @@ def masktest(s):
         return testval & maskin == matchval
     return domask
 
-# if __name__ == '__main__':
-    # print hex(parsebits('\x0f\x00', 0, 4, 8))
-    # print hex(parsebits('\x0f\x0f', 0, 4, 12))
-    # print hex(parsebits('\x0f\x0f\xf0', 1, 4, 4))
 
+def intel_float_decode(valu):
+    sign = (valu & (1 << 79)) >> 79
+    exponent = (valu & (0x7FFF << 64)) >> 64
+    integer = (valu & (1 << 63)) >> 63
+    fraction = valu & 0x7FFFFFFFFFFFFFFF
+
+    m = integer + (fraction / (10**63))
+
+    significand = (valu & (0xF << 59)) >> 59
+    # TODO: In the py3 conversion, make these exceptions real boy exceptions to differentiate
+    # between quiet NaNs and signalling NaNs
+    if exponent == 0:
+        if significand & 0x8000:
+            if fraction == 0:
+                return 0
+            else:
+                return ((-1)**sign) * m * (2**(-16383))
+        else:
+            return ((-1)**sign) * m * (2**(-16383))
+    elif exponent == 0x7FFF:
+        highbits = (significand & 0xC) >> 2
+        lowbits = significand & 0x3
+        if highbits == 0:
+            # pseudo infinity. invalid
+            raise e_exc.InvalidOperand(valu)
+        elif highbits == 1:
+            # pseudo infinity. invalid
+            raise e_exc.InvalidOperand(valu)
+        elif highbits == 2:
+            if lowbits == 0:
+                return None
+            else:
+                raise e_exc.SignalNaN()
+        else:
+            raise e_exc.QuietNaN()
+    else:
+        if significand & 0x8000:
+            raise e_exc.InvalidOperand(valu)
+        else:
+            return ((-1)**sign) * m * (2**(exponent-16383))
+
+
+def intel_float_encode(valu):
+    pass
