@@ -278,7 +278,13 @@ class user_regs_amd64(Structure):
         ('gs',       c_uint64),
     ]
 
+
 intel_dbgregs = (0,1,2,3,6,7)
+
+
+def bytify(bytez):
+    return ''.join(map(chr, bytez))
+
 
 class LinuxMixin(v_posix.PtraceMixin, v_posix.PosixMixin):
     """
@@ -827,7 +833,7 @@ class LinuxAmd64Trace(
             r = v_posix.ptrace(v_posix.PT_READ_U, tid, offset, 0)
             ctx.setRegister(self.dbgidx+i, r & self.reg_val_mask)
 
-        extd = self.platformGetExtendedRegs(tid, ctx)
+        self.platformGetExtendedRegs(tid, ctx)
         return ctx
 
     @v_base.threadwrap
@@ -850,56 +856,53 @@ class LinuxAmd64Trace(
         # yes you could get this by various other PTRACE calls, but since we already have to call into NT_X86_XSTATE, 
         # might as well grab these while we're here
         regidx = self.archGetRegCtx().getRegisterIndex("st0")
-        mask = 0xFFFFFFFFFFFFFFFFFF  # 80 bit mask for floating points regs
+        mask = 0xFFFFFFFFFFFFFFFFFFFF  # 80 bit mask for floating points regs
         for i in range(fpu_len):
             offset = fpu_off + i * 16
             # the upper 48 bits of the st/mm registers are marked as reserved
-            valu = e_bits.parsebytes(iovec[offset+6:offset+16], 0, 10))
+            valu = e_bits.parsebytes(bytify(iovec[offset:offset+10]), 0, 10)
             ctx.setRegister(regidx+i, valu)
 
         xmm_off = 160
 
         # these are just the lower bits of the simd registers (just the xmm portion)
         for i in range(len(simd_regs)):
-            offset = xmm_off + i*16
-            simd_regs[i] = e_bits.parsebytes(iovec[offset:offset+16], 0, 16)
+            offset = xmm_off + i * 16
+            simd_regs[i] = e_bits.parsebytes(bytify(iovec[offset:offset+16]), 0, 16)
 
-        xstate_bv = e_bits.parsebytes(iovec[512:520], 0, 8)
-        xcomp_bv = e_bits.parsebytes((iovec[520:528], 0, 8)
+        xstate_bv = e_bits.parsebytes(bytify(iovec[512:520]), 0, 8)
         has_avx = xstate_bv & 0x4
-        xsavefmt = xcom_bv & (1<<63)  # if set, use compacted form
         # XXX: Sooooo....we're gonna cheat a bit here. Technically what we're supposed to do
         # is check CPUID.(EAX=0x0D, ECX=i) for every feature and se how many bytes it takes up, but 
         # right now the goal is just to get the upper YMM registers, and we know exactly how
         # man bytes those take up, and they're literally the first state component in the extended
-        # xsave region, so yolo, let's parse us some bytes if the has_avx is set.
+        # xsave region (standard or compacted), so yolo, let's parse us some bytes if the 
+        # has_avx bit is set.
         # (we're also doing it this way because I don't feel like figuring out how to directly call
         # the cpuid asm instruction from python)
         if has_avx:
             ymm_offset = 576
             for i in range(len(simd_regs)):
                 offset = ymm_offset + i*16
-                valu = e_bits.parsebytes(iovec[offset+6:offset+16], 0, 16)
-                simd_regs[i] = valu << 128
+                valu = e_bits.parsebytes(bytify(iovec[offset:offset+16]), 0, 16)
+                simd_regs[i] |= valu << 128
 
         regidx = self.archGetRegCtx().getRegisterIndex("ymm0")
         for i, valu in enumerate(simd_regs):
             ctx.setRegister(regidx+i, valu)
 
-
     def platformGetExtendedRegs(self, tid, ctx):
         '''
         for now, the only real way to get access to things like YMM and ZMM registers
         '''
-        # TODO: check feature bits to see if things like AVX are even supported
-        buflen = 2 * 1024  # Guess. Actual length will be set by kernel
-        buffer = create_string_buffer(buflen)
-        vec = iovec(buffer, buflen)
+        buflen = 2048  # Guess. Actual length will be set by kernel
+        buffer = (c_uint8 * buflen)()
+        vec = iovec(cast(buffer, c_void_p), buflen)
 
-        if v_posix.ptrace(PT_GETREGSET, tid, NT_X86_XSTATE, addressof(vec)) == -1:
+        if v_posix.ptrace(PT_GETREGSET, tid, NT_X86_XSTATE, addressof(vec)) != 0:
             raise v_exc.PtraceException("PT_GETREGSET(NT_X86_XSTATE)")
 
-        return self.parseXSave(ctx, vec)
+        self.parseXSave(ctx, buffer)
 
 
 

@@ -333,9 +333,9 @@ def intel_float_decode(valu):
     sign = (valu & (1 << 79)) >> 79
     exponent = (valu & (0x7FFF << 64)) >> 64
     integer = (valu & (1 << 63)) >> 63
-    fraction = valu & 0x7FFFFFFFFFFFFFFF
+    fraction = valu & 0x7FFFFFFFFFFFFFFF  # decimal place is located between bits 63 and 62
 
-    m = integer + (fraction / (10**63))
+    m = integer + (fraction / (2.0**63))
 
     significand = (valu & (0xF << 59)) >> 59
     # TODO: In the py3 conversion, make these exceptions real boy exceptions to differentiate

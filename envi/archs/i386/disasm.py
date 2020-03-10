@@ -668,7 +668,8 @@ class i386Disasm:
         self._dis_amethods[opcode86.ADDRMETH_Z>>16] = self.ameth_z
 
         # Offsets used to add in addressing method parsers
-        self.ROFFSETMMX   = getRegOffset(i386regs, "mm0")
+        # MMX is just a meta reg of st
+        self.ROFFSETMMX   = getRegOffset(i386regs, "st0")
         self.ROFFSETSIMD  = getRegOffset(i386regs, "xmm0")
         self.ROFFSETDEBUG = getRegOffset(i386regs, "debug0")
         self.ROFFSETCTRL  = getRegOffset(i386regs, "ctrl0")

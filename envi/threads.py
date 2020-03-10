@@ -192,7 +192,7 @@ class EnviQueue:
             while True:
                 ret = self.get()
                 yield ret
-        except e_exc.QueueShutdown ase:
+        except e_exc.QueueShutdown as e:
             pass
 
     def put(self, x):

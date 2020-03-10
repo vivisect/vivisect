@@ -67,14 +67,11 @@ def emuFromTrace(trace):
 
 
 def lockStepEmulator(emu, trace, dump_regs=False):
-    import pdb
     while True:
         print("Lockstep: 0x%.8x" % emu.getProgramCounter())
         try:
             pc = emu.getProgramCounter()
             op = emu.parseOpcode(pc)
-            if op.va == 0x40009b:
-                pdb.set_trace()
             trace.stepi()
             emu.stepi()
             if dump_regs:
