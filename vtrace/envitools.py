@@ -154,7 +154,7 @@ def setup():
     ap.add_argument('pid', type=int, help='PID of process to attach to (remember to have ptrace permissions)')
     ap.add_argument('expr', type=str, help='Expression of an address to break the process on')
     ap.add_argument('--save', type=str, help='Save vtrace snapshot to the provided file')
-    ap.add_argument('--print-regs', action='store_true', help='Dump register values on each stepi. Warning: Verbose')
+    ap.add_argument('--args', type=str, help='Instead of attaching to a process, run this process with the given args')
     return ap
 
 
@@ -171,7 +171,7 @@ def main(argv):
         # You may open this file in vdb to follow along
         snap.saveToFile(opts.save)
     emu = emuFromTrace(snap)
-    lockStepEmulator(emu, t, opts.print_regs)
+    lockStepEmulator(emu, t)
 
 
 if __name__ == "__main__":
