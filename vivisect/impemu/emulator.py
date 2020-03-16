@@ -324,7 +324,7 @@ class WorkspaceEmulator:
                     hits[starteip] = h
 
                 # If we ran out of path (branches that went
-                # somewhere that we couldn't follow?
+                # somewhere that we couldn't follow)?
                 if self.curpath is None:
                     break
 
@@ -338,11 +338,6 @@ class WorkspaceEmulator:
 
                         if self.emustop:
                             return
-                    #if funcva == 0x14008d930:
-                    if starteip in (0x14008d968, 0x14008d96a, 0x14008da30, 0x14008db78):
-                        print("Executing at location: 0x%x: %s" % (starteip, str(op)))
-                        import pdb
-                        pdb.set_trace()
                     # Execute the opcode
                     self.executeOpcode(op)
                     vg_path.getNodeProp(self.curpath, 'valist').append(starteip)

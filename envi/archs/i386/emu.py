@@ -6,6 +6,7 @@ import operator
 
 import envi
 from envi.const import *
+import envi.exc as e_exc
 import envi.bits as e_bits
 
 from envi.archs.i386.regs import *
@@ -215,7 +216,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         meth = self.op_methods.get(op.mnem, None)
         if meth == None:
             print("0x%x: Intel Emulator needs %s" % (op.va, str(op)))
-            raise envi.UnsupportedInstruction(self, op)
+            raise e_exc.UnsupportedInstruction(self, op)
 
         newpc = meth(op)
         if newpc != None:
