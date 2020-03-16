@@ -7,7 +7,10 @@ ieee754_formats = {
     32:  (8, 0x7F),
     64:  (11, 0x3FF),
     80:  (15, 0x3FFF),  # non-implicit j bit
-    128: (15, 0x3FFF),
+    # At least on intel, don't go beyond 80 bits (even that's suspect)
+    # because floating point errors
+    # just compound so mother trucking hard that it errors out into oblivion
+    # 128: (15, 0x3FFF),
 }
 
 
@@ -62,6 +65,11 @@ def float_encode(valu, bsize):
 
     # sign bit
     encoded = 1 if valu < 0 else 0
+    if valu < 0:
+        valu *= -1
+        encoded = 1
+    else:
+        encoded = 0
 
     # find the exponent
     exponent = 0

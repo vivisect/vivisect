@@ -25,18 +25,22 @@ class FloatingPointTest(unittest.TestCase):
         decoded = e_float.float_decode(valu, 80)
         self.assertAlmostEquals(decoded, 3.14159265358979323851)
 
+
+    def _encoding_test(self, valu, answers):
+        for i, length in enumerate([16, 32, 64, 80, 128]):
+            encoded = e_float.float_encode(valu, length)
+            try:
+                self.assertEquals(encoded, answers[i])
+            except:
+                self.fail("%s failed to encode properly (produced: 0x%x, test: 0x%x)" % (valu, encoded, answers[i]))
+
     def test_ieee_754_encode(self):
-        valu = 0.26
-        encoded = e_float.float_encode(valu, 16)
-        encoded = e_float.float_encode(valu, 32)
-        encoded = e_float.float_encode(valu, 64)
-        encoded = e_float.float_encode(valu, 80)
-        encoded = e_float.float_encode(valu, 128)
+        self._encoding_test(1, [0x3c00,
+                                0x3f800000,
+                                0x3ff0000000000000,
+                                0x3ff80000000000000000])
 
-        valu = 3.14159
-
-        valu = 1
-
-        valu = 2
-
-        valu = 12738.248976
+        self._encoding_test(0.26, [0x3428,
+                                   0x3e851eb8,
+                                   0x3ffd851eb851eb851eb8,
+                                   0x1ffe851eb851eb851ea0L])

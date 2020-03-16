@@ -14,6 +14,7 @@ import logging
 import itertools
 import traceback
 import threading
+import contextlib
 import collections
 
 from binascii import hexlify
@@ -156,6 +157,13 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
     def vprint(self, msg):
         print(msg)
+
+    @contextlib.contextmanager
+    def makeVerbose(self):
+        old = self.verbose
+        self.verbose = True
+        yield
+        self.verbose = old
 
     def getVivGui(self):
         '''
@@ -981,9 +989,13 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
     def iterJumpTable(self, startva, step=None, maxiters=None):
         if not step:
             step = self.psize
+        fname = self.getMemoryMap(startva)[3]
+        imgbase = self.getFileMeta(fname, 'imagebase')
         iters = 0
         ptrbase = startva
-        rdest = self.castPointer(ptrbase)
+        rdest = self.readMemValue(ptrbase, step)
+        if rdest < imgbase:
+            rdest += imgbase
         while self.isValidPointer(rdest) and self.analyzePointer(rdest) in (None, LOC_OP):
             if self.analyzePointer(ptrbase) in STOP_LOCS:
                 break
@@ -993,8 +1005,9 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             ptrbase += step
             if len(self.getXrefsTo(ptrbase)):
                 break
-
-            rdest = self.castPointer(ptrbase)
+            rdest = self.readMemValue(ptrbase, step)
+            if rdest < imgbase:
+                rdest += imgbase
 
             iters += 1
             if maxiters is not None and iters >= maxiters:
@@ -1012,7 +1025,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         self.delCodeBlock(cb)
         self.addCodeBlock((cb[CB_VA], cb[CB_SIZE], newfva))
 
-    def splitJumpTable(self, callingVa, prevRefVa, newTablAddr):
+    def splitJumpTable(self, callingVa, prevRefVa, newTablAddr, psize=4):
         '''
         So we have the case where if we have two jump tables laid out consecutively in memory (let's
         call them tables Foo and Bar, with Foo coming before Bar), and we see Foo first, we're going to
@@ -1030,7 +1043,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         codeblocks = set()
         curfva = self.getFunction(callingVa)
         # collect all the entries for the new jump table
-        for cb in self.iterJumpTable(newTablAddr):
+        for cb in self.iterJumpTable(newTablAddr, step=psize):
             codeblocks.add(cb)
             prevcb = self.getCodeBlock(cb)
             if prevcb is None:
@@ -1056,6 +1069,58 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         for va in todel:
             self.setComment(va[1], None)
             self.delXref(va)
+
+    def makeJumpTable(self, op, tova, psize=4):
+        fname = self.getMemoryMap(tova)[3]
+        imgbase = self.getFileMeta(fname, 'imagebase')
+
+        ptrbase = tova
+        rdest = self.readMemValue(ptrbase, psize)
+        if rdest < imgbase:
+            rdest += imgbase
+
+        # if there's already an Xref to this address from another jump table, we overshot
+        # the other table, and need to cut that one short, delete its Xrefs starting at this one
+        # and then let the rest of this function build the new jump table
+        # This jump table also may not be in the same function as the other jump table, so we need
+        # to remove those codeblocks (and child codeblocks) from this function
+
+        # at this point, rdest should be the first codeblock in the jumptable, so get all the xrefs to him
+        # (but skipping over the current jumptable base address we're looking at)
+        for xrfrom, xrto, rtype, rflags in self.getXrefsTo(rdest):
+            if tova == xrfrom:
+                continue
+
+            refva, refsize, reftype, refinfo = self.getLocation(xrfrom)
+            if reftype != vivisect.LOC_OP:
+                continue
+            # If we've already constructed this opcode location and made the xref to the new codeblock,
+            # that should mean we've already made the jump table, so there should be no need to split this
+            # jump table.
+            if refva == op.va:
+                continue
+            refop = self.parseOpcode(refva)
+            for refbase, refbflags in refop.getBranches():
+                if refbflags & envi.BR_TABLE:
+                    self.splitJumpTable(op.va, refva, tova, psize=psize)
+
+        tabdone = {}
+        for i, rdest in enumerate(self.iterJumpTable(ptrbase, step=psize)):
+            if not tabdone.get(rdest):
+                tabdone[rdest] = True
+                self.addXref(op.va, rdest, REF_CODE, envi.BR_COND)
+                if self.getName(rdest) is None:
+                    self.makeName(rdest, "case%d_%.8x" % (i, rdest))
+            else:
+                cmnt = self.getComment(rdest)
+                if cmnt is None:
+                    self.setComment(rdest, "Other Case(s): %d" % i)
+                else:
+                    cmnt += ", %d" % i
+                    self.setComment(rdest, cmnt)
+
+        # This must be second (len(xrefsto))
+        self.addXref(op.va, tova, REF_PTR, None)
 
     def makeOpcode(self, va, op=None, arch=envi.ARCH_DEFAULT):
         """
@@ -1093,51 +1158,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
             # Special case, if it's a table branch, lets resolve it now.
             if bflags & envi.BR_TABLE:
-                ptrbase = tova
-                rdest = self.castPointer(ptrbase)
-
-                # if there's already an Xref to this address from another jump table, we overshot
-                # the other table, and need to cut that one short, delete its Xrefs starting at this one
-                # and then let the rest of this function build the new jump table
-                # This jump table also may not be in the same function as the other jump table, so we need
-                # to remove those codeblocks (and child codeblocks) from this function
-
-                # at this point, rdest should be the first codeblock in the jumptable, so get all the xrefs to him
-                # (but skipping over the current jumptable base address we're looking at)
-                for xrfrom, xrto, rtype, rflags in self.getXrefsTo(rdest):
-                    if tova == xrfrom:
-                        continue
-
-                    refva, refsize, reftype, refinfo = self.getLocation(xrfrom)
-                    if reftype != vivisect.LOC_OP:
-                        continue
-                    # If we've already constructed this opcode location and made the xref to the new codeblock,
-                    # that should mean we've already made the jump table, so there should be no need to split this
-                    # jump table.
-                    if refva == op.va:
-                        continue
-                    refop = self.parseOpcode(refva)
-                    for refbase, refbflags in refop.getBranches():
-                        if refbflags & envi.BR_TABLE:
-                            self.splitJumpTable(va, refva, tova)
-
-                tabdone = {}
-                for i, rdest in enumerate(self.iterJumpTable(ptrbase)):
-                    if not tabdone.get(rdest):
-                        tabdone[rdest] = True
-                        self.addXref(va, rdest, REF_CODE, envi.BR_COND)
-                        if self.getName(rdest) is None:
-                            self.makeName(rdest, "case%d_%.8x" % (i, rdest))
-                    else:
-                        cmnt = self.getComment(rdest)
-                        if cmnt is None:
-                            self.setComment(rdest, "Other Case(s): %d" % i)
-                        else:
-                            cmnt += ", %d" % i
-                            self.setComment(rdest, cmnt)
-
-                # This must be second (len(xrefsto))
-                self.addXref(va, tova, REF_PTR, None)
+                self.makeJumpTable(op, tova)
 
             elif bflags & envi.BR_DEREF:
 
@@ -2494,7 +2515,8 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         you can name it as you like...)
         """
         x = self.vasetdefs.get(name)
-        if x == None: raise InvalidVaSet(name)
+        if x == None:
+            raise InvalidVaSet(name)
         return x
 
     def getVaSetRows(self, name):
@@ -2502,7 +2524,8 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         Get a list of the rows in this VA set.
         """
         x = self.vasets.get(name)
-        if x == None: InvalidVaSet(name)
+        if x is None:
+            raise InvalidVaSet(name)
         return x.values()
 
     def getVaSet(self, name):
@@ -2510,7 +2533,8 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         Get the dictionary of va:<rowdata> entries.
         """
         x = self.vasets.get(name)
-        if x == None: raise InvalidVaSet(name)
+        if x == None:
+            raise InvalidVaSet(name)
         return x
 
     def addVaSet(self, name, defs, rows=()):

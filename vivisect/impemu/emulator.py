@@ -1,11 +1,10 @@
 import struct
-import traceback
 import itertools
 
 import envi
+import envi.exc as e_exc
 import envi.bits as e_bits
 import envi.memory as e_mem
-import envi.registers as e_reg
 
 import visgraph.pathcore as vg_path
 
@@ -198,11 +197,10 @@ class WorkspaceEmulator:
         for symbolic emulator...)
         '''
         props = {
-            'bva':bva,    # the entry virtual address for this branch
-            'valist':[],  # the virtual addresses in this node in order
-            'calllog':[], # FIXME is this even used?
-            'readlog':[], # a log of all memory reads from this block
-            'writelog':[],# a log of all memory writes from this block
+            'bva': bva,    # the entry virtual address for this branch
+            'valist': [],  # the virtual addresses in this node in order
+            'readlog': [], # a log of all memory reads from this block
+            'writelog': [],# a log of all memory writes from this block
         }
         ret = vg_path.newPathNode(parent=parent, **props)
         return ret
@@ -217,13 +215,14 @@ class WorkspaceEmulator:
                 return knode
         return self.newCodePathNode(node, bva)
 
-    def checkBranches(self, starteip, endeip, op):
+    def checkBranches(self, starteip, op):
         """
         This routine gets the current branch list for this opcode, adds branch
         entries to the current path, and updates current path as needed
         (returns a list of (va, CodePath) tuples.
         """
 
+        paths = set()
         ret = []
         # Add all the known branches to the list
         blist = op.getBranches(emu=self)
@@ -238,6 +237,20 @@ class WorkspaceEmulator:
 
                 bpath = self.getBranchNode(self.curpath, bva)
                 ret.append((bva, bpath))
+                paths.add(bva)
+
+        # let's also take into account some of the dynamic branches we may have found
+        # like our table pointers
+        for xrfrom, xrto, xrtype, xrfalgs in self.vw.getXrefsFrom(op.va, rtype=REF_CODE):
+            # if it's not in a codeblock it's probably something like an import, so we
+            # can ignore it
+            if self.vw.getCodeBlock(xrto) is None:
+                continue
+            bpath = self.getBranchNode(self.curpath, xrto)
+            if xrto in paths:
+                continue
+            ret.append((xrto, bpath))
+            paths.add(xrto)
 
         return ret
 
@@ -261,7 +274,7 @@ class WorkspaceEmulator:
             self.emumon.posthook(self, op, endeip)
 
         if not self.checkCall(starteip, endeip, op):
-            self.checkBranches(starteip, endeip, op)
+            self.checkBranches(starteip, op)
 
     def runFunction(self, funcva, stopva=None, maxhit=None, maxloop=None):
         """
@@ -274,7 +287,6 @@ class WorkspaceEmulator:
 
         # Let the current (should be base also) path know where we are starting
         vg_path.setNodeProp(self.curpath, 'bva', funcva)
-
         hits = {}
         todo = [(funcva, self.getEmuSnap(), self.path)]
         vw = self.vw  # Save a dereference many many times
@@ -296,8 +308,6 @@ class WorkspaceEmulator:
             while True:
 
                 starteip = self.getProgramCounter()
-                if self.funcva == 0x14008d930:
-                    print("Yeet Yeet Yeet %s" % hex(starteip))
 
                 if not vw.isValidPointer(starteip):
                     break
@@ -328,7 +338,9 @@ class WorkspaceEmulator:
 
                         if self.emustop:
                             return
-                    if op.va == 0x14008d96a:
+                    #if funcva == 0x14008d930:
+                    if starteip in (0x14008d968, 0x14008d96a, 0x14008da30, 0x14008db78):
+                        print("Executing at location: 0x%x: %s" % (starteip, str(op)))
                         import pdb
                         pdb.set_trace()
                     # Execute the opcode
@@ -336,8 +348,6 @@ class WorkspaceEmulator:
                     vg_path.getNodeProp(self.curpath, 'valist').append(starteip)
 
                     endeip = self.getProgramCounter()
-                    if self.funcva == 0x14008d930:
-                        print("Skeet skeet skeet %s" % hex(endeip))
 
                     if self.emumon:
                         self.emumon.posthook(self, op, endeip)
@@ -351,7 +361,7 @@ class WorkspaceEmulator:
                     # If it wasn't a call, check for branches, if so, add them to
                     # the todo list and go around again...
                     if not iscall:
-                        blist = self.checkBranches(starteip, endeip, op)
+                        blist = self.checkBranches(starteip, op)
                         if len(blist):
                             # pc in the snap will be wrong, but over-ridden at restore
                             esnap = self.getEmuSnap()
@@ -371,8 +381,7 @@ class WorkspaceEmulator:
                         print('runFunction continuing after unsupported instruction: 0x%08x %s' % (e.op.va, e.op.mnem))
                         self.setProgramCounter(e.op.va + e.op.size)
                 except Exception as e:
-                    # traceback.print_exc()
-                    if self.emumon is not None:
+                    if self.emumon is not None and not isinstance(e, e_exc.BreakpointHit):
                         self.emumon.logAnomaly(self, starteip, str(e))
 
                     break  # If we exc during execution, this branch is dead.

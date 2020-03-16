@@ -4,9 +4,8 @@ The envi architecture module for the AMD 64 platform.
 import struct
 
 import envi
+import envi.exc as e_exc
 from envi.const import *
-import envi.bits as e_bits
-import envi.registers as e_reg
 import envi.archs.i386 as e_i386
 
 from envi.archs.amd64.regs import *
@@ -105,6 +104,7 @@ class Amd64Emulator(Amd64RegisterContext, e_i386.IntelEmulator):
         self.addCallingConvention("sysvamd64systemcall", sysvamd64systemcall)
         self.addCallingConvention("msx64call", msx64call)
 
+
     def doPush(self, val):
         rsp = self.getRegister(REG_RSP)
         rsp -= 8
@@ -116,3 +116,11 @@ class Amd64Emulator(Amd64RegisterContext, e_i386.IntelEmulator):
         val = self.readMemValue(rsp, 8)
         self.setRegister(REG_RSP, rsp+8)
         return val
+
+    def i_aam(self, op):
+        raise e_exc.UnsupportedInstruction(self, op)
+
+    i_aas = i_aam
+
+    def i_pinsrq(self, op):
+        self.i_pinsrb(op, bitwidth=64)

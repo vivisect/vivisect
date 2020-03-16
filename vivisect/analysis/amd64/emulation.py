@@ -104,7 +104,7 @@ def buildFunctionApi(vw, fva, emu, emumon):
         vw.setFunctionLocal(fva, 24, LSYM_NAME, ('void *','shadow2'))
         vw.setFunctionLocal(fva, 32, LSYM_NAME, ('void *','shadow3'))
 
-        funcargs = [ ('int',msx64name(i)) for i in xrange(argc) ]
+        funcargs = [ ('int',msx64name(i)) for i in range(argc) ]
 
     elif callconv == 'sysvamd64call':
         if emumon.stackmax > 0:
