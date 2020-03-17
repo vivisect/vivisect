@@ -62,8 +62,6 @@ OPTYPE_fe = 0x16000000
 OPTYPE_fb = 0x17000000
 OPTYPE_fv = 0x18000000
 
-OPTYPE_e  = 0x19000000
-
 # FIXME this should probably be a list rather than a dictionary
 
 OPERSIZE = {
@@ -73,7 +71,6 @@ OPERSIZE = {
     OPTYPE_c: (1, 2, 2),           # 1/2   byte or word, depending on operand
     OPTYPE_d: (4, 4, 4),           # 4     double-word
     OPTYPE_dq: (16, 16, 16),        # 16    double quad-word
-    OPTYPE_e: (2, 2, 8),            # double word except in 64 bit mode
     OPTYPE_p: (4, 6, 6),           # 4/6   32-bit or 48-bit pointer
     OPTYPE_pi: (8, 8, 8),           # 8     quadword MMX register
     OPTYPE_ps: (16, 16, 16),        # 16    128-bit single-precision float

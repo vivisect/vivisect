@@ -426,12 +426,12 @@ amd64MultiByteOpcodes = [
     ('SIGNED', '83C0F9', 'add eax,0xfffffff9', 'add eax,0xfffffff9'),
     ('UNSIGNED', '05f9000000', 'add eax,249', 'add eax,249'),
 
-    ('MOV SEGREG 2', '8ce0', 'mov ax,fs', 'mov ax,fs'),
-    ('MOV SEGREG 3', '8ec6', 'mov es,si', 'mov es,si'),
+    ('MOV SEGREG 2', '8ce0', 'mov eax,fs', 'mov eax,fs'),
+    ('MOV SEGREG 3', '8ec6', 'mov es,esi', 'mov es,esi'),
     ('MOV SEGREG 4', '488ce7', 'mov rdi,fs', 'mov rdi,fs'),
     ('MOV SEGREG 5', '488ed6', 'mov ss,rsi', 'mov ss,rsi'),
-    ('MOV SEGREG 6', '8E142541414141', 'mov ss,word [0x41414141]', 'mov ss,word [0x41414141]'),
-    ('MOV SEGREG 7', '8C042541414141', 'mov word [0x41414141],es', 'mov word [0x41414141],es'),
+    ('MOV SEGREG 6', '8E142541414141', 'mov ss,dword [0x41414141]', 'mov ss,dword [0x41414141]'),
+    ('MOV SEGREG 7', '8C042541414141', 'mov dword [0x41414141],es', 'mov dword [0x41414141],es'),
 
 
     ('WAIT', '9b', 'wait ', 'wait '),  # TODO: this needs to be able to change the opcode too
