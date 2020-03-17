@@ -184,13 +184,13 @@ class Amd64Disasm(e_i386.i386Disasm):
         self._dis_amethods[opcode86.ADDRMETH_VEXH >> 16] = self.ameth_vexh
 
         # Over-ride these which are in use by the i386 version of the ASM
-        self.ROFFSETMMX   = e_i386.getRegOffset(amd64regs, "st0")
         self.ROFFSETSIMD  = e_i386.getRegOffset(amd64regs, "ymm0")
         self.ROFFSETDEBUG = e_i386.getRegOffset(amd64regs, "debug0")
         self.ROFFSETCTRL  = e_i386.getRegOffset(amd64regs, "ctrl0")
         self.ROFFSETTEST  = e_i386.getRegOffset(amd64regs, "test0")
         self.ROFFSETSEG   = e_i386.getRegOffset(amd64regs, "es")
         self.ROFFSETFPU   = e_i386.getRegOffset(amd64regs, "st0")
+        self.ROFFSETMMX   = self._dis_regctx.getRegisterIndex("mm0")
 
     # NOTE: Technically, the REX must be the *last* prefix specified
     # NOTE: Technically, the VEX must be the *last* prefix specified (REX be damned)

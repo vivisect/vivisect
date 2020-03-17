@@ -154,7 +154,7 @@ amd64MultiByteOpcodes = [
     ('PSRLDQ (66)', '660f73b5aa4141', 'psllq xmm5,170', 'psllq xmm5,170'),
     ('PSRLDQ (66)', '660f73f5aa4141', 'psllq xmm5,170', 'psllq xmm5,170'),
     ('PSRLDQ (66)', '660f73b1aa4141', 'psllq xmm1,170', 'psllq xmm1,170'),
-    ('PSRLDQ (66)', '660f73b9aa4141', 'psldq xmm1,170', 'psldq xmm1,170'),
+    ('PSRLDQ (66)', '660f73b9aa4141', 'pslldq xmm1,170', 'pslldq xmm1,170'),
     ('PCMPISTRI', '660f3a630f0d', 'pcmpistri xmm1,oword [rdi],13', 'pcmpistri xmm1,oword [rdi],13'),
 
     ('POPCNT', 'f30fb8c4', 'popcnt eax,esp', 'popcnt eax,esp'),
@@ -1093,7 +1093,7 @@ class Amd64InstructionSet(unittest.TestCase):
         opbytez = '0f2018'
         oprepr = 'mov dword [rax],ctrl3'
         opcheck =  {'iflags': 131072, 'va': 16384, 'repr': None, 'prefixes': 0, 'mnem': 'mov', 'opcode': 24577, 'size': 3}
-        opercheck = ( {'disp': 0, 'tsize': 4, '_is_deref': True, 'reg': 0}, {'tsize': 4, 'reg': 59} )
+        opercheck = ( {'disp': 0, 'tsize': 4, '_is_deref': True, 'reg': 0}, {'tsize': 4, 'reg': 51} )
         self.checkOpcode( opbytez, 0x4000, oprepr, opcheck, opercheck, oprepr )
 
         for x in range(0xb0, 0xb8):
@@ -1278,7 +1278,7 @@ class Amd64InstructionSet(unittest.TestCase):
         opbytez = '0f2caabbccddeeff'
         oprepr = 'cvttps2pi mm5,oword [rdx - 287454021]'
         opcheck =  {'iflags': 131072, 'va': 16384, 'repr': None, 'prefixes': 0, 'mnem': 'cvttps2pi', 'opcode': 61440, 'size': 7}
-        opercheck = [{'tsize': 8, 'reg': 21}, {'disp': -287454021, 'tsize': 16, '_is_deref': True, 'reg': 2}]
+        opercheck = [{'tsize': 8, 'reg': 4194387}, {'disp': -287454021, 'tsize': 16, '_is_deref': True, 'reg': 2}]
         self.checkOpcode( opbytez, 0x4000, oprepr, opcheck, opercheck, oprepr )
 
 

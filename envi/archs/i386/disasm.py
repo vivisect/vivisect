@@ -669,13 +669,13 @@ class i386Disasm:
 
         # Offsets used to add in addressing method parsers
         # MMX is just a meta reg of st
-        self.ROFFSETMMX   = getRegOffset(i386regs, "st0")
         self.ROFFSETSIMD  = getRegOffset(i386regs, "xmm0")
         self.ROFFSETDEBUG = getRegOffset(i386regs, "debug0")
         self.ROFFSETCTRL  = getRegOffset(i386regs, "ctrl0")
         self.ROFFSETTEST  = getRegOffset(i386regs, "test0")
         self.ROFFSETSEG   = getRegOffset(i386regs, "es")
         self.ROFFSETFPU   = getRegOffset(i386regs, "st0")
+        self.ROFFSETMMX   = self._dis_regctx.getRegisterIndex("mm0")
 
     def parse_modrm(self, byte, prefixes=0):
         # Pass in a string with an offset for speed rather than a new string
