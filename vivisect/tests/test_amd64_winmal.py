@@ -29,7 +29,7 @@ class Amd64Malwaretest(unittest.TestCase):
            0x14008d9c3: ('case11_14008d974', 7),
            0x14008d9ca: ('case12_14008d974', 7),
            0x14008d9d1: ('case13_14008d974', 7),
-           0x14008d9d8: ('case14_14008d974', 7),
+           0x14008d9d8: ('case14_14008d974', 5),
         }
 
         xrefs = self.vw.getXrefsFrom(jmpVa, rtype=v_const.REF_CODE)
@@ -39,10 +39,10 @@ class Amd64Malwaretest(unittest.TestCase):
             name, cbsz = codeRefs.pop(xrto)
             self.assertEqual(name, self.vw.getName(xrto))
 
-            cb = self.getCodeBlock(xrto)
+            cb = self.vw.getCodeBlock(xrto)
             self.assertEqual(xrto, cb[0])
             self.assertEqual(cbsz, cb[1])
-            self.assertEqual(xrto, cb[2])
+            self.assertEqual(0x14008d930, cb[2])
 
         self.assertEqual(len(codeRefs), 0)
 
