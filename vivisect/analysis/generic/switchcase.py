@@ -22,9 +22,7 @@ def analyzeJmp(amod, emu, op, starteip):
         # so the codeblocks this jumptable points to aren't proper locations...yet.
         # let's fix that up and kick off codeblock analysis to make the codeblocks
         for xrfrom, xrto, xrtype, xrflags in vw.getXrefsFrom(op.va, rtype=v_const.REF_CODE):
-            newOp = vw.parseOpcode(xrto)
-            vw.addLocation(xrto, len(newOp), v_const.LOC_OP, newOp.iflags)
-        # start up codeflow for this function again to go all the sub-blocks
+            vw.makeCode(xrto)
         vagc.analyzeFunction(vw, vw.getFunction(starteip))
 
 
