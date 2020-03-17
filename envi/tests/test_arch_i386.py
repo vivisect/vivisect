@@ -79,7 +79,7 @@ i386MultiByteOpcodes = [
     ('PSRAD (66)',  '660F72E704', 0x40, 'psrad xmm7,4', 'psrad xmm7,4'),
     ('PSRLQ (66)',  '660F73D308', 0x40, 'psrlq xmm3,8', 'psrlq xmm3,8'),
     ('PSRAW (66)',  '660F71E1084141', 0x40, 'psraw xmm1,8', 'psraw xmm1,8'),
-    ('PSRLDQ (66)', '660f73faaa4141', 0x40, 'psldq xmm2,170', 'psldq xmm2,170'),
+    ('PSRLDQ (66)', '660f73faaa4141', 0x40, 'pslldq xmm2,170', 'pslldq xmm2,170'),
     ('LFENCE', '0faee8', 0x40, 'lfence ', 'lfence '),
     ('LFENCE', '0faeea', 0x40, 'lfence ', 'lfence '),
     ('LFENCE', '0faeec', 0x40, 'lfence ', 'lfence '),
@@ -98,7 +98,7 @@ i386MultiByteOpcodes = [
     ('PSRLDQ (66)', '660f73f5aa4141', 0x40, 'psllq xmm5,170', 'psllq xmm5,170'),
     # Same for these two
     ('PSRLDQ (66)', '660f73b1aa4141', 0x40, 'psllq xmm1,170', 'psllq xmm1,170'),
-    ('PSRLDQ (66)', '660f73b9aa4141', 0x40, 'psldq xmm1,170', 'psldq xmm1,170'),
+    ('PSRLDQ (66)', '660f73b9aa4141', 0x40, 'pslldq xmm1,170', 'pslldq xmm1,170'),
 
     ('PCMPISTRI', '660f3a630f0d', 0x40, 'pcmpistri xmm1,oword [edi],13', 'pcmpistri xmm1,oword [edi],13'),
     ('PSHUFB', '660F3800EF', 0x40, 'pshufb xmm5,xmm7', 'pshufb xmm5,xmm7'),
@@ -344,7 +344,7 @@ class i386InstructionSet(unittest.TestCase):
         opbytez = '0f2018'
         oprepr = 'mov dword [eax],ctrl3'
         opcheck =  {'iflags': 65536, 'va': 16384, 'repr': None, 'prefixes': 0, 'mnem': 'mov', 'opcode': 24577, 'size': 3}
-        opercheck = ( {'disp': 0, 'tsize': 4, '_is_deref': True, 'reg': 0}, {'tsize': 4, 'reg': 35} )
+        opercheck = ( {'disp': 0, 'tsize': 4, '_is_deref': True, 'reg': 0}, {'tsize': 4, 'reg': 27} )
         self.checkOpcode( opbytez, 0x4000, oprepr, opcheck, opercheck, oprepr )
 
     def test_envi_i386_disasm_Imm_Operands(self):
@@ -424,5 +424,5 @@ class i386InstructionSet(unittest.TestCase):
         opbytez = '0f2caabbccddeeff'
         oprepr = 'cvttps2pi mm5,qword [edx - 287454021]'
         opcheck = {'iflags': 65536, 'va': 16384, 'repr': None, 'prefixes': 0, 'mnem': 'cvttps2pi', 'opcode': 61440}
-        opercheck = [{'tsize': 8, 'reg': 13}, {'disp': -287454021, 'tsize': 8, '_is_deref': True, 'reg': 2}]
+        opercheck = [{'tsize': 8, 'reg': 4194355}, {'disp': -287454021, 'tsize': 8, '_is_deref': True, 'reg': 2}]
         self.checkOpcode(opbytez, 0x4000, oprepr, opcheck, opercheck, oprepr)
