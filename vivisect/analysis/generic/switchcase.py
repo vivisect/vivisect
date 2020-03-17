@@ -18,7 +18,7 @@ def analyzeJmp(amod, emu, op, starteip):
     vw = emu.vw
     ctx = testSwitch(vw, op, starteip, emu)
     if ctx is not None:
-        vw.makeJumpTable(op, ctx[0], ctx[1])
+        vw.makeJumpTable(op, ctx[0], ctx[1], rebase=True)
         # so the codeblocks this jumptable points to aren't proper locations...yet.
         # let's fix that up and kick off codeblock analysis to make the codeblocks
         for xrfrom, xrto, xrtype, xrflags in vw.getXrefsFrom(op.va, rtype=v_const.REF_CODE):

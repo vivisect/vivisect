@@ -986,7 +986,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
         return self.imem_archs[(arch & envi.ARCH_MASK) >> 16].archParseOpcode(b, off, va)
 
-    def iterJumpTable(self, startva, step=None, maxiters=None):
+    def iterJumpTable(self, startva, rebase=False, step=None, maxiters=None):
         if not step:
             step = self.psize
         fname = self.getMemoryMap(startva)[3]
@@ -994,7 +994,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         iters = 0
         ptrbase = startva
         rdest = self.readMemValue(ptrbase, step)
-        if rdest < imgbase:
+        if rebase and rdest < imgbase:
             rdest += imgbase
         while self.isValidPointer(rdest) and self.analyzePointer(rdest) in (None, LOC_OP):
             if self.analyzePointer(ptrbase) in STOP_LOCS:
@@ -1006,7 +1006,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             if len(self.getXrefsTo(ptrbase)):
                 break
             rdest = self.readMemValue(ptrbase, step)
-            if rdest < imgbase:
+            if rebase and rdest < imgbase:
                 rdest += imgbase
 
             iters += 1
@@ -1025,7 +1025,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         self.delCodeBlock(cb)
         self.addCodeBlock((cb[CB_VA], cb[CB_SIZE], newfva))
 
-    def splitJumpTable(self, callingVa, prevRefVa, newTablAddr, psize=4):
+    def splitJumpTable(self, callingVa, prevRefVa, newTablAddr, rebase=False, psize=4):
         '''
         So we have the case where if we have two jump tables laid out consecutively in memory (let's
         call them tables Foo and Bar, with Foo coming before Bar), and we see Foo first, we're going to
@@ -1043,7 +1043,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         codeblocks = set()
         curfva = self.getFunction(callingVa)
         # collect all the entries for the new jump table
-        for cb in self.iterJumpTable(newTablAddr, step=psize):
+        for cb in self.iterJumpTable(newTablAddr, rebase=rebase, step=psize):
             codeblocks.add(cb)
             prevcb = self.getCodeBlock(cb)
             if prevcb is None:
@@ -1070,13 +1070,13 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             self.setComment(va[1], None)
             self.delXref(va)
 
-    def makeJumpTable(self, op, tova, psize=4):
+    def makeJumpTable(self, op, tova, rebase=False, psize=4):
         fname = self.getMemoryMap(tova)[3]
         imgbase = self.getFileMeta(fname, 'imagebase')
 
         ptrbase = tova
         rdest = self.readMemValue(ptrbase, psize)
-        if rdest < imgbase:
+        if rebase and rdest < imgbase:
             rdest += imgbase
 
         # if there's already an Xref to this address from another jump table, we overshot
@@ -1105,7 +1105,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
                     self.splitJumpTable(op.va, refva, tova, psize=psize)
 
         tabdone = {}
-        for i, rdest in enumerate(self.iterJumpTable(ptrbase, step=psize)):
+        for i, rdest in enumerate(self.iterJumpTable(ptrbase, rebase=rebase, step=psize)):
             if not tabdone.get(rdest):
                 tabdone[rdest] = True
                 self.addXref(op.va, rdest, REF_CODE, envi.BR_COND)

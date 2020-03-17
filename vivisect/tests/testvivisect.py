@@ -11,6 +11,7 @@ class VivisectTest(unittest.TestCase):
     def setUpClass(cls):
         cls.chgrp_vw = helpers.getTestWorkspace('linux', 'i386', 'chgrp.llvm')
         cls.vdir_vw = helpers.getTestWorkspace('linux', 'i386', 'vdir.llvm')
+        cls.mal_vw = helpers.getTestWorkspace('windows', 'amd64', '2a26e770978be58570af57d821a22abd6b54ae170cd246b9d07af10ee116ecae')
 
     def test_consecutive_jump_table(self):
         primaryJumpOpVa = 0x804c9b6
