@@ -241,7 +241,7 @@ class WorkspaceEmulator:
 
         # let's also take into account some of the dynamic branches we may have found
         # like our table pointers
-        for xrfrom, xrto, xrtype, xrfalgs in self.vw.getXrefsFrom(op.va, rtype=REF_CODE):
+        for xrfrom, xrto, xrtype, xrflags in self.vw.getXrefsFrom(op.va, rtype=REF_CODE):
             # if it's not in a codeblock it's probably something like an import, so we
             # can ignore it
             if self.vw.getCodeBlock(xrto) is None:

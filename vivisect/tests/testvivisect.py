@@ -1,6 +1,5 @@
+import io
 import unittest
-
-from cStringIO import StringIO
 
 import vivisect
 import vivisect.tests.helpers as helpers
@@ -11,7 +10,6 @@ class VivisectTest(unittest.TestCase):
     def setUpClass(cls):
         cls.chgrp_vw = helpers.getTestWorkspace('linux', 'i386', 'chgrp.llvm')
         cls.vdir_vw = helpers.getTestWorkspace('linux', 'i386', 'vdir.llvm')
-        cls.mal_vw = helpers.getTestWorkspace('windows', 'amd64', '2a26e770978be58570af57d821a22abd6b54ae170cd246b9d07af10ee116ecae')
 
     def test_consecutive_jump_table(self):
         primaryJumpOpVa = 0x804c9b6
@@ -71,8 +69,9 @@ class VivisectTest(unittest.TestCase):
 
     def test_libfunc_meta_equality(self):
         '''
-        both vdir and chgrp have a bunch of library ufunctions in common, and while the addresses
-        may be off, other information like # of blocks, # of xrefs from each block, etc.
+        both vdir and chgrp have a bunch of library functions in common, and while the addresses
+        may be off, other information like # of blocks, # of xrefs from each block, etc. are the
+        same
         '''
         vdir_fva = 0x8055bb0
         chgp_fva = 0x804ab30
@@ -146,7 +145,7 @@ class VivisectTest(unittest.TestCase):
             self.assertEqual(len(refs), test[2])
 
     def test_viv_bigend(self):
-        fd = StringIO('ABCDEFG')
+        fd = io.StringIO('ABCDEFG')
 
         vw = vivisect.VivWorkspace()
         vw.config.viv.parsers.blob.arch = 'arm'

@@ -1110,7 +1110,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
                 tabdone[rdest] = True
                 self.addXref(op.va, rdest, REF_CODE, envi.BR_COND)
                 if self.getName(rdest) is None:
-                    self.makeName(rdest, "case%d_%.8x" % (i, rdest))
+                    self.makeName(rdest, "case%d_%.8x" % (i, op.va))
             else:
                 cmnt = self.getComment(rdest)
                 if cmnt is None:
