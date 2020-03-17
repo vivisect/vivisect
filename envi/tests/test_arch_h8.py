@@ -1,7 +1,7 @@
 import struct
 
 import envi
-import envi.exc as e_xc
+import envi.exc as e_exc
 import envi.memory as e_mem
 import envi.registers as e_reg
 import envi.memcanvas as e_memcanvas
