@@ -70,7 +70,19 @@ MODE_16 = 0
 MODE_32 = 1
 MODE_64 = 2
 
+
 class Amd64Opcode(i386Opcode):
+    def __init__(self, va, opcode, mnem, prefixes, size, operands, iflags=0):
+        '''
+        Overriding this from envi/__init__.py in order to set the mnem for VEX instructions
+        Technically this should be on the i386 one as well, but we don't yet support VEX for that.
+        So oh well
+        '''
+        envi.Opcode.__init__(self, va, opcode, mnem, prefixes, size, operands, iflags)
+        if prefixes & PREFIX_VEX and not opcode & e_i386_const.INS_VEXNOPREF:
+            mnem = 'v' + mnem
+        self.mnem = mnem
+
     def __repr__(self):
         """
         Over-ride this if you want to make arch specific repr.
@@ -79,11 +91,7 @@ class Amd64Opcode(i386Opcode):
         if pfx:
             pfx = '%s: ' % pfx
 
-        mnem = self.mnem
-        if self.prefixes & PREFIX_VEX and not self.opcode & e_i386_const.INS_VEXNOPREF:
-            mnem = 'v' + mnem
-
-        return pfx + mnem + " " + ",".join([o.repr(self) for o in self.opers])
+        return pfx + self.mnem + " " + ",".join([o.repr(self) for o in self.opers])
 
     def render(self, mcanv):
         """
@@ -94,11 +102,7 @@ class Amd64Opcode(i386Opcode):
             if pfx:
                 mcanv.addNameText("%s: " % pfx, pfx)
 
-        mnem = self.mnem
-        if self.prefixes & PREFIX_VEX and not self.opcode & e_i386_const.INS_VEXNOPREF:
-            mnem = 'v' + mnem
-
-        mcanv.addNameText(mnem, typename="mnemonic")
+        mcanv.addNameText(self.mnem, typename="mnemonic")
         mcanv.addText(" ")
 
         # Allow each of our operands to render

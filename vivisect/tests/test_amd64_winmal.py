@@ -2,6 +2,7 @@ import unittest
 
 import vivisect.const as v_const
 import vivisect.tests.helpers as helpers
+import vivisect.impemu.monitor as v_monitor
 
 
 class Amd64Malwaretest(unittest.TestCase):
@@ -46,6 +47,6 @@ class Amd64Malwaretest(unittest.TestCase):
 
         self.assertEqual(len(codeRefs), 0)
 
+    def test_string(self):
+        pass:q
 
-    def test_emulation(self):
-        pass

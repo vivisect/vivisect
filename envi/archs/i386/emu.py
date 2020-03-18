@@ -1027,7 +1027,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         self.setFlag(EFLAGS_PF, e_bits.is_parity_byte(sval))
 
     def i_int(self, op):
-        raise envi.UnsupportedInstruction(self, op)
+        raise envi.BreakpointHit(self)
 
     def i_int3(self, op):
         raise envi.BreakpointHit(self)
@@ -1851,27 +1851,42 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         self.setFlag(EFLAGS_PF, e_bits.is_parity_byte(ret))
         self.setFlag(EFLAGS_AF, False) # Undefined but actually cleared on amd64 X2
 
-    def _xors(self, op, off=0):
+    def i_xorps(self, op, off=0):
         opA = self.getOperValue(op, off)
         opB = self.getOperValue(op, off+1)
 
         res = opA ^ opB
 
         self.setOperValue(op, 0, res)
-
-    def i_xorps(self, op):
-        self._xors(op)
     i_xorpd = i_xorps
 
     def i_vxorps(self, op):
-        self._xors(op, off=1)
+        self.i_xorps(op, off=1)
     i_vxorpd = i_vxorps
 
     def i_pxor(self, op):
-        self._xors(op)
+        self.i_xorps(op)
 
     def i_vpxor(self, op):
-        self._xors(op, off=1)
+        self.i_xorps(op, off=1)
+
+    def i_orps(self, op, off=0):
+        opA = self.getOperValue(op, off)
+        opB = self.getOperValue(op, off+1)
+
+        res = opA | opB
+
+        self.setOperValue(op, 0, res)
+    i_orpd = i_orps
+
+    def i_vorps(self, op):
+        self.i_orps(op, off=1)
+    i_vorpd = i_vorps
+
+    def i_por(self, op):
+        self.i_orps(op)
+    def i_vpor(self, op):
+        self.i_orps(op, off=1)
 
     def _psrl(self, op, off=0):
         value = self.getOperValue(op, off)

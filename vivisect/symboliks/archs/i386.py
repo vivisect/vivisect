@@ -527,6 +527,12 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
     def i_jle(self, op):
         return self._cond_jmp(op, cnot(Var('eflags_gt', self._psize)))
 
+    def i_jo(self, op):
+        return self._cond_jmp(op, Var('eflags_of', self._psize))
+
+    def i_jno(self, op):
+        return self._cond_jmp(op, cnot(Var('eflags_of', self._psize)))
+
     i_jna = i_jbe
     i_jnae = i_jb
     i_jnb = i_jae
@@ -562,11 +568,11 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
     #def i_jo(self, op):
         #if self.cond_o():    return self.getOperValue(op, 0)
 
-    #def i_jp(self, op):
-        #if self.cond_p():    return self.getOperValue(op, 0)
-
-    #i_jpe = i_jp
-    #i_jpo = i_jnp
+    def i_jp(self, op):
+        return self._cond_jmp(op, Var('eflags_pf', self._psize))
+    i_jpe = i_jp
+    def i_jpo(self, op):
+        return self._cond_jmp(op, cnot(Var('eflags_pf', self._psize)))
 
     def i_js(self, op):
         return self._cond_jmp(op, Var('eflags_sf', self._psize))
@@ -594,6 +600,7 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
     i_movups = i_mov
     i_movdqu = i_mov
     i_movdqa = i_mov
+    i_movd_q = i_mov
 
     def _movs(self, op, width=-1):
         si = Var(self.__srcp__, self._psize)
@@ -645,6 +652,16 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
     def i_prefetchw(self, op):
         pass
 
+    def i_pmovmskb(self, op):
+        v1 = self.getOperObj(op, 0)
+        v2 = self.getOperObj(op, 1)
+        res = 0
+        for i in range(v1.getWidth()):
+            res |= (src & (1 << (7 + i*8))) << i
+        self.setOperObj(op, 0, res)
+
+    i_vpmovmskb = i_pmovmskb
+
     def i_not(self, op):
         v1 = self.getOperObj(op, 0)
         v1width = v1.getWidth()
@@ -675,6 +692,13 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
     def i_pop(self, op):
         self.setOperObj(op, 0, Mem(Var(self.__sp__, self._psize), Const(self._psize, self._psize)))
         self.effSetVariable(self.__sp__, Var(self.__sp__, self._psize) + Const(self._psize, self._psize))
+
+    def i_psrldq(self, op, off=0):
+        v1 = self.getOperObj(op, off)
+        v2 = self.getOperObj(op, off+1)
+
+    def i_pslldq(self, op, off=0):
+        pass
 
     def i_pxor(self, op):
         v1 = self.getOperObj(op, 0)
@@ -754,7 +778,6 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
         return eq(Var('eflags_eq', self._psize), Const(x, self._psize))
 
     def _parity_eq(self, x):
-        # TODO Somebody needs to set this
         return eq(Var('eflags_pf', self._psize), Const(x, self._psize))
 
     def i_seta(self, op):
