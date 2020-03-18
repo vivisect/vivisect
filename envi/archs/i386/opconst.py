@@ -14,7 +14,7 @@ ADDRMETH_G = 0x00070000    # MODRM byte defines general-purpose reg
 ADDRMETH_H = 0x00080000    # VEX.vvvv field selects 128bit XMM or 256bit YMM register
 ADDRMETH_I = 0x00090000    # Immediate data follows
 ADDRMETH_J = 0x000A0000    # Immediate value is relative to EIP
-ADDRMETH_L = 0x000B0000
+ADDRMETH_L = 0x000B0000    # An immediate value follows, but bits[7:4] signifies an xmm register
 ADDRMETH_M = 0x000C0000    # MODRM mod field can refer only to memory
 ADDRMETH_N = 0x000D0000    # R/M field of MODRM selects a packed-quadword, MMX register
 ADDRMETH_O = 0x000E0000    # Displacement follows (without modrm/sib)
@@ -28,7 +28,10 @@ ADDRMETH_W = 0x00150000    # MODRM defines XMM register or memory
 ADDRMETH_X = 0x00160000    # Memory addressed by DS:rSI
 ADDRMETH_Y = 0x00170000    # Memory addressd by ES:rDI
 ADDRMETH_Z = 0x00180000    # R/M field of MODRM defines XMM register, reg is used as an ext
-ADDRMETH_LAST = ADDRMETH_Z
+ADDRMETH_VEXH = 0x001B0000  # Maybe Ignore the VEX.vvvv field based on what the ModRM bytes are
+ADDRMETH_LAST = ADDRMETH_VEXH
+
+ADDRMETH_VEXSKIP = 0x00800000  # This operand should be skipped if we're not in VEX mode
 
 OPTYPE_a = 0x01000000     # 2/4   two one-word operands in memory or two double-word operands in memory (operand-size attribute)   
 OPTYPE_b = 0x02000000     # 1     always 1 byte
@@ -91,6 +94,9 @@ OPERSIZE = {
     OPTYPE_fv: (14, 14, 28),
 }
 
+INS_NOPREF = 0x10000  # This instruction diallows prefixes, and if it does, it's a different insttruction
+INS_VEXREQ = 0x20000  # This instructions requires VEX
+INS_VEXNOPREF = 0x40000  # This instruction doesn't get the "v" prefix common to VEX instructions
 
 INS_EXEC = 0x1000
 INS_ARITH = 0x2000
@@ -204,7 +210,10 @@ INS_CRYPT   = INS_OTHER | 0x4  # AES-NI instruction support
 OP_R = 0x001
 OP_W = 0x002
 OP_X = 0x004
-OP_64AUTO = 0x008 # operand is in 64bit mode with amd64!
+OP_64AUTO = 0x008  # operand is in 64bit mode with amd64!
+OP_REG32AUTO = 0x010  # force only *register* to be 32 bit.
+OP_MEM32AUTO = 0x020  # force only *memory* to be 32 bit.
+OP_NOVEXL = 0x040  # don't apply VEX.L here (even though it's set). TLDR: always 128/xmm reg
 
 OP_UNK = 0x000
 OP_REG = 0x100
@@ -231,9 +240,7 @@ cpu_PENTMMX = 0x00008000
 cpu_PENTIUM2 = 0x00009000
 cpu_AMD64 = 0x0000a000
 cpu_AESNI = 0x0000b000
-
-#import envi.archs.i386.regs as e_i386_regs
-# Relative import priority...
+cpu_AVX   = 0x0000c000
 
 #eventually, change this for your own codes
 #ADDEXP_SCALE_OFFSET= 0 
@@ -245,4 +252,3 @@ cpu_AESNI = 0x0000b000
 ADDRMETH_MASK = 0x00FF0000
 OPTYPE_MASK = 0xFF000000
 OPFLAGS_MASK = 0x0000FFFF
-
