@@ -145,7 +145,7 @@ class VivisectTest(unittest.TestCase):
             self.assertEqual(len(refs), test[2])
 
     def test_viv_bigend(self):
-        fd = io.StringIO('ABCDEFG')
+        fd = io.StringIO(u'ABCDEFG')
 
         vw = vivisect.VivWorkspace()
         vw.config.viv.parsers.blob.arch = 'arm'

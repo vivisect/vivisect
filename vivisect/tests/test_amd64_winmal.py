@@ -48,5 +48,4 @@ class Amd64Malwaretest(unittest.TestCase):
         self.assertEqual(len(codeRefs), 0)
 
     def test_string(self):
-        pass:q
-
+        pass

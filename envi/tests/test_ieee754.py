@@ -35,10 +35,11 @@ class FloatingPointTest(unittest.TestCase):
                 self.fail("%s failed to encode properly (produced: 0x%x, test: 0x%x)" % (valu, encoded, answers[i]))
 
     def test_ieee_754_encode(self):
+        # TODO: double check these and expand them
         self._encoding_test(1, [0x3c00,
                                 0x3f800000,
                                 0x3ff0000000000000,
-                                0x3ff80000000000000000])
+                                0x3fff0000000000000000])
 
         self._encoding_test(0.26, [0x3428,
                                    0x3e851eb8,
