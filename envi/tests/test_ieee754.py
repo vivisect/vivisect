@@ -39,7 +39,7 @@ class FloatingPointTest(unittest.TestCase):
         self._encoding_test(1, [0x3c00,
                                 0x3f800000,
                                 0x3ff0000000000000,
-                                0x3fff0000000000000000])
+                                0x3fff8000000000000000])
 
         self._encoding_test(0.26, [0x3428,
                                    0x3e851eb8,
