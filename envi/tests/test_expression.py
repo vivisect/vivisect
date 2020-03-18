@@ -13,7 +13,7 @@ class EnviExpressionTest(unittest.TestCase):
 
     def test_envi_MemoryExpressionLocals(self):
         import envi.expression as e_expr
-        
+
         vw = vivisect.cli.VivCli()
         vw.makeName(0xfffffffe, 'foo(bar)')
 

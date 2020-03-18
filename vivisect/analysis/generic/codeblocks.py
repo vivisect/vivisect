@@ -10,12 +10,14 @@ module which should be snapped in *very* early by parsers.
 import sys
 import envi
 import vivisect
+import collections
 
 from vivisect.const import *
 
 def analyzeFunction(vw, funcva):
     blocks = {}
     done = {}
+    mnem = collections.defaultdict(int)
     todo = [ funcva, ]
     brefs = []
     size = 0
@@ -36,13 +38,12 @@ def analyzeFunction(vw, funcva):
 
         # Walk forward through instructions until a branch edge
         while True:
-
             loc = vw.getLocation(va)
 
             # If it's not a location, terminate
-            if loc == None:
+            if loc is None:
                 blocks[start] = va - start
-                brefs.append( (va, False) )
+                brefs.append((va, False))
                 break
 
             lva,lsize,ltype,linfo = loc
@@ -51,9 +52,9 @@ def analyzeFunction(vw, funcva):
                 # pointer analysis mis-identified a pointer,
                 # so clear and re-analyze instructions.
 
-                vw.delLocation(va)
+                vw.delLocation(lva)
 
-                # assume we're add a valid instruction, which is most likely.
+                # assume we're adding a valid instruction, which is most likely.
                 vw.makeCode(va)
 
                 loc = vw.getLocation(va)
@@ -61,15 +62,17 @@ def analyzeFunction(vw, funcva):
                     blocks[start] = va - start
                     brefs.append( (va, False) )
                     break
-                    
+
                 lva,lsize,ltype,linfo = loc
 
             # If it's not an op, terminate
             if ltype != LOC_OP:
-                blocks[start] = va - start                     
-                brefs.append( (va, False) )
+                blocks[start] = va - start
+                brefs.append((va, False))
                 break
 
+            op = vw.parseOpcode(va)
+            mnem[op.mnem] += 1
             size += lsize
             opcount += 1
             nextva = va+lsize
@@ -91,40 +94,40 @@ def analyzeFunction(vw, funcva):
 
             # If it doesn't fall through, terminate (at nextva)
             if linfo & envi.IF_NOFALL:
-                blocks[start] = nextva - start 
+                blocks[start] = nextva - start
                 brefs.append( (nextva, False) )
                 break
 
             # If we hit a branch, we are the end of a block...
             if branch:
-                blocks[start] = nextva - start 
-                todo.append( nextva )
+                blocks[start] = nextva - start
+                todo.append(nextva)
                 break
 
             if vw.getXrefsTo(nextva, REF_CODE):
                 blocks[start] = nextva - start
-                todo.append( nextva )
+                todo.append(nextva)
                 break
-            
+
             va = nextva
 
     # we now have an ordered list of block references!
     brefs.sort()
     brefs.reverse()
-    bcnt = 0 
+    bcnt = 0
     while len(brefs):
         bva, isbegin = brefs.pop()
         if not isbegin:
             continue
-        
+
         if len(brefs) == 0:
             break
 
         bsize = blocks[bva]
         vw.addCodeBlock(bva, bsize, funcva)
-        bcnt+=1
+        bcnt += 1
 
     vw.setFunctionMeta(funcva, 'Size', size)
     vw.setFunctionMeta(funcva, 'BlockCount', bcnt)
     vw.setFunctionMeta(funcva, "InstructionCount", opcount)
-
+    vw.setFunctionMeta(funcva, "MnemDist", mnem)

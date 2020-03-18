@@ -36,6 +36,7 @@ class WorkspaceEmulator:
         self.hooks = {}
         self.taints = {}
         self.taintva = itertools.count(0x41560000, 8192)
+        self.taintrepr = {}
 
         self.uninit_use = {}
         self.logwrite = logwrite
@@ -152,7 +153,7 @@ class WorkspaceEmulator:
         # We can make an opcode *faster* with the workspace because of
         # getByteDef etc... use it.
         op = self.opcache.get(va)
-        if op == None:
+        if op is None:
             op = envi.Emulator.parseOpcode(self, va, arch=arch)
             self.opcache[va] = op
         return op
@@ -165,27 +166,24 @@ class WorkspaceEmulator:
         iscall = bool(op.iflags & envi.IF_CALL)
         if iscall:
             api = self.getCallApi(endeip)
-            rtype,rname,convname,callname,funcargs = api
+            rtype, rname, convname, callname, funcargs = api
             callconv = self.getCallingConvention(convname)
             argv = callconv.getCallArgs(self, len(funcargs))
 
             ret = None
-            if self.emumon != None:
+            if self.emumon is not None:
                 try:
                     ret = self.emumon.apicall(self, op, endeip, api, argv)
-                except Exception, e:
+                except Exception as e:
                     self.emumon.logAnomaly(self, endeip, "%s.apicall failed: %s" % (self.emumon.__class__.__name__, e))
 
             hook = self.hooks.get(callname)
-            if ret == None and hook:
-                hook( self, callconv, api, argv )
-
+            if ret is None and hook:
+                hook(self, callconv, api, argv)
             else:
-
-                if ret == None:
-                    ret = self.setVivTaint('apicall', (op,endeip,api,argv))
-
-                callconv.execCallReturn( self, ret, len(funcargs) )
+                if ret is None:
+                    ret = self.setVivTaint('apicall', (op, endeip, api, argv))
+                callconv.execCallReturn(self, ret, len(funcargs))
 
             # Either way, if it's a call PC goes to next instruction
             if self._func_only:
@@ -233,9 +231,9 @@ class WorkspaceEmulator:
         # FIXME this should actually check for conditional...
         # If there is more than one branch target, we need a new code block
         if len(blist) > 1:
-            for bva,bflags in blist:
-                if bva == None:
-                    print "Unresolved branch even WITH an emulator?"
+            for bva, bflags in blist:
+                if bva is None:
+                    print("Unresolved branch even WITH an emulator?")
                     continue
 
                 bpath = self.getBranchNode(self.curpath, bva)
@@ -278,19 +276,19 @@ class WorkspaceEmulator:
         vg_path.setNodeProp(self.curpath, 'bva', funcva)
 
         hits = {}
-        todo = [(funcva,self.getEmuSnap(),self.path),]
-        vw = self.vw # Save a dereference many many times
+        todo = [(funcva, self.getEmuSnap(), self.path)]
+        vw = self.vw  # Save a dereference many many times
 
         while len(todo):
 
-            va,esnap,self.curpath = todo.pop()
+            va, esnap, self.curpath = todo.pop()
 
             self.setEmuSnap(esnap)
 
             self.setProgramCounter(va)
 
             # Check if we are beyond our loop max...
-            if maxloop != None:
+            if maxloop is not None:
                 lcount = vg_path.getPathLoopCount(self.curpath, 'bva', va)
                 if lcount > maxloop:
                     continue
@@ -306,7 +304,7 @@ class WorkspaceEmulator:
                     return
 
                 # Check straight hit count...
-                if maxhit != None:
+                if maxhit is not None:
                     h = hits.get(starteip, 0)
                     h += 1
                     if h > maxhit:
@@ -315,7 +313,7 @@ class WorkspaceEmulator:
 
                 # If we ran out of path (branches that went
                 # somewhere that we couldn't follow?
-                if self.curpath == None:
+                if self.curpath is None:
                     break
 
                 try:
@@ -327,7 +325,7 @@ class WorkspaceEmulator:
                         self.emumon.prehook(self, op, starteip)
 
                         if self.emustop:
-                            return 
+                            return
 
                     # Execute the opcode
                     self.executeOpcode(op)
@@ -338,7 +336,7 @@ class WorkspaceEmulator:
                     if self.emumon:
                         self.emumon.posthook(self, op, endeip)
                         if self.emustop:
-                            return 
+                            return
 
                     iscall = self.checkCall(starteip, endeip, op)
                     if self.emustop:
@@ -351,7 +349,7 @@ class WorkspaceEmulator:
                         if len(blist):
                             # pc in the snap will be wrong, but over-ridden at restore
                             esnap = self.getEmuSnap()
-                            for bva,bpath in blist:
+                            for bva, bpath in blist:
                                 todo.append((bva, esnap, bpath))
                             break
 
@@ -360,18 +358,18 @@ class WorkspaceEmulator:
                     if op.iflags & envi.IF_RET:
                         vg_path.setNodeProp(self.curpath, 'cleanret', True)
                         break
-                except envi.UnsupportedInstruction, e:
+                except envi.UnsupportedInstruction as e:
                     if self.strictops:
                         break
                     else:
-                        print 'runFunction continuing after unsupported instruction: 0x%08x %s' % (e.op.va, e.op.mnem)
-                        self.setProgramCounter(e.op.va+ e.op.size)
-                except Exception, e:
-                    #traceback.print_exc()
-                    if self.emumon != None:
+                        print('runFunction continuing after unsupported instruction: 0x%08x %s' % (e.op.va, e.op.mnem))
+                        self.setProgramCounter(e.op.va + e.op.size)
+                except Exception as e:
+                    # traceback.print_exc()
+                    if self.emumon is not None:
                         self.emumon.logAnomaly(self, starteip, str(e))
 
-                    break # If we exc during execution, this branch is dead.
+                    break  # If we exc during execution, this branch is dead.
 
     def getCallApi(self, va):
         '''
@@ -433,44 +431,44 @@ class WorkspaceEmulator:
         For the base "known" taint types, return a humon readable string
         to represent the value of the taint.
         '''
-        va,ttype,tinfo = taint
+
+        va, ttype, tinfo = taint
+
         if ttype == 'uninitreg':
-            return self.getRegisterName(tinfo)
-
-        if ttype == 'import':
+            trepr = self.getRegisterName(tinfo)
+        elif ttype == 'import':
             lva,lsize,ltype,linfo = tinfo
-            return linfo
-
-        if ttype == 'dynlib':
+            trepr = linfo
+        elif ttype == 'dynlib':
             libname = tinfo
-            return libname
-
-        if ttype == 'dynfunc':
+            trepr = libname
+        elif ttype == 'dynfunc':
             libname,funcname = tinfo
-            return '%s.%s' % (libname,funcname)
-
-        if ttype == 'funcstack':
+            trepr = '%s.%s' % (libname,funcname)
+        elif ttype == 'funcstack':
             stackoff = tinfo
             if self.funcva:
                 flocal = self.vw.getFunctionLocal(self.funcva, stackoff)
                 if flocal != None:
                     typename,argname = flocal
                     return argname
-
             o = '+'
             if stackoff < 0:
                 o = '-'
+            trepr = 'sp%s%d' % (o, abs(stackoff))
+        elif ttype == 'apicall':
+            op, pc, api, argv = tinfo
+            if op.va in self.taintrepr:
+                return '<0x%.8x>' % op.va
+            rettype, retname, callconv, callname, callargs = api
+            callstr = self.reprVivValue(pc)
+            argsstr = ','.join([self.reprVivValue(x) for x in argv])
+            trepr = '%s(%s)' % (callstr, argsstr)
+            self.taintrepr[op.va] = trepr
+        else:
+            trepr = 'taint: 0x%.8x %s %r' % (va, ttype, tinfo)
 
-            return 'sp%s%d' % (o, abs(stackoff))
-
-        if ttype == 'apicall':
-            op,pc,api,argv = tinfo
-            rettype,retname,callconv,callname,callargs = api
-            callstr = self.reprVivValue( pc )
-            argsstr = ','.join([ self.reprVivValue( x ) for x in argv])
-            return '%s(%s)' % (callstr,argsstr)
-
-        return 'taint: 0x%.8x %s %r' % (va, ttype, tinfo)
+        return trepr
 
     def reprVivValue(self, val):
         '''
@@ -479,7 +477,7 @@ class WorkspaceEmulator:
         and taint subsystems ).
         '''
         if self.vw.isFunction(val):
-            thunk = self.vw.getFunctionMeta(val,'Thunk')
+            thunk = self.vw.getFunctionMeta(val, 'Thunk')
             if thunk:
                 return thunk
 
@@ -489,20 +487,18 @@ class WorkspaceEmulator:
 
         taint = self.getVivTaint(val)
         if taint:
-            # NOTE we need to prevent infinite recursion due to args being
-            # tainted and then referencing the same api call 
-            va,ttype,tinfo = taint
+            va, ttype, tinfo = taint
             if ttype == 'apicall':
-                op,pc,api,argv = tinfo
-                rettype,retname,callconv,callname,callargs = api
+                op, pc, api, argv = tinfo
+                rettype, retname, callconv, callname, callargs = api
                 if val not in argv:
                     return self.reprVivTaint(taint)
 
         stackoff = self.getStackOffset(val)
-        if stackoff != None:
+        if stackoff is not None:
             funclocal = self.vw.getFunctionLocal(self.funcva, stackoff)
-            if funclocal != None:
-                typename,varname = funclocal
+            if funclocal is not None:
+                typename, varname = funclocal
                 return varname
 
         if val < 4096:
