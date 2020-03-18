@@ -976,7 +976,12 @@ amd64VexOpcodes = [
     ('VCMPPS 6', 'c534c23c254a4a4a4a2b', 'vcmpps ymm15,ymm9,yword [0x4a4a4a4a],43', 'vcmpps ymm15,ymm9,yword [0x4a4a4a4a],43'),
     ('VCMPPS 7', 'c44134c27d00d3', 'vcmpps ymm15,ymm9,yword [r13],211', 'vcmpps ymm15,ymm9,yword [r13],211'),
     ('VCMPPS 8', 'c534c2b8f8000000d1', 'vcmpps ymm15,ymm9,yword [rax + 248],209', 'vcmpps ymm15,ymm9,yword [rax + 248],209'),
-
+    ('VFMADD132pd', 'C4E2E998CB', 'vfmadd132pd xmm1,xmm2,xmm3', 'vfmadd132pd xmm1,xmm2,xmm3'),
+    ('VFMADD213sd', 'c4e2e9a925e32a0600', 'vfmadd213sd xmm4,xmm2,qword [rip + 404195]', 'vfmadd213sd xmm4,xmm2,qword [rip + 404195]'),
+    ('VFMADD213sd 2', 'c4e2f1a91df82a0600', 'vfmadd213sd xmm3,xmm1,qword [rip + 404216]', 'vfmadd213sd xmm3,xmm1,qword [rip + 404216]'),
+    ('VFMADD213sd 3', 'c4e2f1a91df82a0600', 'vfmadd213sd xmm3,xmm1,qword [rip + 404216]', 'vfmadd213sd xmm3,xmm1,qword [rip + 404216]'),
+    ('VFMADD213sd 4', 'C4E2E998CB', 'vfmadd132pd xmm1,xmm2,xmm3', 'vfmadd132pd xmm1,xmm2,xmm3'),
+    # for the *213ss versions, rex needs to be able to change the mnem :/
 ]
 
 
