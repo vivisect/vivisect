@@ -944,7 +944,7 @@ class i386Disasm:
 
             # print(hex(opertype), hex(addrmeth), hex(tsize))
 
-            # If addrmeth is zero, we have operands embedded in the opcode
+            # If addrmeth is zero,we have operands embedded in the opcode
             if addrmeth == 0:
                 osize = 0
                 oper = self.ameth_0(operflags, opdesc[5+i], tsize, all_prefixes)
@@ -1005,7 +1005,8 @@ class i386Disasm:
         if operflags & opcode86.OP_REG:
             if prefixes & PREFIX_OP_SIZE:
                 operval |= RMETA_LOW16
-            return i386RegOper(operval, tsize)
+            width = self._dis_regctx.getRegisterWidth(operval) / 8
+            return i386RegOper(operval, width)
         elif operflags & opcode86.OP_IMM:
             return i386ImmOper(operval, tsize)
         raise Exception("Unknown ameth_0! operflags: 0x%.8x" % operflags)

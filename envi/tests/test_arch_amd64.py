@@ -1107,20 +1107,13 @@ class Amd64InstructionSet(unittest.TestCase):
         opbytez = '0440'
         oprepr = 'add al,64'
         opcheck = {'iflags': 131072, 'prefixes': 0, 'mnem': 'add', 'opcode': 8193, 'size': 2}
-        opercheck = ( {'tsize': 4, 'reg': 524288}, {'tsize': 4, 'imm': 64} )
+        opercheck = ( {'tsize': 1, 'reg': 524288}, {'tsize': 1, 'imm': 64} )
         self.checkOpcode( opbytez, 0x4000, oprepr, opcheck, opercheck, oprepr )
 
         opbytez = '0218'
         oprepr = 'add bl,byte [rax]'
         opcheck = {'iflags': 131072, 'va': 16384, 'repr': None, 'prefixes': 0, 'mnem': 'add', 'opcode': 8193, 'size': 2}
         opercheck = ( {'tsize': 1, 'reg': 524291}, {'disp': 0, 'tsize': 1, '_is_deref': True, 'reg': 0} )
-        self.checkOpcode( opbytez, 0x4000, oprepr, opcheck, opercheck, oprepr )
-
-        opbytez = '0f2018'
-        # TODO: nothing in the manual says anything about mov from a control reg being able to hit memory
-        oprepr = 'mov qword [rax],ctrl3'
-        opcheck =  {'iflags': 131072, 'va': 16384, 'repr': None, 'prefixes': 0, 'mnem': 'mov', 'opcode': 24577, 'size': 3}
-        opercheck = ( {'disp': 0, 'tsize': 8, '_is_deref': True, 'reg': 0}, {'tsize': 8, 'reg': 59} )
         self.checkOpcode( opbytez, 0x4000, oprepr, opcheck, opercheck, oprepr )
 
         for x in range(0xb0, 0xb8):
@@ -1260,13 +1253,13 @@ class Amd64InstructionSet(unittest.TestCase):
         opbytez = '6e'
         oprepr = 'outsb dx,byte [rsi]'
         opcheck =  {'iflags': 131074, 'va': 16384, 'repr': None, 'prefixes': 0, 'mnem': 'outsb', 'opcode': 57347, 'size': 1}
-        opercheck = [{'tsize': 4, 'reg': 1048578}, {'disp': 0, 'tsize': 1, '_is_deref': True, 'reg': 6}]
+        opercheck = [{'tsize': 2, 'reg': 1048578}, {'disp': 0, 'tsize': 1, '_is_deref': True, 'reg': 6}]
         self.checkOpcode( opbytez, 0x4000, oprepr, opcheck, opercheck, oprepr )
 
         opbytez = '6d'
         oprepr = 'insd dword [rsi],dx'
         opcheck =  {'iflags': 131074, 'va': 16384, 'repr': None, 'prefixes': 0, 'mnem': 'insd', 'opcode': 57346, 'size': 1}
-        opercheck = [{'disp': 0, 'tsize': 4, '_is_deref': True, 'reg': 6}, {'tsize': 4, 'reg': 1048578}]
+        opercheck = [{'disp': 0, 'tsize': 4, '_is_deref': True, 'reg': 6}, {'tsize': 2, 'reg': 1048578}]
         self.checkOpcode( opbytez, 0x4000, oprepr, opcheck, opercheck, oprepr )
 
     def test_envi_amd64_disasm_ImmMem_Operands(self):
