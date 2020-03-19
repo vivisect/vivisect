@@ -14,7 +14,9 @@ EM_VPP500 = 17
 EM_SPARC32PLUS = 18
 EM_960 = 19
 EM_PPC = 20
+EM_PPCE = 20 + 0x10000
 EM_PPC64 = 21
+EM_PPC64E = 21 + 0x10000
 EM_S390 = 22
 EM_V800 = 36
 EM_FR20 = 37
@@ -214,6 +216,11 @@ e_versions = {
     EV_CURRENT:"Current version",
     EV_NUM:"",
 }
+
+# eflags
+EF_PPC_EMB = 0x80000000
+e_flags = {v: k for k, v in globals().items() if k.startswith("EF_")}
+
 
 R_68K_NONE = 0
 R_68K_32 = 1

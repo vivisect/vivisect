@@ -328,6 +328,12 @@ class SymbolikBase:
             if newb != None and newb != cur:
                 cur = newb
                 #sys.stdout.write(' 8 ')
+                # tie newb in
+                # print("setSymKid: %s :: %d" % (len(path), idx))
+                if len(path):
+                    parent = path[-1]
+                    pidx = idxs[-1]
+                    parent.setSymKid(pidx, newb)
                 continue    # give it another shot...
 
             # exit if we're the top node
@@ -340,11 +346,6 @@ class SymbolikBase:
             # pop back up a level
             cur = path.pop()
             idx = idxs.pop()
-
-            # tie newb in
-            if newb is not None:
-                # print("setSymKid: %s :: %d" % (len(path), idx))
-                cur.setSymKid(idx, newb)
 
             idx += 1
 

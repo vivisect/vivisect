@@ -114,7 +114,9 @@ arch_names = {
     Elf.EM_386:'i386',
     Elf.EM_X86_64:'amd64',
     Elf.EM_MSP430:'msp430',
-    Elf.EM_PPC:'ppc-embedded',
+    Elf.EM_PPCE:'ppc32-embedded',
+    Elf.EM_PPC64E:'ppc-embedded',
+    Elf.EM_PPC:'ppc32-server',
     Elf.EM_PPC64:'ppc-server',
     Elf.EM_ARM_AARCH64:'aarch64',
 }
@@ -133,8 +135,14 @@ archcalls = {
 }
 
 
-def getArchName(emfield):
-    arch = arch_names.get(emfield)
+def getArchName(elf):
+    machine = elf.e_machine
+    if machine == Elf.EM_PPC64 and elf.e_flags & Elf.EM_PPC_EMB:
+        machine = Elf.EM_PPC64E
+    elif machine == Elf.EM_PPC and elf.e_flags & Elf.EM_PPC_EMB:
+        machine = Elf.EM_PPCE
+    arch = arch_names.get(elf.e_machine)
+
     if arch is None:
        raise Exception("Unsupported Architecture: %d\n", elf.e_machine)
 
@@ -147,7 +155,7 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
     new_pointers = []
     new_functions = []
 
-    arch = getArchName(elf.e_machine)
+    arch = getArchName(elf)
     platform = elf.getPlatform()
 
     # setup needed platform/format
@@ -189,12 +197,8 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
     fname = vw.addFile(filename.lower(), baseaddr, fhash)
 
     strtabs = {}
-    secnames = []
-    for sec in elf.getSections():
-        secnames.append(sec.getName())
-
-    pgms = elf.getPheaders()
     secs = elf.getSections()
+    pgms = elf.getPheaders()
 
     for pgm in pgms:
         if pgm.p_type == Elf.PT_LOAD:
@@ -362,6 +366,33 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
             logger.debug("LINK\t%r",sec.sh_link)
             for s in makeSymbolTable(vw, sva, sva+size):
                  logger.info("######################## .dynsym %r",s)
+
+        elif sname in (".bss",):
+            if vw.getName(fname + '.bss_temp') is None:
+                sdasz = sec.sh_size
+                align = sec.sh_addralign
+                sdasz += align-1
+                sdasz = (sdasz / align) * align
+                sdabase = vw.addMemoryMap(None, 7, fname + sname, '\0' * sdasz)
+                vw.makeName(sdabase, fname + ".bss_temp")
+
+        elif sname in (".sbss", ".sdata"):
+            if vw.getName('_SDA_BASE_') is None:
+                sdasz = sec.sh_size
+                align = sec.sh_addralign
+                sdasz += align-1
+                sdasz = (sdasz / align) * align
+                sdabase = vw.addMemoryMap(None, 7, fname + sname, '\0' * sdasz)
+                vw.makeName(sdabase, "_SDA_BASE_")
+
+        elif sname in (".sbss2", ".sdata2"):
+            if vw.getName('_SDA2_BASE_') is None:
+                sdasz = sec.sh_size
+                align = sec.sh_addralign
+                sda2sz += align-1
+                sda2sz = (sda2sz / align) * align
+                sda2base = vw.addMemoryMap(None, 7, fname + sname, '\0' * sda2sz)
+                vw.makeName(sda2base, "_SDA2_BASE_")
 
         # If the section is really a string table, do it
         if sec.sh_type == Elf.SHT_STRTAB:
