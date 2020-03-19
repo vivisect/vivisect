@@ -205,7 +205,7 @@ api = {
     'plt___crtcomparestringw':( 'int', None, 'cdecl', '*.__crtCompareStringW', (('int', 'Locale'), ('int', 'dwCmpFlags'), ('void *', 'lpString1'), ('int', 'cchCount1'), ('void *', 'lpString2'), ('int', 'cchCount2'), ('int', 'code_page')) ),
     'plt___crtgetlocaleinfow':( 'int', None, 'cdecl', '*.__crtGetLocaleInfoW', (('int', None), ('int', None), ('int', None), ('int', None), ('int', None)) ),
     'plt___crtgetstringtypew':( 'int', None, 'cdecl', '*.__crtGetStringTypeW', (('int', None), ('int', None), ('int', None), ('void *', 'ptr'), ('int', None), ('int', None)) ),
-    'plt___crtlcmapstringa':( 'int', None, 'cdecl', '*.__crtLCMapStringA', (('int', 'LocalName'), ('int', 'dwMapFlags'), ('void *', 'lpSrcStr'), ('int', 'cchSrc'), ('void *', 'lpDstStr''), ('int', 'cchDst'), ('int', 'code_page'), ('int', 'bError')) ),
+    'plt___crtlcmapstringa':( 'int', None, 'cdecl', '*.__crtLCMapStringA', (('int', 'LocalName'), ('int', 'dwMapFlags'), ('void *', 'lpSrcStr'), ('int', 'cchSrc'), ('void *', 'lpDstStr'), ('int', 'cchDst'), ('int', 'code_page'), ('int', 'bError')) ),
     'plt___crtlcmapstringw':( 'int', None, 'cdecl', '*.__crtLCMapStringW', (('int', None), ('int', None), ('int', None), ('int', None), ('void *', 'ptr'), ('int', None), ('int', None)) ),
     'plt___dllonexit':( 'int', None, 'cdecl', '*.__dllonexit', (('int', None), ('int', None), ('int', None)) ),
     'plt___doserrno':( 'int', None, 'cdecl', '*.__doserrno', () ),
