@@ -131,6 +131,7 @@ class CodeFlowContext(object):
 
         Set persist=True to store 'opdone' and never disassemble the same thing twice
         '''
+        logger.debug('%s === addCodeFlow(0x%x, 0x%x)', __name__, va, arch)
         opdone = {}
         if self._cf_persist != None:
             opdone = self._cf_persist
@@ -157,7 +158,7 @@ class CodeFlowContext(object):
             try:
                 op = self._mem.parseOpcode(va, arch=arch)
             except envi.InvalidInstruction as e:
-                logger.warn('parseOpcode error at 0x%.8x (addCodeFlow(0x%x)): %s',va, startva, e)
+                logger.warn('parseOpcode error at 0x%.8x (addCodeFlow(0x%x)): %s', va, startva, e)
                 continue
             except Exception as e:
                 logger.warn('parseOpcode error at 0x%.8x (addCodeFlow(0x%x)): %s', va, startva, e)
@@ -184,7 +185,6 @@ class CodeFlowContext(object):
 
                 try:
                     # Handle a table branch by adding more branches...
-                    ptrfmt = ('<P', '>P')[self._mem.getEndian()]
                     # most if not all of the work to construct jump tables is done in makeOpcode
                     if bflags & envi.BR_TABLE:
                         if self._cf_exptable:
@@ -208,7 +208,7 @@ class CodeFlowContext(object):
                         if self._cf_noret.get( bva ):
                             self.addNoFlow( va, va + len(op) )
 
-                        bva = self._mem.readMemoryFormat(bva, ptrfmt)[0]
+                        bva = self._mem.readMemoryPtr(bva)
 
                     if not self._mem.probeMemory(bva, 1, e_mem.MM_EXEC):
                         continue

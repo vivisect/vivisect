@@ -162,7 +162,7 @@ def analyzeFunction(vw, fva):
             try:
                 vw.addXref(va, tgt, REF_DATA, 0)
             except:
-                sys.excepthook(*sys.exc_info())
+                logger.exception('error adding XREF:')
             ## FIXME: force analysis of the xref.  very likely string for current example code.
 
         # set comment.  if existing comment, by default, don't... otherwise prepend the info before the existing comment
@@ -186,7 +186,7 @@ def analyze(vw):
         try:
             analyzeFunction(vw, fva)
         except:
-            pass
+            logger.exception('thunk_reg analysis error:')
 
 if globals().get('vw') != None:
     if len(argv) > 1:

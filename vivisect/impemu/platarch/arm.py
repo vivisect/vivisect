@@ -262,7 +262,7 @@ class ArmWorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_arm.ArmEmulator):
                         self.emumon.logAnomaly(self, starteip, str(e))
 
                     logger.debug('runFunction breaking after exception (fva: 0x%x): %s', funcva, e)
-                    logger.info('\n'.join(traceback.format_exception(*sys.exc_info())))
+                    logger.exception('')
                     break # If we exc during execution, this branch is dead.
 
 class ThumbWorkspaceEmulator(ArmWorkspaceEmulator):

@@ -118,8 +118,7 @@ class AnalysisMonitor(viv_monitor.AnalysisMonitor):
 
         except Exception, e:
             # FIXME: make raise Exception?
-            print("0x%x: (%r)  ERROR: %s" % (op.va, op, e))
-            sys.excepthook(*sys.exc_info())
+            logger.exception("0x%x: (%r)  ERROR: %s", op.va, op, e)
 
 
     def posthook(self, emu, op, starteip):
@@ -343,6 +342,66 @@ def analyzeADDPC(emu, op, starteip, emumon):
         emu.setRegister(base_reg, x)
         idx = op.opers[-1].getOperValue(op, emu)
         nexttgt = base + idx
+        #print("x=%x, base=%x, idx=%x (%x)  %r %r  %d" % (x,base,idx, nexttgt, op, op.opers, emu.getRegister(op.opers[-1].reg)))
+        tbl.append((base+idx, x))
+        emu.vw.makeCode(nexttgt)
+        emu.vw.addXref(starteip, nexttgt, REF_CODE)
+
+        curname = emu.vw.getName(nexttgt)
+        if curname == None:
+            emu.vw.makeName(nexttgt, "case_%x_%x_%x" % (x, starteip, nexttgt))
+        else:
+            emu.vw.vprint("case_%x_%x_%x conflicts with existing name: %r" % (x, starteip, nexttgt, curname))
+ 
+
+    return base, tbl
+
+
+#  FIXME: don't know if this is legit... i was bug-fixing for a "return" sub pc, lr, #4 instruction.
+def analyzeSUBPC(emu, op, starteip, emumon):
+    count = None
+
+    cb = emu.vw.getCodeBlock(op.va)
+    if cb == None:
+        return None, None
+
+    off = 0
+    reg = op.opers[1].reg
+    cbva, cbsz, cbfva = cb
+    while off < cbsz:
+        top = emu.vw.parseOpcode(cbva+off)
+        if top.opcode == INS_CMP:
+            # make sure this is a comparison for this register. 
+            # the comparison should be the size of the switch-case
+            for opidx in range(len(top.opers)):
+                oper = top.opers[opidx]
+                if isinstance(oper, e_arm.ArmRegOper):
+                    if oper.reg != reg:
+                        continue
+
+                    #print("cmp op: ", top)
+                    cntoidx = (1,0)[opidx]
+                    cntoper = top.opers[cntoidx]
+                    #print("cntoper: %d, %r  %r" % (cntoidx, cntoper, vars(cntoper)))
+                    count = cntoper.getOperValue(top, emu)
+                    #print("count = ", count)
+
+        off += len(top)
+
+    if not count or count == None or count > 10000:
+        return None, None
+
+    #print("Making ADDPC SwitchCase (count=%d):" % count)
+    # wire up the switch-cases, name each one, etc...
+    tbl = []
+
+    base = op.opers[-2].getOperValue(op, emu)
+    base_reg = op.opers[1].reg
+
+    for x in range(count):
+        emu.setRegister(base_reg, x)
+        idx = op.opers[-1].getOperValue(op, emu)
+        nexttgt = base - idx
         #print("x=%x, base=%x, idx=%x (%x)  %r %r  %d" % (x,base,idx, nexttgt, op, op.opers, emu.getRegister(op.opers[-1].reg)))
         tbl.append((base+idx, x))
         emu.vw.makeCode(nexttgt)

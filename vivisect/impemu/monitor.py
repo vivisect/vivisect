@@ -145,7 +145,7 @@ class AnalysisMonitor(EmulationMonitor):
                     try:
                         cb(self, emu, op, starteip)
                     except:
-                        sys.excepthook(*sys.exc_info())
+                        logger.exception('error with dyn branch handler (%r)', repr(cb))
 
 
     def apicall(self, emu, op, pc, api, argv):
@@ -205,6 +205,6 @@ class AnalysisMonitor(EmulationMonitor):
 
         # WOOT - we have found a runtime resolved function!
         self.vw.verbprint('0x%.8x: Emulation Found 0x%.8x (from func: 0x%.8x) via %s' % (op.va, pc, self.fva, repr(op)))
-        self.vw.makeFunction(pc, arch=op.iflags)
+        self.vw.makeFunction(pc, arch=op.iflags & envi.ARCH_MASK)
         self.vw.addXref(op.va, pc, REF_CODE, envi.BR_PROC)
 

@@ -58,6 +58,7 @@ iencmul_codes = {
     binary("000000011001"): ("mul",   INS_MUL,  (0,4,2), IF_PSR_S),
     binary("000000101001"): ("mla",   INS_MLA,  (0,4,2,1), 0),
     binary("000000111001"): ("mla",   INS_MLA,  (0,4,2,1), IF_PSR_S),
+    binary("000001101001"): ("mls",   INS_MLS,  (0,4,2,1), 0),
     binary("000001001001"): ("umaal", INS_UMAAL,(1,0,4,2), 0),
     binary("000010001001"): ("umull", INS_UMULL,(1,0,4,2), 0),
     binary("000010011001"): ("umull", INS_UMULL,(1,0,4,2), IF_PSR_S),
@@ -414,7 +415,7 @@ def p_misc1(opval, va): #
         Rm = opval & 0xf
         olist = ( ArmRegOper(Rm, va=va), )
         if Rm == REG_LR:
-            iflags |= envi.IF_RET
+            iflags |= envi.IF_RET | envi.IF_NOFALL
         else:
             iflags |= envi.IF_BRANCH
         
@@ -3937,7 +3938,7 @@ class ArmOpcode(envi.Opcode):
             oper = self.opers[-1]
 
             # check for location being ODD
-            operval = oper.getOperValue(self, emu)
+            operval = oper.getOperValue(self)
 
             if self.opcode in (INS_BLX, INS_BX):
                 if operval != None and operval & 3:
@@ -3968,9 +3969,9 @@ class ArmOpcode(envi.Opcode):
 
         return ret
 
-    def getOperValue(self, idx, emu=None):
+    def getOperValue(self, idx, emu=None, codeflow=False):
         oper = self.opers[idx]
-        return oper.getOperValue(self, emu=emu)
+        return oper.getOperValue(self, emu=emu, codeflow=codeflow)
 
     S_FLAG_MASK = IF_PSR_S | IF_PSR_S_SIL
     
@@ -4099,9 +4100,9 @@ class ArmRegOper(ArmOperand):
     def getWidth(self):
         return rctx.getRegisterWidth(self.reg) / 8
 
-    def getOperValue(self, op, emu=None):
-        if self.reg == REG_PC:
-            return self.va  # FIXME: is this modified?  or do we need to add # to this?
+    def getOperValue(self, op, emu=None, codeflow=False):
+        if self.reg == REG_PC and not codeflow:
+            return self.va
 
         if emu == None:
             return None
@@ -4147,7 +4148,7 @@ class ArmRegScalarOper(ArmRegOper):
     def isDeref(self):
         return True
 
-    def getOperValue(self, op, emu=None):
+    def getOperValue(self, op, emu=None, codeflow=False):
         if emu == None:
             return None
 
@@ -4196,7 +4197,7 @@ class ArmRegShiftRegOper(ArmOperand):
     def isDeref(self):
         return False
 
-    def getOperValue(self, op, emu=None):
+    def getOperValue(self, op, emu=None, codeflow=False):
         if emu == None:
             return None
         return shifters[self.shtype](emu.getRegister(self.reg), emu.getRegister(self.shreg))
@@ -4245,7 +4246,7 @@ class ArmRegShiftImmOper(ArmOperand):
     def isDeref(self):
         return False
 
-    def getOperValue(self, op, emu=None):
+    def getOperValue(self, op, emu=None, codeflow=False):
         if self.reg == REG_PC:
             return shifters[self.shtype](self.va, self.shimm)
 
@@ -4306,7 +4307,7 @@ class ArmImmOper(ArmOperand):
     def isDiscrete(self):
         return True
 
-    def getOperValue(self, op, emu=None):
+    def getOperValue(self, op, emu=None, codeflow=False):
         return shifters[self.shtype](self.val, self.shval, self.size)
 
     def render(self, mcanv, op, idx):
@@ -4342,7 +4343,7 @@ class ArmFloatOper(ArmImmOper):
     def setByBitField(self, val):
         self.val = val
 
-    def getOperValue(self, op, emu=None):
+    def getOperValue(self, op, emu=None, codeflow=False):
         return self.val
 
     def getFloatValue(self, op, emu=None):
@@ -4407,7 +4408,7 @@ class ArmScaledOffsetOper(ArmOperand):
     def isDeref(self):
         return True
 
-    def getOperValue(self, op, emu=None):
+    def getOperValue(self, op, emu=None, codeflow=False):
         if emu == None:
             return None
 
@@ -4548,7 +4549,7 @@ class ArmRegOffsetOper(ArmOperand):
         addr = self.getOperAddr(op, emu)
         return emu.writeMemValue(addr, val, self.tsize)
 
-    def getOperValue(self, op, emu=None):
+    def getOperValue(self, op, emu=None, codeflow=False):
         if emu == None:
             return None
 
@@ -4659,7 +4660,7 @@ class ArmImmOffsetOper(ArmOperand):
 
         emu.writeMemValue(addr, val, self.tsize)
 
-    def getOperValue(self, op, emu=None):
+    def getOperValue(self, op, emu=None, codeflow=False):
         # can't survive without an emulator
         if emu == None:
             return None
@@ -4795,7 +4796,7 @@ class ArmPcOffsetOper(ArmOperand):
     def isDiscrete(self):
         return True
 
-    def getOperValue(self, op, emu=None):
+    def getOperValue(self, op, emu=None, codeflow=False):
         return self.va + self.val
 
     def render(self, mcanv, op, idx):
@@ -4837,7 +4838,7 @@ class ArmPgmStatRegOper(ArmOperand):
     def isDeref(self):
         return False
 
-    def getOperValue(self, op, emu=None):
+    def getOperValue(self, op, emu=None, codeflow=False):
         if emu == None:
             return None
 
@@ -4892,7 +4893,7 @@ class ArmEndianOper(ArmImmOper):
     def isDeref(self):
         return False
 
-    def getOperValue(self, op, emu=None):
+    def getOperValue(self, op, emu=None, codeflow=False):
         return self.val
 
 class ArmRegListOper(ArmOperand):
@@ -4924,7 +4925,7 @@ class ArmRegListOper(ArmOperand):
         if self.oflags & OF_UM:
             mcanv.addText('^')
 
-    def getOperValue(self, op, emu=None):
+    def getOperValue(self, op, emu=None, codeflow=False):
         if emu == None:
             return None
         reglist = []
@@ -4982,7 +4983,7 @@ class ArmExtRegListOper(ArmOperand):
 
         mcanv.addText('}')
 
-    def getOperValue(self, op, emu=None):
+    def getOperValue(self, op, emu=None, codeflow=False):
         '''
         Returns a list of the values in the targeted Extension Registers
         '''
@@ -5043,7 +5044,7 @@ class ArmPSRFlagsOper(ArmOperand):
     def isDeref(self):
         return False
 
-    def getOperValue(self, op, emu=None):
+    def getOperValue(self, op, emu=None, codeflow=False):
         if emu == None:
             return None
         raise Exception("FIXME: Implement ArmPSRFlagsOper.getOperValue() (does it want to be a bitmask? or the actual value according to the PSR?)")
@@ -5072,7 +5073,7 @@ class ArmCoprocOpcodeOper(ArmOperand):
     def isDeref(self):
         return False
 
-    def getOperValue(self, op, emu=None):
+    def getOperValue(self, op, emu=None, codeflow=False):
         return self.val
 
     def repr(self, op):
@@ -5098,7 +5099,7 @@ class ArmCoprocOper(ArmOperand):
     def isDeref(self):
         return False
 
-    def getOperValue(self, op, emu=None):
+    def getOperValue(self, op, emu=None, codeflow=False):
         return self.val
 
     def repr(self, op):
@@ -5130,7 +5131,7 @@ class ArmCoprocRegOper(ArmOperand):
     def isDeref(self):
         return False
 
-    def getOperValue(self, op, emu=None):
+    def getOperValue(self, op, emu=None, codeflow=False):
         if emu == None:
             return None
         raise Exception("FIXME: Implement ArmCoprocRegOper.getOperValue()")
@@ -5181,7 +5182,7 @@ class ArmModeOper(ArmOperand):
     def isDeref(self):
         return False
 
-    def getOperValue(self, op, emu=None):
+    def getOperValue(self, op, emu=None, codeflow=False):
         return None
 
     def repr(self, op):
@@ -5207,7 +5208,7 @@ class ArmDbgHintOption(ArmOperand):
     def isDeref(self):
         return False
 
-    def getOperValue(self, op, emu=None):
+    def getOperValue(self, op, emu=None, codeflow=False):
         return self.val
 
     def repr(self, op):
@@ -5233,7 +5234,7 @@ class ArmBarrierOption(ArmOperand):
     def render(self, mcanv, op, idx):
         mcanv.addText(self.retOption())
 
-    def getOperValue(self, idx, emu=None):
+    def getOperValue(self, idx, emu=None, codeflow=False):
         return None
         
 class ArmCPSFlagsOper(ArmOperand):
@@ -5248,7 +5249,7 @@ class ArmCPSFlagsOper(ArmOperand):
         flags = [AIF_FLAGS[x] for x in range(3) if self.flags & (1<<x)]
         mcanv.addNameText(','.join(flags), typename='cpsflags')
 
-    def getOperValue(self, idx, emu=None):
+    def getOperValue(self, idx, emu=None, codeflow=False):
         return None
         
 

@@ -138,6 +138,17 @@ MSB_FMT = [0, 'B', '>H', 0, '>I', 0, 0, 0, '>Q',]
 LSB_FMT_SIGNED = [0, 'b', '<h', 0, '<i', 0, 0, 0, '<q',]
 MSB_FMT_SIGNED = [0, 'b', '>h', 0, '>i', 0, 0, 0, '>q',]
 
+ifs_first_F32 = (IFS_F32_S32 | IFS_F32_U32 | IFS_F32_F64 | IFS_F32_F16)
+ifs_second_F32 = (IFS_S32_F32 | IFS_U32_F32 | IFS_F64_F32 | IFS_F16_F32) 
+ifs_first_S32 = (IFS_S32_F32 | IFS_S32_F64 | IFS_S32_F32)
+ifs_second_S32 = (IFS_F32_S32 | IFS_F64_S32 | IFS_F32_S32)
+ifs_first_U32 = (IFS_U32_F32 | IFS_U32_F64)
+ifs_second_U32 = (IFS_F64_U32 | IFS_F32_U32)
+ifs_first_F64 = (IFS_F64_S32 | IFS_F64_U32 | IFS_F64_F32)
+ifs_second_F64 = (IFS_S32_F64 | IFS_U32_F64 | IFS_F32_F64)
+ifs_first_F16 = IFS_F16_F32
+ifs_second_F16 = IFS_F32_F16
+
 class ArmEmulator(ArmRegisterContext, envi.Emulator):
 
     def __init__(self):
@@ -240,6 +251,7 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
         try:
             self.setMeta('forrealz', True)
             newpc = None
+            startpc = self.getProgramCounter()
             skip = False
        
             # IT block handling
@@ -266,12 +278,14 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
                 # executing opcode now...
                 newpc = meth(op)
 
+            pc = self.getProgramCounter()
             # returned None, so the instruction hasn't directly changed PC
             if newpc == None:
-                pc = self.getProgramCounter()
                 newpc = pc+op.size
 
-            self.setProgramCounter(newpc)
+            # we don't want to trust the opcode emulator to know that it's updating PC
+            if pc == startpc:
+                self.setProgramCounter(newpc)
         finally:
             self.setMeta('forrealz', False)
 
@@ -562,15 +576,18 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
             logger.critical("FIXME: Interrupt Handler %x is not handled", val)
 
         handler = self.int_handlers[val]
-        handler(val)
+        handler(val, self)
 
-    def default_int_handler(self, val):
+    def default_int_handler(self, val, emu):
         logger.warn("DEFAULT INTERRUPT HANDLER for Interrupt %d (called at 0x%x)", val, self.getProgramCounter())
         logger.warn("Stack Dump:")
         sp = self.getStackCounter()
         for x in range(16):
             logger.warn("\t0x%x:\t0x%x", sp, self.readMemValue(sp, self.psize))
             sp += self.psize
+
+        # return 0 in r0  (cuz clearly we succeeded!)
+        emu.setRegister(0, 0)
 
     def i_and(self, op):
         res = self.logicalAnd(op)
@@ -810,11 +827,227 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
         except Exception, e:
             logger.warn("vcmpe exception: %r" % e)
 
+    FPType_Nonzero = 1
+    FPType_Zero = 2
+    FPType_Infinity = 3
+    FPType_QNaN = 4
+    FPType_SNaN = 5
+
+    def FPUnpack(self, fpval, fpscr_val):
+        '''
+        // FPUnpack()
+        // ==========
+        //
+        // Unpack a floating-point number into its type, sign bit and the real number
+        // that it represents. The real number result has the correct sign for numbers
+        // and infinities, is very large in magnitude for infinities, and is 0.0 for
+        // NaNs. (These values are chosen to simplify the description of comparisons
+        // and conversions.)
+        //
+        // The 'fpscr_val' argument supplies FPSCR control bits. Status information is
+        // updated directly in the FPSCR where appropriate.
+        '''
+        if N == 16:
+            sign = (fpval >> 15) & 1
+            exp = (fpval >> 10) & 0x1f
+            frac = fpval & 0x3ff
+            if IsZero(exp):
+                # Produce zero if value is zero
+                if IsZero(frac):
+                    type = FPType_Zero
+                    value = 0.0;
+                else:
+                    type = FPType_Nonzero
+                    value = 2^-14 * (UInt(frac) * 2^-10);
+            elif IsOnes(exp) and (fpscr_val>>26)&1 == 0: # Infinity or NaN in IEEE format
+                if IsZero(frac):
+                    type = FPType_Infinity
+                    value = 2^1000000;
+                else:
+                    type = (FPType_SNaN, FPType_QNaN)[(frac>>9)&1]
+                    value = 0.0
+
+            else:
+                type = FPType_Nonzero
+                value = 2^(UInt(exp)-15) * (1.0 + UInt(frac) * 2^-10);
+
+        elif N == 32:
+            sign = (fpval>>31) & 1
+            exp = (fpval>>23) & 0xff
+            frac = fpval & 0x7fffff
+            if IsZero(exp):
+                # Produce zero if value is zero or flush-to-zero is selected.
+                if IsZero(frac) or (fpscr_val>>24) & 1 == 1:
+                    type = FPType_Zero
+                    value = 0.0
+                if not IsZero(frac): # Denormalized input flushed to zero
+                    FPProcessException(FPExc_InputDenorm, fpscr_val);
+                else:
+                    type = FPType_Nonzero
+                    value = 2^-126 * (UInt(frac) * 2^-23);
+            elif IsOnes(exp):
+                if IsZero(frac):
+                    type = FPType_Infinity
+                    value = 2^1000000;
+                else:
+                    type =  (FPType_SNaN, FPType_QNaN)[(frac>>22)&1]
+                    value = 0.0;
+            else:
+                type = FPType_Nonzero
+                value = 2^(UInt(exp)-127) * (1.0 + UInt(frac) * 2^-23);
+        else: # N == 64
+            sign = (fpval>>63) & 1
+            exp = (fpval>>52) & 0x7ff
+            frac = fpval & 0x000fffffffffffff # 52 bits
+            if IsZero(exp):
+                # Produce zero if value is zero or flush-to-zero is selected.
+                if IsZero(frac) or (fpscr_val>>24) & 1 == 1:
+                    type = FPType_Zero
+                    value = 0.0
+                    if not IsZero(frac): # Denormalized input flushed to zero
+                        FPProcessException(FPExc_InputDenorm, fpscr_val)
+                else:
+                    type = FPType_Nonzero
+                    value = 2^-1022 * (UInt(frac) * 2^-52)
+
+            elif IsOnes(exp):
+                if IsZero(frac):
+                    type = FPType_Infinity
+                    value = 2^1000000
+                else:
+                    type = (FPType_SNaN, FPType_QNaN)[(frac>>51) & 1]
+                    value = 0.0
+            else:
+                type = FPType_Nonzero 
+                value = 2^(UInt(exp)-1023) * (1.0 + UInt(frac) * 2^-52)
+
+        if sign == '1': value = -value
+        return (type, sign, value)
+
+
+    def FPToFixed(operand, M, fraction_bits, unsigned, round_towards_zero, fpscr_controlled):
+        if fpscr_controlled:
+            fpscr_val = FPSCR 
+        else:
+            fpscr_val = StandardFPSCRValue()
+
+        if round_towards_zero:
+            fpscr_val |= 0b00000000110000000000000000000000
+
+        (type,sign,value) = FPUnpack(operand, fpscr_val)
+
+        # For NaNs and infinities, FPUnpack() has produced a value that will round to the
+        # required result of the conversion. Also, the value produced for infinities will
+        # cause the conversion to overflow and signal an Invalid Operation floating-point
+        # exception as required. NaNs must also generate such a floating-point exception.
+
+        if type == FPType_SNaN or type == FPType_QNaN:
+            FPProcessException(FPExc_InvalidOp, fpscr_val)
+
+        # Scale value by specified number of fraction bits, then start rounding to an integer
+        # and determine the rounding error.
+        value = value * 2^fraction_bits
+        int_result = RoundDown(value)
+        error = value - int_result
+
+        # Apply the specified rounding mode.
+        fpscr_part = (fpscr_val >> 22) & 3
+        if fpscr_part == 0:
+            #when '00' # Round to Nearest (rounding to even if exactly halfway)
+            round_up = (error > 0.5 or (error == 0.5 and (int_result & 1) == 1))
+
+        elif fpscr_part == 1:
+            #when '01' # Round towards Plus Infinity
+            round_up = (error != 0.0)
+
+        elif fpscr_part == 2:
+            #when '10' # Round towards Minus Infinity
+            round_up = FALSE
+
+        elif fpscr_part == 3:
+            #when '11' # Round towards Zero
+            round_up = (error != 0.0 and int_result < 0)
+
+        if round_up: int_result = int_result + 1
+
+        # Bitstring result is the integer result saturated to the destination size, with
+        # saturation indicating overflow of the conversion (signaled as an Invalid
+        # Operation floating-point exception).
+        (result, overflow) = SatQ(int_result, M, unsigned)
+
+        if overflow:
+            FPProcessException(FPExc_InvalidOp, fpscr_val)
+
+        elif error != 0:
+            FPProcessException(FPExc_Inexact, fpscr_val)
+
+        return result
+
+
+    def FPZero(self, bit, foo):
+        raise Exception()
+
+    def FixedToFP(self, operand, N, fraction_bits, unsigned, round_to_nearest, fpscr_controlled):
+        if fpscr_controlled:
+            fpscr_val = FPSCR 
+        else:
+            fpscr_val = StandardFPSCRValue()
+
+        if round_to_nearest:
+            fpscr_val &= 0b11111111001111111111111111111111
+            
+        if unsigned:
+            int_operand = UInt(operand) 
+        else:
+            int_operand = SInt(operand)
+
+        real_operand = int_operand / 2^fraction_bits;
+        if real_operand == 0.0:
+            result = FPZero(0, N);
+        else:
+            result = FPRound(real_operand, N, fpscr_val);
+
+        return result;
+
+    #def i_vcvtr(self, op):
+    #    raise Exception("IMPLEMENT ME: i_vcvtr")
+
     def i_vcvt(self, op):
+        '''
+        convert each element in a vector as float to int or int to float, 32-bit, round-to-zero/round-to-nearest
+        
+        '''
         logger.warn('%r\t%r', op, op.opers)
         logger.warn("complete implementing vcvt")
-        width = op.opers[0].getWidth()
+
+        srcwidth = op.opers[0].getWidth()
         regcnt = width / 4
+
+        firstOP = None
+        if op.simdflags & ifs_first_F32:
+            # get first vector element as F32
+            firstOP = OP_F32
+        elif op.simdflags & ifs_first_S32:
+            firstOP = OP_S32
+        elif op.simdflags & ifs_first_U32:
+            firstOP = OP_U32
+        elif op.simdflags & ifs_first_F64:
+            firstOP = OP_F64
+        elif op.simdflags & ifs_first_F16:
+            firstOP = OP_F16
+
+        secOP = None
+        if op.simdflags & ifs_second_F32:
+            # get second vector element as F32
+            secOP = OP_F32
+        elif op.simdflags & ifs_second_S32:
+            secOP = OP_S32
+        elif op.simdflags & ifs_second_U32:
+            secOP = OP_U32
+        elif op.simdflags & ifs_second_F64:
+            secOP = OP_F64
+        elif op.simdflags & ifs_second_F16:
+            secOP = OP_F16
 
         raise Exception("IMPLEMENT ME: i_vcvt")
         if len(op.opers) == 3:
@@ -868,7 +1101,7 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
         elif len(op.opers) == 2:
             for reg in range(regcnt):
                 #frac_bits = 64 - op.opers[1].val
-                # pA8_866
+                # pA8_866 (868?)
                 if op.simdflags & IFS_F32_S32:
                     pass
                 elif op.simdflags & IFS_F32_U32:
@@ -878,23 +1111,15 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
                 elif op.simdflags & IFS_U32_F32:
                     pass
 
-                # pA8-868
+                # pA8-868 (870?)
                 elif op.simdflags & IFS_F64_S32:
                     pass
                 elif op.simdflags & IFS_F64_U32:
-                    pass
-                elif op.simdflags & IFS_F32_S32:
-                    pass
-                elif op.simdflags & IFS_F32_U32:
                     pass
 
                 elif op.simdflags & IFS_S32_F64:
                     pass
                 elif op.simdflags & IFS_U32_F64:
-                    pass
-                elif op.simdflags & IFS_S32_F32:
-                    pass
-                elif op.simdflags & IFS_U32_F32:
                     pass
 
                 # pA8-874
@@ -908,8 +1133,10 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
                     pass
                 elif op.simdflags & IFS_F32_F16:
                     pass
+
         else:
             raise Exception("i_vcvt with strange number of opers: %r" % op.opers)
+
 
     i_vcvtr = i_vcvt
 
@@ -1200,6 +1427,7 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
     def i_svc(self, op):
         svc = self.getOperValue(op, 0)
         logger.warn("Service 0x%x called at 0x%x", svc, op.va)
+        self.interrupt(svc)
 
     def i_tst(self, op):
         src1 = self.getOperValue(op, 0)
@@ -1424,10 +1652,6 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
             self.setFlag(PSR_Z_bit, not val)
             self.setFlag(PSR_C_bit, e_bits.is_unsigned_carry(val, dsize))
             self.setFlag(PSR_V_bit, e_bits.is_signed_overflow(val, dsize))
-
-    def i_swi(self, op):
-        # this causes a software interrupt.  we need a good way to handle interrupts
-        self.interrupt(op.opers[0].val)
 
     def i_mul(self, op):
         dsize = op.opers[0].tsize
@@ -1736,8 +1960,14 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
             self.setFlag(PSR_N_bit, e_bits.is_signed(val, 4))
             self.setFlag(PSR_Z_bit, not val)
 
+    def i_mls(self, op):
+        src1 = self.getOperValue(op, 1)
+        src2 = self.getOperValue(op, 2)
+        src3 = self.getOperValue(op, 3)
 
+        val = src3 - (src1 * src2) & 0xffffffff
 
+        self.setOperValue(op, 0, val)
 
 
     def i_cps(self, op):

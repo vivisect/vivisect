@@ -7,6 +7,8 @@ import envi.memcanvas as e_memcanvas
 import envi.memcanvas.renderers as e_rend
 import envi.archs.arm as arm
 import vivisect
+
+import logging
 import platform
 import unittest
 
@@ -21,6 +23,9 @@ from envi.archs.arm.const import *
 from envi.archs.arm.disasm import *
 
 from envi.tests.armthumb_tests import advsimdtests
+
+logger = logging.getLogger(__name__)
+
 
 GOOD_TESTS = 5946
 GOOD_EMU_TESTS = 1174
@@ -1824,9 +1829,7 @@ class ArmInstructionSet(unittest.TestCase):
                             #print "Instruction not in Emulator - ", repr(op)
                             bademu += 1
                         except Exception as exp:
-                            print "Exception in Emulator for command - ",repr(op), bytez, reprOp
-                            print "  ",exp 
-                            sys.excepthook(*sys.exc_info())
+                            logger.exception("Exception in Emulator for command - %r  %r  %r\n  %r",repr(op), bytez, reprOp, exp)
                             bademu += 1
                     else:
                         # if we have a special test lets run it
@@ -2073,8 +2076,8 @@ def genAdvSIMDtests():
                             pass
 
 
-                    except Exception, e:
-                        sys.excepthook(*sys.exc_info())
+                    except Exception:
+                        logger.exception('parsing error: ')
                         bad += 1
                         if bad % 2 == 0:
                             raw_input("PRESS ENTER")

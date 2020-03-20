@@ -158,6 +158,12 @@ master_fmts = (fmt_chars, fmt_schars)
 
 fmt_sizes =  (None,1,2,4,4,8,8,8,8)
 
+le_fmt_float = (None, None, None, None, '<f', None, None, None, '<d')
+be_fmt_float = (None, None, None, None, '>f', None, None, None, '>d')
+
+fmt_floats = (le_fmt_float, be_fmt_float)
+
+
 def getFormat(size, big_endian=False, signed=False):
     '''
     Returns the proper struct format for numbers up to 8 bytes in length
@@ -168,12 +174,6 @@ def getFormat(size, big_endian=False, signed=False):
     for here and will return None.
     '''
     return master_fmts[signed][big_endian][size]
-
-le_fmt_float = (None, None, None, None, '<f', None, None, None, '<d')
-be_fmt_float = (None, None, None, None, '>f', None, None, None, '>d')
-
-fmt_floats = (le_fmt_float, be_fmt_float)
-
 
 def parsebytes(bytes, offset, size, sign=False, bigend=False):
     """

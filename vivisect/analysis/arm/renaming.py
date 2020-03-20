@@ -29,6 +29,3 @@ def analyzeFunction(vw, fva):
         vw.makeName(fva+1, None)
         vw.makeName(fva, fakename)
 
-#if globals().get('argv') != None:
-if globals().get('vw') != None:
-    analyze(vw)
