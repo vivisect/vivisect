@@ -1021,7 +1021,7 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
         logger.warn("complete implementing vcvt")
 
         srcwidth = op.opers[0].getWidth()
-        regcnt = width / 4
+        regcnt = srcwidth / 4
 
         firstOP = None
         if op.simdflags & ifs_first_F32:
