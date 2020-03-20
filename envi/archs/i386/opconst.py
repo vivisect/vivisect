@@ -213,7 +213,8 @@ OP_X = 0x004
 OP_64AUTO = 0x008  # operand is in 64bit mode with amd64!
 OP_REG32AUTO = 0x010  # force only *register* to be 32 bit.
 OP_MEM32AUTO = 0x020  # force only *memory* to be 32 bit.
-OP_NOVEXL = 0x040  # don't apply VEX.L here (even though it's set). TLDR: always 128/xmm reg
+OP_MEM16AUTO = 0x040  # force only *memory* to be 32 bit.
+OP_NOVEXL = 0x080  # don't apply VEX.L here (even though it's set). TLDR: always 128/xmm reg
 
 OP_UNK = 0x000
 OP_REG = 0x100

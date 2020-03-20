@@ -12,7 +12,8 @@ from envi.archs.i386.disasm import iflag_lookup, operand_range, priv_lookup, \
         MANDATORY_PREFIXES, PREFIX_REP_MASK
 
 from envi.archs.amd64.regs import *
-from envi.archs.i386.opconst import OP_REG32AUTO, OP_MEM32AUTO, INS_VEXREQ, OP_NOVEXL
+from envi.archs.i386.opconst import OP_REG32AUTO, OP_MEM32AUTO, OP_MEM16AUTO, \
+                                    INS_VEXREQ, OP_NOVEXL
 all_tables = opcode86.tables86
 
 # Pre generate these for fast lookup. Because our REX prefixes have the same relative
@@ -497,8 +498,11 @@ class Amd64Disasm(e_i386.i386Disasm):
 
                     else:
                         osize, oper = ameth(bytez, offset, tsize, prefixes, operflags)
-                        if getattr(oper, "_is_deref", False) and operflags & OP_MEM32AUTO:
-                            oper.tsize = 4
+                        if getattr(oper, "_is_deref", False):
+                            if operflags & OP_MEM32AUTO:
+                                oper.tsize = 4
+                            elif operflags & OP_MEM16AUTO:
+                                oper.tsize = 2
 
                 except struct.error:
                     # Catch struct unpack errors due to insufficient data length

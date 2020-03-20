@@ -192,8 +192,8 @@ i386MultiByteOpcodes = [
     ('MOV SEGREG 2', '8ce0', 0x40, 'mov eax,fs', 'mov eax,fs'),
     ('MOV SEGREG 3', '8ec6', 0x40, 'mov es,esi', 'mov es,esi'),
     ('MOV SEGREG 4', '668ec6', 0x40, 'mov es,si', 'mov es,si'),
-    ('MOV SEGREG 6', '8E142541414141', 0x40, 'mov ss,dword [0x41414141]', 'mov ss,dword [0x41414141]'),
-    ('MOV SEGREG 7', '8C042541414141', 0x40, 'mov dword [0x41414141],es', 'mov dword [0x41414141],es'),
+    ('MOV SEGREG 6', '8E142541414141', 0x40, 'mov ss,word [0x41414141]', 'mov ss,word [0x41414141]'),
+    ('MOV SEGREG 7', '8C042541414141', 0x40, 'mov word [0x41414141],es', 'mov word [0x41414141],es'),
 
     ('LEA', '8d5a0c', 0x40, 'lea ebx,dword [edx + 12]', 'lea ebx,dword [edx + 12]'),
     ('SIGNED', '83C0F9', 0x40, 'add eax,0xfffffff9', 'add eax,0xfffffff9'),

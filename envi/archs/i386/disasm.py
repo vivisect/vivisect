@@ -8,12 +8,13 @@ import struct
 import envi
 import envi.bits as e_bits
 
-import opcode86
-all_tables = opcode86.tables86
-
 # Grab our register enums etc...
 from envi.const import *
 from envi.archs.i386.regs import *
+from envi.archs.i386.opconst import OP_MEM32AUTO, OP_MEM16AUTO
+
+import opcode86
+all_tables = opcode86.tables86
 
 # Our instruction prefix masks
 # NOTE: table 3-4 (section 3.6) of intel 1 shows how REX/OP_SIZE
@@ -969,6 +970,11 @@ class i386Disasm:
 
                     else:
                         osize, oper = ameth(bytez, offset, tsize, all_prefixes, operflags)
+                        if getattr(oper, "_is_deref", False):
+                            if operflags & OP_MEM32AUTO:
+                                oper.tsize = 4
+                            elif operflags & OP_MEM16AUTO:
+                                oper.tsize = 2
 
                 except struct.error as e:
                     # Catch struct unpack errors due to insufficient data length
