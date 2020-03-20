@@ -354,8 +354,8 @@ iencs = (\
 )
 
 IENC_MAX        = len(iencs)
-for ieidx in range(IENC_MAX):
-    globals()[iencs[ieidx]] = ieidx
+for ieidx, ienc in enumerate(iencs):
+    globals()[ienc] = ieidx
 
 # The supported types of operand shifts (by the 2 bit field)
 S_LSL = 0
@@ -742,11 +742,7 @@ instrnames = [
         'UNDEF',
 ]
 
-ins_index = 0
-for instr in instrnames:
+for ins_index, instr in enumerate(instrnames):
     globals()['INS_' + instr] = ins_index
-    ins_index += 1
 
 no_update_Rd = (INS_TST, INS_TEQ, INS_CMP, INS_CMN, )
-
-

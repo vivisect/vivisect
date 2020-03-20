@@ -40,7 +40,7 @@ class ArmWorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_arm.ArmEmulator):
         '''
         op = self.opcache.get(va)
 
-        if op == None:
+        if op is None:
             tmode = self.getFlag(PSR_T_bit)
             if arch == envi.ARCH_DEFAULT:
                 arch = (envi.ARCH_ARMV7, envi.ARCH_THUMB)[tmode]
@@ -74,7 +74,7 @@ class ArmWorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_arm.ArmEmulator):
             self.checkBranches(starteip, endeip, op)
 
     def _prep(self, funcva, tmode=None):
-        if tmode != None:
+        if tmode is not None:
             # we're forcing thumb or arm mode... update the flag
             self.setFlag(PSR_T_bit, tmode)
             logger.debug("funcva thumb==%d  (forced):  0x%x", tmode, funcva)
@@ -87,7 +87,7 @@ class ArmWorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_arm.ArmEmulator):
 
         else:
             loc = self.vw.getLocation(funcva)
-            if loc != None:
+            if loc is not None:
                 # if we have a opcode location, use it's iflags to determine mode
                 lva, lsz, lt, lti = loc
                 if (lti & envi.ARCH_MASK) == envi.ARCH_THUMB:
@@ -109,8 +109,8 @@ class ArmWorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_arm.ArmEmulator):
                     elif thumbop.mnem == 'ldr':
                         armthumb -= 2
 
-                except InvalidInstruction, e:
-                    pass
+                except InvalidInstruction as e:
+                    logger.debug("  heuristics: decoding ARM: %r", e)
 
 
                 try:
@@ -121,11 +121,11 @@ class ArmWorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_arm.ArmEmulator):
                     elif armop.mnem == 'ldr':
                         armthumb += 2
 
-                except InvalidInstruction, e:
-                    pass
+                except InvalidInstruction as e:
+                    logger.debug("  heuristics: decoding THUMB: %r", e)
 
 
-                if armop == None and thumbop == None:
+                if armop is None and thumbop is None:
                     # we didn't have a single push in either direction
                     logger.warn("TOTAL FAILURE TO DETERMINE THUMB MODE")
                     raise Exception("Neither architecture parsed the first opcode")
@@ -134,6 +134,7 @@ class ArmWorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_arm.ArmEmulator):
                         self.setFlag(PSR_T_bit, 1)
                         logger.debug("ArmWorkspaceEmulator: Heuristically Determined funcva is THUMB:  0x%x", funcva)
                 else:
+                    self.setFlag(PSR_T_bit, 0)
                     logger.debug("ArmWorkspaceEmulator: Heuristically Determined funcva is ARM:  0x%x", funcva)
 
 
@@ -180,7 +181,7 @@ class ArmWorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_arm.ArmEmulator):
                     return
 
                 # Check straight hit count...
-                if maxhit != None:
+                if maxhit is not None:
                     h = hits.get(starteip, 0)
                     h += 1
                     if h > maxhit:
@@ -189,7 +190,7 @@ class ArmWorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_arm.ArmEmulator):
 
                 # If we ran out of path (branches that went
                 # somewhere that we couldn't follow?
-                if self.curpath == None:
+                if self.curpath is None:
                     break
 
                 try:
@@ -250,7 +251,7 @@ class ArmWorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_arm.ArmEmulator):
                         vg_path.setNodeProp(self.curpath, 'cleanret', True)
                         break
 
-                except envi.UnsupportedInstruction, e:
+                except envi.UnsupportedInstruction as e:
                     if self.strictops:
                         logger.debug('runFunction breaking after unsupported instruction: 0x%08x %s', e.op.va, e.op.mnem)
                         raise e
@@ -258,7 +259,7 @@ class ArmWorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_arm.ArmEmulator):
                         logger.debug('runFunction continuing after unsupported instruction: 0x%08x %s', e.op.va, e.op.mnem)
                         self.setProgramCounter(e.op.va+ e.op.size)
                 except Exception as e:
-                    if self.emumon != None:
+                    if self.emumon is not None:
                         self.emumon.logAnomaly(self, starteip, str(e))
 
                     logger.debug('runFunction breaking after exception (fva: 0x%x): %s', funcva, e)
