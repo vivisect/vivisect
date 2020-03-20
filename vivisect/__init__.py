@@ -1228,11 +1228,11 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         '''
         try:
             op = self.parseOpcode(va, arch)
-            if op == None:
+            if op is None:
                 self.vprint("0x%x - None")
             else:
                 self.vprint("0x%x  (%d bytes)  %s" % (va, len(op), repr(op)))
-        except Exception, e:
+        except Exception:
             self.vprint("0x%x - decode exception" % va)
             logger.exception("preview opcode exception:")
 
