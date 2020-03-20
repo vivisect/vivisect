@@ -797,7 +797,7 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
             self.setFpFlag(PSR_Z_bit, z)
             self.setFpFlag(PSR_C_bit, c)
             self.setFpFlag(PSR_V_bit, v)
-        except Exception, e:
+        except Exception as e:
             logger.warn("vcmp exception: %r", e)
 
     def i_vcmpe(self, op):
@@ -824,7 +824,7 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
             self.setFpFlag(PSR_Z_bit, z)
             self.setFpFlag(PSR_C_bit, c)
             self.setFpFlag(PSR_V_bit, v)
-        except Exception, e:
+        except Exception as e:
             logger.warn("vcmpe exception: %r" % e)
 
     FPType_Nonzero = 1

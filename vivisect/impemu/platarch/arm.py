@@ -202,7 +202,7 @@ class ArmWorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_arm.ArmEmulator):
                     if self.emumon:
                         try:
                             self.emumon.prehook(self, op, starteip)
-                        except Exception, e:
+                        except Exception as e:
                             if not self.getMeta('silent'):
                                 logger.warn("funcva: 0x%x opva: 0x%x:  %r   %r (in emumon prehook)", funcva, starteip, op, e)
 
@@ -218,7 +218,7 @@ class ArmWorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_arm.ArmEmulator):
                     if self.emumon:
                         try:
                             self.emumon.posthook(self, op, endeip)
-                        except Exception, e:
+                        except Exception as e:
                             if not self.getMeta('silent'):
                                 logger.warn("funcva: 0x%x opva: 0x%x:  %r   %r (in emumon posthook)", funcva, starteip, op, e)
                         if self.emustop:
@@ -257,7 +257,7 @@ class ArmWorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_arm.ArmEmulator):
                     else:
                         logger.debug('runFunction continuing after unsupported instruction: 0x%08x %s', e.op.va, e.op.mnem)
                         self.setProgramCounter(e.op.va+ e.op.size)
-                except Exception, e:
+                except Exception as e:
                     if self.emumon != None:
                         self.emumon.logAnomaly(self, starteip, str(e))
 
