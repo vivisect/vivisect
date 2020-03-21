@@ -5,16 +5,6 @@ import traceback
 import envi
 import envi.bits as e_bits
 
-from envi.bits import binary
-
-#import sys
-#import struct
-#import traceback
-
-#import envi
-#import envi.bits as e_bits
-#from envi.bits import binary
-
 from envi.archs.arm.const import *
 from envi.archs.arm.regs import *
 
@@ -49,67 +39,68 @@ def addrToName(mcanv, va):
         return repr(sym)
     return "0x%.8x" % va
 
+
 # The keys in this table are made of the
 # concat of bits 27-21 and 7-4 (only when
 # ienc == mul!
 iencmul_codes = {
     # Basic multiplication opcodes
-    binary("000000001001"): ("mul",   INS_MUL,  (0,4,2), 0),
-    binary("000000011001"): ("mul",   INS_MUL,  (0,4,2), IF_PSR_S),
-    binary("000000101001"): ("mla",   INS_MLA,  (0,4,2,1), 0),
-    binary("000000111001"): ("mla",   INS_MLA,  (0,4,2,1), IF_PSR_S),
-    binary("000001101001"): ("mls",   INS_MLS,  (0,4,2,1), 0),
-    binary("000001001001"): ("umaal", INS_UMAAL,(1,0,4,2), 0),
-    binary("000010001001"): ("umull", INS_UMULL,(1,0,4,2), 0),
-    binary("000010011001"): ("umull", INS_UMULL,(1,0,4,2), IF_PSR_S),
-    binary("000010101001"): ("umlal", INS_UMLAL,(1,0,4,2), 0),
-    binary("000010111001"): ("umlal", INS_UMLAL,(1,0,4,2), IF_PSR_S),
-    binary("000011001001"): ("smull", INS_SMULL,(1,0,4,2), 0),
-    binary("000011011001"): ("smull", INS_SMULL,(1,0,4,2), IF_PSR_S),
-    binary("000011101001"): ("smlal", INS_SMLAL,(1,0,4,2), 0),
-    binary("000011111001"): ("smlal", INS_SMLAL,(1,0,4,2), IF_PSR_S),
+    0b000000001001: ("mul",   INS_MUL,  (0, 4, 2), 0),
+    0b000000011001: ("mul",   INS_MUL,  (0, 4, 2), IF_PSR_S),
+    0b000000101001: ("mla",   INS_MLA,  (0, 4, 2, 1), 0),
+    0b000000111001: ("mla",   INS_MLA,  (0, 4, 2, 1), IF_PSR_S),
+    0b000001101001: ("mls",   INS_MLS,  (0, 4, 2, 1), 0),
+    0b000001001001: ("umaal", INS_UMAAL,(1, 0, 4, 2), 0),
+    0b000010001001: ("umull", INS_UMULL, (1, 0, 4, 2), 0),
+    0b000010011001: ("umull", INS_UMULL, (1, 0, 4, 2), IF_PSR_S),
+    0b000010101001: ("umlal", INS_UMLAL, (1, 0, 4, 2), 0),
+    0b000010111001: ("umlal", INS_UMLAL, (1, 0, 4, 2), IF_PSR_S),
+    0b000011001001: ("smull", INS_SMULL, (1, 0, 4, 2), 0),
+    0b000011011001: ("smull", INS_SMULL, (1, 0, 4, 2), IF_PSR_S),
+    0b000011101001: ("smlal", INS_SMLAL, (1, 0, 4, 2), 0),
+    0b000011111001: ("smlal", INS_SMLAL, (1, 0, 4, 2), IF_PSR_S),
 
     # multiplys with <x><y>
     # "B
-    binary("000100001000"): ("smlabb", INS_SMLABB, (0,4,2,1), 0),
-    binary("000100001010"): ("smlatb", INS_SMLATB, (0,4,2,1), 0),
-    binary("000100001100"): ("smlabt", INS_SMLABT, (0,4,2,1), 0),
-    binary("000100001110"): ("smlatt", INS_SMLATT, (0,4,2,1), 0),
-    binary("000100101010"): ("smulwb", INS_SMULWB, (0,4,2), 0),
-    binary("000100101110"): ("smulwt", INS_SMULWT, (0,4,2), 0),
-    binary("000100101000"): ("smlawb", INS_SMLAWB, (0,4,2), 0),
-    binary("000100101100"): ("smlawt", INS_SMLAWT, (0,4,2), 0),
-    binary("000101001000"): ("smlalbb",INS_SMLALBB, (1,0,4,2), 0),
-    binary("000101001010"): ("smlaltb",INS_SMLALTB, (1,0,4,2), 0),
-    binary("000101001100"): ("smlalbt",INS_SMLALBT, (1,0,4,2), 0),
-    binary("000101001110"): ("smlaltt",INS_SMLALTT, (1,0,4,2), 0),
-    binary("000101101000"): ("smulbb", INS_SMULBB, (0,4,2), 0),
-    binary("000101101010"): ("smultb", INS_SMULTB, (0,4,2), 0),
-    binary("000101101100"): ("smulbt", INS_SMULBT, (0,4,2), 0),
-    binary("000101101110"): ("smultt", INS_SMULTT, (0,4,2), 0),
+    0b000100001000: ("smlabb", INS_SMLABB, (0, 4, 2, 1), 0),
+    0b000100001010: ("smlatb", INS_SMLATB, (0, 4, 2, 1), 0),
+    0b000100001100: ("smlabt", INS_SMLABT, (0, 4, 2, 1), 0),
+    0b000100001110: ("smlatt", INS_SMLATT, (0, 4, 2, 1), 0),
+    0b000100101010: ("smulwb", INS_SMULWB, (0, 4, 2), 0),
+    0b000100101110: ("smulwt", INS_SMULWT, (0, 4, 2), 0),
+    0b000100101000: ("smlawb", INS_SMLAWB, (0, 4, 2), 0),
+    0b000100101100: ("smlawt", INS_SMLAWT, (0, 4, 2), 0),
+    0b000101001000: ("smlalbb",INS_SMLALBB, (1, 0, 4, 2), 0),
+    0b000101001010: ("smlaltb",INS_SMLALTB, (1, 0, 4, 2), 0),
+    0b000101001100: ("smlalbt",INS_SMLALBT, (1, 0, 4, 2), 0),
+    0b000101001110: ("smlaltt",INS_SMLALTT, (1, 0, 4, 2), 0),
+    0b000101101000: ("smulbb", INS_SMULBB, (0, 4, 2), 0),
+    0b000101101010: ("smultb", INS_SMULTB, (0, 4, 2), 0),
+    0b000101101100: ("smulbt", INS_SMULBT, (0, 4, 2), 0),
+    0b000101101110: ("smultt", INS_SMULTT, (0, 4, 2), 0),
 
     # type 2 multiplys
 
-    binary("011100000001"): ("smuad",  INS_SMUAD, (0,4,2), 0),
-    binary("011100000011"): ("smuadx", INS_SMUADX, (0,4,2), 0),
-    binary("011100000101"): ("smusd",  INS_SMUSD, (0,4,2), 0),
-    binary("011100000111"): ("smusdx", INS_SMUSDX, (0,4,2), 0),
-    binary("011100000001"): ("smlad",  INS_SMLAD, (0,4,2,1), 0),
-    binary("011100000011"): ("smladx", INS_SMLADX, (0,4,2,1), 0),
-    binary("011100000101"): ("smlsd",  INS_SMLSD, (0,4,2,1), 0),
-    binary("011100000111"): ("smlsdx", INS_SMLSDX, (0,4,2,1), 0),
-    binary("011101000001"): ("smlald", INS_SMLALD, (1,0,4,2), 0),
-    binary("011101000011"): ("smlaldx",INS_SMLALDX, (1,0,4,2), 0),
-    binary("011101000101"): ("smlsld", INS_SMLSLD, (1,0,4,2), 0),
-    binary("011101000111"): ("smlsldx",INS_SMLSLDX, (1,0,4,2), 0),
-    binary("011101010001"): ("smmla",  INS_SMMLA, (0,4,2,1), 0),
-    binary("011101010011"): ("smmlar", INS_SMMLAR, (0,4,2,1), 0),
-    binary("011101011101"): ("smmls",  INS_SMMLS, (0,4,2,1), 0),
-    binary("011101011111"): ("smmlsr", INS_SMMLSR, (0,4,2,1), 0),
+    0b011100000001: ("smuad",  INS_SMUAD, (0, 4, 2), 0),
+    0b011100000011: ("smuadx", INS_SMUADX, (0, 4, 2), 0),
+    0b011100000101: ("smusd",  INS_SMUSD, (0, 4, 2), 0),
+    0b011100000111: ("smusdx", INS_SMUSDX, (0, 4, 2), 0),
+    0b011100000001: ("smlad",  INS_SMLAD, (0, 4, 2, 1), 0),
+    0b011100000011: ("smladx", INS_SMLADX, (0, 4, 2, 1), 0),
+    0b011100000101: ("smlsd",  INS_SMLSD, (0, 4, 2, 1), 0),
+    0b011100000111: ("smlsdx", INS_SMLSDX, (0, 4, 2, 1), 0),
+    0b011101000001: ("smlald", INS_SMLALD, (1, 0, 4, 2), 0),
+    0b011101000011: ("smlaldx",INS_SMLALDX, (1, 0, 4, 2), 0),
+    0b011101000101: ("smlsld", INS_SMLSLD, (1, 0, 4, 2), 0),
+    0b011101000111: ("smlsldx",INS_SMLSLDX, (1, 0, 4, 2), 0),
+    0b011101010001: ("smmla",  INS_SMMLA, (0, 4, 2, 1), 0),
+    0b011101010011: ("smmlar", INS_SMMLAR, (0, 4, 2, 1), 0),
+    0b011101011101: ("smmls",  INS_SMMLS, (0, 4, 2, 1), 0),
+    0b011101011111: ("smmlsr", INS_SMMLSR, (0, 4, 2, 1), 0),
     #note for next two must check that Ra = 1111 otherwise is smmla
     #hard coding values until find better solution
-    #binary("011101010001"): ("smmul", (0,4,2), 0),
-    #binary("011101010011"): ("smmulr", (0,4,2), 0),
+    #0b011101010001: ("smmul", (0,4,2), 0),
+    #0b011101010011: ("smmulr", (0,4,2), 0),
 }
 
 def sh_lsl(num, shval, size=4):
@@ -689,12 +680,12 @@ multfail = (None, None, None, None)
 
 iencmul_r15_codes = {
     # Basic multiplication opcodes
-    binary("011101010001"): ("smmul",  INS_SMMUL,  (0,4,2), 0),
-    binary("011101010011"): ("smmulr", INS_SMMULR, (0,4,2), 0),
-    binary("011100000001"): ("smuad",  INS_SMUAD,  (0,4,2), 0),
-    binary("011100000011"): ("smuadx", INS_SMUADX, (0,4,2), 0),
-    binary("011100000101"): ("smusd",  INS_SMUSD,  (0,4,2), 0),
-    binary("011100000111"): ("smusdx", INS_SMUSDX, (0,4,2), 0),
+    0b011101010001: ("smmul",  INS_SMMUL,  (0,4,2), 0),
+    0b011101010011: ("smmulr", INS_SMMULR, (0,4,2), 0),
+    0b011100000001: ("smuad",  INS_SMUAD,  (0,4,2), 0),
+    0b011100000011: ("smuadx", INS_SMUADX, (0,4,2), 0),
+    0b011100000101: ("smusd",  INS_SMUSD,  (0,4,2), 0),
+    0b011100000111: ("smusdx", INS_SMUSDX, (0,4,2), 0),
 }
 
 def p_mult(opval, va):
