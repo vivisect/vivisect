@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 #
 # instruction code
 # exception handler code
-# FIXME: SPSR handling is not certain. 
+
 
 # calling conventions
 class ArmArchitectureProcedureCall(envi.CallingConvention):
@@ -164,7 +164,6 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
         self.coprocs = [CoProcEmulator(x) for x in xrange(16)]      
         self.int_handlers = [self.default_int_handler for x in range(100)]
 
-        seglist = [ (0,0xffffffff) for x in xrange(6) ]
         envi.Emulator.__init__(self, ArmModule())
 
         ArmRegisterContext.__init__(self)
@@ -195,10 +194,7 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
             flags &= ~which
         self.setCPSR(flags)
 
-    def getFlag(self, which):          # FIXME: CPSR?
-        #if (flags_reg is None):
-        #    flags_reg = proc_modes[self.getProcMode()][5]
-        #flags = self.getRegister(flags_reg)
+    def getFlag(self, which):
         flags = self.getCPSR()
         if flags is None:
             raise envi.PDEUndefinedFlag(self)
