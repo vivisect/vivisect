@@ -502,7 +502,7 @@ class Amd64Disasm(e_i386.i386Disasm):
 
                     else:
                         osize, oper = ameth(bytez, offset, tsize, prefixes, operflags)
-                        if getattr(oper, "_is_deref", False) and operflags & OP_MEM32AUTO:
+                        if oper is not None and oper.isDeref() and operflags & OP_MEM32AUTO:
                             oper.tsize = 4
 
                 except struct.error:

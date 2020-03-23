@@ -1,3 +1,5 @@
+import operator
+
 import envi
 import envi.bits as e_bits
 import envi.archs.i386 as e_i386
@@ -231,6 +233,11 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
         smax = e_bits.s_maxes[tsize]
         umax = e_bits.u_maxes[tsize]
         return smax, umax
+
+    def invert(self, oper):
+        width = oper.getWidth()
+        inv = v1 ^ Const(e_bits.u_maxes[width], width)
+        return inv
 
     def i_adc(self, op):
         v1 = self.getOperObj(op, 0)
@@ -613,8 +620,6 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
         self.effSetVariable(self.__srcp__, si + mod)
         self.effSetVariable(self.__destp__, di + mod)
 
-    # TODO: When we move to python 3.4 or greater, we can change these to just
-    # functools.partialmethod. Cleaner that way
     def i_movsb(self, op):
         return self._movs(op, width=1)
 
@@ -653,11 +658,10 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
         pass
 
     def i_pmovmskb(self, op):
-        v1 = self.getOperObj(op, 0)
         v2 = self.getOperObj(op, 1)
         res = 0
         for i in range(v1.getWidth()):
-            res |= (src & (1 << (7 + i*8))) << i
+            res |= (v2 & (1 << (7 + i*8))) << i
         self.setOperObj(op, 0, res)
 
     i_vpmovmskb = i_pmovmskb
@@ -681,6 +685,29 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
         self.effSetVariable('eflags_eq', eq(obj, Const(0, self._psize))) # v1 & v2 == 0
         self.setOperObj(op, 0, obj)
 
+    def i_pand(self, op, off=0):
+        v1 = self.getOperObj(op, off)
+        v2 = self.getOperObj(op, off+1)
+
+        obj = o_and(v1, v2, v1.getWidth())
+
+        self.setOperObj(op, 0, obj)
+
+    def i_pandn(self, op, off=0):
+        v1 = self.getOperObj(op, off)
+        v2 = self.getOperObj(op, off+1)
+
+        v1 = self.invert(v1, v1.getWidth())
+        obj = o_and(v1, v2, v1.getWidth())
+
+        self.setOperObj(op, 0, obj)
+
+    def i_vpand(self, op):
+        self.i_pand(op, off=1)
+
+    def i_vpandn(self, op):
+        self.i_pandn(op, off=1)
+
     def i_push(self, op):
         v1 = self.getOperObj(op, 0)
         sp = self.getRegObj(self._reg_ctx._rctx_spindex)
@@ -693,18 +720,149 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
         self.setOperObj(op, 0, Mem(Var(self.__sp__, self._psize), Const(self._psize, self._psize)))
         self.effSetVariable(self.__sp__, Var(self.__sp__, self._psize) + Const(self._psize, self._psize))
 
-    def i_psrldq(self, op, off=0):
-        v1 = self.getOperObj(op, off)
-        v2 = self.getOperObj(op, off+1)
+    def _simdshift(self, op, func, width, off=0):
+        res = Const(0, self._psize)
+        valu = self.getOperObj(op, off)
+        count = self.getOperObj(op, off + 1)
+        if count.isDiscrete():
+            if count.solve() >= width:
+                self.setOperObj(op, 0, Const(0, self._psize))
+                return
 
-    def i_pslldq(self, op, off=0):
-        pass
+        # TODO: Pre-gen these?
+        mask = Const((2L ** width) - 1, valu.getWidth())
+        iters = int(valu.getWidth() / width)
+        bitCount = Const(count * Const(8, self._psize), self._psize)
+        for i in range(iters):
+            shift = Const(i * width * 8, self._psize)
+            tmp = (valu >> shift) & mask
+            res |= func(tmp, bitCount) << shift
+
+        self.setOperObj(op, 0, res)
+
+    def i_psrlw(self, op):
+        self._simdshift(op, operator.rshift, 2)
+
+    def i_psrld(self, op):
+        self._simdshift(op, operator.rshift, 4)
+
+    def i_psrlq(self, op):
+        self._simdshift(op, operator.rshift, 8)
+
+    def i_psrldq(self, op):
+        self._simdshift(op, operator.rshift, 16)
+
+    def i_vpsrlw(self, op):
+        self._simdshift(op, operator.rshift, 2, off=1)
+
+    def i_vpsrld(self, op):
+        self._simdshift(op, operator.rshift, 4, off=1)
+
+    def i_vpsrlq(self, op):
+        self._simdshift(op, operator.rshift, 8, off=1)
+
+    def i_vpsrldq(self, op):
+        self._simdshift(op, operator.rshift, 16, off=1)
+
+    def i_psllw(self, op):
+        self._simdshift(op, operator.lshift, 2)
+
+    def i_pslld(self, op):
+        self._simdshift(op, operator.lshift, 4)
+
+    def i_psllq(self, op):
+        self._simdshift(op, operator.lshift, 8)
+
+    def i_pslldq(self, op):
+        self._simdshift(op, operator.lshift, 16)
+
+    def i_vpsllw(self, op):
+        self._simdshift(op, operator.lshift, 2, off=1)
+
+    def i_vpslld(self, op):
+        self._simdshift(op, operator.lshift, 4, off=1)
+
+    def i_vpsllq(self, op):
+        self._simdshift(op, operator.lshift, 8, off=1)
+
+    def i_vpslldq(self, op):
+        self._simdshift(op, operator.lshift, 16, off=1)
 
     def i_pxor(self, op):
         v1 = self.getOperObj(op, 0)
         v2 = self.getOperObj(op, 1)
         obj = o_xor(v1, v2, v1.getWidth())
         self.setOperObj(op, 0, obj)
+
+    def i_por(self, op):
+        v1 = self.getOperObj(op, 0)
+        v2 = self.getOperObj(op, 1)
+        obj = o_or(v1, v2, v1.getWidth())
+        self.setOperObj(op, 0, obj)
+
+    def _parith(self, op, func, width, off=0):
+        res = Const(0, self._psize)
+        dst = self.getOperObj(op, off)
+        src = self.getOperObj(op, off+1)
+        bitwidth = width * 8
+
+        mask = Const((2L ** bitwidth) - 1, dst.getWidth())
+        iters = int(dst.getWidth() / width)
+        for i in range(iters):
+            shift = Const(i * bitwidth, self._psize)
+            opA = (dst >> shift) & mask
+            opB = (src >> shift) & mask
+            res |= (func(opA, opB) & mask) << shift
+
+        self.setOperObj(op, 0, res)
+
+    def i_paddb(self, op, off=0):
+        self._parith(op, operator.add, 1)
+
+    def i_paddw(self, op):
+        self._parith(op, operator.add, 2)
+
+    def i_paddd(self, op):
+        self._parith(op, operator.add, 4)
+
+    def i_paddq(self, op):
+        self._parith(op, operator.add, 8)
+
+    def i_vpaddb(self, op, off=0):
+        self._parith(op, operator.add, 1, off=1)
+
+    def i_vpaddw(self, op):
+        self._parith(op, operator.add, 2, off=1)
+
+    def i_vpaddd(self, op):
+        self._parith(op, operator.add, 4, off=1)
+
+    def i_vpaddq(self, op):
+        self._parith(op, operator.add, 8, off=1)
+
+    def i_psubb(self, op):
+        self._parith(op, operator.sub, 1)
+
+    def i_psubw(self, op):
+        self._parith(op, operator.sub, 2)
+
+    def i_psubd(self, op):
+        self._parith(op, operator.sub, 4)
+
+    def i_psubq(self, op):
+        self._parith(op, operator.sub, 8)
+
+    def i_vpsubb(self, op):
+        self._parith(op, operator.sub, 1, off=1)
+
+    def i_vpsubw(self, op):
+        self._parith(op, operator.sub, 2, off=1)
+
+    def i_vpsubd(self, op):
+        self._parith(op, operator.sub, 4, off=1)
+
+    def i_vpsubq(self, op):
+        self._parith(op, operator.sub, 8, off=1)
 
     def i_ret(self, op):
         self.effSetVariable(self.__ip__, Mem(Var(self.__sp__, self._psize), Const(self._psize, self._psize)))

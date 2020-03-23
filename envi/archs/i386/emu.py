@@ -497,7 +497,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
                     yieldPacked(src2, tsize, bitwidth))
         for idx, (lft, rgt) in enumerate(valus):
             s = (lft + rgt) & mask
-            res |= s << (i * 8)
+            res |= s << (i * bitwidth)
 
     def i_paddw(self, op):
         self.i_paddb(op, bitwidth=16)
@@ -1732,6 +1732,8 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         eax = self.getRegister(REG_EAX)
         edi = self.getRegister(REG_EDI)
         base,size = self._emu_segments[SEG_ES]
+        import pdb
+        pdb.set_trace()
         self.writeMemory(base+edi, struct.pack("<L", eax))
         if self.getFlag(EFLAGS_DF):
             edi -= 4
@@ -1884,7 +1886,9 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
     i_vorpd = i_vorps
 
     def i_por(self, op):
+        # TODO: 128 bit non-vex doesn't modify upper ymm bits
         self.i_orps(op)
+
     def i_vpor(self, op):
         self.i_orps(op, off=1)
 
@@ -1897,7 +1901,6 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         res = value >> (imm*8)
         self.setOperValue(op, 0, res)
 
-    #psraw, psrld psrlq psrad
     def _simdshift(self, op, shiftfunc, bitwidth, off):
         res = 0
         valu = self.getOperValue(op, off)
@@ -1920,6 +1923,10 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
     def i_psrlq(self, op):
         self._simdshift(op, operator.rshift, 64, 0)
 
+    def i_psrldq(self, op):
+        self._simdshift(op, operator.rshift, 128, 0)
+
+    # vex right shifts
     def i_vpsrlw(self, op):
         self._simdshift(op, operator.rshift, 16, 1)
 
@@ -1928,6 +1935,9 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
 
     def i_vpsrlq(self, op):
         self._simdshift(op, operator.rshift, 64, 1)
+
+    def i_vpsrldq(self, op):
+        self._simdshift(op, operator.rshift, 128, 1)
 
     # left shifts
     def i_psllw(self, op):
@@ -1939,6 +1949,10 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
     def i_psllq(self, op):
         self._simdshift(op, operator.lshift, 64, 0)
 
+    def i_pslldq(self, op):
+        self._simdshift(op, operator.lshift, 128, 0)
+
+    # vex left shifts
     def i_vpsllw(self, op):
         self._simdshift(op, operator.lshift, 16, 1)
 
@@ -1947,6 +1961,9 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
 
     def i_vpsllq(self, op):
         self._simdshift(op, operator.lshift, 64, 1)
+
+    def i_vpslldq(self, op):
+        self._simdshift(op, operator.lshift, 128, 1)
 
     def i_pcmpistri(self, op):
         operA = self.getOperValue(op, 0)
@@ -2180,27 +2197,6 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
 
     i_vpmovmskb = i_pmovmskb
 
-    def _psll(self, op, off=0):
-        value = self.getOperValue(op, off)
-        imm = self.getOperValue(op, off+1)
-        if imm > 15:
-            return self.setOperValue(op, 0, 0)
-
-        res = value << (imm*8)
-        self.setOperValue(op, 0, res)
-
-    def i_pslldq(self, op):
-        self._psll(op)
-
-    def i_vpslldq(self, op):
-        self._psll(op, off=1)
-
-    def i_psrldq(self, op):
-        self._psrl(op)
-
-    def i_vpsrldq(self, op):
-        self._psrl(op, off=1)
-
     def i_lahf(self, op):
         self.setRegister(REG_AH, self.getRegister(REG_EFLAGS) & 0b11010101)
 
@@ -2234,5 +2230,103 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         self.i_pinsrb(op, bitwidth=32)
 
     # psubq and variants
-    #def i_psubq(self, op):
-        #pass
+    def i_psubb(self, op, bitwidth=8, off=0):
+        tsize = op.opers[0].tsize
+        src1 = self.getOperValue(op, off)
+        src2 = self.getOperValue(op, off + 2)
+        res = 0
+        mask = SUBMASKS[int(bitwidth/8)]
+
+        valus = zip(yieldPacked(src1, tsize, bitwdith),
+                    yieldPacked(src1, tsize, bitwidth))
+
+        for idx, (lft, rgt) in enumerate(valus):
+            s = (lft - rgt) & mask
+            res |= s << (i * bitwidth)
+
+        self.setOperOb(op, 0, res)
+
+    def i_psubw(self, op):
+        self.i_psubb(op, bitwidth=16)
+
+    def i_psubd(self, op):
+        self.i_psubb(op, bitwidth=32)
+
+    def i_psubq(self, op):
+        self.i_psubb(op, bitwidth=64)
+
+    def i_vpsubb(self, op):
+        self.i_psubb(op, bitwidth=8, off=1)
+    def i_vpsubw(self, op):
+        self.i_psubb(op, bitwidth=16, off=1)
+    def i_vpsubd(self, op):
+        self.i_psubb(op, bitwidth=32, off=1)
+    def i_vpsubq(self, op):
+        self.i_psubb(op, bitwidth=64, off=1)
+
+    # signed variants of the above
+    def i_psubsb(self, op, width=1, off=0):
+        '''
+        like i_psubb, but with an extra fun check for saturation!
+        '''
+        tsize = op.opers[0].tsize
+        src1 = self.getOperValue(op, off)
+        src2 = self.getOperValue(op, off + 2)
+        res = 0
+        mask = SUBMASKS[width]
+        bitwidth = width*8
+        valus = zip(yieldPacked(src1, tsize, bitwidth),
+                    yieldPacked(src1, tsize, bitwidth))
+
+        shigh = e_bits.signed((2 ** (bitwidth - 1)) - 1, width)
+        slow = e_bits.signed((2 ** (bitwidth - 1)), width)
+        for idx, (lft, rgt) in enumerate(valus):
+            s = lft - rgt
+            if s > shigh:
+                s = shigh
+            elif s < slow:
+                s = slow
+            res |= s << (i * bitwidth)
+
+    def i_psubsw(self, op):
+        self.i_psubsb(op, width=2)
+
+    def i_psubsd(self, op):
+        self.i_psubsb(op, width=4)
+
+    def i_psubsq(self, op):
+        self.i_psubsb(op, width=8)
+
+    def i_vpsubsb(self, op):
+        self.i_psubsb(op, width=1, off=1)
+
+    def i_vpsubsw(self, op):
+        self.i_psubsb(op, width=2, off=1)
+
+    def i_vpsubsd(self, op):
+        self.i_psubsb(op, width=4, off=1)
+
+    def i_vpsubsq(self, op):
+        self.i_psubsb(op, width=8, off=1)
+
+    def i_pand(self, op, off=0):
+        dst = self.getOperValue(op, off)
+        src = self.getOperValue(op, off+1)
+
+        ret = dst & src
+
+        self.setOperValue(op, 0, ret)
+
+    def i_pandn(self, op):
+        dst = self.getOperValue(op, off)
+        src = self.getOperValue(op, off+1)
+
+        ret = (~dst) & src
+
+        self.setOperValue(op, 0, ret)
+
+    def i_vpand(self, op):
+        self.i_pand(op, off=1)
+
+    def i_vpandn(self, op):
+        self.i_pandn(op, off=1)
