@@ -124,3 +124,16 @@ class Amd64Emulator(Amd64RegisterContext, e_i386.IntelEmulator):
 
     def i_pinsrq(self, op):
         self.i_pinsrb(op, bitwidth=64)
+
+    def i_stosd(self, op):
+        if op.prefixes & PREFIX_REX_W:
+            rax = self.getRegister(REG_RAX)
+            rdi = self.getRegister(REG_RDI)
+            self.writeMemory(rdi, struct.pack("<Q", rax))
+            if self.getFlag(EFLAGS_DF):
+                rdi -= 8
+            else:
+                rdi += 8
+            self.setRegister(REG_RDI, rdi)
+        else:
+            e_i386.IntelEmulator.i_stosd(self, op)

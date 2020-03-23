@@ -236,7 +236,7 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
 
     def invert(self, oper):
         width = oper.getWidth()
-        inv = v1 ^ Const(e_bits.u_maxes[width], width)
+        inv = oper ^ Const(e_bits.u_maxes[width], width)
         return inv
 
     def i_adc(self, op):
@@ -697,7 +697,7 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
         v1 = self.getOperObj(op, off)
         v2 = self.getOperObj(op, off+1)
 
-        v1 = self.invert(v1, v1.getWidth())
+        v1 = self.invert(v1)
         obj = o_and(v1, v2, v1.getWidth())
 
         self.setOperObj(op, 0, obj)
@@ -732,7 +732,7 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
         # TODO: Pre-gen these?
         mask = Const((2L ** width) - 1, valu.getWidth())
         iters = int(valu.getWidth() / width)
-        bitCount = Const(count * Const(8, self._psize), self._psize)
+        bitCount = count * Const(8, self._psize)
         for i in range(iters):
             shift = Const(i * width * 8, self._psize)
             tmp = (valu >> shift) & mask

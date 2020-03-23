@@ -1727,13 +1727,22 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
             edi += 1
         self.setRegister(REG_EDI, edi)
 
+    def i_stosw(self, op):
+        ax = self.getRegister(REG_AX)
+        edi = self.getRegister(REG_EDI)
+        base,size = self._emu_segments[SEG_ES]
+        self.writeMemory(base+edi, struct.pack("<H", ax))
+        if self.getFlag(EFLAGS_DF):
+            edi -= 2
+        else:
+            edi += 2
+        self.setRegister(REG_EDI, edi)
+
     def i_stosd(self, op):
         # FIXME REX.W makes this 64 bit...
         eax = self.getRegister(REG_EAX)
         edi = self.getRegister(REG_EDI)
         base,size = self._emu_segments[SEG_ES]
-        import pdb
-        pdb.set_trace()
         self.writeMemory(base+edi, struct.pack("<L", eax))
         if self.getFlag(EFLAGS_DF):
             edi -= 4
@@ -2233,18 +2242,18 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
     def i_psubb(self, op, bitwidth=8, off=0):
         tsize = op.opers[0].tsize
         src1 = self.getOperValue(op, off)
-        src2 = self.getOperValue(op, off + 2)
+        src2 = self.getOperValue(op, off + 1)
         res = 0
         mask = SUBMASKS[int(bitwidth/8)]
 
-        valus = zip(yieldPacked(src1, tsize, bitwdith),
+        valus = zip(yieldPacked(src1, tsize, bitwidth),
                     yieldPacked(src1, tsize, bitwidth))
 
         for idx, (lft, rgt) in enumerate(valus):
             s = (lft - rgt) & mask
             res |= s << (i * bitwidth)
 
-        self.setOperOb(op, 0, res)
+        self.setOperObj(op, 0, res)
 
     def i_psubw(self, op):
         self.i_psubb(op, bitwidth=16)
@@ -2271,7 +2280,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         '''
         tsize = op.opers[0].tsize
         src1 = self.getOperValue(op, off)
-        src2 = self.getOperValue(op, off + 2)
+        src2 = self.getOperValue(op, off + 1)
         res = 0
         mask = SUBMASKS[width]
         bitwidth = width*8
@@ -2317,7 +2326,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
 
         self.setOperValue(op, 0, ret)
 
-    def i_pandn(self, op):
+    def i_pandn(self, op, off=0):
         dst = self.getOperValue(op, off)
         src = self.getOperValue(op, off+1)
 
