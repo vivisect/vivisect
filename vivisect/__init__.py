@@ -559,6 +559,34 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         """
         self.chan_lookup.pop(chanid)
 
+    def reprPointer(vw, va):
+        """
+        Do your best to create a humon readable name for the
+        value of this pointer.
+
+        note: This differs from parent function from envi.cli:
+        * Locations database is checked
+        * Strings are returned, not named (partially)
+        * <function> + 0x<offset> is returned if inside a function
+        * <filename> + 0x<offset> is returned instead of loc_#####
+        """
+        if va == 0:
+            return "NULL"
+
+        loc = vw.getLocation(va)
+        if loc is not None:
+            locva, locsz, lt, ltinfo = loc
+            if lt in (LOC_STRING, LOC_UNI):
+                return vw.reprVa(locva)
+
+        mbase, msize, mperm, mfile = vw.getMemoryMap(va)
+        ret = mfile + " + 0x%x" % (va - mbase)
+
+        sym = vw.getName(va, smart=True)
+        if sym is not None:
+            ret = sym
+        return ret
+
     def reprVa(self, va):
         """
         A quick way for scripts to get a string for a given virtual address.
@@ -2150,7 +2178,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         location.
         """
         va = self.vaByName(name)
-        if va == None:
+        if va is None:
             raise InvalidLocation(0, "Unknown Name: %s" % name)
         return self.getLocation(va)
 
@@ -2170,23 +2198,30 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         '''
         name = self.name_by_va.get(va)
 
-        if name != None or not smart:
+        if name is not None or not smart:
             return name
+        
+        # TODO: by previous symbol?
 
+        # by function
         baseva = self.getFunction(va)
         basename = self.name_by_va.get(baseva, None)
 
-        if basename == None:
+        # by filename
+        if basename is None:
             basename = self.getFileByVa(va)
-            if basename == None:
+            if basename is None:
                 return None
 
             baseva = self.getFileMeta(basename, 'imagebase')
 
         delta = va - baseva
 
-        pom = ('','+')[delta>=0]
-        name = "%s%s%s" % (basename, pom, hex(delta))
+        if delta:
+            pom = ('', '+')[delta>0]
+            name = "%s%s%s" % (basename, pom, hex(delta))
+        else:
+            name = basename
         return name
 
     def makeName(self, va, name, filelocal=False, makeuniq=False):
@@ -2703,11 +2738,11 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
     def getSymByAddr(self, addr, exact=True):
         name = self.getName(addr)
-        if name == None:
+        if name is None:
             if self.isValidPointer(addr):
                 name = "loc_%.8x" % addr
 
-        if name != None:
+        if name is not None:
             #FIXME fname
             #FIXME functions/segments/etc...
             return e_resolv.Symbol(name, addr, 0)
@@ -2719,7 +2754,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
         You may also set hint=None to delete sym hints.
         '''
-        self._fireEvent(VWE_SYMHINT, (va,idx,hint))
+        self._fireEvent(VWE_SYMHINT, (va, idx, hint))
 
     def getSymHint(self, va, idx):
         h = self.getFref(va, idx)
@@ -2729,7 +2764,8 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             if loctup:
                 return loctup[1]
 
-        return self.symhints.get((va,idx), None)
+        return self.symhints.get((va, idx), None)
+
 
 class VivFileSymbol(e_resolv.FileSymbol):
     # A namespace tracker thingie...
@@ -2739,6 +2775,7 @@ class VivFileSymbol(e_resolv.FileSymbol):
 
     def getSymByName(self, name):
         return self.vw.getSymByName("%s.%s" % (self.name, name))
+
 
 def getVivPath(*pathents):
     dname = os.path.dirname(__file__)

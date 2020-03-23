@@ -7,12 +7,6 @@ from envi import InvalidInstruction
 from envi.archs.arm.disasm import *
 armd = ArmDisasm()
 
-#thumb_32 = [
-        #binary('11101'),
-        #binary('11110'),
-        #binary('11111'),
-#]
-
 #FIXME: check to make sure ldrb/ldrh are handled consistently, wrt: IF_B and IF_H.  emulation would like all the same.
 
 
@@ -36,7 +30,6 @@ class simpleops:
     def __call__(self, va, value):
         ret = []
         for otype, shval, mask in self.operdef:
-            #oval = shmaskval(value, shval, mask)
             oper = OperType[otype]((value >> shval) & mask, va=va)
             ret.append( oper )
         return COND_AL, (ret), None

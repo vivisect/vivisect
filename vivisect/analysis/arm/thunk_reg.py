@@ -4,7 +4,6 @@ import vivisect.impemu.monitor as viv_monitor
 
 import logging
 
-from vivisect import reprPointer
 from vivisect.const import REF_DATA
 from envi.archs.arm.regs import PSR_T_bit
 
@@ -142,11 +141,11 @@ def analyzeFunction(vw, fva):
 
         # set comment.  if existing comment, by default, don't... otherwise prepend the info before the existing comment
         curcmt = vw.getComment(va)
-        cmt = "0x%x: %s" % (tgt, reprPointer(vw, tgt))
+        cmt = "0x%x: %s" % (tgt, vw.reprPointer(tgt))
         if curcmt is None or not len(curcmt):
             vw.setComment(va, cmt)
         elif not cmt in curcmt:
-            cmt = "0x%x: %s ;\n %s" % (tgt, reprPointer(vw, tgt), curcmt)
+            cmt = "0x%x: %s ;\n %s" % (tgt, vw.reprPointer(tgt), curcmt)
             vw.setComment(va, cmt)
 
         logger.debug("PIE XREF: %x  %s", va, cmt)
