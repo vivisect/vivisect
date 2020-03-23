@@ -1247,8 +1247,15 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         '''
         Show the repr of an instruction in the current canvas *before* making it that
         '''
-        op = self.parseOpcode(va, arch)
-        self.vprint("0x%x  (%d bytes)  %s" % (va, len(op), repr(op)))
+        try:
+            op = self.parseOpcode(va, arch)
+            if op is None:
+                self.vprint("0x%x - None")
+            else:
+                self.vprint("0x%x  (%d bytes)  %s" % (va, len(op), repr(op)))
+        except Exception:
+            self.vprint("0x%x - decode exception" % va)
+            logger.exception("preview opcode exception:")
 
     #################################################################
     #
@@ -1470,6 +1477,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
         Usage: vw.makeFunctionThunk(0xvavavava, "kernel32.CreateProcessA")
         """
+        logger.info('makeFunctionThunk(0x%x, %r, addVa=%r)', fva, thname, addVa)
         self.checkNoRetApi(thname, fva)
         self.setFunctionMeta(fva, "Thunk", thname)
         n = self.getName(fva)
@@ -1479,9 +1487,11 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             name = "%s_%.8x" % (base,fva)
         else:
             name = base
-        self.makeName(fva, name, makeuniq=True)
+        newname = self.makeName(fva, name, makeuniq=True)
+        logger.debug('makeFunctionThunk:  makeName(0x%x, %r, makeuniq=True):  returned %r', fva, name, newname)
 
         api = self.getImpApi(thname)
+        logger.debug('makeFunctionThunk:  getImpApi(%r):  %r', thname, api)
         if api:
             # Set any argument names that are None
             rettype,retname,callconv,callname,callargs = api

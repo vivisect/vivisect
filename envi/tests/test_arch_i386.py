@@ -179,6 +179,28 @@ i386MultiByteOpcodes = [
     ('MOVNTDQ', '660FE73D78563412', 0x40, 'movntdq oword [0x12345678],xmm7', 'movntdq oword [0x12345678],xmm7'),
     ('PADDD', '660FFECE', 0x40, 'paddd xmm1,xmm6', 'paddd xmm1,xmm6'),
 
+    ('MOV AMETH_C', '0f20d0', 0x40, 'mov eax,ctrl2', 'mov eax,ctrl2'),
+    ('MOV AMETH_C 2', '0f20f1', 0x40, 'mov ecx,ctrl6', 'mov ecx,ctrl6'),
+    ('MOV AMETH_C 3', '0f22e2', 0x40, 'mov ctrl4,edx', 'mov ctrl4,edx'),
+    ('MOV AMETH_C 4', '0f22f8', 0x40, 'mov ctrl7,eax', 'mov ctrl7,eax'),
+
+    ('MOV AMETH_D', '0f21c0', 0x40, 'mov eax,debug0', 'mov eax,debug0'),
+    ('MOV AMETH_D 2', '0f21f9', 0x40, 'mov ecx,debug7', 'mov ecx,debug7'),
+    ('MOV AMETH_D 3', '0f23e1', 0x40, 'mov debug4,ecx', 'mov debug4,ecx'),
+
+    ('MOV SEGREG', '64a130000000', 0x40, 'fs: mov eax,dword [0x00000030]', 'fs: mov eax,dword [0x00000030]'),
+    ('MOV SEGREG 2', '8ce0', 0x40, 'mov eax,fs', 'mov eax,fs'),
+    ('MOV SEGREG 3', '8ec6', 0x40, 'mov es,esi', 'mov es,esi'),
+    ('MOV SEGREG 4', '668ec6', 0x40, 'mov es,si', 'mov es,si'),
+    ('MOV SEGREG 6', '8E142541414141', 0x40, 'mov ss,word [0x41414141]', 'mov ss,word [0x41414141]'),
+    ('MOV SEGREG 7', '8C042541414141', 0x40, 'mov word [0x41414141],es', 'mov word [0x41414141],es'),
+
+    ('LEA', '8d5a0c', 0x40, 'lea ebx,dword [edx + 12]', 'lea ebx,dword [edx + 12]'),
+    ('SIGNED', '83C0F9', 0x40, 'add eax,0xfffffff9', 'add eax,0xfffffff9'),
+    ('MAXPD', '660F5F64C020', 0x40, 'maxpd xmm4,oword [eax + eax * 8 + 32]', 'maxpd xmm4,oword [eax + eax * 8 + 32]'),
+    ('MAXPD 2', '660f5fa490d0a80000', 0x40, 'maxpd xmm4,oword [eax + edx * 4 + 43216]', 'maxpd xmm4,oword [eax + edx * 4 + 43216]'),
+    # ('rm4mod2', '', 0x40, '', ''),
+
     # AES-NI feature set
     ('AESENC', '660F38DCEA', 0x40, 'aesenc xmm5,xmm2', 'aesenc xmm5,xmm2'),
     ('AESENC (MEM)', '660f38DC3A', 0x40, 'aesenc xmm7,oword [edx]', 'aesenc xmm7,oword [edx]'),
