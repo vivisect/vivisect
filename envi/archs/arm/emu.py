@@ -489,12 +489,6 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
         newcarry = (ures != result)
         overflow = e_bits.signed(result, tsize) != sres
 
-        #print "====================="
-        #print hex(udst), hex(usrc), hex(ures), hex(result)
-        #print hex(sdst), hex(ssrc), hex(sres)
-        #print e_bits.is_signed(result, tsize), not result, newcarry, overflow
-        #print "ures:", ures, hex(ures), " sres:", sres, hex(sres), " result:", result, hex(result), " signed(result):", e_bits.signed(result, 4), hex(e_bits.signed(result, 4)), "  C/V:",newcarry, overflow
-
         if Sflag:
             curmode = self.getProcMode()
             if rd == 15:
@@ -1578,7 +1572,6 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
         Sflag = 1
         mask = e_bits.u_maxes[dsize]
 
-        #print 'cmp', hex(src1), hex(src2)
         res2 = self.AddWithCarry(src1, mask^src2, 1, Sflag, rd=reg, tsize=dsize)
 
     def i_cmn(self, op):
@@ -1589,7 +1582,6 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
         reg = op.opers[0].reg
         Sflag = 1
 
-        #print 'cmn', hex(src1), hex(src2)
         res2 = self.AddWithCarry(src1, src2, carry=0, Sflag=Sflag, rd=reg, tsize=dsize)
 
     i_cmps = i_cmp
@@ -1841,49 +1833,29 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
         self.setOperValue(op, 0, result)
 
     def i_tbb(self, op):
-        # TBB and TBH both come here.
-        ### DEBUGGING
-        #raw_input("ArmEmulator:  TBB")
+        '''
+        table branch (byte) and table branch (halfword)
+        TBB and TBH both come here.
+        '''
         tsize = op.opers[0].tsize
         tbl = []
-        '''
-        base = op.opers[0].getOperValue(op, self)
-        val0 = self.readMemValue(base, 4)
-        if val0 > 0x100 + base:
-            print "ummmm.. Houston we got a problem.  first option is a long ways beyond BASE"
 
-        va = base
-        while va < val0:
-            tbl.append(self.readMemValue(va, 4))
-            va += tsize
-
-        print "tbb: \n\t" + '\n'.join([hex(x) for x in tbl])
-
-        ###
-        jmptblval = self.getOperAddr(op, 0)
-        jmptbltgt = self.getOperValue(op, 0) + base
-        print "0x%x: 0x%r\njmptblval: 0x%x\njmptbltgt: 0x%x" % (op.va, op, jmptblval, jmptbltgt)
-        raw_input("PRESS ENTER TO CONTINUE")
-        return jmptbltgt
-        '''
-        emu = self
         basereg = op.opers[0].base_reg
         if basereg != REG_PC:
-            base = emu.getRegister(basereg)
+            base = self.getRegister(basereg)
         else:
             base = op.opers[0].va
             logger.debug("TB base = 0%x", base)
 
-        #base = op.opers[0].getOperValue(op, emu)
         logger.debug("base: 0x%x" % base)
-        val0 = emu.readMemValue(base, tsize)
+        val0 = self.readMemValue(base, tsize)
 
         if val0 > 0x200 + base:
             logger.warn("ummmm.. Houston we got a problem.  first option is a long ways beyond BASE")
 
         va = base
         while va < base + val0:
-            nexttgt = emu.readMemValue(va, tsize) * 2
+            nexttgt = self.readMemValue(va, tsize) * 2
             logger.debug("0x%x: -> 0x%x", va, nexttgt + base)
             if nexttgt == 0:
                 logger.warn("Terminating TB at 0-offset")
@@ -1893,7 +1865,7 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
                 logger.warn("Terminating TB at LARGE - offset  (may be too restrictive): 0x%x", nexttgt)
                 break
 
-            loc = emu.vw.getLocation(va)
+            loc = self.vw.getLocation(va)
             if loc is not None:
                 logger.warn("Terminating TB at Location/Reference")
                 logger.warn("%x, %d, %x, %r", loc)
@@ -1907,15 +1879,14 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
         ###
         # for workspace emulation analysis, let's check the index register for sanity.
         idxreg = op.opers[0].offset_reg
-        idx = emu.getRegister(idxreg)
+        idx = self.getRegister(idxreg)
         if idx > 0x40000000:
-            emu.setRegister(idxreg, 0) # args handed in can be replaced with index 0
+            self.setRegister(idxreg, 0) # args handed in can be replaced with index 0
 
         jmptblbase = op.opers[0]._getOperBase(emu)
-        jmptblval = emu.getOperAddr(op, 0)
-        jmptbltgt = (emu.getOperValue(op, 0) * 2) + base
+        jmptblval = self.getOperAddr(op, 0)
+        jmptbltgt = (self.getOperValue(op, 0) * 2) + base
         logger.debug("0x%x: 0x%r\njmptblbase: 0x%x\njmptblval:  0x%x\njmptbltgt:  0x%x", op.va, op, jmptblbase, jmptblval, jmptbltgt)
-        #raw_input("PRESS ENTER TO CONTINUE")
         return jmptbltgt
 
     i_tbh = i_tbb
