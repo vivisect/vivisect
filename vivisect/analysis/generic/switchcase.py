@@ -38,7 +38,10 @@ def findOp(vw, emu, startOp, mnem, regidx=None):
         if len(backOp.opers):
             oper = backOp.opers[0]
             if backOp.mnem == mnem:
-                if regidx is not None and oper.isReg() and getRealRegIdx(emu, oper.reg) == regidx:
+                if regidx is not None:
+                    if oper.isReg() and getRealRegIdx(emu, oper.reg) == regidx:
+                        return backOp
+                else:
                     return backOp
         backLoc = vw.getLocation(backLoc[0] - 1)
 
@@ -104,11 +107,13 @@ def testSwitch(vw, op, vajmp, emu=None):
     # but honestly, not a whole lot to do here other than make an xref
     indirOp = findOp(vw, emu, movOp, 'movzx', None)
     if indirOp is not None:
-        if isinstance(op.opers[1], e_i386.i386SibOper) and op.opers[1].scale == 1:
-            vw.verbprint("Double deref (hitting a byte array offset into the offset-array)")
-            indirOff = indirOp[1].disp + imgbase
-            vw.addLocation(indirOff, 1, v_const.LOC_NUMBER, "DerefTable")
-            vw.addXref(indirOp.va, indirOff, v_const.REF_DATA)
+        if len(indirOp.opers):
+            oper = indirOp.opers[1]
+            if isinstance(oper, e_i386.i386SibOper) and oper.scale == 1:
+                vw.verbprint("0x%.8x (i:0x%.8x): Double deref (hitting a byte array offset into the offset-array)" % (vajmp, indirOp.va))
+                indirVa = oper.disp + imgbase
+                vw.addLocation(indirVa, 1, v_const.LOC_NUMBER, "DerefTable")
+                vw.addXref(indirOp.va, indirVa, v_const.REF_DATA)
 
     return (tova, scale)
 

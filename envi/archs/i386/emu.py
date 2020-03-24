@@ -2253,7 +2253,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
             s = (lft - rgt) & mask
             res |= s << (i * bitwidth)
 
-        self.setOperObj(op, 0, res)
+        self.setOperValue(op, 0, res)
 
     def i_psubw(self, op):
         self.i_psubb(op, bitwidth=16)

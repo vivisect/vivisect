@@ -129,5 +129,5 @@ def analyzeFunction(vw, funcva):
 
     vw.setFunctionMeta(funcva, 'Size', size)
     vw.setFunctionMeta(funcva, 'BlockCount', bcnt)
-    vw.setFunctionMeta(funcva, "InstructionCount", opcount)
-    vw.setFunctionMeta(funcva, "MnemDist", mnem)
+    vw.setFunctionMeta(funcva, 'InstructionCount', opcount)
+    vw.setFunctionMeta(funcva, 'MnemDist', mnem)
