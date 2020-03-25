@@ -2,17 +2,16 @@ import unittest
 
 import vivisect.const as v_const
 import vivisect.tests.helpers as helpers
-import vivisect.impemu.monitor as v_monitor
 
 
 class Amd64Malwaretest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.vw = helpers.getTestWorkspace('windows',
-                                          'amd64',
-                                          '2a26e770978be58570af57d821a22abd6b54ae170cd246b9d07af10ee116ecae')
+        cls.razy  = helpers.getTestWorkspace('windows', 'amd64', 'razy.exe')
+        # cls.xmrig = helpers.getTestWorkspace('windows', 'amd64', 'xmrig.exe')
 
     def test_jumptables(self):
+        # for razy, normal
         jmpVa = 0x14008d974
         # Dict of Tuples of (Xref Addr, VA Name, Codeblock size)
         codeRefs = {
@@ -33,19 +32,22 @@ class Amd64Malwaretest(unittest.TestCase):
            0x14008d9d8: ('case14_14008d974', 5),
         }
 
-        xrefs = self.vw.getXrefsFrom(jmpVa, rtype=v_const.REF_CODE)
+        xrefs = self.razy.getXrefsFrom(jmpVa, rtype=v_const.REF_CODE)
         for xrfrom, xrto, xrtype, xrflags in xrefs:
             self.assertIn(xrto, codeRefs)
 
             name, cbsz = codeRefs.pop(xrto)
-            self.assertEqual(name, self.vw.getName(xrto))
+            self.assertEqual(name, self.razy.getName(xrto))
 
-            cb = self.vw.getCodeBlock(xrto)
+            cb = self.razy.getCodeBlock(xrto)
             self.assertEqual(xrto, cb[0])
             self.assertEqual(cbsz, cb[1])
             self.assertEqual(0x14008d930, cb[2])
 
         self.assertEqual(len(codeRefs), 0)
 
-    def test_string(self):
-        pass
+        # for razy, indir
+
+        # xmrig, normal
+
+        # xmrig, indir

@@ -1183,7 +1183,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         if op.opers[0].isReg():
             src1 = self.getOperValue(op, 1)
             src2 = self.getOperValue(op, 2)
-            mask = 0xFFFFFFFFFFFFFFFFL
+            mask = SUBMASKS[8]
             res = (src1 & mask) | ((src2 & mask) << 64)
             self.setOperValue(op, 0, res)
         else:
@@ -1983,10 +1983,49 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         isRange = True if control & 0xC == 0x4 else False
         raise Exception('Finish pcmpistri ya dingus!')
 
-    def i_pshufd(self, op, off=0):
+    def i_pshufb(self, op, off=0):
         dst = self.getOperValue(op, off)
-        shuffle = self.getOperValue(op, off+1)
-        raise Exception('Finish pshufd ya dingus!')
+        src = self.getOperValue(op, off)
+        res = 0
+
+        if op.opers[0].tsize == 8:
+            mask = 0x07
+        else:
+            mask = 0x0F
+
+        for i in range(op.opers[0].tsize):
+            shfl = src & (1 << ((i * 8) + 7))
+            if shfl:
+                s = 0
+            else:
+                indx = (src >> (i * 8)) & mask
+                s = (src >> (indx * 8)) & 0xFF
+            res |= (s << (i * 8))
+
+        self.setOperValue(op, 0, res)
+
+    def i_vpshufb(self, op):
+        self.i_pshufb(op, off=1)
+
+    def i_pshufd(self, op):
+        mask = SUBMASKS[4]
+        dst = self.getOperValue(op, 0)
+        src = self.getOperValue(op, 1)
+        order = self.getOperValue(op, 2)
+        res = 0
+
+        # lower portion, 128 / 32 = 4
+        for i in range(4):
+            indx = (order >> (2 * i)) & 0x3
+            res |= ((src >> (indx * 32)) & mask) << (i * 32)
+
+        if op.opers[0].tsize == 32:
+            src >>= 128
+            for i in range(4):
+                indx = (order >> (2 * i)) & 0x3
+                res |= ((src >> (indx * 32)) & mask) << ((i + 4) * 32)
+
+        self.setOperValue(op, 0, res)
 
     def _interleave_low(self, dst, src, tsize, bitwidth, limit):
         res = 0

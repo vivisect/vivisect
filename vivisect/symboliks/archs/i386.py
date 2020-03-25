@@ -661,7 +661,9 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
         v2 = self.getOperObj(op, 1)
         res = 0
         for i in range(v2.getWidth()):
-            res |= (v2 & (1 << (7 + i*8))) << i
+            i2 = Const(i, self._psize)
+            mask = Const(1 << (7 + i*8), self._psize)
+            res |= (v2 & mask) << i2
         self.setOperObj(op, 0, res)
 
     i_vpmovmskb = i_pmovmskb
