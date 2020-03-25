@@ -550,9 +550,14 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
 
     return fname
 
+armemu = None
 
 def applyRelocs(elf, vw, addbase=False, baseaddr=0):
-    # process relocations / strings (relocs use Dynamic Symbols)
+    '''
+    process relocations / strings (relocs use Dynamic Symbols)
+    '''
+    global armemu # certain ARM relocations allow instructions to determine the relocation
+
     arch = arch_names.get(elf.e_machine)
     relocs = elf.getRelocs()
     logger.debug("reloc len: %d", len(relocs))
@@ -614,12 +619,16 @@ def applyRelocs(elf, vw, addbase=False, baseaddr=0):
 
 
             if arch in ('arm', 'thumb', 'thumb16'):
+                # get an emulator spun up for handling of certain relocation types
+                if armemu is None:
+                    armemu = vw.getEmulator()
+
                 if rtype == Elf.R_ARM_JUMP_SLOT:
                     symidx = r.getSymTabIndex()
                     sym = elf.getDynSymbol(symidx)
                     ptr = sym.st_value
 
-                    #quick check to make sure we don't provide this symbol
+                    # quick check to make sure we don't provide this symbol
                     if ptr:
                         logger.info('R_ARM_JUMP_SLOT: adding Relocation 0x%x -> 0x%x (%s) ', rlva, ptr, dmglname)
                         if addbase:
@@ -648,8 +657,12 @@ def applyRelocs(elf, vw, addbase=False, baseaddr=0):
                     #quick check to make sure we don't provide this symbol
                     if ptr:
                         logger.info('R_ARM_GLOB_DAT: adding Relocation 0x%x -> 0x%x (%s) ', rlva, ptr, dmglname)
-                        vw.addRelocation(rlva, vivisect.RTYPE_BASEPTR, ptr)
+                        if addbase:
+                            vw.addRelocation(rlva, vivisect.RTYPE_BASEPTR, ptr)
+                        else:
+                            vw.addRelocation(rlva, vivisect.RTYPE_BASERELOC, ptr)
                         pname = "ptr_%s" % name
+
                         if vw.vaByName(pname) is None:
                             vw.makeName(rlva, pname)
 

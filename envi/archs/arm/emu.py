@@ -162,7 +162,8 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
 
         # FIXME: this should be None's, and added in for each real coproc... but this will work for now.
         self.coprocs = [CoProcEmulator(x) for x in xrange(16)]      
-        self.int_handlers = [self.default_int_handler for x in range(100)]
+
+        self.int_handlers = {}
 
         envi.Emulator.__init__(self, ArmModule())
 
@@ -562,10 +563,11 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
         return res
 
     def interrupt(self, val):
-        if val >= len(self.int_handlers):
-            logger.critical("FIXME: Interrupt Handler %x is not handled", val)
+        if val not in self.int_handlers:
+            pc = self.getProgramCounter()
+            logger.critical("FIXME: Interrupt Handler %x is not handled (at va: 0x%x). Using default handler", val, pc)
 
-        handler = self.int_handlers[val]
+        handler = self.int_handlers.get(val, self.default_int_handler)
         handler(val, self)
 
     def default_int_handler(self, val, emu):
