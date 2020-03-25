@@ -7,8 +7,7 @@ import vivisect.tests.helpers as helpers
 class Amd64Malwaretest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.razy  = helpers.getTestWorkspace('windows', 'amd64', 'razy.exe')
-        # cls.xmrig = helpers.getTestWorkspace('windows', 'amd64', 'xmrig.exe')
+        cls.razy = helpers.getTestWorkspace('windows', 'amd64', 'razy.exe')
 
     def test_jumptables(self):
         # for razy, normal
@@ -46,8 +45,4 @@ class Amd64Malwaretest(unittest.TestCase):
 
         self.assertEqual(len(codeRefs), 0)
 
-        # for razy, indir
-
-        # xmrig, normal
-
-        # xmrig, indir
+        # TODO: More here
