@@ -2044,51 +2044,34 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
 
         self.setOperValue(op, 0, res)
 
-    def i_pshuflw(self, op):
-        mask = SUBMASKS[2]
+    def i_pshuflw(self, op, offset=0):
+        mask = SUBMASKS[2] << offset
         dst = self.getOperValue(op, 0)
         src = self.getOperValue(op, 1)
         order = self.getOperValue(op, 2)
-        clear = SUBMASKS[8] << 64
+        clear = SUBMASKS[8] << (64 - offset)
         res = src & clear
 
         for i in range(4):
             indx = (order >> (2*i)) & 0x3
-            res |= ((src >> (indx * 16)) & mask) << (i * 16)
+            valu = ((src >> (indx * 16)) >> offset) & mask
+            res |= valu << ((i * 16) + offset)
 
         if op.opers[0].tsize == 32:
             src >>= 128
             res |= (src & clear) << 128
             for i in range(4):
                 indx = (order >> (2 * i)) & 0x3
-                valu = (src >> (indx * 16)) & mask
-                res |= valu << ((i * 16) + 128)
+                valu = ((src >> (indx * 16)) >> offset) & mask
+                res |= valu << ((i * 16) + 128 + offset)
 
         self.setOperValue(op, 0, res)
 
     i_vpshuflw = i_pshuflw
 
     def i_pshufhw(self, op):
-        # Ugh. Fix this one up
-        mask = SUBMASKS[2] << 64
-        dst = self.getOperValue(op, 0)
-        src = self.getOperValue(op, 1)
-        order = self.getOperValue(op, 2)
-        res = src & SUBMASKS[8]
-        for i in range(4):
-            indx = (order >> (2*i)) & 0x3
-            valu = ((src >> (indx * 16)) >> 64) & mask
-            res |= valu << ((i * 16) + 64)
-
-        if op.opers[0].tsize == 32:
-            src >>= 128
-            res |= (src & SUBMASKS[8]) << 128
-            for i in range(4):
-                indx = (order >> (2*i)) & 0x3
-                valu = ((src >> (indx * 16)) >> 64) & mask
-                res |= valu << ((i * 16) + 192)
-
-        self.setOperValue(op, 0, res)
+        self.i_pshuflw(op, offset=64)
+    i_vpshufhw = i_pshufhw
 
     def _interleave_low(self, dst, src, tsize, bitwidth, limit):
         res = 0

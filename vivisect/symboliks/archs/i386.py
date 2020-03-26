@@ -91,6 +91,9 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
         self._arch = self.__arch__()
         self._psize = self._arch.getPointerSize()
         self._reg_ctx = self._arch.archGetRegCtx()
+        self._sz_masks = {}
+        for i in (1, 2, 4, 8, 16, 32):
+            self._sz_masks[i] = Const((2L ** (i * 8)) - 1, self._psize)
 
     def getRegObj(self, regidx):
         ridx = regidx & 0xffff
@@ -259,10 +262,10 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
         add = o_add(v1, v2, dsize)
         self.setOperObj(op, 0, add)
 
-        # self.effSetVariable('eflags_gt', gt(v1, v2))
-        # self.effSetVariable('eflags_lt', lt(v1, v2))
-        # self.effSetVariable('eflags_sf', lt(v1, v2))
-        # self.effSetVariable('eflags_eq', eq(v1+v2, 0))
+        self.effSetVariable('eflags_gt', gt(v1, v2))
+        self.effSetVariable('eflags_lt', lt(v1, v2))
+        self.effSetVariable('eflags_sf', lt(v1, v2))
+        self.effSetVariable('eflags_eq', eq(v1+v2, 0))
 
     def i_addsd(self, op):
         if len(op.opers) == 3:
@@ -732,8 +735,11 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
     def i_vpandn(self, op):
         self.i_pandn(op, off=1)
 
-    def i_pshufb(self, op):
-        pass
+    # TODO: pshufb has a conditional in it where it only sets it if the high bit of the src byte
+    # its chosen is set. How do we model that in symboliks?
+    # shift the msb down, size it to 1 and the sign extend it and use that as a mask?
+    #def i_pshufb(self, op):
+        #pass
 
     def i_pshufd(self, op):
         dst = self.getOperObj(op, 0)
@@ -752,14 +758,42 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
 
     # i_vpshufd = i_pshufd
 
-    def i_pshuflw(self, op):
+    def i_pshuflw(self, op, offset=0):
         dst = self.getOperObj(op, 0)
         src = self.getOperObj(op, 1)
         ordr = self.getOperObj(op, 2)
-        res = Const(0, self._psize)
+
+        mask = self._sz_masks[2] << Const(offset, self._psize)
+        clear = self._sz_masks[8] << Const(64 - offset, self._psize)
+        ordmask = Const(3, self._psize)
+
+        res = src & clear
 
         for i in range(4):
-            pass
+            ordshft = Const(2 * i, self._psize)
+            indx = (order >> ordshift) & ordmask
+            indx = indx * Const(16, self._psize)
+            res |= ((src >> indx) & mask) << Const(i * 16, self._psize)
+
+        if dst.getWidth() == 32:
+            upoff = Const(128, self._psize)
+            src >>= upoff
+            res |= (src & clear) << upoff
+            for i in range(4):
+                ordshft = Const(2 * i, self._psize)
+                indx = (order >> ordshift) & ordmask
+                indx = indx * Const(16, self._psize)
+                valu = ((src >> indx) >> offset) & mask
+                res |= valu << Const((i * 16) + 128 + offset, self._psize)
+
+        self.setOperValue(op, 0, res)
+
+    i_vpshuflw = i_pshuflw
+
+    def i_pshufhw(self, op):
+        self.i_pshuflw(op, offset=64)
+
+    i_vpshufhw = i_pshufhw
 
     def i_push(self, op):
         v1 = self.getOperObj(op, 0)
