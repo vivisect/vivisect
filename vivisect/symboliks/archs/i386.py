@@ -609,6 +609,28 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
     i_movdqa = i_mov
     i_movd_q = i_mov
 
+    def i_movlps(self, op):
+        mask = Const((2**64 - 1), self._psize)
+        valu = self.getOperObj(op, 1) & mask
+        self.setOperObj(op, 0, valu)
+
+    def i_movhps(self, op):
+        mask = Const((2**64 - 1), self._psize)
+        valu = (self.getOperObj(op, 1) & mask) << Const(64, self._psize)
+        self.setOperObj(op, 0, valu)
+
+    def i_vmovlps(self, op):
+        if len(op.opers) == 2:
+            pass
+        else:
+            pass
+
+    def i_vmovhps(self, op):
+        if len(op.opers) == 2:
+            pass
+        else:
+            pass
+
     def _movs(self, op, width=-1):
         si = Var(self.__srcp__, self._psize)
         di = Var(self.__destp__, self._psize)
@@ -659,7 +681,7 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
 
     def i_pmovmskb(self, op):
         v2 = self.getOperObj(op, 1)
-        res = 0
+        res = Const(0, self._psize)
         for i in range(v2.getWidth()):
             i2 = Const(i, self._psize)
             mask = Const(1 << (7 + i*8), self._psize)
@@ -709,6 +731,35 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
 
     def i_vpandn(self, op):
         self.i_pandn(op, off=1)
+
+    def i_pshufb(self, op):
+        pass
+
+    def i_pshufd(self, op):
+        dst = self.getOperObj(op, 0)
+        src = self.getOperObj(op, 1)
+        order = self.getOperObj(op, 2)
+
+        res = Const(0, self._psize)
+        mask = Const((2 ** 32) - 1, self._psize)
+        scal = Const(32, self._psize)
+
+        for i in range(dst.getWidth()):
+            indx = (order >> Const(2*i, self._psize)) & Const(0x3, self._psize)
+            res |= ((src >> (indx * scal)) & mask) << Const(i * 32, self._psize)
+
+        self.setOperObj(op, 0, res)
+
+    # i_vpshufd = i_pshufd
+
+    def i_pshuflw(self, op):
+        dst = self.getOperObj(op, 0)
+        src = self.getOperObj(op, 1)
+        ordr = self.getOperObj(op, 2)
+        res = Const(0, self._psize)
+
+        for i in range(4):
+            pass
 
     def i_push(self, op):
         v1 = self.getOperObj(op, 0)
@@ -790,17 +841,23 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
     def i_vpslldq(self, op):
         self._simdshift(op, operator.lshift, 16, off=1)
 
-    def i_pxor(self, op):
-        v1 = self.getOperObj(op, 0)
-        v2 = self.getOperObj(op, 1)
+    def i_pxor(self, op, off=0):
+        v1 = self.getOperObj(op, off)
+        v2 = self.getOperObj(op, off+1)
         obj = o_xor(v1, v2, v1.getWidth())
         self.setOperObj(op, 0, obj)
 
-    def i_por(self, op):
-        v1 = self.getOperObj(op, 0)
-        v2 = self.getOperObj(op, 1)
+    def i_vpxor(self, op):
+        self.i_pxor(op, off=1)
+
+    def i_por(self, op, off=0):
+        v1 = self.getOperObj(op, off)
+        v2 = self.getOperObj(op, off+1)
         obj = o_or(v1, v2, v1.getWidth())
         self.setOperObj(op, 0, obj)
+
+    def i_vpor(self, op):
+        self.i_por(op, off=1)
 
     def _parith(self, op, func, width, off=0):
         res = Const(0, self._psize)

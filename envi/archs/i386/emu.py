@@ -1156,15 +1156,17 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
 
     def i_movlps(self, op):
         if op.opers[0].isReg():
-            mask = 0xFFFFFFFFFFFFFFFFL
+            mask = SUBMASKS[8]
             dst = self.getRegisterByName(self.getRealRegisterNameByIdx(op.opers[0].reg)) & (~mask)
             src = self.getOperValue(op, 1)
             self.setOperValue(op, 0, dst | (src & mask))
         else:
             self.i_mov(op)
 
-    def i_movhps(self, op):
-        raise Exception('Finish movhps ya dingus!')
+    def i_movhps(self, op, off=0):
+        mask = SUBMASKS[8]
+        lvalu = self.getOperValue(op, off)
+        self.setOperValue(op, 0, lvalu & mask)
 
     i_movlpd = i_movlps
     i_movhpd = i_movhps
@@ -1173,7 +1175,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         if op.opers[0].isReg():
             src1 = self.getOperValue(op, 1)
             src2 = self.getOperValue(op, 2)
-            mask = 0xFFFFFFFFFFFFFFFFL
+            mask = SUBMASKS[8]
             res = ((src1 & mask) << 64) | (src2 & mask)
             self.setOperValue(op, 0, res)
         else:
@@ -2007,7 +2009,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
     def i_vpshufb(self, op):
         self.i_pshufb(op, off=1)
 
-    def i_pshufd(self, op):
+    def i_pshufd(self, op, bwidth=32):
         mask = SUBMASKS[4]
         dst = self.getOperValue(op, 0)
         src = self.getOperValue(op, 1)
@@ -2017,13 +2019,74 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         # lower portion, 128 / 32 = 4
         for i in range(4):
             indx = (order >> (2 * i)) & 0x3
-            res |= ((src >> (indx * 32)) & mask) << (i * 32)
+            res |= ((src >> (indx * bwidth)) & mask) << (i * bwidth)
 
+        # only comes into play when using the ymm registers
         if op.opers[0].tsize == 32:
             src >>= 128
             for i in range(4):
                 indx = (order >> (2 * i)) & 0x3
-                res |= ((src >> (indx * 32)) & mask) << ((i + 4) * 32)
+                res |= ((src >> (indx * bwidth)) & mask) << ((i * bwidth) + 128)
+
+        self.setOperValue(op, 0, res)
+
+    i_vpshufd = i_pshufd
+
+    def i_pshufw(self, op):
+        mask = SUBMASKS[2]
+        dst = self.getOperValue(op, 0)
+        src = self.getOperValue(op, 1)
+        order = self.getOperValue(op, 2)
+        for i in range(4):
+            indx = (order >> (2*i)) & 3
+            valu = (src >> (indx & 16)) & mask
+            res |= valu << (i * 16)
+
+        self.setOperValue(op, 0, res)
+
+    def i_pshuflw(self, op):
+        mask = SUBMASKS[2]
+        dst = self.getOperValue(op, 0)
+        src = self.getOperValue(op, 1)
+        order = self.getOperValue(op, 2)
+        clear = SUBMASKS[8] << 64
+        res = src & clear
+
+        for i in range(4):
+            indx = (order >> (2*i)) & 0x3
+            res |= ((src >> (indx * 16)) & mask) << (i * 16)
+
+        if op.opers[0].tsize == 32:
+            src >>= 128
+            res |= (src & clear) << 128
+            for i in range(4):
+                indx = (order >> (2 * i)) & 0x3
+                valu = (src >> (indx * 16)) & mask
+                res |= valu << ((i * 16) + 128)
+
+        self.setOperValue(op, 0, res)
+
+    i_vpshuflw = i_pshuflw
+
+    def i_pshufhw(self, op):
+        # Ugh. Fix this one up
+        mask = SUBMASKS[2] << 64
+        dst = self.getOperValue(op, 0)
+        src = self.getOperValue(op, 1)
+        order = self.getOperValue(op, 2)
+        res = src & SUBMASKS[8]
+        for i in range(4):
+            indx = (order >> (2*i)) & 0x3
+            valu = ((src >> (indx * 16)) >> 64) & mask
+            res |= valu << ((i * 16) + 64)
+
+        if op.opers[0].tsize == 32:
+            src >>= 128
+            res |= (src & SUBMASKS[8]) << 128
+            for i in range(4):
+                indx = (order >> (2*i)) & 0x3
+                valu = ((src >> (indx * 16)) >> 64) & mask
+                res |= valu << ((i * 16) + 192)
 
         self.setOperValue(op, 0, res)
 
