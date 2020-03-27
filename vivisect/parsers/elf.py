@@ -619,9 +619,43 @@ def applyRelocs(elf, vw, addbase=False, baseaddr=0):
 
 
             if arch in ('arm', 'thumb', 'thumb16'):
-                # get an emulator spun up for handling of certain relocation types
-                if armemu is None:
-                    armemu = vw.getEmulator()
+                # ARM REL entries require an addend that could be stored as a 
+                # number or an instruction!
+                import envi.archs.arm.const as eaac
+                if r.vsHasField('addend'):
+                    # this is a RELA object, bringing its own addend field!
+                    addend = r.addend
+                else:
+                    # otherwise, we have to check the stored value for number or instruction
+                    # if it's an instruction, we have to use the immediate value and then 
+                    # figure out if it's negative based on the instruction!
+                    try:
+                        temp = vw.readMemoryPtr(rlva)
+                        if temp & 0xffffff00:   # it's not just a little number
+                            op = vw.parseOpcode(rlva)
+                            for oper in op.opers:
+                                if hasattr(oper, 'val'):
+                                    addend = oper.val
+                                    break
+
+                                elif hasattr(oper, 'offset'):
+                                    addend = oper.offset
+                                    break
+
+                            lastoper = op.opers[-1]
+                            if op.mnem.startswith('sub') or \
+                                    op.mnem in ('ldr', 'str') and \
+                                    hasattr(lastoper, 'pubwl') and \
+                                    not (lastoper.pubwl & eaac.PUxWL_ADD):
+                                        addend = -addend
+                        else:
+                            # just a small number
+                            addend = temp
+                    except Exception:
+                        logger.exception("ELF: Reloc Addend determination:")
+                        addend = temp
+
+                logger.debug('addend: 0x%x', addend)
 
                 if rtype == Elf.R_ARM_JUMP_SLOT:
                     symidx = r.getSymTabIndex()
@@ -654,7 +688,13 @@ def applyRelocs(elf, vw, addbase=False, baseaddr=0):
                     sym = elf.getDynSymbol(symidx)
                     ptr = sym.st_value
 
+                    ###
+                    print "----- %x    %r    %x" % (symidx, sym, ptr)
+                    print r.tree()
+                    print sym.tree()
+
                     #quick check to make sure we don't provide this symbol
+
                     if ptr:
                         logger.info('R_ARM_GLOB_DAT: adding Relocation 0x%x -> 0x%x (%s) ', rlva, ptr, dmglname)
                         if addbase:
