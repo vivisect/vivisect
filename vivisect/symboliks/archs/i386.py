@@ -265,7 +265,7 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
         self.effSetVariable('eflags_gt', gt(v1, v2))
         self.effSetVariable('eflags_lt', lt(v1, v2))
         self.effSetVariable('eflags_sf', lt(v1, v2))
-        self.effSetVariable('eflags_eq', eq(v1+v2, 0))
+        self.effSetVariable('eflags_eq', eq(v1+v2, Const(0, self._psize)))
 
     def i_addsd(self, op):
         if len(op.opers) == 3:
@@ -744,14 +744,14 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
     def i_pshufd(self, op):
         dst = self.getOperObj(op, 0)
         src = self.getOperObj(op, 1)
-        order = self.getOperObj(op, 2)
+        ordr = self.getOperObj(op, 2)
 
         res = Const(0, self._psize)
         mask = Const((2 ** 32) - 1, self._psize)
         scal = Const(32, self._psize)
 
         for i in range(dst.getWidth()):
-            indx = (order >> Const(2*i, self._psize)) & Const(0x3, self._psize)
+            indx = (ordr >> Const(2*i, self._psize)) & Const(0x3, self._psize)
             res |= ((src >> (indx * scal)) & mask) << Const(i * 32, self._psize)
 
         self.setOperObj(op, 0, res)
@@ -771,7 +771,7 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
 
         for i in range(4):
             ordshft = Const(2 * i, self._psize)
-            indx = (order >> ordshift) & ordmask
+            indx = (ordr >> ordshft) & ordmask
             indx = indx * Const(16, self._psize)
             res |= ((src >> indx) & mask) << Const(i * 16, self._psize)
 
@@ -781,12 +781,12 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
             res |= (src & clear) << upoff
             for i in range(4):
                 ordshft = Const(2 * i, self._psize)
-                indx = (order >> ordshift) & ordmask
+                indx = (ordr >> ordshft) & ordmask
                 indx = indx * Const(16, self._psize)
                 valu = ((src >> indx) >> offset) & mask
                 res |= valu << Const((i * 16) + 128 + offset, self._psize)
 
-        self.setOperValue(op, 0, res)
+        self.setOperObj(op, 0, res)
 
     i_vpshuflw = i_pshuflw
 

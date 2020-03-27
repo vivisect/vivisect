@@ -277,8 +277,8 @@ amd64MultiByteOpcodes = [
     ('BLENDVPD', '660F38150C2541414141', 'blendvpd xmm1,oword [0x41414141]', 'blendvpd xmm1,oword [0x41414141]'),
     ('BLENDVPD', '660F3815DC', 'blendvpd xmm3,xmm4', 'blendvpd xmm3,xmm4'),
     ('PEXTRB', '660F3A14D011', 'pextrb eax,xmm2,17', 'pextrb eax,xmm2,17'),
-    ('PEXTRB 2', '660F3A141011', 'pextrb dword [rax],xmm2,17', 'pextrb dword [rax],xmm2,17'),
-    ('PEXTRB 3', '660F3A14500411', 'pextrb dword [rax + 4],xmm2,17', 'pextrb dword [rax + 4],xmm2,17'),
+    ('PEXTRB 2', '660F3A141011', 'pextrb byte [rax],xmm2,17', 'pextrb byte [rax],xmm2,17'),
+    ('PEXTRB 3', '660F3A14500411', 'pextrb byte [rax + 4],xmm2,17', 'pextrb byte [rax + 4],xmm2,17'),
     # Uck. We need to let the REX bytes modify the opcode name
     ('PEXTRD', '660F3A16EA11', 'pextrd_q edx,xmm5,17', 'pextrd_q edx,xmm5,17'),
     ('PEXTRD 2', '660F3A161011', 'pextrd_q dword [rax],xmm2,17', 'pextrd_q dword [rax],xmm2,17'),
@@ -307,10 +307,15 @@ amd64MultiByteOpcodes = [
     ('RCPSS 2', 'f3440f5319', 'rcpss xmm11,dword [rcx]', 'rcpss xmm11,dword [rcx]'),
 
     ('PINSRB', '660f3a20c811', 'pinsrb xmm1,eax,17', 'pinsrb xmm1,eax,17'),
-    ('PINSRB 2', '660f3a200811', 'pinsrb xmm1,dword [rax],17', 'pinsrb xmm1,dword [rax],17'),
+    ('PINSRB 2', '660f3a200811', 'pinsrb xmm1,byte [rax],17', 'pinsrb xmm1,byte [rax],17'),
+    ('PINSRD', '660f3a22c811', 'pinsrd xmm1,eax,17', 'pinsrd xmm1,eax,17'),
+    ('PINSRD 2', '660f3a220811', 'pinsrd xmm1,dword [rax],17', 'pinsrd xmm1,dword [rax],17'),
     ('ADDSS', 'f30f58ca', 'addss xmm1,xmm2', 'addss xmm1,xmm2'),
     ('ADDSS 2', 'f30f580a', 'addss xmm1,dword [rdx]', 'addss xmm1,dword [rdx]'),
     ('ADDSS 3', 'f30f585963', 'addss xmm3,dword [rcx + 99]', 'addss xmm3,dword [rcx + 99]'),
+    ('ROUNDSS',   '660f3a0adca7', 'roundss xmm3,xmm4,167', 'roundss xmm3,xmm4,167'),
+    ('ROUNDSS 2', '660f3a0a1080', 'roundss xmm2,dword [rax],128', 'roundss xmm2,dword [rax],128'),
+    ('ROUNDSS 3', '660f3a0a148dff000000ff', 'roundss xmm2,dword [0x000000ff + rcx * 4],255', 'roundss xmm2,dword [0x000000ff + rcx * 4],255'),
     ('CVTPD2PI (NOREX)', '660f2df8', 'cvtpd2pi mm7,xmm0', 'cvtpd2pi mm7,xmm0'),
     # So the only part of REX that should matter for these is: REX.B
     # So anything with the least significant bit set
@@ -433,6 +438,33 @@ amd64MultiByteOpcodes = [
     ('MOV SEGREG 6', '8E142541414141', 'mov ss,word [0x41414141]', 'mov ss,word [0x41414141]'),
     ('MOV SEGREG 7', '8C042541414141', 'mov word [0x41414141],es', 'mov word [0x41414141],es'),
 
+    ('PMOVSXBW', '660f3820ca', 'pmovsxbw xmm1,xmm2', 'pmovsxbw xmm1,xmm2'),
+    ('PMOVSXBD', '660f3821cb', 'pmovsxbd xmm1,xmm3', 'pmovsxbd xmm1,xmm3'),
+    ('PMOVSXBQ', '660f3822d3', 'pmovsxbq xmm2,xmm3', 'pmovsxbq xmm2,xmm3'),
+    ('PMOVSXWD', '660f3823ff', 'pmovsxwd xmm7,xmm7', 'pmovsxwd xmm7,xmm7'),
+    ('PMOVSXWQ', '66440f3824dc', 'pmovsxwq xmm11,xmm4', 'pmovsxwq xmm11,xmm4'),
+    ('PMOVSXDQ', '66410f3825df', 'pmovsxdq xmm3,xmm15', 'pmovsxdq xmm3,xmm15'),
+
+    ('PMOVZXBW', '660f3830ca', 'pmovzxbw xmm1,xmm2', 'pmovzxbw xmm1,xmm2'),
+    ('PMOVZXBD', '660f3831cb', 'pmovzxbd xmm1,xmm3', 'pmovzxbd xmm1,xmm3'),
+    ('PMOVZXBQ', '660f3832d3', 'pmovzxbq xmm2,xmm3', 'pmovzxbq xmm2,xmm3'),
+    ('PMOVZXWD', '660f3833ff', 'pmovzxwd xmm7,xmm7', 'pmovzxwd xmm7,xmm7'),
+    ('PMOVZXWQ', '66440f3834dc', 'pmovzxwq xmm11,xmm4', 'pmovzxwq xmm11,xmm4'),
+    ('PMOVZXDQ', '66410f3835df', 'pmovzxdq xmm3,xmm15', 'pmovzxdq xmm3,xmm15'),
+
+    ('PMOVSXBW (MEM)', '66440f382018', 'pmovsxbw xmm11,qword [rax]', 'pmovsxbw xmm11,qword [rax]'),
+    ('PMOVSXBD (MEM)', '660f3821242541414141', 'pmovsxbd xmm4,dword [0x41414141]', 'pmovsxbd xmm4,dword [0x41414141]'),
+    ('PMOVSXBQ (MEM)', '66410f38228b29230000', 'pmovsxbq xmm1,word [r11 + 9001]', 'pmovsxbq xmm1,word [r11 + 9001]'),
+    ('PMOVSXWD (MEM)', '66440f38230c11', 'pmovsxwd xmm9,qword [rcx + rdx]', 'pmovsxwd xmm9,qword [rcx + rdx]'),
+    ('PMOVSXWQ (MEM)', '660f38241cb507000000', 'pmovsxwq xmm3,dword [0x00000007 + rsi * 4]', 'pmovsxwq xmm3,dword [0x00000007 + rsi * 4]'),
+    ('PMOVSXDQ (MEM)', '660f382532', 'pmovsxdq xmm6,qword [rdx]', 'pmovsxdq xmm6,qword [rdx]'),
+
+    ('PMOVSXBW (MEM)', '66440f383018', 'pmovzxbw xmm11,qword [rax]', 'pmovzxbw xmm11,qword [rax]'),
+    ('PMOVSXBD (MEM)', '660f3831242541414141', 'pmovzxbd xmm4,dword [0x41414141]', 'pmovzxbd xmm4,dword [0x41414141]'),
+    ('PMOVSXBQ (MEM)', '66410f38328b29230000', 'pmovzxbq xmm1,word [r11 + 9001]', 'pmovzxbq xmm1,word [r11 + 9001]'),
+    ('PMOVSXWD (MEM)', '66440f38330c11', 'pmovzxwd xmm9,qword [rcx + rdx]', 'pmovzxwd xmm9,qword [rcx + rdx]'),
+    ('PMOVSXWQ (MEM)', '660f38341cb507000000', 'pmovzxwq xmm3,dword [0x00000007 + rsi * 4]', 'pmovzxwq xmm3,dword [0x00000007 + rsi * 4]'),
+    ('PMOVSXDQ (MEM)', '660f383532', 'pmovzxdq xmm6,qword [rdx]', 'pmovzxdq xmm6,qword [rdx]'),
 
     ('WAIT', '9b', 'wait ', 'wait '),  # TODO: this needs to be able to change the opcode too
 ]
@@ -956,10 +988,9 @@ amd64VexOpcodes = [
     ('VBROADCASTSS 8', 'c4c27d187103', 'vbroadcastss ymm6,dword [r9 + 3]', 'vbroadcastss ymm6,dword [r9 + 3]'),
     ('VBROADCASTSS 9', 'c4a27d1834c503000000', 'vbroadcastss ymm6,dword [0x00000003 + r8 * 8]', 'vbroadcastss ymm6,dword [0x00000003 + r8 * 8]'),
     ('VBROADCASTSD 0', 'c4c27d19c2', 'vbroadcastsd ymm0,xmm10', 'vbroadcastsd ymm0,xmm10'),
-# memsize should be qword for vbroadcastsd
-    ('VBROADCASTSD 1', 'c4e27d1904254a4a4a4a', 'vbroadcastsd ymm0,oword [0x4a4a4a4a]', 'vbroadcastsd ymm0,oword [0x4a4a4a4a]'),
-    ('VBROADCASTSD 2', 'c4c27d1900', 'vbroadcastsd ymm0,oword [r8]', 'vbroadcastsd ymm0,oword [r8]'),
-    ('VBROADCASTSD 3', 'c4e27d1980ba000000', 'vbroadcastsd ymm0,oword [rax + 186]', 'vbroadcastsd ymm0,oword [rax + 186]'),
+    ('VBROADCASTSD 1', 'c4e27d1904254a4a4a4a', 'vbroadcastsd ymm0,qword [0x4a4a4a4a]', 'vbroadcastsd ymm0,qword [0x4a4a4a4a]'),
+    ('VBROADCASTSD 2', 'c4c27d1900', 'vbroadcastsd ymm0,qword [r8]', 'vbroadcastsd ymm0,qword [r8]'),
+    ('VBROADCASTSD 3', 'c4e27d1980ba000000', 'vbroadcastsd ymm0,qword [rax + 186]', 'vbroadcastsd ymm0,qword [rax + 186]'),
     ('VBROADCASTF128 0', 'c4e27d1a34254a4a4a4a', 'vbroadcastf128 ymm6,oword [0x4a4a4a4a]', 'vbroadcastf128 ymm6,oword [0x4a4a4a4a]'),
     ('VBROADCASTF128 1', 'c4c27d1a37', 'vbroadcastf128 ymm6,oword [r15]', 'vbroadcastf128 ymm6,oword [r15]'),
     ('VBROADCASTF128 2', 'c4c27d1a712b', 'vbroadcastf128 ymm6,oword [r9 + 43]', 'vbroadcastf128 ymm6,oword [r9 + 43]'),
@@ -1008,6 +1039,35 @@ amd64VexOpcodes = [
     ('VFMADD213sd 3', 'c4e2f1a91df82a0600', 'vfmadd213sd xmm3,xmm1,qword [rip + 404216]', 'vfmadd213sd xmm3,xmm1,qword [rip + 404216]'),
     ('VFMADD213sd 4', 'C4E2E998CB', 'vfmadd132pd xmm1,xmm2,xmm3', 'vfmadd132pd xmm1,xmm2,xmm3'),
     # for the *213ss versions, rex needs to be able to change the mnem :/
+
+    ('VPMOVSXBW', 'C4E27D20CF', 'vpmovsxbw ymm1,xmm7', 'vpmovsxbw ymm1,xmm7'),
+    ('VPMOVSXBD', 'C4E27D21CF', 'vpmovsxbd ymm1,xmm7', 'vpmovsxbd ymm1,xmm7'),
+    ('VPMOVSXBQ', 'C4E27D22CF', 'vpmovsxbq ymm1,xmm7', 'vpmovsxbq ymm1,xmm7'),
+    ('VPMOVSXWD', 'C4E27D23CF', 'vpmovsxwd ymm1,xmm7', 'vpmovsxwd ymm1,xmm7'),
+    ('VPMOVSXWQ', 'C4E27D24CF', 'vpmovsxwq ymm1,xmm7', 'vpmovsxwq ymm1,xmm7'),
+    ('VPMOVSXDQ', 'C4E27D25CF', 'vpmovsxdq ymm1,xmm7', 'vpmovsxdq ymm1,xmm7'),
+
+    ('VPMOVSXBW (MEM)', 'c4e2792010', 'vpmovsxbw xmm2,qword [rax]', 'vpmovsxbw xmm2,qword [rax]'),
+    ('VPMOVSXBD (MEM)', 'c4e2792110', 'vpmovsxbd xmm2,dword [rax]', 'vpmovsxbd xmm2,dword [rax]'),
+    ('VPMOVSXBQ (MEM)', 'c4e2792210', 'vpmovsxbq xmm2,word [rax]',  'vpmovsxbq xmm2,word [rax]'),
+    ('VPMOVSXWD (MEM)', 'c4e2792310', 'vpmovsxwd xmm2,qword [rax]', 'vpmovsxwd xmm2,qword [rax]'),
+    ('VPMOVSXWQ (MEM)', 'c4e2792410', 'vpmovsxwq xmm2,dword [rax]', 'vpmovsxwq xmm2,dword [rax]'),
+    ('VPMOVSXDQ (MEM)', 'c4e2792510', 'vpmovsxdq xmm2,qword [rax]', 'vpmovsxdq xmm2,qword [rax]'),
+    # The opersize here fails :(
+    # ('VPMOVSXBW (MEM256)', 'c4e27d2010', 'vpmovsxbw ymm2,oword [rax]', 'vpmovsxbw ymm2,oword [rax]'),
+
+    ('VPMOVZXBW', 'C4E27D30CF', 'vpmovzxbw ymm1,xmm7', 'vpmovzxbw ymm1,xmm7'),
+    ('VPMOVZXBD', 'C4E27D31CF', 'vpmovzxbd ymm1,xmm7', 'vpmovzxbd ymm1,xmm7'),
+    ('VPMOVZXBQ', 'C4E27D32CF', 'vpmovzxbq ymm1,xmm7', 'vpmovzxbq ymm1,xmm7'),
+    ('VPMOVZXWD', 'C4E27D33CF', 'vpmovzxwd ymm1,xmm7', 'vpmovzxwd ymm1,xmm7'),
+    ('VPMOVZXWQ', 'C4E27D34CF', 'vpmovzxwq ymm1,xmm7', 'vpmovzxwq ymm1,xmm7'),
+    ('VPMOVZXDQ', 'C4E27D35CF', 'vpmovzxdq ymm1,xmm7', 'vpmovzxdq ymm1,xmm7'),
+    ('VPMOVZXBW (MEM)', 'c4e2793010', 'vpmovzxbw xmm2,qword [rax]', 'vpmovzxbw xmm2,qword [rax]'),
+    ('VPMOVZXBD (MEM)', 'c4e2793110', 'vpmovzxbd xmm2,dword [rax]', 'vpmovzxbd xmm2,dword [rax]'),
+    ('VPMOVZXBQ (MEM)', 'c4e2793210', 'vpmovzxbq xmm2,word [rax]',  'vpmovzxbq xmm2,word [rax]'),
+    ('VPMOVZXWD (MEM)', 'c4e2793310', 'vpmovzxwd xmm2,qword [rax]', 'vpmovzxwd xmm2,qword [rax]'),
+    ('VPMOVZXWQ (MEM)', 'c4e2793410', 'vpmovzxwq xmm2,dword [rax]', 'vpmovzxwq xmm2,dword [rax]'),
+    ('VPMOVZXDQ (MEM)', 'c4e2793510', 'vpmovzxdq xmm2,qword [rax]', 'vpmovzxdq xmm2,qword [rax]'),
 ]
 
 

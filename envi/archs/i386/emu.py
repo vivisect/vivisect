@@ -215,7 +215,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
 
         meth = self.op_methods.get(op.mnem, None)
         if meth == None:
-            # print("0x%x: Intel Emulator needs %s" % (op.va, str(op)))
+            print("0x%x: Intel Emulator needs %s" % (op.va, str(op)))
             raise e_exc.UnsupportedInstruction(self, op)
 
         newpc = meth(op)
@@ -1975,15 +1975,6 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
 
     def i_vpslldq(self, op):
         self._simdshift(op, operator.lshift, 128, 1)
-
-    def i_pcmpistri(self, op):
-        operA = self.getOperValue(op, 0)
-        operB = self.getOperValue(op, 1)
-        control = self.getOperValue(op, 2)
-        size = 16 if control & 0x1 else 8
-        isSigned =  control & 0x2
-        isRange = True if control & 0xC == 0x4 else False
-        raise Exception('Finish pcmpistri ya dingus!')
 
     def i_pshufb(self, op, off=0):
         dst = self.getOperValue(op, off)

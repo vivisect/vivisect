@@ -12,7 +12,8 @@ from envi.archs.i386.disasm import iflag_lookup, operand_range, priv_lookup, \
         MANDATORY_PREFIXES, PREFIX_REP_MASK
 
 from envi.archs.amd64.regs import *
-from envi.archs.i386.opconst import OP_REG32AUTO, OP_MEM32AUTO, OP_MEM16AUTO, \
+from envi.archs.i386.opconst import OP_EXTRA_MEMSIZES, OP_MEM_B, OP_MEM_W, OP_MEM_D, \
+                                    OP_MEM_Q, OP_MEM_DQ, OP_MEM_QQ, OP_MEMMASK, \
                                     INS_VEXREQ, OP_NOVEXL
 all_tables = opcode86.tables86
 
@@ -503,10 +504,9 @@ class Amd64Disasm(e_i386.i386Disasm):
                     else:
                         osize, oper = ameth(bytez, offset, tsize, prefixes, operflags)
                         if getattr(oper, "_is_deref", False):
-                            if operflags & OP_MEM32AUTO:
-                                oper.tsize = 4
-                            elif operflags & OP_MEM16AUTO:
-                                oper.tsize = 2
+                            memsz = OP_EXTRA_MEMSIZES[(operflags & OP_MEMMASK) >> 4]
+                            if memsz is not None:
+                                oper.tsize = memsz
 
                 except struct.error:
                     # Catch struct unpack errors due to insufficient data length
@@ -668,8 +668,8 @@ class Amd64Disasm(e_i386.i386Disasm):
             oper.reg += REX_BUMP
         return osize, oper
 
-    def ameth_z(self, bytes, offset, tsize, prefixes, operflags):
-        osize, oper = e_i386.i386Disasm.ameth_z(self, bytes, offset, tsize, prefixes, operflags)
+    def ameth_u(self, bytes, offset, tsize, prefixes, operflags):
+        osize, oper = e_i386.i386Disasm.ameth_u(self, bytes, offset, tsize, prefixes, operflags)
 
         if not (prefixes & PREFIX_VEX_L) or operflags & OP_NOVEXL:
             oper.reg += e_i386.RMETA_LOW128
@@ -712,8 +712,6 @@ class Amd64Disasm(e_i386.i386Disasm):
     def ameth_e(self, bytes, offset, tsize, prefixes, operflags):
         regbase = 0
         # TODO: Does this impact memory as well?
-        if operflags & OP_REG32AUTO:
-            tsize = 4
         osize, oper = self.extended_parse_modrm(bytes, offset, tsize, prefixes=prefixes, regbase=regbase)
         self._dis_rex_exmodrm(oper, prefixes, operflags)
         return osize, oper

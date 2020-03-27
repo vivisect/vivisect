@@ -11,7 +11,9 @@ import envi.bits as e_bits
 # Grab our register enums etc...
 from envi.const import *
 from envi.archs.i386.regs import *
-from envi.archs.i386.opconst import OP_MEM32AUTO, OP_MEM16AUTO
+from envi.archs.i386.opconst import OP_EXTRA_MEMSIZES, OP_MEM_B, OP_MEM_W, OP_MEM_D, \
+                                    OP_MEM_Q, OP_MEM_DQ, OP_MEM_QQ, OP_MEMMASK, \
+                                    INS_VEXREQ, OP_NOVEXL
 
 import opcode86
 all_tables = opcode86.tables86
@@ -666,7 +668,6 @@ class i386Disasm:
         self._dis_amethods[opcode86.ADDRMETH_V>>16] = self.ameth_v
         self._dis_amethods[opcode86.ADDRMETH_X>>16] = self.ameth_x
         self._dis_amethods[opcode86.ADDRMETH_Y>>16] = self.ameth_y
-        self._dis_amethods[opcode86.ADDRMETH_Z>>16] = self.ameth_z
 
         # Offsets used to add in addressing method parsers
         # MMX is just a meta reg of st
@@ -972,10 +973,9 @@ class i386Disasm:
                     else:
                         osize, oper = ameth(bytez, offset, tsize, all_prefixes, operflags)
                         if getattr(oper, "_is_deref", False):
-                            if operflags & OP_MEM32AUTO:
-                                oper.tsize = 4
-                            elif operflags & OP_MEM16AUTO:
-                                oper.tsize = 2
+                            memsz = OP_EXTRA_MEMSIZES[(operflags & OP_MEMMASK) >> 4]
+                            if memsz is not None:
+                                oper.tsize = memsz
 
                 except struct.error as e:
                     # Catch struct unpack errors due to insufficient data length
@@ -1082,7 +1082,7 @@ class i386Disasm:
 
     def ameth_u(self, bytez, offset, tsize, prefixes, operflags):
         mod, reg, rm = self.parse_modrm(ord(bytez[offset]))
-        return (0, i386RegOper(reg+self.ROFFSETTEST, tsize))
+        return (1, i386RegOper(rm+self.ROFFSETSIMD, tsize))
 
     def ameth_v(self, bytez, offset, tsize, prefixes, operflags):
         mod, reg, rm = self.parse_modrm(ord(bytez[offset]))
@@ -1095,10 +1095,6 @@ class i386Disasm:
     def ameth_y(self, bytez, offset, tsize, prefixes, operflags):
         #FIXME this needs the ES over-ride, but is only for insb which we don't support
         return (0, i386RegMemOper(REG_ESI, tsize))
-
-    def ameth_z(self, bytez, offset, tsize, prefixes, operflags):
-        mod, reg, rm = self.parse_modrm(ord(bytez[offset]))
-        return (1, i386RegOper(rm+self.ROFFSETSIMD, tsize))
 
 if __name__ == '__main__':
     import envi.archs
