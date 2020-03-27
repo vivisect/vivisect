@@ -138,6 +138,13 @@ MSB_FMT = [0, 'B', '>H', 0, '>I', 0, 0, 0, '>Q',]
 LSB_FMT_SIGNED = [0, 'b', '<h', 0, '<i', 0, 0, 0, '<q',]
 MSB_FMT_SIGNED = [0, 'b', '>h', 0, '>i', 0, 0, 0, '>q',]
 
+# SIMD support
+OP_F16 = 1
+OP_F32 = 2
+OP_F64 = 3
+OP_S32 = 4
+OP_U32 = 5
+
 ifs_first_F32 = (IFS_F32_S32 | IFS_F32_U32 | IFS_F32_F64 | IFS_F32_F16)
 ifs_second_F32 = (IFS_S32_F32 | IFS_U32_F32 | IFS_F64_F32 | IFS_F16_F32) 
 ifs_first_S32 = (IFS_S32_F32 | IFS_S32_F64 | IFS_S32_F32)
