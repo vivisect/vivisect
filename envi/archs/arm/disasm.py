@@ -3929,7 +3929,7 @@ class ArmOpcode(envi.Opcode):
             oper = self.opers[-1]
 
             # check for location being ODD
-            operval = oper.getOperValue(self)
+            operval = oper.getOperValue(self, emu)
 
             if self.opcode in (INS_BLX, INS_BX):
                 if operval != None and operval & 3:
