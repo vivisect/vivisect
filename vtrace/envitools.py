@@ -25,15 +25,6 @@ def cmpRegs(emu, trace):
     return True
 
 
-def dumpRegs(emu, trace):
-    print("Register: Trace, Emulator")
-    ctx = trace.getRegisterContext()
-    for rname, idx in ctx.getRegisterNameIndexes():
-        er = emu.getRegister(idx)
-        tr = trace.getRegisterByName(rname)
-        print("%s: (0x%x, 0x%x)" % (rname, tr, er))
-
-
 def emuFromTrace(trace):
     '''
     Produce an envi emulator for this tracer object.
@@ -66,7 +57,7 @@ def emuFromTrace(trace):
     return emu
 
 
-def lockStepEmulator(emu, trace, dump_regs=False):
+def lockStepEmulator(emu, trace):
     while True:
         print("Lockstep: 0x%.8x" % emu.getProgramCounter())
         try:
@@ -74,8 +65,6 @@ def lockStepEmulator(emu, trace, dump_regs=False):
             op = emu.parseOpcode(pc)
             trace.stepi()
             emu.stepi()
-            if dump_regs:
-                dumpRegs(emu, trace)
             cmpRegs(emu, trace)
         except RegisterException as msg:
             print("Lockstep Error: %s: %s" % (repr(op), msg))
