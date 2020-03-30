@@ -215,7 +215,7 @@ class WorkspaceEmulator:
                 return knode
         return self.newCodePathNode(node, bva)
 
-    def checkBranches(self, starteip, op):
+    def checkBranches(self, starteip, endeip, op):
         """
         This routine gets the current branch list for this opcode, adds branch
         entries to the current path, and updates current path as needed
@@ -274,7 +274,7 @@ class WorkspaceEmulator:
             self.emumon.posthook(self, op, endeip)
 
         if not self.checkCall(starteip, endeip, op):
-            self.checkBranches(starteip, op)
+            self.checkBranches(starteip, endeip, op)
 
     def runFunction(self, funcva, stopva=None, maxhit=None, maxloop=None):
         """
@@ -356,7 +356,7 @@ class WorkspaceEmulator:
                     # If it wasn't a call, check for branches, if so, add them to
                     # the todo list and go around again...
                     if not iscall:
-                        blist = self.checkBranches(starteip, op)
+                        blist = self.checkBranches(starteip, endeip, op)
                         if len(blist):
                             # pc in the snap will be wrong, but over-ridden at restore
                             esnap = self.getEmuSnap()
