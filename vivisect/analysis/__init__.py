@@ -94,7 +94,7 @@ def addAnalysisModules(vw):
         elif arch in ('arm', 'thumb', 'thumb16'):
             vw.addVaSet('thunk_reg', ( ('fva', vivisect.VASET_ADDRESS), ('reg', vivisect.VASET_INTEGER), ))
             vw.addFuncAnalysisModule('vivisect.analysis.arm.thunk_reg')
-            vw.addFuncAnalysisModule('vivisect.analysis.arm.elfplt')
+            #vw.addFuncAnalysisModule('vivisect.analysis.arm.elfplt')
             vw.addFuncAnalysisModule('vivisect.analysis.arm.renaming')
 
         vw.addAnalysisModule("vivisect.analysis.generic.funcentries")
