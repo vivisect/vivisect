@@ -3,7 +3,6 @@ A file full of bit twidling helpers
 """
 
 import struct
-import envi.exc as e_exc
 
 MAX_WORD = 32  # usually no more than 8, 16 is for SIMD register support
 
