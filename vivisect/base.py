@@ -260,8 +260,9 @@ class VivWorkspaceCore(object, viv_impapi.ImportApi):
             #   self.addXref(va, tova, REF_PTR)
             #   ploc = self.addLocation(va, psize, LOC_POINTER)
             #   don't follow.  handle it later, once "known code" is analyzed
+            ptr, reftype, rflags = self.arch.archModifyXrefAddr(ptr, None, None)
             self._handleADDXREF((rva, ptr, REF_PTR, 0))
-            self._handleADDLOCATION((rva, self.psize, LOC_POINTER, None))
+            self._handleADDLOCATION((rva, self.psize, LOC_POINTER, ptr))
 
     def _handleADDMODULE(self, einfo):
         print('DEPRICATED (ADDMODULE) ignored: %s' % einfo)
