@@ -49,13 +49,13 @@ def analyzePLT(vw, ssva, ssize):
                 logger.debug('incrementing to next va: 0x%x', sva)
             else:
                 logger.warn('makeCode(0x%x) failed to make a location (probably failed instruction decode)!  incrementing instruction pointer by 1 to continue PLT analysis <fingers crossed>', sva)
-                sva += 1    # FIXME: add architectural "PLT_INSTRUCTION_INCREMENT" or something like it
+                sva += 1
 
 
         if not len(branchvas):
             return
 
-        # heuristically determine PLT size
+        # heuristically determine PLT entry size
         heur = {}
         lastva = ssva
         for vidx in range(1, len(branchvas)):
@@ -70,7 +70,7 @@ def analyzePLT(vw, ssva, ssize):
         plt_size = heurlist[-1][1]
         logger.debug('plt_size: 0x%x\n%r', plt_size, heurlist)
 
-        # now get start of first real PLT entry (skipping the initial function at .plt)
+        # now get start of first real PLT entry
         bridx = 0
         brlen = len(branchvas)
         while bridx < brlen - 1:
@@ -81,6 +81,10 @@ def analyzePLT(vw, ssva, ssize):
 
         firstva = firstbr - plt_size + 4 # size of ARM opcode
         logger.debug('plt first entry: 0x%x\n%r', firstva, [hex(x) for x in branchvas])
+
+        if bridx != 0:
+            logger.debug('First function in PLT is not a PLT entry.  Found Lazy Loader Trampoline.')
+            vw.makeName(ssva, 'LazyLoaderTrampoline', filelocal=True)
 
         # scroll through arbitrary length functions and make functions
         for sva in range(firstva, nextseg, plt_size):
@@ -169,6 +173,7 @@ def analyzeFunction(vw, funcva):
 
     # add the xref to whatever location referenced (assuming the opref hack worked)
     if vw.isValidPointer(opref):
+        logger.debug('reference 0x%x is valid, adding Xref', opref)
         vw.addXref(op.va, opref, vivisect.REF_DATA)
 
     # check the taint tracker to determine if it's an import (the opval value is pointless if it is)
@@ -182,6 +187,7 @@ def analyzeFunction(vw, funcva):
 
         lva, lsz, ltype, ltinfo = loctup
         funcname = ltinfo
+        logger.debug('0x%x: LOC_IMPORT: 0x%x:  %r', opva, lva, funcname)
         
     else:
         #dbg_interact(locals(), globals())
@@ -197,15 +203,17 @@ def analyzeFunction(vw, funcva):
             return
 
         # in case the architecture cares about the function address...
-        opval = vw.arch.archModifyFuncAddr(opval, {})
+        aopval, aflags = vw.arch.archModifyFuncAddr(opval, {})
+        funcname = vw.getName(aopval)
+        if funcname is None:
+            funcname = vw.getName(opval)
 
-        if vw.getFunction(opval) == opval:
+        if vw.getFunction(aopval) == aopval:
             # this "thunk" actually calls something in the workspace, that exists as a function...
-            logger.info('0x%x is a non-thunk', funcva)
-            vw.addXref(op.va, opval, vivisect.REF_CODE)
+            logger.info('0x%x points to real code (0x%x: %r)', funcva, opval, funcname)
+            vw.addXref(op.va, aopval, vivisect.REF_CODE)
             vw.setVaSetRow('FuncWrappers', (op.va, opval))
 
-        funcname = vw.getName(opval)
 
         #if loctup[vivisect.L_LTYPE] == vivisect.LOC_POINTER:  # Some AMD64 PLT entries point at nameless relocations that point internally
         #    tgtva = loctup[vivisect.L_VA]
