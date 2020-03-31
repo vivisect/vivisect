@@ -91,17 +91,6 @@ def analyzePLT(vw, ssva, ssize):
             logger.info('making PLT function: 0x%x', sva)
             vw.makeFunction(sva)
             analyzeFunction(vw, sva)
-        '''
-        vw.makeFunction(ssva)
-        for jmpva in branchvas:
-            # need to determine isNop()???
-            op = vw.parseOpcode(jmpva)
-            sva = jmpva + len(op)
-
-            logger.info('making PLT function: 0x%x', sva)
-            vw.makeFunction(sva)
-            analyzeFunction(vw, sva)
-        '''
 
 
 MAX_OPS = 10
@@ -190,17 +179,16 @@ def analyzeFunction(vw, funcva):
         logger.debug('0x%x: LOC_IMPORT: 0x%x:  %r', opva, lva, funcname)
         
     else:
-        #dbg_interact(locals(), globals())
-
+        # instead of a taint (which *should* indicate an IMPORT), we have real pointer.
         loctup = vw.getLocation(opval)
         # check the location type
         if loctup is None:
             if opval is None:
                 logger.warn("PLT: 0x%x - branch deref not defined: (opval is None!)", opva)
+                return
             else:
                 logger.warn("PLT: 0x%x - making function at location 0x%x", opva, opval)
                 vw.makeFunction(opval)
-            return
 
         # in case the architecture cares about the function address...
         aopval, aflags = vw.arch.archModifyFuncAddr(opval, {})
@@ -208,11 +196,14 @@ def analyzeFunction(vw, funcva):
         if funcname is None:
             funcname = vw.getName(opval)
 
-        if vw.getFunction(aopval) == aopval:
-            # this "thunk" actually calls something in the workspace, that exists as a function...
-            logger.info('0x%x points to real code (0x%x: %r)', funcva, opval, funcname)
-            vw.addXref(op.va, aopval, vivisect.REF_CODE)
-            vw.setVaSetRow('FuncWrappers', (op.va, opval))
+        if vw.getFunction(aopval) is None:
+            logger.debug("0x%x: code does not exist at 0x%x.  calling makeFunction()", funcva, aopval)
+            vw.makeFunction(aopval, arch=aflags['arch'])
+
+        # this "thunk" actually calls something in the workspace, that exists as a function...
+        logger.info('0x%x points to real code (0x%x: %r)', funcva, opval, funcname)
+        vw.addXref(op.va, aopval, vivisect.REF_CODE)
+        vw.setVaSetRow('FuncWrappers', (funcva, opval))
 
 
         #if loctup[vivisect.L_LTYPE] == vivisect.LOC_POINTER:  # Some AMD64 PLT entries point at nameless relocations that point internally
@@ -249,7 +240,7 @@ def analyzeFunction(vw, funcva):
         funcname = funcname[:-9]
 
     logger.info('makeFunctionThunk(0x%x, "plt_%s")', funcva, funcname)
-    vw.makeFunctionThunk(funcva, "plt_" + funcname, addVa=False)
+    vw.makeFunctionThunk(funcva, "plt_" + funcname, addVa=False, filelocal=True)
 
 
 def dbg_interact(lcls, gbls):
