@@ -1,3 +1,4 @@
+import math
 import operator
 
 import envi
@@ -231,6 +232,22 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
 
         raise Exception('setOperObj failed')
 
+    def _generate_parity(self, obj):
+        '''
+        So normally, the parity of an integer is the XOR of all of its bits. To set the
+        parity bit, we just bitflip the xor of all the bits.
+        '''
+        valu = obj
+        iters = int(math.log(self._psize * 8, 2))
+        shift = 2 ** (iters - 1)
+        for i in range(iters):
+            valu = valu ^ (valu >> Const(shift, self._psize))
+            shift >>= 1
+
+        # intel's parity bit is set to 1 if the number of bits if even, and the above calculates to 
+        # 1 if the number of bits is odd
+        return eq(valu & Const(1, self._psize), Const(0, self._psize))
+
     def __get_dest_maxes(self, op):
         tsize = op.opers[0].tsize
         smax = e_bits.s_maxes[tsize]
@@ -246,8 +263,18 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
         v1 = self.getOperObj(op, 0)
         v2 = self.getOperObj(op, 1)
 
-        # self.effSetVariable('eflags_zf', eq(add, Const(0)))
-        self.setOperObj(op, 0, v1 + v2 + Var('eflags_cf', 1))
+        add = v1 + v2 + Var('eflags_cf', 1)
+
+        self.effSetVariable('eflags_gt', gt(v1, v2))
+        self.effSetVariable('eflags_lt', lt(v1, v2))
+        self.effSetVariable('eflags_sf', lt(add, Const(0, self._psize)))
+        self.effSetVariable('eflags_eq', eq(add, Const(0, self._psize)))
+        self.effSetVariable('eflags_pf', self._generate_parity(add))
+        dsize = op.opers[0].tsize
+        f = gt(add, Const(e_bits.s_maxes[dsize/2], dsize))
+        self.effSetVariable('eflags_of', f)
+
+        self.setOperObj(op, 0, add)
 
     def i_add(self, op):
         v1 = self.getOperObj(op, 0)
@@ -264,23 +291,26 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
 
         self.effSetVariable('eflags_gt', gt(v1, v2))
         self.effSetVariable('eflags_lt', lt(v1, v2))
-        self.effSetVariable('eflags_sf', lt(v1, v2))
-        self.effSetVariable('eflags_eq', eq(v1+v2, Const(0, self._psize)))
+        self.effSetVariable('eflags_sf', lt(add, Const(0, self._psize)))
+        self.effSetVariable('eflags_eq', eq(add, Const(0, self._psize)))
+        self.effSetVariable('eflags_pf', self._generate_parity(add))
+        f = gt(add, Const(e_bits.s_maxes[dsize/2], dsize))
+        self.effSetVariable('eflags_of', f)
 
-    def i_addsd(self, op):
-        if len(op.opers) == 3:
-            v1_idx = 1
-            v2_idx = 2
-        else:
-            v1_idx = 0
-            v2_idx = 1
-        # vaddsd can have a write mask. eventually we should grab that
+    def i_addsd(self, op, off=0):
         dsize = op.opers[0].tsize
-        v1 = self.getOperObj(op, v1_idx)
-        v2 = self.getOperObj(op, v2_idx)
+        v1 = self.getOperObj(op, off)
+        v2 = self.getOperObj(op, off+1)
         add = o_add(v1, v2, dsize)
         self.setOperObj(op, 0, add)
-        # TODO: set eflags
+
+    i_addss = i_addsd
+
+    def i_vaddsd(self, off=0):
+        self.i_addss(op, off=0)
+
+    def i_vaddss(self, op):
+        self.i_addss(op, off=1)
 
     def i_and(self, op):
         v1 = self.getOperObj(op, 0)
@@ -294,6 +324,7 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
         self.effSetVariable('eflags_eq', eq(obj, Const(0, self._psize)))  # v1 & v2 == 0
         self.effSetVariable('eflags_of', Const(0, self._psize))
         self.effSetVariable('eflags_cf', Const(0, self._psize))
+        self.effSetVariable('eflags_pf', self._generate_parity(obj))
 
         self.setOperObj(op, 0, obj)
 
@@ -306,18 +337,17 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
         # if bit >= bit_base.getWidth()*8: throw a fit.
 
         val = (bit_base >> bit) & Const(1, 1)
-        self.effSetVariable('eflags_cf', (eq(val, Const(1,1))))
-        self.effSetVariable('eflags_gt', (eq(val, Const(0,1))))
-        self.effSetVariable('eflags_lt', (ne(val, Const(0,1))))
-        self.effSetVariable('eflags_sf', (ne(val, Const(0,1))))
-        self.effSetVariable('eflags_eq', (eq(val, Const(0,1))))
+        self.effSetVariable('eflags_cf', (eq(val, Const(1, 1))))
+        self.effSetVariable('eflags_gt', (eq(val, Const(0, 1))))
+        self.effSetVariable('eflags_lt', (ne(val, Const(0, 1))))
+        self.effSetVariable('eflags_sf', (ne(val, Const(0, 1))))
+        self.effSetVariable('eflags_eq', (eq(val, Const(0, 1))))
 
     def i_call(self, op):
         # For now, calling means finding which of our symbols go in
         # and logging what comes out.
         targ = self.getOperObj(op, 0)
         self.effFofX(targ)
-        return
 
     def i_cld(self, op):
         self.effSetVariable('eflags_df', Const(0, self._psize))
@@ -334,14 +364,15 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
 
     def i_dec(self, op):
         v1 = self.getOperObj(op, 0)
+        zero = Const(0, self._psize)
         one = Const(1, self._psize)
 
         sub = o_sub(v1, one, v1.getWidth())
 
-        self.effSetVariable('eflags_gt', gt(v1, one))  # v1 - 1 > 0 :: v1 > 1
-        self.effSetVariable('eflags_lt', lt(v1, one))  # v1 - 1 < 0 :: v1 < 1
-        self.effSetVariable('eflags_sf', lt(v1, one))  # v1 - 1 < 0 :: v1 < 1
-        self.effSetVariable('eflags_eq', eq(v1, one))  # v1 - 1 == 0 :: v1 == 1
+        self.effSetVariable('eflags_gt', gt(sub, zero))  # v1 - 1 > 0 :: v1 > 1
+        self.effSetVariable('eflags_lt', lt(sub, zero))  # v1 - 1 < 0 :: v1 < 1
+        self.effSetVariable('eflags_sf', lt(sub, zero))  # v1 - 1 < 0 :: v1 < 1
+        self.effSetVariable('eflags_eq', eq(sub, zero))  # v1 - 1 == 0 :: v1 == 1
 
         self.setOperObj(op, 0, sub)
 
@@ -394,24 +425,18 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
         limit = ((-2 ** (tsize * 8 - 1)), 2 ** (tsize * 8 - 1) - 1)
         return self._div(op, isInvalid=lambda val: val < limit[0] or val > limit[1])
 
-    def i_divsd(self, op):
-        ocount = len(op.opers)
-        if ocount == 2:
-            dst = self.getOperObj(op, 0)
-            src = self.getOperObj(op, 1)
-            if src == 0:
-                raise Exception('#DE, divide error')
-            res = dst / src
-            self.setOperObj(op, 0, res)
-        elif ocount == 3:
-            src1 = self.getOperObj(op, 1)
-            src2 = self.getOperObj(op, 2)
-            if src2 == 0:
-                raise Exception('#DE, divide error')
-            res = src1 / src2
-            self.setOperObj(op, 0, res)
-        else:
-            raise envi.UnsupportedInstruction(self, op)
+    def i_divsd(self, op, off=0):
+        v1 = self.getOperObj(op, off)
+        v2 = self.getOperObj(op, off+1)
+        if v2 == 0:
+            raise Exception('#DE, divide error')
+        res = v1 / v2
+        self.setOperObj(op, 0, res)
+    i_divss = i_divsd
+
+    def i_vdivsd(self, op):
+        self.i_divsd(op, off=1)
+    i_vdivss = i_vdivsd
 
     def i_hlt(self, op):
         # Nothing to do symbolically....
@@ -443,10 +468,10 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
 
     def i_mul(self, op):
         ocount = len(op.opers)
+        dsize = op.opers[0].tsize
         if ocount == 2:
             dst = self.getOperObj(op, 0)
             src = self.getOperObj(op, 1)
-            dsize = op.opers[0].tsize
             res = dst * src
             self.setOperObj(op, 0, res)
 
@@ -464,36 +489,36 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
         self.effSetVariable('eflags_cf', f)
         self.effSetVariable('eflags_of', f)
 
-    def i_mulsd(self, op):
+    def i_mulsd(self, op, off=0):
         '''
         Also doesn't set flags?
         '''
+        v1 = self.getOperObj(op, off)
+        v2 = self.getOperObj(op, off + 1)
         ocount = len(op.opers)
-        if ocount == 2:
-            dst = self.getOperObj(op, 0)
-            src = self.getOperObj(op, 1)
-            dsize = op.opers[0].tsize
-            res = dst * src
-            self.setOperObj(op, 0, res)
+        res = o_mul(v1, v2, v1.getWidth())
+        self.setOperObj(op, 0, res)
+    i_mulss = i_mulsd
 
-        elif ocount == 3:
-            dst = self.getOperObj(op, 0)
-            src1 = self.getOperObj(op, 1)
-            src2 = self.getOperObj(op, 2)
-            res = src1 * src2
-            self.setOperObj(op, 0, res)
-
-        else:
-            raise Exception("WTFO?  i_mul with no opers")
-
+    def i_vmulsd(self, op):
+        self.i_mulsd(op, off=1)
+    i_vmulss = i_vmulsd
 
     def i_inc(self, op):
         v1 = self.getOperObj(op, 0)
+        dsize = op.opers[0].tsize
         obj = o_add(v1, Const(1, self._psize), v1.getWidth())
-        self.effSetVariable('eflags_gt', gt(v1, obj))
-        self.effSetVariable('eflags_lt', lt(v1, obj))
-        self.effSetVariable('eflags_sf', gt(v1, obj))
-        self.effSetVariable('eflags_eq', eq(obj, Const(0, self._psize)))
+        zero = Const(0, self._psize)
+
+        self.effSetVariable('eflags_gt', gt(obj, zero))
+        self.effSetVariable('eflags_lt', lt(obj, zero))
+        self.effSetVariable('eflags_sf', lt(obj, zero))
+        self.effSetVariable('eflags_eq', eq(obj, zero))
+
+        f = gt(obj, Const(e_bits.s_maxes[dsize/2], dsize))
+        self.effSetVariable('eflags_of', f)
+
+        self.effSetVariable('eflags_pf', self._generate_parity(obj))
         self.setOperObj(op, 0, obj)
 
     def i_int3(self, op):
@@ -564,23 +589,19 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
     i_jnl = i_jge
     i_jnle = i_jg
 
-    #def i_jno(self, op):
-        #if self.cond_no():   return self.getOperValue(op, 0)
-
-    #def i_jnp(self, op):
-        #if self.cond_np():   return self.getOperValue(op, 0)
+    def i_jnp(self, op):
+        return self._cond_jmp(op, cnot(Var('eflags_pf', self._psize)))
 
     def i_jns(self, op):
         return self._cond_jmp(op, cnot(Var('eflags_sf', self._psize)))
 
     i_jnz = i_jne
 
-    #def i_jo(self, op):
-        #if self.cond_o():    return self.getOperValue(op, 0)
-
     def i_jp(self, op):
         return self._cond_jmp(op, Var('eflags_pf', self._psize))
+
     i_jpe = i_jp
+
     def i_jpo(self, op):
         return self._cond_jmp(op, cnot(Var('eflags_pf', self._psize)))
 
@@ -613,26 +634,33 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
     i_movd_q = i_mov
 
     def i_movlps(self, op):
-        mask = Const((2**64 - 1), self._psize)
-        valu = self.getOperObj(op, 1) & mask
+        valu = self.getOperObj(op, 1) & self._sz_masks[8]
         self.setOperObj(op, 0, valu)
 
     def i_movhps(self, op):
-        mask = Const((2**64 - 1), self._psize)
-        valu = (self.getOperObj(op, 1) & mask) << Const(64, self._psize)
+        valu = (self.getOperObj(op, 1) & self._sz_masks[8]) << Const(64, self._psize)
         self.setOperObj(op, 0, valu)
 
     def i_vmovlps(self, op):
-        if len(op.opers) == 2:
-            pass
+        if op.opers[0].isDeref():
+            src = self.getOperObj(op, 1)
+            self.setOperObj(op, 0, (src & self._sz_masks[8]))
         else:
-            pass
+            # 3 operands
+            src1 = (self.getOperObj(op, 0, 1) & self._sz_masks[8]) << Const(64, self._psize)
+            src2 = self.getOperObj(op, 0, 2) & self._sz_masks[8]
+            self.setOperObj(op, 0, src1 | src2)
 
     def i_vmovhps(self, op):
-        if len(op.opers) == 2:
-            pass
+        # which version of vmovhps are we looking at?
+        if op.opers[0].isDeref():
+            src = self.getOperObj(op, 1)
+            self.setOperObj(op, 0, (src >> Const(64, self._psize)) & self._sz_masks[8])
         else:
-            pass
+            # 3 operands
+            src1 = self.getOperObj(op, 0, 1) & self._sz_masks[8]
+            src2 = (self.getOperObj(op, 0, 2) & self._sz_masks[8]) << Const(64, self._psize)
+            self.setOperObj(op, 0, src1 | src2)
 
     def _movs(self, op, width=-1):
         si = Var(self.__srcp__, self._psize)
@@ -1088,8 +1116,8 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
         self.setOperObj(op, 0, self._overflow_eq(0))
 
     def i_setnp(self, op):
-        # FIXME
-        self.setOperObj(op, 0, Const(0, self._psize))
+        self.setOperObj(op, 0, ne(self._parity_eq(1)))
+    i_setpo = i_setnp
 
     def i_setns(self, op):
         self.setOperObj(op, 0, self._signed_eq(0))
@@ -1100,16 +1128,9 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
         self.setOperObj(op, 0, self._overflow_eq(0))
 
     def i_setp(self, op):
-        # FIXME
-        self.setOperObj(op, 0, Const(0, self._psize))
+        self.setOperObj(op, 0, self._parity_eq(1))
 
-    def i_setpe(self, op):
-        # FIXME
-        self.setOperObj(op, 0, Const(0, self._psize))
-
-    def i_setpo(self, op):
-        # FIXME
-        self.setOperObj(op, 0, Const(0, self._psize))
+    i_setpe = i_setp
 
     def i_sets(self, op):
         self.setOperObj(op, 0, self._signed_eq(1))
@@ -1118,6 +1139,7 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
     def i_shl(self, op):
         v1 = self.getOperObj(op, 0)
         v2 = self.getOperObj(op, 1)
+        zero = Const(0, self._psize)
 
         #if v2.isDiscrete() and v2.solve() > 0xff:
             #v2 = v2 & 0xff
@@ -1129,14 +1151,15 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
         res = v1 << v2
         self.setOperObj(op, 0, res)
 
-        self.effSetVariable('eflags_gt', gt(res, Const(0, self._psize)))
-        self.effSetVariable('eflags_lt', lt(res, Const(0, self._psize)))
-        self.effSetVariable('eflags_sf', lt(res, Const(0, self._psize)))
-        self.effSetVariable('eflags_eq', eq(res, Const(0, self._psize)))
+        self.effSetVariable('eflags_gt', gt(res, zero))
+        self.effSetVariable('eflags_lt', lt(res, zero))
+        self.effSetVariable('eflags_sf', lt(res, zero))
+        self.effSetVariable('eflags_eq', eq(res, zero))
 
     def i_shr(self, op):
         v1 = self.getOperObj(op, 0)
         v2 = self.getOperObj(op, 1)
+        zero = Const(0, self._psize)
 
         # No effect (not even flags) if shift is 0
         if v2.isDiscrete():
@@ -1151,10 +1174,10 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
 
         res = v1 >> v2
         self.setOperObj(op, 0, res)
-        self.effSetVariable('eflags_gt', gt(res, Const(0, self._psize)))
-        self.effSetVariable('eflags_lt', lt(res, Const(0, self._psize)))
-        self.effSetVariable('eflags_sf', lt(res, Const(0, self._psize)))
-        self.effSetVariable('eflags_eq', eq(res, Const(0, self._psize)))
+        self.effSetVariable('eflags_gt', gt(res, zero))
+        self.effSetVariable('eflags_lt', lt(res, zero))
+        self.effSetVariable('eflags_sf', lt(res, zero))
+        self.effSetVariable('eflags_eq', eq(res, zero))
 
     def i_std(self, op):
         self.effSetVariable('eflags_df', Const(1, self._psize))
@@ -1169,27 +1192,32 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
         self.effSetVariable('eflags_eq', eq(v1, v2))  # v1 - v2 == 0 :: v1 == v2
         self.setOperObj(op, 0, obj)
 
-    def i_subsd(self, op):
+    def i_subsd(self, op, off=0):
         '''
         None of the ref docs say subsd affects any flags
         '''
-        v1 = self.getOperObj(op, 0)
-        v2 = self.getOperObj(op, 1)
+        v1 = self.getOperObj(op, off)
+        v2 = self.getOperObj(op, off+1)
         obj = o_sub(v1, v2, v1.getWidth())
         self.setOperObj(op, 0, obj)
+    i_subss = i_subsd
+    def i_vsubsd(self, op):
+        self.i_subsd(op, off=1)
+    i_vsubss = i_vsubsd
 
     def i_test(self, op):
         v1 = self.getOperObj(op, 0)
         v2 = self.getOperObj(op, 1)
         obj = o_and(v1, v2, v1.getWidth())
+        zero = Const(0, self._psize)
 
         self.effSetVariable('eflags_gt', gt(v1, v2))
-        self.effSetVariable('eflags_lt', lt(obj, Const(0, self._psize)))  # ( SF != OF ) ( OF is cleared )
-        self.effSetVariable('eflags_sf', lt(obj, Const(0, self._psize)))  # v1 & v2 < 0
-        self.effSetVariable('eflags_eq', eq(obj, Const(0, self._psize)))  # v1 & v2 == 0
+        self.effSetVariable('eflags_lt', lt(obj, zero))  # ( SF != OF ) ( OF is cleared )
+        self.effSetVariable('eflags_sf', lt(obj, zero))  # v1 & v2 < 0
+        self.effSetVariable('eflags_eq', eq(obj, zero))  # v1 & v2 == 0
 
-        self.effSetVariable('eflags_of', Const(0, self._psize))
-        self.effSetVariable('eflags_cf', Const(0, self._psize))
+        self.effSetVariable('eflags_of', zero)
+        self.effSetVariable('eflags_cf', zero)
 
         pf = o_xor(o_xor(v1, v2, v1.getWidth()), Const(-1, self._psize), self._psize)
         self.effSetVariable('eflags_pf', pf)
@@ -1200,19 +1228,28 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
         res = o_add(v1, v2, v1.getWidth())
         self.setOperObj(op, 0, res)
         self.setOperObj(op, 1, v1)
-        #self.effSetVariable('eflags_gt', gt(v1, v2))
-        #self.effSetVariable('eflags_lt', lt(v1, v2))
-        #self.effSetVariable('eflags_sf', lt(v1, v2))
-        #self.effSetVariable('eflags_eq', eq(v1+v2, 0))
+        self.effSetVariable('eflags_gt', gt(v1, v2))
+        self.effSetVariable('eflags_lt', lt(v1, v2))
+        self.effSetVariable('eflags_sf', lt(res, Const(0, self._psize)))
+        self.effSetVariable('eflags_eq', eq(res, Const(0, self._psize)))
+        dsize = op.opers[0].tsize
+        f = gt(res, Const(e_bits.s_maxes[dsize/2], dsize))
+        self.effSetVariable('eflags_of', f)
+        self.effSetVariable('eflags_pf', self._generate_parity(obj))
 
     def i_xor(self, op):
         v1 = self.getOperObj(op, 0)
         v2 = self.getOperObj(op, 1)
         obj = o_xor(v1, v2, v1.getWidth())
+        zero = Const(0, self._psize)
+
         self.effSetVariable('eflags_gt', gt(v1, v2))
         self.effSetVariable('eflags_lt', lt(v1, v2))
-        self.effSetVariable('eflags_sf', lt(obj, Const(0, self._psize))) # v1 ^ v2 < 0
-        self.effSetVariable('eflags_eq', eq(obj, Const(0, self._psize))) # v1 & v2 == 0
+        self.effSetVariable('eflags_sf', lt(obj, zero))  # v1 ^ v2 < 0
+        self.effSetVariable('eflags_eq', eq(obj, zero))  # v1 & v2 == 0
+        self.effSetVariable('eflags_cf', zero)
+        self.effSetVariable('eflags_of', zero)
+        self.effSetVariable('eflags_pf', self._generate_parity(obj))
         self.setOperObj(op, 0, obj)
 
     def i_xorpd(self, op):
@@ -1222,6 +1259,10 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
         self.setOperObj(op, 0, obj)
 
     i_xorps = i_xorpd
+
+    def i_sqrtsd(self, op):
+        pass
+    i_sqrtss = i_sqrtsd
 
     def i_cmpxchg(self, op):
 
@@ -1277,6 +1318,25 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
             val = oper << (Const(bitsize, self._psize) - bit)
         val |= (oper >> bit)
         self.setOperObj(op, 0, val)
+
+    def i_pextrb(self, op, bitlen=8):
+        dst = self.getOperObj(op, 0)
+        src = self.getOperObj(op, 1)
+        select = self.getOperObj(op, 2)
+
+        src >>= select * Const(bitlen, self._psize)
+        src &= self._sz_masks[int(bitlen/8)]
+        if bitlen != 8:
+            dst &= Const(~((2**bitlen) - 1), self._psize)
+            src |= dst
+
+        self.setOperObj(op, 0, src)
+
+    def i_pextrw(self, op):
+        self.i_pextrb(op, bitlen=16)
+
+    def i_pextrd(self, op):
+        self.i_pextrb(op, bitlen=32)
 
     def _stos(self, op, width=-1):
         # FIXME omg segments in symboliks?

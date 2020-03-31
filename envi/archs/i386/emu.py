@@ -2415,3 +2415,21 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
 
     def i_vpandn(self, op):
         self.i_pandn(op, off=1)
+
+    def i_pextrb(self, op, bitlen=8):
+        dst = self.getOperValue(op, 0)
+        src = self.getOperValue(op, 1)
+        sel = self.getOperValue(op, 2)
+
+        src = (src >> (sel*bitlen)) & SUBMASKS[bitlen]
+        # clear the bits only on pextrb
+        if bitlen != 8:
+            dst = dst & (~SUBMASKS[bitlen])
+            src |= dst
+        self.setOperValue(op, 0, src)
+
+    def i_pextrw(self, op):
+        self.i_pextrb(op, bitlen=16)
+
+    def i_pextrd(self, op):
+        self.i_pextrb(op, bitlen=32)

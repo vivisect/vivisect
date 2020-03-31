@@ -165,4 +165,4 @@ def main(argv):
 
 if __name__ == "__main__":
     # Copy this file out to the vtrace dir for testing and run as main
-    main(sys.argv[1:])
+    sys.exit(main(sys.argv[1:]))

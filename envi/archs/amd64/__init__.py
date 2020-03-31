@@ -137,3 +137,9 @@ class Amd64Emulator(Amd64RegisterContext, e_i386.IntelEmulator):
             self.setRegister(REG_RDI, rdi)
         else:
             e_i386.IntelEmulator.i_stosd(self, op)
+
+    def i_pextrd_q(self, op):
+        if op.prefixes & PREFIX_REX_W:
+            self.i_pextrb(op, bitlen=64)
+        else:
+            self.i_pextrb(op, bitlen=32)
