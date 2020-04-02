@@ -143,9 +143,6 @@ class Amd64SymbolikTranslator(vsym_i386.IntelSymbolikTranslator):
     def i_div(self, op):
         return self._div(op)
 
-    def i_cdq(self, op):
-        v1 = o_sextend(self.getRegObj(e_amd64.REG_EAX), Const(self._psize, self._psize))
-        self.effSetVariable('rax', v1)
 
     def i_jecxz(self, op):
         return vsym_i386.IntelSymbolikTranslator.i_jecxz(self, op)

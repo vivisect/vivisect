@@ -5,6 +5,7 @@ import envi
 import envi.bits as e_bits
 import envi.archs.i386 as e_i386
 import envi.archs.i386.opconst as i386_opconst
+import envi.archs.i386.diasm i386_disasm
 
 import vivisect.symboliks.analysis as vsym_analysis
 import vivisect.symboliks.callconv as vsym_callconv
@@ -993,6 +994,33 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
             sp += self.getOperObj(op, 0)
         self.effSetVariable(self.__sp__, sp)
 
+    def i_rol(self, op):
+        valu = self.getOperObj(op, 0)
+        shft = self.getOperObj(op, 1)
+
+        dsize = op.opers[0].tsize
+
+        shft_in = valu >> (Const(dsize, self._psize) - shft)
+
+        res = valu << shft
+        res |= shft_in
+
+        self.setOperObj(op, 0, valu)
+
+    def i_ror(self, op):
+        valu = self.getOperObj(op, 0)
+        shft = self.getOperObj(op, 1)
+
+        dsize = op.opers[0].tsize
+        shft = shft % Const(dsize * 8, self._psize)
+
+        shft_in = valu << (Const(dsize * 8, self._psize) - shft)
+
+        res = valu >> shft
+        res |= shft_in
+
+        self.setOperObj(op, 0, valu)
+
     def i_sar(self, op):
         v1 = self.getOperObj(op, 0)
         v2 = self.getOperObj(op, 1)
@@ -1015,22 +1043,21 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
         #    cf = o_div(v1 & power, power, v1.getWidth())
         #    cf = v1 & (o_pow(2, self._psize), v2, self._psize - 1)
 
-
         self.effSetVariable('eflags_gt', gt(v1, v2))
         self.effSetVariable('eflags_lt', lt(v1, v2))
-        self.effSetVariable('eflags_sf', lt(res, Const(0, self._psize))) # v1 | v2 < 0
-        self.effSetVariable('eflags_eq', eq(res, Const(0, self._psize))) # v1 & v2 == 0
+        self.effSetVariable('eflags_sf', lt(res, Const(0, self._psize)))  # v1 | v2 < 0
+        self.effSetVariable('eflags_eq', eq(res, Const(0, self._psize)))  # v1 & v2 == 0
 
         self.setOperObj(op, 0, res)
 
     def i_sbb(self, op):
         v1 = self.getOperObj(op, 0)
         v2 = self.getOperObj(op, 1)
-        obj = o_sub(v1, v2, v1.getWidth()) # FIXME borrow!
-        self.effSetVariable('eflags_gt', gt(v1, v2)) # v1 - v2 > 0 :: v1 > v2
-        self.effSetVariable('eflags_lt', lt(v1, v2)) # v1 - v2 < 0 :: v1 < v2
-        self.effSetVariable('eflags_sf', lt(v1, v2)) # v1 - v2 < 0 :: v1 < v2
-        self.effSetVariable('eflags_eq', eq(v1, v2)) # v1 - v2 == 0 :: v1 == v2
+        obj = o_sub(v1, v2, v1.getWidth())  # FIXME borrow!
+        self.effSetVariable('eflags_gt', gt(v1, v2))  # v1 - v2 > 0 :: v1 > v2
+        self.effSetVariable('eflags_lt', lt(v1, v2))  # v1 - v2 < 0 :: v1 < v2
+        self.effSetVariable('eflags_sf', lt(v1, v2))  # v1 - v2 < 0 :: v1 < v2
+        self.effSetVariable('eflags_eq', eq(v1, v2))  # v1 - v2 == 0 :: v1 == v2
         self.setOperObj(op, 0, v1 - v2)
 
 
