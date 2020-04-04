@@ -251,7 +251,7 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
 
     def executeOpcode(self, op):
         # NOTE: If an opcode method returns
-        #       other than None, that is the new eip
+        #       other than None, that is the new pc
         try:
             self.setMeta('forrealz', True)
             newpc = None
@@ -276,7 +276,7 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
             # the actual execution... if we're supposed to.
             if condval and not skip:
                 meth = self.op_methods.get(op.mnem, None)
-                if meth == None:
+                if meth is None:
                     raise envi.UnsupportedInstruction(self, op)
 
                 # executing opcode now...
@@ -284,7 +284,7 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
 
             pc = self.getProgramCounter()
             # returned None, so the instruction hasn't directly changed PC
-            if newpc == None:
+            if newpc is None:
                 newpc = pc+op.size
 
             # we don't want to trust the opcode emulator to know that it's updating PC
@@ -1196,10 +1196,11 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
         # hint: covers ldr, ldrb, ldrbt, ldrd, ldrh, ldrsh, ldrsb, ldrt   (any instr where the syntax is ldr{condition}stuff)
         # need to check that t variants only allow non-priveleged access (ldrt, ldrht etc)
         val = self.getOperValue(op, 1)
-        self.setOperValue(op, 0, val)
         if op.opers[0].reg == REG_PC:
             self.setThumbMode(val & 1)
             return val & -2
+
+        self.setOperValue(op, 0, val)
 
     i_ldrb = i_ldr
     i_ldrbt = i_ldr

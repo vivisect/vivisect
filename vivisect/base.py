@@ -743,6 +743,7 @@ class VivCodeFlowContext(e_codeflow.CodeFlowContext):
         for fmname in vw.fmodlist:
             fmod = vw.fmods.get(fmname)
             try:
+                logger.debug('fmod: 0x%x  (%r)', fva, fmod)
                 fmod.analyzeFunction(vw, fva)
             except Exception as e:
                 if vw.verbose:

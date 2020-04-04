@@ -1,4 +1,5 @@
 import sys
+import logging
 
 import vivisect
 import vivisect.impemu.monitor as viv_monitor
@@ -12,6 +13,9 @@ from envi.registers import RMETA_NMASK
 from envi.archs.arm.const import *
 
 from vivisect.const import *
+
+logger = logging.getLogger(__name__)
+
 
 class AnalysisMonitor(viv_monitor.AnalysisMonitor):
 
@@ -32,16 +36,17 @@ class AnalysisMonitor(viv_monitor.AnalysisMonitor):
             tmode = emu.getFlag(PSR_T_bit)
             self.last_tmode = tmode
             #if self.verbose: print( "tmode: %x    emu:  0x%x   flags: 0x%x \t %r" % (tmode, starteip, op.iflags, op))
-            #if op == self.badop:
             if op in self.badops:
                 raise Exception("Hit known BADOP at 0x%.8x %s (fva: 0x%x)" % (starteip, repr(op), self.fva))
 
             viv_monitor.AnalysisMonitor.prehook(self, emu, op, starteip)
 
             loctup = emu.vw.getLocation(starteip)
-            if loctup == None:
+            if loctup is None:
                 # do we want to hand this off to makeCode?
-                emu.vw.addLocation(starteip, len(op), vivisect.LOC_OP, op.iflags)
+                #print "emulation: prehook: new LOC_OP  fva: 0x%x     starteip: 0x%x  flags: 0x%x" % (self.fva, starteip, op.iflags)
+                arch = (envi.ARCH_ARMV7, envi.ARCH_THUMB)[(starteip & 1) | tmode]
+                emu.vw.makeCode(starteip & -2, arch=arch)
 
             elif loctup[2] != LOC_OP:
                 if self.verbose: print("ARG! emulation found opcode in an existing NON-OPCODE location  (0x%x):  0x%x: %s" % (loctup[0], op.va, op))
@@ -111,10 +116,13 @@ class AnalysisMonitor(viv_monitor.AnalysisMonitor):
                         if self.verbose: print("+++++++++++++++ infinite loop +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
                         if op.va not in self.infloops:
                             self.infloops.append(op.va)
+                            if 'InfiniteLoops' not in vw.getVaSetNames():
+                                vw.addVaSet('InfiniteLoops', (('va', vivisect.VASET_ADDRESS, 'function', vivisect.VASET_STRING)))
+                            self.vw.setVaSetRow('InfiniteLoops', (op.va, self.fva))
 
                 except Exception, e:
                     # FIXME: make raise Exception?
-                    print("0x%x: ERROR: %s" % (op.va, e))
+                    logger.info("0x%x: (%r) ERROR: %s",op.va, op, e)
 
         except Exception, e:
             # FIXME: make raise Exception?
@@ -174,27 +182,27 @@ def analyzeFunction(vw, fva):
     emu.setEmulationMonitor(emumon)
 
     loc = vw.getLocation(fva)
-    if loc != None:
+    if loc is not None:
         lva, lsz, lt, lti = loc
         if lt == LOC_OP:
             if (lti & envi.ARCH_MASK) != envi.ARCH_ARMV7:
                 emu.setFlag(PSR_T_bit, 1)
     else:
-        print("NO LOCATION at FVA: 0x%x" % fva)
+        logger.warn("NO LOCATION at FVA: 0x%x", fva)
 
     emu.runFunction(fva, maxhit=1)
 
     # Do we already have API info in meta?
     # NOTE: do *not* use getFunctionApi here, it will make one!
     api = vw.getFunctionMeta(fva, 'api')
-    if api == None:
+    if api is None:
         api = buildFunctionApi(vw, fva, emu, emumon)
 
     rettype,retname,callconv,callname,callargs = api
 
     argc = len(callargs)
     cc = emu.getCallingConvention(callconv)
-    if cc == None:
+    if cc is None:
         return
 
     stcount = cc.getNumStackArgs(emu, argc)
@@ -286,7 +294,13 @@ def analyzeTB(emu, op, starteip, amon):
         nexttgt = base + nextoff
         emu.vw.makeNumber(ova, 2)
         # check for loc first?
-        emu.vw.makeCode(nexttgt)
+        if nexttgt & 1:
+            nexttgt &= -2
+            arch = envi.ARCH_THUMB
+        else:
+            arch = envi.ARCH_ARMV7
+
+        emu.vw.makeCode(nexttgt, arch=arch)
         # check xrefs fist?
         emu.vw.addXref(op.va, nexttgt, REF_CODE)
         

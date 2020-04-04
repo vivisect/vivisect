@@ -163,6 +163,7 @@ class ArmWorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_arm.ArmEmulator):
             self.setEmuSnap(esnap)
 
             self.setProgramCounter(va)
+            tmode = self.getFlag(PSR_T_bit)
 
             # Check if we are beyond our loop max...
             if maxloop is not None:
@@ -195,7 +196,6 @@ class ArmWorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_arm.ArmEmulator):
 
                 try:
 
-                    tmode = self.getFlag(PSR_T_bit)
                     # FIXME unify with stepi code...
                     op = self.parseOpcode(starteip | tmode)
 
@@ -239,11 +239,13 @@ class ArmWorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_arm.ArmEmulator):
                             for bva, bpath in blist:
                                 todo.append((bva, esnap, bpath))
                             break
-                    # check if we've blx'd to a different thumb state.  if so,
-                    # be sure to return to the original tmode before continuing emulation pass
-                    newtmode = self.getFlag(PSR_T_bit)
-                    if newtmode != tmode:
-                        self.setFlag(PSR_T_bit, tmode)
+
+                    else:
+                        # check if we've blx'd to a different thumb state.  if so,
+                        # be sure to return to the original tmode before continuing emulation pass
+                        newtmode = self.getFlag(PSR_T_bit)
+                        if newtmode != tmode:
+                            self.setFlag(PSR_T_bit, tmode)
 
                     # If we enounter a procedure exit, it doesn't
                     # matter what EIP is, we're done here.

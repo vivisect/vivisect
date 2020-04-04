@@ -673,8 +673,11 @@ def applyRelocs(elf, vw, addbase=False, baseaddr=0):
                         if vw.vaByName(pname) is None:
                             vw.makeName(rlva, pname)
 
+                        # name the target as well
                         if addbase:
                             ptr += baseaddr
+                        # normalize thumb addresses
+                        ptr &= -2
                         vw.makeName(ptr, name)
                         vw.setComment(ptr, dmglname)
 

@@ -283,6 +283,7 @@ class CodeFlowContext(object):
 
         # Finally, notify the callback of a new function
         self._cb_function(va, {'CallsFrom':calls_from})
+        return va
 
     def flushFunction(self, fva):
         '''
