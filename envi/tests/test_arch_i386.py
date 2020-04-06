@@ -47,6 +47,7 @@ i386MultiByteOpcodes = [
     ('PEXTRB', '660F3A14D011', 0x40, 'pextrb eax,xmm2,17', 'pextrb eax,xmm2,17'),
     ('PEXTRB 2', '660F3A141011', 0x40, 'pextrb byte [eax],xmm2,17', 'pextrb byte [eax],xmm2,17'),
     ('MOV 3', '8B16', 0x40, 'mov edx,dword [esi]', 'mov edx,dword [esi]'),
+    ('MOV 4', '66b90202', 0x40, 'mov cx,514', 'mov cx,514'),
     ('NOT', '66F7D0', 0x40, 'not ax', 'not ax'),
     ('NOT 2', 'F7D0', 0x40, 'not eax', 'not eax'),
     ('PUSH', '6653', 0x40, 'push bx', 'push bx'),

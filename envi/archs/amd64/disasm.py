@@ -6,10 +6,12 @@ import envi.archs.i386 as e_i386
 import envi.archs.i386.opconst as e_i386_const
 import opcode64 as opcode86
 
+from envi.const import RMETA_NMASK
+
 from envi.archs.i386.disasm import iflag_lookup, operand_range, priv_lookup, \
         i386Opcode, i386ImmOper, i386RegOper, i386ImmMemOper, i386RegMemOper, \
         i386SibOper, PREFIX_REPNZ, PREFIX_REP, PREFIX_OP_SIZE, PREFIX_ADDR_SIZE, \
-        MANDATORY_PREFIXES, PREFIX_REP_MASK
+        MANDATORY_PREFIXES, PREFIX_REP_MASK, RMETA_LOW8, RMETA_LOW16
 
 from envi.archs.amd64.regs import *
 from envi.archs.i386.opconst import OP_EXTRA_MEMSIZES, OP_MEM_B, OP_MEM_W, OP_MEM_D, \
@@ -72,6 +74,12 @@ MODE_16 = 0
 MODE_32 = 1
 MODE_64 = 2
 
+RMETA_LOW32 = 0x200000
+
+META_SIZES = [0 for i in range(9)]
+META_SIZES[1] = RMETA_LOW8
+META_SIZES[2] = RMETA_LOW16
+META_SIZES[4] = RMETA_LOW32
 
 class Amd64Opcode(i386Opcode):
     def __init__(self, va, opcode, mnem, prefixes, size, operands, iflags=0):
@@ -582,7 +590,22 @@ class Amd64Disasm(e_i386.i386Disasm):
 
     # NOTE: Override a bunch of the address modes to account for REX
     def ameth_0(self, operflags, operval, tsize, prefixes):
-        o = e_i386.i386Disasm.ameth_0(self, operflags, operval, tsize, prefixes)
+        # o = e_i386.i386Disasm.ameth_0(self, operflags, operval, tsize, prefixes)
+        if operflags & opcode86.OP_REG:
+            # for handling meta registers embedded in opcodes
+            if prefixes & PREFIX_OP_SIZE:
+                if self._dis_regctx.isMetaRegister(operval):
+                    operval = (operval & RMETA_NMASK) | META_SIZES[tsize]
+                else:
+                    operval |= META_SIZES[tsize]
+
+            width = self._dis_regctx.getRegisterWidth(operval) / 8
+            o = i386RegOper(operval, width)
+        elif operflags & opcode86.OP_IMM:
+            o = i386ImmOper(operval, tsize)
+        else:
+            raise Exception("Unknown ameth_0! operflags: 0x%.8x" % operflags)
+
         # If it has a builtin register, we need to check for bump prefix
         if prefixes & PREFIX_REX_W and isinstance(o, e_i386.i386RegOper):
             o.reg &= 0xffff
@@ -591,7 +614,8 @@ class Amd64Disasm(e_i386.i386Disasm):
             if o.reg & e_i386.RMETA_HIGH8 == e_i386.RMETA_HIGH8:
                 o.reg &= REX_HIGH_DROP
                 o.reg += 4
-            o.reg += REX_BUMP
+            if not (operflags & e_i386_const.OP_NOREXB):
+                o.reg += REX_BUMP
         return o
 
     def ameth_vexh(self, bytes, offset, tsize, prefixes, operflags):

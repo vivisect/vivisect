@@ -5,7 +5,7 @@ import envi
 import envi.bits as e_bits
 import envi.archs.i386 as e_i386
 import envi.archs.i386.opconst as i386_opconst
-import envi.archs.i386.diasm i386_disasm
+import envi.archs.i386.disasm as i386_disasm
 
 import vivisect.symboliks.analysis as vsym_analysis
 import vivisect.symboliks.callconv as vsym_callconv

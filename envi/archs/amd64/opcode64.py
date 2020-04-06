@@ -1518,9 +1518,9 @@ tbl32_F7 = [
 #( 0, INS_TEST, ADDRMETH_E | OPTYPE_v | OP_R, ADDRMETH_I | OPTYPE_z | OP_SIGNED | OP_R, ARG_NONE, cpu_80386, "test", 0, 0, 0),  
 ( 0, INS_NOT, ADDRMETH_E | OPTYPE_v | OP_W, ARG_NONE, ARG_NONE, cpu_80386, "not", 0, 0, 0),  
 ( 0, INS_NEG, ADDRMETH_E | OPTYPE_v | OP_W, ARG_NONE, ARG_NONE, cpu_80386, "neg", 0, 0, 0),  
-( 0, INS_MUL, OP_REG | OP_W, ADDRMETH_E | OPTYPE_v | OP_R, ARG_NONE, cpu_80386, "mul", e_amd64_regs.REG_EAX, 0, 0),  
-( 0, INS_MUL, OP_REG | OP_W, ADDRMETH_E | OPTYPE_v | OP_R, ARG_NONE, cpu_80386, "imul", e_amd64_regs.REG_EAX, 0, 0),  
-( 0, INS_DIV, OP_REG | OP_W, ADDRMETH_E | OPTYPE_v | OP_R, ARG_NONE, cpu_80386, "div", e_amd64_regs.REG_EAX, 0, 0),  
+( 0, INS_MUL, OP_NOREXB | OP_REG | OP_W, ADDRMETH_E | OPTYPE_v | OP_R, ARG_NONE, cpu_80386, "mul", e_amd64_regs.REG_EAX, 0, 0),
+( 0, INS_MUL, OP_NOREXB | OP_REG | OP_W, ADDRMETH_E | OPTYPE_v | OP_R, ARG_NONE, cpu_80386, "imul", e_amd64_regs.REG_EAX, 0, 0),
+( 0, INS_DIV, OP_NOREXB | OP_REG | OP_W, ADDRMETH_E | OPTYPE_v | OP_R, ARG_NONE, cpu_80386, "div", e_amd64_regs.REG_EAX, 0, 0),
 #( 0, INS_DIV, OP_REG | OP_W, ADDRMETH_E | OPTYPE_v | OP_R, ARG_NONE, cpu_80386, "idiv", e_amd64_regs.REG_EAX, 0, 0) 
 ( 0, INS_DIV, ADDRMETH_E | OPTYPE_v | OP_R, ARG_NONE, ARG_NONE, cpu_80386, "idiv", e_amd64_regs.REG_EAX, 0, 0) 
 ]

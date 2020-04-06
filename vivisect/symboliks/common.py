@@ -440,6 +440,12 @@ class Call(SymbolikBase):
 
         canvas.addText(')')
 
+    def _reduce(self, emu=None):
+        args = []
+        for symkid in self.kids[1:]:
+            args.append(symkid.reduce(emu=emu))
+        return Call(self.kids[0].reduce(emu=emu), self.width.reduce(emu=emu), args)
+
     def _solve(self, emu=None, vals=None):
         ret = 0
         for s in [k.solve(emu=emu, vals=vals) for k in self.kids]:
