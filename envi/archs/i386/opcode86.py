@@ -154,9 +154,9 @@ tbl32_Main = [
     (0, INS_MOV, ADDRMETH_E | OPTYPE_v | OP_W, ADDRMETH_G | OPTYPE_v | OP_R, ARG_NONE, cpu_80386, "mov", 0, 0, 0),
     (0, INS_MOV, ADDRMETH_G | OPTYPE_b | OP_W, ADDRMETH_E | OPTYPE_b | OP_R, ARG_NONE, cpu_80386, "mov", 0, 0, 0),
     (0, INS_MOV, ADDRMETH_G | OPTYPE_v | OP_W, ADDRMETH_E | OPTYPE_v | OP_R, ARG_NONE, cpu_80386, "mov", 0, 0, 0),
-    (0, INS_MOV, ADDRMETH_E | OPTYPE_w | OP_W, ADDRMETH_S | OPTYPE_w | OP_R, ARG_NONE, cpu_80386, "mov", 0, 0, 0),
+    (0, INS_MOV, ADDRMETH_E | OPTYPE_v | OP_W | OP_MEM16AUTO, ADDRMETH_S | OPTYPE_w | OP_R, ARG_NONE, cpu_80386, "mov", 0, 0, 0),
     (0, INS_LEA, ADDRMETH_G | OPTYPE_v | OP_W, ADDRMETH_M | OPTYPE_v | OP_R, ARG_NONE, cpu_80386, "lea", 0, 0, 0),
-    (0, INS_MOV, ADDRMETH_S | OPTYPE_w | OP_W, ADDRMETH_E | OPTYPE_w | OP_R, ARG_NONE, cpu_80386, "mov", 0, 0, 0),
+    (0, INS_MOV, ADDRMETH_S | OPTYPE_w | OP_W, ADDRMETH_E | OPTYPE_v | OP_R | OP_MEM16AUTO, ARG_NONE, cpu_80386, "mov", 0, 0, 0),
     (0, INS_POP, ADDRMETH_M | OPTYPE_v | OP_W, ARG_NONE, ARG_NONE, cpu_80386, "pop", 0, 0, 0),
 # 0x90
     (0, INS_NOP, ARG_NONE, ARG_NONE, ARG_NONE, cpu_80386, "nop", 0, 0, 0),
