@@ -8,12 +8,13 @@ import struct
 import envi
 import envi.bits as e_bits
 
-import opcode86
-all_tables = opcode86.tables86
-
 # Grab our register enums etc...
 from envi.const import *
 from envi.archs.i386.regs import *
+from envi.archs.i386.opconst import OP_MEM32AUTO, OP_MEM16AUTO
+
+import opcode86
+all_tables = opcode86.tables86
 
 # Our instruction prefix masks
 # NOTE: table 3-4 (section 3.6) of intel 1 shows how REX/OP_SIZE
@@ -944,7 +945,7 @@ class i386Disasm:
 
             # print(hex(opertype), hex(addrmeth), hex(tsize))
 
-            # If addrmeth is zero, we have operands embedded in the opcode
+            # If addrmeth is zero,we have operands embedded in the opcode
             if addrmeth == 0:
                 osize = 0
                 oper = self.ameth_0(operflags, opdesc[5+i], tsize, all_prefixes)
@@ -969,6 +970,11 @@ class i386Disasm:
 
                     else:
                         osize, oper = ameth(bytez, offset, tsize, all_prefixes, operflags)
+                        if getattr(oper, "_is_deref", False):
+                            if operflags & OP_MEM32AUTO:
+                                oper.tsize = 4
+                            elif operflags & OP_MEM16AUTO:
+                                oper.tsize = 2
 
                 except struct.error as e:
                     # Catch struct unpack errors due to insufficient data length
@@ -1005,7 +1011,8 @@ class i386Disasm:
         if operflags & opcode86.OP_REG:
             if prefixes & PREFIX_OP_SIZE:
                 operval |= RMETA_LOW16
-            return i386RegOper(operval, tsize)
+            width = self._dis_regctx.getRegisterWidth(operval) / 8
+            return i386RegOper(operval, width)
         elif operflags & opcode86.OP_IMM:
             return i386ImmOper(operval, tsize)
         raise Exception("Unknown ameth_0! operflags: 0x%.8x" % operflags)
