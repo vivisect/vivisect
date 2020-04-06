@@ -444,7 +444,7 @@ class Call(SymbolikBase):
         args = []
         for symkid in self.kids[1:]:
             args.append(symkid.reduce(emu=emu))
-        return Call(self.kids[0].reduce(emu=emu), self.width.reduce(emu=emu), args)
+        return Call(self.kids[0].reduce(emu=emu), self.width, args)
 
     def _solve(self, emu=None, vals=None):
         ret = 0
