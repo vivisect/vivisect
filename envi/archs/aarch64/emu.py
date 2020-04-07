@@ -25,10 +25,10 @@ logger = logging.getLogger(__name__)
 
 ## NO FREAKING CLUE YET....
 class Aarch64ArchitectureProcedureCall(envi.CallingConvention):
-    arg_def = [(CC_REG, REG_R0), (CC_REG, REG_R1), (CC_REG, REG_R2),
-                (CC_REG, REG_R3), (CC_STACK_INF, 4),]
-    retaddr_def = (CC_REG, REG_R14)
-    retval_def = (CC_REG, REG_R0)
+    arg_def = [(CC_REG, REG_X0), (CC_REG, REG_X1), (CC_REG, REG_X2),
+                (CC_REG, REG_X3), (CC_STACK_INF, 4),]
+    retaddr_def = (CC_REG, REG_X14)
+    retval_def = (CC_REG, REG_X0)
     flags = CC_CALLEE_CLEANUP
     align = 8
     pad = 0

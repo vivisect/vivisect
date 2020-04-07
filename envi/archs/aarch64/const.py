@@ -338,6 +338,11 @@ instrnames = [
     'CBNZ',
     'TBZ',
     'TBNZ',
+    'AT',
+    'DC',
+    'IC',
+    'TBLI',
+    'BCC',
 ]
 
 ins_index = 85
@@ -402,6 +407,61 @@ for ifx in range(1, len(IFS)):
     ifs = IFS[ifx]
     gblname = "IFS" + ifs.upper().replace('.', '_')
     globals()[gblname] = ifx
+
+PM_usr = 0b10000
+PM_fiq = 0b10001
+PM_irq = 0b10010
+PM_svc = 0b10011
+PM_mon = 0b10110
+PM_abt = 0b10111
+PM_hyp = 0b11010
+PM_und = 0b11011
+PM_sys = 0b11111
+
+# reg stuff stolen from regs.py to support proc_modes
+# these are in context of reg_table, not reg_data.  
+#  ie. these are indexes into the lookup table.
+REG_OFFSET_USR = 17 * (PM_usr&0xf)
+REG_OFFSET_FIQ = 17 * (PM_fiq&0xf)
+REG_OFFSET_IRQ = 17 * (PM_irq&0xf)
+REG_OFFSET_SVC = 17 * (PM_svc&0xf)
+REG_OFFSET_MON = 17 * (PM_mon&0xf)
+REG_OFFSET_ABT = 17 * (PM_abt&0xf)
+REG_OFFSET_HYP = 17 * (PM_hyp&0xf)
+REG_OFFSET_UND = 17 * (PM_und&0xf)
+REG_OFFSET_SYS = 17 * (PM_sys&0xf)
+#REG_OFFSET_CPSR = 17 * 16
+REG_OFFSET_CPSR = 16                    # CPSR is available in every mode, and PM_usr and PM_sys don't have an SPSR.
+
+REG_SPSR_usr = REG_OFFSET_USR + 17
+REG_SPSR_fiq = REG_OFFSET_FIQ + 17
+REG_SPSR_irq = REG_OFFSET_IRQ + 17
+REG_SPSR_svc = REG_OFFSET_SVC + 17
+REG_SPSR_mon = REG_OFFSET_MON + 17
+REG_SPSR_abt = REG_OFFSET_ABT + 17
+REG_SPSR_hyp = REG_OFFSET_HYP + 17
+REG_SPSR_und = REG_OFFSET_UND + 17
+REG_SPSR_sys = REG_OFFSET_SYS + 17
+
+REG_PC = 0xf
+REG_SP = 0xd
+REG_BP = None
+REG_CPSR = REG_OFFSET_CPSR
+REG_FLAGS = REG_OFFSET_CPSR    #same location, backward-compat name
+
+proc_modes = { # mode_name, short_name, description, offset, mode_reg_count, PSR_offset, privilege_level
+    PM_usr: ("User Processor Mode", "usr", "Normal program execution mode", REG_OFFSET_USR, 15, REG_SPSR_usr, 0),
+    PM_fiq: ("FIQ Processor Mode", "fiq", "Supports a high-speed data transfer or channel process", REG_OFFSET_FIQ, 8, REG_SPSR_fiq, 1),
+    PM_irq: ("IRQ Processor Mode", "irq", "Used for general-purpose interrupt handling", REG_OFFSET_IRQ, 13, REG_SPSR_irq, 1),
+    PM_svc: ("Supervisor Processor Mode", "svc", "A protected mode for the operating system", REG_OFFSET_SVC, 13, REG_SPSR_svc, 1),
+    PM_mon: ("Monitor Processor Mode", "mon", "Secure Monitor Call exception", REG_OFFSET_MON, 13, REG_SPSR_mon, 1),
+    PM_abt: ("Abort Processor Mode", "abt", "Implements virtual memory and/or memory protection", REG_OFFSET_ABT, 13, REG_SPSR_abt, 1),
+    PM_hyp: ("Hyp Processor Mode", "hyp", "Hypervisor Mode", REG_OFFSET_HYP, 13, REG_SPSR_hyp, 2),
+    PM_und: ("Undefined Processor Mode", "und", "Supports software emulation of hardware coprocessor", REG_OFFSET_UND, 13, REG_SPSR_und, 1),
+    PM_sys: ("System Processor Mode", "sys", "Runs privileged operating system tasks (ARMv4 and above)", REG_OFFSET_SYS, 15, REG_SPSR_sys, 1),
+}
+
+VFP_QWORD_REG_COUNT = 32    # ARMv8-A docs
 
 '''
 from envi.archs.aarch64.disasm import A64PreFetchOper
