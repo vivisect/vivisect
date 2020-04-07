@@ -467,6 +467,16 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
         self.effSetVariable('eflags_cf', f)
         self.effSetVariable('eflags_of', f)
 
+    def i_cdq(self, op):
+        obj = self.getRegObj(e_i386.REG_AX)
+        v0 = o_sextend(obj, Const(self._psize, self._psize))
+
+        v1 = o_sextend(obj, Const(2 * self._psize, self._psize))
+        v2 = v1 >> Const(self._psize, self._psize)
+
+        self.effSetVariable('edx', v2)
+        self.effSetVariable('eax', v0)
+
     def i_mul(self, op):
         ocount = len(op.opers)
         dsize = op.opers[0].tsize
@@ -1060,16 +1070,9 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
         self.effSetVariable('eflags_eq', eq(v1, v2))  # v1 - v2 == 0 :: v1 == v2
         self.setOperObj(op, 0, v1 - v2)
 
-
     def i_cwde(self, op):
         v1 = o_sextend(self.getRegObj(e_i386.REG_AX), Const(self._psize, self._psize))
         self.effSetVariable('eax', v1)
-
-    #def i_cdq(self, op):
-    #    # TODO: So this sign extends things into edx, so we need to grab the sign bit in eax
-    #    # and then fill in all the bits of edx
-    #    v1 = o_sextend(self.getRegObj(e_i386.REG_EAX), Const(self._psize, self._psize))
-    #    self.effSetVariable('edx', v1)
 
     def _carry_eq(self, x):
         return eq(Var('eflags_cf', self._psize), Const(x, self._psize))
