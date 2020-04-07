@@ -261,7 +261,7 @@ class Amd64SymFuncEmu(vsym_analysis.SymbolikFunctionEmulator):
 
     def __init__(self, vw, initial_sp=0xbfbff000):
         vsym_analysis.SymbolikFunctionEmulator.__init__(self, vw)
-        self.setStackBase(0xbfbff000, 8192)
+        self.setStackBase(0xbfbff000, 16384)
         self.addCallingConvention('sysvamd64call', SysVAmd64CallSym())
         self.addCallingConvention('msx64call', msx64callsym)
 
