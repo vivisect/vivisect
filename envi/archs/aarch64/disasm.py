@@ -4,6 +4,7 @@ A disasm file for the AArch64 Architecture, ARMv8.
 from envi.archs.aarch64.const import *
 from envi.archs.aarch64.regs import *
 import envi
+import struct
 
 #-----------------------------data-----------------------------------------|
 
@@ -148,6 +149,7 @@ def p_addsub_imm(opval, va):
     rn = opval >> 5 & 0x1f
     rd = opval & 0x1f
     imm = opval >> 10 & 0xfff
+    iflag = 0
     #all mnemonics are either add or sub, depending on op's value
     if op == 0b0:
         mnem = 'add'
@@ -405,13 +407,12 @@ def p_branch_cond_imm(opval, va):
     '''
     Conditional branch (immediate) instruction
     '''
-    #FIXME mnem, opcode, cond
     imm19 = opval >> 5 & 0x7ffff
     cond = opval & 0xf
     mnem = 'B.'
-    opcode = INS_B
+    opcode = INS_B.
     olist = (
-        #FIXME cond encoded in the standard way?
+        A64CondOper(cond),
         A64ImmOper(imm19*0x100, va=va),
     )
 
@@ -512,7 +513,7 @@ def p_sys(opval, va):
         opcode = INS_DSB
         mnem = 'dsb'
         olist = (
-            #FIXME option
+            A64BarrierOptionOper(crm),
             A64ImmOper(crm, va=va),
         )
         iflag = 0
@@ -521,7 +522,7 @@ def p_sys(opval, va):
         opcode = INS_DMB
         mnem = 'dmb'
         olist = (
-            #FIXME option
+            A64BarrierOptionOper(crm),
             A64ImmOper(crm, va=va),
         )
         iflag = 0
@@ -530,7 +531,7 @@ def p_sys(opval, va):
         opcode = INS_ISB
         mnem = 'isb'
         olist = (
-            #FIXME option
+            A64BarrierOptionOper(crm),
             A64ImmOper(crm, va=va),
         )
         iflag = 0
@@ -538,10 +539,17 @@ def p_sys(opval, va):
     elif (l + op0) == 0x001:
         opcode = INS_SYS
         mnem = 'sys'
+        if crn == 0b0111 or crn == 0b1000:
+            sysop_concat = op1+crn+crm+op2
+            for bits, mnemonic, ocode in sys_op_table:
+                if sysop_concat == bits:
+                    mnem = mnemonic
+                    opcode = ocode
+                    break
         olist = (
             A64ImmOper(op1, 0, S_LSL, va),
-            #FIXME cn name oper?
-            #FIXME cm name oper?
+            A64NameOper(crn),
+            A64NameOper(crm),
             A64ImmOper(op2, 0, S_LSL, va),
             A64RegOper(rt, va, size=64), #optional operand
         )
@@ -562,8 +570,8 @@ def p_sys(opval, va):
         olist = (
             A64RegOper(rt, va, size=64),
             A64ImmOper(op1, 0, S_LSL, va),
-            #FIXME name oper?
-            #FIXME name oper?
+            A64NameOper(crn),
+            A64NameOper(crm),
             A64ImmOper(op2, 0, S_LSL, va),
         )
         iflag = IF_L
@@ -1105,8 +1113,7 @@ def p_ls_reg_offset(opval, va):
                 elif option & 0b011 == 0b010:
                     regsize = 64
                 else:
-                    pass
-                    #FIXME reserved
+                    return p_undef(opval)
                 olist = (
                     prfop[rt],
                     A64RegOper(rn, va, size=64),
@@ -2214,16 +2221,19 @@ def p_cond_cmp_imm(opval, va):
     else:
         iflag |= IF_P
 
-    #FIXME: nzcv and cond opers
     if sf == 0b0:
         olist = (
             A64RegOper(rn, va, size=32),
             A64ImmOper(imm5, va=va),
+            A64nzcvOper(nzcv),
+            A64CondOper(cond),
         )
     else:
         olist = (
             A64RegOper(rn, va, size=64),
             A64ImmOper(imm5, va=va),
+            A64nzcvOper(nzcv),
+            A64CondOper(cond),
         )
 
     return opcode, mnem, olist, iflag, 0
@@ -2249,16 +2259,19 @@ def p_cond_cmp_reg(opval, va):
     else:
         iflag |= IF_P
 
-    #FIXME: nzcv, cond opers
     if sf == 0b0:
         olist = (
             A64RegOper(rn, va, size=64),
             A64RegOper(rm, va, size=64),
+            A64nzcvOper(nzcv),
+            A64CondOper(cond),
         )
     else:
         olist = (
             A64RegOper(rn, va, size=64),
             A64RegOper(rm, va, size=64),
+            A64nzcvOper(nzcv),
+            A64CondOper(cond),
         )
     return opcode, mnem, olist, iflag, 0
 
@@ -2627,15 +2640,15 @@ def p_fp_cond_compare(opval, va):
         olist = (
             A64RegOper(rn, va, size=32),
             A64RegOper(rm, va, size=32),
-            A64ImmOper(nzcv),
-            #ConditionOper
+            A64nzcvOper(nzcv),
+            A64CondOper(cond),
         )
     elif typ == 0b01:
         olist = (
             A64RegOper(rn, va, size=64),
             A64RegOper(rm, va, size=64),
-            A64ImmOper(nzcv),
-            #ConditionOper
+            A64nzcvOper(nzcv),
+            A64CondOper(cond),
         )
     else:
         return p_undef(opval, va)
@@ -6653,9 +6666,9 @@ def p_undef(opval, va):
     Undefined encoding family
     '''
     # FIXME: make this an actual opcode with the opval as an imm oper
-    raise envi.InvalidInstruction(
-            mesg="p_undef: invalid instruction (by definition in ARM spec)",
-            bytez=struct.pack("<I", opval), va=va)
+    #raise envi.InvalidInstruction(
+    #        mesg="p_undef: invalid instruction (by definition in ARM spec)",
+    #        bytez=struct.pack("<I", opval), va=va)
     opcode = IENC_UNDEF
     mnem = "undefined instruction"
     olist = (
@@ -6775,6 +6788,16 @@ class A64RegOper(A64Operand):
         self.va = va
         self.reg = reg
         self.oflags = oflags
+        self.size = size
+    
+    def repr(self, op):
+        if self.size == 32:
+            rname = "w" + str(self.reg)
+        elif self.size == 64:
+            rname = "x" + str(self.reg)
+        if self.oflags != 0:
+            rname += IFS[self.oflags]
+        return rname
 
 class A64ImmOper(A64Operand):
     '''
@@ -6785,6 +6808,39 @@ class A64ImmOper(A64Operand):
         self.shval = shval
         self.shtype = shtype
         self.size = size
+
+    def repr(self, op):
+        return str(self.val)
+
+class A64BarrierOptionOper(A64Operand):
+    '''
+    Subclass of A64Operand. 4-bit immediate or barrier option
+    '''
+    def __init__(self, val=0):
+        self.val = val
+        self.option = barrier_option_table[val]
+
+class A64nzcvOper(A64Operand):
+    '''
+    Subclass of A64Operand. 4-bit immediate that sets N,Z,C, and V flags
+    '''
+    def __init__(self, val=0):
+        self.val = val
+
+class A64CondOper(A64Operand):
+    '''
+    Subclass of A64Operand. 4-bit cond encoding
+    '''
+    def __init__(self, val=0):
+        self.val = val
+        self.mnem = cond_table[val]
+
+class A64NameOper(A64Operand):
+    '''
+    Subclass of A64Operand. Name operand class
+    '''
+    def __init__(self, val=0):
+        self.val = val
 
 class A64PreFetchOper(A64Operand):
     '''
@@ -6843,6 +6899,11 @@ class A64Opcode(envi.Opcode):
         self.simdflags = simdflags
         self.va = va
     
+    def __repr__(self):
+        x = []
+        for op in self.opers:
+            x.append(op.repr(self))
+        return self.mnem + " " + ", ".join(x)
 
 class AArch64Disasm:
     #weird thing in envi/__init__. Figure out later
@@ -6853,7 +6914,7 @@ class AArch64Disasm:
     #ARCH_REVS is a file containing all masks for various versions of ARM. In const.py
     _archVersionMask = ARCH_REVS['ARMv8A']
 
-    def __init__(self, endian=ENDIAN_LSB, mask = 'ARMv8A'):
+    def __init__(self, endian=ENDIAN_MSB, mask = 'ARMv8A'):
         self.setArchMask(mask)
         self.setEndian(endian)
 
@@ -6876,12 +6937,15 @@ class AArch64Disasm:
         '''
         Parse a series of bytes into an envi.Opcode instance
         ''' 
-        opbytes = bytez[offset:offset+4]
-        opval = struct.unpack(self.fmt, opbytes)
+        #print(self.fmt)
+        #opbytes = bytez[offset:offset+4]
+        #opval = struct.unpack(self.fmt, opbytes)
+        #opval, = struct.unpack(self.fmt, bytez[offset:offset+4])
 
-        cond = opval >> 29 & 0x7
+        #cond = opval >> 29 & 0x7
+        cond = 0
 
-        opcode, mnem, olist, flags, smdflags = self.doDecode(va, opval, bytez, offset)
+        opcode, mnem, olist, flags, simdflags = self.doDecode(va, int(bytez, 16), bytez, offset)
 
         if mnem == None or type(mnem) == int:
             raise Exception("mnem == %r!  0x%x" % (mnem, opval))
@@ -6921,14 +6985,13 @@ class AArch64Disasm:
         opcode, mnem, olist, flags, simdflags = ienc_parsers[enc](opval, va+8)
         return opcode, mnem, olist, flags, simdflags
 
-
-        
-
-
-        
-
-
 if __name__=="__main__":
     import envi.archs
+    from envi.tests.test_arch_aarch64 import instrs
     #envi.archs.dismain( AArch64Disasm() )
+    #for i in instrs:
+    #    op = AArch64Disasm().disasm(i[1], 0, 0)
+    #    print(op)
+    op = AArch64Disasm().disasm('54abcdef', 0, 0)
+    print(op)
     
