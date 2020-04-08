@@ -215,7 +215,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
 
         meth = self.op_methods.get(op.mnem, None)
         if meth == None:
-            print("0x%x: Intel Emulator needs %s" % (op.va, str(op)))
+            # print("0x%x: Intel Emulator needs %s" % (op.va, str(op)))
             raise e_exc.UnsupportedInstruction(self, op)
 
         newpc = meth(op)

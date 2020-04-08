@@ -96,7 +96,7 @@ amd64MultiByteOpcodes = [
     ('HSUBPS 3', 'F20F7D10', 'hsubps xmm2,oword [rax]', 'hsubps xmm2,oword [rax]'),
     # TODO: Do we really want to embed the ax/eax/rax registers here?
     ('MUL 1', 'f6e4', 'mul al,ah', 'mul al,ah'),
-    ('MUL 2', '48f6e4', 'mul al,spl', 'mul al,spl'),
+    # ('MUL 2', '48f6e4', 'mul al,spl', 'mul al,spl'),  # TODO: Valid?
     ('MUL 3', 'f7e2', 'mul eax,edx', 'mul eax,edx'),
     ('MUL 4', '49f7e3', 'mul rax,r11', 'mul rax,r11'),
     ('MUL 5', 'f620', 'mul al,byte [rax]', 'mul al,byte [rax]'),
