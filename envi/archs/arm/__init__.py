@@ -66,7 +66,7 @@ class ArmModule(envi.ArchitectureModule):
     def archModifyFuncAddr(self, va, info):
         if va & 1:
             return va & -2, {'arch' : envi.ARCH_THUMB}
-        return va, {}
+        return va, info
 
     def archModifyXrefAddr(self, tova, reftype, rflags):
         if tova & 1:
@@ -141,7 +141,7 @@ class ThumbModule(envi.ArchitectureModule):
     def archModifyFuncAddr(self, va, info):
         if va & 1:
             return va & -2, {'arch' : envi.ARCH_THUMB}
-        return va, {}
+        return va, info
 
     def archModifyXrefAddr(self, tova, reftype, rflags):
         if tova & 1:

@@ -189,9 +189,11 @@ def analyzeFunction(vw, funcva):
             else:
                 logger.warn("PLT: 0x%x - making function at location 0x%x", opva, opval)
                 vw.makeFunction(opval)
+                loctup = vw.getLocation(opval)
+
 
         # in case the architecture cares about the function address...
-        aopval, aflags = vw.arch.archModifyFuncAddr(opval, {})
+        aopval, aflags = vw.arch.archModifyFuncAddr(opval, {'arch': envi.ARCH_DEFAULT})
         funcname = vw.getName(aopval)
         if funcname is None:
             funcname = vw.getName(opval)
