@@ -513,6 +513,9 @@ class Mem(SymbolikBase):
         # FIXME should we do something about that?
         return self.kids[1].solve()
 
+    def _reduce(self, emu):
+        return Mem(self.kids[0].reduce(), self.kids[1].reduce())
+
 class Var(SymbolikBase):
 
     symtype = SYMT_VAR
