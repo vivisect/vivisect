@@ -229,86 +229,106 @@ def analyzeFunction(vw, funcva):
         logger.warn("PLT: 0x%x - Could not find a branch!", funcva)
         return
 
+    # cycle through the opcode's "branches" to make connections and look for funcname.
+    # BR_DEREF - the address in opval is a pointer, not code
+    # BR_FALL  - the address is the next instruction (should never happen here)
+    funcname = None
     branches = op.getBranches(emu)
-    if len(branches) != 1:
-        logger.warn('getBranches() returns anomolous results: 0x%x: %r   (result: %r)',
-                op.va, op, branches)
-        return
+    logger.debug("getBranches returned: %r", branches)
 
-    # get opval (the target of the jump, or the taint) and opref (the reference used to find it)
-    opref = op.opers[-1].getOperAddr(op, emu)  # HACK: this assumes the target is the last operand!
-    opval, brflags = branches[0]
-    if opval is None:
-        logger.warn("getBranches():  opval is None!:  op = %r     branches = %r", op, branches)
-    else:
-        logger.debug('getBranches():  ref: 0x%x  brflags: 0x%x', opval, brflags)
+    for opval, brflags in branches:
+        if opval is None:
+            logger.warn("getBranches():  opval is None!:  op = %r     branches = %r", op, branches)
+        else:
+            logger.debug('getBranches():  ref: 0x%x  brflags: 0x%x', opval, brflags)
 
-    # add the xref to whatever location referenced (assuming the opref hack worked)
-    if vw.isValidPointer(opref):
-        logger.debug('reference 0x%x is valid, adding Xref', opref)
-        vw.addXref(op.va, opref, vivisect.REF_DATA)
-
-    # check the taint tracker to determine if it's an import (the opval value is pointless if it is)
-    taint = emu.getVivTaint(opval)
-    if taint is not None:
-        # if it is an import taint
-        taintva, ttype, loctup = taint
-        if ttype != 'import':
-            logger.warn('getBranches(): returned a Taint which is *not* an import: %r', taint)
-            return
-
-        lva, lsz, ltype, ltinfo = loctup
-        funcname = ltinfo
-        logger.debug('0x%x: LOC_IMPORT: 0x%x:  %r', opva, lva, funcname)
-        
-    else:
-        # instead of a taint (which *should* indicate an IMPORT), we have real pointer.
         loctup = vw.getLocation(opval)
-        # check the location type
-        if loctup is None:
-            if opval is None:
-                logger.warn("PLT: 0x%x - branch deref not defined: (opval is None!)", opva)
-                return
+
+        # if BR_DEREF, this is a pointer
+        if brflags & envi.BR_DEREF:
+            if loctup is not None:
+                lva, lsz, ltype, ltinfo = loctup
+            opref = opval
+            # add the xref to whatever location referenced (assuming the opref hack worked)
+            if vw.isValidPointer(opref):
+                logger.debug('reference 0x%x is valid, adding Xref', opref)
+                vw.addXref(op.va, opref, vivisect.REF_DATA)
+
+            if ltype == vivisect.LOC_IMPORT:
+                # import locations store the name as ltinfo
+                funcname = ltinfo
+                logger.warn("0x%x: (0x%x) LOC_IMPORT by BR_DEREF %r", funcva, opval, funcname)
+
+            elif ltype == vivisect.LOC_POINTER:
+                # we have a deref to a pointer.
+                funcname = vw.getName(ltinfo)
+                logger.warn("0x%x: (0x%x->0x%x) LOC_POINTER by BR_DEREF %r", funcva, opval, ltinfo, funcname)
             else:
-                logger.warn("PLT: 0x%x - making function at location 0x%x", opva, opval)
-                vw.makeFunction(opval)
-                loctup = vw.getLocation(opval)
+                logger.warn("0x%x: (0x%x) not LOC_IMPORT or LOC_POINTER?? by BR_DEREF %r", funcva, opval, loctup)
 
-        lva, lsz, ltype, ltinfo = loctup
+        else:
+            # check the taint tracker to determine if it's an import (the opval value is pointless if it is)
+            taint = emu.getVivTaint(opval)
+            if taint is not None:
+                # if it is an import taint
+                taintva, ttype, loctup = taint
+                if ttype != 'import':
+                    logger.warn('getBranches(): returned a Taint which is *not* an import: %r', taint)
+                    return
 
-        # in case the architecture cares about the function address...
-        aopval, aflags = vw.arch.archModifyFuncAddr(opval, {'arch': envi.ARCH_DEFAULT})
-        funcname = vw.getName(aopval)
-        if funcname is None:
-            funcname = vw.getName(opval)
+                lva, lsz, ltype, ltinfo = loctup
+                funcname = ltinfo
+                logger.debug('0x%x: LOC_IMPORT (emu-taint): 0x%x:  %r', opva, lva, funcname)
 
-        # sort through the location types and adjust accordingly
-        if ltype == vivisect.LOC_IMPORT:
-            logger.warn("0x%x: (0x%x) dest is LOC_IMPORT but missed taint for %r", funcva, opval, funcname)
-            # import locations store the name as ltinfo
-            funcname = ltinfo
+            else:
+                # instead of a taint (which *should* indicate an IMPORT), we have real pointer.
+                # check the location type
+                if loctup is None:
+                    if opval is None:
+                        logger.warn("PLT: 0x%x - branch deref not defined: (opval is None!)", opva)
+                        return
+                    else:
+                        logger.warn("PLT: 0x%x - making function at location 0x%x", opva, opval)
+                        vw.makeFunction(opval)
+                        loctup = vw.getLocation(opval)
 
-        elif ltype == vivisect.LOC_OP:
-            logger.debug("0x%x: succeeded finding LOC_OP at the end of the rainbow! (%r)", funcva, funcname)
-            if vw.getFunction(aopval) is None:
-                logger.debug("0x%x: code does not exist at 0x%x.  calling makeFunction()", funcva, aopval)
-                vw.makeFunction(aopval, arch=aflags['arch'])
+                lva, lsz, ltype, ltinfo = loctup
 
-            # this "thunk" actually calls something in the workspace, that exists as a function...
-            logger.info('0x%x points to real code (0x%x: %r)', funcva, opval, funcname)
-            vw.addXref(op.va, aopval, vivisect.REF_CODE)
-            vw.setVaSetRow('FuncWrappers', (funcva, opval))
+                # in case the architecture cares about the function address...
+                aopval, aflags = vw.arch.archModifyFuncAddr(opval, {'arch': envi.ARCH_DEFAULT})
+                funcname = vw.getName(aopval)
+                if funcname is None:
+                    funcname = vw.getName(opval)
 
-        elif ltype == vivisect.LOC_POINTER:
-            logger.warn("0x%x: (0x%x) dest is LOC_POINTER -> 0x%x", funcva, opval, ltinfo)
-            funcname = ltinfo
+                # sort through the location types and adjust accordingly
+                if ltype == vivisect.LOC_IMPORT:
+                    logger.warn("0x%x: (0x%x) dest is LOC_IMPORT but missed taint for %r", funcva, opval, funcname)
+                    # import locations store the name as ltinfo
+                    funcname = ltinfo
+                    dbg_interact(locals(), globals())
+
+                elif ltype == vivisect.LOC_OP:
+                    logger.debug("0x%x: succeeded finding LOC_OP at the end of the rainbow! (%r)", funcva, funcname)
+                    if vw.getFunction(aopval) is None:
+                        logger.debug("0x%x: code does not exist at 0x%x.  calling makeFunction()", funcva, aopval)
+                        vw.makeFunction(aopval, arch=aflags['arch'])
+
+                    # this "thunk" actually calls something in the workspace, that exists as a function...
+                    logger.info('0x%x points to real code (0x%x: %r)', funcva, opval, funcname)
+                    vw.addXref(op.va, aopval, vivisect.REF_CODE)
+                    vw.setVaSetRow('FuncWrappers', (funcva, opval))
+
+                elif ltype == vivisect.LOC_POINTER:
+                    logger.warn("0x%x: (0x%x) dest is LOC_POINTER -> 0x%x", funcva, opval, ltinfo)
+                    funcname = ltinfo
 
 
-        if vw.getFunction(opval) == segva:
-            # this is a lazy-link/load function, calling the first entry in the PLT
-            logger.debug('skipping lazy-loader function: 0x%x (calls 0x%x)', funcva, opval)
-            return
+            if vw.getFunction(opval) == segva:
+                # this is a lazy-link/load function, calling the first entry in the PLT
+                logger.debug('skipping lazy-loader function: 0x%x (calls 0x%x)', funcva, opval)
+                return
 
+    # now make the thunk with appropriate naming
     # if we can't resolve a name, don't make it a thunk
     if funcname is None:
         logger.warn('0x%x: FAIL: could not resolve name for 0x%x.  Skipping.', funcva, opval)
@@ -317,6 +337,12 @@ def analyzeFunction(vw, funcva):
     # trim up the name
     if funcname.startswith('*.'):
         funcname = funcname[2:]
+
+    # if filelocal for the target symbol, strip off the filename
+    if funcname.startswith(fname + "."):
+        funcname = funcname[len(fname)+1:]
+
+    # trim off any address at the end
     if funcname.endswith('_%.8x' % opval):
         funcname = funcname[:-9]
 

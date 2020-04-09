@@ -3919,7 +3919,6 @@ class ArmOpcode(envi.Opcode):
             ret.append((self.va + self.size, envi.BR_FALL | self._def_arch))
             #print "getBranches: next...", hex(self.va), self.size
 
-        # FIXME if this is a move to PC god help us...
         flags = 0
 
         if self.prefixes != COND_AL:
@@ -3932,7 +3931,7 @@ class ArmOpcode(envi.Opcode):
             operval = oper.getOperValue(self, emu)
 
             if self.opcode in (INS_BLX, INS_BX):
-                if operval != None and operval & 3:
+                if operval is not None and operval & 3:
                     flags |= envi.ARCH_THUMB
                     operval &= -2
                 else:
