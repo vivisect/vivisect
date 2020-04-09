@@ -129,6 +129,7 @@ def analyzePLT(vw, ssva, ssize):
         # we're searching for a point where either we hit:
         #  * another branch (ie. lazy-loader) or
         #  * non-Opcode (eg. literal pool)
+        #  * or a NOP
         # bounded to what we know is the distance between PLT branches
         while loc is not None and \
                 plt_size <= plt_distance:
@@ -142,6 +143,11 @@ def analyzePLT(vw, ssva, ssize):
 
             if ltinfo & envi.IF_BRANCH:
                 # we've hit another branch instruction.  stop!
+                break
+
+            op = vw.parseOpcode(lva)
+            if op.mnem == 'nop':    # should we let architectures set a "nop" iflag
+                # we've run into inter-plt padding - curse you, i386 gcc!
                 break
 
             plt_size += lsz
@@ -268,6 +274,7 @@ def analyzeFunction(vw, funcva):
                 vw.makeFunction(opval)
                 loctup = vw.getLocation(opval)
 
+        lva, lsz, ltype, ltinfo = loctup
 
         # in case the architecture cares about the function address...
         aopval, aflags = vw.arch.archModifyFuncAddr(opval, {'arch': envi.ARCH_DEFAULT})
@@ -276,12 +283,12 @@ def analyzeFunction(vw, funcva):
             funcname = vw.getName(opval)
 
         # sort through the location types and adjust accordingly
-        if loctup[vivisect.L_LTYPE] == vivisect.LOC_IMPORT:
+        if ltype == vivisect.LOC_IMPORT:
             logger.warn("0x%x: (0x%x) dest is LOC_IMPORT but missed taint for %r", funcva, opval, funcname)
-            lva, lsz, ltype, ltinfo = loctup
+            # import locations store the name as ltinfo
             funcname = ltinfo
 
-        elif loctup[vivisect.L_LTYPE] == vivisect.LOC_OP:
+        elif ltype == vivisect.LOC_OP:
             logger.debug("0x%x: succeeded finding LOC_OP at the end of the rainbow! (%r)", funcva, funcname)
             if vw.getFunction(aopval) is None:
                 logger.debug("0x%x: code does not exist at 0x%x.  calling makeFunction()", funcva, aopval)
@@ -291,6 +298,10 @@ def analyzeFunction(vw, funcva):
             logger.info('0x%x points to real code (0x%x: %r)', funcva, opval, funcname)
             vw.addXref(op.va, aopval, vivisect.REF_CODE)
             vw.setVaSetRow('FuncWrappers', (funcva, opval))
+
+        elif ltype == vivisect.LOC_POINTER:
+            logger.warn("0x%x: (0x%x) dest is LOC_POINTER -> 0x%x", funcva, opval, ltinfo)
+            funcname = ltinfo
 
 
         if vw.getFunction(opval) == segva:
