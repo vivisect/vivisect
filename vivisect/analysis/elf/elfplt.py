@@ -63,7 +63,6 @@ def analyzePLT(vw, ssva, ssize):
         if not len(branchvas):
             return
 
-        ###### FIXME BETWEEN THESE ######
         # plt entries have:
         #   a distance between starts/finish 
         #   a size
@@ -159,9 +158,6 @@ def analyzePLT(vw, ssva, ssize):
 
         firstva = firstbr - plt_size
         logger.debug('plt first entry: 0x%x\n%r', firstva, [(hex(x), y) for x, y in branchvas])
-        ###### FIXME BETWEEN THESE ######
-
-        dbg_interact(locals(), globals())
 
         if bridx != 0:
             logger.debug('First function in PLT is not a PLT entry.  Found Lazy Loader Trampoline.')
@@ -279,17 +275,7 @@ def analyzeFunction(vw, funcva):
         if funcname is None:
             funcname = vw.getName(opval)
 
-
-        #if loctup[vivisect.L_LTYPE] == vivisect.LOC_POINTER:  # Some AMD64 PLT entries point at nameless relocations that point internally
-        #    tgtva = loctup[vivisect.L_VA]
-        #    ptrva = vw.readMemoryPtr(tgtva)
-        #    ptrname = vw.getName(ptrva)
-        #    logger.info("PLT->PTR 0x%x: (0x%x)  -> 0x%x -> 0x%x (%r)" % (funcva, opval, tgtva, ptrva, ptrname))
-        #    if vw.isValidPointer(ptrva):
-        #        if funcname is None:
-        #            funcname = vw._addNamePrefix(ptrname, ptrva, 'ptr', '_')
-
-        #elif loctup[vivisect.L_LTYPE] == vivisect.LOC_IMPORT:
+        # sort through the location types and adjust accordingly
         if loctup[vivisect.L_LTYPE] == vivisect.LOC_IMPORT:
             logger.warn("0x%x: (0x%x) dest is LOC_IMPORT but missed taint for %r", funcva, opval, funcname)
             lva, lsz, ltype, ltinfo = loctup
