@@ -22,10 +22,14 @@ def analyze(vw):
             continue
         analyzePLT(vw, sva, ssize)
 
+
 def analyzePLT(vw, ssva, ssize):
         # make code for every opcode in PLT
         sva = ssva
         nextseg = sva + ssize
+
+        trampbr = None
+        hastramp = False
 
         branchvas = []
         while sva < nextseg:
@@ -41,9 +45,14 @@ def analyzePLT(vw, ssva, ssize):
             if ltup is not None:
                 op = vw.parseOpcode(ltup[vivisect.L_VA])
                 if op.iflags & envi.IF_BRANCH and \
-                        not op.iflags & envi.IF_COND and \
-                        not op.opers[-1].getOperValue(op) == ssva:
-                    branchvas.append(op.va)
+                        not op.iflags & envi.IF_COND:
+
+                    # we grab all unconditional branches, and tag them
+                    realplt = not bool(op.opers[-1].getOperValue(op) == ssva)
+                    if not realplt:
+                        hastramp = True
+
+                    branchvas.append((op.va, realplt))
 
                 sva += ltup[vivisect.L_SIZE]
                 logger.debug('incrementing to next va: 0x%x', sva)
@@ -51,43 +60,115 @@ def analyzePLT(vw, ssva, ssize):
                 logger.warn('makeCode(0x%x) failed to make a location (probably failed instruction decode)!  incrementing instruction pointer by 1 to continue PLT analysis <fingers crossed>', sva)
                 sva += 1
 
-
         if not len(branchvas):
             return
 
-        # heuristically determine PLT entry size
+        ###### FIXME BETWEEN THESE ######
+        # plt entries have:
+        #   a distance between starts/finish 
+        #   a size
+        # they are not the same.
+
+        if hastramp:
+            # find the tramp's branch
+            trampbr = ssva
+            loc = vw.getLocation(trampbr)
+            while loc is not None and (loc[vivisect.L_TINFO] & envi.IF_BRANCH == 0):
+                lva, lsz, ltype, ltinfo = loc
+                trampbr += lsz
+                loc = vw.getLocation(trampbr)
+
+            # set our branchva list straight.  trampoline is *not* a realplt.
+            if branchvas[0][0] == trampbr:
+                branchvas[0] = (trampbr, False)
+            else:
+                logger.debug("hastramp: trampbr: 0x%x    branchvas[0][0]: 0x%x", trampbr, branchvas[0][0])
+
+        # heuristically determine PLT entry size and distance
         heur = {}
         lastva = ssva
+        # first determine distance between GOT branches:
         for vidx in range(1, len(branchvas)):
-            bva = branchvas[vidx]
+            bva, realplt = branchvas[vidx]
+            if not realplt:
+                continue
+
             delta = bva - lastva
             lastva = bva
             heur[delta] = heur.get(delta, 0) + 1
 
-        heurlist = [(y, x) for x, y in  heur.items()]
+        heurlist = [(y, x) for x, y in heur.items()]
         heurlist.sort()
 
-        plt_size = heurlist[-1][1]
-        logger.debug('plt_size: 0x%x\n%r', plt_size, heurlist)
+        # distance should be the greatest value.
+        plt_distance = heurlist[-1][1]
+        logger.debug('plt_distance : 0x%x\n%r', plt_distance, heurlist)
+
+        # there should be only one heuristic
+        if len(heurlist) > 1:
+            logger.warn("heuristics have more than one tracked branch: investigate!  PLT analysis is likely to be wrong (%r)", heurlist)
+
+        # now determine plt_size (basically, how far to backup from the branch to find the start of function
+        # *don't* use the first entry, because the trampoline is often odd...
+        plt_size = 0    # not including the branch instruction size?
+        bridx = 1
+
+        # if hastramp, we need to skip two to make sure we're not analyzing the first real plt
+        if hastramp:    
+            bridx += 1
+
+        brva, realplt = branchvas[bridx]
+        while brva != trampbr and not realplt:
+            bridx += 1
+            brva, realplt = branchvas[bridx]
+
+        # start off pointing at the branch location which bounces through GOT.
+        loc = vw.getLocation(brva)
+        # grab the size of the plt branch instruction for our benefit
+        pltbrsz = loc[vivisect.L_SIZE]
+
+        # we're searching for a point where either we hit:
+        #  * another branch (ie. lazy-loader) or
+        #  * non-Opcode (eg. literal pool)
+        # bounded to what we know is the distance between PLT branches
+        while loc is not None and \
+                plt_size <= plt_distance:
+            # first we back up one location
+            loc = vw.getLocation(loc[vivisect.L_VA] - 1)
+            lva, lsz, ltype, ltinfo = loc
+
+            if ltype != vivisect.LOC_OP:
+                # we've run into a non-opcode location: bail!
+                break
+
+            if ltinfo & envi.IF_BRANCH:
+                # we've hit another branch instruction.  stop!
+                break
+
+            plt_size += lsz
 
         # now get start of first real PLT entry
         bridx = 0
         brlen = len(branchvas)
-        while bridx < brlen - 1:
-            firstbr = branchvas[bridx]
-            if branchvas[bridx+1] - firstbr == plt_size:
-                break
+
+        firstbr, realplt = branchvas[bridx]
+        while not realplt:
+            firstbr, realplt = branchvas[bridx]
             bridx += 1
 
-        firstva = firstbr - plt_size + 4 # size of ARM opcode
-        logger.debug('plt first entry: 0x%x\n%r', firstva, [hex(x) for x in branchvas])
+
+        firstva = firstbr - plt_size
+        logger.debug('plt first entry: 0x%x\n%r', firstva, [(hex(x), y) for x, y in branchvas])
+        ###### FIXME BETWEEN THESE ######
+
+        dbg_interact(locals(), globals())
 
         if bridx != 0:
             logger.debug('First function in PLT is not a PLT entry.  Found Lazy Loader Trampoline.')
             vw.makeName(ssva, 'LazyLoaderTrampoline', filelocal=True)
 
         # scroll through arbitrary length functions and make functions
-        for sva in range(firstva, nextseg, plt_size):
+        for sva in range(firstva, nextseg, plt_distance):
             logger.info('making PLT function: 0x%x', sva)
             vw.makeFunction(sva)
             analyzeFunction(vw, sva)
@@ -198,15 +279,6 @@ def analyzeFunction(vw, funcva):
         if funcname is None:
             funcname = vw.getName(opval)
 
-        if vw.getFunction(aopval) is None:
-            logger.debug("0x%x: code does not exist at 0x%x.  calling makeFunction()", funcva, aopval)
-            vw.makeFunction(aopval, arch=aflags['arch'])
-
-        # this "thunk" actually calls something in the workspace, that exists as a function...
-        logger.info('0x%x points to real code (0x%x: %r)', funcva, opval, funcname)
-        vw.addXref(op.va, aopval, vivisect.REF_CODE)
-        vw.setVaSetRow('FuncWrappers', (funcva, opval))
-
 
         #if loctup[vivisect.L_LTYPE] == vivisect.LOC_POINTER:  # Some AMD64 PLT entries point at nameless relocations that point internally
         #    tgtva = loctup[vivisect.L_VA]
@@ -219,11 +291,21 @@ def analyzeFunction(vw, funcva):
 
         #elif loctup[vivisect.L_LTYPE] == vivisect.LOC_IMPORT:
         if loctup[vivisect.L_LTYPE] == vivisect.LOC_IMPORT:
-            logger.warn("0x%x: (0x%x) FAIL: dest is LOC_IMPORT but missed taint for %r", funcva, opval, funcname)
-            return
+            logger.warn("0x%x: (0x%x) dest is LOC_IMPORT but missed taint for %r", funcva, opval, funcname)
+            lva, lsz, ltype, ltinfo = loctup
+            funcname = ltinfo
 
         elif loctup[vivisect.L_LTYPE] == vivisect.LOC_OP:
             logger.debug("0x%x: succeeded finding LOC_OP at the end of the rainbow! (%r)", funcva, funcname)
+            if vw.getFunction(aopval) is None:
+                logger.debug("0x%x: code does not exist at 0x%x.  calling makeFunction()", funcva, aopval)
+                vw.makeFunction(aopval, arch=aflags['arch'])
+
+            # this "thunk" actually calls something in the workspace, that exists as a function...
+            logger.info('0x%x points to real code (0x%x: %r)', funcva, opval, funcname)
+            vw.addXref(op.va, aopval, vivisect.REF_CODE)
+            vw.setVaSetRow('FuncWrappers', (funcva, opval))
+
 
         if vw.getFunction(opval) == segva:
             # this is a lazy-link/load function, calling the first entry in the PLT
