@@ -691,13 +691,6 @@ def applyRelocs(elf, vw, addbase=False, baseaddr=0):
                     sym = elf.getDynSymbol(symidx)
                     ptr = sym.st_value
 
-                    ###
-                    print "----- %x    %r    %x" % (symidx, sym, ptr)
-                    print r.tree()
-                    print sym.tree()
-
-                    #quick check to make sure we don't provide this symbol
-
                     if ptr:
                         logger.info('R_ARM_GLOB_DAT: adding Relocation 0x%x -> 0x%x (%s) ', rlva, ptr, dmglname)
                         if addbase:

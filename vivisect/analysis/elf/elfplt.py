@@ -29,7 +29,7 @@ def analyzePLT(vw, ssva, ssize):
         nextseg = sva + ssize
 
         trampbr = None
-        hastramp = False
+        has_tramp = False
 
         branchvas = []
         while sva < nextseg:
@@ -50,7 +50,7 @@ def analyzePLT(vw, ssva, ssize):
                     # we grab all unconditional branches, and tag them
                     realplt = not bool(op.opers[-1].getOperValue(op) == ssva)
                     if not realplt:
-                        hastramp = True
+                        has_tramp = True
 
                     branchvas.append((op.va, realplt))
 
@@ -68,7 +68,7 @@ def analyzePLT(vw, ssva, ssize):
         #   a size
         # they are not the same.
 
-        if hastramp:
+        if has_tramp:
             # find the tramp's branch
             trampbr = ssva
             loc = vw.getLocation(trampbr)
@@ -81,7 +81,7 @@ def analyzePLT(vw, ssva, ssize):
             if branchvas[0][0] == trampbr:
                 branchvas[0] = (trampbr, False)
             else:
-                logger.debug("hastramp: trampbr: 0x%x    branchvas[0][0]: 0x%x", trampbr, branchvas[0][0])
+                logger.debug("has_tramp: trampbr: 0x%x    branchvas[0][0]: 0x%x", trampbr, branchvas[0][0])
 
         # heuristically determine PLT entry size and distance
         heur = {}
@@ -112,8 +112,8 @@ def analyzePLT(vw, ssva, ssize):
         plt_size = 0    # not including the branch instruction size?
         bridx = 1
 
-        # if hastramp, we need to skip two to make sure we're not analyzing the first real plt
-        if hastramp:    
+        # if has_tramp, we need to skip two to make sure we're not analyzing the first real plt
+        if has_tramp:    
             bridx += 1
 
         brva, realplt = branchvas[bridx]
@@ -127,7 +127,7 @@ def analyzePLT(vw, ssva, ssize):
         pltbrsz = loc[vivisect.L_SIZE]
 
         # we're searching for a point where either we hit:
-        #  * another branch (ie. lazy-loader) or
+        #  * another branch/NO_FALL (ie. lazy-loader) or
         #  * non-Opcode (eg. literal pool)
         #  * or a NOP
         # bounded to what we know is the distance between PLT branches
@@ -238,7 +238,7 @@ def analyzeFunction(vw, funcva):
 
     for opval, brflags in branches:
         if opval is None:
-            logger.warn("getBranches():  opval is None!:  op = %r     branches = %r", op, branches)
+            logger.info("getBranches():  opval is None!:  op = %r     branches = %r", op, branches)
         else:
             logger.debug('getBranches():  ref: 0x%x  brflags: 0x%x', opval, brflags)
 
@@ -246,8 +246,11 @@ def analyzeFunction(vw, funcva):
 
         # if BR_DEREF, this is a pointer
         if brflags & envi.BR_DEREF:
-            if loctup is not None:
-                lva, lsz, ltype, ltinfo = loctup
+            if loctup is None:
+                logger.exception('0x%x: opval=0x%x: brflags is BR_DEREF, but loctup is None.  Don\'t know what to do. skipping.', op.va, opval)
+                continue
+
+            lva, lsz, ltype, ltinfo = loctup
             opref = opval
             # add the xref to whatever location referenced (assuming the opref hack worked)
             if vw.isValidPointer(opref):
@@ -283,13 +286,18 @@ def analyzeFunction(vw, funcva):
             else:
                 # instead of a taint (which *should* indicate an IMPORT), we have real pointer.
                 # check the location type
+                if not vw.isValidPointer(opval):
+                    logger.info("PLT: opval=0x%x - not a valid pointer... skipping")
+                    continue
+
                 if loctup is None:
                     if opval is None:
                         logger.warn("PLT: 0x%x - branch deref not defined: (opval is None!)", opva)
                         return
                     else:
-                        logger.warn("PLT: 0x%x - making function at location 0x%x", opva, opval)
-                        vw.makeFunction(opval)
+                        aopval, aflags = vw.arch.archModifyFuncAddr(opval, {'arch': envi.ARCH_DEFAULT})
+                        logger.warn("PLT: 0x%x - making function at location 0x%x", opva, aopval)
+                        vw.makeFunction(aopval, arch=aflags['arch'])
                         loctup = vw.getLocation(opval)
 
                 lva, lsz, ltype, ltinfo = loctup
