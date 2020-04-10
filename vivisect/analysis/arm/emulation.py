@@ -37,6 +37,7 @@ class AnalysisMonitor(viv_monitor.AnalysisMonitor):
             self.last_tmode = tmode
             #if self.verbose: print( "tmode: %x    emu:  0x%x   flags: 0x%x \t %r" % (tmode, starteip, op.iflags, op))
             if op in self.badops:
+                emu.stopEmu()
                 raise Exception("Hit known BADOP at 0x%.8x %s (fva: 0x%x)" % (starteip, repr(op), self.fva))
 
             viv_monitor.AnalysisMonitor.prehook(self, emu, op, starteip)
@@ -49,11 +50,11 @@ class AnalysisMonitor(viv_monitor.AnalysisMonitor):
                 emu.vw.makeCode(starteip & -2, arch=arch)
 
             elif loctup[2] != LOC_OP:
-                if self.verbose: print("ARG! emulation found opcode in an existing NON-OPCODE location  (0x%x):  0x%x: %s" % (loctup[0], op.va, op))
+                logger.info("ARG! emulation found opcode in an existing NON-OPCODE location  (0x%x):  0x%x: %s", loctup[0], op.va, op)
                 emu.stopEmu()
 
             elif loctup[0] != starteip:
-                if self.verbose: print("ARG! emulation found opcode in a location at the wrong address (0x%x):  0x%x: %s" % (loctup[0], op.va, op))
+                logger.info("ARG! emulation found opcode in a location at the wrong address (0x%x):  0x%x: %s", loctup[0], op.va, op)
                 emu.stopEmu()
 
             if op.iflags & envi.IF_RET:
@@ -84,7 +85,7 @@ class AnalysisMonitor(viv_monitor.AnalysisMonitor):
             elif op.opcode == INS_BX:
                 if starteip - self.last_lr_pc <= 4:
                     # this is a call.  the compiler updated lr
-                    if self.verbose: print("CALL by mov lr, pc; bx <foo> at 0x%x" % starteip)
+                    logger.info("CALL by mov lr, pc; bx <foo> at 0x%x", starteip)
                     ### DO SOMETHING??  identify new function like emucode.
 
             elif op.opcode == INS_ADD and op.opers[0].reg == REG_PC:
@@ -113,7 +114,7 @@ class AnalysisMonitor(viv_monitor.AnalysisMonitor):
                     #if self.verbose: print("BRANCH: ", hex(tgt), hex(op.va), hex(op.va))
 
                     if tgt == op.va:
-                        if self.verbose: print("+++++++++++++++ infinite loop +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
+                        logger.info("0x%x: +++++++++++++++ infinite loop +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++", op.va)
                         if op.va not in self.infloops:
                             self.infloops.append(op.va)
                             if 'InfiniteLoops' not in vw.getVaSetNames():
@@ -231,7 +232,7 @@ def analyzeTB(emu, op, starteip, amon):
     ######################### FIXME: ADD THIS TO getBranches(emu)
     ### DEBUGGING
     #raw_input("\n\n\nPRESS ENTER TO START TB: 0x%x" % op.va)
-    if emu.vw.verbose:  print("\n\nTB at 0x%x" % starteip)
+    logger.debug("\n\nTB at 0x%x", starteip)
     tsize = op.opers[0].tsize
     tbl = []
     basereg = op.opers[0].base_reg
@@ -240,28 +241,28 @@ def analyzeTB(emu, op, starteip, amon):
     else:
         base = op.opers[0].va
 
-    if emu.vw.verbose:  print("\nbase: 0x%x" % base)
+    logger.debug("\nbase: 0x%x", base)
     val0 = emu.readMemValue(base, tsize)
 
     if val0 > 0x100 + base:
-        print("ummmm.. Houston we got a problem.  first option is a long ways beyond BASE")
+        logger.debug("ummmm.. Houston we got a problem.  first option is a long ways beyond BASE")
 
     va = base
     while va < base + val0:
         nextoff = emu.readMemValue(va, tsize) * 2
-        if emu.vw.verbose:  print("0x%x: -> 0x%x" % (va, nextoff + base))
+        logger.debug("0x%x: -> 0x%x", va, nextoff + base)
         if nextoff == 0:
-            if emu.vw.verbose:  print("Terminating TB at 0-offset")
+            logging.debug("Terminating TB at 0-offset")
             break
 
         if nextoff > 0x500:
-            if emu.vw.verbose:  print("Terminating TB at LARGE - offset  (may be too restrictive): 0x%x" % nextoff)
+            logging.debug("Terminating TB at LARGE - offset  (may be too restrictive): 0x%x", nextoff)
             break
 
         loc = emu.vw.getLocation(va)
         if loc != None:
-            if emu.vw.verbose:  print("Terminating TB at Location/Reference")
-            if emu.vw.verbose:  print("%x, %d, %x, %r" % loc)
+            logger.debug("Terminating TB at Location/Reference")
+            logger.debug("%x, %d, %x, %r", loc)
             break
 
         tbl.append((va, nextoff))

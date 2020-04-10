@@ -663,7 +663,9 @@ def applyRelocs(elf, vw, addbase=False, baseaddr=0):
                     ptr = sym.st_value
 
                     # quick check to make sure we don't provide this symbol
-                    if ptr:
+                    # some toolchains like to point the GOT back at it's PLT entry
+                    # that does *not* mean it's not an IMPORT
+                    if ptr and not isPLT(vw, ptr):
                         logger.info('R_ARM_JUMP_SLOT: adding Relocation 0x%x -> 0x%x (%s) ', rlva, ptr, dmglname)
                         if addbase:
                             vw.addRelocation(rlva, vivisect.RTYPE_BASEPTR, ptr)
@@ -746,6 +748,16 @@ def applyRelocs(elf, vw, addbase=False, baseaddr=0):
         except vivisect.InvalidLocation as e:
             logger.warn("NOTE\t%r", e)
 
+def isPLT(vw, va):
+    '''
+    Do a decent check to see if this va is in a PLT section
+    '''
+    seg = vw.getSegment(va)
+    if seg is None:
+        return False
+    if seg[2].startswith('.plt'):
+        return True
+    return False
 
 def normName(name):
     '''

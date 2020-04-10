@@ -3954,6 +3954,13 @@ class ArmOpcode(envi.Opcode):
                     print "0x%x:  %r      getBranches() with no emulator" % (self.va, self)
                     '''
             else:
+                # actually add the branch here...
+                # if we are a deref, add the DEREF
+                if oper.isDeref():
+                    ref = oper.getOperAddr(self, emu)
+                    ret.append((ref, flags | envi.BR_DEREF))
+
+                # if we point to a valid address, add that branch as well:
                 ret.append((operval, flags))
             #print "getBranches: (0x%x) add  0x%x   %x"% (self.va, operval, flags)
 

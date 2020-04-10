@@ -38,7 +38,8 @@ def analyzePLT(vw, ssva, ssize):
                 try:
                     vw.makeCode(sva)
                 except Exception as e:
-                    logger.warn('0x%x: exception: %r', sva, e)
+                    #logger.warn('0x%x: exception: %r', sva, e)
+                    logger.exception('0x%x: exception: %r', sva, e)
 
             ltup = vw.getLocation(sva)
 
@@ -157,12 +158,32 @@ def analyzePLT(vw, ssva, ssize):
         brlen = len(branchvas)
 
         firstbr, realplt = branchvas[bridx]
-        while not realplt:
+        # roll through branches until we find one we like as the start of the real plts
+        while bridx < brlen:
             firstbr, realplt = branchvas[bridx]
+            if realplt:
+                firstva = firstbr - plt_size
+                prevloc = vw.getLocation(firstva - 1)
+                if prevloc is None:
+                    continue
+                plva, plsz, pltp, pltinfo = prevloc
+                if pltp == vivisect.LOC_OP:
+                    if pltinfo & envi.IF_NOFALL:
+                        # the previous instruction is IF_NOFALL!  good.
+                        logger.debug("firstva found: preceeded by IF_NOFALL")
+                        break
+                    op = vw.parseOpcode(plva)
+                    if op.mnem == 'nop':
+                        # ugly, but effective:
+                        logger.debug("firstva found: preceeded by 'nop'")
+                        break
+                else:
+                    # we've hit a non-LOC_OP... that seems like this is the start of func
+                    logger.debug("firstva found: preceeded by non-LOC_OP")
+                    break
             bridx += 1
 
 
-        firstva = firstbr - plt_size
         logger.debug('plt first entry: 0x%x\n%r', firstva, [(hex(x), y) for x, y in branchvas])
 
         if bridx != 0:
@@ -189,7 +210,7 @@ def analyzeFunction(vw, funcva):
         segva, segsize, segname, segfname = seg
 
         if segname not in (".plt", ".plt.got"):
-            logger.warn('0x%x: not part of ".plt" or ".plt.got"', funcva)
+            logger.debug('0x%x: not part of ".plt" or ".plt.got"', funcva)
             return
 
     logger.info('analyzing PLT function: 0x%x', funcva)
@@ -287,7 +308,7 @@ def analyzeFunction(vw, funcva):
                 # instead of a taint (which *should* indicate an IMPORT), we have real pointer.
                 # check the location type
                 if not vw.isValidPointer(opval):
-                    logger.info("PLT: opval=0x%x - not a valid pointer... skipping")
+                    logger.info("PLT: opval=0x%x - not a valid pointer... skipping", opval)
                     continue
 
                 if loctup is None:
