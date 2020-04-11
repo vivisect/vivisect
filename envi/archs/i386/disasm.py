@@ -247,6 +247,9 @@ class i386PcRelOper(envi.Operand):
     def getOperValue(self, op, emu=None):
         return op.va + op.size + self.imm
 
+    def getOperAddr(self, op, emu=None):
+        return None
+
     def render(self, mcanv, op, idx):
         hint = mcanv.syms.getSymHint(op.va, idx)
         if hint != None:

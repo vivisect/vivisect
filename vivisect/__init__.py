@@ -1250,6 +1250,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         if self.isLocation(va):
             return
 
+        logger.debug("makeCode(0x%x, 0x%x)", va, arch)
         calls_from = self.cfctx.addCodeFlow(va, arch=arch)
 
     def previewCode(self, va, arch=envi.ARCH_DEFAULT):
@@ -1305,9 +1306,6 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         if self.isFunction(va):
             return
 
-        if meta == None:
-            meta = {}
-
         if not self.isValidPointer(va):
             raise InvalidLocation(va)
 
@@ -1315,7 +1313,11 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         if loc != None and loc[L_TINFO] != None and loc[L_LTYPE] == LOC_OP:
             arch = loc[L_TINFO]
 
-        self.cfctx.addEntryPoint(va, arch=arch)
+        realfva = self.cfctx.addEntryPoint(va, arch=arch)
+
+        if meta is not None:
+            for key, val in meta.items():
+                self.setFunctionMeta(realfva, key, val)
 
     def delFunction(self, funcva):
         """
