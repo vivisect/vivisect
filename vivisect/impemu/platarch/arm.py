@@ -139,6 +139,7 @@ class ArmWorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_arm.ArmEmulator):
 
 
         self.funcva = funcva
+        return funcva
 
 
     def runFunction(self, funcva, stopva=None, maxhit=None, maxloop=None, tmode=None):
@@ -148,7 +149,8 @@ class ArmWorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_arm.ArmEmulator):
         to return once that location is hit.
         """
         logger.debug('=== emu.runFunction(0x%x, stopva=%r, maxhit=%r, maxloop=%r, tmode=%r)', funcva, stopva, maxhit, maxloop, tmode)
-        self._prep(funcva, tmode)
+        funcva = self._prep(funcva, tmode)
+
 
         # Let the current (should be base also) path know where we are starting
         vg_path.setNodeProp(self.curpath, 'bva', funcva)

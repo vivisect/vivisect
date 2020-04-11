@@ -171,6 +171,9 @@ class WorkspaceEmulator:
             api = self.getCallApi(endeip)
             rtype, rname, convname, callname, funcargs = api
             callconv = self.getCallingConvention(convname)
+            if callconv is None:
+                logger.exception("checkCall(0x%x, 0x%x, %r): cannot get calling convention!", starteip, endeip, op)
+
             argv = callconv.getCallArgs(self, len(funcargs))
 
             ret = None
