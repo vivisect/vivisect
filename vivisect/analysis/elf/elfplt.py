@@ -165,6 +165,9 @@ def analyzePLT(vw, ssva, ssize):
                 firstva = firstbr - plt_size
                 prevloc = vw.getLocation(firstva - 1)
                 if prevloc is None:
+                    # perhaps this is ok?
+                    logger.debug("NOT firstva: 0x%x - preceeded by loctup==None", firstva)
+                    bridx += 1
                     continue
                 plva, plsz, pltp, pltinfo = prevloc
                 if pltp == vivisect.LOC_OP:
