@@ -1,7 +1,12 @@
 import envi
 import envi.bits as e_bits
 
+import logging
+
 from vivisect.const import *
+
+logger = logging.getLogger(__name__)
+
 
 BRANCH_FLAGS = envi.IF_BRANCH | envi.IF_CALL
 class EmulationMonitor:
@@ -174,6 +179,7 @@ class AnalysisMonitor(EmulationMonitor):
                 self.vw.setComment(arg, argtype, check=True)
                 if not self.vw.isLocation(arg):
                     if argname == 'funcptr':
+                        logger.debug('discovered new function: 0x%x', arg)
                         self.vw.makeFunction(arg)
 
                     # FIXME make an API for this? ( the name parsing )

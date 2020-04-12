@@ -653,6 +653,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         if ltype == LOC_OP:
             # NOTE: currently analyzePointer returns LOC_OP
             # based on function entries, lets make a func too...
+            logger.debug('discovered new function (followPointer(0x%x))', va)
             self.makeFunction(va)
             return True
 
@@ -837,7 +838,6 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             maxsize = len(bytes) - size
 
             while offset + size < maxsize:
-                dbg = 0
                 va = mva + offset
 
                 loctup = self.getLocation(va)

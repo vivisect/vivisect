@@ -10,9 +10,12 @@ import vivisect.reports as viv_rep
 from envi.archs.i386.opconst import *
 import vivisect.impemu.monitor as viv_imp_monitor
 
+import logging
+
 from vivisect.const import *
 
-verbose = False
+logger = logging.getLogger(__name__)
+
 
 class watcher(viv_imp_monitor.EmulationMonitor):
 
@@ -158,6 +161,7 @@ def analyze(vw):
                 continue
             # XXX - RP 
             try:
+                logger.debug('discovered new function: 0x%x', va)
                 vw.makeFunction(va)
             except: 
                 continue

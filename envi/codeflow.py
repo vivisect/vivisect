@@ -280,9 +280,10 @@ class CodeFlowContext(object):
         self._funcs[va] = True
         calls_from = self.addCodeFlow(va, arch=arch)
         self._fcalls[va] = calls_from
+        logger.debug('addEntryPoint(0x%x): calls_from: %r', va, calls_from)
 
         # Finally, notify the callback of a new function
-        self._cb_function(va, {'CallsFrom':calls_from})
+        self._cb_function(va, {'CallsFrom': calls_from})
         return va
 
     def flushFunction(self, fva):
