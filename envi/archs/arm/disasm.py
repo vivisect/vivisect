@@ -404,13 +404,23 @@ def p_misc1(opval, va): #
         opcode = INS_BX
         mnem = 'bx'
         Rm = opval & 0xf
+        cond = (opval >> 28) & 0xf
+
         olist = ( ArmRegOper(Rm, va=va), )
+
         if Rm == REG_LR:
-            iflags |= envi.IF_RET | envi.IF_NOFALL
+            if cond < 0xe:
+                iflags |= envi.IF_RET | envi.IF_COND
+            else:
+                iflags |= envi.IF_RET | envi.IF_NOFALL
+
         else:
-            iflags |= envi.IF_BRANCH
-        
-    elif opval & 0x0ff000f0 == 0x01600010:  
+            if cond < 0xe:
+                iflags |= envi.IF_BRANCH | envi.IF_COND
+            else:
+                iflags |= envi.IF_BRANCH
+
+    elif opval & 0x0ff000f0 == 0x01600010:
         opcode = INS_CLZ
         mnem = 'clz'
         Rd = (opval>>12) & 0xf
