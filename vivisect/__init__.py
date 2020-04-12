@@ -821,12 +821,13 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         if you can find pointers there...  Returns a list of tuples
         where the tuple is (<ptr at>,<pts to>).
         """
+        align = self.arch.archGetPointerAlignment()
         if cache:
             ret = self.getTransMeta('findPointers')
-            if ret != None:
+            if ret is not None:
                 # Filter locations added since last run...
-                ret = [ (va,x) for (va,x) in ret if self.getLocation(va) == None ]
-                self.setTransMeta('findPointers',ret)
+                ret = [(va, x) for (va, x) in ret if self.getLocation(va) is None and not (va % align)]
+                self.setTransMeta('findPointers', ret)
                 return ret
 
         ret = []
@@ -837,11 +838,16 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             offset, bytes = self.getByteDef(mva)
             maxsize = len(bytes) - size
 
+            # if our memory map is not starting off aligned appropriately
+            if offset % align:
+                offset &= -align
+                offset += align
+
             while offset + size < maxsize:
                 va = mva + offset
 
                 loctup = self.getLocation(va)
-                if loctup != None:
+                if loctup is not None:
                     offset += loctup[L_SIZE]
                     continue
 
@@ -851,8 +857,8 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
                     offset += size
                     continue
 
-
-                offset += 1
+                offset += align
+                offset &= -align
 
         if cache:
             self.setTransMeta('findPointers', ret)

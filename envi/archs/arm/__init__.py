@@ -84,6 +84,9 @@ class ArmModule(envi.ArchitectureModule):
         groups.append(switch_mapbase)
         return groups
 
+    def archGetPointerAlignment(self):
+        return 4
+
 
 class ThumbModule(envi.ArchitectureModule):
     '''
@@ -147,6 +150,9 @@ class ThumbModule(envi.ArchitectureModule):
         if tova & 1:
             return tova & -2, reftype, rflags
         return tova, reftype, rflags
+
+    def archGetPointerAlignment(self):
+        return 4
 
 
 from envi.archs.arm.emu import *

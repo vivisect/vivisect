@@ -219,6 +219,9 @@ class ArchitectureModule:
         defcall = self._plat_def_calls.get(platform)
         return defcall
 
+    def archGetPointerAlignment(self):
+        return 1
+
 def stealArchMethods(obj, archname):
     '''
     Used by objects which are expected to inherit from an
