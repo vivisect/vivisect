@@ -849,6 +849,9 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
                 loctup = self.getLocation(va)
                 if loctup is not None:
                     offset += loctup[L_SIZE]
+                    if offset % align:
+                        offset += align
+                        offset &= -align
                     continue
 
                 x = e_bits.parsebytes(bytes, offset, size, bigend=self.bigend)
