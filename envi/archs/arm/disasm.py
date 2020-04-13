@@ -392,12 +392,6 @@ def p_misc(opval, va):
 
 
 def p_misc1(opval, va): # 
-    #R = (opval>>22) & 1
-    #Rn = (opval>>16) & 0xf
-    #Rd = (opval>>12) & 0xf
-    #rot_imm = (opval>>8) & 0xf
-    #imm = opval & 0xff
-    #Rm = opval & 0xf
     iflags = 0
 
     if opval & 0x0ff000f0 == 0x01200010:
