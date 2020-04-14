@@ -52,13 +52,12 @@ def analyze(vw):
         except Exception:
             logger.info("followPointer() failed for 0x%.8x (pval: 0x%.8x)" % (lva, tva))
 
-
     # Now, lets find likely free-hanging pointers
     for addr, pval in vw.findPointers():
         if vw.isDeadData(pval):
             continue
         try:
-            vw.followPointer(pval)
+            vw.makePointer(addr, follow=True)
             done.append((addr, pval))
             logger.info('pointer(4): 0x%x -> 0x%x', addr, pval)
         except Exception:

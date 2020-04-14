@@ -197,7 +197,6 @@ def analyzePLT(vw, ssva, ssize):
         for sva in range(firstva, nextseg, plt_distance):
             logger.info('making PLT function: 0x%x', sva)
             vw.makeFunction(sva)
-            analyzeFunction(vw, sva)
 
 
 MAX_OPS = 10

@@ -2267,12 +2267,19 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
                 raise DuplicateName(oldva, va, name)
 
             else:
+                logger.debug('makeName: %r already lives at 0x%x', name, oldva)
                 # tack a number on the end
                 index = 0
                 newname = "%s_%d" % (name, index)
+                newoldva = self.vaByName(newname)
                 while self.vaByName(newname) not in (None, newname):
+                    # if we run into the va we're naming, that's the name still
+                    if newoldva == va:
+                        return newname
+                    logger.debug('makeName: %r already lives at 0x%x', newname, newoldva)
                     index += 1
                     newname = "%s_%d" % (name, index)
+                    newoldva = self.vaByName(newname)
 
                 name = newname
 
