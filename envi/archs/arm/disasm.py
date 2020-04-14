@@ -8,15 +8,10 @@ import envi.bits as e_bits
 from envi.archs.arm.const import *
 from envi.archs.arm.regs import *
 
-# FIXME: TODO
-# FIXME:   codeflow currently misses some switchcases
 # FIXME:   codeflow needs to identify the following pattern as a call with fallthrough
 #          (currently identifying the xref and making the fallthrough into a function):
 #           mov lr, pc
 #           sub pc, <blah>
-
-# FIXME the following things dont decode correctly
-# 5346544e    cmppl   r6, #1308622848
 
 # Possible future extensions: 
 #   * VectorPointFloat subsystem (coproc 10+11)
@@ -3866,15 +3861,17 @@ class ArmOpcode(envi.Opcode):
 
     def __init__(self, va, opcode, mnem, prefixes, size, operands, iflags=0, simdflags=0):
         """
-        constructor for the basic Envi Opcode object.  Arguments as follows:
+        (constructor for the basic Envi Opcode object, plus simdflags)
+        Arguments as follows:
 
+        va       - The virtual address the instruction lives at (used for PC relative immediates etc...)
         opcode   - An architecture specific numerical value for the opcode
         mnem     - A humon readable mnemonic for the opcode
         prefixes - a bitmask of architecture specific instruction prefixes
         size     - The size of the opcode in bytes
         operands - A list of Operand objects for this opcode
         iflags   - A list of Envi (architecture independant) instruction flags (see IF_FOO)
-        va       - The virtual address the instruction lives at (used for PC relative immediates etc...)
+        simdflags - extra set of flags to store SIMD/vector information without killing iflags
 
         NOTE: If you want to create an architecture spcific opcode, I'd *highly* recommend you
               just copy/paste in the following simple initial code rather than calling the parent

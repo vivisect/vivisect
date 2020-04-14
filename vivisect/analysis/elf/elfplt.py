@@ -38,7 +38,6 @@ def analyzePLT(vw, ssva, ssize):
                 try:
                     vw.makeCode(sva)
                 except Exception as e:
-                    #logger.warn('0x%x: exception: %r', sva, e)
                     logger.exception('0x%x: exception: %r', sva, e)
 
             ltup = vw.getLocation(sva)
@@ -283,12 +282,12 @@ def analyzeFunction(vw, funcva):
             if ltype == vivisect.LOC_IMPORT:
                 # import locations store the name as ltinfo
                 funcname = ltinfo
-                logger.warn("0x%x: (0x%x) LOC_IMPORT by BR_DEREF %r", funcva, opval, funcname)
+                logger.debug("0x%x: (0x%x) LOC_IMPORT by BR_DEREF %r", funcva, opval, funcname)
 
             elif ltype == vivisect.LOC_POINTER:
                 # we have a deref to a pointer.
                 funcname = vw.getName(ltinfo)
-                logger.warn("0x%x: (0x%x->0x%x) LOC_POINTER by BR_DEREF %r", funcva, opval, ltinfo, funcname)
+                logger.debug("0x%x: (0x%x->0x%x) LOC_POINTER by BR_DEREF %r", funcva, opval, ltinfo, funcname)
             else:
                 logger.warn("0x%x: (0x%x) not LOC_IMPORT or LOC_POINTER?? by BR_DEREF %r", funcva, opval, loctup)
 
@@ -319,7 +318,7 @@ def analyzeFunction(vw, funcva):
                         return
                     else:
                         aopval, aflags = vw.arch.archModifyFuncAddr(opval, {'arch': envi.ARCH_DEFAULT})
-                        logger.warn("PLT: 0x%x - making function at location 0x%x", opva, aopval)
+                        logger.info("PLT: 0x%x - making function at location 0x%x", opva, aopval)
                         vw.makeFunction(aopval, arch=aflags['arch'])
                         loctup = vw.getLocation(opval)
 
@@ -333,7 +332,7 @@ def analyzeFunction(vw, funcva):
 
                 # sort through the location types and adjust accordingly
                 if ltype == vivisect.LOC_IMPORT:
-                    logger.warn("0x%x: (0x%x) dest is LOC_IMPORT but missed taint for %r", funcva, opval, funcname)
+                    logger.info("0x%x: (0x%x) dest is LOC_IMPORT but missed taint for %r", funcva, opval, funcname)
                     # import locations store the name as ltinfo
                     funcname = ltinfo
                     dbg_interact(locals(), globals())
@@ -350,7 +349,7 @@ def analyzeFunction(vw, funcva):
                     vw.setVaSetRow('FuncWrappers', (funcva, opval))
 
                 elif ltype == vivisect.LOC_POINTER:
-                    logger.warn("0x%x: (0x%x) dest is LOC_POINTER -> 0x%x", funcva, opval, ltinfo)
+                    logger.info("0x%x: (0x%x) dest is LOC_POINTER -> 0x%x", funcva, opval, ltinfo)
                     funcname = ltinfo
 
 
