@@ -1644,7 +1644,7 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
         val &= ~const
         self.setOperValue(op, 0, val)
 
-        Sflag = op.iflags & IF_PSR_S # FIXME: IF_PSR_S???
+        Sflag = op.iflags & IF_PSR_S
         if Sflag:
             self.setFlag(PSR_N_bit, e_bits.is_signed(val, dsize))
             self.setFlag(PSR_Z_bit, not val)
