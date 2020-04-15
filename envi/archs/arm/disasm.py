@@ -5305,9 +5305,6 @@ class ArmDisasm:
         if mnem == None or type(mnem) == int:
             raise Exception("mnem == %r!  0x%x" % (mnem, opval))
 
-        # since our flags determine how the instruction is decoded later....  
-        # performance-wise this should be set as the default value instead of 0, but this is cleaner
-        #flags |= envi.ARCH_ARMV7
         # Ok...  if we're a non-conditional branch, *or* we manipulate PC unconditionally,
         # lets call ourself envi.IF_NOFALL
         if cond == COND_AL:                             # FIXME: this could backfire if COND_EXTENDED...

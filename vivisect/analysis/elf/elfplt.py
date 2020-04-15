@@ -335,7 +335,6 @@ def analyzeFunction(vw, funcva):
                     logger.info("0x%x: (0x%x) dest is LOC_IMPORT but missed taint for %r", funcva, opval, funcname)
                     # import locations store the name as ltinfo
                     funcname = ltinfo
-                    dbg_interact(locals(), globals())
 
                 elif ltype == vivisect.LOC_OP:
                     logger.debug("0x%x: succeeded finding LOC_OP at the end of the rainbow! (%r)", funcva, funcname)

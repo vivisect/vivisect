@@ -1176,7 +1176,7 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
         if updatereg:
             self.setRegister(srcreg,addr)
         #FIXME: add "shared memory" functionality?  prolly just in ldrex which will be handled in i_ldrex
-        # is t  he following necessary? 
+        # is the following necessary? 
         newpc = self.getRegister(REG_PC)    # check whether pc has changed
         if pc != newpc:
             self.setThumbMode(newpc & 1)
