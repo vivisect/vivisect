@@ -445,124 +445,6 @@ r_types_amd64 = {
     R_X86_64_DTPOFF32: 'Offset in TLS block',
     R_X86_64_GOTTPOFF: '32 bit signed PC relative offset to GOT entry for IE symbol',
     R_X86_64_TPOFF32: 'Offset in initial TLS block',
-=======
-    R_386_NONE:"No reloc",
-    R_386_32:"Direct 32 bit",
-    R_386_PC32:"PC relative 32 bit",
-    R_386_GOT32:"32 bit GOT entry",
-    R_386_PLT32:"32 bit PLT address",
-    R_386_COPY:"Copy symbol at runtime",
-    R_386_GLOB_DAT:"Create GOT entry",
-    R_386_JMP_SLOT:"Create PLT entry",
-    R_386_RELATIVE:"Adjust by program base",
-    R_386_GOTOFF:"32 bit offset to GOT",
-    R_386_GOTPC:"32 bit PC relative offset to GOT",
-    R_386_32PLT:"",
-    R_386_TLS_TPOFF:"Offset in static TLS block",
-    R_386_TLS_IE:"Address of GOT entry for static",
-    R_386_TLS_GOTIE:"GOT entry for static TLS",
-    R_386_TLS_LE:"Offset relative to static",
-    R_386_TLS_GD:"Direct 32 bit for GNU version",
-    R_386_TLS_LDM:"Direct 32 bit for GNU version",
-    R_386_16:"",
-    R_386_PC16:"",
-    R_386_8:"",
-    R_386_PC8:"",
-    R_386_TLS_GD_32:"Direct 32 bit for general",
-    R_386_TLS_GD_PUSH:"Tag for pushl in GD TLS code",
-    R_386_TLS_GD_CALL:"Relocation for call",
-    R_386_TLS_GD_POP:"Tag for popl in GD TLS code",
-    R_386_TLS_LDM_32:"Direct 32 bit for local",
-    R_386_TLS_LDM_PUSH:"Tag for pushl in LDM TLS code",
-    R_386_TLS_LDM_CALL:"Relocation for call",
-    R_386_TLS_LDM_POP:"Tag for popl in LDM TLS code",
-    R_386_TLS_LDO_32:"Offset relative to TLS block",
-    R_386_TLS_IE_32:"GOT entry for negated static",
-    R_386_TLS_LE_32:"Negated offset relative to",
-    R_386_TLS_DTPMOD32:"ID of module containing symbol",
-    R_386_TLS_DTPOFF32:"Offset in TLS block",
-    R_386_TLS_TPOFF32:"Negated offset in static TLS block",
-}
-
-R_X86_64_NONE        = 0
-R_X86_64_64          = 1
-R_X86_64_PC32        = 2
-R_X86_64_GOT32       = 3
-R_X86_64_PLT32       = 4
-R_X86_64_COPY        = 5
-R_X86_64_GLOB_DAT    = 6
-R_X86_64_JUMP_SLOT   = 7
-R_X86_64_RELATIVE    = 8
-R_X86_64_GOTPCREL    = 9
-R_X86_64_32          = 10
-R_X86_64_32S         = 11
-R_X86_64_16          = 12
-R_X86_64_PC16        = 13
-R_X86_64_8           = 14
-R_X86_64_PC8         = 15
-R_X86_64_DTPMOD64    = 16
-R_X86_64_DTPOFF64    = 17
-R_X86_64_TPOFF64     = 18
-R_X86_64_TLSGD       = 19
-R_X86_64_TLSLD       = 20
-R_X86_64_DTPOFF32    = 21
-R_X86_64_GOTTPOFF    = 22
-R_X86_64_TPOFF32     = 23
-R_X86_64_NUM         = 24
-R_X86_64_GOTOFF64    = 25
-R_X86_64_GOTPC32     = 26
-R_X86_64_GOT64       = 27
-R_X86_64_GOTPCREL64  = 28
-R_X86_64_GOTPC64     = 29
-R_X86_64_GOTPLT64    = 30
-R_X86_64_PLTOFF64    = 31
-R_X86_64_SIZE32      = 32
-R_X86_64_SIZE64      = 33
-R_X86_64_GOTPC32_TLSDESC = 34
-R_X86_64_TLSDESC_CALL = 35
-R_X86_64_TLSDESC     = 36
-R_X86_64_IRELATIVE   = 37
-
-
-r_types_amd64 = {
-    R_X86_64_NONE       :'No reloc',
-    R_X86_64_64         :'Direct 64 bit ',
-    R_X86_64_PC32       :'PC relative 32 bit signed',
-    R_X86_64_GOT32      :'32 bit GOT entry',
-    R_X86_64_PLT32      :'32 bit PLT address',
-    R_X86_64_COPY       :'Copy symbol at runtime',
-    R_X86_64_GLOB_DAT   :'Create GOT entry',
-    R_X86_64_JUMP_SLOT  :'Create PLT entry',
-    R_X86_64_RELATIVE   :'Adjust by program base',
-    R_X86_64_GOTPCREL   :'32 bit signed PC relative offset to GOT',
-    R_X86_64_32         :'Direct 32 bit zero extended',
-    R_X86_64_32S        :'Direct 32 bit sign extended',
-    R_X86_64_16         :'Direct 16 bit zero extended',
-    R_X86_64_PC16       :'16 bit sign extended pc relative',
-    R_X86_64_8          :'Direct 8 bit sign extended ',
-    R_X86_64_PC8        :'8 bit sign extended pc relative',
-    R_X86_64_DTPMOD64   :'ID of module containing symbol',
-    R_X86_64_DTPOFF64   :'Offset in modules TLS block',
-    R_X86_64_TPOFF64    :'Offset in initial TLS block',
-    R_X86_64_TLSGD      :'32 bit signed PC relative offset to two GOT entries for GD symbol',
-    R_X86_64_TLSLD      :'32 bit signed PC relative offset to two GOT entries for LD symbol',
-    R_X86_64_DTPOFF32   :'Offset in TLS block',
-    R_X86_64_GOTTPOFF   :'32 bit signed PC relative offset to GOT entry for IE symbol',
-    R_X86_64_TPOFF32    :'Offset in initial TLS block',
-    R_X86_64_GOTOFF64   :'64 bit offset to GOT',
-    R_X86_64_GOTPC32    :'32 bit signed pc relative offset to GOT',
-    R_X86_64_GOT64      :'64-bit GOT entry offset',
-    R_X86_64_GOTPCREL64 :'64-bit PC relative offset to GOT entry',
-    R_X86_64_GOTPC64    :'64-bit PC relative offset to GOT',
-    R_X86_64_GOTPLT64   :'like GOT64, says PLT entry needed',
-    R_X86_64_PLTOFF64   :'64-bit GOT relative offset to PLT entry',
-    R_X86_64_SIZE32     :'Size of symbol plus 32-bit addend',
-    R_X86_64_SIZE64     :'Size of symbol plus 64-bit addend',
-    R_X86_64_GOTPC32_TLSDESC :'GOT offset for TLS descriptor. ',
-    R_X86_64_TLSDESC_CALL :'Marker for call through TLS descriptor. ',
-    R_X86_64_TLSDESC    :'TLS descriptor. ',
-    R_X86_64_IRELATIVE  :'Adjust indirectly by program base',
->>>>>>> master
 }
 
 # Define e_flags to 386
@@ -600,7 +482,6 @@ SHT_HIUSER = 0x8fffffff
 sht_lookup ={y: x for x, y in globals().items() if x.startswith("SHT_")}
 
 sh_type = {
-<<<<<<< HEAD
     SHT_NULL: "Section header table entry unused",
     SHT_PROGBITS: "Program data",
     SHT_SYMTAB: "Symbol table",
