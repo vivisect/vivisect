@@ -19,6 +19,7 @@ Send bug reports to Invisigoth or Metr0.
 """
 # Copyright (C) 2007 Invisigoth - See LICENSE file for details
 import logging
+import envi.bits as e_bits
 
 from stat import *
 from Elf.elf_lookup import *
@@ -282,9 +283,6 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
         self.dynamics = []      # deprecated - 2019-10-21
         self.dynamic_symbols = []
 
-        self.debuginfo = []
-        self._debug_abbrev = {}
-        self._parseDebug()
 
         self.dynstrtabmeta = (None, None)
         self.dynstrtab = []
@@ -317,6 +315,10 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
         self._parseSectionSymbols()
         logger.info('self._parseSectionRelocs')
         self._parseSectionRelocs()
+
+        self.debuginfo = []
+        self._debug_abbrev = {}
+        self._parseDebug()
         logger.info('done parsing ELF')
 
     def getRelocTypeName(self, rtype):
@@ -693,16 +695,21 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
                 self.relocvas.append(reloc.r_offset)
 
     def _getDebugString(self, offset, use_utf8=False):
+        '''
+        TODO: We can make this so much faster by just preparsing and indexing them by
+        their offsets
+        '''
         bytez = self.getSectionBytes('.debug_str')
         if bytez is None or offset > len(bytez):
             return None
         return bytez[offset:].split('\x00', 1)[0]
 
     def _getBlock(self, length, bytez):
-        data = vs_prim.v_bytes(size=length.getValue())
-        return data.vsParse(bytez)
+        block = vs_prim.v_bytes(size=length.vsGetValue())
+        block.vsParse(bytez)
+        return block
 
-    def _getFormData(self, form, bytez, use_utf8=False):
+    def _getFormData(self, form, bytez, addrsize, is64BitDwarf=False, use_utf8=False):
         '''
         TODO: So for anything marked "constant", we technically have to use "context" to determine if it's
         signed, unsigned, target machine endianness, etc. as per the dwarf docs
@@ -713,12 +720,10 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
         if form == DW_FORM_addr:
             # So this is technically supposed to come from the compilation header in the info section,
             # but for now we're going to cheat and just use the info we grabbed from the elf header itself
-            if self.bits == 32:
-                vsData = vs_prim.v_ptr32(bigend=self.bigend)
-            elif self.bits == 64:
+            if addrsize == 8:
                 vsData = vs_prim.v_ptr64(bigend=self.bigend)
             else:
-                raise Exception("Platform with pointer size %d unsupported" % self.bits)
+                vsData = vs_prim.v_ptr32(bigend=self.bigend)
             vsData.vsParse(bytez)
 
         elif form == DW_FORM_block:  # special block
@@ -774,14 +779,12 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
 
         elif form == DW_FORM_strp:  # string
             # a ptr-sized offset into the string table .debug_str
-            if self.bits == 32:
-                offset = vs_prim.v_int32(bigend=self.bigend)
-                offset.vsParse(bytez)
-            elif self.bits == 64:
+            if is64BitDwarf:
                 offset = vs_prim.v_int64(bigend=self.bigend)
                 offset.vsParse(bytez)
             else:
-                raise Exception('Platform with pointer size %d unsupported' % self.bits)
+                offset = vs_prim.v_int32(bigend=self.bigend)
+                offset.vsParse(bytez)
             strp = self._getDebugString(offset.vsGetValue(), use_utf8)
             vsData = vs_prim.v_str(len(strp), val=strp)
 
@@ -789,22 +792,25 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
             return vsData, len(offset)
 
         elif form == DW_FORM_sdata:  # constant
-            slen, extra = leb128ToInt(bytez, signed=True)
-            vsData = vs_prim.v_bytes(size=slen)
-            vsData.vsParse(bytez, extra)
+            slen, extra = leb128ToInt(bytez, bitlen=self.bits, signed=True)
+            slen = e_bits.signed(slen, extra)
+            if self.bits == 64:
+                return vs_prim.v_int64(slen), extra
+            else:
+                return vs_prim.v_int32(slen), extra
 
         elif form == DW_FORM_udata:  # constant
-            ulen, extra = leb128ToInt(bytez)
-            vsData = vs_prim.v_bytes(size=ulen)
-            vsData.vsParse(bytez, extra)
+            ulen, extra = leb128ToInt(bytez, bitlen=self.bits)
+            if self.bits == 64:
+                return vs_prim.v_uint64(slen), extra
+            else:
+                return vs_prim.v_uint32(slen), extra
 
         elif form == DW_FORM_ref_addr:  # ref
-            if self.bits == 32:
-                vsData = vs_prim.v_ptr32(bigend=self.bigend)
-            elif self.bits == 64:
+            if is64BitDwarf:
                 vsData = vs_prim.v_ptr64(bigend=self.bigend)
             else:
-                raise Exception("Platform with pointer size %d unsupported" % self.bits)
+                vsData = vs_prim.v_ptr32(bigend=self.bigend)
             vsData.vsParse(bytez)
 
         elif form == DW_FORM_ref1:  # ref
@@ -838,22 +844,20 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
             return vsData, extra
 
         elif form == DW_FORM_sec_offset:  # lineptr, loclistptr, macptr, rangelistptr
-            if self.bits == 32:
-                vsData = vs_prim.v_int32(bigend=self.bigend)
-                vsData.vsParse(bytez)
-            elif self.bits == 64:
+            if is64BitDwarf:
                 vsData = vs_prim.v_int64(bigend=self.bigend)
                 vsData.vsParse(bytez)
             else:
-                raise Exception('Platform with pointer size %d unsupported' % self.bits)
-
+                vsData = vs_prim.v_int32(bigend=self.bigend)
+                vsData.vsParse(bytez)
+            # raise Exception("IMPLEMENT ME!")
             # TODO: so where the offset is depends on what subtype the sec_offset is, but that's determined
             # by the attr name, and honestly, right now, I don't care about that
 
         elif form == DW_FORM_exprloc:  # exprloc
             loclen, extra = leb128ToInt(bytez)
             vsData = vs_prim.v_bytes(loclen)
-            vsData.vsParse(bytez, offset=extra)
+            vsData.vsParse(bytez[extra:])
 
         elif form == DW_FORM_flag_present:  # flag
             # Don't actually consume any bytes, but do indicate the flag is there
@@ -871,8 +875,9 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
 
     def _parseDebugAbbrev(self):
         bytez = self.getSectionBytes('.debug_abbrev')
-        consumed = 0
-        offset = consumed
+        if bytez is None:
+            return
+        consumed = offset = 0
         parentChain = None
         # Compile units are referenced by their offsets in the .debug_info section.
         compileunits = {}
@@ -909,16 +914,23 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
 
     def _parseDebugInfo(self):
         # Use that to parse out things from the .debug_info section
+        is64BitDwarf = False
         bytez = self.getSectionBytes('.debug_info')
+        if bytez is None:
+            return
         consumed = 0
         while consumed < len(bytez):
             # Parse the compile unit header
-            if self.bits == 32:
-                header = vs_elf.Dwarf32CompileHeader(bigend=self.bigend)
-            elif self.bits == 64:
+            # we can have 32 bit dwarf in a 64 bit binary and the way they dynamic repr that
+            # is by all the 64 bit addresses being 12 bytes long, but the first 4 are 0xffffffff
+            version = vs_prim.v_uint32(bigend=self.bigend)
+            if version == 0xFFFFFFFF:
+                consumed += 4
                 header = vs_elf.Dwarf64CompileHeader(bigend=self.bigend)
+                is64BitDwarf = True
             else:
-                raise Exception('Platform not supported: %d' % (self.bits))
+                header = vs_elf.Dwarf32CompileHeader(bigend=self.bigend)
+                # So it says it's 12 bytes, but the first 4 are ffffffff
 
             header.vsParse(bytez[consumed:])
             abbrev = self._debug_abbrev[header.abbrev_offset]
@@ -942,8 +954,13 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
                 # Need to actually do something with struct
                 struct = vstruct.VStruct()
                 for attr, attrForm in typeinfo:
-                    name = dwarf_attribute_names.get(attr, "UNK")
-                    vsForm, flen = self._getFormData(attrForm, bytez[consumed+unitConsumed:])
+                    if attr > DW_AT_lo_user and attr < DW_AT_hi_user:
+                        # try reaching into the gnu attribute names since they're a well known
+                        # "vendor"
+                        name = gnu_attribute_names.get(attr, "UNK")
+                    else:
+                        name = dwarf_attribute_names.get(attr, "UNK")
+                    vsForm, flen = self._getFormData(attrForm, bytez[consumed+unitConsumed:], addrsize=header.ptrsize, is64BitDwarf=is64BitDwarf)
                     struct.vsAddField(name, vsForm)
                     unitConsumed += flen
 
@@ -964,6 +981,9 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
         # First parse out type information from the .debug_abbrev section
         self._parseDebugAbbrev()
         self._parseDebugInfo()
+        import pdb
+        pdb.set_trace()
+        print('wat')
 
     def getBaseAddress(self):
         """
@@ -1190,8 +1210,8 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
         return self.e_type == ET_EXEC
 
     def __repr__(self, verbose=False):
-        """  
-        Returns a string summary of this ELF.  
+        """
+        Returns a string summary of this ELF.
         If (verbose) the summary will include Symbols, Relocs, Dynamics and Dynamic Symbol tables
         """
         mystr = 'Elf Binary:'
@@ -1366,7 +1386,7 @@ def getRelocType(val):
 def getRelocSymTabIndex(val):
     return val >> 8
 
-def leb128ToInt(bytez, bitlen=31, signed=False):
+def leb128ToInt(bytez, bitlen=64, signed=False):
     '''
     Return tuple of the decoded value and how many bytes it consumed to decode the value
     '''

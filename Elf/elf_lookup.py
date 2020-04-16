@@ -971,8 +971,68 @@ DW_AT_data_bit_offset = 0x6b  # V4
 DW_AT_const_expr = 0x6c  # V4
 DW_AT_enum_class = 0xd  # V4
 DW_AT_linkage_name = 0x6e  # V4
+# v5 only. can appear in v4 as gnu extensions
+DW_AT_string_length_bit_size = 0x6f
+DW_AT_string_length_byte_size = 0x70
+DW_AT_rank = 0x71
+DW_AT_str_offsets_base = 0x72
+DW_AT_addr_base = 0x73
+DW_AT_rnglists_base = 0x74
+# reserved
+DW_AT_dwo_name = 0x76
+DW_AT_reference = 0x77
+DW_AT_rvalue_reference = 0x78
+DW_AT_macros = 0x79
+DW_AT_call_all_calls = 0x7a
+DW_AT_call_all_source_calls = 0x7b
+DW_AT_call_all_tail_calls = 0x7c
+DW_AT_call_return_pc = 0x7d
+DW_AT_call_value = 0x7e
+DW_AT_call_origin = 0x7f
+DW_AT_call_parameter = 0x80
+DW_AT_call_pc = 0x81
+DW_AT_call_tail_call = 0x82
+DW_AT_call_target = 0x83
+DW_AT_call_target_clobbered = 0x84
+DW_AT_call_data_location = 0x85
+DW_AT_call_data_value = 0x86
+DW_AT_no_return = 0x87
+DW_AT_alignment = 0x88
+DW_AT_export_symbols = 0x89
+DW_AT_deleted = 0x8a
+DW_AT_defaulted = 0x8b
+DW_AT_loclists_base = 0x8c
 DW_AT_lo_user = 0x2000
 DW_AT_hi_user = 0x3fff
+
+
+# GNU Attributes. Typically only for v4 now since a lot got mainlined in v5
+DW_AT_GNU_vector = 0x2107
+DW_AT_GNU_guarded_by = 0x2108
+DW_AT_GNU_pt_guarded_by = 0x2109
+DW_AT_GNU_guarded = 0x210a
+DW_AT_GNU_pt_guarded = 0x210b
+DW_AT_GNU_locks_excluded = 0x210c
+DW_AT_GNU_exclusive_locks_required = 0x210d
+DW_AT_GNU_shared_locks_required = 0x210e
+DW_AT_GNU_odr_signature = 0x210f
+DW_AT_GNU_template_name = 0x2110
+DW_AT_GNU_call_site_value = 0x2111
+DW_AT_GNU_call_site_data_value = 0x2112
+DW_AT_GNU_call_site_target = 0x2113
+DW_AT_GNU_call_site_target_clobbered = 0x2114
+DW_AT_GNU_tail_call = 0x2115
+DW_AT_GNU_all_tail_call_sites = 0x2116
+DW_AT_GNU_all_call_sites = 0x2117
+DW_AT_GNU_all_source_call_sites = 0x2118
+DW_AT_GNU_macros = 0x2119
+DW_AT_GNU_deleted = 0x211a
+DW_AT_GNU_dwo_name = 0x2130
+DW_AT_GNU_dwo_id = 0x2131
+DW_AT_GNU_ranges_base = 0x2132
+DW_AT_GNU_addr_base = 0x2133
+DW_AT_GNU_pubnames = 0x2134
+DW_AT_GNU_pubtypes = 0x2135
 
 dwarf_attribute_names = {
     DW_AT_sibling: 'sibling',
@@ -1067,8 +1127,67 @@ dwarf_attribute_names = {
     DW_AT_const_expr: 'const_expr',
     DW_AT_enum_class: 'enum_class',
     DW_AT_linkage_name: 'linkage_name',
+
+    DW_AT_string_length_bit_size: 'string_length_bit_size',
+    DW_AT_string_length_byte_size: 'string_length_byte_size',
+    DW_AT_rank: 'rank',
+    DW_AT_str_offsets_base: 'str_offsets_base',
+    DW_AT_addr_base: 'addr_base',
+    DW_AT_rnglists_base: 'rnglists_base',
+    DW_AT_dwo_name: 'dwo_name',
+    DW_AT_reference: 'reference',
+    DW_AT_rvalue_reference: 'rvalue_reference',
+    DW_AT_macros: 'macros',
+    DW_AT_call_all_calls: 'call_all_calls',
+    DW_AT_call_all_source_calls: 'call_all_source_calls',
+    DW_AT_call_all_tail_calls: 'call_all_tail_calls',
+    DW_AT_call_return_pc: 'call_return_pc',
+    DW_AT_call_value: 'call_value',
+    DW_AT_call_origin: 'call_origin',
+    DW_AT_call_parameter: 'call_parameter',
+    DW_AT_call_pc: 'call_pc',
+    DW_AT_call_tail_call: 'call_tail_call',
+    DW_AT_call_target: 'call_target',
+    DW_AT_call_target_clobbered: 'call_target_clobbered',
+    DW_AT_call_data_location: 'call_data_location',
+    DW_AT_call_data_value: 'call_data_value',
+    DW_AT_no_return: 'no_return',
+    DW_AT_alignment: 'alignment',
+    DW_AT_export_symbols: 'export_symbols',
+    DW_AT_deleted: 'deleted',
+    DW_AT_defaulted: 'defaulted',
+    DW_AT_loclists_base: 'loclists_base',
     DW_AT_lo_user: 'lo_user',
     DW_AT_hi_user: 'hi_user',
+}
+
+gnu_attribute_names = {
+    DW_AT_GNU_vector: 'vector',
+    DW_AT_GNU_guarded_by: 'guarded_by',
+    DW_AT_GNU_pt_guarded_by: 'pt_guarded_by',
+    DW_AT_GNU_guarded: 'guarded',
+    DW_AT_GNU_pt_guarded: 'pt_guarded',
+    DW_AT_GNU_locks_excluded: 'locks_excluded',
+    DW_AT_GNU_exclusive_locks_required: 'exclusive_locks_required',
+    DW_AT_GNU_shared_locks_required: 'shared_locks_required',
+    DW_AT_GNU_odr_signature: 'odr_signature',
+    DW_AT_GNU_template_name: 'template_name',
+    DW_AT_GNU_call_site_value: 'call_site_value',
+    DW_AT_GNU_call_site_data_value: 'call_site_data_value',
+    DW_AT_GNU_call_site_target: 'call_site_target',
+    DW_AT_GNU_call_site_target_clobbered: 'call_site_target_clobbered',
+    DW_AT_GNU_tail_call: 'tail_call',
+    DW_AT_GNU_all_tail_call_sites: 'all_tail_call_sites',
+    DW_AT_GNU_all_call_sites: 'all_call_sites',
+    DW_AT_GNU_all_source_call_sites: 'all_source_call_sites',
+    DW_AT_GNU_macros: 'macros',
+    DW_AT_GNU_deleted: 'deleted',
+    DW_AT_GNU_dwo_name: 'dwo_name',
+    DW_AT_GNU_dwo_id: 'dwo_id',
+    DW_AT_GNU_ranges_base: 'ranges_base',
+    DW_AT_GNU_addr_base: 'addr_base',
+    DW_AT_GNU_pubnames: 'pubnames',
+    DW_AT_GNU_pubtypes: 'pubtypes',
 }
 
 # DWARF Attribute Form Encodings
@@ -1096,7 +1215,29 @@ DW_FORM_indirect = 0x16
 DW_FORM_sec_offset = 0x17  # V4
 DW_FORM_exprloc = 0x18  # V4
 DW_FORM_flag_present = 0x19  # V4
+
+DW_FORM_strx = 0x1a
+DW_FORM_addrx = 0x1b
+DW_FORM_ref_sup4 = 0x1c
+DW_FORM_strp_sup = 0x1d
+DW_FORM_data16 = 0x1e
+DW_FORM_line_strp = 0x1f
+
 DW_FORM_ref_sig8 = 0x20  # V4
+
+DW_FORM_implicit_const = 0x21
+DW_FORM_loclistx = 0x22
+DW_FORM_rnglistx = 0x23
+DW_FORM_ref_sup8 = 0x24
+DW_FORM_strx1 = 0x25
+DW_FORM_strx2 = 0x26
+DW_FORM_strx3 = 0x27
+DW_FORM_strx4 = 0x28
+DW_FORM_addrx1 = 0x29
+DW_FORM_addrx2 = 0x2a
+DW_FORM_addrx3 = 0x2b
+DW_FORM_addrx4 = 0x2c
+
 
 DW_LANG_C89 = 0x01
 DW_LANG_C = 0x02
