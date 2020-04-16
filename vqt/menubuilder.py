@@ -3,6 +3,9 @@ try:
 except:
     from PyQt4.QtGui import *
 
+import logging
+logger = logging.getLogger(__name__)
+
 class FieldAdder:
 
     def __init__(self, splitchar='.'):
@@ -84,4 +87,8 @@ class ActionCall:
         self.callback = callback
 
     def __call__(self):
-        return self.callback(*self.args, **self.kwargs)
+        try:
+            retval = self.callback(*self.args, **self.kwargs)
+            return retval
+        except Exception as e:
+            logger.exception("ActionCall: %r" % self.callback)

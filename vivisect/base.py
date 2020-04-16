@@ -149,8 +149,10 @@ class VivEventDist(VivEventCore):
 
         VivEventCore._ve_fireEvent(self, event, edata)
 
+
 def ddict():
     return collections.defaultdict(dict)
+
 
 class VivWorkspaceCore(object, viv_impapi.ImportApi):
 
@@ -239,7 +241,7 @@ class VivWorkspaceCore(object, viv_impapi.ImportApi):
 
         # RTYPE_BASERELOC assumes the memory is already accurate (eg. PE's unless rebased)
 
-        if rtype == RTYPE_BASEOFF:
+        if rtype in REBASE_TYPES:
             # add imgbase and offset to pointer in memory
             # 'data' arg must be 'offset' number
             ptr = imgbase + data
@@ -247,25 +249,31 @@ class VivWorkspaceCore(object, viv_impapi.ImportApi):
                 logger.warn('RTYPE_BASEOFF calculated a bad pointer: 0x%x (imgbase: 0x%x)', ptr, imgbase)
 
             # writes are costly, especially on larger binaries
-            if ptr == self.readMemoryPtr(rva):
-                return
+            if ptr != self.readMemoryPtr(rva):
+                with self.getAdminRights():
+                    self.writeMemoryPtr(rva, ptr)
 
-            with self.getAdminRights():
-                self.writeMemoryPtr(rva, ptr)
+            logger.debug('_handleADDRELOC: %x -> %x (map: 0x%x)', rva, ptr, imgbase)
 
-            #logger.info('_handleADDRELOC: %x -> %x (map: 0x%x)', rva, ptr, imgbase)
+        if rtype == RTYPE_BASEPTR:
+            # make it like a pointer (but one that could move with each load)
+            #   self.addXref(va, tova, REF_PTR)
+            #   ploc = self.addLocation(va, psize, LOC_POINTER)
+            #   don't follow.  handle it later, once "known code" is analyzed
+            self._handleADDXREF((rva, ptr, REF_PTR, 0))
+            self._handleADDLOCATION((rva, self.psize, LOC_POINTER, None))
 
     def _handleADDMODULE(self, einfo):
-        print('DEPRICATED (ADDMODULE) ignored: %s' % einfo)
+        logger.warning('DEPRICATED (ADDMODULE) ignored: %s' % einfo)
 
     def _handleDELMODULE(self, einfo):
-        print('DEPRICATED (DELMODULE) ignored: %s' % einfo)
+        logger.warning('DEPRICATED (DELMODULE) ignored: %s' % einfo)
 
     def _handleADDFMODULE(self, einfo):
-        print('DEPRICATED (ADDFMODULE) ignored: %s' % einfo)
+        logger.warning('DEPRICATED (ADDFMODULE) ignored: %s' % einfo)
 
     def _handleDELFMODULE(self, einfo):
-        print('DEPRICATED (DELFMODULE) ignored: %s' % einfo)
+        logger.warning('DEPRICATED (DELFMODULE) ignored: %s' % einfo)
 
     def _handleADDFUNCTION(self, einfo):
         va, meta = einfo
@@ -360,9 +368,11 @@ class VivWorkspaceCore(object, viv_impapi.ImportApi):
         if name == None:
             oldname = self.name_by_va.pop(va, None)
             self.va_by_name.pop(oldname, None)
+
         else:
             curname = self.name_by_va.get(va)
             if curname != None:
+                logger.debug( 'replacing 0x%x: %r -> %r', va, curname, name)
                 self.va_by_name.pop(curname)
 
             self.va_by_name[name] = va
@@ -388,8 +398,6 @@ class VivWorkspaceCore(object, viv_impapi.ImportApi):
         va, etype, name, filename = einfo
         self.exports.append(einfo)
         self.exports_by_va[va] = einfo
-        fullname = "%s.%s" % (filename,name)
-        self.makeName(va, fullname)
 
     def _handleSETMETA(self, einfo):
         name,value = einfo
@@ -404,8 +412,8 @@ class VivWorkspaceCore(object, viv_impapi.ImportApi):
 
     def _handleCOMMENT(self, einfo):
         va,comment = einfo
-        if comment == None:
-            self.comments.pop(va)
+        if comment is None:
+            self.comments.pop(va, None)
         else:
             self.comments[va] = comment
 
@@ -708,6 +716,7 @@ class VivCodeFlowContext(e_codeflow.CodeFlowContext):
             branches = [br for br in branches if not self._mem.isLocType(br[0],LOC_IMPORT)]
 
             self._mem.makeOpcode(op.va, op=op)
+            # FIXME: future home of makeOpcode branch/xref analysis
             return branches
 
         return ()
@@ -734,7 +743,7 @@ class VivCodeFlowContext(e_codeflow.CodeFlowContext):
             fmod = vw.fmods.get(fmname)
             try:
                 fmod.analyzeFunction(vw, fva)
-            except Exception, e:
+            except Exception as e:
                 if vw.verbose:
                     traceback.print_exc()
                 vw.verbprint("Function Analysis Exception for 0x%x   %s: %s" % (fva, fmod.__name__, e))
@@ -748,7 +757,7 @@ class VivCodeFlowContext(e_codeflow.CodeFlowContext):
             return
 
         fmeta = vw.getFunctionMetaDict(fva)
-        for lva in vw.getVaSetRows('NoReturnCalls'): 
+        for lva in vw.getVaSetRows('NoReturnCalls'):
             va = lva[0]
             ctup = vw.getCodeBlock(va)
             if ctup and fva == ctup[2] and vw.getFunctionMeta(fva, 'BlockCount', default=0) == 1:
@@ -762,6 +771,6 @@ class VivCodeFlowContext(e_codeflow.CodeFlowContext):
 
         if self._mem.getLocation(tableva) == None:
             self._mem.makePointer(tableva, tova=destva, follow=False)
-    
+
         return True
 
