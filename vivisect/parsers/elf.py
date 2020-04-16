@@ -550,14 +550,11 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
 
     return fname
 
-armemu = None
 
 def applyRelocs(elf, vw, addbase=False, baseaddr=0):
     '''
     process relocations / strings (relocs use Dynamic Symbols)
     '''
-    global armemu # certain ARM relocations allow instructions to determine the relocation
-
     arch = arch_names.get(elf.e_machine)
     relocs = elf.getRelocs()
     logger.debug("reloc len: %d", len(relocs))
@@ -631,7 +628,11 @@ def applyRelocs(elf, vw, addbase=False, baseaddr=0):
                     # figure out if it's negative based on the instruction!
                     try:
                         temp = vw.readMemoryPtr(rlva)
-                        if temp & 0xffffff00:   # it's not just a little number
+                        if rtype in Elf.r_armclasses[Elf.R_ARMCLASS_DATA] or rtype in Elf.r_armclasses[Elf.R_ARMCLASS_MISC]:
+                            # relocation points to a DATA or MISCELLANEOUS location
+                            addend = temp
+                        else:
+                            # relocation points to a CODE location (ARM, THUMB16, THUMB32)
                             op = vw.parseOpcode(rlva)
                             for oper in op.opers:
                                 if hasattr(oper, 'val'):
@@ -648,9 +649,6 @@ def applyRelocs(elf, vw, addbase=False, baseaddr=0):
                                     hasattr(lastoper, 'pubwl') and \
                                     not (lastoper.pubwl & eaac.PUxWL_ADD):
                                         addend = -addend
-                        else:
-                            # just a small number
-                            addend = temp
                     except Exception:
                         logger.exception("ELF: Reloc Addend determination:")
                         addend = temp

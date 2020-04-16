@@ -265,34 +265,41 @@ e_flags_68k = {
     R_68K_RELATIVE:"Adjust by program base",
 }
 
-R_ARM_NONE      = 0   # No reloc */
-R_ARM_PC24      = 1   # PC relative 26 bit branch */
-R_ARM_ABS32     = 2   # Direct 32 bit  */
-R_ARM_REL32     = 3   # PC relative 32 bit */
-R_ARM_PC13      = 4
-R_ARM_ABS16     = 5   # Direct 16 bit */
-R_ARM_ABS12     = 6   # Direct 12 bit */
-R_ARM_THM_ABS5  = 7
-R_ARM_ABS8      = 8   # Direct 8 bit */
+R_ARM_NONE          = 0   # No reloc */
+R_ARM_PC24          = 1   # PC relative 26 bit branch */
+R_ARM_ABS32         = 2   # Direct 32 bit  */
+R_ARM_REL32         = 3   # PC relative 32 bit */
+R_ARM_PC13          = 4
+R_ARM_LDR_PC_G0     = 4   # also 4
+R_ARM_ABS16         = 5   # Direct 16 bit */
+R_ARM_ABS12         = 6   # Direct 12 bit */
+R_ARM_THM_ABS5      = 7
+R_ARM_ABS8          = 8   # Direct 8 bit */
 R_ARM_SBREL32       = 9
 R_ARM_THM_PC22      = 10
 R_ARM_THM_PC8       = 11
 R_ARM_AMP_VCALL9    = 12
+R_ARM_BREL_ADJ      = 12  # also 12
 R_ARM_SWI24         = 13
+R_ARM_TLS_DESC      = 13  # also 13
 R_ARM_THM_SWI8      = 14
 R_ARM_XPC25         = 15
 R_ARM_THM_XPC22     = 16
 R_ARM_TLS_DTPMOD32  = 17  # ID of module containing symbol */
 R_ARM_TLS_DTPOFF32  = 18  # Offset in TLS block */
 R_ARM_TLS_TPOFF32   = 19  # Offset in static TLS block */
-R_ARM_COPY      = 20  # Copy symbol at runtime */
+R_ARM_COPY          = 20  # Copy symbol at runtime */
 R_ARM_GLOB_DAT      = 21  # Create GOT entry */
 R_ARM_JUMP_SLOT     = 22  # Create PLT entry */
 R_ARM_RELATIVE      = 23  # Adjust by program base */
 R_ARM_GOTOFF        = 24  # 32 bit offset to GOT */
-R_ARM_GOTPC     = 25  # 32 bit PC relative offset to GOT */
-R_ARM_GOT32     = 26  # 32 bit GOT entry */
-R_ARM_PLT32     = 27  # 32 bit PLT address */
+R_ARM_GOTPC         = 25  # 32 bit PC relative offset to GOT */
+R_ARM_GOT32         = 26  # 32 bit GOT entry */
+R_ARM_PLT32         = 27  # 32 bit PLT address */
+R_ARM_CALL          = 28
+R_ARM_JUMP24        = 29
+R_ARM_THM_JUMP24        = 30
+R_ARM_BASE_ABS          = 31
 R_ARM_ALU_PCREL_7_0     = 32
 R_ARM_ALU_PCREL_15_8    = 33
 R_ARM_ALU_PCREL_23_15   = 34
@@ -308,6 +315,7 @@ R_ARM_TLS_LDM32     = 105 # PC-rel 32 bit for local dynamic thread local data */
 R_ARM_TLS_LDO32     = 106 # 32 bit offset relative to TLS block */
 R_ARM_TLS_IE32      = 107 # PC-rel 32 bit for GOT entry of static TLS block offset */
 R_ARM_TLS_LE32      = 108 # 32 bit offset relative to static TLS block */
+R_ARM_IRELATIVE     = 160
 R_ARM_RXPC25        = 249
 R_ARM_RSBREL32      = 250
 R_ARM_THM_RPC22     = 251
@@ -315,6 +323,63 @@ R_ARM_RREL32        = 252
 R_ARM_RABS22        = 253
 R_ARM_RPC24         = 254
 R_ARM_RBASE         = 255
+
+R_ARMCLASS_DATA = 0
+R_ARMCLASS_ARM = 1
+R_ARMCLASS_THUMB16 = 2
+R_ARMCLASS_THUMB32 = 3
+R_ARMCLASS_MISC = 4
+
+r_armclasses = [
+        (R_ARM_ABS32,
+            R_ARM_REL32,
+            R_ARM_ABS16,
+            R_ARM_ABS8,
+            R_ARM_SBREL32,
+            R_ARM_BREL_ADJ,
+            R_ARM_TLS_DESC,
+            R_ARM_TLS_DTPMOD32,
+            R_ARM_TLS_DTPOFF32,
+            R_ARM_TLS_TPOFF32,
+            R_ARM_GLOB_DAT,
+            R_ARM_JUMP_SLOT,
+            R_ARM_RELATIVE,
+            R_ARM_GOTOFF,
+            R_ARM_GOTPC,
+            R_ARM_GOT32,
+            R_ARM_IRELATIVE,
+            ),
+        (
+            R_ARM_PC24,
+            R_ARM_LDR_PC_G0,
+            R_ARM_ABS12,
+            R_ARM_PLT32,
+            R_ARM_CALL,
+            R_ARM_JUMP24,
+            R_ARM_LDR_SBREL_11_0,
+            R_ARM_ALU_SBREL_19_12,
+            R_ARM_ALU_SBREL_27_20,
+            ),
+        (
+            R_ARM_THM_ABS5,
+            R_ARM_THM_PC8,
+            ),
+        (
+            R_ARM_THM_PC22,
+            R_ARM_THM_JUMP24,
+            ),
+        (
+            R_ARM_NONE,
+            R_ARM_COPY,
+            ),
+        ]
+
+
+
+
+
+
+
 
 R_386_NONE = 0
 R_386_32 = 1

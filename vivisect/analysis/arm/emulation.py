@@ -269,8 +269,7 @@ def analyzeTB(emu, op, starteip, amon):
         va += tsize
         #sys.stderr.write('.')
 
-    if emu.vw.verbose: 
-        print("%s: \n\t"%op.mnem + '\n\t'.join(['0x%x (0x%x)' % (x, base + x) for v,x in tbl]))
+    logger.debug("%s: \n\t"%op.mnem + '\n\t'.join(['0x%x (0x%x)' % (x, base + x) for v,x in tbl]))
 
     ###
     # for workspace emulation analysis, let's check the index register for sanity.
