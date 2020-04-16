@@ -977,10 +977,14 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
         # TODO: Make these a dictionary key'd by fva for easy access for getting things like 
         # runtime debugging information?
 
+    def _parseDebugLine(self):
+        bytez = self.getSectionBytes('.debug_lines')
+
     def _parseDebug(self):
         # First parse out type information from the .debug_abbrev section
         self._parseDebugAbbrev()
         self._parseDebugInfo()
+        self._parseDebugLine()
         import pdb
         pdb.set_trace()
         print('wat')
