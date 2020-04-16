@@ -355,7 +355,6 @@ R_386_TLS_DTPOFF32 = 36
 R_386_TLS_TPOFF32 = 37
 
 r_types_386 = {
-<<<<<<< HEAD
     R_386_NONE: "No reloc",
     R_386_32: "Direct 32 bit",
     R_386_PC32: "PC relative 32 bit",
@@ -419,6 +418,19 @@ R_X86_64_DTPOFF32 = 21
 R_X86_64_GOTTPOFF = 22
 R_X86_64_TPOFF32 = 23
 R_X86_64_NUM = 24
+R_X86_64_GOTOFF64 = 25
+R_X86_64_GOTPC32 = 26
+R_X86_64_GOT64 = 27
+R_X86_64_GOTPCREL64 = 28
+R_X86_64_GOTPC64 = 29
+R_X86_64_GOTPLT64 = 30
+R_X86_64_PLTOFF64 = 31
+R_X86_64_SIZE32 = 32
+R_X86_64_SIZE64 = 33
+R_X86_64_GOTPC32_TLSDESC = 34
+R_X86_64_TLSDESC_CALL = 35
+R_X86_64_TLSDESC = 36
+R_X86_64_IRELATIVE = 37
 
 r_types_amd64 = {
     R_X86_64_NONE: 'No reloc',
@@ -445,6 +457,19 @@ r_types_amd64 = {
     R_X86_64_DTPOFF32: 'Offset in TLS block',
     R_X86_64_GOTTPOFF: '32 bit signed PC relative offset to GOT entry for IE symbol',
     R_X86_64_TPOFF32: 'Offset in initial TLS block',
+    R_X86_64_GOTOFF64: '64 bit offset to GOT',
+    R_X86_64_GOTPC32: '32 bit signed pc relative offset to GOT',
+    R_X86_64_GOT64: '64-bit GOT entry offset',
+    R_X86_64_GOTPCREL64: '64-bit PC relative offset to GOT entry',
+    R_X86_64_GOTPC64: '64-bit PC relative offset to GOT',
+    R_X86_64_GOTPLT64: 'like GOT64, says PLT entry needed',
+    R_X86_64_PLTOFF64: '64-bit GOT relative offset to PLT entry',
+    R_X86_64_SIZE32: 'Size of symbol plus 32-bit addend',
+    R_X86_64_SIZE64: 'Size of symbol plus 64-bit addend',
+    R_X86_64_GOTPC32_TLSDESC: 'GOT offset for TLS descriptor.',
+    R_X86_64_TLSDESC_CALL: 'Marker for call through TLS descriptor.',
+    R_X86_64_TLSDESC: 'TLS descriptor.',
+    R_X86_64_IRELATIVE: 'Adjust indirectly by program base',
 }
 
 # Define e_flags to 386
