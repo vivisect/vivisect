@@ -334,7 +334,10 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
     vw.addNoReturnApi("kernel32.FatalExit")
     vw.addNoReturnApiRegex("^msvcr.*\._CxxThrowException$")
     vw.addNoReturnApiRegex("^msvcr.*\.abort$")
+    vw.addNoReturnApiRegex("^msvcr.*\.exit$")
+    vw.addNoReturnApiRegex("^msvcr.*\._cexit$")
     vw.addNoReturnApi("ntoskrnl.KeBugCheckEx")
+
 
     exports = pe.getExports()
     for rva, ord, name in exports:
