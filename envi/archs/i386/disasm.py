@@ -8,12 +8,13 @@ import struct
 import envi
 import envi.bits as e_bits
 
-import opcode86
-all_tables = opcode86.tables86
-
 # Grab our register enums etc...
 from envi.const import *
 from envi.archs.i386.regs import *
+from envi.archs.i386.opconst import OP_MEM32AUTO, OP_MEM16AUTO
+
+import opcode86
+all_tables = opcode86.tables86
 
 # Our instruction prefix masks
 # NOTE: table 3-4 (section 3.6) of intel 1 shows how REX/OP_SIZE
@@ -36,7 +37,18 @@ PREFIX_FS = 0x2000
 PREFIX_GS = 0x4000
 PREFIX_REG_MASK = 0x8000
 
-MANDATORY_PREFIXES = [0xF2, 0xF3, 0x66]
+# So these prefixes aren't mandatory in the strict sense that all instructions have to have them
+# but from section 2.1.2 of the intel manual which states:
+# Two-byte opcode formats for general-purpose and SIMD instructions consist of one of the following:
+# * An escape opcode byte 0FH as the primary opcode and a second opcode byte.
+# * A mandatory prefix (66H, F2H, or F3H), an escape opcode byte, and a second opcode byte (same as previous
+# bullet).
+
+MANDATORY_PREFIXES = [False for i in range(0xFF)]
+MANDATORY_PREFIXES[0xF2] = True
+MANDATORY_PREFIXES[0xF3] = True
+MANDATORY_PREFIXES[0x66] = True
+
 
 # envi.registers meta offsets
 RMETA_LOW8 = 0x00080000
@@ -110,13 +122,14 @@ iflag_lookup = {
     opcode86.INS_XCHGCC: envi.IF_COND,
 }
 
-sizenames = ["" for x in range(33)]
+sizenames = ["" for x in range(65)]
 sizenames[1] = "byte"
 sizenames[2] = "word"
 sizenames[4] = "dword"
 sizenames[8] = "qword"
-sizenames[16] = "oword"
-sizenames[32] = "dqword"    # yword?
+sizenames[16] = "oword"    # xmm regs, can also be dqword
+sizenames[32] = "yword"    # ymm regs, can also be qqword
+sizenames[64] = "zword"    # zmm regs, can also be dqqword
 
 def addrToName(mcanv, va):
     sym = mcanv.syms.getSymByAddr(va)
@@ -518,7 +531,7 @@ class i386Opcode(envi.Opcode):
 
     # Printable prefix names
     prefix_names = [
-        (PREFIX_ADDR_SIZE, "addr"),
+        #(PREFIX_ADDR_SIZE, "addr"),
         (PREFIX_LOCK, "lock"),
         (PREFIX_REPNZ, "repnz"),
         (PREFIX_REP, "rep"),
@@ -678,7 +691,7 @@ class i386Disasm:
             return val + RMETA_LOW8
         return (val-4) + RMETA_HIGH8
 
-    # Parse modrm as though addr mode might not be just a reg
+    # Parse modrm as though addr mode might not be just a reg, but only for 32bit mode
     def extended_parse_modrm(self, bytez, offset, opersize, regbase=0, prefixes=0):
         """
         Return a tuple of (size, Operand)
@@ -701,6 +714,7 @@ class i386Disasm:
 
         elif mod == 0:
             # means we are [reg] unless rm == 4 (SIB) or rm == 5 ([imm32])
+            # BUT JOKES -- the table is totally different in 16 bit mode BECAUSE WHY
             if rm == 5:
                 imm = e_bits.parsebytes(bytez, offset + size, 4)
                 size += 4
@@ -799,7 +813,7 @@ class i386Disasm:
 
         #print "OPERTYPE",hex(opertype)
         sizelist = opcode86.OPERSIZE.get(opertype, None)
-        if sizelist == None:
+        if sizelist is None:
             raise "OPERSIZE FAIL: %.8x" % opertype
 
         if prefixes & PREFIX_OP_SIZE:
@@ -810,7 +824,6 @@ class i386Disasm:
         return sizelist[mode]
 
     def disasm(self, bytez, offset, va):
-
         # Stuff for opcode parsing
         tabdesc = all_tables[0] # A tuple (optable, shiftbits, mask byte, sub, max)
         startoff = offset # Use startoff as a size knob if needed
@@ -822,7 +835,7 @@ class i386Disasm:
 
         all_prefixes = 0
         prefix_len = 0
-        last_pref = None
+        last_pref = 0
 
         while True:
 
@@ -844,15 +857,10 @@ class i386Disasm:
         obyte = ord(bytez[offset])
         ppref = [(None, None)]
         # print("PREFXIES: 0x%x" % all_prefixes)
-        if obyte == 0x0f and last_pref in MANDATORY_PREFIXES:
+        if obyte == 0x0f and MANDATORY_PREFIXES[last_pref]:
             obyte = last_pref
-            if last_pref == 0xF2:
-                ppref.append((0xF2, PREFIX_REPNZ))
-            elif last_pref == 0xF3:
-                ppref.append((0xF3, PREFIX_REP))
-            elif last_pref == 0x66:
-                ppref.append((0x66, PREFIX_OP_SIZE))
-        # print("POSTFXIES: 0x%x" % all_prefixes)
+            ppref.append((last_pref, i386_prefixes[last_pref]))
+        # print("POSTFIXES: 0x%x" % all_prefixes)
 
         #pdone = False
         decodings = []
@@ -937,7 +945,7 @@ class i386Disasm:
 
             # print(hex(opertype), hex(addrmeth), hex(tsize))
 
-            # If addrmeth is zero, we have operands embedded in the opcode
+            # If addrmeth is zero,we have operands embedded in the opcode
             if addrmeth == 0:
                 osize = 0
                 oper = self.ameth_0(operflags, opdesc[5+i], tsize, all_prefixes)
@@ -962,6 +970,11 @@ class i386Disasm:
 
                     else:
                         osize, oper = ameth(bytez, offset, tsize, all_prefixes, operflags)
+                        if getattr(oper, "_is_deref", False):
+                            if operflags & OP_MEM32AUTO:
+                                oper.tsize = 4
+                            elif operflags & OP_MEM16AUTO:
+                                oper.tsize = 2
 
                 except struct.error as e:
                     # Catch struct unpack errors due to insufficient data length
@@ -975,7 +988,7 @@ class i386Disasm:
             operoffset += osize
 
         # Pull in the envi generic instruction flags
-        iflags = iflag_lookup.get(optype, 0) | self._dis_oparch
+        iflags = iflag_lookup.get(optype & 0xFFFF, 0) | self._dis_oparch
 
         if all_prefixes & PREFIX_REP_MASK:
             iflags |= envi.IF_REPEAT
@@ -996,7 +1009,10 @@ class i386Disasm:
     def ameth_0(self, operflags, operval, tsize, prefixes):
         # Special address method for opcodes with embedded operands
         if operflags & opcode86.OP_REG:
-            return i386RegOper(operval, tsize)
+            if prefixes & PREFIX_OP_SIZE:
+                operval |= RMETA_LOW16
+            width = self._dis_regctx.getRegisterWidth(operval) / 8
+            return i386RegOper(operval, width)
         elif operflags & opcode86.OP_IMM:
             return i386ImmOper(operval, tsize)
         raise Exception("Unknown ameth_0! operflags: 0x%.8x" % operflags)
@@ -1082,7 +1098,6 @@ class i386Disasm:
     def ameth_z(self, bytez, offset, tsize, prefixes, operflags):
         mod, reg, rm = self.parse_modrm(ord(bytez[offset]))
         return (1, i386RegOper(rm+self.ROFFSETSIMD, tsize))
-
 
 if __name__ == '__main__':
     import envi.archs
