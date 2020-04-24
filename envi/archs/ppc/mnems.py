@@ -11171,8 +11171,8 @@ for a in range(2):
 
             bcctropcodes.append((mnem, opcode, (0xffe007ff, num), opoff, flag))
 
-            if mnbase == 'b':
-                continue
+            #if mnbase == 'b':
+            #    continue
 
             #for bi in range(32):
             mnem = mnbase + lk[l] + aa[a]
