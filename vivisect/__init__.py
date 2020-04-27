@@ -989,7 +989,11 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
     def iterJumpTable(self, startva, rebase=False, step=None, maxiters=None):
         if not step:
             step = self.psize
-        fname = self.getMemoryMap(startva)[3]
+        fname = self.getMemoryMap(startva)
+        if fname is None:
+            return
+
+        fname = fname[3]
         imgbase = self.getFileMeta(fname, 'imagebase')
         iters = 0
         ptrbase = startva
