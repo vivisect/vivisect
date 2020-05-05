@@ -339,7 +339,7 @@ def analyzeFunction(vw, fva):
                 try:
                     print(repr(eval(inp, globals(), locals())))
                 except:
-                    sys.excepthook(*sys.exc_info())
+                    logger.exception('error')
 
                 inp = raw_input("PRESS ENTER TO CONTINUE...")
             '''
@@ -891,7 +891,7 @@ class SwitchCase:
                     vw.makeCode(addr)
 
             # makeNames (done separately because some indexes may be combined)
-            self.makeNames(cases, baseoff)
+            makeNames(vw, self.jmpva, cases, baseoff)
 
             # store some metadata in a VaSet
             vw.setVaSetRow('SwitchCases', (self.jmpva, self.jmpva, count) )
@@ -910,8 +910,7 @@ class SwitchCase:
             logger.info("!@#$!@#$!@#$!@#$ BOMBED OUT (Path Timeout!) 0x%x  !@#$!@#$!@#$!@#$ \n%r" % (self.jmpva, e))
 
         except Exception, e:
-            logger.info("!@#$!@#$!@#$!@#$ BOMBED OUT 0x%x  !@#$!@#$!@#$!@#$ \n%r" % (self.jmpva, e))
-            sys.excepthook(*sys.exc_info())
+            logger.exception("!@#$!@#$!@#$!@#$ BOMBED OUT 0x%x  !@#$!@#$!@#$!@#$ \n%r", self.jmpva, e)
 
 
     def getDerefs(self):
@@ -1127,55 +1126,152 @@ Out[14]: o_add(Mem(o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var(
             logger.debug(" itercases: %r, %r", idx, hex(coderef))
             yield idx + offset, coderef
 
-    def makeNames(self, cases, baseoff=0):
-        '''
-        Create names and xrefs for each identified case.
-        '''
-        vw = self.vw
-
-        for addr, indexes in cases.items():
-            outstrings = []
-            combined = False
-            start = last = UNINIT_CASE_INDEX
-            for case in indexes:
-                if case == last+1:
-                    if not combined:
-                        combined = True
-                        start = last
-                else:
-                    if combined:
-                        combined = False
-                        outstrings.append("%Xto%X" % (start+baseoff, last+baseoff))
-                    elif last != UNINIT_CASE_INDEX:
-                        outstrings.append("%X" % (last+baseoff))
-                last = case
-
-            # catch the last one if highest cases are combined
-            if combined:
-                combined = False
-                outstrings.append("%Xto%X" % (start+baseoff, last+baseoff))
+def makeNames(vw, jmpva, cases, baseoff=0):
+    '''
+    Create names and xrefs for each identified case.
+    '''
+    for addr, indexes in cases.items():
+        outstrings = []
+        combined = False
+        start = last = UNINIT_CASE_INDEX
+        for case in indexes:
+            if case == last+1:
+                if not combined:
+                    combined = True
+                    start = last
             else:
-                outstrings.append("%X" % (case+baseoff))
+                if combined:
+                    combined = False
+                    outstrings.append("%Xto%X" % (start+baseoff, last+baseoff))
+                elif last != UNINIT_CASE_INDEX:
+                    outstrings.append("%X" % (last+baseoff))
+            last = case
 
-            logger.info("OUTSTRINGS: %s", repr(outstrings))
+        # catch the last one if highest cases are combined
+        if combined:
+            combined = False
+            outstrings.append("%Xto%X" % (start+baseoff, last+baseoff))
+        else:
+            outstrings.append("%X" % (case+baseoff))
 
-            idxs = '_'.join(outstrings)
-            casename = "case_%s_%x" % (idxs, addr)
+        logger.info("OUTSTRINGS: %s", repr(outstrings))
 
-            curname = vw.getName(addr) 
-            if curname is not None:
-                ## FIXME NOW!:   if already labeled, chances are good this is other cases in the same function.
-                ## either simply add the new outstrings to the current one or we need to keep track of what
-                ## calls each and with what switchcase/index info.  VaSet?  or do we want this to only expect
-                ## the same function to call each one, and all part of the same Switchcase?
-                logger.warn("%s is already labeled %s", casename, curname)
+        idxs = '_'.join(outstrings)
+        casename = "case_%s_%x" % (idxs, addr)
 
-            vw.makeName(addr, casename)
-            logger.info(casename)
+        curname = vw.getName(addr) 
+        if curname is not None:
+            ## FIXME NOW!:   if already labeled, chances are good this is other cases in the same function.
+            ## either simply add the new outstrings to the current one or we need to keep track of what
+            ## calls each and with what switchcase/index info.  VaSet?  or do we want this to only expect
+            ## the same function to call each one, and all part of the same Switchcase?
+            logger.warn("%s is already labeled %s", casename, curname)
+
+        vw.makeName(addr, casename)
+        logger.info(casename)
+
+    vw.makeName(jmpva, "switch_%.8x" % jmpva)
+    logger.info("making switchname: switch_%.8x", jmpva)
        
-        vw.makeName(self.jmpva, "switch_%.8x" % self.jmpva)
-        logger.info("making switchname: switch_%.8x", self.jmpva)
 
+
+def link_up(vw, jmpva, array, count, baseoff, baseva=None, itemsize=None):
+    '''
+    Manually link up a switchcase for which we have a pointer/offset array
+
+    If baseva is None, the array is treated as a pointer array
+    Otherwise, the numbers in the array are treated as offset from baseva
+
+    If itemsize is not None, itemsize is treats as the size of each item 
+        in the array (in bytes.. ie. 2, 4, 8 bytes)
+    '''
+    funcva = vw.getFunction(jmpva)
+    lower = 0
+    upper = count
+
+    logger.info("link_up(0x%x, 0x%x, %d, 0x%x, %r, %r", jmpva, array, count, baseoff, baseva, itemsize)
+
+    cases = {}
+    memrefs = []
+    for idx in range(count):
+        # handle specific itemsize if not pointer sized
+
+        if itemsize is not None:
+            idxloc = array + (idx * itemsize)
+            fmt = e_bits.getFormat(itemsize, big_endian=vw.getEndian())
+            addr, = vw.readMemoryFormat(idxloc, fmt)
+        else:
+            itemsize = vw.psize
+            idxloc = array + (idx * itemsize)
+            addr = vw.readMemoryPtr(idxloc)
+
+        # handle base-va calculation
+        if baseva is not None:
+            addr = e_bits.unsigned(baseva + addr, vw.psize)
+
+        logger.info("0x%x manalyzeSwitch: idx: %s \t address: 0x%x", jmpva, idx, addr)
+        
+        # determining when to stop identifying switch-cases can be tough.  we assume that we have the 
+        # correct number handed into this function in "count", but currently we'll stop analyzing
+        # if we run into trouble.
+        if not vw.isValidPointer(addr):
+            logger.info("found invalid pointer.  quitting.  (0x%x)" % addr)
+            break
+        
+        tloc = vw.getLocation(addr)
+        if tloc is not None and tloc[0] != addr:
+            # pointing at something not right.  must be done.
+            logger.info("found overlapping location.  quitting.")
+            break
+     
+        if len(cases):
+            xrefsto = vw.getXrefsTo(addr)
+            # if there is an xref to this target from within this function, we're still ok... ish?
+            if len(xrefsto):
+                good = True
+                for xrfr, xrto, xrt, xrtinfo in xrefsto:
+                    xrfrfunc = vw.getFunction(xrfr)
+                    if xrfrfunc in (funcva, None):
+                        continue
+
+                    # this one is *not* in the same function
+                    logger.info("thisfunc: %r  otherfunc: %r", funcva, xrfrfunc)
+                    #good = False
+
+                if not good:
+                    logger.info("target location (0x%x) has xrefs.", addr)
+                    break
+        
+        # this is a valid thing, we have locations...  match them up
+        caselist = cases.get(addr)
+        if caselist is None:
+            caselist = []
+            cases[addr] = caselist
+        caselist.append( idx )
+
+        # make the connections
+        vw.addXref(jmpva, addr, vivisect.REF_CODE)
+        nloc = vw.getLocation(addr)
+        if nloc is None:
+            vw.makeCode(addr)
+
+        # make pointers/numbers from the ptr/offset locations
+        if baseva is not None:
+            vw.makeNumber(idxloc, itemsize)
+        else:
+            vw.makePointer(idxloc)
+
+    # makeNames (done separately because some indexes may be combined)
+    makeNames(vw, jmpva, cases, baseoff)
+
+    # store some metadata in a VaSet
+    vw.setVaSetRow('SwitchCases', (jmpva, jmpva, count) )
+
+    if baseoff is not None:
+        lower += baseoff
+        upper += baseoff
+    
+    vw.setComment(jmpva, "lower: 0x%x, upper: 0x%x" % (lower, upper))
 
 '''
 # libc-2.13.so
