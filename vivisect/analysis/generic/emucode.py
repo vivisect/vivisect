@@ -101,7 +101,7 @@ def analyze(vw):
 
     flist = vw.getFunctions()
 
-    tried = {}
+    tried = set()
     while True:
         docode = []
         bcode  = []
@@ -121,10 +121,10 @@ def analyze(vw):
                 continue
 
             # Skip it if we've tried it already.
-            if tried.get(va):
+            if va in tried:
                 continue
 
-            tried[va] = True
+            tried.add(va)
             emu = vw.getEmulator()
             wat = watcher(vw, va)
             emu.setEmulationMonitor(wat)
@@ -155,7 +155,6 @@ def analyze(vw):
                 vw.makeFunction(va)
             except:
                 continue
-            vw.setVaSetRow('EmucodeFunctions', (va,))
 
         bcode.sort()
         for va in bcode:
@@ -165,6 +164,10 @@ def analyze(vw):
             vw.makeCode(va)
 
     dlist = vw.getFunctions()
+
+    newfuncs = set(dlist) - set(flist)
+    for fva in newfuncs:
+        vw.setVaSetRow('EmucodeFunctions', (fva,))
 
     vw.verbprint("emucode: %d new functions defined (now total: %d)" % (len(dlist)-len(flist), len(dlist)))
 
