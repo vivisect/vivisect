@@ -123,7 +123,7 @@ class Amd64Emulator(Amd64RegisterContext, e_i386.IntelEmulator):
     i_aas = i_aam
 
     def i_pinsrq(self, op):
-        self.i_pinsrb(op, bitwidth=64)
+        self.i_pinsrb(op, width=8)
 
     def i_stosd(self, op):
         if op.prefixes & PREFIX_REX_W:
@@ -140,6 +140,6 @@ class Amd64Emulator(Amd64RegisterContext, e_i386.IntelEmulator):
 
     def i_pextrd_q(self, op):
         if op.prefixes & PREFIX_REX_W:
-            self.i_pextrb(op, bitlen=64)
+            self.i_pextrb(op, width=8)
         else:
-            self.i_pextrb(op, bitlen=32)
+            self.i_pextrb(op, width=4)
