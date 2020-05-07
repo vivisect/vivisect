@@ -1355,7 +1355,7 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
         select = self.getOperObj(op, 2)
 
         src >>= select * Const(width * 8, self._psize)
-        src &= self._sz_masks[width)]
+        src &= self._sz_masks[width]
         if width != 1:
             dst &= Const(~((2**(8*width)) - 1), self._psize)
             src |= dst
