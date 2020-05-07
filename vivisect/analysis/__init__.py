@@ -55,6 +55,7 @@ def addAnalysisModules(vw):
         # Snap in an architecture specific emulation pass
         if arch == 'i386':
             vw.addFuncAnalysisModule("vivisect.analysis.i386.calling")
+            vw.addFuncAnalysisModule("vivisect.analysis.i386.instrhook")
 
         elif arch == 'amd64':
             vw.addFuncAnalysisModule("vivisect.analysis.amd64.emulation")
