@@ -105,7 +105,7 @@ class Amd64SymbolikTranslator(vsym_i386.IntelSymbolikTranslator):
     # TODO: support callf and all that nonsense
 
     def i_pextrd_q(self, op):
-        self.i_pextrb(op, bitlen=op.opers[0].tsize*8)
+        self.i_pextrb(op, width=op.opers[0].tsize)
 
     def i_movsxd(self, op):
         dsize = op.opers[0].tsize

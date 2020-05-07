@@ -308,7 +308,7 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
     i_addss = i_addsd
 
     def i_vaddsd(self, off=0):
-        self.i_addss(op, off=0)
+        self.i_addsd(op, off=1)
 
     def i_vaddss(self, op):
         self.i_addss(op, off=1)
@@ -1349,26 +1349,26 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
         val |= (oper >> bit)
         self.setOperObj(op, 0, val)
 
-    def i_pextrb(self, op, bitlen=8):
+    def i_pextrb(self, op, width=1):
         dst = self.getOperObj(op, 0)
         src = self.getOperObj(op, 1)
         select = self.getOperObj(op, 2)
 
-        src >>= select * Const(bitlen, self._psize)
-        src &= self._sz_masks[int(bitlen/8)]
-        if bitlen != 8:
-            dst &= Const(~((2**bitlen) - 1), self._psize)
+        src >>= select * Const(width * 8, self._psize)
+        src &= self._sz_masks[width)]
+        if width != 1:
+            dst &= Const(~((2**(8*width)) - 1), self._psize)
             src |= dst
 
         self.setOperObj(op, 0, src)
 
     def i_pextrw(self, op):
-        self.i_pextrb(op, bitlen=16)
+        self.i_pextrb(op, width=2)
 
     def i_pextrd(self, op):
-        self.i_pextrb(op, bitlen=32)
+        self.i_pextrb(op, width=4)
 
-    def _stos(self, op, width=-1):
+    def i_stosb(self, op, width=1):
         # FIXME omg segments in symboliks?
         # base, size = self.segments[SEG_ES]
         di = Var(self.__destp__, self._psize)
@@ -1376,11 +1376,8 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
         self.effWriteMemory(di, Const(self._psize, self._psize), Var('eax', self._psize))
         self.effSetVariable(self.__destp__, di + mod)
 
-    def i_stosb(self, op):
-        return self._stos(op, width=1)
-
     def i_stosd(self, op):
-        return self._stos(op, width=4)
+        return self.i_stosb(op, width=4)
 
     def _cmps(self, op, width=-1):
         si = Var(self.__srcp__, self._psize)

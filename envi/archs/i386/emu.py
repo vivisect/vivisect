@@ -27,17 +27,12 @@ def shiftMask(val, size):
         raise Exception("shiftMask is broke in envi/arch/i386/emu.py")
 
 
-SUBMASKS = {}
-for i in [1, 2, 4, 8, 16, 32]:
-    SUBMASKS[i] = (2L ** (i * 8)) - 1
-
-
 def yieldPacked(valu, size, subsize):
     '''
     For the fun SIMD instructions like psrld, chunk the valu into <subsize> sections
     and return those shifted down
     '''
-    mask = SUBMASKS[subsize]
+    mask = e_bits.u_maxes[subsize]
 
     for i in range(size/subsize):
         sub = valu >> (i * subsize)
@@ -490,7 +485,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         src1 = self.getOperValue(op, off)
         src2 = self.getOperValue(op, off+1)
         res = 0
-        mask = SUBMASKS[int(width)]
+        mask = e_bits.u_maxes[width]
         valus = zip(yieldPacked(src1, tsize, width),
                     yieldPacked(src2, tsize, width))
         for idx, (lft, rgt) in enumerate(valus):
@@ -517,28 +512,6 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
 
     def i_vpaddq(self, op):
         self.i_paddb(op, width=8, off=1)
-
-    #def _adds(self, op, off=0):
-    #    opA = self.getOperValue(op, off)
-    #    opB = self.getOperValue(op, off+1)
-
-    #    res = opA + opB
-
-    #    self.setOperValue(op, 0, res)
-
-    #def i_addsd(self, op):
-    #    self._adds(op)
-
-    #def i_vaddsd(self, op):
-    #    self._adds(op, off=1)
-
-    #i_addss = i_addsd
-    #i_addps = i_addsd
-    #i_addpd = i_addsd
-
-    #i_vaddss = i_vaddsd
-    #i_vaddps = i_vaddsd
-    #i_vaddpd = i_vaddsd
 
     def i_bsf(self, op):
         src = self.getOperValue(op, 1)
@@ -1159,7 +1132,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
 
     def i_movlps(self, op):
         if op.opers[0].isReg():
-            mask = SUBMASKS[8]
+            mask = e_bits.u_maxes[8]
             dst = self.getRegisterByName(self.getRealRegisterNameByIdx(op.opers[0].reg)) & (~mask)
             src = self.getOperValue(op, 1)
             self.setOperValue(op, 0, dst | (src & mask))
@@ -1167,7 +1140,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
             self.i_mov(op)
 
     def i_movhps(self, op, off=0):
-        mask = SUBMASKS[8]
+        mask = e_bits.u_maxes[8]
         lvalu = self.getOperValue(op, off)
         self.setOperValue(op, 0, lvalu & mask)
 
@@ -1178,7 +1151,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         if op.opers[0].isReg():
             src1 = self.getOperValue(op, 1)
             src2 = self.getOperValue(op, 2)
-            mask = SUBMASKS[8]
+            mask = e_bits.u_maxes[8]
             res = ((src1 & mask) << 64) | (src2 & mask)
             self.setOperValue(op, 0, res)
         else:
@@ -1188,7 +1161,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         if op.opers[0].isReg():
             src1 = self.getOperValue(op, 1)
             src2 = self.getOperValue(op, 2)
-            mask = SUBMASKS[8]
+            mask = e_bits.u_maxes[8]
             res = (src1 & mask) | ((src2 & mask) << 64)
             self.setOperValue(op, 0, res)
         else:
@@ -1920,7 +1893,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         valu = self.getOperValue(op, off)
         tsize = op.opers[off].tsize
         shift = self.getOperValue(op, off+1)
-        mask = SUBMASKS[width]
+        mask = e_bits.u_maxes[width]
         for idx, valu in enumerate(yieldPacked(valu, tsize, width)):
             valu = shiftfunc(valu, shift) & mask
             res |= valu << (idx * 8 * width)
@@ -2004,7 +1977,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         self.i_pshufb(op, off=1)
 
     def i_pshufd(self, op, bwidth=32):
-        mask = SUBMASKS[4]
+        mask = e_bits.u_maxes[4]
         dst = self.getOperValue(op, 0)
         src = self.getOperValue(op, 1)
         order = self.getOperValue(op, 2)
@@ -2027,7 +2000,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
     i_vpshufd = i_pshufd
 
     def i_pshufw(self, op):
-        mask = SUBMASKS[2]
+        mask = e_bits.u_maxes[2]
         dst = self.getOperValue(op, 0)
         src = self.getOperValue(op, 1)
         order = self.getOperValue(op, 2)
@@ -2039,11 +2012,11 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         self.setOperValue(op, 0, res)
 
     def i_pshuflw(self, op, offset=0):
-        mask = SUBMASKS[2] << offset
+        mask = e_bits.u_maxes[2] << offset
         dst = self.getOperValue(op, 0)
         src = self.getOperValue(op, 1)
         order = self.getOperValue(op, 2)
-        clear = SUBMASKS[8] << (64 - offset)
+        clear = e_bits.u_maxes[8] << (64 - offset)
         res = src & clear
 
         for i in range(4):
@@ -2072,7 +2045,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         values = zip(yieldPacked(dst, tsize, width),
                      yieldPacked(src, tsize, width))
 
-        mask = SUBMASKS[width]
+        mask = e_bits.u_maxes[width]
         consumed = 0
         for i, (dst, src) in enumerate(values):
             res |= dst << (width*i)
@@ -2102,7 +2075,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         name = self.getRealRegisterNameByIdx(op.opers[0].reg)
         realreg = self.getRegisterByName(name)
 
-        mask = ~SUBMASKS[width]
+        mask = ~e_bits.u_maxes[width]
         valu = realreg & mask
 
         dst = self.getOperValue(op, off)
@@ -2132,7 +2105,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         name = self.getRealRegisterNameByIdx(op.opers[0].reg)
         realreg = self.getRegisterByName(name)
 
-        mask = ~SUBMASKS[width]
+        mask = ~e_bits.u_maxes[width]
         valu = realreg & mask
 
         dst = self.getOperValue(op, off)
@@ -2189,7 +2162,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         packed = zip(yieldPacked(dest, op.opers[off].tsize, width),
                      yieldPacked(src, op.opers[off+1].tsize, width))
 
-        eql = SUBMASKS[width]
+        eql = e_bits.u_maxes[width]
         for idx, (lft, rgt) in enumerate(packed):
             valu = cmpr(lft, rgt)
             res |= valu << (8 * width * idx)
@@ -2202,7 +2175,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         packed = zip(yieldPacked(dest, op.opers[off].tsize, width),
                      yieldPacked(src, op.opers[off+1].tsize, width))
 
-        eql = SUBMASKS[width]
+        eql = e_bits.u_maxes[width]
         for idx, (lft, rgt) in enumerate(packed):
             if lft == rgt:
                 cmp = eql
@@ -2301,7 +2274,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         dst = self.getOperValue(op, 0)
         src = self.getOperValue(op, 1)
         select = self.getOperValue(op, 2)
-        mask = SUBMASKS[width]
+        mask = e_bits.u_maxes[width]
         bitwidth = width * 8
         if width == 1:
             select &= 0xF
@@ -2330,7 +2303,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         src1 = self.getOperValue(op, off)
         src2 = self.getOperValue(op, off + 1)
         res = 0
-        mask = SUBMASKS[width]
+        mask = e_bits.u_maxes[width]
 
         valus = zip(yieldPacked(src1, tsize, width),
                     yieldPacked(src1, tsize, width))
@@ -2368,7 +2341,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         src1 = self.getOperValue(op, off)
         src2 = self.getOperValue(op, off + 1)
         res = 0
-        mask = SUBMASKS[width]
+        mask = e_bits.u_maxes[width]
         bitwidth = width * 8
         valus = zip(yieldPacked(src1, tsize, width),
                     yieldPacked(src1, tsize, width))
@@ -2431,10 +2404,10 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         src = self.getOperValue(op, 1)
         sel = self.getOperValue(op, 2)
 
-        src = (src >> (sel*width*8)) & SUBMASKS[width]
+        src = (src >> (sel*width*8)) & e_bits.u_maxes[width]
         # clear the bits only on pextrb
         if width != 1:
-            dst = dst & (~SUBMASKS[width])
+            dst = dst & (~e_bits.u_maxes[width])
             src |= dst
         self.setOperValue(op, 0, src)
 
