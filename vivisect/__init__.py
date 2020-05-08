@@ -986,7 +986,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
         return self.imem_archs[(arch & envi.ARCH_MASK) >> 16].archParseOpcode(b, off, va)
 
-    def iterJumpTable(self, startva, rebase=False, step=None, maxiters=None):
+    def iterJumpTable(self, startva, step=None, maxiters=None, rebase=False):
         if not step:
             step = self.psize
         fname = self.getMemoryMap(startva)
