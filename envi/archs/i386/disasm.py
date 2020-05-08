@@ -868,6 +868,12 @@ class i386Disasm:
         decodings = []
         mainbyte = offset
         prefixes = all_prefixes
+
+        # as noted above, since we can have prefixes that may or may not be mandatory,
+        # we roll through those and pop off the last one, since there's two cases we have
+        # to deal with: a normal prefix that just modifies the opers, and a mandatory prefix
+        # that modifies the instruction semantics entirely. Either way, the mandatory prefix
+        # takes precedence and whichever one wins will be at the end of the list <decodings>
         for pref, onehot in ppref:
             if pref is not None:
                 obyte = pref
@@ -972,6 +978,11 @@ class i386Disasm:
 
                     else:
                         osize, oper = ameth(bytez, offset, tsize, all_prefixes, operflags)
+                        # so in the opcode maps intel directly mentions that some opcodes are
+                        # ADDRMETH_W but if the operand is a memory ref, it's always of a specific
+                        # size, with no rhyme or reason as to which it is. So we directly embed
+                        # that knowledge into the opcodes mappings we maintain and pluck it out
+                        # here.
                         if getattr(oper, "_is_deref", False):
                             memsz = OP_EXTRA_MEMSIZES[(operflags & OP_MEMMASK) >> 4]
                             if memsz is not None:

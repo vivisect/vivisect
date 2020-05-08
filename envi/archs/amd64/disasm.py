@@ -510,6 +510,7 @@ class Amd64Disasm(e_i386.i386Disasm):
                                 oper.tsize = otsize
 
                     else:
+                        # see same code section in i386 for this rationale
                         osize, oper = ameth(bytez, offset, tsize, prefixes, operflags)
                         if getattr(oper, "_is_deref", False):
                             memsz = OP_EXTRA_MEMSIZES[(operflags & OP_MEMMASK) >> 4]
