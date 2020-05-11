@@ -59,6 +59,7 @@ def addAnalysisModules(vw):
 
         elif arch == 'amd64':
             vw.addFuncAnalysisModule("vivisect.analysis.amd64.emulation")
+            vw.addFuncAnalysisModule("vivisect.analysis.amd64.instrhook")
 
         # See if we got lucky and got arg/local hints from symbols
         vw.addAnalysisModule('vivisect.analysis.ms.localhints')
@@ -99,8 +100,10 @@ def addAnalysisModules(vw):
         # Add our emulation modules
         if arch == 'i386':
             vw.addFuncAnalysisModule("vivisect.analysis.i386.calling")
+            vw.addFuncAnalysisModule("vivisect.analysis.i386.instrhook")
         elif arch == 'amd64':
             vw.addFuncAnalysisModule("vivisect.analysis.amd64.emulation")
+            vw.addFuncAnalysisModule("vivisect.analysis.amd64.instrhook")
 
         # Find import thunks
         vw.addFuncAnalysisModule("vivisect.analysis.generic.thunks")
