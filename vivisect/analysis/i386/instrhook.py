@@ -8,6 +8,7 @@ import envi
 import vivisect.impemu.monitor as viv_imp_monitor
 
 verbose = False
+STOS = ('stosb', 'stosw', 'stosd', 'stosq')
 
 
 class instrhook_watcher (viv_imp_monitor.EmulationMonitor):
@@ -22,25 +23,33 @@ class instrhook_watcher (viv_imp_monitor.EmulationMonitor):
         self.lastop = None
         self.badcode = False
         self.badops = vw.arch.archGetBadOps()
+        self.arch = vw.getMeta('Architecture')
 
     def prehook(self, emu, op, eip):
-        # Not sure if we need to stop emulation altogether,
-        # since we're only looking for specific instructions anyway?
         if op in self.badops:
             emu.stopEmu()
             raise Exception("Hit known BADOP at 0x%.8x %s" % (eip, repr(op)))
 
-        if op.mnem == 'stosb' or op.mnem == 'stosd':
-            edi = emu.getRegister(envi.archs.i386.REG_EDI)
-            if self.vw.isValidPointer(edi):
-                self.vw.makePointer(edi, follow=True)
+        if op.mnem in STOS:
+            if self.arch == 'i386':
+                reg = emu.getRegister(envi.archs.i386.REG_EDI)
+            elif self.arch == 'amd64':
+                reg = emu.getRegister(envi.archs.amd64.REG_RDI)
+            if self.vw.isValidPointer(reg):
+                self.vw.makePointer(reg, follow=True)
 
 
 def analyzeFunction(vw, fva):
 
+    emulate = False
     dist = vw.getFunctionMeta(fva, 'MnemDist')
 
-    if 'stosb' in dist or 'stosd' in dist:
+    for s in STOS:
+        if s in dist:
+            emulate = True
+            break
+
+    if emulate:
         emu = vw.getEmulator()
         instrwat = instrhook_watcher(vw, fva)
         emu.setEmulationMonitor(instrwat)

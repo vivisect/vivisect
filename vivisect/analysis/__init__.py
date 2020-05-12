@@ -7,6 +7,7 @@ for different phases of analysis on different platforms.
 import logging
 logger = logging.getLogger(__name__)
 
+
 def addAnalysisModules(vw):
 
     import vivisect
@@ -52,14 +53,16 @@ def addAnalysisModules(vw):
         vw.addFuncAnalysisModule("vivisect.analysis.ms.hotpatch")
         vw.addFuncAnalysisModule("vivisect.analysis.ms.msvc")
 
+        if arch in ('i386', 'amd64'):
+            # Applies to i386 and amd64, will split it up when neccessary
+            vw.addFuncAnalysisModule("vivisect.analysis.i386.instrhook")
+
         # Snap in an architecture specific emulation pass
         if arch == 'i386':
             vw.addFuncAnalysisModule("vivisect.analysis.i386.calling")
-            vw.addFuncAnalysisModule("vivisect.analysis.i386.instrhook")
 
         elif arch == 'amd64':
             vw.addFuncAnalysisModule("vivisect.analysis.amd64.emulation")
-            vw.addFuncAnalysisModule("vivisect.analysis.amd64.instrhook")
 
         # See if we got lucky and got arg/local hints from symbols
         vw.addAnalysisModule('vivisect.analysis.ms.localhints')
@@ -97,13 +100,16 @@ def addAnalysisModules(vw):
         vw.addFuncAnalysisModule("vivisect.analysis.generic.codeblocks")
         vw.addFuncAnalysisModule("vivisect.analysis.generic.impapi")
 
+        if arch in ('i386', 'amd64'):
+            # Applies to i386 and amd64, will split it up when neccessary
+            vw.addFuncAnalysisModule("vivisect.analysis.i386.instrhook")
+
         # Add our emulation modules
         if arch == 'i386':
             vw.addFuncAnalysisModule("vivisect.analysis.i386.calling")
-            vw.addFuncAnalysisModule("vivisect.analysis.i386.instrhook")
+
         elif arch == 'amd64':
             vw.addFuncAnalysisModule("vivisect.analysis.amd64.emulation")
-            vw.addFuncAnalysisModule("vivisect.analysis.amd64.instrhook")
 
         # Find import thunks
         vw.addFuncAnalysisModule("vivisect.analysis.generic.thunks")
