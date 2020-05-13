@@ -126,6 +126,7 @@ class Amd64Emulator(Amd64RegisterContext, e_i386.IntelEmulator):
         self.i_pinsrb(op, width=8)
 
     def i_stosd(self, op):
+        # TODO: Once we fix the postfix handling, come back and mop this up
         if op.prefixes & PREFIX_REX_W:
             rax = self.getRegister(REG_RAX)
             rdi = self.getRegister(REG_RDI)
