@@ -11,6 +11,7 @@ import vivisect.impemu.monitor as viv_imp_monitor
 from vivisect.const import *
 
 import visgraph.pathcore as vg_path
+import vivisect.analysis.generic.switchcase as vag_switch
 
 import envi
 import envi.archs.i386 as e_i386
@@ -44,6 +45,7 @@ class AnalysisMonitor(viv_imp_monitor.AnalysisMonitor):
     def __init__(self, vw, fva):
         viv_imp_monitor.AnalysisMonitor.__init__(self, vw, fva)
         self.retbytes = None
+        self.addDynamicBranchHandler(vag_switch.analyzeJmp)
         self.badops = vw.arch.archGetBadOps()
 
     def prehook(self, emu, op, starteip):

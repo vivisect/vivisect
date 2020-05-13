@@ -16,9 +16,10 @@ def analyzeJmp(amod, emu, op, starteip):
     Top level logic
     '''
     vw = emu.vw
-    ctx = testSwitch(vw, op, starteip, emu)
+    ctx = getSwitchBase(vw, op, starteip, emu)
     if ctx is not None:
-        vw.makeJumpTable(op, ctx[0], rebase=True, psize=ctx[1])
+        tova, scale = ctx
+        vw.makeJumpTable(op, tova, rebase=True, psize=scale)
         # so the codeblocks this jumptable points to aren't proper locations...yet.
         # let's fix that up and kick off codeblock analysis to make the codeblocks
         for xrfrom, xrto, xrtype, xrflags in vw.getXrefsFrom(op.va, rtype=v_const.REF_CODE):
@@ -59,7 +60,7 @@ def scanUp(vw, emu, startva, regidx, valu):
     return False
 
 
-def testSwitch(vw, op, vajmp, emu=None):
+def getSwitchBase(vw, op, vajmp, emu=None):
     if not (op.iflags & envi.IF_BRANCH):
         # vw.verbprint( "indirect branch is not correct type")
         return
@@ -121,11 +122,11 @@ def testSwitch(vw, op, vajmp, emu=None):
 if 'vw' in globals():
     vw = globals()['vw']
     with vw.makeVerbose():
-        vw.vprint("Starting...")
+        vw.vprint("Starting Switchcase Module...")
         for va, reprOp, flags in vw.getVaSetRows('DynamicBranches'):
             op = vw.parseOpcode(va)
             if op is None:
                 vw.vprint("Cannot analyze none op at 0x%x" % va)
                 continue
             analyzeJmp(None, vw.getEmulator(), op, va)  # it doesn't use archmod anyway
-        vw.vprint("Done")
+        vw.vprint("Switchcase Done")
