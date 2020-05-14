@@ -677,6 +677,8 @@ class i386Disasm:
         self.ROFFSETTEST  = getRegOffset(i386regs, "test0")
         self.ROFFSETSEG   = getRegOffset(i386regs, "es")
         self.ROFFSETFPU   = getRegOffset(i386regs, "st0")
+        # Note: getRegOffset doesn't work on meta registers and mm* are aliases of the
+        # st registers, so we use getRegisterIndex instead
         self.ROFFSETMMX   = self._dis_regctx.getRegisterIndex("mm0")
 
     def parse_modrm(self, byte, prefixes=0):

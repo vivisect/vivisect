@@ -204,6 +204,8 @@ class Amd64Disasm(e_i386.i386Disasm):
         self.ROFFSETTEST  = e_i386.getRegOffset(amd64regs, "test0")
         self.ROFFSETSEG   = e_i386.getRegOffset(amd64regs, "es")
         self.ROFFSETFPU   = e_i386.getRegOffset(amd64regs, "st0")
+        # Note: getRegOffset doesn't work on meta registers and mm* are aliases of the
+        # st registers, so we use getRegisterIndex instead
         self.ROFFSETMMX   = self._dis_regctx.getRegisterIndex("mm0")
 
     # NOTE: Technically, the REX must be the *last* prefix specified
