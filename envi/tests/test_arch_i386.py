@@ -32,10 +32,26 @@ i386SingleByteOpcodes = [
     ('rep setg (al)', 'f30f9fc0', 0x40, 'rep: setg al', 'rep: setg al'),
     ('rep setg (dl)', 'f30f9fc2', 0x40, 'rep: setg dl', 'rep: setg dl'),
     ('prefix scas', 'f2ae', 0x40, 'repnz: scasb ', 'repnz: scasb '),
+    ('jmp', 'E910000000', 0x40, 'jmp 0x00000055', 'jmp 0x00000055'),
     ('TEST', '84db', 0x40, 'test bl,bl', 'test bl,bl'),
+    ('POP', '5D', 0x40, 'pop ebp', 'pop ebp'),
+    ('POP', '5B', 0x40, 'pop ebx', 'pop ebx'),
 ]
 
 i386MultiByteOpcodes = [
+    ('CMPXCH8B', 'f00fc74d00', 0x40, 'lock: cmpxch8b qword [ebp]', 'lock: cmpxch8b qword [ebp]'),
+    ('jmp 2', 'FF248D3A3A3A3A', 0x40, 'jmp dword [0x3a3a3a3a + ecx * 4]', 'jmp dword [0x3a3a3a3a + ecx * 4]'),
+    ('MOV', '8B148541414141', 0x40, 'mov edx,dword [0x41414141 + eax * 4]', 'mov edx,dword [0x41414141 + eax * 4]'),
+    # ('MOV 2r', '678B14', 0x40, 'mov edx,dword [si]', 'mov edx,dword [si]'),
+    # ('PUSH 2', '67FF37', 0x40, 'push dword [bx]', 'push dword [bx]'),
+    # TODO(rakuyo): with how we do ADDRMETH_E, eax in these will end up like ax since the memaddr
+    # size is always 8
+    #('PEXTRB', '660F3A14D011', 0x40, 'pextrb eax,xmm2,17', 'pextrb eax,xmm2,17'),
+    #('PEXTRB 2', '660F3A141011', 0x40, 'pextrb byte [eax],xmm2,17', 'pextrb byte [eax],xmm2,17'),
+    ('MOV 3', '8B16', 0x40, 'mov edx,dword [esi]', 'mov edx,dword [esi]'),
+    ('NOT', '66F7D0', 0x40, 'not ax', 'not ax'),
+    ('NOT 2', 'F7D0', 0x40, 'not eax', 'not eax'),
+    ('PUSH', '6653', 0x40, 'push bx', 'push bx'),
     ('CVTPD2PI', '660f2Daaaaaaaa41', 0x40, 'cvtpd2pi mm5,oword [edx + 1101703850]', 'cvtpd2pi mm5,oword [edx + 1101703850]'),
     ('CVTTPS2PI', '0f2caaaaaaaa41', 0x40, 'cvttps2pi mm5,qword [edx + 1101703850]', 'cvttps2pi mm5,qword [edx + 1101703850]'),
     ('CVTTSS2SI', 'f30f2caaaaaaaa41', 0x40, 'cvttss2si ebp,dword [edx + 1101703850]', 'cvttss2si ebp,dword [edx + 1101703850]'),
@@ -45,7 +61,9 @@ i386MultiByteOpcodes = [
     ('ADDPS', '0f58aa4141414141', 0x40, 'addps xmm5,oword [edx + 1094795585]', 'addps xmm5,oword [edx + 1094795585]'),
     ('MOVAPS', '0f28aa41414141', 0x40, 'movaps xmm5,oword [edx + 1094795585]', 'movaps xmm5,oword [edx + 1094795585]'),
     ('MOVAPD', '660f28aa41414141', 0x40, 'movapd xmm5,oword [edx + 1094795585]', 'movapd xmm5,oword [edx + 1094795585]'),
-    ('PMULLW (66)', '660faa41414141', 0x40, 'rsm ', 'rsm '),
+    ('RSM', '0faa414141', 0x40, 'rsm ', 'rsm '),
+    ('PMULLW (66)', '660fd5cd', 0x40, 'pmullw xmm1,xmm5', 'pmullw xmm1,xmm5'),
+    ('PMULLW', '0fd5e2', 0x40, 'pmullw mm4,mm2', 'pmullw mm4,mm2'),
     ('CMPXCH8B', '0fc70a', 0x40, 'cmpxch8b qword [edx]', 'cmpxch8b qword [edx]'),
     ('MOVD (66)', '660f7ecb414141', 0x40, 'movd ebx,xmm1', 'movd ebx,xmm1'),
     ('MOVD', '0F6E0D41414100', 0x40, 'movd mm1,dword [0x00414141]', 'movd mm1,dword [0x00414141]'),
@@ -71,7 +89,7 @@ i386MultiByteOpcodes = [
     ('MFENCE', '0faef5', 0x40, 'mfence ', 'mfence '),
     ('MFENCE', '0faef7', 0x40, 'mfence ', 'mfence '),
     ('CVTTSS2SI', 'f30f2cc8', 0x40, 'cvttss2si ecx,xmm0', 'cvttss2si ecx,xmm0'),
-    ('PREFIXES', 'f0673e2e65f30f10ca', 0x40, 'addr lock cs ds gs: movss xmm1,xmm2', 'addr lock cs ds gs: movss xmm1,xmm2'),
+    ('PREFIXES', 'f0673e2e65f30f10ca', 0x40, 'lock cs ds gs: movss xmm1,xmm2', 'lock cs ds gs: movss xmm1,xmm2'),
     ('BSR', '0fbdc3414141', 0x40, 'bsr eax,ebx', 'bsr eax,ebx'),
     ('LZNT', 'f30fbdc3414141', 0x40, 'lzcnt eax,ebx', 'lzcnt eax,ebx'),
     # Because of how the MODRM Bytes are set, these map to the same instruction
@@ -84,6 +102,9 @@ i386MultiByteOpcodes = [
 
     ('PCMPISTRI', '660f3a630f0d', 0x40, 'pcmpistri xmm1,oword [edi],13', 'pcmpistri xmm1,oword [edi],13'),
     ('PSHUFB', '660F3800EF', 0x40, 'pshufb xmm5,xmm7', 'pshufb xmm5,xmm7'),
+    ('PSHUFB 2', '0F3800CA', 0x40, 'pshufb mm1,mm2', 'pshufb mm1,mm2'),
+    ('PABSB', '660F381C08', 0x40, 'pabsb xmm1,oword [eax]', 'pabsb xmm1,oword [eax]'),
+    ('PABSB 2', '0F381C1D41414141', 0x40, 'pabsb mm3,qword [0x41414141]', 'pabsb mm3,qword [0x41414141]'),
     ('RDTSC', '0F31', 0x40, 'rdtsc ', 'rdtsc '),
     ('RDTSCP', '0F01F9', 0x40, 'rdtscp ', 'rdtscp '),
     ('CVTDQ2PD', 'f30fe6c0', 0x40, 'cvtdq2pd xmm0,xmm0', 'cvtdq2pd xmm0,xmm0'),
@@ -103,8 +124,8 @@ i386MultiByteOpcodes = [
     ('MOVSD', 'f20f100d28330608', 0x40, 'movsd xmm1,oword [0x08063328]', 'movsd xmm1,oword [0x08063328]'),
     ('MOVSD 2', 'f20f1145f0', 0x40, 'movsd oword [ebp - 16],xmm0', 'movsd oword [ebp - 16],xmm0'),
     ('MOVSD 3', 'f20f100d70790908', 0x40, 'movsd xmm1,oword [0x08097970]', 'movsd xmm1,oword [0x08097970]'),
-    ('MOVSS', 'f30f1045f8', 0x40, 'movss xmm0,oword [ebp - 8]', 'movss xmm0,oword [ebp - 8]'),
-    ('MOVSS 2', 'f30f1055d0', 0x40, 'movss xmm2,oword [ebp - 48]', 'movss xmm2,oword [ebp - 48]'),
+    ('MOVSS', 'f30f1045f8', 0x40, 'movss xmm0,dword [ebp - 8]', 'movss xmm0,dword [ebp - 8]'),
+    ('MOVSS 2', 'f30f1055d0', 0x40, 'movss xmm2,dword [ebp - 48]', 'movss xmm2,dword [ebp - 48]'),
     ('MOVSS 3', 'F30F110D41414100', 0x40, 'movss dword [0x00414141],xmm1', 'movss dword [0x00414141],xmm1'),
     ('CVTSI2SS', 'f30f2ac8', 0x40, 'cvtsi2ss xmm1,eax', 'cvtsi2ss xmm1,eax'),
     ('MULSS', 'f30f59ca', 0x40, 'mulss xmm1,xmm2', 'mulss xmm1,xmm2'),
@@ -121,8 +142,10 @@ i386MultiByteOpcodes = [
     ('STAC', '0f01cb414141', 0x40, 'stac ', 'stac '),
     ('VMFUNC', '0f01d44141', 0x40, 'vmfunc ', 'vmfunc '),
     ('XEND', '0f01d54141', 0x40, 'xend ', 'xend '),
-    ('XGETBV', '0f01d04141', 0x40, 'xgetbv ', 'xgetbv '),
-    ('XSETBV', '0f01d14141', 0x40, 'xsetbv ', 'xsetbv '),
+    ('XGETBV', '0f01d04141', 0x40, 'xgetbv ecx', 'xgetbv ecx'),
+    ('XSETBV', '0f01d14141', 0x40, 'xsetbv ecx', 'xsetbv ecx'),
+    ('XADD', '660fc1d8', 0x40, 'xadd ax,bx', 'xadd ax,bx'),
+    ('XADD 2', '0fc1d8', 0x40, 'xadd eax,ebx', 'xadd eax,ebx'),
     ('XTEST', '0f01d64141', 0x40, 'xtest ', 'xtest '),
     ('MOVUPD', '660f10cc', 0x40, 'movupd xmm1,xmm4', 'movupd xmm1,xmm4'),
     ('MOVUPD', '660f1018', 0x40, 'movupd xmm3,oword [eax]', 'movupd xmm3,oword [eax]'),
@@ -131,6 +154,20 @@ i386MultiByteOpcodes = [
     ('MOVHPD', '660F172D41414141', 0x40, 'movhpd oword [0x41414141],xmm5', 'movhpd oword [0x41414141],xmm5'),
     ('MOVMSKPS', '0F50D6', 0x40, 'movmskps edx,xmm6', 'movmskps edx,xmm6'),
     ('MOVMSKPD', '660F50D6', 0x40, 'movmskpd edx,xmm6', 'movmskpd edx,xmm6'),
+    ('PEXTRD', '660F3A16D011', 0x40, 'pextrd eax,xmm2,17', 'pextrd eax,xmm2,17'),
+    ('PEXTRD 2', '660F3A161011', 0x40, 'pextrd dword [eax],xmm2,17', 'pextrd dword [eax],xmm2,17'),
+    ('PEXTRD', '660F3A16EA11', 0x40, 'pextrd edx,xmm5,17', 'pextrd edx,xmm5,17'),
+    ('PEXTRD 2', '660F3A161011', 0x40, 'pextrd dword [eax],xmm2,17', 'pextrd dword [eax],xmm2,17'),
+    ('MOVBE',   '0F38F04910', 0x40, 'movbe ecx,dword [ecx + 16]', 'movbe ecx,dword [ecx + 16]'),
+    ('MOVBE 2', '0F38F009', 0x40, 'movbe ecx,dword [ecx]', 'movbe ecx,dword [ecx]'),
+    ('MOVBE 3', '0F38F00C8D41414141', 0x40, 'movbe ecx,dword [0x41414141 + ecx * 4]', 'movbe ecx,dword [0x41414141 + ecx * 4]'),
+    ('MOVBE 4', '0F38F15110', 0x40, 'movbe dword [ecx + 16],edx', 'movbe dword [ecx + 16],edx'),
+    ('MOVBE 5', '0F38F102', 0x40, 'movbe dword [edx],eax', 'movbe dword [edx],eax'),
+    ('MOVBE 6', '0F38F10541414141', 0x40, 'movbe dword [0x41414141],eax', 'movbe dword [0x41414141],eax'),
+    ('MOVBE 7', '660F38F00541414141', 0x40, 'movbe ax,word [0x41414141]', 'movbe ax,word [0x41414141]'),
+    # TODO: so technically this is movhlps, but we need to have the operand change the opcode
+    ('MOVLPS', '0F12DE', 0x40, 'movlps xmm3,xmm6', 'movlps xmm3,xmm6'),
+    ('MOVLPS 2', '0F121D41414141', 0x40, 'movlps xmm3,qword [0x41414141]', 'movlps xmm3,qword [0x41414141]'),
     ('SUBPD', '660F5C6C240E', 0x40, 'subpd xmm5,oword [esp + 14]', 'subpd xmm5,oword [esp + 14]'),
     ('MAXPD', '660F5FAB0F270000', 0x40, 'maxpd xmm5,oword [ebx + 9999]', 'maxpd xmm5,oword [ebx + 9999]'),
     ('XORPD', '660F57BD15CD5B07', 0x40, 'xorpd xmm7,oword [ebp + 123456789]', 'xorpd xmm7,oword [ebp + 123456789]'),
@@ -141,47 +178,92 @@ i386MultiByteOpcodes = [
     ('PMAXUB', '660FDE2541414141', 0x40, 'pmaxub xmm4,oword [0x41414141]', 'pmaxub xmm4,oword [0x41414141]'),
     ('MOVNTDQ', '660FE73D78563412', 0x40, 'movntdq oword [0x12345678],xmm7', 'movntdq oword [0x12345678],xmm7'),
     ('PADDD', '660FFECE', 0x40, 'paddd xmm1,xmm6', 'paddd xmm1,xmm6'),
+
+    ('MOV AMETH_C', '0f20d0', 0x40, 'mov eax,ctrl2', 'mov eax,ctrl2'),
+    ('MOV AMETH_C 2', '0f20f1', 0x40, 'mov ecx,ctrl6', 'mov ecx,ctrl6'),
+    ('MOV AMETH_C 3', '0f22e2', 0x40, 'mov ctrl4,edx', 'mov ctrl4,edx'),
+    ('MOV AMETH_C 4', '0f22f8', 0x40, 'mov ctrl7,eax', 'mov ctrl7,eax'),
+
+    ('MOV AMETH_D', '0f21c0', 0x40, 'mov eax,debug0', 'mov eax,debug0'),
+    ('MOV AMETH_D 2', '0f21f9', 0x40, 'mov ecx,debug7', 'mov ecx,debug7'),
+    ('MOV AMETH_D 3', '0f23e1', 0x40, 'mov debug4,ecx', 'mov debug4,ecx'),
+
+    ('MOV SEGREG', '64a130000000', 0x40, 'fs: mov eax,dword [0x00000030]', 'fs: mov eax,dword [0x00000030]'),
+    ('MOV SEGREG 2', '8ce0', 0x40, 'mov eax,fs', 'mov eax,fs'),
+    ('MOV SEGREG 3', '8ec6', 0x40, 'mov es,esi', 'mov es,esi'),
+    ('MOV SEGREG 4', '668ec6', 0x40, 'mov es,si', 'mov es,si'),
+    ('MOV SEGREG 6', '8E142541414141', 0x40, 'mov ss,word [0x41414141]', 'mov ss,word [0x41414141]'),
+    ('MOV SEGREG 7', '8C042541414141', 0x40, 'mov word [0x41414141],es', 'mov word [0x41414141],es'),
+
+    ('LEA', '8d5a0c', 0x40, 'lea ebx,dword [edx + 12]', 'lea ebx,dword [edx + 12]'),
+    ('SIGNED', '83C0F9', 0x40, 'add eax,0xfffffff9', 'add eax,0xfffffff9'),
+    ('MAXPD', '660F5F64C020', 0x40, 'maxpd xmm4,oword [eax + eax * 8 + 32]', 'maxpd xmm4,oword [eax + eax * 8 + 32]'),
+    ('MAXPD 2', '660f5fa490d0a80000', 0x40, 'maxpd xmm4,oword [eax + edx * 4 + 43216]', 'maxpd xmm4,oword [eax + edx * 4 + 43216]'),
+    # ('rm4mod2', '', 0x40, '', ''),
+
+    # AES-NI feature set
+    ('AESENC', '660F38DCEA', 0x40, 'aesenc xmm5,xmm2', 'aesenc xmm5,xmm2'),
+    ('AESENC (MEM)', '660f38DC3A', 0x40, 'aesenc xmm7,oword [edx]', 'aesenc xmm7,oword [edx]'),
+    ('AESENC (MEM 2)', '660f38DC7C2404', 0x40, 'aesenc xmm7,oword [esp + 4]', 'aesenc xmm7,oword [esp + 4]'),
+    ('AESENC (MEM 3)', '660F38DC1D41414141', 0x40, 'aesenc xmm3,oword [0x41414141]', 'aesenc xmm3,oword [0x41414141]'),
+    ('AESENCLAST', '660F38DDDC', 0x40, 'aesenclast xmm3,xmm4', 'aesenclast xmm3,xmm4'),
+    ('AESENCLAST (MEM)', '660F38DD18', 0x40, 'aesenclast xmm3,oword [eax]', 'aesenclast xmm3,oword [eax]'),
+    ('AESENCLAST (MEM 2)', '660F38DD5808', 0x40, 'aesenclast xmm3,oword [eax + 8]', 'aesenclast xmm3,oword [eax + 8]'),
+    ('AESENCLAST (MEM 3)', '660F38DD2578563442', 0x40, 'aesenclast xmm4,oword [0x42345678]', 'aesenclast xmm4,oword [0x42345678]'),
+    ('AESDEC', '660f38DECB', 0x40, 'aesdec xmm1,xmm3', 'aesdec xmm1,xmm3'),
+    ('AESDEC (MEM)', '660F38DE0C24', 0x40, 'aesdec xmm1,oword [esp]', 'aesdec xmm1,oword [esp]'),
+    ('AESDEC (MEM 2)', '660F38DE5D0C', 0x40, 'aesdec xmm3,oword [ebp + 12]', 'aesdec xmm3,oword [ebp + 12]'),
+    ('AESDEC (MEM 3)', '660F38DE3544434241', 0x40, 'aesdec xmm6,oword [0x41424344]', 'aesdec xmm6,oword [0x41424344]'),
+    ('AESDECLAST', '660F38DFED', 0x40, 'aesdeclast xmm5,xmm5', 'aesdeclast xmm5,xmm5'),
+    ('AESDECLAST (MEM)', '660F38DF2E', 0x40, 'aesdeclast xmm5,oword [esi]', 'aesdeclast xmm5,oword [esi]'),
+    ('AESDECLAST (MEM 2)', '660F38DF6740', 0x40, 'aesdeclast xmm4,oword [edi + 64]', 'aesdeclast xmm4,oword [edi + 64]'),
+    ('AESDECLAST (MEM 3)', '660F38DF2511213141', 0x40, 'aesdeclast xmm4,oword [0x41312111]', 'aesdeclast xmm4,oword [0x41312111]'),
+    ('AESIMC', '660F38DBF9', 0x40, 'aesimc xmm7,xmm1', 'aesimc xmm7,xmm1'),
+    ('AESIMC (MEM)', '660F38DB13', 0x40, 'aesimc xmm2,oword [ebx]', 'aesimc xmm2,oword [ebx]'),
+    ('AESIMC (MEM 2)', '660F38DB5020', 0x40, 'aesimc xmm2,oword [eax + 32]', 'aesimc xmm2,oword [eax + 32]'),
+    ('AESIMC (MEM 3)', '660F38DB1D00000041', 0x40, 'aesimc xmm3,oword [0x41000000]', 'aesimc xmm3,oword [0x41000000]'),
+    ('AESKEYGENASSIST', '660F3ADFFE08', 0x40, 'aeskeygenassist xmm7,xmm6,8', 'aeskeygenassist xmm7,xmm6,8'),
+    ('AESKEYGENASSIST (MEM)', '660F3ADF1AFE', 0x40, 'aeskeygenassist xmm3,oword [edx],254', 'aeskeygenassist xmm3,oword [edx],254'),
+    ('AESKEYGENASSIST (MEM 2)', '660F3ADF998000000039', 0x40, 'aeskeygenassist xmm3,oword [ecx + 128],57', 'aeskeygenassist xmm3,oword [ecx + 128],57'),
+    ('AESKEYGENASSIST (MEM 3)', '660F3ADF2541414141C6', 0x40, 'aeskeygenassist xmm4,oword [0x41414141],198', 'aeskeygenassist xmm4,oword [0x41414141],198'),
+    ('PCLMULQDQ', '660F3A44D307', 0x40, 'pclmulqdq xmm2,xmm3,7', 'pclmulqdq xmm2,xmm3,7'),
+    ('PCLMULQDQ (MEM)', '660F3A441007', 0x40, 'pclmulqdq xmm2,oword [eax],7', 'pclmulqdq xmm2,oword [eax],7'),
+    ('PCLMULQDQ (MEM 2)', '660F3A4478119C', 0x40, 'pclmulqdq xmm7,oword [eax + 17],156', 'pclmulqdq xmm7,oword [eax + 17],156'),
+    ('PCLMULQDQ (MEM 3)', '660F3A443D41414141C6', 0x40, 'pclmulqdq xmm7,oword [0x41414141],198', 'pclmulqdq xmm7,oword [0x41414141],198'),
 ]
 
 
 class i386InstructionSet(unittest.TestCase):
     _arch = envi.getArchModule("i386")
 
-    def test_envi_i386_disasm_Specific_SingleByte_Instrs(self):
-        '''
-        pick 10 arbitrary 1-byte-operands
-        '''
+    def check_opreprs(self, opcodes):
         vw = vivisect.VivWorkspace()
         scanv = e_memcanvas.StringMemoryCanvas(vw)
 
-        for name, bytez, va, reprOp, renderOp in i386SingleByteOpcodes:
-
-            op = self._arch.archParseOpcode(bytez.decode('hex'), 0, va)
+        for name, bytez, va, reprOp, renderOp in opcodes:
+            try:
+                op = self._arch.archParseOpcode(bytez.decode('hex'), 0, va)
+            except envi.InvalidInstruction:
+                self.fail("Failed to parse opcode bytes: %s (case: %s, expected: %s)" % (bytez, name, reprOp))
+            except Exception as e:
+                self.fail("Failed to parse opcode bytes: %s (case: %s, expected: %s)" % (bytez, name, reprOp))
             # print("'%s', 0x%x, '%s' == '%s'" % (bytez, va, repr(op), reprOp))
-            self.assertEqual(repr(op), reprOp)
+            try:
+                self.assertEqual(repr(op), reprOp)
+            except AssertionError:
+                self.fail("Failing match for case %s (%s != %s)" % (name, repr(op), reprOp))
 
             scanv.clearCanvas()
             op.render(scanv)
             # print("render:  %s" % repr(scanv.strval))
             self.assertEqual(scanv.strval, renderOp)
+
+    def test_envi_i386_disasm_Specific_SingleByte_Instrs(self):
+        self.check_opreprs(i386SingleByteOpcodes)
 
     def test_envi_i386_disasm_Specific_MultiByte_Instrs(self):
-        '''
-        pick 10 arbitrary 2- and 3-byte operands
-        '''
-        vw = vivisect.VivWorkspace()
-        scanv = e_memcanvas.StringMemoryCanvas(vw)
+        self.check_opreprs(i386MultiByteOpcodes)
 
-        for name, bytez, va, reprOp, renderOp in i386MultiByteOpcodes:
-
-            op = self._arch.archParseOpcode(bytez.decode('hex'), 0, va)
-            # print("'%s', 0x%x, '%s' == '%s'" % (bytez, va, repr(op), reprOp))
-            self.assertEqual(repr(op), reprOp)
-
-            scanv.clearCanvas()
-            op.render(scanv)
-            # print("render:  %s" % repr(scanv.strval))
-            self.assertEqual(scanv.strval, renderOp)
     '''
     def test_envi_i386_disasm_A(self):
         pass

@@ -63,9 +63,14 @@ class VQPythonView(QWidget):
 
     def _okClicked(self):
         pycode = str(self._textWidget.document().toPlainText())
-        cobj = compile(pycode, "vqpython_exec.py", "exec")
-        sthr = ScriptThread(cobj, self._locals)
-        sthr.start()
+        try:
+            cobj = compile(pycode, "vqpython_exec.py", "exec")
+            sthr = ScriptThread(cobj, self._locals)
+            sthr.start()
+        except:
+            exceptstr = traceback.format_exc()
+            scripterr("Can't Compile", exceptstr)
+
 
     def _helpClicked(self):
         withhelp = []

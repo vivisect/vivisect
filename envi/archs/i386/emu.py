@@ -981,9 +981,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         val = self.getOperValue(op, 1)
         self.setOperValue(op, 0, val)
 
-    def i_movq(self, op):
-        val = self.getOperValue(op, 1)
-        self.setOperValue(op, 0, val)
+    i_movq = i_mov
 
     def i_movsb(self, op):
         esi = self.getRegister(REG_ESI)
