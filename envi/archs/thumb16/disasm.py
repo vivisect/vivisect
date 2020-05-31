@@ -1689,11 +1689,13 @@ def coproc_simd_32(va, val1, val2):
 
         elif op1 & 0b111110 == 0b000100:
             # adv simd fp (A7-277)
-            print("AdvSIMD from CoprocSIMD... do we actually end up here?")
+            logger.warn("AdvSIMD from CoprocSIMD... do we actually end up here?")
+            # 64-bit transfers between ARM core and extension registers on page A7-279
+
             return adv_simd_32(va, val1, val2)
 
         elif op1 & 0b100000 == 0 and not (op1 & 0b111010 == 0):
-            # extension register load/store instructions
+            # extension register load/store instructions A7-274
             Rn = val1 & 0xf
 
             # adv simd fp (a7-272)
