@@ -72,7 +72,7 @@ def analyzeFunction(vw, fva):
         if newtmode != tmode:
             emu.setFlag(PSR_T_bit, tmode)
 
-        if op.iflags & (envi.IF_BRANCH | envi.IF_COND) == (envi.IF_BRANCH | envi.IF_COND):
+        if op.iflags & (envi.IF_BRANCH_COND) == (envi.IF_BRANCH_COND):
             break
 
         if not len(op.opers):
@@ -110,9 +110,7 @@ def analyzeFunction(vw, fva):
     try:
         emu.runFunction(fva, maxhit=1)
     except:
-        logger.warn("Error emulating function 0x%x\n\t%r", fva, emumon.emuanom)
-
-    if vw.verbose: sys.stderr.write('=')
+        logger.exception("Error emulating function 0x%x\n\t%r", fva, emumon.emuanom)
 
     # now roll through tracked references and make xrefs/comments
     items = emumon.tracker.items()
@@ -124,11 +122,11 @@ def analyzeFunction(vw, fva):
                 vw.followPointer(tgt)
             except envi.SegmentationViolation:
                 logger.debug("SegV: %x (va:0x%x)", tgt, va)
-                emumon.emuanom.append("SegV: %x (va:0x%x)" % (tgt,va))
+                emumon.emuanom.append("SegV: %x (va:0x%x)" % (tgt, va))
                 continue
 
         nogo = False
-        for xfr,xto,xtype,xflag in vw.getXrefsFrom(va):
+        for xfr, xto, xtype, xflag in vw.getXrefsFrom(va):
             if xto == tgt:
                 nogo = True
         if not nogo:
@@ -144,7 +142,7 @@ def analyzeFunction(vw, fva):
         cmt = "0x%x: %s" % (tgt, vw.reprPointer(tgt))
         if curcmt is None or not len(curcmt):
             vw.setComment(va, cmt)
-        elif not cmt in curcmt:
+        elif cmt not in curcmt:
             cmt = "0x%x: %s ;\n %s" % (tgt, vw.reprPointer(tgt), curcmt)
             vw.setComment(va, cmt)
 

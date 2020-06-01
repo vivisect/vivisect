@@ -53,6 +53,8 @@ IF_RET    = 0x10  # Set if this instruction terminates a procedure
 IF_COND   = 0x20  # Set if this instruction is conditional
 IF_REPEAT = 0x40  # set if this instruction repeats (including 0 times)
 
+IF_BRANCH_COND = IF_COND | IF_BRANCH
+
 # Branch flags (flags returned by the getBranches() method on an opcode)
 BR_PROC  = 1<<0  # The branch target is a procedure (call <foo>)
 BR_COND  = 1<<1  # The branch target is conditional (jz <foo>)
@@ -164,6 +166,14 @@ class ArchitectureModule:
 
         This hook allows an architecture to correct VA and Architecture, such
         as is necessary for ARM/Thumb.
+
+        "info" should be a dictionary with the {'arch': ARCH_FOO}
+
+        eg.  for ARM, the ARM disassembler would hand in 
+            {'arch': ARCH_ARMV7}
+        
+        and if va is odd, that architecture's implementation would return
+            (va & -2), {'arch': ARCH_THUMB}
         '''
         return va, info
 

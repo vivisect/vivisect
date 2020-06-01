@@ -5286,7 +5286,7 @@ class ArmDisasm:
 
     def getEndian(self):
         '''
-        set endianness for the architecture.
+        get endianness for the architecture.
         ENDIAN_LSB and ENDIAN_MSB are appropriate return values
         '''
         return self.endian

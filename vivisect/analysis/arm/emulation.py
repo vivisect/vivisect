@@ -86,13 +86,14 @@ class AnalysisMonitor(viv_monitor.AnalysisMonitor):
                 if starteip - self.last_lr_pc <= 4:
                     # this is a call.  the compiler updated lr
                     logger.info("CALL by mov lr, pc; bx <foo> at 0x%x", starteip)
-                    ### DO SOMETHING??  identify new function like emucode.
+                    tgtva = op.opers[-1].getOperValue(op)
+                    self.vw.makeFunction(tgtva)
 
             elif op.opcode == INS_ADD and op.opers[0].reg == REG_PC:
                 # simple branch code
                 if emu.vw.getVaSetRow('SwitchCases', op.va) == None:
                     base, tbl = analyzeADDPC(emu, op, starteip, self)
-                    if not None in (base, tbl):
+                    if None not in (base, tbl):
                         count = len(tbl)
                         self.switchcases += 1
                         emu.vw.setVaSetRow('SwitchCases', (op.va, op.va, count) )
@@ -101,17 +102,14 @@ class AnalysisMonitor(viv_monitor.AnalysisMonitor):
                 # simple branch code
                 if emu.vw.getVaSetRow('SwitchCases', op.va) == None:
                     base, tbl = analyzeSUBPC(emu, op, starteip, self)
-                    if not None in (base, tbl):
+                    if None not in (base, tbl):
                         count = len(tbl)
                         self.switchcases += 1
                         emu.vw.setVaSetRow('SwitchCases', (op.va, op.va, count) )
 
-
             if op.iflags & envi.IF_BRANCH:
                 try:
                     tgt = op.getOperValue(0, emu)
-
-                    #if self.verbose: print("BRANCH: ", hex(tgt), hex(op.va), hex(op.va))
 
                     if tgt == op.va:
                         logger.info("0x%x: +++++++++++++++ infinite loop +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++", op.va)
@@ -121,19 +119,19 @@ class AnalysisMonitor(viv_monitor.AnalysisMonitor):
                                 vw.addVaSet('InfiniteLoops', (('va', vivisect.VASET_ADDRESS, 'function', vivisect.VASET_STRING)))
                             self.vw.setVaSetRow('InfiniteLoops', (op.va, self.fva))
 
-                except Exception, e:
-                    # FIXME: make raise Exception?
-                    logger.info("0x%x: (%r) ERROR: %s",op.va, op, e)
+                except Exception as e:
+                    emumon.logAnomaly(emu, fva, "0x%x: (%r) ERROR: %s", op.va, op, e)
+                    logger.info("0x%x: (%r) ERROR: %s", op.va, op, e)
 
-        except Exception, e:
-            # FIXME: make raise Exception?
+        except Exception as e:
+            emumon.logAnomaly(emu, fva, "0x%x: (%r) ERROR: %s", op.va, op, e)
             logger.exception("0x%x: (%r)  ERROR: %s", op.va, op, e)
 
 
     def posthook(self, emu, op, starteip):
         if op.opcode == INS_BLX:
             emu.setFlag(PSR_T_bit, self.last_tmode)
-            
+
 
 argnames = {
     0: ('r0', 0),
@@ -142,13 +140,15 @@ argnames = {
     3: ('r3', 3),
 }
 
+
 def archargname(idx):
     ret = argnames.get(idx)
-    if ret == None:
+    if ret is None:
         name = 'arg%d' % idx
     else:
         name, idx = ret
     return name
+
 
 def buildFunctionApi(vw, fva, emu, emumon):
     argc = 0
@@ -170,11 +170,12 @@ def buildFunctionApi(vw, fva, emu, emumon):
             else:
                 argc = targc
 
-        funcargs = [ ('int',archargname(i)) for i in xrange(argc) ]
+        funcargs = [ ('int',archargname(i)) for i in range(argc) ]
 
     api = ('int',None,callconv,None,funcargs)
     vw.setFunctionApi(fva, api)
     return api
+
 
 def analyzeFunction(vw, fva):
     #print("++ Arm EMU fmod: 0x%x" % fva)
@@ -211,7 +212,7 @@ def analyzeFunction(vw, fva):
     baseoff = cc.getStackArgOffset(emu, argc)
 
     # Register our stack args as function locals
-    for i in xrange( stcount ):
+    for i in range(stcount):
 
         vw.setFunctionLocal(fva, baseoff + ( i * 4 ), LSYM_FARG, i+stackidx)
 
