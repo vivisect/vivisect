@@ -245,7 +245,7 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
             valu = valu ^ (valu >> Const(shift, self._psize))
             shift >>= 1
 
-        # intel's parity bit is set to 1 if the number of bits if even, and the above calculates to 
+        # intel's parity bit is set to 1 if the number of bits if even, and the above calculates to
         # 1 if the number of bits is odd
         return eq(valu & Const(1, self._psize), Const(0, self._psize))
 
@@ -336,13 +336,15 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
         bit_base = self.getOperObj(op, 0)
         bit = self.getOperObj(op, 1)
         # if bit >= bit_base.getWidth()*8: throw a fit.
+        one = Const(1, 1)
+        zero = Const(0, 1)
 
         val = (bit_base >> bit) & Const(1, 1)
-        self.effSetVariable('eflags_cf', (eq(val, Const(1, 1))))
-        self.effSetVariable('eflags_gt', (eq(val, Const(0, 1))))
-        self.effSetVariable('eflags_lt', (ne(val, Const(0, 1))))
-        self.effSetVariable('eflags_sf', (ne(val, Const(0, 1))))
-        self.effSetVariable('eflags_eq', (eq(val, Const(0, 1))))
+        self.effSetVariable('eflags_cf', (eq(val, one)))
+        self.effSetVariable('eflags_gt', (eq(val, zero)))
+        self.effSetVariable('eflags_lt', (ne(val, zero)))
+        self.effSetVariable('eflags_sf', (ne(val, zero)))
+        self.effSetVariable('eflags_eq', (eq(val, zero)))
 
     def i_call(self, op):
         # For now, calling means finding which of our symbols go in
@@ -1015,7 +1017,7 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
         res = valu << shft
         res |= shft_in
 
-        self.setOperObj(op, 0, valu)
+        self.setOperObj(op, 0, res)
 
     def i_ror(self, op):
         valu = self.getOperObj(op, 0)
@@ -1029,7 +1031,7 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
         res = valu >> shft
         res |= shft_in
 
-        self.setOperObj(op, 0, valu)
+        self.setOperObj(op, 0, res)
 
     def i_sar(self, op):
         v1 = self.getOperObj(op, 0)
@@ -1255,15 +1257,15 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
     def i_xadd(self, op):
         v1 = self.getOperObj(op, 0)
         v2 = self.getOperObj(op, 1)
-        res = o_add(v1, v2, v1.getWidth())
-        self.setOperObj(op, 0, res)
+        obj = o_add(v1, v2, v1.getWidth())
+        self.setOperObj(op, 0, obj)
         self.setOperObj(op, 1, v1)
         self.effSetVariable('eflags_gt', gt(v1, v2))
         self.effSetVariable('eflags_lt', lt(v1, v2))
-        self.effSetVariable('eflags_sf', lt(res, Const(0, self._psize)))
-        self.effSetVariable('eflags_eq', eq(res, Const(0, self._psize)))
+        self.effSetVariable('eflags_sf', lt(obj, Const(0, self._psize)))
+        self.effSetVariable('eflags_eq', eq(obj, Const(0, self._psize)))
         dsize = op.opers[0].tsize
-        f = gt(res, Const(e_bits.s_maxes[dsize/2], dsize))
+        f = gt(obj, Const(e_bits.s_maxes[dsize/2], dsize))
         self.effSetVariable('eflags_of', f)
         self.effSetVariable('eflags_pf', self._generate_parity(obj))
 
