@@ -149,6 +149,8 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         self.addVaSet("Bookmarks", (("va", VASET_ADDRESS), ("Bookmark Name", VASET_STRING)))
         self.addVaSet('DynamicBranches', (('va', VASET_ADDRESS), ('opcode', VASET_STRING), ('bflags', VASET_INTEGER)))
         self.addVaSet('PointersFromFile', (('va', VASET_ADDRESS), ('target', VASET_ADDRESS), ('file', VASET_STRING), ('comment', VASET_STRING), ))
+        self.addVaSet('CodeFragments', (('va', VASET_ADDRESS), ('calls_from', VASET_COMPLEX)))
+        self.addVaSet('EmucodeFunctions', (('va', VASET_ADDRESS),))
 
     def verbprint(self, msg):
         if self.verbose:
@@ -676,6 +678,17 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             self.vprint('...analysis complete! (%d sec)' % (endtime-starttime))
             self.printDiscoveredStats()
         self._fireEvent(VWE_AUTOANALFIN, (endtime, starttime))
+
+    def analyzeFunction(self, fva):
+        for fmname in self.fmodlist:
+            fmod = self.fmods.get(fmname)
+            try:
+                fmod.analyzeFunction(self, fva)
+            except Exception as e:
+                if self.verbose:
+                    traceback.print_exc()
+                self.verbprint("Function Analysis Exception for 0x%x   %s: %s" % (fva, fmod.__name__, e))
+                self.setFunctionMeta(fva, "%s fail" % fmod.__name__, traceback.format_exc())
 
     def getStats(self):
         stats = {
@@ -1209,7 +1222,13 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
         return loc
 
-    def makeCode(self, va, arch=envi.ARCH_DEFAULT):
+    def updateCallsFrom(self, fva, ncalls):
+        function = self.getFunction(fva)
+        prev_call = self.getFunctionMeta(function, 'CallsFrom')
+        ncall = set(prev_call).union(calls_from)
+        self.setFunctionMeta(function, 'CallsFrom', list(ncall))
+
+    def makeCode(self, va, arch=envi.ARCH_DEFAULT, fva=None):
         """
         Attempt to begin code-flow based disassembly by
         starting at the given va.  The va will be made into
@@ -1221,6 +1240,11 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             return
 
         calls_from = self.cfctx.addCodeFlow(va, arch=arch)
+        if fva is None:
+            self.setVaSetRow('CodeFragments', (va, calls_from))
+        else:
+            self.updateCallsFrom(va, calls_from)
+        return calls_from
 
     def previewCode(self, va, arch=envi.ARCH_DEFAULT):
         '''
@@ -1285,7 +1309,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         if loc != None and loc[L_TINFO] != None and loc[L_LTYPE] == LOC_OP:
             arch = loc[L_TINFO]
 
-        self.cfctx.addEntryPoint(va, arch=arch)
+        return self.cfctx.addEntryPoint(va, arch=arch)
 
     def delFunction(self, funcva):
         """
@@ -2544,8 +2568,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
     def setVaSetRow(self, name, rowtup):
         """
         Use this API to update the row data for a particular
-        entry in the VA set. Create a new empty set if one
-        does not already exist.
+        entry in the VA set.
         """
         self._fireEvent(VWE_SETVASETROW, (name, rowtup))
 
