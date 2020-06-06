@@ -339,7 +339,7 @@ def branch_misc(va, val, val2): # bl and misc control
 
                 if not (imod or m):
                     # hint
-                    mnem = "CPS Hint...  fix me"
+                    mnem = "CPS Hint"
                     
                 if imod & 2:
                     opers = [
@@ -358,20 +358,17 @@ def branch_misc(va, val, val2): # bl and misc control
 
             return COND_AL, opcode, mnem, opers, flags, 0
 
-        #elif op == 0b0111011:
-        #    raise Exception("FIXME:  Misc control instrs p A6-235")  should be covered by "op & 0b111 == 0b011"
-
         elif op == 0b0111100:
             raise Exception("FIXME:  BXJ p A8-352")
 
-        #elif op == 0b0111101:   # subs PC, LR, #imm (see special case ERET above)...  unnecessary?
-        #    imm8 = val2 & 0xff
-        #    opers = (
-        #            ArmRegOper(REG_PC),
-        #            ArmRegOper(REG_LR),
-        #            ArmImmOper(imm8),
-        #            )
-        #    return COND_AL, None, 'sub', opers, IF_PSR_S, 0
+        elif op == 0b0111101:   # subs PC, LR, #imm (see special case ERET above)...
+            imm8 = val2 & 0xff
+            opers = (
+                    ArmRegOper(REG_PC),
+                    ArmRegOper(REG_LR),
+                    ArmImmOper(imm8),
+                    )
+            return COND_AL, None, 'sub', opers, IF_PSR_S, 0
 
         elif op == 0b0111110:
             Rd = (val2 >> 8) & 0xf
@@ -1551,7 +1548,7 @@ def coproc_simd_32(va, val1, val2):
     #print "coproc_simd_32"
     ### return armd.doDecode(va, val32, 'THUMB2', 0)            lol!  trying to leverage Arm code that just aint there!  CONSIDER: finish this, then move it into ARM, then call there....
     # FIXME: coalesce ARM/Thumb32 decoding schemes so they can use the same decoders  (ie.  they return the same things:  opcode, mnem, olist, flags)
-    # FIXME: MANY THUMB2 instruction encodings model their "Always Execute" ARM equivalents.
+    # NOTE: MANY THUMB2 instruction encodings model their "Always Execute" ARM equivalents.
     coproc = (val2>>8) & 0xf
     op1 =    (val1>>4) & 0x3f
     op =     (val2>>4) & 1
@@ -1561,7 +1558,6 @@ def coproc_simd_32(va, val1, val2):
 
     #print bin(coproc), bin(op1),bin(op)
     if op1 & 0b110000 == 0b110000:
-        print("AdvSIMD from CoprocSIMD.  How did we get here?  This should be impossible!")
         return adv_simd_32(va, val1, val2)
 
     if op1 & 0b111110 == 0:
