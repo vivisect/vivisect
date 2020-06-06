@@ -1669,7 +1669,6 @@ def coproc_simd_32(va, val1, val2):
 
     else:
         # coproc = 0b101x   - ARM7A/M p251
-        # FIXME: REMOVE WHEN DONE IMPLEMENTING
         opcode = 0
         iflags = 0
         opers = []
@@ -1685,10 +1684,9 @@ def coproc_simd_32(va, val1, val2):
 
         elif op1 & 0b111110 == 0b000100:
             # adv simd fp (A7-277)
-            logger.warn("AdvSIMD from CoprocSIMD... do we actually end up here?")
             # 64-bit transfers between ARM core and extension registers on page A7-279
 
-            return adv_simd_32(va, val1, val2)
+            return adv_xfer_arm_ext_64(va, val1, val2)
 
         elif op1 & 0b100000 == 0 and not (op1 & 0b111010 == 0):
             # extension register load/store instructions A7-274
@@ -1697,47 +1695,39 @@ def coproc_simd_32(va, val1, val2):
             # adv simd fp (a7-272)
             tmop1 = op1 & 0b11011
             
-            if op1 & 0b11110 == 0b00100:
-                # 64 bit transverse between ARM core and extension registers (a7-277)
-                bytez = struct.pack("<HH", val1, val2)
-                raise envi.InvalidInstruction(      #FIXME!!!!
-                        mesg="IMPLEMENT: 64-bit transverse between ARM core and extension registers",
-                        bytez=bytez, va=va)
-
-
-            # EXPECT TO NOT REACH HERE UNLESS WE MEAN BUSINESS.  otherwise this needs to be in an else:
             if (op1 & 0b11010) in (0b10, 0b11010):
                 bytez = struct.pack("<HH", val1, val2)
                 raise InvalidInstruction(mesg="INVALID ENCODING", bytez=bytez, va=va)
 
-            l = op1 & 1 # vldm or vstm
+            l = op1 & 1  # vldm or vstm
             indiv = (op1 & 0b10010) == 0b10000
+
             # writeback should be handled by operand
-            imm8 = (val2 & 0xff) >>1
-            imm32 = imm8 <<3
+            imm8 = (val2 & 0xff) >> 1
+            imm32 = imm8 << 3
 
             # size = 0/1 for 32-bit and 64-bit accordingly
-            size = (val2>>8) & 1    # TODO: Check next three bits must be 0b101
+            size = (val2 >> 8) & 1    # TODO: Check next three bits must be 0b101
 
             pudwl = op1 & 0b11111
 
             # starting extended register
-            D = (pudwl>>2) & 1
-            Vd = val2>>12
+            D = (pudwl >> 2) & 1
+            Vd = val2 >> 12
             d = (Vd << 1) | D
 
             # vpush/vpop
             if (op1 & 0b11011) in (0b01011, 0b10010) and Rn == REG_SP:
-                mnem, opcode = (('vpush',INS_VPUSH), ('vpop',INS_VPOP))[l]
+                mnem, opcode = (('vpush', INS_VPUSH), ('vpop', INS_VPOP))[l]
                 opers = (
-                        ArmExtRegListOper(d>>size, imm8, size),
+                        ArmExtRegListOper(d >> size, imm8, size),
                         )
 
             else:
                 oflags = 0
 
-                mnemidx = l | (indiv<<1)
-                mnem, opcode = (('vstm',INS_VSTM),('vldm',INS_VLDM),('vstr',INS_VSTR),('vldr',INS_VLDR))[mnemidx]
+                mnemidx = l | (indiv << 1)
+                mnem, opcode = (('vstm', INS_VSTM), ('vldm', INS_VLDM), ('vstr', INS_VSTR), ('vldr', INS_VLDR))[mnemidx]
                 # figure out IA/DB/etc...  and Writeback
 
                 # inc-after or dec-before?
@@ -1766,7 +1756,7 @@ def coproc_simd_32(va, val1, val2):
                             )
         else:
             bytez = struct.pack("<HH", val1, val2)
-            raise InvalidInstruction(mesg="INVALID ENCODING: adv_xfer_arm_ext_32", bytez=bytez, va=va)
+            raise InvalidInstruction(mesg="INVALID ENCODING: coproc_advsimd_fp", bytez=bytez, va=va)
 
     return COND_AL, opcode, mnem, opers, iflags, simdflags
 
@@ -1904,6 +1894,81 @@ def adv_xfer_arm_ext_32(va, val1, val2):
 
     return COND_AL, opcode, mnem, opers, iflags, simdflags
 
+
+def adv_xfer_arm_ext_64(va, val1, val2):
+    # VMOV instruction decoding
+    # except: for coprocs 10 and 11. MRRC and MCRR
+    val = (val1 << 16) | val2
+
+    if (val1 >> 12) & 0xf == 0b1111:
+        bytez = struct.pack("<I", val)
+        raise InvalidInstruction(mesg="INVALID ENCODING: adv_xfer_arm_ext_64: cannot be T==1 in Thumb, or cond=0b1111 in ARM", bytez=bytez, va=va)
+
+    op = (val2 >> 4) & 0xf
+    C = (val2 >> 8) & 1
+
+    if op & 0b1101 == 1:
+        # the decoding for both directions is mostly the same
+        op = (val1 >> 4) & 1
+
+        rt2 = val1 & 0xf
+        rt = (val2 >> 12) & 0xf
+
+        vm = val2 & 0xf
+        m = (val2 >> 5) & 1
+        Vm = (vm << 1) | m
+
+        if C == 0:
+            # 2xARM <-> 2xSinglePrecision registers
+            Vm = rctx.getRegisterIndex('s%d' % Vm)
+
+            if op == 0:
+                # from ARM to Ext regs
+                opers = (
+                        ArmRegOper(Vm, va),
+                        ArmRegOper(Vm + 1, va),
+                        ArmRegOper(rt, va),
+                        ArmRegOper(rt2, va),
+                        )
+
+            else:
+                # from Ext to ARM regs
+                opers = (
+                        ArmRegOper(rt, va),
+                        ArmRegOper(rt2, va),
+                        ArmRegOper(Vm, va),
+                        ArmRegOper(Vm + 1, va),
+                        )
+
+        else:
+            # 2xARM <-> 1xDoublePrecision register
+            Vm = rctx.getRegisterIndex('d%d' % Vm)
+
+            if op == 0:
+                # from ARM to Ext regs
+                opers = (
+                        ArmRegOper(Vm, va),
+                        ArmRegOper(rt, va),
+                        ArmRegOper(rt2, va),
+                        )
+
+            else:
+                # from Ext to ARM regs
+                opers = (
+                        ArmRegOper(rt, va),
+                        ArmRegOper(rt2, va),
+                        ArmRegOper(Vm, va),
+                        )
+
+    else:
+        bytez = struct.pack("<I", val)
+        raise InvalidInstruction(mesg="INVALID ENCODING: adv_xfer_arm_ext_64: op is not '00x1'", bytez=bytez, va=va)
+
+    '''
+    In [8]: ad.disasm('345b46ec'.decode('hex'), 0, 0)
+    Out[8]: vmov d9, r5, r6
+    '''
+    return COND_AL, INS_VMOV, 'vmov', opers, 0, 0
 
 bcc_ops = {
     0b0000:    (INS_BCC,'beq',  envi.IF_COND, COND_EQ),
