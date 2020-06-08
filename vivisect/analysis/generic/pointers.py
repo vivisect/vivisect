@@ -50,7 +50,7 @@ def analyze(vw):
             done.append((lva, tva))
             logger.info('pointer(3): 0x%x -> 0x%x', lva, tva)
         except Exception:
-            logger.info("followPointer() failed for 0x%.8x (pval: 0x%.8x)" % (lva, tva))
+            logger.exception("followPointer() failed for 0x%.8x (pval: 0x%.8x)" % (lva, tva))
 
     # Now, lets find likely free-hanging pointers
     for addr, pval in vw.findPointers():
@@ -61,7 +61,7 @@ def analyze(vw):
             done.append((addr, pval))
             logger.info('pointer(4): 0x%x -> 0x%x', addr, pval)
         except Exception:
-            logger.info("followPointer() failed for 0x%.8x (pval: 0x%.8x)" % (addr, pval))
+            logger.exception("followPointer() failed for 0x%.8x (pval: 0x%.8x)" % (addr, pval))
 
     # Now let's see what these guys should be named (if anything)
     for ptr, tgt in done:
