@@ -207,7 +207,7 @@ class ArmWorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_arm.ArmEmulator):
                             self.emumon.prehook(self, op, starteip)
                         except Exception as e:
                             if not self.getMeta('silent'):
-                                logger.warn("funcva: 0x%x opva: 0x%x:  %r   %r (in emumon prehook)", funcva, starteip, op, e)
+                                logger.warn("funcva: 0x%x opva: 0x%x:  %r   (%r) (in emumon prehook)", funcva, starteip, op, e)
 
                         if self.emustop:
                             return 
@@ -223,7 +223,7 @@ class ArmWorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_arm.ArmEmulator):
                             self.emumon.posthook(self, op, endeip)
                         except Exception as e:
                             if not self.getMeta('silent'):
-                                logger.warn("funcva: 0x%x opva: 0x%x:  %r   %r (in emumon posthook)", funcva, starteip, op, e)
+                                logger.warn("funcva: 0x%x opva: 0x%x:  %r   (%r) (in emumon posthook)", funcva, starteip, op, e)
                         if self.emustop:
                             return 
 

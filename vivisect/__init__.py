@@ -983,6 +983,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             return False
         self.iscode[va] = True
         emu = self.getEmulator()
+        emu.setMeta('silent', True)
         wat = v_emucode.watcher(self, va)
         emu.setEmulationMonitor(wat)
         try:
