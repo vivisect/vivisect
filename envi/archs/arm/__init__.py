@@ -29,7 +29,6 @@ class ArmModule(envi.ArchitectureModule):
 
     def archGetBreakInstr(self):
         raise Exception ("weird... what are you trying to do here?  ARM has a complex breakpoint instruction")
-        return
 
     def archGetNopInstr(self):
         return ('\x00\x00\x60\xe3', '\xe3\x60\x00\x00')[self._endian]   #FIXME: this is only ARM mode.  this arch mod should cover both.  the ENVI architecture doesn't support this model yet.
@@ -111,7 +110,6 @@ class ThumbModule(envi.ArchitectureModule):
 
     def archGetBreakInstr(self):
         raise Exception ("weird... what are you trying to do here?  ARM has a complex breakpoint instruction")
-        return
 
     def archGetNopInstr(self):
         return ('\xc0\x46', '\x46\xc0')[self._endian]

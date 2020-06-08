@@ -7,9 +7,6 @@ from envi import InvalidInstruction
 from envi.archs.arm.disasm import *
 armd = ArmDisasm()
 
-#FIXME: check to make sure ldrb/ldrh are handled consistently, wrt: IF_B and IF_H.  emulation would like all the same.
-
-
 
 O_REG = 0
 O_IMM = 1
@@ -20,8 +17,11 @@ OperType = (
     ArmImmOper,
     ArmPcOffsetOper,
     )
-def shmaskval(value, shval, mask):  #FIXME: unnecessary to make this another fn call.  will be called a bajillion times.
+
+
+def shmaskval(value, shval, mask):
     return (value >> shval) & mask
+
 
 class simpleops:
     def __init__(self, *operdef):
@@ -34,7 +34,7 @@ class simpleops:
             ret.append( oper )
         return COND_AL, (ret), None
 
-#imm5_rm_rd  = simpleops((O_REG, 0, 0x7), (O_REG, 3, 0x7), (O_IMM, 6, 0x1f))
+
 rm_rn_rd    = simpleops((O_REG, 0, 0x7), (O_REG, 3, 0x7), (O_REG, 6, 0x7))
 imm3_rn_rd  = simpleops((O_REG, 0, 0x7), (O_REG, 3, 0x7), (O_IMM, 6, 0x7))
 imm8_rd     = simpleops((O_REG, 8, 0x7), (O_IMM, 0, 0xff))
@@ -43,9 +43,8 @@ rn_rdm      = simpleops((O_REG, 0, 0x7), (O_REG, 3, 0x7))
 rm_rdn      = simpleops((O_REG, 0, 0x7), (O_REG, 3, 0x7))
 rm_rd_imm0  = simpleops((O_REG, 0, 0x7), (O_REG, 3, 0x7), (O_IMM, 0, 0))
 imm8        = simpleops((O_IMM, 8, 0xff))
-#imm11       = simpleops((O_IMM, 11, 0x7ff))
-
 sh4_imm1    = simpleops((O_IMM, 3, 0x1))
+
 
 def d1_rm4_rd3(va, value):
     # 0 1 0 0 0 1 0 0 DN(1) Rm(4) Rdn(3)
@@ -53,6 +52,7 @@ def d1_rm4_rd3(va, value):
     rd = shmaskval(value, 0, 0x7) + rdbit
     rm = shmaskval(value, 3, 0xf)
     return COND_AL,(ArmRegOper(rd, va=va),ArmRegOper(rm, va=va)), None
+
 
 def rm_rn_rt(va, value):
     tsize = (4,2,1,1,4,2,1,2)[(value>>9)&7]
@@ -63,6 +63,7 @@ def rm_rn_rt(va, value):
     oper1 = ArmRegOffsetOper(rn, rm, va, pubwl=0x18, tsize=tsize)
     return COND_AL,(oper0,oper1), None
 
+
 def imm54_rn_rt(va, value):
     imm = shmaskval(value, 4, 0x7c)
     rn = shmaskval(value, 3, 0x7)
@@ -70,6 +71,7 @@ def imm54_rn_rt(va, value):
     oper0 = ArmRegOper(rt, va=va)
     oper1 = ArmImmOffsetOper(rn, imm, (va&0xfffffffc)+4, pubwl=0x18, tsize=4)
     return COND_AL,(oper0,oper1), None
+
 
 def imm55_rn_rt(va, value):
     imm = shmaskval(value, 5, 0x3e)
@@ -79,6 +81,7 @@ def imm55_rn_rt(va, value):
     oper1 = ArmImmOffsetOper(rn, imm, (va&0xfffffffc)+4, pubwl=0x18, tsize=2)
     return COND_AL,(oper0,oper1), None
 
+
 def imm56_rn_rt(va, value):
     imm = shmaskval(value, 6, 0x1f)
     rn = shmaskval(value, 3, 0x7)
@@ -86,6 +89,7 @@ def imm56_rn_rt(va, value):
     oper0 = ArmRegOper(rt, va=va)
     oper1 = ArmImmOffsetOper(rn, imm, (va&0xfffffffc)+4, pubwl=0x18, tsize=1)
     return COND_AL,(oper0,oper1), None
+
 
 def rd_sp_imm8(va, value): # add
     rd = shmaskval(value, 8, 0x7)
@@ -95,6 +99,7 @@ def rd_sp_imm8(va, value): # add
     oper2 = ArmImmOper(imm, va=va)
     return COND_AL,(oper0,oper1,oper2), None
 
+
 def rd_sp_imm8d(va, value): # add
     rd = shmaskval(value, 8, 0x7)
     imm = shmaskval(value, 0, 0xff) * 4
@@ -102,6 +107,7 @@ def rd_sp_imm8d(va, value): # add
     # pre-compute PC relative addr
     oper1 = ArmImmOffsetOper(REG_SP, imm, (va&0xfffffffc)+4, pubwl=0x18)
     return COND_AL,(oper0,oper1), None
+
 
 def rd_pc_imm8(va, value):  # add
     rd = shmaskval(value, 8, 0x7)
@@ -111,6 +117,7 @@ def rd_pc_imm8(va, value):  # add
     oper1 = ArmImmOper((va&0xfffffffc) + 4 + imm)
     return COND_AL,(oper0,oper1), None
 
+
 def rd_pc_imm8d(va, value):  # add
     rd = shmaskval(value, 8, 0x7)
     imm = e_bits.signed(shmaskval(value, 0, 0xff), 1) * 4
@@ -119,12 +126,14 @@ def rd_pc_imm8d(va, value):  # add
     oper1 = ArmImmOffsetOper(REG_PC, imm, (va&0xfffffffc)+4, pubwl=0x18)
     return COND_AL,(oper0,oper1), None
 
+
 def rt_pc_imm8d(va, value): # ldr
     rt = shmaskval(value, 8, 0x7)
     imm = e_bits.unsigned((value & 0xff), 1) << 2
     oper0 = ArmRegOper(rt, va=va)
     oper1 = ArmImmOffsetOper(REG_PC, imm, (va&0xfffffffc))
     return COND_AL,(oper0,oper1), None
+
 
 def rm4_shift3(va, value): #bx/blx
     iflags = None
@@ -191,7 +200,7 @@ misc_ctl_instrs = (
 )
 
 
-def branch_misc(va, val, val2): # bl and misc control
+def branch_misc(va, val, val2):  # bl and misc control
     op = (val >> 4) & 0b1111111
     op1 = (val2 >> 12) & 0b111
     op2 = (val2 >> 8) & 0b1111

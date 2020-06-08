@@ -27,8 +27,8 @@ from envi.tests.armthumb_tests import advsimdtests
 logger = logging.getLogger(__name__)
 
 
-GOOD_TESTS = 5946
-GOOD_EMU_TESTS = 1174
+GOOD_TESTS = 5947
+GOOD_EMU_TESTS = 1175
 ''' 
   This dictionary will contain all instructions supported by ARM to test
   Fields will contain following information:
@@ -1107,6 +1107,7 @@ instrs = [
         (REV_ALL_ARM, '5434a3e7', 0x4560, 'sbfx r3, r4, #0x08, #0x03', 0, ()),
         (REV_ALL_ARM, '14f713e7', 0x4560, 'sdiv r3, r4, r7', 0, ()),
         (REV_ALL_ARM, '14f733e7', 0x4560, 'udiv r3, r4, r7', 0, ()),
+        (REV_ALL_ARM, '3f5b46ec', 0x4560, 'vmov d31, r5, r6', 0, ()),
         #(REV_ALL_ARM, 'f000f0e7', 0x4560, 'udf #0x00', 0, ()), #This forces an undefined instruction. Commented out normally.
         #all v codes are suspect at this time - not implimented but may not be correct here either
         (REV_ALL_ARM, '173704f2', 0x4560, 'vaba.s8 d3, d4, d7', 0, ()),
@@ -1418,18 +1419,17 @@ instrs = [
 
         ]
 instrs.extend(advsimdtests)
-#instrs = advsimdtests
 
 # temp scratch: generated these while testing
 ['0de803c0','8de903c0','ade903c0','2de803c0','1de803c0','3de803c0','9de903c0','bde903c0',]
 ['srsdb.w sp, svc',
          'srsia.w sp, svc',
-          'srsia.w sp!, svc',
-           'srsdb.w sp!, svc',
-            'rfedb.w sp',
-             'rfedb.w sp!',
-              'rfeia.w sp',
-               'rfeia.w sp!']
+         'srsia.w sp!, svc',
+         'srsdb.w sp!, svc',
+         'rfedb.w sp',
+         'rfedb.w sp!',
+         'rfeia.w sp',
+         'rfeia.w sp!']
 
 import struct
 def getThumbStr(val, val2):

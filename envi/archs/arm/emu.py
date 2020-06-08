@@ -133,11 +133,6 @@ conditionals = [
 
 top_bits_32 = [(e_bits.u_maxes[4] ^ ((e_bits.u_maxes[4]>>x))) for x in range(4*8)]
 
-LSB_FMT = [0, 'B', '<H', 0, '<I', 0, 0, 0, '<Q',]
-MSB_FMT = [0, 'B', '>H', 0, '>I', 0, 0, 0, '>Q',]
-LSB_FMT_SIGNED = [0, 'b', '<h', 0, '<i', 0, 0, 0, '<q',]
-MSB_FMT_SIGNED = [0, 'b', '>h', 0, '>i', 0, 0, 0, '>q',]
-
 # SIMD support
 OP_F16 = 1
 OP_F32 = 2
@@ -215,13 +210,13 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
         if len(bytes) != size:
             raise Exception("Read Gave Wrong Length At 0x%.8x (va: 0x%.8x wanted %d got %d)" % (self.getProgramCounter(),addr, size, len(bytes)))
 
-        endian_fmt = (LSB_FMT, MSB_FMT)[self.getEndian()]
-        return struct.unpack(endian_fmt[size], bytes)[0]
+        fmtstr = e_bits.getFormat(size, self.getEndian())
+        return struct.unpack(fmtstr, bytes)[0]
 
     def writeMemValue(self, addr, value, size):
-        endian_fmt = (LSB_FMT, MSB_FMT)[self.getEndian()]
+        fmtstr = e_bits.getFormat(size, self.getEndian())
         mask = e_bits.u_maxes[size]
-        bytes = struct.pack(endian_fmt[size], (value & mask))
+        bytes = struct.pack(fmtstr, (value & mask))
         self.writeMemory(addr, bytes)
 
     def readMemSignedValue(self, addr, size):
@@ -231,8 +226,8 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
         if len(bytes) != size:
             raise Exception("Read Gave Wrong Length At 0x%.8x (va: 0x%.8x wanted %d got %d)" % (self.getProgramCounter(),addr, size, len(bytes)))
 
-        endian_fmt = (LSB_FMT_SIGNED, MSB_FMT_SIGNED)[self.getEndian()]
-        return struct.unpack(endian_fmt[size], bytes)[0]
+        fmtstr = e_bits.getFormat(size, self.getEndian(), signed=True)
+        return struct.unpack(fmtstr, bytes)[0]
 
     def parseOpcode(self, va, arch=envi.ARCH_DEFAULT):
         '''

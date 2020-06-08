@@ -120,11 +120,11 @@ class AnalysisMonitor(viv_monitor.AnalysisMonitor):
                             self.vw.setVaSetRow('InfiniteLoops', (op.va, self.fva))
 
                 except Exception as e:
-                    emumon.logAnomaly(emu, fva, "0x%x: (%r) ERROR: %s", op.va, op, e)
+                    self.logAnomaly(emu, self.fva, "0x%x: (%r) ERROR: %s", op.va, op, e)
                     logger.info("0x%x: (%r) ERROR: %s", op.va, op, e)
 
         except Exception as e:
-            emumon.logAnomaly(emu, fva, "0x%x: (%r) ERROR: %s", op.va, op, e)
+            self.logAnomaly(emu, self.fva, "0x%x: (%r) ERROR: %s", op.va, op, e)
             logger.exception("0x%x: (%r)  ERROR: %s", op.va, op, e)
 
 

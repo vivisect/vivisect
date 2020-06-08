@@ -37,8 +37,8 @@ def analyzePLT(vw, ssva, ssize):
                 logger.info('making code: 0x%x', sva)
                 try:
                     vw.makeCode(sva)
-                except Exception as e:
-                    logger.exception('0x%x: exception: %r', sva, e)
+                except Exception:
+                    logger.exception('0x%x: exception', sva)
 
             ltup = vw.getLocation(sva)
 

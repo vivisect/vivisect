@@ -98,16 +98,16 @@ iencmul_codes = {
     #0b011101010011: ("smmulr", (0,4,2), 0),
 }
 
-def sh_lsl(num, shval, size=4):
+def sh_lsl(num, shval, size=4, emu=None):
     return (num&e_bits.u_maxes[size]) << shval
 
-def sh_lsr(num, shval, size=4):
+def sh_lsr(num, shval, size=4, emu=None):
     return (num&e_bits.u_maxes[size]) >> shval
 
-def sh_asr(num, shval, size=4):
+def sh_asr(num, shval, size=4, emu=None):
     return num >> shval
 
-def sh_ror(num, shval, size=4):
+def sh_ror(num, shval, size=4, emu=None):
     return ((num >> shval) | (num << ((8*size)-shval))) & e_bits.u_maxes[size]
 
 def sh_rrx(num, shval, size=4, emu=None):
@@ -115,9 +115,9 @@ def sh_rrx(num, shval, size=4, emu=None):
     newC = num & 1
 
     if emu is not None:
-        flags = emu.getFlags()
-        oldC = (flags>>PSR_C) & 1
-        emu.setFlags(flags & PSR_C_mask | newC)
+        oldC = emu.getFlag(PSR_C_bit)
+        if emu.getMeta('forrealz', False):
+            emu.setFlag(PSR_C_bit, newC)
     else:
         # total hack!  should we just bomb here without an emu?
         oldC = 0
@@ -4196,7 +4196,7 @@ class ArmRegShiftRegOper(ArmOperand):
     def getOperValue(self, op, emu=None, codeflow=False):
         if emu is None:
             return None
-        return shifters[self.shtype](emu.getRegister(self.reg), emu.getRegister(self.shreg))
+        return shifters[self.shtype](emu.getRegister(self.reg), emu.getRegister(self.shreg), emu=emu)
 
     def render(self, mcanv, op, idx):
         rname = arm_regs[self.reg][0]
@@ -4244,11 +4244,11 @@ class ArmRegShiftImmOper(ArmOperand):
 
     def getOperValue(self, op, emu=None, codeflow=False):
         if self.reg == REG_PC:
-            return shifters[self.shtype](self.va, self.shimm)
+            return shifters[self.shtype](self.va, self.shimm, emu=emu)
 
         if emu is None:
             return None
-        return shifters[self.shtype](emu.getRegister(self.reg), self.shimm)
+        return shifters[self.shtype](emu.getRegister(self.reg), self.shimm, emu=emu)
 
     def render(self, mcanv, op, idx):
         rname = arm_regs[self.reg][0]
@@ -4304,7 +4304,7 @@ class ArmImmOper(ArmOperand):
         return True
 
     def getOperValue(self, op, emu=None, codeflow=False):
-        return shifters[self.shtype](self.val, self.shval, self.size)
+        return shifters[self.shtype](self.val, self.shval, self.size, emu=emu)
 
     def render(self, mcanv, op, idx):
         val = self.getOperValue(op)
@@ -4426,7 +4426,7 @@ class ArmScaledOffsetOper(ArmOperand):
         base = self._getOperBase(emu)
 
         pom = (-1, 1)[(self.pubwl>>3)&1]
-        addval = shifters[self.shtype]( emu.getRegister( self.offset_reg ), self.shval )
+        addval = shifters[self.shtype](emu.getRegister(self.offset_reg), self.shval, emu=emu)
         # if U==0, subtract
         addval *= pom
 
