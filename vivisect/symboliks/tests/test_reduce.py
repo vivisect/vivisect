@@ -65,10 +65,15 @@ class TestReduceCase(unittest.TestCase):
     def test_symboliks_reduce_op_rshift(self):
         self.assertReduce('0 >> foo', '0')
         self.assertReduce('foo >> 0', 'foo')
+        self.assertReduce('3 >> 1', '1')
+        self.assertReduce('5347 >> 6', '83')
 
     def test_symboliks_reduce_op_lshift(self):
         self.assertReduce('0 << foo', '0')
         self.assertReduce('foo << 0', 'foo')
+        self.assertReduce('2 << 2', '8')
+        self.assertReduce('7 << 2', '28')
+        self.assertReduce('1 << 2', '4')
 
     def test_symboliks_reduce_op_pow(self):
         self.assertReduce('0 ** foo', '0')

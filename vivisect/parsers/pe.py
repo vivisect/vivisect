@@ -334,7 +334,15 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
     vw.addNoReturnApi("kernel32.FatalExit")
     vw.addNoReturnApiRegex("^msvcr.*\._CxxThrowException$")
     vw.addNoReturnApiRegex("^msvcr.*\.abort$")
+    vw.addNoReturnApiRegex("^msvcr.*\.exit$")
+    vw.addNoReturnApiRegex("^msvcr.*\._exit$")
+    vw.addNoReturnApiRegex("^msvcr.*\._exit$")
+    vw.addNoReturnApiRegex("^msvcr.*\.quick_exit$")
+    # https://docs.microsoft.com/en-us/cpp/c-runtime-library/reference/cexit-c-exit?view=vs-2019
+    # vw.addNoReturnApiRegex("^msvcr.*\._cexit$")
+    # vw.addNoReturnApiRegex("^msvcr.*\._c_exit$")
     vw.addNoReturnApi("ntoskrnl.KeBugCheckEx")
+
 
     exports = pe.getExports()
     for rva, ord, name in exports:
