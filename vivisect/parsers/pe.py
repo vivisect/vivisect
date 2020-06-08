@@ -341,7 +341,7 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
         eva = rva + baseaddr
 
         # Functions exported by ordinal only have no name
-        if name is None:
+        if not name:
             name = "Ordinal_" + str(ord)
 
         try:
