@@ -871,7 +871,6 @@ def p_mcr(opval, va):
 ldr_mnem = (("str", INS_STR), ("ldr", INS_LDR))
 tsizes = (4, 1,)
 def p_load_imm_off(opval, va, psize=4):
-    # FIXME: handle STRT and others introduced in ARMv7 (p206)
     # * STR(imm) A8-672
     # * STRT A8-704
     # * LDR(imm) A8-406
@@ -3844,7 +3843,7 @@ s_7_table = (
     (0b00001111000000000000000000010000, 0b00001110000000000000000000000000, IENC_COPROC_DP),
 )
 
-# Initial 3 (non conditional) primary table
+# Initial 3 (non conditional) primary table (UNCOND handled separately)
 inittable = [
     (None, s_0_table),
     (None, s_1_table),
@@ -3854,7 +3853,6 @@ inittable = [
     (IENC_BRANCH, None),
     (None, s_6_table),
     (None, s_7_table),
-    (IENC_UNCOND, None), # may wish to make this it's own table...
 ]
 
 endian_names = ("le","be")
@@ -5344,7 +5342,6 @@ class ArmDisasm:
             enc = IENC_UNCOND
 
         else:
-
             enc,nexttab = inittable[encfam]
             if nexttab is not None: # we have to sub-parse...
                 for mask,val,penc in nexttab:
