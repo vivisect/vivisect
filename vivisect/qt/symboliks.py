@@ -245,7 +245,6 @@ class VivSymbolikFuncPane(e_q_memory.EnviNavMixin, vq_save.SaveableWidget, QWidg
 
             effect.reduce(emu)
 
-            # FIXME add "all effects" checkbox which enables this!
             if alleff:
                 effect.walkTree(self.addVivNames, ctx=(emu, self.symctx))
                 self.memcanvas.addVaText('0x%.8x: ' % effect.va, effect.va)

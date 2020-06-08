@@ -22,13 +22,12 @@ ADDRMETH_P = 0x000F0000    # MODRM reg field defines MMX register
 ADDRMETH_Q = 0x00100000    # MODRM defines MMX register or memory
 ADDRMETH_R = 0x00110000    # MODRM mod field can only refer to register
 ADDRMETH_S = 0x00120000    # MODRM reg field defines segment register
-ADDRMETH_U = 0x00130000    # MODRM reg field defines test register
+ADDRMETH_U = 0x00130000    # MODRM R/M field defines XMM register
 ADDRMETH_V = 0x00140000    # MODRM reg field defines XMM register
 ADDRMETH_W = 0x00150000    # MODRM defines XMM register or memory
 ADDRMETH_X = 0x00160000    # Memory addressed by DS:rSI
 ADDRMETH_Y = 0x00170000    # Memory addressd by ES:rDI
-ADDRMETH_Z = 0x00180000    # R/M field of MODRM defines XMM register, reg is used as an ext
-ADDRMETH_VEXH = 0x001B0000  # Maybe Ignore the VEX.vvvv field based on what the ModRM bytes are
+ADDRMETH_VEXH = 0x00180000  # Maybe Ignore the VEX.vvvv field based on what the ModRM bytes are
 ADDRMETH_LAST = ADDRMETH_VEXH
 
 ADDRMETH_VEXSKIP = 0x00800000  # This operand should be skipped if we're not in VEX mode
@@ -196,14 +195,14 @@ INS_INVALIDOP = INS_TRAPS | 0x07    # gen invalid instruction
 INS_OFLOW = INS_TRAPS | 0x08       # gen overflow trap
 
 #/* INS_SYSTEM */
-INS_HALT    =            INS_SYSTEM | 0x01 #               /* halt machine */
-INS_IN      =    INS_SYSTEM | 0x02         #      /* input form port */
-INS_OUT     =    INS_SYSTEM | 0x03         #      /* output to port */
-INS_CPUID   =            INS_SYSTEM | 0x04 #              /* iden
+INS_HALT    = INS_SYSTEM | 0x01 # halt machine
+INS_IN      = INS_SYSTEM | 0x02 # input form port
+INS_OUT     = INS_SYSTEM | 0x03 # output to port
+INS_CPUID   = INS_SYSTEM | 0x04 # iden
 
-INS_NOP     =    INS_OTHER | 0x01
-INS_BCDCONV =    INS_OTHER | 0x02        #/* convert to/from BCD */
-INS_SZCONV  =    INS_OTHER | 0x03        #/* convert size of operand */
+INS_NOP     = INS_OTHER | 0x01
+INS_BCDCONV = INS_OTHER | 0x02  # convert to/from BCD
+INS_SZCONV  = INS_OTHER | 0x03  # convert size of operand
 INS_CRYPT   = INS_OTHER | 0x4  # AES-NI instruction support
 
 
@@ -211,10 +210,21 @@ OP_R = 0x001
 OP_W = 0x002
 OP_X = 0x004
 OP_64AUTO = 0x008  # operand is in 64bit mode with amd64!
-OP_REG32AUTO = 0x010  # force only *register* to be 32 bit.
-OP_MEM32AUTO = 0x020  # force only *memory* to be 32 bit.
-OP_MEM16AUTO = 0x040  # force only *memory* to be 32 bit.
+# So these this exists is because in the opcode mappings intel puts out, they very 
+# *specifically* call out things like pmovsx* using U/M for their operand mappings,
+# but *not* W. The reason for this being there
+# is a size difference between the U and M portions, whereas W uses a uniform size for both
+OP_MEM_B = 0x010  # force only *memory* to be 8 bit.
+OP_MEM_W = 0x020  # force only *memory* to be 16 bit.
+OP_MEM_D = 0x030  # force only *memory* to be 32 bit.
+OP_MEM_Q = 0x040  # force only *memory* to be 64 bit.
+OP_MEM_DQ = 0x050  # force only *memory* to be 128 bit.
+OP_MEM_QQ = 0x060  # force only *memory* to be 256 bit.
+OP_MEMMASK = 0x070  # this forces the memory to be a different size than the register. Reaches into OP_EXTRA_MEMSIZES
+
 OP_NOVEXL = 0x080  # don't apply VEX.L here (even though it's set). TLDR: always 128/xmm reg
+
+OP_EXTRA_MEMSIZES = [None, 1, 2, 4, 8, 16, 32]
 
 OP_UNK = 0x000
 OP_REG = 0x100
@@ -228,6 +238,8 @@ OP_OFF = 0x700
 OP_SIGNED = 0x001000
 OP_STRING = 0x002000
 OP_CONST = 0x004000
+
+OP_NOREXB = 0x008000  # ugh. sneaking this here for now, but the mul and div instructions basically require this
 
 ARG_NONE = 0
 cpu_8086 = 0x00001000
