@@ -44,11 +44,10 @@ i386MultiByteOpcodes = [
     ('MOV', '8B148541414141', 0x40, 'mov edx,dword [0x41414141 + eax * 4]', 'mov edx,dword [0x41414141 + eax * 4]'),
     # ('MOV 2r', '678B14', 0x40, 'mov edx,dword [si]', 'mov edx,dword [si]'),
     # ('PUSH 2', '67FF37', 0x40, 'push dword [bx]', 'push dword [bx]'),
-    # TODO(rakuyo): with how we do ADDRMETH_E, eax in these will end up like ax since the memaddr
-    # size is always 8
-    #('PEXTRB', '660F3A14D011', 0x40, 'pextrb eax,xmm2,17', 'pextrb eax,xmm2,17'),
-    #('PEXTRB 2', '660F3A141011', 0x40, 'pextrb byte [eax],xmm2,17', 'pextrb byte [eax],xmm2,17'),
+    ('PEXTRB', '660F3A14D011', 0x40, 'pextrb eax,xmm2,17', 'pextrb eax,xmm2,17'),
+    ('PEXTRB 2', '660F3A141011', 0x40, 'pextrb byte [eax],xmm2,17', 'pextrb byte [eax],xmm2,17'),
     ('MOV 3', '8B16', 0x40, 'mov edx,dword [esi]', 'mov edx,dword [esi]'),
+    ('MOV 4', '66b90202', 0x40, 'mov cx,514', 'mov cx,514'),
     ('NOT', '66F7D0', 0x40, 'not ax', 'not ax'),
     ('NOT 2', 'F7D0', 0x40, 'not eax', 'not eax'),
     ('PUSH', '6653', 0x40, 'push bx', 'push bx'),
@@ -79,7 +78,7 @@ i386MultiByteOpcodes = [
     ('PSRAD (66)',  '660F72E704', 0x40, 'psrad xmm7,4', 'psrad xmm7,4'),
     ('PSRLQ (66)',  '660F73D308', 0x40, 'psrlq xmm3,8', 'psrlq xmm3,8'),
     ('PSRAW (66)',  '660F71E1084141', 0x40, 'psraw xmm1,8', 'psraw xmm1,8'),
-    ('PSRLDQ (66)', '660f73faaa4141', 0x40, 'psldq xmm2,170', 'psldq xmm2,170'),
+    ('PSRLDQ (66)', '660f73faaa4141', 0x40, 'pslldq xmm2,170', 'pslldq xmm2,170'),
     ('LFENCE', '0faee8', 0x40, 'lfence ', 'lfence '),
     ('LFENCE', '0faeea', 0x40, 'lfence ', 'lfence '),
     ('LFENCE', '0faeec', 0x40, 'lfence ', 'lfence '),
@@ -98,7 +97,19 @@ i386MultiByteOpcodes = [
     ('PSRLDQ (66)', '660f73f5aa4141', 0x40, 'psllq xmm5,170', 'psllq xmm5,170'),
     # Same for these two
     ('PSRLDQ (66)', '660f73b1aa4141', 0x40, 'psllq xmm1,170', 'psllq xmm1,170'),
-    ('PSRLDQ (66)', '660f73b9aa4141', 0x40, 'psldq xmm1,170', 'psldq xmm1,170'),
+    ('PSRLDQ (66)', '660f73b9aa4141', 0x40, 'pslldq xmm1,170', 'pslldq xmm1,170'),
+
+    ('ADDSS', 'f30f58ca', 0x40, 'addss xmm1,xmm2', 'addss xmm1,xmm2'),
+    ('ADDSS 2', 'f30f580a', 0x40, 'addss xmm1,dword [edx]', 'addss xmm1,dword [edx]'),
+    ('ADDSS 3', 'f30f585963', 0x40, 'addss xmm3,dword [ecx + 99]', 'addss xmm3,dword [ecx + 99]'),
+    ('SQRTSS', 'f30f51d7', 0x40, 'sqrtss xmm2,xmm7', 'sqrtss xmm2,xmm7'),
+    ('SQRTSS 2', 'f30f511c2541414141', 0x40, 'sqrtss xmm3,dword [0x41414141]', 'sqrtss xmm3,dword [0x41414141]'),
+    ('SQRTSS 3', 'f30f511cd540000000', 0x40, 'sqrtss xmm3,dword [0x00000040 + edx * 8]', 'sqrtss xmm3,dword [0x00000040 + edx * 8]'),
+    ('RSQRTSS', 'f30f52d7', 0x40, 'rsqrtss xmm2,xmm7', 'rsqrtss xmm2,xmm7'),
+    ('RSQRTSS 2', 'f30f521c2541414141', 0x40, 'rsqrtss xmm3,dword [0x41414141]', 'rsqrtss xmm3,dword [0x41414141]'),
+    ('RSQRTSS 3', 'f30f521cd540000000', 0x40, 'rsqrtss xmm3,dword [0x00000040 + edx * 8]', 'rsqrtss xmm3,dword [0x00000040 + edx * 8]'),
+    ('RCPSS', 'f30f53cf', 0x40, 'rcpss xmm1,xmm7', 'rcpss xmm1,xmm7'),
+    ('RCPSS 2', 'f30f5319', 0x40, 'rcpss xmm3,dword [ecx]', 'rcpss xmm3,dword [ecx]'),
 
     ('PCMPISTRI', '660f3a630f0d', 0x40, 'pcmpistri xmm1,oword [edi],13', 'pcmpistri xmm1,oword [edi],13'),
     ('PSHUFB', '660F3800EF', 0x40, 'pshufb xmm5,xmm7', 'pshufb xmm5,xmm7'),
@@ -200,6 +211,34 @@ i386MultiByteOpcodes = [
     ('MAXPD', '660F5F64C020', 0x40, 'maxpd xmm4,oword [eax + eax * 8 + 32]', 'maxpd xmm4,oword [eax + eax * 8 + 32]'),
     ('MAXPD 2', '660f5fa490d0a80000', 0x40, 'maxpd xmm4,oword [eax + edx * 4 + 43216]', 'maxpd xmm4,oword [eax + edx * 4 + 43216]'),
     # ('rm4mod2', '', 0x40, '', ''),
+
+    ('PMOVSXBW', '660f3820ca', 0x40, 'pmovsxbw xmm1,xmm2', 'pmovsxbw xmm1,xmm2'),
+    ('PMOVSXBD', '660f3821cb', 0x40, 'pmovsxbd xmm1,xmm3', 'pmovsxbd xmm1,xmm3'),
+    ('PMOVSXBQ', '660f3822d3', 0x40, 'pmovsxbq xmm2,xmm3', 'pmovsxbq xmm2,xmm3'),
+    ('PMOVSXWD', '660f3823ff', 0x40, 'pmovsxwd xmm7,xmm7', 'pmovsxwd xmm7,xmm7'),
+    ('PMOVSXWQ', '660f3824dc', 0x40, 'pmovsxwq xmm3,xmm4', 'pmovsxwq xmm3,xmm4'),
+    ('PMOVSXDQ', '660f3825df', 0x40, 'pmovsxdq xmm3,xmm7', 'pmovsxdq xmm3,xmm7'),
+
+    ('PMOVZXBW', '660f3830ca', 0x40, 'pmovzxbw xmm1,xmm2', 'pmovzxbw xmm1,xmm2'),
+    ('PMOVZXBD', '660f3831cb', 0x40, 'pmovzxbd xmm1,xmm3', 'pmovzxbd xmm1,xmm3'),
+    ('PMOVZXBQ', '660f3832d3', 0x40, 'pmovzxbq xmm2,xmm3', 'pmovzxbq xmm2,xmm3'),
+    ('PMOVZXWD', '660f3833ff', 0x40, 'pmovzxwd xmm7,xmm7', 'pmovzxwd xmm7,xmm7'),
+    ('PMOVZXWQ', '660f3834dc', 0x40, 'pmovzxwq xmm3,xmm4', 'pmovzxwq xmm3,xmm4'),
+    ('PMOVZXDQ', '660f3835df', 0x40, 'pmovzxdq xmm3,xmm7', 'pmovzxdq xmm3,xmm7'),
+
+    ('PMOVSXBW (MEM)', '660f382018', 0x40, 'pmovsxbw xmm3,qword [eax]', 'pmovsxbw xmm3,qword [eax]'),
+    ('PMOVSXBD (MEM)', '660f3821242541414141', 0x40, 'pmovsxbd xmm4,dword [0x41414141]', 'pmovsxbd xmm4,dword [0x41414141]'),
+    ('PMOVSXBQ (MEM)', '660f38228b29230000', 0x40, 'pmovsxbq xmm1,word [ebx + 9001]', 'pmovsxbq xmm1,word [ebx + 9001]'),
+    ('PMOVSXWD (MEM)', '660f38230c11', 0x40, 'pmovsxwd xmm1,qword [ecx + edx]', 'pmovsxwd xmm1,qword [ecx + edx]'),
+    ('PMOVSXWQ (MEM)', '660f38241cb507000000', 0x40, 'pmovsxwq xmm3,dword [0x00000007 + esi * 4]', 'pmovsxwq xmm3,dword [0x00000007 + esi * 4]'),
+    ('PMOVSXDQ (MEM)', '660f382532', 0x40, 'pmovsxdq xmm6,qword [edx]', 'pmovsxdq xmm6,qword [edx]'),
+
+    ('PMOVSXBW (MEM)', '660f383018', 0x40, 'pmovzxbw xmm3,qword [eax]', 'pmovzxbw xmm3,qword [eax]'),
+    ('PMOVSXBD (MEM)', '660f3831242541414141', 0x40, 'pmovzxbd xmm4,dword [0x41414141]', 'pmovzxbd xmm4,dword [0x41414141]'),
+    ('PMOVSXBQ (MEM)', '660f38328b29230000', 0x40, 'pmovzxbq xmm1,word [ebx + 9001]', 'pmovzxbq xmm1,word [ebx + 9001]'),
+    ('PMOVSXWD (MEM)', '660f38330c11', 0x40, 'pmovzxwd xmm1,qword [ecx + edx]', 'pmovzxwd xmm1,qword [ecx + edx]'),
+    ('PMOVSXWQ (MEM)', '660f38341cb507000000', 0x40, 'pmovzxwq xmm3,dword [0x00000007 + esi * 4]', 'pmovzxwq xmm3,dword [0x00000007 + esi * 4]'),
+    ('PMOVSXDQ (MEM)', '660f383532', 0x40, 'pmovzxdq xmm6,qword [edx]', 'pmovzxdq xmm6,qword [edx]'),
 
     # AES-NI feature set
     ('AESENC', '660F38DCEA', 0x40, 'aesenc xmm5,xmm2', 'aesenc xmm5,xmm2'),
@@ -366,7 +405,7 @@ class i386InstructionSet(unittest.TestCase):
         opbytez = '0f2018'
         oprepr = 'mov dword [eax],ctrl3'
         opcheck =  {'iflags': 65536, 'va': 16384, 'repr': None, 'prefixes': 0, 'mnem': 'mov', 'opcode': 24577, 'size': 3}
-        opercheck = ( {'disp': 0, 'tsize': 4, '_is_deref': True, 'reg': 0}, {'tsize': 4, 'reg': 35} )
+        opercheck = ( {'disp': 0, 'tsize': 4, '_is_deref': True, 'reg': 0}, {'tsize': 4, 'reg': 27} )
         self.checkOpcode( opbytez, 0x4000, oprepr, opcheck, opercheck, oprepr )
 
     def test_envi_i386_disasm_Imm_Operands(self):
@@ -446,5 +485,5 @@ class i386InstructionSet(unittest.TestCase):
         opbytez = '0f2caabbccddeeff'
         oprepr = 'cvttps2pi mm5,qword [edx - 287454021]'
         opcheck = {'iflags': 65536, 'va': 16384, 'repr': None, 'prefixes': 0, 'mnem': 'cvttps2pi', 'opcode': 61440}
-        opercheck = [{'tsize': 8, 'reg': 13}, {'disp': -287454021, 'tsize': 8, '_is_deref': True, 'reg': 2}]
+        opercheck = [{'tsize': 8, 'reg': 4194355}, {'disp': -287454021, 'tsize': 8, '_is_deref': True, 'reg': 2}]
         self.checkOpcode(opbytez, 0x4000, oprepr, opcheck, opercheck, oprepr)
