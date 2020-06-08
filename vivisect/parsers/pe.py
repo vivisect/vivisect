@@ -339,6 +339,11 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
     exports = pe.getExports()
     for rva, ord, name in exports:
         eva = rva + baseaddr
+
+        # Functions exported by ordinal only have no name
+        if name is None:
+            name = "Ordinal_" + str(ord)
+
         try:
             vw.setVaSetRow('pe:ordinals', (eva, ord))
             vw.addExport(eva, EXP_UNTYPED, name, fname)
