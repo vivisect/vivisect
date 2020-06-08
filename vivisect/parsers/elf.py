@@ -114,7 +114,6 @@ arch_names = {
     Elf.EM_386:'i386',
     Elf.EM_X86_64:'amd64',
     Elf.EM_MSP430:'msp430',
-    Elf.EM_ARM_AARCH64:'aarch64',
 }
 
 archcalls = {
@@ -123,7 +122,6 @@ archcalls = {
     'arm':'armcall',
     'thumb':'armcall',
     'thumb16':'armcall',
-    'aarch64':'a64call',
 }
 
 def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
