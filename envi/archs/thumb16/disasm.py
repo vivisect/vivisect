@@ -744,7 +744,7 @@ def dp_mod_imm_32(va, val1, val2):
     if Rd==15 and S:
         #raise Exception("dp_mod_imm_32 - FIXME: secondary dp encoding")
         mnem = dp_secondary[dpop]
-        if mnem == None:
+        if mnem is None:
             raise Exception("dp_mod_imm_32: Rd==15, S, but dpop doesn't have a secondary! va:%x, %x%x" % (va, val1, val2))
 
         if S:
@@ -949,7 +949,7 @@ def parallel_misc_32(va, val1, val2):
 
     pardata = parallel_misc_info[signed_misc].get(opidx)
 
-    if pardata == None:
+    if pardata is None:
         return shift_or_ext_32(va, val1, val2)
 
     opcode, mnem, flags = pardata
@@ -1376,13 +1376,13 @@ def smull_32(va, val1, val2):
     op2 = (val2 >> 4) & 0xf
 
     secondary = smulls_info.get(op1)
-    if secondary == None:
+    if secondary is None:
         raise envi.InvalidInstruction(      #FIXME!!!!
                 mesg="smull invalid decode: op1",
                 bytez=struct.pack("<HH", val, val2), va=va-4)
 
     secout = secondary.get(op2)
-    if secout == None:
+    if secout is None:
         raise envi.InvalidInstruction(      #FIXME!!!!
                 mesg="smull invalid decode: op2",
                 bytez=struct.pack("<HH", val, val2), va=va-4)
@@ -1438,15 +1438,20 @@ mov_ris_alt = (
                 )
 def mov_reg_imm_shift_32(va, val1, val2):
     optype = (val2>>4) & 3
+
+    # imm is made of bits ((val2>>12)&7) concat'd with ((val2>>6)&3)
+    # the shifting is different to reduce the number of operations
     imm = ((val2>>10)&0x1c) | ((val2>>6)&3)
     rm = val2 & 0xf
     rd = (val2 >> 8) & 0xf
     s = (val1 >> 4) & 1
 
-    if imm == 0 and optype in (0,3):
+    # there are two types of encodings, one with imm == 0
+    if imm == 0:
         opcode, mnem, opcnt = mov_ris_alt[optype]
     else:
         opcode, mnem, opcnt = mov_ris_ops[optype]
+
     if s:
         flags = IF_PSR_S
     else:
@@ -2003,23 +2008,22 @@ bcc_ops = {
 # operdef is:
 # ( (otype, oshift, omask), ...)
 
-# FIXME: thumb and arm opcode numbers don't line up. - FIX
 thumb_base = [
-    ('0000000001',  ( INS_LSL,'lsl',     imm5_rm_rd, IF_PSR_S)), # LSL<c> <Rd>,<Rm>,#<imm5>
-    ('0000000000',  ( INS_MOV,'mov',     rm_rd, IF_PSR_S)), # MOVS<c> <Rd>,<Rm>
-    ('000000001',   ( INS_LSL,'lsl',     imm5_rm_rd, IF_PSR_S)), # LSL<c> <Rd>,<Rm>,#<imm5>
-    ('00000001',    ( INS_LSL,'lsl',     imm5_rm_rd, IF_PSR_S)), # LSL<c> <Rd>,<Rm>,#<imm5>
-    ('0000001',     ( INS_LSL,'lsl',     imm5_rm_rd, IF_PSR_S)), # LSL<c> <Rd>,<Rm>,#<imm5>
-    ('000001',      ( INS_LSL,'lsl',     imm5_rm_rd, IF_PSR_S)), # LSL<c> <Rd>,<Rm>,#<imm5>
-    ('00001',       ( INS_LSR,'lsr',     imm5_rm_rd, IF_PSR_S)), # LSR<c> <Rd>,<Rm>,#<imm>
-    ('00010',       ( INS_ASR,'asr',     imm5_rm_rd, IF_PSR_S)), # ASR<c> <Rd>,<Rm>,#<imm>
-    ('0001100',     ( INS_ADD,'add',     rm_rn_rd,   IF_PSR_S)), # ADD<c> <Rd>,<Rn>,<Rm>
-    ('0001101',     ( INS_SUB,'sub',     rm_rn_rd,   IF_PSR_S)), # SUB<c> <Rd>,<Rn>,<Rm>
-    ('0001110',     ( INS_ADD,'add',     imm3_rn_rd, IF_PSR_S)), # ADD<c> <Rd>,<Rn>,#<imm3>
-    ('0001111',     ( INS_SUB,'sub',     imm3_rn_rd, IF_PSR_S)), # SUB<c> <Rd>,<Rn>,#<imm3>
-    ('00100',       ( INS_MOV,'mov',     imm8_rd,    IF_PSR_S)), # MOV<c> <Rd>,#<imm8>
-    ('00101',       ( INS_CMP,'cmp',     imm8_rd,    0)), # CMP<c> <Rn>,#<imm8>
-    ('00110',       ( INS_ADD,'add',     imm8_rd,    IF_PSR_S)), # ADD<c> <Rdn>,#<imm8>
+    ('0000000001',  (INS_LSL,'lsl',     imm5_rm_rd, IF_PSR_S)), # LSL<c> <Rd>,<Rm>,#<imm5>
+    ('0000000000',  (INS_MOV,'mov',     rm_rd, IF_PSR_S)),      # MOVS<c> <Rd>,<Rm>
+    ('000000001',   (INS_LSL,'lsl',     imm5_rm_rd, IF_PSR_S)), # LSL<c> <Rd>,<Rm>,#<imm5>
+    ('00000001',    (INS_LSL,'lsl',     imm5_rm_rd, IF_PSR_S)), # LSL<c> <Rd>,<Rm>,#<imm5>
+    ('0000001',     (INS_LSL,'lsl',     imm5_rm_rd, IF_PSR_S)), # LSL<c> <Rd>,<Rm>,#<imm5>
+    ('000001',      (INS_LSL,'lsl',     imm5_rm_rd, IF_PSR_S)), # LSL<c> <Rd>,<Rm>,#<imm5>
+    ('00001',       (INS_LSR,'lsr',     imm5_rm_rd, IF_PSR_S)), # LSR<c> <Rd>,<Rm>,#<imm>
+    ('00010',       (INS_ASR,'asr',     imm5_rm_rd, IF_PSR_S)), # ASR<c> <Rd>,<Rm>,#<imm>
+    ('0001100',     (INS_ADD,'add',     rm_rn_rd,   IF_PSR_S)), # ADD<c> <Rd>,<Rn>,<Rm>
+    ('0001101',     (INS_SUB,'sub',     rm_rn_rd,   IF_PSR_S)), # SUB<c> <Rd>,<Rn>,<Rm>
+    ('0001110',     (INS_ADD,'add',     imm3_rn_rd, IF_PSR_S)), # ADD<c> <Rd>,<Rn>,#<imm3>
+    ('0001111',     (INS_SUB,'sub',     imm3_rn_rd, IF_PSR_S)), # SUB<c> <Rd>,<Rn>,#<imm3>
+    ('00100',       (INS_MOV,'mov',     imm8_rd,    IF_PSR_S)), # MOV<c> <Rd>,#<imm8>
+    ('00101',       (INS_CMP,'cmp',     imm8_rd,    0)),        # CMP<c> <Rn>,#<imm8>
+    ('00110',       (INS_ADD,'add',     imm8_rd,    IF_PSR_S)), # ADD<c> <Rdn>,#<imm8>
     ('00111',       (INS_SUB,'sub',     imm8_rd,    IF_PSR_S)), # SUB<c> <Rdn>,#<imm8>
     # Data processing instructions
     ('0100000000',  (INS_AND,'and',     rm_rdn,     IF_PSR_S)), # AND<c> <Rdn>,<Rm>
@@ -2030,57 +2034,57 @@ thumb_base = [
     ('0100000101',  (INS_ADC,'adc',     rm_rdn,     IF_PSR_S)), # ADC<c> <Rdn>,<Rm>
     ('0100000110',  (INS_SBC,'sbc',     rm_rdn,     IF_PSR_S)), # SBC<c> <Rdn>,<Rm>
     ('0100000111',  (INS_ROR,'ror',     rm_rdn,     IF_PSR_S)), # ROR<c> <Rdn>,<Rm>
-    ('0100001000',  (INS_TST,'tst',     rm_rd,      0)), # TST<c> <Rn>,<Rm>
+    ('0100001000',  (INS_TST,'tst',     rm_rd,      0)),        # TST<c> <Rn>,<Rm>
     ('0100001001',  (INS_RSB,'rsb',     rm_rd_imm0, IF_PSR_S)), # RSB<c> <Rd>,<Rn>,#0
-    ('0100001010',  (INS_CMP,'cmp',     rm_rd,      0)), # CMP<c> <Rn>,<Rm>
-    ('0100001011',  (INS_CMN,'cmn',     rm_rd,      0)), # CMN<c> <Rn>,<Rm>
+    ('0100001010',  (INS_CMP,'cmp',     rm_rd,      0)),        # CMP<c> <Rn>,<Rm>
+    ('0100001011',  (INS_CMN,'cmn',     rm_rd,      0)),        # CMN<c> <Rn>,<Rm>
     ('0100001100',  (INS_ORR,'orr',     rm_rdn,     IF_PSR_S)), # ORR<c> <Rdn>,<Rm>
     ('0100001101',  (INS_MUL,'mul',     rn_rdm,     IF_PSR_S)), # MUL<c> <Rdm>,<Rn>,<Rdm>
     ('0100001110',  (INS_BIC,'bic',     rm_rdn,     IF_PSR_S)), # BIC<c> <Rdn>,<Rm>
-    ('0100001111',  (INS_MVN,'mvn',     rm_rd,      0)), # MVN<c> <Rd>,<Rm>
+    ('0100001111',  (INS_MVN,'mvn',     rm_rd,      0)),        # MVN<c> <Rd>,<Rm>
     # Special data in2tructions and branch and exchange
-    ('0100010000',  (INS_ADD,'add',     d1_rm4_rd3, 0)), # ADD<c> <Rdn>,<Rm>
-    ('0100010001',  (INS_ADD,'add',     d1_rm4_rd3, 0)), # ADD<c> <Rdn>,<Rm>
-    ('010001001',   (INS_ADD,'add',     d1_rm4_rd3, 0)), # ADD<c> <Rdn>,<Rm>
-    ('010001010',   (INS_CMP,'cmp',     d1_rm4_rd3, 0)), # CMP<c> <Rn>,<Rm>
-    ('010001011',   (INS_CMP,'cmp',     d1_rm4_rd3, 0)), # CMP<c> <Rn>,<Rm>
-    ('01000110',    (INS_MOV,'mov',     d1_rm4_rd3, 0)), # MOV<c> <Rd>,<Rm>
+    ('0100010000',  (INS_ADD,'add',     d1_rm4_rd3, 0)),        # ADD<c> <Rdn>,<Rm>
+    ('0100010001',  (INS_ADD,'add',     d1_rm4_rd3, 0)),        # ADD<c> <Rdn>,<Rm>
+    ('010001001',   (INS_ADD,'add',     d1_rm4_rd3, 0)),        # ADD<c> <Rdn>,<Rm>
+    ('010001010',   (INS_CMP,'cmp',     d1_rm4_rd3, 0)),        # CMP<c> <Rn>,<Rm>
+    ('010001011',   (INS_CMP,'cmp',     d1_rm4_rd3, 0)),        # CMP<c> <Rn>,<Rm>
+    ('01000110',    (INS_MOV,'mov',     d1_rm4_rd3, 0)),        # MOV<c> <Rd>,<Rm>
     ('010001110',   (INS_BL,'bx',      rm4_shift3, envi.IF_NOFALL)), # BX<c> <Rm>       # FIXME: check for IF_RET
     ('010001111',   (INS_BLX,'blx',     rm4_shift3, envi.IF_CALL)), # BLX<c> <Rm>
     # Load from Litera7 Pool
-    ('01001',       (INS_LDR,'ldr',     rt_pc_imm8d, 0)), # LDR<c> <Rt>,<label>
+    ('01001',       (INS_LDR,'ldr',     rt_pc_imm8d, 0)),       # LDR<c> <Rt>,<label>
     # Load/Stor single data item
-    ('0101000',     (INS_STR,'str',     rm_rn_rt,   0)), # STR<c> <Rt>,[<Rn>,<Rm>]
-    ('0101001',     (INS_STRH,'str',    rm_rn_rt,   IF_H)), # STRH<c> <Rt>,[<Rn>,<Rm>]
-    ('0101010',     (INS_STRB,'str',    rm_rn_rt,   IF_B)), # STRB<c> <Rt>,[<Rn>,<Rm>]
+    ('0101000',     (INS_STR,'str',     rm_rn_rt,   0)),        # STR<c> <Rt>,[<Rn>,<Rm>]
+    ('0101001',     (INS_STRH,'str',    rm_rn_rt,   IF_H)),     # STRH<c> <Rt>,[<Rn>,<Rm>]
+    ('0101010',     (INS_STRB,'str',    rm_rn_rt,   IF_B)),     # STRB<c> <Rt>,[<Rn>,<Rm>]
     ('0101011',     (INS_LDRSB,'ldr',   rm_rn_rt,  IF_S | IF_B)), # LDRSB<c> <Rt>,[<Rn>,<Rm>]
-    ('0101100',     (INS_LDR,'ldr',     rm_rn_rt,   0)), # LDR<c> <Rt>,[<Rn>,<Rm>]
-    ('0101101',     (INS_LDRH,'ldr',    rm_rn_rt,   IF_H)), # LDRH<c> <Rt>,[<Rn>,<Rm>]
-    ('0101110',     (INS_LDRB,'ldr',    rm_rn_rt,   IF_B)), # LDRB<c> <Rt>,[<Rn>,<Rm>]
+    ('0101100',     (INS_LDR,'ldr',     rm_rn_rt,   0)),        # LDR<c> <Rt>,[<Rn>,<Rm>]
+    ('0101101',     (INS_LDRH,'ldr',    rm_rn_rt,   IF_H)),     # LDRH<c> <Rt>,[<Rn>,<Rm>]
+    ('0101110',     (INS_LDRB,'ldr',    rm_rn_rt,   IF_B)),     # LDRB<c> <Rt>,[<Rn>,<Rm>]
     ('0101111',     (INS_LDRSH,'ldr',   rm_rn_rt,   IF_S | IF_H)), # LDRSH<c> <Rt>,[<Rn>,<Rm>]
-    ('01100',       (INS_STR,'str',     imm54_rn_rt, 0)), # STR<c> <Rt>, [<Rn>{,#<imm5>}]
-    ('01101',       (INS_LDR,'ldr',     imm54_rn_rt, 0)), # LDR<c> <Rt>, [<Rn>{,#<imm5>}]
-    ('01110',       (INS_STRB,'str',    imm56_rn_rt, IF_B)), # STRB<c> <Rt>,[<Rn>,#<imm5>]
-    ('01111',       (INS_LDRB,'ldr',    imm56_rn_rt, IF_B)), # LDRB<c> <Rt>,[<Rn>{,#<imm5>}]
-    ('10000',       (INS_STRH,'str',    imm55_rn_rt, IF_H)), # STRH<c> <Rt>,[<Rn>{,#<imm>}]
-    ('10001',       (INS_LDRH,'ldr',    imm55_rn_rt, IF_H)), # LDRH<c> <Rt>,[<Rn>{,#<imm>}]
-    ('10010',       (INS_LDR,'str',     rd_sp_imm8d, 0)), # STR<c> <Rt>, [<Rn>{,#<imm>}]
-    ('10011',       (INS_LDR,'ldr',     rd_sp_imm8d, 0)), # LDR<c> <Rt>, [<Rn>{,#<imm>}]
+    ('01100',       (INS_STR,'str',     imm54_rn_rt, 0)),       # STR<c> <Rt>, [<Rn>{,#<imm5>}]
+    ('01101',       (INS_LDR,'ldr',     imm54_rn_rt, 0)),       # LDR<c> <Rt>, [<Rn>{,#<imm5>}]
+    ('01110',       (INS_STRB,'str',    imm56_rn_rt, IF_B)),    # STRB<c> <Rt>,[<Rn>,#<imm5>]
+    ('01111',       (INS_LDRB,'ldr',    imm56_rn_rt, IF_B)),    # LDRB<c> <Rt>,[<Rn>{,#<imm5>}]
+    ('10000',       (INS_STRH,'str',    imm55_rn_rt, IF_H)),    # STRH<c> <Rt>,[<Rn>{,#<imm>}]
+    ('10001',       (INS_LDRH,'ldr',    imm55_rn_rt, IF_H)),    # LDRH<c> <Rt>,[<Rn>{,#<imm>}]
+    ('10010',       (INS_LDR,'str',     rd_sp_imm8d, 0)),       # STR<c> <Rt>, [<Rn>{,#<imm>}]
+    ('10011',       (INS_LDR,'ldr',     rd_sp_imm8d, 0)),       # LDR<c> <Rt>, [<Rn>{,#<imm>}]
     # Generate PC relative address
-    ('10100',       (INS_ADD,'add',     rd_pc_imm8, 0)), # ADD<c> <Rd>,<label>
+    ('10100',       (INS_ADD,'add',     rd_pc_imm8, 0)),        # ADD<c> <Rd>,<label>
     # Generate SP rel5tive address
-    ('10101',       (INS_ADD,'add',     rd_sp_imm8, 0)), # ADD<c> <Rd>,SP,#<imm>
+    ('10101',       (INS_ADD,'add',     rd_sp_imm8, 0)),        # ADD<c> <Rd>,SP,#<imm>
     # Miscellaneous in6tructions
-    ('1011001000',  (INS_SXTH,'sxth',    rm_rd,      0)), # SXTH<c> <Rd>, <Rm>
-    ('1011001001',  (INS_SXTB,'sxtb',    rm_rd,      0)), # SXTB<c> <Rd>, <Rm>
-    ('1011001010',  (INS_UXTH,'uxth',    rm_rd,      0)), # UXTH<c> <Rd>, <Rm>
-    ('1011001011',  (INS_UXTB,'uxtb',    rm_rd,      0)), # UXTB<c> <Rd>, <Rm>
-    ('1011010',     (INS_PUSH,'push',    push_reglist,    0)), # PUSH <reglist>
-    ('10110110010', (INS_SETEND,'setend',  sh4_imm1,   0)), # SETEND <endian_specifier>
-    ('10110110011', (INS_CPS,'cps',     cps16,0)), # CPS<effect> <iflags>
-    ('1011011000',  (INS_PUSH,'push',    push_reglist,    0)), # PUSH <reglist>
-    ('101101101',   (INS_PUSH,'push',    push_reglist,    0)), # PUSH <reglist>
-    ('10110111',    (INS_PUSH,'push',    push_reglist,    0)), # PUSH <reglist>
+    ('1011001000',  (INS_SXTH,'sxth',    rm_rd,      0)),       # SXTH<c> <Rd>, <Rm>
+    ('1011001001',  (INS_SXTB,'sxtb',    rm_rd,      0)),       # SXTB<c> <Rd>, <Rm>
+    ('1011001010',  (INS_UXTH,'uxth',    rm_rd,      0)),       # UXTH<c> <Rd>, <Rm>
+    ('1011001011',  (INS_UXTB,'uxtb',    rm_rd,      0)),       # UXTB<c> <Rd>, <Rm>
+    ('1011010',     (INS_PUSH,'push',    push_reglist,    0)),  # PUSH <reglist>
+    ('10110110010', (INS_SETEND,'setend',  sh4_imm1,   0)),     # SETEND <endian_specifier>
+    ('10110110011', (INS_CPS,'cps',     cps16,0)),              # CPS<effect> <iflags>
+    ('1011011000',  (INS_PUSH,'push',    push_reglist,    0)),  # PUSH <reglist>
+    ('101101101',   (INS_PUSH,'push',    push_reglist,    0)),  # PUSH <reglist>
+    ('10110111',    (INS_PUSH,'push',    push_reglist,    0)),  # PUSH <reglist>
     ('10110001',    (INS_CBZ,'cbz',     i_imm5_rn,  envi.IF_COND | envi.IF_BRANCH)), # CBZ{<q>} <Rn>, <label>    # label must be positive, even offset from PC
     ('10111001',    (INS_CBNZ,'cbnz',    i_imm5_rn,  envi.IF_COND | envi.IF_BRANCH)), # CBNZ{<q>} <Rn>, <label>   # label must be positive, even offset from PC
     ('10110011',    (INS_CBZ,'cbz',     i_imm5_rn,  envi.IF_COND | envi.IF_BRANCH)), # CBZ{<q>} <Rn>, <label>    # label must be positive, even offset from PC
@@ -2399,10 +2403,10 @@ class ThumbDisasm:
             cond, nopcode, nmnem, olist, nflags, simdflags = opermkr(va+4, val, val2)
             #print "simdflags: %r" % simdflags
 
-            if nmnem != None:   # allow opermkr to set the mnem
+            if nmnem is not None:   # allow opermkr to set the mnem
                 mnem = nmnem
                 opcode = nopcode
-            if nflags != None:
+            if nflags is not None:
                 flags = nflags
                 #print "FLAGS: ", repr(olist), repr(flags)
             oplen = 4
@@ -2415,7 +2419,7 @@ class ThumbDisasm:
             else:
                 cond, olist, nflags = opnuggets
 
-            if nflags != None:
+            if nflags is not None:
                 flags = nflags
                 #print "FLAGS: ", repr(olist), repr(flags)
             oplen = 2
@@ -2427,7 +2431,7 @@ class ThumbDisasm:
             flags |= self._optype
 
         #print opcode, mnem, olist, flags
-        if (olist != None and 
+        if (olist is not None and 
                 len(olist) and 
                 isinstance(olist[0], ArmRegOper) and
                 olist[0].involvesPC() and 
@@ -2436,7 +2440,7 @@ class ThumbDisasm:
             showop = True
             flags |= envi.IF_NOFALL
 
-        if mnem == None or type(mnem) == int:
+        if mnem is None or type(mnem) == int:
             raise Exception("mnem == %r!  0x%xi (thumb)" % (mnem, opval))
 
         #print "simdflags: %r" % simdflags

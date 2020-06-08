@@ -18,15 +18,6 @@ from envi.archs.arm.regs import *
 #   * Debug subsystem (coproc 14)
 #   * other 'default' coprocs we can handle and add value?
 
-def chopmul(opcode):
-    op1 = (opcode >> 20) & 0xff
-    a = (opcode >> 16) & 0xf
-    b = (opcode >> 12) & 0xf
-    c = (opcode >> 8)  & 0xf
-    d = (opcode >> 4)  & 0xf
-    e = opcode & 0xf
-    return (op1<<4)+d,(a,b,c,d,e)
-
 # FIXME this seems to be universal...
 def addrToName(mcanv, va):
     sym = mcanv.syms.getSymByAddr(va)
@@ -482,7 +473,7 @@ def p_extra_load_store(opval, va, psize=4):
     op1 = (opval>>5) & 0x3
     Rm = opval & 0xf
     iflags = 0
-    tvariant = bool ((pubwl & 0x12)==2)
+    tvariant = ((pubwl & 0x12)==2)
     if opval&0x0fb000f0==0x01000090:# swp/swpb
         idx = (pubwl>>2)&1
         opcode = INS_SWP
@@ -531,7 +522,7 @@ def p_extra_load_store(opval, va, psize=4):
             iflags |= IF_T
         olist = (
             ArmRegOper(Rd, va=va),
-            ArmRegOffsetOper(Rn, Rm, va, pubwl, psize=psize, tsize=2),
+            ArmRegOffsetOper(Rn, Rm, va, pubwl, psize=psize, tsize=tsize),
         )
     elif opval&0x0e4000f0==0x004000b0:# strh/ldrh immoffset
         idx = pubwl&1
@@ -673,7 +664,9 @@ def p_dp_reg_shift(opval, va):
         iflags = 0
     return (opcode, mnem, olist, iflags, 0)
 
+
 multfail = (None, None, None, None)
+
 
 iencmul_r15_codes = {
     # Basic multiplication opcodes
@@ -684,6 +677,17 @@ iencmul_r15_codes = {
     0b011100000101: ("smusd",  INS_SMUSD,  (0,4,2), 0),
     0b011100000111: ("smusdx", INS_SMUSDX, (0,4,2), 0),
 }
+
+
+def chopmul(opcode):
+    op1 = (opcode >> 20) & 0xff
+    a = (opcode >> 16) & 0xf
+    b = (opcode >> 12) & 0xf
+    c = (opcode >> 8)  & 0xf
+    d = (opcode >> 4)  & 0xf
+    e = opcode & 0xf
+    return (op1<<4)+d,(a,b,c,d,e)
+
 
 def p_mult(opval, va):
     ocode, vals = chopmul(opval)
@@ -703,6 +707,7 @@ def p_mult(opval, va):
     for i in opindexes:
         olist.append(ArmRegOper(vals[i], va=va))
     return (opcode, mnem, olist, flags, 0)
+
 
 def p_dp_imm(opval, va):
     ocode,sflag,Rn,Rd = dpbase(opval)
@@ -810,12 +815,12 @@ def p_mov_imm_stat(opval, va):      # only one instruction: "msr"
             olist = ( ArmDbgHintOption(option), )
 
         else:
-            stuff  = hint_mnem.get(imm)
-            if stuff is None:
+            hint = hint_mnem.get(imm)
+            if hint is None:
                 raise envi.InvalidInstruction(
                         mesg="MSR/Hint illegal encoding",
                         bytez=struct.pack("<I", opval), va=va)
-            mnem, opcode = stuff
+            mnem, opcode = hint
             olist = tuple()
 
     else:
