@@ -30,7 +30,7 @@ def chopmul(opcode):
 # FIXME this seems to be universal...
 def addrToName(mcanv, va):
     sym = mcanv.syms.getSymByAddr(va)
-    if sym != None:
+    if sym is not None:
         return repr(sym)
     return "0x%.8x" % va
 
@@ -108,14 +108,13 @@ def sh_asr(num, shval, size=4):
     return num >> shval
 
 def sh_ror(num, shval, size=4):
-    #return (((num&e_bits.u_maxes[size]) >> shval) | (num<< ((8*size)-shval))) & e_bits.u_maxes[size]
     return ((num >> shval) | (num << ((8*size)-shval))) & e_bits.u_maxes[size]
 
 def sh_rrx(num, shval, size=4, emu=None):
-    #shval should always be 0
+    # shval should always be 0
     newC = num & 1
 
-    if emu != None:
+    if emu is not None:
         flags = emu.getFlags()
         oldC = (flags>>PSR_C) & 1
         emu.setFlags(flags & PSR_C_mask | newC)
@@ -170,7 +169,6 @@ dp_shift_mnem = (
     ("rrx", INS_RRX),
 )
 
-# THIS IS FUGLY but sadly it works
 dp_noRn = (INS_MOV,INS_MVN)
 dp_noRd = (INS_TST,INS_TEQ,INS_CMP,INS_CMN)
 dp_silS = dp_noRd
@@ -695,9 +693,9 @@ def p_mult(opval, va):
     #if Ra = 15 then smmul
     if vals[1] == 15:
         newset = iencmul_r15_codes.get(ocode)
-        if newset != None:
+        if newset is not None:
             mnem, opcode, opindexes, flags = newset
-    if mnem == None:
+    if mnem is None:
         raise envi.InvalidInstruction(
                 mesg="p_mult: invalid instruction",
                 bytez=struct.pack("<I", opval), va=va)
@@ -813,7 +811,7 @@ def p_mov_imm_stat(opval, va):      # only one instruction: "msr"
 
         else:
             stuff  = hint_mnem.get(imm)
-            if stuff == None:
+            if stuff is None:
                 raise envi.InvalidInstruction(
                         mesg="MSR/Hint illegal encoding",
                         bytez=struct.pack("<I", opval), va=va)
@@ -980,7 +978,7 @@ def p_media(opval, va):
         if (definer & mask) == val:
             p_routine = idx
             break
-    if p_routine == None:
+    if p_routine is None:
         raise envi.InvalidInstruction(
         mesg="p_media: can not find command! Definer = "+str(definer)+ " op = " +str(opval),
         bytez=struct.pack("<I", opval), va=va)
@@ -1023,7 +1021,7 @@ xtnd_suffixes = ("xtab16", None,"xtab", "xtah","xtb16", None, "xtb","xth",)
 xtnd_prefixes = ("s","u")
 for pre in xtnd_prefixes:
     for suf in xtnd_suffixes:
-        if suf == None:
+        if suf is None:
             xtnd_mnem.append((None, None))
         else:
             mnem = pre+suf
@@ -1110,7 +1108,7 @@ def p_media_pack_sat_rev_extend(opval, va):
     elif (opc1 > 0) and (opc2 & 7) == 3:           # byte rev word
         opidx = ((opval>>21) & 2) + ((opval>>7) & 1)
         mnem, opcode = rev_mnem[opidx]
-        if mnem == None:
+        if mnem is None:
             raise envi.InvalidInstruction(
                     mesg="p_media_pack_sat_rev_extend: invalid instruction",
                     bytez=struct.pack("<I", opval), va=va)
@@ -3036,17 +3034,17 @@ def _do_adv_simd_32(val, va, u):
                 ArmRegOper(rctx.getRegisterIndex(rbase%m)),
                 )
 
-        if handler != None:
+        if handler is not None:
             nmnem, nopcode, nflags, nopers = handler(val, va, mnem, opcode, simdflags, opers)
-            if nmnem != None:
+            if nmnem is not None:
                 mnem = nmnem
                 opcode = nopcode
-            if nflags != None:
+            if nflags is not None:
                 simdflags = nflags
-            if nopers != None:
+            if nopers is not None:
                 opers = nopers
 
-        if mnem == None:
+        if mnem is None:
             raise envi.InvalidInstruction(mesg="Invalid AdvSIMD Opcode Encoding (3reg): a:%x b:%x u:%x c:%x" %\
                     (a, b, u, c),
                     bytez=struct.pack('<L', val), va=va)
@@ -3060,14 +3058,14 @@ def _do_adv_simd_32(val, va, u):
 
         index = (op<<4) | cmode
         mnem, opcode, simdflags, handler = adv_simd_1modimm[index]
-        if mnem == None:
+        if mnem is None:
             raise envi.InvalidInstruction(mesg="Invalid AdvSIMD Opcode Encoding",
                     bytez=struct.pack('<L', val), va=va)
 
         abcdefgh = (u<<7) | ((val>>12) & 0x70) | (val & 0xf)
 
         handler = adv_simd_modifiers[index]
-        if handler == None:
+        if handler is None:
             raise envi.InvalidInstruction(mesg="Invalid AdvSIMD Opcode Encoding: modified immediate out of range",
                     bytez=struct.pack('<L', val), va=va)
         dt, size, val = handler(abcdefgh)
@@ -3096,7 +3094,7 @@ def _do_adv_simd_32(val, va, u):
         
         index = (a<<3) | (u<<2) | (b<<1) | l
         mnem, opcode, enctype, foffset = adv_2regs_shift[index]
-        if mnem == None:
+        if mnem is None:
             raise envi.InvalidInstruction(mesg="Invalid AdvSIMD Opcode Encoding (2reg_shift)",
                     bytez=struct.pack('<L', val), va=va)
 
@@ -3285,7 +3283,7 @@ def _do_adv_simd_32(val, va, u):
 
             idx = (a<<1) | u
             mnem, opcode, flagoff, dt, nt, mt = adv_simd_3diffregs[idx]
-            if mnem == None:
+            if mnem is None:
                 raise envi.InvalidInstruction(mesg="Invalid AdvSIMD Opcode Encoding",
                         bytez=struct.pack('<L', val), va=va)
 
@@ -3316,7 +3314,7 @@ def _do_adv_simd_32(val, va, u):
             # two registers and a scalar
             idx = (a<<1) | u
             mnem, opcode, flagoff, dt, nt, mt = adv_simd_2regs_scalar[idx]
-            if mnem == None:
+            if mnem is None:
                 raise envi.InvalidInstruction(mesg="Invalid AdvSIMD Opcode Encoding",
                         bytez=struct.pack('<L', val), va=va)
 
@@ -3383,7 +3381,7 @@ def _do_adv_simd_32(val, va, u):
                     idx = (a<<5) | b
                     datatup = adv_simd_2regs_misc[idx]
                     mnem, opcode, flagoff, dt, nt, mod = datatup
-                    if mnem == None:
+                    if mnem is None:
                         raise envi.InvalidInstruction(mesg="Invalid AdvSIMD Opcode Encoding",
                                 bytez=struct.pack('<L', val), va=va)
 
@@ -3946,10 +3944,10 @@ class ArmOpcode(envi.Opcode):
                 flags |= envi.BR_PROC
 
             if self.opcode in (INS_TBB, INS_TBH):
-                print "getBranches:  TBH and TBB...."
+                pass
                 '''
                 base = self.opers[0]._getOperBase(emu)
-                if base != None:
+                if base is not None:
                     ret.append((base, flags | envi.BR_DEREF | envi.BR_TABLE))
                 else:
                     print "0x%x:  %r      getBranches() with no emulator" % (self.va, self)
@@ -4073,7 +4071,7 @@ class ArmRegOper(ArmOperand):
     ''' register operand.  see "addressing mode 1 - data processing operands - register" '''
 
     def __init__(self, reg, va=0, oflags=0):
-        if reg == None:
+        if reg is None:
             raise envi.InvalidInstruction(mesg="None Reg Type!",
                     bytez='f00!', va=va)
         self.va = va
@@ -4102,12 +4100,12 @@ class ArmRegOper(ArmOperand):
         if self.reg == REG_PC and not codeflow:
             return self.va
 
-        if emu == None:
+        if emu is None:
             return None
         return emu.getRegister(self.reg)
 
     def setOperValue(self, op, emu=None, val=None):
-        if emu == None:
+        if emu is None:
             return None
         emu.setRegister(self.reg, val)
 
@@ -4147,7 +4145,7 @@ class ArmRegScalarOper(ArmRegOper):
         return True
 
     def getOperValue(self, op, emu=None, codeflow=False):
-        if emu == None:
+        if emu is None:
             return None
 
         raise Exception("Scalar Accessors Not Implemented")
@@ -4196,7 +4194,7 @@ class ArmRegShiftRegOper(ArmOperand):
         return False
 
     def getOperValue(self, op, emu=None, codeflow=False):
-        if emu == None:
+        if emu is None:
             return None
         return shifters[self.shtype](emu.getRegister(self.reg), emu.getRegister(self.shreg))
 
@@ -4248,7 +4246,7 @@ class ArmRegShiftImmOper(ArmOperand):
         if self.reg == REG_PC:
             return shifters[self.shtype](self.va, self.shimm)
 
-        if emu == None:
+        if emu is None:
             return None
         return shifters[self.shtype](emu.getRegister(self.reg), self.shimm)
 
@@ -4377,7 +4375,7 @@ class ArmScaledOffsetOper(ArmOperand):
         self.psize = psize
         self.va = va
 
-        if tsize != None:
+        if tsize is not None:
             self.tsize = tsize
         else:
             b = (self.pubwl >> 2) & 1
@@ -4407,7 +4405,7 @@ class ArmScaledOffsetOper(ArmOperand):
         return True
 
     def getOperValue(self, op, emu=None, codeflow=False):
-        if emu == None:
+        if emu is None:
             return None
 
         addr = self.getOperAddr(op, emu)
@@ -4415,14 +4413,14 @@ class ArmScaledOffsetOper(ArmOperand):
 
     def setOperValue(self, op, emu=None, val=None):
         # can't survive without an emulator
-        if emu == None:
+        if emu is None:
             return None
 
         addr = self.getOperAddr(op, emu)
         emu.writeMemValue(addr, val, self.tsize)
 
     def getOperAddr(self, op, emu=None):
-        if emu == None:
+        if emu is None:
             return None
 
         base = self._getOperBase(emu)
@@ -4445,7 +4443,7 @@ class ArmScaledOffsetOper(ArmOperand):
         # u = add
 
         if (self.pubwl & 0x2 or not self.pubwl & 0x10):  # write-back if (P==0 || W==1)
-            if (emu != None) and (emu.getMeta('forrealz', False)): emu.setRegister( self.base_reg, addr)
+            if (emu is not None) and (emu.getMeta('forrealz', False)): emu.setRegister( self.base_reg, addr)
 
         if (self.pubwl & 0x10 == 0): # not indexed
             return base
@@ -4456,7 +4454,7 @@ class ArmScaledOffsetOper(ArmOperand):
         if self.base_reg == REG_PC:
             return self.va
 
-        if emu == None:
+        if emu is None:
             return None
 
         return emu.getRegister(self.base_reg)
@@ -4515,7 +4513,7 @@ class ArmRegOffsetOper(ArmOperand):
         self.pubwl = pubwl
         self.psize = psize
 
-        if tsize == None:
+        if tsize is None:
             b = (self.pubwl >> 2) & 1
             self.tsize = (4,1)[b]
         else:
@@ -4541,21 +4539,21 @@ class ArmRegOffsetOper(ArmOperand):
         return True
 
     def setOperValue(self, op, emu=None, val=None):
-        if emu == None:
+        if emu is None:
             return None
 
         addr = self.getOperAddr(op, emu)
         return emu.writeMemValue(addr, val, self.tsize)
 
     def getOperValue(self, op, emu=None, codeflow=False):
-        if emu == None:
+        if emu is None:
             return None
 
         addr = self.getOperAddr(op, emu)
         return emu.readMemValue(addr, self.tsize)
 
     def getOperAddr(self, op, emu=None):
-        if emu == None:
+        if emu is None:
             return None
 
         pom = (-1, 1)[(self.pubwl>>3)&1]
@@ -4565,7 +4563,7 @@ class ArmRegOffsetOper(ArmOperand):
         addr = base + (pom*rm) & e_bits.u_maxes[self.psize]
 
         if (self.pubwl & 0x2 or not self.pubwl & 0x10):  # write-back if (P==0 || W==1)
-            if (emu != None) and (emu.getMeta('forrealz', False)): emu.setRegister( self.base_reg, addr)
+            if (emu is not None) and (emu.getMeta('forrealz', False)): emu.setRegister( self.base_reg, addr)
 
         if (self.pubwl & 0x10 == 0): # not indexed
             return base
@@ -4623,7 +4621,7 @@ class ArmImmOffsetOper(ArmOperand):
         self.psize = psize
         self.va = va
 
-        if tsize == None:
+        if tsize is None:
             b = (pubwl >> 2) & 1
             self.tsize = (4,1)[b]
         else:
@@ -4650,7 +4648,7 @@ class ArmImmOffsetOper(ArmOperand):
 
     def setOperValue(self, op, emu=None, val=None):
         # can't survive without an emulator
-        if emu == None:
+        if emu is None:
             return None
 
         addr = self.getOperAddr(op, emu)
@@ -4660,7 +4658,7 @@ class ArmImmOffsetOper(ArmOperand):
 
     def getOperValue(self, op, emu=None, codeflow=False):
         # can't survive without an emulator
-        if emu == None:
+        if emu is None:
             return None
 
         addr = self.getOperAddr(op, emu)
@@ -4673,7 +4671,7 @@ class ArmImmOffsetOper(ArmOperand):
         # if we don't have an emulator, we must be PC-based since we know it
         if self.base_reg == REG_PC:
             base = self.va
-        elif emu == None:
+        elif emu is None:
             return None
         else:
             base = emu.getRegister(self.base_reg)
@@ -4687,7 +4685,7 @@ class ArmImmOffsetOper(ArmOperand):
 
 
         if (self.pubwl & 0x2 or not self.pubwl & 0x10):  # write-back if (P==0 || W==1)
-            if (emu != None) and (emu.getMeta('forrealz', False)): emu.setRegister( self.base_reg, addr)
+            if (emu is not None) and (emu.getMeta('forrealz', False)): emu.setRegister( self.base_reg, addr)
 
         if (self.pubwl & 0x10 == 0): # not indexed
             return base
@@ -4712,7 +4710,7 @@ class ArmImmOffsetOper(ArmOperand):
             mcanv.addText(']')
 
             value = self.getOperValue(op, mcanv.mem)
-            if value != None:
+            if value is not None:
                 mcanv.addText("\t; ")
                 if mcanv.mem.isValidPointer(value):
                     name = addrToName(mcanv, value)
@@ -4837,7 +4835,7 @@ class ArmPgmStatRegOper(ArmOperand):
         return False
 
     def getOperValue(self, op, emu=None, codeflow=False):
-        if emu == None:
+        if emu is None:
             return None
 
         mode = emu.getProcMode()
@@ -4849,7 +4847,7 @@ class ArmPgmStatRegOper(ArmOperand):
         return psr
 
     def setOperValue(self, op, emu=None, val=None):
-        if emu == None:
+        if emu is None:
             return None
         mode = emu.getProcMode()
         #SPSR does not work - fails in emu.getSPSR
@@ -4867,7 +4865,7 @@ class ArmPgmStatRegOper(ArmOperand):
 
     def render(self, mcanv, op, idx):
         field = fields[self.val]
-        if field != None:
+        if field is not None:
             psrstr = psrs[self.psr] + '_' + fields[self.val]
         else:
             psrstr = psrs[self.psr]
@@ -4876,7 +4874,7 @@ class ArmPgmStatRegOper(ArmOperand):
 
     def repr(self, op):
         field = fields[self.val]
-        if field != None:
+        if field is not None:
             return psrs[self.psr] + '_' + fields[self.val]
         return psrs[self.psr]
 
@@ -4924,7 +4922,7 @@ class ArmRegListOper(ArmOperand):
             mcanv.addText('^')
 
     def getOperValue(self, op, emu=None, codeflow=False):
-        if emu == None:
+        if emu is None:
             return None
         reglist = []
         for regidx in xrange(16):
@@ -4985,7 +4983,7 @@ class ArmExtRegListOper(ArmOperand):
         '''
         Returns a list of the values in the targeted Extension Registers
         '''
-        if emu == None:
+        if emu is None:
             return None
         reglist = []
         for regidx in xrange(self.firstreg, self.firstreg + self.count):
@@ -4997,7 +4995,7 @@ class ArmExtRegListOper(ArmOperand):
         '''
         Takes a list of values and places them in the targeted Extension Registers
         '''
-        if emu == None:
+        if emu is None:
             return None
         
         base = REGS_VECTOR_TABLE_IDX + self.firstreg
@@ -5043,7 +5041,7 @@ class ArmPSRFlagsOper(ArmOperand):
         return False
 
     def getOperValue(self, op, emu=None, codeflow=False):
-        if emu == None:
+        if emu is None:
             return None
         raise Exception("FIXME: Implement ArmPSRFlagsOper.getOperValue() (does it want to be a bitmask? or the actual value according to the PSR?)")
         return None # FIXME
@@ -5130,7 +5128,7 @@ class ArmCoprocRegOper(ArmOperand):
         return False
 
     def getOperValue(self, op, emu=None, codeflow=False):
-        if emu == None:
+        if emu is None:
             return None
         raise Exception("FIXME: Implement ArmCoprocRegOper.getOperValue()")
         return None # FIXME
@@ -5302,7 +5300,7 @@ class ArmDisasm:
 
         #Get opcode, base mnem, operator list and flags
         opcode, mnem, olist, flags, simdflags = self.doDecode(va, opval, bytez, offset)
-        if mnem == None or type(mnem) == int:
+        if mnem is None or type(mnem) == int:
             raise Exception("mnem == %r!  0x%x" % (mnem, opval))
 
         # Ok...  if we're a non-conditional branch, *or* we manipulate PC unconditionally,
@@ -5343,7 +5341,7 @@ class ArmDisasm:
         else:
 
             enc,nexttab = inittable[encfam]
-            if nexttab != None: # we have to sub-parse...
+            if nexttab is not None: # we have to sub-parse...
                 for mask,val,penc in nexttab:
                     #print "penc", penc
                     if (opval & mask) == val:
@@ -5351,7 +5349,7 @@ class ArmDisasm:
                         break
 
         # If we don't know the encoding by here, we never will ;)
-        if enc == None:
+        if enc is None:
             raise envi.InvalidInstruction(mesg="No encoding found!",
                     bytez=bytez[offset:offset+4], va=va)
 
