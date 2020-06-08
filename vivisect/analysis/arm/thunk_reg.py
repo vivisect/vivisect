@@ -24,7 +24,7 @@ class AnalysisMonitor(viv_monitor.AnalysisMonitor):
             oper = op.opers[1]
             if (hasattr(oper, 'reg') and oper.reg == self.reg) \
                     or (hasattr(oper, 'base_reg') and oper.base_reg == self.reg):
-                # second operand has the register we're interested in for this function
+                # first (dest) operand has the register we're interested in for this function
                 tgt = op.getOperValue(0, emu)
                 if tgt is None:
                     logger.warn("0x%x: %s   tgt is None!", op.va, op)
