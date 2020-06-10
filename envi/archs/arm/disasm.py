@@ -2779,7 +2779,7 @@ adv_simd_2regs_misc = (
         ('vneg',        INS_VNEG, ADV_SIMD_F8, 0,0, 0),
         ('vneg',        INS_VNEG, ADV_SIMD_F8, 1,1, 0),
 
-        ############## HALF WAY DONE!  MAKE COMPLETE
+        ############## 
         # a=10 b=0000x
         ('vswp',        INS_VSWP, ADV_SIMD_NONE, 0,0, 0),
         ('vswp',        INS_VSWP, ADV_SIMD_NONE, 1,1, 0),
@@ -3053,6 +3053,7 @@ def _do_adv_simd_32(val, va, u):
                     (a, b, u, c),
                     bytez=struct.pack('<L', val), va=va)
 
+        simdflags |= IFS_ADV_SIMD
         return opcode, mnem, opers, 0, simdflags    # no iflags, only simdflags for this one
 
     elif (a & 0x17) == 0x10 and (c & 0x9) == 1:
@@ -3072,11 +3073,11 @@ def _do_adv_simd_32(val, va, u):
         if handler is None:
             raise envi.InvalidInstruction(mesg="Invalid AdvSIMD Opcode Encoding: modified immediate out of range",
                     bytez=struct.pack('<L', val), va=va)
-        dt, size, val = handler(abcdefgh)
+        simdflags, size, val = handler(abcdefgh)
 
         d >>= q
 
-        if dt in (IFS_F8, IFS_F16, IFS_F32, IFS_F64):
+        if simdflags in (IFS_F8, IFS_F16, IFS_F32, IFS_F64):
             opers = (
                 ArmRegOper(rctx.getRegisterIndex(rbase%d)),
                 ArmFloatOper(val, size=size),
@@ -3087,7 +3088,8 @@ def _do_adv_simd_32(val, va, u):
                 ArmImmOper(val, size=size),
                 )
 
-        return opcode, mnem, opers, 0, dt    # no iflags, only simdflags for this one
+        simdflags |= IFS_ADV_SIMD
+        return opcode, mnem, opers, 0, simdflags    # no iflags, only simdflags for this one
 
         # must be ordered after previous, since this mask collides
     elif ((a & 0x10) == 0x10 and (c & 0x9) in (1, 9)):
@@ -3277,6 +3279,7 @@ def _do_adv_simd_32(val, va, u):
             ArmImmOper(shift_amount),
         )
 
+        simdflags |= IFS_ADV_SIMD
         return opcode, mnem, opers, 0, simdflags
 
     elif ((a & 0x16) < 0x16):
@@ -3311,6 +3314,7 @@ def _do_adv_simd_32(val, va, u):
             szu = sz + flagoff
             simdflags = adv_simd_dts[szu]
 
+            simdflags |= IFS_ADV_SIMD
             return opcode, mnem, opers, 0, simdflags
 
 
@@ -3350,6 +3354,7 @@ def _do_adv_simd_32(val, va, u):
             szu = sz + flagoff
             simdflags = adv_simd_dts[szu]
 
+            simdflags |= IFS_ADV_SIMD
             return opcode, mnem, opers, 0, simdflags
 
 
@@ -3372,7 +3377,7 @@ def _do_adv_simd_32(val, va, u):
                 ArmImmOper(imm4),
             )
 
-            simdflags = IFS_8
+            simdflags = IFS_8 | IFS_ADV_SIMD
             return opcode, mnem, opers, 0, simdflags
 
         else:
@@ -3409,6 +3414,7 @@ def _do_adv_simd_32(val, va, u):
                     #print "2reg_misc: 0x%x  (a: 0x%x  b: 0x%x  idx: %d)" % (val, a,b,szu)
                     simdflags = adv_simd_dts[szu]
 
+                    simdflags |= IFS_ADV_SIMD
                     return opcode, mnem, opers, 0, simdflags
 
                 elif (b & 0xc) == 8:
@@ -3424,8 +3430,7 @@ def _do_adv_simd_32(val, va, u):
                             ArmRegOper(rctx.getRegisterIndex('d%d'%m)),
                             )
 
-                    simdflags = IFS_8
-
+                    simdflags = IFS_8 | IFS_ADV_SIMD
                     return opcode, mnem, opers, 0, simdflags
 
                 elif (b == 0xc):
@@ -3454,6 +3459,7 @@ def _do_adv_simd_32(val, va, u):
                         ArmRegScalarOper(rctx.getRegisterIndex('d%d'%m), index),
                     )
 
+                    simdflags |= IFS_ADV_SIMD
                     return opcode, mnem, opers, 0, simdflags
 
     return 0, 'NO VECTOR ENCODING COMPLETED', (), 0, 0
@@ -4111,6 +4117,70 @@ class ArmRegOper(ArmOperand):
         if emu is None:
             return None
         emu.setRegister(self.reg, val)
+
+    def getFloatValue(self, emu, elmtsz=None, elmtidx=None):
+        '''
+        Return the Float value from an element of a FP/SIMD register.
+        If elmtsz is None, uses the register width as a guide (ie. one element)
+        If elmtsz is provided, elmtidx should also be provided.
+
+        elmtsz is in *bytes*.
+
+        we store Floats as X-bit integers and double-convert
+        '''
+        if elmtsz is None:
+            elmtsz = self.getWidth()
+
+        ifmt = e_bits.getFormat(self.getEndian(), elmtsz)
+        ffmt = e_bits.getFloatFormat(self.getEndian(), elmtsz)
+
+        # get the 16-/32-/64-bit integer value
+        metaval = emu.getRegister(self.reg)
+        if elmtidx is not None:
+            shiftsz = elmtidx * elmtsz * 8
+            elmtmask = e_bits.u_maxes[elmtsz]
+            metaval = (metaval >> shiftsz) & elmtmask
+
+        # convert it to the appropriate float
+        metastr = struct.pack(ifmt, metaval)
+        fval = struct.unpack(ffmt, metastr)
+
+        return fval
+
+    def setFloatValue(self, emu, val, elmtsz=None, elmtidx=None):
+        '''
+        Store a Float value to an element of a FP/SIMD register.
+        If elmtsz is None, uses the register width as a guide (ie. one element)
+        If elmtsz is provided, elmtidx should also be provided.
+
+        we store Floats as X-bit integers and double-convert
+
+        returns the integer value
+        '''
+        if elmtsz is None:
+            elmtsz = self.getWidth()
+
+        ifmt = e_bits.getFormat(self.getEndian(), elmtsz)
+        ffmt = e_bits.getFloatFormat(self.getEndian(), elmtsz)
+
+        # convert float to integer to store
+        metastr = struct.pack(ffmt, val)
+        ival = struct.unpack(ifmt, metastr)
+
+        if elmtidx is not None:
+            # get current regsiter values, mask out the part we're about to write
+            regval = emu.getRegister(self.reg)
+            shiftsz = elmtidx * elmtsz * 8
+            mask = -1 ^ (e_bits.u_maxes[elmtsz] << shiftsz)
+            regval &= mask
+
+            # now shift the value to the right element slot and OR with regval
+            ival <<= shiftsz
+            regval |= ival
+
+        emu.setRegister(self.reg, regval)
+        
+        return regval
 
     def render(self, mcanv, op, idx):
         rname = rctx.getRegisterName(self.reg)

@@ -1003,9 +1003,6 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
 
         return result;
 
-    #def i_vcvtr(self, op):
-    #    raise Exception("IMPLEMENT ME: i_vcvtr")
-
     def i_vcvt(self, op):
         '''
         convert each element in a vector as float to int or int to float, 32-bit, round-to-zero/round-to-nearest
@@ -1014,8 +1011,41 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
         logger.warn('%r\t%r', op, op.opers)
         logger.warn("complete implementing vcvt")
 
-        srcwidth = op.opers[0].getWidth()
-        regcnt = srcwidth / 4
+        if op.iflags & IFS_ADV_SIMD:
+            # this is an Advanced SIMD instruction
+            srcwidth = op.opers[0].getWidth()
+            dstwidth = op.opers[1].getWidth()
+            regcnt = srcwidth / 4
+
+            if len(op.opers) == 3:
+                # 3rd operand is fbits for Fixed Point numbers
+                pass
+
+            else:
+                # it's either Floating Point or Integer
+                pass
+
+        else:
+            # we let the register size sort out the details for non-ADV_SIMD stuff
+            if op.simdflags & (if_second_F32 | if_second_F64 | if_second_F16):
+                val = op.opers[1].getFloatValue(self)
+
+            else:
+                val = op.opers[1].getOperValue(op, self)
+
+
+            if len(op.opers) == 3:
+                # 3rd operand is fbits for Fixed Point numbers
+                pass
+
+            else:
+                # it's either Floating Point or Integer
+                if op.simdflags & (ifs_first_F32, ifs_first_F64):
+                    op.opers[0].setFloatValue(self, val)
+                else:
+                    op.opers[0].setOperValue(op, self, val)
+
+
 
         firstOP = None
         if op.simdflags & ifs_first_F32:

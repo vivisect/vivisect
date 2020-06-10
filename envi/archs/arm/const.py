@@ -90,15 +90,16 @@ IF_DAIB_B    = 5<<(IF_DAIB_SHFT-1)  # Before mask
 IF_DAIB_I    = 3<<(IF_DAIB_SHFT-1)  # Before mask
 
 ###  what do these do?  i can't find reference to them in use
+IFS_ADV_SIMD  = 1<<0    # Advanced SIMD instructions...  it matters
 IFS_VQ        = 1<<1    # Adv SIMD: operation uses saturating arithmetic
 IFS_VR        = 1<<2    # Adv SIMD: operation performs rounding
 IFS_VD        = 1<<3    # Adv SIMD: operation doubles the result
 IFS_VH        = 1<<4    # Adv SIMD: operation halves the result
-IFS_SYS_MODE  = 1<<8    # instruction is encoded to be executed in SYSTEM mode, not USER mode
+IFS_SYS_MODE  = 1<<5    # instruction is encoded to be executed in SYSTEM mode, not USER mode
 ####################################333
+IFSOFFSET_DYNAMICS = 6
 
 IFS = [
-    None,
     '.f32.s32',
     '.f64.s32',
     '.f32.u32',
@@ -150,10 +151,9 @@ IFS = [
     '.f16.f32',
     ]
 
-for ifx in range(1, len(IFS)):
-    ifs = IFS[ifx]
+for ifx, ifs in enumerate(IFS):
     gblname = "IFS" + ifs.upper().replace('.','_')
-    globals()[gblname] = ifx
+    globals()[gblname] = ifx + IFSOFFSET_DYNAMICS
 
 OF_W         = 1<<8     # Write back to 
 OF_UM        = 1<<9     # Usermode, or if r15 included set current SPSR -> CPSR
