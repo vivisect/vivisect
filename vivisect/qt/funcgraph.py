@@ -513,13 +513,14 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
 
             # check if we're already rendering this function. if so, just scroll to addr
             fva = self.vw.getFunction(addr)
-            if fva == self.fva:
-                self.mem_canvas.page().mainFrame().scrollToAnchor('viv:0x%.8x' % addr)
-                self.updateWindowTitle()
+            if fva is None:
+                self.vw.vprint('0x%.8x is not in a function!' % addr)
                 return
 
-            if fva == None:
-                self.vw.vprint('0x%.8x is not in a function!' % addr)
+            if fva == self.fva:
+                self.mem_canvas.page().mainFrame().scrollToAnchor('viv:0x%.8x' % addr)
+                vqtevent('viv:colormap', {addr: 'orange'})
+                self.updateWindowTitle()
                 return
 
             # if we're rendering a different function, get to work!
@@ -527,9 +528,12 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
             self.renderFunctionGraph(fva)
             self.mem_canvas.page().mainFrame().scrollToAnchor('viv:0x%.8x' % addr)
             self.updateWindowTitle()
+            self.mem_canvas.page().mainFrame().scrollToAnchor('viv:0x%.8x' % addr)
+            vqtevent('viv:colormap', {addr: 'orange'})
+            self.updateWindowTitle()
 
             self._renderDoneSignal.emit()
-        except Exception, e:
+        except Exception as e:
             print e
 
     def loadDefaultRenderers(self):

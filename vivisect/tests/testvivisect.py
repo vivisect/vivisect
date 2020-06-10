@@ -1,6 +1,5 @@
+import io
 import unittest
-
-from cStringIO import StringIO
 
 import vivisect
 import vivisect.tests.helpers as helpers
@@ -70,8 +69,9 @@ class VivisectTest(unittest.TestCase):
 
     def test_libfunc_meta_equality(self):
         '''
-        both vdir and chgrp have a bunch of library ufunctions in common, and while the addresses
-        may be off, other information like # of blocks, # of xrefs from each block, etc.
+        both vdir and chgrp have a bunch of library functions in common, and while the addresses
+        may be off, other information like # of blocks, # of xrefs from each block, etc. are the
+        same
         '''
         vdir_fva = 0x8055bb0
         chgp_fva = 0x804ab30
@@ -145,7 +145,7 @@ class VivisectTest(unittest.TestCase):
             self.assertEqual(len(refs), test[2])
 
     def test_viv_bigend(self):
-        fd = StringIO('ABCDEFG')
+        fd = io.StringIO(u'ABCDEFG')
 
         vw = vivisect.VivWorkspace()
         vw.config.viv.parsers.blob.arch = 'arm'

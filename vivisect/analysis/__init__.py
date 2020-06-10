@@ -59,6 +59,10 @@ def addAnalysisModules(vw):
         vw.addFuncAnalysisModule("vivisect.analysis.ms.hotpatch")
         vw.addFuncAnalysisModule("vivisect.analysis.ms.msvc")
 
+        if arch in ('i386', 'amd64'):
+            # Applies to i386 and amd64, will split it up when neccessary
+            vw.addFuncAnalysisModule("vivisect.analysis.i386.instrhook")
+
         # Snap in an architecture specific emulation pass
         if arch == 'i386':
             vw.addFuncAnalysisModule("vivisect.analysis.i386.calling")
@@ -109,9 +113,14 @@ def addAnalysisModules(vw):
         vw.addFuncAnalysisModule("vivisect.analysis.generic.codeblocks")
         vw.addFuncAnalysisModule("vivisect.analysis.generic.impapi")
 
+        if arch in ('i386', 'amd64'):
+            # Applies to i386 and amd64, will split it up when neccessary
+            vw.addFuncAnalysisModule("vivisect.analysis.i386.instrhook")
+
         # Add our emulation modules
         if arch == 'i386':
             vw.addFuncAnalysisModule("vivisect.analysis.i386.calling")
+
         elif arch == 'amd64':
             vw.addFuncAnalysisModule("vivisect.analysis.amd64.emulation")
         elif arch in ARM_ARCHS:

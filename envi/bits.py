@@ -352,8 +352,3 @@ def masktest(s):
         return testval & maskin == matchval
     return domask
 
-# if __name__ == '__main__':
-    # print hex(parsebits('\x0f\x00', 0, 4, 8))
-    # print hex(parsebits('\x0f\x0f', 0, 4, 12))
-    # print hex(parsebits('\x0f\x0f\xf0', 1, 4, 4))
-
