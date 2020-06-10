@@ -90,13 +90,6 @@ IF_IB        = 7<<(IF_DAIB_SHFT-1)  # Increment Before
 IF_DAIB_B    = 5<<(IF_DAIB_SHFT-1)  # Before mask
 IF_DAIB_I    = 3<<(IF_DAIB_SHFT-1)  # Before mask
 
-###  what do these do?  i can't find reference to them in use
-IFS_VQ        = 1<<1    # Adv SIMD: operation uses saturating arithmetic
-IFS_VR        = 1<<2    # Adv SIMD: operation performs rounding
-IFS_VD        = 1<<3    # Adv SIMD: operation doubles the result
-IFS_VH        = 1<<4    # Adv SIMD: operation halves the result
-IFS_SYS_MODE  = 1<<8    # instruction is encoded to be executed in SYSTEM mode, not USER mode
-####################################333
 
 IFS = [
     None,

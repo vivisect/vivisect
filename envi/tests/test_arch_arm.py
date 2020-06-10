@@ -1,8 +1,8 @@
 import struct
 
 import envi
+import envi.exc as e_exc
 import envi.memory as e_mem
-import envi.registers as e_reg
 import envi.memcanvas as e_memcanvas
 import envi.memcanvas.renderers as e_rend
 import envi.archs.arm as arm
@@ -1887,7 +1887,7 @@ class ArmInstructionSet(unittest.TestCase):
             try:
                 # try register first
                 emu.setRegisterByName(tgt, val)
-            except e_reg.InvalidRegisterName, e:
+            except e_exc.InvalidRegisterName, e:
                 # it's not a register
                 if type(tgt) == str and tgt.startswith("PSR_"):
                     # it's a flag
@@ -1912,7 +1912,7 @@ class ArmInstructionSet(unittest.TestCase):
                     success = 0
                 else:  # should be an else
                     raise Exception("FAILED(reg): (%r test#%d)  %s  !=  0x%x (observed: 0x%x) \n\t(setters: %r)\n\t(test: %r)" % (op, tidx, tgt, val, testval, settersrepr, testsrepr))
-            except e_reg.InvalidRegisterName, e:
+            except e_exc.InvalidRegisterName, e:
                 # it's not a register
                 if type(tgt) == str and tgt.startswith("PSR_"):
                     # it's a flag
