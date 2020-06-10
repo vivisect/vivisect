@@ -3053,8 +3053,7 @@ def _do_adv_simd_32(val, va, u):
                     (a, b, u, c),
                     bytez=struct.pack('<L', val), va=va)
 
-        simdflags |= IFS_ADV_SIMD
-        return opcode, mnem, opers, 0, simdflags    # no iflags, only simdflags for this one
+        return opcode, mnem, opers, IF_ADV_SIMD, simdflags
 
     elif (a & 0x17) == 0x10 and (c & 0x9) == 1:
         # one register and modified immediate
@@ -3088,8 +3087,7 @@ def _do_adv_simd_32(val, va, u):
                 ArmImmOper(val, size=size),
                 )
 
-        simdflags |= IFS_ADV_SIMD
-        return opcode, mnem, opers, 0, simdflags    # no iflags, only simdflags for this one
+        return opcode, mnem, opers, IF_ADV_SIMD, simdflags
 
         # must be ordered after previous, since this mask collides
     elif ((a & 0x10) == 0x10 and (c & 0x9) in (1, 9)):
@@ -3279,8 +3277,7 @@ def _do_adv_simd_32(val, va, u):
             ArmImmOper(shift_amount),
         )
 
-        simdflags |= IFS_ADV_SIMD
-        return opcode, mnem, opers, 0, simdflags
+        return opcode, mnem, opers, IF_ADV_SIMD, simdflags
 
     elif ((a & 0x16) < 0x16):
         a = (val >> 8) & 0xf
@@ -3314,8 +3311,7 @@ def _do_adv_simd_32(val, va, u):
             szu = sz + flagoff
             simdflags = adv_simd_dts[szu]
 
-            simdflags |= IFS_ADV_SIMD
-            return opcode, mnem, opers, 0, simdflags
+            return opcode, mnem, opers, IF_ADV_SIMD, simdflags
 
 
         elif (c & 0x5) == 0x4:
@@ -3354,8 +3350,7 @@ def _do_adv_simd_32(val, va, u):
             szu = sz + flagoff
             simdflags = adv_simd_dts[szu]
 
-            simdflags |= IFS_ADV_SIMD
-            return opcode, mnem, opers, 0, simdflags
+            return opcode, mnem, opers, IF_ADV_SIMD, simdflags
 
 
     elif (a & 0x16) == 0x16:
@@ -3377,8 +3372,8 @@ def _do_adv_simd_32(val, va, u):
                 ArmImmOper(imm4),
             )
 
-            simdflags = IFS_8 | IFS_ADV_SIMD
-            return opcode, mnem, opers, 0, simdflags
+            simdflags = IFS_8
+            return opcode, mnem, opers, IF_ADV_SIMD, simdflags
 
         else:
             if (c & 1) == 0:
@@ -3414,8 +3409,7 @@ def _do_adv_simd_32(val, va, u):
                     #print "2reg_misc: 0x%x  (a: 0x%x  b: 0x%x  idx: %d)" % (val, a,b,szu)
                     simdflags = adv_simd_dts[szu]
 
-                    simdflags |= IFS_ADV_SIMD
-                    return opcode, mnem, opers, 0, simdflags
+                    return opcode, mnem, opers, IF_ADV_SIMD, simdflags
 
                 elif (b & 0xc) == 8:
                     # vector table lookup VTBL, VTBX
@@ -3430,8 +3424,8 @@ def _do_adv_simd_32(val, va, u):
                             ArmRegOper(rctx.getRegisterIndex('d%d'%m)),
                             )
 
-                    simdflags = IFS_8 | IFS_ADV_SIMD
-                    return opcode, mnem, opers, 0, simdflags
+                    simdflags = IFS_8
+                    return opcode, mnem, opers, IF_ADV_SIMD, simdflags
 
                 elif (b == 0xc):
                     # vector duplicate VDUP (scalar)
@@ -3459,8 +3453,7 @@ def _do_adv_simd_32(val, va, u):
                         ArmRegScalarOper(rctx.getRegisterIndex('d%d'%m), index),
                     )
 
-                    simdflags |= IFS_ADV_SIMD
-                    return opcode, mnem, opers, 0, simdflags
+                    return opcode, mnem, opers, IF_ADV_SIMD, simdflags
 
     return 0, 'NO VECTOR ENCODING COMPLETED', (), 0, 0
 
