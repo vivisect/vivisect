@@ -1011,7 +1011,7 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
         logger.warn('%r\t%r', op, op.opers)
         logger.warn("complete implementing vcvt")
 
-        if op.iflags & IFS_ADV_SIMD:
+        if op.iflags & IF_ADV_SIMD:
             # this is an Advanced SIMD instruction
             srcwidth = op.opers[0].getWidth()
             dstwidth = op.opers[1].getWidth()

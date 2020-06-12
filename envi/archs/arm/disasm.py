@@ -998,7 +998,7 @@ for pre in par_prefixes:
         else:
             mnem = pre + suf
             opname = "INS_" + mnem.upper()
-            opcode = eval(opname)
+            opcode = globals()[opname]
             parallel_mnem.append((mnem, opcode))
 
 parallel_mnem = tuple(parallel_mnem)
@@ -1028,7 +1028,8 @@ for pre in xtnd_prefixes:
             xtnd_mnem.append((None, None))
         else:
             mnem = pre+suf
-            opcode = eval('INS_' + mnem.upper())
+            opname = 'INS_' + mnem.upper()
+            opcode = globals()[opname]
             xtnd_mnem.append((mnem, opcode))
         
 xtnd_mnem = tuple(xtnd_mnem)
@@ -1122,10 +1123,29 @@ def p_media_pack_sat_rev_extend(opval, va):
             ArmRegOper(Rd, va=va),
             ArmRegOper(Rm, va=va),
         )
+
     elif opc1 == 3 and opc2 == 0xb:         # byte rev pkt halfword
-        raise Exception('IMPLEMENT ME: byte rev pkt halfword')
+        mnem = 'rev16'
+        opcode = INS_REV16
+
+        Rd = (opval>>12) & 0xf
+        Rm = opval & 0xf
+        olist = (
+            ArmRegOper(Rd, va=va),
+            ArmRegOper(Rm, va=va),
+        )
+
     elif opc1 == 7 and opc2 == 0xb:         # byte rev signed halfword
-        raise Exception('IMPLEMENT ME: byte rev signed halfword')
+        mnem = 'revsh'
+        opcode = INS_REVSH
+
+        Rd = (opval>>12) & 0xf
+        Rm = opval & 0xf
+        olist = (
+            ArmRegOper(Rd, va=va),
+            ArmRegOper(Rm, va=va),
+        )
+
     elif opc1 == 0 and opc2 == 0xb:         # select bytes
         mnem = "sel"
         opcode = INS_SEL
@@ -1137,6 +1157,7 @@ def p_media_pack_sat_rev_extend(opval, va):
             ArmRegOper(Rn, va=va),
             ArmRegOper(Rm, va=va),
         )
+
     elif opc2 == 7:                         # sign extend
         idx = (opc1&3) + 8 * ((opval>>22) &1)
         Rn = (opval>>16) & 0xf
@@ -1169,6 +1190,7 @@ def p_media_pack_sat_rev_extend(opval, va):
                     ArmRegOper(Rm, va=va),
                 )
         mnem, opcode = xtnd_mnem[idx]
+
     else:
         raise envi.InvalidInstruction(
                 mesg="p_media_extend: invalid instruction %r.%r" % (opc1, opc2),
