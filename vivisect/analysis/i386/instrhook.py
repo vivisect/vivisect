@@ -42,7 +42,7 @@ class instrhook_watcher (viv_imp_monitor.EmulationMonitor):
 def analyzeFunction(vw, fva):
 
     emulate = False
-    dist = vw.getFunctionMeta(fva, 'MnemDist')
+    dist = vw.getFunctionMeta(fva, 'MnemDist', default=[])
 
     for s in STOS:
         if s in dist:
