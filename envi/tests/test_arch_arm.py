@@ -27,7 +27,7 @@ from envi.tests.armthumb_tests import advsimdtests
 logger = logging.getLogger(__name__)
 
 
-GOOD_TESTS = 5949
+GOOD_TESTS = 5953
 GOOD_EMU_TESTS = 1175
 ''' 
   This dictionary will contain all instructions supported by ARM to test
@@ -1179,6 +1179,8 @@ instrs = [
         (REV_ALL_ARM, '0e3488f2', 0x4560, 'vaddhn.i16 d3, q4, q7', 0, ()),
         (REV_ALL_ARM, '0e3498f2', 0x4560, 'vaddhn.i32 d3, q4, q7', 0, ()),
         (REV_ALL_ARM, '0e34a8f2', 0x4560, 'vaddhn.i64 d3, q4, q7', 0, ()),
+        (REV_ALL_ARM, 'c3efa544', 0x4561, 'vaddhn.i16 d20, q9, q10', 0, ()),
+        (REV_ALL_ARM, 'e3efa544', 0x4561, 'vaddhn.i64 d20, q9, q10', 0, ()),
         (REV_ALL_ARM, '076084f2', 0x4560, 'vaddl.s8 q3, d4, d7', 0, ()),
         (REV_ALL_ARM, '076094f2', 0x4560, 'vaddl.s16 q3, d4, d7', 0, ()),
         (REV_ALL_ARM, '0760a4f2', 0x4560, 'vaddl.s32 q3, d4, d7', 0, ()),
@@ -1366,8 +1368,8 @@ instrs = [
         (REV_ALL_ARM, '56f6e456', 0x4561, 'movw.w r6, r6, #0x6de4', 0, ()),
         (REV_ALL_ARM, '53f83450', 0x4561, 'ldr.w r5, [r3, r4, lsl #3]', 0, ()),
 
-        #(REV_ALL_ARM, 'a54be3ef', 0x4561, 'vqdmlsl.s32 q10, d19, d21', 0, ()),
-        #(REV_ALL_ARM, 'a54993ef', 0x4561, 'vqdmlal.s16 q2, d19, d21', 0, ()),
+        (REV_ALL_ARM, 'e3efa54b', 0x4561, 'vqdmlsl.s32 q10, d19, d21', 0, ()),
+        (REV_ALL_ARM, '93efa549', 0x4561, 'vqdmlal.s16 q2, d19, d21', 0, ()),
 
         (REV_ALL_ARM, 'aaefe440', 0x4561, 'vmla.i32 d4, d26, d4[1]', 0, ()),
         (REV_ALL_ARM, 'aaefe441', 0x4561, 'vmla.f32 d4, d26, d4[1]', 0, ()),

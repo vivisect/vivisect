@@ -2629,7 +2629,7 @@ adv_simd_3diffregs = (
         ('vsubw',       INS_VSUBW, ADV_SIMD_S8, 1, 1, 0),
         ('vsubw',       INS_VSUBW, ADV_SIMD_U8, 1, 1, 0),
         # a=4, u=0/1
-        ('vaddhn',      INS_VADDHN, ADV_SIMD_I8+1, 0, 1, 1),     # THIS IS TROUBLE...  9 instead of 8?  i'm expecting a multiplicative problem
+        ('vaddhn',      INS_VADDHN, ADV_SIMD_I8+1, 0, 1, 1),
         ('vraddhn',     INS_VRADDHN, ADV_SIMD_I8+1, 0, 1, 1),
         # a=5, u=0/1
         ('vabal',       INS_VABAL, ADV_SIMD_S8, 1, 0, 0),
@@ -2650,7 +2650,7 @@ adv_simd_3diffregs = (
         ('vmlsl',       INS_VMLSL, ADV_SIMD_S8, 1, 0, 0),
         ('vmlsl',       INS_VMLSL, ADV_SIMD_U8, 1, 0, 0),
         # a=0xb
-        ('vqdmlsl',     INS_VQDMLSL, ADV_SIMD_S8, 1, 0, 0),       # FIXME: TESTME thumb: 0xef9349a5, 0xefe34ba5
+        ('vqdmlsl',     INS_VQDMLSL, ADV_SIMD_S8, 1, 0, 0),
         (None, None, 0, 1, 0, 0),
         # a=0xc
         ('vmull',       INS_VMULL, ADV_SIMD_S8, 1, 0, 0),
