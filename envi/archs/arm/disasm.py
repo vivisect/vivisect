@@ -169,7 +169,6 @@ DP_PSR_S = [IF_PSR_S for x in range(17)]
 for x in dp_silS:
     DP_PSR_S[x] |= IF_PSR_S_SIL 
 
-# FIXME: dp_MOV was supposed to be a tuple of opcodes that could be converted to MOV's if offset from PC.
 # somehow this list has vanished into the ether.  add seems like the right one here.
 dp_ADR = (INS_SUB, INS_ADD,)
 
@@ -829,8 +828,8 @@ def p_mov_imm_stat(opval, va):      # only one instruction: "msr"
         opcode = INS_MSR
         immed = ((imm>>rot) + (imm<<(32-rot))) & 0xffffffff
 
-        #if mask & 3:    # USER mode these will be 0
-        #    iflags |= IF_SYS_MODE  - only mention of IF_SYS_MODE, causing errors.  does need fixing?
+        if mask & 3:    # USER mode these will be 0
+            iflags |= IF_SYS_MODE
         
         olist = (
             ArmPgmStatRegOper(r, mask),

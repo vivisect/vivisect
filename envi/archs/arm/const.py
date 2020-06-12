@@ -80,6 +80,7 @@ IF_ID        = 1<<44    # Interrupt Disable flag (used for CPS instruction)
 
 IF_THUMB32   = 1<<50    # thumb32
 IF_ADV_SIMD  = 1<<51    # Advanced SIMD instructions...  it matters
+IF_SYS_MODE  = 1<<52
 
 IF_DAIB_SHFT = 56       # shift-bits to get DAIB bits down to 0.  this chops off the "is DAIB present" bit that the following store.
 IF_DAIB_MASK = 7<<(IF_DAIB_SHFT-1)
