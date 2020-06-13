@@ -163,7 +163,7 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
         self.mem_access_lock = threading.Lock()
 
         # FIXME: this should be None's, and added in for each real coproc... but this will work for now.
-        self.coprocs = [CoProcEmulator(x) for x in xrange(16)]      
+        self.coprocs = [CoProcEmulator(x) for x in range(16)]      
 
         self.int_handlers = {}
 
@@ -336,7 +336,7 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
         '''
         set the CPSR for the current ARM processor mode
         '''
-        self.setCPSR(psr, mask=0xffff0000)
+        self.setCPSR(psr, mask=REG_APSR_MASK)
 
     def getSPSR(self, mode):
         '''
@@ -707,20 +707,19 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
 
         # do multiples based on base and count.  unlike ldm, these must be consecutive
         if flags & IF_DAIB_I == IF_DAIB_I:
-            for reg in xrange(count):
+            for reg in range(count):
                 regval = self.readMemValue(addr, size)
                 self.setRegister(reg, regval)
                 addr += size
         else:
-            for reg in xrange(count-1, -1, -1):
+            for reg in range(count-1, -1, -1):
                 addr -= size
                 regval = self.readMemValue(addr, size)
                 self.setRegister(reg, regval)
 
         if updatereg:
             self.setRegister(srcreg,addr)
-        #FIXME: add "shared memory" functionality?  prolly just in ldrex which will be handled in i_ldrex
-        # is the following necessary? 
+        
         newpc = self.getRegister(REG_PC)    # check whether pc has changed
         if pc != newpc:
             self.setThumbMode(newpc & 1)
@@ -848,21 +847,21 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
             if IsZero(exp):
                 # Produce zero if value is zero
                 if IsZero(frac):
-                    type = FPType_Zero
+                    ftype = FPType_Zero
                     value = 0.0;
                 else:
-                    type = FPType_Nonzero
+                    ftype = FPType_Nonzero
                     value = 2^-14 * (UInt(frac) * 2^-10);
             elif IsOnes(exp) and (fpscr_val>>26)&1 == 0: # Infinity or NaN in IEEE format
                 if IsZero(frac):
-                    type = FPType_Infinity
+                    ftype = FPType_Infinity
                     value = 2^1000000;
                 else:
-                    type = (FPType_SNaN, FPType_QNaN)[(frac>>9)&1]
+                    ftype = (FPType_SNaN, FPType_QNaN)[(frac>>9)&1]
                     value = 0.0
 
             else:
-                type = FPType_Nonzero
+                ftype = FPType_Nonzero
                 value = 2^(UInt(exp)-15) * (1.0 + UInt(frac) * 2^-10);
 
         elif N == 32:
@@ -872,22 +871,22 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
             if IsZero(exp):
                 # Produce zero if value is zero or flush-to-zero is selected.
                 if IsZero(frac) or (fpscr_val>>24) & 1 == 1:
-                    type = FPType_Zero
+                    ftype = FPType_Zero
                     value = 0.0
                 if not IsZero(frac): # Denormalized input flushed to zero
                     FPProcessException(FPExc_InputDenorm, fpscr_val);
                 else:
-                    type = FPType_Nonzero
+                    ftype = FPType_Nonzero
                     value = 2^-126 * (UInt(frac) * 2^-23);
             elif IsOnes(exp):
                 if IsZero(frac):
-                    type = FPType_Infinity
+                    ftype = FPType_Infinity
                     value = 2^1000000;
                 else:
-                    type =  (FPType_SNaN, FPType_QNaN)[(frac>>22)&1]
+                    ftype =  (FPType_SNaN, FPType_QNaN)[(frac>>22)&1]
                     value = 0.0;
             else:
-                type = FPType_Nonzero
+                ftype = FPType_Nonzero
                 value = 2^(UInt(exp)-127) * (1.0 + UInt(frac) * 2^-23);
         else: # N == 64
             sign = (fpval>>63) & 1
@@ -896,27 +895,27 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
             if IsZero(exp):
                 # Produce zero if value is zero or flush-to-zero is selected.
                 if IsZero(frac) or (fpscr_val>>24) & 1 == 1:
-                    type = FPType_Zero
+                    ftype = FPType_Zero
                     value = 0.0
                     if not IsZero(frac): # Denormalized input flushed to zero
                         FPProcessException(FPExc_InputDenorm, fpscr_val)
                 else:
-                    type = FPType_Nonzero
+                    ftype = FPType_Nonzero
                     value = 2^-1022 * (UInt(frac) * 2^-52)
 
             elif IsOnes(exp):
                 if IsZero(frac):
-                    type = FPType_Infinity
+                    ftype = FPType_Infinity
                     value = 2^1000000
                 else:
-                    type = (FPType_SNaN, FPType_QNaN)[(frac>>51) & 1]
+                    ftype = (FPType_SNaN, FPType_QNaN)[(frac>>51) & 1]
                     value = 0.0
             else:
-                type = FPType_Nonzero 
+                ftype = FPType_Nonzero 
                 value = 2^(UInt(exp)-1023) * (1.0 + UInt(frac) * 2^-52)
 
         if sign == '1': value = -value
-        return (type, sign, value)
+        return (ftype, sign, value)
 
 
     def FPToFixed(operand, M, fraction_bits, unsigned, round_towards_zero, fpscr_controlled):
@@ -928,14 +927,14 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
         if round_towards_zero:
             fpscr_val |= 0b00000000110000000000000000000000
 
-        (type,sign,value) = FPUnpack(operand, fpscr_val)
+        (ftype,sign,value) = FPUnpack(operand, fpscr_val)
 
         # For NaNs and infinities, FPUnpack() has produced a value that will round to the
         # required result of the conversion. Also, the value produced for infinities will
         # cause the conversion to overflow and signal an Invalid Operation floating-point
         # exception as required. NaNs must also generate such a floating-point exception.
 
-        if type == FPType_SNaN or type == FPType_QNaN:
+        if ftype == FPType_SNaN or ftype == FPType_QNaN:
             FPProcessException(FPExc_InvalidOp, fpscr_val)
 
         # Scale value by specified number of fraction bits, then start rounding to an integer
@@ -1186,13 +1185,13 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
         pc = self.getRegister(REG_PC)       # store for later check
 
         if flags & IF_DAIB_I == IF_DAIB_I:
-            for reg in xrange(16):
+            for reg in range(16):
                 if (1<<reg) & regmask:
                     regval = self.readMemValue(addr, 4)
                     self.setRegister(reg, regval)
                     addr += 4
         else:
-            for reg in xrange(15, -1, -1):
+            for reg in range(15, -1, -1):
                 if (1<<reg) & regmask:
                     addr -= 4
                     regval = self.readMemValue(addr, 4)
@@ -1200,8 +1199,7 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
 
         if updatereg:
             self.setRegister(srcreg,addr)
-        #FIXME: add "shared memory" functionality?  prolly just in ldrex which will be handled in i_ldrex
-        # is the following necessary? 
+
         newpc = self.getRegister(REG_PC)    # check whether pc has changed
         if pc != newpc:
             self.setThumbMode(newpc & 1)
@@ -1366,7 +1364,7 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
 
     def i_str(self, op):
         # hint: covers str, strb, strbt, strd, strh, strsh, strsb, strt   (any instr where the syntax is str{condition}stuff)
-        # need to check that t variants only allow non-priveleged access (strt, strht etc)
+        # TODO: need to check that t variants only allow non-priveleged access (strt, strht etc)
         val = self.getOperValue(op, 0)
         self.setOperValue(op, 1, val)
 
@@ -1974,6 +1972,7 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
 
     def i_cps(self, op):
         logger.warn("CPS: 0x%x  %r" % (op.va, op))
+        # FIXME: at some point we need ot do a priviledge check
 
     def i_pld2(self, op):
         logger.warn("FIXME: 0x%x: %s - in emu" % (op.va, op))

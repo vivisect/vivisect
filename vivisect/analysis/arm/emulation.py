@@ -44,7 +44,6 @@ class AnalysisMonitor(viv_monitor.AnalysisMonitor):
 
             loctup = emu.vw.getLocation(starteip)
             if loctup is None:
-                # do we want to hand this off to makeCode?
                 #print "emulation: prehook: new LOC_OP  fva: 0x%x     starteip: 0x%x  flags: 0x%x" % (self.fva, starteip, op.iflags)
                 arch = (envi.ARCH_ARMV7, envi.ARCH_THUMB)[(starteip & 1) | tmode]
                 emu.vw.makeCode(starteip & -2, arch=arch)
