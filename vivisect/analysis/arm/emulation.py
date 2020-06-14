@@ -371,7 +371,6 @@ def analyzeADDPC(emu, op, starteip, emumon):
     return base, tbl
 
 
-#  FIXME: don't know if this is legit... i was bug-fixing for a "return" sub pc, lr, #4 instruction.
 def analyzeSUBPC(emu, op, starteip, emumon):
     count = None
 
@@ -405,7 +404,7 @@ def analyzeSUBPC(emu, op, starteip, emumon):
     if not count or count == None or count > 10000:
         return None, None
 
-    #print("Making ADDPC SwitchCase (count=%d):" % count)
+    #print("Making SUBPC SwitchCase (count=%d):" % count)
     # wire up the switch-cases, name each one, etc...
     tbl = []
 

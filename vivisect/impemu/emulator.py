@@ -172,6 +172,8 @@ class WorkspaceEmulator:
             callconv = self.getCallingConvention(convname)
             if callconv is None:
                 logger.exception("checkCall(0x%x, 0x%x, %r): cannot get calling convention!", starteip, endeip, op)
+                self.emumon.logAnomaly(self, endeip, "no calling convention found for %x" % (endeip))
+                break
 
             argv = callconv.getCallArgs(self, len(funcargs))
 

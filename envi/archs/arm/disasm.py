@@ -3130,10 +3130,8 @@ def _do_adv_simd_32(val, va, u):
         if not (imm & 0b111000) and not l:
             raise Exception("AdvSIMD: decoding as 2reg_shift and should be 1regModImm")
 
-        #### REMOVE WHEN COMPLETE WITH DECODING
         shift_amount = 0
         simdflags = 0
-        ####
 
         if enctype == 0:    # VSHR used as test
             limm = (l<<6) | imm
@@ -3205,7 +3203,7 @@ def _do_adv_simd_32(val, va, u):
                 esize = 8
                 shift_amount = 16-imm
 
-            idx = {8:1, 16:2, 32:3, 64:4}[esize]    # FIXME: coerce all this into a more simplified model
+            idx = {8:1, 16:2, 32:3, 64:4}[esize]
             simdflags = adv_simd_dts[(idx) + foffset]
 
         elif enctype == 4:
