@@ -52,7 +52,7 @@ def scanUp(vw, emu, startva, regidx, valu):
     loc = vw.getLocation(startva)
     while loc is not None and vw.getCodeBlock(loc[v_const.L_VA]) == cb:
         op = vw.parseOpcode(loc[0])
-        if len(op.opers) and op.opers[0].isReg() and getRealRegIdx(emu, op.opers[0].reg) == regidx:
+        if len(op.opers) > 1 and op.opers[0].isReg() and getRealRegIdx(emu, op.opers[0].reg) == regidx:
             if valu == emu.getOperValue(op, 1):
                 return True
         loc = vw.getLocation(loc[0] - 1)
@@ -96,8 +96,12 @@ def getSwitchBase(vw, op, vajmp, emu=None):
 
     # TODO: Want a more arch-independent way of doing this
     arrayOper = movOp.opers[1]
-    if (not isinstance(arrayOper, e_i386.i386SibOper)) and (not (arrayOper.scale % 4 == 0)):
-        vw.verbprint("0x%x: Either arrayoper is not an i386SibOper or scale is wrong: %s" % (op.va, repr(arrayOper)))
+    if not isinstance(arrayOper, e_i386.i386SibOper):
+        vw.verbprint("0x%x: arrayOper is not an i386SibOper: %s" % (op.va, repr(arrayOper)))
+        return
+
+    if arrayOper.scale % 4 != 0:
+        vw.verbprint("0x%x: arrayoper scale is wrong: (%d mod 4 != 0)" % (op.va, arrayOper.scale))
         return
 
     scale = arrayOper.scale
