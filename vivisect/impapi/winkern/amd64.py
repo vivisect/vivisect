@@ -1,4 +1,7 @@
-import vivisect.impapi.windows.i386 as v_w_i386
+import vivisect.impapi.winkern.i386 as v_k_i386
 
-apitypes = dict(v_w_i386.apitypes)
-api = dict(v_w_i386.api)
+apitypes = dict(v_k_i386.apitypes)
+
+api = {}
+for normname, (rtype, rname, cconv, cname, cargs) in v_k_i386.api.items():
+    api[normname] = (rtype, rname, 'msx64call', cname, cargs)
