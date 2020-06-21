@@ -109,7 +109,7 @@ def analyzePLT(vw, ssva, ssize):
 
         # now determine plt_size (basically, how far to backup from the branch to find the start of function
         # *don't* use the first entry, because the trampoline is often odd...
-        plt_size = 0    # not including the branch instruction size?
+        plt_size = 0
         bridx = 1
 
         # if has_tramp, we need to skip two to make sure we're not analyzing the first real plt
@@ -123,6 +123,7 @@ def analyzePLT(vw, ssva, ssize):
 
         # start off pointing at the branch location which bounces through GOT.
         loc = vw.getLocation(brva)
+
         # grab the size of the plt branch instruction for our benefit
         pltbrsz = loc[vivisect.L_SIZE]
 
@@ -146,8 +147,9 @@ def analyzePLT(vw, ssva, ssize):
                 break
 
             op = vw.parseOpcode(lva)
-            if op.mnem == 'nop':    # should we let architectures set a "nop" iflag
-                # we've run into inter-plt padding - curse you, i386 gcc!
+            nopbytes = vw.arch.archGetNopInstr()
+            if op.mnem == 'nop' or vw.readMemory(lva, len(nopbytes)) == nopbytes:
+                # we've run into inter-plt padding - curse you, gcc!
                 break
 
             plt_size += lsz
