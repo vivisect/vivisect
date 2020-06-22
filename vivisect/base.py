@@ -253,7 +253,7 @@ class VivWorkspaceCore(object, viv_impapi.ImportApi):
                 with self.getAdminRights():
                     self.writeMemoryPtr(rva, ptr)
 
-            logger.info('_handleADDRELOC: %x -> %x (map: 0x%x)', rva, ptr, imgbase)
+            logger.debug('_handleADDRELOC: %x -> %x (map: 0x%x)', rva, ptr, imgbase)
 
         if rtype == RTYPE_BASEPTR:
             # make it like a pointer (but one that could move with each load)
@@ -264,16 +264,16 @@ class VivWorkspaceCore(object, viv_impapi.ImportApi):
             self._handleADDLOCATION((rva, self.psize, LOC_POINTER, None))
 
     def _handleADDMODULE(self, einfo):
-        print('DEPRICATED (ADDMODULE) ignored: %s' % einfo)
+        logger.warning('DEPRICATED (ADDMODULE) ignored: %s' % einfo)
 
     def _handleDELMODULE(self, einfo):
-        print('DEPRICATED (DELMODULE) ignored: %s' % einfo)
+        logger.warning('DEPRICATED (DELMODULE) ignored: %s' % einfo)
 
     def _handleADDFMODULE(self, einfo):
-        print('DEPRICATED (ADDFMODULE) ignored: %s' % einfo)
+        logger.warning('DEPRICATED (ADDFMODULE) ignored: %s' % einfo)
 
     def _handleDELFMODULE(self, einfo):
-        print('DEPRICATED (DELFMODULE) ignored: %s' % einfo)
+        logger.warning('DEPRICATED (DELFMODULE) ignored: %s' % einfo)
 
     def _handleADDFUNCTION(self, einfo):
         va, meta = einfo

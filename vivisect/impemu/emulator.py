@@ -1,11 +1,10 @@
 import struct
-import traceback
 import itertools
 
 import envi
+import envi.exc as e_exc
 import envi.bits as e_bits
 import envi.memory as e_mem
-import envi.registers as e_reg
 
 import visgraph.pathcore as vg_path
 
@@ -35,7 +34,7 @@ class WorkspaceEmulator:
 
         self.hooks = {}
         self.taints = {}
-        self.taintva = itertools.count(0x41560000, 8192)
+        self.taintva = itertools.count(0x4156000F, 8192)
         self.taintrepr = {}
 
         self.uninit_use = {}
@@ -198,11 +197,10 @@ class WorkspaceEmulator:
         for symbolic emulator...)
         '''
         props = {
-            'bva':bva,    # the entry virtual address for this branch
-            'valist':[],  # the virtual addresses in this node in order
-            'calllog':[], # FIXME is this even used?
-            'readlog':[], # a log of all memory reads from this block
-            'writelog':[],# a log of all memory writes from this block
+            'bva': bva,    # the entry virtual address for this branch
+            'valist': [],  # the virtual addresses in this node in order
+            'readlog': [], # a log of all memory reads from this block
+            'writelog': [],# a log of all memory writes from this block
         }
         ret = vg_path.newPathNode(parent=parent, **props)
         return ret
@@ -224,6 +222,7 @@ class WorkspaceEmulator:
         (returns a list of (va, CodePath) tuples.
         """
 
+        paths = set()
         ret = []
         # Add all the known branches to the list
         blist = op.getBranches(emu=self)
@@ -238,6 +237,20 @@ class WorkspaceEmulator:
 
                 bpath = self.getBranchNode(self.curpath, bva)
                 ret.append((bva, bpath))
+                paths.add(bva)
+
+        # let's also take into account some of the dynamic branches we may have found
+        # like our table pointers
+        for xrfrom, xrto, xrtype, xrflags in self.vw.getXrefsFrom(op.va, rtype=REF_CODE):
+            # if it's not in a codeblock it's probably something like an import, so we
+            # can ignore it
+            if self.vw.getCodeBlock(xrto) is None:
+                continue
+            bpath = self.getBranchNode(self.curpath, xrto)
+            if xrto in paths:
+                continue
+            ret.append((xrto, bpath))
+            paths.add(xrto)
 
         return ret
 
@@ -274,7 +287,6 @@ class WorkspaceEmulator:
 
         # Let the current (should be base also) path know where we are starting
         vg_path.setNodeProp(self.curpath, 'bva', funcva)
-
         hits = {}
         todo = [(funcva, self.getEmuSnap(), self.path)]
         vw = self.vw  # Save a dereference many many times
@@ -312,7 +324,7 @@ class WorkspaceEmulator:
                     hits[starteip] = h
 
                 # If we ran out of path (branches that went
-                # somewhere that we couldn't follow?
+                # somewhere that we couldn't follow)?
                 if self.curpath is None:
                     break
 
@@ -326,7 +338,6 @@ class WorkspaceEmulator:
 
                         if self.emustop:
                             return
-
                     # Execute the opcode
                     self.executeOpcode(op)
                     vg_path.getNodeProp(self.curpath, 'valist').append(starteip)
@@ -365,8 +376,7 @@ class WorkspaceEmulator:
                         print('runFunction continuing after unsupported instruction: 0x%08x %s' % (e.op.va, e.op.mnem))
                         self.setProgramCounter(e.op.va + e.op.size)
                 except Exception as e:
-                    # traceback.print_exc()
-                    if self.emumon is not None:
+                    if self.emumon is not None and not isinstance(e, e_exc.BreakpointHit):
                         self.emumon.logAnomaly(self, starteip, str(e))
 
                     break  # If we exc during execution, this branch is dead.

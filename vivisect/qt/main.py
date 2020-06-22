@@ -112,6 +112,7 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
 
     def getLocation(self, va):
         loctup = self.vw.getLocation(va)
+
         if loctup is None:
             self.vw.vprint('Location not found!')
         else:
@@ -120,7 +121,7 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
             self.vw.vprint('    Size: %d' % loctup[L_SIZE])
             self.vw.vprint('    Type: %s' % name)
             self.vw.vprint('    Info: %s' % str(loctup[L_TINFO]))
-            self.vw.vprint('')
+            self.vw.vprint('    Repr: %s' % self.vw.reprLocation(loctup)[:64])
 
     def setVaName(self, va, parent=None):
         if parent is None:
