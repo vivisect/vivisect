@@ -327,7 +327,7 @@ class IMAGE_COR20_HEADER(vstruct.VStruct):
         self.Resources = IMAGE_DATA_DIRECTORY()
         self.StrongNameSignature = IMAGE_DATA_DIRECTORY()
         self.CodeManagerTable = IMAGE_DATA_DIRECTORY()  # Deprecated apparently
-        # Used for manged codee that has unmaanaged code inside it (or exports methods as unmanaged entry points)
+        # Used for manged code that has unmaanaged code inside it (or exports methods as unmanaged entry points)
         self.VTableFixups = IMAGE_DATA_DIRECTORY()
         self.ExportAddressTableJumps = IMAGE_DATA_DIRECTORY()
         # null for ordinary IL images. In NGEN images it points at a code:CORCOMPILE_HEADER structure.

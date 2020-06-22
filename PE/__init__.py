@@ -1132,7 +1132,6 @@ class PE(object):
         # the clr does some fun things with packing to get things aligned to a 4 byte boundary
         moff += moff % 4
 
-        import pdb
         self.CLRSignatureHeader = self.readStructAtOffset(moff, 'pe.METADATA_SIGNATURE_HEADER')
         moff += len(self.CLRSignatureHeader)
         moff += fourPad(moff)
@@ -1143,6 +1142,9 @@ class PE(object):
 
         shoff = moff
         self.CLRStreamHeaders = []
+        import pdb
+        pdb.set_trace()
+        # Ultimately there should only be at most 6 streams
         for i in range(self.CLRStorageHeader.NumberOfStreams):
             stream = self.readStructAtOffset(moff, 'pe.METADATA_STREAM_HEADER')
             shoff += len(stream)
@@ -1185,7 +1187,7 @@ class PE(object):
     def parseGuidHeap(self, offset, size):
         '''
         Guid heaps are just a series of 16 byte strings immediately following each other.
-        There's no delimiting, no size parameters.
+        There's no delimiting or size parameters. Just a big blob.
         '''
         consumed = 0
         guids = []
@@ -1205,7 +1207,7 @@ def peFromMemoryObject(memobj, baseaddr):
 
 def peFromFileName(fname):
     """
-    Utility helper that assures that the file is opened in 
+    Utility helper that assures that the file is opened in
     binary mode which is required for proper functioning.
     """
     f = file(fname, "rb")
