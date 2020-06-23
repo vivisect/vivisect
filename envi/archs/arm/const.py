@@ -92,6 +92,8 @@ IF_DAIB_B    = 5<<(IF_DAIB_SHFT-1)  # Before mask
 IF_DAIB_I    = 3<<(IF_DAIB_SHFT-1)  # Before mask
 
 
+# NOTE: unlike IF_*, IFS_* are *NOT* flags.  they are indices into the IFS list.
+# thus, opcode.simdflags is *not* flags, but one index.  only one can be used at a time.
 IFS = [
     None,
     '.f32.s32',

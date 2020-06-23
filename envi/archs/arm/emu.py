@@ -140,16 +140,29 @@ OP_F64 = 3
 OP_S32 = 4
 OP_U32 = 5
 
-ifs_first_F32 = (IFS_F32_S32 | IFS_F32_U32 | IFS_F32_F64 | IFS_F32_F16)
-ifs_second_F32 = (IFS_S32_F32 | IFS_U32_F32 | IFS_F64_F32 | IFS_F16_F32) 
-ifs_first_S32 = (IFS_S32_F32 | IFS_S32_F64 | IFS_S32_F32)
-ifs_second_S32 = (IFS_F32_S32 | IFS_F64_S32 | IFS_F32_S32)
-ifs_first_U32 = (IFS_U32_F32 | IFS_U32_F64)
-ifs_second_U32 = (IFS_F64_U32 | IFS_F32_U32)
-ifs_first_F64 = (IFS_F64_S32 | IFS_F64_U32 | IFS_F64_F32)
-ifs_second_F64 = (IFS_S32_F64 | IFS_U32_F64 | IFS_F32_F64)
-ifs_first_F16 = IFS_F16_F32
-ifs_second_F16 = IFS_F32_F16
+# ifs_first* and ifs_second* are a way of grouping like-SIMD options based on
+# first or second operand.  since each "flag" indicates *all* operands, we 
+# need a way to group them logically to make decisions about the source(s) and
+# destinations.  these are helpers for i_vcvt()
+
+# NOTE: IFS_* "flags" are not flags, but indices into the IFS list in const.py
+
+ifs_first_F32 = (IFS_F32_S32, IFS_F32_U32, IFS_F32_F64, IFS_F32_F16)
+ifs_second_F32 = (IFS_S32_F32, IFS_U32_F32, IFS_F64_F32, IFS_F16_F32) 
+ifs_first_S32 = (IFS_S32_F32, IFS_S32_F64, IFS_S32_F32)
+ifs_second_S32 = (IFS_F32_S32, IFS_F64_S32, IFS_F32_S32)
+ifs_first_U32 = (IFS_U32_F32, IFS_U32_F64)
+ifs_second_U32 = (IFS_F64_U32, IFS_F32_U32)
+ifs_first_F64 = (IFS_F64_S32, IFS_F64_U32, IFS_F64_F32)
+ifs_second_F64 = (IFS_S32_F64, IFS_U32_F64, IFS_F32_F64)
+ifs_first_F16 = (IFS_F16_F32,)
+ifs_second_F16 = (IFS_F32_F16,)
+
+ifs_first_F32_F64 = ifs_first_F32 + ifs_first_F64
+ifs_first_F32_F64_F16 = ifs_first_F32 + ifs_first_F64 + ifs_first_F16
+
+ifs_second_F32_F64 = ifs_second_F32 + ifs_second_F64
+ifs_second_F32_F64_F16 = ifs_second_F32 + ifs_second_F64 + ifs_second_F16
 
 class ArmEmulator(ArmRegisterContext, envi.Emulator):
 
@@ -795,7 +808,7 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
 
     def i_vcmpe(self, op):
         try:
-            size = (4,8)[bool(op.iflags & IFS_F64)]
+            size = (4,8)[bool(op.simdflags == IFS_F64)]
 
             src1 = self.getOperValue(op, 0)
             src2 = self.getOperValue(op, 1)
@@ -1026,7 +1039,7 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
 
         else:
             # we let the register size sort out the details for non-ADV_SIMD stuff
-            if op.simdflags & (if_second_F32 | if_second_F64 | if_second_F16):
+            if op.simdflags in if_second_F32_F64_F16:
                 val = op.opers[1].getFloatValue(self)
 
             else:
@@ -1039,7 +1052,7 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
 
             else:
                 # it's either Floating Point or Integer
-                if op.simdflags & (ifs_first_F32, ifs_first_F64):
+                if op.simdflags in ifs_first_F32_F64:
                     op.opers[0].setFloatValue(self, val)
                 else:
                     op.opers[0].setOperValue(op, self, val)
@@ -1047,29 +1060,29 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
 
 
         firstOP = None
-        if op.simdflags & ifs_first_F32:
+        if op.simdflags in ifs_first_F32:
             # get first vector element as F32
             firstOP = OP_F32
-        elif op.simdflags & ifs_first_S32:
+        elif op.simdflags in ifs_first_S32:
             firstOP = OP_S32
-        elif op.simdflags & ifs_first_U32:
+        elif op.simdflags in ifs_first_U32:
             firstOP = OP_U32
-        elif op.simdflags & ifs_first_F64:
+        elif op.simdflags in ifs_first_F64:
             firstOP = OP_F64
-        elif op.simdflags & ifs_first_F16:
+        elif op.simdflags in ifs_first_F16:
             firstOP = OP_F16
 
         secOP = None
-        if op.simdflags & ifs_second_F32:
+        if op.simdflags in ifs_second_F32:
             # get second vector element as F32
             secOP = OP_F32
-        elif op.simdflags & ifs_second_S32:
+        elif op.simdflags in ifs_second_S32:
             secOP = OP_S32
-        elif op.simdflags & ifs_second_U32:
+        elif op.simdflags in ifs_second_U32:
             secOP = OP_U32
-        elif op.simdflags & ifs_second_F64:
+        elif op.simdflags in ifs_second_F64:
             secOP = OP_F64
-        elif op.simdflags & ifs_second_F16:
+        elif op.simdflags in ifs_second_F16:
             secOP = OP_F16
 
         raise Exception("IMPLEMENT ME: i_vcvt")
@@ -1077,84 +1090,84 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
             for reg in range(regcnt):
                 #frac_bits = 64 - op.opers[2].val
                 # pA8_870
-                if op.simdflags & IFS_F32_S32:
+                if op.simdflags == IFS_F32_S32:
                     pass
-                elif op.simdflags & IFS_F32_U32:
+                elif op.simdflags == IFS_F32_U32:
                     pass
-                elif op.simdflags & IFS_S32_F32:
+                elif op.simdflags == IFS_S32_F32:
                     pass
-                elif op.simdflags & IFS_U32_F32:
+                elif op.simdflags == IFS_U32_F32:
                     pass
 
                 # pA8_872
-                elif op.simdflags & IFS_U16_F32:
+                elif op.simdflags == IFS_U16_F32:
                     pass
-                elif op.simdflags & IFS_S16_F32:
+                elif op.simdflags == IFS_S16_F32:
                     pass
-                elif op.simdflags & IFS_U32_F32:
+                elif op.simdflags == IFS_U32_F32:
                     pass
-                elif op.simdflags & IFS_S32_F32:
+                elif op.simdflags == IFS_S32_F32:
                     pass
-                elif op.simdflags & IFS_U16_F64:
+                elif op.simdflags == IFS_U16_F64:
                     pass
-                elif op.simdflags & IFS_S16_F64:
+                elif op.simdflags == IFS_S16_F64:
                     pass
-                elif op.simdflags & IFS_U32_F64:
+                elif op.simdflags == IFS_U32_F64:
                     pass
-                elif op.simdflags & IFS_S32_F64:
+                elif op.simdflags == IFS_S32_F64:
                     pass
 
-                elif op.simdflags & IFS_F32_U16:
+                elif op.simdflags == IFS_F32_U16:
                     pass                      
-                elif op.simdflags & IFS_F32_S16:
+                elif op.simdflags == IFS_F32_S16:
                     pass
-                elif op.simdflags & IFS_F32_U32:
+                elif op.simdflags == IFS_F32_U32:
                     pass
-                elif op.simdflags & IFS_F32_S32:
+                elif op.simdflags == IFS_F32_S32:
                     pass
-                elif op.simdflags & IFS_F64_U16:
+                elif op.simdflags == IFS_F64_U16:
                     pass
-                elif op.simdflags & IFS_F64_S16:
+                elif op.simdflags == IFS_F64_S16:
                     pass
-                elif op.simdflags & IFS_F64_U32:
+                elif op.simdflags == IFS_F64_U32:
                     pass
-                elif op.simdflags & IFS_F64_S32:
+                elif op.simdflags == IFS_F64_S32:
                     pass
 
         elif len(op.opers) == 2:
             for reg in range(regcnt):
                 #frac_bits = 64 - op.opers[1].val
                 # pA8_866 (868?)
-                if op.simdflags & IFS_F32_S32:
+                if op.simdflags == IFS_F32_S32:
                     pass
-                elif op.simdflags & IFS_F32_U32:
+                elif op.simdflags == IFS_F32_U32:
                     pass
-                elif op.simdflags & IFS_S32_F32:
+                elif op.simdflags == IFS_S32_F32:
                     pass
-                elif op.simdflags & IFS_U32_F32:
+                elif op.simdflags == IFS_U32_F32:
                     pass
 
                 # pA8-868 (870?)
-                elif op.simdflags & IFS_F64_S32:
+                elif op.simdflags == IFS_F64_S32:
                     pass
-                elif op.simdflags & IFS_F64_U32:
+                elif op.simdflags == IFS_F64_U32:
                     pass
 
-                elif op.simdflags & IFS_S32_F64:
+                elif op.simdflags == IFS_S32_F64:
                     pass
-                elif op.simdflags & IFS_U32_F64:
+                elif op.simdflags == IFS_U32_F64:
                     pass
 
                 # pA8-874
-                elif op.simdflags & IFS_F64_F32:
+                elif op.simdflags == IFS_F64_F32:
                     pass
-                elif op.simdflags & IFS_F32_F64:
+                elif op.simdflags == IFS_F32_F64:
                     pass
 
                 # pA8-876
-                elif op.simdflags & IFS_F16_F32:
+                elif op.simdflags == IFS_F16_F32:
                     pass
-                elif op.simdflags & IFS_F32_F16:
+                elif op.simdflags == IFS_F32_F16:
                     pass
 
         else:
