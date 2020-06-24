@@ -452,7 +452,7 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
             va += len(f)
 
     # auto-mark embedded PEs as "dead data" to prevent code flow...
-    if carvepes: 
+    if carvepes:
         pe.fd.seek(0)
         fbytes = pe.fd.read()
         for offset, i in pe_carve.carve(fbytes, 1):
@@ -461,5 +461,5 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
             pebytes = subpe.readAtOffset(0, subpe.getFileSize())
             rva = pe.offsetToRva(offset)
             vw.markDeadData(rva, rva+len(pebytes))
-
+    clr = pe.clr
     return fname

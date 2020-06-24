@@ -153,6 +153,23 @@ RT_ANIICON          = 22
 RT_HTML             = 23
 RT_MANIFEST         = 24
 
+def fourPad(off):
+    return (4 - (off % 4)) % 4
+
+def uncompLen(bytez):
+    valu = bytez[0]
+    if valu <= 0x7F:
+        return 1, valu
+    elif valu & 0xC == 0x80:
+        import pdb
+        pdb.set_trace()
+        return 2, struct.unpack('>H', [valu & 0x3, bytez[1]])[0]
+    elif valu & 0xC == 0XC0:
+        import pdb
+        pdb.set_trace()
+        return 4, struct.unpack('>I', [valu & 0x3] + bytez[1:4])[0]
+    else:
+        return 0, 0
 
 class VS_VERSIONINFO:
     '''
@@ -1117,8 +1134,6 @@ class PE(object):
 
         self.IMAGE_COR20_HEADER = clrheader = self.readStructAtOffset(doff, 'pe.IMAGE_COR20_HEADER')
 
-        def fourPad(off):
-            return (4 - (off % 4)) % 4
 
         # So all the juicy bits live under the Metadata field, but other exports can live under 
         # vtable fixups
@@ -1142,31 +1157,42 @@ class PE(object):
 
         shoff = moff
         self.CLRStreamHeaders = []
-        import pdb
-        pdb.set_trace()
         # Ultimately there should only be at most 6 streams
         for i in range(self.CLRStorageHeader.NumberOfStreams):
-            stream = self.readStructAtOffset(moff, 'pe.METADATA_STREAM_HEADER')
+            stream = self.readStructAtOffset(shoff, 'pe.METADATA_STREAM_HEADER')
             shoff += len(stream)
             shoff += fourPad(len(stream))
             self.CLRStreamHeaders.append(stream)
 
-        # Note: the stream offsets are from the start of the metadata header, not the start of the file 
+        # Note: the stream offsets are from the start of the metadata header, not the start
+        # of the file 
         for sh in self.CLRStreamHeaders:
             name = sh.RCName
 
             if name == '#~':  # optimized clr data
                 self.parseOptimizedData(metastart + sh.Offset, sh.Size)
             elif name == '#-':  # unoptimized clr data
-                pass
+                self.parseUnoptimizedData(metastart + sh.Offset, sh.Size)
             elif name == '#Strings':
-                pass
+                intrnlstrs = self.parseStringHeap(metastart + sh.Offset, sh.Size)
             elif name == '#GUID':
-                guids = self.parseGuidHeap(sh.Offset, sh.Size)
+                guids = self.parseGuidHeap(metastart + sh.Offset, sh.Size)
             elif name == '#Blob':
-                pass
+                blob = self.parseBlobHeap(metastart + sh.Offset, sh.Size)
             elif name == '#US':
-                pass
+                '''
+                So just up front, the #US heap is actually a blob heap, even though it's
+                called theUser Strings heap.
+
+                So the user strings are stored in utf-16 format, with two exceptions. One
+                is that all strings have a trailing 1 or 0 byte to indicate whether there
+                are any characters with codes greater than 0x7f in the string.
+
+                Additionally, the #US heap can store *any* binary object since it's just
+                a blob heap. So we've gotta take care there. At least since it's a blob
+                heap the strings are preceded by their length :|
+                '''
+                userstrs = self.parseBlobHeap(metastart + sh.Offset, sh.Size)
             else:
                 logger.warning('Unhandled CLR stream type of: %s' % name)
 
@@ -1175,14 +1201,45 @@ class PE(object):
         header = self.readStructAtOffset(offset, 'pe.METADATA_TABLE_STREAM_HEADER')
 
     def parseUnoptimizedData(self, offset, size):
-        pass
+        header = self.readStructAtOffset(offset, 'pe.METADATA_TABLE_STREAM_HEADER')
 
     def parseStringHeap(self, offset, size):
         '''
-        A string heap isn't the hard coded strings that you'd see in the source code. Those live
-        in the #US heap. This is things like class names, method names, etc.
+        A string heap isn't the hard coded strings that you'd see in the source
+        code. Those live in the #US heap. This is things like class names,
+        method names, etc. And it's a true string heap, with strings in utf-8 format
         '''
-        pass
+        strs = {}  # indexed by offset in the string table
+        data = self.readAtOffset(offset, size)
+        consumed = 0
+        s = ''
+        # The very first and very last values in the returned values will always be 
+        # \x00 if the table is formatted correctly
+        while consumed < size:
+            length = data[consumed:].find('\x00')
+            s = data[consumed:consumed+length+1]
+            strs[consumed] = s.decode('utf-8')
+            consumed += len(s)
+            # to avoid having duplicate null entries at the end of the dictionary
+            if s == '\x00' and consumed > 1:
+                break
+        return strs
+
+    def parseBlobHeap(self, offset, size):
+        '''
+        Blobs in this case are internal binary objects like signatures and others or
+        things like users strings, depending on which stream we're looking at.
+
+        The #US heap is special in that we *technically* can depend on things being
+        utf-16. But things can still lie to us about it, so don't really depend on that
+
+        Structure of a blob in the blob heap is
+        <compressed_length><value>
+        '''
+        data = self.readAtOffset(offset, size)
+        consumed = 0
+        while consumed < size:
+            pass
 
     def parseGuidHeap(self, offset, size):
         '''
@@ -1197,8 +1254,6 @@ class PE(object):
             guids.append(g)
             consumed += 16
 
-        import pdb
-        pdb.set_trace()
         return guids
 
 def peFromMemoryObject(memobj, baseaddr):
