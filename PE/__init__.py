@@ -157,19 +157,13 @@ def fourPad(off):
     return (4 - (off % 4)) % 4
 
 def uncompLen(bytez):
-    valu = bytez[0]
+    valu = ord(bytez[0])
     if valu <= 0x7F:
         return 1, valu
-    elif valu & 0xC == 0x80:
-        import pdb
-        pdb.set_trace()
-        return 2, struct.unpack('>H', [valu & 0x3, bytez[1]])[0]
-    elif valu & 0xC == 0XC0:
-        import pdb
-        pdb.set_trace()
-        return 4, struct.unpack('>I', [valu & 0x3] + bytez[1:4])[0]
+    elif valu & 0xC0 == 0x80:
+        return 2, struct.unpack('>H', chr(valu & 0x3F)+bytez[1])[0]
     else:
-        return 0, 0
+        return 4, struct.unpack('>I', [chr(valu & 0x3F)] + bytez[1:4])[0]
 
 class VS_VERSIONINFO:
     '''
@@ -1118,13 +1112,17 @@ class PE(object):
 
         elif name == "clr":
             self.parseCLR()
-            return self.clr
+            #return self.clr
 
         else:
             raise AttributeError
 
     def parseCLR(self):
         self.CLRMetadata = {}
+        self.CLRBlobs = {}
+        self.CLRGuids = {}
+        self.CLRStrings = {}
+        self.CLRUserStrings = {}
 
         dirn = self.getDataDirectory(IMAGE_DIRECTORY_ENTRY_COM_DESCRIPTOR)
         doff = self.rvaToOffset(dirn.VirtualAddress)
@@ -1174,11 +1172,11 @@ class PE(object):
             elif name == '#-':  # unoptimized clr data
                 self.parseUnoptimizedData(metastart + sh.Offset, sh.Size)
             elif name == '#Strings':
-                intrnlstrs = self.parseStringHeap(metastart + sh.Offset, sh.Size)
+                self.CLRStrings = self.parseStringHeap(metastart + sh.Offset, sh.Size)
             elif name == '#GUID':
-                guids = self.parseGuidHeap(metastart + sh.Offset, sh.Size)
+                self.CLRGuids = self.parseGuidHeap(metastart + sh.Offset, sh.Size)
             elif name == '#Blob':
-                blob = self.parseBlobHeap(metastart + sh.Offset, sh.Size)
+                self.CLRBlobs = self.parseBlobHeap(metastart + sh.Offset, sh.Size)
             elif name == '#US':
                 '''
                 So just up front, the #US heap is actually a blob heap, even though it's
@@ -1192,16 +1190,46 @@ class PE(object):
                 a blob heap. So we've gotta take care there. At least since it's a blob
                 heap the strings are preceded by their length :|
                 '''
-                userstrs = self.parseBlobHeap(metastart + sh.Offset, sh.Size)
+                self.CLRUserStrings = self.parseBlobHeap(metastart + sh.Offset, sh.Size)
             else:
                 logger.warning('Unhandled CLR stream type of: %s' % name)
 
 
     def parseOptimizedData(self, offset, size):
         header = self.readStructAtOffset(offset, 'pe.METADATA_TABLE_STREAM_HEADER')
+        srtd = {}
+        tbls = {}
+        tables_present = header.MaskValid
+        sorted_tables = header.Sorted
+        tid = 0
+        while tables_present:
+            if tables_present & 1:
+                tbls[tid] = 0
+            tables_present >>= 1
+            tid += 1
+
+        tid = 0
+        while sorted_tables:
+            if sorted_tables & 1:
+                srtd[tid] = 0
+            sorted_tables >>= 1
+            tid += 1
+
+        offset += len(header)
+        for i in range(len(tbls)):
+            bytez = self.readAtOffset(offset, 4)
+            count = struct.unpack("<I", bytez)[0]
+            tbls[i] = count
+            offset += 4
+        import pdb
+        pdb.set_trace()
+        pass
 
     def parseUnoptimizedData(self, offset, size):
         header = self.readStructAtOffset(offset, 'pe.METADATA_TABLE_STREAM_HEADER')
+        import pdb
+        pdb.set_trace()
+        pass
 
     def parseStringHeap(self, offset, size):
         '''
@@ -1236,10 +1264,15 @@ class PE(object):
         Structure of a blob in the blob heap is
         <compressed_length><value>
         '''
+        blobs = {}
         data = self.readAtOffset(offset, size)
         consumed = 0
         while consumed < size:
-            pass
+            lcomp, objsz = uncompLen(data[consumed:])
+            consumed += lcomp
+            blobs[consumed] = data[consumed:consumed+objsz]
+            consumed += objsz
+        return blobs
 
     def parseGuidHeap(self, offset, size):
         '''
