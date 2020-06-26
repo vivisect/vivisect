@@ -592,9 +592,9 @@ def it_hints(va, val):
         itoper = ThumbITOper(mask, firstcond)
         count, cond, data = itoper.getCondData()
         nextfew = it_strs[count][data]
-        mnem = 'it' + nextfew
+        mnem = 'it' + nextfew   # as much as it pains me to strcat here.
 
-        return COND_AL,(itoper,), 0, None, mnem
+        return COND_AL,(itoper,), 0, INS_IT, mnem
 
     opcode, mnem = it_hints_others[firstcond]
 
@@ -624,15 +624,18 @@ class ThumbITOper(ArmOperand):
         fiz = self.firstcond & 1
         flags = 1
         count = self.getCondInstrCount()
-        print bin(fiz), bin(self.mask)
+        #print bin(fiz), bin(self.mask)
         for x in range(count):
             bit = bool(((self.mask>>(3-x))&1) == fiz)
-            print x, bit, bin(flags)
+            #print x, bit, bin(flags)
             flags |= (bit << (x+1))
 
         return flags
 
     def getCondData(self):
+        '''
+        deprecated: 2020-06-24
+        '''
         mask = self.mask
         cond = self.firstcond
         count = 0
@@ -653,14 +656,19 @@ class ThumbITOper(ArmOperand):
 
         return count, self.firstcond, data
 
+    def getITSTATEdata(self):
+        '''
+        this is the data to put into the ITSTATE register (1 byte of the CPSR)
+        '''
+        return self.firstcond, self.mask
+
     def repr(self, op):
         mask = self.mask
 
         count, cond, data = self.getCondData()
 
         fcond = cond_codes.get(cond)
-        nextfew = it_strs[count][data]
-        return "%s %s" % (nextfew, fcond)
+        return "%s" % (fcond)
 
     def render(self, mcanv, op, idx):
         mask = self.mask
@@ -668,8 +676,7 @@ class ThumbITOper(ArmOperand):
         count, cond, data = self.getCondData()
 
         fcond = cond_codes.get(cond)
-        nextfew = it_strs[count][data]
-        mcanv.addText("%s %s" % (nextfew, fcond))
+        mcanv.addText("%s" % (fcond))
 
     def getOperValue(self, idx, emu=None):
         return None

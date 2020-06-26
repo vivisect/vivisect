@@ -55,6 +55,19 @@ class CoProcEmulator:       # useful for prototyping, but should be subclassed
         logger.info("CoProcEmu(%s): mrrc(%r)", self.ident, parms)
 
 
+class FPProcessException(Exception):
+    pass
+
+
+class ITException(Exception):
+    def __init__(self, va, itbase, itsize):
+        self.va = va
+        self.itbase = itbase
+        self.itsize = itsize
+
+    def __repr__(self):
+        return "Error with Thumb IT state: va:0x%x ITSTATE: 0x%x/%x" % (self.va, self.itbase, self.itsize)
+
 def _getRegIdx(idx, mode):
     if idx >= REGS_VECTOR_TABLE_IDX:
         return reg_table[idx]
@@ -264,25 +277,61 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
             self.setMeta('forrealz', True)
             newpc = None
             startpc = self.getProgramCounter()
-            skip = False
        
-            # IT block handling
-            if self.itcount:
-                self.itcount -= 1
+            # IT block handling (THUMB mode only!  Undefined in ARM mode!)
+            # itbase will have the following process (see ARMv7 manual)
+            # [7:5]     [4] [3] [2] [1] [0]
+            # cond_base P1  P2  P3  P4   1   Entry point for 4-instruction IT block
+            # cond_base P1  P2  P3  1    0   Entry point for 3-instruction IT block
+            # cond_base P1  P2  1   0    0   Entry point for 2-instruction IT block
+            # cond_base P1  1   0   0    0   Entry point for 1-instruction IT block
+            #  000      0   0   0   0    0   Normal execution, not in an IT block
 
-                if not (self.itmask & 1):
-                    skip = True
-                self.itmask >>= 1
+            itbase = self.getRegister(REG_IT_BASE)
+            if itbase:
+                # first a few sanity checks.  we'll choose to survive the ARM mode,
+                # but bail on odd IT flags.
+                tmode = self.getFlag(PSR_T_bit)
+                if not tmode:
+                    logger.warn("emulator: 0x%x: %r  IT block in ARM mode", op.va, op)
 
-            # standard conditional handling
-            condval = (op.prefixes >= 0xe)
+                itcount = self.getRegister(REG_IT_SIZE)
+                if not (itcount & 0xf):
+                    logger.warn("log: ITException: 0x%x  0x%x/%x: 0x%x", op.va, self.getRegister(REG_IT_BASE), self.getRegister(REG_IT_SIZE), itcount)
+                    # this is undefined!  should not be here.
+                    raise ITException(op.va, self.getRegister(REG_IT_BASE), self.getRegister(REG_IT_SIZE))
 
-            if not condval:
-                condcheck = conditionals[op.prefixes]
+                p1 = (itcount >> 4) & 1
+
+                # handle housekeeping.  this should keep this clause from happening next 
+                # instruction, but doesn't indicate anything now.
+                itcount <<= 1 
+                if not (itcount & 0xf): # bottom 4 bits must have at least 1 bit set
+                    # when done, reset all the IT flags to 0
+                    self.setRegister(REG_IT_BASE, 0)
+                    self.setRegister(REG_IT_SIZE, 0)
+                else:
+                    self.setRegister(REG_IT_SIZE, itcount)
+
+                # evaluate the expression against the current state
+                firstcond = self.getRegister(REG_IT_BASE)
+                condcheck = conditionals[firstcond]
                 condval = condcheck(self.getRegister(REG_FLAGS))
 
+                # p1 indicates whether we're <firstcond> or <NOT firstcond>
+                if not p1:
+                    condval = not condval
+
+            else:
+                # standard conditional handling
+                condval = (op.prefixes >= 0xe)
+
+                if not condval:
+                    condcheck = conditionals[op.prefixes]
+                    condval = condcheck(self.getRegister(REG_FLAGS))
+
             # the actual execution... if we're supposed to.
-            if condval and not skip:
+            if condval:
                 meth = self.op_methods.get(op.mnem, None)
                 if meth is None:
                     raise envi.UnsupportedInstruction(self, op)
@@ -1310,14 +1359,13 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
     i_vldr = i_mov
 
 
-    # TESTME: IT functionality
     def i_it(self, op):
         if self.itcount:
             raise Exception("IT block within an IT block!")
 
-        self.itcount, self.ittype, self.itmask = op.opers[0].getCondData()
-        condcheck = conditionals[self.ittype]
-        self.itva = op.va
+        itbase, itsize = op.opers[0].getITSTATEdata()
+        self.setRegister(REG_IT_BASE, itbase)
+        self.setRegister(REG_IT_SIZE, itsize)
 
     i_ite = i_it
     i_itt = i_it
