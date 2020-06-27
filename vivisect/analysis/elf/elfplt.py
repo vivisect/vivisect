@@ -33,6 +33,7 @@ def analyzePLT(vw, ssva, ssize):
 
         branchvas = []
         while sva < nextseg:
+            logger.debug('analyzePLT(0x%x, 0x%x) first pass:  sva: 0x%x   nextseg: 0x%x', ssva, ssize, sva, nextseg)
             if vw.getLocation(sva) is None:
                 logger.info('making code: 0x%x', sva)
                 try:
