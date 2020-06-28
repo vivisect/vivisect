@@ -108,7 +108,7 @@ def analyzePLT(vw, ssva, ssize):
             logger.warn("heuristics have more than one tracked branch: investigate!  PLT analysis is likely to be wrong (%r)", heurlist)
 
         # now determine plt_size (basically, how far to backup from the branch to find the start of function
-        # *don't* use the first entry, because the trampoline is often odd...
+        # *don't* use the first entry, because the trampoline is often oddly sized...
         plt_size = 0
         bridx = 1
 
