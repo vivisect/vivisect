@@ -99,13 +99,18 @@ def analyzePLT(vw, ssva, ssize):
         heurlist = [(y, x) for x, y in heur.items()]
         heurlist.sort()
 
-        # distance should be the greatest value.
-        plt_distance = heurlist[-1][1]
-        logger.debug('plt_distance : 0x%x\n%r', plt_distance, heurlist)
-
         # there should be only one heuristic
         if len(heurlist) > 1:
-            logger.warn("heuristics have more than one tracked branch: investigate!  PLT analysis is likely to be wrong (%r)", heurlist)
+            logger.warn("heuristics have more than one tracked branch: investigate!  PLT analysis may be wrong (%r)", heurlist)
+
+        # distance should be the greatest value.
+        if len(heurlist):
+            plt_distance = heurlist[-1][1]
+            logger.debug('plt_distance : 0x%x\n%r', plt_distance, heurlist)
+        else:
+            # if we don't have a heurlist, this shouldn't matter:
+            plt_distance = 16
+            logger.debug('plt_distance (fallback): 0x%x\n%r', plt_distance, heurlist)
 
         # now determine plt_size (basically, how far to backup from the branch to find the start of function
         # *don't* use the first entry, because the trampoline is often oddly sized...
