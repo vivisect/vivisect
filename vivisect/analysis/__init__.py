@@ -7,6 +7,8 @@ for different phases of analysis on different platforms.
 import logging
 logger = logging.getLogger(__name__)
 
+ARM_ARCHS = ('arm', 'thumb', 'thumb16')
+
 
 def addAnalysisModules(vw):
 
@@ -33,6 +35,10 @@ def addAnalysisModules(vw):
 
             vw.addImpApi('windows', 'amd64')
             vw.addStructureModule('ntdll', 'vstruct.defs.windows.win_6_1_amd64.ntdll')
+
+        elif arch in ARM_ARCHS:
+            vw.addImpApi('windows','arm')
+            vw.addFuncAnalysisModule('vivisect.analysis.arm.renaming')
 
         vw.addConstModule('vstruct.constants.ntstatus')
 
@@ -64,6 +70,9 @@ def addAnalysisModules(vw):
         elif arch == 'amd64':
             vw.addFuncAnalysisModule("vivisect.analysis.amd64.emulation")
 
+        elif arch in ARM_ARCHS:
+            vw.addFuncAnalysisModule("vivisect.analysis.arm.emulation")
+
         # See if we got lucky and got arg/local hints from symbols
         vw.addAnalysisModule('vivisect.analysis.ms.localhints')
         # Find import thunks
@@ -80,7 +89,7 @@ def addAnalysisModules(vw):
         vw.addAnalysisModule("vivisect.analysis.generic.entrypoints")
         vw.addAnalysisModule("vivisect.analysis.elf")
 
-        if arch in ('i386', 'amd64'):
+        if arch in ('i386', 'amd64', 'arm'):
             vw.addImpApi('posix', arch)
 
         if arch == 'i386':
@@ -89,6 +98,10 @@ def addAnalysisModules(vw):
             # add va set for tracking thunk_bx function(s)
             vw.addVaSet('thunk_bx', ( ('fva', vivisect.VASET_ADDRESS), ) )
             vw.addFuncAnalysisModule("vivisect.analysis.i386.thunk_bx")
+        elif arch in ARM_ARCHS:
+            vw.addVaSet('thunk_reg', ( ('fva', vivisect.VASET_ADDRESS), ('reg', vivisect.VASET_INTEGER), ))
+            vw.addFuncAnalysisModule('vivisect.analysis.arm.thunk_reg')
+            vw.addFuncAnalysisModule('vivisect.analysis.arm.renaming')
 
         vw.addAnalysisModule("vivisect.analysis.generic.funcentries")
         vw.addAnalysisModule("vivisect.analysis.generic.relocations")
@@ -110,9 +123,13 @@ def addAnalysisModules(vw):
 
         elif arch == 'amd64':
             vw.addFuncAnalysisModule("vivisect.analysis.amd64.emulation")
+        elif arch in ARM_ARCHS:
+            vw.addFuncAnalysisModule("vivisect.analysis.arm.emulation")
 
         # Find import thunks
         vw.addFuncAnalysisModule("vivisect.analysis.generic.thunks")
+        # due to inconsistencies in plt layouts, we'll keep this as a func module as well
+        vw.addFuncAnalysisModule("vivisect.analysis.elf.elfplt")
         vw.addAnalysisModule("vivisect.analysis.generic.pointers")
 
     elif fmt == 'macho': # MACH-O ###################################################
@@ -137,6 +154,10 @@ def addAnalysisModules(vw):
         elif arch == 'amd64':
             vw.addFuncAnalysisModule("vivisect.analysis.amd64.emulation")
 
+        elif arch in ARM_ARCHS:
+            vw.addFuncAnalysisModule("vivisect.analysis.arm.emulation")
+            vw.addFuncAnalysisModule('vivisect.analysis.arm.renaming')
+
         vw.addFuncAnalysisModule("vivisect.analysis.generic.thunks")
         vw.addAnalysisModule("vivisect.analysis.generic.pointers")
 
@@ -145,10 +166,15 @@ def addAnalysisModules(vw):
         vw.addAnalysisModule("vivisect.analysis.generic.entrypoints")
         vw.addAnalysisModule("vivisect.analysis.generic.funcentries")
         vw.addAnalysisModule("vivisect.analysis.generic.relocations")
-        vw.addAnalysisModule("vivisect.analysis.generic.pointertables")
+        #vw.addAnalysisModule("vivisect.analysis.generic.pointertables")
         vw.addAnalysisModule("vivisect.analysis.generic.emucode")
 
         vw.addFuncAnalysisModule("vivisect.analysis.generic.codeblocks")
+
+        if arch in ARM_ARCHS:
+            vw.addFuncAnalysisModule("vivisect.analysis.arm.emulation")
+            vw.addFuncAnalysisModule('vivisect.analysis.arm.renaming')
+
         vw.addFuncAnalysisModule("vivisect.analysis.generic.impapi")
         vw.addFuncAnalysisModule("vivisect.analysis.generic.thunks")
 
@@ -159,6 +185,10 @@ def addAnalysisModules(vw):
         vw.addAnalysisModule("vivisect.analysis.generic.relocations")
         #vw.addAnalysisModule("vivisect.analysis.generic.pointertables")
         vw.addAnalysisModule("vivisect.analysis.generic.emucode")
+
+        if arch in ARM_ARCHS:
+            vw.addFuncAnalysisModule("vivisect.analysis.arm.emulation")
+            vw.addFuncAnalysisModule('vivisect.analysis.arm.renaming')
 
         vw.addFuncAnalysisModule("vivisect.analysis.generic.codeblocks")
         vw.addFuncAnalysisModule("vivisect.analysis.generic.impapi")

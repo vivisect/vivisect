@@ -9,6 +9,10 @@ logger = logging.getLogger(__name__)
 
 def analyzeFunction(vw, fva):
     fname = vw.getName(fva)
+    filename = vw.getFileByVa(fva)
+    if fname.startswith(filename + "."):
+        fname = fname[len(filename)+1:]
+
     logger.info("impapi.analyzeFunction(0x%x):   name: %r", fva, fname)
     api = vw.getImpApi(fname)
     if api == None:

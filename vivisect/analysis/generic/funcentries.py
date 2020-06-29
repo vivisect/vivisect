@@ -6,11 +6,15 @@ already defined...  Additionally, if the "pointers" generic
 module is run first, there is a reasonabily high likelyhood
 that the code this finds is dead...
 """
+import logging
 import traceback
 
 import envi
 import envi.memory as e_mem
 import vivisect
+
+logger = logging.getLogger(__name__)
+
 
 def analyze(vw):
     """
@@ -42,6 +46,7 @@ def analyze(vw):
 
                 if vw.isFunctionSignature(va):
                     #print "MATCH MATCH MATCH: 0x%.8x" % va
+                    logger.debug('discovered new function (by signature): 0x%x', va)
                     vw.makeFunction(va)
 
             except vivisect.InvalidLocation, msg:
