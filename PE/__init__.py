@@ -1227,6 +1227,7 @@ class PE(object):
 
     def parseUnoptimizedData(self, offset, size):
         header = self.readStructAtOffset(offset, 'pe.METADATA_TABLE_STREAM_HEADER')
+        ridlen = header.Rid % 8 + (1 if header.Rid % 8 > 0  else 0)
         import pdb
         pdb.set_trace()
         pass

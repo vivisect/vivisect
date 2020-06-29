@@ -6,6 +6,11 @@ MAX_CLASS_NAME = MAX_PACKAGE_NAME = 1024
 IMAGE_COR_EATJ_THUNK_SIZE = 32  # Size of a jump thunk reserved range.
 
 
+RIDTONAME = {
+
+}
+
+
 class CLRHeaderFlags(enum.Enum):
     COMIMAGE_FLAGS_ILONLY = 0x00000001
     COMIMAGE_FLAGS_32BITREQUIRED = 0x00000002
