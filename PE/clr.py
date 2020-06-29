@@ -5,8 +5,8 @@ import enum
 MAX_CLASS_NAME = MAX_PACKAGE_NAME = 1024
 IMAGE_COR_EATJ_THUNK_SIZE = 32  # Size of a jump thunk reserved range.
 
-
-RIDTONAME = {
+# NOTE: RIDs into a specific table are 1-based indexes
+RIDTYPEMAP = {
 
 }
 
