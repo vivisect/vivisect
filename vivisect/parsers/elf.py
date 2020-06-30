@@ -204,7 +204,7 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
         maps.sort()
 
         merged = []
-        for i in xrange(len(maps)):
+        for i in range(len(maps)):
 
             if merged and maps[i][0] == (merged[-1][0] + merged[-1][1]):
                 merged[-1][1] += maps[i][1]

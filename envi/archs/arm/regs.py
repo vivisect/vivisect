@@ -157,7 +157,7 @@ PSR_V_mask = 0xffffffff ^ PSR_V_bit
 PSR_T_bit  = 1 << PSR_T
 PSR_T_mask = 0xffffffff ^ PSR_T_bit
 
-psr_fields = [None for x in xrange(32)]
+psr_fields = [None for x in range(32)]
 psr_fields[PSR_M] = "M"
 psr_fields[PSR_T] = "T"
 psr_fields[PSR_F] = "F"

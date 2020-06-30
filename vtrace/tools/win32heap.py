@@ -396,7 +396,7 @@ class Win32Subsegment(object):
         self.subsegment = trace.getStruct('ntdll.HEAP_SUBSEGMENT', address)
 
     def getChunks(self):
-        for chunk in xrange(self.getChunksStart(), self.getChunksEnd(), self.getBucketSize()):
+        for chunk in range(self.getChunksStart(), self.getChunksEnd(), self.getBucketSize()):
             yield Win32Chunk(self.trace, self.heap, chunk)
 
     def getUserBlocks(self):
