@@ -11,8 +11,7 @@ logger = logging.getLogger(__name__)
 
 def analyze(vw):
 
-    if vw.verbose:
-        vw.vprint('...analyzing pointers.')
+    logger.info('...analyzing pointers.')
 
     done = []
 
@@ -51,21 +50,18 @@ def analyze(vw):
             done.append((lva, tva))
             logger.info('pointer(3): 0x%x -> 0x%x', lva, tva)
         except Exception:
-            if vw.verbose:
-                vw.vprint("followPointer() failed for 0x%.8x (pval: 0x%.8x)" % (lva, tva))
-
+            logger.exception("followPointer() failed for 0x%.8x (pval: 0x%.8x)" % (lva, tva))
 
     # Now, lets find likely free-hanging pointers
     for addr, pval in vw.findPointers():
         if vw.isDeadData(pval):
             continue
         try:
-            vw.followPointer(pval)
+            vw.makePointer(addr, follow=True)
             done.append((addr, pval))
             logger.info('pointer(4): 0x%x -> 0x%x', addr, pval)
         except Exception:
-            if vw.verbose:
-                vw.vprint("followPointer() failed for 0x%.8x (pval: 0x%.8x)" % (addr, pval))
+            logger.exception("followPointer() failed for 0x%.8x (pval: 0x%.8x)" % (addr, pval))
 
     # Now let's see what these guys should be named (if anything)
     for ptr, tgt in done:

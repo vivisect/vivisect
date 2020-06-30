@@ -16,6 +16,10 @@ import envi
 import envi.archs.amd64.disasm
 import envi.archs.i386.disasm
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 def analyze(vw):
     '''
@@ -44,6 +48,7 @@ def analyze(vw):
 
     # Invoke codeflow on runtime_main().
     vw.addEntryPoint(runtime_va)
+    logger.debug('discovered runtime function: 0x%x', runtime_va)
     vw.makeFunction(runtime_va)
 
     # Also mark the ptr_va as a pointer to runtime_va.
@@ -253,6 +258,7 @@ def find_golang_bblock_via_ind_jmp(vw, filename):
 
     # Analyze the function at the pointer if necessary.
     if not vw.isFunction(ptr_va):
+        logger.debug('discovered new function (ptr): 0x%x', ptr_va)
         vw.makeFunction(ptr_va)
 
     # Expect a function with one BB, ending with an indirect jump
