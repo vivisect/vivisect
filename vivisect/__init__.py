@@ -14,6 +14,7 @@ import logging
 import itertools
 import traceback
 import threading
+import contextlib
 import collections
 
 from binascii import hexlify
@@ -148,9 +149,14 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         self.addVaSet("Emulation Anomalies", (("va", VASET_ADDRESS), ("Message", VASET_STRING)))
         self.addVaSet("Bookmarks", (("va", VASET_ADDRESS), ("Bookmark Name", VASET_STRING)))
         self.addVaSet('DynamicBranches', (('va', VASET_ADDRESS), ('opcode', VASET_STRING), ('bflags', VASET_INTEGER)))
+        self.addVaSet('SwitchCases', (('va', VASET_ADDRESS), ('setup_va', VASET_ADDRESS), ('Cases', VASET_INTEGER)))
         self.addVaSet('PointersFromFile', (('va', VASET_ADDRESS), ('target', VASET_ADDRESS), ('file', VASET_STRING), ('comment', VASET_STRING), ))
+<<<<<<< HEAD
         self.addVaSet('CodeFragments', (('va', VASET_ADDRESS), ('calls_from', VASET_COMPLEX)))
         self.addVaSet('EmucodeFunctions', (('va', VASET_ADDRESS),))
+=======
+        self.addVaSet('FuncWrappers', (('va', VASET_ADDRESS), ('wrapped_va', VASET_ADDRESS),))
+>>>>>>> master
 
     def verbprint(self, msg):
         if self.verbose:
@@ -158,6 +164,13 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
     def vprint(self, msg):
         print(msg)
+
+    @contextlib.contextmanager
+    def makeVerbose(self):
+        old = self.verbose
+        self.verbose = True
+        yield
+        self.verbose = old
 
     def getVivGui(self):
         '''
@@ -560,6 +573,34 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         """
         self.chan_lookup.pop(chanid)
 
+    def reprPointer(vw, va):
+        """
+        Do your best to create a humon readable name for the
+        value of this pointer.
+
+        note: This differs from parent function from envi.cli:
+        * Locations database is checked
+        * Strings are returned, not named (partially)
+        * <function> + 0x<offset> is returned if inside a function
+        * <filename> + 0x<offset> is returned instead of loc_#####
+        """
+        if va == 0:
+            return "NULL"
+
+        loc = vw.getLocation(va)
+        if loc is not None:
+            locva, locsz, lt, ltinfo = loc
+            if lt in (LOC_STRING, LOC_UNI):
+                return vw.reprVa(locva)
+
+        mbase, msize, mperm, mfile = vw.getMemoryMap(va)
+        ret = mfile + " + 0x%x" % (va - mbase)
+
+        sym = vw.getName(va, smart=True)
+        if sym is not None:
+            ret = sym
+        return ret
+
     def reprVa(self, va):
         """
         A quick way for scripts to get a string for a given virtual address.
@@ -625,6 +666,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         if ltype == LOC_OP:
             # NOTE: currently analyzePointer returns LOC_OP
             # based on function entries, lets make a func too...
+            logger.debug('discovered new function (followPointer(0x%x))', va)
             self.makeFunction(va)
             return True
 
@@ -803,12 +845,13 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         if you can find pointers there...  Returns a list of tuples
         where the tuple is (<ptr at>,<pts to>).
         """
+        align = self.arch.archGetPointerAlignment()
         if cache:
             ret = self.getTransMeta('findPointers')
-            if ret != None:
+            if ret is not None:
                 # Filter locations added since last run...
-                ret = [ (va,x) for (va,x) in ret if self.getLocation(va) == None ]
-                self.setTransMeta('findPointers',ret)
+                ret = [(va, x) for (va, x) in ret if self.getLocation(va) is None and not (va % align)]
+                self.setTransMeta('findPointers', ret)
                 return ret
 
         ret = []
@@ -819,13 +862,20 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             offset, bytes = self.getByteDef(mva)
             maxsize = len(bytes) - size
 
+            # if our memory map is not starting off aligned appropriately
+            if offset % align:
+                offset &= -align
+                offset += align
+
             while offset + size < maxsize:
-                dbg = 0
                 va = mva + offset
 
                 loctup = self.getLocation(va)
-                if loctup != None:
+                if loctup is not None:
                     offset += loctup[L_SIZE]
+                    if offset % align:
+                        offset += align
+                        offset &= -align
                     continue
 
                 x = e_bits.parsebytes(bytes, offset, size, bigend=self.bigend)
@@ -834,8 +884,8 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
                     offset += size
                     continue
 
-
-                offset += 1
+                offset += align
+                offset &= -align
 
         if cache:
             self.setTransMeta('findPointers', ret)
@@ -957,6 +1007,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             return False
         self.iscode[va] = True
         emu = self.getEmulator()
+        emu.setMeta('silent', True)
         wat = v_emucode.watcher(self, va)
         emu.setEmulationMonitor(wat)
         try:
@@ -991,13 +1042,21 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
         return self.imem_archs[(arch & envi.ARCH_MASK) >> 16].archParseOpcode(b, off, va)
 
-    def iterJumpTable(self, startva, step=None, maxiters=None):
+    def iterJumpTable(self, startva, step=None, maxiters=None, rebase=False):
         if not step:
             step = self.psize
+        fname = self.getMemoryMap(startva)
+        if fname is None:
+            return
+
+        fname = fname[3]
+        imgbase = self.getFileMeta(fname, 'imagebase')
         iters = 0
         ptrbase = startva
-        rdest = self.castPointer(ptrbase)
-        while self.isValidPointer(rdest) and self.analyzePointer(rdest) in (None, LOC_OP):
+        rdest = self.readMemValue(ptrbase, step)
+        if rebase and rdest < imgbase:
+            rdest += imgbase
+        while self.isValidPointer(rdest) and self.isExecutable(rdest) and self.analyzePointer(rdest) in (None, LOC_OP):
             if self.analyzePointer(ptrbase) in STOP_LOCS:
                 break
 
@@ -1006,8 +1065,9 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             ptrbase += step
             if len(self.getXrefsTo(ptrbase)):
                 break
-
-            rdest = self.castPointer(ptrbase)
+            rdest = self.readMemValue(ptrbase, step)
+            if rebase and rdest < imgbase:
+                rdest += imgbase
 
             iters += 1
             if maxiters is not None and iters >= maxiters:
@@ -1025,7 +1085,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         self.delCodeBlock(cb)
         self.addCodeBlock((cb[CB_VA], cb[CB_SIZE], newfva))
 
-    def splitJumpTable(self, callingVa, prevRefVa, newTablAddr):
+    def splitJumpTable(self, callingVa, prevRefVa, newTablAddr, rebase=False, psize=4):
         '''
         So we have the case where if we have two jump tables laid out consecutively in memory (let's
         call them tables Foo and Bar, with Foo coming before Bar), and we see Foo first, we're going to
@@ -1043,7 +1103,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         codeblocks = set()
         curfva = self.getFunction(callingVa)
         # collect all the entries for the new jump table
-        for cb in self.iterJumpTable(newTablAddr):
+        for cb in self.iterJumpTable(newTablAddr, rebase=rebase, step=psize):
             codeblocks.add(cb)
             prevcb = self.getCodeBlock(cb)
             if prevcb is None:
@@ -1069,6 +1129,58 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         for va in todel:
             self.setComment(va[1], None)
             self.delXref(va)
+
+    def makeJumpTable(self, op, tova, rebase=False, psize=4):
+        fname = self.getMemoryMap(tova)[3]
+        imgbase = self.getFileMeta(fname, 'imagebase')
+
+        ptrbase = tova
+        rdest = self.readMemValue(ptrbase, psize)
+        if rebase and rdest < imgbase:
+            rdest += imgbase
+
+        # if there's already an Xref to this address from another jump table, we overshot
+        # the other table, and need to cut that one short, delete its Xrefs starting at this one
+        # and then let the rest of this function build the new jump table
+        # This jump table also may not be in the same function as the other jump table, so we need
+        # to remove those codeblocks (and child codeblocks) from this function
+
+        # at this point, rdest should be the first codeblock in the jumptable, so get all the xrefs to him
+        # (but skipping over the current jumptable base address we're looking at)
+        for xrfrom, xrto, rtype, rflags in self.getXrefsTo(rdest):
+            if tova == xrfrom:
+                continue
+
+            refva, refsize, reftype, refinfo = self.getLocation(xrfrom)
+            if reftype != vivisect.LOC_OP:
+                continue
+            # If we've already constructed this opcode location and made the xref to the new codeblock,
+            # that should mean we've already made the jump table, so there should be no need to split this
+            # jump table.
+            if refva == op.va:
+                continue
+            refop = self.parseOpcode(refva)
+            for refbase, refbflags in refop.getBranches():
+                if refbflags & envi.BR_TABLE:
+                    self.splitJumpTable(op.va, refva, tova, psize=psize)
+
+        tabdone = {}
+        for i, rdest in enumerate(self.iterJumpTable(ptrbase, rebase=rebase, step=psize)):
+            if not tabdone.get(rdest):
+                tabdone[rdest] = True
+                self.addXref(op.va, rdest, REF_CODE, envi.BR_COND)
+                if self.getName(rdest) is None:
+                    self.makeName(rdest, "case%d_%.8x" % (i, op.va))
+            else:
+                cmnt = self.getComment(rdest)
+                if cmnt is None:
+                    self.setComment(rdest, "Other Case(s): %d" % i)
+                else:
+                    cmnt += ", %d" % i
+                    self.setComment(rdest, cmnt)
+
+        # This must be second (len(xrefsto))
+        self.addXref(op.va, tova, REF_PTR, None)
 
     def makeOpcode(self, va, op=None, arch=envi.ARCH_DEFAULT):
         """
@@ -1106,51 +1218,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
             # Special case, if it's a table branch, lets resolve it now.
             if bflags & envi.BR_TABLE:
-                ptrbase = tova
-                rdest = self.castPointer(ptrbase)
-
-                # if there's already an Xref to this address from another jump table, we overshot
-                # the other table, and need to cut that one short, delete its Xrefs starting at this one
-                # and then let the rest of this function build the new jump table
-                # This jump table also may not be in the same function as the other jump table, so we need
-                # to remove those codeblocks (and child codeblocks) from this function
-
-                # at this point, rdest should be the first codeblock in the jumptable, so get all the xrefs to him
-                # (but skipping over the current jumptable base address we're looking at)
-                for xrfrom, xrto, rtype, rflags in self.getXrefsTo(rdest):
-                    if tova == xrfrom:
-                        continue
-
-                    refva, refsize, reftype, refinfo = self.getLocation(xrfrom)
-                    if reftype != vivisect.LOC_OP:
-                        continue
-                    # If we've already constructed this opcode location and made the xref to the new codeblock,
-                    # that should mean we've already made the jump table, so there should be no need to split this
-                    # jump table.
-                    if refva == op.va:
-                        continue
-                    refop = self.parseOpcode(refva)
-                    for refbase, refbflags in refop.getBranches():
-                        if refbflags & envi.BR_TABLE:
-                            self.splitJumpTable(va, refva, tova)
-
-                tabdone = {}
-                for i, rdest in enumerate(self.iterJumpTable(ptrbase)):
-                    if not tabdone.get(rdest):
-                        tabdone[rdest] = True
-                        self.addXref(va, rdest, REF_CODE, envi.BR_COND)
-                        if self.getName(rdest) is None:
-                            self.makeName(rdest, "case%d_%.8x" % (i, rdest))
-                    else:
-                        cmnt = self.getComment(rdest)
-                        if cmnt is None:
-                            self.setComment(rdest, "Other Case(s): %d" % i)
-                        else:
-                            cmnt += ", %d" % i
-                            self.setComment(rdest, cmnt)
-
-                # This must be second (len(xrefsto))
-                self.addXref(va, tova, REF_PTR, None)
+                self.makeJumpTable(op, tova)
 
             elif bflags & envi.BR_DEREF:
 
@@ -1239,6 +1307,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         if self.isLocation(va):
             return
 
+        logger.debug("makeCode(0x%x, 0x%x)", va, arch)
         calls_from = self.cfctx.addCodeFlow(va, arch=arch)
         if fva is None:
             self.setVaSetRow('CodeFragments', (va, calls_from))
@@ -1299,9 +1368,6 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         if self.isFunction(va):
             return
 
-        if meta == None:
-            meta = {}
-
         if not self.isValidPointer(va):
             raise InvalidLocation(va)
 
@@ -1309,7 +1375,12 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         if loc != None and loc[L_TINFO] != None and loc[L_LTYPE] == LOC_OP:
             arch = loc[L_TINFO]
 
-        return self.cfctx.addEntryPoint(va, arch=arch)
+        realfva = self.cfctx.addEntryPoint(va, arch=arch)
+
+        if meta is not None:
+            for key, val in meta.items():
+                self.setFunctionMeta(realfva, key, val)
+        return realfva
 
     def delFunction(self, funcva):
         """
@@ -1473,7 +1544,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             ret = []
         return ret
 
-    def makeFunctionThunk(self, fva, thname, addVa=True):
+    def makeFunctionThunk(self, fva, thname, addVa=True, filelocal=False):
         """
         Inform the workspace that a given function is considered a "thunk" to another.
         This allows the workspace to process argument inheritance and several other things.
@@ -1490,7 +1561,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             name = "%s_%.8x" % (base,fva)
         else:
             name = base
-        newname = self.makeName(fva, name, makeuniq=True)
+        newname = self.makeName(fva, name, filelocal=filelocal, makeuniq=True)
         logger.debug('makeFunctionThunk:  makeName(0x%x, %r, makeuniq=True):  returned %r', fva, name, newname)
 
         api = self.getImpApi(thname)
@@ -2173,7 +2244,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         location.
         """
         va = self.vaByName(name)
-        if va == None:
+        if va is None:
             raise InvalidLocation(0, "Unknown Name: %s" % name)
         return self.getLocation(va)
 
@@ -2193,23 +2264,30 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         '''
         name = self.name_by_va.get(va)
 
-        if name != None or not smart:
+        if name is not None or not smart:
             return name
+        
+        # TODO: by previous symbol?
 
+        # by function
         baseva = self.getFunction(va)
         basename = self.name_by_va.get(baseva, None)
 
-        if basename == None:
+        # by filename
+        if basename is None:
             basename = self.getFileByVa(va)
-            if basename == None:
+            if basename is None:
                 return None
 
             baseva = self.getFileMeta(basename, 'imagebase')
 
         delta = va - baseva
 
-        pom = ('','+')[delta>=0]
-        name = "%s%s%s" % (basename, pom, hex(delta))
+        if delta:
+            pom = ('', '+')[delta>0]
+            name = "%s%s%s" % (basename, pom, hex(delta))
+        else:
+            name = basename
         return name
 
     def makeName(self, va, name, filelocal=False, makeuniq=False):
@@ -2243,12 +2321,19 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
                 raise DuplicateName(oldva, va, name)
 
             else:
+                logger.debug('makeName: %r already lives at 0x%x', name, oldva)
                 # tack a number on the end
                 index = 0
                 newname = "%s_%d" % (name, index)
+                newoldva = self.vaByName(newname)
                 while self.vaByName(newname) not in (None, newname):
+                    # if we run into the va we're naming, that's the name still
+                    if newoldva == va:
+                        return newname
+                    logger.debug('makeName: %r already lives at 0x%x', newname, newoldva)
                     index += 1
                     newname = "%s_%d" % (name, index)
+                    newoldva = self.vaByName(newname)
 
                 name = newname
 
@@ -2528,7 +2613,8 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         you can name it as you like...)
         """
         x = self.vasetdefs.get(name)
-        if x == None: raise InvalidVaSet(name)
+        if x == None:
+            raise InvalidVaSet(name)
         return x
 
     def getVaSetRows(self, name):
@@ -2536,7 +2622,8 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         Get a list of the rows in this VA set.
         """
         x = self.vasets.get(name)
-        if x == None: InvalidVaSet(name)
+        if x is None:
+            raise InvalidVaSet(name)
         return x.values()
 
     def getVaSet(self, name):
@@ -2544,7 +2631,8 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         Get the dictionary of va:<rowdata> entries.
         """
         x = self.vasets.get(name)
-        if x == None: raise InvalidVaSet(name)
+        if x == None:
+            raise InvalidVaSet(name)
         return x
 
     def addVaSet(self, name, defs, rows=()):
@@ -2725,11 +2813,11 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
     def getSymByAddr(self, addr, exact=True):
         name = self.getName(addr)
-        if name == None:
+        if name is None:
             if self.isValidPointer(addr):
                 name = "loc_%.8x" % addr
 
-        if name != None:
+        if name is not None:
             #FIXME fname
             #FIXME functions/segments/etc...
             return e_resolv.Symbol(name, addr, 0)
@@ -2741,7 +2829,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
         You may also set hint=None to delete sym hints.
         '''
-        self._fireEvent(VWE_SYMHINT, (va,idx,hint))
+        self._fireEvent(VWE_SYMHINT, (va, idx, hint))
 
     def getSymHint(self, va, idx):
         h = self.getFref(va, idx)
@@ -2751,7 +2839,8 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             if loctup:
                 return loctup[1]
 
-        return self.symhints.get((va,idx), None)
+        return self.symhints.get((va, idx), None)
+
 
 class VivFileSymbol(e_resolv.FileSymbol):
     # A namespace tracker thingie...
@@ -2761,6 +2850,7 @@ class VivFileSymbol(e_resolv.FileSymbol):
 
     def getSymByName(self, name):
         return self.vw.getSymByName("%s.%s" % (self.name, name))
+
 
 def getVivPath(*pathents):
     dname = os.path.dirname(__file__)

@@ -6,11 +6,15 @@ if they are code by emulation behaviorial analysis.
 """
 import envi
 import vivisect
-import vivisect.reports as viv_rep
 from envi.archs.i386.opconst import *
 import vivisect.impemu.monitor as viv_imp_monitor
 
+import logging
+
 from vivisect.const import *
+
+logger = logging.getLogger(__name__)
+
 
 class watcher(viv_imp_monitor.EmulationMonitor):
 
@@ -78,6 +82,7 @@ class watcher(viv_imp_monitor.EmulationMonitor):
         # defined locations...
         if self.vw.isFunction(eip):
             emu.stopEmu()
+            # FIXME: this is a problem.  many time legit code falls into other functions...  "hydra" functions are more and more common.
             raise Exception("Fell Through Into Function: %.8x" % eip)
 
         loc = self.vw.getLocation(eip)
@@ -85,7 +90,8 @@ class watcher(viv_imp_monitor.EmulationMonitor):
             va, size, ltype, linfo = loc
             if ltype != vivisect.LOC_OP:
                 emu.stopEmu()
-                raise Exception("HIT %d AT %.8x" % (ltype, va))
+                raise Exception("HIT LOCTYPE %d AT %.8x" % (ltype, va))
+
         cnt = self.mndist.get(op.mnem, 0)
         self.mndist[ op.mnem ] = cnt+1
         self.insn_count += 1
@@ -152,6 +158,7 @@ def analyze(vw):
             if vw.getLocation(va) != None:
                 continue
             try:
+                logger.debug('discovered new function: 0x%x', va)
                 vw.makeFunction(va)
             except:
                 continue

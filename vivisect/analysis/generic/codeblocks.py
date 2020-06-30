@@ -111,6 +111,7 @@ def analyzeFunction(vw, funcva):
 
             va = nextva
 
+    oldblocks = {va: size for (va, size, fva) in vw.getFunctionBlocks(funcva)}
     # we now have an ordered list of block references!
     brefs.sort()
     brefs.reverse()
@@ -123,11 +124,17 @@ def analyzeFunction(vw, funcva):
         if len(brefs) == 0:
             break
 
+        # So we don't add a codeblock if we're re-analyzing a function
+        # (like during dynamic branch analysis)
         bsize = blocks[bva]
-        vw.addCodeBlock(bva, bsize, funcva)
+        if bva not in oldblocks:
+            vw.addCodeBlock(bva, bsize, funcva)
+        elif bsize != oldblocks[bva]:
+            vw.delCodeBlock(bva)
+            vw.addCodeBlock(bva, bsize, funcva)
         bcnt += 1
 
     vw.setFunctionMeta(funcva, 'Size', size)
     vw.setFunctionMeta(funcva, 'BlockCount', bcnt)
-    vw.setFunctionMeta(funcva, "InstructionCount", opcount)
-    vw.setFunctionMeta(funcva, "MnemDist", mnem)
+    vw.setFunctionMeta(funcva, 'InstructionCount', opcount)
+    vw.setFunctionMeta(funcva, 'MnemDist', mnem)

@@ -39,6 +39,14 @@ def signed(value, size):
         x = (x - u_maxes[size]) - 1
     return x
 
+def bsigned(value, size):
+    """
+    Make a value signed based on it's size.
+    """
+    if value & bsign_bits[size]:
+        value = (value - bu_maxes[size]) - 1
+    return value
+
 def is_signed(value, size):
     x = unsigned(value, size)
     return bool(x & sign_bits[size])
@@ -150,16 +158,33 @@ master_fmts = (fmt_chars, fmt_schars)
 
 fmt_sizes =  (None,1,2,4,4,8,8,8,8)
 
+le_fmt_float = (None, None, None, None, '<f', None, None, None, '<d')
+be_fmt_float = (None, None, None, None, '>f', None, None, None, '>d')
+
+fmt_floats = (le_fmt_float, be_fmt_float)
+
+
 def getFormat(size, big_endian=False, signed=False):
     '''
     Returns the proper struct format for numbers up to 8 bytes in length
     Endianness and Signedness aware.
-
+    
     Only useful for *full individual* numbers... ie. 1, 2, 4, 8.  Numbers
     of 24-bits (3), 40-bit (5), 48-bits (6) or 56-bits (7) are not accounted 
     for here and will return None.
     '''
     return master_fmts[signed][big_endian][size]
+
+def getFloatFormat(size, big_endian=False):
+    '''
+    Returns the proper struct format for numbers up to 8 bytes in length
+    Endianness and Signedness aware.
+    
+    Only useful for *full individual* numbers... ie. 1, 2, 4, 8.  Numbers
+    of 24-bits (3), 40-bit (5), 48-bits (6) or 56-bits (7) are not accounted 
+    for here and will return None.
+    '''
+    return fmt_floats[big_endian][size]
 
 def parsebytes(bytes, offset, size, sign=False, bigend=False):
     """
@@ -326,9 +351,4 @@ def masktest(s):
     def domask(testval):
         return testval & maskin == matchval
     return domask
-
-# if __name__ == '__main__':
-    # print hex(parsebits('\x0f\x00', 0, 4, 8))
-    # print hex(parsebits('\x0f\x0f', 0, 4, 12))
-    # print hex(parsebits('\x0f\x0f\xf0', 1, 4, 4))
 

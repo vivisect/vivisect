@@ -34,6 +34,7 @@ def analyzeFunction(vw, funcva):
         mainva = args[0]
 
         vw.addEntryPoint(mainva)
+        logger.debug('discovered new function: 0x%x', mainva)
         vw.makeFunction(mainva)
 
         curname = vw.getName(mainva)

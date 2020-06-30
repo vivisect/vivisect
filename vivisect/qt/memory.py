@@ -1,4 +1,6 @@
 
+import logging
+
 import envi
 try:
     from PyQt5.QtWidgets import *
@@ -26,6 +28,9 @@ from envi.threads   import firethread
 
 from vqt.main import *
 from vivisect.const import *
+
+logger = logging.getLogger(__name__)
+
 
 # FIXME HACK where do these really live?
 qt_horizontal   = 1
@@ -177,6 +182,7 @@ class VivCanvasBase(vq_hotkey.HotKeyMixin, e_mem_canvas.VQMemoryCanvas):
     @vq_hotkey.hotkey('viv:make:function')
     def _hotkey_make_function(self):
         if self._canv_curva is not None:
+            logger.debug('new function (manual): 0x%x', self._canv_curva)
             self.vw.makeFunction(self._canv_curva)
 
     @vq_hotkey.hotkey('viv:make:string')

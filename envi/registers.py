@@ -3,11 +3,8 @@ Similar to the memory subsystem, this is a unified way to
 access information about objects which contain registers
 """
 
-import envi.bits as e_bits
+import envi.exc as e_exc
 from envi.const import *
-
-class InvalidRegisterName(Exception):
-    pass
 
 class RegisterContext:
 
@@ -230,13 +227,13 @@ class RegisterContext:
     def getRegisterByName(self, name):
         idx = self._rctx_names.get(name)
         if idx == None:
-            raise InvalidRegisterName("Unknown Register: %s" % name)
+            raise e_exc.InvalidRegisterName("Unknown Register: %s" % name)
         return self.getRegister(idx)
 
     def setRegisterByName(self, name, value):
         idx = self._rctx_names.get(name)
         if idx == None:
-            raise InvalidRegisterName("Unknown Register: %s" % name)
+            raise e_exc.InvalidRegisterName("Unknown Register: %s" % name)
         self.setRegister(idx, value)
 
     def getRegisterNames(self):
