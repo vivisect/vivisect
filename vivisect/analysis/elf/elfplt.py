@@ -2,6 +2,50 @@
 """
 If a "function" is in the plt it's a wrapper for something in the GOT.
 Make that apparent.
+
+This analysis module attempts to be platform- and architecture-agnostic.  
+Different conpilers make that more or less difficult.  We're jumping over 
+numerous hurdles to get accuracy everywhere without having different 
+analysis modules for each achitecture and compiler.
+
+First of all, we start out by attempting to analyze all PLT sections
+(.plt and .plt.got) before any other code is run.  This requires us to
+attempt to lay down Code locations all the way through the section.
+Some architectures place pointers in the section which are referenced
+by code in earlier functions, as a "literal pool."  
+
+We start off analysis by identifying all the Unconditional Branches which
+don't point to the beginning of the section.  Lazy loading typically ends 
+up with some tricks of code places a value for the function in a given 
+register, and branching to a trampoline function at the beginning of the 
+section, which then branches to the LIBC dynamic loader.  The other 
+Unconditional Branches should jump into the actual function, pointed to
+by the GOT entry for each function.  
+Oh, by the way, not all PLT functions are for external Imports.  Some 
+compile flags wrap local functions with a PLT/GOT pair as well.
+
+ANYWAY!  We start of identifying all the Unconditional Branches, and flagging 
+each with whether they are "Real PLT" branches or some Lazy Loader Trampoline
+thing.  
+We then attempt to determine how large each PLT function is.  This means, how
+far before the Branch is the start of the PLT entry.  The reason is, we know
+precisely where the Branches are.  We *don't* know (before analyzing the rest 
+of the codebase) what will actually be called.  
+
+In order to identify the start of the function, we determine if there is a
+Trampoline, and if so, skip to the next "RealPLT" branch.  Then we work 
+backward until we run into another unconditional branch, a NOP, a non-location,
+or the start of the section.  That helps us determine where the functions all 
+start in relation to the branch, giving us "plt_size".
+
+We use a heuristic calculating how many distances there are, and choose
+the most common distance to determine the plt_distance, or the distance between 
+the start (and the branch) of each PLT entry.
+
+Armed with plt_distance and plt_size, we then determine where each PLT entry 
+begins, and make those Functions, and analysis continues from there.
+
+
 """
 import logging
 import vivisect
@@ -24,13 +68,14 @@ def analyze(vw):
 
 
 def analyzePLT(vw, ssva, ssize):
-        # make code for every opcode in PLT
+        # first, make code for every opcode in PLT
         sva = ssva
         nextseg = sva + ssize
 
         trampbr = None
         has_tramp = False
 
+        # make and parse opcodes.  keep track of unconditional branches
         branchvas = []
         while sva < nextseg:
             if vw.getLocation(sva) is None:
@@ -47,7 +92,12 @@ def analyzePLT(vw, ssva, ssize):
                 if op.iflags & envi.IF_BRANCH and \
                         not op.iflags & envi.IF_COND:
 
-                    # we grab all unconditional branches, and tag them
+                    # we grab all unconditional branches, and tag them.
+                    # some compilers pepper conditional branches between 
+                    # PLT entries, for lazy-loading tricks.  We skip those.
+
+                    # currently, check the branch target is not the section 
+                    # start address.
                     realplt = not bool(op.opers[-1].getOperValue(op) == ssva)
                     if not realplt:
                         has_tramp = True
@@ -115,7 +165,7 @@ def analyzePLT(vw, ssva, ssize):
         # now determine plt_size (basically, how far to backup from the branch to find the start of function
         # *don't* use the first entry, because the trampoline is often oddly sized...
         plt_size = 0
-        bridx = 1
+        bridx = 0
 
         # if has_tramp, we need to skip two to make sure we're not analyzing the first real plt
         if has_tramp:    
