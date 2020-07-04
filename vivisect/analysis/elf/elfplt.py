@@ -68,7 +68,10 @@ def analyze(vw):
 
 
 def analyzePLT(vw, ssva, ssize):
-        # first, make code for every opcode in PLT
+        ''' 
+        analyze an entire section designated as "PLT" or "PLTGOT"
+        '''
+        ###### make code for every opcode in PLT
         sva = ssva
         nextseg = sva + ssize
 
@@ -134,7 +137,7 @@ def analyzePLT(vw, ssva, ssize):
             else:
                 logger.debug("has_tramp: trampbr: 0x%x    branchvas[0][0]: 0x%x", trampbr, branchvas[0][0])
 
-        # heuristically determine PLT entry size and distance
+        ###### heuristically determine PLT entry size and distance
         heur = {}
         lastva = ssva
         # first determine distance between GOT branches:
@@ -163,7 +166,7 @@ def analyzePLT(vw, ssva, ssize):
             plt_distance = 16
             logger.debug('plt_distance (fallback): 0x%x\n%r', plt_distance, heurlist)
 
-        # now determine plt_size (basically, how far to backup from the branch to find the start of function
+        ###### now determine plt_size (basically, how far to backup from the branch to find the start of function
         # *don't* use the first entry, because the trampoline is often oddly sized...
         plt_size = 0
         bridx = 0
@@ -180,10 +183,11 @@ def analyzePLT(vw, ssva, ssize):
         # start off pointing at the branch location which bounces through GOT.
         loc = vw.getLocation(brva)
 
-        # grab the size of the plt branch instruction for our benefit
-        pltbrsz = loc[vivisect.L_SIZE]
+        # get the arch-dependent list of badops and the nop instruction bytes
+        badops = vw.arch.archGetBadOps()
+        nopbytes = vw.arch.archGetNopInstr()
 
-        # we're searching for a point where either we hit:
+        # we're searching *backwards* for a point where either we hit:
         #  * another branch/NO_FALL (ie. lazy-loader) or
         #  * non-Opcode (eg. literal pool)
         #  * or a NOP
@@ -194,6 +198,10 @@ def analyzePLT(vw, ssva, ssize):
             loc = vw.getLocation(loc[vivisect.L_VA] - 1)
             lva, lsz, ltype, ltinfo = loc
 
+            # if we run past the beginning of the PLT section, we're done.
+            if lva < ssva:
+                break
+
             if ltype != vivisect.LOC_OP:
                 # we've run into a non-opcode location: bail!
                 break
@@ -203,18 +211,24 @@ def analyzePLT(vw, ssva, ssize):
                 break
 
             op = vw.parseOpcode(lva)
-            nopbytes = vw.arch.archGetNopInstr()
             if op.mnem == 'nop' or vw.readMemory(lva, len(nopbytes)) == nopbytes:
                 # we've run into inter-plt padding - curse you, gcc!
                 break
 
+            if op in badops:
+                # we've run into a "bad opcode" like \x00\x00 or \xff\xff...
+                break
+            
+            # if we get through all those checks, the previous location is part
+            # of the PLT function.
             plt_size += lsz
 
-        # now get start of first real PLT entry
-        bridx = 0
+        ###### now get start of first real PLT entry
+        #bridx = 0  # we already found the first entry branch.
+        logger.debug("reusing existing bridx: %r (0x%x, %r)", bridx, branchvas[bridx][0], branchvas[bridx][1])
         brlen = len(branchvas)
 
-        firstbr, realplt = branchvas[bridx]
+        # IS THIS SUPERFLUOUS?  since we started using the first entry, we're already at the first entry.?
         # roll through branches until we find one we like as the start of the real plts
         while bridx < brlen:
             firstbr, realplt = branchvas[bridx]
@@ -223,9 +237,11 @@ def analyzePLT(vw, ssva, ssize):
                 prevloc = vw.getLocation(firstva - 1)
                 if prevloc is None:
                     # perhaps this is ok?
-                    logger.debug("NOT firstva: 0x%x - preceeded by loctup==None", firstva)
-                    bridx += 1
-                    continue
+                    logger.debug("possibly firstva?: 0x%x - preceeded by loctup==None", firstva)
+                    break
+                    #bridx += 1
+                    #continue
+
                 plva, plsz, pltp, pltinfo = prevloc
                 if pltp == vivisect.LOC_OP:
                     if pltinfo & envi.IF_NOFALL:
@@ -233,10 +249,14 @@ def analyzePLT(vw, ssva, ssize):
                         logger.debug("firstva found: preceeded by IF_NOFALL")
                         break
                     op = vw.parseOpcode(plva)
-                    if op.mnem == 'nop':
+                    if op.mnem == 'nop' or vw.readMemory(lva, len(nopbytes)) == nopbytes:
                         # ugly, but effective:
                         logger.debug("firstva found: preceeded by 'nop'")
                         break
+                    if op in badops:
+                        # preceded by a "bad opcode" like \x00\x00 or \xff\xff...
+                        break
+
                 else:
                     # we've hit a non-LOC_OP... that seems like this is the start of func
                     logger.debug("firstva found: preceeded by non-LOC_OP")
@@ -436,4 +456,254 @@ def analyzeFunction(vw, funcva):
     logger.info('makeFunctionThunk(0x%x, "plt_%s")', funcva, funcname)
     vw.makeFunctionThunk(funcva, "plt_" + funcname, addVa=False, filelocal=True)
 
+'''
+def printPLTs(vw):
+    for seg in vw.getSegments():
+        if seg[2] in ('.plt', '.plt.got'):
+            print seg[2]
+            vwdis(vw, seg[0], 10)
 
+linux/i386/vdir:
+.plt
+0x80494c0:                        ff3504100608  push dword [0x08061004]
+0x80494c6:                        ff2508100608  jmp dword [0x08061008]
+0x80494cc:                                0000  add byte [eax],al
+0x80494ce:                                0000  add byte [eax],al
+0x80494d0:                        ff250c100608  jmp dword [0x0806100c]
+0x80494d6:                          6800000000  push 0
+0x80494db:                          e9e0ffffff  jmp 0x080494c0
+0x80494e0:                        ff2510100608  jmp dword [0x08061010]
+0x80494e6:                          6808000000  push 8
+0x80494eb:                          e9d0ffffff  jmp 0x080494c0
+.plt.got
+0x8049b60:                        ff25fc0f0608  jmp dword [0x08060ffc]
+0x8049b66:                                6690  nop
+0x8049b68:                                0000  add byte [eax],al
+0x8049b6a:                                0000  add byte [eax],al
+0x8049b6c:                                0000  add byte [eax],al
+0x8049b6e:                                0000  add byte [eax],al
+
+linux/ie86/chgrp:
+.plt
+0x8048d90:                        ff3504400508  push dword [0x08054004]
+0x8048d96:                        ff2508400508  jmp dword [0x08054008]
+0x8048d9c:                                0000  add byte [eax],al
+0x8048d9e:                                0000  add byte [eax],al
+0x8048da0:                        ff250c400508  jmp dword [0x0805400c]
+0x8048da6:                          6800000000  push 0
+0x8048dab:                          e9e0ffffff  jmp 0x08048d90
+0x8048db0:                        ff2510400508  jmp dword [0x08054010]
+0x8048db6:                          6808000000  push 8
+0x8048dbb:                          e9d0ffffff  jmp 0x08048d90
+.plt.got
+0x80491d0:                        ff25fc3f0508  jmp dword [0x08053ffc]
+0x80491d6:                                6690  nop 
+0x80491d8:                                0000  add byte [eax],al
+0x80491da:                                0000  add byte [eax],al
+
+
+linux/i386/libc-2.13.so:
+.plt
+0x2016b78:                        ffb304000000  push dword [ebx + 4]
+0x2016b7e:                        ffa308000000  jmp dword [ebx + 8]
+0x2016b84:                                0000  add byte [eax],al
+0x2016b86:                                0000  add byte [eax],al
+0x2016b88:                        ffa30c000000  jmp dword [ebx + 12]
+0x2016b8e:                          6800000000  push 0
+0x2016b93:                          e9e0ffffff  jmp 0x02016b78
+0x2016b98:                        ffa310000000  jmp dword [ebx + 16]
+0x2016b9e:                          6808000000  push 8
+0x2016ba3:                          e9d0ffffff  jmp 0x02016b78
+
+
+linux/i386/libstdc++.so.6.0.25.viv
+.plt
+0x206aeb0:                        ffb304000000  push dword [ebx + 4]
+0x206aeb6:                        ffa308000000  jmp dword [ebx + 8]
+0x206aebc:                                0000  add byte [eax],al
+0x206aebe:                                0000  add byte [eax],al
+0x206aec0:                        ffa30c000000  jmp dword [ebx + 12]
+0x206aec6:                          6800000000  push 0
+0x206aecb:                          e9e0ffffff  jmp 0x0206aeb0
+0x206aed0:                        ffa310000000  jmp dword [ebx + 16]
+0x206aed6:                          6808000000  push 8
+0x206aedb:                          e9d0ffffff  jmp 0x0206aeb0
+.plt.got
+0x206e2e0:                        ffa3b4f7ffff  jmp dword [ebx - 2124]
+0x206e2e6:                                6690  nop
+0x206e2e8:                        ffa3c8f7ffff  jmp dword [ebx - 2104]
+0x206e2ee:                                6690  nop
+0x206e2f0:                        ffa334f8ffff  jmp dword [ebx - 1996]
+0x206e2f6:                                6690  nop
+0x206e2f8:                        ffa34cf8ffff  jmp dword [ebx - 1972]
+0x206e2fe:                                6690  nop
+0x206e300:                        ffa35cf8ffff  jmp dword [ebx - 1956]
+0x206e306:                                6690  nop
+
+linux/libstdc++.so.6.viv
+.plt
+0x2058cc0:                        ff3542432900  push qword [rip + 2704194]
+0x2058cc6:                        ff2544432900  jmp qword [rip + 2704196]
+0x2058ccc:                            0f1f4000  nop dword [rax]
+0x2058cd0:                        ff2542432900  jmp qword [rip + 2704194]
+0x2058cd6:                          6800000000  push 0
+0x2058cdb:                          e9e0ffffff  jmp 0x02058cc0
+0x2058ce0:                        ff253a432900  jmp qword [rip + 2704186]
+0x2058ce6:                          6801000000  push 1
+0x2058ceb:                          e9d0ffffff  jmp 0x02058cc0
+0x2058cf0:                        ff2532432900  jmp qword [rip + 2704178]
+
+linux/i386/static32.llvm.elf.viv
+.plt
+0x80481c8:                        ff250cb00d08  jmp dword [0x080db00c]
+0x80481ce:                                6690  nop
+0x80481d0:                        ff2510b00d08  jmp dword [0x080db010]
+0x80481d6:                                6690  nop
+0x80481d8:                        ff2514b00d08  jmp dword [0x080db014]
+0x80481de:                                6690  nop
+0x80481e0:                        ff2518b00d08  jmp dword [0x080db018]
+0x80481e6:                                6690  nop
+0x80481e8:                        ff251cb00d08  jmp dword [0x080db01c]
+0x80481ee:                                6690  nop
+
+linux/arm/sh.viv
+.plt
+0xb5e4:                       04e02de5  push lr
+0xb5e8:                       04e09fe5  ldr lr, [#0xb5f4]
+0xb5ec:                       0ee08fe0  add lr, pc, lr
+0xb5f0:                       08f0bee5  ldr pc, [lr, #0x8]!
+0xb5f4:                       9cde0300  muleq r3, r12, lr
+0xb5f8:                       00c68fe2  adr r12, 0x0000b600
+0xb5fc:                       3dca8ce2  add r12, r12, #0x3d000
+0xb600:                       9cfebce5  ldr pc, [r12, #0xe9c]!
+0xb604:                       00c68fe2  adr r12, 0x0000b60c
+0xb608:                       3dca8ce2  add r12, r12, #0x3d000
+
+linux/amd64/ls.viv
+.plt
+0x401ff0:                         ff35fa6f2100  push qword [rip + 2191354]
+0x401ff6:                         ff25fc6f2100  jmp qword [rip + 2191356]
+0x401ffc:                             0f1f4000  nop dword [rax]
+0x402000:                         ff25fa6f2100  jmp qword [rip + 2191354]
+0x402006:                           6800000000  push 0
+0x40200b:                           e9e0ffffff  jmp 0x00401ff0
+0x402010:                         ff25f26f2100  jmp qword [rip + 2191346]
+0x402016:                           6801000000  push 1
+0x40201b:                           e9d0ffffff  jmp 0x00401ff0
+0x402020:                         ff25ea6f2100  jmp qword [rip + 2191338]
+
+linux/amd64/libc-2.27-oldstyle.so
+.plt
+0x2020fd0:                        ff3532a03c00  push qword [rip + 3973170]
+0x2020fd6:                        ff2534a03c00  jmp qword [rip + 3973172]
+0x2020fdc:                            0f1f4000  nop dword [rax]
+0x2020fe0:                        ff2532a03c00  jmp qword [rip + 3973170]
+0x2020fe6:                          682d000000  push 45
+0x2020feb:                          e9e0ffffff  jmp 0x02020fd0
+0x2020ff0:                        ff252aa03c00  jmp qword [rip + 3973162]
+0x2020ff6:                          682c000000  push 44
+0x2020ffb:                          e9d0ffffff  jmp 0x02020fd0
+0x2021000:                        ff2522a03c00  jmp qword [rip + 3973154]
+.plt.got
+0x20212c0:                        ff256a9b3c00  jmp qword [rip + 3971946]
+0x20212c6:                                6690  nop
+0x20212c8:                        ff25ca9c3c00  jmp qword [rip + 3972298]
+0x20212ce:                                6690  nop
+0x20212d0:                                  55  push rbp
+0x20212d1:                                  53  push rbx
+0x20212d2:                      488d3d0d251900  lea rdi,qword [rip + 1647885]
+0x20212d9:                          be02000080  mov esi,0x80000002
+0x20212de:                            4883ec08  sub rsp,8
+0x20212e2:                          e869511400  call 0x02166450
+
+linux/amd64/libstdc++.so.6.0.25.viv
+.plt
+0x20884a0:                        ff35629b2f00  push qword [rip + 3119970]
+0x20884a6:                        ff25649b2f00  jmp qword [rip + 3119972]
+0x20884ac:                            0f1f4000  nop dword [rax]
+0x20884b0:                        ff25629b2f00  jmp qword [rip + 3119970]
+0x20884b6:                          6800000000  push 0
+0x20884bb:                          e9e0ffffff  jmp 0x020884a0
+0x20884c0:                        ff255a9b2f00  jmp qword [rip + 3119962]
+0x20884c6:                          6801000000  push 1
+0x20884cb:                          e9d0ffffff  jmp 0x020884a0
+0x20884d0:                        ff25529b2f00  jmp qword [rip + 3119954]
+.plt.got
+0x208b800:                        ff2542582f00  jmp qword [rip + 3102786]
+0x208b806:                                6690  nop
+0x208b808:                        ff254a582f00  jmp qword [rip + 3102794]
+0x208b80e:                                6690  nop
+0x208b810:                        ff2512592f00  jmp qword [rip + 3102994]
+0x208b816:                                6690  nop
+0x208b818:                        ff253a592f00  jmp qword [rip + 3103034]
+0x208b81e:                                6690  nop
+0x208b820:                        ff255a592f00  jmp qword [rip + 3103066]
+0x208b826:                                6690  nop
+
+linux/amd64/static64.llvm.elf.viv
+.plt
+0x400428:                         ff25eaab2b00  jmp qword [rip + 2862058]
+0x40042e:                                 6690  nop
+0x400430:                         ff25eaab2b00  jmp qword [rip + 2862058]
+0x400436:                                 6690  nop
+0x400438:                         ff25eaab2b00  jmp qword [rip + 2862058]
+0x40043e:                                 6690  nop
+0x400440:                         ff25eaab2b00  jmp qword [rip + 2862058]
+0x400446:                                 6690  nop
+0x400448:                         ff25eaab2b00  jmp qword [rip + 2862058]
+0x40044e:                                 6690  nop
+
+linux/amd64/libc-2.27.so.viv
+.plt
+0x2020fd0:                        ff3532a03c00  push qword [rip + 3973170]
+0x2020fd6:                        ff2534a03c00  jmp qword [rip + 3973172]
+0x2020fdc:                            0f1f4000  nop dword [rax]
+0x2020fe0:                        ff2532a03c00  jmp qword [rip + 3973170]
+0x2020fe6:                          682d000000  push 45
+0x2020feb:                          e9e0ffffff  jmp 0x02020fd0
+0x2020ff0:                        ff252aa03c00  jmp qword [rip + 3973162]
+0x2020ff6:                          682c000000  push 44
+0x2020ffb:                          e9d0ffffff  jmp 0x02020fd0
+0x2021000:                        ff2522a03c00  jmp qword [rip + 3973154]
+.plt.got
+0x20212c0:                        ff256a9b3c00  jmp qword [rip + 3971946]
+0x20212c6:                                6690  nop
+0x20212c8:                        ff25ca9c3c00  jmp qword [rip + 3972298]
+0x20212ce:                                6690  nop
+0x20212d0:                                  55  push rbp
+0x20212d1:                                  53  push rbx
+0x20212d2:                      488d3d0d251900  lea rdi,qword [rip + 1647885]
+0x20212d9:                          be02000080  mov esi,0x80000002
+0x20212de:                            4883ec08  sub rsp,8
+0x20212e2:                          e869511400  call 0x02166450
+
+linux/amd64/chown.viv
+.plt
+0x2001d50:                        ff351ae02000  push qword [rip + 2154522]
+0x2001d56:                        ff251ce02000  jmp qword [rip + 2154524]
+0x2001d5c:                            0f1f4000  nop dword [rax]
+0x2001d60:                        ff251ae02000  jmp qword [rip + 2154522]
+0x2001d66:                          6800000000  push 0
+0x2001d6b:                          e9e0ffffff  jmp 0x02001d50
+0x2001d70:                        ff2512e02000  jmp qword [rip + 2154514]
+0x2001d76:                          6801000000  push 1
+0x2001d7b:                          e9d0ffffff  jmp 0x02001d50
+0x2001d80:                        ff250ae02000  jmp qword [rip + 2154506]
+.plt.got
+0x2002200:                        ff25cadd2000  jmp qword [rip + 2153930]
+0x2002206:                                6690  nop
+0x2002208:                        ff25eadd2000  jmp qword [rip + 2153962]
+0x200220e:                                6690  nop
+0x2002210:                                4157  push r15
+0x2002212:                                4156  push r14
+0x2002214:                              4531f6  xor r14d,r14d
+0x2002217:                                4155  push r13
+0x2002219:                                4154  push r12
+0x200221b:                        41bdffffffff  mov r13d,0xffffffff
+
+openbsd/ls.amd64.viv
+
+qnx/arm/ksh.viv
+
+
+'''
