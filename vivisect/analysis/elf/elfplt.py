@@ -192,10 +192,10 @@ def analyzePLT(vw, ssva, ssize):
         #  * non-Opcode (eg. literal pool)
         #  * or a NOP
         # bounded to what we know is the distance between PLT branches
+        loc = vw.getLocation(loc[vivisect.L_VA] - 1)
         while loc is not None and \
                 plt_size <= plt_distance:
             # first we back up one location
-            loc = vw.getLocation(loc[vivisect.L_VA] - 1)
             lva, lsz, ltype, ltinfo = loc
 
             # if we run past the beginning of the PLT section, we're done.
@@ -222,6 +222,7 @@ def analyzePLT(vw, ssva, ssize):
             # if we get through all those checks, the previous location is part
             # of the PLT function.
             plt_size += lsz
+            loc = vw.getLocation(loc[vivisect.L_VA] - 1)
 
         ###### now get start of first real PLT entry
         #bridx = 0  # we already found the first entry branch.
