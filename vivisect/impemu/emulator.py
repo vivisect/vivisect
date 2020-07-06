@@ -167,6 +167,9 @@ class WorkspaceEmulator:
         """
         iscall = bool(op.iflags & envi.IF_CALL)
         if iscall:
+            # Either way, if it's a call PC goes to next instruction
+            if self._func_only:
+                self.setProgramCounter(starteip+len(op))
             api = self.getCallApi(endeip)
             rtype, rname, convname, callname, funcargs = api
             callconv = self.getCallingConvention(convname)
@@ -193,9 +196,6 @@ class WorkspaceEmulator:
                     ret = self.setVivTaint('apicall', (op, endeip, api, argv))
                 callconv.execCallReturn(self, ret, len(funcargs))
 
-            # Either way, if it's a call PC goes to next instruction
-            if self._func_only:
-                self.setProgramCounter(starteip+len(op))
 
         return iscall
 
@@ -242,6 +242,8 @@ class WorkspaceEmulator:
             for bva, bflags in blist:
                 if bva is None:
                     logger.warn("Unresolved branch even WITH an emulator?")
+                    continue
+                if bva in paths:
                     continue
 
                 bpath = self.getBranchNode(self.curpath, bva)
@@ -338,7 +340,6 @@ class WorkspaceEmulator:
                     break
 
                 try:
-
                     # FIXME unify with stepi code...
                     op = self.parseOpcode(starteip)
                     self.op = op
@@ -348,7 +349,6 @@ class WorkspaceEmulator:
                         except Exception as e:
                             if not self.getMeta('silent'):
                                 logger.warn("funcva: 0x%x opva: 0x%x:  %r   (%r) (in emumon prehook)", funcva, starteip, op, e)
-
 
                         if self.emustop:
                             return
@@ -367,10 +367,14 @@ class WorkspaceEmulator:
 
                         if self.emustop:
                             return
-
                     iscall = self.checkCall(starteip, endeip, op)
                     if self.emustop:
                         return
+
+                    # TODO: hook things like error(...) when they have a param that indicates to 
+                    # exit. Might be a bit hairy since we'll possibly have to fix up codeblocks
+                    if self.vw.isNoReturnVa(endeip):
+                        break
 
                     # If it wasn't a call, check for branches, if so, add them to
                     # the todo list and go around again...

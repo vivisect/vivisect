@@ -8,14 +8,14 @@ import vivisect.impemu.monitor as viv_imp_monitor
 logger = logging.getLogger(__name__)
 
 
-def analyzeFunction(vw, funcva):
+def analyzeFunction(vw, funcva, lcsm):
     '''
     search through all calls, looking for a call to an import named __libc_start_main
     then check for arg0
     '''
     try:
         emu = vw.getEmulator()
-        emumon = AnalysisMonitor(vw, funcva)
+        emumon = AnalysisMonitor(vw, funcva, lcsm)
 
         emu.setEmulationMonitor(emumon)
         emu.runFunction(funcva, maxhit=1)
@@ -30,7 +30,7 @@ def analyzeFunction(vw, funcva):
             ccname = vw.getMeta('DefaultCall')
             cconv = emu.getCallingConvention(ccname)
 
-        args = cconv.getCallArgs(emu, 1)
+        args = cconv.getPreCallArgs(emu, 1)
         mainva = args[0]
 
         vw.addEntryPoint(mainva)
@@ -47,7 +47,6 @@ def analyzeFunction(vw, funcva):
 
 def analyze(vw):
     logger.info('analyze()')
-
     for va, name in vw.getNames():
         lcsm = '__libc_start_main_%.8x' % va
         if name in (lcsm, "*."+lcsm):
@@ -60,21 +59,21 @@ def analyze(vw):
                 if funcva is None:
                     continue
 
-                analyzeFunction(vw, funcva)
+                if vw.isFunctionThunk(funcva):
+                    for sfr, sto, stype, sinfo in vw.getXrefsTo(funcva):
+                        start = vw.getFunction(sfr)
+                        analyzeFunction(vw, start, funcva)
+                else:
+                    analyzeFunction(vw, funcva, va)
 
 
 class AnalysisMonitor(viv_imp_monitor.AnalysisMonitor):
 
-    def __init__(self, vw, fva):
+    def __init__(self, vw, fva, lcsm):
         self.success = False
         self.emu = None
-        self.startmain = None
+        self.startmain = lcsm
         viv_imp_monitor.AnalysisMonitor.__init__(self, vw, fva)
-
-        for va, name in vw.getNames():
-            lcsm = '__libc_start_main_%.8x' % va
-            if name in (lcsm, '*.' + lcsm):
-                self.startmain = va
 
     def prehook(self, emu, op, starteip):
 

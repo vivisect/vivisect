@@ -2292,10 +2292,10 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         self.setOperValue(op, 0, dst)
 
     def i_pinsrw(self, op):
-        self.i_pinsrb(op, bitwidth=2)
+        self.i_pinsrb(op, width=2)
 
     def i_pinsrd(self, op):
-        self.i_pinsrb(op, bitwidth=4)
+        self.i_pinsrb(op, width=4)
 
     # psubq and variants
     def i_psubb(self, op, width=1, off=0):
