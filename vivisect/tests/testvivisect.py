@@ -154,7 +154,7 @@ class VivisectTest(unittest.TestCase):
             self.assertIsNotNone(vapi)
 
             self.assertEqual(capi[2], cconv)
-            self.assertEqual(capi[4], arglen)
+            self.assertEqual(len(capi[4]), arglen)
             self.assertEqual(capi[2], vapi[2])
             self.assertEqual(capi[4], vapi[4])
 
