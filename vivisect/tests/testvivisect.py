@@ -143,6 +143,7 @@ class VivisectTest(unittest.TestCase):
             (0x804bec0, 0x8056f40, 'cdecl', 2, 'quote_n'),
             (0x804be80, 0x8056b40, 'cdecl', 3, 'quote_n_mem'),
             (0x804a7c0, 0x80511d0, 'cdecl', 0, 'close_stdout'),
+            (0x804a920, 0x80559a0, 'cdecl', 1, 'set_program_name')
         ]
         #0x0805198e == why are you a thing? 
         #sub_0804a9a0 == why are you a thing?
@@ -237,6 +238,7 @@ class VivisectTest(unittest.TestCase):
     def test_main(self):
         vw = self.chgrp_vw
         self.assertTrue(vw.isFunction(0x8049650))
+        self.assertTrue(vw.getFunction(0x0804a9a0), 0x0804a920)
 
     def test_viv_bigend(self):
         fd = io.StringIO(u'ABCDEFG')

@@ -103,11 +103,11 @@ def addAnalysisModules(vw):
             vw.addFuncAnalysisModule('vivisect.analysis.arm.thunk_reg')
             vw.addFuncAnalysisModule('vivisect.analysis.arm.renaming')
 
-        vw.addAnalysisModule("vivisect.analysis.generic.funcentries")
         vw.addAnalysisModule("vivisect.analysis.generic.relocations")
         vw.addAnalysisModule("vivisect.analysis.elf.libc_start_main")
         vw.addAnalysisModule("vivisect.analysis.generic.emucode")
         vw.addAnalysisModule("vivisect.analysis.generic.pointertables")
+        vw.addAnalysisModule("vivisect.analysis.generic.funcentries")
 
         # Generic code block analysis
         vw.addFuncAnalysisModule("vivisect.analysis.generic.codeblocks")
