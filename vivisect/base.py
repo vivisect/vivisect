@@ -278,9 +278,6 @@ class VivWorkspaceCore(object, viv_impapi.ImportApi):
 
     def _handleADDFUNCTION(self, einfo):
         va, meta = einfo
-        if va == 0x414d40:
-            import pdb
-            pdb.set_trace()
         self._initFunction(va)
 
         #node = self._call_graph.addNode( nid=va, repr=self.getName( va ) ) #, color='#00ff00' )
