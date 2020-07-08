@@ -230,14 +230,35 @@ class WorkspaceEmulator:
         entries to the current path, and updates current path as needed
         (returns a list of (va, CodePath) tuples.
         """
-
-        paths = set()
+        '''
+        So I've kinda gone back and forth on this one a bit. On one hand, the emulator
+        should be free to iterate over things as it needs. On the other, it's operating with
+        imperfect information as to what's a valid path and what's not.
+        '''
+        vw = self.vw
         ret = []
-        # Add all the known branches to the list
-        blist = op.getBranches(emu=self)
+        paths = set()
+        # if we've already hunted this location down, know it's a table, and we've resolved it
+        # step carefully so we don't conflate tables together
+        xrefs = vw.getXrefsFrom(op.va, rtype=REF_CODE)
+        branches = []
+        for bva, bflags in op.getBranches(emu=None):
+            if bflags & envi.BR_TABLE and vw.getLocation(op.va) and len(xrefs):
+                for xrfrom, xrto, xrtype, xrflags in xrefs:
+                    # if it's not in a codeblock it's probably something like an import, so we
+                    # can ignore it
+                    if self.vw.getCodeBlock(xrto) is None:
+                        continue
+                    bpath = self.getBranchNode(self.curpath, xrto)
+                    if xrto in paths:
+                        continue
+                    ret.append((xrto, bpath))
+                    paths.add(xrto)
+                return ret
 
         # FIXME this should actually check for conditional...
         # If there is more than one branch target, we need a new code block
+        blist = op.getBranches(emu=self)
         if len(blist) > 1:
             for bva, bflags in blist:
                 if bva is None:
@@ -252,16 +273,6 @@ class WorkspaceEmulator:
 
         # let's also take into account some of the dynamic branches we may have found
         # like our table pointers
-        for xrfrom, xrto, xrtype, xrflags in self.vw.getXrefsFrom(op.va, rtype=REF_CODE):
-            # if it's not in a codeblock it's probably something like an import, so we
-            # can ignore it
-            if self.vw.getCodeBlock(xrto) is None:
-                continue
-            bpath = self.getBranchNode(self.curpath, xrto)
-            if xrto in paths:
-                continue
-            ret.append((xrto, bpath))
-            paths.add(xrto)
 
         return ret
 

@@ -118,7 +118,7 @@ class VivisectTest(unittest.TestCase):
             # nonsense where there's 2 dwords of slack space between two of the args
             (0x804f7f0, 0x8052560, 'cdecl', 5, 'hash_insert_if_absent'),
             # quotearg_buffer_restyled, the problem child
-            (0x804ab30, 0x8055bb0, 'fastcall', 10, 'quotearg_buffer_restyled'),
+            (0x804ab30, 0x8055bb0, 'thiscall', 8, 'quotearg_buffer_restyled'),
             (0x804b7e0, 0x8056860, 'cdecl', 4, 'quotearg_alloc_mem'),
             (0x804bc10, 0x8056c90, 'cdecl', 2, 'quotearg_style'),
             (0x804bce0, 0x8056d60, 'cdecl', 2, 'quotearg_char'),
