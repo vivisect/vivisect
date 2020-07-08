@@ -26,6 +26,7 @@ def addAnalysisModules(vw):
         if arch == 'i386':
 
             vw.addImpApi('windows', 'i386')
+            vw.addImpApi('winkern', 'i386')
 
             viv_analysis_i386.addEntrySigs(vw)
             vw.addStructureModule('win32', 'vstruct.defs.win32')
@@ -34,6 +35,7 @@ def addAnalysisModules(vw):
         elif arch == 'amd64':
 
             vw.addImpApi('windows', 'amd64')
+            vw.addImpApi('winkern', 'amd64')
             vw.addStructureModule('ntdll', 'vstruct.defs.windows.win_6_1_amd64.ntdll')
 
         elif arch in ARM_ARCHS:
