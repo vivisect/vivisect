@@ -1274,6 +1274,20 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
         return loc
 
+    def reprLocation(self, va):
+        """
+        Display the human-happy version of a location
+        """
+        loc = self.getLocation(va)
+        if loc is None:
+            return 'None'
+
+        lva, lsz, ltype, ltinfo = loc
+        ltvar = loc_lookups.get(ltype)
+        ltdesc = loc_type_names.get(ltype)
+        locrepr = '(0x%x, %d, %s, %r)  # %s' % (lva, lsz, ltvar, ltinfo, ltdesc)
+        return locrepr
+
     def makeCode(self, va, arch=envi.ARCH_DEFAULT):
         """
         Attempt to begin code-flow based disassembly by

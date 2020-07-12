@@ -709,7 +709,10 @@ class VivCodeFlowContext(e_codeflow.CodeFlowContext):
 
     # NOTE: self._mem is the viv workspace...
     def _cb_opcode(self, va, op, branches):
-
+        '''
+        callback for each OPCODE in codeflow analysis
+        must return list of branches, modified for our purposes
+        '''
         loc = self._mem.getLocation(va)
         if loc is None:
 
@@ -717,9 +720,12 @@ class VivCodeFlowContext(e_codeflow.CodeFlowContext):
             branches = [br for br in branches if not self._mem.isLocType(br[0],LOC_IMPORT)]
 
             self._mem.makeOpcode(op.va, op=op)
-            # FIXME: future home of makeOpcode branch/xref analysis
+            # TODO: future home of makeOpcode branch/xref analysis
             return branches
 
+        if loc[L_LTYPE] != LOC_OP:
+            locrepr = self._mem.reprLocation(va)
+            logger.warn("_cb_opcode(0x%x): LOCATION ALREADY EXISTS: loc: %r", va, locrepr)
         return ()
 
     def _cb_function(self, fva, fmeta):
