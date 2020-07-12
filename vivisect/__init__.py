@@ -1274,7 +1274,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
         return loc
 
-    def reprLocation(self, va):
+    def reprLocEntry(self, va):
         """
         Display the human-happy version of a location
         """

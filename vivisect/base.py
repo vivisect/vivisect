@@ -724,7 +724,7 @@ class VivCodeFlowContext(e_codeflow.CodeFlowContext):
             return branches
 
         if loc[L_LTYPE] != LOC_OP:
-            locrepr = self._mem.reprLocation(va)
+            locrepr = self._mem.reprLocEntry(va)
             logger.warn("_cb_opcode(0x%x): LOCATION ALREADY EXISTS: loc: %r", va, locrepr)
         return ()
 
