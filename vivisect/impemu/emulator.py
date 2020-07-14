@@ -191,11 +191,11 @@ class WorkspaceEmulator:
             hook = self.hooks.get(callname)
             if ret is None and hook:
                 hook(self, callconv, api, argv)
-            else:
+            elif self._func_only:
                 if ret is None:
                     ret = self.setVivTaint('apicall', (op, endeip, api, argv))
                 callconv.execCallReturn(self, ret, len(funcargs))
-
+            # no else since we'll emulate into the function
 
         return iscall
 
@@ -385,6 +385,7 @@ class WorkspaceEmulator:
                     # TODO: hook things like error(...) when they have a param that indicates to 
                     # exit. Might be a bit hairy since we'll possibly have to fix up codeblocks
                     if self.vw.isNoReturnVa(endeip):
+                        vg_path.setNodeProp(self.curpath, 'cleanret', False)
                         break
 
                     # If it wasn't a call, check for branches, if so, add them to

@@ -85,11 +85,21 @@ class BFastCall(ThisCall):
     arg_def = [(CC_REG, REG_EAX), (CC_REG, REG_EDX), (CC_REG, REG_ECX),
                 (CC_STACK_INF, 4)]
 
+class ThisCaller(ThisCall):
+    flags = CC_CALLER_CLEANUP
+class MsFastCaller(MsFastCall):
+    flags = CC_CALLER_CLEANUP
+class BFastCaller(BFastCall):
+    flags = CC_CALLER_CLEANUP
+
 stdcall = StdCall()
-thiscall = ThisCall()
 cdecl = Cdecl()
+thiscall = ThisCall()
 msfastcall = MsFastCall()
 bfastcall = BFastCall()
+thiscaller = ThisCaller()
+msfastcaller = MsFastCaller()
+bfastcaller = BFastCaller()
 
 class IntelEmulator(i386RegisterContext, envi.Emulator):
 
@@ -112,10 +122,14 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
 
         # Add our known calling conventions
         self.addCallingConvention('stdcall', stdcall)
-        self.addCallingConvention('thiscall', thiscall)
         self.addCallingConvention('cdecl', cdecl)
+        self.addCallingConvention('thiscall', thiscall)
         self.addCallingConvention('msfastcall', msfastcall)
         self.addCallingConvention('bfastcall', bfastcall)
+
+        self.addCallingConvention('thiscaller', thiscaller)
+        self.addCallingConvention('msfastcaller', msfastcaller)
+        self.addCallingConvention('bfastcaller', bfastcaller)
 
     def getSegmentIndex(self, op):
         # FIXME this needs to account for push/pop/etc
@@ -341,6 +355,9 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         # Src op gets sign extended to dst
         dst = self.getOperValue(op, 0)
         src = self.getOperValue(op, 1)
+
+        self._useVirtAddr(dst)
+        self._useVirtAddr(src)
 
         # So we can either do a BUNCH of crazyness with xor and shifting to
         # get the necessary flags here, *or* we can just do both a signed and
