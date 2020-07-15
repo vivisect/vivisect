@@ -6,6 +6,7 @@ import vivisect.impemu.emulator as v_i_emulator
 logger = logging.getLogger(__name__)
 non_use_mnems = ('push', )
 
+
 class i386WorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_i386.IntelEmulator):
 
     taintregs = [
@@ -25,11 +26,20 @@ class i386WorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_i386.IntelEmulator
         if self.op is None:
             return value
 
+        if self.isMetaRegister(index):
+            index, _, _ = self.getMetaRegInfo(index)
+            # use the value of the real register (not the meta register) for _useVirtAddr
+            # but ultimately return the meta register value
+            rval = e_i386.IntelEmulator.getRegister(self, index)
+        else:
+            rval = value
+
         if index not in self.taintregs:
             return value
 
         if self.isRegUse(self.op, index):
-            self._useVirtAddr(value)
+            self._useVirtAddr(rval)
+
         return value
 
     def isRegUse(self, op, ridx):
