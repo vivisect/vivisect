@@ -1,9 +1,14 @@
+import logging
+
 import envi.archs.i386 as e_i386
 import vivisect.impemu.emulator as v_i_emulator
 
+logger = logging.getLogger(__name__)
+non_use_mnems = ('push', )
+
 class i386WorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_i386.IntelEmulator):
 
-    taintregs = [ 
+    taintregs = [
         e_i386.REG_EAX, e_i386.REG_ECX, e_i386.REG_EDX,
         e_i386.REG_EBX, e_i386.REG_EBP, e_i386.REG_ESI,
         e_i386.REG_EDI,
@@ -12,4 +17,46 @@ class i386WorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_i386.IntelEmulator
     def __init__(self, vw, logwrite=False, logread=False):
         e_i386.IntelEmulator.__init__(self)
         v_i_emulator.WorkspaceEmulator.__init__(self, vw, logwrite=logwrite, logread=logread)
-        self.setEmuOpt('i386:reponce',True)
+        self.setEmuOpt('i386:reponce', True)
+
+    def getRegister(self, index):
+        value = e_i386.IntelEmulator.getRegister(self, index)
+
+        if self.op is None:
+            return value
+
+        if index not in self.taintregs:
+            return value
+
+        if self.isRegUse(self.op, index):
+            self._useVirtAddr(value)
+        return value
+
+    def isRegUse(self, op, ridx):
+        '''
+        determines if the sequence of uses(get/setRegister) is a register 'use'.
+        '''
+        # conditions that indicate 'usage':
+        # * 'normal usage'
+        #   read from a register with *no* previous writes/sets to that register
+
+        # conditions that do *not* indicate 'usage':
+        # * 'register initialization', ie xor rax, rax, mov rax, 0, etc
+        # * 'save/restore of register', ie push/pop
+
+        # blacklist of mnems that do *not* indicate a 'use'
+
+        # if first item is a set, then this is *not* an arg(register) use
+        # (reg initialization)
+        if op.mnem == 'xor' and op.opers[0] == op.opers[1]:
+            # xor register initialization
+            logger.debug('{}: not a reg use (xor init): {} {}'.format(hex(op.va), ridx, op))
+            return False
+
+        else:
+            # if op mnem is in blacklist, it's not a use either
+            if op.mnem in non_use_mnems:
+                logger.debug('{}: not a reg use (mnem): {} {}'.format(hex(op.va), ridx, op))
+                return False
+
+        return True

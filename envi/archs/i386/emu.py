@@ -356,9 +356,6 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         dst = self.getOperValue(op, 0)
         src = self.getOperValue(op, 1)
 
-        self._useVirtAddr(dst)
-        self._useVirtAddr(src)
-
         # So we can either do a BUNCH of crazyness with xor and shifting to
         # get the necessary flags here, *or* we can just do both a signed and
         # unsigned sub and use the results.
