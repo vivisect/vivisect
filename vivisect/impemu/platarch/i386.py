@@ -27,17 +27,18 @@ class i386WorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_i386.IntelEmulator
             return value
 
         if self.isMetaRegister(index):
-            index, _, _ = self.getMetaRegInfo(index)
+            ridx, _, _ = self.getMetaRegInfo(index)
             # use the value of the real register (not the meta register) for _useVirtAddr
             # but ultimately return the meta register value
-            rval = e_i386.IntelEmulator.getRegister(self, index)
+            rval = e_i386.IntelEmulator.getRegister(self, ridx)
         else:
+            ridx = index
             rval = value
 
-        if index not in self.taintregs:
+        if ridx not in self.taintregs:
             return value
 
-        if self.isRegUse(self.op, index):
+        if self.isRegUse(self.op, ridx):
             self._useVirtAddr(rval)
 
         return value

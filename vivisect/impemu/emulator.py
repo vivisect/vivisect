@@ -37,7 +37,9 @@ class WorkspaceEmulator:
 
         self.hooks = {}
         self.taints = {}
-        self.taintva = itertools.count(0x4156000F, 8192)
+        self.taintva = itertools.count(0x4156000F, 0x2000)
+        self.taintoffset = 0x1000
+        self.taintmask = 0xffffe000
         self.taintrepr = {}
 
         self.uninit_use = {}
@@ -454,7 +456,7 @@ class WorkspaceEmulator:
 
     def nextVivTaint(self):
         # One page into the new taint range
-        return self.taintva.next() + 4096
+        return self.taintva.next() + self.taintoffset
 
     def setVivTaint(self, typename, taint):
         '''
@@ -462,7 +464,7 @@ class WorkspaceEmulator:
         the created taint.
         '''
         va = self.nextVivTaint()
-        self.taints[ va & 0xffffe000 ] = (va,typename,taint)
+        self.taints[ va & self.taintmask ] = (va,typename,taint)
         return va
 
     def getVivTaint(self, va):
@@ -470,7 +472,7 @@ class WorkspaceEmulator:
         Retrieve a previously registered taint ( this will automagically
         mask values down and allow you to retrieve "near taint" values.)
         '''
-        return self.taints.get( va & 0xffffe000 )
+        return self.taints.get( va & self.taintmask )
 
     def reprVivTaint(self, taint):
         '''

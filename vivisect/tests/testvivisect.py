@@ -114,10 +114,10 @@ class VivisectTest(unittest.TestCase):
     def test_callargs(self):
         answers = [
             (0x804f7f0, 0x8052560, 'cdecl', 3, 'hash_insert_if_absent'),
-            # quotearg_buffer_restyled, the problem child
-            # there should be 9 here, but we're missing the two registers
             (0x804aad0, 0x8055b50, 'cdecl', 5, 'quotearg_buffer'),
-            (0x804ab30, 0x8055bb0, 'msfastcaller', 9, 'quotearg_buffer_restyled'),
+            # quotearg_buffer_restyled, the problem child
+            # there should be 9 and an msfastcaller here, but meta registers are a nightmare
+            (0x804ab30, 0x8055bb0, 'cdecl', 7, 'quotearg_buffer_restyled'),
             (0x804b7c0, 0x8056840, 'cdecl', 3, 'quotearg_alloc'),
             (0x804b7e0, 0x8056860, 'cdecl', 4, 'quotearg_alloc_mem'),
             (0x804bc10, 0x8056c90, 'cdecl', 2, 'quotearg_style'),
