@@ -251,9 +251,9 @@ class WorkspaceEmulator:
                     # can ignore it
                     if self.vw.getCodeBlock(xrto) is None:
                         continue
-                    bpath = self.getBranchNode(self.curpath, xrto)
                     if xrto in paths:
                         continue
+                    bpath = self.getBranchNode(self.curpath, xrto)
                     ret.append((xrto, bpath))
                     paths.add(xrto)
                 return ret
