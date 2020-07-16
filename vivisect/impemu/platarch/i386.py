@@ -1,9 +1,8 @@
-import logging
-
 import envi.archs.i386 as e_i386
 import vivisect.impemu.emulator as v_i_emulator
 
-logger = logging.getLogger(__name__)
+from envi.const import RMETA_NMASK
+
 non_use_mnems = ('push', )
 
 
@@ -21,19 +20,17 @@ class i386WorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_i386.IntelEmulator
         self.setEmuOpt('i386:reponce', True)
 
     def getRegister(self, index):
-        value = e_i386.IntelEmulator.getRegister(self, index)
+        rval = value = e_i386.IntelEmulator.getRegister(self, index)
 
         if self.op is None:
             return value
 
+        ridx = index
         if self.isMetaRegister(index):
-            ridx, _, _ = self.getMetaRegInfo(index)
+            ridx = index & RMETA_NMASK
             # use the value of the real register (not the meta register) for _useVirtAddr
             # but ultimately return the meta register value
             rval = e_i386.IntelEmulator.getRegister(self, ridx)
-        else:
-            ridx = index
-            rval = value
 
         if ridx not in self.taintregs:
             return value
@@ -61,13 +58,11 @@ class i386WorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_i386.IntelEmulator
         # (reg initialization)
         if op.mnem == 'xor' and op.opers[0] == op.opers[1]:
             # xor register initialization
-            logger.debug('{}: not a reg use (xor init): {} {}'.format(hex(op.va), ridx, op))
             return False
 
         else:
             # if op mnem is in blacklist, it's not a use either
             if op.mnem in non_use_mnems:
-                logger.debug('{}: not a reg use (mnem): {} {}'.format(hex(op.va), ridx, op))
                 return False
 
         return True
