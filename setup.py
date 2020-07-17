@@ -1,4 +1,9 @@
 from setuptools import find_packages, setup
+from os import path
+
+dirn = path.abspath(path.dirname(__file__))
+with open(path.join(dirn, 'README.md'), 'r') as fd:
+    desc = fd.read()
 
 setup(
     name='vivisect',
@@ -9,6 +14,8 @@ setup(
     packages=find_packages(),
     zip_safe=False,
     description='Pure python disassembler, debugger, emulator, and static analysis framework',
+    long_description=desc,
+    long_description_content_type='text/markdown',
     include_package_data=True,
     package_data={
         '': ['*.dll', '*.dylib', '*.lyt', 'Makefile', '*.c', '*.h', '*.yes', '*.sh']
@@ -32,5 +39,6 @@ setup(
         'Topic :: Software Development :: Debuggers',
         'Programming Language :: Python :: 2',
         'License :: OSI Approved :: Apache Software License',
-    ]
+    ],
+    python_requires='<3',
 )

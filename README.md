@@ -1,8 +1,7 @@
 # Vivisect / Vdb / Vtrace
 
-Now all as one project! ( made sense once vivisect went public )
-For more in-depth docs on various topics, see the wiki at
-[http://visi.kenshoto.com/](http://visi.kenshoto.com/)
+A combined disassembler/static analysis/symbolic execution/debugger
+framework. More documentation is in the works :)
 
 ## Vdb
 
@@ -18,8 +17,7 @@ or...
 
 > vdb> help writemem
 
-to show available commands and options.  Additionally, for basic vdb
-use, the wiki at [http://visi.kenshoto.com/](http://visi.kenshoto.com/)
+to show available commands and options.
 
 ## Vivisect
 
@@ -29,7 +27,7 @@ To start with, you probably want to run a "bulk analysis" pass on a binary
 using:
 
 ```
-python vivbin -B <binaryfile>
+python2 -m vivisect.vivbin -B <binaryfile>
 ```
 
 which will leave you with <binaryfile>.viv
@@ -37,7 +35,7 @@ which will leave you with <binaryfile>.viv
 Then run:
 
 ```
-python vivbin <binaryfile>.viv
+python2 -m vivisect.vivbin <binaryfile>.viv
 ```
 
 to open the GUI and begin reverse engineering.  As with most vtoys, the ui
