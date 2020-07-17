@@ -2,13 +2,17 @@ from setuptools import find_packages, setup
 
 setup(
     name='vivisect',
-    author='The Vivisect Cats',
+    author='Vivisect',
     author_email='',
     version='0.1.0',
     url='https://github.com/vivisect/vivisect',
     packages=find_packages(),
     zip_safe=False,
     description='Pure python disassembler, debugger, emulator, and static analysis framework',
+    include_package_data=True,
+    package_data={
+        '': ['*.dll', '*.dylib', '*.lyt', 'Makefile', '*.c', '*.h', '*.yes', '*.sh']
+    },
     entry_points={
         'console_scripts': [
             'vivbin=vivisect.vivbin:main',
