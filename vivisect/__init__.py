@@ -23,8 +23,6 @@ try:
 except ModuleNotFoundError:
     import queue as Queue
 
-import vivisect.contrib  # This should go first
-
 # The envi imports...
 import envi
 import envi.bits as e_bits
@@ -1136,7 +1134,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
                 continue
 
             refva, refsize, reftype, refinfo = self.getLocation(xrfrom)
-            if reftype != vivisect.LOC_OP:
+            if reftype != LOC_OP:
                 continue
             # If we've already constructed this opcode location and made the xref to the new codeblock,
             # that should mean we've already made the jump table, so there should be no need to split this
@@ -1541,7 +1539,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         if api:
             # Set any argument names that are None
             rettype,retname,callconv,callname,callargs = api
-            callargs = [ callargs[i] if callargs[i][1] else (callargs[i][0],'arg%d' % i) for i in xrange(len(callargs)) ]
+            callargs = [ callargs[i] if callargs[i][1] else (callargs[i][0],'arg%d' % i) for i in range(len(callargs)) ]
             self.setFunctionApi(fva, (rettype,retname,callconv,callname,callargs))
 
     def getCallers(self, va):
@@ -2469,7 +2467,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         ok = string.letters + string.digits + '_'
 
         chars = list(normname)
-        for i in xrange(len(chars)):
+        for i in range(len(chars)):
             if chars[i] not in ok:
                 chars[i] = '_'
 
@@ -2550,7 +2548,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             totsize += mapsize
         loctot = 0
         ret = {}
-        for i in xrange(LOC_MAX):
+        for i in range(LOC_MAX):
             cnt = 0
             size = 0
             for lva,lsize,ltype,tinfo in self.getLocations(i):

@@ -605,7 +605,7 @@ class Emulator(e_reg.RegisterContext, e_mem.MemoryObject):
         (breakpoint, segv, syscall, etc...)
         """
         if stepcount != None:
-            for i in xrange(stepcount):
+            for i in range(stepcount):
                 self.stepi()
         else:
             while True:

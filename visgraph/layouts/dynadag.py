@@ -14,7 +14,7 @@ import visgraph.drawing.catmullrom as vg_catmullrom
 zero_zero = (0,0)
 
 def revenumerate(l):
-    return itertools.izip(xrange(len(l)-1, -1, -1), reversed(l))
+    return itertools.izip(range(len(l)-1, -1, -1), reversed(l))
 
 SCOOCH_LEFT     = 0
 SCOOCH_RIGHT    = 1
@@ -78,7 +78,7 @@ class DynadagLayout(vg_layout.GraphLayout):
     def _orderNodesByBary(self):
         # Go through the layers and do barycenter calcs first.
         # FIXME how do we tell when we're done?
-        for i in xrange(self._barry_count):
+        for i in range(self._barry_count):
             for layer in self.layers:
                 for nid,ninfo in layer:
                     self._baryCenter(nid, ninfo)
@@ -114,7 +114,7 @@ class DynadagLayout(vg_layout.GraphLayout):
         ccount = 0
 
         layer = self.layers[layernum]
-        for i in xrange(1, len(layer)):
+        for i in range(1, len(layer)):
 
             myabove, mybelow = self._getNodeRelPos(*layer[i])
             hisabove, hisbelow = self._getNodeRelPos(*layer[i-1])
@@ -140,7 +140,7 @@ class DynadagLayout(vg_layout.GraphLayout):
         # Go through nodes and see if we can re-order children to
         # reduce crossovers...
 
-        for i in xrange(len(self.layers)):
+        for i in range(len(self.layers)):
 
             layer = self.layers[i]
 
@@ -154,7 +154,7 @@ class DynadagLayout(vg_layout.GraphLayout):
 
                 # TODO should we do this multipliciative rather than
                 # neighbors only?
-                for j in xrange(len(layer)-1):
+                for j in range(len(layer)-1):
 
                     n1 = layer[j]
                     n2 = layer[j+1]
@@ -241,7 +241,7 @@ class DynadagLayout(vg_layout.GraphLayout):
             self.maxweight = max(ninfo.get('weight', 0), self.maxweight)
         #print 'Max Weight: %d' % self.maxweight
 
-        self.layers = [ [] for i in xrange(self.maxweight + 1) ]
+        self.layers = [ [] for i in range(self.maxweight + 1) ]
 
         done = set()
         def doit(node):

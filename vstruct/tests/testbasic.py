@@ -145,7 +145,7 @@ class VStructTest(unittest.TestCase):
         self.assertEqual( v.z, 0x41424344 )
 
     def test_vstruct_varray(self):
-        v = vstruct.VArray( [ v_uint8(i) for i in xrange(20) ] )
+        v = vstruct.VArray( [ v_uint8(i) for i in range(20) ] )
         self.assertEqual( v[2], 2 )
         v.vsParse('A' * 20)
         self.assertEqual( v[2], 0x41 )

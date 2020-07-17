@@ -92,7 +92,7 @@ def buildFunctionApi(vw, fva, emu, emumon):
         callconv = 'unkcall' 
         argc = 0
     # Add argument indexes to our argument names
-    funcargs = [ argcname(callconv, i) for i in xrange(argc) ]
+    funcargs = [ argcname(callconv, i) for i in range(argc) ]
     api = ('int',None,callconv,None,funcargs)
 
     vw.setFunctionApi(fva, api)
@@ -123,7 +123,7 @@ def analyzeFunction(vw, fva):
     baseoff = cc.getStackArgOffset(emu, argc)
 
     # Register our stack args as function locals
-    for i in xrange( stcount ):
+    for i in range( stcount ):
 
         vw.setFunctionLocal(fva, baseoff + ( i * 4 ), LSYM_FARG, i+stackidx)
 
