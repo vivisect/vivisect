@@ -39,7 +39,7 @@ def _loadMacho(vw, filebytes, filename=None, baseaddr=None):
         offset = 0
         fat = vs_macho.fat_header()
         offset = fat.vsParse(filebytes, offset=offset)
-        for i in xrange(fat.nfat_arch):
+        for i in range(fat.nfat_arch):
             ar = vs_macho.fat_arch()
             offset = ar.vsParse(filebytes, offset=offset)
             archname = vs_macho.mach_cpu_names.get(ar.cputype)

@@ -24,14 +24,14 @@ def calculate_bezier(points, steps = 30):
     ret = []
     points = [ (float(x),float(y)) for x,y in points ]
 
-    for i in xrange(steps+1):
+    for i in range(steps+1):
 
         pcent = i / float(steps)
 
         layers = [ points, ]
         while len(layers[-1]) != 1:
             l_points = layers[-1]
-            newpoints = [ splitline( l_points[i], l_points[i+1], pcent) for i in xrange(len(l_points)-1) ]
+            newpoints = [ splitline( l_points[i], l_points[i+1], pcent) for i in range(len(l_points)-1) ]
             layers.append(newpoints)
 
         ret.append(layers[-1][0])

@@ -117,7 +117,7 @@ class AnalysisMonitor(EmulationMonitor):
 
     def addDynamicBranchHandler(self, cb):
         '''
-        Add a callback handler for dynamic branches the code-flow resolver 
+        Add a callback handler for dynamic branches the code-flow resolver
         doesn't know what to do with
         '''
         if cb in self._dynamic_branch_handlers:

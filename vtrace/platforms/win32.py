@@ -1055,7 +1055,7 @@ def getServicesList():
         #p = POINTER(ENUM_SERVICE_STATUS_PROCESS)(addressof(buf))
         p = cast(buf, POINTER(ENUM_SERVICE_STATUS_PROCESS))
 
-        for i in xrange(dwSvcCount.value):
+        for i in range(dwSvcCount.value):
             pid = p[i].ServiceStatusProcess.dwProcessId
             name = p[i].lpServiceName
             descr = p[i].lpDisplayName

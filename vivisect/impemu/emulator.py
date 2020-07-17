@@ -107,7 +107,7 @@ class WorkspaceEmulator:
 
             # Create some pre-made taints for positive stack indexes
             # NOTE: This is *ugly* for speed....
-            taints = [ self.setVivTaint('funcstack', i * self.psize) for i in xrange(20) ]
+            taints = [ self.setVivTaint('funcstack', i * self.psize) for i in range(20) ]
             taintbytes = ''.join([ e_bits.buildbytes(taint,self.psize) for taint in taints ])
 
             self.writeMemory(self.stack_pointer, taintbytes)
@@ -121,7 +121,7 @@ class WorkspaceEmulator:
             new_map_base = new_map_top - new_map_size
 
             stack_map = ''.join([struct.pack('<I', new_map_base+(i*4))
-                                    for i in xrange(new_map_size)])
+                                    for i in range(new_map_size)])
 
             self.addMemoryMap(new_map_base, 6, "[stack]", stack_map)
             self.stack_map_base = new_map_base
@@ -176,7 +176,7 @@ class WorkspaceEmulator:
             rtype, rname, convname, callname, funcargs = api
             callconv = self.getCallingConvention(convname)
             if callconv is None:
-                logger.exception("checkCall(0x%x, 0x%x, %r): cannot get calling convention!", starteip, endeip, op)
+                logger.error("checkCall(0x%x, 0x%x, %r): cannot get calling convention!", starteip, endeip, op)
                 self.emumon.logAnomaly(self, endeip, "no calling convention found for %x" % (endeip))
                 return iscall
 
