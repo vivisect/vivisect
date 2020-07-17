@@ -4034,7 +4034,7 @@ class ArmOpcode(envi.Opcode):
         # Allow each of our operands to render
         imax = len(self.opers)
         lasti = imax - 1
-        for i in xrange(imax):
+        for i in range(imax):
             oper = self.opers[i]
             oper.render(mcanv, self, i)
             if i != lasti:
@@ -5010,7 +5010,7 @@ class ArmRegListOper(ArmOperand):
         if emu is None:
             return None
         reglist = []
-        for regidx in xrange(16):
+        for regidx in range(16):
             #FIXME: check processor mode (abort, system, user, etc... use banked registers?)
             if self.val & (1<<regidx):
                 reg = emu.getRegister(regidx)
@@ -5056,7 +5056,7 @@ class ArmExtRegListOper(ArmOperand):
         regbase = ("s%d", "d%d")[self.size]
         mcanv.addText('{')
         top = self.count-1
-        for l in xrange(0, self.count, self.inc):
+        for l in range(0, self.count, self.inc):
             vreg = self.firstreg + l
             mcanv.addNameText(regbase % vreg, typename='registers')
             if l < top:
@@ -5071,7 +5071,7 @@ class ArmExtRegListOper(ArmOperand):
         if emu is None:
             return None
         reglist = []
-        for regidx in xrange(self.firstreg, self.firstreg + self.count):
+        for regidx in range(self.firstreg, self.firstreg + self.count):
             reg = emu.getRegister(REGS_VECTOR_TABLE_IDX + regidx)
             reglist.append(reg)
         return reglist
@@ -5092,7 +5092,7 @@ class ArmExtRegListOper(ArmOperand):
         s = [ "{" ]
         top = self.count - 1
 
-        for l in xrange(self.count):
+        for l in range(self.count):
             vreg = self.firstreg + l
             s.append(regbase % vreg)
             if l < top:

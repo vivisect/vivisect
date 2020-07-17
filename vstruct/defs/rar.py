@@ -246,7 +246,7 @@ class FILE_HEADER(Rar4Block):
 import hashlib
 rounds = 0x40000
 roundsdiv = rounds / 16
-#iblist = [ struct.pack('<I',i)[:3] for i in xrange(rounds) ]
+#iblist = [ struct.pack('<I',i)[:3] for i in range(rounds) ]
 
 def initIvKey30(passwd,salt):
     aesiv = [None] * 16
@@ -261,7 +261,7 @@ def initIvKey30(passwd,salt):
     sha1hash = hashlib.sha1()
     #sha1hash = rarsha()
     # crazy russian awesomeness/paranoia
-    for i in xrange(rounds): # srsly?!?! fscking russians ;)
+    for i in range(rounds): # srsly?!?! fscking russians ;)
         sha1hash.update(initkey)
         #print "INITKEY",initkey.encode("hex")
         ib = struct.pack('<I',i)
@@ -283,8 +283,8 @@ def initIvKey30(passwd,salt):
     print 'KEY',aeskey.encode('hex')
     #digest = sha1hash.digest()
     #print 'PREKEY',digest.encode('hex')
-    #for i in xrange(4):
-        #for j in xrange(4):
+    #for i in range(4):
+        #for j in range(4):
             #aeskey[ (i*4) + j ] = chr( (digest[i] >> (j*8)) & 0xff )
 
     return ''.join(aesiv),aeskey

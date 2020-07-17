@@ -75,7 +75,7 @@ class ArgDefSymEmu(object):
 
         args = []
         num = int(fmt[1:fmt.index('P')])
-        for i in xrange(num):
+        for i in range(num):
             args.append(Mem(va, Const(self.xlator._psize, self.xlator._psize)))
             va += Const(self.xlator._psize, self.xlator._psize)
 

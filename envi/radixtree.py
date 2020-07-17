@@ -24,7 +24,7 @@ class RadixIntTree:
         with self.treelock:
             self.precount += 1
             shiftmax = self.bitwidth - 1
-            bits = [ (value >> (shiftmax - i)) & 1 for i in xrange(bits) ]
+            bits = [ (value >> (shiftmax - i)) & 1 for i in range(bits) ]
 
             curnode = self.treeroot
             for bit in bits:
@@ -42,7 +42,7 @@ class RadixIntTree:
         inserted objects in the prefix tree (best match last).
         '''
         shiftmax = self.bitwidth - 1
-        bits = [ (value >> (shiftmax - i)) & 1 for i in xrange(self.bitwidth) ]
+        bits = [ (value >> (shiftmax - i)) & 1 for i in range(self.bitwidth) ]
 
         curnode = self.treeroot
         for bit in bits:
@@ -57,7 +57,7 @@ class RadixIntTree:
     def getIntLongestPrefix(self, value):
 
         shiftmax = self.bitwidth - 1
-        bits = [ (value >> (shiftmax - i)) & 1 for i in xrange(self.bitwidth) ]
+        bits = [ (value >> (shiftmax - i)) & 1 for i in range(self.bitwidth) ]
 
         best = None
         curnode = self.treeroot
