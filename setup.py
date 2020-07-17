@@ -23,11 +23,10 @@ setup(
         'pycparser==2.20',
     ],
     classifiers=[
-        'License :: OSI Approved :: Apache Software License',
-        'Programming Language :: Python :: 2',
         'Topic :: Security',
         'Topic :: Software Development :: Disassemblers',
         'Topic :: Software Development :: Debuggers',
-        'Topic :: System :: Emulators',
+        'Programming Language :: Python :: 2',
+        'License :: OSI Approved :: Apache Software License',
     ]
 )
