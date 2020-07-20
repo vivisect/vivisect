@@ -74,11 +74,11 @@ def rollsafe(f):
     def doroll(*args, **kwargs):
         try:
             return f(*args, **kwargs)
-        except Exception, e:
+        except Exception as e:
             traceback.print_exc()
             try:
                 args[0].db.rollback()
-            except Exception, e:
+            except Exception:
                 pass
             raise
 

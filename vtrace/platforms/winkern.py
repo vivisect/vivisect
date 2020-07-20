@@ -237,7 +237,7 @@ def initWinkernTrace(trace, kpcrva):
             dllname = trace.readMemory(ldte.FullDllName.Buffer, ldte.FullDllName.Length).decode('utf-16le')
             dllbase = ldte.DllBase & trace.bigmask
             trace.addLibraryBase(dllname, dllbase, always=True)
-        except Exception, e:
+        except Exception as e:
             print('Trouble while parsing one...')
         ldr_entry = ldte.InLoadOrderLinks.Flink & trace.bigmask
 

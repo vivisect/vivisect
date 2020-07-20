@@ -61,7 +61,7 @@ class VivEventCore(object):
         if h != None:
             try:
                 h(self._ve_vw, event, edata)
-            except Exception, e:
+            except Exception as e:
                 traceback.print_exc()
 
     @firethread
@@ -144,7 +144,7 @@ class VivEventDist(VivEventCore):
         for h in hlist:
             try:
                 h(self._ve_vw, event, edata)
-            except Exception, e:
+            except Exception as e:
                 traceback.print_exc()
 
         VivEventCore._ve_fireEvent(self, event, edata)
@@ -582,7 +582,7 @@ class VivWorkspaceCore(object, viv_impapi.ImportApi):
                 except Queue.Full, e:
                     print "FULL QUEUE DO SOMETHING"
 
-        except Exception, e:
+        except Exception as e:
             traceback.print_exc()
 
     def _fireTransEvent(self, event, einfo):

@@ -286,7 +286,7 @@ class ClusterServer:
                     if work.isTimedOut():
                         self.timeoutWork(work)
 
-            except Exception, e:
+            except Exception as e:
                 print "ClusterTimer: %s" % e
 
             time.sleep(2)
@@ -303,7 +303,7 @@ class ClusterServer:
             for q in self.queens:
                 try:
                     q.proxyAnnounceWork(self.name, self.cobraname, self.cobrad.port)
-                except Exception, e:
+                except Exception as e:
                     print('Queen Error: %s' % e)
 
         else:
@@ -593,7 +593,7 @@ def workThread(server, work):
     except InvalidInProgWorkId, e: # the work was canceled
         pass # Nothing to do, the server already knows
 
-    except Exception, e:
+    except Exception as e:
         # Tell the server that the work unit failed
         work.excinfo = traceback.format_exc()
         traceback.print_exc()
@@ -639,7 +639,7 @@ def getAndDoWork(uri, docode=False):
         if work != None:
             runAndWaitWork(proxy, work)
 
-    except Exception, e:
+    except Exception:
         traceback.print_exc()
 
     # Any way it goes we wanna exit now.  Work units may have

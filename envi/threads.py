@@ -2,11 +2,14 @@
 A couple useful thread related toys...
 '''
 import time
+import logging
 import threading
 import functools
 import collections
 
 import envi.exc as e_exc
+
+logger = logging.getLogger(__name__)
 
 def firethread(func):
     '''
@@ -35,8 +38,8 @@ def maintthread(stime):
             while True:
                 try:
                     func(*args, **kwargs)
-                except Exception, e:
-                    print('MaintThread (%s) Error: %s' % (args[0],e))
+                except Exception as e:
+                    logger.warning('MaintThread (%s) Error: %s' % (args[0],e))
                 time.sleep(stime)
 
         def dothread(*args, **kwargs):
@@ -219,4 +222,3 @@ class EnviQueue:
 
             if not self.event.wait(timeout=deltat):
                 return None
-

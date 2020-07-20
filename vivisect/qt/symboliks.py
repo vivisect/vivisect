@@ -175,15 +175,13 @@ class VivSymbolikFuncPane(e_q_memory.EnviNavMixin, vq_save.SaveableWidget, QWidg
             if codepaths == None:
                 loopcnt = self.loop_count.value()
                 paths = self.symctx.walkSymbolikPaths(self.fva, maxpath=100, loopcnt=loopcnt)
-                    
+
             self.pathview.loadSymbolikPaths(paths)
 
-        except Exception, e:
-            traceback.print_exc()
+        except Exception as e:
             self.memcanvas.addText('ERROR: %s' % e)
 
     def addVivNames(self, path, symobj, ctx):
-
         emu,symctx = ctx
 
         width = emu.__width__ # FIXME factory thing?
@@ -199,7 +197,7 @@ class VivSymbolikFuncPane(e_q_memory.EnviNavMixin, vq_save.SaveableWidget, QWidg
                 offset = emu.getLocalOffset(symobj)
                 #ltype,lname = self.vw.getFunctionLocal( self.fva, offset )
                 flocal = self.vw.getFunctionLocal( self.fva, offset )
-                if flocal == None:
+                if flocal is None:
                     flocal = ('int','local%d' % abs(offset))
 
                 ltype,lname = flocal
@@ -223,7 +221,7 @@ class VivSymbolikFuncPane(e_q_memory.EnviNavMixin, vq_save.SaveableWidget, QWidg
         self.cureffects = effects
         try:
             self.rendSymbolikPath()
-        except Exception, e:
+        except Exception as e:
             import sys
             sys.excepthook(*sys.exc_info())
 

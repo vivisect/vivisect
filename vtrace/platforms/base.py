@@ -385,7 +385,7 @@ class TracerBase(vtrace.Notifier):
 
         try:
             bp.notify(vtrace.NOTIFY_BREAK, self)
-        except Exception, msg:
+        except Exception as msg:
             traceback.print_exc()
             print "Breakpoint Exception 0x%.8x : %s" % (bp.address,msg)
 
@@ -915,7 +915,7 @@ class TracerThread(Thread):
                 meth, args, kwargs, queue = qobj
                 try:
                     queue.put(meth(*args, **kwargs))
-                except Exception,e:
+                except Exception as e:
                     queue.put(e)
                     if vtrace.verbose:
                         traceback.print_exc()

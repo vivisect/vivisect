@@ -12,6 +12,11 @@ class EnviException(Exception):
         return repr(self)
 
 
+class InvalidSymbolCache(EnviException):
+    def __init__(self, vhash):
+        EnviException.__init__(self, 'Invalid Symbol Cache Hash: %s' % vhash)
+
+
 class InvalidInstruction(EnviException):
     """
     Raised by opcode parsers when the specified
@@ -113,6 +118,7 @@ class PDEException(EmuException):
     execution flow becomes un-known due to undefined values.  This is considered
     un-recoverable.
     """
+    pass
 
 
 class UnknownCallingConvention(EmuException):
@@ -120,6 +126,7 @@ class UnknownCallingConvention(EmuException):
     Raised when the getCallArgs() or execCallReturn() methods
     are given an unknown calling convention type.
     """
+    pass
 
 
 class MapOverlapException(EnviException):

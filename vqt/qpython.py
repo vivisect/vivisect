@@ -31,7 +31,7 @@ class ScriptThread(Thread):
     def run(self):
         try:
             exec(self.cobj, self.locals)
-        except Exception, e:
+        except Exception as e:
             scripterr(str(e), traceback.format_exc())
 
 class VQPythonView(QWidget):

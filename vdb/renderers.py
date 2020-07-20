@@ -14,20 +14,20 @@ class OpcodeRenderer(e_canvas.MemoryRenderer):
 
     def __init__(self, trace, arch=envi.ARCH_DEFAULT):
         self.arch = arch
-        self.emu_cache = {} # arch_num: emu instance
+        self.emu_cache = {}  # arch_num: emu instance
         self.pwidth = trace.getPointerSize()
-        self.pformat = '0x%%.%dx' % ( self.pwidth * 2 )
+        self.pformat = '0x%%.%dx' % (self.pwidth * 2)
 
     def _getOpcodePrefix(self, trace, va, op):
         regs = trace.getRegisters()
-        regs = dict([ (rval,rname) for (rname,rval) in regs.items() if rval != 0 ])
+        regs = dict([(rval, rname) for (rname, rval) in regs.items() if rval != 0])
 
         bp = trace.getBreakpointByAddr(va)
-        if bp != None:
+        if bp is not None:
             return ('bp[%d]' % bp.id).ljust(8)
 
-        rname = regs.get( va )
-        if rname != None:
+        rname = regs.get(va)
+        if rname is not None:
             return rname[:7].ljust(8)
 
         return '        '
@@ -50,7 +50,7 @@ class OpcodeRenderer(e_canvas.MemoryRenderer):
                 rova = trace.readMemoryFormat(ova, '<P')[0]
                 sym = trace.getSymByAddr(rova)
 
-            if sym == None:
+            if sym is None:
                 sym = trace.getSymByAddr(ova)
 
             if sym:
@@ -78,7 +78,7 @@ class OpcodeRenderer(e_canvas.MemoryRenderer):
         # NOTE: we assume the memobj is a trace
         trace = mcanv.mem
         sym = trace.getSymByAddr(va)
-        if sym != None:
+        if sym is not None:
             mcanv.addText('\n')
             mcanv.addVaText(str(sym), va=va)
             mcanv.addText(':\n')
@@ -97,7 +97,7 @@ class OpcodeRenderer(e_canvas.MemoryRenderer):
             suffix = self._getOpcodeSuffix(trace, va, op)
             if suffix:
                 mcanv.addText(' ;'+suffix)
-        except Exception, e:
+        except Exception as e:
             mcanv.addText('; suffix error: %s' % e)
 
         mcanv.addText("\n")
@@ -130,7 +130,7 @@ class SymbolRenderer(e_canvas.MemoryRenderer):
 
         if isptr:
             sym = trace.getSymByAddr(p, exact=False)
-            if sym != None:
+            if sym is not None:
                 mcanv.addText(' %s + %d' % (repr(sym), p-long(sym)))
 
         mcanv.addText('\n')
@@ -155,7 +155,7 @@ class DerefRenderer(e_canvas.MemoryRenderer):
         preg = ""
 
         regs = trace.getRegisters()
-        for name,val in regs.items():
+        for name, val in regs.items():
             if val == 0:
                 continue
             if val == va:

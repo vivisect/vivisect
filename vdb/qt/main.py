@@ -406,7 +406,7 @@ class VdbWindow(vq_app.VQMainCmdWindow):
                 else:
                     t.detach()
 
-        except Exception, e:
+        except Exception as e:
             print('Error Detaching: %s' % e)
 
         return vq_app.VQMainCmdWindow.closeEvent(self, event)

@@ -85,7 +85,7 @@ def einfo(vdb, line):
 
     try:
         opts,args = getopt.getopt(argv, 'P')
-    except Exception, e:
+    except Exception:
         return vdb.do_help('einfo')
 
     for opt,optarg in opts:
@@ -160,11 +160,11 @@ def safeseh(vdb, line):
 
         try:
             p = PE.peFromMemoryObject(t, base)
-        except Exception, e:
+        except Exception:
             vdb.vprint('Error: %s (0x%.8x) %s' % (line, base, e))
             return
 
-        if p.IMAGE_LOAD_CONFIG != None:
+        if p.IMAGE_LOAD_CONFIG is not None:
             va = int(p.IMAGE_LOAD_CONFIG.SEHandlerTable)
             if va != 0:
                 count = int(p.IMAGE_LOAD_CONFIG.SEHandlerCount)
@@ -180,7 +180,7 @@ def safeseh(vdb, line):
             base = libs.get(name)
             try:
                 p = PE.peFromMemoryObject(t, base)
-            except Exception, e:
+            except Exception as e:
                 vdb.vprint('Error: %s (0x%.8x) %s' % (name, base, e))
                 continue
 
@@ -205,10 +205,8 @@ def validate_heaps(db):
 
         try:
             f = heap.getFreeLists()
-        except Exception, e:
-            #import traceback
-            #traceback.print_exc()
-            db.vprint("%s: %s" % (e.__class__.__name__,e))
+        except Exception as e:
+            db.vprint("%s: %s" % (e.__class__.__name__, e))
 
         for seg in heap.getSegments():
             db.vprint("%s: 0x%.8x" % ("segment".rjust(9),seg.address))
@@ -225,8 +223,8 @@ def validate_heaps(db):
                                   (pchunk.address, pchunk.chunk.Size, chunk.address, chunk.chunk.PreviousSize))
                         break
 
-            except Exception, e:
-                db.vprint("%s: %s" % (e.__class__.__name__,e))
+            except Exception as e:
+                db.vprint("%s: %s" % (e.__class__.__name__, e))
 
 def heaps(vdb, line):
     """
@@ -260,7 +258,7 @@ def heaps(vdb, line):
 
     try:
         opts,args = getopt.getopt(argv, "F:C:S:L:l:U:V:b:")
-    except Exception, e:
+    except Exception:
         return vdb.do_help('heaps')
 
     for opt,optarg in opts:
@@ -410,9 +408,10 @@ def showaslr(vdb, base, libname):
     t = vdb.getTrace()
     try:
         p = PE.peFromMemoryObject(t, base)
-    except Exception, e:
+    except Exception as e:
         vdb.vprint('Error: %s (0x%.8x) %s' % (libname, base, e))
         return
+
     enabled = False
     c = p.IMAGE_NT_HEADERS.OptionalHeader.DllCharacteristics
     if c & IMAGE_DLLCHARACTERISTICS_DYNAMIC_BASE:
@@ -490,7 +489,7 @@ def pagewatch(vdb, line):
     argv = e_cli.splitargs(line)
     try:
         opts,args = getopt.getopt(argv, "CFLMP:RS:u")
-    except Exception, e:
+    except Exception:
         return vdb.do_help('pagewatch')
 
     if vdb.trace.getMeta('pagewatch') == None:
@@ -675,7 +674,7 @@ def gflags(vdb, line):
                     else:
                         newval = offval
                     vdb.trace.writeMemoryFormat(addr, fmt, newval)
-                except Exception, e:
+                except Exception:
                     vdb.vprint('Symbol Failure: %s' % symname)
                 break
 
@@ -688,7 +687,7 @@ def gflags(vdb, line):
                 status = 'Off'
             elif val == onval:
                 status = 'On'
-        except Exception, e:
+        except Exception:
             pass
         vdb.vprint('%s : %s' % (hname.rjust(20), status))
 
@@ -725,7 +724,7 @@ def pe(vdb, line):
     argv = e_cli.splitargs(line)
     try:
         opts,args = getopt.getopt(argv, "EImNStvV")
-    except Exception, e:
+    except Exception:
         return vdb.do_help('pe')
 
     inmem = True
@@ -773,7 +772,7 @@ def pe(vdb, line):
 
         try:
             pobj = PE.peFromMemoryObject(t, base)
-        except Exception, e:
+        except Exception as e:
             vdb.vprint('Error: %s (0x%.8x) %s' % (libname, base, e))
             continue
 
@@ -787,7 +786,7 @@ def pe(vdb, line):
                 vdb.vprint('0x%.8x - %.30s' % (base, libname))
                 for lname in lnames:
                     vdb.vprint('    %s' % lname)
-            except Exception, e:
+            except Exception as e:
                 vdb.vprint('Import Parser Error On %s: %s' % (libname, e))
 
         elif showvers:
@@ -949,12 +948,12 @@ def jit(vdb, line):
     argv = e_cli.splitargs(line)
     try:
         opts,args = getopt.getopt(argv, "ED")
-    except Exception, e:
+    except Exception:
         return vdb.do_help('jit')
 
     try:
         import _winreg
-    except Exception, e:
+    except Exception:
         vdb.vprint('Error Importing _winreg: %s' % e)
         return
 

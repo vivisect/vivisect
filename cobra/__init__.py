@@ -230,7 +230,7 @@ class CobraSocket:
 
         try:
             buf = self.dumps(data)
-        except Exception, e:
+        except Exception as e:
             raise CobraPickleException("The arguments/attributes must be serializable: %s" % e)
 
         objname = toUtf8(objname)
@@ -356,7 +356,7 @@ class CobraAsyncTrans:
             try:
                 self.csock.sendMessage(self.mtype, self.objname, self.data)
                 return
-            except CobraAuthException, e:
+            except CobraAuthException as e:
                 raise
             except (socket.error,CobraClosedException), e:
                 self.csock.reConnect()
@@ -370,7 +370,7 @@ class CobraAsyncTrans:
                         return data
                     raise data
 
-                except CobraAuthException, e:
+                except CobraAuthException as e:
                     raise
 
                 except (socket.error,CobraClosedException), e:
@@ -422,10 +422,10 @@ class CobraClientSocket(CobraSocket):
                 self.retries = 0
                 return
 
-            except CobraAuthException, e:
+            except CobraAuthException as e:
                 raise
 
-            except Exception, e:
+            except Exception as e:
                 traceback.print_exc()
                 time.sleep( max(2 ** self.retries, 10) )
                 self.retries += 1
@@ -447,10 +447,10 @@ class CobraClientSocket(CobraSocket):
                 self.sendMessage(mtype, objname, data)
                 return self.recvMessage()
 
-            except CobraAuthException, e:
+            except CobraAuthException as e:
                 raise
 
-            except CobraClosedException, e:
+            except CobraClosedException as e:
                 self.reConnect()
 
             except socket.error, e:
@@ -557,7 +557,7 @@ class CobraDaemon(ThreadingTCPServer):
 
             ThreadingTCPServer.serve_forever(self)
 
-        except Exception, e:
+        except Exception as e:
             if not self.run:
                 return
 
@@ -796,11 +796,11 @@ class CobraConnectionHandler:
 
             try:
                 handler(csock, name, obj, data)
-            except Exception, e:
-                if verbose: traceback.print_exc()
+            except Exception as e:
+                traceback.print_exc()
                 try:
                     csock.sendMessage(COBRA_ERROR, name, e)
-                except TypeError, typee:
+                except TypeError as typee:
                     # Probably about pickling...
                     csock.sendMessage(COBRA_ERROR, name, Exception(str(e)))
                 except CobraClosedException:
@@ -880,7 +880,7 @@ def isCobraUri(uri):
         x = urllib2.Request(uri)
         if x.get_type() not in ["cobra","cobrassl"]:
             return False
-    except Exception, e:
+    except Exception as e:
         return False
     return True
 

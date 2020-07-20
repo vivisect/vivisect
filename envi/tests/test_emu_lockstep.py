@@ -66,12 +66,12 @@ class LockStepper:
 
             try:
                 self.emu.stepi()
-            except Exception, e:
+            except Exception as e:
                 raise Exception('Emu Exception: %s on %s' % (e,repr(op1)))
 
             try:
                 self.trace.stepi()
-            except Exception, e:
+            except Exception as e:
                 raise Exception('Trace Exception: %s on %s' % (e,repr(op2)))
 
             self.cmpregs( op1, op2 )

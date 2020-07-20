@@ -10,7 +10,7 @@ def compat_isNone(state):
         return state.isNull()
 
     # WTF! (QByteArray == None) is True!
-    if state is None: 
+    if state is None:
         return True
 
     return not len(state)
@@ -29,7 +29,7 @@ def compat_strList(dwcls):
     if PYQT_VERSION_STR.startswith('4'):
         return dwcls.toStringList()
     return dwcls
-    
+
 class SaveableWidget(object):
     '''
     Inherited by widgets that want to save and restore settings.
@@ -48,7 +48,7 @@ class SaveableWidget(object):
         try:
             state = json.loads(compat_toStr(qstate))
             self.vqSetSaveState(state)
-        except Exception, e:
+        except Exception as e:
             print('failed to restore %s: %s' % (name,e))
 
     def vqGetSaveState(self):

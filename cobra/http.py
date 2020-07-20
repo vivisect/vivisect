@@ -163,7 +163,7 @@ class CobraHttpRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
                 self.send_response(httplib.OK)
                 self.end_headers()
                 self.wfile.write(json.dumps(ret)) 
-            except Exception, e:
+            except Exception as e:
                 self.send_response(httplib.INTERNAL_SERVER_ERROR)
                 self.end_headers()
                 excinfo = "%s" % traceback.format_exc()
@@ -230,7 +230,7 @@ class CobraHttpRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             self.send_response(httplib.OK)
             self.end_headers()
             self.wfile.write(json.dumps(val)) 
-        except Exception, e:
+        except Exception as e:
             self.send_response(httplib.NOT_FOUND)
             self.end_headers()
             excinfo = "%s" % traceback.format_exc()
@@ -517,7 +517,7 @@ class CobraHttpClient:
                     self.authUser(self.authinfo)
                 self.retries = 0
                 return
-            except Exception, e:
+            except Exception as e:
                 time.sleep(2 ** self.retries)
                 self.retries += 1
         self.trashed = True

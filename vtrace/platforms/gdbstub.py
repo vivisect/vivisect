@@ -28,8 +28,8 @@ debugStub.listen.guest32.remote = "TRUE"
 
 debugStub.hideBreakpoints = "TRUE" # Enable breakpoints
 
-From GDB stuff...  
-===== i386 
+From GDB stuff...
+===== i386
 src/gdb/i386-tdep.c
 src/gdb/regformats/reg-i386.dat
 ===== amd64
@@ -213,7 +213,7 @@ class GdbStubMixin:
                 self._gdb_sock.settimeout(None)
                 break
 
-            except Exception, e:
+            except Exception:
                 time.sleep(0.2)
                 tries += 1
 
@@ -601,8 +601,8 @@ class GdbStubMixin_old(e_registers.RegisterContext):
                     parser.loadSymsIntoTrace(self, normname)
                 finally:
                     os.unlink(tfilename)
-            except Exception, e:
-                print e
+            except Exception as e:
+                print(e)
 
         else:
             pe = PE.peFromMemoryObject(self, baseaddr)
@@ -635,7 +635,7 @@ class GdbStubMixin_old(e_registers.RegisterContext):
             while not self.readMemory(kptr, 16).startswith('MZ\x90\x00'):
                 kptr -= 4096
             return kptr
-        except Exception, e:
+        except Exception as e:
             return None
 
     def _enumTargetOs(self, fsbase):
@@ -702,7 +702,7 @@ class GdbStubMixin_old(e_registers.RegisterContext):
                 parts = line.split()
                 fsbase = int(parts[2], 16)
                 break
-                
+
             self._enumTargetOs(fsbase)
             #print monreg
             #m = re.match('FS =\w+ (\w+)', monreg, re.G)
@@ -727,8 +727,8 @@ class GdbStubMixin_old(e_registers.RegisterContext):
                 fields = [-1,]
                 try:
                     fields = self.readMemoryFormat(win_kpcr, '<7Q')
-                except Exception, e:
-                    print 'Exception:',e
+                except Exception as e:
+                    print('Exception:',e)
 
                 # FIXME other heuristics for linux/bsd/etc...
                 if fields[-1] == win_kpcr:
@@ -810,13 +810,13 @@ class GdbStubMixin_old(e_registers.RegisterContext):
 
         try:
             self.addBreakpoint(KeBugCheckBreak('nt.KeBugCheck'))
-        except Exception, e:
-            print 'Error Seting KeBugCheck Bp: %s' % e
+        except Exception as e:
+            print('Error Seting KeBugCheck Bp: %s' % e)
 
         try:
             self.addBreakpoint(KeBugCheckBreak('nt.KeBugCheckEx'))
-        except Exception, e:
-            print 'Error Seting KeBugCheck Bp: %s' % e
+        except Exception as e:
+            print('Error Seting KeBugCheck Bp: %s' % e)
 
 
 GDB_BP_SOFTWARE     = 0

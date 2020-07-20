@@ -37,7 +37,7 @@ class CobraEventCore:
         for args,kwargs in self._ce_fireq:
             try:
                 self._fireEvent(*args, **kwargs)
-            except Exception, e:
+            except Exception as e:
                 print('fireFireThread _fireEventError: %s' % e)
 
     @e_threads.maintthread(3)
@@ -74,7 +74,7 @@ class CobraEventCore:
         for upstream,upchan in self._ce_upstreams:
             try:
                 upstream.finiEventChannel(upchan)
-            except Exception, e:
+            except Exception as e:
                 print('upstream error: %r %s' % (upstream,e))
         [ self.finiEventChannel( chanid ) for chanid in self._ce_chanlookup.keys() ]
 
@@ -116,14 +116,14 @@ class CobraEventCore:
         for handler in self._ce_handlers[event]:
             try:
                 handler(event,einfo)
-            except Exception, e:
+            except Exception as e:
                 print('handler error(%r): %s' % (event,e))
 
         if upstream:
             for upstream,upchan in self._ce_upstreams:
                 try:
                     upstream.fireEvent(event, einfo, skip=upchan)
-                except Exception, e:
+                except Exception as e:
                     print('upstream error: %r %s' % (upstream,e))
 
     def addEventHandler(self, event, callback):
@@ -155,7 +155,7 @@ class CobraEventCore:
         while True:
             try:
                 events = evtcore.getNextEventsForChan( chan, timeout=5 )
-            except Exception, e:
+            except Exception as e:
                 print('addEventUpstream Error: %s' % e)
                 time.sleep(1)
                 # grab a new channel...
@@ -169,7 +169,7 @@ class CobraEventCore:
 
             try:
                 [ self.fireEvent(event,einfo,upstream=False) for (event,einfo) in events ]
-            except Exception, e:
+            except Exception as e:
                 print('addEventUpstream fireEvent Error: %s' % e)
                 time.sleep(1)
 
@@ -204,7 +204,7 @@ class CobraEventCore:
 
                 try:
                     callback(event,einfo)
-                except Exception, e:
+                except Exception as e:
                     print('Event Callback Exception (chan: %d): %s' % (chanid,e))
 
     def setEventCast(self, mcast='224.56.56.56', port=45654, bind='0.0.0.0'):

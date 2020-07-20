@@ -2174,7 +2174,7 @@ class Win32SymbolParser:
 
             self.symCleanup()
 
-        except Exception, e:
+        except Exception as e:
             traceback.print_exc()
             raise
 

@@ -88,14 +88,14 @@ class Breakpoint:
         addressed break, just return the address.  If it has an "expression"
         use that to resolve the address...
         """
-        if self.address == None and self.vte:
+        if self.address is None and self.vte:
             try:
                 self.address = trace.parseExpression(self.vte)
-            except Exception, e:
+            except Exception:
                 self.address = None
 
         # If we resolved, lets get our saved code...
-        if self.address != None and not self.resonce:
+        if self.address is not None and not self.resonce:
             self.resonce = True
             self.resolvedaddr(trace, self.address)
 
@@ -138,9 +138,9 @@ class Breakpoint:
         for this breakpoint to have bpcode, you must call this method from
         your override.
         """
-        if self.bpcode != None:
+        if self.bpcode is not None:
             cobj = Breakpoint.bpcodeobj.get(self.id, None)
-            if cobj == None:
+            if cobj is None:
                 fname = "BP:%d (0x%.8x)" % (self.id, self.address)
                 cobj = compile(self.bpcode, fname, "exec")
                 Breakpoint.bpcodeobj[self.id] = cobj

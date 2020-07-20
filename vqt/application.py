@@ -1,5 +1,4 @@
 import os
-import json
 
 try:
     from PyQt5 import QtCore
@@ -121,7 +120,7 @@ class VQMainCmdWindow(vq_hotkeys.HotKeyMixin, QMainWindow):
 
     def vqBuildDockWidget(self, clsname, floating=False, area=QtCore.Qt.TopDockWidgetArea):
         res = self._dock_classes.get(clsname)
-        if res == None:
+        if res is None:
             print('vqBuildDockWidget Failed For: %s' % clsname)
             return
         cls, args = res
@@ -136,12 +135,12 @@ class VQMainCmdWindow(vq_hotkeys.HotKeyMixin, QMainWindow):
                 name = 'VQDockWidget%d' % i
                 try:
                     tup = self.vqBuildDockWidget(str(clsname), floating=False)
-                    if tup != None:
+                    if tup is not None:
                         d, obj = tup
                         d.setObjectName(name)
                         d.vqRestoreState(settings,name,stub)
                         d.show()
-                except Exception, e:
+                except Exception as e:
                     print('Error Building: %s: %s'  % (clsname,e))
 
         # Once dock widgets are loaded, we can restoreState

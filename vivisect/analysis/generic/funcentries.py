@@ -49,13 +49,12 @@ def analyze(vw):
                     logger.debug('discovered new function (by signature): 0x%x', va)
                     vw.makeFunction(va)
 
-            except vivisect.InvalidLocation, msg:
+            except vivisect.InvalidLocation as msg:
                 if vw.verbose: vw.vprint("InvalidLocation: %s" % msg)
-            except envi.InvalidInstruction, e:
+            except envi.InvalidInstruction as e:
                 continue
-            except envi.EnviException, msg:
+            except envi.EnviException as msg:
                 if vw.verbose: vw.vprint("%s: %s" % (msg.__class__.__name__,msg))
-            except Exception, msg:
+            except Exception as msg:
                 traceback.print_exc()
                 continue
-

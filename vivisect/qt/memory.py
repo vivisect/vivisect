@@ -404,25 +404,25 @@ class VQVivMemoryView(e_mem_qt.VQMemoryWindow, viv_base.VivEventCore):
 
             va = self.vw.parseExpression(title)
             name = self.vw.getName(va)
-            if name != None:
+            if name is not None:
                 title = name
 
-        except Exception, e:
+        except Exception:
             title = 'expr error'
 
         if self._leading:
             title += ' (leading)'
 
-        if self._following != None:
-            user,window = self._following
-            title += ' (following %s %s)' % (user,window)
+        if self._following is not None:
+            user, window = self._following
+            title += ' (following %s %s)' % (user, window)
 
         return title
 
     def _getRenderVaSize(self):
         '''
         Vivisect steps in and attempts to map to locations when they exist.
-        
+
         since we have a location database, let's use that to make sure we get a
         real location if it exists.  otherwise, we end up in no-man's land, 
         since we rely on labels, which only exist for the base of a location.

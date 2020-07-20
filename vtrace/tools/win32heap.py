@@ -263,7 +263,7 @@ class Win32Heap:
                 # If we die here, the guy before us was dorked.
                 try:
                     chunk = Win32Chunk(self.trace, self, addr-8)
-                except Exception, e:
+                except Exception as e:
                     chunk = bucket[-1]
                     pchunk = None
                     if len(bucket) >= 2:

@@ -73,9 +73,9 @@ def isValidScript(scriptpath):
     try:
         cobj = compile(contents, scriptpath, 'exec')
         return True
-    except Exception, e:
+    except Exception:
         pass
-    
+
     return False
 
 def getRelScriptsFromPath(scriptpaths):
@@ -560,7 +560,7 @@ class EnviCli(Cmd):
         try:
             cobj = compile(contents, scriptpath, 'exec')
             exec(cobj, locals)
-        except Exception, e:
+        except Exception as e:
             self.vprint( traceback.format_exc() )
             self.vprint('SCRIPT ERROR: %s' % e)
 
@@ -670,7 +670,7 @@ class EnviCli(Cmd):
         if options.range_search:
             try:
                 addrexpr, sizeexpr = options.range_search.split(":")
-            except Exception, e:
+            except Exception as e:
                 self.vprint(repr(e))
                 return self.do_help('search')
             addr = self.parseExpression(addrexpr)
@@ -891,7 +891,7 @@ class EnviMutableCli(EnviCli):
         argv = splitargs(line)
         try:
             opts, args = getopt(argv, "S:")
-        except Exception, e:
+        except Exception as e:
             return self.do_help("memprotect")
 
         for opt,optarg in opts:

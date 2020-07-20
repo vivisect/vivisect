@@ -419,7 +419,7 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
         if graph == None:
             try:
                 graph = viv_graphutil.buildFunctionGraph(self.vw, fva, revloop=True)
-            except Exception, e:
+            except Exception as e:
                 import sys
                 sys.excepthook(*sys.exc_info())
                 return
@@ -501,7 +501,7 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
 
             try:
                 addr = self.vw.parseExpression(expr)
-            except Exception, e:
+            except Exception as e:
                 self.mem_canvas.addText('Invalid Address: %s (%s)' % (expr, e))
                 return
 

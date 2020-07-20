@@ -72,7 +72,7 @@ def idlethreadsync(func):
     def dowork(*args, **kwargs):
         try:
             q.put(func(*args, **kwargs))
-        except Exception, e:
+        except Exception as e:
             q.put(e)
 
     def idleadd(*args, **kwargs):
@@ -133,7 +133,7 @@ class QEventThread(QtCore.QThread):
 
                 self.idleadd.emit(func,args,kwargs)
 
-            except Exception, e:
+            except Exception as e:
                 print('vqt event thread: %s' % e)
 
 class VQApplication(QApplication):
@@ -168,7 +168,7 @@ def workerThread():
                 except:
                     sys.excepthook(*sys.exc_info())
 
-        except Exception, e:
+        except Exception as e:
             print('vqt worker warning: %s' % e)
 
 def startup(css=None):

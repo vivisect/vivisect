@@ -10,14 +10,15 @@ import getpass
 from ConfigParser import ConfigParser
 from cStringIO import StringIO
 
+
 def gethomedir(*paths):
     homepath = os.path.expanduser('~')
     path = os.path.join(homepath, *paths)
 
-    if path != None and not os.path.exists(path):
+    if path is not None and not os.path.exists(path):
         try:
             os.makedirs(path)
-        except Exception, err:
+        except Exception as err:
             print('FIXME - invalid homedir, playing along...')
             pass
 
@@ -27,12 +28,12 @@ def getusername():
     return getpass.getuser()
 
 compattypes = {
-    int:(int,long),
-    str:(str,unicode),
-    bool:(bool,),
-    long:(int,long),
-    unicode:(str,unicode),
-    type(None):(int,str,bool,long,unicode),
+    int: (int,long),
+    str: (str,unicode),
+    bool: (bool,),
+    long: (int,long),
+    unicode: (str,unicode),
+    type(None): (int,str,bool,long,unicode),
 }
 
 CONFIG_PATH = 0
@@ -298,21 +299,3 @@ class EnviConfig:
 
     def items(self):
         return self.cfginfo.items()
-
-if __name__ == '__main__':
-    defaults = {
-        'woot':10,
-        'foosub': {
-            'bar':'qwer',
-            'baz':( 'one','two','three'),
-         }
-    }
-    cfg = EnviConfig(defaults=defaults)
-
-    print cfg.woot + 20
-    print cfg.foosub.bar
-    for thing in cfg.foosub.baz:
-        print thing
-
-    cfg.saveConfigFile('cfg.test')
-

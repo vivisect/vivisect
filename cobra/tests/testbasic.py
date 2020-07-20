@@ -59,14 +59,14 @@ class CobraBasicTest(unittest.TestCase):
         try:
             p = cobra.CobraProxy('cobra://localhost:60601/%s' % objname)
             raise Exception('Allowed un-authd connection!')
-        except cobra.CobraAuthException, e:
+        except cobra.CobraAuthException as e:
             pass
 
         # Now fail with wrong auth
         try:
             p = cobra.CobraProxy('cobra://localhost:60601/%s' % objname, authinfo={})
             raise Exception('Allowed bad-auth connection!')
-        except cobra.CobraAuthException, e:
+        except cobra.CobraAuthException as e:
             pass
 
         # Now lets succeed

@@ -29,7 +29,7 @@ logger = logging.getLogger(__name__)
 
 GOOD_TESTS = 5953
 GOOD_EMU_TESTS = 1175
-''' 
+'''
   This dictionary will contain all instructions supported by ARM to test
   Fields will contain following information:
   archVersionBitmask, ophex, va, repr, flags, emutests

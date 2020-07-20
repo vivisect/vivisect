@@ -181,7 +181,7 @@ def takeSnapshot(trace):
         regs[thrid] = reginfo
         try:
             stacktrace[thrid] = trace.getStackTrace()
-        except Exception, msg:
+        except Exception as  msg:
             print >> sys.stderr, "WARNING: Failed to get stack trace for thread 0x%.8x" % thrid
 
     mem = dict()
@@ -190,7 +190,7 @@ def takeSnapshot(trace):
         try:
             mem[base] = trace.readMemory(base, size)
             maps.append((base,size,perms,fname))
-        except Exception, msg:
+        except Exception as  msg:
             print >> sys.stderr, "WARNING: Can't snapshot memmap at 0x%.8x (%s)" % (base,msg)
 
     # If the contents here change, change the version...

@@ -1,7 +1,11 @@
 '''
 A quick set of tools for doing stack doping.
 '''
+import logging
+
 import vtrace
+
+logger = logging.getLogger(__name__)
 
 def dopeThreadStack(trace, threadid):
     curthread = trace.getCurrentThread()
@@ -17,8 +21,8 @@ def dopeThreadStack(trace, threadid):
         dopesize = sp - mapva
         trace.writeMemory(mapva, 'V' * dopesize)
 
-    except Exception, e:
-        print 'dopeThreadStack Failed On %d' % threadid
+    except Exception as e:
+        logger.warning('dopeThreadStack Failed On %d (%s)' % (threadid, str(e)))
         trace.selectThread(curthread)
 
 def dopeAllThreadStacks(trace):
