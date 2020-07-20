@@ -112,7 +112,7 @@ class SignatureTree:
             if len(sigs) == 1:
                 sbytes, smasks, sobj = sigs[0]
                 is_match = True
-                for i in xrange(depth, len(sbytes)):
+                for i in range(depth, len(sbytes)):
                     realoff = offset + i
                     # we still have pieces of the signature left to match, but bytes wasn't long enough
                     if realoff >= len(bytes):

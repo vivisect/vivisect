@@ -97,7 +97,7 @@ class VQVivFuncgraphCanvas(vq_memory.VivCanvasBase):
             menu = QMenu(parent=self)
 
         self.viewmenu = menu.addMenu('view   ')
-        #self.viewmenu.addAction("Save frame to HTML", ACT(self._menuSaveToHtml))
+        self.viewmenu.addAction("Save frame to HTML", ACT(self._menuSaveToHtml))
         self.viewmenu.addAction("Refresh", ACT(self.refresh))
         self.viewmenu.addAction("Paint Up", ACT(self.paintUp.emit))
         self.viewmenu.addAction("Paint Down", ACT(self.paintDown.emit))

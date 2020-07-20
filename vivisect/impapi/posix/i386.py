@@ -5,6 +5,7 @@ apitypes = {
 
 api = {
     # libc
+    'plt___libc_start_main':( 'int', None, 'cdecl', '*.__libc_start_main', (('int', 'main'), ('int', 'argc'), ('int', 'argv')) ),
     'plt_main_entry':( 'int', None, 'stdcall', '*.main_entry', (('int', None), ('int', None), ('int', None)) ),
     'plt__cicos':( 'int', None, 'cdecl', '*._CIcos', () ),
     'plt__cilog':( 'int', None, 'cdecl', '*._CIlog', () ),

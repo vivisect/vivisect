@@ -10,8 +10,11 @@ import visgraph.pathcore as vg_path
 
 from vivisect.const import *
 
+import logging
+logger = logging.getLogger(__name__)
+
 # Pre-initialize a default stack size
-init_stack_size = 0x7fff
+init_stack_size = 0x8000
 init_stack_map = b'\xfe' * init_stack_size
 
 def imphook(impname):
@@ -51,7 +54,7 @@ class WorkspaceEmulator:
         self._safe_mem = True   # Should we be forgiving about memory accesses?
         self._func_only = True  # is this emulator meant to stay in one function scope?
 
-        self.strictops = True   # shoudl we bail on emulation if unsupported instruction encountered
+        self.strictops = True   # should we bail on emulation if unsupported instruction encountered
 
         # Map in all the memory associated with the workspace
         for va, size, perms, fname in vw.getMemoryMaps():
@@ -102,7 +105,7 @@ class WorkspaceEmulator:
 
             # Create some pre-made taints for positive stack indexes
             # NOTE: This is *ugly* for speed....
-            taints = [ self.setVivTaint('funcstack', i * self.psize) for i in xrange(20) ]
+            taints = [ self.setVivTaint('funcstack', i * self.psize) for i in range(20) ]
             taintbytes = ''.join([ e_bits.buildbytes(taint,self.psize) for taint in taints ])
 
             self.writeMemory(self.stack_pointer, taintbytes)
@@ -116,7 +119,7 @@ class WorkspaceEmulator:
             new_map_base = new_map_top - new_map_size
 
             stack_map = ''.join([struct.pack('<I', new_map_base+(i*4))
-                                    for i in xrange(new_map_size)])
+                                    for i in range(new_map_size)])
 
             self.addMemoryMap(new_map_base, 6, "[stack]", stack_map)
             self.stack_map_base = new_map_base
@@ -167,6 +170,12 @@ class WorkspaceEmulator:
             api = self.getCallApi(endeip)
             rtype, rname, convname, callname, funcargs = api
             callconv = self.getCallingConvention(convname)
+            if callconv is None:
+                logger.error("checkCall(0x%x, 0x%x, %r): cannot get calling convention!", starteip, endeip, op)
+                self.emumon.logAnomaly(self, endeip, "no calling convention found for %x" % (endeip))
+                return iscall
+
+
             argv = callconv.getCallArgs(self, len(funcargs))
 
             ret = None
@@ -232,7 +241,7 @@ class WorkspaceEmulator:
         if len(blist) > 1:
             for bva, bflags in blist:
                 if bva is None:
-                    print("Unresolved branch even WITH an emulator?")
+                    logger.warn("Unresolved branch even WITH an emulator?")
                     continue
 
                 bpath = self.getBranchNode(self.curpath, bva)
@@ -334,7 +343,12 @@ class WorkspaceEmulator:
                     op = self.parseOpcode(starteip)
                     self.op = op
                     if self.emumon:
-                        self.emumon.prehook(self, op, starteip)
+                        try:
+                            self.emumon.prehook(self, op, starteip)
+                        except Exception as e:
+                            if not self.getMeta('silent'):
+                                logger.warn("funcva: 0x%x opva: 0x%x:  %r   (%r) (in emumon prehook)", funcva, starteip, op, e)
+
 
                         if self.emustop:
                             return
@@ -345,7 +359,12 @@ class WorkspaceEmulator:
                     endeip = self.getProgramCounter()
 
                     if self.emumon:
-                        self.emumon.posthook(self, op, endeip)
+                        try:
+                            self.emumon.posthook(self, op, endeip)
+                        except Exception as e:
+                            if not self.getMeta('silent'):
+                                logger.warn("funcva: 0x%x opva: 0x%x:  %r   (%r) (in emumon posthook)", funcva, starteip, op, e)
+
                         if self.emustop:
                             return
 
@@ -371,9 +390,10 @@ class WorkspaceEmulator:
                         break
                 except envi.UnsupportedInstruction as e:
                     if self.strictops:
+                        logger.debug('runFunction failed: unsupported instruction: 0x%08x %s', e.op.va, e.op.mnem)
                         break
                     else:
-                        print('runFunction continuing after unsupported instruction: 0x%08x %s' % (e.op.va, e.op.mnem))
+                        logger.debug('runFunction continuing after unsupported instruction: 0x%08x %s', e.op.va, e.op.mnem)
                         self.setProgramCounter(e.op.va + e.op.size)
                 except Exception as e:
                     if self.emumon is not None and not isinstance(e, e_exc.BreakpointHit):

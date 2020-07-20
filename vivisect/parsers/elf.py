@@ -114,13 +114,14 @@ arch_names = {
     Elf.EM_386:'i386',
     Elf.EM_X86_64:'amd64',
     Elf.EM_MSP430:'msp430',
-    Elf.EM_ARM_AARCH64:'aarch64',
 }
 
 archcalls = {
     'i386':'cdecl',
     'amd64':'sysvamd64call',
     'arm':'armcall',
+    'thumb':'armcall',
+    'thumb16':'armcall',
 }
 
 def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
@@ -203,7 +204,7 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
         maps.sort()
 
         merged = []
-        for i in xrange(len(maps)):
+        for i in range(len(maps)):
 
             if merged and maps[i][0] == (merged[-1][0] + merged[-1][1]):
                 merged[-1][1] += maps[i][1]
@@ -549,7 +550,9 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
 
 
 def applyRelocs(elf, vw, addbase=False, baseaddr=0):
-    # process relocations / strings (relocs use Dynamic Symbols)
+    '''
+    process relocations / strings (relocs use Dynamic Symbols)
+    '''
     arch = arch_names.get(elf.e_machine)
     relocs = elf.getRelocs()
     logger.debug("reloc len: %d", len(relocs))
@@ -611,13 +614,54 @@ def applyRelocs(elf, vw, addbase=False, baseaddr=0):
 
 
             if arch in ('arm', 'thumb', 'thumb16'):
+                # ARM REL entries require an addend that could be stored as a 
+                # number or an instruction!
+                import envi.archs.arm.const as eaac
+                if r.vsHasField('addend'):
+                    # this is a RELA object, bringing its own addend field!
+                    addend = r.addend
+                else:
+                    # otherwise, we have to check the stored value for number or instruction
+                    # if it's an instruction, we have to use the immediate value and then 
+                    # figure out if it's negative based on the instruction!
+                    try:
+                        temp = vw.readMemoryPtr(rlva)
+                        if rtype in Elf.r_armclasses[Elf.R_ARMCLASS_DATA] or rtype in Elf.r_armclasses[Elf.R_ARMCLASS_MISC]:
+                            # relocation points to a DATA or MISCELLANEOUS location
+                            addend = temp
+                        else:
+                            # relocation points to a CODE location (ARM, THUMB16, THUMB32)
+                            op = vw.parseOpcode(rlva)
+                            for oper in op.opers:
+                                if hasattr(oper, 'val'):
+                                    addend = oper.val
+                                    break
+
+                                elif hasattr(oper, 'offset'):
+                                    addend = oper.offset
+                                    break
+
+                            lastoper = op.opers[-1]
+                            if op.mnem.startswith('sub') or \
+                                    op.mnem in ('ldr', 'str') and \
+                                    hasattr(lastoper, 'pubwl') and \
+                                    not (lastoper.pubwl & eaac.PUxWL_ADD):
+                                        addend = -addend
+                    except Exception:
+                        logger.exception("ELF: Reloc Addend determination:")
+                        addend = temp
+
+                logger.debug('addend: 0x%x', addend)
+
                 if rtype == Elf.R_ARM_JUMP_SLOT:
                     symidx = r.getSymTabIndex()
                     sym = elf.getDynSymbol(symidx)
                     ptr = sym.st_value
 
-                    #quick check to make sure we don't provide this symbol
-                    if ptr:
+                    # quick check to make sure we don't provide this symbol
+                    # some toolchains like to point the GOT back at it's PLT entry
+                    # that does *not* mean it's not an IMPORT
+                    if ptr and not isPLT(vw, ptr):
                         logger.info('R_ARM_JUMP_SLOT: adding Relocation 0x%x -> 0x%x (%s) ', rlva, ptr, dmglname)
                         if addbase:
                             vw.addRelocation(rlva, vivisect.RTYPE_BASEPTR, ptr)
@@ -627,8 +671,11 @@ def applyRelocs(elf, vw, addbase=False, baseaddr=0):
                         if vw.vaByName(pname) is None:
                             vw.makeName(rlva, pname)
 
+                        # name the target as well
                         if addbase:
                             ptr += baseaddr
+                        # normalize thumb addresses
+                        ptr &= -2
                         vw.makeName(ptr, name)
                         vw.setComment(ptr, dmglname)
 
@@ -642,11 +689,14 @@ def applyRelocs(elf, vw, addbase=False, baseaddr=0):
                     sym = elf.getDynSymbol(symidx)
                     ptr = sym.st_value
 
-                    #quick check to make sure we don't provide this symbol
                     if ptr:
                         logger.info('R_ARM_GLOB_DAT: adding Relocation 0x%x -> 0x%x (%s) ', rlva, ptr, dmglname)
-                        vw.addRelocation(rlva, vivisect.RTYPE_BASEPTR, ptr)
+                        if addbase:
+                            vw.addRelocation(rlva, vivisect.RTYPE_BASEPTR, ptr)
+                        else:
+                            vw.addRelocation(rlva, vivisect.RTYPE_BASERELOC, ptr)
                         pname = "ptr_%s" % name
+
                         if vw.vaByName(pname) is None:
                             vw.makeName(rlva, pname)
 
@@ -694,6 +744,16 @@ def applyRelocs(elf, vw, addbase=False, baseaddr=0):
         except vivisect.InvalidLocation as e:
             logger.warn("NOTE\t%r", e)
 
+def isPLT(vw, va):
+    '''
+    Do a decent check to see if this va is in a PLT section
+    '''
+    seg = vw.getSegment(va)
+    if seg is None:
+        return False
+    if seg[2].startswith('.plt'):
+        return True
+    return False
 
 def normName(name):
     '''

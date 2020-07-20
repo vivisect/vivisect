@@ -12,8 +12,12 @@ Samples have been found with different instruction sequences for reaching the
 address of runtime_main(); this module attempts all observed sequences.
 '''
 
+import logging
+
 import envi
 import envi.archs.i386.disasm
+
+logger = logging.getLogger(__name__)
 
 
 def analyze(vw):
@@ -50,6 +54,7 @@ def analyze(vw):
 
     # Invoke codeflow on runtime_main().
     vw.addEntryPoint(runtime_va)
+    logger.debug('discovered runtime function: 0x%x', runtime_va)
     vw.makeFunction(runtime_va)
 
     # Also mark the ptr_va as a pointer to runtime_va.
@@ -147,6 +152,7 @@ def find_golang_bblock_via_stack(vw, filename):
 
     # Analyze the function at the pointer if necessary.
     if not vw.isFunction(ptr_va):
+        logger.debug('discovered new function(ptr): 0x%x', ptr_va)
         vw.makeFunction(ptr_va)
 
     # This function should contain the special basic block.

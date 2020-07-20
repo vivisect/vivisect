@@ -249,6 +249,9 @@ class i386PcRelOper(envi.Operand):
     def getOperValue(self, op, emu=None):
         return op.va + op.size + self.imm
 
+    def getOperAddr(self, op, emu=None):
+        return None
+
     def render(self, mcanv, op, idx):
         hint = mcanv.syms.getSymHint(op.va, idx)
         if hint != None:
@@ -626,7 +629,7 @@ class i386Opcode(envi.Opcode):
         # Allow each of our operands to render
         imax = len(self.opers)
         lasti = imax - 1
-        for i in xrange(imax):
+        for i in range(imax):
             oper = self.opers[i]
             oper.render(mcanv, self, i)
             if i != lasti:

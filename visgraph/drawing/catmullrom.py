@@ -20,9 +20,7 @@ def spline4p(t, p_1, p0, p1, p2):
 def calculate_catmullrom(points, steps = 30):
     ret = []
     percents = [ step / float(steps) for step in range(steps) ]
-    for i in xrange(1, len(points) - 2):
+    for i in range(1, len(points) - 2):
         for t in percents:
             ret.append(spline4p(t, points[i-1], points[i], points[i+1], points[i+2]))
     return ret
-            
-

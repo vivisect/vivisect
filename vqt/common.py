@@ -175,7 +175,7 @@ class VqtView(QTreeView):
         smodel.setSourceModel(model)
         ret = QTreeView.setModel(self, smodel)
         c = len(model.columns)
-        for i in xrange(c):
+        for i in range(c):
             self.resizeColumnToContents(i)
         return ret
 

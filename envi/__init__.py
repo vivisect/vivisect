@@ -16,7 +16,7 @@ ARCH_I386        = 1 << 16
 ARCH_AMD64       = 2 << 16
 ARCH_ARMV7       = 3 << 16
 ARCH_THUMB16     = 4 << 16
-ARCH_THUMB2      = 5 << 16
+ARCH_THUMB       = 5 << 16
 ARCH_MSP430      = 6 << 16
 ARCH_H8          = 7 << 16
 ARCH_MASK        = 0xffff0000   # Masked into IF_FOO and BR_FOO values
@@ -27,7 +27,7 @@ arch_names = {
     ARCH_AMD64:     'amd64',
     ARCH_ARMV7:     'arm',
     ARCH_THUMB16:   'thumb16',
-    ARCH_THUMB2:    'thumb2',
+    ARCH_THUMB:     'thumb',
     ARCH_MSP430:    'msp430',
     ARCH_H8:        'h8',
 }
@@ -40,7 +40,8 @@ arch_by_name = {
     'armv6l':   ARCH_ARMV7,
     'armv7l':   ARCH_ARMV7,
     'thumb16':  ARCH_THUMB16,
-    'thumb2':   ARCH_THUMB2,
+    'thumb':    ARCH_THUMB,
+    'thumb2':   ARCH_THUMB,
     'msp430':   ARCH_MSP430,
     'h8':       ARCH_H8,
 }
@@ -53,6 +54,8 @@ IF_BRANCH = 0x08  # Set if this instruction branches
 IF_RET    = 0x10  # Set if this instruction terminates a procedure
 IF_COND   = 0x20  # Set if this instruction is conditional
 IF_REPEAT = 0x40  # set if this instruction repeats (including 0 times)
+
+IF_BRANCH_COND = IF_COND | IF_BRANCH
 
 # Branch flags (flags returned by the getBranches() method on an opcode)
 BR_PROC  = 1<<0  # The branch target is a procedure (call <foo>)
@@ -80,7 +83,7 @@ class ArchitectureModule:
         self._arch_id = getArchByName(archname)
         self._arch_name = archname
         self._arch_maxinst = maxinst
-        self._arch_badopbytes = ['\x00\x00\x00\x00\x00']
+        self._arch_badopbytes = ['\x00\x00\x00\x00\x00', '\xff\xff\xff\xff\xff']
         self.setEndian(endian)
 
     def getArchId(self):
@@ -165,8 +168,16 @@ class ArchitectureModule:
 
         This hook allows an architecture to correct VA and Architecture, such
         as is necessary for ARM/Thumb.
+
+        "info" should be a dictionary with the {'arch': ARCH_FOO}
+
+        eg.  for ARM, the ARM disassembler would hand in 
+            {'arch': ARCH_ARMV7}
+        
+        and if va is odd, that architecture's implementation would return
+            (va & -2), {'arch': ARCH_THUMB}
         '''
-        return va, {}
+        return va, info
 
     def archModifyXrefAddr(self, tova, reftype, rflags):
         '''
@@ -219,6 +230,9 @@ class ArchitectureModule:
     def getPlatDefaultCall(self, platform):
         defcall = self._plat_def_calls.get(platform)
         return defcall
+
+    def archGetPointerAlignment(self):
+        return 1
 
 def stealArchMethods(obj, archname):
     '''
@@ -552,7 +566,6 @@ class Emulator(e_reg.RegisterContext, e_mem.MemoryObject):
         '''
         return self.imem_archs[0].getEndian()
 
-
     def getMeta(self, name, default=None):
         return self.metadata.get(name, default)
 
@@ -592,7 +605,7 @@ class Emulator(e_reg.RegisterContext, e_mem.MemoryObject):
         (breakpoint, segv, syscall, etc...)
         """
         if stepcount != None:
-            for i in xrange(stepcount):
+            for i in range(stepcount):
                 self.stepi()
         else:
             while True:
@@ -703,7 +716,7 @@ class Emulator(e_reg.RegisterContext, e_mem.MemoryObject):
             return None
         if len(bytes) != size:
             raise Exception("Read Gave Wrong Length At 0x%.8x (va: 0x%.8x wanted %d got %d)" % (self.getProgramCounter(),addr, size, len(bytes)))
-        
+
         return e_bits.parsebytes(bytes, 0, size, False, self.getEndian())
 
     def writeMemValue(self, addr, value, size):
@@ -1284,7 +1297,7 @@ def getArchModules(default=ARCH_DEFAULT):
     archs.append(e_amd64.Amd64Module())
     archs.append(e_arm.ArmModule())
     archs.append(e_thumb16.Thumb16Module())
-    archs.append(e_thumb16.Thumb2Module())
+    archs.append(e_thumb16.ThumbModule())
     archs.append(e_msp430.Msp430Module())
     archs.append(e_h8.H8Module())
 

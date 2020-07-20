@@ -38,8 +38,8 @@ class VivEventCore(object):
 
     def __init__(self, vw=None, **kwargs):
         self._ve_vw = vw
-        self._ve_ehand = [None for x in xrange(VWE_MAX)]
-        self._ve_thand = [None for x in xrange(VTE_MAX)]
+        self._ve_ehand = [None for x in range(VWE_MAX)]
+        self._ve_thand = [None for x in range(VTE_MAX)]
         self._ve_lock = threading.Lock()
 
         # Find and put handler functions into the list
@@ -101,8 +101,8 @@ class VivEventDist(VivEventCore):
             raise Exception("VivEventDist requires a vw argument")
 
         VivEventCore.__init__(self, vw)
-        self._ve_subs = [ [] for x in xrange(VWE_MAX) ]
-        self._ve_tsubs = [ [] for x in xrange(VTE_MAX) ]
+        self._ve_subs = [ [] for x in range(VWE_MAX) ]
+        self._ve_tsubs = [ [] for x in range(VTE_MAX) ]
 
         self.addEventCore(self)
 
@@ -110,23 +110,23 @@ class VivEventDist(VivEventCore):
         self._ve_fireListener()
 
     def addEventCore(self, core):
-        for i in xrange(VWE_MAX):
+        for i in range(VWE_MAX):
             h = core._ve_ehand[i]
             if h != None:
                 self._ve_subs[i].append(h)
 
-        for i in xrange(VTE_MAX):
+        for i in range(VTE_MAX):
             h = core._ve_thand[i]
             if h != None:
                 self._ve_tsubs[i].append(h)
 
     def delEventCore(self, core):
-        for i in xrange(VWE_MAX):
+        for i in range(VWE_MAX):
             h = core._ve_ehand[i]
             if h != None:
                 self._ve_subs[i].remove(h)
 
-        for i in xrange(VTE_MAX):
+        for i in range(VTE_MAX):
             h = core._ve_thand[i]
             if h != None:
                 self._ve_tsubs[i].remove(h)
@@ -260,8 +260,9 @@ class VivWorkspaceCore(object, viv_impapi.ImportApi):
             #   self.addXref(va, tova, REF_PTR)
             #   ploc = self.addLocation(va, psize, LOC_POINTER)
             #   don't follow.  handle it later, once "known code" is analyzed
+            ptr, reftype, rflags = self.arch.archModifyXrefAddr(ptr, None, None)
             self._handleADDXREF((rva, ptr, REF_PTR, 0))
-            self._handleADDLOCATION((rva, self.psize, LOC_POINTER, None))
+            self._handleADDLOCATION((rva, self.psize, LOC_POINTER, ptr))
 
     def _handleADDMODULE(self, einfo):
         logger.warning('DEPRICATED (ADDMODULE) ignored: %s' % einfo)
@@ -493,7 +494,7 @@ class VivWorkspaceCore(object, viv_impapi.ImportApi):
         pass
 
     def _initEventHandlers(self):
-        self.ehand = [None for x in xrange(VWE_MAX)]
+        self.ehand = [None for x in range(VWE_MAX)]
         self.ehand[VWE_ADDLOCATION] = self._handleADDLOCATION
         self.ehand[VWE_DELLOCATION] = self._handleDELLOCATION
         self.ehand[VWE_ADDSEGMENT] = self._handleADDSEGMENT
@@ -536,7 +537,7 @@ class VivWorkspaceCore(object, viv_impapi.ImportApi):
         self.ehand[VWE_SYMHINT]  = self._handleSYMHINT
         self.ehand[VWE_AUTOANALFIN] = self._handleAUTOANALFIN
 
-        self.thand = [None for x in xrange(VTE_MAX)]
+        self.thand = [None for x in range(VTE_MAX)]
         self.thand[VTE_IAMLEADER] = self._handleIAMLEADER
         self.thand[VTE_FOLLOWME] = self._handleFOLLOWME
 
@@ -742,6 +743,7 @@ class VivCodeFlowContext(e_codeflow.CodeFlowContext):
         for fmname in vw.fmodlist:
             fmod = vw.fmods.get(fmname)
             try:
+                logger.debug('fmod: 0x%x  (%r)', fva, fmod)
                 fmod.analyzeFunction(vw, fva)
             except Exception as e:
                 if vw.verbose:

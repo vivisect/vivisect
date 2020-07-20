@@ -58,8 +58,8 @@ class IMAGE_ARCHIVE_LINKER1(IMAGE_ARCHIVE_MEMBER):
         c = self.NumberOfSymbols
         print self.MemberHeader.tree()
         print 'SYMBOLS',c
-        self.SymbolOffsets = vstruct.VArray( elems=[ v_uint32(bigend=True) for i in xrange(c) ])
-        self.SymbolNames = vstruct.VArray( elems=[ v_zstr() for i in xrange(c) ])
+        self.SymbolOffsets = vstruct.VArray( elems=[ v_uint32(bigend=True) for i in range(c) ])
+        self.SymbolNames = vstruct.VArray( elems=[ v_zstr() for i in range(c) ])
 
 class IMAGE_ARCHIVE_LINKER2(IMAGE_ARCHIVE_MEMBER):
 
@@ -73,12 +73,12 @@ class IMAGE_ARCHIVE_LINKER2(IMAGE_ARCHIVE_MEMBER):
 
     def pcb_NumberOfMembers(self):
         c = self.NumberOfMembers
-        self.MemberOffsets = vstruct.VArray( elems=[ v_uint32() for i in xrange(c) ] )
+        self.MemberOffsets = vstruct.VArray( elems=[ v_uint32() for i in range(c) ] )
 
     def pcb_NumberOfSymbols(self):
         c = self.NumberOfSymbols
-        self.SymbolIndexes = vstruct.VArray( elems=[ v_uint16() for i in xrange(c) ])
-        self.SymbolNames = vstruct.VArray( elems=[ v_zstr() for i in xrange(c) ])
+        self.SymbolIndexes = vstruct.VArray( elems=[ v_uint16() for i in range(c) ])
+        self.SymbolNames = vstruct.VArray( elems=[ v_zstr() for i in range(c) ])
 
 IMPORT_SIG      = '0000ffff'.decode('hex')
 IMPORT_CODE     = 0 #Executable code.
@@ -120,7 +120,7 @@ class IMAGE_COFF_SYMBOL(vstruct.VStruct):
 
     def pcb_NumberOfAuxSymbols(self):
         a = self.NumberOfAuxSymbols
-        self.AuxSymbols = vstruct.VArray(elems=[ v_bytes(size=18) for i in xrange(a) ])
+        self.AuxSymbols = vstruct.VArray(elems=[ v_bytes(size=18) for i in range(a) ])
 
 class IMAGE_ARCHIVE_COFF(IMAGE_ARCHIVE_MEMBER):
 
@@ -133,14 +133,14 @@ class IMAGE_ARCHIVE_COFF(IMAGE_ARCHIVE_MEMBER):
 
     def pcb_FileHeader(self):
         c = self.FileHeader.NumberOfSections
-        self.SectionHeaders = vstruct.VArray(elems=[ IMAGE_SECTION_HEADER() for i in xrange(c) ])
+        self.SectionHeaders = vstruct.VArray(elems=[ IMAGE_SECTION_HEADER() for i in range(c) ])
         p = self.FileHeader.PointerToSymbolTable
         if p != 0:
             s = self.FileHeader.NumberOfSymbols
             p -= len(self.FileHeader)
             p -= len(self.SectionHeaders)
             self.vsGetField('SectionData').vsSetLength(p)
-            self.SymbolTable = vstruct.VArray(elems=[IMAGE_COFF_SYMBOL() for i in xrange(s)])
+            self.SymbolTable = vstruct.VArray(elems=[IMAGE_COFF_SYMBOL() for i in range(s)])
 
 class IMAGE_ARCHIVE(vstruct.VStruct):
 
