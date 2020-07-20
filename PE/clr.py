@@ -1,12 +1,62 @@
 import enum
+import vstruct.defs.pe as vdp
 
 # https://github.com/dotnet/runtime/blob/master/src/coreclr/src/inc/corhdr.h
 
 MAX_CLASS_NAME = MAX_PACKAGE_NAME = 1024
 IMAGE_COR_EATJ_THUNK_SIZE = 32  # Size of a jump thunk reserved range.
 
-# NOTE: RIDs into a specific table are 1-based indexes
-RIDTYPEMAP = {
+# XXX: RIDs into a specific table are 1-based indexes, but these are just the type mappings
+# which are 0 based
+RIDTYPEMAP = [
+    vdp.Module,
+    vdp.TypeRef,
+    vdp.TypeDef
+    vdp.FieldPtr,
+    vdp.Field,
+    vdp.MethodPtr,
+    vdp.Method,
+    vdp.ParamPtr,
+    vdp.Param,
+    vdp.InterfaceImpl,
+    vdp.MemberRef,
+    vdp.Constant,
+    vdp.CustomAttribute,
+    vdp.FieldMarshal,
+    vdp.DeclSecurity,
+    vdp.ClassLayout,
+    vdp.FieldLayout,
+    vdp.StandaloneSig,
+    vdp.EventMap,
+    vdp.EventPtr,
+    vdp.Event,
+    vdp.PropertyMap,
+    vdp.PropertyPtr,
+    vdp.Property,
+    vdp.MethodSemantics,
+    vdp.MethodImpl,
+    vdp.ModuleRef,
+    vdp.TypeSpec,
+    vdp.ImplMap,
+    vdp.FieldRVA,
+    vdp.ENCLog,
+    vdp.ENCMap,
+    vdp.Assembly,
+    vdp.AssemblyProcessor,
+    vdp.AssemblyOS,
+    vdp.AssemblyRef,
+    vdp.AssemblyRefProcessor,
+    vdp.AssemblyRefOS,
+    vdp.File,
+    vdp.ExportedType,
+    vdp.ManifestResource,
+    vdp.NestedClass,
+    vdp.GenericParam,
+    vdp.MethodSpec,
+    vdp.GenericParamConstraint,
+]
+
+CodedTokenTypes = {
 
 }
 
