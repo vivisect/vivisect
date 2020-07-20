@@ -55,7 +55,7 @@ def analyzeFunction(vw, funcva):
                 vw.delLocation(lva)
 
                 # assume we're adding a valid instruction, which is most likely.
-                vw.makeCode(va)
+                vw.makeCode(va, fva=funcva)
 
                 loc = vw.getLocation(va)
                 if loc is None:
