@@ -1,5 +1,5 @@
 import enum
-import vstruct.defs.pe as vdp
+import vstruct.defs.clr as vdc
 
 # https://github.com/dotnet/runtime/blob/master/src/coreclr/src/inc/corhdr.h
 
@@ -9,51 +9,51 @@ IMAGE_COR_EATJ_THUNK_SIZE = 32  # Size of a jump thunk reserved range.
 # XXX: RIDs into a specific table are 1-based indexes, but these are just the type mappings
 # which are 0 based
 RIDTYPEMAP = [
-    vdp.Module,
-    vdp.TypeRef,
-    vdp.TypeDef
-    vdp.FieldPtr,
-    vdp.Field,
-    vdp.MethodPtr,
-    vdp.Method,
-    vdp.ParamPtr,
-    vdp.Param,
-    vdp.InterfaceImpl,
-    vdp.MemberRef,
-    vdp.Constant,
-    vdp.CustomAttribute,
-    vdp.FieldMarshal,
-    vdp.DeclSecurity,
-    vdp.ClassLayout,
-    vdp.FieldLayout,
-    vdp.StandaloneSig,
-    vdp.EventMap,
-    vdp.EventPtr,
-    vdp.Event,
-    vdp.PropertyMap,
-    vdp.PropertyPtr,
-    vdp.Property,
-    vdp.MethodSemantics,
-    vdp.MethodImpl,
-    vdp.ModuleRef,
-    vdp.TypeSpec,
-    vdp.ImplMap,
-    vdp.FieldRVA,
-    vdp.ENCLog,
-    vdp.ENCMap,
-    vdp.Assembly,
-    vdp.AssemblyProcessor,
-    vdp.AssemblyOS,
-    vdp.AssemblyRef,
-    vdp.AssemblyRefProcessor,
-    vdp.AssemblyRefOS,
-    vdp.File,
-    vdp.ExportedType,
-    vdp.ManifestResource,
-    vdp.NestedClass,
-    vdp.GenericParam,
-    vdp.MethodSpec,
-    vdp.GenericParamConstraint,
+    vdc.Module,
+    vdc.TypeRef,
+    vdc.TypeDef,
+    vdc.FieldPtr,
+    vdc.Field,
+    vdc.MethodPtr,
+    vdc.Method,
+    vdc.ParamPtr,
+    vdc.Param,
+    vdc.InterfaceImpl,
+    vdc.MemberRef,
+    vdc.Constant,
+    vdc.CustomAttribute,
+    vdc.FieldMarshal,
+    vdc.DeclSecurity,
+    vdc.ClassLayout,
+    vdc.FieldLayout,
+    vdc.StandaloneSig,
+    vdc.EventMap,
+    vdc.EventPtr,
+    vdc.Event,
+    vdc.PropertyMap,
+    vdc.PropertyPtr,
+    vdc.Property,
+    vdc.MethodSemantics,
+    vdc.MethodImpl,
+    vdc.ModuleRef,
+    vdc.TypeSpec,
+    vdc.ImplMap,
+    vdc.FieldRVA,
+    vdc.ENCLog,
+    vdc.ENCMap,
+    vdc.Assembly,
+    vdc.AssemblyProcessor,
+    vdc.AssemblyOS,
+    vdc.AssemblyRef,
+    vdc.AssemblyRefProcessor,
+    vdc.AssemblyRefOS,
+    vdc.File,
+    vdc.ExportedType,
+    vdc.ManifestResource,
+    vdc.NestedClass,
+    vdc.GenericParam,
+    vdc.MethodSpec,
+    vdc.GenericParamConstraint,
 ]
 
 CodedTokenTypes = {
@@ -61,6 +61,7 @@ CodedTokenTypes = {
 }
 
 
+# These are all ripped right from a bunch of header files in the clr runtime
 class CLRHeaderFlags(enum.Enum):
     COMIMAGE_FLAGS_ILONLY = 0x00000001
     COMIMAGE_FLAGS_32BITREQUIRED = 0x00000002
@@ -551,10 +552,10 @@ class CLRUnmanagedCallingConvention(enum.Enum):
     IMAGE_CEE_UNMANAGED_CALLCONV_THISCALL = 0x3
     IMAGE_CEE_UNMANAGED_CALLCONV_FASTCALL = 0x4
 
-    IMAGE_CEE_CS_CALLCONV_C = CLRCallingConvention.IMAGE_CEE_UNMANAGED_CALLCONV_C
-    IMAGE_CEE_CS_CALLCONV_STDCALL = CLRCallingConvention.IMAGE_CEE_UNMANAGED_CALLCONV_STDCALL
-    IMAGE_CEE_CS_CALLCONV_THISCALL = CLRCallingConvention.IMAGE_CEE_UNMANAGED_CALLCONV_THISCALL
-    IMAGE_CEE_CS_CALLCONV_FASTCALL = CLRCallingConvention.IMAGE_CEE_UNMANAGED_CALLCONV_FASTCALL
+    IMAGE_CEE_CS_CALLCONV_C = IMAGE_CEE_UNMANAGED_CALLCONV_C
+    IMAGE_CEE_CS_CALLCONV_STDCALL = IMAGE_CEE_UNMANAGED_CALLCONV_STDCALL
+    IMAGE_CEE_CS_CALLCONV_THISCALL = IMAGE_CEE_UNMANAGED_CALLCONV_THISCALL
+    IMAGE_CEE_CS_CALLCONV_FASTCALL = IMAGE_CEE_UNMANAGED_CALLCONV_FASTCALL
 
 
 class CLRArgType(enum.Enum):
@@ -663,48 +664,48 @@ class CLRExceptionTypes(enum.Enum):
 
 
 class CLRILMethodFlags(enum.Enum):
-    InitLocals = 0x0010,           # call default constructor on all local vars
-    MoreSects = 0x0008,           # there is another attribute after this one
+    InitLocals = 0x0010           # call default constructor on all local vars
+    MoreSects = 0x0008           # there is another attribute after this one
 
-    CompressedIL = 0x0040,           # Not used.
+    CompressedIL = 0x0040           # Not used.
 
     # Indicates the format for the COR_ILMETHOD header
-    FormatShift = 3,
-    FormatMask = ((1 << FormatShift) - 1),
-    TinyFormat = 0x0002,         # use this code if the code size is even
-    SmallFormat = 0x0000,
-    FatFormat = 0x0003,
-    TinyFormat1 = 0x0006,         # use this code if the code size is odd
+    FormatShift = 3
+    FormatMask = ((1 << FormatShift) - 1)
+    TinyFormat = 0x0002         # use this code if the code size is even
+    SmallFormat = 0x0000
+    FatFormat = 0x0003
+    TinyFormat1 = 0x0006         # use this code if the code size is odd
 
 
 class CLRDuplicateChecks(enum.Enum):
-    MDDupAll = 0xffffffff,
-    MDDupENC = MDDupAll,
-    MDNoDupChecks = 0x00000000,
-    MDDupTypeDef = 0x00000001,
-    MDDupInterfaceImpl = 0x00000002,
-    MDDupMethodDef = 0x00000004,
-    MDDupTypeRef = 0x00000008,
-    MDDupMemberRef = 0x00000010,
-    MDDupCustomAttribute = 0x00000020,
-    MDDupParamDef = 0x00000040,
-    MDDupPermission = 0x00000080,
-    MDDupProperty = 0x00000100,
-    MDDupEvent = 0x00000200,
-    MDDupFieldDef = 0x00000400,
-    MDDupSignature = 0x00000800,
-    MDDupModuleRef = 0x00001000,
-    MDDupTypeSpec = 0x00002000,
-    MDDupImplMap = 0x00004000,
-    MDDupAssemblyRef = 0x00008000,
-    MDDupFile = 0x00010000,
-    MDDupExportedType = 0x00020000,
-    MDDupManifestResource = 0x00040000,
-    MDDupGenericParam = 0x00080000,
-    MDDupMethodSpec = 0x00100000,
-    MDDupGenericParamConstraint = 0x00200000,
+    MDDupAll = 0xffffffff
+    MDDupENC = MDDupAll
+    MDNoDupChecks = 0x00000000
+    MDDupTypeDef = 0x00000001
+    MDDupInterfaceImpl = 0x00000002
+    MDDupMethodDef = 0x00000004
+    MDDupTypeRef = 0x00000008
+    MDDupMemberRef = 0x00000010
+    MDDupCustomAttribute = 0x00000020
+    MDDupParamDef = 0x00000040
+    MDDupPermission = 0x00000080
+    MDDupProperty = 0x00000100
+    MDDupEvent = 0x00000200
+    MDDupFieldDef = 0x00000400
+    MDDupSignature = 0x00000800
+    MDDupModuleRef = 0x00001000
+    MDDupTypeSpec = 0x00002000
+    MDDupImplMap = 0x00004000
+    MDDupAssemblyRef = 0x00008000
+    MDDupFile = 0x00010000
+    MDDupExportedType = 0x00020000
+    MDDupManifestResource = 0x00040000
+    MDDupGenericParam = 0x00080000
+    MDDupMethodSpec = 0x00100000
+    MDDupGenericParamConstraint = 0x00200000
     # gap for debug junk
-    MDDupAssembly = 0x10000000,
+    MDDupAssembly = 0x10000000
 
     # This is the default behavior on metadata. It will check duplicates for
     # TypeRef, MemberRef, Signature, TypeSpec and MethodSpec.
@@ -851,29 +852,29 @@ class CLRCoreTokenType(enum.Enum):
 
 
 class CLRCoreOpenFlags(enum.Enum):
-    Read = 0x00000000,     # Open scope for read
-    Write = 0x00000001,     # Open scope for write.
-    ReadWriteMask = 0x00000001,     # Mask for read/write bit.
+    Read = 0x00000000     # Open scope for read
+    Write = 0x00000001     # Open scope for write.
+    ReadWriteMask = 0x00000001     # Mask for read/write bit.
 
     # Open scope with memory. Ask metadata to maintain its own copy of memory.
-    CopyMemory = 0x00000002,
+    CopyMemory = 0x00000002
 
     # Open scope for read. Will be unable to QI for a IMetadataEmit* interface
-    ReadOnly = 0x00000010,
+    ReadOnly = 0x00000010
     # The memory was allocated with CoTaskMemAlloc and will be freed by the metadata
-    TakeOwnership = 0x00000020,
+    TakeOwnership = 0x00000020
 
     # These are obsolete and are ignored. (and are comented out in the OG source)
     # ofCacheImage     =   0x00000004,     # EE maps but does not do relocations or verify image
     # ofManifestMetadata = 0x00000008,     # Open scope on ngen image, return the manifest metadata instead of the IL metadata
-    NoTypeLib = 0x00000080,     # Don't OpenScope on a typelib.
+    NoTypeLib = 0x00000080     # Don't OpenScope on a typelib.
     # Disable automatic transforms of .winmd files.
-    NoTransform = 0x00001000,
+    NoTransform = 0x00001000
 
     # Internal bits
-    Reserved1 = 0x00000100,     # Reserved for internal use.
-    Reserved2 = 0x00000200,     # Reserved for internal use.
-    Reserved3 = 0x00000400,     # Reserved for internal use.
+    Reserved1 = 0x00000100     # Reserved for internal use.
+    Reserved2 = 0x00000200     # Reserved for internal use.
+    Reserved3 = 0x00000400     # Reserved for internal use.
     Reserved = 0xffffef40      # All the reserved bits.
 
 
