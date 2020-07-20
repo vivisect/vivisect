@@ -176,25 +176,3 @@ class IMAGE_ARCHIVE(vstruct.VStruct):
             self.ImageArchiveMembers.vsAddElement(memb)
 
         return offset
-
-def foo(a, b, idx):
-    print 'NAME',a.ImageArchiveMembers[1].SymbolNames[idx]
-    i = a.ImageArchiveMembers[1].SymbolIndexes[idx]
-    print 'INDEX',i
-    o = a.ImageArchiveMembers[1].MemberOffsets[i]
-    print 'OFFSET',o
-    print 'BYTES',repr(b[o:o+10])
-
-if __name__ == '__main__':
-
-    import sys
-    b = file(sys.argv[1], 'rb').read()
-
-    import code
-    a = IMAGE_ARCHIVE()
-    #print a.tree()
-    a.vsParse(b)
-    print a.tree()
-    code.interact(local=locals())
-
-

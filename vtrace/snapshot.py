@@ -77,9 +77,8 @@ class TraceSnapshot(vtrace.Trace, v_base.TracerBase):
         '''
         Save a snapshot to file for later reading in...
         '''
-        f = file(filename, 'wb')
-        self.saveToFd(f)
-        f.close()
+        with open(filename, 'wb') as f:
+            self.saveToFd(f)
 
     def getMemoryMap(self, addr):
         if self.getMeta('Architecture') == 'amd64':
@@ -98,7 +97,7 @@ class TraceSnapshot(vtrace.Trace, v_base.TracerBase):
     def getStackTrace(self):
         tid = self.getMeta('ThreadId')
         tr = self.s_stacktrace.get(tid, None)
-        if tr == None:
+        if tr is None:
             raise Exception('ERROR: Invalid thread id specified')
         return tr
 
@@ -160,9 +159,8 @@ def loadSnapshot(filename):
     '''
     Load a vtrace process snapshot from a file
     '''
-    sfile = file(filename, "rb")
-    snapdict = pickle.load(sfile)
-    return TraceSnapshot(snapdict)
+    with open(filename, 'rb') as f:
+        return TraceSnapshot(pickle.load(f))
 
 def takeSnapshot(trace):
     '''
@@ -190,7 +188,7 @@ def takeSnapshot(trace):
         try:
             mem[base] = trace.readMemory(base, size)
             maps.append((base,size,perms,fname))
-        except Exception as  msg:
+        except Exception as msg:
             print >> sys.stderr, "WARNING: Can't snapshot memmap at 0x%.8x (%s)" % (base,msg)
 
     # If the contents here change, change the version...

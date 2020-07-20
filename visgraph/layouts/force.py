@@ -113,7 +113,7 @@ class ForceLayout(vg_layouts.GraphLayout):
                     if self._f_imax and i >= self._f_imax:
                         break
 
-            except Exception, e:
+            except Exception:
                 traceback.print_exc()
 
         # Now, in order from largest to smallest, shift them back toward 0,0

@@ -8,10 +8,8 @@ import cStringIO as StringIO
 import vivisect.parsers as v_parsers
 
 # Steal symbol parsing from vtrace
-import vtrace
 import vtrace.platforms.win32 as vt_win32
 
-import envi
 import envi.memory as e_mem
 import envi.symstore.symcache as e_symcache
 
@@ -28,7 +26,7 @@ logger = logging.getLogger(__name__)
 
 
 def parseFile(vw, filename, baseaddr=None):
-    pe = PE.PE(file(filename, "rb"))
+    pe = PE.PE(open(filename, "rb"))
     return loadPeIntoWorkspace(vw, pe, filename, baseaddr=baseaddr)
 
 
@@ -454,7 +452,7 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
             va += len(f)
 
     # auto-mark embedded PEs as "dead data" to prevent code flow...
-    if carvepes: 
+    if carvepes:
         pe.fd.seek(0)
         fbytes = pe.fd.read()
         for offset, i in pe_carve.carve(fbytes, 1):

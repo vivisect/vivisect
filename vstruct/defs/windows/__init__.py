@@ -27,7 +27,7 @@ def getCurrentDef(normname):
 
     try:
         mod = __import__(modname, {}, {}, 1)
-    except ImportError, e:
+    except ImportError:
         mod = None
     return mod
 

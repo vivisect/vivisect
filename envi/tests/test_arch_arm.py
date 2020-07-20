@@ -1891,7 +1891,7 @@ class ArmInstructionSet(unittest.TestCase):
             try:
                 # try register first
                 emu.setRegisterByName(tgt, val)
-            except e_exc.InvalidRegisterName, e:
+            except e_exc.InvalidRegisterName:
                 # it's not a register
                 if type(tgt) == str and tgt.startswith("PSR_"):
                     # it's a flag
@@ -1916,7 +1916,7 @@ class ArmInstructionSet(unittest.TestCase):
                     success = 0
                 else:  # should be an else
                     raise Exception("FAILED(reg): (%r test#%d)  %s  !=  0x%x (observed: 0x%x) \n\t(setters: %r)\n\t(test: %r)" % (op, tidx, tgt, val, testval, settersrepr, testsrepr))
-            except e_exc.InvalidRegisterName, e:
+            except e_exc.InvalidRegisterName:
                 # it's not a register
                 if type(tgt) == str and tgt.startswith("PSR_"):
                     # it's a flag
@@ -1995,9 +1995,10 @@ def genDPArm():
             except:
                 print "%x error" % y
 
-    file('dpArmTest','w').write(''.join(out))   
+    with open('dpArmTest', 'w') as f:
+        f.write(''.join(out))
 
-        
+
 def genMediaInstructionBytes():
     # Media Instructions
     out = []
@@ -2013,7 +2014,8 @@ def genMediaInstructionBytes():
             except:
                 print "%x error" % y
 
-    file('mediaArmTest','w').write(''.join(out))
+    with open('mediaArmTest','w') as f:
+        f.write(''.join(out))
 
 def genAdvSIMD():
     # thumb
@@ -2036,7 +2038,8 @@ def genAdvSIMD():
 
     out = outarm
     out.extend(outthumb)
-    file('advSIMD', 'wb').write(''.join(out))
+    with open('advSIMD', 'wb') as f:
+        f.write(''.join(out))
 
 def genAdvSIMDtests():
     import envi.archs.arm as eaa
@@ -2072,8 +2075,8 @@ def genAdvSIMDtests():
                         outarm.append("        (REV_ALL_ARM, '%s', 0x%x, '%s', 0, ())," % (bytezarm.encode('hex'), 0x4560, oparm))
                         outthumb.append("        (REV_ALL_ARM, '%s', 0x%x, '%s', 0, ())," % (bytezthumb.encode('hex'), 0x4561, opthumb))
 
-                    except envi.InvalidInstruction, e:
-                        print e
+                    except envi.InvalidInstruction as e:
+                        logger.warning(str(e))
                         bad += 1
                         if bad % 25 == 0:
                             raw_input("PRESS ENTER")
@@ -2129,7 +2132,7 @@ def genTestsObjdump(abytez, tbytez, bigend=False):
     '''
     abytez, tbytez = genAdvSIMDtests()
     tests = genTestsObjdump(abytez, tbytez)
-    file('armthumb_tests.py', 'wb').write('\n'.join(tests))
+    open('armthumb_tests.py', 'wb').write('\n'.join(tests))
     '''
     global data
     import subprocess
@@ -2138,7 +2141,8 @@ def genTestsObjdump(abytez, tbytez, bigend=False):
     endian = ('-EL', '-EB')[bigend]
 
     if len(abytez):
-        file('/tmp/armbytez', 'wb').write(''.join(abytez))
+        with open('/tmp/armbytez', 'wb') as f:
+            f.write(''.join(abytez))
         proc = subprocess.Popen(['/usr/bin/arm-linux-gnueabi-objdump', '-D','/tmp/armbytez', '-b', 'binary', '-m', 'arm', endian], stdin=PIPE, stdout=PIPE, stderr=PIPE)
         data = proc.stdout.readlines()
         data = [x.strip() for x in data]
@@ -2146,7 +2150,7 @@ def genTestsObjdump(abytez, tbytez, bigend=False):
 
         for parts in data:
             if len(parts) < 4:
-                print parts
+                print(parts)
                 continue
             ova, bytez, op, opers = parts[:4]
             ova = ova[:-1]
@@ -2155,7 +2159,8 @@ def genTestsObjdump(abytez, tbytez, bigend=False):
 
 
     if len(tbytez):
-        file('/tmp/thmbytez', 'wb').write(''.join(tbytez))
+        with open('/tmp/thmbytez', 'wb') as f:
+            f.write(''.join(tbytez))
         proc = subprocess.Popen(['/usr/bin/arm-linux-gnueabi-objdump', '-D','/tmp/thmbytez', '-b', 'binary', '-m', 'arm', '-M', 'force-thumb', endian], stdin=PIPE, stdout=PIPE, stderr=PIPE)
         data = proc.stdout.readlines()
         data = [x.strip() for x in data]
@@ -2163,10 +2168,10 @@ def genTestsObjdump(abytez, tbytez, bigend=False):
 
         for parts in data:
             if len(parts) < 4:
-                print parts
+                print(parts)
                 continue
             ova, bytez, op, opers = parts[:4]
-            print "GOOD: ", parts
+            print("GOOD: %s" % parts)
             ova = ova[:-1]
             bytez = bytez[2:4] + bytez[:2] + bytez[7:9] + bytez[5:7]
             yield ("        (REV_ALL_ARM, '%s', 0x%s, '%s %s', 0, ())," % (bytez, ova, op, opers))

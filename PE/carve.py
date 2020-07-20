@@ -66,10 +66,9 @@ class CarvedPE(PE.PE):
         return ret
 
 if __name__ == '__main__':
-
-    fbytes = file(sys.argv[1], 'rb').read()
-    for offset, i in  carve(fbytes):
-        print 'OFFSET: %d (xor: %d)' % (offset, i)
-        p = CarvedPE(fbytes, offset, chr(i))
-        print 'SIZE',p.getFileSize()
-
+    with open(sys.argv[1], 'rb') as fd:
+        fbytes = fd.read()
+        for offset, i in carve(fbytes):
+            print('OFFSET: %d (xor: %d)' % (offset, i))
+            p = CarvedPE(fbytes, offset, chr(i))
+            print('SIZE: %d' % p.getFileSize())

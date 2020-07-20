@@ -418,28 +418,28 @@ class FreeBSDMixin:
         ret = []
         mpath = "/proc/%d/map" % self.pid
 
-        mapfile = file(mpath, "rb")
-        for line in mapfile:
-            perms = 0
-            fname = ""
-            maptup = line.split(None)
-            base = int(maptup[0], 16)
-            max  = int(maptup[1], 16)
-            permstr = maptup[5]
+        with open(mpath, 'rb') as mapfile:
+            for line in mapfile:
+                perms = 0
+                fname = ""
+                maptup = line.split(None)
+                base = int(maptup[0], 16)
+                max  = int(maptup[1], 16)
+                permstr = maptup[5]
 
-            if maptup[11] == "vnode":
-                fname = maptup[12].strip()
+                if maptup[11] == "vnode":
+                    fname = maptup[12].strip()
 
-            if permstr[0] == 'r':
-                perms |= e_mem.MM_READ
+                if permstr[0] == 'r':
+                    perms |= e_mem.MM_READ
 
-            if permstr[1] == 'w':
-                perms |= e_mem.MM_WRITE
+                if permstr[1] == 'w':
+                    perms |= e_mem.MM_WRITE
 
-            if permstr[2] == 'x':
-                perms |= e_mem.MM_EXEC
+                if permstr[2] == 'x':
+                    perms |= e_mem.MM_EXEC
 
-            ret.append((base, max-base, perms, fname))
+                ret.append((base, max-base, perms, fname))
 
         return ret
 

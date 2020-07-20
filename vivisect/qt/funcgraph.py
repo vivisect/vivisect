@@ -410,7 +410,8 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
         elem = frame.findFirstElement('#mainhtml')
         h = elem.toOuterXml()
         #h = frame.toHtml()
-        file('test.html','wb').write(str(h))
+        with open('test.html', 'wb') as f:
+            f.write(str(h))
 
     def renderFunctionGraph(self, fva, graph=None):
 
@@ -462,7 +463,7 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
         for nid,nprops in self.graph.getNodes():
 
             cbva = nprops.get('cbva')
-            if cbva == None:
+                if cbva == None:
                 continue
 
             xpos, ypos = nprops.get('position')

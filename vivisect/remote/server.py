@@ -157,7 +157,10 @@ class VivServer:
                 if not os.path.isfile(wspath):
                     continue
 
-                if not file(wspath,'rb').read(3) == 'VIV':
+                with open(wspath, 'rb') as f:
+                    ext = f.read(3)
+
+                if ext == 'VIV':
                     continue
 
                 wsinfo = self.wsdict.get(wsname)

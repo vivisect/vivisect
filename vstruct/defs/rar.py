@@ -428,57 +428,56 @@ class Rar:
 def main():
 
     offset = 0
-    fd = file(sys.argv[1], 'rb')
-    testpass = sys.argv[2]
+    with open(sys.argv[1], 'rb') as fd:
+        testpass = sys.argv[2]
 
-    rar = Rar()
-    rar.parseRarHeader(fd)
-    rar.mainhead.tree()
+        rar = Rar()
+        rar.parseRarHeader(fd)
+        rar.mainhead.tree()
 
-    #print "FAIL TEST",rar.tryFilePasswd('asdf')
-    #print "PASS TEST",rar.tryFilePasswd(testpass)
+        #print "FAIL TEST",rar.tryFilePasswd('asdf')
+        #print "PASS TEST",rar.tryFilePasswd(testpass)
 
-    rar.setFilePasswd(testpass)
-    #print rar.read(4096).encode('hex')
-    rar.iterRar4Files()
-    #for x in rar.iterRar4Chunks():
-        #print x
-    return
+        rar.setFilePasswd(testpass)
+        #print rar.read(4096).encode('hex')
+        rar.iterRar4Files()
+        #for x in rar.iterRar4Chunks():
+            #print x
+        return
 
-    buf = fd.read(1024000)
+        buf = fd.read(1024000)
 
-    offset = 0
+        offset = 0
 
-    rar4 = Rar4Block()
-    offset = rar4.vsParse(buf,offset=offset)
-    print rar4.tree()
+        rar4 = Rar4Block()
+        offset = rar4.vsParse(buf,offset=offset)
+        print(rar4.tree())
 
-    #print 'PRE',buf[offset:offset+32].encode('hex')
-    salt = buf[offset:offset+SIZE_SALT30]
-    print 'SALT',salt.encode('hex')
-    offset += SIZE_SALT30
+        #print 'PRE',buf[offset:offset+32].encode('hex')
+        salt = buf[offset:offset+SIZE_SALT30]
+        print('SALT',salt.encode('hex'))
+        offset += SIZE_SALT30
 
-    iv,key = initIvKey30(testpass,salt)
-    #print 'IV',iv.encode('hex')
-    #print 'KEY',key.encode('hex')
-    aes = aesInit(iv,key)
-    #raise 'woot'
-    #print aes.decrypt(buf[offset:offset+64]).encode('hex')
-    x = aes.decrypt(buf[offset:offset+64])
+        iv,key = initIvKey30(testpass,salt)
+        #print 'IV',iv.encode('hex')
+        #print 'KEY',key.encode('hex')
+        aes = aesInit(iv,key)
+        #raise 'woot'
+        #print aes.decrypt(buf[offset:offset+64]).encode('hex')
+        x = aes.decrypt(buf[offset:offset+64])
 
-    rar4 = Rar4Block()
-    rar4.vsParse(x)
-    #offset = rar4.vsParse(buf,offset=offset)
-    print rar4.tree()
+        rar4 = Rar4Block()
+        rar4.vsParse(x)
+        #offset = rar4.vsParse(buf,offset=offset)
+        print(rar4.tree())
 
-    #while offset < len(b):
-        #r = RarBlock()
-        #newoff = r.vsParse(b, offset=offset)
-        #print 'CRC',r.HEAD_CRC,r.HEAD_TYPE
-        #print r.tree(va=offset)
+        #while offset < len(b):
+            #r = RarBlock()
+            #newoff = r.vsParse(b, offset=offset)
+            #print 'CRC',r.HEAD_CRC,r.HEAD_TYPE
+            #print r.tree(va=offset)
 
-        #offset = newoff
-        
+            #offset = newoff
 
 if __name__ == '__main__':
     sys.exit(main())

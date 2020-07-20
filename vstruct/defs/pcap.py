@@ -240,10 +240,10 @@ class PCAPNG_SIMPLE_PACKET_BLOCK(vstruct.VStruct):
         self.tvusec = 0
 
 def iterPcapFileName(filename, reuse=False):
-    fd = file(filename, 'rb')
-    for x in iterPcapFile(fd, reuse=reuse):
-        yield x
-    
+    with open(filename, 'rb') as fd:
+        for x in iterPcapFile(fd, reuse=reuse):
+            yield x
+
 def iterPcapFile(fd, reuse=False):
     '''
     Figure out if it's a tcpdump format, or pcapng

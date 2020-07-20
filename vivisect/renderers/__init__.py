@@ -153,12 +153,12 @@ class WorkspaceRenderer(e_canvas.MemoryRenderer):
             # extra is the opcode object
             try:
                 extra.render(mcanv)
-            except Exception, e:
+            except Exception:
                 import traceback
                 traceback.print_exc()
                 mcanv.addText("Opcode Render Failed: %s\n" % repr(extra))
 
-            if cmnt != None:
+            if cmnt is not None:
                 mcanv.addText("    ;%s" % cmnt, tag=cmnttag)
 
             mcanv.addText("\n")

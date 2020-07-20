@@ -165,10 +165,10 @@ asdf
 
     import sys
     h = IHexFile()
-    h.vsParse( file(sys.argv[1], 'rb').read() )
-    #print h.tree()
+    with open(sys.argv[1], 'rb') as f:
+        h.vsParse( f.read() )
 
-    for addr,perms,fname,bytes in h.getMemoryMaps():
-        print '0x%.8x: %r' % ( addr, bytes )
+        for addr,perms,fname,bytes in h.getMemoryMaps():
+            print('0x%.8x: %r' % ( addr, bytes ))
 
-    print h.getEntryPoint()
+        print(h.getEntryPoint())

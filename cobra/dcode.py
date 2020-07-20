@@ -27,7 +27,7 @@ class DcodeServer:
 
         try:
             fobj, filename, typeinfo = imp.find_module(fullname, path)
-        except ImportError, e:
+        except ImportError:
             return None
 
         if os.path.isdir(filename):
@@ -41,10 +41,9 @@ class DcodeServer:
             return None
 
         path = os.path.dirname(filename)
-        fbytes = file(filename, "rU").read()
+        with open(filename, 'rU') as f:
+            fbytes = f.read()
         return (fbytes,filename,path)
-
-        #return DcodeLoader(fbytes, filename, path)
 
 def toutf8(s):
     if type(s) == unicode:

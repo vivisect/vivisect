@@ -373,7 +373,7 @@ class CobraAsyncTrans:
                 except CobraAuthException as e:
                     raise
 
-                except (socket.error,CobraClosedException), e:
+                except (socket.error, CobraClosedException) as e:
                     # force a reconnect
                     self.csock.reConnect()
                     self.asyncCobraTransaction()
@@ -447,13 +447,13 @@ class CobraClientSocket(CobraSocket):
                 self.sendMessage(mtype, objname, data)
                 return self.recvMessage()
 
-            except CobraAuthException as e:
+            except CobraAuthException:
                 raise
 
-            except CobraClosedException as e:
+            except CobraClosedException:
                 self.reConnect()
 
-            except socket.error, e:
+            except socket.error:
                 self.reConnect()
 
 class CobraDaemon(ThreadingTCPServer):
@@ -1212,6 +1212,6 @@ def swapCobraObject(uri, newname):
 def requireMsgpack():
     try:
         import msgpack
-    except ImportError, e:
+    except ImportError:
         raise Exception('Missing "msgpack" python module ( http://visi.kenshoto.com/viki/Msgpack )')
-    
+

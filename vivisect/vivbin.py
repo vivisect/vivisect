@@ -106,8 +106,9 @@ def main():
                 logger.debug("ANALYSIS TIME: %s" % (end-start))
 
         if args.modname is not None:
-            module = imp.load_module("custom_analysis", file(args.modname, "rb"), args.modname, ('.py', 'U', 1))
-            module.analyze(vw)
+            with open(args.modname, 'rb') as f:
+                module = imp.load_module("custom_analysis", f, args.modname, ('.py', 'U', 1))
+                module.analyze(vw)
 
         logger.info('stats: %r' % (vw.getStats(),))
         logger.info("Saving workspace: %s" % (vw.getMeta('StorageName')))

@@ -678,7 +678,8 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
             self.vprint('Invalid File: %s' % fname)
             return
 
-        fbytes = file(fname, 'rb').read()
+        with open(fname, 'rb') as f:
+            fbytes = f.read()
         memva = self.trace.allocateMemory(len(fbytes))
         self.trace.writeMemory(memva, fbytes)
 
@@ -1514,7 +1515,7 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
         pid = None
         try:
             pid = int(args)
-        except ValueError, e:
+        except ValueError:
 
             for mypid, pname in self.trace.ps():
                 if pname.find(args) != -1:
@@ -1569,7 +1570,7 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
         if len(line):
             try:
                 index = acnames.index(line)
-            except ValueError, e:
+            except ValueError:
                 self.vprint("Unknown event name: %s" % line)
                 return
             sig = acvals[index]
@@ -1657,7 +1658,8 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
             return self.do_help("bpfile")
 
         bpid = int(argv[0])
-        pycode = file(argv[1], "rU").read()
+        with open(argv[1], 'rU') as f:
+            pycode = f.read()
 
         self.trace.setBreakpointCode(bpid, pycode)
 
@@ -1732,7 +1734,8 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
                 test = compile(pycode, "test","exec")
 
             elif opt == "-F":
-                pycode = file(optarg, "rU").read()
+                with open(optarg, 'rU') as f:
+                    pycode = f.read()
 
             elif opt == '-f':
                 fastbreak = True
@@ -1786,7 +1789,7 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
                         self.trace.addBreakpoint(bp)
                         self.vprint('Added: %s' % symstr)
 
-                except re.error, e:
+                except re.error:
                     self.vprint('Invalid Regular Expression: %s' % regex)
                     return
 

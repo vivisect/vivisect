@@ -207,7 +207,7 @@ class GdbStubMixin:
                     self._gdb_sock.recv(1)
                     self._gdb_sock.sendall('+')
 
-                except socket.timeout, t:
+                except socket.timeout:
                     pass
 
                 self._gdb_sock.settimeout(None)
@@ -585,11 +585,11 @@ class GdbStubMixin_old(e_registers.RegisterContext):
         # If we're on windows, fake out the PE header and use dbghelp
         if False:
             # FIXME this code is stolen and should be a function!
+            import ctypes
             import vtrace.platforms.win32 as vt_win32
             fakepe = self.readMemory(baseaddr, 1024)
             tfile = tempfile.NamedTemporaryFile(delete=False)
             tfilename = tfile.name
-            import ctypes
             pebuf = ctypes.create_string_buffer(fakepe)
             try:
                 try:

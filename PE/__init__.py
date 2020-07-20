@@ -1105,15 +1105,13 @@ def peFromMemoryObject(memobj, baseaddr):
     fd = vstruct.MemObjFile(memobj, baseaddr)
     return PE(fd, inmem=True)
 
-@contextlib.contextmanager
 def peFromFileName(fname):
     """
     Utility helper that assures that the file is opened in
     binary mode which is required for proper functioning.
     """
-    f = file(fname, "rb")
-    with open(fname, 'rb') as f:
-        yield PE(f)
+    # TODO api change to make context handler
+    return PE(open(fname, 'rb'))
 
 def peFromBytes(fbytes):
     fd = StringIO(fbytes)

@@ -844,13 +844,16 @@ class TracerBase(vtrace.Notifier):
 
     def platformOpenFile(self, filename):
         # Open a file for reading
-        return file(filename, 'rb')
+        # TODO: make contextmanager
+        return open(filename, 'rb')
 
     def platformReadFile(self, path):
         '''
         Abstract away reading file bytes to allow wire/remote cases.
         '''
-        return file(path,'rb').read()
+        with open(path, 'rb') as f:
+            bytez = f.read()
+        return bytez
 
     def platformListDir(self, path):
         return os.listdir(path)

@@ -214,7 +214,8 @@ class VQMemoryCanvas(e_memcanvas.MemoryCanvas, QWebView):
             fname = str(fname)
             if len(fname):
                 html = self.page().mainFrame().toHtml()
-                file(fname, 'w').write(html)
+                with open(fname, 'w') as f:
+                    f.write(html)
 
 
 def getNavTargetNames():

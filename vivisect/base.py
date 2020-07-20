@@ -574,12 +574,12 @@ class VivWorkspaceCore(object, viv_impapi.ImportApi):
             # if we have one? Just to confirm it works before we apply it...
             self._event_list.append((event, einfo))
 
-            for id,q in self.chan_lookup.items():
+            for id, q in self.chan_lookup.items():
                 if id == skip:
                     continue
                 try:
                     q.put_nowait((event, einfo))
-                except Queue.Full, e:
+                except Queue.Full as e:
                     print "FULL QUEUE DO SOMETHING"
 
         except Exception as e:

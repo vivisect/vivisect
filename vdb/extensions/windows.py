@@ -889,52 +889,54 @@ def hooks(vdb, line):
     for bname in bases.keys():
         base = bases.get(bname)
         fpath = paths.get(base)
-        pobj = PE.PE(file(fpath,'rb'))
-        filebase = pobj.IMAGE_NT_HEADERS.OptionalHeader.ImageBase
+        with open(fpath, 'rb') as fd:
+            pobj = PE.PE(fpath)
+            filebase = pobj.IMAGE_NT_HEADERS.OptionalHeader.ImageBase
 
-        skips = {}
-        # Get relocations for skipping
-        r = range( t.getPointerSize() )
-        for relrva, reltype in pobj.getRelocations():
-            for i in r:
-                skips[base+relrva+i] = True
+            skips = {}
+            # Get relocations for skipping
+            r = range( t.getPointerSize() )
+            for relrva, reltype in pobj.getRelocations():
+                for i in r:
+                    skips[base+relrva+i] = True
 
-        # Add the import entries to skip
-        for iva,libname,name in pobj.getImports():
-            for i in r:
-                skips[base+iva+i] = True
+            # Add the import entries to skip
+            for iva,libname,name in pobj.getImports():
+                for i in r:
+                    skips[base+iva+i] = True
 
-        for sec in pobj.getSections():
-            if sec.Characteristics & PE.IMAGE_SCN_MEM_EXECUTE:
-                size = sec.VirtualSize
-                va = base + sec.VirtualAddress
-                fileva = filebase + sec.VirtualAddress
-                filebytes = pobj.readAtRva(sec.VirtualAddress, sec.VirtualSize)
-                procbytes = t.readMemory(va, size)
+            for sec in pobj.getSections():
+                if sec.Characteristics & PE.IMAGE_SCN_MEM_EXECUTE:
+                    size = sec.VirtualSize
+                    va = base + sec.VirtualAddress
+                    fileva = filebase + sec.VirtualAddress
+                    filebytes = pobj.readAtRva(sec.VirtualAddress, sec.VirtualSize)
+                    procbytes = t.readMemory(va, size)
 
-                for off,size in bindiff(filebytes, procbytes):
-                    difva = va + off
-                    fdifva = fileva + off
+                    for off,size in bindiff(filebytes, procbytes):
+                        difva = va + off
+                        fdifva = fileva + off
 
-                    # Check for a relocation covering this...
-                    if skips.get(difva):
-                        continue
+                        # Check for a relocation covering this...
+                        if skips.get(difva):
+                            continue
 
-                    found = True
-                    dmem = procbytes[off:off+size].encode('hex')[:10]
-                    dfil = filebytes[off:off+size].encode('hex')[:10]
+                        found = True
+                        dmem = procbytes[off:off+size].encode('hex')[:10]
+                        dfil = filebytes[off:off+size].encode('hex')[:10]
 
-                    vdb.canvas.addVaText('0x%.8x' % difva, difva)
-                    vdb.canvas.addText(' (0x%.8x) (%d)' % (fdifva,size))
-                    vdb.canvas.addText(' mem: %s file: %s ' % (dmem, dfil))
+                        vdb.canvas.addVaText('0x%.8x' % difva, difva)
+                        vdb.canvas.addText(' (0x%.8x) (%d)' % (fdifva,size))
+                        vdb.canvas.addText(' mem: %s file: %s ' % (dmem, dfil))
 
-                    sym = vdb.symobj.getSymByAddr(difva, exact=False)
-                    if sym != None:
-                        vdb.canvas.addText(' ')
-                        vdb.canvas.addVaText('%s + %d' % (repr(sym),difva-long(sym)), difva)
-                    vdb.canvas.addText('\n')
+                        sym = vdb.symobj.getSymByAddr(difva, exact=False)
+                        if sym != None:
+                            vdb.canvas.addText(' ')
+                            vdb.canvas.addVaText('%s + %d' % (repr(sym),difva-long(sym)), difva)
+                        vdb.canvas.addText('\n')
 
-    if not found: vdb.canvas.addText('No Hooks Found!\n')
+    if not found:
+        vdb.canvas.addText('No Hooks Found!\n')
 
 def jit(vdb, line):
     '''

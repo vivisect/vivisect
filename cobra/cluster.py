@@ -243,7 +243,7 @@ class ClusterServer:
         if not self.sharedfiles.get(filename):
             raise Exception('File %s is not shared!')
 
-        fd = file(filename, 'rb')
+        fd = open(filename, 'rb')
 
         cname = self.cobrad.shareObject(fd, doref=True)
         host,port = cobra.getLocalInfo()
@@ -365,7 +365,7 @@ class ClusterServer:
 
         try:
             ret = self.queue.popleft()
-        except IndexError, e:
+        except IndexError:
             self.qcond.release()
             return None
 
@@ -590,7 +590,7 @@ def workThread(server, work):
         work.server = None
         server.doneWork(work)
 
-    except InvalidInProgWorkId, e: # the work was canceled
+    except InvalidInProgWorkId: # the work was canceled
         pass # Nothing to do, the server already knows
 
     except Exception as e:

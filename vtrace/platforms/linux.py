@@ -649,29 +649,29 @@ class LinuxMixin(v_posix.PtraceMixin, v_posix.PosixMixin):
 
     def platformGetMaps(self):
         maps = []
-        mapfile = file("/proc/%d/maps" % self.pid)
-        for line in mapfile:
+        with open("/proc/%d/maps" % self.pid, 'r') as mapfile:
+            for line in mapfile:
 
-            perms = 0
-            sline = line.split(" ")
-            addrs = sline[0]
-            permstr = sline[1]
-            fname = sline[-1].strip()
-            addrs = addrs.split("-")
-            base = long(addrs[0],16)
-            max = long(addrs[1],16)
-            mlen = max-base
+                perms = 0
+                sline = line.split(" ")
+                addrs = sline[0]
+                permstr = sline[1]
+                fname = sline[-1].strip()
+                addrs = addrs.split("-")
+                base = long(addrs[0],16)
+                max = long(addrs[1],16)
+                mlen = max-base
 
-            if "r" in permstr:
-                perms |= e_mem.MM_READ
-            if "w" in permstr:
-                perms |= e_mem.MM_WRITE
-            if "x" in permstr:
-                perms |= e_mem.MM_EXEC
-            #if "p" in permstr:
-                #pass
+                if "r" in permstr:
+                    perms |= e_mem.MM_READ
+                if "w" in permstr:
+                    perms |= e_mem.MM_WRITE
+                if "x" in permstr:
+                    perms |= e_mem.MM_EXEC
+                #if "p" in permstr:
+                    #pass
 
-            maps.append((base,mlen,perms,fname))
+                maps.append((base,mlen,perms,fname))
         return maps
 
     def platformGetFds(self):

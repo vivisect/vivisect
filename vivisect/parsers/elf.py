@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 
 def parseFile(vw, filename, baseaddr=None):
-    fd = file(filename, 'rb')
+    fd = open(filename, 'rb')
     elf = Elf.Elf(fd)
     return loadElfIntoWorkspace(vw, elf, filename=filename, baseaddr=baseaddr)
 
@@ -243,7 +243,7 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
         for phdr in elf.getPheaders():
             if phdr.p_type != Elf.PT_LOAD:
                 continue
-            
+
             sva = phdr.p_vaddr
             if addbase:
                 sva += baseaddr
