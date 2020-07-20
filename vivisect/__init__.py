@@ -1317,7 +1317,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         """
         # TODO: could we do more here?
         try:
-            return 'Thunk' in self.getFunctionMetaDict(funcva)
+            return self.getFunctionMeta(funcva, 'Thunk') is not None
         except InvalidFunction:
             return False
 
