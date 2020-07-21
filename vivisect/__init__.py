@@ -933,6 +933,8 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         offset, bytes = self.getByteDef(va)
         maxlen = len(bytes) - offset
         count = 0
+        if maxlen < 2:
+            return -1
         charset = bytes[offset + 1]
         while count < maxlen:
             # If we hit another thing, then probably not.

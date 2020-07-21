@@ -1,3 +1,4 @@
+import binascii
 import unittest
 
 import vivisect

@@ -380,5 +380,3 @@ def analyzeFunction(vw, funcva):
 
     logger.info('makeFunctionThunk(0x%x, "plt_%s")', funcva, funcname)
     vw.makeFunctionThunk(funcva, "plt_" + funcname, addVa=False, filelocal=True)
-
-

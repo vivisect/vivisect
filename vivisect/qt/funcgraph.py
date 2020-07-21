@@ -463,7 +463,7 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
         for nid,nprops in self.graph.getNodes():
 
             cbva = nprops.get('cbva')
-                if cbva == None:
+            if cbva == None:
                 continue
 
             xpos, ypos = nprops.get('position')

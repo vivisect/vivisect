@@ -35,7 +35,6 @@ class AnalysisMonitor(viv_monitor.AnalysisMonitor):
         try:
             tmode = emu.getFlag(PSR_T_bit)
             self.last_tmode = tmode
-            #if self.verbose: print( "tmode: %x    emu:  0x%x   flags: 0x%x \t %r" % (tmode, starteip, op.iflags, op))
             if op in self.badops:
                 emu.stopEmu()
                 raise Exception("Hit known BADOP at 0x%.8x %s (fva: 0x%x)" % (starteip, repr(op), self.fva))
@@ -124,7 +123,7 @@ class AnalysisMonitor(viv_monitor.AnalysisMonitor):
 
         except Exception as e:
             self.logAnomaly(emu, self.fva, "0x%x: (%r) ERROR: %s" % (op.va, op, e))
-            logger.exception("0x%x: (%r)  ERROR: %s", op.va, op, e)
+            logger.warning("0x%x: (%r)  ERROR: %s", op.va, op, e)
 
 
     def posthook(self, emu, op, starteip):

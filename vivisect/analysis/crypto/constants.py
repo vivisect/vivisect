@@ -39,7 +39,7 @@ def analyze(vw):
             while va < maxva:
                 loctup = vw.getLocation(va)
                 if loctup is None:
-                    logger.error("error parsing through function 0x%x at 0x%x" % (fva, va))
+                    logger.warning("error parsing through function 0x%x at 0x%x" % (fva, va))
                     va += 1
                     continue
                 lva,lsize,ltype,tinfo = loctup

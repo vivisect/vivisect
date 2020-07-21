@@ -1,4 +1,5 @@
 import os
+import binascii
 
 import vivisect.symboliks.expression as v_s_expr
 

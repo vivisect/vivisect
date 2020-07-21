@@ -37,7 +37,7 @@ class VisualStudioVamp(e_bytesig.SignatureTree):
             bytez = binascii.unhexlify(bytez)
             if masks != None:
                 masks = binascii.unhexlify(masks)
-            self.addSignature(bytes, masks=masks, val=fname)
+            self.addSignature(bytez, masks=masks, val=fname)
 
 # seh3_prolog
 #.text:0x7c8024d6  68c09a837c       push kernel32.seh3_handler

@@ -266,8 +266,7 @@ class ArmWorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_arm.ArmEmulator):
                     if self.emumon is not None:
                         self.emumon.logAnomaly(self, starteip, str(e))
 
-                    logger.debug('runFunction breaking after exception (fva: 0x%x): %s', funcva, e)
-                    logger.exception('')
+                    logger.warning('runFunction breaking after exception (fva: 0x%x): %s', funcva, e)
                     break # If we exc during execution, this branch is dead.
 
 class ThumbWorkspaceEmulator(ArmWorkspaceEmulator):
