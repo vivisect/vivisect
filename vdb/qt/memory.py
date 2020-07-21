@@ -1,3 +1,5 @@
+import binascii
+
 try:
     from PyQt5 import QtCore
     from PyQt5.QtWidgets import QApplication
@@ -109,7 +111,7 @@ class VdbMemoryCanvas(envi.qt.memcanvas.VQMemoryCanvas):
         bytez = t.readMemory(va, size)
 
         clipboard = QApplication.clipboard()
-        clipboard.setText(bytez.encode('hex'))
+        clipboard.setText(binascii.hexlify(bytez))
 
     def _menuFollow(self, va, rend='', newWindow=False):
         totalsize = self._canv_endva - self._canv_beginva

@@ -53,29 +53,29 @@ class LockStepper:
         for i in range(count):
             emupc = self.emu.getProgramCounter()
             tracepc = self.trace.getProgramCounter()
-            #print('pc: 0x%.8x' % emupc)
-            #print('hex: %s' % self.emu.readMemory(emupc, 16).encode('hex'))
-            #print('trace: 0x%.8x' % tracepc)
-            #print('hex: %s' % self.trace.readMemory(tracepc, 16).encode('hex'))
+            # print('pc: 0x%.8x' % emupc)
+            # print('hex: %s' % binascii.hexlify(self.emu.readMemory(emupc, 16)))
+            # print('trace: 0x%.8x' % tracepc)
+            # print('hex: %s' % binascii.hexlify(self.trace.readMemory(tracepc, 16)))
 
-            op1 = self.emu.parseOpcode( self.emu.getProgramCounter() )
-            #print('0x%.8x: %r' % (op1.va, op1))
+            op1 = self.emu.parseOpcode(emupc)
+            # print('0x%.8x: %r' % (op1.va, op1))
 
-            op2 = self.trace.parseOpcode( self.trace.getProgramCounter() )
-            #print('0x%.8x: %r' % (op2.va, op2))
+            op2 = self.trace.parseOpcode(tracepc)
+            # print('0x%.8x: %r' % (op2.va, op2))
 
             try:
                 self.emu.stepi()
             except Exception as e:
-                raise Exception('Emu Exception: %s on %s' % (e,repr(op1)))
+                raise Exception('Emu Exception: %s on %s' % (e, repr(op1)))
 
             try:
                 self.trace.stepi()
             except Exception as e:
-                raise Exception('Trace Exception: %s on %s' % (e,repr(op2)))
+                raise Exception('Trace Exception: %s on %s' % (e, repr(op2)))
 
-            self.cmpregs( op1, op2 )
-            self.cmppages( op1, op2 )
+            self.cmpregs(op1, op2)
+            self.cmppages(op1, op2)
 
     def cmpregs(self, emuop, traceop):
         emuregs = self.emu.getRegisters()

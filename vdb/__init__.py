@@ -4,6 +4,7 @@ import sys
 import shlex
 import pprint
 import signal
+import binascii
 import threading
 import traceback
 from Queue import Queue
@@ -529,8 +530,10 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
                 douni = True
 
         exprstr, memstr = args
-        if dohex: memstr = memstr.decode('hex')
-        if douni: memstr = ("\x00".join(memstr)) + "\x00"
+        if dohex:
+            memstr = binascii.unhexlify(memstr)
+        if douni:
+            memstr = ("\x00".join(memstr)) + "\x00"
 
         addr = self.parseExpression(exprstr)
         self.memobj.writeMemory(addr, memstr)
@@ -1915,8 +1918,8 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
                     for va,thenbytes,nowbytes in difs:
                         self.vprint('0x%.8x: %s %s' %
                                     (va,
-                                     thenbytes.encode('hex'),
-                                     nowbytes.encode('hex')))
+                                     binascii.hexlify(thenbytes),
+                                     binascii.hexlify(nowbytes)))
 
             elif opt == '-M':
                 va = self.parseExpression(optarg)

@@ -4,6 +4,7 @@ MemoryCanvas objects.
 '''
 
 import sys
+import binascii
 import traceback
 
 import envi
@@ -135,7 +136,7 @@ class MemoryCanvas(object):
 
     def addNameText(self, text, name=None, typename='name'):
         if name == None:
-            name = text.encode('hex')
+            name = binascii.hexlify(text)
         tag = self.getNameTag(name, typename=typename)
         self.addText(text, tag=tag)
 

@@ -4,19 +4,13 @@ A package for any of the vivisect workspace renderers.
 import envi
 import string
 import urllib
+import binascii
 
 from vivisect.const import *
 
 import vstruct.primitives as vs_prims
 import envi.cli as e_cli
 import envi.memcanvas as e_canvas
-
-location_tags = {
-    LOC_PAD:"pad",
-    LOC_OP:"code",
-    LOC_STRING:"string",
-    LOC_UNI:"string",
-}
 
 def cmpoffset(x,y):
     return cmp(x[0], y[0])
@@ -148,7 +142,7 @@ class WorkspaceRenderer(e_canvas.MemoryRenderer):
         if ltype == LOC_OP:
             mcanv.addText(linepre, tag=vatag)
             opbytes = mcanv.mem.readMemory(lva, lsize)
-            mcanv.addText(opbytes[:8].encode('hex').ljust(17))
+            mcanv.addText(binascii.hexlify(opbytes[:8]).ljust(17))
 
             # extra is the opcode object
             try:
@@ -240,7 +234,7 @@ class WorkspaceRenderer(e_canvas.MemoryRenderer):
             mcanv.addText(linepre, vatag)
             offset,bytes = self.vw.getByteDef(lva)
             b = bytes[offset]
-            mcanv.addNameText(b.encode('hex'), typename="undefined")
+            mcanv.addNameText(binascii.hexlify(b), typename="undefined")
             if b in string.printable:
                 mcanv.addText('    %s' % repr(b), tag=cmnttag)
             if cmnt != None:
@@ -263,7 +257,7 @@ class WorkspaceRenderer(e_canvas.MemoryRenderer):
             mcanv.addText("\n")
 
         else:
-            tagname = location_tags.get(ltype, None)
+            tagname = loc_type_names.get(ltype, None)
             if tagname == None:
                 tagname = "location"
 

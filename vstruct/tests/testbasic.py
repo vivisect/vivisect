@@ -1,3 +1,4 @@
+import binascii
 import unittest
 
 import vstruct
@@ -30,7 +31,7 @@ class VStructTest(unittest.TestCase):
         v.uint64 = v_uint64(5)
         v.vbytes = v_bytes(vbytes='ABCD')
 
-        answer = '01020003000004000000050000000000000041424344'.decode('hex')
+        answer = binascii.unhexlify('01020003000004000000050000000000000041424344')
         self.assertEqual( v.vsEmit(), answer )
 
 
@@ -50,7 +51,7 @@ class VStructTest(unittest.TestCase):
         v.uint64 = 103
         v.vbytes = '\x00\x00\x00\x00'
 
-        answer = '63640065000066000000670000000000000000000000'.decode('hex')
+        answer = binascii.unhexlify('63640065000066000000670000000000000000000000')
         self.assertEqual( v.vsEmit(), answer )
 
 
@@ -63,7 +64,7 @@ class VStructTest(unittest.TestCase):
         v.uint32 = v_uint32(0x42434445, bigend=True)
         v.uint64 = v_uint64(0x4243444546474849, bigend=True)
 
-        answer = '420042430000424344000000424344454243444546474849'.decode('hex')
+        answer = binascii.unhexlify('420042430000424344000000424344454243444546474849')
         self.assertEqual( v.vsEmit(), answer )
 
     def test_vstruct_fixedpartialasign(self):
@@ -74,7 +75,7 @@ class VStructTest(unittest.TestCase):
         v.strfield = 'wootwoot!'
         v.unifield = 'bazbaz'
 
-        answer = '776f6f74776f6f7421000000000000000000000000000000000000000000620061007a00620061007a00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000'.decode('hex')
+        answer = binascii.unhexlify('776f6f74776f6f7421000000000000000000000000000000000000000000620061007a00620061007a00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000')
 
         self.assertEqual( v.vsEmit(), answer )
 
@@ -89,25 +90,25 @@ class VStructTest(unittest.TestCase):
         v.vsAddParseCallback('lenfield', updatelen)
 
         v.vsParse('\x01' + 'A' * 30)
-        self.assertEqual( v.vsEmit(), '0141'.decode('hex') )
+        self.assertEqual( v.vsEmit(), binascii.unhexlify('0141') )
 
 
     def test_vstruct_classcallback(self):
         v = woot()
         v.vsParse('\x01' + 'A'*30)
-        self.assertEqual( v.vsEmit(), '0141'.decode('hex') )
+        self.assertEqual( v.vsEmit(), binascii.unhexlify('0141') )
 
     def test_vstruct_parsefd(self):
         v = woot()
         sio = StringIO('\x01' + 'A' * 30)
         v.vsParseFd(sio)
-        self.assertEqual( v.vsEmit(), '0141'.decode('hex') )
+        self.assertEqual( v.vsEmit(), binascii.unhexlify('0141') )
 
     def test_vstruct_insertfield(self):
         v = woot()
         v.vsInsertField('ifield', v_uint8(), 'strfield')
         v.vsParse('\x01BAAAAA')
-        self.assertEqual( v.vsEmit(), '014241'.decode('hex') )
+        self.assertEqual( v.vsEmit(), binascii.unhexlify('014241') )
 
     def test_vstruct_floats(self):
 
@@ -118,7 +119,7 @@ class VStructTest(unittest.TestCase):
         v.float4 = 99.3
         v.float8 = -400.2
 
-        self.assertEqual( v.vsEmit(), '9a99c64233333333330379c0'.decode('hex') )
+        self.assertEqual( v.vsEmit(), binascii.unhexlify('9a99c64233333333330379c0') )
 
     def test_vstruct_fastparse(self):
         v = vstruct.VStruct()

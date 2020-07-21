@@ -1,6 +1,7 @@
 import os
 import sys
 import zipfile
+import binascii
 import optparse
 import tempfile
 
@@ -28,15 +29,15 @@ def release():
 
     if opts.cacert:
         with open(opts.cacert, 'rb') as f:
-            castr = '"%s"' % f.read().encode('hex')
+            castr = '"%s"' % binascii.hexlify(f.read())
 
     if opts.sslkey:
         with open(opts.sslkey, 'rb') as f:
-            keystr = '"%s"' % f.read().encode('hex')
+            keystr = '"%s"' % binascii.hexlify(f.read())
 
     if opts.sslcert:
         with open(opts.sslcert, 'rb') as f:
-            certstr = '"%s"' % f.read().encode('hex')
+            certstr = '"%s"' % binascii.hexlify(f.read())
 
     mainlines.append('    appuri="%s"' % appuri)
     mainlines.append('    cacrt=%s' % castr)
@@ -54,7 +55,7 @@ def release():
 
 def dumpfile(hexbytes,filepath):
     with open(filepath, 'wb') as f:
-        f.write(hexbytes.decode('hex'))
+        f.write(binascii.unhexlify(hexbytes))
     return filepath
 
 

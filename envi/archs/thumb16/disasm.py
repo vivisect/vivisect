@@ -1986,7 +1986,7 @@ def adv_xfer_arm_ext_64(va, val1, val2):
         raise InvalidInstruction(mesg="INVALID ENCODING: adv_xfer_arm_ext_64: op is not '00x1'", bytez=bytez, va=va)
 
     '''
-    In [8]: ad.disasm('345b46ec'.decode('hex'), 0, 0)
+    In [8]: ad.disasm(binascii.unhexlify('345b46ec'), 0, 0)
     Out[8]: vmov d9, r5, r6
     '''
     return COND_AL, INS_VMOV, 'vmov', opers, 0, 0

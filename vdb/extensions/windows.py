@@ -1,6 +1,7 @@
 import os
 import sys
 import getopt
+import binascii
 
 import vtrace
 import vtrace.tools.win32heap as win32heap
@@ -922,8 +923,8 @@ def hooks(vdb, line):
                             continue
 
                         found = True
-                        dmem = procbytes[off:off+size].encode('hex')[:10]
-                        dfil = filebytes[off:off+size].encode('hex')[:10]
+                        dmem = binascii.hexlify(procbytes[off:off+size])[:10]
+                        dfil = binascii.hexlify(filebytes[off:off+size])[:10]
 
                         vdb.canvas.addVaText('0x%.8x' % difva, difva)
                         vdb.canvas.addText(' (0x%.8x) (%d)' % (fdifva,size))

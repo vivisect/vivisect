@@ -7,6 +7,7 @@ import shlex
 import pprint
 import socket
 import logging
+import binascii
 import traceback
 from getopt import getopt
 
@@ -371,7 +372,6 @@ class VivCli(e_cli.EnviCli, vivisect.VivWorkspace):
                     else:
                         if pattern in oprepr:
                             addthis = True
-                
                 # only want one listing of each va, no matter how many times it matches
                 if addthis:
                     res.append(va)
@@ -379,7 +379,7 @@ class VivCli(e_cli.EnviCli, vivisect.VivWorkspace):
                 self.vprint(''.join(traceback.format_exception(*sys.exc_info())))
 
         if len(res) == 0:
-            self.vprint('pattern not found: %s (%s)' % (pattern.encode('hex'), repr(pattern)))
+            self.vprint('pattern not found: %s (%s)' % (binascii.hexlify(pattern), repr(pattern)))
             return
 
         # set the color for each finding
@@ -389,7 +389,7 @@ class VivCli(e_cli.EnviCli, vivisect.VivWorkspace):
             from vqt.main import vqtevent
             vqtevent('viv:colormap', colormap)
 
-        self.vprint('matches for: %s (%s)' % (pattern.encode('hex'), repr(pattern)))
+        self.vprint('matches for: %s (%s)' % (binascii.hexlify(pattern), repr(pattern)))
         for va in res:
             mbase, msize, mperm, mfile = self.memobj.getMemoryMap(va)
             pname = e_mem.reprPerms(mperm)
@@ -768,9 +768,9 @@ class VivCli(e_cli.EnviCli, vivisect.VivWorkspace):
         if fva == None:
             self.vprint("Invalid Function Address: 0x%.8x (%s)" % (va, line))
 
-        sig,mask = viv_vamp.genSigAndMask(self, fva)
-        self.vprint("SIGNATURE: %s" % sig.encode("hex"))
-        self.vprint("MASK: %s" % mask.encode("hex"))
+        sig, mask = viv_vamp.genSigAndMask(self, fva)
+        self.vprint("SIGNATURE: %s" % binascii.hexlify(sig))
+        self.vprint("MASK: %s" % binascii.hexlify(mask))
 
     def do_vdb(self, line):
         '''

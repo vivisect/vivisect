@@ -145,8 +145,8 @@ class VQMemoryCanvas(e_memcanvas.MemoryCanvas, QWebView):
         qt tags, they are a tuple of html text (<opentag>, <closetag>)
         '''
         clsname = 'envi-%s' % typename
-        namehex = name.lower().encode('hex')
-        subclsname = 'envi-%s-%s' % (typename,namehex)
+        namehex = binascii.hexlify(name.lower())
+        subclsname = 'envi-%s-%s' % (typename, namehex)
         return ('<span class="%s %s" envitag="%s" envival="%s" onclick="nameclick(this)">' % (clsname,subclsname,typename,namehex), '</span>')
 
     def getVaTag(self, va):

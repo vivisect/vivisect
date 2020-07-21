@@ -1,4 +1,5 @@
 import string
+import binascii
 
 import envi.memory as e_mem
 import envi.memcanvas as e_canvas
@@ -257,7 +258,7 @@ class MemWriteWindow(QWidget):
         rbytes = str(self.data_edit.text())
         erbytes = self.encodeData(rbytes, encoding)
 
-        hexbytes = erbytes.encode('hex')
+        hexbytes = binascii.hexlify(erbytes)
         self.writeToMemory.emit(curexpr, hexbytes)
 
     def getValues(self):

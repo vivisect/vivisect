@@ -32,7 +32,7 @@ def _loadMacho(vw, filebytes, filename=None, baseaddr=None):
         filename = 'macho_%.8x' % baseaddr  # FIXME more than one!
 
     # Check for the FAT binary magic...
-    if filebytes[:4].encode('hex') in ('cafebabe', 'bebafeca'):
+    if binascii.hexlify(filebytes[:4]) in ('cafebabe', 'bebafeca'):
 
         archhdr = None
         fatarch = vw.config.viv.parsers.macho.fatarch

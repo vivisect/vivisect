@@ -140,7 +140,7 @@ class AutoBytesRenderer(e_canvas.MemoryRenderer):
             desc = items[0]
         elif len(items) == 0:
             # if none match, just return the bytes.
-            desc = bytez.encode('hex')
+            desc = binascii.hexlify(bytez)
         elif len(items) > 1:
             # we only really expect one or none of these to match.
             desc = 'Error, multiple matches for this address!'

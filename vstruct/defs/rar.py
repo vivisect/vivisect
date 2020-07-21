@@ -1,5 +1,6 @@
 import os
 import sys
+import binascii
 
 import vstruct
 from vstruct.primitives import *
@@ -15,8 +16,8 @@ from vstruct.primitives import *
 #HEAD_TYPE_SUBBLOCK      = 0x7a          #subblock
 
 SFX_MODMAX  = 1024000 # one meg
-RAR4_SIGNATURE = '526172211a0700'.decode('hex')
-RAR5_SIGNATURE = '526172211a070100'.decode('hex')
+RAR4_SIGNATURE = binascii.unhexlify('526172211a0700')
+RAR5_SIGNATURE = binascii.unhexlify('526172211a070100')
 
 def getRarOffset(fd):
     cur = fd.tell()
@@ -254,40 +255,34 @@ def initIvKey30(passwd,salt):
 
     passb = passwd.encode('utf-16le')
     initkey = passb + salt
-    print 'PASS','->%s<-' % passwd
-    print 'SALT',salt.encode('hex')
-    print 'INIT',initkey.encode('hex')
+    print('PASS ->%s<-' % passwd)
+    print('SALT %s' % binascii.hexlify(salt))
+    print('INIT %s' % binascii.hexlify(initkey))
 
     sha1hash = hashlib.sha1()
     #sha1hash = rarsha()
     # crazy russian awesomeness/paranoia
     for i in range(rounds): # srsly?!?! fscking russians ;)
         sha1hash.update(initkey)
-        #print "INITKEY",initkey.encode("hex")
         ib = struct.pack('<I',i)
         sha1hash.update( ib[:3] )
         #sha1hash.update( iblist[i] )
 
-        #print "pswnum",ib[:3].encode('hex')
         if i % roundsdiv == 0:
             digest = sha1hash.digest()
             #digest = sha1hash.done()
-            #print 'shaiv',digest.encode('hex')
             aesiv[ i / roundsdiv ] = digest[-1]
-            #print 'AESINIT',i/roundsdiv,digest[-1].encode('hex')
-            #raise 'WOOT'
 
-    print 'IV',(''.join(aesiv)).encode('hex')
+    print('IV: %s' % binascii.hexlify(''.join(aesiv)))
     endswap = struct.unpack_from('<4I', sha1hash.digest())
     aeskey  = struct.pack('>4I', *endswap)
-    print 'KEY',aeskey.encode('hex')
+    print('KEY %s' % binascii.hexlify(aeskey))
     #digest = sha1hash.digest()
-    #print 'PREKEY',digest.encode('hex')
     #for i in range(4):
         #for j in range(4):
             #aeskey[ (i*4) + j ] = chr( (digest[i] >> (j*8)) & 0xff )
 
-    return ''.join(aesiv),aeskey
+    return ''.join(aesiv), aeskey
 
 def aesInit(iv,key):
     from Crypto.Cipher import AES
@@ -346,13 +341,11 @@ class Rar:
             curloc = self.fd.tell()
             self.trybuf = self.fd.read(16)
             self.fd.seek(curloc)
-        
+
         iv,key = initIvKey30(passwd,self.salt)
         aes = aesInit(iv,key)
         clearbuf = aes.decrypt(self.trybuf)
-        #print 'CLEAR',clearbuf.encode('hex')
         crc,ctype,cflags,csize = struct.unpack_from('<HBHH', clearbuf)
-        #print 'CTYPE',hex(ctype),hex(FILE_HEAD)
         return ctype == FILE_HEAD
 
     def setFilePasswd(self, passwd):
@@ -369,7 +362,7 @@ class Rar:
         while len(self.clearbuf) < size:
             crypted = self.fd.read(4096)
             self.clearbuf += self.aes.decrypt(crypted)
-            print 'CLEARBUF',self.clearbuf.encode('hex')
+            print('CLEARBUF: %s' % binascii.hexlify(self.clearbuf))
 
         ret = self.clearbuf[:size]
         self.clearbuf = self.clearbuf[size:]
@@ -398,7 +391,7 @@ class Rar:
                 #remain = csize % 16
                 #if remain:
                     #pad = self.read( 16 - remain )
-                    #print 'PAD',pad.encode('hex')
+                    #print('PAD %s' % binascii.hexlify(pad))
 
             cls = rar4blocks.get(rar4.HEAD_TYPE)
             if cls != None:
@@ -439,7 +432,6 @@ def main():
         #print "PASS TEST",rar.tryFilePasswd(testpass)
 
         rar.setFilePasswd(testpass)
-        #print rar.read(4096).encode('hex')
         rar.iterRar4Files()
         #for x in rar.iterRar4Chunks():
             #print x
@@ -453,17 +445,15 @@ def main():
         offset = rar4.vsParse(buf,offset=offset)
         print(rar4.tree())
 
-        #print 'PRE',buf[offset:offset+32].encode('hex')
         salt = buf[offset:offset+SIZE_SALT30]
-        print('SALT',salt.encode('hex'))
+        print('SALT %s' % binascii.hexlify(salt))
         offset += SIZE_SALT30
 
         iv,key = initIvKey30(testpass,salt)
-        #print 'IV',iv.encode('hex')
-        #print 'KEY',key.encode('hex')
+        #print('IV %s' % binascii.hexlify(iv))
+        #print('KEY %s' % binascii.hexlify(key))
         aes = aesInit(iv,key)
-        #raise 'woot'
-        #print aes.decrypt(buf[offset:offset+64]).encode('hex')
+        #print(binascii.hexlify(aes.decrypt(buf[offset:offset+64])))
         x = aes.decrypt(buf[offset:offset+64])
 
         rar4 = Rar4Block()

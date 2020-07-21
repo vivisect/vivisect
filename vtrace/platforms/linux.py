@@ -906,8 +906,8 @@ class LinuxAmd64Trace(
 
 
 
-arm_break_be = 'e7f001f0'.decode('hex')
-arm_break_le = 'f001f0e7'.decode('hex')
+arm_break_be = binascii.unhexlify('e7f001f0')
+arm_break_le = binascii.unhexlify('f001f0e7')
 
 class LinuxArmTrace(
         vtrace.Trace,

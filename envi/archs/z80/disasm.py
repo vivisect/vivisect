@@ -13,8 +13,8 @@ sigtree = e_bsig.SignatureTree()
 for row in z80_opcode.z80table:
     sighex, maskhex = row[0]
 
-    sig = sighex.decode('hex')
-    mask = maskhex.decode('hex')
+    sig = binascii.unhexlify(sighex)
+    mask = binascii.unhexlify(maskhex)
 
     sigtree.addSignature(sig, masks=mask, val=row)
 
@@ -88,11 +88,11 @@ class z80Disasm:
             return z80ImmOper(imm)
 
         elif otype == OPTYPE_RegAlt:
-            print 'REG ALT!'
             return z80RegOper(oinfo)
 
         elif otype == OPTYPE_Ind:
-            print 'OPTYPE IND'
+            #print 'OPTYPE IND'
+            pass
 
         elif otype == OPTYPE_RegMemDisp:
             disp = e_bits.parsebytes(bytez, offset+immoff, 1, sign=True)
@@ -100,13 +100,3 @@ class z80Disasm:
 
         else:
             raise Exception('Unknown z80 operand type: %d' % otype)
-
-if __name__ == '__main__':
-    print sigtree.getSignature('\x00')
-    print sigtree.getSignature('fdcb0006'.decode('hex'))
-
-    d = z80Disasm()
-
-    print repr(d.disasm('\xfd\xcb\x30\x06', 0, 20))
-
-

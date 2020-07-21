@@ -87,7 +87,7 @@ class SymbolikEmulator:
         by solving for deltas between two symbols in different seed
         inputs to see if they are likely arithmetically related.
         '''
-        self._sym_rseed = os.urandom(10).encode('hex')
+        self._sym_rseed = binascii.hexlify(os.urandom(10))
 
     def getRandomSeed(self):
         return self._sym_rseed

@@ -1,11 +1,10 @@
 '''
 A home for the vdb specific memory renderers.
 '''
+import binascii
 
 import envi
 import vtrace
-import envi.bits as e_bits
-import envi.memory as e_mem
 import envi.memcanvas as e_canvas
 import vivisect.impapi as viv_impapi
 import envi.memcanvas.renderers as e_canvas_rend
@@ -90,7 +89,7 @@ class OpcodeRenderer(e_canvas.MemoryRenderer):
         mcanv.addText(prefix)
 
         mcanv.addVaText(vastr, va=va)
-        mcanv.addText(": %s " % obytes.encode('hex').ljust(17))
+        mcanv.addText(": %s " % binascii.hexlify(obytes).ljust(17))
         op.render(mcanv)
 
         try:

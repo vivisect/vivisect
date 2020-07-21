@@ -2,6 +2,8 @@
 Some utilities for dealing with COFF .LIB files
 '''
 
+import binascii
+
 import vstruct
 from vstruct.defs.pe import *
 from vstruct.primitives import *
@@ -56,8 +58,6 @@ class IMAGE_ARCHIVE_LINKER1(IMAGE_ARCHIVE_MEMBER):
 
     def pcb_NumberOfSymbols(self):
         c = self.NumberOfSymbols
-        print self.MemberHeader.tree()
-        print 'SYMBOLS',c
         self.SymbolOffsets = vstruct.VArray( elems=[ v_uint32(bigend=True) for i in range(c) ])
         self.SymbolNames = vstruct.VArray( elems=[ v_zstr() for i in range(c) ])
 
@@ -80,10 +80,10 @@ class IMAGE_ARCHIVE_LINKER2(IMAGE_ARCHIVE_MEMBER):
         self.SymbolIndexes = vstruct.VArray( elems=[ v_uint16() for i in range(c) ])
         self.SymbolNames = vstruct.VArray( elems=[ v_zstr() for i in range(c) ])
 
-IMPORT_SIG      = '0000ffff'.decode('hex')
-IMPORT_CODE     = 0 #Executable code.
-IMPORT_DATA     = 1 #Data.
-IMPORT_CONST    = 2 #Specified as CONST in the .def file.
+IMPORT_SIG      = binascii.unhexlify('0000ffff')
+IMPORT_CODE     = 0 # Executable code.
+IMPORT_DATA     = 1 # Data.
+IMPORT_CONST    = 2 # Specified as CONST in the .def file.
 
 class IMAGE_ARCHIVE_IMPORT(IMAGE_ARCHIVE_MEMBER):
 

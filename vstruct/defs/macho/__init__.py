@@ -73,7 +73,7 @@ class mach_o(vstruct.VStruct):
     def vsParse(self, bytes, offset=0):
         self._raw_bytes = bytes[offset:]
         offset = self.mach_header.vsParse(bytes, offset=offset)
-        #print bytes[offset:].encode('hex')
+        #print binascii.hexlify(bytes[offset:])
         for i in range(self.mach_header.ncmds):
             # should we use endian from header?
             cmdtype, cmdlen = struct.unpack('<II', bytes[offset:offset+8])

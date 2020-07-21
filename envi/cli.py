@@ -8,6 +8,7 @@ import sys
 import code
 import shlex
 import json
+import binascii
 import optparse
 import traceback
 import threading
@@ -662,10 +663,13 @@ class EnviCli(Cmd):
             pattern = struct.pack('<L', sval) # FIXME 64bit (and alt arch)
 
         if options.is_hex:
-            pattern = pattern.decode('hex')
+            pattern = binascii.unhexlify(pattern)
 
         if options.encode_as != None:
-            pattern = pattern.encode(options.encode_as)
+            if options.encode_as == 'hex':
+                pattern = binascii.hexlify(patter)
+            else:
+                pattern = pattern.encode(options.encode_as)
 
         if options.range_search:
             try:
@@ -685,11 +689,11 @@ class EnviCli(Cmd):
             res = self.memobj.searchMemory(pattern, regex=options.is_regex)
 
         if len(res) == 0:
-            self.vprint('pattern not found: %s (%s)' % (pattern.encode('hex'), repr(pattern)))
+            self.vprint('pattern not found: %s (%s)' % (binascii.hexlify(pattern), repr(pattern)))
             return
 
         brend = e_render.ByteRend()
-        self.vprint('matches for: %s (%s)' % (pattern.encode('hex'), repr(pattern)))
+        self.vprint('matches for: %s (%s)' % (binascii.hexlify(pattern), repr(pattern)))
         for va in res:
             mbase,msize,mperm,mfile = self.memobj.getMemoryMap(va)
             pname = e_mem.reprPerms(mperm)
@@ -791,11 +795,11 @@ class EnviCli(Cmd):
             self.canvas.addText('==== %d byte difference at offset %d\n' % (offsize,offset))
             self.canvas.addVaText("0x%.8x" % diff1, diff1)
             self.canvas.addText(":")
-            self.canvas.addText(bytes1[offset:offset+offsize].encode('hex'))
+            self.canvas.addText(binascii.hexlify(bytes1[offset:offset+offsize]))
             self.canvas.addText('\n')
             self.canvas.addVaText("0x%.8x" % diff2, diff2)
             self.canvas.addText(":")
-            self.canvas.addText(bytes2[offset:offset+offsize].encode('hex'))
+            self.canvas.addText(binascii.hexlify(bytes2[offset:offset+offsize]))
             self.canvas.addText('\n')
 
     def do_mem(self, line):
@@ -939,8 +943,10 @@ class EnviMutableCli(EnviCli):
                 douni = True
 
         exprstr, memstr = args
-        if dohex: memstr = memstr.decode('hex')
-        if douni: memstr = ("\x00".join(memstr)) + "\x00"
+        if dohex:
+            memstr = binascii.unhexlify(memstr)
+        if douni:
+            memstr = ("\x00".join(memstr)) + "\x00"
 
         addr = self.parseExpression(exprstr)
         self.memobj.writeMemory(addr, memstr)

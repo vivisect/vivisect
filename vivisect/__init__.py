@@ -11,13 +11,13 @@ import time
 import string
 import hashlib
 import logging
+import binascii
 import itertools
 import traceback
 import threading
 import contextlib
 import collections
 
-from binascii import hexlify
 try:
     import Queue
 except ModuleNotFoundError:
@@ -52,7 +52,7 @@ STOP_LOCS = (LOC_STRING, LOC_UNI, LOC_STRUCT, LOC_CLSID, LOC_VFTABLE, LOC_IMPORT
 
 
 def guid(size=16):
-    return hexlify(os.urandom(size))
+    return binascii.hexlify(os.urandom(size))
 
 
 class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
@@ -641,9 +641,9 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
         else:
             n = self.getName(lva)
-            if n != None:
+            if n is not None:
                 return n
-            return self.readMemory(lva, lsize).encode('hex')
+            return binascii.hexlify(self.readMemory(lva, lsize))
 
     def followPointer(self, va):
         """
@@ -1175,7 +1175,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             except envi.InvalidInstruction as msg:
                 # FIXME something is just not right about this...
                 bytez = self.readMemory(va, 16)
-                print("Invalid Instruct Attempt At:", hex(va), bytez.encode("hex"))
+                logger.warning("Invalid Instruct Attempt At:", hex(va), binascii.hexlify(bytez))
                 raise InvalidLocation(va, msg)
             except Exception as msg:
                 traceback.print_exc()
@@ -2089,6 +2089,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         (specify range=True to potentially match a va that is inside
         a location rather than the beginning of one)
         """
+        # TODO: range=True does nothing
         return self.locmap.getMapLookup(va)
 
     def getLocationRange(self, va, size):

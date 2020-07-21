@@ -1,4 +1,5 @@
 import struct
+import binascii
 
 class v_enum(object):
     def __init__(self):
@@ -517,7 +518,7 @@ class v_bytes(v_prim):
         self._vs_value = b.ljust(size, '\x00')
 
     def __repr__(self):
-        return self._vs_value.encode('hex')
+        return binascii.hexlify(self._vs_value)
 
 class v_str(v_prim):
     '''
@@ -736,7 +737,7 @@ class GUID(v_prim):
         gstr = gstr.replace("{","")
         gstr = gstr.replace("}","")
         gstr = gstr.replace("-","")
-        bytes = gstr.decode("hex")
+        bytes = binascii.unhexlify(gstr)
         # Totally cheating... ;)
         self._guid_fields = struct.unpack(">IHH8B", bytes)
 

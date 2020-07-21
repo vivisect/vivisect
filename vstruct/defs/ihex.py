@@ -2,6 +2,8 @@
 '''
 Parser objects for the Intel Hex file format.
 '''
+import binascii
+
 import vstruct
 from vstruct.primitives import *
 
@@ -37,7 +39,7 @@ class IHexChunk(vstruct.VStruct):
         '''
         Return the binary data payload for this chunk.
         '''
-        return self.data.decode('hex')
+        return binascii.unhexlify(self.data)
 
 class IHexFile(vstruct.VArray):
 

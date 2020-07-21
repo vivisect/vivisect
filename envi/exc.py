@@ -1,3 +1,4 @@
+import binascii
 
 class InvalidRegisterName(Exception):
     pass
@@ -28,7 +29,7 @@ class InvalidInstruction(EnviException):
             msg = [mesg]
 
         if bytez is not None:
-            msg.append("'" + bytez.encode('hex') + "'")
+            msg.append("'" + binascii.hexlify(bytez) + "'")
 
         if va != 0:
             msg.append('at ' + hex(va))

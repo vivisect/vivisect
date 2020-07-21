@@ -1,4 +1,6 @@
 import sys
+import binascii
+
 import envi
 import envi.memory as e_mem
 import envi.memcanvas as e_memcanvas
@@ -29,7 +31,7 @@ class Amd64InstrTest(unittest.TestCase):
         archmod = envi.getArchModule("amd64")
 
         for bytez, va, reprOp in instrs:
-            op = archmod.archParseOpcode(bytez.decode('hex'), 0, va)
+            op = archmod.archParseOpcode(binascii.unhexlify(bytez), 0, va)
             if repr(op).replace(' ', '') != reprOp.replace(' ', ''):
                 raise Exception("FAILED to decode instr:  %.8x %s - should be: %s  - is: %s" %
                                 (va, bytez, reprOp, repr(op)))
@@ -1091,7 +1093,7 @@ class Amd64InstructionSet(unittest.TestCase):
         for name, bytez, reprOp, renderOp in opers:
 
             try:
-                op = self._arch.archParseOpcode(bytez.decode('hex'), 0, 0x400)
+                op = self._arch.archParseOpcode(binascii.unhexlify(bytez), 0, 0x400)
             except envi.InvalidInstruction:
                 self.fail("Failed to parse opcode bytes: %s (case: %s, expected: %s)" % (bytez, name, reprOp))
             except Exception as e:
@@ -1124,7 +1126,7 @@ class Amd64InstructionSet(unittest.TestCase):
 
     def checkOpcode(self, hexbytez, va, oprepr, opcheck, opercheck, renderOp):
 
-        op = self._arch.archParseOpcode(hexbytez.decode('hex'), 0, va)
+        op = self._arch.archParseOpcode(binascii.unhexlify(hexbytez), 0, va)
 
         self.assertEqual( repr(op), oprepr )
         opvars = vars(op)
@@ -1193,12 +1195,12 @@ class Amd64InstructionSet(unittest.TestCase):
 
         for x in range(0xb0, 0xb8):
             bytez = '41%.2xAAAAAAAA' % x
-            op = self._arch.archParseOpcode((bytez).decode('hex'),0,0x1000)
+            op = self._arch.archParseOpcode(binascii.unhexlify(bytez),0,0x1000)
             self.assertEqual( (bytez, hex(op.opers[0].reg)), (bytez, hex( 0x80000 + (x-0xa8) )) )
 
         for x in range(0xb8, 0xc0):
             bytez = '41%.2xAAAAAAAA' % x
-            op = self._arch.archParseOpcode((bytez).decode('hex'),0,0x1000)
+            op = self._arch.archParseOpcode(binascii.unhexlify(bytez),0,0x1000)
             self.assertEqual( (bytez, hex(op.opers[0].reg)), (bytez, hex( 0x200000 + (x-0xb0) )) )
 
     def test_envi_amd64_disasm_Imm_Operands(self):
@@ -1393,11 +1395,11 @@ class Amd64InstructionSet(unittest.TestCase):
 def generateTestInfo(ophexbytez='6e'):
     a64 = e_amd64.Amd64Module()
     opbytez = ophexbytez
-    op = a64.archParseOpcode(opbytez.decode('hex'), 0, 0x4000)
-    print "opbytez = '%s'\noprepr = '%s'"%(opbytez,repr(op))
-    opvars=vars(op)
+    op = a64.archParseOpcode(binascii.unhexlify(opbytez), 0, 0x4000)
+    print("opbytez = '%s'\noprepr = '%s'" % (opbytez, repr(op)))
+    opvars = vars(op)
     opers = opvars.pop('opers')
-    print "opcheck = ",repr(opvars)
+    print("opcheck = %s" % repr(opvars))
 
     opersvars = []
     for x in range(len(opers)):
@@ -1405,5 +1407,5 @@ def generateTestInfo(ophexbytez='6e'):
         opervars.pop('_dis_regctx')
         opersvars.append(opervars)
 
-    print "opercheck = %s" % (repr(opersvars))
+    print("opercheck = %s" % (repr(opersvars)))
 

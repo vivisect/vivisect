@@ -5,6 +5,7 @@ import code
 import time
 import socket
 import struct
+import binascii
 import platform
 import tempfile
 import threading
@@ -219,13 +220,13 @@ class GdbStubMixin:
 
     def _monitorCommand(self, cmd):
         resp = ''
-        cmd = 'qRcmd,%s' % cmd.encode('hex')
+        cmd = 'qRcmd,%s' % binascii.hexlify(cmd)
         pkt = self._cmdTransact(cmd)
         while not pkt.startswith('OK'):
             self._raiseIfError(pkt)
             if not pkt.startswith('O'):
-                return pkt.decode('hex')
-            resp += pkt[1:].decode('hex')
+                return binascii.unhexlify(pkt)
+            resp += binascii.unhexlify(pkt[1:])
             pkt = self._recvPkt()
         return resp
 
@@ -280,7 +281,6 @@ class GdbStubMixin:
         while True:
             pkt = self._recvPkt()
             if pkt.startswith('O'):
-                print 'GDBSTUB SAID: %s' % pkt[1:].decode('hex')
                 continue
             break
         return pkt
@@ -449,14 +449,14 @@ class GdbStubMixin:
         Set the target stub's register context from the envi register context
         '''
         # FIXME tid!
-        regbytes = self._cmdTransact('g').decode('hex')
+        regbytes = binascii.unhexlify(self._cmdTransact('g'))
         regremain = regbytes[self._gdb_regsize:]
         rvals = struct.unpack(self._gdb_regfmt, regbytes[:self._gdb_regsize])
         rvals = list(rvals) # So we can assign to them...
         for myidx, enviidx in self._gdb_reg_xlat:
             rvals[myidx] = ctx.getRegister(enviidx)
         newbytes = struct.pack(self._gdb_regfmt, rvals) + regremain
-        return self._cmdTransact('G'+newbytes.encode('hex'))
+        return self._cmdTransact('G' + binascii.hexlify(newbytes))
 
     def platformGetThreads(self):
 
@@ -492,7 +492,7 @@ class GdbStubMixin:
 
             i = buf.find('*')
 
-        return buf.decode('hex')
+        return binascii.unhexlify(buf)
 
     def platformReadMemory(self, addr, size):
         mbytes = ''
@@ -509,7 +509,7 @@ class GdbStubMixin:
         return mbytes
 
     def platformWriteMemory(self, addr, mbytes):
-        cmd = 'M%x,%x:%s' % (addr, len(mbytes), mbytes.encode('hex'))
+        cmd = 'M%x,%x:%s' % (addr, len(mbytes), binascii.hexlify(mbytes))
         pkt = self._cmdTransact(cmd)
 
     def platformGetMaps(self):

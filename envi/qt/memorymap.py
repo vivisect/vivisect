@@ -1,3 +1,6 @@
+import binascii
+
+
 try:
     from PyQt5 import QtCore
     from PyQt5.QtWidgets import *
@@ -67,7 +70,7 @@ class VQMemoryMapView(vq_tree.VQTreeView):
         bytez = self.mem.readMemory(va, size)
 
         clipboard = QApplication.clipboard()
-        clipboard.setText(bytez.encode('hex'))
+        clipboard.setText(binascii.hexlify(bytez))
 
     def menuSaveBytesToFile(self, va, size):
         dlg = envi.qt.memdump.MemDumpDialog(va, size=size)

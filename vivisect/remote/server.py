@@ -194,7 +194,7 @@ class VivServer:
 
     def createEventChannel(self, wsname):
         wsinfo = self._req_wsinfo(wsname)
-        chan = os.urandom(16).encode('hex')
+        chan = binascii.hexlify(os.urandom(16))
 
         lock, fpath, pevents, users = wsinfo
         with lock:
