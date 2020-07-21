@@ -1,4 +1,5 @@
 import os
+import math
 import struct
 import binascii
 
@@ -6,6 +7,7 @@ from cStringIO import StringIO
 
 import vstruct
 import vstruct.defs.pe as vs_pe
+import PE.clr as clr
 
 import ordlookup
 
@@ -1197,14 +1199,28 @@ class PE(object):
 
     def parseOptimizedData(self, offset, size):
         header = self.readStructAtOffset(offset, 'pe.METADATA_TABLE_STREAM_HEADER')
+        ridmask = (2 ** (header.Rid)) - 1
+        ridlen = 4 if header.Rid > 16 else 2
+
+        strOffSz  = 4 if header.Heaps & 0x1 else 2
+        guidOffSz = 4 if header.Heaps & 0x2 else 2
+        blobOffSz = 4 if header.Heaps & 0x4 else 2
+
+        # get the length of the tag in bits
+        taglen = max(map(len, clr.CodedTokenTypeMap.values()))
+        taglen = len(bin(taglen)[2:])
+
+        # length of the coded token type
+        cttlen = 4 if header.Rid + taglen > 16 else 2
+
         srtd = {}
-        tbls = {}
+        tblc = {}
         tables_present = header.MaskValid
         sorted_tables = header.Sorted
         tid = 0
         while tables_present:
             if tables_present & 1:
-                tbls[tid] = 0
+                tblc[tid] = 0
             tables_present >>= 1
             tid += 1
 
@@ -1215,19 +1231,35 @@ class PE(object):
             sorted_tables >>= 1
             tid += 1
 
+        # parse out the table counts. it's just a series of back to back 4 byte integers
         offset += len(header)
-        for i in range(len(tbls)):
+        for key in tblc:
             bytez = self.readAtOffset(offset, 4)
             count = struct.unpack("<I", bytez)[0]
-            tbls[i] = count
+            tblc[key] = count
             offset += 4
+
+        # TODO: double check that the RID here matches the rid from the header
+        ridtbls = {}
+        for key, count in tblc.items():
+            i = 0
+            ctor = clr.RIDTYPEMAP[key]
+            # RIDs are all 1 based indexes :(, so fake it here
+            table = [None]
+            for i in range(count):
+                obj = ctor(ridlen=ridlen, cttlen=cttlen, slen=strOffSz, glen=guidOffSz, blen=blobOffSz)
+                l = len(obj)
+                obj.vsParse(self.readAtOffset(offset, l))
+                table.append(obj)
+                offset += l
+            ridtbls[key] = table
         import pdb
         pdb.set_trace()
         pass
 
     def parseUnoptimizedData(self, offset, size):
         header = self.readStructAtOffset(offset, 'pe.METADATA_TABLE_STREAM_HEADER')
-        ridlen = header.Rid % 8 + (1 if header.Rid % 8 > 0  else 0)
+        # ridlen = header.Rid % 8 + (1 if header.Rid % 8 > 0  else 0)
         import pdb
         pdb.set_trace()
         pass

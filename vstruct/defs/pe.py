@@ -455,7 +455,7 @@ class METADATA_TABLE_STREAM_HEADER(vstruct.VStruct):
         self.Reserved = v_uint32()
         self.MajorVersion = v_uint8()
         self.MinorVersion = v_uint8()
-        self.Heap = v_uint8()
+        self.Heaps = v_uint8()
         self.Rid = v_uint8()
         self.MaskValid = v_uint64()
         self.Sorted = v_uint64()

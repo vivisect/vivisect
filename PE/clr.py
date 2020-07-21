@@ -6,6 +6,8 @@ import vstruct.defs.clr as vdc
 MAX_CLASS_NAME = MAX_PACKAGE_NAME = 1024
 IMAGE_COR_EATJ_THUNK_SIZE = 32  # Size of a jump thunk reserved range.
 
+
+# Order matters for pretty much all of these
 # XXX: RIDs into a specific table are 1-based indexes, but these are just the type mappings
 # which are 0 based
 RIDTYPEMAP = [
@@ -56,8 +58,99 @@ RIDTYPEMAP = [
     vdc.GenericParamConstraint,
 ]
 
-CodedTokenTypes = {
+# Soooo.technically there's a few of these that aren't TokenTypes, but are just Types,
+# but the numbers line up either way, so screw 'em
+class Types(enum.Enum):
+    Module = 0
+    TypeRef = 1
+    TypeDef = 2
+    FieldPtr = 3
+    Field = 4
+    MethodPtr = 5
+    Method = 6
+    ParamPtr = 7
+    Param = 8
+    InterfaceImpl = 9
+    MemberRef = 10
+    Constant = 11
+    CustomAttribute = 12
+    FieldMarshal = 13
+    DeclSecurity = 14
+    ClassLayout = 15
+    FieldLayout = 16
+    StandaloneSig = 17
+    EventMap = 18
+    EventPtr = 19
+    Event = 20
+    PropertyMap = 21
+    PropertyPtr = 22
+    Property = 23
+    MethodSemantics = 24
+    MethodImp = 25
+    ModuleRef = 26
+    TypeSpec = 27
+    ImplMap = 28
+    FieldRVA = 29
+    ENCLog = 30
+    ENCMap = 31
+    Assembly = 32
+    AssemblyProcessor = 33
+    AssemblyOS = 34
+    AssemblyRef = 35
+    AssemblyRefProcessor = 36
+    AssemblyRefOS = 37
+    File = 38
+    ExportedType = 39
+    ManifestResource = 40
+    NestedClass = 41
+    GenericParam = 42
+    MethodSpec = 43
+    GenericParamConstraint = 44
 
+
+class CodedTokenTypes(enum.Enum):
+    TypeDefOrRef = 64
+    HasConstant = 65
+    HasCustomAttribute = 66
+    HasFieldMarshal = 67
+    HasDeclSecurity = 68
+    MemberRefParent = 69
+    HasSemantics = 70
+    MethodDefOrRef = 71
+    MemberForwarded = 72
+    Implementation = 73
+    CustomAttributeType = 74
+    ResolutionScope = 75
+    TypeOrMethodDef = 76
+
+
+CodedTokenTypeMap = {
+    CodedTokenTypes.TypeDefOrRef: [Types.TypeDef, Types.TypeRef, Types.TypeSpec],
+    CodedTokenTypes.HasConstant: [Types.Field, Types.Param, Types.Property],
+    CodedTokenTypes.HasCustomAttribute: [
+        Types.Method, Types.Field, Types.TypeRef, Types.TypeDef, Types.Param,
+        Types.InterfaceImpl, Types.MemberRef, Types.Module, Types.DeclSecurity, Types.Property,
+        Types.Event, Types.StandaloneSig, Types.ModuleRef, Types.TypeSpec, Types.Assembly,
+        Types.AssemblyRef, Types.File, Types.ExportedType, Types.ManifestResource,
+        Types.GenericParam, Types.GenericParamConstraint, Types.MethodSpec
+    ],
+    CodedTokenTypes.HasFieldMarshal: [Types.Field, Types.Param],
+    CodedTokenTypes.HasDeclSecurity: [Types.TypeDef, Types.Method, Types.Assembly],
+    CodedTokenTypes.MemberRefParent: [
+        Types.TypeDef, Types.TypeRef, Types.ModuleRef, Types.Method, Types.MethodSpec
+    ],
+    CodedTokenTypes.HasSemantics: [Types.Event, Types.Property],
+    CodedTokenTypes.MethodDefOrRef: [Types.Method, Types.MemberRef],
+    CodedTokenTypes.MemberForwarded: [Types.Field, Types.Method],
+    CodedTokenTypes.Implementation: [Types.File, Types.AssemblyRef, Types.ExportedType],
+    CodedTokenTypes.CustomAttributeType: [
+        None, None, Types.Method, Types.MemberRef, None,
+        # the ones marked none must not be used
+    ],
+    CodedTokenTypes.ResolutionScope: [
+        Types.Module, Types.ModuleRef, Types.AssemblyRef, Types.TypeRef
+    ],
+    CodedTokenTypes.TypeOrMethodDef: [Types.TypeDef, Types.Method],
 }
 
 
