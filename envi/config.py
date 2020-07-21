@@ -3,12 +3,17 @@ Unified config object for all vtoys.
 """
 
 import os
-import sys
 import json
 import getpass
+import logging
 
-from ConfigParser import ConfigParser
-from cStringIO import StringIO
+try:
+    from ConfigParser import ConfigParser
+except:
+    from configparser import ConfigParser
+
+
+logger = logging.getLogger(__name__)
 
 
 def gethomedir(*paths):
@@ -19,8 +24,7 @@ def gethomedir(*paths):
         try:
             os.makedirs(path)
         except Exception as err:
-            print('FIXME - invalid homedir, playing along...')
-            pass
+            logger.warning('FIXME - invalid homedir, playing along...')
 
     return path
 
@@ -109,7 +113,7 @@ class EnviConfig:
         '''
         Return a list of tuples including: (type, valid path strings, existing value)
 
-        'type' can be CONFIG_PATH or CONFIG_ENTRY to indicate whether the tuple 
+        'type' can be CONFIG_PATH or CONFIG_ENTRY to indicate whether the tuple
         represents a subconfig or an actual key/value pair
         '''
         paths = []
