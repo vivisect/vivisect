@@ -1200,18 +1200,10 @@ class PE(object):
     def parseOptimizedData(self, offset, size):
         header = self.readStructAtOffset(offset, 'pe.METADATA_TABLE_STREAM_HEADER')
         ridmask = (2 ** (header.Rid)) - 1
-        ridlen = 4 if header.Rid > 16 else 2
 
         strOffSz  = 4 if header.Heaps & 0x1 else 2
         guidOffSz = 4 if header.Heaps & 0x2 else 2
         blobOffSz = 4 if header.Heaps & 0x4 else 2
-
-        # get the length of the tag in bits
-        taglen = max(map(len, clr.CodedTokenTypeMap.values()))
-        taglen = len(bin(taglen)[2:])
-
-        # length of the coded token type
-        cttlen = 4 if header.Rid + taglen > 16 else 2
 
         srtd = {}
         tblc = {}
@@ -1239,6 +1231,9 @@ class PE(object):
             tblc[key] = count
             offset += 4
 
+        ridbits = len(bin(max(tblc.values()) + 1)[2:])
+        ridbytes = 4 if ridbits > 16 else 2
+
         # TODO: double check that the RID here matches the rid from the header
         ridtbls = {}
         for key, count in tblc.items():
@@ -1247,7 +1242,7 @@ class PE(object):
             # RIDs are all 1 based indexes :(, so fake it here
             table = [None]
             for i in range(count):
-                obj = ctor(ridlen=ridlen, cttlen=cttlen, slen=strOffSz, glen=guidOffSz, blen=blobOffSz)
+                obj = ctor(ridlen=ridbytes, cttbase=ridbits, slen=strOffSz, glen=guidOffSz, blen=blobOffSz)
                 l = len(obj)
                 obj.vsParse(self.readAtOffset(offset, l))
                 table.append(obj)
