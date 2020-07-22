@@ -2261,12 +2261,15 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
         if name is not None or not smart:
             return name
-        
+
         # TODO: by previous symbol?
 
         # by function
         baseva = self.getFunction(va)
         basename = self.name_by_va.get(baseva, None)
+
+        if self.isFunction(va):
+            basename = 'sub_0%x' % va
 
         # by filename
         if basename is None:
