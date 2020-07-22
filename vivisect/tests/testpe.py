@@ -111,4 +111,6 @@ class PETests(unittest.TestCase):
         # this is more designed to be a smoke test that we actually get a populated vaset
         emufuncs = vw.getVaSet('EmucodeFunctions')
         self.assertTrue(len(emufuncs) > 0)
-        self.assertEquals(set(emufuncs.keys()), funcs)
+        e = set(emufuncs.keys())
+        f = set(funcs)
+        self.assertTrue(f.intersection(e) == f)
