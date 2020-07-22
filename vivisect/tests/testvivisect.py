@@ -169,7 +169,7 @@ class VivisectTest(unittest.TestCase):
         chgrp_spec = [
             # chgrp specific that I should test
             (0x8049c70, 'msfastcall_caller', 7, 'change_file_owner'),
-            (0x80499f0, 'thiscaller', 1, 'parse_group'),
+            (0x80499f0, 'thiscall_caller', 1, 'parse_group'),
             (0x8049b60, 'cdecl', 7, 'chown_files'),
             (0x804a5a0, 'msfastcall_caller', 6, 'describe_change')
         ]
@@ -185,7 +185,6 @@ class VivisectTest(unittest.TestCase):
             self.assertIsNotNone(name)
             name = name.split('.')[-1]
             self.assertEqual(name, funcname)
-
 
     def test_non_codeblock(self):
         '''
