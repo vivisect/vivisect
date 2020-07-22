@@ -6,7 +6,6 @@ if they are code by emulation behaviorial analysis.
 """
 import envi
 import vivisect
-import vivisect.reports as viv_rep
 from envi.archs.i386.opconst import *
 import vivisect.impemu.monitor as viv_imp_monitor
 
@@ -34,11 +33,11 @@ class watcher(viv_imp_monitor.EmulationMonitor):
     def logAnomaly(self, emu, eip, msg):
         self.badcode = True
         emu.stopEmu()
-        
+
         #self.vw.verbprint("Emucode: 0x%.8x (f:0x%.8x) %s" % (eip, self.tryva, msg))
 
     def looksgood(self):
-        if not self.hasret or self.badcode: 
+        if not self.hasret or self.badcode:
             return False
 
         # if there is 1 mnem that makes up over 50% of all instructions then flag it as invalid
@@ -64,15 +63,14 @@ class watcher(viv_imp_monitor.EmulationMonitor):
 
         return True
 
-
     def prehook(self, emu, op, eip):
-        if op.mnem == "out": #FIXME arch specific. see above idea.
+        if op.mnem == "out":  # FIXME arch specific. see above idea.
             emu.stopEmu()
             raise Exception("Out instruction...")
 
         if op in self.badops:
             emu.stopEmu()
-            raise Exception("Hit known BADOP at 0x%.8x %s" % (eip,repr(op)))
+            raise Exception("Hit known BADOP at 0x%.8x %s" % (eip, repr(op)))
 
         if op.iflags & envi.IF_RET:
             self.hasret = True
@@ -83,18 +81,19 @@ class watcher(viv_imp_monitor.EmulationMonitor):
         # defined locations...
         if self.vw.isFunction(eip):
             emu.stopEmu()
-            # FIXME: this is a problem.  many time legit code falls into other functions...  "hydra" functions are more and more common.
+            # FIXME: this is a problem.  many time legit code falls into other functions... 
+            # "hydra" functions are more and more common.
             raise Exception("Fell Through Into Function: %.8x" % eip)
 
         loc = self.vw.getLocation(eip)
-        if loc != None:
+        if loc is not None:
             va, size, ltype, linfo = loc
             if ltype != vivisect.LOC_OP:
                 emu.stopEmu()
                 raise Exception("HIT LOCTYPE %d AT %.8x" % (ltype, va))
 
         cnt = self.mndist.get(op.mnem, 0)
-        self.mndist[ op.mnem ] = cnt+1
+        self.mndist[op.mnem] = cnt+1
         self.insn_count += 1
 
         # FIXME do we need a way to terminate emulation here?
@@ -108,12 +107,11 @@ def analyze(vw):
 
     flist = vw.getFunctions()
 
-    tried = {}
-    vasetrows = []
+    tried = set()
     while True:
         docode = []
         bcode  = []
-       
+
         vatodo = []
         vatodo = [ va for va, name in vw.getNames() if vw.getLocation(va) == None ]
         vatodo.extend( [tova for fromva, tova, reftype, rflags in vw.getXrefs(rtype=REF_PTR) if vw.getLocation(tova) == None] )
@@ -129,10 +127,10 @@ def analyze(vw):
                 continue
 
             # Skip it if we've tried it already.
-            if tried.get(va):
+            if va in tried:
                 continue
 
-            tried[va] = True
+            tried.add(va)
             emu = vw.getEmulator()
             wat = watcher(vw, va)
             emu.setEmulationMonitor(wat)
@@ -157,23 +155,25 @@ def analyze(vw):
 
         docode.sort()
         for va in docode:
-            if vw.getLocation(va) != None:
+            if vw.getLocation(va) is not None:
                 continue
-            # XXX - RP 
             try:
                 logger.debug('discovered new function: 0x%x', va)
                 vw.makeFunction(va)
-            except: 
+            except:
                 continue
-            vasetrows.append((va,))
-    
+
         bcode.sort()
         for va in bcode:
-            if vw.getLocation(va) != None:
+            if vw.getLocation(va) is not None:
                 continue
+            # TODO: consider elevating to functions?
             vw.makeCode(va)
 
     dlist = vw.getFunctions()
 
-    vw.verbprint("emucode: %d new functions defined (now total: %d)" % (len(dlist)-len(flist), len(dlist)))
+    newfuncs = set(dlist) - set(flist)
+    for fva in newfuncs:
+        vw.setVaSetRow('EmucodeFunctions', (fva,))
 
+    vw.verbprint("emucode: %d new functions defined (now total: %d)" % (len(dlist)-len(flist), len(dlist)))

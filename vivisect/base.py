@@ -740,16 +740,7 @@ class VivCodeFlowContext(e_codeflow.CodeFlowContext):
         vw._fireEvent(VWE_ADDFUNCTION, (fva,fmeta))
 
         # Go through the function analysis modules in order
-        for fmname in vw.fmodlist:
-            fmod = vw.fmods.get(fmname)
-            try:
-                logger.debug('fmod: 0x%x  (%r)', fva, fmod)
-                fmod.analyzeFunction(vw, fva)
-            except Exception as e:
-                if vw.verbose:
-                    traceback.print_exc()
-                vw.verbprint("Function Analysis Exception for 0x%x   %s: %s" % (fva, fmod.__name__, e))
-                vw.setFunctionMeta(fva, "%s fail" % fmod.__name__, traceback.format_exc())
+        vw.analyzeFunction(fva)
 
         fname = vw.getName( fva )
         if vw.getMeta('NoReturnApis').get( fname.lower() ):
