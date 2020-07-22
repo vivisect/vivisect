@@ -85,11 +85,11 @@ class BFastCall(ThisCall):
     arg_def = [(CC_REG, REG_EAX), (CC_REG, REG_EDX), (CC_REG, REG_ECX),
                 (CC_STACK_INF, 4)]
 
-class ThisCaller(ThisCall):
+class ThisCall_Caller(ThisCall):
     flags = CC_CALLER_CLEANUP
-class MsFastCaller(MsFastCall):
+class MsFastCall_Caller(MsFastCall):
     flags = CC_CALLER_CLEANUP
-class BFastCaller(BFastCall):
+class BFastCall_Caller(BFastCall):
     flags = CC_CALLER_CLEANUP
 
 stdcall = StdCall()
@@ -97,9 +97,10 @@ cdecl = Cdecl()
 thiscall = ThisCall()
 msfastcall = MsFastCall()
 bfastcall = BFastCall()
-thiscaller = ThisCaller()
-msfastcaller = MsFastCaller()
-bfastcaller = BFastCaller()
+
+thiscall_caller = ThisCall_Caller()
+msfastcall_caller = MsFastCall_Caller()
+bfastcall_caller = BFastCall_Caller()
 
 class IntelEmulator(i386RegisterContext, envi.Emulator):
 
@@ -127,9 +128,9 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         self.addCallingConvention('msfastcall', msfastcall)
         self.addCallingConvention('bfastcall', bfastcall)
 
-        self.addCallingConvention('thiscaller', thiscaller)
-        self.addCallingConvention('msfastcaller', msfastcaller)
-        self.addCallingConvention('bfastcaller', bfastcaller)
+        self.addCallingConvention('thiscall_caller', thiscall_caller)
+        self.addCallingConvention('msfastcall_caller', msfastcall_caller)
+        self.addCallingConvention('bfastcall_caller', bfastcall_caller)
 
     def getSegmentIndex(self, op):
         # FIXME this needs to account for push/pop/etc

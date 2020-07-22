@@ -100,10 +100,10 @@ def buildFunctionApi(vw, fva, emu, emumon, stkstart):
             # do our stack args line up with what we cleaned up?
             if abs(stkoff) != stackargs:
                 # we're probably caller cleanup then
-                callconv = callconv + 'er'
+                callconv = callconv + '_caller'
 
     if argc > 64:
-        callconv = 'unkcall' 
+        callconv = 'unkcall'
         argc = 0
     # Add argument indexes to our argument names
     funcargs = [ argcname(callconv, i) for i in range(argc) ]
