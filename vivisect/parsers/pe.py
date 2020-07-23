@@ -463,5 +463,14 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
             pebytes = subpe.readAtOffset(0, subpe.getFileSize())
             rva = pe.offsetToRva(offset)
             vw.markDeadData(rva, rva+len(pebytes))
-    clr = pe.clr
+    comdesc = pe.getDataDirectory(PE.IMAGE_DIRECTORY_ENTRY_COM_DESCRIPTOR)
+    if comdesc.VirtualAddress and comdesc.Size:
+        # TODO: just in case, also parse the entry point and make sure it's a jump
+        # to CorExeMain
+        loadCLRIntoWorkspace(vw, pe)
+
     return fname
+
+
+def loadCLRIntoWorkspace(vw, pe):
+    pe.parseCLR()

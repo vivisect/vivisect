@@ -1170,7 +1170,7 @@ class PE(object):
             name = sh.RCName
 
             if name == '#~':  # optimized clr data
-                self.parseOptimizedData(metastart + sh.Offset, sh.Size)
+                self.CLRHeader, self.CLRTables = self.parseOptimizedData(metastart + sh.Offset, sh.Size)
             elif name == '#-':  # unoptimized clr data
                 self.parseUnoptimizedData(metastart + sh.Offset, sh.Size)
             elif name == '#Strings':
@@ -1234,7 +1234,6 @@ class PE(object):
         ridbits = len(bin(max(tblc.values()) + 1)[2:])
         ridbytes = 4 if ridbits > 16 else 2
 
-        # TODO: double check that the RID here matches the rid from the header
         ridtbls = {}
         for key, count in tblc.items():
             i = 0
@@ -1248,16 +1247,13 @@ class PE(object):
                 table.append(obj)
                 offset += l
             ridtbls[key] = table
-        import pdb
-        pdb.set_trace()
-        pass
+
+        return header, ridtbls
 
     def parseUnoptimizedData(self, offset, size):
         header = self.readStructAtOffset(offset, 'pe.METADATA_TABLE_STREAM_HEADER')
         # ridlen = header.Rid % 8 + (1 if header.Rid % 8 > 0  else 0)
-        import pdb
-        pdb.set_trace()
-        pass
+        raise NotImplementedError("FUCK")
 
     def parseStringHeap(self, offset, size):
         '''
@@ -1273,9 +1269,9 @@ class PE(object):
         # \x00 if the table is formatted correctly
         while consumed < size:
             length = data[consumed:].find('\x00')
-            s = data[consumed:consumed+length+1]
+            s = data[consumed:consumed+length]
             strs[consumed] = s.decode('utf-8')
-            consumed += len(s)
+            consumed += len(s) + 1
             # to avoid having duplicate null entries at the end of the dictionary
             if s == '\x00' and consumed > 1:
                 break
