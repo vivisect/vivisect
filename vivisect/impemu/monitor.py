@@ -124,9 +124,8 @@ class AnalysisMonitor(EmulationMonitor):
 
         self._dynamic_branch_handlers.append(cb)
 
-
     def logAnomaly(self, emu, eip, msg):
-        self.vw.verbprint("EmuAnom: 0x%.8x (f:0x%.8x) %s" % (eip, self.fva, msg))
+        self.vw.vprint("EmuAnom: 0x%.8x (f:0x%.8x) %s" % (eip, self.fva, msg))
         return EmulationMonitor.logAnomaly(self, self, eip, msg)
 
     def prehook(self, emu, op, starteip):
@@ -211,7 +210,7 @@ class AnalysisMonitor(EmulationMonitor):
             return
 
         # WOOT - we have found a runtime resolved function!
-        self.vw.verbprint('0x%.8x: Emulation Found 0x%.8x (from func: 0x%.8x) via %s' % (op.va, pc, self.fva, repr(op)))
+        self.vw.vprint('0x%.8x: Emulation Found 0x%.8x (from func: 0x%.8x) via %s' % (op.va, pc, self.fva, repr(op)))
         self.vw.makeFunction(pc, arch=op.iflags & envi.ARCH_MASK)
         self.vw.addXref(op.va, pc, REF_CODE, envi.BR_PROC)
 

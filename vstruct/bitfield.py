@@ -75,7 +75,6 @@ class VBitField(VStruct):
 
             # adjust forward from last fields bits % 8
             startbyte,startbit = divmod(bitoff,8)
-            #print 'BYTE BIT OFF',byteoff,bitoff,(
             #offset += bittobyte
 
             endbyte,endbit = divmod(bitoff + field._vs_bitwidth, 8)

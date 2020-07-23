@@ -153,12 +153,8 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         self.addVaSet('EmucodeFunctions', (('va', VASET_ADDRESS),))
         self.addVaSet('FuncWrappers', (('va', VASET_ADDRESS), ('wrapped_va', VASET_ADDRESS),))
 
-    def verbprint(self, msg):
-        if self.verbose:
-            return self.vprint(msg)
-
     def vprint(self, msg):
-        print(msg)
+        logger.info(msg)
 
     @contextlib.contextmanager
     def makeVerbose(self):
@@ -313,7 +309,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
         Example:
             for va,cmnt in vw.getComments():
-                print 'Comment at 0x%.8x: %s' % (va, cmnt)
+                print('Comment at 0x%.8x: %s' % (va, cmnt))
         '''
         return self.comments.items()
 
@@ -691,24 +687,19 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         Call this to ask any available analysis modules
         to do their thing...
         """
-        if self.verbose:
-            self.vprint('Beginning analysis...')
-        if self.verbose:
-            self.vprint('...analyzing exports.')
+        self.vprint('Beginning analysis...')
+        self.vprint('...analyzing exports.')
 
         starttime = time.time()
         # Now lets engage any analysis modules.  If any modules return
         # true, they managed to change things and we should run again...
         for mname in self.amodlist:
             mod = self.amods.get(mname)
-            if self.verbose:
-                self.vprint("Extended Analysis: %s" % mod.__name__)
+            self.vprint("Extended Analysis: %s" % mod.__name__)
             try:
                 mod.analyze(self)
             except Exception as e:
-                if self.verbose:
-                    traceback.print_exc()
-                self.verbprint("Extended Analysis Exception %s: %s" % (mod.__name__, e))
+                self.vprint("Extended Analysis Exception %s: %s" % (mod.__name__, e))
 
         endtime = time.time()
         if self.verbose:
@@ -722,9 +713,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             try:
                 fmod.analyzeFunction(self, fva)
             except Exception as e:
-                if self.verbose:
-                    traceback.print_exc()
-                self.verbprint("Function Analysis Exception for 0x%x   %s: %s" % (fva, fmod.__name__, e))
+                self.vprint("Function Analysis Exception for 0x%x %s: %s" % (fva, fmod.__name__, e))
                 self.setFunctionMeta(fva, "%s fail" % fmod.__name__, traceback.format_exc())
 
     def getStats(self):
@@ -1193,7 +1182,6 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
                 logger.warning("Invalid Instruct Attempt At:", hex(va), binascii.hexlify(bytez))
                 raise InvalidLocation(va, msg)
             except Exception as msg:
-                traceback.print_exc()
                 raise InvalidLocation(va, msg)
 
         # Add our opcode location first (op flags become ldata)
@@ -2007,7 +1995,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
         Example:
             for name in vw.getUserStructNames():
-                print 'Structure Name: %s' % name
+                print('Structure Name: %s' % name)
         '''
         return self.vsbuilder.getVStructCtorNames()
 
@@ -2103,7 +2091,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
         example:
         if vw.isLocType(0x41414141, LOC_STRING):
-            print "string at: 0x41414141"
+            print("string at: 0x41414141")
         """
         tup = self.getLocation(va)
         if tup == None:

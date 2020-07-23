@@ -155,7 +155,6 @@ class FILE_HEADER(Rar4Block):
             raise Exception("FIXME supprort LHD_EXTTIME")
 
         def setFileNameSize(x):
-            #print 'NAME SIZE',self.HEAD_DATA.NameSize 
             filename.vsSetLength( self.HEAD_DATA.NameSize )
 
         self.HEAD_DATA.vsAddParseCallback('NameSize',setFileNameSize)
@@ -205,7 +204,6 @@ class FILE_HEADER(Rar4Block):
                 #raise Exception("FIXME supprort LHD_EXTTIME")
 
             #def setFileNameSize(x):
-                #print 'NAME SIZE',self.HEAD_DATA.NameSize 
                 #filename.vsSetLength( self.HEAD_DATA.NameSize )
 
             #self.HEAD_DATA.vsAddParseCallback('NameSize',setFileNameSize)

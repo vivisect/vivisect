@@ -20,9 +20,9 @@ viv_port = 0x4074
 viv_s_ip = '224.56.56.56'
 viv_s_port = 26998
 
-timeo_wait  = 10
-timeo_sock  = 30
-timeo_aban  = 120   # 2 minute timeout for abandon
+timeo_wait = 10
+timeo_sock = 30
+timeo_aban = 120   # 2 minute timeout for abandon
 
 # This should *only* rev when they're truly incompatible
 server_version = 20130820

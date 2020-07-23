@@ -17,8 +17,13 @@ import types
 import Queue
 import socket
 import struct
+import logging
 import urllib2
 import traceback
+import cPickle as pickle
+
+from threading import currentThread,Thread,RLock,Timer,Lock,Event
+from SocketServer import ThreadingTCPServer, BaseRequestHandler
 try:
     import msgpack
     dumpargs = {}
@@ -31,13 +36,9 @@ try:
 except ImportError:
     msgpack = None
 
-import cPickle as pickle
-
-from threading import currentThread,Thread,RLock,Timer,Lock,Event
-from SocketServer import ThreadingTCPServer, BaseRequestHandler
+logger = logging.getLogger(__name__)
 
 daemon = None
-verbose = False
 version = "Cobra2"
 COBRA_PORT=5656
 COBRASSL_PORT=5653
@@ -155,10 +156,14 @@ class CobraMethod:
 
     def __call__(self, *args, **kwargs):
         name = self.proxy._cobra_name
-        if verbose: print "CALLING:",name,self.methname,repr(args)[:20],repr(kwargs)[:20]
-    
-        async = kwargs.pop('_cobra_async',None)
-        if async:
+        logger.debug("Calling: %s, %s, %s, %s" %
+                     (name,
+                      self.methname,
+                      repr(args)[:20],
+                      repr(kwargs)[:20]))
+
+        casync = kwargs.pop('_cobra_async', None)
+        if casync:
             csock = self.proxy._cobra_getsock()
             return csock.cobraAsyncTransaction(COBRA_CALL, name, (self.methname, args, kwargs))
 
@@ -168,7 +173,7 @@ class CobraMethod:
         if mtype == COBRA_CALL:
             return data
         if mtype == COBRA_NEWOBJ:
-            uri = swapCobraObject(self.proxy._cobra_uri,data)
+            uri = swapCobraObject(self.proxy._cobra_uri, data)
             return CobraProxy(uri)
         raise data
 
@@ -405,7 +410,7 @@ class CobraClientSocket(CobraSocket):
         Handle the event where we need to reconnect
         """
         while self.retrymax is None or self.retries < self.retrymax:
-            if verbose: sys.stderr.write("COBRA: Reconnection Attempt\n")
+            logger.info("COBRA: Reconnection Attempt\n")
             try:
 
                 self.socket = self.sockctor()
@@ -426,7 +431,7 @@ class CobraClientSocket(CobraSocket):
                 raise
 
             except Exception as e:
-                traceback.print_exc()
+                logger.warning("reConnect hit exception: %s" % str(e))
                 time.sleep( max(2 ** self.retries, 10) )
                 self.retries += 1
 
@@ -642,7 +647,7 @@ class CobraDaemon(ThreadingTCPServer):
         """
         Decref this object and if it reaches 0, unshare it.
         """
-        if verbose: print "DECREF:",name
+        logger.debug('Decrementing: %s' % name)
         self.reflock.acquire()
         try:
 
@@ -657,7 +662,7 @@ class CobraDaemon(ThreadingTCPServer):
             self.reflock.release()
 
     def increfObject(self, name):
-        if verbose: print "INCREF:",name
+        logger.debug('Incrementing: %s' % name)
         self.reflock.acquire()
         try:
             refcnt = self.refcnts.get(name, None)
@@ -668,7 +673,7 @@ class CobraDaemon(ThreadingTCPServer):
             self.reflock.release()
 
     def unshareObject(self, name, ok=True):
-        if verbose: print 'UNSHARE',name
+        logger.debug('Unsharing %s' % name)
         self.refcnts.pop(name, None)
         obj = self.shared.pop(name, None)
 
@@ -705,7 +710,7 @@ class CobraConnectionHandler:
 
         peer = self.socket.getpeername()
         me = self.socket.getsockname()
-        if verbose: print "GOT A CONNECTIONN",peer
+        logger.info("Got a connection from: %s" % peer)
 
         sock = self.socket
         if self.daemon.sslkey:
@@ -755,7 +760,7 @@ class CobraConnectionHandler:
             except CobraClosedException:
                 break
             except socket.error:
-                if verbose: traceback.print_exc()
+                logger.warning("Cobra socket error in handleClient")
                 break
 
             # If they re-auth ( app layer ) later, lets handle it...
@@ -774,14 +779,14 @@ class CobraConnectionHandler:
                 continue
 
             obj = self.daemon.getSharedObject(name)
-            if verbose: print "MSG FOR:",name,type(obj)
+            logger.debug("MSG FOR: %s:%s" % (name, type(obj)))
 
             if obj == None:
                 try:
                     csock.sendMessage(COBRA_ERROR, name, Exception("Unknown object requested: %s" % name))
                 except CobraClosedException:
                     pass
-                if verbose: print "WARNING: Got request for unknown object",name
+                logger.warning("Got request for unknown object: %s" % name)
                 continue
 
             try:
@@ -791,13 +796,13 @@ class CobraConnectionHandler:
                     csock.sendMessage(COBRA_ERROR, name, Exception("Invalid Message Type"))
                 except CobraClosedException:
                     pass
-                if verbose: print "WARNING: Got Invalid Message Type: %d for %s" % (mtype, data)
+                logger.warning("Got Invalid Message Type: %d for %s" % (mtype, data))
                 continue
 
             try:
                 handler(csock, name, obj, data)
             except Exception as e:
-                traceback.print_exc()
+                logger.warning("cobra handler hit exception: %s" % str(e))
                 try:
                     csock.sendMessage(COBRA_ERROR, name, e)
                 except TypeError as typee:
@@ -807,14 +812,14 @@ class CobraConnectionHandler:
                     pass
 
     def handleError(self, csock, oname, obj, data):
-        print "THIS SHOULD NEVER HAPPEN"
+        raise NotImplementedError("How did we hit handleError?")
 
     def handleHello(self, csock, oname, obj, data):
         """
         Hello messages are used to get the initial cache of
         method names for the newly connected object.
         """
-        if verbose: print "GOT A HELLO"
+        logger.debug("Hello")
         self.daemon.increfObject(oname)
         ret = {}
         for name in dir(obj):
@@ -827,7 +832,7 @@ class CobraConnectionHandler:
             pass
 
     def handleCall(self, csock, oname, obj, data):
-        if verbose: print "GOT A CALL",data
+        logger.debug("Calling %r" % data)
         methodname, args, kwargs = data
         meth = getattr(obj, methodname)
         if getattr(meth,'__no_cobra__',False):
@@ -850,16 +855,18 @@ class CobraConnectionHandler:
             raise
 
     def handleGetAttr(self, csock, oname, obj, name):
-        if verbose: print "GETTING ATTRIBUTE:",name
-        if not self.daemon.cangetattr: raise CobraPermDenied('getattr disallowed!')
+        logger.debug("Getting Attribute: %r" % data)
+        if not self.daemon.cangetattr:
+            raise CobraPermDenied('getattr disallowed!')
         try:
             csock.sendMessage(COBRA_GETATTR, "", getattr(obj, name))
         except CobraClosedException:
             pass
 
     def handleSetAttr(self, csock, oname, obj, data):
-        if verbose: print "SETTING ATTRIBUTE:",data
-        if not self.daemon.cansetattr: raise CobraPermDenied('setattr disallowed!')
+        logger.debug("Setting Attribute: %r" % data)
+        if not self.daemon.cansetattr:
+            raise CobraPermDenied('setattr disallowed!')
         name,value = data
         setattr(obj, name, value)
         try:
@@ -868,7 +875,7 @@ class CobraConnectionHandler:
             pass
 
     def handleGoodbye(self, csock, oname, obj, data):
-        if verbose: print 'GOODBYE!',oname,obj,data
+        logger.debug("Goodbye")
         self.daemon.decrefObject(oname,ok=data)
         try:
             csock.sendMessage(COBRA_GOODBYE, "", "")
@@ -936,7 +943,7 @@ class CobraProxy:
 
         scheme, host, port, name, urlparams = chopCobraUri( URI )
 
-        if verbose: print "HOST",host,"PORT",port,"OBJ",name
+        logger.debug("Spinning up CobraProxy on %s:%s with object: %s" %(host, port, repr(name)))
 
         self._cobra_uri = URI
         self._cobra_scheme = scheme
@@ -950,14 +957,14 @@ class CobraProxy:
         self._cobra_gothello = False
         self._cobra_sflags = 0
         self._cobra_spoolcnt = int(urlparams.get('sockpool', 0))
-        self._cobra_sockpool = None 
+        self._cobra_sockpool = None
 
         if self._cobra_timeout != None:
             self._cobra_timeout = int(self._cobra_timeout)
 
         if self._cobra_retrymax != None:
             self._cobra_retrymax = int(self._cobra_retrymax)
-       
+
         if urlparams.get('msgpack'):
             requireMsgpack()
             self._cobra_sflags |= SFLAG_MSGPACK
@@ -979,12 +986,12 @@ class CobraProxy:
             self._cobra_sflags |= SFLAG_JSON
 
         if self._cobra_spoolcnt:
-            self._cobra_sockpool = Queue.Queue() 
+            self._cobra_sockpool = Queue.Queue()
             # timeout reqeuired for pool usage
-            if not self._cobra_timeout: 
+            if not self._cobra_timeout:
                 self._cobra_timeout = 60
             # retry max required on pooling
-            if not self._cobra_retrymax: 
+            if not self._cobra_retrymax:
                 self._cobra_retrymax = 3
 
             [self._cobra_sockpool.put(self._cobra_newsock()) for i in range(self._cobra_spoolcnt)]
@@ -1103,7 +1110,7 @@ class CobraProxy:
         return True
 
     def __setattr__(self, name, value):
-        if verbose: print "SETATTR %s %s" % (name, repr(value)[:20])
+        logger.debug('Setattr: %s:%s' % (name, repr(value)[:20]))
 
         if name.startswith('_cobra_'):
             self.__dict__[name] = value
@@ -1120,7 +1127,7 @@ class CobraProxy:
             raise Exception("Invalid Cobra Response")
 
     def __getattr__(self, name):
-        if verbose: print "GETATTR",name
+        logger.debug('Setattr: %s:%s' % name)
 
         if name == "__getinitargs__":
             raise AttributeError()
@@ -1143,11 +1150,9 @@ class CobraProxy:
 
     def __exit__(self, extype, value, tb):
         with self._cobra_getsock() as csock:
-            #print traceback.print_tb(tb) 
             ok = True
             if extype != None: # Tell the server we broke...
                 ok = False
-            
             csock.cobraTransaction(COBRA_GOODBYE, self._cobra_name, ok)
 
 def addSocketBuilder( host, port, builder ):

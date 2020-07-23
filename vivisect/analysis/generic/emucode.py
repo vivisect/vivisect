@@ -34,8 +34,6 @@ class watcher(viv_imp_monitor.EmulationMonitor):
         self.badcode = True
         emu.stopEmu()
 
-        #self.vw.verbprint("Emucode: 0x%.8x (f:0x%.8x) %s" % (eip, self.tryva, msg))
-
     def looksgood(self):
         if not self.hasret or self.badcode:
             return False
@@ -176,4 +174,4 @@ def analyze(vw):
     for fva in newfuncs:
         vw.setVaSetRow('EmucodeFunctions', (fva,))
 
-    vw.verbprint("emucode: %d new functions defined (now total: %d)" % (len(dlist)-len(flist), len(dlist)))
+    vw.vprint("emucode: %d new functions defined (now total: %d)" % (len(dlist)-len(flist), len(dlist)))

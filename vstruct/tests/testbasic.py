@@ -165,9 +165,7 @@ class VStructTest(unittest.TestCase):
         v.vsAddField('pad2', v_bits(6))
         v.vsAddField('pad3', v_bits(2))
 
-
         v.vsParse('AAAAAAA')
-        #print v.tree()
         self.assertEqual(1, v.w)
         self.assertEqual(0, v.x)
         self.assertEqual(1, v.y)
@@ -181,7 +179,6 @@ class VStructTest(unittest.TestCase):
         self.assertEqual('AAAAAAA', v.vsEmit())
 
         v.vsParse('ABCDEFG')
-        #print v.tree()
         self.assertEqual(1, v.w)
         self.assertEqual(0, v.x)
         self.assertEqual(1, v.y)
@@ -194,9 +191,7 @@ class VStructTest(unittest.TestCase):
 
         self.assertEqual('ABCDEFG', v.vsEmit())
 
-
         v.vsParse('zxcvbnm')
-        #print v.tree()
         self.assertEqual(1, v.w)
         self.assertEqual(7, v.x)
         self.assertEqual(2, v.y)
@@ -209,9 +204,7 @@ class VStructTest(unittest.TestCase):
 
         self.assertEqual('zxcvbnm', v.vsEmit())
 
-        
         v.vsParse('asdfghj')
-        #print v.tree()
         self.assertEqual(1, v.w)
         self.assertEqual(4, v.x)
         self.assertEqual(1, v.y)
@@ -223,6 +216,3 @@ class VStructTest(unittest.TestCase):
         self.assertEqual(2, v.pad3)
 
         self.assertEqual('asdfghj', v.vsEmit())
-
-        
-
