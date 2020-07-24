@@ -579,7 +579,7 @@ class Trace(e_mem.IMemory, e_reg.RegisterContext, e_resolv.SymbolResolver, objec
         be set to the default specified.
         """
         if default is not None:
-            if not self.metadata.has_key(name):
+            if name not in self.metadata:
                 self.metadata[name] = default
         return self.metadata.get(name, None)
 
@@ -589,7 +589,7 @@ class Trace(e_mem.IMemory, e_reg.RegisterContext, e_resolv.SymbolResolver, objec
         as getMeta() with a default will set the key to the default
         if non-existant.
         """
-        return self.metadata.has_key(name)
+        return name in self.metadata
 
     def getMode(self, name, default=False):
         """
@@ -607,7 +607,7 @@ class Trace(e_mem.IMemory, e_reg.RegisterContext, e_resolv.SymbolResolver, objec
         This way, platform sections can cleanly setmodes
         and such.
         """
-        if not self.modes.has_key(name):
+        if name not in self.modes:
             raise Exception("Mode %s not supported on this platform" % name)
         self.modes[name] = bool(value)
 
@@ -684,7 +684,7 @@ class Trace(e_mem.IMemory, e_reg.RegisterContext, e_resolv.SymbolResolver, objec
             self.deferred.append(breakpoint)
             return breakpoint.id
 
-        if self.breakpoints.has_key(addr):
+        if addr in self.breakpoints:
             raise Exception("ERROR: Duplicate break for address 0x%.8x" % addr)
 
         self.bpbyid[breakpoint.id] = breakpoint

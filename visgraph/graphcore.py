@@ -3,7 +3,6 @@ Graphcore contains all the base graph manipulation objects.
 '''
 import os
 import json
-import itertools
 import threading
 import collections
 
@@ -12,17 +11,22 @@ from binascii import hexlify
 from exc import *
 import visgraph.pathcore as vg_pathcore
 
+
 def guid(size=16):
     return hexlify(os.urandom(size))
+
 
 def zdict():
     return collections.defaultdict(int)
 
+
 def ldict():
     return collections.defaultdict(list)
 
+
 def pdict():
     return collections.defaultdict(ldict)
+
 
 class Graph:
 

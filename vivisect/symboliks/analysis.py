@@ -520,7 +520,6 @@ class SymbolikAnalysisContext:
                 # bail if the constraint is dorked
                 if coneff.cons.isDiscrete():
                     if not coneff.cons._solve():
-                        print('TRIM: %s' % (str(coneff.cons),))
                         return False
                     continue
 
@@ -585,18 +584,11 @@ class SymbolikAnalysisContext:
                     constraints = graph.getEdgeProps(eid).get('symbolik_constraints', ())
                     constraints = emu.applyEffects(constraints)
 
-                    # print 'EDGE GOT CONSTRAINTS',[ str(c) for c in constraints]
-                    # FIXME check if constraints are discrete, and possibly skip path!
-                    # FIXME: if constraints are Const vs Const, and one Const is a loop var, don't skip!
-
                     if self.consolve:
                         # If any of the constraints are discrete and false we skip the path
                         [c.reduce() for c in constraints]
                         discs = [c.cons._solve() for c in constraints if c.cons.isDiscrete()]
-                        # print 'CONS',constraints
-                        # print 'DISCS',discs
                         if not all(discs):  # emtpy discs is True...
-                            # print('SKIP: %s %s' % (repr(discs),[str(c) for c in constraints ]))
                             skippath = True
                             break
 

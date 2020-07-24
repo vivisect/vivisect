@@ -41,7 +41,6 @@ def main():
         if not vw.isFunction(fva):
             continue
 
-        
         rtype, rname, ccname, funcname, args = vw.getFunctionApi(fva)
         argv = tuple([ (type_lookup.get(t, t), name_lookup.get(t)) for t,name in args ])
         #argv = tuple([ (type_lookup.get(t.__name__, t.__name__), name_lookup.get(t.__name__)) for t,name in vw.getFunctionArgs(fva) ])

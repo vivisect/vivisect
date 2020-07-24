@@ -9,6 +9,7 @@ import time
 import Queue
 import struct
 import socket
+import logging
 import urllib2
 import traceback
 import threading
@@ -18,7 +19,9 @@ import multiprocessing
 import cobra
 import dcode
 
-queen_port   = 32124
+logger = logging.getLogger(__name__)
+
+queen_port = 32124
 
 cluster_port = 32123
 cluster_ip = "224.69.69.69"
@@ -73,7 +76,6 @@ class ClusterWork(object):
         """
         Actually do the work associated with this work object.
         """
-        print "OVERRIDE ME"
         for i in range(10):
             self.setCompletion(i*10)
             self.setStatus("Sleeping: %d" % i)
@@ -84,7 +86,7 @@ class ClusterWork(object):
         This is called back on the server once a work unit
         is complete and returned.
         """
-        print "OVERRIDE DONE"
+        pass
 
     def setCompletion(self, percent):
         """
@@ -150,21 +152,28 @@ class ClusterCallback:
 class VerboseCallback(ClusterCallback):
     # This is mostly for testing...
     def workAdded(self, server, work):
-        print "WORK ADDED: %d" % work.id
+        logger.debug("WORK ADDED: %d" % work.id)
+
     def workGotten(self, server, work):
-        print "WORK GOTTEN: %d" % work.id
+        logger.debug("WORK GOTTEN: %d" % work.id)
+
     def workStatus(self, server, workid, status):
-        print "WORK STATUS: (%d) %s" % (workid, status)
+        logger.debug("WORK STATUS: (%d) %s" % (workid, status))
+
     def workCompletion(self, server, workid, completion):
-        print "WORK COMPLETION: (%d) %d%%" % (workid, completion)
+        logger.debug("WORK COMPLETION: (%d) %d%%" % (workid, completion))
+
     def workDone(self, server, work):
-        print "WORK DONE: %d" % work.id
+        logger.debug("WORK DONE: %d" % work.id)
+
     def workFailed(self, server, work):
-        print "WORK FAILED: %d" % work.id
+        logger.debug("WORK FAILED: %d" % work.id)
+
     def workTimeout(self, server, work):
-        print "WORK TIMEOUT: %d" % work.id
+        logger.debug("WORK TIMEOUT: %d" % work.id)
+
     def workCanceled(self, server, work):
-        print "WORK CANCELED %d" % work.id
+        logger.debug("WORK CANCELED %d" % work.id)
 
 import collections
 
@@ -287,7 +296,7 @@ class ClusterServer:
                         self.timeoutWork(work)
 
             except Exception as e:
-                print "ClusterTimer: %s" % e
+                logger.info("ClusterTimer: %s" % e)
 
             time.sleep(2)
 
@@ -304,7 +313,7 @@ class ClusterServer:
                 try:
                     q.proxyAnnounceWork(self.name, self.cobraname, self.cobrad.port)
                 except Exception as e:
-                    print('Queen Error: %s' % e)
+                    logger.warning('Queen Error: %s' % e)
 
         else:
             buf = "cobra:%s:%s:%d" % (self.name, self.cobraname, self.cobrad.port)

@@ -2,6 +2,7 @@ import os
 import sys
 import getpass
 import hashlib
+import argparse
 import binascii
 
 import cobra.auth as c_auth
@@ -44,19 +45,23 @@ class ShadowFileAuth(c_auth.CobraAuthenticator):
         return None
 
 
-if __name__ == '__main__':
-    # TODO: use argparse
-    # A helper for making shadow file rows...
-    if len(sys.argv) == 1:
-        print('Usage: python -m cobra.auth.shadowfile <username> [password]')
-        sys.exit(0)
+def setup():
+    desc = 'Helper tool for making shadow file rows'
+    ap = argparse.ArgumentParser('cobra.auth.shadowfile', description=desc)
+    ap.add_argument('user', help='username to create password for')
+    ap.add_argument('--passwd', default=getpass.getpass(), help='optional password to hash')
 
-    user = sys.argv[1].lower()
-    if len(sys.argv) == 2:
-        passwd = getpass.getpass()
-    else:
-        passwd = sys.argv[2]
+    return ap
+
+
+def main(argv):
+    opts = setup().parse_args(argv)
+    user = opts.user.lower()
 
     salt = binascii.hexlify(os.urandom(8))
-    hash = hashlib.sha256(salt + passwd).hexdigest()
+    hash = hashlib.sha256(salt + opts.passwd).hexdigest()
     print('%s:%s$%s' % (user, salt, hash))
+
+
+if __name__ == '__main__':
+    sys.exit(main(sys.argv[1:]))

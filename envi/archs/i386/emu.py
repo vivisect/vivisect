@@ -208,7 +208,6 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
 
         meth = self.op_methods.get(op.mnem, None)
         if meth == None:
-            # print("0x%x: Intel Emulator needs %s" % (op.va, str(op)))
             raise e_exc.UnsupportedInstruction(self, op)
 
         newpc = meth(op)
@@ -363,10 +362,6 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
 
         ures = udst - usrc
         sres = sdst - ssrc
-
-        #print "dsize/ssize: %d %d" % (dsize, ssize)
-        #print "unsigned: %d %d %d" % (usrc, udst, ures)
-        #print "signed: %d %d %d" % (ssrc, sdst, sres)
 
         self.setFlag(EFLAGS_OF, e_bits.is_signed_overflow(sres, dsize))
         self.setFlag(EFLAGS_AF, e_bits.is_aux_carry_sub(usrc, udst))
@@ -830,8 +825,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
             quot = ax / val
             rem  = ax % val
             #if quot > 255:
-                #FIXME stuff
-                #print "FIXME: division exception"
+                #"FIXME: division exception"
             self.setRegister(REG_EAX, (quot << 8) + rem)
 
         elif oper.tsize == 4:
@@ -843,7 +837,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
             rem = tot % val
 
             #if quot > 0xffffffff:
-                #print "FIXME: division exception"
+                #"FIXME: division exception"
 
             self.setRegister(REG_EAX, quot)
             self.setRegister(REG_EDX, rem)
@@ -1809,7 +1803,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
 
     def i_wait(self, op):
         pass
-        #print "i_wait() is a stub..."
+        # XXX: "i_wait() is a stub..."
 
     def i_xadd(self, op):
         val1 = self.getOperValue(op, 0)

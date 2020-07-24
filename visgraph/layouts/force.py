@@ -24,16 +24,13 @@ class vector:
         '''
         Update the vector by adding the given force/angle.
         '''
-        #print 'FORCEANGLE',force,angle
         # Use head-to-tail addition
         dx = math.cos(self.angle) * self.force + math.cos(angle) * force
         dy = math.sin(self.angle) * self.force + math.sin(angle) * force
-        #print 'XY',dx,dy
         self.force = math.hypot(dx,dy)
         self.angle = math.atan2(dy, dx)
 
     def getMovement(self, x, y, maxmov=None):
-        #print 'FINAL FORCE',self.force, self.angle
         dx = math.cos(self.angle) * self.force
         dy = math.sin(self.angle) * self.force
         if maxmov:
@@ -103,7 +100,6 @@ class ForceLayout(vg_layouts.GraphLayout):
                 for i in itertools.count():
 
                     totforce = self._tickPhysicsEngine(graph)
-                    #print('TICK: %d (gc: %d)' % (i,len(nodes)))
 
                     # If the system's overall energy is less than minforce, done!
                     #if totforce < self._f_minforce:
@@ -177,7 +173,6 @@ class ForceLayout(vg_layouts.GraphLayout):
 
                 totforce = self._tickPhysicsEngine(graph)
                 if totforce / len(nodes) > self._f_minavgforce:
-                    #print('AVGFORCE: %s' % ((totforce / len(nodes))))
                     needmore = True
 
             except Exception, e:

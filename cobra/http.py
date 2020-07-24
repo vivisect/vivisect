@@ -14,6 +14,7 @@ import Cookie
 import socket
 import struct
 import httplib
+import logging
 import urlparse
 import traceback
 import BaseHTTPServer
@@ -24,6 +25,7 @@ import cPickle as pickle
 from threading import currentThread,Thread,RLock
 from SocketServer import ThreadingTCPServer, BaseRequestHandler
 
+logger = logging.getLogger(__name__)
 daemon = None
 verbose = False
 version = "Cobra2"
@@ -200,12 +202,12 @@ class CobraHttpRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         self.send_response(httplib.OK)
         self.end_headers()
 
-    def handleHello(self, objname): 
+    def handleHello(self, objname):
         '''
         Hello messages are used to get the initial cache of
         method names for the newly connected object.
         '''
-        if verbose: print "GOT A HELLO"
+        logger.debug('Hello')
         obj = self.server.getSharedObject(objname)
         ret = {}
         for name in dir(obj):
@@ -216,27 +218,28 @@ class CobraHttpRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         self.wfile.write(json.dumps(ret))
         return
 
-    def handleGetAttr(self, objname, attr): 
+    def handleGetAttr(self, objname, attr):
+        logger.debug('GetAttr')
         if not self.server.attr:
             self.send_response(httplib.FORBIDDEN)
             self.end_headers()
             excinfo = "__getattr__ disabled"
             self.wfile.write(json.dumps(excinfo))
             return
-        if verbose: print "GETTING ATTRIBUTE:", attr 
         obj = self.server.getSharedObject(objname)
         try:
             val = getattr(obj, attr)
             self.send_response(httplib.OK)
             self.end_headers()
-            self.wfile.write(json.dumps(val)) 
+            self.wfile.write(json.dumps(val))
         except Exception as e:
             self.send_response(httplib.NOT_FOUND)
             self.end_headers()
             excinfo = "%s" % traceback.format_exc()
             self.wfile.write(json.dumps(excinfo))
 
-    def handleSetAttr(self, objname, name, value): 
+    def handleSetAttr(self, objname, name, value):
+        logger.debug('SetAttr')
         if not self.server.attr:
             self.send_response(httplib.FORBIDDEN)
             self.end_headers()
@@ -244,8 +247,7 @@ class CobraHttpRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             self.wfile.write(json.dumps(excinfo))
             return
         obj = self.server.getSharedObject(objname)
-        if verbose: print "SETTING ATTRIBUTE:", urlparams['args']
-        setattr(obj, name, value) 
+        setattr(obj, name, value)
         self.send_response(httplib.OK)
         self.end_headers()
 
@@ -355,7 +357,6 @@ class CobraHttpDaemon(ThreadingTCPServer):
             raise Exception("CobraHttp doesnt do refcnt")
         return name
 
-    
 
 class CobraHttpProxy:
     """
@@ -379,20 +380,18 @@ class CobraHttpProxy:
     """
     def __init__(self, URI, retrymax=None, timeout=None, **kwargs):
 
-        scheme, host, port, name, urlparams = c_cobra.chopCobraUri( URI )
-        if verbose: print "HOST",host,"PORT",port,"OBJ",name
-
+        scheme, host, port, name, urlparams = c_cobra.chopCobraUri(URI)
+        logger.debug('Host: %s, Port: %r, Obj: %r' % (host, port, name))
         self._cobra_uri = URI
         self._cobra_scheme = scheme
         self._cobra_host = host
         self._cobra_port = port
-        self._cobra_slookup = (host,port)
+        self._cobra_slookup = (host, port)
         self._cobra_name = name
         self._cobra_timeout = timeout
         self._cobra_kwargs = kwargs
         self._cobra_gothello = False
         self._cobra_sessid = None
-        
 
         if kwargs.get('sslkey') and not os.path.isfile(kwargs.get('sslkey')):
             raise Exception('CobraProxy: sslkey must be a file!')
@@ -406,14 +405,14 @@ class CobraHttpProxy:
         csock = self._cobra_http_getsock()
 
         data = CobraHttpMethod(self, '__cobra_hello')()
-        
+
         self._cobra_gothello = True
         self._cobra_methods = data
 
     def _cobra_http_getsock(self):
         thr = currentThread()
         tsocks = getattr(thr, 'cobrahttpsocks', None)
-        if tsocks == None:
+        if tsocks is None:
             tsocks = {}
             thr.cobrahttpsocks = tsocks
 
@@ -431,8 +430,7 @@ class CobraHttpProxy:
         return sock
 
     def __getattr__(self, name):
-        if verbose: print "GETATTR",name
-
+        logger.debug('GetAttr')
         if name == "__getinitargs__":
             raise AttributeError()
         # Handle methods
@@ -442,19 +440,17 @@ class CobraHttpProxy:
         return CobraHttpMethod(self, '__cobra_getattr')(name)
 
     def __setattr__(self, name, value):
-        if verbose: print "SETATTR %s %s" % (name, repr(value)[:20])
-
+        logger.debug('SetAttr')
         if name.startswith('_cobra_'):
             self.__dict__[name] = value
             return
 
         return CobraHttpMethod(self, '__cobra_setattr')(name, value)
-    
+
     def _cobra_http_newsock(self):
         """
         This is only used by *clients*
         """
-        
         if self._cobra_scheme == 'http':
             return CobraHttpClient( CobraHttpFactory(host=self._cobra_host, port=self._cobra_port, timeout=self._cobra_timeout, factory=httplib.HTTPConnection), _cobra_name=self._cobra_name )
         else:
@@ -465,12 +461,13 @@ class CobraHttpFactory:
     Cobra HTTP wrapper for HTTP connection
     '''
     def __init__(self, *args, **kwargs):
-        self.http   = kwargs.pop('factory')
-        self.kwargs     = kwargs
-        self.args       = args
+        self.http = kwargs.pop('factory')
+        self.kwargs = kwargs
+        self.args = args
 
     def __call__(self):
         return self.http(*self.args, **self.kwargs)
+
 
 class CobraHttpClient:
     '''
@@ -487,11 +484,11 @@ class CobraHttpClient:
 
         self.conn = httpfact()
 
-        self.connected = True 
+        self.connected = True
 
     def authUser(self, authinfo):
-        body = urllib.quote(json.dumps({'kwargs':authinfo}) )
-        self.conn.request("POST", "/%s/__cobra_login" %  self._cobra_name, body) 
+        body = urllib.quote(json.dumps({'kwargs': authinfo}))
+        self.conn.request("POST", "/%s/__cobra_login" %  self._cobra_name, body)
 
         resp = self.conn.getresponse()
         if resp.status != httplib.OK:
@@ -501,7 +498,7 @@ class CobraHttpClient:
         if cookie:
             self._cobra_sessid = cookie
             self.authinfo = authinfo
-        
+
     def _cobra_http_geturi(self, methname, *args, **kwargs):
         uri = "/%s/%s?args=%s" % (self._cobra_name, methname, urllib.quote(json.dumps(args)))
         if kwargs:
@@ -510,7 +507,7 @@ class CobraHttpClient:
 
     def reConnect(self):
         while self.retrymax is None or self.retries < self.retrymax:
-            if verbose: sys.stderr.write("COBRA: Reconnection Attempt\n")
+            logger.info('Cobra reconnection attempt')
             try:
                 self.conn = self.httpfact()
                 if self._cobra_sessid:
@@ -522,13 +519,11 @@ class CobraHttpClient:
                 self.retries += 1
         self.trashed = True
 
-        raise CobraHttpException('Retry Exceeded!') 
+        raise CobraHttpException('Retry Exceeded!')
 
     def cobraHttpTransaction(self, methname, data):
         args, kwargs = data
-        
         url = self._cobra_http_geturi(methname, *args, **kwargs)
-        
         headers = {}
 
         while True:
@@ -537,7 +532,7 @@ class CobraHttpClient:
             self.conn.request("GET", url, headers=headers)
             resp = self.conn.getresponse()
 
-            if resp.status == httplib.NOT_FOUND: 
+            if resp.status == httplib.NOT_FOUND:
                 exc = json.loads( resp.read())
                 raise CobraHttpException(exc)
 
@@ -561,7 +556,7 @@ class CobraHttpClient:
             if data:
                 return json.loads(data)
             return None
-    
+
 class CobraHttpMethod:
     def __init__(self, proxy, methname):
         self.proxy = proxy
@@ -569,6 +564,6 @@ class CobraHttpMethod:
 
     def __call__(self, *args, **kwargs):
         name = self.proxy._cobra_name
-        if verbose: print "CALLING:",name,self.methname,repr(args)[:20],repr(kwargs)[:20]
+        logger.debug('Calling %s:%s' % (name, self.methname, repr(args)[:20], repr(kwargs)[:20]))
         sock = self.proxy._cobra_http_getsock()
         return sock.cobraHttpTransaction(self.methname, (args,kwargs))

@@ -1,8 +1,10 @@
 import binascii
+import unittest
+
 import envi
 import envi.memcanvas as e_memcanvas
+
 import vivisect
-import unittest
 
 # name, bytes, va, repr, txtRender
 i386SingleByteOpcodes = [

@@ -172,23 +172,3 @@ class sset(SubState):
 
     def __getitem__(self, i):
         return self.combitems[i]
-
-
-if __name__ == '__main__':
-
-    from vivisect.symboliks.common import *
-
-    symobj = (Var('x',4) * Const(3, 4) ) + Var('y',4)
-    print str(symobj)
-
-    x = srange('x', 3)
-    y = sset('y', [1,9,0xffffffff])
-
-    print('added:')
-    for i in (x+y):
-        print ('solved: %s %d' % (repr(i),symobj.solve(vals=i),))
-
-    print('multiplied:')
-    for i in (x*y):
-        print ('solved: %s %d' % (repr(i),symobj.solve(vals=i),))
-

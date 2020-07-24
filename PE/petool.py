@@ -10,7 +10,6 @@ import binascii
 
 import PE
 
-
 def main():
 
     parser = optparse.OptionParser()

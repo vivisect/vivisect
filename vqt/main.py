@@ -1,6 +1,6 @@
 import sys
+import logging
 import functools
-import traceback
 
 from Queue import Queue
 from threading import currentThread
@@ -13,6 +13,8 @@ except:
     from PyQt4.QtGui import *
 
 import envi.threads as e_threads
+
+logger = logging.getLogger(__name__)
 
 def idlethread(func):
     '''
@@ -91,7 +93,7 @@ class QFireThread(QtCore.QThread):
         self.args = args
         self.kwargs = kwargs
         self.callable = callable
-    
+
     def run(self):
         self.callable(*self.args, **self.kwargs)
 
@@ -134,7 +136,7 @@ class QEventThread(QtCore.QThread):
                 self.idleadd.emit(func,args,kwargs)
 
             except Exception as e:
-                print('vqt event thread: %s' % e)
+                logger.warning('vqt event thread: %s' % e)
 
 class VQApplication(QApplication):
 
@@ -158,18 +160,18 @@ def workerThread():
         try:
             todo = workerq.get()
             if todo != None:
-                func,args,kwargs = todo
+                func, args, kwargs = todo
 
                 if func == None:
                     return
 
                 try:
-                    func(*args,**kwargs)
+                    func(*args, **kwargs)
                 except:
                     sys.excepthook(*sys.exc_info())
 
         except Exception as e:
-            print('vqt worker warning: %s' % e)
+            logger.warning('vqt worker warning: %s' % e)
 
 def startup(css=None):
     # yea yea.... globals suck...

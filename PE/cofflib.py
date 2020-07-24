@@ -172,7 +172,6 @@ class IMAGE_ARCHIVE(vstruct.VStruct):
                 memb = IMAGE_ARCHIVE_COFF()
 
             offset = memb.vsParse(bytes, offset=offset)
-            if isinstance(memb, IMAGE_ARCHIVE_COFF): print memb.tree()
             self.ImageArchiveMembers.vsAddElement(memb)
 
         return offset

@@ -3,14 +3,16 @@ Cobra Distributed Event subsystem.
 '''
 import json
 import time
-import Queue
 import socket
 import struct
+import logging
 import itertools
 import threading
 import collections
 
 import envi.threads as e_threads
+
+logger = logging.getLogger(__name__)
 
 class CobraEventCore:
 
@@ -38,7 +40,7 @@ class CobraEventCore:
             try:
                 self._fireEvent(*args, **kwargs)
             except Exception as e:
-                print('fireFireThread _fireEventError: %s' % e)
+                logger.warning('fireFireThread _fireEventError: %s' % e)
 
     @e_threads.maintthread(3)
     def cullAbandonedChannels(self, abtime):
@@ -75,7 +77,7 @@ class CobraEventCore:
             try:
                 upstream.finiEventChannel(upchan)
             except Exception as e:
-                print('upstream error: %r %s' % (upstream,e))
+                logger.warning('upstream error: %r %s' % (upstream,e))
         [ self.finiEventChannel( chanid ) for chanid in self._ce_chanlookup.keys() ]
 
     def getNextEventsForChan(self, chanid, timeout=None):
@@ -117,14 +119,14 @@ class CobraEventCore:
             try:
                 handler(event,einfo)
             except Exception as e:
-                print('handler error(%r): %s' % (event,e))
+                logger.warning('handler error(%r): %s' % (event,e))
 
         if upstream:
             for upstream,upchan in self._ce_upstreams:
                 try:
                     upstream.fireEvent(event, einfo, skip=upchan)
                 except Exception as e:
-                    print('upstream error: %r %s' % (upstream,e))
+                    logger.warning('upstream error: %r %s' % (upstream,e))
 
     def addEventHandler(self, event, callback):
         '''
@@ -156,7 +158,7 @@ class CobraEventCore:
             try:
                 events = evtcore.getNextEventsForChan( chan, timeout=5 )
             except Exception as e:
-                print('addEventUpstream Error: %s' % e)
+                logger.warning('addEventUpstream Error: %s' % e)
                 time.sleep(1)
                 # grab a new channel...
                 chan = evtcore.initEventChannel(qmax=qmax)
@@ -170,7 +172,7 @@ class CobraEventCore:
             try:
                 [ self.fireEvent(event,einfo,upstream=False) for (event,einfo) in events ]
             except Exception as e:
-                print('addEventUpstream fireEvent Error: %s' % e)
+                logger.warning('addEventUpstream fireEvent Error: %s' % e)
                 time.sleep(1)
 
     def addEventCallback(self, callback, qmax=0, firethread=True):
@@ -194,18 +196,18 @@ class CobraEventCore:
             return
 
         chanid = self.initEventChannel(qmax=qmax)
-        q = self._ce_chanlookup.get( chanid )
+        q = self._ce_chanlookup.get(chanid)
         while True:
 
-            for event,einfo in q.get(timeout=5):
+            for event, einfo in q.get(timeout=5):
 
-                if event == None:
+                if event is None:
                     break
 
                 try:
-                    callback(event,einfo)
+                    callback(event, einfo)
                 except Exception as e:
-                    print('Event Callback Exception (chan: %d): %s' % (chanid,e))
+                    logger.warning('Event Callback Exception (chan: %d): %s' % (chanid, e))
 
     def setEventCast(self, mcast='224.56.56.56', port=45654, bind='0.0.0.0'):
         '''
@@ -218,7 +220,7 @@ class CobraEventCore:
         self._ce_mcasthost = mcast
         self._ce_ecastsock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self._ce_ecastsock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        self._ce_ecastsock.bind((bind,port))
+        self._ce_ecastsock.bind((bind, port))
 
         # Join the multicast IP
         mreq = struct.pack("4sL", socket.inet_aton(mcast), socket.INADDR_ANY)
@@ -231,36 +233,6 @@ class CobraEventCore:
     def _runSocketListener(self):
         sock = self._ce_ecastsock
         while True:
-            sockdata,sockaddr = sock.recvfrom(4096)
+            sockdata, sockaddr = sock.recvfrom(4096)
             etup = json.loads(sockdata)
-            [ q.put( etup ) for q in self._ce_chans ]
-
-if __name__ == '__main__':
-
-    ecore0 = CobraEventCore()
-
-    ecore1 = CobraEventCore()
-    ecore1.addEventUpstream(ecore0)
-
-    #ecore.setEventCast(bind='192.168.1.2')
-    #ecore.setEventCast(bind='192.168.1.117')
-
-    def wootback(event,einfo):
-        print 'wootback',event,einfo
-
-    #ecore0.addEventHandler('foo', wootback)
-    #ecore1.addEventHandler('foo', wootback)
-
-    chan0 = ecore0.initEventChannel()
-    chan1 = ecore1.initEventChannel()
-    print('Channel: %d' % chan1)
-
-    # both channels should get exactly one copy of these
-    ecore0.fireEvent('foo',('some','foo','info'))
-    ecore1.fireEvent('bar',('some','bar','info'))
-
-    import time; time.sleep(1)
-    while True:
-        print 'GOT0',ecore0.getNextEventsForChan( chan0, timeout=2 )
-        print 'GOT1',ecore1.getNextEventsForChan( chan1, timeout=2 )
-
+            [q.put(etup) for q in self._ce_chans]

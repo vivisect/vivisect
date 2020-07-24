@@ -337,22 +337,8 @@ def reduceoper(sym,emu=None):
     for symtmp, reducer in reducers.get(sym.symtype):
         m = ismatch(sym, symtmp)
         if m != None:
-            #print 'MATCH',str(symtmp)
             ret = reducer(m, emu=emu)
             # do this to much simplify reducers...
             if type(ret) in (int, long):
                 ret = Const(ret,sym.getWidth())
             return ret
-
-if __name__ == '__main__':
-
-    import sys
-    for argv in sys.argv[1:]:
-        sym = symexp(argv)
-        print('== %s' % str(sym))
-        print('  repr: %s' % (repr(sym),))
-        print('  solve: 0x%.8x' % (sym.solve()))
-        red = sym.reduce(foo=True)
-        print('  reduc: %s' % (str(red),))
-        print('  red repr: %s' % (repr(red),))
-        print('  red solve: 0x%.8x' % (red.solve()))

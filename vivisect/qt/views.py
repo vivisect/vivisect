@@ -18,6 +18,7 @@ from vivisect.const import *
 class VivNavModel(e_q_memory.EnviNavModel):
     pass
 
+# TODO: This is marked pending deletion, as is the things that depend on it (they're not used anywhere
 class VivView(VqtView, viv_base.VivEventCore):
     '''
     In any vivisect list/tree view, the first column will be
@@ -32,6 +33,7 @@ class VivView(VqtView, viv_base.VivEventCore):
 
 class VivLocModel(VqtModel):
     columns = ('Address','Location')
+
 
 class VivLocView(VivView):
 
@@ -55,8 +57,6 @@ class VivLocView(VivView):
 
     def VWE_DELLOCATION(self, vw, event, einfo):
         lva, lsize, ltype, linfo = einfo
-        if ltype in self.loctypes:
-            print 'DEL ONE!'
 
 def getLocView(vw, loctypes, title, parent=None):
     view = VivLocView( vw, loctypes, parent=parent)
@@ -167,7 +167,7 @@ class VQVivLocView(VQVivTreeView):
             self.vivAddLocation(lva, lsize, ltype, linfo)
 
     def vivAddLocation(self, lva, lsize, ltype, linfo):
-        print "FIXME OVERRIDE"
+        raise NotImplementedError("LocationViews must override vivAddLocation")
 
 class VQVivStringsView(VQVivLocView):
 

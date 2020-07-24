@@ -2,15 +2,11 @@
 '''
 Some glue code to do workspace related things based on visgraph
 '''
-
-import sys
 import time
 import envi
 import logging
 import vivisect
-import threading
 import collections
-from operator import itemgetter
 import visgraph.pathcore as vg_pathcore
 import visgraph.graphcore as vg_graphcore
 
@@ -89,11 +85,9 @@ def getLongPath(g):
                 cbva, weight, cpath, visited = work.pop()
                 upweight = weight - 1
                 for eid, fromid, toid, einfo in g.getRefsToByNid(cbva):
-                    # print('%s: %s in [%s]' % (cbva, fromid, ' '.join(['%s' % va for va in visited])))
                     if fromid in visited:
                         continue
                     nweight = cb_to_weights.get(fromid)
-                    # print('cbva: %s nweight: %s weight: %d fromid: %s' % (cbva, nweight, weight, fromid))
                     newcpath = list(cpath)
                     newcpath[-1] = (cbva, eid)
                     newcpath.append((fromid, None))

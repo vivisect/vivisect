@@ -1,4 +1,5 @@
 import cgi
+import binascii
 try:
     from PyQt5 import QtCore, QtGui, QtWebKit, QtWebKitWidgets
     from PyQt5.QtWebKitWidgets import *

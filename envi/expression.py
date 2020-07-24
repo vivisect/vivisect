@@ -77,8 +77,6 @@ class ExpressionLocals(dict):
     def __contains__(self, key):
         return self.__getitem__(key) is not None
 
-    has_key = __contains__
-
 
 class MemoryExpressionLocals(ExpressionLocals):
 

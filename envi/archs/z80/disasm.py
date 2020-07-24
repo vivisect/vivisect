@@ -91,7 +91,6 @@ class z80Disasm:
             return z80RegOper(oinfo)
 
         elif otype == OPTYPE_Ind:
-            #print 'OPTYPE IND'
             pass
 
         elif otype == OPTYPE_RegMemDisp:

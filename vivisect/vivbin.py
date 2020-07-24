@@ -7,12 +7,15 @@ import argparse
 import logging
 
 import vivisect.cli as viv_cli
-import envi.config as e_config
-import envi.threads as e_threads
 import vivisect.parsers as viv_parsers
 
-logging.basicConfig(level=logging.DEBUG, format='%(asctime)s:%(levelname)s:%(name)s: %(message)s')
+import envi.common as e_common
+import envi.config as e_config
+import envi.threads as e_threads
+
 logger = logging.getLogger()
+e_common.setLogging(logger, level='INFO')
+
 
 loglevels = (
     logging.CRITICAL,

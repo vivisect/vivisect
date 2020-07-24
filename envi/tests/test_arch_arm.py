@@ -1502,8 +1502,6 @@ class ArmInstructionSet(unittest.TestCase):
 
         opstr = struct.pack('<I', 0xe59f3008)
         op = vw.arch.archParseOpcode(opstr, va=0xbfb00000)
-        #print repr(op)
-        #print hex(op.getOperValue(1, emu))
 
         self.assertEqual(hex(0x98efcdab), hex(op.getOperValue(1, emu)))
 
@@ -1517,9 +1515,6 @@ class ArmInstructionSet(unittest.TestCase):
         op = vw.arch.archParseOpcode(opstr, va=0xbfb00000)
 
         value = op.getOperValue(1, emu)
-        #print repr(op)
-        #print hex(value)
-        #print hex(emu.getRegister(11))
 
         self.assertEqual(hex(0xccddeeff), hex(value))
 
@@ -1529,9 +1524,6 @@ class ArmInstructionSet(unittest.TestCase):
         opstr = struct.pack('<I', 0xe4bb3008)
         op = vw.arch.archParseOpcode(opstr, va=0xbfb00000)
         value = op.getOperValue(1, emu)
-        #print repr(op)
-        #print hex(value)
-        #print hex(emu.getRegister(11))
 
         self.assertEqual(hex(0xbfb00018), hex(emu.getRegister(11)))
         self.assertEqual(hex(0x10efcdab), hex(value))
@@ -1545,9 +1537,6 @@ class ArmInstructionSet(unittest.TestCase):
         op = vw.arch.archParseOpcode(opstr, va=0xbfb00000)
 
         value = op.getOperValue(1, emu)
-        #print repr(op)
-        #print hex(value)
-        #print hex(emu.getRegister(11))
 
         self.assertEqual(hex(0xbfb00008), hex(emu.getRegister(11)))
         self.assertEqual(hex(0x10efcdab), hex(value))
@@ -1565,8 +1554,6 @@ class ArmInstructionSet(unittest.TestCase):
         emu.setRegister(10, 0xbfb00008)
         emu.setRegister(2,  8)
         emu.writeMemory(0xbfb00010, binascii.unhexlify("abcdef98"))
-        #print repr(op)
-        #print hex(op.getOperValue(1, emu))
 
         self.assertEqual(hex(0x98efcdab), hex(op.getOperValue(1, emu)))
         self.assertEqual(hex(0xbfb00008), hex(emu.getRegister(10)))
@@ -1583,9 +1570,6 @@ class ArmInstructionSet(unittest.TestCase):
         op = vw.arch.archParseOpcode(opstr, va=0xbfb00000)
 
         value = op.getOperValue(1, emu)
-        #print repr(op)
-        #print hex(value)
-        #print hex(emu.getRegister(10))
 
         self.assertEqual(hex(0xbfb00010), hex(emu.getRegister(10)))
         self.assertEqual(hex(0x10efcdab), hex(value))
@@ -1600,9 +1584,6 @@ class ArmInstructionSet(unittest.TestCase):
         opstr = struct.pack('<I', 0xe73a2002)
         op = vw.arch.archParseOpcode(opstr, va=0xbfb00000)
         value = op.getOperValue(1, emu)
-        #print repr(op)
-        #print hex(value)
-        #print hex(emu.getRegister(10))
 
         self.assertEqual(hex(0x00f000f0), hex(value))
         self.assertEqual(hex(0xbfb00008), hex(emu.getRegister(10)))
@@ -1617,9 +1598,6 @@ class ArmInstructionSet(unittest.TestCase):
         op = vw.arch.archParseOpcode(opstr, va=0xbfb00000)
 
         value = op.getOperValue(1, emu)
-        #print repr(op)
-        #print hex(value)
-        #print hex(emu.getRegister(10))
 
         self.assertEqual(hex(0xccddeeff), hex(value))
         self.assertEqual(hex(0xbfb00018), hex(emu.getRegister(10)))
@@ -1636,8 +1614,6 @@ class ArmInstructionSet(unittest.TestCase):
         emu.setRegister(10, 0xbfb00008)
         emu.setRegister(2,  2)
         emu.writeMemory(0xbfb00008, binascii.unhexlify("abcdef98"))
-        #print repr(op)
-        #print hex(op.getOperValue(1, emu))
 
         self.assertEqual(hex(0xbfb00008), hex(emu.getRegister(10)))
         self.assertEqual(hex(0x98efcdab), hex(op.getOperValue(1, emu)))
@@ -1682,9 +1658,7 @@ class ArmInstructionSet(unittest.TestCase):
         emu.setRegister(2,  8)
         emu.writeMemory(0xbfb00000, binascii.unhexlify("abcdef98"))
         emu.writeMemory(0xbfb00008, binascii.unhexlify("12345678"))
-        #print repr(op)
         val = op.getOperValue(1, emu)
-        #print hex(val)
 
         self.assertEqual(hex(0x3412), hex(val))
         self.assertEqual(hex(0xbfb00000), hex(emu.getRegister(10)))
@@ -1735,15 +1709,11 @@ class ArmInstructionSet(unittest.TestCase):
         op = vw.arch.archParseOpcode(opstr, va=0xbfb00000)
 
         value = op.getOperValue(1, emu)
-        #print repr(op)
-        #print hex(value)
-        #print hex(emu.getRegister(10))
 
         self.assertEqual(hex(0xeeff), hex(value))
         self.assertEqual(hex(0xbfb00018), hex(emu.getRegister(10)))
 
     def test_envi_arm_assorted_instrs(self):
-        #print "\n\n\nstart of test_envi_arm_assorted_instrs"
         #setup initial work space for test
         vw = vivisect.VivWorkspace()
         vw.setMeta("Architecture", "arm")
@@ -1765,11 +1735,9 @@ class ArmInstructionSet(unittest.TestCase):
                 if ((not ranAlready) or (not self.armTestOnce)) and ((archz & test_arch & self.armTestVersion) != 0): 
                     ranAlready = True
                     op = vw.arch.archParseOpcode(binascii.unhexlify(bytez), 0, va)
-                    #print repr(op)
                     redoprepr = repr(op).replace(' ','').lower()
                     redgoodop = reprOp.replace(' ','').lower()
                     if redoprepr != redgoodop:
-                        #print out binary representation of opcode for checking
                         num, = struct.unpack("<I", binascii.unhexlify(bytez))
                         bs = bin(num)[2:].zfill(32)
                         badcount += 1
@@ -1780,7 +1748,6 @@ class ArmInstructionSet(unittest.TestCase):
                     else:
                         goodcount += 1
 
-                    #print bytez, op
                     if not len(emutests):
                         try:
                             # if we don't have special tests, let's just run it in the emulator anyway and see if things break
@@ -1789,7 +1756,6 @@ class ArmInstructionSet(unittest.TestCase):
                             else:
                                 bademu += 1
                         except envi.UnsupportedInstruction:
-                            #print "Instruction not in Emulator - ", repr(op)
                             bademu += 1
                         except Exception as exp:
                             logger.exception("Exception in Emulator for command - %r  %r  %r\n  %r",repr(op), bytez, reprOp, exp)
@@ -1819,15 +1785,6 @@ class ArmInstructionSet(unittest.TestCase):
         logger.info("Total of ", str(goodcount + badcount) + " tests completed.")
         self.assertEqual(goodcount, GOOD_TESTS)
         self.assertEqual(goodemu, GOOD_EMU_TESTS)
-
-        #pending deletion of following comments. Please comment if they need to stay or I will delete in following commit
-        #op = vw.arch.archParseOpcode(binascii.unhexlify('12c3'))
-        ##rotl.b #2, r3h
-        ##print( op, hex(0x7a) )
-        #emu.setRegisterByName('r3h', 0x7a)
-        #emu.executeOpcode(op)
-        ##print( hex(emu.getRegisterByName('r3h')), emu.getFlag(CCR_C) )
-        ##0xef False
 
     def test_envi_arm_thumb_switches(self):
         pass
@@ -1870,7 +1827,6 @@ class ArmInstructionSet(unittest.TestCase):
                 # try register first
                 testval = emu.getRegisterByName(tgt)
                 if testval == val:
-                    #print("SUCCESS(reg): %s  ==  0x%x" % (tgt, val))
                     success = 0
                 else:  # should be an else
                     raise Exception("FAILED(reg): (%r test#%d)  %s  !=  0x%x (observed: 0x%x) \n\t(setters: %r)\n\t(test: %r)" % (op, tidx, tgt, val, testval, settersrepr, testsrepr))
@@ -1880,7 +1836,6 @@ class ArmInstructionSet(unittest.TestCase):
                     # it's a flag
                     testval = emu.getFlag(eval(tgt))
                     if testval == val:
-                        #print("SUCCESS(flag): %s  ==  0x%x" % (tgt, val))
                         success = 0
                     else:
                         raise Exception("FAILED(flag): (%r test#%d)  %s  !=  0x%x (observed: 0x%x) \n\t(setters: %r)\n\t(test: %r)" % (op, tidx, tgt, val, testval, settersrepr, testsrepr))
@@ -1889,27 +1844,23 @@ class ArmInstructionSet(unittest.TestCase):
                     # it's an address
                     testval = emu.readMemValue(tgt, 1)
                     if testval == val:
-                        #print("SUCCESS(addr): 0x%x  ==  0x%x" % (tgt, val))
                         success = 0
                     raise Exception("FAILED(mem): (%r test#%d)  0x%x  !=  0x%x (observed: 0x%x) \n\t(setters: %r)\n\t(test: %r)" % (op, tidx, tgt, val, testval, settersrepr, testsrepr))
 
                 else:
                     raise Exception( "Funkt up test (%r test#%d) : %s == %s" % (op, tidx, tgt, val) )
-        
+
         # NOTE: Not sure how to test this to see if working
         # do some read/write tracking/testing
-        #print emu.curpath
         if len(emu.curpath[2]['readlog']):
             outstr = emu.curpath[2]['readlog']
             if len(outstr) > 10000: outstr = outstr[:10000]
-            #print( repr(op) + '\t\tRead: ' + repr(outstr) )
         if len(emu.curpath[2]['writelog']):
             outstr = emu.curpath[2]['writelog']
             if len(outstr) > 10000: outstr = outstr[:10000]
-            #print( repr(op) + '\t\tWrite: '+ repr(outstr) )
         emu.curpath[2]['readlog'] = []
         emu.curpath[2]['writelog'] = []
-        
+
         return success
 
 """

@@ -253,9 +253,6 @@ def initIvKey30(passwd,salt):
 
     passb = passwd.encode('utf-16le')
     initkey = passb + salt
-    print('PASS ->%s<-' % passwd)
-    print('SALT %s' % binascii.hexlify(salt))
-    print('INIT %s' % binascii.hexlify(initkey))
 
     sha1hash = hashlib.sha1()
     #sha1hash = rarsha()
@@ -271,10 +268,8 @@ def initIvKey30(passwd,salt):
             #digest = sha1hash.done()
             aesiv[ i / roundsdiv ] = digest[-1]
 
-    print('IV: %s' % binascii.hexlify(''.join(aesiv)))
     endswap = struct.unpack_from('<4I', sha1hash.digest())
     aeskey  = struct.pack('>4I', *endswap)
-    print('KEY %s' % binascii.hexlify(aeskey))
     #digest = sha1hash.digest()
     #for i in range(4):
         #for j in range(4):
@@ -360,7 +355,6 @@ class Rar:
         while len(self.clearbuf) < size:
             crypted = self.fd.read(4096)
             self.clearbuf += self.aes.decrypt(crypted)
-            print('CLEARBUF: %s' % binascii.hexlify(self.clearbuf))
 
         ret = self.clearbuf[:size]
         self.clearbuf = self.clearbuf[size:]

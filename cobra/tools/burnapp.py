@@ -1,5 +1,6 @@
 import os
 import sys
+import logging
 import zipfile
 import binascii
 import optparse
@@ -7,14 +8,19 @@ import tempfile
 
 import cobra
 import cobra.remoteapp as c_remoteapp
+import envi.common as e_common
+
+logger = logging.getLogger(__name__)
+e_common.setLogging(logger, level=logging.INFO)
+
 
 def release():
 
     parser = optparse.OptionParser()
 
-    parser.add_option('--cacert', dest='cacert', default=None )
-    parser.add_option('--sslkey', dest='sslkey', default=None )
-    parser.add_option('--sslcert', dest='sslcert', default=None )
+    parser.add_option('--cacert', dest='cacert', default=None)
+    parser.add_option('--sslkey', dest='sslkey', default=None)
+    parser.add_option('--sslcert', dest='sslcert', default=None)
 
     opts, argv = parser.parse_args()
     pyzfile, appuri = argv
@@ -47,37 +53,38 @@ def release():
 
     mainsrc = '\n'.join(mainlines)
 
-    pyz = zipfile.PyZipFile(pyzfile,'w')
+    pyz = zipfile.PyZipFile(pyzfile, 'w')
     pyz.writepy('cobra')
-    pyz.writestr('__main__.py',mainsrc)
+    pyz.writestr('__main__.py', mainsrc)
     pyz.close()
 
 
-def dumpfile(hexbytes,filepath):
+def dumpfile(hexbytes, filepath):
     with open(filepath, 'wb') as f:
         f.write(binascii.unhexlify(hexbytes))
     return filepath
 
 
-def main(uri,cacrt=None,sslcert=None,sslkey=None):
-    if any([cacrt,sslcert,sslkey]):
-        scheme, host, port, name, urlparams = cobra.chopCobraUri( uri )
-        builder = cobra.initSocketBuilder(host,port)
+def main(uri, cacrt=None, sslcert=None, sslkey=None):
+    if any([cacrt, sslcert, sslkey]):
+        scheme, host, port, name, urlparams = cobra.chopCobraUri(uri)
+        builder = cobra.initSocketBuilder(host, port)
 
         tempdir = tempfile.mkdtemp()
         if cacrt:
-            cafile = dumpfile(cacrt, os.path.join(tempdir,'ca.crt'))
+            cafile = dumpfile(cacrt, os.path.join(tempdir, 'ca.crt'))
             builder.setSslCa(cafile)
 
         if sslkey:
-            keyfile = dumpfile(sslkey, os.path.join(tempdir,'client.key'))
-            certfile = dumpfile(sslcert, os.path.join(tempdir,'client.crt'))
-            builder.setSslClientCert(certfile,keyfile)
+            keyfile = dumpfile(sslkey, os.path.join(tempdir, 'client.key'))
+            certfile = dumpfile(sslcert, os.path.join(tempdir, 'client.crt'))
+            builder.setSslClientCert(certfile, keyfile)
 
     try:
         c_remoteapp.getAndRunApp(uri)
     except Exception as e:
-        print('error: %s' % e)
+        logger.warning('error: %s' % e)
+
 
 if __name__ == '__main__':
-    sys.exit(release()) # this *must* be the *last* line...
+    sys.exit(release())  # this *must* be the *last* line...

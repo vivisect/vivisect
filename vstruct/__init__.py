@@ -236,7 +236,7 @@ class VStruct(vs_prims.v_base):
 
         Example:
             if x.vsHasField('woot'):
-                print 'STRUCT HAS WOOT FIELD!'
+                print('STRUCT HAS WOOT FIELD!')
         '''
         return self._vs_values.get(name) != None
 

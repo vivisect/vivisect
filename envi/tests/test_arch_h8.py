@@ -602,31 +602,23 @@ class H8InstrTest(unittest.TestCase):
 
         op = vw.arch.archParseOpcode(binascii.unhexlify('12c3'))
         # rotl.b #2, r3h
-        #print( op, hex(0x7a) )
         emu.setRegisterByName('r3h', 0x7a)
         emu.executeOpcode(op)
-        #print( hex(emu.getRegisterByName('r3h')), emu.getFlag(CCR_C) )
         # 0xef False
 
         op = vw.arch.archParseOpcode(binascii.unhexlify('1283'))
         # rotl.b #2, r3h
-        #print( op, hex(0x7a) )
         emu.setRegisterByName('r3h', 0x7a)
         emu.executeOpcode(op)
-        #print( hex(emu.getRegisterByName('r3h')), emu.getFlag(CCR_C) )
         # 0xef False
 
         op = vw.arch.archParseOpcode(binascii.unhexlify('13c3'))  # rotr.b #2, r3h
-        #print( op, hex(0x7a) )
         emu.setRegisterByName('r3h', 0x7a)
-        # print( hex(emu.getRegisterByName('r3h')), emu.getFlag(CCR_C) )
         emu.executeOpcode(op)
         # 0x7a False
 
         op = vw.arch.archParseOpcode(binascii.unhexlify('1383'))  # rotr.b #2, r3h
-        #print( op, hex(0x7a) )
         emu.setRegisterByName('r3h', 0x7a)
-        # print( hex(emu.getRegisterByName('r3h')), emu.getFlag(CCR_C) )
         emu.executeOpcode(op)
         # 0x7a False
 
@@ -666,7 +658,6 @@ class H8InstrTest(unittest.TestCase):
                 # try register first
                 testval = emu.getRegisterByName(tgt)
                 if testval == val:
-                    #print("SUCCESS: %s  ==  0x%x" % (tgt, val))
                     continue
                 success = 0
                 raise Exception(
@@ -678,7 +669,6 @@ class H8InstrTest(unittest.TestCase):
                     # it's a flag
                     testval = emu.getFlag(eval(tgt))
                     if testval == val:
-                        #print("SUCCESS: %s  ==  0x%x" % (tgt, val))
                         continue
                     success = 0
                     raise Exception(
@@ -688,7 +678,6 @@ class H8InstrTest(unittest.TestCase):
                     # it's an address
                     testval = emu.readMemValue(tgt, 1)
                     if testval == val:
-                        #print("SUCCESS: 0x%x  ==  0x%x" % (tgt, val))
                         continue
                     success = 0
                     raise Exception(
@@ -698,17 +687,14 @@ class H8InstrTest(unittest.TestCase):
                     raise Exception("Funkt up test: %s == %s" % (tgt, val))
 
         # do some read/write tracking/testing
-        #print emu.curpath
         if len(emu.curpath[2]['readlog']):
             outstr = emu.curpath[2]['readlog']
             if len(outstr) > 10000:
                 outstr = outstr[:10000]
-            #print( repr(op) + '\t\tRead: ' + repr(outstr) )
         if len(emu.curpath[2]['writelog']):
             outstr = emu.curpath[2]['writelog']
             if len(outstr) > 10000:
                 outstr = outstr[:10000]
-            #print( repr(op) + '\t\tWrite: '+ repr(outstr) )
         emu.curpath[2]['readlog'] = []
         emu.curpath[2]['writelog'] = []
 

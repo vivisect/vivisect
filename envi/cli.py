@@ -276,7 +276,7 @@ class EnviCli(Cmd):
 
                 x = 10
                 def showx():
-                    print 'X: %d' % x
+                    print('X: %d' % x)
                     x += 10
 
                 showx()

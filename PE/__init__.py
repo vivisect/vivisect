@@ -1,6 +1,5 @@
 import os
 import struct
-import contextlib
 
 from cStringIO import StringIO
 
@@ -173,7 +172,7 @@ class VS_VERSIONINFO:
         '''
         Return a list of the keys in this VS_VERSIONINFO struct.
 
-        Example: for keyname in vs.getVersionKeys(): print keyname
+        Example: for keyname in vs.getVersionKeys(): print(keyname)
         '''
         return self._version_info.keys()
 
@@ -182,7 +181,7 @@ class VS_VERSIONINFO:
         Return dictionary style key,val tuples for the version keys
         in this VS_VERSIONINFO structure.
 
-        Example: for vskey,vsdata in vs.getVersionItems(): print vskey,vsdata
+        Example: for vskey,vsdata in vs.getVersionItems(): print(vskey,vsdata)
         '''
         return self._version_info.items()
 
@@ -285,7 +284,7 @@ class VS_VERSIONINFO:
         mysize, valsize, stype = struct.unpack('<HHH', bytes[offset:offset+6])
 
         if mysize == 0:
-            return -1 
+            return -1
 
         xoffset += 6
         xoffset, strkey = self._eatStringAndAlign(bytes, xoffset)
@@ -299,8 +298,6 @@ class VS_VERSIONINFO:
             value = value.decode('utf-16le','ignore')
             value = value.split('\x00')[0]
 
-        #print 'VALSIZE',valsize,'MYSIZE',mysize
-        #print 'Key: ->%s<-, ->%s<-' % (strkey,repr(value))
         self._version_info[strkey] = value
 
         # No matter what we parse, believe the headers...
@@ -625,11 +622,7 @@ class PE(object):
                         langinfo = (subdata.CodePage, langid, sublangid )
                         rsdirobj.addRsrcData(subdata.OffsetToData, subdata.Size, langinfo )
 
-                    #print 'Data %s : 0x%.8x (%d)' % (name_id, sec.VirtualAddress + subdata.OffsetToData, subdata.Size)
-                    #print repr(self.readAtRva(subdata.OffsetToData, min(subdata.Size, 40) ))
-
                 offset += len(dirent)
-                #print dirent.tree()
 
     def parseSections(self):
 

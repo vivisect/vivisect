@@ -546,7 +546,6 @@ class SwfFile(VStruct):
             bytez = bytez[:8] + zlib.decompress(bytez[8:])
 
         offset = self.Header.vsParse(bytez, offset=offset)
-        print('Header Says: %d Bytes Are: %d' %  (self.Header.FileLength,len(bytez)))
         i = 0
         while offset < len(bytez):
             swftag = SwfTag()

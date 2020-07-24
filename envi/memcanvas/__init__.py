@@ -228,11 +228,6 @@ class MemoryCanvas(object):
         saved_last  = self._canv_rendvas[iend:]
         saved_first = self._canv_rendvas[:ibegin]
         updatedvas  = self._canv_rendvas[ibegin:iend]
-        # print 'IBEGIN',hex(ibegin)
-        # print 'IEND',hex(iend)
-        # print 'FIRST',repr([hex(va) for va in saved_first])
-        # print 'UPDATED',repr([hex(va) for va in updatedvas])
-        # print 'LAST',repr([hex(va) for va in saved_last])
 
         # We must actually start rendering from the beginning
         # of the first updated VA index

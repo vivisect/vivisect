@@ -2501,7 +2501,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         add imports/exports/segments etc...
         """
         nname = self.normFileName(filename)
-        if self.filemeta.has_key(nname):
+        if nname in self.filemeta:
             raise Exception("Duplicate File Name: %s" % nname)
         self._fireEvent(VWE_ADDFILE, (nname, imagebase, md5sum))
         return nname
@@ -2529,7 +2529,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         """
         Store a piece of file specific metadata (python primatives are best for values)
         """
-        if not self.filemeta.has_key(fname):
+        if fname not in self.filemeta:
             raise Exception("Invalid File: %s" % fname)
         self._fireEvent(VWE_SETFILEMETA, (fname, key, value))
 
@@ -2635,7 +2635,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         """
         Delete a VA set by name.
         """
-        if not self.vasets.has_key(name):
+        if name not in self.vasets:
             raise Exception("Unknown VA Set: %s" % name)
         self._fireEvent(VWE_DELVASET, name)
 
@@ -2663,7 +2663,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         Use this API to delete the rowdata associated
         with the specified VA from the set.
         """
-        if not self.vasets.has_key(name):
+        if name not in self.vasets:
             raise Exception("Unknown VA Set: %s" % name)
         self._fireEvent(VWE_DELVASETROW, (name, va))
 

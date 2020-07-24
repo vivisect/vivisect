@@ -540,8 +540,8 @@ class DbGraphStore:
 
         Example:
             for nid in g.searchNodes('woot', 10)
-                print g.getNodeProp(nid, 'name')
-            
+                print(g.getNodeProp(nid, 'name'))
+
         NOTE: This is specific to the DbGraphStore...
         '''
         if propval == None:
@@ -598,7 +598,6 @@ class DbSubGraph(DbGraphStore, vg_graphcore.Graph):
             else:
                 q = 'SELECT vg_edges.eid,n1,n2 FROM vg_edge_props,vg_edges WHERE pname=%s AND strval=%s AND vg_edges.eid=vg_edge_props.eid'
             for eid,n1,n2 in self._doSelect(q, key, val):
-                print 'using: %d (%d->%d)' % (eid, n1, n2)
                 done[eid] = (eid, n1, n2)
 
         # FIXME add the nodes for these edges
@@ -615,9 +614,7 @@ class DbSubGraph(DbGraphStore, vg_graphcore.Graph):
         edges to the specified depth...
         '''
         todo = [(nid, 0),]
-        print 'INITIAL EXPAND',nid
         if vg_graphcore.Graph.getNode(self, nid) == None:
-            print 'EXPANDING',nid
             vg_graphcore.Graph.addNode(self, nodeid=nid)
 
         while len(todo):
@@ -630,7 +627,6 @@ class DbSubGraph(DbGraphStore, vg_graphcore.Graph):
             q = 'SELECT eid,n2 FROM vg_edges WHERE n1=%s'
             for eid, n2 in self._doSelect(q, nid):
                 if vg_graphcore.Graph.getNode(self, n2) == None:
-                    print 'EXPANDING',n2
                     vg_graphcore.Graph.addNode(self, nodeid=n2)
                 if vg_graphcore.Graph.getEdge(self, eid) == None:
                     vg_graphcore.Graph.addEdge(self, nid, n2, eid=eid)

@@ -1131,20 +1131,17 @@ class Amd64InstructionSet(unittest.TestCase):
         self.assertEqual( repr(op), oprepr )
         opvars = vars(op)
         for opk,opv in opcheck.items():
-            #print "op: %s %s" % (opk,opv)
             self.assertEqual( (repr(op), opk, opvars.get(opk)), (oprepr, opk, opv) )
 
         for oidx in range(len(op.opers)):
             oper = op.opers[oidx]
             opervars = vars(oper)
             for opk,opv in opercheck[oidx].items():
-                #print "oper: %s %s" % (opk,opv)
                 self.assertEqual( (repr(op), opk, opervars.get(opk)), (oprepr, opk, opv) )
 
         vw = vivisect.VivWorkspace()
         scanv = e_memcanvas.StringMemoryCanvas(vw)
         op.render(scanv)
-        #print "render:  %s" % repr(scanv.strval)
         self.assertEqual( scanv.strval, renderOp )
 
     ###############################################
@@ -1408,4 +1405,3 @@ def generateTestInfo(ophexbytez='6e'):
         opersvars.append(opervars)
 
     print("opercheck = %s" % (repr(opersvars)))
-

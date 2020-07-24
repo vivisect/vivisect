@@ -268,8 +268,6 @@ if __name__ == '__main__':
     import sys
     import platform
 
-    from pprint import pprint
-
     import PE
     import vtrace.platforms.win32 as vt_win32
 

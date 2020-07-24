@@ -3,7 +3,7 @@ try:
 except:
     from PyQt4.QtGui import *
 
-from vqt.main import getOpenFileName, getSaveFileName
+from vqt.main import getSaveFileName
 
 class MemDumpDialog(QDialog):
     '''
@@ -68,13 +68,3 @@ class MemDumpDialog(QDialog):
 
     def getResults(self):
         return self.filename, self.size
-
-def main():
-    app = QApplication([])
-    dlg = MemDumpDialog(0x1234, '5678', 0x9ab)
-    if dlg.exec_() == QDialog.Accepted:
-        print(dlg.filename)
-        print(dlg.size)
-
-if __name__ == '__main__':
-    main()

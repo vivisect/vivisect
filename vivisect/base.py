@@ -464,7 +464,7 @@ class VivWorkspaceCore(object, viv_impapi.ImportApi):
         self.vasets[name].pop(va, None)
 
     def _handleADDFSIG(self, einfo):
-        print('DEPRICATED (ADDFSIG) ignored: %s' % (einfo,))
+        raise NotImplementedError("FSIG is deprecated and should not be used")
 
     def _handleFOLLOWME(self, va):
         pass
@@ -580,7 +580,7 @@ class VivWorkspaceCore(object, viv_impapi.ImportApi):
                 try:
                     q.put_nowait((event, einfo))
                 except Queue.Full as e:
-                    print "FULL QUEUE DO SOMETHING"
+                    logger.warning("Queue is full!")
 
         except Exception as e:
             traceback.print_exc()
@@ -683,7 +683,7 @@ def trackDynBranches(cfctx, op, vw, bflags, branches):
         return
 
     if vw.verbose:
-        print("Dynamic Branch found at 0x%x    %s" % (op.va, op))
+        logger.info("Dynamic Branch found at 0x%x    %s" % (op.va, op))
     vw.setVaSetRow('DynamicBranches', (op.va, repr(op), bflags))
 
 class VivCodeFlowContext(e_codeflow.CodeFlowContext):

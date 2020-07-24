@@ -262,8 +262,7 @@ class Operand:
         NOTE: This API may be passed a None emu and should return what it can
               (or None if it can't be resolved)
         """
-        print("%s needs to implement getOperValue!" % self.__class__.__name__)
-        return None
+        raise NotImplementedError("%s needs to implement getOperValue!" % self.__class__.__name__)
 
     def setOperValue(self, op, emu, val):
         """
@@ -271,7 +270,7 @@ class Operand:
         the given emulator/workspace/trace to assign things like
         memory and registers.
         """
-        print("%s needs to implement setOperValue! (0x%.8x: %s) " % (self.__class__.__name__, op.va, repr(op)))
+        raise NotImplementedError("%s needs to implement setOperValue! (0x%.8x: %s) " % (self.__class__.__name__, op.va, repr(op)))
 
     def isDeref(self):
         """
@@ -305,8 +304,7 @@ class Operand:
         NOTE: This API may be passed a None emu and should return what it can
               (or None if it can't be resolved)
         """
-        print("%s needs to implement getOperAddr!" % self.__class__.__name__)
-        return None
+        raise NotImplementedError("%s needs to implement getOperAddr!" % self.__class__.__name__)
 
     def repr(self, op):
         """
@@ -461,9 +459,9 @@ class Opcode:
 
     def genRefOpers(self, emu=None):
         '''
-        Operand generator, yielding an (oper-index, operand) tuple from this 
-        Opcode... but only for operands which make sense for XREF analysis.  
-        Override when architecture makes use of odd operands like the program 
+        Operand generator, yielding an (oper-index, operand) tuple from this
+        Opcode... but only for operands which make sense for XREF analysis.
+        Override when architecture makes use of odd operands like the program
         counter, which returns a real value even without an emulator.
         '''
         for oidx, o in enumerate(self.opers):
@@ -540,7 +538,7 @@ class Emulator(e_reg.RegisterContext, e_mem.MemoryObject):
         '''
         Set a (previously initialized) emulator option.
         '''
-        if not self._emu_opts.has_key(opt):
+        if opt not in self._emu_opts:
             raise Exception('Unknown Emu Opt: %s' % opt)
         self._emu_opts[opt] = val
 
@@ -549,10 +547,10 @@ class Emulator(e_reg.RegisterContext, e_mem.MemoryObject):
         Retrieve the current value of an emulator option.
         ( emu impls may directly access _emu_opts for speed )
         '''
-        if not self._emu_opts.has_key(opt):
+        if opt not in self._emu_opts:
             raise Exception('Unknown Emu Opt: %s' % opt)
         return self._emu_opts.get(opt)
- 
+
     def setEndian(self, endian):
         '''
         Sets Endianness for the Emulator.

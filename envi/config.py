@@ -177,7 +177,7 @@ class EnviConfig:
                 raise ConfigInvalidName(optpath)
 
         optname = optparts[-1]
-        if not config.cfginfo.has_key(optname):
+        if optname not in config.cfginfo:
             raise ConfigInvalidOption(optname)
 
         # json madness
@@ -200,9 +200,9 @@ class EnviConfig:
 
     def getSubConfig(self, name, add=True):
         subcfg = self.cfgsubsys.get( name )
-        if subcfg == None and add:
+        if subcfg is None and add:
             subcfg = EnviConfig()
-            self.cfgsubsys[ name ] = subcfg
+            self.cfgsubsys[name] = subcfg
             subcfg.autosave = self.autosave
             # Monkey patch the save method...
             subcfg.saveConfigFile = self.saveConfigFile
@@ -220,10 +220,10 @@ class EnviConfig:
                 subcfg.setDocsPrimitive( val )
                 continue
 
-            self.cfgdocs[ key ] = val
+            self.cfgdocs[key] = val
 
     def setConfigDefault(self, optname, optval, optdoc):
-        if not self.cfginfo.has_key(optname):
+        if optname not in self.cfginfo:
             self.cfginfo[optname] = optval
         self.cfgdocs[optname] = optdoc
 

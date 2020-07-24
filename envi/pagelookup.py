@@ -68,5 +68,4 @@ class MapLookup:
         return None
 
     def __getslice__(self, start, end):
-        print 'GET SLICE'
-
+        raise NotImplementedError("__getslice__ on MapLookup needs implementing")
