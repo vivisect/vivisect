@@ -71,6 +71,7 @@ def analyzePLT(vw, ssva, ssize):
         ''' 
         analyze an entire section designated as "PLT" or "PLTGOT"
         '''
+        emu = None
         ###### make code for every opcode in PLT
         sva = ssva
         nextseg = sva + ssize
@@ -80,6 +81,12 @@ def analyzePLT(vw, ssva, ssize):
 
         # make and parse opcodes.  keep track of unconditional branches
         branchvas = []
+        # drag an emulator along to calculate branches, if available
+        try:
+            emu = vw.getEmulator()
+        except Exception as e:
+            logger.debug("no emulator available: %r", e)
+
         while sva < nextseg:
             logger.debug('analyzePLT(0x%x, 0x%x) first pass:  sva: 0x%x   nextseg: 0x%x', ssva, ssize, sva, nextseg)
             if vw.getLocation(sva) is None:
@@ -91,24 +98,65 @@ def analyzePLT(vw, ssva, ssize):
 
             ltup = vw.getLocation(sva)
 
+            # ltup should *always* be a location, unless something broke.  however, fail gracefully :)
             if ltup is not None:
-                op = vw.parseOpcode(ltup[vivisect.L_VA])
-                if op.iflags & envi.IF_BRANCH and \
-                        not op.iflags & envi.IF_COND:
+                lva, lsz, ltype, ltinfo = ltup
+                # if the location is an Opcode, check for branch info
+                if ltype == vivisect.LOC_OP:
+                    op = vw.parseOpcode(lva)
+                    emu.setProgramCounter(lva)
+                    if op.iflags & envi.IF_BRANCH and \
+                            not op.iflags & envi.IF_COND:
 
-                    # we grab all unconditional branches, and tag them.
-                    # some compilers pepper conditional branches between 
-                    # PLT entries, for lazy-loading tricks.  We skip those.
+                        # we grab all unconditional branches, and tag them.
+                        # some compilers pepper conditional branches between 
+                        # PLT entries, for lazy-loading tricks.  We skip those.
 
-                    # currently, check the branch target is not the section 
-                    # start address.
-                    realplt = not bool(op.opers[-1].getOperValue(op) == ssva)
-                    if not realplt:
-                        has_tramp = True
+                        # quickly, check the branch target is not the section 
+                        # start address.
+                        tbrva = op.opers[-1].getOperValue(op, emu=emu)
+                        realplt = not bool(tbrva == ssva)
 
-                    branchvas.append((op.va, realplt))
+                        # since the above check will "fail open", refine check if True
+                        if realplt:
 
-                sva += ltup[vivisect.L_SIZE]
+                            # if target is in the ELF Section with a name starting with ".got" 
+                            # OR that the target address is after the DT_PLTGOT entry (
+                            tgt_seg = vw.getSegment(tbrva)
+
+                            if tgt_seg is not None:
+                                tsegva, tsegsz, tsegname, tsegfile = tgt_seg
+                                # see if the target address segment is GOT, but 
+                                # also don't let it be the first entry, which is the LazyLoader
+                                if not (tsegname.startswith('.got') and tsegva != lva):
+                                    logger.debug("0x%x: tbrva not in GOT (segment)", tbrva)
+                                    realplt = False
+
+                            else:
+                                taint = emu.getVivTaint(tbrva)
+                                if taint is None and not vw.isValidPointer(tbrva):
+                                    logger.debug("0x%x: tbrva is not valid pointer!", tbrva)
+                                    realplt = False
+
+                                else:
+                                    fname = vw.getFileByVa(tbrva)
+                                    if fname is not None:
+                                        fdyns = vw.getFileMeta(fname, 'ELF_DYNAMICS')
+                                        if fdyns is not None:
+                                            FGOT = fdyns.get('DT_PLTGOT')
+                                            if FGOT is not None and tbrva <= FGOT:
+                                                logger.debug("0x%x: tbrva not in GOT (DT_PLTGOT)", tbrva)
+                                                realplt = False
+
+                        if not realplt:
+                            has_tramp = True
+
+                        branchvas.append((op.va, realplt, tbrva, op))
+
+                    # after analyzing the situation, emulate the opcode
+                    emu.executeOpcode(op)
+
+                sva += lsz
                 logger.debug('incrementing to next va: 0x%x', sva)
             else:
                 logger.warn('makeCode(0x%x) failed to make a location (probably failed instruction decode)!  incrementing instruction pointer by 1 to continue PLT analysis <fingers crossed>', sva)
@@ -133,16 +181,16 @@ def analyzePLT(vw, ssva, ssize):
 
             # set our branchva list straight.  trampoline is *not* a realplt.
             if branchvas[0][0] == trampbr:
-                branchvas[0] = (trampbr, False)
+                branchvas[0] = (trampbr, False, branchvas[0][2], branchvas[0][3])
             else:
-                logger.debug("has_tramp: trampbr: 0x%x    branchvas[0][0]: 0x%x", trampbr, branchvas[0][0])
+                logger.debug("has_tramp: trampbr: 0x%x    branchvas[0][0]: 0x%x -> 0x%x", trampbr, branchvas[0][0], branchvas[0][2])
 
         ###### heuristically determine PLT entry size and distance
         heur = {}
         lastva = ssva
         # first determine distance between GOT branches:
         for vidx in range(1, len(branchvas)):
-            bva, realplt = branchvas[vidx]
+            bva, realplt, brtgt, bop = branchvas[vidx]
             if not realplt:
                 continue
 
@@ -175,10 +223,10 @@ def analyzePLT(vw, ssva, ssize):
         if has_tramp:    
             bridx += 1
 
-        brva, realplt = branchvas[bridx]
+        brva, realplt, brtgtva, op = branchvas[bridx]
         while brva != trampbr and not realplt:
             bridx += 1
-            brva, realplt = branchvas[bridx]
+            brva, realplt, brtgtva, op = branchvas[bridx]
 
         # start off pointing at the branch location which bounces through GOT.
         loc = vw.getLocation(brva)
@@ -232,7 +280,7 @@ def analyzePLT(vw, ssva, ssize):
         # IS THIS SUPERFLUOUS?  since we started using the first entry, we're already at the first entry.?
         # roll through branches until we find one we like as the start of the real plts
         while bridx < brlen:
-            firstbr, realplt = branchvas[bridx]
+            firstbr, realplt, brtgtva, op = branchvas[bridx]
             if realplt:
                 firstva = firstbr - plt_size
                 prevloc = vw.getLocation(firstva - 1)
@@ -265,7 +313,7 @@ def analyzePLT(vw, ssva, ssize):
             bridx += 1
 
 
-        logger.debug('plt first entry: 0x%x\n%r', firstva, [(hex(x), y) for x, y in branchvas])
+        logger.debug('plt first entry: 0x%x\n%r', firstva, [(hex(x), y, z, a) for x, y, z, a in branchvas])
 
         if bridx != 0:
             logger.debug('First function in PLT is not a PLT entry.  Found Lazy Loader Trampoline.')
