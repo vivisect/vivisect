@@ -169,7 +169,7 @@ def analyzePLT(vw, ssva, ssize):
         ###### now determine plt_size (basically, how far to backup from the branch to find the start of function
         # *don't* use the first entry, because the trampoline is often oddly sized...
         plt_size = 0
-        bridx = 0
+        bridx = 1
 
         # if has_tramp, we need to skip two to make sure we're not analyzing the first real plt
         if has_tramp:    
