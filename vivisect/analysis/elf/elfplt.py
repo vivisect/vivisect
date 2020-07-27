@@ -269,7 +269,7 @@ def analyzePLT(vw, ssva, ssize):
 
         if bridx != 0:
             logger.debug('First function in PLT is not a PLT entry.  Found Lazy Loader Trampoline.')
-            vw.makeName(ssva, 'LazyLoaderTrampoline', filelocal=True)
+            vw.makeName(ssva, 'LazyLoaderTrampoline', filelocal=True, makeuniq=True)
 
         # scroll through arbitrary length functions and make functions
         for sva in range(firstva, nextseg, plt_distance):
