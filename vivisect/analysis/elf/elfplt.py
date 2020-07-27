@@ -66,6 +66,7 @@ def analyze(vw):
             continue
         analyzePLT(vw, sva, ssize)
 
+gots = {}
 def getGOT(vw, fileva):
     '''
     Returns GOT location for the file which contains the address fileva.
@@ -77,9 +78,12 @@ def getGOT(vw, fileva):
     OpenBSD is only Sections.
     QNX has only Dynamics.
     '''
-    gotva = None
-    gotsize = None
+    global gots
     filename = vw.getFileByVa(fileva)
+
+    gottup = gots.get(filename)
+    if gottup is not None:
+        return gottup
 
     for va, size, name, fname in vw.getSegments():
         if name == ".got" and fname == filename:
@@ -104,6 +108,7 @@ def getGOT(vw, fileva):
                 gotsize = mmsz - moffset
             gotva = FGOT
 
+    gots[filename] = (gotva, gotsize)
     return gotva, gotsize
 
 def getPLTs(vw):
