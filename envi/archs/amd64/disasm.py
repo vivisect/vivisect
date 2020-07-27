@@ -183,8 +183,8 @@ vex3_mmmm_table = ( (None,), (None,), (0x38,), (0x3A,), None, None, None, None )
 
 class Amd64Disasm(e_i386.i386Disasm):
 
-    def __init__(self):
-        e_i386.i386Disasm.__init__(self)
+    def __init__(self, mode=MODE_64):
+        e_i386.i386Disasm.__init__(self, mode=mode)
         self._dis_oparch = envi.ARCH_AMD64
         self._dis_prefixes = amd64_prefixes
         self._dis_regctx = Amd64RegisterContext()
@@ -505,11 +505,14 @@ class Amd64Disasm(e_i386.i386Disasm):
 
                         # If we are a sign extended immediate and not the same as the other operand,
                         # do the sign extension during disassembly so nothing else has to worry about it..
-                        if len(operands) and tsize != operands[-1].tsize:
-                            if operflags & opcode86.OP_SIGNED:
+                        if operflags & opcode86.OP_SIGNED:
+                            if len(operands) and tsize != operands[-1].tsize:
                                 otsize = operands[-1].tsize
                                 oper.imm = e_bits.sign_extend(oper.imm, oper.tsize, otsize)
                                 oper.tsize = otsize
+                            elif not len(operands):
+                                oper.imm = e_bits.sign_extend(oper.imm, oper.tsize, self._dis_default_size)
+                                oper.tsize = self._dis_default_size
 
                     else:
                         # see same code section in i386 for this rationale

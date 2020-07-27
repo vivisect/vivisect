@@ -51,6 +51,8 @@ amd64SingleByteOpcodes = [
     ('imul 1', 'f6aaaaaaaaaa', 'imul al,byte [rdx - 1431655766]', 'imul al,byte [rdx - 1431655766]'),
     ('imul 2', 'f7aaaaaaaaaa', 'imul eax,dword [rdx - 1431655766]', 'imul eax,dword [rdx - 1431655766]'),
     ('push', 'fff0', 'push rax', 'push rax'),
+    ('push 2', '6aff', 'push 0xffffffffffffffff', 'push 0xffffffffffffffff'),
+    ('push 3', '68ffffffff', 'push 0xffffffffffffffff', 'push 0xffffffffffffffff'),
     ('pop', '8ff0', 'pop rax', 'pop rax'), # TODO: This isn't a real instr. 8F can only be mem, using r/m to determine encoding
     ('pop', '8ffb', 'pop rbx', 'pop rbx'), # TODO: neither is this
     ('push', '48fff0', 'push rax', 'push rax'),
