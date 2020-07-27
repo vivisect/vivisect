@@ -274,6 +274,7 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
         # NOTE: If an opcode method returns
         #       other than None, that is the new pc
         try:
+            self.setFlag(PSR_T_bit, (op.iflags & envi.ARCH_MASK) in (envi.ARCH_THUMB, envi.ARCH_THUMB16))
             self.setMeta('forrealz', True)
             newpc = None
             startpc = self.getProgramCounter()
