@@ -578,7 +578,7 @@ class PE(object):
                 continue
             
             offset = len(rsdir)
-            for i in xrange(totcount):
+            for i in range(totcount):
                 dentrva = rsrva + offset
 
                 dirent = self.readStructAtRva( dentrva, 'pe.IMAGE_RESOURCE_DIRECTORY_ENTRY', check=True )

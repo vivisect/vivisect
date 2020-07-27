@@ -60,7 +60,7 @@ def analyzeFunction(vw, funcva):
                 if op is not None:
                     arch = op.iflags & envi.ARCH_MASK
 
-                vw.makeCode(va, arch=arch)
+                vw.makeCode(va, arch=arch, fva=funcva)
 
                 loc = vw.getLocation(va)
                 if loc is None:

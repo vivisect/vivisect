@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 def ffTermFptrArray(vw, va, max=100):
     ret = []
     ffterm = e_bits.u_maxes[vw.psize]
-    for i in xrange(max):
+    for i in range(max):
 
         ltup = vw.makeNumber(va, vw.psize)
 

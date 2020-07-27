@@ -165,7 +165,7 @@ class SymbolikFunctionEmulator(vsym_emulator.SymbolikEmulator):
         if args is None:
             # Initialize arguments by setting variables based on their arg indexes
             argc = len(self._sym_vw.getFunctionArgs(fva))
-            args = [Var('arg%d' % i, self.__width__) for i in xrange(argc)]
+            args = [Var('arg%d' % i, self.__width__) for i in range(argc)]
 
         self.cconv.setSymbolikArgs(self, args)
 
@@ -557,7 +557,7 @@ class SymbolikAnalysisContext:
 
         if args is None:
             argdef = self.vw.getFunctionArgs(fva)
-            args = [Arg(i, width=self.vw.psize) for i in xrange(len(argdef))]
+            args = [Arg(i, width=self.vw.psize) for i in range(len(argdef))]
 
         if paths is None:
             paths = viv_graph.getCodePaths(graph, maxpath=maxpath)
@@ -630,7 +630,7 @@ class SymbolikAnalysisContext:
         '''
         if args is None:
             argdef = self.vw.getFunctionArgs( fva )
-            args = [Arg(i, width=self.vw.psize) for i in xrange(len(argdef))]
+            args = [Arg(i, width=self.vw.psize) for i in range(len(argdef))]
 
         for emu, effects in self.getSymbolikPaths(fva, args=args):
 

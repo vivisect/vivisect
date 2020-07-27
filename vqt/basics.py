@@ -18,7 +18,7 @@ class BasicTreeView(QTreeView):
     def setModel(self, model):
         ret = QTreeView.setModel(self, model)
         c = len(model.columns)
-        for i in xrange(c):
+        for i in range(c):
             self.resizeColumnToContents(i)
         return ret
 

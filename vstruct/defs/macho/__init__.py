@@ -32,7 +32,7 @@ class mach_o(vstruct.VStruct):
             strtab = strbytes.split('\x00')
             #print strtab
             offset = vs.symoff
-            for i in xrange(vs.nsyms):
+            for i in range(vs.nsyms):
                 n = nlist() # FIXME 64!
                 offset = n.vsParse(self._raw_bytes, offset)
                 #symstr = strtab[n.n_strx]
@@ -74,7 +74,7 @@ class mach_o(vstruct.VStruct):
         self._raw_bytes = bytes[offset:]
         offset = self.mach_header.vsParse(bytes, offset=offset)
         #print bytes[offset:].encode('hex')
-        for i in xrange(self.mach_header.ncmds):
+        for i in range(self.mach_header.ncmds):
             # should we use endian from header?
             cmdtype, cmdlen = struct.unpack('<II', bytes[offset:offset+8])
             cmdclass = getCommandClass(cmdtype)

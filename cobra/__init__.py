@@ -22,10 +22,11 @@ import traceback
 try:
     import msgpack
     dumpargs = {}
-    loadargs = {'use_list':0}
-    if msgpack.version >= (0,4,1):
+    loadargs = {'use_list': 0}
+    if msgpack.version >= (0, 4, 1):
         dumpargs['use_bin_type'] = 1
-        loadargs['encoding'] = 'utf-8'
+        if msgpack.version < (1, 0, 0):
+            loadargs['encoding'] = 'utf-8'
 
 except ImportError:
     msgpack = None

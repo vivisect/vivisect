@@ -126,7 +126,7 @@ def variants(sym):
 
         todo.extend(t.kids)
 
-    for i in xrange(2**len(swaps)):
+    for i in range(2**len(swaps)):
         for t, k in swaps:
             t.kids[0:2] = k[i & 1]
             i >>= 1
