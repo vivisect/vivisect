@@ -137,6 +137,7 @@ def getPLTs(vw):
     return gots
 
 def analyzePLT(vw, ssva, ssize):
+    try:
         ''' 
         analyze an entire section designated as "PLT" or "PLTGOT"
         '''
@@ -415,6 +416,8 @@ def analyzePLT(vw, ssva, ssize):
             logger.info('making PLT function: 0x%x', sva)
             vw.makeFunction(sva)
 
+    except Exception as e:
+        logger.exception('analyzePLT(0x%x, 0x%x)', ssva, ssize)
 
 MAX_OPS = 10
 
@@ -479,8 +482,10 @@ def analyzeFunction(vw, funcva):
 
         # if BR_DEREF, this is a pointer
         if brflags & envi.BR_DEREF:
-            if loctup is None:
-                logger.exception('0x%x: opval=0x%x: brflags is BR_DEREF, but loctup is None.  Don\'t know what to do. skipping.', op.va, opval)
+            if loctup is None:              ###### TODO: CHECK HERE FOR TAINT VALUE!
+                taintval = emu.getVivTaint(opval)
+                taintrepr = emu.reprVivTaint(taintval)
+                logger.exception('0x%x: opval=0x%x: brflags is BR_DEREF, but loctup is None.  Don\'t know what to do. skipping.%r %r', op.va, opval, taintval, taintrepr)
                 continue
 
             lva, lsz, ltype, ltinfo = loctup
