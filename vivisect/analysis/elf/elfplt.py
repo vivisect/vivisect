@@ -115,37 +115,52 @@ def analyzePLT(vw, ssva, ssize):
                         # quickly, check the branch target is not the section 
                         # start address.
                         tbrva = op.opers[-1].getOperValue(op, emu=emu)
+                        tbrref = op.opers[-1].getOperAddr(op, emu=emu)
                         realplt = not bool(tbrva == ssva)
 
                         # since the above check will "fail open", refine check if True
                         if realplt:
+                            # if the location referenced by this address doesn't exist,
+                            # it's not an IMPORT
+                            loc = vw.getLocation(tbrref)
+                            if loc is None:
+                                realplt = False
+
 
                             # if target is in the ELF Section with a name starting with ".got" 
                             # OR that the target address is after the DT_PLTGOT entry (
-                            tgt_seg = vw.getSegment(tbrva)
+                            tgt_seg = vw.getSegment(tbrref)
 
                             if tgt_seg is not None:
                                 tsegva, tsegsz, tsegname, tsegfile = tgt_seg
                                 # see if the target address segment is GOT, but 
                                 # also don't let it be the first entry, which is the LazyLoader
                                 if not (tsegname.startswith('.got') and tsegva != lva):
-                                    logger.debug("0x%x: tbrva not in GOT (segment)", tbrva)
+                                    logger.debug("0x%x: tbrref not in GOT (segment)", tbrref)
                                     realplt = False
 
                             else:
-                                taint = emu.getVivTaint(tbrva)
-                                if taint is None and not vw.isValidPointer(tbrva):
-                                    logger.debug("0x%x: tbrva is not valid pointer!", tbrva)
+                                taintaddr = emu.getVivTaint(tbrref)
+                                taintval = emu.getVivTaint(tbrva)
+
+                                if taintaddr is not None:
+                                    taintva, ttype, loctup = taintaddr
+                                    if ttype != 'import':
+                                        logger.debug("0x%x: is not an import taint! (%r, %r)", taintaddr)
+                                        realplt = False
+
+                                elif not vw.isValidPointer(tbraddr):
+                                    logger.debug("0x%x: tbrref is not valid pointer!", tbrva)
                                     realplt = False
 
                                 else:
-                                    fname = vw.getFileByVa(tbrva)
+                                    fname = vw.getFileByVa(tbrref)
                                     if fname is not None:
                                         fdyns = vw.getFileMeta(fname, 'ELF_DYNAMICS')
                                         if fdyns is not None:
                                             FGOT = fdyns.get('DT_PLTGOT')
-                                            if FGOT is not None and tbrva <= FGOT:
-                                                logger.debug("0x%x: tbrva not in GOT (DT_PLTGOT)", tbrva)
+                                            if FGOT is not None and tbrref <= FGOT:
+                                                logger.debug("0x%x: tbrref not in GOT (DT_PLTGOT)", tbrref)
                                                 realplt = False
 
                         if not realplt:
@@ -212,20 +227,19 @@ def analyzePLT(vw, ssva, ssize):
         else:
             # if we don't have a heurlist, this shouldn't matter:
             plt_distance = 16
-            logger.debug('plt_distance (fallback): 0x%x\n%r', plt_distance, heurlist)
+            logger.debug('plt_distance (fallback): 0x%x', plt_distance)
+
 
         ###### now determine plt_size (basically, how far to backup from the branch to find the start of function
         # *don't* use the first entry, because the trampoline is often oddly sized...
         plt_size = 0
-        bridx = 1
-
-        # if has_tramp, we need to skip two to make sure we're not analyzing the first real plt
-        if has_tramp:    
-            bridx += 1
+        # let's start at the end, since with or without a tramp, we have to have *one* good one, 
+        # or we just don't care.
+        bridx = len(branchvas)-1
 
         brva, realplt, brtgtva, op = branchvas[bridx]
         while brva != trampbr and not realplt:
-            bridx += 1
+            bridx -= 1
             brva, realplt, brtgtva, op = branchvas[bridx]
 
         # start off pointing at the branch location which bounces through GOT.
@@ -272,6 +286,7 @@ def analyzePLT(vw, ssva, ssize):
             plt_size += lsz
             loc = vw.getLocation(loc[vivisect.L_VA] - 1)
 
+        logger.debug('plt_size : 0x%x', plt_size)
         ###### now get start of first real PLT entry
         #bridx = 0  # we already found the first entry branch.
         logger.debug("reusing existing bridx: %r (0x%x, %r)", bridx, branchvas[bridx][0], branchvas[bridx][1])
@@ -320,7 +335,10 @@ def analyzePLT(vw, ssva, ssize):
             vw.makeName(ssva, 'LazyLoaderTrampoline', filelocal=True, makeuniq=True)
 
         # scroll through arbitrary length functions and make functions
-        for sva in range(firstva, nextseg, plt_distance):
+        for brva, realplt, brtgtva, op in branchvas:
+            if not realplt:
+                continue
+            sva = brva - plt_size
             logger.info('making PLT function: 0x%x', sva)
             vw.makeFunction(sva)
 
