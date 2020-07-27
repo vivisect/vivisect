@@ -66,24 +66,90 @@ def analyze(vw):
             continue
         analyzePLT(vw, sva, ssize)
 
+def getGOT(vw, fileva):
+    '''
+    Returns GOT location for the file which contains the address fileva.
+
+    First checks through Sections (vw.getSegments), then through Dynamics.
+    If the two clash, Dynamics wins.
+
+    Linux binaries tend to have both Sections and Dynamics entries
+    OpenBSD is only Sections.
+    QNX has only Dynamics.
+    '''
+    gotva = None
+    gotsize = None
+    filename = vw.getFileByVa(fileva)
+
+    for va, size, name, fname in vw.getSegments():
+        if name == ".got" and fname == filename:
+            gotva = va
+            gotsize = size
+            break
+
+    # pull GOT info from Dynamics
+    fdyns = vw.getFileMeta(filename, 'ELF_DYNAMICS')
+    if fdyns is not None:
+        FGOT = fdyns.get('DT_PLTGOT')
+        if vw.getFileMeta(filename, 'addbase'):
+            imgbase = vw.getFileMeta(filename, 'imagebase')
+            logger.debug('Adding Imagebase: 0x%x', imgbase)
+            FGOT += imgbase
+        if gotva is not None:
+            if gotva != FGOT:
+                logger.warn("Dynamics and Sections have different GOT entries: S:0x%x D:0x%x. using Dynamics", gotva, FGOT)
+                # since Dynamics don't store the GOT size, just use to the end of the memory map
+                mmva, mmsz, mmperm, mmname = vw.getMemoryMap(FGOT)
+                moffset = gotva - mmva
+                gotsize = mmsz - moffset
+            gotva = FGOT
+
+    return gotva, gotsize
+
+def getPLTs(vw):
+    plts = []
+    pltva = None
+    # Thought:  This is DT_PLTGOT, although each ELF will/may have their own DT_PLTGOT.
+    for va, size, name, fname in vw.getSegments():
+        if name.startswith(".plt"):
+            pltva = va
+            pltsize = size
+            plts.append((pltva, pltsize))
+            break
+
+    # pull GOT info from Dynamics
+    for fname in vw.getFiles():
+        fdyns = vw.getFileMeta(fname, 'ELF_DYNAMICS')
+        if fdyns is not None:
+            FGOT = fdyns.get('DT_PLTREL')
+            newish = True
+            for pltva, pltsize in plts:
+                if FGOT == pltva:
+                    newish = False
+            if newish:
+                plts.append((FGOT, None))
+
+    return gots
 
 def analyzePLT(vw, ssva, ssize):
         ''' 
         analyze an entire section designated as "PLT" or "PLTGOT"
         '''
         emu = None
-        ###### make code for every opcode in PLT
         sva = ssva
         nextseg = sva + ssize
-
         trampbr = None
         has_tramp = False
+        gotva, gotsize = getGOT(vw, ssva)
 
+        ###### make code for every opcode in PLT
         # make and parse opcodes.  keep track of unconditional branches
         branchvas = []
+
         # drag an emulator along to calculate branches, if available
         try:
             emu = vw.getEmulator()
+            emu.setRegister(e_i386.REG_EBX, gotva)  # every emulator will have a 4th register, and if it's not used, no harm done.
         except Exception as e:
             logger.debug("no emulator available: %r", e)
 
@@ -120,18 +186,17 @@ def analyzePLT(vw, ssva, ssize):
 
                         # since the above check will "fail open", refine check if True
                         if realplt:
+                            loc = vw.getLocation(tbrref)
+                            tgt_seg = vw.getSegment(tbrref)
+
                             # if the location referenced by this address doesn't exist,
                             # it's not an IMPORT
-                            loc = vw.getLocation(tbrref)
                             if loc is None:
                                 realplt = False
 
-
                             # if target is in the ELF Section with a name starting with ".got" 
                             # OR that the target address is after the DT_PLTGOT entry (
-                            tgt_seg = vw.getSegment(tbrref)
-
-                            if tgt_seg is not None:
+                            elif tgt_seg is not None:
                                 tsegva, tsegsz, tsegname, tsegfile = tgt_seg
                                 # see if the target address segment is GOT, but 
                                 # also don't let it be the first entry, which is the LazyLoader
@@ -146,11 +211,11 @@ def analyzePLT(vw, ssva, ssize):
                                 if taintaddr is not None:
                                     taintva, ttype, loctup = taintaddr
                                     if ttype != 'import':
-                                        logger.debug("0x%x: is not an import taint! (%r, %r)", taintaddr)
+                                        logger.debug("0x%x: is not an import taint! (%r, %r)", taintva, ttype, loctup)
                                         realplt = False
 
-                                elif not vw.isValidPointer(tbraddr):
-                                    logger.debug("0x%x: tbrref is not valid pointer!", tbrva)
+                                elif not vw.isValidPointer(tbrref):
+                                    logger.debug("0x%x: tbrref is not valid pointer!", tbrref)
                                     realplt = False
 
                                 else:
@@ -165,6 +230,7 @@ def analyzePLT(vw, ssva, ssize):
 
                         if not realplt:
                             has_tramp = True
+                            logger.debug("HAS_TRAMP!")
 
                         branchvas.append((op.va, realplt, tbrva, op))
 
@@ -232,6 +298,7 @@ def analyzePLT(vw, ssva, ssize):
 
         ###### now determine plt_size (basically, how far to backup from the branch to find the start of function
         # *don't* use the first entry, because the trampoline is often oddly sized...
+        logger.debug('finding plt_size...')
         plt_size = 0
         # let's start at the end, since with or without a tramp, we have to have *one* good one, 
         # or we just don't care.
@@ -288,7 +355,7 @@ def analyzePLT(vw, ssva, ssize):
 
         logger.debug('plt_size : 0x%x', plt_size)
         ###### now get start of first real PLT entry
-        #bridx = 0  # we already found the first entry branch.
+        bridx = 0
         logger.debug("reusing existing bridx: %r (0x%x, %r)", bridx, branchvas[bridx][0], branchvas[bridx][1])
         brlen = len(branchvas)
 
@@ -328,7 +395,8 @@ def analyzePLT(vw, ssva, ssize):
             bridx += 1
 
 
-        logger.debug('plt first entry: 0x%x\n%r', firstva, [(hex(x), y, z, a) for x, y, z, a in branchvas])
+        logger.debug('plt branchvas: %r', [(hex(x), y, z, a) for x, y, z, a in branchvas])
+        logger.debug('plt first entry: 0x%x', firstva)
 
         if bridx != 0:
             logger.debug('First function in PLT is not a PLT entry.  Found Lazy Loader Trampoline.')
@@ -362,19 +430,12 @@ def analyzeFunction(vw, funcva):
     logger.info('analyzing PLT function: 0x%x', funcva)
     # start off spinning up an emulator to track through the PLT entry
     # slight hack, but we don't currently know if thunk_bx exists
-    gotplt = None
-    # Thought:  This is DT_PLTGOT, although each ELF will/may have their own DT_PLTGOT.
-    for va, size, name, fname in vw.getSegments():
-        if name == ".got.plt":
-            gotplt = va
-            break
-
-    if gotplt is None:
-        gotplt = -1
+    fname = vw.getFileByVa(funcva)
+    gotva, gotsize = getGOT(vw, funcva)
 
     # all architectures should at least have some minimal emulator
     emu = vw.getEmulator()
-    emu.setRegister(e_i386.REG_EBX, gotplt)  # every emulator will have a 4th register, and if it's not used, no harm done.
+    emu.setRegister(e_i386.REG_EBX, gotva)  # every emulator will have a 4th register, and if it's not used, no harm done.
 
     # roll through instructions looking for a branch (pretty quickly)
     count = 0
