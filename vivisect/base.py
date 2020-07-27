@@ -723,7 +723,7 @@ class VivCodeFlowContext(e_codeflow.CodeFlowContext):
             # TODO: future home of makeOpcode branch/xref analysis
             return branches
 
-        if loc[L_LTYPE] != LOC_OP:
+        elif loc[L_LTYPE] != LOC_OP:
             locrepr = self._mem.reprLocEntry(va)
             logger.warn("_cb_opcode(0x%x): LOCATION ALREADY EXISTS: loc: %r", va, locrepr)
         return ()
