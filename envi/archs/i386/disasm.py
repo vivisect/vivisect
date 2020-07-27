@@ -641,6 +641,7 @@ MODE_16 = 0
 MODE_32 = 1
 MODE_64 = 2
 
+# used in coinjunction with the MODE_* values above
 MODESIZE=[
     2,
     4,

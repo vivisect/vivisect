@@ -129,8 +129,7 @@ tbl32_Main = [
 ( 0, INS_AND, ADDRMETH_G | OPTYPE_v | OP_W, ADDRMETH_E | OPTYPE_v | OP_R, ARG_NONE, cpu_80386, "and", 0, 0, 0),  
 ( 0, INS_AND, OP_REG | OP_W, ADDRMETH_I | OPTYPE_b | OP_SIGNED | OP_R, ARG_NONE, cpu_80386, "and", e_amd64_regs.REG_AL, 0, 0),  
 ( 0, INS_AND, OP_REG | OP_W, ADDRMETH_I | OPTYPE_z | OP_SIGNED | OP_R, ARG_NONE, cpu_80386, "and", e_amd64_regs.REG_EAX, 0, 0),
-
-( 0, INSTR_PREFIX, 0, 0, 0, cpu_80386, 0, 0, 0, 0),  
+( 0, INSTR_PREFIX, 0, 0, 0, cpu_80386, 0, 0, 0, 0),
 (0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
 ( 0, INS_SUB, ADDRMETH_E | OPTYPE_b | OP_W, ADDRMETH_G | OPTYPE_b | OP_R, ARG_NONE, cpu_80386, "sub", 0, 0, 0),  
 ( 0, INS_SUB, ADDRMETH_E | OPTYPE_v | OP_W, ADDRMETH_G | OPTYPE_v | OP_R, ARG_NONE, cpu_80386, "sub", 0, 0, 0),  
