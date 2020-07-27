@@ -364,47 +364,9 @@ def analyzePLT(vw, ssva, ssize):
         bridx = 0
         logger.debug("reusing existing bridx: %r (0x%x, %r)", bridx, branchvas[bridx][0], branchvas[bridx][1])
         brlen = len(branchvas)
-
-        # IS THIS SUPERFLUOUS?  since we started using the first entry, we're already at the first entry.?
-        # roll through branches until we find one we like as the start of the real plts
-        while bridx < brlen:
-            firstbr, realplt, brtgtva, op = branchvas[bridx]
-            if realplt:
-                firstva = firstbr - plt_size
-                prevloc = vw.getLocation(firstva - 1)
-                if prevloc is None:
-                    # perhaps this is ok?
-                    logger.debug("possibly firstva?: 0x%x - preceeded by loctup==None", firstva)
-                    break
-                    #bridx += 1
-                    #continue
-
-                plva, plsz, pltp, pltinfo = prevloc
-                if pltp == vivisect.LOC_OP:
-                    if pltinfo & envi.IF_NOFALL:
-                        # the previous instruction is IF_NOFALL!  good.
-                        logger.debug("firstva found: preceeded by IF_NOFALL")
-                        break
-                    op = vw.parseOpcode(plva)
-                    if op.mnem == 'nop' or vw.readMemory(lva, len(nopbytes)) == nopbytes:
-                        # ugly, but effective:
-                        logger.debug("firstva found: preceeded by 'nop'")
-                        break
-                    if op in badops:
-                        # preceded by a "bad opcode" like \x00\x00 or \xff\xff...
-                        break
-
-                else:
-                    # we've hit a non-LOC_OP... that seems like this is the start of func
-                    logger.debug("firstva found: preceeded by non-LOC_OP")
-                    break
-            bridx += 1
-
-
         logger.debug('plt branchvas: %r', [(hex(x), y, z, a) for x, y, z, a in branchvas])
-        logger.debug('plt first entry: 0x%x', firstva)
 
-        if bridx != 0:
+        if has_tramp:
             logger.debug('First function in PLT is not a PLT entry.  Found Lazy Loader Trampoline.')
             vw.makeName(ssva, 'LazyLoaderTrampoline', filelocal=True, makeuniq=True)
 
