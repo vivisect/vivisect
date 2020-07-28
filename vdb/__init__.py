@@ -32,10 +32,8 @@ import envi.cli as e_cli
 import envi.bits as e_bits
 import envi.memory as e_mem
 import envi.config as e_config
-import envi.memcanvas as e_canvas
 import envi.symstore.resolver as e_resolv
 
-import vstruct
 import vstruct.primitives as vs_prims
 
 
@@ -643,7 +641,7 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
             base = t.allocateMemory(size)
             self.vprint("Allocated %d bytes at: 0x%.8x" % (size, base))
         except Exception as e:
-            traceback.print_exc()
+            logger.error(traceback.format_exc())
             self.vprint("Allocation Error: %s" % e)
 
     def do_autoscript(self, line):

@@ -4,12 +4,13 @@ MemoryCanvas objects.
 '''
 
 import sys
+import logging
 import binascii
 import traceback
 
-import envi
-import envi.memory as e_mem
 import envi.symstore.resolver as e_resolv
+
+logger = logging.getLogger(__name__)
 
 class MemoryRenderer(object):
     """
@@ -337,20 +338,21 @@ class MemoryCanvas(object):
                 self._beginRenderVa(va)
                 try:
                     rsize = rend.render(self, va)
-                    self._canv_rendvas.append((va,rsize))
+                    self._canv_rendvas.append((va, rsize))
                     self._endRenderVa(va)
                     va += rsize
                 except Exception as e:
-                    traceback.print_exc()
-                    self.addText("\nRender Exception At %s: %s\n" % (hex(va),e))
+                    logger.error(traceback.format_exc())
+                    self.addText("\nRender Exception At %s: %s\n" % (hex(va), str(e)))
                     self._endRenderVa(va)
                     break
 
         except Exception as e:
-            self.addText("\nException At %s: %s\n" % (hex(va),e))
+            self.addText("\nException At %s: %s\n" % (hex(va), str(e)))
 
         # Canvas callback for render completion (or error...)
         self._endRenderMemory(va, size, rend)
+
 
 class StringMemoryCanvas(MemoryCanvas):
 
@@ -371,6 +373,7 @@ class StringMemoryCanvas(MemoryCanvas):
     def __str__(self):
         return self.strval
 
+
 class CanvasMethodProxy(object):
     '''
     Target for teecanvas.
@@ -383,6 +386,7 @@ class CanvasMethodProxy(object):
         for canvas in self.canvases:
             attr = getattr(canvas, self.name)
             attr(*args, **kwargs)
+
 
 class TeeCanvas(object):
     '''

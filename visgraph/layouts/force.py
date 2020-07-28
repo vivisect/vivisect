@@ -1,9 +1,12 @@
 import math
 import random
+import logging
 import itertools
 import traceback
 
 import visgraph.layouts as vg_layouts
+
+logger = logging.getLogger(__name__)
 
 # coulomb's constant approximation
 ke = 8.98755
@@ -110,14 +113,14 @@ class ForceLayout(vg_layouts.GraphLayout):
                         break
 
             except Exception:
-                traceback.print_exc()
+                logger.error(traceback.format_exc())
 
         # Now, in order from largest to smallest, shift them back toward 0,0
         cgraphs.sort( cmp=lambda x,y: cmp(y.getNodeCount(), x.getNodeCount()) )
 
         offset = 0
         for graph in cgraphs:
-            x,y,xmax,ymax = self._getLayoutGeom( graph )
+            x,y,xmax,ymax = self._getLayoutGeom(graph)
             self._shiftGraphLayout( graph, 0 - x, offset - y )
             offset += ( ymax - y )
             #self._shiftGraphLayout( graph, offset - x, 0 - y )
@@ -175,8 +178,8 @@ class ForceLayout(vg_layouts.GraphLayout):
                 if totforce / len(nodes) > self._f_minavgforce:
                     needmore = True
 
-            except Exception, e:
-                traceback.print_exc()
+            except Exception as e:
+                logger.error(traceback.format_exc())
 
         # Now, in order from largest to smallest, shift them back toward 0,0
         cgraphs.sort( cmp=lambda x,y: cmp(y.getNodeCount(), x.getNodeCount()) )

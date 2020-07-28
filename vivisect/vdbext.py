@@ -2,7 +2,7 @@
 '''
 The vdb command / GUI extensions from vivisect!
 '''
-import time
+import logging
 import traceback
 
 import vdb
@@ -14,6 +14,10 @@ import vivisect.colormap as viv_color
 
 from envi.threads import firethread
 from vqt.main import idlethread, idlethreadsync
+
+
+logger = logging.getLogger(__name__)
+
 
 class VivNotif(vtrace.Notifier):
 
@@ -32,7 +36,7 @@ class VivNotif(vtrace.Notifier):
 
                 # If there are stalker hits, lets make a color map for them...
                 shits = trace.getMeta('StalkerHits', None)
-                if shits != None:
+                if shits is not None:
                     self.vivgui.vw.vprint('vdb ext found stalker hits!')
                     cmap = viv_color.VivColorMap(self.vivgui.vw)
                     for hit in shits:
@@ -46,7 +50,7 @@ class VivNotif(vtrace.Notifier):
                     cmap.setGuiMap()
 
         except Exception as e:
-            traceback.print_exc()
+            logger.error(traceback.format_exc())
 
 
 @firethread
@@ -55,6 +59,7 @@ def doLoad(db, trace, base):
     db.vw.loadFromMemory(trace, base)
     db.vw.vprint('...loaded.')
     db.vw.analyze()
+
 
 def vivimport(db, line):
     '''
@@ -70,7 +75,7 @@ def vivimport(db, line):
 
     try:
         base = db.parseExpression(line)
-    except Exception as e:
+    except Exception:
         db.vprint("Invalid Address Expression: %s" % argv[0])
         return
 
@@ -80,15 +85,18 @@ def vivimport(db, line):
 
     doLoad(db, trace, base)
 
+
 def extendVdb(db, vivgui):
-    db.vw = vivgui.vw # Store a ref to the workspace...
-    db.vivgui = vivgui # Also a reference to the GUI
+    db.vw = vivgui.vw  # Store a ref to the workspace...
+    db.vivgui = vivgui  # Also a reference to the GUI
     db.registerNotifier(vtrace.NOTIFY_ALL, VivNotif(vivgui))
     db.registerCmdExtension(vivimport)
+
 
 @firethread
 def fireattach(trace, pid):
     trace.attach(pid)
+
 
 @idlethread
 def runVdb(vivgui, pid=None):
@@ -97,9 +105,7 @@ def runVdb(vivgui, pid=None):
         extendVdb(db, vivgui)
         vgui = vdb_qt_main.VdbWindow(db)
         vgui.show()
-        if pid != None:
+        if pid is not None:
             fireattach(db.trace, pid)
     except Exception as e:
         vivgui.vw.vprint('Error Running VDB: %s' % e)
-
-

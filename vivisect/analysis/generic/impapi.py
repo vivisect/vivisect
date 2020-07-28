@@ -15,13 +15,12 @@ def analyzeFunction(vw, fva):
 
     logger.info("impapi.analyzeFunction(0x%x):   name: %r", fva, fname)
     api = vw.getImpApi(fname)
-    if api == None:
+    if api is None:
         logger.debug("  === skipping!!")
         return
 
-    logger.debug("   === applying")
-    rettype,retname,callconv,callname,callargs = api
-    callargs = [ callargs[i] if callargs[i][1] else (callargs[i][0],'arg%d' % i) for i in range(len(callargs)) ]
+    rettype, retname, callconv, callname, callargs = api
+    callargs = [callargs[i] if callargs[i][1] else (callargs[i][0],'arg%d' % i) for i in range(len(callargs))]
 
     vw.setFunctionApi(fva, (rettype,retname,callconv,callname,callargs))
     logger.debug("vw.setFunctionApi(0x%x, %r)", fva, (rettype,retname,callconv,callname,callargs))

@@ -64,14 +64,12 @@ class Amd64WorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_amd64.Amd64Emulat
         # (reg initialization)
         if op.mnem == 'xor' and op.opers[0] == op.opers[1]:
             # xor register initialization
-            logger.debug('not a reg use (xor init): {} {}'.format(ridx, op))
             return False
 
         else:
             # if op mnem is in blacklist, it's not a use either
             for nonuse_mnem in non_use_mnems:
                 if nonuse_mnem in repr(op):
-                    logger.debug('not a reg use (mnem): {} {}'.format(ridx, op))
                     return False
 
         return True

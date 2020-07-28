@@ -3,23 +3,21 @@ Tracer Platform Base
 """
 # Copyright (C) 2007 Invisigoth - See LICENSE file for details
 import os
-import struct
 import logging
 import platform
 import traceback
+import threading
 
 try:
     from queue import Queue
 except:
     from Queue import Queue
-from threading import Thread, currentThread, Lock
 
 import vtrace
 import envi
 import envi.memory as e_mem
 import envi.threads as e_threads
 import envi.symstore.resolver as e_sym_resolv
-import envi.symstore.symcache as e_sym_symcache
 
 import vstruct.builder as vs_builder
 
@@ -47,7 +45,7 @@ class TracerBase(vtrace.Notifier):
         self.bpbyid = {}
         self.bpid = 0
         self.curbp = None
-        self.bplock = Lock()
+        self.bplock = threading.Lock()
         self.deferred = []
         self.running = False
         self.runagain = False
@@ -369,15 +367,15 @@ class TracerBase(vtrace.Notifier):
             try:
                 notifier.handleEvent(event, trace)
             except:
-                logger.warning('WARNING: Notifier exception for %s' % repr(notifier))
-                traceback.print_exc()
+                logger.error('Notifier exception for %s' % repr(notifier))
+                logger.error(traceback.format_exc())
 
         for notifier in nlist:
             try:
                 notifier.handleEvent(event, trace)
             except:
-                logger.warning('WARNING: Notifier exception for %s' % repr(notifier))
-                traceback.print_exc()
+                logger.error('Notifier exception for %s' % repr(notifier))
+                logger.error(traceback.format_exc())
 
     def _fireStep(self):
         if self.getMode('FastStep', False):
@@ -392,8 +390,8 @@ class TracerBase(vtrace.Notifier):
         try:
             bp.notify(vtrace.NOTIFY_BREAK, self)
         except Exception as msg:
-            traceback.print_exc()
-            logger.warning("Breakpoint Exception 0x%.8x : %s" % (bp.address,msg))
+            logger.error("Breakpoint Exception 0x%.8x : %s" % (bp.address,msg))
+            logger.error(traceback.format_exc())
 
         # "stealthbreak" bp's do not NOTIFY *or* run again
         if bp.stealthbreak:
@@ -877,7 +875,6 @@ class TracerBase(vtrace.Notifier):
         '''
         pass
 
-import threading
 def threadwrap(func):
     def trfunc(self, *args, **kwargs):
         if threading.currentThread().__class__ == TracerThread:
@@ -893,7 +890,7 @@ def threadwrap(func):
         return ret
     return trfunc
 
-class TracerThread(Thread):
+class TracerThread(threading.Thread):
     """
     Ok... so here's the catch... most debug APIs do *not* allow
     one thread to do the attach and another to do continue and another
@@ -906,7 +903,7 @@ class TracerThread(Thread):
     to make particular calls and on what platforms...  YAY!
     """
     def __init__(self):
-        Thread.__init__(self)
+        threading.Thread.__init__(self)
         self.queue = Queue()
         self.setDaemon(True)
         self.start()
@@ -919,16 +916,14 @@ class TracerThread(Thread):
         while True:
             try:
                 qobj = self.queue.get()
-                if qobj == None:
+                if qobj is None:
                     break
                 meth, args, kwargs, queue = qobj
                 try:
                     queue.put(meth(*args, **kwargs))
                 except Exception as e:
                     queue.put(e)
-                    if vtrace.verbose:
-                        traceback.print_exc()
+                    logger.warning(traceback.format_exc())
                     continue
-            except:
-                if vtrace.verbose:
-                    traceback.print_exc()
+            except Exception:
+                logger.warning(traceback.format_exc())

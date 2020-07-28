@@ -683,7 +683,7 @@ class LinuxMixin(v_posix.PtraceMixin, v_posix.PosixMixin):
             try:
                 fdnum = int(name)
                 fdtype = vtrace.FD_UNKNOWN
-                link = os.readlink("/proc/%d/fd/%s" % (self.pid,name))
+                link = os.readlink("/proc/%d/fd/%s" % (self.pid, name))
                 if "socket:" in link:
                     fdtype = vtrace.FD_SOCKET
                 elif "pipe:" in link:
@@ -691,9 +691,9 @@ class LinuxMixin(v_posix.PtraceMixin, v_posix.PosixMixin):
                 elif "/" in link:
                     fdtype = vtrace.FD_FILE
 
-                fds.append((fdnum,fdtype,link))
-            except:
-                traceback.print_exc()
+                fds.append((fdnum, fdtype, link))
+            except Exception:
+                logger.error(traceback.format_exc())
 
         return fds
 

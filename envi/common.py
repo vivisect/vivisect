@@ -2,7 +2,7 @@ import logging
 
 LOG_LEVELS = ('DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL')
 LOG_FORMAT = '%(asctime)s:%(levelname)s:%(name)s: %(message)s' \
-             '[%(filename)s:%(funcName)s:%(threadName)s:%(processName)s]'
+             '[%(filename)s:%(funcName)s:%(lineno)s:%(threadName)s]'
 
 
 def setLogging(logger, level=None):

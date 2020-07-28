@@ -62,7 +62,7 @@ class VivEventCore(object):
             try:
                 h(self._ve_vw, event, edata)
             except Exception as e:
-                traceback.print_exc()
+                logger.error(traceback.format_exc())
 
     @firethread
     def _ve_fireListener(self):
@@ -123,12 +123,12 @@ class VivEventDist(VivEventCore):
     def delEventCore(self, core):
         for i in range(VWE_MAX):
             h = core._ve_ehand[i]
-            if h != None:
+            if h is not None:
                 self._ve_subs[i].remove(h)
 
         for i in range(VTE_MAX):
             h = core._ve_thand[i]
-            if h != None:
+            if h is not None:
                 self._ve_tsubs[i].remove(h)
 
     def _ve_fireEvent(self, event, edata):
@@ -144,8 +144,8 @@ class VivEventDist(VivEventCore):
         for h in hlist:
             try:
                 h(self._ve_vw, event, edata)
-            except Exception as e:
-                traceback.print_exc()
+            except Exception:
+                logger.error(traceback.format_exc())
 
         VivEventCore._ve_fireEvent(self, event, edata)
 
@@ -159,8 +159,8 @@ class VivWorkspaceCore(object, viv_impapi.ImportApi):
     def __init__(self):
         viv_impapi.ImportApi.__init__(self)
         self.loclist = []
-        self.bigend   = False
-        self.locmap   = e_page.MapLookup()
+        self.bigend = False
+        self.locmap = e_page.MapLookup()
         self.blockmap = e_page.MapLookup()
         self._mods_loaded = False
 
@@ -583,7 +583,7 @@ class VivWorkspaceCore(object, viv_impapi.ImportApi):
                     logger.warning("Queue is full!")
 
         except Exception as e:
-            traceback.print_exc()
+            logger.error(traceback.format_exc())
 
     def _fireTransEvent(self, event, einfo):
         for q in self.chan_lookup.values():

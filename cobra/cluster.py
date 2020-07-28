@@ -6,7 +6,6 @@ Cobra's built in clustering framework
 import gc
 import sys
 import time
-import Queue
 import struct
 import socket
 import logging
@@ -602,10 +601,11 @@ def workThread(server, work):
     except InvalidInProgWorkId: # the work was canceled
         pass # Nothing to do, the server already knows
 
-    except Exception as e:
+    except Exception:
         # Tell the server that the work unit failed
-        work.excinfo = traceback.format_exc()
-        traceback.print_exc()
+        formatted = traceback.format_exc()
+        work.excinfo = formatted
+        logger.error(formatted)
         server.failWork(work)
 
 def runAndWaitWork(server, work):
@@ -649,7 +649,7 @@ def getAndDoWork(uri, docode=False):
             runAndWaitWork(proxy, work)
 
     except Exception:
-        traceback.print_exc()
+        logger.error(traceback.format_exc())
 
     # Any way it goes we wanna exit now.  Work units may have
     # spun up non-daemon threads, so lets GTFO.

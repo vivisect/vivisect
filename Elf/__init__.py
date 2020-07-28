@@ -638,7 +638,6 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
                 reloc.setName( sym.getName() )
             self.relocs.append(reloc)
             self.relocvas.append(reloc.r_offset)
-            logger.info('dynamic reloc: %r', reloc)
 
     def _parseSectionRelocs(self):
         """
@@ -676,9 +675,10 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
                 if index < len(self.dynamic_symbols):
                     sym = self.dynamic_symbols[index]
                     reloc.setName( sym.getName() )
-                    
+
                 if reloc.r_offset in self.relocvas:
-                    logger.debug("duplicate relocation (section): %r", reloc)
+                    # FIXME: This line is hit sever tens of thousands of times during parsing
+                    # logger.debug("duplicate relocation (section): %r", reloc)
                     continue
 
                 logger.info('section reloc: %r', reloc)

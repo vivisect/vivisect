@@ -2166,8 +2166,8 @@ class Win32SymbolParser:
 
             self.symCleanup()
 
-        except Exception as e:
-            traceback.print_exc()
+        except Exception:
+            logger.error(traceback.format_exc())
             raise
 
     def parseTypes(self):

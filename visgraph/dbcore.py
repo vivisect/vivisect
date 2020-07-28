@@ -75,7 +75,6 @@ def rollsafe(f):
         try:
             return f(*args, **kwargs)
         except Exception as e:
-            traceback.print_exc()
             try:
                 args[0].db.rollback()
             except Exception:

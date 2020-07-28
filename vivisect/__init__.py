@@ -1292,7 +1292,6 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         if self.isLocation(va):
             return
 
-        logger.debug("makeCode(0x%x, 0x%x)", va, arch)
         calls_from = self.cfctx.addCodeFlow(va, arch=arch)
         if fva is None:
             self.setVaSetRow('CodeFragments', (va, calls_from))
@@ -1536,7 +1535,6 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
         Usage: vw.makeFunctionThunk(0xvavavava, "kernel32.CreateProcessA")
         """
-        logger.info('makeFunctionThunk(0x%x, %r, addVa=%r)', fva, thname, addVa)
         self.checkNoRetApi(thname, fva)
         self.setFunctionMeta(fva, "Thunk", thname)
         n = self.getName(fva)
@@ -1547,10 +1545,8 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         else:
             name = base
         newname = self.makeName(fva, name, filelocal=filelocal, makeuniq=True)
-        logger.debug('makeFunctionThunk:  makeName(0x%x, %r, makeuniq=True):  returned %r', fva, name, newname)
 
         api = self.getImpApi(thname)
-        logger.debug('makeFunctionThunk:  getImpApi(%r):  %r', thname, api)
         if api:
             # Set any argument names that are None
             rettype,retname,callconv,callname,callargs = api

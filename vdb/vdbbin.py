@@ -4,12 +4,14 @@ import argparse
 import traceback
 import logging
 
-logging.basicConfig(level=logging.DEBUG, format='%(asctime)s:%(levelname)s:%(name)s: %(message)s')
-logger = logging.getLogger()
-
 import vdb
 import vtrace
 import vtrace.snapshot as vt_snap
+
+
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s:%(levelname)s:%(name)s: %(message)s')
+logger = logging.getLogger()
+
 
 def targetusage():
     print('''
@@ -48,13 +50,12 @@ def targetusage():
     ''')
     sys.exit(0)
 
-loglevels = (
-        logging.CRITICAL,
-        logging.ERROR,
-        logging.WARN,
-        logging.INFO,
-        logging.DEBUG,
-        )
+loglevels = (logging.CRITICAL,
+             logging.ERROR,
+             logging.WARN,
+             logging.INFO,
+             logging.DEBUG)
+
 
 def main():
     parser = argparse.ArgumentParser(prog='vdbbin', usage='%(prog)s [options] [platformopt=foo, ...]')
@@ -79,7 +80,7 @@ def main():
     logger.setLevel(loglevels[verbose])
 
     # Handle some options before we even create a trace.
-    vtrace.remote = args.remotehost # None by default
+    vtrace.remote = args.remotehost  # None by default
 
     platargs = {}
 
@@ -104,10 +105,10 @@ def main():
 
     trace = None
     if args.snapshot:
-        print('Loading process snapshot...')
+        logger.info('Loading process snapshot...')
         trace = vt_snap.loadSnapshot(args.snapshot)
 
-    if trace == None:
+    if trace is None:
         trace = vtrace.getTrace(target=args.target, **platargs)
 
     db = vdb.Vdb(trace)
@@ -153,18 +154,15 @@ def main():
 
         while not db.shutdown.isSet():
             try:
-
                 db.cmdloop()
-
             except KeyboardInterrupt:
                 if db.trace.isRunning():
                     db.trace.sendBreak()
-
             except SystemExit:
                 break
-
             except:
-                traceback.print_exc()
+                logger.error(traceback.format_exc())
+
 
 if __name__ == '__main__':
     main()

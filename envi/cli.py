@@ -6,8 +6,9 @@ import os
 import re
 import sys
 import code
-import shlex
 import json
+import shlex
+import logging
 import binascii
 import optparse
 import traceback
@@ -24,6 +25,9 @@ import envi.memcanvas.renderers as e_render
 
 from cmd import Cmd
 from getopt import getopt
+
+
+logger = logging.getLogger(__name__)
 
 def splitargs(cmdline):
     cmdline = cmdline.replace('\\\\"', '"').replace('\\"', '')
@@ -233,32 +237,32 @@ class EnviCli(Cmd):
 
     def __getattr__(self, name):
         func = self.extcmds.get(name, None)
-        if func == None:
+        if func is None:
             raise AttributeError(name)
         return func
 
     def aliascmd(self, line):
         # Check the "runtime" aliases first
-        for alias,cmd in self.aliases.items():
+        for alias, cmd in self.aliases.items():
             if line.startswith(alias):
-                return line.replace(alias,cmd)
+                return line.replace(alias, cmd)
 
         # Now the "configured" aliases
-        for alias,cmd in self.config.cli.aliases.items():
+        for alias, cmd in self.config.cli.aliases.items():
             if line.startswith(alias):
-                return line.replace(alias,cmd)
+                return line.replace(alias, cmd)
 
         return line
 
     def cmdloop(self, intro=None):
-        if intro != None:
+        if intro is not None:
             self.vprint(intro)
 
         while not self.shutdown.isSet():
             try:
                 Cmd.cmdloop(self, intro=intro)
-            except:
-                traceback.print_exc()
+            except Exception:
+                logger.error(traceback.format_exc())
 
     def emptyline(self):
         return self.do_help('')
