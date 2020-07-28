@@ -253,8 +253,6 @@ class VivWorkspaceCore(object, viv_impapi.ImportApi):
                 with self.getAdminRights():
                     self.writeMemoryPtr(rva, ptr)
 
-            logger.debug('_handleADDRELOC: %x -> %x (map: 0x%x)', rva, ptr, imgbase)
-
         if rtype == RTYPE_BASEPTR:
             # make it like a pointer (but one that could move with each load)
             #   self.addXref(va, tova, REF_PTR)
