@@ -257,3 +257,24 @@ class VivisectTest(unittest.TestCase):
 
     def test_posix_impapi(self):
         pass
+
+    def test_make_noname(self):
+        vw = self.vdir_vw
+        name = 'TheBinaryAnalysisPlantsCrave'
+        va = 0x08058691
+        vw.makeName(va, name)
+        self.assertEqual(vw.getName(va), name)
+
+        vw.makeName(va, None)
+        self.assertIsNone(vw.getName(va))
+        self.assertEqual(vw.getName(va, smart=True), 'vdir.rpl_mbrtowc+0x31')
+
+        fva = 0x08058660
+        oldname = vw.getName(fva)
+        self.assertEqual(oldname, 'vdir.rpl_mbrtowc')
+        vw.makeName(fva, None)
+        noname = 'sub_0%x' % fva
+        self.assertEqual(vw.getName(fva), None)
+        self.assertEqual(vw.getName(fva, smart=True), noname)
+        # set it back just in case
+        vw.makeName(fva, oldname)
