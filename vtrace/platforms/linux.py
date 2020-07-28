@@ -6,6 +6,7 @@ import os
 import time
 import signal
 import struct
+import logging
 import binascii
 import platform
 import traceback
@@ -27,6 +28,8 @@ import vtrace.platforms.posix as v_posix
 
 from ctypes import *
 import ctypes.util as cutil
+
+logger = logging.getLogger(__name__)
 
 if os.getenv('ANDROID_ROOT'):
     libc = CDLL('/system/lib/libc.so')
@@ -373,7 +376,7 @@ class LinuxMixin(v_posix.PtraceMixin, v_posix.PosixMixin):
                 os.kill(os.getpid(), signal.SIGSTOP)
                 os.execv(cmdlist[0], cmdlist)
             except Exception as e:
-                print(e)
+                logger.error(e)
             sys.exit(-1)
 
         # Attach to child. should cause SIGSTOP
@@ -451,9 +454,9 @@ class LinuxMixin(v_posix.PtraceMixin, v_posix.PosixMixin):
         # Blocking wait once...
         pid, status = os.waitpid(-1, 0x40000002)
         self.setMeta("ThreadId", pid)
-        # Stop the rest of the threads... 
+        # Stop the rest of the threads...
         # why is linux debugging so Ghetto?!?!
-        if not self.stepping: # If we're stepping, only do the one
+        if not self.stepping:  # If we're stepping, only do the one
             for tid in self.pthreads:
                 if tid == pid:
                     continue
@@ -462,8 +465,8 @@ class LinuxMixin(v_posix.PtraceMixin, v_posix.PosixMixin):
                     os.kill(tid, signal.SIGSTOP)
                     os.waitpid(tid, 0x40000002)
                 except Exception as e:
-                    print "WARNING TID is invalid %d %s" % (tid,e)
-        return pid,status
+                    logger.warning("WARNING TID is invalid %d %s" % (tid, str(e)))
+        return pid, status
 
     @v_base.threadwrap
     def platformContinue(self):

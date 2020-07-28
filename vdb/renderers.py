@@ -1,6 +1,7 @@
 '''
 A home for the vdb specific memory renderers.
 '''
+import logging
 import binascii
 
 import envi
@@ -8,6 +9,9 @@ import vtrace
 import envi.memcanvas as e_canvas
 import vivisect.impapi as viv_impapi
 import envi.memcanvas.renderers as e_canvas_rend
+
+
+logger = logging.getLogger(__name__)
 
 class OpcodeRenderer(e_canvas.MemoryRenderer):
 
@@ -136,6 +140,7 @@ class SymbolRenderer(e_canvas.MemoryRenderer):
 
         return self.pwidth
 
+
 class DerefRenderer(e_canvas.MemoryRenderer):
     def __init__(self, trace):
         a = trace.getMeta("Architecture")
@@ -203,6 +208,7 @@ class DerefRenderer(e_canvas.MemoryRenderer):
         mcanv.addText('\n')
         return self.arch.getPointerSize()
 
+
 class StackRenderer(DerefRenderer):
     def __init__(self, trace):
         DerefRenderer.__init__(self, trace)
@@ -214,7 +220,7 @@ class StackRenderer(DerefRenderer):
 
         pc = trace.getProgramCounter()
         sym, is_thunk = trace.getSymByAddrThunkAware(pc)
-        if sym == None:
+        if sym is None:
             return DerefRenderer.render(self, mcanv, va)
 
         # TODO: this code also exists in win32stealth and in hookbreakpoint
@@ -226,9 +232,9 @@ class StackRenderer(DerefRenderer):
         emu = vtrace.getEmu(trace)
         cc = emu.getCallingConvention(cc_name)
         args_def = impapi.getImpApiArgs(sym)
-        if args_def == None:
+        if args_def is None:
             # sym did not exist in impapi :(
-            print('sym but no impapi match: {}'.format(sym))
+            logger.warning('sym but no impapi match: {}'.format(sym))
             return DerefRenderer.render(self, mcanv, va)
 
         argc = len(args_def)

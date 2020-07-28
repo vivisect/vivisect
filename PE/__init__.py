@@ -1,7 +1,7 @@
 import os
 import struct
 
-from cStringIO import StringIO
+from io import StringIO
 
 import vstruct
 import vstruct.defs.pe as vs_pe

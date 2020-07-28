@@ -12,11 +12,9 @@ class TestSubstitution(unittest.TestCase):
     x = srange('x', 3)
     y = sset('y', [1,9,0xffffffff])
 
-    print('added:')
     for i in (x+y):
         print('solved: %s %d' % (repr(i),symobj.solve(vals=i),))
 
-    print('multiplied:')
     for i in (x*y):
         print('solved: %s %d' % (repr(i),symobj.solve(vals=i),))
     '''

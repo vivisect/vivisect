@@ -171,9 +171,3 @@ class awesome(CVStruct):
         int *q;
     };
     '''
-
-if __name__ == '__main__':
-
-    a = awesome()
-    a.vsParse('XXXXZZZZhow cool is this?\x00\x00\x00YYYYblahQQQQ')
-    print(a.tree())

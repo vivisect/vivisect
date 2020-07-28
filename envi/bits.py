@@ -339,7 +339,7 @@ def masktest(s):
     example:
         opcode = 0x4388e234
         if masktest('1011xxxx0000')(opcode):
-            print 'MATCHED!'
+            print('MATCHED!')
 
     NOTE: For performance reasons, it is recommeneded that
     masktest be used to initialize a static list of tests

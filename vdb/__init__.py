@@ -4,6 +4,7 @@ import sys
 import shlex
 import pprint
 import signal
+import logging
 import binascii
 import threading
 import traceback
@@ -37,6 +38,8 @@ import envi.symstore.resolver as e_resolv
 import vstruct
 import vstruct.primitives as vs_prims
 
+
+logger = logging.getLogger(__name__)
 vdb.basepath = vdb.__path__[0] + '/'
 
 class VdbLookup(UserDict):
@@ -66,8 +69,7 @@ class ScriptThread(threading.Thread):
         try:
             exec(self.cobj, self.locals)
         except Exception as e:
-            traceback.print_exc()
-            print('Script Error: %s' % repr(e))
+            logger.warning('Script Error: %s' % repr(e))
 
 def setupBreakOnEntry(trace):
     '''
@@ -495,8 +497,7 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
             self.vprint("DEBUG PRINT: %s" % s)
 
         else:
-            pass
-            #self.vprint('unhandled event: %d' % event)
+            self.vprint('unhandled event: %d' % event)
 
     ###################################################################
     #

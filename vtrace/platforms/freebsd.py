@@ -5,6 +5,7 @@ FreeBSD support...
 import os
 import ctypes
 import ctypes.util as cutil
+import logging
 
 import envi.memory as e_mem
 import envi.cli as e_cli
@@ -15,6 +16,8 @@ import vtrace.archs.amd64 as v_amd64
 import vtrace.platforms.base as v_base
 import vtrace.platforms.posix as v_posix
 import vtrace.util as v_util
+
+logger = logging.getLogger(__name__)
 
 libc = ctypes.CDLL(cutil.find_library("c"))
 libkvm = ctypes.CDLL(cutil.find_library("kvm"))
@@ -256,7 +259,6 @@ class FreeBSDMixin:
             raise Exception("VDB needs /proc! (use: mount -t procfs procfs /proc)")
 
     def finiMixin(self):
-        print "FIXME I DON'T THINK THIS IS BEING CALLED"
         if self.kvmh != None:
             libkvm.kvm_close(self.kvmh)
 
@@ -355,7 +357,7 @@ class FreeBSDMixin:
             self.handlePosixSignal(sig)
 
         else:
-            print "OMG WTF JUST HAPPENED??!?11/!?1?>!"
+            logger.warning('Received unknown event: %s' % str(event))
 
 
     @v_base.threadwrap
@@ -451,7 +453,7 @@ class FreeBSDMixin:
         for i in range(cnt.value):
             kinfo = p[i]
             if kinfo.ki_structsize != ctypes.sizeof(KINFO_PROC):
-                print "WARNING: KINFO_PROC CHANGED SIZE, Trying to account for it... good luck"
+                logger.warning("WARNING: KINFO_PROC CHANGED SIZE, Trying to account for it... good luck")
             ret.append((kinfo.ki_pid, kinfo.ki_comm))
 
         ret.reverse()

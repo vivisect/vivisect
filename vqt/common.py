@@ -120,8 +120,6 @@ class VqtModel(QtCore.QAbstractItemModel):
 
         # If this is the edit role, fire the vqEdited thing
         if role == QtCore.Qt.EditRole:
-            print('EDIT ROLE')
-            
             #value = self.vqEdited(node, index.column(), value)
             #if value == None:
                 #return False
@@ -136,7 +134,7 @@ class VqtModel(QtCore.QAbstractItemModel):
     def pop(self, row, parent=QtCore.QModelIndex()):
         self.beginRemoveRows(parent, row, row+1)
         self.rows.pop(row)
-        self.endRemoveRows()  
+        self.endRemoveRows()
 
     #def mimeTypes(self):
         #types = QtCore.QStringList()

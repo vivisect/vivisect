@@ -1,7 +1,6 @@
 """
 A package for any of the vivisect workspace renderers.
 """
-import envi
 import string
 import urllib
 import binascii
@@ -271,4 +270,3 @@ class WorkspaceRenderer(e_canvas.MemoryRenderer):
                     if cmnt != None:
                         mcanv.addText("    ;%s" % cmnt, tag=cmnttag)
                 mcanv.addText("\n")
-

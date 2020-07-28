@@ -46,7 +46,6 @@ def cb_astNodeCount(path, obj, ctx):
     ctx['count'] += 1
     if len(path) > ctx['depth']:
         ctx['depth'] = len(path)
-    # print("\n\t%r\n\t\t%s" % (obj, '\n\t\t'.join([repr(x) for x in path])))
 
 
 class WalkTreeTest(unittest.TestCase):
@@ -92,6 +91,7 @@ class WalkTreeTest(unittest.TestCase):
         ids.append(add._sym_id)
 
         traveled_ids = []
+
         def walkerTest(path, symobj, ctx):
             traveled_ids.append(symobj._sym_id)
 

@@ -11,8 +11,7 @@ except:
 
 
 import vqt.main as vq_main
-import vqt.colors as vq_colors
-import vqt.hotkeys as vq_hotkey
+import envi.exc as e_exc
 import envi.qt.html as e_q_html
 import envi.qt.jquery as e_q_jquery
 import envi.memcanvas as e_memcanvas
@@ -51,16 +50,12 @@ class VQMemoryCanvas(e_memcanvas.MemoryCanvas, QWebView):
         # Allow our parent to handle these...
         self.setAcceptDrops(False)
 
-    @QtCore.pyqtSlot(str)
-    def showMessage(self, message):
-        print "Message from website:", message
-
     def renderMemory(self, va, size, rend=None):
 
         if self._canv_rend_middle:
             vmap = self.mem.getMemoryMap(va)
-            if vmap == None:
-                raise Exception('Invalid Address:%s' % hex(va))
+            if vmap is None:
+                raise e_exc.InvalidAddress(va)
 
             origva = va
             va, szdiff = self._loc_helper(max(va - size, vmap[0]))

@@ -60,15 +60,15 @@ INFINITE = 0xffffffff
 EXCEPTION_MAXIMUM_PARAMETERS = 15
 
 # Debug Event Types
-EXCEPTION_DEBUG_EVENT       =1
-CREATE_THREAD_DEBUG_EVENT   =2
-CREATE_PROCESS_DEBUG_EVENT  =3
-EXIT_THREAD_DEBUG_EVENT     =4
-EXIT_PROCESS_DEBUG_EVENT    =5
-LOAD_DLL_DEBUG_EVENT        =6
-UNLOAD_DLL_DEBUG_EVENT      =7
-OUTPUT_DEBUG_STRING_EVENT   =8
-RIP_EVENT                   =9
+EXCEPTION_DEBUG_EVENT       = 1
+CREATE_THREAD_DEBUG_EVENT   = 2
+CREATE_PROCESS_DEBUG_EVENT  = 3
+EXIT_THREAD_DEBUG_EVENT     = 4
+EXIT_PROCESS_DEBUG_EVENT    = 5
+LOAD_DLL_DEBUG_EVENT        = 6
+UNLOAD_DLL_DEBUG_EVENT      = 7
+OUTPUT_DEBUG_STRING_EVENT   = 8
+RIP_EVENT                   = 9
 
 # Symbol Flags
 SYMFLAG_VALUEPRESENT     = 0x00000001
@@ -1038,9 +1038,6 @@ def getServicesList():
 
         buf = create_string_buffer(dwSvcSize.value)
 
-        #print 'NEEDED',dwSvcSize
-        #print 'COUNT',dwSvcCount
-
         advapi32.EnumServicesStatusExW( scmh,
                                         SC_ENUM_PROCESS_INFO,
                                         SERVICE_WIN32,
@@ -1134,20 +1131,17 @@ def getTokenElevationType(handle=-1):
 
     return etype.value
 
-if __name__ == '__main__':
-    print getTokenElevationType()
-
 def getDebugPrivileges():
     tokprivs = TOKEN_PRIVILEGES()
     dbgluid = LUID()
     token = HANDLE(0)
 
     if not advapi32.LookupPrivilegeValueA(0, "seDebugPrivilege", addressof(dbgluid)):
-        print "LookupPrivilegeValue Failed: %d" % kernel32.GetLastError()
+        logger.warning("LookupPrivilegeValue Failed: %d" % kernel32.GetLastError())
         return False
 
     if not advapi32.OpenProcessToken(-1, TOKEN_ADJUST_PRIVILEGES, addressof(token)):
-        print "kernel32.OpenProcessToken Failed: %d" % kernel32.GetLastError()
+        logger.warning("kernel32.OpenProcessToken Failed: %d" % kernel32.GetLastError())
         return False
 
     tokprivs.PrivilegeCount = 1
@@ -1156,7 +1150,7 @@ def getDebugPrivileges():
 
     if not advapi32.AdjustTokenPrivileges(token, 0, addressof(tokprivs), 0, 0, 0):
         kernel32.CloseHandle(token)
-        print "AdjustTokenPrivileges Failed: %d" % kernel32.GetLastError()
+        logger.warning("AdjustTokenPrivileges Failed: %d" % kernel32.GetLastError())
         return False
 
     kernel32.CloseHandle(token)
@@ -1664,7 +1658,7 @@ class WindowsMixin:
             self.fireNotifiers(vtrace.NOTIFY_DEBUG_PRINT)
 
         else:
-            print "Currently unhandled event",code
+            logger.warning("Currently unhandled event %d" % event.DebugEventCode)
 
         # NOTE: Not everbody falls through to here
 
@@ -1909,7 +1903,7 @@ class Win32SymbolParser:
     def printSymbolInfo(self, info):
         # Just a helper function for "reversing" how dbghelp works
         for n,t in info.__class__._fields_:
-            print n,repr(getattr(info, n))
+            print(n,repr(getattr(info, n)))
 
     def symGetTypeInfo(self, tindex, tinfo, tparam):
         x = dbghelp.SymGetTypeInfo(self.phandle, self.loadbase,
@@ -1927,7 +1921,6 @@ class Win32SymbolParser:
             val = val.strip('_')
         if val == '<unnamed-tag>' or val == 'unnamed':
             val = '_unnamed_%d' % typeid
-        #print repr(val)
         return val
 
     def symGetUdtKind(self, typeid):
@@ -2057,8 +2050,7 @@ class Win32SymbolParser:
                 pass
 
             else:
-                pass
-                #print '%s:%s Unknown Type Tag: %d' % (name, kidname, ktag)
+                logger.warning('%s:%s Unknown Type Tag: %d' % (name, kidname, ktag))
 
             kids.append((kidname, kidoff, ksize, ktypename, kflags, kcount))
 

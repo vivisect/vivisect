@@ -36,6 +36,13 @@ class InvalidInstruction(EnviException):
         EnviException.__init__(self, ' '.join(msg))
 
 
+class InvalidAddress(EnviException):
+    def __init__(self, va):
+        self.va = va
+        msg = 'Invalid Address: %s' % str(va)
+        EnviException.__init__(self, msg)
+
+
 class SegmentationViolation(EnviException):
     """
     Raised by an Emulator extension when you

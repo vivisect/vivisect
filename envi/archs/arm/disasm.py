@@ -1276,11 +1276,8 @@ def p_div(opval, va):
     return (opcode, mnem, olist, 0, 0)
 
 def p_arch_undef(opval, va):
-    print ("p_arch_undef: invalid instruction (by definition in ARM spec): %.8x:\t%.8x"%(va,opval))
-    raise envi.InvalidInstruction(
-            mesg="p_arch_undef: invalid instruction (by definition in ARM spec)",
-            bytez=struct.pack("<I", opval), va=va)
-    return (IENC_ARCH_UNDEF, 'arch undefined', (ArmImmOper(opval),), 0, 0)
+    raise envi.InvalidInstruction(mesg="p_arch_undef: invalid instruction (by definition in ARM spec)",
+                                  bytez=struct.pack("<I", opval), va=va)
 
 ldm_mnem = (("stm", INS_STM), ("ldm", INS_LDM))
 

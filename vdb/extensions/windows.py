@@ -67,7 +67,7 @@ def regkeys(vdb, line):
     t = vdb.getTrace()
     t.requireAttached()
     vdb.vprint("\nOpen Registry Keys:\n")
-    for fd,ftype,fname in t.getFds():
+    for fd, ftype, fname in t.getFds():
         if ftype == vtrace.FD_REGKEY:
             vdb.vprint("\t%s" % fname)
     vdb.vprint("")
@@ -100,7 +100,7 @@ def einfo(vdb, line):
                 t.setMeta('PendingSignal', newp)
 
     exc = t.getMeta("Win32Event", None)
-    if exc == None:
+    if exc is None:
         vdb.vprint("No Exception Information Found")
     ecode = exc.get("ExceptionCode", 0)
     eaddr = exc.get("ExceptionAddress",0)
@@ -114,7 +114,7 @@ def einfo(vdb, line):
     vdb.vprint("Win32 Exception 0x%.8x at 0x%.8x (%d chance)" % (ecode, eaddr, chance))
     vdb.vprint("Exception Information: %s" % " ".join([hex(i) for i in einfo]))
     dbool = True
-    if t.getCurrentSignal() == None:
+    if t.getCurrentSignal() is None:
         dbool = False
     vdb.vprint('Deliver Exception: %s' % dbool)
 

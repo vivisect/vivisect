@@ -78,7 +78,6 @@ class EnviConfigEditor(QWidget):
             optval = config.get(optname)
             cls = cfgtypes.get(type(optval))
             if cls == None:
-                #print('no class: %r' % val)
                 continue
 
             label = QLabel(optname)

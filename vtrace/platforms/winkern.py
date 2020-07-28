@@ -1,11 +1,15 @@
 '''
 Code for helping out windows kernel debugging...
 '''
+import logging
+
 import vtrace
 import vstruct
 import vstruct.builder as vs_builder
 
 from vstruct.primitives import *
+
+logger = logging.getLogger(__name__)
 
 class KeBugCheckBreak(vtrace.Breakpoint):
 
@@ -206,19 +210,15 @@ def initWinkernTrace(trace, kpcrva):
     dbgdata64 = KDDEBUGGER_DATA64()
     dbgdata64.vsParse( trace.readMemory( dbgdata64va, len(dbgdata64) ))
 
-    #print dbgdata64.tree(va=dbgdata64va)
-
     winver = win_builds.get( kver.MinorVersion )
     if winver == None:
         winver = 'Untested Windows Build! (%d)' % kver.MinorVersion
-
-    print('vtrace (vmware32): Windows Version: %s' % winver)
 
     kernbase = kver.KernBase & trace.bigmask
     modlist = kver.PsLoadedModuleList & trace.bigmask
 
     # FIXME hard coded page sizes!
-    trace.setMeta('PAGE_SIZE',1024)
+    trace.setMeta('PAGE_SIZE', 1024)
     trace.setMeta('PAGE_SHIFT', 12)
 
     trace.setVariable('kpcr', kpcrva)
@@ -238,7 +238,7 @@ def initWinkernTrace(trace, kpcrva):
             dllbase = ldte.DllBase & trace.bigmask
             trace.addLibraryBase(dllname, dllbase, always=True)
         except Exception as e:
-            print('Trouble while parsing one...')
+            logger.warning('Trouble while parsing one...')
         ldr_entry = ldte.InLoadOrderLinks.Flink & trace.bigmask
 
     addBugCheckBreaks(trace)

@@ -36,7 +36,10 @@ try:
 except ImportError:
     msgpack = None
 
+import envi.common as e_common
+
 logger = logging.getLogger(__name__)
+e_common.setLogging(logger, 'DEBUG')
 
 daemon = None
 version = "Cobra2"
@@ -710,7 +713,7 @@ class CobraConnectionHandler:
 
         peer = self.socket.getpeername()
         me = self.socket.getsockname()
-        logger.info("Got a connection from: %s" % peer)
+        logger.info("Got a connection from: %s" % str(peer))
 
         sock = self.socket
         if self.daemon.sslkey:
@@ -779,8 +782,7 @@ class CobraConnectionHandler:
                 continue
 
             obj = self.daemon.getSharedObject(name)
-            logger.debug("MSG FOR: %s:%s" % (name, type(obj)))
-
+            logger.debug("MSG FOR: %s:%s" % (str(name), type(obj)))
             if obj == None:
                 try:
                     csock.sendMessage(COBRA_ERROR, name, Exception("Unknown object requested: %s" % name))
@@ -832,7 +834,7 @@ class CobraConnectionHandler:
             pass
 
     def handleCall(self, csock, oname, obj, data):
-        logger.debug("Calling %r" % data)
+        logger.debug("Calling %s" % str(data))
         methodname, args, kwargs = data
         meth = getattr(obj, methodname)
         if getattr(meth,'__no_cobra__',False):
@@ -1127,7 +1129,7 @@ class CobraProxy:
             raise Exception("Invalid Cobra Response")
 
     def __getattr__(self, name):
-        logger.debug('Setattr: %s:%s' % name)
+        logger.debug('Getattr: %s' % name)
 
         if name == "__getinitargs__":
             raise AttributeError()

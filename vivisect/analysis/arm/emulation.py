@@ -43,7 +43,7 @@ class AnalysisMonitor(viv_monitor.AnalysisMonitor):
 
             loctup = emu.vw.getLocation(starteip)
             if loctup is None:
-                #print "emulation: prehook: new LOC_OP  fva: 0x%x     starteip: 0x%x  flags: 0x%x" % (self.fva, starteip, op.iflags)
+                #logger.debug("emulation: prehook: new LOC_OP  fva: 0x%x     starteip: 0x%x  flags: 0x%x" % (self.fva, starteip, op.iflags))
                 arch = (envi.ARCH_ARMV7, envi.ARCH_THUMB)[(starteip & 1) | tmode]
                 emu.vw.makeCode(starteip & -2, arch=arch)
 
@@ -125,7 +125,6 @@ class AnalysisMonitor(viv_monitor.AnalysisMonitor):
             self.logAnomaly(emu, self.fva, "0x%x: (%r) ERROR: %s" % (op.va, op, e))
             logger.warning("0x%x: (%r)  ERROR: %s", op.va, op, e)
 
-
     def posthook(self, emu, op, starteip):
         if op.opcode == INS_BLX:
             emu.setFlag(PSR_T_bit, self.last_tmode)
@@ -168,15 +167,15 @@ def buildFunctionApi(vw, fva, emu, emumon):
             else:
                 argc = targc
 
-        funcargs = [ ('int',archargname(i)) for i in range(argc) ]
+        funcargs = [('int',archargname(i)) for i in range(argc)]
 
-    api = ('int',None,callconv,None,funcargs)
+    api = ('int', None, callconv, None, funcargs)
     vw.setFunctionApi(fva, api)
     return api
 
 
 def analyzeFunction(vw, fva):
-    #print("++ Arm EMU fmod: 0x%x" % fva)
+    # logger.debug("++ Arm EMU fmod: 0x%x" % fva)
     emu = vw.getEmulator()
     emumon = AnalysisMonitor(vw, fva)
     emu.setEmulationMonitor(emumon)
@@ -220,7 +219,7 @@ def analyzeFunction(vw, fva):
 
     # switch-cases may have updated codeflow.  reanalyze
     viv_cb.analyzeFunction(vw, fva)
-    #print("-- Arm EMU fmod: 0x%x" % fva)
+    # logger.debug("-- Arm EMU fmod: 0x%x" % fva)
 
 
 
@@ -280,8 +279,7 @@ def analyzeTB(emu, op, starteip, amon):
     jmptblbase = op.opers[0]._getOperBase(emu)
     jmptblval = emu.getOperAddr(op, 0)
     jmptbltgt = (emu.getOperValue(op, 0) * 2) + base
-    if emu.vw.verbose: 
-        print("0x%x: %r\njmptblbase: 0x%x\njmptblval:  0x%x\njmptbltgt:  0x%x" % (op.va, op, jmptblbase, jmptblval, jmptbltgt))
+    logger.debug("0x%x: %r\njmptblbase: 0x%x\njmptblval:  0x%x\njmptbltgt:  0x%x" % (op.va, op, jmptblbase, jmptblval, jmptbltgt))
     #raw_input("PRESS ENTER TO CONTINUE")
 
     # make numbers and xrefs and names
@@ -302,7 +300,7 @@ def analyzeTB(emu, op, starteip, amon):
         emu.vw.makeCode(nexttgt, arch=arch)
         # check xrefs fist?
         emu.vw.addXref(op.va, nexttgt, REF_CODE)
-        
+
         curname = emu.vw.getName(nexttgt)
         if curname == None:
             emu.vw.makeName(nexttgt, "case_%x_%x_%x" % (case, op.va, nexttgt))
@@ -334,19 +332,19 @@ def analyzeADDPC(emu, op, starteip, emumon):
                     if oper.reg != reg:
                         continue
 
-                    #print("cmp op: ", top)
+                    #logger.debug("cmp op: ", top)
                     cntoidx = (1,0)[opidx]
                     cntoper = top.opers[cntoidx]
-                    #print("cntoper: %d, %r  %r" % (cntoidx, cntoper, vars(cntoper)))
+                    #logger.debug("cntoper: %d, %r  %r" % (cntoidx, cntoper, vars(cntoper)))
                     count = cntoper.getOperValue(top, emu)
-                    #print("count = ", count)
+                    #logger.debug("count = ", count)
 
         off += len(top)
 
     if not count or count == None or count > 10000:
         return None, None
 
-    #print("Making ADDPC SwitchCase (count=%d):" % count)
+    #logger.debug("Making ADDPC SwitchCase (count=%d):" % count)
     # wire up the switch-cases, name each one, etc...
     tbl = []
     for x in range(count):
@@ -355,7 +353,7 @@ def analyzeADDPC(emu, op, starteip, emumon):
         emu.setRegister(base_reg, x)
         idx = op.opers[-1].getOperValue(op, emu)
         nexttgt = base + idx
-        #print("x=%x, base=%x, idx=%x (%x)  %r %r  %d" % (x,base,idx, nexttgt, op, op.opers, emu.getRegister(op.opers[-1].reg)))
+        #logger.debug("x=%x, base=%x, idx=%x (%x)  %r %r  %d" % (x,base,idx, nexttgt, op, op.opers, emu.getRegister(op.opers[-1].reg)))
         tbl.append((base+idx, x))
         emu.vw.makeCode(nexttgt)
         emu.vw.addXref(starteip, nexttgt, REF_CODE)
@@ -391,19 +389,19 @@ def analyzeSUBPC(emu, op, starteip, emumon):
                     if oper.reg != reg:
                         continue
 
-                    #print("cmp op: ", top)
+                    #logger.debug("cmp op: ", top)
                     cntoidx = (1,0)[opidx]
                     cntoper = top.opers[cntoidx]
-                    #print("cntoper: %d, %r  %r" % (cntoidx, cntoper, vars(cntoper)))
+                    #logger.debug("cntoper: %d, %r  %r" % (cntoidx, cntoper, vars(cntoper)))
                     count = cntoper.getOperValue(top, emu)
-                    #print("count = ", count)
+                    #logger.debug("count = ", count)
 
         off += len(top)
 
     if not count or count == None or count > 10000:
         return None, None
 
-    #print("Making SUBPC SwitchCase (count=%d):" % count)
+    #logger.debug("Making SUBPC SwitchCase (count=%d):" % count)
     # wire up the switch-cases, name each one, etc...
     tbl = []
 
@@ -414,7 +412,7 @@ def analyzeSUBPC(emu, op, starteip, emumon):
         emu.setRegister(base_reg, x)
         idx = op.opers[-1].getOperValue(op, emu)
         nexttgt = base - idx
-        #print("x=%x, base=%x, idx=%x (%x)  %r %r  %d" % (x,base,idx, nexttgt, op, op.opers, emu.getRegister(op.opers[-1].reg)))
+        #logger.debug("x=%x, base=%x, idx=%x (%x)  %r %r  %d" % (x,base,idx, nexttgt, op, op.opers, emu.getRegister(op.opers[-1].reg)))
         tbl.append((base+idx, x))
         emu.vw.makeCode(nexttgt)
         emu.vw.addXref(starteip, nexttgt, REF_CODE)

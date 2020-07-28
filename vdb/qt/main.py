@@ -1,4 +1,5 @@
 import cmd
+import logging
 import collections
 
 try:
@@ -29,6 +30,10 @@ from vqt.main import *
 from vqt.basics import *
 from vqt.common import *
 from vtrace.const import *
+
+
+logger = logging.getLogger(__name__)
+
 
 class VdbCmdWidget(vqt.cli.VQCli, vtrace.qt.VQTraceNotifier):
 
@@ -364,7 +369,7 @@ class VdbWindow(vq_app.VQMainCmdWindow):
 
     def menuViewLayoutsLoad(self):
         fname = getOpenFileName(self, 'Load Layout')
-        if fname == None:
+        if fname is None:
             return
 
         self.vqClearDockWidgets()
@@ -374,7 +379,7 @@ class VdbWindow(vq_app.VQMainCmdWindow):
 
     def menuViewLayoutsSave(self):
         fname = getSaveFileName(self, 'Save Layout')
-        if fname == None:
+        if fname is None:
             return
 
         settings = QtCore.QSettings(str(fname), QtCore.QSettings.IniFormat)
@@ -407,6 +412,6 @@ class VdbWindow(vq_app.VQMainCmdWindow):
                     t.detach()
 
         except Exception as e:
-            print('Error Detaching: %s' % e)
+            logger.warning('Error Detaching: %s' % e)
 
         return vq_app.VQMainCmdWindow.closeEvent(self, event)

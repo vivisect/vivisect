@@ -158,7 +158,7 @@ class GtkVisGraphRenderer(gtk.Layout, vg_render.GraphRenderer):
             ninfo['size'] = size
 
     def button_press_event(self, widget, event):
-        print 'CLICK %d %d' % (event.x, event.y)
+        pass
 
     def expose_event_cb(self, layout, event):
 
@@ -168,4 +168,3 @@ class GtkVisGraphRenderer(gtk.Layout, vg_render.GraphRenderer):
 
         for points in self._vg_lines:
             self.bin_window.draw_lines(gc, points)
-

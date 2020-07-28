@@ -70,7 +70,7 @@ class CarvedPE(PE.PE):
 
 
 def setup():
-    desc = 'Print info about PEs embedded inside another PE'
+    desc = 'Output info about PEs embedded inside another PE'
     ap = argparse.ArgumentParser('PE.carve', description=desc)
     ap.add_argument('file', help='Path to PE file')
     return ap

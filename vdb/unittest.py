@@ -2,7 +2,6 @@ import sys
 import struct
 import traceback
 
-import envi
 import vdb.testmods
 import vdb.testmods.hookbptest as v_t_hookbptest
 import vdb.testmods.callingconventions as v_t_callingconventions
@@ -97,6 +96,7 @@ def main():
     print('running platform specific tests')
     if 'win' in sys.platform.lower():
         runTests(windows)
+
 
 if __name__ == '__main__':
     sys.exit(main())

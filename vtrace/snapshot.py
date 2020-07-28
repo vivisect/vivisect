@@ -1,16 +1,16 @@
 '''
 All the code related to vtrace process snapshots and TraceSnapshot classes.
 '''
-import sys
 import copy
 import cPickle as pickle
+import logging
 
 import envi
-import envi.memory as e_mem
-import envi.symstore.resolver as e_resolv
-
 import vtrace
 import vtrace.platforms.base as v_base
+
+logger = logging.getLogger(__name__)
+
 
 class TraceSnapshot(vtrace.Trace, v_base.TracerBase):
     '''
@@ -115,11 +115,11 @@ class TraceSnapshot(vtrace.Trace, v_base.TracerBase):
 
     def platformReadMemory(self, address, size):
         map = self.getMemoryMap(address)
-        if map == None:
+        if map is None:
             raise Exception("ERROR: platformReadMemory says no map for 0x%.8x" % address)
-        offset = address - map[0] # Base address
+        offset = address - map[0]  # Base address
         mapbytes = self.s_mem.get(map[0], None)
-        if mapbytes == None:
+        if mapbytes is None:
             raise vtrace.PlatformException("ERROR: Memory map at 0x%.8x is not backed!" % map[0])
         if len(mapbytes) == 0:
             raise vtrace.PlatformException("ERROR: Memory Map at 0x%.8x is backed by ''" % map[0])
@@ -133,7 +133,7 @@ class TraceSnapshot(vtrace.Trace, v_base.TracerBase):
 
     def platformWriteMemory(self, address, bytes):
         map = self.getMemoryMap(address)
-        if map == None:
+        if map is None:
             raise Exception("ERROR: platformWriteMemory says no map for 0x%.8x" % address)
         offset = address - map[0]
         mapbytes = self.s_mem[map[0]]
@@ -143,7 +143,7 @@ class TraceSnapshot(vtrace.Trace, v_base.TracerBase):
         pass
 
     def platformParseBinary(self, *args):
-        print 'FIXME FAKE PLATFORM PARSE BINARY: %s' % repr(args)
+        logger.warning('FIXME FAKE PLATFORM PARSE BINARY: %s' % repr(args))
 
     # Over-ride register *caching* subsystem to store/retrieve
     # register information in pure dictionaries
@@ -155,12 +155,14 @@ class TraceSnapshot(vtrace.Trace, v_base.TracerBase):
     def syncRegs(self):
         pass
 
+
 def loadSnapshot(filename):
     '''
     Load a vtrace process snapshot from a file
     '''
     with open(filename, 'rb') as f:
         return TraceSnapshot(pickle.load(f))
+
 
 def takeSnapshot(trace):
     '''
@@ -173,23 +175,23 @@ def takeSnapshot(trace):
     regs = dict()
     stacktrace = dict()
 
-    for thrid,tdata in trace.getThreads().items():
+    for thrid, tdata in trace.getThreads().items():
         ctx = trace.getRegisterContext(thrid)
         reginfo = ctx.getRegisterInfo()
         regs[thrid] = reginfo
         try:
             stacktrace[thrid] = trace.getStackTrace()
-        except Exception as  msg:
-            print >> sys.stderr, "WARNING: Failed to get stack trace for thread 0x%.8x" % thrid
+        except Exception as msg:
+            logger.warning("Failed to get stack trace for thread 0x%.8x (%s)" % (thrid, str(msg)))
 
     mem = dict()
     maps = []
-    for base,size,perms,fname in trace.getMemoryMaps():
+    for base, size, perms, fname in trace.getMemoryMaps():
         try:
             mem[base] = trace.readMemory(base, size)
-            maps.append((base,size,perms,fname))
+            maps.append((base, size, perms, fname))
         except Exception as msg:
-            print >> sys.stderr, "WARNING: Can't snapshot memmap at 0x%.8x (%s)" % (base,msg)
+            logger.warning("Can't snapshot memmap at 0x%.8x (%s)" % (base, msg))
 
     # If the contents here change, change the version...
     sd['version'] = 1

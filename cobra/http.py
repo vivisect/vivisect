@@ -564,6 +564,6 @@ class CobraHttpMethod:
 
     def __call__(self, *args, **kwargs):
         name = self.proxy._cobra_name
-        logger.debug('Calling %s:%s' % (name, self.methname, repr(args)[:20], repr(kwargs)[:20]))
+        logger.debug('Calling %s:%s,(%s, %s)' % (name, self.methname, repr(args)[:20], repr(kwargs)[:20]))
         sock = self.proxy._cobra_http_getsock()
         return sock.cobraHttpTransaction(self.methname, (args,kwargs))

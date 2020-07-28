@@ -4,13 +4,17 @@ Tracer Platform Base
 # Copyright (C) 2007 Invisigoth - See LICENSE file for details
 import os
 import struct
-import vtrace
-import traceback
+import logging
 import platform
+import traceback
 
-from Queue import Queue
+try:
+    from queue import Queue
+except:
+    from Queue import Queue
 from threading import Thread, currentThread, Lock
 
+import vtrace
 import envi
 import envi.memory as e_mem
 import envi.threads as e_threads
@@ -18,6 +22,8 @@ import envi.symstore.resolver as e_sym_resolv
 import envi.symstore.symcache as e_sym_symcache
 
 import vstruct.builder as vs_builder
+
+logger = logging.getLogger(__name__)
 
 class TracerBase(vtrace.Notifier):
     """
@@ -327,7 +333,7 @@ class TracerBase(vtrace.Notifier):
 
     def __del__(self):
         if not self._released:
-            print('Warning! tracer del w/o release()!')
+            logger.warning('Warning! tracer del w/o release()!')
 
     def fireTracerThread(self):
         # Fire the threadwrap proxy thread for this tracer
@@ -342,7 +348,7 @@ class TracerBase(vtrace.Notifier):
         if event == vtrace.NOTIFY_SIGNAL:
             signo = self.getCurrentSignal()
             if signo in self.getMeta('IgnoredSignals', []):
-                if vtrace.verbose: print('Ignoring %s' % signo)
+                logger.debug('Ignoring %s' % signo)
                 self.runAgain()
                 return
 
@@ -363,14 +369,14 @@ class TracerBase(vtrace.Notifier):
             try:
                 notifier.handleEvent(event, trace)
             except:
-                print('WARNING: Notifier exception for %s' % repr(notifier))
+                logger.warning('WARNING: Notifier exception for %s' % repr(notifier))
                 traceback.print_exc()
 
         for notifier in nlist:
             try:
                 notifier.handleEvent(event, trace)
             except:
-                print('WARNING: Notifier exception for %s' % repr(notifier))
+                logger.warning('WARNING: Notifier exception for %s' % repr(notifier))
                 traceback.print_exc()
 
     def _fireStep(self):
@@ -387,7 +393,7 @@ class TracerBase(vtrace.Notifier):
             bp.notify(vtrace.NOTIFY_BREAK, self)
         except Exception as msg:
             traceback.print_exc()
-            print "Breakpoint Exception 0x%.8x : %s" % (bp.address,msg)
+            logger.warning("Breakpoint Exception 0x%.8x : %s" % (bp.address,msg))
 
         # "stealthbreak" bp's do not NOTIFY *or* run again
         if bp.stealthbreak:
@@ -800,13 +806,13 @@ class TracerBase(vtrace.Notifier):
 
     def platformProtectMemory(self, va, size, perms):
         raise Exception("Plaform does not implement protect memory")
-        
+
     def platformAllocateMemory(self, size, perms=e_mem.MM_RWX, suggestaddr=0):
         raise Exception("Plaform does not implement allocate memory")
-        
+
     def platformReadMemory(self, address, size):
         raise Exception("Platform must implement platformReadMemory!")
-        
+
     def platformWriteMemory(self, address, bytes):
         raise Exception("Platform must implement platformWriteMemory!")
 

@@ -383,15 +383,15 @@ class Rar:
                 #remain = csize % 16
                 #if remain:
                     #pad = self.read( 16 - remain )
-                    #print('PAD %s' % binascii.hexlify(pad))
+                    #logger.info('PAD %s' % binascii.hexlify(pad))
 
             cls = rar4blocks.get(rar4.HEAD_TYPE)
             if cls != None:
                 rar4 = cls()
                 rar4.vsParse(hdr+body)
 
-            print rar4.tree()
-            import sys; sys.stdin.readline()
+            logger.info(rar4.tree())
+            sys.stdin.readline()
 
             #if ctype == MAIN_HEAD and cflags & MHD_PASSWORD:
                 #if passwd == None:
@@ -411,6 +411,7 @@ class Rar:
         #self.HEAD_SIZE      = v_uint16()
 
 def main():
+    # TODO: Does this even work anymore?
 
     offset = 0
     with open(sys.argv[1], 'rb') as fd:
@@ -420,8 +421,8 @@ def main():
         rar.parseRarHeader(fd)
         rar.mainhead.tree()
 
-        #print "FAIL TEST",rar.tryFilePasswd('asdf')
-        #print "PASS TEST",rar.tryFilePasswd(testpass)
+        #logger.info("FAIL TEST",rar.tryFilePasswd('asdf'))
+        #logger.info("PASS TEST",rar.tryFilePasswd(testpass))
 
         rar.setFilePasswd(testpass)
         rar.iterRar4Files()

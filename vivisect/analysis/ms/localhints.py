@@ -1,10 +1,14 @@
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 def analyze(vw):
 
     for fname in vw.getFiles():
 
         h = vw.getFileMeta(fname, 'PELocalHints', None)
-        if h == None:
+        if h is None:
             continue
 
         for fva, hints in h.items():
@@ -21,7 +25,7 @@ def analyze(vw):
                     if idx > 100:
                         continue
 
-                    print('FIXME: %d %s' % (name,offset))
+                    logger.warning('FIXME: %d %s' % (name,offset))
 
                     #atype, aname = vw.getFunctionArg(fva, idx)
                     #if atype == None:

@@ -1,17 +1,18 @@
-import cobra
+import logging
 
-verbose = False
+logger = logging.getLogger(__name__)
+
 
 class CobraDispatchMethod:
     '''
     implements use of async cobra calls
     '''
     def __init__(self, dispatcher, methname):
-        self.dispatcher = dispatcher 
+        self.dispatcher = dispatcher
         self.methname = methname
 
     def __call__(self, *args, **kwargs):
-        if verbose: print "CALLING:",name,self.methname,repr(args)[:20],repr(kwargs)[:20]
+        logger.debug("Calling: %s:%s (%s, %s)" % (name, self.methname, repr(args)[:20], repr(kwargs)[:20]))
         waiters = []
 
         try:
@@ -49,7 +50,7 @@ class CobraDispatcher:
         return self._cobra_proxies
 
     def __getattr__(self, name):
-        if verbose: print "GETATTR",name
+        logger.debug("getattr %s" % name)
 
         if name == "__getinitargs__":
             raise AttributeError()
@@ -61,5 +62,3 @@ class CobraDispatcher:
             meth = CobraDispatchMethod(self, name)
             setattr(self, name, meth)
             return meth
-
-

@@ -5,6 +5,7 @@ import code
 import time
 import socket
 import struct
+import logging
 import binascii
 import platform
 import tempfile
@@ -66,6 +67,8 @@ expedite:r11,sp,pc
 32:fps
 32:cpsr
 '''
+
+logger = logging.getLogger(__name__)
 
 gdb_reg_defs = {
     'i386': (
@@ -167,7 +170,7 @@ class GdbStubMixin:
 
             self._gdb_sock.sendall('+')
 
-            #print 'RECV: ->%s<-' % bytes
+            logger.debug('RECV: ->%s<-' % bytes)
             return bytes
 
     def _gdbAddMemBreak(self, addr, size):
@@ -184,7 +187,7 @@ class GdbStubMixin:
             return self._recvPkt()
 
     def _sendPkt(self, cmd):
-        #print 'SEND: ->%s<-' % cmd
+        logger.debug('SEND: ->%s<-' % cmd)
         with self._gdb_tx_lock:
 
             self._gdb_sock.sendall(pkt(cmd))
@@ -296,7 +299,7 @@ class GdbStubMixin:
             self._findLibraryMaps(self._gdb_filemagic, always=True)
 
     def platformProcessEvent(self, event):
-        #print 'EVENT ->%s<-' % event
+        logger.debug('EVENT ->%s<-' % str(event))
 
         if len(event) == 0:
             self.setMeta('ExitCode', 0xffffffff)
@@ -311,24 +314,24 @@ class GdbStubMixin:
         # Is this a thread specific signal?
         if atype == 'T':
 
-            #print 'SIGNAL',sig
+            logger.debug('Signal: %s' % str(sig))
 
             dictbytes = event[3:]
 
             evdict = {}
             for kvstr in dictbytes.split(';'):
-                if not kvstr: break
-                #print 'KVSTR ->%s<-' % kvstr
+                if not kvstr:
+                    break
                 key, value = kvstr.split(':', 1)
                 evdict[key.lower()] = value
 
             # Did we get a specific thread?
             tidstr = evdict.get('thread')
-            if tidstr != None:
+            if tidstr is not None:
                 tid = int(tidstr, 16)
                 self.setMeta('ThreadId', tid)
-            #else:
-                #print "WE SHOULD ASK FOR THE CURRENT THREAD HERE!"
+            else:
+                logger.warning("We should ask for the current thread here!")
 
         elif atype == 'S':
             pass
@@ -340,9 +343,9 @@ class GdbStubMixin:
             return
 
         else:
-            print 'Unhandled Gdb Server Event: %s' % event
+            logger.warning('Unhandled Gdb Server Event: %s' % str(event))
 
-        #if self.attaching and signo in trap_sigs:
+        # if self.attaching and signo in trap_sigs:
         if self.attaching:
             self.attaching = False
 
@@ -350,7 +353,7 @@ class GdbStubMixin:
             self._gdbLoadLibraries()
             self._gdbCreateThreads()
 
-            self.runAgain(False) # Clear this, if they want BREAK to run, it will
+            self.runAgain(False)  # Clear this, if they want BREAK to run, it will
             self.fireNotifiers(vtrace.NOTIFY_BREAK)
 
         elif self.breaking and signo in trap_sigs:
@@ -497,7 +500,7 @@ class GdbStubMixin:
     def platformReadMemory(self, addr, size):
         mbytes = ''
         offset = 0
-        #print('READ: 0x%.8x (%d)' % (addr, size))
+        logger.debug('READ: 0x%.8x (%d)' % (addr, size))
         while len(mbytes) < size:
             # FIXME is this 256 problem just in the VMWare gdb stub?
             cmd = 'm%x,%x' % (addr + offset, min(256, size-offset))
@@ -578,7 +581,7 @@ class GdbStubMixin_old(e_registers.RegisterContext):
         return basename.split(".")[0].split("-")[0].lower()
 
     def platformParseBinary(self, filename, baseaddr, normname):
-        print 'platformParseBinary: 0x%.8x %s' % (baseaddr, normname)
+        logger.warning('Not implemented: platformParseBinary: 0x%.8x %s' % (baseaddr, normname))
 
     def platformParseBinaryPe(self, filename, baseaddr, normname):
 
@@ -602,7 +605,7 @@ class GdbStubMixin_old(e_registers.RegisterContext):
                 finally:
                     os.unlink(tfilename)
             except Exception as e:
-                print(e)
+                logger.warning(e)
 
         else:
             pe = PE.peFromMemoryObject(self, baseaddr)
@@ -657,9 +660,6 @@ class GdbStubMixin_old(e_registers.RegisterContext):
             kpcr = self.getStruct('nt.KPCR', fsbase)
             kver = self.getStruct('nt.DBGKD_GET_VERSION64', kpcr.KdVersionBlock)
 
-            #print kpcr.tree()
-            #print kver.tree()
-
             kernbase = kver.KernBase & self.bigmask
             modlist = kver.PsLoadedModuleList & self.bigmask
 
@@ -704,10 +704,10 @@ class GdbStubMixin_old(e_registers.RegisterContext):
                 break
 
             self._enumTargetOs(fsbase)
-            #print monreg
+            #logger.debug(monreg)
             #m = re.match('FS =\w+ (\w+)', monreg, re.G)
             #fsbase = long(m.groups()[0], 0)
-            #print 'FSBASE',hex(fsbase)
+            #logger.debug('FSBASE',hex(fsbase))
 
         elif monhelp.find('linuxoffsets') != -1:
 
@@ -728,7 +728,7 @@ class GdbStubMixin_old(e_registers.RegisterContext):
                 try:
                     fields = self.readMemoryFormat(win_kpcr, '<7Q')
                 except Exception as e:
-                    print('Exception:',e)
+                    logger.warning(str(e))
 
                 # FIXME other heuristics for linux/bsd/etc...
                 if fields[-1] == win_kpcr:
@@ -760,7 +760,7 @@ class GdbStubMixin_old(e_registers.RegisterContext):
             self.fireNotifiers(vtrace.NOTIFY_ATTACH)
 
         else:
-            print 'Unidentified gdbstub: %s' % vercmd
+            logger.warning('Unidentified gdbstub: %s' % vercmd)
             self.fireNotifiers(vtrace.NOTIFY_ATTACH)
 
 
@@ -811,12 +811,12 @@ class GdbStubMixin_old(e_registers.RegisterContext):
         try:
             self.addBreakpoint(KeBugCheckBreak('nt.KeBugCheck'))
         except Exception as e:
-            print('Error Seting KeBugCheck Bp: %s' % e)
+            logger.warning('Error Seting KeBugCheck Bp: %s' % e)
 
         try:
             self.addBreakpoint(KeBugCheckBreak('nt.KeBugCheckEx'))
         except Exception as e:
-            print('Error Seting KeBugCheck Bp: %s' % e)
+            logger.warning('Error Seting KeBugCheck Bp: %s' % e)
 
 
 GDB_BP_SOFTWARE     = 0

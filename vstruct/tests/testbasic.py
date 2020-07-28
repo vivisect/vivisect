@@ -2,9 +2,12 @@ import binascii
 import unittest
 
 import vstruct
+import vstruct.cparse as s_cparse
 from vstruct.primitives import *
+from vstruct.bitfield import *
 
-from cStringIO import StringIO
+from io import StringIO
+
 
 class woot(vstruct.VStruct):
     def __init__(self):
@@ -16,10 +19,31 @@ class woot(vstruct.VStruct):
         self.vsGetField('strfield').vsSetLength(self.lenfield)
 
 
+class AwesomeTest(s_cparse.CVStruct):
+    '''
+    struct awesome {
+        int x,z;
+        char stuff[20];
+        int y;
+        struct haha {
+            int blah;
+        } s;
+        int *q;
+    };
+    '''
+
+
 class VStructTest(unittest.TestCase):
 
-    #def setUp(self):
-    #def tearDown(self):
+    def test_autoparse(self):
+        awe = AwesomeTest()
+        awe.vsParse('XXXXZZZZhow cool is this?\x00\x00\x00YYYYblahQQQQ')
+        self.assertEqual(awe.x, 0x58585858)
+        self.assertEqual(awe.z, 0x5A5A5A5A)
+        self.assertEqual(awe.stuff, 'how cool is this?')
+        self.assertEqual(awe.y, 0x59595959)
+        self.assertEqual(awe.s.blah, 0x68616c62)
+        self.assertEqual(awe.q, 0x51515151)
 
     def test_vstruct_basicstruct(self):
 
@@ -100,7 +124,7 @@ class VStructTest(unittest.TestCase):
 
     def test_vstruct_parsefd(self):
         v = woot()
-        sio = StringIO('\x01' + 'A' * 30)
+        sio = StringIO(('\x01' + 'A' * 30).decode('utf-8'))
         v.vsParseFd(sio)
         self.assertEqual( v.vsEmit(), binascii.unhexlify('0141') )
 
@@ -152,7 +176,6 @@ class VStructTest(unittest.TestCase):
         self.assertEqual( v[2], 0x41 )
 
     def test_bitfield(self):
-        from vstruct.bitfield import *
         v = VBitField()
         v.vsAddField('w', v_bits(2))
         v.vsAddField('x', v_bits(3))

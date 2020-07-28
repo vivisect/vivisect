@@ -388,7 +388,7 @@ class Graph:
         '''
         Check if a given node is present within the graph.
 
-        Example: if g.hasNode('yermom'): print 'woot'
+        Example: if g.hasNode('yermom'): print('woot')
         '''
         return self.getNode(nid) != None
 

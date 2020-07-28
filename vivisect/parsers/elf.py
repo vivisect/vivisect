@@ -10,7 +10,7 @@ import envi.bits as e_bits
 
 from vivisect.const import *
 
-from cStringIO import StringIO
+from io import StringIO
 
 logger = logging.getLogger(__name__)
 

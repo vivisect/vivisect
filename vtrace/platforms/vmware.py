@@ -19,6 +19,8 @@ debugStub.listen.guest64.remote = "TRUE" # bind to 0.0.0.0 rather than 127.0.0.1
 debugStub.hideBreakpoints = "TRUE" # Enable breakpoints
 
 '''
+import logging
+
 import PE
 import vtrace
 
@@ -31,6 +33,8 @@ import vtrace.platforms.base as vt_base
 import vtrace.platforms.win32 as vt_win32
 import vtrace.platforms.winkern as vt_winkern
 import vtrace.platforms.gdbstub as vt_gdbstub
+
+logger = logging.getLogger(__name__)
 
 class VMWareMixin(vt_gdbstub.GdbStubMixin):
 
@@ -75,7 +79,7 @@ class VMWare32WindowsTrace(
         fs_fields = self.readMemoryFormat(fsbase, '<8I')
         # Windows has a self reference in the KPCR...
         if fs_fields[7] != fsbase:
-            print [ hex(x) for x in fs_fields ]
+            logger.warning(str([ hex(x) for x in fs_fields ]))
             raise Exception('poi(fsbase+(ptr*7)) != fsbase! ( not actually windows? )')
 
         vt_winkern.initWinkernTrace(self, fsbase)
@@ -99,7 +103,7 @@ class VMWare32WindowsTrace(
             self.impSymCache(symcache, symfname=normname, baseaddr=baseaddr)
 
         except Exception as e:
-            print('Error Parsing Binary (%s): %s' % (normname, e))
+            logger.error('Error Parsing Binary (%s): %s' % (normname, e))
 
     def buildNewTrace(self):
         return VMWare32WindowsTrace(host=self._gdb_host, port=self._gdb_port)

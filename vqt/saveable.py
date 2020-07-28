@@ -1,9 +1,12 @@
 import json
+import logging
 
 try:
     from PyQt5.QtCore import PYQT_VERSION_STR
 except:
     from PyQt4.QtCore import PYQT_VERSION_STR
+
+logger = logging.getLogger(__name__)
 
 def compat_isNone(state):
     if PYQT_VERSION_STR.startswith('4'):
@@ -42,14 +45,14 @@ class SaveableWidget(object):
 
     def vqRestoreState(self, settings, name, stub=''):
         qstate = settings.value(stub+name)
-        if qstate == None:
+        if qstate is None:
             return
 
         try:
             state = json.loads(compat_toStr(qstate))
             self.vqSetSaveState(state)
         except Exception as e:
-            print('failed to restore %s: %s' % (name,e))
+            logger.warning('failed to restore %s: %s' % (name,e))
 
     def vqGetSaveState(self):
         return None

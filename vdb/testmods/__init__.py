@@ -85,4 +85,3 @@ class VtracePythonProcTest(TestModule):
     def cleanTest(self):
         self.proc.wait()
         self.trace.release()
-

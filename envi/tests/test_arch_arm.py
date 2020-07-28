@@ -2111,6 +2111,3 @@ def genAdvSIMDtestBytez():
 
     return abytez, tbytez
 # thumb 16bit IT, CNBZ, CBZ
-
-
-

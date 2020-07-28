@@ -4,7 +4,7 @@ import logging
 import vstruct
 import vivisect
 import PE.carve as pe_carve
-import cStringIO as StringIO
+from io import StringIO
 import vivisect.parsers as v_parsers
 
 # Steal symbol parsing from vtrace
@@ -31,7 +31,7 @@ def parseFile(vw, filename, baseaddr=None):
 
 
 def parseBytes(vw, bytes, baseaddr=None):
-    fd = StringIO.StringIO(bytes)
+    fd = StringIO(bytes)
     fd.seek(0)
     pe = PE.PE(fd)
     return loadPeIntoWorkspace(vw, pe, filename=filename, baseaddr=baseaddr)
@@ -301,7 +301,7 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
                 vw.markDeadData(secbase, secbase+len(secbytes))
 
         except Exception as e:
-            print("Error Loading Section (%s size:%d rva:%.8x offset: %d): %s" % (secname,secfsize,secrva,secoff,e))
+            logger.warning("Error Loading Section (%s size:%d rva:%.8x offset: %d): %s" % (secname,secfsize,secrva,secoff,e))
 
     vw.addExport(entry, EXP_FUNCTION, '__entry', fname)
     vw.addEntryPoint(entry)

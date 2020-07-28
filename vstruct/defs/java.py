@@ -1,4 +1,3 @@
-
 import vstruct
 
 from vstruct.primitives import *
@@ -202,35 +201,3 @@ class JavaClass(vstruct.VStruct):
             attrname = self.const_pool[ attrinfo.attribute_name_index - 1 ].data.tagval.strbytes
             attrs[ attrname ] = attrinfo.attribute
         return attrs
-
-if __name__ == '__main__':
-    import sys
-    import traceback
-
-    for fname in sys.argv[1:]:
-        with open(fname, 'rb') as fd:
-            bytez = fd.read()
-            c = JavaClass()
-            try:
-                c.vsParse(bytez)
-                print(c.tree())
-
-                cname = c.getClassName()
-                sname = c.getSuperClassName()
-                print('Java Class: %s (inherits: %s)' % ( cname, sname ))
-
-                for fname,descname,attrs in c.getClassFields():
-                    print('Field: %s (%s) (attrs: %r)' % ( fname, descname, attrs.keys()) )
-
-                for methname,attrs in c.getClassMethods():
-                    print('Method: %s (attrs: %r)' % (methname, attrs.keys()))
-
-                print('Constants:')
-                for fname,const in c.const_pool:
-                    print(const.tag,const.data.tree())
-
-                print(c.getClassAttributes().keys())
-
-            except Exception as e:
-                print(c.tree())
-                traceback.print_exc()

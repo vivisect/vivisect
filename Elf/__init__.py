@@ -734,7 +734,7 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
         baseaddr = 0
         #if self.isPreLinked() or not self.isSharedObject():
         #if not self.isSharedObject():
-            #print 'SUBTRACTING CALCULATED BASE'
+            #logger.info('SUBTRACTING CALCULATED BASE')
             #baseaddr = self.getBaseAddress()
 
         for pgm in self.pheaders:

@@ -6,6 +6,7 @@ import os
 import struct
 import ctypes
 import signal
+import logging
 import ctypes.util as c_util
 
 import envi.memory as e_mem
@@ -16,6 +17,8 @@ import vtrace.archs.amd64 as v_amd64
 import vtrace.platforms.base as v_base
 import vtrace.platforms.posix as v_posix
 
+
+logger = logging.getLogger(__name__)
 addrof = ctypes.pointer
 
 # The OSX ptrace defines...
@@ -484,7 +487,6 @@ class vm_region_basic_info_64(ctypes.Structure):
         ('user_wired_count',ctypes.c_ushort),
     ]
 
-print 'vm_region_basic_info_64',ctypes.sizeof(vm_region_basic_info_64)
 VM_REGION_BASIC_INFO_COUNT_64 = ctypes.sizeof(vm_region_basic_info_64) / 4
 
 #mach_helper = ctypes.CDLL('./darwin_mach.dylib')
@@ -557,7 +559,7 @@ class DarwinMixin(v_posix.PosixMixin, v_posix.PtraceMixin):
         pass
 
     def platformGetFds(self):
-        print "FIXME platformGetFds() no workie on darwin yet..."
+        logger.warning('platformGetFds() needs implementing on darwin')
         return []
 
     def platformExec(self, cmdline):
@@ -674,21 +676,20 @@ class DarwinMixin(v_posix.PosixMixin, v_posix.PtraceMixin):
         # Set the thread that signaled.
         self.setMeta('ThreadId', threadid)
         self.setMeta('StoppedThreadId', threadid)
-
         self.setMeta('MachException', event)
 
         if excode == EXC_SOFTWARE:
 
             self.softexc = True
 
-            assert( len(codes) == 2 )
-            assert( codes[0] == EXC_SOFT_SIGNAL )
+            assert(len(codes) == 2)
+            assert(codes[0] == EXC_SOFT_SIGNAL)
 
             sig = codes[1]
             self.handlePosixSignal(sig)
 
         elif excode == EXC_BAD_ACCESS:
-            print 'exc_bad_access',repr([hex(x) for x in codes ])
+            logger.warning('exc_bad_access %s' % repr([hex(x) for x in codes]))
             signo = signal.SIGSEGV
             #if codes[0] == KERN_INVALID_ADDRESS:
                 #signo = signal.SIGBUS
@@ -696,20 +697,19 @@ class DarwinMixin(v_posix.PosixMixin, v_posix.PtraceMixin):
             self._fireSignal(signo)
 
         elif excode == EXC_BAD_INSTRUCTION:
-            print 'exc_bad_instruction',repr([hex(x) for x in codes ])
+            logger.warning('exc_bad_instruction %s' % repr([hex(x) for x in codes]))
             self._fireSignal(signal.SIGILL)
 
         elif excode == EXC_CRASH:
-            print 'exc_crash'
-            print 'Crash:',repr([hex(x) for x in codes])
+            logger.warning('Crash: %s' % repr([hex(x) for x in codes]))
             self._fireExit(0xffffffff)
 
         elif excode == EXC_BREAKPOINT:
-            print 'exc_breakpoint',codes
+            logger.warning('exc_breakpoint' % str(codes))
             self.handlePosixSignal(signal.SIGTRAP)
 
         else:
-            print 'Unprocessed Exception Type: %d' % excode
+            logger.warning('Unprocessed Exception Type: %d' % excode)
             self.fireNotifiers(vtrace.NOTIFY_SIGNAL)
 
         return
@@ -882,13 +882,13 @@ class DarwinMixin(v_posix.PosixMixin, v_posix.PtraceMixin):
         assert( self.libc.task_resume(self.task) == 0 )
         assert( self.macptrace(PT_DETACH, self.pid, 0, 0) == 0 )
 
-        print 'DETACH'
         #for threadport in self._getThreadPorts():
             #print 'threadport', self.libc.mach_port_deallocate(self.myport, threadport)
 
-        print 'askport',self.libc.mach_port_deallocate(self.myport, self.task)
-        print 'excport',self.libc.mach_port_deallocate(self.myport, self.excport)
-        print 'portset',self.libc.mach_port_deallocate(self.myport, self.portset)
+        logger.debug('darwin detach:')
+        logger.debug(self.libc.mach_port_deallocate(self.myport, self.task))
+        logger.debug(self.libc.mach_port_deallocate(self.myport, self.excport))
+        logger.debug(self.libc.mach_port_deallocate(self.myport, self.portset))
 
     def platformReadMemory(self, address, size):
         pval = ctypes.c_void_p(0)
@@ -899,7 +899,6 @@ class DarwinMixin(v_posix.PosixMixin, v_posix.PtraceMixin):
         return buf
 
     def platformWriteMemory(self, address, data):
-        print 'WRITE'*100
         assert( self.libc.vm_write(self.task, address, data, len(data)) == 0 )
 
     # FIXME use vm_allocate for allocate memory

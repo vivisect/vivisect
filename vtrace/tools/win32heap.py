@@ -1,3 +1,6 @@
+import logging
+
+logger = logging.getLogger(__name__)
 
 # Heap Flags
 HEAP_NO_SERIALIZE               = 0x00000001
@@ -238,7 +241,7 @@ class Win32Heap:
         return ret
 
     def _win7FreeLists(self):
-        #print 'Windows 7 Free List Parsing Fixme!'
+        logger.warning('Windows 7 Free List Parsing Fixme!')
         return []
 
     def getFreeLists(self):
@@ -333,7 +336,7 @@ class Win32Segment:
                 self.chunks.append(chunk)
                 #if lastchunk != None:
                     #if lastchunk.chunk.Size != chunk.chunk.PreviousSize:
-                        #print 'last size:',lastchunk.chunk.Size,'prev',chunk.chunk.PreviousSize
+                        #logger.warning('last size: %d, prev:%d' % (lastchunk.chunk.Size,chunk.chunk.PreviousSize))
                         #raise HeapCorruptionException(self.heap, self, lastchunk, chunk)
 
                 if chunk.isLast():

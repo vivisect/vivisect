@@ -13,6 +13,7 @@ def setup():
     ap.add_argument('file', help='Path to PE file')
     return ap
 
+
 def main(argv):
     opts = setup().parse_args(argv)
     with open(opts.file, 'rb') as f:
@@ -26,7 +27,8 @@ def main(argv):
 
         keys = ords.keys()
         for k in keys.sort():
-            print('    %d:"%s",' % (k,ords.get(k)))
+            print('    %d:"%s",' % (k, ords.get(k)))
 
-if __name__ == '__main__'
+
+if __name__ == '__main__':
     sys.exit(main(sys.argv[1:]))

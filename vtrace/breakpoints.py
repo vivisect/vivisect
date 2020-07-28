@@ -5,9 +5,13 @@ Breakpoint Objects
 # Copyright (C) 2007 Invisigoth - See LICENSE file for details
 
 import time
+import logging
 from collections import defaultdict
 
 import vtrace
+
+
+logger = logging.getLogger(__name__)
 
 class Breakpoint:
     """
@@ -311,7 +315,7 @@ class HookBreakpoint(NiceBreakpoint):
         self.error_cb = self.defaultErrorHandler
 
     def defaultErrorHandler(self, hook_cb_name, stre):
-        print('Pre hook callback "%s" exception: %s' % (hook_cb_name, stre))
+        logger.error('Pre hook callback "%s" exception: %s' % (hook_cb_name, stre))
 
     def resolvedaddr(self, trace, addr):
         '''
@@ -386,11 +390,11 @@ class PostHookBreakpoint(NiceBreakpoint):
             try:
                 hook_cb(event, trace, saved_ret_addr, saved_args, self.parent.cc)
             except Exception as e:
-                print('Post hook callback "%s" exception: %s' % (hook_cb, str(e)))
+                logger.error('Post hook callback "%s" exception: %s' % (hook_cb, str(e)))
 
     def notify(self, event, trace):
         tup = self.parent.callinfo.get(trace.getCurrentThread(), None)
-        if tup == None:
+        if tup is None:
             return
 
         ret_addr, args = tup
