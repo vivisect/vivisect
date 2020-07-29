@@ -811,4 +811,398 @@ openbsd/ls.amd64.viv
 qnx/arm/ksh.viv
 
 
+
+
+
+
+
+
+
+sections versus dynamics:
+In [79]: x+=1; print '======================================\n' + vws[x].metadata['StorageName']; ed=vws[x].filemeta.values()[0]['ELF_DYNAMICS']; print hex(ed['DT_JMPREL']), hex(ed['DT_PLTRELSZ']), hex(ed['DT_PLTGOT']); es[x].sections
+======================================
+/home/atlas/hacking/git/atlas0fd00m/vivtestfiles//linux/amd64/ls.viv
+0x4015f8 0x9d8 0x618fe8
+Out[79]: 
+[Elf Sec: [                    ] @0x00000000 (       0)  ent/size:        0/       0  align:        0,
+ Elf Sec: [             .interp] @0x00400238 (     568)  ent/size:        0/      28  align:        1,
+ Elf Sec: [       .note.ABI-tag] @0x00400254 (     596)  ent/size:        0/      32  align:        4,
+ Elf Sec: [  .note.gnu.build-id] @0x00400274 (     628)  ent/size:        0/      36  align:        4,
+ Elf Sec: [           .gnu.hash] @0x00400298 (     664)  ent/size:        0/     104  align:        8,
+ Elf Sec: [             .dynsym] @0x00400300 (     768)  ent/size:       24/    2904  align:        8,
+ Elf Sec: [             .dynstr] @0x00400e58 (    3672)  ent/size:        0/    1361  align:        1,
+ Elf Sec: [        .gnu.version] @0x004013aa (    5034)  ent/size:        2/     242  align:        2,
+ Elf Sec: [      .gnu.version_r] @0x004014a0 (    5280)  ent/size:        0/     176  align:        8,
+ Elf Sec: [           .rela.dyn] @0x00401550 (    5456)  ent/size:       24/     168  align:        8,
+ 
+ Elf Sec: [           .rela.plt] @0x004015f8 (    5624)  ent/size:       24/    2520  align:        8,
+ 
+ Elf Sec: [               .init] @0x00401fd0 (    8144)  ent/size:        0/      24  align:        4,
+ Elf Sec: [                .plt] @0x00401ff0 (    8176)  ent/size:       16/    1696  align:       16,
+ Elf Sec: [               .text] @0x00402690 (    9872)  ent/size:        0/   61800  align:       16,
+ Elf Sec: [               .fini] @0x004117f8 (   71672)  ent/size:        0/      14  align:        4,
+ Elf Sec: [             .rodata] @0x00411820 (   71712)  ent/size:        0/   20339  align:       32,
+ Elf Sec: [       .eh_frame_hdr] @0x00416794 (   92052)  ent/size:        0/    1732  align:        4,
+ Elf Sec: [           .eh_frame] @0x00416e58 (   93784)  ent/size:        0/    7988  align:        8,
+ Elf Sec: [              .ctors] @0x00618df0 (  101872)  ent/size:        0/      16  align:        8,
+ Elf Sec: [              .dtors] @0x00618e00 (  101888)  ent/size:        0/      16  align:        8,
+ Elf Sec: [                .jcr] @0x00618e10 (  101904)  ent/size:        0/       8  align:        8,
+ Elf Sec: [            .dynamic] @0x00618e18 (  101912)  ent/size:       16/     448  align:        8,
+ Elf Sec: [                .got] @0x00618fd8 (  102360)  ent/size:        8/      16  align:        8,
+ 
+ Elf Sec: [            .got.plt] @0x00618fe8 (  102376)  ent/size:        8/     864  align:        8,
+ 
+ Elf Sec: [               .data] @0x00619360 (  103264)  ent/size:        0/     528  align:       32,
+ Elf Sec: [                .bss] @0x00619580 (  103792)  ent/size:        0/    3424  align:       32,
+ Elf Sec: [      .gnu_debuglink] @0x00000000 (  103792)  ent/size:        0/       8  align:        1,
+ Elf Sec: [           .shstrtab] @0x00000000 (  103800)  ent/size:        0/     244  align:        1]
+
+======================================
+/home/atlas/hacking/git/atlas0fd00m/vivtestfiles//linux/amd64/chown.viv
+0x1648 0x6f0 0x20fd68
+Out[80]: 
+[Elf Sec: [                    ] @0x00000000 (       0)  ent/size:        0/       0  align:        0,
+ Elf Sec: [             .interp] @0x00000238 (     568)  ent/size:        0/      28  align:        1,
+ Elf Sec: [       .note.ABI-tag] @0x00000254 (     596)  ent/size:        0/      32  align:        4,
+ Elf Sec: [  .note.gnu.build-id] @0x00000274 (     628)  ent/size:        0/      36  align:        4,
+ Elf Sec: [           .gnu.hash] @0x00000298 (     664)  ent/size:        0/     184  align:        8,
+ Elf Sec: [             .dynsym] @0x00000350 (     848)  ent/size:       24/    2448  align:        8,
+ Elf Sec: [             .dynstr] @0x00000ce0 (    3296)  ent/size:        0/    1108  align:        1,
+ Elf Sec: [        .gnu.version] @0x00001134 (    4404)  ent/size:        2/     204  align:        2,
+ Elf Sec: [      .gnu.version_r] @0x00001200 (    4608)  ent/size:        0/     112  align:        8,
+ Elf Sec: [           .rela.dyn] @0x00001270 (    4720)  ent/size:       24/     984  align:        8,
+ 
+ Elf Sec: [           .rela.plt] @0x00001648 (    5704)  ent/size:       24/    1776  align:        8,
+ 
+ Elf Sec: [               .init] @0x00001d38 (    7480)  ent/size:        0/      23  align:        4,
+ Elf Sec: [                .plt] @0x00001d50 (    7504)  ent/size:       16/    1200  align:       16,
+ Elf Sec: [            .plt.got] @0x00002200 (    8704)  ent/size:        8/      16  align:        8,
+ Elf Sec: [               .text] @0x00002210 (    8720)  ent/size:        0/   36473  align:       16,
+ Elf Sec: [               .fini] @0x0000b08c (   45196)  ent/size:        0/       9  align:        4,
+ Elf Sec: [             .rodata] @0x0000b0a0 (   45216)  ent/size:        0/    7114  align:       32,
+ Elf Sec: [       .eh_frame_hdr] @0x0000cc6c (   52332)  ent/size:        0/    1196  align:        4,
+ Elf Sec: [           .eh_frame] @0x0000d118 (   53528)  ent/size:        0/    6216  align:        8,
+ Elf Sec: [         .init_array] @0x0020f950 (   63824)  ent/size:        8/       8  align:        8,
+ Elf Sec: [         .fini_array] @0x0020f958 (   63832)  ent/size:        8/       8  align:        8,
+ Elf Sec: [        .data.rel.ro] @0x0020f960 (   63840)  ent/size:        0/     536  align:       32,
+ Elf Sec: [            .dynamic] @0x0020fb78 (   64376)  ent/size:       16/     496  align:        8,
+ 
+ Elf Sec: [                .got] @0x0020fd68 (   64872)  ent/size:        8/     664  align:        8,
+ 
+ Elf Sec: [               .data] @0x00210000 (   65536)  ent/size:        0/     128  align:       32,
+ Elf Sec: [                .bss] @0x00210080 (   65664)  ent/size:        0/     456  align:       32,
+ Elf Sec: [      .gnu_debuglink] @0x00000000 (   65664)  ent/size:        0/      52  align:        4,
+ Elf Sec: [           .shstrtab] @0x00000000 (   65716)  ent/size:        0/     257  align:        1]
+
+======================================
+/home/atlas/hacking/git/atlas0fd00m/vivtestfiles//linux/amd64/libc-2.27.so.viv
+0x20b78 0x450 0x3eb000
+Out[81]: 
+[Elf Sec: [                    ] @0x00000000 (       0)  ent/size:        0/       0  align:        0,
+ Elf Sec: [  .note.gnu.build-id] @0x00000270 (     624)  ent/size:        0/      36  align:        4,
+ Elf Sec: [       .note.ABI-tag] @0x00000294 (     660)  ent/size:        0/      32  align:        4,
+ Elf Sec: [           .gnu.hash] @0x000002b8 (     696)  ent/size:        0/   15408  align:        8,
+ Elf Sec: [             .dynsym] @0x00003ee8 (   16104)  ent/size:       24/   56040  align:        8,
+ Elf Sec: [             .dynstr] @0x000119d0 (   72144)  ent/size:        0/   24286  align:        1,
+ Elf Sec: [        .gnu.version] @0x000178ae (   96430)  ent/size:        2/    4670  align:        2,
+ Elf Sec: [      .gnu.version_d] @0x00018af0 (  101104)  ent/size:        0/    1028  align:        8,
+ Elf Sec: [      .gnu.version_r] @0x00018ef8 (  102136)  ent/size:        0/      48  align:        8,
+ Elf Sec: [           .rela.dyn] @0x00018f28 (  102184)  ent/size:       24/   31824  align:        8,
+ 
+ Elf Sec: [           .rela.plt] @0x00020b78 (  134008)  ent/size:       24/    1104  align:        8,
+ 
+ Elf Sec: [                .plt] @0x00020fd0 (  135120)  ent/size:       16/     752  align:       16,
+ Elf Sec: [            .plt.got] @0x000212c0 (  135872)  ent/size:        8/      16  align:        8,
+ Elf Sec: [               .text] @0x000212d0 (  135888)  ent/size:        0/ 1542508  align:       16,
+ Elf Sec: [   __libc_freeres_fn] @0x00199c40 ( 1678400)  ent/size:        0/    6271  align:       16,
+ Elf Sec: [__libc_thread_freeres_fn] @0x0019b4c0 ( 1684672)  ent/size:        0/    5058  align:       16,
+ Elf Sec: [             .rodata] @0x0019c8a0 ( 1689760)  ent/size:        0/  136360  align:       32,
+ Elf Sec: [       .stapsdt.base] @0x001bdd48 ( 1826120)  ent/size:        0/       1  align:        1,
+ Elf Sec: [             .interp] @0x001bdd50 ( 1826128)  ent/size:        0/      28  align:       16,
+ Elf Sec: [       .eh_frame_hdr] @0x001bdd6c ( 1826156)  ent/size:        0/   23004  align:        4,
+ Elf Sec: [           .eh_frame] @0x001c3748 ( 1849160)  ent/size:        0/  129624  align:        8,
+ Elf Sec: [   .gcc_except_table] @0x001e31a0 ( 1978784)  ent/size:        0/    1169  align:        1,
+ Elf Sec: [               .hash] @0x001e3638 ( 1979960)  ent/size:        4/   13416  align:        8,
+ Elf Sec: [              .tdata] @0x003e7620 ( 1996320)  ent/size:        0/      16  align:        8,
+ Elf Sec: [               .tbss] @0x003e7630 ( 1996336)  ent/size:        0/     128  align:        8,
+ Elf Sec: [         .init_array] @0x003e7630 ( 1996336)  ent/size:        8/       8  align:        8,
+ Elf Sec: [   __libc_subfreeres] @0x003e7638 ( 1996344)  ent/size:        0/     256  align:        8,
+ Elf Sec: [       __libc_atexit] @0x003e7738 ( 1996600)  ent/size:        0/       8  align:        8,
+ Elf Sec: [__libc_thread_subfreeres] @0x003e7740 ( 1996608)  ent/size:        0/      32  align:        8,
+ Elf Sec: [   __libc_IO_vtables] @0x003e7760 ( 1996640)  ent/size:        0/    3432  align:       32,
+ Elf Sec: [        .data.rel.ro] @0x003e84e0 ( 2000096)  ent/size:        0/    9888  align:       32,
+ Elf Sec: [            .dynamic] @0x003eab80 ( 2009984)  ent/size:       16/     480  align:        8,
+ Elf Sec: [                .got] @0x003ead60 ( 2010464)  ent/size:        8/     656  align:        8,
+ 
+ Elf Sec: [            .got.plt] @0x003eb000 ( 2011136)  ent/size:        8/     392  align:        8,
+ 
+ Elf Sec: [               .data] @0x003eb1a0 ( 2011552)  ent/size:        0/    5824  align:       32,
+ Elf Sec: [                .bss] @0x003ec860 ( 2017376)  ent/size:        0/   17024  align:       32,
+ Elf Sec: [       .note.stapsdt] @0x00000000 ( 2017376)  ent/size:        0/    4896  align:        4,
+ Elf Sec: [.gnu.warning.sigstack] @0x00000000 ( 2022272)  ent/size:        0/      77  align:       32,
+ Elf Sec: [.gnu.warning.sigreturn] @0x00000000 ( 2022368)  ent/size:        0/      50  align:       32,
+ Elf Sec: [.gnu.warning.siggetmask] @0x00000000 ( 2022432)  ent/size:        0/      57  align:       32,
+ Elf Sec: [ .gnu.warning.tmpnam] @0x00000000 ( 2022496)  ent/size:        0/      55  align:       32,
+ Elf Sec: [.gnu.warning.tmpnam_r] @0x00000000 ( 2022560)  ent/size:        0/      57  align:       32,
+ Elf Sec: [.gnu.warning.tempnam] @0x00000000 ( 2022624)  ent/size:        0/      56  align:       32,
+ Elf Sec: [.gnu.warning.sys_errlist] @0x00000000 ( 2022688)  ent/size:        0/      68  align:       32,
+ Elf Sec: [.gnu.warning.sys_nerr] @0x00000000 ( 2022784)  ent/size:        0/      65  align:       32,
+ Elf Sec: [   .gnu.warning.gets] @0x00000000 ( 2022880)  ent/size:        0/      57  align:       32,
+ Elf Sec: [  .gnu.warning.getpw] @0x00000000 ( 2022944)  ent/size:        0/      58  align:       32,
+ Elf Sec: [.gnu.warning.re_max_failures] @0x00000000 ( 2023008)  ent/size:        0/      61  align:       32,
+ Elf Sec: [ .gnu.warning.lchmod] @0x00000000 ( 2023072)  ent/size:        0/      47  align:       32,
+ Elf Sec: [ .gnu.warning.llseek] @0x00000000 ( 2023136)  ent/size:        0/      63  align:       32,
+ Elf Sec: [  .gnu.warning.getwd] @0x00000000 ( 2023200)  ent/size:        0/     122  align:       32,
+ Elf Sec: [   .gnu.warning.sstk] @0x00000000 ( 2023328)  ent/size:        0/      45  align:       32,
+ Elf Sec: [ .gnu.warning.revoke] @0x00000000 ( 2023392)  ent/size:        0/      47  align:       32,
+ Elf Sec: [ .gnu.warning.mktemp] @0x00000000 ( 2023456)  ent/size:        0/      68  align:       32,
+ Elf Sec: [   .gnu.warning.gtty] @0x00000000 ( 2023552)  ent/size:        0/      45  align:       32,
+ Elf Sec: [   .gnu.warning.stty] @0x00000000 ( 2023616)  ent/size:        0/      45  align:       32,
+ Elf Sec: [.gnu.warning.chflags] @0x00000000 ( 2023680)  ent/size:        0/      48  align:       32,
+ Elf Sec: [.gnu.warning.fchflags] @0x00000000 ( 2023744)  ent/size:        0/      49  align:       32,
+ Elf Sec: [.gnu.warning.__compat_bdflush] @0x00000000 ( 2023808)  ent/size:        0/      57  align:       32,
+ Elf Sec: [.gnu.warning.__gets_chk] @0x00000000 ( 2023872)  ent/size:        0/      57  align:       32,
+ Elf Sec: [.gnu.warning.inet6_option_space] @0x00000000 ( 2023936)  ent/size:        0/      60  align:       32,
+ Elf Sec: [.gnu.warning.inet6_option_init] @0x00000000 ( 2024000)  ent/size:        0/      59  align:       32,
+ Elf Sec: [.gnu.warning.inet6_option_append] @0x00000000 ( 2024064)  ent/size:        0/      61  align:       32,
+ Elf Sec: [.gnu.warning.inet6_option_alloc] @0x00000000 ( 2024128)  ent/size:        0/      60  align:       32,
+ Elf Sec: [.gnu.warning.inet6_option_next] @0x00000000 ( 2024192)  ent/size:        0/      59  align:       32,
+ Elf Sec: [.gnu.warning.inet6_option_find] @0x00000000 ( 2024256)  ent/size:        0/      59  align:       32,
+ Elf Sec: [ .gnu.warning.getmsg] @0x00000000 ( 2024320)  ent/size:        0/      47  align:       32,
+ Elf Sec: [ .gnu.warning.putmsg] @0x00000000 ( 2024384)  ent/size:        0/      47  align:       32,
+ Elf Sec: [.gnu.warning.fattach] @0x00000000 ( 2024448)  ent/size:        0/      48  align:       32,
+ Elf Sec: [.gnu.warning.fdetach] @0x00000000 ( 2024512)  ent/size:        0/      48  align:       32,
+ Elf Sec: [.gnu.warning.setlogin] @0x00000000 ( 2024576)  ent/size:        0/      49  align:       32,
+ Elf Sec: [      .gnu_debuglink] @0x00000000 ( 2024628)  ent/size:        0/      20  align:        4,
+ Elf Sec: [           .shstrtab] @0x00000000 ( 2024648)  ent/size:        0/    1223  align:        1]
+
+======================================
+/home/atlas/hacking/git/atlas0fd00m/vivtestfiles//linux/amd64/libstdc++.so.6.0.25.viv
+0x83788 0x4cf8 0x382000
+Out[82]: 
+[Elf Sec: [                    ] @0x00000000 (       0)  ent/size:        0/       0  align:        0,
+ Elf Sec: [  .note.gnu.build-id] @0x00000200 (     512)  ent/size:        0/      36  align:        4,
+ Elf Sec: [           .gnu.hash] @0x00000228 (     552)  ent/size:        0/   33808  align:        8,
+ Elf Sec: [             .dynsym] @0x00008638 (   34360)  ent/size:       24/  132552  align:        8,
+ Elf Sec: [             .dynstr] @0x00028c00 (  166912)  ent/size:        0/  266143  align:        1,
+ Elf Sec: [        .gnu.version] @0x00069ba0 (  433056)  ent/size:        2/   11046  align:        2,
+ Elf Sec: [      .gnu.version_d] @0x0006c6c8 (  444104)  ent/size:        0/    1292  align:        8,
+ Elf Sec: [      .gnu.version_r] @0x0006cbd8 (  445400)  ent/size:        0/     272  align:        8,
+ Elf Sec: [           .rela.dyn] @0x0006cce8 (  445672)  ent/size:       24/   92832  align:        8,
+ 
+ Elf Sec: [           .rela.plt] @0x00083788 (  538504)  ent/size:       24/   19704  align:        8,
+ 
+ Elf Sec: [               .init] @0x00088480 (  558208)  ent/size:        0/      23  align:        4,
+ Elf Sec: [                .plt] @0x000884a0 (  558240)  ent/size:       16/   13152  align:       16,
+ Elf Sec: [            .plt.got] @0x0008b800 (  571392)  ent/size:        0/     184  align:        8,
+ Elf Sec: [               .text] @0x0008b8c0 (  571584)  ent/size:        0/  719065  align:       16,
+ Elf Sec: [               .fini] @0x0013b19c ( 1290652)  ent/size:        0/       9  align:        4,
+ Elf Sec: [             .rodata] @0x0013b1c0 ( 1290688)  ent/size:        0/   33432  align:       32,
+ Elf Sec: [       .stapsdt.base] @0x00143458 ( 1324120)  ent/size:        0/       1  align:        1,
+ Elf Sec: [       .eh_frame_hdr] @0x0014345c ( 1324124)  ent/size:        0/   30524  align:        4,
+ Elf Sec: [           .eh_frame] @0x0014ab98 ( 1354648)  ent/size:        0/  160388  align:        8,
+ Elf Sec: [   .gcc_except_table] @0x00171e1c ( 1515036)  ent/size:        0/   25478  align:        4,
+ Elf Sec: [               .tbss] @0x00378338 ( 1540920)  ent/size:        0/      32  align:        8,
+ Elf Sec: [         .init_array] @0x00378338 ( 1540920)  ent/size:        8/      88  align:        8,
+ Elf Sec: [         .fini_array] @0x00378390 ( 1541008)  ent/size:        8/       8  align:        8,
+ Elf Sec: [                .jcr] @0x00378398 ( 1541016)  ent/size:        0/       8  align:        8,
+ Elf Sec: [        .data.rel.ro] @0x003783a0 ( 1541024)  ent/size:        0/   35240  align:       32,
+ Elf Sec: [            .dynamic] @0x00380d48 ( 1576264)  ent/size:       16/     544  align:        8,
+ Elf Sec: [                .got] @0x00380f68 ( 1576808)  ent/size:        8/    4248  align:        8,
+
+ Elf Sec: [            .got.plt] @0x00382000 ( 1581056)  ent/size:        8/    6592  align:        8,
+ 
+ Elf Sec: [               .data] @0x003839c0 ( 1587648)  ent/size:        0/     376  align:       32,
+ Elf Sec: [                .bss] @0x00383b40 ( 1588024)  ent/size:        0/   14112  align:       32,
+ Elf Sec: [       .note.stapsdt] @0x00000000 ( 1588024)  ent/size:        0/     236  align:        4,
+ Elf Sec: [      .gnu_debuglink] @0x00000000 ( 1588260)  ent/size:        0/      52  align:        1,
+ Elf Sec: [           .shstrtab] @0x00000000 ( 1588312)  ent/size:        0/     316  align:        1]
+
+======================================
+/home/atlas/hacking/git/atlas0fd00m/vivtestfiles//linux/amd64/static64.llvm.elf.viv
+---------------------------------------------------------------------------
+KeyError                                  Traceback (most recent call last)
+/home/atlas/bin/vw in <module>()
+----> 1 x+=1; print '======================================\n' + vws[x].metadata['StorageName']; ed=vws[x].filemeta.values()[0]['ELF_DYNAMICS']; print hex(ed['DT_JMPREL']), hex(ed['DT_PLTRELSZ']), hex(ed['DT_PLTGOT']); es[x].sections
+
+KeyError: 'DT_JMPREL'
+### Static files don't do Dynamics
+
+======================================
+/home/atlas/hacking/git/atlas0fd00m/vivtestfiles//linux/i386/static32.llvm.elf.viv
+---------------------------------------------------------------------------
+KeyError                                  Traceback (most recent call last)
+/home/atlas/bin/vw in <module>()
+----> 1 x+=1; print '======================================\n' + vws[x].metadata['StorageName']; ed=vws[x].filemeta.values()[0]['ELF_DYNAMICS']; print hex(ed['DT_JMPREL']), hex(ed['DT_PLTRELSZ']), hex(ed['DT_PLTGOT']); es[x].sections
+
+KeyError: 'DT_JMPREL'
+### Static files don't do Dynamics
+
+======================================
+/home/atlas/hacking/git/atlas0fd00m/vivtestfiles//linux/i386/libc-2.13.so.viv
+0x16b38 0x40 0x158ff4
+Out[85]: 
+[Elf Sec: [                    ] @0x00000000 (       0)  ent/size:        0/       0  align:        0,
+ Elf Sec: [  .note.gnu.build-id] @0x00000174 (     372)  ent/size:        0/      36  align:        4,
+ Elf Sec: [       .note.ABI-tag] @0x00000198 (     408)  ent/size:        0/      32  align:        4,
+ Elf Sec: [           .gnu.hash] @0x000001b8 (     440)  ent/size:        4/   15416  align:        4,
+ Elf Sec: [             .dynsym] @0x00003df0 (   15856)  ent/size:       16/   37376  align:        4,
+ Elf Sec: [             .dynstr] @0x0000cff0 (   53232)  ent/size:        0/   23245  align:        1,
+ Elf Sec: [        .gnu.version] @0x00012abe (   76478)  ent/size:        2/    4672  align:        2,
+ Elf Sec: [      .gnu.version_d] @0x00013d00 (   81152)  ent/size:        0/     984  align:        4,
+ Elf Sec: [      .gnu.version_r] @0x000140d8 (   82136)  ent/size:        0/      64  align:        4,
+ Elf Sec: [            .rel.dyn] @0x00014118 (   82200)  ent/size:        8/   10784  align:        4,
+ Elf Sec: [            .rel.plt] @0x00016b38 (   92984)  ent/size:        8/      64  align:        4,
+ Elf Sec: [                .plt] @0x00016b78 (   93048)  ent/size:        4/     144  align:        4,
+ Elf Sec: [               .text] @0x00016c10 (   93200)  ent/size:        0/ 1083604  align:       16,
+ Elf Sec: [   __libc_freeres_fn] @0x0011f4f0 ( 1176816)  ent/size:        0/    4040  align:       16,
+ Elf Sec: [__libc_thread_freeres_fn] @0x001204c0 ( 1180864)  ent/size:        0/     386  align:       16,
+ Elf Sec: [             .rodata] @0x00120660 ( 1181280)  ent/size:        0/  112648  align:       32,
+ Elf Sec: [             .interp] @0x0013be68 ( 1293928)  ent/size:        0/      19  align:        1,
+ Elf Sec: [       .eh_frame_hdr] @0x0013be7c ( 1293948)  ent/size:        0/   13116  align:        4,
+ Elf Sec: [           .eh_frame] @0x0013f1b8 ( 1307064)  ent/size:        0/   78516  align:        4,
+ Elf Sec: [   .gcc_except_table] @0x0015246c ( 1385580)  ent/size:        0/    1473  align:        1,
+ Elf Sec: [               .hash] @0x00152a30 ( 1387056)  ent/size:        4/   13444  align:        4,
+ Elf Sec: [              .tdata] @0x001571c8 ( 1401288)  ent/size:        0/       8  align:        4,
+ Elf Sec: [               .tbss] @0x001571d0 ( 1401296)  ent/size:        0/      56  align:        4,
+ Elf Sec: [         .fini_array] @0x001571d0 ( 1401296)  ent/size:        0/       4  align:        4,
+ Elf Sec: [              .ctors] @0x001571d4 ( 1401300)  ent/size:        0/      20  align:        4,
+ Elf Sec: [              .dtors] @0x001571e8 ( 1401320)  ent/size:        0/       8  align:        4,
+ Elf Sec: [   __libc_subfreeres] @0x001571f0 ( 1401328)  ent/size:        0/     112  align:        4,
+ Elf Sec: [       __libc_atexit] @0x00157260 ( 1401440)  ent/size:        0/       4  align:        4,
+ Elf Sec: [__libc_thread_subfreeres] @0x00157264 ( 1401444)  ent/size:        0/      12  align:        4,
+ Elf Sec: [        .data.rel.ro] @0x00157280 ( 1401472)  ent/size:        0/    6908  align:       32,
+ Elf Sec: [            .dynamic] @0x00158d7c ( 1408380)  ent/size:        8/     240  align:        4,
+ Elf Sec: [                .got] @0x00158e6c ( 1408620)  ent/size:        4/     372  align:        4,
+ 
+ Elf Sec: [            .got.plt] @0x00158ff4 ( 1409012)  ent/size:        4/      44  align:        4,
+ 
+ Elf Sec: [               .data] @0x00159020 ( 1409056)  ent/size:        0/    2428  align:       32,
+ Elf Sec: [                .bss] @0x001599a0 ( 1411484)  ent/size:        0/   12392  align:       32,
+ Elf Sec: [.gnu.warning.sigstack] @0x00000000 ( 1411488)  ent/size:        0/      77  align:       32,
+ Elf Sec: [.gnu.warning.sigreturn] @0x00000000 ( 1411584)  ent/size:        0/      59  align:       32,
+ Elf Sec: [.gnu.warning.siggetmask] @0x00000000 ( 1411648)  ent/size:        0/      57  align:       32,
+ Elf Sec: [ .gnu.warning.tmpnam] @0x00000000 ( 1411712)  ent/size:        0/      55  align:       32,
+ Elf Sec: [.gnu.warning.tmpnam_r] @0x00000000 ( 1411776)  ent/size:        0/      57  align:       32,
+ Elf Sec: [.gnu.warning.tempnam] @0x00000000 ( 1411840)  ent/size:        0/      56  align:       32,
+ Elf Sec: [.gnu.warning.sys_errlist] @0x00000000 ( 1411904)  ent/size:        0/      68  align:       32,
+ Elf Sec: [.gnu.warning.sys_nerr] @0x00000000 ( 1412000)  ent/size:        0/      65  align:       32,
+ Elf Sec: [   .gnu.warning.gets] @0x00000000 ( 1412096)  ent/size:        0/      57  align:       32,
+ Elf Sec: [.gnu.warning.__memset_zero_constant_len_parameter] @0x00000000 ( 1412153)  ent/size:        0/     184  align:        1,
+ Elf Sec: [  .gnu.warning.getpw] @0x00000000 ( 1412352)  ent/size:        0/      58  align:       32,
+ Elf Sec: [.gnu.warning.re_max_failures] @0x00000000 ( 1412416)  ent/size:        0/      61  align:       32,
+ Elf Sec: [.gnu.warning.setlogin] @0x00000000 ( 1412480)  ent/size:        0/      58  align:       32,
+ Elf Sec: [  .gnu.warning.getwd] @0x00000000 ( 1412544)  ent/size:        0/     122  align:       32,
+ Elf Sec: [ .gnu.warning.lchmod] @0x00000000 ( 1412672)  ent/size:        0/      56  align:       32,
+ Elf Sec: [   .gnu.warning.sstk] @0x00000000 ( 1412736)  ent/size:        0/      54  align:       32,
+ Elf Sec: [ .gnu.warning.mktemp] @0x00000000 ( 1412800)  ent/size:        0/      68  align:       32,
+ Elf Sec: [   .gnu.warning.gtty] @0x00000000 ( 1412896)  ent/size:        0/      54  align:       32,
+ Elf Sec: [   .gnu.warning.stty] @0x00000000 ( 1412960)  ent/size:        0/      54  align:       32,
+ Elf Sec: [.gnu.warning.chflags] @0x00000000 ( 1413024)  ent/size:        0/      57  align:       32,
+ Elf Sec: [.gnu.warning.fchflags] @0x00000000 ( 1413088)  ent/size:        0/      58  align:       32,
+ Elf Sec: [ .gnu.warning.revoke] @0x00000000 ( 1413152)  ent/size:        0/      56  align:       32,
+ Elf Sec: [ .gnu.warning.llseek] @0x00000000 ( 1413216)  ent/size:        0/      63  align:       32,
+ Elf Sec: [.gnu.warning.__gets_chk] @0x00000000 ( 1413280)  ent/size:        0/      57  align:       32,
+ Elf Sec: [.gnu.warning.inet6_option_space] @0x00000000 ( 1413344)  ent/size:        0/      60  align:       32,
+ Elf Sec: [.gnu.warning.inet6_option_init] @0x00000000 ( 1413408)  ent/size:        0/      59  align:       32,
+ Elf Sec: [.gnu.warning.inet6_option_append] @0x00000000 ( 1413472)  ent/size:        0/      61  align:       32,
+ Elf Sec: [.gnu.warning.inet6_option_alloc] @0x00000000 ( 1413536)  ent/size:        0/      60  align:       32,
+ Elf Sec: [.gnu.warning.inet6_option_next] @0x00000000 ( 1413600)  ent/size:        0/      59  align:       32,
+ Elf Sec: [.gnu.warning.inet6_option_find] @0x00000000 ( 1413664)  ent/size:        0/      59  align:       32,
+ Elf Sec: [.gnu.warning.fattach] @0x00000000 ( 1413728)  ent/size:        0/      57  align:       32,
+ Elf Sec: [.gnu.warning.fdetach] @0x00000000 ( 1413792)  ent/size:        0/      57  align:       32,
+ Elf Sec: [      .gnu_debuglink] @0x00000000 ( 1413849)  ent/size:        0/      20  align:        1,
+ Elf Sec: [           .shstrtab] @0x00000000 ( 1413869)  ent/size:        0/    1165  align:        1]
+
+======================================
+/home/atlas/hacking/git/atlas0fd00m/vivtestfiles//linux/i386/libstdc++.so.6.0.25.viv
+0x69470 0x1a10 0x182000
+Out[86]: 
+[Elf Sec: [                    ] @0x00000000 (       0)  ent/size:        0/       0  align:        0,
+ Elf Sec: [  .note.gnu.build-id] @0x00000134 (     308)  ent/size:        0/      36  align:        4,
+ Elf Sec: [           .gnu.hash] @0x00000158 (     344)  ent/size:        4/   33608  align:        4,
+ Elf Sec: [             .dynsym] @0x000084a0 (   33952)  ent/size:       16/   87920  align:        4,
+ Elf Sec: [             .dynstr] @0x0001dc10 (  121872)  ent/size:        0/  265462  align:        1,
+ Elf Sec: [        .gnu.version] @0x0005e906 (  387334)  ent/size:        2/   10990  align:        2,
+ Elf Sec: [      .gnu.version_d] @0x000613f4 (  398324)  ent/size:        0/    1436  align:        4,
+ Elf Sec: [      .gnu.version_r] @0x00061990 (  399760)  ent/size:        0/     336  align:        4,
+ Elf Sec: [            .rel.dyn] @0x00061ae0 (  400096)  ent/size:        8/   31120  align:        4,
+ Elf Sec: [            .rel.plt] @0x00069470 (  431216)  ent/size:        8/    6672  align:        4,
+ Elf Sec: [               .init] @0x0006ae80 (  437888)  ent/size:        0/      35  align:        4,
+ Elf Sec: [                .plt] @0x0006aeb0 (  437936)  ent/size:        4/   13360  align:       16,
+ Elf Sec: [            .plt.got] @0x0006e2e0 (  451296)  ent/size:        8/     184  align:        8,
+ Elf Sec: [               .text] @0x0006e3a0 (  451488)  ent/size:        0/  776532  align:       16,
+ Elf Sec: [               .fini] @0x0012bcf4 ( 1228020)  ent/size:        0/      20  align:        4,
+ Elf Sec: [             .rodata] @0x0012bd20 ( 1228064)  ent/size:        0/   30436  align:       32,
+ Elf Sec: [       .stapsdt.base] @0x00133404 ( 1258500)  ent/size:        0/       1  align:        1,
+ Elf Sec: [       .eh_frame_hdr] @0x00133408 ( 1258504)  ent/size:        0/   32580  align:        4,
+ Elf Sec: [           .eh_frame] @0x0013b34c ( 1291084)  ent/size:        0/  236468  align:        4,
+ Elf Sec: [   .gcc_except_table] @0x00174f00 ( 1527552)  ent/size:        0/   27108  align:        4,
+ Elf Sec: [               .tbss] @0x0017ceb0 ( 1556144)  ent/size:        0/      16  align:        4,
+ Elf Sec: [         .init_array] @0x0017ceb0 ( 1556144)  ent/size:        4/      44  align:        4,
+ Elf Sec: [         .fini_array] @0x0017cedc ( 1556188)  ent/size:        4/       4  align:        4,
+ Elf Sec: [        .data.rel.ro] @0x0017cee0 ( 1556192)  ent/size:        0/   18276  align:       32,
+ Elf Sec: [            .dynamic] @0x00181644 ( 1574468)  ent/size:        8/     272  align:        4,
+ Elf Sec: [                .got] @0x00181754 ( 1574740)  ent/size:        4/    2196  align:        4,
+ 
+ Elf Sec: [            .got.plt] @0x00182000 ( 1576960)  ent/size:        4/    3348  align:        4,
+ 
+ Elf Sec: [               .data] @0x00182d20 ( 1580320)  ent/size:        0/     204  align:       32,
+ Elf Sec: [                .bss] @0x00182e00 ( 1580524)  ent/size:        0/    8760  align:       32,
+ Elf Sec: [       .note.stapsdt] @0x00000000 ( 1580524)  ent/size:        0/     192  align:        4,
+ Elf Sec: [      .gnu_debuglink] @0x00000000 ( 1580716)  ent/size:        0/      52  align:        4,
+ Elf Sec: [           .shstrtab] @0x00000000 ( 1580768)  ent/size:        0/     309  align:        1]
+
+======================================
+/home/atlas/hacking/git/atlas0fd00m/vivtestfiles//linux/arm/sh.viv
+0xaca8 0x928 0x49490
+Out[87]: 
+[Elf Sec: [                    ] @0x00000000 (       0)  ent/size:        0/       0  align:        0,
+ Elf Sec: [             .interp] @0x000080d4 (     212)  ent/size:        0/      19  align:        1,
+ Elf Sec: [               .hash] @0x000080e8 (     232)  ent/size:        4/    2392  align:        4,
+ Elf Sec: [             .dynsym] @0x00008a40 (    2624)  ent/size:       16/    5328  align:        4,
+ Elf Sec: [             .dynstr] @0x00009f10 (    7952)  ent/size:        0/    2692  align:        1,
+ Elf Sec: [        .gnu.version] @0x0000a994 (   10644)  ent/size:        2/     666  align:        2,
+ Elf Sec: [      .gnu.version_r] @0x0000ac30 (   11312)  ent/size:        0/      64  align:        4,
+ Elf Sec: [            .rel.dyn] @0x0000ac70 (   11376)  ent/size:        8/      56  align:        4,
+ Elf Sec: [            .rel.plt] @0x0000aca8 (   11432)  ent/size:        8/    2344  align:        4,
+ Elf Sec: [               .init] @0x0000b5d0 (   13776)  ent/size:        0/      20  align:        4,
+ Elf Sec: [                .plt] @0x0000b5e4 (   13796)  ent/size:        4/    3536  align:        4,
+ Elf Sec: [               .text] @0x0000c3b8 (   17336)  ent/size:        0/  175376  align:        8,
+ Elf Sec: [               .fini] @0x000370c8 (  192712)  ent/size:        0/      16  align:        4,
+ Elf Sec: [             .rodata] @0x000370d8 (  192728)  ent/size:        0/   41656  align:        4,
+ Elf Sec: [           .eh_frame] @0x00041390 (  234384)  ent/size:        0/       4  align:        4,
+ Elf Sec: [         .init_array] @0x00049394 (  234388)  ent/size:        0/       4  align:        4,
+ Elf Sec: [         .fini_array] @0x00049398 (  234392)  ent/size:        0/       4  align:        4,
+ Elf Sec: [                .jcr] @0x0004939c (  234396)  ent/size:        0/       4  align:        4,
+ Elf Sec: [            .dynamic] @0x000493a0 (  234400)  ent/size:        8/     240  align:        4,
+ 
+ Elf Sec: [                .got] @0x00049490 (  234640)  ent/size:        4/    1192  align:        4,
+ 
+ Elf Sec: [               .data] @0x00049938 (  235832)  ent/size:        0/    1136  align:        4,
+ Elf Sec: [                .bss] @0x00049da8 (  236968)  ent/size:        0/   27032  align:        8,
+ Elf Sec: [     .ARM.attributes] @0x00000000 (  236968)  ent/size:        0/      16  align:        1,
+ Elf Sec: [           .shstrtab] @0x00000000 (  236984)  ent/size:        0/     193  align:        1]
+
+======================================
+/home/atlas/hacking/git/atlas0fd00m/vivtestfiles//qnx/arm/ksh.viv
+0x102d5c 0x7d8 0x146a10
+Out[88]: 
+[Elf Sec: [                    ] @0x00000000 (       0)  ent/size:        0/       0  align:        0,
+ Elf Sec: [            QNX_info] @0x00000000 (  288368)  ent/size:        0/     147  align:        0,
+ Elf Sec: [           .shstrtab] @0x00000000 (  288515)  ent/size:        0/      20  align:        1]
+### QNX doesn't "do" Sections.
+
+
+======================================
+/home/atlas/hacking/git/atlas0fd00m/vivtestfiles//openbsd/ls.amd64.viv
+---------------------------------------------------------------------------
+KeyError                                  Traceback (most recent call last)
+/home/atlas/bin/vw in <module>()
+----> 1 x+=1; print '======================================\n' + vws[x].metadata['StorageName']; ed=vws[x].filemeta.values()[0]['ELF_DYNAMICS']; print hex(ed['DT_JMPREL']), hex(ed['DT_PLTRELSZ']), hex(ed['DT_PLTGOT']); es[x].sections
+
+KeyError: 'DT_JMPREL'
+### OpenBSD doesn't "do" Dynamics.
+
+
 '''
