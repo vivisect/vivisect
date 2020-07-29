@@ -163,6 +163,9 @@ class ELFTests(unittest.TestCase):
 
         for newexp in newexps:
             va = newexp[0]
+            if va in done:
+                continue
+
             equiv = None
             done.append(va)
 
@@ -177,7 +180,7 @@ class ELFTests(unittest.TestCase):
                     break
             if newexp != equiv:
                 failed_new += 1
-                logger.warn("exp: o: %-80s\tn: %s" % (newexp, equiv))
+                logger.warn("exp: o: %-80s\tn: %s" % (equiv, newexp))
 
         return failed_old, failed_new
 
@@ -205,6 +208,9 @@ class ELFTests(unittest.TestCase):
 
         for newrel in newrels:
             va = newrel[1]
+            if va in done:
+                continue
+
             equiv = None
             for oldrel in oldrels:
                 if oldrel[1] == va:
@@ -212,7 +218,7 @@ class ELFTests(unittest.TestCase):
                     break
             if newrel != equiv:
                 failed_new += 1
-                logger.warn("rel: o: %-80s\tn: %s" % (newrel, equiv))
+                logger.warn("rel: o: %-80s\tn: %s" % (equiv, newname))
             done.append(va)
 
         return failed_old, failed_new
@@ -250,6 +256,9 @@ class ELFTests(unittest.TestCase):
 
         for newname in newnames:
             va = newname[0]
+            if va in done:
+                continue
+
             equiv = None
             done.append(va)
 
@@ -259,7 +268,7 @@ class ELFTests(unittest.TestCase):
                     break
             if newname != equiv:
                 failed_new += 1
-                logger.warn("name: o: %-80s\tn: %s" % (newname, equiv))
+                logger.warn("name: o: %-80s\tn: %s" % (equiv, newname))
 
         return failed_old, failed_new
 
