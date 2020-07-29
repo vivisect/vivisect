@@ -28,9 +28,6 @@ argnames = {
     'thiscall':     {0: ('void *','ecx'),},
     'msfastcall':   {0: ('int','ecx'), 1: ('int','edx')},
     'bfastcall':    {0: ('int','eax'), 1: ('int','edx'), 2: ('int','ecx'),},
-    'thiscaller':     {0: ('void *','ecx'),},
-    'msfastcaller':   {0: ('int','ecx'), 1: ('int','edx')},
-    'bfastcaller':    {0: ('int','eax'), 1: ('int','edx'), 2: ('int','ecx'),},
 }
 
 def argcname(callconv, idx):
