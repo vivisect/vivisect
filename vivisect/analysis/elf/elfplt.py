@@ -134,7 +134,7 @@ def getPLTs(vw):
             if newish:
                 plts.append((FGOT, None))
 
-    return gots
+    return plts
 
 def analyzePLT(vw, ssva, ssize):
     try:
