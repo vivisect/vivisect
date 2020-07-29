@@ -1,8 +1,12 @@
 import io
+import logging
 import unittest
 
 import vivisect
 import vivisect.tests.helpers as helpers
+
+
+logger = logging.getLogger(__name__)
 
 
 class VivisectTest(unittest.TestCase):

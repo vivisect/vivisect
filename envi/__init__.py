@@ -6,8 +6,11 @@ ArchitectureModule, Opcode, Operand, and Emulator objects.
 import types
 import struct
 import platform
+import logging
 
 from envi.exc import *
+
+logger = logging.getLogger(__name__)
 
 # TODO: move into const.py
 # Parsed Opcode Formats

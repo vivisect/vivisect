@@ -1,4 +1,3 @@
-import sys
 import envi
 import envi.bits as e_bits
 
@@ -7,9 +6,9 @@ import logging
 from vivisect.const import *
 
 logger = logging.getLogger(__name__)
-
-
 BRANCH_FLAGS = envi.IF_BRANCH | envi.IF_CALL
+
+
 class EmulationMonitor:
     """
     Emulation monitors may be passed into functions like
@@ -17,8 +16,8 @@ class EmulationMonitor:
     """
     def __init__(self):
         # FIXME make this a dict and re-plumb for VaSet
-        self.emuanom = [] # A list of emulation anomalies (in va,msg tuples)
-        self.retvals = [] # A list of the return values seen
+        self.emuanom = []  # A list of emulation anomalies (in va,msg tuples)
+        self.retvals = []  # A list of the return values seen
 
     def logAnomaly(self, emu, va, msg):
         self.emuanom.append((va,msg))

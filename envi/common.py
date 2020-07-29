@@ -13,3 +13,4 @@ def setLogging(logger, level=None):
     else:
         level = 'ERROR'
     logging.basicConfig(level=level, format=LOG_FORMAT)
+    logger.setLevel(level)

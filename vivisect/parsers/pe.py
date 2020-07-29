@@ -1,13 +1,15 @@
 import os
-import PE
 import logging
+from io import StringIO
+
+import PE
+import PE.carve as pe_carve
+
 import vstruct
 import vivisect
-import PE.carve as pe_carve
-from io import StringIO
 import vivisect.parsers as v_parsers
-
 # Steal symbol parsing from vtrace
+import vtrace  # needed only for setting the logging level
 import vtrace.platforms.win32 as vt_win32
 
 import envi.memory as e_mem
@@ -16,6 +18,10 @@ import envi.symstore.symcache as e_symcache
 from vivisect.const import *
 
 logger = logging.getLogger(__name__)
+
+for mod in (PE, vtrace):
+    olog = logging.getLogger(mod.__name__)
+    olog.setLevel(logger.getEffectiveLevel())
 
 # PE Machine field values
 # 0x14d   Intel i860

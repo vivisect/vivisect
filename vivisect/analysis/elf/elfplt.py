@@ -33,7 +33,6 @@ def analyzePLT(vw, ssva, ssize):
 
         branchvas = []
         while sva < nextseg:
-            logger.debug('analyzePLT(0x%x, 0x%x) first pass:  sva: 0x%x   nextseg: 0x%x', ssva, ssize, sva, nextseg)
             if vw.getLocation(sva) is None:
                 logger.info('making code: 0x%x', sva)
                 try:
@@ -56,7 +55,6 @@ def analyzePLT(vw, ssva, ssize):
                     branchvas.append((op.va, realplt))
 
                 sva += ltup[vivisect.L_SIZE]
-                logger.debug('incrementing to next va: 0x%x', sva)
             else:
                 logger.warn('makeCode(0x%x) failed to make a location (probably failed instruction decode)!  incrementing instruction pointer by 1 to continue PLT analysis <fingers crossed>', sva)
                 sva += 1
@@ -126,6 +124,7 @@ def analyzePLT(vw, ssva, ssize):
         loc = vw.getLocation(brva)
 
         # grab the size of the plt branch instruction for our benefit
+        # TODO: who uses this?
         pltbrsz = loc[vivisect.L_SIZE]
 
         # we're searching for a point where either we hit:
@@ -187,7 +186,6 @@ def analyzePLT(vw, ssva, ssize):
                     logger.debug("firstva found: preceeded by non-LOC_OP")
                     break
             bridx += 1
-
 
         logger.debug('plt first entry: 0x%x\n%r', firstva, [(hex(x), y) for x, y in branchvas])
 

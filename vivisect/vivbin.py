@@ -13,8 +13,8 @@ import envi.common as e_common
 import envi.config as e_config
 import envi.threads as e_threads
 
-logger = logging.getLogger()
-e_common.setLogging(logger, level='INFO')
+logger = logging.getLogger('vivisect')
+e_common.setLogging(logger, level='WARNING')
 
 
 loglevels = (

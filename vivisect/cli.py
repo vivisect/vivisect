@@ -52,6 +52,12 @@ class VivCli(e_cli.EnviCli, vivisect.VivWorkspace):
         self.prompt = "viv> "
         self.addScriptPathEnvVar('VIV_SCRIPT_PATH')
 
+    def addText(self, text, tag=None):
+        if tag:
+            logger.info('<' + tag + '>' + text)
+        else:
+            logger.info(text)
+
     def getExpressionLocals(self):
         locs = e_cli.EnviCli.getExpressionLocals(self)
         locs['vw'] = self

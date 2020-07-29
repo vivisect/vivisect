@@ -232,7 +232,7 @@ class EnviCli(Cmd):
             vprint('hi mom!')
         '''
         if addnl:
-            msg = msg+"\n"
+            msg = msg + "\n"
         self.canvas.write(msg)
 
     def __getattr__(self, name):

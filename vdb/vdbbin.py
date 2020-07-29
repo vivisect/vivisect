@@ -4,13 +4,15 @@ import argparse
 import traceback
 import logging
 
+import envi.common as e_common
+
 import vdb
 import vtrace
 import vtrace.snapshot as vt_snap
 
 
-logging.basicConfig(level=logging.DEBUG, format='%(asctime)s:%(levelname)s:%(name)s: %(message)s')
-logger = logging.getLogger()
+logger = logging.getLogger('vdb')
+e_common.setLogging(logger, 'DEBUG')
 
 
 def targetusage():

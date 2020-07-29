@@ -171,10 +171,7 @@ class WorkspaceEmulator:
             rtype, rname, convname, callname, funcargs = api
             callconv = self.getCallingConvention(convname)
             if callconv is None:
-                logger.warning("checkCall(0x%x, 0x%x, %r): cannot get calling convention!", starteip, endeip, op)
-                self.emumon.logAnomaly(self, endeip, "no calling convention found for %x" % (endeip))
                 return iscall
-
 
             argv = callconv.getCallArgs(self, len(funcargs))
 
@@ -206,10 +203,10 @@ class WorkspaceEmulator:
         for symbolic emulator...)
         '''
         props = {
-            'bva': bva,    # the entry virtual address for this branch
-            'valist': [],  # the virtual addresses in this node in order
-            'readlog': [], # a log of all memory reads from this block
-            'writelog': [],# a log of all memory writes from this block
+            'bva': bva,      # the entry virtual address for this branch
+            'valist': [],    # the virtual addresses in this node in order
+            'readlog': [],   # a log of all memory reads from this block
+            'writelog': [],  # a log of all memory writes from this block
         }
         ret = vg_path.newPathNode(parent=parent, **props)
         return ret
@@ -347,7 +344,7 @@ class WorkspaceEmulator:
                             self.emumon.prehook(self, op, starteip)
                         except Exception as e:
                             if not self.getMeta('silent'):
-                                logger.warn("funcva: 0x%x opva: 0x%x:  %r   (%r) (in emumon prehook)", funcva, starteip, op, e)
+                                logger.warn("Emulator prehook failed on fva: 0x%x, opva: 0x%x, op: %s, err: %s", funcva, starteip, str(op), str(e))
 
 
                         if self.emustop:
@@ -413,7 +410,7 @@ class WorkspaceEmulator:
 
         if vw.isFunction(va):
             ret = vw.getFunctionApi(va)
-            if ret != None:
+            if ret is not None:
                 return ret
 
         else:

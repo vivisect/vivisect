@@ -25,8 +25,6 @@ from Elf.elf_lookup import *
 import vstruct
 import vstruct.defs.elf as vs_elf
 
-verbose = False
-
 logger = logging.getLogger(__name__)
 
 
@@ -284,7 +282,6 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
         self.dynstrtabmeta = (None, None)
         self.dynstrtab = []
         self.dynsymtabct = None     # populated by _parseDynStrs()
-
         logger.info('self._parsePheaders')
         self._parsePheaders()
         logger.info('self._parseDynLinkInfo')
@@ -396,7 +393,7 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
         ssymtabva = self.getSection('.dynsym').sh_addr
         dsymtabva = self.dyns.get(DT_SYMTAB)
         if ssymtabva != dsymtabva:
-            logger.warn("Section headers and Dynamics disagree on Symbol Table:  sec: 0x%x, dyn: 0x%x", 
+            logger.warn("Section headers and Dynamics disagree on Symbol Table:  sec: 0x%x, dyn: 0x%x",
                     ssymtabva, dsymtabva)
 
         # only parse the symbols that are not already accounted for.
@@ -488,7 +485,7 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
 
     def _parseDynStrs(self):
         # setup STRTAB for string recovery:
-        dynstrtab = self.dyns.get(DT_STRTAB) 
+        dynstrtab = self.dyns.get(DT_STRTAB)
         strsz = self.dyns.get(DT_STRSZ)
         if dynstrtab is None or strsz is None:
             logger.warn('no dynamic string tableinfo found: DT_STRTAB: %r  DT_STRSZ: %r', dynstrtab, strsz)
@@ -570,10 +567,7 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
 
             dsoff += symsz
 
-
-
     # FIXME: wrap in VERDEF and SYMINFO into the analysis.
-
     def _parseSectionSymbols(self):
         """
         Parse out the symbols that this elf binary has for us.
@@ -592,7 +586,7 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
                     if sym.st_name:
                         name = self.getStrtabString(sym.st_name, ".strtab")
                         sym.setName(name)
-                    logger.info('SHT_SYMTAB: %r', sym)
+                    # logger.info('SHT_SYMTAB: %r', sym)
 
                     self.addSymbol(sym)
 
@@ -910,8 +904,8 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
         return self.e_type == ET_EXEC
 
     def __repr__(self, verbose=False):
-        """  
-        Returns a string summary of this ELF.  
+        """
+        Returns a string summary of this ELF.
         If (verbose) the summary will include Symbols, Relocs, Dynamics and Dynamic Symbol tables
         """
         mystr = 'Elf Binary:'
@@ -933,11 +927,11 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
 
         mystr+= "\n\n= Sections:"
         for sec in self.sections:
-            mystr+= "\n"+repr(sec)
+            mystr+= "\n" + repr(sec)
 
         mystr+= "\n\n= Program Headers:"
         for ph in self.pheaders:
-            mystr+= "\n"+repr(ph)
+            mystr+= "\n" + repr(ph)
 
         return mystr
 
@@ -1017,7 +1011,7 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
 
     def _getDynSymbol(self, symidx):
         '''
-        Parse the Dynamics entries for SYMTAB and STRTAB, and return the 
+        Parse the Dynamics entries for SYMTAB and STRTAB, and return the
         symidx indexed symbol.
         '''
         symtabrva, symsz, symtabsz = self.getDynSymTabInfo()
@@ -1041,11 +1035,11 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
         Assumes _parseDynSyms has run (populating self.dynstrtab)
         returns (symtabva, symbolsz, symtabsz)
 
-        Because there is no DT_SYMTABSZ, we can't be certain how many dynamic 
-        symbols to expect.  Supposedly there is a 1:1 relationship between 
+        Because there is no DT_SYMTABSZ, we can't be certain how many dynamic
+        symbols to expect.  Supposedly there is a 1:1 relationship between
         DynSyms and DynStrs, but that can be misleading.  Still, based on the
-        number of DynStrs parsed in _parseDynStrs() we use that to roughly 
-        determine the number, which is estimated in _parseDynStrs()  and stored 
+        number of DynStrs parsed in _parseDynStrs() we use that to roughly
+        determine the number, which is estimated in _parseDynStrs()  and stored
         in self.dynsymtabct.  Perhaps this is horrible and should be stricken
         from the code.
         '''

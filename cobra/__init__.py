@@ -1139,12 +1139,12 @@ class CobraProxy:
             return CobraMethod(self, name)
 
         with self._cobra_getsock() as csock:
-            mtype,name,data = csock.cobraTransaction(COBRA_GETATTR, self._cobra_name, name)
+            mtype, name, data = csock.cobraTransaction(COBRA_GETATTR, self._cobra_name, name)
 
-        if mtype == COBRA_ERROR:
-            raise data
+            if mtype == COBRA_ERROR:
+                raise data
 
-        return data
+            return data
 
     # For use with ref counted proxies
     def __enter__(self):

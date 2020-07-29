@@ -23,10 +23,12 @@ try:
 except ModuleNotFoundError:
     import queue as Queue
 
+
 # The envi imports...
 import envi
 import envi.bits as e_bits
 import envi.memory as e_mem
+import envi.common as e_common
 import envi.config as e_config
 import envi.bytesig as e_bytesig
 import envi.symstore.resolver as e_resolv
@@ -47,7 +49,15 @@ from vivisect.defconfig import *
 
 import vivisect.analysis.generic.emucode as v_emucode
 
+
 logger = logging.getLogger(__name__)
+e_common.setLogging(logger, 'WARNING')
+
+# FIXME: UGH. Due to our package structure, we have no centralized logging leve
+# so we have to force it here and a few other places
+elog = logging.getLogger(envi.__name__)
+elog.setLevel(logger.getEffectiveLevel())
+
 STOP_LOCS = (LOC_STRING, LOC_UNI, LOC_STRUCT, LOC_CLSID, LOC_VFTABLE, LOC_IMPORT, LOC_PAD, LOC_NUMBER)
 
 
@@ -61,6 +71,8 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
         e_mem.MemoryObject.__init__(self)
         viv_base.VivWorkspaceCore.__init__(self)
+
+        e_common.setLogging(logger, 'WARNING')
 
         self.vivhome = e_config.gethomedir(".viv")
         self._viv_gui = None    # If a gui is running, he will put a ref here...
@@ -688,7 +700,6 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         to do their thing...
         """
         self.vprint('Beginning analysis...')
-        self.vprint('...analyzing exports.')
 
         starttime = time.time()
         # Now lets engage any analysis modules.  If any modules return
@@ -2773,7 +2784,6 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
         else:
             name = fpart + '.' + joinstr.join([prefix, npart]) + '_%s' % vapart
-        logger.debug('addNamePrefix: %r %r %r -> %r', fpart, npart, vapart, name)
         return name
 
 

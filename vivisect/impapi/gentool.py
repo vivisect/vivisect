@@ -34,7 +34,6 @@ def setup():
 def main(argv):
 
     opts = setup().parse_args(argv)
-    sys.stdout.write("# ")
     vw = vivisect.VivWorkspace()
     vw.loadWorkspace(opts.vw)
 

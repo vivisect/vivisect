@@ -45,6 +45,7 @@ class MemoryRenderer(object):
         """
         raise Exception("Implement render!")
 
+
 class MemoryCanvas(object):
     """
     A memory canvas is a place where the textual representation

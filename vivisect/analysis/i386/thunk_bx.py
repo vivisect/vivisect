@@ -47,7 +47,7 @@ def analyzeFunction(vw, fva):
             logger.warning("PIE_ebx is not None")
             return
 
-        logger.debug("__x86.get_pc_thunk.bx:  ", hex(ebx))
+        logger.debug("__x86.get_pc_thunk.bx:  %s" % hex(ebx))
         curname = vw.getName(fva)
         if curname is None or curname == "sub_%.8x" % fva:
             vw.makeName(fva, "thunk_bx_%.8x" % fva)

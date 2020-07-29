@@ -3,7 +3,6 @@ import struct
 import logging
 
 import Elf
-import envi
 import vivisect
 import vivisect.parsers as v_parsers
 import envi.bits as e_bits
@@ -12,7 +11,14 @@ from vivisect.const import *
 
 from io import StringIO
 
+
 logger = logging.getLogger(__name__)
+
+# FIXME: So this is terrible, but until we unite everything under one package
+# namespace to rule them all, we need this to avoid a stupid amount of logspam
+# but we can't just force things under
+elog = logging.getLogger(Elf.__name__)
+elog.setLevel(logger.getEffectiveLevel())
 
 
 def parseFile(vw, filename, baseaddr=None):
@@ -99,7 +105,7 @@ def makeFunctionTable(elf, vw, tbladdr, size, tblname, funcs, ptrs, baseaddr=0, 
         addr, = struct.unpack_from(pfmt, secbytes, off)
         if addbase:
             addr += baseaddr
-        
+
         nstub = tblname + "_%d"
         pname = nstub % ptr_count
 
@@ -302,8 +308,7 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
     if sva is not None:
         if addbase:
             sva += baseaddr
-        for s in makeSymbolTable(vw, sva, sva+size):
-            logger.info("######################## .dynsym %r",s)
+        [s for s in makeSymbolTable(vw, sva, sva+size)]
 
     # Now trigger section specific analysis
     # Test to make sure Dynamics info is king.  Sections info should not overwrite Dynamics
@@ -338,16 +343,14 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
         elif sname == ".fini_array":
             makeFunctionTable(elf, vw, sec.sh_addr, size, 'fini_function', new_functions, new_pointers, baseaddr, addbase)
 
-        elif sname == ".dynamic": # Imports
+        elif sname == ".dynamic":  # Imports
             makeDynamicTable(vw, sva, sva+size)
 
-        elif sname == ".dynstr": # String table for dynamics
+        elif sname == ".dynstr":  # String table for dynamics
             makeStringTable(vw, sva, sva+size)
 
         elif sname == ".dynsym":
-            logger.debug("LINK\t%r",sec.sh_link)
-            for s in makeSymbolTable(vw, sva, sva+size):
-                 logger.info("######################## .dynsym %r",s)
+            [s for s in makeSymbolTable(vw, sva, sva+size)]
 
         # If the section is really a string table, do it
         if sec.sh_type == Elf.SHT_STRTAB:
@@ -377,12 +380,14 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
 
         elfmeta[Elf.dt_names.get(d.d_tag)] = d.d_value
 
-    vw.setFileMeta(fname, 'ELF_DYNAMICS', elfmeta)  # create a VaSet instead? setMeta allows more free-form info, but isn't currently accessible from the gui
+    # TODO: create a VaSet instead? setMeta allows more free-form info,
+    # but isn't currently accessible from the gui
+    vw.setFileMeta(fname, 'ELF_DYNAMICS', elfmeta)
     vw.setFileMeta(fname, 'addbase', addbase)
 
-    # applyRelocs is specifically prior to "process Dynamic Symbols" because Dynamics-only symbols 
-    #       (ie. not using Section Headers) may not get all the symbols.  Some ELF's simply list too 
-    #       small a space using SYMTAB and SYMTABSZ
+    # applyRelocs is specifically prior to "process Dynamic Symbols" because Dynamics-only symbols
+    # (ie. not using Section Headers) may not get all the symbols.  Some ELF's simply list too
+    # small a space using SYMTAB and SYMTABSZ
     applyRelocs(elf, vw, addbase, baseaddr)
 
     # process Dynamic Symbols - this must happen *after* relocations, which can expand the size of this
@@ -398,7 +403,6 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
             continue
 
         dmglname = demangle(s.name)
-        logger.debug('dynsyms: 0x%x: %r', sva, dmglname)
 
         if stype == Elf.STT_FUNC or \
                 (stype == Elf.STT_GNU_IFUNC and arch in ('i386', 'amd64')):   # HACK: linux is what we're really after.
@@ -464,7 +468,7 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
         if s.st_info == Elf.STT_FILE:
             vw.setVaSetRow('FileSymbols', (dmglname, sva))
             continue
-            
+
         if s.st_info == Elf.STT_NOTYPE:
             # mapping symbol
             if arch in ('arm', 'thumb', 'thumb16'):
@@ -518,7 +522,7 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
                     vw.makeName(sva, dmglname, filelocal=True, makeuniq=True)
 
             except Exception as e:
-                logger.warn("WARNING:\t%r",e)
+                logger.warn("%s" % str(e))
 
         if s.st_info == Elf.STT_FUNC:
             new_functions.append(("STT_FUNC", sva))
@@ -586,7 +590,7 @@ def applyRelocs(elf, vw, addbase=False, baseaddr=0):
                     else:
                         logger.warn('unknown reloc type: %d %s (at %s)', rtype, name, hex(rlva))
                         logger.info(r.tree())
-                       
+
                 else:
                     if rtype == Elf.R_386_RELATIVE: # R_X86_64_RELATIVE is the same number
                         ptr = vw.readMemoryPtr(rlva)

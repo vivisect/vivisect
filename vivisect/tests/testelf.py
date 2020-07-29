@@ -1,7 +1,8 @@
 import logging
-logging.basicConfig()
-logger = logging.getLogger(__name__)
 import unittest
+
+import envi
+logger = logging.getLogger(__name__)
 
 import Elf
 import vivisect.cli as viv_cli
