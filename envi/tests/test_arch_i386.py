@@ -21,6 +21,8 @@ i386SingleByteOpcodes = [
     ('imul 1', 'f6aaaaaaaaaa', 0x40, 'imul al,byte [edx - 1431655766]', 'imul al,byte [edx - 1431655766]'),
     ('imul 2', 'f7aaaaaaaaaa', 0x40, 'imul eax,dword [edx - 1431655766]', 'imul eax,dword [edx - 1431655766]'),
     ('push', 'fff0', 0x40, 'push eax', 'push eax'),
+    ('push 2', '6aff', 0x40, 'push 0xffffffff', 'push 0xffffffff'),
+    ('push 3', '68ffffffff', 0x40, 'push 0xffffffff', 'push 0xffffffff'),
     ('nop 1', '90', 0x40, 'nop ', 'nop '),
     ('nop 2', '0f1fc0', 0x40, 'nop eax', 'nop eax'),
     ('nop 3', 'f30f1fc0', 0x40, 'rep: nop eax', 'rep: nop eax'),

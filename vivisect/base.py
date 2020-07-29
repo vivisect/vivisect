@@ -377,9 +377,12 @@ class VivWorkspaceCore(object, viv_impapi.ImportApi):
             self.va_by_name[name] = va
             self.name_by_va[va] = name
 
-        if self.isFunction( va ):
+        if self.isFunction(va):
             fnode = self._call_graph.getFunctionNode(va)
-            self._call_graph.setNodeProp(fnode,'repr',name)
+            if name is None:
+                self._call_graph.delNodeProp(fnode, 'repr')
+            else:
+                self._call_graph.setNodeProp(fnode, 'repr', name)
 
     def _handleADDMMAP(self, einfo):
         va, perms, fname, mbytes = einfo

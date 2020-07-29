@@ -641,13 +641,21 @@ MODE_16 = 0
 MODE_32 = 1
 MODE_64 = 2
 
+# used in coinjunction with the MODE_* values above
+MODESIZE=[
+    2,
+    4,
+    8,
+]
+
 class i386Disasm:
 
     def __init__(self, mode=MODE_32):
-        self._dis_mode = MODE_32
+        self._dis_mode = mode
         self._dis_prefixes = i386_prefixes
         self._dis_regctx = i386RegisterContext()
         self._dis_oparch = envi.ARCH_I386
+        self._dis_default_size = MODESIZE[mode]
         self.ptrsize = 4
 
         # This will make function lookups nice and quick
@@ -952,10 +960,14 @@ class i386Disasm:
 
                         # If we are a sign extended immediate and not the same as the other operand,
                         # do the sign extension during disassembly so nothing else has to worry about it..
-                        if operflags & opcode86.OP_SIGNED and len(operands) and tsize != operands[-1].tsize:
-                            otsize = operands[-1].tsize
-                            oper.imm = e_bits.sign_extend(oper.imm, oper.tsize, otsize)
-                            oper.tsize = otsize
+                        if operflags & opcode86.OP_SIGNED:
+                            if len(operands) and tsize != operands[-1].tsize:
+                                otsize = operands[-1].tsize
+                                oper.imm = e_bits.sign_extend(oper.imm, oper.tsize, otsize)
+                                oper.tsize = otsize
+                            elif not len(operands):
+                                oper.imm = e_bits.sign_extend(oper.imm, oper.tsize, self._dis_default_size)
+                                oper.tsize = self._dis_default_size
 
                     else:
                         osize, oper = ameth(bytez, offset, tsize, all_prefixes, operflags)
