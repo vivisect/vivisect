@@ -32,7 +32,7 @@ class CobraBasicTest(unittest.TestCase):
 
         try:
             import msgpack
-        except ImportError, e:
+        except ImportError:
             self.skipTest('No msgpack installed!')
 
         testobj = c_tests.TestObject()
@@ -91,7 +91,7 @@ class CobraBasicTest(unittest.TestCase):
         # Now lets succeed
         authinfo = { 'user':'invisigoth', 'passwd':'secret' }
         t = cobra.CobraProxy('cobra://localhost:60602/%s' % objname, authinfo=authinfo)
-        c_tests.accessTestObject( t )
+        c_tests.accessTestObject(t)
         self.assertEqual( t.getUser(), 'invisigoth')
         daemon.stopServer()
 

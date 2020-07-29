@@ -11,7 +11,7 @@ import cobra.remoteapp as c_remoteapp
 import envi.common as e_common
 
 logger = logging.getLogger(__name__)
-e_common.setLogging(logger, level=logging.INFO)
+e_common.setLogging(logger, 'INFO')
 
 
 def release():

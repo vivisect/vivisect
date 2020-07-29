@@ -85,7 +85,7 @@ def getSwitchBase(vw, op, vajmp, emu=None):
         # just in case let's check a few more instructions up, because the first register could be
         # being used as the base instead
         if not scanUp(vw, emu, addOp.va, reg, imgbase):
-            vw.vprint("0x%x: reg != imagebase" % op.va)
+            vw.vprint("0x%x: reg != imagebase (0x%x != 0x%x)" % (op.va, regbase, imgbase))
             return
 
     # Now find the instruction before the add that does the actual mov

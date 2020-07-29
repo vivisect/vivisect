@@ -381,7 +381,7 @@ class CobraHttpProxy:
     def __init__(self, URI, retrymax=None, timeout=None, **kwargs):
 
         scheme, host, port, name, urlparams = c_cobra.chopCobraUri(URI)
-        logger.debug('Host: %s, Port: %r, Obj: %r' % (host, port, name))
+        logger.debug('Host: %s, Port: %s, Obj: %s' % (host, str(port), str(name)))
         self._cobra_uri = URI
         self._cobra_scheme = scheme
         self._cobra_host = host

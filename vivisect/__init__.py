@@ -165,6 +165,12 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         self.addVaSet('EmucodeFunctions', (('va', VASET_ADDRESS),))
         self.addVaSet('FuncWrappers', (('va', VASET_ADDRESS), ('wrapped_va', VASET_ADDRESS),))
 
+    def addText(self, text, tag=None):
+        if tag:
+            logger.info('<' + tag + '>' + text)
+        else:
+            logger.info(text)
+
     def vprint(self, msg):
         logger.info(msg)
 

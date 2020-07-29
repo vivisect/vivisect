@@ -39,7 +39,7 @@ except ImportError:
 import envi.common as e_common
 
 logger = logging.getLogger(__name__)
-e_common.setLogging(logger, 'DEBUG')
+e_common.setLogging(logger, 'WARNING')
 
 daemon = None
 version = "Cobra2"
@@ -366,7 +366,7 @@ class CobraAsyncTrans:
                 return
             except CobraAuthException as e:
                 raise
-            except (socket.error,CobraClosedException), e:
+            except (socket.error,CobraClosedException):
                 self.csock.reConnect()
 
     def wait(self):
@@ -783,7 +783,7 @@ class CobraConnectionHandler:
 
             obj = self.daemon.getSharedObject(name)
             logger.debug("MSG FOR: %s:%s" % (str(name), type(obj)))
-            if obj == None:
+            if obj is None:
                 try:
                     csock.sendMessage(COBRA_ERROR, name, Exception("Unknown object requested: %s" % name))
                 except CobraClosedException:
@@ -857,7 +857,7 @@ class CobraConnectionHandler:
             raise
 
     def handleGetAttr(self, csock, oname, obj, name):
-        logger.debug("Getting Attribute: %r" % data)
+        logger.debug("Getting Attribute: %s" % str(name))
         if not self.daemon.cangetattr:
             raise CobraPermDenied('getattr disallowed!')
         try:
@@ -866,7 +866,7 @@ class CobraConnectionHandler:
             pass
 
     def handleSetAttr(self, csock, oname, obj, data):
-        logger.debug("Setting Attribute: %r" % data)
+        logger.debug("Setting Attribute: %s" % str(data))
         if not self.daemon.cansetattr:
             raise CobraPermDenied('setattr disallowed!')
         name,value = data
@@ -1002,19 +1002,19 @@ class CobraProxy:
         with self._cobra_getsock() as csock:
             mtype,rver,data = csock.cobraTransaction(COBRA_HELLO, name, "")
 
-            if mtype == COBRA_ERROR:
-                csock.trashed = True
-                if self._cobra_sflags & (SFLAG_MSGPACK|SFLAG_JSON):
-                    data = Exception(data)
-                raise data
+        if mtype == COBRA_ERROR:
+            csock.trashed = True
+            if self._cobra_sflags & (SFLAG_MSGPACK|SFLAG_JSON):
+                data = Exception(data)
+            raise data
 
-            if rver != version:
-                csock.trashed = True
-                raise Exception("Server Version Not Supported: %s" % rver)
+        if rver != version:
+            csock.trashed = True
+            raise Exception("Server Version Not Supported: %s" % rver)
 
-            if mtype != COBRA_HELLO:
-                csock.trashed = True
-                raise Exception("Invalid Cobra Hello Response")
+        if mtype != COBRA_HELLO:
+            csock.trashed = True
+            raise Exception("Invalid Cobra Hello Response")
 
         self._cobra_gothello = True
         self._cobra_methods = data
@@ -1120,7 +1120,6 @@ class CobraProxy:
 
         with self._cobra_getsock() as csock:
             mtype,name,data = csock.cobraTransaction(COBRA_SETATTR, self._cobra_name, (name, value))
-
         if mtype == COBRA_ERROR:
             raise data
         elif mtype == COBRA_SETATTR:
@@ -1141,10 +1140,10 @@ class CobraProxy:
         with self._cobra_getsock() as csock:
             mtype, name, data = csock.cobraTransaction(COBRA_GETATTR, self._cobra_name, name)
 
-            if mtype == COBRA_ERROR:
-                raise data
+        if mtype == COBRA_ERROR:
+            raise data
 
-            return data
+        return data
 
     # For use with ref counted proxies
     def __enter__(self):

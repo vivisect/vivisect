@@ -56,7 +56,7 @@ class VStructBuilder:
         if vsdef != None:
             return VStructConstructor(self, name)
 
-        raise AttributeError, name
+        raise AttributeError(name)
 
     def getVStructCtorNames(self):
         return self._vs_ctors.keys()

@@ -28,6 +28,7 @@ import vtrace.envitools as vt_envitools
 import vdb
 
 import envi.cli as e_cli
+import envi.common as e_common
 import envi.memory as e_mem
 import envi.expression as e_expr
 import envi.memcanvas as e_canvas
@@ -36,9 +37,10 @@ import envi.memcanvas.renderers as e_render
 from vivisect.const import *
 
 logger = logging.getLogger(__name__)
+e_common.setLogging(logger, 'WARNING')
 
 
-class VivCli(e_cli.EnviCli, vivisect.VivWorkspace):
+class VivCli(vivisect.VivWorkspace, e_cli.EnviCli):
 
     def __init__(self):
         e_cli.EnviCli.__init__(self, self, symobj=self)
@@ -51,12 +53,6 @@ class VivCli(e_cli.EnviCli, vivisect.VivWorkspace):
         self.canvas.addRenderer("viv", viv_rend.WorkspaceRenderer(self))
         self.prompt = "viv> "
         self.addScriptPathEnvVar('VIV_SCRIPT_PATH')
-
-    def addText(self, text, tag=None):
-        if tag:
-            logger.info('<' + tag + '>' + text)
-        else:
-            logger.info(text)
 
     def getExpressionLocals(self):
         locs = e_cli.EnviCli.getExpressionLocals(self)

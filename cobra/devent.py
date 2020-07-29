@@ -77,7 +77,7 @@ class CobraEventCore:
             try:
                 upstream.finiEventChannel(upchan)
             except Exception as e:
-                logger.warning('upstream error: %r %s' % (upstream,e))
+                logger.warning('upstream error: %s %s' % (str(upstream), str(e)))
         [ self.finiEventChannel( chanid ) for chanid in self._ce_chanlookup.keys() ]
 
     def getNextEventsForChan(self, chanid, timeout=None):
@@ -119,14 +119,14 @@ class CobraEventCore:
             try:
                 handler(event,einfo)
             except Exception as e:
-                logger.warning('handler error(%r): %s' % (event,e))
+                logger.warning('handler error(%s): %s' % (str(event), str(e)))
 
         if upstream:
             for upstream,upchan in self._ce_upstreams:
                 try:
                     upstream.fireEvent(event, einfo, skip=upchan)
                 except Exception as e:
-                    logger.warning('upstream error: %r %s' % (upstream,e))
+                    logger.warning('upstream error: %s %s' % (str(upstream), str(e)))
 
     def addEventHandler(self, event, callback):
         '''
