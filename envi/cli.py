@@ -150,10 +150,10 @@ class EnviCli(Cmd):
         self.shutdown = threading.Event()
 
         # If they didn't give us a resolver, make one.
-        if symobj == None:
+        if symobj is None:
             symobj = e_resolv.SymbolResolver()
 
-        if config == None:
+        if config is None:
             config = e_config.EnviConfig(defaults=cfgdefs)
 
         # Force it to be there if its not
@@ -185,7 +185,7 @@ class EnviCli(Cmd):
         Reads a script environment variable in, parses it, and stores the paths
         '''
         scriptdirs = os.getenv( pathenv )
-        if scriptdirs != None:
+        if scriptdirs is not None:
             for scriptdir in scriptdirs.split(os.pathsep):
                 if scriptdir in self.scriptpaths:
                     continue
@@ -393,12 +393,12 @@ class EnviCli(Cmd):
             subname, optname = parts[0].split('.', 1)
 
             subcfg = self.config.getSubConfig(subname, add=False)
-            if subcfg == None:
+            if subcfg is None:
                 self.vprint('No Such Config Section: %s' % subname)
                 return
 
             optval = subcfg.get(optname)
-            if optval == None:
+            if optval is None:
                 self.vprint('No Such Config Option: %s' % optname)
                 return
 
@@ -501,7 +501,7 @@ class EnviCli(Cmd):
         if self.memobj.isValidPointer(value):
             self.canvas.addVaText("0x%.8x" % value, value)
             sym = self.symobj.getSymByAddr(value, exact=False)
-            if sym != None:
+            if sym is not None:
                 self.canvas.addText(" ")
                 self.canvas.addVaText("%s + %d" % (repr(sym),value-long(sym)), value)
         else:
@@ -555,7 +555,7 @@ class EnviCli(Cmd):
                 if os.path.exists(spath):
                     scriptpath = spath
 
-        if scriptpath == None:
+        if scriptpath is None:
             self.vprint('failed to find script')
             return
 
@@ -581,7 +581,7 @@ class EnviCli(Cmd):
             expr = " ".join(argv)
             va = self.parseExpression(expr)
             map = self.memobj.getMemoryMap(va)
-            if map == None:
+            if map is None:
                 self.vprint("Memory Map Not Found For: 0x%.8x"%va)
 
             else:
@@ -669,7 +669,7 @@ class EnviCli(Cmd):
         if options.is_hex:
             pattern = binascii.unhexlify(pattern)
 
-        if options.encode_as != None:
+        if options.encode_as is not None:
             if options.encode_as == 'hex':
                 pattern = binascii.hexlify(patter)
             else:
@@ -708,7 +708,7 @@ class EnviCli(Cmd):
             self.canvas.addText('%s ' % pname)
             self.canvas.addText(sname)
 
-            if options.num_context_bytes != None:
+            if options.num_context_bytes is not None:
                 self.canvas.addText('\n')
                 self.canvas.renderMemory(va, options.num_context_bytes, rend=brend)
 
@@ -913,9 +913,9 @@ class EnviMutableCli(EnviCli):
         addr = self.parseExpression(args[0])
         perm = e_mem.parsePerms(args[1])
 
-        if size == None:
+        if size is None:
             map = self.memobj.getMemoryMap(addr)
-            if map == None:
+            if map is None:
                 raise Exception("Unknown memory map for 0x%.8x" % addr)
             size = map[1]
 

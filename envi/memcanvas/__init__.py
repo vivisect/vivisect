@@ -22,7 +22,7 @@ class MemoryRenderer(object):
         If there is a symbolic name for the current va, print it...
         """
         sym = mcanv.syms.getSymByAddr(va)
-        if sym != None:
+        if sym is not None:
             mcanv.addVaText("%s:\n" % repr(sym), va)
 
     def rendVa(self, mcanv, va):
@@ -98,7 +98,7 @@ class MemoryCanvas(object):
 
     def setRenderer(self, name):
         rend = self.renderers.get(name)
-        if rend == None:
+        if rend is None:
             raise Exception("Unknown renderer: %s" % name)
         self.currend = rend
 
@@ -137,7 +137,7 @@ class MemoryCanvas(object):
         sys.stdout.write(text)
 
     def addNameText(self, text, name=None, typename='name'):
-        if name == None:
+        if name is None:
             name = binascii.hexlify(text)
         tag = self.getNameTag(name, typename=typename)
         self.addText(text, tag=tag)
@@ -187,10 +187,10 @@ class MemoryCanvas(object):
         Returns true if any part of the current render overlaps
         with the specified region.
         '''
-        if self._canv_beginva == None:
+        if self._canv_beginva is None:
             return False
 
-        if self._canv_endva == None:
+        if self._canv_endva is None:
             return False
 
         if va > self._canv_endva:
@@ -218,13 +218,13 @@ class MemoryCanvas(object):
         ibegin = None
         for i,(rendva,rendsize) in enumerate(self._canv_rendvas):
 
-            if ibegin == None and va <= rendva:
+            if ibegin is None and va <= rendva:
                 ibegin = i
 
-            if iend == None and maxva <= rendva:
+            if iend is None and maxva <= rendva:
                 iend = i
 
-            if ibegin != None and iend != None:
+            if ibegin is not None and iend is not None:
                 break
 
         saved_last  = self._canv_rendvas[iend:]
@@ -320,7 +320,7 @@ class MemoryCanvas(object):
         if not self._canv_scrolled:
             self.clearCanvas()
 
-        if rend == None:
+        if rend is None:
             rend = self.currend
 
         self.currend = rend

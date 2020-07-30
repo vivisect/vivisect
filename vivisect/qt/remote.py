@@ -150,7 +150,7 @@ class VivConnectServerDialog(QDialog):
 def openServerAndWorkspace(vw, parent=None):
     dia = VivConnectServerDialog(vw, parent=parent)
     host = dia.getServer()
-    if host == None:
+    if host is None:
         return
 
     connServerAndWorkspace(vw, str(host), parent=parent)
@@ -170,7 +170,7 @@ def connServerAndWorkspace(vw, host,parent=None):
 def selectServerWorkspace(vw, server, workspaces, parent=None):
     dia = VivServerDialog(workspaces, parent=parent)
     workspace = dia.getWorkspaceName()
-    if workspace == None:
+    if workspace is None:
         return
 
     loadServerWorkspace(vw, server, workspace)

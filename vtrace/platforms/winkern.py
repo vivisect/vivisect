@@ -211,7 +211,7 @@ def initWinkernTrace(trace, kpcrva):
     dbgdata64.vsParse( trace.readMemory( dbgdata64va, len(dbgdata64) ))
 
     winver = win_builds.get( kver.MinorVersion )
-    if winver == None:
+    if winver is None:
         winver = 'Untested Windows Build! (%d)' % kver.MinorVersion
 
     kernbase = kver.KernBase & trace.bigmask

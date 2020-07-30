@@ -12,7 +12,7 @@ def compat_isNone(state):
     if PYQT_VERSION_STR.startswith('4'):
         return state.isNull()
 
-    # WTF! (QByteArray == None) is True!
+    # WTF! (QByteArray is None) is True!
     if state is None:
         return True
 

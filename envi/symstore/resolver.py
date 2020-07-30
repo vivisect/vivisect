@@ -157,12 +157,12 @@ class SymbolResolver:
 
         # Do we have a cached object?
         sym = self.symobjsbyname.get(name)
-        if sym != None:
+        if sym is not None:
             return sym
 
         # Do we have a symbol tuple?
         symtup = self.symnames.get(name)
-        if symtup != None:
+        if symtup is not None:
             return self._symFromTup( symtup )
 
     def delSymByName(self, name):
@@ -170,7 +170,7 @@ class SymbolResolver:
             name = name.lower()
 
         sym = self.symnames.get(name, None)
-        if sym != None:
+        if sym is not None:
             self.delSymbol(self._symFromTup(sym))
 
     def _symFromTup(self, symtup):
@@ -195,7 +195,7 @@ class SymbolResolver:
 
         if sym.fname:
             subres = self.symobjsbyname.get(sym.fname)
-            if subres != None:
+            if subres is not None:
                 subres._addSymObject(sym)
                 return
 
@@ -212,7 +212,7 @@ class SymbolResolver:
         va = va & self.widthmask
 
         sym = self.symobjsbyaddr.get(va)
-        if sym != None:
+        if sym is not None:
             return sym
 
         symtup = self.symaddrs.get(va)
@@ -231,7 +231,7 @@ class SymbolResolver:
                 b1.sort()
                 symtup = b1[-1]
                 sym = self.symobjsbyaddr.get(symtup[0])
-                if sym != None:
+                if sym is not None:
                     return sym
 
                 return self._symFromTup(symtup)

@@ -342,14 +342,14 @@ class CobraHttpDaemon(ThreadingTCPServer):
         Share an object in this cobra server.  By specifying
         doref=True you will let CobraProxy objects decide that
         the object is done and should be un-shared.  Also, if
-        name == None a random name is chosen.
+        name is None a random name is chosen.
 
         Returns: name (or the newly generated random one)
         """
         refcnt = None
         if doref:
             refcnt = 0
-        if name == None:
+        if name is None:
             raise Exception("You must specify an object name to share!")
 
         self.shared[name] = obj
@@ -423,7 +423,7 @@ class CobraHttpProxy:
 
             # If we have authinfo lets authenticate
             authinfo = self._cobra_kwargs.get('authinfo')
-            if authinfo != None:
+            if authinfo is not None:
                 sock.authUser(authinfo)
 
             tsocks[self._cobra_slookup] = sock

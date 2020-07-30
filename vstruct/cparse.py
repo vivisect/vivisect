@@ -60,7 +60,7 @@ class StructParser:
         # An ast element comes as a tuple of namething, realstuff
         namething,elem = astelem
         p = self.cls_parsers.get( elem.__class__ )
-        if p == None:
+        if p is None:
             raise Exception('OMG NO PARSER FOR: %r' % elem)
         return p( astelem )
 

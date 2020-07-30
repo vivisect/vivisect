@@ -330,11 +330,11 @@ class ResourceDirectory:
         This should *only* be called on the root node!
         '''
         typedir = self._rsrc_subdirs.get(restype)
-        if typedir == None:
+        if typedir is None:
             return None
 
         datadir = typedir._rsrc_subdirs.get(name_id)
-        if datadir == None:
+        if datadir is None:
             return None
 
         if len(datadir._rsrc_data) == 0:
@@ -386,7 +386,7 @@ class PE(object):
 
     def getPdataEntries(self):
         sec = self.getSectionByName('.pdata')
-        if sec == None:
+        if sec is None:
             return ()
         ret = []
         rbytes = self.readAtRva(sec.VirtualAddress, sec.VirtualSize)
@@ -402,7 +402,7 @@ class PE(object):
         Return the "dll name" from the Name field of the IMAGE_EXPORT_DIRECTORY
         if one is present.  If not, return None.
         '''
-        if self.IMAGE_EXPORT_DIRECTORY != None:
+        if self.IMAGE_EXPORT_DIRECTORY is not None:
             rawname = self.readAtRva(self.IMAGE_EXPORT_DIRECTORY.Name, 32)
             return rawname.split('\x00')[0]
         return None
@@ -510,7 +510,7 @@ class PE(object):
         None if not found.
         '''
         rsdef = self.getResourceDef(rtype, name_id)
-        if rsdef == None:
+        if rsdef is None:
             return None
         rsrva, rssize, rscpage = rsdef
         return self.readAtRva(rsrva, rssize)
@@ -525,7 +525,7 @@ class PE(object):
         drva = ddir.VirtualAddress
         dsize = ddir.Size
         d = self.readStructAtRva(drva, 'pe.IMAGE_DEBUG_DIRECTORY', check=True)
-        if d == None:
+        if d is None:
             return None
 
         if d.Type != IMAGE_DEBUG_TYPE_CODEVIEW:
@@ -547,7 +547,7 @@ class PE(object):
         (returns None if version resource is not found)
         '''
         vbytes = self.readResource(RT_VERSION, 1)
-        if vbytes == None:
+        if vbytes is None:
             return None
         return VS_VERSIONINFO(vbytes)
 
@@ -567,7 +567,7 @@ class PE(object):
         while len(rsrc_todo):
             rsrva, rsdirobj = rsrc_todo.pop()
             rsdir = self.readStructAtRva( rsrva, 'pe.IMAGE_RESOURCE_DIRECTORY', check=True )
-            if rsdir == None:
+            if rsdir is None:
                 continue
 
             totcount = rsdir.NumberOfIdEntries + rsdir.NumberOfNamedEntries
@@ -580,7 +580,7 @@ class PE(object):
                 dentrva = rsrva + offset
 
                 dirent = self.readStructAtRva( dentrva, 'pe.IMAGE_RESOURCE_DIRECTORY_ENTRY', check=True )
-                if dirent == None:
+                if dirent is None:
                     break
 
                 # We use name/id interchangably in the python dict...
@@ -696,7 +696,7 @@ class PE(object):
             #raise Exception('too high! %d > %d' % (rva, isize))
             return False
 
-        if size != None and (rva + size) > isize:
+        if size is not None and (rva + size) > isize:
             #raise Exception('too big! %d > %d' % (rva+size, isize))
             return False
         
@@ -708,7 +708,7 @@ class PE(object):
             if maxsize and maxsize <= len(ret):
                 break
             x = self.readAtRva(rva, 1)
-            if x == '\x00' or x == None:
+            if x == '\x00' or x is None:
                 break
             ret += x
             rva += 1
@@ -722,7 +722,7 @@ class PE(object):
         # RP BUG FIX - invalid IAT entry will point of range of file
         irva = idir.VirtualAddress
         x = self.readStructAtRva(irva, 'pe.IMAGE_IMPORT_DIRECTORY', check=True)
-        if x == None:
+        if x is None:
             return
 
         isize = len(x)
@@ -743,7 +743,7 @@ class PE(object):
             while True:
 
                 arrayoff = self.psize * idx
-                if self.filesize != None and arrayoff > self.filesize:
+                if self.filesize is not None and arrayoff > self.filesize:
                     self.imports = [] # we probably put grabage in  here..
                     return
 
@@ -840,7 +840,7 @@ class PE(object):
 
         '''
         e = self.IMAGE_EXPORT_DIRECTORY
-        if e == None:
+        if e is None:
             return None
 
         return self.readAtRva(e.Name, 128).split('\x00')[0]
@@ -971,7 +971,7 @@ class PE(object):
 
         sig = self.getSignature()
 
-        if sig == None:
+        if sig is None:
             return ()
 
         # Runtime import these so they are optional dependancies

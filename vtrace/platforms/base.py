@@ -324,7 +324,7 @@ class TracerBase(vtrace.Notifier):
         self._tellThreadExit()
 
     def _tellThreadExit(self):
-        if self.thread != None:
+        if self.thread is not None:
             self.thread.queue.put(None)
             self.thread.join(timeout=2)
             self.thread = None
@@ -414,11 +414,12 @@ class TracerBase(vtrace.Notifier):
         faultaddr,faultperm = self.platformGetMemFault()
 
         #FIXME this is some AWESOME but intel specific nonsense
-        if faultaddr == None: return False
+        if faultaddr is None:
+            return False
         faultpage = faultaddr & 0xfffff000
 
         wp = self.breakpoints.get(faultpage, None)
-        if wp == None:
+        if wp is None:
             return False
 
         self._fireBreakpoint(wp)
@@ -428,7 +429,7 @@ class TracerBase(vtrace.Notifier):
     def checkWatchpoints(self):
         # Check for hardware watchpoints
         waddr = self.archCheckWatchpoints()
-        if waddr != None:
+        if waddr is not None:
             wp = self.breakpoints.get(waddr, None)
             if wp:
                 self._fireBreakpoint(wp)

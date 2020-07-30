@@ -458,7 +458,7 @@ class Trace(e_mem.IMemory, e_reg.RegisterContext, e_resolv.SymbolResolver, objec
         Example:  for sym in trace.searchSymbols('.*CreateFile.*', 'kernel32'):
         '''
         reobj = re.compile(regex)
-        if libname != None:
+        if libname is not None:
             libs = [libname, ]
         else:
             libs = self.getNormalizedLibNames()
@@ -477,7 +477,7 @@ class Trace(e_mem.IMemory, e_reg.RegisterContext, e_resolv.SymbolResolver, objec
         specified thread.  Use this API to iterate over threads
         register values without setting the global tracer thread context.
         """
-        if threadid == None:
+        if threadid is None:
             threadid = self.getMeta("ThreadId")
         return self._cacheRegs(threadid)
 
@@ -704,7 +704,7 @@ class Trace(e_mem.IMemory, e_reg.RegisterContext, e_resolv.SymbolResolver, objec
         """
         self.requireAttached()
         bp = self.bpbyid.pop(id, None)
-        if bp != None:
+        if bp is not None:
             bp.deactivate(self)
             if bp in self.deferred:
                 self.deferred.remove(bp)
@@ -754,7 +754,7 @@ class Trace(e_mem.IMemory, e_reg.RegisterContext, e_resolv.SymbolResolver, objec
         NOTE: code which wants to be remote-safe should use this
         """
         bp = self.getBreakpoint(bpid)
-        if bp == None:
+        if bp is None:
             raise Exception("Breakpoint %d Not Found" % bpid)
         return bp.isEnabled()
 
@@ -765,7 +765,7 @@ class Trace(e_mem.IMemory, e_reg.RegisterContext, e_resolv.SymbolResolver, objec
         NOTE: code which wants to be remote-safe should use this
         """
         bp = self.getBreakpoint(bpid)
-        if bp == None:
+        if bp is None:
             raise Exception("Breakpoint %d Not Found" % bpid)
         if not enabled: # To catch the "disable" of fastbreaks...
             bp.deactivate(self)
@@ -780,7 +780,7 @@ class Trace(e_mem.IMemory, e_reg.RegisterContext, e_resolv.SymbolResolver, objec
         to set the python code for this breakpoint.
         """
         bp = self.getBreakpoint(bpid)
-        if bp == None:
+        if bp is None:
             raise Exception("Breakpoint %d Not Found" % bpid)
         bp.setBreakpointCode(pystr)
 
@@ -790,7 +790,7 @@ class Trace(e_mem.IMemory, e_reg.RegisterContext, e_resolv.SymbolResolver, objec
         when this breakpoint is hit.
         """
         bp = self.getBreakpoint(bpid)
-        if bp != None:
+        if bp is not None:
             return bp.getBreakpointCode()
         return None
 
@@ -884,7 +884,7 @@ class Trace(e_mem.IMemory, e_reg.RegisterContext, e_resolv.SymbolResolver, objec
         Example:
         import envi.memory as e_mem
         vaddr, vperm = trace.getMemoryFault()
-        if vaddr != None:
+        if vaddr is not None:
             print('Memory Fault At: 0x%.8x (perm: %d)' % (vaddr, vperm))
         '''
         return self.platformGetMemFault()
@@ -1380,7 +1380,7 @@ class VtraceExpressionLocals(e_expr.MemoryExpressionLocals):
 
 def reqTargOpt(opts, targ, opt, valstr='<value>'):
     val = opts.get( opt )
-    if val == None:
+    if val is None:
         raise Exception('Target "%s" requires option: %s=%s' % (targ, opt, valstr))
     return val
 
@@ -1546,7 +1546,7 @@ def interact(pid=0, server=None, trace=None):
     global remote
     remote = server
 
-    if trace == None:
+    if trace is None:
         trace = getTrace()
         if pid:
             trace.attach(pid)

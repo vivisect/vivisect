@@ -32,12 +32,12 @@ class IatHook(vt_watchpoints.Watchpoint):
         pass
 
     def activate(self, trace):
-        if self.origptr == None:
+        if self.origptr is None:
             self.origptr = trace.readMemoryFormat(self.ptraddr, '<P')[0]
         trace.writeMemoryFormat(self.ptraddr, '<P', self.fakeptr)
 
     def deactivate(self, trace):
-        if self.origptr != None:
+        if self.origptr is not None:
             trace.writeMemoryFormat(self.ptraddr, '<P', self.origptr)
 
     def notify(self, event, trace):
@@ -84,5 +84,3 @@ def hookIat(trace, libname, implib='*', impfunc='*', fast=False):
         ret.append( (iatname, bpid) )
 
     return ret
-
-

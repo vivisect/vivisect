@@ -917,7 +917,7 @@ if sys.platform == "win32":
     kernel32.FormatMessageW.argtypes = [DWORD, LPVOID, DWORD, DWORD, LPVOID, DWORD, LPVOID]
 
     IsWow64Process = getattr(kernel32, 'IsWow64Process', None)
-    if IsWow64Process != None:
+    if IsWow64Process is not None:
         IsWow64Process.argtypes = [HANDLE, LPVOID]
 
 
@@ -941,7 +941,7 @@ if sys.platform == "win32":
     symsrv = loadlib( os.path.join(platdir,'windll', arch, 'symsrv.dll') )
     dbghelp = loadlib( os.path.join(platdir,'windll', arch, 'dbghelp.dll') )
 
-    if dbghelp != None:
+    if dbghelp is not None:
         dbghelp.SymInitialize.argtypes = [HANDLE, c_char_p, BOOL]
         dbghelp.SymInitialize.restype = BOOL
         dbghelp.SymSetOptions.argtypes = [DWORD]
@@ -1227,7 +1227,7 @@ class WindowsMixin:
         # If possible, get a default set of struct definitions
         # for ntdll...
         nt = vs_windows.getCurrentDef('ntdll')
-        if nt != None:
+        if nt is not None:
             self.vsbuilder.addVStructNamespace('ntdll', nt)
 
         # Either way, add the fallback "win32" namespace
@@ -1370,7 +1370,7 @@ class WindowsMixin:
     def platformDetach(self):
         # Do the crazy "can't supress exceptions from detach" dance.
         if ((not self.exited) and
-            self.getCurrentBreakpoint() != None):
+            self.getCurrentBreakpoint() is not None):
             self._clearBreakpoints()
             self.platformSendBreak()
             self.platformContinue()
@@ -1418,7 +1418,7 @@ class WindowsMixin:
 
         magic = DBG_CONTINUE
 
-        if self.getCurrentSignal() != None:
+        if self.getCurrentSignal() is not None:
             magic = DBG_EXCEPTION_NOT_HANDLED
 
         if self.flushcache:
@@ -1540,7 +1540,7 @@ class WindowsMixin:
            self.thandles[ThreadId] = event.u.CreateProcessInfo.Thread
 
            tobj = self.getStruct("ntdll.TEB", teb)
-           if tobj != None:
+           if tobj is not None:
                peb = tobj.ProcessEnvironmentBlock
                self.setMeta("PEB", peb)
                self.setVariable("peb", peb)
@@ -1550,7 +1550,7 @@ class WindowsMixin:
            eventdict["ThreadLocalBase"] = teb
 
            self._is_wow64 = False
-           if IsWow64Process != None:
+           if IsWow64Process is not None:
                b = BOOL()
                IsWow64Process(self.phandle, addressof(b))
                if b.value:
@@ -1701,7 +1701,7 @@ class WindowsMixin:
 
     def platformSuspendThread(self, thrid):
         thandle = self.thandles.get(thrid)
-        if thandle == None:
+        if thandle is None:
             raise Exception('Suspending Unknown Thread: %d' % (thrid,))
 
         if kernel32.SuspendThread(thandle) == 0xffffffff:
@@ -1709,7 +1709,7 @@ class WindowsMixin:
 
     def platformResumeThread(self, thrid):
         thandle = self.thandles.get(thrid)
-        if thandle == None:
+        if thandle is None:
             raise Exception('Resuming Unknown Thread: %d' % (thrid,))
 
         if kernel32.ResumeThread(thandle) == 0xffffffff:
@@ -1723,17 +1723,17 @@ class WindowsMixin:
 
         if self.symcache:
             symcache = self.symcache.getCacheSyms(symhash)
-            if symcache != None:
+            if symcache is not None:
                 self.impSymCache( symcache, symfname=normname, baseaddr=baseaddr)
                 return
 
         symcache = None
         # Check if we can use the real lib to parse...
-        if dbghelp != None and os.path.isfile(filename):
+        if dbghelp is not None and os.path.isfile(filename):
             symcache = self.parseWithDbgHelp(filename, baseaddr, normname)
 
         # If it's *still* none, fall back on PE
-        if symcache == None:
+        if symcache is None:
             symcache = [ (rva, 0, name, 0) for (rva,ord,name) in pe.getExports() ]
 
         self.impSymCache( symcache, symfname=normname, baseaddr=baseaddr)
@@ -1917,7 +1917,7 @@ class Win32SymbolParser:
         self.symGetTypeInfo(typeid, TI_GET_SYMNAME, pointer(n))
         val = n.value
         # Strip leading / trailing _'s
-        if val != None:
+        if val is not None:
             val = val.strip('_')
         if val == '<unnamed-tag>' or val == 'unnamed':
             val = '_unnamed_%d' % typeid

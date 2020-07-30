@@ -196,7 +196,7 @@ class GdbStubMixin:
                 raise Exception('Retrans! ->%s<-' % b)
 
     def _connectSocket(self):
-        if self._gdb_sock != None:
+        if self._gdb_sock is not None:
             self._gdb_sock.shutdown(2)
 
         tries = 0
@@ -253,7 +253,7 @@ class GdbStubMixin:
     def platformContinue(self):
         sig = self.getCurrentSignal()
         cmd = 'c'
-        if sig != None:
+        if sig is not None:
             cmd = 'C%.2x' % sig
         self._sendPkt(cmd)
 
@@ -411,16 +411,16 @@ class GdbStubMixin:
 
 
         #for i,name in enumerate(names):
-            #if name == None: # So we can skip parts of the gdb definition...
+            #if name is None: # So we can skip parts of the gdb definition...
                 #continue
             #j = self.getRegisterIndex(name)
-            #if j != None:
+            #if j is not None:
                 #self._gdb_reg_xlat.append( (i, j) )
 
     def _gdbSetArch(self, arch):
 
         reginfo = gdb_reg_defs.get(arch)
-        if reginfo == None:
+        if reginfo is None:
             raise Exception('No known register mappings for gdbstub on %s!' % arch)
 
         regnames, regfmt = reginfo
@@ -442,7 +442,7 @@ class GdbStubMixin:
 
         for i,regval in enumerate(rvals):
             regname = self._gdb_regnames[i]
-            if regname != None:
+            if regname is not None:
                 ctx.setRegisterByName( regname, regval )
 
         return ctx
@@ -550,7 +550,7 @@ class GdbStubMixin_old(e_registers.RegisterContext):
         self.setMeta('BinaryFormat', None)
 
         arch_reg_info = gdb_reg_defs.get(aname)
-        if arch_reg_info == None:
+        if arch_reg_info is None:
             raise Exception('We dont know the GDB register definition for arch: %s' % name)
 
         self._arch_regnames, self._arch_regfmt = arch_reg_info
@@ -559,10 +559,10 @@ class GdbStubMixin_old(e_registers.RegisterContext):
         self._arch_rctx = self.arch.archGetRegCtx()
         self._arch_reg_xlat = []
         for i,name in enumerate(self._arch_regnames):
-            if name == None: # So we can skip parts of the gdb definition...
+            if name is None: # So we can skip parts of the gdb definition...
                 continue
             j = self._arch_rctx.getRegisterIndex(name)
-            if j != None:
+            if j is not None:
                 self._arch_reg_xlat.append((i,j))
 
         # Load up our register definition!
@@ -742,7 +742,7 @@ class GdbStubMixin_old(e_registers.RegisterContext):
                 #fs_fields = self.readMemoryFormat(fsbase, '<8I')
 
                 #nt = self._getNtOsKrnl(idtr)
-                #if nt != None:
+                #if nt is not None:
                     # We are 64bit windows!
                     #import vstruct.defs.windows.win_6_1_amd64.ntoskrnl as vs_w_ntoskrnl
                     #self.vsbuilder.addVStructNamespace('nt', vs_w_ntoskrnl)
@@ -771,7 +771,7 @@ class GdbStubMixin_old(e_registers.RegisterContext):
         self.vsbuilder.addVStructNamespace('nt', vs_w_ntoskrnl)
         self._initWinBase()
                 #nt = self._getNtOsKrnl(idtr)
-                #if nt != None:
+                #if nt is not None:
                     # We are 64bit windows!
                     #import vstruct.defs.windows.win_6_1_amd64.ntoskrnl as vs_w_ntoskrnl
                     #self.vsbuilder.addVStructNamespace('nt', vs_w_ntoskrnl)
@@ -878,7 +878,7 @@ class GdbStubTrace(
         ## Steal a reference because the step should
         ## clear curbp...
         #bp = self.curbp
-        #if bp != None and bp.isEnabled():
+        #if bp is not None and bp.isEnabled():
             ## We had to remove a check for active and a deactivate here...
             #orig = self.getMode("FastStep")
             #self.setMode("FastStep", True)

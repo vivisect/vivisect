@@ -58,7 +58,7 @@ class VivEventCore(object):
             hlist = self._ve_thand
 
         h = hlist[event]
-        if h != None:
+        if h is not None:
             try:
                 h(self._ve_vw, event, edata)
             except Exception as e:
@@ -69,7 +69,7 @@ class VivEventCore(object):
         chanid = self._ve_vw.createEventChannel()
         try:
             etup = self._ve_vw.waitForEvent(chanid)
-            while etup != None:
+            while etup is not None:
                 self._ve_lock.acquire()
                 self._ve_lock.release()
 
@@ -97,7 +97,7 @@ class VivEventDist(VivEventCore):
     to a set of sub eventcore objects (think GUI windows...)
     '''
     def __init__(self, vw=None, **kwargs):
-        if vw == None:
+        if vw is None:
             raise Exception("VivEventDist requires a vw argument")
 
         VivEventCore.__init__(self, vw)
@@ -112,12 +112,12 @@ class VivEventDist(VivEventCore):
     def addEventCore(self, core):
         for i in range(VWE_MAX):
             h = core._ve_ehand[i]
-            if h != None:
+            if h is not None:
                 self._ve_subs[i].append(h)
 
         for i in range(VTE_MAX):
             h = core._ve_thand[i]
-            if h != None:
+            if h is not None:
                 self._ve_tsubs[i].append(h)
 
     def delEventCore(self, core):
@@ -292,7 +292,7 @@ class VivWorkspaceCore(object, viv_impapi.ImportApi):
         for name,value in meta.items():
             mcbname = "_fmcb_%s" % name.split(':')[0]
             mcb = getattr(self, mcbname, None)
-            if mcb != None:
+            if mcb is not None:
                 mcb(va, name, value)
 
     def _handleDELFUNCTION(self, einfo):
@@ -321,11 +321,11 @@ class VivWorkspaceCore(object, viv_impapi.ImportApi):
     def _handleSETFUNCMETA(self, einfo):
         funcva, name, value = einfo
         m = self.funcmeta.get(funcva)
-        if m != None:
+        if m is not None:
             m[name] = value
         mcbname = "_fmcb_%s" % name.split(':')[0]
         mcb = getattr(self, mcbname, None)
-        if mcb != None:
+        if mcb is not None:
             mcb(funcva, name, value)
 
     def _handleADDCODEBLOCK(self, einfo):
@@ -344,11 +344,11 @@ class VivWorkspaceCore(object, viv_impapi.ImportApi):
         fromva, tova, reftype, rflags = einfo
         xr_to = self.xrefs_by_to.get(tova, None)
         xr_from = self.xrefs_by_from.get(fromva, None)
-        if xr_to == None:
+        if xr_to is None:
             xr_to = []
             self.xrefs_by_to[tova] = xr_to
 
-        if xr_from == None:
+        if xr_from is None:
             xr_from = []
             self.xrefs_by_from[fromva] = xr_from
 
@@ -364,13 +364,13 @@ class VivWorkspaceCore(object, viv_impapi.ImportApi):
 
     def _handleSETNAME(self, einfo):
         va,name = einfo
-        if name == None:
+        if name is None:
             oldname = self.name_by_va.pop(va, None)
             self.va_by_name.pop(oldname, None)
 
         else:
             curname = self.name_by_va.get(va)
-            if curname != None:
+            if curname is not None:
                 logger.debug( 'replacing 0x%x: %r -> %r', va, curname, name)
                 self.va_by_name.pop(curname)
 
@@ -408,7 +408,7 @@ class VivWorkspaceCore(object, viv_impapi.ImportApi):
         # callback name....
         mcbname = "_mcb_%s" % name.split(':')[0]
         mcb = getattr(self, mcbname, None)
-        if mcb != None:
+        if mcb is not None:
             mcb(name, value)
         self.metadata[name] = value
 
@@ -477,7 +477,7 @@ class VivWorkspaceCore(object, viv_impapi.ImportApi):
 
     def _handleSYMHINT(self, msgtup):
         va, idx, hint = msgtup
-        if hint == None:
+        if hint is None:
             self.symhints.pop((va,idx), None)
         else:
             self.symhints[(va,idx)] = hint
@@ -553,7 +553,7 @@ class VivWorkspaceCore(object, viv_impapi.ImportApi):
     def _fireEvent(self, event, einfo, local=False, skip=None):
         '''
         Fire an event down the hole.  "local" specifies that this is
-        being called on a client (self.server != None) but we got it
+        being called on a client (self.server is not None) but we got it
         from the server in the first place so no need to send it back.
 
         skip is used to tell the server to bypass our channelid when
@@ -568,7 +568,7 @@ class VivWorkspaceCore(object, viv_impapi.ImportApi):
             self.ehand[event](einfo)
 
             # If we're supposed to call a server, do that.
-            if self.server != None and local == False:
+            if self.server is not None and local == False:
                 self.server._fireEvent(event, einfo, skip=self.rchan)
 
             # FIXME perhaps we should only process events *via* our server
@@ -594,7 +594,7 @@ class VivWorkspaceCore(object, viv_impapi.ImportApi):
     def _initFunction(self, funcva):
         # Internal function to initialize all datastructures necessary for
         # a function, but only if they haven't been done already.
-        if self.funcmeta.get(funcva) == None:
+        if self.funcmeta.get(funcva) is None:
             self.funcmeta[funcva] = {} # His metadata
             self.codeblocks_by_funcva[funcva] = [] # Init code block list
 
@@ -609,7 +609,7 @@ class VivWorkspaceCore(object, viv_impapi.ImportApi):
         for arch in self.imem_archs:
             arch.setEndian(self.bigend)
 
-        if self.arch != None:
+        if self.arch is not None:
             self.arch.setEndian(self.bigend)
 
 
@@ -662,7 +662,7 @@ class VivWorkspaceCore(object, viv_impapi.ImportApi):
     def _fmcb_CallsFrom(self, funcva, th, callsfrom):
         for va in callsfrom:
             f2va = self.getFunction( va )
-            if f2va != None:
+            if f2va is not None:
                 self._call_graph.getCallEdge( funcva, f2va )
 
     def _fmcb_LocalSymbol(self, fva, mname, locsym):
@@ -695,7 +695,7 @@ class VivCodeFlowContext(e_codeflow.CodeFlowContext):
     def _cb_noflow(self, srcva, dstva):
         vw = self._mem
         loc = vw.getLocation( srcva )
-        if loc == None:
+        if loc is None:
             return
 
         lva,lsize,ltype,linfo = loc
@@ -735,7 +735,7 @@ class VivCodeFlowContext(e_codeflow.CodeFlowContext):
             return
 
         # If the function doesn't have a name, make one
-        if vw.getName(fva) == None:
+        if vw.getName(fva) is None:
             vw.makeName(fva, "sub_%.8x" % fva)
 
         vw._fireEvent(VWE_ADDFUNCTION, (fva,fmeta))
@@ -763,7 +763,7 @@ class VivCodeFlowContext(e_codeflow.CodeFlowContext):
         if tablebase != tableva and self._mem.getXrefsTo(tableva):
             return False
 
-        if self._mem.getLocation(tableva) == None:
+        if self._mem.getLocation(tableva) is None:
             self._mem.makePointer(tableva, tova=destva, follow=False)
 
         return True

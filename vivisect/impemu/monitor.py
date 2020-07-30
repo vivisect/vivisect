@@ -100,7 +100,7 @@ class AnalysisMonitor(EmulationMonitor):
             if vw.isValidPointer(val) and discrete:
 
                 vw.addXref(va, val, REF_DATA)
-                if vw.getLocation(val) != None:
+                if vw.getLocation(val) is not None:
                     continue
 
                 offset, bytes = vw.getByteDef(val)
@@ -157,9 +157,9 @@ class AnalysisMonitor(EmulationMonitor):
     def apicall(self, emu, op, pc, api, argv):
 
         rettype,retname,convname,callname,callargs = api
-        if self.vw.getComment(op.va) == None:
-            if callname == None:
-                callname = self.vw.getName( pc )
+        if self.vw.getComment(op.va) is None:
+            if callname is None:
+                callname = self.vw.getName(pc)
 
             self.callcomments.append( (op.va, callname, argv) )
 
@@ -188,7 +188,7 @@ class AnalysisMonitor(EmulationMonitor):
                     typeguess = argtype.strip().strip('*').split()
                     if typeguess[0] == 'struct' and len(typeguess) >= 2:
                         vs = self.vw.getStructure(arg, typeguess[1])
-                        if vs != None:
+                        if vs is not None:
                             self.vw.makeStructure(arg, typeguess[1], vs=vs)
 
                 continue

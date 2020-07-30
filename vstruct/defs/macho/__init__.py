@@ -20,7 +20,7 @@ class mach_o(vstruct.VStruct):
         self.load_commands = vstruct.VStruct()
 
     def getSymbols(self):
-        if self._symbols != None:
+        if self._symbols is not None:
             return self._symbols
 
         self._symbols = []
@@ -76,4 +76,3 @@ class mach_o(vstruct.VStruct):
             cmdobj.vsParse(bytes, offset=offset)
             self.load_commands.vsAddField('cmd%d' % i, cmdobj)
             offset += cmdobj.cmdsize
-

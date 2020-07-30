@@ -57,9 +57,9 @@ class HeapCorruptionException(Exception):
     def __init__(self, heap, segment, prevchunk, badchunk):
         prevaddr = 0
         badaddr = 0
-        if prevchunk != None:
+        if prevchunk is not None:
             prevaddr = prevchunk.address
-        if badchunk != None:
+        if badchunk is not None:
             badaddr = badchunk.address
         Exception.__init__(self, "Prev Chunk: 0x%.8x Bad Chunk: 0x%.8x" % (prevaddr, badaddr))
         self.heap = heap
@@ -71,9 +71,9 @@ class FreeListCorruption(Exception):
     def __init__(self, heap, index, prevchunk, badchunk):
         prevaddr = 0
         badaddr = 0
-        if prevchunk != None:
+        if prevchunk is not None:
             prevaddr = prevchunk.address
-        if badchunk != None:
+        if badchunk is not None:
             badaddr = badchunk.address
         Exception.__init__(self, "Index: %d Prev Chunk: 0x%.8x Bad Chunk: 0x%.8x" % (index, prevaddr, badaddr))
         self.heap = heap
@@ -165,7 +165,7 @@ class Win32Heap:
 
         (If this windows version doesn't support UCRs, the dict will be empty)
         '''
-        if self.ucrdict == None:
+        if self.ucrdict is None:
             self.ucrdict = {}
             if self.heap.vsHasField('UCRList'):
                 listhead_va = self.address + self.heap.vsGetOffset('UCRList')
@@ -193,7 +193,7 @@ class Win32Heap:
         '''
         Return a list of Win32Segment objects.
         '''
-        if self.seglist == None:
+        if self.seglist is None:
             self.seglist = []
 
             # Windows 7 style heap segment list
@@ -311,7 +311,7 @@ class Win32Segment:
         return self.segend
 
     def getChunks(self):
-        if self.chunks == None:
+        if self.chunks is None:
             self.chunks = []
             addr = self.address
             lastchunk = None
@@ -321,7 +321,7 @@ class Win32Segment:
 
                 # Skip any uncommited ranges...
                 usize = ucrdict.get(addr)
-                if usize != None:
+                if usize is not None:
                     lastchunk = None
                     addr += usize
                     continue
@@ -334,7 +334,7 @@ class Win32Segment:
                 chunk = Win32Chunk(self.trace, self.heap, addr)
 
                 self.chunks.append(chunk)
-                #if lastchunk != None:
+                #if lastchunk is not None:
                     #if lastchunk.chunk.Size != chunk.chunk.PreviousSize:
                         #logger.warning('last size: %d, prev:%d' % (lastchunk.chunk.Size,chunk.chunk.PreviousSize))
                         #raise HeapCorruptionException(self.heap, self, lastchunk, chunk)
@@ -381,7 +381,7 @@ class Win32Chunk:
 
     def getDataBytes(self, maxsize=None):
         size = self.getDataSize()
-        if maxsize != None:
+        if maxsize is not None:
             size = min(size, maxsize)
         return self.trace.readMemory(self.getDataAddress(), size)
 

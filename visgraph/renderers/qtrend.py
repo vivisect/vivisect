@@ -40,7 +40,7 @@ class QtGraphRenderer(vg_render.GraphRenderer, QGraphicsView):
             ninfo['widget'] = wid
 
         gproxy = ninfo.get('gproxy')
-        if gproxy == None:
+        if gproxy is None:
             gproxy = self.scene().addWidget(wid)
             # Nodes always get drawn on top!
             # gproxy.setZValue( 1.0 )

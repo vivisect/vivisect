@@ -23,7 +23,7 @@ class PageLookup:
 
     def getPageLookup(self, va):
         page = self._page_dict.get( va >> 16 )
-        if page == None:
+        if page is None:
             return None
         return page[ va & 0xffff ]
 

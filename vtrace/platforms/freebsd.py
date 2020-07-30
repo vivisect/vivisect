@@ -259,7 +259,7 @@ class FreeBSDMixin:
             raise Exception("VDB needs /proc! (use: mount -t procfs procfs /proc)")
 
     def finiMixin(self):
-        if self.kvmh != None:
+        if self.kvmh is not None:
             libkvm.kvm_close(self.kvmh)
 
     def platformReadMemory(self, address, size):
@@ -339,7 +339,7 @@ class FreeBSDMixin:
             exitcode = os.WEXITSTATUS(status)
 
             tid = self.getMeta("ThreadId", None)
-            if tid == None or len(self.getThreads()) == 0:
+            if tid is None or len(self.getThreads()) == 0:
                 self._fireExit( exitcode )
                 return
 
@@ -373,7 +373,7 @@ class FreeBSDMixin:
             cmd = PT_SYSCALL
 
         sig = self.getCurrentSignal()
-        if sig == None:
+        if sig is None:
             sig = 0
 
         # In freebsd address is the place to continue from

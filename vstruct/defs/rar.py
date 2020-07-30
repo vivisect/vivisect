@@ -301,13 +301,13 @@ class Rar:
         self.mainhead = None
 
 
-        if fd != None:
+        if fd is not None:
             self.parseRarHeader(fd)
 
     def parseRarHeader(self, fd):
 
         veroff = getRarOffset(fd)
-        if veroff == None:
+        if veroff is None:
             raise MissingRarSig()
 
         self.fd = fd
@@ -322,7 +322,7 @@ class Rar:
             self.salt = self.fd.read( SIZE_SALT30 )
 
     def _req_fd(self):
-        if self.fd == None:
+        if self.fd is None:
             raise NoRarFd()
 
     def tryFilePasswd(self, passwd):
@@ -330,7 +330,7 @@ class Rar:
         Check the passwd agains the next encrypted header
         ( which should be of type FILE_HEAD )
         '''
-        if self.trybuf == None:
+        if self.trybuf is None:
             curloc = self.fd.tell()
             self.trybuf = self.fd.read(16)
             self.fd.seek(curloc)
@@ -349,7 +349,7 @@ class Rar:
         self.aes = aesInit(iv,key)
 
     def read(self, size):
-        if self.aes == None:
+        if self.aes is None:
             return self.fd.read(size)
 
         while len(self.clearbuf) < size:
@@ -362,13 +362,13 @@ class Rar:
 
     #def read(self, size):
         #buf = self.fd.read(size)
-        #if self.aes != None:
+        #if self.aes is not None:
             #buf = self.aes.decrypt(buf)
         #return buf
 
     def iterRar4Files(self):
 
-        if self.salt != None and self.aes == None:
+        if self.salt is not None and self.aes is None:
             raise PasswordRequired()
 
         while True:
@@ -379,14 +379,14 @@ class Rar:
             rar4 = Rar4Block()
             rar4.vsParse( hdr )
 
-            #if self.salt != None:
+            #if self.salt is not None:
                 #remain = csize % 16
                 #if remain:
                     #pad = self.read( 16 - remain )
                     #logger.info('PAD %s' % binascii.hexlify(pad))
 
             cls = rar4blocks.get(rar4.HEAD_TYPE)
-            if cls != None:
+            if cls is not None:
                 rar4 = cls()
                 rar4.vsParse(hdr+body)
 
@@ -394,7 +394,7 @@ class Rar:
             sys.stdin.readline()
 
             #if ctype == MAIN_HEAD and cflags & MHD_PASSWORD:
-                #if passwd == None:
+                #if passwd is None:
                     #raise PasswordRequired()
 
                 #salt30 = fd.read(SIZE_SALT30)

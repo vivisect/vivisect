@@ -58,7 +58,7 @@ arch_bindings = {
 
 def sysvamd64name(idx):
     ret = sysvamd64argnames.get(idx)
-    if ret == None:
+    if ret is None:
         name = 'arg%d' % idx
     else:
         name, idx = ret
@@ -66,7 +66,7 @@ def sysvamd64name(idx):
 
 def msx64name(idx):
     ret = msx64argnames.get(idx)
-    if ret == None:
+    if ret is None:
         name = 'arg%d' % idx
     else:
         name, idx = ret
@@ -132,7 +132,7 @@ def analyzeFunction(vw, fva):
     # Do we already have API info in meta?
     # NOTE: do *not* use getFunctionApi here, it will make one!
     api = vw.getFunctionMeta(fva, 'api')
-    if api == None:
+    if api is None:
         api = buildFunctionApi(vw, fva, emu, emumon)
 
     rettype,retname,callconv,callname,callargs = api

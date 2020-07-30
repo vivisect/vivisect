@@ -757,7 +757,7 @@ class DarwinMixin(v_posix.PosixMixin, v_posix.PtraceMixin):
         exc = exc_msg()
 
         flags = MACH_RCV_MSG | MACH_RCV_LARGE
-        if timeout != None:
+        if timeout is not None:
             flags |= MACH_RCV_TIMEOUT
             
         r = self.libc.mach_msg(addrof(exc),
@@ -780,14 +780,14 @@ class DarwinMixin(v_posix.PosixMixin, v_posix.PtraceMixin):
         # Wait for a mach message on the exception port
 
         #exc = None
-        #while exc == None:
+        #while exc is None:
             #exc = self._getNextExc()
 
         #self.setMeta('ThreadId', exc.thread.name)
         #self.setMeta('StoppedThreadId', exc.thread.name)
 
         #e2 = self._getNextExc(timeout=0)
-        #if e2 != None:
+        #if e2 is not None:
         #print "ALSO GOT",e2
 
 
@@ -837,9 +837,9 @@ class DarwinMixin(v_posix.PosixMixin, v_posix.PtraceMixin):
         self.stepping = True
 
         exc = self.getMeta('MachExcMsg')
-        if exc != None:
+        if exc is not None:
             self.setMeta('MachExcMsg', None)
-            maskexc = ( self.getCurrentSignal() == None )
+            maskexc = ( self.getCurrentSignal() is None )
             self.sendExcResp(exc, maskexc=maskexc)
 
         assert( self.libc.task_resume(self.task) == 0 )
@@ -848,7 +848,7 @@ class DarwinMixin(v_posix.PosixMixin, v_posix.PtraceMixin):
     def platformContinue(self):
 
         sig = self.getCurrentSignal()
-        if sig == None:
+        if sig is None:
             sig = 0
 
         #threadid = self.getMeta('StoppedThreadId', 0)
@@ -857,9 +857,9 @@ class DarwinMixin(v_posix.PosixMixin, v_posix.PtraceMixin):
 
         # If we have a mach message to respond to, lets do that....
         exc = self.getMeta('MachExcMsg')
-        if exc != None:
+        if exc is not None:
             self.setMeta('MachExcMsg', None)
-            maskexc = ( self.getCurrentSignal() == None )
+            maskexc = ( self.getCurrentSignal() is None )
             self.sendExcResp(exc, maskexc=maskexc)
 
         #if self.useptrace:

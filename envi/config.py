@@ -89,13 +89,13 @@ class EnviConfig:
         self.filename = filename
         self.cfgsubsys = {}
 
-        if defaults != None:
+        if defaults is not None:
             self.setConfigPrimitive( defaults )
 
-        if filename != None and os.path.isfile(filename):
+        if filename is not None and os.path.isfile(filename):
             self.loadConfigFile( filename )
 
-        if docs != None:
+        if docs is not None:
             self.setDocsPrimitive(docs)
 
     def getOptionDoc(self, optname):
@@ -104,7 +104,7 @@ class EnviConfig:
 
         Example:
             doc = config.getOptionDoc('woot')
-            if doc != None:
+            if doc is not None:
                 print('woot: %s' % doc)
         '''
         return self.cfgdocs.get(optname)
@@ -173,7 +173,7 @@ class EnviConfig:
         config = self
         for opart in optparts[:-1]:
             config = config.getSubConfig(opart, add=False)
-            if config == None:
+            if config is None:
                 raise ConfigInvalidName(optpath)
 
         optname = optparts[-1]
@@ -246,7 +246,7 @@ class EnviConfig:
         '''
         Save the config information to file.
         '''
-        if filename == None:
+        if filename is None:
             filename = self.filename
 
         cfgdict = self.getConfigPrimitive()
@@ -257,16 +257,16 @@ class EnviConfig:
         '''
         Load config info from a file.
         '''
-        if filename == None:
+        if filename is None:
             filename = self.filename
         with open(filename, 'rb') as fd:
-            cfgdict = json.load( fd )
+            cfgdict = json.load(fd)
         self.setConfigPrimitive(cfgdict)
 
     def __getattr__(self, name):
 
         value = self.cfginfo.get(name)
-        if value != None:
+        if value is not None:
             return value
 
         value = self.cfgsubsys.get(name)

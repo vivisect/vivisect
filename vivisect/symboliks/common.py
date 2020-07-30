@@ -555,7 +555,7 @@ class Var(SymbolikBase):
 
     def update(self, emu):
         ret = emu.getSymVariable(self.name, create=False)
-        if ret != None:
+        if ret is not None:
             return ret
         return Var(self.name, width=self.width)
 
@@ -596,7 +596,7 @@ class LookupVar(Var):
     def _solve(self, emu=None):
         name = 'LookupVar:%s:%s' % (self.name, self.offset)
 
-        if emu != None:
+        if emu is not None:
             name += emu.getRandomSeed()
 
         return long(hashlib.md5(name).hexdigest()[:self.width*2], 16)

@@ -28,7 +28,7 @@ def loadExtensions(vdb, trace):
         mod.vdbExtension(vdb, trace)
 
     extdir = os.getenv('VDB_EXT_PATH')
-    if extdir == None:
+    if extdir is None:
         extdir = os.path.abspath(os.path.join('vdb', 'ext'))
 
     for dirname in extdir.split(';'):

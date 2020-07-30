@@ -70,11 +70,11 @@ class WorkspaceEmulator:
 
         for name in dir(self):
             val = getattr(self, name, None)
-            if val == None:
+            if val is None:
                 continue
 
             impname = getattr(val, '__imphook__',None)
-            if impname == None:
+            if impname is None:
                 continue
 
             self.hooks[impname] = val
@@ -494,7 +494,7 @@ class WorkspaceEmulator:
             stackoff = tinfo
             if self.funcva:
                 flocal = self.vw.getFunctionLocal(self.funcva, stackoff)
-                if flocal != None:
+                if flocal is not None:
                     typename,argname = flocal
                     return argname
             o = '+'
@@ -553,7 +553,7 @@ class WorkspaceEmulator:
 
     def _useVirtAddr(self, va):
         taint = self.getVivTaint(va)
-        if taint == None:
+        if taint is None:
             return
 
         tva,ttype,tinfo = taint
@@ -593,7 +593,7 @@ class WorkspaceEmulator:
 
         # If they read an import entry, start a taint...
         loc = self.vw.getLocation(va)
-        if loc != None:
+        if loc is not None:
             lva, lsize, ltype, ltinfo = loc
             if ltype == LOC_IMPORT and lsize == size: # They just read an import.
                 ret = self.setVivTaint('import', loc)

@@ -32,7 +32,7 @@ class WorkspaceRenderer(e_canvas.MemoryRenderer):
     def render(self, mcanv, va):
 
         loc = self.vw.getLocation(va)
-        if loc == None:
+        if loc is None:
             loc = (va, 1, LOC_UNDEF, None)
 
         lva, lsize, ltype, tinfo = loc
@@ -63,7 +63,7 @@ class WorkspaceRenderer(e_canvas.MemoryRenderer):
         cmnttag = mcanv.getTag("comment")
 
         seg = self.vw.getSegment(lva)
-        if seg == None:
+        if seg is None:
             segname = "map"
         else:
             segname = seg[SEG_NAME]
@@ -75,7 +75,7 @@ class WorkspaceRenderer(e_canvas.MemoryRenderer):
 
         xrcount = len(xrefs)
 
-        if seg != None and self._show_segment:
+        if seg is not None and self._show_segment:
             segva, segsize, segname, segfname = seg
             if segva == lva:
                 mcanv.addText(linepre, tag=vatag)
@@ -135,9 +135,9 @@ class WorkspaceRenderer(e_canvas.MemoryRenderer):
             mcanv.addText(linepre, tag=vatag)
             mcanv.addText('\n')
 
-        elif xrcount > 0 or name != None:
+        elif xrcount > 0 or name is not None:
             mcanv.addText(linepre, tag=vatag)
-            if name == None:
+            if name is None:
                 name = "loc_%.8x" % lva
             mcanv.addText(urllib.quote_plus(name), tag=vatag)
             mcanv.addText(": ")
@@ -178,7 +178,7 @@ class WorkspaceRenderer(e_canvas.MemoryRenderer):
                 if isinstance(sobj, vs_prims.v_ptr):
                     stova = long(sobj)
                     stoname = self.vw.getName(stova)
-                    if stoname == None:
+                    if stoname is None:
                         stoname = repr(sobj)
                     if self.vw.isValidPointer(stova):
                         totag = mcanv.getVaTag(stova)
@@ -190,7 +190,7 @@ class WorkspaceRenderer(e_canvas.MemoryRenderer):
 
                 # Insert the sobj info (if it's a primitive)
                 if isinstance(sobj, vs_prims.v_prim):
-                    if totag != None:
+                    if totag is not None:
                         mcanv.addText(stoname, tag=totag)
                     else:
                         mcanv.addText(repr(sobj))
@@ -203,7 +203,7 @@ class WorkspaceRenderer(e_canvas.MemoryRenderer):
 
                 # Handle the comment if present
                 cmnt = self.vw.getComment(sva)
-                if cmnt != None:
+                if cmnt is not None:
                     mcanv.addText("    ;%s" % cmnt, tag=cmnttag)
 
                 mcanv.addText("\n")
@@ -223,13 +223,13 @@ class WorkspaceRenderer(e_canvas.MemoryRenderer):
             mcanv.addText(pstr, tag=totag)
 
             name = self.vw.getName(tova)
-            if name == None:
+            if name is None:
                 name = "loc_%.8x" % tova #FIXME 64bit
 
             mcanv.addText(" (")
             mcanv.addText(name, tag=totag)
             mcanv.addText(")")
-            if cmnt != None:
+            if cmnt is not None:
                 mcanv.addText("    ;%s" % cmnt, tag=cmnttag)
             mcanv.addText("\n")
 
@@ -241,7 +241,7 @@ class WorkspaceRenderer(e_canvas.MemoryRenderer):
             mcanv.addNameText(binascii.hexlify(b), typename="undefined")
             if b in string.printable:
                 mcanv.addText('    %s' % repr(b), tag=cmnttag)
-            if cmnt != None:
+            if cmnt is not None:
                 mcanv.addText('    ;%s' % cmnt, tag=cmnttag)
             mcanv.addText("\n")
 
@@ -250,19 +250,19 @@ class WorkspaceRenderer(e_canvas.MemoryRenderer):
             mcanv.addText(linepre, vatag)
             tva = self.vw.vaByName(tinfo)
             mcanv.addText('IMPORT: ')
-            if tva != None:
+            if tva is not None:
                 mcanv.addVaText(tinfo, tva)
             else:
                 mcanv.addText(tinfo)
 
-            if cmnt != None:
+            if cmnt is not None:
                 mcanv.addText("    ;%s" % cmnt, tag=cmnttag)
 
             mcanv.addText("\n")
 
         else:
             tagname = loc_type_names.get(ltype, None)
-            if tagname == None:
+            if tagname is None:
                 tagname = "location"
 
             ltag = mcanv.getTag(tagname)
@@ -272,6 +272,6 @@ class WorkspaceRenderer(e_canvas.MemoryRenderer):
                 mcanv.addText(line, ltag)
                 if not cdone:
                     cdone = True
-                    if cmnt != None:
+                    if cmnt is not None:
                         mcanv.addText("    ;%s" % cmnt, tag=cmnttag)
                 mcanv.addText("\n")

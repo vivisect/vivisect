@@ -433,7 +433,7 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
         """
         Return the current value of the specified register index.
         """
-        if mode == None:
+        if mode is None:
             mode = self.getProcMode() & 0xf
         else:
             mode &= 0xf
@@ -453,7 +453,7 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
         """
         Set a register value by index.
         """
-        if mode == None:
+        if mode is None:
             mode = self.getProcMode() & 0xf
         else:
             mode &= 0xf
@@ -504,7 +504,7 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
         src2 = self.getOperValue(op, 2)
         Sflag = op.iflags & IF_PSR_S
 
-        if src1 == None or src2 == None:
+        if src1 is None or src2 is None:
             self.undefFlags()
             return None
 
@@ -612,7 +612,7 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
             src2 = self.getOperValue(op, 1)
 
         # PDE
-        if src1 == None or src2 == None:
+        if src1 is None or src2 is None:
             self.undefFlags()
             self.setOperValue(op, 0, None)
             return
@@ -1454,7 +1454,7 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
         self.setOperValue(op, 0, ures)
        
         #FIXME PDE and flags
-        if src1 == None or src2 == None:
+        if src1 is None or src2 is None:
             self.undefFlags()
             self.setOperValue(op, 0, None)
             return

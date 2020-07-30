@@ -384,7 +384,7 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
     vw.setFileMeta(fname, 'forwarders', fwds)
 
     # Check For SafeSEH list...
-    if pe.IMAGE_LOAD_CONFIG != None:
+    if pe.IMAGE_LOAD_CONFIG is not None:
 
         vw.setFileMeta(fname, "SafeSEH", True)
 
@@ -395,7 +395,7 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
             # RP BUG FIX - sanity check the count
             if count * 4 < pe.filesize and vw.isValidPointer(va):
                 # XXX - CHEAP HACK for some reason we have binaries still thorwing issues.. 
-                
+
                 try:
                     # Just cheat and use the workspace with memory maps in it already
                     for h in vw.readMemoryFormat(va, "<%dP" % count):

@@ -64,7 +64,7 @@ class AnalysisMonitor(viv_monitor.AnalysisMonitor):
             # ARM gives us nice switchcase handling instructions
             ##### FIXME: wrap TB-handling into getBranches(emu) which is called by checkBranches during emulation
             if op.opcode in (INS_TBH, INS_TBB):
-                if emu.vw.getVaSetRow('SwitchCases', op.va) == None:
+                if emu.vw.getVaSetRow('SwitchCases', op.va) is None:
                     base, tbl = analyzeTB(emu, op, starteip, self)
                     if not None in (base, tbl):
                         count = len(tbl)
@@ -89,7 +89,7 @@ class AnalysisMonitor(viv_monitor.AnalysisMonitor):
 
             elif op.opcode == INS_ADD and op.opers[0].reg == REG_PC:
                 # simple branch code
-                if emu.vw.getVaSetRow('SwitchCases', op.va) == None:
+                if emu.vw.getVaSetRow('SwitchCases', op.va) is None:
                     base, tbl = analyzeADDPC(emu, op, starteip, self)
                     if None not in (base, tbl):
                         count = len(tbl)
@@ -98,7 +98,7 @@ class AnalysisMonitor(viv_monitor.AnalysisMonitor):
 
             elif op.opcode == INS_SUB and isinstance(op.opers[0], e_arm.ArmRegOper) and op.opers[0].reg == REG_PC:
                 # simple branch code
-                if emu.vw.getVaSetRow('SwitchCases', op.va) == None:
+                if emu.vw.getVaSetRow('SwitchCases', op.va) is None:
                     base, tbl = analyzeSUBPC(emu, op, starteip, self)
                     if None not in (base, tbl):
                         count = len(tbl)
@@ -258,7 +258,7 @@ def analyzeTB(emu, op, starteip, amon):
             break
 
         loc = emu.vw.getLocation(va)
-        if loc != None:
+        if loc is not None:
             logger.debug("Terminating TB at Location/Reference")
             logger.debug("%x, %d, %x, %r", loc)
             break
@@ -302,7 +302,7 @@ def analyzeTB(emu, op, starteip, amon):
         emu.vw.addXref(op.va, nexttgt, REF_CODE)
 
         curname = emu.vw.getName(nexttgt)
-        if curname == None:
+        if curname is None:
             emu.vw.makeName(nexttgt, "case_%x_%x_%x" % (case, op.va, nexttgt))
         else:
             emu.vw.vprint("case_%x_%x_%x conflicts with existing name: %r" % (case, op.va, nexttgt, curname))
@@ -316,7 +316,7 @@ def analyzeADDPC(emu, op, starteip, emumon):
 
     reg = op.opers[-1].reg
     cb = emu.vw.getCodeBlock(op.va)
-    if cb == None:
+    if cb is None:
         return None, None
 
     cbva, cbsz, cbfva = cb
@@ -341,7 +341,7 @@ def analyzeADDPC(emu, op, starteip, emumon):
 
         off += len(top)
 
-    if not count or count == None or count > 10000:
+    if not count or count is None or count > 10000:
         return None, None
 
     #logger.debug("Making ADDPC SwitchCase (count=%d):" % count)
@@ -359,7 +359,7 @@ def analyzeADDPC(emu, op, starteip, emumon):
         emu.vw.addXref(starteip, nexttgt, REF_CODE)
 
         curname = emu.vw.getName(nexttgt)
-        if curname == None:
+        if curname is None:
             emu.vw.makeName(nexttgt, "case_%x_%x_%x" % (x, starteip, nexttgt))
         else:
             emu.vw.vprint("case_%x_%x_%x conflicts with existing name: %r" % (x, starteip, nexttgt, curname))
@@ -372,7 +372,7 @@ def analyzeSUBPC(emu, op, starteip, emumon):
     count = None
 
     cb = emu.vw.getCodeBlock(op.va)
-    if cb == None:
+    if cb is None:
         return None, None
 
     off = 0
@@ -398,7 +398,7 @@ def analyzeSUBPC(emu, op, starteip, emumon):
 
         off += len(top)
 
-    if not count or count == None or count > 10000:
+    if not count or count is None or count > 10000:
         return None, None
 
     #logger.debug("Making SUBPC SwitchCase (count=%d):" % count)
@@ -418,7 +418,7 @@ def analyzeSUBPC(emu, op, starteip, emumon):
         emu.vw.addXref(starteip, nexttgt, REF_CODE)
 
         curname = emu.vw.getName(nexttgt)
-        if curname == None:
+        if curname is None:
             emu.vw.makeName(nexttgt, "case_%x_%x_%x" % (x, starteip, nexttgt))
         else:
             emu.vw.vprint("case_%x_%x_%x conflicts with existing name: %r" % (x, starteip, nexttgt, curname))

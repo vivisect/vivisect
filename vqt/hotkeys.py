@@ -164,7 +164,7 @@ class HotKeyMixin(object):
             return super(HotKeyMixin, self).keyPressEvent(event)
 
             #parent = self.parent()
-            #if parent != None:
+            #if parent is not None:
             #    return parent.keyPressEvent(event)
 
 import vqt.tree

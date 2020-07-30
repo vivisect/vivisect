@@ -161,7 +161,7 @@ class VdbToolBar(vtrace.qt.VQTraceToolBar):
 
     def actAttach(self, *args, **kwargs):
         pid = vtrace.qt.getProcessPid(trace=self.trace)
-        if pid != None:
+        if pid is not None:
             workthread(self.trace.attach)(pid)
 
     @workthread
@@ -329,11 +329,11 @@ class VdbWindow(vq_app.VQMainCmdWindow):
         platform = trace.getMeta('Platform').lower()
 
         pconfig = config.getSubConfig( platform, add=False )
-        if pconfig != None:
+        if pconfig is not None:
             configs.append(('vdb:%s' % platform, pconfig))
 
         aconfig = config.getSubConfig( arch, add=False )
-        if aconfig != None:
+        if aconfig is not None:
             configs.append(('vdb:%s' % arch, aconfig))
 
         self._cfg_widget = envi.qt.config.EnviConfigTabs( configs )

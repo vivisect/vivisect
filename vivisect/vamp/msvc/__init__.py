@@ -35,7 +35,7 @@ class VisualStudioVamp(e_bytesig.SignatureTree):
         e_bytesig.SignatureTree.__init__(self)
         for bytez, masks, fname in sigs:
             bytez = binascii.unhexlify(bytez)
-            if masks != None:
+            if masks is not None:
                 masks = binascii.unhexlify(masks)
             self.addSignature(bytez, masks=masks, val=fname)
 

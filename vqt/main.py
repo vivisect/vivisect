@@ -126,11 +126,11 @@ class QEventThread(QtCore.QThread):
             try:
 
                 todo = self.workq.get()
-                if todo == None:
+                if todo is None:
                     continue
 
                 func,args,kwargs = todo
-                if func == None:
+                if func is None:
                     return
 
                 self.idleadd.emit(func,args,kwargs)
@@ -159,10 +159,10 @@ def workerThread():
     while True:
         try:
             todo = workerq.get()
-            if todo != None:
+            if todo is not None:
                 func, args, kwargs = todo
 
-                if func == None:
+                if func is None:
                     return
 
                 try:
@@ -249,12 +249,12 @@ def vqtdisconnect(callback, event=None):
     of the specified type.
     '''
     global qapp
-    if event == None:
+    if event is None:
         qapp.guievents.disconnect( callback )
         return
 
     chan = qapp.vqtchans.get(event)
-    if chan != None:
+    if chan is not None:
         chan.guievents.disconnect(callback)
 
 def getOpenFileName(*args, **kwargs):

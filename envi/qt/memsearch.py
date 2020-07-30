@@ -136,7 +136,7 @@ class MemSearchDialog(QDialog):
         return txt.encode(encoding)
 
     def updateHexPreview(self, bytez):
-        if bytez == None:
+        if bytez is None:
             self.hex_edit.setPlainText('')
             return
 

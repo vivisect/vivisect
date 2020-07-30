@@ -475,7 +475,7 @@ class LinuxMixin(v_posix.PtraceMixin, v_posix.PosixMixin):
             cmd = PT_SYSCALL
         pid = self.getPid()
         sig = self.getCurrentSignal()
-        if sig == None:
+        if sig is None:
             sig = 0
         # Only deliver signals to the main thread
         if v_posix.ptrace(cmd, pid, 0, sig) != 0:
@@ -638,7 +638,7 @@ class LinuxMixin(v_posix.PtraceMixin, v_posix.PosixMixin):
         msgs.
         """
         p = c_ulong(0)
-        if tid == None:
+        if tid is None:
             tid = self.getMeta("ThreadId", -1)
         if v_posix.ptrace(PT_GETEVENTMSG, tid, 0, addressof(p)) != 0:
             raise Exception('ptrace PT_GETEVENTMSG failed!')
@@ -934,7 +934,7 @@ class LinuxArmTrace(
 
     def _fireStep(self):
         # See notes below about insanity...
-        if self._step_cleanup != None:
+        if self._step_cleanup is not None:
             [ self.writeMemory( bva, bytes ) for (bva,bytes) in self._step_cleanup ]
             self._step_cleanup = None
         return v_base.TracerBase._fireStep( self )

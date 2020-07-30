@@ -111,11 +111,11 @@ def analyze(vw):
         bcode  = []
 
         vatodo = []
-        vatodo = [ va for va, name in vw.getNames() if vw.getLocation(va) == None ]
-        vatodo.extend( [tova for fromva, tova, reftype, rflags in vw.getXrefs(rtype=REF_PTR) if vw.getLocation(tova) == None] )
+        vatodo = [ va for va, name in vw.getNames() if vw.getLocation(va) is None ]
+        vatodo.extend( [tova for fromva, tova, reftype, rflags in vw.getXrefs(rtype=REF_PTR) if vw.getLocation(tova) is None] )
 
         for va in set(vatodo):
-            if vw.getLocation(va) != None:
+            if vw.getLocation(va) is not None:
                 continue
             if vw.isDeadData(va):
                 continue

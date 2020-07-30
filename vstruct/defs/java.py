@@ -74,8 +74,8 @@ class ConstPoolInfo(vstruct.VStruct):
         self.data   = vstruct.VStruct()
 
     def pcb_tag(self):
-        cls = tag_classes.get( self.tag )
-        if cls == None:
+        cls = tag_classes.get(self.tag)
+        if cls is None:
             raise Exception('Unknown ConstPoolInfo Tag: %s' % self.tag )
         self.data.tagval = cls()
 

@@ -64,7 +64,7 @@ class ChunkQueue:
         self.last = time.time()
         self.lock = threading.Lock()
         self.event = threading.Event()
-        if items == None:
+        if items is None:
             items = []
         self.items = items
 
@@ -152,7 +152,7 @@ class EnviQueue:
         self.last = time.time()
         self.lock = threading.Lock()
         self.event = threading.Event()
-        if items == None:
+        if items is None:
             items = []
         self.items = collections.deque(items)
 

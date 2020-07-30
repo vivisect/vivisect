@@ -92,7 +92,7 @@ def einfo(vdb, line):
     for opt,optarg in opts:
         if opt == '-P':
             p = t.getMeta('PendingSignal')
-            if p != None:
+            if p is not None:
                 t.setMeta('OrigSignal', p)
                 t.setMeta('PendingSignal', None)
             else:
@@ -130,7 +130,7 @@ def seh(vdb, line):
     else:
         tid = int(line)
     tinfo = t.getThreads().get(tid, None)
-    if tinfo == None:
+    if tinfo is None:
         vdb.vprint("Unknown Thread Id: %d" % tid)
         return
     teb = t.getStruct("ntdll.TEB", tinfo)
@@ -153,7 +153,7 @@ def safeseh(vdb, line):
     libs = t.getMeta("LibraryBases")
     if len(line):
         base = libs.get(line)
-        if base == None:
+        if base is None:
             vdb.vprint("Unknown library: %s" % line)
             return
 
@@ -186,7 +186,7 @@ def safeseh(vdb, line):
                 continue
 
             enabled = False
-            if p.IMAGE_LOAD_CONFIG != None:
+            if p.IMAGE_LOAD_CONFIG is not None:
                 va = int(p.IMAGE_LOAD_CONFIG.SEHandlerTable)
                 if va != 0:
                     enabled = True
@@ -283,7 +283,7 @@ def heaps(vdb, line):
             else:
                 buckets_heap = t.parseExpression(optarg)
 
-    if lookaside_heap != None:
+    if lookaside_heap is not None:
         haddrs = [h.address for h in win32heap.getHeaps(t)]
         if lookaside_heap not in haddrs:
             vdb.vprint("0x%.8x is NOT a valid heap!" % lookaside_heap)
@@ -296,7 +296,7 @@ def heaps(vdb, line):
             for c in l:
                 vdb.vprint("    %s" % (repr(c)))
 
-    elif uncommit_heap != None:
+    elif uncommit_heap is not None:
 
         haddrs = [h.address for h in win32heap.getHeaps(t)]
         if uncommit_heap not in haddrs:
@@ -318,7 +318,7 @@ def heaps(vdb, line):
 
         return
 
-    elif freelist_heap != None:
+    elif freelist_heap is not None:
         haddrs = [h.address for h in win32heap.getHeaps(t)]
         if freelist_heap not in haddrs:
             vdb.vprint("0x%.8x is NOT a valid heap!" % freelist_heap)
@@ -331,14 +331,14 @@ def heaps(vdb, line):
                 for c in l:
                     vdb.vprint("   %s" % repr(c))
 
-    elif chunkfind_addr != None:
+    elif chunkfind_addr is not None:
         heap,seg,chunk = win32heap.getHeapSegChunk(t, chunkfind_addr)
         vdb.vprint("Address  0x%.8x found in:" % (chunkfind_addr,))
         vdb.vprint("Heap:    0x%.8x" % (heap.address))
         vdb.vprint("Segment: 0x%.8x" % (seg.address))
         vdb.vprint("Chunk:   0x%.8x (%d) FLAGS: %s" % (chunk.address, len(chunk),chunk.reprFlags()))
 
-    elif chunklist_seg != None:
+    elif chunklist_seg is not None:
 
         for heap in win32heap.getHeaps(t):
             for seg in heap.getSegments():
@@ -353,7 +353,7 @@ def heaps(vdb, line):
 
         vdb.vprint("Segment 0x%.8x not found!" % chunklist_seg)
 
-    elif leakfind_heap != None:
+    elif leakfind_heap is not None:
         # FIXME do this the slow way for now...
         haddrs = [h.address for h in win32heap.getHeaps(t)]
         if leakfind_heap not in haddrs:
@@ -376,7 +376,7 @@ def heaps(vdb, line):
                 if len(l) == 0:
                     vdb.vprint("0x%.8x may be leaked!" % addr)
 
-    elif buckets_heap != None:
+    elif buckets_heap is not None:
         headers = '{0:10} {1:10} {2:10} {3:>8} {4:>8} {5:>8} {6:>8}'.format('Heap', 'SubSeg', 'UserData', 'Index', 'Size', 'Total', 'Free')
         vdb.vprint(headers)
 
@@ -432,7 +432,7 @@ def aslr(vdb, line):
     libs = t.getMeta("LibraryBases")
     if line:
         base = libs.get(line)
-        if base == None:
+        if base is None:
             vdb.vprint("Unknown library: %s" % line)
             return
         showaslr(vdb, base, line)
@@ -493,10 +493,10 @@ def pagewatch(vdb, line):
     except Exception:
         return vdb.do_help('pagewatch')
 
-    if vdb.trace.getMeta('pagewatch') == None:
+    if vdb.trace.getMeta('pagewatch') is None:
         vdb.trace.setMeta('pagewatch', [])
 
-    if vdb.trace.getMeta('pagerun') == None:
+    if vdb.trace.getMeta('pagerun') is None:
         vdb.trace.setMeta('pagerun', False)
 
     domap = False
@@ -530,7 +530,7 @@ def pagewatch(vdb, line):
         elif opt == "-S":
             saddr = vdb.trace.parseExpression(optarg)
             hits = vdb.trace.getMeta("pagewatch")
-            if hits == None:
+            if hits is None:
                 vdb.vprint("No pagewatch log!")
                 return
             hits = [ h for h in hits if h[1] == saddr ]
@@ -540,7 +540,7 @@ def pagewatch(vdb, line):
         elif opt == "-P":
             saddr = vdb.trace.parseExpression(optarg)
             hits = vdb.trace.getMeta("pagewatch")
-            if hits == None:
+            if hits is None:
                 vdb.vprint("No pagewatch log!")
                 return
 
@@ -560,7 +560,7 @@ def pagewatch(vdb, line):
     maxaddr = baseaddr + 4096
 
     mmap = vdb.trace.getMemoryMap(baseaddr)
-    if mmap == None:
+    if mmap is None:
         raise Exception("Invalid memory map address 0x%.8x" % baseaddr)
 
     if domap:
@@ -767,7 +767,7 @@ def pe(vdb, line):
     names = e_cli.columnstr(names)
     for libname in names:
         base = bases.get(libname.strip(), None)
-        if base == None:
+        if base is None:
             base = vdb.trace.parseExpression(libname)
         path = paths.get(base, "unknown")
 
@@ -793,14 +793,14 @@ def pe(vdb, line):
         elif showvers:
             version = 'Unknown!'
             vs = pobj.getVS_VERSIONINFO()
-            if vs != None:
+            if vs is not None:
                 version = vs.getVersionValue('FileVersion')
             vdb.vprint('%s: %s' % (libname.rjust(30),version))
 
         elif showvsin:
             vs = pobj.getVS_VERSIONINFO()
             vdb.vprint('==== %s' % libname)
-            if vs == None:
+            if vs is None:
                 vdb.vprint('no VS_VERSIONINFO...')
             else:
                 vskeys = vs.getVersionKeys()
@@ -854,7 +854,7 @@ def sympath(vdb, line):
     if len(line):
         vdb.trace.setMeta('NtSymbolPath', line)
     sympath = vdb.trace.getMeta('NtSymbolPath')
-    if sympath == None:
+    if sympath is None:
         sympath = os.getenv('_NT_SYMBOL_PATH')
     vdb.vprint('Current Symbol Path: %s' % sympath)
 
@@ -931,7 +931,7 @@ def hooks(vdb, line):
                         vdb.canvas.addText(' mem: %s file: %s ' % (dmem, dfil))
 
                         sym = vdb.symobj.getSymByAddr(difva, exact=False)
-                        if sym != None:
+                        if sym is not None:
                             vdb.canvas.addText(' ')
                             vdb.canvas.addVaText('%s + %d' % (repr(sym),difva-long(sym)), difva)
                         vdb.canvas.addText('\n')
@@ -983,7 +983,7 @@ def jit(vdb, line):
             setval = '%s %s -r -p %%ld -e %%Id' % (sys.executable, vdbpath)
             #_winreg.SetValue(HKLM
 
-    if setval != None:
+    if setval is not None:
         vdb.vprint('Setting JIT: %s' % (setval,))
         _winreg.SetValueEx(regkey, 'Debugger', None, REG_SZ, setval)
 
@@ -1081,7 +1081,7 @@ def gle(db, line):
         tid = trace.parseExpression(line)
 
     tva = threads.get(tid)
-    if tva == None:
+    if tva is None:
         db.vprint('Invalid thread id: %d' % tid)
         return db.do_help('gle')
 
@@ -1089,7 +1089,7 @@ def gle(db, line):
     lasterr = vteb.LastErrorValue
     msg = trace._getFormatMessage(lasterr, None)
 
-    if msg != None:
+    if msg is not None:
         db.vprint('GetLastError: 0x%08X - %s' % (lasterr, msg))
     else:
         db.vprint('GetLastError: 0x%08X - unknown error value' % lasterr)

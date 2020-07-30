@@ -55,7 +55,7 @@ class SubState:
         self.icount = icount
 
     def getCombState(self, i, d=None):
-        if d == None:
+        if d is None:
             d = {}
         d[self.iname] = self[i]
         return d
@@ -96,7 +96,7 @@ class AddSubState(SubState):
         self.comb2len = comb2len
 
     def getCombState(self, i, d=None):
-        if d == None:
+        if d is None:
             d = {}
 
         if i >= self.comb1len:
@@ -128,7 +128,7 @@ class MultSubState(SubState):
         self.comb2len = comb2len
 
     def getCombState(self, i, d=None):
-        if d == None:
+        if d is None:
             d = {}
 
         c2, c1 = divmod(i, self.comb1len)

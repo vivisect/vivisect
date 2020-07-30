@@ -12,21 +12,21 @@ class CobraDispatchMethod:
         self.methname = methname
 
     def __call__(self, *args, **kwargs):
-        logger.debug("Calling: %s:%s (%s, %s)" % (name, self.methname, repr(args)[:20], repr(kwargs)[:20]))
+        logger.debug("Calling: %s (%s, %s)" % (self.methname, repr(args)[:20], repr(kwargs)[:20]))
         waiters = []
 
         try:
             for proxy in self.dispatcher.getCobraProxies():
-                waiters.append( getattr(proxy, self.methname)(*args, _cobra_async=True, **kwargs) )
+                waiters.append(getattr(proxy, self.methname)(*args, _cobra_async=True, **kwargs))
             return [waiter.wait() for waiter in waiters]
-        except:
+        except Exception:
             for waiter in waiters:
                 if waiter.csock:
                     waiter.csock.trashed = True
             raise
         finally:
             for waiter in waiters:
-                if waiter.csock and waiter.csock.pool != None:
+                if waiter.csock and waiter.csock.pool is not None:
                     waiter.csock.pool.put(waiter.csock)
 
 

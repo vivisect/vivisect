@@ -33,7 +33,7 @@ def main(argv):
 
         print('# Version: %d.%d' % (osmajor, osminor))
         print('# Architecture: %s' % archname)
-        if vsver != None:
+        if vsver is not None:
             keys = vsver.getVersionKeys()
             keys.sort()
             for k in keys:

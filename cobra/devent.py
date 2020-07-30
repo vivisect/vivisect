@@ -90,7 +90,7 @@ class CobraEventCore:
         When the channel returns (None, None) it has closed.
         '''
         q = self._ce_chanlookup.get( chanid )
-        if q == None:
+        if q is None:
             return None
         return q.get(timeout=timeout)
 
@@ -107,7 +107,7 @@ class CobraEventCore:
     def _fireEvent(self, event, einfo, upstream=True, skip=None, chans=None):
         etup = (event,einfo)
         # Speed hack
-        if chans != None:
+        if chans is not None:
             [ q.put( etup ) for q in self._ce_chans if q.chanid in chans ]
         else:
             [ q.put( etup ) for q in self._ce_chans if q.chanid != skip ]
@@ -165,7 +165,7 @@ class CobraEventCore:
                 corechan[1] = chan
                 continue
             # channel closed..
-            if events == None:
+            if events is None:
                 return
 
 

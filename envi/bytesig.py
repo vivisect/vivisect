@@ -65,7 +65,7 @@ class SignatureTree:
     def _getNode(self, depth, choices, choice):
         # Chose, (and or initialize) a sub node
         nnode = choices[choice]
-        if nnode == None:
+        if nnode is None:
             nnode = (depth+1, [], [None] * 256, [])
             choices[choice] = nnode
         return nnode
@@ -79,15 +79,15 @@ class SignatureTree:
         getSignature().
         """
         # FIXME perhaps make masks None on all ff's
-        if masks == None:
+        if masks is None:
             masks = "\xff" * len(bytes)
 
-        if val == None:
+        if val is None:
             val = True
 
         # Detect and skip duplicate additions...
         bytekey = bytes + masks
-        if self.sigs.get(bytekey) != None:
+        if self.sigs.get(bytekey) is not None:
             return
 
         self.sigs[bytekey] = True
@@ -99,7 +99,7 @@ class SignatureTree:
         self._addChoice(siginfo, self.basenode)
 
     def isSignature(self, bytes, offset=0):
-        return self.getSignature(bytes, offset=offset) != None
+        return self.getSignature(bytes, offset=offset) is not None
 
     def getSignature(self, bytes, offset=0):
         matches = []
@@ -140,7 +140,7 @@ class SignatureTree:
                     break
 
             # We failed to make our next choice
-            if node == None:
+            if node is None:
                 break
         if len(matches) == 0:
             return None

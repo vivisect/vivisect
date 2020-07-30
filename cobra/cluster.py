@@ -63,9 +63,9 @@ class ClusterWork(object):
         """
         Check if this work unit is timed out.
         """
-        if self.timeout == None:
+        if self.timeout is None:
             return False
-        if self.touchtime == None:
+        if self.touchtime is None:
             return False
         if self.endtime != 0:
             return False
@@ -200,7 +200,7 @@ class ClusterServer:
         self.widiter = iter(range(999999999))
 
         # Initialize a cobra daemon if needed
-        if cobrad == None:
+        if cobrad is None:
             cobrad = cobra.CobraDaemon(host="", port=0)
         self.cobrad = cobrad
         self.cobraname = self.cobrad.shareObject(self)
@@ -277,7 +277,7 @@ class ClusterServer:
         # Used to both validate an inprog workid *and*
         # update it's timestamp for the timeout thread
         work = self.inprog.get(workid, None)
-        if work == None:
+        if work is None:
             raise InvalidInProgWorkId(workid)
         work.touch()
 
@@ -354,11 +354,11 @@ class ClusterServer:
             raise Exception("%s is not a ClusterWork extension!")
 
         # If this work has no ID, give it one
-        if work.id == None:
+        if work.id is None:
             work.id = self.widiter.next()
 
         self.qcond.acquire()
-        if self.maxsize != None:
+        if self.maxsize is not None:
             while len(self.queue) >= self.maxsize:
                 self.qcond.wait()
         self.queue.append(work)
@@ -447,7 +447,7 @@ class ClusterServer:
 
         # Remove it from the work queue
         # (if we didn't find in inprog)
-        if cwork == None:
+        if cwork is None:
             self.qcond.acquire()
             qlist = list(self.queue)
             self.queue.clear()
@@ -460,7 +460,7 @@ class ClusterServer:
             self.qcond.notifyAll()
             self.qcond.release()
 
-        if cwork == None:
+        if cwork is None:
             return
 
         if self.callback:
@@ -645,7 +645,7 @@ def getAndDoWork(uri, docode=False):
 
         work = proxy.getWork()
         # If we got work, do it.
-        if work != None:
+        if work is not None:
             runAndWaitWork(proxy, work)
 
     except Exception:

@@ -25,7 +25,7 @@ class SymbolikFunctionGraph(v_graphcore.HierGraph):
         seperate "block" refs )
         '''
         #node = self.getNode(va)
-        #if node == None:
+        #if node is None:
 
     #def addNodeOpcode(self, node, op):
         #'''
@@ -116,7 +116,7 @@ class SymbolikFunctionEmulator(vsym_emulator.SymbolikEmulator):
         Example:
             reg = emu.getSymbolikVariable('regfoo')
             off = emu.getStackOffset(reg)
-            if off != None:
+            if off is not None:
                 print('regfoo is stack offset: %d' % off)
         '''
         if self.stackbase is None or self.stacksize is None:
@@ -154,12 +154,12 @@ class SymbolikFunctionEmulator(vsym_emulator.SymbolikEmulator):
         # Setup our calling convention based on what the workspace says
         # for this function...
         apictx = self._sym_vw.getFunctionApi(fva)
-        if apictx == None:
+        if apictx is None:
             raise Exception('No API context for function %x' % fva)
 
         ccname = apictx[API_CCONV]
         self.cconv = self.getCallingConvention(ccname)
-        if self.cconv == None:
+        if self.cconv is None:
             raise Exception('Unknown CallingConvention (%s) for: 0x%.8x' % (ccname, fva))
 
         if args is None:

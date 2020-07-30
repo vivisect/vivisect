@@ -151,7 +151,7 @@ class v_number(v_prim):
         '''
         sizeoff = offset + self._vs_length
 
-        if self._vs_fmt != None:
+        if self._vs_fmt is not None:
             b = fbytes[ offset : sizeoff ]
             self._vs_value = struct.unpack(self._vs_fmt, b)[0]
 
@@ -173,7 +173,7 @@ class v_number(v_prim):
         '''
         Emit the bytes for this numeric type
         '''
-        if self._vs_fmt != None:
+        if self._vs_fmt is not None:
             return struct.pack(self._vs_fmt, self._vs_value)
 
         r = []
@@ -374,7 +374,7 @@ class v_float(v_prim):
         '''
         sizeoff = offset + self._vs_length
 
-        if self._vs_fmt != None:
+        if self._vs_fmt is not None:
             b = fbytes[ offset : sizeoff ]
             self._vs_value = struct.unpack(self._vs_fmt, b)[0]
 
@@ -396,7 +396,7 @@ class v_float(v_prim):
         '''
         Emit the bytes for this numeric type
         '''
-        if self._vs_fmt != None:
+        if self._vs_fmt is not None:
             return struct.pack(self._vs_fmt, self._vs_value)
 
         r = []
@@ -489,7 +489,7 @@ class v_bytes(v_prim):
 
     def __init__(self, size=0, vbytes=None):
         v_prim.__init__(self)
-        if vbytes == None:
+        if vbytes is None:
             vbytes = '\x00' * size
         self._vs_length = len(vbytes)
         self._vs_value = vbytes
@@ -722,7 +722,7 @@ class GUID(v_prim):
         self._vs_value = "\x00" * 16
         self._vs_fmt = "16s"
         self._guid_fields = (0,0,0,0,0,0,0,0,0,0,0)
-        if guidstr != None:
+        if guidstr is not None:
             self._parseGuidStr(guidstr)
 
     def vsParse(self, fbytes, offset=0):

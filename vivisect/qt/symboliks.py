@@ -1,5 +1,4 @@
 import itertools
-import traceback
 
 import vqt.tree as vq_tree
 import vqt.saveable as vq_save
@@ -71,7 +70,7 @@ class VivSymbolikFuncPane(e_q_memory.EnviNavMixin, vq_save.SaveableWidget, QWidg
         self.symctx = viv_sym_analysis.getSymbolikAnalysisContext(vw)
         self.symexpr = viv_sym_expression.SymbolikExpressionParser(defwidth=vw.psize)
 
-        if self.symctx == None:
+        if self.symctx is None:
             raise Exception('No Symboliks For: %s (yet)' % vw.getMeta('Architecture'))
 
         self.symctx.consolve = True
@@ -154,7 +153,7 @@ class VivSymbolikFuncPane(e_q_memory.EnviNavMixin, vq_save.SaveableWidget, QWidg
 
             va = self.vw.parseExpression(expr)
             self.fva = self.vw.getFunction(va)
-            if self.fva == None:
+            if self.fva is None:
                 raise Exception('Invalid Address: 0x%.8x' % va )
 
             # check the constraints
@@ -167,12 +166,12 @@ class VivSymbolikFuncPane(e_q_memory.EnviNavMixin, vq_save.SaveableWidget, QWidg
                 cva = self.vw.parseExpression(cexpr)
                 ccb = self.vw.getCodeBlock(cva)
 
-                if ccb != None and ccb in self.vw.getFunctionBlocks(self.fva):
+                if ccb is not None and ccb in self.vw.getFunctionBlocks(self.fva):
                     loopcnt = self.loop_count.value()
                     codepaths = viv_graph.getCodePathsThru(codegraph, ccb[0], loopcnt=loopcnt)   
                     paths = self.symctx.getSymbolikPaths(self.fva, paths=codepaths, graph=codegraph, maxpath=100)
 
-            if codepaths == None:
+            if codepaths is None:
                 loopcnt = self.loop_count.value()
                 paths = self.symctx.walkSymbolikPaths(self.fva, maxpath=100, loopcnt=loopcnt)
 
@@ -211,7 +210,7 @@ class VivSymbolikFuncPane(e_q_memory.EnviNavMixin, vq_save.SaveableWidget, QWidg
                 return viv_sym_common.Var('L"%s"' % buf.decode('utf-16le','ignore'), width)
 
             name = self.vw.getName(symobj.value)
-            if name != None:
+            if name is not None:
                 symobj = viv_sym_common.Var(name, width)
 
         return symobj

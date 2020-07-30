@@ -336,7 +336,7 @@ def reduceoper(sym,emu=None):
         return
     for symtmp, reducer in reducers.get(sym.symtype):
         m = ismatch(sym, symtmp)
-        if m != None:
+        if m is not None:
             ret = reducer(m, emu=emu)
             # do this to much simplify reducers...
             if type(ret) in (int, long):

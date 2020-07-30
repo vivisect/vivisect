@@ -1,5 +1,3 @@
-import re
-import traceback
 from collections import deque
 
 try:
@@ -238,7 +236,7 @@ class VQMemoryWindow(vq_hotkey.HotKeyMixin, EnviNavMixin, vq_save.SaveableWidget
             addr = self._mem_obj.parseExpression(addrexpr)
             menustr = '0x%.8x' % addr
             sym = self._mem_obj.getSymByAddr(addr)
-            if sym != None:
+            if sym is not None:
                 menustr += ' - %s' % repr(sym)
 
             self.histmenu.addAction(menustr, ACT(self._histSelected, hinfo))
@@ -251,10 +249,10 @@ class VQMemoryWindow(vq_hotkey.HotKeyMixin, EnviNavMixin, vq_save.SaveableWidget
 
         # Used by nav event generators to make us render
         self.addr_entry.setText(expr)
-        if sizeexpr != None:
+        if sizeexpr is not None:
             self.size_entry.setText(sizeexpr)
 
-        if rend != None:
+        if rend is not None:
             idx = self.rend_select.findText(str(rend))
             if idx >= 0:
                 self.rend_select.setCurrentIndex(idx)
@@ -343,4 +341,3 @@ class VQMemoryWindow(vq_hotkey.HotKeyMixin, EnviNavMixin, vq_save.SaveableWidget
         if rendname:
             index = self.rend_select.findText(rendname)
             self.rend_select.setCurrentIndex(index)
-

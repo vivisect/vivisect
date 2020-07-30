@@ -160,13 +160,13 @@ class Amd64RipRelOper(envi.DerefOper):
 
         if self.imm > 0:
             mcanv.addText(" + ")
-            if sym != None:
+            if sym is not None:
                 mcanv.addVaText("$%s" % repr(sym), destva)
             else:
                 mcanv.addNameText(str(self.imm))
         elif self.imm < 0:
             mcanv.addText(" - ")
-            if sym != None:
+            if sym is not None:
                 mcanv.addVaText("$%s" % repr(sym), destva)
             else:
                 mcanv.addNameText(str(abs(self.imm)))
@@ -703,12 +703,12 @@ class Amd64Disasm(e_i386.i386Disasm):
             # Adjust the size if needed
             if prefixes & PREFIX_REX_X:
                 # fix up index in case it was set to None by sib_parse (index==4 without REX)
-                if oper.index == None:
+                if oper.index is None:
                     oper.index = 4
                 oper.index += REX_BUMP
 
         # oper.reg will be r/m or SIB base
-        if getattr(oper, "reg", None) != None:
+        if getattr(oper, "reg", None) is not None:
             # Adjust the size if needed
             if prefixes & PREFIX_REX_B:
                 oper.reg += REX_BUMP

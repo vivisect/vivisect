@@ -235,7 +235,7 @@ class ForceLayout(vg_layouts.GraphLayout):
             # All repulsive forces are added to this node's vect
             # time to add some drag....
             drag = nprops.get('drag')
-            if drag == None:
+            if drag is None:
                 drag = self._f_drag
             vect.addDrag( drag )
             # FIXME allow the graph to specify drag per node

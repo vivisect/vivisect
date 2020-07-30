@@ -41,7 +41,7 @@ class VqtModel(QtCore.QAbstractItemModel):
         QtCore.QAbstractItemModel.__init__(self)
         # Make sure the rows are lists ( so we can mod them )
         self.rows = [ list(row) for row in rows ]
-        if self.editable == None:
+        if self.editable is None:
             self.editable = [False,] * len(self.columns)
 
     def index(self, row, column, parent):
@@ -121,7 +121,7 @@ class VqtModel(QtCore.QAbstractItemModel):
         # If this is the edit role, fire the vqEdited thing
         if role == QtCore.Qt.EditRole:
             #value = self.vqEdited(node, index.column(), value)
-            #if value == None:
+            #if value is None:
                 #return False
 
             row = index.row()

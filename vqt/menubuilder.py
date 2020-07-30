@@ -18,7 +18,7 @@ class FieldAdder:
         kid = self
         for p in plist:
             kid = parent.kids.get(p)
-            if kid == None:
+            if kid is None:
                 kid = VQMenu(p, parent=parent, splitchar=self.splitchar)
                 action = parent.addMenu(kid)
                 parent.kids[p] = kid
@@ -42,7 +42,7 @@ class FieldAdder:
         Example:
             def callback(name=None):
 
-                if name == None:
+                if name is None:
                     return ('one', 'two', 'three')
 
                 print('SELECTED: %s' % name)

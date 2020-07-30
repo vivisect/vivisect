@@ -191,7 +191,7 @@ class HookBpTest6(v_testmods.VtracePythonTest):
 
         plat = self.trace.getMeta('Platform').lower()
         symname = plat_syms.get(plat)
-        if symname == None:
+        if symname is None:
             raise Exception('No symbol to test platform!')
 
         # add a normal bp

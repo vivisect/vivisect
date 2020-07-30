@@ -3787,7 +3787,7 @@ ienc_parsers = tuple(ienc_parsers_tmp)
 # the primary table is index'd by the 3 bits following the
 # conditional and are structured as follows:
 # ( ENC, nexttable )
-# If ENC != None, those 3 bits were enough for us to know the
+# If ENC is not None, those 3 bits were enough for us to know the
 # encoding type, otherwise move on to the second table.
 
 # The secondary tables have the format:

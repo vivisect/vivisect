@@ -28,7 +28,7 @@ def analyze(vw):
                     logger.warning('FIXME: %d %s' % (name,offset))
 
                     #atype, aname = vw.getFunctionArg(fva, idx)
-                    #if atype == None:
+                    #if atype is None:
                         #atype = viv_magic.Unknown
                     #print 'ARG',idx, name
                     #vw.setFunctionArg(fva, idx, atype, name)
@@ -37,4 +37,3 @@ def analyze(vw):
                     # "offset" is from frame, *we* are from initial esp...
                     offset -= vw.psize
                     vw.setFunctionLocal(fva, offset, None, name)
-

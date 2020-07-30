@@ -62,14 +62,16 @@ def guessFormat(bytes):
 
     return 'blob'
 
+
 def guessFormatFilename(filename):
     with open(filename, 'rb') as f:
         return guessFormat(f.read(32))
 
+
 def getParserModule(fmt):
     mname = "vivisect.parsers.%s" % fmt
     mod = sys.modules.get(mname)
-    if mod == None:
+    if mod is None:
         __import__(mname)
         mod = sys.modules[mname]
     return mod

@@ -12,7 +12,7 @@ def newPathNode(parent=None, **kwargs):
     Create a new path node with the given properties
     '''
     ret = (parent, [], kwargs)
-    if parent != None:
+    if parent is not None:
         parent[1].append(ret)
     return ret
 
@@ -24,12 +24,12 @@ def delPathNode(pnode):
     Prune (remove) this node from the parent...
     '''
     p = getNodeParent(pnode)
-    if p != None:
+    if p is not None:
         p[1].remove(pnode)
 
 def getNodeIndex(pnode):
     p = getNodeParent(pnode)
-    if p != None:
+    if p is not None:
         return p[1].index(pnode)
     return None
 
@@ -50,7 +50,7 @@ def getRootNode(pnode):
     Example: root = getRootNode(branchnode)
     '''
     ret = pnode
-    while pnode[0] != None:
+    while pnode[0] is not None:
         pnode = pnode[0]
     return pnode
 
@@ -79,7 +79,7 @@ def getPathToNode(pnode):
     root node to the specified path node.
     '''
     path = []
-    while pnode != None:
+    while pnode is not None:
         path.append(pnode)
         pnode = pnode[0]
 
@@ -123,10 +123,10 @@ def getPathProp(pnode, key, default=None):
         name = getPathProp(pnode, 'name', 'Unknown')
     '''
     parent = pnode
-    while parent != None:
+    while parent is not None:
         parent, kids, props = parent
         x = props.get(key)
-        if x != None:
+        if x is not None:
             return x
     return default
 
@@ -150,7 +150,7 @@ def isPathLoop(pnode, key, value):
             continue
     '''
     parent = pnode
-    while parent != None:
+    while parent is not None:
         parent, kids, props = parent
         if props.get(key) == value:
             return True

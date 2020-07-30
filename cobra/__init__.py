@@ -421,7 +421,7 @@ class CobraClientSocket(CobraSocket):
                 # A bit messy but... a fix for now...
                 # If we have authinfo lets authenticate
                 authinfo = self.authinfo
-                if authinfo != None:
+                if authinfo is not None:
                     self.sendMessage(COBRA_AUTH, '', authinfo)
                     mtype,rver,data = self.recvMessage()
                     if mtype != COBRA_AUTH:
@@ -619,7 +619,7 @@ class CobraDaemon(ThreadingTCPServer):
         Share an object in this cobra server.  By specifying
         doref=True you will let CobraProxy objects decide that
         the object is done and should be un-shared.  Also, if
-        name == None a random name is chosen.  Use dowith=True
+        name is None a random name is chosen.  Use dowith=True
         to cause sharing/unsharing to enter/exit (requires doref=True).
 
         Returns: name (or the newly generated random one)
@@ -635,7 +635,7 @@ class CobraDaemon(ThreadingTCPServer):
         if dowith:
             obj.__enter__()
 
-        if name == None:
+        if name is None:
             name = self.getRandomName()
 
         self.shared[name] = obj
@@ -655,7 +655,7 @@ class CobraDaemon(ThreadingTCPServer):
         try:
 
             refcnt = self.refcnts.get(name, None)
-            if refcnt != None:
+            if refcnt is not None:
                 refcnt -= 1
                 self.refcnts[name] = refcnt
                 if refcnt == 0:
@@ -669,7 +669,7 @@ class CobraDaemon(ThreadingTCPServer):
         self.reflock.acquire()
         try:
             refcnt = self.refcnts.get(name, None)
-            if refcnt != None:
+            if refcnt is not None:
                 refcnt += 1
                 self.refcnts[name] = refcnt
         finally:
@@ -961,10 +961,10 @@ class CobraProxy:
         self._cobra_spoolcnt = int(urlparams.get('sockpool', 0))
         self._cobra_sockpool = None
 
-        if self._cobra_timeout != None:
+        if self._cobra_timeout is not None:
             self._cobra_timeout = int(self._cobra_timeout)
 
-        if self._cobra_retrymax != None:
+        if self._cobra_retrymax is not None:
             self._cobra_retrymax = int(self._cobra_retrymax)
 
         if urlparams.get('msgpack'):
@@ -1038,7 +1038,7 @@ class CobraProxy:
                 thr = currentThread()
                 
             tsocks = getattr(thr, 'cobrasocks', None)
-            if tsocks == None:
+            if tsocks is None:
                 tsocks = {}
                 thr.cobrasocks = tsocks
             sock = tsocks.get(self._cobra_slookup)
@@ -1048,7 +1048,7 @@ class CobraProxy:
             sock = self._cobra_newsock()
             # If we have authinfo lets authenticate
             authinfo = self._cobra_kwargs.get('authinfo')
-            if authinfo != None:
+            if authinfo is not None:
                 mtype,rver,data = sock.cobraTransaction(COBRA_AUTH, '', authinfo)
                 if mtype != COBRA_AUTH:
                     raise CobraAuthException('Authentication Failed!')
@@ -1067,7 +1067,7 @@ class CobraProxy:
         retrymax = self._cobra_retrymax
 
         builder = getSocketBuilder(host,port)
-        if builder == None:
+        if builder is None:
             builder = SocketBuilder(host,port)
             builder.setTimeout(timeout) # Might be None... 
             if self._cobra_scheme == 'cobrassl':
@@ -1152,7 +1152,7 @@ class CobraProxy:
     def __exit__(self, extype, value, tb):
         with self._cobra_getsock() as csock:
             ok = True
-            if extype != None: # Tell the server we broke...
+            if extype is not None: # Tell the server we broke...
                 ok = False
             csock.cobraTransaction(COBRA_GOODBYE, self._cobra_name, ok)
 
@@ -1174,14 +1174,14 @@ def initSocketBuilder(host,port):
     Retrieve or initialize a socket builder for the host/port.
     '''
     builder = socket_builders.get((host,port))
-    if builder == None:
+    if builder is None:
         builder = SocketBuilder(host,port)
         socket_builders[ (host,port) ] = builder
     return builder
 
 def startCobraServer(host="", port=COBRA_PORT):
     global daemon
-    if daemon == None:
+    if daemon is None:
         daemon = CobraDaemon(host,port)
         daemon.fireThread()
     return daemon
@@ -1192,11 +1192,11 @@ def runCobraServer(host='', port=COBRA_PORT):
 
 def shareObject(obj, name=None, doref=False):
     """
-    If shareObject is called before startCobraServer 
+    If shareObject is called before startCobraServer
     or startCobraSslServer, it will call startCobraServer
     """
     global daemon
-    if daemon == None:
+    if daemon is None:
         startCobraServer()
     return daemon.shareObject(obj, name, doref=doref)
 

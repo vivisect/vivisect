@@ -196,7 +196,7 @@ class DnsName(vstruct.VArray):
     '''
     def __init__(self, name=None):
         vstruct.VArray.__init__(self)
-        if name != None:
+        if name is not None:
             for part in name.split('.'):
                 self.vsAddElement( DnsNameLabel( part ) )
             self.vsAddElement( DnsNameLabel('') )
