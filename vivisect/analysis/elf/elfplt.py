@@ -168,6 +168,7 @@ def analyzePLT(vw, ssva, ssize):
             emu.setRegister(e_i386.REG_EBX, gotva)  # every emulator will have a 4th register, and if it's not used, no harm done.
         except Exception as e:
             logger.debug("no emulator available: %r", e)
+            return
 
         while sva < nextseg:
             logger.debug('analyzePLT(0x%x, 0x%x) first pass:  sva: 0x%x   nextseg: 0x%x', ssva, ssize, sva, nextseg)
