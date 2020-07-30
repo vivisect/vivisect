@@ -1889,7 +1889,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         """
         loctup = self.getLocation(va)
         if loctup is not None:
-            logger.warn("0x%x: Attempting to make a Pointer where another location object exists (of type %r)", va, loctup[L_LTYPE])
+            logger.warn("0x%x: Attempting to make a Pointer where another location object exists (of type %r)", va, self.reprLocation(loctup))
             return None
 
         psize = self.psize

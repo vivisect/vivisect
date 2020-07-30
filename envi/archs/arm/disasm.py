@@ -4143,8 +4143,8 @@ class ArmRegOper(ArmOperand):
         if elmtsz is None:
             elmtsz = self.getWidth()
 
-        ifmt = e_bits.getFormat(self.getEndian(), elmtsz)
-        ffmt = e_bits.getFloatFormat(self.getEndian(), elmtsz)
+        ifmt = e_bits.getFormat(emu.getEndian(), elmtsz)
+        ffmt = e_bits.getFloatFormat(emu.getEndian(), elmtsz)
 
         # get the 16-/32-/64-bit integer value
         metaval = emu.getRegister(self.reg)
@@ -4172,8 +4172,8 @@ class ArmRegOper(ArmOperand):
         if elmtsz is None:
             elmtsz = self.getWidth()
 
-        ifmt = e_bits.getFormat(self.getEndian(), elmtsz)
-        ffmt = e_bits.getFloatFormat(self.getEndian(), elmtsz)
+        ifmt = e_bits.getFormat(emu.getEndian(), elmtsz)
+        ffmt = e_bits.getFloatFormat(emu.getEndian(), elmtsz)
 
         # convert float to integer to store
         metastr = struct.pack(ffmt, val)
