@@ -120,7 +120,7 @@ def getPLTs(vw):
     pltva = None
     # Thought:  This is DT_PLTGOT, although each ELF will/may have their own DT_PLTGOT.
     for va, size, name, fname in vw.getSegments():
-        if name.startswith(".plt"):
+        if name.startswith(".plt") or name == '.rela.plt':
             pltva = va
             pltsize = size
             plts.append((pltva, pltsize))
@@ -131,7 +131,7 @@ def getPLTs(vw):
         fdyns = vw.getFileMeta(fname, 'ELF_DYNAMICS')
         if fdyns is not None:
             FGOT = fdyns.get('DT_JMPREL')
-            FGOTSZ = fdyns.get('DP_PLTRELSZ')
+            FGOTSZ = fdyns.get('DT_PLTRELSZ')
             newish = True
             for pltva, pltsize in plts:
                 if FGOT == pltva:
