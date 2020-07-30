@@ -390,7 +390,7 @@ def analyzePLT(vw, ssva, ssize):
             vw.makeFunction(sva)
 
     except Exception as e:
-        logger.exception('analyzePLT(0x%x, 0x%x)', ssva, ssize)
+        logger.exception('analyzePLT(0x%x, %r)', ssva, ssize)
 
 MAX_OPS = 10
 
