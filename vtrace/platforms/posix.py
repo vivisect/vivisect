@@ -88,7 +88,7 @@ class PosixMixin:
             self.handlePosixSignal(sig)
 
         else:
-            logger.error("Unhnalded posix status code: %d" % status)
+            logger.error("Unhandled posix status code: %d" % status)
 
     def handlePosixSignal(self, sig):
         """
