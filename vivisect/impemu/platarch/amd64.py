@@ -2,13 +2,14 @@ import logging
 
 import envi.archs.amd64 as e_amd64
 import vivisect.impemu.emulator as v_i_emulator
+
+logger = logging.getLogger(__name__)
 ########################################################################
 #
 # NOTE: For each architecture we intend to do workspace emulation on,
 #       extend an emulator to allow any of the needed tweaks (rep prefix
 #       etc).
 # NOTE: ARCH UPDATE
-
 
 logger = logging.getLogger(__name__)
 non_use_mnems = ('push', )

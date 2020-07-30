@@ -1341,6 +1341,16 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         """
         return self.funcmeta.get(funcva) != None
 
+    def isFunctionThunk(self, funcva):
+        """
+        Return True if funcva is a function thunk
+        """
+        # TODO: could we do more here?
+        try:
+            return self.getFunctionMeta(funcva, 'Thunk') is not None
+        except InvalidFunction:
+            return False
+
     def getFunctions(self):
         """
         Return a list of the function virtual addresses

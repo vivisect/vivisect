@@ -266,11 +266,16 @@ class VQVivFunctionsView(VQVivTreeView):
         self.vivSetData(va, 0, name)
 
     def vivAddFunction(self, fva):
-
         size = self.vw.getFunctionMeta(fva, "Size", -1)
         funcname = self.vw.getName(fva)
         xcount = len(self.vw.getXrefsTo(fva))
-        self.vivAddRow(fva, funcname, '0x%.8x' % fva, size, xcount)
+        if fva in self._viv_va_nodes:
+            self.vivSetData(fva, 0, funcname)
+            self.vivSetData(fva, 1, '0x%.8x' % fva)
+            self.vivSetData(fva, 2, size)
+            self.vivSetData(fva, 3, xcount)
+        else:
+            self.vivAddRow(fva, funcname, '0x%.8x' % fva, size, xcount)
 
     def VWE_ADDXREF(self, vw, event, einfo):
         fromva, tova, rtype, rflag = einfo

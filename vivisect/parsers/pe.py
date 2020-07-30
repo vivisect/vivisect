@@ -342,8 +342,15 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
     vw.addNoReturnApiRegex("^msvcr.*\.abort$")
     vw.addNoReturnApiRegex("^msvcr.*\.exit$")
     vw.addNoReturnApiRegex("^msvcr.*\._exit$")
-    vw.addNoReturnApiRegex("^msvcr.*\._exit$")
     vw.addNoReturnApiRegex("^msvcr.*\.quick_exit$")
+    # https://docs.microsoft.com/en-us/cpp/c-runtime-library/reference/invalid-parameter-functions?view=vs-2019
+    # TODO: Again, there's a couple in there that have conditional termination that we should check for
+    #vw.addNoReturnApiRegex("vcruntime140.__std_terminate")
+    vw.addNoReturnApiRegex("^api_ms_win_crt_runtime_.*\._invalid_parameter_noinfo_noreturn$")
+    vw.addNoReturnApiRegex("^api_ms_win_crt_runtime_.*\.exit$")
+    vw.addNoReturnApiRegex("^api_ms_win_crt_runtime_.*\._exit$")
+    # TODO: we should add abort and terminate on the conditions that there are no signal handlers
+    # registered
     # https://docs.microsoft.com/en-us/cpp/c-runtime-library/reference/cexit-c-exit?view=vs-2019
     # vw.addNoReturnApiRegex("^msvcr.*\._cexit$")
     # vw.addNoReturnApiRegex("^msvcr.*\._c_exit$")

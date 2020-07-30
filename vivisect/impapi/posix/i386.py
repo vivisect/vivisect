@@ -743,7 +743,7 @@ api = {
     'plt__y0':( 'int', None, 'cdecl', '*._y0', () ),
     'plt__y1':( 'int', None, 'cdecl', '*._y1', () ),
     'plt__yn':( 'int', None, 'cdecl', '*._yn', () ),
-    'plt_abort':( 'int', None, 'stdcall', '*.abort', (('int', None),) ),
+    'plt_abort':( 'int', None, 'stdcall', '*.abort', () ),
     'plt_abs':( 'int', None, 'cdecl', '*.abs', (('int', None),) ),
     'plt_acos':( 'int', None, 'cdecl', '*.acos', () ),
     'plt_asctime':( 'int', None, 'cdecl', '*.asctime', (('int', None),) ),

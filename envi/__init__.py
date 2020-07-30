@@ -1156,7 +1156,7 @@ class CallingConvention(object):
             ra = emu.getProgramCounter()
 
         self.allocateCallSpace(emu, argc)
-        self.setCallArgsRet(emu, args=args, ra=ra)
+        self.setCallArgsRet(emu, args=argv, ra=ra)
 
     def executeCall(self, emu, va, args=None, ra=None):
         '''

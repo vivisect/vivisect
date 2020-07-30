@@ -85,11 +85,22 @@ class BFastCall(ThisCall):
     arg_def = [(CC_REG, REG_EAX), (CC_REG, REG_EDX), (CC_REG, REG_ECX),
                 (CC_STACK_INF, 4)]
 
+class ThisCall_Caller(ThisCall):
+    flags = CC_CALLER_CLEANUP
+class MsFastCall_Caller(MsFastCall):
+    flags = CC_CALLER_CLEANUP
+class BFastCall_Caller(BFastCall):
+    flags = CC_CALLER_CLEANUP
+
 stdcall = StdCall()
-thiscall = ThisCall()
 cdecl = Cdecl()
+thiscall = ThisCall()
 msfastcall = MsFastCall()
 bfastcall = BFastCall()
+
+thiscall_caller = ThisCall_Caller()
+msfastcall_caller = MsFastCall_Caller()
+bfastcall_caller = BFastCall_Caller()
 
 class IntelEmulator(i386RegisterContext, envi.Emulator):
 
@@ -112,10 +123,14 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
 
         # Add our known calling conventions
         self.addCallingConvention('stdcall', stdcall)
-        self.addCallingConvention('thiscall', thiscall)
         self.addCallingConvention('cdecl', cdecl)
+        self.addCallingConvention('thiscall', thiscall)
         self.addCallingConvention('msfastcall', msfastcall)
         self.addCallingConvention('bfastcall', bfastcall)
+
+        self.addCallingConvention('thiscall_caller', thiscall_caller)
+        self.addCallingConvention('msfastcall_caller', msfastcall_caller)
+        self.addCallingConvention('bfastcall_caller', bfastcall_caller)
 
     def getSegmentIndex(self, op):
         # FIXME this needs to account for push/pop/etc
@@ -2286,10 +2301,10 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         self.setOperValue(op, 0, dst)
 
     def i_pinsrw(self, op):
-        self.i_pinsrb(op, bitwidth=2)
+        self.i_pinsrb(op, width=2)
 
     def i_pinsrd(self, op):
-        self.i_pinsrb(op, bitwidth=4)
+        self.i_pinsrb(op, width=4)
 
     # psubq and variants
     def i_psubb(self, op, width=1, off=0):
