@@ -85,31 +85,34 @@ def getGOT(vw, fileva):
 
     gotva = None
     gotsize = None
-    textva = None
-    textsz = None
     for va, size, name, fname in vw.getSegments():
-        if name == ".got" and fname == filename:
+        if name == '.got.plt' and fname == filename:
             gotva = va
             gotsize = size
-        elif name == '.text' and fname == filename:
-            textva = va
-            textsz = size
+
+        elif name == ".got" and fname == filename and gotva is None:
+            # for some reason, if '.got.plt' is present, it's the "right one"
+            gotva = va
+            gotsize = size
 
     # pull GOT info from Dynamics
     fdyns = vw.getFileMeta(filename, 'ELF_DYNAMICS')
     if fdyns is not None:
         FGOT = fdyns.get('DT_PLTGOT')
-        if vw.getFileMeta(filename, 'addbase'):
-            imgbase = vw.getFileMeta(filename, 'imagebase')
-            logger.debug('Adding Imagebase: 0x%x', imgbase)
-            FGOT += imgbase
-        if gotva is not None:
-            if gotva != FGOT:
+        if FGOT is not None:
+            # be sure to add the imgbase to FGOT if required
+            if vw.getFileMeta(filename, 'addbase'):
+                imgbase = vw.getFileMeta(filename, 'imagebase')
+                logger.debug('Adding Imagebase: 0x%x', imgbase)
+                FGOT += imgbase
+
+            if FGOT != gotva:
                 logger.warn("Dynamics and Sections have different GOT entries: S:0x%x D:0x%x. using Dynamics", gotva, FGOT)
-                # since Dynamics don't store the GOT size, just use to the end of the memory map
-                mmva, mmsz, mmperm, mmname = vw.getMemoryMap(FGOT)
-                moffset = gotva - mmva
-                gotsize = mmsz - moffset
+
+            # since Dynamics don't store the GOT size, just use to the end of the memory map
+            mmva, mmsz, mmperm, mmname = vw.getMemoryMap(FGOT)
+            moffset = gotva - mmva
+            gotsize = mmsz - moffset
             gotva = FGOT
 
     vw.setFileMeta(filename, 'GOT', (gotva, gotsize))
@@ -1052,7 +1055,9 @@ Out[85]:
  Elf Sec: [      .gnu.version_d] @0x00013d00 (   81152)  ent/size:        0/     984  align:        4,
  Elf Sec: [      .gnu.version_r] @0x000140d8 (   82136)  ent/size:        0/      64  align:        4,
  Elf Sec: [            .rel.dyn] @0x00014118 (   82200)  ent/size:        8/   10784  align:        4,
+ 
  Elf Sec: [            .rel.plt] @0x00016b38 (   92984)  ent/size:        8/      64  align:        4,
+ 
  Elf Sec: [                .plt] @0x00016b78 (   93048)  ent/size:        4/     144  align:        4,
  Elf Sec: [               .text] @0x00016c10 (   93200)  ent/size:        0/ 1083604  align:       16,
  Elf Sec: [   __libc_freeres_fn] @0x0011f4f0 ( 1176816)  ent/size:        0/    4040  align:       16,
@@ -1127,7 +1132,9 @@ Out[86]:
  Elf Sec: [      .gnu.version_d] @0x000613f4 (  398324)  ent/size:        0/    1436  align:        4,
  Elf Sec: [      .gnu.version_r] @0x00061990 (  399760)  ent/size:        0/     336  align:        4,
  Elf Sec: [            .rel.dyn] @0x00061ae0 (  400096)  ent/size:        8/   31120  align:        4,
+ 
  Elf Sec: [            .rel.plt] @0x00069470 (  431216)  ent/size:        8/    6672  align:        4,
+ 
  Elf Sec: [               .init] @0x0006ae80 (  437888)  ent/size:        0/      35  align:        4,
  Elf Sec: [                .plt] @0x0006aeb0 (  437936)  ent/size:        4/   13360  align:       16,
  Elf Sec: [            .plt.got] @0x0006e2e0 (  451296)  ent/size:        8/     184  align:        8,
@@ -1165,7 +1172,9 @@ Out[87]:
  Elf Sec: [        .gnu.version] @0x0000a994 (   10644)  ent/size:        2/     666  align:        2,
  Elf Sec: [      .gnu.version_r] @0x0000ac30 (   11312)  ent/size:        0/      64  align:        4,
  Elf Sec: [            .rel.dyn] @0x0000ac70 (   11376)  ent/size:        8/      56  align:        4,
+ 
  Elf Sec: [            .rel.plt] @0x0000aca8 (   11432)  ent/size:        8/    2344  align:        4,
+ 
  Elf Sec: [               .init] @0x0000b5d0 (   13776)  ent/size:        0/      20  align:        4,
  Elf Sec: [                .plt] @0x0000b5e4 (   13796)  ent/size:        4/    3536  align:        4,
  Elf Sec: [               .text] @0x0000c3b8 (   17336)  ent/size:        0/  175376  align:        8,
