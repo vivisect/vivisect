@@ -371,9 +371,9 @@ def analyzePLT(vw, ssva, ssize):
             loc = vw.getLocation(loc[vivisect.L_VA] - 1)
 
         logger.debug('plt_size : 0x%x', plt_size)
+
         ###### now get start of first real PLT entry
         bridx = 0
-        logger.debug("reusing existing bridx: %r (0x%x, %r)", bridx, branchvas[bridx][0], branchvas[bridx][1])
         brlen = len(branchvas)
         logger.debug('plt branchvas: %r', [(hex(x), y, z, a) for x, y, z, a in branchvas])
 
