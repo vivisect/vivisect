@@ -61,9 +61,7 @@ def analyze(vw):
     Do simple linear disassembly of the .plt section if present.
     Make functions 
     """
-    for sva, ssize, sname, sfname in vw.getSegments():
-        if sname not in (".plt", ".plt.got"):
-            continue
+    for sva, ssize in getPLTs(vw):
         analyzePLT(vw, sva, ssize)
 
 def getGOT(vw, fileva):
@@ -127,7 +125,6 @@ def getPLTs(vw):
             pltva = va
             pltsize = size
             plts.append((pltva, pltsize))
-            break
 
     # pull GOT info from Dynamics
     for fname in vw.getFiles():
@@ -135,6 +132,11 @@ def getPLTs(vw):
         if fdyns is not None:
             FGOT = fdyns.get('DT_JMPREL')
             FGOTSZ = fdyns.get('DT_PLTRELSZ')
+            if vw.getFileMeta(fname, 'addbase'):
+                imgbase = vw.getFileMeta(fname, 'imagebase')
+                logger.debug('Adding Imagebase: 0x%x', imgbase)
+                FGOT += imgbase
+
             newish = True
             for pltva, pltsize in plts:
                 if FGOT == pltva:
@@ -394,16 +396,19 @@ MAX_OPS = 10
 
 def analyzeFunction(vw, funcva):
     # check to make sure we're in the PLT
-    seg = vw.getSegment(funcva)
-    if seg is None:
-        logger.info('not analyzing 0x%x: no segment found', funcva)
-        return
-    else:
-        segva, segsize, segname, segfname = seg
+    plts = getPLTs(vw)
+    isplt = False
+    for pltva, pltsz in plts:
+        if pltva <= funcva <= (pltva + pltsz):
+            isplt = True
+            segva = pltva
+            segsize = pltsz
+            break
 
-        if segname not in (".plt", ".plt.got"):
-            logger.debug('0x%x: not part of ".plt" or ".plt.got"', funcva)
-            return
+    # if we're not 
+    if not isplt:
+        logger.debug('0x%x: not part of a .plt section', funcva)
+        return
 
     logger.info('analyzing PLT function: 0x%x', funcva)
     # start off spinning up an emulator to track through the PLT entry
