@@ -105,11 +105,11 @@ def addAnalysisModules(vw):
             vw.addFuncAnalysisModule('vivisect.analysis.arm.thunk_reg')
             vw.addFuncAnalysisModule('vivisect.analysis.arm.renaming')
 
-        vw.addAnalysisModule("vivisect.analysis.generic.funcentries")
         vw.addAnalysisModule("vivisect.analysis.generic.relocations")
         vw.addAnalysisModule("vivisect.analysis.elf.libc_start_main")
-        vw.addAnalysisModule("vivisect.analysis.generic.pointertables")
+        vw.addAnalysisModule("vivisect.analysis.generic.funcentries")
         vw.addAnalysisModule("vivisect.analysis.generic.emucode")
+        vw.addAnalysisModule("vivisect.analysis.generic.pointertables")
 
         # Generic code block analysis
         vw.addFuncAnalysisModule("vivisect.analysis.generic.codeblocks")
@@ -144,8 +144,8 @@ def addAnalysisModules(vw):
         # Add the one that brute force finds function entry signatures
         vw.addAnalysisModule("vivisect.analysis.generic.funcentries")
         vw.addAnalysisModule("vivisect.analysis.generic.relocations")
-        vw.addAnalysisModule("vivisect.analysis.generic.pointertables")
         vw.addAnalysisModule("vivisect.analysis.generic.emucode")
+        vw.addAnalysisModule("vivisect.analysis.generic.pointertables")
 
         vw.addFuncAnalysisModule("vivisect.analysis.generic.codeblocks")
         vw.addFuncAnalysisModule("vivisect.analysis.generic.impapi")

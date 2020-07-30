@@ -1090,7 +1090,7 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
 
         else:
             # we let the register size sort out the details for non-ADV_SIMD stuff
-            if op.simdflags in if_second_F32_F64_F16:
+            if op.simdflags in ifs_second_F32_F64_F16:
                 val = op.opers[1].getFloatValue(self)
 
             else:

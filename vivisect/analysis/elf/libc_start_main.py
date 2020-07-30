@@ -2,20 +2,37 @@ import sys
 import logging
 
 import envi
-import vivisect
+import vivisect.const as v_const
 import vivisect.impemu.monitor as viv_imp_monitor
 
 logger = logging.getLogger(__name__)
 
 
-def analyzeFunction(vw, funcva):
+def getMainVas(vw):
+    ret = []
+    for va, name in vw.getNames():
+        lcsm = '__libc_start_main_%.8x' % va
+        if name in (lcsm, "*."+lcsm):
+            ret.append(va)
+
+            # also grab any function wrappers
+            for xfr, xto, xtype, xinfo in vw.getXrefsTo(va, rtype=v_const.REF_CODE):
+                if not vw.isFunctionThunk(xfr):
+                    continue
+                ret.append(xfr)
+    return ret
+
+
+def analyzeFunction(vw, funcva, lcsm=None):
     '''
     search through all calls, looking for a call to an import named __libc_start_main
     then check for arg0
     '''
     try:
         emu = vw.getEmulator()
-        emumon = AnalysisMonitor(vw, funcva)
+        if lcsm is None:
+            lcsm = getMainVas(vw)
+        emumon = AnalysisMonitor(vw, funcva, lcsm)
 
         emu.setEmulationMonitor(emumon)
         emu.runFunction(funcva, maxhit=1)
@@ -30,7 +47,7 @@ def analyzeFunction(vw, funcva):
             ccname = vw.getMeta('DefaultCall')
             cconv = emu.getCallingConvention(ccname)
 
-        args = cconv.getCallArgs(emu, 1)
+        args = cconv.getPreCallArgs(emu, 1)
         mainva = args[0]
 
         vw.addEntryPoint(mainva)
@@ -47,34 +64,24 @@ def analyzeFunction(vw, funcva):
 
 def analyze(vw):
     logger.info('analyze()')
+    mainVas = getMainVas(vw)
+    for va in mainVas:
+        for xfr, xto, xtype, xinfo in vw.getXrefsTo(va, rtype=v_const.REF_CODE):
+            logger.info("0x%x -> 0x%x (%r)", xfr, xto, xtype)
+            funcva = vw.getFunction(xfr)
+            if funcva is None:
+                continue
 
-    for va, name in vw.getNames():
-        lcsm = '__libc_start_main_%.8x' % va
-        if name in (lcsm, "*."+lcsm):
-            for xfr, xto, xtype, xtinfo in vw.getXrefsTo(va):
-                if xtype != vivisect.REF_CODE:
-                    continue
-
-                logger.info("0x%x -> 0x%x (%r)", xfr, xto, xtype)
-                funcva = vw.getFunction(xfr)
-                if funcva is None:
-                    continue
-
-                analyzeFunction(vw, funcva)
+            analyzeFunction(vw, funcva, lcsm=mainVas)
 
 
 class AnalysisMonitor(viv_imp_monitor.AnalysisMonitor):
 
-    def __init__(self, vw, fva):
+    def __init__(self, vw, fva, lcsm):
+        viv_imp_monitor.AnalysisMonitor.__init__(self, vw, fva)
         self.success = False
         self.emu = None
-        self.startmain = None
-        viv_imp_monitor.AnalysisMonitor.__init__(self, vw, fva)
-
-        for va, name in vw.getNames():
-            lcsm = '__libc_start_main_%.8x' % va
-            if name in (lcsm, '*.' + lcsm):
-                self.startmain = va
+        self.startmain = lcsm
 
     def prehook(self, emu, op, starteip):
 
@@ -86,7 +93,7 @@ class AnalysisMonitor(viv_imp_monitor.AnalysisMonitor):
             # check if it matches what we believe to be __libc_start_main
             for branch in branches:
                 tgt, flags = branch
-                if tgt == self.startmain:
+                if tgt in self.startmain:
                     self.success = True
                     self.emu = emu
                     emu.stopEmu()
