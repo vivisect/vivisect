@@ -123,7 +123,6 @@ def main():
         import vivisect.qt.main as viv_qt_main
 
         # If we are interactive, lets turn on extended output...
-        vw.verbose = True
         if args.doanalyze and needanalyze:
             e_threads.firethread(vw.analyze)()
 

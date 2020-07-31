@@ -204,7 +204,7 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
 
     if len(pgms) == 0:
         # fall back to loading sections as best we can...
-        if vw.verbose: vw.vprint('elf: no program headers found!')
+        vw.vprint('elf: no program headers found!')
 
         maps = [ [s.sh_offset,s.sh_size] for s in secs if s.sh_offset and s.sh_size ]
         maps.sort()
