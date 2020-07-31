@@ -502,3 +502,7 @@ class SysVAmd64SystemCallCallingConventionTest(SysVAmd64CallCallingConventionTes
         SysVAmd64CallCallingConventionTest.prepTest(self)
         self.cc = e_amd64.SysVAmd64SystemCall()
         self.reglist = [REG_RDI, REG_RSI, REG_RDX, REG_R10, REG_R8, REG_R9]
+
+if __name__ == '__main__':
+    import sys
+    sys.exit(22)

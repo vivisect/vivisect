@@ -219,4 +219,7 @@ class HookBpTest6(v_testmods.VtracePythonTest):
 # TODO: add test for a breakpoint type that already exists at the
 # post hook breakpoint location
 
-# TODO: tests for something NOT in impapi
+# TODO: I don't think these are run....
+if __name__ == '__main__':
+    import sys
+    sys.exit(31) TODO: tests for something NOT in impapi
