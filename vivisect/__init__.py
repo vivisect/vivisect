@@ -72,8 +72,6 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         e_mem.MemoryObject.__init__(self)
         viv_base.VivWorkspaceCore.__init__(self)
 
-        e_common.setLogging(logger, 'WARNING')
-
         self.vivhome = e_config.gethomedir(".viv")
         self._viv_gui = None    # If a gui is running, he will put a ref here...
 
