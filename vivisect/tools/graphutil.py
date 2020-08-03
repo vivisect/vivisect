@@ -422,8 +422,8 @@ def getOpsFromPath(vw, fgraph, path):
     '''
     Retrieve the opcodes for a given path.
 
-    #FIXME cache opcodes in function graph for replay speed
     '''
+    # FIXME cache opcodes in function graph for replay speed
     ret = []
     for nid,eid in path:
         node = fgraph.getNode(nid)

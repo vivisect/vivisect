@@ -1,7 +1,11 @@
 import io
 import unittest
 
+import envi
+
 import vivisect
+import vivisect.exc as v_exc
+import vivisect.const as v_const
 import vivisect.tests.helpers as helpers
 
 
@@ -10,6 +14,107 @@ class VivisectTest(unittest.TestCase):
     def setUpClass(cls):
         cls.chgrp_vw = helpers.getTestWorkspace('linux', 'i386', 'chgrp.llvm')
         cls.vdir_vw = helpers.getTestWorkspace('linux', 'i386', 'vdir.llvm')
+        cls.gcc_vw = helpers.getTestWorkspace('linux', 'amd64', 'gcc-7')
+
+    def test_basic_apis(self):
+        '''
+        Test a bunch of the simpler workspace APIs
+        '''
+        vw = self.gcc_vw
+        self.assertEqual(set(['Emulation Anomalies', 'EntryPoints', 'WeakSymbols', 'FileSymbols', 'SwitchCases', 'EmucodeFunctions', 'PointersFromFile', 'FuncWrappers', 'CodeFragments', 'DynamicBranches', 'Bookmarks', 'NoReturnCalls']), set(vw.getVaSetNames()))
+
+        vw.getPrevLocation()
+        vw.getRenderInfo()
+        self.assertEqual((0x449e10, 1, v_const.LOC_OP, envi.ARCH_AMD64), vw.getLocationByName('gcc_7.main'))
+        vw.getLocationRange()
+        vw.getLocations()
+        vw.getFunctionBlocks()
+
+        # tuples are Name, Number of Locations, Size in bytes, Percentage of space
+        ans = {0: ('Undefined', 0, 517544, 49),
+               1: ('Num/Int', 271, 1724, 0),
+               2: ('String', 4054, 153424, 14),
+               3: ('Unicode', 0, 0, 0),
+               4: ('Pointer', 5376, 43008, 4),
+               5: ('Opcode', 79516, 323664, 30),
+               6: ('Structure', 496, 11544, 1),
+               7: ('Clsid', 0, 0, 0),
+               8: ('VFTable', 0, 0, 0),
+               9: ('Import Entry', 141, 1128, 0),
+               10: ('Pad', 0, 0, 0)}
+        dist = vw.getLocationDistribution()
+        for loctype, locdist in dist.items():
+            self.assertEqual(locdist, ans[loctype])
+
+    def test_repr(self):
+        vw = self.gcc_vw
+        ans = [
+            (5040784, "'Perform IPA Value Range Propagation.\\x00'"),
+            (4853125, "'-fira-algorithm=\\x00'"),
+            (5040824, "'-fira-algorithm=[CB|priority]\\tSet the used IRA algorithm.\\x00'"),
+            (4853142, "'-fira-hoist-pressure\\x00'"),
+            (4853163, "'-fira-loop-pressure\\x00'"),
+            (4853183, "'-fira-region=\\x00'"),
+            (5041032, "'-fira-region=[one|all|mixed]\\tSet regions for IRA.\\x00'"),
+            (4853197, "'-fira-share-save-slots\\x00'"),
+            (5041088, "'Share slots for saving different hard registers.\\x00'"),
+            (4853220, "'-fira-share-spill-slots\\x00'"),
+            (5041144, "'Share stack slots for spilled pseudo-registers.\\x00'"),
+            (4853244, "'-fira-verbose=\\x00'"),
+            (5041264, "'-fisolate-erroneous-paths-attribute\\x00'"),
+            (7345392, '4 BYTES: 0 (0x0000)'),
+            (7345376, '8 BYTES: 0 (0x00000000)'),
+            (5122144, '16 BYTES: 21528975894082904090066538856997790465 (0x1032547698badcfeefcdab8967452301)'),
+            (7346240, 'BYTE: 0 (0x0)'),
+            (7331776, 'IMPORT: *.__pthread_key_create'),
+            (7331784, 'IMPORT: *.__libc_start_main'),
+            (7331792, 'IMPORT: *.calloc'),
+            (7331800, 'IMPORT: *.__gmon_start__'),
+            (7331808, 'IMPORT: *.stderr'),
+            (7331864, 'IMPORT: *.__strcat_chk'),
+            (7331872, 'IMPORT: *.__uflow'),
+            (7331880, 'IMPORT: *.mkstemps'),
+            (7331888, 'IMPORT: *.getenv'),
+            (7331896, 'IMPORT: *.dl_iterate_phdr'),
+            (7331904, 'IMPORT: *.__snprintf_chk'),
+            (7331912, 'IMPORT: *.free'),
+            (4697393, 'mov rdx,qword [rsp + 8]'),
+            (4697398, 'jmp 0x0047ab49'),
+            (4749920, 'mov qword [rdi + 152],rsi'),
+            (4749927, 'ret '),
+            (4698912, 'sub rsp,8'),
+            (4698916, 'call 0x0047b310'),
+            (4698921, 'mov rdi,rax'),
+            (4698924, 'call 0x0047b2f0'),
+            (4698929, 'cs: nop word [rax + rax]'),
+            (4698939, 'nop dword [rax + rax]'),
+            (4698944, 'test rdi,rdi'),
+            (4698947, 'push rbx'),
+            (4698948, 'jz 0x0047b361'),
+            (4698950, 'mov rbx,rdi'),
+            (4698953, 'call 0x0047a450'),
+            (4698958, 'mov rax,0xb8b1aabcbcd4d500'),
+        ]
+        for va, disp in ans:
+            self.assertEqual(disp, vw.reprVa(va))
+
+    def test_naughty(self):
+        '''
+        Test us some error conditions
+        '''
+        vw = self.gcc_vw
+        with self.assertRaises(v_exc.InvalidLocation):
+            vw.delLocation(0x51515151)
+
+        with self.assertRaises(v_exc.InvalidFunction):
+            vw.setFunctionMeta(0xdeadbeef, 'monty', 'python')
+
+        withs self.assertRaises(v_exc.InvalidLocation):
+            vw.getLocationByName(0xabad1dea)
+
+    def test_basic_callers(self):
+        vw.getXrefs()
+        vw.getImportCallers()
 
     def test_consecutive_jump_table(self):
         primaryJumpOpVa = 0x804c9b6
@@ -25,6 +130,10 @@ class VivisectTest(unittest.TestCase):
         self.assertEqual(len(prefs), 3)
         cmnt = self.chgrp_vw.getComment(0x804c9bd)
         self.assertEqual(cmnt, 'Other Case(s): 2, 6, 8, 11, 15, 20, 21, 34, 38, 40, 47')
+
+        cmnts = self.chgrp_vw.getComments()
+        self.assertTrue(len(cmnts) > 1)
+
         # 13 actual codeblocks and 1 xref to the jumptable itself
         srefs = self.chgrp_vw.getXrefsFrom(secondJumpOpVa)
         self.assertEqual(len(srefs), 14)

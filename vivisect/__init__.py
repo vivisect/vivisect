@@ -2581,7 +2581,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
     def getLocationDistribution(self):
         # NOTE: if this changes, don't forget the report module!
-        totsize = float(0)
+        totsize = 0
         for mapva, mapsize, mperm, mname in self.getMemoryMaps():
             totsize += mapsize
         loctot = 0
