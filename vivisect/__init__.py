@@ -611,7 +611,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
         lva,lsize,ltype,tinfo = loctup
         if ltype == LOC_OP:
-            op = self.parseOpcode(lva)
+            op = self.parseOpcode(lva, arch=tinfo & envi.ARCH_MASK)
             return repr(op)
 
         elif ltype == LOC_STRING:
@@ -1285,6 +1285,20 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
         return loc
 
+    def _dbgLocEntry(self, va):
+        """
+        Display the human-happy version of a location
+        """
+        loc = self.getLocation(va)
+        if loc is None:
+            return 'None'
+
+        lva, lsz, ltype, ltinfo = loc
+        ltvar = loc_lookups.get(ltype)
+        ltdesc = loc_type_names.get(ltype)
+        locrepr = '(0x%x, %d, %s, %r)  # %s' % (lva, lsz, ltvar, ltinfo, ltdesc)
+        return locrepr
+
     def updateCallsFrom(self, fva, ncalls):
         function = self.getFunction(fva)
         prev_call = self.getFunctionMeta(function, 'CallsFrom')
@@ -1875,7 +1889,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         """
         loctup = self.getLocation(va)
         if loctup is not None:
-            logger.warn("0x%x: Attempting to make a Pointer where another location object exists (of type %r)", va, loctup[L_LTYPE])
+            logger.warn("0x%x: Attempting to make a Pointer where another location object exists (of type %r)", va, self.reprLocation(loctup))
             return None
 
         psize = self.psize
