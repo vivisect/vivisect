@@ -35,6 +35,8 @@ def analyzeFunction(vw, funcva):
         brefs.append( (start, True) )
 
         va = start
+        op = None
+        arch = envi.ARCH_DEFAULT
 
         # Walk forward through instructions until a branch edge
         while True:
@@ -55,7 +57,10 @@ def analyzeFunction(vw, funcva):
                 vw.delLocation(lva)
 
                 # assume we're adding a valid instruction, which is most likely.
-                vw.makeCode(va, fva=funcva)
+                if op is not None:
+                    arch = op.iflags & envi.ARCH_MASK
+
+                vw.makeCode(va, arch=arch, fva=funcva)
 
                 loc = vw.getLocation(va)
                 if loc is None:
@@ -71,7 +76,7 @@ def analyzeFunction(vw, funcva):
                 brefs.append((va, False))
                 break
 
-            op = vw.parseOpcode(va)
+            op = vw.parseOpcode(va)     # parseOpcode() pulls arch from the location db, if exists
             mnem[op.mnem] += 1
             size += lsize
             opcount += 1
