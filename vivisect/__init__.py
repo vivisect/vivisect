@@ -611,7 +611,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
         lva,lsize,ltype,tinfo = loctup
         if ltype == LOC_OP:
-            op = self.parseOpcode(lva)
+            op = self.parseOpcode(lva, arch=tinfo & envi.ARCH_MASK)
             return repr(op)
 
         elif ltype == LOC_STRING:
