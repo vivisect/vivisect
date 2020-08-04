@@ -6,6 +6,8 @@ import envi
 import vivisect
 import vivisect.exc as v_exc
 import vivisect.const as v_const
+import vivisect.tools.graphutil as v_t_graphutil
+
 import vivisect.tests.helpers as helpers
 
 
@@ -23,12 +25,36 @@ class VivisectTest(unittest.TestCase):
         vw = self.gcc_vw
         self.assertEqual(set(['Emulation Anomalies', 'EntryPoints', 'WeakSymbols', 'FileSymbols', 'SwitchCases', 'EmucodeFunctions', 'PointersFromFile', 'FuncWrappers', 'CodeFragments', 'DynamicBranches', 'Bookmarks', 'NoReturnCalls']), set(vw.getVaSetNames()))
 
-        vw.getPrevLocation()
-        vw.getRenderInfo()
+        self.assertEqual((0x405d10, 5, 5, 0x20004), vw.getPrevLocation(0x405d15))
+
+        self.assertEqual(None, vw.getPrevLocation(0x405c10, adjacent=True))
+        self.assertEqual((0x405c09, 5, 5, 0x20009), vw.getPrevLocation(0x405c10, adjacent=False))
         self.assertEqual((0x449e10, 1, v_const.LOC_OP, envi.ARCH_AMD64), vw.getLocationByName('gcc_7.main'))
-        vw.getLocationRange()
-        vw.getLocations()
-        vw.getFunctionBlocks()
+
+        # self.assertEqual(set([0x4357d9, 0x435849, 0x4358bd]), vw.getFunctionBlocks(0x4357d9))
+        ans = set([0x468820, 0x46882f, 0x40aba1, 0x46883c, 0x40ab96, 0x46884e, 0x468838])
+        for bva, bsize, bfunc in vw.getFunctionBlocks(0x00468820):
+            self.assertIn(bva, ans)
+            self.assertEqual(bfunc, 0x00468820)
+        import pdb
+        pdb.set_trace()
+        locs = [(4622364, 4, 0, None),
+                (4622368, 1, 5, 131072),
+                (4622369, 6, 5, 131072),
+                (4622375, 2, 5, 131072),
+                (4622377, 6, 5, 131112),
+                (4622383, 5, 5, 131076),
+                (4622388, 2, 5, 131072),
+                (4622390, 2, 5, 131112),
+                (4622392, 2, 5, 131072),
+                (4622394, 1, 5, 131072),
+                (4622395, 1, 5, 131089)]
+        for loc in vw.getLocationRange(0x46881c, 32):
+            self.assertIn(loc, locs)
+        #vw.getRenderInfo()
+
+        # even missing a bunch, there still should be more than 1000 here)
+        self.assertTrue(len(vw.getLocations()) > 1000)
 
         # tuples are Name, Number of Locations, Size in bytes, Percentage of space
         ans = {0: ('Undefined', 0, 517544, 49),
@@ -109,12 +135,21 @@ class VivisectTest(unittest.TestCase):
         with self.assertRaises(v_exc.InvalidFunction):
             vw.setFunctionMeta(0xdeadbeef, 'monty', 'python')
 
-        withs self.assertRaises(v_exc.InvalidLocation):
+        with self.assertRaises(v_exc.InvalidLocation):
             vw.getLocationByName(0xabad1dea)
 
     def test_basic_callers(self):
-        vw.getXrefs()
-        vw.getImportCallers()
+        vw = self.gcc_vw
+        self.assertTrue(29000 < len(vw.getXrefs()))
+        self.assertEqual(2, len(vw.getImportCallers('gcc_7.plt_calloc')))
+        self.assertEqual(1, len(vw.getImportCallers('gcc_7.plt_ioctl')))
+        # uck. TODO: symbolik switchcase
+        # self.assertEqual(14, len(vw.getImportCallers('gcc_7.plt_exit')))
+
+        #self.assertEqual(set([0x408de9, 0x408dfd, 0x435198, 0x43811d]),
+        self.assertEqual(set([0x408de9, 0x408dfd, 0x435198]),
+                         set(vw.getImportCallers(vw.getName(0x402d20))))
+        self.assertEqual(set([0x4495de, 0x4678b1]), set(vw.getImportCallers(vw.getName(0x402d80))))
 
     def test_consecutive_jump_table(self):
         primaryJumpOpVa = 0x804c9b6
@@ -387,3 +422,64 @@ class VivisectTest(unittest.TestCase):
         self.assertEqual(vw.getName(fva, smart=True), noname)
         # set it back just in case
         vw.makeName(fva, oldname)
+
+    def test_graphutil_longpath(self):
+        '''
+        order matters
+        '''
+        vw = self.gcc_vw
+        # TODO: symbolik switchcase
+        # g = v_t_graphutil.buildFunctionGraph(vw, 0x445db6)
+        # longpath = [0x445db6, 0x445dc3, 0x445dd7, 0x445deb, 0x445dfc, 0x445e01, 0x445e0b, 0x445ddc, 0x445e11, 0x445e20, 0x445e2c, 0x445e30, 0x445e4b, 0x445e5b, 0x445e72, 0x445e85, 0x445e85, 0x445ea1, 0x445ea3, 0x445eae, 0x445ebb, 0x445df5, 0x445ec2]
+        # path = next(v_t_graphutil.getLongPath(g))
+        # self.assertEqual(longpath, map(lambda k: k[0], path))
+
+        g = v_t_graphutil.buildFunctionGraph(vw, 0x405c10)
+        longpath=[0x405c10, 0x405c48, 0x405ca6, 0x405cb0, 0x405cc3, 0x405c4e, 0x405c57, 0x405c5c, 0x405c6b, 0x405cd4, 0x405ce4, 0x405c80, 0x405c8c, 0x405cf6, 0x405c92]
+        path = next(v_t_graphutil.getLongPath(g))
+        path = map(lambda k: k[0], path)
+        self.assertEqual(path, longpath)
+
+    def test_graphutil_getcodepaths(self):
+        '''
+        In this function, order doesn't matter
+        '''
+        vw = self.gcc_vw
+        g = v_t_graphutil.buildFunctionGraph(vw, 0x456190)
+        paths = [
+            set([0x456190, 0x4561ba, 0x456202, 0x456216, 0x45621c, 0x456240, 0x4561fa, 0x456242]),
+            set([0x456190, 0x4561ba, 0x456202, 0x456216, 0x45621c, 0x40aa97, 0x4561ea, 0x4561ef, 0x4561fa, 0x456242]),
+            set([0x456190, 0x4561ba, 0x456202, 0x456216, 0x45621c, 0x40aa97, 0x4561ea, 0x4561fa, 0x456242]),
+            set([0x456190, 0x4561ba, 0x456202, 0x456216, 0x4561c2, 0x4561d0, 0x4561ea, 0x4561ef, 0x4561fa, 0x456242]),
+            set([0x456190, 0x4561ba, 0x456202, 0x456216, 0x4561c2, 0x4561d0, 0x4561ea, 0x4561fa, 0x456242]),
+            set([0x456190, 0x4561ba, 0x456202, 0x456216, 0x4561c2, 0x40aa85, 0x40aa8d, 0x4561d0, 0x4561ea, 0x4561ef, 0x4561fa, 0x456242]),
+            set([0x456190, 0x4561ba, 0x456202, 0x456216, 0x4561c2, 0x40aa85, 0x40aa8d, 0x4561d0, 0x4561ea, 0x4561fa, 0x456242]),
+            set([0x456190, 0x4561ba, 0x456202, 0x456216, 0x4561c2, 0x40aa85, 0x40aab9, 0x456242]),
+            set([0x456190, 0x4561ba, 0x456202, 0x45621c, 0x456240, 0x4561fa, 0x456242]),
+            set([0x456190, 0x4561ba, 0x456202, 0x45621c, 0x40aa97, 0x4561ea, 0x4561ef, 0x4561fa, 0x456242]),
+            set([0x456190, 0x4561ba, 0x456202, 0x45621c, 0x40aa97, 0x4561ea, 0x4561fa, 0x456242]),
+            set([0x456190, 0x456242]),
+        ]
+
+        pathcount = 0
+        genr = v_t_graphutil.getCodePaths(g, loopcnt=0, maxpath=None)
+        for path in genr:
+            p = set(map(lambda k: k[0], path))
+            self.assertIn(p, paths)
+            pathcount += 1
+
+        self.assertEqual(12, pathcount)
+
+        g = v_t_graphutil.buildFunctionGraph(vw, 0x46ed80)
+        thruCnt = len(v_t_graphutil.getCodePathsThru(g, 0x444b8c))
+        self.assertEqual(1, thruCnt)
+
+        # this will not be true for all examples, but for this function it is
+        self.assertEqual(len(v_t_graphutil.getCodePaths(g)), len(v_t_graphutil.getCodePathsTo(g, 0x444bb7)))
+        pfro = []
+        genr = v_t_graphutil.getCodePathsFrom(g, 0x444b8e)
+
+    def test_graphutil_getopsfrompath(self):
+        vw = self.gcc_vw
+        # g = v_t_graphutil.buildFunctionGraph(vw, )
+        pass
