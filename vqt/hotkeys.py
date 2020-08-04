@@ -27,7 +27,7 @@ special_keys = {
 }
 
 fkey_base = 0x100002f
-for i in xrange(1,12):
+for i in range(1,12):
     special_keys[ fkey_base + i ] = 'f%d' % i
 
 def hotkey(targname):

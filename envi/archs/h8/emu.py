@@ -129,7 +129,7 @@ class H8Emulator(H8Module, h8_regs.H8RegisterContext, envi.Emulator):
         self.state = CPUSTATE_RESET
         self.ptrsz = 0
 
-        # seglist = [(0,0xffffffff) for x in xrange(6)]
+        # seglist = [(0,0xffffffff) for x in range(6)]
 
         self.setAdvanced(advanced)
         self.addCallingConvention("H8 Arch Procedure Call", h8call)

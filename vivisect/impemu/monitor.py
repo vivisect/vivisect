@@ -1,7 +1,13 @@
+import sys
 import envi
 import envi.bits as e_bits
 
+import logging
+
 from vivisect.const import *
+
+logger = logging.getLogger(__name__)
+
 
 BRANCH_FLAGS = envi.IF_BRANCH | envi.IF_CALL
 class EmulationMonitor:
@@ -58,6 +64,7 @@ class AnalysisMonitor(EmulationMonitor):
         self.fva = fva
         self.onceop = {}
         self.stackmax = 0
+        self.stackargs = {}
         self.operrefs = []
         self.callcomments = []
         self._dynamic_branch_handlers = []
@@ -110,7 +117,7 @@ class AnalysisMonitor(EmulationMonitor):
 
     def addDynamicBranchHandler(self, cb):
         '''
-        Add a callback handler for dynamic branches the code-flow resolver 
+        Add a callback handler for dynamic branches the code-flow resolver
         doesn't know what to do with
         '''
         if cb in self._dynamic_branch_handlers:
@@ -135,6 +142,7 @@ class AnalysisMonitor(EmulationMonitor):
                     stackoff = emu.getStackOffset( operva )
                     if stackoff >= 0: # None is not >= 0 ;)
                         self.stackmax = max( self.stackmax, stackoff )
+                        self.stackargs[stackoff] = True
 
                     self.operrefs.append((starteip,i,operva,o.tsize,stackoff,discrete))
 
@@ -145,9 +153,8 @@ class AnalysisMonitor(EmulationMonitor):
                         logger.debug("dynamic branch cb: %r", cb)
                         try:
                             cb(self, emu, op, starteip)
-                        except Exception, e:
-                            logger.info('error in dynamic handler cb (%r): %r', cb, e)
-                            sys.excepthook(*sys.exc_info())
+                        except Exception:
+                            logger.exception('error with dyn branch handler (%r)', repr(cb))
 
     def apicall(self, emu, op, pc, api, argv):
 
@@ -175,6 +182,7 @@ class AnalysisMonitor(EmulationMonitor):
                 self.vw.setComment(arg, argtype, check=True)
                 if not self.vw.isLocation(arg):
                     if argname == 'funcptr':
+                        logger.debug('discovered new function (apicall): 0x%x', arg)
                         self.vw.makeFunction(arg)
 
                     # FIXME make an API for this? ( the name parsing )
@@ -206,6 +214,6 @@ class AnalysisMonitor(EmulationMonitor):
 
         # WOOT - we have found a runtime resolved function!
         self.vw.verbprint('0x%.8x: Emulation Found 0x%.8x (from func: 0x%.8x) via %s' % (op.va, pc, self.fva, repr(op)))
-        self.vw.makeFunction(pc)
+        self.vw.makeFunction(pc, arch=op.iflags & envi.ARCH_MASK)
         self.vw.addXref(op.va, pc, REF_CODE, envi.BR_PROC)
 

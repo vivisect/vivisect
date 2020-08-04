@@ -11,6 +11,8 @@ archcalls = {
     'vle':'ppccall',
     'ppc':'ppccall',
     'ppc64':'ppccall',
+    'thumb':'armcall',
+    'thumb16':'armcall',
 }
 
 def parseFd(vw, fd, filename=None, baseaddr=None):

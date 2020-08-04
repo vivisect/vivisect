@@ -5,16 +5,13 @@ attempt to detect the calling convention.
 """
 import collections
 
-import vivisect
 import vivisect.impemu.monitor as viv_imp_monitor
 
 from vivisect.const import *
 
-import visgraph.pathcore as vg_path
+import vivisect.analysis.generic.switchcase as vag_switch
 
-import envi
 import envi.archs.i386 as e_i386
-import envi.archs.i386.opcode86 as opcode86
 
 regcalls = {
     (e_i386.REG_ECX,):               ('thiscall',1),
@@ -28,9 +25,9 @@ regcalls = {
 
 empty = collections.defaultdict(lambda x: ('int','arg%d' % x))
 argnames = {
-    'thiscall':     {0:('void *','ecx'),},
-    'msfastcall':   {0:('int','ecx'),1:('int','edx')},
-    'bfastcall':    {0:('int','eax'),1:('int','edx'),2:('int','ecx'),},
+    'thiscall':     {0: ('void *','ecx'),},
+    'msfastcall':   {0: ('int','ecx'), 1: ('int','edx')},
+    'bfastcall':    {0: ('int','eax'), 1: ('int','edx'), 2: ('int','ecx'),},
 }
 
 def argcname(callconv, idx):
@@ -44,6 +41,8 @@ class AnalysisMonitor(viv_imp_monitor.AnalysisMonitor):
     def __init__(self, vw, fva):
         viv_imp_monitor.AnalysisMonitor.__init__(self, vw, fva)
         self.retbytes = None
+        self.endstack = None
+        self.addDynamicBranchHandler(vag_switch.analyzeJmp)
         self.badops = vw.arch.archGetBadOps()
 
     def prehook(self, emu, op, starteip):
@@ -53,13 +52,14 @@ class AnalysisMonitor(viv_imp_monitor.AnalysisMonitor):
         viv_imp_monitor.AnalysisMonitor.prehook(self, emu, op, starteip)
 
         # Do return related stuff before we execute the opcode
-        if op.iflags & envi.IF_RET:
+        if op.isReturn():
+            self.endstack = emu.getStackCounter()
             if len(op.opers):
                 self.retbytes = op.opers[0].imm
 
-def buildFunctionApi(vw, fva, emu, emumon):
+def buildFunctionApi(vw, fva, emu, emumon, stkstart):
     # More than 40 args?  no way...
-    argc = (int(emumon.stackmax) / 4)
+    argc = stackargs = (int(emumon.stackmax) / 4)
     if argc > 40:
         emumon.logAnomaly(emu, fva, 'Crazy Stack Offset Touched: 0x%.8x' % emumon.stackmax)
         argc = 0
@@ -73,7 +73,10 @@ def buildFunctionApi(vw, fva, emu, emumon):
 
     stackidx = 0 # arg index of first *stack* arg
 
-    # Log registers we used by didn't init
+    # Log registers we used but didn't init
+    # but don't take into account ebp and esp
+    emu.uninit_use.pop(e_i386.REG_ESP, None)
+    emu.uninit_use.pop(e_i386.REG_EBP, None)
     undefkeys = emu.uninit_use.keys()
     undefkeys.sort()
 
@@ -86,11 +89,21 @@ def buildFunctionApi(vw, fva, emu, emumon):
 
         vw.setFunctionMeta(fva, "UndefRegUse", undefkeys)
 
+    # if we're callee cleanup, make sure we *actually* clean up our space
+    # otherwise, revert us to caller cleanup
+    if emumon.endstack:
+        stkoff = int((emumon.endstack - stkstart) / 4)
+        if callconv in argnames:
+            # do our stack args line up with what we cleaned up?
+            if abs(stkoff) != stackargs:
+                # we're probably caller cleanup then
+                callconv = callconv + '_caller'
+
     if argc > 64:
-        callconv = 'unkcall' 
+        callconv = 'unkcall'
         argc = 0
     # Add argument indexes to our argument names
-    funcargs = [ argcname(callconv, i) for i in xrange(argc) ]
+    funcargs = [ argcname(callconv, i) for i in range(argc) ]
     api = ('int',None,callconv,None,funcargs)
 
     vw.setFunctionApi(fva, api)
@@ -101,6 +114,7 @@ def analyzeFunction(vw, fva):
     emu = vw.getEmulator()
     emumon = AnalysisMonitor(vw, fva)
 
+    stkstart = emu.getStackCounter()
     emu.setEmulationMonitor(emumon)
     emu.runFunction(fva, maxhit=1)
 
@@ -108,7 +122,7 @@ def analyzeFunction(vw, fva):
     # NOTE: do *not* use getFunctionApi here, it will make one!
     api = vw.getFunctionMeta(fva, 'api')
     if api == None:
-        api = buildFunctionApi(vw, fva, emu, emumon)
+        api = buildFunctionApi(vw, fva, emu, emumon, stkstart)
 
     rettype,retname,callconv,callname,callargs = api
     if callconv == 'unkcall':
@@ -121,9 +135,8 @@ def analyzeFunction(vw, fva):
     baseoff = cc.getStackArgOffset(emu, argc)
 
     # Register our stack args as function locals
-    for i in xrange( stcount ):
+    for i in range( stcount ):
 
         vw.setFunctionLocal(fva, baseoff + ( i * 4 ), LSYM_FARG, i+stackidx)
 
     emumon.addAnalysisResults(vw, emu)
-

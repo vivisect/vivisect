@@ -4,7 +4,7 @@ Symboliks algebraic substitution helpers (SubStates)
 Users of this API probably want the following two classes:
 
 sset - Produces a given set of values ( ie. [1,3,33,9384] )
-srange - Iterates similar to xrange (ie. max,min,inc )
+srange - Iterates similar to range (ie. max,min,inc )
 
 Once instanciated, any SubState may be multiplied or added to
 others to create the implied set of states.
@@ -61,11 +61,11 @@ class SubState:
         return d
 
     def __iter__(self):
-        for i in xrange(len(self)):
+        for i in range(len(self)):
             yield self.getCombState(i)
 
     def __getslice__(self, x, y):
-        for i in xrange(x,y+1):
+        for i in range(x,y+1):
             yield self.getCombState(i)
 
     def __add__(self, x):
@@ -140,7 +140,7 @@ class MultSubState(SubState):
 class srange(SubState):
     '''
     A SubState class which produces values over a range similar
-    to the python builtin xrange.
+    to the python builtin range.
 
     Example:
         # substitute arg0 from 4 to 29 (inclusive)

@@ -6,6 +6,7 @@ import sys
 import shlex
 import pprint
 import socket
+import logging
 import traceback
 from getopt import getopt
 
@@ -36,6 +37,9 @@ import envi.memcanvas as e_canvas
 import envi.memcanvas.renderers as e_render
 
 from vivisect.const import *
+
+logger = logging.getLogger(__name__)
+
 
 class VivCli(e_cli.EnviCli, vivisect.VivWorkspace):
 
@@ -601,6 +605,7 @@ class VivCli(e_cli.EnviCli, vivisect.VivWorkspace):
         opt, optarg = opts[0]
 
         if opt == "-f":
+            logger.debug('new function (manual-cli): 0x%x', addr)
             self.makeFunction(addr)
 
         elif opt == "-c":

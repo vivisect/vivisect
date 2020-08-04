@@ -1,15 +1,17 @@
 import struct
-import traceback
 import itertools
 
 import envi
+import envi.exc as e_exc
 import envi.bits as e_bits
 import envi.memory as e_mem
-import envi.registers as e_reg
 
 import visgraph.pathcore as vg_path
 
 from vivisect.const import *
+
+import logging
+logger = logging.getLogger(__name__)
 
 # Pre-initialize a default stack size
 init_stack_size = 0x8000
@@ -35,7 +37,9 @@ class WorkspaceEmulator:
 
         self.hooks = {}
         self.taints = {}
-        self.taintva = itertools.count(0x41560000, 8192)
+        self.taintva = itertools.count(0x4156000F, 0x2000)
+        self.taintoffset = 0x1000
+        self.taintmask = 0xffffe000
         self.taintrepr = {}
 
         self.uninit_use = {}
@@ -52,7 +56,7 @@ class WorkspaceEmulator:
         self._safe_mem = True   # Should we be forgiving about memory accesses?
         self._func_only = True  # is this emulator meant to stay in one function scope?
 
-        self.strictops = True   # shoudl we bail on emulation if unsupported instruction encountered
+        self.strictops = True   # should we bail on emulation if unsupported instruction encountered
 
         # Map in all the memory associated with the workspace
         for va, size, perms, fname in vw.getMemoryMaps():
@@ -103,7 +107,7 @@ class WorkspaceEmulator:
 
             # Create some pre-made taints for positive stack indexes
             # NOTE: This is *ugly* for speed....
-            taints = [ self.setVivTaint('funcstack', i * self.psize) for i in xrange(20) ]
+            taints = [ self.setVivTaint('funcstack', i * self.psize) for i in range(20) ]
             taintbytes = ''.join([ e_bits.buildbytes(taint,self.psize) for taint in taints ])
 
             self.writeMemory(self.stack_pointer, taintbytes)
@@ -117,7 +121,7 @@ class WorkspaceEmulator:
             new_map_base = new_map_top - new_map_size
 
             stack_map = ''.join([struct.pack('<I', new_map_base+(i*4))
-                                    for i in xrange(new_map_size)])
+                                    for i in range(new_map_size)])
 
             self.addMemoryMap(new_map_base, 6, "[stack]", stack_map)
             self.stack_map_base = new_map_base
@@ -165,9 +169,18 @@ class WorkspaceEmulator:
         """
         iscall = bool(op.iflags & envi.IF_CALL)
         if iscall:
+            # Either way, if it's a call PC goes to next instruction
+            if self._func_only:
+                self.setProgramCounter(starteip+len(op))
             api = self.getCallApi(endeip)
             rtype, rname, convname, callname, funcargs = api
             callconv = self.getCallingConvention(convname)
+            if callconv is None:
+                logger.error("checkCall(0x%x, 0x%x, %r): cannot get calling convention!", starteip, endeip, op)
+                self.emumon.logAnomaly(self, endeip, "no calling convention found for %x" % (endeip))
+                return iscall
+
+
             argv = callconv.getCallArgs(self, len(funcargs))
 
             ret = None
@@ -180,14 +193,11 @@ class WorkspaceEmulator:
             hook = self.hooks.get(callname)
             if ret is None and hook:
                 hook(self, callconv, api, argv)
-            else:
+            elif self._func_only:
                 if ret is None:
                     ret = self.setVivTaint('apicall', (op, endeip, api, argv))
                 callconv.execCallReturn(self, ret, len(funcargs))
-
-            # Either way, if it's a call PC goes to next instruction
-            if self._func_only:
-                self.setProgramCounter(starteip+len(op))
+            # no else since we'll emulate into the function
 
         return iscall
 
@@ -198,11 +208,10 @@ class WorkspaceEmulator:
         for symbolic emulator...)
         '''
         props = {
-            'bva':bva,    # the entry virtual address for this branch
-            'valist':[],  # the virtual addresses in this node in order
-            'calllog':[], # FIXME is this even used?
-            'readlog':[], # a log of all memory reads from this block
-            'writelog':[],# a log of all memory writes from this block
+            'bva': bva,    # the entry virtual address for this branch
+            'valist': [],  # the virtual addresses in this node in order
+            'readlog': [], # a log of all memory reads from this block
+            'writelog': [],# a log of all memory writes from this block
         }
         ret = vg_path.newPathNode(parent=parent, **props)
         return ret
@@ -223,21 +232,49 @@ class WorkspaceEmulator:
         entries to the current path, and updates current path as needed
         (returns a list of (va, CodePath) tuples.
         """
-
+        '''
+        So I've kinda gone back and forth on this one a bit. On one hand, the emulator
+        should be free to iterate over things as it needs. On the other, it's operating with
+        imperfect information as to what's a valid path and what's not.
+        '''
+        vw = self.vw
         ret = []
-        # Add all the known branches to the list
-        blist = op.getBranches(emu=self)
+        paths = set()
+        # if we've already hunted this location down, know it's a table, and we've resolved it
+        # step carefully so we don't conflate tables together
+        xrefs = vw.getXrefsFrom(op.va, rtype=REF_CODE)
+        branches = []
+        for bva, bflags in op.getBranches(emu=None):
+            if bflags & envi.BR_TABLE and vw.getLocation(op.va) and len(xrefs):
+                for xrfrom, xrto, xrtype, xrflags in xrefs:
+                    # if it's not in a codeblock it's probably something like an import, so we
+                    # can ignore it
+                    if self.vw.getCodeBlock(xrto) is None:
+                        continue
+                    if xrto in paths:
+                        continue
+                    bpath = self.getBranchNode(self.curpath, xrto)
+                    ret.append((xrto, bpath))
+                    paths.add(xrto)
+                return ret
 
         # FIXME this should actually check for conditional...
         # If there is more than one branch target, we need a new code block
+        blist = op.getBranches(emu=self)
         if len(blist) > 1:
             for bva, bflags in blist:
                 if bva is None:
-                    print("Unresolved branch even WITH an emulator?")
+                    logger.warn("Unresolved branch even WITH an emulator?")
+                    continue
+                if bva in paths:
                     continue
 
                 bpath = self.getBranchNode(self.curpath, bva)
                 ret.append((bva, bpath))
+                paths.add(bva)
+
+        # let's also take into account some of the dynamic branches we may have found
+        # like our table pointers
 
         return ret
 
@@ -274,7 +311,6 @@ class WorkspaceEmulator:
 
         # Let the current (should be base also) path know where we are starting
         vg_path.setNodeProp(self.curpath, 'bva', funcva)
-
         hits = {}
         todo = [(funcva, self.getEmuSnap(), self.path)]
         vw = self.vw  # Save a dereference many many times
@@ -312,21 +348,23 @@ class WorkspaceEmulator:
                     hits[starteip] = h
 
                 # If we ran out of path (branches that went
-                # somewhere that we couldn't follow?
+                # somewhere that we couldn't follow)?
                 if self.curpath is None:
                     break
 
                 try:
-
                     # FIXME unify with stepi code...
                     op = self.parseOpcode(starteip)
                     self.op = op
                     if self.emumon:
-                        self.emumon.prehook(self, op, starteip)
+                        try:
+                            self.emumon.prehook(self, op, starteip)
+                        except Exception as e:
+                            if not self.getMeta('silent'):
+                                logger.warn("funcva: 0x%x opva: 0x%x:  %r   (%r) (in emumon prehook)", funcva, starteip, op, e)
 
                         if self.emustop:
                             return
-
                     # Execute the opcode
                     self.executeOpcode(op)
                     vg_path.getNodeProp(self.curpath, 'valist').append(starteip)
@@ -334,13 +372,23 @@ class WorkspaceEmulator:
                     endeip = self.getProgramCounter()
 
                     if self.emumon:
-                        self.emumon.posthook(self, op, endeip)
+                        try:
+                            self.emumon.posthook(self, op, endeip)
+                        except Exception as e:
+                            if not self.getMeta('silent'):
+                                logger.warn("funcva: 0x%x opva: 0x%x:  %r   (%r) (in emumon posthook)", funcva, starteip, op, e)
+
                         if self.emustop:
                             return
-
                     iscall = self.checkCall(starteip, endeip, op)
                     if self.emustop:
                         return
+
+                    # TODO: hook things like error(...) when they have a param that indicates to 
+                    # exit. Might be a bit hairy since we'll possibly have to fix up codeblocks
+                    if self.vw.isNoReturnVa(endeip):
+                        vg_path.setNodeProp(self.curpath, 'cleanret', False)
+                        break
 
                     # If it wasn't a call, check for branches, if so, add them to
                     # the todo list and go around again...
@@ -360,14 +408,13 @@ class WorkspaceEmulator:
                         break
                 except envi.UnsupportedInstruction as e:
                     if self.strictops:
-                        if self.vw.verbose: print('runFunction failed: unsupported instruction: 0x%08x %s' % (e.op.va, e.op.mnem))
+                        logger.debug('runFunction failed: unsupported instruction: 0x%08x %s', e.op.va, e.op.mnem)
                         break
                     else:
-                        print('runFunction continuing after unsupported instruction: 0x%08x %s' % (e.op.va, e.op.mnem))
+                        logger.debug('runFunction continuing after unsupported instruction: 0x%08x %s', e.op.va, e.op.mnem)
                         self.setProgramCounter(e.op.va + e.op.size)
                 except Exception as e:
-                    # traceback.print_exc()
-                    if self.emumon is not None:
+                    if self.emumon is not None and not isinstance(e, e_exc.BreakpointHit):
                         self.emumon.logAnomaly(self, starteip, str(e))
 
                     break  # If we exc during execution, this branch is dead.
@@ -409,7 +456,7 @@ class WorkspaceEmulator:
 
     def nextVivTaint(self):
         # One page into the new taint range
-        return self.taintva.next() + 4096
+        return self.taintva.next() + self.taintoffset
 
     def setVivTaint(self, typename, taint):
         '''
@@ -417,7 +464,7 @@ class WorkspaceEmulator:
         the created taint.
         '''
         va = self.nextVivTaint()
-        self.taints[ va & 0xffffe000 ] = (va,typename,taint)
+        self.taints[ va & self.taintmask ] = (va,typename,taint)
         return va
 
     def getVivTaint(self, va):
@@ -425,7 +472,7 @@ class WorkspaceEmulator:
         Retrieve a previously registered taint ( this will automagically
         mask values down and allow you to retrieve "near taint" values.)
         '''
-        return self.taints.get( va & 0xffffe000 )
+        return self.taints.get( va & self.taintmask )
 
     def reprVivTaint(self, taint):
         '''

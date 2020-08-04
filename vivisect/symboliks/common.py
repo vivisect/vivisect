@@ -447,6 +447,12 @@ class Call(SymbolikBase):
 
         canvas.addText(')')
 
+    def _reduce(self, emu=None):
+        args = []
+        for symkid in self.kids[1:]:
+            args.append(symkid.reduce(emu=emu))
+        return Call(self.kids[0].reduce(emu=emu), self.width, args)
+
     def _solve(self, emu=None, vals=None):
         ret = 0
         for s in [k.solve(emu=emu, vals=vals) for k in self.kids]:
@@ -513,6 +519,9 @@ class Mem(SymbolikBase):
     def getWidth(self):
         # FIXME should we do something about that?
         return self.kids[1].solve()
+
+    def _reduce(self, emu):
+        return Mem(self.kids[0].reduce(), self.kids[1].reduce())
 
 class Var(SymbolikBase):
 

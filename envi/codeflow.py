@@ -131,7 +131,7 @@ class CodeFlowContext(object):
 
         Set persist=True to store 'opdone' and never disassemble the same thing twice
         '''
-        logger.debug("addCodeFlow: 0x%x (arch:0x%x)", va, arch)
+        logger.debug('%s === addCodeFlow(0x%x, 0x%x)', __name__, va, arch)
         opdone = {}
         if self._cf_persist != None:
             opdone = self._cf_persist
@@ -158,7 +158,7 @@ class CodeFlowContext(object):
             try:
                 op = self._mem.parseOpcode(va, arch=arch)
             except envi.InvalidInstruction as e:
-                logger.warn('parseOpcode error at 0x%.8x (addCodeFlow(0x%x)): %s',va, startva, e)
+                logger.warn('parseOpcode error at 0x%.8x (addCodeFlow(0x%x)): %s', va, startva, e)
                 continue
             except Exception as e:
                 logger.warn('parseOpcode error at 0x%.8x (addCodeFlow(0x%x)): %s', va, startva, e)
@@ -167,6 +167,10 @@ class CodeFlowContext(object):
             branches = op.getBranches()
             # The opcode callback may filter branches...
             branches = self._cb_opcode(va, op, branches)
+
+            # FIXME: if IF_BRANCH: if IF_COND and len(branches)<2: _cb_dynamic_branch()
+            # FIXME: if IF_BRANCH and not IF_COND and len(branches)<1: _cb_dynamic_branch()
+            # FIXME: if IF_CALL and len(branches)<2: _cb_dynamic_branch()
 
             while len(branches):
 
@@ -181,7 +185,6 @@ class CodeFlowContext(object):
 
                 try:
                     # Handle a table branch by adding more branches...
-                    ptrfmt = ('<P', '>P')[self._mem.getEndian()]
                     # most if not all of the work to construct jump tables is done in makeOpcode
                     if bflags & envi.BR_TABLE:
                         if self._cf_exptable:
@@ -205,7 +208,7 @@ class CodeFlowContext(object):
                         if self._cf_noret.get( bva ):
                             self.addNoFlow( va, va + len(op) )
 
-                        bva = self._mem.readMemoryFormat(bva, ptrfmt)[0]
+                        bva = self._mem.readMemoryPtr(bva)
 
                     if not self._mem.probeMemory(bva, 1, e_mem.MM_EXEC):
                         continue
@@ -277,9 +280,11 @@ class CodeFlowContext(object):
         self._funcs[va] = True
         calls_from = self.addCodeFlow(va, arch=arch)
         self._fcalls[va] = calls_from
+        logger.debug('addEntryPoint(0x%x): calls_from: %r', va, calls_from)
 
         # Finally, notify the callback of a new function
-        self._cb_function(va, {'CallsFrom':calls_from})
+        self._cb_function(va, {'CallsFrom': calls_from})
+        return va
 
     def flushFunction(self, fva):
         '''

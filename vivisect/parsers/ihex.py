@@ -9,6 +9,8 @@ archcalls = {
     'i386':'cdecl',
     'amd64':'sysvamd64call',
     'arm':'armcall',
+    'thumb':'armcall',
+    'thumb16':'armcall',
     'ppc32-embedded':'ppccall',
     'ppc-embedded':'ppccall',
     'vle':'ppccall',

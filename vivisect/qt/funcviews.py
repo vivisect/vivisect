@@ -40,7 +40,7 @@ class FunctionBlocksView(BasicTreeView):
 
             cmap = {}
             bva, bsize, fva = block
-            for i in xrange(bsize):
+            for i in range(bsize):
                 cmap[ bva + i ] = 'yellow'
 
             # Since we have a reference to the GUI, lets also

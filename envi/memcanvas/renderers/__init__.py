@@ -83,7 +83,7 @@ def isBasicUnicode(bytez):
     if len(bytez) < 8:
         return False, None
     nonull = bytez.replace('\x00', '')
-    if (len(bytez) / 2) != len(nonull):
+    if (len(bytez) / 2) - 1 != len(nonull):
         return False, None
     return isAscii(nonull)
 

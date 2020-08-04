@@ -1257,7 +1257,7 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
 
         if icount != None:
             addr = self.trace.getProgramCounter()
-            for i in xrange(icount):
+            for i in range(icount):
                 addr += len(self.trace.parseOpcode(addr))
 
             until = addr

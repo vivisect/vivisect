@@ -260,7 +260,7 @@ class DnsQuestionArray(vstruct.VArray):
     '''
     def __init__(self, reccnt):
         vstruct.VArray.__init__(self)
-        for i in xrange(reccnt):
+        for i in range(reccnt):
             self.vsAddElement(DnsQuestion())
 
 class DnsResourceRecord(vstruct.VStruct):
@@ -318,7 +318,7 @@ class DnsResourceRecordArray(vstruct.VArray):
     '''
     def __init__(self, reccnt):
         vstruct.VArray.__init__(self)
-        for i in xrange(reccnt):
+        for i in range(reccnt):
             self.vsAddElement(DnsResourceRecord())
 
 class DnsMessage(vstruct.VStruct):

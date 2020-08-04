@@ -46,7 +46,7 @@ class SymbolikTranslator:
         self._cur_va = op.va
         meth = self._op_methods.get(op.mnem, None)
         if meth is None:
-            # print('%s: %s Needs: %s' % (hex(op.va), self.__class__.__name__, repr(op)))
+            # print('Symboliks: %s: %s Needs: %s' % (hex(op.va), self.__class__.__name__, repr(op)))
             self.effDebug("%s Needs %s" % (self.__class__.__name__, repr(op)))
             return DebugEffect(op.va, "%s Needs %s" % (self.__class__.__name__, repr(op)))
 
