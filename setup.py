@@ -9,7 +9,7 @@ setup(
     name='vivisect',
     author='Vivisect',
     author_email='',
-    version='0.1.0',
+    version='0.1.0rc2',
     url='https://github.com/vivisect/vivisect',
     packages=find_packages(),
     zip_safe=False,
