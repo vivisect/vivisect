@@ -122,21 +122,6 @@ arch_names = {
 }
 # FIXME: interpret ELF headers to configure VLE pages
 
-# FIXME: make ArchModules specify the default calling convention based on Architecture settings (which must be handed in)
-archcalls = {
-    'i386': 'cdecl',
-    'amd64': 'sysvamd64call',
-    'arm': 'armcall',
-    'thumb':'armcall',
-    'thumb16':'armcall',
-    'vle': 'ppccall',
-    'ppc32-embedded': 'ppccall',
-    'ppc32-server': 'ppccall',
-    'ppc-embedded': 'ppccall',
-    'ppc-server': 'ppccall',
-}
-
-
 def getArchName(elf):
     machine = elf.e_machine
     if machine == Elf.EM_PPC64 and elf.e_flags & Elf.EM_PPC_EMB:

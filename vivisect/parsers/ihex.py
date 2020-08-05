@@ -5,19 +5,6 @@ import vivisect.parsers as v_parsers
 
 from vivisect.const import *
 
-archcalls = {
-    'i386':'cdecl',
-    'amd64':'sysvamd64call',
-    'arm':'armcall',
-    'thumb':'armcall',
-    'thumb16':'armcall',
-    'ppc32-embedded':'ppccall',
-    'ppc-embedded':'ppccall',
-    'vle':'ppccall',
-    'ppc32-server':'ppccall',
-    'ppc-server':'ppccall',
-}
-
 def parseFile(vw, filename, baseaddr=None):
 
     arch = vw.config.viv.parsers.ihex.arch

@@ -26,6 +26,10 @@ defconfig = {
                 'arch':'',
                 'bigend':False,
             },
+            'vbf':{
+                'arch':'',
+                'bigend':False,
+            },
         },
         'analysis':{
             'pointertables':{

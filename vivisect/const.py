@@ -232,3 +232,21 @@ SYMT_CON_LT         = SYMT_CON | 5
 SYMT_CON_LE         = SYMT_CON | 6
 SYMT_CON_UNK        = SYMT_CON | 7
 SYMT_CON_NOTUNK     = SYMT_CON | 8
+
+# FIXME: make ArchModules specify the default calling convention based on Architecture settings (which must be handed in)
+archcalls = {
+    'i386': 'cdecl',
+    'amd64': 'sysvamd64call',
+    'arm': 'armcall',
+    'thumb': 'armcall',
+    'thumb16': 'armcall',
+
+    'vle': 'ppccall',
+    'ppc': 'ppccall',
+    'ppc64': 'ppccall',
+    'ppc-server': 'ppccall',
+    'ppc-embedded': 'ppccall',
+    'ppc32-server': 'ppccall',
+    'ppc32-embedded': 'ppccall',
+}
+
