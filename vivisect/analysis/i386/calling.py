@@ -7,6 +7,7 @@ import collections
 
 import vivisect.impemu.monitor as viv_imp_monitor
 
+import vivisect.exc as v_exc
 from vivisect.const import *
 
 import vivisect.analysis.generic.switchcase as vag_switch
@@ -47,7 +48,7 @@ class AnalysisMonitor(viv_imp_monitor.AnalysisMonitor):
 
     def prehook(self, emu, op, starteip):
         if op in self.badops:
-            raise Exception("Hit known BADOP at 0x%.8x %s" % (starteip, repr(op) ))
+            raise v_exc.BadOpBytes(op.va)
 
         viv_imp_monitor.AnalysisMonitor.prehook(self, emu, op, starteip)
 
