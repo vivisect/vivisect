@@ -149,6 +149,8 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         self.addVaSet('DynamicBranches', (('va', VASET_ADDRESS), ('opcode', VASET_STRING), ('bflags', VASET_INTEGER)))
         self.addVaSet('SwitchCases', (('va', VASET_ADDRESS), ('setup_va', VASET_ADDRESS), ('Cases', VASET_INTEGER)))
         self.addVaSet('PointersFromFile', (('va', VASET_ADDRESS), ('target', VASET_ADDRESS), ('file', VASET_STRING), ('comment', VASET_STRING), ))
+        self.addVaSet('CodeFragments', (('va', VASET_ADDRESS), ('calls_from', VASET_COMPLEX)))
+        self.addVaSet('EmucodeFunctions', (('va', VASET_ADDRESS),))
         self.addVaSet('FuncWrappers', (('va', VASET_ADDRESS), ('wrapped_va', VASET_ADDRESS),))
 
     def verbprint(self, msg):
@@ -609,7 +611,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
         lva,lsize,ltype,tinfo = loctup
         if ltype == LOC_OP:
-            op = self.parseOpcode(lva)
+            op = self.parseOpcode(lva, arch=tinfo & envi.ARCH_MASK)
             return repr(op)
 
         elif ltype == LOC_STRING:
@@ -713,6 +715,17 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             self.vprint('...analysis complete! (%d sec)' % (endtime-starttime))
             self.printDiscoveredStats()
         self._fireEvent(VWE_AUTOANALFIN, (endtime, starttime))
+
+    def analyzeFunction(self, fva):
+        for fmname in self.fmodlist:
+            fmod = self.fmods.get(fmname)
+            try:
+                fmod.analyzeFunction(self, fva)
+            except Exception as e:
+                if self.verbose:
+                    traceback.print_exc()
+                self.verbprint("Function Analysis Exception for 0x%x   %s: %s" % (fva, fmod.__name__, e))
+                self.setFunctionMeta(fva, "%s fail" % fmod.__name__, traceback.format_exc())
 
     def getStats(self):
         stats = {
@@ -1272,7 +1285,27 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
         return loc
 
-    def makeCode(self, va, arch=envi.ARCH_DEFAULT):
+    def _dbgLocEntry(self, va):
+        """
+        Display the human-happy version of a location
+        """
+        loc = self.getLocation(va)
+        if loc is None:
+            return 'None'
+
+        lva, lsz, ltype, ltinfo = loc
+        ltvar = loc_lookups.get(ltype)
+        ltdesc = loc_type_names.get(ltype)
+        locrepr = '(0x%x, %d, %s, %r)  # %s' % (lva, lsz, ltvar, ltinfo, ltdesc)
+        return locrepr
+
+    def updateCallsFrom(self, fva, ncalls):
+        function = self.getFunction(fva)
+        prev_call = self.getFunctionMeta(function, 'CallsFrom')
+        ncall = set(prev_call).union(calls_from)
+        self.setFunctionMeta(function, 'CallsFrom', list(ncall))
+
+    def makeCode(self, va, arch=envi.ARCH_DEFAULT, fva=None):
         """
         Attempt to begin code-flow based disassembly by
         starting at the given va.  The va will be made into
@@ -1285,6 +1318,11 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
         logger.debug("makeCode(0x%x, 0x%x)", va, arch)
         calls_from = self.cfctx.addCodeFlow(va, arch=arch)
+        if fva is None:
+            self.setVaSetRow('CodeFragments', (va, calls_from))
+        else:
+            self.updateCallsFrom(va, calls_from)
+        return calls_from
 
     def previewCode(self, va, arch=envi.ARCH_DEFAULT):
         '''
@@ -1310,6 +1348,16 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         Return True if funcva is a function entry point.
         """
         return self.funcmeta.get(funcva) != None
+
+    def isFunctionThunk(self, funcva):
+        """
+        Return True if funcva is a function thunk
+        """
+        # TODO: could we do more here?
+        try:
+            return self.getFunctionMeta(funcva, 'Thunk') is not None
+        except InvalidFunction:
+            return False
 
     def getFunctions(self):
         """
@@ -1351,6 +1399,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         if meta is not None:
             for key, val in meta.items():
                 self.setFunctionMeta(realfva, key, val)
+        return realfva
 
     def delFunction(self, funcva):
         """
@@ -1840,7 +1889,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         """
         loctup = self.getLocation(va)
         if loctup is not None:
-            logger.warn("0x%x: Attempting to make a Pointer where another location object exists (of type %r)", va, loctup[L_LTYPE])
+            logger.warn("0x%x: Attempting to make a Pointer where another location object exists (of type %r)", va, self.reprLocation(loctup))
             return None
 
         psize = self.psize
@@ -2236,12 +2285,15 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
         if name is not None or not smart:
             return name
-        
+
         # TODO: by previous symbol?
 
         # by function
         baseva = self.getFunction(va)
         basename = self.name_by_va.get(baseva, None)
+
+        if self.isFunction(va):
+            basename = 'sub_0%x' % va
 
         # by filename
         if basename is None:
@@ -2626,8 +2678,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
     def setVaSetRow(self, name, rowtup):
         """
         Use this API to update the row data for a particular
-        entry in the VA set. Create a new empty set if one
-        does not already exist.
+        entry in the VA set.
         """
         self._fireEvent(VWE_SETVASETROW, (name, rowtup))
 

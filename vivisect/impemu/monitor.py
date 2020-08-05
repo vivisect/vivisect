@@ -64,6 +64,7 @@ class AnalysisMonitor(EmulationMonitor):
         self.fva = fva
         self.onceop = {}
         self.stackmax = 0
+        self.stackargs = {}
         self.operrefs = []
         self.callcomments = []
         self._dynamic_branch_handlers = []
@@ -141,6 +142,7 @@ class AnalysisMonitor(EmulationMonitor):
                     stackoff = emu.getStackOffset( operva )
                     if stackoff >= 0: # None is not >= 0 ;)
                         self.stackmax = max( self.stackmax, stackoff )
+                        self.stackargs[stackoff] = True
 
                     self.operrefs.append((starteip,i,operva,o.tsize,stackoff,discrete))
 

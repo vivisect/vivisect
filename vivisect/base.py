@@ -379,9 +379,12 @@ class VivWorkspaceCore(object, viv_impapi.ImportApi):
             self.va_by_name[name] = va
             self.name_by_va[va] = name
 
-        if self.isFunction( va ):
+        if self.isFunction(va):
             fnode = self._call_graph.getFunctionNode(va)
-            self._call_graph.setNodeProp(fnode,'repr',name)
+            if name is None:
+                self._call_graph.delNodeProp(fnode, 'repr')
+            else:
+                self._call_graph.setNodeProp(fnode, 'repr', name)
 
     def _handleADDMMAP(self, einfo):
         va, perms, fname, mbytes = einfo
@@ -709,7 +712,10 @@ class VivCodeFlowContext(e_codeflow.CodeFlowContext):
 
     # NOTE: self._mem is the viv workspace...
     def _cb_opcode(self, va, op, branches):
-
+        '''
+        callback for each OPCODE in codeflow analysis
+        must return list of branches, modified for our purposes
+        '''
         loc = self._mem.getLocation(va)
         if loc is None:
 
@@ -717,9 +723,12 @@ class VivCodeFlowContext(e_codeflow.CodeFlowContext):
             branches = [br for br in branches if not self._mem.isLocType(br[0],LOC_IMPORT)]
 
             self._mem.makeOpcode(op.va, op=op)
-            # FIXME: future home of makeOpcode branch/xref analysis
+            # TODO: future home of makeOpcode branch/xref analysis
             return branches
 
+        elif loc[L_LTYPE] != LOC_OP:
+            locrepr = self._mem.reprLocation(loc)
+            logger.warn("_cb_opcode(0x%x): LOCATION ALREADY EXISTS: loc: %r", va, locrepr)
         return ()
 
     def _cb_function(self, fva, fmeta):
@@ -740,16 +749,7 @@ class VivCodeFlowContext(e_codeflow.CodeFlowContext):
         vw._fireEvent(VWE_ADDFUNCTION, (fva,fmeta))
 
         # Go through the function analysis modules in order
-        for fmname in vw.fmodlist:
-            fmod = vw.fmods.get(fmname)
-            try:
-                logger.debug('fmod: 0x%x  (%r)', fva, fmod)
-                fmod.analyzeFunction(vw, fva)
-            except Exception as e:
-                if vw.verbose:
-                    traceback.print_exc()
-                vw.verbprint("Function Analysis Exception for 0x%x   %s: %s" % (fva, fmod.__name__, e))
-                vw.setFunctionMeta(fva, "%s fail" % fmod.__name__, traceback.format_exc())
+        vw.analyzeFunction(fva)
 
         fname = vw.getName( fva )
         if vw.getMeta('NoReturnApis').get( fname.lower() ):

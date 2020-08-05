@@ -67,6 +67,24 @@ class VivisectTest(unittest.TestCase):
             self.assertEqual(ltype, loctup[2])
             self.assertEqual(lstr, self.chgrp_vw.readMemory(lva, lsize))
 
+        jmpop = 0x804c32b
+        cases = list(map(lambda k: k[1], self.chgrp_vw.getXrefsFrom(jmpop)))
+        self.assertEqual(len(cases), 11)
+        casevas = [
+            0x0804c456,
+            0x0804c332,
+            0x0804c368,
+            0x0804c37e,
+            0x0804c394,
+            0x0804c3aa,
+            0x0804c3da,
+            0x0804c3f0,
+            0x0804c41f,
+            0x0804c406,
+            0x08051994
+        ]
+        self.assertEqual(casevas, cases)
+
     def test_libfunc_meta_equality(self):
         '''
         both vdir and chgrp have a bunch of library functions in common, and while the addresses
@@ -92,6 +110,81 @@ class VivisectTest(unittest.TestCase):
 
         self.assertEqual(vmeta['Recursive'], cmeta['Recursive'])
         self.assertTrue(vmeta['Recursive'])
+
+    def test_callargs(self):
+        answers = [
+            (0x804f7f0, 0x8052560, 'cdecl', 3, 'hash_insert_if_absent'),
+            (0x804aad0, 0x8055b50, 'cdecl', 5, 'quotearg_buffer'),
+            # quotearg_buffer_restyled, the problem child
+            # there should be 9 and an msfastcaller here, but meta registers are a nightmare
+            (0x804ab30, 0x8055bb0, 'cdecl', 7, 'quotearg_buffer_restyled'),
+            (0x804b7c0, 0x8056840, 'cdecl', 3, 'quotearg_alloc'),
+            (0x804b7e0, 0x8056860, 'cdecl', 4, 'quotearg_alloc_mem'),
+            (0x804bc10, 0x8056c90, 'cdecl', 2, 'quotearg_style'),
+            (0x804bbd0, 0x8056c50, 'cdecl', 4, 'quotearg_n_style_mem'),
+            (0x804bce0, 0x8056d60, 'cdecl', 2, 'quotearg_char'),
+            (0x804bc50, 0x8056cd0, 'cdecl', 3, 'quotearg_char_mem'),
+            (0x804bae0, 0x8056b60, 'cdecl', 1, 'quotearg'),
+            (0x804b930, 0x80569b0, 'cdecl', 2, 'quotearg_n'),
+            (0x804bac0, 0x8056b40, 'cdecl', 3, 'quotearg_n_mem'),
+            (0x804bd80, 0x8056e00, 'cdecl', 4, 'quotearg_n_custom'),
+            (0x804bda0, 0x8056e20, 'cdecl', 5, 'quotearg_n_custom_mem'),
+            (0x804be60, 0x8056ee0, 'cdecl', 4, 'quotearg_custom_mem'),
+            (0x804be40, 0x8056ec0, 'cdecl', 3, 'quotearg_custom'),
+            (0x804bc30, 0x8056cb0, 'cdecl', 3, 'quotearg_style_mem'),
+            (0x804bb20, 0x8056ba0, 'cdecl', 3, 'quotearg_n_style'),
+            (0x804bb00, 0x8056b80, 'cdecl', 2, 'quotearg_mem'),
+            (0x804bd00, 0x8056d80, 'cdecl', 1, 'quotearg_colon'),
+            (0x804bd20, 0x8056da0, 'cdecl', 2, 'quotearg_colon_mem'),
+            (0x804bd40, 0x8056dc0, 'cdecl', 3, 'quotearg_n_style_colon'),
+            (0x804b950, 0x80569d0, 'msfastcall_caller', 4, 'quotearg_n_options'),
+            (0x804bee0, 0x8056f60, 'cdecl', 1, 'quote'),
+            (0x804bec0, 0x8056f40, 'cdecl', 2, 'quote_n'),
+            (0x804be80, 0x8056f00, 'cdecl', 3, 'quote_n_mem'),
+            (0x804a7c0, 0x80511d0, 'cdecl', 0, 'close_stdout'),
+            (0x804a920, 0x80559a0, 'cdecl', 1, 'set_program_name')
+        ]
+        for cfva, vfva, cconv, arglen, funcname in answers:
+            capi = self.chgrp_vw.getFunctionMeta(cfva, 'api')
+            vapi = self.vdir_vw.getFunctionMeta(vfva, 'api')
+            self.assertIsNotNone(capi)
+            self.assertIsNotNone(vapi)
+
+            self.assertEqual(capi[2], cconv)
+            self.assertEqual(len(capi[4]), arglen)
+            self.assertEqual(capi[2], vapi[2])
+            self.assertEqual(capi[4], vapi[4])
+
+            cname = self.chgrp_vw.getName(cfva)
+            self.assertIsNotNone(cname)
+            cname = cname.split('.')[-1]
+
+            vname = self.vdir_vw.getName(vfva)
+            self.assertIsNotNone(vname)
+            vname = vname.split('.')[-1]
+
+            self.assertEqual(cname, funcname)
+            self.assertEqual(vname, cname)
+
+        chgrp_spec = [
+            # chgrp specific that I should test
+            (0x8049c70, 'msfastcall_caller', 7, 'change_file_owner'),
+            (0x80499f0, 'thiscall_caller', 1, 'parse_group'),
+            (0x8049b60, 'cdecl', 7, 'chown_files'),
+            (0x804a5a0, 'msfastcall_caller', 6, 'describe_change')
+        ]
+
+        vw = self.chgrp_vw
+        for fva, cconv, arglen, funcname in chgrp_spec:
+            self.assertEqual(fva, vw.getFunction(fva))
+            api = vw.getFunctionMeta(fva, 'api')
+            self.assertEqual(len(api[4]), arglen)
+            self.assertEqual(api[2], cconv)
+
+            name = vw.getName(fva)
+            self.assertIsNotNone(name)
+            name = name.split('.')[-1]
+            self.assertEqual(name, funcname)
 
     def test_non_codeblock(self):
         '''
@@ -144,6 +237,11 @@ class VivisectTest(unittest.TestCase):
             self.assertEqual(func, test[1])
             self.assertEqual(len(refs), test[2])
 
+    def test_main(self):
+        vw = self.chgrp_vw
+        self.assertTrue(vw.isFunction(0x8049650))
+        self.assertTrue(vw.getFunction(0x0804a9a0), 0x0804a920)
+
     def test_viv_bigend(self):
         fd = io.StringIO(u'ABCDEFG')
 
@@ -159,3 +257,24 @@ class VivisectTest(unittest.TestCase):
 
     def test_posix_impapi(self):
         pass
+
+    def test_make_noname(self):
+        vw = self.vdir_vw
+        name = 'TheBinaryAnalysisPlantsCrave'
+        va = 0x08058691
+        vw.makeName(va, name)
+        self.assertEqual(vw.getName(va), name)
+
+        vw.makeName(va, None)
+        self.assertIsNone(vw.getName(va))
+        self.assertEqual(vw.getName(va, smart=True), 'vdir.rpl_mbrtowc+0x31')
+
+        fva = 0x08058660
+        oldname = vw.getName(fva)
+        self.assertEqual(oldname, 'vdir.rpl_mbrtowc')
+        vw.makeName(fva, None)
+        noname = 'sub_0%x' % fva
+        self.assertEqual(vw.getName(fva), None)
+        self.assertEqual(vw.getName(fva, smart=True), noname)
+        # set it back just in case
+        vw.makeName(fva, oldname)

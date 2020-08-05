@@ -85,6 +85,7 @@ class ArchitectureModule:
         self._arch_maxinst = maxinst
         self._arch_badopbytes = ['\x00\x00\x00\x00\x00', '\xff\xff\xff\xff\xff']
         self.setEndian(endian)
+        self.badops = []
 
     def getArchId(self):
         '''
@@ -195,16 +196,21 @@ class ArchitectureModule:
         byteslist is None to use the architecture default, or can be a custom list.
         '''
         if byteslist is None:
+            # if we've already done this exercize...
+            if len(self.badops):
+                return self.badops
+            
+            # otherwise, let's start with the architecture's badops list
             byteslist = self._arch_badopbytes
 
-        badops = []
+        self.badops = []
         for badbytes in byteslist:
             try:
                 self.badops.append(self.archParseOpcode(badbytes))
             except:
                 pass
 
-        return badops
+        return self.badops
 
     def getEmulator(self):
         """
@@ -1155,7 +1161,7 @@ class CallingConvention(object):
             ra = emu.getProgramCounter()
 
         self.allocateCallSpace(emu, argc)
-        self.setCallArgsRet(emu, args=args, ra=ra)
+        self.setCallArgsRet(emu, args=argv, ra=ra)
 
     def executeCall(self, emu, va, args=None, ra=None):
         '''

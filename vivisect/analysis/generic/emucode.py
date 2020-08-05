@@ -6,7 +6,6 @@ if they are code by emulation behaviorial analysis.
 """
 import envi
 import vivisect
-import vivisect.reports as viv_rep
 from envi.archs.i386.opconst import *
 import vivisect.impemu.monitor as viv_imp_monitor
 
@@ -34,11 +33,11 @@ class watcher(viv_imp_monitor.EmulationMonitor):
     def logAnomaly(self, emu, eip, msg):
         self.badcode = True
         emu.stopEmu()
-        
+
         #self.vw.verbprint("Emucode: 0x%.8x (f:0x%.8x) %s" % (eip, self.tryva, msg))
 
     def looksgood(self):
-        if not self.hasret or self.badcode: 
+        if not self.hasret or self.badcode:
             return False
 
         # if there is 1 mnem that makes up over 50% of all instructions then flag it as invalid
@@ -108,12 +107,11 @@ def analyze(vw):
 
     flist = vw.getFunctions()
 
-    tried = {}
-    vasetrows = []
+    tried = set()
     while True:
         docode = []
         bcode  = []
-       
+
         vatodo = []
         vatodo = [ va for va, name in vw.getNames() if vw.getLocation(va) == None ]
         vatodo.extend( [tova for fromva, tova, reftype, rflags in vw.getXrefs(rtype=REF_PTR) if vw.getLocation(tova) == None] )
@@ -129,16 +127,16 @@ def analyze(vw):
                 continue
 
             # Skip it if we've tried it already.
-            if tried.get(va):
+            if va in tried:
                 continue
 
-            tried[va] = True
+            tried.add(va)
             emu = vw.getEmulator()
             wat = watcher(vw, va)
             emu.setEmulationMonitor(wat)
             try:
                 emu.runFunction(va, maxhit=1)
-            except Exception, e:
+            except Exception as e:
                 continue
             if wat.looksgood():
                 docode.append(va)
@@ -147,10 +145,10 @@ def analyze(vw):
             elif wat.iscode() and vw.greedycode:
                 bcode.append(va)
             else:
-                if vw.isProbablyString(va):
-                    vw.makeString(va)
-                elif vw.isProbablyUnicode(va):
+                if vw.isProbablyUnicode(va):
                     vw.makeUnicode(va)
+                elif vw.isProbablyString(va):
+                    vw.makeString(va)
 
         if len(docode) == 0:
             break
@@ -159,21 +157,24 @@ def analyze(vw):
         for va in docode:
             if vw.getLocation(va) != None:
                 continue
-            # XXX - RP 
             try:
                 logger.debug('discovered new function: 0x%x', va)
                 vw.makeFunction(va)
-            except: 
+            except:
                 continue
-            vasetrows.append((va,))
-    
+
         bcode.sort()
         for va in bcode:
             if vw.getLocation(va) != None:
                 continue
+            # TODO: consider elevating to functions?
             vw.makeCode(va)
 
     dlist = vw.getFunctions()
+
+    newfuncs = set(dlist) - set(flist)
+    for fva in newfuncs:
+        vw.setVaSetRow('EmucodeFunctions', (fva,))
 
     vw.verbprint("emucode: %d new functions defined (now total: %d)" % (len(dlist)-len(flist), len(dlist)))
 

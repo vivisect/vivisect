@@ -22,6 +22,7 @@ logger = logging.getLogger(__name__)
 # instruction code
 # exception handler code
 
+THUMB_ARCHS = (envi.ARCH_THUMB, envi.ARCH_THUMB16)
 
 # calling conventions
 class ArmArchitectureProcedureCall(envi.CallingConvention):
@@ -274,6 +275,7 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
         # NOTE: If an opcode method returns
         #       other than None, that is the new pc
         try:
+            self.setFlag(PSR_T_bit, (op.iflags & envi.ARCH_MASK) in THUMB_ARCHS)
             self.setMeta('forrealz', True)
             newpc = None
             startpc = self.getProgramCounter()
@@ -1088,7 +1090,7 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
 
         else:
             # we let the register size sort out the details for non-ADV_SIMD stuff
-            if op.simdflags in if_second_F32_F64_F16:
+            if op.simdflags in ifs_second_F32_F64_F16:
                 val = op.opers[1].getFloatValue(self)
 
             else:
