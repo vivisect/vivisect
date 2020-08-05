@@ -11,6 +11,10 @@ import vivisect.tools.graphutil as v_t_graphutil
 import vivisect.tests.helpers as helpers
 
 
+def glen(g):
+    return len([x for x in g])
+
+
 class VivisectTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -36,8 +40,6 @@ class VivisectTest(unittest.TestCase):
         for bva, bsize, bfunc in vw.getFunctionBlocks(0x00468820):
             self.assertIn(bva, ans)
             self.assertEqual(bfunc, 0x00468820)
-        import pdb
-        pdb.set_trace()
         locs = [(4622364, 4, 0, None),
                 (4622368, 1, 5, 131072),
                 (4622369, 6, 5, 131072),
@@ -51,18 +53,17 @@ class VivisectTest(unittest.TestCase):
                 (4622395, 1, 5, 131089)]
         for loc in vw.getLocationRange(0x46881c, 32):
             self.assertIn(loc, locs)
-        #vw.getRenderInfo()
 
         # even missing a bunch, there still should be more than 1000 here)
         self.assertTrue(len(vw.getLocations()) > 1000)
 
         # tuples are Name, Number of Locations, Size in bytes, Percentage of space
-        ans = {0: ('Undefined', 0, 517544, 49),
+        ans = {0: ('Undefined', 0, 517666, 49),
                1: ('Num/Int', 271, 1724, 0),
                2: ('String', 4054, 153424, 14),
                3: ('Unicode', 0, 0, 0),
                4: ('Pointer', 5376, 43008, 4),
-               5: ('Opcode', 79516, 323664, 30),
+               5: ('Opcode', 79489, 323542, 30),
                6: ('Structure', 496, 11544, 1),
                7: ('Clsid', 0, 0, 0),
                8: ('VFTable', 0, 0, 0),
@@ -71,6 +72,66 @@ class VivisectTest(unittest.TestCase):
         dist = vw.getLocationDistribution()
         for loctype, locdist in dist.items():
             self.assertEqual(locdist, ans[loctype])
+
+    def test_render(self):
+        vw = self.gcc_vw
+        cb = vw.getCodeBlock(0x0046ec30)
+        rndr = vw.getRenderInfo(cb[v_const.CB_VA] - 0x20, cb[v_const.CB_SIZE] + 0x20)
+        self.assertIsNotNone(rndr)
+        locs, funcs, names, comments, extras = rndr
+
+        locans = [(4647952, 2, 5, 131072),
+                  (4647954, 1, 5, 131072),
+                  (4647955, 2, 5, 131112),
+                  (4647957, 5, 5, 131072),
+                  (4647962, 3, 5, 131072),
+                  (4647965, 2, 5, 131072),
+                  (4647967, 5, 5, 131076),
+                  (4647972, 3, 5, 131072),
+                  (4647975, 1, 5, 131072),
+                  (4647976, 1, 5, 131089),
+                  (4647977, 7, 0, None),
+                  (4647984, 2, 5, 131072),
+                  (4647986, 1, 5, 131072),
+                  (4647987, 2, 5, 131072),
+                  (4647989, 1, 5, 131072),
+                  (4647990, 3, 5, 131072),
+                  (4647993, 4, 5, 131072),
+                  (4647997, 4, 5, 131072),
+                  (4648001, 5, 5, 131072),
+                  (4648006, 6, 5, 131112)]
+
+        ops = {4647952: 'test esi,esi',
+               4647954: 'push rbx',
+               4647955: 'jns 0x0046ec1a',
+               4647957: 'mov esi,2',
+               4647962: 'mov rbx,qword [rdi]',
+               4647965: 'mov edi,esi',
+               4647967: 'call 0x0046f3b0',
+               4647972: 'mov byte [rbx + 59],al',
+               4647975: 'pop rbx',
+               4647976: 'ret ',
+               4647984: 'push r14',
+               4647986: 'push rbp',
+               4647987: 'mov ebp,esi',
+               4647989: 'push rbx',
+               4647990: 'mov rsi,rdx',
+               4647993: 'sub rsp,96',
+               4647997: 'cmp r8d,11',
+               4648001: 'mov qword [rsp + 16],rcx',
+               4648006: 'jz 0x0041773f'}
+
+        self.assertEqual(len(locans), len(locs))
+        dcdd = 0
+        for tupl in locs:
+            self.assertIn(tupl, locans)
+            if tupl[0] in ops:
+                self.assertEqual(repr(vw.parseOpcode(tupl[0])), ops[tupl[0]])
+                dcdd += 1
+        self.assertEqual(dcdd, len(ops))
+        self.assertEqual({0x46ec10: True, 0x46ec30: True}, funcs)
+        self.assertEqual({0x46ec10: 'sub_0046ec10', 0x46ec30: 'sub_0046ec30'}, names)
+        self.assertEqual({0x46ec1f: 'sub_0046f3b0(0x4156b00f,0x4156b00f,0x4156500f,0x4156300f,0x4156f00f,0x4157100f)'}, comments)
 
     def test_repr(self):
         vw = self.gcc_vw
@@ -470,14 +531,24 @@ class VivisectTest(unittest.TestCase):
 
         self.assertEqual(12, pathcount)
 
-        g = v_t_graphutil.buildFunctionGraph(vw, 0x46ed80)
-        thruCnt = len(v_t_graphutil.getCodePathsThru(g, 0x444b8c))
+        g = v_t_graphutil.buildFunctionGraph(vw, vw.getFunction(0x0041a766))
+        thruCnt = glen(v_t_graphutil.getCodePathsThru(g, 0x0041a766))
+        self.assertEqual(2, thruCnt)
+        thruCnt = glen(v_t_graphutil.getCodePathsThru(g, 0x0041a766, maxpath=1))
         self.assertEqual(1, thruCnt)
 
         # this will not be true for all examples, but for this function it is
-        self.assertEqual(len(v_t_graphutil.getCodePaths(g)), len(v_t_graphutil.getCodePathsTo(g, 0x444bb7)))
-        pfro = []
-        genr = v_t_graphutil.getCodePathsFrom(g, 0x444b8e)
+        g = v_t_graphutil.buildFunctionGraph(vw, vw.getFunction(0x0041a77d))
+        toCnt = glen(v_t_graphutil.getCodePathsTo(g, 0x0041a77d))
+        self.assertEqual(2, toCnt)
+        toCnt = glen(v_t_graphutil.getCodePathsTo(g, 0x0041a77d, maxpath=99))
+        self.assertEqual(2, toCnt)
+
+        g = v_t_graphutil.buildFunctionGraph(vw, vw.getFunction(0x004042eb))
+        fromCnt = glen(v_t_graphutil.getCodePathsFrom(g, 0x004042eb))
+        self.assertEqual(8, fromCnt)
+        fromCnt = glen(v_t_graphutil.getCodePathsFrom(g, 0x004042eb, maxpath=3))
+        self.assertEqual(3, fromCnt)
 
     def test_graphutil_getopsfrompath(self):
         vw = self.gcc_vw

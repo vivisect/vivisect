@@ -2609,11 +2609,11 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             loctot += size
 
             tname = loc_type_names.get(i, 'Unknown')
-            ret[i] = (tname, cnt, size, int((size/totsize)*100))
+            ret[i] = (tname, cnt, size, int((size/float(totsize))*100))
 
         # Update the undefined based on totals...
         undeftot = totsize-loctot
-        ret[LOC_UNDEF] = ('Undefined', 0, undeftot, int((undeftot/totsize)*100))
+        ret[LOC_UNDEF] = ('Undefined', 0, undeftot, int((undeftot/float(totsize)) * 100))
 
         return ret
 
