@@ -25,10 +25,10 @@ def analyze(vw):
     # from NXP MPC5674
     for baseaddr in 0x0000, 0x4000, 0x8000, 0x10000, 0x18000, 0x1C000, 0x20000, 0x30000:
         try:
-            if vw.verbose > 1: vw.vprint("analyzing: 0x%x : 0x%x" % (baseaddr, rchw))
-
             # look for an RCHW structure
             rchw = vw.readMemValue(baseaddr, 2)
+            
+            if vw.verbose: vw.vprint("analyzing: 0x%x : 0x%x" % (baseaddr, rchw))
             # the top 4 bits are reserved (expected to be 0) and the last 8 bits are 01011010
             if rchw & 0xf0ff != 0x5a:
                 continue
@@ -42,5 +42,4 @@ def analyze(vw):
             vw.makeFunction(eva)
             vw.makeName(eva, 'ENTRY_%.8x' % eva)
         except Exception, e:
-            if vw.verbose:
-                vw.vprint(" ... failed: %r" % e)
+            vw.vprint(" ... failed: %r" % e)

@@ -8,7 +8,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 ARM_ARCHS = ('arm', 'thumb', 'thumb16')
-PPC_ARCHS = ('ppc', 'vle', 'ppc-embedded', 'ppc-server', 'ppc32-embedded', 'ppc32-server')
+PPC_ARCHS = ('ppc', 'vle', 'ppc-embedded', 'ppc-server', 'ppc32-embedded', 'ppc32-server', 'ppc64-embedded', 'ppc64-server', )
 
 def addAnalysisModules(vw):
 
