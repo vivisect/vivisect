@@ -8,7 +8,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 ARM_ARCHS = ('arm', 'thumb', 'thumb16')
-
+PPC_ARCHS = ('ppc', 'vle', 'ppc-embedded', 'ppc-server', 'ppc32-embedded', 'ppc32-server')
 
 def addAnalysisModules(vw):
 
@@ -72,7 +72,7 @@ def addAnalysisModules(vw):
         elif arch == 'amd64':
             vw.addFuncAnalysisModule("vivisect.analysis.amd64.emulation")
 
-        elif arch in ('ppc', 'vle'):
+        elif arch in PPC_ARCHS:
             vw.addFuncAnalysisModule("vivisect.analysis.ppc.emulation")
 
         elif arch in ARM_ARCHS:
@@ -131,7 +131,7 @@ def addAnalysisModules(vw):
         elif arch in ARM_ARCHS:
             vw.addFuncAnalysisModule("vivisect.analysis.arm.emulation")
 
-        elif arch in ('ppc', 'vle'):
+        elif arch in PPC_ARCHS:
             vw.addFuncAnalysisModule("vivisect.analysis.ppc.emulation")
 
         # Find import thunks
@@ -162,7 +162,7 @@ def addAnalysisModules(vw):
         elif arch == 'amd64':
             vw.addFuncAnalysisModule("vivisect.analysis.amd64.emulation")
 
-        elif arch in ('ppc', 'vle'):
+        elif arch in PPC_ARCHS:
             vw.addFuncAnalysisModule("vivisect.analysis.ppc.emulation")
 
         elif arch in ARM_ARCHS:
@@ -182,7 +182,7 @@ def addAnalysisModules(vw):
 
         vw.addFuncAnalysisModule("vivisect.analysis.generic.codeblocks")
 
-        if arch in ('ppc', 'vle'):
+        if arch in PPC_ARCHS:
             vw.addFuncAnalysisModule("vivisect.analysis.ppc.emulation")
             vw.addAnalysisModule("vivisect.analysis.ppc.bootstrap")
 
@@ -204,7 +204,7 @@ def addAnalysisModules(vw):
         vw.addFuncAnalysisModule("vivisect.analysis.generic.codeblocks")
         vw.addFuncAnalysisModule("vivisect.analysis.generic.impapi")
 
-        if arch in ('ppc', 'vle'):
+        if arch in PPC_ARCHS:
             vw.addFuncAnalysisModule("vivisect.analysis.ppc.emulation")
             vw.addAnalysisModule("vivisect.analysis.ppc.bootstrap")
 
@@ -225,7 +225,7 @@ def addAnalysisModules(vw):
         vw.addFuncAnalysisModule("vivisect.analysis.generic.codeblocks")
         vw.addFuncAnalysisModule("vivisect.analysis.generic.impapi")
 
-        if arch in ('ppc', 'vle'):
+        if arch in PPC_ARCHS:
             vw.addFuncAnalysisModule("vivisect.analysis.ppc.emulation")
             vw.addAnalysisModule("vivisect.analysis.ppc.bootstrap")
 

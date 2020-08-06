@@ -49,10 +49,6 @@ OPER_SRC = 1
 OPER_DST = 0
 
 
-print "PPC:Emu: TESTME: cmpi bit setting of the appropriate CR register"
-print "PPC:Emu: TESTME: cmp bit setting of the appropriate CR register"
-print "PPC:Emu: TESTME: cmpl bit setting of the appropriate CR register"
-print "PPC:Emu: TESTME: cmpli bit setting of the appropriate CR register"
 class Trap(Exception):
     pass
 
