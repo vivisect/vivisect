@@ -14,6 +14,8 @@ workspace_emus  = {
     'arm' :v_i_arm.ArmWorkspaceEmulator,
     'ppc' :v_i_ppc.Ppc64EmbeddedWorkspaceEmulator,
     'ppc32' :v_i_ppc.Ppc32EmbeddedWorkspaceEmulator,
+    'ppc-embedded' :v_i_ppc.Ppc64EmbeddedWorkspaceEmulator,    # same as ppc
+    'ppc32-embedded' :v_i_ppc.Ppc32EmbeddedWorkspaceEmulator,  # same as ppc32
     'ppc-server' :v_i_ppc.Ppc64ServerWorkspaceEmulator,
     'ppc32-server' :v_i_ppc.Ppc32ServerWorkspaceEmulator,
     'ppc-spe' :v_i_ppc.Ppc64EmbeddedWorkspaceEmulator,

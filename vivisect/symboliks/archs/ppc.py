@@ -739,10 +739,10 @@ class PpcSymbolikTranslator(vsym_trans.SymbolikTranslator):
     i_bdzla = i_bdzl
 
     def i_sync(self, op):
-        self.effSetVariable('sync', op.va)
+        self.effSetVariable('sync', Const(op.va, self._psize))
 
     def i_isync(self, op):
-        self.effSetVariable('isync', op.va)
+        self.effSetVariable('isync', Const(op.va, self._psize))
 
     ######################## arithmetic instructions ##########################
     def i_cmpw(self, op, L=0): # L != l.  l means logical, L means LONG
