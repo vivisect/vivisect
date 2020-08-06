@@ -42,4 +42,4 @@ def analyze(vw):
             vw.makeFunction(eva)
             vw.makeName(eva, 'ENTRY_%.8x' % eva)
         except Exception, e:
-            vw.vprint(" ... failed: %r" % e)
+            vw.vprint(" Bootstrap analysis failed for address 0x%x: %r" % (baseaddr, e))
