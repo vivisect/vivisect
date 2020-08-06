@@ -35,7 +35,7 @@ def main():
                         help='Output vivisect performace profiling (cProfile) info')
     parser.add_argument('-E', '--entrypoint', dest='addEntryPoints', default=[], action='append',
                         help='Add Entry Point for bulk analysis (can have multiple "-E <addr>" args')
-    parser.add_argument('-O', '--option', dest='option', default=None, action='store',
+    parser.add_argument('-O', '--option', dest='option', default=None, action='append',
                         help='<secname>.<optname>=<optval> (optval must be json syntax)')
     parser.add_argument('-p', '--parser', dest='parsemod', default=None, action='store',
                         help='Manually specify the parser module (pe/elf/blob/...)')
@@ -55,23 +55,24 @@ def main():
     logger.setLevel(loglevels[vw.verbose])
 
     if args.option is not None:
-        if args.option in ('-h', '?'):
-            logger.critical(vw.config.reprConfigPaths())
-            sys.exit(-1)
+        for option in args.option:
+            if option in ('-h', '?'):
+                logger.critical(vw.config.reprConfigPaths())
+                sys.exit(-1)
 
-        try:
-            vw.config.parseConfigOption(args.option)
-        except e_config.ConfigNoAssignment as e:
-            logger.critical(vw.config.reprConfigPaths() + "\n")
-            logger.critical(e)
-            logger.critical("syntax: \t-O <secname>.<optname>=<optval> (optval must be json syntax)")
-            sys.exit(-1)
+            try:
+                vw.config.parseConfigOption(option)
+            except e_config.ConfigNoAssignment as e:
+                logger.critical(vw.config.reprConfigPaths() + "\n")
+                logger.critical(e)
+                logger.critical("syntax: \t-O <secname>.<optname>=<optval> (optval must be json syntax)")
+                sys.exit(-1)
 
-        except Exception as e:
-            logger.critical(vw.config.reprConfigPaths())
-            logger.critical("With entry: %s" % args.option)
-            logger.critical(e)
-            sys.exit(-1)
+            except Exception as e:
+                logger.critical(vw.config.reprConfigPaths())
+                logger.critical("With entry: %s" % option)
+                logger.critical(e)
+                sys.exit(-1)
 
     if args.storage_name is not None:
         vw.setMeta("StorageModule", args.storage_name)
