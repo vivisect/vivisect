@@ -472,8 +472,8 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
             vw.markDeadData(rva, rva+len(pebytes))
     comdesc = pe.getDataDirectory(PE.IMAGE_DIRECTORY_ENTRY_COM_DESCRIPTOR)
     if comdesc.VirtualAddress and comdesc.Size:
-        # TODO: just in case, also parse the entry point and make sure it's a jump
-        # to CorExeMain
+        # TODO: maybe just in case, also parse the entry point and make sure it's a jump
+        # to CorExeMain?
         loadCLRIntoWorkspace(vw, pe)
 
     return fname
