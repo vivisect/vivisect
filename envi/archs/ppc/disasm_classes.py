@@ -369,7 +369,6 @@ class PpcMemOper(envi.DerefOper):
     0xOFFSET (base_reg)
     '''
     def __init__(self, base_reg, offset, va, tsize=4):
-        import vivisect.symboliks.common as vs_common
         self.base_reg = base_reg
         self.offset = e_bits.signed(offset, 2)
         self.tsize = tsize
@@ -433,6 +432,7 @@ class PpcMemOper(envi.DerefOper):
         emu.setRegister(self.base_reg, rval)
 
     def updateRegObj(self, emu):
+        import vivisect.symboliks.common as vs_common
         rval = emu.getRegObj(self.base_reg)
         rval += vs_common.Const(self.offset, emu._psize)
         emu.setRegObj(self.base_reg, rval)

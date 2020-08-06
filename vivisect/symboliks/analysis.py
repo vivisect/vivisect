@@ -696,9 +696,17 @@ def getSymbolikAnalysisContext(vw):
         import vivisect.symboliks.archs.amd64 as vsym_amd64
         return vsym_amd64.Amd64SymbolikAnalysisContext(vw)
 
-    elif arch == 'ppc-embedded':
+    elif arch == 'ppc32-embedded':
         import vivisect.symboliks.archs.ppc as vsym_ppc
-        return vsym_ppc.PpcEmbeddedSymbolikAnalysisContext(vw)
+        return vsym_ppc.Ppc32EmbeddedSymbolikAnalysisContext(vw)
+
+    elif arch == 'ppc32-server':
+        import vivisect.symboliks.archs.ppc as vsym_ppc
+        return vsym_ppc.Ppc32ServerSymbolikAnalysisContext(vw)
+
+    elif arch in ('ppc-embedded', 'ppc'):
+        import vivisect.symboliks.archs.ppc as vsym_ppc
+        return vsym_ppc.Ppc64EmbeddedSymbolikAnalysisContext(vw)
 
     elif arch == 'ppc-vle':
         import vivisect.symboliks.archs.ppc as vsym_ppc
