@@ -1140,15 +1140,15 @@ class PpcAbstractEmulator(envi.Emulator):
         self.setFlags(result, 0, SO)
   
     def i_and(self, op):
-        dst = self.getOperValue(op, 0)
-        src = self.getOperValue(op, 1)
+        src0 = self.getOperValue(op, 1)
+        src1 = self.getOperValue(op, 2)
         # PDE
-        if dst == None or src == None:
+        if src0 == None or src1 == None:
             self.undefFlags()
             op.opers[OPER_DST].setOperValue(op, self, None)
             return
 
-        result = (dst & src)
+        result = (src0 & src1)
 
         self.setOperValue(op, 0, result)
         if op.iflags & IF_RC: self.setFlags(result, 0)
@@ -1159,17 +1159,17 @@ class PpcAbstractEmulator(envi.Emulator):
         '''
         and immediate shifted
         '''
-        src1 = self.getOperValue(op, 1)
-        src2 = self.getOperValue(op, 2) # FIXME: move signedness here instead of at decode
+        src0 = self.getOperValue(op, 1)
+        src1 = self.getOperValue(op, 2) # FIXME: move signedness here instead of at decode
         # PDE
-        if src1 == None or src2 == None:
+        if src0 == None or src1 == None:
             self.undefFlags()
             op.opers[OPER_DST].setOperValue(op, self, None)
             return
 
         src2 <<= 16
 
-        result = src1 & src2
+        result = src0 & src1
         self.setOperValue(op, 0, result)
         if op.iflags & IF_RC: self.setFlags(result, 0)
 
@@ -1178,29 +1178,29 @@ class PpcAbstractEmulator(envi.Emulator):
         and "complement"
         '''
         ssize = op.opers[1].tsize
-        dst = self.getOperValue(op, 0)
-        src = self.getOperValue(op, 1) ^ e_bits.u_maxes[ssize]
+        src0 = self.getOperValue(op, 1)
+        src1 = self.getOperValue(op, 2) ^ e_bits.u_maxes[ssize]
         # PDE
-        if dst == None or src == None:
+        if src0 == None or src1 == None:
             self.undefFlags()
             op.opers[OPER_DST].setOperValue(op, self, None)
             return
 
-        result = (dst & src)
+        result = (src0 & src1)
 
         self.setOperValue(op, 0, result)
         if op.iflags & IF_RC: self.setFlags(result, 0)
 
     def i_or(self, op):
-        dst = self.getOperValue(op, 0)
-        src = self.getOperValue(op, 1)
+        src0 = self.getOperValue(op, 1)
+        src1 = self.getOperValue(op, 2)
         # PDE
-        if dst == None or src == None:
+        if src0 == None or src1 == None:
             self.undefFlags()
             op.opers[OPER_DST].setOperValue(op, self, None)
             return
 
-        result = (dst | src)
+        result = (src0 | src1)
         
         self.setOperValue(op, 0, result)
         if op.iflags & IF_RC: self.setFlags(result, 0)
@@ -1208,31 +1208,31 @@ class PpcAbstractEmulator(envi.Emulator):
     i_ori = i_or
 
     def i_oris(self, op):
-        dst = self.getOperValue(op, 0)
-        src = self.getOperValue(op, 1)
-        src <<= 16
+        src0 = self.getOperValue(op, 1)
+        src1 = self.getOperValue(op, 2)
+        src1 <<= 16
 
         # PDE
-        if dst == None or src == None:
+        if src0 == None or src1 == None:
             self.undefFlags()
             op.opers[OPER_DST].setOperValue(op, self, None)
             return
 
-        self.setOperValue(op, 0, (dst | src))
+        self.setOperValue(op, 0, (src0 | src1))
         if op.iflags & IF_RC: self.setFlags(result, 0)
 
     def i_orc(self, op):
-        dst = self.getOperValue(op, 0)
-        src = self.getOperValue(op, 1)
-        src = -src
+        src0 = self.getOperValue(op, 1)
+        src1 = self.getOperValue(op, 2)
+        src1 = -src
 
         # PDE
-        if dst == None or src == None:
+        if src0 == None or src1 == None:
             self.undefFlags()
             op.opers[OPER_DST].setOperValue(op, self, None)
             return
 
-        self.setOperValue(op, 0, (dst | src))
+        self.setOperValue(op, 0, (src0 | src1))
         if op.iflags & IF_RC: self.setFlags(result, 0)
 
     ########################## LOAD/STORE INSTRUCTIONS ################################
