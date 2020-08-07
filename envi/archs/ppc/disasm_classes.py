@@ -245,8 +245,8 @@ class PpcCBRegOper(PpcRegOper):
             return
 
         cr = emu.getRegister(self.reg)
-        crb = (cr >> self.bit) & 1
-
+        realbitidx = 31-self.bit    # stupid NXP numbering
+        crb = (cr >> realbitidx) & 1
         return crb
 
 class PpcImmOper(envi.ImmedOper):

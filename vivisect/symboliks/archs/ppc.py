@@ -239,6 +239,11 @@ class PpcSymbolikTranslator(vsym_trans.SymbolikTranslator):
         self.effSetVariable(self.__ip__, Var('LR', self._psize))
         #return [ self.getRegObj(REG_LR), ]
 
+    def i_bctrl(self, op):
+        targ = Var('CTR', self._psize)
+        self.effFofX(targ)
+
+
     # conditional branches....
     def _cond_jmp(self, op, aa=0, lk=0, tgtreg=None):
         # get the conditional...
@@ -1275,8 +1280,8 @@ class PpcSymbolikTranslator(vsym_trans.SymbolikTranslator):
         self.setOperObj(op, 0, src)
 
     def i_mtspr(self, op):
-        src = self.getOperObj(op, 0)
-        self.setOperObj(op, 1, src)
+        src = self.getOperObj(op, 1)
+        self.setOperObj(op, 0, src)
 
     i_li = i_movfrom
     i_mr = i_movfrom

@@ -106,6 +106,13 @@ class PpcAbstractEmulator(envi.Emulator):
                 
         self.addCallingConvention("ppccall", ppccall)
 
+        self.spr_read_handlers = {
+        }
+        self.spr_write_handlers = {
+            REG_L1CSR1: self._swh_L1CSR1,
+        }
+
+
     def undefFlags(self):
         """
         Used in PDE.
@@ -821,6 +828,9 @@ class PpcAbstractEmulator(envi.Emulator):
     def i_isync(self, op):
         print "isync call: %r" % op
 
+    def i_msync(self, op):
+        print "msync call: %r" % op
+
     ######################## arithmetic instructions ##########################
     def i_cmpwi(self, op, L=0): # FIXME: we may be able to simply use i_cmpw for this...
         # signed comparison for cmpi and cmp
@@ -838,6 +848,7 @@ class PpcAbstractEmulator(envi.Emulator):
             a = e_bits.signed(rA & 0xffffffff, 4)
         else:
             a = rA
+
         b = e_bits.signed(self.getOperValue(op, rbidx), 2)
         SO = self.getRegister(REG_SO)
 
@@ -1431,12 +1442,28 @@ class PpcAbstractEmulator(envi.Emulator):
         self.setRegister(REG_MSR, src)
 
     def i_mfspr(self, op):
+        spr = op.opers[1].reg
         src = self.getOperValue(op, 1)
         self.setOperValue(op, 0, src)
 
+        spr_read_hdlr = self.spr_read_handlers.get(spr)
+        if spr_read_hdlr is not None:
+            spr_read_hdlr(op)
+
     def i_mtspr(self, op):
-        src = self.getOperValue(op, 0)
-        self.setOperValue(op, 1, src)
+        spr = op.opers[0].reg
+        src = self.getOperValue(op, 1)
+        self.setOperValue(op, 0, src)
+        
+        spr_write_hdlr = self.spr_write_handlers.get(spr)
+        if spr_write_hdlr is not None:
+            spr_write_hdlr(op)
+
+    def _swh_L1CSR1(self, op):
+        spr = self.getOperValue(op, 0)
+        # clear DCINV (invalidate cache)
+        spr &= 0xffffffffd
+        self.setOperValue(op, 0, spr)
 
     i_li = i_movfrom
     i_mr = i_movfrom
