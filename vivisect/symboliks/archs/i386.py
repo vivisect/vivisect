@@ -1471,13 +1471,13 @@ class MsFastCall(i386SymCallingConv, e_i386.MsFastCall):
 class BFastCall(i386SymCallingConv, e_i386.BFastCall):
     pass
 
-class ThisCall(i386SymCallingConv, e_i386.ThisCall_Caller):
+class ThisCall_Caller(i386SymCallingConv, e_i386.ThisCall_Caller):
     pass
 
-class MsFastCall(i386SymCallingConv, e_i386.MsFastCall_Caller):
+class MsFastCall_Caller(i386SymCallingConv, e_i386.MsFastCall_Caller):
     pass
 
-class BFastCall(i386SymCallingConv, e_i386.BFastCall_Caller):
+class BFastCall_Caller(i386SymCallingConv, e_i386.BFastCall_Caller):
     pass
 
 class i386SymFuncEmu(vsym_analysis.SymbolikFunctionEmulator):
