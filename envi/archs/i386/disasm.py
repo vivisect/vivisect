@@ -1038,7 +1038,7 @@ class i386Disasm:
     def ameth_0(self, operflags, operval, tsize, prefixes):
         # Special address method for opcodes with embedded operands
         if operflags & opcode86.OP_REG:
-            if prefixes & PREFIX_OP_SIZE:
+            if prefixes & PREFIX_OP_SIZE and operval & RMETA_NMASK == operval:
                 operval |= RMETA_LOW16
             width = self._dis_regctx.getRegisterWidth(operval) / 8
             return i386RegOper(operval, width)
