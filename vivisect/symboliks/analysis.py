@@ -521,7 +521,6 @@ class SymbolikAnalysisContext:
                 # bail if the constraint is dorked
                 if coneff.cons.isDiscrete():
                     if not coneff.cons._solve():
-                        print('TRIM: %s' % (str(coneff.cons),))
                         return False
                     continue
 
