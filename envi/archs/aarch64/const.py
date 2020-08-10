@@ -147,6 +147,7 @@ iencs = (\
     'IENC_CRPYTO_AES',
     'IENC_CRYPTO_THREE_SHA',
     'IENC_CRYPTO_TWO_SHA',
+    'IENC_RESERVED',
     'IENC_UNDEF',
 )
 
@@ -343,6 +344,7 @@ instrnames = [
     'IC',
     'TBLI',
     'BCC',
+    'UDF',
 ]
 
 ins_index = 85

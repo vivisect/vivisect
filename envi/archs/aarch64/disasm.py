@@ -5,12 +5,18 @@ from envi.archs.aarch64.const import *
 from envi.archs.aarch64.regs import *
 import envi
 import struct
+import envi.bits as e_bits
 
 #-----------------------------data-----------------------------------------|
 
 '''
 All the various tables inittable references
 '''
+s_0_table = (
+    (0b11111111111111110000000000000000, 0b00000000000000000000000000000000, IENC_RESERVED),
+    (0,0,IENC_UNDEF),#catch-all
+)
+
 s_4_table = (
     (0b00100001000000000000000000000000, 0b00000000000000000000000000000000, IENC_LS_EXCL),
     (0b00100001100000000000000000000000, 0b00100000000000000000000000000000, IENC_LS_NAPAIR_OFFSET),
@@ -93,9 +99,9 @@ s_d_table = (
 
 #Init table to help us find encfam. Either returns an enc, or a mask-val table with an enc
 inittable = (
-    ( None, None ), #0
+    ( None, s_0_table ), #0 - reserved
     ( None, None ), #1
-    ( None, None ), #2
+    ( None, None ), #2 - future home of SVE decoding
     ( None, None ), #3
     ( None, s_4_table ), #4
     ( None, s_5_table ), #5
@@ -112,6 +118,12 @@ inittable = (
 )
 
 #--------------------instruction parsing functions----------------------------|
+
+def p_udf(opval, va):
+    if opval & 0xffff0000 == 0:
+        return INS_UDF, 'udf', (), IF_NOFALL, 0
+   
+    p_undef(opval, va)
 
 
 def p_pc_addr(opval,va):
@@ -6840,7 +6852,7 @@ class A64ImmOper(A64Operand, envi.ImmedOper):
         self.size = size
 
     def repr(self, op):
-        ival = self.imm
+        ival = self.getOperValue(op)
         if self.tsize == 6:
             return "0x%.4x:0x%.8x" % (ival>>32, ival&0xffffffff)
         if ival > 4096:
@@ -6848,10 +6860,10 @@ class A64ImmOper(A64Operand, envi.ImmedOper):
         return str(ival)
 
     def getOperValue(self, op, emu=None):
-        return self.imm
+        return shifters[self.shtype](self.val, self.shval, self.size, emu)
 
     def render(self, mcanv, op, idx):
-        value = self.imm
+        value = self.getOperValue(op)
         hint = mcanv.syms.getSymHint(op.va, idx)
         if hint is not None:
             if mcanv.mem.isValidPointer(value):
@@ -6865,7 +6877,7 @@ class A64ImmOper(A64Operand, envi.ImmedOper):
 
             if self.tsize == 6:
                 mcanv.addNameText("0x%.4x:0x%.8x" % (value>>32, value&0xffffffff))
-            elif self.imm >= 4096:
+            elif value >= 4096:
                 mcanv.addNameText('0x%.8x' % value)
             else:
                 mcanv.addNameText(str(value))
@@ -7044,6 +7056,45 @@ class AArch64Disasm:
         '''
         opcode, mnem, olist, flags, simdflags = ienc_parsers[enc](opval, va+8)
         return opcode, mnem, olist, flags, simdflags
+
+######## helper functions #########
+def sh_lsl(num, shval, size=4, emu=None):
+    return (num&e_bits.u_maxes[size]) << shval
+
+def sh_lsr(num, shval, size=4, emu=None):
+    return (num&e_bits.u_maxes[size]) >> shval
+
+def sh_asr(num, shval, size=4, emu=None):
+    return num >> shval
+
+def sh_ror(num, shval, size=4, emu=None):
+    return ((num >> shval) | (num << ((8*size)-shval))) & e_bits.u_maxes[size]
+
+def sh_rrx(num, shval, size=4, emu=None):
+    # shval should always be 0
+    newC = num & 1
+
+    if emu is not None:
+        oldC = emu.getFlag(PSR_C_bit)
+        if emu.getMeta('forrealz', False):
+            emu.setFlag(PSR_C_bit, newC)
+    else:
+        # total hack!  should we just bomb here without an emu?
+        oldC = 0
+
+    half1 = (num&e_bits.u_maxes[size]) >> 1
+    half2 = oldC<<(31)
+
+    retval = (half1 | half2 | (oldC << (32-shval))) & e_bits.u_maxes[size]
+    return retval
+
+shifters = (
+    sh_lsl,
+    sh_lsr,
+    sh_asr,
+    sh_ror,
+    sh_rrx,
+)
 
 if __name__=="__main__":
     import envi.archs

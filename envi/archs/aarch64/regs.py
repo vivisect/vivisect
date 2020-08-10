@@ -17,6 +17,8 @@ aarch64_regs.append(('pc', 64))
 REG_CPSR = len(aarch64_regs)
 aarch64_regs.append(('cpsr', 64))
 
+REG_PSTATE = REG_CPSR
+
 MAX_REGS = 33
 
 # metas:   zr is x31.  w* is 32-bit versions of x* regs
