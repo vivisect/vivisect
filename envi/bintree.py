@@ -14,7 +14,7 @@ class BinaryTree:
 
     def addInt(self, intval, width, nodeinfo):
         node = self.basenode
-        for sh in xrange(width-1, -1, -1):
+        for sh in range(width-1, -1, -1):
             choice = (intval >> sh) & 1
             if node[choice] == None:
                 node[choice] = [None, None, None]
@@ -35,7 +35,7 @@ class BinaryTree:
         width is in bits...
         '''
         node = self.basenode
-        for sh in xrange(width-1, -1, -1):
+        for sh in range(width-1, -1, -1):
             choice = (intval >> sh) & 1
             node = node[choice]
             ninfo = node[2]

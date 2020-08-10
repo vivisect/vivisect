@@ -2,6 +2,8 @@
 *.swp
 *.swo
 *.py~
+*.un~
 .hg*
 .idea
 .DS_Store
+coverage_html_report*

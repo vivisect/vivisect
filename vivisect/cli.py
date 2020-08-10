@@ -2,8 +2,12 @@
 The vivisect CLI.
 """
 
+import sys
+import shlex
 import pprint
 import socket
+import logging
+import traceback
 from getopt import getopt
 
 import vtrace
@@ -12,10 +16,9 @@ import vivisect.vamp as viv_vamp
 import vivisect.impemu as viv_imp
 import vivisect.vector as viv_vector
 import vivisect.reports as viv_reports
+import vivisect.tools.graphutil as viv_graph
 
-# FIXME modular arch specific commands!
 import vivisect.symboliks as viv_symb
-#import vivisect.symboliks.archs.i386 as viv_sym_i386
 
 import vivisect.tools.fscope as v_t_fscope
 import vivisect.tools.graphutil as v_t_graph
@@ -28,10 +31,15 @@ import vdb
 
 import envi
 import envi.cli as e_cli
+import envi.memory as e_mem
 import envi.expression as e_expr
+import envi.memcanvas as e_canvas
 import envi.memcanvas.renderers as e_render
 
 from vivisect.const import *
+
+logger = logging.getLogger(__name__)
+
 
 class VivCli(e_cli.EnviCli, vivisect.VivWorkspace):
 
@@ -48,11 +56,11 @@ class VivCli(e_cli.EnviCli, vivisect.VivWorkspace):
         self.addScriptPathEnvVar('VIV_SCRIPT_PATH')
 
     def getExpressionLocals(self):
-        l = e_cli.EnviCli.getExpressionLocals(self)
-        l['vw'] = self
-        l['vprint'] = self.vprint
-        l['vivisect'] = vivisect
-        return l
+        locs = e_cli.EnviCli.getExpressionLocals(self)
+        locs['vw'] = self
+        locs['vprint'] = self.vprint
+        locs['vivisect'] = vivisect
+        return locs
 
     def do_report(self, line):
         """
@@ -62,7 +70,7 @@ class VivCli(e_cli.EnviCli, vivisect.VivWorkspace):
         """
         if not line:
             self.vprint("Report Modules")
-            for descr,modname in viv_reports.listReportModules():
+            for descr, modname in viv_reports.listReportModules():
                 self.vprint("%32s %s" % (modname, descr))
             return
 
@@ -140,12 +148,8 @@ class VivCli(e_cli.EnviCli, vivisect.VivWorkspace):
         import vivisect.symboliks.common as sym_common
         import vivisect.symboliks.effects as viv_sym_effects
         import vivisect.symboliks.analysis as vsym_analysis
-        import vivisect.symboliks.archs.i386 as viv_sym_i386
 
         symctx = vsym_analysis.getSymbolikAnalysisContext(self)
-
-        #xlate = viv_sym_i386.i386SymbolikTranslator(self)
-        #graph = viv_symboliks.getSymbolikGraph(self, fva, xlate)
 
         for emu, effects in symctx.getSymbolikPaths(fva):
 
@@ -215,7 +219,191 @@ class VivCli(e_cli.EnviCli, vivisect.VivWorkspace):
         -T Show xrefs *to* the given address
         -F Show xrefs *from* the given address (default)
         """
-        pass
+        parser = e_cli.VOptionParser()
+        parser.add_option('-T', action='store_true', dest='xrto')
+        parser.add_option('-F', action='store_true', dest='xrfrom')
+        argv = shlex.split(line)
+        try:
+            options, argv = parser.parse_args(argv)
+        except Exception as e:
+            self.vprint(repr(e))
+            return self.do_help('xrefs')
+
+        if len(argv) < 1:
+            self.vprint('Supply a va_expr')
+            return self.do_help('xrefs')
+
+        va = self.parseExpression(argv[0])
+
+        fptr = []
+        if options.xrto:
+            fptr.append(self.getXrefsTo)
+        if options.xrfrom:
+            fptr.append(self.getXrefsFrom)
+
+        for func in fptr:
+            for xrfr, xrto, rtype, rflags in func(va):
+                xrfr = hex(xrfr)
+                xrto = hex(xrto)
+                rflags = hex(rflags)
+                tname = ref_type_names.get(rtype, 'Unknown')
+                self.vprint('\tFrom: %s, To: %s, Type: %s, Flags: %s' % (xrfr, xrto, tname, rflags))
+
+
+    def do_searchopcodes(self, line):
+        '''
+        search opcodes/function for a pattern
+
+        searchopcodes [-f <funcva>] [options] <pattern>
+        -f [fva]   - focus on one function
+        -c         - search comments
+        -o         - search operands
+        -t         - search text
+        -M <color> - mark opcodes (default = orange)
+        -R         - pattern is REGEX (otherwise just text)
+
+        '''
+        parser = e_cli.VOptionParser()
+        parser.add_option('-f', action='store', dest='funcva', type='long')
+        parser.add_option('-c', action='store_true', dest='searchComments')
+        parser.add_option('-o', action='store_true', dest='searchOperands')
+        parser.add_option('-t', action='store_true', dest='searchText')
+        parser.add_option('-M', action='store', dest='markColor', default='orange')
+        parser.add_option('-R', action='store_true', dest='is_regex')
+
+        argv = shlex.split(line)
+        try:
+            options, args = parser.parse_args(argv)
+        except Exception as e:
+            self.vprint(repr(e))
+            return self.do_help('searchopcodes')
+
+        pattern = ' '.join(args)
+        if len(pattern) == 0:
+            self.vprint('you must specify a pattern')
+            return self.do_help('searchopcodes')
+
+        # generate our interesting va list
+        valist = []
+        if options.funcva:
+            # setup valist from function data
+            try:
+                fva = int(args[0], 0)
+                graph = viv_graph.buildFunctionGraph(self, fva)
+            except Exception, e:
+                self.vprint(repr(e))
+                return
+
+            for nva, node in graph.getNodes():
+                va = nva
+                endva = va + node.get('cbsize')
+                while va < endva:
+                    lva, lsz, ltype, ltinfo = self.getLocation(va)
+                    valist.append(va)
+                    va += lsz
+
+        else:
+            # the whole workspace is our oyster
+            valist = [va for va, lvsz, ltype, ltinfo in self.getLocations(LOC_OP)]
+
+        res = []
+        canv = e_canvas.StringMemoryCanvas(self)
+
+        defaultSearchAll = True
+        for va in valist:
+            try:
+                addthis = False
+                op = self.parseOpcode(va)
+
+                # search comment
+                if options.searchComments:
+                    defaultSearchAll = False
+                    cmt = self.getComment(va)
+                    if cmt != None:
+
+                        if options.is_regex:
+                            if len(re.findall(pattern, cmt)):
+                                addthis = True
+
+                        else:
+                            if pattern in cmt:
+                                addthis = True
+
+                # search operands
+                if options.searchOperands:
+                    defaultSearchAll = False
+                    for opidx, oper in enumerate(op.opers):
+                        # we're writing to a temp canvas, so clear it before each test
+                        canv.clearCanvas()
+                        oper = op.opers[opidx]
+                        oper.render(canv, op, opidx)
+                        operepr = canv.strval
+
+                        if options.is_regex:
+                            if len(re.findall(pattern, operepr)):
+                                addthis = True
+
+                        else:
+                            if pattern in operepr:
+                                addthis = True
+
+                            # if we're doing non-regex, let's test against real numbers (instead of converting to hex and back)
+                            numpattrn = pattern
+                            try:
+                                numpattrn = int(numpattrn, 0)
+                            except:
+                                pass
+
+
+                            if numpattrn in vars(oper).values():
+                                addthis = True
+
+                # search full text
+                if options.searchText or defaultSearchAll:
+                    canv.clearCanvas()
+                    op.render(canv)
+                    oprepr = canv.strval
+
+                    if options.is_regex:
+                        if len(re.findall(pattern, oprepr)):
+                            addthis = True
+
+                    else:
+                        if pattern in oprepr:
+                            addthis = True
+                
+                # only want one listing of each va, no matter how many times it matches
+                if addthis:
+                    res.append(va)
+            except:
+                self.vprint(''.join(traceback.format_exception(*sys.exc_info())))
+
+        if len(res) == 0:
+            self.vprint('pattern not found: %s (%s)' % (pattern.encode('hex'), repr(pattern)))
+            return
+
+        # set the color for each finding
+        color = options.markColor
+        colormap = { va : color for va in res }
+        if self._viv_gui is not None:
+            from vqt.main import vqtevent
+            vqtevent('viv:colormap', colormap)
+
+        self.vprint('matches for: %s (%s)' % (pattern.encode('hex'), repr(pattern)))
+        for va in res:
+            mbase, msize, mperm, mfile = self.memobj.getMemoryMap(va)
+            pname = e_mem.reprPerms(mperm)
+            sname = self.reprPointer(va)
+
+            op = self.parseOpcode(va)
+            self.canvas.renderMemory(va, len(op))
+            cmt = self.getComment(va)
+            if cmt != None:
+                self.canvas.addText('\t\t; %s' % cmt)
+
+            self.canvas.addText('\n')
+
+        self.vprint('done (%d results).' % len(res))
 
     def do_imports(self, line):
         """
@@ -407,7 +595,7 @@ class VivCli(e_cli.EnviCli, vivisect.VivWorkspace):
         argv = e_cli.splitargs(line)
         try:
             opts,args = getopt(argv, "csup:S:")
-        except Exception, e:
+        except Exception as e:
             return self.do_help("make")
 
         if len(args) != 1 or len(opts) != 1:
@@ -417,6 +605,7 @@ class VivCli(e_cli.EnviCli, vivisect.VivWorkspace):
         opt, optarg = opts[0]
 
         if opt == "-f":
+            logger.debug('new function (manual-cli): 0x%x', addr)
             self.makeFunction(addr)
 
         elif opt == "-c":
@@ -446,7 +635,7 @@ class VivCli(e_cli.EnviCli, vivisect.VivWorkspace):
         """
         Create an emulator for the given function, and drop into a vdb
         interface to step through the code.
-        
+
         (vdb CLI will appear in controlling terminal...)
 
         Usage: emulate <va_expr>
@@ -478,7 +667,7 @@ class VivCli(e_cli.EnviCli, vivisect.VivWorkspace):
 
         try:
             fva = self.parseExpression(argv[0])
-        except Exception, e:
+        except Exception as e:
             self.vprint("Invalid Address Expression: %s" % argv[0])
             return
 
@@ -600,3 +789,36 @@ class VivCli(e_cli.EnviCli, vivisect.VivWorkspace):
 
         import vivisect.vdbext as viv_vdbext
         viv_vdbext.runVdb(self._viv_gui)
+
+    def do_plt(self, line):
+        '''
+        Parse an entire PLT Section
+
+        Usage: plt <pltva> <pltsize>
+        '''
+        if not line:
+            return self.do_help("plt")
+
+        argv = e_cli.splitargs(line)
+        if len(argv) != 2:
+            return self.do_help("plt")
+
+        sva = self.parseExpression(argv[0])
+        ssize = self.parseExpression(argv[1])
+
+        import vivisect.analysis.elf.elfplt as vaee
+        vaee.analyzePLT(self, sva, ssize)
+
+    def do_plt_function(self, line):
+        '''
+        Make a PLT function at a virtual address
+
+        Usage: plt_function <va>
+        '''
+        if not line:
+            return self.do_help("plt_function")
+
+        fva = self.parseExpression(line)
+
+        import vivisect.analysis.elf.elfplt as vaee
+        vaee.analyzeFunction(self, fva)

@@ -11,7 +11,7 @@ columns = (
 
 def report(vw):
     res = {}
-    for i in xrange(LOC_MAX):
+    for i in range(LOC_MAX):
         for lva,size,ltype,tinfo in vw.getLocations(i):
             va = lva + 1
             maxva = lva + size

@@ -2,9 +2,32 @@ import struct
 
 from copy import deepcopy
 from inspect import isclass
-from StringIO import StringIO
 
 import vstruct.primitives as vs_prims
+
+
+class MemObjFile:
+    """
+    A file like object that wraps a MemoryObject (envi) compatable
+    object with a file-like object where seek == VA.
+    """
+
+    def __init__(self, memobj, baseaddr):
+        self.baseaddr = baseaddr
+        self.offset = baseaddr
+        self.memobj = memobj
+
+    def seek(self, offset):
+        self.offset = self.baseaddr + offset
+
+    def read(self, size):
+        ret = self.memobj.readMemory(self.offset, size)
+        self.offset += size
+        return ret
+
+    def write(self, bytes):
+        self.memobj.writeMemory(self.offset, bytes)
+        self.offset += len(bytes)
 
 def isVstructType(x):
     return isinstance(x, vs_prims.v_base)
@@ -41,7 +64,7 @@ class VStruct(vs_prims.v_base):
 
     def __mul__(self, x):
         # build a list of instances of this vstruct
-        return [ deepcopy(self) for i in xrange(x) ]
+        return [ deepcopy(self) for i in range(x) ]
 
     def vsAddParseCallback(self, fieldname, callback):
         '''
@@ -135,7 +158,7 @@ class VStruct(vs_prims.v_base):
                 self._vsInitFastFields()
             values = struct.unpack_from( self._vs_fastfmt, sbytes, offset )
             # Ephemeral list comprehension for speed
-            [ self._vs_fastfields[i].vsSetValue( values[i] ) for i in xrange(len(values)) ]
+            [ self._vs_fastfields[i].vsSetValue( values[i] ) for i in range(len(values)) ]
             return offset + self._vs_fastlen
 
         # In order for callbacks to change fields, we can't use vsGetFields()
@@ -456,7 +479,7 @@ class VArray(VStruct):
         self.vsAddField("%d" % idx, elem)
 
     def vsAddElements(self, count, eclass):
-        for i in xrange( count ):
+        for i in range( count ):
             self.vsAddElement( eclass() )
 
     def __getitem__(self, index):

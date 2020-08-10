@@ -189,7 +189,7 @@ class ClusterServer:
         self.maxsize = maxsize
         self.queue = collections.deque()
         self.qcond = threading.Condition()
-        self.widiter = iter(xrange(999999999))
+        self.widiter = iter(range(999999999))
 
         # Initialize a cobra daemon if needed
         if cobrad == None:

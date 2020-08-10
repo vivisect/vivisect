@@ -3,11 +3,8 @@ Similar to the memory subsystem, this is a unified way to
 access information about objects which contain registers
 """
 
-import envi.bits as e_bits
+import envi.exc as e_exc
 from envi.const import *
-
-class InvalidRegisterName(Exception):
-    pass
 
 class RegisterContext:
 
@@ -230,13 +227,13 @@ class RegisterContext:
     def getRegisterByName(self, name):
         idx = self._rctx_names.get(name)
         if idx == None:
-            raise InvalidRegisterName("Unknown Register: %s" % name)
+            raise e_exc.InvalidRegisterName("Unknown Register: %s" % name)
         return self.getRegister(idx)
 
     def setRegisterByName(self, name, value):
         idx = self._rctx_names.get(name)
         if idx == None:
-            raise InvalidRegisterName("Unknown Register: %s" % name)
+            raise e_exc.InvalidRegisterName("Unknown Register: %s" % name)
         self.setRegister(idx, value)
 
     def getRegisterNames(self):
@@ -346,16 +343,16 @@ class RegisterContext:
         (used when setting a meta register)
         '''
         ridx = index & 0xffff
+        width = (index >> 16) & 0xff
         offset = (index >> 24) & 0xff
-        width  = (index >> 16) & 0xff
 
-        #FIXME is it faster to generate or look thses up?
-        mask = (2**width)-1
+        # FIXME is it faster to generate or look these up?
+        mask = (2 ** width) - 1
         mask = mask << offset
 
         # NOTE: basewidth is in *bits*
         basewidth = self._rctx_widths[ridx]
-        basemask  = (2**basewidth)-1
+        basemask = (2 ** basewidth) - 1
 
         # cut a whole in basemask at the size/offset of mask
         finalmask = basemask ^ mask
@@ -427,5 +424,5 @@ def addLocalMetas(l, metas):
     Update a dictionary (or module locals) with REG_FOO index
     values for all meta registers defined in metas.
     """
-    for name,idx,offset,width in metas:
+    for name, idx, offset, width in metas:
         l["REG_%s" % name.upper()] = (offset << 24) | (width << 16) | idx

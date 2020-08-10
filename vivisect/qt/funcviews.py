@@ -1,7 +1,12 @@
 '''
 Views related to information about a given function.
 '''
-from PyQt4 import QtCore,QtGui
+try:
+    from PyQt5 import QtCore
+    from PyQt5.QtWidgets import QMenu, QWidget
+except:
+    from PyQt4 import QtCore
+    from PyQt4.QtGui import QMenu, QWidget
 
 import envi.qt.memcanvas as e_q_memcanvas
 import vivisect.qt.ctxmenu as viv_q_ctxmenu
@@ -35,7 +40,7 @@ class FunctionBlocksView(BasicTreeView):
 
             cmap = {}
             bva, bsize, fva = block
-            for i in xrange(bsize):
+            for i in range(bsize):
                 cmap[ bva + i ] = 'yellow'
 
             # Since we have a reference to the GUI, lets also
@@ -59,11 +64,11 @@ class FunctionBlocksView(BasicTreeView):
         self.setModel( model )
         self.sortByColumn( 0, QtCore.Qt.AscendingOrder )
 
-class FuncCallsView(QtGui.QWidget):
+class FuncCallsView(QWidget):
 
     def __init__(self, vw, parent=None):
         self.vw = vw
-        QtGui.QWidget.__init__(self, parent=parent)
+        QWidget.__init__(self, parent=parent)
 
         self.graphview = vg_qgraphtree.QGraphTreeView( None, (), parent=self)
         self.graphview._sig_NodeContextMenu.connect( self.nodeContextMenu )
@@ -75,7 +80,7 @@ class FuncCallsView(QtGui.QWidget):
         self.graphview.loadNewGraph( self.vw._call_graph, ( (fva,nprops), ) )
 
     def nodeContextMenu(self, pos, nid, nprops):
-        menu = QtGui.QMenu(parent=self)
+        menu = QMenu(parent=self)
         viv_q_ctxmenu.buildContextMenu(self.vw, va=nid, menu=menu)
         menu.exec_(pos)
 

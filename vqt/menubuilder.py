@@ -1,5 +1,10 @@
+try:
+    from PyQt5.QtWidgets import *
+except:
+    from PyQt4.QtGui import *
 
-from PyQt4 import QtCore, QtGui
+import logging
+logger = logging.getLogger(__name__)
 
 class FieldAdder:
 
@@ -24,9 +29,9 @@ class FieldAdder:
     def _addDynActions(self):
         self.clear()
         for name in self._dyn_callback():
-            act = QtGui.QAction(name, self)
+            act = QAction(name, self)
             cb = ActionCall(self._dyn_callback, name)
-            act.connect(act, QtCore.SIGNAL('triggered()'), cb)
+            act.triggered.connect(cb)
             self.addAction(act)
 
     def addDynMenu(self, pathstr, callback):
@@ -47,15 +52,15 @@ class FieldAdder:
         plist = pathstr.split(self.splitchar)
         menu = self._addMenuFields( plist )
         menu._dyn_callback = callback
-        menu.connect(menu, QtCore.SIGNAL('aboutToShow()'), menu._addDynActions)
+        menu.aboutToShow.connect(menu._addDynActions)
 
     def addField(self, pathstr, callback=None, args=(), tip=None):
         plist = pathstr.split(self.splitchar)
         kid = self._addMenuFields(plist[:-1])
 
         acall = ActionCall( callback, *args )
-        action = QtGui.QAction(plist[-1], kid)
-        action.connect(action, QtCore.SIGNAL('triggered()'), acall)
+        action = QAction(plist[-1], kid)
+        action.triggered.connect(acall)
 
         if tip: action.setStatusTip(tip)
 
@@ -63,15 +68,15 @@ class FieldAdder:
 
         return kid
 
-class VQMenuBar(FieldAdder, QtGui.QMenuBar):
+class VQMenuBar(FieldAdder, QMenuBar):
     def __init__(self, parent=None, splitchar='.'):
-        QtGui.QMenuBar.__init__(self, parent=parent)
+        QMenuBar.__init__(self, parent=parent)
         FieldAdder.__init__(self, splitchar=splitchar)
 
-class VQMenu(FieldAdder, QtGui.QMenu):
+class VQMenu(FieldAdder, QMenu):
 
     def __init__(self, name, parent=None, splitchar='.'):
-        QtGui.QMenu.__init__(self, name, parent=parent)
+        QMenu.__init__(self, name, parent=parent)
         FieldAdder.__init__(self, splitchar=splitchar)
 
 class ActionCall:
@@ -82,4 +87,8 @@ class ActionCall:
         self.callback = callback
 
     def __call__(self):
-        return self.callback(*self.args, **self.kwargs)
+        try:
+            retval = self.callback(*self.args, **self.kwargs)
+            return retval
+        except Exception as e:
+            logger.exception("ActionCall: %r" % self.callback)

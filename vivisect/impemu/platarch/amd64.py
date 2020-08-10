@@ -1,6 +1,9 @@
+import logging
 
 import envi.archs.amd64 as e_amd64
 import vivisect.impemu.emulator as v_i_emulator
+
+logger = logging.getLogger(__name__)
 ########################################################################
 #
 # NOTE: For each architecture we intend to do workspace emulation on,
@@ -8,12 +11,11 @@ import vivisect.impemu.emulator as v_i_emulator
 #       etc).
 # NOTE: ARCH UPDATE
 
-DEBUG = False
 non_use_mnems = ('push', )
 
 class Amd64WorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_amd64.Amd64Emulator):
 
-    taintregs = [ 
+    taintregs = [
         e_amd64.REG_RAX, e_amd64.REG_RCX, e_amd64.REG_RDX,
         e_amd64.REG_RBX, e_amd64.REG_RBP, e_amd64.REG_RSI,
         e_amd64.REG_RDI, e_amd64.REG_R8,  e_amd64.REG_R9,
@@ -30,7 +32,7 @@ class Amd64WorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_amd64.Amd64Emulat
         """
         value = e_amd64.Amd64Emulator.getRegister(self, index)
 
-        if self.op == None:
+        if self.op is None:
             return value
 
         # this is broken, but works enough to keep for now.  if we 
@@ -61,15 +63,14 @@ class Amd64WorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_amd64.Amd64Emulat
         # (reg initialization)
         if op.mnem == 'xor' and op.opers[0] == op.opers[1]:
             # xor register initialization
-            if DEBUG: print('not a reg use (xor init): {} {}'.format(ridx, op))
+            logger.debug('{}: not a reg use (xor init): {} {}'.format(hex(op.va), ridx, op))
             return False
 
         else:
             # if op mnem is in blacklist, it's not a use either
-            for nonuse_mnem in non_use_mnems:
-                if nonuse_mnem in repr(op):
-                    if DEBUG: print('not a reg use (mnem): {} {}'.format(ridx, op))
-                    return False
+            if op.mnem in non_use_mnems:
+                logger.debug('{}: not a reg use (mnem): {} {}'.format(hex(op.va), ridx, op))
+                return False
 
         return True
 
