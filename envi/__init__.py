@@ -17,14 +17,16 @@ ARCH_AMD64       = 2 << 16
 ARCH_ARMV7       = 3 << 16
 ARCH_THUMB16     = 4 << 16
 ARCH_THUMB       = 5 << 16
-ARCH_MSP430      = 6 << 16
-ARCH_H8          = 7 << 16
+ARCH_AARCH64     = 6 << 16
+ARCH_MSP430      = 7 << 16
+ARCH_H8          = 8 << 16
 ARCH_MASK        = 0xffff0000   # Masked into IF_FOO and BR_FOO values
 
 arch_names = {
     ARCH_DEFAULT:   'default',
     ARCH_I386:      'i386',
     ARCH_AMD64:     'amd64',
+    ARCH_AARCH64:   'aarch64',
     ARCH_ARMV7:     'arm',
     ARCH_THUMB16:   'thumb16',
     ARCH_THUMB:     'thumb',
@@ -36,6 +38,7 @@ arch_by_name = {
     'default':  ARCH_DEFAULT,
     'i386':     ARCH_I386,
     'amd64':    ARCH_AMD64,
+    'aarch64':  ARCH_AARCH64,
     'arm':      ARCH_ARMV7,
     'armv6l':   ARCH_ARMV7,
     'armv7l':   ARCH_ARMV7,
@@ -1298,6 +1301,7 @@ def getArchModules(default=ARCH_DEFAULT):
     import envi.archs.i386 as e_i386
     import envi.archs.amd64 as e_amd64
     import envi.archs.thumb16 as e_thumb16
+    import envi.archs.aarch64 as e_aarch64
     import envi.archs.msp430 as e_msp430
 
     archs = [None]
@@ -1308,6 +1312,7 @@ def getArchModules(default=ARCH_DEFAULT):
     archs.append(e_arm.ArmModule())
     archs.append(e_thumb16.Thumb16Module())
     archs.append(e_thumb16.ThumbModule())
+    archs.append(e_aarch64.Aarch64Module())
     archs.append(e_msp430.Msp430Module())
     archs.append(e_h8.H8Module())
 

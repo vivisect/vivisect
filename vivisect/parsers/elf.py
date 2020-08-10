@@ -110,10 +110,11 @@ def makeFunctionTable(elf, vw, tbladdr, size, tblname, funcs, ptrs, baseaddr=0, 
 
 
 arch_names = {
-    Elf.EM_ARM:'arm',
-    Elf.EM_386:'i386',
-    Elf.EM_X86_64:'amd64',
-    Elf.EM_MSP430:'msp430',
+    Elf.EM_ARM: 'arm',
+    Elf.EM_386: 'i386',
+    Elf.EM_X86_64: 'amd64',
+    Elf.EM_MSP430: 'msp430',
+    Elf.EM_ARM_AARCH64: 'aarch64',
 }
 
 archcalls = {
