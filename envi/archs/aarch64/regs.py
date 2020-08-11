@@ -9,6 +9,31 @@ Strategy:
     * Emulator does translation from register/mode to actual storage container
         using reg_table and some math (see _getRegIdx)
 '''
+META_B_BASE = 0x080000
+META_H_BASE = 0x100000
+META_W_BASE = 0x200000
+META_D_BASE = 0x400000  # only for SIMD registers
+META_Q_BASE = 0
+
+meta_reg_bases = (0,
+        META_B_BASE,
+        META_H_BASE,
+        0,
+        META_W_BASE,
+        0,
+        0,
+        0,
+        META_D_BASE,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        META_Q_BASE,
+)
+
 aarch64_regs = [('x%d'%x, 64) for x in range(32)]  # x31 is zero register
 REG_SP = len(aarch64_regs)
 aarch64_regs.append(('sp', 64))
@@ -27,6 +52,8 @@ MAX_REGS = 33
 reg_data = aarch64_regs
 
 aarch64_metas = [("w%d" % x, x, 0, 32) for x in range(32)]
+aarch64_metas.extend([("h%d" % x, x, 0, 16) for x in range(32)])
+aarch64_metas.extend([("b%d" % x, x, 0, 8) for x in range(32)])
 aarch64_metas.append(("zr", 31, 0, 64))
 
 # done with banked register translation table
