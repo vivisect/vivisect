@@ -20,4 +20,6 @@ def analyzeFunction(vw, fva):
     rettype, retname, callconv, callname, callargs = api
     callargs = [callargs[i] if callargs[i][1] else (callargs[i][0], 'arg%d' % i) for i in range(len(callargs))]
 
-    vw.setFunctionApi(fva, (rettype, retname, callconv, callname, callargs))
+    funcapi = (rettype, retname, callconv, callname, callargs)
+    vw.setFunctionApi(fva, funcapi)
+    logger.debug("vw.setFunctionApi(0x%x, %r)", fva, funcapi)

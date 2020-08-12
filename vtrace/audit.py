@@ -14,9 +14,9 @@ import vtrace.platforms.base as v_base
 
 def auditTracer(trace):
     """
-    Print out a list of platform requirements and weather
+    Print out a list of platform requirements and whether
     a particular tracer meets them.  This is mostly a
-    development tool to determin what's left to do on a
+    development tool to determine what's left to do on a
     tracer implementation.
     """
     for mname in dir(v_base.BasePlatformMixin):

@@ -14,7 +14,6 @@ has occured...
 import logging
 import traceback
 
-import cobra
 import vtrace
 
 

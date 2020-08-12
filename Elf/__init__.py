@@ -672,7 +672,7 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
 
                 if reloc.r_offset in self.relocvas:
                     # FIXME: This line is hit sever tens of thousands of times during parsing
-                    # logger.debug("duplicate relocation (section): %r", reloc)
+                    logger.debug("duplicate relocation (section): %r", reloc)
                     continue
 
                 logger.info('section reloc: %r', reloc)

@@ -211,7 +211,7 @@ class CobraHttpRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         obj = self.server.getSharedObject(objname)
         ret = {}
         for name in dir(obj):
-            if type(getattr(obj,name)) in (types.MethodType, types.BuiltinMethodType):
+            if type(getattr(obj, name)) in (types.MethodType, types.BuiltinMethodType):
                 ret[name] = True
         self.send_response(httplib.OK)
         self.end_headers()
@@ -219,7 +219,7 @@ class CobraHttpRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         return
 
     def handleGetAttr(self, objname, attr):
-        logger.debug('GetAttr')
+        logger.debug('GetAttr: %s' % str(attr))
         if not self.server.attr:
             self.send_response(httplib.FORBIDDEN)
             self.end_headers()
@@ -232,14 +232,14 @@ class CobraHttpRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             self.send_response(httplib.OK)
             self.end_headers()
             self.wfile.write(json.dumps(val))
-        except Exception as e:
+        except Exception:
             self.send_response(httplib.NOT_FOUND)
             self.end_headers()
             excinfo = "%s" % traceback.format_exc()
             self.wfile.write(json.dumps(excinfo))
 
     def handleSetAttr(self, objname, name, value):
-        logger.debug('SetAttr')
+        logger.debug('SetAttr %s = %s' % (str(name), str(value)))
         if not self.server.attr:
             self.send_response(httplib.FORBIDDEN)
             self.end_headers()
@@ -430,7 +430,7 @@ class CobraHttpProxy:
         return sock
 
     def __getattr__(self, name):
-        logger.debug('GetAttr')
+        logger.debug('GetAttr: %s' % str(name))
         if name == "__getinitargs__":
             raise AttributeError()
         # Handle methods
@@ -440,7 +440,7 @@ class CobraHttpProxy:
         return CobraHttpMethod(self, '__cobra_getattr')(name)
 
     def __setattr__(self, name, value):
-        logger.debug('SetAttr')
+        logger.debug('SetAttr: %s = %s' % (str(name), str(value)))
         if name.startswith('_cobra_'):
             self.__dict__[name] = value
             return
