@@ -1,8 +1,10 @@
 import unittest
 
+import vivisect.symboliks.archs.i386 as i386sym
+import vivisect.symboliks.analysis as v_s_analysis
+
 from vivisect.symboliks.common import Var, Const, cnot
 from vivisect.symboliks.effects import ConstrainPath
-import vivisect.symboliks.analysis as v_s_analysis
 
 import vivisect.tests.helpers as helpers
 
@@ -66,3 +68,40 @@ class IntelSymTests(unittest.TestCase):
             esp = emu.getSymVariable('esp').reduce(foo=True)
             self.assertTrue(esp in esps)
             self.assertEqual(emu.getSymVariable('ecx'), Var('arg0', 4))
+
+    def _cconv_test(self, caller, callee, argc, retn):
+        # some setup and other fun things
+        vw = self.i386_vw
+
+        # Note: The function itself isn't important, we just need a real Symbolik emulator
+        # instance that we can pass to setSymbolikArgs so that we can monkey with things
+        # from there
+        fva = 0x08051e10
+        ctx = v_s_analysis.getSymbolikAnalysisContext(vw, consolve=True)
+        argv = [Var('arg%d' % i, 4) for i in range(argc)]
+        emu = ctx.getFuncEmu(fva)
+        callee.setSymbolikArgs(emu, argv)
+        caller.setSymbolikArgs(emu, argv)
+        emu.setSymVariable('eax', retn)
+
+        self.assertEqual(caller.getSymbolikReturn(emu), retn)
+        self.assertEqual(caller.getSymbolikReturn(emu), callee.getSymbolikReturn(emu))
+
+        # if the callee cleans it up, the stack point is automatically assumed to be
+        # delta'd by 20 bytes for bfastcall (argc == 7, 3 are registers, so 4 stack args
+        # plus the return address makes 5 dwords to clean up for 20 bytes
+        bytes_cleaned = (1 + callee.getNumStackArgs(emu, argc)) * 4
+        self.assertEqual(callee.deallocateCallSpace(emu, argc).reduce(), Const(bytes_cleaned, 4))
+        # if the caller cleans things up, the instructions after are going to do it
+        # (since we're currently looking at things from a precall perspective), and so
+        # the only thing that is going to get cleaned up is the return address
+        self.assertEqual(caller.deallocateCallSpace(emu, argc).reduce(), Const(4, 4))
+
+    def test_ccconv_diff(self):
+        # msfastcall
+        # thiscall
+        # bfastcall
+        retval = Const(0xdeadbeef, 4)
+        self._cconv_test(i386sym.BFastCall_Caller(), i386sym.BFastCall(), 9, retval)
+        self._cconv_test(i386sym.ThisCall_Caller(), i386sym.ThisCall(), 27, retval)
+        self._cconv_test(i386sym.MsFastCall_Caller(), i386sym.MsFastCall(), 1, retval)
