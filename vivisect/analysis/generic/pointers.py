@@ -54,7 +54,7 @@ def analyze(vw):
 
     # Now, lets find likely free-hanging pointers
     for addr, pval in vw.findPointers():
-        if vw.isDeadData(pval) or vw.isLocation(addr):
+        if vw.isDeadData(pval):
             continue
         try:
             logger.info('pointer(4): 0x%x -> 0x%x', addr, pval)

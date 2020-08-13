@@ -124,7 +124,7 @@ class AnalysisMonitor(viv_monitor.AnalysisMonitor):
 
         except Exception as e:
             self.logAnomaly(emu, self.fva, "0x%x: (%r) ERROR: %s" % (op.va, op, e))
-            logger.exception("0x%x: (%r)  ERROR: %s", op.va, op, e)
+            logger.error("0x%x: (%r)  ERROR: %s", op.va, op, e)
 
 
     def posthook(self, emu, op, starteip):
