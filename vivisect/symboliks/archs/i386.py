@@ -1471,6 +1471,15 @@ class MsFastCall(i386SymCallingConv, e_i386.MsFastCall):
 class BFastCall(i386SymCallingConv, e_i386.BFastCall):
     pass
 
+class ThisCall_Caller(i386SymCallingConv, e_i386.ThisCall_Caller):
+    pass
+
+class MsFastCall_Caller(i386SymCallingConv, e_i386.MsFastCall_Caller):
+    pass
+
+class BFastCall_Caller(i386SymCallingConv, e_i386.BFastCall_Caller):
+    pass
+
 class i386SymFuncEmu(vsym_analysis.SymbolikFunctionEmulator):
 
     __width__ = 4
@@ -1484,6 +1493,10 @@ class i386SymFuncEmu(vsym_analysis.SymbolikFunctionEmulator):
         self.addCallingConvention('thiscall', ThisCall())
         self.addCallingConvention('bfastcall', BFastCall())
         self.addCallingConvention('msfastcall', MsFastCall())
+
+        self.addCallingConvention('thiscall_caller', ThisCall_Caller())
+        self.addCallingConvention('bfastcall_caller', BFastCall_Caller())
+        self.addCallingConvention('msfastcall_caller', MsFastCall_Caller())
         # FIXME possibly decide this by platform/format?
         self.addCallingConvention(None, Cdecl())
 
