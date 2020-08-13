@@ -552,5 +552,58 @@ class VivisectTest(unittest.TestCase):
 
     def test_graphutil_getopsfrompath(self):
         vw = self.gcc_vw
-        # g = v_t_graphutil.buildFunctionGraph(vw, )
-        pass
+        g = v_t_graphutil.buildFunctionGraph(vw, 0x414a2a)
+        path = next(v_t_graphutil.getLongPath(g))
+
+        ops = [
+            'push r14',
+            'push r13',
+            'mov r13,rdx',
+            'push r12',
+            'push rbp',
+            'mov r12,rsi',
+            'push rbx',
+            'mov rbx,rdi',
+            'sar r12,3',
+            'mov rbp,rsi',
+            'mov edx,r12d',
+            'mov r14d,ecx',
+            'sub rsp,16',
+            'mov rdi,qword [rdi + 48]',
+            'mov qword [rsp + 8],rsi',
+            'lea rsi,qword [rsp + 8]',
+            'call 0x00414962',
+            'cmp qword [rax],0',
+            'jz 0x00414abc',
+            'mov rdx,qword [rax + 8]',
+            'mov rax,qword [rdx]',
+            'cmp r13,rax',
+            'jbe 0x00414a85',
+            'mov edx,0x004d76b0',
+            'mov esi,151',
+            'mov edi,0x004d7534',
+            'call 0x0041806c',
+            'sub rax,r13',
+            'test r14l,r14l',
+            'mov qword [rdx],rax',
+            'jz 0x00414abc',
+            'mov rbx,qword [rbx + 48]',
+            'lea rsi,qword [rsp + 8]',
+            'xor ecx,ecx',
+            'mov edx,r12d',
+            'mov qword [rsp + 8],rbp',
+            'mov rdi,rbx',
+            'call 0x004154ec',
+            'cmp qword [rax],0',
+            'jz 0x00414abc',
+            'mov qword [rax],1',
+            'inc qword [rbx + 24]',
+            'add rsp,16',
+            'pop rbx',
+            'pop rbp',
+            'pop r12',
+            'pop r13',
+            'pop r14',
+            'ret '
+        ]
+        self.assertEqual(ops, map(str, v_t_graphutil.getOpsFromPath(vw, g, path)))

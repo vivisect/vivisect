@@ -46,19 +46,19 @@ class VstructBuilderTest(unittest.TestCase):
         pass
 
     def test_namespaces(self):
-        simple = vs_cparse.ctorFromCSource(csrc_simple)
-        nested = vs_cparse.ctorFromCSource(csrc_nested)
         bldr = vs_builder.VStructBuilder()
         subb = vs_builder.VStructBuilder()
 
         bldr.addVStructNamespace('subname', subb)
         bldr.addVStructNamespace('dupname', subb)
-
         self.assertTrue(bldr.hasVStructNamespace('subname'))
         self.assertEqual(set(bldr.getVStructNamespaces()), set([('subname', subb), ('dupname', subb)]))
+        self.assertEqual(set(bldr.getVStructNamespaceNames()), set(['subname', 'dupname']))
 
-    def test_build_vstruct(self):
-        bldr = vs_builder.VStructBuilder()
+        nested = vs_cparse.ctorFromCSource(csrc_nested)
+        bldr.addVStructCtor('foo', nested)
+        self.assertEqual(bldr.getVStructCtorNames(), ['foo'])
 
     def test_get_pycode(self):
+        # TODO: Windows CI
         pass
