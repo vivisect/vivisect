@@ -391,8 +391,6 @@ def analyzePLT(vw, ssva, ssize):
             vw.makeFunction(sva)
 
     except Exception as e:
-        import pdb
-        pdb.set_trace()
         logger.error('analyzePLT(0x%x, %r): %s', ssva, ssize, str(e))
 
 
