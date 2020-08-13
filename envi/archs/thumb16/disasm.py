@@ -13,11 +13,9 @@ O_REG = 0
 O_IMM = 1
 O_OFF = 2
 
-OperType = (
-    ArmRegOper,
-    ArmImmOper,
-    ArmPcOffsetOper,
-)
+OperType = (ArmRegOper,
+            ArmImmOper,
+            ArmPcOffsetOper)
 
 
 def shmaskval(value, shval, mask):
@@ -33,7 +31,7 @@ class simpleops:
         for otype, shval, mask in self.operdef:
             oper = OperType[otype]((value >> shval) & mask, va=va)
             ret.append(oper)
-        return COND_AL, (ret), None
+        return COND_AL, ret, None
 
 
 rm_rn_rd = simpleops((O_REG, 0, 0x7), (O_REG, 3, 0x7), (O_REG, 6, 0x7))
@@ -147,59 +145,53 @@ def rm4_shift3(va, value):  # bx/blx
     return COND_AL, (oper,), iflags
 
 
-banked_regs = (
-    (REG_OFFSET_USR + 8, ),
-    (REG_OFFSET_USR + 9, ),
-    (REG_OFFSET_USR + 10,),
-    (REG_OFFSET_USR + 12,),
-    (REG_OFFSET_USR + 11,),
-    (REG_OFFSET_USR + 13,),
-    (REG_OFFSET_USR + 14,),
-    (None,),
-    (REG_OFFSET_FIQ + 8, ),
-    (REG_OFFSET_FIQ + 9, ),
-    (REG_OFFSET_FIQ + 10,),
-    (REG_OFFSET_FIQ + 11,),
-    (REG_OFFSET_FIQ + 12,),
-    (REG_OFFSET_FIQ + 13,),
-    (REG_OFFSET_FIQ + 14,),
-    (None,),
-    (REG_OFFSET_IRQ + 14, ),
-    (REG_OFFSET_IRQ + 13, ),
-    (REG_OFFSET_SVC + 14,),
-    (REG_OFFSET_SVC + 13,),
-    (REG_OFFSET_ABT + 14,),
-    (REG_OFFSET_ABT + 13,),
-    (REG_OFFSET_UND + 14,),
-    (REG_OFFSET_UND + 13,),
-    (None),
-    (None),
-    (None),
-    (None),
-    (REG_OFFSET_MON + 14,),
-    (REG_OFFSET_MON + 13,),
-    (REG_OFFSET_HYP + 14,),
-    (REG_OFFSET_HYP + 13,),
-)
+banked_regs = ((REG_OFFSET_USR + 8, ),
+               (REG_OFFSET_USR + 9, ),
+               (REG_OFFSET_USR + 10,),
+               (REG_OFFSET_USR + 12,),
+               (REG_OFFSET_USR + 11,),
+               (REG_OFFSET_USR + 13,),
+               (REG_OFFSET_USR + 14,),
+               (None,),
+               (REG_OFFSET_FIQ + 8, ),
+               (REG_OFFSET_FIQ + 9, ),
+               (REG_OFFSET_FIQ + 10,),
+               (REG_OFFSET_FIQ + 11,),
+               (REG_OFFSET_FIQ + 12,),
+               (REG_OFFSET_FIQ + 13,),
+               (REG_OFFSET_FIQ + 14,),
+               (None,),
+               (REG_OFFSET_IRQ + 14,),
+               (REG_OFFSET_IRQ + 13,),
+               (REG_OFFSET_SVC + 14,),
+               (REG_OFFSET_SVC + 13,),
+               (REG_OFFSET_ABT + 14,),
+               (REG_OFFSET_ABT + 13,),
+               (REG_OFFSET_UND + 14,),
+               (REG_OFFSET_UND + 13,),
+               (None),
+               (None),
+               (None),
+               (None),
+               (REG_OFFSET_MON + 14,),
+               (REG_OFFSET_MON + 13,),
+               (REG_OFFSET_HYP + 14,),
+               (REG_OFFSET_HYP + 13,))
 
-cpsh_mnems = {
-    0: (INS_NOP, 'nop',),
-    1: (INS_YIELD, 'yield',),
-    2: (INS_WFE, 'wfe',),
-    3: (INS_WFI, 'wfi',),
-    4: (INS_SEV, 'sev',),
-}
+cpsh_mnems = {0: (INS_NOP, 'nop'),
+              1: (INS_YIELD, 'yield'),
+              2: (INS_WFE, 'wfe'),
+              3: (INS_WFI, 'wfi'),
+              4: (INS_SEV, 'sev')}
 
-misc_ctl_instrs = (
-    (INS_LEAVEX, 'leavex', False),
-    (INS_ENTERX, 'enterx', False),
-    (INS_CLREX, 'clrex', False),
-    None,
-    (INS_DSB, 'dsb', True),
-    (INS_DMB, 'dmb', True),
-    (INS_ISB, 'isb', True),
-    None,
-)
+misc_ctl_instrs = ((INS_LEAVEX, 'leavex', False),
+                   (INS_ENTERX, 'enterx', False),
+                   (INS_CLREX, 'clrex', False),
+                   None,
+                   (INS_DSB, 'dsb', True),
+                   (INS_DMB, 'dmb', True),
+                   (INS_ISB, 'isb', True),
+                   None)
 
 
 def branch_misc(va, val, val2):  # bl and misc control
@@ -238,9 +230,7 @@ def branch_misc(va, val, val2):  # bl and misc control
 
             if barrier:
                 option = val2 & 0xf
-                opers = (
-                    ArmBarrierOption(option),
-                )
+                opers = (ArmBarrierOption(option),)
 
             else:
                 opers = ()
@@ -257,16 +247,10 @@ def branch_misc(va, val, val2):  # bl and misc control
 
                 if R:
                     spsr = proc_modes.get(SYSm)[PM_PSROFF]
-                    opers = (
-                        ArmRegOper(spsr),
-                        ArmRegOper(Rn),
-                    )
+                    opers = (ArmRegOper(spsr), ArmRegOper(Rn))
                 else:
                     treg, = banked_regs[SYSm]
-                    opers = (
-                        ArmRegOper(treg),
-                        ArmRegOper(Rn),
-                    )
+                    opers = (ArmRegOper(treg), ArmRegOper(Rn))
                 return COND_AL, None, 'msr', opers, None, 0
 
             elif (op & 0b1111110 == 0b0111110):  # MRS (banked)
@@ -278,31 +262,25 @@ def branch_misc(va, val, val2):  # bl and misc control
 
                 if R:
                     spsr = proc_modes.get(SYSm)[PM_PSROFF]
-                    opers = (
-                        ArmRegOper(Rn),
-                        ArmRegOper(spsr),
-                    )
+                    opers = (ArmRegOper(Rn),
+                             ArmRegOper(spsr))
                 else:
                     treg, = banked_regs[SYSm]
-                    opers = (
-                        ArmRegOper(Rn),
-                        ArmRegOper(treg),
-                    )
+                    opers = (ArmRegOper(Rn),
+                             ArmRegOper(treg))
                 return COND_AL, None, 'mrs', opers, None, 0
 
-            raise InvalidInstruction(
-                mesg="branch_misc subsection 2",
-                bytez=struct.pack("<H", val)+struct.pack("<H", val2), va=va-4)
+            raise InvalidInstruction(mesg="branch_misc subsection 2",
+                                     bytez=struct.pack("<H", val)+struct.pack("<H", val2),
+                                     va=va-4)
 
         if imm8 == 0 and op == 0b0111101:
             # original imm8 was imm4!
             imm8 = val2 & 0xff
             if imm8:
-                opers = (
-                    ArmRegOper(REG_PC),
-                    ArmRegOper(REG_LR),
-                    ArmImmOper(imm8),
-                )
+                opers = (ArmRegOper(REG_PC),
+                         ArmRegOper(REG_LR),
+                         ArmImmOper(imm8))
                 return COND_AL, None, 'sub', opers, IF_PSR_S, 0
 
             return COND_AL, None, 'eret', tuple(), envi.IF_RET | envi.IF_NOFALL, 0
@@ -322,10 +300,8 @@ def branch_misc(va, val, val2):  # bl and misc control
                 R = (val >> 4) & 1
                 # System Level Only...
 
-            opers = (
-                ArmPgmStatRegOper(R, mask),
-                ArmRegOper(Rn)
-            )
+            opers = (ArmPgmStatRegOper(R, mask),
+                     ArmRegOper(Rn))
             return COND_AL, None, 'msr', opers, None, 0
 
         elif op == 0b0111010:
@@ -343,13 +319,10 @@ def branch_misc(va, val, val2):  # bl and misc control
                 mode = val2 & 0x1f
 
                 if (mode and m == 0):
-                    raise Exception(
-                        "CPS with invalid flags set:  UNPREDICTABLE (mode and not m)")
+                    raise Exception("CPS with invalid flags set:  UNPREDICTABLE (mode and not m)")
 
-                if ((imod & 2) and not (aif)) or \
-                        (not (imod & 2) and (aif)):
-                    raise Exception(
-                        "CPS with invalid flags set:  UNPREDICTABLE imod enable but not a/i/f")
+                if ((imod & 2) and not (aif)) or (not (imod & 2) and (aif)):
+                    raise Exception("CPS with invalid flags set:  UNPREDICTABLE imod enable but not a/i/f")
 
                 if not (imod or m):
                     # hint
@@ -378,28 +351,22 @@ def branch_misc(va, val, val2):  # bl and misc control
         # subs PC, LR, #imm (see special case ERET above)...
         elif op == 0b0111101:
             imm8 = val2 & 0xff
-            opers = (
-                ArmRegOper(REG_PC),
-                ArmRegOper(REG_LR),
-                ArmImmOper(imm8),
-            )
+            opers = (ArmRegOper(REG_PC),
+                     ArmRegOper(REG_LR),
+                     ArmImmOper(imm8))
             return COND_AL, None, 'sub', opers, IF_PSR_S, 0
 
         elif op == 0b0111110:
             Rd = (val2 >> 8) & 0xf
-            opers = (
-                ArmRegOper(Rd),
-                ArmPgmStatRegOper(PSR_CPSR),
-            )
+            opers = (ArmRegOper(Rd),
+                     ArmPgmStatRegOper(PSR_CPSR),)
             return COND_AL, None, 'mrs', opers, None, 0
 
         elif op == 0b0111111:
             Rd = (val2 >> 8) & 0xf
             R = (val >> 4) & 1
-            opers = (
-                ArmRegOper(Rd),
-                ArmPgmStatRegOper(R),
-            )
+            opers = (ArmRegOper(Rd),
+                     ArmPgmStatRegOper(R))
 
             return COND_AL, None, 'mrs', opers, None, 0
 
@@ -410,9 +377,9 @@ def branch_misc(va, val, val2):  # bl and misc control
                 oper0 = ArmImmOper((imm4 << 12) | imm12)
                 return COND_AL, None, 'hvc', (oper0,), None, 0
 
-            raise InvalidInstruction(
-                mesg="branch_misc subsection 1",
-                bytez=struct.pack("<HH", val, val2), va=va-4)
+            raise InvalidInstruction(mesg="branch_misc subsection 1",
+                                     bytez=struct.pack("<HH", val, val2),
+                                     va=va-4)
 
         elif op == 0b1111111:
             if op1 == 0:
@@ -420,13 +387,13 @@ def branch_misc(va, val, val2):  # bl and misc control
                 oper0 = ArmImmOper(imm4)
                 return COND_AL, None, 'smc', (oper0,), None, 0
 
-            raise InvalidInstruction(
-                mesg="branch_misc subsection 1",
-                bytez=struct.pack("<HH", val, val2), va=va-4)
+            raise InvalidInstruction(mesg="branch_misc subsection 1",
+                                     bytez=struct.pack("<HH", val, val2),
+                                     va=va-4)
 
-        raise InvalidInstruction(
-            mesg="branch_misc subsection 3",
-            bytez=struct.pack("<H", val)+struct.pack("<H", val2), va=va-4)
+        raise InvalidInstruction(mesg="branch_misc subsection 3",
+                                 bytez=struct.pack("<H", val)+struct.pack("<H", val2),
+                                 va=va-4)
 
     elif op1 & 0b101 == 1:  # T4 encoding
         opcode = INS_B
@@ -458,9 +425,9 @@ def branch_misc(va, val, val2):  # bl and misc control
             oper0 = ArmImmOper(immval)
             return COND_AL, INS_UDF, 'udf', (oper0, ), flags, 0
 
-        raise InvalidInstruction(
-            mesg="branch_misc subsection 6",
-            bytez=struct.pack("<H", val)+struct.pack("<H", val2), va=va-4)
+        raise InvalidInstruction(mesg="branch_misc subsection 6",
+                                 bytez=struct.pack("<H", val)+struct.pack("<H", val2),
+                                 va=va-4)
 
     elif op1 & 0b100:
         # bl/blx
@@ -474,17 +441,14 @@ def branch_misc(va, val, val2):  # bl and misc control
         j1 = not ((val2 >> 13) & 1 ^ s)
         j2 = not ((val2 >> 11) & 1 ^ s)
 
-        imm = (s << 24) | (j1 << 23) | (j2 << 22) | (
-            (val & 0x3ff) << 12) | ((val2 & 0x7ff) << 1)
+        imm = (s << 24) | (j1 << 23) | (j2 << 22) | ((val & 0x3ff) << 12) | ((val2 & 0x7ff) << 1)
 
         # sign extend a 25-bit number
         if s:
             imm |= 0xff000000
 
-        vamask = (
-            0xfffffffc,
-            0xfffffffe
-        )
+        vamask = (0xfffffffc,
+                  0xfffffffe)
 
         va &= vamask[notx]
 
@@ -492,9 +456,9 @@ def branch_misc(va, val, val2):  # bl and misc control
 
         return COND_AL, opcode, mnem, (oper0, ), flags, 0
 
-    raise InvalidInstruction(
-        mesg="branch_misc Branches and Miscellaneous Control: Failed to match",
-        bytez=struct.pack("<H", val)+struct.pack("<H", val2), va=va-4)
+    raise InvalidInstruction(mesg="branch_misc Branches and Miscellaneous Control: Failed to match",
+                             bytez=struct.pack("<H", val)+struct.pack("<H", val2),
+                             va=va-4)
 
 
 def pc_imm11(va, value):  # b
@@ -578,8 +542,7 @@ def i_imm5_rn(va, value):
 
 
 def ldm16(va, value):
-    raise Exception(
-        "32bit wrapping of 16bit instruction... and it's not implemented")
+    raise Exception("32bit wrapping of 16bit instruction... and it's not implemented")
 
 
 def cps16(va, value):
@@ -727,19 +690,19 @@ dp_secondary = (
     'tst',  # and
     None,  # bic
     'mov',  # orr
-            'mvn',  # orn
-            'teq',  # eor
-            None,
-            None,
-            None,  # pkh
-            'cmn',  # add
-            None,  # adc
-            None,  # sbc
-            None,
-            None,
-            'cmp',  # sub
-            None,
-            None,
+    'mvn',  # orn
+    'teq',  # eor
+    None,
+    None,
+    None,  # pkh
+    'cmn',  # add
+    None,  # adc
+    None,  # sbc
+    None,
+    None,
+    'cmp',  # sub
+    None,
+    None,
 )
 
 dp_sec_silS = (0, 4, 8, 13)
@@ -772,8 +735,7 @@ def dp_mod_imm_32(va, val1, val2):
         #raise Exception("dp_mod_imm_32 - FIXME: secondary dp encoding")
         mnem = dp_secondary[dpop]
         if mnem is None:
-            raise Exception(
-                "dp_mod_imm_32: Rd==15, S, but dpop doesn't have a secondary! va:%x, %x%x" % (va, val1, val2))
+            raise Exception("dp_mod_imm_32: Rd==15, S, but dpop doesn't have a secondary! va:%x, %x%x" % (va, val1, val2))
 
         if S:
             flags |= DP_SEC_PSR_S[dpop]
@@ -823,8 +785,7 @@ sxt_mnem_2 = (
 
 def shift_or_ext_32(va, val1, val2):
     if (val2 & 0xf000) != 0xf000:
-        raise InvalidInstruction(
-            mesg="UNDEFINED: shift_or_ext_32: val2 & 0xf000 != 0xf000 at va 0x%x: val1:%.4x val2:%.4x" % (va, val1, val2), va=va)
+        raise InvalidInstruction(mesg="UNDEFINED: shift_or_ext_32: val2 & 0xf000 != 0xf000 at va 0x%x: val1:%.4x val2:%.4x" % (va, val1, val2), va=va)
 
     op1 = (val1 >> 4) & 0xf
     op2 = (val2 >> 4) & 0xf
@@ -836,27 +797,26 @@ def shift_or_ext_32(va, val1, val2):
     if (op1 & 0b1000):  # page 245
         if not (op2 & 0b1100):
             # parallel addition/subtraction: signed
-            raise InvalidInstruction(
-                mesg="shift_or_ext_32 implementme: parallel add/sub signed",
-                bytez=struct.pack("<H", val1)+struct.pack("<H", val2), va=va)
+            raise InvalidInstruction(mesg="shift_or_ext_32 implementme: parallel add/sub signed",
+                                     bytez=struct.pack("<H", val1)+struct.pack("<H", val2), va=va)
 
         elif not (op2 & 0b1000):
             # parallel addition/subtraction: unsigned
-            raise InvalidInstruction(
-                mesg="shift_or_ext_32 implementme: parallel add/sub unsigned",
-                bytez=struct.pack("<H", val1)+struct.pack("<H", val2), va=va)
+            raise InvalidInstruction(mesg="shift_or_ext_32 implementme: parallel add/sub unsigned",
+                                     bytez=struct.pack("<H", val1)+struct.pack("<H", val2),
+                                     va=va)
 
         elif (op1 & 0b1100) == 0b1000 and (op2 & 0b1100) == 0b1000:
             # misc instructions
-            raise InvalidInstruction(
-                mesg="shift_or_ext_32 implementme: misc instructions",
-                bytez=struct.pack("<H", val1)+struct.pack("<H", val2), va=va)
+            raise InvalidInstruction(mesg="shift_or_ext_32 implementme: misc instructions",
+                                     bytez=struct.pack("<H", val1)+struct.pack("<H", val2),
+                                     va=va)
 
     if (op2):
         if op1 > 5:
-            raise InvalidInstruction(
-                mesg="shift_or_ext_32 parsing an unsupported instruction encoding",
-                bytez=struct.pack("<H", val1)+struct.pack("<H", val2), va=va)
+            raise InvalidInstruction(mesg="shift_or_ext_32 parsing an unsupported instruction encoding",
+                                     bytez=struct.pack("<H", val1)+struct.pack("<H", val2),
+                                     va=va)
 
         rotate = (val2 >> 4) & 0x3
 
@@ -864,42 +824,32 @@ def shift_or_ext_32(va, val1, val2):
             # sxth and the like
             opcode, mnem, = sxt_mnem_2[op1]
             if rotate == 0:
-                opers = (
-                    ArmRegOper(rd),
-                    ArmRegOper(rm),
-                )
+                opers = (ArmRegOper(rd),
+                         ArmRegOper(rm))
             else:
-                opers = (
-                    ArmRegOper(rd),
-                    ArmRegOper(rm),
-                    ArmImmOper(rotate),
-                )
+                opers = (ArmRegOper(rd),
+                         ArmRegOper(rm),
+                         ArmImmOper(rotate))
         else:
             # sxtah and the like
             opcode, mnem, = sxt_mnem[op1]
             if rotate == 0:
-                opers = (
-                    ArmRegOper(rd),
-                    ArmRegOper(rm),
-                )
+                opers = (ArmRegOper(rd),
+                         ArmRegOper(rm))
             else:
-                opers = (
-                    ArmRegOper(rd),
-                    ArmRegOper(rn),
-                    ArmRegOper(rm),
-                    ArmImmOper(rotate),
-                )
+                opers = (ArmRegOper(rd),
+                         ArmRegOper(rn),
+                         ArmRegOper(rm),
+                         ArmImmOper(rotate))
 
     else:
         # lsl/lsr/asr/ror
         op1 = (val1 >> 4) & 0xf
         opcode, mnem, nothing = mov_ris_ops[op1 >> 1]
 
-        opers = (
-            ArmRegOper(rd),
-            ArmRegOper(rn),
-            ArmRegOper(rm),
-        )
+        opers = (ArmRegOper(rd),
+                 ArmRegOper(rn),
+                 ArmRegOper(rm))
 
         if (op1 & 1):
             flags |= IF_PSR_S
@@ -989,11 +939,9 @@ def parallel_misc_32(va, val1, val2):
     rd = (val2 >> 8) & 0xf
     rm = (val2 & 0xf)
 
-    opers = (
-        ArmRegOper(rd),
-        ArmRegOper(rn),
-        ArmRegOper(rm),
-    )
+    opers = (ArmRegOper(rd),
+             ArmRegOper(rn),
+             ArmRegOper(rm))
 
     return COND_AL, opcode, mnem, opers, flags, 0
 
@@ -1009,12 +957,10 @@ def ubfx_32(va, val1, val2):
     widthm1 = val2 & 0x1f
     lsbit = (imm3 << 2) | imm2
 
-    opers = (
-        ArmRegOper(rd),
-        ArmRegOper(rn),
-        ArmImmOper(lsbit),
-        ArmImmOper(widthm1 + 1),
-    )
+    opers = (ArmRegOper(rd),
+             ArmRegOper(rn),
+             ArmImmOper(lsbit),
+             ArmImmOper(widthm1 + 1))
     return COND_AL, None, None, opers, None, 0
 
 
@@ -1127,8 +1073,7 @@ def ldm_reg_32(va, val1, val2):
 def ldm_32(va, val1, val2):
     rn = val1 & 0xf
     if val2 & 0x2000:
-        raise InvalidInstruction(
-            "LDM instruction with stack indicated: 0x%x: 0x%x, 0x%x" % (va, val1, val2))
+        raise InvalidInstruction("LDM instruction with stack indicated: 0x%x: 0x%x, 0x%x" % (va, val1, val2))
         # PC not ok on some instructions...
     wback = (val1 >> 5) & 1
 
@@ -1143,8 +1088,7 @@ def ldm_32(va, val1, val2):
 
 def pop_32(va, val1, val2):
     if val2 & 0x2000:
-        raise InvalidInstruction(
-            "LDM instruction with stack indicated: 0x%x: 0x%x, 0x%x" % (va, val1, val2))
+        raise InvalidInstruction("LDM instruction with stack indicated: 0x%x: 0x%x, 0x%x" % (va, val1, val2))
         # PC not ok on some instructions...
     oper0 = ArmRegListOper(val2)
     opers = (oper0, )
@@ -1157,8 +1101,7 @@ def pop_32(va, val1, val2):
 
 def push_32(va, val1, val2):
     if val2 & 0x2000:
-        raise InvalidInstruction(
-            "LDM instruction with stack indicated: 0x%x: 0x%x, 0x%x" % (va, val1, val2))
+        raise InvalidInstruction("LDM instruction with stack indicated: 0x%x: 0x%x, 0x%x" % (va, val1, val2))
         # PC not ok on some instructions...
     oper0 = ArmRegListOper(val2)
     opers = (oper0, )
@@ -1219,19 +1162,15 @@ def ldrb_memhints_32(va, val1, val2):
             opcode, mnem, flags = memh_instrs[Sbit]
             rm = val2 & 0xf
             imm2 = (val2 >> 4) & 3
-            opers = (
-                ArmScaledOffsetOper(rn, rm, S_LSL, imm2, va),
-            )
+            opers = (ArmScaledOffsetOper(rn, rm, S_LSL, imm2, va),)
             return COND_AL, opcode, mnem, opers, flags, 0
 
         else:
             # LDRB (literal)
             opcode, mnem, flags = ldrb_instrs[Sbit]
             imm12 = val2 & 0xfff
-            opers = (
-                ArmRegOper(rt),
-                ArmPcOffsetOper(imm12, va, tsize=1),
-            )
+            opers = (ArmRegOper(rt),
+                     ArmPcOffsetOper(imm12, va, tsize=1))
             return COND_AL, opcode, mnem, opers, flags, 0
 
     else:
@@ -1239,10 +1178,8 @@ def ldrb_memhints_32(va, val1, val2):
             # ldrb (immediate):T2, ldrsb:T1
             opcode, mnem, flags = ldrb_instrs[Sbit]
             imm12 = val2 & 0xfff
-            opers = (
-                ArmRegOper(rt),
-                ArmImmOffsetOper(rn, imm12, va, tsize=1),
-            )
+            opers = (ArmRegOper(rt),
+                     ArmImmOffsetOper(rn, imm12, va, tsize=1))
             return COND_AL, opcode, mnem, opers, flags, 0
 
         elif not op1:
@@ -1251,9 +1188,7 @@ def ldrb_memhints_32(va, val1, val2):
                 opcode, mnem, flags = memh_instrs[Sbit]
                 rm = val2 & 0xf
                 imm2 = (val2 >> 4) & 3
-                opers = (
-                    ArmScaledOffsetOper(rn, rm, S_LSL, imm2, va),
-                )
+                opers = (ArmScaledOffsetOper(rn, rm, S_LSL, imm2, va),)
                 return COND_AL, opcode, mnem, opers, flags, 0
 
             elif (val2 >> 11) & 1:
@@ -1261,10 +1196,9 @@ def ldrb_memhints_32(va, val1, val2):
                 opcode, mnem, flags = ldrb_instrs[Sbit]
                 imm8 = val2 & 0xff
                 pubwl = ((val2 >> 6) & 0x18) | ((val2 >> 7) & 2)
-                opers = (
-                    ArmRegOper(rt),
-                    # ArmImmOffsetOper(rn, imm8, va, pubwl)  # FIXME: deprecated
-                    ArmImmOffsetOper(rn, imm8, va, tsize=1)
+                opers = (ArmRegOper(rt),
+                         # ArmImmOffsetOper(rn, imm8, va, pubwl)  # FIXME: deprecated
+                         ArmImmOffsetOper(rn, imm8, va, tsize=1)
                 )
                 return COND_AL, opcode, mnem, opers, flags, 0
 
@@ -1273,14 +1207,11 @@ def ldrb_memhints_32(va, val1, val2):
                 opcode, mnem, flags = ldrb_instrs[Sbit]
                 rm = val2 & 0xf
                 imm2 = (val2 >> 4) & 3
-                opers = (
-                    ArmRegOper(rt),
-                    ArmScaledOffsetOper(rn, rm, S_LSL, imm2, va, tsize=1),
-                )
+                opers = (ArmRegOper(rt),
+                         ArmScaledOffsetOper(rn, rm, S_LSL, imm2, va, tsize=1))
                 return COND_AL, opcode, mnem, opers, flags, 0
 
-        raise envi.InvalidInstruction(
-            mesg="ldrb_memhints_32: fall 1", va=va)
+        raise envi.InvalidInstruction(mesg="ldrb_memhints_32: fall 1", va=va)
 
     return COND_AL, opcode, mnem, opers, flags, 0
 
@@ -1363,12 +1294,10 @@ def mla_32(va, val1, val2):
     mnem = 'mla'
     opcode = INS_MLA
 
-    opers = (
-        ArmRegOper(rd, va=va),
-        ArmRegOper(rn, va=va),
-        ArmRegOper(rm, va=va),
-        ArmRegOper(ra, va=va),
-    )
+    opers = (ArmRegOper(rd, va=va),
+             ArmRegOper(rn, va=va),
+             ArmRegOper(rm, va=va),
+             ArmRegOper(ra, va=va))
 
     return COND_AL, None, mnem, opers, None, 0
 
@@ -1379,17 +1308,14 @@ def smul_32(va, val1, val2):
     rd = (val2 >> 8) & 0xf
 
     nm = (val2 >> 4) & 0x3
-    opcode, mnem = (
-        (INS_SMULBB, 'smulbb'),
-        (INS_SMULBT, 'smulbt'),
-        (INS_SMULTB, 'smultb'),
-        (INS_SMULTT, 'smultt'))[nm]
+    opcode, mnem = ((INS_SMULBB, 'smulbb'),
+                    (INS_SMULBT, 'smulbt'),
+                    (INS_SMULTB, 'smultb'),
+                    (INS_SMULTT, 'smultt'))[nm]
 
-    opers = (
-        ArmRegOper(rd, va=va),
-        ArmRegOper(rn, va=va),
-        ArmRegOper(rm, va=va),
-    )
+    opers = (ArmRegOper(rd, va=va),
+             ArmRegOper(rn, va=va),
+             ArmRegOper(rm, va=va))
     return COND_AL, opcode, mnem, opers, None, 0
 
 
@@ -1404,14 +1330,11 @@ smulls_info = {
         0xa: (INS_SMLAL, 'smlaltb',),
         0xb: (INS_SMLAL, 'smlaltt',),
         0xc: (INS_SMLALD, 'smlald',),
-        0xd: (INS_SMLALDX, 'smlaldx',),
-        },
+        0xd: (INS_SMLALDX, 'smlaldx',)},
     5: {0xc: (INS_SMLSLD, 'smlsld',),
-        0xd: (INS_SMLSLDX, 'smlsldx',),
-        },
+        0xd: (INS_SMLSLDX, 'smlsldx',)},
     6: {0x0: (INS_UMLAL, 'umlal',),
-        0x6: (INS_UMAAL, 'umaal',),
-        },
+        0x6: (INS_UMAAL, 'umaal',)},
 }
 
 
@@ -1426,22 +1349,22 @@ def smull_32(va, val1, val2):
 
     secondary = smulls_info.get(op1)
     if secondary is None:
-        raise envi.InvalidInstruction(  # FIXME!!!!
-            mesg="smull invalid decode: op1",
-            bytez=struct.pack("<HH", val, val2), va=va-4)
+        # FIXME!!!!
+        raise envi.InvalidInstruction(mesg="smull invalid decode: op1",
+                                      bytez=struct.pack("<HH", val, val2),
+                                      va=va-4)
 
     secout = secondary.get(op2)
     if secout is None:
-        raise envi.InvalidInstruction(  # FIXME!!!!
-            mesg="smull invalid decode: op2",
-            bytez=struct.pack("<HH", val, val2), va=va-4)
+        # FIXME!!!!
+        raise envi.InvalidInstruction(mesg="smull invalid decode: op2",
+                                      bytez=struct.pack("<HH", val, val2),
+                                      va=va-4)
 
-    opers = (
-        ArmRegOper(rdhi, va=va),
-        ArmRegOper(rdlo, va=va),
-        ArmRegOper(rn, va=va),
-        ArmRegOper(rm, va=va),
-    )
+    opers = (ArmRegOper(rdhi, va=va),
+             ArmRegOper(rdlo, va=va),
+             ArmRegOper(rn, va=va),
+             ArmRegOper(rm, va=va))
     return COND_AL, opcode, mnem, opers, None, 0
 
 
@@ -1475,18 +1398,14 @@ def tb_ldrex_32(va, val1, val2):
     return COND_AL, opcode, mnem, opers, flags, 0
 
 
-mov_ris_ops = (
-    (INS_LSL, 'lsl', 3),
-    (INS_LSR, 'lsr', 3),
-    (INS_ASR, 'asr', 3),
-    (INS_ROR, 'ror', 3),
-)
-mov_ris_alt = (
-    (INS_MOV, 'mov', 2),
-    (INS_LSR, 'lsr', 3),
-    (INS_ASR, 'asr', 3),
-    (INS_RRX, 'rrx', 2),
-)
+mov_ris_ops = ((INS_LSL, 'lsl', 3),
+               (INS_LSR, 'lsr', 3),
+               (INS_ASR, 'asr', 3),
+               (INS_ROR, 'ror', 3))
+mov_ris_alt = ((INS_MOV, 'mov', 2),
+               (INS_LSR, 'lsr', 3),
+               (INS_ASR, 'asr', 3),
+               (INS_RRX, 'rrx', 2))
 
 
 def mov_reg_imm_shift_32(va, val1, val2):
@@ -1532,8 +1451,7 @@ dp_shift_ops = ((INS_AND, 'and', 3),
                 (INS_SBC, 'sbc', 3),
                 (0, 'inval', 0),
                 (INS_SUB, 'sub', 3),
-                (INS_RSB, 'rsb', 3),
-                )
+                (INS_RSB, 'rsb', 3))
 dp_shift_alt1 = ((INS_TST, 'tst', 2),
                  (INS_BIC, 'bic', 3),
                  (INS_ORR, 'orr', 3),
@@ -1548,8 +1466,7 @@ dp_shift_alt1 = ((INS_TST, 'tst', 2),
                  (INS_SBC, 'sbc', 3),
                  (0, 'inval', 0),
                  (INS_CMP, 'cmp', 2),
-                 (INS_RSB, 'rsb', 3),
-                 )
+                 (INS_RSB, 'rsb', 3))
 dp_shift_alt2 = ((INS_AND, 'and', 3),
                  (INS_BIC, 'bic', 3),
                  (INS_ORR, 'orr', 3),
@@ -1564,8 +1481,7 @@ dp_shift_alt2 = ((INS_AND, 'and', 3),
                  (INS_SBC, 'sbc', 3),
                  (0, 'inval', 0),
                  (INS_SUB, 'sub', 3),
-                 (INS_RSB, 'rsb', 3),
-                 )
+                 (INS_RSB, 'rsb', 3))
 
 
 def dp_shift_32(va, val1, val2):
@@ -1629,9 +1545,9 @@ def coproc_simd_32(va, val1, val2):
 
     if op1 & 0b111110 == 0:
         bytez = struct.pack("<HH", val1, val2)
-        raise envi.InvalidInstruction(
-            mesg="CoprocSIMD: UNDEFINED instructions",
-            bytez=struct.pack("<HH", val, val2), va=va-4)
+        raise envi.InvalidInstruction(mesg="CoprocSIMD: UNDEFINED instructions",
+                                      bytez=struct.pack("<HH", val, val2),
+                                      va=va-4)
 
     if coproc & 0b1110 != 0b1010:   # apparently coproc 10 and 11 are not allowed...
         if op1 == 0b000100:
@@ -1654,27 +1570,23 @@ def coproc_simd_32(va, val1, val2):
 
         elif op1 == 0b000101:
             # mrrc/mrrc2 (a8-492)
-            mnem, opcode = (('mrrc', INS_MRRC), ('mrrc2', INS_MRRC2))[
-                (val1 > 12) & 1]
+            mnem, opcode = (('mrrc', INS_MRRC), ('mrrc2', INS_MRRC2))[(val1 > 12) & 1]
 
             Rt2 = val1 & 0xf
             Rt = (val2 >> 12) & 0xf
             opc1 = (val2 >> 4) & 0xf
             CRm = val2 & 0xf
 
-            opers = (
-                ArmCoprocOper(coproc),
-                ArmCoprocOpcodeOper(opc1),
-                ArmRegOper(Rt, va=va),
-                ArmRegOper(Rt2, va=va),
-                ArmCoprocRegOper(CRm),
-            )
+            opers = (ArmCoprocOper(coproc),
+                     ArmCoprocOpcodeOper(opc1),
+                     ArmRegOper(Rt, va=va),
+                     ArmRegOper(Rt2, va=va),
+                     ArmCoprocRegOper(CRm))
 
         elif op1 & 0b100000 == 0 and not (op1 & 0b111010 == 0):
             # stc/stc2 (a8-660)
             # ldc/ldc2 immediate/literal (if Rn == 0b1111) (a8-390/392)
-            mnem, opcode = (('stc', INS_STC), ('ldc', INS_LDC), ('stc2', INS_STC2), ('ldc2', INS_LDC2))[
-                ((val1 >> 11) & 2) | (op1 & 1)]
+            mnem, opcode = (('stc', INS_STC), ('ldc', INS_LDC), ('stc2', INS_STC2), ('ldc2', INS_LDC2))[((val1 >> 11) & 2) | (op1 & 1)]
 
             pudwl = (val1 >> 4) & 0x1f
             Rn = (val1) & 0xf
@@ -1686,11 +1598,9 @@ def coproc_simd_32(va, val1, val2):
             else:
                 iflags = 0
 
-            opers = (
-                ArmCoprocOper(coproc),
-                ArmCoprocRegOper(CRd),
-                ArmImmOffsetOper(Rn, offset*4, va, pubwl=pudwl),
-            )
+            opers = (ArmCoprocOper(coproc),
+                     ArmCoprocRegOper(CRd),
+                     ArmImmOffsetOper(Rn, offset*4, va, pubwl=pudwl))
 
         elif op1 & 0b110000 == 0b100000 and op == 0:
             # cdp/cdp2 (a8-356)
@@ -1701,14 +1611,12 @@ def coproc_simd_32(va, val1, val2):
             CRm = val2 & 0xf
             mnem, opcode = cdp_mnem[(val1 >> 12) & 1]
 
-            opers = (
-                ArmCoprocOper(coproc),
-                ArmCoprocOpcodeOper(opc1),
-                ArmCoprocRegOper(CRd),
-                ArmCoprocRegOper(CRn),
-                ArmCoprocRegOper(CRm),
-                ArmCoprocOpcodeOper(opc2),
-            )
+            opers = (ArmCoprocOper(coproc),
+                     ArmCoprocOpcodeOper(opc1),
+                     ArmCoprocRegOper(CRd),
+                     ArmCoprocRegOper(CRn),
+                     ArmCoprocRegOper(CRm),
+                     ArmCoprocOpcodeOper(opc2))
 
         elif op1 & 0b110000 == 0b100000 and op == 1:    # 10xxx0 and 10xxx1
             # mcr/mcr2 (a8-474)
@@ -1720,23 +1628,20 @@ def coproc_simd_32(va, val1, val2):
             Rd = (val2 >> 12) & 0xf
             opc2 = (val2 >> 5) & 0x7
             CRm = val2 & 0xf
-            mnem, opcode = (('mcr', INS_MCR), ('mrc', INS_MRC),
-                            ('mcr2', INS_MCR2), ('mrc2', INS_MRC2))[load | two]
+            mnem, opcode = (('mcr', INS_MCR), ('mrc', INS_MRC), ('mcr2', INS_MCR2), ('mrc2', INS_MRC2))[load | two]
 
-            opers = (
-                ArmCoprocOper(coproc),
-                ArmCoprocOpcodeOper(opc1),
-                ArmRegOper(Rd, va=va),
-                ArmCoprocRegOper(CRn),
-                ArmCoprocRegOper(CRm),
-                ArmCoprocOpcodeOper(opc2),
-            )
+            opers = (ArmCoprocOper(coproc),
+                     ArmCoprocOpcodeOper(opc1),
+                     ArmRegOper(Rd, va=va),
+                     ArmCoprocRegOper(CRn),
+                     ArmCoprocRegOper(CRm),
+                     ArmCoprocOpcodeOper(opc2))
 
         else:
             bytez = struct.pack("<HH", val1, val2)
-            raise envi.InvalidInstruction(
-                mesg="CoprocSIMD: Fell of the end of decoding (coproc not 0xa or 0xb",
-                bytez=bytez, va=va)
+            raise envi.InvalidInstruction(mesg="CoprocSIMD: Fell of the end of decoding (coproc not 0xa or 0xb",
+                                          bytez=bytez,
+                                          va=va)
 
     else:
         # coproc = 0b101x   - ARM7A/M p251
@@ -1768,8 +1673,7 @@ def coproc_simd_32(va, val1, val2):
 
             if (op1 & 0b11010) in (0b10, 0b11010):
                 bytez = struct.pack("<HH", val1, val2)
-                raise InvalidInstruction(
-                    mesg="INVALID ENCODING", bytez=bytez, va=va)
+                raise InvalidInstruction(mesg="INVALID ENCODING", bytez=bytez, va=va)
 
             l = op1 & 1  # vldm or vstm
             indiv = (op1 & 0b10010) == 0b10000
@@ -1792,16 +1696,16 @@ def coproc_simd_32(va, val1, val2):
             # vpush/vpop
             if (op1 & 0b11011) in (0b01011, 0b10010) and Rn == REG_SP:
                 mnem, opcode = (('vpush', INS_VPUSH), ('vpop', INS_VPOP))[l]
-                opers = (
-                    ArmExtRegListOper(d >> size, imm8, size),
-                )
+                opers = (ArmExtRegListOper(d >> size, imm8, size),)
 
             else:
                 oflags = 0
 
                 mnemidx = l | (indiv << 1)
-                mnem, opcode = (('vstm', INS_VSTM), ('vldm', INS_VLDM),
-                                ('vstr', INS_VSTR), ('vldr', INS_VLDR))[mnemidx]
+                mnem, opcode = (('vstm', INS_VSTM),
+                                ('vldm', INS_VLDM),
+                                ('vstr', INS_VSTR),
+                                ('vldr', INS_VLDR))[mnemidx]
                 # figure out IA/DB/etc...  and Writeback
 
                 # inc-after or dec-before?
@@ -1818,21 +1722,15 @@ def coproc_simd_32(va, val1, val2):
                     VRd = rctx.getRegisterIndex(rbase % d)
                     tsize = 4 + (size*4)
 
-                    opers = (
-                        ArmRegOper(VRd, va=va, oflags=oflags),
-                        ArmImmOffsetOper(
-                            Rn, imm8, va=va, pubwl=pudwl, tsize=tsize),
-                    )
+                    opers = (ArmRegOper(VRd, va=va, oflags=oflags),
+                             ArmImmOffsetOper(Rn, imm8, va=va, pubwl=pudwl, tsize=tsize))
 
                 else:
-                    opers = (
-                        ArmRegOper(Rn, va=va, oflags=oflags),
-                        ArmExtRegListOper(d, (2*imm8) >> size, size),
-                    )
+                    opers = (ArmRegOper(Rn, va=va, oflags=oflags),
+                             ArmExtRegListOper(d, (2*imm8) >> size, size))
         else:
             bytez = struct.pack("<HH", val1, val2)
-            raise InvalidInstruction(
-                mesg="INVALID ENCODING: coproc_advsimd_fp", bytez=bytez, va=va)
+            raise InvalidInstruction(mesg="INVALID ENCODING: coproc_advsimd_fp", bytez=bytez, va=va)
 
     return COND_AL, opcode, mnem, opers, iflags, simdflags
 
@@ -1860,8 +1758,7 @@ def adv_xfer_arm_ext_32(va, val1, val2):
     val = (val1 << 16) | val2
     if val & 0x0f000e10 != 0x0e000a10:
         bytez = struct.pack("<I", val)
-        raise InvalidInstruction(
-            mesg="INVALID ENCODING: adv_xfer_arm_ext_32", bytez=bytez, va=va)
+        raise InvalidInstruction(mesg="INVALID ENCODING: adv_xfer_arm_ext_32", bytez=bytez, va=va)
 
     a = (val >> 21) & 7
     l = (val >> 20) & 1
@@ -1880,23 +1777,18 @@ def adv_xfer_arm_ext_32(va, val1, val2):
                 rt = val2 >> 12
                 vn = val1 & 0xf
                 Vreg = rctx.getRegisterIndex('s%d' % vn)
-                opers = (
-                    ArmRegOper(Vreg, va),
-                    ArmRegOper(rt, va),
-                )
+                opers = (ArmRegOper(Vreg, va),
+                         ArmRegOper(rt, va))
             elif a == 7:
                 # p.A8-956
                 mnem, opcode = 'vmsr', INS_VMSR
                 fpscr = REG_FPSCR
                 rt = val2 >> 12
-                opers = (
-                    ArmRegOper(fpscr, va),
-                    ArmRegOper(rt, va),
-                )
+                opers = (ArmRegOper(fpscr, va),
+                         ArmRegOper(rt, va))
             else:
                 bytez = struct.pack("<I", val)
-                raise InvalidInstruction(
-                    mesg="INVALID ENCODING: adv_xfer_arm_ext_32: l=0. c=0, a != (0, 7)", bytez=bytez, va=va)
+                raise InvalidInstruction(mesg="INVALID ENCODING: adv_xfer_arm_ext_32: l=0. c=0, a != (0, 7)", bytez=bytez, va=va)
 
         else:   # c == 1
             if (a & 0b100) == 0:
@@ -1906,8 +1798,7 @@ def adv_xfer_arm_ext_32(va, val1, val2):
 
             else:
                 if b & 2:
-                    raise InvalidInstruction(
-                        mesg="INVALID ENCODING: adv_xfer_arm_ext_32: b & 2", bytez=bytez, va=va)
+                    raise InvalidInstruction(mesg="INVALID ENCODING: adv_xfer_arm_ext_32: b & 2", bytez=bytez, va=va)
                 # p.A8-886
                 mnem, opcode = 'vdup', INS_VDUP
                 b = (val1 >> 6) & 1
@@ -1929,13 +1820,10 @@ def adv_xfer_arm_ext_32(va, val1, val2):
                     esize = IFS_8
                 else:
                     bytez = struct.pack("<I", val)
-                    raise InvalidInstruction(
-                        mesg="UNDEFINED ENCODING: adv_xfer_arm_ext_32: vdup: be=3", bytez=bytez, va=va)
+                    raise InvalidInstruction(mesg="UNDEFINED ENCODING: adv_xfer_arm_ext_32: vdup: be=3", bytez=bytez, va=va)
 
-                opers = (
-                    ArmRegOper(vd, va),
-                    ArmRegOper(rt, va),
-                )
+                opers = (ArmRegOper(vd, va),
+                         ArmRegOper(rt, va))
 
     else:   # l == 1
         if c == 0:
@@ -1946,9 +1834,8 @@ def adv_xfer_arm_ext_32(va, val1, val2):
                 vn = val1 & 0xf
                 Vreg = rctx.getRegisterIndex('s%d' % vn)
 
-                opers = (
-                    ArmRegOper(rt, va),
-                    ArmRegOper(Vreg, va),
+                opers = (ArmRegOper(rt, va),
+                         ArmRegOper(Vreg, va),
                 )
 
             elif a == 7:
@@ -1956,15 +1843,12 @@ def adv_xfer_arm_ext_32(va, val1, val2):
                 mnem, opcode = 'vmrs', INS_VMRS
                 fpscr = REG_FPSCR
                 rt = val2 >> 12
-                opers = (
-                    ArmRegOper(rt, va),
-                    ArmRegOper(fpscr, va),
-                )
+                opers = (ArmRegOper(rt, va),
+                         ArmRegOper(fpscr, va))
 
             else:
                 bytez = struct.pack("<I", val)
-                raise InvalidInstruction(
-                    mesg="INVALID ENCODING: adv_xfer_arm_ext_32: l=1. c=0, a != (0, 7)", bytez=bytez, va=va)
+                raise InvalidInstruction(mesg="INVALID ENCODING: adv_xfer_arm_ext_32: l=1. c=0, a != (0, 7)", bytez=bytez, va=va)
 
         else:   # c == 1
             # p.A8-942
@@ -1981,8 +1865,9 @@ def adv_xfer_arm_ext_64(va, val1, val2):
 
     if (val1 >> 12) & 0xf == 0b1111:
         bytez = struct.pack("<I", val)
-        raise InvalidInstruction(
-            mesg="INVALID ENCODING: adv_xfer_arm_ext_64: cannot be T==1 in Thumb, or cond=0b1111 in ARM", bytez=bytez, va=va)
+        raise InvalidInstruction(mesg="INVALID ENCODING: adv_xfer_arm_ext_64: cannot be T==1 in Thumb, or cond=0b1111 in ARM",
+                                 bytez=bytez,
+                                 va=va)
 
     op = (val2 >> 4) & 0xf
     C = (val2 >> 8) & 1
@@ -2004,21 +1889,17 @@ def adv_xfer_arm_ext_64(va, val1, val2):
 
             if op == 0:
                 # from ARM to Ext regs
-                opers = (
-                    ArmRegOper(Vm, va),
-                    ArmRegOper(Vm + 1, va),
-                    ArmRegOper(rt, va),
-                    ArmRegOper(rt2, va),
-                )
+                opers = (ArmRegOper(Vm, va),
+                         ArmRegOper(Vm + 1, va),
+                         ArmRegOper(rt, va),
+                         ArmRegOper(rt2, va))
 
             else:
                 # from Ext to ARM regs
-                opers = (
-                    ArmRegOper(rt, va),
-                    ArmRegOper(rt2, va),
-                    ArmRegOper(Vm, va),
-                    ArmRegOper(Vm + 1, va),
-                )
+                opers = (ArmRegOper(rt, va),
+                         ArmRegOper(rt2, va),
+                         ArmRegOper(Vm, va),
+                         ArmRegOper(Vm + 1, va))
 
         else:
             # 2xARM <-> 1xDoublePrecision register
@@ -2026,24 +1907,19 @@ def adv_xfer_arm_ext_64(va, val1, val2):
 
             if op == 0:
                 # from ARM to Ext regs
-                opers = (
-                    ArmRegOper(Vm, va),
-                    ArmRegOper(rt, va),
-                    ArmRegOper(rt2, va),
-                )
+                opers = (ArmRegOper(Vm, va),
+                         ArmRegOper(rt, va),
+                         ArmRegOper(rt2, va))
 
             else:
                 # from Ext to ARM regs
-                opers = (
-                    ArmRegOper(rt, va),
-                    ArmRegOper(rt2, va),
-                    ArmRegOper(Vm, va),
-                )
+                opers = (ArmRegOper(rt, va),
+                         ArmRegOper(rt2, va),
+                         ArmRegOper(Vm, va))
 
     else:
         bytez = struct.pack("<I", val)
-        raise InvalidInstruction(
-            mesg="INVALID ENCODING: adv_xfer_arm_ext_64: op is not '00x1'", bytez=bytez, va=va)
+        raise InvalidInstruction(mesg="INVALID ENCODING: adv_xfer_arm_ext_64: op is not '00x1'", bytez=bytez, va=va)
 
     '''
     In [8]: ad.disasm(binascii.unhexlify('345b46ec'), 0, 0)
@@ -2584,14 +2460,13 @@ class ThumbDisasm:
         try:
             opcode, mnem, opermkr, flags = self._tree.getInt(val, 16)
         except TypeError:
-            raise envi.InvalidInstruction(
-                mesg="disasm parser cannot find instruction",
-                bytez=bytez[offset:offset+2], va=va)
+            raise envi.InvalidInstruction(mesg="disasm parser cannot find instruction",
+                                          bytez=bytez[offset:offset+2],
+                                          va=va)
 
         if flags & IF_THUMB32:
             val2, = struct.unpack_from(self.hfmt, bytez, offset+2)
-            cond, nopcode, nmnem, olist, nflags, simdflags = opermkr(
-                va+4, val, val2)
+            cond, nopcode, nmnem, olist, nflags, simdflags = opermkr(va+4, val, val2)
 
             if nmnem is not None:   # allow opermkr to set the mnem
                 mnem = nmnem
@@ -2616,11 +2491,7 @@ class ThumbDisasm:
         if not (flags & envi.ARCH_MASK):
             flags |= self._optype
 
-        if (olist is not None and
-                len(olist) and
-                isinstance(olist[0], ArmRegOper) and
-                olist[0].involvesPC() and
-                opcode not in no_update_Rd):
+        if (olist is not None and len(olist) and isinstance(olist[0], ArmRegOper) and olist[0].involvesPC() and opcode not in no_update_Rd):
 
             showop = True
             flags |= envi.IF_NOFALL
@@ -2633,7 +2504,7 @@ class ThumbDisasm:
         return op
 
 
-class Thumb16Disasm (ThumbDisasm):
+class Thumb16Disasm(ThumbDisasm):
     _tree = ttree
     _optype = envi.ARCH_THUMB16
     _opclass = Thumb16Opcode
