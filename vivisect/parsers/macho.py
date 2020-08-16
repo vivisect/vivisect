@@ -78,6 +78,7 @@ def _loadMacho(vw, filebytes, filename=None, baseaddr=None):
         hash = viv_parsers.md5File(filename)
 
     fname = vw.addFile(filename, baseaddr, hash)
+    vw.setFileMeta(fname, 'sha256', v_parsers.sha256File(filename))
 
     # Add the memory maps and segments from the macho definition
     for segname, rva, perms, segbytes in macho.getSegments():

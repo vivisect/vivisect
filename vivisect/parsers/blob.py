@@ -55,6 +55,7 @@ def parseFile(vw, filename, baseaddr=None):
     vw.setMeta('DefaultCall', archcalls.get(arch,'unknown'))
 
     fname = vw.addFile(filename, baseaddr, v_parsers.md5File(filename))
+    vw.setFileMeta('sha256', v_parsers.sha256File(filename))
     bytez =  file(filename, "rb").read()
     vw.addMemoryMap(baseaddr, 7, filename, bytez)
     vw.addSegment( baseaddr, len(bytez), '%.8x' % baseaddr, 'blob' )
@@ -66,6 +67,7 @@ def parseMemory(vw, memobj, baseaddr):
         fname = 'map_%.8x' % baseaddr
     bytes = memobj.readMemory(va, size)
     fname = vw.addFile(fname, baseaddr, v_parsers.md5Bytes(bytes))
+    vw.setFileMeta('sha256', v_parsers.sha256Bytes(bytes))
     vw.addMemoryMap(va, perms, fname, bytes)
     vw.setMeta('DefaultCall', archcalls.get(arch,'unknown'))
 

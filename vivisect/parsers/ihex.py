@@ -29,6 +29,7 @@ def parseFile(vw, filename, baseaddr=None):
 
     # might we make use of baseaddr, even though it's an IHEX?  for now, no.
     fname = vw.addFile(filename, 0, v_parsers.md5File(filename))
+    vw.setFileMeta(filename, 'sha256', v_parsers.sha256File(filename))
 
     ihex = v_ihex.IHexFile()
     ihex.vsParse( file(filename, 'rb').read() )
