@@ -165,7 +165,7 @@ class SymbolikFunctionEmulator(vsym_emulator.SymbolikEmulator):
         if args is None:
             # Initialize arguments by setting variables based on their arg indexes
             argc = len(self._sym_vw.getFunctionArgs(fva))
-            args = [Var('arg%d' % i, self.__width__) for i in xrange(argc)]
+            args = [Var('arg%d' % i, self.__width__) for i in range(argc)]
 
         self.cconv.setSymbolikArgs(self, args)
 
@@ -331,10 +331,11 @@ class SymbolikAnalysisContext:
     allows over-rides for things like symbolik imports during runtime.
     '''
 
-    def __init__(self, vw):
+    def __init__(self, vw, consolve=False):
         self.vw = vw
         self.funccb = {}    # Callbacks
-        self.consolve = False
+        self.consolve = consolve
+        # TODO: is this used?
         self._sym_resolve = False
         self.preeffects = []
         self.preconstraints = []
@@ -522,7 +523,6 @@ class SymbolikAnalysisContext:
                 # bail if the constraint is dorked
                 if coneff.cons.isDiscrete():
                     if not coneff.cons._solve():
-                        print('TRIM: %s' % (str(coneff.cons),))
                         return False
                     continue
 
@@ -559,7 +559,7 @@ class SymbolikAnalysisContext:
 
         if args is None:
             argdef = self.vw.getFunctionArgs(fva)
-            args = [Arg(i, width=self.vw.psize) for i in xrange(len(argdef))]
+            args = [Arg(i, width=self.vw.psize) for i in range(len(argdef))]
 
         if paths is None:
             paths = viv_graph.getCodePaths(graph, maxpath=maxpath)
@@ -632,7 +632,7 @@ class SymbolikAnalysisContext:
         '''
         if args is None:
             argdef = self.vw.getFunctionArgs( fva )
-            args = [Arg(i, width=self.vw.psize) for i in xrange(len(argdef))]
+            args = [Arg(i, width=self.vw.psize) for i in range(len(argdef))]
 
         for emu, effects in self.getSymbolikPaths(fva, args=args):
 
@@ -682,7 +682,7 @@ class SymbolikAnalysisContext:
             emu.setupFunctionCall(fva, args=fargs)
         return emu
 
-def getSymbolikAnalysisContext(vw):
+def getSymbolikAnalysisContext(vw, consolve=False):
     '''
     Return a symbolik analysis context which is appropriate for the given
     VivWorkspace.  Returns None if the given arch/platform does not support
@@ -692,11 +692,10 @@ def getSymbolikAnalysisContext(vw):
     arch = vw.getMeta('Architecture')
     if arch == 'i386':
         import vivisect.symboliks.archs.i386 as vsym_i386
-        return vsym_i386.i386SymbolikAnalysisContext(vw)
+        return vsym_i386.i386SymbolikAnalysisContext(vw, consolve=consolve)
 
     elif arch == 'amd64':
         import vivisect.symboliks.archs.amd64 as vsym_amd64
-        return vsym_amd64.Amd64SymbolikAnalysisContext(vw)
+        return vsym_amd64.Amd64SymbolikAnalysisContext(vw, consolve=consolve)
 
     return None
-

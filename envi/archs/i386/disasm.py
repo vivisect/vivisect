@@ -11,7 +11,9 @@ import envi.bits as e_bits
 # Grab our register enums etc...
 from envi.const import *
 from envi.archs.i386.regs import *
-from envi.archs.i386.opconst import OP_MEM32AUTO, OP_MEM16AUTO
+from envi.archs.i386.opconst import OP_EXTRA_MEMSIZES, OP_MEM_B, OP_MEM_W, OP_MEM_D, \
+                                    OP_MEM_Q, OP_MEM_DQ, OP_MEM_QQ, OP_MEMMASK, \
+                                    INS_VEXREQ, OP_NOVEXL
 
 import opcode86
 all_tables = opcode86.tables86
@@ -246,6 +248,9 @@ class i386PcRelOper(envi.Operand):
 
     def getOperValue(self, op, emu=None):
         return op.va + op.size + self.imm
+
+    def getOperAddr(self, op, emu=None):
+        return None
 
     def render(self, mcanv, op, idx):
         hint = mcanv.syms.getSymHint(op.va, idx)
@@ -624,7 +629,7 @@ class i386Opcode(envi.Opcode):
         # Allow each of our operands to render
         imax = len(self.opers)
         lasti = imax - 1
-        for i in xrange(imax):
+        for i in range(imax):
             oper = self.opers[i]
             oper.render(mcanv, self, i)
             if i != lasti:
@@ -636,13 +641,21 @@ MODE_16 = 0
 MODE_32 = 1
 MODE_64 = 2
 
+# used in coinjunction with the MODE_* values above
+MODESIZE=[
+    2,
+    4,
+    8,
+]
+
 class i386Disasm:
 
     def __init__(self, mode=MODE_32):
-        self._dis_mode = MODE_32
+        self._dis_mode = mode
         self._dis_prefixes = i386_prefixes
         self._dis_regctx = i386RegisterContext()
         self._dis_oparch = envi.ARCH_I386
+        self._dis_default_size = MODESIZE[mode]
         self.ptrsize = 4
 
         # This will make function lookups nice and quick
@@ -666,16 +679,18 @@ class i386Disasm:
         self._dis_amethods[opcode86.ADDRMETH_V>>16] = self.ameth_v
         self._dis_amethods[opcode86.ADDRMETH_X>>16] = self.ameth_x
         self._dis_amethods[opcode86.ADDRMETH_Y>>16] = self.ameth_y
-        self._dis_amethods[opcode86.ADDRMETH_Z>>16] = self.ameth_z
 
         # Offsets used to add in addressing method parsers
-        self.ROFFSETMMX   = getRegOffset(i386regs, "mm0")
+        # MMX is just a meta reg of st
         self.ROFFSETSIMD  = getRegOffset(i386regs, "xmm0")
         self.ROFFSETDEBUG = getRegOffset(i386regs, "debug0")
         self.ROFFSETCTRL  = getRegOffset(i386regs, "ctrl0")
         self.ROFFSETTEST  = getRegOffset(i386regs, "test0")
         self.ROFFSETSEG   = getRegOffset(i386regs, "es")
         self.ROFFSETFPU   = getRegOffset(i386regs, "st0")
+        # Note: getRegOffset doesn't work on meta registers and mm* are aliases of the
+        # st registers, so we use getRegisterIndex instead
+        self.ROFFSETMMX   = self._dis_regctx.getRegisterIndex("mm0")
 
     def parse_modrm(self, byte, prefixes=0):
         # Pass in a string with an offset for speed rather than a new string
@@ -866,6 +881,12 @@ class i386Disasm:
         decodings = []
         mainbyte = offset
         prefixes = all_prefixes
+
+        # as noted above, since we can have prefixes that may or may not be mandatory,
+        # we roll through those and pop off the last one, since there's two cases we have
+        # to deal with: a normal prefix that just modifies the opers, and a mandatory prefix
+        # that modifies the instruction semantics entirely. Either way, the mandatory prefix
+        # takes precedence and whichever one wins will be at the end of the list <decodings>
         for pref, onehot in ppref:
             if pref is not None:
                 obyte = pref
@@ -963,18 +984,26 @@ class i386Disasm:
 
                         # If we are a sign extended immediate and not the same as the other operand,
                         # do the sign extension during disassembly so nothing else has to worry about it..
-                        if operflags & opcode86.OP_SIGNED and len(operands) and tsize != operands[-1].tsize:
-                            otsize = operands[-1].tsize
-                            oper.imm = e_bits.sign_extend(oper.imm, oper.tsize, otsize)
-                            oper.tsize = otsize
+                        if operflags & opcode86.OP_SIGNED:
+                            if len(operands) and tsize != operands[-1].tsize:
+                                otsize = operands[-1].tsize
+                                oper.imm = e_bits.sign_extend(oper.imm, oper.tsize, otsize)
+                                oper.tsize = otsize
+                            elif not len(operands):
+                                oper.imm = e_bits.sign_extend(oper.imm, oper.tsize, self._dis_default_size)
+                                oper.tsize = self._dis_default_size
 
                     else:
                         osize, oper = ameth(bytez, offset, tsize, all_prefixes, operflags)
+                        # so in the opcode maps intel directly mentions that some opcodes are
+                        # ADDRMETH_W but if the operand is a memory ref, it's always of a specific
+                        # size, with no rhyme or reason as to which it is. So we directly embed
+                        # that knowledge into the opcodes mappings we maintain and pluck it out
+                        # here.
                         if getattr(oper, "_is_deref", False):
-                            if operflags & OP_MEM32AUTO:
-                                oper.tsize = 4
-                            elif operflags & OP_MEM16AUTO:
-                                oper.tsize = 2
+                            memsz = OP_EXTRA_MEMSIZES[(operflags & OP_MEMMASK) >> 4]
+                            if memsz is not None:
+                                oper.tsize = memsz
 
                 except struct.error as e:
                     # Catch struct unpack errors due to insufficient data length
@@ -1009,7 +1038,7 @@ class i386Disasm:
     def ameth_0(self, operflags, operval, tsize, prefixes):
         # Special address method for opcodes with embedded operands
         if operflags & opcode86.OP_REG:
-            if prefixes & PREFIX_OP_SIZE:
+            if prefixes & PREFIX_OP_SIZE and operval & RMETA_NMASK == operval:
                 operval |= RMETA_LOW16
             width = self._dis_regctx.getRegisterWidth(operval) / 8
             return i386RegOper(operval, width)
@@ -1081,7 +1110,7 @@ class i386Disasm:
 
     def ameth_u(self, bytez, offset, tsize, prefixes, operflags):
         mod, reg, rm = self.parse_modrm(ord(bytez[offset]))
-        return (0, i386RegOper(reg+self.ROFFSETTEST, tsize))
+        return (1, i386RegOper(rm+self.ROFFSETSIMD, tsize))
 
     def ameth_v(self, bytez, offset, tsize, prefixes, operflags):
         mod, reg, rm = self.parse_modrm(ord(bytez[offset]))
@@ -1094,10 +1123,6 @@ class i386Disasm:
     def ameth_y(self, bytez, offset, tsize, prefixes, operflags):
         #FIXME this needs the ES over-ride, but is only for insb which we don't support
         return (0, i386RegMemOper(REG_ESI, tsize))
-
-    def ameth_z(self, bytez, offset, tsize, prefixes, operflags):
-        mod, reg, rm = self.parse_modrm(ord(bytez[offset]))
-        return (1, i386RegOper(rm+self.ROFFSETSIMD, tsize))
 
 if __name__ == '__main__':
     import envi.archs

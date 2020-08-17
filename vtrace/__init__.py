@@ -188,7 +188,7 @@ class Trace(e_mem.IMemory, e_reg.RegisterContext, e_resolv.SymbolResolver, objec
             va = self.getProgramCounter()
 
         ops = []
-        for i in xrange(0, num):
+        for i in range(0, num):
             op = self.parseOpcode(va)
             ops.append(op)
             va += op.size

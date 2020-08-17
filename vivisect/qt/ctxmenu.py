@@ -45,7 +45,7 @@ def printEmuState(vw, fva, va):
     vw.canvas.addVaText("0x%.8x: " % va, va)
     op.render(vw.canvas)
     vw.canvas.addText("\n")
-    for i in xrange(len(op.opers)):
+    for i in range(len(op.opers)):
         o = op.opers[i]
         o.render(vw.canvas, op, i)
         oaddr = o.getOperAddr(op, emu)

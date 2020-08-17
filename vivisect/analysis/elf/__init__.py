@@ -1,14 +1,17 @@
-
+import logging
 import vivisect
 
 import envi.bits as e_bits
 
 from vivisect.const import *
 
+logger = logging.getLogger(__name__)
+
+
 def ffTermFptrArray(vw, va, max=100):
     ret = []
     ffterm = e_bits.u_maxes[vw.psize]
-    for i in xrange(max):
+    for i in range(max):
 
         ltup = vw.makeNumber(va, vw.psize)
 
@@ -17,12 +20,14 @@ def ffTermFptrArray(vw, va, max=100):
             return ret
 
         try:
+            logger.debug('ffTermFptrArray(): discovered new function: 0x%x', val)
             vw.makeFunction(val)
             ret.append(val)
         except Exception, e:
             print "FIXME (ffTermFptrArray): ",e
         va += vw.psize
     return ret
+
 
 def analyze(vw):
 

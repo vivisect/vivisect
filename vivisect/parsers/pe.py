@@ -61,6 +61,8 @@ defcalls = {
     'i386': 'cdecl',
     'amd64': 'msx64call',
     'arm': 'armcall',
+    'thumb': 'armcall',
+    'thumb16': 'armcall',
 }
 
 # map PE relocation types to vivisect types where possible
@@ -334,11 +336,31 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
     vw.addNoReturnApi("kernel32.FatalExit")
     vw.addNoReturnApiRegex("^msvcr.*\._CxxThrowException$")
     vw.addNoReturnApiRegex("^msvcr.*\.abort$")
+    vw.addNoReturnApiRegex("^msvcr.*\.exit$")
+    vw.addNoReturnApiRegex("^msvcr.*\._exit$")
+    vw.addNoReturnApiRegex("^msvcr.*\.quick_exit$")
+    # https://docs.microsoft.com/en-us/cpp/c-runtime-library/reference/invalid-parameter-functions?view=vs-2019
+    # TODO: Again, there's a couple in there that have conditional termination that we should check for
+    #vw.addNoReturnApiRegex("vcruntime140.__std_terminate")
+    vw.addNoReturnApiRegex("^api_ms_win_crt_runtime_.*\._invalid_parameter_noinfo_noreturn$")
+    vw.addNoReturnApiRegex("^api_ms_win_crt_runtime_.*\.exit$")
+    vw.addNoReturnApiRegex("^api_ms_win_crt_runtime_.*\._exit$")
+    # TODO: we should add abort and terminate on the conditions that there are no signal handlers
+    # registered
+    # https://docs.microsoft.com/en-us/cpp/c-runtime-library/reference/cexit-c-exit?view=vs-2019
+    # vw.addNoReturnApiRegex("^msvcr.*\._cexit$")
+    # vw.addNoReturnApiRegex("^msvcr.*\._c_exit$")
     vw.addNoReturnApi("ntoskrnl.KeBugCheckEx")
+
 
     exports = pe.getExports()
     for rva, ord, name in exports:
         eva = rva + baseaddr
+
+        # Functions exported by ordinal only have no name
+        if not name:
+            name = "Ordinal_" + str(ord)
+
         try:
             vw.setVaSetRow('pe:ordinals', (eva, ord))
             vw.addExport(eva, EXP_UNTYPED, name, fname)

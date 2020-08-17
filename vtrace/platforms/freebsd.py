@@ -448,7 +448,7 @@ class FreeBSDMixin:
         cnt = ctypes.c_uint(0)
 
         p = libkvm.kvm_getprocs(self.kvmh, KERN_PROC_PROC, 0, ctypes.addressof(cnt))
-        for i in xrange(cnt.value):
+        for i in range(cnt.value):
             kinfo = p[i]
             if kinfo.ki_structsize != ctypes.sizeof(KINFO_PROC):
                 print "WARNING: KINFO_PROC CHANGED SIZE, Trying to account for it... good luck"

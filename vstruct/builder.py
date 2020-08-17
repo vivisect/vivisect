@@ -175,7 +175,7 @@ class VStructBuilder:
             fieldval = self._buildVsType(ftypename, fsize, fflags)
 
             if fcount != None:
-                afields = [copy.deepcopy(fieldval) for i in xrange(fcount) ]
+                afields = [copy.deepcopy(fieldval) for i in range(fcount) ]
                 fieldval = vstruct.VArray(afields)
 
             cursize = len(vs)
@@ -249,7 +249,7 @@ class VStructBuilder:
 
                 # If fcount != None, we're an array!
                 if fcount != None:
-                    fconst = 'vstruct.VArray([ %s for i in xrange(%d) ])' % (fconst, fcount)
+                    fconst = 'vstruct.VArray([ %s for i in range(%d) ])' % (fconst, fcount)
                     fsize *= fcount
 
                 ret += '        self.%s = %s\n' % (fname, fconst)

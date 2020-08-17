@@ -1,20 +1,29 @@
 import sys
+import argparse
 
 import envi
 import envi.memory as e_memory
 import envi.archs.i386 as e_i386  # FIXME This should NOT have to be here
 
+import vtrace
+import vtrace.snapshot as v_snapshot
+import vtrace.platforms.base as v_base
+
+
 class RegisterException(Exception):
     pass
+
 
 def cmpRegs(emu, trace):
     ctx = trace.getRegisterContext()
     for rname, idx in ctx.getRegisterNameIndexes():
         er = emu.getRegister(idx)
         tr = trace.getRegisterByName(rname)
-        if er != tr:
-            raise RegisterException("REGISTER MISMATCH: %s 0x%.8x 0x%.8x" % (rname, tr, er))
+        # debug registers aren't really used much anymore...
+        if er != tr and not rname.startswith('debug'):
+            raise RegisterException("REGISTER MISMATCH: %s (trace: 0x%.8x) (emulated: 0x%.8x)" % (rname, tr, er))
     return True
+
 
 def emuFromTrace(trace):
     '''
@@ -47,6 +56,7 @@ def emuFromTrace(trace):
 
     return emu
 
+
 def lockStepEmulator(emu, trace):
     while True:
         print("Lockstep: 0x%.8x" % emu.getProgramCounter())
@@ -66,8 +76,6 @@ def lockStepEmulator(emu, trace):
             print("Lockstep Error: %s" % msg)
             return
 
-import vtrace
-import vtrace.platforms.base as v_base
 
 class TraceEmulator(vtrace.Trace, v_base.TracerBase):
     """
@@ -129,21 +137,32 @@ class TraceEmulator(vtrace.Trace, v_base.TracerBase):
     def platformDetach(self):
         pass
 
-def main():
-    import vtrace
-    sym = sys.argv[1]
-    pid = int(sys.argv[2])
+
+def setup():
+    ap = argparse.ArgumentParser('lockstep')
+    ap.add_argument('pid', type=int, help='PID of process to attach to (remember to have ptrace permissions)')
+    ap.add_argument('expr', type=str, help='Expression of an address to break the process on')
+    ap.add_argument('--save', type=str, help='Save vtrace snapshot to the provided file')
+    ap.add_argument('--args', type=str, help='Instead of attaching to a process, run this process with the given args')
+    return ap
+
+
+def main(argv):
+    opts = setup().parse_args(argv)
     t = vtrace.getTrace()
-    t.attach(pid)
-    symaddr = t.parseExpression(sym)
+    t.attach(opts.pid)
+    symaddr = t.parseExpression(opts.expr)
     t.addBreakpoint(vtrace.Breakpoint(symaddr))
     while t.getProgramCounter() != symaddr:
         t.run()
-    snap = t.takeSnapshot()
-    # snap.saveToFile("woot.snap") # You may open in vdb to follow along
+    snap = v_snapshot.takeSnapshot(t)
+    if opts.save:
+        # You may open this file in vdb to follow along
+        snap.saveToFile(opts.save)
     emu = emuFromTrace(snap)
     lockStepEmulator(emu, t)
 
+
 if __name__ == "__main__":
     # Copy this file out to the vtrace dir for testing and run as main
-    main()
+    sys.exit(main(sys.argv[1:]))

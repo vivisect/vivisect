@@ -97,7 +97,7 @@ class VQVivFuncgraphCanvas(vq_memory.VivCanvasBase):
             menu = QMenu(parent=self)
 
         self.viewmenu = menu.addMenu('view   ')
-        #self.viewmenu.addAction("Save frame to HTML", ACT(self._menuSaveToHtml))
+        self.viewmenu.addAction("Save frame to HTML", ACT(self._menuSaveToHtml))
         self.viewmenu.addAction("Refresh", ACT(self.refresh))
         self.viewmenu.addAction("Paint Up", ACT(self.paintUp.emit))
         self.viewmenu.addAction("Paint Down", ACT(self.paintDown.emit))
@@ -501,7 +501,7 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
 
             try:
                 addr = self.vw.parseExpression(expr)
-            except Exception, e:
+            except Exception as e:
                 self.mem_canvas.addText('Invalid Address: %s (%s)' % (expr, e))
                 return
 
@@ -513,13 +513,14 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
 
             # check if we're already rendering this function. if so, just scroll to addr
             fva = self.vw.getFunction(addr)
-            if fva == self.fva:
-                self.mem_canvas.page().mainFrame().scrollToAnchor('viv:0x%.8x' % addr)
-                self.updateWindowTitle()
+            if fva is None:
+                self.vw.vprint('0x%.8x is not in a function!' % addr)
                 return
 
-            if fva == None:
-                self.vw.vprint('0x%.8x is not in a function!' % addr)
+            if fva == self.fva:
+                self.mem_canvas.page().mainFrame().scrollToAnchor('viv:0x%.8x' % addr)
+                vqtevent('viv:colormap', {addr: 'orange'})
+                self.updateWindowTitle()
                 return
 
             # if we're rendering a different function, get to work!
@@ -527,10 +528,13 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
             self.renderFunctionGraph(fva)
             self.mem_canvas.page().mainFrame().scrollToAnchor('viv:0x%.8x' % addr)
             self.updateWindowTitle()
+            self.mem_canvas.page().mainFrame().scrollToAnchor('viv:0x%.8x' % addr)
+            vqtevent('viv:colormap', {addr: 'orange'})
+            self.updateWindowTitle()
 
             self._renderDoneSignal.emit()
-        except Exception, e:
-            print e
+        except Exception as e:
+            self.vw.vprint(str(e))
 
     def loadDefaultRenderers(self):
         vivrend = viv_rend.WorkspaceRenderer(self.vw)

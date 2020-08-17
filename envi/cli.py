@@ -717,12 +717,17 @@ class EnviCli(Cmd):
             return "NULL"
 
         try:
-            mbase,msize,mperm,mfile = self.memobj.getMemoryMap(va)
-            ret = mfile
+            mbase, msize, mperm, mfile = self.memobj.getMemoryMap(va)
+            if va == mbase:
+                ret = mfile
+            else:
+                ret = mfile + " + 0x%x" % (va - mbase)
+
             sym = self.symobj.getSymByAddr(va, exact=False)
-            if sym != None:
-                ret = "%s + %d" % (repr(sym),va-long(sym))
-        except:
+            if sym is not None:
+                ret = "%s + 0x%x" % (repr(sym), va-long(sym))
+
+        except Exception:
             ret = hex(va)
 
         return ret

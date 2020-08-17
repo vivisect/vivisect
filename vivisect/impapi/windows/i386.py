@@ -5930,6 +5930,7 @@ api = {
     'msvcrt.putwc':( 'int', None, 'cdecl', 'msvcrt.putwc', (('int', None), ('int', None)) ),
     'msvcrt.putwchar':( 'int', None, 'cdecl', 'msvcrt.putwchar', (('int', None),) ),
     'msvcrt.qsort':( 'int', None, 'stdcall', 'msvcrt.qsort', ( ('void *', 'funcptr'), ('int', None), ('int', None), ('void *', 'funcptr'), ('int', None), ('int', None), ('int', None), ('int', None), ('int', None), ('int', None), ('int', None), ('int', None), ('int', None), ('int', None), ('int', None), ('int', None), ('int', None), ('int', None), ('int', None), ('int', None), ('int', None), ('int', None), ('int', None), ('int', None), ('int', None), ('int', None), ('int', None), ('int', None), ('int', None), ('int', None), ('int', None), ('int', None), ('int', None), ('int', None), ('int', None), ('int', None), ('int', None), ('int', None), ('int', None), ('int', None)) ),
+    'msvcrt.quick_exit':( 'int', None, 'cdecl', 'msvcrt.quick_exit', (('int', None),) ),
     'msvcrt.raise':( 'int', None, 'cdecl', 'msvcrt.raise', (('int', None),) ),
     'msvcrt.rand':( 'int', None, 'cdecl', 'msvcrt.rand', () ),
     'msvcrt.realloc':( 'int', None, 'cdecl', 'msvcrt.realloc', (('void *', 'ptr'), ('DWORD', None)) ),

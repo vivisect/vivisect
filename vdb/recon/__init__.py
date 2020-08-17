@@ -17,7 +17,7 @@ import vtrace.breakpoints as vt_breakpoints
 def reprargs(trace, fmt, args):
 
     r = []
-    for i in xrange(len(fmt)):
+    for i in range(len(fmt)):
         fchr = fmt[i]
         arg  = args[i]
 

@@ -1,6 +1,7 @@
 import struct
 
 import envi
+import envi.exc as e_exc
 import envi.memory as e_mem
 import envi.registers as e_reg
 import envi.memcanvas as e_memcanvas
@@ -606,7 +607,7 @@ class H8InstrTest(unittest.TestCase):
             try:
                 # try register first
                 emu.setRegisterByName(tgt, val)
-            except e_reg.InvalidRegisterName, e:
+            except e_exc.InvalidRegisterName as e:
                 # it's not a register
                 if type(tgt) == str and tgt.startswith("CCR_"):
                     # it's a flag
@@ -631,7 +632,7 @@ class H8InstrTest(unittest.TestCase):
                 success = 0
                 raise Exception("FAILED(reg): %s  !=  0x%x (observed: 0x%x)" % (tgt, val, testval))
 
-            except e_reg.InvalidRegisterName, e:
+            except e_exc.InvalidRegisterName as e:
                 # it's not a register
                 if type(tgt) == str and tgt.startswith("CCR_"):
                     # it's a flag

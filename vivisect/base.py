@@ -38,8 +38,8 @@ class VivEventCore(object):
 
     def __init__(self, vw=None, **kwargs):
         self._ve_vw = vw
-        self._ve_ehand = [None for x in xrange(VWE_MAX)]
-        self._ve_thand = [None for x in xrange(VTE_MAX)]
+        self._ve_ehand = [None for x in range(VWE_MAX)]
+        self._ve_thand = [None for x in range(VTE_MAX)]
         self._ve_lock = threading.Lock()
 
         # Find and put handler functions into the list
@@ -101,8 +101,8 @@ class VivEventDist(VivEventCore):
             raise Exception("VivEventDist requires a vw argument")
 
         VivEventCore.__init__(self, vw)
-        self._ve_subs = [ [] for x in xrange(VWE_MAX) ]
-        self._ve_tsubs = [ [] for x in xrange(VTE_MAX) ]
+        self._ve_subs = [ [] for x in range(VWE_MAX) ]
+        self._ve_tsubs = [ [] for x in range(VTE_MAX) ]
 
         self.addEventCore(self)
 
@@ -110,23 +110,23 @@ class VivEventDist(VivEventCore):
         self._ve_fireListener()
 
     def addEventCore(self, core):
-        for i in xrange(VWE_MAX):
+        for i in range(VWE_MAX):
             h = core._ve_ehand[i]
             if h != None:
                 self._ve_subs[i].append(h)
 
-        for i in xrange(VTE_MAX):
+        for i in range(VTE_MAX):
             h = core._ve_thand[i]
             if h != None:
                 self._ve_tsubs[i].append(h)
 
     def delEventCore(self, core):
-        for i in xrange(VWE_MAX):
+        for i in range(VWE_MAX):
             h = core._ve_ehand[i]
             if h != None:
                 self._ve_subs[i].remove(h)
 
-        for i in xrange(VTE_MAX):
+        for i in range(VTE_MAX):
             h = core._ve_thand[i]
             if h != None:
                 self._ve_tsubs[i].remove(h)
@@ -260,8 +260,9 @@ class VivWorkspaceCore(object, viv_impapi.ImportApi):
             #   self.addXref(va, tova, REF_PTR)
             #   ploc = self.addLocation(va, psize, LOC_POINTER)
             #   don't follow.  handle it later, once "known code" is analyzed
+            ptr, reftype, rflags = self.arch.archModifyXrefAddr(ptr, None, None)
             self._handleADDXREF((rva, ptr, REF_PTR, 0))
-            self._handleADDLOCATION((rva, self.psize, LOC_POINTER, None))
+            self._handleADDLOCATION((rva, self.psize, LOC_POINTER, ptr))
 
     def _handleADDMODULE(self, einfo):
         logger.warning('DEPRICATED (ADDMODULE) ignored: %s' % einfo)
@@ -378,9 +379,12 @@ class VivWorkspaceCore(object, viv_impapi.ImportApi):
             self.va_by_name[name] = va
             self.name_by_va[va] = name
 
-        if self.isFunction( va ):
+        if self.isFunction(va):
             fnode = self._call_graph.getFunctionNode(va)
-            self._call_graph.setNodeProp(fnode,'repr',name)
+            if name is None:
+                self._call_graph.delNodeProp(fnode, 'repr')
+            else:
+                self._call_graph.setNodeProp(fnode, 'repr', name)
 
     def _handleADDMMAP(self, einfo):
         va, perms, fname, mbytes = einfo
@@ -493,7 +497,7 @@ class VivWorkspaceCore(object, viv_impapi.ImportApi):
         pass
 
     def _initEventHandlers(self):
-        self.ehand = [None for x in xrange(VWE_MAX)]
+        self.ehand = [None for x in range(VWE_MAX)]
         self.ehand[VWE_ADDLOCATION] = self._handleADDLOCATION
         self.ehand[VWE_DELLOCATION] = self._handleDELLOCATION
         self.ehand[VWE_ADDSEGMENT] = self._handleADDSEGMENT
@@ -536,7 +540,7 @@ class VivWorkspaceCore(object, viv_impapi.ImportApi):
         self.ehand[VWE_SYMHINT]  = self._handleSYMHINT
         self.ehand[VWE_AUTOANALFIN] = self._handleAUTOANALFIN
 
-        self.thand = [None for x in xrange(VTE_MAX)]
+        self.thand = [None for x in range(VTE_MAX)]
         self.thand[VTE_IAMLEADER] = self._handleIAMLEADER
         self.thand[VTE_FOLLOWME] = self._handleFOLLOWME
 
@@ -708,7 +712,10 @@ class VivCodeFlowContext(e_codeflow.CodeFlowContext):
 
     # NOTE: self._mem is the viv workspace...
     def _cb_opcode(self, va, op, branches):
-
+        '''
+        callback for each OPCODE in codeflow analysis
+        must return list of branches, modified for our purposes
+        '''
         loc = self._mem.getLocation(va)
         if loc is None:
 
@@ -716,9 +723,12 @@ class VivCodeFlowContext(e_codeflow.CodeFlowContext):
             branches = [br for br in branches if not self._mem.isLocType(br[0],LOC_IMPORT)]
 
             self._mem.makeOpcode(op.va, op=op)
-            # FIXME: future home of makeOpcode branch/xref analysis
+            # TODO: future home of makeOpcode branch/xref analysis
             return branches
 
+        elif loc[L_LTYPE] != LOC_OP:
+            locrepr = self._mem.reprLocation(loc)
+            logger.warn("_cb_opcode(0x%x): LOCATION ALREADY EXISTS: loc: %r", va, locrepr)
         return ()
 
     def _cb_function(self, fva, fmeta):
@@ -739,15 +749,7 @@ class VivCodeFlowContext(e_codeflow.CodeFlowContext):
         vw._fireEvent(VWE_ADDFUNCTION, (fva,fmeta))
 
         # Go through the function analysis modules in order
-        for fmname in vw.fmodlist:
-            fmod = vw.fmods.get(fmname)
-            try:
-                fmod.analyzeFunction(vw, fva)
-            except Exception as e:
-                if vw.verbose:
-                    traceback.print_exc()
-                vw.verbprint("Function Analysis Exception for 0x%x   %s: %s" % (fva, fmod.__name__, e))
-                vw.setFunctionMeta(fva, "%s fail" % fmod.__name__, traceback.format_exc())
+        vw.analyzeFunction(fva)
 
         fname = vw.getName( fva )
         if vw.getMeta('NoReturnApis').get( fname.lower() ):

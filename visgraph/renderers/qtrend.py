@@ -148,7 +148,7 @@ if __name__ == '__main__':
         [ scene.removeItem( einfo['gproxy'] ) for (eid,n1,n2,einfo) in g.getRefsFromByNid( nid ) ]
         g.delNode( nid )
 
-    xr = iter(xrange(10000))
+    xr = iter(range(10000))
 
     def expNode(nid,nprops):
         n2id = xr.next()

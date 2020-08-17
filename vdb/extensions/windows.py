@@ -1002,7 +1002,7 @@ def svclist(vdb, line):
 
     names = e_cli.columnstr(names)
 
-    for i in xrange(len(pids)):
+    for i in range(len(pids)):
         vdb.vprint('%8s %s %s' % (pids[i], names[i], descrs[i]))
 
 def injectso(vdb, line):

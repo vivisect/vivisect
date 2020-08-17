@@ -100,3 +100,17 @@ class PETests(unittest.TestCase):
 
     def test_pointer_locations(self):
         pass
+
+    def test_emulation_vaset(self):
+        vw = self.vw_psexec
+        funcs = set([4281345, 4259207, 4221834, 4289292, 4280642, 4287725, 4293008, 4199824, 4221844, 4282646, 4280472, 4280730, 4268701, 4221854, 4221727, 4290211, 4282788, 4221864, 4221737, 4293319, 4294188, 4221874, 4259229, 4294064, 4284338, 4221747, 4291252, 4290121, 4289976, 4289721, 4239035, 4221757, 4289086, 4293695, 4291392, 4290370, 4221767, 4289993, 4281548, 4288719, 4293840, 4221777, 4259282, 4290228, 4287692, 4259158, 4282944, 4285732, 4221787, 4241818, 4291296, 4290145, 4198480, 4280554, 4280685, 4198864, 4221807, 4281584, 4290929, 4282482, 4287859, 4259060, 4269557, 4293495, 4289528, 4221690, 4288749, 4208512, 4209088, 4208800, 4211088, 4209120, 4209376, 4211616, 4209504, 4216112, 4209600, 4208992, 4210848, 4206416, 4206032, 4221654, 4233944, 4221660, 4207328, 4209632, 4213200, 4221666, 4231139, 4221797, 4221672, 4210288, 4209328])
+        for fva in funcs:
+            self.assertEquals(fva, vw.getFunction(fva))
+
+        # if we reorder analysis passes or new ones, this might change, and that's okay.
+        # this is more designed to be a smoke test that we actually get a populated vaset
+        emufuncs = vw.getVaSet('EmucodeFunctions')
+        self.assertTrue(len(emufuncs) > 0)
+        e = set(emufuncs.keys())
+        f = set(funcs)
+        self.assertTrue(f.intersection(e) == f)

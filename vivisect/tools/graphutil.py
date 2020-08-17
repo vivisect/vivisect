@@ -73,7 +73,7 @@ def getLongPath(g):
     fva = g.getMeta('fva')
     # this is our loop that we want to yield out of..
     # start at the bottom of the graph and work our way back up
-    for weight in xrange(leafmax, -1, -1):
+    for weight in range(leafmax, -1, -1):
         # the todo is a a list of codeblocks a specific level
         codeblocks = todo.get(weight)
         if not codeblocks:

@@ -14,7 +14,7 @@ def xorbytes(data, key):
 def xorstatic(data, i):
     return ''.join( chr( ord(c) ^ i ) for c in data )
 
-mz_xor = [ (xorstatic('MZ', i), xorstatic('PE', i), i) for i in xrange(256) ]
+mz_xor = [ (xorstatic('MZ', i), xorstatic('PE', i), i) for i in range(256) ]
 
 def carve(pbytes, offset=0):
     '''

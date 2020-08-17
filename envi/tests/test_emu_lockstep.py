@@ -50,7 +50,7 @@ class LockStepper:
         self.emu.setRegisterSnap( regctx.getRegisterSnap() )
 
     def stepi(self, count=1):
-        for i in xrange(count):
+        for i in range(count):
             emupc = self.emu.getProgramCounter()
             tracepc = self.trace.getProgramCounter()
             #print('pc: 0x%.8x' % emupc)
