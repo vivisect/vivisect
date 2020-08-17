@@ -10,7 +10,7 @@ import sys
 import logging
 logger = logging.getLogger(__name__)
 #logger.setLevel(logging.WARN)
-logger.setLevel(logging.DEBUG)
+#logger.setLevel(logging.DEBUG)
 if not len(logger.handlers):
     logger.addHandler(logging.StreamHandler())
 
