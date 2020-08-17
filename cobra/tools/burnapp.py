@@ -83,7 +83,7 @@ def main(uri, cacrt=None, sslcert=None, sslkey=None):
     try:
         c_remoteapp.getAndRunApp(uri)
     except Exception as e:
-        logger.warning('error: %s' % e)
+        logger.warning('error: %s', e)
 
 
 if __name__ == '__main__':

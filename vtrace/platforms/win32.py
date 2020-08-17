@@ -30,7 +30,6 @@ import envi.symstore.resolver as e_resolv
 import envi.symstore.symcache as e_symcache
 
 from ctypes import *
-#from ctypes.wintypes import *
 
 logger = logging.getLogger(__name__)
 platdir = os.path.dirname(__file__)
@@ -885,7 +884,7 @@ def loadlib(path):
     try:
         return windll.LoadLibrary(path)
     except Exception as e:
-        logger.warning('LoadLibrary %s: %s', path,e)
+        logger.warning('LoadLibrary %s: %s', path, e)
 
 # All platforms must be able to import this module (for exceptions etc..)
 # (do this stuff *after* we define some types...)
@@ -1137,11 +1136,11 @@ def getDebugPrivileges():
     token = HANDLE(0)
 
     if not advapi32.LookupPrivilegeValueA(0, "seDebugPrivilege", addressof(dbgluid)):
-        logger.warning("LookupPrivilegeValue Failed: %d" % kernel32.GetLastError())
+        logger.warning("LookupPrivilegeValue Failed: %d", kernel32.GetLastError())
         return False
 
     if not advapi32.OpenProcessToken(-1, TOKEN_ADJUST_PRIVILEGES, addressof(token)):
-        logger.warning("kernel32.OpenProcessToken Failed: %d" % kernel32.GetLastError())
+        logger.warning("kernel32.OpenProcessToken Failed: %d", kernel32.GetLastError())
         return False
 
     tokprivs.PrivilegeCount = 1
@@ -1150,7 +1149,7 @@ def getDebugPrivileges():
 
     if not advapi32.AdjustTokenPrivileges(token, 0, addressof(tokprivs), 0, 0, 0):
         kernel32.CloseHandle(token)
-        logger.warning("AdjustTokenPrivileges Failed: %d" % kernel32.GetLastError())
+        logger.warning("AdjustTokenPrivileges Failed: %d", kernel32.GetLastError())
         return False
 
     kernel32.CloseHandle(token)
@@ -1658,7 +1657,7 @@ class WindowsMixin:
             self.fireNotifiers(vtrace.NOTIFY_DEBUG_PRINT)
 
         else:
-            logger.warning("Currently unhandled event %d" % event.DebugEventCode)
+            logger.warning("Currently unhandled event %d", event.DebugEventCode)
 
         # NOTE: Not everbody falls through to here
 
@@ -2050,7 +2049,7 @@ class Win32SymbolParser:
                 pass
 
             else:
-                logger.warning('%s:%s Unknown Type Tag: %d' % (name, kidname, ktag))
+                logger.warning('%s:%s Unknown Type Tag: %d', name, kidname, ktag)
 
             kids.append((kidname, kidoff, ksize, ktypename, kflags, kcount))
 

@@ -103,10 +103,10 @@ class DcodeFinder(object):
             fobj, filename, typeinfo = imp.find_module(name, path)
         except ImportError:
 
-            logger.info('Dcode Searching: %s (%s)' % (name, path))
+            logger.info('Dcode Searching: %s (%s)', name, path)
             pymod = self.proxy.getPythonModule(fullname, path)
             if pymod:
-                logger.info('Dcode Loaded: %s' % fullname)
+                logger.info('Dcode Loaded: %s', fullname)
                 return DcodeLoader(*pymod)
 
 

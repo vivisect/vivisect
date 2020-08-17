@@ -170,7 +170,7 @@ class GdbStubMixin:
 
             self._gdb_sock.sendall('+')
 
-            logger.debug('RECV: ->%s<-' % bytes)
+            logger.debug('RECV: ->%s<-', bytes)
             return bytes
 
     def _gdbAddMemBreak(self, addr, size):
@@ -187,7 +187,7 @@ class GdbStubMixin:
             return self._recvPkt()
 
     def _sendPkt(self, cmd):
-        logger.debug('SEND: ->%s<-' % cmd)
+        logger.debug('SEND: ->%s<-', cmd)
         with self._gdb_tx_lock:
 
             self._gdb_sock.sendall(pkt(cmd))
@@ -299,7 +299,7 @@ class GdbStubMixin:
             self._findLibraryMaps(self._gdb_filemagic, always=True)
 
     def platformProcessEvent(self, event):
-        logger.debug('EVENT ->%s<-' % str(event))
+        logger.debug('EVENT ->%s<-', str(event))
 
         if len(event) == 0:
             self.setMeta('ExitCode', 0xffffffff)
@@ -314,7 +314,7 @@ class GdbStubMixin:
         # Is this a thread specific signal?
         if atype == 'T':
 
-            logger.debug('Signal: %s' % str(sig))
+            logger.debug('Signal: %s', str(sig))
 
             dictbytes = event[3:]
 
@@ -343,7 +343,7 @@ class GdbStubMixin:
             return
 
         else:
-            logger.warning('Unhandled Gdb Server Event: %s' % str(event))
+            logger.warning('Unhandled Gdb Server Event: %s', str(event))
 
         # if self.attaching and signo in trap_sigs:
         if self.attaching:
@@ -500,7 +500,7 @@ class GdbStubMixin:
     def platformReadMemory(self, addr, size):
         mbytes = ''
         offset = 0
-        logger.debug('READ: 0x%.8x (%d)' % (addr, size))
+        logger.debug('READ: 0x%.8x (%d)', addr, size)
         while len(mbytes) < size:
             # FIXME is this 256 problem just in the VMWare gdb stub?
             cmd = 'm%x,%x' % (addr + offset, min(256, size-offset))
@@ -581,7 +581,7 @@ class GdbStubMixin_old(e_registers.RegisterContext):
         return basename.split(".")[0].split("-")[0].lower()
 
     def platformParseBinary(self, filename, baseaddr, normname):
-        logger.warning('Not implemented: platformParseBinary: 0x%.8x %s' % (baseaddr, normname))
+        logger.warning('Not implemented: platformParseBinary: 0x%.8x %s', baseaddr, normname)
 
     def platformParseBinaryPe(self, filename, baseaddr, normname):
 
@@ -605,7 +605,7 @@ class GdbStubMixin_old(e_registers.RegisterContext):
                 finally:
                     os.unlink(tfilename)
             except Exception as e:
-                logger.warning(e)
+                logger.warning(str(e))
 
         else:
             pe = PE.peFromMemoryObject(self, baseaddr)
@@ -760,7 +760,7 @@ class GdbStubMixin_old(e_registers.RegisterContext):
             self.fireNotifiers(vtrace.NOTIFY_ATTACH)
 
         else:
-            logger.warning('Unidentified gdbstub: %s' % vercmd)
+            logger.warning('Unidentified gdbstub: %s', vercmd)
             self.fireNotifiers(vtrace.NOTIFY_ATTACH)
 
 
@@ -811,12 +811,12 @@ class GdbStubMixin_old(e_registers.RegisterContext):
         try:
             self.addBreakpoint(KeBugCheckBreak('nt.KeBugCheck'))
         except Exception as e:
-            logger.warning('Error Seting KeBugCheck Bp: %s' % e)
+            logger.warning('Error Seting KeBugCheck Bp: %s', e)
 
         try:
             self.addBreakpoint(KeBugCheckBreak('nt.KeBugCheckEx'))
         except Exception as e:
-            logger.warning('Error Seting KeBugCheck Bp: %s' % e)
+            logger.warning('Error Seting KeBugCheck Bp: %s', e)
 
 
 GDB_BP_SOFTWARE     = 0

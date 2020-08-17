@@ -648,7 +648,7 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
     def i_and(self, op):
         res = self.logicalAnd(op)
         self.setOperValue(op, 0, res)
-       
+
     def i_orr(self, op):
         tsize = op.opers[0].tsize
         if len(op.opers) == 3:
@@ -880,7 +880,7 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
             self.setFpFlag(PSR_C_bit, c)
             self.setFpFlag(PSR_V_bit, v)
         except Exception as e:
-            logger.warn("vcmpe exception: %r" % e)
+            logger.warn("vcmpe exception: %s", e)
 
     FPType_Nonzero = 1
     FPType_Zero = 2
@@ -1941,7 +1941,7 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
             base = op.opers[0].va
             logger.debug("TB base = 0%x", base)
 
-        logger.debug("base: 0x%x" % base)
+        logger.debug("base: 0x%x", base)
         val0 = self.readMemValue(base, tsize)
 
         if val0 > 0x200 + base:
@@ -1968,7 +1968,7 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
             tbl.append(nexttgt)
             va += tsize
 
-        logger.debug("%s: \n\t"%op.mnem + '\n\t'.join([hex(x+base) for x in tbl]))
+        logger.debug("%s: \n\t", op.mnem + '\n\t'.join([hex(x+base) for x in tbl]))
 
         ###
         # for workspace emulation analysis, let's check the index register for sanity.
@@ -2032,11 +2032,11 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
 
 
     def i_cps(self, op):
-        logger.warn("CPS: 0x%x  %r" % (op.va, op))
+        logger.warn("CPS: 0x%x  %r", op.va, op)
         # FIXME: at some point we need ot do a priviledge check
 
     def i_pld2(self, op):
-        logger.warn("FIXME: 0x%x: %s - in emu" % (op.va, op))
+        logger.warn("FIXME: 0x%x: %s - in emu", op.va, op)
 
     def _getCoProc(self, cpnum):
         if cpnum > 15:

@@ -14,6 +14,7 @@ import envi.threads as e_threads
 
 logger = logging.getLogger(__name__)
 
+
 class CobraEventCore:
 
     def __init__(self):
@@ -36,15 +37,15 @@ class CobraEventCore:
 
     @e_threads.firethread
     def _fireFireThread(self):
-        for args,kwargs in self._ce_fireq:
+        for args, kwargs in self._ce_fireq:
             try:
                 self._fireEvent(*args, **kwargs)
             except Exception as e:
-                logger.warning('fireFireThread _fireEventError: %s' % e)
+                logger.warning('fireFireThread _fireEventError: %s', e)
 
     @e_threads.maintthread(3)
     def cullAbandonedChannels(self, abtime):
-        [ self.finiEventChannel(q.chanid) for q in self._ce_chans if q.abandoned(abtime) ]
+        [self.finiEventChannel(q.chanid) for q in self._ce_chans if q.abandoned(abtime)]
 
     def initEventChannel(self, qmax=0):
         '''
@@ -53,9 +54,9 @@ class CobraEventCore:
         '''
         chanid = self._ce_chanids.next()
         q = e_threads.ChunkQueue()
-        q.chanid = chanid # monkey patch the chanid to the q
-        self._ce_chans.append( q )
-        self._ce_chanlookup[ chanid ] = q
+        q.chanid = chanid  # monkey patch the chanid to the q
+        self._ce_chans.append(q)
+        self._ce_chanlookup[chanid] = q
         return chanid
 
     def finiEventChannel(self, chanid):
@@ -64,21 +65,21 @@ class CobraEventCore:
         (None,None) event and removing the channel's
         Queue object.
         '''
-        q = self._ce_chanlookup.pop( chanid )
-        q.put((None,None))
-        self._ce_chans.remove( q )
+        q = self._ce_chanlookup.pop(chanid)
+        q.put((None, None))
+        self._ce_chans.remove(q)
 
     def finiEventChannels(self):
         '''
         Close down all event channels by adding a (None,None)
         event and removing the event Q from the datastructs.
         '''
-        for upstream,upchan in self._ce_upstreams:
+        for upstream, upchan in self._ce_upstreams:
             try:
                 upstream.finiEventChannel(upchan)
             except Exception as e:
-                logger.warning('upstream error: %s %s' % (str(upstream), str(e)))
-        [ self.finiEventChannel( chanid ) for chanid in self._ce_chanlookup.keys() ]
+                logger.warning('upstream error: %s %s', str(upstream), str(e))
+        [self.finiEventChannel(chanid) for chanid in self._ce_chanlookup.keys()]
 
     def getNextEventsForChan(self, chanid, timeout=None):
         '''
@@ -89,7 +90,7 @@ class CobraEventCore:
 
         When the channel returns (None, None) it has closed.
         '''
-        q = self._ce_chanlookup.get( chanid )
+        q = self._ce_chanlookup.get(chanid)
         if q is None:
             return None
         return q.get(timeout=timeout)
@@ -102,31 +103,31 @@ class CobraEventCore:
         NOTE: an event coming down from an upstream will *not*
               be propigated upward to *any* upstreams.
         '''
-        self._ce_fireq.put( (args,kwargs) )
+        self._ce_fireq.put((args, kwargs))
 
     def _fireEvent(self, event, einfo, upstream=True, skip=None, chans=None):
-        etup = (event,einfo)
+        etup = (event, einfo)
         # Speed hack
         if chans is not None:
-            [ q.put( etup ) for q in self._ce_chans if q.chanid in chans ]
+            [q.put(etup) for q in self._ce_chans if q.chanid in chans]
         else:
-            [ q.put( etup ) for q in self._ce_chans if q.chanid != skip ]
+            [q.put(etup) for q in self._ce_chans if q.chanid != skip]
 
         if self._ce_ecastsock:
-            self._ce_ecastsock.sendto( json.dumps( etup ), (self._ce_mcasthost, self._ce_mcastport))
+            self._ce_ecastsock.sendto(json.dumps(etup), (self._ce_mcasthost, self._ce_mcastport))
 
         for handler in self._ce_handlers[event]:
             try:
-                handler(event,einfo)
+                handler(event, einfo)
             except Exception as e:
-                logger.warning('handler error(%s): %s' % (str(event), str(e)))
+                logger.warning('handler error(%s): %s', str(event), str(e))
 
         if upstream:
-            for upstream,upchan in self._ce_upstreams:
+            for upstream, upchan in self._ce_upstreams:
                 try:
                     upstream.fireEvent(event, einfo, skip=upchan)
                 except Exception as e:
-                    logger.warning('upstream error: %s %s' % (str(upstream), str(e)))
+                    logger.warning('upstream error: %s %s', str(upstream), str(e))
 
     def addEventHandler(self, event, callback):
         '''
@@ -153,12 +154,12 @@ class CobraEventCore:
         '''
         chan = evtcore.initEventChannel(qmax=qmax)
         corechan = [evtcore, chan]
-        self._ce_upstreams.append( corechan )
+        self._ce_upstreams.append(corechan)
         while True:
             try:
-                events = evtcore.getNextEventsForChan( chan, timeout=5 )
+                events = evtcore.getNextEventsForChan(chan, timeout=5)
             except Exception as e:
-                logger.warning('addEventUpstream Error: %s' % e)
+                logger.warning('addEventUpstream Error: %s', e)
                 time.sleep(1)
                 # grab a new channel...
                 chan = evtcore.initEventChannel(qmax=qmax)
@@ -168,11 +169,10 @@ class CobraEventCore:
             if events is None:
                 return
 
-
             try:
-                [ self.fireEvent(event,einfo,upstream=False) for (event,einfo) in events ]
+                [self.fireEvent(event, einfo, upstream=False) for (event, einfo) in events]
             except Exception as e:
-                logger.warning('addEventUpstream fireEvent Error: %s' % e)
+                logger.warning('addEventUpstream fireEvent Error: %s', e)
                 time.sleep(1)
 
     def addEventCallback(self, callback, qmax=0, firethread=True):
@@ -207,7 +207,7 @@ class CobraEventCore:
                 try:
                     callback(event, einfo)
                 except Exception as e:
-                    logger.warning('Event Callback Exception (chan: %d): %s' % (chanid, e))
+                    logger.warning('Event Callback Exception (chan: %d): %s', chanid, e)
 
     def setEventCast(self, mcast='224.56.56.56', port=45654, bind='0.0.0.0'):
         '''

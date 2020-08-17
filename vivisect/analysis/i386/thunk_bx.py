@@ -23,7 +23,7 @@ def analyzeFunction(vw, fva):
 
         # have we already recorded this thunk_bx?
         if vw.getVaSetRow('thunk_bx', fva) is not None:
-            logger.warning("Ditching thunk_bx 0x%x" % fva)
+            logger.warning("Ditching thunk_bx 0x%x", fva)
             return
 
         vw.setVaSetRow('thunk_bx', (fva,))
@@ -38,7 +38,7 @@ def analyzeFunction(vw, fva):
         op = vw.parseOpcode(va)
         op2 = vw.parseOpcode(va + len(op))
         if op2.mnem != "add":
-            logger.warning("Call to thunk_bx not followed by an add: %s" % str(op2))
+            logger.warning("Call to thunk_bx not followed by an add: %s", op2)
             return
 
         addt = op2.opers[1].getOperValue(op2)
@@ -47,7 +47,7 @@ def analyzeFunction(vw, fva):
             logger.warning("PIE_ebx is not None")
             return
 
-        logger.debug("__x86.get_pc_thunk.bx:  %s" % hex(ebx))
+        logger.debug("__x86.get_pc_thunk.bx: %s", hex(ebx))
         curname = vw.getName(fva)
         if curname is None or curname == "sub_%.8x" % fva:
             vw.makeName(fva, "thunk_bx_%.8x" % fva)

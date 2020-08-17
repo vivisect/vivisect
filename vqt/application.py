@@ -124,7 +124,7 @@ class VQMainCmdWindow(vq_hotkeys.HotKeyMixin, QMainWindow):
     def vqBuildDockWidget(self, clsname, floating=False, area=QtCore.Qt.TopDockWidgetArea):
         res = self._dock_classes.get(clsname)
         if res is None:
-            logger.error('vqBuildDockWidget Failed For: %s' % clsname)
+            logger.error('vqBuildDockWidget Failed For: %s', clsname)
             return
         cls, args = res
         obj = cls(*args)
@@ -141,10 +141,10 @@ class VQMainCmdWindow(vq_hotkeys.HotKeyMixin, QMainWindow):
                     if tup is not None:
                         d, obj = tup
                         d.setObjectName(name)
-                        d.vqRestoreState(settings,name,stub)
+                        d.vqRestoreState(settings, name, stub)
                         d.show()
                 except Exception as e:
-                    logger.error('Error Building: %s: %s'  % (clsname,e))
+                    logger.error('Error Building: %s: %s', clsname, e)
 
         # Once dock widgets are loaded, we can restoreState
         state = settings.value('DockState')

@@ -91,4 +91,4 @@ class ActionCall:
             retval = self.callback(*self.args, **self.kwargs)
             return retval
         except Exception as e:
-            logger.exception("ActionCall: %r" % self.callback)
+            logger.exception("ActionCall failed on %s with error: %s ", repr(self.callback), str(e))

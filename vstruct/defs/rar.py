@@ -383,7 +383,7 @@ class Rar:
                 #remain = csize % 16
                 #if remain:
                     #pad = self.read( 16 - remain )
-                    #logger.info('PAD %s' % binascii.hexlify(pad))
+                    #logger.info('PAD %s', binascii.hexlify(pad))
 
             cls = rar4blocks.get(rar4.HEAD_TYPE)
             if cls is not None:

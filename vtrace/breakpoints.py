@@ -315,7 +315,7 @@ class HookBreakpoint(NiceBreakpoint):
         self.error_cb = self.defaultErrorHandler
 
     def defaultErrorHandler(self, hook_cb_name, stre):
-        logger.error('Pre hook callback "%s" exception: %s' % (hook_cb_name, stre))
+        logger.error('Pre hook callback "%s" exception: %s', hook_cb_name, stre)
 
     def resolvedaddr(self, trace, addr):
         '''
@@ -378,6 +378,7 @@ class HookBreakpoint(NiceBreakpoint):
 
         self.runPreHookCallbacks(self.prehooks, event, trace, ret_addr, args)
 
+
 class PostHookBreakpoint(NiceBreakpoint):
 
     def __init__(self, expr, parent_hook_bp):
@@ -390,7 +391,7 @@ class PostHookBreakpoint(NiceBreakpoint):
             try:
                 hook_cb(event, trace, saved_ret_addr, saved_args, self.parent.cc)
             except Exception as e:
-                logger.error('Post hook callback "%s" exception: %s' % (hook_cb, str(e)))
+                logger.error('Post hook callback "%s" exception: %s', hook_cb, e)
 
     def notify(self, event, trace):
         tup = self.parent.callinfo.get(trace.getCurrentThread(), None)

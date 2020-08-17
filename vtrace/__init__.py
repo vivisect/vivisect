@@ -29,18 +29,11 @@ Greetz:
 # Copyright (C) 2007 Invisigoth - See LICENSE file for details
 import os
 import re
-import sys
 import code
-import copy
 import time
 import types
-import struct
-import getopt
-import signal
-import inspect
 import logging
 import platform
-import traceback
 
 import cPickle as pickle
 
@@ -52,7 +45,6 @@ import envi.expression as e_expr
 import envi.symstore.resolver as e_resolv
 import envi.symstore.symcache as e_symcache
 
-import cobra
 import vstruct
 from vtrace.const import *
 
@@ -424,7 +416,7 @@ class Trace(e_mem.IMemory, e_reg.RegisterContext, e_resolv.SymbolResolver, objec
 
         except Exception as e:
             # getTargets->readMemory error on bva
-            logger.warning('getSymByAddrThunkAware: %s' % repr(e))
+            logger.warning('getSymByAddrThunkAware: %s', e)
 
         return None, False
 

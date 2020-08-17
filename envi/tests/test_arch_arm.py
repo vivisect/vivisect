@@ -1758,7 +1758,7 @@ class ArmInstructionSet(unittest.TestCase):
                         except envi.UnsupportedInstruction:
                             bademu += 1
                         except Exception as exp:
-                            logger.exception("Exception in Emulator for command - %r  %r  %r\n  %r",repr(op), bytez, reprOp, exp)
+                            logger.exception("Exception in Emulator for command - %r  %r  %r\n  %r", repr(op), bytez, reprOp, exp)
                             bademu += 1
                     else:
                         # if we have a special test lets run it

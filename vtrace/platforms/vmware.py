@@ -103,7 +103,7 @@ class VMWare32WindowsTrace(
             self.impSymCache(symcache, symfname=normname, baseaddr=baseaddr)
 
         except Exception as e:
-            logger.error('Error Parsing Binary (%s): %s' % (normname, e))
+            logger.error('Error Parsing Binary (%s): %s', normname, e)
 
     def buildNewTrace(self):
         return VMWare32WindowsTrace(host=self._gdb_host, port=self._gdb_port)

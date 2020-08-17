@@ -14,7 +14,6 @@ except:
     from Queue import Queue
 
 import vtrace
-import envi
 import envi.memory as e_mem
 import envi.threads as e_threads
 import envi.symstore.resolver as e_sym_resolv
@@ -346,7 +345,7 @@ class TracerBase(vtrace.Notifier):
         if event == vtrace.NOTIFY_SIGNAL:
             signo = self.getCurrentSignal()
             if signo in self.getMeta('IgnoredSignals', []):
-                logger.debug('Ignoring %s' % signo)
+                logger.debug('Ignoring %s', signo)
                 self.runAgain()
                 return
 
@@ -367,14 +366,14 @@ class TracerBase(vtrace.Notifier):
             try:
                 notifier.handleEvent(event, trace)
             except:
-                logger.error('Notifier exception for %s' % repr(notifier))
+                logger.error('Notifier exception for %s', notifier)
                 logger.error(traceback.format_exc())
 
         for notifier in nlist:
             try:
                 notifier.handleEvent(event, trace)
             except:
-                logger.error('Notifier exception for %s' % repr(notifier))
+                logger.error('Notifier exception for %s', notifier)
                 logger.error(traceback.format_exc())
 
     def _fireStep(self):
@@ -390,7 +389,7 @@ class TracerBase(vtrace.Notifier):
         try:
             bp.notify(vtrace.NOTIFY_BREAK, self)
         except Exception as msg:
-            logger.error("Breakpoint Exception 0x%.8x : %s" % (bp.address,msg))
+            logger.error("Breakpoint Exception 0x%.8x : %s", bp.address, msg)
             logger.error(traceback.format_exc())
 
         # "stealthbreak" bp's do not NOTIFY *or* run again

@@ -70,7 +70,7 @@ def main():
 
         except Exception as e:
             logger.critical(vw.config.reprConfigPaths())
-            logger.critical("With entry: %s" % args.option)
+            logger.critical("With entry: %s", args.option)
             logger.critical(e)
             sys.exit(-1)
 
@@ -96,7 +96,7 @@ def main():
                 vw.loadFromFile(fname, fmtname=args.parsemod)
 
             end = time.time()
-            logger.info('Loaded (%.4f sec) %s' % (end - start, fname))
+            logger.info('Loaded (%.4f sec) %s', (end - start), fname)
 
     if args.bulk:
         if args.doanalyze:
@@ -106,15 +106,15 @@ def main():
                 start = time.time()
                 vw.analyze()
                 end = time.time()
-                logger.debug("ANALYSIS TIME: %s" % (end-start))
+                logger.debug("ANALYSIS TIME: %s", (end-start))
 
         if args.modname is not None:
             with open(args.modname, 'rb') as f:
                 module = imp.load_module("custom_analysis", f, args.modname, ('.py', 'U', 1))
                 module.analyze(vw)
 
-        logger.info('stats: %r' % (vw.getStats(),))
-        logger.info("Saving workspace: %s" % (vw.getMeta('StorageName')))
+        logger.info('stats: %r', vw.getStats())
+        logger.info("Saving workspace: %s", vw.getMeta('StorageName'))
 
         vw.saveWorkspace()
 

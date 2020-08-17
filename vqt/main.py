@@ -115,7 +115,7 @@ class QEventThread(QtCore.QThread):
     A thread who exists to consume callback requests from the
     given workq and fire them into Qt *safely*.
     '''
-    idleadd = QtCore.pyqtSignal(object,object,object)
+    idleadd = QtCore.pyqtSignal(object, object, object)
 
     def __init__(self, workq):
         QtCore.QThread.__init__(self)
@@ -129,14 +129,14 @@ class QEventThread(QtCore.QThread):
                 if todo is None:
                     continue
 
-                func,args,kwargs = todo
+                func, args, kwargs = todo
                 if func is None:
                     return
 
                 self.idleadd.emit(func,args,kwargs)
 
             except Exception as e:
-                logger.warning('vqt event thread: %s' % e)
+                logger.warning('vqt event thread: %s', str(e))
 
 class VQApplication(QApplication):
 
@@ -149,8 +149,10 @@ class VQApplication(QApplication):
     def callFromQtLoop(self, callback, args, kwargs):
         callback(*args,**kwargs)
 
+
 class QEventChannel(QtCore.QObject):
     guievents = QtCore.pyqtSignal(str,object)
+
 
 @e_threads.firethread
 def workerThread():
@@ -171,7 +173,7 @@ def workerThread():
                     sys.excepthook(*sys.exc_info())
 
         except Exception as e:
-            logger.warning('vqt worker warning: %s' % e)
+            logger.warning('vqt worker warning: %s', str(e))
 
 def startup(css=None):
     # yea yea.... globals suck...

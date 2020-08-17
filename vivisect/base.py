@@ -263,25 +263,25 @@ class VivWorkspaceCore(object, viv_impapi.ImportApi):
             self._handleADDLOCATION((rva, self.psize, LOC_POINTER, ptr))
 
     def _handleADDMODULE(self, einfo):
-        logger.warning('DEPRICATED (ADDMODULE) ignored: %s' % einfo)
+        logger.warning('DEPRECATED (ADDMODULE) ignored: %s', einfo)
 
     def _handleDELMODULE(self, einfo):
-        logger.warning('DEPRICATED (DELMODULE) ignored: %s' % einfo)
+        logger.warning('DEPRECATED (DELMODULE) ignored: %s', einfo)
 
     def _handleADDFMODULE(self, einfo):
-        logger.warning('DEPRICATED (ADDFMODULE) ignored: %s' % einfo)
+        logger.warning('DEPRECATED (ADDFMODULE) ignored: %s', einfo)
 
     def _handleDELFMODULE(self, einfo):
-        logger.warning('DEPRICATED (DELFMODULE) ignored: %s' % einfo)
+        logger.warning('DEPRECATED (DELFMODULE) ignored: %s', einfo)
 
     def _handleADDFUNCTION(self, einfo):
         va, meta = einfo
         self._initFunction(va)
 
-        #node = self._call_graph.addNode( nid=va, repr=self.getName( va ) ) #, color='#00ff00' )
-        #node = self._call_graph.getFunctionNode(va, repr=self.getName( va ) )
+        # node = self._call_graph.addNode( nid=va, repr=self.getName( va ) ) #, color='#00ff00' )
+        # node = self._call_graph.getFunctionNode(va, repr=self.getName( va ) )
         node = self._call_graph.getFunctionNode(va)
-        self._call_graph.setNodeProp(node,'repr',self.getName(va))
+        self._call_graph.setNodeProp(node,'repr', self.getName(va))
 
         # Tell the codeflow subsystem about this one!
         calls_from = meta.get('CallsFrom')
@@ -289,7 +289,7 @@ class VivWorkspaceCore(object, viv_impapi.ImportApi):
 
         self.funcmeta[va] = meta
 
-        for name,value in meta.items():
+        for name, value in meta.items():
             mcbname = "_fmcb_%s" % name.split(':')[0]
             mcb = getattr(self, mcbname, None)
             if mcb is not None:
@@ -298,7 +298,6 @@ class VivWorkspaceCore(object, viv_impapi.ImportApi):
     def _handleDELFUNCTION(self, einfo):
         # clear funcmeta, func_args, codeblocks_by_funcva, update codeblocks, blockgraph, locations, etc...
         fva = einfo
-        blocks = self.getFunctionBlocks(fva)
 
         # not every codeblock identifying as this function is stored in funcmeta
         for cb in self.getCodeBlocks():
@@ -312,7 +311,7 @@ class VivWorkspaceCore(object, viv_impapi.ImportApi):
         self._call_graph.delNode(node)
         self.cfctx.flushFunction(fva)
 
-        # FIXME: do we want to now seek the function we *should* be in?  
+        # FIXME: do we want to now seek the function we *should* be in?
         # if xrefs_to, look for non-PROC code xrefs and take their function
         # if the previous instruction falls through, take its function
         # run codeblock analysis on that function to reassociate the blocks
@@ -684,7 +683,7 @@ def trackDynBranches(cfctx, op, vw, bflags, branches):
         return
 
     if vw.verbose:
-        logger.info("Dynamic Branch found at 0x%x    %s" % (op.va, op))
+        logger.info("Dynamic Branch found at 0x%x    %s", op.va, op)
     vw.setVaSetRow('DynamicBranches', (op.va, repr(op), bflags))
 
 class VivCodeFlowContext(e_codeflow.CodeFlowContext):

@@ -159,12 +159,7 @@ class CobraMethod:
 
     def __call__(self, *args, **kwargs):
         name = self.proxy._cobra_name
-        logger.debug("Calling: %s, %s, %s, %s" %
-                     (name,
-                      self.methname,
-                      repr(args)[:20],
-                      repr(kwargs)[:20]))
-
+        logger.debug("Calling: %s, %s, %s, %s", name, self.methname, repr(args)[:20], repr(kwargs)[:20]) 
         casync = kwargs.pop('_cobra_async', None)
         if casync:
             csock = self.proxy._cobra_getsock()
@@ -207,12 +202,12 @@ class CobraSocket:
                 raise Exception('Missing "msgpack" python module ( http://visi.kenshoto.com/viki/Msgpack )')
 
             def msgpackloads(b):
-                return msgpack.loads(b, **loadargs) 
+                return msgpack.loads(b, **loadargs)
 
             def msgpackdumps(b):
                 return msgpack.dumps(b, **dumpargs)
 
-            self.dumps = msgpackdumps 
+            self.dumps = msgpackdumps
             self.loads = msgpackloads
 
         if sflags & SFLAG_JSON:
@@ -650,7 +645,7 @@ class CobraDaemon(ThreadingTCPServer):
         """
         Decref this object and if it reaches 0, unshare it.
         """
-        logger.debug('Decrementing: %s' % name)
+        logger.debug('Decrementing: %s', name)
         self.reflock.acquire()
         try:
 
@@ -665,7 +660,7 @@ class CobraDaemon(ThreadingTCPServer):
             self.reflock.release()
 
     def increfObject(self, name):
-        logger.debug('Incrementing: %s' % name)
+        logger.debug('Incrementing: %s', name)
         self.reflock.acquire()
         try:
             refcnt = self.refcnts.get(name, None)
@@ -676,7 +671,7 @@ class CobraDaemon(ThreadingTCPServer):
             self.reflock.release()
 
     def unshareObject(self, name, ok=True):
-        logger.debug('Unsharing %s' % name)
+        logger.debug('Unsharing %s', name)
         self.refcnts.pop(name, None)
         obj = self.shared.pop(name, None)
 
@@ -782,7 +777,7 @@ class CobraConnectionHandler:
                 continue
 
             obj = self.daemon.getSharedObject(name)
-            logger.debug("MSG FOR: %s:%s" % (str(name), type(obj)))
+            logger.debug("MSG FOR: %s:%s", str(name), type(obj))
             if obj is None:
                 try:
                     csock.sendMessage(COBRA_ERROR, name, Exception("Unknown object requested: %s" % name))
@@ -834,7 +829,7 @@ class CobraConnectionHandler:
             pass
 
     def handleCall(self, csock, oname, obj, data):
-        logger.debug("Calling %s" % str(data))
+        logger.debug("Calling %s", str(data))
         methodname, args, kwargs = data
         meth = getattr(obj, methodname)
         if getattr(meth,'__no_cobra__',False):
@@ -857,7 +852,7 @@ class CobraConnectionHandler:
             raise
 
     def handleGetAttr(self, csock, oname, obj, name):
-        logger.debug("Getting Attribute: %s" % str(name))
+        logger.debug("Getting Attribute: %s", str(name))
         if not self.daemon.cangetattr:
             raise CobraPermDenied('getattr disallowed!')
         try:
@@ -866,7 +861,7 @@ class CobraConnectionHandler:
             pass
 
     def handleSetAttr(self, csock, oname, obj, data):
-        logger.debug("Setting Attribute: %s" % str(data))
+        logger.debug("Setting Attribute: %s", str(data))
         if not self.daemon.cansetattr:
             raise CobraPermDenied('setattr disallowed!')
         name,value = data
@@ -933,7 +928,7 @@ class CobraProxy:
         authinfo    - A dict, probably like {'user':'username','passwd':'mypass'}
                       ( but it can be auth module specific )
         msgpack     - Use msgpack serialization
-        sockpool    - Fixed sized pool of cobra sockets (not socket per thread) 
+        sockpool    - Fixed sized pool of cobra sockets (not socket per thread)
 
     Also, the following protocol options may be passed through the URI:
 
@@ -945,7 +940,7 @@ class CobraProxy:
 
         scheme, host, port, name, urlparams = chopCobraUri( URI )
 
-        logger.debug("Spinning up CobraProxy on %s:%s with object: %s" %(host, port, repr(name)))
+        logger.debug("Spinning up CobraProxy on %s:%s with object: %s" % host, port, repr(name))
 
         self._cobra_uri = URI
         self._cobra_scheme = scheme
@@ -1112,7 +1107,7 @@ class CobraProxy:
         return True
 
     def __setattr__(self, name, value):
-        logger.debug('Setattr: %s:%s' % (name, repr(value)[:20]))
+        logger.debug('Setattr: %s:%s', name, repr(value)[:20])
 
         if name.startswith('_cobra_'):
             self.__dict__[name] = value
@@ -1128,7 +1123,7 @@ class CobraProxy:
             raise Exception("Invalid Cobra Response")
 
     def __getattr__(self, name):
-        logger.debug('Getattr: %s' % name)
+        logger.debug('Getattr: %s', name)
 
         if name == "__getinitargs__":
             raise AttributeError()

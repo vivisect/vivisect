@@ -393,8 +393,7 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
         ssymtabva = self.getSection('.dynsym').sh_addr
         dsymtabva = self.dyns.get(DT_SYMTAB)
         if ssymtabva != dsymtabva:
-            logger.warn("Section headers and Dynamics disagree on Symbol Table:  sec: 0x%x, dyn: 0x%x",
-                    ssymtabva, dsymtabva)
+            logger.warn("Section headers and Dynamics disagree on Symbol Table: sec: 0x%x, dyn: 0x%x", ssymtabva, dsymtabva)
 
         # only parse the symbols that are not already accounted for.
         # symbols are ordered, so existence of index Y is always the same
@@ -443,14 +442,14 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
                 logger.debug("dynamic: %r: 0x%x", dt_names.get(dyn.d_tag), dyn.d_value)
                 self.dynamics.append(dyn)
 
-            if dyn.d_tag == DT_NULL: # Represents the end
+            if dyn.d_tag == DT_NULL:  # Represents the end
                 break
             dynbytes = dynbytes[len(dyn):]
 
     def _parseDynLinkInfo(self):
         '''
         Parse the Dynamics segment and populate both self.dynamics (legacy) and self.dyns
-        This must be run before most Dynamic-data accessors like getDynStrTabString(), 
+        This must be run before most Dynamic-data accessors like getDynStrTabString(),
         getDynSymTabInfo(), etc..
         '''
         self.dyns = {}
@@ -474,7 +473,7 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
                 self.dyns[dyn.d_tag] = (curdyn, dyn.d_value)
             else:
                 self.dyns[dyn.d_tag] = dyn.d_value
-            logger.debug("dynamic: %r: 0x%x", dt_names.get(dyn.d_tag), dyn.d_value)
+            logger.debug('dynamic: %r: 0x%x', dt_names.get(dyn.d_tag), dyn.d_value)
 
             # DEPRECATED: storing info in both dyns{} and dynamics[].  
             # 2019-10-21:  dynamics will go away sometime in the future
@@ -526,12 +525,12 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
 
         This relies on the DYNAMICS section having DT_SYMTAB and DT_SYMENT
 
-        Because ELF has no DT_SYMTABSZ, "symtabsz" as returned from 
+        Because ELF has no DT_SYMTABSZ, "symtabsz" as returned from
         getDynSymTabInfo() cannot be fully trusted.  Therefore, we run a few
         sanity heuristics.
 
-        This is only a prep run to identify symbols.  If getDynSymbol() is 
-        called with an index not currently in dynamic_symbols, dynamic_symbols 
+        This is only a prep run to identify symbols.  If getDynSymbol() is
+        called with an index not currently in dynamic_symbols, dynamic_symbols
         is expanded to fill the need (albeit, without these sanity checks, so
         be cautious).
         '''
@@ -540,7 +539,7 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
 
         # parse Dynamic Symbol Table
         if len(self.dynamic_symbols):
-            logger.warn("_parseDynSyms() cannot run: dynamic_symbols is not empty")
+            logger.warn('_parseDynSyms() cannot run: dynamic_symbols is not empty')
             return
 
         symtabrva, symsz, symtabsz = self.getDynSymTabInfo()
@@ -651,7 +650,7 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
                 continue
 
             if sec.sh_offset not in dynrels:
-                logger.warn("_parseSectionRelocs: Reloc section differs from Dynamics: 0x%x", sec.sh_offset)
+                logger.warn('_parseSectionRelocs: Reloc section differs from Dynamics: 0x%x', sec.sh_offset)
 
             reloccls = self._cls_reloc
             if sec.sh_type == SHT_RELA:
@@ -672,10 +671,10 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
 
                 if reloc.r_offset in self.relocvas:
                     # FIXME: This line is hit sever tens of thousands of times during parsing
-                    logger.debug("duplicate relocation (section): %r", reloc)
+                    logger.debug('duplicate relocation (section): %s', reloc)
                     continue
 
-                logger.info('section reloc: %r', reloc)
+                logger.info('section reloc: %s', reloc)
                 self.relocs.append(reloc)
                 self.relocvas.append(reloc.r_offset)
 
@@ -842,7 +841,7 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
                     offset = note.vsParse(notebytes, offset=offset)
                     yield note
             except Exception as e:
-                logger.warn("Elf.getNotes() Exception: %r", e)
+                logger.warn('Elf.getNotes() Exception: %s', e)
 
     def getPlatform(self):
         '''
@@ -1002,8 +1001,8 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
         symlen = len(self.dynamic_symbols)
         if symidx >= symlen:
             # dynamic_symbols is too small, grow
-            logger.info('getDynSymbol(%d): expanding dynamic_symbols from %d' % (symidx, symlen))
-            newspace = [self._getDynSymbol(x) for x in range(symlen, symidx+1)]
+            logger.info('getDynSymbol(%d): expanding dynamic_symbols from %d', symidx, symlen)
+            newspace = [self._getDynSymbol(x) for x in range(symlen, symidx + 1)]
             self.dynamic_symbols.extend(newspace)
 
         sym = self.dynamic_symbols[symidx]

@@ -72,12 +72,13 @@ def reprargs(trace, fmt, args):
         r.append(rstr)
     return r
 
+
 class ReconBreak(vt_breakpoints.Breakpoint):
     '''
     '''
     def __init__(self, symname, reconfmt):
         vt_breakpoints.Breakpoint.__init__(self, None, expression=symname)
-        self.fastbreak = True # We are a fast-break, don't notify the trace
+        self.fastbreak = True  # We are a fast-break, don't notify the trace
         self._symname = symname
         self._reconfmt = reconfmt
 
@@ -99,7 +100,7 @@ class ReconBreak(vt_breakpoints.Breakpoint):
 
         if not trace.getMeta('recon_quiet'):
             argstr = '(%s)' % ', '.join(argrep)
-            logger.info('RECON: %.4d 0x%.8x %s%s' % (thid, savedeip, self._symname, argstr))
+            logger.info('RECON: %.4d 0x%.8x %s%s', thid, savedeip, self._symname, argstr)
 
 
 def addReconBreak(trace, symname, reconfmt):

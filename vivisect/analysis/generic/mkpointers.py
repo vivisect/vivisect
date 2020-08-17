@@ -23,4 +23,4 @@ def analyze(vw):
                 # when subsystem < win7
                 vw.makePointer(addr)
         except Exception as e:
-            logger.warning("followPointer() failed for 0x%.8x (pval: 0x%.8x) (Error: %s)" % (addr, pval, str(e)))
+            logger.warning("followPointer() failed for 0x%.8x (pval: 0x%.8x) (Error: %s)", addr, pval, e)

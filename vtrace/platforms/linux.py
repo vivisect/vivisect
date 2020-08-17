@@ -465,7 +465,7 @@ class LinuxMixin(v_posix.PtraceMixin, v_posix.PosixMixin):
                     os.kill(tid, signal.SIGSTOP)
                     os.waitpid(tid, 0x40000002)
                 except Exception as e:
-                    logger.warning("WARNING TID is invalid %d %s" % (tid, str(e)))
+                    logger.warning("WARNING TID is invalid %d %s", tid, e)
         return pid, status
 
     @v_base.threadwrap

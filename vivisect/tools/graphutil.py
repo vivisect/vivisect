@@ -481,14 +481,14 @@ def buildFunctionGraph(vw, fva, revloop=False, g=None):
             if not g.hasNode(xrto):
                 cblock = vw.getCodeBlock(xrto)
                 if cblock is None:
-                    logger.warning('CB is None in graph building?!?! (0x%x)' % xrto)
-                    logger.warning('(fva: 0x%.8x cbva: 0x%.8x)' % (fva, xrto))
+                    logger.warning('CB is None in graph building?!?! (0x%x)', xrto)
+                    logger.warning('(fva: 0x%.8x cbva: 0x%.8x)', fva, xrto)
                     continue
 
                 tova, tosize, tofunc = cblock
                 if tova != xrto:
                     logger.warning('CBVA != XREFTO in graph building!?')
-                    logger.warning('(cbva: 0x%.8x xrto: 0x%.8x)' % (tova, xrto))
+                    logger.warning('(cbva: 0x%.8x xrto: 0x%.8x)', tova, xrto)
                     continue
 
                 # Since we haven't seen this node, lets add it to todo
@@ -513,10 +513,10 @@ def buildFunctionGraph(vw, fva, revloop=False, g=None):
             fallblock = vw.getCodeBlock(fallva)
             if fallblock is None:
                 logger.warning('FB is None in graph building!??!')
-                logger.warning('(fva: 0x%.8x  fallva: 0x%.8x' % (fva, fallva))
+                logger.warning('(fva: 0x%.8x  fallva: 0x%.8x', fva, fallva)
             elif fallva != fallblock[0]:
                 logger.warning('FALLVA != CBVA in graph building!??!')
-                logger.warning('(fallva: 0x%.8x CBVA: 0x%.8x' % (fallva, fallblock[0]))
+                logger.warning('(fallva: 0x%.8x CBVA: 0x%.8x', fallva, fallblock[0])
             else:
                 fbva, fbsize, fbfunc = fallblock
                 #if fbfunc != fva and fbva not in blocks:

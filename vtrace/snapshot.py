@@ -143,7 +143,7 @@ class TraceSnapshot(vtrace.Trace, v_base.TracerBase):
         pass
 
     def platformParseBinary(self, *args):
-        logger.warning('FIXME FAKE PLATFORM PARSE BINARY: %s' % repr(args))
+        logger.warning('FIXME FAKE PLATFORM PARSE BINARY: %s', args)
 
     # Over-ride register *caching* subsystem to store/retrieve
     # register information in pure dictionaries
@@ -181,8 +181,8 @@ def takeSnapshot(trace):
         regs[thrid] = reginfo
         try:
             stacktrace[thrid] = trace.getStackTrace()
-        except Exception as msg:
-            logger.warning("Failed to get stack trace for thread 0x%.8x (%s)" % (thrid, str(msg)))
+        except Exception as e:
+            logger.warning("Failed to get stack trace for thread 0x%.8x (%s)", thrid, e)
 
     mem = dict()
     maps = []
@@ -191,7 +191,7 @@ def takeSnapshot(trace):
             mem[base] = trace.readMemory(base, size)
             maps.append((base, size, perms, fname))
         except Exception as msg:
-            logger.warning("Can't snapshot memmap at 0x%.8x (%s)" % (base, msg))
+            logger.warning("Can't snapshot memmap at 0x%.8x (%s)", base, msg)
 
     # If the contents here change, change the version...
     sd['version'] = 1

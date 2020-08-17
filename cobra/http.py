@@ -1,18 +1,14 @@
 """
-Implementation of Cobra using HTTP 
+Implementation of Cobra using HTTP
 """
 
 import os
-import sys
 import json
 import time
-import errno
 import types
 import urllib
 import base64
 import Cookie
-import socket
-import struct
 import httplib
 import logging
 import urlparse
@@ -20,22 +16,23 @@ import traceback
 import BaseHTTPServer
 
 import cobra as c_cobra
-import cPickle as pickle
 
 from threading import currentThread,Thread,RLock
-from SocketServer import ThreadingTCPServer, BaseRequestHandler
+from SocketServer import ThreadingTCPServer
 
 logger = logging.getLogger(__name__)
 daemon = None
 verbose = False
 version = "Cobra2"
-COBRA_PORT=80
-COBRASSL_PORT=443
-cobra_retrymax = None # Optional *global* retry max count
+COBRA_PORT = 80
+COBRASSL_PORT = 443
+cobra_retrymax = None  # Optional *global* retry max count
+
 
 class CobraHttpException(Exception):
     """Base for Cobra exceptions"""
     pass
+
 
 def chopCobraHttpUri(uri):
     '''
@@ -46,7 +43,7 @@ def chopCobraHttpUri(uri):
     /[OBJECT]/[FUNCTION]?args=<JSON ARGS>&kwargs=<JSON KWARGS>
 
     Returns:
-        [OBJECT], [FUNCTION], args or (), kwargs or {} 
+        [OBJECT], [FUNCTION], args or (), kwargs or {}
     '''
     url = uri
     if uri.startswith('/'):
@@ -57,15 +54,16 @@ def chopCobraHttpUri(uri):
 
     # Do we have any URL options?
     urlparams = {}
-    for urlopt in urllib.unquote( url.query ).split('&'):
+    for urlopt in urllib.unquote(url.query).split('&'):
         urlval = '1'
         if urlopt.find('=') != -1:
-            urlopt,urlval = urlopt.split('=',1)
+            urlopt, urlval = urlopt.split('=', 1)
 
         urlopt = urlopt.lower()
         urlparams[urlopt] = json.loads(urlval)
 
-    return objname, methname, urlparams.get('args', ()), urlparams.get('kwargs', {}) 
+    return objname, methname, urlparams.get('args', ()), urlparams.get('kwargs', {})
+
 
 class CobraHttpRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     '''
@@ -73,18 +71,18 @@ class CobraHttpRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     '''
     def __init__(self, *args, **kwargs):
         self.handlers = {
-                '__cobra_hello'   : self.handleHello,
-                '__cobra_getattr' : self.handleGetAttr,
-                '__cobra_setattr' : self.handleSetAttr,
-                '__cobra_login'   : self.handleLogin
+                '__cobra_hello': self.handleHello,
+                '__cobra_getattr': self.handleGetAttr,
+                '__cobra_setattr': self.handleSetAttr,
+                '__cobra_login': self.handleLogin
             }
         BaseHTTPServer.BaseHTTPRequestHandler.__init__(self, *args, **kwargs)
 
     def do_POST(self):
         # this is a json posted data list (args, kwargs)
-        body =  json.loads(urllib.unquote(self.rfile.read( int(self.headers['Content-Length'])) ))
+        body = json.loads(urllib.unquote(self.rfile.read(int(self.headers['Content-Length']))))
 
-        #self.handleClient(s.server, s, s.path, body=body)
+        # self.handleClient(s.server, s, s.path, body=body)
         self.handleClient(body=body)
 
     def do_GET(self):
@@ -100,15 +98,17 @@ class CobraHttpRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             sslreq = ssl.CERT_NONE
             # If they specify a CA key, require valid client certs
             if sslca:
-                sslreq=ssl.CERT_REQUIRED
+                sslreq = ssl.CERT_REQUIRED
 
             self.request = ssl.wrap_socket(self.request,
-                                     keyfile=keyfile, certfile=certfile,
-                                     ca_certs=sslca, cert_reqs=sslreq,
-                                     server_side=True)
+                                           keyfile=keyfile,
+                                           certfile=certfile,
+                                           ca_certs=sslca,
+                                           cert_reqs=sslreq,
+                                           server_side=True)
         BaseHTTPServer.BaseHTTPRequestHandler.setup(self)
 
-    def handleClient(self, body=None): 
+    def handleClient(self, body=None):
         # validate authentication
         try:
             objname, methname, args, kwargs = chopCobraHttpUri(self.path)
@@ -119,15 +119,15 @@ class CobraHttpRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             excinfo = "%s" % traceback.format_exc()
             self.request.wfile.write(json.dumps(excinfo))
             return
-        
+
         if body:
-            args    = body.get('args', ())
-            kwargs  = body.get('kwargs', {})
+            args = body.get('args', ())
+            kwargs = body.get('kwargs', {})
 
         # user is trying to authenticate
         if methname == '__cobra_login':
-            return self.handlers['__cobra_login'](objname, kwargs)        
-         
+            return self.handlers['__cobra_login'](objname, kwargs)
+
         if self.server.authmod:
             authinfo = None
             if not self.headers.getheader('Cookie'):
@@ -164,7 +164,7 @@ class CobraHttpRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
                 ret = meth(*args, **kwargs)
                 self.send_response(httplib.OK)
                 self.end_headers()
-                self.wfile.write(json.dumps(ret)) 
+                self.wfile.write(json.dumps(ret))
             except Exception as e:
                 self.send_response(httplib.INTERNAL_SERVER_ERROR)
                 self.end_headers()
@@ -219,7 +219,7 @@ class CobraHttpRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         return
 
     def handleGetAttr(self, objname, attr):
-        logger.debug('GetAttr: %s' % str(attr))
+        logger.debug('GetAttr: %s', attr)
         if not self.server.attr:
             self.send_response(httplib.FORBIDDEN)
             self.end_headers()
@@ -239,7 +239,7 @@ class CobraHttpRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             self.wfile.write(json.dumps(excinfo))
 
     def handleSetAttr(self, objname, name, value):
-        logger.debug('SetAttr %s = %s' % (str(name), str(value)))
+        logger.debug('SetAttr %s = %s', name, value)
         if not self.server.attr:
             self.send_response(httplib.FORBIDDEN)
             self.end_headers()
@@ -251,8 +251,8 @@ class CobraHttpRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         self.send_response(httplib.OK)
         self.end_headers()
 
-class CobraHttpDaemon(ThreadingTCPServer):
 
+class CobraHttpDaemon(ThreadingTCPServer):
     def __init__(self, host="", port=COBRA_PORT, sslcrt=None, sslkey=None, sslca=None, sess_timeout=24, attr=True):
         '''
         Construct a cobra daemon object.
@@ -381,7 +381,7 @@ class CobraHttpProxy:
     def __init__(self, URI, retrymax=None, timeout=None, **kwargs):
 
         scheme, host, port, name, urlparams = c_cobra.chopCobraUri(URI)
-        logger.debug('Host: %s, Port: %s, Obj: %s' % (host, str(port), str(name)))
+        logger.debug('Host: %s, Port: %s, Obj: %s', host, port, name)
         self._cobra_uri = URI
         self._cobra_scheme = scheme
         self._cobra_host = host
@@ -430,7 +430,7 @@ class CobraHttpProxy:
         return sock
 
     def __getattr__(self, name):
-        logger.debug('GetAttr: %s' % str(name))
+        logger.debug('GetAttr: %s', name)
         if name == "__getinitargs__":
             raise AttributeError()
         # Handle methods
@@ -440,7 +440,7 @@ class CobraHttpProxy:
         return CobraHttpMethod(self, '__cobra_getattr')(name)
 
     def __setattr__(self, name, value):
-        logger.debug('SetAttr: %s = %s' % (str(name), str(value)))
+        logger.debug('SetAttr: %s = %s', name, value)
         if name.startswith('_cobra_'):
             self.__dict__[name] = value
             return
@@ -564,6 +564,6 @@ class CobraHttpMethod:
 
     def __call__(self, *args, **kwargs):
         name = self.proxy._cobra_name
-        logger.debug('Calling %s:%s,(%s, %s)' % (name, self.methname, repr(args)[:20], repr(kwargs)[:20]))
+        logger.debug('Calling %s:%s,(%s, %s)', name, self.methname, repr(args)[:20], repr(kwargs)[:20])
         sock = self.proxy._cobra_http_getsock()
         return sock.cobraHttpTransaction(self.methname, (args,kwargs))

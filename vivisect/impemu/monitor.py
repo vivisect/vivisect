@@ -20,7 +20,7 @@ class EmulationMonitor:
         self.retvals = []  # A list of the return values seen
 
     def logAnomaly(self, emu, va, msg):
-        self.emuanom.append((va,msg))
+        self.emuanom.append((va, msg))
 
     def getAnomalies(self):
         return list(self.emuanom)
@@ -75,23 +75,21 @@ class AnalysisMonitor(EmulationMonitor):
         '''
         # Add emulation anomalies
         for row in self.getAnomalies():
-            va,msg = row
+            va, msg = row
             vw.setVaSetRow("Emulation Anomalies", row)
-            vw.setComment(va, 'Emu Anomaly: %s' % (msg,),check=True)
+            vw.setComment(va, 'Emu Anomaly: %s' % (msg,), check=True)
 
         # Go through the evaluated dereference operands and add operand refs
         deltadone = {}
-        for va,idx,val,tsize,spdelta,discrete in self.operrefs:
-
+        for va, idx, val, tsize, spdelta, discrete in self.operrefs:
             if spdelta:
-
                 vw.addFref(self.fva, va, idx, spdelta)
 
                 if deltadone.get(spdelta):
                     continue
 
                 deltadone[spdelta] = True
-                if spdelta <= 0: # add function locals
+                if spdelta <= 0:  # add function locals
                     vw.setFunctionLocal(self.fva, spdelta, LSYM_NAME, ('int','local%d' % abs(spdelta)))
 
                 continue
@@ -111,7 +109,7 @@ class AnalysisMonitor(EmulationMonitor):
                     vw.makeNumber(val, tsize)
 
         for va, callname, argv in self.callcomments:
-            reprargs = [ emu.reprVivValue(val) for val in argv ]
+            reprargs = [emu.reprVivValue(val) for val in argv]
             self.vw.setComment(va, '%s(%s)' % (callname, ','.join(reprargs)))
 
     def addDynamicBranchHandler(self, cb):
@@ -132,17 +130,17 @@ class AnalysisMonitor(EmulationMonitor):
 
         if not self.onceop.get(starteip):
             self.onceop[starteip] = True
-            for i,o in enumerate(op.opers):
+            for i, o in enumerate(op.opers):
                 if o.isDeref():
                     discrete = o.isDiscrete()
                     operva = o.getOperAddr(op, emu)
                     # keep track of the max here, but save it for later too...
-                    stackoff = emu.getStackOffset( operva )
-                    if stackoff >= 0: # None is not >= 0 ;)
-                        self.stackmax = max( self.stackmax, stackoff )
+                    stackoff = emu.getStackOffset(operva)
+                    if stackoff >= 0:  # None is not >= 0 ;)
+                        self.stackmax = max(self.stackmax, stackoff)
                         self.stackargs[stackoff] = True
 
-                    self.operrefs.append((starteip,i,operva,o.tsize,stackoff,discrete))
+                    self.operrefs.append((starteip, i, operva, o.tsize, stackoff, discrete))
 
         if op.iflags & BRANCH_FLAGS:
             oper = op.opers[0]
@@ -150,33 +148,31 @@ class AnalysisMonitor(EmulationMonitor):
                 for cb in self._dynamic_branch_handlers:
                     try:
                         cb(self, emu, op, starteip)
-                    except:
-                        logger.exception('error with dyn branch handler (%r)', repr(cb))
-
+                    except Exception as e:
+                        logger.exception('error with dyn branch handler (%s) (%s)', cb, e)
 
     def apicall(self, emu, op, pc, api, argv):
-
-        rettype,retname,convname,callname,callargs = api
+        rettype, retname, convname, callname, callargs = api
         if self.vw.getComment(op.va) is None:
             if callname is None:
                 callname = self.vw.getName(pc)
 
-            self.callcomments.append( (op.va, callname, argv) )
+            self.callcomments.append((op.va, callname, argv))
 
         # Record uninitialized register use
-        for i,arg in enumerate(argv):
+        for i, arg in enumerate(argv):
 
             # Check for taints first because it's faster...
             taint = emu.getVivTaint(arg)
             if taint:
-                tva,ttype,tinfo = taint
+                tva, ttype, tinfo = taint
                 if ttype == 'uninitreg':
                     emu.logUninitRegUse(tinfo)
                 continue
 
             # Lets see if the API def has type info for us...
             if self.vw.isValidPointer(arg):
-                argtype,argname = callargs[i]
+                argtype, argname = callargs[i]
                 self.vw.setComment(arg, argtype, check=True)
                 if not self.vw.isLocation(arg):
                     if argname == 'funcptr':
@@ -214,4 +210,3 @@ class AnalysisMonitor(EmulationMonitor):
         self.vw.vprint('0x%.8x: Emulation Found 0x%.8x (from func: 0x%.8x) via %s' % (op.va, pc, self.fva, repr(op)))
         self.vw.makeFunction(pc, arch=op.iflags & envi.ARCH_MASK)
         self.vw.addXref(op.va, pc, REF_CODE, envi.BR_PROC)
-

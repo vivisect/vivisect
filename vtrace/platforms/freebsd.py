@@ -357,7 +357,7 @@ class FreeBSDMixin:
             self.handlePosixSignal(sig)
 
         else:
-            logger.warning('Received unknown event: %s' % str(event))
+            logger.warning('Received unknown event: %s', event)
 
 
     @v_base.threadwrap

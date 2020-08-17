@@ -67,7 +67,7 @@ class ScriptThread(threading.Thread):
         try:
             exec(self.cobj, self.locals)
         except Exception as e:
-            logger.warning('Script Error: %s' % repr(e))
+            logger.warning('Script Error: %s', e)
 
 def setupBreakOnEntry(trace):
     '''

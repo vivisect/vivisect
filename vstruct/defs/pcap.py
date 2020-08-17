@@ -371,7 +371,7 @@ def _iterPcapFile(fd, reuse=False):
             yield pkt,ipv4,icmp_hdr,pdata
 
         else:
-            logger.warning('UNHANDLED IP PROTOCOL: %d' % ipv4.proto)
+            logger.warning('UNHANDLED IP PROTOCOL: %d', ipv4.proto)
 
 
 def _iterPcapNgFile(fd, reuse=False):
@@ -421,7 +421,7 @@ def _iterPcapNgFile(fd, reuse=False):
             #PCAPNG_BLOCKTYPE_NAME_RESOLUTION:
             #PCAPNG_BLOCKTYPE_INTERFACE_STATS:
         else:
-            logger.warning('Unknown block type: 0x%08x: 0x%08x 0x%08x bytes' % (roff, header.blocktype, header.blocksize)
+            logger.warning('Unknown block type: 0x%08x: 0x%08x 0x%08x bytes', roff, header.blocktype, header.blocksize)
         curroff = fd.tell()
         b0 = fd.read(len(header))
         fd.seek(curroff)
@@ -490,5 +490,5 @@ def _parsePcapngPacketBytes(linktype, pkt):
         pdata = b[offset:]
         return pkt,ipv4,icmp_hdr,pdata
     else:
-        logger.warning('UNHANDLED IP PROTOCOL: %d' % ipv4.proto)
+        logger.warning('UNHANDLED IP PROTOCOL: %d', ipv4.proto)
     return None

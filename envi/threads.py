@@ -23,8 +23,9 @@ def firethread(func):
         thr.setDaemon(True)
         thr.start()
         return thr
-    functools.update_wrapper(dothread,func)
+    functools.update_wrapper(dothread, func)
     return dothread
+
 
 def maintthread(stime):
     '''
@@ -39,7 +40,7 @@ def maintthread(stime):
                 try:
                     func(*args, **kwargs)
                 except Exception as e:
-                    logger.warning('MaintThread (%s) Error: %s' % (args[0],e))
+                    logger.warning('MaintThread (%s) Error: %s', args[0], e)
                 time.sleep(stime)
 
         def dothread(*args, **kwargs):
@@ -47,7 +48,7 @@ def maintthread(stime):
             thr.setDaemon(True)
             thr.start()
 
-        functools.update_wrapper(dothread,func)
+        functools.update_wrapper(dothread, func)
         return dothread
 
     return maintwrap

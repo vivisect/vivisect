@@ -3,7 +3,6 @@ Darwin Platform Module
 """
 # Copyright (C) 2007 Invisigoth - See LICENSE file for details
 import os
-import struct
 import ctypes
 import signal
 import logging
@@ -689,7 +688,7 @@ class DarwinMixin(v_posix.PosixMixin, v_posix.PtraceMixin):
             self.handlePosixSignal(sig)
 
         elif excode == EXC_BAD_ACCESS:
-            logger.warning('exc_bad_access %s' % repr([hex(x) for x in codes]))
+            logger.warning('exc_bad_access %s', str([hex(x) for x in codes]))
             signo = signal.SIGSEGV
             #if codes[0] == KERN_INVALID_ADDRESS:
                 #signo = signal.SIGBUS
@@ -697,19 +696,19 @@ class DarwinMixin(v_posix.PosixMixin, v_posix.PtraceMixin):
             self._fireSignal(signo)
 
         elif excode == EXC_BAD_INSTRUCTION:
-            logger.warning('exc_bad_instruction %s' % repr([hex(x) for x in codes]))
+            logger.warning('exc_bad_instruction %s', str([hex(x) for x in codes]))
             self._fireSignal(signal.SIGILL)
 
         elif excode == EXC_CRASH:
-            logger.warning('Crash: %s' % repr([hex(x) for x in codes]))
+            logger.warning('Crash: %s', str([hex(x) for x in codes]))
             self._fireExit(0xffffffff)
 
         elif excode == EXC_BREAKPOINT:
-            logger.warning('exc_breakpoint' % str(codes))
+            logger.warning('exc_breakpoint: %s', str(codes))
             self.handlePosixSignal(signal.SIGTRAP)
 
         else:
-            logger.warning('Unprocessed Exception Type: %d' % excode)
+            logger.warning('Unprocessed Exception Type: %d', excode)
             self.fireNotifiers(vtrace.NOTIFY_SIGNAL)
 
         return

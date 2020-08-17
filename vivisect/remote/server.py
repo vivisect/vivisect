@@ -173,7 +173,7 @@ class VivServer:
                     # Initialize the workspace info tuple
                     lock = threading.Lock()
                     wsinfo = [lock, wspath, [], {}]
-                    logger.debug('loaded: %s' % wsname)
+                    logger.debug('loaded: %s', wsname)
                     self.wsdict[wsname] = wsinfo
 
         os.path.walk(self.path, checkWorkspaceDir, None)
@@ -251,10 +251,10 @@ def main(argv):
     opts = setup().parse_args(argv)
     vdir = os.path.abspath(opts.dirn)
     if not os.path.isdir(vdir):
-        logger.error('%s is not a valid directory!' % vdir)
+        logger.error('%s is not a valid directory!', vdir)
         return -1
 
-    logger.debug('Server starting (port: %d)' % viv_port)
+    logger.debug('Server starting (port: %d)', viv_port)
     runMainServer(vdir, opts.port)
 
 

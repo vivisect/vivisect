@@ -79,7 +79,7 @@ class SymbolCache:
             with open(cachefile, 'rb') as fd:
                 return json.load(fd)
         except Exception as e:
-            logger.warning('Failed to load cachefile: %s' % e)
+            logger.warning('Failed to load cachefile: %s', e)
             return None
 
 class SymbolCachePath:
