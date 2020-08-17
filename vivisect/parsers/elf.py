@@ -373,7 +373,7 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
             name = name.split('.')[0].lower()
             vw.addLibraryDependancy(name)
         else:
-            logger.debug("DYNAMIC:\t%r",d)
+            logger.debug("DYNAMIC:\t%r", d)
 
         elfmeta[Elf.dt_names.get(d.d_tag)] = d.d_value
 

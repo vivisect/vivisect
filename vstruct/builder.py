@@ -10,14 +10,15 @@ import inspect
 import vstruct
 import vstruct.primitives as vs_prim
 
-prim_types = [ None, 
-               vs_prim.v_uint8,
-               vs_prim.v_uint16,
-               None,
-               vs_prim.v_uint32,
-               None, None, None,
-               vs_prim.v_uint64
-             ]
+prim_types = [None,
+              vs_prim.v_uint8,
+              vs_prim.v_uint16,
+              None,
+              vs_prim.v_uint32,
+              None,
+              None,
+              None,
+              vs_prim.v_uint64]
 
 # VStruct Field Flags
 VSFF_POINTER = 1
@@ -33,7 +34,7 @@ class VStructConstructor:
 class VStructBuilder:
 
     def __init__(self, defs=(), enums=()):
-        self._vs_defs = {}
+        self._vs_defs = {}  # name, size, kids
         self._vs_ctors = {}
         self._vs_enums = {}
         self._vs_namespaces = {}
@@ -100,6 +101,7 @@ class VStructBuilder:
         return ret
 
     def addVStructDef(self, vsdef):
+        # TODO: if we see a dot in the name, should we automagically create a namespace?
         vsname = vsdef[0]
         self._vs_defs[vsname] = vsdef
 
@@ -249,7 +251,7 @@ class VStructBuilder:
 
                 # If fcount != None, we're an array!
                 if fcount != None:
-                    fconst = 'vstruct.VArray([ %s for i in range(%d) ])' % (fconst, fcount)
+                    fconst = 'vstruct.VArray([%s for i in range(%d)])' % (fconst, fcount)
                     fsize *= fcount
 
                 ret += '        self.%s = %s\n' % (fname, fconst)

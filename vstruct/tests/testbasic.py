@@ -17,9 +17,6 @@ class woot(vstruct.VStruct):
 
 class VStructTest(unittest.TestCase):
 
-    #def setUp(self):
-    #def tearDown(self):
-
     def test_vstruct_basicstruct(self):
 
         v = vstruct.VStruct()

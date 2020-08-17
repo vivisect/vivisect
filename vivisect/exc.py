@@ -5,11 +5,11 @@ All the exception types raised by workspace APIs go here.
 
 class InvalidLocation(Exception):
     def __init__(self, va, msg=None):
-        Exception.__init__(self, "Invalid Location 0x%.8x: %s" % (va,msg))
+        Exception.__init__(self, "Invalid Location 0x%.8x: %s" % (va, msg))
 
 class DuplicateName(Exception):
     def __init__(self, origva, newva, name):
-        Exception.__init__(self, "Duplicate Name: %s at 0x%.8x and 0x%.8x" % (name,origva,newva))
+        Exception.__init__(self, "Duplicate Name: %s at 0x%.8x and 0x%.8x" % (name, origva, newva))
 
 class InvalidVaSet(Exception):
     def __init__(self, name):
@@ -20,8 +20,12 @@ class InvalidFunction(Exception):
         Exception.__init__(self, "VA 0x%.8x is not a function" % va)
 
 class InvalidCodeBlock(Exception):
-    def __init__(self, cbva):
+    def __init__(self, va):
         Exception.__init__(self, 'VA 0x%.8x is not in a code block!' % va)
+
+class BadOpBytes(Exception):
+    def __init__(self, va):
+        Exception.__init__(self, 'Hit known badop bytes at va 0x%.8x ' % va)
 
 class UnknownCallingConvention(Exception):
     def __init__(self, fva, cc=None):
