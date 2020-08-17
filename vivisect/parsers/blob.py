@@ -31,6 +31,7 @@ def parseFd(vw, fd, filename=None, baseaddr=None):
     vw.setMeta('DefaultCall', archcalls.get(arch,'unknown'))
 
     bytez =  fd.read() 
+    vw.setFileMeta('sha256', v_parsers.sha256Bytes(bytez))
     vw.addMemoryMap(baseaddr, 7, filename, bytez)
     vw.addSegment( baseaddr, len(bytez), '%.8x' % baseaddr, 'blob' )
 
@@ -54,9 +55,9 @@ def parseFile(vw, filename, baseaddr=None):
     vw.setMeta('bigend', bigend)
     vw.setMeta('DefaultCall', archcalls.get(arch,'unknown'))
 
-    fname = vw.addFile(filename, baseaddr, v_parsers.md5File(filename))
-    vw.setFileMeta('sha256', v_parsers.sha256File(filename))
     bytez =  file(filename, "rb").read()
+    fname = vw.addFile(filename, baseaddr, v_parsers.md5File(filename))
+    vw.setFileMeta(fname, 'sha256', v_parsers.sha256Bytes(bytez))
     vw.addMemoryMap(baseaddr, 7, filename, bytez)
     vw.addSegment( baseaddr, len(bytez), '%.8x' % baseaddr, 'blob' )
 
@@ -65,9 +66,10 @@ def parseMemory(vw, memobj, baseaddr):
     va,size,perms,fname = memobj.getMemoryMap(baseaddr)
     if not fname:
         fname = 'map_%.8x' % baseaddr
-    bytes = memobj.readMemory(va, size)
-    fname = vw.addFile(fname, baseaddr, v_parsers.md5Bytes(bytes))
-    vw.setFileMeta('sha256', v_parsers.sha256Bytes(bytes))
-    vw.addMemoryMap(va, perms, fname, bytes)
+
+    bytez = memobj.readMemory(va, size)
+    fname = vw.addFile(fname, baseaddr, v_parsers.md5Bytes(bytez))
+    vw.setFileMeta('sha256', v_parsers.sha256Bytes(bytez))
+    vw.addMemoryMap(va, perms, fname, bytez)
     vw.setMeta('DefaultCall', archcalls.get(arch,'unknown'))
 
