@@ -23,7 +23,8 @@ class v_bitmask(object):
 
     def vsReverseMapping(self, val, default=None):
         '''Returns a list of names where apply the AND of the mask and val is non-zero'''
-        return [ v for k,v in self._vs_reverseMap.items() if (val&k) != 0 ]
+        return [v for k, v in self._vs_reverseMap.items() if (val & k) != 0]
+
 
 class v_base(object):
     def __init__(self):
@@ -36,10 +37,18 @@ class v_base(object):
         self._vs_meta[name] = value
 
     # Sub-classes (primitive base, or VStruct must have these
-    def vsParse(self, bytes): return NotImplemented
-    def vsCalculate(self): pass
-    def vsIsPrim(self): return NotImplemented
-    def vsGetTypeName(self): return NotImplemented
+    def vsParse(self, bytes):
+        return NotImplemented
+
+    def vsCalculate(self):
+        pass
+
+    def vsIsPrim(self):
+        return NotImplemented
+
+    def vsGetTypeName(self):
+        return NotImplemented
+
 
 class v_prim(v_base):
     def __init__(self):
