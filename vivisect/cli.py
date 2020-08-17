@@ -827,9 +827,9 @@ class VivCli(e_cli.EnviCli, vivisect.VivWorkspace):
                 else:
                     offset = int(argv[2])
 
-            import vivisect.analysis.generic.switchcase as vags
+            import vivisect.analysis.generic.symswitchcase as vagss
             import vivisect.analysis.generic.codeblocks as vagc
-            vags.makeSwitch(self, jmpva, count, offset)
+            vagss.makeSwitch(self, jmpva, count, offset)
             funcva = self.getFunction(jmpva)
             vagc.analyzeFunction(self, funcva)
         except ValueError, e:
@@ -867,9 +867,9 @@ class VivCli(e_cli.EnviCli, vivisect.VivWorkspace):
             else:
                 offset = 0
 
-            import vivisect.analysis.generic.switchcase as vags
-            import vivisect.analysis.generic.switchcase as vagc
-            vags.link_up(self, jmpva, array, count, offset)
+            import vivisect.analysis.generic.symswitchcase as vagss
+            import vivisect.analysis.generic.codeblocks as vagc
+            vagss.link_up(self, jmpva, array, count, offset)
             funcva = self.getFunction(jmpva)
             vagc.analyzeFunction(self, funcva)
         except ValueError, e:
@@ -920,9 +920,9 @@ class VivCli(e_cli.EnviCli, vivisect.VivWorkspace):
                 offset = 0
 
             # link up the switchcase using data provided
-            import vivisect.analysis.generic.switchcase as vags
-            import vivisect.analysis.generic.switchcase as vagc
-            vags.link_up(self, jmpva, array, count, offset, baseva, size)
+            import vivisect.analysis.generic.symswitchcase as vagss
+            import vivisect.analysis.generic.codeblocks as vagc
+            vagss.link_up(self, jmpva, array, count, offset, baseva, size)
 
             # reanalyze codeblocks for the function (since it should have changed)
             funcva = self.getFunction(jmpva)
