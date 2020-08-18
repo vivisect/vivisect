@@ -5,6 +5,7 @@ This module should be run after codeblocks analyis pass.
 """
 
 import envi
+import vivisect.exc as v_exc
 import vivisect.impemu.monitor as viv_imp_monitor
 
 verbose = False
@@ -28,7 +29,7 @@ class instrhook_watcher (viv_imp_monitor.EmulationMonitor):
     def prehook(self, emu, op, eip):
         if op in self.badops:
             emu.stopEmu()
-            raise Exception("Hit known BADOP at 0x%.8x %s" % (eip, repr(op)))
+            raise v_exc.BadOpBytes(op.va)
 
         if op.mnem in STOS:
             if self.arch == 'i386':

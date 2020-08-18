@@ -1,12 +1,9 @@
-import sys
-
-import vivisect
+import vivisect.exc as v_exc
 import vivisect.impemu as viv_imp
 import vivisect.impemu.monitor as viv_monitor
 
 import envi
 import envi.archs.amd64 as e_amd64
-from envi.registers import RMETA_NMASK
 
 from vivisect.const import *
 
@@ -25,7 +22,7 @@ class AnalysisMonitor(viv_monitor.AnalysisMonitor):
     def prehook(self, emu, op, starteip):
 
         if op in self.badops:
-            raise Exception("Hit known BADOP at 0x%.8x %s" % (starteip, repr(op) ))
+            raise v_exc.BadOpBytes(op.va)
 
         viv_monitor.AnalysisMonitor.prehook(self, emu, op, starteip)
 

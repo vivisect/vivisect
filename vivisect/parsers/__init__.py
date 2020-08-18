@@ -14,6 +14,7 @@ for vivisect.  Each parser module must implement the following functions:
 import md5
 import sys
 import struct
+import hashlib
 
 import vstruct.defs.macho as vs_macho
 
@@ -30,6 +31,13 @@ def md5Bytes(bytes):
     d = md5.md5()
     d.update(bytes)
     return d.hexdigest()
+
+def sha256File(filename):
+    with open(filename, 'rb') as f:
+        return hashlib.sha256(f.read()).hexdigest().upper()
+
+def sha256Bytes(bytes):
+    return hashlib.sha256(bytes).hexdigest().upper()
 
 macho_magics = (
     vs_macho.MH_MAGIC,

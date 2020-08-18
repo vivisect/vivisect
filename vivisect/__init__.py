@@ -2595,7 +2595,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
     def getLocationDistribution(self):
         # NOTE: if this changes, don't forget the report module!
-        totsize = float(0)
+        totsize = 0
         for mapva, mapsize, mperm, mname in self.getMemoryMaps():
             totsize += mapsize
         loctot = 0
@@ -2609,11 +2609,11 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             loctot += size
 
             tname = loc_type_names.get(i, 'Unknown')
-            ret[i] = (tname, cnt, size, int((size/totsize)*100))
+            ret[i] = (tname, cnt, size, int((size/float(totsize))*100))
 
         # Update the undefined based on totals...
         undeftot = totsize-loctot
-        ret[LOC_UNDEF] = ('Undefined', 0, undeftot, int((undeftot/totsize)*100))
+        ret[LOC_UNDEF] = ('Undefined', 0, undeftot, int((undeftot/float(totsize)) * 100))
 
         return ret
 
