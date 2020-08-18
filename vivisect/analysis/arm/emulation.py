@@ -1,6 +1,7 @@
 import logging
 
 import vivisect
+import vivisect.exc as v_exc
 import vivisect.impemu.monitor as viv_monitor
 import vivisect.analysis.generic.codeblocks as viv_cb
 
@@ -34,7 +35,7 @@ class AnalysisMonitor(viv_monitor.AnalysisMonitor):
             self.last_tmode = tmode
             if op in self.badops:
                 emu.stopEmu()
-                raise Exception("Hit known BADOP at 0x%.8x %s (fva: 0x%x)" % (starteip, repr(op), self.fva))
+                raise v_exc.BadOpBytes(op.va)
 
             viv_monitor.AnalysisMonitor.prehook(self, emu, op, starteip)
 

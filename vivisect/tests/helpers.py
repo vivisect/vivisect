@@ -30,6 +30,7 @@ def getTestPath(*paths):
     return os.path.join(testdir, *paths)
 
 
+# @functools.lrucache() -- python 3 only :(
 def getTestWorkspace(*paths):
     testdir = os.getenv('VIVTESTFILES')
     if not testdir:

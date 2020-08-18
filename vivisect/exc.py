@@ -29,9 +29,12 @@ class InvalidFunction(Exception):
 
 
 class InvalidCodeBlock(Exception):
-    def __init__(self, cbva):
-        Exception.__init__(self, 'VA 0x%.8x is not in a code block!' % cbva)
+    def __init__(self, va):
+        Exception.__init__(self, 'VA 0x%.8x is not in a code block!' % va)
 
+class BadOpBytes(Exception):
+    def __init__(self, va):
+        Exception.__init__(self, 'Hit known badop bytes at va 0x%.8x ' % va)
 
 class UnknownCallingConvention(Exception):
     def __init__(self, fva, cc=None):

@@ -46,11 +46,13 @@ class StructParser:
         if psize == 8:
             self.pclass = vs_prim.v_ptr64
             self.vs_ctypes.update({
-                ('long',):                  vs_prim.v_int64,
-                ('long','int'):             vs_prim.v_int64,
+                ('long',):                    vs_prim.v_int64,
+                ('long', 'int'):              vs_prim.v_int64,
+                ('long', 'long'):             vs_prim.v_int64,
 
-                ('unsigned','long',):       vs_prim.v_uint64,
-                ('unsigned','long','int'):  vs_prim.v_uint64,
+                ('unsigned', 'long',):        vs_prim.v_uint64,
+                ('unsigned', 'long', 'int'):  vs_prim.v_uint64,
+                ('unsigned', 'long', 'long'): vs_prim.v_uint64,
             })
 
     def _getVsChildElements(self, astelem):

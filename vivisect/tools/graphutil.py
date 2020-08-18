@@ -416,8 +416,8 @@ def getOpsFromPath(vw, fgraph, path):
     '''
     Retrieve the opcodes for a given path.
 
-    #FIXME cache opcodes in function graph for replay speed
     '''
+    # FIXME cache opcodes in function graph for replay speed
     ret = []
     for nid,eid in path:
         node = fgraph.getNode(nid)
@@ -546,6 +546,7 @@ def getGraphNodeByVa(fgraph, va):
 
     DEPRECATED as soon as visi's new CodeGraph gains this functionality inherently
     '''
+    logger.warning('getGraphNodeByVa is deprecated!')
     for nva, ninfo in fgraph.nodes.values():
         nvamax = ninfo.get('cbsize')
         if nvamax is None: 

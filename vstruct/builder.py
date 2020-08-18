@@ -10,14 +10,17 @@ import inspect
 import vstruct
 import vstruct.primitives as vs_prim
 
-prim_types = [ None, 
-               vs_prim.v_uint8,
-               vs_prim.v_uint16,
-               None,
-               vs_prim.v_uint32,
-               None, None, None,
-               vs_prim.v_uint64
-             ]
+TSIZES = [1, 2, 4, 8]
+
+prim_types = [None,
+              vs_prim.v_uint8,
+              vs_prim.v_uint16,
+              None,
+              vs_prim.v_uint32,
+              None,
+              None,
+              None,
+              vs_prim.v_uint64]
 
 # VStruct Field Flags
 VSFF_POINTER = 1
@@ -33,7 +36,7 @@ class VStructConstructor:
 class VStructBuilder:
 
     def __init__(self, defs=(), enums=()):
-        self._vs_defs = {}
+        self._vs_defs = {}  # name, size, kids
         self._vs_ctors = {}
         self._vs_enums = {}
         self._vs_namespaces = {}
@@ -62,10 +65,10 @@ class VStructBuilder:
         return self._vs_ctors.keys()
 
     def addVStructCtor(self, sname, ctor):
-        self._vs_ctors[ sname ] = ctor
+        self._vs_ctors[sname] = ctor
 
     def delVStructCtor(self, sname):
-        return self._vs_ctors.pop( sname , None)
+        return self._vs_ctors.pop(sname, None)
 
     def addVStructEnumeration(self, enum):
         self._vs_enums[enum[0]] = enum
@@ -100,6 +103,7 @@ class VStructBuilder:
         return ret
 
     def addVStructDef(self, vsdef):
+        # TODO: if we see a dot in the name, should we automagically create a namespace?
         vsname = vsdef[0]
         self._vs_defs[vsname] = vsdef
 
@@ -118,7 +122,7 @@ class VStructBuilder:
         if tname is not None:
             return self.buildVStruct(tname)
 
-        if tsize not in [1,2,4,8]:
+        if tsize not in TSIZES:
             return v_bytes(size=tsize)
 
         return prim_types[tsize]()
@@ -153,10 +157,8 @@ class VStructBuilder:
                 if isinstance(ns, types.ModuleType):
                     cls = getattr(ns, vsname, None)
                     if cls is not None:
-                       return cls()
-
+                        return cls()
                 else:
-
                     vsdef = ns._vs_defs.get(vsname)
                     if vsdef is not None:
                         break
@@ -168,14 +170,13 @@ class VStructBuilder:
 
         vs = vstruct.VStruct()
         vs._vs_name = vsname
-    
 
         for fname, foffset, fsize, ftypename, fflags, fcount in vskids:
 
             fieldval = self._buildVsType(ftypename, fsize, fflags)
 
             if fcount is not None:
-                afields = [copy.deepcopy(fieldval) for i in range(fcount) ]
+                afields = [copy.deepcopy(fieldval) for i in range(fcount)]
                 fieldval = vstruct.VArray(afields)
 
             cursize = len(vs)
@@ -225,9 +226,8 @@ class VStructBuilder:
         for ename, esize, ekids in self._vs_enums.values():
             ret += '%s = v_enum()\n' % ename
             for kname, kval in ekids:
-                ret += '%s.%s = %d\n' % (ename,kname,kval)
+                ret += '%s.%s = %d\n' % (ename, kname, kval)
             ret += '\n\n'
-
 
         for vsname, vsize, vskids in self._vs_defs.values():
             ret += 'class %s(vstruct.VStruct):\n' % vsname
@@ -249,7 +249,7 @@ class VStructBuilder:
 
                 # If fcount is not None, we're an array!
                 if fcount is not None:
-                    fconst = 'vstruct.VArray([ %s for i in range(%d) ])' % (fconst, fcount)
+                    fconst = 'vstruct.VArray([%s for i in range(%d)])' % (fconst, fcount)
                     fsize *= fcount
 
                 ret += '        self.%s = %s\n' % (fname, fconst)

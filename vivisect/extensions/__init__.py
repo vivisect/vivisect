@@ -29,20 +29,25 @@ def loadExtensions(vw, vwgui):
             continue
 
         for fname in os.listdir(dirname):
+            modpath = os.path.join(dirname, fname)
+            # dig into first level of directories and exec the __init__.py
+            if os.path.isdir(modpath):
+                modpath = os.path.join(modpath, '__init__.py')
+                if not os.path.exists(modpath):
+                    continue
 
-            if not fname.endswith('.py'):
+            # otherwise, run all the .py files in the VIV_EXT_PATH dir
+            if not modpath.endswith('.py'):
                 continue
 
             # Build code objects from the module files
             mod = imp.new_module('viv_ext')
-            filepath = os.path.join(dirname, fname)
-            with open(filepath, 'r') as f:
-                filebytes = f.read()
-            mod.__file__ = filepath
+            with open(modpath, 'r') as fd:
+                filebytes = fd.read()
+            mod.__file__ = modpath
             try:
                 exec filebytes in mod.__dict__
                 mod.vivExtension(vw, vwgui)
             except Exception as e:
                 vw.vprint( traceback.format_exc() )
-                vw.vprint('Extension Error: %s' % filepath)
-
+                vw.vprint('Extension Error: %s' % modpath)

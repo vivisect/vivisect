@@ -2,6 +2,7 @@ import envi
 import logging
 import envi.archs.arm as e_arm
 
+import vivisect.exc as v_exc
 import vivisect.impemu.emulator as v_i_emulator
 
 import visgraph.pathcore as vg_path
@@ -203,12 +204,14 @@ class ArmWorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_arm.ArmEmulator):
                     if self.emumon:
                         try:
                             self.emumon.prehook(self, op, starteip)
+                        except v_exc.BadOpBytes as e:
+                            logger.debug(repr(e))
                         except Exception as e:
                             if not self.getMeta('silent'):
                                 logger.warn("funcva: 0x%x opva: 0x%x:  %r   (%r) (in emumon prehook: %r)", funcva, starteip, op, e, self.emumon)
 
                         if self.emustop:
-                            return 
+                            return
 
                     # Execute the opcode
                     self.executeOpcode(op)
@@ -223,7 +226,7 @@ class ArmWorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_arm.ArmEmulator):
                             if not self.getMeta('silent'):
                                 logger.warn("funcva: 0x%x opva: 0x%x:  %r   (%r) (in emumon posthook: %r)", funcva, starteip, op, e, self.emumon)
                         if self.emustop:
-                            return 
+                            return
 
                     iscall = self.checkCall(starteip, endeip, op)
                     if self.emustop:
@@ -263,8 +266,7 @@ class ArmWorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_arm.ArmEmulator):
                 except Exception as e:
                     if self.emumon is not None:
                         self.emumon.logAnomaly(self, starteip, str(e))
-
-                    logger.warning('runFunction breaking after exception (fva: 0x%x): %s', funcva, e)
+                    logger.debug('runFunction breaking after exception (fva: 0x%x): %s', funcva, e)
                     break # If we exc during execution, this branch is dead.
 
 class ThumbWorkspaceEmulator(ArmWorkspaceEmulator):

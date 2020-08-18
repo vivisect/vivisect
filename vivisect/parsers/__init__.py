@@ -31,6 +31,13 @@ def md5Bytes(bytes):
     d.update(bytes)
     return d.hexdigest()
 
+def sha256File(filename):
+    with open(filename, 'rb') as f:
+        return hashlib.sha256(f.read()).hexdigest().upper()
+
+def sha256Bytes(bytes):
+    return hashlib.sha256(bytes).hexdigest().upper()
+
 macho_magics = (
     vs_macho.MH_MAGIC,
     vs_macho.MH_CIGAM,

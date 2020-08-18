@@ -331,10 +331,11 @@ class SymbolikAnalysisContext:
     allows over-rides for things like symbolik imports during runtime.
     '''
 
-    def __init__(self, vw):
+    def __init__(self, vw, consolve=False):
         self.vw = vw
         self.funccb = {}    # Callbacks
-        self.consolve = False
+        self.consolve = consolve
+        # TODO: is this used?
         self._sym_resolve = False
         self.preeffects = []
         self.preconstraints = []
@@ -672,7 +673,7 @@ class SymbolikAnalysisContext:
             emu.setupFunctionCall(fva, args=fargs)
         return emu
 
-def getSymbolikAnalysisContext(vw):
+def getSymbolikAnalysisContext(vw, consolve=False):
     '''
     Return a symbolik analysis context which is appropriate for the given
     VivWorkspace.  Returns None if the given arch/platform does not support
@@ -682,11 +683,10 @@ def getSymbolikAnalysisContext(vw):
     arch = vw.getMeta('Architecture')
     if arch == 'i386':
         import vivisect.symboliks.archs.i386 as vsym_i386
-        return vsym_i386.i386SymbolikAnalysisContext(vw)
+        return vsym_i386.i386SymbolikAnalysisContext(vw, consolve=consolve)
 
     elif arch == 'amd64':
         import vivisect.symboliks.archs.amd64 as vsym_amd64
-        return vsym_amd64.Amd64SymbolikAnalysisContext(vw)
+        return vsym_amd64.Amd64SymbolikAnalysisContext(vw, consolve=consolve)
 
     return None
-

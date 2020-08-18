@@ -2099,23 +2099,22 @@ class Win32SymbolParser:
         return si
 
     def symInit(self):
+        dbghelp.SymInitialize(self.phandle, self.sympath, False)
+        dbghelp.SymSetOptions(self.symopts)
 
-            dbghelp.SymInitialize(self.phandle, self.sympath, False)
-            dbghelp.SymSetOptions(self.symopts)
-
-            x = dbghelp.SymLoadModule64(self.phandle,
-                        0, 
-                        self.filename,
-                        None,
-                        self.loadbase,
-                        os.path.getsize(self.filename))
+        x = dbghelp.SymLoadModule64(self.phandle,
+                                    0,
+                                    self.filename,
+                                    None,
+                                    self.loadbase,
+                                    os.path.getsize(self.filename))
 
 
-            # This is for debugging which pdb got loaded
-            #imghlp = IMAGEHLP_MODULE64()
-            #imghlp.SizeOfStruct = sizeof(imghlp)
-            #dbghelp.SymGetModuleInfo64(self.phandle, x, pointer(imghlp))
-            #print "PDB",repr(imghlp.LoadedPdbName)
+        # This is for debugging which pdb got loaded
+        #imghlp = IMAGEHLP_MODULE64()
+        #imghlp.SizeOfStruct = sizeof(imghlp)
+        #dbghelp.SymGetModuleInfo64(self.phandle, x, pointer(imghlp))
+        #print "PDB",repr(imghlp.LoadedPdbName)
 
     def symCleanup(self):
         dbghelp.SymCleanup(self.phandle)
