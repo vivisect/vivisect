@@ -121,7 +121,7 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
     fhash = v_parsers.md5Bytes(bytez)
     sha256 = v_parsers.sha256Bytes(bytez)
 
-    # create the file and 
+    # create the file and store md5 and sha256 hashes
     fname = vw.addFile(fvivname.lower(), baseaddr, fhash)
     vw.setFileMeta(fname, 'sha256', sha256)
 
