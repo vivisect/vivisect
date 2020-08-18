@@ -124,12 +124,11 @@ def getSwitchBase(vw, op, vajmp, emu=None):
 
 if 'vw' in globals():
     vw = globals()['vw']
-    with vw.makeVerbose():
-        vw.vprint("Starting Switchcase Module...")
-        for va, reprOp, flags in vw.getVaSetRows('DynamicBranches'):
-            op = vw.parseOpcode(va)
-            if op is None:
-                vw.vprint("Cannot analyze none op at 0x%x" % va)
-                continue
-            analyzeJmp(None, vw.getEmulator(), op, va)  # it doesn't use archmod anyway
-        vw.vprint("Switchcase Done")
+    vw.vprint("Starting Switchcase Module...")
+    for va, reprOp, flags in vw.getVaSetRows('DynamicBranches'):
+        op = vw.parseOpcode(va)
+        if op is None:
+            vw.vprint("Cannot analyze none op at 0x%x" % va)
+            continue
+        analyzeJmp(None, vw.getEmulator(), op, va)  # it doesn't use archmod anyway
+    vw.vprint("Switchcase Done")

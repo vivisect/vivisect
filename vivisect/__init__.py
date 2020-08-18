@@ -78,7 +78,6 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         self.saved = True
         self.rchan = None
         self.server = None
-        self.verbose = False
         self.chanids = itertools.count()
 
         self.arch = None  # The placeholder for the Envi architecture module
@@ -163,21 +162,8 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         self.addVaSet('EmucodeFunctions', (('va', VASET_ADDRESS),))
         self.addVaSet('FuncWrappers', (('va', VASET_ADDRESS), ('wrapped_va', VASET_ADDRESS),))
 
-    def addText(self, text, tag=None):
-        if tag:
-            logger.info('<%s>: %s', tag, text)
-        else:
-            logger.info(text)
-
     def vprint(self, msg):
         logger.info(msg)
-
-    @contextlib.contextmanager
-    def makeVerbose(self):
-        old = self.verbose
-        self.verbose = True
-        yield
-        self.verbose = old
 
     def getVivGui(self):
         '''
@@ -717,9 +703,8 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
                 self.vprint("Extended Analysis Exception %s: %s" % (mod.__name__, e))
 
         endtime = time.time()
-        if self.verbose:
-            self.vprint('...analysis complete! (%d sec)' % (endtime-starttime))
-            self.printDiscoveredStats()
+        self.vprint('...analysis complete! (%d sec)' % (endtime-starttime))
+        self.printDiscoveredStats()
         self._fireEvent(VWE_AUTOANALFIN, (endtime, starttime))
 
     def analyzeFunction(self, fva):

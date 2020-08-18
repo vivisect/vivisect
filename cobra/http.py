@@ -22,7 +22,6 @@ from SocketServer import ThreadingTCPServer
 
 logger = logging.getLogger(__name__)
 daemon = None
-verbose = False
 version = "Cobra2"
 COBRA_PORT = 80
 COBRASSL_PORT = 443

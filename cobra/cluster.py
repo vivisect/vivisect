@@ -497,7 +497,6 @@ class ClusterClient:
         self.name = name
         self.width = 0
         self.maxwidth = maxwidth
-        self.verbose = False
         self.docode = docode
 
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)

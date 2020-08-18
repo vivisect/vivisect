@@ -7,7 +7,6 @@ This module should be run after codeblocks analyis pass.
 import envi
 import vivisect.impemu.monitor as viv_imp_monitor
 
-verbose = False
 STOS = ('stosb', 'stosw', 'stosd', 'stosq')
 
 

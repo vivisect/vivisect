@@ -19,7 +19,6 @@ class AnalysisMonitor(viv_monitor.AnalysisMonitor):
 
     def __init__(self, vw, fva, verbose=True):
         viv_monitor.AnalysisMonitor.__init__(self, vw, fva)
-        self.verbose = verbose
         self.retbytes = None
         self.badops = vw.arch.archGetBadOps()
         self.last_lr_pc = 0
