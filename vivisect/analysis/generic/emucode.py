@@ -6,6 +6,7 @@ if they are code by emulation behaviorial analysis.
 """
 import envi
 import vivisect
+import vivisect.exc as v_exc
 from envi.archs.i386.opconst import *
 import vivisect.impemu.monitor as viv_imp_monitor
 
@@ -71,7 +72,7 @@ class watcher(viv_imp_monitor.EmulationMonitor):
 
         if op in self.badops:
             emu.stopEmu()
-            raise Exception("Hit known BADOP at 0x%.8x %s" % (eip,repr(op)))
+            raise v_exc.BadOpBytes(op.va)
 
         if op.iflags & envi.IF_RET:
             self.hasret = True
@@ -83,7 +84,7 @@ class watcher(viv_imp_monitor.EmulationMonitor):
         if self.vw.isFunction(eip):
             emu.stopEmu()
             # FIXME: this is a problem.  many time legit code falls into other functions...  "hydra" functions are more and more common.
-            raise Exception("Fell Through Into Function: %.8x" % eip)
+            raise v_exc.BadOpBytes(op.va)
 
         loc = self.vw.getLocation(eip)
         if loc != None:

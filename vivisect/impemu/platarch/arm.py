@@ -1,10 +1,8 @@
-import sys
 import envi
 import logging
-import traceback
 import envi.archs.arm as e_arm
 
-import vivisect
+import vivisect.exc as v_exc
 import vivisect.impemu.emulator as v_i_emulator
 
 import visgraph.pathcore as vg_path

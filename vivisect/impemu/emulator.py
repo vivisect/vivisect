@@ -8,6 +8,8 @@ import envi.memory as e_mem
 
 import visgraph.pathcore as vg_path
 
+import vivisect.exc as v_exc
+
 from vivisect.const import *
 
 import logging
@@ -359,6 +361,8 @@ class WorkspaceEmulator:
                     if self.emumon:
                         try:
                             self.emumon.prehook(self, op, starteip)
+                        except v_exc.BadOpBytes as e:
+                            logger.debug(str(e))
                         except Exception as e:
                             if not self.getMeta('silent'):
                                 logger.warn("funcva: 0x%x opva: 0x%x:  %r   (%r) (in emumon prehook)", funcva, starteip, op, e)
@@ -374,6 +378,8 @@ class WorkspaceEmulator:
                     if self.emumon:
                         try:
                             self.emumon.posthook(self, op, endeip)
+                        except v_exc.BadOpBytes as e:
+                            logger.debug(str(e))
                         except Exception as e:
                             if not self.getMeta('silent'):
                                 logger.warn("funcva: 0x%x opva: 0x%x:  %r   (%r) (in emumon posthook)", funcva, starteip, op, e)

@@ -2,6 +2,7 @@ import sys
 import logging
 
 import vivisect
+import vivisect.exc as v_exc
 import vivisect.impemu.monitor as viv_monitor
 import vivisect.analysis.generic.codeblocks as viv_cb
 
@@ -9,7 +10,6 @@ import envi
 import envi.archs.arm as e_arm
 
 from envi.archs.arm.regs import *
-from envi.registers import RMETA_NMASK
 from envi.archs.arm.const import *
 
 from vivisect.const import *
@@ -38,7 +38,7 @@ class AnalysisMonitor(viv_monitor.AnalysisMonitor):
             #if self.verbose: print( "tmode: %x    emu:  0x%x   flags: 0x%x \t %r" % (tmode, starteip, op.iflags, op))
             if op in self.badops:
                 emu.stopEmu()
-                raise Exception("Hit known BADOP at 0x%.8x %s (fva: 0x%x)" % (starteip, repr(op), self.fva))
+                raise v_exc.BadOpBytes(op.va)
 
             viv_monitor.AnalysisMonitor.prehook(self, emu, op, starteip)
 
@@ -124,7 +124,7 @@ class AnalysisMonitor(viv_monitor.AnalysisMonitor):
 
         except Exception as e:
             self.logAnomaly(emu, self.fva, "0x%x: (%r) ERROR: %s" % (op.va, op, e))
-            logger.exception("0x%x: (%r)  ERROR: %s", op.va, op, e)
+            logger.error("0x%x: (%r)  ERROR: %s", op.va, op, e)
 
 
     def posthook(self, emu, op, starteip):

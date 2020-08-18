@@ -1,8 +1,18 @@
 import io
 import unittest
 
+import envi
+
 import vivisect
+import vivisect.exc as v_exc
+import vivisect.const as v_const
+import vivisect.tools.graphutil as v_t_graphutil
+
 import vivisect.tests.helpers as helpers
+
+
+def glen(g):
+    return len([x for x in g])
 
 
 class VivisectTest(unittest.TestCase):
@@ -10,6 +20,197 @@ class VivisectTest(unittest.TestCase):
     def setUpClass(cls):
         cls.chgrp_vw = helpers.getTestWorkspace('linux', 'i386', 'chgrp.llvm')
         cls.vdir_vw = helpers.getTestWorkspace('linux', 'i386', 'vdir.llvm')
+        cls.gcc_vw = helpers.getTestWorkspace('linux', 'amd64', 'gcc-7')
+
+    def test_basic_apis(self):
+        '''
+        Test a bunch of the simpler workspace APIs
+        '''
+        vw = self.gcc_vw
+        self.assertEqual(set(['Emulation Anomalies', 'EntryPoints', 'WeakSymbols', 'FileSymbols', 'SwitchCases', 'EmucodeFunctions', 'PointersFromFile', 'FuncWrappers', 'CodeFragments', 'DynamicBranches', 'Bookmarks', 'NoReturnCalls']), set(vw.getVaSetNames()))
+
+        self.assertEqual((0x405d10, 5, 5, 0x20004), vw.getPrevLocation(0x405d15))
+
+        self.assertEqual(None, vw.getPrevLocation(0x405c10, adjacent=True))
+        self.assertEqual((0x405c09, 5, 5, 0x20009), vw.getPrevLocation(0x405c10, adjacent=False))
+        self.assertEqual((0x449e10, 1, v_const.LOC_OP, envi.ARCH_AMD64), vw.getLocationByName('gcc_7.main'))
+
+        # self.assertEqual(set([0x4357d9, 0x435849, 0x4358bd]), vw.getFunctionBlocks(0x4357d9))
+        ans = set([0x468820, 0x46882f, 0x40aba1, 0x46883c, 0x40ab96, 0x46884e, 0x468838])
+        for bva, bsize, bfunc in vw.getFunctionBlocks(0x00468820):
+            self.assertIn(bva, ans)
+            self.assertEqual(bfunc, 0x00468820)
+        locs = [(4622364, 4, 0, None),
+                (4622368, 1, 5, 131072),
+                (4622369, 6, 5, 131072),
+                (4622375, 2, 5, 131072),
+                (4622377, 6, 5, 131112),
+                (4622383, 5, 5, 131076),
+                (4622388, 2, 5, 131072),
+                (4622390, 2, 5, 131112),
+                (4622392, 2, 5, 131072),
+                (4622394, 1, 5, 131072),
+                (4622395, 1, 5, 131089)]
+        for loc in vw.getLocationRange(0x46881c, 32):
+            self.assertIn(loc, locs)
+
+        # even missing a bunch, there still should be more than 1000 here)
+        self.assertTrue(len(vw.getLocations()) > 1000)
+
+        # tuples are Name, Number of Locations, Size in bytes, Percentage of space
+        ans = {0: ('Undefined', 0, 517666, 49),
+               1: ('Num/Int', 271, 1724, 0),
+               2: ('String', 4054, 153424, 14),
+               3: ('Unicode', 0, 0, 0),
+               4: ('Pointer', 5376, 43008, 4),
+               5: ('Opcode', 79489, 323542, 30),
+               6: ('Structure', 496, 11544, 1),
+               7: ('Clsid', 0, 0, 0),
+               8: ('VFTable', 0, 0, 0),
+               9: ('Import Entry', 141, 1128, 0),
+               10: ('Pad', 0, 0, 0)}
+        dist = vw.getLocationDistribution()
+        for loctype, locdist in dist.items():
+            self.assertEqual(locdist, ans[loctype])
+
+    def test_render(self):
+        vw = self.gcc_vw
+        cb = vw.getCodeBlock(0x0046ec30)
+        rndr = vw.getRenderInfo(cb[v_const.CB_VA] - 0x20, cb[v_const.CB_SIZE] + 0x20)
+        self.assertIsNotNone(rndr)
+        locs, funcs, names, comments, extras = rndr
+
+        locans = [(4647952, 2, 5, 131072),
+                  (4647954, 1, 5, 131072),
+                  (4647955, 2, 5, 131112),
+                  (4647957, 5, 5, 131072),
+                  (4647962, 3, 5, 131072),
+                  (4647965, 2, 5, 131072),
+                  (4647967, 5, 5, 131076),
+                  (4647972, 3, 5, 131072),
+                  (4647975, 1, 5, 131072),
+                  (4647976, 1, 5, 131089),
+                  (4647977, 7, 0, None),
+                  (4647984, 2, 5, 131072),
+                  (4647986, 1, 5, 131072),
+                  (4647987, 2, 5, 131072),
+                  (4647989, 1, 5, 131072),
+                  (4647990, 3, 5, 131072),
+                  (4647993, 4, 5, 131072),
+                  (4647997, 4, 5, 131072),
+                  (4648001, 5, 5, 131072),
+                  (4648006, 6, 5, 131112)]
+
+        ops = {4647952: 'test esi,esi',
+               4647954: 'push rbx',
+               4647955: 'jns 0x0046ec1a',
+               4647957: 'mov esi,2',
+               4647962: 'mov rbx,qword [rdi]',
+               4647965: 'mov edi,esi',
+               4647967: 'call 0x0046f3b0',
+               4647972: 'mov byte [rbx + 59],al',
+               4647975: 'pop rbx',
+               4647976: 'ret ',
+               4647984: 'push r14',
+               4647986: 'push rbp',
+               4647987: 'mov ebp,esi',
+               4647989: 'push rbx',
+               4647990: 'mov rsi,rdx',
+               4647993: 'sub rsp,96',
+               4647997: 'cmp r8d,11',
+               4648001: 'mov qword [rsp + 16],rcx',
+               4648006: 'jz 0x0041773f'}
+
+        self.assertEqual(len(locans), len(locs))
+        dcdd = 0
+        for tupl in locs:
+            self.assertIn(tupl, locans)
+            if tupl[0] in ops:
+                self.assertEqual(repr(vw.parseOpcode(tupl[0])), ops[tupl[0]])
+                dcdd += 1
+        self.assertEqual(dcdd, len(ops))
+        self.assertEqual({0x46ec10: True, 0x46ec30: True}, funcs)
+        self.assertEqual({0x46ec10: 'sub_0046ec10', 0x46ec30: 'sub_0046ec30'}, names)
+        self.assertEqual({0x46ec1f: 'sub_0046f3b0(0x4156b00f,0x4156b00f,0x4156500f,0x4156300f,0x4156f00f,0x4157100f)'}, comments)
+
+    def test_repr(self):
+        vw = self.gcc_vw
+        ans = [
+            (5040784, "'Perform IPA Value Range Propagation.\\x00'"),
+            (4853125, "'-fira-algorithm=\\x00'"),
+            (5040824, "'-fira-algorithm=[CB|priority]\\tSet the used IRA algorithm.\\x00'"),
+            (4853142, "'-fira-hoist-pressure\\x00'"),
+            (4853163, "'-fira-loop-pressure\\x00'"),
+            (4853183, "'-fira-region=\\x00'"),
+            (5041032, "'-fira-region=[one|all|mixed]\\tSet regions for IRA.\\x00'"),
+            (4853197, "'-fira-share-save-slots\\x00'"),
+            (5041088, "'Share slots for saving different hard registers.\\x00'"),
+            (4853220, "'-fira-share-spill-slots\\x00'"),
+            (5041144, "'Share stack slots for spilled pseudo-registers.\\x00'"),
+            (4853244, "'-fira-verbose=\\x00'"),
+            (5041264, "'-fisolate-erroneous-paths-attribute\\x00'"),
+            (7345392, '4 BYTES: 0 (0x0000)'),
+            (7345376, '8 BYTES: 0 (0x00000000)'),
+            (5122144, '16 BYTES: 21528975894082904090066538856997790465 (0x1032547698badcfeefcdab8967452301)'),
+            (7346240, 'BYTE: 0 (0x0)'),
+            (7331776, 'IMPORT: *.__pthread_key_create'),
+            (7331784, 'IMPORT: *.__libc_start_main'),
+            (7331792, 'IMPORT: *.calloc'),
+            (7331800, 'IMPORT: *.__gmon_start__'),
+            (7331808, 'IMPORT: *.stderr'),
+            (7331864, 'IMPORT: *.__strcat_chk'),
+            (7331872, 'IMPORT: *.__uflow'),
+            (7331880, 'IMPORT: *.mkstemps'),
+            (7331888, 'IMPORT: *.getenv'),
+            (7331896, 'IMPORT: *.dl_iterate_phdr'),
+            (7331904, 'IMPORT: *.__snprintf_chk'),
+            (7331912, 'IMPORT: *.free'),
+            (4697393, 'mov rdx,qword [rsp + 8]'),
+            (4697398, 'jmp 0x0047ab49'),
+            (4749920, 'mov qword [rdi + 152],rsi'),
+            (4749927, 'ret '),
+            (4698912, 'sub rsp,8'),
+            (4698916, 'call 0x0047b310'),
+            (4698921, 'mov rdi,rax'),
+            (4698924, 'call 0x0047b2f0'),
+            (4698929, 'cs: nop word [rax + rax]'),
+            (4698939, 'nop dword [rax + rax]'),
+            (4698944, 'test rdi,rdi'),
+            (4698947, 'push rbx'),
+            (4698948, 'jz 0x0047b361'),
+            (4698950, 'mov rbx,rdi'),
+            (4698953, 'call 0x0047a450'),
+            (4698958, 'mov rax,0xb8b1aabcbcd4d500'),
+        ]
+        for va, disp in ans:
+            self.assertEqual(disp, vw.reprVa(va))
+
+    def test_naughty(self):
+        '''
+        Test us some error conditions
+        '''
+        vw = self.gcc_vw
+        with self.assertRaises(v_exc.InvalidLocation):
+            vw.delLocation(0x51515151)
+
+        with self.assertRaises(v_exc.InvalidFunction):
+            vw.setFunctionMeta(0xdeadbeef, 'monty', 'python')
+
+        with self.assertRaises(v_exc.InvalidLocation):
+            vw.getLocationByName(0xabad1dea)
+
+    def test_basic_callers(self):
+        vw = self.gcc_vw
+        self.assertTrue(29000 < len(vw.getXrefs()))
+        self.assertEqual(2, len(vw.getImportCallers('gcc_7.plt_calloc')))
+        self.assertEqual(1, len(vw.getImportCallers('gcc_7.plt_ioctl')))
+        # uck. TODO: symbolik switchcase
+        # self.assertEqual(14, len(vw.getImportCallers('gcc_7.plt_exit')))
+
+        #self.assertEqual(set([0x408de9, 0x408dfd, 0x435198, 0x43811d]),
+        self.assertEqual(set([0x408de9, 0x408dfd, 0x435198]),
+                         set(vw.getImportCallers(vw.getName(0x402d20))))
+        self.assertEqual(set([0x4495de, 0x4678b1]), set(vw.getImportCallers(vw.getName(0x402d80))))
 
     def test_consecutive_jump_table(self):
         primaryJumpOpVa = 0x804c9b6
@@ -25,6 +226,10 @@ class VivisectTest(unittest.TestCase):
         self.assertEqual(len(prefs), 3)
         cmnt = self.chgrp_vw.getComment(0x804c9bd)
         self.assertEqual(cmnt, 'Other Case(s): 2, 6, 8, 11, 15, 20, 21, 34, 38, 40, 47')
+
+        cmnts = self.chgrp_vw.getComments()
+        self.assertTrue(len(cmnts) > 1)
+
         # 13 actual codeblocks and 1 xref to the jumptable itself
         srefs = self.chgrp_vw.getXrefsFrom(secondJumpOpVa)
         self.assertEqual(len(srefs), 14)
@@ -278,3 +483,127 @@ class VivisectTest(unittest.TestCase):
         self.assertEqual(vw.getName(fva, smart=True), noname)
         # set it back just in case
         vw.makeName(fva, oldname)
+
+    def test_graphutil_longpath(self):
+        '''
+        order matters
+        '''
+        vw = self.gcc_vw
+        # TODO: symbolik switchcase
+        # g = v_t_graphutil.buildFunctionGraph(vw, 0x445db6)
+        # longpath = [0x445db6, 0x445dc3, 0x445dd7, 0x445deb, 0x445dfc, 0x445e01, 0x445e0b, 0x445ddc, 0x445e11, 0x445e20, 0x445e2c, 0x445e30, 0x445e4b, 0x445e5b, 0x445e72, 0x445e85, 0x445e85, 0x445ea1, 0x445ea3, 0x445eae, 0x445ebb, 0x445df5, 0x445ec2]
+        # path = next(v_t_graphutil.getLongPath(g))
+        # self.assertEqual(longpath, map(lambda k: k[0], path))
+
+        g = v_t_graphutil.buildFunctionGraph(vw, 0x405c10)
+        longpath=[0x405c10, 0x405c48, 0x405ca6, 0x405cb0, 0x405cc3, 0x405c4e, 0x405c57, 0x405c5c, 0x405c6b, 0x405cd4, 0x405ce4, 0x405c80, 0x405c8c, 0x405cf6, 0x405c92]
+        path = next(v_t_graphutil.getLongPath(g))
+        path = map(lambda k: k[0], path)
+        self.assertEqual(path, longpath)
+
+    def test_graphutil_getcodepaths(self):
+        '''
+        In this function, order doesn't matter
+        '''
+        vw = self.gcc_vw
+        g = v_t_graphutil.buildFunctionGraph(vw, 0x456190)
+        paths = [
+            set([0x456190, 0x4561ba, 0x456202, 0x456216, 0x45621c, 0x456240, 0x4561fa, 0x456242]),
+            set([0x456190, 0x4561ba, 0x456202, 0x456216, 0x45621c, 0x40aa97, 0x4561ea, 0x4561ef, 0x4561fa, 0x456242]),
+            set([0x456190, 0x4561ba, 0x456202, 0x456216, 0x45621c, 0x40aa97, 0x4561ea, 0x4561fa, 0x456242]),
+            set([0x456190, 0x4561ba, 0x456202, 0x456216, 0x4561c2, 0x4561d0, 0x4561ea, 0x4561ef, 0x4561fa, 0x456242]),
+            set([0x456190, 0x4561ba, 0x456202, 0x456216, 0x4561c2, 0x4561d0, 0x4561ea, 0x4561fa, 0x456242]),
+            set([0x456190, 0x4561ba, 0x456202, 0x456216, 0x4561c2, 0x40aa85, 0x40aa8d, 0x4561d0, 0x4561ea, 0x4561ef, 0x4561fa, 0x456242]),
+            set([0x456190, 0x4561ba, 0x456202, 0x456216, 0x4561c2, 0x40aa85, 0x40aa8d, 0x4561d0, 0x4561ea, 0x4561fa, 0x456242]),
+            set([0x456190, 0x4561ba, 0x456202, 0x456216, 0x4561c2, 0x40aa85, 0x40aab9, 0x456242]),
+            set([0x456190, 0x4561ba, 0x456202, 0x45621c, 0x456240, 0x4561fa, 0x456242]),
+            set([0x456190, 0x4561ba, 0x456202, 0x45621c, 0x40aa97, 0x4561ea, 0x4561ef, 0x4561fa, 0x456242]),
+            set([0x456190, 0x4561ba, 0x456202, 0x45621c, 0x40aa97, 0x4561ea, 0x4561fa, 0x456242]),
+            set([0x456190, 0x456242]),
+        ]
+
+        pathcount = 0
+        genr = v_t_graphutil.getCodePaths(g, loopcnt=0, maxpath=None)
+        for path in genr:
+            p = set(map(lambda k: k[0], path))
+            self.assertIn(p, paths)
+            pathcount += 1
+
+        self.assertEqual(12, pathcount)
+
+        g = v_t_graphutil.buildFunctionGraph(vw, vw.getFunction(0x0041a766))
+        thruCnt = glen(v_t_graphutil.getCodePathsThru(g, 0x0041a766))
+        self.assertEqual(2, thruCnt)
+        thruCnt = glen(v_t_graphutil.getCodePathsThru(g, 0x0041a766, maxpath=1))
+        self.assertEqual(1, thruCnt)
+
+        # this will not be true for all examples, but for this function it is
+        g = v_t_graphutil.buildFunctionGraph(vw, vw.getFunction(0x0041a77d))
+        toCnt = glen(v_t_graphutil.getCodePathsTo(g, 0x0041a77d))
+        self.assertEqual(2, toCnt)
+        toCnt = glen(v_t_graphutil.getCodePathsTo(g, 0x0041a77d, maxpath=99))
+        self.assertEqual(2, toCnt)
+
+        g = v_t_graphutil.buildFunctionGraph(vw, vw.getFunction(0x004042eb))
+        fromCnt = glen(v_t_graphutil.getCodePathsFrom(g, 0x004042eb))
+        self.assertEqual(8, fromCnt)
+        fromCnt = glen(v_t_graphutil.getCodePathsFrom(g, 0x004042eb, maxpath=3))
+        self.assertEqual(3, fromCnt)
+
+    def test_graphutil_getopsfrompath(self):
+        vw = self.gcc_vw
+        g = v_t_graphutil.buildFunctionGraph(vw, 0x414a2a)
+        path = next(v_t_graphutil.getLongPath(g))
+
+        ops = [
+            'push r14',
+            'push r13',
+            'mov r13,rdx',
+            'push r12',
+            'push rbp',
+            'mov r12,rsi',
+            'push rbx',
+            'mov rbx,rdi',
+            'sar r12,3',
+            'mov rbp,rsi',
+            'mov edx,r12d',
+            'mov r14d,ecx',
+            'sub rsp,16',
+            'mov rdi,qword [rdi + 48]',
+            'mov qword [rsp + 8],rsi',
+            'lea rsi,qword [rsp + 8]',
+            'call 0x00414962',
+            'cmp qword [rax],0',
+            'jz 0x00414abc',
+            'mov rdx,qword [rax + 8]',
+            'mov rax,qword [rdx]',
+            'cmp r13,rax',
+            'jbe 0x00414a85',
+            'mov edx,0x004d76b0',
+            'mov esi,151',
+            'mov edi,0x004d7534',
+            'call 0x0041806c',
+            'sub rax,r13',
+            'test r14l,r14l',
+            'mov qword [rdx],rax',
+            'jz 0x00414abc',
+            'mov rbx,qword [rbx + 48]',
+            'lea rsi,qword [rsp + 8]',
+            'xor ecx,ecx',
+            'mov edx,r12d',
+            'mov qword [rsp + 8],rbp',
+            'mov rdi,rbx',
+            'call 0x004154ec',
+            'cmp qword [rax],0',
+            'jz 0x00414abc',
+            'mov qword [rax],1',
+            'inc qword [rbx + 24]',
+            'add rsp,16',
+            'pop rbx',
+            'pop rbp',
+            'pop r12',
+            'pop r13',
+            'pop r14',
+            'ret '
+        ]
+        self.assertEqual(ops, map(str, v_t_graphutil.getOpsFromPath(vw, g, path)))
