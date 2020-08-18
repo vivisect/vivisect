@@ -165,7 +165,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
     def addText(self, text, tag=None):
         if tag:
-            logger.info('<' + tag + '>' + text)
+            logger.info('<%s>: %s', tag, text)
         else:
             logger.info(text)
 
