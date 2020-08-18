@@ -23,6 +23,9 @@ def parseFd(vw, fd, filename=None, baseaddr=None):
     except Exception, e:
         raise Exception('Blob loader *requires* arch option (-O viv.parsers.blob.arch="<archname>")')
 
+    if filename is None:
+        filename = 'blob_%.8x' % baseaddr
+
     vw.setMeta('Architecture', arch)
     vw.setMeta('Platform','unknown')
     vw.setMeta('Format','blob')
@@ -31,9 +34,10 @@ def parseFd(vw, fd, filename=None, baseaddr=None):
     vw.setMeta('DefaultCall', archcalls.get(arch,'unknown'))
 
     bytez =  fd.read() 
-    vw.setFileMeta('sha256', v_parsers.sha256Bytes(bytez))
     vw.addMemoryMap(baseaddr, 7, filename, bytez)
     vw.addSegment( baseaddr, len(bytez), '%.8x' % baseaddr, 'blob' )
+    fname = vw.addFile(filename, baseaddr, v_parsers.md5File(filename))
+    vw.setFileMeta(fname, 'sha256', v_parsers.sha256Bytes(bytez))
 
 def parseFile(vw, filename, baseaddr=None):
 
@@ -69,7 +73,7 @@ def parseMemory(vw, memobj, baseaddr):
 
     bytez = memobj.readMemory(va, size)
     fname = vw.addFile(fname, baseaddr, v_parsers.md5Bytes(bytez))
-    vw.setFileMeta('sha256', v_parsers.sha256Bytes(bytez))
+    vw.setFileMeta(fname, 'sha256', v_parsers.sha256Bytes(bytez))
     vw.addMemoryMap(va, perms, fname, bytez)
     vw.setMeta('DefaultCall', archcalls.get(arch,'unknown'))
 
