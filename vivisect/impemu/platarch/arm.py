@@ -1,10 +1,8 @@
-import sys
 import envi
 import logging
-import traceback
 import envi.archs.arm as e_arm
 
-import vivisect
+import vivisect.exc as v_exc
 import vivisect.impemu.emulator as v_i_emulator
 
 import visgraph.pathcore as vg_path
@@ -205,6 +203,8 @@ class ArmWorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_arm.ArmEmulator):
                     if self.emumon:
                         try:
                             self.emumon.prehook(self, op, starteip)
+                        except v_exc.BadOpBytes as e:
+                            logger.debug(repr(e))
                         except Exception as e:
                             if not self.getMeta('silent'):
                                 logger.warn("funcva: 0x%x opva: 0x%x:  %r   (%r) (in emumon prehook: %r)", funcva, starteip, op, e, self.emumon)
