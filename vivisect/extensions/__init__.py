@@ -41,7 +41,7 @@ def loadExtensions( vw, vwgui ):
 
             # Build code objects from the module files
             mod = imp.new_module('viv_ext')
-            filebytes = file( modpath, 'r' ).read()
+            filebytes = open( modpath, 'r' ).read()
             mod.__file__ = modpath
             try:
                 exec filebytes in mod.__dict__
