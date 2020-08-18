@@ -205,6 +205,8 @@ class ArmWorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_arm.ArmEmulator):
                     if self.emumon:
                         try:
                             self.emumon.prehook(self, op, starteip)
+                        except v_exc.BadOpBytes as e:
+                            logger.debug(repr(e))
                         except Exception as e:
                             if not self.getMeta('silent'):
                                 logger.warn("funcva: 0x%x opva: 0x%x:  %r   (%r) (in emumon prehook: %r)", funcva, starteip, op, e, self.emumon)
@@ -267,7 +269,7 @@ class ArmWorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_arm.ArmEmulator):
                         self.emumon.logAnomaly(self, starteip, str(e))
 
                     logger.debug('runFunction breaking after exception (fva: 0x%x): %s', funcva, e)
-                    logger.exception('')
+                    #logger.exception('')
                     break # If we exc during execution, this branch is dead.
 
 class ThumbWorkspaceEmulator(ArmWorkspaceEmulator):

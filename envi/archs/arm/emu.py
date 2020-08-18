@@ -1066,7 +1066,7 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
 
         return result;
 
-    def i_vcvt(self, op):
+    def i_vcvt_TODO(self, op):
         '''
         convert each element in a vector as float to int or int to float, 32-bit, round-to-zero/round-to-nearest
         
@@ -1225,7 +1225,7 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
             raise Exception("i_vcvt with strange number of opers: %r" % op.opers)
 
 
-    i_vcvtr = i_vcvt
+    #i_vcvtr = i_vcvt
 
     def i_ldm(self, op):
         if len(op.opers) == 2:
