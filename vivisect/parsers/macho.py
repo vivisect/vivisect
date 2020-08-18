@@ -28,6 +28,10 @@ def _loadMacho(vw, filebytes, filename=None, baseaddr=None):
     if filename is None:
         filename = 'macho_%.8x' % baseaddr # FIXME more than one!
 
+    # grab md5 and sha256 hashes before we modify the bytes
+    fhash = viv_parsers.md5Bytes(filebytes)
+    sha256 = v_parsers.sha256Bytes(filebytes))
+
     # Check for the FAT binary magic...
     if filebytes[:4].encode('hex') in ('cafebabe', 'bebafeca'):
 
@@ -73,11 +77,9 @@ def _loadMacho(vw, filebytes, filename=None, baseaddr=None):
     vw.setMeta('DefaultCall', archcalls.get(arch,'unknown'))
 
     # Add the file entry
-    hash = "unknown hash"
-    if os.path.exists(filename):
-        hash = viv_parsers.md5File(filename)
 
-    fname = vw.addFile(filename, baseaddr, hash)
+    fname = vw.addFile(filename, baseaddr, fhash)
+    vw.setFileMeta(fname, 'sha256', sha256)
 
     # Add the memory maps and segments from the macho definition
     for segname, rva, perms, segbytes in macho.getSegments():

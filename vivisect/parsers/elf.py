@@ -164,15 +164,23 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
     if baseaddr is None:
         baseaddr = elf.getBaseAddress()
 
-    #FIXME make filename come from dynamic's if present for shared object
+    elf.fd.seek(0)
+    bytez = elf.fd.read()
+    md5hash = v_parsers.md5Bytes(bytez)
+    sha256 = v_parsers.sha256Bytes(bytez)
+
     if filename is None:
-        filename = "elf_%.8x" % baseaddr
+        # see if dynamics DT_SONAME holds a name for us
+        for dyn in elf.getDynamics():
+            if dyn.d_tag == Elf.DT_SONAME:
+                filename = dyn.getName()
 
-    fhash = "unknown hash"
-    if os.path.exists(filename):
-        fhash = v_parsers.md5File(filename)
+        # if all else fails, fallback
+        if filename is None:
+            filename = "elf_%.8x" % baseaddr
 
-    fname = vw.addFile(filename.lower(), baseaddr, fhash)
+    fname = vw.addFile(filename.lower(), baseaddr, md5hash)
+    vw.setFileMeta(fname, 'sha256', sha256)
 
     strtabs = {}
     secnames = []
