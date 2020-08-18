@@ -940,7 +940,7 @@ class CobraProxy:
 
         scheme, host, port, name, urlparams = chopCobraUri( URI )
 
-        logger.debug("Spinning up CobraProxy on %s:%s with object: %s" % host, port, repr(name))
+        logger.debug("Spinning up CobraProxy on %s:%s with object: %s", host, port, repr(name))
 
         self._cobra_uri = URI
         self._cobra_scheme = scheme
