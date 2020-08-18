@@ -25,7 +25,7 @@ def analyze(vw):
                     if idx > 100:
                         continue
 
-                    logger.warning('FIXME: %d %s' % (name,offset))
+                    logger.warning('FIXME: %d %s', offset, name)
 
                     #atype, aname = vw.getFunctionArg(fva, idx)
                     #if atype is None:

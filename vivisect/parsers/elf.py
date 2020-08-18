@@ -91,8 +91,7 @@ def makeRelocTable(vw, va, maxva, addbase, baseaddr, addend=False):
         va += len(s)
 
 def makeFunctionTable(elf, vw, tbladdr, size, tblname, funcs, ptrs, baseaddr=0, addbase=False):
-    logger.debug('makeFunctionTable(tbladdr=0x%x, size=0x%x, tblname=%r,  baseaddr=0x%x)',
-            tbladdr, size, tblname, baseaddr)
+    logger.debug('makeFunctionTable(tbladdr=0x%x, size=0x%x, tblname=%r,  baseaddr=0x%x)', tbladdr, size, tblname, baseaddr)
     psize = vw.getPointerSize()
     fmtgrps = e_bits.fmt_chars[vw.getEndian()]
     pfmt = fmtgrps[psize]
@@ -192,7 +191,7 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
         if pgm.p_type == Elf.PT_LOAD:
             if pgm.p_memsz == 0:
                 continue
-            logger.info('Loading: %s', repr(pgm))
+            logger.info('Loading: %s', pgm)
             bytez = elf.readAtOffset(pgm.p_offset, pgm.p_filesz)
             bytez += "\x00" * (pgm.p_memsz - pgm.p_filesz)
             pva = pgm.p_vaddr
@@ -200,7 +199,7 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
                 pva += baseaddr
             vw.addMemoryMap(pva, pgm.p_flags & 0x7, fname, bytez)  # FIXME perms
         else:
-            logger.info('Skipping: %s', repr(pgm))
+            logger.info('Skipping: %s', pgm)
 
     if len(pgms) == 0:
         # fall back to loading sections as best we can...
@@ -376,7 +375,7 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
             name = name.split('.')[0].lower()
             vw.addLibraryDependancy(name)
         else:
-            logger.debug("DYNAMIC:\t%r",d)
+            logger.debug("DYNAMIC:\t%r", d)
 
         elfmeta[Elf.dt_names.get(d.d_tag)] = d.d_value
 
@@ -449,8 +448,8 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
         else:
             logger.debug("DYNSYM:\t%r\t%r\t%r\t%r", s, s.getInfoType(), 'other', hex(s.st_other))
 
-    vw.addVaSet("FileSymbols", (("Name", VASET_STRING),("va", VASET_ADDRESS)))
-    vw.addVaSet("WeakSymbols", (("Name", VASET_STRING),("va", VASET_ADDRESS)))
+    vw.addVaSet("FileSymbols", (("Name", VASET_STRING), ("va", VASET_ADDRESS)))
+    vw.addVaSet("WeakSymbols", (("Name", VASET_STRING), ("va", VASET_ADDRESS)))
 
     # apply symbols to workspace (if any)
     relocs = elf.getRelocs()
@@ -459,11 +458,10 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
     for s in elf.getSymbols():
         sva = s.st_value
         dmglname = demangle(s.name)
-        logger.debug('symbol val: 0x%x\ttype: %r\tbind: %r\t name: %r',
-                sva,
-                Elf.st_info_type.get(s.st_info, s.st_info),
-                Elf.st_info_bind.get(s.st_other, s.st_other),
-                s.name)
+        logger.debug('symbol val: 0x%x\ttype: %r\tbind: %r\t name: %r', sva,
+                                                                        Elf.st_info_type.get(s.st_info, s.st_info),
+                                                                        Elf.st_info_bind.get(s.st_other, s.st_other),
+                                                                        s.name)
 
         if s.st_info == Elf.STT_FILE:
             vw.setVaSetRow('FileSymbols', (dmglname, sva))
@@ -477,19 +475,18 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
                     sva += baseaddr
                 if symname == '$a':
                     # ARM code
-                    logger.info('mapping (NOTYPE) ARM symbol: 0x%x: %r',sva, dmglname)
+                    logger.info('mapping (NOTYPE) ARM symbol: 0x%x: %r', sva, dmglname)
                     new_functions.append(("Mapping Symbol: $a", sva))
 
                 elif symname == '$t':
                     # Thumb code
-                    logger.info('mapping (NOTYPE) Thumb symbol: 0x%x: %r',sva, dmglname)
+                    logger.info('mapping (NOTYPE) Thumb symbol: 0x%x: %r', sva, dmglname)
                     new_functions.append(("Mapping Symbol: $t", sva + 1))
 
                 elif symname == '$d':
                     # Data Items (eg. literal pool)
-                    logger.info('mapping (NOTYPE) data symbol: 0x%x: %r',sva, dmglname)
+                    logger.info('mapping (NOTYPE) data symbol: 0x%x: %r', sva, dmglname)
                     data_ptrs.append(sva)
-
 
         # if the symbol has a value of 0, it is likely a relocation point which gets updated
         sname = demangle(s.name)
@@ -566,11 +563,11 @@ def applyRelocs(elf, vw, addbase=False, baseaddr=0):
         if addbase:
             rlva += baseaddr
         try:
-            # If it has a name, it's an externally resolved "import" entry, 
+            # If it has a name, it's an externally resolved "import" entry,
             # otherwise, just a regular reloc
             name = r.getName()
             dmglname = demangle(name)
-            logger.debug('relocs: 0x%x: %r  (%r)', rlva, dmglname, name)
+            logger.debug('relocs: 0x%x: %s (%s)', rlva, dmglname, name)
             if arch in ('i386', 'amd64'):
                 if name:
                     if rtype == Elf.R_X86_64_IRELATIVE:
@@ -651,8 +648,8 @@ def applyRelocs(elf, vw, addbase=False, baseaddr=0):
                                     hasattr(lastoper, 'pubwl') and \
                                     not (lastoper.pubwl & eaac.PUxWL_ADD):
                                         addend = -addend
-                    except Exception:
-                        logger.exception("ELF: Reloc Addend determination:")
+                    except Exception as e:
+                        logger.exception("ELF: Reloc Addend determination: %s", e)
                         addend = temp
 
                 logger.debug('addend: 0x%x', addend)
@@ -687,7 +684,7 @@ def applyRelocs(elf, vw, addbase=False, baseaddr=0):
                         logger.info('R_ARM_JUMP_SLOT: adding Import 0x%x (%s) ', rlva, dmglname)
                         vw.makeImport(rlva, "*", dmglname)
                         vw.setComment(rlva, name)
-                    
+
                 elif rtype == Elf.R_ARM_GLOB_DAT:
                     symidx = r.getSymTabIndex()
                     sym = elf.getDynSymbol(symidx)

@@ -21,7 +21,7 @@ def ffTermFptrArray(vw, va, max=100):
             vw.makeFunction(val)
             ret.append(val)
         except Exception as e:
-            logger.warning("FIXME (ffTermFptrArray): %s" % e)
+            logger.warning("FIXME (ffTermFptrArray): %s", e)
         va += vw.psize
     return ret
 

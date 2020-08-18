@@ -40,4 +40,4 @@ def analyze(vw):
             va += psize
 
         if count >= 4:
-            logger.warning("VFTABLE? 0x%.8x" % ptrva)
+            logger.warning("VFTABLE? 0x%.8x", ptrva)

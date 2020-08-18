@@ -45,12 +45,12 @@ class Notifier(object):
         self.notify(event, trace)
 
     def notify(self, event, trace):
-        logger.info("Got event: %d from pid %d" % (event, trace.getPid()))
+        logger.info("Got event: %d from pid %d", event, trace.getPid())
 
 
 class VerboseNotifier(Notifier):
     def notify(self, event, trace):
-        logger.info("PID %d - ThreadID (%d) got" % (trace.getPid(), trace.getMeta("ThreadId"))),
+        logger.info("PID %d - ThreadID (%d) got", trace.getPid(), trace.getMeta("ThreadId"))
         if event == vtrace.NOTIFY_ALL:
             ("WTF, how did we get a vtrace.NOTIFY_ALL event?!?!")
         elif event == vtrace.NOTIFY_SIGNAL:
@@ -60,33 +60,33 @@ class VerboseNotifier(Notifier):
                 logger.info(repr(trace.getMeta("Win32Event")))
         elif event == vtrace.NOTIFY_BREAK:
             logger.info("vtrace.NOTIFY_BREAK")
-            logger.info("\tIP: 0x%08x" % trace.getProgramCounter())
+            logger.info("\tIP: 0x%08x", trace.getProgramCounter())
         elif event == vtrace.NOTIFY_SYSCALL:
             logger.info("vtrace.NOTIFY_SYSCALL")
         elif event == vtrace.NOTIFY_CONTINUE:
             logger.info("vtrace.NOTIFY_CONTINUE")
         elif event == vtrace.NOTIFY_EXIT:
             logger.info("vtrace.NOTIFY_EXIT")
-            logger.info("\tExitCode: %d" % trace.getMeta("ExitCode"))
+            logger.info("\tExitCode: %d", trace.getMeta("ExitCode"))
         elif event == vtrace.NOTIFY_ATTACH:
             logger.info("vtrace.NOTIFY_ATTACH")
         elif event == vtrace.NOTIFY_DETACH:
             logger.info("vtrace.NOTIFY_DETACH")
         elif event == vtrace.NOTIFY_LOAD_LIBRARY:
             logger.info("vtrace.NOTIFY_LOAD_LIBRARY")
-            logger.info("\tLoaded library %s" % trace.getMeta('LatestLibrary'))
+            logger.info("\tLoaded library %s", trace.getMeta('LatestLibrary'))
         elif event == vtrace.NOTIFY_UNLOAD_LIBRARY:
             logger.info("vtrace.NOTIFY_UNLOAD_LIBRARY")
         elif event == vtrace.NOTIFY_CREATE_THREAD:
             logger.info("vtrace.NOTIFY_CREATE_THREAD")
-            logger.info("\tNew thread - ThreadID: %d" % trace.getMeta("ThreadId"))
+            logger.info("\tNew thread - ThreadID: %d", trace.getMeta("ThreadId"))
         elif event == vtrace.NOTIFY_EXIT_THREAD:
             logger.info("vtrace.NOTIFY_EXIT_THREAD")
-            logger.info("Thread exited - ThreadID: %d" % trace.getMeta("ExitThread", -1))
+            logger.info("Thread exited - ThreadID: %d", trace.getMeta("ExitThread", -1))
         elif event == vtrace.NOTIFY_STEP:
             logger.info("vtrace.NOTIFY_STEP")
         else:
-            logger.warning("Unhandled vtrace event type of: %d" % event)
+            logger.warning("Unhandled vtrace event type of: %d", event)
 
 
 class DistributedNotifier(Notifier):
@@ -116,14 +116,14 @@ class DistributedNotifier(Notifier):
             try:
                 notifier.handleEvent(event, trace)
             except Exception:
-                logger.error("Exception in notifier:\n%s" % traceback.format_exc())
+                logger.error("Exception in notifier:\n%s", traceback.format_exc())
 
         nlist = self.notifiers.get(event, [])
         for notifier in nlist:
             try:
                 notifier.handleEvent(event, trace)
             except Exception:
-                logger.error("Exception in notifier:\n%s" % traceback.format_exc())
+                logger.error("Exception in notifier:\n%s", traceback.format_exc())
 
     def registerNotifier(self, event, notif):
         """

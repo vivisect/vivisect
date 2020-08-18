@@ -1,6 +1,8 @@
+import logging
 import binascii
 
-import logging
+from vivisect.const import VASET_ADDRESS, VASET_STRING
+
 logger = logging.getLogger(__name__)
 
 
@@ -39,10 +41,10 @@ def analyze(vw):
             while va < maxva:
                 loctup = vw.getLocation(va)
                 if loctup is None:
-                    logger.warning("error parsing through function 0x%x at 0x%x" % (fva, va))
+                    logger.warning("error parsing through function 0x%x at 0x%x", fva, va)
                     va += 1
                     continue
-                lva,lsize,ltype,tinfo = loctup
+                lva, lsize, ltype, tinfo = loctup
 
                 op = vw.parseOpcode(va, arch=tinfo)
                 for o in op.opers:
@@ -74,7 +76,7 @@ def analyze(vw):
 
     if len(rows):
         vw.vprint("Adding VA Set: %s" % vlname)
-        vw.addVaSet(vlname, (("va",VASET_ADDRESS),("Match Type", VASET_STRING)), rows)
+        vw.addVaSet(vlname, (("va", VASET_ADDRESS), ("Match Type", VASET_STRING)), rows)
 
     else:
         vw.vprint("No known constants found.")

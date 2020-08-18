@@ -1,4 +1,3 @@
-import sys
 import logging
 
 import vivisect
@@ -9,7 +8,6 @@ import envi
 import envi.archs.arm as e_arm
 
 from envi.archs.arm.regs import *
-from envi.registers import RMETA_NMASK
 from envi.archs.arm.const import *
 
 from vivisect.const import *
@@ -43,7 +41,7 @@ class AnalysisMonitor(viv_monitor.AnalysisMonitor):
 
             loctup = emu.vw.getLocation(starteip)
             if loctup is None:
-                #logger.debug("emulation: prehook: new LOC_OP  fva: 0x%x     starteip: 0x%x  flags: 0x%x" % (self.fva, starteip, op.iflags))
+                # logger.debug("emulation: prehook: new LOC_OP  fva: 0x%x     starteip: 0x%x  flags: 0x%x", self.fva, starteip, op.iflags)
                 arch = (envi.ARCH_ARMV7, envi.ARCH_THUMB)[(starteip & 1) | tmode]
                 emu.vw.makeCode(starteip & -2, arch=arch)
 
@@ -62,14 +60,14 @@ class AnalysisMonitor(viv_monitor.AnalysisMonitor):
                         self.retbytes = op.opers[0].imm
 
             # ARM gives us nice switchcase handling instructions
-            ##### FIXME: wrap TB-handling into getBranches(emu) which is called by checkBranches during emulation
+            # FIXME: wrap TB-handling into getBranches(emu) which is called by checkBranches during emulation
             if op.opcode in (INS_TBH, INS_TBB):
                 if emu.vw.getVaSetRow('SwitchCases', op.va) is None:
                     base, tbl = analyzeTB(emu, op, starteip, self)
-                    if not None in (base, tbl):
+                    if None not in (base, tbl):
                         count = len(tbl)
                         self.switchcases += 1
-                        emu.vw.setVaSetRow('SwitchCases', (op.va, op.va, count) )
+                        emu.vw.setVaSetRow('SwitchCases', (op.va, op.va, count))
 
             elif op.opcode == INS_MOV:
                 if len(op.opers) >= 2:
@@ -94,7 +92,7 @@ class AnalysisMonitor(viv_monitor.AnalysisMonitor):
                     if None not in (base, tbl):
                         count = len(tbl)
                         self.switchcases += 1
-                        emu.vw.setVaSetRow('SwitchCases', (op.va, op.va, count) )
+                        emu.vw.setVaSetRow('SwitchCases', (op.va, op.va, count))
 
             elif op.opcode == INS_SUB and isinstance(op.opers[0], e_arm.ArmRegOper) and op.opers[0].reg == REG_PC:
                 # simple branch code
@@ -103,7 +101,7 @@ class AnalysisMonitor(viv_monitor.AnalysisMonitor):
                     if None not in (base, tbl):
                         count = len(tbl)
                         self.switchcases += 1
-                        emu.vw.setVaSetRow('SwitchCases', (op.va, op.va, count) )
+                        emu.vw.setVaSetRow('SwitchCases', (op.va, op.va, count))
 
             if op.iflags & envi.IF_BRANCH:
                 try:
@@ -175,7 +173,6 @@ def buildFunctionApi(vw, fva, emu, emumon):
 
 
 def analyzeFunction(vw, fva):
-    # logger.debug("++ Arm EMU fmod: 0x%x" % fva)
     emu = vw.getEmulator()
     emumon = AnalysisMonitor(vw, fva)
     emu.setEmulationMonitor(emumon)
@@ -265,9 +262,8 @@ def analyzeTB(emu, op, starteip, amon):
 
         tbl.append((va, nextoff))
         va += tsize
-        #sys.stderr.write('.')
 
-    logger.debug("%s: \n\t"%op.mnem + '\n\t'.join(['0x%x (0x%x)' % (x, base + x) for v,x in tbl]))
+    logger.debug("%s: \n\t", op.mnem + '\n\t'.join(['0x%x (0x%x)' % (x, base + x) for v,x in tbl]))
 
     ###
     # for workspace emulation analysis, let's check the index register for sanity.
@@ -279,7 +275,7 @@ def analyzeTB(emu, op, starteip, amon):
     jmptblbase = op.opers[0]._getOperBase(emu)
     jmptblval = emu.getOperAddr(op, 0)
     jmptbltgt = (emu.getOperValue(op, 0) * 2) + base
-    logger.debug("0x%x: %r\njmptblbase: 0x%x\njmptblval:  0x%x\njmptbltgt:  0x%x" % (op.va, op, jmptblbase, jmptblval, jmptbltgt))
+    logger.debug("0x%x: %r\njmptblbase: 0x%x\njmptblval:  0x%x\njmptbltgt:  0x%x", op.va, op, jmptblbase, jmptblval, jmptbltgt)
     #raw_input("PRESS ENTER TO CONTINUE")
 
     # make numbers and xrefs and names
@@ -422,6 +418,5 @@ def analyzeSUBPC(emu, op, starteip, emumon):
             emu.vw.makeName(nexttgt, "case_%x_%x_%x" % (x, starteip, nexttgt))
         else:
             emu.vw.vprint("case_%x_%x_%x conflicts with existing name: %r" % (x, starteip, nexttgt, curname))
- 
 
     return base, tbl

@@ -49,7 +49,7 @@ def analyze(vw):
                     vw.makeFunction(va)
 
             except vivisect.InvalidLocation as msg:
-                logger.error("InvalidLocation: %s" % msg)
+                logger.error("InvalidLocation: %s", msg)
             except envi.InvalidInstruction:
                 continue
             except envi.EnviException as msg:
