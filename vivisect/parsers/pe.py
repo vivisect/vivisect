@@ -307,7 +307,7 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
                 vw.markDeadData(secbase, secbase+len(secbytes))
 
         except Exception as e:
-            logger.warning("Error Loading Section (%s size:%d rva:%.8x offset: %d): %s" % (secname,secfsize,secrva,secoff,e))
+            logger.warning("Error Loading Section (%s size:%d rva:%.8x offset: %d): %s", secname, secfsize, secrva, secoff, e)
 
     vw.addExport(entry, EXP_FUNCTION, '__entry', fname)
     vw.addEntryPoint(entry)
