@@ -3,46 +3,46 @@
 If a "function" is in the plt it's a wrapper for something in the GOT.
 Make that apparent.
 
-This analysis module attempts to be platform- and architecture-agnostic.  
-Different conpilers make that more or less difficult.  We're jumping over 
-numerous hurdles to get accuracy everywhere without having different 
+This analysis module attempts to be platform- and architecture-agnostic.
+Different conpilers make that more or less difficult.  We're jumping over
+numerous hurdles to get accuracy everywhere without having different
 analysis modules for each achitecture and compiler.
 
 First of all, we start out by attempting to analyze all PLT sections
 (.plt and .plt.got) before any other code is run.  This requires us to
 attempt to lay down Code locations all the way through the section.
 Some architectures place pointers in the section which are referenced
-by code in earlier functions, as a "literal pool."  
+by code in earlier functions, as a "literal pool."
 
 We start off analysis by identifying all the Unconditional Branches which
-don't point to the beginning of the section.  Lazy loading typically ends 
-up with some tricks of code places a value for the function in a given 
-register, and branching to a trampoline function at the beginning of the 
-section, which then branches to the LIBC dynamic loader.  The other 
+don't point to the beginning of the section.  Lazy loading typically ends
+up with some tricks of code places a value for the function in a given
+register, and branching to a trampoline function at the beginning of the
+section, which then branches to the LIBC dynamic loader.  The other
 Unconditional Branches should jump into the actual function, pointed to
-by the GOT entry for each function.  
-Oh, by the way, not all PLT functions are for external Imports.  Some 
+by the GOT entry for each function.
+Oh, by the way, not all PLT functions are for external Imports.  Some
 compile flags wrap local functions with a PLT/GOT pair as well.
 
-ANYWAY!  We start of identifying all the Unconditional Branches, and flagging 
+ANYWAY!  We start of identifying all the Unconditional Branches, and flagging
 each with whether they are "Real PLT" branches or some Lazy Loader Trampoline
-thing.  
+thing.
 We then attempt to determine how large each PLT function is.  This means, how
 far before the Branch is the start of the PLT entry.  The reason is, we know
-precisely where the Branches are.  We *don't* know (before analyzing the rest 
-of the codebase) what will actually be called.  
+precisely where the Branches are.  We *don't* know (before analyzing the rest
+of the codebase) what will actually be called.
 
 In order to identify the start of the function, we determine if there is a
-Trampoline, and if so, skip to the next "RealPLT" branch.  Then we work 
+Trampoline, and if so, skip to the next "RealPLT" branch.  Then we work
 backward until we run into another unconditional branch, a NOP, a non-location,
-or the start of the section.  That helps us determine where the functions all 
+or the start of the section.  That helps us determine where the functions all
 start in relation to the branch, giving us "plt_size".
 
 We use a heuristic calculating how many distances there are, and choose
-the most common distance to determine the plt_distance, or the distance between 
+the most common distance to determine the plt_distance, or the distance between
 the start (and the branch) of each PLT entry.
 
-Armed with plt_distance and plt_size, we then determine where each PLT entry 
+Armed with plt_distance and plt_size, we then determine where each PLT entry
 begins, and make those Functions, and analysis continues from there.
 
 
@@ -56,13 +56,15 @@ logger = logging.getLogger(__name__)
 
 MAGIC_PLT_SIZE = 16
 
+
 def analyze(vw):
     """
     Do simple linear disassembly of the .plt section if present.
-    Make functions 
+    Make functions
     """
     for sva, ssize in getPLTs(vw):
         analyzePLT(vw, sva, ssize)
+
 
 def getGOT(vw, fileva):
     '''
@@ -116,15 +118,13 @@ def getGOT(vw, fileva):
     vw.setFileMeta(filename, 'GOT', (gotva, gotsize))
     return gotva, gotsize
 
+
 def getPLTs(vw):
     plts = []
-    pltva = None
     # Thought:  This is DT_PLTGOT, although each ELF will/may have their own DT_PLTGOT.
     for va, size, name, fname in vw.getSegments():
         if name.startswith(".plt") or name == '.rela.plt':
-            pltva = va
-            pltsize = size
-            plts.append((pltva, pltsize))
+            plts.append((va, size))
 
     # pull GOT info from Dynamics
     for fname in vw.getFiles():
@@ -141,14 +141,15 @@ def getPLTs(vw):
             for pltva, pltsize in plts:
                 if FGOT == pltva:
                     newish = False
-            if newish:
+            if newish and FGOT and FGOTSZ:
                 plts.append((FGOT, FGOTSZ))
 
     return plts
 
+
 def analyzePLT(vw, ssva, ssize):
     try:
-        ''' 
+        '''
         analyze an entire section designated as "PLT" or "PLTGOT"
         '''
         emu = None
@@ -364,7 +365,7 @@ def analyzePLT(vw, ssva, ssize):
             if op in badops:
                 # we've run into a "bad opcode" like \x00\x00 or \xff\xff...
                 break
-            
+
             # if we get through all those checks, the previous location is part
             # of the PLT function.
             plt_size += lsz
@@ -390,7 +391,8 @@ def analyzePLT(vw, ssva, ssize):
             vw.makeFunction(sva)
 
     except Exception as e:
-        logger.exception('analyzePLT(0x%x, %r)', ssva, ssize)
+        logger.error('analyzePLT(0x%x, %r): %s', ssva, ssize, str(e))
+
 
 MAX_OPS = 10
 
