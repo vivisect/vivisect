@@ -36,7 +36,7 @@ def parseFd(vw, fd, filename=None, baseaddr=None):
     bytez =  fd.read() 
     vw.addMemoryMap(baseaddr, 7, filename, bytez)
     vw.addSegment( baseaddr, len(bytez), '%.8x' % baseaddr, 'blob' )
-    fname = vw.addFile(filename, baseaddr, v_parsers.md5File(filename))
+    fname = vw.addFile(filename, baseaddr, v_parsers.md5Bytes(bytez))
     vw.setFileMeta(fname, 'sha256', v_parsers.sha256Bytes(bytez))
 
 def parseFile(vw, filename, baseaddr=None):
