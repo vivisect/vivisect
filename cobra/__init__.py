@@ -27,6 +27,8 @@ try:
         dumpargs['use_bin_type'] = 1
         if msgpack.version < (1, 0, 0):
             loadargs['encoding'] = 'utf-8'
+        else:
+            loadargs['strict_map_key'] = False
 
 except ImportError:
     msgpack = None
