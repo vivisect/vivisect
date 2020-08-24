@@ -249,7 +249,7 @@ class SymbolikBase:
             todo = collections.OrderedDict({p._sym_id: p for p in oldkid.parents})
             done = set()
             while todo:
-                pid, parent = todo.popitem()
+                pid, parent = todo.popitem(last=False)
                 if pid in done:
                     continue
 
@@ -257,7 +257,10 @@ class SymbolikBase:
                 done.add(pid)
                 parent.cache.clear()
                 # grow our todo list
-                todo.update({p._sym_id: p for p in parent.parents})
+                for prnt in parent.parents:
+                    if prnt.cache:
+                        todo[prnt._sym_id] = prnt
+                # todo.update({p._sym_id: p for p in parent.parents if p._sym_id not in done})
 
             # remove ourselves as the parent
             if oldkid.parents:
