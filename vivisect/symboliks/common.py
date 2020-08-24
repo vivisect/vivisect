@@ -260,7 +260,6 @@ class SymbolikBase:
                 for prnt in parent.parents:
                     if prnt.cache:
                         todo[prnt._sym_id] = prnt
-                # todo.update({p._sym_id: p for p in parent.parents if p._sym_id not in done})
 
             # remove ourselves as the parent
             if oldkid.parents:
