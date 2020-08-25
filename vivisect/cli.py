@@ -43,9 +43,9 @@ logger = logging.getLogger(__name__)
 
 class VivCli(e_cli.EnviCli, vivisect.VivWorkspace):
 
-    def __init__(self):
+    def __init__(self, *args, **kwargs):
         e_cli.EnviCli.__init__(self, self, symobj=self)
-        vivisect.VivWorkspace.__init__(self)
+        vivisect.VivWorkspace.__init__(self, *args, **kwargs)
         self.canvas.addRenderer("bytes", e_render.ByteRend())
         self.canvas.addRenderer("u_int_16", e_render.ShortRend())
         self.canvas.addRenderer("u_int_32", e_render.LongRend())

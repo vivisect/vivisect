@@ -57,15 +57,20 @@ def guid(size=16):
 
 class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
-    def __init__(self):
+    def __init__(self, *args, **kwargs):
 
         e_mem.MemoryObject.__init__(self)
         viv_base.VivWorkspaceCore.__init__(self)
 
-        self.vivhome = e_config.gethomedir(".viv")
+        autosave = kwargs.get('autosave', False)
+        cfgdir = kwargs.get('config', None)
+        if cfgdir:
+            self.vivhome = os.path.abspath(cfgdir)
+        else:
+            self.vivhome = e_config.gethomedir(".viv", makedir=autosave)
         self._viv_gui = None    # If a gui is running, he will put a ref here...
 
-        self.saved = True
+        self.saved = True  # TODO: where is this used?
         self.rchan = None
         self.server = None
         self.verbose = False
@@ -75,7 +80,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         self.psize = None  # Used so much, optimization is appropriate
 
         cfgpath = os.path.join(self.vivhome, 'viv.json')
-        self.config = e_config.EnviConfig(filename=cfgpath, defaults=defconfig, docs=docconfig)
+        self.config = e_config.EnviConfig(filename=cfgpath, defaults=defconfig, docs=docconfig, autosave=autosave)
 
         # Ideally, *none* of these are modified except by _handleFOO funcs...
         self.segments = []
