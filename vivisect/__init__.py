@@ -58,16 +58,36 @@ def guid(size=16):
 
 
 class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
+    '''
+    VivWorkspace is the heart of vivisect's binary analysis. Most APIs accept a VivWorkspace
+    as their first parameter, and the workspace is responsible for all the user facing functions
+    of getters/adders, running analysis passes, making the various locations, loading files, and
+    more.
 
-    def __init__(self):
+    Current keyword arguments:
+    * confdir:
+      * Type: String (path to directory)
+      * Description: A path to a directory to save/load vivisect's analysis configuration options (options will be saved to/loaded from the viv.json file in the directory
+      * Default: $HOME/.viv/
+    * autosave (boolean):
+      * Type: Boolean
+      * Description: If true, autosave any configuration changes to the <confdir>/viv.json upon changing them.
+      * Default: False
+    '''
+    def __init__(self, **kwargs):
 
         e_mem.MemoryObject.__init__(self)
         viv_base.VivWorkspaceCore.__init__(self)
 
-        self.vivhome = e_config.gethomedir(".viv")
+        autosave = kwargs.get('autosave', False)
+        cfgdir = kwargs.get('confdir', None)
+        if cfgdir:
+            self.vivhome = os.path.abspath(cfgdir)
+        else:
+            self.vivhome = e_config.gethomedir(".viv", makedir=autosave)
         self._viv_gui = None    # If a gui is running, he will put a ref here...
 
-        self.saved = True
+        self.saved = True  # TODO: where is this used?
         self.rchan = None
         self.server = None
         self.verbose = False
@@ -77,7 +97,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         self.psize = None  # Used so much, optimization is appropriate
 
         cfgpath = os.path.join(self.vivhome, 'viv.json')
-        self.config = e_config.EnviConfig(filename=cfgpath, defaults=defconfig, docs=docconfig)
+        self.config = e_config.EnviConfig(filename=cfgpath, defaults=defconfig, docs=docconfig, autosave=autosave)
 
         # Ideally, *none* of these are modified except by _handleFOO funcs...
         self.segments = []
