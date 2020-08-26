@@ -42,7 +42,13 @@ logger = logging.getLogger(__name__)
 
 
 class VivCli(e_cli.EnviCli, vivisect.VivWorkspace):
+    '''
+    A class that builds upon the VivWorkspace to provide command line capabilities so that
+    things like the Vivisect UI can provide a cleaner interface that just a direct python
+    shell. It inherits the same parameters as the VivWorkspace (autosave and confdir currently)
 
+    To add a new command, simply add a new function called `do_<cmdname>`.
+    '''
     def __init__(self, *args, **kwargs):
         e_cli.EnviCli.__init__(self, self, symobj=self)
         vivisect.VivWorkspace.__init__(self, *args, **kwargs)

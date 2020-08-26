@@ -50,7 +50,7 @@ def main():
     parser.add_argument('file', nargs='*')
     args = parser.parse_args()
 
-    vw = viv_cli.VivCli(config=args.config, autosave=args.autosave)
+    vw = viv_cli.VivCli(confdir=args.config, autosave=args.autosave)
 
     # setup logging
     vw.verbose = min(args.verbose, 4)
