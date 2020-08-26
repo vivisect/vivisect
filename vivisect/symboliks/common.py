@@ -260,6 +260,8 @@ class SymbolikBase:
                 for prnt in parent.parents:
                     if prnt.cache:
                         todo[prnt._sym_id] = prnt
+                    else:
+                        done.add(prnt._sym_id)
 
             # remove ourselves as the parent
             if oldkid.parents:
