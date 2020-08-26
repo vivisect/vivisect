@@ -72,7 +72,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
       * Description: If true, autosave any configuration changes to the <confdir>/viv.json upon changing them.
       * Default: False
     '''
-    def __init__(self, *args, **kwargs):
+    def __init__(self, **kwargs):
 
         e_mem.MemoryObject.__init__(self)
         viv_base.VivWorkspaceCore.__init__(self)

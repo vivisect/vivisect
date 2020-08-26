@@ -49,9 +49,9 @@ class VivCli(e_cli.EnviCli, vivisect.VivWorkspace):
 
     To add a new command, simply add a new function called `do_<cmdname>`.
     '''
-    def __init__(self, *args, **kwargs):
+    def __init__(self, **kwargs):
         e_cli.EnviCli.__init__(self, self, symobj=self)
-        vivisect.VivWorkspace.__init__(self, *args, **kwargs)
+        vivisect.VivWorkspace.__init__(self, **kwargs)
         self.canvas.addRenderer("bytes", e_render.ByteRend())
         self.canvas.addRenderer("u_int_16", e_render.ShortRend())
         self.canvas.addRenderer("u_int_32", e_render.LongRend())
