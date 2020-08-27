@@ -97,7 +97,7 @@ def getGOT(vw, fileva):
 
     # pull GOT info from Dynamics
     fdyns = vw.getFileMeta(filename, 'ELF_DYNAMICS')
-    if fdyns is not None:
+    if fdyns is not None and gotva is not None:
         FGOT = fdyns.get('DT_PLTGOT')
         if FGOT is not None:
             # be sure to add the imgbase to FGOT if required

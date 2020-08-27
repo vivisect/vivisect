@@ -235,6 +235,27 @@ class SymbolikBase:
 
     def setSymKid(self, idx, kid):
         '''
+        Creates or sets a child for the current symbolik object
+
+        The sticky bit here is when the child already exists and we're setting it to a new value
+        (as in the case of things like symbolik reduction). In that case we have to invalidate
+        the symcaches of every parent node up all of the ASTs that the child exists in. However,
+        that can get exceedingly repetative and expensive, especially in the reduction cases
+        where we don't need to constantly clear the ASTs, since during the traversal they'll be
+        cleared once and then never need to cleared again. And if they are populated for whatever
+        reason, they'll be cleaned up since caches of nodes are populated recursively and are
+        connected, so if the cache of a grandparent node is populated, so too will the cache
+        of a grandchild node.
+
+        We can take advantage of this when clearing the parent caches, and if the cache of a
+        parent node is cleared, we don't need to traverse up the tree to clear the caches of
+        the rest of the parents, since those should already be cleared. Initial tests show that
+        this represents upwards of a 1000x speedup for complex function reduction.
+
+        On the downside, this does impose the constraints that if you mean to do any out of API
+        ASTs manipulations such as merging trees or node replacement without doing a walkTree,
+        you had best make sure the caches are clear or that there are no gaps in the caches
+        of the consecutive levels of the AST.
         '''
         if idx > len(self.kids)-1:
             self.kids.append(kid)
