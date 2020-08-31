@@ -294,7 +294,7 @@ reducers = {
     SYMT_OPER_DIV: xpandrules([
         ('(x1 * c1) / c2', lambda m, emu=None: muldiv(m['x1'],m['c1'],m['c2'])),
         ('(x1 / c1)', lambda m, emu=None: divbase_vc(m['x1'], m['c1'])),
-        ('(c1 / v1)', lambda m, emu=None: divbase_cv(m['c1'], m['v1'])),
+        ('(c1 / x1)', lambda m, emu=None: divbase_cv(m['c1'], m['x1'])),
         ('(x1 / x1)', lambda m, emu=None: 1),
     ]),
 
