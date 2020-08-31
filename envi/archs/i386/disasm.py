@@ -753,8 +753,10 @@ class i386Disasm:
                 size += sibsize
                 disp = e_bits.parsebytes(bytez, offset+size, 1, sign=True)
                 size += 1
-                if base is not None: base += regbase    # Adjust for different register addressing modes
-                if index is not None: index += regbase    # Adjust for different register addressing modes
+                if base is not None:
+                    base += regbase    # Adjust for different register addressing modes
+                if index is not None:
+                    index += regbase    # Adjust for different register addressing modes
                 oper = i386SibOper(opersize, reg=base, index=index, scale=scale_lookup[scale], disp=disp)
                 return (size,oper)
             else:

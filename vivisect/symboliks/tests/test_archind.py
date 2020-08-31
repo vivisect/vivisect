@@ -27,8 +27,7 @@ class TestArchind(unittest.TestCase):
         final = op * vsc.Var('edx', 4)
         wiped = vsym_archind.wipeAstArch(symctx, [final])
         self.assertEquals(1, len(wiped))
-        self.assertEquals(
-            '((mem[(arg0 + 1indreg()):4] + 0indreg) * 0indreg)', str(wiped[0]))
+        self.assertEquals('((mem[(arg0 + 1indreg()):4] + 0indreg) * 0indreg)', str(wiped[0]))
 
     def test_wipeAstArch_wipeva(self):
         vw = viv.VivWorkspace()
@@ -46,11 +45,9 @@ class TestArchind(unittest.TestCase):
                          vsc.Const(0, 4), vsc.Const(1, 4), vsc.Const(0x41b2ac, 4)])
         func3 = vsc.Call(vsc.Const(0x41ac93, 4), 4, argsyms=[
                          vsc.Const(0, 4), vsc.Var('ecx', 4)])
-        wiped = vsym_archind.wipeAstArch(
-            symctx, [func1 + func2, func3], wipeva=True)
+        wiped = vsym_archind.wipeAstArch(symctx, [func1 + func2, func3], wipeva=True)
         self.assertEquals(2, len(wiped))
-        self.assertEquals(
-            '(2archindva(1indreg) + 1archindva(0,1,2archindva))', str(wiped[0]))
+        self.assertEquals('(2archindva(1indreg) + 1archindva(0,1,2archindva))', str(wiped[0]))
         self.assertEquals('0archindva(0,0indreg)', str(wiped[1]))
 
     def test_basic(self):
@@ -98,7 +95,7 @@ class TestArchind(unittest.TestCase):
             ne = vsym_archind.wipeAstArch(symctx, [nes[i]], wipeva=True)[0]
             self.assertEqual(post_nes[i], str(ne))
 
-        base = vsym_archind.wipeAstArch(symctx, [base,], wipeva=True)[0]
+        base = vsym_archind.wipeAstArch(symctx, [base, ], wipeva=True)[0]
         baseval = base.solve(emu=None)
         for match in eqs:
             self.assertEqual(match.solve(emu=None), baseval)
