@@ -46,10 +46,14 @@ def main():
                         help='Enable verbose mode (multiples matter: -vvvv)')
     parser.add_argument('-V', '--version', dest='version', default=None, action='store',
                         help='Add file version (if available) to save file name')
+    parser.add_argument('-c', '--config', dest='config', default=None, action='store_true',
+                        help='Path to a directory to use for config data')
+    parser.add_argument('-a', '--autosave', dest='autosave', default=False, action='store_true',
+                        help='Autosave configuration data')
     parser.add_argument('file', nargs='*')
     args = parser.parse_args()
 
-    vw = viv_cli.VivCli()
+    vw = viv_cli.VivCli(confdir=args.config, autosave=args.autosave)
 
     # setup logging
     vw.verbose = min(args.verbose, 4)

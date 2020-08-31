@@ -41,10 +41,16 @@ e_common.setLogging(logger, 'WARNING')
 
 
 class VivCli(vivisect.VivWorkspace, e_cli.EnviCli):
+    '''
+    A class that builds upon the VivWorkspace to provide command line capabilities so that
+    things like the Vivisect UI can provide a cleaner interface that just a direct python
+    shell. It inherits the same parameters as the VivWorkspace (autosave and confdir currently)
 
-    def __init__(self):
+    To add a new command, simply add a new function called `do_<cmdname>`.
+    '''
+    def __init__(self, **kwargs):
         e_cli.EnviCli.__init__(self, self, symobj=self)
-        vivisect.VivWorkspace.__init__(self)
+        vivisect.VivWorkspace.__init__(self, **kwargs)
         self.canvas.addRenderer("bytes", e_render.ByteRend())
         self.canvas.addRenderer("u_int_16", e_render.ShortRend())
         self.canvas.addRenderer("u_int_32", e_render.LongRend())

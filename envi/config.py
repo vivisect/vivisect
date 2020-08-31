@@ -16,11 +16,12 @@ except:
 logger = logging.getLogger(__name__)
 
 
-def gethomedir(*paths):
+def gethomedir(*paths, **kwargs):
+    makedir = kwargs.get('makedir', True)
     homepath = os.path.expanduser('~')
     path = os.path.join(homepath, *paths)
 
-    if path is not None and not os.path.exists(path):
+    if path is not None and not os.path.exists(path) and makedir:
         try:
             os.makedirs(path)
         except Exception as err:
@@ -66,12 +67,12 @@ class ConfigInvalidOption(Exception):
 
 class EnviConfig:
     '''
-    EnviConfig basically works like a multi-layer dictionary that 
+    EnviConfig basically works like a multi-layer dictionary that
     loads and stores config data.
 
     Set a config parameter:     cfg['foo'] = 'bar'
     Get a config parameter:     cfg['foo']
-      or access parm using:     cfg.foo  
+      or access parm using:     cfg.foo
     Multilevel:                 cfg.baz.bilbo.foo
 
     Create/get a subconfig:     cfg.getSubConfig('baz', add=True)
@@ -82,10 +83,10 @@ class EnviConfig:
                                 # both take optional filenames
     '''
 
-    def __init__(self, filename=None, defaults=None, docs=None):
+    def __init__(self, filename=None, defaults=None, docs=None, autosave=False):
         self.cfginfo = {}
         self.cfgdocs = {}
-        self.autosave = True
+        self.autosave = autosave
         self.filename = filename
         self.cfgsubsys = {}
 
@@ -93,7 +94,7 @@ class EnviConfig:
             self.setConfigPrimitive( defaults )
 
         if filename is not None and os.path.isfile(filename):
-            self.loadConfigFile( filename )
+            self.loadConfigFile(filename)
 
         if docs is not None:
             self.setDocsPrimitive(docs)

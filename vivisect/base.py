@@ -155,7 +155,10 @@ def ddict():
 
 
 class VivWorkspaceCore(object, viv_impapi.ImportApi):
-
+    '''
+    A base class that the VivWorkspace inherits from that defines a lot of the event handlers
+    for things like the creation of the various location types.
+    '''
     def __init__(self):
         viv_impapi.ImportApi.__init__(self)
         self.loclist = []
