@@ -270,7 +270,7 @@ class SymbolikBase:
             todo = collections.OrderedDict({p._sym_id: p for p in oldkid.parents})
             done = set()
             while todo:
-                pid, parent = todo.popitem(last=False)
+                pid, parent = todo.popitem()
                 if pid in done:
                     continue
 
