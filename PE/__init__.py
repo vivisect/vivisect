@@ -371,13 +371,11 @@ class PE(object):
         dosbytes = self.readAtOffset(0, len(self.IMAGE_DOS_HEADER))
         self.IMAGE_DOS_HEADER.vsParse(dosbytes)
 
-        nt = self.readStructAtOffset(self.IMAGE_DOS_HEADER.e_lfanew,
-                                "pe.IMAGE_NT_HEADERS")
+        nt = self.readStructAtOffset(self.IMAGE_DOS_HEADER.e_lfanew, "pe.IMAGE_NT_HEADERS")
 
         # Parse in a default 32 bit, and then check for 64...
         if nt.FileHeader.Machine in [ IMAGE_FILE_MACHINE_AMD64, IMAGE_FILE_MACHINE_IA64 ]:
-            nt = self.readStructAtOffset(self.IMAGE_DOS_HEADER.e_lfanew,
-                                "pe.IMAGE_NT_HEADERS64")
+            nt = self.readStructAtOffset(self.IMAGE_DOS_HEADER.e_lfanew, "pe.IMAGE_NT_HEADERS64")
             self.pe32p = True
             self.psize = 8
             self.high_bit_mask = 0x8000000000000000
@@ -430,7 +428,7 @@ class PE(object):
 
     def getSections(self):
         return self.sections
-         
+
     def rvaToOffset(self, rva):
         if self.inmem:
             return rva
@@ -445,7 +443,7 @@ class PE(object):
 
     def offsetToRva(self, offset):
         if self.inmem:
-            return offset 
+            return offset
 
         for s in self.sections:
             sbase = s.PointerToRawData
@@ -574,7 +572,7 @@ class PE(object):
             # check if our to do is too many, limit borrowed from pefile
             if totcount > 4096:
                 continue
-            
+
             offset = len(rsdir)
             for i in range(totcount):
                 dentrva = rsrva + offset
@@ -600,7 +598,7 @@ class PE(object):
 
                 else:
                     name_id = dirent.Name
-                
+
                 # if OffsetToData & IMAGE_RESOURCE_DATA_IS_DIRECTORY then we have another directory
                 if dirent.OffsetToData & 0x80000000:
                     # This points to a subdirectory
@@ -649,12 +647,12 @@ class PE(object):
         return self.readAtOffset(offset, size, shortok)
 
     def readAtOffset(self, offset, size, shortok=False):
-        ret = ""
+        ret = b""
         self.fd.seek(offset)
         while len(ret) != size:
             rlen = size - len(ret)
             x = self.fd.read(rlen)
-            if x == "":
+            if x == b"":
                 if not shortok:
                     return None
                 return ret
@@ -699,21 +697,21 @@ class PE(object):
         if size is not None and (rva + size) > isize:
             #raise Exception('too big! %d > %d' % (rva+size, isize))
             return False
-        
+
         return True
 
     def readStringAtRva(self, rva, maxsize=None):
-        ret = ''
+        ret = b''
         while True:
             if maxsize and maxsize <= len(ret):
                 break
             x = self.readAtRva(rva, 1)
-            if x == '\x00' or x is None:
+            if x == b'\x00' or x is None:
                 break
             ret += x
             rva += 1
         return ret
-        
+
     def parseImports(self):
         self.imports = []
 
@@ -726,7 +724,7 @@ class PE(object):
             return
 
         isize = len(x)
-        
+
         while self.checkRva(x.Name):
 
             # RP BUG FIX - we can't assume that we have 256 bytes to read
@@ -739,7 +737,7 @@ class PE(object):
 
             if not self.checkRva(imp_by_name):
                 break
-                
+
             while True:
 
                 arrayoff = self.psize * idx
@@ -768,7 +766,7 @@ class PE(object):
                     bytes = self.readAtRva(ibn_rva, len(ibn), shortok=True)
                     if not bytes:
                         break
-                    try: 
+                    try:
                         ibn.vsParse(bytes)
                     except:
                         idx+=1
@@ -875,11 +873,11 @@ class PE(object):
         if not funcoff or funcsize > 0x7FFF or ((ordoff > 0) ^ (nameoff > 0)):
             self.IMAGE_EXPORT_DIRECTORY = None
             return
-        
+
         if funcsize == 0:
             self.IMAGE_EXPORT_DIRECTORY = None
             return
-    
+
         funcbytes = self.readAtOffset(funcoff, funcsize)
 
         if not funcbytes:
@@ -896,7 +894,6 @@ class PE(object):
             namelist = struct.unpack("%dI" % (len(namebytes) / 4), namebytes)
             ordlist = struct.unpack("%dH" % (len(ordbytes) / 2), ordbytes)
 
-            #for i in range(len(funclist)):
             for i in range(len(namelist)):
 
                 ord = ordlist[i]
@@ -911,14 +908,14 @@ class PE(object):
                 name = None
 
                 if nameoff != 0:
-                    name = self.readAtOffset(nameoff, 256, shortok=True).split("\x00", 1)[0]
+                    name = self.readAtOffset(nameoff, 256, shortok=True).split(b"\x00", 1)[0]
                 else:
-                    name = "ord_%.4x" % ord
+                    name = b'ord_%.4x' % ord
 
                 # RP BUG FIX - Export forwarding range check is done using RVA's
                 if funcoff >= edir.VirtualAddress and funcoff < edir.VirtualAddress + edir.Size:
-                    fwdname = self.readAtRva(funcoff, 260, shortok=True).split("\x00", 1)[0]
-                    self.forwarders.append((funclist[ord],name,fwdname))
+                    fwdname = self.readAtRva(funcoff, 260, shortok=True).split(b'\x00', 1)[0]
+                    self.forwarders.append((funclist[ord], name, fwdname))
                 else:
                     self.exports.append((funclist[ord], ord, name))
 

@@ -202,7 +202,7 @@ class ElfSection:
                 self.sh_entsize,
                 self.sh_size,
                 self.sh_addralign)
-    
+
 class Elf32Section(ElfSection, vs_elf.Elf32Section):
     def __init__(self, bigend=False):
         vs_elf.Elf32Section.__init__(self, bigend=bigend)
@@ -218,7 +218,7 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
         '''
         Parse data from 'fd' and create an Elf object.
 
-        This process attempts to get as much information from DYNAMICS as 
+        This process attempts to get as much information from DYNAMICS as
         possible, then adds in data from SECTIONS.
         '''
 
@@ -1069,12 +1069,19 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
 
         return strings[stroff:strend]
 
+
+def elfFromFileName(fname):
+    return Elf(open(fname, 'rb'))
+
+
 def elfFromMemoryObject(memobj, baseaddr):
     fd = vstruct.MemObjFile(memobj, baseaddr)
     return Elf(fd)
 
+
 def getRelocType(val):
     return val & 0xff
+
 
 def getRelocSymTabIndex(val):
     return val >> 8
