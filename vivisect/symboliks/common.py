@@ -242,20 +242,27 @@ class SymbolikBase:
         the symcaches of every parent node up all of the ASTs that the child exists in. However,
         that can get exceedingly repetative and expensive, especially in the reduction cases
         where we don't need to constantly clear the ASTs, since during the traversal they'll be
-        cleared once and then never need to cleared again. And if they are populated for whatever
-        reason, they'll be cleaned up since caches of nodes are populated recursively and are
-        connected, so if the cache of a grandparent node is populated, so too will the cache
-        of a grandchild node.
+        cleared once and then only really need to be cleared if any of the cached methods
+        (isDiscrete, __repr__, or __str__) are called again (which doesn't happen during
+        reduction).
 
-        We can take advantage of this when clearing the parent caches, and if the cache of a
-        parent node is cleared, we don't need to traverse up the tree to clear the caches of
-        the rest of the parents, since those should already be cleared. Initial tests show that
-        this represents upwards of a 1000x speedup for complex function reduction.
+        We can take advantage of this behavior when clearing the parent caches during setSymKid.
+        If the cache of a parent node is cleared, we don't need to traverse up the tree to clear
+        the caches of the rest of the parents, since those should already be cleared. During
+        reduction this should generally hold true. During other types of walks, calling any of the
+        cache methods recursively populates the cache downwards, and replacing a child would still
+        force setSymKid to traverse up the parent chain to clear all the parent caches, so custom
+        walks, such as in vivisect.symboliks.archind.wipeAstArch, will still work as expected.
+
+        Usage of setSymKid outside of walkTree should see little impact, though it is best to have
+        clear caches depending on your use case. Both the new child and the new parent should have
+        clear caches or populated caches, a mix is not recommended.
 
         On the downside, this does impose the constraints that if you mean to do any out of API
         ASTs manipulations such as merging trees or node replacement without doing a walkTree,
         you had best make sure the caches are clear or that there are no gaps in the caches
-        of the consecutive levels of the AST.
+        of the consecutive levels of the AST. This can easily be achieved using the clearCache()
+        method on the root node of the AST (or ASTs in the case of multiple).
         '''
         if idx > len(self.kids)-1:
             self.kids.append(kid)
