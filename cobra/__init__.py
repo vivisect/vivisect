@@ -999,19 +999,19 @@ class CobraProxy:
         with self._cobra_getsock() as csock:
             mtype,rver,data = csock.cobraTransaction(COBRA_HELLO, name, "")
 
-        if mtype == COBRA_ERROR:
-            csock.trashed = True
-            if self._cobra_sflags & (SFLAG_MSGPACK|SFLAG_JSON):
-                data = Exception(data)
-            raise data
+            if mtype == COBRA_ERROR:
+                csock.trashed = True
+                if self._cobra_sflags & (SFLAG_MSGPACK|SFLAG_JSON):
+                    data = Exception(data)
+                raise data
 
-        if rver != version:
-            csock.trashed = True
-            raise Exception("Server Version Not Supported: %s" % rver)
+            if rver != version:
+                csock.trashed = True
+                raise Exception("Server Version Not Supported: %s" % rver)
 
-        if mtype != COBRA_HELLO:
-            csock.trashed = True
-            raise Exception("Invalid Cobra Hello Response")
+            if mtype != COBRA_HELLO:
+                csock.trashed = True
+                raise Exception("Invalid Cobra Hello Response")
 
         self._cobra_gothello = True
         self._cobra_methods = data
@@ -1033,7 +1033,7 @@ class CobraProxy:
         else:
             if not thr: # if thread isn't specified, use the current thread
                 thr = currentThread()
-                
+
             tsocks = getattr(thr, 'cobrasocks', None)
             if tsocks is None:
                 tsocks = {}
