@@ -19,6 +19,8 @@ debugStub.listen.guest64.remote = "TRUE" # bind to 0.0.0.0 rather than 127.0.0.1
 debugStub.hideBreakpoints = "TRUE" # Enable breakpoints
 
 '''
+import logging
+
 import PE
 import vtrace
 
@@ -31,6 +33,8 @@ import vtrace.platforms.base as vt_base
 import vtrace.platforms.win32 as vt_win32
 import vtrace.platforms.winkern as vt_winkern
 import vtrace.platforms.gdbstub as vt_gdbstub
+
+logger = logging.getLogger(__name__)
 
 class VMWareMixin(vt_gdbstub.GdbStubMixin):
 
@@ -75,10 +79,10 @@ class VMWare32WindowsTrace(
         fs_fields = self.readMemoryFormat(fsbase, '<8I')
         # Windows has a self reference in the KPCR...
         if fs_fields[7] != fsbase:
-            print [ hex(x) for x in fs_fields ]
+            logger.warning(str([ hex(x) for x in fs_fields ]))
             raise Exception('poi(fsbase+(ptr*7)) != fsbase! ( not actually windows? )')
 
-        vt_winkern.initWinkernTrace(self,fsbase)
+        vt_winkern.initWinkernTrace(self, fsbase)
         return
 
     def normFileName(self, libname):
@@ -91,20 +95,18 @@ class VMWare32WindowsTrace(
             vhash = e_symcache.symCacheHashFromPe(pe)
 
             symcache = self.symcache.getCacheSyms(vhash)
-            if symcache == None:
+            if symcache is None:
                 # Symbol type 0 for now...
-                symcache = [ ( rva, 0, name, e_resolv.SYMSTOR_SYM_SYMBOL ) for rva,ord,name in pe.getExports() ]
-                self.symcache.setCacheSyms( vhash, symcache )
+                symcache = [(rva, 0, name, e_resolv.SYMSTOR_SYM_SYMBOL) for rva, ord, name in pe.getExports()]
+                self.symcache.setCacheSyms(vhash, symcache)
 
-            self.impSymCache( symcache, symfname=normname, baseaddr=baseaddr )
+            self.impSymCache(symcache, symfname=normname, baseaddr=baseaddr)
 
-        except Exception, e:
-            import traceback;traceback.print_exc()
-            print('Error Parsing Binary (%s): %s' % (normname, e))
-
+        except Exception as e:
+            logger.error('Error Parsing Binary (%s): %s', normname, e)
 
     def buildNewTrace(self):
-        return VMWare32WindowsTrace( host=self._gdb_host, port=self._gdb_port )
+        return VMWare32WindowsTrace(host=self._gdb_host, port=self._gdb_port)
 
     # FIXME move these to gdbstub
 

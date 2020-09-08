@@ -3,8 +3,6 @@
 A dynadag-ish graph layout calculator...
 '''
 
-import itertools
-
 import visgraph
 import visgraph.layouts as vg_layout
 import visgraph.graphcore as vg_graphcore
@@ -14,7 +12,7 @@ import visgraph.drawing.catmullrom as vg_catmullrom
 zero_zero = (0,0)
 
 def revenumerate(l):
-    return itertools.izip(range(len(l)-1, -1, -1), reversed(l))
+    return zip(range(len(l)-1, -1, -1), reversed(l))
 
 SCOOCH_LEFT     = 0
 SCOOCH_RIGHT    = 1
@@ -229,7 +227,6 @@ class DynadagLayout(vg_layout.GraphLayout):
                     xweight += 1
                     ghostid = self.graph.addNode(ghost=True, weight=xweight)[0]
                     self.graph.addEdgeByNids(n1, ghostid)
-                    #print 'ADDED GHOST %d (%d -> %d)' % (ghostid,n1,n2)
                     n1 = ghostid
                 self.graph.addEdgeByNids(n1, n2)
 
@@ -239,7 +236,6 @@ class DynadagLayout(vg_layout.GraphLayout):
 
         for nid, ninfo in self.graph.getNodes():
             self.maxweight = max(ninfo.get('weight', 0), self.maxweight)
-        #print 'Max Weight: %d' % self.maxweight
 
         self.layers = [ [] for i in range(self.maxweight + 1) ]
 

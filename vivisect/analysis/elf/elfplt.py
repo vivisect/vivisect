@@ -1,5 +1,4 @@
-
-"""
+'''
 If a "function" is in the plt it's a wrapper for something in the GOT.
 Make that apparent.
 
@@ -44,9 +43,7 @@ the start (and the branch) of each PLT entry.
 
 Armed with plt_distance and plt_size, we then determine where each PLT entry
 begins, and make those Functions, and analysis continues from there.
-
-
-"""
+'''
 import logging
 import vivisect
 import envi

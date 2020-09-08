@@ -6,6 +6,7 @@ import os
 import time
 import signal
 import struct
+import logging
 import binascii
 import platform
 import traceback
@@ -27,6 +28,8 @@ import vtrace.platforms.posix as v_posix
 
 from ctypes import *
 import ctypes.util as cutil
+
+logger = logging.getLogger(__name__)
 
 if os.getenv('ANDROID_ROOT'):
     libc = CDLL('/system/lib/libc.so')
@@ -373,7 +376,7 @@ class LinuxMixin(v_posix.PtraceMixin, v_posix.PosixMixin):
                 os.kill(os.getpid(), signal.SIGSTOP)
                 os.execv(cmdlist[0], cmdlist)
             except Exception as e:
-                print(e)
+                logger.error(e)
             sys.exit(-1)
 
         # Attach to child. should cause SIGSTOP
@@ -451,9 +454,9 @@ class LinuxMixin(v_posix.PtraceMixin, v_posix.PosixMixin):
         # Blocking wait once...
         pid, status = os.waitpid(-1, 0x40000002)
         self.setMeta("ThreadId", pid)
-        # Stop the rest of the threads... 
+        # Stop the rest of the threads...
         # why is linux debugging so Ghetto?!?!
-        if not self.stepping: # If we're stepping, only do the one
+        if not self.stepping:  # If we're stepping, only do the one
             for tid in self.pthreads:
                 if tid == pid:
                     continue
@@ -461,9 +464,9 @@ class LinuxMixin(v_posix.PtraceMixin, v_posix.PosixMixin):
                     # We use SIGSTOP here because they can't mask it.
                     os.kill(tid, signal.SIGSTOP)
                     os.waitpid(tid, 0x40000002)
-                except Exception, e:
-                    print "WARNING TID is invalid %d %s" % (tid,e)
-        return pid,status
+                except Exception as e:
+                    logger.warning("WARNING TID is invalid %d %s", tid, e)
+        return pid, status
 
     @v_base.threadwrap
     def platformContinue(self):
@@ -472,7 +475,7 @@ class LinuxMixin(v_posix.PtraceMixin, v_posix.PosixMixin):
             cmd = PT_SYSCALL
         pid = self.getPid()
         sig = self.getCurrentSignal()
-        if sig == None:
+        if sig is None:
             sig = 0
         # Only deliver signals to the main thread
         if v_posix.ptrace(cmd, pid, 0, sig) != 0:
@@ -635,7 +638,7 @@ class LinuxMixin(v_posix.PtraceMixin, v_posix.PosixMixin):
         msgs.
         """
         p = c_ulong(0)
-        if tid == None:
+        if tid is None:
             tid = self.getMeta("ThreadId", -1)
         if v_posix.ptrace(PT_GETEVENTMSG, tid, 0, addressof(p)) != 0:
             raise Exception('ptrace PT_GETEVENTMSG failed!')
@@ -649,29 +652,29 @@ class LinuxMixin(v_posix.PtraceMixin, v_posix.PosixMixin):
 
     def platformGetMaps(self):
         maps = []
-        mapfile = file("/proc/%d/maps" % self.pid)
-        for line in mapfile:
+        with open("/proc/%d/maps" % self.pid, 'r') as mapfile:
+            for line in mapfile:
 
-            perms = 0
-            sline = line.split(" ")
-            addrs = sline[0]
-            permstr = sline[1]
-            fname = sline[-1].strip()
-            addrs = addrs.split("-")
-            base = long(addrs[0],16)
-            max = long(addrs[1],16)
-            mlen = max-base
+                perms = 0
+                sline = line.split(" ")
+                addrs = sline[0]
+                permstr = sline[1]
+                fname = sline[-1].strip()
+                addrs = addrs.split("-")
+                base = long(addrs[0],16)
+                max = long(addrs[1],16)
+                mlen = max-base
 
-            if "r" in permstr:
-                perms |= e_mem.MM_READ
-            if "w" in permstr:
-                perms |= e_mem.MM_WRITE
-            if "x" in permstr:
-                perms |= e_mem.MM_EXEC
-            #if "p" in permstr:
-                #pass
+                if "r" in permstr:
+                    perms |= e_mem.MM_READ
+                if "w" in permstr:
+                    perms |= e_mem.MM_WRITE
+                if "x" in permstr:
+                    perms |= e_mem.MM_EXEC
+                #if "p" in permstr:
+                    #pass
 
-            maps.append((base,mlen,perms,fname))
+                maps.append((base,mlen,perms,fname))
         return maps
 
     def platformGetFds(self):
@@ -680,7 +683,7 @@ class LinuxMixin(v_posix.PtraceMixin, v_posix.PosixMixin):
             try:
                 fdnum = int(name)
                 fdtype = vtrace.FD_UNKNOWN
-                link = os.readlink("/proc/%d/fd/%s" % (self.pid,name))
+                link = os.readlink("/proc/%d/fd/%s" % (self.pid, name))
                 if "socket:" in link:
                     fdtype = vtrace.FD_SOCKET
                 elif "pipe:" in link:
@@ -688,9 +691,9 @@ class LinuxMixin(v_posix.PtraceMixin, v_posix.PosixMixin):
                 elif "/" in link:
                     fdtype = vtrace.FD_FILE
 
-                fds.append((fdnum,fdtype,link))
-            except:
-                traceback.print_exc()
+                fds.append((fdnum, fdtype, link))
+            except Exception:
+                logger.error(traceback.format_exc())
 
         return fds
 
@@ -906,8 +909,8 @@ class LinuxAmd64Trace(
 
 
 
-arm_break_be = 'e7f001f0'.decode('hex')
-arm_break_le = 'f001f0e7'.decode('hex')
+arm_break_be = binascii.unhexlify('e7f001f0')
+arm_break_le = binascii.unhexlify('f001f0e7')
 
 class LinuxArmTrace(
         vtrace.Trace,
@@ -931,7 +934,7 @@ class LinuxArmTrace(
 
     def _fireStep(self):
         # See notes below about insanity...
-        if self._step_cleanup != None:
+        if self._step_cleanup is not None:
             [ self.writeMemory( bva, bytes ) for (bva,bytes) in self._step_cleanup ]
             self._step_cleanup = None
         return v_base.TracerBase._fireStep( self )

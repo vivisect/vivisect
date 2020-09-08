@@ -99,7 +99,7 @@ class VivCanvasBase(vq_hotkey.HotKeyMixin, e_mem_canvas.VQMemoryCanvas):
             return
 
         loc = self.vw.getLocation(self._canv_curva)
-        if loc == None:
+        if loc is None:
             loc = (self._canv_curva, 1, None, None)
 
         nextva = loc[0] + loc[1]
@@ -111,7 +111,7 @@ class VivCanvasBase(vq_hotkey.HotKeyMixin, e_mem_canvas.VQMemoryCanvas):
             return
 
         loc = self.vw.getPrevLocation(self._canv_curva)
-        if loc == None:
+        if loc is None:
             loc = (self._canv_curva - 1, 1, None, None)
 
         self._selectVa(loc[0])
@@ -125,16 +125,16 @@ class VivCanvasBase(vq_hotkey.HotKeyMixin, e_mem_canvas.VQMemoryCanvas):
         va = self._canv_curva
         loc = vw.getLocation(va)
 
-        if loc == None:
+        if loc is None:
             # find next defined location
-            while loc == None and vw.isValidPointer(va):
+            while loc is None and vw.isValidPointer(va):
                 va += 1
                 loc = vw.getLocation(va)
             va -= 1
             lastloc = (va, 1, 0, 0)
         else:
             # find next undefined location
-            while loc != None:
+            while loc is not None:
                 va = loc[0]
                 lastloc = loc
                 loc = vw.getLocation(va + loc[1])
@@ -154,16 +154,16 @@ class VivCanvasBase(vq_hotkey.HotKeyMixin, e_mem_canvas.VQMemoryCanvas):
         va = self._canv_curva
         loc = vw.getLocation(va)
 
-        if loc == None:
+        if loc is None:
             # find previous defined location
-            while loc == None and vw.isValidPointer(va):
+            while loc is None and vw.isValidPointer(va):
                 va -= 1
                 loc = vw.getLocation(va)
-            if loc != None:
+            if loc is not None:
                 va = loc[0]
         else:
             # find previous undefined location
-            while loc != None:
+            while loc is not None:
                 va = loc[0]
                 loc = vw.getLocation(va-1)
 
@@ -235,13 +235,13 @@ class VivCanvasBase(vq_hotkey.HotKeyMixin, e_mem_canvas.VQMemoryCanvas):
     @vq_hotkey.hotkey('viv:make:struct:again')
     def _hotkey_make_struct_again(self):
         if self._canv_curva is not None:
-            if self._last_sname != None:
+            if self._last_sname is not None:
                 self.vw.makeStructure(self._canv_curva, self._last_sname)
 
     @vq_hotkey.hotkey('viv:make:struct:multi')
     def _hotkey_make_struct_multi(self, parent=None):
         if self._canv_curva is not None:
-            if self._last_sname != None:
+            if self._last_sname is not None:
                 number, ok = QInputDialog.getText(parent, 'Make Multiple Consecutive Structs', 'Number of Structures')
                 if ok:
                     curva = self._canv_curva
@@ -251,11 +251,11 @@ class VivCanvasBase(vq_hotkey.HotKeyMixin, e_mem_canvas.VQMemoryCanvas):
                         curva += len(vs)
 
     def makeStructAgainMulti(self, va, parent=None):
-        if parent == None:
+        if parent is None:
             parent = self
 
         curcomment = self.vw.getComment(va)
-        if curcomment == None:
+        if curcomment is None:
             curcomment = ''
 
         comment, ok = QInputDialog.getText(parent, 'Enter...', 'Comment', text=curcomment)
@@ -294,7 +294,7 @@ class VivCanvasBase(vq_hotkey.HotKeyMixin, e_mem_canvas.VQMemoryCanvas):
 
     def getVaTag(self, va):
         loc = self.mem.getLocation(va)
-        if loc != None:
+        if loc is not None:
             va = loc[L_VA]
         return e_mem_canvas.VQMemoryCanvas.getVaTag(self, va)
 
@@ -346,7 +346,7 @@ class VQVivMemoryCanvas(VivCanvasBase):
         we assume we're being handed a valid va since renderMemory checks for valid MemoryMap
         '''
         nloc = self.mem.getLocation(va)
-        if nloc == None:
+        if nloc is None:
             return va, 0
 
         nva, nvsz, nvt, nvti = nloc
@@ -404,25 +404,25 @@ class VQVivMemoryView(e_mem_qt.VQMemoryWindow, viv_base.VivEventCore):
 
             va = self.vw.parseExpression(title)
             name = self.vw.getName(va)
-            if name != None:
+            if name is not None:
                 title = name
 
-        except Exception, e:
+        except Exception:
             title = 'expr error'
 
         if self._leading:
             title += ' (leading)'
 
-        if self._following != None:
-            user,window = self._following
-            title += ' (following %s %s)' % (user,window)
+        if self._following is not None:
+            user, window = self._following
+            title += ' (following %s %s)' % (user, window)
 
         return title
 
     def _getRenderVaSize(self):
         '''
         Vivisect steps in and attempts to map to locations when they exist.
-        
+
         since we have a location database, let's use that to make sure we get a
         real location if it exists.  otherwise, we end up in no-man's land, 
         since we rely on labels, which only exist for the base of a location.
@@ -442,7 +442,7 @@ class VQVivMemoryView(e_mem_qt.VQMemoryWindow, viv_base.VivEventCore):
 
     def _viv_xrefsto(self):
 
-        if self.mem_canvas._canv_curva != None:
+        if self.mem_canvas._canv_curva is not None:
             xrefs = self.vw.getXrefsTo(self.mem_canvas._canv_curva)
             if len(xrefs) == 0:
                 self.vw.vprint('No xrefs found!')

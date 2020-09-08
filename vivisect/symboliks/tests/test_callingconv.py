@@ -1,9 +1,11 @@
 import unittest
 
 import vivisect
-from vivisect.symboliks.common import *
 import vivisect.symboliks.archs.amd64 as sym_amd64
+
 from vstruct.primitives import *
+from vivisect.symboliks.common import *
+
 
 class CallingConvTest(unittest.TestCase):
     def test_getSymbolikArgs(self):
@@ -15,16 +17,10 @@ class CallingConvTest(unittest.TestCase):
 
         argc = 5
         sargs = cc.getSymbolikArgs(None, 'a'*argc, update=False)
-        #print('{:5} {}'.format('arg #', 'sym'))
-        #for idx, arg in enumerate(sargs):
-            #print('{:5} {}'.format(idx, arg))
         assert(len(sargs) == argc)
 
         argc = 15
         sargs = cc.getSymbolikArgs(None, 'b'*argc, update=False)
-        #print('{:5} {}'.format('arg #', 'sym'))
-        #for idx, arg in enumerate(sargs):
-            #print('{:5} {}'.format(idx, arg))
         assert(len(sargs) == argc)
 
     def NEWPtest_setSymbolikArgs(self):
@@ -38,7 +34,6 @@ class CallingConvTest(unittest.TestCase):
         fva = 0xfffff97fff1706a0
         args = [(v_uint64, None), ] * 6
         vw.setFunctionArgs(fva, args)
-        #print(vw.getFunctionArgs(fva))
 
         ctx = sym_amd64.Amd64SymbolikAnalysisContext(vw)
         emu = ctx.getFunctionEmulator(fva)
@@ -48,7 +43,6 @@ class CallingConvTest(unittest.TestCase):
         argv = [0x01, 0x02, 0x03, 0x04, 0x05, 0x06]
         cc.setSymbolikArgs(emu, argv)
         sargs = cc.getSymbolikArgs(emu, argv, update=False)
-        #print('{:5} {}'.format('arg #', 'sym'))
         for idx, arg in enumerate(sargs):
 
             val = arg.update(emu)
@@ -56,7 +50,5 @@ class CallingConvTest(unittest.TestCase):
                 val = emu.readSymMemory(arg, 8)
                 arg = arg.update(emu)
                 arg = arg.reduce(emu)
-
-            #print('{:5} {} = {}'.format(idx, arg, val))
 
         assert(len(sargs) == argc)
