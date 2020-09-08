@@ -1,6 +1,7 @@
 """
 envi.bytesig signature stuff for Microsoft Visual Studio
 """
+import binascii
 
 import envi.bytesig as e_bytesig
 
@@ -32,11 +33,11 @@ class VisualStudioVamp(e_bytesig.SignatureTree):
 
     def __init__(self):
         e_bytesig.SignatureTree.__init__(self)
-        for bytes, masks, fname in sigs:
-            bytes = bytes.decode('hex')
-            if masks != None:
-                masks = masks.decode('hex')
-            self.addSignature(bytes, masks=masks, val=fname)
+        for bytez, masks, fname in sigs:
+            bytez = binascii.unhexlify(bytez)
+            if masks is not None:
+                masks = binascii.unhexlify(masks)
+            self.addSignature(bytez, masks=masks, val=fname)
 
 # seh3_prolog
 #.text:0x7c8024d6  68c09a837c       push kernel32.seh3_handler

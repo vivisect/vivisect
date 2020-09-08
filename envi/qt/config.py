@@ -77,14 +77,13 @@ class EnviConfigEditor(QWidget):
         for optname in optnames:
             optval = config.get(optname)
             cls = cfgtypes.get(type(optval))
-            if cls == None:
-                #print('no class: %r' % val)
+            if cls is None:
                 continue
 
             label = QLabel(optname)
             clsobj = cls(config, optname, optval, parent=self)
             doc = config.getOptionDoc(optname)
-            if doc != None:
+            if doc is not None:
                 label.setToolTip(doc)
             lyt.addRow(label, clsobj)
 

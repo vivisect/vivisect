@@ -1,5 +1,5 @@
-
 import vivisect.exc as viv_exc
+
 
 class VivColorMap:
     '''
@@ -25,7 +25,7 @@ class VivColorMap:
         addresses in the given block.
         '''
         cbtup = self.vw.getCodeBlock(va)
-        if cbtup == None:
+        if cbtup is None:
             raise viv_exc.InvalidCodeBlock(va)
 
         cbva, cbsize, fva = cbtup
@@ -57,4 +57,3 @@ class VivColorMap:
 
     def getColorDict(self):
         return dict(self.cmap)
-

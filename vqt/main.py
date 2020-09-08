@@ -1,6 +1,6 @@
 import sys
+import logging
 import functools
-import traceback
 
 from Queue import Queue
 from threading import currentThread
@@ -13,6 +13,8 @@ except:
     from PyQt4.QtGui import *
 
 import envi.threads as e_threads
+
+logger = logging.getLogger(__name__)
 
 def idlethread(func):
     '''
@@ -72,7 +74,7 @@ def idlethreadsync(func):
     def dowork(*args, **kwargs):
         try:
             q.put(func(*args, **kwargs))
-        except Exception, e:
+        except Exception as e:
             q.put(e)
 
     def idleadd(*args, **kwargs):
@@ -91,7 +93,7 @@ class QFireThread(QtCore.QThread):
         self.args = args
         self.kwargs = kwargs
         self.callable = callable
-    
+
     def run(self):
         self.callable(*self.args, **self.kwargs)
 
@@ -113,7 +115,7 @@ class QEventThread(QtCore.QThread):
     A thread who exists to consume callback requests from the
     given workq and fire them into Qt *safely*.
     '''
-    idleadd = QtCore.pyqtSignal(object,object,object)
+    idleadd = QtCore.pyqtSignal(object, object, object)
 
     def __init__(self, workq):
         QtCore.QThread.__init__(self)
@@ -124,17 +126,17 @@ class QEventThread(QtCore.QThread):
             try:
 
                 todo = self.workq.get()
-                if todo == None:
+                if todo is None:
                     continue
 
-                func,args,kwargs = todo
-                if func == None:
+                func, args, kwargs = todo
+                if func is None:
                     return
 
                 self.idleadd.emit(func,args,kwargs)
 
-            except Exception, e:
-                print('vqt event thread: %s' % e)
+            except Exception as e:
+                logger.warning('vqt event thread: %s', str(e))
 
 class VQApplication(QApplication):
 
@@ -147,8 +149,10 @@ class VQApplication(QApplication):
     def callFromQtLoop(self, callback, args, kwargs):
         callback(*args,**kwargs)
 
+
 class QEventChannel(QtCore.QObject):
     guievents = QtCore.pyqtSignal(str,object)
+
 
 @e_threads.firethread
 def workerThread():
@@ -157,19 +161,19 @@ def workerThread():
     while True:
         try:
             todo = workerq.get()
-            if todo != None:
-                func,args,kwargs = todo
+            if todo is not None:
+                func, args, kwargs = todo
 
-                if func == None:
+                if func is None:
                     return
 
                 try:
-                    func(*args,**kwargs)
+                    func(*args, **kwargs)
                 except:
                     sys.excepthook(*sys.exc_info())
 
-        except Exception, e:
-            print('vqt worker warning: %s' % e)
+        except Exception as e:
+            logger.warning('vqt worker warning: %s', str(e))
 
 def startup(css=None):
     # yea yea.... globals suck...
@@ -247,12 +251,12 @@ def vqtdisconnect(callback, event=None):
     of the specified type.
     '''
     global qapp
-    if event == None:
+    if event is None:
         qapp.guievents.disconnect( callback )
         return
 
     chan = qapp.vqtchans.get(event)
-    if chan != None:
+    if chan is not None:
         chan.guievents.disconnect(callback)
 
 def getOpenFileName(*args, **kwargs):

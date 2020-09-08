@@ -1,4 +1,5 @@
 import os
+import binascii
 
 import vivisect.symboliks.expression as v_s_expr
 
@@ -87,7 +88,7 @@ class SymbolikEmulator:
         by solving for deltas between two symbols in different seed
         inputs to see if they are likely arithmetically related.
         '''
-        self._sym_rseed = os.urandom(10).encode('hex')
+        self._sym_rseed = binascii.hexlify(os.urandom(10))
 
     def getRandomSeed(self):
         return self._sym_rseed
@@ -150,6 +151,6 @@ class SymbolikEmulator:
 
         Example:
             for vname, vsym in t.getSymVariables():
-                print '%s = %s' % (vname, str(vsym))
+                print('%s = %s' % (vname, str(vsym)))
         '''
         return self._sym_vars.items()

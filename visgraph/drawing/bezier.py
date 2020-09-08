@@ -1,4 +1,3 @@
-
 def splitline(pt1, pt2, percent=0.5):
     '''
     Return a point which splits the given line at the
@@ -37,9 +36,3 @@ def calculate_bezier(points, steps = 30):
         ret.append(layers[-1][0])
 
     return ret
-
-if __name__ == '__main__':
-    print calculate_bezier( [ (0,0), (3, 20), (20, 23), (20, 20)] )
-
-    print calculate_bezier( [ (0,0), (10,10) ], 10)
-

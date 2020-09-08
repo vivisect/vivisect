@@ -1,4 +1,5 @@
 import io
+import logging
 import unittest
 
 import envi
@@ -9,6 +10,9 @@ import vivisect.const as v_const
 import vivisect.tools.graphutil as v_t_graphutil
 
 import vivisect.tests.helpers as helpers
+
+
+logger = logging.getLogger(__name__)
 
 
 def glen(g):

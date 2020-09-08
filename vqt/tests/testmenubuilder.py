@@ -23,4 +23,3 @@ def acsucceed(x, y):
 
 def acfail(x, y):
     return y / 0
-

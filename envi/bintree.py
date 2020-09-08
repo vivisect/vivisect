@@ -16,7 +16,7 @@ class BinaryTree:
         node = self.basenode
         for sh in range(width-1, -1, -1):
             choice = (intval >> sh) & 1
-            if node[choice] == None:
+            if node[choice] is None:
                 node[choice] = [None, None, None]
             node = node[choice]
         node[2] = nodeinfo
@@ -39,11 +39,10 @@ class BinaryTree:
             choice = (intval >> sh) & 1
             node = node[choice]
             ninfo = node[2]
-            if ninfo != None:
+            if ninfo is not None:
                 return ninfo
         return node[2]
 
     def getBinstr(self, binstr):
         bval = e_bits.binary(binstr)
-        return self.getInt(bval, len(bstr))
-
+        return self.getInt(bval, len(binstr))

@@ -128,7 +128,7 @@ class RegisterContext:
             if (idx & 0xffff) != idx:
                 continue
             x = getattr(sobj, name, None)
-            if x != None:
+            if x is not None:
                 self._rctx_vals[idx] = x
 
     def _rctx_Export(self, sobj):
@@ -190,7 +190,7 @@ class RegisterContext:
         '''
         Returns True if this context is aware of a status register.
         '''
-        if self._rctx_srindex == None:
+        if self._rctx_srindex is None:
             return False
 
         return True
@@ -226,13 +226,13 @@ class RegisterContext:
 
     def getRegisterByName(self, name):
         idx = self._rctx_names.get(name)
-        if idx == None:
+        if idx is None:
             raise e_exc.InvalidRegisterName("Unknown Register: %s" % name)
         return self.getRegister(idx)
 
     def setRegisterByName(self, name, value):
         idx = self._rctx_names.get(name)
-        if idx == None:
+        if idx is None:
             raise e_exc.InvalidRegisterName("Unknown Register: %s" % name)
         self.setRegister(idx, value)
 
@@ -393,7 +393,7 @@ class RegisterContext:
         of meta-registers) or the name of the register.
         """
         ridx = self.getRegisterIndex(regname)
-        if ridx != None:
+        if ridx is not None:
             return self.getRegisterName(ridx & RMETA_NMASK)
         return regname
 

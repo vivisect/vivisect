@@ -62,9 +62,7 @@ class GraphRenderer:
         # Render the edges
         for eid, fromid, toid, einfo in graph.getEdges():
             points = einfo.get('edge_points')
-            if points != None:
+            if points is not None:
                 self.renderEdge(eid, einfo, points)
 
         self.endRender()
-
-

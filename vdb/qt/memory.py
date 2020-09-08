@@ -1,3 +1,5 @@
+import binascii
+
 try:
     from PyQt5 import QtCore
     from PyQt5.QtWidgets import QApplication
@@ -33,7 +35,7 @@ class VdbMemoryCanvas(envi.qt.memcanvas.VQMemoryCanvas):
         menu.addAction('Add Breakpoint', VDBACT(self.db, 'bp 0x%.8x' % va))
 
         bp = t.getBreakpointByAddr(va)
-        if bp != None:
+        if bp is not None:
             bpid = bp.getId()
             menu.addAction('Remove Breakpoint', VDBACT(self.db, 'bp -r %d' % bpid))
 
@@ -46,7 +48,7 @@ class VdbMemoryCanvas(envi.qt.memcanvas.VQMemoryCanvas):
         nop = t.archGetNopInstr()
         # yuck...need to fix this on gui re-architecture.
         currend = self.vdb_memwin.rend_select.currentText()
-        if nop != None and 'asm' in currend:
+        if nop is not None and 'asm' in currend:
             smenu_patch.addAction('Set Bytes To NOP',
                     ACT(self._menuSetOpTo, va, nop))
 
@@ -109,7 +111,7 @@ class VdbMemoryCanvas(envi.qt.memcanvas.VQMemoryCanvas):
         bytez = t.readMemory(va, size)
 
         clipboard = QApplication.clipboard()
-        clipboard.setText(bytez.encode('hex'))
+        clipboard.setText(binascii.hexlify(bytez))
 
     def _menuFollow(self, va, rend='', newWindow=False):
         totalsize = self._canv_endva - self._canv_beginva
@@ -128,7 +130,7 @@ class VdbMemoryCanvas(envi.qt.memcanvas.VQMemoryCanvas):
         '''
         Forces the canvas to refresh everything it's currently displaying.
         '''
-        if self._canv_endva == None or self._canv_beginva == None:
+        if self._canv_endva is None or self._canv_beginva is None:
             # not rendered yet.
             return
 

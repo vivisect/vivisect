@@ -11,7 +11,9 @@ logger = logging.getLogger(__name__)
 #       etc).
 # NOTE: ARCH UPDATE
 
+logger = logging.getLogger(__name__)
 non_use_mnems = ('push', )
+
 
 class Amd64WorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_amd64.Amd64Emulator):
 
@@ -24,7 +26,7 @@ class Amd64WorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_amd64.Amd64Emulat
     def __init__(self, vw, logwrite=False, logread=False):
         e_amd64.Amd64Emulator.__init__(self)
         v_i_emulator.WorkspaceEmulator.__init__(self, vw, logwrite=logwrite, logread=logread)
-        self.setEmuOpt('i386:reponce',True)
+        self.setEmuOpt('i386:reponce', True)
 
     def getRegister(self, index):
         """
@@ -35,7 +37,7 @@ class Amd64WorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_amd64.Amd64Emulat
         if self.op is None:
             return value
 
-        # this is broken, but works enough to keep for now.  if we 
+        # this is broken, but works enough to keep for now.  if we
         # run into new 64-bit calling conventions, we may need to fix
         # this.
         if index not in self.taintregs:
@@ -63,14 +65,12 @@ class Amd64WorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_amd64.Amd64Emulat
         # (reg initialization)
         if op.mnem == 'xor' and op.opers[0] == op.opers[1]:
             # xor register initialization
-            logger.debug('{}: not a reg use (xor init): {} {}'.format(hex(op.va), ridx, op))
             return False
 
         else:
             # if op mnem is in blacklist, it's not a use either
-            if op.mnem in non_use_mnems:
-                logger.debug('{}: not a reg use (mnem): {} {}'.format(hex(op.va), ridx, op))
-                return False
+            for nonuse_mnem in non_use_mnems:
+                if nonuse_mnem in repr(op):
+                    return False
 
         return True
-
