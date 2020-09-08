@@ -9,21 +9,19 @@ and get/set attributes on objects that exist on a remote system.
 """
 # Copyright (C) 2011 Invisigoth - See LICENSE file for details
 import os
-import sys
 import json
 import time
-import errno
 import types
-import Queue
+import queue
+import pickle
 import socket
 import struct
+import urllib
 import logging
-import urllib2
 import traceback
-import cPickle as pickle
 
-from threading import currentThread,Thread,RLock,Timer,Lock,Event
-from SocketServer import ThreadingTCPServer, BaseRequestHandler
+from threading import currentThread, Thread, RLock, Timer, Lock
+from socketserver import ThreadingTCPServer, BaseRequestHandler
 try:
     import msgpack
     dumpargs = {}
@@ -186,11 +184,6 @@ def jsonloads(b):
 def jsondumps(b):
     return json.dumps(b)
 
-def toUtf8(s):
-    if type(s) == unicode:
-        return s.encode('utf8')
-    return s
-
 class CobraSocket:
 
     def __init__(self, socket, sflags=0):
@@ -238,7 +231,7 @@ class CobraSocket:
         except Exception as e:
             raise CobraPickleException("The arguments/attributes must be serializable: %s" % e)
 
-        objname = toUtf8(objname)
+        objname = objname
         self.sendExact(struct.pack("<III", mtype, len(objname), len(buf)) + objname + buf)
 
     def recvMessage(self):
@@ -883,7 +876,7 @@ class CobraConnectionHandler:
 
 def isCobraUri(uri):
     try:
-        x = urllib2.Request(uri)
+        x = urllib.Request(uri)
         if x.get_type() not in ["cobra","cobrassl"]:
             return False
     except Exception as e:
@@ -892,7 +885,7 @@ def isCobraUri(uri):
 
 def chopCobraUri(uri):
 
-    req = urllib2.Request(uri)
+    req = urllib.Request(uri)
     scheme = req.get_type()
     host = req.get_host()
 
@@ -985,7 +978,7 @@ class CobraProxy:
             self._cobra_sflags |= SFLAG_JSON
 
         if self._cobra_spoolcnt:
-            self._cobra_sockpool = Queue.Queue()
+            self._cobra_sockpool = queue.Queue()
             # timeout reqeuired for pool usage
             if not self._cobra_timeout:
                 self._cobra_timeout = 60

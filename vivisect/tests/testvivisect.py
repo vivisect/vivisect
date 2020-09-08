@@ -261,13 +261,13 @@ class VivisectTest(unittest.TestCase):
         self.assertEqual(casevas, cases)
 
         strlocs = [
-            (0x8051930, 8, 2, 'literal\x00'),
-            (0x8051938, 6, 2, 'shell\x00'),
-            (0x805193e, 13, 2, 'shell-always\x00'),
-            (0x805194b, 13, 2, 'shell-escape\x00'),
-            (0x8051958, 20, 2, 'shell-escape-always\x00'),
-            (0x805196c, 8, 2, 'c-maybe\x00'),
-            (0x8051974, 8, 2, 'clocale\x00'),
+            (0x8051930, 8, 2, b'literal\x00'),
+            (0x8051938, 6, 2, b'shell\x00'),
+            (0x805193e, 13, 2, b'shell-always\x00'),
+            (0x805194b, 13, 2, b'shell-escape\x00'),
+            (0x8051958, 20, 2, b'shell-escape-always\x00'),
+            (0x805196c, 8, 2, b'c-maybe\x00'),
+            (0x8051974, 8, 2, b'clocale\x00'),
         ]
         for lva, lsize, ltype, lstr in strlocs:
             loctup = self.chgrp_vw.getLocation(lva)
@@ -452,7 +452,7 @@ class VivisectTest(unittest.TestCase):
         self.assertTrue(vw.getFunction(0x0804a9a0), 0x0804a920)
 
     def test_viv_bigend(self):
-        fd = io.StringIO(u'ABCDEFG')
+        fd = io.BytesIO(b'ABCDEFG')
 
         vw = vivisect.VivWorkspace()
         vw.config.viv.parsers.blob.arch = 'arm'
@@ -502,7 +502,7 @@ class VivisectTest(unittest.TestCase):
         g = v_t_graphutil.buildFunctionGraph(vw, 0x405c10)
         longpath=[0x405c10, 0x405c48, 0x405ca6, 0x405cb0, 0x405cc3, 0x405c4e, 0x405c57, 0x405c5c, 0x405c6b, 0x405cd4, 0x405ce4, 0x405c80, 0x405c8c, 0x405cf6, 0x405c92]
         path = next(v_t_graphutil.getLongPath(g))
-        path = map(lambda k: k[0], path)
+        path = list(map(lambda k: k[0], path))
         self.assertEqual(path, longpath)
 
     def test_graphutil_getcodepaths(self):
@@ -610,4 +610,4 @@ class VivisectTest(unittest.TestCase):
             'pop r14',
             'ret '
         ]
-        self.assertEqual(ops, map(str, v_t_graphutil.getOpsFromPath(vw, g, path)))
+        self.assertEqual(ops, list(map(str, v_t_graphutil.getOpsFromPath(vw, g, path))))

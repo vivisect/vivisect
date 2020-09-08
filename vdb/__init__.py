@@ -8,15 +8,12 @@ import logging
 import binascii
 import threading
 import traceback
-from Queue import Queue
-from collections import defaultdict
-
-from ConfigParser import *
+from queue import Queue
+from collections import defaultdict, UserDict
 
 from cmd import *
 from struct import *
 from getopt import getopt
-from UserDict import *
 
 import vtrace
 import vtrace.util as v_util

@@ -30,7 +30,7 @@ def getNodeWeightHisto(g):
     weights_to_cb = collections.defaultdict(list)
 
     # create default dict
-    for cb, weight in sorted(nodeweights.items(), lambda x, y: cmp(y[1], x[1])):
+    for cb, weight in sorted(nodeweights.items(), key=lambda x: x[1]):
         if not len(g.getRefsFromByNid(cb)):
             # leaves is a tuple of (cb, current path, visited nodes)
             # these are our leaf nodes

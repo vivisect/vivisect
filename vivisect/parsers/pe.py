@@ -1,4 +1,3 @@
-import os
 import logging
 from io import StringIO
 
@@ -12,12 +11,14 @@ import vivisect.parsers as v_parsers
 import vtrace  # needed only for setting the logging level
 import vtrace.platforms.win32 as vt_win32
 
+import envi.common as e_common
 import envi.memory as e_mem
 import envi.symstore.symcache as e_symcache
 
 from vivisect.const import *
 
 logger = logging.getLogger(__name__)
+e_common.setLogging(logger, 'INFO')
 
 for mod in (PE, vtrace):
     olog = logging.getLogger(mod.__name__)
@@ -172,14 +173,14 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
 
     secrem = len(header) % secalign
     if secrem != 0:
-        header += "\x00" * (secalign - secrem)
+        header += b'\x00' * (secalign - secrem)
 
     vw.addMemoryMap(baseaddr, e_mem.MM_READ, fname, header)
     vw.addSegment(baseaddr, len(header), "PE_Header", fname)
 
     hstruct = vw.makeStructure(baseaddr, "pe.IMAGE_DOS_HEADER")
     magicaddr = hstruct.e_lfanew
-    if vw.readMemory(baseaddr + magicaddr, 2) != "PE":
+    if vw.readMemory(baseaddr + magicaddr, 2) != b"PE":
         raise Exception("We only support PE exe's")
 
     if not vw.isLocation(baseaddr + magicaddr):
@@ -272,7 +273,7 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
             readsize = sec.SizeOfRawData if sec.SizeOfRawData < sec.VirtualSize else sec.VirtualSize
             secoff = pe.rvaToOffset(secrva)
             secbytes = pe.readAtOffset(secoff, readsize)
-            secbytes += "\x00" * plen
+            secbytes += b'\x00' * plen
             vw.addMemoryMap(secbase, mapflags, fname, secbytes)
             vw.addSegment(secbase, len(secbytes), secname, fname)
 
@@ -298,7 +299,7 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
 
             secoff = pe.rvaToOffset(secrva)
             secbytes = pe.readAtOffset(secoff, readsize)
-            secbytes += "\x00" * plen
+            secbytes += b'\x00' * plen
             vw.addMemoryMap(secbase, mapflags, fname, secbytes)
             vw.addSegment(secbase, len(secbytes), secname, fname)
 

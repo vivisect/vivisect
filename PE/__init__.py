@@ -402,7 +402,7 @@ class PE(object):
         '''
         if self.IMAGE_EXPORT_DIRECTORY is not None:
             rawname = self.readAtRva(self.IMAGE_EXPORT_DIRECTORY.Name, 32)
-            return rawname.split('\x00')[0]
+            return rawname.split(b'\x00')[0].decode('utf-8')
         return None
 
     def getImports(self):
@@ -728,7 +728,7 @@ class PE(object):
         while self.checkRva(x.Name):
 
             # RP BUG FIX - we can't assume that we have 256 bytes to read
-            libname = self.readStringAtRva(x.Name, maxsize=256)
+            libname = self.readStringAtRva(x.Name, maxsize=256).decode('utf-8')
             idx = 0
 
             imp_by_name = x.OriginalFirstThunk
@@ -774,7 +774,7 @@ class PE(object):
 
                     funcname = ibn.Name
 
-                self.imports.append((x.FirstThunk+arrayoff,libname,funcname))
+                self.imports.append((x.FirstThunk + arrayoff, libname, funcname))
 
                 idx += 1
 
@@ -896,13 +896,13 @@ class PE(object):
 
             for i in range(len(namelist)):
 
-                ord = ordlist[i]
+                ordl = ordlist[i]
                 nameoff = self.rvaToOffset(namelist[i])
-                if ord > len(funclist):
+                if ordl > len(funclist):
                     self.IMAGE_EXPORT_DIRECTORY = None
                     return
 
-                funcoff = funclist[ord]
+                funcoff = funclist[ordl]
                 ffoff = self.rvaToOffset(funcoff)
 
                 name = None
@@ -910,14 +910,14 @@ class PE(object):
                 if nameoff != 0:
                     name = self.readAtOffset(nameoff, 256, shortok=True).split(b"\x00", 1)[0]
                 else:
-                    name = b'ord_%.4x' % ord
+                    name = b'ord_%.4x' % ordl
 
                 # RP BUG FIX - Export forwarding range check is done using RVA's
                 if funcoff >= edir.VirtualAddress and funcoff < edir.VirtualAddress + edir.Size:
                     fwdname = self.readAtRva(funcoff, 260, shortok=True).split(b'\x00', 1)[0]
-                    self.forwarders.append((funclist[ord], name, fwdname))
+                    self.forwarders.append((funclist[ordl], name.decode('utf-8'), fwdname))
                 else:
-                    self.exports.append((funclist[ord], ord, name))
+                    self.exports.append((funclist[ordl], ordl, name.decode('utf-8')))
 
         # unnamed function exports
         else:
@@ -936,8 +936,8 @@ class PE(object):
                 # exported function. An element with a value of 0 indicates the element in
                 # the array is a placeholder to preserve the length of the array.
                 if funcoff > 0:
-                    ord = self.IMAGE_EXPORT_DIRECTORY.Base + i
-                    self.exports.append((funcoff, ord, None))
+                    ordl = self.IMAGE_EXPORT_DIRECTORY.Base + i
+                    self.exports.append((funcoff, ordl, None))
 
     def getSignature(self):
         '''

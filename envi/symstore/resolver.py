@@ -365,7 +365,4 @@ class FileSymbol(Symbol, SymbolResolver):
     def __nonzero__(self):
         return True
 
-    def __unicode__(self):
-        return Symbol.__str__(self)
-
 symclasses = (Symbol, FunctionSymbol, SectionSymbol, FileSymbol)

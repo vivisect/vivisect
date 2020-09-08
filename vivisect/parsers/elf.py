@@ -52,7 +52,7 @@ def makeStringTable(vw, va, maxva):
                 l = vw.makeString(va)
                 va += l[vivisect.L_SIZE]
             except Exception as e:
-                logger.warn("makeStringTable\t%r", e)
+                logger.warning("makeStringTable\t%r", e)
                 return
 
 def makeSymbolTable(vw, va, maxva):
@@ -201,7 +201,7 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
                 continue
             logger.info('Loading: %s', pgm)
             bytez = elf.readAtOffset(pgm.p_offset, pgm.p_filesz)
-            bytez += "\x00" * (pgm.p_memsz - pgm.p_filesz)
+            bytez += b"\x00" * (pgm.p_memsz - pgm.p_filesz)
             pva = pgm.p_vaddr
             if addbase:
                 pva += baseaddr
@@ -527,7 +527,7 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
                     vw.makeName(sva, dmglname, filelocal=True, makeuniq=True)
 
             except Exception as e:
-                logger.warn("%s" % str(e))
+                logger.warning("%s" % str(e))
 
         if s.st_info == Elf.STT_FUNC:
             new_functions.append(("STT_FUNC", sva))
@@ -593,7 +593,7 @@ def applyRelocs(elf, vw, addbase=False, baseaddr=0):
                         pass
 
                     else:
-                        logger.warn('unknown reloc type: %d %s (at %s)', rtype, name, hex(rlva))
+                        logger.warning('unknown reloc type: %d %s (at %s)', rtype, name, hex(rlva))
                         logger.info(r.tree())
 
                 else:
@@ -618,7 +618,7 @@ def applyRelocs(elf, vw, addbase=False, baseaddr=0):
                             vw.makeImport(rlva, fn, symname)
 
                     else:
-                        logger.warn('unknown reloc type: %d %s (at %s)', rtype, name, hex(rlva))
+                        logger.warning('unknown reloc type: %d %s (at %s)', rtype, name, hex(rlva))
                         logger.info(r.tree())
 
 
@@ -747,11 +747,11 @@ def applyRelocs(elf, vw, addbase=False, baseaddr=0):
                         vw.setComment(rlva, name)
 
                 else:
-                    logger.warn('unknown reloc type: %d %s (at %s)', rtype, name, hex(rlva))
+                    logger.warning('unknown reloc type: %d %s (at %s)', rtype, name, hex(rlva))
                     logger.info(r.tree())
 
         except vivisect.InvalidLocation as e:
-            logger.warn("NOTE\t%r", e)
+            logger.warning("NOTE\t%r", e)
 
 def isPLT(vw, va):
     '''

@@ -11,7 +11,7 @@ The module's vivExtension function takes a vivisect workspace
 '''
 
 import os
-import imp
+import imp  # TODO: imp is deprecated
 import traceback
 
 
@@ -49,5 +49,5 @@ def loadExtensions(vw, vwgui):
                 exec filebytes in mod.__dict__
                 mod.vivExtension(vw, vwgui)
             except Exception as e:
-                vw.vprint( traceback.format_exc() )
+                vw.vprint(traceback.format_exc())
                 vw.vprint('Extension Error: %s' % modpath)

@@ -142,7 +142,7 @@ class MemSearchDialog(QDialog):
 
         self.canvas.clearCanvas()
         mem = e_mem.MemoryObject()
-        mem.addMemoryMap(0, e_mem.MM_READ, '', bytez)
+        mem.addMemoryMap(0, e_mem.MM_READ, b'', bytez)
         self.canvas.mem = mem
         self.canvas.renderMemory(0, len(bytez))
         self.hex_edit.setPlainText(str(self.canvas))

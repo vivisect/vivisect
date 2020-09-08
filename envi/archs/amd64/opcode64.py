@@ -1,5 +1,5 @@
 from envi.archs.i386.opconst import *
-import regs as e_amd64_regs
+import envi.archs.amd64.regs as e_amd64_regs
 
 # in order to be included, table name must be listed here.
 tablenames = [  None,           # nexttable index 0 means NO TABLE!

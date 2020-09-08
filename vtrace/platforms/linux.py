@@ -312,7 +312,7 @@ class LinuxMixin(v_posix.PtraceMixin, v_posix.PosixMixin):
         A utility to open (if necessary) and seek the memfile
         """
         if self.memfd is None:
-            self.memfd = libc.open("/proc/%d/mem" % self.pid, O_RDWR | O_LARGEFILE, 0755)
+            self.memfd = libc.open("/proc/%d/mem" % self.pid, O_RDWR | O_LARGEFILE, 0o755)
 
         x = libc.lseek64(self.memfd, offset, 0)
 
@@ -647,7 +647,7 @@ class LinuxMixin(v_posix.PtraceMixin, v_posix.PosixMixin):
     def platformGetThreads(self):
         ret = {}
         for tid in self.pthreads:
-            ret[tid] = tid #FIXME make this pthread struct or stackbase soon
+            ret[tid] = tid  # FIXME make this pthread struct or stackbase soon
         return ret
 
     def platformGetMaps(self):
@@ -661,8 +661,8 @@ class LinuxMixin(v_posix.PtraceMixin, v_posix.PosixMixin):
                 permstr = sline[1]
                 fname = sline[-1].strip()
                 addrs = addrs.split("-")
-                base = long(addrs[0],16)
-                max = long(addrs[1],16)
+                base = int(addrs[0],16)
+                max = int(addrs[1],16)
                 mlen = max-base
 
                 if "r" in permstr:

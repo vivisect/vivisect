@@ -34,7 +34,7 @@ def yieldPacked(valu, size, subsize):
     '''
     mask = e_bits.u_maxes[subsize]
 
-    for i in range(size/subsize):
+    for i in range(int(size/subsize)):
         sub = valu >> (i * subsize)
         yield (sub & mask)
 
@@ -500,7 +500,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
                     yieldPacked(src2, tsize, width))
         for idx, (lft, rgt) in enumerate(valus):
             s = (lft + rgt) & mask
-            res |= s << (i * (8 * width))
+            res |= s << (idx * (8 * width))
 
     def i_paddw(self, op):
         self.i_paddb(op, width=2)
@@ -837,7 +837,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
 
         if oper.tsize == 1:
             ax = self.getRegister(REG_AX)
-            quot = ax / val
+            quot = int(ax / val)
             rem  = ax % val
             #if quot > 255:
                 #"FIXME: division exception"
@@ -848,7 +848,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
             eax = self.getRegister(REG_EAX)
             edx = self.getRegister(REG_EDX)
             tot = (edx << 32) + eax
-            quot = tot / val
+            quot = int(tot / val)
             rem = tot % val
 
             #if quot > 0xffffffff:
@@ -861,7 +861,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
             rax = self.getRegisterByName("rax")
             rdx = self.getRegisterByName("rdx")
             tot = (rdx << 64) + rax
-            quot = tot / val
+            quot = int(tot / val)
             rem = tot % val
 
             if tot > (2**64)-1:
@@ -912,7 +912,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
             d = self.getOperValue(op, 0)
             d = e_bits.signed(d, 1)
             if d == 0: raise envi.DivideByZero(self)
-            q = ax / d
+            q = int(ax / d)
             r = ax % d
             res = ((r & 0xff) << 8) | (q & 0xff)
             self.setRegister(REG_AX, res)
@@ -923,7 +923,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
             d = self.getOperValue(op, 0)
             d = e_bits.signed(d, 2)
             if d == 0: raise envi.DivideByZero(self)
-            q = val / d
+            q = int(val / d)
             r = val % d
 
             self.setRegister(REG_AX, q)
@@ -935,7 +935,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
             d = self.getOperValue(op, 0)
             d = e_bits.signed(d, 4)
             if d == 0: raise envi.DivideByZero(self)
-            q = val / d
+            q = int(val / d)
             r = val % d
 
             self.setRegister(REG_EAX, q)
@@ -1184,12 +1184,12 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         src = self.getOperValue(op, off+1)
 
         if op.opers[off].isReg() and op.opers[off+1].isReg():
-            mask = 0x000000000000000000000000FFFFFFFFL
+            mask = 0x000000000000000000000000FFFFFFFF
             dst &= ~mask
             dst |= src & mask
         else:
             # so technically we're supposed to zero out the upper ymm bits
-            mask = 0xFFFFFFFFFFFFFFFFFFFFFFFF00000000L
+            mask = 0xFFFFFFFFFFFFFFFFFFFFFFFF00000000
             dst &= ~mask
             dst | src & 0xFFFFFFFF
 
@@ -1317,7 +1317,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         self.setOperValue(op, 0, val)
 
     def i_popad(self, op):
-        #FIXME 16 bit?
+        # FIXME 16 bit?
         self.setRegister(REG_EDI, self.doPop())
         self.setRegister(REG_ESI, self.doPop())
         self.setRegister(REG_EBP, self.doPop())
@@ -1495,7 +1495,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
             while tempCount:
                 val = self.getOperValue(op, 0)
                 tempCf = e_bits.lsb(val)
-                self.setOperValue(op, 0, (val / 2) + (tempCf * (2 ** dstSize)))
+                self.setOperValue(op, 0, (val >> 1) + (tempCf * (2 ** dstSize)))
                 tempCount -= 1
             val = self.getOperValue(op, 0)
             self.setFlag(EFLAGS_CF, e_bits.msb(val, dstSize))
@@ -2070,7 +2070,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         res = 0
         values = zip(yieldPacked(dst, tsize, width),
                      yieldPacked(src, tsize, width))
-        values = values[len(values)/2:]
+        values = values[(len(values) >> 1):]
         for i, (dst, src) in enumerate(values):
             res |= dst << (8 * width * i)
             res |= src << (8 * width * (i + 1))
@@ -2267,7 +2267,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
 
         if dsize < 4:
             raise envi.UnsupportedInstruction(self, op)
-        for i in range(ssize / 8):
+        for i in range(ssize >> 3):
             res |= (src & (1 << (7 + i*8))) << i
         self.setOperValue(op, 0, res)
 

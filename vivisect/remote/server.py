@@ -1,8 +1,7 @@
 import os
 import sys
-import time
 import cobra
-import Queue
+import queue
 import logging
 import argparse
 import threading
@@ -42,7 +41,7 @@ class VivServerClient:
         self.wsname = wsname
         self.server = server
         self.eoffset = 0
-        self.q = Queue.Queue()  # The actual local Q we deliver to
+        self.q = queue.Queue()  # The actual local Q we deliver to
 
     @e_threads.firethread
     def _eatServerEvents(self):
@@ -139,7 +138,7 @@ class VivServer:
 
         wsdir = os.path.dirname(wspath)
         if not os.path.isdir(wsdir):
-            os.makedirs(wsdir, 0750)
+            os.makedirs(wsdir, 0o750)
 
         viv_basicfile.vivEventsToFile(wspath, events)
         wsinfo = [threading.Lock(), wspath, [], {}]

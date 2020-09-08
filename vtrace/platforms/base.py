@@ -3,15 +3,11 @@ Tracer Platform Base
 """
 # Copyright (C) 2007 Invisigoth - See LICENSE file for details
 import os
+import queue
 import logging
 import platform
 import traceback
 import threading
-
-try:
-    from queue import Queue
-except:
-    from Queue import Queue
 
 import vtrace
 import envi.memory as e_mem
@@ -199,7 +195,7 @@ class TracerBase(vtrace.Notifier):
         Cleanup all breakpoints (if the current bp is "fastbreak" this routine
         will not be called...
         '''
-        for bp in self.breakpoints.itervalues():
+        for bp in self.breakpoints.values():
             if bp.active:
                 # only effects active breaks
                 bp.deactivate(self)
@@ -880,7 +876,7 @@ def threadwrap(func):
         if threading.currentThread().__class__ == TracerThread:
             return func(self, *args, **kwargs)
         # Proxy the call through a single thread
-        q = Queue()
+        q = queue.Queue()
         # FIXME change calling convention!
         args = (self, ) + args
         self.thread.queue.put((func, args, kwargs, q))
@@ -904,7 +900,7 @@ class TracerThread(threading.Thread):
     """
     def __init__(self):
         threading.Thread.__init__(self)
-        self.queue = Queue()
+        self.queue = queue.Queue()
         self.setDaemon(True)
         self.start()
 

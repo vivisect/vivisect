@@ -27,7 +27,7 @@ class ACT:
         try:
             return self.meth( *self.args, **self.kwargs )
         except:
-            logger.warn("error in ACT(%s, %s, %s)", str(self.meth), str(self.args), str(self.kwargs))
+            logger.warning("error in ACT(%s, %s, %s)", str(self.meth), str(self.args), str(self.kwargs))
             logger.debug(''.join(traceback.format_exception(*sys.exc_info())))
 
 

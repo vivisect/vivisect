@@ -292,17 +292,19 @@ class i386InstructionSet(unittest.TestCase):
                 op = self._arch.archParseOpcode(binascii.unhexlify(bytez), 0, va)
             except envi.InvalidInstruction:
                 self.fail("Failed to parse opcode bytes: %s (case: %s, expected: %s)" % (bytez, name, reprOp))
-            except Exception as e:
+            except Exception:
                 self.fail("Failed to parse opcode bytes: %s (case: %s, expected: %s)" % (bytez, name, reprOp))
-            # print("'%s', 0x%x, '%s' == '%s'" % (bytez, va, repr(op), reprOp))
             try:
                 self.assertEqual(repr(op), reprOp)
             except AssertionError:
                 self.fail("Failing match for case %s (%s != %s)" % (name, repr(op), reprOp))
 
             scanv.clearCanvas()
-            op.render(scanv)
-            # print("render:  %s" % repr(scanv.strval))
+            try:
+                op.render(scanv)
+            except:
+                import pdb, sys
+                pdb.post_mortem(sys.exc_info()[2])
             self.assertEqual(scanv.strval, renderOp)
 
     def test_envi_i386_disasm_Specific_SingleByte_Instrs(self):
@@ -310,51 +312,6 @@ class i386InstructionSet(unittest.TestCase):
 
     def test_envi_i386_disasm_Specific_MultiByte_Instrs(self):
         self.check_opreprs(i386MultiByteOpcodes)
-
-    '''
-    def test_envi_i386_disasm_A(self):
-        pass
-    def test_envi_i386_disasm_C(self):
-        pass
-    def test_envi_i386_disasm_D(self):
-        pass
-    def test_envi_i386_disasm_E(self):
-        pass
-    def test_envi_i386_disasm_F(self):
-        pass
-    def test_envi_i386_disasm_G(self):
-        pass
-    def test_envi_i386_disasm_I(self):
-        pass
-    def test_envi_i386_disasm_J(self):
-        pass
-    def test_envi_i386_disasm_L(self):
-        pass
-    def test_envi_i386_disasm_M(self):
-        pass
-    def test_envi_i386_disasm_N(self):
-        pass
-    def test_envi_i386_disasm_O(self):
-        pass
-    def test_envi_i386_disasm_P(self):
-        pass
-    def test_envi_i386_disasm_Q(self):
-        pass
-    def test_envi_i386_disasm_R(self):
-        pass
-    def test_envi_i386_disasm_S(self):
-        pass
-    def test_envi_i386_disasm_U(self):
-        pass
-    def test_envi_i386_disasm_V(self):
-        pass
-    def test_envi_i386_disasm_W(self):
-        pass
-    def test_envi_i386_disasm_X(self):
-        pass
-    def test_envi_i386_disasm_Y(self):
-        pass
-    '''
 
     def checkOpcode(self, hexbytez, va, oprepr, opcheck, opercheck, renderOp):
 
@@ -390,15 +347,15 @@ class i386InstructionSet(unittest.TestCase):
         '''
         opbytez = '0032'
         oprepr = 'add byte [edx],dh'
-        opcheck =  {'iflags': 65536, 'va': 16384, 'repr': None, 'prefixes': 0, 'mnem': 'add', 'opcode': 8193, 'size': 2}
-        opercheck = [{'disp': 0, 'tsize': 1, '_is_deref': True, 'reg': 2}, {'tsize': 1, 'reg': 134742018}]
-        self.checkOpcode( opbytez, 0x4000, oprepr, opcheck, opercheck, oprepr )
+        opcheck = {'iflags': 65536, 'va': 16384, 'repr': None, 'prefixes': 0, 'mnem': 'add', 'opcode': 8193, 'size': 2}
+        opercheck = ({'disp': 0, 'tsize': 1, '_is_deref': True, 'reg': 2}, {'tsize': 1, 'reg': 134742018},)
+        self.checkOpcode(opbytez, 0x4000, oprepr, opcheck, opercheck, oprepr)
 
         opbytez = '0440'
         oprepr = 'add al,64'
         opcheck = {'iflags': 65536, 'prefixes': 0, 'mnem': 'add', 'opcode': 8193, 'size': 2}
-        opercheck = ( {'tsize': 1, 'reg': 524288}, {'tsize': 1, 'imm': 64} )
-        self.checkOpcode( opbytez, 0x4000, oprepr, opcheck, opercheck, oprepr )
+        opercheck = ({'tsize': 1, 'reg': 524288}, {'tsize': 1, 'imm': 64})
+        self.checkOpcode(opbytez, 0x4000, oprepr, opcheck, opercheck, oprepr)
 
         opbytez = '0218'
         oprepr = 'add bl,byte [eax]'

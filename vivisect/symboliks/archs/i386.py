@@ -95,7 +95,7 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
         self._reg_ctx = self._arch.archGetRegCtx()
         self._sz_masks = {}
         for i in (1, 2, 4, 8, 16, 32):
-            self._sz_masks[i] = Const((2L ** (i * 8)) - 1, self._psize)
+            self._sz_masks[i] = Const((2 ** (i * 8)) - 1, self._psize)
 
     def getRegObj(self, regidx):
         ridx = regidx & 0xffff
@@ -858,7 +858,7 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
                 return
 
         # TODO: Pre-gen these?
-        mask = Const((2L ** width) - 1, valu.getWidth())
+        mask = Const((2 ** width) - 1, valu.getWidth())
         iters = int(valu.getWidth() / width)
         bitCount = count * Const(8, self._psize)
         for i in range(iters):
@@ -940,7 +940,7 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
         src = self.getOperObj(op, off+1)
         bitwidth = width * 8
 
-        mask = Const((2L ** bitwidth) - 1, dst.getWidth())
+        mask = Const((2 ** bitwidth) - 1, dst.getWidth())
         iters = int(dst.getWidth() / width)
         for i in range(iters):
             shift = Const(i * bitwidth, self._psize)

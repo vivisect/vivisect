@@ -47,24 +47,24 @@ macho_magics = (
     vs_macho.FAT_CIGAM,
 )
 
-def guessFormat(bytes):
-    if bytes.startswith('VIV'):
+def guessFormat(bytez):
+    if bytez.startswith(b'VIV'):
         return 'viv'
 
-    if bytes.startswith("MZ"):
+    if bytez.startswith(b'MZ'):
         return 'pe'
 
-    if bytes.startswith("\x7fELF"):
+    if bytez.startswith(b'\x7fELF'):
         return 'elf'
 
-    if bytes.startswith("\x7fCGC"):
+    if bytez.startswith(b'\x7fCGC'):
         return 'cgc'
 
-    bytemagic = struct.unpack('<I', bytes[:4])[0]
+    bytemagic = struct.unpack('<I', bytez[:4])[0]
     if bytemagic in macho_magics:
         return 'macho'
 
-    if bytes[0] == ':':
+    if bytez[0] == ':':
         return 'ihex'
 
     return 'blob'

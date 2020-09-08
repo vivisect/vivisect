@@ -58,27 +58,27 @@ class AnalysisMonitor(viv_imp_monitor.AnalysisMonitor):
             if len(op.opers):
                 self.retbytes = op.opers[0].imm
 
+
 def buildFunctionApi(vw, fva, emu, emumon, stkstart):
     # More than 40 args?  no way...
-    argc = stackargs = (int(emumon.stackmax) / 4)
+    argc = stackargs = (int(emumon.stackmax) >> 2)
     if argc > 40:
         emumon.logAnomaly(emu, fva, 'Crazy Stack Offset Touched: 0x%.8x' % emumon.stackmax)
         argc = 0
 
-    callconv = "cdecl" # Default to cdecl
+    callconv = "cdecl"  # Default to cdecl
     # see if we have stdcall return bytes
     if emumon.retbytes is not None:
         callconv = "stdcall"
-        argc = emumon.retbytes / 4
+        argc = emumon.retbytes >> 2
 
-
-    stackidx = 0 # arg index of first *stack* arg
+    stackidx = 0  # arg index of first *stack* arg
 
     # Log registers we used but didn't init
     # but don't take into account ebp and esp
     emu.uninit_use.pop(e_i386.REG_ESP, None)
     emu.uninit_use.pop(e_i386.REG_EBP, None)
-    undefkeys = emu.uninit_use.keys()
+    undefkeys = list(emu.uninit_use.keys())
     undefkeys.sort()
 
     undeflen = len(undefkeys)

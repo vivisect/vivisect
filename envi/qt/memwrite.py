@@ -235,7 +235,7 @@ class MemWriteWindow(QWidget):
 
         self.canvas_orig.clearCanvas()
         mem = e_mem.MemoryObject()
-        mem.addMemoryMap(va, e_mem.MM_READ, '', bytez)
+        mem.addMemoryMap(va, e_mem.MM_READ, b'', bytez)
         self.canvas_orig.mem = mem
         self.canvas_orig.renderMemory(va, len(bytez))
         self.hex_edit.setPlainText(str(self.canvas_orig))
@@ -247,7 +247,7 @@ class MemWriteWindow(QWidget):
 
         self.canvas_new.clearCanvas()
         mem = e_mem.MemoryObject()
-        mem.addMemoryMap(va, e_mem.MM_READ, '', bytez)
+        mem.addMemoryMap(va, e_mem.MM_READ, b'', bytez)
         self.canvas_new.mem = mem
         self.canvas_new.renderMemory(va, len(bytez))
         self.hex_preview.setPlainText(str(self.canvas_new))

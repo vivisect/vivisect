@@ -1,5 +1,5 @@
 from envi.archs.i386.opconst import *
-import regs as e_i386_regs
+import envi.archs.i386.regs as e_i386_regs
 """
 (optable, optype, operand 0, operand 1, operand 2, CPU required, "opcodename", op0Register, op1Register, op2Register)
 """

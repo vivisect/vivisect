@@ -8,7 +8,7 @@ import collections
 
 from binascii import hexlify
 
-from exc import *
+from visgraph.exc import *
 import visgraph.pathcore as vg_pathcore
 
 
@@ -428,20 +428,19 @@ class Graph:
         return edge
 
     def delEdge(self, edge):
-        '''
-        Delete an edge from the graph (by eid).
-
-        Example: g.delEdge(eid)
-        '''
         eid,n1,n2,eprops = edge
-
-        [ self.delEdgeProp(edge,k) for k in eprops.keys() ]
+        [ self.delEdgeProp(edge,k) for k in list(eprops.keys()) ]
 
         self.edges.pop(eid)
         self.edge_by_to[n2].remove(edge)
         self.edge_by_from[n1].remove(edge)
 
     def delEdgeByEid(self, eid):
+        '''
+        Delete an edge from the graph (by eid).
+
+        Example: g.delEdge(eid)
+        '''
         edge = self.getEdge(eid)
         return self.delEdge(edge)
 

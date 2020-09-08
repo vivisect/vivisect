@@ -138,7 +138,7 @@ class MemoryCanvas(object):
 
     def addNameText(self, text, name=None, typename='name'):
         if name is None:
-            name = binascii.hexlify(text)
+            name = ''.join([x for x in map(lambda k: hex(ord(k))[2:], text)])
         tag = self.getNameTag(name, typename=typename)
         self.addText(text, tag=tag)
 
@@ -216,7 +216,7 @@ class MemoryCanvas(object):
         # Find the index of the first and last change
         iend = None
         ibegin = None
-        for i,(rendva,rendsize) in enumerate(self._canv_rendvas):
+        for i, (rendva, rendsize) in enumerate(self._canv_rendvas):
 
             if ibegin is None and va <= rendva:
                 ibegin = i
@@ -227,9 +227,9 @@ class MemoryCanvas(object):
             if ibegin is not None and iend is not None:
                 break
 
-        saved_last  = self._canv_rendvas[iend:]
+        saved_last = self._canv_rendvas[iend:]
         saved_first = self._canv_rendvas[:ibegin]
-        updatedvas  = self._canv_rendvas[ibegin:iend]
+        updatedvas = self._canv_rendvas[ibegin:iend]
 
         # We must actually start rendering from the beginning
         # of the first updated VA index

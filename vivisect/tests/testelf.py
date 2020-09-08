@@ -48,7 +48,7 @@ class ELFTests(unittest.TestCase):
         cls.tests = []
         for test in data:
             name, test_data, path = test
-            logger.warn("======== %r ========", name)
+            logger.warning("=======vivisect.tests.testelf, %r ========", name)
             fn = helpers.getTestPath(*path)
             e = Elf.Elf(open(fn))
             vw = viv_cli.VivCli()
@@ -114,7 +114,7 @@ class ELFTests(unittest.TestCase):
                     break
             if oldimp != equiv:
                 failed_old += 1
-                logger.warn("imports: o: %-50s\tn: %s" % (oldimp, equiv))
+                logger.warning("imports: o: %-50s\tn: %s" % (oldimp, equiv))
             done.append(va)
 
         for newimp in newimps:
@@ -129,7 +129,7 @@ class ELFTests(unittest.TestCase):
                     break
             if newimp != equiv:
                 failed_new += 1
-                logger.warn("imports: o: %-50s\tn: %s" % (equiv, newimp))
+                logger.warning("imports: o: %-50s\tn: %s" % (equiv, newimp))
             done.append(va)
 
         return failed_old, failed_new
@@ -160,7 +160,7 @@ class ELFTests(unittest.TestCase):
                     break
             if oldexp != equiv:
                 failed_old += 1
-                logger.warn("exp: o: %-80s\tn: %s" % (oldexp, equiv))
+                logger.warning("exp: o: %-80s\tn: %s" % (oldexp, equiv))
 
         for newexp in newexps:
             va = newexp[0]
@@ -173,7 +173,7 @@ class ELFTests(unittest.TestCase):
             # simple check
             if newexp in oldexps:
                 continue
-            
+
             # comprehensive check
             for oldexp in oldexps:
                 if oldexp[0] == va:
@@ -181,7 +181,7 @@ class ELFTests(unittest.TestCase):
                     break
             if newexp != equiv:
                 failed_new += 1
-                logger.warn("exp: o: %-80s\tn: %s" % (equiv, newexp))
+                logger.warning("exp: o: %-80s\tn: %s" % (equiv, newexp))
 
         return failed_old, failed_new
 
@@ -191,7 +191,7 @@ class ELFTests(unittest.TestCase):
         newrels.sort()
         oldrels = data['relocs']
         oldrels.sort()
-        
+
         failed_new = 0
         failed_old = 0
         done = []
@@ -204,7 +204,7 @@ class ELFTests(unittest.TestCase):
                     break
             if oldrel != equiv:
                 failed_old += 1
-                logger.warn("rel: o: %-80s\tn: %s" % (oldrel, equiv))
+                logger.warning("rel: o: %-80s\tn: %s" % (oldrel, equiv))
             done.append(va)
 
         for newrel in newrels:
@@ -219,7 +219,7 @@ class ELFTests(unittest.TestCase):
                     break
             if newrel != equiv:
                 failed_new += 1
-                logger.warn("rel: o: %-80s\tn: %s" % (equiv, newname))
+                logger.warning("rel: o: %-80s\tn: %s" % (equiv, newrel))
             done.append(va)
 
         return failed_old, failed_new
@@ -253,7 +253,7 @@ class ELFTests(unittest.TestCase):
                     break
             if oldname != equiv:
                 failed_old += 1
-                logger.warn("name: o: %-80s\tn: %s" % (oldname, equiv))
+                logger.warning("name: o: %-80s\tn: %s" % (oldname, equiv))
 
         for newname in newnames:
             va = newname[0]
@@ -269,7 +269,7 @@ class ELFTests(unittest.TestCase):
                     break
             if newname != equiv:
                 failed_new += 1
-                logger.warn("name: o: %-80s\tn: %s" % (equiv, newname))
+                logger.warning("name: o: %-80s\tn: %s" % (equiv, newname))
 
         return failed_old, failed_new
 
@@ -289,7 +289,7 @@ class ELFTests(unittest.TestCase):
 
     def test_minimal(self):
         for path in (('linux','amd64','static64.llvm.elf'), ('linux','i386','static32.llvm.elf')):
-            logger.warn("======== %r ========", path)
+            logger.warning("======== test_minimal: %r ========", path)
             fn = helpers.getTestPath(*path)
             e = Elf.Elf(open(fn, 'rb'))
             vw = viv_cli.VivCli()

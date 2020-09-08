@@ -31,8 +31,8 @@ def varsolve(name, width, emu=None):
     if emu is not None:
         name += emu.getRandomSeed()
 
-    md5sum = hashlib.md5(name).hexdigest()
-    return long(md5sum[:width*2], 16)
+    md5sum = hashlib.md5(name.encode('utf-8')).hexdigest()
+    return int(md5sum[:width*2], 16)
 
 def evalSymbolik(reprstr):
     '''
@@ -75,7 +75,7 @@ class SymbolikBase:
     commutative = False
 
     def __init__(self):
-        self._sym_id = self.idgen.next()
+        self._sym_id = next(self.idgen)
         self.kids = []
         self.parents = []
         self.cache = {}
@@ -134,7 +134,7 @@ class SymbolikBase:
     def __imul__(self, other):
         return o_mul(self, other, self.getWidth())
 
-    def __div__(self, other):
+    def __truediv__(self, other):
         return o_div(self, other, self.getWidth())
 
     def __idiv__(self, other):
@@ -151,7 +151,7 @@ class SymbolikBase:
         if other is None:
             return False
 
-        if type(other) in (int, long):
+        if type(other) is int:
             return self.solve() == other
 
         return self.solve() == other.solve()
@@ -842,7 +842,7 @@ class o_mul(Operator):
     commutative = True
 
 class o_div(Operator):
-    oper        = operator.div # should this be floordiv?
+    oper        = operator.truediv
     operstr     = '/'
     symtype     = SYMT_OPER_DIV
 

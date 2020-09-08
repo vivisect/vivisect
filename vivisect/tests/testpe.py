@@ -51,37 +51,37 @@ class PETests(unittest.TestCase):
         file_path = helpers.getTestPath('windows', 'i386', 'export_by_name.dll')
         pe = PE.peFromFileName(file_path)
         export_list = pe.getExports()
-        self.assertEquals(len(export_list), 2, "expecting 2 exported functions")
-        self.assertEquals(export_list[0][1], 0, "exported function with ordinal 0 not found")
-        self.assertEquals(export_list[0][2], "Func1", "exported function with name 'Func1' not found")
-        self.assertEquals(export_list[1][1], 1, "exported function with ordinal 1 not found")
-        self.assertEquals(export_list[1][2], "Func2", "exported function with name 'Func2' not found")
+        self.assertEqual(len(export_list), 2, "expecting 2 exported functions")
+        self.assertEqual(export_list[0][1], 0, "exported function with ordinal 0 not found")
+        self.assertEqual(export_list[0][2], "Func1", "exported function with name 'Func1' not found")
+        self.assertEqual(export_list[1][1], 1, "exported function with ordinal 1 not found")
+        self.assertEqual(export_list[1][2], "Func2", "exported function with name 'Func2' not found")
 
     def test_export_by_ordinal_base_01(self):
         file_path = helpers.getTestPath('windows', 'i386', 'export_by_ordinal_base_01.dll')
         pe = PE.peFromFileName(file_path)
         export_list = pe.getExports()
-        self.assertEquals(len(export_list), 2, "expecting 2 exported functions")
-        self.assertEquals(export_list[0][1], 1, "exported function with ordinal 1 not found")
-        self.assertEquals(export_list[1][1], 2, "exported function with ordinal 2 not found")
+        self.assertEqual(len(export_list), 2, "expecting 2 exported functions")
+        self.assertEqual(export_list[0][1], 1, "exported function with ordinal 1 not found")
+        self.assertEqual(export_list[1][1], 2, "exported function with ordinal 2 not found")
 
     def test_export_by_ordinal_base_45(self):
         file_path = helpers.getTestPath('windows', 'i386', 'export_by_ordinal_base_45.dll')
         pe = PE.peFromFileName(file_path)
         export_list = pe.getExports()
-        self.assertEquals(len(export_list), 2, "expecting 2 exported functions")
-        self.assertEquals(export_list[0][1], 45, "exported function with ordinal 45 not found")
-        self.assertEquals(export_list[1][1], 55, "exported function with ordinal 55 not found")
+        self.assertEqual(len(export_list), 2, "expecting 2 exported functions")
+        self.assertEqual(export_list[0][1], 45, "exported function with ordinal 45 not found")
+        self.assertEqual(export_list[1][1], 55, "exported function with ordinal 55 not found")
 
     def test_pe_metainfo(self):
-        self.assertEquals(self.vw_psexec.getMeta('Architecture'), 'i386')
-        self.assertEquals(self.vw_psexec.getMeta('DefaultCall'), 'cdecl')
-        self.assertEquals(self.vw_psexec.getMeta('Format'), 'pe')
-        self.assertEquals(self.vw_psexec.getMeta('Platform'), 'windows')
-        self.assertEquals(self.vw_psexec.getMeta('StorageModule'), 'vivisect.storage.basicfile')
-        self.assertEquals(self.vw_psexec.getMeta('StorageName'), self.psexec_fn + '.viv')
+        self.assertEqual(self.vw_psexec.getMeta('Architecture'), 'i386')
+        self.assertEqual(self.vw_psexec.getMeta('DefaultCall'), 'cdecl')
+        self.assertEqual(self.vw_psexec.getMeta('Format'), 'pe')
+        self.assertEqual(self.vw_psexec.getMeta('Platform'), 'windows')
+        self.assertEqual(self.vw_psexec.getMeta('StorageModule'), 'vivisect.storage.basicfile')
+        self.assertEqual(self.vw_psexec.getMeta('StorageName'), self.psexec_fn + '.viv')
 
-        self.assertEquals(len(self.vw_psexec.getMeta('NoReturnApis')), 5)
+        self.assertEqual(len(self.vw_psexec.getMeta('NoReturnApis')), 5)
         self.assertTrue(self.vw_psexec.metadata['NoReturnApis']['kernel32.exitprocess'])
         self.assertTrue(self.vw_psexec.metadata['NoReturnApis']['kernel32.exitthread'])
         self.assertTrue(self.vw_psexec.metadata['NoReturnApis']['kernel32.fatalexit'])
@@ -105,7 +105,7 @@ class PETests(unittest.TestCase):
         vw = self.vw_psexec
         funcs = set([4281345, 4259207, 4221834, 4289292, 4280642, 4287725, 4293008, 4199824, 4221844, 4282646, 4280472, 4280730, 4268701, 4221854, 4221727, 4290211, 4282788, 4221864, 4221737, 4293319, 4294188, 4221874, 4259229, 4294064, 4284338, 4221747, 4291252, 4290121, 4289976, 4289721, 4239035, 4221757, 4289086, 4293695, 4291392, 4290370, 4221767, 4289993, 4281548, 4288719, 4293840, 4221777, 4259282, 4290228, 4287692, 4259158, 4282944, 4285732, 4221787, 4241818, 4291296, 4290145, 4198480, 4280554, 4280685, 4198864, 4221807, 4281584, 4290929, 4282482, 4287859, 4259060, 4269557, 4293495, 4289528, 4221690, 4288749, 4208512, 4209088, 4208800, 4211088, 4209120, 4209376, 4211616, 4209504, 4216112, 4209600, 4208992, 4210848, 4206416, 4206032, 4221654, 4233944, 4221660, 4207328, 4209632, 4213200, 4221666, 4231139, 4221797, 4221672, 4210288, 4209328])
         for fva in funcs:
-            self.assertEquals(fva, vw.getFunction(fva))
+            self.assertEqual(fva, vw.getFunction(fva))
 
         # if we reorder analysis passes or new ones, this might change, and that's okay.
         # this is more designed to be a smoke test that we actually get a populated vaset

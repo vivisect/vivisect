@@ -318,6 +318,6 @@ class TestWalkTree(unittest.TestCase):
             objs.append(symobj)
         symobj.walkTree(walker)
 
-        self.assertEquals(len(objs), 7)
+        self.assertEqual(len(objs), 7)
         for obj in objs:
-            self.assertEquals(obj.cache, {})
+            self.assertEqual(obj.cache, {})

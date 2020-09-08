@@ -156,10 +156,10 @@ class CodeFlowContext(object):
             try:
                 op = self._mem.parseOpcode(va, arch=arch)
             except envi.InvalidInstruction as e:
-                logger.warn('parseOpcode error at 0x%.8x (addCodeFlow(0x%x)): %s', va, startva, e)
+                logger.warning('parseOpcode error at 0x%.8x (addCodeFlow(0x%x)): %s', va, startva, e)
                 continue
             except Exception as e:
-                logger.warn('parseOpcode error at 0x%.8x (addCodeFlow(0x%x)): %s', va, startva, e)
+                logger.warning('parseOpcode error at 0x%.8x (addCodeFlow(0x%x)): %s', va, startva, e)
                 continue
 
             branches = op.getBranches()

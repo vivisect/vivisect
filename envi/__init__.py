@@ -86,7 +86,7 @@ class ArchitectureModule:
         self._arch_id = getArchByName(archname)
         self._arch_name = archname
         self._arch_maxinst = maxinst
-        self._arch_badopbytes = ['\x00\x00\x00\x00\x00', '\xff\xff\xff\xff\xff']
+        self._arch_badopbytes = [b'\x00\x00\x00\x00\x00', b'\xff\xff\xff\xff\xff']
         self.setEndian(endian)
         self.badops = []
 
@@ -763,8 +763,8 @@ class Emulator(e_reg.RegisterContext, e_mem.MemoryObject):
 
     def intSubBase(self, subtrahend, minuend, ssize, msize):
         '''
-        Base for integer subtraction.  
-        Segmented such that order of operands can easily be overridden by 
+        Base for integer subtraction.
+        Segmented such that order of operands can easily be overridden by
         subclasses.  Does not set flags (arch-specific), and doesn't set
         the dest operand.  That's up to the instruction implementation.
 

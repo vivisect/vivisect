@@ -35,8 +35,6 @@ import types
 import logging
 import platform
 
-import cPickle as pickle
-
 import envi
 import envi.bits as e_bits
 import envi.memory as e_mem

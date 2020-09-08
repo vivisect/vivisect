@@ -78,7 +78,7 @@ def analyze(vw):
             tgtname = vw.getName(tgt)
             if tgtname is not None:
                 name = vw._addNamePrefix(tgtname, tgt, 'ptr', '_') + '_%.8x' % ptr
-                logger.info('   name(0x%x): %r  (%r)', tgt, tgtname, name)
+                logger.info('0x%s: adding name prefix: %r  (%r)', tgt, tgtname, name)
                 vw.makeName(ptr, name)
         except Exception as e:
             logger.error('naming failed (0x%x -> 0x%x), (err: %s)', ptr, tgt, e)

@@ -31,8 +31,7 @@ class TestArchind(unittest.TestCase):
 
     def test_wipeAstArch_wipeva(self):
         vw = viv.VivWorkspace()
-        vw.addMemoryMap(0x410000, e_mem.MM_RWX, 'code',
-                        [0 for x in range(0x10000)])
+        vw.addMemoryMap(0x410000, e_mem.MM_RWX, 'code', [0 for x in range(0x10000)])
         vw.addLocation(0x41b2ac, 47, viv_const.LOC_POINTER)
         vw.addLocation(0x4149b3, 28, viv_const.LOC_POINTER)
         vw.addLocation(0x41ac93, 83, viv_const.LOC_POINTER)
@@ -52,7 +51,7 @@ class TestArchind(unittest.TestCase):
 
     def test_basic(self):
         vw = viv.VivWorkspace()
-        vw.addMemoryMap(0x56560000, 7, 'woot', 'A'*8192)
+        vw.addMemoryMap(0x56560000, 7, 'woot', b'A'*8192)
         vw.setMeta('Architecture', 'i386')
         symctx = vsym_analysis.getSymbolikAnalysisContext(vw)
 

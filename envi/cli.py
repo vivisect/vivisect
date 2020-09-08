@@ -405,9 +405,9 @@ class EnviCli(Cmd):
             if len(parts) == 2:
                 newval = json.loads(parts[1])
 
-                if type(newval) not in (str,unicode) or type(optval) not in (str,unicode):
+                if (not type(newval) is str) or type(optval) not in (str,unicode):
                     if type(newval) != type(optval):
-                        self.vprint('Invalid Type Mismatch: %r - %r' % (newval,optval))
+                        self.vprint('Invalid Type Mismatch: %r - %r' % (newval, optval))
                         return
 
                 optval = newval

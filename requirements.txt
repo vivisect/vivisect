@@ -3,3 +3,4 @@ pyasn1-modules==0.2.4
 cxxfilt>=0.2.2
 msgpack==1.0.0
 pycparser==2.20
+requests==2.22.0

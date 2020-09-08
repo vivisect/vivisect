@@ -339,6 +339,6 @@ def reduceoper(sym,emu=None):
         if m is not None:
             ret = reducer(m, emu=emu)
             # do this to much simplify reducers...
-            if type(ret) in (int, long):
+            if type(ret) is int:
                 ret = Const(ret,sym.getWidth())
             return ret

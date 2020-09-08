@@ -216,7 +216,7 @@ def slowparsebytes(bytes, offset, size, sign=False, bigend=False):
     ioff = 0
     for x in range(size):
         ret = ret << 8
-        ret |= ord(bytes[begin+ioff])
+        ret |= bytes[begin+ioff]
         ioff += inc
     if sign:
         ret = signed(ret, size)
@@ -323,7 +323,7 @@ def parsebits(bytes, offset, bitoff, bitsize):
 
         modoff = addbit % 8
 
-        o = ord(bytes[addoff])
+        o = bytes[addoff]
         val = (val << 1) + ((o >> (7 - modoff)) & 1)
 
         cnt += 1
@@ -351,4 +351,3 @@ def masktest(s):
     def domask(testval):
         return testval & maskin == matchval
     return domask
-

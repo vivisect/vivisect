@@ -26,7 +26,7 @@ class AnalysisMonitor(viv_monitor.AnalysisMonitor):
                 # first (dest) operand has the register we're interested in for this function
                 tgt = op.getOperValue(0, emu)
                 if tgt is None:
-                    logger.warn("0x%x: %s   tgt is None!", op.va, op)
+                    logger.warning("0x%x: %s   tgt is None!", op.va, op)
                     return
 
                 self.tracker[op.va] = tgt
@@ -164,9 +164,9 @@ def analyze(vw):
 if globals().get('vw') is not None:
     if len(argv) > 1:
         va = vw.parseExpression(argv[1])
-        logger.warn("analyzing workspace function %x for thunk_reg", va)
+        logger.warning("analyzing workspace function %x for thunk_reg", va)
         analyzeFunction(vw, va)
     else:
-        logger.warn("analyzing workspace for thunk_reg")
+        logger.warning("analyzing workspace for thunk_reg")
         analyze(vw)
-    logger.warn("done")
+    logger.warning("done")

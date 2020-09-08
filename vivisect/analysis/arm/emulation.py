@@ -184,7 +184,7 @@ def analyzeFunction(vw, fva):
             if (lti & envi.ARCH_MASK) != envi.ARCH_ARMV7:
                 emu.setFlag(PSR_T_bit, 1)
     else:
-        logger.warn("NO LOCATION at FVA: 0x%x", fva)
+        logger.warning("NO LOCATION at FVA: 0x%x", fva)
 
     emu.runFunction(fva, maxhit=1)
 

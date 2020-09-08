@@ -68,7 +68,7 @@ class VivGraphTest(unittest.TestCase):
             'Wanted',
         ]
         pathgenr = viv_graph.getLongPath(self.graph)
-        path = map(lambda k: k[0], pathgenr.next())
+        path = map(lambda k: k[0], next(pathgenr))
         self.assertEqual(longpath, path)
 
     def test_longpath_med(self):
@@ -115,7 +115,7 @@ class VivGraphTest(unittest.TestCase):
         g.addEdgeByNids('O', 'P')
 
         pathgenr = viv_graph.getLongPath(g)
-        longpath = pathgenr.next()
+        longpath = next(pathgenr)
         self.assertEqual(len(longpath), 11)
 
     def test_longpath_basic(self):
@@ -141,7 +141,7 @@ class VivGraphTest(unittest.TestCase):
         g.addEdgeByNids('K', 'L')
 
         pathgenr = viv_graph.getLongPath(g)
-        longpath = pathgenr.next()
+        longpath = next(pathgenr)
         self.assertEqual(len(longpath), 6)
 
     def test_weights(self):

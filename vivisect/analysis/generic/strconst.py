@@ -23,10 +23,12 @@ def analyze(vw):
                     if o.isDeref():
                         continue
                     ref = o.getOperValue(op, None)
+                    if not ref:
+                        continue
 
                     # we've already processed this one
                     loc = vw.getLocation(ref)
-                    if loc is not None and loc[L_LTYPE] in STRTYPES:
+                    if loc and loc[L_LTYPE] in STRTYPES:
                         continue
 
                     # Candidates will be listed with the Xrefs thanks to

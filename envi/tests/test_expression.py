@@ -9,7 +9,7 @@ class EnviExpressionTest(unittest.TestCase):
         vw = vivisect.cli.VivCli()
         vw.makeName(0xfffffffe, 'foo(bar)')
 
-        self.assertEqual(vw.parseExpression('foo(bar) + 5'), 0x100000003L)
+        self.assertEqual(vw.parseExpression('foo(bar) + 5'), 0x100000003)
 
     def test_envi_MemoryExpressionLocals(self):
         import envi.expression as e_expr
@@ -18,7 +18,7 @@ class EnviExpressionTest(unittest.TestCase):
         vw.makeName(0xfffffffe, 'foo(bar)')
 
         mel = e_expr.MemoryExpressionLocals(vw, symobj=vw)
-        self.assertEqual(mel.sym('foo(bar)'), 4294967294L)
+        self.assertEqual(mel.sym('foo(bar)'), 4294967294)
 
     def test_envi_expr_evaluate(self):
         import envi.expression as e_expr

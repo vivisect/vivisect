@@ -126,7 +126,7 @@ class ArmWorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_arm.ArmEmulator):
 
                 if armop is None and thumbop is None:
                     # we didn't have a single push in either direction
-                    logger.warn("TOTAL FAILURE TO DETERMINE THUMB MODE")
+                    logger.warning("TOTAL FAILURE TO DETERMINE THUMB MODE")
                     raise Exception("Neither architecture parsed the first opcode")
 
                 elif armthumb < 0:
@@ -208,7 +208,7 @@ class ArmWorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_arm.ArmEmulator):
                             logger.debug(repr(e))
                         except Exception as e:
                             if not self.getMeta('silent'):
-                                logger.warn("funcva: 0x%x opva: 0x%x:  %r   (%r) (in emumon prehook: %r)", funcva, starteip, op, e, self.emumon)
+                                logger.warning("funcva: 0x%x opva: 0x%x:  %r   (%r) (in emumon prehook: %r)", funcva, starteip, op, e, self.emumon)
 
                         if self.emustop:
                             return
@@ -224,7 +224,7 @@ class ArmWorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_arm.ArmEmulator):
                             self.emumon.posthook(self, op, endeip)
                         except Exception as e:
                             if not self.getMeta('silent'):
-                                logger.warn("funcva: 0x%x opva: 0x%x:  %r   (%r) (in emumon posthook: %r)", funcva, starteip, op, e, self.emumon)
+                                logger.warning("funcva: 0x%x opva: 0x%x:  %r   (%r) (in emumon posthook: %r)", funcva, starteip, op, e, self.emumon)
                         if self.emustop:
                             return
 

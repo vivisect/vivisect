@@ -1,3 +1,8 @@
+'''
+A package to contain all the extended functionality for platform specific
+commands and modules.
+'''
+
 import os
 import imp
 import sys
@@ -5,12 +10,8 @@ import traceback
 
 import vdb.ext
 
-__all__ = ['loadExtensions','windows','i386','darwin','amd64','gdbstub','arm','android','winkern',]
+__all__ = ['loadExtensions', 'windows', 'i386', 'darwin', 'amd64', 'gdbstub', 'arm', 'android', 'winkern']
 
-'''
-A package to contain all the extended functionality for platform specific
-commands and modules.
-'''
 
 def loadExtensions(vdb, trace):
     '''
@@ -55,8 +56,8 @@ def loadExtensions(vdb, trace):
                 filebytes = fd.read()
                 mod.__file__ = filepath
                 try:
-                    exec filebytes in mod.__dict__
+                    exec(filebytes in mod.__dict__)
                     mod.vdbExtension(vdb, trace)
                 except Exception:
-                    vdb.vprint( traceback.format_exc() )
+                    vdb.vprint(traceback.format_exc())
                     vdb.vprint('Extension Error: %s' % filepath)
