@@ -12,6 +12,14 @@ Features
   (`#293 <https://github.com/vivisect/vivisect/pull/293>`)
 - Support for integrating with revsync.
   (`#304 <https://github.com/vivisect/vivisect/pull/304>`)
+- Expand unittest coverage.
+  (`#303 <https://github.com/vivisect/vivisect/pull/303>`)
+- ELF tweaks for ARM binaries.
+  (`#290 <https://github.com/vivisect/vivisect/pull/290>`)
+- More opcode mappings for intel.
+  (`#299 <https://github.com/vivisect/vivisect/pull/299>`)
+- Upgrade cxxfilt.
+  (`#302 <https://github.com/vivisect/vivisect/pull/302>`)
 
 Fixes
 -----
@@ -21,3 +29,12 @@ Fixes
   (`#307 <https://github.com/vivisect/vivisect/pull/307>`)
 - ARM disassembly and emulation bugfixes.
   (`#305 <https://github.com/vivisect/vivisect/pull/305>`)
+- PyPI fix for vtrace.
+  (`#300 <https://github.com/vivisect/vivisect/pull/300>`)
+- Calling convention fixes
+  (`#301 <https://github.com/vivisect/vivisect/pull/301>`)
+
+
+v0.1.0rc1 - 2020-07-30
+======================
+- Initial Pypi Release
