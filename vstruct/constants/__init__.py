@@ -11,12 +11,12 @@ class VSConstResolver:
     def addModule(self, mod):
         for name in dir(mod):
             val = getattr(mod, name)
-            if type(val) not in (int,long):
+            if type(val) not in (int, long):
                 continue
 
             # First lets add the "reverse" lookup
             revs = self.rev_lookup.get(val)
-            if revs == None:
+            if revs is None:
                 revs = []
                 self.rev_lookup[val] = revs
             revs.append(name)

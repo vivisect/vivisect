@@ -2,11 +2,14 @@
 A couple useful thread related toys...
 '''
 import time
+import logging
 import threading
 import functools
 import collections
 
 import envi.exc as e_exc
+
+logger = logging.getLogger(__name__)
 
 def firethread(func):
     '''
@@ -20,8 +23,9 @@ def firethread(func):
         thr.setDaemon(True)
         thr.start()
         return thr
-    functools.update_wrapper(dothread,func)
+    functools.update_wrapper(dothread, func)
     return dothread
+
 
 def maintthread(stime):
     '''
@@ -35,8 +39,8 @@ def maintthread(stime):
             while True:
                 try:
                     func(*args, **kwargs)
-                except Exception, e:
-                    print('MaintThread (%s) Error: %s' % (args[0],e))
+                except Exception as e:
+                    logger.warning('MaintThread (%s) Error: %s', args[0], e)
                 time.sleep(stime)
 
         def dothread(*args, **kwargs):
@@ -44,7 +48,7 @@ def maintthread(stime):
             thr.setDaemon(True)
             thr.start()
 
-        functools.update_wrapper(dothread,func)
+        functools.update_wrapper(dothread, func)
         return dothread
 
     return maintwrap
@@ -61,7 +65,7 @@ class ChunkQueue:
         self.last = time.time()
         self.lock = threading.Lock()
         self.event = threading.Event()
-        if items == None:
+        if items is None:
             items = []
         self.items = items
 
@@ -149,7 +153,7 @@ class EnviQueue:
         self.last = time.time()
         self.lock = threading.Lock()
         self.event = threading.Event()
-        if items == None:
+        if items is None:
             items = []
         self.items = collections.deque(items)
 
@@ -219,4 +223,3 @@ class EnviQueue:
 
             if not self.event.wait(timeout=deltat):
                 return None
-

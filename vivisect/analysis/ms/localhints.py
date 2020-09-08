@@ -1,10 +1,14 @@
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 def analyze(vw):
 
     for fname in vw.getFiles():
 
         h = vw.getFileMeta(fname, 'PELocalHints', None)
-        if h == None:
+        if h is None:
             continue
 
         for fva, hints in h.items():
@@ -21,10 +25,10 @@ def analyze(vw):
                     if idx > 100:
                         continue
 
-                    print('FIXME: %d %s' % (name,offset))
+                    logger.warning('FIXME: %d %s', offset, name)
 
                     #atype, aname = vw.getFunctionArg(fva, idx)
-                    #if atype == None:
+                    #if atype is None:
                         #atype = viv_magic.Unknown
                     #print 'ARG',idx, name
                     #vw.setFunctionArg(fva, idx, atype, name)
@@ -33,4 +37,3 @@ def analyze(vw):
                     # "offset" is from frame, *we* are from initial esp...
                     offset -= vw.psize
                     vw.setFunctionLocal(fva, offset, None, name)
-

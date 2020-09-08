@@ -1,5 +1,5 @@
 import os
-import json
+import logging
 
 try:
     from PyQt5 import QtCore
@@ -14,6 +14,8 @@ import vqt.saveable as vq_save
 import vqt.hotkeys as vq_hotkeys
 import vqt.menubuilder as vq_menu
 from vqt.saveable import compat_isNone, compat_toByteArray, compat_strList
+
+logger = logging.getLogger(__name__)
 
 class VQDockWidget(vq_hotkeys.HotKeyMixin, QDockWidget):
 
@@ -117,12 +119,12 @@ class VQMainCmdWindow(vq_hotkeys.HotKeyMixin, QMainWindow):
         pass
 
     def vqAddDockWidgetClass(self, cls, args=()):
-        self._dock_classes[cls.__name__] = (cls,args)
+        self._dock_classes[cls.__name__] = (cls, args)
 
     def vqBuildDockWidget(self, clsname, floating=False, area=QtCore.Qt.TopDockWidgetArea):
         res = self._dock_classes.get(clsname)
-        if res == None:
-            print('vqBuildDockWidget Failed For: %s' % clsname)
+        if res is None:
+            logger.error('vqBuildDockWidget Failed For: %s', clsname)
             return
         cls, args = res
         obj = cls(*args)
@@ -136,13 +138,13 @@ class VQMainCmdWindow(vq_hotkeys.HotKeyMixin, QMainWindow):
                 name = 'VQDockWidget%d' % i
                 try:
                     tup = self.vqBuildDockWidget(str(clsname), floating=False)
-                    if tup != None:
+                    if tup is not None:
                         d, obj = tup
                         d.setObjectName(name)
-                        d.vqRestoreState(settings,name,stub)
+                        d.vqRestoreState(settings, name, stub)
                         d.show()
-                except Exception, e:
-                    print('Error Building: %s: %s'  % (clsname,e))
+                except Exception as e:
+                    logger.error('Error Building: %s: %s', clsname, e)
 
         # Once dock widgets are loaded, we can restoreState
         state = settings.value('DockState')

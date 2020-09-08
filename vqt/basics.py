@@ -76,7 +76,7 @@ class VBox( QVBoxLayout ):
         self.setContentsMargins(2,2,2,2)
         self.setSpacing(4)
         for w in widgets:
-            if w == None:
+            if w is None:
                 self.addStretch()
                 continue
             self.addWidget( w )
@@ -88,7 +88,7 @@ class HBox( QHBoxLayout ):
         self.setContentsMargins(2,2,2,2)
         self.setSpacing(4)
         for w in widgets:
-            if w == None:
+            if w is None:
                 self.addStretch()
                 continue
             self.addWidget( w )

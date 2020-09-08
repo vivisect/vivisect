@@ -8,7 +8,7 @@ class TestReduceCase(unittest.TestCase):
     tests basic algebraic reductions
     '''
     def assertReduce(self, s1, s2):
-        sym1 = symexp(s1).reduce()
+        sym1 = symexp(s1).reduce(foo=True)
         sym2 = symexp(s2)
         self.assertEqual(str(sym1), str(sym2))
 

@@ -1,4 +1,3 @@
-import sys
 import envi
 import vivisect.impemu.monitor as viv_monitor
 
@@ -36,10 +35,10 @@ class AnalysisMonitor(viv_monitor.AnalysisMonitor):
 def analyzeFunction(vw, fva):
     '''
     this analysis module will identify thunk_reg functions, which place the .GOT pointer
-    into some register which is then accessed later.  
+    into some register which is then accessed later.
     doing so allows for position-independent code.
 
-    store funcva in "thunk_reg" VaSet in case we identify multiples (not likely) or misidentify 
+    store funcva in "thunk_reg" VaSet in case we identify multiples (not likely) or misidentify
     something.
 
     then store the module base in metadata as "PIE_GOT", accessible by other analysis modules.
@@ -99,7 +98,7 @@ def analyzeFunction(vw, fva):
             logger.debug("thunk_reg: returning before finding PIE data")
             break
 
-    if not success: 
+    if not success:
         return
 
     logger.debug('funcva 0x%x using thunk_reg for PIE', fva)
@@ -109,7 +108,7 @@ def analyzeFunction(vw, fva):
     emu.setEmulationMonitor(emumon)
     try:
         emu.runFunction(fva, maxhit=1)
-    except:
+    except Exception:
         logger.exception("Error emulating function 0x%x\n\t%r", fva, emumon.emuanom)
 
     # now roll through tracked references and make xrefs/comments
@@ -133,8 +132,8 @@ def analyzeFunction(vw, fva):
             logger.debug("PIE XREF: 0x%x -> 0x%x", va, tgt)
             try:
                 vw.addXref(va, tgt, REF_DATA, 0)
-            except:
-                logger.exception('error adding XREF:')
+            except Exception as e:
+                logger.exception('error adding XREF: %s', e)
             ## FIXME: force analysis of the xref.  very likely string for current example code.
 
         # set comment.  if existing comment, by default, don't... otherwise prepend the info before the existing comment
@@ -150,6 +149,7 @@ def analyzeFunction(vw, fva):
 
     logger.debug("ANOMS: \n%r", emumon.emuanom)
 
+
 def analyze(vw):
     '''
     run analysis on each function
@@ -159,6 +159,7 @@ def analyze(vw):
             analyzeFunction(vw, fva)
         except:
             logger.exception('thunk_reg analysis error:')
+
 
 if globals().get('vw') is not None:
     if len(argv) > 1:

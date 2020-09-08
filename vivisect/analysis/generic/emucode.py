@@ -35,8 +35,6 @@ class watcher(viv_imp_monitor.EmulationMonitor):
         self.badcode = True
         emu.stopEmu()
 
-        #self.vw.verbprint("Emucode: 0x%.8x (f:0x%.8x) %s" % (eip, self.tryva, msg))
-
     def looksgood(self):
         if not self.hasret or self.badcode:
             return False
@@ -64,9 +62,8 @@ class watcher(viv_imp_monitor.EmulationMonitor):
 
         return True
 
-
     def prehook(self, emu, op, eip):
-        if op.mnem == "out": #FIXME arch specific. see above idea.
+        if op.mnem == "out":  # FIXME arch specific. see above idea.
             emu.stopEmu()
             raise Exception("Out instruction...")
 
@@ -83,18 +80,19 @@ class watcher(viv_imp_monitor.EmulationMonitor):
         # defined locations...
         if self.vw.isFunction(eip):
             emu.stopEmu()
-            # FIXME: this is a problem.  many time legit code falls into other functions...  "hydra" functions are more and more common.
+            # FIXME: this is a problem.  many time legit code falls into other functions...
+            # "hydra" functions are more and more common.
             raise v_exc.BadOpBytes(op.va)
 
         loc = self.vw.getLocation(eip)
-        if loc != None:
+        if loc is not None:
             va, size, ltype, linfo = loc
             if ltype != vivisect.LOC_OP:
                 emu.stopEmu()
                 raise Exception("HIT LOCTYPE %d AT %.8x" % (ltype, va))
 
         cnt = self.mndist.get(op.mnem, 0)
-        self.mndist[ op.mnem ] = cnt+1
+        self.mndist[op.mnem] = cnt+1
         self.insn_count += 1
 
         # FIXME do we need a way to terminate emulation here?
@@ -114,11 +112,11 @@ def analyze(vw):
         bcode  = []
 
         vatodo = []
-        vatodo = [ va for va, name in vw.getNames() if vw.getLocation(va) == None ]
-        vatodo.extend( [tova for fromva, tova, reftype, rflags in vw.getXrefs(rtype=REF_PTR) if vw.getLocation(tova) == None] )
+        vatodo = [ va for va, name in vw.getNames() if vw.getLocation(va) is None ]
+        vatodo.extend( [tova for fromva, tova, reftype, rflags in vw.getXrefs(rtype=REF_PTR) if vw.getLocation(tova) is None] )
 
         for va in set(vatodo):
-            if vw.getLocation(va) != None:
+            if vw.getLocation(va) is not None:
                 continue
             if vw.isDeadData(va):
                 continue
@@ -137,7 +135,7 @@ def analyze(vw):
             emu.setEmulationMonitor(wat)
             try:
                 emu.runFunction(va, maxhit=1)
-            except Exception as e:
+            except Exception:
                 continue
             if wat.looksgood():
                 docode.append(va)
@@ -156,7 +154,7 @@ def analyze(vw):
 
         docode.sort()
         for va in docode:
-            if vw.getLocation(va) != None:
+            if vw.getLocation(va) is not None:
                 continue
             try:
                 logger.debug('discovered new function: 0x%x', va)
@@ -166,7 +164,7 @@ def analyze(vw):
 
         bcode.sort()
         for va in bcode:
-            if vw.getLocation(va) != None:
+            if vw.getLocation(va) is not None:
                 continue
             # TODO: consider elevating to functions?
             vw.makeCode(va)
@@ -177,5 +175,4 @@ def analyze(vw):
     for fva in newfuncs:
         vw.setVaSetRow('EmucodeFunctions', (fva,))
 
-    vw.verbprint("emucode: %d new functions defined (now total: %d)" % (len(dlist)-len(flist), len(dlist)))
-
+    vw.vprint("emucode: %d new functions defined (now total: %d)" % (len(dlist)-len(flist), len(dlist)))

@@ -1,4 +1,5 @@
 import cgi
+import binascii
 try:
     from PyQt5 import QtCore, QtGui, QtWebKit, QtWebKitWidgets
     from PyQt5.QtWebKitWidgets import *
@@ -10,8 +11,7 @@ except:
 
 
 import vqt.main as vq_main
-import vqt.colors as vq_colors
-import vqt.hotkeys as vq_hotkey
+import envi.exc as e_exc
 import envi.qt.html as e_q_html
 import envi.qt.jquery as e_q_jquery
 import envi.memcanvas as e_memcanvas
@@ -50,16 +50,12 @@ class VQMemoryCanvas(e_memcanvas.MemoryCanvas, QWebView):
         # Allow our parent to handle these...
         self.setAcceptDrops(False)
 
-    @QtCore.pyqtSlot(str)
-    def showMessage(self, message):
-        print "Message from website:", message
-
     def renderMemory(self, va, size, rend=None):
 
         if self._canv_rend_middle:
             vmap = self.mem.getMemoryMap(va)
-            if vmap == None:
-                raise Exception('Invalid Address:%s' % hex(va))
+            if vmap is None:
+                raise e_exc.InvalidAddress(va)
 
             origva = va
             va, szdiff = self._loc_helper(max(va - size, vmap[0]))
@@ -145,8 +141,8 @@ class VQMemoryCanvas(e_memcanvas.MemoryCanvas, QWebView):
         qt tags, they are a tuple of html text (<opentag>, <closetag>)
         '''
         clsname = 'envi-%s' % typename
-        namehex = name.lower().encode('hex')
-        subclsname = 'envi-%s-%s' % (typename,namehex)
+        namehex = binascii.hexlify(name.lower())
+        subclsname = 'envi-%s-%s' % (typename, namehex)
         return ('<span class="%s %s" envitag="%s" envival="%s" onclick="nameclick(this)">' % (clsname,subclsname,typename,namehex), '</span>')
 
     def getVaTag(self, va):
@@ -214,7 +210,8 @@ class VQMemoryCanvas(e_memcanvas.MemoryCanvas, QWebView):
             fname = str(fname)
             if len(fname):
                 html = self.page().mainFrame().toHtml()
-                file(fname, 'w').write(html)
+                with open(fname, 'w') as f:
+                    f.write(html)
 
 
 def getNavTargetNames():

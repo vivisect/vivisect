@@ -62,7 +62,6 @@ def scanUp(vw, emu, startva, regidx, valu):
 
 def getSwitchBase(vw, op, vajmp, emu=None):
     if not (op.iflags & envi.IF_BRANCH):
-        # vw.verbprint( "indirect branch is not correct type")
         return
 
     filename = vw.getMemoryMap(vajmp)[3]
@@ -86,7 +85,7 @@ def getSwitchBase(vw, op, vajmp, emu=None):
         # just in case let's check a few more instructions up, because the first register could be
         # being used as the base instead
         if not scanUp(vw, emu, addOp.va, reg, imgbase):
-            vw.verbprint("0x%x: reg != imagebase" % op.va)
+            vw.vprint("0x%x: reg != imagebase (0x%x != 0x%x)" % (op.va, regbase, imgbase))
             return
 
     # Now find the instruction before the add that does the actual mov
@@ -97,11 +96,11 @@ def getSwitchBase(vw, op, vajmp, emu=None):
     # TODO: Want a more arch-independent way of doing this
     arrayOper = movOp.opers[1]
     if not isinstance(arrayOper, e_i386.i386SibOper):
-        vw.verbprint("0x%x: arrayOper is not an i386SibOper: %s" % (op.va, repr(arrayOper)))
+        vw.vprint("0x%x: arrayOper is not an i386SibOper: %s" % (op.va, repr(arrayOper)))
         return
 
     if arrayOper.scale % 4 != 0:
-        vw.verbprint("0x%x: arrayoper scale is wrong: (%d mod 4 != 0)" % (op.va, arrayOper.scale))
+        vw.vprint("0x%x: arrayoper scale is wrong: (%d mod 4 != 0)" % (op.va, arrayOper.scale))
         return
 
     scale = arrayOper.scale
@@ -115,7 +114,7 @@ def getSwitchBase(vw, op, vajmp, emu=None):
         if len(indirOp.opers):
             oper = indirOp.opers[1]
             if isinstance(oper, e_i386.i386SibOper) and oper.scale == 1:
-                vw.verbprint("0x%.8x (i:0x%.8x): Double deref (hitting a byte array offset into the offset-array)" % (vajmp, indirOp.va))
+                vw.vprint("0x%.8x (i:0x%.8x): Double deref (hitting a byte array offset into the offset-array)" % (vajmp, indirOp.va))
                 indirVa = oper.disp + imgbase
                 vw.addLocation(indirVa, 1, v_const.LOC_NUMBER, "DerefTable")
                 vw.addXref(indirOp.va, indirVa, v_const.REF_DATA)
@@ -125,12 +124,11 @@ def getSwitchBase(vw, op, vajmp, emu=None):
 
 if 'vw' in globals():
     vw = globals()['vw']
-    with vw.makeVerbose():
-        vw.vprint("Starting Switchcase Module...")
-        for va, reprOp, flags in vw.getVaSetRows('DynamicBranches'):
-            op = vw.parseOpcode(va)
-            if op is None:
-                vw.vprint("Cannot analyze none op at 0x%x" % va)
-                continue
-            analyzeJmp(None, vw.getEmulator(), op, va)  # it doesn't use archmod anyway
-        vw.vprint("Switchcase Done")
+    vw.vprint("Starting Switchcase Module...")
+    for va, reprOp, flags in vw.getVaSetRows('DynamicBranches'):
+        op = vw.parseOpcode(va)
+        if op is None:
+            vw.vprint("Cannot analyze none op at 0x%x" % va)
+            continue
+        analyzeJmp(None, vw.getEmulator(), op, va)  # it doesn't use archmod anyway
+    vw.vprint("Switchcase Done")

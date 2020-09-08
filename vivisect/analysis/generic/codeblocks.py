@@ -6,19 +6,17 @@ module which should be snapped in *very* early by parsers.
 
 """
 
-#FIXME this belongs in the core disassembler loop!
-import sys
 import envi
-import vivisect
 import collections
 
-from vivisect.const import *
+from vivisect.const import REF_CODE, LOC_POINTER, LOC_OP
+
 
 def analyzeFunction(vw, funcva):
     blocks = {}
     done = {}
     mnem = collections.defaultdict(int)
-    todo = [ funcva, ]
+    todo = [funcva, ]
     brefs = []
     size = 0
     opcount = 0
@@ -32,7 +30,7 @@ def analyzeFunction(vw, funcva):
 
         done[start] = True
         blocks[start] = 0
-        brefs.append( (start, True) )
+        brefs.append((start, True))
 
         va = start
         op = None
@@ -48,7 +46,7 @@ def analyzeFunction(vw, funcva):
                 brefs.append((va, False))
                 break
 
-            lva,lsize,ltype,linfo = loc
+            lva, lsize, ltype, linfo = loc
 
             if ltype == LOC_POINTER:
                 # pointer analysis mis-identified a pointer,
@@ -65,10 +63,10 @@ def analyzeFunction(vw, funcva):
                 loc = vw.getLocation(va)
                 if loc is None:
                     blocks[start] = va - start
-                    brefs.append( (va, False) )
+                    brefs.append((va, False))
                     break
 
-                lva,lsize,ltype,linfo = loc
+                lva, lsize, ltype, linfo = loc
 
             # If it's not an op, terminate
             if ltype != LOC_OP:
@@ -95,12 +93,12 @@ def analyzeFunction(vw, funcva):
                     continue
 
                 branch = True
-                todo.append(tova )
+                todo.append(tova)
 
             # If it doesn't fall through, terminate (at nextva)
             if linfo & envi.IF_NOFALL:
                 blocks[start] = nextva - start
-                brefs.append( (nextva, False) )
+                brefs.append((nextva, False))
                 break
 
             # If we hit a branch, we are the end of a block...

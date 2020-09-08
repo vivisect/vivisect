@@ -1,14 +1,16 @@
 import logging
+import binascii
+
+from vivisect.const import VASET_ADDRESS, VASET_STRING
+
 logger = logging.getLogger(__name__)
 
-import envi
-from vivisect.const import *
 
 """Locate the basic use of known crypto constants"""
 
-dh_group1 = "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD129024E088A67CC74020BBEA63B139B22514A08798E3404DDEF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245E485B576625E7EC6F44C42E9A63A3620FFFFFFFFFFFFFFFF".decode("hex")
+dh_group1 = binascii.unhexlify("FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD129024E088A67CC74020BBEA63B139B22514A08798E3404DDEF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245E485B576625E7EC6F44C42E9A63A3620FFFFFFFFFFFFFFFF")
 
-dh_group2 = "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD129024E088A67CC74020BBEA63B139B22514A08798E3404DDEF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245E485B576625E7EC6F44C42E9A637ED6B0BFF5CB6F406B7EDEE386BFB5A899FA5AE9F24117C4B1FE649286651ECE65381FFFFFFFFFFFFFFFF".decode("hex")
+dh_group2 = binascii.unhexlify("FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD129024E088A67CC74020BBEA63B139B22514A08798E3404DDEF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245E485B576625E7EC6F44C42E9A637ED6B0BFF5CB6F406B7EDEE386BFB5A899FA5AE9F24117C4B1FE649286651ECE65381FFFFFFFFFFFFFFFF")
 
 md5_inits = [0x67452301,0xefcdab89,0x98badcfe,0x10325476]
 md5_xform = [
@@ -35,20 +37,20 @@ def analyze(vw):
         md5_init_score = 0
         md5_xform_score = 0
         for va, size, funcva in vw.getFunctionBlocks(fva):
-            maxva = va+size
+            maxva = va + size
             while va < maxva:
                 loctup = vw.getLocation(va)
-                if loctup == None:
-                    logger.error("error parsing through function 0x%x at 0x%x" % (fva, va))
+                if loctup is None:
+                    logger.warning("error parsing through function 0x%x at 0x%x", fva, va)
                     va += 1
                     continue
-                lva,lsize,ltype,tinfo = loctup
+                lva, lsize, ltype, tinfo = loctup
 
                 op = vw.parseOpcode(va, arch=tinfo)
                 for o in op.opers:
 
                     if not o.isImmed():
-                       continue
+                        continue
 
                     imm = o.getOperValue(op)
 
@@ -74,8 +76,7 @@ def analyze(vw):
 
     if len(rows):
         vw.vprint("Adding VA Set: %s" % vlname)
-        vw.addVaSet(vlname, (("va",VASET_ADDRESS),("Match Type", VASET_STRING)), rows)
+        vw.addVaSet(vlname, (("va", VASET_ADDRESS), ("Match Type", VASET_STRING)), rows)
 
     else:
         vw.vprint("No known constants found.")
-

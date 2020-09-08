@@ -48,7 +48,7 @@ class SymResolverTests(unittest.TestCase):
         # this causes the symobjsbyname to smash in a Symbol instead of a
         # SymbolResolver (symobjsbyname['foo'] = Symbol)
         sym = self.symres.getSymByAddr(0x10, exact=False)
-        assert(sym != None)
+        assert(sym is not None)
 
         # now symobjsbyname['foo'] = Symbol
 
@@ -57,4 +57,4 @@ class SymResolverTests(unittest.TestCase):
         # to cache since it should be a resolver since we have an fname.
         # boom.
         sym = self.symres.getSymByAddr(0x16010, exact=False)
-        assert(sym != None)
+        assert(sym is not None)

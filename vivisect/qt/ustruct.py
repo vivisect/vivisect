@@ -12,8 +12,8 @@ struct example {
     char x; // This is ok too...
     unsigned int y[20];
 };
-
 '''
+
 
 class UserStructEditor(QWidget):
 
@@ -29,7 +29,7 @@ class UserStructEditor(QWidget):
 
         ssrc = example_src
         if name:
-            ssrc = vw.getUserStructSource( name )
+            ssrc = vw.getUserStructSource(name)
             self._v_changed = False
 
         self.srcedit = QTextEdit(parent=self)
@@ -45,7 +45,7 @@ class UserStructEditor(QWidget):
     def _set_title(self):
 
         name = self._v_sname
-        if name == None:
+        if name is None:
             name = '(new)'
 
         status = ''
@@ -59,14 +59,13 @@ class UserStructEditor(QWidget):
         ssrc = str(self.srcedit.toPlainText())
 
         try:
-            self._v_sname = self._v_vw.setUserStructSource( ssrc )
+            self._v_sname = self._v_vw.setUserStructSource(ssrc)
             self._v_changed = False
             self._set_title()
-        except Exception, e:
-            QMessageBox.warning(self, 'Syntax Error', str(e), QMessageBox.Ok )
-
+        except Exception as e:
+            QMessageBox.warning(self, 'Syntax Error', str(e), QMessageBox.Ok)
 
     def _text_changed(self):
-        self._v_changed = True        
+        self._v_changed = True
         self._set_title()
 

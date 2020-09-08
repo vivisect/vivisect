@@ -1,6 +1,9 @@
 import os
 import cobra
 
+dirname = os.path.dirname(__file__)
+
+
 class TestObject:
 
     def __init__(self):
@@ -14,17 +17,18 @@ class TestObject:
     def getUser(self):
         return cobra.getUserInfo()
 
-def accessTestObject( t ):
-    assert( t.x == 10 )
-    t.y = 333
-    assert( t.y == 333 )
-    t.addToZ( 10 )
-    assert( t.z == 100 )
 
-dirname = os.path.dirname(__file__)
+def accessTestObject(t):
+    assert(t.x == 10)
+    t.y = 333
+    assert(t.y == 333)
+    t.addToZ(10)
+    assert(t.z == 100)
+
+
 def openTestFile(name):
-    return file(testFileName(name),'rb')
+    return open(testFileName(name), 'rb')
+
 
 def testFileName(name):
     return os.path.join(dirname, name)
-

@@ -1,4 +1,5 @@
 import string
+import binascii
 
 import envi.memory as e_mem
 import envi.memcanvas as e_canvas
@@ -157,13 +158,13 @@ class MemWriteWindow(QWidget):
         self.renderMemory(expr, esize)
 
     def renderMemory(self, expr=None, esize=None, emu=None):
-        if emu != None:
+        if emu is not None:
             self.emu = emu
 
         curexpr, cur_esize = self.nav.getValues()
-        if expr == None:
+        if expr is None:
             expr = curexpr
-        if esize == None:
+        if esize is None:
             esize = cur_esize
 
         self.renderRequest.emit(expr, esize)
@@ -228,7 +229,7 @@ class MemWriteWindow(QWidget):
         return txt.encode(encoding)
 
     def updateHexOrig(self, va, bytez):
-        if bytez == None:
+        if bytez is None:
             self.hex_edit.setPlainText('')
             return
 
@@ -240,7 +241,7 @@ class MemWriteWindow(QWidget):
         self.hex_edit.setPlainText(str(self.canvas_orig))
 
     def updateHexPreview(self, va, bytez):
-        if bytez == None:
+        if bytez is None:
             self.hex_preview.setPlainText('')
             return
 
@@ -257,7 +258,7 @@ class MemWriteWindow(QWidget):
         rbytes = str(self.data_edit.text())
         erbytes = self.encodeData(rbytes, encoding)
 
-        hexbytes = erbytes.encode('hex')
+        hexbytes = binascii.hexlify(erbytes)
         self.writeToMemory.emit(curexpr, hexbytes)
 
     def getValues(self):

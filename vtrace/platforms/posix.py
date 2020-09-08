@@ -6,7 +6,7 @@ import os
 import sys
 import struct
 import signal
-import platform
+import logging
 
 
 import vtrace
@@ -21,7 +21,7 @@ import envi.cli as e_cli
 import envi.memory as e_mem
 import envi.symstore.resolver as e_resolv
 
-
+logger = logging.getLogger(__name__)
 libc = None
 
 class PosixMixin:
@@ -88,7 +88,7 @@ class PosixMixin:
             self.handlePosixSignal(sig)
 
         else:
-            print("OMG WTF JUST HAPPENED??!?11/!?1?>!")
+            logger.error("Unhandled posix status code: %d", status)
 
     def handlePosixSignal(self, sig):
         """

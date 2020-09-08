@@ -2,10 +2,11 @@ import types
 import collections
 
 # Symbol Type Constants ( for serialization )
-SYMSTOR_SYM_SYMBOL      = 0
-SYMSTOR_SYM_FUNCTION    = 1
-SYMSTOR_SYM_SECTION     = 2
-SYMSTOR_SYM_MODULE      = 3
+SYMSTOR_SYM_SYMBOL = 0
+SYMSTOR_SYM_FUNCTION = 1
+SYMSTOR_SYM_SECTION = 2
+SYMSTOR_SYM_MODULE = 3
+
 
 class Symbol:
 
@@ -54,6 +55,7 @@ class Symbol:
     def __repr__(self):
         return str(self)
 
+
 class FunctionSymbol(Symbol):
     """
     Used to represent functions.
@@ -63,6 +65,7 @@ class FunctionSymbol(Symbol):
     def __repr__(self):
         return "%s.%s()" % (self.fname, self.name)
 
+
 class SectionSymbol(Symbol):
     """
     Used for file sections/segments.
@@ -71,6 +74,7 @@ class SectionSymbol(Symbol):
 
     def __repr__(self):
         return "%s[%s]" % (self.fname, self.name)
+
 
 class SymbolResolver:
     """
@@ -153,12 +157,12 @@ class SymbolResolver:
 
         # Do we have a cached object?
         sym = self.symobjsbyname.get(name)
-        if sym != None:
+        if sym is not None:
             return sym
 
         # Do we have a symbol tuple?
         symtup = self.symnames.get(name)
-        if symtup != None:
+        if symtup is not None:
             return self._symFromTup( symtup )
 
     def delSymByName(self, name):
@@ -166,7 +170,7 @@ class SymbolResolver:
             name = name.lower()
 
         sym = self.symnames.get(name, None)
-        if sym != None:
+        if sym is not None:
             self.delSymbol(self._symFromTup(sym))
 
     def _symFromTup(self, symtup):
@@ -191,7 +195,7 @@ class SymbolResolver:
 
         if sym.fname:
             subres = self.symobjsbyname.get(sym.fname)
-            if subres != None:
+            if subres is not None:
                 subres._addSymObject(sym)
                 return
 
@@ -208,7 +212,7 @@ class SymbolResolver:
         va = va & self.widthmask
 
         sym = self.symobjsbyaddr.get(va)
-        if sym != None:
+        if sym is not None:
             return sym
 
         symtup = self.symaddrs.get(va)
@@ -227,7 +231,7 @@ class SymbolResolver:
                 b1.sort()
                 symtup = b1[-1]
                 sym = self.symobjsbyaddr.get(symtup[0])
-                if sym != None:
+                if sym is not None:
                     return sym
 
                 return self._symFromTup(symtup)
@@ -255,19 +259,19 @@ class SymbolResolver:
     def _nomSymTupAddrs(self, symtups):
 
         # Ugly list comprehensions for speed...
-        [ self.symaddrs.__setitem__( n[0], n ) for n in symtups ]
+        [self.symaddrs.__setitem__(n[0], n) for n in symtups]
 
         for symtup in symtups:
             # do the size range...
-            self.buckets[ symtup[0] & self.bucketmask ].append( symtup )
+            self.buckets[symtup[0] & self.bucketmask].append(symtup)
             if symtup[1]:
-                [ self.buckets[b].append(symtup) for b in range(symtup[0], symtup[0] + symtup[1], self.bucketsize) ]
+                [self.buckets[b].append(symtup) for b in range(symtup[0], symtup[0] + symtup[1], self.bucketsize)]
 
     def _nomSymTupNames(self, symtups):
         if not self.casesens:
-            [ self.symnames.__setitem__( n[2].lower(), n ) for n in symtups ]
+            [self.symnames.__setitem__( n[2].lower(), n ) for n in symtups]
         else:
-            [ self.symnames.__setitem__( n[2], n ) for n in symtups ]
+            [self.symnames.__setitem__( n[2], n ) for n in symtups]
 
     def impSymCache(self, symcache, symfname=None, baseaddr=0):
         '''
@@ -275,10 +279,10 @@ class SymbolResolver:
         given base address ( and for the given sub-file )
         '''
         # Recieve a "cache" list and make it into our kind of tuples.
-        symtups = [ (symaddr+baseaddr,symsize,symname,symtype,symfname) for (symaddr,symsize,symname,symtype) in symcache ]
+        symtups = [(symaddr + baseaddr, symsize, symname, symtype, symfname) for (symaddr, symsize, symname, symtype) in symcache]
 
         # Either way, index the addresses
-        self._nomSymTupAddrs( symtups )
+        self._nomSymTupAddrs(symtups)
 
         if symfname:
             # If we have a sub-resolver, no need to add the names to
@@ -291,6 +295,7 @@ class SymbolResolver:
 
         self._nomSymTupNames(symtups)
 
+
 class FileSymbol(Symbol, SymbolResolver):
     """
     A file symbol is both a symbol resolver of it's own, and
@@ -301,8 +306,9 @@ class FileSymbol(Symbol, SymbolResolver):
     that the parent Resolver of the FileSymbol takes care of addr lookups.
     """
     symtype = SYMSTOR_SYM_MODULE
+
     def __init__(self, fname, base, size, width=4):
-        if fname == None:
+        if fname is None:
             raise Exception('fname must not be None for a FileSymbol')
 
         SymbolResolver.__init__(self, width=width, baseaddr=base)
@@ -314,8 +320,8 @@ class FileSymbol(Symbol, SymbolResolver):
         symbols within them.
         """
         ret = self.getSymByName(name)
-        if ret == None:
-            raise AttributeError("%s has no symbol %s" % (self.name,name))
+        if ret is None:
+            raise AttributeError("%s has no symbol %s" % (self.name, name))
         return ret
 
     def __getitem__(self, name):
@@ -323,8 +329,8 @@ class FileSymbol(Symbol, SymbolResolver):
         Allow dictionary style access for mangled incompatible names...
         """
         ret = self.getSymByName(name)
-        if ret == None:
-            raise KeyError("%s has no symbol %s" % (self.name,name))
+        if ret is None:
+            raise KeyError("%s has no symbol %s" % (self.name, name))
         return ret
 
     # we need __getstate__ and __setstate__ because of serialization.  if
@@ -362,4 +368,4 @@ class FileSymbol(Symbol, SymbolResolver):
     def __unicode__(self):
         return Symbol.__str__(self)
 
-symclasses = ( Symbol, FunctionSymbol, SectionSymbol, FileSymbol )
+symclasses = (Symbol, FunctionSymbol, SectionSymbol, FileSymbol)
