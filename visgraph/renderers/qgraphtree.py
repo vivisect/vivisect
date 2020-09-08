@@ -17,8 +17,8 @@ class NodeColumn(QGraphicsItem):
         self._v_nodes = nodes
 
         # Remember if we srarted with something on our right or left
-        self._v_goleft = (left == None)
-        self._v_goright = (right == None)
+        self._v_goleft = (left is None)
+        self._v_goright = (right is None)
 
         self._v_left = left
         self._v_right = right

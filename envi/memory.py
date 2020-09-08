@@ -127,7 +127,7 @@ class IMemory:
         (check if the memory for 20 bytes at 0x41414141 is writable)
         """
         mmap = self.getMemoryMap(va)
-        if mmap == None:
+        if mmap is None:
             return False
         mapva, mapsize, mapperm, mapfile = mmap
         mapend = mapva+mapsize
@@ -170,7 +170,7 @@ class IMemory:
         '''
         #FIXME: use getBytesDef (and implement a dummy wrapper in VTrace for getBytesDef)
         bytes = self.readMemory(addr, size)
-        if bytes == None:
+        if bytes is None:
             return None
 
         #FIXME change this (and all uses of it) to passing in format...
@@ -230,7 +230,7 @@ class IMemory:
         return None
 
     def isValidPointer(self, va):
-        return self.getMemoryMap(va) != None
+        return self.getMemoryMap(va) is not None
 
     def getMaxReadSize(self, va):
         '''
@@ -240,7 +240,7 @@ class IMemory:
         nread = 0
 
         mmap = self.getMemoryMap(va)
-        while mmap != None:
+        while mmap is not None:
             mapva, size, perms, mname = mmap
             if not (perms & MM_READ):
                 break
@@ -252,25 +252,25 @@ class IMemory:
 
     def isReadable(self, va):
         maptup = self.getMemoryMap(va)
-        if maptup == None:
+        if maptup is None:
             return False
         return bool(maptup[2] & MM_READ)
 
     def isWriteable(self, va):
         maptup = self.getMemoryMap(va)
-        if maptup == None:
+        if maptup is None:
             return False
         return bool(maptup[2] & MM_WRITE)
 
     def isExecutable(self, va):
         maptup = self.getMemoryMap(va)
-        if maptup == None:
+        if maptup is None:
             return False
         return bool(maptup[2] & MM_EXEC)
 
     def isShared(self, va):
         maptup = self.getMemoryMap(va)
-        if maptup == None:
+        if maptup is None:
             return False
         return bool(maptup[2] & MM_SHAR)
 
@@ -346,7 +346,7 @@ class MemoryCache(IMemory):
             pageoff = va - pageva
             chunksize = min( self.pagesize - pageoff, size )
             page = self.pagecache.get( pageva )
-            if page == None:
+            if page is None:
                 page = self.mem.readMemory(pageva, self.pagesize)
                 self.pagecache[pageva] = page
             ret += page[ pageoff : pageoff + chunksize ]
@@ -364,7 +364,7 @@ class MemoryCache(IMemory):
             chunksize = min(self.pagesize, len(bytez))
 
             page = self.pagecache.get(pageva)
-            if page == None:
+            if page is None:
                 page = self.mem.readMemory(pageva, self.pagesize)
                 self.pagecache[pageva] = page
 

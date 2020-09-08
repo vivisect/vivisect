@@ -23,7 +23,7 @@ class CallingConventionProxy:
         # If callFunction returns something, snap it back in.
         # Otherwise, snap in a Call symbol.
         ret = self.callFunction(emu, *args)
-        if ret == None:
+        if ret is None:
             ret = Call(self.funcsym, emu.__width__, args)
 
         # Set the return value into the symbolik state
@@ -36,6 +36,7 @@ class CallingConventionProxy:
         # Each calling convention proxy must implement this to do
         # the actual call hook...
         return None
+
 
 class ImportCallProxy(CallingConventionProxy):
     '''

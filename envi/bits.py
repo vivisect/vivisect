@@ -196,7 +196,7 @@ def parsebytes(bytes, offset, size, sign=False, bigend=False):
         f = be_fmt_chars[size]
     else:
         f = le_fmt_chars[size]
-    if f == None:
+    if f is None:
         return slowparsebytes(bytes, offset, size, sign=sign, bigend=bigend)
     d = bytes[offset:offset+size]
     x = struct.unpack(f, d)[0]
@@ -228,7 +228,7 @@ def buildbytes(value, size, bigend=False):
         f = be_fmt_chars[size]
     else:
         f = le_fmt_chars[size]
-    if f == None:
+    if f is None:
         raise Exception("envi.bits.buildbytes needs slowbuildbytes")
     return struct.pack(f, value)
 
@@ -257,11 +257,11 @@ def intwidth(val):
     return ret
 
 def hex(value, size=None):
-    if size == None:
+    if size is None:
         size = intwidth(value)
 
     fmt = hex_fmt.get(size)
-    if fmt != None:
+    if fmt is not None:
         return fmt % value
 
     x = []
@@ -284,7 +284,7 @@ def binrepr(intval, bitwidth=None):
         intval >>= 1
     ret.reverse()
     binstr = ''.join(ret)
-    if bitwidth != None:
+    if bitwidth is not None:
         binstr = binstr.rjust(bitwidth, '0')
     return binstr
 
@@ -339,7 +339,7 @@ def masktest(s):
     example:
         opcode = 0x4388e234
         if masktest('1011xxxx0000')(opcode):
-            print 'MATCHED!'
+            print('MATCHED!')
 
     NOTE: For performance reasons, it is recommeneded that
     masktest be used to initialize a static list of tests

@@ -3,11 +3,13 @@ import os
 import vivisect.const as v_const
 import vivisect.parsers as viv_parsers
 import vstruct.defs.macho as vs_macho
-import vivisect.analysis.i386 as viv_a_i386
+
 
 def parseFile(vw, filename, baseaddr=None):
-    fbytes = file(filename, 'rb').read()
+    with open(filename, 'rb') as f:
+        fbytes = f.read()
     return _loadMacho(vw, fbytes, filename=filename, baseaddr=baseaddr)
+
 
 def parseBytes(vw, filebytes, baseaddr=None):
     return _loadMacho(vw, filebytes, baseaddr=baseaddr)
@@ -19,14 +21,14 @@ def _loadMacho(vw, filebytes, filename=None, baseaddr=None):
         baseaddr = vw.config.viv.parsers.macho.baseaddr
 
     if filename is None:
-        filename = 'macho_%.8x' % baseaddr # FIXME more than one!
+        filename = 'macho_%.8x' % baseaddr  # FIXME more than one!
 
     # grab md5 and sha256 hashes before we modify the bytes
     fhash = viv_parsers.md5Bytes(filebytes)
     sha256 = v_parsers.sha256Bytes(filebytes))
 
     # Check for the FAT binary magic...
-    if filebytes[:4].encode('hex') in ('cafebabe', 'bebafeca'):
+    if binascii.hexlify(filebytes[:4]) in ('cafebabe', 'bebafeca'):
 
         archhdr = None
         fatarch = vw.config.viv.parsers.macho.fatarch
@@ -90,5 +92,5 @@ def _loadMacho(vw, filebytes, filename=None, baseaddr=None):
     return fname
 
 def parseMemory(vw, memobj, baseaddr):
+    # TODO: implement
     pass
-

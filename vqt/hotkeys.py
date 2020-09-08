@@ -118,7 +118,6 @@ class HotKeyMixin(object):
 
         mods = int(event.modifiers())
 
-        # print('HOTKEY: %s 0x%.8x' % (key, mods))
 
         keytxt = None
 
@@ -144,7 +143,6 @@ class HotKeyMixin(object):
 
     def eatKeyPressEvent(self, event):
         hotkey = self.getHotKeyFromEvent(event)
-        # print 'KEYSTR:', hotkey
 
         target = self._vq_hotkeys.get(hotkey)
         if target is not None:
@@ -166,7 +164,7 @@ class HotKeyMixin(object):
             return super(HotKeyMixin, self).keyPressEvent(event)
 
             #parent = self.parent()
-            #if parent != None:
+            #if parent is not None:
             #    return parent.keyPressEvent(event)
 
 import vqt.tree

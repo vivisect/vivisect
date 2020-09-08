@@ -160,13 +160,13 @@ class Amd64RipRelOper(envi.DerefOper):
 
         if self.imm > 0:
             mcanv.addText(" + ")
-            if sym != None:
+            if sym is not None:
                 mcanv.addVaText("$%s" % repr(sym), destva)
             else:
                 mcanv.addNameText(str(self.imm))
         elif self.imm < 0:
             mcanv.addText(" - ")
-            if sym != None:
+            if sym is not None:
                 mcanv.addVaText("$%s" % repr(sym), destva)
             else:
                 mcanv.addNameText(str(abs(self.imm)))
@@ -337,7 +337,6 @@ class Amd64Disasm(e_i386.i386Disasm):
                     vvvv = ((inv2 >> 3) & 0xf)
                     pp = imm2 & 3
                     m_mmmm = imm1 & 0x1f
-                    # print("imms: %x %x \tl: %d\tvvvv: 0x%x\tpp: %d\tm_mmmm: 0x%x" % (imm1, imm2, vex_l, vvvv, pp, m_mmmm))
                     prefixes |= ((inv1 << 11) & PREFIX_REX_RXB)     # RXB are inverted
                     vexw = ((imm2 << 12) & PREFIX_REX_W)            # W is not inverted
                     prefixes |= vexw
@@ -351,9 +350,7 @@ class Amd64Disasm(e_i386.i386Disasm):
                 for tabidx in combined_mand_prefixes:
                     if tabidx is None:
                         continue
-                    #print("VEXTABIDX: %d" % tabidx)
                     opdesc = tabdesc[0][tabidx]
-                    #print('VEXOPDESC: %s -> %s' % (repr(opdesc), opcode86.tables_lookup.get(opdesc[0])))
                     tabdesc = all_tables[opdesc[0]]
                 # So VEX and mandatory prefixes don't really intermingle
                 offset += 1
@@ -398,22 +395,15 @@ class Amd64Disasm(e_i386.i386Disasm):
                 all_prefixes = prefixes | pho_prefixes
 
             while True:
-                # print("OP-OBYTE", hex(obyte))
-                # print("TABDESC: {}".format(tabdesc[1:]))
                 if (obyte > tabdesc[5]):
-                    # print("Jumping To Overflow Table: %s" % hex(tabdesc[5]))
                     tabdesc = all_tables[tabdesc[6]]
 
                 tabidx = ((obyte - tabdesc[4]) >> tabdesc[2]) & tabdesc[3]
-                # print("TABIDX: %s" % tabidx)
                 opdesc = tabdesc[0][tabidx]
-                # print('OPDESC: %s -> %s' % (repr(opdesc), opcode86.tables_lookup.get(opdesc[0])))
 
                 # Hunt down multi-byte opcodes
                 nexttable = opdesc[0]
-                # print("NEXT", nexttable, hex(obyte), opcode86.tables_lookup.get(nexttable))
                 if nexttable != 0:  # If we have a sub-table specified, use it.
-                    # print("Multi-Byte Next Hop For (%s, %s)" % (hex(obyte), opdesc[0]))
                     tabdesc = all_tables[nexttable]
 
                     # Account for the table jump we made
@@ -422,7 +412,6 @@ class Amd64Disasm(e_i386.i386Disasm):
                     continue
 
                 # We are now on the final table...
-                # print(repr(opdesc))
                 tbl_opercnt = tabdesc[1]
                 mnem = opdesc[3 + tbl_opercnt]
                 optype = opdesc[1]
@@ -445,9 +434,6 @@ class Amd64Disasm(e_i386.i386Disasm):
         mnem = opdesc[3 + tbl_opercnt]
 
         if optype == 0:
-            # print(tabidx)
-            # print(opdesc)
-            # print("OPTTYPE 0")
             raise envi.InvalidInstruction(bytez=bytez[startoff:startoff+16], va=va)
 
         operoffset = 0
@@ -466,12 +452,8 @@ class Amd64Disasm(e_i386.i386Disasm):
             if operflags == 0:
                 break
 
-            # print("ADDRTYPE: %.8x OPERTYPE: %.8x" % (addrmeth, opertype))
-
             # handles tsize calculations including new REX prefixes
             tsize = self._dis_calc_tsize(opertype, prefixes, operflags)
-
-            # print(hex(opertype), hex(addrmeth), hex(tsize))
 
             # If addrmeth is zero, we have operands embedded in the opcode
             if addrmeth == 0:
@@ -479,8 +461,6 @@ class Amd64Disasm(e_i386.i386Disasm):
                 oper = self.ameth_0(operflags, opdesc[2+tbl_opercnt+i], tsize, prefixes)
 
             else:
-                # print("ADDRTYPE", hex(addrmeth))
-
                 # So the 0x7f is here to help us deal with an issue between VEX and non-VEX
                 # A super common patter in vex is to add an operand somewhere in the middle of the
                 # existing operands. So if we have like cmpps xmm2, 17 in non-VEX, the vex version
@@ -491,7 +471,6 @@ class Amd64Disasm(e_i386.i386Disasm):
                 # instruction operand definition so we can know when to skip operands
                 ameth = self._dis_amethods[(addrmeth >> 16) & 0x7F]
                 vex_skip = addrmeth & opcode86.ADDRMETH_VEXSKIP
-                # print("AMETH", ameth)
                 if not isvex and vex_skip:
                     continue
 
@@ -563,7 +542,6 @@ class Amd64Disasm(e_i386.i386Disasm):
             if not (mod != 3 and rm == 4):  # if not SIB
                 rm |= 0b1000
 
-        #print "MOD/RM",hex(byte),mod,reg,rm
         return (mod,reg,rm)
 
     def byteRegOffset(self, val, prefixes=0):
@@ -725,12 +703,12 @@ class Amd64Disasm(e_i386.i386Disasm):
             # Adjust the size if needed
             if prefixes & PREFIX_REX_X:
                 # fix up index in case it was set to None by sib_parse (index==4 without REX)
-                if oper.index == None:
+                if oper.index is None:
                     oper.index = 4
                 oper.index += REX_BUMP
 
         # oper.reg will be r/m or SIB base
-        if getattr(oper, "reg", None) != None:
+        if getattr(oper, "reg", None) is not None:
             # Adjust the size if needed
             if prefixes & PREFIX_REX_B:
                 oper.reg += REX_BUMP

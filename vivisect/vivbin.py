@@ -7,12 +7,15 @@ import argparse
 import logging
 
 import vivisect.cli as viv_cli
-import envi.config as e_config
-import envi.threads as e_threads
 import vivisect.parsers as viv_parsers
 
-logging.basicConfig(level=logging.DEBUG, format='%(asctime)s:%(levelname)s:%(name)s: %(message)s')
-logger = logging.getLogger()
+import envi.common as e_common
+import envi.config as e_config
+import envi.threads as e_threads
+
+logger = logging.getLogger('vivisect')
+e_common.setLogging(logger, level='WARNING')
+
 
 loglevels = (
     logging.CRITICAL,
@@ -45,10 +48,14 @@ def main():
                         help='Enable verbose mode (multiples matter: -vvvv)')
     parser.add_argument('-V', '--version', dest='version', default=None, action='store',
                         help='Add file version (if available) to save file name')
+    parser.add_argument('-c', '--config', dest='config', default=None, action='store_true',
+                        help='Path to a directory to use for config data')
+    parser.add_argument('-a', '--autosave', dest='autosave', default=False, action='store_true',
+                        help='Autosave configuration data')
     parser.add_argument('file', nargs='*')
     args = parser.parse_args()
 
-    vw = viv_cli.VivCli()
+    vw = viv_cli.VivCli(confdir=args.config, autosave=args.autosave)
 
     # setup logging
     vw.verbose = min(args.verbose, 4)
@@ -70,7 +77,7 @@ def main():
 
             except Exception as e:
                 logger.critical(vw.config.reprConfigPaths())
-                logger.critical("With entry: %s" % option)
+                logger.critical("With entry: %s", option)
                 logger.critical(e)
                 sys.exit(-1)
 
@@ -96,7 +103,7 @@ def main():
                 vw.loadFromFile(fname, fmtname=args.parsemod)
 
             end = time.time()
-            logger.info('Loaded (%.4f sec) %s' % (end - start, fname))
+            logger.info('Loaded (%.4f sec) %s', (end - start), fname)
 
     if args.bulk:
         for entryva in args.addEntryPoints:
@@ -114,14 +121,15 @@ def main():
                 start = time.time()
                 vw.analyze()
                 end = time.time()
-                logger.debug("ANALYSIS TIME: %s" % (end-start))
+                logger.debug("ANALYSIS TIME: %s", (end-start))
 
         if args.modname is not None:
-            module = imp.load_module("custom_analysis", file(args.modname, "rb"), args.modname, ('.py', 'U', 1))
-            module.analyze(vw)
+            with open(args.modname, 'rb') as f:
+                module = imp.load_module("custom_analysis", f, args.modname, ('.py', 'U', 1))
+                module.analyze(vw)
 
-        logger.info('stats: %r' % (vw.getStats(),))
-        logger.info("Saving workspace: %s" % (vw.getMeta('StorageName')))
+        logger.info('stats: %r', vw.getStats())
+        logger.info("Saving workspace: %s", vw.getMeta('StorageName'))
 
         vw.saveWorkspace()
 
@@ -130,7 +138,6 @@ def main():
         import vivisect.qt.main as viv_qt_main
 
         # If we are interactive, lets turn on extended output...
-        vw.verbose = True
         if args.doanalyze and needanalyze:
             e_threads.firethread(vw.analyze)()
 

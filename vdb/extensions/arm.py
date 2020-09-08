@@ -1,3 +1,4 @@
+import binascii
 
 import envi.cli as e_cli
 import envi.archs.arm.thumb as e_thumb
@@ -34,7 +35,7 @@ def thumb(db, line):
 
 
         db.canvas.addVaText('0x%.8x' % va, va=va)
-        db.canvas.addText(": %s " % obytes.encode('hex').ljust(17))
+        db.canvas.addText(": %s " % binascii.hexlify(obytes).ljust(17))
         op.render(db.canvas)
         db.canvas.addText("\n")
 

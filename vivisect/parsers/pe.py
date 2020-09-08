@@ -1,23 +1,27 @@
 import os
-import PE
 import logging
+from io import StringIO
+
+import PE
+import PE.carve as pe_carve
+
 import vstruct
 import vivisect
-import PE.carve as pe_carve
-import cStringIO as StringIO
 import vivisect.parsers as v_parsers
-
 # Steal symbol parsing from vtrace
-import vtrace
+import vtrace  # needed only for setting the logging level
 import vtrace.platforms.win32 as vt_win32
 
-import envi
 import envi.memory as e_mem
 import envi.symstore.symcache as e_symcache
 
 from vivisect.const import *
 
 logger = logging.getLogger(__name__)
+
+for mod in (PE, vtrace):
+    olog = logging.getLogger(mod.__name__)
+    olog.setLevel(logger.getEffectiveLevel())
 
 # PE Machine field values
 # 0x14d   Intel i860
@@ -28,12 +32,12 @@ logger = logging.getLogger(__name__)
 
 
 def parseFile(vw, filename, baseaddr=None):
-    pe = PE.PE(file(filename, "rb"))
+    pe = PE.PE(open(filename, "rb"))
     return loadPeIntoWorkspace(vw, pe, filename, baseaddr=baseaddr)
 
 
 def parseBytes(vw, bytes, baseaddr=None):
-    fd = StringIO.StringIO(bytes)
+    fd = StringIO(bytes)
     fd.seek(0)
     pe = PE.PE(fd)
     return loadPeIntoWorkspace(vw, pe, filename=filename, baseaddr=baseaddr)
@@ -109,7 +113,7 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
 
     # This will help linkers with files that are re-named
     dllname = pe.getDllName()
-    if dllname != None:
+    if dllname is not None:
         fvivname = dllname
 
     if fvivname is None:
@@ -307,7 +311,7 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
                 vw.markDeadData(secbase, secbase+len(secbytes))
 
         except Exception as e:
-            print("Error Loading Section (%s size:%d rva:%.8x offset: %d): %s" % (secname,secfsize,secrva,secoff,e))
+            logger.warning("Error Loading Section (%s size:%d rva:%.8x offset: %d): %s", secname, secfsize, secrva, secoff, e)
 
     vw.addExport(entry, EXP_FUNCTION, '__entry', fname)
     vw.addEntryPoint(entry)
@@ -384,7 +388,7 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
     vw.setFileMeta(fname, 'forwarders', fwds)
 
     # Check For SafeSEH list...
-    if pe.IMAGE_LOAD_CONFIG != None:
+    if pe.IMAGE_LOAD_CONFIG is not None:
 
         vw.setFileMeta(fname, "SafeSEH", True)
 
@@ -395,7 +399,7 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
             # RP BUG FIX - sanity check the count
             if count * 4 < pe.filesize and vw.isValidPointer(va):
                 # XXX - CHEAP HACK for some reason we have binaries still thorwing issues.. 
-                
+
                 try:
                     # Just cheat and use the workspace with memory maps in it already
                     for h in vw.readMemoryFormat(va, "<%dP" % count):
@@ -425,7 +429,7 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
                 if vw.getName(symva) is None:
                     vw.makeName(symva, symname, filelocal=True)
 
-            except Exception, e:
+            except Exception as e:
                 vw.vprint("Symbol Load Error: %s" % e)
 
         # Also, lets set the locals/args name hints if we found any
@@ -465,7 +469,7 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
             va += len(f)
 
     # auto-mark embedded PEs as "dead data" to prevent code flow...
-    if carvepes: 
+    if carvepes:
         pe.fd.seek(0)
         fbytes = pe.fd.read()
         for offset, i in pe_carve.carve(fbytes, 1):

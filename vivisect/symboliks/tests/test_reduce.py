@@ -5,11 +5,10 @@ from vivisect.symboliks.expression import symexp
 
 class TestReduceCase(unittest.TestCase):
     '''
-    tests the reduction of asts consisting of add's and sub's if widths are
-    the same.
+    tests basic algebraic reductions
     '''
     def assertReduce(self, s1, s2):
-        sym1 = symexp(s1).reduce()
+        sym1 = symexp(s1).reduce(foo=True)
         sym2 = symexp(s2)
         self.assertEqual(str(sym1), str(sym2))
 
@@ -116,3 +115,9 @@ class TestReduceCase(unittest.TestCase):
         self.assertReduce('0 - (0 - foo)', 'foo')
         self.assertReduce('0 + (0 + foo)', 'foo')
         self.assertReduce('0 - (0 + foo)', '0 - foo')
+
+    def test_symboliks_reduce_varsub(self):
+        esp = Var('esp', width=4)
+        for i in range(100):
+            esp -= Const(4, width=4)
+        self.assertEqual(str(esp.reduce()), '(esp - 400)')

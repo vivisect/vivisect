@@ -1,28 +1,31 @@
-'''
-'''
 import sys
 import struct
+import argparse
 
-from cStringIO import StringIO
-from itertools import izip, cycle
+from io import StringIO
+from itertools import cycle
 
 import PE
- 
+
+
 def xorbytes(data, key):
-    return ''.join(chr(ord(x) ^ ord(y)) for (x,y) in izip(data, cycle(key)))
+    return ''.join(chr(ord(x) ^ ord(y)) for (x, y) in zip(data, cycle(key)))
+
 
 def xorstatic(data, i):
-    return ''.join( chr( ord(c) ^ i ) for c in data )
+    return ''.join(chr(ord(c) ^ i) for c in data)
 
-mz_xor = [ (xorstatic('MZ', i), xorstatic('PE', i), i) for i in range(256) ]
+
+mz_xor = [(xorstatic('MZ', i), xorstatic('PE', i), i) for i in range(256)]
+
 
 def carve(pbytes, offset=0):
     '''
     Return a list of (offset, size, xor) tuples of embedded PEs
     '''
     pblen = len(pbytes)
-    todo = [ (pbytes.find(mzx, offset), mzx, pex, i) for mzx,pex,i in mz_xor ]
-    todo = [ (off, mzx, pex, i) for (off,mzx,pex,i) in todo if off != -1 ]
+    todo = [(pbytes.find(mzx, offset), mzx, pex, i) for mzx,pex,i in mz_xor]
+    todo = [(off, mzx, pex, i) for (off,mzx,pex,i) in todo if off != -1]
 
     while len(todo):
 
@@ -65,11 +68,23 @@ class CarvedPE(PE.PE):
             ret = max(ret, sec.PointerToRawData + sec.SizeOfRawData)
         return ret
 
+
+def setup():
+    desc = 'Output info about PEs embedded inside another PE'
+    ap = argparse.ArgumentParser('PE.carve', description=desc)
+    ap.add_argument('file', help='Path to PE file')
+    return ap
+
+
+def main(argv):
+    opts = setup().parse_args(argv)
+    with open(opts.file, 'rb') as fd:
+        fbytes = fd.read()
+        for offset, i in carve(fbytes):
+            print('OFFSET: %d (xor: %d)' % (offset, i))
+            p = CarvedPE(fbytes, offset, chr(i))
+            print('SIZE: %d' % p.getFileSize())
+
+
 if __name__ == '__main__':
-
-    fbytes = file(sys.argv[1], 'rb').read()
-    for offset, i in  carve(fbytes):
-        print 'OFFSET: %d (xor: %d)' % (offset, i)
-        p = CarvedPE(fbytes, offset, chr(i))
-        print 'SIZE',p.getFileSize()
-
+    sys.exit(main(sys.argv[1:]))

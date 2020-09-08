@@ -29,7 +29,7 @@ class GtkVisGraphOverview(gtk.DrawingArea):
         self.modify_bg(gtk.STATE_NORMAL, gtk.gdk.Color())
         self.modify_fg(gtk.STATE_NORMAL, gtk.gdk.Color(green=65535))
 
-        if scrollwin != None:
+        if scrollwin is not None:
             scrollwin.connect('destroy', self.scroll_destroy_cb)
 
     def scroll_destroy_cb(self, widget):
@@ -62,7 +62,7 @@ class GtkVisGraphOverview(gtk.DrawingArea):
             sizey = oheight * nheight / lheight
 
             colorstr = ninfo.get('color')
-            if colorstr == None:
+            if colorstr is None:
                 colorstr = '#0f0'
 
             color = gtk.gdk.color_parse(colorstr)
@@ -115,11 +115,11 @@ class GtkVisGraphRenderer(gtk.Layout, vg_render.GraphRenderer):
         vg_render.GraphRenderer.beginRender(self, width, height)
         self._vg_lines = []
         self.set_size(width, height)
-        
+
     def renderNode(self, nid, ninfo, xpos, ypos):
         widget = ninfo.get('widget')
         # FIXME honor color, etc...?
-        if widget != None:
+        if widget is not None:
             self.move(widget, xpos, ypos)
 
     def renderEdge(self, eid, einfo, points):
@@ -135,7 +135,7 @@ class GtkVisGraphRenderer(gtk.Layout, vg_render.GraphRenderer):
                 continue
 
             widget = ninfo.get('widget')
-            if widget == None:
+            if widget is None:
                 widget = gtk.Label(str(nid))
                 widget.modify_bg(gtk.STATE_NORMAL, gtk.gdk.Color())
                 widget.modify_fg(gtk.STATE_NORMAL, gtk.gdk.Color(green=65535))
@@ -151,14 +151,14 @@ class GtkVisGraphRenderer(gtk.Layout, vg_render.GraphRenderer):
         # Now that we have rendered them...
         for nid, ninfo in graph.getNodes():
             widget = ninfo.get('widget')
-            if widget == None:
+            if widget is None:
                 continue
 
             size = widget.size_request()
             ninfo['size'] = size
 
     def button_press_event(self, widget, event):
-        print 'CLICK %d %d' % (event.x, event.y)
+        pass
 
     def expose_event_cb(self, layout, event):
 
@@ -168,4 +168,3 @@ class GtkVisGraphRenderer(gtk.Layout, vg_render.GraphRenderer):
 
         for points in self._vg_lines:
             self.bin_window.draw_lines(gc, points)
-
