@@ -262,7 +262,10 @@ class SymbolikBase:
         ASTs manipulations such as merging trees or node replacement without doing a walkTree,
         you had best make sure the caches are clear or that there are no gaps in the caches
         of the consecutive levels of the AST. This can easily be achieved using the clearCache()
-        method on the root node of the AST (or ASTs in the case of multiple).
+        method on the root node of the AST (or ASTs in the case of multiple), like so:
+
+        for obj in root_symobjs:
+            obj.clearCache()
         '''
         if idx > len(self.kids)-1:
             self.kids.append(kid)
