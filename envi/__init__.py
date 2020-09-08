@@ -279,7 +279,7 @@ class Operand:
         the given emulator/workspace/trace to assign things like
         memory and registers.
         """
-        raise NotImplementedError("%s needs to implement setOperValue! (0x%.8x: %s) " % (self.__class__.__name__, op.va, repr(op)))
+        logger.warning("%s needs to implement setOperAddr!" % self.__class__.__name__)
 
     def isDeref(self):
         """
@@ -313,7 +313,7 @@ class Operand:
         NOTE: This API may be passed a None emu and should return what it can
               (or None if it can't be resolved)
         """
-        raise NotImplementedError("%s needs to implement getOperAddr!" % self.__class__.__name__)
+        logger.warning("%s needs to implement getOperAddr!" % self.__class__.__name__)
 
     def repr(self, op):
         """
