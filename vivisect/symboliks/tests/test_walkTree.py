@@ -1,5 +1,7 @@
 import unittest
 
+from vivisect.const import SYMT_CONST
+
 from vivisect.symboliks.common import Arg, Var, Const, Mem, Call, \
                                       o_add, o_sub, o_xor, o_and, o_or, \
                                       evalSymbolik
@@ -321,3 +323,30 @@ class TestWalkTree(unittest.TestCase):
         self.assertEquals(len(objs), 7)
         for obj in objs:
             self.assertEquals(obj.cache, {})
+
+    def test_cachewalk(self):
+        '''
+        Test that even if we do populate the symcache while walking we're still fine
+        '''
+        def populate(path, cur, ctx):
+            if cur.symtype == SYMT_CONST:
+                if cur.value % 2 == 0:
+                    foo = str(cur)
+
+        valu = Const(1, 4)
+        for i in range(64):
+            valu |= Const(i, 4)
+
+        valu.walkTree(populate)
+        populated = []
+        # make sure that not all of the caches are populated, but that we can still visit all of them
+        def check(path, cur, ctx):
+            if cur.symtype == SYMT_CONST:
+                populated.append(len(cur.cache) == 0)
+        valu.walkTree(check)
+        self.assertEqual(len(populated), 65)
+        self.assertEqual(len([x for x in populated if x]), 33)
+        self.assertEqual(len([x for x in populated if not x]), 32)
+
+        # make sure reduction still goes through
+        self.assertEqual(valu.reduce(), Const(0x3f, 4))
