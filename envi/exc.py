@@ -1,3 +1,4 @@
+import binascii
 
 class InvalidRegisterName(Exception):
     pass
@@ -12,6 +13,11 @@ class EnviException(Exception):
         return repr(self)
 
 
+class InvalidSymbolCache(EnviException):
+    def __init__(self, vhash):
+        EnviException.__init__(self, 'Invalid Symbol Cache Hash: %s' % vhash)
+
+
 class InvalidInstruction(EnviException):
     """
     Raised by opcode parsers when the specified
@@ -23,11 +29,18 @@ class InvalidInstruction(EnviException):
             msg = [mesg]
 
         if bytez is not None:
-            msg.append("'" + bytez.encode('hex') + "'")
+            msg.append("'" + binascii.hexlify(bytez) + "'")
 
         if va != 0:
             msg.append('at ' + hex(va))
         EnviException.__init__(self, ' '.join(msg))
+
+
+class InvalidAddress(EnviException):
+    def __init__(self, va):
+        self.va = va
+        msg = 'Invalid Address: %s' % str(va)
+        EnviException.__init__(self, msg)
 
 
 class SegmentationViolation(EnviException):
@@ -113,6 +126,7 @@ class PDEException(EmuException):
     execution flow becomes un-known due to undefined values.  This is considered
     un-recoverable.
     """
+    pass
 
 
 class UnknownCallingConvention(EmuException):
@@ -120,6 +134,7 @@ class UnknownCallingConvention(EmuException):
     Raised when the getCallArgs() or execCallReturn() methods
     are given an unknown calling convention type.
     """
+    pass
 
 
 class MapOverlapException(EnviException):

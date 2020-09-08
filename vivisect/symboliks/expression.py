@@ -140,7 +140,7 @@ class SymbolikExpressionParser:
 
             if slclass == ast.Slice:
                 # so far we only support mem[foo:bar] syntax
-                if a.slice.step != None:
+                if a.slice.step is not None:
                     raise Exception('Unsupported Step Slice: %s' % ast.dump(a))
 
                 if not isinstance(a.value, ast.Name):

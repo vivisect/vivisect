@@ -2,9 +2,11 @@
 The pre-made windows structure defs (extracted from pdb syms)
 '''
 
+# TODO: This belongs *not* in an init module
 import envi
 import ctypes
 import platform
+
 
 def isSysWow64():
     k32 = ctypes.windll.kernel32
@@ -15,6 +17,7 @@ def isSysWow64():
     if not k32.IsWow64Process(myproc, ctypes.addressof(ret)):
         return False
     return bool(ret.value)
+
 
 def getCurrentDef(normname):
     bname, wver, stuff, whichkern = platform.win32_ver()
@@ -27,10 +30,6 @@ def getCurrentDef(normname):
 
     try:
         mod = __import__(modname, {}, {}, 1)
-    except ImportError, e:
+    except ImportError:
         mod = None
     return mod
-
-if __name__ == '__main__':
-    print getCurrentDef('ntdll')
-

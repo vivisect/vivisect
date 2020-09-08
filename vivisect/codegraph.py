@@ -15,7 +15,7 @@ class CallGraph(v_graphcore.HierGraph):
 
     def getFunctionNode(self, va):
         node = self.getNode(va)
-        if node == None:
+        if node is None:
             node = self.addNode(nid=va)
         return node
 
@@ -39,7 +39,7 @@ class CodeBlockGraph(v_graphcore.HierGraph):
 
     def addEntryPoint(self, va):
         node = self.getNode(va)
-        if node != None:
+        if node is not None:
             return node
 
         # entry point, by de-facto has a node
@@ -71,7 +71,7 @@ class CodeBlockGraph(v_graphcore.HierGraph):
 
     def _getCodeBranches(self, va):
         loc = self.vw.getLocation(va)
-        if loc == None or loc[L_LTYPE] != LOC_OP:
+        if loc is None or loc[L_LTYPE] != LOC_OP:
             return []
 
         lva,lsize,ltype,ltinfo = loc
@@ -112,7 +112,7 @@ class CodeBlockGraph(v_graphcore.HierGraph):
         return True
 
     def isCodeBlockNode(self, va):
-        return self.getNode(va) != None
+        return self.getNode(va) is not None
 
     def getCodeBlockBounds(self, node):
         cbva = node[0]
@@ -129,7 +129,7 @@ class CodeBlockGraph(v_graphcore.HierGraph):
         '''
         # is it already a cb node?
         node = self.getNode(va)
-        if node != None:
+        if node is not None:
             return node
 
         # is it part of another block already?
@@ -137,7 +137,7 @@ class CodeBlockGraph(v_graphcore.HierGraph):
         newnode = self.addNode(nid=va,cbva=va,valist=())
         self.addVaToNode(newnode,va)
 
-        if node == None:
+        if node is None:
             return newnode
 
         # we need to split an existing node... neato...
@@ -156,7 +156,7 @@ class CodeBlockGraph(v_graphcore.HierGraph):
         # steal all his outbound codeflow edges
         for edge in self.getRefsFrom(node):
             codeflow = edge[3].get('codeflow')
-            if codeflow == None:
+            if codeflow is None:
                 continue
             self.addCodeBlockEdge(newnode, codeflow[0], codeflow[1])
             self.delEdge(edge)

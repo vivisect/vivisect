@@ -1276,11 +1276,8 @@ def p_div(opval, va):
     return (opcode, mnem, olist, 0, 0)
 
 def p_arch_undef(opval, va):
-    print ("p_arch_undef: invalid instruction (by definition in ARM spec): %.8x:\t%.8x"%(va,opval))
-    raise envi.InvalidInstruction(
-            mesg="p_arch_undef: invalid instruction (by definition in ARM spec)",
-            bytez=struct.pack("<I", opval), va=va)
-    return (IENC_ARCH_UNDEF, 'arch undefined', (ArmImmOper(opval),), 0, 0)
+    raise envi.InvalidInstruction(mesg="p_arch_undef: invalid instruction (by definition in ARM spec)",
+                                  bytez=struct.pack("<I", opval), va=va)
 
 ldm_mnem = (("stm", INS_STM), ("ldm", INS_LDM))
 
@@ -3790,7 +3787,7 @@ ienc_parsers = tuple(ienc_parsers_tmp)
 # the primary table is index'd by the 3 bits following the
 # conditional and are structured as follows:
 # ( ENC, nexttable )
-# If ENC != None, those 3 bits were enough for us to know the
+# If ENC is not None, those 3 bits were enough for us to know the
 # encoding type, otherwise move on to the second table.
 
 # The secondary tables have the format:

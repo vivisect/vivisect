@@ -150,7 +150,7 @@ class VivConnectServerDialog(QDialog):
 def openServerAndWorkspace(vw, parent=None):
     dia = VivConnectServerDialog(vw, parent=parent)
     host = dia.getServer()
-    if host == None:
+    if host is None:
         return
 
     connServerAndWorkspace(vw, str(host), parent=parent)
@@ -162,7 +162,7 @@ def connServerAndWorkspace(vw, host,parent=None):
         server = viv_server.connectToServer(host)
         wslist = server.listWorkspaces()
         selectServerWorkspace(vw, server, wslist, parent=parent)
-    except Exception, e:
+    except Exception as e:
         vw.vprint('Server Error: %s' % e)
         return
 
@@ -170,7 +170,7 @@ def connServerAndWorkspace(vw, host,parent=None):
 def selectServerWorkspace(vw, server, workspaces, parent=None):
     dia = VivServerDialog(workspaces, parent=parent)
     workspace = dia.getWorkspaceName()
-    if workspace == None:
+    if workspace is None:
         return
 
     loadServerWorkspace(vw, server, workspace)
@@ -195,7 +195,7 @@ def sendServerWorkspace(vw, wsname, wsserver):
         events = vw.exportWorkspace()
         server = viv_server.connectToServer(wsserver)
         server.addNewWorkspace(wsname, events)
-    except Exception, e:
+    except Exception as e:
         vw.vprint('Workspace Server Error: %s' % e)
         return
 

@@ -10,6 +10,8 @@ import inspect
 import vstruct
 import vstruct.primitives as vs_prim
 
+TSIZES = [1, 2, 4, 8]
+
 prim_types = [None,
               vs_prim.v_uint8,
               vs_prim.v_uint16,
@@ -45,7 +47,7 @@ class VStructBuilder:
 
     def __getattr__(self, name):
         ns = self._vs_namespaces.get(name)
-        if ns != None:
+        if ns is not None:
             return ns
 
         # Check if we have an added constructor
@@ -54,19 +56,19 @@ class VStructBuilder:
             return ctor
 
         vsdef = self._vs_defs.get(name)
-        if vsdef != None:
+        if vsdef is not None:
             return VStructConstructor(self, name)
 
-        raise AttributeError, name
+        raise AttributeError(name)
 
     def getVStructCtorNames(self):
         return self._vs_ctors.keys()
 
     def addVStructCtor(self, sname, ctor):
-        self._vs_ctors[ sname ] = ctor
+        self._vs_ctors[sname] = ctor
 
     def delVStructCtor(self, sname):
-        return self._vs_ctors.pop( sname , None)
+        return self._vs_ctors.pop(sname, None)
 
     def addVStructEnumeration(self, enum):
         self._vs_enums[enum[0]] = enum
@@ -81,10 +83,10 @@ class VStructBuilder:
         return self._vs_namespaces.keys()
 
     def hasVStructNamespace(self, namespace):
-        return self._vs_namespaces.get(namespace, None) != None
+        return self._vs_namespaces.get(namespace, None) is not None
 
     def getVStructNames(self, namespace=None):
-        if namespace == None:
+        if namespace is None:
             return self._vs_defs.keys() + self._vs_ctors.keys()
 
         nsmod = self._vs_namespaces.get(namespace)
@@ -117,10 +119,10 @@ class VStructBuilder:
             else:
                 raise Exception('Invalid Pointer Width: %d' % tsize)
 
-        if tname != None:
+        if tname is not None:
             return self.buildVStruct(tname)
 
-        if tsize not in [1,2,4,8]:
+        if tsize not in TSIZES:
             return v_bytes(size=tsize)
 
         return prim_types[tsize]()
@@ -130,54 +132,51 @@ class VStructBuilder:
         parts = vsname.split('.', 1)
         if len(parts) == 2:
             ns = self._vs_namespaces.get(parts[0])
-            if ns == None:
+            if ns is None:
                 raise Exception('Namespace %s is not present! (need symbols?)' % parts[0])
 
             # If a module gets added as a namespace, assume it has a class def...
             if isinstance(ns, types.ModuleType):
                 cls = getattr(ns, parts[1])
-                if cls == None:
+                if cls is None:
                     raise Exception('Unknown VStruct Definition: %s' % vsname)
                 return cls()
 
             return ns.buildVStruct(parts[1])
 
         ctor = self._vs_ctors.get(vsname)
-        if ctor != None:
+        if ctor is not None:
             return ctor()
 
         vsdef = self._vs_defs.get(vsname)
 
         # If we still dont have a def, lets ask our namespaces
-        if vsdef == None:
+        if vsdef is None:
             for ns in self._vs_namespaces.values():
 
                 if isinstance(ns, types.ModuleType):
                     cls = getattr(ns, vsname, None)
-                    if cls != None:
-                       return cls()
-
+                    if cls is not None:
+                        return cls()
                 else:
-
                     vsdef = ns._vs_defs.get(vsname)
-                    if vsdef != None:
+                    if vsdef is not None:
                         break
 
-        if vsdef == None:
+        if vsdef is None:
             return None
 
         vsname, vssize, vskids = vsdef
 
         vs = vstruct.VStruct()
         vs._vs_name = vsname
-    
 
         for fname, foffset, fsize, ftypename, fflags, fcount in vskids:
 
             fieldval = self._buildVsType(ftypename, fsize, fflags)
 
-            if fcount != None:
-                afields = [copy.deepcopy(fieldval) for i in range(fcount) ]
+            if fcount is not None:
+                afields = [copy.deepcopy(fieldval) for i in range(fcount)]
                 fieldval = vstruct.VArray(afields)
 
             cursize = len(vs)
@@ -204,7 +203,7 @@ class VStructBuilder:
             else:
                 return 'v_bytes(size=%d)' % tsize
 
-        if tname != None:
+        if tname is not None:
             return '%s()' % tname
 
         # It's a base numeric type!
@@ -227,9 +226,8 @@ class VStructBuilder:
         for ename, esize, ekids in self._vs_enums.values():
             ret += '%s = v_enum()\n' % ename
             for kname, kval in ekids:
-                ret += '%s.%s = %d\n' % (ename,kname,kval)
+                ret += '%s.%s = %d\n' % (ename, kname, kval)
             ret += '\n\n'
-
 
         for vsname, vsize, vskids in self._vs_defs.values():
             ret += 'class %s(vstruct.VStruct):\n' % vsname
@@ -249,8 +247,8 @@ class VStructBuilder:
 
                 fconst = self._genTypeConstructor(ftypename, fsize, fflags)
 
-                # If fcount != None, we're an array!
-                if fcount != None:
+                # If fcount is not None, we're an array!
+                if fcount is not None:
                     fconst = 'vstruct.VArray([%s for i in range(%d)])' % (fconst, fcount)
                     fsize *= fcount
 
@@ -263,44 +261,3 @@ class VStructBuilder:
             ret += '\n\n'
 
         return ret
-
-if __name__ == '__main__':
-    # Parse windows structures from dll symbols...
-    import os
-    import sys
-    import platform
-
-    from pprint import pprint
-
-    import PE
-    import vtrace.platforms.win32 as vt_win32
-
-    p = PE.PE(file(sys.argv[1], 'rb'))
-    baseaddr = p.IMAGE_NT_HEADERS.OptionalHeader.ImageBase
-    osmajor = p.IMAGE_NT_HEADERS.OptionalHeader.MajorOperatingSystemVersion
-    osminor = p.IMAGE_NT_HEADERS.OptionalHeader.MinorOperatingSystemVersion
-    machine = p.IMAGE_NT_HEADERS.FileHeader.Machine
-
-    vsver = p.getVS_VERSIONINFO()
-
-    archname = PE.machine_names.get(machine)
-
-    parser = vt_win32.Win32SymbolParser(0xffffffff, sys.argv[1], baseaddr)
-    parser.parse()
-
-    t = parser._sym_types.values()
-    e = parser._sym_enums.values()
-    builder = VStructBuilder(defs=t, enums=e)
-
-    print '# Version: %d.%d' % (osmajor, osminor)
-    print '# Architecture: %s' % archname
-    if vsver != None:
-        keys = vsver.getVersionKeys()
-        keys.sort()
-        for k in keys:
-            val = vsver.getVersionValue(k)
-            if type(val) == unicode:
-                val = val.encode('ascii','ignore')
-            print '# %s: %s' % (k,val)
-    print builder.genVStructPyCode()
-

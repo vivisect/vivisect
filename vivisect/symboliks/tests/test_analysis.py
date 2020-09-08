@@ -39,10 +39,3 @@ class AnalysisTests(unittest.TestCase):
         offset = self.sfe.getStackOffset(MockVar(addr-size))
 
         self.assertIs(offset, None)
-
-
-def cb_astNodeCount(path, obj, ctx):
-    ctx['count'] += 1
-    if len(path) > ctx['depth']:
-        ctx['depth'] = len(path)
-    # print("\n\t%r\n\t\t%s" % (obj, '\n\t\t'.join([repr(x) for x in path])))

@@ -110,7 +110,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
     def __init__(self, archmod=None):
         # Set ourself up as an arch module *and* register context
         #i386Module.__init__(self)
-        if archmod == None:
+        if archmod is None:
             archmod = i386Module()
 
         envi.Emulator.__init__(self, archmod=archmod)
@@ -164,7 +164,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
 
     def readMemValue(self, addr, size):
         bytes = self.readMemory(addr, size)
-        if bytes == None:
+        if bytes is None:
             return None
         #FIXME change this (and all uses of it) to passing in format...
         if len(bytes) != size:
@@ -206,7 +206,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
 
     def readMemSignedValue(self, addr, size):
         bytes = self.readMemory(addr, size)
-        if bytes == None:
+        if bytes is None:
             return None
         if size == 1:
             return struct.unpack("b", bytes)[0]
@@ -218,16 +218,15 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
     def executeOpcode(self, op):
         # NOTE: If an opcode method returns
         #       other than None, that is the new eip
-        if op.va != None:
+        if op.va is not None:
             self.setProgramCounter(op.va)
 
         meth = self.op_methods.get(op.mnem, None)
-        if meth == None:
-            # print("0x%x: Intel Emulator needs %s" % (op.va, str(op)))
+        if meth is None:
             raise e_exc.UnsupportedInstruction(self, op)
 
         newpc = meth(op)
-        if newpc != None:
+        if newpc is not None:
             self.setProgramCounter(newpc)
             return
 
@@ -378,10 +377,6 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
 
         ures = udst - usrc
         sres = sdst - ssrc
-
-        #print "dsize/ssize: %d %d" % (dsize, ssize)
-        #print "unsigned: %d %d %d" % (usrc, udst, ures)
-        #print "signed: %d %d %d" % (ssrc, sdst, sres)
 
         self.setFlag(EFLAGS_OF, e_bits.is_signed_overflow(sres, dsize))
         self.setFlag(EFLAGS_AF, e_bits.is_aux_carry_sub(usrc, udst))
@@ -819,7 +814,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
     def i_dec(self, op):
         val = self.getOperValue(op, 0)
         uval = e_bits.unsigned(val, op.opers[0].tsize)
-        if val == None:
+        if val is None:
             self.undefFlags()
             return
         val -= 1
@@ -845,8 +840,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
             quot = ax / val
             rem  = ax % val
             #if quot > 255:
-                #FIXME stuff
-                #print "FIXME: division exception"
+                #"FIXME: division exception"
             self.setRegister(REG_EAX, (quot << 8) + rem)
 
         elif oper.tsize == 4:
@@ -858,7 +852,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
             rem = tot % val
 
             #if quot > 0xffffffff:
-                #print "FIXME: division exception"
+                #"FIXME: division exception"
 
             self.setRegister(REG_EAX, quot)
             self.setRegister(REG_EDX, rem)
@@ -1783,7 +1777,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
 
         # Much like "integer subtraction" but we need
         # too add in the carry flag
-        if src == None or dst == None:
+        if src is None or dst is None:
             self.undefFlags()
             return None
 
@@ -1812,7 +1806,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         x = self.integerSubtraction(op)
         dsize = op.opers[0].tsize
         x = e_bits.unsigned(x, dsize)
-        if x != None:
+        if x is not None:
             self.setOperValue(op, 0, x)
 
     def i_syscall(self, op):
@@ -1824,7 +1818,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
 
     def i_wait(self, op):
         pass
-        #print "i_wait() is a stub..."
+        # XXX: "i_wait() is a stub..."
 
     def i_xadd(self, op):
         val1 = self.getOperValue(op, 0)

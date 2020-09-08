@@ -30,7 +30,6 @@ import envi.symstore.resolver as e_resolv
 import envi.symstore.symcache as e_symcache
 
 from ctypes import *
-#from ctypes.wintypes import *
 
 logger = logging.getLogger(__name__)
 platdir = os.path.dirname(__file__)
@@ -60,15 +59,15 @@ INFINITE = 0xffffffff
 EXCEPTION_MAXIMUM_PARAMETERS = 15
 
 # Debug Event Types
-EXCEPTION_DEBUG_EVENT       =1
-CREATE_THREAD_DEBUG_EVENT   =2
-CREATE_PROCESS_DEBUG_EVENT  =3
-EXIT_THREAD_DEBUG_EVENT     =4
-EXIT_PROCESS_DEBUG_EVENT    =5
-LOAD_DLL_DEBUG_EVENT        =6
-UNLOAD_DLL_DEBUG_EVENT      =7
-OUTPUT_DEBUG_STRING_EVENT   =8
-RIP_EVENT                   =9
+EXCEPTION_DEBUG_EVENT       = 1
+CREATE_THREAD_DEBUG_EVENT   = 2
+CREATE_PROCESS_DEBUG_EVENT  = 3
+EXIT_THREAD_DEBUG_EVENT     = 4
+EXIT_PROCESS_DEBUG_EVENT    = 5
+LOAD_DLL_DEBUG_EVENT        = 6
+UNLOAD_DLL_DEBUG_EVENT      = 7
+OUTPUT_DEBUG_STRING_EVENT   = 8
+RIP_EVENT                   = 9
 
 # Symbol Flags
 SYMFLAG_VALUEPRESENT     = 0x00000001
@@ -885,7 +884,7 @@ def loadlib(path):
     try:
         return windll.LoadLibrary(path)
     except Exception as e:
-        logger.warning('LoadLibrary %s: %s', path,e)
+        logger.warning('LoadLibrary %s: %s', path, e)
 
 # All platforms must be able to import this module (for exceptions etc..)
 # (do this stuff *after* we define some types...)
@@ -917,7 +916,7 @@ if sys.platform == "win32":
     kernel32.FormatMessageW.argtypes = [DWORD, LPVOID, DWORD, DWORD, LPVOID, DWORD, LPVOID]
 
     IsWow64Process = getattr(kernel32, 'IsWow64Process', None)
-    if IsWow64Process != None:
+    if IsWow64Process is not None:
         IsWow64Process.argtypes = [HANDLE, LPVOID]
 
 
@@ -941,7 +940,7 @@ if sys.platform == "win32":
     symsrv = loadlib( os.path.join(platdir,'windll', arch, 'symsrv.dll') )
     dbghelp = loadlib( os.path.join(platdir,'windll', arch, 'dbghelp.dll') )
 
-    if dbghelp != None:
+    if dbghelp is not None:
         dbghelp.SymInitialize.argtypes = [HANDLE, c_char_p, BOOL]
         dbghelp.SymInitialize.restype = BOOL
         dbghelp.SymSetOptions.argtypes = [DWORD]
@@ -1038,9 +1037,6 @@ def getServicesList():
 
         buf = create_string_buffer(dwSvcSize.value)
 
-        #print 'NEEDED',dwSvcSize
-        #print 'COUNT',dwSvcCount
-
         advapi32.EnumServicesStatusExW( scmh,
                                         SC_ENUM_PROCESS_INFO,
                                         SERVICE_WIN32,
@@ -1134,20 +1130,17 @@ def getTokenElevationType(handle=-1):
 
     return etype.value
 
-if __name__ == '__main__':
-    print getTokenElevationType()
-
 def getDebugPrivileges():
     tokprivs = TOKEN_PRIVILEGES()
     dbgluid = LUID()
     token = HANDLE(0)
 
     if not advapi32.LookupPrivilegeValueA(0, "seDebugPrivilege", addressof(dbgluid)):
-        print "LookupPrivilegeValue Failed: %d" % kernel32.GetLastError()
+        logger.warning("LookupPrivilegeValue Failed: %d", kernel32.GetLastError())
         return False
 
     if not advapi32.OpenProcessToken(-1, TOKEN_ADJUST_PRIVILEGES, addressof(token)):
-        print "kernel32.OpenProcessToken Failed: %d" % kernel32.GetLastError()
+        logger.warning("kernel32.OpenProcessToken Failed: %d", kernel32.GetLastError())
         return False
 
     tokprivs.PrivilegeCount = 1
@@ -1156,7 +1149,7 @@ def getDebugPrivileges():
 
     if not advapi32.AdjustTokenPrivileges(token, 0, addressof(tokprivs), 0, 0, 0):
         kernel32.CloseHandle(token)
-        print "AdjustTokenPrivileges Failed: %d" % kernel32.GetLastError()
+        logger.warning("AdjustTokenPrivileges Failed: %d", kernel32.GetLastError())
         return False
 
     kernel32.CloseHandle(token)
@@ -1233,7 +1226,7 @@ class WindowsMixin:
         # If possible, get a default set of struct definitions
         # for ntdll...
         nt = vs_windows.getCurrentDef('ntdll')
-        if nt != None:
+        if nt is not None:
             self.vsbuilder.addVStructNamespace('ntdll', nt)
 
         # Either way, add the fallback "win32" namespace
@@ -1376,7 +1369,7 @@ class WindowsMixin:
     def platformDetach(self):
         # Do the crazy "can't supress exceptions from detach" dance.
         if ((not self.exited) and
-            self.getCurrentBreakpoint() != None):
+            self.getCurrentBreakpoint() is not None):
             self._clearBreakpoints()
             self.platformSendBreak()
             self.platformContinue()
@@ -1424,7 +1417,7 @@ class WindowsMixin:
 
         magic = DBG_CONTINUE
 
-        if self.getCurrentSignal() != None:
+        if self.getCurrentSignal() is not None:
             magic = DBG_EXCEPTION_NOT_HANDLED
 
         if self.flushcache:
@@ -1546,7 +1539,7 @@ class WindowsMixin:
            self.thandles[ThreadId] = event.u.CreateProcessInfo.Thread
 
            tobj = self.getStruct("ntdll.TEB", teb)
-           if tobj != None:
+           if tobj is not None:
                peb = tobj.ProcessEnvironmentBlock
                self.setMeta("PEB", peb)
                self.setVariable("peb", peb)
@@ -1556,7 +1549,7 @@ class WindowsMixin:
            eventdict["ThreadLocalBase"] = teb
 
            self._is_wow64 = False
-           if IsWow64Process != None:
+           if IsWow64Process is not None:
                b = BOOL()
                IsWow64Process(self.phandle, addressof(b))
                if b.value:
@@ -1664,7 +1657,7 @@ class WindowsMixin:
             self.fireNotifiers(vtrace.NOTIFY_DEBUG_PRINT)
 
         else:
-            print "Currently unhandled event",code
+            logger.warning("Currently unhandled event %d", event.DebugEventCode)
 
         # NOTE: Not everbody falls through to here
 
@@ -1707,7 +1700,7 @@ class WindowsMixin:
 
     def platformSuspendThread(self, thrid):
         thandle = self.thandles.get(thrid)
-        if thandle == None:
+        if thandle is None:
             raise Exception('Suspending Unknown Thread: %d' % (thrid,))
 
         if kernel32.SuspendThread(thandle) == 0xffffffff:
@@ -1715,7 +1708,7 @@ class WindowsMixin:
 
     def platformResumeThread(self, thrid):
         thandle = self.thandles.get(thrid)
-        if thandle == None:
+        if thandle is None:
             raise Exception('Resuming Unknown Thread: %d' % (thrid,))
 
         if kernel32.ResumeThread(thandle) == 0xffffffff:
@@ -1729,17 +1722,17 @@ class WindowsMixin:
 
         if self.symcache:
             symcache = self.symcache.getCacheSyms(symhash)
-            if symcache != None:
+            if symcache is not None:
                 self.impSymCache( symcache, symfname=normname, baseaddr=baseaddr)
                 return
 
         symcache = None
         # Check if we can use the real lib to parse...
-        if dbghelp != None and os.path.isfile(filename):
+        if dbghelp is not None and os.path.isfile(filename):
             symcache = self.parseWithDbgHelp(filename, baseaddr, normname)
 
         # If it's *still* none, fall back on PE
-        if symcache == None:
+        if symcache is None:
             symcache = [ (rva, 0, name, 0) for (rva,ord,name) in pe.getExports() ]
 
         self.impSymCache( symcache, symfname=normname, baseaddr=baseaddr)
@@ -1909,7 +1902,7 @@ class Win32SymbolParser:
     def printSymbolInfo(self, info):
         # Just a helper function for "reversing" how dbghelp works
         for n,t in info.__class__._fields_:
-            print n,repr(getattr(info, n))
+            print(n,repr(getattr(info, n)))
 
     def symGetTypeInfo(self, tindex, tinfo, tparam):
         x = dbghelp.SymGetTypeInfo(self.phandle, self.loadbase,
@@ -1923,11 +1916,10 @@ class Win32SymbolParser:
         self.symGetTypeInfo(typeid, TI_GET_SYMNAME, pointer(n))
         val = n.value
         # Strip leading / trailing _'s
-        if val != None:
+        if val is not None:
             val = val.strip('_')
         if val == '<unnamed-tag>' or val == 'unnamed':
             val = '_unnamed_%d' % typeid
-        #print repr(val)
         return val
 
     def symGetUdtKind(self, typeid):
@@ -2057,8 +2049,7 @@ class Win32SymbolParser:
                 pass
 
             else:
-                pass
-                #print '%s:%s Unknown Type Tag: %d' % (name, kidname, ktag)
+                logger.warning('%s:%s Unknown Type Tag: %d', name, kidname, ktag)
 
             kids.append((kidname, kidoff, ksize, ktypename, kflags, kcount))
 
@@ -2173,8 +2164,8 @@ class Win32SymbolParser:
 
             self.symCleanup()
 
-        except Exception, e:
-            traceback.print_exc()
+        except Exception:
+            logger.error(traceback.format_exc())
             raise
 
     def parseTypes(self):

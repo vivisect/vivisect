@@ -4,11 +4,13 @@ MemoryCanvas objects.
 '''
 
 import sys
+import logging
+import binascii
 import traceback
 
-import envi
-import envi.memory as e_mem
 import envi.symstore.resolver as e_resolv
+
+logger = logging.getLogger(__name__)
 
 class MemoryRenderer(object):
     """
@@ -20,7 +22,7 @@ class MemoryRenderer(object):
         If there is a symbolic name for the current va, print it...
         """
         sym = mcanv.syms.getSymByAddr(va)
-        if sym != None:
+        if sym is not None:
             mcanv.addVaText("%s:\n" % repr(sym), va)
 
     def rendVa(self, mcanv, va):
@@ -42,6 +44,7 @@ class MemoryRenderer(object):
         is the virtual address you are expected to render.
         """
         raise Exception("Implement render!")
+
 
 class MemoryCanvas(object):
     """
@@ -95,7 +98,7 @@ class MemoryCanvas(object):
 
     def setRenderer(self, name):
         rend = self.renderers.get(name)
-        if rend == None:
+        if rend is None:
             raise Exception("Unknown renderer: %s" % name)
         self.currend = rend
 
@@ -134,8 +137,8 @@ class MemoryCanvas(object):
         sys.stdout.write(text)
 
     def addNameText(self, text, name=None, typename='name'):
-        if name == None:
-            name = text.encode('hex')
+        if name is None:
+            name = binascii.hexlify(text)
         tag = self.getNameTag(name, typename=typename)
         self.addText(text, tag=tag)
 
@@ -184,10 +187,10 @@ class MemoryCanvas(object):
         Returns true if any part of the current render overlaps
         with the specified region.
         '''
-        if self._canv_beginva == None:
+        if self._canv_beginva is None:
             return False
 
-        if self._canv_endva == None:
+        if self._canv_endva is None:
             return False
 
         if va > self._canv_endva:
@@ -215,23 +218,18 @@ class MemoryCanvas(object):
         ibegin = None
         for i,(rendva,rendsize) in enumerate(self._canv_rendvas):
 
-            if ibegin == None and va <= rendva:
+            if ibegin is None and va <= rendva:
                 ibegin = i
 
-            if iend == None and maxva <= rendva:
+            if iend is None and maxva <= rendva:
                 iend = i
 
-            if ibegin != None and iend != None:
+            if ibegin is not None and iend is not None:
                 break
 
         saved_last  = self._canv_rendvas[iend:]
         saved_first = self._canv_rendvas[:ibegin]
         updatedvas  = self._canv_rendvas[ibegin:iend]
-        # print 'IBEGIN',hex(ibegin)
-        # print 'IEND',hex(iend)
-        # print 'FIRST',repr([hex(va) for va in saved_first])
-        # print 'UPDATED',repr([hex(va) for va in updatedvas])
-        # print 'LAST',repr([hex(va) for va in saved_last])
 
         # We must actually start rendering from the beginning
         # of the first updated VA index
@@ -322,7 +320,7 @@ class MemoryCanvas(object):
         if not self._canv_scrolled:
             self.clearCanvas()
 
-        if rend == None:
+        if rend is None:
             rend = self.currend
 
         self.currend = rend
@@ -341,20 +339,21 @@ class MemoryCanvas(object):
                 self._beginRenderVa(va)
                 try:
                     rsize = rend.render(self, va)
-                    self._canv_rendvas.append((va,rsize))
+                    self._canv_rendvas.append((va, rsize))
                     self._endRenderVa(va)
                     va += rsize
                 except Exception as e:
-                    traceback.print_exc()
-                    self.addText("\nRender Exception At %s: %s\n" % (hex(va),e))
+                    logger.error(traceback.format_exc())
+                    self.addText("\nRender Exception At %s: %s\n" % (hex(va), str(e)))
                     self._endRenderVa(va)
                     break
 
         except Exception as e:
-            self.addText("\nException At %s: %s\n" % (hex(va),e))
+            self.addText("\nException At %s: %s\n" % (hex(va), str(e)))
 
         # Canvas callback for render completion (or error...)
         self._endRenderMemory(va, size, rend)
+
 
 class StringMemoryCanvas(MemoryCanvas):
 
@@ -375,6 +374,7 @@ class StringMemoryCanvas(MemoryCanvas):
     def __str__(self):
         return self.strval
 
+
 class CanvasMethodProxy(object):
     '''
     Target for teecanvas.
@@ -387,6 +387,7 @@ class CanvasMethodProxy(object):
         for canvas in self.canvases:
             attr = getattr(canvas, self.name)
             attr(*args, **kwargs)
+
 
 class TeeCanvas(object):
     '''

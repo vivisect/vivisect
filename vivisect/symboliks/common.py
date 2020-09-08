@@ -313,20 +313,15 @@ class SymbolikBase:
                 cur = kid
                 idx = 0
                 continue
-            #else:
-            #    sys.stdout.write('.')
 
             # do self
-            #sys.stdout.write(' >> %r' % cur.__class__)
             path.append(cur)    # old walkTree expects cur to be on the top of the stack
             newb = cb(path, cur, ctx)
             path.pop()          # clean up, since our algorithm doesn't expect cur on the top...
-            #sys.stdout.write(' << ')
 
             done.add(cur._sym_id)
 
             if not len(path):
-                #sys.stdout.write('=')
                 if newb:
                     return newb
                 return cur
@@ -337,7 +332,6 @@ class SymbolikBase:
 
             # tie newb in
             if newb is not None:
-                # print("setSymKid: %s :: %d" % (len(path), idx))
                 cur.setSymKid(idx, newb)
 
             idx += 1
@@ -561,7 +555,7 @@ class Var(SymbolikBase):
 
     def update(self, emu):
         ret = emu.getSymVariable(self.name, create=False)
-        if ret != None:
+        if ret is not None:
             return ret
         return Var(self.name, width=self.width)
 
@@ -602,7 +596,7 @@ class LookupVar(Var):
     def _solve(self, emu=None):
         name = 'LookupVar:%s:%s' % (self.name, self.offset)
 
-        if emu != None:
+        if emu is not None:
             name += emu.getRandomSeed()
 
         return long(hashlib.md5(name).hexdigest()[:self.width*2], 16)
