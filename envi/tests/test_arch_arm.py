@@ -1739,7 +1739,7 @@ class ArmInstructionSet(unittest.TestCase):
                         badcount += 1
                         raise Exception("%d FAILED to decode instr:  %.8x %s - should be: %s  - is: %s" % \
                                 (goodcount, va, bytez, reprOp, repr(op) ) )
-                        self.assertEqual((goodcount, bytez, redoprepr), (goodcount, bytez, redgoodop))
+                        # self.assertEqual((goodcount, bytez, redoprepr), (goodcount, bytez, redgoodop))
 
                     else:
                         goodcount += 1
@@ -1778,7 +1778,7 @@ class ArmInstructionSet(unittest.TestCase):
 
         logger.info("Done with assorted instructions test.  DISASM: %s tests passed.  %s tests failed.  EMU: %s tests passed.  %s tests failed" % \
                 (goodcount, badcount, goodemu, bademu))
-        logger.info("Total of ", str(goodcount + badcount) + " tests completed.")
+        logger.info("Total of %d tests completed", goodcount + badcount)
         self.assertEqual(goodcount, GOOD_TESTS)
         self.assertEqual(goodemu, GOOD_EMU_TESTS)
 

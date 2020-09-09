@@ -727,8 +727,6 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             try:
                 fmod.analyzeFunction(self, fva)
             except Exception as e:
-                import pdb, sys
-                pdb.post_mortem(sys.exc_info()[2])
                 self.vprint("Function Analysis Exception for function 0x%x, module: %s, exc: %s" % (fva, fmod.__name__, e))
                 self.setFunctionMeta(fva, "%s fail" % fmod.__name__, traceback.format_exc())
 

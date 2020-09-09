@@ -87,7 +87,7 @@ class VStructBuilder:
 
     def getVStructNames(self, namespace=None):
         if namespace is None:
-            return self._vs_defs.keys() + self._vs_ctors.keys()
+            return list(self._vs_defs.keys()) + list(self._vs_ctors.keys())
 
         nsmod = self._vs_namespaces.get(namespace)
         if isinstance(nsmod, VStructBuilder):

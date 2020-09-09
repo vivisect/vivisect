@@ -467,7 +467,7 @@ class EnviCli(Cmd):
             code.interact(local=locals)
 
     def parseExpression(self, expr):
-        return long(e_expr.evaluate(expr, self.getExpressionLocals()))
+        return int(e_expr.evaluate(expr, self.getExpressionLocals()))
 
     def do_binstr(self, line):
         '''
@@ -503,7 +503,7 @@ class EnviCli(Cmd):
             sym = self.symobj.getSymByAddr(value, exact=False)
             if sym is not None:
                 self.canvas.addText(" ")
-                self.canvas.addVaText("%s + %d" % (repr(sym),value-long(sym)), value)
+                self.canvas.addVaText("%s + %d" % (repr(sym),value-int(sym)), value)
         else:
             self.canvas.addText("0x%.8x (%d)" % (value, value))
 
@@ -733,7 +733,7 @@ class EnviCli(Cmd):
 
             sym = self.symobj.getSymByAddr(va, exact=False)
             if sym is not None:
-                ret = "%s + 0x%x" % (repr(sym), va-long(sym))
+                ret = "%s + 0x%x" % (repr(sym), va-int(sym))
 
         except Exception:
             ret = hex(va)

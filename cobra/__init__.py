@@ -599,10 +599,7 @@ class CobraDaemon(ThreadingTCPServer):
         return None
 
     def getRandomName(self):
-        ret = ""
-        for byte in os.urandom(16):
-            ret += "%.2x" % ord(byte)
-        return ret
+        return ''.join(['%.2x' % x for x in os.urandom(16)])
 
     def shareObject(self, obj, name=None, doref=False, dowith=False):
         """

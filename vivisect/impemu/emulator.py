@@ -358,6 +358,8 @@ class WorkspaceEmulator:
                             self.emumon.prehook(self, op, starteip)
                         except v_exc.BadOpBytes as e:
                             logger.debug(str(e))
+                        except v_exc.BadOutInstruction:
+                            pass
                         except Exception as e:
                             logger.warning("Emulator prehook failed on fva: 0x%x, opva: 0x%x, op: %s, err: %s", funcva, starteip, str(op), str(e))
 
@@ -374,6 +376,8 @@ class WorkspaceEmulator:
                             self.emumon.posthook(self, op, endeip)
                         except v_exc.BadOpBytes as e:
                             logger.debug(str(e))
+                        except v_exc.BadOutInstruction:
+                            pass
                         except Exception as e:
                             logger.warning("funcva: 0x%x opva: 0x%x:  %r   (%r) (in emumon posthook)", funcva, starteip, op, e)
 
@@ -405,13 +409,15 @@ class WorkspaceEmulator:
                     if op.iflags & envi.IF_RET:
                         vg_path.setNodeProp(self.curpath, 'cleanret', True)
                         break
-                except envi.UnsupportedInstruction as e:
+                except e_exc.UnsupportedInstruction as e:
                     if self.strictops:
                         logger.debug('runFunction failed: unsupported instruction: 0x%08x %s', e.op.va, e.op.mnem)
                         break
                     else:
                         logger.debug('runFunction continuing after unsupported instruction: 0x%08x %s', e.op.va, e.op.mnem)
                         self.setProgramCounter(e.op.va + e.op.size)
+                except v_exc.BadOutInstruction:
+                    break
                 except Exception as e:
                     if self.emumon is not None and not isinstance(e, e_exc.BreakpointHit):
                         self.emumon.logAnomaly(self, starteip, str(e))

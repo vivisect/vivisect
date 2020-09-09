@@ -364,7 +364,7 @@ class Graph:
         '''
         Return a list of (nid, nprops) tuples.
         '''
-        return self.nodes.values()
+        return list(self.nodes.values())
 
     def getNodeCount(self):
         return len(self.nodes)
@@ -499,9 +499,8 @@ class Graph:
 
         nodes = self.getNodes()
         done = {}
-        while len(nodes):
+        for nid, nprops in nodes:
 
-            nid,nprops = nodes.pop()
             if done.get(nid):
                 continue
 
@@ -517,7 +516,7 @@ class Graph:
                 if not g.hasNode(gnid):
                     g.addNode(nid=gnid, nprops=gnprops)
 
-                for eid,n1,n2,eprops in self.getRefsFromByNid(gnid):
+                for eid, n1, n2, eprops in self.getRefsFromByNid(gnid):
 
                     if not g.getNode(n2):
                         n2props = self.getNodeProps(n2)
@@ -527,7 +526,7 @@ class Graph:
                     if not g.getEdge(eid):
                         g.addEdgeByNids(n1, n2, eid=eid, eprops=eprops)
 
-                for eid,n1,n2,eprops in self.getRefsToByNid(gnid):
+                for eid, n1, n2, eprops in self.getRefsToByNid(gnid):
 
                     if not g.getNode(n1):
                         n1props = self.getNodeProps(n1)
@@ -540,7 +539,7 @@ class Graph:
             ret.append(g)
 
         return ret
-                
+
 
     def pathSearchOne(self, *args, **kwargs):
         for p in self.pathSearch(*args, **kwargs):

@@ -65,7 +65,7 @@ class watcher(viv_imp_monitor.EmulationMonitor):
     def prehook(self, emu, op, eip):
         if op.mnem == "out":  # FIXME arch specific. see above idea.
             emu.stopEmu()
-            raise Exception("Out instruction...")
+            raise v_exc.BadOutInstruction(op.va)
 
         if op in self.badops:
             emu.stopEmu()

@@ -50,7 +50,7 @@ class ELFTests(unittest.TestCase):
             name, test_data, path = test
             logger.warning("=======vivisect.tests.testelf, %r ========", name)
             fn = helpers.getTestPath(*path)
-            e = Elf.Elf(open(fn))
+            e = Elf.Elf(open(fn, 'rb'))
             vw = viv_cli.VivCli()
             vw.loadFromFile(fn)
             #vw.analyze()

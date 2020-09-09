@@ -22,7 +22,7 @@ def analyze(vw):
             continue
 
         for xfr, xto, xtype, xinfo in vw.getXrefsFrom(rva):
-            logger.info('pointer(1): 0x%x -> 0x%x', xfr, xto)
+            logger.debug('pointer(1): 0x%x -> 0x%x', xfr, xto)
             vw.analyzePointer(xto)
             done.append((xfr, xto))
 
@@ -30,9 +30,9 @@ def analyze(vw):
     for pva, tva, fname, pname in vw.getVaSetRows('PointersFromFile'):
         if vw.getLocation(pva) is None:
             if tva is None:
-                logger.info('making pointer(2) 0x%x (%r)', pva, pname)
+                logger.debug('making pointer(2) 0x%x (%r)', pva, pname)
             else:
-                logger.info('making pointer(2) 0x%x -> 0x%x (%r)', pva, tva, pname)
+                logger.debug('making pointer(2) 0x%x -> 0x%x (%r)', pva, tva, pname)
             vw.makePointer(pva, tva, follow=True)
             done.append((pva, tva))
 
@@ -44,9 +44,9 @@ def analyze(vw):
         if vw.getLocation(tva) is not None:
             continue
 
-        logger.info('following previously discovered pointer 0x%x -> 0x%x', lva, tva)
+        logger.debug('following previously discovered pointer 0x%x -> 0x%x', lva, tva)
         try:
-            logger.info('pointer(3): 0x%x -> 0x%x', lva, tva)
+            logger.debug('pointer(3): 0x%x -> 0x%x', lva, tva)
             vw.followPointer(tva)
             done.append((lva, tva))
         except Exception as e:
@@ -57,7 +57,8 @@ def analyze(vw):
         if vw.isDeadData(pval):
             continue
         try:
-            logger.info('pointer(4): 0x%x -> 0x%x', addr, pval)
+            # this particular message is *extremely* noisey
+            logger.debug('pointer(4): 0x%x -> 0x%x', addr, pval)
             vw.makePointer(addr, follow=True)
             done.append((addr, pval))
         except Exception as e:
@@ -78,7 +79,7 @@ def analyze(vw):
             tgtname = vw.getName(tgt)
             if tgtname is not None:
                 name = vw._addNamePrefix(tgtname, tgt, 'ptr', '_') + '_%.8x' % ptr
-                logger.info('0x%s: adding name prefix: %r  (%r)', tgt, tgtname, name)
+                logger.debug('0x%s: adding name prefix: %r  (%r)', tgt, tgtname, name)
                 vw.makeName(ptr, name)
         except Exception as e:
             logger.error('naming failed (0x%x -> 0x%x), (err: %s)', ptr, tgt, e)

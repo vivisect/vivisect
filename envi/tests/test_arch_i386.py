@@ -300,11 +300,7 @@ class i386InstructionSet(unittest.TestCase):
                 self.fail("Failing match for case %s (%s != %s)" % (name, repr(op), reprOp))
 
             scanv.clearCanvas()
-            try:
-                op.render(scanv)
-            except:
-                import pdb, sys
-                pdb.post_mortem(sys.exc_info()[2])
+            op.render(scanv)
             self.assertEqual(scanv.strval, renderOp)
 
     def test_envi_i386_disasm_Specific_SingleByte_Instrs(self):

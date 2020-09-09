@@ -52,7 +52,7 @@ class CobraEventCore:
         Create a new channel id and allocate an
         event Queue.
         '''
-        chanid = self._ce_chanids.next()
+        chanid = next(self._ce_chanids)
         q = e_threads.ChunkQueue()
         q.chanid = chanid  # monkey patch the chanid to the q
         self._ce_chans.append(q)

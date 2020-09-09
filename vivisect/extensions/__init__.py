@@ -46,8 +46,8 @@ def loadExtensions(vw, vwgui):
                 filebytes = fd.read()
             mod.__file__ = modpath
             try:
-                exec filebytes in mod.__dict__
+                exec(filebytes in mod.__dict__)
                 mod.vivExtension(vw, vwgui)
-            except Exception as e:
-                vw.vprint(traceback.format_exc())
+            except Exception:
                 vw.vprint('Extension Error: %s' % modpath)
+                vw.vprint(traceback.format_exc())

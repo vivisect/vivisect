@@ -3,7 +3,6 @@ Linux Platform Module
 """
 # Copyright (C) 2007 Invisigoth - See LICENSE file for details
 import os
-import time
 import signal
 import struct
 import logging
@@ -14,7 +13,6 @@ import traceback
 import envi.cli as e_cli
 import envi.bits as e_bits
 import envi.memory as e_mem
-import envi.registers as e_reg
 
 import vtrace
 import vtrace.exc as v_exc
@@ -283,10 +281,6 @@ class user_regs_amd64(Structure):
 
 
 intel_dbgregs = (0,1,2,3,6,7)
-
-
-def bytify(bytez):
-    return ''.join(map(chr, bytez))
 
 
 class LinuxMixin(v_posix.PtraceMixin, v_posix.PosixMixin):
@@ -863,7 +857,7 @@ class LinuxAmd64Trace(
         for i in range(fpu_len):
             offset = fpu_off + i * 16
             # the upper 48 bits of the st/mm registers are marked as reserved
-            valu = e_bits.parsebytes(bytify(iovec[offset:offset+10]), 0, 10)
+            valu = e_bits.parsebytes(bytes(iovec[offset:offset+10]), 0, 10)
             ctx.setRegister(regidx+i, valu)
 
         xmm_off = 160
@@ -871,23 +865,22 @@ class LinuxAmd64Trace(
         # these are just the lower bits of the simd registers (just the xmm portion)
         for i in range(len(simd_regs)):
             offset = xmm_off + i * 16
-            simd_regs[i] = e_bits.parsebytes(bytify(iovec[offset:offset+16]), 0, 16)
+            simd_regs[i] = e_bits.parsebytes(bytes(iovec[offset:offset+16]), 0, 16)
 
-        xstate_bv = e_bits.parsebytes(bytify(iovec[512:520]), 0, 8)
+        xstate_bv = e_bits.parsebytes(bytes(iovec[512:520]), 0, 8)
         has_avx = xstate_bv & 0x4
         # XXX: Sooooo....we're gonna cheat a bit here. Technically what we're supposed to do
         # is check CPUID.(EAX=0x0D, ECX=i) for every feature and se how many bytes it takes up, but 
         # right now the goal is just to get the upper YMM registers, and we know exactly how
-        # man bytes those take up, and they're literally the first state component in the extended
-        # xsave region (standard or compacted), so yolo, let's parse us some bytes if the 
-        # has_avx bit is set.
+        # many bytes those take up, and they're literally the first state component in the extended
+        # xsave region (standard or compacted), so let's parse us some bytes if the has_avx bit is set.
         # (we're also doing it this way because I don't feel like figuring out how to directly call
         # the cpuid asm instruction from python)
         if has_avx:
             ymm_offset = 576
             for i in range(len(simd_regs)):
                 offset = ymm_offset + i*16
-                valu = e_bits.parsebytes(bytify(iovec[offset:offset+16]), 0, 16)
+                valu = e_bits.parsebytes(bytes(iovec[offset:offset+16]), 0, 16)
                 simd_regs[i] |= valu << 128
 
         regidx = self.archGetRegCtx().getRegisterIndex("ymm0")

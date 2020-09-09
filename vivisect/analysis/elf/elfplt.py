@@ -171,7 +171,7 @@ def analyzePLT(vw, ssva, ssize):
         while sva < nextseg:
             logger.debug('analyzePLT(0x%x, 0x%x) first pass:  sva: 0x%x   nextseg: 0x%x', ssva, ssize, sva, nextseg)
             if vw.getLocation(sva) is None:
-                logger.info('making code: 0x%x', sva)
+                logger.debug('making code: 0x%x', sva)
                 try:
                     vw.makeCode(sva)
                 except Exception:
@@ -190,10 +190,10 @@ def analyzePLT(vw, ssva, ssize):
                             not op.iflags & envi.IF_COND:
 
                         # we grab all unconditional branches, and tag them.
-                        # some compilers pepper conditional branches between 
+                        # some compilers pepper conditional branches between
                         # PLT entries, for lazy-loading tricks.  We skip those.
 
-                        # quickly, check the branch target is not the section 
+                        # quickly, check the branch target is not the section
                         # start address.
                         tbrva = op.opers[-1].getOperValue(op, emu=emu)
                         tbrref = op.opers[-1].getOperAddr(op, emu=emu)
