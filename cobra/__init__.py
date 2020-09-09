@@ -16,9 +16,9 @@ import queue
 import pickle
 import socket
 import struct
-import urllib
 import logging
 import traceback
+import urllib.parse
 
 from threading import currentThread, Thread, RLock, Timer, Lock
 from socketserver import ThreadingTCPServer, BaseRequestHandler
@@ -209,6 +209,9 @@ class CobraSocket:
             self.dumps = jsondumps
             self.loads = jsonloads
 
+    def __del__(self):
+        self.socket.close()
+
     def getSockName(self):
         return self.socket.getsockname()
 
@@ -222,7 +225,7 @@ class CobraSocket:
         reasons.
         """
 
-        #NOTE: for errors while using msgpack, we must send only the str
+        # NOTE: for errors while using msgpack, we must send only the str
         if mtype == COBRA_ERROR and self.sflags & (SFLAG_MSGPACK | SFLAG_JSON):
             data = str(data)
 
@@ -231,8 +234,8 @@ class CobraSocket:
         except Exception as e:
             raise CobraPickleException("The arguments/attributes must be serializable: %s" % e)
 
-        objname = objname
-        self.sendExact(struct.pack("<III", mtype, len(objname), len(buf)) + objname + buf)
+        obj = objname.encode('utf-8')
+        self.sendExact(struct.pack("<III", mtype, len(obj), len(buf)) + obj + buf)
 
     def recvMessage(self):
         """
@@ -242,20 +245,18 @@ class CobraSocket:
         Client side uses of the CobraSocket object should use cobraTransaction
         to ensure re-tranmission of the request on reception errors.
         """
-        s = self.socket
         hdr = self.recvExact(12)
         mtype, nsize, dsize = struct.unpack("<III", hdr)
-        name = self.recvExact(nsize)
+        name = self.recvExact(nsize).decode('utf-8')
         data = self.loads(self.recvExact(dsize))
 
-        #NOTE: for errors while using msgpack, we must send only the str
+        # NOTE: for errors while using msgpack, we must send only the str
         if mtype == COBRA_ERROR and self.sflags & (SFLAG_MSGPACK | SFLAG_JSON):
             data = CobraErrorException(data)
-
         return (mtype, name, data)
 
     def recvExact(self, size):
-        buf = ""
+        buf = b""
         s = self.socket
         while len(buf) != size:
             x = s.recv(size - len(buf))
@@ -547,6 +548,7 @@ class CobraDaemon(ThreadingTCPServer):
 
     def stopServer(self):
         self.run = False
+        self.shutdown()
         self.server_close()
         self.thr.join()
 
@@ -873,40 +875,32 @@ class CobraConnectionHandler:
 
 def isCobraUri(uri):
     try:
-        x = urllib.Request(uri)
-        if x.get_type() not in ["cobra","cobrassl"]:
+        x = urllib.parse.urlparse(uri)
+        if x.scheme not in ["cobra", "cobrassl"]:
             return False
     except Exception as e:
         return False
     return True
 
 def chopCobraUri(uri):
+    purl = urllib.parse.urlparse(uri)
+    scheme = purl.scheme
+    host = purl.hostname
+    name = purl.path.strip('/')
 
-    req = urllib.Request(uri)
-    scheme = req.get_type()
-    host = req.get_host()
-
-    sel = req.get_selector()
-    # URL options are parsed later
-    selparts = sel.split('?', 1)
-    name = selparts[0].strip("/")
-
-    port = COBRA_PORT
-    if host.find(':') != -1:
-        host,portstr = host.split(":")
-        port = int(portstr)
+    port = purl.port
+    if not port:
+        port = COBRA_PORT
 
     # Do we have any URL options?
     urlparams = {}
-    if len(selparts) > 1:
+    for urlopt in purl.query.split('&'):
+        urlval = 1
+        if urlopt.find('=') != -1:
+            urlopt,urlval = urlopt.split('=',1)
 
-        for urlopt in selparts[1].split('&'):
-            urlval = 1
-            if urlopt.find('=') != -1:
-                urlopt,urlval = urlopt.split('=',1)
-
-            urlopt = urlopt.lower()
-            urlparams[urlopt] = urlval
+        urlopt = urlopt.lower()
+        urlparams[urlopt] = urlval
 
     return scheme,host,port,name,urlparams
 

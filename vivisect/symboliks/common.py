@@ -842,7 +842,7 @@ class o_mul(Operator):
     commutative = True
 
 class o_div(Operator):
-    oper        = operator.truediv
+    oper        = operator.floordiv
     operstr     = '/'
     symtype     = SYMT_OPER_DIV
 

@@ -1,9 +1,9 @@
-import PE.ordlookup.mfc42 as mfc42
-import PE.ordlookup.oledlg as oledlg
-import PE.ordlookup.ws2_32 as ws2_32
-import PE.ordlookup.comctl32 as comctl32
-import PE.ordlookup.msvbvm60 as msvbvm60
-import PE.ordlookup.oleaut32 as oleaut32
+from . import mfc42
+from . import oledlg
+from . import ws2_32
+from . import comctl32
+from . import msvbvm60
+from . import oleaut32
 
 '''
 A small module for keeping a database of ordinal to symbol

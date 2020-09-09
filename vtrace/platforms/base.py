@@ -104,9 +104,11 @@ class TracerBase(vtrace.Notifier):
 
     def getResolverForFile(self, filename):
         res = self.resbynorm.get(filename, None)
-        if res: return res
+        if res:
+            return res
         res = self.resbyfile.get(filename, None)
-        if res: return res
+        if res:
+            return res
         return None
 
     def steploop(self):

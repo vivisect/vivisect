@@ -23,7 +23,7 @@ def evaluate(pycode, locvars):
     except Exception:
         try:
             # check through the keys for anything we might want to replace
-            keys = locvars.keys()
+            keys = list(locvars.keys())
 
             # sort the keys in reverse order so that longer matching strings take priority
             keys.sort(reverse=True)

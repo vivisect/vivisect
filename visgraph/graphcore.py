@@ -717,7 +717,7 @@ class HierGraph(Graph):
         nodes = self.getNodes()
 
         # Lets make the list of nodes *ordered* by weight
-        nodes.sort(cmp=weightcmp)
+        nodes.sort(key=lambda k: k[1]['weight'])
 
         # Here's the magic... In *hierarchy order* each node
         # gets the sum of the paths of his parents.
