@@ -410,7 +410,7 @@ class TracerBase(vtrace.Notifier):
         """
         faultaddr,faultperm = self.platformGetMemFault()
 
-        #FIXME this is some AWESOME but intel specific nonsense
+        # FIXME this is some AWESOME but intel specific nonsense
         if faultaddr is None:
             return False
         faultpage = faultaddr & 0xfffff000
@@ -717,7 +717,7 @@ class TracerBase(vtrace.Notifier):
 
     def archCheckWatchpoints(self):
         """
-        If the current register state indicates that a watchpoint was hit, 
+        If the current register state indicates that a watchpoint was hit,
         return the address of the watchpoint and clear the event.  Otherwise
         return None
         """

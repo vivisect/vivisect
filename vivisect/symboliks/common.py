@@ -151,13 +151,49 @@ class SymbolikBase:
         if other is None:
             return False
 
-        if type(other) is int:
+        if isinstance(other, int):
             return self.solve() == other
 
         return self.solve() == other.solve()
 
     def __ne__(self, other):
         return not self.__eq__(other)
+
+    def __le__(self, other):
+        if other is None:
+            return False
+
+        if isinstance(other, int):
+            return self.solve() <= other
+
+        return self.solve() <= other.solve()
+
+    def __lt__(self, other):
+        if other is None:
+            return False
+
+        if isinstance(other, int):
+            return self.solve() < other
+
+        return self.solve() < other.solve()
+
+    def __ge__(self, other):
+        if other is None:
+            return False
+
+        if isinstance(other, int):
+            return self.solve() >= other
+
+        return self.solve() >= other.solve()
+
+    def __gt__(self, other):
+        if other is None:
+            return False
+
+        if isinstance(other, int):
+            return self.solve() > other
+
+        return self.solve() > other.solve()
 
     def clearCache(self):
         '''
