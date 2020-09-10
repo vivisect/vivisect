@@ -101,7 +101,7 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
         ridx = regidx & 0xffff
         rname = self._reg_ctx.getRegisterName(ridx)
         rbitwidth = self._reg_ctx.getRegisterWidth(ridx)
-        val = Var(rname, rbitwidth / 8)
+        val = Var(rname, rbitwidth >> 3)
 
         # Translate to meta if needed...
         if ridx != regidx:
@@ -124,7 +124,7 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
         ridx = regidx & 0xffff
         rname = self._reg_ctx.getRegisterName(ridx)
         rbitwidth = self._reg_ctx.getRegisterWidth(ridx)
-        val = Var(rname, rbitwidth / 8)
+        val = Var(rname, rbitwidth >> 3)
 
         # Translate to native if needed...
         if ridx != regidx:
@@ -139,9 +139,9 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
             # cut hole in mask
             finalmask = basemask ^ (mask << lshift)
             if lshift != 0:
-                obj <<= Const(lshift, rbitwidth / 8)
+                obj <<= Const(lshift, rbitwidth >> 3)
 
-            obj = obj | (val & Const(finalmask, rbitwidth / 8))
+            obj = obj | (val & Const(finalmask, rbitwidth >> 3))
 
         self.effSetVariable(rname, obj)
 
@@ -272,7 +272,7 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
         self.effSetVariable('eflags_eq', eq(add, Const(0, self._psize)))
         self.effSetVariable('eflags_pf', self._generate_parity(add))
         dsize = op.opers[0].tsize
-        f = gt(add, Const(e_bits.s_maxes[dsize/2], dsize))
+        f = gt(add, Const(e_bits.s_maxes[dsize>>1], dsize))
         self.effSetVariable('eflags_of', f)
 
         self.setOperObj(op, 0, add)
@@ -295,7 +295,7 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
         self.effSetVariable('eflags_sf', lt(add, Const(0, self._psize)))
         self.effSetVariable('eflags_eq', eq(add, Const(0, self._psize)))
         self.effSetVariable('eflags_pf', self._generate_parity(add))
-        f = gt(add, Const(e_bits.s_maxes[dsize/2], dsize))
+        f = gt(add, Const(e_bits.s_maxes[dsize>>1], dsize))
         self.effSetVariable('eflags_of', f)
 
     def i_addsd(self, op, off=0):
@@ -465,7 +465,7 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
             raise Exception("WTFO?  i_imul with no opers")
 
         #print "FIXME: IMUL FLAGS only valid for POSITIVE results"
-        f = gt(res, Const(e_bits.s_maxes[dsize/2], dsize))
+        f = gt(res, Const(e_bits.s_maxes[dsize>>1], dsize))
         self.effSetVariable('eflags_cf', f)
         self.effSetVariable('eflags_of', f)
 
@@ -498,7 +498,7 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
         else:
             raise Exception("WTFO?  i_mul with no opers")
 
-        f = gt(res, Const(e_bits.u_maxes[dsize/2], dsize))
+        f = gt(res, Const(e_bits.u_maxes[dsize>>1], dsize))
         self.effSetVariable('eflags_cf', f)
         self.effSetVariable('eflags_of', f)
 
@@ -528,7 +528,7 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
         self.effSetVariable('eflags_sf', lt(obj, zero))
         self.effSetVariable('eflags_eq', eq(obj, zero))
 
-        f = gt(obj, Const(e_bits.s_maxes[dsize/2], dsize))
+        f = gt(obj, Const(e_bits.s_maxes[dsize>>1], dsize))
         self.effSetVariable('eflags_of', f)
 
         self.effSetVariable('eflags_pf', self._generate_parity(obj))
@@ -1265,7 +1265,7 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
         self.effSetVariable('eflags_sf', lt(obj, Const(0, self._psize)))
         self.effSetVariable('eflags_eq', eq(obj, Const(0, self._psize)))
         dsize = op.opers[0].tsize
-        f = gt(obj, Const(e_bits.s_maxes[dsize/2], dsize))
+        f = gt(obj, Const(e_bits.s_maxes[dsize>>1], dsize))
         self.effSetVariable('eflags_of', f)
         self.effSetVariable('eflags_pf', self._generate_parity(obj))
 

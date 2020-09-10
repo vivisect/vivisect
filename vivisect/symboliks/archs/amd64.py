@@ -63,7 +63,7 @@ class Amd64SymbolikTranslator(vsym_i386.IntelSymbolikTranslator):
         ridx = regidx & 0xffff
         rname = self._reg_ctx.getRegisterName(ridx)
         rbitwidth = self._reg_ctx.getRegisterWidth(ridx)
-        val = Var(rname, rbitwidth / 8)
+        val = Var(rname, rbitwidth >> 3)
 
         # Translate to native if needed...
         if ridx != regidx:
@@ -82,9 +82,9 @@ class Amd64SymbolikTranslator(vsym_i386.IntelSymbolikTranslator):
                 # cut hole in mask
                 finalmask = basemask ^ (mask << lshift)
                 if lshift != 0:
-                    obj <<= Const(lshift, rbitwidth / 8)
+                    obj <<= Const(lshift, rbitwidth >> 3)
 
-                obj = obj | (val & Const(finalmask, rbitwidth / 8))
+                obj = obj | (val & Const(finalmask, rbitwidth >> 3))
 
         self.effSetVariable(rname, obj)
 
