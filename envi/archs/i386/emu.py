@@ -2190,7 +2190,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
                 cmp = eql
             else:
                 cmp = 0
-            res |= cmp << (width* idx)
+            res |= cmp << (width * idx)
         self.setOperValue(op, 0, res)
 
     def i_por(self, op, off=0):
@@ -2319,7 +2319,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
 
         for idx, (lft, rgt) in enumerate(valus):
             s = (lft - rgt) & mask
-            res |= s << (i * 8 * width)
+            res |= s << (idx * 8 * width)
 
         self.setOperValue(op, 0, res)
 
@@ -2363,7 +2363,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
                 s = shigh
             elif s < slow:
                 s = slow
-            res |= s << (i * bitwidth)
+            res |= s << (idx * bitwidth)
 
     def i_psubsw(self, op):
         self.i_psubsb(op, width=2)
