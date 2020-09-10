@@ -68,7 +68,7 @@ class VivGraphTest(unittest.TestCase):
             'Wanted',
         ]
         pathgenr = viv_graph.getLongPath(self.graph)
-        path = map(lambda k: k[0], next(pathgenr))
+        path = [k[0] for k in next(pathgenr)]
         self.assertEqual(longpath, path)
 
     def test_longpath_med(self):

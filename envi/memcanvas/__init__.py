@@ -5,7 +5,6 @@ MemoryCanvas objects.
 
 import sys
 import logging
-import binascii
 import traceback
 
 import envi.symstore.resolver as e_resolv
@@ -92,7 +91,7 @@ class MemoryCanvas(object):
         return self.renderers.get(name)
 
     def getRendererNames(self):
-        ret = self.renderers.keys()
+        ret = list(self.renderers.keys())
         ret.sort()
         return ret
 

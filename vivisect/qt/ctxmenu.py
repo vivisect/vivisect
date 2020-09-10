@@ -15,9 +15,6 @@ from vqt.common import *
 from envi.threads import *
 from vivisect.const import *
 
-def cmpoffset(x,y):
-    return cmp(x[0], y[0])
-
 @firethread
 def printEmuState(vw, fva, va):
     vw.vprint('Running emulator to: 0x%.8x' % (va,))
@@ -28,7 +25,7 @@ def printEmuState(vw, fva, va):
     dstack = emu.getStackCounter() - stack
 
     regs = emu.getRegisters()
-    rnames = regs.keys()
+    rnames = list(regs.keys())
     rnames.sort()
 
     vw.vprint("Showing Register/Magic State At: 0x%.8x" % va)

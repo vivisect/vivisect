@@ -2,10 +2,10 @@
 A package for any of the vivisect workspace renderers.
 """
 import string
-import urllib
 import logging
 import binascii
 import traceback
+import urllib.parse
 
 from vivisect.const import *
 
@@ -14,10 +14,6 @@ import envi.memcanvas as e_canvas
 
 
 logger = logging.getLogger(__name__)
-
-
-def cmpoffset(x,y):
-    return cmp(x[0], y[0])
 
 
 class WorkspaceRenderer(e_canvas.MemoryRenderer):
@@ -139,7 +135,7 @@ class WorkspaceRenderer(e_canvas.MemoryRenderer):
             mcanv.addText(linepre, tag=vatag)
             if name is None:
                 name = "loc_%.8x" % lva
-            mcanv.addText(urllib.quote_plus(name), tag=vatag)
+            mcanv.addText(urllib.parse.quote_plus(name), tag=vatag)
             mcanv.addText(": ")
             xrtag = mcanv.getTag("xrefs")
             mcanv.addText('[%d XREFS]\n' % xrcount, tag=xrtag)
@@ -176,7 +172,7 @@ class WorkspaceRenderer(e_canvas.MemoryRenderer):
 
                 totag = None
                 if isinstance(sobj, vs_prims.v_ptr):
-                    stova = long(sobj)
+                    stova = int(sobj)
                     stoname = self.vw.getName(stova)
                     if stoname is None:
                         stoname = repr(sobj)

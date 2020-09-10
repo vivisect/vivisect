@@ -322,7 +322,7 @@ class EnviCli(Cmd):
         for line in formatargs(self.basecmds):
             self.vprint(line)
 
-        subsys = self.extsubsys.keys()
+        subsys = list(self.extsubsys.keys())
         subsys.sort()
 
         for sub in subsys:
@@ -376,7 +376,7 @@ class EnviCli(Cmd):
             subnames.sort()
             for subname in subnames:
                 subcfg = self.config.getSubConfig(subname)
-                options = subcfg.keys()
+                options = list(subcfg.keys())
                 options.sort()
                 for optname in options:
                     optval = subcfg.get(optname)
@@ -405,7 +405,7 @@ class EnviCli(Cmd):
             if len(parts) == 2:
                 newval = json.loads(parts[1])
 
-                if (not type(newval) is str) or type(optval) not in (str,unicode):
+                if (not isinstance(newval, str)) or not isinstance(optval, str):
                     if type(newval) != type(optval):
                         self.vprint('Invalid Type Mismatch: %r - %r' % (newval, optval))
                         return
@@ -435,14 +435,14 @@ class EnviCli(Cmd):
 
         self.vprint('')
         self.vprint('Runtime Aliases (not saved):')
-        aliases = self.aliases.keys()
+        aliases = list(self.aliases.keys())
         aliases.sort()
         for alias in aliases:
             self.vprint('%s -> %s' % (alias,self.aliases.get(alias)))
         self.vprint('')
 
         self.vprint('Configured Aliases:')
-        aliases = self.config.cli.aliases.keys()
+        aliases = list(self.config.cli.aliases.keys())
         aliases.sort()
         for alias in aliases:
             self.vprint('%s -> %s' % (alias, self.config.cli.aliases.get(alias)))

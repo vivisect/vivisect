@@ -4,7 +4,6 @@ import vqt.tree as vq_tree
 import vqt.saveable as vq_save
 import envi.qt.memory as e_q_memory
 import envi.qt.memcanvas as e_q_memcanvas
-import vivisect.qt.ctxmenu as v_q_ctxmenu
 import vivisect.tools.graphutil as viv_graph
 import vivisect.symboliks.common as viv_sym_common
 import vivisect.symboliks.effects as viv_sym_effects
@@ -74,7 +73,7 @@ class VivSymbolikFuncPane(e_q_memory.EnviNavMixin, vq_save.SaveableWidget, QWidg
 
         QWidget.__init__(self, parent=parent)
         e_q_memory.EnviNavMixin.__init__(self)
-        self.setEnviNavName('Symboliks%d' % self.viewidx.next())
+        self.setEnviNavName('Symboliks%d' % next(self.viewidx))
 
         self.exprtext = QLineEdit(parent=self)
         self.constraintext = QLineEdit(parent=self)

@@ -86,8 +86,7 @@ def analyzeFunction(vw, fva):
 
             if vw.getFunctionMeta(fva, 'PIE_reg') is None:
                 vw.setFunctionMeta(fva, 'PIE_reg', reg)
-                vw.setComment(op.va, 'Position Indendent Code Register Set: %s' % \
-                        vw.arch._arch_reg.getRegisterName(reg))
+                vw.setComment(op.va, 'Position Indendent Code Register Set: %s' % vw.arch._arch_reg.getRegisterName(reg))
 
             if vw.getMeta('PIE_GOT') is None:
                 vw.setMeta('PIE_GOT', got)
@@ -112,7 +111,7 @@ def analyzeFunction(vw, fva):
         logger.exception("Error emulating function 0x%x\n\t%r", fva, emumon.emuanom)
 
     # now roll through tracked references and make xrefs/comments
-    items = emumon.tracker.items()
+    items = list(emumon.tracker.items())
     items.sort()
     for va, tgt in items:
         # if we already have xrefs, don't make more...

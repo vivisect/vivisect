@@ -38,13 +38,13 @@ class PETests(unittest.TestCase):
         ]
 
         cbva = 0x4028e0
-        self.assertEquals(self.vw_psexec.getFunction(cbva), cbva)
+        self.assertEqual(self.vw_psexec.getFunction(cbva), cbva)
         for (va, size, inst) in disasm:
             lva, lsize, ltype, linfo = self.vw_psexec.getLocation(cbva)
             op = self.vw_psexec.parseOpcode(lva)
-            self.assertEquals(ltype, viv_con.LOC_OP)
-            self.assertEquals(size, lsize)
-            self.assertEquals(str(op), inst)
+            self.assertEqual(ltype, viv_con.LOC_OP)
+            self.assertEqual(size, lsize)
+            self.assertEqual(str(op), inst)
             cbva += size
 
     def test_export_by_name(self):
@@ -88,15 +88,15 @@ class PETests(unittest.TestCase):
         self.assertTrue(self.vw_psexec.metadata['NoReturnApis']['ntdll.rtlexituserthread'])
         self.assertTrue(self.vw_psexec.metadata['NoReturnApis']['ntoskrnl.kebugcheckex'])
 
-        self.assertEquals(len(self.vw_psexec.getMeta('NoReturnApisVa')), 2)
+        self.assertEqual(len(self.vw_psexec.getMeta('NoReturnApisVa')), 2)
         self.assertTrue(self.vw_psexec.metadata['NoReturnApisVa'][4301248])
         self.assertTrue(self.vw_psexec.metadata['NoReturnApisVa'][4301300])
 
     def test_string_locations(self):
         strRefs = self.vw_psexec.getLocations(ltype=viv_con.LOC_STRING)
         uniRefs = self.vw_psexec.getLocations(ltype=viv_con.LOC_UNI)
-        # self.assertEquals(len(strRefs), )
-        # self.assertEquals(len(uniRefs), )
+        # self.assertEqual(len(strRefs), )
+        # self.assertEqual(len(uniRefs), )
 
     def test_pointer_locations(self):
         pass

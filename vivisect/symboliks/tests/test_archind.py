@@ -26,8 +26,8 @@ class TestArchind(unittest.TestCase):
         op = mem + vsc.Var('edx', 4)
         final = op * vsc.Var('edx', 4)
         wiped = vsym_archind.wipeAstArch(symctx, [final])
-        self.assertEquals(1, len(wiped))
-        self.assertEquals('((mem[(arg0 + 1indreg()):4] + 0indreg) * 0indreg)', str(wiped[0]))
+        self.assertEqual(1, len(wiped))
+        self.assertEqual('((mem[(arg0 + 1indreg()):4] + 0indreg) * 0indreg)', str(wiped[0]))
 
     def test_wipeAstArch_wipeva(self):
         vw = viv.VivWorkspace()
@@ -45,9 +45,9 @@ class TestArchind(unittest.TestCase):
         func3 = vsc.Call(vsc.Const(0x41ac93, 4), 4, argsyms=[
                          vsc.Const(0, 4), vsc.Var('ecx', 4)])
         wiped = vsym_archind.wipeAstArch(symctx, [func1 + func2, func3], wipeva=True)
-        self.assertEquals(2, len(wiped))
-        self.assertEquals('(2archindva(1indreg) + 1archindva(0,1,2archindva))', str(wiped[0]))
-        self.assertEquals('0archindva(0,0indreg)', str(wiped[1]))
+        self.assertEqual(2, len(wiped))
+        self.assertEqual('(2archindva(1indreg) + 1archindva(0,1,2archindva))', str(wiped[0]))
+        self.assertEqual('0archindva(0,0indreg)', str(wiped[1]))
 
     def test_basic(self):
         vw = viv.VivWorkspace()

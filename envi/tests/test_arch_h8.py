@@ -637,7 +637,7 @@ class H8InstrTest(unittest.TestCase):
                 if type(tgt) == str and tgt.startswith("CCR_"):
                     # it's a flag
                     emu.setFlag(eval(tgt), val)
-                elif type(tgt) in (long, int):
+                elif isinstance(tgt, int):
                     # it's an address
                     # limited to 1-byte writes currently
                     emu.writeMemValue(tgt, val, 1)
@@ -670,7 +670,7 @@ class H8InstrTest(unittest.TestCase):
                     raise Exception(
                         "FAILED(flag): %s  !=  0x%x (observed: 0x%x)" % (tgt, val, testval))
 
-                elif type(tgt) in (long, int):
+                elif isinstance(tgt, int):
                     # it's an address
                     testval = emu.readMemValue(tgt, 1)
                     if testval == val:

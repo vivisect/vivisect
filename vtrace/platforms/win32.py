@@ -1579,7 +1579,7 @@ class WindowsMixin:
 
             plist = []
             for i in range(exparam):
-                plist.append(long(event.u.Exception.ExceptionRecord.ExceptionInformation[i]))
+                plist.append(int(event.u.Exception.ExceptionRecord.ExceptionInformation[i]))
 
             eventdict["ExceptionCode"] = excode
             eventdict["ExceptionFlags"] = exflags

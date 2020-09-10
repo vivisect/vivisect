@@ -34,7 +34,7 @@ class VMCS_Field(Var):
         if emu is not None:
             name += emu.getRandomSeed()
 
-        return long(hashlib.md5(name).hexdigest()[:self.width*2], 16)
+        return int(hashlib.md5(name).hexdigest()[:self.width*2], 16)
 
     def update(self, emu):
         offset = self.offset.update(emu=emu)

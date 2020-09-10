@@ -178,7 +178,7 @@ class EnviConfig:
         return subcfg
 
     def getSubConfigNames(self):
-        return self.cfgsubsys.keys()
+        return list(self.cfgsubsys.keys())
 
     def setDocsPrimitive(self, docsdict):
 

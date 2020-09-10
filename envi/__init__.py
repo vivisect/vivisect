@@ -712,7 +712,7 @@ class Emulator(e_reg.RegisterContext, e_mem.MemoryObject):
         return self._emu_call_convs.get(name)
 
     def getCallingConventions(self):
-        return self._emu_call_convs.items()
+        return list(self._emu_call_convs.items())
 
     def readMemValue(self, addr, size):
         """

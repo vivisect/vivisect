@@ -2,8 +2,6 @@
 import vqt.tree as vq_tree
 import vivisect.base as viv_base
 import envi.qt.memory as e_q_memory
-import visgraph.pathcore as vg_path
-import envi.qt.memcanvas as e_q_memcanvas
 import vivisect.qt.ctxmenu as v_q_ctxmenu
 
 try:
@@ -296,13 +294,6 @@ class VQVivFunctionsView(VQVivTreeView):
         if key == "Size":
             self.vivSetData(funcva, 2, value)
 
-vaset_coltypes = {
-    VASET_STRING:str,
-    VASET_ADDRESS:long,
-    VASET_INTEGER:long,
-}
-
-
 def reprAddress(vw, item):
     return "0x%x (%s)" % (item, vw.reprPointer(item))
 
@@ -319,8 +310,8 @@ def reprHextup(vw, item):
 
 def reprSmart(vw, item):
     ptype = type(item)
-    if ptype in (int, long):
-        if -1024 < item < 1024 :
+    if ptype is int:
+        if -1024 < item < 1024:
             return str(item)
         elif vw.isValidPointer(item):
             return vw.reprPointer(item)
@@ -330,7 +321,7 @@ def reprSmart(vw, item):
     elif ptype in (list, tuple):
         return reprComplex(vw, item) # recurse
 
-    elif ptype == dict:
+    elif ptype is dict:
         return '{%s}' % ','.join(["%s:%s" % (reprSmart(vw,k), reprSmart(vw,v)) for k,v in item.items()])
 
     else:

@@ -1,13 +1,13 @@
 import struct
+import logging
 import binascii
+import unittest
+import importlib
 
 import envi
 import envi.exc as e_exc
 import envi.archs.arm as arm
 import vivisect
-
-import logging
-import unittest
 
 import envi.tests.arm_bit_test_adds as arm_bit_test_adds
 import envi.tests.arm_bit_test_cmn as arm_bit_test_cmn
@@ -1804,10 +1804,10 @@ class ArmInstructionSet(unittest.TestCase):
                 emu.setRegisterByName(tgt, val)
             except e_exc.InvalidRegisterName:
                 # it's not a register
-                if type(tgt) == str and tgt.startswith("PSR_"):
+                if isinstance(tgt, str) and tgt.startswith("PSR_"):
                     # it's a flag
                     emu.setFlag(eval(tgt), val)
-                elif type(tgt) in (long, int):
+                elif isinstance(tgt, int):
                     # it's an address
                     #For this couldn't we set a temp value equal to endian and write that? Assuming byte order is issue with this one
                     emu.writeMemValue(tgt, val, 1) # limited to 1-byte writes currently
@@ -1828,7 +1828,7 @@ class ArmInstructionSet(unittest.TestCase):
                     raise Exception("FAILED(reg): (%r test#%d)  %s  !=  0x%x (observed: 0x%x) \n\t(setters: %r)\n\t(test: %r)" % (op, tidx, tgt, val, testval, settersrepr, testsrepr))
             except e_exc.InvalidRegisterName:
                 # it's not a register
-                if type(tgt) == str and tgt.startswith("PSR_"):
+                if isinstance(tgt, str) and tgt.startswith("PSR_"):
                     # it's a flag
                     testval = emu.getFlag(eval(tgt))
                     if testval == val:
@@ -1836,7 +1836,7 @@ class ArmInstructionSet(unittest.TestCase):
                     else:
                         raise Exception("FAILED(flag): (%r test#%d)  %s  !=  0x%x (observed: 0x%x) \n\t(setters: %r)\n\t(test: %r)" % (op, tidx, tgt, val, testval, settersrepr, testsrepr))
                         #raise Exception("FAILED(flag): (%r test#%d)  %s  !=  0x%x (observed: 0x%x)" % (op, tidx, tgt, val, testval))
-                elif type(tgt) in (long, int):
+                elif isinstance(tgt, int):
                     # it's an address
                     testval = emu.readMemValue(tgt, 1)
                     if testval == val:
@@ -1984,15 +1984,13 @@ def genAdvSIMDtests():
                         logger.warning(str(e))
                         bad += 1
                         if bad % 25 == 0:
-                            raw_input("PRESS ENTER")
-                            pass
-
+                            input("PRESS ENTER")
 
                     except Exception:
                         logger.exception('parsing error: ')
                         bad += 1
                         if bad % 2 == 0:
-                            raw_input("PRESS ENTER")
+                            input("PRESS ENTER")
 
 
 
@@ -2003,7 +2001,8 @@ def genTestsODA(abytez, tbytez):
     '''
     generate test cases for arm and thumb for the given sets of bytes
     '''
-    import oda_api;reload(oda_api)
+    import oda_api
+    importlib.reload(oda_api)
     oda = oda_api.OdaSession()
     oda.setArch('arm', oda_api.ENDIAN_LITTLE)
 

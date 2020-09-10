@@ -56,11 +56,9 @@ class EnviConfigString(EnviConfigOption,QLineEdit):
         self.setEnviValue(str(self.text()))
 
 cfgtypes = {
-    int:EnviConfigInt,
-    long:EnviConfigInt,
-    str:EnviConfigString,
-    unicode:EnviConfigString,
-    bool:EnviConfigBool,
+    int: EnviConfigInt,
+    str: EnviConfigString,
+    bool: EnviConfigBool,
 }
 
 class EnviConfigEditor(QWidget):
@@ -71,7 +69,7 @@ class EnviConfigEditor(QWidget):
 
         lyt = QFormLayout()
 
-        optnames = config.keys()
+        optnames = list(config.keys())
         optnames.sort()
 
         for optname in optnames:

@@ -67,7 +67,7 @@ class ArgDefSymEmu(object):
         if not fmt.startswith('<') and not fmt.endswith('P'):
             raise Exception('we dont handle this format string')
 
-        if isinstance(va, int) or isinstance(va, long):
+        if isinstance(va, int):
             va = Const(va, self.xlator._psize)
 
         if len(fmt) == 2:

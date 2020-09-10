@@ -592,7 +592,7 @@ class WorkspaceEmulator:
         self.uninit_use[regid] = True
 
     def getUninitRegUse(self):
-        return self.uninit_use.keys()
+        return list(self.uninit_use.keys())
 
     def readMemory(self, va, size):
         if self.logread:

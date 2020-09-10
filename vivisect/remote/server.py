@@ -7,7 +7,6 @@ import argparse
 import threading
 
 import vivisect
-import vivisect.cli as viv_cli
 import vivisect.storage.basicfile as viv_basicfile
 
 import cobra.dcode
@@ -125,7 +124,7 @@ class VivServer:
         '''
         Get a list of the workspaces this server is willing to share.
         '''
-        return self.wsdict.keys()
+        return list(self.wsdict.keys())
 
     def addNewWorkspace(self, wsname, events):
         wspath = os.path.join(self.path, wsname)

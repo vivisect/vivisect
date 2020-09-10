@@ -41,7 +41,7 @@ def parseBytes(vw, bytes, baseaddr=None):
     fd = StringIO(bytes)
     fd.seek(0)
     pe = PE.PE(fd)
-    return loadPeIntoWorkspace(vw, pe, filename=filename, baseaddr=baseaddr)
+    return loadPeIntoWorkspace(vw, pe, baseaddr=baseaddr)
 
 
 def parseMemory(vw, memobj, base):

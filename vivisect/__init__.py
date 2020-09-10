@@ -327,7 +327,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             for va,cmnt in vw.getComments():
                 print('Comment at 0x%.8x: %s' % (va, cmnt))
         '''
-        return self.comments.items()
+        return list(self.comments.items())
 
     def addRelocation(self, va, rtype, data=None):
         """
@@ -498,7 +498,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         self.fmodlist.remove(modname)
 
     def createEventChannel(self):
-        chanid = self.chanids.next()
+        chanid = next(self.chanids)
         self.chan_lookup[chanid] = queue.Queue()
         return chanid
 
@@ -2273,7 +2273,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         """
         Return a list of tuples containing (va, name)
         """
-        return self.name_by_va.items()
+        return list(self.name_by_va.items())
 
     def getName(self, va, smart=False):
         '''
@@ -2508,7 +2508,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         Return the current list of file objects in this
         workspace.
         """
-        return self.filemeta.keys()
+        return list(self.filemeta.keys())
 
     def normFileName(self, filename):
         normname = os.path.basename(filename).lower()
@@ -2628,7 +2628,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         """
         Get a list of the names of the current VA lists.
         """
-        return self.vasets.keys()
+        return list(self.vasets.keys())
 
     def getVaSetDef(self, name):
         """
@@ -2648,7 +2648,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         x = self.vasets.get(name)
         if x is None:
             raise InvalidVaSet(name)
-        return x.values()
+        return list(x.values())
 
     def getVaSet(self, name):
         """
@@ -2751,7 +2751,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         """
         Return a list of the names of the given color maps
         """
-        return self.colormaps.keys()
+        return list(self.colormaps.keys())
 
     def addColorMap(self, mapname, colormap):
         """

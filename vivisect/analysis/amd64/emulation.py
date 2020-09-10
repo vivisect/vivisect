@@ -1,5 +1,4 @@
 import vivisect.exc as v_exc
-import vivisect.impemu as viv_imp
 import vivisect.impemu.monitor as viv_monitor
 
 import envi
@@ -9,7 +8,7 @@ from vivisect.const import *
 
 import vivisect.analysis.generic.switchcase as vag_switch
 
-regops = set(['cmp','sub'])
+regops = set(['cmp', 'sub'])
 
 class AnalysisMonitor(viv_monitor.AnalysisMonitor):
 

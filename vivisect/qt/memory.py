@@ -24,8 +24,6 @@ import vivisect.qt.views as viv_q_views
 import vivisect.qt.ctxmenu as viv_q_ctxmenu
 import vivisect.qt.funcviews as viv_q_funcviews
 
-from envi.threads   import firethread
-
 from vqt.main import *
 from vivisect.const import *
 
@@ -36,8 +34,6 @@ logger = logging.getLogger(__name__)
 qt_horizontal   = 1
 qt_vertical     = 2
 
-def cmpoffset(x,y):
-    return cmp(x[0], y[0])
 
 class VivCanvasBase(vq_hotkey.HotKeyMixin, e_mem_canvas.VQMemoryCanvas):
 

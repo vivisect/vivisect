@@ -339,7 +339,7 @@ class Trace(e_mem.IMemory, e_reg.RegisterContext, e_resolv.SymbolResolver, objec
 
         (probably only useful for writting symbol browsers...)
         """
-        return self.getMeta("LibraryBases").keys()
+        return list(self.getMeta("LibraryBases").keys())
 
     def getSymsForFile(self, libname):
         """
@@ -735,7 +735,7 @@ class Trace(e_mem.IMemory, e_reg.RegisterContext, e_resolv.SymbolResolver, objec
         """
         Return a list of the current breakpoints.
         """
-        return self.bpbyid.values()
+        return list(self.bpbyid.values())
 
     def getBreakpointEnabled(self, bpid):
         """
@@ -1201,7 +1201,7 @@ class TraceGroup(Notifier, v_util.TraceManager):
         may be either an int for a pid (which we will attach
         to) or an already attached (and broken) tracer object.
         """
-        if isinstance(proc, types.IntType):
+        if isinstance(proc, int):
             trace = getTrace()
             self._initTrace(trace)
             self.traces[proc] = trace
@@ -1252,7 +1252,7 @@ class TraceGroup(Notifier, v_util.TraceManager):
         """
         Return a list of the current traces
         """
-        return self.traces.values()
+        return list(self.traces.values())
 
     def getTraceByPid(self, pid):
         """

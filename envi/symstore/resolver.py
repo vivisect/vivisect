@@ -21,25 +21,22 @@ class Symbol:
     def __eq__(self, other):
         if not isinstance(other, Symbol):
             return False
-        return long(self) == long(other)
+        return int(self) == int(other)
 
     def __coerce__(self, value):
         t = type(value)
 
-        if t == types.NoneType:
+        if isinstance(t, types.NoneType):
             return (True, False)
 
-        if t in (int,long):
+        if isinstance(t, int):
             return (t(self.value), value)
 
-        if isinstance( value, Symbol ):
-            return ( long(self.value), long(value.value) )
+        if isinstance(value, Symbol):
+            return (int(self.value), int(value.value))
 
     def __hash__(self):
-        return hash(long(self))
-
-    def __long__(self):
-        return long(self.value)
+        return hash(int(self))
 
     def __int__(self):
         return int(self.value)
@@ -106,7 +103,7 @@ class SymbolResolver:
         """
         Delete a symbol from the resolver's namespace
         """
-        symval = long(sym)
+        symval = int(sym)
         self.symaddrs.pop(symval, None)
 
         # bbase = symval & self.bucketmask
@@ -163,7 +160,7 @@ class SymbolResolver:
         # Do we have a symbol tuple?
         symtup = self.symnames.get(name)
         if symtup is not None:
-            return self._symFromTup( symtup )
+            return self._symFromTup(symtup)
 
     def delSymByName(self, name):
         if not self.casesens:
@@ -175,7 +172,7 @@ class SymbolResolver:
 
     def _symFromTup(self, symtup):
         # Create a symbol object and cache it...
-        symaddr,symsize,symname,symtype,symfname = symtup
+        symaddr, symsize, symname, symtype, symfname = symtup
         symclass = symclasses[symtype]
         if symtype == SYMSTOR_SYM_MODULE:
             sym = FileSymbol(symname, symaddr, symsize, width=self.width)
@@ -240,8 +237,7 @@ class SymbolResolver:
         """
         Return a list of the symbols which are contained in this resolver.
         """
-        names = self.symnames.keys()
-        return [ self.getSymByName(name) for name in names ]
+        return [self.getSymByName(name) for name in self.symnames]
 
     def getSymHint(self, va, hidx):
         """

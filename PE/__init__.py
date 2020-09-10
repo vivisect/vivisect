@@ -6,7 +6,7 @@ from io import StringIO
 import vstruct
 import vstruct.defs.pe as vs_pe
 
-import ordlookup
+from . import ordlookup
 
 IMAGE_DLLCHARACTERISTICS_RESERVED_1      = 1
 IMAGE_DLLCHARACTERISTICS_RESERVED_2      = 2

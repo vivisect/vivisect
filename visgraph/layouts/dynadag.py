@@ -8,7 +8,7 @@ import visgraph.drawing.bezier as vg_bezier
 zero_zero = (0,0)
 
 def revenumerate(l):
-    return zip(range(len(l)-1, -1, -1), reversed(l))
+    return list(zip(range(len(l)-1, -1, -1), reversed(l)))
 
 SCOOCH_LEFT     = 0
 SCOOCH_RIGHT    = 1

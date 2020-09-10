@@ -242,7 +242,7 @@ class VivisectTest(unittest.TestCase):
 
     def test_jumptable_adjacent_strings(self):
         jmpop = 0x804abc7
-        cases = list(map(lambda k: k[1], self.chgrp_vw.getXrefsFrom(jmpop)))
+        cases = [k[1] for k in self.chgrp_vw.getXrefsFrom(jmpop)]
         self.assertEqual(len(cases), 11)
 
         casevas = [
@@ -277,7 +277,7 @@ class VivisectTest(unittest.TestCase):
             self.assertEqual(lstr, self.chgrp_vw.readMemory(lva, lsize))
 
         jmpop = 0x804c32b
-        cases = list(map(lambda k: k[1], self.chgrp_vw.getXrefsFrom(jmpop)))
+        cases = [k[1] for k in self.chgrp_vw.getXrefsFrom(jmpop)]
         self.assertEqual(len(cases), 11)
         casevas = [
             0x0804c456,
@@ -502,7 +502,7 @@ class VivisectTest(unittest.TestCase):
         g = v_t_graphutil.buildFunctionGraph(vw, 0x405c10)
         longpath=[0x405c10, 0x405c48, 0x405ca6, 0x405cb0, 0x405cc3, 0x405c4e, 0x405c57, 0x405c5c, 0x405c6b, 0x405cd4, 0x405ce4, 0x405c80, 0x405c8c, 0x405cf6, 0x405c92]
         path = next(v_t_graphutil.getLongPath(g))
-        path = list(map(lambda k: k[0], path))
+        path = [k[0] for k in path]
         self.assertEqual(path, longpath)
 
     def test_graphutil_getcodepaths(self):
@@ -529,7 +529,7 @@ class VivisectTest(unittest.TestCase):
         pathcount = 0
         genr = v_t_graphutil.getCodePaths(g, loopcnt=0, maxpath=None)
         for path in genr:
-            p = set(map(lambda k: k[0], path))
+            p = set([k[0] for k in path])
             self.assertIn(p, paths)
             pathcount += 1
 

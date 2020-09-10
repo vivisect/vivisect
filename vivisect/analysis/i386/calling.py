@@ -15,11 +15,11 @@ import vivisect.analysis.generic.switchcase as vag_switch
 import envi.archs.i386 as e_i386
 
 regcalls = {
-    (e_i386.REG_ECX,):               ('thiscall',1),
-    (e_i386.REG_EAX,):               ('bfastcall',1),
-    (e_i386.REG_EAX,e_i386.REG_EDX): ('bfastcall',2),
-    (e_i386.REG_ECX,e_i386.REG_EDX): ('msfastcall',2),
-    (e_i386.REG_EAX, e_i386.REG_ECX, e_i386.REG_EDX):('bfastcall',3),
+    (e_i386.REG_ECX,):               ('thiscall', 1),
+    (e_i386.REG_EAX,):               ('bfastcall', 1),
+    (e_i386.REG_EAX,e_i386.REG_EDX): ('bfastcall', 2),
+    (e_i386.REG_ECX,e_i386.REG_EDX): ('msfastcall', 2),
+    (e_i386.REG_EAX, e_i386.REG_ECX, e_i386.REG_EDX): ('bfastcall', 3),
 }
 
 # Arange the same data for a name lookup
@@ -136,8 +136,7 @@ def analyzeFunction(vw, fva):
     baseoff = cc.getStackArgOffset(emu, argc)
 
     # Register our stack args as function locals
-    for i in range( stcount ):
-
+    for i in range(stcount):
         vw.setFunctionLocal(fva, baseoff + ( i * 4 ), LSYM_FARG, i+stackidx)
 
     emumon.addAnalysisResults(vw, emu)

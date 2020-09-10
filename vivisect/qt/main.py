@@ -265,7 +265,7 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
         stub = '%s/' % guid
 
         if compat_isNone(dwcls):
-            names = self.vw.filemeta.keys()
+            names = list(self.vw.filemeta.keys())
             names.sort()
             name = '+'.join(names)
             dwcls = settings.value('%s/DockClasses' % name)
@@ -290,7 +290,7 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
                         d.vqRestoreState(settings, name, stub)
                         d.show()
                 except Exception as e:
-                    print('Error Building: %s: %s' % (clsname, e))
+                    self.vw.vprint('Error Building: %s: %s' % (clsname, e))
 
         # Once dock widgets are loaded, we can restoreState
         if not compat_isNone(state):
@@ -310,7 +310,7 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
 
         dock_classes = []
         guid = self.vw.getVivGuid()
-        names = self.vw.filemeta.keys()
+        names = list(self.vw.filemeta.keys())
         names.sort()
         vivname = '+'.join(names)
 
