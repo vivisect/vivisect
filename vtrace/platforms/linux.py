@@ -32,7 +32,7 @@ logger = logging.getLogger(__name__)
 if os.getenv('ANDROID_ROOT'):
     libc = CDLL('/system/lib/libc.so')
 else:
-    libc = CDLL(cutil.find_library("c"))
+    libc = CDLL(cutil.find_library("c"), use_errno=True)
 
 libc.lseek64.restype = c_ulonglong
 libc.lseek64.argtypes = [c_uint, c_ulonglong, c_uint]
@@ -306,9 +306,13 @@ class LinuxMixin(v_posix.PtraceMixin, v_posix.PosixMixin):
         A utility to open (if necessary) and seek the memfile
         """
         if self.memfd is None:
-            self.memfd = libc.open("/proc/%d/mem" % self.pid, O_RDWR | O_LARGEFILE, 0o755)
+            self.memfd = libc.open(b"/proc/%d/mem" % self.pid, O_RDWR | O_LARGEFILE, 0o755)
+            if self.memfd < 0:
+                logger.warning('Failed to get proper file descriptor (errno: %d)', get_errno())
 
-        x = libc.lseek64(self.memfd, offset, 0)
+        retn = libc.lseek64(self.memfd, offset, 0)
+        if retn < 0:
+            logger.warning('lseek64 hit issue with error: %d' % get_errno())
 
     @v_base.threadwrap
     def platformReadMemory(self, address, size):
@@ -322,7 +326,7 @@ class LinuxMixin(v_posix.PtraceMixin, v_posix.PosixMixin):
         x = libc.read(self.memfd, addressof(buf), size)
         if x != size:
             # libc.perror('libc.read %d (size: %d)' % (x,size))
-            raise Exception("reading from invalid memory %s (%d returned)" % (hex(address), x))
+            raise Exception("reading from invalid memory %s (%d returned) (errno: %d) (fd: %d)" % (hex(address), x, get_errno(), self.memfd))
         # We have to slice cause ctypes "helps" us by adding a null byte...
         return buf.raw
 
