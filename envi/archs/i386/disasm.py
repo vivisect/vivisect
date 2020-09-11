@@ -11,10 +11,8 @@ import envi.bits as e_bits
 # Grab our register enums etc...
 from envi.const import *
 from envi.archs.i386.regs import *
-from envi.archs.i386.opconst import OP_EXTRA_MEMSIZES, OP_MEM_B, OP_MEM_W, OP_MEM_D, \
-                                    OP_MEM_Q, OP_MEM_DQ, OP_MEM_QQ, OP_MEMMASK, \
-                                    INS_VEXREQ, OP_NOVEXL
 
+import envi.archs.i386.opconst as opconst
 import envi.archs.i386.opcode86 as opcode86
 all_tables = opcode86.tables86
 
@@ -113,15 +111,15 @@ priv_lookup = {
 
 # Map of codes to their respective envi flags
 iflag_lookup = {
-    opcode86.INS_RET: envi.IF_NOFALL | envi.IF_RET,
-    opcode86.INS_CALL: envi.IF_CALL,
-    opcode86.INS_HALT: envi.IF_NOFALL,
-    opcode86.INS_DEBUG: envi.IF_NOFALL,
-    opcode86.INS_CALLCC: envi.IF_CALL | envi.IF_COND,
-    opcode86.INS_BRANCH: envi.IF_NOFALL | envi.IF_BRANCH,
-    opcode86.INS_BRANCHCC: envi.IF_BRANCH | envi.IF_COND,
-    opcode86.INS_MOVCC: envi.IF_COND,
-    opcode86.INS_XCHGCC: envi.IF_COND,
+    opconst.INS_RET: envi.IF_NOFALL | envi.IF_RET,
+    opconst.INS_CALL: envi.IF_CALL,
+    opconst.INS_HALT: envi.IF_NOFALL,
+    opconst.INS_DEBUG: envi.IF_NOFALL,
+    opconst.INS_CALLCC: envi.IF_CALL | envi.IF_COND,
+    opconst.INS_BRANCH: envi.IF_NOFALL | envi.IF_BRANCH,
+    opconst.INS_BRANCHCC: envi.IF_BRANCH | envi.IF_COND,
+    opconst.INS_MOVCC: envi.IF_COND,
+    opconst.INS_XCHGCC: envi.IF_COND,
 }
 
 sizenames = ["" for x in range(65)]
@@ -571,7 +569,7 @@ class i386Opcode(envi.Opcode):
 
         # If we are a conditional branch, even our fallthrough
         # case is conditional...
-        if self.opcode == opcode86.INS_BRANCHCC:
+        if self.opcode == opconst.INS_BRANCHCC:
             flags |= envi.BR_COND
             addb = True
 
@@ -585,16 +583,16 @@ class i386Opcode(envi.Opcode):
             return ret
 
         # Check for a call...
-        if self.opcode == opcode86.INS_CALL:
+        if self.opcode == opconst.INS_CALL:
             flags |= envi.BR_PROC
             addb = True
 
         # A conditional call?  really?  what compiler did you use? ;)
-        elif self.opcode == opcode86.INS_CALLCC:
+        elif self.opcode == opconst.INS_CALLCC:
             flags |= (envi.BR_PROC | envi.BR_COND)
             addb = True
 
-        elif self.opcode == opcode86.INS_BRANCH:
+        elif self.opcode == opconst.INS_BRANCH:
             oper0 = self.opers[0]
             if isinstance(oper0, i386SibOper) and oper0.scale == 4:
                 # In the case with no emulator, note that our deref is
@@ -665,26 +663,26 @@ class i386Disasm:
         self.ptrsize = 4
 
         # This will make function lookups nice and quick
-        self._dis_amethods = [ None for x in range(1 + (opcode86.ADDRMETH_LAST>>16)) ]
-        self._dis_amethods[opcode86.ADDRMETH_A>>16] = self.ameth_a
-        self._dis_amethods[opcode86.ADDRMETH_C>>16] = self.ameth_c
-        self._dis_amethods[opcode86.ADDRMETH_D>>16] = self.ameth_d
-        self._dis_amethods[opcode86.ADDRMETH_E>>16] = self.ameth_e
-        self._dis_amethods[opcode86.ADDRMETH_M>>16] = self.ameth_e
-        self._dis_amethods[opcode86.ADDRMETH_N>>16] = self.ameth_n
-        self._dis_amethods[opcode86.ADDRMETH_Q>>16] = self.ameth_q
-        self._dis_amethods[opcode86.ADDRMETH_R>>16] = self.ameth_e
-        self._dis_amethods[opcode86.ADDRMETH_W>>16] = self.ameth_w
-        self._dis_amethods[opcode86.ADDRMETH_I>>16] = self.ameth_i
-        self._dis_amethods[opcode86.ADDRMETH_J>>16] = self.ameth_j
-        self._dis_amethods[opcode86.ADDRMETH_O>>16] = self.ameth_o
-        self._dis_amethods[opcode86.ADDRMETH_G>>16] = self.ameth_g
-        self._dis_amethods[opcode86.ADDRMETH_P>>16] = self.ameth_p
-        self._dis_amethods[opcode86.ADDRMETH_S>>16] = self.ameth_s
-        self._dis_amethods[opcode86.ADDRMETH_U>>16] = self.ameth_u
-        self._dis_amethods[opcode86.ADDRMETH_V>>16] = self.ameth_v
-        self._dis_amethods[opcode86.ADDRMETH_X>>16] = self.ameth_x
-        self._dis_amethods[opcode86.ADDRMETH_Y>>16] = self.ameth_y
+        self._dis_amethods = [ None for x in range(1 + (opconst.ADDRMETH_LAST>>16)) ]
+        self._dis_amethods[opconst.ADDRMETH_A>>16] = self.ameth_a
+        self._dis_amethods[opconst.ADDRMETH_C>>16] = self.ameth_c
+        self._dis_amethods[opconst.ADDRMETH_D>>16] = self.ameth_d
+        self._dis_amethods[opconst.ADDRMETH_E>>16] = self.ameth_e
+        self._dis_amethods[opconst.ADDRMETH_M>>16] = self.ameth_e
+        self._dis_amethods[opconst.ADDRMETH_N>>16] = self.ameth_n
+        self._dis_amethods[opconst.ADDRMETH_Q>>16] = self.ameth_q
+        self._dis_amethods[opconst.ADDRMETH_R>>16] = self.ameth_e
+        self._dis_amethods[opconst.ADDRMETH_W>>16] = self.ameth_w
+        self._dis_amethods[opconst.ADDRMETH_I>>16] = self.ameth_i
+        self._dis_amethods[opconst.ADDRMETH_J>>16] = self.ameth_j
+        self._dis_amethods[opconst.ADDRMETH_O>>16] = self.ameth_o
+        self._dis_amethods[opconst.ADDRMETH_G>>16] = self.ameth_g
+        self._dis_amethods[opconst.ADDRMETH_P>>16] = self.ameth_p
+        self._dis_amethods[opconst.ADDRMETH_S>>16] = self.ameth_s
+        self._dis_amethods[opconst.ADDRMETH_U>>16] = self.ameth_u
+        self._dis_amethods[opconst.ADDRMETH_V>>16] = self.ameth_v
+        self._dis_amethods[opconst.ADDRMETH_X>>16] = self.ameth_x
+        self._dis_amethods[opconst.ADDRMETH_Y>>16] = self.ameth_y
 
         # Offsets used to add in addressing method parsers
         # MMX is just a meta reg of st
@@ -987,7 +985,7 @@ class i386Disasm:
                         # that knowledge into the opcodes mappings we maintain and pluck it out
                         # here.
                         if getattr(oper, "_is_deref", False):
-                            memsz = OP_EXTRA_MEMSIZES[(operflags & OP_MEMMASK) >> 4]
+                            memsz = opconst.OP_EXTRA_MEMSIZES[(operflags & opconst.OP_MEMMASK) >> 4]
                             if memsz is not None:
                                 oper.tsize = memsz
 

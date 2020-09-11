@@ -69,7 +69,7 @@ class ExpressionLocals(dict):
             for va, name in self.symobj.getNames():
                 yield name
 
-        dict.__iter__(self)
+        yield from dict.__iter__(self)
 
     def keys(self):
         return [key for key in self]

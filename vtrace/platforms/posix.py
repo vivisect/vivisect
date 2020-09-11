@@ -248,8 +248,8 @@ class PtraceMixin:
             pad = self.readMemory(address+(len(bytes)-remainder), wordsize)
             bytes += pad[remainder:]
 
-        for i in range(len(bytes)/wordsize):
-            offset = wordsize*i
+        for i in range(int(len(bytes)/wordsize)):
+            offset = wordsize * i
             dword = struct.unpack("L",bytes[offset:offset+wordsize])[0]
             if ptrace(PT_WRITE_D, self.pid, int(address+offset), int(dword)) != 0:
                 raise Exception("ERROR ptrace PT_WRITE_D failed!")

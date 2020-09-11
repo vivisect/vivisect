@@ -935,8 +935,8 @@ class Trace(e_mem.IMemory, e_reg.RegisterContext, e_resolv.SymbolResolver, objec
 
         Example: trace.parseExpression("ispoi(ecx+ntdll.RtlAllocateHeap)")
         """
-        locs = VtraceExpressionLocals(self)
-        return int(e_expr.evaluate(expression, locs))
+        vlocs = VtraceExpressionLocals(self)
+        return int(e_expr.evaluate(expression, vlocs))
 
     def sendBreak(self):
         """
