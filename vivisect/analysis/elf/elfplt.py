@@ -94,7 +94,7 @@ def getGOT(vw, fileva):
 
     # pull GOT info from Dynamics
     fdyns = vw.getFileMeta(filename, 'ELF_DYNAMICS')
-    if fdyns is not None:
+    if fdyns is not None and gotva is not None:
         FGOT = fdyns.get('DT_PLTGOT')
         if FGOT is not None:
             # be sure to add the imgbase to FGOT if required
@@ -315,7 +315,7 @@ def analyzePLT(vw, ssva, ssize):
         # *don't* use the first entry, because the trampoline is often oddly sized...
         logger.debug('finding plt_size...')
         plt_size = 0
-        # let's start at the end, since with or without a tramp, we have to have *one* good one, 
+        # let's start at the end, since with or without a tramp, we have to have *one* good one,
         # or we just don't care.
         bridx = len(branchvas)-1
 

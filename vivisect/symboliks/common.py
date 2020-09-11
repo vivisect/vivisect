@@ -140,6 +140,9 @@ class SymbolikBase:
     def __idiv__(self, other):
         return o_div(self, other, self.getWidth())
 
+    def __floordiv__(self, other):
+        return o_div(self, other, self.getWidth())
+
     def __pow__(self, other):
         return o_pow(self, other, self.getWidth())
 

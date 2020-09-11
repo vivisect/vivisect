@@ -45,7 +45,7 @@ import vivisect.analysis.generic.emucode as v_emucode
 
 
 logger = logging.getLogger(__name__)
-e_common.setLogging(logger, 'INFO')
+e_common.setLogging(logger, 'WARNING')
 
 # FIXME: UGH. Due to our package structure, we have no centralized logging leve
 # so we have to force it here and a few other places

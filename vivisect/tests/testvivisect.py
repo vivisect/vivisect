@@ -426,7 +426,7 @@ class VivisectTest(unittest.TestCase):
         ans = [
             (0x804a468, 0x804a210, 62),
             (0x804ad21, 0x804a210, 5),
-            (0x804b00a, 0x804a210, 7),  # 0x8059b78
+            (0x804b00a, 0x804af40, 7),  # 0x8059b78
             (0x804beee, 0x804bee0, 6),
             (0x804d1c9, 0x804d1a0, 6),
             (0x804d28f, 0x804d1a0, 15),  # 0x8059bb8
