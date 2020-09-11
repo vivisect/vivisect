@@ -33,6 +33,7 @@ class VtraceProcessTest(unittest.TestCase):
         self.trace.setMode('RunForever', True)
         self.trace.setMode('NonBlocking', True)
         self.proc.stdin.write('testmod\n')
+        self.proc.stdin.flush()
         self.trace.run()
 
     def runUntilExit(self):
@@ -40,6 +41,7 @@ class VtraceProcessTest(unittest.TestCase):
         self.trace.setMode('RunForever', True)
         self.trace.setMode('NonBlocking', False)
         self.proc.stdin.write('testmod\n')
+        self.proc.stdin.flush()
         self.trace.run()
 
         self.assertEqual(self.trace.getMeta('ExitCode'), 33)
