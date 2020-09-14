@@ -584,8 +584,8 @@ class TracerBase(vtrace.Notifier):
                     done[fname] = True
                     self.addLibraryBase(fname, addr, always=always)
 
-            except:
-                pass # *never* do this... except this once...
+            except Exception as e:
+                logger.warning('findLibraryMaps(0x%x, %d, %s, %s) hit exception: %s', addr, size, perms, fname, e)
 
     def _loadBinaryNorm(self, normname):
         if not self.libloaded.get(normname, False):

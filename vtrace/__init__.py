@@ -337,7 +337,7 @@ class Trace(e_mem.IMemory, e_reg.RegisterContext, e_resolv.SymbolResolver, objec
         "normalized" library names.  This method returns
         the list of normalized names for the loaded libraries.
 
-        (probably only useful for writting symbol browsers...)
+        (probably only useful for writing symbol browsers...)
         """
         return list(self.getMeta("LibraryBases").keys())
 
