@@ -253,7 +253,7 @@ class CodeFlowContext(object):
             if not self._mem.isFunction(fva):
                 self.addEntryPoint(fva, arch=arch)
 
-        return calls_from.keys()
+        return list(calls_from.keys())
 
     def addEntryPoint(self, va, arch=envi.ARCH_DEFAULT):
         '''
