@@ -23,7 +23,7 @@ class Msp430Module(envi.ArchitectureModule):
         return Msp430RegisterContext()
 
     def archGetNopInstr(self):
-        return '\x03\x43' # NOP is emulated with: MOV #0, R3
+        return b'\x03\x43' # NOP is emulated with: MOV #0, R3
 
     def archGetRegisterGroups(self):
         groups = envi.ArchitectureModule.archGetRegisterGroups(self)

@@ -1947,7 +1947,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
         if self.getName(va) is None:
             m = self.readMemory(va, size-1).replace(b'\n', b'')
-            self.makeName(va, "str_%s_%.8x" % (m[:16],va))
+            self.makeName(va, "str_%s_%.8x" % (m[:16].decode('utf-8'), va))
         return self.addLocation(va, size, LOC_STRING)
 
     def makeUnicode(self, va, size=None):

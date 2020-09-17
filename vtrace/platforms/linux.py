@@ -785,7 +785,7 @@ class Linuxi386Trace(
         SYS_mmap = 90
 
         self.writeMemory(sp, mma)
-        self.writeMemory(pc, "\xcd\x80")
+        self.writeMemory(pc, b"\xcd\x80")
         self.setRegisterByName("eax", SYS_mmap)
         self.setRegisterByName("ebx", sp)
         self._syncRegs()

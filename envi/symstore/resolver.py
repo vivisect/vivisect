@@ -18,22 +18,110 @@ class Symbol:
         self.size = size
         self.fname = fname
 
+    def __ge__(self, other):
+        return int(self) >= int(other)
+    def __le__(self, other):
+        return int(self) <= int(other)
+    def __gt__(self, other):
+        return int(self) > int(other)
+    def __lt__(self, other):
+        return int(self) < int(other)
     def __eq__(self, other):
         if not isinstance(other, Symbol):
             return False
         return int(self) == int(other)
+    def __add__(self, other):
+        return int(self) + int(other)
+    def __sub__(self, other):
+        return int(self) - int(other)
+    def __mul__(self, other):
+        return int(self) * int(other)
+    def __div__(self, other):
+        return int(self) / int(other)
+    def __floordiv__(self, other):
+        return int(self) // int(other)
+    def __mod__(self, other):
+        return int(self) % int(other)
+    def __divmod__(self, other):
+        return divmod(int(self), int(other))
+    def __pow__(self, other, modulo=None):
+        return pow(int(self), int(other), modulo)
+    def __lshift__(self, other):
+        return int(self) << int(other)
+    def __rshift__(self, other):
+        return int(self) >> int(other)
+    def __and__(self, other):
+        return int(self) & int(other)
+    def __xor__(self, other):
+        return int(self) ^ int(other)
+    def __or__(self, other):
+        return int(self) | int(other)
+    # Operator swapped variants
+    def __radd__(self, other):
+        return int(other) + int(self)
+    def __rsub__(self, other):
+        return int(other) - int(self)
+    def __rmul__(self, other):
+        return int(other) * int(self)
+    def __rdiv__(self, other):
+        return int(other) / int(self)
+    def __rfloordiv__(self, other):
+        return int(other) // int(self)
+    def __rmod__(self, other):
+        return int(other) % int(self)
+    def __rdivmod__(self, other):
+        return divmod(int(other), int(self))
+    def __rpow__(self, other, modulo=None):
+        return pow(int(other), int(self), modulo)
+    def __rlshift__(self, other):
+        return int(other) << int(self)
+    def __rrshift__(self, other):
+        return int(other) >> int(self)
+    def __rand__(self, other):
+        return int(other) & int(self)
+    def __rxor__(self, other):
+        return int(other) ^ int(self)
+    def __ror__(self, other):
+        return int(other) | int(self)
 
-    def __coerce__(self, value):
-        t = type(value)
-
-        if isinstance(t, types.NoneType):
-            return (True, False)
-
-        if isinstance(t, int):
-            return (t(self.value), value)
-
-        if isinstance(value, Symbol):
-            return (int(self.value), int(value.value))
+    # Inplace variants
+    def __iadd__(self, other):
+        self.value += int(other)
+        return self
+    def __isub__(self, other):
+        self.value -= int(other)
+        return self
+    def __imul__(self, other):
+        self.value *= int(other)
+        return self
+    def __idiv__(self, other):
+        self.value = int(self.value / int(other))
+        return self
+    def __ifloordiv__(self, other):
+        self.value //= int(other)
+        return self
+    def __imod__(self, other):
+        self.vsSetValue(self % other)
+        self.value %= int(other)
+        return self
+    def __ipow__(self, other, modulo=None):
+        self.value = pow(self.value, other, modulo)
+        return self
+    def __ilshift__(self, other):
+        self.value <<= other
+        return self
+    def __irshift__(self, other):
+        self.value >>= other
+        return self
+    def __iand__(self, other):
+        self.value &= other
+        return self
+    def __ixor__(self, other):
+        self.value ^= other
+        return self
+    def __ior__(self, other):
+        self.value |= other
+        return self
 
     def __hash__(self):
         return hash(int(self))

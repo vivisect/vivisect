@@ -600,8 +600,6 @@ class i386Opcode(envi.Opcode):
                 # valid pointers from our base
                 base = oper0._getOperBase(emu)
                 if emu is None:
-                    if base is None:
-                        breakpoint()
                     ret.append((base, flags | envi.BR_DEREF | envi.BR_TABLE))
 
                 else:

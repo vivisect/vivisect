@@ -1,6 +1,6 @@
-pyasn1==0.4.5
-pyasn1-modules==0.2.4
+pyasn1==0.4.8
+pyasn1-modules==0.2.8
 cxxfilt>=0.2.2
 msgpack==1.0.0
 pycparser==2.20
-requests==2.22.0
+pyqt5==5.14.1

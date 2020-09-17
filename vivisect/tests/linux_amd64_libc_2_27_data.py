@@ -4589,7 +4589,7 @@ libc_data = {
         (0x210f590, 'libc_2_27.__sched_cpucount'),
         (0x210f5b0, 'libc_2_27.__sched_cpualloc'),
         (0x210f5d0, 'libc_2_27.__sched_cpufree'),
-        (0x210f5e0, 'libc_2_27.sched_getcp'),
+        (0x210f5e0, 'libc_2_27.sched_getcpu'),
         (0x210f690, 'libc_2_27.utime'),
         (0x210f6c0, 'libc_2_27.mkfifo'),
         (0x210f710, 'libc_2_27.mkfifoat'),

@@ -251,7 +251,6 @@ class v_number(v_prim):
     def __eq__(self, other):
         return int(self) == int(other)
 
-
     # Operator swapped variants
     def __radd__(self, other): return int(other) + int(self)
     def __rsub__(self, other): return int(other) - int(self)
@@ -268,18 +267,42 @@ class v_number(v_prim):
     def __ror__(self, other): return int(other) | int(self)
 
     # Inplace variants
-    def __iadd__(self, other): self.vsSetValue(self+other); return self
-    def __isub__(self, other): self.vsSetValue(self - other); return self
-    def __imul__(self, other): self.vsSetValue(self*other); return self
-    def __idiv__(self, other): self.vsSetValue(self/other); return self
-    def __ifloordiv__(self, other): self.vsSetValue(self // other); return self
-    def __imod__(self, other): self.vsSetValue(self % other); return self
-    def __ipow__(self, other, modulo=None): self.vsSetValue(pow(self, other, modulo)); return self
-    def __ilshift__(self, other): self.vsSetValue(self << other); return self
-    def __irshift__(self, other): self.vsSetValue(self >> other); return self
-    def __iand__(self, other): self.vsSetValue(self & other); return self
-    def __ixor__(self, other): self.vsSetValue(self ^ other); return self
-    def __ior__(self, other): self.vsSetValue(self | other); return self
+    def __iadd__(self, other):
+        self.vsSetValue(self+other)
+        return self
+    def __isub__(self, other):
+        self.vsSetValue(self - other)
+        return self
+    def __imul__(self, other):
+        self.vsSetValue(self*other)
+        return self
+    def __idiv__(self, other):
+        self.vsSetValue(self/other)
+        return self
+    def __ifloordiv__(self, other):
+        self.vsSetValue(self // other)
+        return self
+    def __imod__(self, other):
+        self.vsSetValue(self % other)
+        return self
+    def __ipow__(self, other, modulo=None):
+        self.vsSetValue(pow(self, other, modulo))
+        return self
+    def __ilshift__(self, other):
+        self.vsSetValue(self << other)
+        return self
+    def __irshift__(self, other):
+        self.vsSetValue(self >> other)
+        return self
+    def __iand__(self, other):
+        self.vsSetValue(self & other)
+        return self
+    def __ixor__(self, other):
+        self.vsSetValue(self ^ other)
+        return self
+    def __ior__(self, other):
+        self.vsSetValue(self | other)
+        return self
 
     # operator helpers
     def __neg__(self):
@@ -294,12 +317,6 @@ class v_number(v_prim):
     # index use helper
     def __index__(self):
         return int(self)
-
-    def __coerce__(self, other):
-        try:
-            return int(self), int(other)
-        except Exception:
-            return NotImplemented
 
     # Print helpers
     def __hex__(self):
@@ -507,12 +524,6 @@ class v_float(v_prim):
 
     # index use helper
     def __index__(self): return float(self)
-
-    def __coerce__(self, other):
-        try:
-            return float(self),float(other)
-        except Exception:
-            return NotImplemented
 
     # Print helpers
     def __hex__(self): return hex(float(self))
