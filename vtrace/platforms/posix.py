@@ -57,7 +57,7 @@ class PosixMixin:
 
     def handleAttach(self):
         self.fireNotifiers(vtrace.NOTIFY_ATTACH)
-        self._findLibraryMaps('\x7fELF', always=True)
+        self._findLibraryMaps(b'\x7fELF', always=True)
         self._simpleCreateThreads()
         # We'll emulate windows here and send an additional
         # break after our library load events to make things easy
