@@ -337,6 +337,10 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
         if vw.probeMemory(rva + baseaddr, 4, e_mem.MM_READ):
             vw.makeImport(rva + baseaddr, lname, iname)
 
+    for rva, lname, iname in pe.getDelayImports():
+        if vw.probeMemory(rva + baseaddr, 4, e_mem.MM_READ):
+            vw.makeImport(rva + baseaddr, lname, iname)
+
     # Tell vivisect about ntdll functions that don't exit...
     vw.addNoReturnApi("ntdll.RtlExitUserThread")
     vw.addNoReturnApi("kernel32.ExitProcess")
