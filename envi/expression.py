@@ -77,8 +77,8 @@ class ExpressionLocals(dict):
     def __contains__(self, key):
         return self.__getitem__(key) is not None
 
+    # TODO: remove in py3
     has_key = __contains__
-
 
 class MemoryExpressionLocals(ExpressionLocals):
 

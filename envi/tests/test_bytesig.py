@@ -1,5 +1,4 @@
 import unittest
-import traceback
 import envi.bytesig
 
 class SignatureTests(unittest.TestCase):
@@ -16,4 +15,4 @@ class SignatureTests(unittest.TestCase):
         self.assertTrue(sigtree.getSignature('\x55\xe9\xd8\x01\xfe\xff\x32\x00\x99\x36\x5f\x21\xfd') == signature_base[:7])
         self.assertTrue(sigtree.getSignature('\x55\xe9\xd8\x01\xfe\xff\x32') == signature_base[:7])
         self.assertTrue(sigtree.getSignature('\x55\xe9\xd8\x01\xfe\x00') == signature_base[:4])
-        self.assertTrue(sigtree.getSignature('\x55') == None)
+        self.assertTrue(sigtree.getSignature('\x55') is None)

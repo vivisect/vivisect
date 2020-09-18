@@ -598,7 +598,7 @@ class MiniDump(object):
 
         for idx, entry in self.MiniDumpMemoryInfoListStream.Entries:
             mname =  self.getModuleNameByAddr(entry.AllocationBase)
-            if mname == None:
+            if mname is None:
                 mname = 'Module Name Not Found'
 
             maps.append((entry.BaseAddress, entry.RegionSize, entry.Protect, mname))

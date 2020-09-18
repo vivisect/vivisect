@@ -13,8 +13,8 @@ sigtree = e_bsig.SignatureTree()
 for row in z80_opcode.z80table:
     sighex, maskhex = row[0]
 
-    sig = sighex.decode('hex')
-    mask = maskhex.decode('hex')
+    sig = binascii.unhexlify(sighex)
+    mask = binascii.unhexlify(maskhex)
 
     sigtree.addSignature(sig, masks=mask, val=row)
 
@@ -57,14 +57,14 @@ class z80Disasm:
 
     def disasm(self, bytez, offset, va):
         row = sigtree.getSignature(bytez, offset)
-        if row == None:
+        if row is None:
             raise envi.InvalidInstruction(bytez=bytez[offset:offset+8], va=va)
         sigmask, mnem, o1type, o1info, o2type, o2info, oplen, immoff, iflags = row
         #ret = i386Opcode(va, optype, mnem, prefixes, (offset-startoff)+operoffset, operands, iflags)
         opers = []
-        if o1type != None:
+        if o1type is not None:
             opers.append(self._buildOper(bytez, offset, immoff, o1type, o1info))
-        if o2type != None:
+        if o2type is not None:
             opers.append(self._buildOper(bytez, offset, immoff, o2type, o2info))
         return z80Opcode(va, 0, mnem, 0, oplen, opers, iflags)
 
@@ -88,11 +88,10 @@ class z80Disasm:
             return z80ImmOper(imm)
 
         elif otype == OPTYPE_RegAlt:
-            print 'REG ALT!'
             return z80RegOper(oinfo)
 
         elif otype == OPTYPE_Ind:
-            print 'OPTYPE IND'
+            pass
 
         elif otype == OPTYPE_RegMemDisp:
             disp = e_bits.parsebytes(bytez, offset+immoff, 1, sign=True)
@@ -100,13 +99,3 @@ class z80Disasm:
 
         else:
             raise Exception('Unknown z80 operand type: %d' % otype)
-
-if __name__ == '__main__':
-    print sigtree.getSignature('\x00')
-    print sigtree.getSignature('fdcb0006'.decode('hex'))
-
-    d = z80Disasm()
-
-    print repr(d.disasm('\xfd\xcb\x30\x06', 0, 20))
-
-

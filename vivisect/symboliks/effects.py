@@ -248,12 +248,12 @@ class CallFunction(SymbolikEffect):
 
     def walkTree(self, cb, ctx=None, once=True):
         self.funcsym = self.funcsym.walkTree(cb, ctx=ctx, once=once)
-        if self.argsyms != None:
+        if self.argsyms is not None:
             self.argsyms = [ a.walkTree(cb,ctx=ctx, once=once) for a in self.argsyms ]
 
     def reduce(self, emu=None):
         self.funcsym = self.funcsym.reduce(emu=emu)
-        if self.argsyms != None:
+        if self.argsyms is not None:
             self.argsyms = [ x.reduce(emu=emu) for x in self.argsyms ]
 
     def applyEffect(self, emu):
@@ -262,8 +262,8 @@ class CallFunction(SymbolikEffect):
 
         # If we have argsyms, the function's work has been broken out
         # already (probably by applying effects once already...)
-        if self.argsyms != None:
-            argsyms = [ x.update(emu) for x in self.argsyms ]
+        if self.argsyms is not None:
+            argsyms = [x.update(emu) for x in self.argsyms]
             return CallFunction(self.va, funcsym, argsyms)
 
         # Without argsyms, we are probably a call who is being applied to
@@ -300,6 +300,7 @@ class ConstrainPath(SymbolikEffect):
         self.cons = cons
 
     def walkTree(self, cb, ctx=None, once=True):
+        # TODO: Should be also walk the addrsym here?
         self.cons.walkTree(cb, ctx=ctx, once=once)
 
     def reduce(self, emu=None):
@@ -318,7 +319,7 @@ class ConstrainPath(SymbolikEffect):
         canvas.addText(')')
 
     def __eq__(self, other):
-        if other == None:
+        if other is None:
             return False
         if self.__class__ != other.__class__:
             return False

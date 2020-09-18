@@ -86,19 +86,19 @@ def isBasicUnicode(bytez):
 
 def getAsciiFormatted(bytez):
     is_ascii, bytez = isAscii(bytez)
-    if bytez != None:
+    if bytez is not None:
         bytez = "'%s'" % bytez
     return bytez
 
 def getBasicUnicodeFormatted(bytez):
     is_uni, bytez = isBasicUnicode(bytez)
-    if bytez != None:
+    if bytez is not None:
         bytez = "u'%s'" % bytez
     return bytez
 
 def getSymByAddrFormatted(trace, va):
     sym = trace.getSymByAddr(va, exact=False)
-    if sym != None:
+    if sym is not None:
         return '%s + %d' % (repr(sym), va-long(sym))
     return sym
 
@@ -124,7 +124,7 @@ class AutoBytesRenderer(e_canvas.MemoryRenderer):
 
         prettyperm = ''
         mmap = trace.getMemoryMap(va)
-        if mmap != None:
+        if mmap is not None:
             addr, size, perm, fname = mmap
             prettyperm = e_mem.reprPerms(perm)
 
@@ -135,12 +135,12 @@ class AutoBytesRenderer(e_canvas.MemoryRenderer):
 
         desc = ''
         pdesc = (ascii_text, uni_text, sym, fname)
-        items = [ppdesc for ppdesc in pdesc if ppdesc != None]
+        items = [ppdesc for ppdesc in pdesc if ppdesc is not None]
         if len(items) == 1:
             desc = items[0]
         elif len(items) == 0:
             # if none match, just return the bytes.
-            desc = bytez.encode('hex')
+            desc = binascii.hexlify(bytez)
         elif len(items) > 1:
             # we only really expect one or none of these to match.
             desc = 'Error, multiple matches for this address!'

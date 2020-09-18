@@ -18,6 +18,7 @@ from vivisect.const import *
 class VivNavModel(e_q_memory.EnviNavModel):
     pass
 
+# TODO: This is marked pending deletion, as is the things that depend on it (they're not used anywhere
 class VivView(VqtView, viv_base.VivEventCore):
     '''
     In any vivisect list/tree view, the first column will be
@@ -32,6 +33,7 @@ class VivView(VqtView, viv_base.VivEventCore):
 
 class VivLocModel(VqtModel):
     columns = ('Address','Location')
+
 
 class VivLocView(VivView):
 
@@ -55,8 +57,6 @@ class VivLocView(VivView):
 
     def VWE_DELLOCATION(self, vw, event, einfo):
         lva, lsize, ltype, linfo = einfo
-        if ltype in self.loctypes:
-            print 'DEL ONE!'
 
 def getLocView(vw, loctypes, title, parent=None):
     view = VivLocView( vw, loctypes, parent=parent)
@@ -85,7 +85,7 @@ class VQVivTreeView(vq_tree.VQTreeView, viv_base.VivEventCore):
         self.doubleClicked.connect( self.doubleClickedSignal )
 
     def doubleClickedSignal(self, idx):
-        if idx.isValid() and self._viv_navcol != None:
+        if idx.isValid() and self._viv_navcol is not None:
             pnode = idx.internalPointer()
             expr = pnode.rowdata[self._viv_navcol]
             vqtevent('envi:nav:expr', ('viv',expr,None))
@@ -98,7 +98,7 @@ class VQVivTreeView(vq_tree.VQTreeView, viv_base.VivEventCore):
             return
 
         idx = idxlist[0]
-        if idx.isValid() and self._viv_navcol != None:
+        if idx.isValid() and self._viv_navcol is not None:
             pnode = idx.internalPointer()
             expr = pnode.rowdata[self._viv_navcol]
             v_q_ctxmenu.buildContextMenu(self.vw, expr=expr, menu=menu)
@@ -167,7 +167,7 @@ class VQVivLocView(VQVivTreeView):
             self.vivAddLocation(lva, lsize, ltype, linfo)
 
     def vivAddLocation(self, lva, lsize, ltype, linfo):
-        print "FIXME OVERRIDE"
+        raise NotImplementedError("LocationViews must override vivAddLocation")
 
 class VQVivStringsView(VQVivLocView):
 
@@ -280,14 +280,14 @@ class VQVivFunctionsView(VQVivTreeView):
     def VWE_ADDXREF(self, vw, event, einfo):
         fromva, tova, rtype, rflag = einfo
         cnt = self.vivGetData(tova, 3)
-        if cnt == None:
+        if cnt is None:
             return
         self.vivSetData(tova, 3, cnt + 1)
 
     def VWE_DELXREF(self, vw, event, einfo):
         fromva, tova, rtype, rflag = einfo
         cnt = self.vivGetData(tova, 3)
-        if cnt == None:
+        if cnt is None:
             return
         self.vivSetData(tova, 3, cnt - 1)
 
@@ -393,7 +393,7 @@ class VQVivVaSetView(VQVivTreeView):
 
             handler = vaset_reprHandlers.get(itype)
 
-            if handler == None:
+            if handler is None:
                 row[idx] = repr(row[idx])
             else:
                 row[idx] = handler(self.vw, item)
@@ -415,7 +415,7 @@ class VQXrefView(VQVivTreeView):
         for fromva, tova, rtype, rflags in xrefs:
             fva = vw.getFunction(fromva)
             funcname = ''
-            if fva != None:
+            if fva is not None:
                 funcname = vw.getName(fva)
             self.vivAddRow(fromva, '0x%.8x' % fromva, rtype, rflags, funcname)
 
@@ -444,7 +444,7 @@ class VQVivNamesView(VQVivTreeView):
 
     def vivAddName(self, nifo):
         va, name = nifo
-        if self.vivGetData(va, 0) == None:
+        if self.vivGetData(va, 0) is None:
             self.vivAddRow(va, '0x%.8x' % va, name)
         else:
             self.vivSetData(va, 1, name)

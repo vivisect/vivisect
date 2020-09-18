@@ -172,7 +172,7 @@ class H8Emulator(H8Module, h8_regs.H8RegisterContext, envi.Emulator):
                 logger.info("Ignoring maskable interrupt (CCR_I flag is set)")
                 return
 
-        logger.info("Interrupt Handler: 0x%x" % intval)
+        logger.info("Interrupt Handler: 0x%x", intval)
 
         addr = 0
 
@@ -203,7 +203,7 @@ class H8Emulator(H8Module, h8_regs.H8RegisterContext, envi.Emulator):
         if the desired behavior differs.
         supports: advanced and normal modes
         '''
-        logger.info("Interrupt Handler: 0x%x" % intval)
+        logger.info("Interrupt Handler: 0x%x", intval)
 
         addr = 0
 
@@ -589,7 +589,7 @@ class H8Emulator(H8Module, h8_regs.H8RegisterContext, envi.Emulator):
 
         addtup = bcd_add.get((C, H, upop, loop))
         if addtup is None:
-            logger.debug("DAA:  %x %x %x %x - addtup is None" % (C, H, upop, loop))
+            logger.debug("DAA:  %x %x %x %x - addtup is None", C, H, upop, loop)
             return  # FIXME: raise exception once figured out
         addval, resC = addtup
         ures = addval + oper
@@ -609,8 +609,9 @@ class H8Emulator(H8Module, h8_regs.H8RegisterContext, envi.Emulator):
 
         addtup = bcd_sub.get((C, H, upop, loop))
         if addtup is None:
-            logger.debug("DAS:  %x %x %x %x - addtup is None" % (C, H, upop, loop))
-            return  # FIXME: raise exception once figured out
+            logger.debug("DAS:  %x %x %x %x - addtup is None", C, H, upop, loop)
+            # FIXME: raise exception once figured out
+            return
         addval, resC = addtup
         ures = addval + oper
 
@@ -819,8 +820,7 @@ class H8Emulator(H8Module, h8_regs.H8RegisterContext, envi.Emulator):
 
         src = self.getRegister(h8_regs.REG_ER5)
         dst = self.getRegister(h8_regs.REG_ER6)
-        logger.info("WARNING: EEPMOV instruction executed... 0x%x -> 0x%x (count=0x%x)" % (
-            src, dst, count * delta))
+        logger.info("WARNING: EEPMOV instruction executed... 0x%x -> 0x%x (count=0x%x)", src, dst, count * delta)
 
         for x in range(count):
             data = self.readMemValue(src, delta)
@@ -1232,5 +1232,5 @@ class H8Emulator(H8Module, h8_regs.H8RegisterContext, envi.Emulator):
         self.setOperValue(op, 0, oper)
 
     def i_trapa(self, op):
-        logger.info("SW EXCEPTION:  %s" % op)
+        logger.info("SW EXCEPTION:  %s", op)
         # FIXME: processInterrupt()

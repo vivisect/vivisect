@@ -38,18 +38,17 @@ class SvgGraphRenderer(vg_render.GraphRenderer):
 
     def endRender(self):
         # Actually write out the file.
-        f = file(self.svgfile,'wb')
-        f.write('<?xml version="1.0" standalone="no"?>\n')
-        #f.write('<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd" >\n')
-        xsize = self._vg_canvas_width
-        ysize = self._vg_canvas_height
-        f.write('<svg width="%d" height="%d" version="1.1" xmlns="http://www.w3.org/2000/svg">\n' % (xsize,ysize))
-        for x in self._node_xml:
-            f.write(x + '\n')
-        for x in self._edge_xml:
-            f.write(x + '\n')
-        f.write('</svg>\n')
-        f.close()
+        with open(self.svgfile, 'wb) as f:
+            f.write('<?xml version="1.0" standalone="no"?>\n')
+            #f.write('<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd" >\n')
+            xsize = self._vg_canvas_width
+            ysize = self._vg_canvas_height
+            f.write('<svg width="%d" height="%d" version="1.1" xmlns="http://www.w3.org/2000/svg">\n' % (xsize,ysize))
+            for x in self._node_xml:
+                f.write(x + '\n')
+            for x in self._edge_xml:
+                f.write(x + '\n')
+            f.write('</svg>\n')
 
 if __name__ == '__main__':
 
@@ -83,4 +82,3 @@ if __name__ == '__main__':
     rend = vg_svgrend.SvgGraphRenderer(g, 'test.svg')
 
     layout.renderGraph(rend)
-

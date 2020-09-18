@@ -1,5 +1,4 @@
-
-"""
+'''
 If a "function" is in the plt it's a wrapper for something in the GOT.
 Make that apparent.
 
@@ -44,9 +43,7 @@ the start (and the branch) of each PLT entry.
 
 Armed with plt_distance and plt_size, we then determine where each PLT entry
 begins, and make those Functions, and analysis continues from there.
-
-
-"""
+'''
 import logging
 import vivisect
 import envi
@@ -97,7 +94,7 @@ def getGOT(vw, fileva):
 
     # pull GOT info from Dynamics
     fdyns = vw.getFileMeta(filename, 'ELF_DYNAMICS')
-    if fdyns is not None:
+    if fdyns is not None and gotva is not None:
         FGOT = fdyns.get('DT_PLTGOT')
         if FGOT is not None:
             # be sure to add the imgbase to FGOT if required

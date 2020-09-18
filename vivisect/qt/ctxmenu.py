@@ -207,7 +207,7 @@ def buildContextMenu(vw, va=None, expr=None, menu=None, parent=None, nav=None):
                     immmenu.addAction('chars (%s)' % cstr,  ACT(vw.setSymHint, va, idx, cstr))
 
                     names = vw.vsconsts.revLookup(val)
-                    if names != None:
+                    if names is not None:
                         for name in names:
                             immmenu.addAction(name, ACT(vw.setSymHint, va, idx, name))
             menu.addAction('make code xref->', ACT(vw.getVivGui().addVaXref, va))

@@ -1,7 +1,10 @@
+import binascii
+import unittest
+
 import envi
 import envi.memcanvas as e_memcanvas
+
 import vivisect
-import unittest
 
 # name, bytes, va, repr, txtRender
 i386SingleByteOpcodes = [
@@ -286,7 +289,7 @@ class i386InstructionSet(unittest.TestCase):
 
         for name, bytez, va, reprOp, renderOp in opcodes:
             try:
-                op = self._arch.archParseOpcode(bytez.decode('hex'), 0, va)
+                op = self._arch.archParseOpcode(binascii.unhexlify(bytez), 0, va)
             except envi.InvalidInstruction:
                 self.fail("Failed to parse opcode bytes: %s (case: %s, expected: %s)" % (bytez, name, reprOp))
             except Exception as e:
@@ -355,26 +358,22 @@ class i386InstructionSet(unittest.TestCase):
 
     def checkOpcode(self, hexbytez, va, oprepr, opcheck, opercheck, renderOp):
 
-        op = self._arch.archParseOpcode(hexbytez.decode('hex'), 0, va)
-
-        self.assertEqual( repr(op), oprepr )
+        op = self._arch.archParseOpcode(binascii.unhexlify(hexbytez), 0, va)
+        self.assertEqual(repr(op), oprepr)
         opvars = vars(op)
-        for opk,opv in opcheck.items():
-            # print("op: %s %s" % (opk,opv))
-            self.assertEqual( (opk, opvars.get(opk)), (opk, opv) )
+        for opk, opv in opcheck.items():
+            self.assertEqual((opk, opvars.get(opk)), (opk, opv))
 
         for oidx in range(len(op.opers)):
             oper = op.opers[oidx]
             opervars = vars(oper)
-            for opk,opv in opercheck[oidx].items():
-                # print("oper: %s %s" % (opk,opv))
-                self.assertEqual( (opk, opervars.get(opk)), (opk, opv) )
+            for opk, opv in opercheck[oidx].items():
+                self.assertEqual((opk, opervars.get(opk)), (opk, opv))
 
         vw = vivisect.VivWorkspace()
         scanv = e_memcanvas.StringMemoryCanvas(vw)
         op.render(scanv)
-        #print "render:  %s" % repr(scanv.strval)
-        self.assertEqual( scanv.strval, renderOp )
+        self.assertEqual(scanv.strval, renderOp)
 
     def test_envi_i386_disasm_Reg_Operands(self):
         '''

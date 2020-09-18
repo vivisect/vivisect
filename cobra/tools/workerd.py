@@ -1,21 +1,20 @@
 import sys
+import argparse
 
-import cobra
 import cobra.cluster as c_cluster
 
-def usage():
-    print('Usage: python -m cobra.tools.workerd <clustername>')
-    sys.exit(-1)
 
-def main():
+def setup():
+    ap = argparse.ArgumentParser('Cluster worker tool')
+    ap.add_argument('cluster', help='Name of the cluster to attach to')
+    return ap
 
-    if len(sys.argv) != 2:
-        usage()
 
-    cname = sys.argv[1]
-    worker = c_cluster.ClusterClient(cname, docode=True)
+def main(argv):
+    opts = setup().parse_args(argv)
+    worker = c_cluster.ClusterClient(opts.cluster, docode=True)
     worker.processWork()
 
+
 if __name__ == '__main__':
-    # FIXME make this actually take arguments
-    sys.exit(main())
+    sys.exit(main(sys.argv[1:]))
