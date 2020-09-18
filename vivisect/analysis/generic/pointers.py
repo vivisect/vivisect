@@ -65,22 +65,25 @@ def analyze(vw):
             logger.error('makePointer() failed for 0x%.8x (pval: 0x%.8x) (err: %s)', addr, pval, e)
 
     # Now let's see what these guys should be named (if anything)
-    for ptr, tgt in done:
-        try:
-            pname = vw.getName(ptr)
-            if pname is not None:
-                logger.info('skipping renaming of ptr 0x%x (currently: %r)', ptr, pname)
-                continue
+    for _, _ in done:
+        for ptr, tgt in done:
+            try:
+                pname = vw.getName(ptr)
+                if pname is not None:
+                    logger.info('skipping renaming of ptr 0x%x (currently: %r)', ptr, pname)
+                    continue
 
-            loc = vw.getLocation(ptr)
-            if loc is not None and loc[L_LTYPE] != LOC_POINTER:
-                logger.info('skipping naming of 0x%x (no longer a pointer: %s)', ptr, vw.reprLocation(loc))
-                continue
-            tgtname = vw.getName(tgt)
-            if tgtname is not None:
-                name = vw._addNamePrefix(tgtname, tgt, 'ptr', '_') + '_%.8x' % ptr
-                logger.debug('0x%s: adding name prefix: %r  (%r)', tgt, tgtname, name)
-                vw.makeName(ptr, name)
-        except Exception as e:
-            logger.error('naming failed (0x%x -> 0x%x), (err: %s)', ptr, tgt, e)
-            sys.excepthook(*sys.exc_info())
+                loc = vw.getLocation(ptr)
+                if loc is not None and loc[L_LTYPE] != LOC_POINTER:
+                    logger.info('skipping naming of 0x%x (no longer a pointer: %s)', ptr, vw.reprLocation(loc))
+                    continue
+                tgtname = vw.getName(tgt)
+                if tgtname is not None:
+                    name = vw._addNamePrefix(tgtname, tgt, 'ptr', '_') + '_%.8x' % ptr
+                    logger.debug('0x%x: adding name prefix: %r  (%r)', tgt, tgtname, name)
+                    vw.makeName(ptr, name)
+                else:
+                    logger.debug('0x%x: Skipping naming due to no target name' % tgt)
+            except Exception as e:
+                logger.error('naming failed (0x%x -> 0x%x), (err: %s)', ptr, tgt, e)
+                sys.excepthook(*sys.exc_info())
