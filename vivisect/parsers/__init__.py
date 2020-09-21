@@ -48,11 +48,11 @@ macho_magics = (
 )
 
 def guessFormat(bytes):
-    if bytes.startswith('MSGVIV'):
-        return 'mpviv'
-
     if bytes.startswith('VIV'):
         return 'viv'
+
+    if 'MSGVIV' in bytes[:8]:
+        return 'mpviv'
 
     if bytes.startswith("MZ"):
         return 'pe'

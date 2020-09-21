@@ -1,3 +1,4 @@
+import base64
 import logging
 
 import msgpack
@@ -16,6 +17,9 @@ VSIG = b'MSGVIV'.ljust(8, b'\x00')
 def vivEventsAppendFile(filename, events):
     with open(filename, 'ab') as f:
         for event in events:
+            if event[0] == 20:
+                mape = base64.b64encode(event[1][3])
+                event = (event[0], (event[1][0], event[1][1], event[1][2], mape))
             msgpack.pack(event, f, use_bin_type=True)
 
 
@@ -28,6 +32,9 @@ def vivEventsToFile(filename, events):
     with open(filename, 'wb') as f:
         msgpack.pack(VSIG, f, use_bin_type=True)
         for event in events:
+            if event[0] == 20:
+                mape = base64.b64encode(event[1][3])
+                event = (event[0], (event[1][0], event[1][1], event[1][2], mape))
             msgpack.pack(event, f, use_bin_type=True)
 
 
@@ -44,8 +51,11 @@ def vivEventsFromFile(filename):
         if siggy != VSIG:
             logger.warning('Invalid file signature of %s', str(siggy))
             return
-        for upck in unpacker:
-            events.append(upck)
+        for event in unpacker:
+            if event[0] == 20:
+                mape = base64.b64decode(event[1][3])
+                event = (event[0], (event[1][0], event[1][1], event[1][2], mape))
+            events.append(event)
     return events
 
 
