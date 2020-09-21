@@ -25,4 +25,4 @@ class VtraceWritememTest(vt_tests.VtraceProcessTest):
 
         # He should now print what we wrote...
         gotline = self.proc.stdout.readline().strip()
-        self.assertEqual(testbuf.decode('ascii'), gotline)
+        self.assertEqual(testbuf.decode('utf-8'), gotline)
