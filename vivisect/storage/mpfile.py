@@ -5,7 +5,7 @@ import msgpack
 
 logger = logging.getLogger(__name__)
 
-loadargs = {'use_list': False}
+loadargs = {'use_list': False, 'raw': False}
 if msgpack.version < (1, 0, 0):
     loadargs['encoding'] = 'utf-8'
 else:
@@ -20,7 +20,7 @@ def vivEventsAppendFile(filename, events):
             if event[0] == 20:
                 mape = base64.b64encode(event[1][3])
                 event = (event[0], (event[1][0], event[1][1], event[1][2], mape))
-            msgpack.pack(event, f, use_bin_type=True)
+            msgpack.pack(event, f, use_bin_type=False)
 
 
 def saveWorkspaceChanges(vw, filename):
@@ -30,12 +30,12 @@ def saveWorkspaceChanges(vw, filename):
 
 def vivEventsToFile(filename, events):
     with open(filename, 'wb') as f:
-        msgpack.pack(VSIG, f, use_bin_type=True)
+        msgpack.pack(VSIG, f, use_bin_type=False)
         for event in events:
             if event[0] == 20:
                 mape = base64.b64encode(event[1][3])
                 event = (event[0], (event[1][0], event[1][1], event[1][2], mape))
-            msgpack.pack(event, f, use_bin_type=True)
+            msgpack.pack(event, f, use_bin_type=False)
 
 
 def saveWorkspace(vw, filename):
@@ -48,7 +48,7 @@ def vivEventsFromFile(filename):
     with open(filename, 'rb') as f:
         unpacker = msgpack.Unpacker(f, **loadargs)
         siggy = next(unpacker)
-        if siggy != VSIG:
+        if siggy.encode('utf-8') != VSIG:
             logger.warning('Invalid file signature of %s', str(siggy))
             return
         for event in unpacker:
