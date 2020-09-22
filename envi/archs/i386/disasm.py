@@ -159,7 +159,7 @@ class i386RegOper(envi.RegisterOper):
         return emu.getRegister(self.reg)
 
     def getOperAddr(self, op, emu=None):
-        pass
+        return None
 
     def setOperValue(self, op, emu, value):
         emu.setRegister(self.reg, value)
