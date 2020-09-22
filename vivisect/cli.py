@@ -846,23 +846,30 @@ class VivCli(vivisect.VivWorkspace, e_cli.EnviCli):
 
         offset = 0
         try:
-            jmpva = int(argv[0], 0)
-            array = int(argv[1], 0)
-            count = int(argv[2], 0)
+            jmpva = self.parseExpression(argv[0])
+            array = self.parseExpression(argv[1])
+            count = self.parseExpression(argv[2])
 
             if len(argv) == 4:
-                offset = int(argv[2], 0)
+                offset = self.parseExpression(argv[3])
             else:
                 offset = 0
 
             import vivisect.analysis.generic.symswitchcase as vagss
             import vivisect.analysis.generic.codeblocks as vagc
             vagss.link_up(self, jmpva, array, count, offset)
+
             funcva = self.getFunction(jmpva)
-            vagc.analyzeFunction(self, funcva)
+            if funcva is not None:
+                vagc.analyzeFunction(self, funcva)
+            else:
+                self.vprint("No function found containing 0x%x", jmpva)
         except ValueError, e:
             print e
             return self.do_help("m_switch_ptr")
+        except:
+            import traceback
+            print traceback.format_exc()
 
     def do_m_switch_off(self, line):
         '''
@@ -914,7 +921,8 @@ class VivCli(vivisect.VivWorkspace, e_cli.EnviCli):
 
             # reanalyze codeblocks for the function (since it should have changed)
             funcva = self.getFunction(jmpva)
-            vagc.analyzeFunction(self, funcva)
+            if funcva is not None:
+                vagc.analyzeFunction(self, funcva)
 
         except ValueError, e:
             print e
