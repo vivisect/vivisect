@@ -277,7 +277,8 @@ class WorkspaceEmulator:
                 and len(xrefs):
                     # we've hit a branch that doesn't go anywhere.  probably a switchcase we don't handle here.
                     for xrfr, xrto, xrt, xrflag in xrefs:
-                        if xrto in paths:
+                        # skip existing, skip DEREFS
+                        if xrto in paths or xrflag & envi.BR_DEREF:
                             continue
 
                         bpath = self.getBranchNode(self.curpath, xrto)
