@@ -18,6 +18,7 @@ import envi
 import envi.archs.i386 as e_i386
 
 import vivisect
+import vivisect.exc as v_exc
 import vivisect.cli as viv_cli
 import vivisect.tools.graphutil as viv_graph
 import vivisect.symboliks.emulator as vs_emu
@@ -459,6 +460,8 @@ class SwitchCase:
                 logger.debug( "sctx.addSymFuncCallback(%s, thunk_bx)" % fname)
         except AttributeError:
             pass
+        except v_exc.InvalidVaSet:
+            pass
 
 
         self._sgraph = None
@@ -607,11 +610,11 @@ class SwitchCase:
         contextpath = self._codepath[:-1]
         analpath = self._codepath[-1:]
 
-        self.cspath = sctx.getSymbolikPaths(fva, graph=self._sgraph, args=[], paths=[contextpath]).next()
+        self.cspath = sctx.getSymbolikPaths(fva, graph=self._sgraph, args=None, paths=[contextpath]).next()
         self.aspath = sctx.getSymbolikPaths(fva, graph=self._sgraph, args=[], paths=[analpath]).next()
         if len(self.cspath[1]) == 0:
             self.cspath = self.aspath
-        self.fullpath = sctx.getSymbolikPaths(fva, graph=self._sgraph, args=[], paths=[self._codepath]).next()
+        self.fullpath = sctx.getSymbolikPaths(fva, graph=self._sgraph, args=None, paths=[self._codepath]).next()
 
 
         return self.cspath, self.aspath, self.fullpath
@@ -1189,7 +1192,7 @@ def link_up(vw, jmpva, array, count, baseoff, baseva=None, itemsize=None):
     lower = 0
     upper = count
 
-    logger.info("link_up(0x%x, 0x%x, %d, 0x%x, %r, %r", jmpva, array, count, baseoff, baseva, itemsize)
+    logger.info("link_up(0x%x, 0x%x, %d, 0x%x, %r, %r)", jmpva, array, count, baseoff, baseva, itemsize)
 
     cases = {}
     memrefs = []
@@ -1204,6 +1207,10 @@ def link_up(vw, jmpva, array, count, baseoff, baseva=None, itemsize=None):
             itemsize = vw.psize
             idxloc = array + (idx * itemsize)
             addr = vw.readMemoryPtr(idxloc)
+
+        # sign-extend if an offset (many are negative)
+        if itemsize < vw.psize:
+            addr = e_bits.sign_extend(addr, itemsize, vw.psize)
 
         # handle base-va calculation
         if baseva is not None:
