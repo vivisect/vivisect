@@ -475,7 +475,7 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
         fbytes = pe.fd.read()
         for offset, i in pe_carve.carve(fbytes, 1):
             # Found a sub-pe!
-            subpe = pe_carve.CarvedPE(fbytes, offset, chr(i))
+            subpe = pe_carve.CarvedPE(fbytes, offset, [i])
             pebytes = subpe.readAtOffset(0, subpe.getFileSize())
             rva = pe.offsetToRva(offset)
             vw.markDeadData(rva, rva+len(pebytes))

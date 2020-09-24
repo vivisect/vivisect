@@ -209,9 +209,9 @@ class VS_VERSIONINFO:
             i += 1
 
     def _eatStringAndAlign(self, bytes, offset):
-        ret = ''
+        ret = b''
         blen = len(bytes)
-        while bytes[offset:offset+2] != '\x00\x00':
+        while bytes[offset:offset+2] != b'\x00\x00':
             ret += bytes[offset:offset+2]
             offset += 2
             if offset >= blen:
