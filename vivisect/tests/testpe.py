@@ -98,6 +98,17 @@ class PETests(unittest.TestCase):
         # self.assertEqual(len(strRefs), )
         # self.assertEqual(len(uniRefs), )
 
+    def test_pe_filemeta(self):
+        vw = self.vw_psexec
+        files = vw.getFiles()
+        self.assertIn('psexec' in files)
+        self.assertEqual('27304b246c7d5b4e149124d5f93c5b01', vw.getFileMeta('psexec', 'md5sum'))
+        self.assertEqual('3337E3875B05E0BFBA69AB926532E3F179E8CFBF162EBB60CE58A0281437A7EF',
+                         vw.getFileMeta('psexec', 'sha256'))
+        self.assertEqual('2.2', vw.getFileMeta('pexec', 'Version'))
+        self.assertEqual(0x400000, vw.getFileMeta('psexec', 'imagebase'))
+        self.assertTrue(vw.getFileMeta('psexec', 'SafeSEH'))
+
     def test_pointer_locations(self):
         pass
 
