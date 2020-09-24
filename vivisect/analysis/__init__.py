@@ -117,7 +117,6 @@ def addAnalysisModules(vw):
 
         # Generic code block analysis
         vw.addFuncAnalysisModule("vivisect.analysis.generic.codeblocks")
-        vw.addFuncAnalysisModule("vivisect.analysis.generic.switchcase")
         vw.addFuncAnalysisModule("vivisect.analysis.generic.impapi")
 
         if arch in ('i386', 'amd64'):
@@ -130,8 +129,13 @@ def addAnalysisModules(vw):
 
         elif arch == 'amd64':
             vw.addFuncAnalysisModule("vivisect.analysis.amd64.emulation")
+
         elif arch in ARM_ARCHS:
             vw.addFuncAnalysisModule("vivisect.analysis.arm.emulation")
+
+
+        # we want emulation to have completed so we know what the Args look like
+        vw.addFuncAnalysisModule("vivisect.analysis.generic.symswitchcase")
 
         # Find import thunks
         vw.addFuncAnalysisModule("vivisect.analysis.generic.thunks")
@@ -153,7 +157,6 @@ def addAnalysisModules(vw):
         vw.addAnalysisModule("vivisect.analysis.generic.pointertables")
 
         vw.addFuncAnalysisModule("vivisect.analysis.generic.codeblocks")
-        vw.addFuncAnalysisModule("vivisect.analysis.generic.switchcase")
         vw.addFuncAnalysisModule("vivisect.analysis.generic.impapi")
 
         if arch == 'i386':
@@ -166,6 +169,7 @@ def addAnalysisModules(vw):
             vw.addFuncAnalysisModule("vivisect.analysis.arm.emulation")
             vw.addFuncAnalysisModule('vivisect.analysis.arm.renaming')
 
+        vw.addFuncAnalysisModule("vivisect.analysis.generic.symswitchcase")
         vw.addFuncAnalysisModule("vivisect.analysis.generic.thunks")
         vw.addAnalysisModule("vivisect.analysis.generic.pointers")
 
@@ -173,35 +177,34 @@ def addAnalysisModules(vw):
 
         vw.addAnalysisModule("vivisect.analysis.generic.entrypoints")
         vw.addAnalysisModule("vivisect.analysis.generic.funcentries")
-        vw.addAnalysisModule("vivisect.analysis.generic.relocations")
-        #vw.addAnalysisModule("vivisect.analysis.generic.pointertables")
+        vw.addAnalysisModule("vivisect.analysis.generic.pointertables")
         vw.addAnalysisModule("vivisect.analysis.generic.emucode")
 
         vw.addFuncAnalysisModule("vivisect.analysis.generic.codeblocks")
-        vw.addFuncAnalysisModule("vivisect.analysis.generic.switchcase")
 
         if arch in ARM_ARCHS:
             vw.addFuncAnalysisModule("vivisect.analysis.arm.emulation")
             vw.addFuncAnalysisModule('vivisect.analysis.arm.renaming')
 
+        vw.addFuncAnalysisModule("vivisect.analysis.generic.symswitchcase")
         vw.addFuncAnalysisModule("vivisect.analysis.generic.impapi")
         vw.addFuncAnalysisModule("vivisect.analysis.generic.thunks")
 
-    elif fmt == 'ihex': # BLOB ######################################################
+    elif fmt == 'ihex': # IHEX ######################################################
 
         vw.addAnalysisModule("vivisect.analysis.generic.entrypoints")
         vw.addAnalysisModule("vivisect.analysis.generic.funcentries")
-        vw.addAnalysisModule("vivisect.analysis.generic.relocations")
-        #vw.addAnalysisModule("vivisect.analysis.generic.pointertables")
+        vw.addAnalysisModule("vivisect.analysis.generic.pointertables")
         vw.addAnalysisModule("vivisect.analysis.generic.emucode")
+
+        vw.addFuncAnalysisModule("vivisect.analysis.generic.codeblocks")
+        vw.addFuncAnalysisModule("vivisect.analysis.generic.impapi")
 
         if arch in ARM_ARCHS:
             vw.addFuncAnalysisModule("vivisect.analysis.arm.emulation")
             vw.addFuncAnalysisModule('vivisect.analysis.arm.renaming')
 
-        vw.addFuncAnalysisModule("vivisect.analysis.generic.codeblocks")
-        vw.addFuncAnalysisModule("vivisect.analysis.generic.switchcase")
-        vw.addFuncAnalysisModule("vivisect.analysis.generic.impapi")
+        vw.addFuncAnalysisModule("vivisect.analysis.generic.symswitchcase")
         vw.addFuncAnalysisModule("vivisect.analysis.generic.thunks")
 
     else:
