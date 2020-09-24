@@ -25,7 +25,7 @@ class WindowsMixin(v_i_emulator.WorkspaceEmulator):
             bytez = bytez.split('\x00')[0]
         else:
             bytez = bytez.split(b'\x00')[0]
-
+            bytez = bytez.decode('utf-8', 'ignore')
 
         if len(bytez) == MAX_PATH:
             bytez = default

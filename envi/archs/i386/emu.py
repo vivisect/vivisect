@@ -1707,7 +1707,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         al = self.getRegister(REG_AL)
         edi = self.getRegister(REG_EDI)
         base,size = self._emu_segments[SEG_ES]
-        self.writeMemory(base+edi, chr(al))
+        self.writeMemory(base+edi, bytes(al))
         if self.getFlag(EFLAGS_DF):
             edi -= 1
         else:
