@@ -322,7 +322,7 @@ class Operand:
         '''
         return False
 
-    def getOperAddr(self, op, emu):
+    def getOperAddr(self, op, emu=None):
         """
         If the operand is a "dereference" operand, this method should use the
         specified op/emu to resolve the address of the dereference.
