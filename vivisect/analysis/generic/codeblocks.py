@@ -130,7 +130,8 @@ def analyzeFunction(vw, funcva):
         # So we don't add a codeblock if we're re-analyzing a function
         # (like during dynamic branch analysis)
         bsize = blocks[bva]
-        if bva not in oldblocks:
+        tmpcb = vw.getCodeBlock(bva)
+        if bva not in oldblocks or tmpcb is None:   # sometimes codeblocks can be deleted if owned by multiple functions
             vw.addCodeBlock(bva, bsize, funcva)
         elif bsize != oldblocks[bva]:
             vw.delCodeBlock(bva)
