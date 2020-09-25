@@ -57,7 +57,7 @@ def addAnalysisModules(vw):
             vw.addAnalysisModule("vivisect.analysis.amd64.golang")
 
         vw.addFuncAnalysisModule("vivisect.analysis.generic.codeblocks")
-        vw.addFuncAnalysisModule("vivisect.analysis.generic.switchcase")
+        #vw.addFuncAnalysisModule("vivisect.analysis.generic.switchcase")   # it's not that kind of analysis module.  hook dyn branches with analyzeJmp().  besides, it belongs in vivisect.analysis.ms
         vw.addFuncAnalysisModule("vivisect.analysis.generic.impapi")
         vw.addFuncAnalysisModule("vivisect.analysis.ms.hotpatch")
         vw.addFuncAnalysisModule("vivisect.analysis.ms.msvc")
