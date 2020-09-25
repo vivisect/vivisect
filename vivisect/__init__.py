@@ -727,7 +727,8 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             try:
                 fmod.analyzeFunction(self, fva)
             except Exception as e:
-                self.vprint("Function Analysis Exception for function 0x%x, module: %s, exc: %s" % (fva, fmod.__name__, e))
+                self.vprint("Function Analysis Exception for function 0x%x, module: %s" % (fva, fmod.__name__))
+                self.vprint("Exception Traceback: %s" % traceback.format_exc())
                 self.setFunctionMeta(fva, "%s fail" % fmod.__name__, traceback.format_exc())
 
     def getStats(self):
@@ -1229,7 +1230,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
                 # If the actual dest is executable, make a code ref fixup
                 # which *removes* the deref flag...
                 if ptrdest and self.probeMemory(ptrdest[0], 1, e_mem.MM_EXEC):
-                    self.addXref(va, ptrdest, REF_CODE, bflags & ~envi.BR_DEREF)
+                    self.addXref(va, ptrdest[0], REF_CODE, bflags & ~envi.BR_DEREF)
                 else:
                     self.addXref(va, tova, REF_CODE, bflags)
 
@@ -1307,7 +1308,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
     def updateCallsFrom(self, fva, ncalls):
         function = self.getFunction(fva)
         prev_call = self.getFunctionMeta(function, 'CallsFrom')
-        ncall = set(prev_call).union(calls_from)
+        ncall = set(prev_call).union(set(ncalls))
         self.setFunctionMeta(function, 'CallsFrom', list(ncall))
 
     def makeCode(self, va, arch=envi.ARCH_DEFAULT, fva=None):
@@ -1325,7 +1326,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         if fva is None:
             self.setVaSetRow('CodeFragments', (va, calls_from))
         else:
-            self.updateCallsFrom(va, calls_from)
+            self.updateCallsFrom(fva, calls_from)
         return calls_from
 
     def previewCode(self, va, arch=envi.ARCH_DEFAULT):

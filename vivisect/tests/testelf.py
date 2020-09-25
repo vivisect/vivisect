@@ -113,7 +113,7 @@ class ELFTests(unittest.TestCase):
                     break
             if oldimp != equiv:
                 failed_old += 1
-                logger.warning("imports: o: %-50s\tn: %s" % (oldimp, equiv))
+                logger.warning("%s: imports: o: %-50s\tn: %s" % (fname, oldimp, equiv))
             done.append(va)
 
         for newimp in newimps:
@@ -128,7 +128,7 @@ class ELFTests(unittest.TestCase):
                     break
             if newimp != equiv:
                 failed_new += 1
-                logger.warning("imports: o: %-50s\tn: %s" % (equiv, newimp))
+                logger.warning("%s: imports: o: %-50s\tn: %s" % (fname, equiv, newimp))
             done.append(va)
 
         return failed_old, failed_new
@@ -159,7 +159,7 @@ class ELFTests(unittest.TestCase):
                     break
             if oldexp != equiv:
                 failed_old += 1
-                logger.warning("exp: o: %-80s\tn: %s" % (oldexp, equiv))
+                logger.warning("%s: exp: o: %-80s\tn: %s" % (fname, oldexp, equiv))
 
         for newexp in newexps:
             va = newexp[0]
@@ -180,7 +180,7 @@ class ELFTests(unittest.TestCase):
                     break
             if newexp != equiv:
                 failed_new += 1
-                logger.warning("exp: o: %-80s\tn: %s" % (equiv, newexp))
+                logger.warning("%s: exp: o: %-80s\tn: %s" % (fname, equiv, newexp))
 
         return failed_old, failed_new
 
@@ -203,7 +203,7 @@ class ELFTests(unittest.TestCase):
                     break
             if oldrel != equiv:
                 failed_old += 1
-                logger.warning("rel: o: %-80s\tn: %s" % (oldrel, equiv))
+                logger.warning("%s: rel: o: %-80s\tn: %s" % (fname, oldrel, equiv))
             done.append(va)
 
         for newrel in newrels:
@@ -218,7 +218,7 @@ class ELFTests(unittest.TestCase):
                     break
             if newrel != equiv:
                 failed_new += 1
-                logger.warning("rel: o: %-80s\tn: %s" % (equiv, newrel))
+                logger.warning("%s: rel: o: %-80s\tn: %s" % (fname, equiv, newrel))
             done.append(va)
 
         return failed_old, failed_new
@@ -252,7 +252,7 @@ class ELFTests(unittest.TestCase):
                     break
             if oldname != equiv:
                 failed_old += 1
-                logger.warning("name: o: %-80s\tn: %s" % (oldname, equiv))
+                logger.warning("%s: name: o: %-80s\tn: %s" % (fname, oldname, equiv))
 
         for newname in newnames:
             va = newname[0]
@@ -268,7 +268,7 @@ class ELFTests(unittest.TestCase):
                     break
             if newname != equiv:
                 failed_new += 1
-                logger.warning("name: o: %-80s\tn: %s" % (equiv, newname))
+                logger.warning("%s: name: o: %-80s\tn: %s" % (fname, equiv, newname))
 
         return failed_old, failed_new
 
@@ -279,12 +279,12 @@ class ELFTests(unittest.TestCase):
                 if xfr == pltva and xto == gotva:
                     match = True
 
-        return 0,0
+        return 0, 0
 
     def debuginfosyms(self, vw, data, fname):
         # we don't currently parse debugging symbols.
         # while they are seldom in hard targets, this is a weakness we should correct.
-        return 0,0
+        return 0, 0
 
     def test_minimal(self):
         for path in (('linux','amd64','static64.llvm.elf'), ('linux','i386','static32.llvm.elf')):
@@ -293,4 +293,3 @@ class ELFTests(unittest.TestCase):
             e = Elf.Elf(open(fn, 'rb'))
             vw = viv_cli.VivCli()
             vw.loadFromFile(fn)
-

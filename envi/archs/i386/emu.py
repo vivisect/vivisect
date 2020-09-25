@@ -1255,7 +1255,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
             reg += 0x00080000
         elif tsize == 2:
             reg += 0x00100000
-        self.setRegister(reg, value)
+        self.setRegister(reg, val)
 
     def _emu_getGpReg(self, reg, tsize):
         """
@@ -2013,6 +2013,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         dst = self.getOperValue(op, 0)
         src = self.getOperValue(op, 1)
         order = self.getOperValue(op, 2)
+        res = 0
         for i in range(4):
             indx = (order >> (2*i)) & 3
             valu = (src >> (indx & 16)) & mask
@@ -2219,7 +2220,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
 
     def i_pminsb(self, op, width=1, off=0):
         def cmpr(a, b):
-            return e_bits.unsigned(min(e_bits.signed(a), e_bits.signed(b)), width)
+            return e_bits.unsigned(min(e_bits.signed(a, width), e_bits.signed(b, width)), width)
         self._simdcmpr(op, cmpr, width, off)
 
     def i_pminsw(self, op):
@@ -2240,7 +2241,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
 
     def i_pmaxsb(self, op, width=1, off=0):
         def cmpr(a, b):
-            return e_bits.unsigned(max(e_bits.signed(a), e_bits.signed(b)), width)
+            return e_bits.unsigned(max(e_bits.signed(a, width), e_bits.signed(b, width)), width)
         self._simdcmpr(op, cmpr, width, off)
 
     def i_pmaxsw(self, op):
