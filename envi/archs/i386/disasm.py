@@ -158,6 +158,9 @@ class i386RegOper(envi.RegisterOper):
         if emu is None: return None # This operand type requires an emulator
         return emu.getRegister(self.reg)
 
+    def getOperAddr(self, op, emu=None):
+        return None
+
     def setOperValue(self, op, emu, value):
         emu.setRegister(self.reg, value)
 
@@ -296,8 +299,9 @@ class i386RegMemOper(envi.DerefOper):
     def setOperValue(self, op, emu, val):
         emu.writeMemValue(self.getOperAddr(op, emu), val, self.tsize)
 
-    def getOperAddr(self, op, emu):
-        if emu is None: return None # This operand type requires an emulator
+    def getOperAddr(self, op, emu=None):
+        if emu is None: 
+            return None # This operand type requires an emulator
         base, size = emu.getSegmentInfo(op)
         rval = emu.getRegister(self.reg)
         return base + rval + self.disp
