@@ -101,7 +101,7 @@ class PETests(unittest.TestCase):
     def test_pe_filemeta(self):
         vw = self.vw_psexec
         files = vw.getFiles()
-        self.assertIn('psexec' in files)
+        self.assertTrue('psexec' in files)
         self.assertEqual('27304b246c7d5b4e149124d5f93c5b01', vw.getFileMeta('psexec', 'md5sum'))
         self.assertEqual('3337E3875B05E0BFBA69AB926532E3F179E8CFBF162EBB60CE58A0281437A7EF',
                          vw.getFileMeta('psexec', 'sha256'))
