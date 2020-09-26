@@ -16,7 +16,6 @@ def analyze(vw):
     is closely related to the makeOpcode() logic in vivisect/__init__.py.
     '''
 
-    breakpoint()
     for fva in vw.getFunctions():
         for va, size, funcva in vw.getFunctionBlocks(fva):
             maxva = va + size
