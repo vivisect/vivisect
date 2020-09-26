@@ -1,3 +1,5 @@
+import envi.exc as e_exc
+
 from vivisect.const import *
 
 
@@ -14,11 +16,15 @@ def analyze(vw):
     is closely related to the makeOpcode() logic in vivisect/__init__.py.
     '''
 
+    breakpoint()
     for fva in vw.getFunctions():
         for va, size, funcva in vw.getFunctionBlocks(fva):
             maxva = va + size
             while va < maxva:
-                op = vw.parseOpcode(va)
+                try:
+                    op = vw.parseOpcode(va)
+                except e_exc.InvalidInstruction:
+                    break
                 for o in op.opers:
                     if o.isDeref():
                         continue
