@@ -272,6 +272,19 @@ class WorkspaceEmulator:
                 ret.append((bva, bpath))
                 paths.add(bva)
 
+        if op.iflags & envi.IF_BRANCH \
+                and not op.iflags & envi.IF_COND \
+                and len(xrefs):
+                    # we've hit a branch that doesn't go anywhere.  probably a switchcase we don't handle here.
+                    for xrfr, xrto, xrt, xrflag in xrefs:
+                        # skip existing, skip DEREFS
+                        if xrto in paths or xrflag & envi.BR_DEREF:
+                            continue
+
+                        bpath = self.getBranchNode(self.curpath, xrto)
+                        ret.append((xrto, bpath))
+                        paths.add(xrto)
+
         # let's also take into account some of the dynamic branches we may have found
         # like our table pointers
 
