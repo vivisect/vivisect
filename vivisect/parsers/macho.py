@@ -33,7 +33,7 @@ def _loadMacho(vw, filebytes, filename=None, baseaddr=None):
 
     # grab md5 and sha256 hashes before we modify the bytes
     fhash = viv_parsers.md5Bytes(filebytes)
-    sha256 = v_parsers.sha256Bytes(filebytes))
+    sha256 = v_parsers.sha256Bytes(filebytes)
 
     # Check for the FAT binary magic...
     if binascii.hexlify(filebytes[:4]) in ('cafebabe', 'bebafeca'):
