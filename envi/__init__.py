@@ -6,8 +6,11 @@ ArchitectureModule, Opcode, Operand, and Emulator objects.
 import types
 import struct
 import platform
+import logging
 
 from envi.exc import *
+
+logger = logging.getLogger(__name__)
 
 # TODO: move into const.py
 # Parsed Opcode Formats
@@ -271,8 +274,7 @@ class Operand:
         NOTE: This API may be passed a None emu and should return what it can
               (or None if it can't be resolved)
         """
-        print("%s needs to implement getOperValue!" % self.__class__.__name__)
-        return None
+        raise NotImplementedError("%s needs to implement getOperValue!" % self.__class__.__name__)
 
     def setOperValue(self, op, emu, val):
         """
@@ -280,7 +282,7 @@ class Operand:
         the given emulator/workspace/trace to assign things like
         memory and registers.
         """
-        print("%s needs to implement setOperValue! (0x%.8x: %s) " % (self.__class__.__name__, op.va, repr(op)))
+        logger.warning("%s needs to implement setOperAddr!" % self.__class__.__name__)
 
     def isDeref(self):
         """
@@ -306,7 +308,7 @@ class Operand:
         '''
         return False
 
-    def getOperAddr(self, op, emu):
+    def getOperAddr(self, op, emu=None):
         """
         If the operand is a "dereference" operand, this method should use the
         specified op/emu to resolve the address of the dereference.
@@ -314,8 +316,7 @@ class Operand:
         NOTE: This API may be passed a None emu and should return what it can
               (or None if it can't be resolved)
         """
-        print("%s needs to implement getOperAddr!" % self.__class__.__name__)
-        return None
+        logger.warning("%s needs to implement getOperAddr!" % self.__class__.__name__)
 
     def repr(self, op):
         """
@@ -470,9 +471,9 @@ class Opcode:
 
     def genRefOpers(self, emu=None):
         '''
-        Operand generator, yielding an (oper-index, operand) tuple from this 
-        Opcode... but only for operands which make sense for XREF analysis.  
-        Override when architecture makes use of odd operands like the program 
+        Operand generator, yielding an (oper-index, operand) tuple from this
+        Opcode... but only for operands which make sense for XREF analysis.
+        Override when architecture makes use of odd operands like the program
         counter, which returns a real value even without an emulator.
         '''
         for oidx, o in enumerate(self.opers):
@@ -549,7 +550,7 @@ class Emulator(e_reg.RegisterContext, e_mem.MemoryObject):
         '''
         Set a (previously initialized) emulator option.
         '''
-        if not self._emu_opts.has_key(opt):
+        if opt not in self._emu_opts:
             raise Exception('Unknown Emu Opt: %s' % opt)
         self._emu_opts[opt] = val
 
@@ -558,10 +559,10 @@ class Emulator(e_reg.RegisterContext, e_mem.MemoryObject):
         Retrieve the current value of an emulator option.
         ( emu impls may directly access _emu_opts for speed )
         '''
-        if not self._emu_opts.has_key(opt):
+        if opt not in self._emu_opts:
             raise Exception('Unknown Emu Opt: %s' % opt)
         return self._emu_opts.get(opt)
- 
+
     def setEndian(self, endian):
         '''
         Sets Endianness for the Emulator.
@@ -613,7 +614,7 @@ class Emulator(e_reg.RegisterContext, e_mem.MemoryObject):
         Run the emulator until "something" happens.
         (breakpoint, segv, syscall, etc...)
         """
-        if stepcount != None:
+        if stepcount is not None:
             for i in range(stepcount):
                 self.stepi()
         else:
@@ -683,7 +684,7 @@ class Emulator(e_reg.RegisterContext, e_mem.MemoryObject):
         Usage: getCallArgs(3, "stdcall") -> (0, 32, 0xf00)
         """
         c = self._emu_call_convs.get(cc, None)
-        if c == None:
+        if c is None:
             raise UnknownCallingConvention(cc)
 
         return c.getCallArgs(self, count)
@@ -697,7 +698,7 @@ class Emulator(e_reg.RegisterContext, e_mem.MemoryObject):
         for the calling convention)
         """
         c = self._emu_call_convs.get(cc, None)
-        if c == None:
+        if c is None:
             raise UnknownCallingConvention(cc)
 
         return c.execCallReturn(self, value, argc)
@@ -706,7 +707,7 @@ class Emulator(e_reg.RegisterContext, e_mem.MemoryObject):
         self._emu_call_convs[name] = obj
 
     def hasCallingConvention(self, name):
-        if self._emu_call_convs.get(name) != None:
+        if self._emu_call_convs.get(name) is not None:
             return True
         return False
 
@@ -721,7 +722,7 @@ class Emulator(e_reg.RegisterContext, e_mem.MemoryObject):
         Returns the value of the bytes at the "addr" address, given the size (currently, power of 2 only)
         """
         bytes = self.readMemory(addr, size)
-        if bytes == None:
+        if bytes is None:
             return None
         if len(bytes) != size:
             raise Exception("Read Gave Wrong Length At 0x%.8x (va: 0x%.8x wanted %d got %d)" % (self.getProgramCounter(),addr, size, len(bytes)))
@@ -740,7 +741,7 @@ class Emulator(e_reg.RegisterContext, e_mem.MemoryObject):
         #FIXME: Remove byte check and possibly half-word check.  (possibly all but word?)
         #FIXME: Handle endianness
         bytes = self.readMemory(addr, size)
-        if bytes == None:
+        if bytes is None:
             return None
         fmttbl = e_bits.fmt_schars[self.getEndian()]
         return struct.unpack(fmttbl[size], bytes)[0]
@@ -757,7 +758,7 @@ class Emulator(e_reg.RegisterContext, e_mem.MemoryObject):
         subtra = self.getOperValue(op, sidx)
         minuend = self.getOperValue(op, midx)
 
-        if subtra == None or minuend == None:
+        if subtra is None or minuend is None:
             self.undefFlags()
             return None
 
@@ -799,7 +800,7 @@ class Emulator(e_reg.RegisterContext, e_mem.MemoryObject):
         dst = self.getOperValue(op, 1)
 
         #FIXME PDE and flags
-        if src == None:
+        if src is None:
             self.undefFlags()
             self.setOperValue(op, 1, None)
             return
@@ -823,7 +824,7 @@ class Emulator(e_reg.RegisterContext, e_mem.MemoryObject):
         src2 = self.getOperValue(op, 1)
 
         # PDE
-        if src1 == None or src2 == None:
+        if src1 is None or src2 is None:
             self.undefFlags()
             self.setOperValue(op, 1, None)
             return
@@ -1142,7 +1143,7 @@ class CallingConvention(object):
         '''
         self.setCallArgs(emu, args)
 
-        if ra != None:
+        if ra is not None:
             self.setReturnAddress(emu, ra)
 
     def setupCall(self, emu, args=None, ra=None):
@@ -1155,12 +1156,12 @@ class CallingConvention(object):
         program counter.
         '''
         argv = []
-        if args != None:
+        if args is not None:
             argv.extend(args)
 
         argc = len(argv)
 
-        if ra == None:
+        if ra is None:
             ra = emu.getProgramCounter()
 
         self.allocateCallSpace(emu, argc)
@@ -1241,7 +1242,7 @@ def getCurrentArch():
     elif width == 8:
         ret = arch_xlate_64.get(mach)
 
-    if ret == None:
+    if ret is None:
         raise ArchNotImplemented(mach)
 
     return ret

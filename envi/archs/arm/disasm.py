@@ -1276,11 +1276,8 @@ def p_div(opval, va):
     return (opcode, mnem, olist, 0, 0)
 
 def p_arch_undef(opval, va):
-    print ("p_arch_undef: invalid instruction (by definition in ARM spec): %.8x:\t%.8x"%(va,opval))
-    raise envi.InvalidInstruction(
-            mesg="p_arch_undef: invalid instruction (by definition in ARM spec)",
-            bytez=struct.pack("<I", opval), va=va)
-    return (IENC_ARCH_UNDEF, 'arch undefined', (ArmImmOper(opval),), 0, 0)
+    raise envi.InvalidInstruction(mesg="p_arch_undef: invalid instruction (by definition in ARM spec)",
+                                  bytez=struct.pack("<I", opval), va=va)
 
 ldm_mnem = (("stm", INS_STM), ("ldm", INS_LDM))
 
@@ -3790,7 +3787,7 @@ ienc_parsers = tuple(ienc_parsers_tmp)
 # the primary table is index'd by the 3 bits following the
 # conditional and are structured as follows:
 # ( ENC, nexttable )
-# If ENC != None, those 3 bits were enough for us to know the
+# If ENC is not None, those 3 bits were enough for us to know the
 # encoding type, otherwise move on to the second table.
 
 # The secondary tables have the format:
@@ -4285,16 +4282,16 @@ class ArmRegShiftRegOper(ArmOperand):
         return shifters[self.shtype](emu.getRegister(self.reg), emu.getRegister(self.shreg), emu=emu)
 
     def render(self, mcanv, op, idx):
-        rname = arm_regs[self.reg][0]
+        rname = arm_regs[self.reg]
         mcanv.addNameText(rname, typename='registers')
         mcanv.addText(', ')
         mcanv.addNameText(shift_names[self.shtype])
         mcanv.addText(' ')
-        mcanv.addNameText(arm_regs[self.shreg][0], typename='registers')
+        mcanv.addNameText(arm_regs[self.shreg], typename='registers')
 
     def repr(self, op):
-        rname = "%s, %s %s" % (arm_regs[self.reg][0], \
-                shift_names[self.shtype],arm_regs[self.shreg][0])
+        rname = "%s, %s %s" % (arm_regs[self.reg], \
+                shift_names[self.shtype],arm_regs[self.shreg])
         return rname
 
 class ArmRegShiftImmOper(ArmOperand):
@@ -4337,7 +4334,7 @@ class ArmRegShiftImmOper(ArmOperand):
         return shifters[self.shtype](emu.getRegister(self.reg), self.shimm, emu=emu)
 
     def render(self, mcanv, op, idx):
-        rname = arm_regs[self.reg][0]
+        rname = arm_regs[self.reg]
         mcanv.addNameText(rname, typename='registers')
         if self.shimm != 0:
             mcanv.addText(', ')
@@ -4349,7 +4346,7 @@ class ArmRegShiftImmOper(ArmOperand):
             mcanv.addNameText(shift_names[self.shtype])
 
     def repr(self, op):
-        rname = arm_regs[self.reg][0]
+        rname = arm_regs[self.reg]
         retval = [ rname ]
         if self.shimm != 0:
             retval.append(", "+shift_names[self.shtype])
@@ -4548,8 +4545,8 @@ class ArmScaledOffsetOper(ArmOperand):
     def render(self, mcanv, op, idx):
         pom = ('-','')[(self.pubwl>>3)&1]
         idxing = self.pubwl & 0x12
-        basereg = arm_regs[self.base_reg][0]
-        offreg = arm_regs[self.offset_reg][0]
+        basereg = arm_regs[self.base_reg]
+        offreg = arm_regs[self.offset_reg]
         shname = shift_names[self.shtype]
 
         mcanv.addText('[')
@@ -4573,8 +4570,8 @@ class ArmScaledOffsetOper(ArmOperand):
     def repr(self, op):
         pom = ('-','')[(self.pubwl>>3)&1]
         idxing = self.pubwl & 0x12
-        basereg = arm_regs[self.base_reg][0]
-        offreg = arm_regs[self.offset_reg][0]
+        basereg = arm_regs[self.base_reg]
+        offreg = arm_regs[self.offset_reg]
         shname = shift_names[self.shtype]
         if self.shval != 0:
             shval = ", %s #%d"%(shname,self.shval)
@@ -4781,7 +4778,7 @@ class ArmImmOffsetOper(ArmOperand):
     def render(self, mcanv, op, idx):
         u = (self.pubwl>>3)&1
         idxing = self.pubwl & 0x12
-        basereg = arm_regs[self.base_reg][0]
+        basereg = arm_regs[self.base_reg]
         if self.base_reg == REG_PC:
 
             mcanv.addText('[')
@@ -4826,7 +4823,7 @@ class ArmImmOffsetOper(ArmOperand):
     def repr(self, op):
         u = (self.pubwl>>3)&1
         idxing = (self.pubwl) & 0x12
-        basereg = arm_regs[self.base_reg][0]
+        basereg = arm_regs[self.base_reg]
         if self.base_reg == REG_PC:
             addr = self.getOperAddr(op)    # only works without an emulator because we've already verified base_reg is PC
             tname = "[#0x%x]" % addr
@@ -4997,7 +4994,7 @@ class ArmRegListOper(ArmOperand):
 
     def render(self, mcanv, op, idx):
         mcanv.addText('{')
-        regs = [arm_regs[l][0] for l in range(16) if (self.val & (1<<l))]
+        regs = [arm_regs[l] for l in range(16) if (self.val & (1<<l))]
         for regidx in range(len(regs) - 1):
             reg = regs[regidx]
             mcanv.addNameText(reg, typename='registers')
@@ -5020,7 +5017,7 @@ class ArmRegListOper(ArmOperand):
 
     def repr(self, op):
             s = [ "{" ]
-            regs = [arm_regs[l][0] for l in range(16) if (self.val & (1<<l))]
+            regs = [arm_regs[l] for l in range(16) if (self.val & (1<<l))]
             s.append(', '.join(regs))
             s.append('}')
             if self.oflags & OF_UM:
@@ -5236,13 +5233,13 @@ class ArmCoprocOption(ArmImmOffsetOper):
         self.tsize = (4,1)[b]
 
     def render(self, mcanv, op, idx):
-        basereg = arm_regs[self.base_reg][0]
+        basereg = arm_regs[self.base_reg]
         mcanv.addText('[')
         mcanv.addNameText(basereg, typename='registers')
         mcanv.addText('], {%s}' % self.offset)
 
     def repr(self, op):
-        return '[%s], {%s}' % (arm_regs[self.base_reg][0],self.offset)
+        return '[%s], {%s}' % (arm_regs[self.base_reg],self.offset)
 
 class ArmModeOper(ArmOperand):
     def __init__(self, mode, update=False):

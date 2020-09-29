@@ -2,20 +2,23 @@
 Cobra integration for remote debugging
 """
 # Copyright (C) 2007 Invisigoth - See LICENSE file for details
-import os
-import socket
-import hashlib
+
+import logging
 
 import vtrace
 import cobra
 
+
+logger = logging.getLogger(__name__)
 callback_daemon = None
+
 
 def getTracerFactory():
     """
     Return a TracerFactory proxy object from the remote server
     """
     return cobra.CobraProxy("cobra://%s:%d/TracerFactory" % (vtrace.remote, vtrace.port))
+
 
 class TraceProxyFactory:
     """
@@ -26,9 +29,9 @@ class TraceProxyFactory:
     """
     def getTrace(self):
         trace = vtrace.getTrace()
-        host,port = cobra.getLocalInfo()
+        host, port = cobra.getLocalInfo()
         unique = vtrace.cobra_daemon.shareObject(trace)
-        trace.proxy = cobra.CobraProxy("cobra://%s:%d/%s" % (host,port,unique))
+        trace.proxy = cobra.CobraProxy("cobra://%s:%d/%s" % (host, port, unique))
         return unique
 
     def releaseTrace(self, proxy):
@@ -38,8 +41,9 @@ class TraceProxyFactory:
         the proxy object to this.
         """
         t = vtrace.cobra_daemon.unshareObject(proxy.__dict__.get("__cobra_name", None))
-        if t != None:
+        if t is not None:
             t.release()
+
 
 class RemoteTrace(cobra.CobraProxy):
 
@@ -59,7 +63,8 @@ class RemoteTrace(cobra.CobraProxy):
 
     def __del__(self):
         if not self.__dict__['_remote_released']:
-            print 'RemoteTrace del w/o release()!'
+            logger.warning('RemoteTrace del w/o release()!')
+
 
 def getCallbackProxy(trace, notifier):
     """
@@ -72,9 +77,10 @@ def getCallbackProxy(trace, notifier):
     port = getCallbackPort()
     host, nothing = trace._cobra_getsock().getSockName()
     unique = callback_daemon.getSharedName(notifier)
-    if unique == None:
+    if unique is None:
         unique = callback_daemon.shareObject(notifier)
     return cobra.CobraProxy("cobra://%s:%d/%s" % (host, port, unique))
+
 
 def getCallbackPort():
     """
@@ -82,23 +88,27 @@ def getCallbackPort():
     ephemeral port it was bound on.
     """
     global callback_daemon
-    if callback_daemon == None:
+    if callback_daemon is None:
         callback_daemon = cobra.CobraDaemon(port=0)
         callback_daemon.fireThread()
     return callback_daemon.port
 
+
 def startCobraDaemon():
-    if vtrace.cobra_daemon == None:
+    if vtrace.cobra_daemon is None:
         vtrace.cobra_daemon = cobra.CobraDaemon(port=vtrace.port)
         vtrace.cobra_daemon.fireThread()
+
 
 def getRemoteTrace():
     factory = getTracerFactory()
     unique = factory.getTrace()
     return RemoteTrace("cobra://%s:%d/%s" % (vtrace.remote, vtrace.port, unique))
 
+
 def releaseRemoteTrace(proxy):
     getTracerFactory().releaseTrace(proxy)
+
 
 def startVtraceServer():
     """

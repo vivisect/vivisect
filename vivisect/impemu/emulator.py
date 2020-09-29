@@ -72,11 +72,11 @@ class WorkspaceEmulator:
 
         for name in dir(self):
             val = getattr(self, name, None)
-            if val == None:
+            if val is None:
                 continue
 
             impname = getattr(val, '__imphook__',None)
-            if impname == None:
+            if impname is None:
                 continue
 
             self.hooks[impname] = val
@@ -178,10 +178,7 @@ class WorkspaceEmulator:
             rtype, rname, convname, callname, funcargs = api
             callconv = self.getCallingConvention(convname)
             if callconv is None:
-                logger.error("checkCall(0x%x, 0x%x, %r): cannot get calling convention!", starteip, endeip, op)
-                self.emumon.logAnomaly(self, endeip, "no calling convention found for %x" % (endeip))
                 return iscall
-
 
             argv = callconv.getCallArgs(self, len(funcargs))
 
@@ -210,10 +207,10 @@ class WorkspaceEmulator:
         for symbolic emulator...)
         '''
         props = {
-            'bva': bva,    # the entry virtual address for this branch
-            'valist': [],  # the virtual addresses in this node in order
-            'readlog': [], # a log of all memory reads from this block
-            'writelog': [],# a log of all memory writes from this block
+            'bva': bva,      # the entry virtual address for this branch
+            'valist': [],    # the virtual addresses in this node in order
+            'readlog': [],   # a log of all memory reads from this block
+            'writelog': [],  # a log of all memory writes from this block
         }
         ret = vg_path.newPathNode(parent=parent, **props)
         return ret
@@ -274,6 +271,19 @@ class WorkspaceEmulator:
                 bpath = self.getBranchNode(self.curpath, bva)
                 ret.append((bva, bpath))
                 paths.add(bva)
+
+        if op.iflags & envi.IF_BRANCH \
+                and not op.iflags & envi.IF_COND \
+                and len(xrefs):
+                    # we've hit a branch that doesn't go anywhere.  probably a switchcase we don't handle here.
+                    for xrfr, xrto, xrt, xrflag in xrefs:
+                        # skip existing, skip DEREFS
+                        if xrto in paths or xrflag & envi.BR_DEREF:
+                            continue
+
+                        bpath = self.getBranchNode(self.curpath, xrto)
+                        ret.append((xrto, bpath))
+                        paths.add(xrto)
 
         # let's also take into account some of the dynamic branches we may have found
         # like our table pointers
@@ -365,7 +375,7 @@ class WorkspaceEmulator:
                             logger.debug(str(e))
                         except Exception as e:
                             if not self.getMeta('silent'):
-                                logger.warn("funcva: 0x%x opva: 0x%x:  %r   (%r) (in emumon prehook)", funcva, starteip, op, e)
+                                logger.warn("Emulator prehook failed on fva: 0x%x, opva: 0x%x, op: %s, err: %s", funcva, starteip, str(op), str(e))
 
                         if self.emustop:
                             return
@@ -437,7 +447,7 @@ class WorkspaceEmulator:
 
         if vw.isFunction(va):
             ret = vw.getFunctionApi(va)
-            if ret != None:
+            if ret is not None:
                 return ret
 
         else:
@@ -503,7 +513,7 @@ class WorkspaceEmulator:
             stackoff = tinfo
             if self.funcva:
                 flocal = self.vw.getFunctionLocal(self.funcva, stackoff)
-                if flocal != None:
+                if flocal is not None:
                     typename,argname = flocal
                     return argname
             o = '+'
@@ -562,7 +572,7 @@ class WorkspaceEmulator:
 
     def _useVirtAddr(self, va):
         taint = self.getVivTaint(va)
-        if taint == None:
+        if taint is None:
             return
 
         tva,ttype,tinfo = taint
@@ -602,7 +612,7 @@ class WorkspaceEmulator:
 
         # If they read an import entry, start a taint...
         loc = self.vw.getLocation(va)
-        if loc != None:
+        if loc is not None:
             lva, lsize, ltype, ltinfo = loc
             if ltype == LOC_IMPORT and lsize == size: # They just read an import.
                 ret = self.setVivTaint('import', loc)

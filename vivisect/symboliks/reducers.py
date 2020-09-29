@@ -294,7 +294,7 @@ reducers = {
     SYMT_OPER_DIV: xpandrules([
         ('(x1 * c1) / c2', lambda m, emu=None: muldiv(m['x1'],m['c1'],m['c2'])),
         ('(x1 / c1)', lambda m, emu=None: divbase_vc(m['x1'], m['c1'])),
-        ('(c1 / v1)', lambda m, emu=None: divbase_cv(m['c1'], m['v1'])),
+        ('(c1 / x1)', lambda m, emu=None: divbase_cv(m['c1'], m['x1'])),
         ('(x1 / x1)', lambda m, emu=None: 1),
     ]),
 
@@ -336,23 +336,9 @@ def reduceoper(sym,emu=None):
         return
     for symtmp, reducer in reducers.get(sym.symtype):
         m = ismatch(sym, symtmp)
-        if m != None:
-            #print 'MATCH',str(symtmp)
+        if m is not None:
             ret = reducer(m, emu=emu)
             # do this to much simplify reducers...
             if type(ret) in (int, long):
                 ret = Const(ret,sym.getWidth())
             return ret
-
-if __name__ == '__main__':
-
-    import sys
-    for argv in sys.argv[1:]:
-        sym = symexp(argv)
-        print('== %s' % str(sym))
-        print('  repr: %s' % (repr(sym),))
-        print('  solve: 0x%.8x' % (sym.solve()))
-        red = sym.reduce(foo=True)
-        print('  reduc: %s' % (str(red),))
-        print('  red repr: %s' % (repr(red),))
-        print('  red solve: 0x%.8x' % (red.solve()))

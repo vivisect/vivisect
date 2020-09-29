@@ -1,8 +1,11 @@
 import time
-import traceback
+import logging
 import collections
 
 import cobra
+
+logger = logging.getLogger(__name__)
+
 
 class PoolMethod(cobra.CobraMethod):
     def __init__(self, pool, methname):
@@ -13,10 +16,11 @@ class PoolMethod(cobra.CobraMethod):
         proxy = self._cobra_pool.cobraPoolGetProxy(rotate=self._cobra_pool.loadbalance)
         while True:
             try:
-                return getattr(proxy,self.methname)(*args,**kwargs)
-            except cobra.CobraException, e:
-                print('CobraPool Method Failure: %s %s' % (proxy._cobra_uri,e))
+                return getattr(proxy, self.methname)(*args, **kwargs)
+            except cobra.CobraException as e:
+                logger.warning('CobraPool Method Failure: %s %s', proxy._cobra_uri, e)
                 proxy = self._cobra_pool.cobraPoolGetProxy(rotate=True)
+
 
 class CobraPool:
     '''
@@ -34,9 +38,9 @@ class CobraPool:
 
     def __getattr__(self, name):
         proxy = self.cobraPoolGetProxy()
-        if proxy._cobra_methods.get(name,False):
-            poolmeth = PoolMethod(self,name)
-            setattr(self,name,poolmeth)
+        if proxy._cobra_methods.get(name, False):
+            poolmeth = PoolMethod(self, name)
+            setattr(self, name, poolmeth)
             return poolmeth
         raise AttributeError('no such method: %s' % name)
 
@@ -55,13 +59,11 @@ class CobraPool:
 
                 uri = self.uris[0]
                 proxy = self.proxycache.get(uri)
-                if proxy == None:
+                if proxy is None:
                     proxy = cobra.CobraProxy(uri)
                     self.proxycache[uri] = proxy
                 return proxy
-
-            except Exception, e: # proxy construction error!
+            except Exception as e:
                 self.uris.rotate(1)
-                traceback.print_exc()
-                print('CobraPool Proxy Failure: %s %s' % (uri,e))
-                time.sleep(self.faildelay) # FIXME track per?
+                logger.warning('CobraPool Proxy Failure: %s %s', uri, e)
+                time.sleep(self.faildelay)  # FIXME track per?

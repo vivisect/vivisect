@@ -2,8 +2,14 @@
 Specialized breakpoints which identify dangerous calling
 mechanisms and tag them.
 '''
+import logging
+
 import envi.memory as e_mem
 import vtrace.breakpoints as vt_breakpoints
+
+
+logger = logging.getLogger(__name__)
+
 
 def getStackArg(trace, argidx):
     '''
@@ -15,6 +21,7 @@ def getStackArg(trace, argidx):
     fmt = '<P' + ('P' * (argidx+1))
     args = trace.readMemoryFormat(stack, fmt)
     return args[-1]
+
 
 class SniperDynArgBreak(vt_breakpoints.Breakpoint):
     '''
@@ -35,8 +42,9 @@ class SniperDynArgBreak(vt_breakpoints.Breakpoint):
         arg = getStackArg(trace, self._argidx)
         self.fastbreak = True
         if trace.probeMemory(arg, 1, e_mem.MM_WRITE):
-            print 'SNIPER: %s TOOK DYNAMIC ARG IDX %d (0x%.8x)' % (self._symname, self._argidx, arg)
+            logger.info('SNIPER: %s TOOK DYNAMIC ARG IDX %d (0x%.8x)', self._symname, self._argidx, arg)
             self.fastbreak = False
+
 
 class SniperArgValueBreak(vt_breakpoints.Breakpoint):
     '''
@@ -46,6 +54,7 @@ class SniperArgValueBreak(vt_breakpoints.Breakpoint):
     def __init__(self, symname, argidx, argval):
         pass
 
+
 def snipeDynArg(trace, symname, argidx):
     '''
     Construct a SnyperDynArgBreak and snap it in.
@@ -53,4 +62,3 @@ def snipeDynArg(trace, symname, argidx):
     bp = SniperDynArgBreak(symname, argidx)
     bpid = trace.addBreakpoint(bp)
     return bpid
-

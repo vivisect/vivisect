@@ -33,7 +33,7 @@ argnames = {
 
 def argcname(callconv, idx):
     ret = argnames.get(callconv,empty).get(idx)
-    if ret == None:
+    if ret is None:
         ret = ('int','arg%d' % idx)
     return ret
 
@@ -67,7 +67,7 @@ def buildFunctionApi(vw, fva, emu, emumon, stkstart):
 
     callconv = "cdecl" # Default to cdecl
     # see if we have stdcall return bytes
-    if emumon.retbytes != None:
+    if emumon.retbytes is not None:
         callconv = "stdcall"
         argc = emumon.retbytes / 4
 
@@ -83,8 +83,8 @@ def buildFunctionApi(vw, fva, emu, emumon, stkstart):
 
     undeflen = len(undefkeys)
     if undeflen:
-        regcall = regcalls.get( tuple(undefkeys) )
-        if regcall != None:
+        regcall = regcalls.get(tuple(undefkeys))
+        if regcall is not None:
             callconv, addargc = regcall
             argc += addargc
 
@@ -122,7 +122,7 @@ def analyzeFunction(vw, fva):
     # Do we already have API info in meta?
     # NOTE: do *not* use getFunctionApi here, it will make one!
     api = vw.getFunctionMeta(fva, 'api')
-    if api == None:
+    if api is None:
         api = buildFunctionApi(vw, fva, emu, emumon, stkstart)
 
     rettype,retname,callconv,callname,callargs = api

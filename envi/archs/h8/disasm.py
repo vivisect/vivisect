@@ -31,7 +31,7 @@ class H8Disasm:
         subtable, mnem, decoder, tsize, iflags = opdata
 
         if subtable:
-            raise Exception("NEED subtable at 0x%x:  %s" % (va, bytez[offset:offset+16].encode('hex')))
+            raise Exception("NEED subtable at 0x%x:  %s" % (va, binascii.hexlify(bytez[offset:offset+16])))
 
         elif decoder is not None:
             opcode, nmnem, olist, flags, isize = decoder(va, opval, bytez, offset, tsize)

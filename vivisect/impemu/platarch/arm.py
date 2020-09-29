@@ -10,9 +10,10 @@ from envi.archs.arm.regs import *
 
 logger = logging.getLogger(__name__)
 
+
 class ArmWorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_arm.ArmEmulator):
 
-    taintregs = [ x for x in range(13) ]
+    taintregs = [x for x in range(13)]
 
     def __init__(self, vw, logwrite=False, logread=False):
         e_arm.ArmEmulator.__init__(self)
@@ -29,8 +30,8 @@ class ArmWorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_arm.ArmEmulator):
 
     def parseOpcode(self, va, arch=envi.ARCH_DEFAULT):
         '''
-        Caching version.  
-        
+        Caching version.
+
         We can make an opcode *faster* with the workspace because of
         getByteDef etc... use it.
 
@@ -54,7 +55,7 @@ class ArmWorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_arm.ArmEmulator):
 
         # parse out an opcode
         tmode = self.getFlag(PSR_T_bit)
-        #logger.debug("tmode: %x", tmode)
+        # logger.debug("tmode: %x", tmode)
         op = self.parseOpcode(starteip | tmode)
         if self.emumon:
             self.emumon.prehook(self, op, starteip)
@@ -210,7 +211,7 @@ class ArmWorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_arm.ArmEmulator):
                                 logger.warn("funcva: 0x%x opva: 0x%x:  %r   (%r) (in emumon prehook: %r)", funcva, starteip, op, e, self.emumon)
 
                         if self.emustop:
-                            return 
+                            return
 
                     # Execute the opcode
                     self.executeOpcode(op)
@@ -225,7 +226,7 @@ class ArmWorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_arm.ArmEmulator):
                             if not self.getMeta('silent'):
                                 logger.warn("funcva: 0x%x opva: 0x%x:  %r   (%r) (in emumon posthook: %r)", funcva, starteip, op, e, self.emumon)
                         if self.emustop:
-                            return 
+                            return
 
                     iscall = self.checkCall(starteip, endeip, op)
                     if self.emustop:
@@ -265,9 +266,7 @@ class ArmWorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_arm.ArmEmulator):
                 except Exception as e:
                     if self.emumon is not None:
                         self.emumon.logAnomaly(self, starteip, str(e))
-
                     logger.debug('runFunction breaking after exception (fva: 0x%x): %s', funcva, e)
-                    #logger.exception('')
                     break # If we exc during execution, this branch is dead.
 
 class ThumbWorkspaceEmulator(ArmWorkspaceEmulator):

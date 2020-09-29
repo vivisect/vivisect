@@ -31,13 +31,13 @@ class ScriptThread(Thread):
     def run(self):
         try:
             exec(self.cobj, self.locals)
-        except Exception, e:
+        except Exception as e:
             scripterr(str(e), traceback.format_exc())
 
 class VQPythonView(QWidget):
 
     def __init__(self, locals=None, parent=None):
-        if locals == None:
+        if locals is None:
             locals = {}
 
         self._locals = locals
@@ -78,7 +78,7 @@ class VQPythonView(QWidget):
             if type(lval) in (types.ModuleType, ):
                 continue
             doc = getattr(lval, '__doc__', '\nNo Documentation\n')
-            if doc == None:
+            if doc is None:
                 doc = '\nNo Documentation\n'
             withhelp.append( (lname, doc) )
 
@@ -94,5 +94,3 @@ class VQPythonView(QWidget):
         self._help_text.setWindowTitle('Python Interactive Help')
         self._help_text.setText( txt )
         self._help_text.show()
-
-

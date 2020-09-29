@@ -1,7 +1,8 @@
 import logging
-logging.basicConfig()
-logger = logging.getLogger(__name__)
 import unittest
+
+import envi
+logger = logging.getLogger(__name__)
 
 import Elf
 import vivisect.cli as viv_cli
@@ -49,7 +50,7 @@ class ELFTests(unittest.TestCase):
             name, test_data, path = test
             logger.warn("======== %r ========", name)
             fn = helpers.getTestPath(*path)
-            e = Elf.Elf(file(fn))
+            e = Elf.Elf(open(fn))
             vw = viv_cli.VivCli()
             vw.loadFromFile(fn)
             #vw.analyze()
@@ -290,7 +291,7 @@ class ELFTests(unittest.TestCase):
         for path in (('linux','amd64','static64.llvm.elf'), ('linux','i386','static32.llvm.elf')):
             logger.warn("======== %r ========", path)
             fn = helpers.getTestPath(*path)
-            e = Elf.Elf(file(fn))
+            e = Elf.Elf(open(fn, 'rb'))
             vw = viv_cli.VivCli()
             vw.loadFromFile(fn)
 

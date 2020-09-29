@@ -5,9 +5,13 @@ Breakpoint Objects
 # Copyright (C) 2007 Invisigoth - See LICENSE file for details
 
 import time
+import logging
 from collections import defaultdict
 
 import vtrace
+
+
+logger = logging.getLogger(__name__)
 
 class Breakpoint:
     """
@@ -51,7 +55,7 @@ class Breakpoint:
         return "0x%.8x" % self.address
 
     def __repr__(self):
-        if self.address == None:
+        if self.address is None:
             addr = "unresolved"
         else:
             addr = "0x%.8x" % self.address
@@ -88,14 +92,14 @@ class Breakpoint:
         addressed break, just return the address.  If it has an "expression"
         use that to resolve the address...
         """
-        if self.address == None and self.vte:
+        if self.address is None and self.vte:
             try:
                 self.address = trace.parseExpression(self.vte)
-            except Exception, e:
+            except Exception:
                 self.address = None
 
         # If we resolved, lets get our saved code...
-        if self.address != None and not self.resonce:
+        if self.address is not None and not self.resonce:
             self.resonce = True
             self.resolvedaddr(trace, self.address)
 
@@ -138,9 +142,9 @@ class Breakpoint:
         for this breakpoint to have bpcode, you must call this method from
         your override.
         """
-        if self.bpcode != None:
+        if self.bpcode is not None:
             cobj = Breakpoint.bpcodeobj.get(self.id, None)
-            if cobj == None:
+            if cobj is None:
                 fname = "BP:%d (0x%.8x)" % (self.id, self.address)
                 cobj = compile(self.bpcode, fname, "exec")
                 Breakpoint.bpcodeobj[self.id] = cobj
@@ -156,7 +160,7 @@ class TrackerBreak(Breakpoint):
     """
     def notify(self, event, trace):
         tb = trace.getMeta("TrackerBreak", None)
-        if tb == None:
+        if tb is None:
             tb = {}
         trace.setMeta("TrackerBreak", tb)
         tb[self.address] = (tb.get(self.address, 0) + 1)
@@ -250,7 +254,7 @@ def addHook(trace, expr, pre_callback, post_callback=None, cc=None, argc=None):
 
     # does a hook bp already exist in the deferred or active bplist?
     ret_bp = None
-    if addr == None:
+    if addr is None:
         for dbp in trace.deferred:
             if dbp.getName() == expr:
                 ret_bp = dbp
@@ -258,7 +262,7 @@ def addHook(trace, expr, pre_callback, post_callback=None, cc=None, argc=None):
     else:
         ret_bp = trace.getBreakpointByAddr(addr)
 
-    if ret_bp == None:
+    if ret_bp is None:
         # add a new bp, one does not exist at this location already
         trace.addBreakpoint(hbp)
         ret_bp = hbp
@@ -267,7 +271,7 @@ def addHook(trace, expr, pre_callback, post_callback=None, cc=None, argc=None):
 
     ret_bp.addPreHook(pre_callback)
 
-    if post_callback != None:
+    if post_callback is not None:
         ret_bp.addPostHook(post_callback)
 
 class HookBreakpoint(NiceBreakpoint):
@@ -311,7 +315,7 @@ class HookBreakpoint(NiceBreakpoint):
         self.error_cb = self.defaultErrorHandler
 
     def defaultErrorHandler(self, hook_cb_name, stre):
-        print('Pre hook callback "%s" exception: %s' % (hook_cb_name, stre))
+        logger.error('Pre hook callback "%s" exception: %s', hook_cb_name, stre)
 
     def resolvedaddr(self, trace, addr):
         '''
@@ -320,7 +324,7 @@ class HookBreakpoint(NiceBreakpoint):
         what to do.
         '''
         # told explicitly what to do, don't go look anything up
-        if self.cc != None and self.argc != None:
+        if self.cc is not None and self.argc is not None:
             return
 
         # TODO: move this out of here after we move impapi to a top-level
@@ -335,7 +339,7 @@ class HookBreakpoint(NiceBreakpoint):
         emu = vtrace.getEmu(trace)
         self.cc = emu.getCallingConvention(cc)
         apiargs = self.impapi.getImpApiArgs(self.vte)
-        if apiargs != None:
+        if apiargs is not None:
             self.argc = len(apiargs)
 
     def addPreHook(self, callback):
@@ -354,7 +358,7 @@ class HookBreakpoint(NiceBreakpoint):
     def notify(self, event, trace):
         ret_addr = None
         args = None
-        if self.cc != None:
+        if self.cc is not None:
             ret_addr = self.cc.getReturnAddress(trace)
             args = self.cc.getCallArgs(trace, self.argc)
 
@@ -363,9 +367,9 @@ class HookBreakpoint(NiceBreakpoint):
         # setup a PostHookBreakpoint on where we are headed to (if one is not
         # already there) we can't do this if we don't know the calling conv
         # information.
-        if ret_addr != None:
+        if ret_addr is not None:
             ret_bp = trace.getBreakpointByAddr(ret_addr)
-            if ret_bp == None:
+            if ret_bp is None:
                 ret_bp = PostHookBreakpoint(ret_addr, self)
                 trace.addBreakpoint(ret_bp)
 
@@ -373,6 +377,7 @@ class HookBreakpoint(NiceBreakpoint):
                 raise Exception('cannot add PostHookBreakpoint, another type of bp exists at this location')
 
         self.runPreHookCallbacks(self.prehooks, event, trace, ret_addr, args)
+
 
 class PostHookBreakpoint(NiceBreakpoint):
 
@@ -386,11 +391,11 @@ class PostHookBreakpoint(NiceBreakpoint):
             try:
                 hook_cb(event, trace, saved_ret_addr, saved_args, self.parent.cc)
             except Exception as e:
-                print('Post hook callback "%s" exception: %s' % (hook_cb, str(e)))
+                logger.error('Post hook callback "%s" exception: %s', hook_cb, e)
 
     def notify(self, event, trace):
         tup = self.parent.callinfo.get(trace.getCurrentThread(), None)
-        if tup == None:
+        if tup is None:
             return
 
         ret_addr, args = tup

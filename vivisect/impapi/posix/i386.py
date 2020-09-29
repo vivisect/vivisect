@@ -938,5 +938,6 @@ api = {
     'plt_wctomb':( 'int', None, 'cdecl', '*.wctomb', (('void *', 'ptr'), ('int', None)) ),
     'plt_wprintf':( 'int', None, 'cdecl', '*.wprintf', (('int', None),) ),
     'plt_wscanf':( 'int', None, 'cdecl', '*.wscanf', (('int', None),) ),
+    'plt___ctype_b_loc':( 'int', None, 'cdecl', '*.__ctype_b_loc', () ),
 
 } # END

@@ -91,7 +91,7 @@ class VQVivFuncgraphCanvas(vq_memory.VivCanvasBase):
         return ret
 
     def contextMenuEvent(self, event):
-        if self._canv_curva != None:
+        if self._canv_curva is not None:
             menu = vq_ctxmenu.buildContextMenu(self.vw, va=self._canv_curva, parent=self)
         else:
             menu = QMenu(parent=self)
@@ -353,7 +353,7 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
         This is a hack to make sure that when _renderMemory() completes,
         _refresh_3() gets run after all other rendering events yet to come.
         '''
-        if self._last_viewpt == None:
+        if self._last_viewpt is None:
             return
 
         self.mem_canvas.setScrollPosition(self._last_viewpt.x(), self._last_viewpt.y())
@@ -367,7 +367,7 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
             addr = self.vw.parseExpression(expr)
             menustr = '0x%.8x' % addr
             sym = self.vw.getSymByAddr(addr)
-            if sym != None:
+            if sym is not None:
                 menustr += ' - %s' % repr(sym)
 
             history.append( (menustr, expr) )
@@ -410,16 +410,17 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
         elem = frame.findFirstElement('#mainhtml')
         h = elem.toOuterXml()
         #h = frame.toHtml()
-        file('test.html','wb').write(str(h))
+        with open('test.html', 'wb') as f:
+            f.write(str(h))
 
     def renderFunctionGraph(self, fva, graph=None):
 
         self.fva = fva
         #self.graph = self.vw.getFunctionGraph(fva)
-        if graph == None:
+        if graph is None:
             try:
                 graph = viv_graphutil.buildFunctionGraph(self.vw, fva, revloop=True)
-            except Exception, e:
+            except Exception as e:
                 import sys
                 sys.excepthook(*sys.exc_info())
                 return
@@ -462,7 +463,7 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
         for nid,nprops in self.graph.getNodes():
 
             cbva = nprops.get('cbva')
-            if cbva == None:
+            if cbva is None:
                 continue
 
             xpos, ypos = nprops.get('position')
@@ -544,7 +545,7 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
     def clearText(self):
         # Pop the svg and reset #memcanvas
         frame = self.mem_canvas.page().mainFrame()
-        if self.fva != None:
+        if self.fva is not None:
             svgid = '#funcgraph_%.8x' % self.fva
             svgelem = frame.findFirstElement(svgid)
             svgelem.removeFromDocument()
@@ -559,7 +560,7 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
         '''
         graph = viv_graphutil.buildFunctionGraph(self.vw, self.fva, revloop=True)
         startva = self.mem_canvas._canv_curva
-        if startva == None:
+        if startva is None:
             return
 
         viv_graphutil.preRouteGraphUp(graph, startva, mark='hit')
@@ -570,7 +571,7 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
             count += 1
             off = 0
             cbsize = node[1].get('cbsize')
-            if cbsize == None:
+            if cbsize is None:
                 raise Exception('node has no cbsize: %s' % repr(node))
 
             # step through opcode for a node
@@ -594,7 +595,7 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
 
         graph = viv_graphutil.buildFunctionGraph(self.vw, self.fva, revloop=True)
         startva = self.mem_canvas._canv_curva
-        if startva == None:
+        if startva is None:
             return
 
         viv_graphutil.preRouteGraphDown(graph, startva, mark='hit')
@@ -605,7 +606,7 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
             count += 1
             off = 0
             cbsize = node[1].get('cbsize')
-            if cbsize == None:
+            if cbsize is None:
                 raise Exception('node has no cbsize: %s' % repr(node))
 
             # step through opcode for a node
@@ -625,7 +626,7 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
 
         graph = viv_graphutil.buildFunctionGraph(self.vw, self.fva, revloop=True)
         startva = self.mem_canvas._canv_curva
-        if startva == None:
+        if startva is None:
             return
 
         viv_graphutil.findRemergeDown(graph, startva)
@@ -636,7 +637,7 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
             count += 1
             off = 0
             cbsize = node[1].get('cbsize')
-            if cbsize == None:
+            if cbsize is None:
                 raise Exception('node has no cbsize: %s' % repr(node))
 
             # step through opcode for a node

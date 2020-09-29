@@ -101,7 +101,8 @@ class SolarisMixin:
         #return ret
 
     def platformAttach(self, pid):
-        self.ctl = file("/proc/%d/ctl" % pid, "ab")
+        # TODO: uck. make a context handler pls
+        self.ctl = open("/proc/%d/ctl" % pid, "ab")
         self.ctl.write(struct.pack("<L", PRSTOP))
 
     def platformContinue(self):
@@ -115,14 +116,13 @@ class SolarisMixin:
         wait for the process to do someting "interesting"
         """
         self.writeCtl(struct.pack("<L", PCWSTOP))
-        bytes = file("/proc/%d/psinfo" % self.pid, "rb").read()
-        return bytes
+        with open("/proc/%d/psinfo" % self.pid, "rb") as f:
+            return f.read()
 
     def writeCtl(self, bytes):
         os.write(self.ctl.fileno(), bytes)
 
     def platformDetach(self):
-        print "SOLARIS DETACH"
         self.ctl.close()
         self.ctl = None
 
@@ -140,7 +140,6 @@ class SolarisIntelMixin:
         a = array.array('c',"\x00" * size)
         baddr, blen = a.buffer_info()
         priovec = struct.pack("<4L",PCREAD, baddr, blen, addr)
-        print repr(priovec)
         self.writeCtl(priovec)
         return a.tostring()
 
@@ -153,12 +152,13 @@ class SolarisIntelMixin:
     def platformGetMaps(self):
         ret = []
         pid = self.getPid()
-        mapdata = file("/proc/%d/map" % pid, "rb").read()
-        while mapdata:
-            addr,size = struct.unpack("<LL", mapdata[:8])
-            perms, = struct.unpack("<L", mapdata[80:84])
-            perms = perms & 0x7
-            ret.append((addr,size, perms, ""))
-            mapdata = mapdata[96:]
-        return ret
+        with open("/proc/%d/map" % pid, "rb") as f:
+            mapdata = f.read()
+            while mapdata:
+                addr,size = struct.unpack("<LL", mapdata[:8])
+                perms, = struct.unpack("<L", mapdata[80:84])
+                perms = perms & 0x7
+                ret.append((addr,size, perms, ""))
+                mapdata = mapdata[96:]
+            return ret
 
