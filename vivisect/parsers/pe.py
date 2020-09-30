@@ -188,7 +188,6 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
     ifhdr_va = baseaddr + magicaddr + 4
     ifstruct = vw.makeStructure(ifhdr_va, "pe.IMAGE_FILE_HEADER")
     ohstruct = vw.makeStructure(ifhdr_va + len(ifstruct), "pe.IMAGE_OPTIONAL_HEADER")
-    isdll = ifstruct.Characteristics & PE.IMAGE_FILE_DLL
     nxcompat = ohstruct.DllCharacteristics & PE.IMAGE_DLLCHARACTERISTICS_NX_COMPAT
 
     # get resource data directory
@@ -230,6 +229,10 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
 
             # If it's for an older system, just about anything
             # is executable...
+            # However, there is the DLLCHARACTERISTICS NXCOMPAT flag to take into account,
+            # which works with the OS to prevent certain pages of memory from achieving 
+            # execution unless they're marked with the execute bit
+            # so we can't just blindly mark these as executable quite yet.
             if not nxcompat:
                 if not vw.config.viv.parsers.pe.nx and subsys_majver < 6 and not isrsrc:
                     mapflags |= e_mem.MM_EXEC
