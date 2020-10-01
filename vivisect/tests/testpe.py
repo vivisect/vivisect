@@ -16,6 +16,23 @@ class PETests(unittest.TestCase):
         cls.vw_psexec.loadFromFile(cls.psexec_fn)
         cls.vw_psexec.analyze()
 
+    def test_xrefs_types(self):
+        vw = self.vw_psexec
+        for xfrom, xto, xtype, xflags in vw.getXrefs():
+            self.assertTrue(isinstance(xfrom, int))
+            self.assertTrue(isinstance(xto, int))
+            self.assertTrue(isinstance(xtype, int))
+            self.assertTrue(isinstance(xflags, int))
+
+    def test_loc_types(self):
+        vw = self.vw_psexec
+        for lva, lsize, ltype, linfo in vw.getLocations():
+            self.assertTrue(isinstance(lva, int))
+            self.assertTrue(isinstance(lsize, int))
+            self.assertTrue(isinstance(ltype, int))
+            if linfo:
+                self.assertTrue(isinstance(linfo, int) or isinstance(linfo, str))
+
     def test_function_disasm(self):
         disasm = [
             (0x4028e0, 1, 'push ebp'),
