@@ -1186,7 +1186,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
                     self.setComment(rdest, cmnt)
 
         # This must be second (len(xrefsto))
-        self.addXref(op.va, tova, REF_PTR, None)
+        self.addXref(op.va, tova, REF_PTR)
 
     def makeOpcode(self, va, op=None, arch=envi.ARCH_DEFAULT):
         """
