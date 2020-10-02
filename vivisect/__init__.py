@@ -2472,7 +2472,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         if fmtname is None:
             fmtname = viv_parsers.guessFormatFilename(filename)
 
-        if fmtname == 'viv':
+        if fmtname in ('viv', 'mpviv'):
             self.loadWorkspace(filename)
             return self.normFileName(filename)
 
