@@ -1,4 +1,5 @@
 import cmd
+import logging
 import collections
 
 try:
@@ -29,6 +30,10 @@ from vqt.main import *
 from vqt.basics import *
 from vqt.common import *
 from vtrace.const import *
+
+
+logger = logging.getLogger(__name__)
+
 
 class VdbCmdWidget(vqt.cli.VQCli, vtrace.qt.VQTraceNotifier):
 
@@ -156,7 +161,7 @@ class VdbToolBar(vtrace.qt.VQTraceToolBar):
 
     def actAttach(self, *args, **kwargs):
         pid = vtrace.qt.getProcessPid(trace=self.trace)
-        if pid != None:
+        if pid is not None:
             workthread(self.trace.attach)(pid)
 
     @workthread
@@ -324,11 +329,11 @@ class VdbWindow(vq_app.VQMainCmdWindow):
         platform = trace.getMeta('Platform').lower()
 
         pconfig = config.getSubConfig( platform, add=False )
-        if pconfig != None:
+        if pconfig is not None:
             configs.append(('vdb:%s' % platform, pconfig))
 
         aconfig = config.getSubConfig( arch, add=False )
-        if aconfig != None:
+        if aconfig is not None:
             configs.append(('vdb:%s' % arch, aconfig))
 
         self._cfg_widget = envi.qt.config.EnviConfigTabs( configs )
@@ -364,7 +369,7 @@ class VdbWindow(vq_app.VQMainCmdWindow):
 
     def menuViewLayoutsLoad(self):
         fname = getOpenFileName(self, 'Load Layout')
-        if fname == None:
+        if fname is None:
             return
 
         self.vqClearDockWidgets()
@@ -374,7 +379,7 @@ class VdbWindow(vq_app.VQMainCmdWindow):
 
     def menuViewLayoutsSave(self):
         fname = getSaveFileName(self, 'Save Layout')
-        if fname == None:
+        if fname is None:
             return
 
         settings = QtCore.QSettings(str(fname), QtCore.QSettings.IniFormat)
@@ -406,7 +411,7 @@ class VdbWindow(vq_app.VQMainCmdWindow):
                 else:
                     t.detach()
 
-        except Exception, e:
-            print('Error Detaching: %s' % e)
+        except Exception as e:
+            logger.warning('Error Detaching: %s', e)
 
         return vq_app.VQMainCmdWindow.closeEvent(self, event)

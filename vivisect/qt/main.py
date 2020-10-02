@@ -49,6 +49,9 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
     def __init__(self, vw):
         self.vw = vw
         vw._viv_gui = self
+        # DEV: hijack the workspace's vprint so that they get routed to the UI canvas
+        # and not out to the stdout
+        vw.vprint = self.vprint
         viv_base.VivEventDist.__init__(self, vw=vw)
         vq_app.VQMainCmdWindow.__init__(self, 'Vivisect', vw)
 
@@ -109,6 +112,12 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
         self.addHotKeyTarget('file:save', self._menuFileSave)
         self.addHotKey('ctrl+w', 'file:quit')
         self.addHotKeyTarget('file:quit', self.close)
+
+    def vprint(self, msg, addnl=True):
+        # ripped and modded from envi/cli.py
+        if addnl:
+            msg = msg + "\n"
+        self.vw.canvas.write(msg)
 
     def getLocation(self, va):
         loctup = self.vw.getLocation(va)

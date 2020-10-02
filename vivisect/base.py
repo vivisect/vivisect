@@ -58,18 +58,18 @@ class VivEventCore(object):
             hlist = self._ve_thand
 
         h = hlist[event]
-        if h != None:
+        if h is not None:
             try:
                 h(self._ve_vw, event, edata)
-            except Exception, e:
-                traceback.print_exc()
+            except Exception as e:
+                logger.error(traceback.format_exc())
 
     @firethread
     def _ve_fireListener(self):
         chanid = self._ve_vw.createEventChannel()
         try:
             etup = self._ve_vw.waitForEvent(chanid)
-            while etup != None:
+            while etup is not None:
                 self._ve_lock.acquire()
                 self._ve_lock.release()
 
@@ -97,7 +97,7 @@ class VivEventDist(VivEventCore):
     to a set of sub eventcore objects (think GUI windows...)
     '''
     def __init__(self, vw=None, **kwargs):
-        if vw == None:
+        if vw is None:
             raise Exception("VivEventDist requires a vw argument")
 
         VivEventCore.__init__(self, vw)
@@ -112,23 +112,23 @@ class VivEventDist(VivEventCore):
     def addEventCore(self, core):
         for i in range(VWE_MAX):
             h = core._ve_ehand[i]
-            if h != None:
+            if h is not None:
                 self._ve_subs[i].append(h)
 
         for i in range(VTE_MAX):
             h = core._ve_thand[i]
-            if h != None:
+            if h is not None:
                 self._ve_tsubs[i].append(h)
 
     def delEventCore(self, core):
         for i in range(VWE_MAX):
             h = core._ve_ehand[i]
-            if h != None:
+            if h is not None:
                 self._ve_subs[i].remove(h)
 
         for i in range(VTE_MAX):
             h = core._ve_thand[i]
-            if h != None:
+            if h is not None:
                 self._ve_tsubs[i].remove(h)
 
     def _ve_fireEvent(self, event, edata):
@@ -144,8 +144,8 @@ class VivEventDist(VivEventCore):
         for h in hlist:
             try:
                 h(self._ve_vw, event, edata)
-            except Exception, e:
-                traceback.print_exc()
+            except Exception:
+                logger.error(traceback.format_exc())
 
         VivEventCore._ve_fireEvent(self, event, edata)
 
@@ -155,12 +155,15 @@ def ddict():
 
 
 class VivWorkspaceCore(object, viv_impapi.ImportApi):
-
+    '''
+    A base class that the VivWorkspace inherits from that defines a lot of the event handlers
+    for things like the creation of the various location types.
+    '''
     def __init__(self):
         viv_impapi.ImportApi.__init__(self)
         self.loclist = []
-        self.bigend   = False
-        self.locmap   = e_page.MapLookup()
+        self.bigend = False
+        self.locmap = e_page.MapLookup()
         self.blockmap = e_page.MapLookup()
         self._mods_loaded = False
 
@@ -253,8 +256,6 @@ class VivWorkspaceCore(object, viv_impapi.ImportApi):
                 with self.getAdminRights():
                     self.writeMemoryPtr(rva, ptr)
 
-            logger.debug('_handleADDRELOC: %x -> %x (map: 0x%x)', rva, ptr, imgbase)
-
         if rtype == RTYPE_BASEPTR:
             # make it like a pointer (but one that could move with each load)
             #   self.addXref(va, tova, REF_PTR)
@@ -265,25 +266,25 @@ class VivWorkspaceCore(object, viv_impapi.ImportApi):
             self._handleADDLOCATION((rva, self.psize, LOC_POINTER, ptr))
 
     def _handleADDMODULE(self, einfo):
-        logger.warning('DEPRICATED (ADDMODULE) ignored: %s' % einfo)
+        logger.warning('DEPRECATED (ADDMODULE) ignored: %s', einfo)
 
     def _handleDELMODULE(self, einfo):
-        logger.warning('DEPRICATED (DELMODULE) ignored: %s' % einfo)
+        logger.warning('DEPRECATED (DELMODULE) ignored: %s', einfo)
 
     def _handleADDFMODULE(self, einfo):
-        logger.warning('DEPRICATED (ADDFMODULE) ignored: %s' % einfo)
+        logger.warning('DEPRECATED (ADDFMODULE) ignored: %s', einfo)
 
     def _handleDELFMODULE(self, einfo):
-        logger.warning('DEPRICATED (DELFMODULE) ignored: %s' % einfo)
+        logger.warning('DEPRECATED (DELFMODULE) ignored: %s', einfo)
 
     def _handleADDFUNCTION(self, einfo):
         va, meta = einfo
         self._initFunction(va)
 
-        #node = self._call_graph.addNode( nid=va, repr=self.getName( va ) ) #, color='#00ff00' )
-        #node = self._call_graph.getFunctionNode(va, repr=self.getName( va ) )
+        # node = self._call_graph.addNode( nid=va, repr=self.getName( va ) ) #, color='#00ff00' )
+        # node = self._call_graph.getFunctionNode(va, repr=self.getName( va ) )
         node = self._call_graph.getFunctionNode(va)
-        self._call_graph.setNodeProp(node,'repr',self.getName(va))
+        self._call_graph.setNodeProp(node,'repr', self.getName(va))
 
         # Tell the codeflow subsystem about this one!
         calls_from = meta.get('CallsFrom')
@@ -291,16 +292,15 @@ class VivWorkspaceCore(object, viv_impapi.ImportApi):
 
         self.funcmeta[va] = meta
 
-        for name,value in meta.items():
+        for name, value in meta.items():
             mcbname = "_fmcb_%s" % name.split(':')[0]
             mcb = getattr(self, mcbname, None)
-            if mcb != None:
+            if mcb is not None:
                 mcb(va, name, value)
 
     def _handleDELFUNCTION(self, einfo):
         # clear funcmeta, func_args, codeblocks_by_funcva, update codeblocks, blockgraph, locations, etc...
         fva = einfo
-        blocks = self.getFunctionBlocks(fva)
 
         # not every codeblock identifying as this function is stored in funcmeta
         for cb in self.getCodeBlocks():
@@ -314,7 +314,7 @@ class VivWorkspaceCore(object, viv_impapi.ImportApi):
         self._call_graph.delNode(node)
         self.cfctx.flushFunction(fva)
 
-        # FIXME: do we want to now seek the function we *should* be in?  
+        # FIXME: do we want to now seek the function we *should* be in?
         # if xrefs_to, look for non-PROC code xrefs and take their function
         # if the previous instruction falls through, take its function
         # run codeblock analysis on that function to reassociate the blocks
@@ -323,11 +323,11 @@ class VivWorkspaceCore(object, viv_impapi.ImportApi):
     def _handleSETFUNCMETA(self, einfo):
         funcva, name, value = einfo
         m = self.funcmeta.get(funcva)
-        if m != None:
+        if m is not None:
             m[name] = value
         mcbname = "_fmcb_%s" % name.split(':')[0]
         mcb = getattr(self, mcbname, None)
-        if mcb != None:
+        if mcb is not None:
             mcb(funcva, name, value)
 
     def _handleADDCODEBLOCK(self, einfo):
@@ -346,11 +346,11 @@ class VivWorkspaceCore(object, viv_impapi.ImportApi):
         fromva, tova, reftype, rflags = einfo
         xr_to = self.xrefs_by_to.get(tova, None)
         xr_from = self.xrefs_by_from.get(fromva, None)
-        if xr_to == None:
+        if xr_to is None:
             xr_to = []
             self.xrefs_by_to[tova] = xr_to
 
-        if xr_from == None:
+        if xr_from is None:
             xr_from = []
             self.xrefs_by_from[fromva] = xr_from
 
@@ -366,13 +366,13 @@ class VivWorkspaceCore(object, viv_impapi.ImportApi):
 
     def _handleSETNAME(self, einfo):
         va,name = einfo
-        if name == None:
+        if name is None:
             oldname = self.name_by_va.pop(va, None)
             self.va_by_name.pop(oldname, None)
 
         else:
             curname = self.name_by_va.get(va)
-            if curname != None:
+            if curname is not None:
                 logger.debug( 'replacing 0x%x: %r -> %r', va, curname, name)
                 self.va_by_name.pop(curname)
 
@@ -410,7 +410,7 @@ class VivWorkspaceCore(object, viv_impapi.ImportApi):
         # callback name....
         mcbname = "_mcb_%s" % name.split(':')[0]
         mcb = getattr(self, mcbname, None)
-        if mcb != None:
+        if mcb is not None:
             mcb(name, value)
         self.metadata[name] = value
 
@@ -467,7 +467,7 @@ class VivWorkspaceCore(object, viv_impapi.ImportApi):
         self.vasets[name].pop(va, None)
 
     def _handleADDFSIG(self, einfo):
-        print('DEPRICATED (ADDFSIG) ignored: %s' % (einfo,))
+        raise NotImplementedError("FSIG is deprecated and should not be used")
 
     def _handleFOLLOWME(self, va):
         pass
@@ -479,7 +479,7 @@ class VivWorkspaceCore(object, viv_impapi.ImportApi):
 
     def _handleSYMHINT(self, msgtup):
         va, idx, hint = msgtup
-        if hint == None:
+        if hint is None:
             self.symhints.pop((va,idx), None)
         else:
             self.symhints[(va,idx)] = hint
@@ -555,7 +555,7 @@ class VivWorkspaceCore(object, viv_impapi.ImportApi):
     def _fireEvent(self, event, einfo, local=False, skip=None):
         '''
         Fire an event down the hole.  "local" specifies that this is
-        being called on a client (self.server != None) but we got it
+        being called on a client (self.server is not None) but we got it
         from the server in the first place so no need to send it back.
 
         skip is used to tell the server to bypass our channelid when
@@ -570,23 +570,23 @@ class VivWorkspaceCore(object, viv_impapi.ImportApi):
             self.ehand[event](einfo)
 
             # If we're supposed to call a server, do that.
-            if self.server != None and local == False:
+            if self.server is not None and local == False:
                 self.server._fireEvent(event, einfo, skip=self.rchan)
 
             # FIXME perhaps we should only process events *via* our server
             # if we have one? Just to confirm it works before we apply it...
             self._event_list.append((event, einfo))
 
-            for id,q in self.chan_lookup.items():
+            for id, q in self.chan_lookup.items():
                 if id == skip:
                     continue
                 try:
                     q.put_nowait((event, einfo))
-                except Queue.Full, e:
-                    print "FULL QUEUE DO SOMETHING"
+                except Queue.Full as e:
+                    logger.warning("Queue is full!")
 
-        except Exception, e:
-            traceback.print_exc()
+        except Exception as e:
+            logger.error(traceback.format_exc())
 
     def _fireTransEvent(self, event, einfo):
         for q in self.chan_lookup.values():
@@ -596,7 +596,7 @@ class VivWorkspaceCore(object, viv_impapi.ImportApi):
     def _initFunction(self, funcva):
         # Internal function to initialize all datastructures necessary for
         # a function, but only if they haven't been done already.
-        if self.funcmeta.get(funcva) == None:
+        if self.funcmeta.get(funcva) is None:
             self.funcmeta[funcva] = {} # His metadata
             self.codeblocks_by_funcva[funcva] = [] # Init code block list
 
@@ -611,7 +611,7 @@ class VivWorkspaceCore(object, viv_impapi.ImportApi):
         for arch in self.imem_archs:
             arch.setEndian(self.bigend)
 
-        if self.arch != None:
+        if self.arch is not None:
             self.arch.setEndian(self.bigend)
 
 
@@ -664,7 +664,7 @@ class VivWorkspaceCore(object, viv_impapi.ImportApi):
     def _fmcb_CallsFrom(self, funcva, th, callsfrom):
         for va in callsfrom:
             f2va = self.getFunction( va )
-            if f2va != None:
+            if f2va is not None:
                 self._call_graph.getCallEdge( funcva, f2va )
 
     def _fmcb_LocalSymbol(self, fva, mname, locsym):
@@ -685,8 +685,7 @@ def trackDynBranches(cfctx, op, vw, bflags, branches):
     if len(vw.getXrefsFrom(op.va)):
         return
 
-    if vw.verbose:
-        print("Dynamic Branch found at 0x%x    %s" % (op.va, op))
+    vw.vprint("0x%x: Dynamic Branch found at (%s)" % (op.va, op))
     vw.setVaSetRow('DynamicBranches', (op.va, repr(op), bflags))
 
 class VivCodeFlowContext(e_codeflow.CodeFlowContext):
@@ -697,7 +696,7 @@ class VivCodeFlowContext(e_codeflow.CodeFlowContext):
     def _cb_noflow(self, srcva, dstva):
         vw = self._mem
         loc = vw.getLocation( srcva )
-        if loc == None:
+        if loc is None:
             return
 
         lva,lsize,ltype,linfo = loc
@@ -743,7 +742,7 @@ class VivCodeFlowContext(e_codeflow.CodeFlowContext):
             return
 
         # If the function doesn't have a name, make one
-        if vw.getName(fva) == None:
+        if vw.getName(fva) is None:
             vw.makeName(fva, "sub_%.8x" % fva)
 
         vw._fireEvent(VWE_ADDFUNCTION, (fva,fmeta))
@@ -771,7 +770,7 @@ class VivCodeFlowContext(e_codeflow.CodeFlowContext):
         if tablebase != tableva and self._mem.getXrefsTo(tableva):
             return False
 
-        if self._mem.getLocation(tableva) == None:
+        if self._mem.getLocation(tableva) is None:
             self._mem.makePointer(tableva, tova=destva, follow=False)
 
         return True

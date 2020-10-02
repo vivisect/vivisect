@@ -1,4 +1,5 @@
 import struct
+import binascii
 
 class v_enum(object):
     def __init__(self):
@@ -23,7 +24,8 @@ class v_bitmask(object):
 
     def vsReverseMapping(self, val, default=None):
         '''Returns a list of names where apply the AND of the mask and val is non-zero'''
-        return [ v for k,v in self._vs_reverseMap.items() if (val&k) != 0 ]
+        return [v for k, v in self._vs_reverseMap.items() if (val & k) != 0]
+
 
 class v_base(object):
     def __init__(self):
@@ -36,10 +38,18 @@ class v_base(object):
         self._vs_meta[name] = value
 
     # Sub-classes (primitive base, or VStruct must have these
-    def vsParse(self, bytes): return NotImplemented
-    def vsCalculate(self): pass
-    def vsIsPrim(self): return NotImplemented
-    def vsGetTypeName(self): return NotImplemented
+    def vsParse(self, bytes):
+        return NotImplemented
+
+    def vsCalculate(self):
+        pass
+
+    def vsIsPrim(self):
+        return NotImplemented
+
+    def vsGetTypeName(self):
+        return NotImplemented
+
 
 class v_prim(v_base):
     def __init__(self):
@@ -150,7 +160,7 @@ class v_number(v_prim):
         '''
         sizeoff = offset + self._vs_length
 
-        if self._vs_fmt != None:
+        if self._vs_fmt is not None:
             b = fbytes[ offset : sizeoff ]
             self._vs_value = struct.unpack(self._vs_fmt, b)[0]
 
@@ -172,7 +182,7 @@ class v_number(v_prim):
         '''
         Emit the bytes for this numeric type
         '''
-        if self._vs_fmt != None:
+        if self._vs_fmt is not None:
             return struct.pack(self._vs_fmt, self._vs_value)
 
         r = []
@@ -257,7 +267,7 @@ class v_number(v_prim):
     def __coerce__(self, other):
         try:
             return long(self),long(other)
-        except Exception, e:
+        except Exception:
             return NotImplemented
 
     # Print helpers
@@ -373,7 +383,7 @@ class v_float(v_prim):
         '''
         sizeoff = offset + self._vs_length
 
-        if self._vs_fmt != None:
+        if self._vs_fmt is not None:
             b = fbytes[ offset : sizeoff ]
             self._vs_value = struct.unpack(self._vs_fmt, b)[0]
 
@@ -395,7 +405,7 @@ class v_float(v_prim):
         '''
         Emit the bytes for this numeric type
         '''
-        if self._vs_fmt != None:
+        if self._vs_fmt is not None:
             return struct.pack(self._vs_fmt, self._vs_value)
 
         r = []
@@ -468,7 +478,7 @@ class v_float(v_prim):
     def __coerce__(self, other):
         try:
             return double(self),double(other)
-        except Exception, e:
+        except Exception:
             return NotImplemented
 
     # Print helpers
@@ -488,7 +498,7 @@ class v_bytes(v_prim):
 
     def __init__(self, size=0, vbytes=None):
         v_prim.__init__(self)
-        if vbytes == None:
+        if vbytes is None:
             vbytes = '\x00' * size
         self._vs_length = len(vbytes)
         self._vs_value = vbytes
@@ -517,7 +527,7 @@ class v_bytes(v_prim):
         self._vs_value = b.ljust(size, '\x00')
 
     def __repr__(self):
-        return self._vs_value.encode('hex')
+        return binascii.hexlify(self._vs_value)
 
 class v_str(v_prim):
     '''
@@ -721,7 +731,7 @@ class GUID(v_prim):
         self._vs_value = "\x00" * 16
         self._vs_fmt = "16s"
         self._guid_fields = (0,0,0,0,0,0,0,0,0,0,0)
-        if guidstr != None:
+        if guidstr is not None:
             self._parseGuidStr(guidstr)
 
     def vsParse(self, fbytes, offset=0):
@@ -736,7 +746,7 @@ class GUID(v_prim):
         gstr = gstr.replace("{","")
         gstr = gstr.replace("}","")
         gstr = gstr.replace("-","")
-        bytes = gstr.decode("hex")
+        bytes = binascii.unhexlify(gstr)
         # Totally cheating... ;)
         self._guid_fields = struct.unpack(">IHH8B", bytes)
 

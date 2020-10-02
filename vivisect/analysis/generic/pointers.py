@@ -49,8 +49,8 @@ def analyze(vw):
             logger.info('pointer(3): 0x%x -> 0x%x', lva, tva)
             vw.followPointer(tva)
             done.append((lva, tva))
-        except Exception:
-            logger.exception("followPointer() failed for 0x%.8x (pval: 0x%.8x)" % (lva, tva))
+        except Exception as e:
+            logger.error('followPointer() failed for 0x%.8x (pval: 0x%.8x) (err: %s)', lva, tva, e)
 
     # Now, lets find likely free-hanging pointers
     for addr, pval in vw.findPointers():
@@ -60,8 +60,8 @@ def analyze(vw):
             logger.info('pointer(4): 0x%x -> 0x%x', addr, pval)
             vw.makePointer(addr, follow=True)
             done.append((addr, pval))
-        except Exception:
-            logger.exception("followPointer() failed for 0x%.8x (pval: 0x%.8x)" % (addr, pval))
+        except Exception as e:
+            logger.error('makePointer() failed for 0x%.8x (pval: 0x%.8x) (err: %s)', addr, pval, e)
 
     # Now let's see what these guys should be named (if anything)
     for ptr, tgt in done:
@@ -75,11 +75,11 @@ def analyze(vw):
             if loc is not None and loc[L_LTYPE] != LOC_POINTER:
                 logger.info('skipping naming of 0x%x (no longer a pointer: %s)', ptr, vw.reprLocation(loc))
                 continue
-
             tgtname = vw.getName(tgt)
             if tgtname is not None:
                 name = vw._addNamePrefix(tgtname, tgt, 'ptr', '_') + '_%.8x' % ptr
                 logger.info('   name(0x%x): %r  (%r)', tgt, tgtname, name)
                 vw.makeName(ptr, name)
-        except:
+        except Exception as e:
+            logger.error('naming failed (0x%x -> 0x%x), (err: %s)', ptr, tgt, e)
             sys.excepthook(*sys.exc_info())

@@ -1,23 +1,27 @@
 import os
-import PE
 import logging
+from io import StringIO
+
+import PE
+import PE.carve as pe_carve
+
 import vstruct
 import vivisect
-import PE.carve as pe_carve
-import cStringIO as StringIO
 import vivisect.parsers as v_parsers
-
 # Steal symbol parsing from vtrace
-import vtrace
+import vtrace  # needed only for setting the logging level
 import vtrace.platforms.win32 as vt_win32
 
-import envi
 import envi.memory as e_mem
 import envi.symstore.symcache as e_symcache
 
 from vivisect.const import *
 
 logger = logging.getLogger(__name__)
+
+for mod in (PE, vtrace):
+    olog = logging.getLogger(mod.__name__)
+    olog.setLevel(logger.getEffectiveLevel())
 
 # PE Machine field values
 # 0x14d   Intel i860
@@ -28,12 +32,12 @@ logger = logging.getLogger(__name__)
 
 
 def parseFile(vw, filename, baseaddr=None):
-    pe = PE.PE(file(filename, "rb"))
+    pe = PE.PE(open(filename, "rb"))
     return loadPeIntoWorkspace(vw, pe, filename, baseaddr=baseaddr)
 
 
 def parseBytes(vw, bytes, baseaddr=None):
-    fd = StringIO.StringIO(bytes)
+    fd = StringIO(bytes)
     fd.seek(0)
     pe = PE.PE(fd)
     return loadPeIntoWorkspace(vw, pe, filename=filename, baseaddr=baseaddr)
@@ -109,17 +113,21 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
 
     # This will help linkers with files that are re-named
     dllname = pe.getDllName()
-    if dllname != None:
+    if dllname is not None:
         fvivname = dllname
 
     if fvivname is None:
         fvivname = "pe_%.8x" % baseaddr
 
-    fhash = "unknown hash"
-    if os.path.exists(filename):
-        fhash = v_parsers.md5File(filename)
+    # grab the file bytes for hashing
+    pe.fd.seek(0)
+    bytez = pe.fd.read()
+    fhash = v_parsers.md5Bytes(bytez)
+    sha256 = v_parsers.sha256Bytes(bytez)
 
+    # create the file and store md5 and sha256 hashes
     fname = vw.addFile(fvivname.lower(), baseaddr, fhash)
+    vw.setFileMeta(fname, 'sha256', sha256)
 
     symhash = e_symcache.symCacheHashFromPe(pe)
     vw.setFileMeta(fname, 'SymbolCacheHash', symhash)
@@ -179,8 +187,8 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
 
     ifhdr_va = baseaddr + magicaddr + 4
     ifstruct = vw.makeStructure(ifhdr_va, "pe.IMAGE_FILE_HEADER")
-
-    vw.makeStructure(ifhdr_va + len(ifstruct), "pe.IMAGE_OPTIONAL_HEADER")
+    ohstruct = vw.makeStructure(ifhdr_va + len(ifstruct), "pe.IMAGE_OPTIONAL_HEADER")
+    nxcompat = ohstruct.DllCharacteristics & PE.IMAGE_DLLCHARACTERISTICS_NX_COMPAT
 
     # get resource data directory
     ddir = pe.getDataDirectory(PE.IMAGE_DIRECTORY_ENTRY_RESOURCE)
@@ -221,8 +229,13 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
 
             # If it's for an older system, just about anything
             # is executable...
-            if not vw.config.viv.parsers.pe.nx and subsys_majver < 6 and not isrsrc:
-                mapflags |= e_mem.MM_EXEC
+            # However, there is the DLLCHARACTERISTICS NXCOMPAT flag to take into account,
+            # which works with the OS to prevent certain pages of memory from achieving 
+            # execution unless they're marked with the execute bit
+            # so we can't just blindly mark these as executable quite yet.
+            if not nxcompat:
+                if not vw.config.viv.parsers.pe.nx and subsys_majver < 6 and not isrsrc:
+                    mapflags |= e_mem.MM_EXEC
 
         if chars & PE.IMAGE_SCN_MEM_READ:
             mapflags |= e_mem.MM_READ
@@ -250,8 +263,9 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
         if secrva <= entryrva and entryrva < secrvamax:
             mapflags |= e_mem.MM_EXEC
 
-        if not vw.config.viv.parsers.pe.nx and subsys_majver < 6 and mapflags & e_mem.MM_READ:
-            mapflags |= e_mem.MM_EXEC
+        if not nxcompat:
+            if not vw.config.viv.parsers.pe.nx and subsys_majver < 6 and mapflags & e_mem.MM_READ:
+                mapflags |= e_mem.MM_EXEC
 
         if sec.VirtualSize == 0 or sec.SizeOfRawData == 0:
             if idx+1 >= len(pe.sections):
@@ -303,7 +317,7 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
                 vw.markDeadData(secbase, secbase+len(secbytes))
 
         except Exception as e:
-            print("Error Loading Section (%s size:%d rva:%.8x offset: %d): %s" % (secname,secfsize,secrva,secoff,e))
+            logger.warning("Error Loading Section (%s size:%d rva:%.8x offset: %d): %s", secname, secfsize, secrva, secoff, e)
 
     vw.addExport(entry, EXP_FUNCTION, '__entry', fname)
     vw.addEntryPoint(entry)
@@ -380,7 +394,7 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
     vw.setFileMeta(fname, 'forwarders', fwds)
 
     # Check For SafeSEH list...
-    if pe.IMAGE_LOAD_CONFIG != None:
+    if pe.IMAGE_LOAD_CONFIG is not None:
 
         vw.setFileMeta(fname, "SafeSEH", True)
 
@@ -391,7 +405,7 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
             # RP BUG FIX - sanity check the count
             if count * 4 < pe.filesize and vw.isValidPointer(va):
                 # XXX - CHEAP HACK for some reason we have binaries still thorwing issues.. 
-                
+
                 try:
                     # Just cheat and use the workspace with memory maps in it already
                     for h in vw.readMemoryFormat(va, "<%dP" % count):
@@ -421,7 +435,7 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
                 if vw.getName(symva) is None:
                     vw.makeName(symva, symname, filelocal=True)
 
-            except Exception, e:
+            except Exception as e:
                 vw.vprint("Symbol Load Error: %s" % e)
 
         # Also, lets set the locals/args name hints if we found any

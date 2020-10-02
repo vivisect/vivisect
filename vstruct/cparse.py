@@ -46,11 +46,13 @@ class StructParser:
         if psize == 8:
             self.pclass = vs_prim.v_ptr64
             self.vs_ctypes.update({
-                ('long',):                  vs_prim.v_int64,
-                ('long','int'):             vs_prim.v_int64,
+                ('long',):                    vs_prim.v_int64,
+                ('long', 'int'):              vs_prim.v_int64,
+                ('long', 'long'):             vs_prim.v_int64,
 
-                ('unsigned','long',):       vs_prim.v_uint64,
-                ('unsigned','long','int'):  vs_prim.v_uint64,
+                ('unsigned', 'long',):        vs_prim.v_uint64,
+                ('unsigned', 'long', 'int'):  vs_prim.v_uint64,
+                ('unsigned', 'long', 'long'): vs_prim.v_uint64,
             })
 
     def _getVsChildElements(self, astelem):
@@ -60,9 +62,8 @@ class StructParser:
         # An ast element comes as a tuple of namething, realstuff
         namething,elem = astelem
         p = self.cls_parsers.get( elem.__class__ )
-        if p == None:
+        if p is None:
             raise Exception('OMG NO PARSER FOR: %r' % elem)
-        #print 'getVsElement %s %s' % (astelem, p)
         return p( astelem )
 
     def c_getPointer(self, pdecl):
@@ -111,7 +112,7 @@ class StructParser:
         return int(celem[1].value)
 
     def c_getFuncDecl(self, felem):
-        print 'WOO'*300
+        raise NotImplementedError("Implement function declaration parsing!")
 
     def parseStructSource(self, src):
         src = preProcessSource( src )
@@ -172,10 +173,3 @@ class awesome(CVStruct):
         int *q;
     };
     '''
-
-if __name__ == '__main__':
-
-    a = awesome()
-    a.vsParse('XXXXZZZZhow cool is this?\x00\x00\x00YYYYblahQQQQ')
-    print a.tree()
-

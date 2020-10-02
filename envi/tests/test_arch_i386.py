@@ -1,7 +1,10 @@
+import binascii
+import unittest
+
 import envi
 import envi.memcanvas as e_memcanvas
+
 import vivisect
-import unittest
 
 # name, bytes, va, repr, txtRender
 i386SingleByteOpcodes = [
@@ -46,6 +49,7 @@ i386MultiByteOpcodes = [
     ('MOV', '8B148541414141', 0x40, 'mov edx,dword [0x41414141 + eax * 4]', 'mov edx,dword [0x41414141 + eax * 4]'),
     # ('MOV 2r', '678B14', 0x40, 'mov edx,dword [si]', 'mov edx,dword [si]'),
     # ('PUSH 2', '67FF37', 0x40, 'push dword [bx]', 'push dword [bx]'),
+    ('ROR', '66d3c8', 0x40, 'ror ax,cl', 'ror ax,cl'),
     ('PEXTRB', '660F3A14D011', 0x40, 'pextrb eax,xmm2,17', 'pextrb eax,xmm2,17'),
     ('PEXTRB 2', '660F3A141011', 0x40, 'pextrb byte [eax],xmm2,17', 'pextrb byte [eax],xmm2,17'),
     ('MOV 3', '8B16', 0x40, 'mov edx,dword [esi]', 'mov edx,dword [esi]'),
@@ -63,6 +67,8 @@ i386MultiByteOpcodes = [
     ('MOVAPS', '0f28aa41414141', 0x40, 'movaps xmm5,oword [edx + 1094795585]', 'movaps xmm5,oword [edx + 1094795585]'),
     ('MOVAPD', '660f28aa41414141', 0x40, 'movapd xmm5,oword [edx + 1094795585]', 'movapd xmm5,oword [edx + 1094795585]'),
     ('RSM', '0faa414141', 0x40, 'rsm ', 'rsm '),
+    ('MUL', 'f7e3', 0x40, 'mul eax,ebx', 'mul eax,ebx'),
+    ('MUL 2', '66f7e3', 0x40, 'mul ax,bx', 'mul ax,bx'),
     ('PMULLW (66)', '660fd5cd', 0x40, 'pmullw xmm1,xmm5', 'pmullw xmm1,xmm5'),
     ('PMULLW', '0fd5e2', 0x40, 'pmullw mm4,mm2', 'pmullw mm4,mm2'),
     ('CMPXCH8B', '0fc70a', 0x40, 'cmpxch8b qword [edx]', 'cmpxch8b qword [edx]'),
@@ -283,7 +289,7 @@ class i386InstructionSet(unittest.TestCase):
 
         for name, bytez, va, reprOp, renderOp in opcodes:
             try:
-                op = self._arch.archParseOpcode(bytez.decode('hex'), 0, va)
+                op = self._arch.archParseOpcode(binascii.unhexlify(bytez), 0, va)
             except envi.InvalidInstruction:
                 self.fail("Failed to parse opcode bytes: %s (case: %s, expected: %s)" % (bytez, name, reprOp))
             except Exception as e:
@@ -352,26 +358,22 @@ class i386InstructionSet(unittest.TestCase):
 
     def checkOpcode(self, hexbytez, va, oprepr, opcheck, opercheck, renderOp):
 
-        op = self._arch.archParseOpcode(hexbytez.decode('hex'), 0, va)
-
-        self.assertEqual( repr(op), oprepr )
+        op = self._arch.archParseOpcode(binascii.unhexlify(hexbytez), 0, va)
+        self.assertEqual(repr(op), oprepr)
         opvars = vars(op)
-        for opk,opv in opcheck.items():
-            # print("op: %s %s" % (opk,opv))
-            self.assertEqual( (opk, opvars.get(opk)), (opk, opv) )
+        for opk, opv in opcheck.items():
+            self.assertEqual((opk, opvars.get(opk)), (opk, opv))
 
         for oidx in range(len(op.opers)):
             oper = op.opers[oidx]
             opervars = vars(oper)
-            for opk,opv in opercheck[oidx].items():
-                # print("oper: %s %s" % (opk,opv))
-                self.assertEqual( (opk, opervars.get(opk)), (opk, opv) )
+            for opk, opv in opercheck[oidx].items():
+                self.assertEqual((opk, opervars.get(opk)), (opk, opv))
 
         vw = vivisect.VivWorkspace()
         scanv = e_memcanvas.StringMemoryCanvas(vw)
         op.render(scanv)
-        #print "render:  %s" % repr(scanv.strval)
-        self.assertEqual( scanv.strval, renderOp )
+        self.assertEqual(scanv.strval, renderOp)
 
     def test_envi_i386_disasm_Reg_Operands(self):
         '''

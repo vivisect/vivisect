@@ -3,23 +3,29 @@ Unified config object for all vtoys.
 """
 
 import os
-import sys
 import json
 import getpass
+import logging
 
-from ConfigParser import ConfigParser
-from cStringIO import StringIO
+try:
+    from ConfigParser import ConfigParser
+except:
+    from configparser import ConfigParser
 
-def gethomedir(*paths):
+
+logger = logging.getLogger(__name__)
+
+
+def gethomedir(*paths, **kwargs):
+    makedir = kwargs.get('makedir', True)
     homepath = os.path.expanduser('~')
     path = os.path.join(homepath, *paths)
 
-    if path != None and not os.path.exists(path):
+    if path is not None and not os.path.exists(path) and makedir:
         try:
             os.makedirs(path)
-        except Exception, err:
-            print('FIXME - invalid homedir, playing along...')
-            pass
+        except Exception as err:
+            logger.warning('FIXME - invalid homedir, playing along...')
 
     return path
 
@@ -27,12 +33,12 @@ def getusername():
     return getpass.getuser()
 
 compattypes = {
-    int:(int,long),
-    str:(str,unicode),
-    bool:(bool,),
-    long:(int,long),
-    unicode:(str,unicode),
-    type(None):(int,str,bool,long,unicode),
+    int: (int,long),
+    str: (str,unicode),
+    bool: (bool,),
+    long: (int,long),
+    unicode: (str,unicode),
+    type(None): (int,str,bool,long,unicode),
 }
 
 CONFIG_PATH = 0
@@ -61,12 +67,12 @@ class ConfigInvalidOption(Exception):
 
 class EnviConfig:
     '''
-    EnviConfig basically works like a multi-layer dictionary that 
+    EnviConfig basically works like a multi-layer dictionary that
     loads and stores config data.
 
     Set a config parameter:     cfg['foo'] = 'bar'
     Get a config parameter:     cfg['foo']
-      or access parm using:     cfg.foo  
+      or access parm using:     cfg.foo
     Multilevel:                 cfg.baz.bilbo.foo
 
     Create/get a subconfig:     cfg.getSubConfig('baz', add=True)
@@ -77,20 +83,20 @@ class EnviConfig:
                                 # both take optional filenames
     '''
 
-    def __init__(self, filename=None, defaults=None, docs=None):
+    def __init__(self, filename=None, defaults=None, docs=None, autosave=False):
         self.cfginfo = {}
         self.cfgdocs = {}
-        self.autosave = True
+        self.autosave = autosave
         self.filename = filename
         self.cfgsubsys = {}
 
-        if defaults != None:
+        if defaults is not None:
             self.setConfigPrimitive( defaults )
 
-        if filename != None and os.path.isfile(filename):
-            self.loadConfigFile( filename )
+        if filename is not None and os.path.isfile(filename):
+            self.loadConfigFile(filename)
 
-        if docs != None:
+        if docs is not None:
             self.setDocsPrimitive(docs)
 
     def getOptionDoc(self, optname):
@@ -99,7 +105,7 @@ class EnviConfig:
 
         Example:
             doc = config.getOptionDoc('woot')
-            if doc != None:
+            if doc is not None:
                 print('woot: %s' % doc)
         '''
         return self.cfgdocs.get(optname)
@@ -108,7 +114,7 @@ class EnviConfig:
         '''
         Return a list of tuples including: (type, valid path strings, existing value)
 
-        'type' can be CONFIG_PATH or CONFIG_ENTRY to indicate whether the tuple 
+        'type' can be CONFIG_PATH or CONFIG_ENTRY to indicate whether the tuple
         represents a subconfig or an actual key/value pair
         '''
         paths = []
@@ -168,11 +174,11 @@ class EnviConfig:
         config = self
         for opart in optparts[:-1]:
             config = config.getSubConfig(opart, add=False)
-            if config == None:
+            if config is None:
                 raise ConfigInvalidName(optpath)
 
         optname = optparts[-1]
-        if not config.cfginfo.has_key(optname):
+        if optname not in config.cfginfo:
             raise ConfigInvalidOption(optname)
 
         # json madness
@@ -195,9 +201,9 @@ class EnviConfig:
 
     def getSubConfig(self, name, add=True):
         subcfg = self.cfgsubsys.get( name )
-        if subcfg == None and add:
+        if subcfg is None and add:
             subcfg = EnviConfig()
-            self.cfgsubsys[ name ] = subcfg
+            self.cfgsubsys[name] = subcfg
             subcfg.autosave = self.autosave
             # Monkey patch the save method...
             subcfg.saveConfigFile = self.saveConfigFile
@@ -215,10 +221,10 @@ class EnviConfig:
                 subcfg.setDocsPrimitive( val )
                 continue
 
-            self.cfgdocs[ key ] = val
+            self.cfgdocs[key] = val
 
     def setConfigDefault(self, optname, optval, optdoc):
-        if not self.cfginfo.has_key(optname):
+        if optname not in self.cfginfo:
             self.cfginfo[optname] = optval
         self.cfgdocs[optname] = optdoc
 
@@ -241,27 +247,27 @@ class EnviConfig:
         '''
         Save the config information to file.
         '''
-        if filename == None:
+        if filename is None:
             filename = self.filename
 
         cfgdict = self.getConfigPrimitive()
-        fd = file(filename,'wb')
-        json.dump( cfgdict, fd, indent=2 )
+        with open(filename, 'wb') as fd:
+            json.dump(cfgdict, fd, indent=2)
 
     def loadConfigFile(self, filename=None):
         '''
         Load config info from a file.
         '''
-        if filename == None:
+        if filename is None:
             filename = self.filename
-        fd = file(filename, 'rb')
-        cfgdict = json.load( fd )
-        self.setConfigPrimitive( cfgdict )
+        with open(filename, 'rb') as fd:
+            cfgdict = json.load(fd)
+        self.setConfigPrimitive(cfgdict)
 
     def __getattr__(self, name):
 
         value = self.cfginfo.get(name)
-        if value != None:
+        if value is not None:
             return value
 
         value = self.cfgsubsys.get(name)
@@ -298,21 +304,3 @@ class EnviConfig:
 
     def items(self):
         return self.cfginfo.items()
-
-if __name__ == '__main__':
-    defaults = {
-        'woot':10,
-        'foosub': {
-            'bar':'qwer',
-            'baz':( 'one','two','three'),
-         }
-    }
-    cfg = EnviConfig(defaults=defaults)
-
-    print cfg.woot + 20
-    print cfg.foosub.bar
-    for thing in cfg.foosub.baz:
-        print thing
-
-    cfg.saveConfigFile('cfg.test')
-

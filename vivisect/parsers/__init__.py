@@ -11,25 +11,32 @@ for vivisect.  Each parser module must implement the following functions:
 """
 # Some parser utilities
 
-import md5
 import sys
 import struct
+import hashlib
 
 import vstruct.defs.macho as vs_macho
 
 def md5File(filename):
-    d = md5.md5()
-    f = file(filename,"rb")
-    bytes = f.read(4096)
-    while len(bytes):
-        d.update(bytes)
+    d = hashlib.md5()
+    with open(filename, 'rb') as f:
         bytes = f.read(4096)
+        while len(bytes):
+            d.update(bytes)
+            bytes = f.read(4096)
     return d.hexdigest()
 
 def md5Bytes(bytes):
-    d = md5.md5()
+    d = hashlib.md5()
     d.update(bytes)
     return d.hexdigest()
+
+def sha256File(filename):
+    with open(filename, 'rb') as f:
+        return hashlib.sha256(f.read()).hexdigest().upper()
+
+def sha256Bytes(bytes):
+    return hashlib.sha256(bytes).hexdigest().upper()
 
 macho_magics = (
     vs_macho.MH_MAGIC,
@@ -62,15 +69,16 @@ def guessFormat(bytes):
 
     return 'blob'
 
+
 def guessFormatFilename(filename):
-    bytez = file(filename, "rb").read(32)
-    return guessFormat(bytez)
+    with open(filename, 'rb') as f:
+        return guessFormat(f.read(32))
+
 
 def getParserModule(fmt):
     mname = "vivisect.parsers.%s" % fmt
     mod = sys.modules.get(mname)
-    if mod == None:
+    if mod is None:
         __import__(mname)
         mod = sys.modules[mname]
     return mod
-

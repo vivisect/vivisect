@@ -1,31 +1,32 @@
-import cobra
+import logging
 
-verbose = False
+logger = logging.getLogger(__name__)
+
 
 class CobraDispatchMethod:
     '''
     implements use of async cobra calls
     '''
     def __init__(self, dispatcher, methname):
-        self.dispatcher = dispatcher 
+        self.dispatcher = dispatcher
         self.methname = methname
 
     def __call__(self, *args, **kwargs):
-        if verbose: print "CALLING:",name,self.methname,repr(args)[:20],repr(kwargs)[:20]
+        logger.debug("Calling: %s (%s, %s)", self.methname, repr(args)[:20], repr(kwargs)[:20])
         waiters = []
 
         try:
             for proxy in self.dispatcher.getCobraProxies():
-                waiters.append( getattr(proxy, self.methname)(*args, _cobra_async=True, **kwargs) )
+                waiters.append(getattr(proxy, self.methname)(*args, _cobra_async=True, **kwargs))
             return [waiter.wait() for waiter in waiters]
-        except:
+        except Exception:
             for waiter in waiters:
                 if waiter.csock:
                     waiter.csock.trashed = True
             raise
         finally:
             for waiter in waiters:
-                if waiter.csock and waiter.csock.pool != None:
+                if waiter.csock and waiter.csock.pool is not None:
                     waiter.csock.pool.put(waiter.csock)
 
 
@@ -49,7 +50,7 @@ class CobraDispatcher:
         return self._cobra_proxies
 
     def __getattr__(self, name):
-        if verbose: print "GETATTR",name
+        logger.debug("getattr %s", name)
 
         if name == "__getinitargs__":
             raise AttributeError()
@@ -61,5 +62,3 @@ class CobraDispatcher:
             meth = CobraDispatchMethod(self, name)
             setattr(self, name, meth)
             return meth
-
-

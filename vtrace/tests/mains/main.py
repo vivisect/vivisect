@@ -14,7 +14,7 @@ def safeReadline():
         try: # Crazy loop for freebsd readline failure
             r = sys.stdin.readline()
             break
-        except IOError,e:
+        except IOError as e:
             if e.errno == errno.EINTR:
                 continue
             raise

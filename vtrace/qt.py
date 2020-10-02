@@ -37,7 +37,7 @@ class VQTraceNotifier(vtrace.Notifier):
     def __init__(self, trace=None):
         self.trace = trace
         vtrace.Notifier.__init__(self)
-        if trace != None:
+        if trace is not None:
             self.trace.registerNotifier(NOTIFY_ALL, self)
 
     @idlethreadsync
@@ -304,7 +304,7 @@ class VQProcessListModel(vq_tree.VQTreeModel):
 class VQProcessListView(vq_tree.VQTreeView):
     def __init__(self, trace=None, parent=None):
         vq_tree.VQTreeView.__init__(self, parent=parent)
-        if trace == None:
+        if trace is None:
             trace = vtrace.getTrace()
         self.trace = trace
 
@@ -438,7 +438,7 @@ class VQTraceToolBar(QToolBar, vtrace.Notifier):
 
     def actAttach(self, *args, **kwargs):
         pid = getProcessPid(trace=self.trace)
-        if pid != None:
+        if pid is not None:
             workthread(self.trace.attach)(pid)
 
     @workthread

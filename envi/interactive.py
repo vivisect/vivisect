@@ -26,7 +26,7 @@ def dbg_interact(lcls, gbls):
 
                 print(intro)
                 ipsh.mainloop()
-            except ImportError, e:
+            except ImportError as e:
                 print(e)
                 shell = code.InteractiveConsole(gbls)
                 print(intro)

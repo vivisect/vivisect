@@ -6,6 +6,7 @@ import vtrace
 
 import envi.archs.i386 as e_i386
 
+
 class ReturnBreak(vtrace.Breakpoint):
     def __init__(self, addr, chsize, chflags):
         vtrace.Breakpoint.__init__(self, addr)
@@ -19,6 +20,7 @@ class ReturnBreak(vtrace.Breakpoint):
         a.append((self.address, eax, self._chsize, self._chflags))
         trace.runAgain()
 
+
 class RtlAllocateHeapBreak(vtrace.Breakpoint):
 
     def __init__(self, addr):
@@ -28,16 +30,17 @@ class RtlAllocateHeapBreak(vtrace.Breakpoint):
     def notify(self, event, trace):
 
         sp = trace.getStackCounter()
-        ( saved_eip, 
-          heap, 
-          flags, 
-          size ) = trace.readMemoryFormat(sp, '<4P')
+        (saved_eip,
+         heap,
+         flags,
+         size) = trace.readMemoryFormat(sp, '<4P')
 
-        if trace.getBreakpointByAddr(saved_eip) == None:
+        if trace.getBreakpointByAddr(saved_eip) is None:
             bp = ReturnBreak(saved_eip, size, flags)
             trace.addBreakpoint(bp)
 
         trace.runAgain()
+
 
 def watchHeapAllocs(trace):
     '''
@@ -49,12 +52,13 @@ def watchHeapAllocs(trace):
     bp = RtlAllocateHeapBreak(addr)
     trace.addBreakpoint(bp)
 
+
 def clearHeapAllocs(trace):
     trace.setMeta('HeapAllocs', [])
+
 
 def getHeapAllocs(trace):
     '''
     Return a list of (caller_eip, heap_chunk, size, flags) tuples
     '''
     return trace.getMeta('HeapAllocs', [])
-

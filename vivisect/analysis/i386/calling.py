@@ -7,6 +7,7 @@ import collections
 
 import vivisect.impemu.monitor as viv_imp_monitor
 
+import vivisect.exc as v_exc
 from vivisect.const import *
 
 import vivisect.analysis.generic.switchcase as vag_switch
@@ -32,7 +33,7 @@ argnames = {
 
 def argcname(callconv, idx):
     ret = argnames.get(callconv,empty).get(idx)
-    if ret == None:
+    if ret is None:
         ret = ('int','arg%d' % idx)
     return ret
 
@@ -47,7 +48,7 @@ class AnalysisMonitor(viv_imp_monitor.AnalysisMonitor):
 
     def prehook(self, emu, op, starteip):
         if op in self.badops:
-            raise Exception("Hit known BADOP at 0x%.8x %s" % (starteip, repr(op) ))
+            raise v_exc.BadOpBytes(op.va)
 
         viv_imp_monitor.AnalysisMonitor.prehook(self, emu, op, starteip)
 
@@ -66,7 +67,7 @@ def buildFunctionApi(vw, fva, emu, emumon, stkstart):
 
     callconv = "cdecl" # Default to cdecl
     # see if we have stdcall return bytes
-    if emumon.retbytes != None:
+    if emumon.retbytes is not None:
         callconv = "stdcall"
         argc = emumon.retbytes / 4
 
@@ -82,8 +83,8 @@ def buildFunctionApi(vw, fva, emu, emumon, stkstart):
 
     undeflen = len(undefkeys)
     if undeflen:
-        regcall = regcalls.get( tuple(undefkeys) )
-        if regcall != None:
+        regcall = regcalls.get(tuple(undefkeys))
+        if regcall is not None:
             callconv, addargc = regcall
             argc += addargc
 
@@ -121,7 +122,7 @@ def analyzeFunction(vw, fva):
     # Do we already have API info in meta?
     # NOTE: do *not* use getFunctionApi here, it will make one!
     api = vw.getFunctionMeta(fva, 'api')
-    if api == None:
+    if api is None:
         api = buildFunctionApi(vw, fva, emu, emumon, stkstart)
 
     rettype,retname,callconv,callname,callargs = api

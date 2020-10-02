@@ -55,7 +55,7 @@ class SubState:
         self.icount = icount
 
     def getCombState(self, i, d=None):
-        if d == None:
+        if d is None:
             d = {}
         d[self.iname] = self[i]
         return d
@@ -96,7 +96,7 @@ class AddSubState(SubState):
         self.comb2len = comb2len
 
     def getCombState(self, i, d=None):
-        if d == None:
+        if d is None:
             d = {}
 
         if i >= self.comb1len:
@@ -128,7 +128,7 @@ class MultSubState(SubState):
         self.comb2len = comb2len
 
     def getCombState(self, i, d=None):
-        if d == None:
+        if d is None:
             d = {}
 
         c2, c1 = divmod(i, self.comb1len)
@@ -172,23 +172,3 @@ class sset(SubState):
 
     def __getitem__(self, i):
         return self.combitems[i]
-
-
-if __name__ == '__main__':
-
-    from vivisect.symboliks.common import *
-
-    symobj = (Var('x',4) * Const(3, 4) ) + Var('y',4)
-    print str(symobj)
-
-    x = srange('x', 3)
-    y = sset('y', [1,9,0xffffffff])
-
-    print('added:')
-    for i in (x+y):
-        print ('solved: %s %d' % (repr(i),symobj.solve(vals=i),))
-
-    print('multiplied:')
-    for i in (x*y):
-        print ('solved: %s %d' % (repr(i),symobj.solve(vals=i),))
-

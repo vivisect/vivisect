@@ -435,7 +435,7 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
         """
         Return the current value of the specified register index.
         """
-        if mode == None:
+        if mode is None:
             mode = self.getProcMode() & 0xf
         else:
             mode &= 0xf
@@ -455,7 +455,7 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
         """
         Set a register value by index.
         """
-        if mode == None:
+        if mode is None:
             mode = self.getProcMode() & 0xf
         else:
             mode &= 0xf
@@ -506,7 +506,7 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
         src2 = self.getOperValue(op, 2)
         Sflag = op.iflags & IF_PSR_S
 
-        if src1 == None or src2 == None:
+        if src1 is None or src2 is None:
             self.undefFlags()
             return None
 
@@ -614,7 +614,7 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
             src2 = self.getOperValue(op, 1)
 
         # PDE
-        if src1 == None or src2 == None:
+        if src1 is None or src2 is None:
             self.undefFlags()
             self.setOperValue(op, 0, None)
             return
@@ -650,7 +650,7 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
     def i_and(self, op):
         res = self.logicalAnd(op)
         self.setOperValue(op, 0, res)
-       
+
     def i_orr(self, op):
         tsize = op.opers[0].tsize
         if len(op.opers) == 3:
@@ -882,7 +882,7 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
             self.setFpFlag(PSR_C_bit, c)
             self.setFpFlag(PSR_V_bit, v)
         except Exception as e:
-            logger.warn("vcmpe exception: %r" % e)
+            logger.warn("vcmpe exception: %s", e)
 
     FPType_Nonzero = 1
     FPType_Zero = 2
@@ -1066,7 +1066,7 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
 
         return result;
 
-    def i_vcvt(self, op):
+    def i_vcvt_TODO(self, op):
         '''
         convert each element in a vector as float to int or int to float, 32-bit, round-to-zero/round-to-nearest
         
@@ -1225,7 +1225,7 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
             raise Exception("i_vcvt with strange number of opers: %r" % op.opers)
 
 
-    i_vcvtr = i_vcvt
+    #i_vcvtr = i_vcvt
 
     def i_ldm(self, op):
         if len(op.opers) == 2:
@@ -1456,7 +1456,7 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
         self.setOperValue(op, 0, ures)
        
         #FIXME PDE and flags
-        if src1 == None or src2 == None:
+        if src1 is None or src2 is None:
             self.undefFlags()
             self.setOperValue(op, 0, None)
             return
@@ -1943,7 +1943,7 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
             base = op.opers[0].va
             logger.debug("TB base = 0%x", base)
 
-        logger.debug("base: 0x%x" % base)
+        logger.debug("base: 0x%x", base)
         val0 = self.readMemValue(base, tsize)
 
         if val0 > 0x200 + base:
@@ -1970,7 +1970,7 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
             tbl.append(nexttgt)
             va += tsize
 
-        logger.debug("%s: \n\t"%op.mnem + '\n\t'.join([hex(x+base) for x in tbl]))
+        logger.debug("%s: \n\t", op.mnem + '\n\t'.join([hex(x+base) for x in tbl]))
 
         ###
         # for workspace emulation analysis, let's check the index register for sanity.
@@ -2034,11 +2034,11 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
 
 
     def i_cps(self, op):
-        logger.warn("CPS: 0x%x  %r" % (op.va, op))
+        logger.warn("CPS: 0x%x  %r", op.va, op)
         # FIXME: at some point we need ot do a priviledge check
 
     def i_pld2(self, op):
-        logger.warn("FIXME: 0x%x: %s - in emu" % (op.va, op))
+        logger.warn("FIXME: 0x%x: %s - in emu", op.va, op)
 
     def _getCoProc(self, cpnum):
         if cpnum > 15:
