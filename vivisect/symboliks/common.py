@@ -274,6 +274,37 @@ class SymbolikBase:
 
     def setSymKid(self, idx, kid):
         '''
+        Creates or sets a child for the current symbolik object
+
+        The sticky bit here is when the child already exists and we're setting it to a new value
+        (as in the case of things like symbolik reduction). In that case we have to invalidate
+        the symcaches of every parent node up all of the ASTs that the child exists in. However,
+        that can get exceedingly repetative and expensive, especially in the reduction cases
+        where we don't need to constantly clear the ASTs, since during the traversal they'll be
+        cleared once and then only really need to be cleared if any of the cached methods
+        (isDiscrete, __repr__, or __str__) are called again (which doesn't happen during
+        reduction).
+
+        We can take advantage of this behavior when clearing the parent caches during setSymKid.
+        If the cache of a parent node is cleared, we don't need to traverse up the tree to clear
+        the caches of the rest of the parents, since those should already be cleared. During
+        reduction this should generally hold true. During other types of walks, calling any of the
+        cache methods recursively populates the cache downwards, and replacing a child would still
+        force setSymKid to traverse up the parent chain to clear all the parent caches, so custom
+        walks, such as in vivisect.symboliks.archind.wipeAstArch, will still work as expected.
+
+        Usage of setSymKid outside of walkTree should see little impact, though it is best to have
+        clear caches depending on your use case. Both the new child and the new parent should have
+        clear caches or populated caches, a mix is not recommended.
+
+        On the downside, this does impose the constraints that if you mean to do any out of API
+        ASTs manipulations such as merging trees or node replacement without doing a walkTree,
+        you had best make sure the caches are clear or that there are no gaps in the caches
+        of the consecutive levels of the AST. This can easily be achieved using the clearCache()
+        method on the root node of the AST (or ASTs in the case of multiple), like so:
+
+        for obj in root_symobjs:
+            obj.clearCache()
         '''
         if idx > len(self.kids)-1:
             self.kids.append(kid)
@@ -296,7 +327,11 @@ class SymbolikBase:
                 done.add(pid)
                 parent.cache.clear()
                 # grow our todo list
-                todo.update({p._sym_id: p for p in parent.parents})
+                for prnt in parent.parents:
+                    if prnt.cache:
+                        todo[prnt._sym_id] = prnt
+                    else:
+                        done.add(prnt._sym_id)
 
             # remove ourselves as the parent
             if oldkid.parents:

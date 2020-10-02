@@ -300,6 +300,7 @@ class ConstrainPath(SymbolikEffect):
         self.cons = cons
 
     def walkTree(self, cb, ctx=None, once=True):
+        # TODO: Should be also walk the addrsym here?
         self.cons.walkTree(cb, ctx=ctx, once=once)
 
     def reduce(self, emu=None):
