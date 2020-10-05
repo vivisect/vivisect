@@ -896,11 +896,13 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         If the address appears to be the start of a string, then
         return the string length in bytes, else return -1.
         '''
-        plen = 0 # pascal string length
-        dlen = 0 # delphi string length
-        if self.isReadable(va-4):
-            plen = self.readMemValue(va - 2, 2) # pascal string length
-            dlen = self.readMemValue(va - 4, 4) # delphi string length
+        plen = 0  # pascal string length
+        dlen = 0  # delphi string length
+        left = self.getMemoryMap(va-4)
+        # DEV: Make sure there's space left in the map
+        if self.isReadable(va-4) and left and (left[MAP_VA] + left[MAP_SIZE] - va + 4) >= 4:
+            plen = self.readMemValue(va - 2, 2)  # pascal string length
+            dlen = self.readMemValue(va - 4, 4)  # delphi string length
 
         offset, bytez = self.getByteDef(va)
         maxlen = len(bytez) - offset

@@ -371,6 +371,7 @@ class WorkspaceEmulator:
                             self.emumon.prehook(self, op, starteip)
                         except v_exc.BadOpBytes as e:
                             logger.debug(str(e))
+                            break
                         except v_exc.BadOutInstruction:
                             pass
                         except Exception as e:
@@ -389,6 +390,7 @@ class WorkspaceEmulator:
                             self.emumon.posthook(self, op, endeip)
                         except v_exc.BadOpBytes as e:
                             logger.debug(str(e))
+                            break
                         except v_exc.BadOutInstruction:
                             pass
                         except Exception as e:
