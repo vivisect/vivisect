@@ -19,6 +19,10 @@ def glen(g):
     return len([x for x in g])
 
 
+def isint(x):
+    return type(x) in (int, long)
+
+
 class VivisectTest(unittest.TestCase):
     maxDiff = None
 
@@ -27,6 +31,30 @@ class VivisectTest(unittest.TestCase):
         cls.chgrp_vw = helpers.getTestWorkspace('linux', 'i386', 'chgrp.llvm')
         cls.vdir_vw = helpers.getTestWorkspace('linux', 'i386', 'vdir.llvm')
         cls.gcc_vw = helpers.getTestWorkspace('linux', 'amd64', 'gcc-7')
+
+    def test_xrefs_types(self):
+        for vw in [self.chgrp_vw, self.vdir_vw, self.gcc_vw]:
+            for xfrom, xto, xtype, xflags in vw.getXrefs():
+                self.assertEqual((xfrom, isint(xfrom)),
+                                 (xfrom, True))
+                self.assertEqual((xto, isint(xto)),
+                                 (xto, True))
+                self.assertEqual((xtype, isint(xtype)),
+                                 (xtype, True))
+                self.assertEqual((xflags, isint(xflags)),
+                                 (xflags, True))
+
+    def test_loc_types(self):
+        for vw in [self.chgrp_vw, self.vdir_vw, self.gcc_vw]:
+            for lva, lsize, ltype, linfo in vw.getLocations():
+                self.assertEqual((lva, isint(lva)),
+                                 (lva, True))
+                self.assertEqual((lsize, isint(lsize)),
+                                 (lsize, True))
+                self.assertEqual((ltype, isint(ltype)),
+                                 (ltype, True))
+                if linfo:
+                    self.assertTrue(isint(linfo) or type(linfo) in (unicode, str))
 
     def test_basic_apis(self):
         '''

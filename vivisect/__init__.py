@@ -1188,7 +1188,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
                     self.setComment(rdest, cmnt)
 
         # This must be second (len(xrefsto))
-        self.addXref(op.va, tova, REF_PTR, None)
+        self.addXref(op.va, tova, REF_PTR)
 
     def makeOpcode(self, va, op=None, arch=envi.ARCH_DEFAULT):
         """
@@ -1236,8 +1236,8 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
                 # If the actual dest is executable, make a code ref fixup
                 # which *removes* the deref flag...
-                if ptrdest and self.probeMemory(ptrdest, 1, e_mem.MM_EXEC):
-                    self.addXref(va, ptrdest, REF_CODE, bflags & ~envi.BR_DEREF)
+                if ptrdest and self.probeMemory(ptrdest[0], 1, e_mem.MM_EXEC):
+                    self.addXref(va, ptrdest[0], REF_CODE, bflags & ~envi.BR_DEREF)
                 else:
                     self.addXref(va, tova, REF_CODE, bflags)
 
