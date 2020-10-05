@@ -421,7 +421,6 @@ if globals().get('vw'):
 
 
 def thunk_bx(emu, fname, symargs):
-    # FIXME: thunk_bx analysis needs to run *before* switchcase analysis for us to get a good symbolik ebx value.
     vw = emu._sym_vw
     rctx = vw.arch.archGetRegCtx()
     ebxval = emu.getMeta('calling_va')
@@ -633,7 +632,7 @@ class SwitchCase:
 
     def getNormalizedConstraints(self):
         '''
-        takes in a complix index symbolik state
+        takes in a complex index symbolik state
         returns a list of tuples of (SYMT_CON_??, offset)
         '''
         retcons = []
@@ -906,13 +905,13 @@ class SwitchCase:
             vw.setComment(self.jmpva, "lower: 0x%x, upper: 0x%x" % (lower, upper))
 
             vagc.analyzeFunction(vw, funcva)
-        except SymIdxNotFoundException, e:
+        except SymIdxNotFoundException as e:
             logger.info("!@#$!@#$!@#$!@#$ BOMBED OUT (SymIdx) 0x%x  !@#$!@#$!@#$!@#$ \n%r" % (self.jmpva, e))
 
-        except PathForceQuitException, e:
+        except PathForceQuitException as e:
             logger.info("!@#$!@#$!@#$!@#$ BOMBED OUT (Path Timeout!) 0x%x  !@#$!@#$!@#$!@#$ \n%r" % (self.jmpva, e))
 
-        except Exception, e:
+        except Exception as e:
             logger.exception("!@#$!@#$!@#$!@#$ BOMBED OUT 0x%x  !@#$!@#$!@#$!@#$ \n%r", self.jmpva, e)
 
 
