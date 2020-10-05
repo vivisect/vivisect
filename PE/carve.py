@@ -44,14 +44,16 @@ def carve(pbytes, offset=0):
         if nextres != -1:
             todo.append((nextres, mzx, pex, i))
 
+        nextres = pbytes.find(mzx, off+1)
+        if nextres != -1:
+            todo.append( (nextres, mzx, pex, i) )
+
         peoff = off + newoff
         if pblen < (peoff + 2):
             continue
 
         if pbytes[peoff:peoff + 2] == pex:
             yield (off, i)
-
-
 
 class CarvedPE(PE.PE):
 
