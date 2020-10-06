@@ -11,7 +11,8 @@ The module's vivExtension function takes a vivisect workspace
 '''
 
 import os
-import imp  # TODO: imp is deprecated
+import imp
+#import importlib
 import traceback
 
 

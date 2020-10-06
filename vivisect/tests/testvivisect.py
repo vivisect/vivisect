@@ -20,7 +20,7 @@ def glen(g):
 
 
 def isint(x):
-    return type(x) in (int, long)
+    return type(x) is int
 
 
 class VivisectTest(unittest.TestCase):
@@ -52,7 +52,7 @@ class VivisectTest(unittest.TestCase):
                 self.assertEqual((ltype, isint(ltype)),
                                  (ltype, True))
                 if linfo:
-                    self.assertTrue(isint(linfo) or type(linfo) in (unicode, str))
+                    self.assertTrue(isint(linfo) or type(linfo) is str)
 
     def test_basic_apis(self):
         '''
