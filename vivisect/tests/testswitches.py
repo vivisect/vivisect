@@ -80,6 +80,7 @@ class MsSwitchTest(unittest.TestCase):
 
 #=======  test generator code =======
 
+import visgraph.pathcore as vg_path
 import vivisect.impemu.monitor as viv_imp_monitor
 
 MAX_GAP = 100
@@ -161,8 +162,10 @@ def getReadsWrites(emu):
 
     return refvas
 
-if globals.get('vw') is not None:
-    fva = vw.getFunction(argv[1])
+if globals().get('vw') is not None:
+    va = vw.parseExpression(argv[1])
+    fva = vw.getFunction(va)
+    vprint("analyzing Funcva (0x%x) for provided va (0x%x)" % (va, fva))
     maps = getFuncMaps(vw, fva)
     print('maps = [\\')
     for startva, sz, mem in maps:
