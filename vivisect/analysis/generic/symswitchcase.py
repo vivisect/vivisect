@@ -280,134 +280,6 @@ def targetNewFunctions(vw, fva):
 
             cbva += len(op)
 
-def analyzeFunction(vw, fva):
-    '''
-    Function analysis module.
-    This is inserted right after codeblock analysis
-    '''
-    if vw.verbose:
-        logger.setLevel(logging.DEBUG)
-
-    targetNewFunctions(vw, fva)
-
-    lastdynlen = 0
-    dynbranches = vw.getVaSet('DynamicBranches')
-    done = vw.getMeta('analyzedDynBranches')
-    if done is None:
-        done = []
-    
-    # because the VaSet is often updated during analysis, we have to check to see if there are new 
-    # dynamic branches to analyze.
-    while lastdynlen != len(dynbranches):
-        lastdynlen = len(dynbranches)
-        for jmpva, (none, oprepr, bflags) in dynbranches.items():
-            if bflags & envi.BR_PROC:   # skip calls
-                continue
-
-            funcva = vw.getFunction(jmpva)
-            if funcva != fva:
-                # jmp_indir is for the entire VivWorkspace.  
-                # we're just filtering to this function here.
-                # this should be checked again when codeblocks are allowed to 
-                #   be part of multiple functions.
-                continue
-
-            if vw.getVaSetRow('SwitchCases', jmpva) is not None:
-                logger.warn("...skipping 0x%x - SwitchCases already has it?", jmpva)
-                continue
-
-            if jmpva in done:
-                logger.warn("...skipping 0x%x - already done", jmpva)
-                continue
-            done.append(jmpva)
-
-            sc = SwitchCase(vw, jmpva)
-            sc.analyze()
-            
-            '''
-            inp = raw_input("PRESS ENTER TO CONTINUE...")
-            while len(inp):
-                try:
-                    print(repr(eval(inp, globals(), locals())))
-                except:
-                    logger.exception('error')
-
-                inp = raw_input("PRESS ENTER TO CONTINUE...")
-            '''
-        dynbranches = vw.getVaSet('DynamicBranches')
-    vw.setMeta('analyzedDynBranches', done)
-    # FIXME: we need a better way to store changing lists/dicts, that don't show up in the UI.  VaSet would be great, but ugly
-
-
-def makeSwitch(vw, jmpva):
-    '''
-    for use as Vivisect Analysis script (see below)
-    '''
-    if vw.getVaSetRow('SwitchCases', jmpva) is not None:
-        return
-
-    sc = SwitchCase(vw, jmpva)
-    sc.analyze()
-
-
-# for use as vivisect script
-if globals().get('vw'):
-    verbose = vw.verbose
-    vw.verbose = True
-
-    vw.vprint("Starting...")
-    jmpva = int(argv[1], 16)
-
-    makeSwitch(vw, jmpva)
-
-    vw.vprint("Done")
-    
-    vw.verbose = verbose
-   
-
-
-
-    '''  SCRATCH NOTES for determining characteristics of the switch case '''
-    #  basically, trace into the symobj of fullcons[-1] grabbing stuff before first memory access.
-    #  or rather, identify what wraps our index symobj... index symobj is the most complete symobj following a o_mul that appears in the last constraint (hack?)
-
-    #[str(x) for x in ctx]
-
-    #['arg0',
-    #'mem[(arg0 + 1544):8]',
-    #'mem[(mem[(arg0 + 1544):8] + 66):2]',
-    #'mem[((((mem[(mem[(arg0 + 1544):8] + 66):2] & 0xffffffff) << 3) + (mem[(arg0 + 1544):8] * 1)) + 64):4]',
-    #'mem[((0x00010000 + (((mem[((((mem[(mem[(arg0 + 1544):8] + 66):2] & 0xffffffff) << 3) + (mem[(arg0 + 1544):8] * 1)) + 64):4] & 0xffffffff) - 1) * 1)) + 0x00010a0c):1]',
-    #'mem[((0x00010000 + (mem[((0x00010000 + (((mem[((((mem[(mem[(arg0 + 1544):8] + 66):2] & 0xffffffff) << 3) + (mem[(arg0 + 1544):8] * 1)) + 64):4] & 0xffffffff) - 1) * 1)) + 0x00010a0c):1] * 4)) + 0x000109fc):4]']
-    #
-    ## wax Consts
-    #
-    ## take leftovers, assign unknowns as variable names
-    #
-    ## find least common denominator for unknowns...  
-    #
-    ##  ACTUALLY... we only are looking for the index (Constraints on the kid of a o_mul) and subtractions to the index :)
-    #
-    ###  inner most o_mul, if it matters...
-
-    '''
-    In [97]: [eff for eff in aeffs if eff.efftype == EFFTYPE_CONSTRAIN]
-    Out[97]: 
-        [ConstrainPath( 0x000134a9, Const(0x000134af,8), ne(Mem(o_add(Arg(0,width=8),Const(0x00000608,8),8), Const(0x00000008,8)),o_add(Arg(0,width=8),Const(0x00000608,8),8)) ),
-         ConstrainPath( 0x00013581, Const(0x000134bd,8), ne(Mem(o_add(Arg(0,width=8),Const(0x00000608,8),8), Const(0x00000008,8)),o_add(Arg(0,width=8),Const(0x00000608,8),8)) ),
-         ConstrainPath( 0x000134d0, Const(0x000134d6,8), ne(o_and(Mem(o_add(Mem(o_add(Arg(0,width=8),Const(0x00000608,8),8), Const(0x00000008,8)),Const(0x00000040,8),8), Const(0x00000002,8)),Const(0xffffffff,4),4),Const(0x0000000b,8)) ),
-         ConstrainPath( 0x000134d9, Const(0x0001393d,8), ne(o_and(Mem(o_add(Mem(o_add(Arg(0,width=8),Const(0x00000608,8),8), Const(0x00000008,8)),Const(0x00000040,8),8), Const(0x00000002,8)),Const(0xffffffff,4),4),Const(0x00000006,8)) ),
-         ConstrainPath( 0x00013940, Const(0x00013946,8), ne(o_and(o_sub(o_and(Mem(o_add(Mem(o_add(Arg(0,width=8),Const(0x00000608,8),8), Const(0x00000008,8)),Const(0x00000040,8),8), Const(0x00000002,8)),Const(0xffffffff,4),4),Const(0x00000006,8),4),Const(0xffffffff,4),4),Const(0x00000001,8)) ),
-         ConstrainPath( 0x00013949, Const(0x000134df,8), eq(o_and(o_sub(o_and(o_sub(o_and(Mem(o_add(Mem(o_add(Arg(0,width=8),Const(0x00000608,8),8), Const(0x00000008,8)),Const(0x00000040,8),8), Const(0x00000002,8)),Const(0xffffffff,4),4),Const(0x00000006,8),4),Const(0xffffffff,4),4),Const(0x00000001,8),4),Const(0xffffffff,4),4),o_and(Const(0x00000002,8),Const(0xffffffff,4),4)) ),
-         ConstrainPath( 0x000134e6, Const(0x000134ec,8), eq(o_and(Mem(o_add(Arg(0,width=8),Const(0x00000260,8),8), Const(0x00000001,8)),Const(0x00000080,8),1),Const(0x00000000,8)) ),
-         ConstrainPath( 0x0001350c, Const(0x00013512,8), eq(Mem(o_add(Arg(0,width=8),Const(0x00000108,8),8), Const(0x00000008,8)),Const(0x00013440,8)) ),
-         ConstrainPath( 0x00013515, Const(0x0001351b,8), le(Const(0x0000001c,8),o_and(o_sub(o_and(Mem(o_add(Mem(o_add(Arg(0,width=8),Const(0x00000608,8),8), Const(0x00000008,8)),Const(0x00000028,8),8), Const(0x00000004,8)),Const(0xffffffff,4),4),o_and(o_lshift(o_and(Mem(o_add(Mem(o_add(Arg(0,width=8),Const(0x00000608,8),8), Const(0x00000008,8)),Const(0x00000042,8),8), Const(0x00000002,8)),Const(0xffffffff,4),4),Const(0x00000003,8),4),Const(0xffffffff,4),4),4),Const(0xffffffff,4),4)) ),
-         ConstrainPath( 0x00013520, Const(0x00013526,8), le(Const(0x0000006b,8),o_and(Mem(o_add(o_add(o_lshift(o_and(Mem(o_add(Mem(o_add(Arg(0,width=8),Const(0x00000608,8),8), Const(0x00000008,8)),Const(0x00000042,8),8), Const(0x00000002,8)),Const(0xffffffff,4),4),Const(0x00000003,8),4),o_mul(Mem(o_add(Arg(0,width=8),Const(0x00000608,8),8), Const(0x00000008,8)),Const(0x00000001,8),8),8),Const(0x00000040,8),8), Const(0x00000004,8)),Const(0xffffffff,4),4)) ),
-         ConstrainPath( 0x00013529, Const(0x00020767,8), ge(o_and(Mem(o_add(o_add(o_lshift(o_and(Mem(o_add(Mem(o_add(Arg(0,width=8),Const(0x00000608,8),8), Const(0x00000008,8)),Const(0x00000042,8),8), Const(0x00000002,8)),Const(0xffffffff,4),4),Const(0x00000003,8),4),o_mul(Mem(o_add(Arg(0,width=8),Const(0x00000608,8),8), Const(0x00000008,8)),Const(0x00000001,8),8),8),Const(0x00000040,8),8), Const(0x00000004,8)),Const(0xffffffff,4),4),Const(0x0000006f,8)) ),
-         ConstrainPath( 0x0002076c, Const(0x00020772,8), le(o_and(o_sub(o_and(Mem(o_add(o_add(o_lshift(o_and(Mem(o_add(Mem(o_add(Arg(0,width=8),Const(0x00000608,8),8), Const(0x00000008,8)),Const(0x00000042,8),8), Const(0x00000002,8)),Const(0xffffffff,4),4),Const(0x00000003,8),4),o_mul(Mem(o_add(Arg(0,width=8),Const(0x00000608,8),8), Const(0x00000008,8)),Const(0x00000001,8),8),8),Const(0x00000040,8),8), Const(0x00000004,8)),Const(0xffffffff,4),4),Const(0x00000001,8),4),Const(0xffffffff,4),4),Const(0x00000078,8)) )]
-
-    '''
-
 
 
 def thunk_bx(emu, fname, symargs):
@@ -1019,56 +891,6 @@ class SwitchCase:
 
         return symobj, offset
         
-        '''
-PATH: [o_add(Mem(o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), Const(0x00000004,8)),Const(0x7ff38880000,8),8), Mem(o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), Const(0x00000004,8)), o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8), Const(0x7ff38880000,8)]
-SYMOBJ: Const(0x7ff38880000,8)
-CTX: {}
-PATH: [o_add(Mem(o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), Const(0x00000004,8)),Const(0x7ff38880000,8),8), Mem(o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), Const(0x00000004,8)), o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8), o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8), o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)), o_and(Var("rdx", width=8),Const(0xffffffff,4),4), Var("rdx", width=8)]
-SYMOBJ: Var("rdx", width=8)
-CTX: {}
-PATH: [o_add(Mem(o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), Const(0x00000004,8)),Const(0x7ff38880000,8),8), Mem(o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), Const(0x00000004,8)), o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8), o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8), o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)), o_and(Var("rdx", width=8),Const(0xffffffff,4),4), Const(0xffffffff,4)]
-SYMOBJ: Const(0xffffffff,4)
-CTX: {}
-PATH: [o_add(Mem(o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), Const(0x00000004,8)),Const(0x7ff38880000,8),8), Mem(o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), Const(0x00000004,8)), o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8), o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8), o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)), o_and(Var("rdx", width=8),Const(0xffffffff,4),4)]
-SYMOBJ: o_and(Var("rdx", width=8),Const(0xffffffff,4),4)
-CTX: {}
-PATH: [o_add(Mem(o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), Const(0x00000004,8)),Const(0x7ff38880000,8),8), Mem(o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), Const(0x00000004,8)), o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8), o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8), o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)), Const(0x00000004,8)]
-SYMOBJ: Const(0x00000004,8)
-CTX: {}
-PATH: [o_add(Mem(o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), Const(0x00000004,8)),Const(0x7ff38880000,8),8), Mem(o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), Const(0x00000004,8)), o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8), o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8), o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8))]
-SYMOBJ: o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8))
-CTX: {}
-PATH: [o_add(Mem(o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), Const(0x00000004,8)),Const(0x7ff38880000,8),8), Mem(o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), Const(0x00000004,8)), o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8), o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8), Const(0x00000004,8)]
-SYMOBJ: Const(0x00000004,8)
-CTX: {}
-PATH: [o_add(Mem(o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), Const(0x00000004,8)),Const(0x7ff38880000,8),8), Mem(o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), Const(0x00000004,8)), o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8), o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8)]
-SYMOBJ: o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8)
-CTX: {}
-PATH: [o_add(Mem(o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), Const(0x00000004,8)),Const(0x7ff38880000,8),8), Mem(o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), Const(0x00000004,8)), o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8)]
-SYMOBJ: o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8)
-CTX: {}
-PATH: [o_add(Mem(o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), Const(0x00000004,8)),Const(0x7ff38880000,8),8), Mem(o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), Const(0x00000004,8)), o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), Const(0x0003027c,8)]
-SYMOBJ: Const(0x0003027c,8)
-CTX: {}
-PATH: [o_add(Mem(o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), Const(0x00000004,8)),Const(0x7ff38880000,8),8), Mem(o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), Const(0x00000004,8)), o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8)]
-SYMOBJ: o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8)
-CTX: {}
-PATH: [o_add(Mem(o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), Const(0x00000004,8)),Const(0x7ff38880000,8),8), Mem(o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), Const(0x00000004,8)), Const(0x00000004,8)]
-SYMOBJ: Const(0x00000004,8)
-CTX: {}
-PATH: [o_add(Mem(o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), Const(0x00000004,8)),Const(0x7ff38880000,8),8), Mem(o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), Const(0x00000004,8))]
-SYMOBJ: Mem(o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), Const(0x00000004,8))
-CTX: {}
-PATH: [o_add(Mem(o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), Const(0x00000004,8)),Const(0x7ff38880000,8),8), Const(0x7ff38880000,8)]
-SYMOBJ: Const(0x7ff38880000,8)
-CTX: {}
-PATH: [o_add(Mem(o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), Const(0x00000004,8)),Const(0x7ff38880000,8),8)]
-SYMOBJ: o_add(Mem(o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), Const(0x00000004,8)),Const(0x7ff38880000,8),8)
-CTX: {}
-Out[14]: o_add(Mem(o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), Const(0x00000004,8)),Const(0x7ff38880000,8),8)
-
-'''
-
 
     def markDerefs(self):
         lower, upper, offset = self.getBounds()
@@ -1268,6 +1090,179 @@ def link_up(vw, jmpva, array, count, baseoff, baseva=None, itemsize=None):
         upper += baseoff
     
     vw.setComment(jmpva, "lower: 0x%x, upper: 0x%x" % (lower, upper))
+
+
+def analyzeFunction(vw, fva):
+    '''
+    Function analysis module.
+    This is inserted right after codeblock analysis
+    '''
+    if vw.verbose:
+        logger.setLevel(logging.DEBUG)
+
+    targetNewFunctions(vw, fva)
+
+    lastdynlen = 0
+    dynbranches = vw.getVaSet('DynamicBranches')
+    done = vw.getMeta('analyzedDynBranches')
+    if done is None:
+        done = []
+    
+    # because the VaSet is often updated during analysis, we have to check to see if there are new 
+    # dynamic branches to analyze.
+    while lastdynlen != len(dynbranches):
+        lastdynlen = len(dynbranches)
+        for jmpva, (none, oprepr, bflags) in dynbranches.items():
+            if bflags & envi.BR_PROC:   # skip calls
+                continue
+
+            funcva = vw.getFunction(jmpva)
+            if funcva != fva:
+                # jmp_indir is for the entire VivWorkspace.  
+                # we're just filtering to this function here.
+                # this should be checked again when codeblocks are allowed to 
+                #   be part of multiple functions.
+                continue
+
+            if vw.getVaSetRow('SwitchCases', jmpva) is not None:
+                logger.warn("...skipping 0x%x - SwitchCases already has it?", jmpva)
+                continue
+
+            if jmpva in done:
+                logger.warn("...skipping 0x%x - already done", jmpva)
+                continue
+            done.append(jmpva)
+
+            sc = SwitchCase(vw, jmpva)
+            sc.analyze()
+            
+            '''
+            inp = raw_input("PRESS ENTER TO CONTINUE...")
+            while len(inp):
+                try:
+                    print(repr(eval(inp, globals(), locals())))
+                except:
+                    logger.exception('error')
+
+                inp = raw_input("PRESS ENTER TO CONTINUE...")
+            '''
+            #import envi.interactive as ei; ei.dbg_interact(locals(), globals())
+
+        dynbranches = vw.getVaSet('DynamicBranches')
+    vw.setMeta('analyzedDynBranches', done)
+    # FIXME: we need a better way to store changing lists/dicts, that don't show up in the UI.  VaSet would be great, but ugly
+
+
+
+# for use as vivisect script
+if globals().get('vw'):
+    verbose = vw.verbose
+    vw.verbose = True
+
+    vw.vprint("Starting...")
+    jmpva = vw.parseExpression(argv[1])
+
+    sc = SwitchCase(vw, jmpva)
+    sc.analyze()
+
+    vw.vprint("Done")
+    
+    vw.verbose = verbose
+   
+
+
+
+'''  SCRATCH NOTES for determining characteristics of the switch case '''
+    #  basically, trace into the symobj of fullcons[-1] grabbing stuff before first memory access.
+    #  or rather, identify what wraps our index symobj... index symobj is the most complete symobj following a o_mul that appears in the last constraint (hack?)
+
+    #[str(x) for x in ctx]
+
+    #['arg0',
+    #'mem[(arg0 + 1544):8]',
+    #'mem[(mem[(arg0 + 1544):8] + 66):2]',
+    #'mem[((((mem[(mem[(arg0 + 1544):8] + 66):2] & 0xffffffff) << 3) + (mem[(arg0 + 1544):8] * 1)) + 64):4]',
+    #'mem[((0x00010000 + (((mem[((((mem[(mem[(arg0 + 1544):8] + 66):2] & 0xffffffff) << 3) + (mem[(arg0 + 1544):8] * 1)) + 64):4] & 0xffffffff) - 1) * 1)) + 0x00010a0c):1]',
+    #'mem[((0x00010000 + (mem[((0x00010000 + (((mem[((((mem[(mem[(arg0 + 1544):8] + 66):2] & 0xffffffff) << 3) + (mem[(arg0 + 1544):8] * 1)) + 64):4] & 0xffffffff) - 1) * 1)) + 0x00010a0c):1] * 4)) + 0x000109fc):4]']
+    #
+    ## wax Consts
+    #
+    ## take leftovers, assign unknowns as variable names
+    #
+    ## find least common denominator for unknowns...  
+    #
+    ##  ACTUALLY... we only are looking for the index (Constraints on the kid of a o_mul) and subtractions to the index :)
+    #
+    ###  inner most o_mul, if it matters...
+
+    '''
+    In [97]: [eff for eff in aeffs if eff.efftype == EFFTYPE_CONSTRAIN]
+    Out[97]: 
+        [ConstrainPath( 0x000134a9, Const(0x000134af,8), ne(Mem(o_add(Arg(0,width=8),Const(0x00000608,8),8), Const(0x00000008,8)),o_add(Arg(0,width=8),Const(0x00000608,8),8)) ),
+         ConstrainPath( 0x00013581, Const(0x000134bd,8), ne(Mem(o_add(Arg(0,width=8),Const(0x00000608,8),8), Const(0x00000008,8)),o_add(Arg(0,width=8),Const(0x00000608,8),8)) ),
+         ConstrainPath( 0x000134d0, Const(0x000134d6,8), ne(o_and(Mem(o_add(Mem(o_add(Arg(0,width=8),Const(0x00000608,8),8), Const(0x00000008,8)),Const(0x00000040,8),8), Const(0x00000002,8)),Const(0xffffffff,4),4),Const(0x0000000b,8)) ),
+         ConstrainPath( 0x000134d9, Const(0x0001393d,8), ne(o_and(Mem(o_add(Mem(o_add(Arg(0,width=8),Const(0x00000608,8),8), Const(0x00000008,8)),Const(0x00000040,8),8), Const(0x00000002,8)),Const(0xffffffff,4),4),Const(0x00000006,8)) ),
+         ConstrainPath( 0x00013940, Const(0x00013946,8), ne(o_and(o_sub(o_and(Mem(o_add(Mem(o_add(Arg(0,width=8),Const(0x00000608,8),8), Const(0x00000008,8)),Const(0x00000040,8),8), Const(0x00000002,8)),Const(0xffffffff,4),4),Const(0x00000006,8),4),Const(0xffffffff,4),4),Const(0x00000001,8)) ),
+         ConstrainPath( 0x00013949, Const(0x000134df,8), eq(o_and(o_sub(o_and(o_sub(o_and(Mem(o_add(Mem(o_add(Arg(0,width=8),Const(0x00000608,8),8), Const(0x00000008,8)),Const(0x00000040,8),8), Const(0x00000002,8)),Const(0xffffffff,4),4),Const(0x00000006,8),4),Const(0xffffffff,4),4),Const(0x00000001,8),4),Const(0xffffffff,4),4),o_and(Const(0x00000002,8),Const(0xffffffff,4),4)) ),
+         ConstrainPath( 0x000134e6, Const(0x000134ec,8), eq(o_and(Mem(o_add(Arg(0,width=8),Const(0x00000260,8),8), Const(0x00000001,8)),Const(0x00000080,8),1),Const(0x00000000,8)) ),
+         ConstrainPath( 0x0001350c, Const(0x00013512,8), eq(Mem(o_add(Arg(0,width=8),Const(0x00000108,8),8), Const(0x00000008,8)),Const(0x00013440,8)) ),
+         ConstrainPath( 0x00013515, Const(0x0001351b,8), le(Const(0x0000001c,8),o_and(o_sub(o_and(Mem(o_add(Mem(o_add(Arg(0,width=8),Const(0x00000608,8),8), Const(0x00000008,8)),Const(0x00000028,8),8), Const(0x00000004,8)),Const(0xffffffff,4),4),o_and(o_lshift(o_and(Mem(o_add(Mem(o_add(Arg(0,width=8),Const(0x00000608,8),8), Const(0x00000008,8)),Const(0x00000042,8),8), Const(0x00000002,8)),Const(0xffffffff,4),4),Const(0x00000003,8),4),Const(0xffffffff,4),4),4),Const(0xffffffff,4),4)) ),
+         ConstrainPath( 0x00013520, Const(0x00013526,8), le(Const(0x0000006b,8),o_and(Mem(o_add(o_add(o_lshift(o_and(Mem(o_add(Mem(o_add(Arg(0,width=8),Const(0x00000608,8),8), Const(0x00000008,8)),Const(0x00000042,8),8), Const(0x00000002,8)),Const(0xffffffff,4),4),Const(0x00000003,8),4),o_mul(Mem(o_add(Arg(0,width=8),Const(0x00000608,8),8), Const(0x00000008,8)),Const(0x00000001,8),8),8),Const(0x00000040,8),8), Const(0x00000004,8)),Const(0xffffffff,4),4)) ),
+         ConstrainPath( 0x00013529, Const(0x00020767,8), ge(o_and(Mem(o_add(o_add(o_lshift(o_and(Mem(o_add(Mem(o_add(Arg(0,width=8),Const(0x00000608,8),8), Const(0x00000008,8)),Const(0x00000042,8),8), Const(0x00000002,8)),Const(0xffffffff,4),4),Const(0x00000003,8),4),o_mul(Mem(o_add(Arg(0,width=8),Const(0x00000608,8),8), Const(0x00000008,8)),Const(0x00000001,8),8),8),Const(0x00000040,8),8), Const(0x00000004,8)),Const(0xffffffff,4),4),Const(0x0000006f,8)) ),
+         ConstrainPath( 0x0002076c, Const(0x00020772,8), le(o_and(o_sub(o_and(Mem(o_add(o_add(o_lshift(o_and(Mem(o_add(Mem(o_add(Arg(0,width=8),Const(0x00000608,8),8), Const(0x00000008,8)),Const(0x00000042,8),8), Const(0x00000002,8)),Const(0xffffffff,4),4),Const(0x00000003,8),4),o_mul(Mem(o_add(Arg(0,width=8),Const(0x00000608,8),8), Const(0x00000008,8)),Const(0x00000001,8),8),8),Const(0x00000040,8),8), Const(0x00000004,8)),Const(0xffffffff,4),4),Const(0x00000001,8),4),Const(0xffffffff,4),4),Const(0x00000078,8)) )]
+
+'''
+'''
+PATH: [o_add(Mem(o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), Const(0x00000004,8)),Const(0x7ff38880000,8),8), Mem(o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), Const(0x00000004,8)), o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8), Const(0x7ff38880000,8)]
+SYMOBJ: Const(0x7ff38880000,8)
+CTX: {}
+PATH: [o_add(Mem(o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), Const(0x00000004,8)),Const(0x7ff38880000,8),8), Mem(o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), Const(0x00000004,8)), o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8), o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8), o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)), o_and(Var("rdx", width=8),Const(0xffffffff,4),4), Var("rdx", width=8)]
+SYMOBJ: Var("rdx", width=8)
+CTX: {}
+PATH: [o_add(Mem(o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), Const(0x00000004,8)),Const(0x7ff38880000,8),8), Mem(o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), Const(0x00000004,8)), o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8), o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8), o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)), o_and(Var("rdx", width=8),Const(0xffffffff,4),4), Const(0xffffffff,4)]
+SYMOBJ: Const(0xffffffff,4)
+CTX: {}
+PATH: [o_add(Mem(o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), Const(0x00000004,8)),Const(0x7ff38880000,8),8), Mem(o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), Const(0x00000004,8)), o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8), o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8), o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)), o_and(Var("rdx", width=8),Const(0xffffffff,4),4)]
+SYMOBJ: o_and(Var("rdx", width=8),Const(0xffffffff,4),4)
+CTX: {}
+PATH: [o_add(Mem(o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), Const(0x00000004,8)),Const(0x7ff38880000,8),8), Mem(o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), Const(0x00000004,8)), o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8), o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8), o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)), Const(0x00000004,8)]
+SYMOBJ: Const(0x00000004,8)
+CTX: {}
+PATH: [o_add(Mem(o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), Const(0x00000004,8)),Const(0x7ff38880000,8),8), Mem(o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), Const(0x00000004,8)), o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8), o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8), o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8))]
+SYMOBJ: o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8))
+CTX: {}
+PATH: [o_add(Mem(o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), Const(0x00000004,8)),Const(0x7ff38880000,8),8), Mem(o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), Const(0x00000004,8)), o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8), o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8), Const(0x00000004,8)]
+SYMOBJ: Const(0x00000004,8)
+CTX: {}
+PATH: [o_add(Mem(o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), Const(0x00000004,8)),Const(0x7ff38880000,8),8), Mem(o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), Const(0x00000004,8)), o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8), o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8)]
+SYMOBJ: o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8)
+CTX: {}
+PATH: [o_add(Mem(o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), Const(0x00000004,8)),Const(0x7ff38880000,8),8), Mem(o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), Const(0x00000004,8)), o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8)]
+SYMOBJ: o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8)
+CTX: {}
+PATH: [o_add(Mem(o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), Const(0x00000004,8)),Const(0x7ff38880000,8),8), Mem(o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), Const(0x00000004,8)), o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), Const(0x0003027c,8)]
+SYMOBJ: Const(0x0003027c,8)
+CTX: {}
+PATH: [o_add(Mem(o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), Const(0x00000004,8)),Const(0x7ff38880000,8),8), Mem(o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), Const(0x00000004,8)), o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8)]
+SYMOBJ: o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8)
+CTX: {}
+PATH: [o_add(Mem(o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), Const(0x00000004,8)),Const(0x7ff38880000,8),8), Mem(o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), Const(0x00000004,8)), Const(0x00000004,8)]
+SYMOBJ: Const(0x00000004,8)
+CTX: {}
+PATH: [o_add(Mem(o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), Const(0x00000004,8)),Const(0x7ff38880000,8),8), Mem(o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), Const(0x00000004,8))]
+SYMOBJ: Mem(o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), Const(0x00000004,8))
+CTX: {}
+PATH: [o_add(Mem(o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), Const(0x00000004,8)),Const(0x7ff38880000,8),8), Const(0x7ff38880000,8)]
+SYMOBJ: Const(0x7ff38880000,8)
+CTX: {}
+PATH: [o_add(Mem(o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), Const(0x00000004,8)),Const(0x7ff38880000,8),8)]
+SYMOBJ: o_add(Mem(o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), Const(0x00000004,8)),Const(0x7ff38880000,8),8)
+CTX: {}
+Out[14]: o_add(Mem(o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), Const(0x00000004,8)),Const(0x7ff38880000,8),8)
+
+'''
+
+
 
 '''
 # libc-2.13.so
