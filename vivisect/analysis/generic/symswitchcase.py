@@ -15,6 +15,7 @@ if not len(logger.handlers):
     logger.addHandler(logging.StreamHandler())
 
 import envi
+import envi.bits as e_bits
 import envi.archs.i386 as e_i386
 
 import vivisect
@@ -46,8 +47,8 @@ end, names are applied as appropriate.
 '''
 
 # FIXME: some cases set the non-index reg much higher up the chain, so we don't identify the case index
-# FIXME: make all switchcase analysis for a given function cohesive (ie. don't finish up with naming until the entire function has been analyzed).  this will break cohesion if we use the CLI to add switchcases, but so be it.
-# FIXME: overlapping case names...  doublecheck the naming algorithm.  ahh... different switch-cases colliding on handlers?  is this legit?  or is it because we don't stop correctly?
+# TODO: make all switchcase analysis for a given function cohesive (ie. don't finish up with naming until the entire function has been analyzed).  this will break cohesion if we use the CLI to add switchcases, but so be it.
+# TODO: overlapping case names...  doublecheck the naming algorithm.  ahh... different switch-cases colliding on handlers?  is this legit?  or is it because we don't stop correctly?
 # CHECK: are the algorithms for "stopping" correct?  currently getting 1 switch case for several cases in libc-32
 # TODO: regrange description of Symbolik Variables... normalize so "eax" and "eax+4" make sense.
 # TODO: complete documentation
@@ -55,19 +56,6 @@ MAX_INSTR_COUNT  = 10
 MAX_CASES   = 500
 CASE_FAILURE = 5000
 MIN_FUNC_INSTR_SIZE = 10
-
-
-signed_fmts = (
-    None,
-    '<b',
-    '<h',
-    None,
-    '<i',
-    None,
-    None,
-    None,
-    '<q',
-    )
 
 
 class SymIdxNotFoundException(Exception):
@@ -137,7 +125,8 @@ class TrackingSymbolikEmulator(vs_anal.SymbolikFunctionEmulator):
                     
                 if size in (1, 2, 4, 8):
                     # return real number from memory
-                    val, = self._sym_vw.readMemoryFormat(addrval, signed_fmts[size])
+                    fmt = e_bits.getFormat(size, self._sym_vw.getEndian(), signed=True)
+                    val, = self._sym_vw.readMemoryFormat(addrval, fmt)
                     self.track(self.getMeta('va'), symaddr, val)
                     return Const(val, size)
                 
@@ -200,7 +189,9 @@ def getMemTargets(symvar):
 
 
 def getUnknowns(symvar):
-    # determine unknown registers in this symbolik object
+    '''
+    determine unknown registers in this symbolik object
+    '''
     def _cb_grab_vars(path, symobj, ctx):
         '''
         walkTree callback for grabbing Var objects
@@ -219,7 +210,6 @@ def peelIdxOffset(symobj):
     '''
     Peel back ignorable wrapped layers of a symbolik Index register, and track
     offset in the process.  Once we've skipped out of the ignorable 
-    
     '''
     offset = 0
     while True:
@@ -254,9 +244,8 @@ def targetNewFunctions(vw, fva):
     scan through all direct calls in this function and force analysis of called functions
     if this is too cumbersome, we'll just do the first one, or any in the first codeblock
     '''
-
-    todo = list(vw.getFunctionBlocks(fva))
     done = []
+    todo = list(vw.getFunctionBlocks(fva))
 
     while len(todo):
         cbva, cbsz, cbfva = todo.pop()
@@ -264,6 +253,7 @@ def targetNewFunctions(vw, fva):
         while cbva < endva:
             try:
                 op = vw.parseOpcode(cbva)
+
             except:
                 logger.warn('failed to parse opcode within function at 0x%x (fva: 0x%x)', cbva, fva)
                 cbva += 1
