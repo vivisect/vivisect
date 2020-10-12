@@ -78,7 +78,7 @@ cbs_ms_0 = [
 
 class MsSwitchTest(unittest.TestCase):
     def test_ms_switch_0(self):
-        vw = genMsSwitchWorkspace(MAPS, 0x400000)
+        vw = genMsSwitchWorkspace(MS_MAPS, 0x400000)
         vw.makeFunction(0x400000)
         
         self.assertEqual(vw.getFunctionBlocks(0x400000), cbs_ms_0)

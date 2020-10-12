@@ -570,27 +570,8 @@ class SwitchCase:
 
                 ##### PEAL the cplxIdx #####
                 baseIdx, baseoff = self.getBaseSymIdx()
-
                 logger.debug("baseIdx: %r", baseIdx)
 
-                ''' # the rest of this code has been replaced by the below code.  however, there are some nuggest we can incorporate into getNormalizedConstraints().
-                    ### FIXME: make this contains(cons._v1, cplxIdx)  -- but what if we subtract on our way down?  need a peeled version
-                    if cons._v2.symtype == SYMT_CONST:
-                        symvar = cons._v1
-                        symcmp = cons._v2
-                    elif cons._v1.symtype == SYMT_CONST:
-                        symcmp = cons._v1
-                        symvar = cons._v2
-                    else:
-                        # neither side of the constraint is a CONST.  this constraint does 
-                        # not set static bounds on idx
-                        logger.debug("SKIPPING (non-discrete): cons = %s", repr(cons))
-                        continue
-
-                    if not contains(symvar, baseIdx):
-                        logger.debug("Constraint not based on Index: %r" % cons)
-                        continue
-                        '''
                 # there are two important offsets: constraint offsets and index offsets
                 #   index offsets are mostly subtractions from the actual number used (eg. index 1500 would be idx-1500 for an offset of 1500)
                 #   constraint offsets are subtractions from the index at the point of the constraint check.  these are accounted for by getNormalizedConstraints()
@@ -1173,29 +1154,29 @@ if globals().get('vw'):
 
 
 '''  SCRATCH NOTES for determining characteristics of the switch case '''
-    #  basically, trace into the symobj of fullcons[-1] grabbing stuff before first memory access.
-    #  or rather, identify what wraps our index symobj... index symobj is the most complete symobj following a o_mul that appears in the last constraint (hack?)
+#  basically, trace into the symobj of fullcons[-1] grabbing stuff before first memory access.
+#  or rather, identify what wraps our index symobj... index symobj is the most complete symobj following a o_mul that appears in the last constraint (hack?)
 
-    #[str(x) for x in ctx]
+#[str(x) for x in ctx]
 
-    #['arg0',
-    #'mem[(arg0 + 1544):8]',
-    #'mem[(mem[(arg0 + 1544):8] + 66):2]',
-    #'mem[((((mem[(mem[(arg0 + 1544):8] + 66):2] & 0xffffffff) << 3) + (mem[(arg0 + 1544):8] * 1)) + 64):4]',
-    #'mem[((0x00010000 + (((mem[((((mem[(mem[(arg0 + 1544):8] + 66):2] & 0xffffffff) << 3) + (mem[(arg0 + 1544):8] * 1)) + 64):4] & 0xffffffff) - 1) * 1)) + 0x00010a0c):1]',
-    #'mem[((0x00010000 + (mem[((0x00010000 + (((mem[((((mem[(mem[(arg0 + 1544):8] + 66):2] & 0xffffffff) << 3) + (mem[(arg0 + 1544):8] * 1)) + 64):4] & 0xffffffff) - 1) * 1)) + 0x00010a0c):1] * 4)) + 0x000109fc):4]']
-    #
-    ## wax Consts
-    #
-    ## take leftovers, assign unknowns as variable names
-    #
-    ## find least common denominator for unknowns...  
-    #
-    ##  ACTUALLY... we only are looking for the index (Constraints on the kid of a o_mul) and subtractions to the index :)
-    #
-    ###  inner most o_mul, if it matters...
+#['arg0',
+#'mem[(arg0 + 1544):8]',
+#'mem[(mem[(arg0 + 1544):8] + 66):2]',
+#'mem[((((mem[(mem[(arg0 + 1544):8] + 66):2] & 0xffffffff) << 3) + (mem[(arg0 + 1544):8] * 1)) + 64):4]',
+#'mem[((0x00010000 + (((mem[((((mem[(mem[(arg0 + 1544):8] + 66):2] & 0xffffffff) << 3) + (mem[(arg0 + 1544):8] * 1)) + 64):4] & 0xffffffff) - 1) * 1)) + 0x00010a0c):1]',
+#'mem[((0x00010000 + (mem[((0x00010000 + (((mem[((((mem[(mem[(arg0 + 1544):8] + 66):2] & 0xffffffff) << 3) + (mem[(arg0 + 1544):8] * 1)) + 64):4] & 0xffffffff) - 1) * 1)) + 0x00010a0c):1] * 4)) + 0x000109fc):4]']
+#
+## wax Consts
+#
+## take leftovers, assign unknowns as variable names
+#
+## find least common denominator for unknowns...  
+#
+##  ACTUALLY... we only are looking for the index (Constraints on the kid of a o_mul) and subtractions to the index :)
+#
+###  inner most o_mul, if it matters...
 
-    '''
+'''
     In [97]: [eff for eff in aeffs if eff.efftype == EFFTYPE_CONSTRAIN]
     Out[97]: 
         [ConstrainPath( 0x000134a9, Const(0x000134af,8), ne(Mem(o_add(Arg(0,width=8),Const(0x00000608,8),8), Const(0x00000008,8)),o_add(Arg(0,width=8),Const(0x00000608,8),8)) ),
