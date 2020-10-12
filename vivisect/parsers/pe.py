@@ -344,6 +344,15 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
         if vw.probeMemory(rva + baseaddr, 4, e_mem.MM_READ):
             vw.makeImport(rva + baseaddr, lname, iname)
 
+    # Delay imports typically point to a function inside of the current binary that actually
+    # does the loading of it via LoadLibrary and all that
+    # so we should probaly hunt those down
+    for rva, lname, iname in pe.getDelayImports():
+        eva = rva + baseaddr
+        if vw.probeMemory(eva, 4, e_mem.MM_READ):
+            vw.makeImport(eva, lname, iname)
+            vw.addEntryPoint(vw.readMemoryPtr(eva))
+
     # Tell vivisect about ntdll functions that don't exit...
     vw.addNoReturnApi("ntdll.RtlExitUserThread")
     vw.addNoReturnApi("kernel32.ExitProcess")

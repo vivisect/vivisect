@@ -235,7 +235,7 @@ tbl32_Main = [
     (11, 0, ADDRMETH_E | OPTYPE_v, ARG_NONE, ARG_NONE, cpu_80386, 0, 0, e_i386_regs.REG_CL, 0),  
     (0, INS_BCDCONV, ADDRMETH_I | OPTYPE_b | OP_W, ARG_NONE, ARG_NONE, cpu_80386, "aam", 0, 0, 0),  
     (0, INS_BCDCONV, ADDRMETH_I | OPTYPE_b | OP_W, ARG_NONE, ARG_NONE, cpu_80386, "aad", 0, 0, 0),  
-    (0, 0, ARG_NONE, ARG_NONE, ARG_NONE, cpu_80386, 0, 0, 0, 0),  
+    (0, INS_OTHER, OP_REG | OP_W, ARG_NONE, ARG_NONE, cpu_80386, "salc", e_i386_regs.REG_AL, 0, 0),
     (0, INS_XLAT, ARG_NONE, ARG_NONE, ARG_NONE, cpu_80386, "xlat", 0, 0, 0),  
     (26, 0, ARG_NONE, ARG_NONE, ARG_NONE, cpu_80386, 0, 0, 0, 0),  
     (28, 0, ARG_NONE, ARG_NONE, ARG_NONE, cpu_80386, 0, 0, 0, 0),  

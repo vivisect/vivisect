@@ -582,11 +582,11 @@ class v_str(v_prim):
 
     _vs_builder = True
 
-    def __init__(self, size=4, val=''):
+    def __init__(self, size=4, val=b''):
         v_prim.__init__(self)
         self._vs_length = size
         self._vs_fmt = '%ds' % size
-        self._vs_value = val.ljust(size, '\x00')
+        self._vs_value = val.ljust(size, b'\x00')
         self._vs_align = 1
 
     def vsParse(self, fbytes, offset=0):
@@ -612,7 +612,7 @@ class v_str(v_prim):
         self._vs_fmt = '%ds' % size
         # Either chop or expand my string...
         b = self._vs_value[:size]
-        self._vs_value = b.ljust(size, '\x00')
+        self._vs_value = b.ljust(size, b'\x00')
 
 class v_zstr(v_prim):
     '''

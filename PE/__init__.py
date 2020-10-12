@@ -429,6 +429,13 @@ class PE(object):
         """
         return self.imports
 
+    def getDelayImports(self):
+        '''
+        Same as getImports, only for the Delay Import Table. Same
+        format as well (rva, libname, funcname)
+        '''
+        return self.delayimports
+
     def getExports(self):
 
         """
@@ -729,16 +736,14 @@ class PE(object):
             rva += 1
         return ret
 
-    def parseImports(self):
-        self.imports = []
-
-        idir = self.getDataDirectory(IMAGE_DIRECTORY_ENTRY_IMPORT)
+    def _parseImportTables(self, idir, dirn):
+        imports = []
 
         # RP BUG FIX - invalid IAT entry will point of range of file
         irva = idir.VirtualAddress
-        x = self.readStructAtRva(irva, 'pe.IMAGE_IMPORT_DIRECTORY', check=True)
+        x = self.readStructAtRva(irva, dirn, check=True)
         if x is None:
-            return
+            return []
 
         isize = len(x)
 
@@ -748,9 +753,9 @@ class PE(object):
             libname = self.readStringAtRva(x.Name, maxsize=256).decode('utf-8')
             idx = 0
 
-            imp_by_name = x.OriginalFirstThunk
+            imp_by_name = x.getNameTable()
             if imp_by_name == 0:
-                imp_by_name = x.FirstThunk
+                imp_by_name = x.getRvaTable()
 
             if not self.checkRva(imp_by_name):
                 break
@@ -759,8 +764,8 @@ class PE(object):
 
                 arrayoff = self.psize * idx
                 if self.filesize is not None and arrayoff > self.filesize:
-                    self.imports = [] # we probably put grabage in  here..
-                    return
+                    imports = [] # we probably put grabage in  here..
+                    return imports
 
                 ibn_rva = self.readPointerAtRva(imp_by_name+arrayoff)
                 if ibn_rva == 0:
@@ -779,7 +784,7 @@ class PE(object):
 
                     diff = self.getMaxRva() - ibn_rva - 2
                     ibn = vstruct.getStructure("pe.IMAGE_IMPORT_BY_NAME")
-                    ibn.vsGetField('Name').vsSetLength( min(diff, 128) )
+                    ibn.vsGetField('Name').vsSetLength(min(diff, 128))
                     bytes = self.readAtRva(ibn_rva, len(ibn), shortok=True)
                     if not bytes:
                         break
@@ -791,7 +796,7 @@ class PE(object):
 
                     funcname = ibn.Name
 
-                self.imports.append((x.FirstThunk + arrayoff, libname, funcname))
+                imports.append((x.getRvaTable() + arrayoff, libname, funcname))
 
                 idx += 1
 
@@ -802,6 +807,15 @@ class PE(object):
                 break
 
             x.vsParse(self.readAtRva(irva, isize))
+        return imports
+
+    def parseImports(self):
+        idir = self.getDataDirectory(IMAGE_DIRECTORY_ENTRY_IMPORT)
+        self.imports = self._parseImportTables(idir, 'pe.IMAGE_IMPORT_DIRECTORY')
+
+    def parseDelayImports(self):
+        idir = self.getDataDirectory(IMAGE_DIRECTORY_ENTRY_DELAY_IMPORT)
+        self.delayimports = self._parseImportTables(idir, 'pe.IMAGE_DELAY_IMPORT_DIRECTORY')
 
     def getRelocations(self):
         """
@@ -1080,6 +1094,14 @@ class PE(object):
         elif name == "imports":
             self.parseImports()
             return self.imports
+
+        elif name == "IMAGE_DELAY_IMPORT_DIRECTORY":
+            self.parseDelayImports()
+            return self.IMAGE_DELAY_IMPORT_DIRECTORY
+
+        elif name == "delayimports":
+            self.parseDelayImports()
+            return self.delayimports
 
         elif name == "IMAGE_EXPORT_DIRECTORY":
             self.parseExports()

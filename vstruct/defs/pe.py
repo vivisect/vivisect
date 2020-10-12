@@ -97,6 +97,30 @@ class IMAGE_IMPORT_DIRECTORY(vstruct.VStruct):
         self.Name               = v_uint32()
         self.FirstThunk         = v_uint32()
 
+    def getNameTable(self):
+        return self.OriginalFirstThunk
+
+    def getRvaTable(self):
+        return self.FirstThunk
+
+class IMAGE_DELAY_IMPORT_DIRECTORY(vstruct.VStruct):
+    def __init__(self):
+        vstruct.VStruct.__init__(self)
+        self.Attributes = v_uint32()
+        self.Name = v_uint32()
+        self.Handle = v_uint32()
+        self.IAT = v_uint32()
+        self.INT = v_uint32()
+        self.BoundIAT = v_uint32()
+        self.UnloadIAT = v_uint32()
+        self.Timestamp = v_uint32()
+
+    def getNameTable(self):
+        return self.INT
+
+    def getRvaTable(self):
+        return self.IAT
+
 class IMAGE_IMPORT_BY_NAME(vstruct.VStruct):
     def __init__(self, namelen=128):
         vstruct.VStruct.__init__(self)
