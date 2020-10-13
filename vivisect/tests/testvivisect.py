@@ -51,8 +51,6 @@ class VivisectTest(unittest.TestCase):
                                  (lsize, True))
                 self.assertEqual((ltype, isint(ltype)),
                                  (ltype, True))
-                if linfo:
-                    self.assertTrue(isint(linfo) or type(linfo) in (unicode, str))
 
     def test_basic_apis(self):
         '''
@@ -431,7 +429,7 @@ class VivisectTest(unittest.TestCase):
         '''
         badva = 0x0805b6f2
         loctup = self.vdir_vw.getLocation(badva)
-        self.assertEqual((134592163, 86, 2, None), loctup)
+        self.assertEqual((134592163, 86, 2, []), loctup)
 
         strtbl = 0x805e75c
         loctup = self.vdir_vw.getLocation(strtbl)
@@ -494,6 +492,43 @@ class VivisectTest(unittest.TestCase):
 
     def test_posix_impapi(self):
         pass
+
+    def test_substrings(self):
+        vw = self.gcc_vw
+        # real boy test
+        loc = vw.getLocation(0x48a301, range=True)
+        rep = vw.readMemory(loc[v_const.L_VA], loc[v_const.L_SIZE])
+        self.assertEqual(loc, (0x48a301, 6, 2, []))
+        self.assertEqual(rep, '/lib/\x00')
+
+        loc = vw.getLocation(0x48a2fd)
+        rep = vw.readMemory(loc[v_const.L_VA], loc[v_const.L_SIZE])
+        self.assertEqual(loc, (0x48a2fd, 10, 2, [(0x48a301, 6)]))
+        self.assertEqual(rep, '/usr/lib/\x00')
+
+        # easily retrieve the parent string
+        loc = vw.getLocation(0x48a302, range=False)
+        rep = vw.readMemory(loc[v_const.L_VA], loc[v_const.L_SIZE])
+        self.assertEqual(loc, (0x48a2fd, 10, 2, [(0x48a301, 6)]))
+        self.assertEqual(rep, '/usr/lib/\x00')
+
+        # if we reanalyze something that's complete, it better not mess up anything
+
+        # make up some substrings
+        s = 'Using built-in specs.\n\x00'
+        base = 0x48a4b4
+        vw.delLocation(base)
+        import pdb
+        pdb.set_trace()
+        for i in range(1, 16):
+            vw.makeString(base + len(s) - i)
+        import pdb
+        pdb.set_trace()
+        vw.makeString(base)
+
+        # make sure when we retrieve them we get the substring we expect
+
+        # order of creation matters, so test making the kids first, then the parent
 
     def test_make_noname(self):
         vw = self.vdir_vw

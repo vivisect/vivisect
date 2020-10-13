@@ -920,6 +920,12 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
                     if loc[L_LTYPE] == LOC_STRING:
                         if loc[L_VA] == va:
                             return loc[L_SIZE]
+                        if ord(bytez[offset+count]) != 0:
+                            # we probably hit a case where the string at the lower va is
+                            # technically the start of the full string, but the binary does
+                            # some optimizations and just ref's inside the full string to save 
+                            # some space
+                            return count + loc[L_SIZE]
                         return loc[L_VA] - (va + count) + loc[L_SIZE]
                     return -1
 
@@ -966,6 +972,12 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
                 loc = self.getLocation(va+count)
                 if loc:
                     if loc[L_LTYPE] == LOC_UNI:
+                        if loc[L_VA] == va:
+                            return loc[L_SIZE]
+                        if ord(bytes[offset+count]) != 0:
+                            # same thing as in the string case, a binary can ref into a string
+                            # only part of the full string.
+                            return count + loc[L_SIZE]
                         return loc[L_VA] - (va + count) + loc[L_SIZE]
                     return -1
 
@@ -1950,10 +1962,42 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         if size <= 0:
             raise Exception("Invalid String Size: %d" % size)
 
+        # rip through the desired memory range to populate any substrings
+        subs = set()
+        offset = va
+        end = va + size
+        while offset < end:
+            loc = self.getLocation(offset, range=True)
+            if loc and loc[L_LTYPE] == LOC_STRING and loc[L_VA] > va:
+                subs.add((loc[L_VA], loc[L_SIZE]))
+                if loc[L_TINFO]:
+                    subs.union(set(loc[L_TINFO]))
+                    self.addLocation(loc[L_VA], loc[L_SIZE], loc[L_LTYPE], [])
+            offset += 1
+
+        ploc = self.getLocation(va, range=False)
+        if ploc:
+            # the string we're making is a substring of some outer one
+            # still make this string location, but let the parent know about us too and our
+            # children as well. Ultimately, the outermost parent should be responsible for 
+            # knowing about all it's substrings
+            modified = False
+            pva, psize, ptype, pinfo = ploc
+            if (va, size) not in pinfo:
+                modified = True
+                pinfo.append((va, size))
+            for va, size in subs:
+                if (va, size) not in pinfo:
+                    modified = True
+                    pinfo.append((va, size))
+            if modified:
+                self.addLocation(pva, psize, LOC_STRING, tinfo=pinfo)
+                subs = set()
+
         if self.getName(va) is None:
-            m = self.readMemory(va, size-1).replace("\n","")
+            m = self.readMemory(va, size-1).replace("\n", "")
             self.makeName(va, "str_%s_%.8x" % (m[:16],va))
-        return self.addLocation(va, size, LOC_STRING)
+        return self.addLocation(va, size, LOC_STRING, tinfo=list(subs))
 
     def makeUnicode(self, va, size=None):
         if size is None:
@@ -2138,14 +2182,29 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             return False
         return tup[L_LTYPE] == ltype
 
-    def getLocation(self, va, range=False):
+    def getLocation(self, va, range=True):
         """
         Return the va,size,ltype,tinfo tuple for the given location.
         (specify range=True to potentially match a va that is inside
-        a location rather than the beginning of one)
+        a location rather than the beginning of one, this behavior
+        only affects strings/substring retrieval currently)
         """
-        # TODO: range=True does nothing
-        return self.locmap.getMapLookup(va)
+        loc = self.locmap.getMapLookup(va)
+        if not loc:
+            return loc
+
+        if range and loc[L_LTYPE] in (LOC_STRING, LOC_UNI):
+            # dig into any sublocs
+            # This is a bit dirty, since it teeeeeechnically should belong to the locmap class,
+            # but implementing it here is far less dangerous than throwing it in there
+            subs = sorted(loc[L_TINFO], key=lambda k: k[0], reverse=False)
+            ltup = loc
+            for sva, ssize in subs:
+                if sva <= va < sva + ssize:
+                    ltup = (sva, ssize, loc[L_LTYPE], [])
+            return ltup
+        else:
+            return loc
 
     def getLocationRange(self, va, size):
         """
