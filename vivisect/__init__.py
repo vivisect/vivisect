@@ -1971,7 +1971,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             if loc and loc[L_LTYPE] == LOC_STRING and loc[L_VA] > va:
                 subs.add((loc[L_VA], loc[L_SIZE]))
                 if loc[L_TINFO]:
-                    subs.union(set(loc[L_TINFO]))
+                    subs = subs.union(set(loc[L_TINFO]))
                     self.addLocation(loc[L_VA], loc[L_SIZE], loc[L_LTYPE], [])
             offset += 1
 

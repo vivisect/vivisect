@@ -512,23 +512,25 @@ class VivisectTest(unittest.TestCase):
         self.assertEqual(loc, (0x48a2fd, 10, 2, [(0x48a301, 6)]))
         self.assertEqual(rep, '/usr/lib/\x00')
 
-        # if we reanalyze something that's complete, it better not mess up anything
-
         # make up some substrings
         s = 'Using built-in specs.\n\x00'
         base = 0x48a4b4
         vw.delLocation(base)
-        import pdb
-        pdb.set_trace()
-        for i in range(1, 16):
+        for i in range(1, len(s)):
             vw.makeString(base + len(s) - i)
-        import pdb
-        pdb.set_trace()
         vw.makeString(base)
-
-        # make sure when we retrieve them we get the substring we expect
-
-        # order of creation matters, so test making the kids first, then the parent
+        for i in range(1, len(s)):
+            loc = vw.getLocation(base + i, range=True)
+            self.assertEqual(loc[0], base + i)
+            self.assertEqual(loc[1], len(s) - i)
+            self.assertEqual(loc[2], 2)
+            self.assertEqual(loc[3], [])
+        loc = vw.getLocation(base)
+        self.assertTrue(len(loc[v_const.L_TINFO]), 22)
+        # if you delete the main string, you also end up deleting the substrings
+        vw.delLocation(base)
+        # be a good citizen and clean up
+        vw.makeString(base)
 
     def test_make_noname(self):
         vw = self.vdir_vw
