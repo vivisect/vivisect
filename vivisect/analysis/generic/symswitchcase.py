@@ -170,24 +170,6 @@ def contains(symobj, subobj):
     symobj.walkTree(_cb_contains, ctx)
     return ctx.get('contains'), ctx['path']
 
-
-def getMemTargets(symvar):
-    # determine locations read from
-    def _cb_grab_mem(path, symobj, ctx):
-        '''
-        walkTree callback for grabbing Var objects
-        '''
-        logger.debug("... memtgt: %r", symobj)
-        if symobj.symtype == SYMT_MEM:
-            tgt = symobj.kids[0]
-            if tgt not in ctx:
-                ctx.append(tgt)
-
-    unks = []
-    symvar.walkTree(_cb_grab_mem, unks)
-    return unks
-
-
 def getUnknowns(symvar):
     '''
     determine unknown registers in this symbolik object
@@ -313,16 +295,16 @@ class SwitchCase:
         self.xlate = self.sctx.getTranslator()
 
         # 32-bit i386 thunk_bx handling.  this should be the only oddity for this architecture
-        #if vw.getMeta('PIE_ebx'):
-        try:
-            for tva, in vw.getVaSetRows('thunk_bx'):
-                fname = vw.getName(tva, True)
-                self.sctx.addSymFuncCallback(fname, thunk_bx)
-                logger.debug( "sctx.addSymFuncCallback(%s, thunk_bx)" % fname)
-        except AttributeError:
-            pass
-        except v_exc.InvalidVaSet:
-            pass
+        if 'thunk_bx' in vw.getVaSetNames():
+            try:
+                for tva, in vw.getVaSetRows('thunk_bx'):
+                    fname = vw.getName(tva, True)
+                    self.sctx.addSymFuncCallback(fname, thunk_bx)
+                    logger.debug( "sctx.addSymFuncCallback(%s, thunk_bx)" % fname)
+            except AttributeError:
+                pass
+            except v_exc.InvalidVaSet:
+                pass
 
 
         self._sgraph = None

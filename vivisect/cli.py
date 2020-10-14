@@ -820,8 +820,8 @@ class VivCli(vivisect.VivWorkspace, e_cli.EnviCli):
             vagss.makeSwitch(self, jmpva, count, offset)
             funcva = self.getFunction(jmpva)
             vagc.analyzeFunction(self, funcva)
-        except ValueError, e:
-            print e
+        except ValueError as e:
+            self.vprint("exception: %r" % e)
             return self.do_help("switch")
 
     def do_m_switch_ptr(self, line):
@@ -864,8 +864,8 @@ class VivCli(vivisect.VivWorkspace, e_cli.EnviCli):
                 vagc.analyzeFunction(self, funcva)
             else:
                 self.vprint("No function found containing 0x%x", jmpva)
-        except ValueError, e:
-            print e
+        except ValueError as e:
+            self.vprint("exception: %r" % e)
             return self.do_help("m_switch_ptr")
         except:
             import traceback
@@ -924,8 +924,8 @@ class VivCli(vivisect.VivWorkspace, e_cli.EnviCli):
             if funcva is not None:
                 vagc.analyzeFunction(self, funcva)
 
-        except ValueError, e:
-            print e
+        except ValueError as e:
+            self.vprint("exception: %r" % e)
             return self.do_help("m_switch_off")
 
     def do_plt(self, line):
