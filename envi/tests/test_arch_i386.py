@@ -41,6 +41,22 @@ i386SingleByteOpcodes = [
     ('TEST', '84db', 0x40, 'test bl,bl', 'test bl,bl'),
     ('POP', '5D', 0x40, 'pop ebp', 'pop ebp'),
     ('POP', '5B', 0x40, 'pop ebx', 'pop ebx'),
+    ('nop', '660f1cf8', 0x40, 'nop ax', 'nop ax'),
+    ('nop', '660f1df8', 0x40, 'nop ax', 'nop ax'),
+    ('nop', '660f1ef8', 0x40, 'nop ax', 'nop ax'),
+    ('nop', '660f1ff8', 0x40, 'nop ax', 'nop ax'),
+    ('nop', 'f20f1cfb', 0x40, 'repnz: nop ebx', 'repnz: nop ebx'),
+    ('nop', 'f20f1dfb', 0x40, 'repnz: nop ebx', 'repnz: nop ebx'),
+    ('nop', 'f20f1efb', 0x40, 'repnz: nop ebx', 'repnz: nop ebx'),
+    ('nop', 'f20f1ffb', 0x40, 'repnz: nop ebx', 'repnz: nop ebx'),
+    ('nop', 'f30f1cfa', 0x40, 'rep: nop edx', 'rep: nop edx'),
+    ('nop', 'f30f1dfa', 0x40, 'rep: nop edx', 'rep: nop edx'),
+    ('nop', 'f30f1efa', 0x40, 'rep: nop edx', 'rep: nop edx'),
+    ('nop', 'f30f1ffa', 0x40, 'rep: nop edx', 'rep: nop edx'),
+    ('nop', '0f1cfa', 0x40, 'nop edx', 'nop edx'),
+    ('nop', '0f1dfa', 0x40, 'nop edx', 'nop edx'),
+    ('nop', '0f1efa', 0x40, 'nop edx', 'nop edx'),
+    ('nop', '0f1ffa', 0x40, 'nop edx', 'nop edx'),
 ]
 
 i386MultiByteOpcodes = [
