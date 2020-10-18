@@ -173,6 +173,9 @@ def addAnalysisModules(vw):
         vw.addAnalysisModule("vivisect.analysis.generic.pointers")
 
     elif fmt == 'blob': # BLOB ######################################################
+        if arch in PPC_ARCHS:
+            # potentially tags a new EntryPoint, so must preceed entrypoints
+            vw.addAnalysisModule("vivisect.analysis.ppc.bootstrap")
 
         vw.addAnalysisModule("vivisect.analysis.generic.entrypoints")
         vw.addAnalysisModule("vivisect.analysis.generic.funcentries")
@@ -184,7 +187,6 @@ def addAnalysisModules(vw):
 
         if arch in PPC_ARCHS:
             vw.addFuncAnalysisModule("vivisect.analysis.ppc.emulation")
-            vw.addAnalysisModule("vivisect.analysis.ppc.bootstrap")
 
         elif arch in ARM_ARCHS:
             vw.addFuncAnalysisModule("vivisect.analysis.arm.emulation")
@@ -194,6 +196,9 @@ def addAnalysisModules(vw):
         vw.addFuncAnalysisModule("vivisect.analysis.generic.thunks")
 
     elif fmt == 'ihex': # IHEX ######################################################
+        if arch in PPC_ARCHS:
+            # potentially tags a new EntryPoint, so must preceed entrypoints
+            vw.addAnalysisModule("vivisect.analysis.ppc.bootstrap")
 
         vw.addAnalysisModule("vivisect.analysis.generic.entrypoints")
         vw.addAnalysisModule("vivisect.analysis.generic.funcentries")
@@ -206,7 +211,6 @@ def addAnalysisModules(vw):
 
         if arch in PPC_ARCHS:
             vw.addFuncAnalysisModule("vivisect.analysis.ppc.emulation")
-            vw.addAnalysisModule("vivisect.analysis.ppc.bootstrap")
 
         elif arch in ARM_ARCHS:
             vw.addFuncAnalysisModule("vivisect.analysis.arm.emulation")
@@ -215,6 +219,9 @@ def addAnalysisModules(vw):
         vw.addFuncAnalysisModule("vivisect.analysis.generic.thunks")
 
     elif fmt == 'vbf': # VBF ######################################################
+        if arch in PPC_ARCHS:
+            # potentially tags a new EntryPoint, so must preceed entrypoints
+            vw.addAnalysisModule("vivisect.analysis.ppc.bootstrap")
 
         vw.addAnalysisModule("vivisect.analysis.generic.entrypoints")
         vw.addAnalysisModule("vivisect.analysis.generic.funcentries")
@@ -227,7 +234,6 @@ def addAnalysisModules(vw):
 
         if arch in PPC_ARCHS:
             vw.addFuncAnalysisModule("vivisect.analysis.ppc.emulation")
-            vw.addAnalysisModule("vivisect.analysis.ppc.bootstrap")
 
         elif arch in ARM_ARCHS:
             vw.addFuncAnalysisModule("vivisect.analysis.arm.emulation")

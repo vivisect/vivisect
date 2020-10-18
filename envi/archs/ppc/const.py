@@ -124,6 +124,7 @@ COND_VS = 8
 COND_NV = 9
 
 IFLAGS_NONE = 0
+IF_CAT64 = 1 << 8
 
 OEMODE_LEGACY = 0
 OEMODE_ADDSUBNEG = 1
@@ -202,5 +203,5 @@ CAT_PPC_SERVER = CAT_ALTIVEC =   CAT_NONE | CAT_EMBEDDED | CAT_E | CAT_V | CAT_6
 CAT_PPC_EMBEDDED =   CAT_SPE =       CAT_NONE | CAT_E | CAT_E_ED | CAT_E_HV | CAT_E_PD | CAT_E_CL | CAT_E_PC | CAT_E_DC | CAT_E_PM | CAT_SP | CAT_SP_FV | CAT_SP_FS | CAT_SP_FD | CAT_ER | CAT_EM_TM | CAT_DS | CAT_FP | CAT_DEO | CAT_FP_R | CAT_WT | CAT_64 | CAT_EMBEDDED | CAT_ISAT
 
 # mask to clear out a 4-bit part of the 32-bit CR register about to be written
-cr_mask = [(0xffffffff & ~(0xf<<(4*x))) for x in range(8)]
+cr_mask = [(0xffffffff & ~(0xf<<(4*x))) for x in range(8)[::-1]]
 

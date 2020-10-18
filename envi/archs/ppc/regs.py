@@ -189,9 +189,11 @@ class Ppc64RegisterContext(e_reg.RegisterContext):
 
 
 general_regs = []
-general_regs.extend(gprs64)
-general_regs.extend(floats)
-general_regs.extend(vectors)
-general_regs.extend(sysregs)
-general_regs.append(('LR', 64))
+general_regs.extend([reg for reg, size in gprs64])
+general_regs.extend([reg for reg, size in floats])
+general_regs.extend([reg for reg, size in vectors])
+general_regs.append('LR')
+general_regs.append('XER')
+general_regs.append('CTR')
+general_regs.extend([reg for reg, size in sysregs])
 

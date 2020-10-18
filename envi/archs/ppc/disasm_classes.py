@@ -148,6 +148,9 @@ class PpcRegOper(envi.RegisterOper):
     def setOperValue(self, op, emu=None, val=None):
         if emu == None:
             return None
+        
+        mask = e_bits.u_maxes[emu.psize]
+        val &= mask
         emu.setRegister(self.reg, val)
 
     def render(self, mcanv, op, idx):

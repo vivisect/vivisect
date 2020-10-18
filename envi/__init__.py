@@ -64,11 +64,15 @@ arch_by_name = {
     'ppc32-embedded': ARCH_PPC_E32,
     'ppc':          ARCH_PPC_E64,
     'ppc-embedded': ARCH_PPC_E64,
+    'ppc64-embedded': ARCH_PPC_E64,
     'ppc-spe':      ARCH_PPC_E64,
     'ppc-vle':      ARCH_PPCVLE,
+    'ppc64-vle':    ARCH_PPCVLE,
+    'ppcvle':       ARCH_PPCVLE,
     'vle':          ARCH_PPCVLE,
     'ppc32-server': ARCH_PPC_S32,
     'ppc-server':   ARCH_PPC_S64,
+    'ppc64-server': ARCH_PPC_S64,
     'altivec':      ARCH_PPC_S64,
     'ppc-altivec':  ARCH_PPC_S64,
     'ppc-desktop':  ARCH_PPC_D,
@@ -1310,7 +1314,7 @@ def getArchModule(name=None):
         import envi.archs.h8 as e_h8
         return e_h8.H8Module()
 
-    elif name in ('ppc', 'ppc-embedded', 'ppc-spe', 'ppcspe', 'spe', 'mpc56xx'):
+    elif name in ('ppc', 'ppc-embedded', 'ppc64-embedded', 'ppc-spe', 'ppcspe', 'spe', 'mpc56xx'):
         import envi.archs.ppc as e_ppc
         return e_ppc.Ppc64EmbeddedModule()
 
@@ -1318,7 +1322,7 @@ def getArchModule(name=None):
         import envi.archs.ppc as e_ppc
         return e_ppc.Ppc32EmbeddedModule()
 
-    elif name in ('ppc-server', 'ppc-altivec', 'ppcaltivec', 'altivec'):
+    elif name in ('ppc-server', 'ppc64-server', 'ppc-altivec', 'ppcaltivec', 'altivec'):
         import envi.archs.ppc as e_ppc
         return e_ppc.Ppc64ServerModule()
 
@@ -1326,7 +1330,7 @@ def getArchModule(name=None):
         import envi.archs.ppc as e_ppc
         return e_ppc.Ppc32ServerModule()
 
-    elif name in ('vle', 'ppc-vle', 'ppcvle'):
+    elif name in ('vle', 'ppc-vle', 'ppcvle', 'ppc64-vle'):
         import envi.archs.ppc as e_ppc
         return e_ppc.PpcVleModule()
 

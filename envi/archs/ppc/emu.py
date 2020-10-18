@@ -289,6 +289,10 @@ class PpcAbstractEmulator(envi.Emulator):
         '''
         return self.getRegister(REG_LR)
 
+    def i_bctr(self, op):
+        ctr  = self.getRegister(REG_CTR)
+        return ctr
+
     def i_bctrl(self, op):
         nextva = op.va + len(op)
         ctr  = self.getRegister(REG_CTR)
@@ -1104,7 +1108,7 @@ class PpcAbstractEmulator(envi.Emulator):
         self.setOEflags(result, 4, src1, src2)
         if op.iflags & IF_RC: self.setFlags(result, 0)
 
-    def i_addw(self, op):
+    def i_addw(self, op):   # CAT_64
         '''
         add word
         '''
@@ -1390,13 +1394,13 @@ class PpcAbstractEmulator(envi.Emulator):
         op.opers[1].updateReg(self)
     
     def i_sthu(self, op):
-        return self.i_stb(op, size=2)
+        return self.i_stbu(op, size=2)
     
     def i_stwu(self, op):
-        return self.i_stb(op, size=4)
+        return self.i_stbu(op, size=4)
 
     def i_stdu(self, op):
-        return self.i_stb(op, size=8)
+        return self.i_stbu(op, size=8)
 
 
     def i_stbx(self, op, size=1):

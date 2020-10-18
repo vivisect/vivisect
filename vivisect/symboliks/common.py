@@ -360,17 +360,6 @@ class SymbolikBase:
 
             done.add(cur._sym_id)
 
-            if newb != None and newb != cur:
-                cur = newb
-                #sys.stdout.write(' 8 ')
-                # tie newb in
-                # print("setSymKid: %s :: %d" % (len(path), idx))
-                if len(path):
-                    parent = path[-1]
-                    pidx = idxs[-1]
-                    parent.setSymKid(pidx, newb)
-                continue    # give it another shot...
-
             # exit if we're the top node
             if not len(path):
                 #sys.stdout.write('=')
