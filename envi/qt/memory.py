@@ -1,23 +1,14 @@
 from collections import deque
 
-try:
-    from PyQt5 import QtCore
-    from PyQt5.QtWidgets import *
-except:
-    from PyQt4 import QtCore
-    from PyQt4.QtGui import *
+from PyQt5 import QtCore
+from PyQt5.QtWidgets import *
 
-import envi
-import envi.memcanvas as e_memcanvas
 import envi.qt.memcanvas as e_memcanvas_qt
 import envi.memcanvas.renderers as e_render
 
-import vqt.main as vq_main
 import vqt.tree as vq_tree
-import vqt.colors as vq_colors
 import vqt.hotkeys as vq_hotkey
 import vqt.saveable as vq_save
-import vqt.menubuilder as vqt_menu
 
 from vqt.main import *
 from vqt.common import *

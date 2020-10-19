@@ -567,6 +567,10 @@ class i386Opcode(envi.Opcode):
     def getBranches(self, emu=None):
         ret = []
 
+        # we're done here.
+        if self.opcode == opconst.INS_HALT:
+            return []
+
         # To start with we have no flags ( except our arch )
         flags = self.iflags & envi.ARCH_MASK
         addb = False

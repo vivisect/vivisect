@@ -26,9 +26,10 @@ class ACT:
     def __call__(self):
         try:
             return self.meth( *self.args, **self.kwargs )
-        except:
+        except Exception as e:
             logger.warning("error in ACT(%s, %s, %s)", str(self.meth), str(self.args), str(self.kwargs))
-            logger.debug(''.join(traceback.format_exception(*sys.exc_info())))
+            logger.warning(str(e))
+            #logger.debug(''.join(traceback.format_exception(*sys.exc_info())))
 
 
 class VqtModel(QtCore.QAbstractItemModel):

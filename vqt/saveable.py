@@ -18,11 +18,6 @@ def compat_isNone(state):
 
     return not len(state)
 
-def compat_toStr(qstate):
-    if PYQT_VERSION_STR.startswith('4'):
-        return str(qstate.toString())
-    return str(qstate)
-
 def compat_toByteArray(strobj):
     if PYQT_VERSION_STR.startswith('4'):
         return strobj.toByteArray()
@@ -49,7 +44,7 @@ class SaveableWidget(object):
             return
 
         try:
-            state = json.loads(compat_toStr(qstate))
+            state = json.loads(str(qstate))
             self.vqSetSaveState(state)
         except Exception as e:
             logger.warning('failed to restore %s: %s', name, e)

@@ -8,8 +8,6 @@ import imp
 import sys
 import traceback
 
-import vdb.ext
-
 __all__ = ['loadExtensions', 'windows', 'i386', 'darwin', 'amd64', 'gdbstub', 'arm', 'android', 'winkern']
 
 
@@ -56,7 +54,7 @@ def loadExtensions(vdb, trace):
                 filebytes = fd.read()
                 mod.__file__ = filepath
                 try:
-                    exec(filebytes in mod.__dict__)
+                    exec(filebytes, mod.__dict__)
                     mod.vdbExtension(vdb, trace)
                 except Exception:
                     vdb.vprint(traceback.format_exc())

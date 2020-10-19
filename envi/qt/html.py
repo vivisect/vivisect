@@ -1,12 +1,17 @@
 '''
 The envi.qt.html module contains the HTML template and javascript
-code used by the renderers (which are based on QtWebKit)
+code used by the renderers (which are based on QtWebEngine)
+'''
+
+'''
+<head>
+<script src="qrc:///qtwebchannel/qwebchannel.js"></script>
+</head>
 '''
 
 template = '''
 <!DOCTYPE html>
 <html id="mainhtml">
-<head></head>
 
 <style type="text/css">
 
@@ -85,34 +90,40 @@ div.codeblock:hover {
 <script language="javascript">
 {{{jquery}}}
 
-var selclass = "name"
+var selclass = "name";
 function nameclick(elem) {
-    var elem = $(elem)
-    var tagval = elem.attr('envival')
-    var tagname = elem.attr('envitag')
-    $("."+selclass).removeClass(selclass)
-    selclass = "envi-" + tagname + "-selected"
-    var newclass = "envi-" + tagname + "-" + tagval
-    $("." + selclass).removeClass(selclass)
-    $("." + newclass).addClass(selclass)
+    var elem = $(elem);
+    var tagval = elem.attr('envival');
+    var tagname = elem.attr('envitag');
+    $("."+selclass).removeClass(selclass);
+    selclass = "envi-" + tagname + "-selected";
+    var newclass = "envi-" + tagname + "-" + tagval;
+    $("." + selclass).removeClass(selclass);
+    $("." + newclass).addClass(selclass);
 }
 
 var curva = null;
 function vaclick(elem) {
-    var elem = $(elem)
-    var vastr = elem.attr("va")
-    selectva(vastr)
+    var elem = $(elem);
+    var vastr = elem.attr("va");
+    selectva(vastr);
 }
 
 function selectva(vastr) {
-    var vaselect = ".envi-va-" + vastr
-    $(".envi-va-selected").removeClass("envi-va-selected")
-    $(vaselect).addClass("envi-va-selected")
-    vnav._jsSetCurVa(vastr)
+    var vaselect = ".envi-va-" + vastr;
+    $(".envi-va-selected").removeClass("envi-va-selected");
+    $(vaselect).addClass("envi-va-selected");
+    new QWebChannel(qt.webChannelTransport, function (channel) {
+        vnav = channel.objects.vnav;
+    });
+    vnav._jsSetCurVa(vastr);
 }
 
 function vagoto(elem) {
-    vnav._jsGotoExpr($(elem).attr('va'))
+    new QWebChannel(qt.webChannelTransport, function (channel) {
+        vnav = channel.objects.vnav;
+    });
+    vnav._jsGotoExpr($(elem).attr('va'));
 }
 
 function scrolltoid(name) {
@@ -135,4 +146,3 @@ function scrolltoid(name) {
 
 </html>
 '''
-

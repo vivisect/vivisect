@@ -1796,8 +1796,8 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
     def analyzePointer(self, va):
         """
         Assume that a new pointer has been created.  Check if it's
-        target has a defined location and if not, try to figgure out
-        wtf is there...  Will return the location type of the location
+        target has a defined location and if not, try to figure out
+        what's there. Will return the location type of the location
         it recommends or None if a location is already there or it has
         no idea.
         """

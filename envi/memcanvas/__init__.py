@@ -131,8 +131,6 @@ class MemoryCanvas(object):
         NOTE: Implementors should probably check _canv_scrolled to
         decide if they should scroll to the end of the view...
         """
-        if sys.stdout.encoding:
-            text = text.encode(sys.stdout.encoding, 'replace')
         sys.stdout.write(text)
 
     def addNameText(self, text, name=None, typename='name'):
@@ -284,7 +282,7 @@ class MemoryCanvas(object):
 
         except Exception as e:
             s = traceback.format_exc()
-            self.addText("\nException At %s: %s\n" % (hex(va),s))
+            self.addText("\nException At %s: %s\n" % (hex(va), s))
 
         self._endRenderPrepend()
 

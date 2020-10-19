@@ -1,28 +1,20 @@
 
 import logging
 
-import envi
 try:
     from PyQt5.QtWidgets import *
 except:
     from PyQt4.QtGui import *
 
-import envi.qt as envi_qt
-import envi.bits as e_bits
 import envi.qt.memory as e_mem_qt
 import envi.qt.memcanvas as e_mem_canvas
 
-import vstruct.qt as vs_qt
-
-import vqt.main as vq_main
 import vqt.hotkeys as vq_hotkey
-import vqt.menubuilder as vq_menu
 
 import vivisect.base as viv_base
 import vivisect.renderers as viv_rend
 import vivisect.qt.views as viv_q_views
 import vivisect.qt.ctxmenu as viv_q_ctxmenu
-import vivisect.qt.funcviews as viv_q_funcviews
 
 from vqt.main import *
 from vivisect.const import *
@@ -80,14 +72,13 @@ class VivCanvasBase(vq_hotkey.HotKeyMixin, e_mem_canvas.VQMemoryCanvas):
 
     def _applyColorMap(self, cmap):
 
-        frame = self.page().mainFrame()
-        style = frame.findFirstElement('#cmapstyle')
+        page = self.page()
+        inner = ''
+        for va, color in cmap.items():
+            inner += '.envi-va-0x%.8x { color: #000000; background-color: %s }\n' % (va, color)
 
-        rows = []
-        for va,color in cmap.items():
-            rows.append('.envi-va-0x%.8x { color: #000000; background-color: %s }' % (va, color))
-
-        style.setInnerXml('\n'.join(rows))
+        js = 'node = document.querySelector("#cmapstyle"); node.innerHTML = %s;' % inner
+        page.runJavaScript(js)
 
     @vq_hotkey.hotkey('viv:nav:nextva')
     def _hotkey_nav_nextva(self):
@@ -306,7 +297,7 @@ class VQVivMemoryCanvas(VivCanvasBase):
 
         if not len(self._canv_rendvas):
             pass
-            
+
         elif sbcur == sbmax:
 
             lastva, lastsize = self._canv_rendvas[-1]
@@ -325,9 +316,8 @@ class VQVivMemoryCanvas(VivCanvasBase):
         return e_mem_canvas.VQMemoryCanvas.wheelEvent(self, event)
 
     def _clearColorMap(self):
-        frame = self.page().mainFrame()
-        style = frame.findFirstElement('#cmapstyle')
-        style.setInnerXml('');
+        page = self.page()
+        page.runJavaScript('node = document.querySelector("#cmapstyle"); node.innerHTML = "";')
 
     def _navExpression(self, expr):
         if self._canv_navcallback:

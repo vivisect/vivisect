@@ -148,6 +148,7 @@ class CodeFlowContext(object):
                 continue
 
             pva, va = todo
+
             if opdone.get(va):
                 continue
 

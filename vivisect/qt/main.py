@@ -99,6 +99,7 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
 
         if len(self.vqGetDockWidgets()) == 0:
             self.vw.vprint('\n')
+            #self.vw.vprint('&#10;')
             self.vw.vprint('Looks like you have an empty layout!')
             self.vw.vprint('Use View->Layouts->Load and select vivisect/qt/default.lyt')
 
@@ -115,9 +116,9 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
 
     def vprint(self, msg, addnl=True):
         # ripped and modded from envi/cli.py
-        if addnl:
-            msg = msg + "\n"
         self.vw.canvas.write(msg)
+        if addnl:
+            self.vw.canvas.write('\n')
 
     def getLocation(self, va):
         loctup = self.vw.getLocation(va)
