@@ -87,6 +87,7 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
 
     vw.setMeta('Architecture', arch)
     vw.setMeta('Format', 'pe')
+    vw.setMeta('ParsedBinary', pe)
 
     platform = 'windows'
 

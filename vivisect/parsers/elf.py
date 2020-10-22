@@ -145,6 +145,7 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
     vw.setMeta('Architecture', arch)
     vw.setMeta('Platform', platform)
     vw.setMeta('Format', 'elf')
+    vw.setMeta('ParsedBinary', elf)
 
     vw.setMeta('DefaultCall', archcalls.get(arch,'unknown'))
 
