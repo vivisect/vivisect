@@ -100,9 +100,10 @@ def getCarryBitAtX(bit, add0, add1):
 
 class PpcAbstractEmulator(envi.Emulator):
 
-    def __init__(self, archmod=None, psize=8):
+    def __init__(self, archmod=None, endian=ENDIAN_MSB, psize=8):
         self.psize = psize
         envi.Emulator.__init__(self, archmod=archmod)
+        self.setEndian(endian)
                 
         self.addCallingConvention("ppccall", ppccall)
 
@@ -2065,32 +2066,32 @@ m.addMemoryMap(0x0000,0777,"memmap1", "\xff"*1024)
 """
 
 class Ppc64ServerEmulator(Ppc64RegisterContext, Ppc64ServerModule, PpcAbstractEmulator):
-    def __init__(self, archmod=None, psize=8):
-        PpcAbstractEmulator.__init__(self, archmod=Ppc64ServerModule(), psize=psize)
+    def __init__(self, archmod=None, endian=ENDIAN_MSB, psize=8):
+        PpcAbstractEmulator.__init__(self, archmod=Ppc64ServerModule(), endian=endian, psize=psize)
         Ppc64RegisterContext.__init__(self)
         Ppc64ServerModule.__init__(self)
 
 class Ppc32ServerEmulator(Ppc32RegisterContext, Ppc32ServerModule, PpcAbstractEmulator):
-    def __init__(self, archmod=None, psize=4):
-        PpcAbstractEmulator.__init__(self, archmod=Ppc32ServerModule(), psize=psize)
+    def __init__(self, archmod=None, endian=ENDIAN_MSB, psize=4):
+        PpcAbstractEmulator.__init__(self, archmod=Ppc32ServerModule(), endian=endian, psize=psize)
         Ppc32RegisterContext.__init__(self)
         Ppc32ServerModule.__init__(self)
 
 class PpcVleEmulator(Ppc64RegisterContext, PpcVleModule, PpcAbstractEmulator):
-    def __init__(self, archmod=None, psize=8):
-        PpcAbstractEmulator.__init__(self, archmod=PpcVleModule(), psize=psize)
+    def __init__(self, archmod=None, endian=ENDIAN_MSB, psize=8):
+        PpcAbstractEmulator.__init__(self, archmod=PpcVleModule(), endian=endian, psize=psize)
         Ppc64RegisterContext.__init__(self)
         PpcVleModule.__init__(self)
 
 class Ppc64EmbeddedEmulator(Ppc64RegisterContext, Ppc64EmbeddedModule, PpcAbstractEmulator):
-    def __init__(self, archmod=None, psize=8):
-        PpcAbstractEmulator.__init__(self, archmod=Ppc64EmbeddedModule(), psize=psize)
+    def __init__(self, archmod=None, endian=ENDIAN_MSB, psize=8):
+        PpcAbstractEmulator.__init__(self, archmod=Ppc64EmbeddedModule(), endian=endian, psize=psize)
         Ppc64RegisterContext.__init__(self)
         Ppc64EmbeddedModule.__init__(self)
 
 class Ppc32EmbeddedEmulator(Ppc32RegisterContext, Ppc32EmbeddedModule, PpcAbstractEmulator):
-    def __init__(self, archmod=None, psize=8):
-        PpcAbstractEmulator.__init__(self, archmod=Ppc32EmbeddedModule(), psize=psize)
+    def __init__(self, archmod=None, endian=ENDIAN_MSB, psize=8):
+        PpcAbstractEmulator.__init__(self, archmod=Ppc32EmbeddedModule(), endian=endian, psize=psize)
         Ppc32RegisterContext.__init__(self)
         Ppc32EmbeddedModule.__init__(self)
 
