@@ -70,18 +70,13 @@ class VQVivFuncgraphCanvas(vq_memory.VivCanvasBase):
 
     def renderMemory(self, va, size, rend=None):
         # For the funcgraph canvas, this will be called once per code block
-        print("renderMemory == for funcgraph")
-        selector = '#codeblock_%.8x' % va
-        js = '''console.log('renderMemoryFuncgraph');
-        var node = document.querySelector("%s");
+        selector = 'codeblock_%.8x' % va
+        js = ''' var node = document.querySelector("#%s");
         if (node == null) {
-            console.log('adding codeblock div');
             canv = document.querySelector("#memcanvas");
             canv.innerHTML += '<div class="codeblock" id="%s"></div>'
         }
-        console.log('end - RenderMemory);
         ''' % (selector, selector)
-        print(js)
         self.page().runJavaScript(js)
         eatevents()
 
@@ -90,7 +85,6 @@ class VQVivFuncgraphCanvas(vq_memory.VivCanvasBase):
         ret = e_memcanvas.MemoryCanvas.renderMemory(self, va, size, rend=rend)
 
         self._canv_rendtagid = '#memcanvas'
-        print("renderMemory == for funcgraph ending")
 
         return ret
 
@@ -419,6 +413,7 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
         self.graph = graph
         page = self.mem_canvas.page()
 
+        print('rendering all that memory')
         # Go through each of the nodes and render them so we know sizes
         for node in self.graph.getNodes():
             #cbva,cbsize = self.graph.getCodeBlockBounds(node)
