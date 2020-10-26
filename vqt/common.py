@@ -1,20 +1,13 @@
-import sys
 import logging
-import traceback
 
 # Some common GUI helpers
-try:
-    from PyQt5 import QtCore
-    from PyQt5.QtWidgets import QTreeView
-except:
-    from PyQt4 import QtCore
-    from PyQt4.QtGui import QTreeView
+from PyQt5 import QtCore
+from PyQt5.QtWidgets import QTreeView
 
 logger = logging.getLogger(__name__)
-#logger.setLevel(logging.DEBUG)
+
 if not len(logger.handlers):
     logger.addHandler(logging.StreamHandler())
-
 
 
 class ACT:
@@ -57,7 +50,7 @@ class VqtModel(QtCore.QAbstractItemModel):
         return len(self.rows)
 
     def data(self, index, role):
-        if role == 0: 
+        if role == 0:
             row = index.row()
             col = index.column()
             return self.rows[row][col]
@@ -69,12 +62,8 @@ class VqtModel(QtCore.QAbstractItemModel):
         return len(self.columns)
 
     def headerData(self, column, orientation, role):
-
-        if ( orientation == QtCore.Qt.Horizontal and
-             role == QtCore.Qt.DisplayRole):
-
+        if (orientation == QtCore.Qt.Horizontal and role == QtCore.Qt.DisplayRole):
             return self.columns[column]
-
         return None
 
     def flags(self, index):

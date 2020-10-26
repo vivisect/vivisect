@@ -77,7 +77,7 @@ class VivCanvasBase(vq_hotkey.HotKeyMixin, e_mem_canvas.VQMemoryCanvas):
         for va, color in cmap.items():
             inner += '.envi-va-0x%.8x { color: #000000; background-color: %s }\n' % (va, color)
 
-        js = 'node = document.querySelector("#cmapstyle"); node.innerHTML = %s;' % inner
+        js = 'console.log("applyColorMap"); var node = document.querySelector("#cmapstyle"); node.innerHTML = %s;console.log("applyColorMap-end");' % inner
         page.runJavaScript(js)
 
     @vq_hotkey.hotkey('viv:nav:nextva')
@@ -317,7 +317,7 @@ class VQVivMemoryCanvas(VivCanvasBase):
 
     def _clearColorMap(self):
         page = self.page()
-        page.runJavaScript('node = document.querySelector("#cmapstyle"); node.innerHTML = "";')
+        page.runJavaScript('console.log("clearColorMap"); var node = document.querySelector("#cmapstyle"); node.innerHTML = "";console.log("clearColorMap-end");')
 
     def _navExpression(self, expr):
         if self._canv_navcallback:

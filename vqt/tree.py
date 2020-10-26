@@ -88,7 +88,7 @@ class VQTreeModel(QtCore.QAbstractItemModel):
 
     def sort(self, colnum, order=0):
         self.layoutAboutToBeChanged.emit()
-        self.rootnode.children.sort(key=lambda k: k[colnum], reverse=bool(order))
+        self.rootnode.children.sort(key=lambda k: k.rowdata[colnum], reverse=bool(order))
         self.layoutChanged.emit()
 
     def flags(self, index):

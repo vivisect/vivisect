@@ -1,4 +1,5 @@
 import html
+import urllib
 import binascii
 
 from PyQt5 import QtCore, QtGui, QtWebEngine, QtWebEngineWidgets
@@ -21,7 +22,14 @@ from vqt.common import *
 
 class LoggerPage(QWebEnginePage):
     def javaScriptConsoleMessage(self, level, msg, line, source):
-        print('[%s]: %s line %d: %s' % (level, source, line, msg))
+        import traceback
+        print('------------------------------------------------------------------')
+        print(f'console message = {msg}')
+        #for l in traceback.format_stack():
+        #    print(l.strip())
+        #print(urllib.parse.unquote(source))
+        print('------------------------------------------------------------------')
+        #print('[%s]: line %d: %s' % (level, line, msg))
 
 
 class VQMemoryCanvas(e_memcanvas.MemoryCanvas, QWebEngineView):
@@ -90,7 +98,7 @@ class VQMemoryCanvas(e_memcanvas.MemoryCanvas, QWebEngineView):
         vq_main.eatevents()  # Let all render events go first
         page = self.page()
         selector = 'viv:0x%.8x' % va
-        page.runJavaScript(f'node = document.querySelector({selector}); node.scrollIntoView()')
+        page.runJavaScript(f'node = document.querySelector("{selector}"); node.scrollIntoView()')
 
     @idlethread
     def _selectVa(self, va):
@@ -116,17 +124,19 @@ class VQMemoryCanvas(e_memcanvas.MemoryCanvas, QWebEngineView):
 
         page = self.page()
         selector = 'a#a_%.8x' % valist[0][0]
-        page.runJavaScript(f'''node = document.querySelector({selector});
+        page.runJavaScript(f'''
+        node = document.querySelector("{selector}");
         node.outerHTML = '<update id="updatetmp"></update>' + node.outerHTML;
         ''')
 
         for va, size in valist:
             selector = 'a#a_%.8x' % va
-            page.runJavaScript(f'document.querySelector({selector}).remove()')
+            page.runJavaScript(f'document.querySelector("{selector}").remove()')
 
     def _endUpdateVas(self):
         page = self.page()
-        page.runJavaScript('''node = document.querySelector('update#updatetmp');
+        page.runJavaScript(f'''
+        node = document.querySelector('update#updatetmp');
         node.outerHTML = {self._canv_cache} + node.outerHTML;
         ''')
         self._canv_cache = None
@@ -137,8 +147,9 @@ class VQMemoryCanvas(e_memcanvas.MemoryCanvas, QWebEngineView):
 
     def _endRenderPrepend(self):
         page = self.page()
-        page.runJavaScript(f'''node = document.querySelector({self._canv_rendtagid});
-        node.innerHTML = self._canv_cache + node.innerHTML
+        page.runJavaScript(f'''
+        node = document.querySelector("{self._canv_rendtagid}");
+        node.innerHTML = "{self._canv_cache}" + node.innerHTML
         ''')
 
         self._canv_cache = None
@@ -159,7 +170,7 @@ class VQMemoryCanvas(e_memcanvas.MemoryCanvas, QWebEngineView):
         qt tags, they are a tuple of html text (<opentag>, <closetag>)
         '''
         clsname = 'envi-%s' % typename
-        namehex = binascii.hexlify(name.lower())
+        namehex = binascii.hexlify(name.lower()).decode('utf-8')
         subclsname = 'envi-%s-%s' % (typename, namehex)
         return ('<span class="%s %s" envitag="%s" envival="%s" onclick="nameclick(this)">' % (clsname,subclsname,typename,namehex), '</span>')
 
@@ -183,6 +194,7 @@ class VQMemoryCanvas(e_memcanvas.MemoryCanvas, QWebEngineView):
         page = self.page()
         js = f'document.querySelector("{self._canv_rendtagid}").innerHTML += "{text}";'
         page.runJavaScript(js)
+        eatevents()
 
     def _add_raw(self, text):
         # If we are in a call to renderMemory, cache til the end.
@@ -204,7 +216,12 @@ class VQMemoryCanvas(e_memcanvas.MemoryCanvas, QWebEngineView):
     @idlethreadsync
     def clearCanvas(self):
         page = self.page()
-        page.runJavaScript('document.querySelector("{self._canv_rendtagid}").innerHTML = "";')
+        page.runJavaScript(f'''var node = document.querySelector("{self._canv_rendtagid}");
+        if (node != null) {{
+            node.innerHTML = "";
+        }}
+        ''')
+        eatevents()
 
     def contextMenuEvent(self, event):
 
@@ -225,7 +242,7 @@ class VQMemoryCanvas(e_memcanvas.MemoryCanvas, QWebEngineView):
         if self.fname:
             with open(self.fname, 'w') as f:
                 f.write(data)
-            self.fname = Nonee
+            self.fname = None
 
     def _menuSaveToHtml(self):
         fname = getSaveFileName(self, 'Save As HTML...')

@@ -65,7 +65,7 @@ class EnviNavMixin:
     def dropEvent(self, e):
         mdata = e.mimeData()
         if mdata.hasFormat('envi/expression'):
-            expr = str(mdata.data('envi/expression').data())
+            expr = mdata.data('envi/expression').data().decode('utf-8')
             e.setDropAction(QtCore.Qt.CopyAction)
             e.accept()
             self.enviNavGoto(expr)
@@ -84,7 +84,7 @@ class EnviNavModel(vq_tree.VQTreeModel):
         pnode = idx[0].internalPointer()
         expr = pnode.rowdata[self.navcol]
         mdata = QtCore.QMimeData()
-        mdata.setData('envi/expression',str(expr))
+        mdata.setData('envi/expression', expr.encode('utf-8'))
         return mdata
 
 class VQMemoryWindow(vq_hotkey.HotKeyMixin, EnviNavMixin, vq_save.SaveableWidget, QWidget):

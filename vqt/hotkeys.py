@@ -2,15 +2,13 @@ import sys
 import logging
 import traceback
 
+from PyQt5.QtWidgets import *
+
 logger = logging.getLogger(__name__)
 # logger.setLevel(logging.INFO)
 if not len(logger.handlers):
     logger.addHandler(logging.StreamHandler())
 
-try:
-    from PyQt5.QtWidgets import *
-except:
-    from PyQt4.QtGui import *
 
 QMOD_META = 0x08000000
 QMOD_CTRL = 0x04000000

@@ -1,13 +1,9 @@
 import os
-try:
-    from PyQt5 import QtCore
-    from PyQt5.QtWidgets import *
-except:
-    from PyQt4 import QtCore
-    from PyQt4.QtGui import *
+
+from PyQt5 import QtCore
+from PyQt5.QtWidgets import *
 
 import envi.cli as e_cli
-import envi.qt.memory as e_q_memory
 import envi.qt.memcanvas as e_q_memcanvas
 
 #from envi.threads import firethread
@@ -128,4 +124,3 @@ class VQCli(QWidget):
         # A way to emit the "quit" signal from threads other than the
         # qt main thread.
         self.sigCliQuit.emit()
-

@@ -615,8 +615,6 @@ class i386Opcode(envi.Opcode):
                     # for our caller...
                     dest = emu.readMemValue(base, oper0.tsize)
                     while emu.isValidPointer(dest):
-                        if dest is None:
-                            breakpoint()
                         ret.append((dest, envi.BR_COND))
                         base += oper0.tsize
                         dest = emu.readMemValue(base, oper0.tsize)

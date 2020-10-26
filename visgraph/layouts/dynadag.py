@@ -496,7 +496,7 @@ class DynadagLayout(vg_layout.GraphLayout):
                       (x2, y2 - h_vpad),
                       (x2, y2),
                     ]
-                
+
             elif einfo.get('loopbot'):
 
                 x1, y1 = vg_layout.exit_pos(pinfo)

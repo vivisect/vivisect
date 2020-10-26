@@ -111,6 +111,7 @@ function vaclick(elem) {
 
 function selectva(vastr) {
     var vaselect = ".envi-va-" + vastr;
+    var vnav;
     $(".envi-va-selected").removeClass("envi-va-selected");
     $(vaselect).addClass("envi-va-selected");
     new QWebChannel(qt.webChannelTransport, function (channel) {
@@ -120,6 +121,7 @@ function selectva(vastr) {
 }
 
 function vagoto(elem) {
+    var vnav;
     new QWebChannel(qt.webChannelTransport, function (channel) {
         vnav = channel.objects.vnav;
     });

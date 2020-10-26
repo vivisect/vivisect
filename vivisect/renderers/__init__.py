@@ -143,7 +143,7 @@ class WorkspaceRenderer(e_canvas.MemoryRenderer):
         if ltype == LOC_OP:
             mcanv.addText(linepre, tag=vatag)
             opbytes = mcanv.mem.readMemory(lva, lsize)
-            mcanv.addText(binascii.hexlify(opbytes[:8]).ljust(17))
+            mcanv.addText(binascii.hexlify(opbytes[:8]).ljust(17).decode('utf-8'))
 
             # extra is the opcode object
             try:
@@ -206,8 +206,8 @@ class WorkspaceRenderer(e_canvas.MemoryRenderer):
 
         elif ltype == LOC_POINTER:
 
-            fromva, tova, rtype, rflags = self.vw.getXrefsFrom(lva)[0] #FIXME hardcoded one
-        
+            fromva, tova, rtype, rflags = self.vw.getXrefsFrom(lva)[0]  # FIXME hardcoded one
+
             pstr = self.vw.arch.pointerString(tova)
 
             mcanv.addText(linepre, tag=vatag)
@@ -234,7 +234,7 @@ class WorkspaceRenderer(e_canvas.MemoryRenderer):
             mcanv.addText(linepre, vatag)
             offset,bytes = self.vw.getByteDef(lva)
             b = bytes[offset]
-            mcanv.addNameText(binascii.hexlify(b), typename="undefined")
+            mcanv.addNameText(binascii.hexlify(b).decode('utf-8'), typename="undefined")
             if b in string.printable:
                 mcanv.addText('    %s' % repr(b), tag=cmnttag)
             if cmnt is not None:
