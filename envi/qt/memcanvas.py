@@ -1,8 +1,8 @@
 import html
-import urllib
 import binascii
 
 from PyQt5 import QtCore, QtGui, QtWebEngine, QtWebEngineWidgets
+from PyQt5.QtCore import QObject
 from PyQt5.QtWebChannel import QWebChannel
 from PyQt5.QtWebEngineWidgets import *
 from PyQt5.QtWidgets import *
@@ -32,6 +32,18 @@ class LoggerPage(QWebEnginePage):
         #print('[%s]: line %d: %s' % (level, line, msg))
 
 
+class CallHandler(QObject):
+    @QtCore.pyqtSlot(str, result=int)
+    def _jsGotoExpr(self, expr):
+        # The routine used by the javascript code to trigger nav events
+        print(f"hit _jsGotoExpr with {expr}")
+        return 0
+
+    @QtCore.pyqtSlot(str, result=int)
+    def _jsSetCurVa(self, vastr):
+        print(f"hit _jsSetCurVa with {vastr}")
+        return 0
+
 class VQMemoryCanvas(e_memcanvas.MemoryCanvas, QWebEngineView):
 
     #syncSignal = QtCore.pyqtSignal()
@@ -47,12 +59,15 @@ class VQMemoryCanvas(e_memcanvas.MemoryCanvas, QWebEngineView):
         self.setPage(self._log_page)
         self.fname = None
 
+        channel = QWebChannel()
+        self.handler = CallHandler()
+        self.page().setWebChannel(channel)
+        channel.registerObject('vnav', self.handler)
+        # channel.registerObject('vnav', self)
+
         htmlpage = e_q_html.template.replace('{{{jquery}}}', e_q_jquery.jquery_2_1_0)
         page = self.page()
         page.setHtml(htmlpage)
-        channel = QWebChannel()
-        channel.registerObject('vnav', self)
-        page.setWebChannel(channel)
         loop = QtCore.QEventLoop()
         page.loadFinished.connect(loop.quit)
         loop.exec()
@@ -160,7 +175,7 @@ class VQMemoryCanvas(e_memcanvas.MemoryCanvas, QWebEngineView):
 
     def _endRenderAppend(self):
         page = self.page()
-        js = f'document.querySelector("{self._canv_rendtagid}").innerHTML += "{self._canv_cache}";'
+        js = f'document.querySelector("{self._canv_rendtagid}").innerHTML += `{self._canv_cache}`;'
         page.runJavaScript(js)
         self._canv_cache = None
 
@@ -181,18 +196,20 @@ class VQMemoryCanvas(e_memcanvas.MemoryCanvas, QWebEngineView):
     @QtCore.pyqtSlot(str)
     def _jsGotoExpr(self, expr):
         # The routine used by the javascript code to trigger nav events
+        print("hit _jsGotoExpr")
         if self._canv_navcallback:
             self._canv_navcallback(expr)
 
     @QtCore.pyqtSlot(str)
     def _jsSetCurVa(self, vastr):
+        print("hit _jsSetCurVa")
         self._canv_curva = int(str(vastr), 0)
 
     # NOTE: doing append / scroll seperately allows render to catch up
     @idlethread
     def _appendInside(self, text):
         page = self.page()
-        js = f'document.querySelector("{self._canv_rendtagid}").innerHTML += "{text}";'
+        js = f'document.querySelector("{self._canv_rendtagid}").innerHTML += `{text}`;'
         page.runJavaScript(js)
         eatevents()
 
@@ -207,11 +224,11 @@ class VQMemoryCanvas(e_memcanvas.MemoryCanvas, QWebEngineView):
     def addText(self, text, tag=None):
         text = html.escape(text)
         text = text.replace('\n', '<br>')
-
         if tag is not None:
             otag, ctag = tag
             text = otag + text + ctag
         self._add_raw(text)
+        eatevents()
 
     @idlethreadsync
     def clearCanvas(self):

@@ -55,7 +55,7 @@ class VQVivFuncgraphCanvas(vq_memory.VivCanvasBase):
                 dy = -(y - self.lastpos[1])
                 #dx = x - self.lastpos[0]
                 #dy = y - self.lastpos[1]
-                self.page().runJavaScript(f'console.log("mouseMoveEvent"); window.scrollBy({dx}, {dy}); console.log("endmouse move);')
+                self.page().runJavaScript(f'window.scrollBy({dx}, {dy});')
                 eatevents()
 
                 self.curs.setPos(*self.basepos)
@@ -118,7 +118,7 @@ class VQVivFuncgraphCanvas(vq_memory.VivCanvasBase):
         '''
         Sets the view reticle to an absolute scroll position
         '''
-        self.page().runJavaScript(f'console.log("setScrollPosition"); window.scroll({x}, {y})')
+        self.page().runJavaScript(f'window.scroll({x}, {y})')
         eatevents()
 
 
@@ -206,13 +206,23 @@ function drawSvgLine(svgid, lineid, points) {
 }
 '''
 
-def compat_getFrameDimensions(page, cbname):
-    page.runJavaScript('console.log("getFrameDimensions"); document.getElementById("%s").offsetWidth;' % cbname, print)
-    eatevents()
-    #girth = int(frame.evaluateJavaScript('document.getElementById("%s").offsetWidth;' % cbname))
-    #height = frame.evaluateJavaScript('document.getElementById("%s").offsetHeight;' % cbname)
-    #return girth, height
-    return 10, 10
+def getFrameDimensions(page, cbname):
+    girth = None
+    height = None
+    def getGirth(data):
+        nonlocal girth
+        girth = int(data)
+
+    def getHeight(data):
+        nonlocal height
+        height = int(data)
+
+    page.runJavaScript('document.getElementById("%s").offsetWidth;' % cbname, getGirth)
+    page.runJavaScript('document.getElementById("%s").offsetHeight;' % cbname, getHeight)
+    while girth is None or height is None:
+        eatevents()
+
+    return girth, height + 7
 
 
 class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidget, vq_save.SaveableWidget, viv_base.VivEventCore):
@@ -413,30 +423,26 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
         self.graph = graph
         page = self.mem_canvas.page()
 
-        print('rendering all that memory')
         # Go through each of the nodes and render them so we know sizes
         for node in self.graph.getNodes():
             #cbva,cbsize = self.graph.getCodeBlockBounds(node)
             cbva = node[1].get('cbva')
             cbsize = node[1].get('cbsize')
             self.mem_canvas.renderMemory(cbva, cbsize)
+            eatevents()
 
         # Let the renders complete...
         eatevents()
-        print('done eating events-------------------------------')
         page.runJavaScript(funcgraph_js)
-        print('starting to eat the funcgraph stuff-------------------------------')
         eatevents()
-        print('done eating the funcgraph stuff-------------------------------')
         for nid, nprops in self.graph.getNodes():
             cbva = nprops.get('cbva')
 
             cbname = 'codeblock_%.8x' % cbva
             # TODO
-            girth, height = compat_getFrameDimensions(page, cbname)
+            girth, height = getFrameDimensions(page, cbname)
             self.graph.setNodeProp((nid,nprops), "size", (girth, height))
 
-        print('try 2 -- done eating the funcgraph stuff-------------------------------')
         self.dylayout = vg_dynadag.DynadagLayout(self.graph)
         self.dylayout._barry_count = 20
         self.dylayout.layoutGraph()
@@ -444,7 +450,7 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
         width, height = self.dylayout.getLayoutSize()
 
         svgid = 'funcgraph_%.8x' % fva
-        page.runJavaScript('console.log("svgwoot"); svgwoot("vbody", "%s", %d, %d);' % (svgid, width+18, height))
+        page.runJavaScript('svgwoot("vbody", "%s", %d, %d);' % (svgid, width+18, height))
         eatevents()
         for nid,nprops in self.graph.getNodes():
 
@@ -457,9 +463,9 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
             foid = 'fo_cb_%.8x' % cbva
             cbid = 'codeblock_%.8x' % cbva
 
-            page.runJavaScript('console.log("addSvgForeignObject"); addSvgForeignObject("%s", "%s", %d, %d); console.log("endaddSvgForeignOBject");' % (svgid, foid, girth+16, height))
-            page.runJavaScript('console.log("addSvgForeignHtml"); addSvgForeignHtmlElement("%s", "%s"); console.log("endaddForeignHtml");' % (foid, cbid))
-            page.runJavaScript('console.log("moveSvgElement"); moveSvgElement("%s", %d, %d);' % (foid, xpos, ypos))
+            page.runJavaScript('addSvgForeignObject("%s", "%s", %d, %d);' % (svgid, foid, girth+16, height))
+            page.runJavaScript('addSvgForeignHtmlElement("%s", "%s");' % (foid, cbid))
+            page.runJavaScript('moveSvgElement("%s", %d, %d);' % (foid, xpos, ypos))
             eatevents()
 
         # Draw in some edge lines!
@@ -467,7 +473,7 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
             points = einfo.get('edge_points')
             pointstr = ' '.join(['%d,%d' % (x,y) for (x,y) in points ])
 
-            page.runJavaScript('console.log("drawSvgLing"); drawSvgLine("%s", "edge_%.8s", "%s");' % (svgid, eid, pointstr))
+            page.runJavaScript('drawSvgLine("%s", "edge_%.8s", "%s");' % (svgid, eid, pointstr))
 
         self.updateWindowTitle()
 
@@ -506,7 +512,7 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
 
             page = self.mem_canvas.page()
             if fva == self.fva:
-                page.runJavaScript('console.log("_renderMemory-scroll into view"); document.querySelector("viv:0x%.8x").scrollIntoView()' % addr)
+                page.runJavaScript('document.querySelector("viv:0x%.8x").scrollIntoView()' % addr)
                 vqtevent('viv:colormap', {addr: 'orange'})
                 self.updateWindowTitle()
                 return
@@ -514,14 +520,16 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
             # if we're rendering a different function, get to work!
             self.clearText()
             self.renderFunctionGraph(fva)
-            page.runJavaScript('console.log("viv scroll into view 1"); document.querySelector("viv:0x%.8x").scrollIntoView()' % addr)
+            page.runJavaScript('document.querySelector("viv:0x%.8x").scrollIntoView()' % addr)
             self.updateWindowTitle()
-            page.runJavaScript('console.log("viv scroll into view 2"); document.querySelector("viv:0x%.8x").scrollIntoView()' % addr)
+            page.runJavaScript('document.querySelector("viv:0x%.8x").scrollIntoView()' % addr)
             vqtevent('viv:colormap', {addr: 'orange'})
             self.updateWindowTitle()
 
             self._renderDoneSignal.emit()
         except Exception as e:
+            import traceback
+            print(traceback.format_stack())
             self.vw.vprint(f'_renderMemory hit exception {e}')
 
     def loadDefaultRenderers(self):

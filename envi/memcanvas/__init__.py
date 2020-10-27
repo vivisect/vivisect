@@ -136,6 +136,8 @@ class MemoryCanvas(object):
     def addNameText(self, text, name=None, typename='name'):
         if name is None:
             name = bytes([ord(x) for x in text])
+        else:
+            name = bytes([ord(x) for x in name])
         tag = self.getNameTag(name, typename=typename)
         self.addText(text, tag=tag)
 

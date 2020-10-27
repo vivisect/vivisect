@@ -3,16 +3,9 @@ The envi.qt.html module contains the HTML template and javascript
 code used by the renderers (which are based on QtWebEngine)
 '''
 
-'''
-<head>
-<script src="qrc:///qtwebchannel/qwebchannel.js"></script>
-</head>
-'''
-
 template = '''
 <!DOCTYPE html>
 <html id="mainhtml">
-
 <style type="text/css">
 
 body {
@@ -87,6 +80,9 @@ div.codeblock:hover {
 <style type="text/css" id="cmapstyle">
 </style>
 
+<head>
+<script src="qrc:///qtwebchannel/qwebchannel.js"></script>
+</head>
 <script language="javascript">
 {{{jquery}}}
 
@@ -103,6 +99,12 @@ function nameclick(elem) {
 }
 
 var curva = null;
+
+var vnav = null;
+new QWebChannel(qt.webChannelTransport, function (channel) {
+    vnav = channel.objects.vnav;
+});
+
 function vaclick(elem) {
     var elem = $(elem);
     var vastr = elem.attr("va");
@@ -111,21 +113,21 @@ function vaclick(elem) {
 
 function selectva(vastr) {
     var vaselect = ".envi-va-" + vastr;
-    var vnav;
     $(".envi-va-selected").removeClass("envi-va-selected");
     $(vaselect).addClass("envi-va-selected");
-    new QWebChannel(qt.webChannelTransport, function (channel) {
-        vnav = channel.objects.vnav;
+    console.log("selectva outer");
+    vnav._jsSetCurVa(vastr, function(pyval) {
+        console.log(pyval);
     });
-    vnav._jsSetCurVa(vastr);
+    console.log("selectva outer end");
 }
 
 function vagoto(elem) {
-    var vnav;
-    new QWebChannel(qt.webChannelTransport, function (channel) {
-        vnav = channel.objects.vnav;
+    console.log('vagoto outer');
+    vnav._jsGotoExpr($(elem).attr('va'), function(pyval) {
+        console.log(pyval);
     });
-    vnav._jsGotoExpr($(elem).attr('va'));
+    console.log('vagoto outer end');
 }
 
 function scrolltoid(name) {
