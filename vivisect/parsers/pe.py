@@ -351,7 +351,7 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
     for rva, lname, iname in pe.getDelayImports():
         eva = rva + baseaddr
         if vw.probeMemory(eva, 4, e_mem.MM_READ):
-            vw.makeImport(eva, 'delayed_' + lname, iname)
+            vw.makeImport(eva, 'delayed.' + lname, iname)
             vw.addEntryPoint(vw.readMemoryPtr(eva))
 
     # Tell vivisect about ntdll functions that don't exit...
