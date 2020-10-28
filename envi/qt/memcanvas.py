@@ -33,16 +33,15 @@ class LoggerPage(QWebEnginePage):
 
 
 class CallHandler(QObject):
-    @QtCore.pyqtSlot(str, result=int)
+
+    @QtCore.pyqtSlot(str)
     def _jsGotoExpr(self, expr):
         # The routine used by the javascript code to trigger nav events
         print(f"hit _jsGotoExpr with {expr}")
-        return 0
 
-    @QtCore.pyqtSlot(str, result=int)
+    @QtCore.pyqtSlot(str)
     def _jsSetCurVa(self, vastr):
         print(f"hit _jsSetCurVa with {vastr}")
-        return 0
 
 class VQMemoryCanvas(e_memcanvas.MemoryCanvas, QWebEngineView):
 
@@ -63,6 +62,7 @@ class VQMemoryCanvas(e_memcanvas.MemoryCanvas, QWebEngineView):
         self.handler = CallHandler()
         self.page().setWebChannel(channel)
         channel.registerObject('vnav', self.handler)
+        # self.handler.valueChanged.connect(self.handler._jsSetCurVa)
         # channel.registerObject('vnav', self)
 
         htmlpage = e_q_html.template.replace('{{{jquery}}}', e_q_jquery.jquery_2_1_0)
@@ -113,7 +113,7 @@ class VQMemoryCanvas(e_memcanvas.MemoryCanvas, QWebEngineView):
         vq_main.eatevents()  # Let all render events go first
         page = self.page()
         selector = 'viv:0x%.8x' % va
-        page.runJavaScript(f'node = document.querySelector("{selector}"); node.scrollIntoView()')
+        page.runJavaScript(f'var node = document.querySelector("{selector}"); node.scrollIntoView()')
 
     @idlethread
     def _selectVa(self, va):
@@ -152,7 +152,7 @@ class VQMemoryCanvas(e_memcanvas.MemoryCanvas, QWebEngineView):
         page = self.page()
         page.runJavaScript(f'''
         node = document.querySelector('update#updatetmp');
-        node.outerHTML = {self._canv_cache} + node.outerHTML;
+        node.outerHTML = `{self._canv_cache}` + node.outerHTML;
         ''')
         self._canv_cache = None
 
@@ -164,7 +164,7 @@ class VQMemoryCanvas(e_memcanvas.MemoryCanvas, QWebEngineView):
         page = self.page()
         page.runJavaScript(f'''
         node = document.querySelector("{self._canv_rendtagid}");
-        node.innerHTML = "{self._canv_cache}" + node.innerHTML
+        node.innerHTML = `{self._canv_cache}` + node.innerHTML
         ''')
 
         self._canv_cache = None
@@ -209,7 +209,9 @@ class VQMemoryCanvas(e_memcanvas.MemoryCanvas, QWebEngineView):
     @idlethread
     def _appendInside(self, text):
         page = self.page()
+        # DEV: nope
         js = f'document.querySelector("{self._canv_rendtagid}").innerHTML += `{text}`;'
+        print(js)
         page.runJavaScript(js)
         eatevents()
 
@@ -223,7 +225,7 @@ class VQMemoryCanvas(e_memcanvas.MemoryCanvas, QWebEngineView):
 
     def addText(self, text, tag=None):
         text = html.escape(text)
-        text = text.replace('\n', '<br>')
+        #text = text.replace('\n', '<br>')
         if tag is not None:
             otag, ctag = tag
             text = otag + text + ctag
@@ -233,7 +235,9 @@ class VQMemoryCanvas(e_memcanvas.MemoryCanvas, QWebEngineView):
     @idlethreadsync
     def clearCanvas(self):
         page = self.page()
-        page.runJavaScript(f'''var node = document.querySelector("{self._canv_rendtagid}");
+        # DEV: nope
+        page.runJavaScript(f'''
+        var node = document.querySelector("{self._canv_rendtagid}");
         if (node != null) {{
             node.innerHTML = "";
         }}
