@@ -71,7 +71,7 @@ class VQVivFuncgraphCanvas(vq_memory.VivCanvasBase):
     def renderMemory(self, va, size, rend=None):
         # For the funcgraph canvas, this will be called once per code block
         selector = 'codeblock_%.8x' % va
-        js = ''' var node = document.querySelector("#%s");
+        js = '''var node = document.querySelector("#%s");
         if (node == null) {
             canv = document.querySelector("#memcanvas");
             canv.innerHTML += '<div class="codeblock" id="%s"></div>'
@@ -512,7 +512,7 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
 
             page = self.mem_canvas.page()
             if fva == self.fva:
-                page.runJavaScript('document.querySelector("viv:0x%.8x").scrollIntoView()' % addr)
+                page.runJavaScript('document.getElementById("viv:0x%.8x").scrollIntoView()' % addr)
                 vqtevent('viv:colormap', {addr: 'orange'})
                 self.updateWindowTitle()
                 return
@@ -520,9 +520,21 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
             # if we're rendering a different function, get to work!
             self.clearText()
             self.renderFunctionGraph(fva)
-            page.runJavaScript('document.querySelector("viv:0x%.8x").scrollIntoView()' % addr)
+            eatevents()
+            page.runJavaScript('''
+            var node = document.getElementById("viv:0x%.8x");
+            if (node != null) {
+                node.scrollIntoView();
+            }
+            ''' % addr)
             self.updateWindowTitle()
-            page.runJavaScript('document.querySelector("viv:0x%.8x").scrollIntoView()' % addr)
+            eatevents()
+            page.runJavaScript('''
+            var node = document.getElementById("viv:0x%.8x");
+            if (node != null) {
+                node.scrollIntoView();
+            }
+            ''' % addr)
             vqtevent('viv:colormap', {addr: 'orange'})
             self.updateWindowTitle()
 

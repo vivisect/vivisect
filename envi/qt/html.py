@@ -116,9 +116,7 @@ function selectva(vastr) {
     $(".envi-va-selected").removeClass("envi-va-selected");
     $(vaselect).addClass("envi-va-selected");
     console.log("selectva outer");
-    vnav._jsSetCurVa(vastr, function(pyval) {
-        console.log(pyval);
-    });
+    vnav._jsSetCurVa(vastr);
     console.log("selectva outer end");
 }
 
