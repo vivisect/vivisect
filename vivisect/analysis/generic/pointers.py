@@ -42,6 +42,9 @@ def analyze(vw):
             continue
 
         if vw.getLocation(tva) is not None:
+            # event if it's a pointer, we may not have made a name for it
+            if vw.getName(lva) is None:
+                done.append((lva, tva))
             continue
 
         logger.debug('following previously discovered pointer 0x%x -> 0x%x', lva, tva)
@@ -57,7 +60,6 @@ def analyze(vw):
         if vw.isDeadData(pval):
             continue
         try:
-            # this particular message is *extremely* noisey
             logger.debug('pointer(4): 0x%x -> 0x%x', addr, pval)
             vw.makePointer(addr, follow=True)
             done.append((addr, pval))

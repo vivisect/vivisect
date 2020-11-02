@@ -7,6 +7,7 @@ import vivisect.tests.helpers as helpers
 import vivisect.analysis.elf as vae
 import vivisect.analysis.elf.elfplt as vaeep
 import vivisect.analysis.generic.pointers as vagp
+import vivisect.analysis.generic.pointertables as vagpt
 import vivisect.analysis.generic.relocations as vagr
 
 from vivisect.tests import linux_amd64_ls_data
@@ -57,6 +58,7 @@ class ELFTests(unittest.TestCase):
             vagr.analyze(vw)
             vaeep.analyze(vw)
             vagp.analyze(vw)
+            vagpt.analyze(vw)
 
             cls.tests.append((name, test_data, fn, e, vw))
 
