@@ -4,7 +4,6 @@ os:
 env:
     - VIVTESTFILES=/tmp/vivtestfiles
 
-sudo: required
 dist: bionic
 
 language: python
@@ -12,13 +11,8 @@ language: python
 python:
     - "3.7"
 
-virtualenv:
-  system_site_packages: true
-
 install:
-    - "travis_retry sudo apt-get update"
     - git clone https://github.com/vivisect/vivtestfiles.git /tmp/vivtestfiles
-    - "travis_retry sudo apt-get -qq install libfreetype6-dev liblcms2-dev libqt5gui5 python-qt4 python-pyqt5 python-pyqt5.qtwebkit ghostscript libffi-dev libjpeg-turbo-progs cmake imagemagick"
     - pip install -r requirements.txt
 
 script: python -m unittest discover

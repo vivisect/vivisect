@@ -133,7 +133,7 @@ class VQMemoryWindow(vq_hotkey.HotKeyMixin, EnviNavMixin, vq_save.SaveableWidget
         self.addr_entry.returnPressed.connect(self._renderMemory)
         self.size_entry.returnPressed.connect(self._renderMemory)
 
-        self.rend_select.currentIndexChanged['str'].connect(self._renderMemory)
+        self.rend_select.currentIndexChanged['QString'].connect(self._renderMemory)
 
         hbox.addWidget(self.hist_button)
         hbox.addWidget(self.addr_entry)
