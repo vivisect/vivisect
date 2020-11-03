@@ -5703,7 +5703,7 @@ libc_data = {
         (0x23e9560, 'libc_2_27._sys_errlist'),
         (0x23e99a0, 'libc_2_27._sys_siglist'),
         (0x23e9bc0, 'libc_2_27.sys_sigabbrev'),
-        (0x23e9ec0, 'libc_2_27.ptr_ptr_str_version_023e9ec0'),
+        (0x23e9ec0, 'ptr_ptr_str_version_023e9ec0'),
         (0x23e9ef0, 'libc_2_27.ptr__libc_intl_domainname_023e9ef0'),
         (0x23e9f60, 'ptr_ptr_str_help_023e9f60'),
         (0x23e9f90, 'libc_2_27.ptr__libc_intl_domainname_023e9f90'),

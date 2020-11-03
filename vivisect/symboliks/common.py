@@ -574,8 +574,8 @@ class Mem(SymbolikBase):
 
         addrval = self.kids[0].solve(emu=emu, vals=vals)
         sizeval = self.kids[1].solve(emu=emu, vals=vals)
-        # FIXME higher entropy!
-        return hash(str(addrval)) & 0xffffffff
+
+        return varsolve(f'[{addrval}:{sizeval}]', 32)
 
     def getWidth(self):
         # FIXME should we do something about that?
@@ -763,12 +763,12 @@ class Const(SymbolikBase):
             return
 
         # if our const is a named pointer...
-        if vw.isValidPointer( self.value ):
-            name = str(vw.getSymByAddr( self.value ))
+        if vw.isValidPointer(self.value):
+            name = str(vw.getSymByAddr(self.value))
             canvas.addText('&')
             canvas.addVaText(name, va=self.value)
             return
-        canvas.addNameText( str(self) )
+        canvas.addNameText(str(self))
 
     def _solve(self, emu=None, vals=None):
         return self.value

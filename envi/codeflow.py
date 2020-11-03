@@ -160,7 +160,7 @@ class CodeFlowContext(object):
                 logger.warning('parseOpcode error at 0x%.8x (addCodeFlow(0x%x)): %s', va, startva, e)
                 continue
             except Exception as e:
-                logger.warning('parseOpcode error at 0x%.8x (addCodeFlow(0x%x)): %s', va, startva, e)
+                logger.warning('Codeflow exception at 0x%.8x (addCodeFlow(0x%x)): %s', va, startva, e)
                 continue
 
             branches = op.getBranches()

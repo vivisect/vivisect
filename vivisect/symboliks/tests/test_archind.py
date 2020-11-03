@@ -83,7 +83,7 @@ class TestArchind(unittest.TestCase):
             '((mem[0archindva:4] - ((1indreg + arg1) * (0indreg + arg0))) + 0x0000270f)',
             '((mem[0archindva:4] - ((arg0 + 0indreg) * (1indreg + 1indreg))) + 0x000022b8)',
             '((mem[0archindva:4] - ((arg0 + 0indreg) * (1indreg + 1indreg))) + 0archindva)',
-            '((mem[1archindva:4] - ((arg0 + 0indreg) * (1indreg + 1indreg))) + 0archindva)',
+            '((mem[0archindva:4] - ((arg0 + 0indreg) * (1indreg + 1indreg))) + 1archindva)',
         ]
 
         for i in range(len(post_eqs)):

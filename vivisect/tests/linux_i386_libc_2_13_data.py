@@ -5600,8 +5600,8 @@ libc_data = {
         (0x21578b8, 'libc_2_13.ptr__libc_intl_domainname_021578b8'),
         (0x21578d4, 'libc_2_13.ptr__libc_intl_domainname_021578d4'),
         (0x2157990, 'libc_2_13.h_errlist'),
-        (0x21578a0, 'libc_2_13.ptr_ptr_str_help_021578a0'),  # TODO
-        (0x21578bc, 'libc_2_13.ptr_ptr_str_version_21578bc'),  # TODO
+        (0x21578a0, 'ptr_ptr_str_help_021578a0'),
+        (0x21578bc, 'ptr_ptr_str_version_021578bc'),
         (0x2158488, 'libc_2_13.ptr__IO_default_finish_02158488'),
         (0x2158494, 'libc_2_13.ptr__IO_default_uflow_02158494'),
         (0x2158498, 'libc_2_13.ptr__IO_default_pbackfail_02158498'),
@@ -5919,7 +5919,7 @@ libc_data = {
         (0x21598e0, 'libc_2_13._IO_stdout_'),
         (0x2159940, 'libc_2_13._IO_stderr_'),
         (0x2159990, 'libc_2_13.__morecore'),
-        (0x2159994, 'libc_2_13.ptr_ptr_sub_021047a0_02159994'),  # TODO
+        (0x2159994, 'ptr_ptr_sub_021047a0_02159994'),
         (0x2159c60, 'libc_2_13.__abort_msg'),
         (0x215a3a0, 'libc_2_13.__malloc_initialize_hook'),
         (0x215a3a4, 'libc_2_13.__free_hook'),
