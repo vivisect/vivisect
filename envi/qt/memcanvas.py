@@ -211,7 +211,6 @@ class VQMemoryCanvas(e_memcanvas.MemoryCanvas, QWebEngineView):
         page = self.page()
         # DEV: nope
         js = f'document.querySelector("{self._canv_rendtagid}").innerHTML += `{text}`;'
-        print(js)
         page.runJavaScript(js)
         eatevents()
 

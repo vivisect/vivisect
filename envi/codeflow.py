@@ -224,7 +224,7 @@ class CodeFlowContext(object):
                             if self._cf_recurse:
                                 # descend into functions, but make sure we don't descend into
                                 # recursive functions
-                                if bva in self._cf_blocks[:-1]:
+                                if bva in self._cf_blocks:
                                     # the function that we want to make prodcedural
                                     # called us so we can't call to make it procedural
                                     # until its done

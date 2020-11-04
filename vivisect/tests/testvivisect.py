@@ -90,12 +90,12 @@ class VivisectTest(unittest.TestCase):
         self.assertTrue(len(vw.getLocations()) > 1000)
 
         # tuples are Name, Number of Locations, Size in bytes, Percentage of space
-        ans = {0: ('Undefined', 0, 517281, 49),
+        ans = {0: ('Undefined', 0, 517681, 49),
                1: ('Num/Int', 271, 1724, 0),
                2: ('String', 4053, 153409, 14),
                3: ('Unicode', 0, 0, 0),
                4: ('Pointer', 5376, 43008, 4),
-               5: ('Opcode', 79582, 323942, 30),
+               5: ('Opcode', 79489, 323542, 30),
                6: ('Structure', 496, 11544, 1),
                7: ('Clsid', 0, 0, 0),
                8: ('VFTable', 0, 0, 0),
