@@ -17,12 +17,12 @@ import envi.archs.i386 as e_i386
 regcalls = {
     (e_i386.REG_ECX,):               ('thiscall', 1),
     (e_i386.REG_EAX,):               ('bfastcall', 1),
-    (e_i386.REG_EAX,e_i386.REG_EDX): ('bfastcall', 2),
-    (e_i386.REG_ECX,e_i386.REG_EDX): ('msfastcall', 2),
+    (e_i386.REG_EAX, e_i386.REG_EDX): ('bfastcall', 2),
+    (e_i386.REG_ECX, e_i386.REG_EDX): ('msfastcall', 2),
     (e_i386.REG_EAX, e_i386.REG_ECX, e_i386.REG_EDX): ('bfastcall', 3),
 }
 
-# Arange the same data for a name lookup
+# Arrange the same data for a name lookup
 
 empty = collections.defaultdict(lambda x: ('int','arg%d' % x))
 argnames = {
@@ -93,7 +93,7 @@ def buildFunctionApi(vw, fva, emu, emumon, stkstart):
     # if we're callee cleanup, make sure we *actually* clean up our space
     # otherwise, revert us to caller cleanup
     if emumon.endstack:
-        stkoff = int((emumon.endstack - stkstart) / 4)
+        stkoff = (emumon.endstack - stkstart) >> 2
         if callconv in argnames:
             # do our stack args line up with what we cleaned up?
             if abs(stkoff) != stackargs:

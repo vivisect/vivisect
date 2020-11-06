@@ -1,16 +1,12 @@
 import string
 
+from PyQt5 import QtCore, QtGui
+from PyQt5.QtWidgets import *
+
 import envi.memory as e_mem
 import envi.memcanvas as e_canvas
 import envi.memcanvas.renderers as e_render
-from vqt.main import getOpenFileName, getSaveFileName
-
-try:
-    from PyQt5 import QtCore, QtGui
-    from PyQt5.QtWidgets import *
-except:
-    from PyQt4 import QtCore, QtGui
-    from PyQt4.QtGui import *
+from vqt.main import getSaveFileName
 
 class MemSearchDialog(QDialog):
     '''
@@ -19,8 +15,7 @@ class MemSearchDialog(QDialog):
     def __init__(self):
         QDialog.__init__(self)
 
-        self.modes = ['ascii', 'hex', 'regex', 'utf-8', 'utf-16-le',
-                        'utf-16-be']
+        self.modes = ['ascii', 'hex', 'regex', 'utf-8', 'utf-16-le', 'utf-16-be']
         self.pattern = None
         self.filename = None
 

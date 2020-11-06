@@ -25,12 +25,12 @@ import vivisect.qt.symboliks as viv_q_symboliks
 import vivisect.remote.share as viv_share
 
 from PyQt5 import QtCore
-from PyQt5.QtWidgets import QInputDialog, QFileDialog
+from PyQt5.QtWidgets import QInputDialog
 
 from vqt.common import *
 from vivisect.const import *
 from vqt.main import getOpenFileName, getSaveFileName
-from vqt.saveable import compat_isNone, compat_toByteArray, compat_strList
+from vqt.saveable import compat_isNone
 
 dock_top = QtCore.Qt.TopDockWidgetArea
 dock_right = QtCore.Qt.RightDockWidgetArea
@@ -66,7 +66,6 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
         self.vqAddMenuField('&View.&Memory', self._menuViewMemory)
         self.vqAddMenuField('&View.&Function Graph', self._menuViewFuncGraph)
         self.vqAddMenuField('&View.&Strings', self._menuViewStrings)
-        # self.vqAddMenuField('&View.&Strings', ACT(viv_q_views.getLocView, vw, (LOC_STRING,LOC_UNI) ,'Strings'))
         self.vqAddMenuField('&View.&Structures', self._menuViewStructs)
         self.vqAddMenuField('&View.&Segments', self._menuViewSegments)
         self.vqAddMenuField('&View.&Symboliks', self._menuViewSymboliks)
@@ -277,7 +276,7 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
             stub = ''
 
         if not compat_isNone(dwcls):
-            for i, clsname in enumerate(compat_strList(dwcls)):
+            for i, clsname in enumerate(dwcls):
                 name = 'VQDockWidget%d' % i
                 try:
                     tup = self.vqBuildDockWidget(str(clsname), floating=False)
@@ -291,10 +290,10 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
 
         # Once dock widgets are loaded, we can restoreState
         if not compat_isNone(state):
-            self.restoreState(compat_toByteArray(state))
+            self.restoreState(state)
 
         if not compat_isNone(geom):
-            self.restoreGeometry(compat_toByteArray(geom))
+            self.restoreGeometry(geom)
 
         # Just get all the resize activities done...
         vq_main.eatevents()

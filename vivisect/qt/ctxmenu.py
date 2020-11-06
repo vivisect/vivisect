@@ -1,10 +1,7 @@
 '''
 A unified context menu builder for all address context clicks.
 '''
-try:
-    from PyQt5.QtWidgets import QMenu
-except:
-    from PyQt4.QtGui import QMenu
+from PyQt5.QtWidgets import QMenu
 
 import envi
 import envi.bits as e_bits
@@ -14,6 +11,7 @@ import vivisect.analysis.generic.codeblocks as vagc
 from vqt.common import *
 from envi.threads import *
 from vivisect.const import *
+
 
 @firethread
 def printEmuState(vw, fva, va):
@@ -31,7 +29,8 @@ def printEmuState(vw, fva, va):
     vw.vprint("Showing Register/Magic State At: 0x%.8x" % va)
     vw.vprint('Stack Delta: %d' % dstack)
 
-    # FIXME: this may not be as flexible as it could be, as we don't necessarily *have* to have a location... though we certainly should.
+    # FIXME: this may not be as flexible as it could be, as we don't necessarily *have* to have a location...
+    # though we certainly should.
     loc = vw.getLocation(va)
     if loc is None:
         vw.vprint("ARG! can't find location info for 0x%x" % va)
@@ -121,10 +120,10 @@ def buildContextMenu(vw, va=None, expr=None, menu=None, parent=None, nav=None):
         if nav:
             funcmenu.addAction(funcname[:80], ACT(nav.enviNavGoto, funcname))
 
-        rtype,rname,cconv,cname,cargs = vw.getFunctionApi(fva)
+        rtype, rname, cconv, cname, cargs = vw.getFunctionApi(fva)
         if cargs:
             argmenu = funcmenu.addMenu('args')
-            for i,(atype,aname) in enumerate(cargs):
+            for i, (atype, aname) in enumerate(cargs):
                 act = ACT(vw.getVivGui().setFuncArgName, fva, i, atype, aname)
                 argmenu.addAction(aname, act)
 
@@ -214,5 +213,3 @@ def buildContextMenu(vw, va=None, expr=None, menu=None, parent=None, nav=None):
 
     e_q_memcanvas.initMemSendtoMenu(expr, menu)
     return menu
-
-

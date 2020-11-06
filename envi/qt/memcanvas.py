@@ -22,26 +22,10 @@ from vqt.common import *
 
 class LoggerPage(QWebEnginePage):
     def javaScriptConsoleMessage(self, level, msg, line, source):
-        import traceback
         print('------------------------------------------------------------------')
         print(f'console message = {msg}')
-        #for l in traceback.format_stack():
-        #    print(l.strip())
-        #print(urllib.parse.unquote(source))
         print('------------------------------------------------------------------')
-        #print('[%s]: line %d: %s' % (level, line, msg))
 
-
-class CallHandler(QObject):
-
-    @QtCore.pyqtSlot(str)
-    def _jsGotoExpr(self, expr):
-        # The routine used by the javascript code to trigger nav events
-        print(f"hit _jsGotoExpr with {expr}")
-
-    @QtCore.pyqtSlot(str)
-    def _jsSetCurVa(self, vastr):
-        print(f"hit _jsSetCurVa with {vastr}")
 
 class VQMemoryCanvas(e_memcanvas.MemoryCanvas, QWebEngineView):
 
@@ -54,16 +38,17 @@ class VQMemoryCanvas(e_memcanvas.MemoryCanvas, QWebEngineView):
         self._canv_curva = None
         self._canv_rendtagid = '#memcanvas'
         self._canv_rend_middle = False
-        self._log_page = LoggerPage()
-        self.setPage(self._log_page)
         self.fname = None
 
-        channel = QWebChannel()
-        self.handler = CallHandler()
-        self.page().setWebChannel(channel)
-        channel.registerObject('vnav', self.handler)
-        # self.handler.valueChanged.connect(self.handler._jsSetCurVa)
-        # channel.registerObject('vnav', self)
+        # DEV: DO NOT DELETE THIS REFERENCE TO THESE 
+        # Otherwise they'll get garbage collected and things like double click 
+        # to navigate and logging won't work
+        # (but pyqt5 won't throw an exception, because ugh).
+        self._log_page = LoggerPage()
+        self.setPage(self._log_page)
+        self.channel = QWebChannel()
+        self.page().setWebChannel(self.channel)
+        self.channel.registerObject('vnav', self)
 
         htmlpage = e_q_html.template.replace('{{{jquery}}}', e_q_jquery.jquery_2_1_0)
         page = self.page()
@@ -114,6 +99,7 @@ class VQMemoryCanvas(e_memcanvas.MemoryCanvas, QWebEngineView):
         page = self.page()
         selector = 'viv:0x%.8x' % va
         page.runJavaScript(f'var node = document.querySelector("{selector}"); node.scrollIntoView()')
+        eatevents()
 
     @idlethread
     def _selectVa(self, va):
@@ -196,13 +182,11 @@ class VQMemoryCanvas(e_memcanvas.MemoryCanvas, QWebEngineView):
     @QtCore.pyqtSlot(str)
     def _jsGotoExpr(self, expr):
         # The routine used by the javascript code to trigger nav events
-        print("hit _jsGotoExpr")
         if self._canv_navcallback:
             self._canv_navcallback(expr)
 
     @QtCore.pyqtSlot(str)
     def _jsSetCurVa(self, vastr):
-        print("hit _jsSetCurVa")
         self._canv_curva = int(str(vastr), 0)
 
     # NOTE: doing append / scroll seperately allows render to catch up
@@ -212,7 +196,6 @@ class VQMemoryCanvas(e_memcanvas.MemoryCanvas, QWebEngineView):
         # DEV: nope
         js = f'document.querySelector("{self._canv_rendtagid}").innerHTML += `{text}`;'
         page.runJavaScript(js)
-        eatevents()
 
     def _add_raw(self, text):
         # If we are in a call to renderMemory, cache til the end.
@@ -229,7 +212,6 @@ class VQMemoryCanvas(e_memcanvas.MemoryCanvas, QWebEngineView):
             otag, ctag = tag
             text = otag + text + ctag
         self._add_raw(text)
-        eatevents()
 
     @idlethreadsync
     def clearCanvas(self):
@@ -241,7 +223,6 @@ class VQMemoryCanvas(e_memcanvas.MemoryCanvas, QWebEngineView):
             node.innerHTML = "";
         }}
         ''')
-        eatevents()
 
     def contextMenuEvent(self, event):
 

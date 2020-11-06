@@ -7,7 +7,7 @@ class v_bits(v_number):
 
     def __init__(self, width):
         v_number.__init__(self)
-        self._vs_bitwidth = width
+        self._vs_bitwidth = int(width)
 
     def vsSetValue(self, value):
         '''

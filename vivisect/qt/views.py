@@ -1,13 +1,9 @@
-
 import vqt.tree as vq_tree
 import vivisect.base as viv_base
 import envi.qt.memory as e_q_memory
 import vivisect.qt.ctxmenu as v_q_ctxmenu
 
-try:
-    from PyQt5.QtWidgets import QMenu
-except:
-    from PyQt4.QtGui import QMenu
+from PyQt5.QtWidgets import QMenu
 
 from vqt.main import *
 from vqt.common import *
@@ -15,51 +11,6 @@ from vivisect.const import *
 
 class VivNavModel(e_q_memory.EnviNavModel):
     pass
-
-# TODO: This is marked pending deletion, as is the things that depend on it (they're not used anywhere
-class VivView(VqtView, viv_base.VivEventCore):
-    '''
-    In any vivisect list/tree view, the first column will be
-    an address expression.  Other than that, all bets are off.
-    '''
-    def __init__(self, vw, parent=None):
-        VqtView.__init__(self, parent=parent)
-        viv_base.VivEventCore.__init__(self, vw)
-        self.vw = vw
-        self.vivgui = vw.getVivGui()
-        self.vivgui.addEventCore(self)
-
-class VivLocModel(VqtModel):
-    columns = ('Address','Location')
-
-
-class VivLocView(VivView):
-
-    def __init__(self, vw, loctypes, parent=None):
-        VivView.__init__(self, vw, parent=parent)
-        self.loctypes = loctypes
-
-        locs = []
-        for ltype in self.loctypes:
-            locs.extend( vw.getLocations(ltype) )
-
-        rows = [ ('0x%.8x' % loc[0], vw.reprLocation(loc), loc) for loc in locs ]
-
-        model = VivLocModel(rows=rows)
-        self.setModel(model)
-
-    def VWE_ADDLOCATION(self, vw, event, loc):
-        lva, lsize, ltype, linfo = loc
-        if ltype in self.loctypes:
-            self.model().sourceModel().append( ('0x%.8x' % lva, self.vw.reprLocation(loc), loc) )
-
-    def VWE_DELLOCATION(self, vw, event, einfo):
-        lva, lsize, ltype, linfo = einfo
-
-def getLocView(vw, loctypes, title, parent=None):
-    view = VivLocView( vw, loctypes, parent=parent)
-    view.setWindowTitle(title)
-    return vw.getVivGui().vqDockWidget( view, floating=True )
 
 class VQVivTreeView(vq_tree.VQTreeView, viv_base.VivEventCore):
 
@@ -336,11 +287,11 @@ def reprComplex(vw, item):
 
 
 vaset_reprHandlers = {
-    VASET_ADDRESS:  reprAddress,
-    VASET_STRING:   reprString,
-    VASET_INTEGER:  reprIntLong,
-    VASET_HEXTUP:   reprHextup,
-    VASET_COMPLEX:  reprComplex,
+    VASET_ADDRESS: reprAddress,
+    VASET_STRING:  reprString,
+    VASET_INTEGER: reprIntLong,
+    VASET_HEXTUP:  reprHextup,
+    VASET_COMPLEX: reprComplex,
 }
 
 class VQVivVaSetView(VQVivTreeView):
@@ -364,21 +315,21 @@ class VQVivVaSetView(VQVivTreeView):
         setname, row = einfo
         if setname == self._va_setname:
             va = row[0]
-            self.vivAddRow( va, *self.reprRow(row) )
+            self.vivAddRow(va, *self.reprRow(row))
 
     def vqLoad(self):
-        setdef = self.vw.getVaSetDef( self._va_setname )
-        rows = self.vw.getVaSetRows( self._va_setname )
+        setdef = self.vw.getVaSetDef(self._va_setname)
+        rows = self.vw.getVaSetRows(self._va_setname)
         for row in rows:
             va = row[0]
             self.vivAddRow(va, *self.reprRow(row))
 
     def reprRow(self, row):
         row = [item for item in row]
-        setdef = self.vw.getVaSetDef( self._va_setname )
-        
+        setdef = self.vw.getVaSetDef(self._va_setname)
+
         row[0] = hex(row[0])
-        for idx in range(1,len(row)):
+        for idx in range(1, len(row)):
             item = row[idx]
             itype = setdef[idx][1]
 
@@ -420,7 +371,7 @@ class VQVivNamesView(VQVivTreeView):
 
     def __init__(self, vw, vwqgui):
         VQVivTreeView.__init__(self, vw, vwqgui)
-        self.setModel( VivNavModel(self._viv_navcol, self, columns=self.columns) )
+        self.setModel(VivNavModel(self._viv_navcol, self, columns=self.columns))
         self.vqLoad()
         self.vqSizeColumns()
 
@@ -439,4 +390,3 @@ class VQVivNamesView(VQVivTreeView):
             self.vivAddRow(va, '0x%.8x' % va, name)
         else:
             self.vivSetData(va, 1, name)
-

@@ -22,7 +22,6 @@ class ACT:
         except Exception as e:
             logger.warning("error in ACT(%s, %s, %s)", str(self.meth), str(self.args), str(self.kwargs))
             logger.warning(str(e))
-            #logger.debug(''.join(traceback.format_exception(*sys.exc_info())))
 
 
 class VqtModel(QtCore.QAbstractItemModel):
@@ -154,7 +153,7 @@ class VqtView(QTreeView):
                 continue
 
             rdone[idx.row()] = True
-            ret.append( model.mapToSource(idx).internalPointer() )
+            ret.append(model.mapToSource(idx).internalPointer())
 
         return ret
 
@@ -172,4 +171,4 @@ class VqtView(QTreeView):
 
     def getModelRow(self, idx):
         idx = self.model().mapToSource(idx)
-        return idx.row(),idx.internalPointer()
+        return idx.row(), idx.internalPointer()

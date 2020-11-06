@@ -1,17 +1,14 @@
-try:
-    from PyQt5.QtWidgets import QToolBar, QLabel, QPushButton, QTextEdit
-except:
-    from PyQt4.QtGui import QToolBar, QLabel, QPushButton, QTextEdit
-
-from vqt.main import idlethread
-from vqt.basics import VBox
-
 '''
 This is an example of a vivisect GUI extension module.
 Set the environment variable VIV_EXT_PATH to point at a
 directory full of python modules such as this to extend
 and implement your own vivisect features.
 '''
+
+from PyQt5.QtWidgets import QToolBar, QLabel, QPushButton, QTextEdit
+
+from vqt.main import idlethread
+from vqt.basics import VBox
 
 class ExampleToolbar(QToolBar):
     def __init__(self, vw, vwgui):

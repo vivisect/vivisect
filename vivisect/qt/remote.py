@@ -1,7 +1,4 @@
-try:
-    from PyQt5.QtWidgets import *
-except:
-    from PyQt4.QtGui import *
+from PyQt5.QtWidgets import *
 
 import vqt.main as vq_main
 import vqt.tree as vq_tree
@@ -12,8 +9,10 @@ import vivisect.remote.server as viv_server
 
 from vqt.basics import *
 
+
 class WorkspaceListModel(vq_tree.VQTreeModel):
     columns = ('Name',)
+
 
 class WorkspaceListView(vq_tree.VQTreeView):
     def __init__(self, workspaces, parent=None):
@@ -58,6 +57,49 @@ class VivServerDialog(QDialog):
                 break
 
         return QDialog.accept(self)
+
+class VivServerDialog(QDialog):
+    def __init__(self, vw, parent=None):
+        QDialog.__init__(self, parent=parent)
+        self.setWindowTitle('Save to Workspace Server...')
+        self.vw = vw
+        try:
+            server = vw.config.remote.server
+        except AttributeError:
+            server = "visi.kenshoto.com"
+
+        self.wsname = QLineEdit(vw.getMeta('StorageName',''), parent=self)
+        self.wsserver = QLineEdit(server, parent=self)
+        self.setdef = QCheckBox(parent=self)
+
+        self.buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        self.buttons.accepted.connect(self.accept)
+        self.buttons.rejected.connect(self.reject)
+
+        serverlayout = QHBoxLayout()
+        serverlayout.addWidget(self.wsserver)
+        serverlayout.addWidget(QLabel('Make Default:'))
+        serverlayout.addWidget(self.setdef)
+
+        layout = QFormLayout()
+        layout.addRow('Workspace Name', self.wsname)
+        layout.addRow('Workspace Server', serverlayout)
+        layout.addWidget(self.buttons)
+        self.setLayout(layout)
+
+    def getNameAndServer(self):
+        if not self.exec_():
+            return (None,None)
+        wsname = str(self.wsname.text())
+        wsserver = str(self.wsserver.text())
+        return (wsname,wsserver)
+
+    def accept(self, *args, **kwargs):
+        QDialog.accept(self, *args, **kwargs)
+        if self.setdef.isChecked():
+            cfg = self.vw.config.getSubConfig("remote")
+            cfg['server'] = str(self.wsserver.text())
+            self.vw.config.saveConfigFile()
 
 class VivSaveServerDialog(QDialog):
 

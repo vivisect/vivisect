@@ -55,18 +55,8 @@ arch_bindings = {
 }
 
 
-# TODO(rakuyo): merge these two functions
-def sysvamd64name(idx):
-    ret = sysvamd64argnames.get(idx)
-    if ret is None:
-        name = 'arg%d' % idx
-    else:
-        name, idx = ret
-    return name
-
-
-def msx64name(idx):
-    ret = msx64argnames.get(idx)
+def getName(names, idx):
+    ret = names.get(idx)
     if ret is None:
         name = 'arg%d' % idx
     else:
@@ -102,8 +92,6 @@ def buildFunctionApi(vw, fva, emu, emumon):
         vw.setFunctionLocal(fva, 24, LSYM_NAME, ('void *', 'shadow2'))
         vw.setFunctionLocal(fva, 32, LSYM_NAME, ('void *', 'shadow3'))
 
-        funcargs = [('int', msx64name(i)) for i in range(argc)]
-
     elif callconv == 'sysvamd64call':
         if emumon.stackmax > 0:
             targc = (emumon.stackmax >> 3) + 6
@@ -112,8 +100,7 @@ def buildFunctionApi(vw, fva, emu, emumon):
             else:
                 argc = targc
 
-        funcargs = [('int', sysvamd64name(i)) for i in range(argc)]
-
+    funcargs = [('int', getName(argnames, i)) for i in range(argc)]
     api = ('int', None, callconv, None, funcargs)
     vw.setFunctionApi(fva, api)
     return api

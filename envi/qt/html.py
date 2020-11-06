@@ -99,10 +99,12 @@ function nameclick(elem) {
 }
 
 var curva = null;
-
 var vnav = null;
-new QWebChannel(qt.webChannelTransport, function (channel) {
-    vnav = channel.objects.vnav;
+
+document.addEventListener("DOMContentLoaded", function () {
+    webc = new QWebChannel(qt.webChannelTransport, function (channel) {
+        vnav = channel.objects.vnav;
+    });
 });
 
 function vaclick(elem) {
@@ -115,17 +117,11 @@ function selectva(vastr) {
     var vaselect = ".envi-va-" + vastr;
     $(".envi-va-selected").removeClass("envi-va-selected");
     $(vaselect).addClass("envi-va-selected");
-    console.log("selectva outer");
     vnav._jsSetCurVa(vastr);
-    console.log("selectva outer end");
 }
 
 function vagoto(elem) {
-    console.log('vagoto outer');
-    vnav._jsGotoExpr($(elem).attr('va'), function(pyval) {
-        console.log(pyval);
-    });
-    console.log('vagoto outer end');
+    vnav._jsGotoExpr($(elem).attr('va'))
 }
 
 function scrolltoid(name) {

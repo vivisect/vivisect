@@ -63,7 +63,7 @@ class TestSymbolikEffects(unittest.TestCase):
             '(biz - 32)',
             '((bar - 25) - (biz - 32))',
         ]
-        strd = list(map(str, visited))
+        strd = [str(x) for x in visited]
         self.assertEqual(answer, strd)
         self.assertEqual(str(rm), '[ (((edx + mm0) - edx) << ((foo + foo) - (foo * 2))) : ((bar - 25) - (biz - 32)) ]')
         rm.reduce()

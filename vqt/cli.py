@@ -6,11 +6,8 @@ from PyQt5.QtWidgets import *
 import envi.cli as e_cli
 import envi.qt.memcanvas as e_q_memcanvas
 
-#from envi.threads import firethread
-
 import vqt.colors as vq_colors
 import vqt.hotkeys as vq_hotkeys
-#import vqt.shortcut as vq_shortcut
 
 from vqt.basics import *
 from vqt.main import idlethread,workthread
@@ -89,16 +86,11 @@ class VQCli(QWidget):
             self.output.setScrolledCanvas(True)
             cli.setCanvas(self.output)
 
-        self.setStyleSheet( vq_colors.getDefaultColors() )
+        self.setStyleSheet(vq_colors.getDefaultColors())
 
-        self.setLayout( self.getCliLayout() )
+        self.setLayout(self.getCliLayout())
 
         self.input.returnPressed.connect(self.returnPressedSlot)
-
-        #FIXME: these events should probably be made to work better with the new Qt Event model
-        # perhaps this should inherit from HotKeyMixin as well?
-        #vq_shortcut.addShortCut(self.input, QtCore.Qt.Key_Up, self.keyCodeUp)
-        #vq_shortcut.addShortCut(self.input, QtCore.Qt.Key_Down, self.keyCodeDown)
 
         self.resize(250, 150)
 
@@ -106,7 +98,7 @@ class VQCli(QWidget):
         return e_q_memcanvas.VQMemoryCanvas(memobj, syms=syms, parent=self)
 
     def getCliLayout(self):
-        return VBox( self.output, self.input )
+        return VBox(self.output, self.input)
 
     def returnPressedSlot(self):
         cmd = str(self.input.text())
@@ -116,7 +108,7 @@ class VQCli(QWidget):
         workthread(self.onecmd)(cmd)
 
     def onecmd(self, cmdline):
-        if self.cli.onecmd( cmdline ):
+        if self.cli.onecmd(cmdline):
             self._emit_quit()
 
     @idlethread

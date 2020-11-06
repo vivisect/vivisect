@@ -15,8 +15,8 @@ import vivisect.qt.memory as vq_memory
 import vivisect.qt.ctxmenu as vq_ctxmenu
 import vivisect.tools.graphutil as viv_graphutil
 
-from PyQt5.QtCore import pyqtSignal
 from PyQt5 import QtCore, QtGui, QtWebEngine
+from PyQt5.QtCore import pyqtSignal
 from PyQt5.QtWidgets import *
 
 from vqt.main import idlethread, eatevents, workthread, vqtevent
@@ -206,24 +206,6 @@ function drawSvgLine(svgid, lineid, points) {
 }
 '''
 
-def getFrameDimensions(page, cbname):
-    girth = None
-    height = None
-    def getGirth(data):
-        nonlocal girth
-        girth = int(data)
-
-    def getHeight(data):
-        nonlocal height
-        height = int(data)
-
-    page.runJavaScript('document.getElementById("%s").offsetWidth;' % cbname, getGirth)
-    page.runJavaScript('document.getElementById("%s").offsetHeight;' % cbname, getHeight)
-    while girth is None or height is None:
-        eatevents()
-
-    return girth, height + 7
-
 
 class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidget, vq_save.SaveableWidget, viv_base.VivEventCore):
     _renderDoneSignal = pyqtSignal()
@@ -346,6 +328,8 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
         that have changed since last update, and be fast, so we can update
         after every change.
         '''
+        # TODO: Lol, remove mainFrame
+        print('refresh?')
         self._last_viewpt = self.mem_canvas.page().mainFrame().scrollPosition()
         # FIXME: history should track this as well and return to the same place
         self.clearText()
@@ -399,7 +383,7 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
         expr = state.get('expr','')
         self.enviNavGoto(expr)
 
-    def updateWindowTitle(self):
+    def updateWindowTitle(self, data=None):
         ename = self.getEnviNavName()
         expr = str(self.addr_entry.text())
         try:
@@ -409,9 +393,21 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
         except:
             self.setWindowTitle('%s: %s (0x----)' % (ename, expr))
 
-    def renderFunctionGraph(self, fva, graph=None):
-        self.fva = fva
-        #self.graph = self.vw.getFunctionGraph(fva)
+    # DEV: None of these methods are meant to be called directly by anybody but themselves,
+    # since they're setup in a way to make renderFunctionGraph play nicely with pyqt5
+    def _addSvgEdges(self, data):
+        pass
+
+    def _addSvgElements(self, data):
+        pass
+
+    def _layoutDynadag(self, data):
+        pass
+
+    def renderFunctionGraph(self, fva=None, graph=None):
+        if fva is not None:
+            self.fva = fva
+
         if graph is None:
             try:
                 graph = viv_graphutil.buildFunctionGraph(self.vw, fva, revloop=True)
@@ -429,19 +425,20 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
             cbva = node[1].get('cbva')
             cbsize = node[1].get('cbsize')
             self.mem_canvas.renderMemory(cbva, cbsize)
-            eatevents()
 
         # Let the renders complete...
-        eatevents()
         page.runJavaScript(funcgraph_js)
-        eatevents()
         for nid, nprops in self.graph.getNodes():
             cbva = nprops.get('cbva')
 
             cbname = 'codeblock_%.8x' % cbva
             # TODO
-            girth, height = getFrameDimensions(page, cbname)
-            self.graph.setNodeProp((nid,nprops), "size", (girth, height))
+            def setProps(data):
+                girth, height = data
+                height += 7
+                self.graph.setNodeProp((nid,nprops), "size", (girth, height))
+
+            page.runJavaScript('var node = document.getElementById("%s"); [node.offsetWidth, node.offsetHeight]' % cbname, setProps)
 
         self.dylayout = vg_dynadag.DynadagLayout(self.graph)
         self.dylayout._barry_count = 20
@@ -451,7 +448,6 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
 
         svgid = 'funcgraph_%.8x' % fva
         page.runJavaScript('svgwoot("vbody", "%s", %d, %d);' % (svgid, width+18, height))
-        eatevents()
         for nid,nprops in self.graph.getNodes():
 
             cbva = nprops.get('cbva')
@@ -466,7 +462,6 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
             page.runJavaScript('addSvgForeignObject("%s", "%s", %d, %d);' % (svgid, foid, girth+16, height))
             page.runJavaScript('addSvgForeignHtmlElement("%s", "%s");' % (foid, cbid))
             page.runJavaScript('moveSvgElement("%s", %d, %d);' % (foid, xpos, ypos))
-            eatevents()
 
         # Draw in some edge lines!
         for eid, n1, n2, einfo in self.graph.getEdges():
@@ -512,28 +507,24 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
 
             page = self.mem_canvas.page()
             if fva == self.fva:
-                page.runJavaScript('document.getElementById("viv:0x%.8x").scrollIntoView()' % addr)
+                page.runJavaScript('document.getElementsByName("viv:0x%.8x")[0].scrollIntoView()' % addr)
                 vqtevent('viv:colormap', {addr: 'orange'})
                 self.updateWindowTitle()
                 return
-
             # if we're rendering a different function, get to work!
             self.clearText()
             self.renderFunctionGraph(fva)
-            eatevents()
+
             page.runJavaScript('''
-            var node = document.getElementById("viv:0x%.8x");
-            if (node != null) {
-                node.scrollIntoView();
-            }
+            var node = document.getElementsByName("viv:0x%.8x")[0];
+            node.scrollIntoView();
             ''' % addr)
+
             self.updateWindowTitle()
-            eatevents()
+
             page.runJavaScript('''
-            var node = document.getElementById("viv:0x%.8x");
-            if (node != null) {
-                node.scrollIntoView();
-            }
+            var node = document.getElementsByName("viv:0x%.8x")[0];
+            node.scrollIntoView();
             ''' % addr)
             vqtevent('viv:colormap', {addr: 'orange'})
             self.updateWindowTitle()
@@ -551,15 +542,13 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
 
     def clearText(self):
         # Pop the svg and reset #memcanvas
-        page = self.mem_canvas.page()
         js = ''
         if self.fva is not None:
-            svgid = '#funcgraph_%.8x' % self.fva
-            js += 'document.querySelector("%s").remove();' % svgid
+            svgid = 'funcgraph_%.8x' % self.fva
+            js += 'console.log("MOTHERFUCKER"); var node = document.getElementById("%s"); console.log(node); node.remove();' % svgid
 
         js += 'document.querySelector("#memcanvas").innerHTML = "";'
-        page.runJavaScript(js)
-        eatevents()
+        self.mem_canvas.page().runJavaScript(js)
 
     def _hotkey_paintUp(self, va=None):
         '''

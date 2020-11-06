@@ -638,4 +638,4 @@ class VivisectTest(unittest.TestCase):
             'pop r14',
             'ret '
         ]
-        self.assertEqual(ops, list(map(str, v_t_graphutil.getOpsFromPath(vw, g, path))))
+        self.assertEqual(ops, [str(op) for op in v_t_graphutil.getOpsFromPath(vw, g, path)])

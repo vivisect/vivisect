@@ -159,7 +159,7 @@ def buildFunctionApi(vw, fva, emu, emumon):
 
     if callconv == 'armcall':
         if emumon.stackmax > 0:
-            targc = int(emumon.stackmax / 8) + 6
+            targc = (emumon.stackmax >> 3) + 6
             if targc > 40:
                 emumon.logAnomaly(emu, fva, 'Crazy Stack Offset Touched: 0x%.8x' % emumon.stackmax)
             else:

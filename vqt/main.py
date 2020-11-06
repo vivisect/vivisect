@@ -5,12 +5,8 @@ import functools
 from queue import Queue
 from threading import currentThread
 
-try:
-    from PyQt5 import QtCore
-    from PyQt5.QtWidgets import *
-except:
-    from PyQt4 import QtCore
-    from PyQt4.QtGui import *
+from PyQt5 import QtCore
+from PyQt5.QtWidgets import *
 
 import envi.threads as e_threads
 

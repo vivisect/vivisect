@@ -1,10 +1,6 @@
-
 import logging
 
-try:
-    from PyQt5.QtWidgets import *
-except:
-    from PyQt4.QtGui import *
+from PyQt5.QtWidgets import *
 
 import envi.qt.memory as e_mem_qt
 import envi.qt.memcanvas as e_mem_canvas
@@ -346,7 +342,7 @@ class VQVivMemoryView(e_mem_qt.VQMemoryWindow, viv_base.VivEventCore):
 
         self._leading = False
         self._following = None
-        self._follow_menu = None # init'd in handler below
+        self._follow_menu = None  # init'd in handler below
 
         e_mem_qt.VQMemoryWindow.__init__(self, vw, syms=vw, parent=vwqgui, mwname='viv')
         viv_base.VivEventCore.__init__(self, vw)
@@ -362,6 +358,7 @@ class VQVivMemoryView(e_mem_qt.VQMemoryWindow, viv_base.VivEventCore):
         if self.vw.server:
 
             leadact = QAction('lead', menu, checkable=True)
+
             def leadToggle():
                 self._leading = not self._leading
                 # We can only follow if not leading... (deep huh? ;) )
@@ -409,7 +406,7 @@ class VQVivMemoryView(e_mem_qt.VQMemoryWindow, viv_base.VivEventCore):
         Vivisect steps in and attempts to map to locations when they exist.
 
         since we have a location database, let's use that to make sure we get a
-        real location if it exists.  otherwise, we end up in no-man's land, 
+        real location if it exists.  otherwise, we end up in no-man's land,
         since we rely on labels, which only exist for the base of a location.
         '''
         addr, size = e_mem_qt.VQMemoryWindow._getRenderVaSize(self)
@@ -436,7 +433,7 @@ class VQVivMemoryView(e_mem_qt.VQMemoryWindow, viv_base.VivEventCore):
             title = 'Xrefs To: 0x%.8x' % self.mem_canvas._canv_curva
             view = viv_q_views.VQXrefView(self.vw, self.vwqgui, xrefs=xrefs, title=title)
             dock = self.vwqgui.vqDockWidget(view, floating=True)
-            dock.resize(800,600)
+            dock.resize(800, 600)
 
     def loadDefaultRenderers(self):
 
@@ -457,22 +454,22 @@ class VQVivMemoryView(e_mem_qt.VQMemoryWindow, viv_base.VivEventCore):
             self.mem_canvas.renderMemoryUpdate(cbva, cbsize)
 
     def VTE_IAMLEADER(self, vw, event, einfo):
-        user,followname = einfo
+        user, followname = einfo
 
     def VWE_SYMHINT(self, vw, event, einfo):
         va, idx, hint = einfo
         self.mem_canvas.renderMemoryUpdate(va, 1)
 
     def VWE_ADDLOCATION(self, vw, event, einfo):
-        va,size,ltype,tinfo = einfo
+        va, size, ltype, tinfo = einfo
         self.mem_canvas.renderMemoryUpdate(va, size)
 
     def VWE_DELLOCATION(self, vw, event, einfo):
-        va,size,ltype,tinfo = einfo
+        va, size, ltype, tinfo = einfo
         self.mem_canvas.renderMemoryUpdate(va, size)
 
     def VWE_ADDFUNCTION(self, vw, event, einfo):
-        va,meta = einfo
+        va, meta = einfo
         self.mem_canvas.renderMemoryUpdate(va, 1)
 
     def VWE_SETFUNCMETA(self, vw, event, einfo):
@@ -484,19 +481,20 @@ class VQVivMemoryView(e_mem_qt.VQMemoryWindow, viv_base.VivEventCore):
         self._updateFunction(fva)
 
     def VWE_COMMENT(self, vw, event, einfo):
-        va,cmnt = einfo
+        va, cmnt = einfo
         self.mem_canvas.renderMemoryUpdate(va, 1)
 
     @idlethread
     def VWE_SETNAME(self, vw, event, einfo):
-        va,name = einfo
+        va, name = einfo
         self.mem_canvas.renderMemoryUpdate(va, 1)
-        for fromva,tova,rtype,rflag in self.vw.getXrefsTo(va):
+        for fromva, tova, rtype, rflag in self.vw.getXrefsTo(va):
             self.mem_canvas.renderMemoryUpdate(fromva, 1)
 
     @idlethread
     def VTE_IAMLEADER(self, vw, event, einfo):
-        user,fname = einfo
+        user, fname = einfo
+
         def setFollow():
             self._following = einfo
             self.updateMemWindowTitle()
@@ -505,7 +503,7 @@ class VQVivMemoryView(e_mem_qt.VQMemoryWindow, viv_base.VivEventCore):
 
     @idlethread
     def VTE_FOLLOWME(self, vw, event, einfo):
-        user,fname,expr = einfo
+        user, fname, expr = einfo
         if self._following != (user,fname):
             return
         self.enviNavGoto(expr)
@@ -515,4 +513,3 @@ class VQVivMemoryView(e_mem_qt.VQMemoryWindow, viv_base.VivEventCore):
         if self._leading:
             self.vw.followTheLeader(str(self.mwname), str(expr))
         return e_mem_qt.VQMemoryWindow.enviNavGoto(self, expr, sizeexpr=sizeexpr, rend=rend)
-

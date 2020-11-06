@@ -743,7 +743,7 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
             rvaoff = rva - phrva
             return pgm.p_offset + rvaoff
 
-        raise Exception('omg')
+        raise Exception(f"Couldn't convert rva: {rva} to a file offset")
 
     def readAtOffset(self, off, size):
         '''
