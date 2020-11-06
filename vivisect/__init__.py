@@ -328,7 +328,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             for va,cmnt in vw.getComments():
                 print('Comment at 0x%.8x: %s' % (va, cmnt))
         '''
-        yield from self.comments.items()
+        return list(self.comments.items())
 
     def addRelocation(self, va, rtype, data=None):
         """
@@ -360,10 +360,10 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         return self.arch.pointerString(va)
 
     def getAnalysisModuleNames(self):
-        yield from self.amodlist
+        return list(self.amodlist)
 
     def getFuncAnalysisModuleNames(self):
-        yield from self.fmodlist
+        return list(self.fmodlist)
 
     def addFunctionSignatureBytes(self, bytez, mask=None):
         """
@@ -525,14 +525,14 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         Return the (probably big) list of events which define this
         workspace.
         '''
-        yield from self._event_list
+        return self._event_list
 
     def exportWorkspaceChanges(self):
         '''
         Export the list of events which have been applied to the
         workspace since the last save.
         '''
-        yield from self._event_list[self._event_saved:]
+        return self._event_list[self._event_saved:]
 
     def initWorkspaceClient(self, remotevw):
         """
@@ -794,7 +794,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         """
         Return a list of imports in location tuple format.
         """
-        yield from self.getLocations(LOC_IMPORT)
+        return list(self.getLocations(LOC_IMPORT))
 
     def makeImport(self, va, libname, impname):
         """
@@ -810,7 +810,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         """
         Return a list of exports in (va,etype,name,filename) tuples.
         """
-        yield from self.exports
+        return list(self.exports)
 
     def addExport(self, va, etype, name, filename, makeuniq=False):
         """
@@ -1374,7 +1374,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         Return a list of the function virtual addresses
         defined in the workspace.
         """
-        yield from self.funcmeta.keys()
+        return list(self.funcmeta.keys())
 
     def getFunction(self, va):
         """
@@ -1446,7 +1446,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
                 print('Takes: %s %s' % (typename,argname))
         '''
         rettype, retname, callconv, callname, callargs = self.getFunctionApi(fva)
-        yield from callargs
+        return list(callargs)
 
     def getFunctionApi(self, fva):
         '''
@@ -1733,10 +1733,10 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
     def getSegments(self):
         """
-        Yield a list of segment tuples (see getSegment) for all
+        Return a list of segment tuples (see getSegment) for all
         the segments defined in the current worksace
         """
-        yield from self.segments
+        return list(self.segments)
 
     def addCodeBlock(self, va, size, funcva):
         """
@@ -1769,7 +1769,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         """
         Return a list of all the codeblock objects.
         """
-        yield from self.codeblocks
+        return list(self.codeblocks)
 
     def addXref(self, fromva, tova, reftype, rflags=0):
         """
@@ -2279,7 +2279,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         """
         Return a list of tuples containing (va, name)
         """
-        yield from self.name_by_va.items()
+        return list(self.name_by_va.items())
 
     def getName(self, va, smart=False):
         '''
@@ -2514,7 +2514,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         Return the current list of file objects in this
         workspace.
         """
-        yield from self.filemeta.keys()
+        return list(self.filemeta.keys())
 
     def normFileName(self, filename):
         normname = os.path.basename(filename).lower()
@@ -2655,7 +2655,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         if x is None:
             raise InvalidVaSet(name)
         # yes, this is weird. but it's how python2 returns values()
-        return list(x.values()
+        return list(x.values())
 
     def getVaSet(self, name):
         """
@@ -2758,7 +2758,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         """
         Return a list of the names of the given color maps
         """
-        yield from self.colormaps.keys()
+        return list(self.colormaps.keys())
 
     def addColorMap(self, mapname, colormap):
         """

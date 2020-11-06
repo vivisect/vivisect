@@ -499,7 +499,7 @@ class Opcode:
         return oper.getOperValue(self, emu=emu)
 
     def getOperands(self):
-        yield from self.opers
+        return self.opers
 
 class Emulator(e_reg.RegisterContext, e_mem.MemoryObject):
     """
@@ -712,7 +712,7 @@ class Emulator(e_reg.RegisterContext, e_mem.MemoryObject):
         return self._emu_call_convs.get(name)
 
     def getCallingConventions(self):
-        yield from self._emu_call_convs.items()
+        return list(self._emu_call_convs.items())
 
     def readMemValue(self, addr, size):
         """
