@@ -1950,6 +1950,42 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         offset, bytes = self.getByteDef(va)
         return e_bits.parsebytes(bytes, offset, size, bigend=self.bigend)
 
+    def _getSubstrings(self, va, size, ltyp):
+        # rip through the desired memory range to populate any substrings
+        subs = set()
+        end = va + size
+        for offs in range(va, end, 1):
+            loc = self.getLocation(offs, range=True)
+            if loc and loc[L_LTYPE] == LOC_STRING and loc[L_VA] > va:
+                subs.add((loc[L_VA], loc[L_SIZE]))
+                if loc[L_TINFO]:
+                    subs = subs.union(set(loc[L_TINFO]))
+        return list(subs)
+
+    def _getStrTinfo(self, va, subs):
+        ploc = self.getLocation(va, range=False)
+        if ploc:
+            # the string we're making is a substring of some outer one
+            # still make this string location, but let the parent know about us too and our
+            # children as well. Ultimately, the outermost parent should be responsible for 
+            # knowing about all it's substrings
+            modified = False
+            pva, psize, ptype, pinfo = ploc
+            if (va, size) not in pinfo:
+                modified = True
+                pinfo.append((va, size))
+
+            for sva, ssize in subs:
+                if (sva, ssize) not in pinfo:
+                    modified = True
+                    pinfo.append((sva, ssize))
+            if modified:
+                tinfo = pinfo
+        else:
+            tinfo = subs
+
+        return tinfo
+
     def makeString(self, va, size=None):
         """
         Create a new string location at the given VA.  You may optionally
@@ -1971,6 +2007,8 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
         This method only captures suffixes, but perhaps in the future we'll have symbolik resolution that can
         capture true substrings that aren't merely suffixes.
+
+        This same formula is applied to unicode detection as well
         """
         if size is None:
             size = self.asciiStringSize(va)
@@ -1979,39 +2017,13 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             raise Exception("Invalid String Size: %d" % size)
 
         # rip through the desired memory range to populate any substrings
-        subs = set()
-        end = va + size
-        for offs in range(va, end, 1):
-            loc = self.getLocation(offs, range=True)
-            if loc and loc[L_LTYPE] == LOC_STRING and loc[L_VA] > va:
-                subs.add((loc[L_VA], loc[L_SIZE]))
-                if loc[L_TINFO]:
-                    subs = subs.union(set(loc[L_TINFO]))
-
-        ploc = self.getLocation(va, range=False)
-        if ploc:
-            # the string we're making is a substring of some outer one
-            # still make this string location, but let the parent know about us too and our
-            # children as well. Ultimately, the outermost parent should be responsible for 
-            # knowing about all it's substrings
-            modified = False
-            pva, psize, ptype, pinfo = ploc
-            if (va, size) not in pinfo:
-                modified = True
-                pinfo.append((va, size))
-
-            for sva, ssize in subs:
-                if (sva, ssize) not in pinfo:
-                    modified = True
-                    pinfo.append((sva, ssize))
-            if modified:
-                self.addLocation(pva, psize, LOC_STRING, tinfo=pinfo)
-                subs = set()
+        subs = self._getSubstrings(va, size, LOC_STRING)
+        tinfo = self._getStrTinfo(va, subs)
 
         if self.getName(va) is None:
             m = self.readMemory(va, size-1).replace("\n", "")
             self.makeName(va, "str_%s_%.8x" % (m[:16],va))
-        return self.addLocation(va, size, LOC_STRING, tinfo=list(subs))
+        return self.addLocation(va, size, LOC_STRING, tinfo=tinfo)
 
     def makeUnicode(self, va, size=None):
         if size is None:
@@ -2020,10 +2032,13 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         if size <= 0:
             raise Exception("Invalid Unicode Size: %d" % size)
 
+        subs = self._getSubstrings(va, size, LOC_UNI)
+        tinfo = self._getStrTinfo(va, subs)
+
         if self.getName(va) is None:
             m = self.readMemory(va, size-1).replace("\n","").replace("\0","")
             self.makeName(va, "wstr_%s_%.8x" % (m[:16],va))
-        return self.addLocation(va, size, LOC_UNI)
+        return self.addLocation(va, size, LOC_UNI, tinfo=tinfo)
 
     def addConstModule(self, modname):
         '''
