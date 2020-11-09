@@ -18,7 +18,6 @@ import vqt.cli
 import vqt.main
 import vqt.colors
 import vqt.qpython
-import vqt.shortcut
 import vqt.hotkeys as vq_hotkeys
 import vqt.application as vq_app
 

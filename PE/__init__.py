@@ -399,6 +399,12 @@ class PE(object):
 
         self.IMAGE_NT_HEADERS = nt
 
+    def __del__(self):
+        try:
+            self.fd.close()
+        except:
+            pass  # whatever. we're tearing down anyway
+
     def getPdataEntries(self):
         sec = self.getSectionByName('.pdata')
         if sec is None:

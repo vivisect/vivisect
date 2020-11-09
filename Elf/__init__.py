@@ -309,6 +309,12 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
         self._parseSectionRelocs()
         logger.info('done parsing ELF')
 
+    def __del__(self):
+        try:
+            self.fd.close()
+        except:
+            pass  # whatever. we're tearing down anyway
+
     def getRelocTypeName(self, rtype):
         '''
         Because relocation type names are decided based on the
