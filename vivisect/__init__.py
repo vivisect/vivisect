@@ -1967,7 +1967,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         if ploc:
             # the string we're making is a substring of some outer one
             # still make this string location, but let the parent know about us too and our
-            # children as well. Ultimately, the outermost parent should be responsible for 
+            # children as well. Ultimately, the outermost parent should be responsible for
             # knowing about all it's substrings
             modified = False
             pva, psize, ptype, pinfo = ploc
