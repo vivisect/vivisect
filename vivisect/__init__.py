@@ -819,7 +819,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
     def addExport(self, va, etype, name, filename, makeuniq=False):
         """
         Add an already created export object.
-        
+
         makeuniq allows Vivisect to append some number to make the name unique.
         This behavior allows for colliding names (eg. different versions of a function)
         to coexist in the same workspace.
@@ -1955,6 +1955,22 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         Create a new string location at the given VA.  You may optionally
         specify size.  If size==None, the string will be parsed as a NULL
         terminated ASCII string.
+
+        Substrings are also handled here. Generally, the idea is:
+        * if the memory range is completey undefined, we just create a new string at the VA specified (provided that asciiStringSize return a size greater than 0 or the parameter size is greater than 0)
+
+        * if we create a string A at virtual address 0x40 with size 20, and then later a string B at virtual
+          address 0x44, we won't actually make a new location for the string B, but rather add info to the
+          tinfo portion of the location tuple for string A, and when trying to retrieve string B via getLocation,
+          we'll make up a (sort of) fake location tuple for string B, provided that range=True is passed to
+          getLocation
+
+        * if we create string A at virtual address 0x40, and then later a string B at virtual 0x30
+          that has a size of 16 or more, we overwrite the string A with the location information for string B,
+          and demote string A to being a tuple of (VA, size) inside of string B's location information.
+
+        This method only captures suffixes, but perhaps in the future we'll have symbolik resolution that can
+        capture true substrings that aren't merely suffixes.
         """
         if size is None:
             size = self.asciiStringSize(va)
@@ -1964,16 +1980,13 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
         # rip through the desired memory range to populate any substrings
         subs = set()
-        offset = va
         end = va + size
-        while offset < end:
-            loc = self.getLocation(offset, range=True)
+        for offs in range(va, end, 1):
+            loc = self.getLocation(offs, range=True)
             if loc and loc[L_LTYPE] == LOC_STRING and loc[L_VA] > va:
                 subs.add((loc[L_VA], loc[L_SIZE]))
                 if loc[L_TINFO]:
                     subs = subs.union(set(loc[L_TINFO]))
-                    self.addLocation(loc[L_VA], loc[L_SIZE], loc[L_LTYPE], [])
-            offset += 1
 
         ploc = self.getLocation(va, range=False)
         if ploc:
@@ -1986,10 +1999,11 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             if (va, size) not in pinfo:
                 modified = True
                 pinfo.append((va, size))
-            for va, size in subs:
-                if (va, size) not in pinfo:
+
+            for sva, ssize in subs:
+                if (sva, ssize) not in pinfo:
                     modified = True
-                    pinfo.append((va, size))
+                    pinfo.append((sva, ssize))
             if modified:
                 self.addLocation(pva, psize, LOC_STRING, tinfo=pinfo)
                 subs = set()
@@ -2194,9 +2208,9 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             return loc
 
         if range and loc[L_LTYPE] in (LOC_STRING, LOC_UNI):
-            # dig into any sublocs
-            # This is a bit dirty, since it teeeeeechnically should belong to the locmap class,
-            # but implementing it here is far less dangerous than throwing it in there
+            # dig into any sublocations that may have been created, trying to find the best match
+            # possible, where "best" means the substring that both contains the va, and has no substrings
+            # that contain the va.
             subs = sorted(loc[L_TINFO], key=lambda k: k[0], reverse=False)
             ltup = loc
             for sva, ssize in subs:

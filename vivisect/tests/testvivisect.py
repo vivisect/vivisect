@@ -532,6 +532,24 @@ class VivisectTest(unittest.TestCase):
         # be a good citizen and clean up
         vw.makeString(base)
 
+    def test_more_substrings(self):
+        vw = self.gcc_vw
+        va = 0x48a491
+        vw.delLocation(va)
+        # assert it got deleted
+        self.assertIsNone(vw.getLocation(va))
+
+        # little string first
+        vw.makeString(va + 7)
+        loc = vw.getLocation(va + 7)
+        self.assertEqual(loc, (va + 7, 11, 2, []))
+
+        # make the outer string
+        wat = vw.makeString(va)
+        newloc = vw.getLocation(va)
+        self.assertEqual(newloc, (va, 18, 2, [(va+7, 11)]))
+        self.assertEqual(wat, newloc)
+
     def test_make_noname(self):
         vw = self.vdir_vw
         name = 'TheBinaryAnalysisPlantsCrave'
