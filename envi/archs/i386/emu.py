@@ -2110,7 +2110,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         # interleave qwords
         self.i_punpcklbw(op, width=8)
 
-    def i_punpckhbw(self, op, width=1, override=False):
+    def i_punpckhbw(self, op, width=1, off=0, override=False):
         name = self.getRealRegisterNameByIdx(op.opers[0].reg)
         realreg = self.getRegisterByName(name)
 

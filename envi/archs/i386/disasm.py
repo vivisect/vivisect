@@ -15,6 +15,7 @@ from envi.archs.i386.opconst import OP_EXTRA_MEMSIZES, OP_MEM_B, OP_MEM_W, OP_ME
                                     OP_MEM_Q, OP_MEM_DQ, OP_MEM_QQ, OP_MEMMASK, \
                                     INS_VEXREQ, OP_NOVEXL
 
+import opconst
 import opcode86
 all_tables = opcode86.tables86
 
@@ -560,15 +561,22 @@ class i386Opcode(envi.Opcode):
         flags = self.iflags & envi.ARCH_MASK
         addb = False
 
+        # if we're a trap type instruction, stop here
+        if self.opcode & opconst.INS_TRAP == opconst.INS_TRAP:
+            return []
+
+        if self.opcode == opconst.INS_HALT:
+            return []
+
         # If we are a conditional branch, even our fallthrough
         # case is conditional...
-        if self.opcode == opcode86.INS_BRANCHCC:
+        if self.opcode == opconst.INS_BRANCHCC:
             flags |= envi.BR_COND
             addb = True
 
         # If we can fall through, reflect that...
         if not self.iflags & envi.IF_NOFALL:
-            ret.append((self.va + self.size, flags|envi.BR_FALL))
+            ret.append((self.va + self.size, flags | envi.BR_FALL))
 
         # In intel, if we have no operands, it has no
         # further branches...
