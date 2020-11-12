@@ -125,6 +125,17 @@ iflag_lookup = {
     opcode86.INS_XCHGCC: envi.IF_COND,
 }
 
+trap_lookup = set([
+    opconst.INS_TRAP,
+    opconst.INS_TRAPCC,
+    opconst.INS_TRET,
+    opconst.INS_BOUNDS,
+    opconst.INS_DEBUG,
+    opconst.INS_TRACE,
+    opconst.INS_INVALIDOP,
+    opconst.INS_OFLOW,
+])
+
 sizenames = ["" for x in range(65)]
 sizenames[1] = "byte"
 sizenames[2] = "word"
@@ -562,7 +573,7 @@ class i386Opcode(envi.Opcode):
         addb = False
 
         # if we're a trap type instruction, stop here
-        if self.opcode & opconst.INS_TRAP == opconst.INS_TRAP:
+        if self.opcode in trap_lookup:
             return []
 
         if self.opcode == opconst.INS_HALT:
