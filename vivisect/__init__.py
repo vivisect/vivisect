@@ -2226,6 +2226,8 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             # dig into any sublocations that may have been created, trying to find the best match
             # possible, where "best" means the substring that both contains the va, and has no substrings
             # that contain the va.
+            if not loc[L_TINFO]:
+                return loc
             subs = sorted(loc[L_TINFO], key=lambda k: k[0], reverse=False)
             ltup = loc
             for sva, ssize in subs:
