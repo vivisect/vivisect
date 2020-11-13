@@ -41,11 +41,11 @@ def analyze(vw):
                     # Look for Unicode before ASCII to catch UTF-16 LE.
                     sz = vw.detectUnicode(ref)
                     if sz > 0:
-                        vw.addLocation(ref, sz, LOC_UNI)
+                        vw.makeUnicode(ref, size=sz)
                     else:
                         sz = vw.detectString(ref)
                         if sz > 0:
-                            vw.addLocation(ref, sz, LOC_STRING)
+                            vw.makeString(ref, size=sz)
 
                 va += len(op)
     return
