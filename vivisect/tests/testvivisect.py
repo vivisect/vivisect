@@ -53,8 +53,6 @@ class VivisectTest(unittest.TestCase):
                                  (lsize, True))
                 self.assertEqual((ltype, isint(ltype)),
                                  (ltype, True))
-                if linfo:
-                    self.assertTrue(isint(linfo) or type(linfo) in (unicode, str))
 
     def test_basic_apis(self):
         '''
@@ -433,7 +431,7 @@ class VivisectTest(unittest.TestCase):
         '''
         badva = 0x0805b6f2
         loctup = self.vdir_vw.getLocation(badva)
-        self.assertEqual((134592163, 86, 2, None), loctup)
+        self.assertEqual((134592163, 86, 2, []), loctup)
 
         strtbl = 0x805e75c
         loctup = self.vdir_vw.getLocation(strtbl)
@@ -496,6 +494,63 @@ class VivisectTest(unittest.TestCase):
 
     def test_posix_impapi(self):
         pass
+
+    def test_substrings(self):
+        vw = self.gcc_vw
+        # real boy test
+        loc = vw.getLocation(0x48a301, range=True)
+        rep = vw.readMemory(loc[v_const.L_VA], loc[v_const.L_SIZE])
+        self.assertEqual(loc, (0x48a301, 6, 2, []))
+        self.assertEqual(rep, '/lib/\x00')
+
+        loc = vw.getLocation(0x48a2fd)
+        rep = vw.readMemory(loc[v_const.L_VA], loc[v_const.L_SIZE])
+        self.assertEqual(loc, (0x48a2fd, 10, 2, [(0x48a301, 6)]))
+        self.assertEqual(rep, '/usr/lib/\x00')
+
+        # easily retrieve the parent string
+        loc = vw.getLocation(0x48a302, range=False)
+        rep = vw.readMemory(loc[v_const.L_VA], loc[v_const.L_SIZE])
+        self.assertEqual(loc, (0x48a2fd, 10, 2, [(0x48a301, 6)]))
+        self.assertEqual(rep, '/usr/lib/\x00')
+
+        # make up some substrings
+        s = 'Using built-in specs.\n\x00'
+        base = 0x48a4b4
+        vw.delLocation(base)
+        for i in range(1, len(s)):
+            vw.makeString(base + len(s) - i)
+        vw.makeString(base)
+        for i in range(1, len(s)):
+            loc = vw.getLocation(base + i, range=True)
+            self.assertEqual(loc[0], base + i)
+            self.assertEqual(loc[1], len(s) - i)
+            self.assertEqual(loc[2], 2)
+            self.assertEqual(loc[3], [])
+        loc = vw.getLocation(base)
+        self.assertTrue(len(loc[v_const.L_TINFO]), 22)
+        # if you delete the main string, you also end up deleting the substrings
+        vw.delLocation(base)
+        # be a good citizen and clean up
+        vw.makeString(base)
+
+    def test_more_substrings(self):
+        vw = self.gcc_vw
+        va = 0x48a491
+        vw.delLocation(va)
+        # assert it got deleted
+        self.assertIsNone(vw.getLocation(va))
+
+        # little string first
+        vw.makeString(va + 7)
+        loc = vw.getLocation(va + 7)
+        self.assertEqual(loc, (va + 7, 11, 2, []))
+
+        # make the outer string
+        wat = vw.makeString(va)
+        newloc = vw.getLocation(va)
+        self.assertEqual(newloc, (va, 18, 2, [(va+7, 11)]))
+        self.assertEqual(wat, newloc)
 
     def test_make_noname(self):
         vw = self.vdir_vw
