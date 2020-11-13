@@ -819,7 +819,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
     def addExport(self, va, etype, name, filename, makeuniq=False):
         """
         Add an already created export object.
-        
+
         makeuniq allows Vivisect to append some number to make the name unique.
         This behavior allows for colliding names (eg. different versions of a function)
         to coexist in the same workspace.
@@ -920,6 +920,12 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
                     if loc[L_LTYPE] == LOC_STRING:
                         if loc[L_VA] == va:
                             return loc[L_SIZE]
+                        if ord(bytez[offset+count]) != 0:
+                            # we probably hit a case where the string at the lower va is
+                            # technically the start of the full string, but the binary does
+                            # some optimizations and just ref's inside the full string to save 
+                            # some space
+                            return count + loc[L_SIZE]
                         return loc[L_VA] - (va + count) + loc[L_SIZE]
                     return -1
 
@@ -966,6 +972,12 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
                 loc = self.getLocation(va+count)
                 if loc:
                     if loc[L_LTYPE] == LOC_UNI:
+                        if loc[L_VA] == va:
+                            return loc[L_SIZE]
+                        if ord(bytes[offset+count]) != 0:
+                            # same thing as in the string case, a binary can ref into a string
+                            # only part of the full string.
+                            return count + loc[L_SIZE]
                         return loc[L_VA] - (va + count) + loc[L_SIZE]
                     return -1
 
@@ -1938,11 +1950,65 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         offset, bytes = self.getByteDef(va)
         return e_bits.parsebytes(bytes, offset, size, bigend=self.bigend)
 
+    def _getSubstrings(self, va, size, ltyp):
+        # rip through the desired memory range to populate any substrings
+        subs = set()
+        end = va + size
+        for offs in range(va, end, 1):
+            loc = self.getLocation(offs, range=True)
+            if loc and loc[L_LTYPE] == LOC_STRING and loc[L_VA] > va:
+                subs.add((loc[L_VA], loc[L_SIZE]))
+                if loc[L_TINFO]:
+                    subs = subs.union(set(loc[L_TINFO]))
+        return list(subs)
+
+    def _getStrTinfo(self, va, subs):
+        ploc = self.getLocation(va, range=False)
+        if ploc:
+            # the string we're making is a substring of some outer one
+            # still make this string location, but let the parent know about us too and our
+            # children as well. Ultimately, the outermost parent should be responsible for
+            # knowing about all it's substrings
+            modified = False
+            pva, psize, ptype, pinfo = ploc
+            if (va, size) not in pinfo:
+                modified = True
+                pinfo.append((va, size))
+
+            for sva, ssize in subs:
+                if (sva, ssize) not in pinfo:
+                    modified = True
+                    pinfo.append((sva, ssize))
+            if modified:
+                tinfo = pinfo
+        else:
+            tinfo = subs
+
+        return tinfo
+
     def makeString(self, va, size=None):
         """
         Create a new string location at the given VA.  You may optionally
         specify size.  If size==None, the string will be parsed as a NULL
         terminated ASCII string.
+
+        Substrings are also handled here. Generally, the idea is:
+        * if the memory range is completey undefined, we just create a new string at the VA specified (provided that asciiStringSize return a size greater than 0 or the parameter size is greater than 0)
+
+        * if we create a string A at virtual address 0x40 with size 20, and then later a string B at virtual
+          address 0x44, we won't actually make a new location for the string B, but rather add info to the
+          tinfo portion of the location tuple for string A, and when trying to retrieve string B via getLocation,
+          we'll make up a (sort of) fake location tuple for string B, provided that range=True is passed to
+          getLocation
+
+        * if we create string A at virtual address 0x40, and then later a string B at virtual 0x30
+          that has a size of 16 or more, we overwrite the string A with the location information for string B,
+          and demote string A to being a tuple of (VA, size) inside of string B's location information.
+
+        This method only captures suffixes, but perhaps in the future we'll have symbolik resolution that can
+        capture true substrings that aren't merely suffixes.
+
+        This same formula is applied to unicode detection as well
         """
         if size is None:
             size = self.asciiStringSize(va)
@@ -1950,10 +2016,14 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         if size <= 0:
             raise Exception("Invalid String Size: %d" % size)
 
+        # rip through the desired memory range to populate any substrings
+        subs = self._getSubstrings(va, size, LOC_STRING)
+        tinfo = self._getStrTinfo(va, subs)
+
         if self.getName(va) is None:
-            m = self.readMemory(va, size-1).replace("\n","")
+            m = self.readMemory(va, size-1).replace("\n", "")
             self.makeName(va, "str_%s_%.8x" % (m[:16],va))
-        return self.addLocation(va, size, LOC_STRING)
+        return self.addLocation(va, size, LOC_STRING, tinfo=tinfo)
 
     def makeUnicode(self, va, size=None):
         if size is None:
@@ -1962,10 +2032,13 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         if size <= 0:
             raise Exception("Invalid Unicode Size: %d" % size)
 
+        subs = self._getSubstrings(va, size, LOC_UNI)
+        tinfo = self._getStrTinfo(va, subs)
+
         if self.getName(va) is None:
             m = self.readMemory(va, size-1).replace("\n","").replace("\0","")
             self.makeName(va, "wstr_%s_%.8x" % (m[:16],va))
-        return self.addLocation(va, size, LOC_UNI)
+        return self.addLocation(va, size, LOC_UNI, tinfo=tinfo)
 
     def addConstModule(self, modname):
         '''
@@ -2138,14 +2211,31 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             return False
         return tup[L_LTYPE] == ltype
 
-    def getLocation(self, va, range=False):
+    def getLocation(self, va, range=True):
         """
         Return the va,size,ltype,tinfo tuple for the given location.
         (specify range=True to potentially match a va that is inside
-        a location rather than the beginning of one)
+        a location rather than the beginning of one, this behavior
+        only affects strings/substring retrieval currently)
         """
-        # TODO: range=True does nothing
-        return self.locmap.getMapLookup(va)
+        loc = self.locmap.getMapLookup(va)
+        if not loc:
+            return loc
+
+        if range and loc[L_LTYPE] in (LOC_STRING, LOC_UNI):
+            # dig into any sublocations that may have been created, trying to find the best match
+            # possible, where "best" means the substring that both contains the va, and has no substrings
+            # that contain the va.
+            if not loc[L_TINFO]:
+                return loc
+            subs = sorted(loc[L_TINFO], key=lambda k: k[0], reverse=False)
+            ltup = loc
+            for sva, ssize in subs:
+                if sva <= va < sva + ssize:
+                    ltup = (sva, ssize, loc[L_LTYPE], [])
+            return ltup
+        else:
+            return loc
 
     def getLocationRange(self, va, size):
         """
