@@ -1014,6 +1014,9 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
     def i_int(self, op):
         raise envi.BreakpointHit(self)
 
+    def i_int1(self, op):
+        raise envi.BreakpointHit(self)
+
     def i_int3(self, op):
         raise envi.BreakpointHit(self)
 
