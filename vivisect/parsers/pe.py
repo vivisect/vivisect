@@ -59,6 +59,11 @@ def parseFd(vw, fd, filename=None, baseaddr=None):
 arch_names = {
     PE.IMAGE_FILE_MACHINE_I386: 'i386',
     PE.IMAGE_FILE_MACHINE_AMD64: 'amd64',
+    PE.IMAGE_FILE_MACHINE_ARM: 'arm',
+    # DEV: uncomment this line to enable the arch (prolly not going to happen until AArch64 gets finished)
+    # PE.IMAGE_FILE_MACHINE_ARM64: 'arm64',
+    PE.IMAGE_FILE_MACHINE_ARMNT: 'thumb',
+    PE.IMAGE_FILE_MACHINE_THUMB: 'thumb16',
 }
 
 defcalls = {

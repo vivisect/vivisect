@@ -121,3 +121,28 @@ class TestReduceCase(unittest.TestCase):
         for i in range(100):
             esp -= Const(4, width=4)
         self.assertEqual(str(esp.reduce()), '(esp - 400)')
+
+    def test_symboliks_reduce_funcargs(self):
+        expr = Call(Const(0x140008180,8),
+                    8,
+                    argsyms=[
+                        o_xor(
+                            o_xor(
+                                Mem(Const(0x140009000,8),
+                                    Const(0x00000008,8)),
+                                o_sub(o_sub(Const(0xbfbff000,8),
+                                            Const(0x00000008,8),
+                                            8),
+                                      Const(0x00000280,8),
+                                      8),
+                                      8),
+                            o_sub(
+                                o_sub(Const(0xbfbff000,8),
+                                      Const(0x00000008,8),
+                                      8),
+                                Const(0x00000280,8),
+                                8),
+                        8)
+                    ])
+        expr = expr.reduce()
+        self.assertEqual(str(expr), '0x140008180(mem[0x140009000:8])')
