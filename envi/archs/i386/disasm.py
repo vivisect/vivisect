@@ -123,18 +123,15 @@ iflag_lookup = {
     opcode86.INS_BRANCHCC: envi.IF_BRANCH | envi.IF_COND,
     opcode86.INS_MOVCC: envi.IF_COND,
     opcode86.INS_XCHGCC: envi.IF_COND,
-}
 
-trap_lookup = set([
-    opconst.INS_TRAP,
-    opconst.INS_TRAPCC,
-    opconst.INS_TRET,
-    opconst.INS_BOUNDS,
-    opconst.INS_DEBUG,
-    opconst.INS_TRACE,
-    opconst.INS_INVALIDOP,
-    opconst.INS_OFLOW,
-])
+    opconst.INS_TRET: envi.IF_NOFALL | envi.IF_RET,
+    opconst.INS_HALT: envi.IF_NOFALL,
+    opconst.INS_TRAP: envi.IF_NOFALL,
+    opconst.INS_TRAPCC: envi.IF_NOFALL | envi.IF_COND,
+    opconst.INS_DEBUG: envi.IF_NOFALL,
+    opconst.INS_INVALIDOP: envi.IF_NOFALL,
+    opconst.INS_OFLOW: envi.IF_NOFALL,
+}
 
 sizenames = ["" for x in range(65)]
 sizenames[1] = "byte"
@@ -571,13 +568,6 @@ class i386Opcode(envi.Opcode):
         # To start with we have no flags ( except our arch )
         flags = self.iflags & envi.ARCH_MASK
         addb = False
-
-        # if we're a trap type instruction, stop here
-        if self.opcode in trap_lookup:
-            return []
-
-        if self.opcode == opconst.INS_HALT:
-            return []
 
         # If we are a conditional branch, even our fallthrough
         # case is conditional...

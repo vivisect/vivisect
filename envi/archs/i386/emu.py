@@ -1011,6 +1011,11 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         self.setFlag(EFLAGS_AF, (sval & 0xf == 0))
         self.setFlag(EFLAGS_PF, e_bits.is_parity_byte(sval))
 
+    def i_ud0(self, op):
+        raise envi.BadOpcode(op)
+    i_ud1 = i_ud0
+    i_ud2 = i_ud0
+
     def i_int(self, op):
         raise envi.BreakpointHit(self)
 

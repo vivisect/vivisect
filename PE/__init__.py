@@ -185,6 +185,7 @@ class VS_VERSIONINFO:
     '''
     def __init__(self, bytes):
         self._version_info = {}
+        self._fixed_file_info = None
         self._parseBytes(bytes)
 
     def getVersionValue(self, key, default=None):
@@ -223,6 +224,7 @@ class VS_VERSIONINFO:
         if valsize and valsize >= len(vs_pe.VS_FIXEDFILEINFO()):
             ffinfo = vs_pe.VS_FIXEDFILEINFO()
             ffinfo.vsParse(bytes[offset:offset+valsize])
+            self._fixed_file_info = ffinfo
 
         offset += valsize
         offmod = offset % 4
@@ -642,10 +644,15 @@ class PE(object):
                     subdata = self.readStructAtRva( dresc.VirtualAddress + dirent.OffsetToData, 'pe.IMAGE_RESOURCE_DATA_ENTRY')
                     # RP BUG FIX - sanity check the subdata
                     if subdata and self.checkRva(subdata.OffsetToData, size=subdata.Size):
-                        langid = name_id & 0x3ff
-                        sublangid = name_id >> 10
-                        langinfo = (subdata.CodePage, langid, sublangid )
-                        rsdirobj.addRsrcData(subdata.OffsetToData, subdata.Size, langinfo )
+                        # sometimes people are bad and they lie to us
+                        try:
+                            langid = name_id & 0x3ff
+                            sublangid = name_id >> 10
+                        except:
+                            langid = None
+                            sublangid = None
+                        langinfo = (subdata.CodePage, langid, sublangid)
+                        rsdirobj.addRsrcData(subdata.OffsetToData, subdata.Size, langinfo)
 
                 offset += len(dirent)
 
