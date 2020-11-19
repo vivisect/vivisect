@@ -41,7 +41,6 @@ except ImportError:
 import envi.common as e_common
 
 logger = logging.getLogger(__name__)
-e_common.setLogging(logger, 'WARNING')
 
 daemon = None
 version = "Cobra2"

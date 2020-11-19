@@ -9,7 +9,7 @@ Strategy:
     * Emulator does translation from register/mode to actual storage container
         using reg_table and some math (see _getRegIdx)
 '''
-arm_regs = [
+arm_regs_tups = [
     ('r0', 32),
     ('r1', 32),
     ('r2', 32),
@@ -32,7 +32,8 @@ arm_regs = [
 ]
 
 # force them into a tuple for faster run-time access
-arm_regs = tuple(arm_regs)
+arm_regs_tups = tuple(arm_regs_tups)
+arm_regs = [r for r,sz in arm_regs_tups]
 
 arm_metas = [
         ("r13", REG_SP, 0, 32),
@@ -47,7 +48,7 @@ modes = proc_modes.keys()
 modes.sort()
 
 reg_table = [ x for x in range(17 * REGS_PER_MODE) ]
-reg_data = [ (reg, sz) for reg,sz in arm_regs ]
+reg_data = [ (reg, sz) for reg,sz in arm_regs_tups ]
 reg_table_data = [ (None, 32) for x in range(17 * REGS_PER_MODE) ]
 for idx,data in enumerate(reg_data):
     reg_table_data[idx] = data
@@ -60,13 +61,13 @@ for modenum in modes[1:]:       # skip first since we're already done
         # don't create new entries for this register, use the usr-mode reg
         reg_table[ridx+offset] = ridx
 
-        rnm, rsz = arm_regs[ridx]
+        rnm, rsz = arm_regs_tups[ridx]
         reg_table_data[ridx+offset] = ('%s_%s' % (rnm, msname), rsz) 
 
     # mode-regs (not including PC)
     for ridx in range(mode_reg_count, 15):
         idx = len(reg_data)
-        rnm, rsz = arm_regs[ridx]
+        rnm, rsz = arm_regs_tups[ridx]
         regname = rnm+"_"+msname
         reg_data.append((regname, 32))
         reg_table[ridx+offset] = idx
@@ -127,7 +128,7 @@ reg_data.append(('fpscr', 32))
 MAX_TABLE_SIZE = len(reg_table_data)
 
 l = locals()
-e_reg.addLocalEnums(l, arm_regs)
+e_reg.addLocalEnums(l, arm_regs_tups)
 
 PSR_N = 31  # negative
 PSR_Z = 30  # zero
