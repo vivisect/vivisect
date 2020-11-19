@@ -730,17 +730,51 @@ class PE(object):
         if x is None:
             return
 
+        self.parseImportTable(x, irva, self.imports, is_imports=True)
+
+    def parseDelayImports(self):
+        self.delayImports = []
+
+        didir = self.getDataDirectory(IMAGE_DIRECTORY_ENTRY_DELAY_IMPORT)
+
+        # RP BUG FIX - invalid IAT entry will point of range of file
+        irva = didir.VirtualAddress
+        x = self.readStructAtRva(irva, 'pe.IMAGE_DELAY_IMPORT_DIRECTORY', check=True)
+        if x is None:
+            return
+
+        self.parseImportTable(x, irva, self.delay_imports, is_imports=False)
+
+    def parseImportTable(self, x, irva, imports_list, is_imports=True):
+        '''
+        Parse a standard or delayed import table, adding to imports_list.
+        Start with x and irva set to the first entry in the table.
+        '''
         isize = len(x)
 
-        while self.checkRva(x.Name):
+        while True:
+            if is_imports:
+                entry_name = x.Name
+            else:
+                entry_name = x.rvaDLLName
+
+            if not self.checkRva(entry_name):
+                break
 
             # RP BUG FIX - we can't assume that we have 256 bytes to read
-            libname = self.readStringAtRva(x.Name, maxsize=256)
+            libname = self.readStringAtRva(entry_name, maxsize=256)
             idx = 0
 
-            imp_by_name = x.OriginalFirstThunk
-            if imp_by_name == 0:
-                imp_by_name = x.FirstThunk
+            if is_imports:
+                imp_by_name = x.OriginalFirstThunk
+                if imp_by_name == 0:
+                    imp_by_name = x.FirstThunk
+                save_name = x.FirstThunk
+            else:
+                imp_by_name = x.rvaINT
+                if imp_by_name == 0:
+                    imp_by_name = x.rvaIAT
+                save_name = x.rvaIAT
 
             if not self.checkRva(imp_by_name):
                 break
@@ -749,7 +783,7 @@ class PE(object):
 
                 arrayoff = self.psize * idx
                 if self.filesize is not None and arrayoff > self.filesize:
-                    self.imports = [] # we probably put grabage in  here..
+                    imports_list = [] # we probably put garbage in here
                     return
 
                 ibn_rva = self.readPointerAtRva(imp_by_name+arrayoff)
@@ -781,81 +815,7 @@ class PE(object):
 
                     funcname = ibn.Name
 
-                self.imports.append((x.FirstThunk+arrayoff,libname,funcname))
-
-                idx += 1
-
-            irva += isize
-
-            # RP BUG FIX - if the import table is at the end of the file we can't count on the ending to be null
-            if not self.checkRva(irva, size=isize):
-                break
-
-            x.vsParse(self.readAtRva(irva, isize))
-
-    def parseDelayImports(self):
-        self.delayImports = []
-
-        didir = self.getDataDirectory(IMAGE_DIRECTORY_ENTRY_DELAY_IMPORT)
-
-        # RP BUG FIX - invalid IAT entry will point of range of file
-        irva = didir.VirtualAddress
-        x = self.readStructAtRva(irva, 'pe.IMAGE_DELAY_IMPORT_DIRECTORY', check=True)
-        if x is None:
-            return
-
-        isize = len(x)
-
-        while self.checkRva(x.rvaDLLName):
-
-            # RP BUG FIX - we can't assume that we have 256 bytes to read
-            libname = self.readStringAtRva(x.rvaDLLName, maxsize=256)
-            idx = 0
-
-            imp_by_name = x.rvaINT
-            if imp_by_name == 0:
-                imp_by_name = x.rvaIAT
-
-            if not self.checkRva(imp_by_name):
-                break
-
-            while True:
-
-                arrayoff = self.psize * idx
-                if self.filesize is not None and arrayoff > self.filesize:
-                    self.imports = []  # we probably put grabage in  here..
-                    return
-
-                ibn_rva = self.readPointerAtRva(imp_by_name + arrayoff)
-                if ibn_rva == 0:
-                    break
-
-                if ibn_rva & self.high_bit_mask:
-                    funcname = ordlookup.ordLookup(libname, ibn_rva & 0x7fffffff)
-
-                elif not self.checkRva(ibn_rva):
-                    break
-
-                else:
-                    # RP BUG FIX - we can't use this API on this call because we can have binaries that put their import table
-                    # right at the end of the file, statically saying the imported function name is 128 will cause use to potentially
-                    # over run our read and traceback...
-
-                    diff = self.getMaxRva() - ibn_rva - 2
-                    ibn = vstruct.getStructure("pe.IMAGE_IMPORT_BY_NAME")
-                    ibn.vsGetField('Name').vsSetLength(min(diff, 128))
-                    bytes = self.readAtRva(ibn_rva, len(ibn), shortok=True)
-                    if not bytes:
-                        break
-                    try:
-                        ibn.vsParse(bytes)
-                    except:
-                        idx += 1
-                        continue
-
-                    funcname = ibn.Name
-
-                self.delayImports.append((x.rvaIAT + arrayoff, libname, funcname))
+                imports_list.append((save_name + arrayoff, libname, funcname))
 
                 idx += 1
 
