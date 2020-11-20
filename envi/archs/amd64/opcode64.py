@@ -1336,8 +1336,8 @@ tbl32_660FC7_rest = list( tbl32_0FC7_rest )
 tbl32_F30FC7_rest = list( tbl32_0FC7_rest )
 
 
-desc_0FC7_00BF   = (tbl32_0FC7_00BF, 3,3, 0x07, 0, 0xbf, TBL_0FC7_rest)
-desc_0FC7_rest   = (tbl32_0FC7_rest, 3, 0, 0x07, 0xc0, 0xff)
+desc_0FC7_00BF   = (tbl32_0FC7_00BF, 3, 3, 0x07, 0, 0xbf, TBL_0FC7_rest)
+desc_0FC7_rest   = (tbl32_0FC7_rest, 3, 3, 0x07, 0xc0, 0xff)
 desc_660FC7_00BF = (tbl32_660FC7_00BF, 3, 3, 0x07, 3, 0xff, TBL_660FC7_rest)
 desc_660FC7_rest = (tbl32_660FC7_rest, 3, 3, 0x07, 0xc0, 0xff)
 desc_F30FC7_00BF = (tbl32_F30FC7_00BF, 3, 3, 0x07, 3, 0xff, TBL_F30FC7_rest)
