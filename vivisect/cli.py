@@ -112,15 +112,11 @@ class VivCli(vivisect.VivWorkspace, e_cli.EnviCli):
             return
 
         g = v_t_graph.buildFunctionGraph(self, fva)
-        # Lets find the "bottom" nodes...
-        endblocks = []
-        for nid, ninfo in g.getNodes():
-            if len(g.getRefsFrom(nid)) == 0:
-                endblocks.append((nid, ninfo))
-
-        for nid, ninfo in endblocks:
-            paths = list(g.pathSearch(0, toid=nid))
-            self.vprint('paths to 0x%.8x: %d' % (ninfo.get('cbva'), len(paths)))
+        pathcnt = 0
+        for path in v_t_graph.getCodePaths(g):
+            self.vprint('Path through 0x%.8x: %s' % (fva, [hex(p[0]) for p in path]))
+            pathcnt += 1
+        self.vprint('Total Paths: %d' % pathcnt)
 
     def do_symboliks(self, line):
         '''

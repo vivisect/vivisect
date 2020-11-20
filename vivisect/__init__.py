@@ -1962,7 +1962,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
                     subs = subs.union(set(loc[L_TINFO]))
         return list(subs)
 
-    def _getStrTinfo(self, va, subs):
+    def _getStrTinfo(self, va, size, subs):
         ploc = self.getLocation(va, range=False)
         if ploc:
             # the string we're making is a substring of some outer one
@@ -2018,7 +2018,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
         # rip through the desired memory range to populate any substrings
         subs = self._getSubstrings(va, size, LOC_STRING)
-        tinfo = self._getStrTinfo(va, subs)
+        tinfo = self._getStrTinfo(va, size, subs)
 
         if self.getName(va) is None:
             m = self.readMemory(va, size-1).replace("\n", "")
@@ -2033,7 +2033,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             raise Exception("Invalid Unicode Size: %d" % size)
 
         subs = self._getSubstrings(va, size, LOC_UNI)
-        tinfo = self._getStrTinfo(va, subs)
+        tinfo = self._getStrTinfo(va, size, subs)
 
         if self.getName(va) is None:
             m = self.readMemory(va, size-1).replace("\n","").replace("\0","")
