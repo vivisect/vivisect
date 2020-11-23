@@ -293,6 +293,11 @@ i386MultiByteOpcodes = [
     ('PCLMULQDQ (MEM)', '660F3A441007', 0x40, 'pclmulqdq xmm2,oword [eax],7', 'pclmulqdq xmm2,oword [eax],7'),
     ('PCLMULQDQ (MEM 2)', '660F3A4478119C', 0x40, 'pclmulqdq xmm7,oword [eax + 17],156', 'pclmulqdq xmm7,oword [eax + 17],156'),
     ('PCLMULQDQ (MEM 3)', '660F3A443D41414141C6', 0x40, 'pclmulqdq xmm7,oword [0x41414141],198', 'pclmulqdq xmm7,oword [0x41414141],198'),
+    ('RDRAND', '0fc7f0', 0x40, 'rdrand eax', 'rdrand eax'),
+    ('RDSEED', '0fc7f8', 0x40, 'rdseed eax', 'rdseed eax'),
+    ('VMPTRST', '0fc73d41414141', 0x40, 'vmptrst qword [0x41414141]', 'vmptrst qword [0x41414141]'),
+    ('VMCLEAR', '0fc73541414141', 0x40, 'vmptrld qword [0x41414141]', 'vmptrld qword [0x41414141]'),
+    ('CMPXCHG', '0fb0d0', 0x40, 'cmpxchg al,dl', 'cmpxchg al,dl'),
 ]
 
 
