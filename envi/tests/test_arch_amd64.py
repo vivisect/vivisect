@@ -381,6 +381,9 @@ amd64MultiByteOpcodes = [
     ('VMPTRST', '0fc73d41414141', 'vmptrst qword [rip + 1094795585]', 'vmptrst qword [rip + 1094795585]'),
     ('VMCLEAR', '0fc73541414141', 'vmptrld qword [rip + 1094795585]', 'vmptrld qword [rip + 1094795585]'),
     ('CMPXCHG', '0fb0d0', 'cmpxchg al,dl', 'cmpxchg al,dl'),
+    ('PMOVMSKB', '660fd7f8', 'pmovmskb edi,xmm0', 'pmovmskb edi,xmm0'),
+    ('PMOVMSBK 2', '660fd7ca', 'pmovmskb ecx,xmm2', 'pmovmskb ecx,xmm2'),
+    ('PMOVMSKB 3', '0fd7f8', 'pmovmskb edi,mm0', 'pmovmskb edi,mm0'),
     # XXX: Here's a fun tidbit. In the intel docs for this instruction, it says to use REX.B
     # to index into the higher
     # xmm{8,15} registers. But the only xmm register in this are specifcally indexed by the
@@ -1005,8 +1008,8 @@ amd64VexOpcodes = [
     ('VMOVQ 1', 'c5f9d604254a4a4a4a', 'vmovq qword [0x4a4a4a4a],xmm0', 'vmovq qword [0x4a4a4a4a],xmm0'),
     ('VMOVQ 2', 'c44179d630', 'vmovq qword [r8],xmm14', 'vmovq qword [r8],xmm14'),
     ('VMOVQ 3', 'c44179d68fb4000000', 'vmovq qword [r15 + 180],xmm9', 'vmovq qword [r15 + 180],xmm9'),
-    ('VPMOVMSKB 0', 'c44179d7cf', 'vpmovmskb r9,xmm15', 'vpmovmskb r9,xmm15'), # should be r9d
-    ('VPMOVMSKB 1', 'c57dd7c9', 'vpmovmskb r9,ymm1', 'vpmovmskb r9,ymm1'), # r9d instead of r9
+    ('VPMOVMSKB 0', 'c44179d7cf', 'vpmovmskb r9d,xmm15', 'vpmovmskb r9d,xmm15'),
+    ('VPMOVMSKB 1', 'c57dd7c9', 'vpmovmskb r9d,ymm1', 'vpmovmskb r9d,ymm1'),
     ('VCVTTPD2DQ 0', 'c4c179e6ce', 'vcvttpd2dq xmm1,xmm14', 'vcvttpd2dq xmm1,xmm14'),
     ('VCVTTPD2DQ 1', 'c5fde6cd', 'vcvttpd2dq xmm1,ymm5', 'vcvttpd2dq xmm1,ymm5'),
     ('VCVTTPD2DQ 2', 'c5f9e60c254a4a4a4a', 'vcvttpd2dq xmm1,oword [0x4a4a4a4a]', 'vcvttpd2dq xmm1,oword [0x4a4a4a4a]'),
