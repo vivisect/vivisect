@@ -79,6 +79,7 @@ def addAnalysisModules(vw):
         vw.addAnalysisModule('vivisect.analysis.ms.localhints')
         # Find import thunks
         vw.addFuncAnalysisModule("vivisect.analysis.generic.thunks")
+        vw.addFuncAnalysisModule("vivisect.analysis.generic.noret")
         vw.addAnalysisModule("vivisect.analysis.generic.funcentries")
         vw.addAnalysisModule('vivisect.analysis.ms.msvcfunc')
 

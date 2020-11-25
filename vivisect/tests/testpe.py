@@ -12,9 +12,8 @@ class PETests(unittest.TestCase):
     def setUpClass(cls):
         super(PETests, cls).setUpClass()
         cls.psexec_fn = helpers.getTestPath('windows', 'i386', 'PsExec.exe')
-        cls.vw_psexec = viv_cli.VivCli()
-        cls.vw_psexec.loadFromFile(cls.psexec_fn)
-        cls.vw_psexec.analyze()
+        cls.vw_psexec = helpers.getTestWorkspace('windows', 'i386', 'PsExec.exe')
+        cls.vw_sphinx = helpers.getTestWorkspace('windows', 'i386', 'sphinx_livepretend.exe')
 
     def test_function_disasm(self):
         disasm = [
@@ -100,6 +99,31 @@ class PETests(unittest.TestCase):
 
     def test_pointer_locations(self):
         pass
+
+    def test_pe_jmptable(self):
+        vw = self.vw_sphinx
+
+        tblins = 0x00403b3c
+        xrefs = vw.getXrefsFrom(tblins, viv_con.REF_PTR)
+        self.assertEqual(len(xrefs), 1)
+        self.assertEqual(xrefs[0], (tblins, 0x403bc4, 3, 0))
+
+        xrefs = vw.getXrefsFrom(tblins, viv_con.REF_CODE)
+        self.assertEqual(len(xrefs), 4)
+        codeblocks = [
+            (4209468, 4209475, 1, 2),
+            (4209468, 4209509, 1, 2),
+            (4209468, 4209517, 1, 2),
+            (4209468, 4209525, 1, 2)
+        ]
+        for xr in xrefs:
+            self.assertTrue(xr in codeblocks)
+
+    def test_pe_dynamic_noret(self):
+        vw = self.vw_sphinx
+        noret = ['0x408d40', '0x408da0', '0x429229', '0x426e8a', '0x43b06c', '0x4268d4', '0x4268ba', '0x4291fd']
+        for va in noret:
+            self.assertTrue(vw.isNoReturnVa(va))
 
     def test_emulation_vaset(self):
         vw = self.vw_psexec

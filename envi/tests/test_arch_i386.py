@@ -222,7 +222,9 @@ i386MultiByteOpcodes = [
     ('MOV AMETH_D', '0f21c0', 0x40, 'mov eax,debug0', 'mov eax,debug0'),
     ('MOV AMETH_D 2', '0f21f9', 0x40, 'mov ecx,debug7', 'mov ecx,debug7'),
     ('MOV AMETH_D 3', '0f23e1', 0x40, 'mov debug4,ecx', 'mov debug4,ecx'),
-
+    ('PMOVMSKB', '660fd7f8', 0x40, 'pmovmskb edi,xmm0', 'pmovmskb edi,xmm0'),
+    ('PMOVMSBK 2', '660fd7ca', 0x40, 'pmovmskb ecx,xmm2', 'pmovmskb ecx,xmm2'),
+    ('PMOVMSKB 3', '0fd7f8', 0x40, 'pmovmskb edi,mm0', 'pmovmskb edi,mm0'),
     ('MOV SEGREG', '64a130000000', 0x40, 'fs: mov eax,dword [0x00000030]', 'fs: mov eax,dword [0x00000030]'),
     ('MOV SEGREG 2', '8ce0', 0x40, 'mov eax,fs', 'mov eax,fs'),
     ('MOV SEGREG 3', '8ec6', 0x40, 'mov es,esi', 'mov es,esi'),
@@ -331,51 +333,6 @@ class i386InstructionSet(unittest.TestCase):
 
     def test_envi_i386_disasm_Specific_MultiByte_Instrs(self):
         self.check_opreprs(i386MultiByteOpcodes)
-
-    '''
-    def test_envi_i386_disasm_A(self):
-        pass
-    def test_envi_i386_disasm_C(self):
-        pass
-    def test_envi_i386_disasm_D(self):
-        pass
-    def test_envi_i386_disasm_E(self):
-        pass
-    def test_envi_i386_disasm_F(self):
-        pass
-    def test_envi_i386_disasm_G(self):
-        pass
-    def test_envi_i386_disasm_I(self):
-        pass
-    def test_envi_i386_disasm_J(self):
-        pass
-    def test_envi_i386_disasm_L(self):
-        pass
-    def test_envi_i386_disasm_M(self):
-        pass
-    def test_envi_i386_disasm_N(self):
-        pass
-    def test_envi_i386_disasm_O(self):
-        pass
-    def test_envi_i386_disasm_P(self):
-        pass
-    def test_envi_i386_disasm_Q(self):
-        pass
-    def test_envi_i386_disasm_R(self):
-        pass
-    def test_envi_i386_disasm_S(self):
-        pass
-    def test_envi_i386_disasm_U(self):
-        pass
-    def test_envi_i386_disasm_V(self):
-        pass
-    def test_envi_i386_disasm_W(self):
-        pass
-    def test_envi_i386_disasm_X(self):
-        pass
-    def test_envi_i386_disasm_Y(self):
-        pass
-    '''
 
     def checkOpcode(self, hexbytez, va, oprepr, opcheck, opercheck, renderOp):
 
