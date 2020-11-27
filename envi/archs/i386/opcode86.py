@@ -1111,14 +1111,14 @@ tbl32_0FAE_00BF = [	# IA32 manuals don't list an actual address method... guessi
 (optable, optype, operand 0, operand 1, operand 2, CPU required, "opcodename", op0Register, op1Register, op2Register)
 """
 tbl32_0FAE_rest = [
-(0, 0, ARG_NONE, ARG_NONE, ARG_NONE, 0, 0, 0, 0, 0  ), 
-(0, 0, ARG_NONE, ARG_NONE, ARG_NONE, 0, 0, 0, 0, 0  ), 
-(0, 0, ARG_NONE, ARG_NONE, ARG_NONE, 0, 0, 0, 0, 0  ), 
-(0, 0, ARG_NONE, ARG_NONE, ARG_NONE, 0, 0, 0, 0, 0  ), 
-(0, 0, ARG_NONE, ARG_NONE, ARG_NONE, 0, 0, 0, 0, 0  ), 
-( 0, INS_FPU, ARG_NONE, ARG_NONE, ARG_NONE, cpu_PENTIUM2, "lfence", 0, 0, 0  ),
-( 0, INS_FPU, ARG_NONE, ARG_NONE, ARG_NONE, cpu_PENTIUM2, "mfence", 0, 0, 0  ),
-( 0, INS_FPU, ARG_NONE, ARG_NONE, ARG_NONE, cpu_PENTIUM2, "sfence", 0, 0, 0  )
+(0, 0, ARG_NONE, ARG_NONE, ARG_NONE, 0, 0, 0, 0, 0),
+(0, 0, ARG_NONE, ARG_NONE, ARG_NONE, 0, 0, 0, 0, 0),
+(0, 0, ARG_NONE, ARG_NONE, ARG_NONE, 0, 0, 0, 0, 0),
+(0, 0, ARG_NONE, ARG_NONE, ARG_NONE, 0, 0, 0, 0, 0),
+(0, 0, ARG_NONE, ARG_NONE, ARG_NONE, 0, 0, 0, 0, 0),
+( 0, INS_FPU, ARG_NONE, ARG_NONE, ARG_NONE, cpu_PENTIUM2, "lfence", 0, 0, 0),
+( 0, INS_FPU, ARG_NONE, ARG_NONE, ARG_NONE, cpu_PENTIUM2, "mfence", 0, 0, 0),
+( 0, INS_FPU, ARG_NONE, ARG_NONE, ARG_NONE, cpu_PENTIUM2, "sfence", 0, 0, 0)
 ]
 
 

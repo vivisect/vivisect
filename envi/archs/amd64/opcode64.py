@@ -1276,21 +1276,21 @@ tbl32_0FAE_00BF = [	# IA32 manuals don't list an actual address method... guessi
 tbl32_F30FAE_00BF = list( tbl32_0FAE_00BF )
 
 tbl32_0FAE_rest = [ ( 0, 0, 0, 0, 0, 0, 0, 0, 0, 0  ) for x in range(8) ]
-tbl32_0FAE_rest[5] =    ( 0, INS_FPU, 0, 0, 0, cpu_PENTIUM2, "lfence", 0, 0, 0  )
-tbl32_0FAE_rest[6] =    ( 0, INS_FPU, 0, 0, 0, cpu_PENTIUM2, "mfence", 0, 0, 0  )
-tbl32_0FAE_rest[7] =    ( 0, INS_FPU, 0, 0, 0, cpu_PENTIUM2, "sfence", 0, 0, 0  )
+tbl32_0FAE_rest[5] = (0, INS_FPU, 0, 0, 0, cpu_PENTIUM2, "lfence", 0, 0, 0)
+tbl32_0FAE_rest[6] = (0, INS_FPU, 0, 0, 0, cpu_PENTIUM2, "mfence", 0, 0, 0)
+tbl32_0FAE_rest[7] = (0, INS_FPU, 0, 0, 0, cpu_PENTIUM2, "sfence", 0, 0, 0)
 
 
 tbl32_F30FAE_rest = [ (0, 0, 0, 0, 0, 0, 0, 0, 0, 0  ) for x in range(8) ]
-tbl32_F30FAE_rest[0]    = ( 0, INS_OTHER, ADDRMETH_R | OPTYPE_y | OP_R, ARG_NONE, ARG_NONE, cpu_AMD64, "rdfsbase", 0, 0, 0)
-tbl32_F30FAE_rest[1]    = ( 0, INS_OTHER, ADDRMETH_R | OPTYPE_y | OP_R, ARG_NONE, ARG_NONE, cpu_AMD64, "rdgsbase", 0, 0, 0)
-tbl32_F30FAE_rest[2]    = ( 0, INS_OTHER, ADDRMETH_R | OPTYPE_y | OP_R, ARG_NONE, ARG_NONE, cpu_AMD64, "wrfsbase", 0, 0, 0)
-tbl32_F30FAE_rest[3]    = ( 0, INS_OTHER, ADDRMETH_R | OPTYPE_y | OP_R, ARG_NONE, ARG_NONE, cpu_AMD64, "wrgsbase", 0, 0, 0)
+tbl32_F30FAE_rest[0] = (0, INS_OTHER, ADDRMETH_R | OPTYPE_y | OP_R, ARG_NONE, ARG_NONE, cpu_AMD64, "rdfsbase", 0, 0, 0)
+tbl32_F30FAE_rest[1] = (0, INS_OTHER, ADDRMETH_R | OPTYPE_y | OP_R, ARG_NONE, ARG_NONE, cpu_AMD64, "rdgsbase", 0, 0, 0)
+tbl32_F30FAE_rest[2] = (0, INS_OTHER, ADDRMETH_R | OPTYPE_y | OP_R, ARG_NONE, ARG_NONE, cpu_AMD64, "wrfsbase", 0, 0, 0)
+tbl32_F30FAE_rest[3] = (0, INS_OTHER, ADDRMETH_R | OPTYPE_y | OP_R, ARG_NONE, ARG_NONE, cpu_AMD64, "wrgsbase", 0, 0, 0)
 
 
 desc_0FAE_00BF      = (tbl32_0FAE_00BF,3,3,0x07,0,0xbf, TBL_0FAE_rest)
 desc_F30FAE_00BF    = (tbl32_F30FAE_00BF,3,3,0x07,0,0xbf, TBL_F30FAE_rest)
-desc_0FAE_rest      = (tbl32_0FAE_rest,3,3,0x07,0xc0,0xff)
+desc_0FAE_rest      = (tbl32_0FAE_rest,3,3,0xFF,0xc0,0xff)
 desc_F30FAE_rest    = (tbl32_F30FAE_rest,3,3,0x07,0xc0,0xff)
 
 

@@ -1336,8 +1336,8 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
     def updateCallsFrom(self, fva, ncalls):
         function = self.getFunction(fva)
         prev_call = self.getFunctionMeta(function, 'CallsFrom')
-        ncall = set(prev_call).union(calls_from)
-        self.setFunctionMeta(function, 'CallsFrom', list(ncall))
+        newcall = set(prev_call).union(set(ncalls))
+        self.setFunctionMeta(function, 'CallsFrom', list(newcall))
 
     def makeCode(self, va, arch=envi.ARCH_DEFAULT, fva=None):
         """
@@ -1354,7 +1354,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         if fva is None:
             self.setVaSetRow('CodeFragments', (va, calls_from))
         else:
-            self.updateCallsFrom(va, calls_from)
+            self.updateCallsFrom(fva, calls_from)
         return calls_from
 
     def previewCode(self, va, arch=envi.ARCH_DEFAULT):
@@ -1983,6 +1983,8 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             # knowing about all it's substrings
             modified = False
             pva, psize, ptype, pinfo = ploc
+            if ptype not in (LOC_STRING, LOC_UNI):
+                return subs
             if (va, size) not in pinfo:
                 modified = True
                 pinfo.append((va, size))

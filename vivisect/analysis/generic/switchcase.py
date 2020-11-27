@@ -19,12 +19,14 @@ def analyzeJmp(amod, emu, op, starteip):
     ctx = getSwitchBase(vw, op, starteip, emu)
     if ctx is not None:
         tova, scale = ctx
+        fva = vw.getFunction(starteip)
+        vw.makePointer(tova, follow=False)
         vw.makeJumpTable(op, tova, rebase=True, psize=scale)
         # so the codeblocks this jumptable points to aren't proper locations...yet.
         # let's fix that up and kick off codeblock analysis to make the codeblocks
         for xrfrom, xrto, xrtype, xrflags in vw.getXrefsFrom(op.va, rtype=v_const.REF_CODE):
-            vw.makeCode(xrto)
-        vagc.analyzeFunction(vw, vw.getFunction(starteip))
+            vw.makeCode(xrto, fva=fva)
+        vagc.analyzeFunction(vw, fva)
 
 
 def getRealRegIdx(emu, regidx):
