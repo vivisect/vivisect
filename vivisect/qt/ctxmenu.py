@@ -216,6 +216,11 @@ def buildContextMenu(vw, va=None, expr=None, menu=None, parent=None, nav=None):
         menu.addAction('undefine (U)',   ACT(vw.delLocation, va))
 
     e_q_memcanvas.initMemSendtoMenu(expr, menu)
+
+    # give any extensions a chance to play
+    for exthook in vw._ext_ctxmenu_hooks:
+        logger.warn('exthook: %r', exthook)
+        print exthook, vw, va, expr, menu, parent, nav
+        exthook(vw, va, expr, menu, parent, nav)
+
     return menu
-
-
