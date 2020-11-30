@@ -228,7 +228,7 @@ class CodeFlowContext(object):
                             # typically (save for derefs) is being added to self._cf_blocks above
                             # and nobody but drefs changes what bva is
                             if self._cf_recurse:
-                                if bva in self._cf_blocks[:-1] or bva == self._cf_blocks[-1]:
+                                if bva in self._cf_blocks:
                                     # the function that we want to make prodcedural
                                     # called us so we can't call to make it procedural
                                     # until its done
