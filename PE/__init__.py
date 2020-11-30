@@ -754,7 +754,7 @@ class PE(object):
         return ret
 
     def parseImports(self):
-        self.imports = []
+        [ self.imports.pop() for i in range(len(self.imports)) ]
 
         idir = self.getDataDirectory(IMAGE_DIRECTORY_ENTRY_IMPORT)
 
@@ -767,7 +767,7 @@ class PE(object):
         self.parseImportTable(x, irva, self.imports, is_imports=True)
 
     def parseDelayImports(self):
-        self.delayImports = []
+        [ self.delayImports.pop() for i in range(len(self.delayImports)) ]
 
         didir = self.getDataDirectory(IMAGE_DIRECTORY_ENTRY_DELAY_IMPORT)
 
@@ -777,7 +777,7 @@ class PE(object):
         if x is None:
             return
 
-        self.parseImportTable(x, irva, self.delay_imports, is_imports=False)
+        self.parseImportTable(x, irva, self.delayImports, is_imports=False)
 
     def parseImportTable(self, x, irva, imports_list, is_imports=True):
         '''
