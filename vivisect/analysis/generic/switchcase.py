@@ -85,7 +85,7 @@ def getSwitchBase(vw, op, vajmp, emu=None):
     regbase = addOp.getOperValue(1, emu)
     if regbase != imgbase:
         # just in case let's check a few more instructions up, because the first register could be
-        # being used as the base instead
+        # being used as the base instead (which means the second register is being used as the selector)
         if not scanUp(vw, emu, addOp.va, reg, imgbase):
             vw.vprint("0x%x: reg != imagebase (0x%x != 0x%x)" % (op.va, regbase, imgbase))
             return
@@ -93,7 +93,11 @@ def getSwitchBase(vw, op, vajmp, emu=None):
     # Now find the instruction before the add that does the actual mov
     movOp = findOp(vw, emu, addOp, 'mov', reg)
     if movOp is None:
-        return
+        # try the other one just in case
+        reg = getRealRegIdx(emu, addOp.opers[1].reg)
+        movOp = findOp(vw, emu, addOp, 'mov', reg)
+        if movOp is None:
+            return
 
     # TODO: Want a more arch-independent way of doing this
     arrayOper = movOp.opers[1]

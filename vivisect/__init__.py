@@ -1086,7 +1086,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         rdest = self.readMemValue(ptrbase, step)
         if rebase and rdest < imgbase:
             rdest += imgbase
-        while self.isValidPointer(rdest) and self.isExecutable(rdest) and self.isProbablyCode(rdest):
+        while self.isValidPointer(rdest) and self.isProbablyCode(rdest):
             if self.analyzePointer(ptrbase) in STOP_LOCS:
                 break
 
