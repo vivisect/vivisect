@@ -88,12 +88,12 @@ class VivisectTest(unittest.TestCase):
         self.assertTrue(len(vw.getLocations()) > 1000)
 
         # tuples are Name, Number of Locations, Size in bytes, Percentage of space
-        ans = {0: ('Undefined', 0, 517666, 49),
+        ans = {0: ('Undefined', 0, 509878, 48),
                1: ('Num/Int', 271, 1724, 0),
-               2: ('String', 4054, 153424, 14),
+               2: ('String', 4066, 153678, 14),
                3: ('Unicode', 0, 0, 0),
                4: ('Pointer', 5376, 43008, 4),
-               5: ('Opcode', 79489, 323542, 30),
+               5: ('Opcode', 81348, 331076, 31),
                6: ('Structure', 496, 11544, 1),
                7: ('Clsid', 0, 0, 0),
                8: ('VFTable', 0, 0, 0),
@@ -694,3 +694,34 @@ class VivisectTest(unittest.TestCase):
             'ret '
         ]
         self.assertEqual(ops, map(str, v_t_graphutil.getOpsFromPath(vw, g, path)))
+
+    def test_graphutil_coverage(self):
+        # FIXME: So fun anecdote for later, originally I wanted to use fva 0x804af40 (parse_ls_colors)
+        # out of vdir for this test, but unfortunately, we detect the codeblock of that fva
+        # as 0x804af09, which crosses function boundaries into the function decode_switches.
+        # Reason being is that at VA 0x804af31, there's a call to error() with value 2 as the first
+        # parameter, which according to the man page for error means it should quit out. We don't grab
+        # that at codeflow time (because such things would require an emulator with knowledge of calling
+        # conventions)
+        # But that raises the question if makeFunction should split the codeblock
+        # or if we ignore that and just let the CodeBlockGraph stuff do it all for us,
+        # or if we should allow codeflow to carry an emulator with it.
+        vw = self.vdir_vw
+        fvas = [
+            0x804c030,
+            0x804ce40,
+            0x804cec0,
+            0x804d1a0,
+        ]
+        for fva in fvas:
+            g = v_t_graphutil.buildFunctionGraph(vw, fva)  # print_dir
+            hits = set()
+            for path in v_t_graphutil.getCoveragePaths(g):
+                for nid, edge in path:
+                    hits.add(nid)
+
+            self.assertEqual(len(hits), len(vw.getFunctionBlocks(fva)))
+            for nid in hits:
+                cb = vw.getCodeBlock(nid)
+                self.assertEqual(nid, cb[0])
+                self.assertEqual(fva, cb[2])

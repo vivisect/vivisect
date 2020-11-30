@@ -87,7 +87,25 @@ class PETests(unittest.TestCase):
         self.assertTrue(self.vw_psexec.metadata['NoReturnApis']['ntdll.rtlexituserthread'])
         self.assertTrue(self.vw_psexec.metadata['NoReturnApis']['ntoskrnl.kebugcheckex'])
 
-        self.assertEquals(len(self.vw_psexec.getMeta('NoReturnApisVa')), 2)
+        noret = [
+            0x41a1c0,  # ExitProcess
+            0x412380,  # calls 0x407027
+            0x409143,  # legit no return
+            0x40ba2b,  # ends in int3 only
+            0x407027,  # calls 0x4070e5 and then in3
+            0x412389,  # every path ends in int3
+            0x40ba07,  # ends in call to 0x412389 and int3
+            0x4018d0,  # ends in call to 0x4072ca and int3
+            0x407011,  # Ends in a call to ExitProcess
+            0x409be3,  # Calls Exit thread, but also ends in a call to 0x409b77 followed by cccccccc bytes
+            0x41a1f4,  # Actual ExitThread import
+            0x409bb8,  # Ends in a call to ExitThread and then int3
+            0x4090bd,  # Ends in a call to ExitThread and then int3
+            0x409dbf,  # Ends in a call to 0x407011
+        ]
+        meta = self.vw_psexec.getMeta('NoReturnApisVa')
+        for nva in noret:
+            self.assertTrue(nva in meta, msg='0x%.8x is not a no return va!' % nva)
         self.assertTrue(self.vw_psexec.metadata['NoReturnApisVa'][4301248])
         self.assertTrue(self.vw_psexec.metadata['NoReturnApisVa'][4301300])
 
@@ -121,9 +139,9 @@ class PETests(unittest.TestCase):
 
     def test_pe_dynamic_noret(self):
         vw = self.vw_sphinx
-        noret = ['0x408d40', '0x408da0', '0x429229', '0x426e8a', '0x43b06c', '0x4268d4', '0x4268ba', '0x4291fd']
+        noret = [0x408d40, 0x408da0, 0x429229, 0x426e8a, 0x43b06c, 0x4268d4, 0x4268ba, 0x4291fd]
         for va in noret:
-            self.assertTrue(vw.isNoReturnVa(va))
+            self.assertTrue(vw.isNoReturnVa(va), msg='0x%.8x is not no return!' % va)
 
     def test_emulation_vaset(self):
         vw = self.vw_psexec

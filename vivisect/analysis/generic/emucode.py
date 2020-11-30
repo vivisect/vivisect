@@ -41,7 +41,7 @@ class watcher(viv_imp_monitor.EmulationMonitor):
 
         # if there is 1 mnem that makes up over 50% of all instructions then flag it as invalid
         for mnem, count in self.mndist.items():
-            if round(float( float(count) / float(self.insn_count)), 3) >= .67:
+            if round(float( float(count) / float(self.insn_count)), 3) >= .67 and self.insn_count > 4:
                 return False
 
         return True
