@@ -754,36 +754,35 @@ class PE(object):
         return ret
 
     def parseImports(self):
-        [ self.imports.pop() for i in range(len(self.imports)) ]
-
         idir = self.getDataDirectory(IMAGE_DIRECTORY_ENTRY_IMPORT)
 
         # RP BUG FIX - invalid IAT entry will point of range of file
         irva = idir.VirtualAddress
         x = self.readStructAtRva(irva, 'pe.IMAGE_IMPORT_DIRECTORY', check=True)
         if x is None:
+            self.imports = []
             return
 
-        self.parseImportTable(x, irva, self.imports, is_imports=True)
+        self.imports = self.parseImportTable(x, irva, is_imports=True)
 
     def parseDelayImports(self):
-        [ self.delayImports.pop() for i in range(len(self.delayImports)) ]
-
         didir = self.getDataDirectory(IMAGE_DIRECTORY_ENTRY_DELAY_IMPORT)
 
         # RP BUG FIX - invalid IAT entry will point of range of file
         irva = didir.VirtualAddress
         x = self.readStructAtRva(irva, 'pe.IMAGE_DELAY_IMPORT_DIRECTORY', check=True)
         if x is None:
+            self.delayImports = []
             return
 
-        self.parseImportTable(x, irva, self.delayImports, is_imports=False)
+        self.delayImports = self.parseImportTable(x, irva, is_imports=False)
 
-    def parseImportTable(self, x, irva, imports_list, is_imports=True):
+    def parseImportTable(self, x, irva, is_imports=True):
         '''
         Parse a standard or delayed import table, adding to imports_list.
         Start with x and irva set to the first entry in the table.
         '''
+        imports_list = []
         isize = len(x)
 
         while True:
@@ -817,8 +816,7 @@ class PE(object):
 
                 arrayoff = self.psize * idx
                 if self.filesize is not None and arrayoff > self.filesize:
-                    imports_list = [] # we probably put garbage in here
-                    return
+                    return [] # we probably put garbage in the list
 
                 ibn_rva = self.readPointerAtRva(imp_by_name+arrayoff)
                 if ibn_rva == 0:
@@ -860,6 +858,8 @@ class PE(object):
                 break
 
             x.vsParse(self.readAtRva(irva, isize))
+
+        return imports_list
 
     def getRelocations(self):
         """
