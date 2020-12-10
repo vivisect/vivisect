@@ -376,6 +376,11 @@ amd64MultiByteOpcodes = [
     ('LDDQU', 'f2440ff0142541414141', 'lddqu xmm10,oword [0x41414141]', 'lddqu xmm10,oword [0x41414141]'),
     ('LDDQU 1', 'f20ff0348531000000', 'lddqu xmm6,oword [0x00000031 + rax * 4]', 'lddqu xmm6,oword [0x00000031 + rax * 4]'),
     ('MOVDQ2Q', 'f20fd6d9', 'movdq2q mm3,xmm1', 'movdq2q mm3,xmm1'),
+    ('RDRAND', '0fc7f0', 'rdrand eax', 'rdrand eax'),
+    ('RDSEED', '0fc7f8', 'rdseed eax', 'rdseed eax'),
+    ('VMPTRST', '0fc73d41414141', 'vmptrst qword [rip + 1094795585]', 'vmptrst qword [rip + 1094795585]'),
+    ('VMCLEAR', '0fc73541414141', 'vmptrld qword [rip + 1094795585]', 'vmptrld qword [rip + 1094795585]'),
+    ('CMPXCHG', '0fb0d0', 'cmpxchg al,dl', 'cmpxchg al,dl'),
     # XXX: Here's a fun tidbit. In the intel docs for this instruction, it says to use REX.B
     # to index into the higher
     # xmm{8,15} registers. But the only xmm register in this are specifcally indexed by the

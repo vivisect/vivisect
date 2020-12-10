@@ -2233,7 +2233,7 @@ tables86=[
     (tbl32_0FAE_00BF, 3, 0x07, 0, 0xbf, 53),     # 22
     (tbl32_0FBA, 3, 0x07, 0, 0xff),              # 23
     (tbl32_0FC7_00BF, 3, 0x07, 0, 0xbf, 25),     # 24
-    (tbl32_0FC7_rest, 0, 0x07, 0xc0, 0xff),      # 25
+    (tbl32_0FC7_rest, 3, 0x07, 0xc0, 0xff),      # 25
     (tbl32_fpuD8_00BF, 3, 0x07, 0, 0xbf, 27),    # 26
     (tbl32_fpuD8_rest, 0, 0xff, 0xc0, 0xff),     # 27
     (tbl32_fpuD9_00BF, 3, 0x07, 0, 0xbf, 29),    # 28
