@@ -22,6 +22,13 @@ LIBC_MAPS = [\
     ]
 
 
+
+WALKER_MAPS = maps = [\
+    (0x201a5a0, 0x9b, e_mem.MM_RWX, 'UH\x89\xe5H\x83\xec0@\x88\xf0H\x89}\xf8\x88E\xf7H\x89U\xe8H\x8bU\xf8H\x89\xd7H\x83\xc7`H\x8bu\xe8H\x89U\xe0\xe8R\x1a\x00\x00\xa8\x01\x0f\x85\x05\x00\x00\x00\xe9\x05\x00\x00\x00\xe9V\x01\x00\x00H\x8bE\xe0H\x8bH8H\x83\xc18H\x8bu\xe8H\x89\xcf\xe8\x98\x1a\x00\x00H\x89\xc7\xe8\xb0\x1a\x00\x00\x83\xc0\xff\x89\xc1\x83\xe8\x0bH\x89M\xd8\x89E\xd4\x0f\x87\x1c\x01\x00\x00H\x8d\x05\xec\xc6\x05\x00H\x8bM\xd8Hc\x14\x88H\x01\xc2\xff\xe2\x8aE\xf7H\x8bU\xe8H\x8b}\xe0\x0f\xb6\xf0\xe8\x84\x1a\x00'),
+    (0x201a731, 0x1e, e_mem.MM_RWX, '\xe9\x00\x00\x00\x00H\x83\xc40]\xc3\x0f\x1f@\x00UH\x89\xe5H\x89}\xf8H\x8b}\xf8H\x8b\x07'),
+    (0x2076d08, 0x30, e_mem.MM_READ, '\x11:\xfa\xff!9\xfa\xff\xe19\xfa\xffi9\xfa\xff\x819\xfa\xff\x999\xfa\xff\xb19\xfa\xff99\xfa\xffQ9\xfa\xff):\xfa\xff\xc99\xfa\xff\xf99\xfa\xff'),
+]
+
 def applyMaps(vw, maps=MS_MAPS, mapbase=0x400000, bufferpages=2):
     bufferpgsz = bufferpages * 4096
     vw.addMemoryMap(mapbase - bufferpgsz, e_mem.MM_RWX, 'testswitches', '@' * bufferpgsz)
@@ -46,7 +53,7 @@ def genMsSwitchWorkspace(maps=MS_MAPS, mapbase=0x400000, bufferpages=2):
     applyMaps(vw, maps, mapbase, bufferpages)
     return vw
 
-def genGccSwitchWorkspace(maps=LIBC_MAPS, mapbase=0x400000, bufferpages=2):
+def genLinuxSwitchWorkspace(maps=LIBC_MAPS, mapbase=0x400000, bufferpages=2):
     vw = vivisect.VivWorkspace()
     vw.setMeta('Architecture', 'i386')
     vw.setMeta('Platform', 'linux')
@@ -76,6 +83,23 @@ cbs_ms_0 = [
         (4308685, 26, 4194304),
         (4308711, 15, 4194304)]
 
+cbs_libc_0 = [
+        (5242880, 34, 5242880),
+        (5242914, 10, 5242880),
+        (5242924, 10, 5242880),
+        (5242934, 34, 5242880),
+        (5242968, 7, 5242880),
+        (5242975, 4, 5242880),
+        (5242984, 8, 5242880),
+        (5242992, 13, 5242880),
+        (5243005, 33, 5242880),
+        (5243040, 30, 5242880),
+        (5243070, 16, 5242880),
+        (5243086, 56, 5242880)]
+
+cbs_walker_0 = []
+
+
 class MsSwitchTest(unittest.TestCase):
     def test_ms_switch_0(self):
         vw = genMsSwitchWorkspace(MS_MAPS, 0x400000)
@@ -84,13 +108,18 @@ class MsSwitchTest(unittest.TestCase):
         self.assertEqual(vw.getFunctionBlocks(0x400000), cbs_ms_0)
         #self.assertEqual(vw.getXrefsFrom(0x
 
-
-
-
-
-class LibCSwitchTest(unittest.TestCase):
+class PosixSwitchTest(unittest.TestCase):
     def test_libc_switch_0(self):
-        vw = genGccSwitchWorkspace(LIBC_MAPS, 0x500000)
+        vw = genLinuxSwitchWorkspace(LIBC_MAPS, 0x500000)
+        vw.makeFunction(0x500000)
+        self.assertEqual(vw.getFunctionBlocks(0x500000), cbs_libc_0)
+
+class WalkerSwitchTest(unittest.TestCase):
+    def test_walker_switch_0(self):
+        self.maxDiff = None
+        vw = genLinuxSwitchWorkspace(WALKER_MAPS, 0x500000)
+        vw.makeFunction(0x500000)
+        self.assertEqual(vw.getFunctionBlocks(0x500000), cbs_walker_0)
 
 
 #=======  test generator code =======
@@ -124,13 +153,14 @@ def getFuncMaps(vw, fva):
     vas.sort()
 
     maps = []
+    perms = 'e_mem.MM_RWX'
     lastva = startva = vas[0]
     for va in vas:
         #print hex(va), hex(lastva), hex(startva)
         if (va - lastva) > MAX_GAP:
             size = lastva+MAX_INSTR_SIZE - startva
             memory = vw.readMemory(startva, size)
-            maps.append((startva, size, memory))
+            maps.append((startva, size, perms, memory))
             startva = va
 
         lastva = va
@@ -138,7 +168,7 @@ def getFuncMaps(vw, fva):
     # grab the last map
     size = lastva+MAX_INSTR_SIZE - startva
     memory = vw.readMemory(startva, size)
-    maps.append((startva, size, memory))
+    maps.append((startva, size, perms, memory))
 
     return maps
 
@@ -183,5 +213,5 @@ if globals().get('vw') is not None:
     vprint("analyzing Funcva (0x%x) for provided va (0x%x)" % (va, fva))
     maps = getFuncMaps(vw, fva)
     print('maps = [\\')
-    for startva, sz, mem in maps:
-        print('(0x%x, 0x%x, %r),' % (startva, sz, mem))
+    for startva, sz, perms, mem in maps:
+        print('(0x%x, 0x%x, %s, %r),' % (startva, sz, perms, mem))

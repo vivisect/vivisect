@@ -46,7 +46,7 @@ necessary, new codeblocks, and xrefs from the dynamic branch to the case handlin
 end, names are applied as appropriate.
 '''
 
-# FIXME: some cases set the non-index reg much higher up the chain, so we don't identify the case index
+# TODO: some cases set the non-index reg much higher up the chain, so we don't identify the case index
 # TODO: make all switchcase analysis for a given function cohesive (ie. don't finish up with naming until the entire function has been analyzed).  this will break cohesion if we use the CLI to add switchcases, but so be it.
 # TODO: overlapping case names...  doublecheck the naming algorithm.  ahh... different switch-cases colliding on handlers?  is this legit?  or is it because we don't stop correctly?
 # CHECK: are the algorithms for "stopping" correct?  currently getting 1 switch case for several cases in libc-32
@@ -174,17 +174,27 @@ def getUnknowns(symvar):
     '''
     determine unknown registers in this symbolik object
     '''
-    def _cb_grab_vars(path, symobj, ctx):
+    def _cb_grab_vars_n_mems(path, symobj, ctx):
         '''
         walkTree callback for grabbing Var objects
         '''
         logging.debug("... unk: %r", symobj)
         if symobj.symtype == SYMT_VAR:
-            if symobj.name not in ctx:
-                ctx.append(symobj.name)
+            varlist = ctx.get(SYMT_VAR)
+            if symobj.name not in varlist:
+                print "getUnknowns: symobj.name: %r" % (symobj.name)
+                varlist.append(symobj.name)
 
-    unks = []
-    symvar.walkTree(_cb_grab_vars, unks)
+        # sometimes the index comes from a global or local variable...
+        if symobj.symtype == SYMT_MEM:
+            memlist = ctx.get(SYMT_MEM)
+            if symobj not in memlist:
+                print "getUnknowns: symobj: %r" % (symobj)
+                memlist.append(symobj)
+            #import envi.interactive as ei; ei.dbg_interact(locals(), globals())
+
+    unks = {SYMT_VAR:[], SYMT_MEM:[]}
+    symvar.walkTree(_cb_grab_vars_n_mems, unks)
     return unks
 
 
@@ -263,6 +273,7 @@ def targetNewFunctions(vw, fva):
             cbva += len(op)
 
 
+THUNK_BX_CALL_LEN = 5
 
 def thunk_bx(emu, fname, symargs):
     vw = emu._sym_vw
@@ -270,7 +281,7 @@ def thunk_bx(emu, fname, symargs):
     ebxval = emu.getMeta('calling_va')
     oploc = vw.getLocation(ebxval)
     if oploc is None:
-        ebxval += 5
+        ebxval += THUNK_BX_CALL_LEN 
     else:
         ebxval += oploc[L_SIZE]
 
@@ -282,9 +293,9 @@ def thunk_bx(emu, fname, symargs):
 UNINIT_CASE_INDEX = -2
 
 class SwitchCase:
-    # FIXME: enhance "don't analyze" checks (like, already analyzed?)  or no?
-    # FIXME: collisions in named targets... shared between jmp's in same switch/function
-    # FIXME: thunk_bx needs to already be called on the thunk_bx functions *before* switchcase analysis can occur.  current setup doesn't guarantee that. ordering?  or we need to rewrite thunk_bx analysis to run during calling-function's analysis pass (during codeflow?) to analyze the functions being called...
+    # TODO: (poss?) enhance "don't analyze" checks (like, already analyzed?)  or no?
+    # TODO: collisions in named targets... shared between jmp's in same switch/function
+    # TODO: thunk_bx needs to already be called on the thunk_bx functions *before* switchcase analysis can occur.  current setup doesn't guarantee that. ordering?  or we need to rewrite thunk_bx analysis to run during calling-function's analysis pass (during codeflow?) to analyze the functions being called...  this may require some sort of post-processing step that queue's analysis and triggers it after thunk_bx is discovered?
     def __init__(self, vw, jmpva):
         self.vw = vw
         self.jmpva = jmpva
@@ -374,7 +385,7 @@ class SwitchCase:
 
     def getSymIdx(self):
         '''
-        returns the symbolik index register
+        returns the symbolik index register, and the type of object
         '''
         symtgt = self.getSymTarget()
         unks = getUnknowns(symtgt)
@@ -382,11 +393,18 @@ class SwitchCase:
         cspath, aspath, fullpath = self.getSymbolikParts()
 
         potentials = []
-        for unk in unks:
+
+        for unk in unks.get(SYMT_VAR):
             unkvar = cspath[0].getSymVariable(unk)
             if unkvar.isDiscrete():
                 continue
-            potentials.append(unk)
+            potentials.append((SYMT_VAR, unk))
+
+        for unk in unks.get(SYMT_MEM):
+            unkvar = cspath[0].getSymVariable(unk)
+            if unkvar.isDiscrete():
+                continue
+            potentials.append((SYMT_MEM, unk))
 
         if not len(potentials):
             #logger.critical('=-=-=-= failed to getSymIdx: unks: %r\n\nCSPATH:\n%s\n\nASPATH:\n%s\n\n',
@@ -455,18 +473,26 @@ class SwitchCase:
 
         self.cspath = sctx.getSymbolikPaths(fva, graph=self._sgraph, args=None, paths=[contextpath]).next()
         self.aspath = sctx.getSymbolikPaths(fva, graph=self._sgraph, args=[], paths=[analpath]).next()
+
         if len(self.cspath[1]) == 0:
             self.cspath = self.aspath
+        
         self.fullpath = sctx.getSymbolikPaths(fva, graph=self._sgraph, args=None, paths=[self._codepath]).next()
 
 
         return self.cspath, self.aspath, self.fullpath
 
     def getComplexIdx(self):
-        smplIdx = self.getSymIdx()
+        symtype, smplIdx = self.getSymIdx()
 
         (csemu, cseffs), asp, fullp = self.getSymbolikParts()
-        cplxIdx = csemu.getSymVariable(smplIdx)
+        if symtype == SYMT_VAR:
+            cplxIdx = csemu.getSymVariable(smplIdx)
+
+        elif symtype == SYMT_MEM:
+            symloc, symsz = smplIdx.kids
+            cplxIdx = csemu.readSymMemory(symloc, symsz)
+
         return cplxIdx
 
     #### higher level functionality ####
@@ -540,7 +566,7 @@ class SwitchCase:
         baseoff = None
        
         try:
-            while lower is None or (lower == 0 and upper is None) or upper <= lower: # FIXME: this will fail badly when it fails.  make this dependent on the codepathgen
+            while lower is None or (lower == 0 and upper is None) or upper <= lower: # note: this will fail badly when it fails.  make this dependent on the codepathgen
                 # get the index we'll be looking for in constraints
                 lower = 0           # the smallest index used.  most often wants to be 0
                 upper = None        # the largest index used.  max=MAX_CASES
@@ -754,7 +780,7 @@ class SwitchCase:
         semu = TrackingSymbolikEmulator(self.vw)
         semu.setSymSnapshot(csemu.getSymSnapshot())
 
-        symIdx = self.getSymIdx()
+        idxtype, symIdx = self.getSymIdx()
 
         # set our index to 0, to get the base of pointer/offset arrays
         semu.setSymVariable(symIdx, Const(0, 8))
@@ -878,8 +904,8 @@ class SwitchCase:
 
         (csemu, cseffs), aspath, fullpath = self.getSymbolikParts()
 
-        symidx = self.getSymIdx()
-        logger.info('getSymIdx: %r', symidx)
+        idxtype, symidx = self.getSymIdx()
+        logger.info('getSymIdx: %r/%r', (idxtype, symidx))
 
         jmptgt = self.getSymTarget()
         lower, upper, offset = self.getBounds()
@@ -895,7 +921,11 @@ class SwitchCase:
 
 
         for idx in range(lower-offset, upper-offset+1):
-            symemu.setSymVariable(symidx, Const(idx, 8))
+            #symemu.setSymVariable(symidx, Const(idx, 8))   # need to handle Memory as well.
+            if idxtype == SYMT_MEM:
+                symemu.writeSymMemory(symidx, Const(idx, vw.psize))
+            elif idxtype == SYMT_VAR:
+                symemu.setSymVariable(symidx, Const(idx, 8))
             workJmpTgt = jmptgt.update(emu=symemu)
             logger.info(" itercases: workJmpTgt: %r", workJmpTgt)
             coderef = workJmpTgt.solve(emu=symemu, vals={symidx:idx})
