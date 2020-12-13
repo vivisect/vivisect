@@ -172,6 +172,7 @@ def getFuncMaps(vw, fva):
 
     return maps
 
+emu = None
 def getVas(vw, fva):
     global emu
     emumon = AnalysisMonitor(vw, fva)
@@ -193,13 +194,13 @@ def getReadsWrites(emu):
         for nparent, nkids, ndata in path:
             #print ndata
             for opva, refva, refsz in ndata.get('readlog'):
-                if vw.isValidPointer(refva):
+                if emu.vw.isValidPointer(refva):
                     refvas['reads'].append(refva)
                     refvas['reads'].append(refva+refsz)
 
             for opva, refva, wdata in ndata.get('writelog'):
                 refsz = len(wdata)
-                if vw.isValidPointer(refva):
+                if emu.vw.isValidPointer(refva):
                     refvas['writes'].append(refva)
                     refvas['writes'].append(refva+refsz)
 
