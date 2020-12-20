@@ -905,7 +905,7 @@ class SwitchCase:
         (csemu, cseffs), aspath, fullpath = self.getSymbolikParts()
 
         idxtype, symidx = self.getSymIdx()
-        logger.info('getSymIdx: %r/%r', (idxtype, symidx))
+        logger.info('getSymIdx: %r/%r', idxtype, symidx)
 
         jmptgt = self.getSymTarget()
         lower, upper, offset = self.getBounds()
@@ -1020,7 +1020,7 @@ def link_up(vw, jmpva, array, count, baseoff, baseva=None, itemsize=None):
         if baseva is not None:
             addr = e_bits.unsigned(baseva + addr, vw.psize)
 
-        logger.info("0x%x manalyzeSwitch: idx: %s \t address: 0x%x", jmpva, idx, addr)
+        logger.info("0x%x analyzeSwitch: idx: %s \t address: 0x%x", jmpva, idx, addr)
         
         # determining when to stop identifying switch-cases can be tough.  we assume that we have the 
         # correct number handed into this function in "count", but currently we'll stop analyzing
@@ -1090,8 +1090,7 @@ def analyzeFunction(vw, fva):
     Function analysis module.
     This is inserted right after codeblock analysis
     '''
-    if vw.verbose:
-        logger.setLevel(logging.DEBUG)
+    logger.setLevel(logging.DEBUG)
 
     targetNewFunctions(vw, fva)
 

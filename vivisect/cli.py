@@ -813,7 +813,8 @@ class VivCli(vivisect.VivWorkspace, e_cli.EnviCli):
 
             import vivisect.analysis.generic.symswitchcase as vagss
             import vivisect.analysis.generic.codeblocks as vagc
-            vagss.makeSwitch(self, jmpva, count, offset)
+            sc = vagss.SwitchCase(self, jmpva)
+            sc.makeSwitch(count, offset)
             funcva = self.getFunction(jmpva)
             vagc.analyzeFunction(self, funcva)
         except ValueError as e:
