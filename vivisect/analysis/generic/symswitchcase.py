@@ -182,14 +182,12 @@ def getUnknowns(symvar):
         if symobj.symtype == SYMT_VAR:
             varlist = ctx.get(SYMT_VAR)
             if symobj.name not in varlist:
-                print "getUnknowns: symobj.name: %r" % (symobj.name)
                 varlist.append(symobj.name)
 
         # sometimes the index comes from a global or local variable...
         if symobj.symtype == SYMT_MEM:
             memlist = ctx.get(SYMT_MEM)
             if symobj not in memlist:
-                print "getUnknowns: symobj: %r" % (symobj)
                 memlist.append(symobj)
             #import envi.interactive as ei; ei.dbg_interact(locals(), globals())
 
