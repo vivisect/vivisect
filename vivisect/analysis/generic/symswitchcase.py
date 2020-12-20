@@ -1090,8 +1090,6 @@ def analyzeFunction(vw, fva):
     Function analysis module.
     This is inserted right after codeblock analysis
     '''
-    logger.setLevel(logging.DEBUG)
-
     targetNewFunctions(vw, fva)
 
     lastdynlen = 0
