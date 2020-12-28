@@ -3,9 +3,11 @@ import unittest
 import vivisect
 import envi.archs.ppc
 import envi.exc as e_exc
+import envi.archs.ppc.vle as eapvd
 import vivisect.symboliks.analysis as vs_anal
 
 import logging
+from binascii import unhexlify
 
 logger = logging.getLogger(__name__)
 
@@ -46,7 +48,6 @@ class PpcInstructionSet(unittest.TestCase):
             try:
                 # try register first
                 emu.setRegisterByName(tgt, val)
-                print "reg: %r  <- %d" % (tgt, val)
 
             except e_exc.InvalidRegisterName:
                 # it's not a register
@@ -149,7 +150,7 @@ class PpcInstructionSet(unittest.TestCase):
                 if op_str == result_instr:
                     test_pass += 1
                 if result_instr != op_str:
-                    print ('{}: ours: {} != {}'.format(test_bytes, op_str, result_instr))
+                    logging.error('{}: ours: {} != {}'.format(test_bytes, repr(op_str), repr(result_instr)))
 
                 # do emulator tests for this byte combination (if existing)
                 emutests = test_module.emutests.get(test_bytes)
@@ -159,8 +160,7 @@ class PpcInstructionSet(unittest.TestCase):
                     bademu += nbademu
 
             except Exception, e:
-                print ('ERROR: {}: {}'.format(test_bytes, result_instr))
-                sys.excepthook(*sys.exc_info())
+                logging.exception('ERROR: {}: {}'.format(test_bytes, result_instr))
 
         logger.info("%s: %d of %d successes", archname, test_pass, len(test_module.instructions))
         self.assertAlmostEqual(test_pass, len(test_module.instructions), delta=MARGIN_OF_ERROR)
@@ -1455,4 +1455,5 @@ class PpcInstructionSet(unittest.TestCase):
         tmpl = "%r:  r0:%x r1:%x cr:%x xer:%x   ncr:%x nxer:%x nfpscr:%x   ecr:%x exer:%x efpscr:%x"
         self.assertEqual((newcr, newxer, newfpscr), (expcr, expxer, expfpscr), \
                 msg=tmpl % (op, r0, r1, cr, xer, newcr, newxer, fpscr, expcr, expxer, expfpscr))
+
 

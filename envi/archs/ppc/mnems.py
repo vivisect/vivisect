@@ -11107,7 +11107,7 @@ IGNORE_CONSTS = (
 aa = ('','a','lr','ctr')
 lk = ('','l')
 
-foo = (
+br_simple_stubs = (
         ('bdnzf', 'envi.IF_COND | envi.IF_BRANCH', 0), 
         ('bdnzf', 'envi.IF_COND | envi.IF_BRANCH | IF_BRANCH_LIKELY', 0), 
         ('bdzf', 'envi.IF_COND | envi.IF_BRANCH', 0), 
@@ -11150,10 +11150,10 @@ bcctropcodes = []
 for a in range(2):
     for l in range(2):
         for bo in range(32):
-            if foo[bo] == None:
+            if br_simple_stubs[bo] == None:
                 continue
             
-            mnbase, flag, opoff = foo[bo]
+            mnbase, flag, opoff = br_simple_stubs[bo]
 
             # if we link, then this has a fallthrough. period.
             if lk[l] == 'l':
