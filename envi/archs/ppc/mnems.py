@@ -11541,36 +11541,149 @@ def buildOutput():
     utest = '''
 import sys
 import struct
+import vivisect
 import envi.archs.ppc.disasm as eapd
+import envi.memcanvas as e_memcanvas
 
-for cat in eapd.CATEGORIES.keys():
-    d = eapd.PpcDisasm(options=cat)
+"""
+This module generates unit-test-cases (.py) and binary values to run through other disassmblers (.bin)
+"""
+
+def make_unit_tests(outfile='test_ppc_by_cat'):
+    vw = vivisect.VivWorkspace()
+
     out = []
-    print "\\n====== CAT: %r ======" % eapd.CATEGORIES.get(cat)
-    for key,instrlist in eapd.instr_dict.items():
-        for instrline in instrlist:
-            opcodenum = instrline[1]
-            opcat = instrline[2][3]
-            if not opcat & cat:
-                continue
+    tests = [test_code, 'instrs_by_category = [']
+    scanv = e_memcanvas.StringMemoryCanvas(vw)
 
-            shifters = [shl for nm,tp,shl,mask in instrline[2][-2]]
-            shifters.sort()
-            for oidx in range(len(shifters)):
-                shl = shifters[oidx]
-                opcodenum |= ((len(shifters)-oidx) << shl)
-            opbin = struct.pack(">I", opcodenum)
+    for cat in eapd.CATEGORIES.keys():
+        d = eapd.PpcDisasm(options=cat)
+        d.__ARCH__ = 0
+        catname = eapd.CATEGORIES.get(cat)
+
+        print "\n====== CAT: %r ======" % catname
+        for key,instrlist in eapd.instr_dict.items():
+            for instrline in instrlist:
+                opcodenum = instrline[1]
+                opcat = instrline[2][3]
+                if not opcat & cat:
+                    continue
+
+                shifters = [shl for nm,tp,shl,mask in instrline[2][-2]]
+                shifters.sort()
+                for oidx in range(len(shifters)):
+                    shl = shifters[oidx]
+                    opcodenum |= ((len(shifters)-oidx) << shl)
+
+                opbin = struct.pack(">I", opcodenum)
+                
+                try:
+                    op = d.disasm(opbin, 0, 0x4000)
+                    print "0x%.8x:  %s" % (opcodenum, op)
+
+                    scanv.clearCanvas()
+                    op.render(scanv)
+                    # print("render:  %s" % repr(scanv.strval))
+                    tests.append("        (%s, '%.8x', '%s', '%s', {})," % (catname, opcodenum, op, scanv.strval))
+
+                except Exception, e:
+                    sys.stderr.write("ERROR: 0x%x: %r\n" % (opcodenum, e))
+                    import traceback
+                    traceback.print_exc()
+
+                out.append(opbin)
+    file(outfile+".bin", "wb").write("".join(out))
+    tests.append("]\n")
+    file(outfile+".py", "wb").write("\n".join(tests))
+
+
+test_code = """
+import envi
+import binascii
+import unittest
+import vivisect
+import envi.archs.ppc.disasm as eapd
+import envi.memcanvas as e_memcanvas
+from envi.const import *
+from envi.archs.ppc.const import *
+
+class PpcInstructionSetByCategories(unittest.TestCase):
+    def test_instrs_by_cat(self):
+        \'\'\'
+        test opcode disassembly and emulation by PPC Category
+        \'\'\'
+        vw = vivisect.VivWorkspace()
+        vw.setMeta('Architecture', 'ppc32-embedded')
+        vw.setEndian(ENDIAN_MSB)
+
+        scanv = e_memcanvas.StringMemoryCanvas(vw)
+
+        count = 0
+        for cat, bytez, reprOp, renderOp, emutests in instrs_by_category:
+            d = eapd.PpcDisasm(options=cat)
+            d.__ARCH__ = 0
+            print count, bytez
+            count += 1
+            opbin = binascii.unhexlify(bytez)
             try:
                 op = d.disasm(opbin, 0, 0x4000)
-                print "0x%.8x:  %s" % (opcodenum, op)
-            except Exception, e:
-                sys.stderr.write("ERROR: 0x%x: %r\\n" % (opcodenum, e))
-            out.append(opbin)
-file("test_ppc.bin", "wb").write("".join(out))
+
+            except envi.InvalidInstruction:
+                self.fail("Failed to parse opcode bytes: %s (case: %s, expected: %s)" % (bytez, reprOp, reprOp))
+            except Exception as e:
+                self.fail("(%r) Failed to parse opcode bytes: %s (case: %s, expected: %s)" % (e, bytez, reprOp, reprOp))
+            # print("'%s', 0x%x, '%s' == '%s'" % (bytez, va, repr(op), reprOp))
+
+            try:
+                self.assertEqual(repr(op), reprOp)
+
+                scanv.clearCanvas()
+                op.render(scanv)
+                self.assertEqual(scanv.strval, renderOp)
+
+            except AssertionError:
+                self.fail("Failing match for case %s (%s != %s)" % (reprOp, repr(op), reprOp))
+
+            
+            # test emulation
+            emu = vw.getEmulator()
+            self.do_emutsts(emu, bytez, op, emutests)
+
+    def do_emutsts(self, emu, bytez, op, emutests):
+        '''
+        Setup and Perform Emulation Tests per architecture variant
+        '''
+        bademu = 0
+        goodemu = 0
+        # if we have a special test lets run it
+        for tidx, sCase in enumerate(emutests):
+            #allows us to just have a result to check if no setup needed
+            if 'tests' in sCase:
+                setters = ()
+                if 'setup' in sCase:
+                    setters = sCase['setup']
+
+                tests = sCase['tests']
+                if self.validateEmulation(emu, op, (setters), (tests), tidx):
+                    goodemu += 1
+                else:
+                    bademu += 1
+                    raise Exception( "FAILED emulation (special case): %.8x %s - %s" % (op.va, bytez, op) )
+
+            else:
+                bademu += 1
+                raise Exception( "FAILED special case test format bad:  Instruction test does not have a 'tests' field: %.8x %s - %s" % (op.va, bytez, op))
+
+        return goodemu, bademu
+
+
+"""
+if __name__ == '__main__':
+    make_unit_tests()
+
 '''
 
     return out, out2, out3, utest
-    #for 
 
 
 # FIXME: unit-tests using the masks for each instruction to generate them.
@@ -11580,7 +11693,7 @@ if __name__ == '__main__':
     file('const_gen.py','w').write( '\n'.join(out))
     file('ppc_tables.py','w').write( '\n'.join(out2))
     file('disasm_gen.py','w').write( '\n'.join(out3))
-    #file('test_ppc.py','w').write(utest)
+    file('gen_test_ppc.py','w').write(utest)
 
 
 ''' 
