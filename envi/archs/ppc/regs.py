@@ -50,20 +50,28 @@ REG_OFFSET_SPR = len(ppc_regs)
 ppc_regs64.extend(spr_regs)
 ppc_regs32.extend(spr_regs)
 
-tmr_regs = [
-        ('tmcfg0', 64),
-        ]
-tmr_regs.extend([('tpri%d' % x, 64) for x in range(32)]) 
-tmr_regs.extend([('imsr%d' % x, 64) for x in range(32)]) 
-tmr_regs.extend([('inia%d' % x, 64) for x in range(32)]) 
+
+# sparse definition of TMR regs, so we fill in the gaps a bit
+tmr_regs = [("TMRREG%d" % x, 64) for x in range(192) ]
+tmr_regs[16] = ('tmcfg0', 64)
+
+tpri_regs = [('tpri%d' % x, 64) for x in range(32)]
+imsr_regs = [('imsr%d' % x, 64) for x in range(32)]
+inia_regs = [('inia%d' % x, 64) for x in range(32)] 
+tmr_regs.extend(tpri_regs)
+tmr_regs.extend([("TPRIREG%d" % x, 64) for x in range(224, 288) ])   # padding
+tmr_regs.extend(imsr_regs)
+tmr_regs.extend(inia_regs)
 
 REG_OFFSET_TMR = len(ppc_regs)
 ppc_regs64.extend(tmr_regs)
 ppc_regs32.extend(tmr_regs)
 
+
 REG_OFFSET_DCR = len(ppc_regs)
-ppc_regs64.extend([('dcr%d' % x, 64) for x in range(32)]) 
-ppc_regs32.extend([('dcr%d' % x, 64) for x in range(32)]) 
+ppc_regs64.extend([('dcr%d' % x, 64) for x in range(1024)]) 
+ppc_regs32.extend([('dcr%d' % x, 64) for x in range(1024)]) 
+
 
 pmr_regs = []
 pmr_regs.extend([('upmc%d' % x, 32) for x in range(16)]) 
@@ -196,4 +204,9 @@ general_regs.append('LR')
 general_regs.append('XER')
 general_regs.append('CTR')
 general_regs.extend([reg for reg, size in sysregs])
+
+
+rctx32 = Ppc32RegisterContext()
+rctx64 = Ppc64RegisterContext()
+
 

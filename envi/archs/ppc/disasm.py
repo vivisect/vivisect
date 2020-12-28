@@ -55,7 +55,7 @@ class PpcDisasm:
         match = False
         for ocode in group:
             mask, value, data = ocode
-            #print hex(ival), hex(mask), hex(value)
+            #print hex(ival), hex(mask), hex(value), "(%x)" % (ival & mask)
             if ival & mask != value:
                 continue
             if not (data[3] & self.options):
@@ -547,13 +547,16 @@ def form_XFX(disasm, va, ival, operands, iflags):
     opers = []
     opcode = None
 
-    if len(operands) == 3 and operands[2][1] in (FIELD_DCRN0_4, FIELD_PMRN0_4, FIELD_SPRN0_4, FIELD_TMRN0_4, FIELD_TBRN0_4,):
+    operlen = len(operands)
+    if operlen == 3 and operands[2][1] in (FIELD_DCRN0_4, FIELD_PMRN0_4, FIELD_SPRN0_4, FIELD_TMRN0_4, FIELD_TBRN0_4,):
         opvals = [((ival >> oshr) & omask) for onm, otype, oshr, omask in operands]
+
         if operands[1][1] in (FIELD_DCRN5_9, FIELD_PMRN5_9, FIELD_SPRN5_9, FIELD_TMRN5_9, FIELD_TBRN5_9,):
             val = (opvals[2] << 5) | opvals[1]
             oper0 = OPERCLASSES[operands[0][1]](opvals[0], va)
             regoff = REG_OFFS.get(operands[2][1])
             oper1 = PpcRegOper(regoff + val, va)
+
         else:
             val = (opvals[2] << 5) | opvals[0]
             regoff = REG_OFFS.get(operands[2][1])
@@ -562,6 +565,10 @@ def form_XFX(disasm, va, ival, operands, iflags):
 
         opers = (oper0, oper1)
         return opcode, opers, iflags
+
+    elif operlen == 4 and operands[0][1] == FIELD_L:
+        # mtfsf special case ordering
+        operands = (operands[1], operands[3], operands[0], operands[2])
 
     for onm, otype, oshr, omask in operands:
         val = (ival >> oshr) & omask

@@ -3,6 +3,7 @@ A file full of bit twidling helpers
 """
 
 import struct
+from envi.const import ENDIAN_LSB, ENDIAN_MSB
 
 MAX_WORD = 32  # usually no more than 8, 16 is for SIMD register support
 
@@ -352,3 +353,26 @@ def masktest(s):
         return testval & maskin == matchval
     return domask
 
+def floattodecimel(val, size=4, endian=ENDIAN_LSB):
+    '''
+    Converts a float value to the IEEE-754 Decimel equivalent value
+    '''
+    dfmt = getFormat(size, endian)
+    ffmt = getFloatFormat(size, endian)
+
+    bval = struct.pack(ffmt, val)
+    dval, = struct.unpack(dfmt, bval)
+
+    return dval
+
+def decimeltofloat(val, size=4, endian=ENDIAN_LSB):
+    '''
+    Converts a float value to the IEEE-754 Decimel equivalent value
+    '''
+    dfmt = getFormat(size, endian)
+    ffmt = getFloatFormat(size, endian)
+
+    bval = struct.pack(dfmt, val)
+    fval, = struct.unpack(ffmt, bval)
+
+    return fval

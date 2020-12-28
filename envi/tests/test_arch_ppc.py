@@ -2,7 +2,12 @@ import sys
 import unittest
 import vivisect
 import envi.archs.ppc
+import envi.exc as e_exc
 import vivisect.symboliks.analysis as vs_anal
+
+import logging
+
+logger = logging.getLogger(__name__)
 
 MARGIN_OF_ERROR = 200
 
@@ -20,34 +25,124 @@ class PpcInstructionSet(unittest.TestCase):
         sctx = vs_anal.getSymbolikAnalysisContext(vw)
         return vw, emu, sctx
 
-    def test_envi_ppcvle_disasm(self):
-        test_pass = 0
+    def validateEmulation(self, emu, op, setters, tests, tidx=0):
+        '''
+        Run emulation tests.  On successful test, returns True
+        '''
+        # first set any environment stuff necessary
+        ## defaults
+        emu.setRegister(3, 0x414141)
+        emu.setRegister(4, 0x444444)
+        emu.setRegister(5, 0x10)
+        emu.setRegister(6, 0x464646)
+        emu.setRegister(7, 0x474747)
+        emu.setStackCounter(0x450000)
 
-        vw, emu, sctx = self.getVivEnv('vle')
-        
-        import ppc_vle_instructions
-        for test_bytes, result_instr in ppc_vle_instructions.instructions:
+        # setup flags and registers
+        settersrepr = '( %r )' % (', '.join(["%s=%s" % (s, hex(v)) for s,v in setters]))
+        testsrepr = '( %r )' % (', '.join(["%s==%s" % (s, hex(v)) for s,v in tests]))
+
+        for tgt, val in setters:
             try:
-                op = vw.arch.archParseOpcode(test_bytes.decode('hex'), 0)
-                op_str = repr(op).strip()
-                if op_str == result_instr:
-                    test_pass += 1
-                if result_instr != op_str:
-                    print ('{}: ours: {} != {}'.format(test_bytes, op_str, result_instr))
-            except Exception, e:
-                print ('ERROR: {}: {}'.format(test_bytes, result_instr))
-                sys.excepthook(*sys.exc_info())
+                # try register first
+                emu.setRegisterByName(tgt, val)
+                print "reg: %r  <- %d" % (tgt, val)
 
-        print "test_envi_ppcvle_disasm: %d of %d successes" % (test_pass, len(ppc_vle_instructions.instructions))
-        self.assertAlmostEqual(test_pass, len(ppc_vle_instructions.instructions), delta=MARGIN_OF_ERROR)
+            except e_exc.InvalidRegisterName:
+                # it's not a register
+                if type(tgt) == str and tgt.startswith("PSR_"):
+                    # it's a flag
+                    emu.setFlag(eval(tgt), val)
+
+                elif type(tgt) in (long, int):
+                    # it's an address
+                    emu.writeMemValue(tgt, val, 1) # limited to 1-byte writes currently
+
+                else:
+                    raise Exception( "Funkt up Setting: (%r test#%d)  %s = 0x%x" % (op, tidx, tgt, val) )
+
+        emu.executeOpcode(op)
+
+        if not len(tests):
+            success = True
+        else:
+            # start out as failing...
+            success = False
+
+        for tgt, val in tests:
+            try:
+                # try register first
+                testval = emu.getRegisterByName(tgt)
+                if testval == val:
+                    success = True
+                else:  # should be an else
+                    raise Exception("FAILED(reg): (%r test#%d)  %s  !=  0x%x (observed: 0x%x) \n\t(setters: %r)\n\t(test: %r)" % (op, tidx, tgt, val, testval, settersrepr, testsrepr))
+
+            except e_exc.InvalidRegisterName:
+                # it's not a register
+                if type(tgt) == str and tgt.startswith("PSR_"):
+                    # it's a flag
+                    testval = emu.getFlag(eval(tgt))
+                    if testval == val:
+                        success = True
+                    else:
+                        raise Exception("FAILED(flag): (%r test#%d)  %s  !=  0x%x (observed: 0x%x) \n\t(setters: %r)\n\t(test: %r)" % (op, tidx, tgt, val, testval, settersrepr, testsrepr))
+
+                elif type(tgt) in (long, int):
+                    # it's an address
+                    testval = emu.readMemValue(tgt, 1)
+                    if testval == val:
+                        success = True
+                    raise Exception("FAILED(mem): (%r test#%d)  0x%x  !=  0x%x (observed: 0x%x) \n\t(setters: %r)\n\t(test: %r)" % (op, tidx, tgt, val, testval, settersrepr, testsrepr))
+
+                else:
+                    raise Exception( "Funkt up test (%r test#%d) : %s == %s" % (op, tidx, tgt, val) )
+
+        return success
+
+    def do_emutsts(self, emu, bytez, op, emutests):
+        '''
+        Setup and Perform Emulation Tests per architecture variant
+        '''
+        bademu = 0
+        goodemu = 0
+        # if we have a special test lets run it
+        for tidx, sCase in enumerate(emutests):
+            #allows us to just have a result to check if no setup needed
+            if 'tests' in sCase:
+                setters = ()
+                if 'setup' in sCase:
+                    setters = sCase['setup']
+
+                tests = sCase['tests']
+                if self.validateEmulation(emu, op, (setters), (tests), tidx):
+                    goodemu += 1
+                else:
+                    bademu += 1
+                    raise Exception( "FAILED emulation (special case): %.8x %s - %s" % (op.va, bytez, op) )
+
+            else:
+                bademu += 1
+                raise Exception( "FAILED special case test format bad:  Instruction test does not have a 'tests' field: %.8x %s - %s" % (op.va, bytez, op))
+
+        return goodemu, bademu
+
+    def test_envi_ppcvle_disasm(self):
+        import ppc_vle_instructions
+        self.do_envi_disasm('vle', ppc_vle_instructions)
 
     def test_envi_ppc_server_disasm(self):
+        import ppc_server_instructions
+        self.do_envi_disasm('ppc-server', ppc_server_instructions)
+
+    def do_envi_disasm(self, archname, test_module):
+        bademu = 0
+        goodemu = 0
         test_pass = 0
 
-        vw, emu, sctx = self.getVivEnv('ppc-server')
-
-        import ppc_server_instructions
-        for test_bytes, result_instr in ppc_server_instructions.instructions:
+        vw, emu, sctx = self.getVivEnv(archname)
+        
+        for test_bytes, result_instr in test_module.instructions:
             try:
                 op = vw.arch.archParseOpcode(test_bytes.decode('hex'), 0)
                 op_str = repr(op).strip()
@@ -55,12 +150,24 @@ class PpcInstructionSet(unittest.TestCase):
                     test_pass += 1
                 if result_instr != op_str:
                     print ('{}: ours: {} != {}'.format(test_bytes, op_str, result_instr))
+
+                # do emulator tests for this byte combination (if existing)
+                emutests = test_module.emutests.get(test_bytes)
+                if emutests is not None:
+                    ngoodemu, nbademu = self.do_emutsts(emu, test_bytes, op, emutests)
+                    goodemu += ngoodemu
+                    bademu += nbademu
+
             except Exception, e:
                 print ('ERROR: {}: {}'.format(test_bytes, result_instr))
                 sys.excepthook(*sys.exc_info())
 
-        print "test_envi_ppc_server_disasm: %d of %d successes" % (test_pass, len(ppc_server_instructions.instructions))
-        self.assertAlmostEqual(test_pass, len(ppc_server_instructions.instructions), delta=MARGIN_OF_ERROR)
+        logger.info("%s: %d of %d successes", archname, test_pass, len(test_module.instructions))
+        self.assertAlmostEqual(test_pass, len(test_module.instructions), delta=MARGIN_OF_ERROR)
+
+        logger.info("%s: Total of %d tests completed.", archname, (goodemu + bademu))
+        self.assertEqual(goodemu, test_module.GOOD_EMU_TESTS)
+
 
     def test_MASK_and_ROTL32(self):
         import envi.archs.ppc.emu as eape

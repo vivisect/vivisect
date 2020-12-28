@@ -10210,7 +10210,7 @@ mtfsfi 1 1 1 1 1 1
  crD
  ///
  ///
- 0
+ W
  IMM
  /
  0 0 1 0 0
@@ -10224,7 +10224,7 @@ mtfsfi. 1 1 1 1 1 1
  crD
  ///
  ///
- 0
+ W
  IMM
  /
  0 0 1 0 0
@@ -10299,9 +10299,9 @@ mffs. 1 1 1 1 1 1
  X
  FP.R
 mtfsf 1 1 1 1 1 1
- 0
+ L
  FM
- 0
+ W
  frB
  1 0 1 1 0
  0
@@ -10310,9 +10310,9 @@ mtfsf 1 1 1 1 1 1
  0
  XFX FP
 mtfsf. 1 1 1 1 1 1
- 0
+ L
  FM
- 0
+ W
  frB
  1 0 1 1 0
  0
@@ -10391,7 +10391,9 @@ fcfid. 1 1 1 1 1 1
 # * ">" instead of "." somehow made it in
 # * added None to the end of some of the lines to clearly demarc those lines without a Category
 # * mtfsf instructions set L and W to 0's...  "The L and W fields of the instruction should always be set to 0."
+#   * set back to real values, since PowerISA says something different.  Apparently EREF's talking about the Extended form.
 # * mtfsfi instructions set W to 0...  "The W field of the instruction should always be set to 0."
+#   * set back to real value, since PowerISA says something different.  Apparently EREF's talking about the Extended form.
 # * evrndw, replaced UIMM with 0 0 0 0 0 (appears to be wrong in this table, defined in SPEPEM.
 # * cmpl is completely botched:  they left out the crfD field completely, which caused a shift in all the other fields.  eerily, they made up for it with ///
 # a few others (should have and will document as i think of them.  see git log.
@@ -11156,14 +11158,15 @@ for a in range(2):
             # if we link, then this has a fallthrough. period.
             if lk[l] == 'l':
                 flag = flag.replace('| envi.IF_NOFALL','').replace('envi.IF_BRANCH', 'envi.IF_CALL')
-                
+               
+            lrflag = flag
             mnem = mnbase + 'lr' + lk[l] + aa[a]
             if mnem == 'blr':
-                flag = 'envi.IF_RET | envi.IF_NOFALL'
+                lrflag = 'envi.IF_RET | envi.IF_NOFALL'
             opcode = "INS_" + mnem.upper()
             num = 0x4c000020 |(bo<<21) |  a<<1 | l
 
-            bclropcodes.append((mnem, opcode, (0xffe007ff, num), opoff, flag))
+            bclropcodes.append((mnem, opcode, (0xffe007ff, num), opoff, lrflag))
 
             mnem = mnbase + 'ctr' + lk[l] + aa[a]
             opcode = "INS_" + mnem.upper()
@@ -11301,17 +11304,24 @@ def buildOutput():
         nmnem = mnem.replace('.','')
         if nmnem in mnem_done:
             continue
-        mnem_array.append("    '%s'," % nmnem)
+        if nmnem not in mnem_array:
+            mnem_array.append("    '%s'," % nmnem)
         mnem_done.append(nmnem)
 
     out.extend(mnem_array)
 
-    bcmnems = ['    %r,' % (d[0]) for d in bcopcodes]
-    out.extend(bcmnems)
-    bclrmnems = ['    %r,' % (d[0]) for d in bclropcodes]
-    out.extend(bclrmnems)
-    bcctrmnems = ['    %r,' % (d[0]) for d in bcctropcodes]
-    out.extend(bcctrmnems)
+    bgroupopcodes = []
+    for d in bcopcodes:
+        if d[0] not in bgroupopcodes:
+            bgroupopcodes.append(d[0])
+    for d in bclropcodes:
+        if d[0] not in bgroupopcodes:
+            bgroupopcodes.append(d[0])
+    for d in bcctropcodes:
+        if d[0] not in bgroupopcodes:
+            bgroupopcodes.append(d[0])
+    bgroupmnems = ['    %r,' % (d) for d in bgroupopcodes]
+    out.extend(bgroupmnems)
 
     out.append(')')
     out.append('')

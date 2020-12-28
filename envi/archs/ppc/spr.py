@@ -20,8 +20,8 @@ sprs = {
     261: ("SPRG5", "SPR general 5 (alias to same physical register as", 64),
     262: ("SPRG6", "SPR general 6 (alias to same physical register as", 64),
     263: ("SPRG7", "SPR general 7 (alias to same physical register as", 64),
-    268: ("TB", "(TBL) Time base (time base lower) - read port to Time", 64),
-    269: ("TBU", "Time base upper - read port to high-order 32-bits", 32),
+    268: ("TB", "(TBL) Time base (time base lower) - read port to Time", 64),   # FIXME: TBL is a metaregister for TB
+    269: ("TBU", "Time base upper - read port to high-order 32-bits", 32),      # FIXME: TBU is a metaregister for TB... but has it's own reg number in the architecture
     272: ("SPRG0", "SPR general 0", 64),
     273: ("SPRG1", "SPR general 1", 64),
     274: ("SPRG2", "SPR general 2", 64),
@@ -52,7 +52,7 @@ sprs = {
     319: ("DVC2", " Data value compare  22 ", 64),
     336: ("TSR", " Timer status register ", 32),
     338: ("LPIDR", " Logical PID register2 ", 13),
-    339: ("MAS5", " MMU assist register  52  (alias to same physical ", 32),
+    339: ("MAS5", " MMU assist register  52  (alias to same physical ", 32),    # FIXME: MAS5 is a metaregister for MAS5_MAS6
     340: ("TCR", " Timer control register ", 32),
     341: ("MAS8", " MMU assist register  82 ", 32),
     342: ("LRATCFG", " LRAT configuration register ", 32),
@@ -138,7 +138,7 @@ sprs = {
     605: ("SPRG9", "SPRG9", 64),
     606: ("L1CSR2", "2 L1 cache control and status register 2", 32),
     607: ("L1CSR3", "2 L1 cache control and status register 3", 32),
-    624: ("MAS0", "MMU assist register 02 (alias to same physical", 32),
+    624: ("MAS0", "MMU assist register 02 (alias to same physical", 32),    # FIXME: metaregister mapping
     625: ("MAS1", "MMU assist register 12 (alias to same physical", 32),
     626: ("MAS2", "MMU assist register 22", 64),
     627: ("MAS3", "MMU assist register  32  (alias to same physical", 32),
