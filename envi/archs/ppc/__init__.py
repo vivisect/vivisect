@@ -98,7 +98,7 @@ class Ppc64EmbeddedModule(envi.ArchitectureModule):
     def archParseOpcode(self, bytes, offset=0, va=0):
         #print offset, hex(va), self.isVle(va), self.maps
         if self.isVle(va):
-            print "isVle"
+            #print "isVle"
             return self._arch_vle_dis.disasm(bytes, offset, va)
 
         return self._arch_dis.disasm(bytes, offset, va)

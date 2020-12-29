@@ -4,7 +4,6 @@ import envi.bits as e_bits
 import copy
 import struct
 
-#from envi.archs.ppc.disasm import *
 from envi.archs.ppc.ppc_tables import *
 from envi.archs.ppc.regs import *
 from const import *
@@ -13,14 +12,37 @@ from disasm_classes import *
 class PpcDisasm:
     __ARCH__ = None # abstract class.  subclasses should define this
     def __init__(self, endian=ENDIAN_MSB, options=CAT_PPC_EMBEDDED):
-        ### FIXME: options gets lost in Vivisect.  it must be part of the event stream to get saved.  this is only worthwhile for canned options which are otherwise persistent or for incidental hacking use.
-        ### perhaps we need arch config entries in the config file which are passed into the different architectures.
+        ### TODO: options gets lost in Vivisect.  it must be part of the event stream to get saved. 
+        ###   this is only worthwhile for canned options which are otherwise persistent or for 
+        ###   incidental hacking use.  perhaps we need arch config entries in the config file which
+        ###   are passed into the different architectures.
+        ### currently we rely on 5 specific option groupings, each of which are their own "architecture": see bottom
+
         # any speedy stuff here
-        if options == 0:
-            options = CAT_NONE
+        self._instr_dict = None
         self._dis_regctx = Ppc64RegisterContext()
         self.setEndian(endian)
+        self.setCategories(options)
+
+    def setCategories(self, options):
+        if options == 0:
+            options = CAT_NONE
         self.options = options
+
+        self._instr_dict = {}
+        # populate and trim unnecessary instructions (based on categories)
+        for key, group in instr_dict.items():
+            mygroup = []
+            for ocode in group:
+                mask, value, data = ocode
+                if not (data[3] & self.options):
+                    continue
+
+                mygroup.append(ocode)
+
+            mygroup = tuple(mygroup)    # for speed
+            self._instr_dict[key] = mygroup
+
 
     def setEndian(self, endian):
         self.endian = endian
@@ -39,14 +61,13 @@ class PpcDisasm:
         prefixes = 0
         iflags = 0
 
-        fmt = ('<I', '>I')[self.endian]
-        ival, = struct.unpack_from(fmt, bytez, offset)
+        ival, = struct.unpack_from(self.fmt, bytez, offset)
         #print hex(ival)
 
         key = ival >> 26
         #print hex(key)
         
-        group = instr_dict.get(key)
+        group = self._instr_dict.get(key)
         #print group
         if group == None:
             raise envi.InvalidInstruction(bytez[offset:offset+4], 'No Instruction Group Found: %x' % key, va)
@@ -57,9 +78,6 @@ class PpcDisasm:
             mask, value, data = ocode
             #print hex(ival), hex(mask), hex(value), "(%x)" % (ival & mask)
             if ival & mask != value:
-                continue
-            if not (data[3] & self.options):
-                #print "0x%x & 0x%x == 0 :(" % (data[3], self.options)
                 continue
 
             #print "0x%x & 0x%x != 0 :)" % (data[3], self.options)
