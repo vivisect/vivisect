@@ -11561,7 +11561,7 @@ def make_unit_tests(outfile='test_ppc_by_cat'):
         d.__ARCH__ = 0
         catname = eapd.CATEGORIES.get(cat)
 
-        print "\n====== CAT: %r ======" % catname
+        print "\\n====== CAT: %r ======" % catname
         for key,instrlist in eapd.instr_dict.items():
             for instrline in instrlist:
                 opcodenum = instrline[1]
@@ -11587,14 +11587,14 @@ def make_unit_tests(outfile='test_ppc_by_cat'):
                     tests.append("        (%s, '%.8x', '%s', '%s', {})," % (catname, opcodenum, op, scanv.strval))
 
                 except Exception, e:
-                    sys.stderr.write("ERROR: 0x%x: %r\n" % (opcodenum, e))
+                    sys.stderr.write("ERROR: 0x%x: %r\\n" % (opcodenum, e))
                     import traceback
                     traceback.print_exc()
 
                 out.append(opbin)
     file(outfile+".bin", "wb").write("".join(out))
-    tests.append("]\n")
-    file(outfile+".py", "wb").write("\n".join(tests))
+    tests.append("]\\n")
+    file(outfile+".py", "wb").write("\\n".join(tests))
 
 
 test_code = """
@@ -11615,14 +11615,18 @@ class PpcInstructionSetByCategories(unittest.TestCase):
         vw = vivisect.VivWorkspace()
         vw.setMeta('Architecture', 'ppc32-embedded')
         vw.setEndian(ENDIAN_MSB)
+        emu = vw.getEmulator()
+        snap = emu.getEmuSnap()
 
         scanv = e_memcanvas.StringMemoryCanvas(vw)
 
         count = 0
+        lastcat = None
         for cat, bytez, reprOp, renderOp, emutests in instrs_by_category:
-            d = eapd.PpcDisasm(options=cat)
-            d.__ARCH__ = 0
-            print count, bytez
+            if cat != lastcat:
+                d = eapd.PpcDisasm(options=cat)
+                d.__ARCH__ = 0
+
             count += 1
             opbin = binascii.unhexlify(bytez)
             try:
@@ -11646,13 +11650,90 @@ class PpcInstructionSetByCategories(unittest.TestCase):
 
             
             # test emulation
-            emu = vw.getEmulator()
+            emu.setEmuSnap(snap)
             self.do_emutsts(emu, bytez, op, emutests)
 
+    def validateEmulation(self, emu, op, setters, tests, tidx=0):
+        \'\'\'
+        Run emulation tests.  On successful test, returns True
+        \'\'\'
+        # first set any environment stuff necessary
+        emu.setStackCounter(0xbfb07000) # default stack start with top at bfb08000
+
+        # setup flags and registers
+        settersrepr = '( %r )' % (', '.join(["%s=%s" % (s, hex(v)) for s,v in setters]))
+        testsrepr = '( %r )' % (', '.join(["%s==%s" % (s, hex(v)) for s,v in tests]))
+
+        for tgt, val in setters:
+            try:
+                # try register first
+                emu.setRegisterByName(tgt, val)
+
+            except e_exc.InvalidRegisterName:
+                # it's not a register
+                if type(tgt) == str:
+                    emu.setRegister(eval(tgt), val)
+
+                elif type(tgt) in (long, int):
+                    # it's an address
+                    emu.writeMemValue(tgt, val, 1) # limited to 1-byte writes currently
+
+                else:
+                    raise Exception( "Funkt up Setting: (%r test#%d)  %s = 0x%x" % (op, tidx, tgt, val) )
+
+        emu.executeOpcode(op)
+
+        if not len(tests):
+            success = True
+        else:
+            # start out as failing...
+            success = False
+
+        for tgt, val in tests:
+            try:
+                # try register first
+                testval = emu.getRegisterByName(tgt)
+                if testval == val:
+                    success = True
+                else:  # should be an else
+                    raise Exception("FAILED(name_reg): (%r test#%d)  %s  !=  0x%x (observed: 0x%x) \\\\n\\\\t(setters: %r)\\\\n\\\\t(test: %r)" % (op, tidx, tgt, val, testval, settersrepr, testsrepr))
+
+            except e_exc.InvalidRegisterName:
+                # it's not a register
+                if type(tgt) == str:
+                    # it's a flag
+                    testval = emu.getRegister(eval(tgt))
+                    if testval == val:
+                        success = True
+                    else:
+                        raise Exception("FAILED(raw_reg): (%r test#%d)  %s  !=  0x%x (observed: 0x%x) \\\\n\\\\t(setters: %r)\\\\n\\\\t(test: %r)" % (op, tidx, tgt, val, testval, settersrepr, testsrepr))
+
+                elif type(tgt) in (long, int):
+                    # it's an address
+                    testval = emu.readMemValue(tgt, 1)
+                    if testval == val:
+                        success = True
+                    else:
+                        raise Exception("FAILED(mem): (%r test#%d)  0x%x  !=  0x%x (observed: 0x%x) \\\\n\\\\t(setters: %r)\\\\n\\\\t(test: %r)" % (op, tidx, tgt, val, testval, settersrepr, testsrepr))
+
+                elif type(tgt) == tuple:
+                    # it's an address:size tuple (size must be 1, 2, 4, or 8)
+                    addr, size = tgt
+                    testval = emu.readMemValue(addr, size)
+                    if testval == val:
+                        success = True
+                    else:
+                        raise Exception("FAILED(mem): (%r test#%d)  0x%x  !=  0x%x (observed: 0x%x) \\\\n\\\\t(setters: %r)\\\\n\\\\t(test: %r)" % (op, tidx, tgt, val, testval, settersrepr, testsrepr))
+
+                else:
+                    raise Exception( "Funkt up test (%r test#%d) : %s == %s" % (op, tidx, tgt, val) )
+
+        return success
+
     def do_emutsts(self, emu, bytez, op, emutests):
-        '''
+        \'\'\'
         Setup and Perform Emulation Tests per architecture variant
-        '''
+        \'\'\'
         bademu = 0
         goodemu = 0
         # if we have a special test lets run it

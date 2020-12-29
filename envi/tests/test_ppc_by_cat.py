@@ -42,13 +42,14 @@ class PpcInstructionSetByCategories(unittest.TestCase):
             try:
                 self.assertEqual(repr(op), reprOp)
 
-                #scanv.clearCanvas()
-                #op.render(scanv)
-                #self.assertEqual(scanv.strval, renderOp)
+                scanv.clearCanvas()
+                op.render(scanv)
+                self.assertEqual(scanv.strval, renderOp)
 
             except AssertionError:
                 self.fail("Failing match for case %s (%s != %s)" % (reprOp, repr(op), reprOp))
 
+            
             # test emulation
             emu.setEmuSnap(snap)
             self.do_emutsts(emu, bytez, op, emutests)
