@@ -63,3 +63,11 @@ def vivExtension(vw, vwgui):
     window = ExampleWindow(vw, vwgui)
     d = vwgui.vqDockWidget(window, floating=True)
     d.resize(300,200)
+
+    # Add a menu item
+
+    # hook context menu
+    # add HotKeyTargets and HotKeys
+    # Popups/Dialogs - done
+    # Docks!
+    # get Dock Windows by name
