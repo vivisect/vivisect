@@ -51,12 +51,6 @@ import vivisect.analysis.generic.emucode as v_emucode
 
 
 logger = logging.getLogger(__name__)
-e_common.setLogging(logger, 'WARNING')
-
-# FIXME: UGH. Due to our package structure, we have no centralized logging leve
-# so we have to force it here and a few other places
-elog = logging.getLogger(envi.__name__)
-elog.setLevel(logger.getEffectiveLevel())
 
 STOP_LOCS = (LOC_STRING, LOC_UNI, LOC_STRUCT, LOC_CLSID, LOC_VFTABLE, LOC_IMPORT, LOC_PAD, LOC_NUMBER)
 
