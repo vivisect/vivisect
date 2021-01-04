@@ -394,8 +394,9 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
     def addNoReturnVa(self, va):
         noretva = self.getMeta('NoReturnApisVa', {})
         noretva[va] = True
-        self.cfctx.addNoReturnAddr(va)
         self.setMeta('NoReturnApisVa', noretva)
+
+        self.cfctx.addNoReturnAddr(va)
 
     def addNoReturnApi(self, funcname):
         """

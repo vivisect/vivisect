@@ -509,6 +509,7 @@ amd64MultiByteOpcodes = [
     ('LFENCE', '0faee8', 'lfence ', 'lfence '),
     ('MFENCE', '0faef0', 'mfence ', 'mfence '),
     ('XSAVE', '0FAE242541414141', 'xsave dword [0x41414141]', 'xsave dword [0x41414141]'),
+    ('WRFSBASE', 'F30FAED0', 'wrfsbase eax', 'wrfsbase eax'),
     ('RDFSBASE', 'F3480FAEC0', 'rdfsbase rax', 'rdfsbase rax'),
 
     ('WAIT', '9b', 'wait ', 'wait '),  # TODO: this needs to be able to change the opcode too
