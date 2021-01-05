@@ -179,9 +179,7 @@ amd64MultiByteOpcodes = [
     ('PSRLQ', '660FD3DC', 'psrlq xmm3,xmm4', 'psrlq xmm3,xmm4'),
     ('PSRLQ', '660F73d10f', 'psrlq xmm1,15', 'psrlq xmm1,15'),
     ('PSRLDQ (66)', '660f73d808', 'psrldq xmm0,8', 'psrldq xmm0,8'),
-    ('PSRLDQ (66)', '660f73b5aa', 'psllq xmm5,170', 'psllq xmm5,170'),
     ('PSRLDQ (66)', '660f73f5aa', 'psllq xmm5,170', 'psllq xmm5,170'),
-    ('PSRLDQ (66)', '660f73b1aa', 'psllq xmm1,170', 'psllq xmm1,170'),
     ('PSRLDQ (66)', '660f73b9aa', 'pslldq xmm1,170', 'pslldq xmm1,170'),
     ('PCMPISTRI', '660f3a630f0d', 'pcmpistri xmm1,oword [rdi],13', 'pcmpistri xmm1,oword [rdi],13'),
 
