@@ -48,7 +48,7 @@ from vivisect.const import *
 from vivisect.defconfig import *
 
 import vivisect.analysis.generic.emucode as v_emucode
-
+sys.setrecursionlimit(5000)
 
 logger = logging.getLogger(__name__)
 

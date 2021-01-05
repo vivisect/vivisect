@@ -1113,11 +1113,11 @@ def analyzeFunction(vw, fva):
                 continue
 
             if vw.getVaSetRow('SwitchCases', jmpva) is not None:
-                logger.warn("...skipping 0x%x - SwitchCases already has it?", jmpva)
+                logger.info("...skipping 0x%x - SwitchCases already has it?", jmpva)
                 continue
 
             if jmpva in done:
-                logger.warn("...skipping 0x%x - already done", jmpva)
+                logger.info("...skipping 0x%x - already done", jmpva)
                 continue
             done.append(jmpva)
 

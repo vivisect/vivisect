@@ -233,7 +233,12 @@ class ELFTests(unittest.TestCase):
                 ntup[1].startswith('str_') or
                 ntup[1].startswith('ptr_str_') or
                 ntup[1].startswith('ptr_sub_') or
-                ntup[1].startswith('sub_'))]
+                ntup[1].startswith('sub_') or
+                ntup[1].startswith('switch_') or
+                ntup[1].startswith('case_') or
+                ntup[1].startswith('ptr_switch_') or
+                ntup[1].startswith('ptr_case_') or
+                )]
 
         newnames.sort()
         oldnames = data['names']
