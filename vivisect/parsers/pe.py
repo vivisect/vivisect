@@ -155,6 +155,7 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
     # Setup some va sets used by windows analysis modules
     vw.addVaSet("Library Loads", (("Address", VASET_ADDRESS), ("Library", VASET_STRING)))
     vw.addVaSet('pe:ordinals', (('Address', VASET_ADDRESS), ('Ordinal', VASET_INTEGER)))
+    vw.addVaSet('DelayImports', (('Address', VASET_ADDRESS), ('DelayImport', VASET_STRING)))
 
     # SizeOfHeaders spoofable...
     curr_offset = pe.IMAGE_DOS_HEADER.e_lfanew + len(pe.IMAGE_NT_HEADERS)
@@ -351,6 +352,7 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
     for rva, lname, iname in pe.getDelayImports():
         if vw.probeMemory(rva + baseaddr, 4, e_mem.MM_READ):
             vw.makeImport(rva + baseaddr, lname, iname)
+            vw.setVaSetRow('DelayImports', (rva + baseaddr, lname + '.' + iname))
 
     # Tell vivisect about ntdll functions that don't exit...
     vw.addNoReturnApi("ntdll.RtlExitUserThread")
