@@ -790,7 +790,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
     def getImports(self):
         """
-        Return a list of imports in location tuple format.
+        Return a list of imports, including delay imports, in location tuple format.
         """
         return self.getLocations(LOC_IMPORT)
 
