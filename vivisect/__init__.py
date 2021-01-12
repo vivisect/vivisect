@@ -2492,8 +2492,6 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
         self._createSaveMark()
 
-
-
     def loadFromFd(self, fd, fmtname=None, baseaddr=None):
         """
         Read the first bytes of the file descriptor and see if we can identify the type.

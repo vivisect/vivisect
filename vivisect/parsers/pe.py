@@ -353,6 +353,8 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
     for rva, lname, iname in pe.getDelayImports():
         if vw.probeMemory(rva + baseaddr, 4, e_mem.MM_READ):
             vw.makeImport(rva + baseaddr, lname, iname)
+            if lname != '*':
+                lname = vw.normFileName(lname)
             vw.setVaSetRow('DelayImports', (rva + baseaddr, lname + '.' + iname))
 
     # Tell vivisect about ntdll functions that don't exit...

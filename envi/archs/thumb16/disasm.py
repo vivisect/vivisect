@@ -2008,7 +2008,8 @@ thumb_base = [
     ('010001011',   (INS_CMP, 'cmp',     d1_rm4_rd3, 0)),        # CMP<c> <Rn>,<Rm>
     ('01000110',    (INS_MOV, 'mov',     d1_rm4_rd3, 0)),        # MOV<c> <Rd>,<Rm>
     # BX<c> <Rm>       # FIXME: check for IF_RET
-    ('010001110',   (INS_BL, 'bx',      rm4_shift3, envi.IF_NOFALL | envi.IF_BRANCH)),
+    ('010001101110000', (INS_BX, 'bx', rm4_shift3, envi.IF_NOFALL | envi.IF_RET)),
+    ('010001110',   (INS_BL, 'bl',      rm4_shift3, envi.IF_NOFALL | envi.IF_BRANCH)),
     ('010001111',   (INS_BLX, 'blx',     rm4_shift3, envi.IF_CALL)),  # BLX<c> <Rm>
     # Load from Litera7 Pool
     ('01001',       (INS_LDR, 'ldr',     rt_pc_imm8d, 0)),       # LDR<c> <Rt>,<label>
