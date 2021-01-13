@@ -385,6 +385,13 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         offset, bytes = self.getByteDef(va)
         return self.sigtree.isSignature(bytes, offset=offset)
 
+    def addNoReturnVa(self, va):
+        noretva = self.getMeta('NoReturnApisVa', {})
+        noretva[va] = True
+        self.setMeta('NoReturnApisVa', noretva)
+
+        self.cfctx.addNoReturnAddr(va)
+
     def addNoReturnApi(self, funcname):
         """
         Inform vivisect code-flow disassembly that any call target
@@ -790,7 +797,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
     def getImports(self):
         """
-        Return a list of imports in location tuple format.
+        Return a list of imports, including delay imports, in location tuple format.
         """
         return self.getLocations(LOC_IMPORT)
 
@@ -1005,9 +1012,9 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             return True
         return False
 
-    def isProbablyCode(self, va):
+    def isProbablyCode(self, va, rerun=False):
         """
-        Most of the time, absolute pointes which point to code
+        Most of the time, absolute pointers which point to code
         point to the function entry, so test it for the sig.
         """
         if not self.isExecutable(va):
@@ -1015,8 +1022,10 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         ret = self.isFunctionSignature(va)
         if ret:
             return ret
-        if self.iscode.get(va):
-            return False
+
+        if va in self.iscode and not rerun:
+            return self.iscode[va]
+
         self.iscode[va] = True
         emu = self.getEmulator()
         emu.setMeta('silent', True)
@@ -1025,11 +1034,15 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         try:
             emu.runFunction(va, maxhit=1)
         except Exception as e:
+            self.iscode[va] = False
             return False
 
         if wat.looksgood():
-            return True
-        return False
+            self.iscode[va] = True
+        else:
+            self.iscode[va] = False
+
+        return self.iscode[va]
 
     #################################################################
     #
@@ -1068,7 +1081,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         rdest = self.readMemValue(ptrbase, step)
         if rebase and rdest < imgbase:
             rdest += imgbase
-        while self.isValidPointer(rdest) and self.isExecutable(rdest) and self.analyzePointer(rdest) in (None, LOC_OP):
+        while self.isValidPointer(rdest) and self.isProbablyCode(rdest):
             if self.analyzePointer(ptrbase) in STOP_LOCS:
                 break
 
@@ -1318,8 +1331,8 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
     def updateCallsFrom(self, fva, ncalls):
         function = self.getFunction(fva)
         prev_call = self.getFunctionMeta(function, 'CallsFrom')
-        ncall = set(prev_call).union(calls_from)
-        self.setFunctionMeta(function, 'CallsFrom', list(ncall))
+        newcall = set(prev_call).union(set(ncalls))
+        self.setFunctionMeta(function, 'CallsFrom', list(newcall))
 
     def makeCode(self, va, arch=envi.ARCH_DEFAULT, fva=None):
         """
@@ -1336,7 +1349,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         if fva is None:
             self.setVaSetRow('CodeFragments', (va, calls_from))
         else:
-            self.updateCallsFrom(va, calls_from)
+            self.updateCallsFrom(fva, calls_from)
         return calls_from
 
     def previewCode(self, va, arch=envi.ARCH_DEFAULT):
@@ -1802,7 +1815,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
     def analyzePointer(self, va):
         """
         Assume that a new pointer has been created.  Check if it's
-        target has a defined location and if not, try to figgure out
+        target has a defined location and if not, try to figure out
         wtf is there...  Will return the location type of the location
         it recommends or None if a location is already there or it has
         no idea.
@@ -1965,6 +1978,8 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             # knowing about all it's substrings
             modified = False
             pva, psize, ptype, pinfo = ploc
+            if ptype not in (LOC_STRING, LOC_UNI):
+                return subs
             if (va, size) not in pinfo:
                 modified = True
                 pinfo.append((va, size))
@@ -2476,8 +2491,6 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             mod.saveWorkspaceChanges(self, filename)
 
         self._createSaveMark()
-
-
 
     def loadFromFd(self, fd, fmtname=None, baseaddr=None):
         """

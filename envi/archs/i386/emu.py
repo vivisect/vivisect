@@ -2227,7 +2227,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
 
     def i_pminsb(self, op, width=1, off=0):
         def cmpr(a, b):
-            return e_bits.unsigned(min(e_bits.signed(a), e_bits.signed(b)), width)
+            return e_bits.unsigned(min(e_bits.signed(a, width), e_bits.signed(b, width)), width)
         self._simdcmpr(op, cmpr, width, off)
 
     def i_pminsw(self, op):
@@ -2248,7 +2248,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
 
     def i_pmaxsb(self, op, width=1, off=0):
         def cmpr(a, b):
-            return e_bits.unsigned(max(e_bits.signed(a), e_bits.signed(b)), width)
+            return e_bits.unsigned(max(e_bits.signed(a, width), e_bits.signed(b, width)), width)
         self._simdcmpr(op, cmpr, width, off)
 
     def i_pmaxsw(self, op):
