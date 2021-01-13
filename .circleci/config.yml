@@ -7,8 +7,8 @@ version: 2.1
 
 commands:
 
-  do_venv_setup:
-    description: "Setup venv for testing"
+  do_python_setup:
+    description: "Setup python for testing"
     steps:
       - run:
           name: setup venv
@@ -41,7 +41,7 @@ commands:
             sudo apt-get update
             sudo apt-get -qq install libfreetype6-dev liblcms2-dev libqt5gui5 python-pip python-qt4 python-pyqt5 python-pyqt5.qtwebkit ghostscript libffi-dev libjpeg-turbo-progs cmake imagemagick
 
-      - do_venv_setup
+      - do_python_setup
 
       - do_test_execution
 
