@@ -38,8 +38,8 @@ commands:
       - run:
           name: install deps
           command: |
-            sudo apt-get update --allow-releaseinfo-change
-            sudo apt-get -qq install libfreetype6-dev liblcms2-dev libqt5gui5 python-qt4 python-pyqt5 python-pyqt5.qtwebkit ghostscript libffi-dev libjpeg-turbo-progs cmake imagemagick
+            sudo apt-get update
+            sudo apt-get -qq install libfreetype6-dev liblcms2-dev libqt5gui5 python-pip python-qt4 python-pyqt5 python-pyqt5.qtwebkit ghostscript libffi-dev libjpeg-turbo-progs cmake imagemagick
 
       - do_venv_setup
 
@@ -50,7 +50,7 @@ jobs:
   python27:
     parallelism: 1
     docker:
-      - image: circleci/python:2.7
+      - image: cimg/base:2020.01
         environment:
           VIVTESTFILES: /tmp/vivtestfiles
           PYVERS: 2.7
