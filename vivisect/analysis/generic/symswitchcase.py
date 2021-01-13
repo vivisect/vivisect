@@ -62,6 +62,14 @@ class SymIdxNotFoundException(Exception):
     def __repr__(self):
         return "getSymIdx cannot determine the Index register"
 
+class NoComplexSymIdxException(Exception):
+    def __init__(self, sc=None):
+        self.sc = sc
+        Exception.__init__(self)
+
+    def __repr__(self):
+        return "getComplexIdx cannot determine the Index register"
+
 
 class TrackingSymbolikEmulator(vs_anal.SymbolikFunctionEmulator):
     '''
@@ -754,8 +762,12 @@ class SwitchCase:
             vw.setComment(self.jmpva, "lower: 0x%x, upper: 0x%x" % (lower, upper))
 
             vagc.analyzeFunction(vw, funcva)
+
         except SymIdxNotFoundException as e:
             logger.info("!@#$!@#$!@#$!@#$ BOMBED OUT (SymIdx) 0x%x  !@#$!@#$!@#$!@#$ \n%r" % (self.jmpva, e))
+
+        except NoComplexSymIdxException as e:
+            logger.info("!@#$!@#$!@#$!@#$ BOMBED OUT (SymIdx=%r \t ComplexIdx=None) 0x%x  !@#$!@#$!@#$!@#$ \n%r" % (e.sc.getSymIdx(), self.jmpva, e))
 
         except PathForceQuitException as e:
             logger.info("!@#$!@#$!@#$!@#$ BOMBED OUT (Path Timeout!) 0x%x  !@#$!@#$!@#$!@#$ \n%r" % (self.jmpva, e))
@@ -827,8 +839,12 @@ class SwitchCase:
 
         (csemu, cseff), aspath, fullpath = self.getSymbolikParts()
 
-        #idx = self.getComplexIdx().update(csemu).reduce()
-        idx = self.getComplexIdx().reduce()
+        #idx = self.getComplexIdx().update(csemu)   #.reduce()
+        idx = self.getComplexIdx()
+        if idx is None:
+            raise NoComplexSymIdxException(self)
+
+        idx.reduce()
 
         # peel it back
         ctx = {}

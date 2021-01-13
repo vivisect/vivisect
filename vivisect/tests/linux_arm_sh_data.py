@@ -1099,8 +1099,6 @@ sh_data = {
         (0x353a0, u'sh.ptr_stdout_000353a0'),
         (0x354b0, u'sh.ptr_stdout_000354b0'),
         (0x370c8, 'sh.fini_function'),
-        (0x3a350, 'ptr_ptr_str_corrupted octal _0003a350'),
-        (0x3d498, 'ptr_ptr_str_inet_0003d498'),
         (0x49394, 'sh.ptr_init_function_0_00049394'),
         (0x49398, 'sh.ptr_fini_function_0_00049398'),
         (0x4949c, u'*.recvfrom_0004949c'),

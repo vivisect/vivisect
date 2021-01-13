@@ -12526,7 +12526,6 @@ libstdc_data = {
         (0x2378380, 'libstdc___so_6_0.ptr_init_function_9_02378380'),
         (0x2378388, 'libstdc___so_6_0.ptr_init_function_10_02378388'),
         (0x2378390, 'libstdc___so_6_0.ptr_fini_function_0_02378390'),
-        (0x2378fc0, 'ptr_ptr_str_LC_CTYPE_02378fc0'),
         (0x2379548, u'libstdc___so_6_0.typeinfo for std::lock_error'),
         (0x2379560, u'libstdc___so_6_0.typeinfo for std::error_category'),
         (0x23795a0, u'libstdc___so_6_0.vtable for std::lock_error'),
