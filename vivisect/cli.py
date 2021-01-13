@@ -228,12 +228,8 @@ class VivCli(vivisect.VivWorkspace, e_cli.EnviCli):
 
         for func in fptr:
             for xrfr, xrto, rtype, rflags in func(va):
-                xrfr = hex(xrfr)
-                xrto = hex(xrto)
-                rflags = hex(rflags)
                 tname = ref_type_names.get(rtype, 'Unknown')
-                self.vprint('\tFrom: %s, To: %s, Type: %s, Flags: %s' % (xrfr, xrto, tname, rflags))
-
+                self.vprint('\tFrom: 0x%.8x, To: 0x%.8x, Type: %s, Flags: 0x%.8x' % (xrfr, xrto, tname, rflags))
 
     def do_searchopcodes(self, line):
         '''

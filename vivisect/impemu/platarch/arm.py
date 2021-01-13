@@ -206,6 +206,7 @@ class ArmWorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_arm.ArmEmulator):
                             self.emumon.prehook(self, op, starteip)
                         except v_exc.BadOpBytes as e:
                             logger.debug(repr(e))
+                            break
                         except Exception as e:
                             if not self.getMeta('silent'):
                                 logger.warn("funcva: 0x%x opva: 0x%x:  %r   (%r) (in emumon prehook: %r)", funcva, starteip, op, e, self.emumon)

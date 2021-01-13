@@ -12,6 +12,7 @@ import vivisect.parsers as v_parsers
 import vtrace  # needed only for setting the logging level
 import vtrace.platforms.win32 as vt_win32
 
+import envi.exc as e_exc
 import envi.memory as e_mem
 import envi.symstore.symcache as e_symcache
 
@@ -352,6 +353,8 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
     for rva, lname, iname in pe.getDelayImports():
         if vw.probeMemory(rva + baseaddr, 4, e_mem.MM_READ):
             vw.makeImport(rva + baseaddr, lname, iname)
+            if lname != '*':
+                lname = vw.normFileName(lname)
             vw.setVaSetRow('DelayImports', (rva + baseaddr, lname + '.' + iname))
 
     # Tell vivisect about ntdll functions that don't exit...
@@ -458,7 +461,12 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
         va = edir.VirtualAddress + baseaddr
         vamax = va + edir.Size
         while va < vamax:
-            f = vw.makeStructure(va, 'pe.IMAGE_RUNTIME_FUNCTION_ENTRY')
+            try:
+                f = vw.makeStructure(va, 'pe.IMAGE_RUNTIME_FUNCTION_ENTRY')
+            except e_exc.SegmentationViolation as e:
+                logger.warning('Invalid exception entry at 0x%x (error: %s)' % (va, str(e)))
+                break
+
             if not vw.isValidPointer(baseaddr + f.UnwindInfoAddress):
                 break
 

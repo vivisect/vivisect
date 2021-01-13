@@ -636,7 +636,7 @@ tbl32_660F[0xd3] = (0, INS_SHR, ADDRMETH_V | OPTYPE_dq | OP_W, ADDRMETH_W | OPTY
 tbl32_660F[0xd4] = (0, INS_ADD, ADDRMETH_V | OPTYPE_dq | OP_W, ADDRMETH_W | OPTYPE_dq | OP_R, ARG_NONE, cpu_PENTMMX, "paddq", 0, 0, 0)
 tbl32_660F[0xd5] = (0, INS_MUL, ADDRMETH_V | OPTYPE_dq | OP_W, ADDRMETH_W | OPTYPE_dq | OP_R, ARG_NONE, cpu_PENTMMX, "pmullw", 0, 0, 0)
 tbl32_660F[0xd6] = (0, INS_MOV, ADDRMETH_W | OPTYPE_q | OP_W, ADDRMETH_V | OPTYPE_q | OP_R, ARG_NONE, cpu_PENTMMX, "movq", 0, 0, 0)
-tbl32_660F[0xd7] = (0, INS_OTHER, ADDRMETH_G | OPTYPE_d | OP_W, ADDRMETH_V | OPTYPE_dq | OP_R, ARG_NONE, cpu_PENTMMX, "pmovmskb", 0, 0, 0)
+tbl32_660F[0xd7] = (0, INS_OTHER, ADDRMETH_G | OPTYPE_d | OP_W, ADDRMETH_U | OPTYPE_dq | OP_R, ARG_NONE, cpu_PENTMMX, "pmovmskb", 0, 0, 0)
 tbl32_660F[0xd8] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_dq | OP_W, ADDRMETH_W | OPTYPE_dq | OP_R, ARG_NONE, cpu_PENTMMX, "psubusb", 0, 0, 0)
 tbl32_660F[0xd9] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_dq | OP_W, ADDRMETH_W | OPTYPE_dq | OP_R, ARG_NONE, cpu_PENTMMX, "psubusw", 0, 0, 0)
 tbl32_660F[0xda] = (0, INS_ARITH, ADDRMETH_V | OPTYPE_dq | OP_W, ADDRMETH_W | OPTYPE_dq | OP_R, ARG_NONE, cpu_PENTMMX, "pminub", 0, 0, 0)
@@ -1111,14 +1111,14 @@ tbl32_0FAE_00BF = [	# IA32 manuals don't list an actual address method... guessi
 (optable, optype, operand 0, operand 1, operand 2, CPU required, "opcodename", op0Register, op1Register, op2Register)
 """
 tbl32_0FAE_rest = [
-(0, 0, ARG_NONE, ARG_NONE, ARG_NONE, 0, 0, 0, 0, 0  ), 
-(0, 0, ARG_NONE, ARG_NONE, ARG_NONE, 0, 0, 0, 0, 0  ), 
-(0, 0, ARG_NONE, ARG_NONE, ARG_NONE, 0, 0, 0, 0, 0  ), 
-(0, 0, ARG_NONE, ARG_NONE, ARG_NONE, 0, 0, 0, 0, 0  ), 
-(0, 0, ARG_NONE, ARG_NONE, ARG_NONE, 0, 0, 0, 0, 0  ), 
-( 0, INS_FPU, ARG_NONE, ARG_NONE, ARG_NONE, cpu_PENTIUM2, "lfence", 0, 0, 0  ),
-( 0, INS_FPU, ARG_NONE, ARG_NONE, ARG_NONE, cpu_PENTIUM2, "mfence", 0, 0, 0  ),
-( 0, INS_FPU, ARG_NONE, ARG_NONE, ARG_NONE, cpu_PENTIUM2, "sfence", 0, 0, 0  )
+(0, 0, ARG_NONE, ARG_NONE, ARG_NONE, 0, 0, 0, 0, 0),
+(0, 0, ARG_NONE, ARG_NONE, ARG_NONE, 0, 0, 0, 0, 0),
+(0, 0, ARG_NONE, ARG_NONE, ARG_NONE, 0, 0, 0, 0, 0),
+(0, 0, ARG_NONE, ARG_NONE, ARG_NONE, 0, 0, 0, 0, 0),
+(0, 0, ARG_NONE, ARG_NONE, ARG_NONE, 0, 0, 0, 0, 0),
+( 0, INS_FPU, ARG_NONE, ARG_NONE, ARG_NONE, cpu_PENTIUM2, "lfence", 0, 0, 0),
+( 0, INS_FPU, ARG_NONE, ARG_NONE, ARG_NONE, cpu_PENTIUM2, "mfence", 0, 0, 0),
+( 0, INS_FPU, ARG_NONE, ARG_NONE, ARG_NONE, cpu_PENTIUM2, "sfence", 0, 0, 0)
 ]
 
 

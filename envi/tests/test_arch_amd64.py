@@ -92,7 +92,7 @@ amd64SingleByteOpcodes = [
     #('PREFETCH2', '670f181b', 'prefetch2 byte [ebx]', 'prefetch2 byte [ebx]'),
     #('PREFETCHNTA', '670f1802', 'prefetchnta byte [edx]', 'prefetchnta byte [edx]'),
     # ('CDQE', '4898', 'cdqe ', 'cdqe '), # It bothers me that this doesn't work
-    ('BSWAP (eax)', 'f30fc84141', 'rep: bswap eax', 'rep: bswap eax'),
+    ('BSWAP (eax)', 'f30fc8', 'rep: bswap eax', 'rep: bswap eax'),
 ]
 
 amd64MultiByteOpcodes = [
@@ -142,17 +142,17 @@ amd64MultiByteOpcodes = [
     ('CVTSD2SI 3', 'f2480f2d142541414141', 'cvtsd2si rdx,qword [0x41414141]', 'cvtsd2si rdx,qword [0x41414141]'),
     ('CVTSD2SI 4', 'f2480f2d09', 'cvtsd2si rcx,qword [rcx]', 'cvtsd2si rcx,qword [rcx]'),
     ('CVTSD2SI 5', 'f2480f2d0cd581000000', 'cvtsd2si rcx,qword [0x00000081 + rdx * 8]', 'cvtsd2si rcx,qword [0x00000081 + rdx * 8]'),
-    ('ADDPS', '0f58aa4141414141', 'addps xmm5,oword [rdx + 1094795585]', 'addps xmm5,oword [rdx + 1094795585]'),
+    ('ADDPS', '0f58aa41414141', 'addps xmm5,oword [rdx + 1094795585]', 'addps xmm5,oword [rdx + 1094795585]'),
     ('MOVAPS', '0f28aa41414141', 'movaps xmm5,oword [rdx + 1094795585]', 'movaps xmm5,oword [rdx + 1094795585]'),
     ('MOVAPD', '660f28aa41414141', 'movapd xmm5,oword [rdx + 1094795585]', 'movapd xmm5,oword [rdx + 1094795585]'),
-    ('PMULLW (66)', '660faa41414141', 'rsm ', 'rsm '),
+    ('PMULLW (66)', '660faa', 'rsm ', 'rsm '),
     ('CMPXCH8B', '0fc70a', 'cmpxch8b qword [rdx]', 'cmpxch8b qword [rdx]'),
-    ('MOVD (66)',   '660f7ecb414141', 'movd ebx,xmm1', 'movd ebx,xmm1'),
+    ('MOVD (66)', '660f7ecb', 'movd ebx,xmm1', 'movd ebx,xmm1'),
     ('MOVD', '66480f7ef8', 'movd rax,xmm7', 'movd rax,xmm7'),  # TODO: REX.W needs to be able to change the opcode name
     ('MOVD', '0F6E0D41414100', 'movd mm1,dword [rip + 4276545]', 'movd mm1,dword [rip + 4276545]'),
     ('MOVQ', '0F6FCB', 'movq mm1,mm3', 'movq mm1,mm3'),
-    ('PSRAW',  '0FE1CA4141', 'psraw mm1,mm2', 'psraw mm1,mm2'),
-    ('PSRLQ (66)',  '660FF3CB4141', 'psllq xmm1,xmm3', 'psllq xmm1,xmm3'),
+    ('PSRAW',  '0FE1CA', 'psraw mm1,mm2', 'psraw mm1,mm2'),
+    ('PSRLQ (66)',  '660FF3CB', 'psllq xmm1,xmm3', 'psllq xmm1,xmm3'),
     ('PALIGNR', '0F3A0FDC03', 'palignr xmm3,xmm4,3', 'palignr xmm3,xmm4,3'),
     ('PALIGNR (66)',  '660F3A0FCA07', 'palignr xmm1,xmm2,7', 'palignr xmm1,xmm2,7'),
     ('PSLLQ (reg)',  '660FF3CA', 'psllq xmm1,xmm2', 'psllq xmm1,xmm2'),
@@ -179,10 +179,8 @@ amd64MultiByteOpcodes = [
     ('PSRLQ', '660FD3DC', 'psrlq xmm3,xmm4', 'psrlq xmm3,xmm4'),
     ('PSRLQ', '660F73d10f', 'psrlq xmm1,15', 'psrlq xmm1,15'),
     ('PSRLDQ (66)', '660f73d808', 'psrldq xmm0,8', 'psrldq xmm0,8'),
-    ('PSRLDQ (66)', '660f73b5aa4141', 'psllq xmm5,170', 'psllq xmm5,170'),
-    ('PSRLDQ (66)', '660f73f5aa4141', 'psllq xmm5,170', 'psllq xmm5,170'),
-    ('PSRLDQ (66)', '660f73b1aa4141', 'psllq xmm1,170', 'psllq xmm1,170'),
-    ('PSRLDQ (66)', '660f73b9aa4141', 'pslldq xmm1,170', 'pslldq xmm1,170'),
+    ('PSRLDQ (66)', '660f73f5aa', 'psllq xmm5,170', 'psllq xmm5,170'),
+    ('PSRLDQ (66)', '660f73b9aa', 'pslldq xmm1,170', 'pslldq xmm1,170'),
     ('PCMPISTRI', '660f3a630f0d', 'pcmpistri xmm1,oword [rdi],13', 'pcmpistri xmm1,oword [rdi],13'),
 
     ('POPCNT', 'f30fb8c4', 'popcnt eax,esp', 'popcnt eax,esp'),
@@ -232,13 +230,13 @@ amd64MultiByteOpcodes = [
     ('CRC 1', 'f20f38f0e8', 'crc32 ebp,al', 'crc32 ebp,al'),
     ('CRC 2', '66f20f38f1C3', 'crc32 eax,bx', 'crc32 eax,bx'),
     ('CRC 3', 'f20f38f1C3', 'crc32 eax,ebx', 'crc32 eax,ebx'),
-    ('CLAC', '0f01ca414141', 'clac ', 'clac '),
-    ('STAC', '0f01cb414141', 'stac ', 'stac '),
-    ('VMFUNC', '0f01d44141', 'vmfunc ', 'vmfunc '),
-    ('XEND', '0f01d54141', 'xend ', 'xend '),
-    ('XGETBV', '0f01d04141', 'xgetbv ecx', 'xgetbv ecx'),
-    ('XSETBV', '0f01d14141', 'xsetbv ecx', 'xsetbv ecx'),
-    ('XTEST', '0f01d64141', 'xtest ', 'xtest '),
+    ('CLAC', '0f01ca', 'clac ', 'clac '),
+    ('STAC', '0f01cb', 'stac ', 'stac '),
+    ('VMFUNC', '0f01d4', 'vmfunc ', 'vmfunc '),
+    ('XEND', '0f01d5', 'xend ', 'xend '),
+    ('XGETBV', '0f01d0', 'xgetbv ecx', 'xgetbv ecx'),
+    ('XSETBV', '0f01d1', 'xsetbv ecx', 'xsetbv ecx'),
+    ('XTEST', '0f01d6', 'xtest ', 'xtest '),
     ('MOVUPD', '660f10cc', 'movupd xmm1,xmm4', 'movupd xmm1,xmm4'),
     ('MOVUPD', '660f1018', 'movupd xmm3,oword [rax]', 'movupd xmm3,oword [rax]'),
     ('UNPCKLPD', '660F14A241414100', 'unpcklpd xmm4,oword [rdx + 4276545]', 'unpcklpd xmm4,oword [rdx + 4276545]'),
@@ -381,6 +379,9 @@ amd64MultiByteOpcodes = [
     ('VMPTRST', '0fc73d41414141', 'vmptrst qword [rip + 1094795585]', 'vmptrst qword [rip + 1094795585]'),
     ('VMCLEAR', '0fc73541414141', 'vmptrld qword [rip + 1094795585]', 'vmptrld qword [rip + 1094795585]'),
     ('CMPXCHG', '0fb0d0', 'cmpxchg al,dl', 'cmpxchg al,dl'),
+    ('PMOVMSKB', '660fd7f8', 'pmovmskb edi,xmm0', 'pmovmskb edi,xmm0'),
+    ('PMOVMSBK 2', '660fd7ca', 'pmovmskb ecx,xmm2', 'pmovmskb ecx,xmm2'),
+    ('PMOVMSKB 3', '0fd7f8', 'pmovmskb edi,mm0', 'pmovmskb edi,mm0'),
     # XXX: Here's a fun tidbit. In the intel docs for this instruction, it says to use REX.B
     # to index into the higher
     # xmm{8,15} registers. But the only xmm register in this are specifcally indexed by the
@@ -502,6 +503,12 @@ amd64MultiByteOpcodes = [
     ('PMOVSXWQ (MEM)', '660f38341cb507000000', 'pmovzxwq xmm3,dword [0x00000007 + rsi * 4]', 'pmovzxwq xmm3,dword [0x00000007 + rsi * 4]'),
     ('PMOVSXDQ (MEM)', '660f383532', 'pmovzxdq xmm6,qword [rdx]', 'pmovzxdq xmm6,qword [rdx]'),
     ('SHA256RNDS2', '0f38cbd3', 'sha256rnds2 xmm2,xmm3,xmm0', 'sha256rnds2 xmm2,xmm3,xmm0'),
+    ('SFENCE', '0faef8', 'sfence ', 'sfence '),
+    ('LFENCE', '0faee8', 'lfence ', 'lfence '),
+    ('MFENCE', '0faef0', 'mfence ', 'mfence '),
+    ('XSAVE', '0FAE242541414141', 'xsave dword [0x41414141]', 'xsave dword [0x41414141]'),
+    ('WRFSBASE', 'F30FAED0', 'wrfsbase eax', 'wrfsbase eax'),
+    ('RDFSBASE', 'F3480FAEC0', 'rdfsbase rax', 'rdfsbase rax'),
 
     ('WAIT', '9b', 'wait ', 'wait '),  # TODO: this needs to be able to change the opcode too
 ]
@@ -1005,8 +1012,8 @@ amd64VexOpcodes = [
     ('VMOVQ 1', 'c5f9d604254a4a4a4a', 'vmovq qword [0x4a4a4a4a],xmm0', 'vmovq qword [0x4a4a4a4a],xmm0'),
     ('VMOVQ 2', 'c44179d630', 'vmovq qword [r8],xmm14', 'vmovq qword [r8],xmm14'),
     ('VMOVQ 3', 'c44179d68fb4000000', 'vmovq qword [r15 + 180],xmm9', 'vmovq qword [r15 + 180],xmm9'),
-    ('VPMOVMSKB 0', 'c44179d7cf', 'vpmovmskb r9,xmm15', 'vpmovmskb r9,xmm15'), # should be r9d
-    ('VPMOVMSKB 1', 'c57dd7c9', 'vpmovmskb r9,ymm1', 'vpmovmskb r9,ymm1'), # r9d instead of r9
+    ('VPMOVMSKB 0', 'c44179d7cf', 'vpmovmskb r9d,xmm15', 'vpmovmskb r9d,xmm15'),
+    ('VPMOVMSKB 1', 'c57dd7c9', 'vpmovmskb r9d,ymm1', 'vpmovmskb r9d,ymm1'),
     ('VCVTTPD2DQ 0', 'c4c179e6ce', 'vcvttpd2dq xmm1,xmm14', 'vcvttpd2dq xmm1,xmm14'),
     ('VCVTTPD2DQ 1', 'c5fde6cd', 'vcvttpd2dq xmm1,ymm5', 'vcvttpd2dq xmm1,ymm5'),
     ('VCVTTPD2DQ 2', 'c5f9e60c254a4a4a4a', 'vcvttpd2dq xmm1,oword [0x4a4a4a4a]', 'vcvttpd2dq xmm1,oword [0x4a4a4a4a]'),
@@ -1121,7 +1128,8 @@ class Amd64InstructionSet(unittest.TestCase):
                 self.fail("Failed to parse opcode bytes: %s (case: %s, expected: %s)" % (bytez, name, reprOp))
             except Exception as e:
                 self.fail('Unexpected parse error for case %s: %s' % (name, repr(e)))
-
+            msg = '%s failed length check. Got %d, expected %d' % (name, len(op), int(len(bytez)/2))
+            self.assertEqual(len(op), int(len(bytez)/2), msg=msg)
             try:
                 self.assertEqual(repr(op), reprOp)
             except AssertionError:
