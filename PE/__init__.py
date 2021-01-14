@@ -385,6 +385,7 @@ class PE(object):
         object.__init__(self)
         self.inmem = inmem
         self.filesize = None
+        self.max_rva = None
 
         if not inmem:
             fd.seek(0, os.SEEK_END)
@@ -472,8 +473,12 @@ class PE(object):
             return rva
         for s in self.sections:
             sbase = s.VirtualAddress
-            ssize = max(s.SizeOfRawData, s.VirtualSize)
-            if rva >= sbase and rva < sbase+ssize:
+            if s.SizeOfRawData + s.PointerToRawData > self.getMaxRva():
+                # SizeOfRawData can be misleading.
+                ssize = s.VirtualSize
+            else:
+                ssize = max(s.SizeOfRawData, s.VirtualSize)
+            if rva >= sbase and rva < sbase + ssize:
                 return s.PointerToRawData + (rva - sbase)
         return 0
 
@@ -483,7 +488,11 @@ class PE(object):
 
         for s in self.sections:
             sbase = s.PointerToRawData
-            ssize = s.SizeOfRawData
+            if s.SizeOfRawData + s.PointerToRawData > self.getMaxRva():
+                # SizeOfRawData can be misleading.
+                ssize = s.VirtualSize
+            else:
+                ssize = max(s.SizeOfRawData, s.VirtualSize)
             if sbase <= offset and offset < sbase + ssize:
                 return offset - s.PointerToRawData + s.VirtualAddress
         return 0
@@ -719,7 +728,19 @@ class PE(object):
         return self.readPointerAtOffset(off)
 
     def getMaxRva(self):
-        return self.IMAGE_NT_HEADERS.OptionalHeader.SizeOfImage
+        '''
+        Maximum RVA is the largest virtual address that might be observed.
+        '''
+        if not self.max_rva:
+            max_sec = 0
+            for sec in self.getSections():
+                sec_end = sec.VirtualAddress + sec.VirtualSize
+                align = self.IMAGE_NT_HEADERS.OptionalHeader.SectionAlignment
+                if (align > 0):
+                    sec_end = align * ((sec_end / align) + 1)
+                    max_sec = max(max_sec, sec_end)
+            self.max_rva = max_sec
+        return self.max_rva
 
     def checkRva(self, rva, size=None):
         '''
