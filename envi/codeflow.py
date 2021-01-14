@@ -178,6 +178,10 @@ class CodeFlowContext(object):
                 if bva is None:
                     self._cb_dynamic_branch(va, op, bflags, branches)
 
+                if self._cf_noflow.get((va, bva)):
+                    self._cb_noflow(va, bva)
+                    continue
+
                 # add block as part of our call stack
                 self._cf_blocks.append(bva)
 

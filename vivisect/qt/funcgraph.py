@@ -535,7 +535,8 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
 
             self._renderDoneSignal.emit()
         except Exception as e:
-            self.vw.vprint(str(e))
+            self.vw.vprint('_renderMemory hit exception: %s' % str(e))
+            self.vw.vprint('%s' % traceback.format_exc())
 
     def loadDefaultRenderers(self):
         vivrend = viv_rend.WorkspaceRenderer(self.vw)
