@@ -51,12 +51,9 @@ class ELFTests(unittest.TestCase):
             )
 
 
-    @classmethod
-    def setUpClass(cls):
-        super(ELFTests, cls).setUpClass()
-
-        cls.tests = []
-        for test in cls.data:
+    def test_files(self):
+        results = []
+        for test in data:
             name, test_data, path = test
             logger.warn("======== %r ========", name)
             fn = helpers.getTestPath(*path)
@@ -66,13 +63,6 @@ class ELFTests(unittest.TestCase):
 
             do_analyze(vw)
 
-            cls.tests.append((name, test_data, fn, e, vw))
-
-        cls.maxDiff = None
-
-    def test_files(self):
-        results = []
-        for name, test_data, fn, e, vw in self.tests:
             logger.debug("testing %r (%r)...", name, fn)
             retval = self.do_file(vw, test_data, name)
             results.append(retval)
