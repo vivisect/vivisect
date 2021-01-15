@@ -122,8 +122,6 @@ def vivExtension(vw, vwgui):
     vwgui.vqAddMenuField("&Example.&FooBar.&PrintUserInput", tempmod.printUserInput, ())
 
     # get Dock Windows by name
-    ##  so, to do this in a meaningful way in an extension, we want to do something to a window, 
-    ##  later (since at Extension Load time, it's not really useful)
     for w, vqDW in vwgui.vqGetDockWidgetsByName('viv'):
         vprint(vw, "Window: %r    DockWidget: %r (%r)", w, vqDW, w.getEnviNavName())
 

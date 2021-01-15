@@ -338,7 +338,7 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
         settings.setValue('%s/DockState' % vivname, state)
         # don't store the default.  that should be saved manually
 
-    def vqGetDockWidgetsByName(self, name='viv', firstonly=True):
+    def vqGetDockWidgetsByName(self, name='viv', firstonly=False):
         '''
         Get list of DockWidgets matching a given name (default is 'viv').
 
