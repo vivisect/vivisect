@@ -53,7 +53,7 @@ class ELFTests(unittest.TestCase):
 
     def test_files(self):
         results = []
-        for test in data:
+        for test in self.data:
             name, test_data, path = test
             logger.warn("======== %r ========", name)
             fn = helpers.getTestPath(*path)
