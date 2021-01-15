@@ -338,6 +338,22 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
         settings.setValue('%s/DockState' % vivname, state)
         # don't store the default.  that should be saved manually
 
+    def vqGetDockWidgetsByName(self, name='viv', firstonly=True):
+        '''
+        Get list of DockWidgets matching a given name (default is 'viv').
+
+        Returns a list of tuples (window, DockWidget)
+        If firstonly==True, returns the first tuple, not a list.
+        '''
+        out = []
+        for vqDW in self.vqGetDockWidgets():
+            w = vqDW.widget()
+            if hasattr(w, 'getEnviNavName') and w.getEnviNavName() == name:
+                if firstonly:
+                    return w, vqDW
+                out.append((w,vqDW))
+        return out
+
     def _menuToolsDebug(self):
         viv_vdbext.runVdb(self)
 

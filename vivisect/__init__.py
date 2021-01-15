@@ -95,6 +95,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             self.vivhome = e_config.gethomedir(".viv", makedir=autosave)
         self._viv_gui = None    # If a gui is running, he will put a ref here...
         self._ext_ctxmenu_hooks = []
+        self._extensions = []
 
         self.saved = True  # TODO: where is this used?
         self.rchan = None
@@ -228,6 +229,22 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             return
 
         self._ext_ctxmenu_hooks.remove(handler)
+
+    def addExtension(self, extmod):
+        '''
+        Add extension module to a list of extensions.
+        This keeps a list of installed extension modules, with the added value
+        of keeping the loaded module in memory.
+        '''
+        if extmod not in self._extensions:
+            self._extensions.append(extmod)
+
+    def delExtension(self, extmod):
+        '''
+        Remove's extension module from the list of extensions.
+        '''
+        if extmod in self._extensions:
+            self._extensions.remove(extmod)
 
     def getVivGuid(self):
         '''
