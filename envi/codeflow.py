@@ -156,10 +156,10 @@ class CodeFlowContext(object):
             try:
                 op = self._mem.parseOpcode(va, arch=arch)
             except envi.InvalidInstruction as e:
-                logger.warn('parseOpcode error at 0x%.8x (addCodeFlow(0x%x)): %s', va, startva, e)
+                logger.warn('Invalid instruction: parseOpcode error at 0x%.8x (addCodeFlow(0x%x)): %s', va, startva, e)
                 continue
             except Exception as e:
-                logger.warn('parseOpcode error at 0x%.8x (addCodeFlow(0x%x)): %s', va, startva, e)
+                logger.warn('Other: parseOpcode error at 0x%.8x (addCodeFlow(0x%x)): %s', va, startva, e)
                 continue
 
             branches = op.getBranches()
@@ -177,6 +177,10 @@ class CodeFlowContext(object):
                 # look for dynamic branches (ie. branches which don't have a known target).  assume at least one branch
                 if bva is None:
                     self._cb_dynamic_branch(va, op, bflags, branches)
+
+                if self._cf_noflow.get((va, bva)):
+                    self._cb_noflow(va, bva)
+                    continue
 
                 # add block as part of our call stack
                 self._cf_blocks.append(bva)

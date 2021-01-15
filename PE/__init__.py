@@ -58,10 +58,20 @@ IMAGE_FILE_MACHINE_I386  = 0x014c
 IMAGE_FILE_MACHINE_IA64  = 0x0200
 IMAGE_FILE_MACHINE_AMD64 = 0x8664
 
+IMAGE_FILE_MACHINE_ARM   = 0x1c0
+IMAGE_FILE_MACHINE_ARM64 = 0xaa64
+IMAGE_FILE_MACHINE_ARMNT = 0x1c4  # ARMv7 or higher thumb mode only
+IMAGE_FILE_MACHINE_THUMB = 0x1c2  # interworking arm/thumb
+
 machine_names = {
     IMAGE_FILE_MACHINE_I386: 'i386',
     IMAGE_FILE_MACHINE_IA64: 'ia64',
     IMAGE_FILE_MACHINE_AMD64: 'amd64',
+
+    IMAGE_FILE_MACHINE_ARM: 'arm',
+    IMAGE_FILE_MACHINE_ARM64: 'arm64',
+    IMAGE_FILE_MACHINE_ARMNT: 'thumb',
+    IMAGE_FILE_MACHINE_THUMB: 'thumb16',
 }
 
 IMAGE_REL_BASED_ABSOLUTE              = 0
@@ -175,6 +185,7 @@ class VS_VERSIONINFO:
     '''
     def __init__(self, bytes):
         self._version_info = {}
+        self._fixed_file_info = None
         self._parseBytes(bytes)
 
     def getVersionValue(self, key, default=None):
@@ -213,6 +224,7 @@ class VS_VERSIONINFO:
         if valsize and valsize >= len(vs_pe.VS_FIXEDFILEINFO()):
             ffinfo = vs_pe.VS_FIXEDFILEINFO()
             ffinfo.vsParse(bytes[offset:offset+valsize])
+            self._fixed_file_info = ffinfo
 
         offset += valsize
         offmod = offset % 4
@@ -429,6 +441,13 @@ class PE(object):
         """
         return self.imports
 
+    def getDelayImports(self):
+        """
+        Return the list of delay import tuples for this PE.  The tuples
+        are in the format (rva, libname, funcname).
+        """
+        return self.delayImports
+
     def getExports(self):
 
         """
@@ -632,10 +651,15 @@ class PE(object):
                     subdata = self.readStructAtRva( dresc.VirtualAddress + dirent.OffsetToData, 'pe.IMAGE_RESOURCE_DATA_ENTRY')
                     # RP BUG FIX - sanity check the subdata
                     if subdata and self.checkRva(subdata.OffsetToData, size=subdata.Size):
-                        langid = name_id & 0x3ff
-                        sublangid = name_id >> 10
-                        langinfo = (subdata.CodePage, langid, sublangid )
-                        rsdirobj.addRsrcData(subdata.OffsetToData, subdata.Size, langinfo )
+                        # sometimes people are bad and they lie to us
+                        try:
+                            langid = name_id & 0x3ff
+                            sublangid = name_id >> 10
+                        except:
+                            langid = None
+                            sublangid = None
+                        langinfo = (subdata.CodePage, langid, sublangid)
+                        rsdirobj.addRsrcData(subdata.OffsetToData, subdata.Size, langinfo)
 
                 offset += len(dirent)
 
@@ -730,27 +754,60 @@ class PE(object):
         return ret
 
     def parseImports(self):
-        self.imports = []
-
         idir = self.getDataDirectory(IMAGE_DIRECTORY_ENTRY_IMPORT)
 
         # RP BUG FIX - invalid IAT entry will point of range of file
         irva = idir.VirtualAddress
         x = self.readStructAtRva(irva, 'pe.IMAGE_IMPORT_DIRECTORY', check=True)
         if x is None:
+            self.imports = []
             return
 
+        self.imports = self.parseImportTable(x, irva, is_imports=True)
+
+    def parseDelayImports(self):
+        didir = self.getDataDirectory(IMAGE_DIRECTORY_ENTRY_DELAY_IMPORT)
+
+        # RP BUG FIX - invalid IAT entry will point of range of file
+        irva = didir.VirtualAddress
+        x = self.readStructAtRva(irva, 'pe.IMAGE_DELAY_IMPORT_DIRECTORY', check=True)
+        if x is None:
+            self.delayImports = []
+            return
+
+        self.delayImports = self.parseImportTable(x, irva, is_imports=False)
+
+    def parseImportTable(self, x, irva, is_imports=True):
+        '''
+        Parse a standard or delayed import table, adding to imports_list.
+        Start with x and irva set to the first entry in the table.
+        '''
+        imports_list = []
         isize = len(x)
 
-        while self.checkRva(x.Name):
+        while True:
+            if is_imports:
+                entry_name = x.Name
+            else:
+                entry_name = x.rvaDLLName
+
+            if not self.checkRva(entry_name):
+                break
 
             # RP BUG FIX - we can't assume that we have 256 bytes to read
-            libname = self.readStringAtRva(x.Name, maxsize=256)
+            libname = self.readStringAtRva(entry_name, maxsize=256)
             idx = 0
 
-            imp_by_name = x.OriginalFirstThunk
-            if imp_by_name == 0:
-                imp_by_name = x.FirstThunk
+            if is_imports:
+                imp_by_name = x.OriginalFirstThunk
+                if imp_by_name == 0:
+                    imp_by_name = x.FirstThunk
+                save_name = x.FirstThunk
+            else:
+                imp_by_name = x.rvaINT
+                if imp_by_name == 0:
+                    imp_by_name = x.rvaIAT
+                save_name = x.rvaIAT
 
             if not self.checkRva(imp_by_name):
                 break
@@ -759,8 +816,7 @@ class PE(object):
 
                 arrayoff = self.psize * idx
                 if self.filesize is not None and arrayoff > self.filesize:
-                    self.imports = [] # we probably put grabage in  here..
-                    return
+                    return [] # we probably put garbage in the list
 
                 ibn_rva = self.readPointerAtRva(imp_by_name+arrayoff)
                 if ibn_rva == 0:
@@ -791,7 +847,7 @@ class PE(object):
 
                     funcname = ibn.Name
 
-                self.imports.append((x.FirstThunk+arrayoff,libname,funcname))
+                imports_list.append((save_name + arrayoff, libname, funcname))
 
                 idx += 1
 
@@ -802,6 +858,8 @@ class PE(object):
                 break
 
             x.vsParse(self.readAtRva(irva, isize))
+
+        return imports_list
 
     def getRelocations(self):
         """
@@ -1080,6 +1138,14 @@ class PE(object):
         elif name == "imports":
             self.parseImports()
             return self.imports
+
+        elif name == "IMAGE_DELAY_IMPORT_DIRECTORY":
+            self.parseDelayImports()
+            return self.IMAGE_DELAY_IMPORT_DIRECTORY
+
+        elif name == "delayImports":
+            self.parseDelayImports()
+            return self.delayImports
 
         elif name == "IMAGE_EXPORT_DIRECTORY":
             self.parseExports()

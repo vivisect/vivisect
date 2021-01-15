@@ -28,10 +28,10 @@ i386SingleByteOpcodes = [
     ('nop 3', 'f30f1fc0', 0x40, 'rep: nop eax', 'rep: nop eax'),
     ('pop', '8ff0', 0x40, 'pop eax', 'pop eax'),
     ('pop', '8ffb', 0x40, 'pop ebx', 'pop ebx'),
-    ('BSWAP (eax)', '0fc84141', 0x40, 'bswap eax', 'bswap eax'),
-    ('BSWAP (ebx)', '0fcb4141', 0x40, 'bswap ebx', 'bswap ebx'),
-    ('BSWAP (eax)', 'f30fc84141', 0x40, 'rep: bswap eax', 'rep: bswap eax'),
-    ('BSWAP (ebx)', 'f30fcb4141', 0x40, 'rep: bswap ebx', 'rep: bswap ebx'),
+    ('BSWAP (eax)', '0fc8', 0x40, 'bswap eax', 'bswap eax'),
+    ('BSWAP (ebx)', '0fcb', 0x40, 'bswap ebx', 'bswap ebx'),
+    ('BSWAP (eax)', 'f30fc8', 0x40, 'rep: bswap eax', 'rep: bswap eax'),
+    ('BSWAP (ebx)', 'f30fcb', 0x40, 'rep: bswap ebx', 'rep: bswap ebx'),
     ('setg (al)', '0f9fc0', 0x40, 'setg al', 'setg al'),
     ('setg (dl)', '0f9fc2', 0x40, 'setg dl', 'setg dl'),
     ('rep setg (al)', 'f30f9fc0', 0x40, 'rep: setg al', 'rep: setg al'),
@@ -76,33 +76,33 @@ i386MultiByteOpcodes = [
     ('CVTPD2PI', '660f2Daaaaaaaa41', 0x40, 'cvtpd2pi mm5,oword [edx + 1101703850]', 'cvtpd2pi mm5,oword [edx + 1101703850]'),
     ('CVTTPS2PI', '0f2caaaaaaaa41', 0x40, 'cvttps2pi mm5,qword [edx + 1101703850]', 'cvttps2pi mm5,qword [edx + 1101703850]'),
     ('CVTTSS2SI', 'f30f2caaaaaaaa41', 0x40, 'cvttss2si ebp,dword [edx + 1101703850]', 'cvttss2si ebp,dword [edx + 1101703850]'),
-    ('CVTTSS2SI', 'f30f2ce9414141', 0x40, 'cvttss2si ebp,xmm1', 'cvttss2si ebp,xmm1'),
+    ('CVTTSS2SI 2', 'f30f2ce9', 0x40, 'cvttss2si ebp,xmm1', 'cvttss2si ebp,xmm1'),
     ('CVTTPD2PI', '660f2caaaaaaaa41', 0x40, 'cvttpd2pi mm5,oword [edx + 1101703850]', 'cvttpd2pi mm5,oword [edx + 1101703850]'),
-    ('CVTTSD2SI', 'f20f2caaaaaaaa41', 0x40, 'cvttsd2si ebp,qword [edx + 1101703850]', 'cvttsd2si ebp,qword [edx + 1101703850]'),
-    ('ADDPS', '0f58aa4141414141', 0x40, 'addps xmm5,oword [edx + 1094795585]', 'addps xmm5,oword [edx + 1094795585]'),
+    ('CVTTSD2SI 2', 'f20f2caaaaaaaa41', 0x40, 'cvttsd2si ebp,qword [edx + 1101703850]', 'cvttsd2si ebp,qword [edx + 1101703850]'),
+    ('ADDPS', '0f58aa41414141', 0x40, 'addps xmm5,oword [edx + 1094795585]', 'addps xmm5,oword [edx + 1094795585]'),
     ('MOVAPS', '0f28aa41414141', 0x40, 'movaps xmm5,oword [edx + 1094795585]', 'movaps xmm5,oword [edx + 1094795585]'),
     ('MOVAPD', '660f28aa41414141', 0x40, 'movapd xmm5,oword [edx + 1094795585]', 'movapd xmm5,oword [edx + 1094795585]'),
-    ('RSM', '0faa414141', 0x40, 'rsm ', 'rsm '),
+    ('RSM', '0faa', 0x40, 'rsm ', 'rsm '),
     ('MUL', 'f7e3', 0x40, 'mul eax,ebx', 'mul eax,ebx'),
     ('MUL 2', '66f7e3', 0x40, 'mul ax,bx', 'mul ax,bx'),
     ('PMULLW (66)', '660fd5cd', 0x40, 'pmullw xmm1,xmm5', 'pmullw xmm1,xmm5'),
     ('PMULLW', '0fd5e2', 0x40, 'pmullw mm4,mm2', 'pmullw mm4,mm2'),
     ('CMPXCH8B', '0fc70a', 0x40, 'cmpxch8b qword [edx]', 'cmpxch8b qword [edx]'),
-    ('MOVD (66)', '660f7ecb414141', 0x40, 'movd ebx,xmm1', 'movd ebx,xmm1'),
+    ('MOVD (66)', '660f7ecb', 0x40, 'movd ebx,xmm1', 'movd ebx,xmm1'),
     ('MOVD', '0F6E0D41414100', 0x40, 'movd mm1,dword [0x00414141]', 'movd mm1,dword [0x00414141]'),
     ('MOVQ', '0F6FCB', 0x40, 'movq mm1,mm3', 'movq mm1,mm3'),
-    ('PSRAW',  '0FE1CA4141', 0x40, 'psraw mm1,mm2', 'psraw mm1,mm2'),
-    ('PSLLQ (66)',  '660FF3CB4141', 0x40, 'psllq xmm1,xmm3', 'psllq xmm1,xmm3'),
+    ('PSRAW',  '0FE1CA', 0x40, 'psraw mm1,mm2', 'psraw mm1,mm2'),
+    ('PSLLQ (66)',  '660FF3CB', 0x40, 'psllq xmm1,xmm3', 'psllq xmm1,xmm3'),
     ('PALIGNR', '0F3A0FDC03', 0x40, 'palignr xmm3,xmm4,3', 'palignr xmm3,xmm4,3'),
     ('PALIGNR (66)',  '660F3A0FCA07', 0x40, 'palignr xmm1,xmm2,7', 'palignr xmm1,xmm2,7'),
     ('PSLLQ (reg)',  '660FF3CA', 0x40, 'psllq xmm1,xmm2', 'psllq xmm1,xmm2'),
     ('PSLLW (regs)',  '0F71F108', 0x40, 'psllw mm1,8', 'psllw mm1,8'),
-    ('PSLLQ (66)',  '660F73F108', 0x40, 'psllq xmm1,8', 'psllq xmm1,8'),
+    ('PSLLQ (66) 2',  '660F73F108', 0x40, 'psllq xmm1,8', 'psllq xmm1,8'),
     ('PSRLW (66)',  '660F71D611', 0x40, 'psrlw xmm6,17', 'psrlw xmm6,17'),
     ('PSRAD (66)',  '660F72E704', 0x40, 'psrad xmm7,4', 'psrad xmm7,4'),
     ('PSRLQ (66)',  '660F73D308', 0x40, 'psrlq xmm3,8', 'psrlq xmm3,8'),
-    ('PSRAW (66)',  '660F71E1084141', 0x40, 'psraw xmm1,8', 'psraw xmm1,8'),
-    ('PSRLDQ (66)', '660f73faaa4141', 0x40, 'pslldq xmm2,170', 'pslldq xmm2,170'),
+    ('PSRAW (66)',  '660F71E108', 0x40, 'psraw xmm1,8', 'psraw xmm1,8'),
+    ('PSRLDQ (66)', '660f73faaa', 0x40, 'pslldq xmm2,170', 'pslldq xmm2,170'),
     ('LFENCE', '0faee8', 0x40, 'lfence ', 'lfence '),
     ('LFENCE', '0faeea', 0x40, 'lfence ', 'lfence '),
     ('LFENCE', '0faeec', 0x40, 'lfence ', 'lfence '),
@@ -113,15 +113,15 @@ i386MultiByteOpcodes = [
     ('MFENCE', '0faef7', 0x40, 'mfence ', 'mfence '),
     ('CVTTSS2SI', 'f30f2cc8', 0x40, 'cvttss2si ecx,xmm0', 'cvttss2si ecx,xmm0'),
     ('PREFIXES', 'f0673e2e65f30f10ca', 0x40, 'lock cs ds gs: movss xmm1,xmm2', 'lock cs ds gs: movss xmm1,xmm2'),
-    ('BSR', '0fbdc3414141', 0x40, 'bsr eax,ebx', 'bsr eax,ebx'),
-    ('LZNT', 'f30fbdc3414141', 0x40, 'lzcnt eax,ebx', 'lzcnt eax,ebx'),
+    ('BSR', '0fbdc3', 0x40, 'bsr eax,ebx', 'bsr eax,ebx'),
+    ('LZNT', 'f30fbdc3', 0x40, 'lzcnt eax,ebx', 'lzcnt eax,ebx'),
     # Because of how the MODRM Bytes are set, these map to the same instruction
     # TODO: Would these be the same to a real x86 chip?
-    ('PSRLDQ (66)', '660f73b5aa4141', 0x40, 'psllq xmm5,170', 'psllq xmm5,170'),
-    ('PSRLDQ (66)', '660f73f5aa4141', 0x40, 'psllq xmm5,170', 'psllq xmm5,170'),
+    ('PSRLDQ (66)', '660f73b5aa', 0x40, 'psllq xmm5,170', 'psllq xmm5,170'),
+    ('PSRLDQ (66)', '660f73f5aa', 0x40, 'psllq xmm5,170', 'psllq xmm5,170'),
     # Same for these two
-    ('PSRLDQ (66)', '660f73b1aa4141', 0x40, 'psllq xmm1,170', 'psllq xmm1,170'),
-    ('PSRLDQ (66)', '660f73b9aa4141', 0x40, 'pslldq xmm1,170', 'pslldq xmm1,170'),
+    ('PSRLDQ (66)', '660f73b1aa', 0x40, 'psllq xmm1,170', 'psllq xmm1,170'),
+    ('PSRLDQ (66)', '660f73b9aa', 0x40, 'pslldq xmm1,170', 'pslldq xmm1,170'),
 
     ('ADDSS', 'f30f58ca', 0x40, 'addss xmm1,xmm2', 'addss xmm1,xmm2'),
     ('ADDSS 2', 'f30f580a', 0x40, 'addss xmm1,dword [edx]', 'addss xmm1,dword [edx]'),
@@ -173,15 +173,15 @@ i386MultiByteOpcodes = [
     ('CRC 1', 'f20f38f0e8', 0x40, 'crc32 ebp,al', 'crc32 ebp,al'),
     ('CRC 2', '66f20f38f1C3', 0x40, 'crc32 eax,bx', 'crc32 eax,bx'),
     ('CRC 3', 'f20f38f1C3', 0x40, 'crc32 eax,ebx', 'crc32 eax,ebx'),
-    ('CLAC', '0f01ca414141', 0x40, 'clac ', 'clac '),
-    ('STAC', '0f01cb414141', 0x40, 'stac ', 'stac '),
-    ('VMFUNC', '0f01d44141', 0x40, 'vmfunc ', 'vmfunc '),
-    ('XEND', '0f01d54141', 0x40, 'xend ', 'xend '),
-    ('XGETBV', '0f01d04141', 0x40, 'xgetbv ecx', 'xgetbv ecx'),
-    ('XSETBV', '0f01d14141', 0x40, 'xsetbv ecx', 'xsetbv ecx'),
+    ('CLAC', '0f01ca', 0x40, 'clac ', 'clac '),
+    ('STAC', '0f01cb', 0x40, 'stac ', 'stac '),
+    ('VMFUNC', '0f01d4', 0x40, 'vmfunc ', 'vmfunc '),
+    ('XEND', '0f01d5', 0x40, 'xend ', 'xend '),
+    ('XGETBV', '0f01d0', 0x40, 'xgetbv ecx', 'xgetbv ecx'),
+    ('XSETBV', '0f01d1', 0x40, 'xsetbv ecx', 'xsetbv ecx'),
     ('XADD', '660fc1d8', 0x40, 'xadd ax,bx', 'xadd ax,bx'),
     ('XADD 2', '0fc1d8', 0x40, 'xadd eax,ebx', 'xadd eax,ebx'),
-    ('XTEST', '0f01d64141', 0x40, 'xtest ', 'xtest '),
+    ('XTEST', '0f01d6', 0x40, 'xtest ', 'xtest '),
     ('MOVUPD', '660f10cc', 0x40, 'movupd xmm1,xmm4', 'movupd xmm1,xmm4'),
     ('MOVUPD', '660f1018', 0x40, 'movupd xmm3,oword [eax]', 'movupd xmm3,oword [eax]'),
     ('UNPCKLPD', '660F14A241414100', 0x40, 'unpcklpd xmm4,oword [edx + 4276545]', 'unpcklpd xmm4,oword [edx + 4276545]'),
@@ -222,7 +222,9 @@ i386MultiByteOpcodes = [
     ('MOV AMETH_D', '0f21c0', 0x40, 'mov eax,debug0', 'mov eax,debug0'),
     ('MOV AMETH_D 2', '0f21f9', 0x40, 'mov ecx,debug7', 'mov ecx,debug7'),
     ('MOV AMETH_D 3', '0f23e1', 0x40, 'mov debug4,ecx', 'mov debug4,ecx'),
-
+    ('PMOVMSKB', '660fd7f8', 0x40, 'pmovmskb edi,xmm0', 'pmovmskb edi,xmm0'),
+    ('PMOVMSBK 2', '660fd7ca', 0x40, 'pmovmskb ecx,xmm2', 'pmovmskb ecx,xmm2'),
+    ('PMOVMSKB 3', '0fd7f8', 0x40, 'pmovmskb edi,mm0', 'pmovmskb edi,mm0'),
     ('MOV SEGREG', '64a130000000', 0x40, 'fs: mov eax,dword [0x00000030]', 'fs: mov eax,dword [0x00000030]'),
     ('MOV SEGREG 2', '8ce0', 0x40, 'mov eax,fs', 'mov eax,fs'),
     ('MOV SEGREG 3', '8ec6', 0x40, 'mov es,esi', 'mov es,esi'),
@@ -263,6 +265,10 @@ i386MultiByteOpcodes = [
     ('PMOVSXWD (MEM)', '660f38330c11', 0x40, 'pmovzxwd xmm1,qword [ecx + edx]', 'pmovzxwd xmm1,qword [ecx + edx]'),
     ('PMOVSXWQ (MEM)', '660f38341cb507000000', 0x40, 'pmovzxwq xmm3,dword [0x00000007 + esi * 4]', 'pmovzxwq xmm3,dword [0x00000007 + esi * 4]'),
     ('PMOVSXDQ (MEM)', '660f383532', 0x40, 'pmovzxdq xmm6,qword [edx]', 'pmovzxdq xmm6,qword [edx]'),
+    ('SFENCE', '0faef8', 0x40, 'sfence ', 'sfence '),
+    ('LFENCE', '0faee8', 0x40, 'lfence ', 'lfence '),
+    ('MFENCE', '0faef0', 0x40, 'mfence ', 'mfence '),
+    ('XSAVE', '0FAE2541414141', 0x40, 'xsave dword [0x41414141]', 'xsave dword [0x41414141]'),
 
     # AES-NI feature set
     ('AESENC', '660F38DCEA', 0x40, 'aesenc xmm5,xmm2', 'aesenc xmm5,xmm2'),
@@ -293,6 +299,11 @@ i386MultiByteOpcodes = [
     ('PCLMULQDQ (MEM)', '660F3A441007', 0x40, 'pclmulqdq xmm2,oword [eax],7', 'pclmulqdq xmm2,oword [eax],7'),
     ('PCLMULQDQ (MEM 2)', '660F3A4478119C', 0x40, 'pclmulqdq xmm7,oword [eax + 17],156', 'pclmulqdq xmm7,oword [eax + 17],156'),
     ('PCLMULQDQ (MEM 3)', '660F3A443D41414141C6', 0x40, 'pclmulqdq xmm7,oword [0x41414141],198', 'pclmulqdq xmm7,oword [0x41414141],198'),
+    ('RDRAND', '0fc7f0', 0x40, 'rdrand eax', 'rdrand eax'),
+    ('RDSEED', '0fc7f8', 0x40, 'rdseed eax', 'rdseed eax'),
+    ('VMPTRST', '0fc73d41414141', 0x40, 'vmptrst qword [0x41414141]', 'vmptrst qword [0x41414141]'),
+    ('VMCLEAR', '0fc73541414141', 0x40, 'vmptrld qword [0x41414141]', 'vmptrld qword [0x41414141]'),
+    ('CMPXCHG', '0fb0d0', 0x40, 'cmpxchg al,dl', 'cmpxchg al,dl'),
 ]
 
 
@@ -310,6 +321,9 @@ class i386InstructionSet(unittest.TestCase):
                 self.fail("Failed to parse opcode bytes: %s (case: %s, expected: %s)" % (bytez, name, reprOp))
             except Exception as e:
                 self.fail("Failed to parse opcode bytes: %s (case: %s, expected: %s)" % (bytez, name, reprOp))
+
+            msg = '%s failed length check. Got %d, expected %d' % (name, len(op), int(len(bytez)/2))
+            self.assertEqual(len(op), int(len(bytez)/2), msg=msg)
             # print("'%s', 0x%x, '%s' == '%s'" % (bytez, va, repr(op), reprOp))
             try:
                 self.assertEqual(repr(op), reprOp)
@@ -326,51 +340,6 @@ class i386InstructionSet(unittest.TestCase):
 
     def test_envi_i386_disasm_Specific_MultiByte_Instrs(self):
         self.check_opreprs(i386MultiByteOpcodes)
-
-    '''
-    def test_envi_i386_disasm_A(self):
-        pass
-    def test_envi_i386_disasm_C(self):
-        pass
-    def test_envi_i386_disasm_D(self):
-        pass
-    def test_envi_i386_disasm_E(self):
-        pass
-    def test_envi_i386_disasm_F(self):
-        pass
-    def test_envi_i386_disasm_G(self):
-        pass
-    def test_envi_i386_disasm_I(self):
-        pass
-    def test_envi_i386_disasm_J(self):
-        pass
-    def test_envi_i386_disasm_L(self):
-        pass
-    def test_envi_i386_disasm_M(self):
-        pass
-    def test_envi_i386_disasm_N(self):
-        pass
-    def test_envi_i386_disasm_O(self):
-        pass
-    def test_envi_i386_disasm_P(self):
-        pass
-    def test_envi_i386_disasm_Q(self):
-        pass
-    def test_envi_i386_disasm_R(self):
-        pass
-    def test_envi_i386_disasm_S(self):
-        pass
-    def test_envi_i386_disasm_U(self):
-        pass
-    def test_envi_i386_disasm_V(self):
-        pass
-    def test_envi_i386_disasm_W(self):
-        pass
-    def test_envi_i386_disasm_X(self):
-        pass
-    def test_envi_i386_disasm_Y(self):
-        pass
-    '''
 
     def checkOpcode(self, hexbytez, va, oprepr, opcheck, opercheck, renderOp):
 

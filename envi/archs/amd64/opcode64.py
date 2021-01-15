@@ -350,7 +350,7 @@ tbl32_Main = [
 ( 0, INS_OUT, OP_REG | OP_W, OP_REG | OP_R, ARG_NONE, cpu_80386, "out", e_amd64_regs.REG_DX, e_amd64_regs.REG_EAX, 0),  
 # 0xf0
 ( 0, INSTR_PREFIX, 0, 0, 0, cpu_80386, "lock:", 0, 0, 0),  
-( 0, 0, 0, 0, 0, cpu_80386, 0, 0, 0, 0),  
+(0, INS_TRAP, ARG_NONE, ARG_NONE, ARG_NONE, cpu_80386, "int1", 0, 0, 0),
 (TBL_F20F, INSTR_PREFIX, 0, 0, 0, cpu_80386, "repne:", 0, 0, 0),
 (TBL_F30F, INSTR_PREFIX, 0, 0, 0, cpu_80386, "rep:", 0, 0, 0),
 ( 0, INS_HALT, 0, 0, 0, cpu_80386, "hlt", 0, 0, 0),  
@@ -402,10 +402,10 @@ tbl32_0F = [
 ( 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),  
 ( 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),  
 ( 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
-(0, INS_OTHER, ADDRMETH_E | OPTYPE_v, ARG_NONE, ARG_NONE, ARG_NONE, cpu_80386, "nop", 0, 0, 0),
-(0, INS_OTHER, ADDRMETH_E | OPTYPE_v, ARG_NONE, ARG_NONE, ARG_NONE, cpu_80386, "nop", 0, 0, 0),
-(0, INS_OTHER, ADDRMETH_E | OPTYPE_v, ARG_NONE, ARG_NONE, ARG_NONE, cpu_80386, "nop", 0, 0, 0),
-(0, INS_OTHER, ADDRMETH_E | OPTYPE_v, ARG_NONE, ARG_NONE, ARG_NONE, cpu_80386, "nop", 0, 0, 0),
+(0, INS_NOP, ADDRMETH_E | OPTYPE_v, ARG_NONE, ARG_NONE, ARG_NONE, cpu_80386, "nop", 0, 0, 0),
+(0, INS_NOP, ADDRMETH_E | OPTYPE_v, ARG_NONE, ARG_NONE, ARG_NONE, cpu_80386, "nop", 0, 0, 0),
+(0, INS_NOP, ADDRMETH_E | OPTYPE_v, ARG_NONE, ARG_NONE, ARG_NONE, cpu_80386, "nop", 0, 0, 0),
+(0, INS_NOP, ADDRMETH_E | OPTYPE_v, ARG_NONE, ARG_NONE, ARG_NONE, cpu_80386, "nop", 0, 0, 0),
 # 0f20
 ( 0, INS_MOV,   ADDRMETH_R | OPTYPE_q | OP_W, ADDRMETH_C | OPTYPE_q | OP_R, ARG_NONE, ARG_NONE, cpu_80386, "mov", 0, 0, 0),
 ( 0, INS_MOV,   ADDRMETH_R | OPTYPE_q | OP_W, ADDRMETH_D | OPTYPE_q | OP_R, ARG_NONE, ARG_NONE, cpu_80386, "mov", 0, 0, 0),
@@ -569,8 +569,8 @@ tbl32_0F = [
 ( 0, INS_MOV, ADDRMETH_G | OPTYPE_v | OP_W, ADDRMETH_E | OPTYPE_b | OP_R, ARG_NONE, ARG_NONE, cpu_80386, "movzx", 0, 0, 0),  
 ( 0, INS_MOV, ADDRMETH_G | OPTYPE_v | OP_W, ADDRMETH_E | OPTYPE_w | OP_R, ARG_NONE, ARG_NONE, cpu_80386, "movzx", 0, 0, 0),  
 ( 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),  
-( 0, 0, 0, 0, 0, ARG_NONE, cpu_80386, "ud1", 0, 0, 0),  #### GROUP 10?
-(TBL_0FBA, 0, 0, 0, 0, ARG_NONE, cpu_80386, 0, 0, 0, 0),  
+(0, INS_INVALIDOP, ADDRMETH_R | OPTYPE_d | OP_W, ADDRMETH_E | OPTYPE_d | OP_R, ARG_NONE, ARG_NONE, cpu_80386, "ud1", 0, 0, 0),  #### GROUP 10?
+(TBL_0FBA, 0, 0, 0, 0, ARG_NONE, cpu_80386, 0, 0, 0, 0),
 ( 0, INS_BITTEST, ADDRMETH_E | OPTYPE_v | OP_R, ADDRMETH_G | OPTYPE_v | OP_R, ARG_NONE, ARG_NONE, cpu_80386, "btc", 0, 0, 0),  
 ( 0, INS_BITTEST, ADDRMETH_G | OPTYPE_v | OP_R | OP_W, ADDRMETH_E | OPTYPE_v | OP_R, ARG_NONE, ARG_NONE, cpu_80386, "bsf", 0, 0, 0),  
 ( 0, INS_BITTEST, ADDRMETH_G | OPTYPE_v | OP_R | OP_W, ADDRMETH_E | OPTYPE_v | OP_R, ARG_NONE, ARG_NONE, cpu_80386, "bsr", 0, 0, 0),  
@@ -643,8 +643,8 @@ tbl32_0F = [
 ( 0, INS_SUB, ADDRMETH_P | OPTYPE_q | OP_W, ADDRMETH_Q | OPTYPE_q | OP_R, ARG_NONE, ARG_NONE, cpu_PENTMMX, "psubq", 0, 0, 0),  
 ( 0, INS_ADD, ADDRMETH_P | OPTYPE_q | OP_W, ADDRMETH_Q | OPTYPE_q | OP_R, ARG_NONE, ARG_NONE, cpu_PENTMMX, "paddb", 0, 0, 0),  
 ( 0, INS_ADD, ADDRMETH_P | OPTYPE_q | OP_W, ADDRMETH_Q | OPTYPE_q | OP_R, ARG_NONE, ARG_NONE, cpu_PENTMMX, "paddw", 0, 0, 0),  
-( 0, INS_ADD, ADDRMETH_P | OPTYPE_q | OP_W, ADDRMETH_Q | OPTYPE_q | OP_R, ARG_NONE, ARG_NONE, cpu_PENTMMX, "paddd", 0, 0, 0),  
-( 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0   ) 
+( 0, INS_ADD, ADDRMETH_P | OPTYPE_q | OP_W, ADDRMETH_Q | OPTYPE_q | OP_R, ARG_NONE, ARG_NONE, cpu_PENTMMX, "paddd", 0, 0, 0),
+(0, INS_INVALIDOP, ADDRMETH_R | OPTYPE_d | OP_W, ADDRMETH_E | OPTYPE_d | OP_R, ARG_NONE, ARG_NONE, cpu_80386, "ud0", 0, 0, 0),
 ]
 desc_0F         = (tbl32_0F,4,0,0xff,0,0xff)
 
@@ -737,7 +737,7 @@ tbl32_660F[0xd3] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_x | OP_W, ADDRMETH_VEXSKIP
 tbl32_660F[0xd4] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_x | OP_W, ADDRMETH_VEXSKIP | ADDRMETH_H | OPTYPE_x | OP_R, ADDRMETH_W | OPTYPE_x | OP_R, ARG_NONE, cpu_PENTMMX, "paddq", 0, 0, 0)
 tbl32_660F[0xd5] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_x | OP_W, ADDRMETH_VEXSKIP | ADDRMETH_H | OPTYPE_x | OP_R, ADDRMETH_W | OPTYPE_x | OP_R, ARG_NONE, cpu_PENTMMX, "pmullw", 0, 0, 0)
 tbl32_660F[0xd6] = (0, INS_OTHER, ADDRMETH_W | OPTYPE_q | OP_W, ADDRMETH_V | OPTYPE_q | OP_R, ARG_NONE, ARG_NONE, cpu_PENTMMX, "movq", 0, 0, 0)
-tbl32_660F[0xd7] = (0, INS_OTHER, ADDRMETH_G | OPTYPE_q | OP_W, ADDRMETH_U | OPTYPE_x | OP_R, ARG_NONE, ARG_NONE, cpu_PENTIUM2, "pmovmskb", 0, 0, 0)
+tbl32_660F[0xd7] = (0, INS_OTHER, ADDRMETH_G | OPTYPE_d | OP_W, ADDRMETH_U | OPTYPE_x | OP_R, ARG_NONE, ARG_NONE, cpu_PENTIUM2, "pmovmskb", 0, 0, 0)
 tbl32_660F[0xd8] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_x | OP_W, ADDRMETH_VEXSKIP | ADDRMETH_H | OPTYPE_x | OP_R, ADDRMETH_W | OPTYPE_x | OP_R, ARG_NONE, cpu_PENTMMX, "psubusb", 0, 0, 0)
 tbl32_660F[0xd9] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_x | OP_W, ADDRMETH_VEXSKIP | ADDRMETH_H | OPTYPE_x | OP_R, ADDRMETH_W | OPTYPE_x | OP_R, ARG_NONE, cpu_PENTMMX, "psubusw", 0, 0, 0)
 tbl32_660F[0xda] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_x | OP_W, ADDRMETH_VEXSKIP | ADDRMETH_H | OPTYPE_x | OP_R, ADDRMETH_W | OPTYPE_x | OP_R, ARG_NONE, cpu_PENTIUM2, "pminub", 0, 0, 0)
@@ -1070,6 +1070,11 @@ tbl32_660F38[0x3F] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_x | OP_W, ADDRMETH_VEXSK
 
 tbl32_660F38[0x40] = (0, INS_MUL, ADDRMETH_V | OPTYPE_x | OP_W, ADDRMETH_VEXSKIP | ADDRMETH_H | OPTYPE_x | OP_R, ADDRMETH_W | OPTYPE_x | OP_R, ARG_NONE, cpu_AMD64, "pmulld", 0, 0, 0)
 
+tbl32_660F38[0x58] = (0, INS_VEXREQ | INS_OTHER, ADDRMETH_V | OPTYPE_x | OP_W, ADDRMETH_W | OPTYPE_dq | OP_MEM_D | OP_R, ARG_NONE, ARG_NONE, cpu_AVX, "pbroadcastd", 0, 0, 0)
+tbl32_660F38[0x59] = (0, INS_VEXREQ | INS_OTHER, ADDRMETH_V | OPTYPE_x | OP_W, ADDRMETH_W | OPTYPE_dq | OP_MEM_Q | OP_R, ARG_NONE, ARG_NONE, cpu_AVX, "pbroadcastq", 0, 0, 0)
+tbl32_660F38[0x78] = (0, INS_VEXREQ | INS_OTHER, ADDRMETH_V | OPTYPE_x | OP_W, ADDRMETH_W | OPTYPE_dq | OP_MEM_B | OP_R, ARG_NONE, ARG_NONE, cpu_AVX, "pbroadcastb", 0, 0, 0)
+tbl32_660F38[0x79] = (0, INS_VEXREQ | INS_OTHER, ADDRMETH_V | OPTYPE_x | OP_W, ADDRMETH_W | OPTYPE_dq | OP_MEM_W | OP_R, ARG_NONE, ARG_NONE, cpu_AVX, "pbroadcastw", 0, 0, 0)
+
 # more here necessary....
 tbl32_660F38[0x80] = (0, INS_SYSTEM, ADDRMETH_G | OPTYPE_q | OP_R, ADDRMETH_M | OPTYPE_dq | OP_R, ARG_NONE, ARG_NONE, cpu_AMD64, "invept", 0, 0, 0)
 tbl32_660F38[0x81] = (0, INS_SYSTEM, ADDRMETH_G | OPTYPE_q | OP_R, ADDRMETH_M | OPTYPE_dq | OP_R, ARG_NONE, ARG_NONE, cpu_AMD64, "invvpid", 0, 0, 0)
@@ -1271,21 +1276,21 @@ tbl32_0FAE_00BF = [	# IA32 manuals don't list an actual address method... guessi
 tbl32_F30FAE_00BF = list( tbl32_0FAE_00BF )
 
 tbl32_0FAE_rest = [ ( 0, 0, 0, 0, 0, 0, 0, 0, 0, 0  ) for x in range(8) ]
-tbl32_0FAE_rest[5] =    ( 0, INS_FPU, 0, 0, 0, cpu_PENTIUM2, "lfence", 0, 0, 0  )
-tbl32_0FAE_rest[6] =    ( 0, INS_FPU, 0, 0, 0, cpu_PENTIUM2, "mfence", 0, 0, 0  )
-tbl32_0FAE_rest[7] =    ( 0, INS_FPU, 0, 0, 0, cpu_PENTIUM2, "sfence", 0, 0, 0  )
+tbl32_0FAE_rest[5] = (0, INS_FPU, 0, 0, 0, cpu_PENTIUM2, "lfence", 0, 0, 0)
+tbl32_0FAE_rest[6] = (0, INS_FPU, 0, 0, 0, cpu_PENTIUM2, "mfence", 0, 0, 0)
+tbl32_0FAE_rest[7] = (0, INS_FPU, 0, 0, 0, cpu_PENTIUM2, "sfence", 0, 0, 0)
 
 
 tbl32_F30FAE_rest = [ (0, 0, 0, 0, 0, 0, 0, 0, 0, 0  ) for x in range(8) ]
-tbl32_F30FAE_rest[0]    = ( 0, INS_OTHER, ADDRMETH_R | OPTYPE_y | OP_R, ARG_NONE, ARG_NONE, cpu_AMD64, "rdfsbase", 0, 0, 0)
-tbl32_F30FAE_rest[1]    = ( 0, INS_OTHER, ADDRMETH_R | OPTYPE_y | OP_R, ARG_NONE, ARG_NONE, cpu_AMD64, "rdgsbase", 0, 0, 0)
-tbl32_F30FAE_rest[2]    = ( 0, INS_OTHER, ADDRMETH_R | OPTYPE_y | OP_R, ARG_NONE, ARG_NONE, cpu_AMD64, "wrfsbase", 0, 0, 0)
-tbl32_F30FAE_rest[3]    = ( 0, INS_OTHER, ADDRMETH_R | OPTYPE_y | OP_R, ARG_NONE, ARG_NONE, cpu_AMD64, "wrgsbase", 0, 0, 0)
+tbl32_F30FAE_rest[0] = (0, INS_OTHER, ADDRMETH_R | OPTYPE_y | OP_R, ARG_NONE, ARG_NONE, cpu_AMD64, "rdfsbase", 0, 0, 0)
+tbl32_F30FAE_rest[1] = (0, INS_OTHER, ADDRMETH_R | OPTYPE_y | OP_R, ARG_NONE, ARG_NONE, cpu_AMD64, "rdgsbase", 0, 0, 0)
+tbl32_F30FAE_rest[2] = (0, INS_OTHER, ADDRMETH_R | OPTYPE_y | OP_R, ARG_NONE, ARG_NONE, cpu_AMD64, "wrfsbase", 0, 0, 0)
+tbl32_F30FAE_rest[3] = (0, INS_OTHER, ADDRMETH_R | OPTYPE_y | OP_R, ARG_NONE, ARG_NONE, cpu_AMD64, "wrgsbase", 0, 0, 0)
 
 
 desc_0FAE_00BF      = (tbl32_0FAE_00BF,3,3,0x07,0,0xbf, TBL_0FAE_rest)
 desc_F30FAE_00BF    = (tbl32_F30FAE_00BF,3,3,0x07,0,0xbf, TBL_F30FAE_rest)
-desc_0FAE_rest      = (tbl32_0FAE_rest,3,3,0x07,0xc0,0xff)
+desc_0FAE_rest      = (tbl32_0FAE_rest,3,3,0xFF,0xc0,0xff)
 desc_F30FAE_rest    = (tbl32_F30FAE_rest,3,3,0x07,0xc0,0xff)
 
 
@@ -1331,8 +1336,8 @@ tbl32_660FC7_rest = list( tbl32_0FC7_rest )
 tbl32_F30FC7_rest = list( tbl32_0FC7_rest )
 
 
-desc_0FC7_00BF   = (tbl32_0FC7_00BF, 3,3, 0x07, 0, 0xbf, TBL_0FC7_rest)
-desc_0FC7_rest   = (tbl32_0FC7_rest, 3, 0, 0x07, 0xc0, 0xff)
+desc_0FC7_00BF   = (tbl32_0FC7_00BF, 3, 3, 0x07, 0, 0xbf, TBL_0FC7_rest)
+desc_0FC7_rest   = (tbl32_0FC7_rest, 3, 3, 0x07, 0xc0, 0xff)
 desc_660FC7_00BF = (tbl32_660FC7_00BF, 3, 3, 0x07, 3, 0xff, TBL_660FC7_rest)
 desc_660FC7_rest = (tbl32_660FC7_rest, 3, 3, 0x07, 0xc0, 0xff)
 desc_F30FC7_00BF = (tbl32_F30FC7_00BF, 3, 3, 0x07, 3, 0xff, TBL_F30FC7_rest)

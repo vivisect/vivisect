@@ -15,6 +15,7 @@ from envi.archs.i386.opconst import OP_EXTRA_MEMSIZES, OP_MEM_B, OP_MEM_W, OP_ME
                                     OP_MEM_Q, OP_MEM_DQ, OP_MEM_QQ, OP_MEMMASK, \
                                     INS_VEXREQ, OP_NOVEXL
 
+import opconst
 import opcode86
 all_tables = opcode86.tables86
 
@@ -122,6 +123,14 @@ iflag_lookup = {
     opcode86.INS_BRANCHCC: envi.IF_BRANCH | envi.IF_COND,
     opcode86.INS_MOVCC: envi.IF_COND,
     opcode86.INS_XCHGCC: envi.IF_COND,
+
+    opconst.INS_TRET: envi.IF_NOFALL | envi.IF_RET,
+    opconst.INS_HALT: envi.IF_NOFALL,
+    opconst.INS_TRAP: envi.IF_NOFALL,
+    opconst.INS_TRAPCC: envi.IF_NOFALL | envi.IF_COND,
+    opconst.INS_DEBUG: envi.IF_NOFALL,
+    opconst.INS_INVALIDOP: envi.IF_NOFALL,
+    opconst.INS_OFLOW: envi.IF_NOFALL,
 }
 
 sizenames = ["" for x in range(65)]
@@ -562,13 +571,13 @@ class i386Opcode(envi.Opcode):
 
         # If we are a conditional branch, even our fallthrough
         # case is conditional...
-        if self.opcode == opcode86.INS_BRANCHCC:
+        if self.opcode == opconst.INS_BRANCHCC:
             flags |= envi.BR_COND
             addb = True
 
         # If we can fall through, reflect that...
         if not self.iflags & envi.IF_NOFALL:
-            ret.append((self.va + self.size, flags|envi.BR_FALL))
+            ret.append((self.va + self.size, flags | envi.BR_FALL))
 
         # In intel, if we have no operands, it has no
         # further branches...
