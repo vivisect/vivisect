@@ -125,4 +125,3 @@ def vivExtension(vw, vwgui):
     for w, vqDW in vwgui.vqGetDockWidgetsByName('viv'):
         vprint(vw, "Window: %r    DockWidget: %r (%r)", w, vqDW, w.getEnviNavName())
 
-    
