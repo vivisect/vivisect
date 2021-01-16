@@ -34,8 +34,8 @@ def do_analyze(vw):
 
 
 class ELFTests(unittest.TestCase):
-    def __init__(self):
-        unittest.TestCase.__init__(self)
+    def __init__(self, *args, **kwargs):
+        unittest.TestCase.__init__(self, *args, **kwargs)
         self.data = (
             ("linux_amd64_ls", linux_amd64_ls_data.ls_data, ('linux', 'amd64', 'ls'), ),
             ("linux_amd64_chown", linux_amd64_chown_data.chown_data, ('linux', 'amd64', 'chown'),),
