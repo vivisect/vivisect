@@ -1,10 +1,8 @@
 import logging
 import unittest
 
-import envi
-logger = logging.getLogger(__name__)
-
 import Elf
+import envi
 import vivisect.cli as viv_cli
 import vivisect.tests.helpers as helpers
 import vivisect.analysis.elf as vae
@@ -31,12 +29,14 @@ def do_analyze(vw):
             mod.analyze(vw)
         except Exception as e:
             import traceback
-            print "ERROR in analysis module: (%r): %r" % (mod, e)
-            traceback.print_exc()
+            log.warn("ERROR in analysis module: (%r): %r", mod, e)
+            log.warn(traceback.format_exc())
 
 
 class ELFTests(unittest.TestCase):
-    data = (
+    def __init__(self):
+        unittest.TestCase.__init__(self)
+        self.data = (
             ("linux_amd64_ls", linux_amd64_ls_data.ls_data, ('linux', 'amd64', 'ls'), ),
             ("linux_amd64_chown", linux_amd64_chown_data.chown_data, ('linux', 'amd64', 'chown'),),
             ("linux_amd64_libc", linux_amd64_libc_2_27_data.libc_data, ('linux', 'amd64', 'libc-2.27.so'),),
@@ -55,6 +55,7 @@ class ELFTests(unittest.TestCase):
         results = []
         for test in self.data:
             name, test_data, path = test
+            fname = path[-1]
             logger.warn("======== %r ========", name)
             fn = helpers.getTestPath(*path)
             e = Elf.Elf(open(fn))
@@ -64,7 +65,7 @@ class ELFTests(unittest.TestCase):
             do_analyze(vw)
 
             logger.debug("testing %r (%r)...", name, fn)
-            retval = self.do_file(vw, test_data, name)
+            retval = self.do_file(vw, test_data, name, fname)
             results.append(retval)
 
         failed = 0
@@ -79,7 +80,7 @@ class ELFTests(unittest.TestCase):
         self.assertEqual(failed, 0, msg="ELF Tests Failed (see error log)")
 
 
-    def do_file(self, vw, test_data, fname):
+    def do_file(self, vw, test_data, name, fname):
         '''
         hand off testing to the individual test functions and return the collection of results
         '''
@@ -226,7 +227,7 @@ class ELFTests(unittest.TestCase):
         # comparison to ensure same workspace names
 
         # filter out a lot of noise not likely to be indicative of ELF bugs.
-        newnames = [ntup for ntup in genNames(vw.getNames(), fname)]
+        newnames = [ntup for ntup in genNames(vw.getNames(), vw.getFiles())]
         oldnames = test_data['names']
         oldnames.sort()
 
@@ -244,7 +245,7 @@ class ELFTests(unittest.TestCase):
                     break
             if oldname != equiv:
                 failed_old += 1
-                logger.warn("name: o: %-80s\tn: %s" % (oldname, equiv))
+                logger.error("name: o: %-80s\tn: %s" % (oldname, equiv))
 
         for newname in newnames:
             va = newname[0]
@@ -260,7 +261,7 @@ class ELFTests(unittest.TestCase):
                     break
             if newname != equiv:
                 failed_new += 1
-                logger.warn("name: o: %-80s\tn: %s" % (equiv, newname))
+                logger.error("name: o: %-80s\tn: %s" % (equiv, newname))
 
         return failed_old, failed_new
 
@@ -290,11 +291,12 @@ name_prefix_skips = [   # (prefix, MustHavePtrPrefix),
         ('str_', False),
         ('switch_', False),
         ('case_', False),
-        ('sub_', True),
+        ('sub_', False),
+        ('ptr_', False),
         ('plt_', True),
         ]
 
-def genNames(names, fname):
+def genNames(names, fnames):
     '''
     generate a list of (va, name) tuples, sorted by va
     skipping any with prefixes
@@ -305,8 +307,10 @@ def genNames(names, fname):
         #logger.warn('(%r) testing %r:', fname, name)
         # scratch variable to find if it's undesireable
         testname = name
-        if testname.startswith('%s.'%fname):
-            testname = testname[len(fname)+1:]
+
+        for fname in fnames:
+            if testname.startswith('%s.'%fname):
+                testname = testname[len(fname)+1:]
 
         # some names can get crazy pointy like "ptr_ptr_ptr_plt_..."
         pointy = False
@@ -321,7 +325,8 @@ def genNames(names, fname):
                 skip = True
 
         if skip:
-            #logger.debug('   SKIP!')
+            logger.debug('   SKIP!:  %.30r      %.30r   %r', name, testname, fname)
             continue
+        logger.debug('   not skip!:  %.30r      %.30r   %r', name, testname, fname)
 
         yield va, name 
