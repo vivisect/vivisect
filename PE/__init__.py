@@ -737,7 +737,7 @@ class PE(object):
                 sec_end = sec.VirtualAddress + sec.VirtualSize
                 align = self.IMAGE_NT_HEADERS.OptionalHeader.SectionAlignment
                 if (align > 0):
-                    sec_end = align * ((sec_end / align) + 1)
+                    sec_end = align * (int(sec_end / align) + 1)
                     max_sec = max(max_sec, sec_end)
             self.max_rva = max_sec
         return self.max_rva
