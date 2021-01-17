@@ -29,8 +29,8 @@ def do_analyze(vw):
             mod.analyze(vw)
         except Exception as e:
             import traceback
-            log.warn("ERROR in analysis module: (%r): %r", mod, e)
-            log.warn(traceback.format_exc())
+            logging.warning("ERROR in analysis module: (%r): %r", mod, e)
+            logging.warning(traceback.format_exc())
 
 
 class ELFTests(unittest.TestCase):
