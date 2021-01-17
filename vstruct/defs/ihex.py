@@ -116,10 +116,10 @@ class IHexFile(vstruct.VArray):
                 baseaddr = int( chunk.data, 16 ) << 16
                 continue
 
-            if ctype == IHEX_REC_EOF:
-                break
-
             if ctype == IHEX_REC_STARTSEG:
+                continue
+
+            if ctype == IHEX_REC_EOF:
                 break
 
             raise Exception('Unhandled IHEX chunk: %s' % chunk.recordtype)
