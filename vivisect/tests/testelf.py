@@ -1,10 +1,8 @@
 import logging
 import unittest
 
-import envi
-logger = logging.getLogger(__name__)
-
 import Elf
+import envi
 import vivisect.cli as viv_cli
 import vivisect.tests.helpers as helpers
 import vivisect.analysis.elf as vae
@@ -31,12 +29,14 @@ def do_analyze(vw):
             mod.analyze(vw)
         except Exception as e:
             import traceback
-            print "ERROR in analysis module: (%r): %r" % (mod, e)
-            traceback.print_exc()
+            logging.warning("ERROR in analysis module: (%r): %r", mod, e)
+            logging.warning(traceback.format_exc())
 
 
 class ELFTests(unittest.TestCase):
-    data = (
+    def __init__(self, *args, **kwargs):
+        unittest.TestCase.__init__(self, *args, **kwargs)
+        self.data = (
             ("linux_amd64_ls", linux_amd64_ls_data.ls_data, ('linux', 'amd64', 'ls'), ),
             ("linux_amd64_chown", linux_amd64_chown_data.chown_data, ('linux', 'amd64', 'chown'),),
             ("linux_amd64_libc", linux_amd64_libc_2_27_data.libc_data, ('linux', 'amd64', 'libc-2.27.so'),),
@@ -53,9 +53,8 @@ class ELFTests(unittest.TestCase):
 
     def test_files(self):
         results = []
-        for test in self.data:
-            name, test_data, path = test
-            logger.warn("======== %r ========", name)
+        for name, test_data, path in self.data:
+            logger.warning("======== %r ========", name)
             fn = helpers.getTestPath(*path)
             e = Elf.Elf(open(fn))
             vw = viv_cli.VivCli()
@@ -79,20 +78,20 @@ class ELFTests(unittest.TestCase):
         self.assertEqual(failed, 0, msg="ELF Tests Failed (see error log)")
 
 
-    def do_file(self, vw, test_data, fname):
+    def do_file(self, vw, test_data, name):
         '''
         hand off testing to the individual test functions and return the collection of results
         '''
         results = {}
-        results['imports'] = self.imports(vw, test_data, fname)
-        results['exports'] = self.exports(vw, test_data, fname)
-        results['relocs'] = self.relocs(vw, test_data, fname)
-        results['names'] = self.names(vw, test_data, fname)
-        results['pltgot'] = self.pltgot(vw, test_data, fname)
-        results['debugsyms'] = self.debuginfosyms(vw, test_data, fname)
+        results['imports'] = self.imports(vw, test_data)
+        results['exports'] = self.exports(vw, test_data)
+        results['relocs'] = self.relocs(vw, test_data)
+        results['names'] = self.names(vw, test_data)
+        results['pltgot'] = self.pltgot(vw, test_data)
+        results['debugsyms'] = self.debuginfosyms(vw, test_data)
         return results
 
-    def imports(self, vw, test_data, fname):
+    def imports(self, vw, test_data):
         # simple comparison to ensure same imports
         newimps = vw.getImports()
         newimps.sort()
@@ -111,7 +110,7 @@ class ELFTests(unittest.TestCase):
                     break
             if oldimp != equiv:
                 failed_old += 1
-                logger.warn("imports: o: %-50s\tn: %s" % (oldimp, equiv))
+                logger.warning("imports: o: %-50s\tn: %s" % (oldimp, equiv))
             done.append(va)
 
         for newimp in newimps:
@@ -126,12 +125,12 @@ class ELFTests(unittest.TestCase):
                     break
             if newimp != equiv:
                 failed_new += 1
-                logger.warn("imports: o: %-50s\tn: %s" % (equiv, newimp))
+                logger.warning("imports: o: %-50s\tn: %s" % (equiv, newimp))
             done.append(va)
 
         return failed_old, failed_new
 
-    def exports(self, vw, test_data, fname):
+    def exports(self, vw, test_data):
         # simple comparison to ensure same exports
         newexps = vw.getExports()
         newexps.sort()
@@ -157,7 +156,7 @@ class ELFTests(unittest.TestCase):
                     break
             if oldexp != equiv:
                 failed_old += 1
-                logger.warn("exp: o: %-80s\tn: %s" % (oldexp, equiv))
+                logger.warning("exp: o: %-80s\tn: %s" % (oldexp, equiv))
 
         for newexp in newexps:
             va = newexp[0]
@@ -178,11 +177,11 @@ class ELFTests(unittest.TestCase):
                     break
             if newexp != equiv:
                 failed_new += 1
-                logger.warn("exp: o: %-80s\tn: %s" % (equiv, newexp))
+                logger.warning("exp: o: %-80s\tn: %s" % (equiv, newexp))
 
         return failed_old, failed_new
 
-    def relocs(self, vw, test_data, fname):
+    def relocs(self, vw, test_data):
         # simple comparison to ensure same relocs
         newrels = vw.getRelocations()
         newrels.sort()
@@ -201,7 +200,7 @@ class ELFTests(unittest.TestCase):
                     break
             if oldrel != equiv:
                 failed_old += 1
-                logger.warn("rel: o: %-80s\tn: %s" % (oldrel, equiv))
+                logger.warning("rel: o: %-80s\tn: %s" % (oldrel, equiv))
             done.append(va)
 
         for newrel in newrels:
@@ -216,17 +215,17 @@ class ELFTests(unittest.TestCase):
                     break
             if newrel != equiv:
                 failed_new += 1
-                logger.warn("rel: o: %-80s\tn: %s" % (equiv, newname))
+                logger.warning("rel: o: %-80s\tn: %s" % (equiv, newrel))
             done.append(va)
 
         return failed_old, failed_new
 
 
-    def names(self, vw, test_data, fname):
+    def names(self, vw, test_data):
         # comparison to ensure same workspace names
 
         # filter out a lot of noise not likely to be indicative of ELF bugs.
-        newnames = [ntup for ntup in genNames(vw.getNames(), fname)]
+        newnames = [ntup for ntup in genNames(vw.getNames(), vw.getFiles())]
         oldnames = test_data['names']
         oldnames.sort()
 
@@ -244,7 +243,7 @@ class ELFTests(unittest.TestCase):
                     break
             if oldname != equiv:
                 failed_old += 1
-                logger.warn("name: o: %-80s\tn: %s" % (oldname, equiv))
+                logger.error("name: o: %-80s\tn: %s" % (oldname, equiv))
 
         for newname in newnames:
             va = newname[0]
@@ -260,11 +259,11 @@ class ELFTests(unittest.TestCase):
                     break
             if newname != equiv:
                 failed_new += 1
-                logger.warn("name: o: %-80s\tn: %s" % (equiv, newname))
+                logger.error("name: o: %-80s\tn: %s" % (equiv, newname))
 
         return failed_old, failed_new
 
-    def pltgot(self, vw, test_data, fname):
+    def pltgot(self, vw, test_data):
         for pltva, gotva in test_data['pltgot']:
             match = False
             for xfr, xto, xtype, xinfo in vw.getXrefsFrom(pltva):
@@ -273,14 +272,14 @@ class ELFTests(unittest.TestCase):
 
         return 0,0
 
-    def debuginfosyms(self, vw, test_data, fname):
+    def debuginfosyms(self, vw, test_data):
         # we don't currently parse debugging symbols.
         # while they are seldom in hard targets, this is a weakness we should correct.
         return 0,0
 
     def test_minimal(self):
         for path in (('linux','amd64','static64.llvm.elf'), ('linux','i386','static32.llvm.elf')):
-            logger.warn("======== %r ========", path)
+            logger.warning("======== %r ========", path)
             fn = helpers.getTestPath(*path)
             e = Elf.Elf(open(fn, 'rb'))
             vw = viv_cli.VivCli()
@@ -290,11 +289,12 @@ name_prefix_skips = [   # (prefix, MustHavePtrPrefix),
         ('str_', False),
         ('switch_', False),
         ('case_', False),
-        ('sub_', True),
+        ('sub_', False),
+        ('ptr_', False),
         ('plt_', True),
         ]
 
-def genNames(names, fname):
+def genNames(names, fnames):
     '''
     generate a list of (va, name) tuples, sorted by va
     skipping any with prefixes
@@ -302,11 +302,13 @@ def genNames(names, fname):
     names.sort()
     for va, name in names:
         skip = False
-        #logger.warn('(%r) testing %r:', fname, name)
+        #logger.warning('(%r) testing %r:', fname, name)
         # scratch variable to find if it's undesireable
         testname = name
-        if testname.startswith('%s.'%fname):
-            testname = testname[len(fname)+1:]
+
+        for fname in fnames:
+            if testname.startswith('%s.'%fname):
+                testname = testname[len(fname)+1:]
 
         # some names can get crazy pointy like "ptr_ptr_ptr_plt_..."
         pointy = False
@@ -321,7 +323,8 @@ def genNames(names, fname):
                 skip = True
 
         if skip:
-            #logger.debug('   SKIP!')
+            logger.debug('   SKIP!:  %.30r      %.30r   %r', name, testname, fname)
             continue
+        logger.debug('   not skip!:  %.30r      %.30r   %r', name, testname, fname)
 
         yield va, name 
