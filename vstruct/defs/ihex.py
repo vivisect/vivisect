@@ -74,6 +74,18 @@ class IHexFile(vstruct.VArray):
             if ctype == IHEX_REC_STARTLINADDR:
                 return int( chunk.data, 16 )
 
+    def getStartSeg(self):
+        '''
+        If a CS:IP start address is defined for this file,
+        return it.  Returns None if not.
+        '''
+        for fname, chunk in self:
+            ctype = int( chunk.recordtype, 16 )
+            if ctype == IHEX_REC_STARTSEG:
+                startcs = int( chunk.data, 16 ) >> 16
+                startip = int( chunk.data, 16 ) & 0xffff
+                return startcs, startip
+
     def getMemoryMaps(self):
         '''
         Retrieve a set of memory maps defined by this hex file.
@@ -105,6 +117,9 @@ class IHexFile(vstruct.VArray):
                 continue
 
             if ctype == IHEX_REC_EOF:
+                break
+
+            if ctype == IHEX_REC_STARTSEG:
                 break
 
             raise Exception('Unhandled IHEX chunk: %s' % chunk.recordtype)
