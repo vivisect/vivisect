@@ -53,10 +53,8 @@ class ELFTests(unittest.TestCase):
 
     def test_files(self):
         results = []
-        for test in self.data:
-            name, test_data, path = test
-            fname = path[-1]
-            logger.warn("======== %r ========", name)
+        for name, test_data, path in self.data:
+            logger.warning("======== %r ========", name)
             fn = helpers.getTestPath(*path)
             e = Elf.Elf(open(fn))
             vw = viv_cli.VivCli()
@@ -65,7 +63,7 @@ class ELFTests(unittest.TestCase):
             do_analyze(vw)
 
             logger.debug("testing %r (%r)...", name, fn)
-            retval = self.do_file(vw, test_data, name, fname)
+            retval = self.do_file(vw, test_data, name)
             results.append(retval)
 
         failed = 0
@@ -80,20 +78,20 @@ class ELFTests(unittest.TestCase):
         self.assertEqual(failed, 0, msg="ELF Tests Failed (see error log)")
 
 
-    def do_file(self, vw, test_data, name, fname):
+    def do_file(self, vw, test_data, name):
         '''
         hand off testing to the individual test functions and return the collection of results
         '''
         results = {}
-        results['imports'] = self.imports(vw, test_data, fname)
-        results['exports'] = self.exports(vw, test_data, fname)
-        results['relocs'] = self.relocs(vw, test_data, fname)
-        results['names'] = self.names(vw, test_data, fname)
-        results['pltgot'] = self.pltgot(vw, test_data, fname)
-        results['debugsyms'] = self.debuginfosyms(vw, test_data, fname)
+        results['imports'] = self.imports(vw, test_data)
+        results['exports'] = self.exports(vw, test_data)
+        results['relocs'] = self.relocs(vw, test_data)
+        results['names'] = self.names(vw, test_data)
+        results['pltgot'] = self.pltgot(vw, test_data)
+        results['debugsyms'] = self.debuginfosyms(vw, test_data)
         return results
 
-    def imports(self, vw, test_data, fname):
+    def imports(self, vw, test_data):
         # simple comparison to ensure same imports
         newimps = vw.getImports()
         newimps.sort()
@@ -112,7 +110,7 @@ class ELFTests(unittest.TestCase):
                     break
             if oldimp != equiv:
                 failed_old += 1
-                logger.warn("imports: o: %-50s\tn: %s" % (oldimp, equiv))
+                logger.warning("imports: o: %-50s\tn: %s" % (oldimp, equiv))
             done.append(va)
 
         for newimp in newimps:
@@ -127,12 +125,12 @@ class ELFTests(unittest.TestCase):
                     break
             if newimp != equiv:
                 failed_new += 1
-                logger.warn("imports: o: %-50s\tn: %s" % (equiv, newimp))
+                logger.warning("imports: o: %-50s\tn: %s" % (equiv, newimp))
             done.append(va)
 
         return failed_old, failed_new
 
-    def exports(self, vw, test_data, fname):
+    def exports(self, vw, test_data):
         # simple comparison to ensure same exports
         newexps = vw.getExports()
         newexps.sort()
@@ -158,7 +156,7 @@ class ELFTests(unittest.TestCase):
                     break
             if oldexp != equiv:
                 failed_old += 1
-                logger.warn("exp: o: %-80s\tn: %s" % (oldexp, equiv))
+                logger.warning("exp: o: %-80s\tn: %s" % (oldexp, equiv))
 
         for newexp in newexps:
             va = newexp[0]
@@ -179,11 +177,11 @@ class ELFTests(unittest.TestCase):
                     break
             if newexp != equiv:
                 failed_new += 1
-                logger.warn("exp: o: %-80s\tn: %s" % (equiv, newexp))
+                logger.warning("exp: o: %-80s\tn: %s" % (equiv, newexp))
 
         return failed_old, failed_new
 
-    def relocs(self, vw, test_data, fname):
+    def relocs(self, vw, test_data):
         # simple comparison to ensure same relocs
         newrels = vw.getRelocations()
         newrels.sort()
@@ -202,7 +200,7 @@ class ELFTests(unittest.TestCase):
                     break
             if oldrel != equiv:
                 failed_old += 1
-                logger.warn("rel: o: %-80s\tn: %s" % (oldrel, equiv))
+                logger.warning("rel: o: %-80s\tn: %s" % (oldrel, equiv))
             done.append(va)
 
         for newrel in newrels:
@@ -217,13 +215,13 @@ class ELFTests(unittest.TestCase):
                     break
             if newrel != equiv:
                 failed_new += 1
-                logger.warn("rel: o: %-80s\tn: %s" % (equiv, newname))
+                logger.warning("rel: o: %-80s\tn: %s" % (equiv, newrel))
             done.append(va)
 
         return failed_old, failed_new
 
 
-    def names(self, vw, test_data, fname):
+    def names(self, vw, test_data):
         # comparison to ensure same workspace names
 
         # filter out a lot of noise not likely to be indicative of ELF bugs.
@@ -265,7 +263,7 @@ class ELFTests(unittest.TestCase):
 
         return failed_old, failed_new
 
-    def pltgot(self, vw, test_data, fname):
+    def pltgot(self, vw, test_data):
         for pltva, gotva in test_data['pltgot']:
             match = False
             for xfr, xto, xtype, xinfo in vw.getXrefsFrom(pltva):
@@ -274,14 +272,14 @@ class ELFTests(unittest.TestCase):
 
         return 0,0
 
-    def debuginfosyms(self, vw, test_data, fname):
+    def debuginfosyms(self, vw, test_data):
         # we don't currently parse debugging symbols.
         # while they are seldom in hard targets, this is a weakness we should correct.
         return 0,0
 
     def test_minimal(self):
         for path in (('linux','amd64','static64.llvm.elf'), ('linux','i386','static32.llvm.elf')):
-            logger.warn("======== %r ========", path)
+            logger.warning("======== %r ========", path)
             fn = helpers.getTestPath(*path)
             e = Elf.Elf(open(fn, 'rb'))
             vw = viv_cli.VivCli()
@@ -304,7 +302,7 @@ def genNames(names, fnames):
     names.sort()
     for va, name in names:
         skip = False
-        #logger.warn('(%r) testing %r:', fname, name)
+        #logger.warning('(%r) testing %r:', fname, name)
         # scratch variable to find if it's undesireable
         testname = name
 
