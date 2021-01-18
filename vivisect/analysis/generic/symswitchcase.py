@@ -68,10 +68,14 @@ class NoComplexSymIdxException(Exception):
 
 class TrackingSymbolikEmulator(vs_anal.SymbolikFunctionEmulator):
     '''
-    TrackingSymbolikEmulator tracks reads.  where they occur, where they read from, and
+    TrackingSymbolikEmulator has two modifications from a standard SymbolikEmulator:
+    * It tracks reads.  where they occur, where they read from, and
     returns as much info as possible if not discrete data.
 
-    If a read is from a real memory map, return that memory.
+    * If a read is from a real memory map, return that memory.
+    
+    These are both very useful for analyzing switchcases, to determine where in 
+    memory a 
     '''
     def __init__(self, vw):
         vs_anal.SymbolikFunctionEmulator.__init__(self, vw)
@@ -79,12 +83,21 @@ class TrackingSymbolikEmulator(vs_anal.SymbolikFunctionEmulator):
         self.clear()
 
     def clear(self):
+        '''
+        Clear read-tracker to start another analysis
+        '''
         self._trackReads = []
         
     def track(self, va, addrval, val):
+        '''
+        Track reads in this SymbolikEmulator for later analysis
+        '''
         self._trackReads.append((va, addrval, val))
         
     def getTrackInfo(self):
+        '''
+        Retrieve reads so far, for analysis
+        '''
         return self._trackReads
 
     def setupFunctionCall(self, fva, args=None):
@@ -259,6 +272,7 @@ def targetNewFunctions(vw, fva):
                 if not (op.iflags & envi.IF_CALL):
                     continue
 
+                # TODO: improve upon determination of call
                 tgtva = op.getOperValue(0)
                 #logger.debug("-- 0x%x", tgtva)
                 if not vw.isValidPointer(tgtva):
@@ -279,6 +293,7 @@ def targetNewFunctions(vw, fva):
 
 THUNK_BX_CALL_LEN = 5
 
+
 def thunk_bx(emu, fname, symargs):
     vw = emu._sym_vw
     rctx = vw.arch.archGetRegCtx()
@@ -294,7 +309,9 @@ def thunk_bx(emu, fname, symargs):
     logger.debug("YAY!  Thunk_bx is being called! %s\t%s\t%s\t%s", emu, symargs, reg, ebx)
     emu.setSymVariable(reg, ebx)
 
+
 UNINIT_CASE_INDEX = -2
+
 
 class SwitchCase:
     '''
@@ -371,6 +388,7 @@ class SwitchCase:
 
         op = self.vw.parseOpcode(self.jmpva)
 
+        # TODO: this is not always the right operand for all architectures.  improve
         self.jmpsymvar = self.xlate.getOperObj(op, 0)
         return self.jmpsymvar
 
@@ -440,6 +458,9 @@ class SwitchCase:
         [con.reduce() for con in cons]
         return cons
 
+    def getBoundingCons(self, cplxIdx):
+        return [con for con in self.getConstraints() if contains(con, cplxIdx)[0] ]
+
     def getSymbolikParts(self, next=False):
         '''
         Puts together a path from the start of the function to the jmpva, breaking off the last 
@@ -470,7 +491,6 @@ class SwitchCase:
             self._sgraph = sctx.getSymbolikGraph(fva)
 
         if self._codepathgen is None:
-            #self._codepathgen = viv_graph.getCodePathsTo(self._sgraph, cbva)
             pathGenFactory = viv_graph.PathGenerator(self._sgraph)
             self._codepathgen = pathGenFactory.getFuncCbRoutedPaths(fva, cbva, 1, timeout=20)
 
@@ -486,10 +506,12 @@ class SwitchCase:
         
         self.fullpath = sctx.getSymbolikPaths(fva, graph=self._sgraph, args=None, paths=[self._codepath]).next()
 
-
         return self.cspath, self.aspath, self.fullpath
 
     def getComplexIdx(self):
+        '''
+        FILL ME
+        '''
         symtype, smplIdx = self.getSymIdx()
 
         (csemu, cseffs), asp, fullp = self.getSymbolikParts()
@@ -507,14 +529,22 @@ class SwitchCase:
         '''
         (cached)
         returns the baseIdx and greatest index offset (ie.  the offset at the point of jmp).
+        BETTER EXPLAIN WHAT BaseSymIdx is.
         '''
         if None not in (self.baseIdx, self.baseoff):
             return self.baseIdx, self.baseoff
 
         def _cb_peel_idx(path, symobj, ctx):
+            '''
+            This is for troubleshooting and analysis only.
+            '''
             logger.debug( ' PATH: %r\n SYMOBJ: %r\n CTX: %r\n' % (path, symobj, ctx))
 
         def _cb_mark_longpath(path, symobj, ctx):
+            '''
+            Determine a long path through an AST.
+            Long paths mean we have the most complete subcomponent
+            '''
             #logger.debug( ' PATH: %r\n SYMOBJ: %r\n CTX: %r\n' % (path, symobj, ctx))
             longpath = ctx.get('longpath')
             if longpath is None:
@@ -524,7 +554,6 @@ class SwitchCase:
 
         (csemu, cseff), aspath, fullpath = self.getSymbolikParts()
 
-        #idx = self.getComplexIdx().update(csemu)   #.reduce()
         idx = self.getComplexIdx()
         if idx is None:
             raise NoComplexSymIdxException(self)
@@ -548,7 +577,7 @@ class SwitchCase:
 
         # HACK: this is left-handed, and based on the longpath.  it may also benefit from actual comparing with the 
         # known index.
-        logging.info("LONGPATH: " + '\n'.join([repr(x) for x in longpath]))
+        #logging.info("LONGPATH: " + '\n'.join([repr(x) for x in longpath]))
         for symobj in longpath:
             last = count
             count = len(self.getBoundingCons(symobj))
@@ -579,10 +608,6 @@ class SwitchCase:
 
         return symobj, offset
         
-
-    def getBoundingCons(self, cplxIdx):
-        return [con for con in self.getConstraints() if contains(con, cplxIdx)[0] ]
-
     def getNormalizedConstraints(self):
         '''
         takes in a complex index symbolik state
@@ -1159,7 +1184,7 @@ def analyzeFunction(vw, fva):
 
         dynbranches = vw.getVaSet('DynamicBranches')
     vw.setMeta('analyzedDynBranches', done)
-    # FIXME: we need a better way to store changing lists/dicts, that don't show up in the UI.  VaSet would be great, but ugly
+    # TODO: we need a better way to store changing lists/dicts, that don't show up in the UI.  VaSet would be great, but ugly
 
 
 
