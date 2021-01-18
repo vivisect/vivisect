@@ -47,12 +47,6 @@ end, names are applied as appropriate.
 # TODO: regrange description of Symbolik Variables... normalize so "eax" and "eax+4" make sense.
 
 
-MAX_INSTR_COUNT  = 10
-MAX_CASES   = 500
-CASE_FAILURE = 5000
-MIN_FUNC_INSTR_SIZE = 10
-
-
 class SymIdxNotFoundException(Exception):
     def __repr__(self):
         return "getSymIdx cannot determine the Index register"
@@ -347,6 +341,20 @@ class SwitchCase:
         self._sgraph = None
         self._codepath = None
         self._codepathgen = None
+
+
+        try:
+            self.max_instr_count = vw.config.viv.analysis.switchcase.max_instr_count
+            self.max_cases = vw.config.analysis.switchcase.max_cases
+            self.case_failure = vw.config.viv.analysis.switchcase.case_failure
+            self.min_func_instr_size = vw.config.viv.analysis.switchcase.min_func_instr_size
+
+        except AttributeError as e:
+            logger.warning('configuration failure, using defaults: %r', e)
+            self.max_instr_count  = 10
+            self.max_cases   = 500
+            self.case_failure = 5000
+            self.min_func_instr_size = 10
 
         self.clearCache()
 
@@ -669,7 +677,7 @@ class SwitchCase:
         (csemu, cseffs), asp, fullp = self.getSymbolikParts()
 
         lower = 0       # the smallest index used.  most often wants to be 0
-        upper = None    # the largest index used.  max=MAX_CASES
+        upper = None    # the largest index used.  max=self.max_cases
         count = 0
         baseoff = None
        
@@ -677,7 +685,7 @@ class SwitchCase:
             while lower is None or (lower == 0 and upper is None) or upper <= lower: # note: this will fail badly when it fails.  make this dependent on the codepathgen
                 # get the index we'll be looking for in constraints
                 lower = 0           # the smallest index used.  most often wants to be 0
-                upper = None        # the largest index used.  max=MAX_CASES
+                upper = None        # the largest index used.  max=self.max_cases
 
                 if count != 0:
                     (csemu, cseffs), asp, fullp = self.getSymbolikParts(next=True)
@@ -728,7 +736,7 @@ class SwitchCase:
         # if upper is None:  we need to exercize upper until something doesn't make sense.  
         # we also need to make sure we don't analyze non-Switches.  
         if upper is None:
-            upper = MAX_CASES
+            upper = self.max_cases
 
         if lower < baseoff:
             # assume the compiler doesn't adjust the index below 0
@@ -824,7 +832,7 @@ class SwitchCase:
             return
 
         instrcount = vw.getFunctionMeta(funcva, 'InstructionCount')
-        if instrcount < MIN_FUNC_INSTR_SIZE:
+        if instrcount < self.min_func_instr_size:
             logger.error("Ignoring jmp in too small a function: %d instructions", instrcount)
             return
 
@@ -837,13 +845,13 @@ class SwitchCase:
                 return
 
             count = upper - lower + 1
-            if count > MAX_CASES:
-                if count > CASE_FAILURE:
+            if count > self.max_cases:
+                if count > self.case_failure:
                     logger.warn("TOO many switch cases detected: %d.  FAILURE.  Skipping this dynamic branch", count)
                     return
                 
-                logger.warn("too many switch cases during analysis: %d   limiting to %d", count, MAX_CASES)
-                count = MAX_CASES
+                logger.warn("too many switch cases during analysis: %d   limiting to %d", count, self.max_cases)
+                count = self.max_cases
 
             # determine deref-ops...  uses TrackingSymbolikEmulator
             # iterCases

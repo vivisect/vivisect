@@ -30,6 +30,12 @@ defconfig = {
             'pointertables':{
                 'table_min_len':4,
             },
+            'switchcase':{
+                'max_instr_count': 10,
+                'max_cases': 500,
+                'case_failure': 5000,
+                'min_func_instr_size': 10,
+            }
         },
     },
     'cli':vdb.defconfig.get('cli'), # FIXME make our own...
