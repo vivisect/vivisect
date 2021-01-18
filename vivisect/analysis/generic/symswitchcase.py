@@ -502,7 +502,83 @@ class SwitchCase:
 
         return cplxIdx
 
-    #### higher level functionality ####
+    #### mid-level functionality ####
+    def getBaseSymIdx(self):
+        '''
+        (cached)
+        returns the baseIdx and greatest index offset (ie.  the offset at the point of jmp).
+        '''
+        if None not in (self.baseIdx, self.baseoff):
+            return self.baseIdx, self.baseoff
+
+        def _cb_peel_idx(path, symobj, ctx):
+            logger.debug( ' PATH: %r\n SYMOBJ: %r\n CTX: %r\n' % (path, symobj, ctx))
+
+        def _cb_mark_longpath(path, symobj, ctx):
+            #logger.debug( ' PATH: %r\n SYMOBJ: %r\n CTX: %r\n' % (path, symobj, ctx))
+            longpath = ctx.get('longpath')
+            if longpath is None:
+                ctx['longpath'] = list(path)
+            elif len(path) > len(longpath):
+                ctx['longpath'] = list(path)
+
+        (csemu, cseff), aspath, fullpath = self.getSymbolikParts()
+
+        #idx = self.getComplexIdx().update(csemu)   #.reduce()
+        idx = self.getComplexIdx()
+        if idx is None:
+            raise NoComplexSymIdxException(self)
+
+        idx.reduce()
+
+        # peel it back
+        ctx = {}
+        idx.walkTree(_cb_mark_longpath, ctx)
+        longpath = ctx.get('longpath')
+
+        # now compare the long path against constraints that contain it.  find sweet spot
+        count = last = None
+        which = None
+        offset = 0
+
+        # peel back the constraints to remove any incidental modifications to the index variable
+        #  some compilers separate disparate groupings of cases into multiple dynamic branches.
+        #  in order to make all pointer/offset arrays 0-based, the index gets modified (subtracted)
+
+
+        # HACK: this is left-handed, and based on the longpath.  it may also benefit from actual comparing with the 
+        # known index.
+        logging.info("LONGPATH: " + '\n'.join([repr(x) for x in longpath]))
+        for symobj in longpath:
+            last = count
+            count = len(self.getBoundingCons(symobj))
+            logger.debug(" lp %d: %r" % (count, symobj))
+
+            # peel off o_subs and size-limiting o_ands and o_sextends
+            if isinstance(symobj, o_and) and symobj.kids[1].isDiscrete() and symobj.kids[1].solve() in e_bits.u_maxes:
+                mask = symobj.kids[1].solve()
+                pass    # this wrapper is a size-limiting bitmask
+
+            elif isinstance(symobj, o_sub):
+                offset += symobj.kids[1].solve() # this is an offset, used to rebase the index into a different pointer array
+
+            elif isinstance(symobj, o_add):
+                offset -= symobj.kids[1].solve() # this is an offset, used to rebase the index into a different pointer array
+
+            elif isinstance(symobj, o_sextend):
+                pass # sign-extension is irrelevant for indexes
+
+            # anything else and we're done peeling
+            else:
+                break
+
+        logger.debug(" lp DONE: (%r) %r" % (offset, symobj))
+        # now figure what was cut, and what impact it has.
+        self.baseIdx = symobj
+        self.baseoff = offset
+
+        return symobj, offset
+        
 
     def getBoundingCons(self, cplxIdx):
         return [con for con in self.getConstraints() if contains(con, cplxIdx)[0] ]
@@ -638,9 +714,53 @@ class SwitchCase:
         self.lower = lower
         self.baseoff = baseoff
 
-        #################
         return self.lower, self.upper, self.baseoff
 
+    def getDerefs(self):
+        '''
+        roll through effects and look for EFF_READMEM
+        '''
+        derefs = []
+
+        csp, asp, fullp = self.getSymbolikParts()
+        csemu, cseffs = csp
+        asemu, aseffs = asp
+
+        # create a tracking emulator and populate with with current "csp" state
+        semu = TrackingSymbolikEmulator(self.vw)
+        semu.setSymSnapshot(csemu.getSymSnapshot())
+
+        idxtype, symIdx = self.getSymIdx()
+
+        # set our index to 0, to get the base of pointer/offset arrays
+        semu.setSymVariable(symIdx, Const(0, 8))
+
+        for eff in aseffs:
+            startlen = len(semu.getTrackInfo())
+
+            if eff.efftype == EFFTYPE_READMEM:
+                if eff.va == self.jmpva:
+                    continue
+
+                symaddr = eff.symaddr.update(emu=semu)
+                if symaddr.isDiscrete():
+                    solution = symaddr.solve()
+                    logger.info("0x%x->0x%x" % (eff.va, solution))
+
+                    if not self.vw.isValidPointer(solution):
+                        logger.warn(("ARRRG: Non-pointer in ReadMemory???"))
+
+                    target = semu.readSymMemory(eff.symaddr, eff.symsize)
+                    size = target.getWidth()
+                    derefs.append((eff.va, symaddr, solution, target.solve(), size))
+
+            endlen = len(semu.getTrackInfo())
+
+        return derefs
+
+
+
+    #### higher level functionality
     def makeSwitch(self):
         '''
         DIFFERENT TYPES OF SWITCH CASES:
@@ -777,126 +897,10 @@ class SwitchCase:
             logger.exception("!@#$!@#$!@#$!@#$ BOMBED OUT 0x%x  !@#$!@#$!@#$!@#$ \n%r", self.jmpva, e)
 
 
-    def getDerefs(self):
-        '''
-        roll through effects and look for EFF_READMEM
-        '''
-        derefs = []
-
-        csp, asp, fullp = self.getSymbolikParts()
-        csemu, cseffs = csp
-        asemu, aseffs = asp
-
-        # create a tracking emulator and populate with with current "csp" state
-        semu = TrackingSymbolikEmulator(self.vw)
-        semu.setSymSnapshot(csemu.getSymSnapshot())
-
-        idxtype, symIdx = self.getSymIdx()
-
-        # set our index to 0, to get the base of pointer/offset arrays
-        semu.setSymVariable(symIdx, Const(0, 8))
-
-        for eff in aseffs:
-            startlen = len(semu.getTrackInfo())
-
-            if eff.efftype == EFFTYPE_READMEM:
-                if eff.va == self.jmpva:
-                    continue
-
-                symaddr = eff.symaddr.update(emu=semu)
-                if symaddr.isDiscrete():
-                    solution = symaddr.solve()
-                    logger.info("0x%x->0x%x" % (eff.va, solution))
-
-                    if not self.vw.isValidPointer(solution):
-                        logger.warn(("ARRRG: Non-pointer in ReadMemory???"))
-
-                    target = semu.readSymMemory(eff.symaddr, eff.symsize)
-                    size = target.getWidth()
-                    derefs.append((eff.va, symaddr, solution, target.solve(), size))
-
-            endlen = len(semu.getTrackInfo())
-
-        return derefs
-
-    def getBaseSymIdx(self):
-        '''
-        (cached)
-        returns the baseIdx and greatest index offset (ie.  the offset at the point of jmp).
-        '''
-        if None not in (self.baseIdx, self.baseoff):
-            return self.baseIdx, self.baseoff
-
-        def _cb_peel_idx(path, symobj, ctx):
-            logger.debug( ' PATH: %r\n SYMOBJ: %r\n CTX: %r\n' % (path, symobj, ctx))
-
-        def _cb_mark_longpath(path, symobj, ctx):
-            #logger.debug( ' PATH: %r\n SYMOBJ: %r\n CTX: %r\n' % (path, symobj, ctx))
-            longpath = ctx.get('longpath')
-            if longpath is None:
-                ctx['longpath'] = list(path)
-            elif len(path) > len(longpath):
-                ctx['longpath'] = list(path)
-
-        (csemu, cseff), aspath, fullpath = self.getSymbolikParts()
-
-        #idx = self.getComplexIdx().update(csemu)   #.reduce()
-        idx = self.getComplexIdx()
-        if idx is None:
-            raise NoComplexSymIdxException(self)
-
-        idx.reduce()
-
-        # peel it back
-        ctx = {}
-        idx.walkTree(_cb_mark_longpath, ctx)
-        longpath = ctx.get('longpath')
-
-        # now compare the long path against constraints that contain it.  find sweet spot
-        count = last = None
-        which = None
-        offset = 0
-
-        # peel back the constraints to remove any incidental modifications to the index variable
-        #  some compilers separate disparate groupings of cases into multiple dynamic branches.
-        #  in order to make all pointer/offset arrays 0-based, the index gets modified (subtracted)
-
-
-        # HACK: this is left-handed, and based on the longpath.  it may also benefit from actual comparing with the 
-        # known index.
-        logging.info("LONGPATH: " + '\n'.join([repr(x) for x in longpath]))
-        for symobj in longpath:
-            last = count
-            count = len(self.getBoundingCons(symobj))
-            logger.debug(" lp %d: %r" % (count, symobj))
-
-            # peel off o_subs and size-limiting o_ands and o_sextends
-            if isinstance(symobj, o_and) and symobj.kids[1].isDiscrete() and symobj.kids[1].solve() in e_bits.u_maxes:
-                mask = symobj.kids[1].solve()
-                pass    # this wrapper is a size-limiting bitmask
-
-            elif isinstance(symobj, o_sub):
-                offset += symobj.kids[1].solve() # this is an offset, used to rebase the index into a different pointer array
-
-            elif isinstance(symobj, o_add):
-                offset -= symobj.kids[1].solve() # this is an offset, used to rebase the index into a different pointer array
-
-            elif isinstance(symobj, o_sextend):
-                pass # sign-extension is irrelevant for indexes
-
-            # anything else and we're done peeling
-            else:
-                break
-
-        logger.debug(" lp DONE: (%r) %r" % (offset, symobj))
-        # now figure what was cut, and what impact it has.
-        self.baseIdx = symobj
-        self.baseoff = offset
-
-        return symobj, offset
-        
-
     def markDerefs(self):
+        '''
+        Apply xrefs for derefs (the tables) and mark pointers or numbers (for offset-based switches)
+        '''
         lower, upper, offset = self.getBounds()
 
         for va, symaddr, addr, tgt, sz in self.getDerefs():
