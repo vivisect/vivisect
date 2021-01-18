@@ -1,5 +1,4 @@
 '''
-Analysis plugin for supporting WorkspaceEmulators during analysis pass.
 Finds and connects Switch Cases from Microsoft and GCC, and theoretically others,
 which use pointer arithetic to determine code path for each case.
 
@@ -9,10 +8,6 @@ import sys
 
 import logging
 logger = logging.getLogger(__name__)
-#logger.setLevel(logging.WARN)
-#logger.setLevel(logging.DEBUG)
-if not len(logger.handlers):
-    logger.addHandler(logging.StreamHandler())
 
 import envi
 import envi.bits as e_bits
@@ -46,12 +41,12 @@ necessary, new codeblocks, and xrefs from the dynamic branch to the case handlin
 end, names are applied as appropriate.
 '''
 
-# TODO: some cases set the non-index reg much higher up the chain, so we don't identify the case index
-# TODO: make all switchcase analysis for a given function cohesive (ie. don't finish up with naming until the entire function has been analyzed).  this will break cohesion if we use the CLI to add switchcases, but so be it.
+# TODO: make all switchcase analysis for a given function cohesive (ie. don't finish up with naming until the entire function has been analyzed).  this will break cohesion if we use the CLI to add switchcases, but so be it.  (collisions in named targets... shared between jmp's in same switch/function)
 # TODO: overlapping case names...  doublecheck the naming algorithm.  ahh... different switch-cases colliding on handlers?  is this legit?  or is it because we don't stop correctly?
-# CHECK: are the algorithms for "stopping" correct?  currently getting 1 switch case for several cases in libc-32
+# CHECK: are the algorithms for "stopping" correct?  currently getting 1 switch case for several cases in libc-32.  (enhance "don't analyze" checks (like, already analyzed?)  or no?)
 # TODO: regrange description of Symbolik Variables... normalize so "eax" and "eax+4" make sense.
-# TODO: complete documentation
+
+
 MAX_INSTR_COUNT  = 10
 MAX_CASES   = 500
 CASE_FAILURE = 5000
@@ -163,7 +158,7 @@ def contains(symobj, subobj):
         walkTree callback for determining presence within an AST
         '''
         symsolve = symobj.solve()
-        # print "==--==", repr(symobj), symsolve, ctx['compare']
+        # logger.debug("==--== %r   %r   %r", repr(symobj), symsolve, ctx['compare'])
         if symsolve == ctx['compare']:
             ctx['contains'] = True
             ctx['path'] = tuple(path)
@@ -186,7 +181,7 @@ def getUnknowns(symvar):
         '''
         walkTree callback for grabbing Var objects
         '''
-        logging.debug("... unk: %r", symobj)
+        #logging.debug("... unk: %r", symobj)
         if symobj.symtype == SYMT_VAR:
             varlist = ctx.get(SYMT_VAR)
             if symobj.name not in varlist:
@@ -207,7 +202,8 @@ def getUnknowns(symvar):
 def peelIdxOffset(symobj):
     '''
     Peel back ignorable wrapped layers of a symbolik Index register, and track
-    offset in the process.  Once we've skipped out of the ignorable 
+    offset in the process.  Once we've skipped out of the ignorable symobj's we
+    should end up with something normalized-ish.
     '''
     offset = 0
     while True:
@@ -218,11 +214,13 @@ def peelIdxOffset(symobj):
 
         elif isinstance(symobj, o_sub):
             # this is an offset, used to rebase the index into a different pointer array
-            offset += symobj.kids[1].solve()
+            if symobj.kids[1].isDiscrete():
+                offset += symobj.kids[1].solve()
 
         elif isinstance(symobj, o_add):
             # this is an offset, used to rebase the index into a different pointer array
-            offset -= symobj.kids[1].solve()
+            if symobj.kids[1].isDiscrete():
+                offset -= symobj.kids[1].solve()
 
         elif isinstance(symobj, o_sextend):
             # sign-extension is irrelevant for indexes
@@ -299,9 +297,14 @@ def thunk_bx(emu, fname, symargs):
 UNINIT_CASE_INDEX = -2
 
 class SwitchCase:
-    # TODO: (poss?) enhance "don't analyze" checks (like, already analyzed?)  or no?
-    # TODO: collisions in named targets... shared between jmp's in same switch/function
-    # TODO: thunk_bx needs to already be called on the thunk_bx functions *before* switchcase analysis can occur.  current setup doesn't guarantee that. ordering?  or we need to rewrite thunk_bx analysis to run during calling-function's analysis pass (during codeflow?) to analyze the functions being called...  this may require some sort of post-processing step that queue's analysis and triggers it after thunk_bx is discovered?
+    '''
+    Actually do the analysis for each dynamic branch.
+    * First, for analysis: target addresses, case-offset, number of cases
+    * Second, to wire things up.
+    
+    Tracks the state of analysis so each component can easily do it's part 
+    without handing a ton of variables around between functions.
+    '''
     def __init__(self, vw, jmpva):
         self.vw = vw
         self.jmpva = jmpva
@@ -333,6 +336,11 @@ class SwitchCase:
 
 
     def clearCache(self):
+        '''
+        While analyzing a switchcase, we end up caching several calculated items.
+        This function clears them, so we can reset the state, like to skip 
+        inappropriate paths (eg.   if x> 3 and if x == 0
+        '''
         self.cspath = None
         self.aspath = None
         self.fullpath = None
@@ -343,22 +351,13 @@ class SwitchCase:
         self.baseoff = None
         self.baseIdx = None
 
-        # 
-        '''
-        self.longSemu = TrackingSymbolikEmulator(vw)
-        self.shortSemu = TrackingSymbolikEmulator(vw)
-
-        self.idxregidx = None
-        self.idxregname = None
-        self.idxregsymbx = None
-
-        self.jmpregidx = None
-        self.jmpregname = None
-        '''
-        self.jmpregsymbx = None
+        self.jmpsymvar = None
 
 
     def analyze(self):
+        '''
+        Generic "analyze" function, which simply calls makeSwitch()
+        '''
         self.makeSwitch()
 
     #### primitives for switchcase analysis ####
@@ -367,13 +366,13 @@ class SwitchCase:
         returns the Simple Symbolik state of the dynamic target of the branch/jmp
         this is the symbolik register at the start of the last codeblock.
         '''
-        if self.jmpregsymbx is not None:
-            return self.jmpregsymbx
+        if self.jmpsymvar is not None:
+            return self.jmpsymvar
 
         op = self.vw.parseOpcode(self.jmpva)
 
-        self.jmpregsymbx = self.xlate.getOperObj(op, 0)
-        return self.jmpregsymbx
+        self.jmpsymvar = self.xlate.getOperObj(op, 0)
+        return self.jmpsymvar
 
     def getSymTarget(self, short=True):
         '''
@@ -413,10 +412,6 @@ class SwitchCase:
             potentials.append((SYMT_MEM, unk))
 
         if not len(potentials):
-            #logger.critical('=-=-=-= failed to getSymIdx: unks: %r\n\nCSPATH:\n%s\n\nASPATH:\n%s\n\n',
-            #        unks, 
-            #        '\n'.join([repr(x) for x in cspath[1]]), 
-            #        '\n'.join([repr(x) for x in aspath[1]]))
             raise SymIdxNotFoundException(cspath, aspath)
             
         return potentials[0]
@@ -433,6 +428,12 @@ class SwitchCase:
 
 
     def getConstraints(self):
+        '''
+        Returns a list of Constraint objects from the current codepath.
+        Some of these constraints should have checks for boundaries against our
+        index variable which will prove helpful determining case-offset and 
+        case-count.
+        '''
         csp, asp, fullp = self.getSymbolikParts()
 
         cons = [eff for eff in fullp[1] if eff.efftype==EFFTYPE_CONSTRAIN]
