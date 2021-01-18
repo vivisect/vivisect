@@ -37,6 +37,10 @@ def getTestWorkspace(*paths):
         raise unittest.SkipTest('VIVTESTFILES env var not found!')
     fpath = os.path.join(testdir, *paths)
     vw = vivisect.VivWorkspace()
-    vw.loadFromFile(fpath)
-    vw.analyze()
+
+    if fpath.endswith('.viv'):
+        vw.loadWorkspace(fpath)
+    else:
+        vw.loadFromFile(fpath)
+        vw.analyze()
     return vw
