@@ -88,12 +88,12 @@ class VivisectTest(unittest.TestCase):
         self.assertTrue(len(vw.getLocations()) > 1000)
 
         # tuples are Name, Number of Locations, Size in bytes, Percentage of space
-        ans = {0: ('Undefined', 0, 509878, 48),
+        ans = {0: ('Undefined', 0, 401006L, 38),
                1: ('Num/Int', 271, 1724, 0),
-               2: ('String', 4066, 153678, 14),
+               2: ('String', 4158, 156005L, 14),
                3: ('Unicode', 0, 0, 0),
-               4: ('Pointer', 5376, 43008, 4),
-               5: ('Opcode', 81348, 331076, 31),
+               4: ('Pointer', 5372, 42976, 4),
+               5: ('Opcode', 107145, 437653L, 41),
                6: ('Structure', 496, 11544, 1),
                7: ('Clsid', 0, 0, 0),
                8: ('VFTable', 0, 0, 0),
@@ -237,8 +237,7 @@ class VivisectTest(unittest.TestCase):
         # uck. TODO: symbolik switchcase
         # self.assertEqual(14, len(vw.getImportCallers('gcc_7.plt_exit')))
 
-        #self.assertEqual(set([0x408de9, 0x408dfd, 0x435198, 0x43811d]),
-        self.assertEqual(set([0x408de9, 0x408dfd, 0x435198]),
+        self.assertEqual(set([0x408de9, 0x408dfd, 0x435198, 0x43811d]),
                          set(vw.getImportCallers(vw.getName(0x402d20))))
         self.assertEqual(set([0x4495de, 0x4678b1]), set(vw.getImportCallers(vw.getName(0x402d80))))
 
