@@ -424,7 +424,9 @@ class WorkspaceEmulator:
                     if op.iflags & envi.IF_RET:
                         vg_path.setNodeProp(self.curpath, 'cleanret', True)
                         break
-                except e_exc.UnsupportedInstruction as e:
+                except envi.BadOpcode:
+                    break
+                except envi.UnsupportedInstruction as e:
                     if self.strictops:
                         logger.debug('runFunction failed: unsupported instruction: 0x%08x %s', e.op.va, e.op.mnem)
                         break

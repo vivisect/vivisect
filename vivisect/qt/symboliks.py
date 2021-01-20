@@ -31,10 +31,13 @@ class VivSymbolikPathsView(vq_tree.VQTreeView):
         self.setModel(VivSymbolikPathsModel(parent=self))
 
     def loadSymbolikPaths(self, paths):
-        model = VivSymbolikPathsModel(parent=self)
-        for i, (emu, effects) in enumerate(paths):
-            model.append((str(i), len(effects), emu, effects))
+        cnt = 0
+        model = VivSymbolikPathsModel( parent=self )
+        for i, (emu,effects) in enumerate(paths):
+            model.append( (str(i), len(effects), emu, effects) )
+            cnt += 1
         self.setModel(model)
+        return cnt
 
     def selectionChanged(self, selected, unselected):
 
@@ -59,7 +62,7 @@ class VivSymbolikFuncPane(e_q_memory.EnviNavMixin, vq_save.SaveableWidget, QWidg
         self.curemu = None
         self.cureffects = None
 
-        self.symctx = viv_sym_analysis.getSymbolikAnalysisContext(vw, console=True)
+        self.symctx = viv_sym_analysis.getSymbolikAnalysisContext(vw, consolve=True)
         self.symexpr = viv_sym_expression.SymbolikExpressionParser(defwidth=vw.psize)
 
         if self.symctx is None:
@@ -165,7 +168,8 @@ class VivSymbolikFuncPane(e_q_memory.EnviNavMixin, vq_save.SaveableWidget, QWidg
                 loopcnt = self.loop_count.value()
                 paths = self.symctx.walkSymbolikPaths(self.fva, maxpath=100, loopcnt=loopcnt)
 
-            self.pathview.loadSymbolikPaths(paths)
+            if not self.pathview.loadSymbolikPaths(paths):
+                self.memcanvas.addText('No valid symbolik paths found for %s' % expr)
 
         except Exception as e:
             self.memcanvas.addText('ERROR: %s' % e)

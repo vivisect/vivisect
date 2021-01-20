@@ -97,29 +97,18 @@ class IMAGE_IMPORT_DIRECTORY(vstruct.VStruct):
         self.Name               = v_uint32()
         self.FirstThunk         = v_uint32()
 
-    def getNameTable(self):
-        return self.OriginalFirstThunk
-
-    def getRvaTable(self):
-        return self.FirstThunk
-
+# https://docs.microsoft.com/en-us/cpp/build/reference/structure-and-constant-definitions?view=vs-2019
 class IMAGE_DELAY_IMPORT_DIRECTORY(vstruct.VStruct):
     def __init__(self):
         vstruct.VStruct.__init__(self)
-        self.Attributes = v_uint32()
-        self.Name = v_uint32()
-        self.Handle = v_uint32()
-        self.IAT = v_uint32()
-        self.INT = v_uint32()
-        self.BoundIAT = v_uint32()
-        self.UnloadIAT = v_uint32()
-        self.Timestamp = v_uint32()
-
-    def getNameTable(self):
-        return self.INT
-
-    def getRvaTable(self):
-        return self.IAT
+        self.grAttrs      = v_uint32()
+        self.rvaDLLName   = v_uint32()
+        self.rvaHmod      = v_uint32()
+        self.rvaIAT       = v_uint32()
+        self.rvaINT       = v_uint32()
+        self.rvaBoundIAT  = v_uint32()
+        self.rvaUnloadIAT = v_uint32()
+        self.dwTimeStamp  = v_uint32()
 
 class IMAGE_IMPORT_BY_NAME(vstruct.VStruct):
     def __init__(self, namelen=128):

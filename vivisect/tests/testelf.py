@@ -2,6 +2,7 @@ import logging
 import unittest
 
 import Elf
+import envi
 import vivisect.cli as viv_cli
 import vivisect.tests.helpers as helpers
 import vivisect.analysis.elf as vae
@@ -21,84 +22,79 @@ from vivisect.tests import openbsd_amd64_ls_data
 
 logger = logging.getLogger(__name__)
 
-data = (
-        ("linux_amd64_ls", linux_amd64_ls_data.ls_data, ('linux', 'amd64', 'ls'), ),
-        ("linux_amd64_chown", linux_amd64_chown_data.chown_data, ('linux', 'amd64', 'chown'),),
-        ("linux_amd64_libc", linux_amd64_libc_2_27_data.libc_data, ('linux', 'amd64', 'libc-2.27.so'),),
-        ("linux_amd64_libstdc", linux_amd64_libstdc_data.libstdc_data, ('linux', 'amd64', 'libstdc++.so.6.0.25'),),
-        #("linux_amd64_static", linux_amd64_static_data.static64_data, ('linux', 'amd64', 'static64.llvm.elf'),),
-        ("linux_i386_libc", linux_i386_libc_2_13_data.libc_data, ('linux', 'i386', 'libc-2.13.so'),),
-        ("linux_i386_libstdc", linux_i386_libstdc_data.libstdc_data, ('linux', 'i386', 'libstdc++.so.6.0.25'),),
-        #("linux_i386_static", linux_i386_static_data.static32_data, ('linux', 'i386', 'static32.llvm.elf'),),
-        ("linux_arm_sh", linux_arm_sh_data.sh_data, ('linux', 'arm', 'sh'),),
-        ("qnx_arm_ksh", qnx_arm_ksh_data.ksh_data, ('qnx', 'arm', 'ksh'),),
-        ("openbsd_amd64_ls", openbsd_amd64_ls_data.ls_amd64_data, ('openbsd', 'ls.amd64'),),
-        )
 
-logger = logging.getLogger(__name__)
+def do_analyze(vw):
+    for mod in vae, vagr, vaeep, vagp:
+        try:
+            mod.analyze(vw)
+        except Exception as e:
+            import traceback
+            logging.warning("ERROR in analysis module: (%r): %r", mod, e)
+            logging.warning(traceback.format_exc())
 
 
 class ELFTests(unittest.TestCase):
+    def __init__(self, *args, **kwargs):
+        unittest.TestCase.__init__(self, *args, **kwargs)
+        self.data = (
+            ("linux_amd64_ls", linux_amd64_ls_data.ls_data, ('linux', 'amd64', 'ls'), ),
+            ("linux_amd64_chown", linux_amd64_chown_data.chown_data, ('linux', 'amd64', 'chown'),),
+            ("linux_amd64_libc", linux_amd64_libc_2_27_data.libc_data, ('linux', 'amd64', 'libc-2.27.so'),),
+            ("linux_amd64_libstdc", linux_amd64_libstdc_data.libstdc_data, ('linux', 'amd64', 'libstdc++.so.6.0.25'),),
+            #("linux_amd64_static", linux_amd64_static_data.static64_data, ('linux', 'amd64', 'static64.llvm.elf'),),
+            ("linux_i386_libc", linux_i386_libc_2_13_data.libc_data, ('linux', 'i386', 'libc-2.13.so'),),
+            ("linux_i386_libstdc", linux_i386_libstdc_data.libstdc_data, ('linux', 'i386', 'libstdc++.so.6.0.25'),),
+            #("linux_i386_static", linux_i386_static_data.static32_data, ('linux', 'i386', 'static32.llvm.elf'),),
+            ("linux_arm_sh", linux_arm_sh_data.sh_data, ('linux', 'arm', 'sh'),),
+            ("qnx_arm_ksh", qnx_arm_ksh_data.ksh_data, ('qnx', 'arm', 'ksh'),),
+            ("openbsd_amd64_ls", openbsd_amd64_ls_data.ls_amd64_data, ('openbsd', 'ls.amd64'),),
+            )
 
-    @classmethod
-    def setUpClass(cls):
-        super(ELFTests, cls).setUpClass()
-
-        cls.tests = []
-        for test in data:
-            name, test_data, path = test
-            logger.warning("=======vivisect.tests.testelf, %r ========", name)
+    def test_files(self):
+        results = []
+        for name, test_data, path in self.data:
+            logger.warning("======== %r ========", name)
             fn = helpers.getTestPath(*path)
             e = Elf.Elf(open(fn, 'rb'))
             vw = viv_cli.VivCli()
             vw.loadFromFile(fn)
-            #vw.analyze()
-            vae.analyze(vw)
-            vagr.analyze(vw)
-            vaeep.analyze(vw)
-            vagp.analyze(vw)
 
-            cls.tests.append((name, test_data, fn, e, vw))
+            do_analyze(vw)
 
-        cls.maxDiff = None
-
-    def test_files(self):
-        results = []
-        for name, test_data, fn, e, vw in self.tests:
             logger.debug("testing %r (%r)...", name, fn)
             retval = self.do_file(vw, test_data, name)
             results.append(retval)
 
-        failed = False
+        failed = 0
         for fidx, tres in enumerate(results):
             for testname, testdata in tres.items():
                 if testdata != (0, 0):
-                    failed = True
-                    fname = data[fidx][0]
+                    failed += testdata[0] + testdata[1]
+                    fname = self.data[fidx][0]
                     failed_old, failed_new = testdata
                     logger.error('%s:  %s: missing: %r   new: %r (%r)', fname, testname, failed_old, failed_new, fname)
 
-        self.assertEqual(failed, False, msg="ELF Tests Failed (see error log)")
+        self.assertEqual(failed, 0, msg="ELF Tests Failed (see error log)")
 
 
-    def do_file(self, vw, data, fname):
+    def do_file(self, vw, test_data, name):
         '''
         hand off testing to the individual test functions and return the collection of results
         '''
         results = {}
-        results['imports'] = self.imports(vw, data, fname)
-        results['exports'] = self.exports(vw, data, fname)
-        results['relocs'] = self.relocs(vw, data, fname)
-        results['names'] = self.names(vw, data, fname)
-        results['pltgot'] = self.pltgot(vw, data, fname)
-        results['debugsyms'] = self.debuginfosyms(vw, data, fname)
+        results['imports'] = self.imports(vw, test_data)
+        results['exports'] = self.exports(vw, test_data)
+        results['relocs'] = self.relocs(vw, test_data)
+        results['names'] = self.names(vw, test_data)
+        results['pltgot'] = self.pltgot(vw, test_data)
+        results['debugsyms'] = self.debuginfosyms(vw, test_data)
         return results
 
-    def imports(self, vw, data, fname):
+    def imports(self, vw, test_data):
         # simple comparison to ensure same imports
         newimps = vw.getImports()
         newimps.sort()
-        oldimps = data['imports']
+        oldimps = test_data['imports']
         oldimps.sort()
 
         failed_new = 0
@@ -113,7 +109,7 @@ class ELFTests(unittest.TestCase):
                     break
             if oldimp != equiv:
                 failed_old += 1
-                logger.warning("%s: imports: o: %-50s\tn: %s" % (fname, oldimp, equiv))
+                logger.warning("imports: o: %-50s\tn: %s" % (oldimp, equiv))
             done.append(va)
 
         for newimp in newimps:
@@ -128,16 +124,16 @@ class ELFTests(unittest.TestCase):
                     break
             if newimp != equiv:
                 failed_new += 1
-                logger.warning("%s: imports: o: %-50s\tn: %s" % (fname, equiv, newimp))
+                logger.warning("imports: o: %-50s\tn: %s" % (equiv, newimp))
             done.append(va)
 
         return failed_old, failed_new
 
-    def exports(self, vw, data, fname):
+    def exports(self, vw, test_data):
         # simple comparison to ensure same exports
         newexps = vw.getExports()
         newexps.sort()
-        oldexps = data['exports']
+        oldexps = test_data['exports']
         oldexps.sort()
 
         # warning: there may be multiple exports for each VA.
@@ -159,7 +155,7 @@ class ELFTests(unittest.TestCase):
                     break
             if oldexp != equiv:
                 failed_old += 1
-                logger.warning("%s: exp: o: %-80s\tn: %s" % (fname, oldexp, equiv))
+                logger.warning("exp: o: %-80s\tn: %s" % (oldexp, equiv))
 
         for newexp in newexps:
             va = newexp[0]
@@ -180,15 +176,15 @@ class ELFTests(unittest.TestCase):
                     break
             if newexp != equiv:
                 failed_new += 1
-                logger.warning("%s: exp: o: %-80s\tn: %s" % (fname, equiv, newexp))
+                logger.warning("exp: o: %-80s\tn: %s" % (equiv, newexp))
 
         return failed_old, failed_new
 
-    def relocs(self, vw, data, fname):
+    def relocs(self, vw, test_data):
         # simple comparison to ensure same relocs
         newrels = vw.getRelocations()
         newrels.sort()
-        oldrels = data['relocs']
+        oldrels = test_data['relocs']
         oldrels.sort()
 
         failed_new = 0
@@ -203,7 +199,7 @@ class ELFTests(unittest.TestCase):
                     break
             if oldrel != equiv:
                 failed_old += 1
-                logger.warning("%s: rel: o: %-80s\tn: %s" % (fname, oldrel, equiv))
+                logger.warning("rel: o: %-80s\tn: %s" % (oldrel, equiv))
             done.append(va)
 
         for newrel in newrels:
@@ -218,24 +214,18 @@ class ELFTests(unittest.TestCase):
                     break
             if newrel != equiv:
                 failed_new += 1
-                logger.warning("%s: rel: o: %-80s\tn: %s" % (fname, equiv, newrel))
+                logger.warning("rel: o: %-80s\tn: %s" % (equiv, newrel))
             done.append(va)
 
         return failed_old, failed_new
 
 
-    def names(self, vw, data, fname):
+    def names(self, vw, test_data):
         # comparison to ensure same workspace names
 
         # filter out a lot of noise not likely to be indicative of ELF bugs.
-        newnames = [ntup for ntup in vw.getNames() if not (
-                ntup[1].startswith('str_') or
-                ntup[1].startswith('ptr_str_') or
-                ntup[1].startswith('ptr_sub_') or
-                ntup[1].startswith('sub_'))]
-
-        newnames.sort()
-        oldnames = data['names']
+        newnames = [ntup for ntup in genNames(vw.getNames(), vw.getFiles())]
+        oldnames = test_data['names']
         oldnames.sort()
 
         failed_new = 0
@@ -252,7 +242,7 @@ class ELFTests(unittest.TestCase):
                     break
             if oldname != equiv:
                 failed_old += 1
-                logger.warning("%s: name: o: %-80s\tn: %s" % (fname, oldname, equiv))
+                logger.error("name: o: %-80s\tn: %s" % (oldname, equiv))
 
         for newname in newnames:
             va = newname[0]
@@ -268,12 +258,12 @@ class ELFTests(unittest.TestCase):
                     break
             if newname != equiv:
                 failed_new += 1
-                logger.warning("%s: name: o: %-80s\tn: %s" % (fname, equiv, newname))
+                logger.error("name: o: %-80s\tn: %s" % (equiv, newname))
 
         return failed_old, failed_new
 
-    def pltgot(self, vw, data, fname):
-        for pltva, gotva in data['pltgot']:
+    def pltgot(self, vw, test_data):
+        for pltva, gotva in test_data['pltgot']:
             match = False
             for xfr, xto, xtype, xinfo in vw.getXrefsFrom(pltva):
                 if xfr == pltva and xto == gotva:
@@ -281,15 +271,59 @@ class ELFTests(unittest.TestCase):
 
         return 0, 0
 
-    def debuginfosyms(self, vw, data, fname):
+    def debuginfosyms(self, vw, test_data):
         # we don't currently parse debugging symbols.
         # while they are seldom in hard targets, this is a weakness we should correct.
         return 0, 0
 
     def test_minimal(self):
         for path in (('linux','amd64','static64.llvm.elf'), ('linux','i386','static32.llvm.elf')):
-            logger.warning("======== test_minimal: %r ========", path)
+            logger.warning("======== %r ========", path)
             fn = helpers.getTestPath(*path)
             e = Elf.Elf(open(fn, 'rb'))
             vw = viv_cli.VivCli()
             vw.loadFromFile(fn)
+
+name_prefix_skips = [   # (prefix, MustHavePtrPrefix),
+        ('str_', False),
+        ('switch_', False),
+        ('case_', False),
+        ('sub_', False),
+        ('ptr_', False),
+        ('plt_', True),
+        ]
+
+def genNames(names, fnames):
+    '''
+    generate a list of (va, name) tuples, sorted by va
+    skipping any with prefixes
+    '''
+    names.sort()
+    for va, name in names:
+        skip = False
+        #logger.warning('(%r) testing %r:', fname, name)
+        # scratch variable to find if it's undesireable
+        testname = name
+
+        for fname in fnames:
+            if testname.startswith('%s.'%fname):
+                testname = testname[len(fname)+1:]
+
+        # some names can get crazy pointy like "ptr_ptr_ptr_plt_..."
+        pointy = False
+        while testname.startswith('ptr_'):
+            pointy = True
+            testname = testname[4:]
+
+        for prefix, mustptr in name_prefix_skips:
+            if testname.startswith(prefix):
+                if mustptr and not pointy:
+                    continue
+                skip = True
+
+        if skip:
+            logger.debug('   SKIP!:  %.30r      %.30r   %r', name, testname, fname)
+            continue
+        logger.debug('   not skip!:  %.30r      %.30r   %r', name, testname, fname)
+
+        yield va, name

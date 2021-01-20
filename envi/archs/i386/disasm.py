@@ -120,6 +120,13 @@ iflag_lookup = {
     opconst.INS_BRANCHCC: envi.IF_BRANCH | envi.IF_COND,
     opconst.INS_MOVCC: envi.IF_COND,
     opconst.INS_XCHGCC: envi.IF_COND,
+    opconst.INS_TRET: envi.IF_NOFALL | envi.IF_RET,
+    opconst.INS_HALT: envi.IF_NOFALL,
+    opconst.INS_TRAP: envi.IF_NOFALL,
+    opconst.INS_TRAPCC: envi.IF_NOFALL | envi.IF_COND,
+    opconst.INS_DEBUG: envi.IF_NOFALL,
+    opconst.INS_INVALIDOP: envi.IF_NOFALL,
+    opconst.INS_OFLOW: envi.IF_NOFALL,
 }
 
 sizenames = ["" for x in range(65)]

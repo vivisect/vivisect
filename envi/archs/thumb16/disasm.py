@@ -133,15 +133,24 @@ def rt_pc_imm8d(va, value):  # ldr
     oper1 = ArmImmOffsetOper(REG_PC, imm, (va & 0xfffffffc))
     return COND_AL, (oper0, oper1), None
 
+bx_flag_opts = (
+        envi.IF_BRANCH | envi.IF_NOFALL,
+        envi.IF_RET | envi.IF_NOFALL, 
+        envi.IF_CALL, 
+        envi.IF_CALL,
+        )
 
 def rm4_shift3(va, value):  # bx/blx
     iflags = None
     otype, shval, mask = O_REG, 3, 0xf
     oval = shmaskval(value, shval, mask)
     oper = ArmRegOper((value >> shval) & mask, va=va)
-    if oval == REG_LR:
-        l = bool(value & 0b0000000010000000)
-        iflags = (envi.IF_RET | envi.IF_NOFALL, envi.IF_CALL)[l]
+    
+    isLR = (oval == REG_LR) & 1 # convert to bit 0
+    l = (value >> 6) & 2   # store in bit 1
+
+    iflags = bx_flag_opts[(isLR | l)]
+
     return COND_AL, (oper,), iflags
 
 
@@ -2009,7 +2018,7 @@ thumb_base = [
     ('010001011',   (INS_CMP, 'cmp',     d1_rm4_rd3, 0)),        # CMP<c> <Rn>,<Rm>
     ('01000110',    (INS_MOV, 'mov',     d1_rm4_rd3, 0)),        # MOV<c> <Rd>,<Rm>
     # BX<c> <Rm>       # FIXME: check for IF_RET
-    ('010001110',   (INS_BL, 'bx',      rm4_shift3, envi.IF_NOFALL)),
+    ('010001110',   (INS_BX, 'bx',      rm4_shift3, 0)),
     ('010001111',   (INS_BLX, 'blx',     rm4_shift3, envi.IF_CALL)),  # BLX<c> <Rm>
     # Load from Litera7 Pool
     ('01001',       (INS_LDR, 'ldr',     rt_pc_imm8d, 0)),       # LDR<c> <Rt>,<label>

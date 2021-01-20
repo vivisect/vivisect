@@ -41,7 +41,7 @@ class watcher(viv_imp_monitor.EmulationMonitor):
 
         # if there is 1 mnem that makes up over 50% of all instructions then flag it as invalid
         for mnem, count in self.mndist.items():
-            if round(float( float(count) / float(self.insn_count)), 3) >= .67:
+            if round(float( float(count) / float(self.insn_count)), 3) >= .67 and self.insn_count > 4:
                 return False
 
         return True
@@ -76,23 +76,16 @@ class watcher(viv_imp_monitor.EmulationMonitor):
             emu.stopEmu()
 
         self.lastop = op
-        # Make sure we didn't run into any other
-        # defined locations...
-        if self.vw.isFunction(eip):
-            emu.stopEmu()
-            # FIXME: this is a problem.  many time legit code falls into other functions...
-            # "hydra" functions are more and more common.
-            raise v_exc.BadOpBytes(op.va)
 
         loc = self.vw.getLocation(eip)
         if loc is not None:
             va, size, ltype, linfo = loc
             if ltype != vivisect.LOC_OP:
                 emu.stopEmu()
-                raise Exception("HIT LOCTYPE %d AT %.8x" % (ltype, va))
+                raise Exception("HIT LOCTYPE %d AT 0x%.8x" % (ltype, va))
 
         cnt = self.mndist.get(op.mnem, 0)
-        self.mndist[op.mnem] = cnt+1
+        self.mndist[op.mnem] = cnt + 1
         self.insn_count += 1
 
         # FIXME do we need a way to terminate emulation here?

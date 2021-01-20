@@ -1011,7 +1011,15 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         self.setFlag(EFLAGS_AF, (sval & 0xf == 0))
         self.setFlag(EFLAGS_PF, e_bits.is_parity_byte(sval))
 
+    def i_ud0(self, op):
+        raise envi.BadOpcode(op)
+    i_ud1 = i_ud0
+    i_ud2 = i_ud0
+
     def i_int(self, op):
+        raise envi.BreakpointHit(self)
+
+    def i_int1(self, op):
         raise envi.BreakpointHit(self)
 
     def i_int3(self, op):
@@ -2111,7 +2119,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         # interleave qwords
         self.i_punpcklbw(op, width=8)
 
-    def i_punpckhbw(self, op, width=1, override=False):
+    def i_punpckhbw(self, op, width=1, off=0, override=False):
         name = self.getRealRegisterNameByIdx(op.opers[0].reg)
         realreg = self.getRegisterByName(name)
 

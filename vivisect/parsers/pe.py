@@ -11,14 +11,13 @@ import vivisect.parsers as v_parsers
 import vtrace  # needed only for setting the logging level
 import vtrace.platforms.win32 as vt_win32
 
-import envi.common as e_common
+import envi.exc as e_exc
 import envi.memory as e_mem
 import envi.symstore.symcache as e_symcache
 
 from vivisect.const import *
 
 logger = logging.getLogger(__name__)
-e_common.setLogging(logger, 'INFO')
 
 for mod in (PE, vtrace):
     olog = logging.getLogger(mod.__name__)
@@ -60,6 +59,11 @@ def parseFd(vw, fd, filename=None, baseaddr=None):
 arch_names = {
     PE.IMAGE_FILE_MACHINE_I386: 'i386',
     PE.IMAGE_FILE_MACHINE_AMD64: 'amd64',
+    PE.IMAGE_FILE_MACHINE_ARM: 'arm',
+    # DEV: uncomment this line to enable the arch (prolly not going to happen until AArch64 gets finished)
+    # PE.IMAGE_FILE_MACHINE_ARM64: 'arm64',
+    PE.IMAGE_FILE_MACHINE_ARMNT: 'thumb',
+    PE.IMAGE_FILE_MACHINE_THUMB: 'thumb16',
 }
 
 defcalls = {
@@ -152,6 +156,7 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
     # Setup some va sets used by windows analysis modules
     vw.addVaSet("Library Loads", (("Address", VASET_ADDRESS), ("Library", VASET_STRING)))
     vw.addVaSet('pe:ordinals', (('Address', VASET_ADDRESS), ('Ordinal', VASET_INTEGER)))
+    vw.addVaSet('DelayImports', (('Address', VASET_ADDRESS), ('DelayImport', VASET_STRING)))
 
     # SizeOfHeaders spoofable...
     curr_offset = pe.IMAGE_DOS_HEADER.e_lfanew + len(pe.IMAGE_NT_HEADERS)
@@ -345,14 +350,12 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
         if vw.probeMemory(rva + baseaddr, 4, e_mem.MM_READ):
             vw.makeImport(rva + baseaddr, lname, iname)
 
-    # Delay imports typically point to a function inside of the current binary that actually
-    # does the loading of it via LoadLibrary and all that
-    # so we should probaly hunt those down
     for rva, lname, iname in pe.getDelayImports():
-        eva = rva + baseaddr
-        if vw.probeMemory(eva, 4, e_mem.MM_READ):
-            vw.makeImport(eva, 'delayed.' + lname, iname)
-            vw.addEntryPoint(vw.readMemoryPtr(eva))
+        if vw.probeMemory(rva + baseaddr, 4, e_mem.MM_READ):
+            vw.makeImport(rva + baseaddr, lname, iname)
+            if lname != '*':
+                lname = vw.normFileName(lname)
+            vw.setVaSetRow('DelayImports', (rva + baseaddr, lname + '.' + iname))
 
     # Tell vivisect about ntdll functions that don't exit...
     vw.addNoReturnApi("ntdll.RtlExitUserThread")
@@ -458,7 +461,12 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
         va = edir.VirtualAddress + baseaddr
         vamax = va + edir.Size
         while va < vamax:
-            f = vw.makeStructure(va, 'pe.IMAGE_RUNTIME_FUNCTION_ENTRY')
+            try:
+                f = vw.makeStructure(va, 'pe.IMAGE_RUNTIME_FUNCTION_ENTRY')
+            except e_exc.SegmentationViolation as e:
+                logger.warning('Invalid exception entry at 0x%x (error: %s)' % (va, str(e)))
+                break
+
             if not vw.isValidPointer(baseaddr + f.UnwindInfoAddress):
                 break
 
