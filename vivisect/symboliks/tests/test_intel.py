@@ -147,11 +147,12 @@ class IntelSymTests(unittest.TestCase):
 
     def test_symbolik_paths_to(self):
         vw = self.i386_vw
-        fva = 0x8055bb0
-        tova = 0x8055dde
+        fva = 0x80569d0
+        tova = 0x08056b14
+
         sctx = v_s_analysis.getSymbolikAnalysisContext(vw, consolve=False)
         paths = [x for x in sctx.getSymbolikPathsTo(fva, tova)]
-        self.assertEqual(26, len(paths))
+        self.assertEqual(6, len(paths))
 
     def test_symbolik_outputs(self):
         vw = self.i386_vw
