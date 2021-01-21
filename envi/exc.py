@@ -36,6 +36,11 @@ class InvalidInstruction(EnviException):
         EnviException.__init__(self, ' '.join(msg))
 
 
+class BadOpcode(EnviException):
+    def __init__(self, op):
+        EnviException.__init__(self, 'Hit opcode that cannot be emulated at 0x%.8x: %s' % (op.va, str(op)))
+
+
 class InvalidAddress(EnviException):
     def __init__(self, va):
         self.va = va

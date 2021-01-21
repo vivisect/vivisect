@@ -51,6 +51,9 @@ def guessFormat(bytes):
     if bytes.startswith('VIV'):
         return 'viv'
 
+    if b'MSGVIV' in bytes[:8]:
+        return 'mpviv'
+
     if bytes.startswith("MZ"):
         return 'pe'
 

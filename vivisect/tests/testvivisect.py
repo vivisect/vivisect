@@ -19,12 +19,38 @@ def glen(g):
     return len([x for x in g])
 
 
+def isint(x):
+    return type(x) in (int, long)
+
+
 class VivisectTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.chgrp_vw = helpers.getTestWorkspace('linux', 'i386', 'chgrp.llvm')
         cls.vdir_vw = helpers.getTestWorkspace('linux', 'i386', 'vdir.llvm')
         cls.gcc_vw = helpers.getTestWorkspace('linux', 'amd64', 'gcc-7')
+
+    def test_xrefs_types(self):
+        for vw in [self.chgrp_vw, self.vdir_vw, self.gcc_vw]:
+            for xfrom, xto, xtype, xflags in vw.getXrefs():
+                self.assertEqual((xfrom, isint(xfrom)),
+                                 (xfrom, True))
+                self.assertEqual((xto, isint(xto)),
+                                 (xto, True))
+                self.assertEqual((xtype, isint(xtype)),
+                                 (xtype, True))
+                self.assertEqual((xflags, isint(xflags)),
+                                 (xflags, True))
+
+    def test_loc_types(self):
+        for vw in [self.chgrp_vw, self.vdir_vw, self.gcc_vw]:
+            for lva, lsize, ltype, linfo in vw.getLocations():
+                self.assertEqual((lva, isint(lva)),
+                                 (lva, True))
+                self.assertEqual((lsize, isint(lsize)),
+                                 (lsize, True))
+                self.assertEqual((ltype, isint(ltype)),
+                                 (ltype, True))
 
     def test_basic_apis(self):
         '''
@@ -62,12 +88,12 @@ class VivisectTest(unittest.TestCase):
         self.assertTrue(len(vw.getLocations()) > 1000)
 
         # tuples are Name, Number of Locations, Size in bytes, Percentage of space
-        ans = {0: ('Undefined', 0, 517666, 49),
+        ans = {0: ('Undefined', 0, 509878, 48),
                1: ('Num/Int', 271, 1724, 0),
-               2: ('String', 4054, 153424, 14),
+               2: ('String', 4066, 153678, 14),
                3: ('Unicode', 0, 0, 0),
                4: ('Pointer', 5376, 43008, 4),
-               5: ('Opcode', 79489, 323542, 30),
+               5: ('Opcode', 81348, 331076, 31),
                6: ('Structure', 496, 11544, 1),
                7: ('Clsid', 0, 0, 0),
                8: ('VFTable', 0, 0, 0),
@@ -403,7 +429,7 @@ class VivisectTest(unittest.TestCase):
         '''
         badva = 0x0805b6f2
         loctup = self.vdir_vw.getLocation(badva)
-        self.assertEqual((134592163, 86, 2, None), loctup)
+        self.assertEqual((134592163, 86, 2, []), loctup)
 
         strtbl = 0x805e75c
         loctup = self.vdir_vw.getLocation(strtbl)
@@ -466,6 +492,63 @@ class VivisectTest(unittest.TestCase):
 
     def test_posix_impapi(self):
         pass
+
+    def test_substrings(self):
+        vw = self.gcc_vw
+        # real boy test
+        loc = vw.getLocation(0x48a301, range=True)
+        rep = vw.readMemory(loc[v_const.L_VA], loc[v_const.L_SIZE])
+        self.assertEqual(loc, (0x48a301, 6, 2, []))
+        self.assertEqual(rep, '/lib/\x00')
+
+        loc = vw.getLocation(0x48a2fd)
+        rep = vw.readMemory(loc[v_const.L_VA], loc[v_const.L_SIZE])
+        self.assertEqual(loc, (0x48a2fd, 10, 2, [(0x48a301, 6)]))
+        self.assertEqual(rep, '/usr/lib/\x00')
+
+        # easily retrieve the parent string
+        loc = vw.getLocation(0x48a302, range=False)
+        rep = vw.readMemory(loc[v_const.L_VA], loc[v_const.L_SIZE])
+        self.assertEqual(loc, (0x48a2fd, 10, 2, [(0x48a301, 6)]))
+        self.assertEqual(rep, '/usr/lib/\x00')
+
+        # make up some substrings
+        s = 'Using built-in specs.\n\x00'
+        base = 0x48a4b4
+        vw.delLocation(base)
+        for i in range(1, len(s)):
+            vw.makeString(base + len(s) - i)
+        vw.makeString(base)
+        for i in range(1, len(s)):
+            loc = vw.getLocation(base + i, range=True)
+            self.assertEqual(loc[0], base + i)
+            self.assertEqual(loc[1], len(s) - i)
+            self.assertEqual(loc[2], 2)
+            self.assertEqual(loc[3], [])
+        loc = vw.getLocation(base)
+        self.assertTrue(len(loc[v_const.L_TINFO]), 22)
+        # if you delete the main string, you also end up deleting the substrings
+        vw.delLocation(base)
+        # be a good citizen and clean up
+        vw.makeString(base)
+
+    def test_more_substrings(self):
+        vw = self.gcc_vw
+        va = 0x48a491
+        vw.delLocation(va)
+        # assert it got deleted
+        self.assertIsNone(vw.getLocation(va))
+
+        # little string first
+        vw.makeString(va + 7)
+        loc = vw.getLocation(va + 7)
+        self.assertEqual(loc, (va + 7, 11, 2, []))
+
+        # make the outer string
+        wat = vw.makeString(va)
+        newloc = vw.getLocation(va)
+        self.assertEqual(newloc, (va, 18, 2, [(va+7, 11)]))
+        self.assertEqual(wat, newloc)
 
     def test_make_noname(self):
         vw = self.vdir_vw
@@ -611,3 +694,34 @@ class VivisectTest(unittest.TestCase):
             'ret '
         ]
         self.assertEqual(ops, map(str, v_t_graphutil.getOpsFromPath(vw, g, path)))
+
+    def test_graphutil_coverage(self):
+        # FIXME: So fun anecdote for later, originally I wanted to use fva 0x804af40 (parse_ls_colors)
+        # out of vdir for this test, but unfortunately, we detect the codeblock of that fva
+        # as 0x804af09, which crosses function boundaries into the function decode_switches.
+        # Reason being is that at VA 0x804af31, there's a call to error() with value 2 as the first
+        # parameter, which according to the man page for error means it should quit out. We don't grab
+        # that at codeflow time (because such things would require an emulator with knowledge of calling
+        # conventions)
+        # But that raises the question if makeFunction should split the codeblock
+        # or if we ignore that and just let the CodeBlockGraph stuff do it all for us,
+        # or if we should allow codeflow to carry an emulator with it.
+        vw = self.vdir_vw
+        fvas = [
+            0x804c030,
+            0x804ce40,
+            0x804cec0,
+            0x804d1a0,
+        ]
+        for fva in fvas:
+            g = v_t_graphutil.buildFunctionGraph(vw, fva)  # print_dir
+            hits = set()
+            for path in v_t_graphutil.getCoveragePaths(g):
+                for nid, edge in path:
+                    hits.add(nid)
+
+            self.assertEqual(len(hits), len(vw.getFunctionBlocks(fva)))
+            for nid in hits:
+                cb = vw.getCodeBlock(nid)
+                self.assertEqual(nid, cb[0])
+                self.assertEqual(fva, cb[2])

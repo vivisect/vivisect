@@ -185,7 +185,7 @@ class VivWorkspaceCore(object, viv_impapi.ImportApi):
 
     def _snapInAnalysisModules(self):
         '''
-        Snap in the analysis modules which are appropriate for the 
+        Snap in the analysis modules which are appropriate for the
         format/architecture/platform of this workspace by calling
         '''
         if self._mods_loaded:

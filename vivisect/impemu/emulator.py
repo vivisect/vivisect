@@ -373,6 +373,7 @@ class WorkspaceEmulator:
                             self.emumon.prehook(self, op, starteip)
                         except v_exc.BadOpBytes as e:
                             logger.debug(str(e))
+                            break
                         except Exception as e:
                             if not self.getMeta('silent'):
                                 logger.warn("Emulator prehook failed on fva: 0x%x, opva: 0x%x, op: %s, err: %s", funcva, starteip, str(op), str(e))
@@ -390,6 +391,7 @@ class WorkspaceEmulator:
                             self.emumon.posthook(self, op, endeip)
                         except v_exc.BadOpBytes as e:
                             logger.debug(str(e))
+                            break
                         except Exception as e:
                             if not self.getMeta('silent'):
                                 logger.warn("funcva: 0x%x opva: 0x%x:  %r   (%r) (in emumon posthook)", funcva, starteip, op, e)
@@ -422,6 +424,8 @@ class WorkspaceEmulator:
                     if op.iflags & envi.IF_RET:
                         vg_path.setNodeProp(self.curpath, 'cleanret', True)
                         break
+                except envi.BadOpcode:
+                    break
                 except envi.UnsupportedInstruction as e:
                     if self.strictops:
                         logger.debug('runFunction failed: unsupported instruction: 0x%08x %s', e.op.va, e.op.mnem)

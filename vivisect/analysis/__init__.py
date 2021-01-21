@@ -82,6 +82,7 @@ def addAnalysisModules(vw):
         vw.addAnalysisModule('vivisect.analysis.ms.localhints')
         # Find import thunks
         vw.addFuncAnalysisModule("vivisect.analysis.generic.thunks")
+        vw.addFuncAnalysisModule("vivisect.analysis.generic.noret")
         vw.addAnalysisModule("vivisect.analysis.generic.funcentries")
         vw.addAnalysisModule('vivisect.analysis.ms.msvcfunc')
         vw.addAnalysisModule('vivisect.analysis.generic.strconst')
@@ -136,6 +137,7 @@ def addAnalysisModules(vw):
 
         # Find import thunks
         vw.addFuncAnalysisModule("vivisect.analysis.generic.thunks")
+        vw.addFuncAnalysisModule("vivisect.analysis.generic.noret")
         # due to inconsistencies in plt layouts, we'll keep this as a func module as well
         vw.addFuncAnalysisModule("vivisect.analysis.elf.elfplt")
         vw.addAnalysisModule("vivisect.analysis.generic.pointers")
