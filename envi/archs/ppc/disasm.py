@@ -91,10 +91,8 @@ class PpcDisasm:
         mnem, opcode, form, cat, operands, iflags = data
 
         decoder = decoders.get(form, form_DFLT)
-        if decoder == None:
-            raise envi.InvalidInstruction(bytez[offset:offset+4], 'No Decoder Found for Form %s' % form_names.get(form), va)
 
-        nopcode, opers, iflags = decoder(self, va, ival, operands, iflags)
+        nopcode, opers, iflags = decoder(self, va, ival, opcode, operands, iflags)
         if nopcode != None:
             opcode = nopcode
 
@@ -336,7 +334,7 @@ for k, v in globals().items():
 
 
 # FORM parsers
-def form_DFLT(disasm, va, ival, operands, iflags):
+def form_DFLT(disasm, va, ival, opcode, operands, iflags):
     opers = []
     opcode = None
 
@@ -347,7 +345,7 @@ def form_DFLT(disasm, va, ival, operands, iflags):
 
     return opcode, opers, iflags
     
-def form_A(disasm, va, ival, operands, iflags):
+def form_A(disasm, va, ival, opcode, operands, iflags):
     opcode = None
     # fallback for all non-memory-accessing FORM_X opcodes
     opers = []
@@ -364,7 +362,7 @@ def form_A(disasm, va, ival, operands, iflags):
 
     return opcode, opers, iflags
 
-def form_X(disasm, va, ival, operands, iflags):
+def form_X(disasm, va, ival, opcode, operands, iflags):
     opcode = None
     # fallback for all non-memory-accessing FORM_X opcodes
     opers = []
@@ -385,7 +383,7 @@ def form_X(disasm, va, ival, operands, iflags):
     return opcode, opers, iflags
 
     
-def form_XL(disasm, va, ival, operands, iflags):
+def form_XL(disasm, va, ival, opcode, operands, iflags):
     opers = []
     opcode = None
 
@@ -399,7 +397,7 @@ def form_XL(disasm, va, ival, operands, iflags):
 
     return opcode, opers, iflags
     
-def form_EVX(disasm, va, ival, operands, iflags):
+def form_EVX(disasm, va, ival, opcode, operands, iflags):
     opers = []
     opcode = None
 
@@ -421,24 +419,53 @@ def form_EVX(disasm, va, ival, operands, iflags):
 
     return opcode, opers, iflags
     
-def form_D(disasm, va, ival, operands, iflags):
+
+tsizes_formD = {
+        INS_LWZ: 4,
+        INS_LWZU: 4,
+        INS_LBZ: 1,
+        INS_LBZU: 1,
+        INS_STW: 4,
+        INS_STWU: 4,
+        INS_STB: 1,
+        INS_STBU: 1,
+        INS_LHZ: 2,
+        INS_LHZU: 2,
+        INS_LHA: 2,
+        INS_LHAU: 2,
+        INS_STH: 2,
+        INS_STHU: 2,
+        INS_LMW: 4,
+        INS_STMW: 4,
+        INS_LFS: 4,
+        INS_LFSU: 4,
+        INS_LFD: 8,
+        INS_LFDU: 8,
+        INS_STFS: 4,
+        INS_STFSU: 4,
+        INS_STFD: 8,
+        INS_STFDU: 8,
+}
+
+def form_D(disasm, va, ival, opcode, operands, iflags):
     opers = []
-    opcode = None
 
     opvals = [((ival >> oshr) & omask) for onm, otype, oshr, omask in operands]
-    # if the last operand is FIELD_D, it's a memory deref.
+    # if the last operand is FIELD_D, it's a memory deref. (load/store instructions)
     if len(operands) == 3 and operands[2][1] == FIELD_D:
+        # let's figure out what *memory size* the operand uses
+        tsize = tsizes_formD.get(opcode)
+        #print "DBG: 0x%x:   FORM_D: opcode: 0x%x    tsize=%r" % (va, opcode, tsize)
         oper0 = OPERCLASSES[operands[0][1]](opvals[0], va)
-        opers.append(oper0)
 
         if opvals[1] == 0:
             oper1 = PpcImmOper(0, va)
-            oper2 = OPERCLASSES[operands[2][1]](opvals[2], va)
+            oper2 = OPERCLASSES[operands[2][1]](opvals[2], va, tsize=tsize)
             opers = (oper0, oper1, oper2)
             return opcode, opers, iflags
 
-        oper1 = PpcMemOper(opvals[1], opvals[2], va)
-        opers.append(oper1)
+        oper1 = PpcMemOper(opvals[1], opvals[2], va, tsize=tsize)
+        opers =(oper0, oper1)
         return opcode, opers, iflags
 
     # check for rA being 0... and convert it to Immediate 0     TESTME: does this correctly slice the instruction set?
@@ -459,7 +486,7 @@ def form_D(disasm, va, ival, operands, iflags):
 
     return opcode, opers, iflags
     
-def form_B(disasm, va, ival, operands, iflags):
+def form_B(disasm, va, ival, opcode, operands, iflags):
     opers = []
     opcode = None
 
@@ -484,7 +511,7 @@ def form_B(disasm, va, ival, operands, iflags):
 
     return opcode, opers, iflags
 
-def form_I(disasm, va, ival, operands, iflags):
+def form_I(disasm, va, ival, opcode, operands, iflags):
     opers = []
     opcode = None
 
@@ -499,7 +526,7 @@ def form_I(disasm, va, ival, operands, iflags):
 
     return opcode, opers, iflags
 
-def form_DS(disasm, va, ival, operands, iflags):
+def form_DS(disasm, va, ival, opcode, operands, iflags):
     opcode = None
 
     opvals = [((ival >> oshr) & omask) for onm, otype, oshr, omask in operands]
@@ -508,7 +535,7 @@ def form_DS(disasm, va, ival, operands, iflags):
     opers = (oper0, oper1)
     return opcode, opers, iflags
     
-def form_MDS(disasm, va, ival, operands, iflags):
+def form_MDS(disasm, va, ival, opcode, operands, iflags):
     opers = []
     opcode = None
 
@@ -523,7 +550,7 @@ def form_MDS(disasm, va, ival, operands, iflags):
     opers = (oper0, oper1, oper2, oper3)
     return opcode, opers, iflags
     
-def form_MD(disasm, va, ival, operands, iflags):
+def form_MD(disasm, va, ival, opcode, operands, iflags):
     opers = []
     opcode = None
 
@@ -539,7 +566,7 @@ def form_MD(disasm, va, ival, operands, iflags):
     opers = (oper0, oper1, oper2, oper3)
     return opcode, opers, iflags
     
-def form_XS(disasm, va, ival, operands, iflags):
+def form_XS(disasm, va, ival, opcode, operands, iflags):
     opers = []
     opcode = None
 
@@ -561,7 +588,7 @@ REG_OFFS = {
         FIELD_TBRN0_4 : REG_OFFSET_TBR,
         }
 
-def form_XFX(disasm, va, ival, operands, iflags):
+def form_XFX(disasm, va, ival, opcode, operands, iflags):
     opers = []
     opcode = None
 

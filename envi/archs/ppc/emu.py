@@ -169,22 +169,6 @@ class PpcAbstractEmulator(envi.Emulator):
             raise envi.PDEUndefinedFlag(self)
         return bool(flags & (1<<which))
 
-    def makeOpcode(self, bytes, offset=0, va=0):
-        """
-        Parse a sequence of bytes out into an envi.Opcode instance.
-        """
-        return self._arch_dis.disasm(bytes, offset, va)
-
-    #def makeOpcode(self, pc):
-    #    map = self._mem_bytelookup.get(pc & self._mem_mask)
-    #    if map == None:
-    #        raise envi.SegmentationViolation(pc)
-    #    mapva, mperm, mapbytes = map
-    #    if not mperm & e_mem.MM_READ:
-    #        raise envi.SegmentationViolation(pc)
-    #    offset = pc - mapva
-    #    return self._arch_dis.disasm(mapbytes, offset, pc)
-
     def executeOpcode(self, op):
         # NOTE: If an opcode method returns
         #       other than None, that is the new eip
