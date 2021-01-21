@@ -131,7 +131,7 @@ class VQMainCmdWindow(vq_hotkeys.HotKeyMixin, QMainWindow):
             obj = cls(*args)
             return self.vqDockWidget(obj, area, floating=floating), obj
         except Exception, e:
-            print('vqBuildDockWidget Failed For: %s  (%r)' % (clsname, e))
+            logger.error('vqBuildDockWidget Failed For: %s  (%r)', clsname, e)
 
     def vqRestoreGuiSettings(self, settings, stub=''):
         dwcls = settings.value('DockClasses')
