@@ -22,6 +22,7 @@ ARCH_THUMB16     = 4 << 16
 ARCH_THUMB       = 5 << 16
 ARCH_MSP430      = 6 << 16
 ARCH_H8          = 7 << 16
+ARCH_MCS51       = 8 << 16
 ARCH_MASK        = 0xffff0000   # Masked into IF_FOO and BR_FOO values
 
 arch_names = {
@@ -33,6 +34,7 @@ arch_names = {
     ARCH_THUMB:     'thumb',
     ARCH_MSP430:    'msp430',
     ARCH_H8:        'h8',
+    ARCH_MCS51:     'mcs51',
 }
 
 arch_by_name = {
@@ -47,6 +49,7 @@ arch_by_name = {
     'thumb2':   ARCH_THUMB,
     'msp430':   ARCH_MSP430,
     'h8':       ARCH_H8,
+    'mcs51':    ARCH_MCS51,
 }
 
 # Instruction flags (The first 8 bits are reserved for arch independant use)
@@ -1282,6 +1285,10 @@ def getArchModule(name=None):
         import envi.archs.h8 as e_h8
         return e_h8.H8Module()
 
+    elif name in ('mcs51', '8051', 'i8051', '80x51'):
+        import envi.archs.mcs51 as e_mcs51
+        return e_mcs51.Mcs51Module()
+
     else:
         raise ArchNotImplemented(name)
 
@@ -1294,6 +1301,7 @@ def getArchModules(default=ARCH_DEFAULT):
     import envi.archs.arm as e_arm
     import envi.archs.i386 as e_i386
     import envi.archs.amd64 as e_amd64
+    import envi.archs.mcs51 as e_mcs51
     import envi.archs.thumb16 as e_thumb16
     import envi.archs.msp430 as e_msp430
 
@@ -1307,6 +1315,7 @@ def getArchModules(default=ARCH_DEFAULT):
     archs.append(e_thumb16.ThumbModule())
     archs.append(e_msp430.Msp430Module())
     archs.append(e_h8.H8Module())
+    archs.append(e_mcs51.Mcs51Module())
 
     # Set the default module ( or None )
     archs[ARCH_DEFAULT] = archs[default >> 16]

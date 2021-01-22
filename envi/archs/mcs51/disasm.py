@@ -1,6 +1,7 @@
 
 import envi
 import envi.bits as e_bits
+from envi.exc import *
 
 import copy
 import struct
@@ -9,7 +10,8 @@ import struct
 import opcode8051 as optable
 from envi.archs.mcs51.disasm import *
 from envi.archs.mcs51.regs import *
-import atlasutils.smartprint as sp
+
+#import atlasutils.smartprint as sp
 
 fmts = ['B', '>H', None, '>I']
 
@@ -552,7 +554,7 @@ class Mcs51Disasm:
         mnem = None 
         operands = []
         prefixes = 0
-        iflags = 0
+        iflags = envi.ARCH_MCS51
         
         obyte = ord(bytes[offset])
         #print "OBYTE",hex(obyte)
@@ -585,7 +587,7 @@ class Mcs51Disasm:
             
             tsize = operdesc[4]
 
-            #FIXME:  FUGLY!
+            #FIXME:  FUGLY!  would a list of functtions be significantly faster on avg?
             # tsize: size of the target data...
             # osize: number of instruction bytes used for the operand
             if opertype == optable.OP_REGISTER:
@@ -596,7 +598,7 @@ class Mcs51Disasm:
             elif opertype == optable.OP_IMMEDIATE:
                 osize = (operflags&optable.OPERANDFLAGMASK)>>optable.OPERANDFLAGLOC
                 loc = offset+operoffset
-                oper = Mcs51ImmOper(imm=struct.unpack(fmts[osize-1],bytes[loc:loc+osize])[0])
+                oper = Mcs51ImmOper(imm=struct.unpack(fmts[osize-1], bytes[loc:loc+osize])[0])
                 
             elif opertype == optable.OP_A:
                 osize = 0
@@ -611,21 +613,20 @@ class Mcs51Disasm:
             elif opertype == optable.OP_ACC_PC_INDIRECT:
                 #FIXME: DPTR relative addressing with SEGMENTS (accesses code and RAM both....)
                 osize = 0
-                #reg = REG_A
                 basereg = REG_PC
                 oper = Mcs51IndexedOper(basereg)
                 
             elif opertype == optable.OP_ADDR11:
                 osize = 1
                 loc = offset+operoffset
-                addr11 = struct.unpack("B",bytes[loc-1] )[0] >> 5
-                addr11 += struct.unpack("B",bytes[loc])[0]
+                addr11 = struct.unpack("B", bytes[loc-1] )[0] >> 5
+                addr11 += struct.unpack("B", bytes[loc])[0]
                 oper = Mcs51AddrOper(addr11)
                 
             elif opertype == optable.OP_ADDR16:
                 osize = 2
                 loc = offset+operoffset
-                addr16, = struct.unpack(">H",bytes[loc:loc+2])
+                addr16, = struct.unpack(">H", bytes[loc:loc+2])
                 oper = Mcs51AddrOper(addr16)
                 
             elif opertype == optable.OP_B:
@@ -650,7 +651,7 @@ class Mcs51Disasm:
             elif opertype == optable.OP_DIRECT:
                 osize = 1
                 loc = offset+operoffset
-                oper = Mcs51DirectOper(imm=struct.unpack(fmts[osize-1],bytes[loc:loc+osize])[0])
+                oper = Mcs51DirectOper(imm=struct.unpack(fmts[osize-1], bytes[loc:loc+osize])[0])
 
             elif opertype == optable.OP_REG_INDIRECT:
                 osize = 0
@@ -661,12 +662,12 @@ class Mcs51Disasm:
                 osize = 1
                 loc = offset+operoffset
                 #print "=%s="%repr(bytes[loc:loc+osize])
-                oper = Mcs51PcRelOper(struct.unpack("b",bytes[loc:loc+osize])[0])
+                oper = Mcs51PcRelOper(struct.unpack("b", bytes[loc:loc+osize])[0])
                 
             elif opertype == optable.OP_bit:
                 osize = 1
                 loc = offset+operoffset
-                bitnum = struct.unpack("B",bytes[loc])[0]
+                bitnum = struct.unpack("B", bytes[loc])[0]
                 base = bitnum & 0xf8
                 bit = bitnum & 7
                 oper = Mcs51BitOper(bit, base=base)  #FIXME: NOT SURE HOW TO RECODE UPPER 5 bits!
@@ -675,7 +676,7 @@ class Mcs51Disasm:
             elif opertype == optable.OP_comp_bit:
                 osize = 1
                 loc = offset+operoffset
-                bitnum = struct.unpack(fmts[osize-1],bytes[loc:loc+osize])[0]
+                bitnum = struct.unpack(fmts[osize-1], bytes[loc:loc+osize])[0]
                 base = bitnum >> 3
                 bit = bitnum & 7
                 oper = Mcs51BitOper(bit, base=base, comp=True)  # repr will need to split imm into upper 5 and lower 3 bits...  scale = 1 if "not" bit
