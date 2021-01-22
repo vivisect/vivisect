@@ -55,7 +55,7 @@ class ExampleWindow(QWidget):
 
 def vprint(vw, s, *args, **kwargs):
     vw.vprint(s % args)
-    print s % args
+    print(s % args)
 
 
 def ctxMenuHook(vw, va, expr, menu, parent, nav):
@@ -63,7 +63,6 @@ def ctxMenuHook(vw, va, expr, menu, parent, nav):
     Context Menu handler (adds options as we wish)
     '''
     try:
-        print "foobar"
         if va == 0x41414141:
             menu.addAction('WAT?',   ACT(vw.vprint, "We're at AAAA!"))
         menu.addAction('bookmark (B)',   ACT(vw.getVivGui().addBookmark, va))
@@ -71,7 +70,6 @@ def ctxMenuHook(vw, va, expr, menu, parent, nav):
         menu.addAction('YEEE HAH1',   ACT(vprint, vw, "YEE HAH %x  %r %r %r %r", va, expr, menu, parent, nav))
 
     except Exception as e:
-        print e
         import traceback
         traceback.print_exc()
 

@@ -219,8 +219,7 @@ def buildContextMenu(vw, va=None, expr=None, menu=None, parent=None, nav=None):
 
     # give any extensions a chance to play
     for exthook in vw._ext_ctxmenu_hooks:
-        logger.warn('exthook: %r', exthook)
-        print exthook, vw, va, expr, menu, parent, nav
+        logger.info('exthook: %r', exthook)
         exthook(vw, va, expr, menu, parent, nav)
 
     return menu

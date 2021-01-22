@@ -88,8 +88,8 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         else:
             self.vivhome = e_config.gethomedir(".viv", makedir=autosave)
         self._viv_gui = None    # If a gui is running, he will put a ref here...
-        self._ext_ctxmenu_hooks = []
-        self._extensions = []
+        self._ext_ctxmenu_hooks = {}
+        self._extensions = {}
 
         self.saved = True  # TODO: where is this used?
         self.rchan = None
@@ -194,7 +194,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         '''
         return self._viv_gui
 
-    def addCtxMenuHook(self, handler):
+    def addCtxMenuHook(self, name, handler):
         '''
         Extensions can add Context Menu hooks to modify the menu as they wish.
         This would most often happen from the Extension's vivExtension() init function.
@@ -210,19 +210,16 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
         Currently, this should live in a loaded module, not in your Viv Extension's main py file.
         '''
-        if handler in self._ext_ctxmenu_hooks:
-            return
+        self._ext_ctxmenu_hooks[name] = handler
 
-        self._ext_ctxmenu_hooks.append(handler)
-
-    def delCtxMenuHook(self, handler):
+    def delCtxMenuHook(self, name):
         '''
         Remove a context-menu hook that has been installed by an extension
         '''
-        if handler not in self._ext_ctxmenu_hooks:
+        if name not in self._ext_ctxmenu_hooks:
             return
 
-        self._ext_ctxmenu_hooks.remove(handler)
+        self._ext_ctxmenu_hooks.pop(handler)
 
     def addExtension(self, extmod):
         '''
