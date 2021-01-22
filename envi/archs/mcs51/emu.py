@@ -95,6 +95,7 @@ class i8051Emulator(Mcs51Module, Mcs51RegisterContext, envi.Emulator):
         # segments: flash-prog-mem, external-RAM, config-RAM, 8051-RAM
         # seglist syntax:  (base_va, size, offset_in_real_memory, name)
         # if not handed in, rega1rray is initialized to the standard init values for each register
+        envi.Emulator.__init__(self)
         Mcs51Module.__init__(self)
         Mcs51RegisterContext.__init__(self)
         if regarray == None:
@@ -114,7 +115,7 @@ class i8051Emulator(Mcs51Module, Mcs51RegisterContext, envi.Emulator):
         for mmap in xrange(0,len(self.segments)):
             bva,size,offset,name = self.segments[mmap]
             try:
-                self.memobj.addMemoryMap(bva+offset,0777,name, "\x00"*(size))
+                self.addMemoryMap(bva+offset,0777,name, "\x00"*(size))
             except:
                 sys.excepthook(*sys.exc_info())
 
@@ -216,7 +217,7 @@ class i8051Emulator(Mcs51Module, Mcs51RegisterContext, envi.Emulator):
             return struct.unpack("<l", bytes)[0]
 
     def makeOpcode(self, pc):
-        map = self.memobj._mem_bytelookup.get(pc & self.memobj._mem_mask)
+        map = self._mem_bytelookup.get(pc & self._mem_mask)
         if map == None:
             raise envi.SegmentationViolation(pc)
         mapva, mperm, mapbytes = map
