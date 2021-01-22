@@ -87,29 +87,30 @@ OPER_SRC = 1
 OPER_DST = 0
 
 
-class Mcs51Emulator(Mcs51Module, Mcs51RegisterContext, envi.Emulator):
+class i8051Emulator(Mcs51Module, Mcs51RegisterContext, envi.Emulator):
 
-    def __init__(self, regarray=None):
+    def __init__(self, segs=None, regarray=None):
+        self.segments = segs
+        self.reg_table = reg_table
         # segments: flash-prog-mem, external-RAM, config-RAM, 8051-RAM
         # seglist syntax:  (base_va, size, offset_in_real_memory, name)
-        # if not handed in, regarray is initialized to the standard init values for each register
+        # if not handed in, rega1rray is initialized to the standard init values for each register
+        Mcs51Module.__init__(self)
+        Mcs51RegisterContext.__init__(self)
         if regarray == None:
             regarray = []
             for rname,rloc,rmask,rfmt,rsz,rinit,intW,intR in self.reg_table:
                 regarray.append(rinit)
                 
-        self.setMemoryObject(e_mem.MemoryObject())
-
         self.setupInternalMemMaps()
         self.initRegisters()
         self.fp_exceptions = []
-        self.addCallingConvention("stdcall", stdcall)
-        self.addCallingConvention("thiscall", thiscall)
-        self.addCallingConvention("cdecl", cdecl)
+        #self.addCallingConvention("stdcall", stdcall)
+        #self.addCallingConvention("thiscall", thiscall)
+        #self.addCallingConvention("cdecl", cdecl)
 
     
     def setupInternalMemMaps(self):
-        self.setMemoryObject(e_mem.MemoryObject())
         for mmap in xrange(0,len(self.segments)):
             bva,size,offset,name = self.segments[mmap]
             try:
@@ -868,23 +869,20 @@ class Mcs51Emulator(Mcs51Module, Mcs51RegisterContext, envi.Emulator):
 
 ######################### Architecture Specific Extensions ############################
 
-class CC1110Emulator(Mcs51Emulator):
+class Mcs51Emulator(i8051Emulator):
+    reg_table = reg_table
     def __init__(self, regarray=None):
-        self.reg_table = reg_table
-        Mcs51Module.__init__(self)
-        envi.Emulator.__init__(self, segs=seglist_1110)
-        Mcs51RegisterContext.__init__(self)
+        i8051Emulator.__init__(self, seglist_8051, regarray)
 
-        Mcs51Emulator.__init__(self, regarray)
-
-class CC2430Emulator(Mcs51Emulator):
+class CC1110Emulator(i8051Emulator):
+    reg_table = reg_table
     def __init__(self, regarray=None):
-        self.reg_table = reg_table
-        Mcs51Module.__init__(self)
-        envi.Emulator.__init__(self, segs=seglist_2430)
-        Mcs51RegisterContext.__init__(self)
+        i8051Emulator.__init__(self, seglist_1110, regarray)
 
-        Mcs51Emulator.__init__(self, regarray)
+class CC2430Emulator(i8051Emulator):
+    reg_table = reg_table
+    def __init__(self, regarray=None):
+        i8051Emulator.__init__(self, seglist_2430, regarray)
 
 
 """

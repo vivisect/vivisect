@@ -20,7 +20,7 @@ def handlerSplitRegisterWrite(index, emu, value):
     BYTE ORDER MUST BE ?SB! (see DPTR)
     """
     #FIXME: byte order?
-    rname, rloc, rmask, rfmt, rsz, rinit, intW, intR = emu.reg_table[index]
+    rname, rloc, rmask, rfmt, rsz, rinit, intW, intR = e_reg.reg_table[index]
     for idx in range(len(rloc)-1,-1,-1):
         byte = "%c"%(value & 0xff)
         value >>=8
@@ -35,7 +35,7 @@ def handlerSplitRegisterRead(index, emu):
     BYTE ORDER MUST BE ?SB! (see DPTR)
     """
     #FIXME: byte order?
-    rname, rloc, rmask, rfmt, rsz, rinit, intW, intR = emu.reg_table[index]
+    rname, rloc, rmask, rfmt, rsz, rinit, intW, intR = e_reg.reg_table[index]
     bytes = []
     for idx in range(len(rloc)):
         bytes.append(emu.readMemory(rloc[idx], 1))

@@ -13,51 +13,6 @@ from envi.archs.mcs51.regs import *
 
 #import atlasutils.smartprint as sp
 
-fmts = ['B', '>H', None, '>I']
-
-nofall_types = [
-    optable.INS_AJMP,
-    optable.INS_LJMP,
-    optable.INS_RET,
-    optable.INS_RETI,
-    optable.INS_JMP,
-]
-branch_types = [
-    optable.INS_NOP,
-    optable.INS_AJMP,
-    optable.INS_LJMP,
-    optable.INS_JBC,
-    optable.INS_ACALL,
-    optable.INS_LCALL,
-    optable.INS_JB,
-    optable.INS_RET,
-    optable.INS_JNB,
-    optable.INS_RETI,
-    optable.INS_JC,
-    optable.INS_JNC,
-    optable.INS_JZ,
-    optable.INS_JNZ,
-    optable.INS_JMP,
-    optable.INS_SJMP,
-    optable.INS_CJNE,
-    optable.INS_DJNZ,
-]
-call_types = [
-    optable.INS_ACALL,
-    optable.INS_LCALL,
-]
-
-sizenames = (None, "BYTE ","WORD ",None,"DWORD ")
-
-OPTYPE_REG = 0x0
-OPTYPE_IMM = 0x1
-OPTYPE_INDEXED = 0x2
-OPTYPE_INDIRECT = 0x3
-OPTYPE_DIRECT = 0x4
-OPTYPE_ADDR = 0x5
-OPTYPE_PCREL = 0x6
-OPTYPE_BIT = 0x7
-
 def addrToName(mcanv, va):
     sym = mcanv.syms.getSymByAddr(va)
     if sym != None:
@@ -423,90 +378,72 @@ class Mcs51BitOper(envi.Operand):
             mcanv.addNameText(breg)
             mcanv.addNameText(".%x"%(self.bit))
 
-
 class Mcs51Opcode(envi.Opcode):
 
     def isCall(self):
-        if self.opcode in call_types:
-            return True
-        return False
+        return bool(self.iflags & envi.IF_CALL)
 
     def isBranch(self):
-        return self.opcode in branch_types
+        return bool(self.iflags & envi.IF_BRANCH)
 
     def isReturn(self):
-        if self.opcode == optable.INS_RET or self.opcode == optable.INS_RETI:
-            return True
-        return False
+        return bool(self.iflags & envi.IF_RET)
 
-    #FIXME: Implement this..
-    #def getBranches(self, emu=None):
-        #ret = []
+    def getBranches(self, emu=None):
+        """
+        Return the discernable branches for the instruction.
+        (with the assumption that it is located at va).
+        If an optional emulator object is passed in, use the
+        emulator (getOperValue()) to attempt to detect the
+        target location for the branch in the emulation env.
+
+        NOTE: This does *not* return a "branch" to the next
+              instruction. Users should check IF_NOFALL.
+        """
+        ret = []
 
         ## To start with we have no flags.
-        #flags = 0
-        #addb = False
+        flags = 0
+        addb = False
 
-        ## If we are a conditional branch, even our fallthrough
-        ## case is conditional...
-        #if self.opcode == opcode86.INS_BRANCHCC:
-            #flags |= envi.BR_COND
-            #addb = True
+        # If we are a conditional branch, even our fallthrough
+        # case is conditional...
+        if self.iflags & envi.IF_BRANCH_COND:
+            flags |= envi.BR_COND
+            addb = True
 
-        ## If we can fall through, reflect that...
-        #if not self.iflags & envi.IF_NOFALL:
-            #ret.append((self.va + self.size, flags|envi.BR_FALL))
+        # If we can fall through, reflect that...
+        if not self.iflags & envi.IF_NOFALL:
+            ret.append((self.va + self.size, flags|envi.BR_FALL))
 
-        ## In intel, if we have no operands, it has no
-        ## further branches...
-        #if len(self.opers) == 0:
-            #return ret
+        # In intel, if we have no operands, it has no
+        # further branches...
+        if len(self.opers) == 0:
+            #print "getBranches: %r" % ([(hex(x), hex(y)) for x,y in ret])
+            return ret
 
-        ## Check for a call...
-        #if self.opcode == opcode86.INS_CALL:
-            #flags |= envi.BR_PROC
-            #addb = True
+        # Check for a call...
+        if self.iflags & envi.IF_CALL:
+            flags |= envi.BR_PROC
+            addb = True
 
-        ## A conditional call?  really?  what compiler did you use? ;)
-        #elif self.opcode == opcode86.INS_CALLCC:
-            #flags |= (envi.BR_PROC | envi.BR_COND)
-            #addb = True
+        elif self.iflags & envi.IF_BRANCH:
+            addb = True
 
-        #elif self.opcode == opcode86.INS_BRANCH:
-            #oper0 = self.opers[0]
-            #if isinstance(oper0, Mcs51SibOper) and oper0.scale == 4:
-                ## In the case with no emulator, note that our deref is
-                ## from the base of a table. If we have one, parse out all the
-                ## valid pointers from our base
-                #base = oper0._getOperBase(emu)
-                #if emu == None:
-                    #ret.append((base, flags | envi.BR_DEREF | envi.BR_TABLE))
+        if addb:
+            oper0 = self.opers[-1]
+            if oper0.isDeref():
+                flags |= envi.BR_DEREF
+                tova = oper0.getOperAddr(self, emu=emu)
+            else:
+                tova = oper0.getOperValue(self, emu=emu)
 
-                #else:
-                    ## Since we're parsing this out, lets just resolve the derefs
-                    ## for our caller...
-                    #dest = emu.readMemValue(base, oper0.tsize)
-                    #while emu.isValidPointer(dest):
-                        #ret.append((dest, envi.BR_COND))
-                        #base += oper0.tsize
-                        #dest = emu.readMemValue(base, oper0.tsize)
-            #else:
-                #addb = True
-
-        #if addb:
-            #oper0 = self.opers[0]
-            #if oper0.isDeref():
-                #flags |= envi.BR_DEREF
-                #tova = oper0.getOperAddr(self, emu=emu)
-            #else:
-                #tova = oper0.getOperValue(self, emu=emu)
-
-            ## FIXME check for SIB decodes and if we have an emulator,
             ## FIXME lets do switch case decoding here!
 
-            #ret.append((tova, flags))
+            ret.append((tova, flags))
 
-        #return ret
+        #print "getBranches: %r" % ([(hex(x), hex(y)) for x,y in ret])
+        return ret
 
     def render(self, mcanv):
         """
@@ -598,7 +535,7 @@ class Mcs51Disasm:
             elif opertype == optable.OP_IMMEDIATE:
                 osize = (operflags&optable.OPERANDFLAGMASK)>>optable.OPERANDFLAGLOC
                 loc = offset+operoffset
-                oper = Mcs51ImmOper(imm=struct.unpack(fmts[osize-1], bytes[loc:loc+osize])[0])
+                oper = Mcs51ImmOper(imm=struct.unpack(e_bits.be_fmt_chars[osize], bytes[loc:loc+osize])[0])
                 
             elif opertype == optable.OP_A:
                 osize = 0
@@ -651,7 +588,7 @@ class Mcs51Disasm:
             elif opertype == optable.OP_DIRECT:
                 osize = 1
                 loc = offset+operoffset
-                oper = Mcs51DirectOper(imm=struct.unpack(fmts[osize-1], bytes[loc:loc+osize])[0])
+                oper = Mcs51DirectOper(imm=struct.unpack(e_bits.be_fmt_chars[osize], bytes[loc:loc+osize])[0])
 
             elif opertype == optable.OP_REG_INDIRECT:
                 osize = 0
@@ -676,7 +613,7 @@ class Mcs51Disasm:
             elif opertype == optable.OP_comp_bit:
                 osize = 1
                 loc = offset+operoffset
-                bitnum = struct.unpack(fmts[osize-1], bytes[loc:loc+osize])[0]
+                bitnum = struct.unpack(e_bits.be_fmt_chars[osize], bytes[loc:loc+osize])[0]
                 base = bitnum >> 3
                 bit = bitnum & 7
                 oper = Mcs51BitOper(bit, base=base, comp=True)  # repr will need to split imm into upper 5 and lower 3 bits...  scale = 1 if "not" bit
@@ -697,20 +634,14 @@ class Mcs51Disasm:
             operoffset += osize
 
         # Make global note of instructions who
-        # do *not* fall through...
-        if optype in nofall_types:
-            iflags |= envi.IF_NOFALL
+        iflags = op_flags.get(optype, 0)
 
-        #if priv_lookup.get(mnem, False):
-            #iflags |= envi.IF_PRIV
-        #sp.dumpTree(operands)
-
-        ret = envi.Opcode(va, optype, mnem, prefixes, (offset-startoff)+opdesc[4], operands, iflags)
+        ret = Mcs51Opcode(va, optype, mnem, prefixes, (offset-startoff)+opdesc[4], operands, iflags)
 
         return ret
 
     def getEmulator(self):
-        return TeridianEmulator()
+        return Mcs51Emulator()
 
     def getRegisterCount(self):
         return len(reg_table)
@@ -727,27 +658,3 @@ class Mcs51Disasm:
     def getRegisterName(self, regidx):
         return reg_table[reg_table]
 
-    def getBranches(self, op, va, emu=None):
-        """
-        Return the discernable branches for the instruction.
-        (with the assumption that it is located at va).
-        If an optional emulator object is passed in, use the
-        emulator (getOperValue()) to attempt to detect the
-        target location for the branch in the emulation env.
-
-        NOTE: This does *not* return a "branch" to the next
-              instruction. Users should check IF_NOFALL.
-        """
-        ret = []
-
-        if op.opcode in branch_types:
-
-            if op.opers[-1].type == OPTYPE_IMM:
-                ret.append(va + op.size + op.opers[-1].imm)
-
-            elif emu != None:
-                # If we have an emulator, lets see if it can figgure
-                # it out...
-                ret.append(emu.getOperValue(op, -1))
-
-        return ret

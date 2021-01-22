@@ -20,6 +20,9 @@ from envi.archs.mcs51.regs import *
 
 import atlasutils.smartprint as sp
 
+general = ['r%d' % x for x in range(32)]
+general.append('eip')
+
 class Mcs51Module(envi.ArchitectureModule):
     def __init__(self):
         envi.ArchitectureModule.__init__(self, "mcs51")
@@ -31,6 +34,14 @@ class Mcs51Module(envi.ArchitectureModule):
 
     def archGetBreakInstr(self):
         return None
+
+    def archGetNopInstr(self):
+        return '\x00'
+
+    def archGetRegisterGroups(self):
+        groups = envi.ArchitectureModule.archGetRegisterGroups(self)
+        groups.append(('general', general))
+        return groups
 
     def getPointerSize(self):
         return 1
@@ -52,7 +63,7 @@ class Mcs51Module(envi.ArchitectureModule):
             else:
                 return "+ %d" % dabs
 
-    def makeOpcode(self, bytes, offset=0, va=0):
+    def archParseOpcode(self, bytes, offset=0, va=0):
         """
         Parse a sequence of bytes out into an envi.Opcode instance.
         """
