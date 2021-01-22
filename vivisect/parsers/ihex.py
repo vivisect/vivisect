@@ -1,6 +1,7 @@
 import envi
 import vstruct.defs.ihex as v_ihex
 import vivisect.parsers as v_parsers
+from vivisect.const import *
 
 
 archcalls = {
@@ -33,6 +34,12 @@ def parseFile(vw, filename, baseaddr=None):
     ihex = v_ihex.IHexFile()
     with open(filename, 'rb') as f:
         ihex.vsParse(f.read())
+
+    eva = ihex.getEntryPoint()
+    if eva is not None:
+        vw.addExport(eentry, EXP_FUNCTION, '__entry', fname)
+        logger.info('adding function from IHEX metadata: 0x%x (_entry)', eva)
+        vw.addEntryPoint(eva)
 
     for addr, perms, notused, bytes in ihex.getMemoryMaps():
         vw.addMemoryMap(addr, perms, fname, bytes)
