@@ -44,11 +44,11 @@ def parseFile(vw, filename, baseaddr=None):
         fname = vw.addFile(filename, 0, v_parsers.md5Bytes(sbytes))
         vw.setFileMeta(fname, 'sha256', v_parsers.sha256Bytes(sbytes))
 
-        srec.vsParse(f.read())
+        srec.vsParse(fbytes)
 
         eva = srec.getEntryPoint()
         if eva is not None:
-            vw.addExport(eentry, EXP_FUNCTION, '__entry', fname)
+            vw.addExport(eva, EXP_FUNCTION, '__entry', fname)
             logger.info('adding function from SREC metadata: 0x%x (_entry)', eva)
             vw.addEntryPoint(eva)
 
