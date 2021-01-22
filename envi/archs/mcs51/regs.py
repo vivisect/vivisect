@@ -274,3 +274,4 @@ class Mcs51RegisterContext(e_reg.RegisterContext):
         self.loadRegMetas(Mcs51meta)
         self.setRegisterIndexes(REG_PC, REG_SP)
 
+rctx = Mcs51RegisterContext()

@@ -89,22 +89,18 @@ OPER_DST = 0
 
 class i8051Emulator(Mcs51Module, Mcs51RegisterContext, envi.Emulator):
 
-    def __init__(self, segs=None, regarray=None):
+    def __init__(self, segs=None):
         self.segments = segs
         self.reg_table = reg_table
         # segments: flash-prog-mem, external-RAM, config-RAM, 8051-RAM
         # seglist syntax:  (base_va, size, offset_in_real_memory, name)
         # if not handed in, rega1rray is initialized to the standard init values for each register
-        envi.Emulator.__init__(self)
         Mcs51Module.__init__(self)
+        envi.Emulator.__init__(self, archmod=self)
         Mcs51RegisterContext.__init__(self)
-        if regarray == None:
-            regarray = []
-            for rname,rloc,rmask,rfmt,rsz,rinit,intW,intR in self.reg_table:
-                regarray.append(rinit)
                 
         self.setupInternalMemMaps()
-        self.initRegisters()
+        #self.initRegisters()
         self.fp_exceptions = []
         #self.addCallingConvention("stdcall", stdcall)
         #self.addCallingConvention("thiscall", thiscall)
@@ -120,10 +116,12 @@ class i8051Emulator(Mcs51Module, Mcs51RegisterContext, envi.Emulator):
                 sys.excepthook(*sys.exc_info())
 
     def initRegisters(self):
+        '''
+        Set registers to their reset state as defined by the spec
+        '''
         for num in xrange(len(self.reg_table)):
             rname, rloc, rmask, rfmt, rsz, rinit, intW,intR = self.reg_table[num]
             self.setRegister(num, rinit)
-
 
     def stepi(self):
         pc = self.getProgramCounter()
@@ -872,28 +870,17 @@ class i8051Emulator(Mcs51Module, Mcs51RegisterContext, envi.Emulator):
 
 class Mcs51Emulator(i8051Emulator):
     reg_table = reg_table
-    def __init__(self, regarray=None):
-        i8051Emulator.__init__(self, seglist_8051, regarray)
+    def __init__(self):
+        i8051Emulator.__init__(self, seglist_8051)
 
 class CC1110Emulator(i8051Emulator):
     reg_table = reg_table
-    def __init__(self, regarray=None):
-        i8051Emulator.__init__(self, seglist_1110, regarray)
+    def __init__(self):
+        i8051Emulator.__init__(self, seglist_1110)
 
 class CC2430Emulator(i8051Emulator):
     reg_table = reg_table
-    def __init__(self, regarray=None):
-        i8051Emulator.__init__(self, seglist_2430, regarray)
+    def __init__(self):
+        i8051Emulator.__init__(self, seglist_2430)
 
 
-"""
-import envi.archs.mcs51 as mcs51
-import envi.memory as e_m
-
-t_arch=mcs51.Mcs51Module()
-e=t_arch.getEmulator()
-m=e_m.MemoryObject()
-e.setMemoryObject(m)
-m.addMemoryMap(0x0000,0777,"memmap1", "\xff"*1024)
-
-"""
