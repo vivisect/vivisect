@@ -1,10 +1,15 @@
 '''
 Parser objects for the SRECORD file format.
 '''
+import logging
 import binascii
 
 import vstruct
 from vstruct.primitives import *
+
+
+logger = logging.getLogger(__name__)
+
 
 S0_HEADER = 0
 S1_DATA = 1
@@ -104,7 +109,7 @@ class SRecFile(vstruct.VArray):
         for fname, chunk in self:
 
             ctype = int( chunk.recordtype, 16 )
-            print fname, chunk.tree(), ctype
+            #print fname, chunk.tree(), ctype
 
             if ctype in (S1_DATA, S2_DATA, S3_DATA):
                 addr = chunk.getAddress()
@@ -118,7 +123,7 @@ class SRecFile(vstruct.VArray):
                 continue
 
             elif ctype == S0_HEADER:
-                print("HEADER: %r" % chunk.data)
+                logger.warning("HEADER: %r", chunk.data)
                 continue
 
             raise Exception('Unhandled SREC chunk: %s' % chunk.recordtype)
