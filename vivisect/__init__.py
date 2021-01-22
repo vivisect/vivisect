@@ -221,21 +221,21 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
         self._ext_ctxmenu_hooks.pop(handler)
 
-    def addExtension(self, extmod):
+    def addExtension(self, name, extmod):
         '''
         Add extension module to a list of extensions.
         This keeps a list of installed extension modules, with the added value
         of keeping the loaded module in memory.
         '''
         if extmod not in self._extensions:
-            self._extensions.append(extmod)
+            self._extensions[name] = extmod
 
-    def delExtension(self, extmod):
+    def delExtension(self, name):
         '''
         Remove's extension module from the list of extensions.
         '''
         if extmod in self._extensions:
-            self._extensions.remove(extmod)
+            self._extensions.pop(name)
 
     def getVivGuid(self):
         '''

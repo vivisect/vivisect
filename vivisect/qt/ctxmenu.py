@@ -218,7 +218,7 @@ def buildContextMenu(vw, va=None, expr=None, menu=None, parent=None, nav=None):
     e_q_memcanvas.initMemSendtoMenu(expr, menu)
 
     # give any extensions a chance to play
-    for exthook in vw._ext_ctxmenu_hooks:
+    for extname, exthook in vw._ext_ctxmenu_hooks.items():
         logger.info('exthook: %r', exthook)
         exthook(vw, va, expr, menu, parent, nav)
 

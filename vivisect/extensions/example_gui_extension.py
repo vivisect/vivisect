@@ -109,7 +109,7 @@ def vivExtension(vw, vwgui):
     vwgui.vqAddMenuField('&Example.&FooBar.&PrintDiscoveredStats', vw.printDiscoveredStats, ())
 
     # hook context menu
-    vw.addCtxMenuHook(ctxMenuHook)
+    vw.addCtxMenuHook('example', ctxMenuHook)
 
     # add HotKeyTargets and HotKeys
     tempmod = Crap(vw, vwgui)
