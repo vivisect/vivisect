@@ -25,6 +25,10 @@ defconfig = {
             'ihex':{
                 'arch':'',
             },
+            'srec':{
+                'arch':'',
+                'offset':0,
+            },
         },
         'analysis':{
             'pointertables':{
@@ -63,6 +67,10 @@ docconfig = {
             },
             'ihex':{
                 'arch':'What architecture is the ihex dump?',
+            },
+            'srec':{
+                'arch':'What architecture is the srec dump?',
+                'offset':'Skip over initial bytes in the file',
             },
         },
 

@@ -1,32 +1,48 @@
 '''
-Parser objects for the Intel Hex file format.
+Parser objects for the SRECORD file format.
 '''
 import binascii
 
 import vstruct
 from vstruct.primitives import *
 
-IHEX_REC_DATA           = 0
-IHEX_REC_EOF            = 1
-IHEX_REC_EXSEG          = 2 # Extended Segment Address Records
-IHEX_REC_STARTSEG       = 3 # The beginning code segment value
-IHEX_REC_EXLINADDR      = 4 # Extended Linear Address Records
-IHEX_REC_STARTLINADDR   = 5 # 32bit entry point
+S0_HEADER = 0
+S1_DATA = 1
+S2_DATA = 2
+S3_DATA = 3
+S4_RESERVED = 4
+S5_COUNT = 5
+S6_COUNT = 6
+S7_STARTADDR = 7
+S8_STARTADDR = 8
+S9_STARTADDR = 9
 
-class IHexChunk(vstruct.VStruct):
+
+class SRecChunk(vstruct.VStruct):
 
     def __init__(self):
         vstruct.VStruct.__init__(self)
         self.startcode      = v_str(1)
+        self.recordtype     = v_str(1)
         self.bytecount      = v_str(2)
         self.address        = v_str(4)
-        self.recordtype     = v_str(2)
         self.data           = v_str(0)
         self.csum           = v_str(2)
 
     def pcb_bytecount(self):
-        dsize = int(self.bytecount, 16)
+        dsize = int(self.bytecount, 16) 
+        dsize -= int(len(self.vsGetField('address')) // 2)
+        dsize -= 1  # csum
         self.vsGetField('data').vsSetLength( 2 * dsize )
+
+    def pcb_recordtype(self):
+        rtype = int(self.recordtype, 16)
+        if rtype in (S1_DATA, S9_STARTADDR):
+            self.vsGetField('address').vsSetLength(4)
+        elif rtype in (S2_DATA, S8_STARTADDR):
+            self.vsGetField('address').vsSetLength(6)
+        elif rtype in (S3_DATA, S7_STARTADDR):
+            self.vsGetField('address').vsSetLength(8)
 
     def getAddress(self):
         '''
@@ -40,7 +56,7 @@ class IHexChunk(vstruct.VStruct):
         '''
         return binascii.unhexlify(self.data)
 
-class IHexFile(vstruct.VArray):
+class SRecFile(vstruct.VArray):
 
     def vsParse(self, bytes, offset=0):
 
@@ -51,14 +67,14 @@ class IHexFile(vstruct.VArray):
             if not line:
                 continue
 
-            c = IHexChunk()
+            c = SRecChunk()
             c.vsParse( line )
             offset += len( c )
 
             self.vsAddElement( c )
 
-            if int(c.recordtype, 16) == IHEX_REC_EOF:
-                break
+            #if int(c.recordtype, 16) in (S7_STARTADDR, S8_STARTADDR, S9_STARTADDR):
+            #    break
 
         return offset
 
@@ -70,20 +86,8 @@ class IHexFile(vstruct.VArray):
         '''
         for fname, chunk in self:
             ctype = int( chunk.recordtype, 16 )
-            if ctype == IHEX_REC_STARTLINADDR:
-                return int( chunk.data, 16 )
-
-    def getStartSeg(self):
-        '''
-        If a CS:IP start address is defined for this file,
-        return it.  Returns None if not.
-        '''
-        for fname, chunk in self:
-            ctype = int( chunk.recordtype, 16 )
-            if ctype == IHEX_REC_STARTSEG:
-                startcs = int( chunk.data, 16 ) >> 16
-                startip = int( chunk.data, 16 ) & 0xffff
-                return startcs, startip
+            if ctype in (S7_STARTADDR, S8_STARTADDR, S9_STARTADDR):
+                return int( chunk.address, 16 )
 
     def getMemoryMaps(self):
         '''
@@ -95,33 +99,29 @@ class IHexFile(vstruct.VArray):
         import envi.memory as e_mem
 
         # Get all the binary parts....
-        baseaddr = 0
         memparts = []
 
         for fname, chunk in self:
 
             ctype = int( chunk.recordtype, 16 )
+            print fname, chunk.tree(), ctype
 
-            if ctype == IHEX_REC_DATA:
-                addr = chunk.getAddress() + baseaddr
+            if ctype in (S1_DATA, S2_DATA, S3_DATA):
+                addr = chunk.getAddress()
                 memparts.append( (addr, chunk.getData()) )
                 continue
 
-            if ctype == IHEX_REC_EXSEG:
-                baseaddr = int( chunk.data, 16 ) << 4
+            elif ctype in (S7_STARTADDR, S8_STARTADDR, S9_STARTADDR):
                 continue
 
-            if ctype == IHEX_REC_EXLINADDR:
-                baseaddr = int( chunk.data, 16 ) << 16
+            elif ctype in (S5_COUNT, S6_COUNT):
                 continue
 
-            if ctype == IHEX_REC_STARTSEG:
+            elif ctype == S0_HEADER:
+                print("HEADER: %r" % chunk.data)
                 continue
 
-            if ctype == IHEX_REC_EOF:
-                break
-
-            raise Exception('Unhandled IHEX chunk: %s' % chunk.recordtype)
+            raise Exception('Unhandled SREC chunk: %s' % chunk.recordtype)
 
         memparts.sort()
 
@@ -134,3 +134,4 @@ class IHexFile(vstruct.VArray):
                 maps.append( [ addr, e_mem.MM_RWX, '', bytes ] )
 
         return maps
+

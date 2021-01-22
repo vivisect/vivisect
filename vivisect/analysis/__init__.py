@@ -182,7 +182,23 @@ def addAnalysisModules(vw):
         vw.addFuncAnalysisModule("vivisect.analysis.generic.impapi")
         vw.addFuncAnalysisModule("vivisect.analysis.generic.thunks")
 
-    elif fmt == 'ihex': # BLOB ######################################################
+    elif fmt == 'ihex': # Intel HEX ################################################
+
+        vw.addAnalysisModule("vivisect.analysis.generic.entrypoints")
+        vw.addAnalysisModule("vivisect.analysis.generic.funcentries")
+        vw.addAnalysisModule("vivisect.analysis.generic.relocations")
+        #vw.addAnalysisModule("vivisect.analysis.generic.pointertables")
+        vw.addAnalysisModule("vivisect.analysis.generic.emucode")
+
+        if arch in ARM_ARCHS:
+            vw.addFuncAnalysisModule("vivisect.analysis.arm.emulation")
+            vw.addFuncAnalysisModule('vivisect.analysis.arm.renaming')
+
+        vw.addFuncAnalysisModule("vivisect.analysis.generic.codeblocks")
+        vw.addFuncAnalysisModule("vivisect.analysis.generic.impapi")
+        vw.addFuncAnalysisModule("vivisect.analysis.generic.thunks")
+
+    elif fmt == 'srec': # SRECORD ###################################################
 
         vw.addAnalysisModule("vivisect.analysis.generic.entrypoints")
         vw.addAnalysisModule("vivisect.analysis.generic.funcentries")
