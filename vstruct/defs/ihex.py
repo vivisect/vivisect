@@ -1,4 +1,3 @@
-
 '''
 Parser objects for the Intel Hex file format.
 '''

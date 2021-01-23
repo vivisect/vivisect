@@ -12,8 +12,6 @@ from envi.archs.mcs51.disasm import *
 from envi.archs.mcs51.regs import *
 from envi.archs.mcs51 import *
 
-import atlasutils.smartprint as sp
-
 """
 32k internal program memory bank 0x0000-0x7fff ("bank 0") - always available so never needs to be switched into a bank
 FL_BANK (SFR 0xb6) controls which external bank is available as 0x8000-0xffff

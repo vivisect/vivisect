@@ -1,24 +1,21 @@
-
-import envi
-import envi.bits as e_bits
-import copy
-import struct
-
 """
-Use the "universalized" envi opcodes with libdisassemble
-and a Teridian 80515 emulator.
-
+i8051 Architecture:
 
 Big-Endian
 8-bit
 Harvard Architecture
 5 memory spaces: FLASH, IRAM, XRAM, SFR, Config
 """
+
+import copy
+import struct
+
+import envi
+import envi.bits as e_bits
 import opcode8051 as optable
 from envi.archs.mcs51.disasm import *
 from envi.archs.mcs51.regs import *
 
-import atlasutils.smartprint as sp
 
 general = ['r%d' % x for x in range(32)]
 general.append('eip')
