@@ -128,6 +128,7 @@ ls_data = {
     ],
 
     'names' : [
+        (0x620000, 'ls.bss_temp'),
         (0x401fd0, u'ls._init'),
         (0x401ff0, 'ls.LazyLoaderTrampoline'),
         (0x402000, u'ls.plt___ctype_toupper_loc'),

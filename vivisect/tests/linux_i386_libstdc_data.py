@@ -7461,6 +7461,7 @@ libstdc_data = {
     ],
 
     'names' : [
+        (0x2190000, 'libstdc___so_6_0.bss_temp'),
         (0x2000536, u'libstdc___so_6_0.ptr_std::basic_istream<wchar_t, std::char_traits<wchar_t> >::ignore(int, unsigned int)_02000536'),
         (0x2000b64, u'libstdc___so_6_0.ptr_std::codecvt<wchar_t, char, __mbstate_t>::~codecvt()_0_02000b64'),
         (0x206ae80, 'libstdc___so_6_0.init_function'),

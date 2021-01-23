@@ -7452,6 +7452,7 @@ libstdc_data = {
     ],
 
     'names' : [
+        (0x2390000, 'libstdc___so_6_0.bss_temp'),
         (0x2088480, 'libstdc___so_6_0.init_function'),
         (0x20884a0, 'libstdc___so_6_0.LazyLoaderTrampoline'),
         (0x20884b0, u'libstdc___so_6_0.plt___cxa_allocate_dependent_exception'),
