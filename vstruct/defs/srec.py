@@ -78,9 +78,6 @@ class SRecFile(vstruct.VArray):
 
             self.vsAddElement( c )
 
-            #if int(c.recordtype, 16) in (S7_STARTADDR, S8_STARTADDR, S9_STARTADDR):
-            #    break
-
         return offset
 
     def getEntryPoint(self):
