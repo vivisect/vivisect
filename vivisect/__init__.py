@@ -210,16 +210,19 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
         Currently, this should live in a loaded module, not in your Viv Extension's main py file.
         '''
+        if name in self._ext_ctxmenu_hooks:
+            cur = self._ext_ctxmenu_hooks[name]
+            logger.warning("Attempting to hook the context menu: %r is already registered \
+                    (cur: %r new: %r)", name, cur, handler)
+            return
+
         self._ext_ctxmenu_hooks[name] = handler
 
     def delCtxMenuHook(self, name):
         '''
         Remove a context-menu hook that has been installed by an extension
         '''
-        if name not in self._ext_ctxmenu_hooks:
-            return
-
-        self._ext_ctxmenu_hooks.pop(handler)
+        self._ext_ctxmenu_hooks.pop(name, None)
 
     def addExtension(self, name, extmod):
         '''
@@ -227,15 +230,19 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         This keeps a list of installed extension modules, with the added value
         of keeping the loaded module in memory.
         '''
-        if extmod not in self._extensions:
-            self._extensions[name] = extmod
+        if name in self._extensions:
+            cur = self._extensions[name]
+            logger.warning("Attempting to register an extension: %r is already registered \
+                    (cur: %r new: %r)", name, cur, handler)
+            return
+
+        self._extensions[name] = extmod
 
     def delExtension(self, name):
         '''
         Remove's extension module from the list of extensions.
         '''
-        if extmod in self._extensions:
-            self._extensions.pop(name)
+        self._extensions.pop(name, None)
 
     def getVivGuid(self):
         '''

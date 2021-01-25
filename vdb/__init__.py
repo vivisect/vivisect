@@ -257,10 +257,7 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
         '''
         Remove a context-menu hook that has been installed by an extension
         '''
-        if name not in self._ext_ctxmenu_hooks:
-            return
-
-        self._ext_ctxmenu_hooks.pop(handler)
+        self._ext_ctxmenu_hooks.pop(name, None)
 
     def addExtension(self, name, extmod):
         '''
@@ -268,15 +265,13 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
         This keeps a list of installed extension modules, with the added value
         of keeping the loaded module in memory.
         '''
-        if extmod not in self._extensions:
-            self._extensions[name] = extmod
+        self._extensions[name] = extmod
 
     def delExtension(self, name):
         '''
         Remove's extension module from the list of extensions.
         '''
-        if extmod in self._extensions:
-            self._extensions.pop(name)
+        self._extensions.pop(name, None)
 
     def addRunCacheCtor(self, name, ctor):
         '''
