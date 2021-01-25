@@ -36,7 +36,7 @@ def main():
                         help='Do *not* start the gui, just load, analyze and save')
     parser.add_argument('-C', '--cprofile', dest='cprof', default=False, action='store_true',
                         help='Output vivisect performace profiling (cProfile) info')
-    parser.add_argument('-E', '--entrypoint', dest='addEntryPoints', default=[], action='append',
+    parser.add_argument('-E', '--entrypoint', dest='entrypoints', default=[], action='append',
                         help='Add Entry Point for bulk analysis (can have multiple "-E <addr>" args')
     parser.add_argument('-O', '--option', dest='option', default=None, action='append',
                         help='<secname>.<optname>=<optval> (optval must be json syntax)')
@@ -106,12 +106,12 @@ def main():
             logger.info('Loaded (%.4f sec) %s', (end - start), fname)
 
     if args.bulk:
-        for entryva in args.addEntryPoints:
+        for entryva in args.entrypoints:
             try:
                 vw.vprint("Adding Entry Point: %s: " % entryva)
                 eva = int(entryva, 0)
                 vw.setVaSetRow('EntryPoints', (eva,))
-            except Exception, e:
+            except Exception as e:
                 vw.vprint("Failure: %r" % e)
 
         if args.doanalyze:
