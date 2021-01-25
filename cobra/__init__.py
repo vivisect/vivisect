@@ -9,10 +9,8 @@ and get/set attributes on objects that exist on a remote system.
 """
 # Copyright (C) 2011 Invisigoth - See LICENSE file for details
 import os
-import sys
 import json
 import time
-import errno
 import types
 import Queue
 import socket
@@ -20,7 +18,6 @@ import struct
 import logging
 import urllib2
 import traceback
-import cPickle as pickle
 
 from threading import currentThread,Thread,RLock,Timer,Lock,Event
 from SocketServer import ThreadingTCPServer, BaseRequestHandler
