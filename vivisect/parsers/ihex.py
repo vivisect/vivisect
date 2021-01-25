@@ -46,13 +46,13 @@ def parseFile(vw, filename, baseaddr=None):
 
         ihex.vsParse(sbytes)
 
-        eva = srec.getEntryPoint()
+        eva = ihex.getEntryPoint()
         if eva is not None:
             vw.addExport(eva, EXP_FUNCTION, '__entry', fname)
             logger.info('adding function from IHEX metadata: 0x%x (_entry)', eva)
             vw.addEntryPoint(eva)
 
-        sseg = srec.getStartSeg()
+        sseg = ihex.getStartSeg()
         if sseg is not None:
             ecs, eva = sseg
             vw.addExport(eva, EXP_FUNCTION, '__entry', fname)
