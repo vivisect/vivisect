@@ -1,6 +1,7 @@
 import envi
 import vstruct.defs.ihex as v_ihex
 import vivisect.parsers as v_parsers
+from vivisect.const import *
 
 import logging
 logger = logging.getLogger(__name__)

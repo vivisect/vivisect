@@ -5,7 +5,6 @@ import Elf
 import envi
 import vivisect.cli as viv_cli
 import vivisect.tests.helpers as helpers
-from vivisect.const import *
 
 logger = logging.getLogger(__name__)
 
