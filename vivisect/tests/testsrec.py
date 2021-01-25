@@ -5,11 +5,10 @@ import Elf
 import envi
 import vivisect.cli as viv_cli
 import vivisect.tests.helpers as helpers
-from vivisect.const import *
 
 logger = logging.getLogger(__name__)
 
-path = ('raw', 'msp430', 'blink.hex')
+path = ('raw', 'msp430', 'blink.srec')
 
 
 class IHexTests(unittest.TestCase):
@@ -17,7 +16,7 @@ class IHexTests(unittest.TestCase):
     def test_ihex(self):
         fn = helpers.getTestPath(*path)
         vw = viv_cli.VivCli()
-        vw.config.viv.parsers.ihex.arch = 'msp430'
+        vw.config.viv.parsers.srec.arch = 'msp430'
         vw.loadFromFile(fn)
 
         vw.makeFunction(0x4000)
