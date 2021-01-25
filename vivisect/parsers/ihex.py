@@ -2,6 +2,9 @@ import envi
 import vstruct.defs.ihex as v_ihex
 import vivisect.parsers as v_parsers
 
+import logging
+logger = logging.getLogger(__name__)
+
 
 archcalls = {
     'i386': 'cdecl',
@@ -26,17 +29,39 @@ def parseFile(vw, filename, baseaddr=None):
 
     vw.setMeta('DefaultCall', archcalls.get(arch, 'unknown'))
 
-    # might we make use of baseaddr, even though it's an IHEX?  for now, no.
-    fname = vw.addFile(filename, 0, v_parsers.md5File(filename))
-    vw.setFileMeta(fname, 'sha256', v_parsers.sha256File(filename))
+    offset = vw.config.viv.parsers.ihex.offset
+    if not offset:
+        offset = 0
+    vw.config.viv.parsers.ihex.offset = 0
 
+    # might we make use of baseaddr, even though it's an IHEX?  for now, no.
     ihex = v_ihex.IHexFile()
     with open(filename, 'rb') as f:
-        ihex.vsParse(f.read())
+        shdr = f.read(offset)
+        sbytes = f.read()
+        logger.debug('skipping %d bytes: %r', offset, repr(shdr)[:300])
 
-    for addr, perms, notused, bytes in ihex.getMemoryMaps():
-        vw.addMemoryMap(addr, perms, fname, bytes)
-        vw.addSegment(addr, len(bytes), '%.8x' % addr, fname)
+        fname = vw.addFile(filename, 0, v_parsers.md5Bytes(sbytes))
+        vw.setFileMeta(fname, 'sha256', v_parsers.sha256Bytes(sbytes))
+
+        ihex.vsParse(sbytes)
+
+        eva = srec.getEntryPoint()
+        if eva is not None:
+            vw.addExport(eva, EXP_FUNCTION, '__entry', fname)
+            logger.info('adding function from IHEX metadata: 0x%x (_entry)', eva)
+            vw.addEntryPoint(eva)
+
+        sseg = srec.getStartSeg()
+        if sseg is not None:
+            ecs, eva = sseg
+            vw.addExport(eva, EXP_FUNCTION, '__entry', fname)
+            logger.info('adding function from IHEX metadata: 0x%x (_entry)', eva)
+            vw.addEntryPoint(eva)
+
+        for addr, perms, notused, bytes in ihex.getMemoryMaps():
+            vw.addMemoryMap(addr, perms, fname, bytes)
+            vw.addSegment(addr, len(bytes), '%.8x' % addr, fname)
 
 
 def parseMemory(vw, memobj, baseaddr):

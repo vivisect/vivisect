@@ -24,6 +24,7 @@ defconfig = {
             },
             'ihex':{
                 'arch':'',
+                'offset':0,
             },
             'srec':{
                 'arch':'',

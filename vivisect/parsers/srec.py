@@ -37,14 +37,14 @@ def parseFile(vw, filename, baseaddr=None):
 
     srec = v_srec.SRecFile()
     with open(filename, 'rb') as f:
-        fbytes = f.read()[offset:]
-        shdr = fbytes[:offset]
-        sbytes = fbytes[offset:]
+        shdr = f.read(offset)
+        sbytes = f.read()
+        logger.debug('skipping %d bytes: %r', offset, repr(shdr)[:300])
 
         fname = vw.addFile(filename, 0, v_parsers.md5Bytes(sbytes))
         vw.setFileMeta(fname, 'sha256', v_parsers.sha256Bytes(sbytes))
 
-        srec.vsParse(fbytes)
+        srec.vsParse(sbytes)
 
         eva = srec.getEntryPoint()
         if eva is not None:
