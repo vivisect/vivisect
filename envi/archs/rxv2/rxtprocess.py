@@ -27,7 +27,7 @@ def process(fbytes):
         elif firstbyte in ['0', '1']:
             # it's a definition line
             lparts = fline.split(' ')
-            print lparts
+            #print lparts
             
             mask = 0
             endval = 0
@@ -38,7 +38,7 @@ def process(fbytes):
             while lidx < len(lparts):
                 size = 1
                 item = lparts[lidx]
-                print "(%d) item: %r" % (bidx, item)
+                #print "(%d) item: %r" % (bidx, item)
 
                 if item in ('0', '1'):
                     # handle static bits
@@ -47,7 +47,7 @@ def process(fbytes):
                     mask |= 1
                     endval <<= 1
                     endval |= bit
-                    print "%x:%x" % (mask, endval)
+                    #print "%x:%x" % (mask, endval)
 
                 else:
                     # named things
@@ -56,7 +56,7 @@ def process(fbytes):
                         name, bits = item.replace(']','').split('[')
                         bitrange = bits.split(':')
 
-                        print bitrange
+                        #print bitrange
                         if len(bitrange) > 1:
                             bithi, bitlo = [int(x) for x in bitrange] # of that field
                             size += bithi - bitlo
@@ -87,7 +87,7 @@ def process(fbytes):
                         names[name] = cur
 
                     cur[bidx] = valadd
-                    print cur
+                    #print cur
 
                     #### finish stuff here
                 lidx += 1
