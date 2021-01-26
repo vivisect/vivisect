@@ -65,11 +65,17 @@ def process(fbytes):
                             # let's store optimized for a "shift/mask" approach
                             # or maybe for now, let's just store the data closer to the docs... fix up later
                         else:
-                            valadd = (name, int(bitrange[0]))
+                            valadd = (int(bitrange[0]))
+
+                    elif ':' in item:
+                        # no [] but :
+                        name, bits = item.split(':')
+                        size = int(bits)
+                        valadd = (size-1, 0)
 
                     else:
                         name = item
-                        valadd = (name, 0)
+                        valadd = (0, 0)
 
                     mask <<= size
                     endval <<= size
@@ -87,9 +93,9 @@ def process(fbytes):
                 lidx += 1
                 bidx += size
 
-            ldata = (fline, mask, endval, curmnem, names)
+            ldata = (fline, mask, endval, curmnem, names, bidx)
             out.append(ldata)
             print ldata
-            raw_input()
+            #raw_input()
     return out
 
