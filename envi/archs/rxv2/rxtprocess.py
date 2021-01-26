@@ -65,10 +65,11 @@ def process(fbytes):
                             # let's store optimized for a "shift/mask" approach
                             # or maybe for now, let's just store the data closer to the docs... fix up later
                         else:
-                            valadd = (int(bitrange[0]))
+                            valadd = (int(bitrange[0]), int(bitrange[0]))
 
                     elif ':' in item:
-                        # no [] but :
+                        # no [] but : - we're talking about pcdsp:8 style
+                        #print "looking for maxbit: ", item
                         name, bits = item.split(':')
                         size = int(bits)
                         valadd = (size-1, 0)
@@ -118,6 +119,66 @@ def orderByByte1(data):
             if x & tmask == tval:
                 byte1[x].append(ld)
     return byte1
+
+def genTables(data):
+    byte1 = orderByByte1(data)
+
+    tblctr = 0
+    tables = {}
+
+    tblmain = [None for x in range(256)]
+    tables['tblmain'] = tblmain
+
+    for idx in range(256):
+        # nexttbl, handler, mask, endval, mnems, opers, sz
+        # opers should be a tuple of (type, shift, mask)'s
+        if len(byte1[idx]) == 1:
+            # this deserves it's own entry
+            orig, mask, endval, mnem, opers, sz = byte1[idx][0]
+            operands = convertOpers(opers, sz)
+            if mnem == 'bra':
+                print "hinky: bra   %r  %r" % (opers, operands)
+                #print byte1[idx][0]
+
+            # fix dsp to be easily determined whether it's src or dst
+
+            tblmain[idx] = "(None, None, 0x%x, 0x%x, %r, %r, %r)" % (mask, endval, mnem, operands, sz)
+
+        elif not len(byte1[idx]):
+            continue
+
+        else:
+
+            subtbl = []
+            tblctr += 1
+            tblname = 'tbl_%x' % idx
+            tables[tblname] = subtbl
+
+            for orig, mask, endval, mnem, opers, sz in byte1[idx]:
+                operands = convertOpers(opers, sz)
+                subtbl.append("(None, None, 0x%x, 0x%x, %r, %r, %r)" % (mask, endval, mnem, operands, sz))
+
+            tblmain[idx] = "(%s, None, 0, 1, None, None, None)" % (tblname)
+
+
+    return tables
+
+def convertOpers(opers, opsz):
+    operands = {}
+    for nm, bdict in opers.items():
+        nparts = []
+        for pstart, (bstart, bend) in bdict.items():
+            psz = 1 + bstart - bend
+            pshift = opsz - pstart - psz
+            pmask = (1 << psz) - 1
+            pmask <<= bend  # shift the mask if this is an upper part
+            nparts.append((pshift, pmask))
+
+        operands[nm] = nparts
+
+    return operands
+
+
 
 '''
 import rxtprocess;reload(rxtprocess) ; data = rxtprocess.process(open('rxtbls.raw').read()); [x for x in data if x[-1] % 8]

@@ -57,8 +57,8 @@ bno
 0 0 1 0 1 1 0 1 pcdsp:8 
 bpz 
 0 0 1 0 0 1 1 0 pcdsp:8 
-bra.b
-0 0 1 0 1 1 1 0 pcdsp:8 
+#bra.b
+#0 0 1 0 1 1 1 0 pcdsp:8 
 bn 
 0 0 1 0 0 1 1 1 pcdsp:8 
 
@@ -205,7 +205,7 @@ mov
 1 0 sz[1:0] 0 dsp[4:1] rd[2:0] dsp[0] rs[2:0]   # jacked up dsp
 1 0 sz[1:0] 1 dsp[4:1] rs[2:0] dsp[0] rd[2:0]   # jacked up dsp
 0 1 1 0 0 1 1 0 imm[3:0] rd[3:0]
-0 0 1 1 1 1 sz[1:0] dsp[4] rd[2:0] ds[3:0] #IMM:8        # #UIMM:8 as well?
+0 0 1 1 1 1 sz[1:0] dsp[4] rd[2:0] dsp[3:0] #IMM:8        # #UIMM:8 as well?
 0 1 1 1 0 1 0 1 0 1 0 0 rd[3:0] #UIMM:8
 
 1 1 1 1 1 0 1 1 rd[3:0] li[1:0] 1 0 #SIMM:8 #SIMM:16 #SIMM:24 #IMM:32       # this is the next 4 lines
