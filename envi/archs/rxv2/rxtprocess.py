@@ -1,3 +1,36 @@
+branches = [
+        'jmp',
+        'bra',
+        ]
+
+brconds = [
+        'bz', 
+        'bge',
+        'bnz', 
+        'blt',
+        'bgeu',
+        'bgt',
+        'bltu', 
+        'ble',
+        'bgtu', 
+        'bo',
+        'bleu', 
+        'bno',
+        'bpz', 
+        'bn', 
+        ]
+
+calls = [
+        'bsr',
+        'jsr',
+        ]
+
+rets = [
+        'rte',
+        'rtfi',
+        'rts',
+        'rtsd',
+        ]
 
 def process(fbytes):
     flines = fbytes.split('\n')
@@ -136,13 +169,13 @@ def genTables(data):
             # this deserves it's own entry
             orig, mask, endval, mnem, opers, sz = byte1[idx][0]
             operands = convertOpers(opers, sz)
-            if mnem == 'bra':
-                print "hinky: bra   %r  %r" % (opers, operands)
-                #print byte1[idx][0]
+            iflagstr = getIflags(mnem)
 
             # fix dsp to be easily determined whether it's src or dst
 
-            tblmain[idx] = "(None, None, 0x%x, 0x%x, %r, %r, %r)" % (mask, endval, mnem, operands, sz)
+            # if we have any items in the first byte, stomp them out
+
+            tblmain[idx] = "(None, None, 0x%x, 0x%x, INS_%s, %r, %r, %r, %s)" % (mask, endval, mnem.upper(),mnem, operands, sz//8, iflagstr)
 
         elif not len(byte1[idx]):
             continue
@@ -153,15 +186,30 @@ def genTables(data):
             tblctr += 1
             tblname = 'tbl_%x' % idx
             tables[tblname] = subtbl
+            iflagstr = getIflags(mnem)
 
             for orig, mask, endval, mnem, opers, sz in byte1[idx]:
                 operands = convertOpers(opers, sz)
-                subtbl.append("(None, None, 0x%x, 0x%x, %r, %r, %r)" % (mask, endval, mnem, operands, sz))
+                subtbl.append("(None, None, 0x%x, 0x%x, INS_%s, %r, %r, %r, %s)" % (mask, endval, mnem.upper(), mnem, operands, sz//8, iflagstr))
 
-            tblmain[idx] = "(%s, None, 0, 1, None, None, None)" % (tblname)
+            tblmain[idx] = "(%s, None, 0, 1, None, None, None, None, IF_NONE)" % (tblname)
 
 
     return tables
+def getIflags(mnem):
+    if mnem in branches:
+        return 'IF_BRANCH | IF_NOFALL'
+    
+    elif mnem in brconds:
+        return 'IF_BRANCH | IF_COND'
+    
+    elif mnem in calls:
+        return 'IF_CALL'
+
+    elif mnem in rets:
+        return 'IF_RET | IF_NOFALL'
+
+    return 'IF_NONE'
 
 def convertOpers(opers, opsz):
     operands = {}
@@ -177,6 +225,54 @@ def convertOpers(opers, opsz):
         operands[nm] = nparts
 
     return operands
+
+
+def reprTables(tables):
+    out = []
+
+    for tkidx in range(256):
+        tkey = 'tbl_%x' % tkidx
+        tvals = tables.get(tkey)
+        if tvals is None:
+            continue
+        _ptAppendTdata(tkey, tvals, out)
+
+    # add the tblmain at the end
+    tkey = 'tblmain'
+    tvals = tables.get(tkey)
+    _ptAppendTdata(tkey, tvals, out)
+
+    return '\n'.join(out)
+
+def _ptAppendTdata(tkey, tvals, out):
+        tout = ['    %s,' % vline for vline in tvals]
+        out.append('%s = (\\' % tkey)
+        out.extend(tout)
+        out.append(')\n\n')
+
+
+def createRxTablesModule():
+    out = []
+    out.append('''
+from envi import *
+
+IF_NONE = 0
+SZ = [
+    IF_BYTE,
+    IF_WORD,
+    IF_LONG,
+    IF_UWORD,
+    ]
+
+''')
+    data = process(open('rxtbls.raw').read()); [x for x in data if x[-1] % 8]
+    tables = genTables(data)
+    out.append(reprTables(tables))
+
+    open('rxtables.py','w').write('\n'.join(out))
+
+
+
 
 
 
