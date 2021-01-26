@@ -275,3 +275,11 @@ class PETests(unittest.TestCase):
         e = set(emufuncs.keys())
         f = set(funcs)
         self.assertTrue(f.intersection(e) == f)
+
+    def test_hiaddr_imports(self):
+        # Test if imports located at a high relative address are discovered.
+        file_path = helpers.getTestPath('windows', 'i386', 'section_has_hi_virtualaddr.exe')
+        pe = PE.peFromFileName(file_path)
+        import_list = pe.getImports()
+        self.assertEquals(len(import_list), 36, "expecting 36 imported functions")
+        self.assertEquals(import_list[0][1], "advapi32.dll", "imported function with name 'advapi32.dll' not found")
