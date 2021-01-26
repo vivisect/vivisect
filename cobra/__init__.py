@@ -18,6 +18,7 @@ import struct
 import logging
 import urllib2
 import traceback
+import cPickle as pickle
 
 from threading import currentThread,Thread,RLock,Timer,Lock,Event
 from SocketServer import ThreadingTCPServer, BaseRequestHandler
