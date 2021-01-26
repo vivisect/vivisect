@@ -99,3 +99,28 @@ def process(fbytes):
             #raw_input()
     return out
 
+
+def getHist(data):
+    hist = {}
+    for x in data:                     
+        sig = x[4]                       
+        hist[repr(sig)] = hist.get(repr(sig), 0) + 1
+
+    return hist
+
+def orderByByte1(data):
+    byte1 = [[] for x in range(256)]
+    for ld in data:
+        a,mask,endval,mnem,fields,sz = ld
+        tmask = mask >> (sz-8)
+        tval = endval >> (sz-8)
+        for x in range(256):
+            if x & tmask == tval:
+                byte1[x].append(ld)
+    return byte1
+
+'''
+import rxtprocess;reload(rxtprocess) ; data = rxtprocess.process(open('rxtbls.raw').read()); [x for x in data if x[-1] % 8]
+'''
+
+
