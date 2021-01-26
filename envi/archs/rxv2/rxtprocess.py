@@ -212,7 +212,7 @@ def getIflags(mnem):
     return 'IF_NONE'
 
 def convertOpers(opers, opsz):
-    operands = {}
+    operands = []
     for nm, bdict in opers.items():
         nparts = []
         for pstart, (bstart, bend) in bdict.items():
@@ -222,7 +222,7 @@ def convertOpers(opers, opsz):
             pmask <<= bend  # shift the mask if this is an upper part
             nparts.append((pshift, pmask))
 
-        operands[nm] = nparts
+        operands.append((nm, tuple(nparts)))
 
     return operands
 
