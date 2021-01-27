@@ -36,6 +36,7 @@ def process(fbytes):
     flines = fbytes.split('\n')
 
     out = []
+    mnems = []
     curmnem = None
     for fline in flines:
         fline = fline.strip()
@@ -55,6 +56,8 @@ def process(fbytes):
         if 'a' <= firstbyte <= 'z':
             # it's a mnemonic
             curmnem = fline
+            if curmnem not in mnems:
+                mnems.append(curmnem)
             continue
 
         elif firstbyte in ['0', '1']:
@@ -131,7 +134,7 @@ def process(fbytes):
             out.append(ldata)
             print ldata
             #raw_input()
-    return out
+    return out, mnems
 
 
 def getHist(data):
@@ -188,7 +191,12 @@ def genTables(data):
             tables[tblname] = subtbl
             iflagstr = getIflags(mnem)
 
-            for orig, mask, endval, mnem, opers, sz in byte1[idx]:
+            openclist = byte1[idx]
+
+            # sort from smallest to largest encoding! VERY IMPORTANT
+            openclist.sort(cmp=lambda x,y: [-1,1][x[5]>y[5]])
+
+            for orig, mask, endval, mnem, opers, sz in openclist:
                 operands = convertOpers(opers, sz)
                 subtbl.append("(None, None, 0x%x, 0x%x, INS_%s, %r, %r, %r, %s)" % (mask, endval, mnem.upper(), mnem, operands, sz//8, iflagstr))
 
@@ -251,12 +259,17 @@ def _ptAppendTdata(tkey, tvals, out):
         out.append(')\n\n')
 
 
-def createRxTablesModule():
+def reprConsts(mnems):
     out = []
     out.append('''
-from envi import *
 
 IF_NONE = 0
+
+IF_BYTE = 1<<8
+IF_WORD = 1<<9
+IF_LONG = 1<<10
+IF_UWORD = 1<<11
+
 SZ = [
     IF_BYTE,
     IF_WORD,
@@ -265,8 +278,24 @@ SZ = [
     ]
 
 ''')
-    data = process(open('rxtbls.raw').read()); [x for x in data if x[-1] % 8]
+
+    out.append('mnems = (')
+    out.append('\n'.join(["    '%s'," % ins for ins in mnems]))
+    out.append(')\n\n')
+    out.append('instrs = {}')
+    out.append('for mnem in mnems:')
+    out.append('    instrs["INS_%s" % mnem.upper()] = len(instrs)')
+    out.append('\nglobals().update(instrs)')
+    out.append('\n\n')
+    return '\n'.join(out)
+
+def createRxTablesModule():
+    data, mnems = process(open('rxtbls.raw').read()); [x for x in data if x[-1] % 8]
     tables = genTables(data)
+
+    out = []
+    out.append('from const import *')
+    out.append(reprConsts(mnems))
     out.append(reprTables(tables))
 
     open('rxtables.py','w').write('\n'.join(out))

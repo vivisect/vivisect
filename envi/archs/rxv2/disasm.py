@@ -3,6 +3,7 @@ import copy
 import struct
 
 import envi
+import envi.exc as e_exc
 import envi.bits as e_bits
 import envi.memory as e_mem
 
@@ -152,37 +153,72 @@ class RxRegDirectOper(envi.RegisterOper):
 
 class RxDisasm:
     def __init__(self):
-        self._dis_regctx = RxRegisterContext()
+        self._dis_regctx = RXv2RegisterContext()
         self._dis_oparch = envi.ARCH_MSP430
 
     def disasm(self, bytez, offset=0, va=0):
         curtable = e_rxtbls.tblmain
 
         # bite off the first byte
-        bval = struct.unpack_from('B', bytez, offset)
+        bval, = struct.unpack_from('B', bytez, offset)
         val = bval
         opsize = 1
 
-        while True:
-            nextbl, handler, mask, endval, opcode, mnem, opers, sz, iflags = curtable[bval]
-            if nextbl is not None:
-                # skip to the next table
-                curtable = nextbl
-                # grab the next byte
-                bval = struct.unpack_from('B', bytez, offset+opsize)
-                # update the running value we'll use to parse
-                val <<= 8
-                val |= bval
-                # update the opsize
-                opsize += 1
-                continue
+        print "val: 0x%x  bval: 0x%x" % (val, bval)
+        nextbl, handler, mask, endval, opcode, mnem, opers, sz, iflags = curtable[bval]
+        found = True
+        
+        print "  tabline: %r" % (repr(curtable[bval]))
+        if nextbl is not None:
+            found = False
+            # skip to the next table
+            curtable = nextbl
 
-            if handler is not None:
-                # if we have a handler, just let it do everything
-                hndlFunc = HANDLERS[handler]
-                hndlFunc(val, curtable[bval])
+            # search through the list looking for the right one...
+            for nextbl, handler, mask, endval, opcode, mnem, opers, sz, iflags in curtable:
+                ### IMPORTANT: the lists MUST BE in order from smallest to largest encoding!
+                while sz > opsize:
+                    # grab the next byte
+                    bval, = struct.unpack_from('B', bytez, offset+opsize)
+                    # update the running value we'll use to parse
+                    val <<= 8
+                    val |= bval
+                    # update the opsize
+                    opsize += 1
 
-            else:
+                # find a match:
+                if val & mask != endval:
+                    continue
+
+                found = True
+
+        if not found:
+            raise e_exc.InvalidInstruction(bytez[offset:offset+opsize], "Couldn't find a opcode match in the table")
+
+        # we've found a match, parse it!
+        print "PARSE MATCH FOUND: val: %x\n\t%x %x %x %r %r  %r  %x" % (val, mask, endval, opcode, mnem, opers, sz, iflags)
+
+
+        
+
+        if handler is not None:
+            # if we have a handler, just let it do everything
+            hndlFunc = HANDLERS[handler]
+            hndlFunc(val, curtable[bval])
+
+        else:
+            # let's parse out the things
+            fields = {}
+            for fkey, fparts in opers:
+                fdata = 0
+                for shval, fmask in fparts:
+                    fdata |= ((val >> shval) & fmask)
+                fields[fkey] = fdata
+
+            # now we have the field data parsed out... now what?
+            import envi.interactive as ei; ei.dbg_interact(locals(), globals())
+
+
 
 
 
@@ -212,4 +248,3 @@ class RxDisasm:
         return array
 
 
-rctx = RxRegisterContext()

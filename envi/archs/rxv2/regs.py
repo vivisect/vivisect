@@ -5,7 +5,7 @@ from envi.archs.rxv2.const import *
 regs32 = [
     'sp','r1','r2','r3','r4','r5','r6','r7',
     'r8','r9','r10','r11','r12','r13','r14','r15',
-    'isp','usp','intb','pc','psw','bpc','bpsw','fintv','fpdw','extb',
+    'isp','usp','intb','pc','psw','bpc','bpsw','fintv','fpsw','extb',
 ]
 
 regs_acc = [ 'acc0', 'acc1' ]
@@ -59,6 +59,6 @@ class RXv2RegisterContext(e_reg.RegisterContext):
         e_reg.RegisterContext.__init__(self)
         self.loadRegDef(registers_info)
         self.loadRegMetas([], statmetas=status_meta)
-        self.setRegisterIndexes(REG_PC, REG_SP, srindex=REG_SR)
+        self.setRegisterIndexes(REG_PC, REG_SP, srindex=REG_USP)
 
 rctx = RXv2RegisterContext()

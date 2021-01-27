@@ -39,11 +39,11 @@ bnz
 0 0 1 0 0 0 0 1 pcdsp:8 
 blt
 0 0 1 0 1 0 0 1 pcdsp:8 
-bgeu, bc 
+bgeu
 0 0 1 0 0 0 1 0 pcdsp:8 
 bgt
 0 0 1 0 1 0 1 0 pcdsp:8 
-bltu, bnc 
+bltu
 0 0 1 0 0 0 1 1 pcdsp:8 
 ble
 0 0 1 0 1 0 1 1 pcdsp:8 
