@@ -1,4 +1,5 @@
 import itertools
+import traceback
 import collections
 
 import vqt.hotkeys as vq_hotkey
@@ -329,7 +330,6 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
         after every change.
         '''
         # TODO: Lol, remove mainFrame
-        print('refresh?')
         self._last_viewpt = self.mem_canvas.page().mainFrame().scrollPosition()
         # FIXME: history should track this as well and return to the same place
         self.clearText()
@@ -428,18 +428,7 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
 
         # Let the renders complete...
         page.runJavaScript(funcgraph_js)
-        for nid, nprops in self.graph.getNodes():
-            cbva = nprops.get('cbva')
-
-            cbname = 'codeblock_%.8x' % cbva
-            # TODO
-            def setProps(data):
-                girth, height = data
-                height += 7
-                self.graph.setNodeProp((nid,nprops), "size", (girth, height))
-
-            page.runJavaScript('var node = document.getElementById("%s"); [node.offsetWidth, node.offsetHeight]' % cbname, setProps)
-
+        eatevents()
         self.dylayout = vg_dynadag.DynadagLayout(self.graph)
         self.dylayout._barry_count = 20
         self.dylayout.layoutGraph()
@@ -448,25 +437,28 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
 
         svgid = 'funcgraph_%.8x' % fva
         page.runJavaScript('svgwoot("vbody", "%s", %d, %d);' % (svgid, width+18, height))
-        for nid,nprops in self.graph.getNodes():
-
+        for nid, nprops in self.graph.getNodes():
             cbva = nprops.get('cbva')
             if cbva is None:
                 continue
+
             xpos, ypos = nprops.get('position')
-            girth, height = nprops.get('size')
 
             foid = 'fo_cb_%.8x' % cbva
             cbid = 'codeblock_%.8x' % cbva
 
-            page.runJavaScript('addSvgForeignObject("%s", "%s", %d, %d);' % (svgid, foid, girth+16, height))
+            page.runJavaScript('''
+            var node = document.getElementById("%s");
+            addSvgForeignObject("%s", "%s", node.offsetWidth+16, node.offsetHeight);
+            ''' % (cbid, svgid, foid))
             page.runJavaScript('addSvgForeignHtmlElement("%s", "%s");' % (foid, cbid))
             page.runJavaScript('moveSvgElement("%s", %d, %d);' % (foid, xpos, ypos))
 
+        eatevents()
         # Draw in some edge lines!
         for eid, n1, n2, einfo in self.graph.getEdges():
             points = einfo.get('edge_points')
-            pointstr = ' '.join(['%d,%d' % (x,y) for (x,y) in points ])
+            pointstr = ' '.join(['%d,%d' % (x, y) for (x, y) in points])
 
             page.runJavaScript('drawSvgLine("%s", "edge_%.8s", "%s");' % (svgid, eid, pointstr))
 
@@ -544,7 +536,7 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
         js = ''
         if self.fva is not None:
             svgid = 'funcgraph_%.8x' % self.fva
-            js += 'console.log("MOTHERFUCKER"); var node = document.getElementById("%s"); console.log(node); node.remove();' % svgid
+            js += 'var node = document.getElementById("%s"); node.remove();' % svgid
 
         js += 'document.querySelector("#memcanvas").innerHTML = "";'
         self.mem_canvas.page().runJavaScript(js)
