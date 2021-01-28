@@ -9,10 +9,8 @@ and get/set attributes on objects that exist on a remote system.
 """
 # Copyright (C) 2011 Invisigoth - See LICENSE file for details
 import os
-import sys
 import json
 import time
-import errno
 import types
 import Queue
 import socket
@@ -37,8 +35,6 @@ try:
 
 except ImportError:
     msgpack = None
-
-import envi.common as e_common
 
 logger = logging.getLogger(__name__)
 
