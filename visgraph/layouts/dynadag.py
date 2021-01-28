@@ -15,13 +15,13 @@ SCOOCH_RIGHT    = 1
 
 class DynadagLayout(vg_layout.GraphLayout):
 
-    def __init__(self, graph):
+    def __init__(self, graph, barry=10):
 
         vg_layout.GraphLayout.__init__(self, graph)
 
         self._addGhostNodes()
 
-        self._barry_count = 10
+        self._barry_count = barry
         self.width_pad = 20
         self.height_pad = 40
 

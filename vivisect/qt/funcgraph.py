@@ -79,7 +79,6 @@ class VQVivFuncgraphCanvas(vq_memory.VivCanvasBase):
         }
         ''' % (selector, selector)
         self.page().runJavaScript(js)
-        eatevents()
 
         self._canv_rendtagid = '#codeblock_%.8x' % va
 
@@ -402,7 +401,13 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
         pass
 
     def _layoutDynadag(self, data):
-        pass
+        self.dylayout = vg_dynadag.DynadagLayout(self.graph, barry=20)
+        self.dylayout.layoutGraph()
+
+        width, height = self.dylayout.getLayoutSize()
+
+        svgid = 'funcgraph_%.8x' % fva
+        page.runJavaScript('svgwoot("vbody", "%s", %d, %d);' % (svgid, width+18, height))
 
     def renderFunctionGraph(self, fva=None, graph=None):
         if fva is not None:
@@ -427,16 +432,15 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
             self.mem_canvas.renderMemory(cbva, cbsize)
 
         # Let the renders complete...
-        page.runJavaScript(funcgraph_js)
-        eatevents()
-        self.dylayout = vg_dynadag.DynadagLayout(self.graph)
-        self.dylayout._barry_count = 20
+        page.runJavaScript(funcgraph_js, self._layoutDynadag)
+        self.dylayout = vg_dynadag.DynadagLayout(self.graph, barry=20)
         self.dylayout.layoutGraph()
 
         width, height = self.dylayout.getLayoutSize()
 
+        # go through the graph and generate all the javascript for the graph at once
         svgid = 'funcgraph_%.8x' % fva
-        page.runJavaScript('svgwoot("vbody", "%s", %d, %d);' % (svgid, width+18, height))
+        svgjs = 'svgwoot("vbody", "{svgid}", {width+18}, {height});'
         for nid, nprops in self.graph.getNodes():
             cbva = nprops.get('cbva')
             if cbva is None:
@@ -447,19 +451,23 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
             foid = 'fo_cb_%.8x' % cbva
             cbid = 'codeblock_%.8x' % cbva
 
-            page.runJavaScript('''
-            var node = document.getElementById("%s");
-            addSvgForeignObject("%s", "%s", node.offsetWidth+16, node.offsetHeight);
-            ''' % (cbid, svgid, foid))
-            page.runJavaScript('addSvgForeignHtmlElement("%s", "%s");' % (foid, cbid))
-            page.runJavaScript('moveSvgElement("%s", %d, %d);' % (foid, xpos, ypos))
+            js = f'''
+            var node = document.getElementById("{cbid}");
+            addSvgForeignObject("{svgid}", "{foid}", node.offsetWidth+16, node.offsetHeight);
+            addSvgForeignHtmlElement("{foid}", "{cbid}");
+            moveSvgElement("{foid}", {xpos}, {ypos});
+            '''
+            svgjs += js
+        page.runJavaScript(svgjs)
 
         eatevents()
         # Draw in some edge lines!
+        edgejs = ''
         for eid, n1, n2, einfo in self.graph.getEdges():
             points = einfo.get('edge_points')
             pointstr = ' '.join(['%d,%d' % (x, y) for (x, y) in points])
 
+            edgejs += 'drawSvgLine("{svgid}", "edge_%.8s", "{pointstr}");'
             page.runJavaScript('drawSvgLine("%s", "edge_%.8s", "%s");' % (svgid, eid, pointstr))
 
         self.updateWindowTitle()
