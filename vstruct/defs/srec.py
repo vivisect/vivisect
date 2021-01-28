@@ -43,7 +43,7 @@ class SRecChunk(vstruct.VStruct):
 
     def pcb_bytecount(self):
         dsize = int(self.bytecount, 16) 
-        dsize -= int(len(self.vsGetField('address')) // 2)
+        dsize -= len(self.vsGetField('address')) // 2
         dsize -= 1  # csum
         self.vsGetField('data').vsSetLength( 2 * dsize )
 
