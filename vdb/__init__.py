@@ -176,6 +176,9 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
         v_notif.Notifier.__init__(self)
         v_util.TraceManager.__init__(self)
 
+        self._extensions = {}
+        self._ext_ctxmenu_hooks = {}
+
         if trace is None:
             trace = vtrace.getTrace()
 
@@ -228,6 +231,44 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
 
         self.loadDefaultRenderers(trace)
         self.loadExtensions(trace)
+
+    def addCtxMenuHook(self, name, handler):
+        '''
+        Extensions can add Context Menu hooks to modify the menu as they wish.
+        This would most often happen from the Extension's vivExtension() init function.
+        see vivisect.qt.ctxmenu for more details
+
+        handler should have the following prototype (inc. example code):
+
+
+        from vqt.common import ACT
+        def myExtCtxMenuHandler(vw, menu):
+            toymenu = menu.addMenu('myToys')
+            toymenu.addAction('Voodoo Wizbang ZeroDay Finder Thingy', ACT(doCoolShit, vw, va))
+
+        Currently, this should live in a loaded module, not in your Viv Extension's main py file.
+        '''
+        self._ext_ctxmenu_hooks[name] = handler
+
+    def delCtxMenuHook(self, name):
+        '''
+        Remove a context-menu hook that has been installed by an extension
+        '''
+        self._ext_ctxmenu_hooks.pop(name, None)
+
+    def addExtension(self, name, extmod):
+        '''
+        Add extension module to a list of extensions.
+        This keeps a list of installed extension modules, with the added value
+        of keeping the loaded module in memory.
+        '''
+        self._extensions[name] = extmod
+
+    def delExtension(self, name):
+        '''
+        Remove's extension module from the list of extensions.
+        '''
+        self._extensions.pop(name, None)
 
     def addRunCacheCtor(self, name, ctor):
         '''

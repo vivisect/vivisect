@@ -46,7 +46,11 @@ def loadExtensions(vw, vwgui):
             spec.loader.exec_module(module)
 
             try:
+                with open(fname, 'r') as fd:
+                    filebytes = fd.read()
+                exec(filebytes, module.__dict__)
                 module.vivExtension(vw, vwgui)
+                vw.addExtension(modpath, module)
             except Exception:
                 vw.vprint('Extension Error: %s' % modpath)
                 vw.vprint(traceback.format_exc())
