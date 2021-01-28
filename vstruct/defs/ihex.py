@@ -51,39 +51,55 @@ class IHexFile(vstruct.VArray):
             if not line:
                 continue
 
-            c = IHexChunk()
-            c.vsParse( line )
-            offset += len( c )
+            try:
+                c = IHexChunk()
+                c.vsParse( line )
+                offset += len( c )
 
-            self.vsAddElement( c )
+                self.vsAddElement( c )
+            except Exception as e:
+                logger.warning("Exception parsing: %r", e)
 
             if int(c.recordtype, 16) == IHEX_REC_EOF:
                 break
 
         return offset
 
-    def getEntryPoint(self):
+    def vsEmit(self, fast=False):
+        """
+        Get back the byte sequence associated with this structure.
+        """
+        if fast:
+            if self._vs_fastfields is None:
+                self._vsInitFastFields()
+            ffvals = [ ff.vsGetValue() for ff in self._vs_fastfields ]
+            return struct.pack(self._vs_fastfmt, *ffvals)
+
+        ret = ''
+        for fname, fobj in self.vsGetFields():
+            ret += fobj.vsEmit() + '\r\n'
+        return ret
+
+
+    def getEntryPoints(self):
         '''
         If a 32bit linear start address is defined for this file,
         return it.  Returns None if the 32bit entry point extension
         is not present.
         '''
+        evas = []
         for fname, chunk in self:
             ctype = int( chunk.recordtype, 16 )
-            if ctype == IHEX_REC_STARTLINADDR:
-                return int( chunk.data, 16 )
 
-    def getStartSeg(self):
-        '''
-        If a CS:IP start address is defined for this file,
-        return it.  Returns None if not.
-        '''
-        for fname, chunk in self:
-            ctype = int( chunk.recordtype, 16 )
-            if ctype == IHEX_REC_STARTSEG:
+            if ctype == IHEX_REC_STARTLINADDR:
+                evas.append(int( chunk.data, 16 ))
+
+            elif ctype == IHEX_REC_STARTSEG:
                 startcs = int( chunk.data, 16 ) >> 16
                 startip = int( chunk.data, 16 ) & 0xffff
-                return startcs, startip
+                evas.append((startcs << 4) | startip)
+
+        return evas
 
     def getMemoryMaps(self):
         '''

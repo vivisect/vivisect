@@ -21,7 +21,14 @@ S6_COUNT = 6
 S7_STARTADDR = 7
 S8_STARTADDR = 8
 S9_STARTADDR = 9
+SCOMMENT = 10
 
+
+class SRecComment(vstruct.VStruct):
+    def __init__(self):
+        vstruct.VStruct.__init__(self)
+        self.data           = v_zstr()
+        self.recordtype     = SCOMMENT
 
 class SRecChunk(vstruct.VStruct):
 
@@ -72,24 +79,49 @@ class SRecFile(vstruct.VArray):
             if not line:
                 continue
 
-            c = SRecChunk()
-            c.vsParse( line )
-            offset += len( c )
+            # out of spec, but common: treat lines which don't begin with "S" as comments
+            if line.startswith("S"):
+                c = SRecChunk()
+            else:
+                c = SRecComment()
+            try:
+                c.vsParse( line )
+                offset += len( c )
 
-            self.vsAddElement( c )
+                self.vsAddElement( c )
+            except Exception as e:
+                logger.warning("Exception parsing: %r", e)
 
         return offset
 
-    def getEntryPoint(self):
+    def vsEmit(self, fast=False):
+        """
+        Get back the byte sequence associated with this structure.
+        """
+        if fast:
+            if self._vs_fastfields is None:
+                self._vsInitFastFields()
+            ffvals = [ ff.vsGetValue() for ff in self._vs_fastfields ]
+            return struct.pack(self._vs_fastfmt, *ffvals)
+
+        ret = ''
+        for fname, fobj in self.vsGetFields():
+            ret += fobj.vsEmit() + '\r\n'
+        return ret
+
+    def getEntryPoints(self):
         '''
         If a 32bit linear start address is defined for this file,
         return it.  Returns None if the 32bit entry point extension
         is not present.
         '''
+        evas = []
         for fname, chunk in self:
             ctype = int( chunk.recordtype, 16 )
             if ctype in (S7_STARTADDR, S8_STARTADDR, S9_STARTADDR):
-                return int( chunk.address, 16 )
+                evas.append(int(chunk.address, 16))
+
+        return evas
 
     def getMemoryMaps(self):
         '''
@@ -104,7 +136,6 @@ class SRecFile(vstruct.VArray):
         memparts = []
 
         for fname, chunk in self:
-
             ctype = int( chunk.recordtype, 16 )
             #print fname, chunk.tree(), ctype
 
@@ -121,6 +152,10 @@ class SRecFile(vstruct.VArray):
 
             elif ctype == S0_HEADER:
                 logger.warning("HEADER: %r", chunk.data)
+                continue
+
+            elif ctype == SCOMMENT:
+                logger.warning("Comment: %r", chunk.data)
                 continue
 
             raise Exception('Unhandled SREC chunk: %s' % chunk.recordtype)
