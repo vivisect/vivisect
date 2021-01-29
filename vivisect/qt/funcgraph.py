@@ -16,7 +16,7 @@ import vivisect.qt.memory as vq_memory
 import vivisect.qt.ctxmenu as vq_ctxmenu
 import vivisect.tools.graphutil as viv_graphutil
 
-from PyQt5 import QtCore, QtGui, QtWebEngine
+from PyQt5 import Qt, QtCore, QtGui, QtWebEngine
 from PyQt5.QtCore import pyqtSignal
 from PyQt5.QtWidgets import *
 
@@ -35,6 +35,23 @@ class VQVivFuncgraphCanvas(vq_memory.VivCanvasBase):
         vq_memory.VivCanvasBase.__init__(self, *args, **kwargs)
         self.curs = QtGui.QCursor()
 
+    # These have changed because QtWebEngine suxxs: https://bugreports.qt.io/browse/QTBUG-43602
+    def event(self, evt):
+        if evt.type() == Qt.QEvent.ChildAdded:
+            evt.child().installEventFilter(self)
+        elif evt.type() == Qt.QEvent.ChildRemoved:
+            evt.child().removeEventFilter(self)
+        return vq_memory.VivCanvasBase.event(self, evt)
+
+    def eventFilter(self, src, evt):
+        if evt.type() == Qt.QEvent.Wheel:
+            self.wheelEvent(evt)
+            return True
+        if evt.type() == Qt.QEvent.MouseMove:
+            self.mouseMoveEvent(evt)
+            return True
+        return False
+
     def wheelEvent(self, event):
         mods = QApplication.keyboardModifiers()
         if mods == QtCore.Qt.ShiftModifier:
@@ -45,6 +62,10 @@ class VQVivFuncgraphCanvas(vq_memory.VivCanvasBase):
             return
 
         return e_qt_memcanvas.VQMemoryCanvas.wheelEvent(self, event)
+
+
+    def _setMousePos(self, data):
+        self.curs.setPos(*self.basepos)
 
     def mouseMoveEvent(self, event):
         # TODO: This is broken in pyqt5 because async
@@ -57,10 +78,7 @@ class VQVivFuncgraphCanvas(vq_memory.VivCanvasBase):
                 dy = -(y - self.lastpos[1])
                 # dx = x - self.lastpos[0]
                 # dy = y - self.lastpos[1]
-                self.page().runJavaScript(f'window.scrollBy({dx}, {dy});')
-                eatevents()
-
-                self.curs.setPos(*self.basepos)
+                self.page().runJavaScript(f'window.scrollBy({dx}, {dy});', self._setMousePos)
             else:
                 self.lastpos = (x, y)
                 self.basepos = (x, y)
