@@ -4,12 +4,12 @@ import envi
 import envi.bits as e_bits
 import envi.encoding as e_enc
 
-from envi.archs.msp430 import Msp430Module
-from envi.archs.msp430.regs import *
-from envi.archs.msp430.const import *
+from envi.archs.rxv2 import RXv2Module
+from envi.archs.rxv2.regs import *
+from envi.archs.rxv2.const import *
 
 
-class Msp430Call(envi.CallingConvention):
+class RXv2Call(envi.CallingConvention):
     arg_def = [(CC_REG, REG_R15), (CC_REG, REG_R14), (CC_REG, REG_R13), (CC_REG, REG_R12), (CC_STACK_INF, 2)]
     retaddr_def = (CC_STACK, 0)
     retval_def = (CC_REG, REG_R15)
@@ -18,24 +18,24 @@ class Msp430Call(envi.CallingConvention):
     pad = 0
 
 
-msp430call = Msp430Call()
+rxv2call = RXv2Call()
 
-class Msp430Emulator(Msp430RegisterContext, envi.Emulator):
+class RXv2Emulator(RXv2RegisterContext, envi.Emulator):
 
     def __init__(self, regarray=None):
-        self.archmod = Msp430Module()
+        self.archmod = RXv2Module()
 
         envi.Emulator.__init__(self, self.archmod)
-        Msp430RegisterContext.__init__(self)
+        RXv2RegisterContext.__init__(self)
 
         self._emu_segments = [(0, 0xffff)]
-        self.addCallingConvention('msp430call', msp430call)
+        self.addCallingConvention('rxv2call', rxv2call)
 
     def getArchModule(self):
         return self.archmod
 
     def setFlag(self, which, state):
-        flags = self.getRegister(REG_SR)
+        flags = self.getRegister(REG_PSW)
         if flags is None:
             raise envi.PDEUndefinedFlag(self)
 
@@ -44,10 +44,10 @@ class Msp430Emulator(Msp430RegisterContext, envi.Emulator):
         else:
             flags &= ~which
 
-        self.setRegister(REG_SR, flags)
+        self.setRegister(REG_PSW, flags)
 
     def getFlag(self, which):
-        flags = self.getRegister(REG_SR)
+        flags = self.getRegister(REG_PSW)
         if flags is None:
             raise envi.PDEUndefinedFlag(self)
         return bool(flags & which)

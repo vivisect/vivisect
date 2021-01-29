@@ -41,9 +41,25 @@ def process(fbytes):
     for fline in flines:
         fline = fline.strip()
 
-        hashdx = fline.find('#')
-        if hashdx > -1:
-            fline = fline[:hashdx].strip()
+        hashdx = fline.rfind('#')
+        while hashdx > -1:
+            if fline[hashdx:].startswith('#IMM') or
+                fline[hashdx:].startswith('#UIMM') or
+                fline[hashdx:].startswith('#SIMM'): 
+                    # we have a immediate encoding
+                    nextspc = fline.find(' ', hashdx)
+                    if nextspc == -1:
+                        nextspc = len(fline)
+                    
+                    newstuff = fline[hashdx+1: nextspc].lower()
+                    fline = fline[:hashdx] + newstuff + fline[nextspc:]
+
+            else:
+                # it's a comment
+                fline = fline[:hashdx].strip()
+                hashdx = fline.rfind('#')
+
+        fline = fline.strip()
 
         # skip blank and comment-only lines
         if not len(fline) or fline.startswith('#'):

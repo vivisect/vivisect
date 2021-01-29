@@ -1,6 +1,7 @@
 import sys
 import copy
 import struct
+import logging
 
 import envi
 import envi.exc as e_exc
@@ -10,6 +11,9 @@ import envi.memory as e_mem
 from envi.archs.rxv2.regs import *
 
 import envi.archs.rxv2.rxtables as e_rxtbls
+
+logger = logging.getLogger(__name__)
+
 
 class RxOpcode(envi.Opcode):
 
@@ -196,10 +200,8 @@ class RxDisasm:
             raise e_exc.InvalidInstruction(bytez[offset:offset+opsize], "Couldn't find a opcode match in the table")
 
         # we've found a match, parse it!
-        print "PARSE MATCH FOUND: val: %x\n\t%x %x %x %r %r  %r  %x" % (val, mask, endval, opcode, mnem, opers, sz, iflags)
+        logger.warning("PARSE MATCH FOUND: val: %x\n\t%x %x %x %r %r  %r  %x", val, mask, endval, opcode, mnem, opers, sz, iflags)
 
-
-        
 
         if handler is not None:
             # if we have a handler, just let it do everything
