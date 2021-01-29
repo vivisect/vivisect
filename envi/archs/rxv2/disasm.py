@@ -206,19 +206,62 @@ class RxDisasm:
         if handler is not None:
             # if we have a handler, just let it do everything
             hndlFunc = HANDLERS[handler]
-            hndlFunc(val, curtable[bval])
+            return hndlFunc(val, curtable[bval])
+
+        # let's parse out the things
+        opers = []
+        fields = {}
+        for fkey, fparts in opers:
+            fdata = 0
+            for shval, fmask in fparts:
+                fdata |= ((val >> shval) & fmask)
+            
+            fields[fkey] = fdata
+
+        # deciding key fields and build operand tuple
+        opercnt = len(fields)
+
+        operkeys = fields.keys()
+        if opercnt == 0:
+            opers = ()
 
         else:
-            # let's parse out the things
-            fields = {}
-            for fkey, fparts in opers:
-                fdata = 0
-                for shval, fmask in fparts:
-                    fdata |= ((val >> shval) & fmask)
-                fields[fkey] = fdata
+            opers = []
+            if opercnt == 1:
+                if 'rs' in operkeys:
+                    if 'lds' in operkeys:
+                        # we have a dsp(Rs) operand
+                    else:
+                        opers.append(RxRegOper(reg, va))
+                elif 'imm' in operkeys:
+                    # immediates must be sources, can't write to the opcode!
 
-            # now we have the field data parsed out... now what?
-            import envi.interactive as ei; ei.dbg_interact(locals(), globals())
+                
+            elif opercnt == 2:
+                #'li' gives a size for an extra IMM:#
+
+            elif opercnt == 3:
+            elif opercnt == 4:
+        '''
+        if fkey == 'rd':
+            # dest register
+            if 
+            opers.append(RxRegOper(fdata, va))
+
+        elif fkey == 'dsp':
+            # displacement
+
+
+        elif 'mi' in fields:
+            # memex
+        elif 'li' in fields:
+            # immediate
+
+        '''
+        import envi.interactive as ei; ei.dbg_interact(locals(), globals())
+
+
+        return RxOpcode(va, opcode, mnem, opers, iflags, size) 
 
 
 
@@ -248,5 +291,54 @@ class RxDisasm:
         for i in range(regcount):
             array.append(0)
         return array
+
+
+class RxRegOper(envi.RegisterOper):
+    def __init__(self, reg, va):
+        self.reg = reg
+        self.va = va
+
+    def getOperValue(self, op, emu=None):
+        if emu is None:
+            return
+        return emu.getRegister(self.reg)
+
+    def setOperValue(self, op, emu, val):
+        logger.warning("%s needs to implement setOperAddr!" % self.__class__.__name__)
+
+    def getOperAddr(self, op, emu=None):
+        pass
+
+    def getWidth(self):
+        return rctx.getRegisterWidth(self.reg) / 8
+
+    def repr(self, op):
+        return rctx.getRegisterName(self.reg)
+
+    def render(self, mcanv, op, idx):
+        rname = rctx.getRegisterName(self.reg)
+        mcanv.addNameText(rname, typename='registers')
+
+class RxImmOper(envi.ImmedOper)
+    def __init__(self, val, va):
+        self.val = val
+        self.va = va
+
+    def getOperValue(self, op, emu=None):
+        return self.val
+
+    def setOperValue(self, op, emu, val):
+        logger.warning("%s needs to implement setOperAddr!" % self.__class__.__name__)
+
+    def getOperAddr(self, op, emu=None):
+        logger.warning("%s needs to implement getOperAddr!" % self.__class__.__name__)
+
+    def repr(self, op):
+        return self.val
+
+    def render(self, mcanv, op, idx):
+        val = self.getOperValue(op)
+        mcanv.addText('#')
+        mcanv.addNameText('0x%.2x' % (val))
 
 
