@@ -1,26 +1,20 @@
 """
-msp430 module
+rxv2 module
 """
-
-############
-# Author: Don C. Weber
-# Started: 05/23/2009
-# 
-
 import envi
 
-from envi.archs.msp430.regs import *
-from envi.archs.msp430.disasm import *
-from envi.archs.msp430.const import *
+from envi.archs.rxv2.regs import *
+from envi.archs.rxv2.disasm import *
+from envi.archs.rxv2.const import *
 
-class Msp430Module(envi.ArchitectureModule):
+class RXv2Module(envi.ArchitectureModule):
 
     def __init__(self):
-        envi.ArchitectureModule.__init__(self, "msp430", maxinst=4)
-        self._arch_dis = Msp430Disasm()
+        envi.ArchitectureModule.__init__(self, "rxv2", maxinst=4)
+        self._arch_dis = RXv2Disasm()
 
     def archGetRegCtx(self):
-        return Msp430RegisterContext()
+        return RXv2RegisterContext()
 
     def archGetNopInstr(self):
         return '\x03\x43' # NOP is emulated with: MOV #0, R3
@@ -41,10 +35,10 @@ class Msp430Module(envi.ArchitectureModule):
         return self._arch_dis.disasm(bytes, offset, va)
 
     def getEmulator(self):
-        return Msp430Emulator()
+        return RXv2Emulator()
 
     def getArchDefaultCall(self):
-        return 'msp430call'
+        return 'rxv2call'
 
-# NOTE: This one must be after the definition of Msp430Module
-from envi.archs.msp430.emu import *
+# NOTE: This one must be after the definition of RXv2Module
+from envi.archs.rxv2.emu import *

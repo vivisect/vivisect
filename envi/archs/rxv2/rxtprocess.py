@@ -174,8 +174,6 @@ def genTables(data):
             operands = convertOpers(opers, sz)
             iflagstr = getIflags(mnem)
 
-            # fix dsp to be easily determined whether it's src or dst
-
             # if we have any items in the first byte, stomp them out
 
             tblmain[idx] = "(None, None, 0x%x, 0x%x, INS_%s, %r, %r, %r, %s)" % (mask, endval, mnem.upper(),mnem, operands, sz//8, iflagstr)
@@ -229,6 +227,24 @@ def convertOpers(opers, opsz):
             pmask = (1 << psz) - 1
             pmask <<= bend  # shift the mask if this is an upper part
             nparts.append((pshift, pmask))
+
+
+        # fix dsp to be easily determined whether it's src or dst
+        if nm == 'ld':
+            rstup = opers.get('rs')
+            rdtup = opers.get('rd')
+            if rdtup is None:
+                nm = 'lds'
+            elif rstup is None:
+                nm = 'ldd'
+            elif rdtup > rstup:
+                nm = 'lds'
+            else:
+                nm = 'ldd'
+
+            print "%-20s %-20s %-10s \t %50s" % (rstup, rdtup, nm, opers)
+
+            #import envi.interactive as ei; ei.dbg_interact(locals(), globals()) 
 
         operands.append((nm, tuple(nparts)))
 
@@ -300,7 +316,25 @@ def createRxTablesModule():
 
     open('rxtables.py','w').write('\n'.join(out))
 
+def formsHist(data):
+    forms = {}
+    bycnt = {}
+    for thing in data:
+        operdefs = thing[4]
+        operdefrepr = repr(operdefs)
+        forms[operdefrepr] = forms.get(operdefrepr, 0) + 1
 
+        operdefcnt = len(operdefs)
+        tmp = bycnt.get(operdefcnt)
+        if tmp is None:
+            tmp = {}
+            bycnt[operdefcnt] = tmp
+        tmp[operdefrepr] = tmp.get(operdefrepr, 0) + 1
+
+    hist = [(y, x) for x,y in forms.items()]
+    hist.sort()
+
+    return forms, hist, bycnt
 
 
 
