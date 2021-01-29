@@ -47,6 +47,7 @@ class VQVivFuncgraphCanvas(vq_memory.VivCanvasBase):
         return e_qt_memcanvas.VQMemoryCanvas.wheelEvent(self, event)
 
     def mouseMoveEvent(self, event):
+        # TODO: This is broken in pyqt5 because async
         mods = QApplication.keyboardModifiers()
         if mods == QtCore.Qt.ShiftModifier:
             x = event.globalX()
@@ -54,22 +55,31 @@ class VQVivFuncgraphCanvas(vq_memory.VivCanvasBase):
             if self.lastpos:
                 dx = -(x - self.lastpos[0])
                 dy = -(y - self.lastpos[1])
-                #dx = x - self.lastpos[0]
-                #dy = y - self.lastpos[1]
+                # dx = x - self.lastpos[0]
+                # dy = y - self.lastpos[1]
                 self.page().runJavaScript(f'window.scrollBy({dx}, {dy});')
                 eatevents()
 
                 self.curs.setPos(*self.basepos)
             else:
-                self.lastpos = (x,y)
-                self.basepos = (x,y)
+                self.lastpos = (x, y)
+                self.basepos = (x, y)
 
             event.accept()
             return
         self.lastpos = None
         return e_qt_memcanvas.VQMemoryCanvas.mouseMoveEvent(self, event)
 
-    def renderMemory(self, va, size, rend=None):
+    def _renderMemoryFinish(self, data):
+        self._canv_rendtagid = '#memcanvas'
+
+    def _renderMemoryCallback(self, data):
+        va = int(data[0])
+        size = int(data[1])
+        self._canv_rendtagid = '#codeblock_%.8x' % va
+        e_memcanvas.MemoryCanvas.renderMemory(self, va, size, cb=self._renderMemoryFinish)
+
+    def renderMemory(self, va, size):
         # For the funcgraph canvas, this will be called once per code block
         selector = 'codeblock_%.8x' % va
         js = '''var node = document.querySelector("#%s");
@@ -77,16 +87,9 @@ class VQVivFuncgraphCanvas(vq_memory.VivCanvasBase):
             canv = document.querySelector("#memcanvas");
             canv.innerHTML += '<div class="codeblock" id="%s"></div>'
         }
-        ''' % (selector, selector)
-        self.page().runJavaScript(js)
-
-        self._canv_rendtagid = '#codeblock_%.8x' % va
-
-        ret = e_memcanvas.MemoryCanvas.renderMemory(self, va, size, rend=rend)
-
-        self._canv_rendtagid = '#memcanvas'
-
-        return ret
+        [%d, %d]
+        ''' % (selector, selector, va, size)
+        self.page().runJavaScript(js, self._renderMemoryCallback)
 
     def contextMenuEvent(self, event):
         if self._canv_curva is not None:
@@ -389,16 +392,36 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
             va = self.vw.parseExpression(expr)
             smartname = self.vw.getName(va, smart=True)
             self.setWindowTitle('%s: %s (0x%x)' % (ename, smartname, va))
+            return va
         except:
             self.setWindowTitle('%s: %s (0x----)' % (ename, expr))
 
     # DEV: None of these methods are meant to be called directly by anybody but themselves,
     # since they're setup in a way to make renderFunctionGraph play nicely with pyqt5
-    def _addSvgEdges(self, data):
-        pass
+    def _finishFuncRender(self, data):
+        addr = self.updateWindowTitle()
+        if addr is not None:
+            vqtevent('viv:colormap', {addr: 'orange'})
+        self._renderDoneSignal.emit()
 
-    def _addSvgElements(self, data):
-        pass
+    def _edgesDone(self, data):
+        addr = self.updateWindowTitle()
+        if addr is None:
+            return
+        self.mem_canvas.page().runJavaScript('''
+        var node = document.getElementsByName("viv:0x%.8x")[0];
+        node.scrollIntoView();
+        ''' % addr, self._finishFuncRender)
+
+    def _layoutEdges(self, data):
+        edgejs = ''
+        svgid = 'funcgraph_%.8x' % self.fva
+        for eid, n1, n2, einfo in self.graph.getEdges():
+            points = einfo.get('edge_points')
+            pointstr = ' '.join(['%d,%d' % (x, y) for (x, y) in points])
+
+            edgejs += f'drawSvgLine("{svgid}", "edge_%.8s", "{pointstr}");' % eid
+        self.mem_canvas.page().runJavaScript(edgejs, self._edgesDone)
 
     def _layoutDynadag(self, data):
         self.dylayout = vg_dynadag.DynadagLayout(self.graph, barry=20)
@@ -406,41 +429,8 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
 
         width, height = self.dylayout.getLayoutSize()
 
-        svgid = 'funcgraph_%.8x' % fva
-        page.runJavaScript('svgwoot("vbody", "%s", %d, %d);' % (svgid, width+18, height))
-
-    def renderFunctionGraph(self, fva=None, graph=None):
-        if fva is not None:
-            self.fva = fva
-
-        if graph is None:
-            try:
-                graph = viv_graphutil.buildFunctionGraph(self.vw, fva, revloop=True)
-            except Exception as e:
-                import sys
-                sys.excepthook(*sys.exc_info())
-                return
-
-        self.graph = graph
-        page = self.mem_canvas.page()
-
-        # Go through each of the nodes and render them so we know sizes
-        for node in self.graph.getNodes():
-            #cbva,cbsize = self.graph.getCodeBlockBounds(node)
-            cbva = node[1].get('cbva')
-            cbsize = node[1].get('cbsize')
-            self.mem_canvas.renderMemory(cbva, cbsize)
-
-        # Let the renders complete...
-        page.runJavaScript(funcgraph_js, self._layoutDynadag)
-        self.dylayout = vg_dynadag.DynadagLayout(self.graph, barry=20)
-        self.dylayout.layoutGraph()
-
-        width, height = self.dylayout.getLayoutSize()
-
-        # go through the graph and generate all the javascript for the graph at once
-        svgid = 'funcgraph_%.8x' % fva
-        svgjs = 'svgwoot("vbody", "{svgid}", {width+18}, {height});'
+        svgid = 'funcgraph_%.8x' % self.fva
+        svgjs = f'svgwoot("vbody", "{svgid}", {width+18}, {height});'
         for nid, nprops in self.graph.getNodes():
             cbva = nprops.get('cbva')
             if cbva is None:
@@ -458,26 +448,40 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
             moveSvgElement("{foid}", {xpos}, {ypos});
             '''
             svgjs += js
-        page.runJavaScript(svgjs)
 
-        eatevents()
-        # Draw in some edge lines!
-        edgejs = ''
-        for eid, n1, n2, einfo in self.graph.getEdges():
-            points = einfo.get('edge_points')
-            pointstr = ' '.join(['%d,%d' % (x, y) for (x, y) in points])
+        self.mem_canvas.page().runJavaScript(svgjs, self._layoutEdges)
 
-            edgejs += 'drawSvgLine("{svgid}", "edge_%.8s", "{pointstr}");'
-            page.runJavaScript('drawSvgLine("%s", "edge_%.8s", "%s");' % (svgid, eid, pointstr))
+    def _setupJsFuncs(self, data):
+        self.page().runJavaScript(funcgraph_js, self._layoutDynadag)
 
-        self.updateWindowTitle()
+    def _renderedCodeBlocks(self, data):
+        pass
 
-    # FIXME
-    #def closeEvent(self, event):
-        # FIXME this doesn't actually do anything...
-        #self.parentWidget().delEventCore(self)
-        #return e_mem_qt.VQMemoryWindow.closeEvent(self, event)
+    def renderFunctionGraph(self, fva=None, graph=None):
+        if fva is not None:
+            self.fva = fva
 
+        if graph is None:
+            try:
+                graph = viv_graphutil.buildFunctionGraph(self.vw, fva, revloop=True)
+            except Exception as e:
+                self.vw.vprint(f'Error building function graph for {fva} ({str(e)}')
+                self.vw.vprint(traceback.format_exc())
+                return
+
+        self.graph = graph
+
+        # Go through each of the nodes and render them so we know sizes
+        for node in self.graph.getNodes():
+            cbva = node[1].get('cbva')
+            cbsize = node[1].get('cbsize')
+            self.mem_canvas.renderMemory(cbva, cbsize)
+        #self.mem_canvas.page().runJavaScript(funcgraph_js, self._layoutDynadag)
+
+    def _renderedSameFva(self, data):
+        addr = self.updateWindowTitle()
+        if addr is not None:
+            vqtevent('viv:colormap', {addr: 'orange'})
 
     @idlethread
     def _renderMemory(self):
@@ -507,29 +511,15 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
 
             page = self.mem_canvas.page()
             if fva == self.fva:
-                page.runJavaScript('document.getElementsByName("viv:0x%.8x")[0].scrollIntoView()' % addr)
-                vqtevent('viv:colormap', {addr: 'orange'})
-                self.updateWindowTitle()
+                page.runJavaScript('''
+                document.getElementsByName("viv:0x%.8x")[0].scrollIntoView();
+                %d;
+                ''' % (addr, addr), self._renderedSameFva)
                 return
             # if we're rendering a different function, get to work!
             self.clearText()
             self.renderFunctionGraph(fva)
 
-            page.runJavaScript('''
-            var node = document.getElementsByName("viv:0x%.8x")[0];
-            node.scrollIntoView();
-            ''' % addr)
-
-            self.updateWindowTitle()
-
-            page.runJavaScript('''
-            var node = document.getElementsByName("viv:0x%.8x")[0];
-            node.scrollIntoView();
-            ''' % addr)
-            vqtevent('viv:colormap', {addr: 'orange'})
-            self.updateWindowTitle()
-
-            self._renderDoneSignal.emit()
         except Exception as e:
             self.vw.vprint('_renderMemory hit exception: %s' % str(e))
             self.vw.vprint('%s' % traceback.format_exc())
@@ -544,7 +534,8 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
         js = ''
         if self.fva is not None:
             svgid = 'funcgraph_%.8x' % self.fva
-            js += 'var node = document.getElementById("%s"); node.remove();' % svgid
+            # TODO: This errors
+            js += 'console.log("yeet"); var node = document.getElementById("%s"); node.remove(); console.log("teey");' % svgid
 
         js += 'document.querySelector("#memcanvas").innerHTML = "";'
         self.mem_canvas.page().runJavaScript(js)

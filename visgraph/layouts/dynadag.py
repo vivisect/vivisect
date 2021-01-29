@@ -249,7 +249,7 @@ class DynadagLayout(vg_layout.GraphLayout):
             w = node[1].get('weight', 0)
 
             layer = self.layers[w]
-            self.graph.setNodeProp(node,'layerpos',len(layer))
+            self.graph.setNodeProp(node, 'layerpos', len(layer))
             layer.append(node)
 
         # FIXME support more than one root!
@@ -270,9 +270,9 @@ class DynadagLayout(vg_layout.GraphLayout):
             y = 0
 
             heightmax = 0
-            for nid,ninfo in layer:
+            for nid, ninfo in layer:
                 size = ninfo.get('size', zero_zero)
-                xx,yy = size
+                xx, yy = size
 
                 heightmax = max(heightmax, yy)
 

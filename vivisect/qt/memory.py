@@ -319,7 +319,7 @@ class VQVivMemoryCanvas(VivCanvasBase):
             self._canv_navcallback(expr)
 
     def initMemWindowMenu(self, va, menu):
-        nav = self.parent() # our parent is always a VQVivMemoryWindow (nav target)
+        nav = self.parent()  # our parent is always a VQVivMemoryWindow (nav target)
         viv_q_ctxmenu.buildContextMenu(self.vw, va=va, menu=menu, nav=nav)
 
     def _loc_helper(self, va):
@@ -362,7 +362,7 @@ class VQVivMemoryView(e_mem_qt.VQMemoryWindow, viv_base.VivEventCore):
             def leadToggle():
                 self._leading = not self._leading
                 # We can only follow if not leading... (deep huh? ;) )
-                self._follow_menu.setEnabled( not self._leading )
+                self._follow_menu.setEnabled(not self._leading)
                 if self._leading:
                     self._following = None
                     self.vw.iAmLeader(self.mwname)
@@ -499,12 +499,12 @@ class VQVivMemoryView(e_mem_qt.VQMemoryWindow, viv_base.VivEventCore):
             self._following = einfo
             self.updateMemWindowTitle()
 
-        self._follow_menu.addAction('%s - %s' % (user,fname), setFollow)
+        self._follow_menu.addAction('%s - %s' % (user, fname), setFollow)
 
     @idlethread
     def VTE_FOLLOWME(self, vw, event, einfo):
         user, fname, expr = einfo
-        if self._following != (user,fname):
+        if self._following != (user, fname):
             return
         self.enviNavGoto(expr)
 
