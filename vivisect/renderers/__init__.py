@@ -231,10 +231,10 @@ class WorkspaceRenderer(e_canvas.MemoryRenderer):
         elif ltype == LOC_UNDEF:
 
             mcanv.addText(linepre, vatag)
-            offset,bytes = self.vw.getByteDef(lva)
-            b = bytes[offset]
+            offset, bytes = self.vw.getByteDef(lva)
+            b = bytes[offset:offset+1]
             mcanv.addNameText(binascii.hexlify(b).decode('utf-8'), typename="undefined")
-            if b in string.printable:
+            if b in string.printable.encode('utf-8'):
                 mcanv.addText('    %s' % repr(b), tag=cmnttag)
             if cmnt is not None:
                 mcanv.addText('    ;%s' % cmnt, tag=cmnttag)

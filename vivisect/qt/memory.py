@@ -150,7 +150,7 @@ class VivCanvasBase(vq_hotkey.HotKeyMixin, e_mem_canvas.VQMemoryCanvas):
                 loc = vw.getLocation(va-1)
 
             # if we fell off the end of a map
-            if vw.isValidPointer(va-1): 
+            if vw.isValidPointer(va-1):
                 va -= 1
 
         self._navExpression(hex(va))

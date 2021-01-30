@@ -971,7 +971,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
                     if loc[L_LTYPE] == LOC_STRING:
                         if loc[L_VA] == va:
                             return loc[L_SIZE]
-                        if ord(bytez[offset+count]) != 0:
+                        if bytez[offset+count] != 0:
                             # we probably hit a case where the string at the lower va is
                             # technically the start of the full string, but the binary does
                             # some optimizations and just ref's inside the full string to save 

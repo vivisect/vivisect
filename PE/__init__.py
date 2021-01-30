@@ -822,7 +822,7 @@ class PE(object):
                 break
 
             # RP BUG FIX - we can't assume that we have 256 bytes to read
-            libname = self.readStringAtRva(entry_name, maxsize=256)
+            libname = self.readStringAtRva(entry_name, maxsize=256).decode('utf-8')
             idx = 0
 
             if is_imports:
