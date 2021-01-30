@@ -70,7 +70,7 @@ def guessFormat(bytez):
     if bytez[0] == ord(':'):
         return 'ihex'
 
-    if bytes[0] == ord('S'):
+    if bytez[0] == ord('S'):
         return 'srec'
 
     return 'blob'

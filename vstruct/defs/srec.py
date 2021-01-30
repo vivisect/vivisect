@@ -80,7 +80,7 @@ class SRecFile(vstruct.VArray):
                 continue
 
             # out of spec, but common: treat lines which don't begin with "S" as comments
-            if line.startswith("S"):
+            if line.startswith(b"S"):
                 c = SRecChunk()
             else:
                 c = SRecComment()
@@ -104,10 +104,10 @@ class SRecFile(vstruct.VArray):
             ffvals = [ ff.vsGetValue() for ff in self._vs_fastfields ]
             return struct.pack(self._vs_fastfmt, *ffvals)
 
-        ret = ''
+        ret = b''
         for fname, fobj in self.vsGetFields():
-            ret += fobj.vsEmit() + '\r\n'
-        return ret
+            ret += fobj.vsEmit() + b'\r\n'
+        return ret.decode('utf-8')
 
     def getEntryPoints(self):
         '''

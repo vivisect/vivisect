@@ -19,6 +19,9 @@ def glen(g):
     return len([x for x in g])
 
 
+def isint(x):
+    return type(x) is int
+
 class VivisectTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
