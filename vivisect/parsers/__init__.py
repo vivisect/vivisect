@@ -67,6 +67,9 @@ def guessFormat(bytes):
     if bytemagic in macho_magics:
         return 'macho'
 
+    if bytes[0] == 'S':
+        return 'srec'
+
     if bytes[0] == ':':
         return 'ihex'
 
