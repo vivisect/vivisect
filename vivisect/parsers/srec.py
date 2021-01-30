@@ -1,5 +1,5 @@
 import envi
-import vstruct.defs.ihex as v_ihex
+import vstruct.defs.srec as v_srec
 import vivisect.parsers as v_parsers
 from vivisect.const import *
 
@@ -18,25 +18,24 @@ archcalls = {
 
 def parseFile(vw, filename, baseaddr=None):
 
-    arch = vw.config.viv.parsers.ihex.arch
+    arch = vw.config.viv.parsers.srec.arch
     if not arch:
-        raise Exception('IHex loader *requires* arch option (-O viv.parsers.ihex.arch=\\"<archname>\\")')
+        raise Exception('SRec loader *requires* arch option (-O viv.parsers.srec.arch=\\"<archname>\\")')
 
     envi.getArchModule(arch)
 
     vw.setMeta('Architecture', arch)
     vw.setMeta('Platform', 'Unknown')
-    vw.setMeta('Format', 'ihex')
+    vw.setMeta('Format', 'srec')
 
     vw.setMeta('DefaultCall', archcalls.get(arch, 'unknown'))
 
-    offset = vw.config.viv.parsers.ihex.offset
+    offset = vw.config.viv.parsers.srec.offset
     if not offset:
         offset = 0
-    vw.config.viv.parsers.ihex.offset = 0
+    vw.config.viv.parsers.srec.offset = 0
 
-    # might we make use of baseaddr, even though it's an IHEX?  for now, no.
-    ihex = v_ihex.IHexFile()
+    srec = v_srec.SRecFile()
     with open(filename, 'rb') as f:
         shdr = f.read(offset)
         sbytes = f.read()
@@ -46,22 +45,22 @@ def parseFile(vw, filename, baseaddr=None):
         fname = vw.addFile(filename, 0, v_parsers.md5Bytes(shdr + sbytes))
         vw.setFileMeta(fname, 'sha256', v_parsers.sha256Bytes(shdr + sbytes))
 
-        ihex.vsParse(sbytes)
+        srec.vsParse(sbytes)
 
-        # calculate IHEX-specific hash - only the fields copied into memory
-        ihdata = ihex.vsEmit()
-        vw.setFileMeta(fname, 'sha256_ihex', v_parsers.sha256Bytes(ihdata))
+        # calculate SREC-specific hash - only the fields copied into memory
+        srdata = srec.vsEmit()
+        vw.setFileMeta(fname, 'sha256_srec', v_parsers.sha256Bytes(srdata))
 
-        for eva in ihex.getEntryPoints():
+        for eva in srec.getEntryPoints():
             if eva is not None:
                 vw.addExport(eva, EXP_FUNCTION, '__entry', fname, makeuniq=True)
-                logger.info('adding function from IHEX metadata: 0x%x (_entry)', eva)
+                logger.info('adding function from SREC metadata: 0x%x (_entry)', eva)
                 vw.addEntryPoint(eva)
 
-        for addr, perms, notused, bytes in ihex.getMemoryMaps():
+        for addr, perms, notused, bytes in srec.getMemoryMaps():
             vw.addMemoryMap(addr, perms, fname, bytes)
             vw.addSegment(addr, len(bytes), '%.8x' % addr, fname)
 
 
 def parseMemory(vw, memobj, baseaddr):
-    raise Exception('ihex loader cannot parse memory!')
+    raise Exception('srec loader cannot parse memory!')
