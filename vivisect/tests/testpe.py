@@ -2,7 +2,6 @@ import logging
 import unittest
 
 import PE
-import vivisect.cli as viv_cli
 import vivisect.const as viv_con
 import vivisect.tests.helpers as helpers
 
@@ -440,22 +439,22 @@ class PETests(unittest.TestCase):
                     (4300960, 4, 9, 'advapi32.RegOpenKeyW'),
                     (4300964, 4, 9, 'advapi32.RegCreateKeyW'),
                     (4300968, 4, 9, 'advapi32.RegCloseKey'),
-                    (4371208, 4, 9, 'delayed_user32.GetSysColorBrush'),
-                    (4371212, 4, 9, 'delayed_user32.SetCursor'),
-                    (4371216, 4, 9, 'delayed_user32.LoadCursorW'),
-                    (4371220, 4, 9, 'delayed_user32.LoadStringW'),
-                    (4371224, 4, 9, 'delayed_user32.SetWindowTextW'),
-                    (4371228, 4, 9, 'delayed_user32.GetDlgItem'),
-                    (4371232, 4, 9, 'delayed_user32.EndDialog'),
-                    (4371236, 4, 9, 'delayed_user32.DialogBoxIndirectParamW'),
-                    (4371240, 4, 9, 'delayed_user32.InflateRect'),
-                    (4371244, 4, 9, 'delayed_user32.SendMessageW'),
-                    (4371180, 4, 9, 'delayed_gdi32.EndPage'),
-                    (4371184, 4, 9, 'delayed_gdi32.EndDoc'),
-                    (4371188, 4, 9, 'delayed_gdi32.StartDocW'),
-                    (4371192, 4, 9, 'delayed_gdi32.SetMapMode'),
-                    (4371196, 4, 9, 'delayed_gdi32.GetDeviceCaps'),
-                    (4371200, 4, 9, 'delayed_gdi32.StartPage')])
+                    (4371208, 4, 9, 'user32.GetSysColorBrush'),
+                    (4371212, 4, 9, 'user32.SetCursor'),
+                    (4371216, 4, 9, 'user32.LoadCursorW'),
+                    (4371220, 4, 9, 'user32.LoadStringW'),
+                    (4371224, 4, 9, 'user32.SetWindowTextW'),
+                    (4371228, 4, 9, 'user32.GetDlgItem'),
+                    (4371232, 4, 9, 'user32.EndDialog'),
+                    (4371236, 4, 9, 'user32.DialogBoxIndirectParamW'),
+                    (4371240, 4, 9, 'user32.InflateRect'),
+                    (4371244, 4, 9, 'user32.SendMessageW'),
+                    (4371180, 4, 9, 'gdi32.EndPage'),
+                    (4371184, 4, 9, 'gdi32.EndDoc'),
+                    (4371188, 4, 9, 'gdi32.StartDocW'),
+                    (4371192, 4, 9, 'gdi32.SetMapMode'),
+                    (4371196, 4, 9, 'gdi32.GetDeviceCaps'),
+                    (4371200, 4, 9, 'gdi32.StartPage')])
 
         failed = False
         # self.assertEqual(imps, vw.getImports())
@@ -471,10 +470,11 @@ class PETests(unittest.TestCase):
 
         if failed:
             self.fail('Please see test logs for import test failures')
+
     def test_hiaddr_imports(self):
         # Test if imports located at a high relative address are discovered.
         file_path = helpers.getTestPath('windows', 'i386', 'section_has_hi_virtualaddr.exe')
         pe = PE.peFromFileName(file_path)
         import_list = pe.getImports()
-        self.assertEquals(len(import_list), 36, "expecting 36 imported functions")
-        self.assertEquals(import_list[0][1], "advapi32.dll", "imported function with name 'advapi32.dll' not found")
+        self.assertEqual(len(import_list), 36, "expecting 36 imported functions")
+        self.assertEqual(import_list[0][1], "advapi32.dll", "imported function with name 'advapi32.dll' not found")

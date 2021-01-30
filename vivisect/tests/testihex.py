@@ -25,4 +25,3 @@ class IHexTests(unittest.TestCase):
         self.assertEqual(vw.getFunction(0x4050), 0x4000)
         self.assertEqual(vw.getFunction(0x4060), 0x405e)
         self.assertEqual(vw.getFunction(0x4068), 0x405e)
-

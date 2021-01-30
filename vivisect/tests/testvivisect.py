@@ -19,10 +19,6 @@ def glen(g):
     return len([x for x in g])
 
 
-def isint(x):
-    return type(x) is int
-
-
 class VivisectTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -31,6 +27,9 @@ class VivisectTest(unittest.TestCase):
         cls.gcc_vw = helpers.getTestWorkspace('linux', 'amd64', 'gcc-7')
 
     def test_xrefs_types(self):
+        '''
+        Test that we have data consistency in xrefs
+        '''
         for vw in [self.chgrp_vw, self.vdir_vw, self.gcc_vw]:
             for xfrom, xto, xtype, xflags in vw.getXrefs():
                 self.assertEqual((xfrom, isint(xfrom)),
@@ -43,6 +42,9 @@ class VivisectTest(unittest.TestCase):
                                  (xflags, True))
 
     def test_loc_types(self):
+        '''
+        Test that we have data consistency in locations
+        '''
         for vw in [self.chgrp_vw, self.vdir_vw, self.gcc_vw]:
             for lva, lsize, ltype, linfo in vw.getLocations():
                 self.assertEqual((lva, isint(lva)),
@@ -52,7 +54,7 @@ class VivisectTest(unittest.TestCase):
                 self.assertEqual((ltype, isint(ltype)),
                                  (ltype, True))
                 if linfo:
-                    self.assertTrue(isint(linfo) or type(linfo) is str)
+                    self.assertTrue(type(linfo) in (int, str, list))
 
     def test_basic_apis(self):
         '''

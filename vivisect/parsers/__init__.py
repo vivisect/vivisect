@@ -67,7 +67,7 @@ def guessFormat(bytez):
     if bytemagic in macho_magics:
         return 'macho'
 
-    if bytez[0] == ':':
+    if bytez[0] == ord(':'):
         return 'ihex'
 
     return 'blob'
