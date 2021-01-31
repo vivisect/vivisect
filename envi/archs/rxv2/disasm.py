@@ -167,7 +167,7 @@ class RxDisasm:
         opsize = 1
 
         print "val: 0x%x  bval: 0x%x" % (val, bval)
-        nextbl, handler, mask, endval, opcode, mnem, opers, sz, iflags = curtable[bval]
+        nextbl, handler, mask, endval, opcode, mnem, operdefs, sz, iflags = curtable[bval]
         found = True
         
         print "  tabline: %r" % (repr(curtable[bval]))
@@ -177,7 +177,7 @@ class RxDisasm:
             curtable = nextbl
 
             # search through the list looking for the right one...
-            for nextbl, handler, mask, endval, opcode, mnem, opers, sz, iflags in curtable:
+            for nextbl, handler, mask, endval, opcode, mnem, operdefs, sz, iflags in curtable:
                 ### IMPORTANT: the lists MUST BE in order from smallest to largest encoding!
                 while sz > opsize:
                     # grab the next byte
@@ -198,7 +198,8 @@ class RxDisasm:
             raise e_exc.InvalidInstruction(bytez[offset:offset+opsize], "Couldn't find a opcode match in the table")
 
         # we've found a match, parse it!
-        logger.warning("PARSE MATCH FOUND: val: %x\n\t%x %x %x %r %r  %r  %x", val, mask, endval, opcode, mnem, opers, sz, iflags)
+        logger.warning("PARSE MATCH FOUND: val: %x\n\t%x %x %x %r %r  %r  %x", val, mask, endval, opcode, mnem, operdefs, sz, iflags)
+        print("PARSE MATCH FOUND: val: %x\n\t%x %x %x %r %r  %r  %x", val, mask, endval, opcode, mnem, operdefs, sz, iflags)
 
 
         if handler is not None:
@@ -207,9 +208,8 @@ class RxDisasm:
             return hndlFunc(val, curtable[bval])
 
         # let's parse out the things
-        opers = []
         fields = {}
-        for fkey, fparts in opers:
+        for fkey, fparts in operdefs:
             fdata = 0
             for shval, fmask in fparts:
                 fdata |= ((val >> shval) & fmask)

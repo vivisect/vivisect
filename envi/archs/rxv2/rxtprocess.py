@@ -373,11 +373,16 @@ def createRxTablesModule():
 
 def formsHist(data):
     forms = {}
+    formnms = {}
     bycnt = {}
+    bynm = {}
+
     for thing in data:
         operdefs = thing[4]
         operdefrepr = repr(operdefs)
+        operdefnmrepr = repr([nm for nm in operdefs.keys()])
         forms[operdefrepr] = forms.get(operdefrepr, 0) + 1
+        formnms[operdefnmrepr] = formnms.get(operdefnmrepr, 0) + 1
 
         operdefcnt = len(operdefs)
         tmp = bycnt.get(operdefcnt)
@@ -386,10 +391,18 @@ def formsHist(data):
             bycnt[operdefcnt] = tmp
         tmp[operdefrepr] = tmp.get(operdefrepr, 0) + 1
 
+        tmp = bynm.get(operdefcnt)
+        if tmp is None:
+            tmp = {}
+            bynm[operdefcnt] = tmp
+        tmp[operdefnmrepr] = tmp.get(operdefnmrepr, 0) + 1
+
+
+
     hist = [(y, x) for x,y in forms.items()]
     hist.sort()
 
-    return forms, hist, bycnt
+    return forms, formnms, hist, bycnt, bynm
 
 
 
