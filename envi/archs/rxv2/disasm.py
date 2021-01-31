@@ -8,9 +8,7 @@ import envi.exc as e_exc
 import envi.bits as e_bits
 import envi.memory as e_mem
 
-from envi.archs.rxv2.regs import *
-
-import envi.archs.rxv2.rxtables as e_rxtbls
+from . import regs, rxtables
 
 logger = logging.getLogger(__name__)
 
@@ -135,13 +133,13 @@ class RxRegDirectOper(envi.RegisterOper):
         return True
     
     def involvesPC(self):
-        return self.reg == REG_PC
+        return self.reg == regs.REG_PC
 
     def getWidth(self):
         return rctx.getRegisterWidth(self.reg) / 8
 
     def getOperValue(self, op, emu=None, codeflow=False):
-        if self.reg == REG_PC and not codeflow:
+        if self.reg == regs.REG_PC and not codeflow:
             return self.va
 
         if emu is None:
@@ -157,11 +155,11 @@ class RxRegDirectOper(envi.RegisterOper):
 
 class RxDisasm:
     def __init__(self):
-        self._dis_regctx = RXv2RegisterContext()
+        self._dis_regctx = regs.RXv2RegisterContext()
         self._dis_oparch = envi.ARCH_MSP430
 
     def disasm(self, bytez, offset=0, va=0):
-        curtable = e_rxtbls.tblmain
+        curtable = rxtables.tblmain
 
         # bite off the first byte
         bval, = struct.unpack_from('B', bytez, offset)
@@ -231,17 +229,22 @@ class RxDisasm:
                 if 'rs' in operkeys:
                     if 'lds' in operkeys:
                         # we have a dsp(Rs) operand
+                        pass
                     else:
                         opers.append(RxRegOper(reg, va))
                 elif 'imm' in operkeys:
                     # immediates must be sources, can't write to the opcode!
+                    pass
 
                 
             elif opercnt == 2:
                 #'li' gives a size for an extra IMM:#
+                        pass
 
             elif opercnt == 3:
+                        pass
             elif opercnt == 4:
+                        pass
         '''
         if fkey == 'rd':
             # dest register
@@ -272,10 +275,10 @@ class RxDisasm:
         return 4
 
     def getProgramCounterIndex(self):
-        return REG_PC
+        return regs.REG_PC
 
     def getStackCounterIndex(self):
-        return REG_SP
+        return regs.REG_SP
 
     def getFrameCounterIndex(self):
         return None
@@ -319,7 +322,7 @@ class RxRegOper(envi.RegisterOper):
         rname = rctx.getRegisterName(self.reg)
         mcanv.addNameText(rname, typename='registers')
 
-class RxImmOper(envi.ImmedOper)
+class RxImmOper(envi.ImmedOper):
     def __init__(self, val, va):
         self.val = val
         self.va = va

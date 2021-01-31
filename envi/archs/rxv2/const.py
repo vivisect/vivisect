@@ -151,3 +151,35 @@ for mnem in mnems:
 
 globals().update(instrs)
 
+
+nms = (
+    'O_PCDSP',
+    'O_RD',
+    'O_LDS',
+    'O_MI',
+    'O_RS',
+    'O_RS2',
+    'O_DSP',
+    'O_SZ',
+    'O_RD2',
+    'O_IMM',
+    'O_LI',
+    'O_CR',
+    'O_CB',
+    'O_LDD',
+    'O_BRD',
+    'O_CD',
+    'O_A',
+    'O_AD',
+    'O_RI',
+    'O_RB',
+)
+
+
+nmconsts = {}
+for nm in nms:
+    nmconsts[nm.upper()] = len(nmconsts)
+
+globals().update(nmconsts)
+
+

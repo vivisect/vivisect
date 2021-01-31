@@ -43,8 +43,8 @@ def process(fbytes):
 
         hashdx = fline.rfind('#')
         while hashdx > -1:
-            if fline[hashdx:].startswith('#IMM') or
-                fline[hashdx:].startswith('#UIMM') or
+            if fline[hashdx:].startswith('#IMM') or\
+                fline[hashdx:].startswith('#UIMM') or\
                 fline[hashdx:].startswith('#SIMM'): 
                     # we have a immediate encoding
                     nextspc = fline.find(' ', hashdx)
@@ -181,6 +181,10 @@ def genTables(data):
     tblmain = [None for x in range(256)]
     tables['tblmain'] = tblmain
 
+    nmconsts = []
+
+    # TODO: if we have any items in the first byte, stomp them out
+
     for idx in range(256):
         # nexttbl, handler, mask, endval, mnems, opers, sz
         # opers should be a tuple of (type, shift, mask)'s
@@ -188,11 +192,12 @@ def genTables(data):
             # this deserves it's own entry
             orig, mask, endval, mnem, opers, sz = byte1[idx][0]
             operands = convertOpers(opers, sz)
+            form = getForm(mnem, opers, operands)
             iflagstr = getIflags(mnem)
 
-            # if we have any items in the first byte, stomp them out
+            operandstr = reprCvtdOpers(operands, nmconsts)
 
-            tblmain[idx] = "(None, None, 0x%x, 0x%x, INS_%s, %r, %r, %r, %s)" % (mask, endval, mnem.upper(),mnem, operands, sz//8, iflagstr)
+            tblmain[idx] = "(None, %s, 0x%x, 0x%x, INS_%s, %r, %s, %r, %s)" % (form, mask, endval, mnem.upper(),mnem, operandstr, sz//8, iflagstr)
 
         elif not len(byte1[idx]):
             continue
@@ -203,7 +208,6 @@ def genTables(data):
             tblctr += 1
             tblname = 'tbl_%x' % idx
             tables[tblname] = subtbl
-            iflagstr = getIflags(mnem)
 
             openclist = byte1[idx]
 
@@ -212,12 +216,22 @@ def genTables(data):
 
             for orig, mask, endval, mnem, opers, sz in openclist:
                 operands = convertOpers(opers, sz)
-                subtbl.append("(None, None, 0x%x, 0x%x, INS_%s, %r, %r, %r, %s)" % (mask, endval, mnem.upper(), mnem, operands, sz//8, iflagstr))
+                form = getForm(mnem, opers, operands)
+                iflagstr = getIflags(mnem)
+
+                operandstr = reprCvtdOpers(operands, nmconsts)
+
+                subtbl.append("(None, %s, 0x%x, 0x%x, INS_%s, %r, %s, %r, %s)" % (form, mask, endval, mnem.upper(), mnem, operandstr, sz//8, iflagstr))
 
             tblmain[idx] = "(%s, None, 0, 1, None, None, None, None, IF_NONE)" % (tblname)
 
 
-    return tables
+    return tables, nmconsts
+
+
+def getForm(mnem, opers, operands):
+    return 'None'
+
 def getIflags(mnem):
     if mnem in branches:
         return 'IF_BRANCH | IF_NOFALL'
@@ -266,6 +280,22 @@ def convertOpers(opers, opsz):
 
     return operands
 
+def reprCvtdOpers(operands, nmconsts):
+    out = []
+
+    for onm,oparts in operands:
+        # create operand repr
+        operstr = ' '.join(["(%d, 0x%x)," % (x,y) for x,y in oparts])
+        nmconst = 'O_%s' % onm.upper()
+        out.append(("(%s, (%s))" % (nmconst, operstr)))
+
+        # create nmconsts (so we're comparing numbers not strings)
+        if nmconst not in nmconsts:
+            nmconsts.append(nmconst)
+
+    return '(' + ', '.join(out) + ')'
+
+
 
 def reprTables(tables):
     out = []
@@ -291,7 +321,7 @@ def _ptAppendTdata(tkey, tvals, out):
         out.append(')\n\n')
 
 
-def reprConsts(mnems):
+def reprConsts(mnems, nmconsts):
     out = []
     out.append('''
 
@@ -319,15 +349,24 @@ SZ = [
     out.append('    instrs["INS_%s" % mnem.upper()] = len(instrs)')
     out.append('\nglobals().update(instrs)')
     out.append('\n\n')
+
+    out.append('nms = (')
+    out.append('\n'.join(["    '%s'," % ins for ins in nmconsts]))
+    out.append(')\n\n')
+    out.append('nmconsts = {}')
+    out.append('for nm in nms:')
+    out.append('    nmconsts[nm.upper()] = len(nmconsts)')
+    out.append('\nglobals().update(nmconsts)')
+    out.append('\n\n')
     return '\n'.join(out)
 
 def createRxTablesModule():
     data, mnems = process(open('rxtbls.raw').read()); [x for x in data if x[-1] % 8]
-    tables = genTables(data)
+    tables, nmconsts = genTables(data)
 
     out = []
     out.append('from const import *')
-    out.append(reprConsts(mnems))
+    out.append(reprConsts(mnems, nmconsts))
     out.append(reprTables(tables))
 
     open('rxtables.py','w').write('\n'.join(out))
