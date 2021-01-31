@@ -17,7 +17,7 @@ import vivisect.qt.memory as vq_memory
 import vivisect.qt.ctxmenu as vq_ctxmenu
 import vivisect.tools.graphutil as viv_graphutil
 
-from PyQt5 import Qt, QtCore, QtGui, QtWebEngine
+from PyQt5 import Qt, QtCore, QtGui, QtWebEngine, QtWidgets
 from PyQt5.QtCore import pyqtSignal
 from PyQt5.QtWidgets import *
 
@@ -46,28 +46,28 @@ class VQVivFuncgraphCanvas(vq_memory.VivCanvasBase):
 
     def eventFilter(self, src, evt):
         if evt.type() == Qt.QEvent.Wheel:
-            self.wheelEvent(evt)
-            return True
+            return self._wheelEvent(evt)
         if evt.type() == Qt.QEvent.MouseMove:
-            self.mouseMoveEvent(evt)
+            self._mouseMoveEvent(evt)
             return True
         return False
 
-    def wheelEvent(self, event):
+    def _wheelEvent(self, event):
         mods = QApplication.keyboardModifiers()
         if mods == QtCore.Qt.ShiftModifier:
             delta = event.angleDelta().y()
             factord = delta / 1000.0
             self.setZoomFactor(self.zoomFactor() + factord)
             event.accept()
-            return
+            return True
 
-        return e_qt_memcanvas.VQMemoryCanvas.wheelEvent(self, event)
+        # e_qt_memcanvas.VQMemoryCanvas.wheelEvent(self, event)
+        return False
 
     def _setMousePos(self, data):
         self.curs.setPos(*self.basepos)
 
-    def mouseMoveEvent(self, event):
+    def _mouseMoveEvent(self, event):
         mods = QApplication.keyboardModifiers()
         if mods == QtCore.Qt.ShiftModifier:
             x = event.globalX()
@@ -276,7 +276,7 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
 
         self.loadDefaultRenderers()
 
-        self.addr_entry.returnPressed.connect(self._renderMemory)
+        self.addr_entry.returnPressed.connect(self._nav_expr)
 
         hbox.addWidget(self.hist_button)
         hbox.addWidget(self.addr_entry)
@@ -296,8 +296,10 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
         vwqgui.addEventCore(self)
         vwqgui.vivMemColorSignal.connect(self.mem_canvas._applyColorMap)
 
-        self.addHotKey('esc', 'mem:histback')
-        self.addHotKeyTarget('mem:histback', self._hotkey_histback)
+        QtWidgets.QShortcut(QtGui.QKeySequence("Escape"), self, activated=self._hotkey_histback)
+
+        # TODO: Transition theses to the above pattern (since escape/ctrl-c
+        # See: https://stackoverflow.com/questions/56890831/qwidget-cannot-catch-escape-backspace-or-c-x-key-press-events
         self.addHotKey('ctrl+0', 'funcgraph:resetzoom')
         self.addHotKeyTarget('funcgraph:resetzoom', self._hotkey_resetzoom)
         self.addHotKey('ctrl+=', 'funcgraph:inczoom')
@@ -313,6 +315,11 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
         self.addHotKey('ctrl+m', 'funcgraph:paintmerge')
         self.addHotKeyTarget('funcgraph:paintmerge', self._hotkey_paintMerge)
 
+    def _nav_expr(self):
+        expr = self.addr_entry.text()
+        self.history.append(expr)
+        self._renderMemory()
+
     def _hotkey_histback(self):
         if len(self.history) >= 2:
             self.history.pop()
@@ -320,7 +327,7 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
             self.enviNavGoto(expr)
 
     def _hotkey_resetzoom(self):
-        self.mem_canvas.setZoomFactor( 1 )
+        self.mem_canvas.setZoomFactor(1)
 
     def _hotkey_inczoom(self):
         newzoom = self.mem_canvas.zoomFactor()
@@ -331,7 +338,8 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
         else:
             newzoom += .25
 
-        if newzoom < 0: return
+        if newzoom < 0:
+            return
 
         self.mem_canvas.setZoomFactor(newzoom)
 
@@ -381,7 +389,7 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
             if sym is not None:
                 menustr += ' - %s' % repr(sym)
 
-            history.append( (menustr, expr) )
+            history.append((menustr, expr))
 
         history.reverse()
         for menustr,expr in history:
