@@ -289,11 +289,6 @@ class VQVivMemoryCanvas(VivCanvasBase):
 
         spos = page.scrollPosition().y()
         maxpos = page.contentsSize().height()
-        print('yeet')
-        print(dir(page.contentsSize()))
-        print(spos)
-        print(maxpos)
-        print('yeet')
 
         if not len(self._canv_rendvas):
             pass

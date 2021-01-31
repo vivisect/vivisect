@@ -99,10 +99,16 @@ class VQMemoryCanvas(e_memcanvas.MemoryCanvas, QWebEngineView):
         vq_main.eatevents()  # Let all render events go first
         page = self.page()
         selector = 'viv:0x%.8x' % va
+        js = f'''
+        var nodes = document.getElementsByName("{selector}");
+        if (nodes != null && nodes.length > 0) {{
+            nodes[0].scrollIntoView()
+        }}
+        '''
         if cb:
-            page.runJavaScript(f'var node = document.querySelector("{selector}"); node.scrollIntoView()', cb)
+            page.runJavaScript(js, cb)
         else:
-            page.runJavaScript(f'var node = document.querySelector("{selector}"); node.scrollIntoView()')
+            page.runJavaScript(js)
 
     @idlethread
     def _selectVa(self, va, cb=None):
@@ -170,9 +176,9 @@ class VQMemoryCanvas(e_memcanvas.MemoryCanvas, QWebEngineView):
         var node = document.querySelector("{self._canv_rendtagid}");
         node.innerHTML = `{self._canv_cache}` + node.innerHTML
 
-        var snode = document.querySelector("{selector}");
-        if (snode != null) {{
-            snode.scroolIntoView()
+        var snode = document.getElementsByName("{selector}");
+        if (snode != null && snode.length > 0) {{
+            snode[0].scrollIntoView()
         }}
         '''
         self._canv_cache = None
