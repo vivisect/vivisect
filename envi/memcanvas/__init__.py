@@ -257,10 +257,8 @@ class MemoryCanvas(object):
 
         self._endUpdateVas(fini)
 
-    def renderMemoryPrepend(self, size, cbs=None):
+    def renderMemoryPrepend(self, size):
         firstva, firstsize = self._canv_rendvas[0]
-        if cbs is None:
-            cbs = {}
 
         va, szdiff = self._loc_helper(firstva - size)
         size += szdiff
@@ -284,7 +282,7 @@ class MemoryCanvas(object):
 
             self._canv_rendvas.extend(savedrendvas)
 
-        except Exception as e:
+        except Exception:
             s = traceback.format_exc()
             self.addText("\nException At %s: %s\n" % (hex(va), s))
 

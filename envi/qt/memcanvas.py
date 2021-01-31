@@ -81,10 +81,11 @@ class VQMemoryCanvas(e_memcanvas.MemoryCanvas, QWebEngineView):
             va, szdiff = self._loc_helper(max(va - size, vmap[0]))
             size += size + szdiff
 
-        ret = e_memcanvas.MemoryCanvas.renderMemory(self, va, size, rend=rend)
-
-        if self._canv_rend_middle:
-            self._scrollToVa(origva)
+            def callScroll(data):
+                self._scrollToVa(origva)
+            ret = e_memcanvas.MemoryCanvas.renderMemory(self, va, size, rend=rend, cb=callScroll)
+        else:
+            ret = e_memcanvas.MemoryCanvas.renderMemory(self, va, size, rend=rend)
 
         return ret
 
@@ -98,7 +99,10 @@ class VQMemoryCanvas(e_memcanvas.MemoryCanvas, QWebEngineView):
         vq_main.eatevents()  # Let all render events go first
         page = self.page()
         selector = 'viv:0x%.8x' % va
-        page.runJavaScript(f'var node = document.querySelector("{selector}"); node.scrollIntoView()', cb)
+        if cb:
+            page.runJavaScript(f'var node = document.querySelector("{selector}"); node.scrollIntoView()', cb)
+        else:
+            page.runJavaScript(f'var node = document.querySelector("{selector}"); node.scrollIntoView()')
 
     @idlethread
     def _selectVa(self, va, cb=None):
@@ -139,21 +143,28 @@ class VQMemoryCanvas(e_memcanvas.MemoryCanvas, QWebEngineView):
             document.querySelector("{selector}").remove();
             '''
 
-        page.runJavaScript(js, cb)
+        if cb:
+            page.runJavaScript(js, cb)
+        else:
+            page.runJavaScript(js)
 
     def _endUpdateVas(self, cb=None):
-        self._canv_cache = None
-        self.page().runJavaScript(f'''
+        js = f'''
         node = document.querySelector('update#updatetmp');
         node.outerHTML = `{self._canv_cache}` + node.outerHTML;
-        ''', cb)
+        '''
+        if cb:
+            self.page().runJavaScript(js, cb)
+        else:
+            self.page().runJavaScript(js)
+
+        self._canv_cache = None
 
     def _beginRenderPrepend(self):
         self._canv_cache = ''
         self._canv_ppjump = self._canv_rendvas[0][0]
 
     def _endRenderPrepend(self, cb=None):
-        self._canv_cache = None
         selector = 'viv:0x%.8x' % self._canv_ppjump
         js = f'''
         var node = document.querySelector("{self._canv_rendtagid}");
@@ -164,7 +175,11 @@ class VQMemoryCanvas(e_memcanvas.MemoryCanvas, QWebEngineView):
             snode.scroolIntoView()
         }}
         '''
-        self.page().runJavaScript(js, cb)
+        self._canv_cache = None
+        if cb:
+            self.page().runJavaScript(js, cb)
+        else:
+            self.page().runJavaScript(js)
 
     def _beginRenderAppend(self):
         self._canv_cache = ''

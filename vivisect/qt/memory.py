@@ -284,16 +284,21 @@ class VivCanvasBase(vq_hotkey.HotKeyMixin, e_mem_canvas.VQMemoryCanvas):
 class VQVivMemoryCanvas(VivCanvasBase):
 
     def wheelEvent(self, event):
-        frame = self.page().mainFrame()
+        # TODO: Fixme
+        page = self.page()
 
-        sbcur = frame.scrollBarValue(qt_vertical)
-        sbmin = frame.scrollBarMinimum(qt_vertical)
-        sbmax = frame.scrollBarMaximum(qt_vertical)
+        spos = page.scrollPosition().y()
+        maxpos = page.contentsSize().height()
+        print('yeet')
+        print(dir(page.contentsSize()))
+        print(spos)
+        print(maxpos)
+        print('yeet')
 
         if not len(self._canv_rendvas):
             pass
 
-        elif sbcur == sbmax:
+        elif spos == maxpos:
 
             lastva, lastsize = self._canv_rendvas[-1]
             mapva, mapsize, mperm, mfname = self.vw.getMemoryMap(lastva)
@@ -301,7 +306,7 @@ class VQVivMemoryCanvas(VivCanvasBase):
             if sizeremain:
                 self.renderMemoryAppend(min(sizeremain, 128))
 
-        elif sbcur == sbmin:
+        elif spos == 0.0:
             firstva, firstsize = self._canv_rendvas[0]
             mapva, mapsize, mperm, mfname = self.vw.getMemoryMap(firstva)
             sizeremain = firstva - mapva

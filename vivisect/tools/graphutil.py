@@ -698,6 +698,7 @@ def reduceGraph(graph, props=('up','down')):
                 break
 
 
+# TODO: Move into base exception file
 class PathForceQuitException(Exception):
     def __repr__(self):
         return "Path Generator forced to stop seeking a new path.  Possibly Timeout."

@@ -1,4 +1,3 @@
-import types
 import collections
 
 # Symbol Type Constants ( for serialization )

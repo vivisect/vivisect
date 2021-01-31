@@ -77,6 +77,7 @@ class VQVivFuncgraphCanvas(vq_memory.VivCanvasBase):
                 dy = -(y - self.lastpos[1])
                 # dx = x - self.lastpos[0]
                 # dy = y - self.lastpos[1]
+                # TODO: Just use scrollPosition()
                 self.page().runJavaScript(f'window.scrollBy({dx}, {dy});', self._setMousePos)
             else:
                 self.lastpos = (x, y)
@@ -351,8 +352,7 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
         that have changed since last update, and be fast, so we can update
         after every change.
         '''
-        # TODO: Lol, remove mainFrame
-        self._last_viewpt = self.mem_canvas.page().mainFrame().scrollPosition()
+        self._last_viewpt = self.mem_canvas.page().scrollPosition()
         # FIXME: history should track this as well and return to the same place
         self.clearText()
         self.fva = None

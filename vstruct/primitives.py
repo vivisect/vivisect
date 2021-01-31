@@ -571,7 +571,7 @@ class v_bytes(v_prim):
         self._vs_value = b.ljust(size, b'\x00')
 
     def __repr__(self):
-        return binascii.hexlify(self._vs_value)
+        return binascii.hexlify(self._vs_value).decode('utf-8')
 
 class v_str(v_prim):
     '''

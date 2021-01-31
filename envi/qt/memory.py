@@ -302,7 +302,7 @@ class VQMemoryWindow(vq_hotkey.HotKeyMixin, EnviNavMixin, vq_save.SaveableWidget
 
         mhist = (expr, sizeexpr, rname)
         if mhist not in self.mem_history:
-            self.mem_history.appendleft( mhist )
+            self.mem_history.appendleft(mhist)
             while len(self.mem_history) > 100:
                 self.mem_history.pop()
 

@@ -5,7 +5,6 @@ msp430 module
 ############
 # Author: Don C. Weber
 # Started: 05/23/2009
-# 
 
 import envi
 
