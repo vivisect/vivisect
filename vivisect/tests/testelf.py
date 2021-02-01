@@ -275,7 +275,10 @@ class ELFTests(unittest.TestCase):
         # while they are seldom in hard targets, this is a weakness we should correct.
         return 0, 0
 
-    def test_minimal(self):
+    def DISABLEtest_minimal(self):
+        '''
+        Until we've got soe decent tests for this, all this does is prolong the test time
+        '''
         for path in (('linux','amd64','static64.llvm.elf'), ('linux','i386','static32.llvm.elf')):
             logger.warning("======== %r ========", path)
             fn = helpers.getTestPath(*path)
