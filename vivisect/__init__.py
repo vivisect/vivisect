@@ -1968,7 +1968,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         loctup = self.getLocation(va)
         if loctup is not None:
             if loctup[L_LTYPE] != LOC_POINTER or loctup[L_VA] != va:
-                logger.warn("0x%x: Attempting to make a Pointer where another location object exists (of type %r)", va, self.reprLocation(loctup))
+                logger.warning("0x%x: Attempting to make a Pointer where another location object exists (of type %r)", va, self.reprLocation(loctup))
             return None
 
         psize = self.psize
@@ -2045,10 +2045,11 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             if modified:
                 tinfo = pinfo
                 va = pva
+                size = psize
         else:
             tinfo = subs
 
-        return va, tinfo
+        return va, size, tinfo
 
     def makeString(self, va, size=None):
         """
@@ -2082,12 +2083,12 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
         # rip through the desired memory range to populate any substrings
         subs = self._getSubstrings(va, size, LOC_STRING)
-        va, tinfo = self._getStrTinfo(va, size, subs)
+        pva, psize, tinfo = self._getStrTinfo(va, size, subs)
 
         if self.getName(va) is None:
             m = self.readMemory(va, size-1).replace(b'\n', b'')
             self.makeName(va, "str_%s_%.8x" % (m[:16].decode('utf-8'), va))
-        return self.addLocation(va, size, LOC_STRING, tinfo=tinfo)
+        return self.addLocation(pva, psize, LOC_STRING, tinfo=tinfo)
 
     def makeUnicode(self, va, size=None):
         if size is None:
@@ -2097,12 +2098,12 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             raise Exception("Invalid Unicode Size: %d" % size)
 
         subs = self._getSubstrings(va, size, LOC_UNI)
-        va, tinfo = self._getStrTinfo(va, size, subs)
+        pva, psize, tinfo = self._getStrTinfo(va, size, subs)
 
         if self.getName(va) is None:
             m = self.readMemory(va, size-1).replace(b'\n', b'').replace(b'\0', b'')
             self.makeName(va, "wstr_%s_%.8x" % (m[:16],va))
-        return self.addLocation(va, size, LOC_UNI, tinfo=tinfo)
+        return self.addLocation(pva, psize, LOC_UNI, tinfo=tinfo)
 
     def addConstModule(self, modname):
         '''
