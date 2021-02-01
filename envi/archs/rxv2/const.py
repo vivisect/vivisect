@@ -12,10 +12,10 @@ IF_LONG = 1<<10
 IF_UWORD = 1<<11
 
 SZ = [
-    IF_BYTE,
-    IF_WORD,
-    IF_LONG,
-    IF_UWORD,
+    (IF_BYTE, 1),
+    (IF_WORD, 2),
+    (IF_LONG, 4),
+    (IF_UWORD, 2),
     ]
 
 OF_B = 1 << 0
@@ -39,7 +39,45 @@ SIZE_BYTES[OF_L] = 'l'
 SIZE_BYTES[OF_UW] = 'uw'
 SIZE_BYTES[OF_UB] = 'ub'
 
-mnems = (
+BMCND = [
+    'bmz',
+    'bmnz',
+    'bmgeu',
+    'bmltu',
+    'bmgtu',
+    'bmleu',
+    'bmpz',
+    'bmn',
+    'bmge',
+    'bmlt',
+    'bmgt',
+    'bmle',
+    'bmo',
+    'bmno',
+    '',
+    '',
+    ]
+
+SCCND = [
+    'scz',
+    'scnz',
+    'scgeu',
+    'scltu',
+    'scgtu',
+    'scleu',
+    'scpz',
+    'scn',
+    'scge',
+    'sclt',
+    'scgt',
+    'scle',
+    'sco',
+    'scno',
+    '',
+    '',
+    ]
+
+mnems = [
     'abs',
     'adc',
     'add',
@@ -162,8 +200,9 @@ mnems = (
     'wait',
     'xchg',
     'xor',
-)
-
+]
+mnems.extend(SCCND)
+mnems.extend(BMCND)
 instrs = {}
 for mnem in mnems:
     instrs["INS_%s" % mnem.upper()] = len(instrs)
@@ -208,6 +247,8 @@ forms = (
     'FORM_RD_LD_RS',
     'FORM_RD_IMM',
     'FORM_RD_LI',
+    'FORM_BMCND',
+    'FORM_SCCND',
     'FORM_A_RS2_RS',
 )
 

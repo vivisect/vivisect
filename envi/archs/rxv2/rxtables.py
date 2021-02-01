@@ -421,7 +421,7 @@ tbl_fc = (\
     (None, None, 0xfffc00, 0xfc3000, INS_TST, 'tst', ((O_LDS, ((8, 0x3),)), (O_RS2, ((0, 0xf),)), (O_RS, ((4, 0xf),))), 3, IF_NONE),
     (None, None, 0xffff00, 0xfc4b00, INS_STZ, 'stz', ((O_RD, ((0, 0xf),)), (O_RS, ((4, 0xf),))), 3, IF_NONE),
     (None, None, 0xffff00, 0xfc4b00, INS_STNZ, 'stnz', ((O_RD, ((0, 0xf),)), (O_RS, ((4, 0xf),))), 3, IF_NONE),
-    (None, None, 0xfff000, 0xfcd000, INS_SCCND, 'sccnd', ((O_RD, ((4, 0xf),)), (O_SZ, ((10, 0x3),)), (O_LDD, ((8, 0x3),)), (O_CD, ((0, 0xf),))), 3, IF_NONE),
+    (None, FORM_SCCND, 0xfff000, 0xfcd000, INS_SCCND, 'sccnd', ((O_RD, ((4, 0xf),)), (O_SZ, ((10, 0x3),)), (O_LDD, ((8, 0x3),)), (O_CD, ((0, 0xf),))), 3, IF_NONE),
     (None, FORM_RD_LD_RS, 0xfffc00, 0xfc0000, INS_SBB, 'sbb', ((O_RD, ((0, 0xf),)), (O_LDS, ((8, 0x3),)), (O_RS, ((4, 0xf),))), 3, IF_NONE),
     (None, FORM_RD_LD_RS, 0xfffc00, 0xfc9800, INS_ROUND, 'round', ((O_RD, ((0, 0xf),)), (O_LDS, ((8, 0x3),)), (O_RS, ((4, 0xf),))), 3, IF_NONE),
     (None, None, 0xffff00, 0xfc3b00, INS_NOT, 'not', ((O_RD, ((0, 0xf),)), (O_RS, ((4, 0xf),))), 3, IF_NONE),

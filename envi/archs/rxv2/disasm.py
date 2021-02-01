@@ -166,6 +166,8 @@ class RxDisasm:
         self.HANDLERS[FORM_RD_LD_RS] = self.form_RD_LD_RS
         self.HANDLERS[FORM_A_RS2_RS] = self.form_A_RS2_RS
         self.HANDLERS[FORM_RD_LD_MI_RS] = self.form_RD_LD_MI_RS
+        self.HANDLERS[FORM_SCCND] = self.form_SCCND
+        self.HANDLERS[FORM_BMCND] = self.form_BMCND
 
     def disasm(self, bytez, offset=0, va=0):
         curtable = rxtables.tblmain
@@ -252,7 +254,7 @@ class RxDisasm:
                 li = fields.get(O_LI)
                 if li is not None:
                     if li == 3:
-                        imm = e_bits.slowparsebytes(bytez, off, 3, signed=True, bigend=True)
+                        imm = e_bits.slowparsebytes(bytez, off, 3, sign=True, bigend=True)
                     else:
                         if li == 0:
                             li = 4
@@ -277,7 +279,7 @@ class RxDisasm:
                 li = fields.get(O_LI)
                 if li is not None:
                     if li == 3:
-                        imm = e_bits.slowparsebytes(bytez, off, 3, signed=True, bigend=True)
+                        imm = e_bits.slowparsebytes(bytez, off, 3, sign=True, bigend=True)
                     else:
                         if li == 0:
                             li = 4
@@ -301,14 +303,17 @@ class RxDisasm:
                             if regconst == O_CR:
                                 opers.append(RxCRRegOper(reg, va=va))
 
+                            elif regconst == O_A:
+                                opers.append(RxRegOper(REG_ACC0 + reg, va))
+
                             else:
                                 opers.append(RxRegOper(reg, va=va))
 
 
-        import envi.interactive as ei; ei.dbg_interact(locals(), globals())
+        #import envi.interactive as ei; ei.dbg_interact(locals(), globals())
 
 
-        return RxOpcode(va, opcode, mnem, opers, iflags, size) 
+        return RxOpcode(va, opcode, mnem, opers, iflags, sz)
 
     def form_PCDSP(self, va, opcode, mnem, fields, sz, iflags, bytez, off):
         import envi.interactive as ei; ei.dbg_interact(locals(), globals())
@@ -343,6 +348,49 @@ class RxDisasm:
 
         return RxOpcode(va, opcode, mnem, opers, iflags, size) 
 
+    def form_BMCND(self, va, opcode, mnem, fields, sz, iflags, bytez, off):
+        mnem = BMCND[fields.get(O_CD)]
+
+        szflags, tsize = SZ[fields.get(O_SZ)]
+        iflags |= IF_COND | szflags
+
+        imm = fields.get(O_IMM)
+        rd = fields.get(O_RD)
+        ld = fields.get(O_LDD)
+        # dsp operand with 0 or some 1- or 2-byte displacement
+        badd = ld
+        dsp = e_bits.parsebytes(bytez, off, badd, sign=True, bigend=True)
+        sz += badd
+
+        opers = (
+                RxImmOper(imm, va),
+                RxDspOper(rd, dsp, va), 
+                )
+
+        return RxOpcode(va, opcode, mnem, opers, iflags, sz) 
+
+    def form_SCCND(self, va, opcode, mnem, fields, sz, iflags, bytez, off):
+        #import envi.interactive as ei; ei.dbg_interact(locals(), globals())
+        mnem = SCCND[fields.get(O_CD)]
+
+        szflags, tsize = SZ[fields.get(O_SZ)]
+        iflags |= IF_COND | szflags
+
+        rd = fields.get(O_RD)
+        ld = fields.get(O_LD)
+        if ld == 3: # treated as just a register operand
+            opers = (RxRegOper(rd, va), )
+
+        else:   # dsp operand with 0 or some 1- or 2-byte displacement
+            badd = ld
+            dsp = e_bits.parsebytes(bytez, off, badd, sign=True, bigend=True)
+            sz += badd
+
+            opers = (RxDspOper(rd, dsp, va), )
+
+        return RxOpcode(va, opcode, mnem, opers, iflags, sz) 
+
+
     def form_RD_LD_RS(self, va, opcode, mnem, fields, sz, iflags, bytez, off):
         import envi.interactive as ei; ei.dbg_interact(locals(), globals())
         opers = (RxPcdspOper(fdata, va), )
@@ -356,10 +404,17 @@ class RxDisasm:
         return RxOpcode(va, opcode, mnem, opers, iflags, size) 
 
     def form_RD_LI(self, va, opcode, mnem, fields, sz, iflags, bytez, off):
-        import envi.interactive as ei; ei.dbg_interact(locals(), globals())
-        opers = (RxPcdspOper(fdata, va), )
+        #import envi.interactive as ei; ei.dbg_interact(locals(), globals())
+        rd = fields.get(O_RD)
+        li = fields.get(O_LI)
+        badd = (li, 4)[li==0]
+        imm = e_bits.parsebytes(bytez, off, badd, sign=True, bigend=True)
+        opers = (
+                RxImmOper(imm, va),
+                RxRegOper(rd, va), 
+                )
 
-        return RxOpcode(va, opcode, mnem, opers, iflags, size) 
+        return RxOpcode(va, opcode, mnem, opers, iflags, sz) 
 
     def form_A_RS2_RS(self, va, opcode, mnem, fields, sz, iflags, bytez, off):
         import envi.interactive as ei; ei.dbg_interact(locals(), globals())
@@ -438,7 +493,7 @@ class RxImmOper(envi.ImmedOper):
         logger.warning("%s needs to implement getOperAddr!" % self.__class__.__name__)
 
     def repr(self, op):
-        return self.val
+        return hex(self.val)
 
     def render(self, mcanv, op, idx):
         val = self.getOperValue(op)
