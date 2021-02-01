@@ -123,9 +123,11 @@ class SymbolikExpressionParser:
             # slice is either Slice or Index
             # For "index" we assume they mean to specify width
             slclass = a.slice.__class__
-            if slclass == ast.Index:
+            # TODO: ast.Index is deprecated as of python 3.9 and will be removed in future versions
+            if slclass == ast.Constant or slclass == ast.Index:
                 ival = a.slice.value
-                if not isinstance(ival, ast.Num):
+                # TODO: ast.Num is deprecated as of python 3.9 and will be removed in future versions
+                if type(ival) not in (int, ast.Num, ast.Constant):
                     raise Exception('Unsupported Expression (symbolik width index)')
 
                 # Override width for "value"
