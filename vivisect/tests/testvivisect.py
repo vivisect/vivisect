@@ -95,9 +95,9 @@ class VivisectTest(unittest.TestCase):
         self.assertTrue(len(vw.getLocations()) > 1000)
 
         # tuples are Name, Number of Locations, Size in bytes, Percentage of space
-        ans = {0: ('Undefined', 0, 509878, 48),
+        ans = {0: ('Undefined', 0, 509828, 48),
                1: ('Num/Int', 271, 1724, 0),
-               2: ('String', 4066, 153678, 14),
+               2: ('String', 4080, 153728, 14),
                3: ('Unicode', 0, 0, 0),
                4: ('Pointer', 5376, 43008, 4),
                5: ('Opcode', 81348, 331076, 31),
@@ -435,8 +435,8 @@ class VivisectTest(unittest.TestCase):
         <strtbl> should be a table of *string* pointers, not code block pointers
         '''
         badva = 0x0805b6f2
-        loctup = self.vdir_vw.getLocation(badva)
-        self.assertEqual((134592163, 86, 2, []), loctup)
+        loctup = self.vdir_vw.getLocation(badva, range=False)
+        self.assertEqual((134592163, 86, 2, [(134592242, 7)]), loctup)
 
         strtbl = 0x805e75c
         loctup = self.vdir_vw.getLocation(strtbl)
@@ -504,18 +504,18 @@ class VivisectTest(unittest.TestCase):
         vw = self.gcc_vw
         # real boy test
         loc = vw.getLocation(0x48a301, range=True)
-        rep = vw.readMemory(loc[v_const.L_VA], loc[v_const.L_SIZE])
+        rep = vw.readMemory(loc[v_const.L_VA], loc[v_const.L_SIZE]).decode('utf-8')
         self.assertEqual(loc, (0x48a301, 6, 2, []))
         self.assertEqual(rep, '/lib/\x00')
 
         loc = vw.getLocation(0x48a2fd)
-        rep = vw.readMemory(loc[v_const.L_VA], loc[v_const.L_SIZE])
+        rep = vw.readMemory(loc[v_const.L_VA], loc[v_const.L_SIZE]).decode('utf-8')
         self.assertEqual(loc, (0x48a2fd, 10, 2, [(0x48a301, 6)]))
         self.assertEqual(rep, '/usr/lib/\x00')
 
         # easily retrieve the parent string
         loc = vw.getLocation(0x48a302, range=False)
-        rep = vw.readMemory(loc[v_const.L_VA], loc[v_const.L_SIZE])
+        rep = vw.readMemory(loc[v_const.L_VA], loc[v_const.L_SIZE]).decode('utf-8')
         self.assertEqual(loc, (0x48a2fd, 10, 2, [(0x48a301, 6)]))
         self.assertEqual(rep, '/usr/lib/\x00')
 

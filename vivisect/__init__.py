@@ -2033,7 +2033,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             modified = False
             pva, psize, ptype, pinfo = ploc
             if ptype not in (LOC_STRING, LOC_UNI):
-                return subs
+                return va, subs
             if (va, size) not in pinfo:
                 modified = True
                 pinfo.append((va, size))
@@ -2044,10 +2044,11 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
                     pinfo.append((sva, ssize))
             if modified:
                 tinfo = pinfo
+                va = pva
         else:
             tinfo = subs
 
-        return tinfo
+        return va, tinfo
 
     def makeString(self, va, size=None):
         """
@@ -2081,7 +2082,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
         # rip through the desired memory range to populate any substrings
         subs = self._getSubstrings(va, size, LOC_STRING)
-        tinfo = self._getStrTinfo(va, size, subs)
+        va, tinfo = self._getStrTinfo(va, size, subs)
 
         if self.getName(va) is None:
             m = self.readMemory(va, size-1).replace(b'\n', b'')
@@ -2096,7 +2097,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             raise Exception("Invalid Unicode Size: %d" % size)
 
         subs = self._getSubstrings(va, size, LOC_UNI)
-        tinfo = self._getStrTinfo(va, size, subs)
+        va, tinfo = self._getStrTinfo(va, size, subs)
 
         if self.getName(va) is None:
             m = self.readMemory(va, size-1).replace(b'\n', b'').replace(b'\0', b'')

@@ -109,8 +109,16 @@ def analyze(vw):
         vatodo.extend( [tova for fromva, tova, reftype, rflags in vw.getXrefs(rtype=REF_PTR) if vw.getLocation(tova) is None] )
 
         for va in set(vatodo):
-            if vw.getLocation(va) is not None:
+            loc = vw.getLocation(va)
+            if loc is not None:
+                if loc[L_LTYPE] == LOC_STRING:
+                    vw.makeString(va)
+                    tried.add(va)
+                elif loc[L_LTYPE] == LOC_UNI:
+                    vw.makeUnicode(va)
+                    tried.add(va)
                 continue
+
             if vw.isDeadData(va):
                 continue
 
@@ -126,6 +134,7 @@ def analyze(vw):
             emu = vw.getEmulator()
             wat = watcher(vw, va)
             emu.setEmulationMonitor(wat)
+
             try:
                 emu.runFunction(va, maxhit=1)
             except Exception:
