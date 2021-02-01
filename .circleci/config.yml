@@ -47,13 +47,13 @@ commands:
 
 jobs:
 
-  python27:
+  python39:
     parallelism: 1
     docker:
       - image: cimg/base:2020.01
         environment:
           VIVTESTFILES: /tmp/vivtestfiles
-          PYVERS: 2.7
+          PYVERS: 3.9
 
     working_directory: ~/repo
 
@@ -65,7 +65,7 @@ workflows:
   run_tests:
     jobs:
 
-      - python27:
+      - python39:
           filters:
             tags:
               only: /.*/
@@ -81,4 +81,4 @@ workflows:
 #              only:
 #                - master
 #    jobs:
-#      - python27
+#      - python39
