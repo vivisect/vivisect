@@ -14,10 +14,6 @@ ls_amd64_data = {
         (0x400230, 'ls.__entry'),
         (0x42ec10, 'ls.fini_function'),
         (0x739f60, 'ls.ptr_fini_function_00739f60'),
-        (0x634100, 'ptr_ptr_str_^[Yy]_00634100'),
-        (0x634d98, 'ptr_ptr_ptr_sub_00412630_00634d98'),
-        (0x634ea0, 'ptr_ptr_sub_00412630_00634ea0'),
-        (0x634ea8, 'ptr_ptr_sub_00412920_00634ea8'),
     ],
 
     'pltgot': [
