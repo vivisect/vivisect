@@ -214,8 +214,22 @@ def genTables(data):
 
             openclist = byte1[idx]
 
-            # sort from smallest to largest encoding! VERY IMPORTANT
-            openclist.sort(cmp=lambda x,y: [-1,1][x[5]>y[5]])
+            # sort from encoding! VERY IMPORTANT... ? 
+            def thingsort(x, y):
+                xlowest = 255
+                for xnm, xpart in x[4].items():
+                    for key in xpart.keys():
+                        if key < xlowest:
+                            xlowest = key
+
+                ylowest = 255
+                for ynm, ypart in y[4].items():
+                    for key in ypart.keys():
+                        if key < ylowest:
+                            ylowest = key
+                return ylowest - xlowest
+
+            openclist.sort(cmp=thingsort)
 
             for orig, mask, endval, mnem, opers, sz in openclist:
                 operands = convertOpers(opers, sz)
@@ -249,6 +263,12 @@ def getForm(mnem, operdefs, operands):
         return 'FORM_RD_IMM'
     elif nms == ['pcdsp']:
         return 'FORM_PCDSP'
+    elif nms == ['rd', 'ld', 'imm', 'cd']:
+        return 'FORM_BMCND' 
+    elif nms == ['rd', 'imm', 'cd']:
+        return 'FORM_BMCND' 
+    elif nms == ['rd', 'sz', 'ld', 'cd']:
+        return 'FORM_SCCND' 
 
     return 'None'
 
@@ -341,6 +361,23 @@ def _ptAppendTdata(tkey, tvals, out):
         out.append(')\n\n')
 
 
+CNDS = (
+    'z',
+    'nz',
+    'geu',
+    'ltu',
+    'gtu',
+    'leu',
+    'pz',
+    'n',
+    'ge',
+    'lt',
+    'gt',
+    'le',
+    'o',
+    'no',
+    )
+
 def reprConsts(mnems, nmconsts, forms):
     out = []
     out.append('''
@@ -353,10 +390,10 @@ IF_LONG = 1<<10
 IF_UWORD = 1<<11
 
 SZ = [
-    IF_BYTE,
-    IF_WORD,
-    IF_LONG,
-    IF_UWORD,
+    (IF_BYTE, 1),
+    (IF_WORD, 2),
+    (IF_LONG, 4),
+    (IF_UWORD, 2),
     ]
 
 
@@ -371,6 +408,7 @@ MI_FLAGS = (
         (OF_W, 2),
         (OF_L, 4),
         (OF_UW, 2),
+        (OF_UB, 1),
         )
 
 SIZE_BYTES = [None for x in range(17)]
@@ -382,9 +420,17 @@ SIZE_BYTES[OF_UB] = 'ub'
 
 ''')
 
-    out.append('mnems = (')
+    out.append('BMCND = [')
+    out.append('\n'.join(["    'bm%s'," % ins for ins in CNDS]))
+    out.append(']')
+    out.append('SCCND = [')
+    out.append('\n'.join(["    'sc%s'," % ins for ins in CNDS]))
+    out.append(']')
+    out.append('mnems = [')
     out.append('\n'.join(["    '%s'," % ins for ins in mnems]))
-    out.append(')\n\n')
+    out.append(']')
+    out.append('mnems.extend(BMCND)')
+    out.append('mnems.extend(SCCND)\n')
     out.append('instrs = {}')
     out.append('for mnem in mnems:')
     out.append('    instrs["INS_%s" % mnem.upper()] = len(instrs)')

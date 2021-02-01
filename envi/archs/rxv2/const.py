@@ -18,6 +18,7 @@ SZ = [
     (IF_UWORD, 2),
     ]
 
+
 OF_B = 1 << 0
 OF_W = 1 << 1
 OF_L = 1 << 2
@@ -39,6 +40,7 @@ SIZE_BYTES[OF_L] = 'l'
 SIZE_BYTES[OF_UW] = 'uw'
 SIZE_BYTES[OF_UB] = 'ub'
 
+
 BMCND = [
     'bmz',
     'bmnz',
@@ -54,10 +56,7 @@ BMCND = [
     'bmle',
     'bmo',
     'bmno',
-    '',
-    '',
-    ]
-
+]
 SCCND = [
     'scz',
     'scnz',
@@ -73,10 +72,7 @@ SCCND = [
     'scle',
     'sco',
     'scno',
-    '',
-    '',
-    ]
-
+]
 mnems = [
     'abs',
     'adc',
@@ -201,8 +197,9 @@ mnems = [
     'xchg',
     'xor',
 ]
-mnems.extend(SCCND)
 mnems.extend(BMCND)
+mnems.extend(SCCND)
+
 instrs = {}
 for mnem in mnems:
     instrs["INS_%s" % mnem.upper()] = len(instrs)
@@ -210,12 +207,13 @@ for mnem in mnems:
 globals().update(instrs)
 
 
+
 nms = (
     'O_PCDSP',
     'O_RD',
     'O_LDS',
-    'O_MI',
     'O_RS',
+    'O_MI',
     'O_RS2',
     'O_DSP',
     'O_SZ',
@@ -225,13 +223,13 @@ nms = (
     'O_CR',
     'O_CB',
     'O_LDD',
-    'O_BRD',
     'O_CD',
     'O_A',
     'O_AD',
     'O_RI',
     'O_RB',
 )
+
 
 nmconsts = {}
 for nm in nms:
@@ -243,12 +241,12 @@ globals().update(nmconsts)
 
 forms = (
     'FORM_PCDSP',
-    'FORM_RD_LD_MI_RS',
     'FORM_RD_LD_RS',
+    'FORM_RD_LD_MI_RS',
     'FORM_RD_IMM',
     'FORM_RD_LI',
-    'FORM_BMCND',
     'FORM_SCCND',
+    'FORM_BMCND',
     'FORM_A_RS2_RS',
 )
 
@@ -258,5 +256,6 @@ for form in forms:
     formconsts[form.upper()] = len(formconsts)
 
 globals().update(formconsts)
+
 
 
