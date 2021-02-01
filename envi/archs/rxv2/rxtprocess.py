@@ -181,6 +181,7 @@ def genTables(data):
     tblmain = [None for x in range(256)]
     tables['tblmain'] = tblmain
 
+    forms = []
     nmconsts = []
 
     # TODO: if we have any items in the first byte, stomp them out
@@ -196,6 +197,8 @@ def genTables(data):
             iflagstr = getIflags(mnem)
 
             operandstr = reprCvtdOpers(operands, nmconsts)
+            if form not in forms and form != "None":
+                forms.append(form)
 
             tblmain[idx] = "(None, %s, 0x%x, 0x%x, INS_%s, %r, %s, %r, %s)" % (form, mask, endval, mnem.upper(),mnem, operandstr, sz//8, iflagstr)
 
@@ -220,16 +223,33 @@ def genTables(data):
                 iflagstr = getIflags(mnem)
 
                 operandstr = reprCvtdOpers(operands, nmconsts)
+                if form not in forms and form != "None":
+                    forms.append(form)
 
                 subtbl.append("(None, %s, 0x%x, 0x%x, INS_%s, %r, %s, %r, %s)" % (form, mask, endval, mnem.upper(), mnem, operandstr, sz//8, iflagstr))
 
             tblmain[idx] = "(%s, None, 0, 1, None, None, None, None, IF_NONE)" % (tblname)
 
 
-    return tables, nmconsts
+    return tables, nmconsts, forms
 
 
-def getForm(mnem, opers, operands):
+def getForm(mnem, operdefs, operands):
+    nms = [nm for nm in operdefs.keys()]
+
+    if nms == ['rd', 'ld', 'mi', 'rs']:
+        return 'FORM_RD_LD_MI_RS'
+    elif nms == ['rd', 'ld', 'rs']:
+        return 'FORM_RD_LD_RS'
+    elif nms == ['a', 'rs2', 'rs']:
+        return 'FORM_A_RS2_RS'
+    elif nms == ['rd', 'li']:
+        return 'FORM_RD_LI'
+    elif nms == ['rd', 'imm']:
+        return 'FORM_RD_IMM'
+    elif nms == ['pcdsp']:
+        return 'FORM_PCDSP'
+
     return 'None'
 
 def getIflags(mnem):
@@ -321,7 +341,7 @@ def _ptAppendTdata(tkey, tvals, out):
         out.append(')\n\n')
 
 
-def reprConsts(mnems, nmconsts):
+def reprConsts(mnems, nmconsts, forms):
     out = []
     out.append('''
 
@@ -338,6 +358,27 @@ SZ = [
     IF_LONG,
     IF_UWORD,
     ]
+
+
+OF_B = 1 << 0
+OF_W = 1 << 1
+OF_L = 1 << 2
+OF_UW = 1 << 3
+OF_UB = 1 << 4
+
+MI_FLAGS = (
+        (OF_B, 1),
+        (OF_W, 2),
+        (OF_L, 4),
+        (OF_UW, 2),
+        )
+
+SIZE_BYTES = [None for x in range(17)]
+SIZE_BYTES[OF_B] = 'b'
+SIZE_BYTES[OF_W] = 'w'
+SIZE_BYTES[OF_L] = 'l'
+SIZE_BYTES[OF_UW] = 'uw'
+SIZE_BYTES[OF_UB] = 'ub'
 
 ''')
 
@@ -358,15 +399,24 @@ SZ = [
     out.append('    nmconsts[nm.upper()] = len(nmconsts)')
     out.append('\nglobals().update(nmconsts)')
     out.append('\n\n')
+
+    out.append('forms = (')
+    out.append('\n'.join(["    '%s'," % ins for ins in forms]))
+    out.append(')\n\n')
+    out.append('formconsts = {}')
+    out.append('for form in forms:')
+    out.append('    formconsts[form.upper()] = len(formconsts)')
+    out.append('\nglobals().update(formconsts)')
+    out.append('\n\n')
     return '\n'.join(out)
 
 def createRxTablesModule():
     data, mnems = process(open('rxtbls.raw').read()); [x for x in data if x[-1] % 8]
-    tables, nmconsts = genTables(data)
+    tables, nmconsts, forms = genTables(data)
 
     out = []
     out.append('from const import *')
-    out.append(reprConsts(mnems, nmconsts))
+    out.append(reprConsts(mnems, nmconsts, forms))
     out.append(reprTables(tables))
 
     open('rxtables.py','w').write('\n'.join(out))

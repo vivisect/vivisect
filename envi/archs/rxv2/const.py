@@ -18,6 +18,26 @@ SZ = [
     IF_UWORD,
     ]
 
+OF_B = 1 << 0
+OF_W = 1 << 1
+OF_L = 1 << 2
+OF_UW = 1 << 3
+OF_UB = 1 << 4
+
+MI_FLAGS = (
+        (OF_B, 1),
+        (OF_W, 2),
+        (OF_L, 4),
+        (OF_UW, 2),
+        (OF_UB, 1),
+        )
+
+SIZE_BYTES = [None for x in range(17)]
+SIZE_BYTES[OF_B] = 'b'
+SIZE_BYTES[OF_W] = 'w'
+SIZE_BYTES[OF_L] = 'l'
+SIZE_BYTES[OF_UW] = 'uw'
+SIZE_BYTES[OF_UB] = 'ub'
 
 mnems = (
     'abs',
@@ -144,7 +164,6 @@ mnems = (
     'xor',
 )
 
-
 instrs = {}
 for mnem in mnems:
     instrs["INS_%s" % mnem.upper()] = len(instrs)
@@ -175,11 +194,28 @@ nms = (
     'O_RB',
 )
 
-
 nmconsts = {}
 for nm in nms:
     nmconsts[nm.upper()] = len(nmconsts)
 
 globals().update(nmconsts)
+
+
+
+forms = (
+    'FORM_PCDSP',
+    'FORM_RD_LD_MI_RS',
+    'FORM_RD_LD_RS',
+    'FORM_RD_IMM',
+    'FORM_RD_LI',
+    'FORM_A_RS2_RS',
+)
+
+
+formconsts = {}
+for form in forms:
+    formconsts[form.upper()] = len(formconsts)
+
+globals().update(formconsts)
 
 
