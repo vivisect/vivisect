@@ -88,6 +88,8 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         else:
             self.vivhome = e_config.gethomedir(".viv", makedir=autosave)
         self._viv_gui = None    # If a gui is running, he will put a ref here...
+        self._ext_ctxmenu_hooks = {}
+        self._extensions = {}
 
         self.saved = True  # TODO: where is this used?
         self.rchan = None
@@ -191,6 +193,56 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
                 vwgui.doStuffAndThings()
         '''
         return self._viv_gui
+
+    def addCtxMenuHook(self, name, handler):
+        '''
+        Extensions can add Context Menu hooks to modify the menu as they wish.
+        This would most often happen from the Extension's vivExtension() init function.
+        see vivisect.qt.ctxmenu for more details
+
+        handler should have the following prototype (inc. example code):
+
+
+        from vqt.common import ACT
+        def myExtCtxMenuHandler(vw, menu):
+            toymenu = menu.addMenu('myToys')
+            toymenu.addAction('Voodoo Wizbang ZeroDay Finder Thingy', ACT(doCoolShit, vw, va))
+
+        Currently, this should live in a loaded module, not in your Viv Extension's main py file.
+        '''
+        if name in self._ext_ctxmenu_hooks:
+            cur = self._ext_ctxmenu_hooks[name]
+            logger.warning("Attempting to hook the context menu: %r is already registered \
+                    (cur: %r new: %r)", name, cur, handler)
+            return
+
+        self._ext_ctxmenu_hooks[name] = handler
+
+    def delCtxMenuHook(self, name):
+        '''
+        Remove a context-menu hook that has been installed by an extension
+        '''
+        self._ext_ctxmenu_hooks.pop(name, None)
+
+    def addExtension(self, name, extmod):
+        '''
+        Add extension module to a list of extensions.
+        This keeps a list of installed extension modules, with the added value
+        of keeping the loaded module in memory.
+        '''
+        if name in self._extensions:
+            cur = self._extensions[name]
+            logger.warning("Attempting to register an extension: %r is already registered \
+                    (cur: %r new: %r)", name, cur, handler)
+            return
+
+        self._extensions[name] = extmod
+
+    def delExtension(self, name):
+        '''
+        Remove's extension module from the list of extensions.
+        '''
+        self._extensions.pop(name, None)
 
     def getVivGuid(self):
         '''
@@ -1914,7 +1966,8 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         """
         loctup = self.getLocation(va)
         if loctup is not None:
-            logger.warn("0x%x: Attempting to make a Pointer where another location object exists (of type %r)", va, self.reprLocation(loctup))
+            if loctup[L_LTYPE] != LOC_POINTER or loctup[L_VA] != va:
+                logger.warn("0x%x: Attempting to make a Pointer where another location object exists (of type %r)", va, self.reprLocation(loctup))
             return None
 
         psize = self.psize

@@ -343,8 +343,21 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
             logger.info('Skipping PE Relocation type: %d at %d (no handler)', rtype, rva)
             continue
 
-        mapoffset = vw.readMemoryPtr(rva + baseaddr) - baseaddr
-        vw.addRelocation(rva + baseaddr, vtype, mapoffset)
+        try:
+            mapoffset = vw.readMemoryPtr(rva + baseaddr) - baseaddr
+        except:
+            # the target adderss of the relocation is not accessible.
+            # for example, it's not mapped, or split across sections, etc.
+            # technically, the PE is corrupt.
+            # by continuing on here, we are a bit more robust (but maybe incorrect)
+            # than the Windows loader.
+            #
+            # discussed in:
+            # https://github.com/vivisect/vivisect/issues/346
+            logger.warning('Skipping invalid PE relocation: %d', rva)
+            continue
+        else:
+            vw.addRelocation(rva + baseaddr, vtype, mapoffset)
 
     for rva, lname, iname in pe.getImports():
         if vw.probeMemory(rva + baseaddr, 4, e_mem.MM_READ):
