@@ -239,7 +239,7 @@ class RxDisasm:
                 if 'rs' in operkeys:
                     if 'lds' in operkeys:
                         # we have a dsp(Rs) operand
-                        pass
+                        raise Exception('Slow Parsing LDS operand...')
                     else:
                         opers.append(RxRegOper(reg, va))
                 elif 'imm' in operkeys:
@@ -249,28 +249,63 @@ class RxDisasm:
                 
             elif opercnt == 2:
                 #'li' gives a size for an extra IMM:#
-                        pass
+                li = fields.get(O_LI)
+                if li is not None:
+                    if li == 3:
+                        imm = e_bits.slowparsebytes(bytez, off, 3, signed=True, bigend=True)
+                    else:
+                        if li == 0:
+                            li = 4
+
+                        fmt = e_bits.getFormat(li, big_endian=True, signed=True)
+                        imm, = struct.unpack_from(fmt, bytez, off)
+
+                    opers.append(RxImmOper(imm, va=va))
+
+                # check all the registers (and not quite)
+                for regconst in O_RS, O_RS2, O_CR, O_A, O_RD, O_RD2:
+                    reg = fields.get(regconst)
+                    if reg is not None:
+                        if regconst == O_CR:
+                            opers.append(RxCRRegOper(reg, va=va))
+
+                        else:
+                            opers.append(RxRegOper(reg, va=va))
+
+                    elif fields.get(O_RS2):
+                        opers.append(RxRegOper(
+
 
             elif opercnt == 3:
-                        pass
+                #'li' gives a size for an extra IMM:#
+                li = fields.get(O_LI)
+                if li is not None:
+                    if li == 3:
+                        imm = e_bits.slowparsebytes(bytez, off, 3, signed=True, bigend=True)
+                    else:
+                        if li == 0:
+                            li = 4
+
+                        fmt = e_bits.getFormat(li, big_endian=True, signed=True)
+                        imm, = struct.unpack_from(fmt, bytez, off)
+
+                    opers.append(RxImmOper(imm, va=va))
+
+                # check all the registers (and not quite)
+                for regconst in O_RS, O_RS2, O_CR, O_A, O_RD, O_RD2:
+                    reg = fields.get(regconst)
+                    if reg is not None:
+                        if regconst == O_CR:
+                            opers.append(RxCRRegOper(reg, va=va))
+
+                        else:
+                            opers.append(RxRegOper(reg, va=va))
+
+                    elif fields.get(O_RS2):
+                        opers.append(RxRegOper(
+
             elif opercnt == 4:
                         pass
-        '''
-        if fkey == 'rd':
-            # dest register
-            if 
-            opers.append(RxRegOper(fdata, va))
-
-        elif fkey == 'dsp':
-            # displacement
-
-
-        elif 'mi' in fields:
-            # memex
-        elif 'li' in fields:
-            # immediate
-
-        '''
         import envi.interactive as ei; ei.dbg_interact(locals(), globals())
 
 

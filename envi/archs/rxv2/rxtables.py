@@ -417,7 +417,7 @@ tbl_fc = (\
     (None, None, 0xcc00, 0xcc00, INS_MOV, 'mov', ((O_RD, ((0, 0xf),)), (O_SZ, ((12, 0x3),)), (O_LDS, ((8, 0x3),)), (O_RS, ((4, 0xf),))), 2, IF_NONE),
     (None, FORM_RD_LD_RS, 0xfffc00, 0xfc3400, INS_XOR, 'xor', ((O_RD, ((0, 0xf),)), (O_LDS, ((8, 0x3),)), (O_RS, ((4, 0xf),))), 3, IF_NONE),
     (None, FORM_RD_LD_RS, 0xfffc00, 0xfc4000, INS_XCHG, 'xchg', ((O_RD, ((0, 0xf),)), (O_LDS, ((8, 0x3),)), (O_RS, ((4, 0xf),))), 3, IF_NONE),
-    (None, None, 0xfffc00, 0xfc5400, INS_UTOF, 'utof', ((O_LDS, ((8, 0x3),)), (O_BRD, ((0, 0xf),)), (O_RS, ((4, 0xf),))), 3, IF_NONE),
+    (None, FORM_RD_LD_RS, 0xfffc00, 0xfc5400, INS_UTOF, 'utof', ((O_RD, ((0, 0xf),)), (O_LDS, ((8, 0x3),)), (O_RS, ((4, 0xf),))), 3, IF_NONE),
     (None, None, 0xfffc00, 0xfc3000, INS_TST, 'tst', ((O_LDS, ((8, 0x3),)), (O_RS2, ((0, 0xf),)), (O_RS, ((4, 0xf),))), 3, IF_NONE),
     (None, None, 0xffff00, 0xfc4b00, INS_STZ, 'stz', ((O_RD, ((0, 0xf),)), (O_RS, ((4, 0xf),))), 3, IF_NONE),
     (None, None, 0xffff00, 0xfc4b00, INS_STNZ, 'stnz', ((O_RD, ((0, 0xf),)), (O_RS, ((4, 0xf),))), 3, IF_NONE),
