@@ -272,11 +272,7 @@ class RxDisasm:
                         else:
                             opers.append(RxRegOper(reg, va=va))
 
-                    elif fields.get(O_RS2):
-                        opers.append(RxRegOper(
-
-
-            elif opercnt == 3:
+            else:   # 3 and 4 operand-parts
                 #'li' gives a size for an extra IMM:#
                 li = fields.get(O_LI)
                 if li is not None:
@@ -291,21 +287,24 @@ class RxDisasm:
 
                     opers.append(RxImmOper(imm, va=va))
 
-                # check all the registers (and not quite)
-                for regconst in O_RS, O_RS2, O_CR, O_A, O_RD, O_RD2:
-                    reg = fields.get(regconst)
-                    if reg is not None:
-                        if regconst == O_CR:
-                            opers.append(RxCRRegOper(reg, va=va))
+                if fields.get(O_AD) is not None:
+                    opers = (
+                        RxRegIncOper(fields.get(O_RS), fields.get(O_AD), fields.get(O_SZ), va),
+                        RxRegOper(fields.get(O_RD), va),
+                        )
 
-                        else:
-                            opers.append(RxRegOper(reg, va=va))
+                else:
+                    # check all the registers (and not quite)
+                    for regconst in O_RS, O_RS2, O_CR, O_A, O_RD, O_RD2:
+                        reg = fields.get(regconst)
+                        if reg is not None:
+                            if regconst == O_CR:
+                                opers.append(RxCRRegOper(reg, va=va))
 
-                    elif fields.get(O_RS2):
-                        opers.append(RxRegOper(
+                            else:
+                                opers.append(RxRegOper(reg, va=va))
 
-            elif opercnt == 4:
-                        pass
+
         import envi.interactive as ei; ei.dbg_interact(locals(), globals())
 
 
@@ -421,6 +420,9 @@ class RxRegOper(envi.RegisterOper):
         rname = regs.rctx.getRegisterName(self.reg)
         mcanv.addNameText(rname, typename='registers')
 
+class RxCRRegOper(RxRegOper):
+    pass
+
 class RxImmOper(envi.ImmedOper):
     def __init__(self, val, va):
         self.val = val
@@ -467,6 +469,49 @@ class RxPcdspOper(envi.ImmedOper):
 
 class RxDspOper(envi.RegisterOper):
     def __init__(self, reg, dsp, tsize=1, oflags=0, va=None):
+        self.oflags = oflags
+        self.tsize = tsize
+        self.reg = reg
+        self.dsp = dsp
+        self.va = va
+
+    def getOperValue(self, op, emu=None):
+        if emu is None:
+            return
+
+        taddr = self.getOperAddr(op, emu)
+        return emu.readMemValue(taddr, self.tsize)
+
+    def setOperValue(self, op, emu, val):
+        if emu is not None:
+            return None
+
+        taddr = self.getOperAddr(op, emu)
+        emu.writeMemValue(taddr, val, self.tsize)
+
+    def getOperAddr(self, op, emu=None):
+        if emu is None:
+            return None
+        return emu.getRegister(reg) + self.dsp
+
+    def getWidth(self):
+        return self.tsize
+
+    def repr(self, op):
+        szl = SIZE_BYTES[self.tsize]
+        rname = regs.rctx.getRegisterName(self.reg)
+        return "0x%x(%s).%s" % (self.dsp, rname, szl)
+
+    def render(self, mcanv, op, idx):
+        szl = SIZE_BYTES[self.oflags]
+        rname = regs.rctx.getRegisterName(self.reg)
+        mcanv.addNameText(szl, typename='offset')
+        mcanv.addText('(')
+        mcanv.addNameText(rname, typename='registers')
+        mcanv.addText(').%s' % szl)
+
+class RxRegIncOper(envi.RegisterOper):
+    def __init__(self, reg, ad, tsize=1, va=None):
         self.oflags = oflags
         self.tsize = tsize
         self.reg = reg
