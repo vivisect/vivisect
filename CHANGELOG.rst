@@ -3,7 +3,7 @@ Vivisect Changelog
 ******************
 
 
-v0.2.0 - 2021-01-13
+v0.2.0 - 2021-02-01
 ===================
 
 Features
@@ -18,6 +18,13 @@ Features
   (`#331 <https://github.com/vivisect/vivisect/pull/331>`_)
 - New noret pass/several API refreshes/intel emulator fixes/emucode hyra function fixes
   (`#333 <https://github.com/vivisect/vivisect/pull/333>`_)
+- Migrate to CircleCI for Continuous Integratoin
+  (`#336 <https://github.com/vivisect/vivisect/pull/336>`_)
+- Enhance UI extensions
+  (`#341 <https://github.com/vivisect/vivisect/pull/341>`_)
+- SREC file parsing support
+  (`#343 <https://github.com/vivisect/vivisect/pull/343>`_)
+
 
 Fixes
 -----
@@ -43,6 +50,18 @@ Fixes
   (`#332 <https://github.com/vivisect/vivisect/pull/332>`_)
 - Don't configure logging in vivisect module
   (`#334 <https://github.com/vivisect/vivisect/pull/334>`_)
+- Slight ARM fixes for bx flags and IHEX fixes for meta info
+  (`#337 <https://github.com/vivisect/vivisect/pull/337>`_)
+- PE fixes for reading at high relative offsets
+  (`#338 <https://github.com/vivisect/vivisect/pull/338>`_)
+- Streamline ELF tests to reduce memory footprint
+  (`#340 <https://github.com/vivisect/vivisect/pull/340>`_)
+- Streamline Symboliks Tests to reduce memory footprint
+  (`#342 <https://github.com/vivisect/vivisect/pull/342>`_)
+- Remove unused cobra imports
+  (`#344 <https://github.com/vivisect/vivisect/pull/344>`_)
+- More robust location handling for corrupt PE files
+  (`#347 <https://github.com/vivisect/vivisect/pull/347>`_)
 
 
 v0.1.0 - 2020-09-08
