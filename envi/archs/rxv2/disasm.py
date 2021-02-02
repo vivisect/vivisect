@@ -225,6 +225,7 @@ class RxDisasm:
         if handler is not None:
             # if we have a handler, just let it do everything
             hndlFunc = self.HANDLERS[handler]
+            print("Handler: %r" % hndlFunc)
             return hndlFunc(va, opcode, mnem, fields, sz, iflags, bytez, offset+opsize)
 
 
@@ -238,6 +239,7 @@ class RxDisasm:
         else:
             opers = []
             if opercnt == 1:
+                print("Parser: 1-oper")
                 if 'rs' in operkeys:
                     if 'lds' in operkeys:
                         # we have a dsp(Rs) operand
@@ -250,6 +252,7 @@ class RxDisasm:
 
                 
             elif opercnt == 2:
+                print("Parser: 2-oper")
                 #'li' gives a size for an extra IMM:#
                 li = fields.get(O_LI)
                 if li is not None:
@@ -275,9 +278,11 @@ class RxDisasm:
                             opers.append(RxRegOper(reg, va=va))
 
             else:   # 3 and 4 operand-parts
+                print("Parser: 3/4/5-oper")
                 #'li' gives a size for an extra IMM:#
                 li = fields.get(O_LI)
                 if li is not None:
+                    print("  li: %x" % li)
                     if li == 3:
                         imm = e_bits.slowparsebytes(bytez, off, 3, sign=True, bigend=True)
                     else:
@@ -289,6 +294,11 @@ class RxDisasm:
 
                     opers.append(RxImmOper(imm, va=va))
 
+                elif fields.get(O_IMM):
+                    print("   imm: %x" % imm)
+                    imm = fields.get(O_IMM)
+                    opers.append(RxImmOper(imm, va))
+
                 if fields.get(O_AD) is not None:
                     opers = (
                         RxRegIncOper(fields.get(O_RS), fields.get(O_AD), fields.get(O_SZ), va),
@@ -298,7 +308,9 @@ class RxDisasm:
                 else:
                     # check all the registers (and not quite)
                     for regconst in O_RS, O_RS2, O_CR, O_A, O_RD, O_RD2:
+                        print("  loop: %r" % regconst)
                         reg = fields.get(regconst)
+                        print("       = %r" % reg)
                         if reg is not None:
                             if regconst == O_CR:
                                 opers.append(RxCRRegOper(reg, va=va))
