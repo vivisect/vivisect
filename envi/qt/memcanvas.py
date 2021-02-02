@@ -192,8 +192,8 @@ class VQMemoryCanvas(e_memcanvas.MemoryCanvas, QWebEngineView):
 
     def _endRenderAppend(self, cb=None):
         page = self.page()
-        self._canv_cache = None
         js = f'document.querySelector("{self._canv_rendtagid}").innerHTML += `{self._canv_cache}`;'
+        self._canv_cache = None
         if cb:
             page.runJavaScript(js, cb)
         else:

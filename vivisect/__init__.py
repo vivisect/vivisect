@@ -711,7 +711,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             n = self.getName(lva)
             if n is not None:
                 return n
-            return binascii.hexlify(self.readMemory(lva, lsize))
+            return binascii.hexlify(self.readMemory(lva, lsize)).decode('utf-8')
 
     def followPointer(self, va):
         """

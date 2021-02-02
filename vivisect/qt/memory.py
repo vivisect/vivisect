@@ -283,30 +283,45 @@ class VivCanvasBase(vq_hotkey.HotKeyMixin, e_mem_canvas.VQMemoryCanvas):
 
 class VQVivMemoryCanvas(VivCanvasBase):
 
-    def wheelEvent(self, event):
-        # TODO: Fixme
-        page = self.page()
-
-        spos = page.scrollPosition().y()
-        maxpos = page.contentsSize().height()
-
+    def _wheelEventCallback(self, data):
+        '''
+        Ugh. Yes. I know this sucks.
+        But we have to do this because QtWebEngine does't natively let you get the max scroll size.
+        You *have* to go through javascript to get those elements, and the only way to be sure of
+        the function finishing (and being able to get a value outta js) is via this callback
+        mechanism they set up.
+        '''
+        smin = data[0]
+        spos = data[1]
+        smax = data[2]
         if not len(self._canv_rendvas):
             pass
 
-        elif spos == maxpos:
-
+        elif spos >= smax:
             lastva, lastsize = self._canv_rendvas[-1]
             mapva, mapsize, mperm, mfname = self.vw.getMemoryMap(lastva)
             sizeremain = (mapva + mapsize) - (lastva + lastsize)
             if sizeremain:
                 self.renderMemoryAppend(min(sizeremain, 128))
 
-        elif spos == 0.0:
+        elif spos == smin:
             firstva, firstsize = self._canv_rendvas[0]
             mapva, mapsize, mperm, mfname = self.vw.getMemoryMap(firstva)
             sizeremain = firstva - mapva
             if sizeremain:
                 self.renderMemoryPrepend(min(sizeremain, 128))
+
+    def wheelEvent(self, event):
+        page = self.page()
+        page.runJavaScript('''
+        var pcur = window.innerHeight + window.pageYOffset
+        var scrollMaxY = Math.max(
+            document.body.scrollHeight, document.documentElement.scrollHeight,
+            document.body.offsetHeight, document.documentElement.offsetHeight,
+            document.body.clientHeight, document.documentElement.clientHeight,
+        );
+        [window.innerHeight, pcur, scrollMaxY];
+        ''', self._wheelEventCallback)
 
         return e_mem_canvas.VQMemoryCanvas.wheelEvent(self, event)
 
