@@ -2,6 +2,7 @@
 A module to contain code flow analysis for envi opcode objects...
 '''
 import logging
+import collections
 
 import envi
 import envi.memory as e_mem
@@ -138,7 +139,7 @@ class CodeFlowContext(object):
         optodo = [((0, va), arch), ]
         startva = va
         self._cf_blocks.append(va)
-        cf_eps = set()
+        cf_eps = collections.OrderedDict()
         while len(optodo):
 
             todo, arch = optodo.pop()
@@ -232,7 +233,7 @@ class CodeFlowContext(object):
                                     # the function that we want to make prodcedural
                                     # called us so we can't call to make it procedural
                                     # until its done
-                                    cf_eps.add((bva, bflags))
+                                    cf_eps[bva] = bflags
                                 else:
                                     self.addEntryPoint(bva, arch=bflags)
 
@@ -253,7 +254,7 @@ class CodeFlowContext(object):
         # remove our local blocks from global block stack
         self._cf_blocks.pop()
         while cf_eps:
-            fva, arch = cf_eps.pop()
+            fva, arch = cf_eps.popitem()
             if not self._mem.isFunction(fva):
                 self.addEntryPoint(fva, arch=arch)
 
