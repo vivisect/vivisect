@@ -417,7 +417,6 @@ class RxDisasm:
 
 
     def form_RD_LD_RS(self, va, opcode, mnem, fields, opsz, iflags, bytez, off):
-        #import envi.interactive as ei; ei.dbg_interact(locals(), globals())
         rs = fields.get(O_RS)
         rd = fields.get(O_RD)
         lds = fields.get(O_LDS)
@@ -623,7 +622,7 @@ class RxDspOper(envi.RegisterOper):
         return self.tsize
 
     def repr(self, op):
-        szl = SIZE_BYTES[self.tsize]
+        szl = SIZE_BYTES[self.oflags]
         rname = regs.rctx.getRegisterName(self.reg)
         return "0x%x(%s).%s" % (self.dsp, rname, szl)
 

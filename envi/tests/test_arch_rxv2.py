@@ -23,9 +23,9 @@ GOOD_EMU_TESTS = 0
 
 
 instrs = [
-        ('06e202f44141', 0x4560, 'adc 0x4141(r15).w,r4', 0, ()),    # FORM_RD_LD_MI_RS
+        ('06e202f44141', 0x4560, 'adc 0x4141(r15).uw,r4', 0, ()),    # FORM_RD_LD_MI_RS
         ('06e302f44141', 0x4560, 'adc r15,r4', 0, ()),              # FORM_RD_LD_MI_RS
-        ('06e102f44141', 0x4560, 'adc 0x41(r15).w,r4', 0, ()),      # FORM_RD_LD_MI_RS
+        ('06e102f44141', 0x4560, 'adc 0x41(r15).uw,r4', 0, ()),      # FORM_RD_LD_MI_RS
         ('06a102f44141', 0x4560, 'adc 0x41(r15).l,r4', 0, ()),      # FORM_RD_LD_MI_RS
         ('fd7c24414243', 0x4560, 'adc 0x414243,r4', 0, ()),         # FORM_RD_LI
         ('fda432f44141', 0x4560, 'shar 0x4,r3,r2', 0, ()),          # DFLT-3/4
@@ -33,7 +33,7 @@ instrs = [
         ('7e24', 0x4560, 'abs r4', 0, ()),                          # DFLT-1
         ('fc0f42', 0x4560, 'abs r4,r2', 0, ()),                     # DFLT-2
         ('623b', 0x4560, 'add 0x3,r11', 0, ()),                      # FORM_RD_IMM
-        ('4a234142', 0x4560, 'add 0x4142(r2).b,r3', 0, ()),         # FORM_RD_LD_RS
+        ('4a234142', 0x4560, 'add 0x4142(r2).ub,r3', 0, ()),         # FORM_RD_LD_RS
 
 
 ]
