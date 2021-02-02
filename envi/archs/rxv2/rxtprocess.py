@@ -269,6 +269,8 @@ def getForm(mnem, operdefs, operands):
         return 'FORM_BMCND' 
     elif nms == ['rd', 'sz', 'ld', 'cd']:
         return 'FORM_SCCND' 
+    elif len(nms) == 5:
+        return 'FORM_GOOGOL'
 
     return 'None'
 
@@ -327,13 +329,13 @@ def reprCvtdOpers(operands, nmconsts):
         # create operand repr
         operstr = ' '.join(["(%d, 0x%x)," % (x,y) for x,y in oparts])
         nmconst = 'O_%s' % onm.upper()
-        out.append(("(%s, (%s))" % (nmconst, operstr)))
+        out.append(("(%s, (%s)), " % (nmconst, operstr)))
 
         # create nmconsts (so we're comparing numbers not strings)
         if nmconst not in nmconsts:
             nmconsts.append(nmconst)
 
-    return '(' + ', '.join(out) + ')'
+    return '(' + ''.join(out) + ')'
 
 
 
@@ -380,7 +382,11 @@ CNDS = (
 
 def reprConsts(mnems, nmconsts, forms):
     out = []
-    out.append('''
+    out.append('''from envi.const import *
+from envi import IF_NOFALL, IF_PRIV, IF_CALL, IF_BRANCH, IF_RET, IF_COND
+
+MODE_USER = 0
+MODE_SUPV = 1
 
 IF_NONE = 0
 
@@ -462,10 +468,10 @@ def createRxTablesModule():
 
     out = []
     out.append('from const import *')
-    out.append(reprConsts(mnems, nmconsts, forms))
     out.append(reprTables(tables))
 
     open('rxtables.py','w').write('\n'.join(out))
+    open('const_gen.py', 'w').write(reprConsts(mnems, nmconsts, forms))
 
 def formsHist(data):
     forms = {}

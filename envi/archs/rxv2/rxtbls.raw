@@ -28,13 +28,13 @@ bclr
 1 1 1 1 1 1 0 0 0 1 1 0 0 1 ld[1:0] rd[3:0] rs[3:0]
 
 bz 
-0 0 0 1 0 dsp[2:0]
+0 0 0 1 0 pcdsp[2:0]
 0 0 1 1 1 0 1 0 pcdsp:16
 0 0 1 0 0 0 0 0 pcdsp:8 
 bge
 0 0 1 0 1 0 0 0 pcdsp:8 
 bnz 
-0 0 0 1 1 dsp[2:0] 
+0 0 0 1 1 pcdsp[2:0] 
 0 0 1 1 1 0 1 1 pcdsp:16
 0 0 1 0 0 0 0 1 pcdsp:8 
 blt
@@ -73,7 +73,7 @@ bnot
 1 1 1 1 1 1 0 0 0 1 1 0 1 1 ld[1:0] rd[3:0] rs[3:0]
 
 bra
-0 0 0 0 1 dsp[2:0]
+0 0 0 0 1 pcdsp[2:0]
 0 0 1 0 1 1 1 0 pcdsp:8 
 0 0 1 1 1 0 0 0 pcdsp:16
 0 0 0 0 0 1 0 0 pcdsp:24
@@ -208,7 +208,7 @@ mov
 0 0 1 1 1 1 sz[1:0] dsp[4] rd[2:0] dsp[3:0] #IMM:8        # #UIMM:8 as well?
 0 1 1 1 0 1 0 1 0 1 0 0 rd[3:0] #UIMM:8
 
-1 1 1 1 1 0 1 1 rd[3:0] li[1:0] 1 0 #SIMM:8 #SIMM:16 #SIMM:24 #IMM:32       # this is the next 4 lines
+1 1 1 1 1 0 1 1 rd[3:0] li[1:0] 1 0  ###  #SIMM:8 #SIMM:16 #SIMM:24 #IMM:32       # this is the next 4 lines
 #1 1 1 1 1 0 1 1 rd[3:0] 0 0 1 0 #IMM:32
 #1 1 1 1 1 0 1 1 rd[3:0] 0 1 1 0 #SIMM:8
 #1 1 1 1 1 0 1 1 rd[3:0] 1 0 1 0 #SIMM:16

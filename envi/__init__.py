@@ -1285,6 +1285,10 @@ def getArchModule(name=None):
         import envi.archs.h8 as e_h8
         return e_h8.H8Module()
 
+    elif name in ('rxv2', 'rx'):
+        import envi.archs.rxv2 as e_rxv2
+        return e_rxv2.RXv2Module()
+
     else:
         raise ArchNotImplemented(name)
 

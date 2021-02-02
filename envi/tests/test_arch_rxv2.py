@@ -6,30 +6,20 @@ import envi.exc as e_exc
 import envi.memory as e_mem
 import envi.memcanvas as e_memcanvas
 import envi.memcanvas.renderers as e_rend
-import envi.archs.arm as arm
 import vivisect
 
 import logging
 import platform
 import unittest
 
-import arm_bit_test_adds
-import arm_bit_test_cmn
-import arm_bit_test_cmp
-import arm_bit_test_subs
-
 from envi import IF_RET, IF_NOFALL, IF_BRANCH, IF_CALL, IF_COND
-from envi.archs.arm.regs import *
-from envi.archs.arm.const import *
-from envi.archs.arm.disasm import *
 
-from envi.tests.armthumb_tests import advsimdtests
 
 logger = logging.getLogger(__name__)
 
 
-GOOD_TESTS = 5953
-GOOD_EMU_TESTS = 1175
+GOOD_TESTS = 11
+GOOD_EMU_TESTS = 0
 
 
 instrs = [
@@ -39,22 +29,27 @@ instrs = [
         ('06a102f44141', 0x4560, 'adc 0x41(r15).l,r4', 0, ()),      # FORM_RD_LD_MI_RS
         ('fd7c24414243', 0x4560, 'adc 0x414243,r4', 0, ()),         # FORM_RD_LI
         ('fda432f44141', 0x4560, 'shar 0x4,r3,r2', 0, ()),          # DFLT-3/4
+        ('7f14', 0x4560, 'jsr r4', envi.IF_CALL, ()),               # DFLT-1
+        ('7e24', 0x4560, 'abs r4', 0, ()),                          # DFLT-1
+        ('fc0f42', 0x4560, 'abs r4,r2', 0, ()),                     # DFLT-2
+        ('623b', 0x4560, 'add 0x3,r11', 0, ()),                      # FORM_RD_IMM
+        ('4a234142', 0x4560, 'add 0x4142(r2).b,r3', 0, ()),         # FORM_RD_LD_RS
 
 
 ]
 
-class ArmInstructionSet(unittest.TestCase):
+class RXv2InstructionSet(unittest.TestCase):
     ''' main unit test with all tests to run '''
-    def test_envi_arm_assorted_instrs(self):
+    def test_envi_rxv2_assorted_instrs(self):
         #setup initial work space for test
         vw = vivisect.VivWorkspace()
         vw.setMeta("Architecture", "rxv2")
         vw.addMemoryMap(0, 7, 'firmware', '\xff' * 16384*1024)
         vw.addMemoryMap(0x400000, 7, 'firmware', '\xff' * 16384*1024)
-        emu = vw.getEmulator()
-        emu.setMeta('forrealz', True)
-        emu._forrealz = True
-        emu.logread = emu.logwrite = True
+        #emu = vw.getEmulator()
+        #emu.setMeta('forrealz', True)
+        #emu._forrealz = True
+        #emu.logread = emu.logwrite = True
         badcount = 0
         goodcount = 0
         goodemu = 0
@@ -65,8 +60,8 @@ class ArmInstructionSet(unittest.TestCase):
             redoprepr = repr(op).replace(' ','').lower()
             redgoodop = reprOp.replace(' ','').lower()
             if redoprepr != redgoodop:
-                num, = struct.unpack("<I", binascii.unhexlify(bytez))
-                bs = bin(num)[2:].zfill(32)
+                #num, = struct.unpack("<I", binascii.unhexlify(bytez))
+                #bs = bin(num)[2:].zfill(32)
                 badcount += 1
                 raise Exception("%d FAILED to decode instr:  %.8x %s - should be: %s  - is: %s" % \
                         (goodcount, va, bytez, reprOp, repr(op) ) )
@@ -74,6 +69,10 @@ class ArmInstructionSet(unittest.TestCase):
 
             else:
                 goodcount += 1
+
+
+            # NO EMUTESTS YET
+            continue
 
             if not len(emutests):
                 try:
@@ -111,5 +110,5 @@ class ArmInstructionSet(unittest.TestCase):
                 (goodcount, badcount, goodemu, bademu))
         logger.info("Total of ", str(goodcount + badcount) + " tests completed.")
         self.assertEqual(goodcount, GOOD_TESTS)
-        self.assertEqual(goodemu, GOOD_EMU_TESTS)
+        #self.assertEqual(goodemu, GOOD_EMU_TESTS)
 

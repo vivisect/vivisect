@@ -168,14 +168,17 @@ class RxDisasm:
         self.HANDLERS[FORM_RD_LD_MI_RS] = self.form_RD_LD_MI_RS
         self.HANDLERS[FORM_SCCND] = self.form_SCCND
         self.HANDLERS[FORM_BMCND] = self.form_BMCND
+        self.HANDLERS[FORM_GOOGOL] = self.form_GOOGOL
 
     def disasm(self, bytez, offset=0, va=0):
         curtable = rxtables.tblmain
+        opervals = [None for x in range(10)]
 
         # bite off the first byte
         bval, = struct.unpack_from('B', bytez, offset)
         val = bval
         opsize = 1
+        opervals[opsize] = val
 
         #print "val: 0x%x  bval: 0x%x" % (val, bval)
         nextbl, handler, mask, endval, opcode, mnem, operdefs, sz, iflags = curtable[bval]
@@ -189,22 +192,33 @@ class RxDisasm:
 
             # search through the list looking for the right one...
             for nextbl, handler, mask, endval, opcode, mnem, operdefs, sz, iflags in curtable:
-                ### IMPORTANT: the lists MUST BE in order from smallest to largest encoding!
-                while sz > opsize:
+                while opsize < sz:
                     # grab the next byte
                     bval, = struct.unpack_from('B', bytez, offset+opsize)
                     # update the running value we'll use to parse
                     val <<= 8
                     val |= bval
-                    # update the opsize
+                    # update the opsize and store the byte
                     opsize += 1
+                    opervals[opsize] = val
 
                 # find a match:
-                if val & mask != endval:
+                if opervals[sz] & mask != endval:
                     continue
 
                 found = True
                 break
+        else:   # true up the 
+            while opsize < sz:
+                # grab the next byte
+                bval, = struct.unpack_from('B', bytez, offset+opsize)
+                # update the running value we'll use to parse
+                val <<= 8
+                val |= bval
+                # update the opsize and store the byte
+                opsize += 1
+                opervals[opsize] = val
+
 
         if not found:
             raise e_exc.InvalidInstruction(bytez[offset:offset+opsize], "Couldn't find a opcode match in the table")
@@ -213,6 +227,7 @@ class RxDisasm:
         logger.warning("PARSE MATCH FOUND: val: %x\n\t%x %x %x %r %r  %r  %x", val, mask, endval, opcode, mnem, operdefs, sz, iflags)
         print("PARSE MATCH FOUND: val: %x\n\t%x %x %x %r %r  %r  %x" % (val, mask, endval, opcode, mnem, operdefs, sz, iflags))
 
+        val = opervals[sz]
         # let's parse out the things
         fields = {}
         for fkey, fparts in operdefs:
@@ -240,16 +255,17 @@ class RxDisasm:
             opers = []
             if opercnt == 1:
                 print("Parser: 1-oper")
-                if 'rs' in operkeys:
-                    if 'lds' in operkeys:
-                        # we have a dsp(Rs) operand
-                        raise Exception('Slow Parsing LDS operand...')
-                    else:
-                        opers.append(RxRegOper(reg, va))
-                elif 'imm' in operkeys:
-                    # immediates must be sources, can't write to the opcode!
-                    pass
+                if fields.get(O_SZ):
+                    opers = ()
+                    flag, tsize = SZ[fields[O_SZ]]
+                    iflags |= flag
 
+                else:
+                    for key, val in fields.items():
+                        opercls = OPERS.get(key)
+                        opers = (
+                                opercls(val, va),
+                        )
                 
             elif opercnt == 2:
                 print("Parser: 2-oper")
@@ -295,8 +311,8 @@ class RxDisasm:
                     opers.append(RxImmOper(imm, va=va))
 
                 elif fields.get(O_IMM):
-                    print("   imm: %x" % imm)
                     imm = fields.get(O_IMM)
+                    print("   imm: %x" % imm)
                     opers.append(RxImmOper(imm, va))
 
                 if fields.get(O_AD) is not None:
@@ -308,9 +324,8 @@ class RxDisasm:
                 else:
                     # check all the registers (and not quite)
                     for regconst in O_RS, O_RS2, O_CR, O_A, O_RD, O_RD2:
-                        print("  loop: %r" % regconst)
                         reg = fields.get(regconst)
-                        print("       = %r" % reg)
+                        print("  loop: %r = %r" % (regconst, reg))
                         if reg is not None:
                             if regconst == O_CR:
                                 opers.append(RxCRRegOper(reg, va=va))
@@ -323,17 +338,15 @@ class RxDisasm:
 
 
         #import envi.interactive as ei; ei.dbg_interact(locals(), globals())
-
-
         return RxOpcode(va, opcode, mnem, opers, iflags, sz)
 
-    def form_PCDSP(self, va, opcode, mnem, fields, sz, iflags, bytez, off):
-        import envi.interactive as ei; ei.dbg_interact(locals(), globals())
+    def form_PCDSP(self, va, opcode, mnem, fields, opsz, iflags, bytez, off):
+        #import envi.interactive as ei; ei.dbg_interact(locals(), globals())
         opers = (RxPcdspOper(fields[O_PCDSP]), va)
 
-        return RxOpcode(va, opcode, mnem, opers, iflags, size) 
+        return RxOpcode(va, opcode, mnem, opers, iflags, opsz) 
 
-    def form_RD_LD_MI_RS(self, va, opcode, mnem, fields, size, iflags, bytez, off):
+    def form_RD_LD_MI_RS(self, va, opcode, mnem, fields, opsz, iflags, bytez, off):
         rd = fields.get(O_RD)
         lds = fields.get(O_LDS)
         mi = fields.get(O_MI)
@@ -358,9 +371,9 @@ class RxDisasm:
                     RxRegOper(rd, va), 
                     )
 
-        return RxOpcode(va, opcode, mnem, opers, iflags, size) 
+        return RxOpcode(va, opcode, mnem, opers, iflags, opsz) 
 
-    def form_BMCND(self, va, opcode, mnem, fields, sz, iflags, bytez, off):
+    def form_BMCND(self, va, opcode, mnem, fields, opsz, iflags, bytez, off):
         mnem = BMCND[fields.get(O_CD)]
 
         szflags, tsize = SZ[fields.get(O_SZ)]
@@ -372,16 +385,16 @@ class RxDisasm:
         # dsp operand with 0 or some 1- or 2-byte displacement
         badd = ld
         dsp = e_bits.parsebytes(bytez, off, badd, sign=True, bigend=True)
-        sz += badd
+        opsz += badd
 
         opers = (
                 RxImmOper(imm, va),
                 RxDspOper(rd, dsp, va), 
                 )
 
-        return RxOpcode(va, opcode, mnem, opers, iflags, sz) 
+        return RxOpcode(va, opcode, mnem, opers, iflags, opsz) 
 
-    def form_SCCND(self, va, opcode, mnem, fields, sz, iflags, bytez, off):
+    def form_SCCND(self, va, opcode, mnem, fields, opsz, iflags, bytez, off):
         #import envi.interactive as ei; ei.dbg_interact(locals(), globals())
         mnem = SCCND[fields.get(O_CD)]
 
@@ -396,26 +409,47 @@ class RxDisasm:
         else:   # dsp operand with 0 or some 1- or 2-byte displacement
             badd = ld
             dsp = e_bits.parsebytes(bytez, off, badd, sign=True, bigend=True)
-            sz += badd
+            opsz += badd
 
             opers = (RxDspOper(rd, dsp, va), )
 
-        return RxOpcode(va, opcode, mnem, opers, iflags, sz) 
+        return RxOpcode(va, opcode, mnem, opers, iflags, opsz) 
 
 
-    def form_RD_LD_RS(self, va, opcode, mnem, fields, sz, iflags, bytez, off):
-        import envi.interactive as ei; ei.dbg_interact(locals(), globals())
-        opers = (RxPcdspOper(fdata, va), )
+    def form_RD_LD_RS(self, va, opcode, mnem, fields, opsz, iflags, bytez, off):
+        #import envi.interactive as ei; ei.dbg_interact(locals(), globals())
+        rs = fields.get(O_RS)
+        rd = fields.get(O_RD)
+        lds = fields.get(O_LDS)
 
-        return RxOpcode(va, opcode, mnem, opers, iflags, size) 
+        if lds == 3:
+            opers = (
+                    RxRegOper(rs, va),
+                    RxRegOper(rd, va),
+                    )
+        else:
+            if lds in (1,2):
+                dsps = e_bits.parsebytes(bytez, off, lds, sign=True, bigend=True)
+                opsz += lds
+            elif lds == 0:
+                dsps = 0
+            
+            opers = (
+                    RxDspOper(rs, dsps, tsize=1, oflags=OF_UB, va=va), 
+                    RxRegOper(rd, va), 
+                    )
 
-    def form_RD_IMM(self, va, opcode, mnem, fields, sz, iflags, bytez, off):
-        import envi.interactive as ei; ei.dbg_interact(locals(), globals())
-        opers = (RxPcdspOper(fdata, va), )
+        return RxOpcode(va, opcode, mnem, opers, iflags, opsz) 
 
-        return RxOpcode(va, opcode, mnem, opers, iflags, size) 
+    def form_RD_IMM(self, va, opcode, mnem, fields, opsz, iflags, bytez, off):
+        opers = (
+                RxImmOper(fields.get(O_IMM), va),
+                RxRegOper(fields.get(O_RD), va),
+                )
 
-    def form_RD_LI(self, va, opcode, mnem, fields, sz, iflags, bytez, off):
+        return RxOpcode(va, opcode, mnem, opers, iflags, opsz) 
+
+    def form_RD_LI(self, va, opcode, mnem, fields, opsz, iflags, bytez, off):
         #import envi.interactive as ei; ei.dbg_interact(locals(), globals())
         rd = fields.get(O_RD)
         li = fields.get(O_LI)
@@ -426,13 +460,38 @@ class RxDisasm:
                 RxRegOper(rd, va), 
                 )
 
-        return RxOpcode(va, opcode, mnem, opers, iflags, sz) 
+        return RxOpcode(va, opcode, mnem, opers, iflags, opsz) 
 
-    def form_A_RS2_RS(self, va, opcode, mnem, fields, sz, iflags, bytez, off):
+    def form_A_RS2_RS(self, va, opcode, mnem, fields, opsz, iflags, bytez, off):
         import envi.interactive as ei; ei.dbg_interact(locals(), globals())
         opers = (RxPcdspOper(fdata, va), )
 
-        return RxOpcode(va, opcode, mnem, opers, iflags, size) 
+        return RxOpcode(va, opcode, mnem, opers, iflags, opsz) 
+
+    def form_GOOGOL(self, va, opcode, mnem, fields, opsz, iflags, bytez, off):
+        rs = fields.get(O_RS)
+        rd = fields.get(O_RD)
+        sz = fields.get(O_SZ)
+        lds = fields.get(O_LDS)
+        ldd = fields.get(O_LDD)
+
+        niflags, tsize = SZ[sz]
+        iflags |= niflags
+
+        if lds > 2 or ldd > 2:
+            raise InvalidInstruction()
+
+        dsps = e_bits.parsebytes(bytez, off, lds, sign=True, bigend=True)
+        opsz += lds
+        dspd = e_bits.parsebytes(bytez, off, ldd, sign=True, bigend=True)
+        opsz += ldd
+
+        opers = (
+                RxDspOper(rs, dsps, tsize, va=va),
+                RxDspOper(rd, dspd, tsize, va=va),
+                )
+
+        return RxOpcode(va, opcode, mnem, opers, iflags, opsz) 
 
 
 
@@ -459,7 +518,6 @@ class RxDisasm:
         for i in range(regcount):
             array.append(0)
         return array
-
 
 class RxRegOper(envi.RegisterOper):
     def __init__(self, reg, va):
@@ -622,7 +680,11 @@ class RxRegIncOper(envi.RegisterOper):
 
 
 
-
-
-
+OPERS = {}
+OPERS[O_CB] = None
+OPERS[O_CR] = None
+OPERS[O_PCDSP] = RxPcdspOper
+OPERS[O_IMM] = RxImmOper
+OPERS[O_RD] = RxRegOper
+OPERS[O_RS] = RxRegOper
 
