@@ -31,11 +31,11 @@ class ArmModule(envi.ArchitectureModule):
         raise Exception ("weird... what are you trying to do here?  ARM has a complex breakpoint instruction")
 
     def archGetNopInstr(self):
-        return ('\x00\x00\x60\xe3', '\xe3\x60\x00\x00')[self._endian]   #FIXME: this is only ARM mode.  this arch mod should cover both.  the ENVI architecture doesn't support this model yet.
+        return (b'\x00\x00\x60\xe3', b'\xe3\x60\x00\x00')[self._endian]   #FIXME: this is only ARM mode.  this arch mod should cover both.  the ENVI architecture doesn't support this model yet.
 
     def archGetBadOps(self):
         return self.badoplist
- 
+
     def getPointerSize(self):
         return 4
 
@@ -104,7 +104,7 @@ class ThumbModule(envi.ArchitectureModule):
         # pre-generating bad-ops list
         self.badoplist = [ self.archParseOpcode(badop,0,0) for badop in self._arch_badopbytes ]
         self.badoplist.extend([ self.archParseOpcode(badop,0,1) for badop in self._arch_badopbytes ])
-        
+
     def archGetRegCtx(self):
         return ArmRegisterContext()
 
@@ -112,8 +112,8 @@ class ThumbModule(envi.ArchitectureModule):
         raise Exception ("weird... what are you trying to do here?  ARM has a complex breakpoint instruction")
 
     def archGetNopInstr(self):
-        return ('\xc0\x46', '\x46\xc0')[self._endian]
- 
+        return (b'\xc0\x46', b'\x46\xc0')[self._endian]
+
     def archGetBadOps(self):
         return self.badoplist
 

@@ -1,9 +1,5 @@
-try:
-    from PyQt5 import QtCore, QtGui
-    from PyQt5.QtWidgets import *
-except:
-    from PyQt4 import QtCore, QtGui
-    from PyQt4.QtGui import *
+from PyQt5 import QtCore, QtGui
+from PyQt5.QtWidgets import *
 
 import vtrace
 from vtrace.const import *
@@ -22,12 +18,6 @@ from vqt.main import workthread, idlethread, idlethreadsync
 '''
 QtGui objects which assist in GUIs which use vtrace parts.
 '''
-
-try:
-    QString = unicode
-except NameError:
-    # Python 3
-    QString = str
 
 class VQTraceNotifier(vtrace.Notifier):
     '''
@@ -226,7 +216,7 @@ class RegistersView(QWidget):
         splitview.addWidget(statusreg_widget)
         vbox.addWidget(splitview)
 
-        sig = QtCore.SIGNAL('currentIndexChanged(QString)')
+        sig = QtCore.SIGNAL('currentIndexChanged(str)')
         self.viewnames.connect(self.viewnames, sig, self.regViewNameSelected)
 
         self.setLayout(vbox)

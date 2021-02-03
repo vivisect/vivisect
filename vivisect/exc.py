@@ -8,6 +8,11 @@ class BlobArchException(Exception):
         Exception.__init__(self, 'Blob loader *requires* arch option (-O viv.parsers.blob.arch="<archname>")')
 
 
+class BadOutInstruction(Exception):
+    def __init__(self, va):
+        Exception.__init__(self, 'Hit out instruction at 0x%.8x' % va)
+
+
 class InvalidLocation(Exception):
     def __init__(self, va, msg=None):
         Exception.__init__(self, 'Invalid Location 0x%.8x: %s' % (va, msg))
@@ -32,9 +37,11 @@ class InvalidCodeBlock(Exception):
     def __init__(self, va):
         Exception.__init__(self, 'VA 0x%.8x is not in a code block!' % va)
 
+
 class BadOpBytes(Exception):
     def __init__(self, va):
         Exception.__init__(self, 'Hit known badop bytes at va 0x%.8x ' % va)
+
 
 class UnknownCallingConvention(Exception):
     def __init__(self, fva, cc=None):

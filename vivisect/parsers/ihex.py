@@ -50,7 +50,7 @@ def parseFile(vw, filename, baseaddr=None):
 
         # calculate IHEX-specific hash - only the fields copied into memory
         ihdata = ihex.vsEmit()
-        vw.setFileMeta(fname, 'sha256_ihex', v_parsers.sha256Bytes(ihdata))
+        vw.setFileMeta(fname, 'sha256_ihex', v_parsers.sha256Bytes(ihdata.encode('utf-8')))
 
         for eva in ihex.getEntryPoints():
             if eva is not None:

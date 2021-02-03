@@ -2,7 +2,7 @@
 All the code related to vtrace process snapshots and TraceSnapshot classes.
 '''
 import copy
-import cPickle as pickle
+import pickle
 import logging
 
 import envi

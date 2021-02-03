@@ -29,18 +29,20 @@ class ShadowFileAuth(c_auth.CobraAuthenticator):
         user = authinfo.get('user').lower()
         passwd = authinfo.get('passwd')
         userhdr = '%s:' % user
-        for line in open(self.filename, 'rb').readlines():
-            if not line.startswith(userhdr):
-                continue
+        with open(self.filename, 'r') as fd:
+            for line in fd.readlines():
+                if not line.startswith(userhdr):
+                    continue
 
-            line = line.strip()
-            # We are on the correct line
-            suser, spasswd = line.split(':')
-            salt, pwhash = spasswd.split('$')
-            if hashlib.sha256(salt + passwd).hexdigest() == pwhash:
-                return user
+                line = line.strip()
+                # We are on the correct line
+                suser, spasswd = line.split(':')
+                salt, pwhash = spasswd.split('$')
+                enc = salt + passwd
+                if hashlib.sha256(enc.encode('utf-8')).hexdigest() == pwhash:
+                    return user
 
-            break
+                break
 
         return None
 

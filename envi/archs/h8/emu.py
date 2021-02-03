@@ -10,8 +10,9 @@ import envi.bits as e_bits
 import envi.const as e_const
 import envi.archs.h8.regs as h8_regs
 import envi.archs.h8.const as h8_const
+
 from envi.archs.h8 import H8Module
-from operands import H8RegDirOper
+from envi.archs.h8.operands import H8RegDirOper
 
 
 logger = logging.getLogger(__name__)
@@ -780,7 +781,7 @@ class H8Emulator(H8Module, h8_regs.H8RegisterContext, envi.Emulator):
         divisor = self.getOperValue(op, 0)
         dividend = self.getOperValue(op, 1)
 
-        quotient = dividend / divisor
+        quotient = int(dividend / divisor)
         remainder = dividend % divisor
 
         rdval = (remainder << 8) | quotient
@@ -800,7 +801,7 @@ class H8Emulator(H8Module, h8_regs.H8RegisterContext, envi.Emulator):
         sdivisor = e_bits.signed(divisor, ssize)
         sdividend = e_bits.signed(dividend, dsize)
 
-        quotient = sdividend / sdivisor
+        quotient = int(sdividend / sdivisor)
         remainder = sdividend % sdivisor
 
         rdval = (remainder << 8) | quotient

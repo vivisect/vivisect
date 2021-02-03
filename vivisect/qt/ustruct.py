@@ -1,7 +1,4 @@
-try:
-    from PyQt5.QtWidgets import QWidget, QTextEdit, QDialogButtonBox, QMessageBox
-except:
-    from PyQt4.QtGui import QWidget, QTextEdit, QDialogButtonBox, QMessageBox
+from PyQt5.QtWidgets import QWidget, QTextEdit, QDialogButtonBox, QMessageBox
 
 from vqt.basics import *
 
@@ -33,14 +30,14 @@ class UserStructEditor(QWidget):
             self._v_changed = False
 
         self.srcedit = QTextEdit(parent=self)
-        self.srcedit.setText( ssrc )
-        self.srcedit.textChanged.connect( self._text_changed )
+        self.srcedit.setText(ssrc)
+        self.srcedit.textChanged.connect(self._text_changed)
 
-        buttons = QDialogButtonBox( QDialogButtonBox.Save, parent=self)
-        buttons.accepted.connect( self._save_event )
+        buttons = QDialogButtonBox(QDialogButtonBox.Save, parent=self)
+        buttons.accepted.connect(self._save_event)
 
         self._set_title()
-        self.setLayout( VBox( self.srcedit, buttons ) )
+        self.setLayout(VBox(self.srcedit, buttons))
 
     def _set_title(self):
 
@@ -68,4 +65,3 @@ class UserStructEditor(QWidget):
     def _text_changed(self):
         self._v_changed = True
         self._set_title()
-

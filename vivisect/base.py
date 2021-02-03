@@ -1,4 +1,4 @@
-import Queue
+import queue
 import logging
 import traceback
 import threading
@@ -154,7 +154,7 @@ def ddict():
     return collections.defaultdict(dict)
 
 
-class VivWorkspaceCore(object, viv_impapi.ImportApi):
+class VivWorkspaceCore(viv_impapi.ImportApi):
     '''
     A base class that the VivWorkspace inherits from that defines a lot of the event handlers
     for things like the creation of the various location types.
@@ -249,7 +249,7 @@ class VivWorkspaceCore(object, viv_impapi.ImportApi):
             # 'data' arg must be 'offset' number
             ptr = imgbase + data
             if ptr != (ptr & e_bits.u_maxes[self.psize]):
-                logger.warn('RTYPE_BASEOFF calculated a bad pointer: 0x%x (imgbase: 0x%x)', ptr, imgbase)
+                logger.warning('RTYPE_BASEOFF calculated a bad pointer: 0x%x (imgbase: 0x%x)', ptr, imgbase)
 
             # writes are costly, especially on larger binaries
             if ptr != self.readMemoryPtr(rva):
@@ -354,7 +354,7 @@ class VivWorkspaceCore(object, viv_impapi.ImportApi):
             xr_from = []
             self.xrefs_by_from[fromva] = xr_from
 
-        if einfo not in xr_to: # Just check one for now
+        if einfo not in xr_to:  # Just check one for now
             xr_to.append(einfo)
             xr_from.append(einfo)
             self.xrefs.append(einfo)
@@ -365,7 +365,7 @@ class VivWorkspaceCore(object, viv_impapi.ImportApi):
         self.xrefs_by_from[fromva].remove(einfo)
 
     def _handleSETNAME(self, einfo):
-        va,name = einfo
+        va, name = einfo
         if name is None:
             oldname = self.name_by_va.pop(va, None)
             self.va_by_name.pop(oldname, None)
@@ -373,7 +373,7 @@ class VivWorkspaceCore(object, viv_impapi.ImportApi):
         else:
             curname = self.name_by_va.get(va)
             if curname is not None:
-                logger.debug( 'replacing 0x%x: %r -> %r', va, curname, name)
+                logger.debug('replacing 0x%x: %r -> %r', va, curname, name)
                 self.va_by_name.pop(curname)
 
             self.va_by_name[name] = va
@@ -582,8 +582,8 @@ class VivWorkspaceCore(object, viv_impapi.ImportApi):
                     continue
                 try:
                     q.put_nowait((event, einfo))
-                except Queue.Full as e:
-                    logger.warning("Queue is full!")
+                except queue.Full as e:
+                    logger.warning('Queue is full!')
 
         except Exception as e:
             logger.error(traceback.format_exc())
@@ -719,7 +719,7 @@ class VivCodeFlowContext(e_codeflow.CodeFlowContext):
         if loc is None:
 
             # dont code flow through import calls
-            branches = [br for br in branches if not self._mem.isLocType(br[0],LOC_IMPORT)]
+            branches = [br for br in branches if br[0] and not self._mem.isLocType(br[0], LOC_IMPORT)]
 
             self._mem.makeOpcode(op.va, op=op)
             # TODO: future home of makeOpcode branch/xref analysis
@@ -727,7 +727,7 @@ class VivCodeFlowContext(e_codeflow.CodeFlowContext):
 
         elif loc[L_LTYPE] != LOC_OP:
             locrepr = self._mem.reprLocation(loc)
-            logger.warn("_cb_opcode(0x%x): LOCATION ALREADY EXISTS: loc: %r", va, locrepr)
+            logger.warning("_cb_opcode(0x%x): LOCATION ALREADY EXISTS: loc: %r", va, locrepr)
         return ()
 
     def _cb_function(self, fva, fmeta):

@@ -1,21 +1,22 @@
 #!/usr/bin/env python
-import imp
+import os
 import sys
 import time
-import cProfile
-import argparse
 import logging
-
-import vivisect.cli as viv_cli
-import vivisect.parsers as viv_parsers
+import argparse
+import cProfile
+import importlib.util
 
 import envi.common as e_common
 import envi.config as e_config
 import envi.threads as e_threads
 
+import vivisect.cli as viv_cli
+import vivisect.parsers as viv_parsers
+
+
 logger = logging.getLogger('vivisect')
 e_common.setLogging(logger, level='WARNING')
-
 
 loglevels = (
     logging.CRITICAL,
@@ -124,13 +125,14 @@ def main():
                 logger.debug("ANALYSIS TIME: %s", (end-start))
 
         if args.modname is not None:
-            with open(args.modname, 'rb') as f:
-                module = imp.load_module("custom_analysis", f, args.modname, ('.py', 'U', 1))
-                module.analyze(vw)
+            modpath = os.path.abspath(args.modname)
+            spec = importlib.util.spec_from_file_location('custom_analysis', modpath)
+            module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(module)
+            module.analyze(vw)
 
         logger.info('stats: %r', vw.getStats())
         logger.info("Saving workspace: %s", vw.getMeta('StorageName'))
-
         vw.saveWorkspace()
 
     else:

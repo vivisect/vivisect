@@ -72,8 +72,8 @@ def runRemoteApp(uri, join=True):
 
 def execRemoteApp(uri):
     '''
-    Exec a remoteapp without using multiprocessig ( may be needed if fork()
-    causes the child to have an unacceptably dirty environment )
+    Exec a remoteapp without using multiprocessing (may be needed if fork()
+    causes the child to have an unacceptably dirty environment)
     '''
     subprocess.Popen([sys.executable, '-m', 'cobra.remoteapp', uri])
 

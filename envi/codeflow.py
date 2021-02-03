@@ -2,6 +2,7 @@
 A module to contain code flow analysis for envi opcode objects...
 '''
 import logging
+import collections
 
 import envi
 import envi.memory as e_mem
@@ -138,7 +139,7 @@ class CodeFlowContext(object):
         optodo = [((0, va), arch), ]
         startva = va
         self._cf_blocks.append(va)
-        cf_eps = set()
+        cf_eps = collections.OrderedDict()
         while len(optodo):
 
             todo, arch = optodo.pop()
@@ -148,6 +149,7 @@ class CodeFlowContext(object):
                 continue
 
             pva, va = todo
+
             if opdone.get(va):
                 continue
 
@@ -156,10 +158,10 @@ class CodeFlowContext(object):
             try:
                 op = self._mem.parseOpcode(va, arch=arch)
             except envi.InvalidInstruction as e:
-                logger.warn('Invalid instruction: parseOpcode error at 0x%.8x (addCodeFlow(0x%x)): %s', va, startva, e)
+                logger.warning('parseOpcode error at 0x%.8x (addCodeFlow(0x%x)): %s', va, startva, e)
                 continue
             except Exception as e:
-                logger.warn('Other: parseOpcode error at 0x%.8x (addCodeFlow(0x%x)): %s', va, startva, e)
+                logger.warning('Codeflow exception at 0x%.8x (addCodeFlow(0x%x)): %s', va, startva, e)
                 continue
 
             branches = op.getBranches()
@@ -224,15 +226,14 @@ class CodeFlowContext(object):
                         if bva != nextva:  # NOTE: avoid call 0 constructs
 
                             # Now we decend so we do deepest func callbacks first!
-                            # This is not necessarily true. We don't actually recurse since bva
-                            # typically (save for derefs) is being added to self._cf_blocks above
-                            # and nobody but drefs changes what bva is
                             if self._cf_recurse:
+                                # descend into functions, but make sure we don't descend into
+                                # recursive functions
                                 if bva in self._cf_blocks:
                                     # the function that we want to make prodcedural
                                     # called us so we can't call to make it procedural
                                     # until its done
-                                    cf_eps.add((bva, bflags))
+                                    cf_eps[bva] = bflags
                                 else:
                                     self.addEntryPoint(bva, arch=bflags)
 
@@ -253,11 +254,11 @@ class CodeFlowContext(object):
         # remove our local blocks from global block stack
         self._cf_blocks.pop()
         while cf_eps:
-            fva, arch = cf_eps.pop()
+            fva, arch = cf_eps.popitem()
             if not self._mem.isFunction(fva):
                 self.addEntryPoint(fva, arch=arch)
 
-        return calls_from.keys()
+        return list(calls_from.keys())
 
     def addEntryPoint(self, va, arch=envi.ARCH_DEFAULT):
         '''

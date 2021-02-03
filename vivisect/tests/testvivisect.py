@@ -20,8 +20,7 @@ def glen(g):
 
 
 def isint(x):
-    return type(x) in (int, long)
-
+    return type(x) is int
 
 class VivisectTest(unittest.TestCase):
     @classmethod
@@ -31,6 +30,9 @@ class VivisectTest(unittest.TestCase):
         cls.gcc_vw = helpers.getTestWorkspace('linux', 'amd64', 'gcc-7')
 
     def test_xrefs_types(self):
+        '''
+        Test that we have data consistency in xrefs
+        '''
         for vw in [self.chgrp_vw, self.vdir_vw, self.gcc_vw]:
             for xfrom, xto, xtype, xflags in vw.getXrefs():
                 self.assertEqual((xfrom, isint(xfrom)),
@@ -43,6 +45,9 @@ class VivisectTest(unittest.TestCase):
                                  (xflags, True))
 
     def test_loc_types(self):
+        '''
+        Test that we have data consistency in locations
+        '''
         for vw in [self.chgrp_vw, self.vdir_vw, self.gcc_vw]:
             for lva, lsize, ltype, linfo in vw.getLocations():
                 self.assertEqual((lva, isint(lva)),
@@ -51,6 +56,8 @@ class VivisectTest(unittest.TestCase):
                                  (lsize, True))
                 self.assertEqual((ltype, isint(ltype)),
                                  (ltype, True))
+                if linfo:
+                    self.assertTrue(type(linfo) in (int, str, list))
 
     def test_basic_apis(self):
         '''
@@ -88,9 +95,9 @@ class VivisectTest(unittest.TestCase):
         self.assertTrue(len(vw.getLocations()) > 1000)
 
         # tuples are Name, Number of Locations, Size in bytes, Percentage of space
-        ans = {0: ('Undefined', 0, 509878, 48),
+        ans = {0: ('Undefined', 0, 509719, 48),
                1: ('Num/Int', 271, 1724, 0),
-               2: ('String', 4066, 153678, 14),
+               2: ('String', 4080, 153837, 14),
                3: ('Unicode', 0, 0, 0),
                4: ('Pointer', 5376, 43008, 4),
                5: ('Opcode', 81348, 331076, 31),
@@ -268,7 +275,7 @@ class VivisectTest(unittest.TestCase):
 
     def test_jumptable_adjacent_strings(self):
         jmpop = 0x804abc7
-        cases = list(map(lambda k: k[1], self.chgrp_vw.getXrefsFrom(jmpop)))
+        cases = [k[1] for k in self.chgrp_vw.getXrefsFrom(jmpop)]
         self.assertEqual(len(cases), 11)
 
         casevas = [
@@ -287,13 +294,13 @@ class VivisectTest(unittest.TestCase):
         self.assertEqual(casevas, cases)
 
         strlocs = [
-            (0x8051930, 8, 2, 'literal\x00'),
-            (0x8051938, 6, 2, 'shell\x00'),
-            (0x805193e, 13, 2, 'shell-always\x00'),
-            (0x805194b, 13, 2, 'shell-escape\x00'),
-            (0x8051958, 20, 2, 'shell-escape-always\x00'),
-            (0x805196c, 8, 2, 'c-maybe\x00'),
-            (0x8051974, 8, 2, 'clocale\x00'),
+            (0x8051930, 8, 2, b'literal\x00'),
+            (0x8051938, 6, 2, b'shell\x00'),
+            (0x805193e, 13, 2, b'shell-always\x00'),
+            (0x805194b, 13, 2, b'shell-escape\x00'),
+            (0x8051958, 20, 2, b'shell-escape-always\x00'),
+            (0x805196c, 8, 2, b'c-maybe\x00'),
+            (0x8051974, 8, 2, b'clocale\x00'),
         ]
         for lva, lsize, ltype, lstr in strlocs:
             loctup = self.chgrp_vw.getLocation(lva)
@@ -303,7 +310,7 @@ class VivisectTest(unittest.TestCase):
             self.assertEqual(lstr, self.chgrp_vw.readMemory(lva, lsize))
 
         jmpop = 0x804c32b
-        cases = list(map(lambda k: k[1], self.chgrp_vw.getXrefsFrom(jmpop)))
+        cases = [k[1] for k in self.chgrp_vw.getXrefsFrom(jmpop)]
         self.assertEqual(len(cases), 11)
         casevas = [
             0x0804c456,
@@ -428,8 +435,8 @@ class VivisectTest(unittest.TestCase):
         <strtbl> should be a table of *string* pointers, not code block pointers
         '''
         badva = 0x0805b6f2
-        loctup = self.vdir_vw.getLocation(badva)
-        self.assertEqual((134592163, 86, 2, []), loctup)
+        loctup = self.vdir_vw.getLocation(badva, range=False)
+        self.assertEqual((134592163, 86, 2, [(134592242, 7)]), loctup)
 
         strtbl = 0x805e75c
         loctup = self.vdir_vw.getLocation(strtbl)
@@ -452,7 +459,7 @@ class VivisectTest(unittest.TestCase):
         ans = [
             (0x804a468, 0x804a210, 62),
             (0x804ad21, 0x804a210, 5),
-            (0x804b00a, 0x804a210, 7),  # 0x8059b78
+            (0x804b00a, 0x804af40, 7),  # 0x8059b78
             (0x804beee, 0x804bee0, 6),
             (0x804d1c9, 0x804d1a0, 6),
             (0x804d28f, 0x804d1a0, 15),  # 0x8059bb8
@@ -478,7 +485,7 @@ class VivisectTest(unittest.TestCase):
         self.assertTrue(vw.getFunction(0x0804a9a0), 0x0804a920)
 
     def test_viv_bigend(self):
-        fd = io.StringIO(u'ABCDEFG')
+        fd = io.BytesIO(b'ABCDEFG')
 
         vw = vivisect.VivWorkspace()
         vw.config.viv.parsers.blob.arch = 'arm'
@@ -497,18 +504,18 @@ class VivisectTest(unittest.TestCase):
         vw = self.gcc_vw
         # real boy test
         loc = vw.getLocation(0x48a301, range=True)
-        rep = vw.readMemory(loc[v_const.L_VA], loc[v_const.L_SIZE])
+        rep = vw.readMemory(loc[v_const.L_VA], loc[v_const.L_SIZE]).decode('utf-8')
         self.assertEqual(loc, (0x48a301, 6, 2, []))
         self.assertEqual(rep, '/lib/\x00')
 
         loc = vw.getLocation(0x48a2fd)
-        rep = vw.readMemory(loc[v_const.L_VA], loc[v_const.L_SIZE])
+        rep = vw.readMemory(loc[v_const.L_VA], loc[v_const.L_SIZE]).decode('utf-8')
         self.assertEqual(loc, (0x48a2fd, 10, 2, [(0x48a301, 6)]))
         self.assertEqual(rep, '/usr/lib/\x00')
 
         # easily retrieve the parent string
         loc = vw.getLocation(0x48a302, range=False)
-        rep = vw.readMemory(loc[v_const.L_VA], loc[v_const.L_SIZE])
+        rep = vw.readMemory(loc[v_const.L_VA], loc[v_const.L_SIZE]).decode('utf-8')
         self.assertEqual(loc, (0x48a2fd, 10, 2, [(0x48a301, 6)]))
         self.assertEqual(rep, '/usr/lib/\x00')
 
@@ -585,7 +592,7 @@ class VivisectTest(unittest.TestCase):
         g = v_t_graphutil.buildFunctionGraph(vw, 0x405c10)
         longpath=[0x405c10, 0x405c48, 0x405ca6, 0x405cb0, 0x405cc3, 0x405c4e, 0x405c57, 0x405c5c, 0x405c6b, 0x405cd4, 0x405ce4, 0x405c80, 0x405c8c, 0x405cf6, 0x405c92]
         path = next(v_t_graphutil.getLongPath(g))
-        path = map(lambda k: k[0], path)
+        path = [k[0] for k in path]
         self.assertEqual(path, longpath)
 
     def test_graphutil_getcodepaths(self):
@@ -612,7 +619,7 @@ class VivisectTest(unittest.TestCase):
         pathcount = 0
         genr = v_t_graphutil.getCodePaths(g, loopcnt=0, maxpath=None)
         for path in genr:
-            p = set(map(lambda k: k[0], path))
+            p = set([k[0] for k in path])
             self.assertIn(p, paths)
             pathcount += 1
 
@@ -693,7 +700,7 @@ class VivisectTest(unittest.TestCase):
             'pop r14',
             'ret '
         ]
-        self.assertEqual(ops, map(str, v_t_graphutil.getOpsFromPath(vw, g, path)))
+        self.assertEqual(ops, [str(op) for op in v_t_graphutil.getOpsFromPath(vw, g, path)])
 
     def test_graphutil_coverage(self):
         # FIXME: So fun anecdote for later, originally I wanted to use fva 0x804af40 (parse_ls_colors)

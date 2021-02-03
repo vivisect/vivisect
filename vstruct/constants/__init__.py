@@ -1,4 +1,3 @@
-
 class VSConstResolver:
     def __init__(self):
         self.rev_lookup = {}
@@ -11,7 +10,7 @@ class VSConstResolver:
     def addModule(self, mod):
         for name in dir(mod):
             val = getattr(mod, name)
-            if type(val) not in (int, long):
+            if type(val) is not int:
                 continue
 
             # First lets add the "reverse" lookup
@@ -33,4 +32,3 @@ class VSConstResolver:
         modules added with constAddModule()
         '''
         return self.rev_lookup.get(const)
-

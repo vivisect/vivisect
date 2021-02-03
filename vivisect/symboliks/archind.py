@@ -47,6 +47,7 @@ def wipeAstArch(symctx, symobjs, emu=None, wipeva=False):
     idtova = {}
     # for registers to map new symobj id -> oldsym
     idtoold = {}
+
     # a tree walker to frob reg vars
     def normast(path, oldsym, ctx):
         # are we wipping away consts?

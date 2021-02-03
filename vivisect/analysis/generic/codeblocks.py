@@ -1,4 +1,3 @@
-
 """
 A function analysis module that will find code blocks in
 functions by flow and xrefs.  This is basically a mandatory

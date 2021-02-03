@@ -1,18 +1,15 @@
 
 import os
 import re
-import code
 import time
 import socket
 import struct
 import logging
 import binascii
-import platform
 import tempfile
 import threading
 
 import PE
-import vdb
 import envi
 import vtrace
 
@@ -628,7 +625,7 @@ class GdbStubMixin_old(e_registers.RegisterContext):
     def _getVmwareIdtr(self):
         istr = self._monitorCommand('r idtr')
         m = re.match('.* base=(0x\w+) .*', istr)
-        idtr = long(m.groups()[0], 0)
+        idtr = int(m.groups()[0], 0)
         return idtr
 
     def _getNtOsKrnl(self, idtr):

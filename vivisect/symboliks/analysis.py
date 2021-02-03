@@ -297,7 +297,7 @@ class SymbolikFunctionEmulator(vsym_emulator.SymbolikEmulator):
         Retrieve a list of (name, ccobj) tuples for the registered *symbolik*
         calling convention objects in this context.
         '''
-        return self.cconvs.items()
+        return list(self.cconvs.items())
 
     def addFunctionCallback(self, funcname, callback):
         '''
