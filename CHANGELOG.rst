@@ -3,6 +3,19 @@ Vivisect Changelog
 ******************
 
 
+v1.0.0 - 2021-02-05
+===================
+
+Features
+--------
+- Full Python 3 cutover
+  (`#328 <https://github.com/vivisect/vivisect/pull/328>`_)
+
+Fixes
+-----
+- Make envi.codeflow stable when analyzing function
+  (Wrapped in as part of #328)
+
 v0.2.0 - 2021-02-01
 ===================
 
