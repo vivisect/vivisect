@@ -342,7 +342,7 @@ class RxDisasm:
 
     def form_PCDSP(self, va, opcode, mnem, fields, opsz, iflags, bytez, off):
         #import envi.interactive as ei; ei.dbg_interact(locals(), globals())
-        opers = (RxPcdspOper(fields[O_PCDSP]), va)
+        opers = (RxPcdspOper(fields[O_PCDSP], va),)
 
         return RxOpcode(va, opcode, mnem, opers, iflags, opsz) 
 
@@ -578,13 +578,13 @@ class RxPcdspOper(envi.ImmedOper):
         return self.val
 
     def setOperValue(self, op, emu, val):
-        logger.warning("%s needs to implement setOperAddr!" % self.__class__.__name__)
+        return None
 
     def getOperAddr(self, op, emu=None):
-        logger.warning("%s needs to implement getOperAddr!" % self.__class__.__name__)
+        return None
 
     def repr(self, op):
-        return self.val
+        return "0x%x" % self.val
 
     def render(self, mcanv, op, idx):
         val = self.getOperValue(op)

@@ -18,22 +18,28 @@ from envi import IF_RET, IF_NOFALL, IF_BRANCH, IF_CALL, IF_COND
 logger = logging.getLogger(__name__)
 
 
-GOOD_TESTS = 11
+GOOD_TESTS = 14
 GOOD_EMU_TESTS = 0
 
 
 instrs = [
-        ('06e202f44141', 0x4560, 'adc 0x4141(r15).uw,r4', 0, ()),    # FORM_RD_LD_MI_RS
+        ('06e202f44141', 0x4560, 'adc 0x4141(r15).uw,r4', 0, ()),   # FORM_RD_LD_MI_RS
         ('06e302f44141', 0x4560, 'adc r15,r4', 0, ()),              # FORM_RD_LD_MI_RS
-        ('06e102f44141', 0x4560, 'adc 0x41(r15).uw,r4', 0, ()),      # FORM_RD_LD_MI_RS
+        ('06e102f44141', 0x4560, 'adc 0x41(r15).uw,r4', 0, ()),     # FORM_RD_LD_MI_RS
         ('06a102f44141', 0x4560, 'adc 0x41(r15).l,r4', 0, ()),      # FORM_RD_LD_MI_RS
         ('fd7c24414243', 0x4560, 'adc 0x414243,r4', 0, ()),         # FORM_RD_LI
         ('fda432f44141', 0x4560, 'shar 0x4,r3,r2', 0, ()),          # DFLT-3/4
         ('7f14', 0x4560, 'jsr r4', envi.IF_CALL, ()),               # DFLT-1
         ('7e24', 0x4560, 'abs r4', 0, ()),                          # DFLT-1
         ('fc0f42', 0x4560, 'abs r4,r2', 0, ()),                     # DFLT-2
-        ('623b', 0x4560, 'add 0x3,r11', 0, ()),                      # FORM_RD_IMM
-        ('4a234142', 0x4560, 'add 0x4142(r2).ub,r3', 0, ()),         # FORM_RD_LD_RS
+        ('623b', 0x4560, 'add 0x3,r11', 0, ()),                     # FORM_RD_IMM
+        ('4a234142', 0x4560, 'add 0x4142(r2).ub,r3', 0, ()),        # FORM_RD_LD_RS
+        ('06ca45404142', 0x4560, 'add 0x4142(r4).uw,r5', 0, ()),    # FORM_RD_LD_MI_RS
+        ('6423', 0x4560, 'and 0x2,r3', 0, ()),                      # FORM_RD_IMM
+        ('742341424344', 0x4560, 'and 0x41424344,r3', 0, ()),       # FORM_RD_LI
+        ('53234243', 0x4560, 'and r2,r3', 0, ()),                   # FORM_RD_LD_RS
+        ('52234243', 0x4560, 'and 0x4243(r2).ub,r3', 0, ()),        # FORM_RD_LD_RS
+        ('2423', 0x4560, 'bgtu 0x23', 0, ()),                      # FORM_RD_IMM
 
 
 ]
