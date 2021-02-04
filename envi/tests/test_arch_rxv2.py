@@ -40,6 +40,8 @@ instrs = [
         ('53234243', 0x4560, 'and r2,r3', 0, ()),                   # FORM_RD_LD_RS
         ('52234243', 0x4560, 'and 0x4243(r2).ub,r3', 0, ()),        # FORM_RD_LD_RS
         ('2423', 0x4560, 'bgtu 0x23', 0, ()),                      # FORM_RD_IMM
+        ('1f', 0x4560, 'bnz 0x7', 0, ()),                      # FORM_RD_IMM
+        ('18', 0x4560, 'bnz 0x8', 0, ()),                      # FORM_RD_IMM
 
 
 ]

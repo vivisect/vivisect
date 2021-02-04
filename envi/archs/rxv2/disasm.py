@@ -341,8 +341,15 @@ class RxDisasm:
         return RxOpcode(va, opcode, mnem, opers, iflags, sz)
 
     def form_PCDSP(self, va, opcode, mnem, fields, opsz, iflags, bytez, off):
-        #import envi.interactive as ei; ei.dbg_interact(locals(), globals())
-        opers = (RxPcdspOper(fields[O_PCDSP], va),)
+        pcdsp = fields[O_PCDSP]
+
+        # if we're the short-stuff...
+        if opsz == 1 and pcdsp < 3:
+            pcdsp += 8
+
+        opers = (
+                RxPcdspOper(pcdsp, va),
+                )
 
         return RxOpcode(va, opcode, mnem, opers, iflags, opsz) 
 

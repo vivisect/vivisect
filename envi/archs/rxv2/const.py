@@ -215,8 +215,8 @@ nms = (
     'O_RS',
     'O_MI',
     'O_RS2',
-    'O_SZ',
     'O_DSP',
+    'O_SZ',
     'O_RD2',
     'O_IMM',
     'O_LI',
@@ -257,5 +257,6 @@ for form in forms:
     formconsts[form.upper()] = len(formconsts)
 
 globals().update(formconsts)
+
 
 
