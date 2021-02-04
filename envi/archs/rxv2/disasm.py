@@ -348,7 +348,7 @@ class RxDisasm:
             pcdsp += 8
 
         opers = (
-                RxPcdspOper(pcdsp, va),
+                RxPcdspOper(pcdsp, va, relative=True),
                 )
 
         return RxOpcode(va, opcode, mnem, opers, iflags, opsz) 
@@ -382,21 +382,30 @@ class RxDisasm:
 
     def form_BMCND(self, va, opcode, mnem, fields, opsz, iflags, bytez, off):
         mnem = BMCND[fields.get(O_CD)]
+        # rd, imm, cd, (ld)
 
-        szflags, tsize = SZ[fields.get(O_SZ)]
-        iflags |= IF_COND | szflags
+        iflags |= IF_COND
 
         imm = fields.get(O_IMM)
         rd = fields.get(O_RD)
         ld = fields.get(O_LDD)
-        # dsp operand with 0 or some 1- or 2-byte displacement
-        badd = ld
-        dsp = e_bits.parsebytes(bytez, off, badd, sign=True, bigend=True)
-        opsz += badd
+        if ld is not None:
+            # dsp operand with 0 or some 1- or 2-byte displacement
+            if ld == 3:
+                raise e_exc.InvalidInstruction(bytez[off-opsz:off], 
+                        'BMCND: ld cannot be 3')
+
+            badd = ld
+            dsp = e_bits.parsebytes(bytez, off, badd, sign=True, bigend=True)
+            opsz += badd
+        else:
+            dsp = 0
+
+
 
         opers = (
                 RxImmOper(imm, va),
-                RxDspOper(rd, dsp, va), 
+                RxDspOper(rd, dsp, va),
                 )
 
         return RxOpcode(va, opcode, mnem, opers, iflags, opsz) 
@@ -577,12 +586,16 @@ class RxImmOper(envi.ImmedOper):
         mcanv.addNameText('0x%.2x' % (val))
 
 class RxPcdspOper(envi.ImmedOper):
-    def __init__(self, val, va):
+    def __init__(self, val, va, relative=True):
         self.val = val
         self.va = va
+        self.rel = relative
 
     def getOperValue(self, op, emu=None):
-        return self.val
+        val = self.val
+        if self.rel:
+            val += self.va
+        return val
 
     def setOperValue(self, op, emu, val):
         return None
@@ -591,7 +604,7 @@ class RxPcdspOper(envi.ImmedOper):
         return None
 
     def repr(self, op):
-        return "0x%x" % self.val
+        return "0x%x" % self.getOperValue(op)
 
     def render(self, mcanv, op, idx):
         val = self.getOperValue(op)
@@ -631,15 +644,27 @@ class RxDspOper(envi.RegisterOper):
     def repr(self, op):
         szl = SIZE_BYTES[self.oflags]
         rname = regs.rctx.getRegisterName(self.reg)
-        return "0x%x(%s).%s" % (self.dsp, rname, szl)
+        if szl is None:
+            if self.dsp == 0:
+                return "[%s]" % (rname)
+            return "0x%x[%s]" % (self.dsp, rname)
+
+        if self.dsp == 0:
+            return "[%s].%s" % (rname, szl)
+        return "0x%x[%s].%s" % (self.dsp, rname, szl)
 
     def render(self, mcanv, op, idx):
         szl = SIZE_BYTES[self.oflags]
         rname = regs.rctx.getRegisterName(self.reg)
-        mcanv.addNameText(szl, typename='offset')
-        mcanv.addText('(')
+        if self.dsp != 0:
+            mcanv.addNameText(self.dsp, typename='offset')
+
+        mcanv.addText('[')
         mcanv.addNameText(rname, typename='registers')
-        mcanv.addText(').%s' % szl)
+        if szl is None:
+            mcanv.addText(']')
+        else:
+            mcanv.addText('].%s' % szl)
 
 class RxRegIncOper(envi.RegisterOper):
     def __init__(self, reg, ad, tsize=1, va=None):
