@@ -31,7 +31,7 @@ class WorkspaceEmulator:
 
     taintregs = []
 
-    def __init__(self, vw, logwrite=False, logread=False):
+    def __init__(self, vw, **kwargs):
 
         self.vw = vw
         self.funcva = None # Set if using runFunction
@@ -45,8 +45,8 @@ class WorkspaceEmulator:
         self.taintrepr = {}
 
         self.uninit_use = {}
-        self.logwrite = logwrite
-        self.logread = logread
+        self.logwrite = kwargs.get('logwrite', False)
+        self.logread = kwargs.get('logread', False)
         self.path = self.newCodePathNode()
         self.curpath = self.path
         self.op = None
@@ -55,10 +55,12 @@ class WorkspaceEmulator:
         self.psize = self.getPointerSize()
 
         # Possibly need an "options" API?
-        self._safe_mem = True   # Should we be forgiving about memory accesses?
-        self._func_only = True  # is this emulator meant to stay in one function scope?
-
-        self.strictops = True   # should we bail on emulation if unsupported instruction encountered
+        # Should we be forgiving about memory accesses?
+        self._safe_mem = kwargs.get("safemem", True)
+        # Is this emulator meant to stay in one function scope?
+        self._func_only = kwargs.get("funconly", True)
+        # Should we bail on emulation if unsupported instruction encountered?
+        self.strictops = kwargs.get('strictops', True)
 
         # Map in all the memory associated with the workspace
         for va, size, perms, fname in vw.getMemoryMaps():

@@ -15,9 +15,9 @@ class ArmWorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_arm.ArmEmulator):
 
     taintregs = [x for x in range(13)]
 
-    def __init__(self, vw, logwrite=False, logread=False):
+    def __init__(self, vw, **kwargs):
         e_arm.ArmEmulator.__init__(self)
-        v_i_emulator.WorkspaceEmulator.__init__(self, vw, logwrite=logwrite, logread=logread)
+        v_i_emulator.WorkspaceEmulator.__init__(self, vw, **kwargs)
         self.setMemArchitecture(envi.ARCH_ARMV7)
 
     def setThumbMode(self, thumb=1):
@@ -208,8 +208,7 @@ class ArmWorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_arm.ArmEmulator):
                             logger.debug(repr(e))
                             break
                         except Exception as e:
-                            if not self.getMeta('silent'):
-                                logger.warning("funcva: 0x%x opva: 0x%x:  %r   (%r) (in emumon prehook: %r)", funcva, starteip, op, e, self.emumon)
+                            logger.warning("funcva: 0x%x opva: 0x%x:  %r   (%r) (in emumon prehook: %r)", funcva, starteip, op, e, self.emumon)
 
                         if self.emustop:
                             return
@@ -224,8 +223,7 @@ class ArmWorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_arm.ArmEmulator):
                         try:
                             self.emumon.posthook(self, op, endeip)
                         except Exception as e:
-                            if not self.getMeta('silent'):
-                                logger.warning("funcva: 0x%x opva: 0x%x:  %r   (%r) (in emumon posthook: %r)", funcva, starteip, op, e, self.emumon)
+                            logger.warning("funcva: 0x%x opva: 0x%x:  %r   (%r) (in emumon posthook: %r)", funcva, starteip, op, e, self.emumon)
                         if self.emustop:
                             return
 
@@ -271,8 +269,8 @@ class ArmWorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_arm.ArmEmulator):
                     break # If we exc during execution, this branch is dead.
 
 class ThumbWorkspaceEmulator(ArmWorkspaceEmulator):
-    def __init__(self, vw, logwrite=False, logread=False):
-        ArmWorkspaceEmulator.__init__(self, vw, logwrite, logread)
+    def __init__(self, vw, **kwargs):
+        ArmWorkspaceEmulator.__init__(self, vw, **kwargs)
         self.setThumbMode()
         self.setMemArchitecture(envi.ARCH_THUMB)
 
@@ -280,8 +278,8 @@ class ThumbWorkspaceEmulator(ArmWorkspaceEmulator):
         return ArmWorkspaceEmulator.runFunction(self, funcva, stopva, maxhit, maxloop, tmode=1)
 
 class Thumb16WorkspaceEmulator(ArmWorkspaceEmulator):
-    def __init__(self, vw, logwrite=False, logread=False):
-        ArmWorkspaceEmulator.__init__(self, vw, logwrite, logread)
+    def __init__(self, vw, **kwargs):
+        ArmWorkspaceEmulator.__init__(self, vw, **kwargs)
         self.setThumbMode()
         self.setMemArchitecture(envi.ARCH_THUMB16)
 

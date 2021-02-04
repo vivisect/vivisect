@@ -23,9 +23,9 @@ class Amd64WorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_amd64.Amd64Emulat
         e_amd64.REG_RDI, e_amd64.REG_R8,  e_amd64.REG_R9,
     ]
 
-    def __init__(self, vw, logwrite=False, logread=False):
+    def __init__(self, vw, **kwargs):
         e_amd64.Amd64Emulator.__init__(self)
-        v_i_emulator.WorkspaceEmulator.__init__(self, vw, logwrite=logwrite, logread=logread)
+        v_i_emulator.WorkspaceEmulator.__init__(self, vw, **kwargs)
         self.setEmuOpt('i386:reponce', True)
 
     def getRegister(self, index):

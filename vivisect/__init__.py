@@ -22,7 +22,6 @@ import collections
 import envi
 import envi.bits as e_bits
 import envi.memory as e_mem
-import envi.common as e_common
 import envi.config as e_config
 import envi.bytesig as e_bytesig
 import envi.symstore.resolver as e_resolv
@@ -285,7 +284,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         """
         return self.frefs.get((va, idx))
 
-    def getEmulator(self, logwrite=False, logread=False):
+    def getEmulator(self, **kwargs):
         """
         Get an instance of a WorkspaceEmulator for this workspace.
 
@@ -301,7 +300,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         if eclass is None:
             raise Exception("WorkspaceEmulation not supported on %s yet!" % arch)
 
-        emu = eclass(self, logwrite=logwrite, logread=logread)
+        emu = eclass(self, **kwargs)
         emu.setEndian(self.getEndian())
 
         return emu
@@ -1062,7 +1061,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             return True
         return False
 
-    def isProbablyCode(self, va, rerun=False):
+    def isProbablyCode(self, va, **kwargs):
         """
         Most of the time, absolute pointers which point to code
         point to the function entry, so test it for the sig.
@@ -1073,12 +1072,12 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         if ret:
             return ret
 
+        rerun = kwargs.pop('rerun', False)
         if va in self.iscode and not rerun:
             return self.iscode[va]
 
         self.iscode[va] = True
-        emu = self.getEmulator()
-        emu.setMeta('silent', True)
+        emu = self.getEmulator(**kwargs)
         wat = v_emucode.watcher(self, va)
         emu.setEmulationMonitor(wat)
         try:
