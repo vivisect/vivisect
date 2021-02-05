@@ -46,6 +46,7 @@ instrs = [
         ('3b4715', 0x4560, 'bnz 0x8c75', 0, ()),                    # FORM_PCDSP
         ('fced3468', 0x4560, 'bmgtu 0x3,0x68[r3]', 0, ()),          # FORM_BMCND
         ('fde734', 0x4560, 'bmltu 0x7,[r4]', 0, ()),             # FORM_BMCND
+        ('fcf23f', 0x4560, 'bnot 0x4,', 0, ()),             # FORM_BMCND
 
 
 ]

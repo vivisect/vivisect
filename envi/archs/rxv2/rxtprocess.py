@@ -216,6 +216,7 @@ def genTables(data):
 
             # sort from encoding! VERY IMPORTANT... ? 
             def thingsort(x, y):
+                print "%r   ==?==   %r" % (x, y)
                 xlowest = 255
                 for xnm, xpart in x[4].items():
                     for key in xpart.keys():
@@ -227,7 +228,26 @@ def genTables(data):
                     for key in ypart.keys():
                         if key < ylowest:
                             ylowest = key
-                return ylowest - xlowest
+
+                delta = ylowest - xlowest
+                if delta == 0: # they're equal size, compare mask specificity
+                    xmask = x[1]
+                    xbits = 0
+                    while xmask:
+                        if xmask & 1:
+                            xbits += 1
+                        xmask >>= 1
+
+                    ymask = y[1]
+                    ybits = 0
+                    while ymask:
+                        if ymask & 1:
+                            ybits += 1
+                        ymask >>= 1
+
+                    delta = ybits - xbits
+                    
+                return delta
 
             openclist.sort(cmp=thingsort)
 
