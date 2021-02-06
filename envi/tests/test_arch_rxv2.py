@@ -18,7 +18,7 @@ from envi import IF_RET, IF_NOFALL, IF_BRANCH, IF_CALL, IF_COND
 logger = logging.getLogger(__name__)
 
 
-GOOD_TESTS = 20
+GOOD_TESTS = 44
 GOOD_EMU_TESTS = 0
 
 
@@ -46,8 +46,27 @@ instrs = [
         ('3b4715', 0x4560, 'bnz 0x8c75', 0, ()),                    # FORM_PCDSP
         ('fced3468', 0x4560, 'bmgtu 0x3,0x68[r3]', 0, ()),          # FORM_BMCND
         ('fde734', 0x4560, 'bmltu 0x7,[r4]', 0, ()),             # FORM_BMCND
-        ('fcf23f', 0x4560, 'bnot 0x4,', 0, ()),             # FORM_BMCND
-
+        ('fcf23f4546', 0x4560, 'bnot 0x4,0x4546[r3].b', 0, ()),             # FORM_BMCND
+        ('fc6e3f4568', 0x4560, 'bnot r3,0x4568[r15].ub', 0, ()),             # FORM_BMCND
+        ('fde6f4', 0x4560, 'bnot 0x6,r4', 0, ()),                    # FORM_PCDSP
+        ('fc6f36', 0x4560, 'bnot r6,r3', 0, ()),             # FORM_BMCND
+        ('08', 0x4560, 'bra 0x4568', 0, ()),             # FORM_BMCND
+        ('2e05', 0x4560, 'bra 0x4565', 0, ()),             # FORM_BMCND
+        ('384715', 0x4560, 'bra 0x8c75', 0, ()),             # FORM_BMCND
+        ('7f45', 0x4560, 'bra r5', 0, ()),             # FORM_BMCND
+        ('00', 0x4560, 'brk', 0, ()),             # FORM_BMCND
+        ('f2334568', 0x4560, 'bset 0x3,0x4568[r3].b', 0, ()),             # FORM_BMCND
+        ('fc62344568', 0x4560, 'bset r3,0x4568[r4].ub', 0, ()),             # FORM_BMCND
+        ('7834', 0x4560, 'bset 0x3,r4', 0, ()),             # FORM_BMCND
+        ('7934', 0x4560, 'bset 0x13,r4', 0, ()),             # FORM_BMCND
+        ('fc6334', 0x4560, 'bset r4,r3', 0, ()),             # FORM_BMCND
+        ('394568', 0x4560, 'bsr 0x8ac8', 0, ()),             # FORM_BMCND
+        ('05456800', 0x4560, 'bsr 0x45ad60', 0, ()),             # FORM_BMCND
+        ('7f53', 0x4560, 'bsr r3', 0, ()),             # FORM_BMCND
+        ('f6334568', 0x4560, 'btst 0x3,0x4568[r3].b', 0, ()),             # FORM_BMCND
+        ('fc6aab4568', 0x4560, 'btst 0x4568[r11].b,r10', 0, ()),             # FORM_BMCND
+        ('7d44', 0x4560, 'btst 0x14,r4', 0, ()),             # FORM_BMCND
+        ('fc6bab', 0x4560, 'btst r11,r10', 0, ()),             # FORM_BMCND
 
 ]
 

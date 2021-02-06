@@ -227,6 +227,8 @@ class RxDisasm:
         logger.warning("PARSE MATCH FOUND: val: %x\n\t%x %x %x %r %r  %r  %x", val, mask, endval, opcode, mnem, operdefs, sz, iflags)
         print("PARSE MATCH FOUND: val: %x\n\t%x %x %x %r %r  %r  %x" % (val, mask, endval, opcode, mnem, operdefs, sz, iflags))
 
+
+        offset += opsize
         val = opervals[sz]
         # let's parse out the things
         fields = {}
@@ -241,7 +243,7 @@ class RxDisasm:
             # if we have a handler, just let it do everything
             hndlFunc = self.HANDLERS[handler]
             print("Handler: %r" % hndlFunc)
-            return hndlFunc(va, opcode, mnem, fields, sz, iflags, bytez, offset+opsize)
+            return hndlFunc(va, opcode, mnem, fields, sz, iflags, bytez, offset)
 
 
         # deciding key fields and build operand tuple
@@ -273,40 +275,48 @@ class RxDisasm:
                 li = fields.get(O_LI)
                 if li is not None:
                     if li == 3:
-                        imm = e_bits.slowparsebytes(bytez, off, 3, sign=True, bigend=True)
+                        imm = e_bits.slowparsebytes(bytez, offset, 3, sign=True, bigend=True)
                     else:
                         if li == 0:
                             li = 4
 
                         fmt = e_bits.getFormat(li, big_endian=True, signed=True)
-                        imm, = struct.unpack_from(fmt, bytez, off)
+                        imm, = struct.unpack_from(fmt, bytez, offset)
 
                     opers.append(RxImmOper(imm, va=va))
 
                 # check all the registers (and not quite)
-                for regconst in O_RS, O_RS2, O_CR, O_A, O_RD, O_RD2:
-                    reg = fields.get(regconst)
-                    if reg is not None:
-                        if regconst == O_CR:
-                            opers.append(RxCRRegOper(reg, va=va))
+                for const in O_IMM, O_RS, O_RS2, O_CR, O_A, O_RD, O_RD2:
+                    val = fields.get(const)
+                    print("  loop: %r = %r" % (nms[const], val))
+                    if val is not None:
+                        if const == O_IMM:
+                            opers.append(RxImmOper(val, va=va))
+
+                        elif const == O_CR:
+                            opers.append(RxCRRegOper(val, va=va))
 
                         else:
-                            opers.append(RxRegOper(reg, va=va))
+                            opers.append(RxRegOper(val, va=va))
 
             else:   # 3 and 4 operand-parts
                 print("Parser: 3/4/5-oper")
                 #'li' gives a size for an extra IMM:#
                 li = fields.get(O_LI)
+                lds = fields.get(O_LDS)
+                ldd = fields.get(O_LDD)
+                print "ldd: %r   lds: %r" % (ldd, lds)
+
                 if li is not None:
                     print("  li: %x" % li)
                     if li == 3:
-                        imm = e_bits.slowparsebytes(bytez, off, 3, sign=True, bigend=True)
+                        imm = e_bits.slowparsebytes(bytez, offset, 3, sign=True, bigend=True)
                     else:
                         if li == 0:
                             li = 4
 
                         fmt = e_bits.getFormat(li, big_endian=True, signed=True)
-                        imm, = struct.unpack_from(fmt, bytez, off)
+                        imm, = struct.unpack_from(fmt, bytez, offset)
 
                     opers.append(RxImmOper(imm, va=va))
 
@@ -325,13 +335,25 @@ class RxDisasm:
                     # check all the registers (and not quite)
                     for regconst in O_RS, O_RS2, O_CR, O_A, O_RD, O_RD2:
                         reg = fields.get(regconst)
-                        print("  loop: %r = %r" % (regconst, reg))
+                        print("  loop: %r = %r" % (nms[regconst], reg))
                         if reg is not None:
                             if regconst == O_CR:
                                 opers.append(RxCRRegOper(reg, va=va))
 
                             elif regconst == O_A:
                                 opers.append(RxRegOper(REG_ACC0 + reg, va))
+
+                            elif regconst == O_RD and ldd in (1,2):
+                                dsp = e_bits.parsebytes(bytez, offset, ldd, sign=False, bigend=True)
+                                opers.append(RxDspOper(reg, dsp, tsize=1, oflags=OF_B, va=va))
+                                offset += dsp
+                                sz += dsp
+
+                            elif regconst == O_RS and lds in (1,2):
+                                dsp = e_bits.parsebytes(bytez, offset, lds, sign=False, bigend=True)
+                                opers.append(RxDspOper(reg, dsp, tsize=1, oflags=OF_B, va=va))
+                                offset += dsp
+                                sz += dsp
 
                             else:
                                 opers.append(RxRegOper(reg, va=va))
@@ -437,22 +459,43 @@ class RxDisasm:
         rd = fields.get(O_RD)
         lds = fields.get(O_LDS)
 
-        if lds == 3:
-            opers = (
-                    RxRegOper(rs, va),
-                    RxRegOper(rd, va),
-                    )
+        if lds is None:
+            ldd = fields.get(O_LDD)
+
+            if ldd == 3:
+                opers = (
+                        RxRegOper(rs, va),
+                        RxRegOper(rd, va),
+                        )
+            else:
+                if ldd in (1,2):
+                    dsps = e_bits.parsebytes(bytez, off, ldd, sign=True, bigend=True)
+                    opsz += ldd
+                elif ldd == 0:
+                    dsps = 0
+                
+                opers = (
+                        RxRegOper(rd, va), 
+                        RxDspOper(rs, dsps, tsize=1, oflags=OF_UB, va=va), 
+                        )
+
         else:
-            if lds in (1,2):
-                dsps = e_bits.parsebytes(bytez, off, lds, sign=True, bigend=True)
-                opsz += lds
-            elif lds == 0:
+            if lds == 3:
+                opers = (
+                        RxRegOper(rs, va),
+                        RxRegOper(rd, va),
+                        )
+            else:
                 dsps = 0
-            
-            opers = (
-                    RxDspOper(rs, dsps, tsize=1, oflags=OF_UB, va=va), 
-                    RxRegOper(rd, va), 
-                    )
+                if lds in (1,2):
+                    dsps = e_bits.parsebytes(bytez, off, lds, sign=True, bigend=True)
+                    opsz += lds
+                #elif lds == 0:
+                
+                opers = (
+                        RxDspOper(rs, dsps, tsize=1, oflags=OF_UB, va=va), 
+                        RxRegOper(rd, va), 
+                        )
 
         return RxOpcode(va, opcode, mnem, opers, iflags, opsz) 
 
