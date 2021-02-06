@@ -584,11 +584,13 @@ class RxRegOper(envi.RegisterOper):
 
     def getOperValue(self, op, emu=None):
         if emu is None:
+            if self.reg == REG_PC:
+                return op.va
             return
         return emu.getRegister(self.reg)
 
     def setOperValue(self, op, emu, val):
-        logger.warning("%s needs to implement setOperAddr!" % self.__class__.__name__)
+        emu.setRegister(self.reg, val)
 
     def getOperAddr(self, op, emu=None):
         pass
@@ -602,6 +604,28 @@ class RxRegOper(envi.RegisterOper):
     def render(self, mcanv, op, idx):
         rname = regs.rctx.getRegisterName(self.reg)
         mcanv.addNameText(rname, typename='registers')
+
+class RxCBRegOper(RxRegOper):
+    def __init__(self, flag, va):
+        self.reg = regs.REG_C + (flag << 24)
+        self.flag = flag
+        self.va = va
+
+    def getWidth(self):
+        return 1    # FIXME: bit-fields are always wrong... should we return bits, not bytes?
+
+    def repr(self, op):
+        return regs.rctx.getRegisterName(self.reg)
+
+    def render(self, mcanv, op, idx):
+        hint = mcanv.syms.getSymHint(op.va, idx)
+        if hint is not None:
+            mcanv.addNameText(name, typename="registers")
+        else:
+            name = regs.rctx.getRegisterName(self.reg)
+            rname = regs.rctx.getRegisterName(self.reg&RMETA_NMASK)
+            mcanv.addNameText(name, name=rname, typename="registers")
+
 
 class RxCRRegOper(RxRegOper):
     pass
@@ -755,8 +779,8 @@ class RxRegIncOper(envi.RegisterOper):
 
 
 OPERS = {}
-OPERS[O_CB] = None
-OPERS[O_CR] = None
+OPERS[O_CB] = RxCBRegOper
+OPERS[O_CR] = RxCRRegOper
 OPERS[O_PCDSP] = RxPcdspOper
 OPERS[O_IMM] = RxImmOper
 OPERS[O_RD] = RxRegOper

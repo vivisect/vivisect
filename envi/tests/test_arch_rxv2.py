@@ -67,6 +67,7 @@ instrs = [
         ('fc6aab4568', 0x4560, 'btst 0x4568[r11].b,r10', 0, ()),             # FORM_BMCND
         ('7d44', 0x4560, 'btst 0x14,r4', 0, ()),             # FORM_BMCND
         ('fc6bab', 0x4560, 'btst r11,r10', 0, ()),             # FORM_BMCND
+        ('7fb3', 0x4560, 'clrpsw O', 0, ()),             # FORM_BMCND
 
 ]
 

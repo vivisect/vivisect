@@ -51,14 +51,14 @@ status_meta = [
     ('FS',      REG_FPSW, 31, 1, 'Floating-point error summary Flag'),
 ]
 
-e_reg.addLocalStatusMetas(l, registers_meta, status_meta, 'SR')
+e_reg.addLocalStatusMetas(l, registers_meta, status_meta, 'PSW')
 e_reg.addLocalMetas(l, registers_meta)
 
 class RXv2RegisterContext(e_reg.RegisterContext):
     def __init__(self):
         e_reg.RegisterContext.__init__(self)
         self.loadRegDef(registers_info)
-        self.loadRegMetas([], statmetas=status_meta)
+        self.loadRegMetas(registers_meta, statmetas=status_meta)
         self.setRegisterIndexes(REG_PC, REG_SP, srindex=REG_USP)
 
 rctx = RXv2RegisterContext()
