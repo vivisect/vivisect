@@ -3,6 +3,7 @@ Some of the basic/universal memory renderers.
 '''
 
 import struct
+import binascii
 
 import envi.memory as e_mem
 import envi.memcanvas as e_canvas
@@ -18,20 +19,20 @@ class ByteRend(e_canvas.MemoryRenderer):
         if bigend:
             self.fmtbase = '>'
 
-        self.width = struct.calcsize('%s%s' % (self.fmtbase,self.__class__.__fmt_char__))
+        self.width = struct.calcsize('%s%s' % (self.fmtbase, self.__fmt_char__))
         self.bformat = '%%.%dx' % (self.width * 2)
         self.pformat = '0x%s' % self.bformat
 
     def render(self, mcanv, va, numbytes=16):
         bytez = mcanv.mem.readMemory(va, numbytes)
         if self.__pad__:
-            bytez = bytez.ljust(numbytes, '\x00')
+            bytez = bytez.ljust(numbytes, b'\x00')
 
         mcanv.addVaText(self.pformat % va, va)
         mcanv.addText('  ')
 
-        cnt = len(bytez) / self.width
-        packfmt = self.fmtbase + (self.__class__.__fmt_char__ * cnt)
+        cnt = len(bytez) // self.width
+        packfmt = self.fmtbase + (self.__fmt_char__ * cnt)
         for val in struct.unpack(packfmt, bytez):
             bstr = self.bformat % val
             if mcanv.mem.isValidPointer(val):
@@ -65,22 +66,22 @@ class QuadRend(ByteRend):
     __fmt_char__ = 'Q'
     __pad__ = True
 
-def isAscii(bytez):
-    bytez = bytez.split('\x00')[0]
+def isAscii(bytez: bytes):
+    bytez = bytez.split(b'\x00')[0]
     if len(bytez) < 4:
         return False, None
     for i in range(len(bytez)):
-        o = ord(bytez[i])
+        o = bytez[i]
         if o < 0x20 or o > 0x7e:
             return False, None
     return True, bytez
 
-def isBasicUnicode(bytez):
-    bytez = bytez.split('\x00\x00')[0]
+def isBasicUnicode(bytez: bytes):
+    bytez = bytez.split(b'\x00\x00')[0]
     if len(bytez) < 8:
         return False, None
-    nonull = bytez.replace('\x00', '')
-    if (len(bytez) / 2) - 1 != len(nonull):
+    nonull = bytez.replace(b'\x00', b'')
+    if (len(bytez) // 2) - 1 != len(nonull):
         return False, None
     return isAscii(nonull)
 

@@ -526,12 +526,13 @@ class VQThreadsView(vq_tree.VQTreeView, VQTraceNotifier):
         self.selectthread = selectthread
 
     def selectionChanged(self, selected, deselected):
-        idx = self.selectedIndexes()[0]
-        node = idx.internalPointer()
-        if node:
-            self.trace.selectThread(node.rowdata[0])
+        if len(self.selectedIndexes()) > 0:
+            idx = self.selectedIndexes()[0]
+            node = idx.internalPointer()
+            if node:
+                self.trace.selectThread(node.rowdata[0])
 
-        return vq_tree.VQTreeView.selectionChanged(self, selected, deselected)
+            return vq_tree.VQTreeView.selectionChanged(self, selected, deselected)
 
     def vqLoad(self):
 
