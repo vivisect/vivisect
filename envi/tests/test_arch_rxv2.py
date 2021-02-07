@@ -18,7 +18,7 @@ from envi import IF_RET, IF_NOFALL, IF_BRANCH, IF_CALL, IF_COND
 logger = logging.getLogger(__name__)
 
 
-GOOD_TESTS = 83
+GOOD_TESTS = 94
 GOOD_EMU_TESTS = 0
 
 
@@ -106,6 +106,18 @@ instrs = [
         ('756045', 0x4560, 'int 0x45', 0, ()),             # FORM_BMCND
         ('fc46341780', 0x4560, 'itof 0x1780[r3].ub,r4', 0, ()),             # FORM_BMCND
         ('06a211341780', 0x4560, 'itof 0x1780[r3].l,r4', 0, ()),             # FORM_BMCND
+        ('7f04', 0x4560, 'jmp r4', 0, ()),             # FORM_BMCND
+        ('7f14', 0x4560, 'jsr r4', 0, ()),             # FORM_BMCND
+        ('fd0c34', 0x4560, 'machi r3,r4,acc1', 0, ()),             # FORM_BMCND
+        ('fd0e34', 0x4560, 'maclh r3,r4,acc1', 0, ()),             # FORM_BMCND
+        ('fd0d34', 0x4560, 'maclo r3,r4,acc1', 0, ()),             # FORM_BMCND
+        ('fd78441780', 0x4560, 'max 0x1780,r4', 0, ()),             # FORM_BMCND
+        ('fc12341780', 0x4560, 'max 0x1780[r3].ub,r4', 0, ()),             # FORM_BMCND
+        ('06a204341780', 0x4560, 'max 0x1780[r3].l,r4', 0, ()),             # FORM_BMCND
+        ('fd745417', 0x4560, 'min 0x17,r4', 0, ()),             # FORM_BMCND
+        ('fc153417', 0x4560, 'min 0x17[r3].ub,r4', 0, ()),             # FORM_BMCND
+        ('0661043417', 0x4560, 'max 0x17[r3].w,r4', 0, ()),             # FORM_BMCND
+        ('97cb', 0x4560, 'mov.w r3,r4', 0, ()),             # FORM_BMCND
 
 ]
 
