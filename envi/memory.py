@@ -230,7 +230,7 @@ class IMemory:
         map which contains the specified address (or None).
         '''
         for mapva, size, perms, mname in self.getMemoryMaps():
-            if va >= mapva and va < (mapva+size):
+            if mapva <= va < (mapva + size):
                 return (mapva, size, perms, mname)
         return None
 
@@ -277,7 +277,7 @@ class IMemory:
         maptup = self.getMemoryMap(va)
         if maptup is None:
             return False
-        return bool(maptup[2] & MM_SHAR)
+        return bool(maptup[2] & MM_SHARED)
 
     def searchMemory(self, needle, regex=False):
         """
@@ -450,7 +450,7 @@ class MemoryObject(IMemory):
         Get the va,size,perms,fname tuple for this memory map
         """
         for mva, mmaxva, mmap, mbytes in self._map_defs:
-            if va >= mva and va < mmaxva:
+            if mva <= va < mmaxva:
                 return mmap
         return None
 
@@ -460,7 +460,7 @@ class MemoryObject(IMemory):
     def readMemory(self, va, size):
 
         for mva, mmaxva, mmap, mbytes in self._map_defs:
-            if va >= mva and va < mmaxva:
+            if mva <= va < mmaxva:
                 mva, msize, mperms, mfname = mmap
                 if not mperms & MM_READ:
                     raise envi.SegmentationViolation(va)
@@ -471,7 +471,7 @@ class MemoryObject(IMemory):
     def writeMemory(self, va, bytes):
         for mapdef in self._map_defs:
             mva, mmaxva, mmap, mbytes = mapdef
-            if va >= mva and va < mmaxva:
+            if mva <= va < mmaxva:
                 mva, msize, mperms, mfname = mmap
                 if not (mperms & MM_WRITE or self._supervisor):
                     raise envi.SegmentationViolation(va)
@@ -491,7 +491,7 @@ class MemoryObject(IMemory):
         """
         for mapdef in self._map_defs:
             mva, mmaxva, mmap, mbytes = mapdef
-            if va >= mva and va < mmaxva:
+            if mva <= va < mmaxva:
                 offset = va - mva
                 return (offset, mbytes)
         raise envi.SegmentationViolation(va)
@@ -511,7 +511,7 @@ class MemoryObject(IMemory):
         '''
 
         for mva, mmaxva, mmap, mbytes in self._map_defs:
-            if va >= mva and va < mmaxva:
+            if mva <= va < mmaxva:
                 mva, msize, mperms, mfname = mmap
                 if not mperms & MM_READ:
                     raise envi.SegmentationViolation(va)

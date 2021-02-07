@@ -31,10 +31,11 @@ class MemoryRenderer(object):
 
     def rendChars(self, mcanv, bytez):
         for b in bytez:
-            val = ord(b)
-            bstr = "%.2x" % val
-            if val < 0x20 or val > 0x7e:
+            bstr = "%.2x" % b
+            if b < 0x20 or b > 0x7e:
                 b = "."
+            else:
+                b = chr(b)
             mcanv.addNameText(b, bstr)
 
     def render(self, mcanv, va):
