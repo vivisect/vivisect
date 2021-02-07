@@ -53,11 +53,14 @@ def process(fbytes):
                     
                     newstuff = fline[hashdx+1: nextspc].lower()
                     fline = fline[:hashdx] + newstuff + fline[nextspc:]
+                    print("immediate: %r\n    %r" % (newstuff, fline))
+                    hashdx = fline.rfind('#')
 
             else:
                 # it's a comment
                 fline = fline[:hashdx].strip()
                 hashdx = fline.rfind('#')
+                print("comment")
 
         fline = fline.strip()
 

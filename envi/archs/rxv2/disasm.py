@@ -192,22 +192,30 @@ class RxDisasm:
 
             # search through the list looking for the right one...
             for nextbl, handler, mask, endval, opcode, mnem, operdefs, sz, iflags in curtable:
-                while opsize < sz:
-                    # grab the next byte
-                    bval, = struct.unpack_from('B', bytez, offset+opsize)
-                    # update the running value we'll use to parse
-                    val <<= 8
-                    val |= bval
-                    # update the opsize and store the byte
-                    opsize += 1
-                    opervals[opsize] = val
+                try:
+                    while opsize < sz:
+                        # grab the next byte
+                        bval, = struct.unpack_from('B', bytez, offset+opsize)
+                        # update the running value we'll use to parse
+                        val <<= 8
+                        val |= bval
 
-                # find a match:
-                if opervals[sz] & mask != endval:
+                        # update the opsize and store the byte
+                        opsize += 1
+                        opervals[opsize] = val
+                        print(" ++ %x  0x%x  %r" % (bval, val, opervals))
+
+
+                    # find a match:
+                    if opervals[sz] & mask != endval:
+                        continue
+
+                    found = True
+                    break
+                except Exception as e:
+                    print("%r (%r)" % (e, type(e)))
                     continue
 
-                found = True
-                break
         else:   # true up the 
             while opsize < sz:
                 # grab the next byte
@@ -228,7 +236,7 @@ class RxDisasm:
         print("PARSE MATCH FOUND: val: %x\n\t%x %x %x %r %r  %r  %x" % (val, mask, endval, opcode, mnem, operdefs, sz, iflags))
 
 
-        offset += opsize
+        offset += sz
         val = opervals[sz]
         # let's parse out the things
         fields = {}
@@ -652,6 +660,9 @@ class RxImmOper(envi.ImmedOper):
         mcanv.addText('#')
         mcanv.addNameText('0x%.2x' % (val))
 
+class RxUImmOper(RxImmOper):
+    pass
+
 class RxPcdspOper(envi.ImmedOper):
     def __init__(self, val, va, relative=True):
         self.val = val
@@ -783,6 +794,9 @@ OPERS[O_CB] = RxCBRegOper
 OPERS[O_CR] = RxCRRegOper
 OPERS[O_PCDSP] = RxPcdspOper
 OPERS[O_IMM] = RxImmOper
+OPERS[O_UIMM] = RxUImmOper
 OPERS[O_RD] = RxRegOper
+OPERS[O_RD2] = RxRegOper
 OPERS[O_RS] = RxRegOper
+OPERS[O_RS2] = RxRegOper
 
