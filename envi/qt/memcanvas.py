@@ -229,6 +229,7 @@ class VQMemoryCanvas(e_memcanvas.MemoryCanvas, QWebEngineView):
     @idlethread
     def _appendInside(self, text, cb=None):
         page = self.page()
+        text = text.replace('`', r'\`')
         js = f'''
         document.querySelector("{self._canv_rendtagid}").innerHTML += `{text}`;
         '''
