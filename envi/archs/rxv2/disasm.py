@@ -212,6 +212,7 @@ class RxDisasm:
 
                     found = True
                     break
+
                 except Exception as e:
                     print("%r (%r)" % (e, type(e)))
                     continue

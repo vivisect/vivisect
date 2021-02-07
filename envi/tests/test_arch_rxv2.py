@@ -18,7 +18,7 @@ from envi import IF_RET, IF_NOFALL, IF_BRANCH, IF_CALL, IF_COND
 logger = logging.getLogger(__name__)
 
 
-GOOD_TESTS = 44
+GOOD_TESTS = 83
 GOOD_EMU_TESTS = 0
 
 
@@ -89,7 +89,23 @@ instrs = [
         ('06a207341780', 0x4560, 'emulu 0x1780[r3].l,r4', 0, ()),             # FORM_BMCND
         ('fd722400047145', 0x4560, 'fadd 0x47145,r4', 0, ()),             # FORM_BMCND
         ('fc8a341780', 0x4560, 'fadd 0x1780[r3].ub,r4', 0, ()),             # FORM_BMCND
-        ('ffa345', 0x4560, 'fadd r3,r4,r5', 0, ()),             # FORM_BMCND
+        ('ffa345', 0x4560, 'fadd r4,r5,r3', 0, ()),             # FORM_BMCND
+        ('fd721400047145', 0x4560, 'fcmp 0x47145,r4', 0, ()),             # FORM_BMCND
+        ('fc86341780', 0x4560, 'fcmp 0x1780[r3].b,r4', 0, ()),             # FORM_BMCND
+        ('fd724400047145', 0x4560, 'fdiv 0x47145,r4', 0, ()),             # FORM_BMCND
+        ('fc92341780', 0x4560, 'fdiv 0x1780[r3].ub,r4', 0, ()),             # FORM_BMCND
+        ('fd723400047145', 0x4560, 'fmul 0x47145,r4', 0, ()),             # FORM_BMCND
+        ('fc8e341780', 0x4560, 'fmul 0x1780[r3].ub,r4', 0, ()),             # FORM_BMCND
+        ('ffb345', 0x4560, 'fmul r4,r5,r3', 0, ()),             # FORM_BMCND
+        ('fca2341780', 0x4560, 'fsqrt 0x1780[r3].ub,r4', 0, ()),             # FORM_BMCND
+        ('fd720400047145', 0x4560, 'fsub 0x47145,r4', 0, ()),             # FORM_BMCND
+        ('fc82341780', 0x4560, 'fsub 0x1780[r3].ub,r4', 0, ()),             # FORM_BMCND
+        ('ff8345', 0x4560, 'fsub r4,r5,r3', 0, ()),             # FORM_BMCND
+        ('fc96341780', 0x4560, 'ftoi 0x1780[r3].ub,r4', 0, ()),             # FORM_BMCND
+        ('fca6341780', 0x4560, 'ftou 0x1780[r3].ub,r4', 0, ()),             # FORM_BMCND
+        ('756045', 0x4560, 'int 0x45', 0, ()),             # FORM_BMCND
+        ('fc46341780', 0x4560, 'itof 0x1780[r3].ub,r4', 0, ()),             # FORM_BMCND
+        ('06a211341780', 0x4560, 'itof 0x1780[r3].l,r4', 0, ()),             # FORM_BMCND
 
 ]
 
