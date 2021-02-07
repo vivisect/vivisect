@@ -326,7 +326,7 @@ def convertOpers(opers, opsz):
             nparts.append((pshift, pmask))
 
 
-        # fix dsp to be easily determined whether it's src or dst
+        # fix dsp and ld to be easily determined whether it's src or dst
         if nm == 'ld':
             rstup = opers.get('rs')
             rdtup = opers.get('rd')
@@ -338,6 +338,18 @@ def convertOpers(opers, opsz):
                 nm = 'lds'
             else:
                 nm = 'ldd'
+
+        if nm == 'dsp':
+            rstup = opers.get('rs')
+            rdtup = opers.get('rd')
+            if rdtup is None:
+                nm = 'dsps'
+            elif rstup is None:
+                nm = 'dspd'
+            elif rdtup > rstup:
+                nm = 'dsps'
+            else:
+                nm = 'dspd'
 
             print "%-20s %-20s %-10s \t %50s" % (rstup, rdtup, nm, opers)
 

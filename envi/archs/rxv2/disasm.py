@@ -283,7 +283,7 @@ class RxDisasm:
             fields.pop(O_SZ)
 
         else:
-            tsize = None
+            tsize = 1
 
         # deciding key fields and build operand tuple
         operkeys = fields.keys()
@@ -382,17 +382,32 @@ class RxDisasm:
                             elif regconst == O_A:
                                 opers.append(RxRegOper(REG_ACC0 + reg, va))
 
-                            elif regconst == O_RD and ldd in (1,2):
-                                dsp = e_bits.parsebytes(bytez, offset, ldd, sign=False, bigend=True)
-                                opers.append(RxDspOper(reg, dsp, tsize=1, oflags=OF_B, va=va))
-                                offset += dsp
-                                sz += dsp
+                            elif regconst == O_RD:
+                                if ldd in (1,2):
+                                    dsp = e_bits.parsebytes(bytez, offset, ldd, sign=False, bigend=True)
+                                    opers.append(RxDspOper(reg, dsp, tsize=tsize, oflags=OF_B, va=va))
+                                    offset += ldd
+                                    sz += ldd
 
-                            elif regconst == O_RS and lds in (1,2):
-                                dsp = e_bits.parsebytes(bytez, offset, lds, sign=False, bigend=True)
-                                opers.append(RxDspOper(reg, dsp, tsize=1, oflags=OF_B, va=va))
-                                offset += dsp
-                                sz += dsp
+                                elif O_DSPD in operkeys:
+                                    dsp = fields.get(O_DSPD)
+                                    opers.append(RxDspOper(reg, dsp, va))
+                                else:
+                                    opers.append(RxRegOper(reg, va=va))
+
+                            elif regconst == O_RS:
+                                if lds in (1,2):
+                                    dsp = e_bits.parsebytes(bytez, offset, lds, sign=False, bigend=True)
+                                    opers.append(RxDspOper(reg, dsp, tsize=tsize, oflags=OF_B, va=va))
+                                    offset += lds
+                                    sz += lds
+
+                                elif O_DSPS in operkeys:
+                                    dsp = fields.get(O_DSPS)
+                                    opers.append(RxDspOper(reg, dsp, va))
+                                else:
+                                    opers.append(RxRegOper(reg, va=va))
+
 
                             else:
                                 opers.append(RxRegOper(reg, va=va))

@@ -23,7 +23,7 @@ tbl_6 = (\
 
 tbl_3f = (\
     (None, None, 0xff0000, 0x3f0000, INS_RTSD, 'rtsd', ((O_RD, ((12, 0xf),)), (O_UIMM, ((0, 0xff),)), (O_RD2, ((8, 0xf),)), ), 3, IF_RET | IF_NOFALL),
-    (None, None, 0xfc0000, 0x3c0000, INS_MOV, 'mov', ((O_RD, ((12, 0x7),)), (O_SZ, ((16, 0x3),)), (O_IMM, ((0, 0xff),)), (O_DSP, ((15, 0x10), (8, 0xf),)), ), 3, IF_NONE),
+    (None, None, 0xfc0000, 0x3c0000, INS_MOV, 'mov', ((O_RD, ((12, 0x7),)), (O_SZ, ((16, 0x3),)), (O_IMM, ((0, 0xff),)), (O_DSPD, ((15, 0x10), (8, 0xf),)), ), 3, IF_NONE),
 )
 
 
@@ -100,98 +100,98 @@ tbl_7f = (\
 
 
 tbl_b0 = (\
-    (None, None, 0xf000, 0xb000, INS_MOVU, 'movu', ((O_RD, ((0, 0x7),)), (O_SZ, ((11, 0x1),)), (O_DSP, ((3, 0x1), (7, 0x1e),)), (O_RS, ((4, 0x7),)), ), 2, IF_NONE),
-    (None, None, 0xc800, 0x8000, INS_MOV, 'mov', ((O_RD, ((4, 0x7),)), (O_SZ, ((12, 0x3),)), (O_DSP, ((3, 0x1), (7, 0x1e),)), (O_RS, ((0, 0x7),)), ), 2, IF_NONE),
+    (None, None, 0xf000, 0xb000, INS_MOVU, 'movu', ((O_RD, ((0, 0x7),)), (O_SZ, ((11, 0x1),)), (O_DSPS, ((3, 0x1), (7, 0x1e),)), (O_RS, ((4, 0x7),)), ), 2, IF_NONE),
+    (None, None, 0xc800, 0x8000, INS_MOV, 'mov', ((O_RD, ((4, 0x7),)), (O_SZ, ((12, 0x3),)), (O_DSPD, ((3, 0x1), (7, 0x1e),)), (O_RS, ((0, 0x7),)), ), 2, IF_NONE),
 )
 
 
 tbl_b1 = (\
-    (None, None, 0xf000, 0xb000, INS_MOVU, 'movu', ((O_RD, ((0, 0x7),)), (O_SZ, ((11, 0x1),)), (O_DSP, ((3, 0x1), (7, 0x1e),)), (O_RS, ((4, 0x7),)), ), 2, IF_NONE),
-    (None, None, 0xc800, 0x8000, INS_MOV, 'mov', ((O_RD, ((4, 0x7),)), (O_SZ, ((12, 0x3),)), (O_DSP, ((3, 0x1), (7, 0x1e),)), (O_RS, ((0, 0x7),)), ), 2, IF_NONE),
+    (None, None, 0xf000, 0xb000, INS_MOVU, 'movu', ((O_RD, ((0, 0x7),)), (O_SZ, ((11, 0x1),)), (O_DSPS, ((3, 0x1), (7, 0x1e),)), (O_RS, ((4, 0x7),)), ), 2, IF_NONE),
+    (None, None, 0xc800, 0x8000, INS_MOV, 'mov', ((O_RD, ((4, 0x7),)), (O_SZ, ((12, 0x3),)), (O_DSPD, ((3, 0x1), (7, 0x1e),)), (O_RS, ((0, 0x7),)), ), 2, IF_NONE),
 )
 
 
 tbl_b2 = (\
-    (None, None, 0xf000, 0xb000, INS_MOVU, 'movu', ((O_RD, ((0, 0x7),)), (O_SZ, ((11, 0x1),)), (O_DSP, ((3, 0x1), (7, 0x1e),)), (O_RS, ((4, 0x7),)), ), 2, IF_NONE),
-    (None, None, 0xc800, 0x8000, INS_MOV, 'mov', ((O_RD, ((4, 0x7),)), (O_SZ, ((12, 0x3),)), (O_DSP, ((3, 0x1), (7, 0x1e),)), (O_RS, ((0, 0x7),)), ), 2, IF_NONE),
+    (None, None, 0xf000, 0xb000, INS_MOVU, 'movu', ((O_RD, ((0, 0x7),)), (O_SZ, ((11, 0x1),)), (O_DSPS, ((3, 0x1), (7, 0x1e),)), (O_RS, ((4, 0x7),)), ), 2, IF_NONE),
+    (None, None, 0xc800, 0x8000, INS_MOV, 'mov', ((O_RD, ((4, 0x7),)), (O_SZ, ((12, 0x3),)), (O_DSPD, ((3, 0x1), (7, 0x1e),)), (O_RS, ((0, 0x7),)), ), 2, IF_NONE),
 )
 
 
 tbl_b3 = (\
-    (None, None, 0xf000, 0xb000, INS_MOVU, 'movu', ((O_RD, ((0, 0x7),)), (O_SZ, ((11, 0x1),)), (O_DSP, ((3, 0x1), (7, 0x1e),)), (O_RS, ((4, 0x7),)), ), 2, IF_NONE),
-    (None, None, 0xc800, 0x8000, INS_MOV, 'mov', ((O_RD, ((4, 0x7),)), (O_SZ, ((12, 0x3),)), (O_DSP, ((3, 0x1), (7, 0x1e),)), (O_RS, ((0, 0x7),)), ), 2, IF_NONE),
+    (None, None, 0xf000, 0xb000, INS_MOVU, 'movu', ((O_RD, ((0, 0x7),)), (O_SZ, ((11, 0x1),)), (O_DSPS, ((3, 0x1), (7, 0x1e),)), (O_RS, ((4, 0x7),)), ), 2, IF_NONE),
+    (None, None, 0xc800, 0x8000, INS_MOV, 'mov', ((O_RD, ((4, 0x7),)), (O_SZ, ((12, 0x3),)), (O_DSPD, ((3, 0x1), (7, 0x1e),)), (O_RS, ((0, 0x7),)), ), 2, IF_NONE),
 )
 
 
 tbl_b4 = (\
-    (None, None, 0xf000, 0xb000, INS_MOVU, 'movu', ((O_RD, ((0, 0x7),)), (O_SZ, ((11, 0x1),)), (O_DSP, ((3, 0x1), (7, 0x1e),)), (O_RS, ((4, 0x7),)), ), 2, IF_NONE),
-    (None, None, 0xc800, 0x8000, INS_MOV, 'mov', ((O_RD, ((4, 0x7),)), (O_SZ, ((12, 0x3),)), (O_DSP, ((3, 0x1), (7, 0x1e),)), (O_RS, ((0, 0x7),)), ), 2, IF_NONE),
+    (None, None, 0xf000, 0xb000, INS_MOVU, 'movu', ((O_RD, ((0, 0x7),)), (O_SZ, ((11, 0x1),)), (O_DSPS, ((3, 0x1), (7, 0x1e),)), (O_RS, ((4, 0x7),)), ), 2, IF_NONE),
+    (None, None, 0xc800, 0x8000, INS_MOV, 'mov', ((O_RD, ((4, 0x7),)), (O_SZ, ((12, 0x3),)), (O_DSPD, ((3, 0x1), (7, 0x1e),)), (O_RS, ((0, 0x7),)), ), 2, IF_NONE),
 )
 
 
 tbl_b5 = (\
-    (None, None, 0xf000, 0xb000, INS_MOVU, 'movu', ((O_RD, ((0, 0x7),)), (O_SZ, ((11, 0x1),)), (O_DSP, ((3, 0x1), (7, 0x1e),)), (O_RS, ((4, 0x7),)), ), 2, IF_NONE),
-    (None, None, 0xc800, 0x8000, INS_MOV, 'mov', ((O_RD, ((4, 0x7),)), (O_SZ, ((12, 0x3),)), (O_DSP, ((3, 0x1), (7, 0x1e),)), (O_RS, ((0, 0x7),)), ), 2, IF_NONE),
+    (None, None, 0xf000, 0xb000, INS_MOVU, 'movu', ((O_RD, ((0, 0x7),)), (O_SZ, ((11, 0x1),)), (O_DSPS, ((3, 0x1), (7, 0x1e),)), (O_RS, ((4, 0x7),)), ), 2, IF_NONE),
+    (None, None, 0xc800, 0x8000, INS_MOV, 'mov', ((O_RD, ((4, 0x7),)), (O_SZ, ((12, 0x3),)), (O_DSPD, ((3, 0x1), (7, 0x1e),)), (O_RS, ((0, 0x7),)), ), 2, IF_NONE),
 )
 
 
 tbl_b6 = (\
-    (None, None, 0xf000, 0xb000, INS_MOVU, 'movu', ((O_RD, ((0, 0x7),)), (O_SZ, ((11, 0x1),)), (O_DSP, ((3, 0x1), (7, 0x1e),)), (O_RS, ((4, 0x7),)), ), 2, IF_NONE),
-    (None, None, 0xc800, 0x8000, INS_MOV, 'mov', ((O_RD, ((4, 0x7),)), (O_SZ, ((12, 0x3),)), (O_DSP, ((3, 0x1), (7, 0x1e),)), (O_RS, ((0, 0x7),)), ), 2, IF_NONE),
+    (None, None, 0xf000, 0xb000, INS_MOVU, 'movu', ((O_RD, ((0, 0x7),)), (O_SZ, ((11, 0x1),)), (O_DSPS, ((3, 0x1), (7, 0x1e),)), (O_RS, ((4, 0x7),)), ), 2, IF_NONE),
+    (None, None, 0xc800, 0x8000, INS_MOV, 'mov', ((O_RD, ((4, 0x7),)), (O_SZ, ((12, 0x3),)), (O_DSPD, ((3, 0x1), (7, 0x1e),)), (O_RS, ((0, 0x7),)), ), 2, IF_NONE),
 )
 
 
 tbl_b7 = (\
-    (None, None, 0xf000, 0xb000, INS_MOVU, 'movu', ((O_RD, ((0, 0x7),)), (O_SZ, ((11, 0x1),)), (O_DSP, ((3, 0x1), (7, 0x1e),)), (O_RS, ((4, 0x7),)), ), 2, IF_NONE),
-    (None, None, 0xc800, 0x8000, INS_MOV, 'mov', ((O_RD, ((4, 0x7),)), (O_SZ, ((12, 0x3),)), (O_DSP, ((3, 0x1), (7, 0x1e),)), (O_RS, ((0, 0x7),)), ), 2, IF_NONE),
+    (None, None, 0xf000, 0xb000, INS_MOVU, 'movu', ((O_RD, ((0, 0x7),)), (O_SZ, ((11, 0x1),)), (O_DSPS, ((3, 0x1), (7, 0x1e),)), (O_RS, ((4, 0x7),)), ), 2, IF_NONE),
+    (None, None, 0xc800, 0x8000, INS_MOV, 'mov', ((O_RD, ((4, 0x7),)), (O_SZ, ((12, 0x3),)), (O_DSPD, ((3, 0x1), (7, 0x1e),)), (O_RS, ((0, 0x7),)), ), 2, IF_NONE),
 )
 
 
 tbl_b8 = (\
-    (None, None, 0xf000, 0xb000, INS_MOVU, 'movu', ((O_RD, ((0, 0x7),)), (O_SZ, ((11, 0x1),)), (O_DSP, ((3, 0x1), (7, 0x1e),)), (O_RS, ((4, 0x7),)), ), 2, IF_NONE),
-    (None, None, 0xc800, 0x8800, INS_MOV, 'mov', ((O_RD, ((0, 0x7),)), (O_SZ, ((12, 0x3),)), (O_DSP, ((3, 0x1), (7, 0x1e),)), (O_RS, ((4, 0x7),)), ), 2, IF_NONE),
+    (None, None, 0xf000, 0xb000, INS_MOVU, 'movu', ((O_RD, ((0, 0x7),)), (O_SZ, ((11, 0x1),)), (O_DSPS, ((3, 0x1), (7, 0x1e),)), (O_RS, ((4, 0x7),)), ), 2, IF_NONE),
+    (None, None, 0xc800, 0x8800, INS_MOV, 'mov', ((O_RD, ((0, 0x7),)), (O_SZ, ((12, 0x3),)), (O_DSPS, ((3, 0x1), (7, 0x1e),)), (O_RS, ((4, 0x7),)), ), 2, IF_NONE),
 )
 
 
 tbl_b9 = (\
-    (None, None, 0xf000, 0xb000, INS_MOVU, 'movu', ((O_RD, ((0, 0x7),)), (O_SZ, ((11, 0x1),)), (O_DSP, ((3, 0x1), (7, 0x1e),)), (O_RS, ((4, 0x7),)), ), 2, IF_NONE),
-    (None, None, 0xc800, 0x8800, INS_MOV, 'mov', ((O_RD, ((0, 0x7),)), (O_SZ, ((12, 0x3),)), (O_DSP, ((3, 0x1), (7, 0x1e),)), (O_RS, ((4, 0x7),)), ), 2, IF_NONE),
+    (None, None, 0xf000, 0xb000, INS_MOVU, 'movu', ((O_RD, ((0, 0x7),)), (O_SZ, ((11, 0x1),)), (O_DSPS, ((3, 0x1), (7, 0x1e),)), (O_RS, ((4, 0x7),)), ), 2, IF_NONE),
+    (None, None, 0xc800, 0x8800, INS_MOV, 'mov', ((O_RD, ((0, 0x7),)), (O_SZ, ((12, 0x3),)), (O_DSPS, ((3, 0x1), (7, 0x1e),)), (O_RS, ((4, 0x7),)), ), 2, IF_NONE),
 )
 
 
 tbl_ba = (\
-    (None, None, 0xf000, 0xb000, INS_MOVU, 'movu', ((O_RD, ((0, 0x7),)), (O_SZ, ((11, 0x1),)), (O_DSP, ((3, 0x1), (7, 0x1e),)), (O_RS, ((4, 0x7),)), ), 2, IF_NONE),
-    (None, None, 0xc800, 0x8800, INS_MOV, 'mov', ((O_RD, ((0, 0x7),)), (O_SZ, ((12, 0x3),)), (O_DSP, ((3, 0x1), (7, 0x1e),)), (O_RS, ((4, 0x7),)), ), 2, IF_NONE),
+    (None, None, 0xf000, 0xb000, INS_MOVU, 'movu', ((O_RD, ((0, 0x7),)), (O_SZ, ((11, 0x1),)), (O_DSPS, ((3, 0x1), (7, 0x1e),)), (O_RS, ((4, 0x7),)), ), 2, IF_NONE),
+    (None, None, 0xc800, 0x8800, INS_MOV, 'mov', ((O_RD, ((0, 0x7),)), (O_SZ, ((12, 0x3),)), (O_DSPS, ((3, 0x1), (7, 0x1e),)), (O_RS, ((4, 0x7),)), ), 2, IF_NONE),
 )
 
 
 tbl_bb = (\
-    (None, None, 0xf000, 0xb000, INS_MOVU, 'movu', ((O_RD, ((0, 0x7),)), (O_SZ, ((11, 0x1),)), (O_DSP, ((3, 0x1), (7, 0x1e),)), (O_RS, ((4, 0x7),)), ), 2, IF_NONE),
-    (None, None, 0xc800, 0x8800, INS_MOV, 'mov', ((O_RD, ((0, 0x7),)), (O_SZ, ((12, 0x3),)), (O_DSP, ((3, 0x1), (7, 0x1e),)), (O_RS, ((4, 0x7),)), ), 2, IF_NONE),
+    (None, None, 0xf000, 0xb000, INS_MOVU, 'movu', ((O_RD, ((0, 0x7),)), (O_SZ, ((11, 0x1),)), (O_DSPS, ((3, 0x1), (7, 0x1e),)), (O_RS, ((4, 0x7),)), ), 2, IF_NONE),
+    (None, None, 0xc800, 0x8800, INS_MOV, 'mov', ((O_RD, ((0, 0x7),)), (O_SZ, ((12, 0x3),)), (O_DSPS, ((3, 0x1), (7, 0x1e),)), (O_RS, ((4, 0x7),)), ), 2, IF_NONE),
 )
 
 
 tbl_bc = (\
-    (None, None, 0xf000, 0xb000, INS_MOVU, 'movu', ((O_RD, ((0, 0x7),)), (O_SZ, ((11, 0x1),)), (O_DSP, ((3, 0x1), (7, 0x1e),)), (O_RS, ((4, 0x7),)), ), 2, IF_NONE),
-    (None, None, 0xc800, 0x8800, INS_MOV, 'mov', ((O_RD, ((0, 0x7),)), (O_SZ, ((12, 0x3),)), (O_DSP, ((3, 0x1), (7, 0x1e),)), (O_RS, ((4, 0x7),)), ), 2, IF_NONE),
+    (None, None, 0xf000, 0xb000, INS_MOVU, 'movu', ((O_RD, ((0, 0x7),)), (O_SZ, ((11, 0x1),)), (O_DSPS, ((3, 0x1), (7, 0x1e),)), (O_RS, ((4, 0x7),)), ), 2, IF_NONE),
+    (None, None, 0xc800, 0x8800, INS_MOV, 'mov', ((O_RD, ((0, 0x7),)), (O_SZ, ((12, 0x3),)), (O_DSPS, ((3, 0x1), (7, 0x1e),)), (O_RS, ((4, 0x7),)), ), 2, IF_NONE),
 )
 
 
 tbl_bd = (\
-    (None, None, 0xf000, 0xb000, INS_MOVU, 'movu', ((O_RD, ((0, 0x7),)), (O_SZ, ((11, 0x1),)), (O_DSP, ((3, 0x1), (7, 0x1e),)), (O_RS, ((4, 0x7),)), ), 2, IF_NONE),
-    (None, None, 0xc800, 0x8800, INS_MOV, 'mov', ((O_RD, ((0, 0x7),)), (O_SZ, ((12, 0x3),)), (O_DSP, ((3, 0x1), (7, 0x1e),)), (O_RS, ((4, 0x7),)), ), 2, IF_NONE),
+    (None, None, 0xf000, 0xb000, INS_MOVU, 'movu', ((O_RD, ((0, 0x7),)), (O_SZ, ((11, 0x1),)), (O_DSPS, ((3, 0x1), (7, 0x1e),)), (O_RS, ((4, 0x7),)), ), 2, IF_NONE),
+    (None, None, 0xc800, 0x8800, INS_MOV, 'mov', ((O_RD, ((0, 0x7),)), (O_SZ, ((12, 0x3),)), (O_DSPS, ((3, 0x1), (7, 0x1e),)), (O_RS, ((4, 0x7),)), ), 2, IF_NONE),
 )
 
 
 tbl_be = (\
-    (None, None, 0xf000, 0xb000, INS_MOVU, 'movu', ((O_RD, ((0, 0x7),)), (O_SZ, ((11, 0x1),)), (O_DSP, ((3, 0x1), (7, 0x1e),)), (O_RS, ((4, 0x7),)), ), 2, IF_NONE),
-    (None, None, 0xc800, 0x8800, INS_MOV, 'mov', ((O_RD, ((0, 0x7),)), (O_SZ, ((12, 0x3),)), (O_DSP, ((3, 0x1), (7, 0x1e),)), (O_RS, ((4, 0x7),)), ), 2, IF_NONE),
+    (None, None, 0xf000, 0xb000, INS_MOVU, 'movu', ((O_RD, ((0, 0x7),)), (O_SZ, ((11, 0x1),)), (O_DSPS, ((3, 0x1), (7, 0x1e),)), (O_RS, ((4, 0x7),)), ), 2, IF_NONE),
+    (None, None, 0xc800, 0x8800, INS_MOV, 'mov', ((O_RD, ((0, 0x7),)), (O_SZ, ((12, 0x3),)), (O_DSPS, ((3, 0x1), (7, 0x1e),)), (O_RS, ((4, 0x7),)), ), 2, IF_NONE),
 )
 
 
 tbl_bf = (\
-    (None, None, 0xf000, 0xb000, INS_MOVU, 'movu', ((O_RD, ((0, 0x7),)), (O_SZ, ((11, 0x1),)), (O_DSP, ((3, 0x1), (7, 0x1e),)), (O_RS, ((4, 0x7),)), ), 2, IF_NONE),
-    (None, None, 0xc800, 0x8800, INS_MOV, 'mov', ((O_RD, ((0, 0x7),)), (O_SZ, ((12, 0x3),)), (O_DSP, ((3, 0x1), (7, 0x1e),)), (O_RS, ((4, 0x7),)), ), 2, IF_NONE),
+    (None, None, 0xf000, 0xb000, INS_MOVU, 'movu', ((O_RD, ((0, 0x7),)), (O_SZ, ((11, 0x1),)), (O_DSPS, ((3, 0x1), (7, 0x1e),)), (O_RS, ((4, 0x7),)), ), 2, IF_NONE),
+    (None, None, 0xc800, 0x8800, INS_MOV, 'mov', ((O_RD, ((0, 0x7),)), (O_SZ, ((12, 0x3),)), (O_DSPS, ((3, 0x1), (7, 0x1e),)), (O_RS, ((4, 0x7),)), ), 2, IF_NONE),
 )
 
 
@@ -607,9 +607,9 @@ tblmain = (\
     (None, FORM_PCDSP, 0xff0000, 0x390000, INS_BSR, 'bsr', ((O_PCDSP, ((0, 0xffff),)), ), 3, IF_CALL),
     (None, FORM_PCDSP, 0xff0000, 0x3a0000, INS_BZ, 'bz', ((O_PCDSP, ((0, 0xffff),)), ), 3, IF_BRANCH | IF_COND),
     (None, FORM_PCDSP, 0xff0000, 0x3b0000, INS_BNZ, 'bnz', ((O_PCDSP, ((0, 0xffff),)), ), 3, IF_BRANCH | IF_COND),
-    (None, None, 0xfc0000, 0x3c0000, INS_MOV, 'mov', ((O_RD, ((12, 0x7),)), (O_SZ, ((16, 0x3),)), (O_IMM, ((0, 0xff),)), (O_DSP, ((15, 0x10), (8, 0xf),)), ), 3, IF_NONE),
-    (None, None, 0xfc0000, 0x3c0000, INS_MOV, 'mov', ((O_RD, ((12, 0x7),)), (O_SZ, ((16, 0x3),)), (O_IMM, ((0, 0xff),)), (O_DSP, ((15, 0x10), (8, 0xf),)), ), 3, IF_NONE),
-    (None, None, 0xfc0000, 0x3c0000, INS_MOV, 'mov', ((O_RD, ((12, 0x7),)), (O_SZ, ((16, 0x3),)), (O_IMM, ((0, 0xff),)), (O_DSP, ((15, 0x10), (8, 0xf),)), ), 3, IF_NONE),
+    (None, None, 0xfc0000, 0x3c0000, INS_MOV, 'mov', ((O_RD, ((12, 0x7),)), (O_SZ, ((16, 0x3),)), (O_IMM, ((0, 0xff),)), (O_DSPD, ((15, 0x10), (8, 0xf),)), ), 3, IF_NONE),
+    (None, None, 0xfc0000, 0x3c0000, INS_MOV, 'mov', ((O_RD, ((12, 0x7),)), (O_SZ, ((16, 0x3),)), (O_IMM, ((0, 0xff),)), (O_DSPD, ((15, 0x10), (8, 0xf),)), ), 3, IF_NONE),
+    (None, None, 0xfc0000, 0x3c0000, INS_MOV, 'mov', ((O_RD, ((12, 0x7),)), (O_SZ, ((16, 0x3),)), (O_IMM, ((0, 0xff),)), (O_DSPD, ((15, 0x10), (8, 0xf),)), ), 3, IF_NONE),
     (tbl_3f, None, 0, 1, None, None, None, None, IF_NONE),
     (None, FORM_RD_LD_RS, 0xfc00, 0x4000, INS_SUB, 'sub', ((O_RD, ((0, 0xf),)), (O_LDS, ((8, 0x3),)), (O_RS, ((4, 0xf),)), ), 2, IF_NONE),
     (None, FORM_RD_LD_RS, 0xfc00, 0x4000, INS_SUB, 'sub', ((O_RD, ((0, 0xf),)), (O_LDS, ((8, 0x3),)), (O_RS, ((4, 0xf),)), ), 2, IF_NONE),
@@ -675,54 +675,54 @@ tblmain = (\
     (None, None, 0xfe00, 0x7c00, INS_BTST, 'btst', ((O_IMM, ((4, 0x1f),)), (O_RS, ((0, 0xf),)), ), 2, IF_NONE),
     (tbl_7e, None, 0, 1, None, None, None, None, IF_NONE),
     (tbl_7f, None, 0, 1, None, None, None, None, IF_NONE),
-    (None, None, 0xc800, 0x8000, INS_MOV, 'mov', ((O_RD, ((4, 0x7),)), (O_SZ, ((12, 0x3),)), (O_DSP, ((3, 0x1), (7, 0x1e),)), (O_RS, ((0, 0x7),)), ), 2, IF_NONE),
-    (None, None, 0xc800, 0x8000, INS_MOV, 'mov', ((O_RD, ((4, 0x7),)), (O_SZ, ((12, 0x3),)), (O_DSP, ((3, 0x1), (7, 0x1e),)), (O_RS, ((0, 0x7),)), ), 2, IF_NONE),
-    (None, None, 0xc800, 0x8000, INS_MOV, 'mov', ((O_RD, ((4, 0x7),)), (O_SZ, ((12, 0x3),)), (O_DSP, ((3, 0x1), (7, 0x1e),)), (O_RS, ((0, 0x7),)), ), 2, IF_NONE),
-    (None, None, 0xc800, 0x8000, INS_MOV, 'mov', ((O_RD, ((4, 0x7),)), (O_SZ, ((12, 0x3),)), (O_DSP, ((3, 0x1), (7, 0x1e),)), (O_RS, ((0, 0x7),)), ), 2, IF_NONE),
-    (None, None, 0xc800, 0x8000, INS_MOV, 'mov', ((O_RD, ((4, 0x7),)), (O_SZ, ((12, 0x3),)), (O_DSP, ((3, 0x1), (7, 0x1e),)), (O_RS, ((0, 0x7),)), ), 2, IF_NONE),
-    (None, None, 0xc800, 0x8000, INS_MOV, 'mov', ((O_RD, ((4, 0x7),)), (O_SZ, ((12, 0x3),)), (O_DSP, ((3, 0x1), (7, 0x1e),)), (O_RS, ((0, 0x7),)), ), 2, IF_NONE),
-    (None, None, 0xc800, 0x8000, INS_MOV, 'mov', ((O_RD, ((4, 0x7),)), (O_SZ, ((12, 0x3),)), (O_DSP, ((3, 0x1), (7, 0x1e),)), (O_RS, ((0, 0x7),)), ), 2, IF_NONE),
-    (None, None, 0xc800, 0x8000, INS_MOV, 'mov', ((O_RD, ((4, 0x7),)), (O_SZ, ((12, 0x3),)), (O_DSP, ((3, 0x1), (7, 0x1e),)), (O_RS, ((0, 0x7),)), ), 2, IF_NONE),
-    (None, None, 0xc800, 0x8800, INS_MOV, 'mov', ((O_RD, ((0, 0x7),)), (O_SZ, ((12, 0x3),)), (O_DSP, ((3, 0x1), (7, 0x1e),)), (O_RS, ((4, 0x7),)), ), 2, IF_NONE),
-    (None, None, 0xc800, 0x8800, INS_MOV, 'mov', ((O_RD, ((0, 0x7),)), (O_SZ, ((12, 0x3),)), (O_DSP, ((3, 0x1), (7, 0x1e),)), (O_RS, ((4, 0x7),)), ), 2, IF_NONE),
-    (None, None, 0xc800, 0x8800, INS_MOV, 'mov', ((O_RD, ((0, 0x7),)), (O_SZ, ((12, 0x3),)), (O_DSP, ((3, 0x1), (7, 0x1e),)), (O_RS, ((4, 0x7),)), ), 2, IF_NONE),
-    (None, None, 0xc800, 0x8800, INS_MOV, 'mov', ((O_RD, ((0, 0x7),)), (O_SZ, ((12, 0x3),)), (O_DSP, ((3, 0x1), (7, 0x1e),)), (O_RS, ((4, 0x7),)), ), 2, IF_NONE),
-    (None, None, 0xc800, 0x8800, INS_MOV, 'mov', ((O_RD, ((0, 0x7),)), (O_SZ, ((12, 0x3),)), (O_DSP, ((3, 0x1), (7, 0x1e),)), (O_RS, ((4, 0x7),)), ), 2, IF_NONE),
-    (None, None, 0xc800, 0x8800, INS_MOV, 'mov', ((O_RD, ((0, 0x7),)), (O_SZ, ((12, 0x3),)), (O_DSP, ((3, 0x1), (7, 0x1e),)), (O_RS, ((4, 0x7),)), ), 2, IF_NONE),
-    (None, None, 0xc800, 0x8800, INS_MOV, 'mov', ((O_RD, ((0, 0x7),)), (O_SZ, ((12, 0x3),)), (O_DSP, ((3, 0x1), (7, 0x1e),)), (O_RS, ((4, 0x7),)), ), 2, IF_NONE),
-    (None, None, 0xc800, 0x8800, INS_MOV, 'mov', ((O_RD, ((0, 0x7),)), (O_SZ, ((12, 0x3),)), (O_DSP, ((3, 0x1), (7, 0x1e),)), (O_RS, ((4, 0x7),)), ), 2, IF_NONE),
-    (None, None, 0xc800, 0x8000, INS_MOV, 'mov', ((O_RD, ((4, 0x7),)), (O_SZ, ((12, 0x3),)), (O_DSP, ((3, 0x1), (7, 0x1e),)), (O_RS, ((0, 0x7),)), ), 2, IF_NONE),
-    (None, None, 0xc800, 0x8000, INS_MOV, 'mov', ((O_RD, ((4, 0x7),)), (O_SZ, ((12, 0x3),)), (O_DSP, ((3, 0x1), (7, 0x1e),)), (O_RS, ((0, 0x7),)), ), 2, IF_NONE),
-    (None, None, 0xc800, 0x8000, INS_MOV, 'mov', ((O_RD, ((4, 0x7),)), (O_SZ, ((12, 0x3),)), (O_DSP, ((3, 0x1), (7, 0x1e),)), (O_RS, ((0, 0x7),)), ), 2, IF_NONE),
-    (None, None, 0xc800, 0x8000, INS_MOV, 'mov', ((O_RD, ((4, 0x7),)), (O_SZ, ((12, 0x3),)), (O_DSP, ((3, 0x1), (7, 0x1e),)), (O_RS, ((0, 0x7),)), ), 2, IF_NONE),
-    (None, None, 0xc800, 0x8000, INS_MOV, 'mov', ((O_RD, ((4, 0x7),)), (O_SZ, ((12, 0x3),)), (O_DSP, ((3, 0x1), (7, 0x1e),)), (O_RS, ((0, 0x7),)), ), 2, IF_NONE),
-    (None, None, 0xc800, 0x8000, INS_MOV, 'mov', ((O_RD, ((4, 0x7),)), (O_SZ, ((12, 0x3),)), (O_DSP, ((3, 0x1), (7, 0x1e),)), (O_RS, ((0, 0x7),)), ), 2, IF_NONE),
-    (None, None, 0xc800, 0x8000, INS_MOV, 'mov', ((O_RD, ((4, 0x7),)), (O_SZ, ((12, 0x3),)), (O_DSP, ((3, 0x1), (7, 0x1e),)), (O_RS, ((0, 0x7),)), ), 2, IF_NONE),
-    (None, None, 0xc800, 0x8000, INS_MOV, 'mov', ((O_RD, ((4, 0x7),)), (O_SZ, ((12, 0x3),)), (O_DSP, ((3, 0x1), (7, 0x1e),)), (O_RS, ((0, 0x7),)), ), 2, IF_NONE),
-    (None, None, 0xc800, 0x8800, INS_MOV, 'mov', ((O_RD, ((0, 0x7),)), (O_SZ, ((12, 0x3),)), (O_DSP, ((3, 0x1), (7, 0x1e),)), (O_RS, ((4, 0x7),)), ), 2, IF_NONE),
-    (None, None, 0xc800, 0x8800, INS_MOV, 'mov', ((O_RD, ((0, 0x7),)), (O_SZ, ((12, 0x3),)), (O_DSP, ((3, 0x1), (7, 0x1e),)), (O_RS, ((4, 0x7),)), ), 2, IF_NONE),
-    (None, None, 0xc800, 0x8800, INS_MOV, 'mov', ((O_RD, ((0, 0x7),)), (O_SZ, ((12, 0x3),)), (O_DSP, ((3, 0x1), (7, 0x1e),)), (O_RS, ((4, 0x7),)), ), 2, IF_NONE),
-    (None, None, 0xc800, 0x8800, INS_MOV, 'mov', ((O_RD, ((0, 0x7),)), (O_SZ, ((12, 0x3),)), (O_DSP, ((3, 0x1), (7, 0x1e),)), (O_RS, ((4, 0x7),)), ), 2, IF_NONE),
-    (None, None, 0xc800, 0x8800, INS_MOV, 'mov', ((O_RD, ((0, 0x7),)), (O_SZ, ((12, 0x3),)), (O_DSP, ((3, 0x1), (7, 0x1e),)), (O_RS, ((4, 0x7),)), ), 2, IF_NONE),
-    (None, None, 0xc800, 0x8800, INS_MOV, 'mov', ((O_RD, ((0, 0x7),)), (O_SZ, ((12, 0x3),)), (O_DSP, ((3, 0x1), (7, 0x1e),)), (O_RS, ((4, 0x7),)), ), 2, IF_NONE),
-    (None, None, 0xc800, 0x8800, INS_MOV, 'mov', ((O_RD, ((0, 0x7),)), (O_SZ, ((12, 0x3),)), (O_DSP, ((3, 0x1), (7, 0x1e),)), (O_RS, ((4, 0x7),)), ), 2, IF_NONE),
-    (None, None, 0xc800, 0x8800, INS_MOV, 'mov', ((O_RD, ((0, 0x7),)), (O_SZ, ((12, 0x3),)), (O_DSP, ((3, 0x1), (7, 0x1e),)), (O_RS, ((4, 0x7),)), ), 2, IF_NONE),
-    (None, None, 0xc800, 0x8000, INS_MOV, 'mov', ((O_RD, ((4, 0x7),)), (O_SZ, ((12, 0x3),)), (O_DSP, ((3, 0x1), (7, 0x1e),)), (O_RS, ((0, 0x7),)), ), 2, IF_NONE),
-    (None, None, 0xc800, 0x8000, INS_MOV, 'mov', ((O_RD, ((4, 0x7),)), (O_SZ, ((12, 0x3),)), (O_DSP, ((3, 0x1), (7, 0x1e),)), (O_RS, ((0, 0x7),)), ), 2, IF_NONE),
-    (None, None, 0xc800, 0x8000, INS_MOV, 'mov', ((O_RD, ((4, 0x7),)), (O_SZ, ((12, 0x3),)), (O_DSP, ((3, 0x1), (7, 0x1e),)), (O_RS, ((0, 0x7),)), ), 2, IF_NONE),
-    (None, None, 0xc800, 0x8000, INS_MOV, 'mov', ((O_RD, ((4, 0x7),)), (O_SZ, ((12, 0x3),)), (O_DSP, ((3, 0x1), (7, 0x1e),)), (O_RS, ((0, 0x7),)), ), 2, IF_NONE),
-    (None, None, 0xc800, 0x8000, INS_MOV, 'mov', ((O_RD, ((4, 0x7),)), (O_SZ, ((12, 0x3),)), (O_DSP, ((3, 0x1), (7, 0x1e),)), (O_RS, ((0, 0x7),)), ), 2, IF_NONE),
-    (None, None, 0xc800, 0x8000, INS_MOV, 'mov', ((O_RD, ((4, 0x7),)), (O_SZ, ((12, 0x3),)), (O_DSP, ((3, 0x1), (7, 0x1e),)), (O_RS, ((0, 0x7),)), ), 2, IF_NONE),
-    (None, None, 0xc800, 0x8000, INS_MOV, 'mov', ((O_RD, ((4, 0x7),)), (O_SZ, ((12, 0x3),)), (O_DSP, ((3, 0x1), (7, 0x1e),)), (O_RS, ((0, 0x7),)), ), 2, IF_NONE),
-    (None, None, 0xc800, 0x8000, INS_MOV, 'mov', ((O_RD, ((4, 0x7),)), (O_SZ, ((12, 0x3),)), (O_DSP, ((3, 0x1), (7, 0x1e),)), (O_RS, ((0, 0x7),)), ), 2, IF_NONE),
-    (None, None, 0xc800, 0x8800, INS_MOV, 'mov', ((O_RD, ((0, 0x7),)), (O_SZ, ((12, 0x3),)), (O_DSP, ((3, 0x1), (7, 0x1e),)), (O_RS, ((4, 0x7),)), ), 2, IF_NONE),
-    (None, None, 0xc800, 0x8800, INS_MOV, 'mov', ((O_RD, ((0, 0x7),)), (O_SZ, ((12, 0x3),)), (O_DSP, ((3, 0x1), (7, 0x1e),)), (O_RS, ((4, 0x7),)), ), 2, IF_NONE),
-    (None, None, 0xc800, 0x8800, INS_MOV, 'mov', ((O_RD, ((0, 0x7),)), (O_SZ, ((12, 0x3),)), (O_DSP, ((3, 0x1), (7, 0x1e),)), (O_RS, ((4, 0x7),)), ), 2, IF_NONE),
-    (None, None, 0xc800, 0x8800, INS_MOV, 'mov', ((O_RD, ((0, 0x7),)), (O_SZ, ((12, 0x3),)), (O_DSP, ((3, 0x1), (7, 0x1e),)), (O_RS, ((4, 0x7),)), ), 2, IF_NONE),
-    (None, None, 0xc800, 0x8800, INS_MOV, 'mov', ((O_RD, ((0, 0x7),)), (O_SZ, ((12, 0x3),)), (O_DSP, ((3, 0x1), (7, 0x1e),)), (O_RS, ((4, 0x7),)), ), 2, IF_NONE),
-    (None, None, 0xc800, 0x8800, INS_MOV, 'mov', ((O_RD, ((0, 0x7),)), (O_SZ, ((12, 0x3),)), (O_DSP, ((3, 0x1), (7, 0x1e),)), (O_RS, ((4, 0x7),)), ), 2, IF_NONE),
-    (None, None, 0xc800, 0x8800, INS_MOV, 'mov', ((O_RD, ((0, 0x7),)), (O_SZ, ((12, 0x3),)), (O_DSP, ((3, 0x1), (7, 0x1e),)), (O_RS, ((4, 0x7),)), ), 2, IF_NONE),
-    (None, None, 0xc800, 0x8800, INS_MOV, 'mov', ((O_RD, ((0, 0x7),)), (O_SZ, ((12, 0x3),)), (O_DSP, ((3, 0x1), (7, 0x1e),)), (O_RS, ((4, 0x7),)), ), 2, IF_NONE),
+    (None, None, 0xc800, 0x8000, INS_MOV, 'mov', ((O_RD, ((4, 0x7),)), (O_SZ, ((12, 0x3),)), (O_DSPD, ((3, 0x1), (7, 0x1e),)), (O_RS, ((0, 0x7),)), ), 2, IF_NONE),
+    (None, None, 0xc800, 0x8000, INS_MOV, 'mov', ((O_RD, ((4, 0x7),)), (O_SZ, ((12, 0x3),)), (O_DSPD, ((3, 0x1), (7, 0x1e),)), (O_RS, ((0, 0x7),)), ), 2, IF_NONE),
+    (None, None, 0xc800, 0x8000, INS_MOV, 'mov', ((O_RD, ((4, 0x7),)), (O_SZ, ((12, 0x3),)), (O_DSPD, ((3, 0x1), (7, 0x1e),)), (O_RS, ((0, 0x7),)), ), 2, IF_NONE),
+    (None, None, 0xc800, 0x8000, INS_MOV, 'mov', ((O_RD, ((4, 0x7),)), (O_SZ, ((12, 0x3),)), (O_DSPD, ((3, 0x1), (7, 0x1e),)), (O_RS, ((0, 0x7),)), ), 2, IF_NONE),
+    (None, None, 0xc800, 0x8000, INS_MOV, 'mov', ((O_RD, ((4, 0x7),)), (O_SZ, ((12, 0x3),)), (O_DSPD, ((3, 0x1), (7, 0x1e),)), (O_RS, ((0, 0x7),)), ), 2, IF_NONE),
+    (None, None, 0xc800, 0x8000, INS_MOV, 'mov', ((O_RD, ((4, 0x7),)), (O_SZ, ((12, 0x3),)), (O_DSPD, ((3, 0x1), (7, 0x1e),)), (O_RS, ((0, 0x7),)), ), 2, IF_NONE),
+    (None, None, 0xc800, 0x8000, INS_MOV, 'mov', ((O_RD, ((4, 0x7),)), (O_SZ, ((12, 0x3),)), (O_DSPD, ((3, 0x1), (7, 0x1e),)), (O_RS, ((0, 0x7),)), ), 2, IF_NONE),
+    (None, None, 0xc800, 0x8000, INS_MOV, 'mov', ((O_RD, ((4, 0x7),)), (O_SZ, ((12, 0x3),)), (O_DSPD, ((3, 0x1), (7, 0x1e),)), (O_RS, ((0, 0x7),)), ), 2, IF_NONE),
+    (None, None, 0xc800, 0x8800, INS_MOV, 'mov', ((O_RD, ((0, 0x7),)), (O_SZ, ((12, 0x3),)), (O_DSPS, ((3, 0x1), (7, 0x1e),)), (O_RS, ((4, 0x7),)), ), 2, IF_NONE),
+    (None, None, 0xc800, 0x8800, INS_MOV, 'mov', ((O_RD, ((0, 0x7),)), (O_SZ, ((12, 0x3),)), (O_DSPS, ((3, 0x1), (7, 0x1e),)), (O_RS, ((4, 0x7),)), ), 2, IF_NONE),
+    (None, None, 0xc800, 0x8800, INS_MOV, 'mov', ((O_RD, ((0, 0x7),)), (O_SZ, ((12, 0x3),)), (O_DSPS, ((3, 0x1), (7, 0x1e),)), (O_RS, ((4, 0x7),)), ), 2, IF_NONE),
+    (None, None, 0xc800, 0x8800, INS_MOV, 'mov', ((O_RD, ((0, 0x7),)), (O_SZ, ((12, 0x3),)), (O_DSPS, ((3, 0x1), (7, 0x1e),)), (O_RS, ((4, 0x7),)), ), 2, IF_NONE),
+    (None, None, 0xc800, 0x8800, INS_MOV, 'mov', ((O_RD, ((0, 0x7),)), (O_SZ, ((12, 0x3),)), (O_DSPS, ((3, 0x1), (7, 0x1e),)), (O_RS, ((4, 0x7),)), ), 2, IF_NONE),
+    (None, None, 0xc800, 0x8800, INS_MOV, 'mov', ((O_RD, ((0, 0x7),)), (O_SZ, ((12, 0x3),)), (O_DSPS, ((3, 0x1), (7, 0x1e),)), (O_RS, ((4, 0x7),)), ), 2, IF_NONE),
+    (None, None, 0xc800, 0x8800, INS_MOV, 'mov', ((O_RD, ((0, 0x7),)), (O_SZ, ((12, 0x3),)), (O_DSPS, ((3, 0x1), (7, 0x1e),)), (O_RS, ((4, 0x7),)), ), 2, IF_NONE),
+    (None, None, 0xc800, 0x8800, INS_MOV, 'mov', ((O_RD, ((0, 0x7),)), (O_SZ, ((12, 0x3),)), (O_DSPS, ((3, 0x1), (7, 0x1e),)), (O_RS, ((4, 0x7),)), ), 2, IF_NONE),
+    (None, None, 0xc800, 0x8000, INS_MOV, 'mov', ((O_RD, ((4, 0x7),)), (O_SZ, ((12, 0x3),)), (O_DSPD, ((3, 0x1), (7, 0x1e),)), (O_RS, ((0, 0x7),)), ), 2, IF_NONE),
+    (None, None, 0xc800, 0x8000, INS_MOV, 'mov', ((O_RD, ((4, 0x7),)), (O_SZ, ((12, 0x3),)), (O_DSPD, ((3, 0x1), (7, 0x1e),)), (O_RS, ((0, 0x7),)), ), 2, IF_NONE),
+    (None, None, 0xc800, 0x8000, INS_MOV, 'mov', ((O_RD, ((4, 0x7),)), (O_SZ, ((12, 0x3),)), (O_DSPD, ((3, 0x1), (7, 0x1e),)), (O_RS, ((0, 0x7),)), ), 2, IF_NONE),
+    (None, None, 0xc800, 0x8000, INS_MOV, 'mov', ((O_RD, ((4, 0x7),)), (O_SZ, ((12, 0x3),)), (O_DSPD, ((3, 0x1), (7, 0x1e),)), (O_RS, ((0, 0x7),)), ), 2, IF_NONE),
+    (None, None, 0xc800, 0x8000, INS_MOV, 'mov', ((O_RD, ((4, 0x7),)), (O_SZ, ((12, 0x3),)), (O_DSPD, ((3, 0x1), (7, 0x1e),)), (O_RS, ((0, 0x7),)), ), 2, IF_NONE),
+    (None, None, 0xc800, 0x8000, INS_MOV, 'mov', ((O_RD, ((4, 0x7),)), (O_SZ, ((12, 0x3),)), (O_DSPD, ((3, 0x1), (7, 0x1e),)), (O_RS, ((0, 0x7),)), ), 2, IF_NONE),
+    (None, None, 0xc800, 0x8000, INS_MOV, 'mov', ((O_RD, ((4, 0x7),)), (O_SZ, ((12, 0x3),)), (O_DSPD, ((3, 0x1), (7, 0x1e),)), (O_RS, ((0, 0x7),)), ), 2, IF_NONE),
+    (None, None, 0xc800, 0x8000, INS_MOV, 'mov', ((O_RD, ((4, 0x7),)), (O_SZ, ((12, 0x3),)), (O_DSPD, ((3, 0x1), (7, 0x1e),)), (O_RS, ((0, 0x7),)), ), 2, IF_NONE),
+    (None, None, 0xc800, 0x8800, INS_MOV, 'mov', ((O_RD, ((0, 0x7),)), (O_SZ, ((12, 0x3),)), (O_DSPS, ((3, 0x1), (7, 0x1e),)), (O_RS, ((4, 0x7),)), ), 2, IF_NONE),
+    (None, None, 0xc800, 0x8800, INS_MOV, 'mov', ((O_RD, ((0, 0x7),)), (O_SZ, ((12, 0x3),)), (O_DSPS, ((3, 0x1), (7, 0x1e),)), (O_RS, ((4, 0x7),)), ), 2, IF_NONE),
+    (None, None, 0xc800, 0x8800, INS_MOV, 'mov', ((O_RD, ((0, 0x7),)), (O_SZ, ((12, 0x3),)), (O_DSPS, ((3, 0x1), (7, 0x1e),)), (O_RS, ((4, 0x7),)), ), 2, IF_NONE),
+    (None, None, 0xc800, 0x8800, INS_MOV, 'mov', ((O_RD, ((0, 0x7),)), (O_SZ, ((12, 0x3),)), (O_DSPS, ((3, 0x1), (7, 0x1e),)), (O_RS, ((4, 0x7),)), ), 2, IF_NONE),
+    (None, None, 0xc800, 0x8800, INS_MOV, 'mov', ((O_RD, ((0, 0x7),)), (O_SZ, ((12, 0x3),)), (O_DSPS, ((3, 0x1), (7, 0x1e),)), (O_RS, ((4, 0x7),)), ), 2, IF_NONE),
+    (None, None, 0xc800, 0x8800, INS_MOV, 'mov', ((O_RD, ((0, 0x7),)), (O_SZ, ((12, 0x3),)), (O_DSPS, ((3, 0x1), (7, 0x1e),)), (O_RS, ((4, 0x7),)), ), 2, IF_NONE),
+    (None, None, 0xc800, 0x8800, INS_MOV, 'mov', ((O_RD, ((0, 0x7),)), (O_SZ, ((12, 0x3),)), (O_DSPS, ((3, 0x1), (7, 0x1e),)), (O_RS, ((4, 0x7),)), ), 2, IF_NONE),
+    (None, None, 0xc800, 0x8800, INS_MOV, 'mov', ((O_RD, ((0, 0x7),)), (O_SZ, ((12, 0x3),)), (O_DSPS, ((3, 0x1), (7, 0x1e),)), (O_RS, ((4, 0x7),)), ), 2, IF_NONE),
+    (None, None, 0xc800, 0x8000, INS_MOV, 'mov', ((O_RD, ((4, 0x7),)), (O_SZ, ((12, 0x3),)), (O_DSPD, ((3, 0x1), (7, 0x1e),)), (O_RS, ((0, 0x7),)), ), 2, IF_NONE),
+    (None, None, 0xc800, 0x8000, INS_MOV, 'mov', ((O_RD, ((4, 0x7),)), (O_SZ, ((12, 0x3),)), (O_DSPD, ((3, 0x1), (7, 0x1e),)), (O_RS, ((0, 0x7),)), ), 2, IF_NONE),
+    (None, None, 0xc800, 0x8000, INS_MOV, 'mov', ((O_RD, ((4, 0x7),)), (O_SZ, ((12, 0x3),)), (O_DSPD, ((3, 0x1), (7, 0x1e),)), (O_RS, ((0, 0x7),)), ), 2, IF_NONE),
+    (None, None, 0xc800, 0x8000, INS_MOV, 'mov', ((O_RD, ((4, 0x7),)), (O_SZ, ((12, 0x3),)), (O_DSPD, ((3, 0x1), (7, 0x1e),)), (O_RS, ((0, 0x7),)), ), 2, IF_NONE),
+    (None, None, 0xc800, 0x8000, INS_MOV, 'mov', ((O_RD, ((4, 0x7),)), (O_SZ, ((12, 0x3),)), (O_DSPD, ((3, 0x1), (7, 0x1e),)), (O_RS, ((0, 0x7),)), ), 2, IF_NONE),
+    (None, None, 0xc800, 0x8000, INS_MOV, 'mov', ((O_RD, ((4, 0x7),)), (O_SZ, ((12, 0x3),)), (O_DSPD, ((3, 0x1), (7, 0x1e),)), (O_RS, ((0, 0x7),)), ), 2, IF_NONE),
+    (None, None, 0xc800, 0x8000, INS_MOV, 'mov', ((O_RD, ((4, 0x7),)), (O_SZ, ((12, 0x3),)), (O_DSPD, ((3, 0x1), (7, 0x1e),)), (O_RS, ((0, 0x7),)), ), 2, IF_NONE),
+    (None, None, 0xc800, 0x8000, INS_MOV, 'mov', ((O_RD, ((4, 0x7),)), (O_SZ, ((12, 0x3),)), (O_DSPD, ((3, 0x1), (7, 0x1e),)), (O_RS, ((0, 0x7),)), ), 2, IF_NONE),
+    (None, None, 0xc800, 0x8800, INS_MOV, 'mov', ((O_RD, ((0, 0x7),)), (O_SZ, ((12, 0x3),)), (O_DSPS, ((3, 0x1), (7, 0x1e),)), (O_RS, ((4, 0x7),)), ), 2, IF_NONE),
+    (None, None, 0xc800, 0x8800, INS_MOV, 'mov', ((O_RD, ((0, 0x7),)), (O_SZ, ((12, 0x3),)), (O_DSPS, ((3, 0x1), (7, 0x1e),)), (O_RS, ((4, 0x7),)), ), 2, IF_NONE),
+    (None, None, 0xc800, 0x8800, INS_MOV, 'mov', ((O_RD, ((0, 0x7),)), (O_SZ, ((12, 0x3),)), (O_DSPS, ((3, 0x1), (7, 0x1e),)), (O_RS, ((4, 0x7),)), ), 2, IF_NONE),
+    (None, None, 0xc800, 0x8800, INS_MOV, 'mov', ((O_RD, ((0, 0x7),)), (O_SZ, ((12, 0x3),)), (O_DSPS, ((3, 0x1), (7, 0x1e),)), (O_RS, ((4, 0x7),)), ), 2, IF_NONE),
+    (None, None, 0xc800, 0x8800, INS_MOV, 'mov', ((O_RD, ((0, 0x7),)), (O_SZ, ((12, 0x3),)), (O_DSPS, ((3, 0x1), (7, 0x1e),)), (O_RS, ((4, 0x7),)), ), 2, IF_NONE),
+    (None, None, 0xc800, 0x8800, INS_MOV, 'mov', ((O_RD, ((0, 0x7),)), (O_SZ, ((12, 0x3),)), (O_DSPS, ((3, 0x1), (7, 0x1e),)), (O_RS, ((4, 0x7),)), ), 2, IF_NONE),
+    (None, None, 0xc800, 0x8800, INS_MOV, 'mov', ((O_RD, ((0, 0x7),)), (O_SZ, ((12, 0x3),)), (O_DSPS, ((3, 0x1), (7, 0x1e),)), (O_RS, ((4, 0x7),)), ), 2, IF_NONE),
+    (None, None, 0xc800, 0x8800, INS_MOV, 'mov', ((O_RD, ((0, 0x7),)), (O_SZ, ((12, 0x3),)), (O_DSPS, ((3, 0x1), (7, 0x1e),)), (O_RS, ((4, 0x7),)), ), 2, IF_NONE),
     (tbl_b0, None, 0, 1, None, None, None, None, IF_NONE),
     (tbl_b1, None, 0, 1, None, None, None, None, IF_NONE),
     (tbl_b2, None, 0, 1, None, None, None, None, IF_NONE),
