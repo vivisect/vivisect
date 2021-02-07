@@ -120,7 +120,13 @@ instrs = [
         ('97cb', 0x4560, 'mov.w r3,0x1f[r4]', 0, ()),             # FORM_BMCND
         ('9fcb', 0x4560, 'mov.w 0x1f[r4],r3', 0, ()),             # FORM_BMCND
         ('66f4', 0x4560, 'mov 0xf,r4', 0, ()),             # FORM_BMCND # wrong, but doesn't really need a size?
-        ('3ecc17', 0x4560, 'mov.l 0x17,0x1c[r4]', 0, ()),             # FORM_BMCND # wrong, but doesn't really need a size?
+        ('3ecc17', 0x4560, 'mov.l 0x17,0x1c[r4]', 0, ()),             # FORM_BMCND
+        ('754321', 0x4560, 'mov 0x21,r3', 0, ()),             # FORM_BMCND # doesn't really need a size?
+        ('fb3a1780', 0x4560, 'mov 0x1780,r3', 0, ()),             # FORM_BMCND # doesn't really need a size?
+        ('fb3200047145', 0x4560, 'mov 0x47145,r3', 0, ()),             # FORM_BMCND # doesn't really need a size?
+        ### FIXME: go back through and make sense of all the SIMM/IMM/UIMM parsing.  should these be operand flags?
+        ('ef34', 0x4560, 'mov.l r3,r4', 0, ()),             # FORM_
+        ('fa3a17804715', 0x4560, 'mov.l 0x1780,0x4715[r3]', 0, ()),             # FORM_
 
 ]
 

@@ -281,9 +281,11 @@ class RxDisasm:
             flag, tsize = SZ[osz]
             iflags |= flag
             fields.pop(O_SZ)
+            oflags = 0
 
         else:
             tsize = 1
+            oflags = OF_B
 
         # deciding key fields and build operand tuple
         operkeys = fields.keys()
@@ -353,6 +355,7 @@ class RxDisasm:
                         imm, = struct.unpack_from(fmt, bytez, offset)
 
                     opers.append(RxImmOper(imm, va=va))
+                    offset += li
 
                 elif fields.get(O_IMM):
                     imm = fields.get(O_IMM)
@@ -385,7 +388,7 @@ class RxDisasm:
                             elif regconst == O_RD:
                                 if ldd in (1,2):
                                     dsp = e_bits.parsebytes(bytez, offset, ldd, sign=False, bigend=True)
-                                    opers.append(RxDspOper(reg, dsp, tsize=tsize, oflags=OF_B, va=va))
+                                    opers.append(RxDspOper(reg, dsp, tsize=tsize, oflags=oflags, va=va))
                                     offset += ldd
                                     sz += ldd
 
@@ -398,7 +401,7 @@ class RxDisasm:
                             elif regconst == O_RS:
                                 if lds in (1,2):
                                     dsp = e_bits.parsebytes(bytez, offset, lds, sign=False, bigend=True)
-                                    opers.append(RxDspOper(reg, dsp, tsize=tsize, oflags=OF_B, va=va))
+                                    opers.append(RxDspOper(reg, dsp, tsize=tsize, oflags=oflags, va=va))
                                     offset += lds
                                     sz += lds
 
