@@ -320,7 +320,7 @@ def convertOpers(opers, opsz):
         nparts = []
         for pstart, (bstart, bend) in bdict.items():
             psz = 1 + bstart - bend
-            pshift = opsz - pstart - psz
+            pshift = opsz - pstart - psz - bend
             pmask = (1 << psz) - 1
             pmask <<= bend  # shift the mask if this is an upper part
             nparts.append((pshift, pmask))

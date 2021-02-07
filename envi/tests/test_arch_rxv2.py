@@ -117,10 +117,10 @@ instrs = [
         ('fd745417', 0x4560, 'min 0x17,r4', 0, ()),             # FORM_BMCND
         ('fc153417', 0x4560, 'min 0x17[r3].ub,r4', 0, ()),             # FORM_BMCND
         ('0661043417', 0x4560, 'max 0x17[r3].w,r4', 0, ()),             # FORM_BMCND
-        ('97cb', 0x4560, 'mov.w r3,r4', 0, ()),             # FORM_BMCND
-        ('9fcb', 0x4560, 'mov.w r4,r3', 0, ()),             # FORM_BMCND
+        ('97cb', 0x4560, 'mov.w r3,0x1f[r4]', 0, ()),             # FORM_BMCND
+        ('9fcb', 0x4560, 'mov.w 0x1f[r4],r3', 0, ()),             # FORM_BMCND
         ('66f4', 0x4560, 'mov 0xf,r4', 0, ()),             # FORM_BMCND # wrong, but doesn't really need a size?
-        ('3ecc', 0x4560, 'mov.l 0x1c,r4', 0, ()),             # FORM_BMCND # wrong, but doesn't really need a size?
+        ('3ecc17', 0x4560, 'mov.l 0x17,0x1c[r4]', 0, ()),             # FORM_BMCND # wrong, but doesn't really need a size?
 
 ]
 
