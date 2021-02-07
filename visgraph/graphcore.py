@@ -13,7 +13,7 @@ import visgraph.pathcore as vg_pathcore
 
 
 def guid(size=16):
-    return hexlify(os.urandom(size))
+    return hexlify(os.urandom(size)).decode('utf-8')
 
 
 def zdict():
@@ -245,7 +245,7 @@ class Graph:
         Add a Node object to the graph.  Returns the node. (nid,nprops)
 
         Example: node = g.addNode()
-                 - or - 
+                 - or -
                  node = g.addNode('woot', {'height':20, 'width':20})
 
         NOTE: If nid is unspecified, it is considered an 'anonymous'
@@ -263,10 +263,10 @@ class Graph:
         if nprops is not None:
             myprops.update(nprops)
 
-        node = (nid,myprops)
+        node = (nid, myprops)
         self.nodes[nid] = node
 
-        for k,v in myprops.items():
+        for k, v in myprops.items():
             try:
                 self.nodeprops[k][v].append(node)
             except TypeError:
@@ -419,10 +419,10 @@ class Graph:
         self.edge_by_to[n2].append(edge)
         self.edge_by_from[n1].append(edge)
 
-        for k,v in eprops.items():
+        for k, v in eprops.items():
             try:
                 self.edgeprops[k][v].append(edge)
-            except TypeError as e:
+            except TypeError:
                 pass # no value indexes for unhashable types
 
         return edge

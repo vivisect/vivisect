@@ -76,7 +76,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
         autosave = kwargs.get('autosave', False)
         cfgdir = kwargs.get('confdir', None)
-        if cfgdir:
+        if cfgdir is not None and cfgdir != '':
             self.vivhome = os.path.abspath(cfgdir)
         else:
             self.vivhome = e_config.gethomedir(".viv", makedir=autosave)
@@ -84,7 +84,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         self._ext_ctxmenu_hooks = {}
         self._extensions = {}
 
-        self.saved = True  # TODO: where is this used?
+        self.saved = False  # TODO: Have a warning when we try to close the UI if the workspace hasn't been saved
         self.rchan = None
         self.server = None
         self.chanids = itertools.count()
@@ -1024,7 +1024,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
                     if loc[L_LTYPE] == LOC_UNI:
                         if loc[L_VA] == va:
                             return loc[L_SIZE]
-                        if ord(bytes[offset+count]) != 0:
+                        if bytes[offset+count] != 0:
                             # same thing as in the string case, a binary can ref into a string
                             # only part of the full string.
                             return count + loc[L_SIZE]
@@ -1130,6 +1130,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         rdest = self.readMemValue(ptrbase, step)
         if rebase and rdest < imgbase:
             rdest += imgbase
+
         while self.isValidPointer(rdest) and self.isProbablyCode(rdest):
             if self.analyzePointer(ptrbase) in STOP_LOCS:
                 break
@@ -2101,7 +2102,10 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
         if self.getName(va) is None:
             m = self.readMemory(va, size-1).replace(b'\n', b'').replace(b'\0', b'')
-            self.makeName(va, "wstr_%s_%.8x" % (m[:16],va))
+            try:
+                self.makeName(va, "wstr_%s_%.8x" % (m[:16].decode('utf-8'), va))
+            except:
+                self.makeName(va, "wstr_%s_%.8x" % (m[:16],va))
         return self.addLocation(pva, psize, LOC_UNI, tinfo=tinfo)
 
     def addConstModule(self, modname):

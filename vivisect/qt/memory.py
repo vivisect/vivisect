@@ -291,6 +291,8 @@ class VQVivMemoryCanvas(VivCanvasBase):
         the function finishing (and being able to get a value outta js) is via this callback
         mechanism they set up.
         '''
+        if not data:
+            return
         smin = data[0]
         spos = data[1]
         smax = data[2]

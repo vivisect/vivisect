@@ -219,7 +219,7 @@ class EnviConfig:
             filename = self.filename
 
         cfgdict = self.getConfigPrimitive()
-        with open(filename, 'wb') as fd:
+        with open(filename, 'w') as fd:
             json.dump(cfgdict, fd, indent=2)
 
     def loadConfigFile(self, filename=None):
@@ -228,7 +228,7 @@ class EnviConfig:
         '''
         if filename is None:
             filename = self.filename
-        with open(filename, 'rb') as fd:
+        with open(filename, 'r') as fd:
             cfgdict = json.load(fd)
         self.setConfigPrimitive(cfgdict)
 
