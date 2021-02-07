@@ -533,6 +533,7 @@ tbl_fe = (\
 tbl_ff = (\
     (None, None, 0xfff000, 0xff2000, INS_ADD, 'add', ((O_RD, ((8, 0xf),)), (O_RS2, ((0, 0xf),)), (O_RS, ((4, 0xf),)), ), 3, IF_NONE),
     (None, None, 0xfff000, 0xff4000, INS_AND, 'and', ((O_RD, ((8, 0xf),)), (O_RS2, ((0, 0xf),)), (O_RS, ((4, 0xf),)), ), 3, IF_NONE),
+    (None, None, 0xfff000, 0xffa000, INS_FADD, 'fadd', ((O_RD, ((8, 0xf),)), (O_RS2, ((0, 0xf),)), (O_RS, ((4, 0xf),)), ), 3, IF_NONE),
     (None, None, 0xfff000, 0xffb000, INS_FMUL, 'fmul', ((O_RD, ((8, 0xf),)), (O_RS2, ((0, 0xf),)), (O_RS, ((4, 0xf),)), ), 3, IF_NONE),
     (None, None, 0xfff000, 0xff8000, INS_FSUB, 'fsub', ((O_RD, ((8, 0xf),)), (O_RS2, ((0, 0xf),)), (O_RS, ((4, 0xf),)), ), 3, IF_NONE),
     (None, None, 0xfff000, 0xff3000, INS_MUL, 'mul', ((O_RD, ((8, 0xf),)), (O_RS2, ((0, 0xf),)), (O_RS, ((4, 0xf),)), ), 3, IF_NONE),

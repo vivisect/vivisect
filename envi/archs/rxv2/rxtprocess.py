@@ -43,6 +43,8 @@ def process(fbytes):
 
         hashdx = fline.rfind('#')
         while hashdx > -1:
+            print("process: comment-removal: %r" % fline)
+            print("       : %r" % fline[hashdx:])
             if fline[hashdx:].startswith('#IMM') or\
                 fline[hashdx:].startswith('#UIMM') or\
                 fline[hashdx:].startswith('#SIMM'): 

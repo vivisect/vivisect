@@ -69,6 +69,27 @@ instrs = [
         ('fc6bab', 0x4560, 'btst r11,r10', 0, ()),             # FORM_BMCND
         ('7fb3', 0x4560, 'clrpsw O', 0, ()),             # FORM_BMCND
         ('6134', 0x4560, 'cmp 0x3,r4', 0, ()),             # FORM_BMCND
+        ('75547f', 0x4560, 'cmp 0x7f,r4', 0, ()),             # FORM_BMCND
+        ('76041720', 0x4560, 'cmp 0x1720,r4', 0, ()),             # FORM_BMCND
+        ('46341780', 0x4560, 'cmp 0x1780[r3].ub,r4', 0, ()),             # FORM_BMCND
+        ('0686341780', 0x4560, 'cmp 0x1780[r3].l,r4', 0, ()),             # FORM_BMCND
+        ('fd78841780', 0x4560, 'div 0x1780,r4', 0, ()),             # FORM_BMCND
+        ('fc22341780', 0x4560, 'div 0x1780[r3].ub,r4', 0, ()),             # FORM_BMCND
+        ('06a208341780', 0x4560, 'div 0x1780[r3].l,r4', 0, ()),             # FORM_BMCND
+        ('fd78931780', 0x4560, 'divu 0x1780,r3', 0, ()),             # FORM_BMCND
+        ('fc26341780', 0x4560, 'divu 0x1780[r3].ub,r4', 0, ()),             # FORM_BMCND
+        ('06a209341780', 0x4560, 'divu 0x1780[r3].l,r4', 0, ()),             # FORM_BMCND
+        ('fd0f34', 0x4560, 'emaca r3,r4,acc1', 0, ()),             # FORM_BMCND
+        ('fd4f34', 0x4560, 'emsba r3,r4,acc1', 0, ()),             # FORM_BMCND
+        ('fd78641780', 0x4560, 'emul 0x1780,r4', 0, ()),             # FORM_BMCND
+        ('06a206341780', 0x4560, 'emul 0x1780[r3].l,r4', 0, ()),             # FORM_BMCND
+        ('fd0b34', 0x4560, 'emula r3,r4,acc1', 0, ()),             # FORM_BMCND
+        ('fd78741780', 0x4560, 'emulu 0x1780,r4', 0, ()),             # FORM_BMCND
+        ('fc1e341780', 0x4560, 'emulu 0x1780[r3].ub,r4', 0, ()),             # FORM_BMCND
+        ('06a207341780', 0x4560, 'emulu 0x1780[r3].l,r4', 0, ()),             # FORM_BMCND
+        ('fd722400047145', 0x4560, 'fadd 0x47145,r4', 0, ()),             # FORM_BMCND
+        ('fc8a341780', 0x4560, 'fadd 0x1780[r3].ub,r4', 0, ()),             # FORM_BMCND
+        ('ffa345', 0x4560, 'fadd r3,r4,r5', 0, ()),             # FORM_BMCND
 
 ]
 
@@ -90,6 +111,7 @@ class RXv2InstructionSet(unittest.TestCase):
         bademu = 0
 
         for bytez, va, reprOp, iflags, emutests in instrs:
+            print("Test: %r" % bytez)
             op = vw.arch.archParseOpcode(binascii.unhexlify(bytez), 0, va)
             redoprepr = repr(op).replace(' ','').lower()
             redgoodop = reprOp.replace(' ','').lower()

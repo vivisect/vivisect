@@ -294,11 +294,12 @@ class RxDisasm:
                     opers.append(RxImmOper(imm, va=va))
 
                 # check all the registers (and not quite)
-                for const in O_IMM, O_RS, O_RS2, O_CR, O_A, O_RD, O_RD2:
+                #print([nms[x] for x,y in fields.items()])
+                for const in O_UIMM, O_IMM, O_RS, O_RS2, O_CR, O_A, O_RD, O_RD2:
                     val = fields.get(const)
                     print("  loop: %r = %r" % (nms[const], val))
                     if val is not None:
-                        if const == O_IMM:
+                        if const in (O_IMM, O_UIMM):
                             opers.append(RxImmOper(val, va=va))
 
                         elif const == O_CR:
@@ -332,6 +333,11 @@ class RxDisasm:
                     imm = fields.get(O_IMM)
                     print("   imm: %x" % imm)
                     opers.append(RxImmOper(imm, va))
+
+                elif fields.get(O_UIMM):
+                    imm = fields.get(O_UIMM)
+                    print("   imm: %x" % imm)
+                    opers.append(RxUImmOper(imm, va))
 
                 if fields.get(O_AD) is not None:
                     opers = (
@@ -529,8 +535,15 @@ class RxDisasm:
         return RxOpcode(va, opcode, mnem, opers, iflags, opsz) 
 
     def form_A_RS2_RS(self, va, opcode, mnem, fields, opsz, iflags, bytez, off):
-        import envi.interactive as ei; ei.dbg_interact(locals(), globals())
-        opers = (RxPcdspOper(fdata, va), )
+        #import envi.interactive as ei; ei.dbg_interact(locals(), globals())
+        rs = fields.get(O_RS)
+        rs2 = fields.get(O_RS2)
+        acc = fields.get(O_A)
+        opers = (
+                RxRegOper(rs, va), 
+                RxRegOper(rs2, va), 
+                RxRegOper(regs.REG_ACC0 + acc, va), 
+                )
 
         return RxOpcode(va, opcode, mnem, opers, iflags, opsz) 
 
