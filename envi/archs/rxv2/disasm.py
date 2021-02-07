@@ -27,6 +27,23 @@ class RxOpcode(envi.Opcode):
     def __len__(self):
         return self.size
 
+
+    def __repr__(self):
+        """
+        Render this opcode to the specified memory canvas
+        """
+        mnem = self.mnem
+        if self.iflags & IF_BYTE:
+            mnem += '.b'
+        elif self.iflags & IF_WORD:
+            mnem += '.w'
+        elif self.iflags & IF_LONG:
+            mnem += '.l'
+        elif self.iflags & IF_UWORD:
+            mnem += '.uw'
+
+        return mnem + " " + ",".join([o.repr(self) for o in self.opers])
+
     def render(self, mcanv):
         """
         Render this opcode to the specified memory canvas
@@ -38,6 +55,8 @@ class RxOpcode(envi.Opcode):
             mnem += '.w'
         elif self.iflags & IF_LONG:
             mnem += '.l'
+        elif self.iflags & IF_UWORD:
+            mnem += '.uw'
 
         mcanv.addNameText(mnem, typename="mnemonic")
         mcanv.addText(" ")
@@ -255,10 +274,20 @@ class RxDisasm:
             return hndlFunc(va, opcode, mnem, fields, sz, iflags, bytez, offset)
 
 
-        # deciding key fields and build operand tuple
-        opercnt = len(fields)
 
+        # first things first... parse out the O_SZ field and apply it to iflags and tsize
+        osz = fields.get(O_SZ)
+        if osz is not None:
+            flag, tsize = SZ[osz]
+            iflags |= flag
+            fields.pop(O_SZ)
+
+        else:
+            tsize = None
+
+        # deciding key fields and build operand tuple
         operkeys = fields.keys()
+        opercnt = len(fields)
         if opercnt == 0:
             opers = ()
 
@@ -266,17 +295,12 @@ class RxDisasm:
             opers = []
             if opercnt == 1:
                 print("Parser: 1-oper")
-                if fields.get(O_SZ):
-                    opers = ()
-                    flag, tsize = SZ[fields[O_SZ]]
-                    iflags |= flag
-
-                else:
-                    for key, val in fields.items():
-                        opercls = OPERS.get(key)
-                        opers = (
-                                opercls(val, va),
-                        )
+                for key, val in fields.items():
+                    print("  %d ---> %r" % (key, nms[key]))
+                    opercls = OPERS.get(key)
+                    opers = (
+                            opercls(val, va),
+                    )
                 
             elif opercnt == 2:
                 print("Parser: 2-oper")
