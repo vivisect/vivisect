@@ -225,7 +225,7 @@ class PpcCBRegOper(PpcRegOper):
         return True
 
     def render(self, mcanv, op, idx):
-        creg = self.bit / 4
+        creg = self.bit // 4
         coff = self.bit % 4
         name = "cr%d" % (creg)
         if creg:
@@ -235,7 +235,7 @@ class PpcCBRegOper(PpcRegOper):
         mcanv.addNameText(rname, name=name, typename='cregisters')
 
     def repr(self, op, simple=True):
-        creg = self.bit / 4
+        creg = self.bit // 4
         coff = self.bit % 4
         if creg or not simple:
             rname = "cr%d.%s" % (creg, CRBITS[coff])
