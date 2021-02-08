@@ -76,7 +76,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
         autosave = kwargs.get('autosave', False)
         cfgdir = kwargs.get('confdir', None)
-        if cfgdir is not None and cfgdir != '':
+        if cfgdir:
             self.vivhome = os.path.abspath(cfgdir)
         else:
             self.vivhome = e_config.gethomedir(".viv", makedir=autosave)

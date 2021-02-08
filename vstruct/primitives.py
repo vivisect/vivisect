@@ -707,7 +707,7 @@ class v_zwstr(v_str):
 
     _vs_builder = True
 
-    def __init__(self, encode='utf-16le', val='', align=2):
+    def __init__(self, encode='utf-16le', val=b'', align=2):
         v_str.__init__(self)
         self._vs_encode = encode
         self._vs_align = align
@@ -745,7 +745,7 @@ class v_zwstr(v_str):
 
     def vsGetValue(self):
         cstr = self._vs_value.decode(self._vs_encode, errors='replace')
-        return cstr.split(b'\x00')[0]
+        return cstr.split('\x00')[0]
 
     def vsSetValue(self, val):
         #rbytes = val.encode(self._vs_encode)
