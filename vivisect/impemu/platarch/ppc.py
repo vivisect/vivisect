@@ -13,14 +13,14 @@ class Ppc64EmbeddedWorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_ppc.Ppc64
         # use VivWorkspace's VLE configuration info
         
     def parseOpcode(self, va, arch=envi.ARCH_PPC_E64):
-	# We can make an opcode *faster* with the workspace because of
-	# getByteDef etc... use it.
-	op = self.opcache.get(va)
-	if op == None:
-	    op = envi.Emulator.parseOpcode(self, va, arch=arch)
-	    self.opcache[va] = op
+        # We can make an opcode *faster* with the workspace because of
+        # getByteDef etc... use it.
+        op = self.opcache.get(va)
+        if op == None:
+            op = envi.Emulator.parseOpcode(self, va, arch=arch)
+            self.opcache[va] = op
 
-	return op
+        return op
 
 class Ppc32EmbeddedWorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_ppc.Ppc32EmbeddedEmulator):
 
@@ -33,46 +33,46 @@ class Ppc32EmbeddedWorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_ppc.Ppc32
         # use VivWorkspace's VLE configuration info
         
     def parseOpcode(self, va, arch=envi.ARCH_PPC_E32):
-	# We can make an opcode *faster* with the workspace because of
-	# getByteDef etc... use it.
-	op = self.opcache.get(va)
-	if op == None:
-	    op = envi.Emulator.parseOpcode(self, va, arch=arch)
-	    self.opcache[va] = op
+        # We can make an opcode *faster* with the workspace because of
+        # getByteDef etc... use it.
+        op = self.opcache.get(va)
+        if op == None:
+            op = envi.Emulator.parseOpcode(self, va, arch=arch)
+            self.opcache[va] = op
 
-	return op
+        return op
 
 
 
 
 class PpcVleWorkspaceEmulator(Ppc64EmbeddedWorkspaceEmulator):
     def parseOpcode(self, va, arch=envi.ARCH_DEFAULT):
-	# We can make an opcode *faster* with the workspace because of
-	# getByteDef etc... use it.
-	op = self.opcache.get(va)
-	if op == None:
-	    op = self.vw.parseOpcode(va, arch=envi.ARCH_PPCVLE)
-	    self.opcache[va] = op
+        # We can make an opcode *faster* with the workspace because of
+        # getByteDef etc... use it.
+        op = self.opcache.get(va)
+        if op == None:
+            op = self.vw.parseOpcode(va, arch=envi.ARCH_PPCVLE)
+            self.opcache[va] = op
 
-	return op
+        return op
 
 class Ppc64ServerWorkspaceEmulator(Ppc64EmbeddedWorkspaceEmulator):
     def parseOpcode(self, va, arch=envi.ARCH_PPC_S64):
-	# We can make an opcode *faster* with the workspace because of
-	# getByteDef etc... use it.
-	op = self.opcache.get(va)
-	if op == None:
-	    op = self.vw.parseOpcode(va, arch=arch)
-	    self.opcache[va] = op
+        # We can make an opcode *faster* with the workspace because of
+        # getByteDef etc... use it.
+        op = self.opcache.get(va)
+        if op == None:
+            op = self.vw.parseOpcode(va, arch=arch)
+            self.opcache[va] = op
 
-	return op
+        return op
 class Ppc32ServerWorkspaceEmulator(Ppc32EmbeddedWorkspaceEmulator):
     def parseOpcode(self, va, arch=envi.ARCH_PPC_S32):
-	# We can make an opcode *faster* with the workspace because of
-	# getByteDef etc... use it.
-	op = self.opcache.get(va)
-	if op == None:
-	    op = self.vw.parseOpcode(va, arch=arch)
-	    self.opcache[va] = op
+        # We can make an opcode *faster* with the workspace because of
+        # getByteDef etc... use it.
+        op = self.opcache.get(va)
+        if op == None:
+            op = self.vw.parseOpcode(va, arch=arch)
+            self.opcache[va] = op
 
-	return op
+        return op

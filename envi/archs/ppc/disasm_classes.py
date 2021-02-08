@@ -4,8 +4,8 @@ import envi.symstore.resolver as e_resolv
 
 from envi import IF_NOFALL, IF_BRANCH, IF_CALL, IF_RET, IF_PRIV, IF_COND
 
-from regs import *
-from const import *
+from .regs import *
+from .const import *
 
 def addrToName(mcanv, va):
     sym = getSymByAddr(mcanv.syms, va)

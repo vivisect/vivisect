@@ -47,10 +47,10 @@ def analyze(vw):
             vw.addEntryPoint(eva)
             vw.makeName(eva, 'ENTRY_%.8x' % eva)
             bootentries.append((baseaddr, eva, rchw))
-        except Exception, e:
+        except Exception as  e:
             vw.vprint(" Bootstrap analysis failed for address 0x%x: %r" % (baseaddr, e))
             logger.info(" Bootstrap analysis failed for address 0x%x: %r" % (baseaddr, e))
             print(" Bootstrap analysis failed for address 0x%x: %r" % (baseaddr, e))
-            print vw.getMemoryMaps()
+            print(vw.getMemoryMaps())
 
     return bootentries

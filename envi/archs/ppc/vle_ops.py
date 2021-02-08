@@ -1,4 +1,4 @@
-from const import *
+from .const import *
 from envi import IF_NOFALL, IF_BRANCH, IF_CALL, IF_RET, IF_PRIV, IF_COND
 
 #  ( "name"       , op        , mask                    , type   ,   op_type           , COND_AL, (TYPE_REG, TYPE_REG, TYPE_REG, TYPE_REG, TYPE_REG))

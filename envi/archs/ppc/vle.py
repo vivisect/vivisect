@@ -9,11 +9,11 @@ special thanks to wargio and ehntoo for their hard work
 adapted by atlas <atlas@r4780y.com>, bugfixes and unit tests by @sprout42.
 '''
 
-from vle_ops import *
-from regs import *
+from .vle_ops import *
+from .regs import *
 import envi
 import struct
-from disasm_classes import *
+from .disasm_classes import *
 
 import envi.bits as e_bits
 
@@ -40,7 +40,7 @@ def case_E_X(types, data, va):
     return opers
 
 def case_E_XL(types, data, va):
-    #print types, hex(data)
+    #print(types, hex(data))
     val0 = (data & 0x3E00000) >> 21;
     op0 = operands[types[0]]
     val1 = (data & 0x1F0000) >> 16;
@@ -48,7 +48,7 @@ def case_E_XL(types, data, va):
     val2 = (data & 0xF800) >> 11;
     op2 = operands[types[2]]
 
-    #print "E_XL", op0, val0, op1, val1, op2, val2
+    #print("E_XL", op0, val0, op1, val1, op2, val2)
     opers = ( op0(val0, va), op1(val1, va), op2(val2, va) )
     return opers
 
@@ -107,7 +107,7 @@ def case_E_I16A(types, data, va):
     val1 |= (data & 0x7FF);
 
     opers = ( op0(val0, va), op1(val1, va) )
-    #print "E_I16/A", opers
+    #print("E_I16/A", opers)
     return opers
 
 case_E_IA16 = case_E_I16A
@@ -320,7 +320,7 @@ def case_F_EVX(types, data, va):
         opers.append(op0(val0, va))
 
     if (types[1] != TYPE_NONE):
-        #print types[1]
+        #print(types[1])
         val1 = (data & 0x1F0000) >> 16;
         op1 = operands[types[1]]
         opers.append(op1(val1, va))
@@ -360,7 +360,7 @@ case_F_XO   = case_F_EVX
 def case_F_X_2(types, data, va):
     opers = []
     if (types[0] != TYPE_NONE):
-        #print types[1]
+        #print(types[1])
         val1 = (data & 0x1F0000) >> 16;
         op1 = operands[types[1]]
         opers.append(op1(val1, va))
@@ -591,9 +591,9 @@ def find_ppc(buf, offset, endian=True, va=0):
     data, = struct.unpack_from(fmt, buf, offset)
 
     for mnem, op, mask, form, opcode, cond, types, iflags in ppc_ops:
-        #print mnem, op, mask, type
+        #print(mnem, op, mask, type)
         if (op & data) == op and (mask & data) == data:
-            #print mnem, form, opcode, types, hex(data)
+            #print(mnem, form, opcode, types, hex(data))
             size = 4
 
             handler = ppc_handlers[form]
@@ -632,9 +632,9 @@ def find_e(buf, offset, endian=True, va=0):
 
 
     for mnem, op, mask, form, opcode, cond, types, iflags in e_ops:
-        #print mnem, hex(op), hex(mask), types, hex(data)
+        #print(mnem, hex(op), hex(mask), types, hex(data))
         if (op & data) == op and (mask & data) == data:
-            #print mnem, form, opcode, types, hex(data)
+            #print(mnem, form, opcode, types, hex(data))
             size = 4
 
             handler = e_handlers[form]
@@ -653,15 +653,15 @@ def find_se(buf, offset, endian=True, va=0):
 
     opers = None
     for mnem, op, mask, n, opcode, cond, fields, iflags in se_ops:
-        #print mnem, op, mask, type
+        #print(mnem, op, mask, type)
         if (op & data) == op and (mask & data) == data:
-            #print "LOCK: ", mnem, op, hex(mask), fields, hex(data), n
+            #print("LOCK: ", mnem, op, hex(mask), fields, hex(data), n)
             # prefill the array since this wonky thing likes to build backwards?
             opieces = [None for x in range(n)]
 
             skip = 0
             for k in range(n):
-                #print "field: ", fields[k]
+                #print("field: ", fields[k])
                 mask, shr, shl, add, idx, ftype = fields[k]
                 #print(repr(opieces))
                 #raw_input("k: %x   " % (k) +  "mask: %x  shr: %x  shl: %x  add: %x  idx: %x, ftype: %x" % fields[k])
@@ -692,7 +692,7 @@ def find_se(buf, offset, endian=True, va=0):
                     k += 1
                     ft2, val2 = opieces[k]
                     if ft2 != TYPE_IMM:
-                        print "PROBLEM! ft2 is not TYPE_IMM!"
+                        print("PROBLEM! ft2 is not TYPE_IMM!")
 
                     opers.append(handler(value, val2, va))
                 else:

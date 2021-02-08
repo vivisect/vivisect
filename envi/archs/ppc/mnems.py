@@ -10788,16 +10788,16 @@ def parseOpgroup(opgrp):
         cat = data[-1].strip()
 
         if cat in forms and not data[-2].strip() in forms:
-            #print "fixing cat/form"
+            #print("fixing cat/form")
             form = cat
             fidx = -1
             cat = 'NONE'
         elif cat.find(' ') != -1 and cat.find(', ') == -1:
-            #print "fixing cat/form(2)"
+            #print("fixing cat/form(2)")
             form, cat = cat.split(' ')
             fidx = -1
             if form not in forms:
-                print "(1)form: %r  not in forms!" % form
+                print("(1)form: %r  not in forms!" % form)
         else:
             # this is really the default, if all goes well.
             form = data[-2].strip()
@@ -10807,7 +10807,7 @@ def parseOpgroup(opgrp):
                 fidx = -1
                 cat = 'NONE'
             if form not in forms:
-                print "(2)form: %r  not in forms!" % form
+                print("(2)form: %r  not in forms!" % form)
                 bf = badforms.get(form)
                 if bf == None:
                     bf = []
@@ -10826,7 +10826,7 @@ def parseOpgroup(opgrp):
 
             # check if it's a /// field.
             if '///' in f:
-                #print "field has ///.  Breaking: %r" % f
+                #print("field has ///.  Breaking: %r" % f)
                 thing = [fidx, f, None ,0, THING_FILL]
                 varfs.append(thing)
                 nfields.append(thing)
@@ -10835,7 +10835,7 @@ def parseOpgroup(opgrp):
             # otherwise look through for static bits
             for x in range(len(f)):
                 if f[x] not in ('0','1',' ','/'):
-                    #print "breaking on %s" % f[x]
+                    #print("breaking on %s" % f[x])
                     thing = [fidx, f, None, 0, THING_VAR]   # field index, field, size, startbit
                     varfs.append(thing)
                     nfields.append(thing)
@@ -10855,7 +10855,7 @@ def parseOpgroup(opgrp):
             stats.append(thing)
             nfields.append(thing)
             statbits += (len(f)/2)
-            #print f, "  \t",(len(f)/2), statbits
+            #print(f, "  \t",(len(f)/2), statbits)
 
 
         # try to determing type and size of operands
@@ -10868,14 +10868,14 @@ def parseOpgroup(opgrp):
             field = f.strip()
 
             #if oper[1].strip().startswith('r'):
-            #    print "Register: %r" % oper
+            #    print("Register: %r" % oper)
             #    oper[2] = 5
             #    leftover -= 5
 
             #### COMPLETE HACK! I APOLOGIZE IN ADVANCE. - deprecated.  they screwed up the table.
             #if mnem == 'cmpl':
             #    odata = { 'rA' : (8, 5), 'rB' : (13, 5), 'L' : (7,1), }.get(field)
-            #    #print field, odata
+            #    #print(field, odata)
 
             # check the simple fields
             if odata == None:
@@ -10888,7 +10888,7 @@ def parseOpgroup(opgrp):
                 multi = True
 
             if odata == None:
-                print "UNKNOWN FIELD: %r  (%s)" % (oper, mnem)
+                print("UNKNOWN FIELD: %r  (%s)" % (oper, mnem))
                 bf = badfields.get(oper[1])
                 if bf == None:
                     bf = []
@@ -10908,14 +10908,14 @@ def parseOpgroup(opgrp):
         # once we've completed a pass through the simple ones...
 
         # reduce... find the length of the trailing static bits... and merge fields
-        #print mnem, nfields
+        #print(mnem, nfields)
         cleanup = []
         laststart = 32
         lasttype = THING_STATIC
         for tidx in range(len(nfields)-1, 1, -1):
             thing = nfields[tidx]
             prev = nfields[tidx-1]
-            #print thing
+            #print(thing)
 
 
             if thing[4] == THING_FILL and prev[4] == THING_FILL:
@@ -10934,20 +10934,20 @@ def parseOpgroup(opgrp):
                         prev[2] = thing[2] - prev[3]
 
                     # concat and add size, collapsing into prev
-                    #print "prev(1) = ", prev
+                    #print("prev(1) = ", prev)
                     prev[1] += thing[1]
                     prev[3] += thing[3]
                     cleanup.append(tidx)
 
-                    #print "prev(2) = ", prev
+                    #print("prev(2) = ", prev)
 
             laststart = thing[2]
             lasttype = thing[4]
 
         for x in cleanup:
-            #print "popping %d(1)  (%r) " % (x, nfields)
+            #print("popping %d(1)  (%r) " % (x, nfields))
             remove = nfields.pop(x)
-            #print "popping %d(2)  (%r) " % (x, nfields)
+            #print("popping %d(2)  (%r) " % (x, nfields))
 
 
         # now find what fits...
@@ -10960,7 +10960,7 @@ def parseOpgroup(opgrp):
             field = f.strip()
             # skip if we have already identified a start bit
             if fstart != None:
-                #print "fstart != None:", fstart
+                #print("fstart != None:", fstart)
                 continue
             if '///' in f:
                 continue
@@ -10968,7 +10968,7 @@ def parseOpgroup(opgrp):
             # if we don't have a start bit, check multiple's
             odata = FIELD_M_DATA.get(field)
             if odata == None:
-                print "UNKNOWN FIELD: %r  (%s)" % (oper, mnem)
+                print("UNKNOWN FIELD: %r  (%s)" % (oper, mnem))
                 bf = badfields.get(oper[1])
                 if bf == None:
                     bf = []
@@ -10995,13 +10995,13 @@ def parseOpgroup(opgrp):
                         # overlap
                         fail = True
                 if fail:
-                    #print "\tFAIL!  ", gstart, gsz, ofield
+                    #print("\tFAIL!  ", gstart, gsz, ofield)
                     continue
 
-                #print "SUCCESS!  ", gstart, gsz, ofield
+                #print("SUCCESS!  ", gstart, gsz, ofield)
 
                 # only continue if we're committed!
-                #print gstart, gsz, ofield
+                #print(gstart, gsz, ofield)
                 if gstart != None:
                     nfields[oidx][2] = gstart
                 if gsz != None:
@@ -11039,16 +11039,16 @@ def parseOpgroup(opgrp):
                 gsz = nextf[2] - gstart
 
                 # now write into the array
-                #print "FILLER: ", gstart, gsz
+                #print("FILLER: ", gstart, gsz)
                 nfields[oidx][2] = gstart
                 nfields[oidx][3] = gsz
                 leftover -= gsz
 
         nobits = [x for x in varfs if x[3] == 0 and '///' not in x[1]]
-        print "%-20s: %s\t%s\t%s \t%r\t%d\t%r" % (mnem, grp, form, cat, nfields, leftover, nobits)
+        print("%-20s: %s\t%s\t%s \t%r\t%d\t%r" % (mnem, grp, form, cat, nfields, leftover, nobits))
 
         if checkNfieldSanity(nfields):
-            print "ERROR: ", mnem, repr(nfields)
+            print("ERROR: ", mnem, repr(nfields))
             raw_input()
 
 
@@ -11066,9 +11066,9 @@ def parseOpgroup(opgrp):
             #bf.append((mnem, data))
 
         if len(nobits):
-            print "%-20s: %s\t%s\t%s \t%r\t%r\t%d\t%r" % (mnem, grp, form, cat, fields, varfs, leftover, nobits)
+            print("%-20s: %s\t%s\t%s \t%r\t%r\t%d\t%r" % (mnem, grp, form, cat, fields, varfs, leftover, nobits))
         
-        #print "%s: %s\t%s\t%s \t%r\t%r\t%d" % (mnem, grp, form, cat, fields, varfs, leftover)
+        #print("%s: %s\t%s\t%s \t%r\t%r\t%d" % (mnem, grp, form, cat, fields, varfs, leftover))
     return grpdeets
 
 def checkNfieldSanity(nfields):
@@ -11077,13 +11077,13 @@ def checkNfieldSanity(nfields):
     fail = False
     for idx, f, start, sz, typ in nfields:
         if start != (lastidx + lastsize):
-            print "FAIL Linkage Test! %r != (%r + %r)   %r " % (start, lastidx, lastsize, nfields)
+            print("FAIL Linkage Test! %r != (%r + %r)   %r " % (start, lastidx, lastsize, nfields))
             fail = True
         lastidx = start
         lastsize = sz
 
     if start + sz != 32:
-        print "FAIL Finishing Test! %r != (%r + %r)   %r " % (32, start, sz, nfields)
+        print("FAIL Finishing Test! %r != (%r + %r)   %r " % (32, start, sz, nfields))
         fail = True
 
     return fail
@@ -11234,9 +11234,9 @@ def buildOutput():
     mnems = []
     for grpkey in deets.keys():
         grp = deets.get(grpkey)
-        #print " ==== NEW GROUP ====: ", grpkey
+        #print(" ==== NEW GROUP ====: ", grpkey)
         for instr in grp:
-            #print instr
+            #print(instr)
             mnems.append(instr[0])
             #raw_input('waiting...')
 
@@ -11375,7 +11375,7 @@ def buildOutput():
         
 
             fields = [field for field in nfields if field[4] == THING_VAR]
-            print "Mask/Val: ", bin(mask), bin(val), hex(mask), hex(val), mnem, fields
+            print("Mask/Val: ", bin(mask), bin(val), hex(mask), hex(val), mnem, fields)
 
             # generate FIELDS output string
             fout = []
@@ -11561,7 +11561,7 @@ def make_unit_tests(outfile='test_ppc_by_cat'):
         d.__ARCH__ = 0
         catname = eapd.CATEGORIES.get(cat)
 
-        print "\\n====== CAT: %r ======" % catname
+        print("\\n====== CAT: %r ======" % catname)
         for key,instrlist in eapd.instr_dict.items():
             for instrline in instrlist:
                 opcodenum = instrline[1]
@@ -11579,14 +11579,14 @@ def make_unit_tests(outfile='test_ppc_by_cat'):
                 
                 try:
                     op = d.disasm(opbin, 0, 0x4000)
-                    print "0x%.8x:  %s" % (opcodenum, op)
+                    print("0x%.8x:  %s" % (opcodenum, op))
 
                     scanv.clearCanvas()
                     op.render(scanv)
                     # print("render:  %s" % repr(scanv.strval))
                     tests.append("        (%s, '%.8x', '%s', '%s', {})," % (catname, opcodenum, op, scanv.strval))
 
-                except Exception, e:
+                except Exception as  e:
                     sys.stderr.write("ERROR: 0x%x: %r\\n" % (opcodenum, e))
                     import traceback
                     traceback.print_exc()

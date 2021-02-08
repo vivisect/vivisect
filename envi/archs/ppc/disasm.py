@@ -4,10 +4,10 @@ import envi.bits as e_bits
 import copy
 import struct
 
-from envi.archs.ppc.ppc_tables import *
-from envi.archs.ppc.regs import *
-from const import *
-from disasm_classes import *
+from .ppc_tables import *
+from .regs import *
+from .const import *
+from .disasm_classes import *
 
 class PpcDisasm:
     __ARCH__ = None # abstract class.  subclasses should define this
@@ -314,7 +314,7 @@ def simpleCRNOR(ival, mnem, opcode, opers, iflags):
     return mnem, opcode, opers, iflags
 
 
-from regs import sprnames
+from .regs import sprnames
 def _no_simpleMTSPR(ival, mnem, opcode, opers, iflags):
     spridx = opers[0].val
     spr = sprnames.get(spridx)
@@ -327,7 +327,7 @@ def _no_simpleMFSPR(ival, mnem, opcode, opers, iflags):
 
 # this generates the handler table for any function starting with simple*
 SIMPLIFIEDS = {}
-for k, v in globals().items():
+for k, v in list(globals().items()):
     if k.startswith('simple'):
         capmnem = k[6:]
         SIMPLIFIEDS[eval('INS_' + capmnem)] = v

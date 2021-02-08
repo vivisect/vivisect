@@ -1,5 +1,5 @@
 import envi
-from const import *
+from .const import *
 instr_dict = {
     2 : (
         (0xfc000000, 0x8000000, ( 'tdi', INS_TDI, FORM_D, CAT_64, (  ( 'TO', FIELD_TO, 21, 0x1f ), ( 'rA', FIELD_rA, 16, 0x1f ), ( 'SIMM16', FIELD_SIMM16, 0, 0xffff ),) , IF_NONE ), ),

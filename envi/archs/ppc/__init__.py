@@ -8,7 +8,7 @@ import traceback
 
 from envi.archs.ppc.regs import *
 from envi.archs.ppc.disasm import *
-import vle
+from . import vle
 
 ''' taken from the MCP850 ref manual (circa 2001)
 3.2.1 Levels of the PowerPC Architecture

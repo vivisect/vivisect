@@ -38,7 +38,7 @@ REG_OFFSET_SYSREGS = len(ppc_regs)
 ppc_regs64.extend(sysregs)
 ppc_regs32.extend(sysregs)
 
-import spr
+from . import spr
 # populate spr_regs from the PPC SPR register list (in spr.py)
 spr_regs = [('%#x' % x, 64) for x in range(1024)]
 for sprnum, (rname, rdesc, bitsz) in spr.sprs.items():

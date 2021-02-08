@@ -155,7 +155,7 @@ class PpcInstructionSet(unittest.TestCase):
                 if result_instr != op_str:
                     logging.error('{}: ours: {} != {}'.format(test_bytes, repr(op_str), repr(result_instr)))
 
-            except Exception, e:
+            except Exception as  e:
                 logging.exception('ERROR: {}: {}'.format(test_bytes, result_instr))
 
         for test_bytes, emutests in emu_module.emutests.items():
@@ -167,7 +167,7 @@ class PpcInstructionSet(unittest.TestCase):
                     goodemu += ngoodemu
                     bademu += nbademu
 
-            except Exception, e:
+            except Exception as  e:
                 logging.exception('ERROR: {}: {}'.format(test_bytes, result_instr))
 
         logger.info("%s: %d of %d successes", archname, test_pass, len(test_module.instructions))
@@ -187,7 +187,7 @@ class PpcInstructionSet(unittest.TestCase):
                 emumask = eape.MASK(x, y)
 
                 symmask = vsap.MASK(vsap.Const(x, 8), vsap.Const(y, 8))
-                #print hex(emumask), repr(symmask), symmask
+                #print(hex(emumask), repr(symmask), symmask)
 
 
                 self.assertEqual(emumask, symmask.solve(), 'MASK({}, {}): {} != {}'.format(x, y, emumask, symmask.solve()))

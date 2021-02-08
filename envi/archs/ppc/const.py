@@ -1,4 +1,4 @@
-from const_gen import *
+from .const_gen import *
 
 ENDIAN_LSB = 0
 ENDIAN_MSB = 1

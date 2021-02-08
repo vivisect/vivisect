@@ -10,9 +10,9 @@ import copy
 import struct
 
 from envi import *
-from regs import *
-from const import *
-from disasm import *
+from .regs import *
+from .const import *
+from .disasm import *
 from envi.archs.ppc import *
 
 '''
