@@ -5,12 +5,9 @@ import envi.memory as e_mem
 import envi.memcanvas as e_canvas
 import envi.memcanvas.renderers as e_render
 
-try:
-    from PyQt5 import QtCore, QtGui
-    from PyQt5.QtWidgets import *
-except:
-    from PyQt4 import QtCore, QtGui
-    from PyQt4.QtGui import *
+from PyQt5 import QtCore, QtGui
+from PyQt5.QtWidgets import *
+
 
 class VQLineEdit(QLineEdit):
     '''
@@ -21,6 +18,7 @@ class VQLineEdit(QLineEdit):
     def keyReleaseEvent(self, event):
         self.keyReleased.emit(event)
         QLineEdit.keyReleaseEvent(self, event)
+
 
 class MemNavWidget(QWidget):
     userChanged = QtCore.pyqtSignal(str, str)
@@ -235,7 +233,7 @@ class MemWriteWindow(QWidget):
 
         self.canvas_orig.clearCanvas()
         mem = e_mem.MemoryObject()
-        mem.addMemoryMap(va, e_mem.MM_READ, '', bytez)
+        mem.addMemoryMap(va, e_mem.MM_READ, b'', bytez)
         self.canvas_orig.mem = mem
         self.canvas_orig.renderMemory(va, len(bytez))
         self.hex_edit.setPlainText(str(self.canvas_orig))
@@ -247,7 +245,7 @@ class MemWriteWindow(QWidget):
 
         self.canvas_new.clearCanvas()
         mem = e_mem.MemoryObject()
-        mem.addMemoryMap(va, e_mem.MM_READ, '', bytez)
+        mem.addMemoryMap(va, e_mem.MM_READ, b'', bytez)
         self.canvas_new.mem = mem
         self.canvas_new.renderMemory(va, len(bytez))
         self.hex_preview.setPlainText(str(self.canvas_new))
@@ -269,7 +267,7 @@ class MemWriteWindow(QWidget):
 
 class MockEmu(object):
     def parseExpression(self, expr):
-        return long(eval(expr, {}, {}))
+        return int(eval(expr, {}, {}))
 
     def readMemory(self, va, size):
         return '\x90' * size

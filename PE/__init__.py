@@ -6,7 +6,7 @@ from io import StringIO
 import vstruct
 import vstruct.defs.pe as vs_pe
 
-import ordlookup
+from . import ordlookup
 
 IMAGE_FILE_RELOCS_STRIPPED = 0x0001
 IMAGE_FILE_EXECUTABLE_IMAGE = 0x0002
@@ -238,9 +238,9 @@ class VS_VERSIONINFO:
             i += 1
 
     def _eatStringAndAlign(self, bytes, offset):
-        ret = ''
+        ret = b''
         blen = len(bytes)
-        while bytes[offset:offset+2] != '\x00\x00':
+        while bytes[offset:offset+2] != b'\x00\x00':
             ret += bytes[offset:offset+2]
             offset += 2
             if offset >= blen:
@@ -412,6 +412,12 @@ class PE(object):
 
         self.IMAGE_NT_HEADERS = nt
 
+    def __del__(self):
+        try:
+            self.fd.close()
+        except:
+            pass  # whatever. we're tearing down anyway
+
     def getPdataEntries(self):
         sec = self.getSectionByName('.pdata')
         if sec is None:
@@ -432,7 +438,7 @@ class PE(object):
         '''
         if self.IMAGE_EXPORT_DIRECTORY is not None:
             rawname = self.readAtRva(self.IMAGE_EXPORT_DIRECTORY.Name, 32)
-            return rawname.split('\x00')[0]
+            return rawname.split(b'\x00')[0].decode('utf-8')
         return None
 
     def getImports(self):
@@ -444,7 +450,7 @@ class PE(object):
 
     def getDelayImports(self):
         """
-        Return the list of delay import tuples for this PE.  The tuples
+        Return the list of delay import tuples for this PE. The tuples
         are in the format (rva, libname, funcname).
         """
         return self.delayImports
@@ -816,7 +822,7 @@ class PE(object):
                 break
 
             # RP BUG FIX - we can't assume that we have 256 bytes to read
-            libname = self.readStringAtRva(entry_name, maxsize=256)
+            libname = self.readStringAtRva(entry_name, maxsize=256).decode('utf-8')
             idx = 0
 
             if is_imports:
@@ -856,7 +862,7 @@ class PE(object):
 
                     diff = self.getMaxRva() - ibn_rva - 2
                     ibn = vstruct.getStructure("pe.IMAGE_IMPORT_BY_NAME")
-                    ibn.vsGetField('Name').vsSetLength( min(diff, 128) )
+                    ibn.vsGetField('Name').vsSetLength(min(diff, 128))
                     bytes = self.readAtRva(ibn_rva, len(ibn), shortok=True)
                     if not bytes:
                         break
@@ -992,13 +998,13 @@ class PE(object):
 
             for i in range(len(namelist)):
 
-                ord = ordlist[i]
+                ordl = ordlist[i]
                 nameoff = self.rvaToOffset(namelist[i])
-                if ord > len(funclist):
+                if ordl > len(funclist):
                     self.IMAGE_EXPORT_DIRECTORY = None
                     return
 
-                funcoff = funclist[ord]
+                funcoff = funclist[ordl]
                 ffoff = self.rvaToOffset(funcoff)
 
                 name = None
@@ -1006,14 +1012,14 @@ class PE(object):
                 if nameoff != 0:
                     name = self.readAtOffset(nameoff, 256, shortok=True).split(b"\x00", 1)[0]
                 else:
-                    name = b'ord_%.4x' % ord
+                    name = b'ord_%.4x' % ordl
 
                 # RP BUG FIX - Export forwarding range check is done using RVA's
                 if funcoff >= edir.VirtualAddress and funcoff < edir.VirtualAddress + edir.Size:
                     fwdname = self.readAtRva(funcoff, 260, shortok=True).split(b'\x00', 1)[0]
-                    self.forwarders.append((funclist[ord], name, fwdname))
+                    self.forwarders.append((funclist[ordl], name.decode('utf-8'), fwdname))
                 else:
-                    self.exports.append((funclist[ord], ord, name))
+                    self.exports.append((funclist[ordl], ordl, name.decode('utf-8')))
 
         # unnamed function exports
         else:
@@ -1032,8 +1038,8 @@ class PE(object):
                 # exported function. An element with a value of 0 indicates the element in
                 # the array is a placeholder to preserve the length of the array.
                 if funcoff > 0:
-                    ord = self.IMAGE_EXPORT_DIRECTORY.Base + i
-                    self.exports.append((funcoff, ord, None))
+                    ordl = self.IMAGE_EXPORT_DIRECTORY.Base + i
+                    self.exports.append((funcoff, ordl, None))
 
     def getSignature(self):
         '''

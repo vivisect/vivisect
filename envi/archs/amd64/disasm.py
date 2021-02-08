@@ -4,7 +4,7 @@ import envi
 import envi.bits as e_bits
 import envi.archs.i386 as e_i386
 import envi.archs.i386.opconst as e_i386_const
-import opcode64 as opcode86
+import envi.archs.amd64.opcode64 as opcode86
 
 from envi.const import RMETA_NMASK
 
@@ -290,7 +290,7 @@ class Amd64Disasm(e_i386.i386Disasm):
 
         while True:
 
-            obyte = ord(bytez[offset])
+            obyte = bytez[offset]
 
             # This line changes in 64 bit mode
             p = self._dis_prefixes[obyte]
@@ -307,7 +307,7 @@ class Amd64Disasm(e_i386.i386Disasm):
                 isvex = True
                 if p == PREFIX_VEX2:
                     offset += 1
-                    imm1 = ord(bytez[offset])
+                    imm1 = bytez[offset]
                     # shouldn't in 64-bit mode, but in 32-bit, this keeps LES from colliding
                     # TODO: So we're always in 64 bit here. This will need to be here once we unify 32/64 decoding
                     #if imm1 & 0xc0 != 0xc0:
@@ -324,12 +324,12 @@ class Amd64Disasm(e_i386.i386Disasm):
                     combined_mand_prefixes = vex_pp_table[pp]
 
                 elif p == PREFIX_VEX3:
-                    imm1 = ord(bytez[offset+1])
+                    imm1 = bytez[offset+1]
                     offset += 2
                     # TODO: So we're always in 64 bit here. This will need to be here once we unify 32/64 decoding
                     #if imm1 & 0xc0 != 0xc0:
                         #break
-                    imm2 = ord(bytez[offset])
+                    imm2 = bytez[offset]
                     inv1 = imm1 ^ 0xff
                     inv2 = imm2 ^ 0xff
 
@@ -391,7 +391,7 @@ class Amd64Disasm(e_i386.i386Disasm):
             else:
                 # treat nothing as a mandatory prefix (or we defaulted into here if we got no mandatory
                 # prefixes). For most instructions this will be the normal case.
-                obyte = ord(bytez[offset])
+                obyte = bytez[offset]
                 all_prefixes = prefixes | pho_prefixes
 
             while True:
@@ -408,7 +408,7 @@ class Amd64Disasm(e_i386.i386Disasm):
 
                     # Account for the table jump we made
                     offset += 1
-                    obyte = ord(bytez[offset])
+                    obyte = bytez[offset]
                     continue
 
                 # We are now on the final table...
@@ -564,7 +564,7 @@ class Amd64Disasm(e_i386.i386Disasm):
         """
         size = 1
         # FIXME this would be best to not parse_modrm twice.  tweak it.
-        mod,reg,rm = self.parse_modrm(ord(bytes[offset]), prefixes)
+        mod,reg,rm = self.parse_modrm(bytes[offset], prefixes)
         if mod == 0 and rm == 5:
             imm = e_bits.parsebytes(bytes, offset + size, 4, sign=True)
             size += 4
@@ -583,7 +583,7 @@ class Amd64Disasm(e_i386.i386Disasm):
                 else:
                     operval |= META_SIZES[tsize]
 
-            width = self._dis_regctx.getRegisterWidth(operval) / 8
+            width = self._dis_regctx.getRegisterWidth(operval) >> 3
             o = i386RegOper(operval, width)
         elif operflags & opcode86.OP_IMM:
             o = i386ImmOper(operval, tsize)
@@ -609,7 +609,7 @@ class Amd64Disasm(e_i386.i386Disasm):
         memory, we skip this state and just go on to the next addressing method. If it refers
         to a register, pass through to self.ameth_h
         '''
-        mod, reg, rm = self.parse_modrm(ord(bytes[offset]), prefixes)
+        mod, reg, rm = self.parse_modrm(bytes[offset], prefixes)
         if mod == 3:
             return self.ameth_h(bytes, offset, tsize, prefixes, operflags)
         else:
@@ -725,7 +725,7 @@ class Amd64Disasm(e_i386.i386Disasm):
         return osize, oper
 
     def ameth_w(self, bytez, offset, tsize, prefixes, operflags):
-        mod, reg, rm = self.parse_modrm(ord(bytez[offset]))
+        mod, reg, rm = self.parse_modrm(bytez[offset])
         if mod == 3:
             vvvv = self.ROFFSETSIMD
             if not (prefixes & PREFIX_VEX_L) or operflags & OP_NOVEXL:

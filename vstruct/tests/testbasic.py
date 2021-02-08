@@ -6,7 +6,7 @@ import vstruct.cparse as s_cparse
 from vstruct.primitives import *
 from vstruct.bitfield import *
 
-from io import StringIO
+from io import BytesIO
 
 
 class woot(vstruct.VStruct):
@@ -37,7 +37,7 @@ class VStructTest(unittest.TestCase):
 
     def test_autoparse(self):
         awe = AwesomeTest()
-        awe.vsParse('XXXXZZZZhow cool is this?\x00\x00\x00YYYYblahQQQQ')
+        awe.vsParse(b'XXXXZZZZhow cool is this?\x00\x00\x00YYYYblahQQQQ')
         self.assertEqual(awe.x, 0x58585858)
         self.assertEqual(awe.z, 0x5A5A5A5A)
         self.assertEqual(awe.stuff, 'how cool is this?')
@@ -53,27 +53,27 @@ class VStructTest(unittest.TestCase):
         v.uint24 = v_uint24(3)
         v.uint32 = v_uint32(4)
         v.uint64 = v_uint64(5)
-        v.vbytes = v_bytes(vbytes='ABCD')
+        v.vbytes = v_bytes(vbytes=b'ABCD')
 
-        answer = binascii.unhexlify('01020003000004000000050000000000000041424344')
+        answer = binascii.unhexlify(b'01020003000004000000050000000000000041424344')
         self.assertEqual( v.vsEmit(), answer )
 
 
-    def test_vstruct_basicreasign(self):
+    def test_vstruct_basicreassign(self):
         v = vstruct.VStruct()
         v.uint8 = v_uint8(1)
         v.uint16 = v_uint16(2)
         v.uint24 = v_uint24(3)
         v.uint32 = v_uint32(4)
         v.uint64 = v_uint64(5)
-        v.vbytes = v_bytes(vbytes='ABCD')
+        v.vbytes = v_bytes(vbytes=b'ABCD')
 
         v.uint8 = 99
         v.uint16 = 100
         v.uint24 = 101
         v.uint32 = 102
         v.uint64 = 103
-        v.vbytes = '\x00\x00\x00\x00'
+        v.vbytes = b'\x00\x00\x00\x00'
 
         answer = binascii.unhexlify('63640065000066000000670000000000000000000000')
         self.assertEqual( v.vsEmit(), answer )
@@ -101,7 +101,7 @@ class VStructTest(unittest.TestCase):
 
         answer = binascii.unhexlify('776f6f74776f6f7421000000000000000000000000000000000000000000620061007a00620061007a00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000')
 
-        self.assertEqual( v.vsEmit(), answer )
+        self.assertEqual(v.vsEmit(), answer)
 
     def test_vstruct_lengthcallback(self):
 
@@ -113,25 +113,25 @@ class VStructTest(unittest.TestCase):
         v.strfield = v_str(size=30)
         v.vsAddParseCallback('lenfield', updatelen)
 
-        v.vsParse('\x01' + 'A' * 30)
+        v.vsParse(b'\x01' + b'A' * 30)
         self.assertEqual( v.vsEmit(), binascii.unhexlify('0141') )
 
 
     def test_vstruct_classcallback(self):
         v = woot()
-        v.vsParse('\x01' + 'A'*30)
+        v.vsParse(b'\x01' + b'A'*30)
         self.assertEqual( v.vsEmit(), binascii.unhexlify('0141') )
 
     def test_vstruct_parsefd(self):
         v = woot()
-        sio = StringIO(('\x01' + 'A' * 30).decode('utf-8'))
+        sio = BytesIO((b'\x01' + b'A' * 30))
         v.vsParseFd(sio)
         self.assertEqual( v.vsEmit(), binascii.unhexlify('0141') )
 
     def test_vstruct_insertfield(self):
         v = woot()
         v.vsInsertField('ifield', v_uint8(), 'strfield')
-        v.vsParse('\x01BAAAAA')
+        v.vsParse(b'\x01BAAAAA')
         self.assertEqual( v.vsEmit(), binascii.unhexlify('014241') )
 
     def test_vstruct_floats(self):
@@ -143,7 +143,7 @@ class VStructTest(unittest.TestCase):
         v.float4 = 99.3
         v.float8 = -400.2
 
-        self.assertEqual( v.vsEmit(), binascii.unhexlify('9a99c64233333333330379c0') )
+        self.assertEqual(v.vsEmit(), binascii.unhexlify('9a99c64233333333330379c0'))
 
     def test_vstruct_fastparse(self):
         v = vstruct.VStruct()
@@ -151,7 +151,7 @@ class VStructTest(unittest.TestCase):
         v.y = v_str(size=4)
         v.z = v_uint32()
 
-        v.vsParse('BAAAAABCD', fast=True)
+        v.vsParse(b'BAAAAABCD', fast=True)
 
         self.assertEqual( v.x, 0x42 )
         self.assertEqual( v.y, 'AAAA' )
@@ -163,7 +163,7 @@ class VStructTest(unittest.TestCase):
         v.y = v_str(size=4)
         v.z = v_uint32(bigend=True)
 
-        v.vsParse('BAAAAABCD', fast=True)
+        v.vsParse(b'BAAAAABCD', fast=True)
 
         self.assertEqual( v.x, 0x42 )
         self.assertEqual( v.y, 'AAAA' )
@@ -171,8 +171,11 @@ class VStructTest(unittest.TestCase):
 
     def test_vstruct_varray(self):
         v = vstruct.VArray( [ v_uint8(i) for i in range(20) ] )
-        self.assertEqual( v[2], 2 )
-        v.vsParse('A' * 20)
+        self.assertEqual(v[2], 2)
+        self.assertTrue(v[5] <= 5)
+        self.assertTrue(v[5] > 2)
+        self.assertTrue(v[19] >= 19)
+        v.vsParse(b'A' * 20)
         self.assertEqual( v[2], 0x41 )
 
     def test_bitfield(self):
@@ -188,7 +191,7 @@ class VStructTest(unittest.TestCase):
         v.vsAddField('pad2', v_bits(6))
         v.vsAddField('pad3', v_bits(2))
 
-        v.vsParse('AAAAAAA')
+        v.vsParse(b'AAAAAAA')
         self.assertEqual(1, v.w)
         self.assertEqual(0, v.x)
         self.assertEqual(1, v.y)
@@ -199,9 +202,9 @@ class VStructTest(unittest.TestCase):
         self.assertEqual(16, v.pad2)
         self.assertEqual(1, v.pad3)
 
-        self.assertEqual('AAAAAAA', v.vsEmit())
+        self.assertEqual(b'AAAAAAA', v.vsEmit())
 
-        v.vsParse('ABCDEFG')
+        v.vsParse(b'ABCDEFG')
         self.assertEqual(1, v.w)
         self.assertEqual(0, v.x)
         self.assertEqual(1, v.y)
@@ -212,9 +215,9 @@ class VStructTest(unittest.TestCase):
         self.assertEqual(17, v.pad2)
         self.assertEqual(3, v.pad3)
 
-        self.assertEqual('ABCDEFG', v.vsEmit())
+        self.assertEqual(b'ABCDEFG', v.vsEmit())
 
-        v.vsParse('zxcvbnm')
+        v.vsParse(b'zxcvbnm')
         self.assertEqual(1, v.w)
         self.assertEqual(7, v.x)
         self.assertEqual(2, v.y)
@@ -225,9 +228,9 @@ class VStructTest(unittest.TestCase):
         self.assertEqual(0x1b, v.pad2)
         self.assertEqual(1, v.pad3)
 
-        self.assertEqual('zxcvbnm', v.vsEmit())
+        self.assertEqual(b'zxcvbnm', v.vsEmit())
 
-        v.vsParse('asdfghj')
+        v.vsParse(b'asdfghj')
         self.assertEqual(1, v.w)
         self.assertEqual(4, v.x)
         self.assertEqual(1, v.y)
@@ -238,4 +241,4 @@ class VStructTest(unittest.TestCase):
         self.assertEqual(0x1a, v.pad2)
         self.assertEqual(2, v.pad3)
 
-        self.assertEqual('asdfghj', v.vsEmit())
+        self.assertEqual(b'asdfghj', v.vsEmit())

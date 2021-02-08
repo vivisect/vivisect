@@ -19,12 +19,13 @@ class WindowsMixin(v_i_emulator.WorkspaceEmulator):
         size = MAX_PATH
         if unicode:
             size = MAX_PATH * 2
-
         bytez = self.readMemory(va, size)
         if unicode:
             bytez = bytez.decode('utf-16le','ignore')
-
-        bytez = bytez.split('\x00')[0]
+            bytez = bytez.split('\x00')[0]
+        else:
+            bytez = bytez.split(b'\x00')[0]
+            bytez = bytez.decode('utf-8', 'ignore')
 
         if len(bytez) == MAX_PATH:
             bytez = default

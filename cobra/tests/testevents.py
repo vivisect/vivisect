@@ -1,5 +1,3 @@
-
-import os
 import unittest
 
 import cobra.devent as c_devent

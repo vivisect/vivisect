@@ -2,7 +2,6 @@ import logging
 import unittest
 
 import Elf
-import envi
 import vivisect.cli as viv_cli
 import vivisect.tests.helpers as helpers
 import vivisect.analysis.elf as vae
@@ -50,13 +49,12 @@ class ELFTests(unittest.TestCase):
             ("openbsd_amd64_ls", openbsd_amd64_ls_data.ls_amd64_data, ('openbsd', 'ls.amd64'),),
             )
 
-
     def test_files(self):
         results = []
         for name, test_data, path in self.data:
             logger.warning("======== %r ========", name)
             fn = helpers.getTestPath(*path)
-            e = Elf.Elf(open(fn))
+            e = Elf.Elf(open(fn, 'rb'))
             vw = viv_cli.VivCli()
             vw.loadFromFile(fn)
 
@@ -169,7 +167,7 @@ class ELFTests(unittest.TestCase):
             # simple check
             if newexp in oldexps:
                 continue
-            
+
             # comprehensive check
             for oldexp in oldexps:
                 if oldexp[0] == va:
@@ -187,7 +185,7 @@ class ELFTests(unittest.TestCase):
         newrels.sort()
         oldrels = test_data['relocs']
         oldrels.sort()
-        
+
         failed_new = 0
         failed_old = 0
         done = []
@@ -270,14 +268,17 @@ class ELFTests(unittest.TestCase):
                 if xfr == pltva and xto == gotva:
                     match = True
 
-        return 0,0
+        return 0, 0
 
     def debuginfosyms(self, vw, test_data):
         # we don't currently parse debugging symbols.
         # while they are seldom in hard targets, this is a weakness we should correct.
-        return 0,0
+        return 0, 0
 
-    def test_minimal(self):
+    def DISABLEtest_minimal(self):
+        '''
+        Until we've got soe decent tests for this, all this does is prolong the test time
+        '''
         for path in (('linux','amd64','static64.llvm.elf'), ('linux','i386','static32.llvm.elf')):
             logger.warning("======== %r ========", path)
             fn = helpers.getTestPath(*path)
@@ -327,4 +328,4 @@ def genNames(names, fnames):
             continue
         logger.debug('   not skip!:  %.30r      %.30r   %r', name, testname, fname)
 
-        yield va, name 
+        yield va, name

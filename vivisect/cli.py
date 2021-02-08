@@ -474,7 +474,7 @@ class VivCli(vivisect.VivWorkspace, e_cli.EnviCli):
                 return
             edict = {line: x}
 
-        fnames = edict.keys()
+        fnames = list(edict.keys())
         fnames.sort()
         for fname in fnames:
             self.canvas.addNameText(fname, fname)

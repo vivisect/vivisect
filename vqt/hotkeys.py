@@ -2,15 +2,13 @@ import sys
 import logging
 import traceback
 
+from PyQt5.QtWidgets import *
+
 logger = logging.getLogger(__name__)
 # logger.setLevel(logging.INFO)
 if not len(logger.handlers):
     logger.addHandler(logging.StreamHandler())
 
-try:
-    from PyQt5.QtWidgets import *
-except:
-    from PyQt4.QtGui import *
 
 QMOD_META = 0x08000000
 QMOD_CTRL = 0x04000000
@@ -67,7 +65,7 @@ class HotKeyMixin(object):
                 print('Found Hotkey Target: %s' % tname)
 
         '''
-        return self._vq_hotkey_targets.keys()
+        return list(self._vq_hotkey_targets.keys())
 
     def isHotKeyTarget(self, targname):
         '''
@@ -79,7 +77,7 @@ class HotKeyMixin(object):
         '''
         Retrieve a list of (hotkey,target) tuples.
         '''
-        return self._vq_hotkeys.items()
+        return list(self._vq_hotkeys.items())
 
     def addHotKey(self, keystr, hktarg):
         '''
@@ -149,8 +147,8 @@ class HotKeyMixin(object):
             callback, args, kwargs = self._vq_hotkey_targets.get(target)
             try:
                 callback(*args, **kwargs)
-            except Exception as e:
-                logger.warn("error in eatKeyPressEvent(%r, %r, %r): %s", event, args, kwargs, e)
+            except:
+                logger.warning("error in eatKeyPressEvent(%r, %r, %r)", event, args, kwargs)
                 logger.debug(''.join(traceback.format_exception(*sys.exc_info())))
 
             event.accept()

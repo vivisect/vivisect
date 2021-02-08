@@ -197,7 +197,7 @@ def addAnalysisModules(vw):
         vw.addFuncAnalysisModule("vivisect.analysis.generic.impapi")
         vw.addFuncAnalysisModule("vivisect.analysis.generic.thunks")
 
-    elif fmt == 'ihex': # IHEX ######################################################
+    elif fmt in ('ihex', 'srec'): # Intel HEX  or SRECORD (similar) #################
         if arch in PPC_ARCHS:
             # potentially tags a new EntryPoint, so must preceed entrypoints
             vw.addAnalysisModule("vivisect.analysis.ppc.bootstrap")

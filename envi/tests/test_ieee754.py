@@ -11,26 +11,25 @@ class FloatingPointTest(unittest.TestCase):
         # intel's "extended" format that uses 80 bits
         valu = 0x3fff8000000000000000
         decoded = e_float.float_decode(valu, 80)
-        self.assertEquals(decoded, 1.0)
+        self.assertEqual(decoded, 1.0)
 
         valu = 0xbfff8000000000000000
         decoded = e_float.float_decode(valu, 80)
-        self.assertEquals(decoded, -1.0)
+        self.assertEqual(decoded, -1.0)
 
         valu = 0x4000d49a784bcd1b8afe
         decoded = e_float.float_decode(valu, 80)
-        self.assertAlmostEquals(decoded, 3.32192809488736234781)
+        self.assertAlmostEqual(decoded, 3.32192809488736234781)
 
         valu = 0x4000c90fdaa22168c235
         decoded = e_float.float_decode(valu, 80)
-        self.assertAlmostEquals(decoded, 3.14159265358979323851)
-
+        self.assertAlmostEqual(decoded, 3.14159265358979323851)
 
     def _encoding_test(self, valu, answers):
         for i, length in enumerate([16, 32, 64, 80, 128]):
             encoded = e_float.float_encode(valu, length)
             try:
-                self.assertEquals(encoded, answers[i])
+                self.assertEqual(encoded, answers[i])
             except:
                 self.fail("%s failed to encode properly (produced: 0x%x, test: 0x%x)" % (valu, encoded, answers[i]))
 

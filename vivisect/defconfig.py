@@ -29,6 +29,12 @@ defconfig = {
             'vbf':{
                 'arch':'',
                 'bigend':False,
+
+                'offset':0,
+            },
+            'srec':{
+                'arch':'',
+                'offset':0,
             },
         },
         'analysis':{
@@ -74,6 +80,10 @@ docconfig = {
             'ihex':{
                 'arch':'What architecture is the ihex dump?',
                 'bigend':'Is the architecture Big-Endian (MSB)?',
+            },
+            'srec':{
+                'arch':'What architecture is the srec dump?',
+                'offset':'Skip over initial bytes in the file',
             },
         },
 

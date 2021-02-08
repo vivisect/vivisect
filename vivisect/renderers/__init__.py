@@ -2,10 +2,10 @@
 A package for any of the vivisect workspace renderers.
 """
 import string
-import urllib
 import logging
 import binascii
 import traceback
+import urllib.parse
 
 from vivisect.const import *
 
@@ -14,10 +14,6 @@ import envi.memcanvas as e_canvas
 
 
 logger = logging.getLogger(__name__)
-
-
-def cmpoffset(x,y):
-    return cmp(x[0], y[0])
 
 
 class WorkspaceRenderer(e_canvas.MemoryRenderer):
@@ -139,7 +135,7 @@ class WorkspaceRenderer(e_canvas.MemoryRenderer):
             mcanv.addText(linepre, tag=vatag)
             if name is None:
                 name = "loc_%.8x" % lva
-            mcanv.addText(urllib.quote_plus(name), tag=vatag)
+            mcanv.addText(urllib.parse.quote_plus(name), tag=vatag)
             mcanv.addText(": ")
             xrtag = mcanv.getTag("xrefs")
             mcanv.addText('[%d XREFS]\n' % xrcount, tag=xrtag)
@@ -147,13 +143,12 @@ class WorkspaceRenderer(e_canvas.MemoryRenderer):
         if ltype == LOC_OP:
             mcanv.addText(linepre, tag=vatag)
             opbytes = mcanv.mem.readMemory(lva, lsize)
-            mcanv.addText(binascii.hexlify(opbytes[:8]).ljust(17))
+            mcanv.addText(binascii.hexlify(opbytes[:8]).ljust(17).decode('utf-8'))
 
             # extra is the opcode object
             try:
                 extra.render(mcanv)
-            except Exception:
-                logger.error(traceback.format_exc())
+            except Exception as e:
                 mcanv.addText("Opcode Render Failed: %s\n" % repr(extra))
 
             if cmnt is not None:
@@ -176,7 +171,7 @@ class WorkspaceRenderer(e_canvas.MemoryRenderer):
 
                 totag = None
                 if isinstance(sobj, vs_prims.v_ptr):
-                    stova = long(sobj)
+                    stova = int(sobj)
                     stoname = self.vw.getName(stova)
                     if stoname is None:
                         stoname = repr(sobj)
@@ -210,8 +205,8 @@ class WorkspaceRenderer(e_canvas.MemoryRenderer):
 
         elif ltype == LOC_POINTER:
 
-            fromva, tova, rtype, rflags = self.vw.getXrefsFrom(lva)[0] #FIXME hardcoded one
-        
+            fromva, tova, rtype, rflags = self.vw.getXrefsFrom(lva)[0]  # FIXME hardcoded one
+
             pstr = self.vw.arch.pointerString(tova)
 
             mcanv.addText(linepre, tag=vatag)
@@ -236,10 +231,10 @@ class WorkspaceRenderer(e_canvas.MemoryRenderer):
         elif ltype == LOC_UNDEF:
 
             mcanv.addText(linepre, vatag)
-            offset,bytes = self.vw.getByteDef(lva)
-            b = bytes[offset]
-            mcanv.addNameText(binascii.hexlify(b), typename="undefined")
-            if b in string.printable:
+            offset, bytes = self.vw.getByteDef(lva)
+            b = bytes[offset:offset+1]
+            mcanv.addNameText(binascii.hexlify(b).decode('utf-8'), typename="undefined")
+            if b in string.printable.encode('utf-8'):
                 mcanv.addText('    %s' % repr(b), tag=cmnttag)
             if cmnt is not None:
                 mcanv.addText('    ;%s' % cmnt, tag=cmnttag)

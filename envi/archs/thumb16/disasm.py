@@ -1348,6 +1348,7 @@ smulls_info = {
 
 
 def smull_32(va, val1, val2):
+    # TODO: does this exist in thumb?
     rn = val1 & 0xf
     rm = val2 & 0xf
     rdhi = (val2 >> 8) & 0xf
@@ -1359,15 +1360,15 @@ def smull_32(va, val1, val2):
     secondary = smulls_info.get(op1)
     if secondary is None:
         # FIXME!!!!
-        raise envi.InvalidInstruction(mesg="smull invalid decode: op1",
-                                      bytez=struct.pack("<HH", val, val2),
+        raise envi.InvalidInstruction(mesg="smull invalid decode: op1 (secondary is None)",
+                                      bytez=struct.pack("<HH", val1, val2),
                                       va=va-4)
 
     secout = secondary.get(op2)
     if secout is None:
         # FIXME!!!!
-        raise envi.InvalidInstruction(mesg="smull invalid decode: op2",
-                                      bytez=struct.pack("<HH", val, val2),
+        raise envi.InvalidInstruction(mesg="smull invalid decode: op2 (secout is None)",
+                                      bytez=struct.pack("<HH", val1, val2),
                                       va=va-4)
 
     opers = (ArmRegOper(rdhi, va=va),

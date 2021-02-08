@@ -18,7 +18,6 @@ class PageLookup:
     '''
 
     def __init__(self):
-        #self._page_dict = {}
         self._page_dict = pagedict()
 
     def getPageLookup(self, va):

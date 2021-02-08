@@ -134,7 +134,7 @@ class SymbolRenderer(e_canvas.MemoryRenderer):
         if isptr:
             sym = trace.getSymByAddr(p, exact=False)
             if sym is not None:
-                mcanv.addText(' %s + %d' % (repr(sym), p-long(sym)))
+                mcanv.addText(' %s + %d' % (repr(sym), p-int(sym)))
 
         mcanv.addText('\n')
 

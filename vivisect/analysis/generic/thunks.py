@@ -1,4 +1,3 @@
-
 """
 A simple analysis module to detect import thunks.
 """

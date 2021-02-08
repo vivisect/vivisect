@@ -7,13 +7,13 @@ class v_bits(v_number):
 
     def __init__(self, width):
         v_number.__init__(self)
-        self._vs_bitwidth = width
+        self._vs_bitwidth = int(width)
 
     def vsSetValue(self, value):
         '''
         override base because we are not using the min or max val.
         '''
-        self._vs_value = long(value)
+        self._vs_value = value
 
     def vsSetBitWidth(self, width):
         self._vs_bitwidth = width

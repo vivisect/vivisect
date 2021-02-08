@@ -4,7 +4,7 @@ import envi.registers as e_reg
 '''
 Strategy:
     * Use only distinct register for Register Context (unique in each bank)
-    * Store a lookup table for the different banks of registers, based on the 
+    * Store a lookup table for the different banks of registers, based on the
         register data in proc_modes (see const.py)
     * Emulator does translation from register/mode to actual storage container
         using reg_table and some math (see _getRegIdx)
@@ -23,9 +23,9 @@ arm_regs_tups = [
     ('r10', 32),
     ('r11', 32),
     ('r12', 32),
-    ('sp', 32), # also r13
-    ('lr', 32), # also r14
-    ('pc', 32), # also r15
+    ('sp', 32),  # also r13
+    ('lr', 32),  # also r14
+    ('pc', 32),  # also r15
     ('cpsr', 32),
     ('nil', 32),   # place holder
     # FIXME: need to deal with ELR_hyp
@@ -39,12 +39,12 @@ arm_metas = [
         ("r13", REG_SP, 0, 32),
         ("r14", REG_LR, 0, 32),
         ("r15", REG_PC, 0, 32),
-        ]
+]
 
 REG_APSR_MASK = 0xffff0000
 
 # build a translation table to allow for fast access of banked registers
-modes = proc_modes.keys()
+modes = list(proc_modes.keys())
 modes.sort()
 
 reg_table = [ x for x in range(17 * REGS_PER_MODE) ]
