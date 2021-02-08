@@ -27,7 +27,7 @@ def MASK(b, e, psize=8):
     NOTE: THIS IS IN NXP's WARPED VIEW ON BIT NUMBERING!
     lsb = bit 63!!!
     '''
-    #print "MASK( %r, %r )" % (b, e)
+    #print("MASK( %r, %r )" % (b, e))
     delta = e - b + Const(1, psize)
     if delta.isDiscrete():
         e = e.solve()
@@ -36,14 +36,14 @@ def MASK(b, e, psize=8):
             # b is greater than e, so we chop out the e/b bits and invert the mask
             delta = b - e - 1
             real_shift = 63 - b + 1
-            #print real_shift, delta
+            #print(real_shift, delta)
             mask = e_bits.bu_maxes[delta] << real_shift
             mask ^= 0xffffffffffffffff
         else:
             # b is less than/equal to e, so we do normal mask
             delta = e - b + 1
             real_shift = 63 - e
-            #print real_shift, delta
+            #print(real_shift, delta)
             mask = e_bits.bu_maxes[delta] << real_shift
         return Const(mask, psize)
     
@@ -359,7 +359,7 @@ class PpcSymbolikTranslator(vsym_trans.SymbolikTranslator):
         testbit = self.getOperObj(op, 0)
         tgtva = self.getOperObj(op, 1)
         constraint = testbit
-        print op, repr(tgtva), repr(constraint)
+        print(op, repr(tgtva), repr(constraint))
         return (
                 ( tgtva, constraint), 
                 ( Const(op.va + len(op), self._psize), cnot(constraint))
@@ -1391,7 +1391,7 @@ class PpcSymbolikTranslator(vsym_trans.SymbolikTranslator):
 
         if op.iflags & IF_RC: self.setFlags(result, 0)
         self.setOperObj(op, 0, result)
-        print "srw: rb: %x  rs: %x  result: %x" % (rb, rs, result)
+        print("srw: rb: %x  rs: %x  result: %x" % (rb, rs, result))
 
     def i_srd(self, op):
         rb = self.getOperObj(op, 2)

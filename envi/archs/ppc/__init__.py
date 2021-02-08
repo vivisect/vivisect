@@ -62,7 +62,7 @@ class Ppc64EmbeddedModule(envi.ArchitectureModule):
     def __init__(self, mode=64, archname='ppc-embedded', endian=envi.ENDIAN_MSB):
         envi.ArchitectureModule.__init__(self, archname, endian=endian)
         self.mode = mode
-        self.psize = mode/8
+        self.psize = mode//8
         self.maps = tuple()
         if self.psize == 8:
             self._arch_dis = Ppc64EmbeddedDisasm()

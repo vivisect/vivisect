@@ -8,6 +8,8 @@ import vivisect.symboliks.analysis as vs_anal
 
 import logging
 from binascii import unhexlify
+from envi.archs.ppc.regs import *
+from envi.archs.ppc.const import *
 
 logger = logging.getLogger(__name__)
 
@@ -129,13 +131,13 @@ class PpcInstructionSet(unittest.TestCase):
         return goodemu, bademu
 
     def test_envi_ppcvle_disasm(self):
-        import ppc_vle_instructions
-        import ppc_vle_emutests
+        from . import ppc_vle_instructions
+        from . import ppc_vle_emutests
         self.do_envi_disasm('vle', ppc_vle_instructions, ppc_vle_emutests)
 
     def test_envi_ppc_server_disasm(self):
-        import ppc_server_instructions
-        import ppc_server_emutests
+        from . import ppc_server_instructions
+        from . import ppc_server_emutests
         self.do_envi_disasm('ppc-server', ppc_server_instructions, ppc_server_emutests)
 
     def do_envi_disasm(self, archname, test_module, emu_module):
@@ -148,7 +150,7 @@ class PpcInstructionSet(unittest.TestCase):
         for test_bytes, result_instr in test_module.instructions:
             try:
                 # test decoding of the instructions
-                op = vw.arch.archParseOpcode(test_bytes.decode('hex'), 0)
+                op = vw.arch.archParseOpcode(unhexlify(test_bytes), 0)
                 op_str = repr(op).strip()
                 if op_str == result_instr:
                     test_pass += 1
@@ -161,7 +163,7 @@ class PpcInstructionSet(unittest.TestCase):
         for test_bytes, emutests in emu_module.emutests.items():
             try:
                 # do emulator tests for this byte combination
-                op = vw.arch.archParseOpcode(test_bytes.decode('hex'), 0)
+                op = vw.arch.archParseOpcode(unhexlify(test_bytes), 0)
                 if emutests is not None:
                     ngoodemu, nbademu = self.do_emutsts(emu, test_bytes, op, emutests)
                     goodemu += ngoodemu
@@ -203,41 +205,39 @@ class PpcInstructionSet(unittest.TestCase):
             self.assertEqual(emurot64, symrot64.solve(), 'ROTL64(0x31337040, {}): {} != {}   {}'.format(y, hex(emurot64), hex(symrot64.solve()), symrot64))
 
     def test_CR_and_XER(self):
-        from envi.archs.ppc.regs import *
-        from envi.archs.ppc.const import *
         vw, emu, sctx = getVivEnv(arch='ppc-server')
 
         # now compare the register and bitmap stuff to be the same
         emu.setRegister(REG_CR0, 0)
         emu.setRegister(REG_CR0_LT, 1)
         cr = emu.getRegister(REG_CR)
-        self.assertEqual(("CR: ", hex(cr)), ("CR: ", hex(0x80000000L)))
+        self.assertEqual(("CR: ", hex(cr)), ("CR: ", hex(0x80000000)))
         cr0 = emu.getRegister(REG_CR0)
-        self.assertEqual(("CR0: ", hex(cr0)), ("CR0: ", hex(8L)))
+        self.assertEqual(("CR0: ", hex(cr0)), ("CR0: ", hex(8)))
         self.assertEqual((cr0) , FLAGS_LT)
 
         emu.setRegister(REG_CR0, 0)
         emu.setRegister(REG_CR0_GT, 1)
         cr = emu.getRegister(REG_CR)
-        self.assertEqual(("CR: ", hex(cr)), ("CR: ", hex(0x40000000L)))
+        self.assertEqual(("CR: ", hex(cr)), ("CR: ", hex(0x40000000)))
         cr0 = emu.getRegister(REG_CR0)
-        self.assertEqual(("CR0: ", hex(cr0)), ("CR0: ", hex(4L)))
+        self.assertEqual(("CR0: ", hex(cr0)), ("CR0: ", hex(4)))
         self.assertEqual((cr0) , FLAGS_GT)
 
         emu.setRegister(REG_CR0, 0)
         emu.setRegister(REG_CR0_EQ, 1)
         cr = emu.getRegister(REG_CR)
-        self.assertEqual(("CR: ", hex(cr)), ("CR: ", hex(0x20000000L)))
+        self.assertEqual(("CR: ", hex(cr)), ("CR: ", hex(0x20000000)))
         cr0 = emu.getRegister(REG_CR0)
-        self.assertEqual(("CR0: ", hex(cr0)), ("CR0: ", hex(2L)))
+        self.assertEqual(("CR0: ", hex(cr0)), ("CR0: ", hex(2)))
         self.assertEqual((cr0) , FLAGS_EQ)
 
         emu.setRegister(REG_CR0, 0)
         emu.setRegister(REG_CR0_SO, 1)
         cr = emu.getRegister(REG_CR)
-        self.assertEqual(("CR: ", hex(cr)), ("CR: ", hex(0x10000000L)))
+        self.assertEqual(("CR: ", hex(cr)), ("CR: ", hex(0x10000000)))
         cr0 = emu.getRegister(REG_CR0)
-        self.assertEqual(("CR0: ", hex(cr0)), ("CR0: ", hex(1L)))
+        self.assertEqual(("CR0: ", hex(cr0)), ("CR0: ", hex(1)))
         self.assertEqual((cr0) , FLAGS_SO)
 
         emu.setRegister(REG_CR0, 0)
@@ -265,19 +265,19 @@ class PpcInstructionSet(unittest.TestCase):
 
     def test_emu_CR_and_XER(self):
         addco_tests = (
-            {'cmd': 'addco.', 'inr1': 0x1, 'inr2': 0x2, 'inr3': 0x0, 'incr': 0x0L, 'inxer': 0x0,     'expr3': 0x3L,   'expcr': 0x40000000L,    'expxer': 0x0L,},
-            {'cmd': 'addco.', 'inr1': 0x3fffffffffffffff, 'inr2': 0x3fffffffffffffff, 'inr3': 0x0, 'incr': 0x0, 'inxer': 0x0,       'expr3': 0x7ffffffffffffffeL,    'expcr': 0x40000000L,    'expxer': 0x0L,},
-            {'cmd': 'addco.', 'inr1': 0x4000000000000000, 'inr2': 0x4000000000000000, 'inr3': 0x0, 'incr': 0x0, 'inxer': 0xc0000000,        'expr3': 0x8000000000000000L,    'expcr': 0x90000000L,    'expxer': 0xc0000000L,},
-            {'cmd': 'addco.', 'inr1': 0x4000000000000000, 'inr2': 0x4000000000000000, 'inr3': 0x0, 'incr': 0x0, 'inxer': 0xc0000000,        'expr3': 0x8000000000000000L,    'expcr': 0x90000000L,    'expxer': 0xc0000000L,},
-            {'cmd': 'addco.', 'inr1': 0x7fffffffffffffff, 'inr2': 0x7fffffffffffffff, 'inr3': 0x0, 'incr': 0x0, 'inxer': 0xc0000000,        'expr3': 0xfffffffffffffffeL,    'expcr': 0x90000000L,    'expxer': 0xc0000000L,},
-            {'cmd': 'addco.', 'inr1': 0x8000000000000000, 'inr2': 0x8000000000000000, 'inr3': 0x0, 'incr': 0x0, 'inxer': 0xc0000000,        'expr3': 0x0L,   'expcr': 0x30000000L,    'expxer': 0xe0000000L,},
-            {'cmd': 'addco.', 'inr1': 0xffffffffffffffff, 'inr2': 0xffffffffffffffff, 'inr3': 0x0, 'incr': 0x0, 'inxer': 0xa0000000,        'expr3': 0xfffffffffffffffeL,    'expcr': 0x90000000L,    'expxer': 0xa0000000L,},
-            {'cmd': 'addco.', 'inr1': 0x1, 'inr2': 0x2, 'inr3': 0x0, 'incr': 0x0, 'inxer': 0xa0000000,      'expr3': 0x3L,   'expcr': 0x50000000L,    'expxer': 0x80000000L,},
-            {'cmd': 'addco.', 'inr1': 0x8000000000000000, 'inr2': 0x7fffffffffffffff, 'inr3': 0x0, 'incr': 0x0, 'inxer': 0x0,       'expr3': 0xffffffffffffffffL,    'expcr': 0x80000000L,    'expxer': 0x0L,},
-            {'cmd': 'addco.', 'inr1': 0x8000000000000000, 'inr2': 0x7fffffffffffffff, 'inr3': 0x0, 'incr': 0x0, 'inxer': 0x0,       'expr3': 0xffffffffffffffffL,    'expcr': 0x80000000L,    'expxer': 0x0L,},
-            {'cmd': 'addco.', 'inr1': 0x8000000000000000, 'inr2': 0x8000000000000000, 'inr3': 0x0, 'incr': 0x0, 'inxer': 0x0,       'expr3': 0x0L,   'expcr': 0x30000000L,    'expxer': 0xe0000000L,},
-            {'cmd': 'addco.', 'inr1': 0x7fffffffffffffff, 'inr2': 0x8000000000000000, 'inr3': 0x0, 'incr': 0x0, 'inxer': 0x0,       'expr3': 0xffffffffffffffffL,    'expcr': 0x80000000L,    'expxer': 0x0L,},
-            {'cmd': 'addco.', 'inr1': 0xcfffffffffffffff, 'inr2': 0x8000000000000000, 'inr3': 0x0, 'incr': 0x0, 'inxer': 0x0,       'expr3': 0x4fffffffffffffffL,    'expcr': 0x50000000L,    'expxer': 0xe0000000L,},
+            {'cmd': 'addco.', 'inr1': 0x1, 'inr2': 0x2, 'inr3': 0x0, 'incr': 0x0, 'inxer': 0x0,     'expr3': 0x3,   'expcr': 0x40000000,    'expxer': 0x0,},
+            {'cmd': 'addco.', 'inr1': 0x3fffffffffffffff, 'inr2': 0x3fffffffffffffff, 'inr3': 0x0, 'incr': 0x0, 'inxer': 0x0,       'expr3': 0x7ffffffffffffffe,    'expcr': 0x40000000,    'expxer': 0x0,},
+            {'cmd': 'addco.', 'inr1': 0x4000000000000000, 'inr2': 0x4000000000000000, 'inr3': 0x0, 'incr': 0x0, 'inxer': 0xc0000000,        'expr3': 0x8000000000000000,    'expcr': 0x90000000,    'expxer': 0xc0000000,},
+            {'cmd': 'addco.', 'inr1': 0x4000000000000000, 'inr2': 0x4000000000000000, 'inr3': 0x0, 'incr': 0x0, 'inxer': 0xc0000000,        'expr3': 0x8000000000000000,    'expcr': 0x90000000,    'expxer': 0xc0000000,},
+            {'cmd': 'addco.', 'inr1': 0x7fffffffffffffff, 'inr2': 0x7fffffffffffffff, 'inr3': 0x0, 'incr': 0x0, 'inxer': 0xc0000000,        'expr3': 0xfffffffffffffffe,    'expcr': 0x90000000,    'expxer': 0xc0000000,},
+            {'cmd': 'addco.', 'inr1': 0x8000000000000000, 'inr2': 0x8000000000000000, 'inr3': 0x0, 'incr': 0x0, 'inxer': 0xc0000000,        'expr3': 0x0,   'expcr': 0x30000000,    'expxer': 0xe0000000,},
+            {'cmd': 'addco.', 'inr1': 0xffffffffffffffff, 'inr2': 0xffffffffffffffff, 'inr3': 0x0, 'incr': 0x0, 'inxer': 0xa0000000,        'expr3': 0xfffffffffffffffe,    'expcr': 0x90000000,    'expxer': 0xa0000000,},
+            {'cmd': 'addco.', 'inr1': 0x1, 'inr2': 0x2, 'inr3': 0x0, 'incr': 0x0, 'inxer': 0xa0000000,      'expr3': 0x3,   'expcr': 0x50000000,    'expxer': 0x80000000,},
+            {'cmd': 'addco.', 'inr1': 0x8000000000000000, 'inr2': 0x7fffffffffffffff, 'inr3': 0x0, 'incr': 0x0, 'inxer': 0x0,       'expr3': 0xffffffffffffffff,    'expcr': 0x80000000,    'expxer': 0x0,},
+            {'cmd': 'addco.', 'inr1': 0x8000000000000000, 'inr2': 0x7fffffffffffffff, 'inr3': 0x0, 'incr': 0x0, 'inxer': 0x0,       'expr3': 0xffffffffffffffff,    'expcr': 0x80000000,    'expxer': 0x0,},
+            {'cmd': 'addco.', 'inr1': 0x8000000000000000, 'inr2': 0x8000000000000000, 'inr3': 0x0, 'incr': 0x0, 'inxer': 0x0,       'expr3': 0x0,   'expcr': 0x30000000,    'expxer': 0xe0000000,},
+            {'cmd': 'addco.', 'inr1': 0x7fffffffffffffff, 'inr2': 0x8000000000000000, 'inr3': 0x0, 'incr': 0x0, 'inxer': 0x0,       'expr3': 0xffffffffffffffff,    'expcr': 0x80000000,    'expxer': 0x0,},
+            {'cmd': 'addco.', 'inr1': 0xcfffffffffffffff, 'inr2': 0x8000000000000000, 'inr3': 0x0, 'incr': 0x0, 'inxer': 0x0,       'expr3': 0x4fffffffffffffff,    'expcr': 0x50000000,    'expxer': 0xe0000000,},
         )
 
         cmpd_tests = (
@@ -1405,10 +1405,10 @@ class PpcInstructionSet(unittest.TestCase):
             {'cmd': 'subfco.', 'inr1': 0xffffffffffffffff, 'inr2': 0xffffffffffffffff, 'inr3': 0x0, 'incr': 0x0, 'inxer': 0x0,      'expr3': 0x0,   'expcr': 0x20000000,    'expxer': 0x20000000,},
             {'cmd': 'subfco.', 'inr1': 0xffffffffffffffff, 'inr2': 0xffffffffffffffff, 'inr3': 0x0, 'incr': 0x0, 'inxer': 0xa0000000,       'expr3': 0x0,   'expcr': 0x30000000,    'expxer': 0xa0000000,},
         )
-        OPCODE_ADDCO = '7C620C15'.decode('hex')
-        OPCODE_CMPD =  '7C200800'.decode('hex')
-        OPCODE_CMPLW = '7C000840'.decode('hex')
-        OPCODE_SUBFCO= '7C620C11'.decode('hex')
+        OPCODE_ADDCO = unhexlify('7C620C15')
+        OPCODE_CMPD =  unhexlify('7C200800')
+        OPCODE_CMPLW = unhexlify('7C000840')
+        OPCODE_SUBFCO= unhexlify('7C620C11')
 
         vw, emu, sctx = getVivEnv(arch='ppc-server')
         ppcarch = vw.imem_archs[0]
