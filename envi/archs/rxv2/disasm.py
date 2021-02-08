@@ -179,6 +179,7 @@ class RxDisasm:
         self._dis_oparch = envi.ARCH_MSP430
 
         self.HANDLERS = [None for x in range(len(formconsts))]
+        self.HANDLERS[FORM_AD] = self.form_AD
         self.HANDLERS[FORM_PCDSP] = self.form_PCDSP
         self.HANDLERS[FORM_RD_LI] = self.form_RD_LI
         self.HANDLERS[FORM_RD_IMM] = self.form_RD_IMM
@@ -201,7 +202,7 @@ class RxDisasm:
         opervals[opsize] = val
 
         #print "val: 0x%x  bval: 0x%x" % (val, bval)
-        nextbl, handler, mask, endval, opcode, mnem, operdefs, sz, iflags = curtable[bval]
+        nextbl, handler, mask, endval, opcode, mnem, operdefs, isize, iflags = curtable[bval]
         found = True
         
         #print "  tabline: %r" % (repr(curtable[bval]))
@@ -211,9 +212,9 @@ class RxDisasm:
             curtable = nextbl
 
             # search through the list looking for the right one...
-            for nextbl, handler, mask, endval, opcode, mnem, operdefs, sz, iflags in curtable:
+            for nextbl, handler, mask, endval, opcode, mnem, operdefs, isize, iflags in curtable:
                 try:
-                    while opsize < sz:
+                    while opsize < isize:
                         # grab the next byte
                         bval, = struct.unpack_from('B', bytez, offset+opsize)
                         # update the running value we'll use to parse
@@ -227,7 +228,7 @@ class RxDisasm:
 
 
                     # find a match:
-                    if opervals[sz] & mask != endval:
+                    if opervals[isize] & mask != endval:
                         continue
 
                     found = True
@@ -238,7 +239,7 @@ class RxDisasm:
                     continue
 
         else:   # true up the 
-            while opsize < sz:
+            while opsize < isize:
                 # grab the next byte
                 bval, = struct.unpack_from('B', bytez, offset+opsize)
                 # update the running value we'll use to parse
@@ -253,12 +254,12 @@ class RxDisasm:
             raise e_exc.InvalidInstruction(bytez[offset:offset+opsize], "Couldn't find a opcode match in the table")
 
         # we've found a match, parse it!
-        logger.warning("PARSE MATCH FOUND: val: %x\n\t%x %x %x %r %r  %r  %x", val, mask, endval, opcode, mnem, operdefs, sz, iflags)
-        print("PARSE MATCH FOUND: val: %x\n\t%x %x %x %r %r  %r  %x" % (val, mask, endval, opcode, mnem, operdefs, sz, iflags))
+        logger.warning("PARSE MATCH FOUND: val: %x\n\t%x %x %x %r %r  %r  %x", val, mask, endval, opcode, mnem, operdefs, isize, iflags)
+        print("PARSE MATCH FOUND: val: %x\n\t%x %x %x %r %r  %r  %x" % (val, mask, endval, opcode, mnem, operdefs, isize, iflags))
 
 
-        offset += sz
-        val = opervals[sz]
+        offset += isize
+        val = opervals[isize]
         # let's parse out the things
         fields = {}
         for fkey, fparts in operdefs:
@@ -272,7 +273,7 @@ class RxDisasm:
             # if we have a handler, just let it do everything
             hndlFunc = self.HANDLERS[handler]
             print("Handler: %r" % hndlFunc)
-            return hndlFunc(va, opcode, mnem, fields, sz, iflags, bytez, offset)
+            return hndlFunc(va, opcode, mnem, fields, isize, iflags, bytez, offset)
 
 
 
@@ -368,58 +369,51 @@ class RxDisasm:
                     print("   imm: %x" % imm)
                     opers.append(RxUImmOper(imm, va))
 
-                if fields.get(O_AD) is not None:
-                    opers = (
-                        RxRegIncOper(fields.get(O_RS), fields.get(O_AD), fields.get(O_SZ, 1), va),
-                        RxRegOper(fields.get(O_RD), va),
-                        )
+                # check all the registers (and not quite)
+                for regconst in O_RS, O_RS2, O_CR, O_A, O_RD, O_RD2:
+                    reg = fields.get(regconst)
+                    print("  loop: %r = %r" % (nms[regconst], reg))
+                    if reg is not None:
+                        if regconst == O_CR:
+                            opers.append(RxCRRegOper(reg, va=va))
 
-                else:
-                    # check all the registers (and not quite)
-                    for regconst in O_RS, O_RS2, O_CR, O_A, O_RD, O_RD2:
-                        reg = fields.get(regconst)
-                        print("  loop: %r = %r" % (nms[regconst], reg))
-                        if reg is not None:
-                            if regconst == O_CR:
-                                opers.append(RxCRRegOper(reg, va=va))
+                        elif regconst == O_A:
+                            opers.append(RxRegOper(REG_ACC0 + reg, va))
 
-                            elif regconst == O_A:
-                                opers.append(RxRegOper(REG_ACC0 + reg, va))
+                        elif regconst == O_RD:
+                            if ldd in (1,2):
+                                dsp = e_bits.parsebytes(bytez, offset, ldd, sign=False, bigend=True)
+                                opers.append(RxDspOper(reg, dsp, tsize=tsize, oflags=oflags, va=va))
+                                offset += ldd
+                                isize += ldd
 
-                            elif regconst == O_RD:
-                                if ldd in (1,2):
-                                    dsp = e_bits.parsebytes(bytez, offset, ldd, sign=False, bigend=True)
-                                    opers.append(RxDspOper(reg, dsp, tsize=tsize, oflags=oflags, va=va))
-                                    offset += ldd
-                                    sz += ldd
-
-                                elif O_DSPD in operkeys:
-                                    dsp = fields.get(O_DSPD)
-                                    opers.append(RxDspOper(reg, dsp, va))
-
-                                else:
-                                    opers.append(RxRegOper(reg, va=va))
-
-                            elif regconst == O_RS:
-                                if lds in (1,2):
-                                    dsp = e_bits.parsebytes(bytez, offset, lds, sign=False, bigend=True)
-                                    opers.append(RxDspOper(reg, dsp, tsize=tsize, oflags=oflags, va=va))
-                                    offset += lds
-                                    sz += lds
-
-                                elif O_DSPS in operkeys:
-                                    dsp = fields.get(O_DSPS)
-                                    opers.append(RxDspOper(reg, dsp, va))
-
-                                else:
-                                    opers.append(RxRegOper(reg, va=va))
+                            elif O_DSPD in operkeys:
+                                dsp = fields.get(O_DSPD)
+                                opers.append(RxDspOper(reg, dsp, va))
 
                             else:
                                 opers.append(RxRegOper(reg, va=va))
 
+                        elif regconst == O_RS:
+                            if lds in (1,2):
+                                dsp = e_bits.parsebytes(bytez, offset, lds, sign=False, bigend=True)
+                                opers.append(RxDspOper(reg, dsp, tsize=tsize, oflags=oflags, va=va))
+                                offset += lds
+                                isize += lds
+
+                            elif O_DSPS in operkeys:
+                                dsp = fields.get(O_DSPS)
+                                opers.append(RxDspOper(reg, dsp, va))
+
+                            else:
+                                opers.append(RxRegOper(reg, va=va))
+
+                        else:
+                            opers.append(RxRegOper(reg, va=va))
+
 
         #import envi.interactive as ei; ei.dbg_interact(locals(), globals())
-        return RxOpcode(va, opcode, mnem, opers, iflags, sz)
+        return RxOpcode(va, opcode, mnem, opers, iflags, isize)
 
 
     def form_PCDSP(self, va, opcode, mnem, fields, opsz, iflags, bytez, off):
@@ -643,6 +637,29 @@ class RxDisasm:
 
         return RxOpcode(va, opcode, mnem, opers, iflags, opsz) 
 
+    def form_AD(self, va, opcode, mnem, fields, opsz, iflags, bytez, off):
+        add = fields.get(O_ADD)
+        ads = fields.get(O_ADS)
+        
+        rd = fields.get(O_RD)
+        rs = fields.get(O_RS)
+
+        osz = fields.get(O_SZ, 1)
+        flag, tsize = SZ[osz]
+        iflags |= flag
+
+        if add is None:
+            opers = (
+                RxRegIncOper(rs, ads, tsize, va),
+                RxRegOper(rd, va),
+                )
+        else:
+            opers = (
+                RxRegOper(rs, va),
+                RxRegIncOper(rd, add, tsize, va),
+                )
+
+        return RxOpcode(va, opcode, mnem, opers, iflags, opsz) 
 
 
     def getPointerSize(self):
@@ -929,18 +946,18 @@ class RxRegIncOper(envi.RegisterOper):
     def repr(self, op):
         rname = regs.rctx.getRegisterName(self.reg)
         if self.ad == 1:
-            return "[%s+]" % (rname)
-        return "[-%s]" % (rname)
+            return "[-%s]" % (rname)
+        return "[%s+]" % (rname)
 
     def render(self, mcanv, op, idx):
         rname = regs.rctx.getRegisterName(self.reg)
         mcanv.addText('[')
-        if self.ad:
-            mcanv.addNameText(rname, typename='registers')
-            mcanv.addText('+')
-        else:
+        if self.ad == 1:
             mcanv.addText('-')
             mcanv.addNameText(rname, typename='registers')
+        else:
+            mcanv.addNameText(rname, typename='registers')
+            mcanv.addText('+')
         mcanv.addText(']')
 
 

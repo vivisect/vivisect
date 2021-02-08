@@ -298,6 +298,8 @@ def getForm(mnem, operdefs, operands):
         return 'FORM_SCCND' 
     if len(nms) == 5:
         return 'FORM_GOOGOL'
+    if 'ad' in nms:
+        return 'FORM_AD'
 
     return 'None'
 
@@ -352,6 +354,18 @@ def convertOpers(opers, opsz):
                 nm = 'dsps'
             else:
                 nm = 'dspd'
+
+        if nm == 'ad':
+            rstup = opers.get('rs')
+            rdtup = opers.get('rd')
+            if rdtup is None:
+                nm = 'ads'
+            elif rstup is None:
+                nm = 'add'
+            elif rdtup > rstup:
+                nm = 'ads'
+            else:
+                nm = 'add'
 
             print "%-20s %-20s %-10s \t %50s" % (rstup, rdtup, nm, opers)
 
