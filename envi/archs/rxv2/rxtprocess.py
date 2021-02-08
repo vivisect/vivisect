@@ -276,25 +276,27 @@ def genTables(data):
 def getForm(mnem, operdefs, operands):
     nms = [nm for nm in operdefs.keys()]
 
+    if 'ri' in nms:
+        return 'FORM_MOV_RI_RB'
     if nms == ['rd', 'ld', 'mi', 'rs']:
         return 'FORM_RD_LD_MI_RS'
-    elif nms == ['rd', 'ld', 'rs']:
+    if nms == ['rd', 'ld', 'rs']:
         return 'FORM_RD_LD_RS'
-    elif nms == ['a', 'rs2', 'rs']:
+    if nms == ['a', 'rs2', 'rs']:
         return 'FORM_A_RS2_RS'
-    elif nms == ['rd', 'li']:
+    if nms == ['rd', 'li']:
         return 'FORM_RD_LI'
-    elif nms == ['rd', 'imm']:
+    if nms == ['rd', 'imm']:
         return 'FORM_RD_IMM'
-    elif nms == ['pcdsp']:
+    if nms == ['pcdsp']:
         return 'FORM_PCDSP'
-    elif nms == ['rd', 'ld', 'imm', 'cd']:
+    if nms == ['rd', 'ld', 'imm', 'cd']:
         return 'FORM_BMCND' 
-    elif nms == ['rd', 'imm', 'cd']:
+    if nms == ['rd', 'imm', 'cd']:
         return 'FORM_BMCND' 
-    elif nms == ['rd', 'sz', 'ld', 'cd']:
+    if nms == ['rd', 'sz', 'ld', 'cd']:
         return 'FORM_SCCND' 
-    elif len(nms) == 5:
+    if len(nms) == 5:
         return 'FORM_GOOGOL'
 
     return 'None'

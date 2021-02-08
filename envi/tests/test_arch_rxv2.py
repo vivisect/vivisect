@@ -127,6 +127,12 @@ instrs = [
         ### FIXME: go back through and make sense of all the SIMM/IMM/UIMM parsing.  should these be operand flags?
         ('ef34', 0x4560, 'mov.l r3,r4', 0, ()),             # FORM_
         ('fa3a17804715', 0x4560, 'mov.l 0x1780,0x4715[r3]', 0, ()),             # FORM_
+        ('fe6234', 0x4560, 'mov.l [r3, r2],r4', 0, ()),             # FORM_
+        ('eb341780', 0x4560, 'mov.l r4,0x1780[r3]', 0, ()),             # FORM_
+        ('fe2234', 0x4560, 'mov.l r4,[r3, r2]', 0, ()),             # FORM_
+        ('e934401780', 0x4560, 'mov.l 0x40[r3],0x1780[r4]', 0, ()),             # FORM_
+        ('fd2a34', 0x4560, 'mov.l [-r4],r3', 0, ()),             # FORM_
+        ('fd2634', 0x4560, 'mov.l [r4+],r3', 0, ()),             # FORM_
 
 ]
 

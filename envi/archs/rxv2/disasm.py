@@ -188,6 +188,7 @@ class RxDisasm:
         self.HANDLERS[FORM_SCCND] = self.form_SCCND
         self.HANDLERS[FORM_BMCND] = self.form_BMCND
         self.HANDLERS[FORM_GOOGOL] = self.form_GOOGOL
+        self.HANDLERS[FORM_MOV_RI_RB] = self.form_MOV_RI_RB
 
     def disasm(self, bytez, offset=0, va=0):
         curtable = rxtables.tblmain
@@ -369,7 +370,7 @@ class RxDisasm:
 
                 if fields.get(O_AD) is not None:
                     opers = (
-                        RxRegIncOper(fields.get(O_RS), fields.get(O_AD), fields.get(O_SZ), va),
+                        RxRegIncOper(fields.get(O_RS), fields.get(O_AD), fields.get(O_SZ, 1), va),
                         RxRegOper(fields.get(O_RD), va),
                         )
 
@@ -395,6 +396,7 @@ class RxDisasm:
                                 elif O_DSPD in operkeys:
                                     dsp = fields.get(O_DSPD)
                                     opers.append(RxDspOper(reg, dsp, va))
+
                                 else:
                                     opers.append(RxRegOper(reg, va=va))
 
@@ -408,9 +410,9 @@ class RxDisasm:
                                 elif O_DSPS in operkeys:
                                     dsp = fields.get(O_DSPS)
                                     opers.append(RxDspOper(reg, dsp, va))
+
                                 else:
                                     opers.append(RxRegOper(reg, va=va))
-
 
                             else:
                                 opers.append(RxRegOper(reg, va=va))
@@ -418,6 +420,7 @@ class RxDisasm:
 
         #import envi.interactive as ei; ei.dbg_interact(locals(), globals())
         return RxOpcode(va, opcode, mnem, opers, iflags, sz)
+
 
     def form_PCDSP(self, va, opcode, mnem, fields, opsz, iflags, bytez, off):
         pcdsp = fields[O_PCDSP]
@@ -447,7 +450,7 @@ class RxDisasm:
                     )
 
         else:
-            fmt = e_bits.getFormat(lds, big_endian=True, signed=True)
+            fmt = e_bits.getFormat(lds, big_endian=True, signed=False)
             dsp, = struct.unpack_from(fmt, bytez, off)
 
             oflags, tsize = MI_FLAGS[mi]
@@ -475,7 +478,7 @@ class RxDisasm:
                         'BMCND: ld cannot be 3')
 
             badd = ld
-            dsp = e_bits.parsebytes(bytez, off, badd, sign=True, bigend=True)
+            dsp = e_bits.parsebytes(bytez, off, badd, sign=False, bigend=True)
             opsz += badd
         else:
             dsp = 0
@@ -503,7 +506,7 @@ class RxDisasm:
 
         else:   # dsp operand with 0 or some 1- or 2-byte displacement
             badd = ld
-            dsp = e_bits.parsebytes(bytez, off, badd, sign=True, bigend=True)
+            dsp = e_bits.parsebytes(bytez, off, badd, sign=False, bigend=True)
             opsz += badd
 
             opers = (RxDspOper(rd, dsp, va), )
@@ -526,7 +529,7 @@ class RxDisasm:
                         )
             else:
                 if ldd in (1,2):
-                    dsps = e_bits.parsebytes(bytez, off, ldd, sign=True, bigend=True)
+                    dsps = e_bits.parsebytes(bytez, off, ldd, sign=False, bigend=True)
                     opsz += ldd
                 elif ldd == 0:
                     dsps = 0
@@ -545,7 +548,7 @@ class RxDisasm:
             else:
                 dsps = 0
                 if lds in (1,2):
-                    dsps = e_bits.parsebytes(bytez, off, lds, sign=True, bigend=True)
+                    dsps = e_bits.parsebytes(bytez, off, lds, sign=False, bigend=True)
                     opsz += lds
                 #elif lds == 0:
                 
@@ -603,15 +606,40 @@ class RxDisasm:
         if lds > 2 or ldd > 2:
             raise InvalidInstruction()
 
-        dsps = e_bits.parsebytes(bytez, off, lds, sign=True, bigend=True)
+        dsps = e_bits.parsebytes(bytez, off, lds, sign=False, bigend=True)
+        off += lds
         opsz += lds
-        dspd = e_bits.parsebytes(bytez, off, ldd, sign=True, bigend=True)
+
+        dspd = e_bits.parsebytes(bytez, off, ldd, sign=False, bigend=True)
         opsz += ldd
+        off += ldd
 
         opers = (
                 RxDspOper(rs, dsps, tsize, va=va),
                 RxDspOper(rd, dspd, tsize, va=va),
                 )
+
+        return RxOpcode(va, opcode, mnem, opers, iflags, opsz) 
+
+    def form_MOV_RI_RB(self, va, opcode, mnem, fields, opsz, iflags, bytez, off):
+        sz = fields.get(O_SZ)
+        ri = fields.get(O_RI)
+        rb = fields.get(O_RB)
+        rd = fields.get(O_RD)
+        rs = fields.get(O_RS)
+
+        iflags, tsize = SZ[sz]
+
+        if rs is None:
+            opers = (
+                    RxRegIdxOper(ri, rb, tsize=tsize, va=va),
+                    RxRegOper(rd, va),
+                    )
+        else:
+            opers = (
+                    RxRegOper(rs, va),
+                    RxRegIdxOper(ri, rb, tsize=tsize, va=va),
+                    )
 
         return RxOpcode(va, opcode, mnem, opers, iflags, opsz) 
 
@@ -800,12 +828,12 @@ class RxDspOper(envi.RegisterOper):
         else:
             mcanv.addText('].%s' % szl)
 
-class RxRegIncOper(envi.RegisterOper):
-    def __init__(self, reg, ad, tsize=1, va=None):
+class RxRegIdxOper(envi.RegisterOper):
+    def __init__(self, reg, idx, tsize=1, oflags=0, va=None):
         self.oflags = oflags
         self.tsize = tsize
         self.reg = reg
-        self.dsp = dsp
+        self.idx = idx
         self.va = va
 
     def getOperValue(self, op, emu=None):
@@ -825,23 +853,95 @@ class RxRegIncOper(envi.RegisterOper):
     def getOperAddr(self, op, emu=None):
         if emu is None:
             return None
-        return emu.getRegister(reg) + self.dsp
+        return emu.getRegister(reg) + emu.getRegister(self.idx)
 
     def getWidth(self):
         return self.tsize
 
     def repr(self, op):
-        szl = SIZE_BYTES[self.tsize]
+        szl = SIZE_BYTES[self.oflags]
         rname = regs.rctx.getRegisterName(self.reg)
-        return "0x%x(%s).%s" % (self.dsp, rname, szl)
+        iname = regs.rctx.getRegisterName(self.idx)
+        if szl is None:
+            return "[%s, %s]" % (iname, rname)
+
+        return "[%s, %s].%s" % (iname, rname, szl)
 
     def render(self, mcanv, op, idx):
         szl = SIZE_BYTES[self.oflags]
         rname = regs.rctx.getRegisterName(self.reg)
-        mcanv.addNameText(szl, typename='offset')
-        mcanv.addText('(')
+        iname = regs.rctx.getRegisterName(self.idx)
+
+        mcanv.addText('[')
+        mcanv.addNameText(iname, typename='registers')
+        mcanv.addText(', ')
         mcanv.addNameText(rname, typename='registers')
-        mcanv.addText(').%s' % szl)
+        if szl is None:
+            mcanv.addText(']')
+        else:
+            mcanv.addText('].%s' % szl)
+
+class RxRegIncOper(envi.RegisterOper):
+    '''
+    Incrementing/Decrementing Reg-deref
+    ad determins which:
+        (ad == 0)  means post-inc   [Rx+]
+        (ad == 1)  means pre-dec    [-Rx]
+    '''
+    def __init__(self, reg, ad, tsize=1, va=None):
+        self.tsize = tsize
+        self.reg = reg
+        self.ad = ad
+        self.va = va
+
+    def getOperValue(self, op, emu=None):
+        if emu is None:
+            return
+
+        taddr = self.getOperAddr(op, emu)
+        return emu.readMemValue(taddr, self.tsize)
+
+    def setOperValue(self, op, emu, val):
+        if emu is not None:
+            return None
+
+        taddr = self.getOperAddr(op, emu)
+        emu.writeMemValue(taddr, val, self.tsize)
+
+    def getOperAddr(self, op, emu=None):
+        if emu is None:
+            return None
+
+        addr = emu.getRegister(reg)
+        if self.ad == 1: # 0== post-inc, 1== pre-dec
+            newreg = addr - 1
+            addr = newreg
+        else:
+            newreg = addr + 1
+
+        if emu.getMeta("forrealz"):
+            emu.setRegister(self.reg, newreg)
+        return addr
+
+    def getWidth(self):
+        return self.tsize
+
+    def repr(self, op):
+        rname = regs.rctx.getRegisterName(self.reg)
+        if self.ad == 1:
+            return "[%s+]" % (rname)
+        return "[-%s]" % (rname)
+
+    def render(self, mcanv, op, idx):
+        rname = regs.rctx.getRegisterName(self.reg)
+        mcanv.addText('[')
+        if self.ad:
+            mcanv.addNameText(rname, typename='registers')
+            mcanv.addText('+')
+        else:
+            mcanv.addText('-')
+            mcanv.addNameText(rname, typename='registers')
+        mcanv.addText(']')
 
 
 

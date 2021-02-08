@@ -522,9 +522,9 @@ tbl_fd = (\
 
 
 tbl_fe = (\
-    (None, None, 0xffe000, 0xfec000, INS_MOVU, 'movu', ((O_RD, ((0, 0xf),)), (O_SZ, ((12, 0x1),)), (O_RI, ((8, 0xf),)), (O_RB, ((4, 0xf),)), ), 3, IF_NONE),
-    (None, None, 0xffc000, 0xfe4000, INS_MOV, 'mov', ((O_RD, ((0, 0xf),)), (O_SZ, ((12, 0x3),)), (O_RI, ((8, 0xf),)), (O_RB, ((4, 0xf),)), ), 3, IF_NONE),
-    (None, None, 0xffc000, 0xfe0000, INS_MOV, 'mov', ((O_SZ, ((12, 0x3),)), (O_RI, ((8, 0xf),)), (O_RB, ((4, 0xf),)), (O_RS, ((0, 0xf),)), ), 3, IF_NONE),
+    (None, FORM_MOV_RI_RB, 0xffe000, 0xfec000, INS_MOVU, 'movu', ((O_RD, ((0, 0xf),)), (O_SZ, ((12, 0x1),)), (O_RI, ((8, 0xf),)), (O_RB, ((4, 0xf),)), ), 3, IF_NONE),
+    (None, FORM_MOV_RI_RB, 0xffc000, 0xfe4000, INS_MOV, 'mov', ((O_RD, ((0, 0xf),)), (O_SZ, ((12, 0x3),)), (O_RI, ((8, 0xf),)), (O_RB, ((4, 0xf),)), ), 3, IF_NONE),
+    (None, FORM_MOV_RI_RB, 0xffc000, 0xfe0000, INS_MOV, 'mov', ((O_SZ, ((12, 0x3),)), (O_RI, ((8, 0xf),)), (O_RB, ((4, 0xf),)), (O_RS, ((0, 0xf),)), ), 3, IF_NONE),
     (None, None, 0xcc00, 0xcc00, INS_MOV, 'mov', ((O_RD, ((0, 0xf),)), (O_SZ, ((12, 0x3),)), (O_LDS, ((8, 0x3),)), (O_RS, ((4, 0xf),)), ), 2, IF_NONE),
     (None, FORM_GOOGOL, 0xc000, 0xc000, INS_MOV, 'mov', ((O_LDS, ((8, 0x3),)), (O_SZ, ((12, 0x3),)), (O_RD, ((0, 0xf),)), (O_RS, ((4, 0xf),)), (O_LDD, ((10, 0x3),)), ), 2, IF_NONE),
 )

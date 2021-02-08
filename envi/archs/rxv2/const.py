@@ -227,7 +227,8 @@ nms = (
     'O_LDD',
     'O_CD',
     'O_A',
-    'O_AD',
+    'O_ADD',
+    'O_ADS',
     'O_RI',
     'O_RB',
 )
@@ -251,6 +252,7 @@ forms = (
     'FORM_SCCND',
     'FORM_BMCND',
     'FORM_A_RS2_RS',
+    'FORM_MOV_RI_RB',
 )
 
 
