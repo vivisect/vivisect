@@ -62,13 +62,13 @@ class PpcDisasm:
         iflags = 0
 
         ival, = struct.unpack_from(self.fmt, bytez, offset)
-        #print hex(ival)
+        #print(hex(ival))
 
         key = ival >> 26
-        #print hex(key)
+        #print(hex(key))
         
         group = self._instr_dict.get(key)
-        #print group
+        #print(group)
         if group == None:
             raise envi.InvalidInstruction(bytez[offset:offset+4], 'No Instruction Group Found: %x' % key, va)
 
@@ -76,12 +76,12 @@ class PpcDisasm:
         match = False
         for ocode in group:
             mask, value, data = ocode
-            #print hex(ival), hex(mask), hex(value), "(%x)" % (ival & mask)
+            #print(hex(ival), hex(mask), hex(value), "(%x)" % (ival & mask))
             if ival & mask != value:
                 continue
 
-            #print "0x%x & 0x%x != 0 :)" % (data[3], self.options)
-            #print "match:  %x & %x == %x" % (ival, mask, value)
+            #print("0x%x & 0x%x != 0 :)" % (data[3], self.options))
+            #print("match:  %x & %x == %x" % (ival, mask, value))
             match = True
             break
 
@@ -111,7 +111,7 @@ class PpcDisasm:
 # rlwinm -> clrlwi
 
 def simpleCMP(ival, mnem, opcode, opers, iflags):
-    #print vars(opers[0])
+    #print(vars(opers[0]))
     l = opers[1].val
     opers.pop(1)
 
@@ -455,7 +455,7 @@ def form_D(disasm, va, ival, opcode, operands, iflags):
     if len(operands) == 3 and operands[2][1] == FIELD_D:
         # let's figure out what *memory size* the operand uses
         tsize = tsizes_formD.get(opcode)
-        #print "DBG: 0x%x:   FORM_D: opcode: 0x%x    tsize=%r" % (va, opcode, tsize)
+        #print("DBG: 0x%x:   FORM_D: opcode: 0x%x    tsize=%r" % (va, opcode, tsize))
         oper0 = OPERCLASSES[operands[0][1]](opvals[0], va)
 
         if opvals[1] == 0:
@@ -470,7 +470,7 @@ def form_D(disasm, va, ival, opcode, operands, iflags):
 
     # check for rA being 0... and convert it to Immediate 0     TESTME: does this correctly slice the instruction set?
     elif iflags & IF_MEM_EA and len(operands) == 3 and operands[1][1] == FIELD_rA and opvals[1] == 0:
-        print "form_D: secondary IF_MEM_EA...", hex(ival), operands, iflags
+        print("form_D: secondary IF_MEM_EA...", hex(ival), operands, iflags)
         oper0 = OPERCLASSES[operands[0][1]](opvals[0], va)
         oper1 = PpcImmOper(0, va)
         oper2 = OPERCLASSES[operands[2][1]](opvals[2], va)
@@ -641,7 +641,7 @@ def genTests(abytez):
     import subprocess
     from subprocess import PIPE
 
-    file('/tmp/ppcbytez', 'wb').write(''.join(abytez))
+    open('/tmp/ppcbytez', 'wb').write(''.join(abytez))
     proc = subprocess.Popen(['/usr/bin/powerpc-linux-gnu-objdump', '-D','/tmp/ppcbytez', '-b', 'binary', '-m', 'powerpc:e5500'], stdin=PIPE, stdout=PIPE, stderr=PIPE)
     data = proc.stdout.readlines()
     data = [x.strip() for x in data]
@@ -649,7 +649,7 @@ def genTests(abytez):
     
     for parts in data:
         if len(parts) < 4:
-            print parts
+            print(parts)
             continue
         ova, bytez, op, opers = parts[:4]
         ova = ova[:-1]

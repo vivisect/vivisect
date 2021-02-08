@@ -95,7 +95,7 @@ def getCarryBitAtX(bit, add0, add1):
     a0b = (add0 & e_bits.b_masks[bit])
     a1b = (add1 & e_bits.b_masks[bit])
     results = (a0b + a1b) >> (bit)
-    #print "getCarryBitAtX (%d): 0x%x  0x%x  (%d)" % (bit, a0b, a1b, results)
+    #print("getCarryBitAtX (%d): 0x%x  0x%x  (%d)" % (bit, a0b, a1b, results))
     return results
 
 class PpcAbstractEmulator(envi.Emulator):
@@ -280,11 +280,22 @@ class PpcAbstractEmulator(envi.Emulator):
         if SO is None:
             SO = self.getRegister(REG_SO)
         
-        #print "0 setFlags( 0x%x, 0x%x)" % (result, flags)
+        #print("0 setFlags( 0x%x, 0x%x)" % (result, flags))
         flags |= (SO << FLAGS_SO_bitnum)
-        #print "1 setFlags( 0x%x, 0x%x)" % (result, flags)
+        #print("1 setFlags( 0x%x, 0x%x)" % (result, flags))
 
         self.setCr(crnum, flags)
+
+    def setFloatFlags(self, result, size):
+        fx = 0
+        fex = 0
+        vx = 0
+        ox = 0
+
+        fpscr = 0
+        pass
+
+        
 
     def trap(self, op):
         raise Trap('0x%x: %r' % (op.va, op))
@@ -307,7 +318,7 @@ class PpcAbstractEmulator(envi.Emulator):
         '''
         branch with link, the basic CALL instruction
         '''
-        self.setRegister(REG_LR, op.va + 4)
+        self.setRegister(REG_LR, op.va + len(op))
         return self.getOperValue(op, 0)
 
     def i_blr(self, op):
@@ -414,7 +425,7 @@ class PpcAbstractEmulator(envi.Emulator):
             return
 
         if self.getOperValue(op, 0):
-            return
+           return
 
         return self.getOperValue(op, 1)
            
@@ -866,13 +877,13 @@ class PpcAbstractEmulator(envi.Emulator):
     i_bdzla = i_bdzl
 
     def i_sync(self, op):
-        print "sync call: %r" % op
+        print("sync call: %r" % op)
 
     def i_isync(self, op):
-        print "isync call: %r" % op
+        print("isync call: %r" % op)
 
     def i_msync(self, op):
-        print "msync call: %r" % op
+        print("msync call: %r" % op)
 
     ######################## arithmetic instructions ##########################
     def i_cmpwi(self, op, L=0): # FIXME: we may be able to simply use i_cmpw for this...
@@ -935,7 +946,7 @@ class PpcAbstractEmulator(envi.Emulator):
         else:
             c = 2
 
-        #print "cmpw: %r  %x  %x  %x" % (cridx, a, b, c)
+        #print("cmpw: %r  %x  %x  %x" % (cridx, a, b, c))
         self.setCr(cridx, c|SO)
 
     def i_cmplw(self, op, L=0):
@@ -992,7 +1003,7 @@ class PpcAbstractEmulator(envi.Emulator):
         '''
         mode = self.getPointerSize() * 8
         ca = bool(result >> mode)
-        #print "setCA(0x%x):  %r" % (result, ca)
+        #print("setCA(0x%x):  %r" % (result, ca))
         self.setRegister(REG_CA, ca)
 
 
@@ -1004,13 +1015,13 @@ class PpcAbstractEmulator(envi.Emulator):
             cm = getCarryBitAtX((size*8), add0, add1)
             cm1 = getCarryBitAtX((size*8)-1, add0, add1)
             ov = cm != cm1
-            #print "setOEflags( 0x%x, 0x%x, 0x%x, 0x%x):  cm= 0x%x, cm1= 0x%x, ov= 0x%x" % (result, size, add0, add1, cm, cm1, ov)
+            #print("setOEflags( 0x%x, 0x%x, 0x%x, 0x%x):  cm= 0x%x, cm1= 0x%x, ov= 0x%x" % (result, size, add0, add1, cm, cm1, ov))
 
         elif mode == OEMODE_ADDSUBNEG:
             cm = getCarryBitAtX((size*8), add0, add1)
             cm1 = getCarryBitAtX((size*8)-1, add0, add1)
             ov = cm != cm1
-            #print "setOEflags( 0x%x, 0x%x, 0x%x, 0x%x):  cm= 0x%x, cm1= 0x%x, ov= 0x%x" % (result, size, add0, add1, cm, cm1, ov)
+            #print("setOEflags( 0x%x, 0x%x, 0x%x, 0x%x):  cm= 0x%x, cm1= 0x%x, ov= 0x%x" % (result, size, add0, add1, cm, cm1, ov))
 
         else:
             # for mul/div, ov is set if the result cannot be contained in 64bits
@@ -1740,7 +1751,7 @@ class PpcAbstractEmulator(envi.Emulator):
 
         if op.iflags & IF_RC: self.setFlags(result, None)
         self.setOperValue(op, 0, result)
-        print "srw: rb: %x  rs: %x  result: %x" % (rb, rs, result)
+        print("srw: rb: %x  rs: %x  result: %x" % (rb, rs, result))
 
     def i_slw(self, op):
         rb = self.getOperValue(op, 2)
@@ -1757,7 +1768,7 @@ class PpcAbstractEmulator(envi.Emulator):
 
         if op.iflags & IF_RC: self.setFlags(result, None)
         self.setOperValue(op, 0, result)
-        print "slw: rb: %x  rs: %x  result: %x" % (rb, rs, result)
+        print("slw: rb: %x  rs: %x  result: %x" % (rb, rs, result))
 
     def i_lha(self, op):
         src = e_bits.signed(self.getOperValue(op, 1), 2)
@@ -2111,6 +2122,14 @@ class PpcAbstractEmulator(envi.Emulator):
     i_e_ori = i_ori
     i_e_or2i = i_ori
     i_e_or2is = i_oris
+    i_se_bl = i_bl
+    i_e_bl = i_bl
+    i_se_b = i_b
+    i_e_b = i_b
+    i_se_bc = i_bc
+    i_e_bc = i_bc
+    i_se_bcl = i_bcl
+    i_e_bcl = i_bcl
 
     def i_neg(self, op, oe=False):
         ra = self.getOperValue(op, 1)
@@ -2139,7 +2158,7 @@ class PpcAbstractEmulator(envi.Emulator):
         return self.i_neg(op, oe=True)
 
     def i_wrteei(self, op):
-        print "Write MSR External Enable"
+        print("Write MSR External Enable")
 
     i_wrtee = i_wrteei
 

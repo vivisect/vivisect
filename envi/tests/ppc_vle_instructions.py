@@ -33667,16 +33667,3 @@ instrs2 = [
 instructions.extend(instrs2)
 
 
-GOOD_EMU_TESTS = 1
-# these needs to correspond to bytes listed above
-emutests = {
-        'e9f2': [{'setup': (('pc', 0x471450), ('lr', 0x313370)), 
-            'tests': (('pc', 0x471434), ('lr', 0x471452))}],   # se_bl -0x1c
-
-        'e8eb': [{'setup': (('pc', 0x47145), ('lr', 0x31337 )), 
-            'tests': (('pc', ), ('lr', 0x31337))}],   # se_b -0x2a
-
-        '7CDF0214': [{'setup': (('r31', 4), ('r0', 16), ('XER', 0)),
-            'tests': (('r6', 20), ('r31', 4), ('r0', 16), ('cr0', 0))}],   # add r6,r31,r0
-
-        }

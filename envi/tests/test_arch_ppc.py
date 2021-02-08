@@ -13,20 +13,20 @@ logger = logging.getLogger(__name__)
 
 MARGIN_OF_ERROR = 200
 
+def getVivEnv(arch='ppc'):
+    vw = vivisect.VivWorkspace()
+    vw.setMeta("Architecture", arch)
+    vw.addMemoryMap(0, 7, 'firmware', '\xff' * 16384)
+    vw.addMemoryMap(0xbfbff000, 7, 'firmware', '\xfe' * 0x1000)
+
+    emu = vw.getEmulator()
+    emu.setMeta('forrealz', True)
+    emu.logread = emu.logwrite = True
+
+    sctx = vs_anal.getSymbolikAnalysisContext(vw)
+    return vw, emu, sctx
+
 class PpcInstructionSet(unittest.TestCase):
-    def getVivEnv(self, arch='ppc'):
-        vw = vivisect.VivWorkspace()
-        vw.setMeta("Architecture", arch)
-        vw.addMemoryMap(0, 7, 'firmware', '\xff' * 16384)
-        vw.addMemoryMap(0xbfbff000, 7, 'firmware', '\xfe' * 0x1000)
-
-        emu = vw.getEmulator()
-        emu.setMeta('forrealz', True)
-        emu.logread = emu.logwrite = True
-
-        sctx = vs_anal.getSymbolikAnalysisContext(vw)
-        return vw, emu, sctx
-
     def validateEmulation(self, emu, op, setters, tests, tidx=0):
         '''
         Run emulation tests.  On successful test, returns True
@@ -130,21 +130,24 @@ class PpcInstructionSet(unittest.TestCase):
 
     def test_envi_ppcvle_disasm(self):
         import ppc_vle_instructions
-        self.do_envi_disasm('vle', ppc_vle_instructions)
+        import ppc_vle_emutests
+        self.do_envi_disasm('vle', ppc_vle_instructions, ppc_vle_emutests)
 
     def test_envi_ppc_server_disasm(self):
         import ppc_server_instructions
-        self.do_envi_disasm('ppc-server', ppc_server_instructions)
+        import ppc_server_emutests
+        self.do_envi_disasm('ppc-server', ppc_server_instructions, ppc_server_emutests)
 
-    def do_envi_disasm(self, archname, test_module):
+    def do_envi_disasm(self, archname, test_module, emu_module):
         bademu = 0
         goodemu = 0
         test_pass = 0
 
-        vw, emu, sctx = self.getVivEnv(archname)
+        vw, emu, sctx = getVivEnv(archname)
         
         for test_bytes, result_instr in test_module.instructions:
             try:
+                # test decoding of the instructions
                 op = vw.arch.archParseOpcode(test_bytes.decode('hex'), 0)
                 op_str = repr(op).strip()
                 if op_str == result_instr:
@@ -152,8 +155,13 @@ class PpcInstructionSet(unittest.TestCase):
                 if result_instr != op_str:
                     logging.error('{}: ours: {} != {}'.format(test_bytes, repr(op_str), repr(result_instr)))
 
-                # do emulator tests for this byte combination (if existing)
-                emutests = test_module.emutests.get(test_bytes)
+            except Exception, e:
+                logging.exception('ERROR: {}: {}'.format(test_bytes, result_instr))
+
+        for test_bytes, emutests in emu_module.emutests.items():
+            try:
+                # do emulator tests for this byte combination
+                op = vw.arch.archParseOpcode(test_bytes.decode('hex'), 0)
                 if emutests is not None:
                     ngoodemu, nbademu = self.do_emutsts(emu, test_bytes, op, emutests)
                     goodemu += ngoodemu
@@ -166,7 +174,7 @@ class PpcInstructionSet(unittest.TestCase):
         self.assertAlmostEqual(test_pass, len(test_module.instructions), delta=MARGIN_OF_ERROR)
 
         logger.info("%s: Total of %d tests completed.", archname, (goodemu + bademu))
-        self.assertEqual(goodemu, test_module.GOOD_EMU_TESTS)
+        self.assertEqual(goodemu, emu_module.GOOD_EMU_TESTS)
 
 
     def test_MASK_and_ROTL32(self):
@@ -197,7 +205,7 @@ class PpcInstructionSet(unittest.TestCase):
     def test_CR_and_XER(self):
         from envi.archs.ppc.regs import *
         from envi.archs.ppc.const import *
-        vw, emu, sctx = self.getVivEnv(arch='ppc-server')
+        vw, emu, sctx = getVivEnv(arch='ppc-server')
 
         # now compare the register and bitmap stuff to be the same
         emu.setRegister(REG_CR0, 0)
@@ -1402,7 +1410,7 @@ class PpcInstructionSet(unittest.TestCase):
         OPCODE_CMPLW = '7C000840'.decode('hex')
         OPCODE_SUBFCO= '7C620C11'.decode('hex')
 
-        vw, emu, sctx = self.getVivEnv(arch='ppc-server')
+        vw, emu, sctx = getVivEnv(arch='ppc-server')
         ppcarch = vw.imem_archs[0]
         op = ppcarch.archParseOpcode(OPCODE_ADDCO)
         for test in addco_tests:

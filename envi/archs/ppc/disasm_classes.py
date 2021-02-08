@@ -430,7 +430,7 @@ class PpcMemOper(envi.DerefOper):
 
     def updateReg(self, emu):
         rval = emu.getRegister(self.base_reg)
-        #print self.offset
+        #print(self.offset)
         rval += self.offset
         emu.setRegister(self.base_reg, rval)
 
