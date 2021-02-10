@@ -192,18 +192,18 @@ class RxDisasm:
         self.HANDLERS[FORM_GOOGOL] = self.form_GOOGOL
         self.HANDLERS[FORM_MOV_RI_RB] = self.form_MOV_RI_RB
 
-    def disasm(self, bytez, offset=0, va=0):
+    def disasm(self, bytez, off=0, va=0):
         curtable = rxtables.tblmain
         opervals = [None for x in range(10)]
 
         # bite off the first byte
-        bval, = struct.unpack_from('B', bytez, offset)
+        bval, = struct.unpack_from('B', bytez, off)
         val = bval
         opsize = 1
         opervals[opsize] = val
 
         #print "val: 0x%x  bval: 0x%x" % (val, bval)
-        nextbl, handler, mask, endval, opcode, mnem, operdefs, isize, iflags = curtable[bval]
+        nextbl, handler, mask, endval, opcode, mnem, operdefs, opsz, iflags = curtable[bval]
         found = True
         
         #print "  tabline: %r" % (repr(curtable[bval]))
@@ -213,11 +213,11 @@ class RxDisasm:
             curtable = nextbl
 
             # search through the list looking for the right one...
-            for nextbl, handler, mask, endval, opcode, mnem, operdefs, isize, iflags in curtable:
+            for nextbl, handler, mask, endval, opcode, mnem, operdefs, opsz, iflags in curtable:
                 try:
-                    while opsize < isize:
+                    while opsize < opsz:
                         # grab the next byte
-                        bval, = struct.unpack_from('B', bytez, offset+opsize)
+                        bval, = struct.unpack_from('B', bytez, off+opsize)
                         # update the running value we'll use to parse
                         val <<= 8
                         val |= bval
@@ -229,7 +229,7 @@ class RxDisasm:
 
 
                     # find a match:
-                    if opervals[isize] & mask != endval:
+                    if opervals[opsz] & mask != endval:
                         continue
 
                     found = True
@@ -240,9 +240,9 @@ class RxDisasm:
                     continue
 
         else:   # true up the 
-            while opsize < isize:
+            while opsize < opsz:
                 # grab the next byte
-                bval, = struct.unpack_from('B', bytez, offset+opsize)
+                bval, = struct.unpack_from('B', bytez, off+opsize)
                 # update the running value we'll use to parse
                 val <<= 8
                 val |= bval
@@ -252,15 +252,15 @@ class RxDisasm:
 
 
         if not found:
-            raise e_exc.InvalidInstruction(bytez[offset:offset+opsize], "Couldn't find a opcode match in the table")
+            raise e_exc.InvalidInstruction(bytez[off:off+opsize], "Couldn't find a opcode match in the table")
 
         # we've found a match, parse it!
-        logger.warning("PARSE MATCH FOUND: val: %x\n\t%x %x %x %r %r  %r  %x", val, mask, endval, opcode, mnem, operdefs, isize, iflags)
-        print("PARSE MATCH FOUND: val: %x\n\t%x %x %x %r %r  %r  %x" % (val, mask, endval, opcode, mnem, operdefs, isize, iflags))
+        logger.warning("PARSE MATCH FOUND: val: %x\n\t%x %x %x %r %r  %r  %x", val, mask, endval, opcode, mnem, operdefs, opsz, iflags)
+        print("PARSE MATCH FOUND: val: %x\n\t%x %x %x %r %r  %r  %x" % (val, mask, endval, opcode, mnem, operdefs, opsz, iflags))
 
 
-        offset += isize
-        val = opervals[isize]
+        off += opsz
+        val = opervals[opsz]
         # let's parse out the things
         fields = {}
         for fkey, fparts in operdefs:
@@ -274,7 +274,7 @@ class RxDisasm:
             # if we have a handler, just let it do everything
             hndlFunc = self.HANDLERS[handler]
             print("Handler: %r" % hndlFunc)
-            return hndlFunc(va, opcode, mnem, fields, isize, iflags, bytez, offset)
+            return hndlFunc(va, opcode, mnem, fields, opsz, iflags, bytez, off)
 
 
 
@@ -313,13 +313,13 @@ class RxDisasm:
                 li = fields.get(O_LI)
                 if li is not None:
                     if li == 3:
-                        imm = e_bits.slowparsebytes(bytez, offset, 3, sign=True, bigend=True)
+                        imm = e_bits.slowparsebytes(bytez, off, 3, sign=True, bigend=True)
                     else:
                         if li == 0:
                             li = 4
 
                         fmt = e_bits.getFormat(li, big_endian=True, signed=True)
-                        imm, = struct.unpack_from(fmt, bytez, offset)
+                        imm, = struct.unpack_from(fmt, bytez, off)
 
                     opers.append(RxImmOper(imm, va=va))
 
@@ -341,10 +341,10 @@ class RxDisasm:
                         elif regconst == O_RS:
                             if O_LDS in operkeys:
                                 lds = fields.get(O_LDS)
-                                dsp = e_bits.parsebytes(bytez, offset, lds, sign=False, bigend=True)
+                                dsp = e_bits.parsebytes(bytez, off, lds, sign=False, bigend=True)
                                 opers.append(RxDspOper(val, dsp, tsize=tsize, oflags=oflags, va=va))
-                                offset += lds
-                                isize += lds
+                                off += lds
+                                opsz += lds
 
                             elif O_DSPS in operkeys:
                                 dsp = fields.get(O_DSPS)
@@ -367,16 +367,16 @@ class RxDisasm:
                 if li is not None:
                     print("  li: %x" % li)
                     if li == 3:
-                        imm = e_bits.slowparsebytes(bytez, offset, 3, sign=True, bigend=True)
+                        imm = e_bits.slowparsebytes(bytez, off, 3, sign=True, bigend=True)
                     else:
                         if li == 0:
                             li = 4
 
                         fmt = e_bits.getFormat(li, big_endian=True, signed=True)
-                        imm, = struct.unpack_from(fmt, bytez, offset)
+                        imm, = struct.unpack_from(fmt, bytez, off)
 
                     opers.append(RxImmOper(imm, va=va))
-                    offset += li
+                    off += li
 
                 elif O_IMM in operkeys:
                     imm = fields.get(O_IMM)
@@ -401,10 +401,10 @@ class RxDisasm:
 
                         elif regconst == O_RD:
                             if ldd in (1,2):
-                                dsp = e_bits.parsebytes(bytez, offset, ldd, sign=False, bigend=True)
+                                dsp = e_bits.parsebytes(bytez, off, ldd, sign=False, bigend=True)
                                 opers.append(RxDspOper(reg, dsp, tsize=tsize, oflags=oflags, va=va))
-                                offset += ldd
-                                isize += ldd
+                                off += ldd
+                                opsz += ldd
 
                             elif O_DSPD in operkeys:
                                 dsp = fields.get(O_DSPD)
@@ -415,10 +415,10 @@ class RxDisasm:
 
                         elif regconst == O_RS:
                             if lds in (1,2):
-                                dsp = e_bits.parsebytes(bytez, offset, lds, sign=False, bigend=True)
+                                dsp = e_bits.parsebytes(bytez, off, lds, sign=False, bigend=True)
                                 opers.append(RxDspOper(reg, dsp, tsize=tsize, oflags=oflags, va=va))
-                                offset += lds
-                                isize += lds
+                                off += lds
+                                opsz += lds
 
                             elif O_DSPS in operkeys:
                                 dsp = fields.get(O_DSPS)
@@ -432,7 +432,7 @@ class RxDisasm:
 
 
         #import envi.interactive as ei; ei.dbg_interact(locals(), globals())
-        return RxOpcode(va, opcode, mnem, opers, iflags, isize)
+        return RxOpcode(va, opcode, mnem, opers, iflags, opsz)
 
 
     def form_PCDSP(self, va, opcode, mnem, fields, opsz, iflags, bytez, off):
@@ -532,6 +532,14 @@ class RxDisasm:
         rd = fields.get(O_RD)
         lds = fields.get(O_LDS)
 
+        # 'round' uses a Dsp
+        if opcode == INS_ROUND: #janky!
+            tsize = 4
+            oflags = OF_L
+        else:
+            tsize = 1
+            oflags = OF_UB
+
         if lds is None:
             ldd = fields.get(O_LDD)
 
@@ -549,7 +557,7 @@ class RxDisasm:
                 
                 opers = (
                         RxRegOper(rd, va), 
-                        RxDspOper(rs, dsps, tsize=1, oflags=OF_UB, va=va), 
+                        RxDspOper(rs, dsps, tsize=tsize, oflags=oflags, va=va), 
                         )
 
         else:
@@ -563,10 +571,9 @@ class RxDisasm:
                 if lds in (1,2):
                     dsps = e_bits.parsebytes(bytez, off, lds, sign=False, bigend=True)
                     opsz += lds
-                #elif lds == 0:
                 
                 opers = (
-                        RxDspOper(rs, dsps, tsize=1, oflags=OF_UB, va=va), 
+                        RxDspOper(rs, dsps, tsize=tsize, oflags=oflags, va=va), 
                         RxRegOper(rd, va), 
                         )
 
